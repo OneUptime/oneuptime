@@ -54,7 +54,7 @@ OneUptime Cloud では、SSO でプロジェクトに参加した人も、招待
 
 ## SSO の設定
 
-SSO プロバイダーを追加する権限（**Project Owner**、**Project Admin**、または **Create Project SSO**）が必要です。OneUptime Cloud では、さらに **Scale** プランが必要です。アイデンティティプロバイダー側の設定については、[アイデンティティプロバイダー別のガイド](#アイデンティティプロバイダー別のガイド) をご覧ください。
+SSO プロバイダーを追加する権限（**プロジェクト所有者**、**プロジェクト管理者**、または **Create Project SSO**）が必要です。OneUptime Cloud では、さらに **Scale** プランが必要です。アイデンティティプロバイダー側の設定については、[アイデンティティプロバイダー別のガイド](#アイデンティティプロバイダー別のガイド) をご覧ください。
 
 :::steps
 1. **プロジェクト設定に移動する**
@@ -248,7 +248,7 @@ OneUptime の SSO は SAML 2.0 を使い、準拠したあらゆるアイデン�
 
 ## OpenID Connect (OIDC)
 
-プロジェクトは、Google Workspace、Okta、Microsoft Entra ID、Auth0、Keycloak などの OpenID Connect プロバイダーでサインインすることもできます。OIDC プロバイダーを追加する権限（**Project Owner**、**Project Admin**、または **Create Project OIDC**）が必要で、OneUptime Cloud ではさらに **Scale** プランが必要です。
+プロジェクトは、Google Workspace、Okta、Microsoft Entra ID、Auth0、Keycloak などの OpenID Connect プロバイダーでサインインすることもできます。OIDC プロバイダーを追加する権限（**プロジェクト所有者**、**プロジェクト管理者**、または **Create Project OIDC**）が必要で、OneUptime Cloud ではさらに **Scale** プランが必要です。
 
 :::steps
 1. アイデンティティプロバイダーに、PKCE 付きの認可コードフローを使えるアプリ（OIDC クライアント）を登録し、その **発行者 URL**、**クライアント ID**、**クライアントシークレット** をコピーします。

@@ -5,7 +5,7 @@ Etikettregler och ägarregler håller ordning på dina resurser åt dig. En **et
 :::cards
 - [Skapa en regel](#skapa-en-regel): Två steg: vad regeln matchar, och sedan vad den lägger till.
 - [Ärv etiketter och ägare](#ärv-etiketter-och-ägare): För vidare det som en händelses monitorer, värdar och tjänster bär.
-- [När regler körs](#när-regler-körs): Nya resurser, och **Run Now** för dem du redan har.
+- [När regler körs](#när-regler-körs): Nya resurser, och **Kör nu** för dem du redan har.
 :::
 
 ## Så fungerar det
@@ -115,7 +115,7 @@ Varje aktiverad regel körs när en resurs skapas, från instrumentpanelen eller
 - En regel tar aldrig bort något: varken etiketter eller ägare som någon lagt till för hand, eller sådana som den själv har lagt till.
 - En inaktiverad regel gör ingenting.
 
-En regel som du skriver i dag gäller för de resurser som skapas efteråt. För att tillämpa den på dem du redan har använder du **Run Now**: se [Köra regler på befintliga resurser](/docs/configuration/run-rules-now). Etikettregler kan också kopieras mellan projekt: se [Importera och exportera etikettregler](/docs/configuration/label-rule-import-export).
+En regel som du skriver i dag gäller för de resurser som skapas efteråt. För att tillämpa den på dem du redan har använder du **Kör nu**: se [Köra regler på befintliga resurser](/docs/configuration/run-rules-now). Etikettregler kan också kopieras mellan projekt: se [Importera och exportera etikettregler](/docs/configuration/label-rule-import-export).
 
 ## Mönster
 

@@ -160,11 +160,11 @@ OAuth 2.0 變數頁面上的 **存取權杖** 卡片會顯示以下狀態之一�
 | **No expiry reported**     | 提供者沒有說明權杖何時過期，所以每次執行都會取得一個新權杖。                                                                         |
 | **Refresh failed**         | 上一次取得權杖的嘗試失敗了。提供者給出的原因會完整顯示，並附上發生時間。下一次成功的重新整理會清除它。                               |
 
-狀態下方的 **立即重新整理** 會立刻取得一個新權杖。用它來檢查新設定，而不必執行工作流程。**OAuth 2.0 Settings** 卡片上的 **Update Credentials** 會取代用戶端密鑰或 refresh token，然後用它們取得權杖。變更某個設定（權杖 URL、用戶端 ID、範圍等）會捨棄快取的權杖，讓下一次執行用新設定取得權杖。
+狀態下方的 **立即重新整理** 會立刻取得一個新權杖。用它來檢查新設定，而不必執行工作流程。**OAuth 2.0 Settings** 卡片上的 **更新憑證** 會取代用戶端密鑰或 refresh token，然後用它們取得權杖。變更某個設定（權杖 URL、用戶端 ID、範圍等）會捨棄快取的權杖，讓下一次執行用新設定取得權杖。
 
 ### 當提供者拒絕時
 
-需要權杖的步驟會在執行前失敗，執行的日誌會寫明變數並引述提供者的回覆，例如 `Could not get an OAuth 2.0 access token for {{global.variables.CRM_API_TOKEN}}: The token endpoint refused the request (HTTP 400): invalid_grant - Token has been expired or revoked.` 同樣的原因也會顯示在變數的 **存取權杖** 卡片上。Refresh Token 變數上出現 `invalid_grant`，幾乎總是表示 refresh token 本身已過期或被撤銷，解決辦法是 **Update Credentials**。
+需要權杖的步驟會在執行前失敗，執行的日誌會寫明變數並引述提供者的回覆，例如 `Could not get an OAuth 2.0 access token for {{global.variables.CRM_API_TOKEN}}: The token endpoint refused the request (HTTP 400): invalid_grant - Token has been expired or revoked.` 同樣的原因也會顯示在變數的 **存取權杖** 卡片上。Refresh Token 變數上出現 `invalid_grant`，幾乎總是表示 refresh token 本身已過期或被撤銷，解決辦法是 **更新憑證**。
 
 如果重新整理失敗時快取的權杖其實還沒過期（只是處在一分鐘的緩衝之內），步驟會繼續使用快取的權杖，日誌會說明這一點。
 

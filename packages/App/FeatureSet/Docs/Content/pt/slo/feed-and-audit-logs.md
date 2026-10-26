@@ -23,7 +23,7 @@ flowchart LR
 
 ## O feed do SLO
 
-O feed fica na página **Feed** do SLO, e os itens mais recentes dele em **Recent activity** na **Visão geral** do SLO. Os itens levam ao SLO, aos monitores, aos alertas e aos incidentes que mencionam, e a maioria tem detalhes com os números ou os valores antigos e novos, que **Mostrar detalhes** abre sob o item.
+O feed fica na página **Feed** do SLO, e os itens mais recentes dele em **Atividade recente** na **Visão geral** do SLO. Os itens levam ao SLO, aos monitores, aos alertas e aos incidentes que mencionam, e a maioria tem detalhes com os números ou os valores antigos e novos, que **Mostrar detalhes** abre sob o item.
 
 | Evento | Publicado quando |
 | --- | --- |
@@ -31,7 +31,7 @@ O feed fica na página **Feed** do SLO, e os itens mais recentes dele em **Recen
 | SLO atualizado | Mudam o nome, a descrição, os rótulos, a meta, a janela de conformidade, o fuso horário, o limite de risco, o modo de vários monitores ou os status de indisponibilidade. Mostra cada valor antigo e novo. |
 | SLO habilitado ou desabilitado | A avaliação é ligada ou desligada. |
 | SLO arquivado ou restaurado | O SLO é arquivado ou desarquivado. |
-| Status alterado | Uma avaliação leva o SLO a um novo status. Mostra o SLI, o orçamento de erros, a taxa de consumo e o limite de risco que o explicam, e o motivo no caso de **Pausado** ou **Misconfigured**. |
+| Status alterado | Uma avaliação leva o SLO a um novo status. Mostra o SLI, o orçamento de erros, a taxa de consumo e o limite de risco que o explicam, e o motivo no caso de **Pausado** ou **Mal configurado**. |
 | Alerta de taxa de consumo gerado | Uma regra de taxa de consumo cria um alerta. Leva a ele e mostra as taxas de consumo que o dispararam. |
 | Incidente de taxa de consumo declarado | Uma regra de taxa de consumo declara um incidente. Leva a ele e mostra as taxas de consumo que o dispararam. |
 | Alerta ou incidente de taxa de consumo resolvido | O alerta ou o incidente de uma regra é fechado: resolvido automaticamente, ou à mão enquanto a resolução automática estava desligada. |

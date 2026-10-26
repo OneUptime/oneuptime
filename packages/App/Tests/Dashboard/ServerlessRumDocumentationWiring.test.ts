@@ -11,9 +11,11 @@ import path from "path";
  *
  *   - each card is a thin wrapper around the shared SetupGuideCard, which
  *     owns the picker, the ingestion key step and the folded sections;
- *   - the product pages (serverless functions through their Add guide,
- *     Components/ResourceOnboarding) and the Documentation tabs render those
- *     cards, not the old single-document ResourceDocumentationCard;
+ *   - the product pages' Add (serverless functions through their Add guide,
+ *     Components/ResourceOnboarding; RUM applications through the guide
+ *     that follows the create form) and the Documentation tabs render those
+ *     cards, not the old single-document ResourceDocumentationCard - an
+ *     empty list shows its showcase (Components/ResourceShowcase) instead;
  *   - a Documentation tab passes what it knows about its resource — the
  *     function's identifier and platform, the application's identifier and
  *     client type — so the guide opens on the right option with the right
@@ -59,7 +61,8 @@ interface GuideCase {
   readonly cardPath: string;
   readonly guidePath: string;
   readonly listPage: string;
-  readonly listTitle: string;
+  // What the empty list shows under its table.
+  readonly showcase: string;
   /*
    * What the list page counts with: serverless functions are an
    * infrastructure list, counted by the shared first-record watch.
@@ -71,6 +74,13 @@ interface GuideCase {
    */
   readonly onboarding?:
     | { readonly constant: string; readonly path: string }
+    | undefined;
+  /*
+   * Where a form adds the resource: the dialog the saved form opens, which
+   * draws the card.
+   */
+  readonly addedModal?:
+    | { readonly element: string; readonly path: string }
     | undefined;
   readonly documentationPage: string;
   readonly model: string;
@@ -85,7 +95,7 @@ const GUIDES: ReadonlyArray<GuideCase> = [
     cardPath: "Components/Serverless/ServerlessDocumentationCard.tsx",
     guidePath: "Components/Serverless/ServerlessSetupGuide.ts",
     listPage: "Pages/Serverless/ServerlessFunctions.tsx",
-    listTitle: "Getting Started with Serverless Functions",
+    showcase: "SERVERLESS_FUNCTION_SHOWCASE",
     countState: "firstRecordWatch.count",
     onboarding: {
       constant: "SERVERLESS_FUNCTION_ONBOARDING",
@@ -105,8 +115,12 @@ const GUIDES: ReadonlyArray<GuideCase> = [
     cardPath: "Components/Rum/RumDocumentationCard.tsx",
     guidePath: "Components/Rum/RumSetupGuide.ts",
     listPage: "Pages/Rum/RumApplications.tsx",
-    listTitle: "Getting Started with Real User Monitoring",
+    showcase: "RUM_APPLICATION_SHOWCASE",
     countState: "count",
+    addedModal: {
+      element: "RumApplicationAddedModal",
+      path: "Components/Rum/RumApplicationAddedModal.tsx",
+    },
     documentationPage: "Pages/Rum/View/Documentation.tsx",
     model: "rumApplication",
     selectedColumns: ["appIdentifier: true", "clientType: true"],
@@ -140,28 +154,25 @@ describe.each(GUIDES)("the $label guide", (guide: GuideCase) => {
     expect(source).toContain('from "../SetupGuide/SetupGuide"');
   });
 
-  test("the product page shows the card in its empty state", () => {
-    if (!guide.onboarding) {
-      expect(listPage).toContain(`<${guide.card} title="${guide.listTitle}"`);
+  test("the product page's Add opens the card; its empty state shows the showcase", () => {
+    expect(listPage).toContain(
+      `{${guide.countState} === 0 && ( <ResourceShowcaseCard showcase={${guide.showcase}}`,
+    );
+    expect(listPage).not.toContain(`<${guide.card}`);
+
+    if (guide.onboarding) {
       expect(listPage).toContain(
-        `{${guide.countState} === 0 && ( <${guide.card}`,
+        `<AddResourceModal onboarding={${guide.onboarding.constant}}`,
       );
-      return;
+      expect(readCode(guide.onboarding.path)).toContain(
+        `<${guide.card} title={props.title}`,
+      );
     }
 
-    const onboarding: string = readCode(guide.onboarding.path);
-
-    expect(listPage).toContain(
-      `{${guide.countState} === 0 && ( <AddResourceGuide onboarding={${guide.onboarding.constant}} title={${guide.onboarding.constant}.firstRunTitle}`,
-    );
-    // On one line or wrapped, however long the title is.
-    expect(
-      onboarding.replace(
-        /translationKey\( ("[^"]*"), \)/g,
-        "translationKey($1)",
-      ),
-    ).toContain(`firstRunTitle: translationKey("${guide.listTitle}"),`);
-    expect(onboarding).toContain(`<${guide.card} title={props.title}`);
+    if (guide.addedModal) {
+      expect(listPage).toContain(`<${guide.addedModal.element}`);
+      expect(readCode(guide.addedModal.path)).toContain(`<${guide.card}`);
+    }
   });
 
   test("the Documentation tab passes what it knows about the resource", () => {

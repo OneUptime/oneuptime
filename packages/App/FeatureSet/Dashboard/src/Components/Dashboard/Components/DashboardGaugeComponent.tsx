@@ -20,6 +20,7 @@ import { RangeStartAndEndDateTimeUtil } from "Common/Types/Time/RangeStartAndEnd
 import DashboardVariableInterpolation from "Common/Utils/Dashboard/VariableInterpolation";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 import GaugeWidgetView from "./GaugeWidgetView";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import {
   aggregateValues,
   collectDataPoints,
@@ -191,11 +192,11 @@ const DashboardGaugeComponentElement: FunctionComponent<ComponentProps> = (
       value={aggregatedValue}
       noDataMessage={
         getResultsErrorMessage(metricResults) ||
-        "No data for the selected time range"
+        translationKey("No data for the selected time range")
       }
       isConfigured={isConfigured}
-      setupTitle="Gauge Widget"
-      setupMessage="Click to configure metric"
+      setupTitle={translationKey("Gauge Widget")}
+      setupMessage={translationKey("Click to configure metric")}
       title={props.component.arguments.gaugeTitle}
       rawUnit={rawUnit}
       metricName={metricName}

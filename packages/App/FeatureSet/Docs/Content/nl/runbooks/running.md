@@ -41,7 +41,7 @@ Een runbook-uitvoering ontstaat op vijf manieren:
 
 1. **Automatisch via een regel**: een [runbook-regel](/docs/runbooks/rules) start haar wanneer een overeenkomend incident, overeenkomende waarschuwing of overeenkomend gepland onderhoudsevenement ontstaat. Ook een AI-regel kan er een starten; zie [AI SRE](/docs/ai/ai-sre).
 2. **Handmatig vanuit een evenement**: klik op een incident, waarschuwing of gepland onderhoudsevenement op **Runbook uitvoeren**. De uitvoering hangt aan dat evenement.
-3. **Handmatig vanaf de runbookpagina**: klik op de pagina **Overzicht** van een runbook op **Run Now**. De uitvoering hangt aan geen enkel incident, geen waarschuwing en geen gepland onderhoudsevenement.
+3. **Handmatig vanaf de runbookpagina**: klik op de pagina **Overzicht** van een runbook op **Nu uitvoeren**. De uitvoering hangt aan geen enkel incident, geen waarschuwing en geen gepland onderhoudsevenement.
 4. **Volgens een schema**: het schema van het runbook start haar op vaste tijden. Zie [Uitvoeren volgens een schema](/docs/runbooks/triggers#uitvoeren-volgens-een-schema).
 5. **Vanuit een ander hulpmiddel**: een `POST` naar de webhook-URL van het runbook start haar, met de waarden die de aanroep verstuurt. Zie [De webhook aanroepen](/docs/runbooks/triggers#de-webhook-aanroepen).
 
@@ -54,15 +54,15 @@ Zo start u er een met de hand:
 3. Klik naast het runbook op **Uitvoeren**. De uitvoering verschijnt in de lijst van het evenement: klik op **Bekijken** om haar te openen.
 @tab Vanuit het runbook
 1. Open het runbook via **Runbooks**.
-2. Klik op het **Overzicht** ervan op **Run Now**.
+2. Klik op het **Overzicht** ervan op **Nu uitvoeren**.
 3. De uitvoeringspagina opent.
 :::
 
-Een uitvoering starten vereist Project Owner, Project Admin, Project Member, Runbook Admin of Runbook Member, of de machtiging **Create Runbook Execution**. Runbook Viewer en Viewer zien **Run Now** vergrendeld, met de reden. Zie [Machtigingen](/docs/runbooks/configuration#machtigingen).
+Een uitvoering starten vereist Project Owner, Project Admin, Project Member, Runbook Admin of Runbook Member, of de machtiging **Create Runbook Execution**. Runbook Viewer en Viewer zien **Nu uitvoeren** vergrendeld, met de reden. Zie [Machtigingen](/docs/runbooks/configuration#machtigingen).
 
 ## De uitvoeringsweergave
 
-Open een uitvoering om de checklist te zien. Bovenaan de pagina staan de **Status** van de uitvoering, de **Progress** (voltooide stappen van het totaal), **Gestart** (wanneer ze begon) en **Geactiveerd door** (wat haar startte). Elke stap toont:
+Open een uitvoering om de checklist te zien. Bovenaan de pagina staan de **Status** van de uitvoering, de **Voortgang** (voltooide stappen van het totaal), **Gestart** (wanneer ze begon) en **Geactiveerd door** (wat haar startte). Elke stap toont:
 
 - **Statuslabel** — In behandeling, Actief, Wacht op u, Wacht op goedkeuring, Klaar, Overgeslagen, Mislukt of Geannuleerd.
 - **Titel en beschrijving** — bij de start van de uitvoering uit het runbook gekopieerd.
@@ -113,7 +113,7 @@ De uitvoer per stap is beperkt tot **50 KB**, zodat een op hol geslagen script d
 
 ## Een runbook opnieuw uitvoeren
 
-Een uitvoering is een eenmalig, onveranderlijk record. Klik om het runbook opnieuw uit te voeren op **Opnieuw uitvoeren** bij een afgeronde uitvoering, of op **Run Now** bij het runbook. Beide maken een nieuwe uitvoering met de huidige stappen van het runbook, aan geen enkel evenement gekoppeld. Gebruik **Runbook uitvoeren** op de pagina **Runbooks** van het incident om het opnieuw op een incident uit te voeren. De oorspronkelijke uitvoering blijft intact voor het audittrail.
+Een uitvoering is een eenmalig, onveranderlijk record. Klik om het runbook opnieuw uit te voeren op **Opnieuw uitvoeren** bij een afgeronde uitvoering, of op **Nu uitvoeren** bij het runbook. Beide maken een nieuwe uitvoering met de huidige stappen van het runbook, aan geen enkel evenement gekoppeld. Gebruik **Runbook uitvoeren** op de pagina **Runbooks** van het incident om het opnieuw op een incident uit te voeren. De oorspronkelijke uitvoering blijft intact voor het audittrail.
 
 ## Eerdere uitvoeringen vinden
 
@@ -130,11 +130,11 @@ Uw rol leest runbooks maar voert ze niet uit: de knop zegt "Je hebt geen toestem
 :::
 
 :::details Een uitvoering starten mislukt met "Runbook is disabled" of "Runbook has no steps to run"
-De schakelaar **Dit runbook uitvoeren** van het runbook staat uit, op de pagina **Instellingen** ervan, of het heeft geen opgeslagen stappen. Zet de schakelaar aan, of voeg stappen toe en klik op **Save Steps**. Het **Overzicht** zegt welke, met **Runbook inschakelen** of **Stappen toevoegen**.
+De schakelaar **Dit runbook uitvoeren** van het runbook staat uit, op de pagina **Instellingen** ervan, of het heeft geen opgeslagen stappen. Zet de schakelaar aan, of voeg stappen toe en klik op **Stappen opslaan**. Het **Overzicht** zegt welke, met **Runbook inschakelen** of **Stappen toevoegen**.
 :::
 
 :::details Een stap is mislukt omdat er een Runner ontbreekt
-De melding luidt bijvoorbeeld "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or make one the project's default Runner under Runbooks → Runners." De stap is opgeslagen zonder **Runner**, en het project heeft geen [standaard-Runner](/docs/runbooks/agents#de-standaard-runner-van-het-project). Een JavaScript-stap heeft alleen een eigen Runner nodig als geen [globale Runner](/docs/runbooks/agents#globale-runners) hem kan uitvoeren. Open de **Stappen** van het runbook, kies de Runner van de stap onder **Meer velden**, klik op **Save Steps** en voer het runbook opnieuw uit.
+De melding luidt bijvoorbeeld "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or make one the project's default Runner under Runbooks → Runners." De stap is opgeslagen zonder **Runner**, en het project heeft geen [standaard-Runner](/docs/runbooks/agents#de-standaard-runner-van-het-project). Een JavaScript-stap heeft alleen een eigen Runner nodig als geen [globale Runner](/docs/runbooks/agents#globale-runners) hem kan uitvoeren. Open de **Stappen** van het runbook, kies de Runner van de stap onder **Meer velden**, klik op **Stappen opslaan** en voer het runbook opnieuw uit.
 :::
 
 :::details Een stap is mislukt omdat hij variabelen noemt die hij niet kan gebruiken

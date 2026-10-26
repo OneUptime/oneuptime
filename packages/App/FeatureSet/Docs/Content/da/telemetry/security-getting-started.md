@@ -18,7 +18,7 @@ Det kræver rollen Project Owner, Project Admin eller Security Admin at sætte s
 :::steps
 ### Slå det til, som de fleste teams har brug for
 
-Åbn **Produkter → Security Events**. Klik på **Slå anbefalet til** på **Oversigt**. Det slår tre ting til på én gang: **Find sikkerhedshændelser i dine logs**, de anbefalede detektionsregler og **Enrich New Cases**, en playbook, der tjekker hver ny sag mod trusselsintelligens og efterlader en tjekliste til triage på den.
+Åbn **Produkter → Security Events**. Klik på **Slå anbefalet til** på **Oversigt**. Det slår tre ting til på én gang: **Find sikkerhedshændelser i dine logs**, de anbefalede detektionsregler og **Berig nye sager**, en playbook, der tjekker hver ny sag mod trusselsintelligens og efterlader en tjekliste til triage på den.
 
 ### Send et testangreb
 
@@ -26,7 +26,7 @@ Klik på **Send et testangreb**. Et dusin mislykkede logins fra én dokumentatio
 
 ### Åbn sagen
 
-Klik på **Åbn sagen**. Sådan ser et rigtigt fund ud: hændelserne bag det, adressen, det handler om, og hvad **Enrich New Cases** fandt. Luk den som en test, når du er færdig.
+Klik på **Åbn sagen**. Sådan ser et rigtigt fund ud: hændelserne bag det, adressen, det handler om, og hvad **Berig nye sager** fandt. Luk den som en test, når du er færdig.
 :::
 
 Derefter åbner **Oversigt** på det, der kræver nogen, under **Kræver opmærksomhed**: dine åbne sager, dem ingen har taget, og de playbook-trin, der venter på en godkendelse. Når der ikke er nogen, står der **Alt er roligt**.
@@ -43,8 +43,8 @@ flowchart LR
 
 | Del | Hvor | Hvad den gør |
 | --- | --- | --- |
-| **Kilder** | **Connections** | Dine logs, de sikkerhedsprodukter, OneUptime henter fra, og alt, hvad du sender |
-| **Detections** | **Detections** | Sigma-regler og feeds med trusselsintelligens, der leder efter trusler i hver hændelse |
+| **Kilder** | **Forbindelser** | Dine logs, de sikkerhedsprodukter, OneUptime henter fra, og alt, hvad du sender |
+| **Detektioner** | **Detektioner** | Sigma-regler og feeds med trusselsintelligens, der leder efter trusler i hver hændelse |
 | **Sikkerhedssager** | **Sikkerhedssager** | Det, der blev fundet, grupperet efter den bruger, vært eller adresse, det handler om |
 | **Playbooks** | **Playbooks** | Trin, der kører på nye sager: beriger dem, giver besked, åbner en hændelse eller inddæmmer |
 
@@ -52,7 +52,7 @@ flowchart LR
 
 ## Find sikkerhedshændelser i dine logs
 
-Kortet **Dine logs**, øverst på **Connections**, kræver ingen installation. Med **Find sikkerhedshændelser i dine logs** slået til læser OneUptime projektets nye logs hvert minut og gør de linjer, det genkender, til sikkerhedshændelser:
+Kortet **Dine logs**, øverst på **Forbindelser**, kræver ingen installation. Med **Find sikkerhedshændelser i dine logs** slået til læser OneUptime projektets nye logs hvert minut og gør de linjer, det genkender, til sikkerhedshændelser:
 
 | Logs | Hvad der bliver en sikkerhedshændelse |
 | --- | --- |
@@ -66,7 +66,7 @@ Dine logs forbliver, som de er. Kun de linjer, der betyder noget for sikkerheden
 
 ## Send det, OneUptime finder, til dit SIEM
 
-Arbejder dit team allerede i et SIEM, sender OneUptime også sine fund dertil. Klik på **Tilføj destination** under **Connections → Send til dit SIEM**, udfyld region, instans og servicekontonøgle for dit Google SecOps, og klik på **Send en testhændelse**, før du gemmer. Se [Send sikkerhedshændelser til Google SecOps](/docs/integrations/google-secops#send-sikkerhedshændelser-til-google-secops).
+Arbejder dit team allerede i et SIEM, sender OneUptime også sine fund dertil. Klik på **Tilføj destination** under **Forbindelser → Send til dit SIEM**, udfyld region, instans og servicekontonøgle for dit Google SecOps, og klik på **Send en testhændelse**, før du gemmer. Se [Send sikkerhedshændelser til Google SecOps](/docs/integrations/google-secops#send-sikkerhedshændelser-til-google-secops).
 
 ## Fejlfinding
 
@@ -79,7 +79,7 @@ Kortet nævner alt, det ikke kunne slå til, og hvorfor: din rolle, din plan ell
 :::
 
 :::details Testangrebet åbnede ingen sag
-Sagen åbnes som regel, før knappen svarer; når reglen stadig er ved at indhente, siger den det, og sagen åbnes inden for et minut. Se under **Sikkerhedssager** igen, og tjek under **Detections**, at brute force-reglen er slået til.
+Sagen åbnes som regel, før knappen svarer; når reglen stadig er ved at indhente, siger den det, og sagen åbnes inden for et minut. Se under **Sikkerhedssager** igen, og tjek under **Detektioner**, at brute force-reglen er slået til.
 :::
 
 :::details Der kommer ingen sikkerhedshændelse fra mine logs
@@ -87,7 +87,7 @@ Tjek, at **Find sikkerhedshændelser i dine logs** er slået til, og at kortet *
 :::
 
 :::details Oversigt siger, at den seneste sikkerhedshændelse kom for dage siden
-Intet har nået Security siden da. Åbn **Connections**, og tjek, at **Dine logs** og hver forbindelse stadig er slået til, og hvornår hver sidst har tjekket.
+Intet har nået Security siden da. Åbn **Forbindelser**, og tjek, at **Dine logs** og hver forbindelse stadig er slået til, og hvornår hver sidst har tjekket.
 :::
 
 :::details Kortet, der slår Security til, er væk

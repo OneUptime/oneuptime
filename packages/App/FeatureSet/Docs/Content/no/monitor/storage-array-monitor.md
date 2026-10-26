@@ -55,11 +55,11 @@ Velg en av de tre fanene:
 
 - **Quick Setup** - klikk på en [mal](#ferdige-varslingsmaler). Den setter metrikken, etikettfiltrene, aggregeringen, tidsintervallet og tersklene og erstatter kriteriene nedenfor med sine egne. Du kan fortsatt endre **Tidsintervall**.
 - **Custom Metric** - velg én metrikk i **Storage Array Metric**, og sett deretter **Aggregering** og **Tidsintervall**. [Filtrene](#monitorinnstillinger) snevrer den inn til ett volum, én vert, én pod, én komponent, ett filsystem eller én bucket.
-- **Avansert** - bygg spørringer og formler selv under **Velg målinger**, for eksempel brukt kapasitet som `purefa_array_space_bytes` filtrert til `space=capacity` minus den samme metrikken filtrert til `space=empty`. Bruk **Group by** med et objekts etikett for å vurdere hvert objekt for seg.
+- **Avansert** - bygg spørringer og formler selv under **Velg målinger**, for eksempel brukt kapasitet som `purefa_array_space_bytes` filtrert til `space=capacity` minus den samme metrikken filtrert til `space=empty`. Bruk **Grupper etter** med et objekts etikett for å vurdere hvert objekt for seg.
 
 ### Sjekk kriteriene
 
-Åpne hvert kriterium under **Monitorkriterier**, og sjekk **Metrikk**, **Aggregering**, **Betingelse** og **Threshold**. En mal fyller dem ut. Med **Custom Metric** eller **Avansert** starter monitoren med [standardkriteriene](#standardkriterier), som bare oppdager at en metrikk faller til null, så sett din egen terskel.
+Åpne hvert kriterium under **Monitorkriterier**, og sjekk **Metrikk**, **Aggregering**, **Betingelse** og **Terskel**. En mal fyller dem ut. Med **Custom Metric** eller **Avansert** starter monitoren med [standardkriteriene](#standardkriterier), som bare oppdager at en metrikk faller til null, så sett din egen terskel.
 
 ### Opprett monitoren
 
@@ -67,7 +67,7 @@ Klikk på **Opprett monitor**. OneUptime åpner monitorens side og evaluerer den
 :::
 
 > [!TIP]
-> For å sette opp flere maler på én gang åpner du arrayet fra **Produkter → Infrastruktur → Storage Arrays** og går til **Recommendations**. Velg malene du vil ha, velg hvem som skal tilkalles, og OneUptime oppretter én monitor per mal.
+> For å sette opp flere maler på én gang åpner du arrayet fra **Produkter → Infrastruktur → Storage Arrays** og går til **Anbefalinger**. Velg malene du vil ha, velg hvem som skal tilkalles, og OneUptime oppretter én monitor per mal.
 
 ## Monitorinnstillinger
 
@@ -78,12 +78,12 @@ Klikk på **Opprett monitor**. OneUptime åpner monitorens side og evaluerer den
 | **Vert** | Custom Metric, Avansert | Bare FlashArray. Én vert slik arrayet kjenner den, via etiketten `host`, som `esxi-01`. |
 | **Pod** | Custom Metric, Avansert | Bare FlashArray. Én ActiveCluster- eller ActiveDR-pod, via etiketten `name`, eller `local_pod` på serier for replikalenker. |
 | **Hardware Component** | Custom Metric, Avansert | Én maskinvarekomponent, som `CH0.BAY1` eller `CT0`: etiketten `component_name` på et FlashArray, `name` på et FlashBlade. |
-| **File System** | Custom Metric, Avansert | Bare FlashBlade. Ett filsystem, via etiketten `name`. |
+| **Filsystem** | Custom Metric, Avansert | Bare FlashBlade. Ett filsystem, via etiketten `name`. |
 | **Bucket** | Custom Metric, Avansert | Bare FlashBlade. Én bucket for objektlagring, via etiketten `name`. |
 | **Storage Array Metric** | Custom Metric | Én metrikk fra [katalogen](#innsamlede-metrikker). Skjemaet legger til etikettfilteret som gir den betydningen sin, og grupperer den etter objektet den beskriver, så hvert volum, hver vert eller hver komponent vurderes for seg. |
 | **Aggregering** | Custom Metric | Hvordan prøver kombineres: **Gjennomsnitt**, **Maksimum**, **Minimum**, **Sum** eller **Antall**. Starter på metrikkens vanlige aggregering. |
-| **Tidsintervall** | Alle | Det glidende vinduet spørringen leser, fra **Past 1 Minute** til **Past 365 Days**. En ny monitor starter på **Past 5 Minutes**; en egendefinert metrikk for et filsystem eller en bucket på **Past 15 Minutes**; maler setter sitt eget. |
-| **Velg målinger** | Avansert | Spørringsbyggeren: **Metrikk**, **Aggregate by**, **Filter by attributes**, **Group by**, pluss **Legg til metrikk** og **Legg til formel** for å kombinere spørringer. |
+| **Tidsintervall** | Alle | Det glidende vinduet spørringen leser, fra **Past 1 Minute** til **Past 365 Days**. En ny monitor starter på **Siste 5 minutter**; en egendefinert metrikk for et filsystem eller en bucket på **Siste 15 minutter**; maler setter sitt eget. |
+| **Velg målinger** | Avansert | Spørringsbyggeren: **Metrikk**, **Aggregate by**, **Filter by attributes**, **Grupper etter**, pluss **Legg til metrikk** og **Legg til formel** for å kombinere spørringer. |
 
 Agenten leser arrayets endepunkt hvert 60. sekund, og volumer, verter og pods hvert 2. minutt, så et vindu på 5 minutter alltid inneholder en prøve. Filsystemene og bucketene til et FlashBlade leser den hvert 5. minutt, derav 15, og FlashArray-kataloger hvert 30. minutt: gi en katalogmonitor et vindu på 60 minutter.
 
@@ -123,9 +123,9 @@ Et kriterium utløser bare når betingelsen gjelder for **hver** verdi i vinduet
 | Capacity Above 90%             | Kapasitet    | Kritisk          | `purefa_array_space_utilization`, Max, siste 5 minutter                                         | > 90 — arrayet er nær ved å avvise skrivinger; gjenoppretter ved ≤ 81                                                                            |
 | High Read Latency              | Performance  | Warning          | `purefa_array_performance_latency_usec` filtrert til `dimension=usec_per_read_op`, Avg, siste 10 minutter  | > 5000 µs (5 ms) — lesinger på et FlashArray tar normalt godt under 1 ms; gjenoppretter ved ≤ 4500                                   |
 | High Write Latency             | Performance  | Warning          | `purefa_array_performance_latency_usec` filtrert til `dimension=usec_per_write_op`, Avg, siste 10 minutter | > 5000 µs (5 ms); gjenoppretter ved ≤ 4500                                                                                          |
-| Hardware Component Failed      | Hardware     | Kritisk          | `purefa_hw_component_status` filtrert til `component_status=critical`, Max per `component_name`, siste 5 minutter | > 0 — en kontroller, strømforsyning, vifte, bay eller port er kritisk, og redundansen er borte. Én hendelse per komponent; gjenoppretter når den melder ok |
-| Hardware Component Degraded    | Hardware     | Warning          | `purefa_hw_component_status` filtrert til `component_status=degraded`, Max per `component_name`, siste 5 minutter | > 0 — en komponent er degradert. Én hendelse per komponent; gjenoppretter når den melder ok                             |
-| Drive Failed                   | Hardware     | Kritisk          | `purefa_drive_capacity_bytes` filtrert til `component_status=failed`, Max per `component_name`, siste 5 minutter | > 0 — en DirectFlash-modul eller en SSD har sviktet, og arrayet bygger opp igjen på de andre. Én hendelse per disk; gjenoppretter når den er byttet |
+| Hardware Component Failed      | Maskinvare     | Kritisk          | `purefa_hw_component_status` filtrert til `component_status=critical`, Max per `component_name`, siste 5 minutter | > 0 — en kontroller, strømforsyning, vifte, bay eller port er kritisk, og redundansen er borte. Én hendelse per komponent; gjenoppretter når den melder ok |
+| Hardware Component Degraded    | Maskinvare     | Warning          | `purefa_hw_component_status` filtrert til `component_status=degraded`, Max per `component_name`, siste 5 minutter | > 0 — en komponent er degradert. Én hendelse per komponent; gjenoppretter når den melder ok                             |
+| Drive Failed                   | Maskinvare     | Kritisk          | `purefa_drive_capacity_bytes` filtrert til `component_status=failed`, Max per `component_name`, siste 5 minutter | > 0 — en DirectFlash-modul eller en SSD har sviktet, og arrayet bygger opp igjen på de andre. Én hendelse per disk; gjenoppretter når den er byttet |
 | Host Lost Redundant Paths      | Verter       | Warning          | `purefa_host_connectivity_info` filtrert til `status=critical`, Max per `host`, siste 5 minutter | > 0 — verten når arrayet gjennom én kontroller eller ingen; en kontroller-failover ville tatt lagringen dens offline. Én hendelse per vert; gjenoppretter når stiene er tilbake |
 | Replication Lag Above 1 Minute | Replication  | Warning          | `purefa_pod_replica_links_lag_max_msec`, Max per `local_pod`, siste 10 minutter                 | > 60000 ms (60 s) — en failover nå ville miste flere nylige skrivinger enn planlagt. Én hendelse per pod; gjenoppretter ved ≤ 54000              |
 
@@ -137,15 +137,15 @@ Et kriterium utløser bare når betingelsen gjelder for **hver** verdi i vinduet
 | Warning Array Alert          | Array Health | Warning          | `purefb_alerts_open` filtrert til `severity=warning`, Max per `summary`, siste 5 minutter                      | > 0 — FlashBladen har et åpent varsel på nivå warning. Én hendelse per varsel; gjenoppretter når varselet lukkes   |
 | Capacity Above 80%           | Kapasitet    | Warning          | `purefb_array_space_utilization` filtrert til `type=array`, Max, siste 15 minutter                             | > 80; gjenoppretter ved ≤ 72                                                                                        |
 | Capacity Above 90%           | Kapasitet    | Kritisk          | `purefb_array_space_utilization` filtrert til `type=array`, Max, siste 5 minutter                              | > 90 — skrivinger feiler for hver klient når den blir full; gjenoppretter ved ≤ 81                                  |
-| Hardware Component Unhealthy | Hardware     | Kritisk          | `purefb_hardware_health`, Min per `name`, siste 5 minutter                                                     | < 1 — et blad, en fabric-modul, en strømforsyning eller en vifte er ikke sunn (en ubrukt plass melder 2). Én hendelse per komponent; gjenoppretter ved ≥ 1 |
+| Hardware Component Unhealthy | Maskinvare     | Kritisk          | `purefb_hardware_health`, Min per `name`, siste 5 minutter                                                     | < 1 — et blad, en fabric-modul, en strømforsyning eller en vifte er ikke sunn (en ubrukt plass melder 2). Én hendelse per komponent; gjenoppretter ved ≥ 1 |
 | High Read Latency            | Performance  | Warning          | `purefb_array_performance_latency_usec` filtrert til `dimension=usec_per_read_op` og `protocol=all`, Avg, siste 10 minutter | > 10000 µs (10 ms) på tvers av alle protokoller; gjenoppretter ved ≤ 9000                             |
-| File System Near Full        | File Systems | Warning          | `purefb_file_systems_space_bytes` filtrert til `space=available_ratio`, Min per `name`, siste 15 minutter      | < 0.1 — det er mindre enn 10 % igjen av et filsystems tildelte størrelse. Én hendelse per filsystem; gjenoppretter ved ≥ 0.11 |
+| File System Near Full        | Filsystemer | Warning          | `purefb_file_systems_space_bytes` filtrert til `space=available_ratio`, Min per `name`, siste 15 minutter      | < 0.1 — det er mindre enn 10 % igjen av et filsystems tildelte størrelse. Én hendelse per filsystem; gjenoppretter ved ≥ 0.11 |
 
 **Alvorlighetsgrad** er etiketten velgeren viser. Hendelsen og varselet en mal oppretter, starter på prosjektets mest alvorlige hendelses- og varslingsgrad; endre dem i kriteriet.
 
 - **Åpne varsler og maskinvaretilstander bruker Max** av en serie som bare finnes så lenge varselet er åpent eller komponenten er i den tilstanden, så én avlesning som viser den, krysser terskelen.
 - **Hver mal per objekt grupperer på objektets egen etikett** (`summary`, `component_name`, `host`, `local_pod`, `name`), så det utløses én hendelse per berørt objekt, og hendelsen nevner det.
-- **Latensmaler bruker Avg** av arrayets eget gjennomsnitt per operasjon, og kapasitetsmaler **Max** av dets egen utnyttelsesprosent. Latenser er låst i mikrosekunder og kapasitet i prosent.
+- **Latensmaler bruker Avg** av arrayets eget gjennomsnitt per operasjon, og kapasitetsmaler **Maks.** av dets egen utnyttelsesprosent. Latenser er låst i mikrosekunder og kapasitet i prosent.
 - **Hardware Component Unhealthy bruker Min** per komponent: helsen er 1 når den er sunn, og faller til 0 når den ikke er det.
 
 Det finnes ingen mal for latensen til hvert volum, fordi den riktige terskelen avhenger av arbeidsbelastningen: bygg den fra katalogen med en gruppering på `name`. Kapasitetsprognoser trenger en vekstkurve heller enn en terskel, og slitasje på disker har ingen serie å varsle på.
@@ -264,10 +264,10 @@ Et kriterium sammenligner en av monitorens spørringer eller formler med en ters
 | **Metrikk** | Spørringen eller formelen som skal sjekkes, etter variabelnavnet. |
 | **Aggregering** | Hvordan verdiene i vinduet blir til ett svar: **Gjennomsnitt**, **Sum**, **Maximum Value**, **Minimum Value**, **All Values** (hver verdi må samsvare, i hele vinduet) eller **Any Value** (én er nok). |
 | **Betingelse** | **Større enn**, **Mindre enn**, **Større enn eller lik**, **Mindre enn eller lik** eller **Lik** — eller en anomalibetingelse: **Anomalously High**, **Anomalously Low** eller **Anomalous**. |
-| **Threshold** | Verdien det sammenlignes med. En enhetsliste står ved siden av når metrikken har en enhet. Vises ikke for anomalibetingelser. |
+| **Terskel** | Verdien det sammenlignes med. En enhetsliste står ved siden av når metrikken har en enhet. Vises ikke for anomalibetingelser. |
 | **Følsomhet** | Bare anomalibetingelser. **Lav** (4σ), **Middels** (3σ, standarden) eller **Høy** (2σ). |
 | **Grunnlinjevindu** | Bare anomalibetingelser. 14 dager (standarden), 28, 60 eller 90 dagers historikk. |
-| **Hvis ingen data** | Under **Flere felt**. Hva som skjer når vinduet ikke har noen prøver: **Ignore** (standarden), **Treat As Zero** eller **Trigger**. |
+| **Hvis ingen data** | Under **Flere felt**. Hva som skjer når vinduet ikke har noen prøver: **Ignore** (standarden), **Treat As Zero** eller **Utløser**. |
 
 Anomalibetingelser sammenligner hver verdi med den samme timen i uken i grunnlinjen. De blir værende i tilstanden "Learning", og sender ikke ut noe, til grunnlinjevinduet inneholder nok historikk.
 
@@ -288,7 +288,7 @@ En monitor du ikke bygger fra en mal, starter med to kriterier:
 | 2 | Check if _monitor name_ is online | En hvilken som helst verdi er over `0` | Markerer monitoren som **I drift**. |
 
 > [!IMPORTANT]
-> Stillhet samsvarer ikke med noen av kriteriene: et array som slutter å sende data, lar monitoren stå slik den var. For å få beskjed når data uteblir, setter du **Hvis ingen data** til **Trigger** på et kriterium. Tid der OneUptime selv ikke mottok noe, teller aldri som manglende data: en sjekk der vinduet inneholder den tiden, venter i stedet, slik [Når OneUptime ikke mottar data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
+> Stillhet samsvarer ikke med noen av kriteriene: et array som slutter å sende data, lar monitoren stå slik den var. For å få beskjed når data uteblir, setter du **Hvis ingen data** til **Utløser** på et kriterium. Tid der OneUptime selv ikke mottok noe, teller aldri som manglende data: en sjekk der vinduet inneholder den tiden, venter i stedet, slik [Når OneUptime ikke mottar data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
 
 ## Terraform
 

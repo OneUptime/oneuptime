@@ -56,11 +56,11 @@ Vælg en af de tre faner:
 
 - **Quick Setup** - klik på en [skabelon](#færdige-advarselsskabeloner). Den sætter metrikken, attributfiltrene, aggregeringen, tidsintervallet, grupperingen og tærsklerne og erstatter kriterierne nedenfor med sine egne. Du kan stadig ændre **Tidsinterval**.
 - **Custom Metric** - vælg én metrik i **VMware Metric**, og sæt derefter **Aggregering** og **Tidsinterval**. Formularen grupperer den efter det objekt, den beskriver, så hver vært, VM eller datastore bedømmes for sig, og [filtrene](#monitorindstillinger) indsnævrer den til ét datacenter, én klynge, én vært, én VM, én datastore eller én ressourcepulje.
-- **Avanceret** - byg selv forespørgsler og formler under **Vælg målinger**, med filtre på attributter som `disk_state`, `power_state` eller `status`. Brug **Group by** med en [identitetsattribut](#identitetsattributter) for at bedømme hvert objekt for sig.
+- **Avanceret** - byg selv forespørgsler og formler under **Vælg målinger**, med filtre på attributter som `disk_state`, `power_state` eller `status`. Brug **Gruppér efter** med en [identitetsattribut](#identitetsattributter) for at bedømme hvert objekt for sig.
 
 ### Tjek kriterierne
 
-Åbn hvert kriterium under **Monitorkriterier**, og tjek dets **Metrik**, **Aggregering**, **Betingelse** og **Threshold**. En skabelon udfylder dem. Med **Custom Metric** eller **Avanceret** starter monitoren med [standardkriterierne](#standardkriterier), som kun opdager, at en metrik falder til nul, så sæt din egen tærskel.
+Åbn hvert kriterium under **Monitorkriterier**, og tjek dets **Metrik**, **Aggregering**, **Betingelse** og **Tærskel**. En skabelon udfylder dem. Med **Custom Metric** eller **Avanceret** starter monitoren med [standardkriterierne](#standardkriterier), som kun opdager, at en metrik falder til nul, så sæt din egen tærskel.
 
 ### Opret monitoren
 
@@ -68,7 +68,7 @@ Klik på **Opret monitor**. OneUptime åbner monitorens side og evaluerer den hv
 :::
 
 > [!TIP]
-> For at sætte flere skabeloner op på én gang åbner du vCenteret fra **Produkter → Infrastruktur → VMware** og går til **Recommendations**. Vælg de skabeloner, du vil have, vælg, hvem der tilkaldes, og OneUptime opretter én monitor pr. skabelon.
+> For at sætte flere skabeloner op på én gang åbner du vCenteret fra **Produkter → Infrastruktur → VMware** og går til **Anbefalinger**. Vælg de skabeloner, du vil have, vælg, hvem der tilkaldes, og OneUptime opretter én monitor pr. skabelon.
 
 ## Monitorindstillinger
 
@@ -77,14 +77,14 @@ Klik på **Opret monitor**. OneUptime åbner monitorens side og evaluerer den hv
 | **vCenter** | Alle | Påkrævet. Begrænser hver forespørgsel til `resource.vmware.vcenter.name`. |
 | **Datacenter** | Custom Metric, Avanceret | Valgfrit. Ét datacenter: `resource.vcenter.datacenter.name`. Hver serie bærer det. |
 | **Klynge** | Custom Metric, Avanceret | Valgfrit. Én klynge: `resource.vcenter.cluster.name`. Matcher klyngens egne serier og dem for værterne, VM'erne og ressourcepuljerne i den; en selvstændig ESXi-vært har ingen. |
-| **ESXi Host** | Custom Metric, Avanceret | Valgfrit. Én ESXi-vært: `resource.vcenter.host.name`. Matcher værtens egne serier **og** dem for hver VM, den kører, fordi en VM bærer sin værts navn. |
-| **Virtual Machine** | Custom Metric, Avanceret | Valgfrit. Én VM: `resource.vcenter.vm.name`. VM-navne behøver ikke være unikke: tilføj en vært eller en klynge, når to VM'er deler et navn. |
+| **ESXi-vært** | Custom Metric, Avanceret | Valgfrit. Én ESXi-vært: `resource.vcenter.host.name`. Matcher værtens egne serier **og** dem for hver VM, den kører, fordi en VM bærer sin værts navn. |
+| **Virtuel maskine** | Custom Metric, Avanceret | Valgfrit. Én VM: `resource.vcenter.vm.name`. VM-navne behøver ikke være unikke: tilføj en vært eller en klynge, når to VM'er deler et navn. |
 | **Datastore** | Custom Metric, Avanceret | Valgfrit. Én datastore: `resource.vcenter.datastore.name`. |
 | **Resource Pool Path** | Custom Metric, Avanceret | Valgfrit. Én ressourcepulje, via dens inventarsti (`/DC/host/Cluster/Resources/pool`): `resource.vcenter.resource_pool.inventory_path`. En sti, fordi puljenavne kun er unikke inden for deres overordnede objekt. |
 | **VMware Metric** | Custom Metric | Én metrik fra [kataloget](#indsamlede-metrikker). |
 | **Aggregering** | Custom Metric | Hvordan prøver kombineres: **Gennemsnit**, **Maksimum**, **Minimum**, **Sum** eller **Antal**. Starter ved metrikkens sædvanlige aggregering. |
-| **Tidsinterval** | Alle | Det glidende vindue, forespørgslen læser, fra **Past 1 Minute** til **Past 365 Days**. En ny monitor starter ved **Past 5 Minutes**; skabeloner sætter deres eget. |
-| **Vælg målinger** | Avanceret | Forespørgselsbyggeren: **Metrik**, **Aggregate by**, **Filter by attributes**, **Group by**, plus **Tilføj metrik** og **Tilføj formel** til at kombinere forespørgsler. |
+| **Tidsinterval** | Alle | Det glidende vindue, forespørgslen læser, fra **Past 1 Minute** til **Past 365 Days**. En ny monitor starter ved **Seneste 5 minutter**; skabeloner sætter deres eget. |
+| **Vælg målinger** | Avanceret | Forespørgselsbyggeren: **Metrik**, **Aggregate by**, **Filter by attributes**, **Gruppér efter**, plus **Tilføj metrik** og **Tilføj formel** til at kombinere forespørgsler. |
 
 vCenter læses én gang pr. indsamlingsinterval, 2 minutter som standard, så et vindue på 1 minut indeholder måske slet ingen prøve. Hold vinduet på 5 minutter eller mere, og længere, hvis du har hævet indsamlingsintervallet for et stort inventar.
 
@@ -117,13 +117,13 @@ Skabeloner læser de seneste 5 minutter, medmindre tabellen siger andet. Et krit
 | Host Disk Latency High | Vært | Warning | `vcenter.host.disk.latency.max`, Max pr. vært | Over 50 ms: hver VM, hvis diske ligger på den sti, venter på lager. Kræver ydeevnetællerniveau 3 | Ved 45 ms eller derunder |
 | Host Network Packet Errors | Vært | Warning | `vcenter.host.network.packet.error.rate`, Max pr. vært | Over 0: næsten altid en fejl i kabel, SFP eller switchport | Ved 0 |
 | Host Network Packet Drops | Vært | Warning | `vcenter.host.network.packet.drop.rate`, Max pr. vært | Over 0: et overbooket uplink eller NIC-ringbuffere, der løber over | Ved 0 |
-| VM CPU Saturation | Virtual Machine | Warning | `vcenter.vm.cpu.utilization`, Avg pr. `resource.vcenter.vm.name`, **seneste 15 minutter** | Over 90 % af VM'ens vCPU'er i alle 15 minutter: en VM må bruge det, den har fået, så kun en, der aldrig kommer ned, tilkalder | Ved 81 % eller derunder |
-| VM CPU Ready Contention | Virtual Machine | Warning | `vcenter.vm.cpu.readiness`, Avg pr. VM | Over 10 %: VM'en var klar til at køre, men værten havde ingen fysisk kerne til den. Usynligt inde fra gæsten | Ved 9 % eller derunder |
-| VM Memory Saturation | Virtual Machine | Warning | `vcenter.vm.memory.utilization`, Avg pr. VM | Over 90 % af dens hukommelse: gæsten er ved at begynde at pagere | Ved 81 % eller derunder |
-| VM Memory Ballooning | Virtual Machine | Warning | `vcenter.vm.memory.ballooned`, Max pr. VM | Over 0: værten mangler hukommelse og tager den tilbage fra denne gæst | Ved 0 |
-| VM Memory Swapping | Virtual Machine | Kritisk | `vcenter.vm.memory.swapped`, Max pr. VM | Over 0: værten swapper VM'ens hukommelse, den sidste udvej efter ballooning og komprimering | Ved 0 |
-| VM Disk Latency High | Virtual Machine | Warning | `vcenter.vm.disk.latency.max`, Max pr. VM | Over 50 ms: applikationer i gæsten får timeout på I/O | Ved 45 ms eller derunder |
-| VM Disk Usage High | Virtual Machine | Warning | `vcenter.vm.disk.utilization`, Avg pr. VM | Over 90 % af dens tildelte lager er brugt: en thin-provisioneret VM er ved at gøre krav på sin fulde størrelse | Ved 81 % eller derunder |
+| VM CPU Saturation | Virtuel maskine | Warning | `vcenter.vm.cpu.utilization`, Avg pr. `resource.vcenter.vm.name`, **seneste 15 minutter** | Over 90 % af VM'ens vCPU'er i alle 15 minutter: en VM må bruge det, den har fået, så kun en, der aldrig kommer ned, tilkalder | Ved 81 % eller derunder |
+| VM CPU Ready Contention | Virtuel maskine | Warning | `vcenter.vm.cpu.readiness`, Avg pr. VM | Over 10 %: VM'en var klar til at køre, men værten havde ingen fysisk kerne til den. Usynligt inde fra gæsten | Ved 9 % eller derunder |
+| VM Memory Saturation | Virtuel maskine | Warning | `vcenter.vm.memory.utilization`, Avg pr. VM | Over 90 % af dens hukommelse: gæsten er ved at begynde at pagere | Ved 81 % eller derunder |
+| VM Memory Ballooning | Virtuel maskine | Warning | `vcenter.vm.memory.ballooned`, Max pr. VM | Over 0: værten mangler hukommelse og tager den tilbage fra denne gæst | Ved 0 |
+| VM Memory Swapping | Virtuel maskine | Kritisk | `vcenter.vm.memory.swapped`, Max pr. VM | Over 0: værten swapper VM'ens hukommelse, den sidste udvej efter ballooning og komprimering | Ved 0 |
+| VM Disk Latency High | Virtuel maskine | Warning | `vcenter.vm.disk.latency.max`, Max pr. VM | Over 50 ms: applikationer i gæsten får timeout på I/O | Ved 45 ms eller derunder |
+| VM Disk Usage High | Virtuel maskine | Warning | `vcenter.vm.disk.utilization`, Avg pr. VM | Over 90 % af dens tildelte lager er brugt: en thin-provisioneret VM er ved at gøre krav på sin fulde størrelse | Ved 81 % eller derunder |
 | Datastore Capacity Warning | Datastore | Warning | `vcenter.datastore.disk.utilization`, Avg pr. `resource.vcenter.datastore.name` | Over 80 %: en tidlig advarsel, da thin-diske og snapshots hurtigt bruger resten | Ved 72 % eller derunder |
 | Datastore Capacity Critical | Datastore | Kritisk | `vcenter.datastore.disk.utilization`, Avg pr. datastore | Over 90 %: en fuld datastore sætter hver VM med en disk på den på pause | Ved 81 % eller derunder |
 | Cluster Host Not Effective | Klynge | Kritisk | `vcenter.cluster.host.count` filtreret til `effective = false`, Max pr. `resource.vcenter.cluster.name` | Over 0: en vært er i vedligeholdelsestilstand, afbrudt eller svarer ikke, så klyngen kører med mindre kapacitet, end den er dimensioneret til | Ved 0 |
@@ -260,7 +260,7 @@ Sendes kun for klynger med vSAN, værterne i dem og VM'erne på en vSAN-datastor
 | `vcenter.vm.vsan.throughput`        | `By/s`            | VM'ens vSAN-gennemløb, efter `direction`                                                                                                        |
 
 > [!NOTE]
-> En VM's strømtilstand er ikke en metrik. Receiveren sender kun `vcenter.vm.cpu.*` for tændte VM'er, så OneUptime skelner **Powered on** fra **Powered off** ud fra, om der kom CPU-data i samme indsamling som VM'ens hukommelses- og diskdata; vCenterets side **Virtuelle maskiner** viser resultatet. For at advare om slukkede værter eller om, hvor mange VM'er der kører, bruger du attributten `power_state` på `vcenter.datacenter.host.count`, `vcenter.datacenter.vm.count` eller `vcenter.cluster.vm.count`.
+> En VM's strømtilstand er ikke en metrik. Receiveren sender kun `vcenter.vm.cpu.*` for tændte VM'er, så OneUptime skelner **Powered on** fra **Slukket** ud fra, om der kom CPU-data i samme indsamling som VM'ens hukommelses- og diskdata; vCenterets side **Virtuelle maskiner** viser resultatet. For at advare om slukkede værter eller om, hvor mange VM'er der kører, bruger du attributten `power_state` på `vcenter.datacenter.host.count`, `vcenter.datacenter.vm.count` eller `vcenter.cluster.vm.count`.
 
 ## Overvågningskriterier
 
@@ -271,7 +271,7 @@ Et kriterium sammenligner en af monitorens forespørgsler eller formler med en t
 | **Metrik** | Den forespørgsel eller formel, der skal tjekkes, efter dens variabelnavn. |
 | **Aggregering** | Hvordan værdierne i vinduet bliver til ét svar: **Gennemsnit**, **Sum**, **Maximum Value**, **Minimum Value**, **All Values** (hver værdi skal matche, i hele vinduet) eller **Any Value** (én er nok). |
 | **Betingelse** | **Større end**, **Mindre end**, **Større end eller lig med**, **Mindre end eller lig med** eller **Lig med** — eller en anomalibetingelse: **Anomalously High**, **Anomalously Low** eller **Anomalous**. |
-| **Threshold** | Den værdi, der sammenlignes med. En enhedsliste står ved siden af, når metrikken har en enhed. Vises ikke for anomalibetingelser. |
+| **Tærskel** | Den værdi, der sammenlignes med. En enhedsliste står ved siden af, når metrikken har en enhed. Vises ikke for anomalibetingelser. |
 | **Følsomhed** | Kun anomalibetingelser. **Lav** (4σ), **Mellem** (3σ, standarden) eller **Høj** (2σ). |
 | **Baseline-vindue** | Kun anomalibetingelser. 14 dage (standarden), 28, 60 eller 90 dages historik. |
 | **Hvis ingen data** | Under **Flere felter**. Hvad der sker, når vinduet ingen prøver har: **Ignore** (standarden), **Treat As Zero** eller **Trigger**. |

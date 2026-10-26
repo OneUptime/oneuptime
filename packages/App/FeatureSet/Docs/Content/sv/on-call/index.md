@@ -65,11 +65,11 @@ Klicka på **Lägg till eskaleringsregel** på policyns sida **Eskaleringsregler
 
 ### Kör policyn automatiskt
 
-Gå till **Incidenter → Regler → Jourregler** eller **Varningar → Regler → Jourregler** och lägg till en regel som kör policyn för de incidenter eller larm som den matchar, till exempel varje kritisk incident. Se [Vad som kör en policy](/docs/on-call/policies#vad-som-kör-en-policy).
+Gå till **Incidenter → Regler → Jourregler** eller **Larm → Regler → Jourregler** och lägg till en regel som kör policyn för de incidenter eller larm som den matchar, till exempel varje kritisk incident. Se [Vad som kör en policy](/docs/on-call/policies#vad-som-kör-en-policy).
 
 ### Kontrollera att alla kan nås
 
-Öppna **Jourtjänst → Beredskap**. Alla som dina policyer kan larma listas som **Klar**, **Needs setup** eller **Unreachable**, med det som saknas. Se [Beredskap och rapporter](/docs/on-call/readiness).
+Öppna **Jourtjänst → Beredskap**. Alla som dina policyer kan larma listas som **Klar**, **Behöver konfigureras** eller **Onåbar**, med det som saknas. Se [Beredskap och rapporter](/docs/on-call/readiness).
 :::
 
 > [!NOTE]

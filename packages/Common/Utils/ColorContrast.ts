@@ -183,14 +183,15 @@ function hslToRgb(hsl: HSL): RGB {
  * The shade of `color` nearest to it that reaches `minimumContrast` against
  * `background`: the colour itself when it already does, otherwise the same
  * hue with only the lightness moved - toward black on a light background,
- * toward white on a dark one. Lightness moves luminance one way only, so a
- * binary search finds the boundary.
+ * toward white on a dark one, or the way `towards` says. Lightness moves
+ * luminance one way only, so a binary search finds the boundary.
  */
 export function getReadableShade(data: {
   color: RGB;
   background: RGB;
   minimumContrast: number;
   maximumSaturation?: number | undefined;
+  towards?: "dark" | "light" | undefined;
 }): RGB {
   if (getContrastRatio(data.color, data.background) >= data.minimumContrast) {
     return data.color;
@@ -220,7 +221,13 @@ export function getReadableShade(data: {
 
   // `low` never passes; `high` always does (black or white at the limit).
   let low: number = hsl.lightness;
-  let high: number = getRelativeLuminance(data.background) < 0.5 ? 1 : 0;
+  let high: number = data.towards
+    ? data.towards === "light"
+      ? 1
+      : 0
+    : getRelativeLuminance(data.background) < 0.5
+      ? 1
+      : 0;
 
   for (let step: number = 0; step < 24; step++) {
     const middle: number = (low + high) / 2;
@@ -233,6 +240,40 @@ export function getReadableShade(data: {
   }
 
   return hslToRgb({ ...hsl, lightness: high });
+}
+
+/*
+ * WCAG's minimum for text: what text written on a filled colour must reach.
+ */
+export const FILLED_TEXT_MINIMUM_CONTRAST: number = 4.5;
+
+const WHITE: RGB = { red: 255, green: 255, blue: 255 };
+
+/*
+ * The colour of text written on a filled colour someone picked - a status
+ * page's banner in the colour its owner gave a monitor status: white when
+ * white reads on it at 4.5:1, otherwise the lightest shade of the fill's own
+ * colour that does, so the words keep its family - deep green on a green
+ * banner, deep amber on a yellow one - rather than turning grey.
+ *
+ * White on the default Operational green (#2ab57d) was 2.6:1, on Degraded's
+ * yellow (#ffbf53) 1.6:1. A shade toward black always reaches 4.5:1 where
+ * white does not (black reaches more than 4.6:1 on anything white fails
+ * on), so there always is one. The fill itself is never changed: it is the colour
+ * the owner chose, the same in the light theme and the dark one, and so is
+ * the text on it.
+ */
+export function getReadableTextOnFill(fill: RGB): RGB {
+  if (getContrastRatio(WHITE, fill) >= FILLED_TEXT_MINIMUM_CONTRAST) {
+    return WHITE;
+  }
+
+  return getReadableShade({
+    color: fill,
+    background: fill,
+    minimumContrast: FILLED_TEXT_MINIMUM_CONTRAST,
+    towards: "dark",
+  });
 }
 
 /*

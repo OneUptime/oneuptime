@@ -34,7 +34,7 @@ En statusside støtter fem kanaler. De, og siden besøkende melder seg på, slå
 
 - **Vis abonnentside** (`showSubscriberPageOnStatusPage`) — på som standard. Setter elementet **Abonner** i statussidens navigasjonslinje, der besøkende melder seg på via kanalene nedenfor.
 - **E-post** (`enableEmailSubscribers`) — på som standard. Alt annet er av til du slår det på.
-- **SMS** (`enableSmsSubscribers`) — av som standard. På OneUptime Cloud betales hver SMS fra prosjektets saldo for SMS og anrop, med mindre siden har sin egen **Twilio-konfigurasjon** (se [nedenfor](#e-postbunntekst-egendefinert-smtp-og-twilio)). Å slå den på krever også at **SMS** er på for prosjektet, i kortet **Varslingskanaler** under **Prosjektinnstillinger > Varsler > Varselinnstillinger**, noe en prosjekteier, en **Billing Admin** eller noen med **Manage Billing** kan gjøre.
+- **SMS** (`enableSmsSubscribers`) — av som standard. På OneUptime Cloud betales hver SMS fra prosjektets saldo for SMS og anrop, med mindre siden har sin egen **Twilio-konfigurasjon** (se [nedenfor](#e-postbunntekst-egendefinert-smtp-og-twilio)). Å slå den på krever også at **SMS** er på for prosjektet, i kortet **Varslingskanaler** under **Prosjektinnstillinger > Varsler > Varselinnstillinger**, noe en prosjekteier, en **Faktureringsadministrator** eller noen med **Manage Billing** kan gjøre.
 - **Slack** (`enableSlackSubscribers`) — av som standard.
 - **Microsoft Teams** (`enableMicrosoftTeamsSubscribers`) — av som standard.
 - **Webhook** (`enableWebhookSubscribers`) — av som standard.
@@ -275,7 +275,7 @@ Egendefinerte hendelsesfelt med **Ta med i abonnentvarsler** på (under **Hendel
 - **Slack** og **Microsoft Teams** viser dem på samme måte, ett per linje.
 - **Webhook**-payloads har dem i `data.customFields`, med hvert felts **Malvariabel** som nøkkel: `{ "name": ..., "type": ..., "value": ... }`, med verdien slik den er lagret (`null` når hendelsen ikke har noen). Nøklene endres ikke når et felt får nytt navn.
 - **SMS** utelater dem. En SMS faktureres per segment, og standardteksten fyller allerede nesten ett; en egendefinert SMS-mal kan plassere et hvilket som helst felt med `{{incident.customFields.<key>}}`.
-- Varsler om **Incident episode** har ingen egendefinerte felt: en episode grupperer hendelser som har hver sine verdier. Hver medlemshendelses egne varsler har feltene dens.
+- Varsler om **Hendelsesepisode** har ingen egendefinerte felt: en episode grupperer hendelser som har hver sine verdier. Hver medlemshendelses egne varsler har feltene dens.
 
 Oppføringen **Abonnentvarsel sendt** i hendelsesfeeden viser under **Custom fields sent** verdiene hver utsending la inn i en melding. Abonnenter er som regel utenfor teamet ditt, så slå bare på innstillingen for felt som trygt kan deles med dem.
 
@@ -415,7 +415,7 @@ Nøkkelen er feltets **Malvariabel**, som ikke endres når feltet får nytt navn
 
 **To av dem er interne data.** `{{affectedStatusPages}}` nevner hver målgruppe hendelsen når: med [én statusside per målgruppe](/docs/status-pages/one-status-page-per-audience) får abonnentene på én lokasjon vite hvilke andre lokasjoner som er berørt, og én kunde får vite navnene på andre. Et egendefinert felt kan inneholde notater som er ment for teamet ditt. Plasser dem bare i maler der abonnentene kan se dem.
 
-**Å plassere etiketter og egendefinerte felt krever tilgang til hendelser.** `{{incidentLabels}}` og `{{incident.customFields.<key>}}` leser teamets hendelsesposter, som statussiden ikke viser. Derfor kan en mal som plasserer dem, bare lagres av noen som kan lese alle hendelser og de egendefinerte feltene deres — **Project Owner**, **Project Admin**, **Project Member** eller **Viewer**, eller **Incident Admin**, **Incident Member** eller **Incident Viewer**, uten en begrensning til enkelte etiketter eller til hendelser de eier. **Status Page Admin** og **Status Page Member** alene kan skrive maler, men ikke legge til disse plassholderne; de kan fortsatt redigere resten av en mal som allerede har dem. `{{affectedStatusPages}}` krever ikke mer enn selve malen.
+**Å plassere etiketter og egendefinerte felt krever tilgang til hendelser.** `{{incidentLabels}}` og `{{incident.customFields.<key>}}` leser teamets hendelsesposter, som statussiden ikke viser. Derfor kan en mal som plasserer dem, bare lagres av noen som kan lese alle hendelser og de egendefinerte feltene deres — **Prosjekteier**, **Prosjektadministrator**, **Prosjektmedlem** eller **Leser**, eller **Hendelsesadministrator**, **Hendelsesmedlem** eller **Hendelsesleser**, uten en begrensning til enkelte etiketter eller til hendelser de eier. **Statussideadministrator** og **Statussidemedlem** alene kan skrive maler, men ikke legge til disse plassholderne; de kan fortsatt redigere resten av en mal som allerede har dem. `{{affectedStatusPages}}` krever ikke mer enn selve malen.
 
 ### Tilstanden i notatmaler
 

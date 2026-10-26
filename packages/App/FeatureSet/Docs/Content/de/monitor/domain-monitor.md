@@ -126,7 +126,7 @@ Ein neuer Domain-Monitor beginnt mit drei Kriterien, sodass er Sie ohne jede Ein
 2. **Domain läuft bald ab** — die Registrierung ist nicht abgelaufen, läuft aber in 30 Tagen oder früher ab. Eine **Warnung** namens „_monitor name_ domain expires soon“ wird erstellt.
 3. **Domain ist nicht abgelaufen** — der Monitor wird als **Betriebsbereit** markiert.
 
-Die Warnung „läuft bald ab“ ist eine Warnung, kein Vorfall: Sie erscheint nicht auf Ihren Statusseiten, sie alarmiert niemanden, solange Sie ihr keine Bereitschaftsrichtlinie hinzufügen, und sie ändert den Status des Monitors nicht. Sie verwendet den zweiten Warnungsschweregrad Ihres Projekts, bei einem neuen Projekt **Low**. Sobald die Verlängerung im Registrierungseintrag erscheint, löst sich die Warnung von selbst auf. Eine Registry, die kein Ablaufdatum veröffentlicht, gibt der Warnung nichts in die Hand, daher bleibt sie still.
+Die Warnung „läuft bald ab“ ist eine Warnung, kein Vorfall: Sie erscheint nicht auf Ihren Statusseiten, sie alarmiert niemanden, solange Sie ihr keine Bereitschaftsrichtlinie hinzufügen, und sie ändert den Status des Monitors nicht. Sie verwendet den zweiten Warnungsschweregrad Ihres Projekts, bei einem neuen Projekt **Niedrig**. Sobald die Verlängerung im Registrierungseintrag erscheint, löst sich die Warnung von selbst auf. Eine Registry, die kein Ablaufdatum veröffentlicht, gibt der Warnung nichts in die Hand, daher bleibt sie still.
 
 Kriterien werden von oben nach unten geprüft, und das erste zutreffende entscheidet, was passiert. Deshalb steht „läuft bald ab“ über „ist nicht abgelaufen“: Eine Domain kurz vor dem Ablauf ist noch nicht abgelaufen und würde daher auf beide zutreffen.
 

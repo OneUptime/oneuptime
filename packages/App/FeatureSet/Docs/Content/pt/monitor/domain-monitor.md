@@ -126,7 +126,7 @@ Um monitor de domínio novo começa com três critérios, então ele avisa você
 2. **O domínio vence em breve** — o registro não venceu, mas vence em 30 dias ou menos. Um **alerta** chamado "_monitor name_ domain expires soon" é criado.
 3. **O domínio não venceu** — o monitor é marcado como **Operacional**.
 
-O aviso de "vence em breve" é um alerta, não um incidente: ele não aparece nas suas páginas de status, não aciona ninguém a menos que você adicione uma política de plantão a ele, e não muda o status do monitor. Ele usa a segunda severidade de alerta do seu projeto, **Low** em um projeto novo. Assim que a renovação aparece no registro, o alerta se resolve sozinho. Um registro que não publica data de vencimento não dá nada ao aviso, então ele fica quieto.
+O aviso de "vence em breve" é um alerta, não um incidente: ele não aparece nas suas páginas de status, não aciona ninguém a menos que você adicione uma política de plantão a ele, e não muda o status do monitor. Ele usa a segunda severidade de alerta do seu projeto, **Baixo** em um projeto novo. Assim que a renovação aparece no registro, o alerta se resolve sozinho. Um registro que não publica data de vencimento não dá nada ao aviso, então ele fica quieto.
 
 Os critérios são verificados de cima para baixo, e o primeiro que corresponde decide o que acontece. Por isso "vence em breve" fica acima de "não venceu": um domínio prestes a vencer ainda não venceu, então corresponderia aos dois.
 

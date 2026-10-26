@@ -122,7 +122,7 @@ L'étape **Configurer** de l'assistant de création demande jusqu'à sept valeur
 
 Pour vérifier la connexion avant toute exécution, ouvrez **Variables de flux de travail**, cliquez sur **Voir** sur `dynamicsAccessToken`, puis sur **Actualiser maintenant**. **Access Token Fetched** signifie que l'inscription d'application est correcte. Sinon, l'erreur de Microsoft Entra ID nomme ce qui ne va pas, par exemple `AADSTS7000215: Invalid client secret provided`.
 
-Chaque workflow garde sa propre copie. Quand vous remplacez le secret client, ouvrez `dynamicsAccessToken` dans chaque workflow Dynamics 365 et utilisez **Update Credentials**.
+Chaque workflow garde sa propre copie. Quand vous remplacez le secret client, ouvrez `dynamicsAccessToken` dans chaque workflow Dynamics 365 et utilisez **Mettre à jour les identifiants**.
 
 ### Créer les workflows
 

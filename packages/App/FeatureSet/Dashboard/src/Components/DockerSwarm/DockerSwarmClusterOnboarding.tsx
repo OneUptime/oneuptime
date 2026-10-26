@@ -20,7 +20,6 @@ const DOCKER_SWARM_CLUSTER_ONBOARDING: ResourceOnboarding = {
   addDescription: translationKey(
     "Deploy the OneUptime agent to the swarm. The cluster shows up here as soon as the agent connects.",
   ),
-  firstRunTitle: translationKey("Getting Started with Docker Swarm Monitoring"),
   viewText: translationKey("View cluster"),
   viewPage: PageMap.DOCKER_SWARM_CLUSTER_VIEW,
   name: {

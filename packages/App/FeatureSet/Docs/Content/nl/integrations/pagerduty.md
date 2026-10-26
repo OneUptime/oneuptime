@@ -48,7 +48,7 @@ Ga naar **Workflows**, klik op **Workflow maken** en daarna op **Vanaf nul begin
 
 ### De trigger toevoegen
 
-Klik op het gestippelde blok **Choose what starts this workflow** en kies **On Create Incident**. Klik op de trigger: de **Fields to pass on** ervan beginnen met **Titel**, dus klik op **Veld toevoegen** en kies **Beschrijving**.
+Klik op het gestippelde blok **Kies wat deze workflow start** en kies **On Create Incident**. Klik op de trigger: de **Fields to pass on** ervan beginnen met **Titel**, dus klik op **Veld toevoegen** en kies **Beschrijving**.
 
 ### De trigger-gebeurtenis sturen
 

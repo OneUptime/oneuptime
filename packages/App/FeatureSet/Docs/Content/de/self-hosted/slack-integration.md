@@ -39,7 +39,7 @@ sequenceDiagram
 - Ein Slack-Arbeitsbereich, in dem Sie Apps erstellen und installieren können.
 - Ein öffentlicher HTTPS-Hostname für OneUptime, den Slack erreichen kann. Siehe [Netzwerkzugriff](#netzwerkzugriff-für-selbst-gehostete-installationen).
 - Zugriff auf die Konfiguration des Servers: `config.env` bei Docker Compose oder Ihre Helm-Values bei Kubernetes.
-- Um ein Projekt zu verbinden, die Rolle **Project Owner**, **Project Admin** oder **Project Member** darin.
+- Um ein Projekt zu verbinden, die Rolle **Projektinhaber**, **Projektadministrator** oder **Projektmitglied** darin.
 
 ## Die Slack-App einrichten
 
@@ -239,7 +239,7 @@ Wenn Slack Sie zurückschickt und die Verbindung nicht zustande gekommen ist, ze
 | Die Seite sagt | Was zu tun ist |
 | --- | --- |
 | **"Dieser Verbindungslink ist ungültig, abgelaufen oder wurde bereits verwendet. Bitte beginnen Sie erneut."** | Der Link funktioniert einmal, 15 Minuten lang, in dem Browser, in dem er gestartet wurde. Beginnen Sie auf der Slack-Seite erneut und schließen Sie in Slack innerhalb von 15 Minuten im selben Browser ab. |
-| **"Sie haben keine Berechtigung, dieses Projekt mit Slack zu verbinden."** | OneUptime in Slack zu installieren, erfordert **Project Owner**, **Project Admin** oder **Project Member**. Das wird erneut geprüft, wenn Slack Sie zurückschickt; eine Rolle, die Ihnen inzwischen entzogen wurde, beendet die Verbindung also auch hier. |
+| **"Sie haben keine Berechtigung, dieses Projekt mit Slack zu verbinden."** | OneUptime in Slack zu installieren, erfordert **Projektinhaber**, **Projektadministrator** oder **Projektmitglied**. Das wird erneut geprüft, wenn Slack Sie zurückschickt; eine Rolle, die Ihnen inzwischen entzogen wurde, beendet die Verbindung also auch hier. |
 | **"Sie sind kein Mitglied dieses Projekts mehr."** | Um Ihr eigenes Slack-Konto zu verbinden, müssen Sie Mitglied des Projekts sein, wenn Slack Sie zurückschickt. |
 | **"Dieses Projekt ist noch mit keinem Slack-Arbeitsbereich verbunden."** | Installieren Sie OneUptime zuerst unter **Projekteinstellungen > Arbeitsbereich > Slack** in Slack und verbinden Sie dann Ihr eigenes Konto. |
 | **"Sie haben sich bei einem anderen Slack-Arbeitsbereich angemeldet als dem, mit dem dieses Projekt verbunden ist."** | Verbinden Sie Ihr Konto, während Sie bei dem Slack-Arbeitsbereich angemeldet sind, in dem das Projekt installiert ist. |

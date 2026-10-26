@@ -115,7 +115,7 @@ Totdat een domein is geverifieerd en het certificaat op zijn plek staat, heeft d
 
 ### De kolom Status lezen
 
-De kolom **Status** zegt waar elk domein is op weg naar HTTPS, in een van zeven toestanden, dezelfde als bij statuspagina's. Als een bestelling is mislukt, staat de reden op de regel eronder.
+De kolom **Status** zegt waar elk domein is op weg naar HTTPS, in een van acht toestanden, dezelfde als bij statuspagina's. Als een bestelling is mislukt, staat de reden op de regel eronder.
 
 | Wat de kolom Status zegt | Wat het betekent |
 | --- | --- |
@@ -126,6 +126,7 @@ De kolom **Status** zegt waar elk domein is op weg naar HTTPS, in een van zeven 
 | Certificaat uitgegeven, wordt automatisch verlengd. | Klaar. Het domein biedt zijn certificaat aan via HTTPS, en OneUptime verlengt het. |
 | Certificaat uitgegeven, maar verlengen is mislukt. We blijven het proberen. | Het domein biedt nog een geldig certificaat aan, maar de laatste verlenging is mislukt, om de reden op de regel eronder. OneUptime probeert het opnieuw ruim voordat het certificaat verloopt. |
 | Gebruikt uw geüploade certificaat. | Het record is geverifieerd, en het domein wordt aangeboden met het certificaat dat je hebt geüpload. |
+| Geverifieerd. Gebruikt de HTTPS van uw eigen proxy. | Op een zelfgehoste installatie zonder Let's Encrypt-accountsleutel is het record geverifieerd en is het domein bereikbaar. Het HTTPS ervan is aan uw eigen proxy, tenzij u een certificaat uploadt. |
 
 Als een bestelling mislukt, zijn de gebruikelijke oorzaken een CAA-record op je domein dat `letsencrypt.org` niet toestaat en, op een zelfgehoste installatie, een server die Let's Encrypt niet kan bereiken op poort 80.
 
@@ -135,7 +136,7 @@ Om in plaats daarvan je eigen certificaat te gebruiken, open je **Meer velden** 
 
 Zodra er een gratis certificaat voor een domein is besteld, toont de rij **Reissue SSL**, dat Let's Encrypt om een gloednieuw certificaat vraagt als je er een wilt vóór de automatische verlenging. Elk domein kan eens per 24 uur opnieuw worden uitgegeven.
 
-Op een zelfgehoste installatie worden aangepaste domeinen voor dashboards ingeschakeld met de omgevingsvariabele `DASHBOARD_CNAME_RECORD` (`dashboard.cnameRecord` in de Helm-chart), het doel waar je CNAME-records naar wijzen. Zonder die variabele zeggen de kaart en het dialoogvenster **DNS-instelling** "Custom Domains not enabled for this OneUptime installation" in plaats van een record te tonen, en verifieert OneUptime geen domeinen en bestelt het geen certificaten voor dashboards.
+Op een zelfgehoste installatie worden aangepaste domeinen voor dashboards ingeschakeld met de omgevingsvariabele `DASHBOARD_CNAME_RECORD` (`dashboard.cnameRecord` in de Helm-chart), het doel waar je CNAME-records naar wijzen. Zonder die variabele zeggen de kaart en het dialoogvenster **DNS-instelling** "Custom Domains not enabled for this OneUptime installation" in plaats van een record te tonen, en verifieert OneUptime geen domeinen en bestelt het geen certificaten voor dashboards. Een installatie zonder Let's Encrypt-accountsleutel (`LETS_ENCRYPT_ACCOUNT_KEY`, `letsEncrypt.accountKey` in de Helm-chart) bestelt geen certificaten: een dashboarddomein is bereikbaar zodra het record is geverifieerd, en wordt aangeboden met het HTTPS van je eigen proxy of een certificaat dat je uploadt.
 
 ### Wie mag controleren en opnieuw uitgeven
 

@@ -34,7 +34,7 @@ En statusside understøtter fem kanaler. De, og den side, besøgende tilmelder s
 
 - **Vis abonnentside** (`showSubscriberPageOnStatusPage`) — slået til som standard. Sætter punktet **Abonner** i statussidens navigationsbjælke, hvor besøgende tilmelder sig via kanalerne nedenfor.
 - **E-mail** (`enableEmailSubscribers`) — slået til som standard. Alt andet er slået fra, indtil du slår det til.
-- **SMS** (`enableSmsSubscribers`) — slået fra som standard. På OneUptime Cloud betales hver SMS af projektets saldo til SMS og opkald, medmindre siden har sin egen **Twilio-konfiguration** (se [nedenfor](#e-mailsidefod-egen-smtp-og-twilio)). At slå den til kræver også, at **SMS** er slået til for projektet, i kortet **Notifikationskanaler** under **Projektindstillinger > Notifikationer > Notifikationsindstillinger**, hvilket en projektejer, en **Billing Admin** eller en person med **Manage Billing** kan gøre.
+- **SMS** (`enableSmsSubscribers`) — slået fra som standard. På OneUptime Cloud betales hver SMS af projektets saldo til SMS og opkald, medmindre siden har sin egen **Twilio-konfiguration** (se [nedenfor](#e-mailsidefod-egen-smtp-og-twilio)). At slå den til kræver også, at **SMS** er slået til for projektet, i kortet **Notifikationskanaler** under **Projektindstillinger > Notifikationer > Notifikationsindstillinger**, hvilket en projektejer, en **Faktureringsadministrator** eller en person med **Manage Billing** kan gøre.
 - **Slack** (`enableSlackSubscribers`) — slået fra som standard.
 - **Microsoft Teams** (`enableMicrosoftTeamsSubscribers`) — slået fra som standard.
 - **Webhook** (`enableWebhookSubscribers`) — slået fra som standard.
@@ -275,7 +275,7 @@ Brugerdefinerede hændelsesfelter med **Medtag i abonnentnotifikationer** slået
 - **Slack** og **Microsoft Teams** viser dem på samme måde, ét pr. linje.
 - **Webhook**-payloads har dem i `data.customFields`, med hvert felts **Skabelonvariabel** som nøgle: `{ "name": ..., "type": ..., "value": ... }`, med værdien, som den er gemt (`null`, når hændelsen ikke har nogen). Nøglerne ændres ikke, når et felt omdøbes.
 - **SMS** udelader dem. En SMS faktureres pr. segment, og standardteksten fylder allerede næsten ét; en brugerdefineret SMS-skabelon kan placere ethvert felt med `{{incident.customFields.<key>}}`.
-- Notifikationer om **Incident episode** har ingen brugerdefinerede felter: en episode samler hændelser, der hver har deres egne værdier. Hver medlemshændelses egne notifikationer har dens felter.
+- Notifikationer om **Hændelsesepisode** har ingen brugerdefinerede felter: en episode samler hændelser, der hver har deres egne værdier. Hver medlemshændelses egne notifikationer har dens felter.
 
 Posten **Abonnentnotifikation sendt** i hændelsesfeedet viser under **Custom fields sent** de værdier, hver afsendelse satte ind i en besked. Abonnenter er som regel uden for dit team, så slå kun indstillingen til for felter, der trygt kan deles med dem.
 
@@ -415,7 +415,7 @@ Nøglen er feltets **Skabelonvariabel**, som ikke ændres, når feltet omdøbes;
 
 **To af dem er interne data.** `{{affectedStatusPages}}` nævner hver målgruppe, hændelsen når: med [én statusside pr. målgruppe](/docs/status-pages/one-status-page-per-audience) får abonnenterne på én lokation at vide, hvilke andre lokationer der er berørt, og én kunde får andres navne at vide. Et brugerdefineret felt kan indeholde noter, der er beregnet til dit team. Placér dem kun i skabeloner, hvis abonnenter må se dem.
 
-**At placere etiketter og brugerdefinerede felter kræver adgang til hændelser.** `{{incidentLabels}}` og `{{incident.customFields.<key>}}` læser dit teams hændelsesposter, som statussiden ikke viser. Derfor kan en skabelon, der placerer dem, kun gemmes af en, der kan læse alle hændelser og deres brugerdefinerede felter — **Project Owner**, **Project Admin**, **Project Member** eller **Viewer**, eller **Incident Admin**, **Incident Member** eller **Incident Viewer**, uden en begrænsning til bestemte etiketter eller til hændelser, de ejer. **Status Page Admin** og **Status Page Member** kan alene skrive skabeloner, men ikke tilføje disse pladsholdere; de kan stadig redigere resten af en skabelon, der allerede har dem. `{{affectedStatusPages}}` kræver ikke mere end selve skabelonen.
+**At placere etiketter og brugerdefinerede felter kræver adgang til hændelser.** `{{incidentLabels}}` og `{{incident.customFields.<key>}}` læser dit teams hændelsesposter, som statussiden ikke viser. Derfor kan en skabelon, der placerer dem, kun gemmes af en, der kan læse alle hændelser og deres brugerdefinerede felter — **Projektejer**, **Projektadministrator**, **Projektmedlem** eller **Seer**, eller **Hændelsesadministrator**, **Hændelsesmedlem** eller **Hændelsesseer**, uden en begrænsning til bestemte etiketter eller til hændelser, de ejer. **Statussideadministrator** og **Statussidemedlem** kan alene skrive skabeloner, men ikke tilføje disse pladsholdere; de kan stadig redigere resten af en skabelon, der allerede har dem. `{{affectedStatusPages}}` kræver ikke mere end selve skabelonen.
 
 ### Tilstanden i noteskabeloner
 

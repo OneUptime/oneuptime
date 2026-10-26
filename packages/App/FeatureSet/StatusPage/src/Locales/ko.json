@@ -1,7 +1,9 @@
 {
   "a11y": {
     "skipToMainContent": "본문으로 건너뛰기",
-    "loading": "불러오는 중..."
+    "loading": "불러오는 중...",
+    "moreLinks": "더 많은 링크",
+    "navigation": "탐색"
   },
   "common": {
     "save": "저장",
@@ -303,7 +305,8 @@
       "loginPrompt": "{{statusPageName}}을(를) 보려면 로그인해주세요",
       "noProviders": "구성되거나 활성화된 SSO 제공자가 없습니다",
       "notAvailable": "이 상태 페이지에서는 싱글 사인온(SSO)을 사용할 수 없습니다. 대신 이메일과 비밀번호로 로그인하세요.",
-      "backToLogin": "로그인으로 돌아가기"
+      "backToLogin": "로그인으로 돌아가기",
+      "logInWithPassword": "비밀번호로 로그인"
     },
     "forgotPassword": {
       "title": "비밀번호 분실",
@@ -320,13 +323,9 @@
       "knowPassword": "비밀번호를 알고 계신가요?"
     },
     "masterPassword": {
-      "enterWithName": "{{statusPageName}} 비밀번호 입력",
-      "enterGeneric": "비밀번호 입력",
-      "prompt": "계속하려면 비밀번호를 입력해주세요.",
+      "prompt": "이 상태 페이지를 보려면 비밀번호를 입력해주세요.",
       "passwordRequired": "비밀번호는 필수입니다.",
       "passwordLabel": "비밀번호",
-      "passwordDescription": "이 페이지의 잠금을 해제하려면 비밀번호를 입력해주세요.",
-      "passwordPlaceholder": "비밀번호 입력",
       "submit": "상태 페이지 잠금 해제"
     },
     "signingOut": "로그아웃 중..."

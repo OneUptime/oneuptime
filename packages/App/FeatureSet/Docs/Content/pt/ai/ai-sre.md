@@ -101,7 +101,7 @@ De início, uma investigação só pode usar a telemetria que os seus agentes en
 A página de cada cluster tem uma seção **IA** no menu lateral:
 
 - **Agente**: a página **Agente de IA** do cluster: se o agente está conectado, o que a IA pode fazer no cluster e tudo o que precisa de atenção, cada item com o passo que o resolve. A mesma explicação aparece no painel de investigação do incidente quando a IA teve de investigar apenas com dados do OneUptime.
-- **Insights**: a página **AI Insights** do cluster: o que a OneUptime AI descobriu sobre o cluster, o que continua dando errado e por quê, e o que fazer a respeito (veja [O que a IA aprendeu em um cluster](#o-que-a-ia-aprendeu-em-um-cluster)).
+- **Insights**: a página **Insights de IA** do cluster: o que a OneUptime AI descobriu sobre o cluster, o que continua dando errado e por quê, e o que fazer a respeito (veja [O que a IA aprendeu em um cluster](#o-que-a-ia-aprendeu-em-um-cluster)).
 - **Registros**: a página **Registros de IA** do cluster: tudo o que a OneUptime AI fez no cluster, do mais recente para o mais antigo (veja [Tudo o que a IA fez em um cluster](#tudo-o-que-a-ia-fez-em-um-cluster)).
 
 A **Visão geral** do cluster termina com um cartão **Agente de IA** que resume a página do agente de IA: se o agente está conectado, se **Investigar com o kubectl** está ativado, como as correções são executadas (**Desativado**, **Pedir aprovação**, **Automático** ou **Ignorar aprovação**) e o que precisa de atenção, com um link para a página do agente de IA, onde eles são alterados.
@@ -121,7 +121,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 `kubernetes-agent` em `oneuptime-agent` são o nome da release e o namespace usados pelas instruções de instalação do painel; se você instalou o agente com outros nomes, use os seus (`helm list -A | grep kubernetes-agent` os mostra). Sem `helm repo update`, o Helm pode resolver o chart a partir do qual você instalou, que não conhece `aiAgent` e falha com `Additional property aiAgent is not allowed`. Em um OneUptime auto-hospedado, atualize o OneUptime antes do chart: veja [Atualizar o agente](/docs/telemetry/kubernetes-agent#atualizando-o-agente). Para executar o chart sem o agente de IA, passe `--set aiAgent.enabled=false`.
 
-**Testar conexão**, no menu **⋯** ao lado do status do agente na página do agente de IA, executa `kubectl version` e `kubectl auth can-i --list` pelo agente e mostra os resultados: o que ele consegue alcançar e o que pode fazer. Se a página disser que o agente não está conectado, leia o log dele com `kubectl logs -n oneuptime-agent -l component=ai-agent --tail=100`. Uma chave com um **Pinned Service Name** não consegue registrar o agente: dê ao chart uma chave sem ele. Quando o servidor recusa um registro, o log diz se a recusa se resolve sozinha (um pod anterior do agente que ainda se reporta, ou o antigo Runner do cluster ainda sendo desligado durante um upgrade) ou o que é preciso mudar. **Redefinir agente**, no mesmo menu, faz o servidor esquecer a chave do agente depois que você confirma; o pod se reconecta sozinho em poucos minutos.
+**Testar conexão**, no menu **⋯** ao lado do status do agente na página do agente de IA, executa `kubectl version` e `kubectl auth can-i --list` pelo agente e mostra os resultados: o que ele consegue alcançar e o que pode fazer. Se a página disser que o agente não está conectado, leia o log dele com `kubectl logs -n oneuptime-agent -l component=ai-agent --tail=100`. Uma chave com um **Nome do serviço fixado** não consegue registrar o agente: dê ao chart uma chave sem ele. Quando o servidor recusa um registro, o log diz se a recusa se resolve sozinha (um pod anterior do agente que ainda se reporta, ou o antigo Runner do cluster ainda sendo desligado durante um upgrade) ou o que é preciso mudar. **Redefinir agente**, no mesmo menu, faz o servidor esquecer a chave do agente depois que você confirma; o pod se reconecta sozinho em poucos minutos.
 
 O agente de IA do Kubernetes não é um Runner e nunca aparece em Runbooks → Agentes de runbook. Ele só usa a própria ServiceAccount, então o OneUptime nunca lhe entrega uma credencial, ele nunca é usado como host Bash/SSH para runbooks e nunca é aceito como Runner de comandos de uma regra de IA.
 
@@ -241,7 +241,7 @@ Tenha clareza, porém, sobre o que esse acesso de escrita significa: **patch/upd
 
 ### O que a IA aprendeu em um cluster
 
-A página **AI Insights** do cluster (IA → Insights) diz o que vale a pena saber sobre o cluster a partir dos últimos 30 dias: não um registro do que a IA fez, mas o que ela descobriu:
+A página **Insights de IA** do cluster (IA → Insights) diz o que vale a pena saber sobre o cluster a partir dos últimos 30 dias: não um registro do que a IA fez, mas o que ela descobriu:
 
 - **O que a OneUptime AI encontrou**: as poucas coisas que mais importam, a mais importante primeiro, cada uma com os incidentes e alertas por trás e um próximo passo:
   - um problema que continua voltando: com que frequência (conta cada incidente e alerta que ele gerou, investigado ou não) e que parte do total isso representa, se é novo nesta semana ou está piorando, a hora do dia em que costuma começar (no seu próprio fuso horário), as partes do cluster que ele atinge, o que a última investigação encontrou e o primeiro passo que o relatório dela sugere;
@@ -427,7 +427,7 @@ Eles ficam recolhidos em **Mais configurações** no fim da página de configura
 | Limite diário de tokens | Máximo opcional de tokens por dia UTC para o trabalho autônomo de IA ligado a este tipo de sinal, incluindo investigações, remediação e tarefas de correção de acompanhamento. O uso de incidentes e o de alertas são contados separadamente. Quando um limite é atingido, só o trabalho de IA daquele tipo de sinal é pausado até o dia seguinte: o chat de IA interativo nunca é bloqueado. Não definido (o padrão) significa **sem limite**; defina **0** para pausar essa faixa. |
 | Limite diário de tarefas de correção | Máximo de tarefas de correção ligadas a incidentes ou alertas criadas por dia UTC. Cada tipo de sinal tem o próprio limite. Não definido (o padrão) significa **sem limite**; defina 0 para pausar as tarefas de correção dessa faixa. |
 
-O trabalho de IA fora de incidentes e alertas (a triagem de insights e as tarefas de correção de exceções, insights e regressões de desempenho) não tem configuração própria nem nenhum dos limites da tabela; só os limites diários do próprio projeto (abaixo) se aplicam a ele. Os pull requests dele contam no **Max Open Fix Pull Requests** de um repositório, em **Mais configurações** na página **Configurações** do repositório: **Pull requests de correção de IA** fica em **Sem limite** até você escolher **Um limite**, ou **Nenhum**, que bloqueia os pull requests de correção de IA nesse repositório.
+O trabalho de IA fora de incidentes e alertas (a triagem de insights e as tarefas de correção de exceções, insights e regressões de desempenho) não tem configuração própria nem nenhum dos limites da tabela; só os limites diários do próprio projeto (abaixo) se aplicam a ele. Os pull requests dele contam no **Máximo de pull requests de correção abertas** de um repositório, em **Mais configurações** na página **Configurações** do repositório: **Pull requests de correção de IA** fica em **Sem limite** até você escolher **Um limite**, ou **Nenhum**, que bloqueia os pull requests de correção de IA nesse repositório.
 
 ### Como os tokens são contados
 
@@ -480,7 +480,7 @@ As **Regras de post-mortem**, recolhidas em **Mais configurações** na mesma p�
 
 ## Insights: detecção proativa
 
-As investigações reagem a incidentes e alertas. Os **AI Insights** procuram problemas antes que alguém seja acionado: a cada 15 minutos, detectores determinísticos varrem a sua telemetria em busca de problemas que (ainda) não dispararam um monitor. **Não há IA no ciclo de vigilância**: os detectores são verificações estatísticas com limites fixos, então a parte sempre ativa do recurso não gasta tokens e não consegue alucinar uma descoberta. Os limites são conservadores de propósito: um insight significa que algo realmente mudou, não que um número oscilou.
+As investigações reagem a incidentes e alertas. Os **Insights de IA** procuram problemas antes que alguém seja acionado: a cada 15 minutos, detectores determinísticos varrem a sua telemetria em busca de problemas que (ainda) não dispararam um monitor. **Não há IA no ciclo de vigilância**: os detectores são verificações estatísticas com limites fixos, então a parte sempre ativa do recurso não gasta tokens e não consegue alucinar uma descoberta. Os limites são conservadores de propósito: um insight significa que algo realmente mudou, não que um número oscilou.
 
 O que os detectores vigiam:
 

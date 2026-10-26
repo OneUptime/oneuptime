@@ -3,7 +3,7 @@
  * for the collectors OneUptime manages on them:
  *
  *   - Hosts: the list, its Add Host dialog (the one command, the key, the
- *     live "wait for the host" step) and its first-run card;
+ *     live "wait for the host" step) and the showcase an empty list shows;
  *   - Hosts > Collector Configs: the list, OneUptime's defaults, creating one;
  *   - a Collector Config's page: who it is for, config.yaml and its edit
  *     dialog, the Versions list with Put back, the hosts that run it;

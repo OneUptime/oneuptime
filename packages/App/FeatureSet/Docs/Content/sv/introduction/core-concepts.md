@@ -1,24 +1,24 @@
 # Grundbegrepp
 
-OneUptime har många produkter, men de vilar på en handfull idéer: projekt, monitorer, incidenter och varningar, jour, statussidor och telemetri. Den här sidan förklarar varje idé med några få meningar, visar hur de hänger ihop och länkar till sidorna som går igenom dem i detalj. Läs den en gång, så blir alla andra sidor i dokumentationen lättare att läsa.
+OneUptime har många produkter, men de vilar på en handfull idéer: projekt, monitorer, incidenter och larm, jour, statussidor och telemetri. Den här sidan förklarar varje idé med några få meningar, visar hur de hänger ihop och länkar till sidorna som går igenom dem i detalj. Läs den en gång, så blir alla andra sidor i dokumentationen lättare att läsa.
 
 :::cards
 - [Projekt och personer](#projekt-och-personer): Var allt finns, och vem som får göra vad.
 - [Monitorer och sonder](#monitorer-och-sonder): Hur OneUptime märker att något är fel.
-- [Incidenter och varningar](#incidenter-och-varningar): Posten som ditt team arbetar utifrån.
+- [Incidenter och larm](#incidenter-och-larm): Posten som ditt team arbetar utifrån.
 - [Jour](#jour): Vem som larmas, hur, och vem som står på tur.
 :::
 
 ## Så hänger delarna ihop
 
-Ett problem rör sig i en riktning genom OneUptime. Sonder och din egen telemetri matar monitorer. En monitors kriterier avgör när något är fel och vad som öppnas: en incident, en varning eller båda. Jourpolicyer larmar personer om dem, och statussidor berättar för dina kunder om incidenter.
+Ett problem rör sig i en riktning genom OneUptime. Sonder och din egen telemetri matar monitorer. En monitors kriterier avgör när något är fel och vad som öppnas: en incident, ett larm eller båda. Jourpolicyer larmar personer om dem, och statussidor berättar för dina kunder om incidenter.
 
 ```mermaid title="Så rör sig ett problem genom OneUptime"
 flowchart TB
     probes["Sonder kontrollerar"] --> monitors["Monitorer"]
     telemetry["Appar och agenter<br/>skickar telemetri"] --> monitors
     monitors -->|"deklarerar"| incident["Incident"]
-    monitors -->|"skapar"| alert["Varning"]
+    monitors -->|"skapar"| alert["Larm"]
     incident --> policy["Jourpolicy"]
     alert --> policy
     incident --> statuspage["Statussida"]
@@ -42,37 +42,37 @@ Personer är med i ett projekt genom **team**, och ett teams behörigheter avgö
 
 En **monitor** kontrollerar en sak som du kör och avgör om den fungerar. De flesta monitorer kontrolleras av **sonder**: maskiner som kör kontrollen enligt ett schema, till exempel genom att hämta en sida, anropa ett API, pinga en värd eller fråga en databas. OneUptime Cloud kör sonder i flera regioner, en självhostad installation kör sina egna, och du kan lägga till anpassade sonder i ditt nätverk. Andra monitorer läser i stället det du skickar: telemetrin från dina appar, eller data som en agent rapporterar från dina servrar, Kubernetes-kluster och övrig infrastruktur.
 
-En monitors **kriterier** avgör vad varje resultat betyder. De kontrolleras i ordning, och det första som matchar kan ändra monitorns status, deklarera en incident, skapa en varning eller alla tre. Varje nytt projekt har tre monitorstatusar: **Fungerar**, **Försämrad** och **Offline**.
+En monitors **kriterier** avgör vad varje resultat betyder. De kontrolleras i ordning, och det första som matchar kan ändra monitorns status, deklarera en incident, skapa ett larm eller alla tre. Varje nytt projekt har tre monitorstatusar: **Fungerar**, **Försämrad** och **Offline**.
 
 :::cards
 - [Skapa en monitor](/docs/monitor/create-monitor): Välj en typ, säg vad som ska kontrolleras och hur ofta.
 - [Anpassade probes](/docs/probe/custom-probe): Kontrollera det som bara ditt eget nätverk når.
 :::
 
-## Incidenter och varningar
+## Incidenter och larm
 
 Båda registrerar ett problem, och båda kan larma den som har jour. Skillnaden är vem problemet drabbar.
 
-| | Incident | Varning |
+| | Incident | Larm |
 | --- | --- | --- |
 | **Vad det är** | Ett problem som drabbar dina användare, till exempel ett avbrott eller en fördröjning | Ett problem som ditt team bör titta på innan användarna drabbas |
 | **På statussidor** | Kan visas, och meddelar prenumeranter | Aldrig |
-| **Startstatusar** | **Identified**, **Bekräftad**, **Löst** | **Identified**, **Bekräftad**, **Löst** |
-| **Startallvarlighetsgrader** | Critical Incident, Major Incident, Minor Incident | **High**, **Low** |
+| **Startstatusar** | **Identifierad**, **Bekräftad**, **Löst** | **Identifierad**, **Bekräftad**, **Löst** |
+| **Startallvarlighetsgrader** | Critical Incident, Major Incident, Minor Incident | **Hög**, **Låg** |
 
-Att bekräfta en säger att någon tar hand om den, och hindrar dess jourpolicyer från att larma nästa nivå. Att lösa den stänger den. Du kan lägga till egna statusar och allvarlighetsgrader, och koppla varningar till incidenten som de visade sig höra till.
+Att bekräfta en säger att någon tar hand om den, och hindrar dess jourpolicyer från att larma nästa nivå. Att lösa den stänger den. Du kan lägga till egna statusar och allvarlighetsgrader, och koppla larm till incidenten som de visade sig höra till.
 
-En **episod** samlar relaterade incidenter, eller relaterade varningar, så att ditt team hanterar dem som en. Grupperingsregler avgör vad som hör ihop.
+En **episod** samlar relaterade incidenter, eller relaterade larm, så att ditt team hanterar dem som en. Grupperingsregler avgör vad som hör ihop.
 
 :::cards
 - [Incidenter – Översikt](/docs/incidents/index): Hur incidenter deklareras, hanteras och löses.
 - [Larm – Översikt](/docs/alerts/index): Var larm kommer ifrån, och hur episoder grupperar dem.
-- [Länkade larm](/docs/incidents/linked-alerts): Koppla varningarna som ett avbrott utlöste till dess incident.
+- [Länkade larm](/docs/incidents/linked-alerts): Koppla larmen som ett avbrott utlöste till dess incident.
 :::
 
 ## Jour
 
-En **jourpolicy** avgör vem som larmas om en incident eller en varning, och vem som står på tur om ingen svarar. Dess **eskaleringsregler** är dess nivåer: varje nivå larmar sina personer och väntar sedan på att någon bekräftar innan nästa nivå larmas. En nivå kan larma personer, team eller ett **jourschema**, en rotation som hela tiden vet vem som har jour.
+En **jourpolicy** avgör vem som larmas om en incident eller ett larm, och vem som står på tur om ingen svarar. Dess **eskaleringsregler** är dess nivåer: varje nivå larmar sina personer och väntar sedan på att någon bekräftar innan nästa nivå larmas. En nivå kan larma personer, team eller ett **jourschema**, en rotation som hela tiden vet vem som har jour.
 
 Hur varje person nås bestämmer de själva. I **Användarinställningar** sparar var och en sätten som OneUptime kan nå dem på, till exempel e-post, SMS, samtal, pushaviseringar, Slack eller Microsoft Teams, och vilka som används när de larmas.
 
@@ -97,7 +97,7 @@ En **statussida** visar dina kunder om dina tjänster fungerar. Du väljer vilka
 
 ## Telemetri
 
-**Telemetri** är det som dina system skickar till OneUptime: loggar, mätvärden, spår, undantag och profiler. Appar skickar den med OpenTelemetry, och OneUptimes agenter skickar den från värdar, Kubernetes-kluster, Docker-värdar och övrig infrastruktur. Varje avsändare använder en **intagningsnyckel**, som skapas under **Projektinställningar → Telemetri och APM → Intagningsnycklar**. Du söker i telemetrin, visar den på instrumentpaneler och håller koll på den med telemetrimonitorer, som öppnar incidenter och varningar precis som alla andra monitorer.
+**Telemetri** är det som dina system skickar till OneUptime: loggar, mätvärden, spår, undantag och profiler. Appar skickar den med OpenTelemetry, och OneUptimes agenter skickar den från värdar, Kubernetes-kluster, Docker-värdar och övrig infrastruktur. Varje avsändare använder en **intagningsnyckel**, som skapas under **Projektinställningar → Telemetri och APM → Intagningsnycklar**. Du söker i telemetrin, visar den på instrumentpaneler och håller koll på den med telemetrimonitorer, som öppnar incidenter och larm precis som alla andra monitorer.
 
 :::cards
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Skicka loggar, mätvärden och spår från dina appar.
@@ -108,11 +108,11 @@ En **statussida** visar dina kunder om dina tjänster fungerar. Du väljer vilka
 
 - **Arbetsflöden** utför åtgärder när något händer, till exempel ett meddelande i Slack när en incident deklareras.
 - **Runbooks** gör om en insatsrutin till steg som ditt team kan köra manuellt eller automatiskt.
-- **OneUptime AI** undersöker nya incidenter och varningar och lägger ut vad den hittade på deras tidslinje, och **Ask AI** svarar på frågor om ditt projekt. Ett nytt projekt börjar med AI påslaget; reglaget **Aktivera AI** under **Projektinställningar → AI → AI Features** stänger av allt.
+- **OneUptime AI** undersöker nya incidenter och larm och lägger ut vad den hittade på deras tidslinje, och **Ask AI** svarar på frågor om ditt projekt. Ett nytt projekt börjar med AI påslaget; reglaget **Aktivera AI** under **Projektinställningar → AI → AI Features** stänger av allt.
 
 :::cards
 - [Översikt över arbetsflöden](/docs/workflows/index): Automatisera åtgärder med utlösare och komponenter.
-- [AI SRE](/docs/ai/ai-sre): Hur OneUptime AI undersöker incidenter och varningar.
+- [AI SRE](/docs/ai/ai-sre): Hur OneUptime AI undersöker incidenter och larm.
 :::
 
 ## Etiketter och ägare

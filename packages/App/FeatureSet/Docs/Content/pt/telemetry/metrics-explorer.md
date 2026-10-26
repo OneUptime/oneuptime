@@ -59,7 +59,7 @@ Em **Aggregate by**, escolha como os valores de cada ponto do gráfico são comb
 
 ### Filtrá-la e agrupá-la
 
-Abra **Filters & grouping**. **Filter by attributes** mantém os pontos de dados cujos atributos correspondem, como uma `http.route` específica, e **Group by** desenha uma linha por valor dos atributos que você escolher, como uma linha por host.
+Abra **Filters & grouping**. **Filter by attributes** mantém os pontos de dados cujos atributos correspondem, como uma `http.route` específica, e **Agrupar por** desenha uma linha por valor dos atributos que você escolher, como uma linha por host.
 
 ### Ajustar o gráfico
 
@@ -104,7 +104,7 @@ Arraste sobre um gráfico para dar zoom em um momento, e clique duas vezes para 
 - **Ações → Criar monitor a partir desta visualização** abre um novo monitor de métricas com estas consultas e fórmulas já preenchidas. Veja [Monitor de métricas](/docs/monitor/metrics-monitor).
 - **Ações → Add to dashboard** adiciona o gráfico a um painel que você escolher. Você precisa de permissão para editar esse painel.
 - **Copiar link** copia um link exatamente para esta visualização: consultas, fórmulas e intervalo de tempo.
-- **Saved Views** guarda a visualização com um nome, para todos no projeto. O **Visualizador** tem as próprias visualizações salvas, para a pesquisa e os filtros dele. As visualizações salvas funcionam como no [Explorador de registros](/docs/telemetry/logs-explorer#salvar-uma-visualização).
+- **Visualizações salvas** guarda a visualização com um nome, para todos no projeto. O **Visualizador** tem as próprias visualizações salvas, para a pesquisa e os filtros dele. As visualizações salvas funcionam como no [Explorador de registros](/docs/telemetry/logs-explorer#salvar-uma-visualização).
 
 ## Insights de métricas
 

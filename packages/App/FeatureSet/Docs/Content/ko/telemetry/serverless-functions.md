@@ -197,7 +197,7 @@ az functionapp config appsettings set \
 OTEL_RESOURCE_ATTRIBUTES="faas.name=checkout-handler,oneuptime.label.team=payments,oneuptime.label.env=production"
 ```
 
-대신 이름에 따라 함수에 레이블을 붙이거나 소유자를 지정하려면 **제품 → 인프라 → 서버리스**를 열고 사이드 메뉴의 **레이블 규칙**와 **소유자 규칙**를 사용하세요. 규칙은 자동으로 발견된 함수를 포함해 함수가 만들어질 때 실행됩니다. 이미 있는 함수에 규칙을 적용하려면 그 규칙의 **Run Now**를 사용하세요([기존 리소스에 규칙 실행](/docs/configuration/run-rules-now) 참고).
+대신 이름에 따라 함수에 레이블을 붙이거나 소유자를 지정하려면 **제품 → 인프라 → 서버리스**를 열고 사이드 메뉴의 **레이블 규칙**과 **소유자 규칙**을 사용하세요. 규칙은 자동으로 발견된 함수를 포함해 함수가 만들어질 때 실행됩니다. 이미 있는 함수에 규칙을 적용하려면 그 규칙의 **지금 실행**을 사용하세요([기존 리소스에 규칙 실행](/docs/configuration/run-rules-now) 참고).
 
 ## 문제 해결
 

@@ -44,7 +44,7 @@ Hvert nytt prosjekt starter med tre varseltilstander, i denne rekkefølgen:
 
 | Tilstand         | `order` | Flagg                 | Farge     | Hva den betyr                                     |
 | ---------------- | ------- | --------------------- | --------- | ------------------------------------------------- |
-| **Identified**   | `1`     | `isCreatedState`      | `#fd625e` | Tilstanden nye varsler starter i.                 |
+| **Identifisert**   | `1`     | `isCreatedState`      | `#fd625e` | Tilstanden nye varsler starter i.                 |
 | **Bekreftet**    | `2`     | `isAcknowledgedState` | `#ffbf53` | Noen tar seg av det, og tilkallingen stopper.     |
 | **Løst**         | `3`     | `isResolvedState`     | `#2ab57d` | Varselet er over og teller ikke lenger som aktivt. |
 
@@ -99,10 +99,10 @@ Hvert nytt prosjekt starter med to alvorlighetsgrader for varsler, den mest alvo
 
 | Alvorlighetsgrad | `order` | Farge     | Forhåndsopprettet beskrivelse                                                     |
 | ---------------- | ------- | --------- | --------------------------------------------------------------------------------- |
-| **High**         | `1`     | `#b70400` | Issues causing very high impact to customers. Immediate attention is required.    |
-| **Low**          | `2`     | `#ffbf53` | Issues causing low impact to customers.                                           |
+| **Høy**         | `1`     | `#b70400` | Issues causing very high impact to customers. Immediate attention is required.    |
+| **Lav**          | `2`     | `#ffbf53` | Issues causing low impact to customers.                                           |
 
-Hendelser starter med tre alvorlighetsgrader og varsler med to. Når malen i en monitoranbefaling sier **Kritisk** eller **Warning**, knytter OneUptime det til din første og andre alvorlighetsgrad for varsler, som i et nytt prosjekt er **High** og **Low**.
+Hendelser starter med tre alvorlighetsgrader og varsler med to. Når malen i en monitoranbefaling sier **Kritisk** eller **Warning**, knytter OneUptime det til din første og andre alvorlighetsgrad for varsler, som i et nytt prosjekt er **Høy** og **Lav**.
 
 ## Rediger alvorlighetsgrader
 

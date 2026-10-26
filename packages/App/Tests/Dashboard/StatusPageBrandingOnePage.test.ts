@@ -459,6 +459,7 @@ describe("one place for each branding setting", () => {
    */
   const OWNERS: Record<string, Array<string>> = {
     logoFile: ["Pages/StatusPages/View/Branding.tsx"],
+    darkThemeLogoFile: ["Pages/StatusPages/View/Branding.tsx"],
     logoAltText: ["Pages/StatusPages/View/Branding.tsx"],
     coverImageFile: ["Pages/StatusPages/View/Branding.tsx"],
     coverImageAltText: ["Pages/StatusPages/View/Branding.tsx"],
@@ -498,10 +499,14 @@ describe("one place for each branding setting", () => {
   /*
    * Files that say the word in a sentence for people, never the column: the
    * custom code page says footer HTML replaces the footer's language and
-   * theme switches. Each is checked to use no column of that name.
+   * theme switches, and the Branding page's dark theme logo upload says
+   * which theme it is for. Each is checked to use no column of that name.
    */
   const SAID_IN_WORDS: Record<string, Array<string>> = {
-    theme: ["Components/StatusPage/StatusPageCustomCodeCopy.ts"],
+    theme: [
+      "Components/StatusPage/StatusPageCustomCodeCopy.ts",
+      "Pages/StatusPages/View/Branding.tsx",
+    ],
   };
 
   const statusPageSources: Array<string> = [

@@ -33,7 +33,7 @@ flowchart TB
 
 ## 시작하기 전에
 
-- **프로젝트를 연결할 수 있는 역할:** **Project Owner**, **Project Admin** 또는 **Project Member**. 제거하려면 **Project Owner** 또는 **Project Admin** 이 필요합니다.
+- **프로젝트를 연결할 수 있는 역할:** **프로젝트 소유자**, **프로젝트 관리자** 또는 **프로젝트 구성원**. 제거하려면 **프로젝트 소유자** 또는 **프로젝트 관리자** 가 필요합니다.
 - 조직 전체에 대해 한 번 관리자 동의를 부여할 **Microsoft 365 관리자**.
 - 알림 규칙과 요약에 필요한 **OneUptime Cloud 의 Growth 플랜**. [Growth 플랜 미만의 알림 규칙](#growth-플랜-미만의-알림-규칙) 을 참조하세요.
 - **자체 호스팅 서버에서는** 먼저 그 서버용으로 설정한 Teams 봇. [Microsoft Teams 통합](/docs/self-hosted/microsoft-teams-integration) 을 참조하세요.
@@ -72,7 +72,7 @@ OneUptime Cloud 에서는 **Teams 스토어 열기** 가 Microsoft Teams 스토�
 
 ## 모두에게 연결 요청하기
 
-관리자를 포함해 누구도 다른 사람의 Microsoft Teams 계정을 연결할 수 없습니다. 각자 자신의 계정으로 로그인해야 합니다. 팀 전체를 참여시키려면 **Project Owner** 또는 **Project Admin** 이 **프로젝트 설정** > **워크스페이스** > **Microsoft Teams** 에서 모두에게 한 번에 요청합니다. **Members' Microsoft Teams accounts** 카드에는 연결을 마친 멤버 수가 표시됩니다. **Ask everyone to connect** 를 누르면 OneUptime 봇이 아직 연결하지 않은 각 멤버에게 메시지를 보냅니다. 메시지에는 클릭 한 번으로 계정을 연결하는 **Connect Microsoft Teams account** 버튼이 있습니다.
+관리자를 포함해 누구도 다른 사람의 Microsoft Teams 계정을 연결할 수 없습니다. 각자 자신의 계정으로 로그인해야 합니다. 팀 전체를 참여시키려면 **프로젝트 소유자** 또는 **프로젝트 관리자** 가 **프로젝트 설정** > **워크스페이스** > **Microsoft Teams** 에서 모두에게 한 번에 요청합니다. **Members' Microsoft Teams accounts** 카드에는 연결을 마친 멤버 수가 표시됩니다. **Ask everyone to connect** 를 누르면 OneUptime 봇이 아직 연결하지 않은 각 멤버에게 메시지를 보냅니다. 메시지에는 클릭 한 번으로 계정을 연결하는 **Connect Microsoft Teams account** 버튼이 있습니다.
 
 - **메시지를 받는 사람.** Microsoft Teams 계정을 연결하지 않았고 OneUptime 앱이 추가된 팀에 속한 프로젝트의 모든 멤버이며, 그 팀에서 이메일 주소나 사용자 계정 이름(UPN)으로 찾습니다. 지난 24시간 안에 요청을 받은 사람에게는 다시 요청하지 않으므로, 다음 날 다시 요청하면 아직 연결하지 않은 사람에게만 다시 알림이 갑니다.
 - **카드가 알려 주는 내용.** 메시지를 보내는 동안에는 진행 상황을, 그다음에는 누가 요청했는지와 메시지를 받은 멤버 수를 보여 줍니다. OneUptime 이 찾지 못한 멤버는 카드에 이름이 표시됩니다. 그 멤버의 팀에 앱을 추가하거나, 본인이 **사용자 설정** > **워크스페이스** > **Microsoft Teams** 에서 직접 연결하게 하세요.
@@ -84,8 +84,8 @@ OneUptime Cloud 에서는 **Teams 스토어 열기** 가 Microsoft Teams 스토�
 
 | 제품 | **Microsoft Teams** 페이지의 탭 |
 | --- | --- |
-| **인시던트** | **인시던트**, **인시던트 에피소드**, **Summary** |
-| **알림** | **알림**, **경고 에피소드**, **Summary** |
+| **인시던트** | **인시던트**, **인시던트 에피소드**, **요약** |
+| **알림** | **알림**, **경고 에피소드**, **요약** |
 | **예정된 유지 관리** | 규칙 목록 하나 |
 | **모니터** | 규칙 목록 하나 |
 | **온콜 듀티** | 규칙 목록 하나 |
@@ -119,13 +119,13 @@ OneUptime Cloud 에서는 **Teams 스토어 열기** 가 Microsoft Teams 스토�
 
 규칙 행의 **테스트 규칙** 은 그 규칙의 테스트 메시지를 규칙이 지정한 채널에 게시해, 도착하는 것을 확인할 수 있게 합니다. 이벤트마다 채널을 만드는 규칙이라면 테스트도 채널을 하나 만들고 규칙의 대상자를 초대합니다.
 
-**프로젝트 설정** > **워크스페이스** > **Microsoft Teams** 의 채널 옆에 있는 **테스트 보내기** 와 마찬가지로, 알림 규칙을 만들 권한이 필요합니다. **Project Owner**, **Project Admin**, **Project Member**, **Settings Admin**, **Settings Member**, 또는 사용자 지정 역할의 **Create Workspace Notification Rule** 과 **Read Workspace Notification Rule** 입니다. 규칙을 보기만 할 수 있는 사람 (예: **Viewer** ) 에게는 **테스트 규칙** 이 잠기며, 툴팁에 필요한 것이 표시됩니다. API 는 그 사람의 테스트를 "You do not have permission to send test notifications in this project." 로 거부합니다. OneUptime Cloud 에서는 규칙을 추가할 때와 마찬가지로 규칙 테스트에도 **Growth** 플랜이 필요합니다.
+**프로젝트 설정** > **워크스페이스** > **Microsoft Teams** 의 채널 옆에 있는 **테스트 보내기** 와 마찬가지로, 알림 규칙을 만들 권한이 필요합니다. **프로젝트 소유자**, **프로젝트 관리자**, **프로젝트 구성원**, **설정 관리자**, **설정 구성원**, 또는 사용자 지정 역할의 **Create Workspace Notification Rule** 과 **Read Workspace Notification Rule** 입니다. 규칙을 보기만 할 수 있는 사람 (예: **뷰어** ) 에게는 **테스트 규칙** 이 잠기며, 툴팁에 필요한 것이 표시됩니다. API 는 그 사람의 테스트를 "You do not have permission to send test notifications in this project." 로 거부합니다. OneUptime Cloud 에서는 규칙을 추가할 때와 마찬가지로 규칙 테스트에도 **Growth** 플랜이 필요합니다.
 
 OneUptime Cloud 에서는 채널이나 채팅 옆의 **테스트 보내기** 에도 **Growth** 플랜이 필요합니다. 채널에 게시하는 것은 규칙과 요약이 하는 일이기 때문입니다. 요약의 **지금 테스트 보내기** 에는 요약을 만들 권한 (사용자 지정 역할의 **Create Workspace Notification Summary** 와 **Read Workspace Notification Summary** ) 과, OneUptime Cloud 에서는 **Growth** 플랜이 필요합니다. 그 밖의 사람에게는 잠기며, 툴팁에 필요한 것이 표시됩니다. 읽기 전용으로 연결된 MCP 클라이언트는 어떤 테스트도 보낼 수 없습니다.
 
 ## 요약
 
-**인시던트** > **워크스페이스** > **Microsoft Teams** (및 **알림** ) 의 **Summary** 탭은 지정한 채널에 정기 요약을 게시합니다. 인시던트나 경고가 몇 건이었는지, 얼마나 빨리 인지되고 해결되었는지, 그리고 링크가 포함된 목록입니다. 새 요약은 매주 발송되며 최근 7일을 다룹니다. **첫 보고서 전송 시각** 을 비워 두면 첫 요약은 다음 주, 일, 월의 시작 09:00 에 발송되며, 언제인지는 양식에 표시됩니다.
+**인시던트** > **워크스페이스** > **Microsoft Teams** (및 **알림** ) 의 **요약** 탭은 지정한 채널에 정기 요약을 게시합니다. 인시던트나 경고가 몇 건이었는지, 얼마나 빨리 인지되고 해결되었는지, 그리고 링크가 포함된 목록입니다. 새 요약은 매주 발송되며 최근 7일을 다룹니다. **첫 보고서 전송 시각** 을 비워 두면 첫 요약은 다음 주, 일, 월의 시작 09:00 에 발송되며, 언제인지는 양식에 표시됩니다.
 
 요약은 **시간대** 의 시계에 맞춰 발송되며, 시간대의 초기값은 사용자의 시간대입니다. 요약은 그 시간대에서 일 년 내내 같은 시각을 유지합니다. 베를린 09:00 으로 설정한 요약은 일광 절약 시간으로 시계가 바뀐 뒤에도 베를린 시간 09:00 에 발송되며, 메시지의 날짜도 베를린 기준입니다. API 에서는 `timezone` 을 `Europe/Berlin` 같은 IANA 시간대 이름으로 보냅니다. 시간대 없이 만든 요약은 만든 사람의 프로필 시간대를 사용하고, API 키로 만든 경우에는 UTC 를 사용합니다.
 
@@ -195,11 +195,11 @@ OneUptime 앱을 나에게 추가하면 봇이 바로 내 홈을 보냅니다. �
 
 OneUptime 봇에게 `incident` 또는 `maintenance` 를 입력하면, 개인 채팅, 채널, 그룹 채팅 어디서든 입력한 사람을 위한 양식이 열립니다. 양식은 그 사람으로서 작성됩니다. 그 사람의 Microsoft Teams 계정이 연결된 OneUptime 계정 ( [Microsoft Teams 연결하기](#microsoft-teams-연결하기) 참조) 으로서, 그 계정의 프로젝트 권한으로 제출됩니다. 계정이 연결되지 않았거나 OneUptime 계정이 더 이상 프로젝트의 멤버가 아닌 사람은 양식 대신 그 사람을 멘션하는 답글로 무엇을 해야 하는지 안내를 받습니다.
 
-- **사용할 수 있는 사람.** OneUptime 에서 인시던트를 선언하거나 예정된 유지 관리 이벤트를 만들 수 있는 사람입니다. 인시던트에는 **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin**, **Incident Member** (사용자 지정 역할에서는 **Create Incident** ), 이벤트에는 **Scheduled Maintenance Admin** 과 **Scheduled Maintenance Member** ( **Create Scheduled Maintenance** ) 입니다. 그 밖의 사람에게는 그렇게 알리며 양식을 주지 않습니다.
+- **사용할 수 있는 사람.** OneUptime 에서 인시던트를 선언하거나 예정된 유지 관리 이벤트를 만들 수 있는 사람입니다. 인시던트에는 **프로젝트 소유자**, **프로젝트 관리자**, **프로젝트 구성원**, **인시던트 관리자**, **인시던트 구성원** (사용자 지정 역할에서는 **Create Incident** ), 이벤트에는 **예정된 유지 관리 관리자** 와 **예정된 유지 관리 구성원** ( **Create Scheduled Maintenance** ) 입니다. 그 밖의 사람에게는 그렇게 알리며 양식을 주지 않습니다.
 - **양식이 제공하는 것.** 각 목록 (심각도, 모니터, 모니터 상태, 온콜 정책, 레이블) 에는 OneUptime 의 같은 목록과 마찬가지로 양식을 요청한 사람이 읽을 수 있는 것이 들어 있으며, 카드의 "not shown" 안내도 그것만 셉니다. 일부 레이블로 제한된 역할이라면 그 레이블이 붙은 모니터와 온콜 정책입니다. 전혀 읽을 수 없는 목록은 빠집니다. 보관된 온콜 정책은 제공되지 않습니다.
 - **양식이 지정할 수 있는 것.** 채널이나 그룹 채팅에서는 그곳에 있는 누구나 양식을 제출할 수 있으며, 제출한 사람으로서 그 사람의 권한으로 제출됩니다. 인시던트나 이벤트는 그 권한으로 만들어지고 그 사람의 작업으로 기록됩니다. 그 사람이 읽을 수 없는 모니터, 온콜 정책, 레이블, 심각도, 상태, 또는 다른 프로젝트의 것은 프로젝트에 없는 것처럼 거부되며 아무것도 만들어지지 않습니다. 봇은 "One of the values you picked ... is not available in this project any more. Please pick it again." 라고 응답합니다.
 
-인시던트, 경고, 에피소드의 **Execute On-Call Policy** 도 같은 방식으로 작동합니다. 온콜 정책을 실행할 권한 ( **Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin**, **On-Call Member**, 또는 사용자 지정 역할의 **Create On-Call Duty Policy Execution Log** ) 과 해당 인시던트, 경고, 에피소드를 읽을 권한이 필요하며, 그 사람이 읽을 수 있는 활성 온콜 정책이 제공됩니다. 카드에서 모니터나 온콜 정책을 볼 때도 버튼을 누른 사람으로서 읽습니다.
+인시던트, 경고, 에피소드의 **Execute On-Call Policy** 도 같은 방식으로 작동합니다. 온콜 정책을 실행할 권한 ( **프로젝트 소유자**, **프로젝트 관리자**, **프로젝트 구성원**, **온콜 관리자**, **온콜 구성원**, 또는 사용자 지정 역할의 **Create On-Call Duty Policy Execution Log** ) 과 해당 인시던트, 경고, 에피소드를 읽을 권한이 필요하며, 그 사람이 읽을 수 있는 활성 온콜 정책이 제공됩니다. 카드에서 모니터나 온콜 정책을 볼 때도 버튼을 누른 사람으로서 읽습니다.
 
 ## Microsoft Teams 에서 누군가 호출하기
 
@@ -208,7 +208,7 @@ OneUptime 봇에게 `incident` 또는 `maintenance` 를 입력하면, 개인 채
 - **바로 호출되는 사람.** @멘션한 사람과 @멘션한 태그가 따르는 스케줄에서 지금 온콜인 사람으로, 뒤에 메시지가 이어질 때입니다 ( [온콜 태그](#온콜-태그) 참고). OneUptime 은 그 사람의 Microsoft Teams 계정이 연결된 OneUptime 계정으로, 그렇지 않으면 Microsoft Teams 에 있는 그 사람의 이메일 주소로 사람을 알아봅니다. 프로젝트 밖의 사람은 호출되지 않습니다.
 - **그 밖의 경우에는 카드가 옵니다.** 아무도 @멘션하지 않았거나 (봇과의 개인 채팅처럼), 메시지가 없거나, 볼 수 있는 온콜 스케줄을 따르지 않는 태그를 지정했거나, OneUptime 이 알아볼 수 없는 사람이 있으면, 봇이 입력한 내용이 채워진 **Page someone** 카드로 응답하고, 고르지 못한 사람을 알려 줍니다. 사람, 팀, 온콜 스케줄 (지금 그 스케줄에서 온콜인 사람을 호출합니다) 또는 온콜 정책 (에스컬레이션 규칙에 따라 호출합니다) 을 골라 제출하세요. 대화에 있는 누구나 자신으로서 카드를 제출할 수 있습니다. 호출이 끝나면 카드가 제거되므로, 아무도 같은 카드로 두 번 호출하지 않습니다.
 - **표시되는 곳.** 대화에는 호출이 하나의 카드로 표시되고 계속 최신 상태로 유지됩니다. 누가 어떻게 호출되었는지, 누가 확인했는지가 나옵니다. 봇이 그 카드를 게시할 수 없으면, 봇의 답글이 누가 호출되었는지를 경고 링크와 함께 알려 줍니다.
-- **호출할 수 있는 사람.** 온콜 정책 실행과 경고 생성을 모두 할 수 있는 사람입니다. **Project Owner**, **Project Admin**, **Project Member**, 또는 **On-Call Member** 와 **Alert Member** 를 함께 가진 사람 (사용자 지정 역할에서는 **Create On-Call Duty Policy Execution Log** 와 **Create Alert** ) 입니다. 온콜 정책 없이 사람, 팀 또는 스케줄을 직접 호출하려면 프로젝트의 모든 온콜 정책에 대한 액세스도 필요합니다. 그 밖의 사람에게는 답글로 그렇게 알리며, 아무도 호출되지 않습니다. OneUptime Cloud 에서는 호출에 Growth 플랜이 필요합니다. 그보다 낮은 플랜에서는 OneUptime 이 필요한 플랜을 알려 주며, 아무도 호출되지 않습니다.
+- **호출할 수 있는 사람.** 온콜 정책 실행과 경고 생성을 모두 할 수 있는 사람입니다. **프로젝트 소유자**, **프로젝트 관리자**, **프로젝트 구성원**, 또는 **온콜 구성원** 과 **경고 구성원** 을 함께 가진 사람 (사용자 지정 역할에서는 **Create On-Call Duty Policy Execution Log** 와 **Create Alert** ) 입니다. 온콜 정책 없이 사람, 팀 또는 스케줄을 직접 호출하려면 프로젝트의 모든 온콜 정책에 대한 액세스도 필요합니다. 그 밖의 사람에게는 답글로 그렇게 알리며, 아무도 호출되지 않습니다. OneUptime Cloud 에서는 호출에 Growth 플랜이 필요합니다. 그보다 낮은 플랜에서는 OneUptime 이 필요한 플랜을 알려 주며, 아무도 호출되지 않습니다.
 
 ## 온콜 태그
 
@@ -228,7 +228,7 @@ OneUptime 봇에게 `incident` 또는 `maintenance` 를 입력하면, 개인 채
 - **온콜인 사람이 없을 때.** OneUptime 은 누군가 온콜이 될 때까지 태그에서 모두를 뺍니다. Microsoft Teams 는 빈 태그를 만들 수 없으므로, 새 태그에는 팀의 온콜 담당자가 필요합니다.
 - **태그 호출하기.** `@OneUptime page @Payments on-call The checkout API is down` 은 태그가 따르는 스케줄에서 온콜인 사람을 호출합니다. [Microsoft Teams 에서 누군가 호출하기](#microsoft-teams-에서-누군가-호출하기) 를 참고하세요.
 - **Microsoft 365 에 필요한 것.** 태그를 바꾸려면 앱의 `TeamworkTag.ReadWrite.All` 권한이 필요하며, Microsoft 365 관리자가 **프로젝트 설정** > **워크스페이스** > **Microsoft Teams** 의 **관리자 동의 부여** 로 부여합니다. OneUptime 이 태그를 관리할 수 있게 되기 전에 조직이 동의했다면 한 번 더 동의하세요.
-- **연결할 수 있는 사람.** 스케줄을 편집할 수 있는 역할입니다. **Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin**, **On-Call Member**, 또는 사용자 지정 역할의 **Edit On-Call Duty Policy Schedule** 입니다. OneUptime Cloud 에서는 연결하려면 **Growth** 플랜이 필요합니다.
+- **연결할 수 있는 사람.** 스케줄을 편집할 수 있는 역할입니다. **프로젝트 소유자**, **프로젝트 관리자**, **프로젝트 구성원**, **온콜 관리자**, **온콜 구성원**, 또는 사용자 지정 역할의 **Edit On-Call Duty Policy Schedule** 입니다. OneUptime Cloud 에서는 연결하려면 **Growth** 플랜이 필요합니다.
 - **연결을 해제하면.** OneUptime 은 태그 변경을 멈춥니다. 태그와 멤버는 Microsoft Teams 에 그대로 남습니다.
 
 ## Microsoft Teams 에서 인시던트 관리하기
@@ -254,7 +254,7 @@ OneUptime 봇에게 `incident` 또는 `maintenance` 를 입력하면, 개인 채
 
 OneUptime 카드의 버튼은 개인 채팅, 채널, 그룹 채팅 어디서든 누른 사람으로서 작동합니다. 그 사람의 Microsoft Teams 계정이 연결된 OneUptime 계정으로서, 그 계정의 프로젝트 권한으로 작동합니다. 인시던트, 경고, 에피소드의 **Acknowledge**, **Resolve**, **Change State**, **Add Note**, **Execute On-Call Policy**, 그리고 예정된 유지 관리 이벤트의 **Mark as Ongoing**, **Mark as Complete**, **Change State**, **Add Note** 는 각각 OneUptime 에서 같은 동작이 하는 것과 같은 변경을 하며, 그 변경은 OneUptime 에서 그 사람의 작업으로 기록됩니다. 레코드의 상태 타임라인과 피드에 누가 상태를 변경했는지 표시되고, 메모도 그 사람의 것이 됩니다. 반응으로 메시지에서 저장한 메모도 같은 방식으로 게시됩니다.
 
-- **사용할 수 있는 사람.** OneUptime 에서 같은 변경을 할 수 있는 사람입니다. 인시던트를 인지, 해결하거나 상태를 변경하려면 그 상태를 변경할 권한이 필요합니다. **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin**, **Incident Member**, 또는 사용자 지정 역할의 **Create Incident State Timeline** 입니다. 경고, 에피소드, 예정된 유지 관리 이벤트에는 각 종류에 맞는 같은 권한 (예: **Create Alert State Timeline** ) 이 필요하고, 메모에는 그 종류의 메모를 게시할 권한이 필요합니다. OneUptime 의 상태 패널과 마찬가지로, 인시던트나 경고 자체를 편집할 권한은 요구하지 않습니다. 그 밖의 사람에게는 그렇게 알리며 아무것도 바뀌지 않습니다.
+- **사용할 수 있는 사람.** OneUptime 에서 같은 변경을 할 수 있는 사람입니다. 인시던트를 인지, 해결하거나 상태를 변경하려면 그 상태를 변경할 권한이 필요합니다. **프로젝트 소유자**, **프로젝트 관리자**, **프로젝트 구성원**, **인시던트 관리자**, **인시던트 구성원**, 또는 사용자 지정 역할의 **Create Incident State Timeline** 입니다. 경고, 에피소드, 예정된 유지 관리 이벤트에는 각 종류에 맞는 같은 권한 (예: **Create Alert State Timeline** ) 이 필요하고, 메모에는 그 종류의 메모를 게시할 권한이 필요합니다. OneUptime 의 상태 패널과 마찬가지로, 인시던트나 경고 자체를 편집할 권한은 요구하지 않습니다. 그 밖의 사람에게는 그렇게 알리며 아무것도 바뀌지 않습니다.
 - **대상 레코드.** OneUptime 에서와 마찬가지로 그 사람이 읽을 수 있는 레코드입니다. 일부 레이블로 제한된 역할이라면 그 레이블이 붙은 인시던트, 경고, 에피소드, 이벤트입니다. 다른 레코드의 버튼은 이유를 알려 주며 아무것도 바뀌지 않습니다. 그 사람의 역할이 미치지 않는 인시던트에서는 "your access in this project does not include this incident. Ask a project admin for access to it.", 그 사람이 소유자가 아닌 비공개 인시던트에서는 "this incident is private, so only its owners and the project's owners and admins can see it. Ask one of them to add you as an owner.", 그 사이 삭제된 인시던트에서는 "the incident was not found. It may have been deleted." 라는 응답이 옵니다. OneUptime Cloud 에서는 프로젝트의 플랜에 포함되지 않은 변경은 필요한 플랜과 함께 거부됩니다.
 - **Change State 가 제공하는 것.** 그 사람이 읽을 수 있는 상태 중 레코드가 다음으로 옮겨 갈 수 있는 상태를 프로젝트의 순서대로 제공합니다. 현재 상태보다 앞선 상태는 없습니다. 이는 인시던트, 경고, 예정된 유지 관리 이벤트와 마찬가지로 에피소드에도 적용되는데, 상태 변경으로 레코드가 목록의 위쪽으로 되돌아가는 일은 없기 때문입니다 ( [순서는 표시 취향이 아니라 실제 제약입니다](/docs/incidents/states-and-severities#순서는-표시-취향이-아니라-실제-제약입니다) 참조). 읽을 수 있는 상태가 하나도 없으면 봇은 "No incident states are available to you in this project. Ask a project admin for access to them." 라고 말하고, 레코드가 도달할 수 있는 마지막 상태에 있으면 "There is no later state to move this incident to." 라고 말합니다. 어느 경우에도 빈 카드는 표시되지 않습니다.
 - **비공개 인시던트의 Add Note.** 비공개 인시던트에는 공개 노트를 추가할 수 없으므로, 카드는 노트 유형을 묻지 않고 비공개 노트를 추가합니다. 비공개가 되기 전에 보낸 카드도 비공개 노트를 추가하고, 그렇다고 알려 줍니다. [비공개 인시던트에는 비공개 노트만](/docs/incidents/notes-owners-and-feed#비공개-인시던트에는-비공개-노트만) 섹션을 참고하세요.
@@ -264,7 +264,7 @@ OneUptime 카드의 버튼은 개인 채팅, 채널, 그룹 채팅 어디서든 
 
 ## 연결 해제
 
-- **Disconnect** 는 자신의 Microsoft Teams 계정 연결만 해제하며, 함께 자신의 Microsoft Teams 알림 방법을 제거합니다.
+- **연결 해제** 는 자신의 Microsoft Teams 계정 연결만 해제하며, 함께 자신의 Microsoft Teams 알림 방법을 제거합니다.
 - **프로젝트 설정** > **워크스페이스** > **Microsoft Teams** 의 **Uninstall OneUptime from Microsoft Teams** 는 프로젝트의 연결을 해제합니다. OneUptime 은 Microsoft Teams 에 게시를 멈추고, **워크스페이스** 메뉴에도 더 이상 표시되지 않습니다. 알림 규칙과 요약은 다시 연결할 때를 위해 유지됩니다.
 
 > [!WARNING]

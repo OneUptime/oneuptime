@@ -15,7 +15,7 @@ I workflow vengono creati disattivati, quindi il loro trigger non li avvia finch
 
 ## La tela
 
-Un workflow creato da zero si apre con un unico blocco tratteggiato con la scritta **Choose what starts this workflow**. Quel blocco è il punto di partenza: fai clic su di esso per scegliere un trigger. Un workflow creato da un modello si apre con i suoi blocchi già al loro posto.
+Un workflow creato da zero si apre con un unico blocco tratteggiato con la scritta **Scegli cosa avvia questo flusso di lavoro**. Quel blocco è il punto di partenza: fai clic su di esso per scegliere un trigger. Un workflow creato da un modello si apre con i suoi blocchi già al loro posto.
 
 Ogni workflow ha esattamente un **trigger** in cima. Tutto il resto è un **componente** che fa qualcosa. Per cambiare il trigger, eliminalo: il segnaposto tratteggiato torna al suo posto, e facendo clic su di esso puoi sceglierne un altro. Eliminando un blocco si eliminano anche le sue linee, quindi ricollega il nuovo trigger al primo blocco.
 
@@ -30,7 +30,7 @@ Le modifiche vengono salvate automaticamente. Una pillola nella barra degli stru
 
 Il pulsante della barra degli strumenti mostra **Aggiungi trigger** finché il workflow non ha un trigger, e **Aggiungi componente** appena ne ha uno.
 
-Entrambi i pannelli si aprono sui blocchi che usano la maggior parte dei workflow, sotto **Popular**, seguiti dagli altri blocchi integrati. Sotto **OneUptime resources**, fai clic su una risorsa come **Incidente** per vedere cosa puoi farci; **Browse all resources** le elenca tutte. Oppure cerca: scrivi qualche parola, come `create incident`, e la corrispondenza più vicina compare per prima. Premi `/` per passare alla casella di ricerca, i tasti freccia per scorrere i risultati e **Enter** per aggiungere il blocco evidenziato. Facendo clic su un blocco lo aggiungi.
+Entrambi i pannelli si aprono sui blocchi che usano la maggior parte dei workflow, sotto **Popolari**, seguiti dagli altri blocchi integrati. Sotto **Risorse OneUptime**, fai clic su una risorsa come **Incidente** per vedere cosa puoi farci; **Sfoglia tutte le risorse** le elenca tutte. Oppure cerca: scrivi qualche parola, come `create incident`, e la corrispondenza più vicina compare per prima. Premi `/` per passare alla casella di ricerca, i tasti freccia per scorrere i risultati e **Enter** per aggiungere il blocco evidenziato. Facendo clic su un blocco lo aggiungi.
 
 Un nuovo blocco compare sotto il blocco più in basso della tela, e un nuovo trigger prende il posto del blocco tratteggiato in cima. Il nuovo blocco resta selezionato e, se finisce fuori dalla vista, la tela scorre quel tanto che basta per mostrarlo. Le sue impostazioni non si aprono da sole: fai clic sul blocco quando sei pronto a configurarlo. Finché le sue impostazioni obbligatorie non sono compilate, mostra **Click to set up**.
 
@@ -80,11 +80,11 @@ Ogni impostazione ha il campo di cui ha bisogno il suo valore:
 | JSON                                             | Un editor JSON.                                                                |
 | Acceso o spento                                  | Un interruttore con il suo nome accanto. Fai clic sull'interruttore o sul nome per cambiarlo. |
 
-La finestra si apre su ciò per cui con ogni probabilità sei venuto. Per un trigger **Webhook** è il suo URL, con un pulsante **Copia URL**, i metodi che accetta e una richiesta di esempio. Per un trigger **Manual** è il modo in cui il workflow viene avviato. Ogni altro blocco si apre sulle sue impostazioni. Un blocco senza impostazioni non ha affatto una sezione **Impostazioni**.
+La finestra si apre su ciò per cui con ogni probabilità sei venuto. Per un trigger **Webhook** è il suo URL, con un pulsante **Copia URL**, i metodi che accetta e una richiesta di esempio. Per un trigger **Manuale** è il modo in cui il workflow viene avviato. Ogni altro blocco si apre sulle sue impostazioni. Un blocco senza impostazioni non ha affatto una sezione **Impostazioni**.
 
 Più in basso, dall'alto verso il basso:
 
-- **ID**, **Inputs** e **Outputs**, uno accanto all'altro: l'identificatore del blocco, da dove lo si raggiunge e cosa viene eseguito dopo di lui.
+- **ID**, **Input** e **Outputs**, uno accanto all'altro: l'identificatore del blocco, da dove lo si raggiunge e cosa viene eseguito dopo di lui.
 - **Returns** — i dati che questo blocco passa ai passaggi successivi. Ogni valore mostra il riferimento esatto che lo legge, con un pulsante per copiarlo.
 - **How to use** — cosa fa il blocco in una frase, i passaggi per configurarlo, un esempio da copiare e gli errori più comuni. L'esempio è costruito dal tuo workflow: usa l'ID di questo blocco, e i valori del trigger dove inserisce dati in un messaggio. **Learn more** apre la spiegazione più lunga, e i link portano alla guida completa. Ogni blocco ne ha una, e il pulsante **How to use** in cima alla finestra ci salta direttamente.
 
@@ -129,9 +129,9 @@ C'è una cosa che non può controllare: se il nome di una variabile esiste. Le i
 Il modo più rapido per prendere confidenza con la tela è un workflow di due blocchi che avvii a mano:
 
 :::steps
-1. Fai clic sul blocco segnaposto tratteggiato, poi su **Manual** nel pannello **Aggiungi trigger**.
-2. Fai clic su **Aggiungi componente**, poi su **Registro** sotto **Popular**. Il nuovo blocco compare sotto il trigger. Collega il punto **Execute** del trigger al punto di ingresso del blocco Log, più in basso.
-3. Fai clic sul blocco Log, che mostra **Click to set up**, e scrivi `Hello from ` nel suo **Value**. Fai clic su **{ }**, poi su **JSON** sotto **Manual**. L'impostazione mostra **Manual › JSON** e salva `{{local.components.manual-1.returnValues.value}}`. `manual-1` è l'**Identifier** del trigger, mostrato sul blocco del trigger. Fai clic su **Salva**.
+1. Fai clic sul blocco segnaposto tratteggiato, poi su **Manuale** nel pannello **Aggiungi trigger**.
+2. Fai clic su **Aggiungi componente**, poi su **Registro** sotto **Popolari**. Il nuovo blocco compare sotto il trigger. Collega il punto **Execute** del trigger al punto di ingresso del blocco Log, più in basso.
+3. Fai clic sul blocco Log, che mostra **Click to set up**, e scrivi `Hello from ` nel suo **Value**. Fai clic su **{ }**, poi su **JSON** sotto **Manuale**. L'impostazione mostra **Manual › JSON** e salva `{{local.components.manual-1.returnValues.value}}`. `manual-1` è l'**Identifier** del trigger, mostrato sul blocco del trigger. Fai clic su **Salva**.
 4. Di nuovo nel **Costruttore**, fai clic su **Esegui flusso di lavoro**, metti `{ "name": "Ada" }` nel campo **JSON**, fai clic su **Esegui manualmente il flusso di lavoro** e conferma con **Esegui**. Il workflow è ancora disattivato, e non serve che sia attivo: un'esecuzione che avvii tu stesso è un'**Esecuzione di prova**.
 5. Si apre da solo un pannello **Esecuzione del flusso di lavoro** che segue l'esecuzione. In cima dice **Esecuzione di prova**, e il registro mostra `Value:` seguito da `Hello from` e dal JSON che hai scritto.
 :::
@@ -139,7 +139,7 @@ Il modo più rapido per prendere confidenza con la tela è un workflow di due bl
 Questo ciclo — aggiungere, collegare, configurare, eseguire, leggere il registro — è il modo in cui costruirai ogni workflow.
 
 > [!TIP]
-> Il JSON scritto in **Esegui flusso di lavoro** arriva al trigger Manual come JSON. Per leggerne un campo, come `name`, aggiungi il nome del campo al riferimento: `{{local.components.manual-1.returnValues.value.name}}`. Dopo che il workflow è stato eseguito, anche il selettore dei valori elenca i campi: apri **JSON** sotto **Manual**.
+> Il JSON scritto in **Esegui flusso di lavoro** arriva al trigger Manual come JSON. Per leggerne un campo, come `name`, aggiungi il nome del campo al riferimento: `{{local.components.manual-1.returnValues.value.name}}`. Dopo che il workflow è stato eseguito, anche il selettore dei valori elenca i campi: apri **JSON** sotto **Manuale**.
 
 ## Attivarlo
 

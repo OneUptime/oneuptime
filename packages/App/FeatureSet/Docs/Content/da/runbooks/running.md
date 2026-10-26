@@ -41,7 +41,7 @@ Der er fem måder, en runbook-udførelse oprettes på:
 
 1. **Automatisk via en regel**: en [runbook-regel](/docs/runbooks/rules) starter den, når en matchende hændelse, advarsel eller planlagt vedligeholdelsesbegivenhed oprettes. En AI-regel kan også starte en; se [AI SRE](/docs/ai/ai-sre).
 2. **Manuelt fra en begivenhed**: klik på **Kør runbook** på en hændelse, advarsel eller planlagt vedligeholdelsesbegivenhed. Udførelsen knyttes til den begivenhed.
-3. **Manuelt fra runbookets side**: klik på **Run Now** på et runbooks side **Oversigt**. Kørslen knyttes ikke til nogen hændelse, advarsel eller planlagt vedligeholdelsesbegivenhed.
+3. **Manuelt fra runbookets side**: klik på **Kør nu** på et runbooks side **Oversigt**. Kørslen knyttes ikke til nogen hændelse, advarsel eller planlagt vedligeholdelsesbegivenhed.
 4. **Efter en tidsplan**: runbookets tidsplan starter den på faste tidspunkter. Se [Kør efter en tidsplan](/docs/runbooks/triggers#kør-efter-en-tidsplan).
 5. **Fra et andet værktøj**: en `POST` til runbookets webhook-URL starter den med de værdier, kaldet sender. Se [Kald webhooken](/docs/runbooks/triggers#kald-webhooken).
 
@@ -54,15 +54,15 @@ Sådan starter du en manuelt:
 3. Klik på **Kør** ud for runbooket. Kørslen vises på begivenhedens liste: klik på **Vis** for at åbne den.
 @tab Fra runbooket
 1. Åbn runbooket fra **Runbooks**.
-2. Klik på **Run Now** på dets **Oversigt**.
+2. Klik på **Kør nu** på dets **Oversigt**.
 3. Udførelsessiden åbner.
 :::
 
-At starte en kørsel kræver Project Owner, Project Admin, Project Member, Runbook Admin eller Runbook Member eller tilladelsen **Create Runbook Execution**. Runbook Viewer og Viewer ser **Run Now** låst med begrundelsen. Se [Tilladelser](/docs/runbooks/configuration#tilladelser).
+At starte en kørsel kræver Project Owner, Project Admin, Project Member, Runbook Admin eller Runbook Member eller tilladelsen **Create Runbook Execution**. Runbook Viewer og Viewer ser **Kør nu** låst med begrundelsen. Se [Tilladelser](/docs/runbooks/configuration#tilladelser).
 
 ## Udførelsesvisningen
 
-Åbn en udførelse for at se dens tjekliste. Øverst på siden vises kørslens **Status**, dens **Progress** (færdige trin ud af alle trin), **Startet** (hvornår den begyndte) og **Udløst af** (hvad der startede den). Hvert trin viser:
+Åbn en udførelse for at se dens tjekliste. Øverst på siden vises kørslens **Status**, dens **Fremskridt** (færdige trin ud af alle trin), **Startet** (hvornår den begyndte) og **Udløst af** (hvad der startede den). Hvert trin viser:
 
 - **Statusmærke** — Afventer, Kører, Venter på dig, Venter på godkendelse, Færdig, Sprunget over, Mislykkedes eller Annulleret.
 - **Titel og beskrivelse** — kopieret fra runbooket, da udførelsen startede.
@@ -113,7 +113,7 @@ Output pr. trin er begrænset til **50 KB**, så et løbsk script ikke puster da
 
 ## Kør et runbook igen
 
-En udførelse er en engangs, uforanderlig post. Klik på **Kør igen** på en afsluttet udførelse, eller på **Run Now** på runbooket, for at køre det igen. Begge opretter en ny udførelse ud fra runbookets nuværende trin, ikke knyttet til nogen begivenhed. Brug **Kør runbook** på hændelsens side **Runbooks** for at køre det igen på en hændelse. Den oprindelige udførelse forbliver uændret til revisionssporet.
+En udførelse er en engangs, uforanderlig post. Klik på **Kør igen** på en afsluttet udførelse, eller på **Kør nu** på runbooket, for at køre det igen. Begge opretter en ny udførelse ud fra runbookets nuværende trin, ikke knyttet til nogen begivenhed. Brug **Kør runbook** på hændelsens side **Runbooks** for at køre det igen på en hændelse. Den oprindelige udførelse forbliver uændret til revisionssporet.
 
 ## Find tidligere udførelser
 
@@ -130,11 +130,11 @@ Din rolle læser runbooks, men kører dem ikke: knappen siger "Du har ikke tilla
 :::
 
 :::details Start af en kørsel fejler med "Runbook is disabled" eller "Runbook has no steps to run"
-Runbookets kontakt **Kør dette runbook** er slået fra på dets side **Indstillinger**, eller det har ingen gemte trin. Slå kontakten til, eller tilføj trin, og klik på **Save Steps**. Dets **Oversigt** siger hvilken, med **Slå runbook til** eller **Tilføj trin**.
+Runbookets kontakt **Kør dette runbook** er slået fra på dets side **Indstillinger**, eller det har ingen gemte trin. Slå kontakten til, eller tilføj trin, og klik på **Gem trin**. Dets **Oversigt** siger hvilken, med **Slå runbook til** eller **Tilføj trin**.
 :::
 
 :::details Et trin fejlede, fordi det mangler en Runner
-Meddelelsen lyder for eksempel "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or make one the project's default Runner under Runbooks → Runners." Trinnet blev gemt uden **Runner**, og projektet har ingen [standard-Runner](/docs/runbooks/agents#projektets-standard-runner). Et JavaScript-trin har kun brug for sin egen Runner, når ingen [global Runner](/docs/runbooks/agents#globale-runnere) kan køre det. Åbn runbookets **Trin**, vælg trinnets Runner under **Flere felter**, klik på **Save Steps**, og kør runbooket igen.
+Meddelelsen lyder for eksempel "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or make one the project's default Runner under Runbooks → Runners." Trinnet blev gemt uden **Runner**, og projektet har ingen [standard-Runner](/docs/runbooks/agents#projektets-standard-runner). Et JavaScript-trin har kun brug for sin egen Runner, når ingen [global Runner](/docs/runbooks/agents#globale-runnere) kan køre det. Åbn runbookets **Trin**, vælg trinnets Runner under **Flere felter**, klik på **Gem trin**, og kør runbooket igen.
 :::
 
 :::details Et trin fejlede, fordi det nævner variabler, det ikke kan bruge

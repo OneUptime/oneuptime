@@ -70,7 +70,7 @@ Opprett én side per målgruppe, for eksempel `Site 01` til `Site 10`. Gjør dem
 
 ### Sett den delte monitoren på hver side
 
-Legg til den delte monitoren på hver side som en ressurs (se [Statusside – ressurser og grupper](/docs/status-pages/resources-and-groups)). En regel under **Regler → Monitor Rules** kan gjøre dette for deg ut fra monitorens etiketter.
+Legg til den delte monitoren på hver side som en ressurs (se [Statusside – ressurser og grupper](/docs/status-pages/resources-and-groups)). En regel under **Regler → Monitorregler** kan gjøre dette for deg ut fra monitorens etiketter.
 
 ### Slå på Vis bare hendelser som er begrenset til denne siden
 
@@ -82,7 +82,7 @@ For ansatte bruker du **Legg til i bulk** under **E-postabonnenter**, og foretre
 
 ### La de som håndterer hendelser, lese statussider
 
-Velgeren viser bare statussidene personen kan lese, og hendelsesrollene kan ikke lese statussider. Gi de som håndterer hendelser, rollen **Status Page Viewer** ved siden av hendelsesrollen; den kan begrenses til sider med bestemte etiketter. Uten den er velgeren tom.
+Velgeren viser bare statussidene personen kan lese, og hendelsesrollene kan ikke lese statussider. Gi de som håndterer hendelser, rollen **Statussideleser** ved siden av hendelsesrollen; den kan begrenses til sider med bestemte etiketter. Uten den er velgeren tom.
 
 ### Bestem hva hver melding sier
 
@@ -251,7 +251,7 @@ Se [Hendelsesnotater, eiere og feed](/docs/incidents/notes-owners-and-feed) for 
 
 ## Tillatelser
 
-- **Å velge en statusside krever lesetilgang til den.** Statussider leses under statussiderollene, ikke hendelsesrollene, og en statusside kan begrenses etter etikett. Gi de som håndterer hendelser, **Status Page Viewer**, eventuelt begrenset til etiketter. Uten den er velgeren tom, og API-et avviser en side den som kaller, ikke kan lese, både på hendelser og på hendelsesmaler.
+- **Å velge en statusside krever lesetilgang til den.** Statussider leses under statussiderollene, ikke hendelsesrollene, og en statusside kan begrenses etter etikett. Gi de som håndterer hendelser, **Statussideleser**, eventuelt begrenset til etiketter. Uten den er velgeren tom, og API-et avviser en side den som kaller, ikke kan lese, både på hendelser og på hendelsesmaler.
 - **Sider redaktøren ikke kan se, beholdes.** En redaktør som bare kan lese noen av en hendelses sider, ser bare dem i velgeren, og lagring beholder sidene vedkommende ikke kan se.
 - **Sidene en hendelse er begrenset til, er en del av hendelsen.** Som monitorene ser alle som kan lese hendelsen, navnene deres, på kortet **Statussideomfang**, på oversikten og i hendelsesfeeden, uansett om de kan lese de statussidene.
 - **Det en utsending nådde, er også en del av hendelsen.** Når et varsel er sendt, nevner statusmeldingen og oppføringen i feeden hver statusside det gikk til, med det som ble sendt og det som mislyktes på hver, og alle som kan lese hendelsen, ser dem, uansett om de kan lese de statussidene. Bare oppsummeringen og forhåndsvisningen nedenfor, som ser fremover, holder seg til sidene personen kan lese.

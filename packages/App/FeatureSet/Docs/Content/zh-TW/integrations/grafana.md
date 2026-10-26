@@ -121,7 +121,7 @@ Grafana 傳送 `Content-Type: application/json`，監測器需要它才能讀取
 
 ### 新增 Webhook 觸發器
 
-點選虛線的 **Choose what starts this workflow** 區塊並選擇 **Webhook**。點選該觸發器，然後點選 **複製 URL**，把該 URL 用在 Grafana 的聯絡點中。
+點選虛線的 **選擇啟動此工作流程的方式** 區塊並選擇 **Webhook**。點選該觸發器，然後點選 **複製 URL**，把該 URL 用在 Grafana 的聯絡點中。
 
 ### 檢查通知是否為觸發狀態
 

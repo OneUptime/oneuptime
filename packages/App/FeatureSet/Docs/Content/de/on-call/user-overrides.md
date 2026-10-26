@@ -68,7 +68,7 @@ Verlässt jemand das Projekt, wird jede Überschreibung gelöscht, die ihn nennt
 
 ## Wer Überschreibungen hinzufügen darf
 
-**Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** und **On-Call Member** dürfen Überschreibungen hinzufügen und löschen; **Viewer** und **On-Call Viewer** dürfen sie sehen. In einer eigenen Rolle heißen die Berechtigungen **Create On-Call Duty Policy User Override**, **Delete On-Call Duty Policy User Override** und **Read On-Call Duty Policy User Override**. Auf der **Zeitachse der Bereitschaftspläne** sehen nur Personen, die Überschreibungen lesen dürfen, wessen Schicht vertreten wird.
+**Projektinhaber**, **Projektadministrator**, **Projektmitglied**, **Bereitschafts-Administrator** und **Bereitschafts-Mitglied** dürfen Überschreibungen hinzufügen und löschen; **Betrachter** und **Bereitschafts-Betrachter** dürfen sie sehen. In einer eigenen Rolle heißen die Berechtigungen **Create On-Call Duty Policy User Override**, **Delete On-Call Duty Policy User Override** und **Read On-Call Duty Policy User Override**. Auf der **Zeitachse der Bereitschaftspläne** sehen nur Personen, die Überschreibungen lesen dürfen, wessen Schicht vertreten wird.
 
 In OneUptime Cloud brauchen Benutzerüberschreibungen den Plan **Growth**.
 

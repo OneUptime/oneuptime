@@ -609,8 +609,8 @@ describe("the Add guide's last step", () => {
   });
 
   /*
-   * The first-run card saw my-cluster connect, and the Add dialog opened a
-   * minute later: my-cluster is not the one it is adding.
+   * my-cluster connected a minute before the Add dialog opened (another
+   * dialog added it): my-cluster is not the one this one is adding.
    */
   test("does not take one that registered a moment before the guide opened for the one it added", async () => {
     rowsOf(KubernetesCluster).push({
@@ -927,9 +927,7 @@ describe("the Add dialog", () => {
       ),
     ).toBeInTheDocument();
     // Bare: the dialog's title says what it is for, not a card of its own.
-    expect(
-      within(dialog).queryByText("Getting Started with Kubernetes Monitoring"),
-    ).toBeNull();
+    expect(within(dialog).queryByText("Add Kubernetes Cluster")).toBeNull();
     expect(
       within(dialog).getByTestId("resource-name-input"),
     ).toBeInTheDocument();

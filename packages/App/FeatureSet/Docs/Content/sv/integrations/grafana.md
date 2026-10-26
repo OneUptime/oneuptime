@@ -87,7 +87,7 @@ Varje larm i en avisering öppnar sin egen incident, upp till **Max incidents pe
 > [!WARNING]
 > Gruppera inte efter en etikett som alla larm i en avisering delar. Grafanas standardpolicy för aviseringar grupperar larm efter `grafana_folder` och `alertname`, så alla larm i en avisering har samma `alertname`: att gruppera efter `requestBody.alerts[*].labels.alertname` slår ihop hela aviseringen till en incident.
 
-`{{requestBody.commonLabels.alertname}}` och `{{requestBody.message}}` beskriver hela aviseringen, som under standardpolicyn är en larmregel. Grupperingsnyckeln är också en variabel, `{{fingerprint}}`, men den är en hash som inte säger något till den som svarar. Se [Incident- och varningsmallar](/docs/monitor/incident-alert-templating) för alla variabler som du kan använda.
+`{{requestBody.commonLabels.alertname}}` och `{{requestBody.message}}` beskriver hela aviseringen, som under standardpolicyn är en larmregel. Grupperingsnyckeln är också en variabel, `{{fingerprint}}`, men den är en hash som inte säger något till den som svarar. Se [Incident- och larmmallar](/docs/monitor/incident-alert-templating) för alla variabler som du kan använda.
 
 ## Konfigurera Grafana
 
@@ -121,7 +121,7 @@ Gå till **Arbetsflöden**, klicka på **Skapa arbetsflöde** och sedan på **B�
 
 ### Lägg till Webhook-utlösaren
 
-Klicka på det streckade blocket **Choose what starts this workflow** och välj **Webhook**. Klicka på utlösaren, sedan på **Kopiera URL**, och använd den URL:en i kontaktpunkten i Grafana.
+Klicka på det streckade blocket **Välj vad som startar det här arbetsflödet** och välj **Webhook**. Klicka på utlösaren, sedan på **Kopiera URL**, och använd den URL:en i kontaktpunkten i Grafana.
 
 ### Kontrollera att aviseringen är utlöst
 

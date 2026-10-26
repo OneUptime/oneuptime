@@ -64,9 +64,11 @@ export const NAV_TITLES_FROM_THE_DASHBOARD: ReadonlyArray<string> = [
 ];
 
 /*
- * Role and permission names, as a custom role's permission list shows them:
- * the Dashboard draws a permission's title untranslated (PermissionPicker),
- * so every language writes them in English.
+ * The roles the on-call pages name, as their English pages list them
+ * (OnCallAdministrationDocsFacts holds them to the policies' permissions).
+ * A translated page names each as its Dashboard draws it: the built-in roles'
+ * names are keys of their own (DocsRoleNames), so they are no longer kept in
+ * English with the permissions' titles.
  */
 export const ROLE_NAMES: ReadonlyArray<string> = [
   "Project Owner",
@@ -88,7 +90,8 @@ export const ROLE_NAMES: ReadonlyArray<string> = [
  *     translates only the statuses its locales hold;
  *   - the workflow builder's "Page an On-Call Policy" step, whose component
  *     titles are not translated;
- *   - role and permission names (ROLE_NAMES and the custom permissions).
+ *   - the custom permissions' titles, which the permission picker draws as
+ *     they are.
  */
 export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
   {
@@ -99,24 +102,17 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
       "Executing",
       "Execution Completed",
       "Execution Completed - No One Notified",
-      ...ROLE_NAMES,
       "Create On-Call Duty Policy",
       "Edit On-Call Duty Policy",
       "Delete On-Call Duty Policy",
       "Read On-Call Duty Policy",
     ],
     [USER_OVERRIDES]: [
-      ...ROLE_NAMES,
       "Create On-Call Duty Policy User Override",
       "Delete On-Call Duty Policy User Override",
       "Read On-Call Duty Policy User Override",
     ],
-    [READINESS_AND_REPORTS]: [
-      "Project Owner",
-      "Project Admin",
-      "On-Call Admin",
-      "Edit On-Call Duty Policy",
-    ],
+    [READINESS_AND_REPORTS]: ["Edit On-Call Duty Policy"],
   };
 
 /*

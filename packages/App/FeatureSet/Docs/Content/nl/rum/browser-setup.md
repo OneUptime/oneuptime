@@ -36,7 +36,7 @@ flowchart TB
 1. Ga naar **Producten → Projectinstellingen**.
 2. Klap in het zijmenu **Telemetrie & APM** open en kies **Ingestiesleutels**.
 3. Klik op **Inname-sleutel aanmaken** en kies **Browser** als **Sleuteltype**.
-4. Geef in de stap **Browserinstellingen** je origins op onder **Allowed Origins** als JSON-array, bijvoorbeeld `["https://app.example.com"]`, en maak de sleutel aan. Op het gratis abonnement van OneUptime Cloud toont een laatste stap **Facturering** eerst de prijs van telemetrie.
+4. Geef in de stap **Browserinstellingen** je origins op onder **Toegestane origins** als JSON-array, bijvoorbeeld `["https://app.example.com"]`, en maak de sleutel aan. Op het gratis abonnement van OneUptime Cloud toont een laatste stap **Facturering** eerst de prijs van telemetrie.
 
 ![De pagina met telemetrie-ingestiesleutels in de projectinstellingen](/docs/static/images/TelemetryIngestionKeys.png)
 
@@ -164,9 +164,9 @@ Alles in het snippet gaat naar je bezoekers, dus iedereen kan het token van je p
 
 | Instelling | Wat het doet |
 | --- | --- |
-| **Allowed Origins** | Verzoeken worden alleen vanaf deze origins geaccepteerd, elk met schema en eventuele poort. Een host mag beginnen met één jokerteken `*.`: `https://*.example.com` dekt elk subdomein van `example.com`, maar niet `example.com` zelf. |
+| **Toegestane origins** | Verzoeken worden alleen vanaf deze origins geaccepteerd, elk met schema en eventuele poort. Een host mag beginnen met één jokerteken `*.`: `https://*.example.com` dekt elk subdomein van `example.com`, maar niet `example.com` zelf. |
 | **Requests Per Minute Limit** | Eén plafond voor alle bezoekers die de sleutel gebruiken: 6000 verzoeken per minuut, tenzij je een eigen limiet instelt. |
-| **Pinned Service Name** | Dwingt `service.name` af op alles wat de sleutel schrijft, zodat een kopie haar telemetrie niet kan laten doorgaan voor een van je backend-services. |
+| **Vastgezette servicenaam** | Dwingt `service.name` af op alles wat de sleutel schrijft, zodat een kopie haar telemetrie niet kan laten doorgaan voor een van je backend-services. |
 | **Verloopt om** | Na deze datum wordt de sleutel niet meer geaccepteerd. |
 | **Ingeschakeld** | Zet dit uit om een uitgelekte sleutel meteen te stoppen. |
 
@@ -245,7 +245,7 @@ Met [Sessieherhaling](/docs/telemetry/session-replay) geïnstalleerd dragen verz
 
 Gebruik je ook [Sessieherhaling](/docs/telemetry/session-replay), dan sluit je **backend**-telemetrie zich zonder code op deze plek bij de opname aan. Terwijl een sessie uploadt, voegt de recorder een `tracestate`-lid met de sessie-ID toe aan de verzoeken die je pagina naar haar eigen origin doet, en laat hij de `traceparent` over aan je `FetchInstrumentation` / `XMLHttpRequestInstrumentation`. De spans van je backend krijgen bij de inname de sessie-ID, in elke service die de W3C-tracecontext voortzet, en de logs en uitzonderingen ervan sluiten zich via de trace-ID bij de opname aan. Zie [Correleren met je overige telemetrie](/docs/telemetry/session-replay#correleren-met-de-rest-van-je-telemetrie) voor hoe het werkt, wat het niet dekt en de schakelaar die het uitzet.
 
-De recorder leest ook de `traceparent` terug die je instrumentaties instellen, of de aanroep nu een URL (met of zonder init-object) of een `Request`-object meegeeft, zodat elke verzoekrij in de herhaling naar haar backend-trace linkt. Vermeld een API op een andere origin hierboven in `propagateTraceHeaderCorsUrls`; de verzoeken ervan dragen geen sessie-ID en sluiten zich via de trace-ID bij de opname aan. **Trace propagation origins** in het herhalingsbeleid van de applicatie doet hetzelfde voor pagina's *zonder* deze SDK.
+De recorder leest ook de `traceparent` terug die je instrumentaties instellen, of de aanroep nu een URL (met of zonder init-object) of een `Request`-object meegeeft, zodat elke verzoekrij in de herhaling naar haar backend-trace linkt. Vermeld een API op een andere origin hierboven in `propagateTraceHeaderCorsUrls`; de verzoeken ervan dragen geen sessie-ID en sluiten zich via de trace-ID bij de opname aan. **Origins voor trace-doorgifte** in het herhalingsbeleid van de applicatie doet hetzelfde voor pagina's *zonder* deze SDK.
 
 Wat de headers niet bereiken, zijn de eigen browserspans van deze SDK: documentladingen, routewissels en de fouten die je meldt. Om ook die onder de opname te archiveren, geef je elke span bij de start `session.id` mee. De recorder geeft je de ID via `onSessionChange`, dat meteen afgaat als er al een sessie is, en opnieuw telkens wanneer de ID verandert: als de bezoeker na 30 minuten inactiviteit terugkomt, bij de limiet van 4 uur, als `identify()` een andere gebruiker noemt, of als een ander tabblad van dezelfde bezoeker hem eerder veranderde.
 
@@ -430,7 +430,7 @@ Open de ontwikkelaarstools van je browser, ga naar het tabblad Netwerk en filter
 :::
 
 :::details OneUptime weigert het verzoek
-- `422` met `Origin https://app.example.com is not allowed for this browser ingestion key.` betekent dat de exacte origin van de pagina (schema, host en poort) ontbreekt in de **Allowed Origins** van de sleutel.
+- `422` met `Origin https://app.example.com is not allowed for this browser ingestion key.` betekent dat de exacte origin van de pagina (schema, host en poort) ontbreekt in de **Toegestane origins** van de sleutel.
 - `422` met `This telemetry ingestion key has been disabled.` betekent dat iemand de sleutel heeft uitgeschakeld. Zet hem weer aan of gebruik een andere sleutel.
 - `401` betekent dat de sleutel onbekend, ingetrokken of verlopen is. Voer de sleutelcontrole uit [Instellen](#instellen) uit en maak daarna een geldige Browser-sleutel aan.
 - `404` betekent dat de URL fout is. De trace-exporter heeft het volledige pad nodig, `/otlp/v1/traces`.

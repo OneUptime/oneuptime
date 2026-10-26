@@ -46,7 +46,7 @@ Ouvrez **SLOs** depuis le menu **Produits** de la barre supérieure. Il se trouv
 
 ### Le nommer et fixer un objectif
 
-Saisissez un **Nom**, par exemple « API Availability », et un **Target (%)** : la part du temps pendant laquelle ses moniteurs doivent être disponibles. L'objectif commence à `99.9`. Il doit être supérieur à 0 et au plus égal à 99,999, car un objectif de 100 % ne laisse aucun budget d'erreur à suivre.
+Saisissez un **Nom**, par exemple « API Availability », et un **Cible (%)** : la part du temps pendant laquelle ses moniteurs doivent être disponibles. L'objectif commence à `99.9`. Il doit être supérieur à 0 et au plus égal à 99,999, car un objectif de 100 % ne laisse aucun budget d'erreur à suivre.
 
 ### Vérifier les valeurs par défaut sous Plus de champs
 
@@ -71,8 +71,8 @@ Les champs sous **Plus de champs** :
 | --- | --- | --- |
 | **Description** | À quoi sert le SLO. | Vide |
 | **Seuil à risque (%)** | La part du budget d'erreur restant à laquelle le SLO passe **À risque**. Un nombre entier de 0 à 100. | 20 |
-| **Window Type** | **Rolling** : les N derniers jours, qui se rétablissent à mesure que l'ancienne indisponibilité sort de la fenêtre. **Calendar Month** : chaque mois pris à part, remis à zéro le 1er. | **Rolling** |
-| **Window (Days)** | Fenêtres glissantes uniquement : combien de jours regarder en arrière, de 1 à 366. 28 ou 30 sont courants. | 30 |
+| **Type de fenêtre** | **Glissante** : les N derniers jours, qui se rétablissent à mesure que l'ancienne indisponibilité sort de la fenêtre. **Mois calendaire** : chaque mois pris à part, remis à zéro le 1er. | **Glissante** |
+| **Fenêtre (jours)** | Fenêtres glissantes uniquement : combien de jours regarder en arrière, de 1 à 366. 28 ou 30 sont courants. | 30 |
 | **Fuseau horaire** | Mois calendaires uniquement : le fuseau horaire dans lequel chaque mois commence et se termine. | UTC |
 | **Étiquettes** | Des étiquettes pour organiser et filtrer les SLO. | Aucune |
 
@@ -82,7 +82,7 @@ Tout ce qui détermine la façon dont le SLO mesure part d'une valeur par défau
 | --- | --- | --- |
 | Moniteurs | Aucun | **Moniteurs** ou **Règles de moniteurs** |
 | Statuts d'indisponibilité | Tous les statuts non opérationnels du projet | **Paramètres** → **Calcul de l'indisponibilité** |
-| Mode multi-moniteurs | **Any Monitor Down** | **Paramètres** → **Calcul de l'indisponibilité** |
+| Mode multi-moniteurs | **Un moniteur hors service** | **Paramètres** → **Calcul de l'indisponibilité** |
 | Évaluation | Activée | **Paramètres** → **Évaluation** |
 | Règles de taux de consommation | Une règle **Fast burn** et une règle **Slow burn**, adaptées à la fenêtre | **Règles de taux de consommation** |
 
@@ -108,19 +108,19 @@ Chaque SLO a sa propre liste de statuts de moniteur qui comptent comme indisponi
 
 | Type de fenêtre | Comportement |
 | --- | --- |
-| **Rolling** | Regarde un nombre fixe de jours en arrière à partir de maintenant. L'ancienne indisponibilité sort de la fenêtre, donc le budget revient peu à peu. |
-| **Calendar Month** | Mesure à partir du premier du mois, dans le fuseau horaire du SLO (UTC par défaut). Tout le budget revient au début de chaque mois. |
+| **Glissante** | Regarde un nombre fixe de jours en arrière à partir de maintenant. L'ancienne indisponibilité sort de la fenêtre, donc le budget revient peu à peu. |
+| **Mois calendaire** | Mesure à partir du premier du mois, dans le fuseau horaire du SLO (UTC par défaut). Tout le budget revient au début de chaque mois. |
 
 ### Plusieurs moniteurs sur un SLO
 
-Quand un SLO mesure plus d'un moniteur, son **Mode multi-moniteurs** décide comment leur indisponibilité se combine. Un nouveau SLO utilise **Any Monitor Down**.
+Quand un SLO mesure plus d'un moniteur, son **Mode multi-moniteurs** décide comment leur indisponibilité se combine. Un nouveau SLO utilise **Un moniteur hors service**.
 
 | Mode | Comment l'indisponibilité compte | À utiliser quand |
 | --- | --- | --- |
-| **Any Monitor Down** | Tout moment où au moins un moniteur est en panne compte comme indisponibilité pour tout le SLO. Les pannes qui se chevauchent ne comptent qu'une fois. | Les moniteurs forment ensemble un seul service : si l'un d'eux tombe, les utilisateurs le remarquent. |
-| **Monitor Seconds Average** | L'indisponibilité de chaque moniteur compte à part, en moyenne sur tout le temps surveillé : SLI = 1 − (secondes de panne de tous les moniteurs ÷ secondes surveillées de tous les moniteurs). | Les moniteurs forment une flotte de ressources similaires, et un impact partiel doit compter partiellement. |
+| **Un moniteur hors service** | Tout moment où au moins un moniteur est en panne compte comme indisponibilité pour tout le SLO. Les pannes qui se chevauchent ne comptent qu'une fois. | Les moniteurs forment ensemble un seul service : si l'un d'eux tombe, les utilisateurs le remarquent. |
+| **Moyenne des secondes des moniteurs** | L'indisponibilité de chaque moniteur compte à part, en moyenne sur tout le temps surveillé : SLI = 1 − (secondes de panne de tous les moniteurs ÷ secondes surveillées de tous les moniteurs). | Les moniteurs forment une flotte de ressources similaires, et un impact partiel doit compter partiellement. |
 
-Par exemple, le moniteur A est en panne de 10:00 à 11:00 tandis que le moniteur B reste disponible. **Any Monitor Down** enregistre 60 minutes d'indisponibilité ; **Monitor Seconds Average** enregistre l'équivalent de 30 minutes, car un moniteur sur deux a été en panne pendant une heure. Dans ce mode, le budget aussi est compté en secondes-moniteur : voir [Budgets d'erreur](/docs/slo/error-budget).
+Par exemple, le moniteur A est en panne de 10:00 à 11:00 tandis que le moniteur B reste disponible. **Un moniteur hors service** enregistre 60 minutes d'indisponibilité ; **Moyenne des secondes des moniteurs** enregistre l'équivalent de 30 minutes, car un moniteur sur deux a été en panne pendant une heure. Dans ce mode, le budget aussi est compté en secondes-moniteur : voir [Budgets d'erreur](/docs/slo/error-budget).
 
 ## Statut d'un SLO
 
@@ -176,11 +176,11 @@ La **Vue d'ensemble** répond à « sommes-nous dans le budget ? », de haut en 
 - **Les chiffres clés** :
   - **SLI** : la part de bon temps dans la fenêtre, et à quelle distance au-dessus ou en dessous de l'objectif elle se trouve.
   - **Budget d'erreur restant** : un pourcentage, une durée comme "12m 30s left of 43m 12s", et une barre avec un repère au seuil à risque. Une fois le budget dépassé, la tuile affiche **Budget exceeded** et de combien.
-  - **Taux de consommation** : la vitesse à laquelle le budget se consomme sur les 60 dernières minutes, la période qu'utilise la règle de consommation rapide par défaut. Il passe à l'orange au-dessus de 1× et au rouge, avec **Rule threshold reached**, au plus bas seuil des règles de taux de consommation activées du SLO.
+  - **Taux de consommation** : la vitesse à laquelle le budget se consomme sur les 60 dernières minutes, la période qu'utilise la règle de consommation rapide par défaut. Il passe à l'orange au-dessus de 1× et au rouge, avec **Seuil de la règle atteint**, au plus bas seuil des règles de taux de consommation activées du SLO.
   - **Autonomie du budget** : combien de temps le budget tient à ce rythme. Voir [Budgets d'erreur](/docs/slo/error-budget#autonomie-du-budget).
 - **Consommation du budget d'erreur** : le budget restant sur la fenêtre actuelle. Voir [Budgets d'erreur](/docs/slo/error-budget#consommation-du-budget-derreur).
-- **Recent activity** : les derniers éléments du fil d'activité du SLO.
-- **SLO Details** : le nom, la description et les étiquettes, les seuls réglages modifiés dans la vue d'ensemble.
+- **Activité récente** : les derniers éléments du fil d'activité du SLO.
+- **Détails du SLO** : le nom, la description et les étiquettes, les seuls réglages modifiés dans la vue d'ensemble.
 - **Alertes et incidents ouverts** : ce que les règles de taux de consommation ont d'ouvert en ce moment.
 - **Règles de taux de consommation** : le seuil de chaque règle activée à côté du taux de consommation actuel, et ce que déclare la règle.
 
@@ -190,8 +190,8 @@ La page **Paramètres** regroupe la façon dont un SLO mesure, une carte chacun 
 
 | Carte | Ce que vous modifiez | Bon à savoir |
 | --- | --- | --- |
-| **Objectif** | **Target (%)** et **Seuil à risque (%)**, avec **Modifier l'objectif**. | Affiche l'indisponibilité que l'objectif autorise, par exemple « 43m 12s d'indisponibilité par fenêtre de 30 jours ». |
-| **Période de conformité** | **Window Type**, **Window (Days)** et **Fuseau horaire**, avec **Modifier la période**. | Les règles de taux de consommation gardent leurs seuils quand la fenêtre change, revoyez-les donc ensuite. |
+| **Objectif** | **Cible (%)** et **Seuil à risque (%)**, avec **Modifier l'objectif**. | Affiche l'indisponibilité que l'objectif autorise, par exemple « 43m 12s d'indisponibilité par fenêtre de 30 jours ». |
+| **Période de conformité** | **Type de fenêtre**, **Fenêtre (jours)** et **Fuseau horaire**, avec **Modifier la période**. | Les règles de taux de consommation gardent leurs seuils quand la fenêtre change, revoyez-les donc ensuite. |
 | **Calcul de l'indisponibilité** | **Mode multi-moniteurs** et **Statuts de moniteur d'indisponibilité**, avec **Modifier le calcul de l'indisponibilité**. | Des statuts vides comptent tous les statuts non opérationnels, y compris ceux ajoutés plus tard. |
 | **Évaluation** | L'interrupteur **Évaluer ce SLO**, qui enregistre dès que vous le basculez. | Le désactiver demande d'abord confirmation, car cela résout aussi les alertes et incidents de taux de consommation ouverts du SLO. |
 | **Archive SLO** | **Archiver** ou **Désarchiver**. | Voir [Archiver un SLO](#archiver-un-slo). |
@@ -235,7 +235,7 @@ Le menu latéral d'un moniteur a lui aussi une page **SLOs** : les SLO qui mesur
 
 Un SLO à fenêtre glissante plus jeune que sa fenêtre est mesuré sur les données qui existent jusqu'ici : un SLO de 30 jours créé hier a un jour de données. Son budget d'erreur commence petit et grandit à mesure que la fenêtre se remplit, ses premiers chiffres bougent donc plus qu'ils ne le feront ensuite.
 
-Tant que c'est le cas, la **Vue d'ensemble** le dit : le résumé affiche une pastille **Window 23% full** (**Window under 1% full** le premier jour), et la tuile **Budget d'erreur restant** la reprend sous son chiffre. Les deux disparaissent une fois la fenêtre pleine. Les SLO par mois calendaire ne les affichent jamais, car leur budget couvre tout le mois dès le premier jour, pas plus que les SLO en mode **Monitor Seconds Average**, dont le budget est compté sur l'ensemble des moniteurs.
+Tant que c'est le cas, la **Vue d'ensemble** le dit : le résumé affiche une pastille **Window 23% full** (**Window under 1% full** le premier jour), et la tuile **Budget d'erreur restant** la reprend sous son chiffre. Les deux disparaissent une fois la fenêtre pleine. Les SLO par mois calendaire ne les affichent jamais, car leur budget couvre tout le mois dès le premier jour, pas plus que les SLO en mode **Moyenne des secondes des moniteurs**, dont le budget est compté sur l'ensemble des moniteurs.
 
 ## Dépannage
 
@@ -243,7 +243,7 @@ Un bandeau en haut des pages du SLO dit ce qui l'empêche de mesurer :
 
 | Bandeau | Signification | Que faire |
 | --- | --- | --- |
-| **No monitors attached** | Le SLO n'a aucun moniteur, il n'y a donc rien à mesurer. | Rattachez des moniteurs ou créez une règle de moniteurs. |
+| **Aucun moniteur rattaché** | Le SLO n'a aucun moniteur, il n'y a donc rien à mesurer. | Rattachez des moniteurs ou créez une règle de moniteurs. |
 | **Waiting for SLO evaluation** | Des moniteurs sont rattachés, mais la dernière évaluation n'avait aucune donnée de statut venant d'eux. | Vérifiez que les moniteurs sont bien vérifiés. Les chiffres apparaissent après la prochaine évaluation qui a des données. |
 | **Measurement is paused** | Chaque moniteur qu'il mesure est archivé ou a la surveillance active désactivée. | Réactivez la surveillance d'au moins un moniteur, ou attendez la fin de la maintenance. |
 | **The target is out of range** | L'objectif n'est pas supérieur à 0 et inférieur à 100. | Fixez un objectif comme 99,9 dans **Paramètres** → **Objectif**. |

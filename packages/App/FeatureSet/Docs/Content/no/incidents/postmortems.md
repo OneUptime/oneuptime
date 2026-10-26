@@ -167,7 +167,7 @@ Over listen teller en flis per status etteranalysene i den. Klikk på en flis fo
 
 Filtrer listen med brikkene over den: **Eier**, en person eller et team; **Alvorlighetsgrad**; **Status for etteranalyse**; **Hendelsesstatus**; **Etiketter**; og **Berørte ressurser**. For å se hvilke etteranalyser et team fortsatt skylder for de alvorligste hendelsene dine, velger du teamet under **Eier**, alvorlighetsgraden under **Alvorlighetsgrad**, og **Ikke startet** og **Utkast** under **Status for etteranalyse**. Filtrene står i adressen til siden, så du kan lagre listen som bokmerke eller dele den.
 
-For å endre mange samtidig velger du dem og åpner **Massehandlinger**: **Endre status for etteranalyse** flytter alle til én status, for eksempel **Ikke nødvendig** for hendelser som ikke trenger en, og **Add Owner** og **Remove Owner** endrer hvem som eier dem.
+For å endre mange samtidig velger du dem og åpner **Massehandlinger**: **Endre status for etteranalyse** flytter alle til én status, for eksempel **Ikke nødvendig** for hendelser som ikke trenger en, og **Legg til eier** og **Fjern eier** endrer hvem som eier dem.
 
 ## Etteranalyser for episoder
 

@@ -60,7 +60,7 @@ Costruisci tutto questo in modo visivo, su una tela. La maggior parte dei workfl
 ## Prima di iniziare
 
 - **Un piano che includa i workflow.** Su OneUptime Cloud i workflow richiedono il piano **Growth** o superiore, e ogni piano consente un certo numero di esecuzioni ogni 30 giorni — vedi [Limiti di piano](/docs/workflows/configuration#limiti-di-piano). Le installazioni self-hosted senza fatturazione non hanno nessuno dei due limiti.
-- **Il permesso di costruire.** Creare e modificare i workflow richiede **Workflow Admin**, **Project Admin** o **Project Owner**, oppure un ruolo personalizzato con i permessi corrispondenti. Un **Workflow Member** può aprire i workflow ed eseguirli a mano, ma non modificarli. Vedi [Autorizzazioni](/docs/workflows/configuration#autorizzazioni).
+- **Il permesso di costruire.** Creare e modificare i workflow richiede **Amministratore dei flussi di lavoro**, **Amministratore del progetto** o **Proprietario del progetto**, oppure un ruolo personalizzato con i permessi corrispondenti. Un **Membro dei flussi di lavoro** può aprire i workflow ed eseguirli a mano, ma non modificarli. Vedi [Autorizzazioni](/docs/workflows/configuration#autorizzazioni).
 
 ## Dove trovare i workflow in OneUptime
 
@@ -122,7 +122,7 @@ Il nuovo workflow si apre nel **Costruttore**, disattivato.
 
 ### Aggiungi il trigger
 
-Fai clic sul blocco tratteggiato **Choose what starts this workflow**, poi su **On Create Incident** sotto **Popular** nel pannello **Aggiungi trigger**.
+Fai clic sul blocco tratteggiato **Scegli cosa avvia questo flusso di lavoro**, poi su **On Create Incident** sotto **Popolari** nel pannello **Aggiungi trigger**.
 
 Il trigger prende il posto del blocco tratteggiato. L'ID che compare su di esso, `incident-on-create-1`, è il modo in cui i blocchi successivi vi fanno riferimento.
 
@@ -134,7 +134,7 @@ Il trigger passa il nuovo incidente con quei campi. Un campo che non selezioni a
 
 ### Aggiungi il blocco API
 
-Fai clic su **Aggiungi componente**, poi su **API Post (JSON)** sotto **Popular**. Trascina dal punto **Success** del trigger fino al punto superiore del nuovo blocco.
+Fai clic su **Aggiungi componente**, poi su **API Post (JSON)** sotto **Popolari**. Trascina dal punto **Success** del trigger fino al punto superiore del nuovo blocco.
 
 ### Compila la richiesta
 

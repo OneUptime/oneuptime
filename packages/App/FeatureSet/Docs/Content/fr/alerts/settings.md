@@ -25,7 +25,7 @@ Ouvrez **Alertes** depuis le menu **Produits** de la barre supérieure. Les sect
 
 La section **Paramètres** contient **État de l'alerte** et **Gravité de l'alerte**, traités dans [États et sévérités des alertes](/docs/alerts/states-and-severities), puis **Modèles de notes**, **Champs personnalisés**, **Mesures**, **Appartenance aux épisodes** et **Numérotation**, traités ci-dessous.
 
-Deux autres sections agissent sur les alertes. **Alertes → IA → Paramètres** décide de ce que OneUptime AI fait de lui-même : **Investiguer les nouvelles alertes**, activé pour les nouveaux projets, et **Corriger automatiquement les nouvelles alertes**, désactivé jusqu'à ce que vous l'activiez. Voir [AI SRE](/docs/ai/ai-sre). **Alertes → Espace de travail** contient les règles Slack et Microsoft Teams qui publient les alertes et les épisodes dans des canaux, ainsi que son onglet **Summary**. Voir [Slack](/docs/workspace-connections/slack).
+Deux autres sections agissent sur les alertes. **Alertes → IA → Paramètres** décide de ce que OneUptime AI fait de lui-même : **Investiguer les nouvelles alertes**, activé pour les nouveaux projets, et **Corriger automatiquement les nouvelles alertes**, désactivé jusqu'à ce que vous l'activiez. Voir [AI SRE](/docs/ai/ai-sre). **Alertes → Espace de travail** contient les règles Slack et Microsoft Teams qui publient les alertes et les épisodes dans des canaux, ainsi que son onglet **Résumé**. Voir [Slack](/docs/workspace-connections/slack).
 
 ## Les règles que traverse une nouvelle alerte
 
@@ -59,7 +59,7 @@ Les règles diffèrent dans la façon dont plusieurs correspondances se résolve
 
 **Règles d'astreinte**, **Règles de propriétaire**, **Règles d'étiquettes** et **Règles de confidentialité** ont deux onglets : **Règles d'alerte**, pour les alertes, et **Règles d'épisode**, qui agissent de la même façon sur chaque nouvel épisode d'alerte. Une nouvelle règle commence activée ; désactivez **Activé** dans son formulaire de modification pour la mettre en pause, et la liste affiche un **Activé** vert ou un **Désactivé** rouge pour chaque règle.
 
-La plupart des règles agissent sur les alertes et les épisodes créés après leur enregistrement. Pour appliquer une règle de propriétaire, d'étiquettes ou de confidentialité à ceux que vous avez déjà, utilisez **Run Now** : voir [Exécuter des règles sur les ressources existantes](/docs/configuration/run-rules-now). Les règles de rappel font exception : en enregistrer une fait correspondre à nouveau chaque alerte ouverte.
+La plupart des règles agissent sur les alertes et les épisodes créés après leur enregistrement. Pour appliquer une règle de propriétaire, d'étiquettes ou de confidentialité à ceux que vous avez déjà, utilisez **Exécuter maintenant** : voir [Exécuter des règles sur les ressources existantes](/docs/configuration/run-rules-now). Les règles de rappel font exception : en enregistrer une fait correspondre à nouveau chaque alerte ouverte.
 
 ### Conditions
 
@@ -157,7 +157,7 @@ Chaque modèle d'alerte a des déclencheurs et des actions de workflow, nommés 
 
 ## Qui peut les modifier
 
-Les règles, les champs personnalisés et les mesures exigent un Project Owner ou un Project Admin, ou un rôle personnalisé disposant de l'autorisation propre à cette règle. **Alert Member** travaille avec les alertes et les épisodes, leurs notes, propriétaires et chronologies d'état, ainsi qu'avec les modèles de notes, et **Alert Admin** gère en plus les états et les gravités d'alerte. Voir [Utilisateurs, équipes et autorisations](/docs/permissions/index).
+Les règles, les champs personnalisés et les mesures exigent un Project Owner ou un Project Admin, ou un rôle personnalisé disposant de l'autorisation propre à cette règle. **Membre des alertes** travaille avec les alertes et les épisodes, leurs notes, propriétaires et chronologies d'état, ainsi qu'avec les modèles de notes, et **Administrateur des alertes** gère en plus les états et les gravités d'alerte. Voir [Utilisateurs, équipes et autorisations](/docs/permissions/index).
 
 ## Étapes suivantes
 

@@ -36,7 +36,7 @@ flowchart TB
 1. Gå til **Produkter → Projektindstillinger**.
 2. Fold **Telemetri og APM** ud i sidemenuen, og vælg **Indtagelsesnøgler**.
 3. Klik på **Opret ingestion-nøgle**, og vælg **Browser** som **Nøgletype**.
-4. Angiv dine oprindelser under **Allowed Origins** i trinnet **Browserindstillinger** som et JSON-array, for eksempel `["https://app.example.com"]`, og opret så nøglen. På OneUptime Clouds gratisplan viser et sidste trin **Fakturering** først prisen for telemetri.
+4. Angiv dine oprindelser under **Tilladte oprindelser** i trinnet **Browserindstillinger** som et JSON-array, for eksempel `["https://app.example.com"]`, og opret så nøglen. På OneUptime Clouds gratisplan viser et sidste trin **Fakturering** først prisen for telemetri.
 
 ![Siden med telemetri-indtagelsesnøgler i projektindstillingerne](/docs/static/images/TelemetryIngestionKeys.png)
 
@@ -164,9 +164,9 @@ Alt i snippet'et sendes til dine besøgende, så alle kan kopiere tokenet fra di
 
 | Indstilling | Hvad den gør |
 | --- | --- |
-| **Allowed Origins** | Forespørgsler accepteres kun fra disse oprindelser, hver med sit skema og eventuelle port. En vært må begynde med ét jokertegn `*.`: `https://*.example.com` dækker alle underdomæner af `example.com`, men ikke selve `example.com`. |
+| **Tilladte oprindelser** | Forespørgsler accepteres kun fra disse oprindelser, hver med sit skema og eventuelle port. En vært må begynde med ét jokertegn `*.`: `https://*.example.com` dækker alle underdomæner af `example.com`, men ikke selve `example.com`. |
 | **Requests Per Minute Limit** | Ét loft for alle besøgende, der bruger nøglen: 6000 forespørgsler pr. minut, medmindre du sætter dit eget. |
-| **Pinned Service Name** | Gennemtvinger `service.name` på alt, hvad nøglen skriver, så en kopi ikke kan udgive sin telemetri for at være en af dine backend-tjenester. |
+| **Fastgjort tjenestenavn** | Gennemtvinger `service.name` på alt, hvad nøglen skriver, så en kopi ikke kan udgive sin telemetri for at være en af dine backend-tjenester. |
 | **Udløber den** | Efter denne dato accepteres nøglen ikke længere. |
 | **Aktiveret** | Slå den fra for straks at stoppe en lækket nøgle. |
 
@@ -245,7 +245,7 @@ Med [Sessionsafspilning](/docs/telemetry/session-replay) installeret bærer fore
 
 Hvis du også kører [Sessionsafspilning](/docs/telemetry/session-replay), slutter din **backend**-telemetri sig til optagelsen uden kode her. Mens en session uploades, tilføjer optageren et `tracestate`-medlem med sessions-id'et til de forespørgsler, din side sender til sin egen oprindelse, og overlader `traceparent` til din `FetchInstrumentation` / `XMLHttpRequestInstrumentation`. Din backends spans får sessions-id'et ved indtagelsen, i alle tjenester, der fører W3C-sporkonteksten videre, og dens logs og undtagelser slutter sig til optagelsen via spor-id'et. Se [Korrelering med din øvrige telemetri](/docs/telemetry/session-replay#korrelér-med-resten-af-din-telemetri) for, hvordan det virker, hvad det ikke dækker, og hvilken kontakt der slår det fra.
 
-Optageren læser også den `traceparent`, dine instrumenteringer sætter, uanset om kaldet sender en URL (med eller uden init-objekt) eller et `Request`-objekt, så hver forespørgselsrække i afspilningen linker til sit backend-spor. Et API på en anden oprindelse angiver du i `propagateTraceHeaderCorsUrls` ovenfor; dets forespørgsler bærer intet sessions-id og slutter sig til optagelsen via spor-id'et. **Trace propagation origins** i applikationens afspilningspolitik gør det samme for sider *uden* dette SDK.
+Optageren læser også den `traceparent`, dine instrumenteringer sætter, uanset om kaldet sender en URL (med eller uden init-objekt) eller et `Request`-objekt, så hver forespørgselsrække i afspilningen linker til sit backend-spor. Et API på en anden oprindelse angiver du i `propagateTraceHeaderCorsUrls` ovenfor; dets forespørgsler bærer intet sessions-id og slutter sig til optagelsen via spor-id'et. **Oprindelser for sporvideregivelse** i applikationens afspilningspolitik gør det samme for sider *uden* dette SDK.
 
 Det, headerne ikke når, er dette SDK's egne browser-spans: dokumentindlæsninger, ruteskift og de fejl, du rapporterer. For også at arkivere dem under optagelsen sætter du `session.id` på hvert span, når det starter. Optageren giver dig id'et gennem `onSessionChange`, som udløses med det samme, hvis der allerede findes en session, og igen hver gang id'et ændres: når den besøgende vender tilbage efter 30 minutters inaktivitet, ved loftet på 4 timer, når `identify()` angiver en anden bruger, eller når en anden fane hos samme besøgende ændrede det først.
 
@@ -430,7 +430,7 @@ Byg dem med det samme `resource`-objekt. En log- eller metrikpipeline, hvis ress
 :::
 
 :::details OneUptime afviser forespørgslen
-- `422` med `Origin https://app.example.com is not allowed for this browser ingestion key.` betyder, at sidens præcise oprindelse (skema, vært og port) mangler i nøglens **Allowed Origins**.
+- `422` med `Origin https://app.example.com is not allowed for this browser ingestion key.` betyder, at sidens præcise oprindelse (skema, vært og port) mangler i nøglens **Tilladte oprindelser**.
 - `422` med `This telemetry ingestion key has been disabled.` betyder, at nogen har slået nøglen fra. Slå den til igen, eller brug en anden nøgle.
 - `401` betyder, at nøglen er ukendt, tilbagekaldt eller udløbet. Kør nøgletjekket i [Sæt det op](#sæt-det-op), og opret derefter en gyldig Browser-nøgle.
 - `404` betyder, at URL'en er forkert. Sporeksportøren skal have den fulde sti, `/otlp/v1/traces`.

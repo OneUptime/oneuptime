@@ -241,7 +241,7 @@ Kriterier avgjør når monitoren er tilkoblet, redusert eller frakoblet, og når
 | Hvis ingen data | Oppførsel | Bruk den til |
 | --- | --- | --- |
 | **Ignore** (standard) | Kriteriet samsvarer ikke. | Vanlige terskelvarsler. |
-| **Trigger** | De manglende dataene behandles som problemet. | Heartbeat-lignende kontroller, der stillhet i seg selv er en feil. |
+| **Utløser** | De manglende dataene behandles som problemet. | Heartbeat-lignende kontroller, der stillhet i seg selv er en feil. |
 | **Treat As Zero** | Vinduet sammenlignes som én enkelt null. | Tellere, der «ingen hendelser» faktisk betyr null. |
 
 > [!TIP]

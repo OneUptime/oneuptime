@@ -69,7 +69,7 @@ En uno o dos minutos, la fila del feed muestra **Último sondeo**, y **Resumen d
 | **Confianza mínima** | Para una colección TAXII o Google SecOps: los indicadores con una confianza menor se omiten, de 0 a 100, y 0 lo conserva todo. Los indicadores sin confianza siempre pasan. |
 | **Inicio de sesión** | Cómo inicia sesión OneUptime: **Sin inicio de sesión** para una colección pública, **Token bearer** para un token del operador del servidor, o **Usuario y contraseña** para la autenticación básica HTTP. |
 | **Token de API**, **Usuario de Basic Auth** y **Contraseña de Basic Auth** | Solo se piden para el inicio de sesión elegido. |
-| **Open a Case on Match** | Activado por defecto: cada evento que nombra un indicador abre un [caso](/docs/telemetry/security-cases) sobre él, o se suma al caso abierto que ya trata sobre él. |
+| **Abrir un caso al coincidir** | Activado por defecto: cada evento que nombra un indicador abre un [caso](/docs/telemetry/security-cases) sobre él, o se suma al caso abierto que ya trata sobre él. |
 | **Alertas e incidentes** | **Crear una alerta** por defecto: cada indicador coincidente abre una alerta. |
 | **Gravedad de la alerta** | La gravedad de cada alerta que abre este feed. Déjala vacía para tomar el nivel de amenaza de cada indicador. |
 | **Declarar un incidente** o **Ambos** | En **Alertas e incidentes**. Los incidentes impulsan la escalada de guardia, los SLA y las páginas de estado, y para las coincidencias de indicadores suelen bastar las alertas. |

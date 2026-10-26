@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 34734,
-    "untranslated": 3720
+    "keys": 35180,
+    "untranslated": 2910
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -82,6 +82,8 @@
     "Breadcrumb",
     "Broker",
     "Broker: {{broker}}",
+    "Bucket",
+    "Buckets",
     "Bulgaria",
     "Bundle",
     "Burkina Faso",
@@ -208,6 +210,8 @@
     "Loopback",
     "MCP",
     "MD5",
+    "MITRE ATT&CK",
+    "MITRE ATT&CK Enterprise v{{version}}",
     "Macao",
     "Madagascar",
     "Malta",
@@ -258,6 +262,8 @@
     "Paraguay",
     "Ping",
     "Plan",
+    "Playbook",
+    "Playbooks",
     "Pod",
     "Podman CLI",
     "Podman Compose",
@@ -433,6 +439,7 @@
     "s are",
     "s have",
     "s were",
+    "security-alerts",
     "sensor-001",
     "sk-...",
     "statefulsets",
@@ -453,6 +460,7 @@
     "unit-1042-*",
     "user1@example.com\nuser2@example.com\nuser3@example.com",
     "user@company.com",
+    "vCenter",
     "vCenters",
     "vSphere Client",
     "var(--ou-danger-text, #b91c1c)",
@@ -499,6 +507,7 @@
     "{{count}} token",
     "{{count}} tokens",
     "{{in}} in",
+    "{{minutes}} min",
     "{{time}} (UTC)",
     "{{tokens}} tokens",
     "{{up}}/{{count}} OSD up",

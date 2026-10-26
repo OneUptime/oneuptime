@@ -64,7 +64,7 @@ De uitnodigingsmail noemt het project. De knop erin is **Create Your Account** v
 | Waar de persoon is | Wat die ziet | Waar die op klikt |
 | --- | --- | --- |
 | Nog in geen enkel project | De uitnodiging, op de pagina waar die na het inloggen terechtkomt | **Accept & Join**, of **Decline** |
-| Al in een ander project | De openstaande uitnodiging bij de bel rechtsboven, die **Projectuitnodigingen** opent | **Accepteren**, of **Reject** |
+| Al in een ander project | De openstaande uitnodiging bij de bel rechtsboven, die **Projectuitnodigingen** opent | **Accepteren**, of **Afwijzen** |
 
 Na het accepteren zit de persoon meteen in het project, met de machtigingen van het team en de meldingsinstellingen waarmee elk lid begint: zie [Waarmee u begint](/docs/notifications/index#waarmee-je-begint). Weigeren verwijdert de uitnodiging, dus later toetreden vraagt een nieuwe.
 

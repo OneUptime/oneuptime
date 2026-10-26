@@ -30,14 +30,14 @@ import useFirstRecordWatch, {
   FirstRecordWatch,
 } from "../../Components/Infrastructure/UseFirstRecordWatch";
 import {
-  FIRST_RUN_GUIDE_DESCRIPTION,
   getFirstRunEmptyState,
   getFirstRunTopContent,
 } from "../../Components/Infrastructure/FirstRecordWatch";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import AddResourceGuide from "../../Components/ResourceOnboarding/AddResourceGuide";
 import AddResourceModal from "../../Components/ResourceOnboarding/AddResourceModal";
 import STORAGE_ARRAY_ONBOARDING from "../../Components/StorageArray/StorageArrayOnboarding";
+import ResourceShowcaseCard from "../../Components/ResourceShowcase/ResourceShowcaseCard";
+import STORAGE_ARRAY_SHOWCASE from "../../Components/StorageArray/StorageArrayShowcase";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import StorageArrayHealthPill from "../../Components/StorageArray/StorageArrayHealthPill";
 import AppLink from "../../Components/AppLink/AppLink";
@@ -527,16 +527,13 @@ const StorageArrays: FunctionComponent<
         }}
       />
       {firstRecordWatch.count === 0 && (
-        <AddResourceGuide
-          onboarding={STORAGE_ARRAY_ONBOARDING}
-          title={STORAGE_ARRAY_ONBOARDING.firstRunTitle}
-          description={FIRST_RUN_GUIDE_DESCRIPTION}
-          onConnected={() => {
-            // The guide gives way, and the table reads the new array.
-            firstRecordWatch.onRecordCreated();
-            setConnectedCount((count: number): number => {
-              return count + 1;
-            });
+        <ResourceShowcaseCard
+          showcase={STORAGE_ARRAY_SHOWCASE}
+          addButton={{
+            title: STORAGE_ARRAY_ONBOARDING.addTitle,
+            onClick: () => {
+              setIsAddArrayOpen(true);
+            },
           }}
         />
       )}
@@ -547,6 +544,8 @@ const StorageArrays: FunctionComponent<
             setIsAddArrayOpen(false);
           }}
           onConnected={() => {
+            // The showcase gives way, and the table reads the new array.
+            firstRecordWatch.onRecordCreated();
             setConnectedCount((count: number): number => {
               return count + 1;
             });

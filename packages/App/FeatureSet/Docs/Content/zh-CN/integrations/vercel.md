@@ -36,11 +36,11 @@ flowchart TB
 :::steps
 ### 在 Vercel Marketplace 上打开 OneUptime
 
-在 Vercel 控制台中打开 **Integrations**，然后打开 **Browse Marketplace**，在 **Observability** 下找到 OneUptime。点击 **Install**，并接受 OneUptime 的条款。
+在 Vercel 控制台中打开 **Integrations**，然后打开 **Browse Marketplace**，在 **Observability** 下找到 OneUptime。点击 **安装**，并接受 OneUptime 的条款。
 
 ### 选择套餐
 
-选择 **Free**、**Growth** 或 **Scale**。这些是 OneUptime 自己的套餐，价格以 [oneuptime.com/pricing](https://oneuptime.com/pricing) 上列出的为准。
+选择 **免费**、**Growth** 或 **Scale**。这些是 OneUptime 自己的套餐，价格以 [oneuptime.com/pricing](https://oneuptime.com/pricing) 上列出的为准。
 
 ### 为资源命名并选择设置
 
@@ -148,7 +148,7 @@ Drain 会把 Vercel 记录的关于你的项目的内容发送到 OneUptime：�
 
 | | 工作方式 |
 | --- | --- |
-| 套餐 | **Free**、**Growth** 和 **Scale**，价格与 oneuptime.com 上的相同：套餐的每用户价格、每个监视器每月 $1 的活跃监视器，以及按 GB 计费的遥测。 |
+| 套餐 | **免费**、**Growth** 和 **Scale**，价格与 oneuptime.com 上的相同：套餐的每用户价格、每个监视器每月 $1 的活跃监视器，以及按 GB 计费的遥测。 |
 | 在哪里付款 | 在你的 Vercel 发票上，每月一次，每个资源分别计费。Vercel 会在资源上显示当月到目前为止的用量，每小时更新一次。 |
 | 试用期 | 套餐试用期内不收取任何费用：用户、监视器和遥测都不收费。 |
 | 更改套餐 | 在 Vercel 中的资源上更改，或在 OneUptime 的 **项目设置 → 账单和发票 → 账单** 下更改。在任一处更改都会同时更改两边。 |

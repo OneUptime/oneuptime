@@ -24,7 +24,7 @@ flowchart TB
     ack["Du bekræfter"] -.->|"stopper resten"| third
 ```
 
-De fleste beskeder kan bekræfte tilkaldet: e-mails, sms'er og beskeder i WhatsApp, Telegram, Slack og Microsoft Teams har et bekræftelseslink, og et opkald beder dig trykke 1. Kan du ikke tage et tilkald, kan du eskalere det fra de samme beskeder, og et opkald beder dig trykke 2: politikken tilkalder straks sit næste niveau, og du bliver ikke tilkaldt om det igen. Se [Eskalér et tilkald](/docs/on-call/escalation-rules#eskalér-et-tilkald). Hvert tilkald, du får, står under **Brugerindstillinger → Vagtlogs**, hvor **View Timeline** viser hver sendt besked, og om den blev leveret.
+De fleste beskeder kan bekræfte tilkaldet: e-mails, sms'er og beskeder i WhatsApp, Telegram, Slack og Microsoft Teams har et bekræftelseslink, og et opkald beder dig trykke 1. Kan du ikke tage et tilkald, kan du eskalere det fra de samme beskeder, og et opkald beder dig trykke 2: politikken tilkalder straks sit næste niveau, og du bliver ikke tilkaldt om det igen. Se [Eskalér et tilkald](/docs/on-call/escalation-rules#eskalér-et-tilkald). Hvert tilkald, du får, står under **Brugerindstillinger → Vagtlogs**, hvor **Vis tidslinje** viser hver sendt besked, og om den blev leveret.
 
 ## De fire faner
 

@@ -30,7 +30,6 @@ import useFirstRecordWatch, {
   FirstRecordWatch,
 } from "../../Components/Infrastructure/UseFirstRecordWatch";
 import {
-  FIRST_RUN_GUIDE_DESCRIPTION,
   getFirstRunEmptyState,
   getFirstRunTopContent,
 } from "../../Components/Infrastructure/FirstRecordWatch";
@@ -43,9 +42,10 @@ import {
   getCloudProviderLabel,
   getManagedCloudPlatformLabel,
 } from "Common/Types/Cloud/CloudPlatform";
-import AddResourceGuide from "../../Components/ResourceOnboarding/AddResourceGuide";
 import AddResourceModal from "../../Components/ResourceOnboarding/AddResourceModal";
 import CLOUD_ENVIRONMENT_ONBOARDING from "../../Components/Cloud/CloudEnvironmentOnboarding";
+import ResourceShowcaseCard from "../../Components/ResourceShowcase/ResourceShowcaseCard";
+import CLOUD_ENVIRONMENT_SHOWCASE from "../../Components/Cloud/CloudEnvironmentShowcase";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
 import { CloudResourceKind } from "Common/Types/Cloud/CloudResourceKind";
@@ -423,16 +423,13 @@ const CloudResources: FunctionComponent<
         }}
       />
       {firstRecordWatch.count === 0 && (
-        <AddResourceGuide
-          onboarding={CLOUD_ENVIRONMENT_ONBOARDING}
-          title={CLOUD_ENVIRONMENT_ONBOARDING.firstRunTitle}
-          description={FIRST_RUN_GUIDE_DESCRIPTION}
-          onConnected={() => {
-            // The guide gives way, and the table reads the new environment.
-            firstRecordWatch.onRecordCreated();
-            setConnectedCount((count: number): number => {
-              return count + 1;
-            });
+        <ResourceShowcaseCard
+          showcase={CLOUD_ENVIRONMENT_SHOWCASE}
+          addButton={{
+            title: CLOUD_ENVIRONMENT_ONBOARDING.addTitle,
+            onClick: () => {
+              setIsAddEnvironmentOpen(true);
+            },
           }}
         />
       )}
@@ -443,6 +440,8 @@ const CloudResources: FunctionComponent<
             setIsAddEnvironmentOpen(false);
           }}
           onConnected={() => {
+            // The showcase gives way, and the table reads the new environment.
+            firstRecordWatch.onRecordCreated();
             setConnectedCount((count: number): number => {
               return count + 1;
             });

@@ -86,7 +86,7 @@ Les boutons en haut de la page de l'exception, et sa page **Paramètres**, chang
 | Action | Quand l'utiliser | Ce qui se passe ensuite |
 | --- | --- | --- |
 | **Résoudre** | Vous avez déployé le correctif. | Elle quitte la liste **Non résolu**. Une nouvelle occurrence la rouvre. |
-| **Reopen** | Le correctif n'a pas marché. | Elle est de nouveau non résolue. |
+| **Rouvrir** | Le correctif n'a pas marché. | Elle est de nouveau non résolue. |
 | **Archiver** | C'est du bruit que vous ne comptez pas corriger. | Elle quitte la liste. Les nouvelles occurrences sont comptées mais ne déclenchent plus de notification. |
 | **Désarchiver** | Vous voulez de nouveau en entendre parler. | Elle revient dans la liste qui lui correspond. |
 

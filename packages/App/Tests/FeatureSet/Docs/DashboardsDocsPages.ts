@@ -92,8 +92,6 @@ export const PERMISSION_NAMES: Readonly<Record<string, ReadonlyArray<string>>> =
  *   - the toolbar's ⋯ menu, a symbol in every language;
  *   - widget settings and options with no locale key, which the settings
  *     form and its dropdowns draw as the widget's code writes them;
- *   - the variable sources, the Source dropdown's options, which no locale
- *     has as a key;
  *   - the public dashboard's Access Denied page, an app with no locale.
  */
 export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
@@ -111,7 +109,7 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
       "Allow forms to submit",
       "Tile",
     ],
-    [VARIABLES]: ["Project Labels", "Telemetry Attribute"],
+    [VARIABLES]: [],
     [DATA_SOURCES]: ["Reduce"],
     [SHARING]: ["Access Denied"],
   };

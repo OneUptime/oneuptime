@@ -100,7 +100,7 @@ La tarjeta **Videollamada** de la página de un incidente o de una alerta tiene 
 
 **Eliminar** en la tarjeta quita una llamada de la página del incidente. La reunión en sí no se elimina, y cualquiera que tenga el enlace puede seguir uniéndose.
 
-Iniciar y quitar llamadas requiere permiso para trabajar en incidentes (o alertas): **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin** o **Incident Member**, o **Create Incident Video Call** y **Delete Incident Video Call** en un rol personalizado. Todas las personas que pueden leer el incidente ven sus llamadas.
+Iniciar y quitar llamadas requiere permiso para trabajar en incidentes (o alertas): **Propietario del proyecto**, **Administrador del proyecto**, **Miembro del proyecto**, **Administrador de incidentes** o **Miembro de incidentes**, o **Create Incident Video Call** y **Delete Incident Video Call** en un rol personalizado. Todas las personas que pueden leer el incidente ven sus llamadas.
 
 ## Transcripciones de llamadas
 
@@ -146,7 +146,7 @@ Microsoft solo deja que las apps lean las transcripciones de las reuniones de Te
 
 ### Quién puede hacer qué
 
-Obtener, añadir, reemplazar y eliminar una transcripción, hacer que se vuelva a leer y descartar una sugerencia requieren permiso para iniciar las llamadas del incidente: **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin** o **Incident Member**, o **Create Incident Video Call** en un rol personalizado. **Usar como causa raíz** requiere permiso para editar la causa raíz del incidente. Quien pueda leer el incidente ve las transcripciones de sus llamadas y lo que la IA de OneUptime leyó en ellas.
+Obtener, añadir, reemplazar y eliminar una transcripción, hacer que se vuelva a leer y descartar una sugerencia requieren permiso para iniciar las llamadas del incidente: **Propietario del proyecto**, **Administrador del proyecto**, **Miembro del proyecto**, **Administrador de incidentes** o **Miembro de incidentes**, o **Create Incident Video Call** en un rol personalizado. **Usar como causa raíz** requiere permiso para editar la causa raíz del incidente. Quien pueda leer el incidente ve las transcripciones de sus llamadas y lo que la IA de OneUptime leyó en ellas.
 
 ### Qué lee la IA de OneUptime
 
@@ -160,7 +160,7 @@ Las credenciales se cifran en reposo y la API nunca las devuelve. Cuando editas 
 
 **Iniciar reunión de prueba** en el formulario de conexión, y **Probar** en la fila de una conexión, crean una reunión real con los ajustes de la conexión y muestran su enlace. Es la única comprobación que demuestra que las credenciales, el permiso en el lado del proveedor y el anfitrión funcionan juntos. No se publica nada en ningún sitio.
 
-Conectar un proveedor requiere **Project Owner**, **Project Admin** o **Settings Admin**, o **Create Video Call Connection** y **Edit Video Call Connection** en un rol personalizado.
+Conectar un proveedor requiere **Propietario del proyecto**, **Administrador del proyecto** o **Administrador de ajustes**, o **Create Video Call Connection** y **Edit Video Call Connection** en un rol personalizado.
 
 ### Zoom
 

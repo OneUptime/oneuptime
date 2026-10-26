@@ -66,7 +66,7 @@ Etiketter grupperar applikationer i listor och filter. De avgör också vad en m
 
 | Hur | Var |
 | --- | --- |
-| Manuellt | I formuläret för att skapa, under **Fler fält**, eller senare med **Redigera detaljer** på kortet **Applikationsdetaljer** på applikationens sida **Inställningar**. För flera på en gång markerar du dem i listan och väljer **Add Labels** under **Massåtgärder**. |
+| Manuellt | I formuläret för att skapa, under **Fler fält**, eller senare med **Redigera detaljer** på kortet **Applikationsdetaljer** på applikationens sida **Inställningar**. För flera på en gång markerar du dem i listan och väljer **Lägg till etiketter** under **Massåtgärder**. |
 | Från telemetri | Ett resursattribut med namnet `oneuptime.label.<name>` lägger till etiketten `<name>:<value>`, som visas nedan. |
 | Från en etikettregel | En regel lägger till etiketter på varje ny applikation som matchar den. Se [Etikettregler och ägarregler](#etikettregler-och-ägarregler). |
 
@@ -91,11 +91,11 @@ En regel lägger till etiketter eller ägare på varje ny applikation som matcha
 1. Under **Matcha** matchar **Alla RUM-applikationer**, som en ny regel börjar på, alla applikationer. För att snäva in regeln väljer du **Endast RUM-applikationer som uppfyller villkoren** och lägger till villkor på **Applikationsetiketter** (har någon, alla eller ingen av de etiketter du väljer), **Applikationsnamn** eller **Applikationsbeskrivning** (är lika med, innehåller, börjar med, slutar med eller matchar ett mönster).
 2. Under **Etiketter**, eller **Ägare** för en ägarregel, väljer du vad regeln lägger till. En ny regel måste lägga till minst en etikett eller ägare. **Namn** fylls i utifrån det du väljer, som _Add team:payments_ eller _Add Payments as owners_, tills du skriver ett eget. **Beskrivning**, och **Avisera ägare** för en ägarregel, väntar under **Fler fält**.
 
-Regler körs när en applikation skapas, även när den har upptäckts. För att tillämpa en regel på applikationer du redan har öppnar du radens meny **⋯** och väljer **Run Now**: se [Köra regler på befintliga resurser](/docs/configuration/run-rules-now). En regel som en redigering har lämnat utan något att lägga till markeras med **Lägger inte till något** i listan. [Etikett- och ägarregler](/docs/configuration/label-and-owner-rules) täcker de fullständiga formulären.
+Regler körs när en applikation skapas, även när den har upptäckts. För att tillämpa en regel på applikationer du redan har öppnar du radens meny **⋯** och väljer **Kör nu**: se [Köra regler på befintliga resurser](/docs/configuration/run-rules-now). En regel som en redigering har lämnat utan något att lägga till markeras med **Lägger inte till något** i listan. [Etikett- och ägarregler](/docs/configuration/label-and-owner-rules) täcker de fullständiga formulären.
 
 ### Ägare
 
-Ägare är de personer och team som ansvarar för en applikation. Ägarregler lägger till dem på nya applikationer. För att lägga till eller ta bort dem manuellt markerar du applikationer i listan och väljer **Add Owner** eller **Remove Owner** under **Massåtgärder**; API:t lägger till dem via `/rum-application-owner-user` och `/rum-application-owner-team`. Med **Avisera ägare** påslaget, vilket är standard, aviseras varje ägare som en regel lägger till. Stäng av det innan du kör en regel på många applikationer om ingen ska aviseras.
+Ägare är de personer och team som ansvarar för en applikation. Ägarregler lägger till dem på nya applikationer. För att lägga till eller ta bort dem manuellt markerar du applikationer i listan och väljer **Lägg till ägare** eller **Ta bort ägare** under **Massåtgärder**; API:t lägger till dem via `/rum-application-owner-user` och `/rum-application-owner-team`. Med **Avisera ägare** påslaget, vilket är standard, aviseras varje ägare som en regel lägger till. Stäng av det innan du kör en regel på många applikationer om ingen ska aviseras.
 
 ## Lagring
 
@@ -104,7 +104,7 @@ En applikations telemetri och dess inspelningar lagras olika länge:
 | Data | Lagras | Ställs in på |
 | --- | --- | --- |
 | Loggar, mätvärden, spår och profiler | Projektets lagring, om inte applikationen åsidosätter den | Applikationens sida **Inställningar** |
-| Inspelningar från sessionsuppspelning | 7 dagar som standard, eller 1, 14, 30 eller 90 dagar | **Replay Policy**, med **Edit Policy → Limits** |
+| Inspelningar från sessionsuppspelning | 7 dagar som standard, eller 1, 14, 30 eller 90 dagar | **Replay Policy**, med **Redigera policy → Gränser** |
 
 ### Lagring av telemetri
 
@@ -119,7 +119,7 @@ På ett lägre Cloud-abonnemang fortsätter en åsidosättning som finns kvar fr
 
 ### Lagring av sessionsuppspelningar
 
-Inspelningar har sin egen lagring, som ställs in på applikationens sida **Replay Policy** med **Edit Policy → Limits**: 7 dagar som standard, eller 1, 14, 30 eller 90 dagar. Den är kort med avsikt, eftersom en inspelning är mycket känsligare, och mycket större, än ett span. Kortet **Session Replay Retention** på sidan **Inställningar** visar den (_Session replays are kept for 7 days._), och dess knapp **Redigera i Replay Policy** öppnar policyn.
+Inspelningar har sin egen lagring, som ställs in på applikationens sida **Replay Policy** med **Redigera policy → Gränser**: 7 dagar som standard, eller 1, 14, 30 eller 90 dagar. Den är kort med avsikt, eftersom en inspelning är mycket känsligare, och mycket större, än ett span. Kortet **Lagringstid för sessionsuppspelning** på sidan **Inställningar** visar den (_Session replays are kept for 7 days._), och dess knapp **Redigera i Replay Policy** öppnar policyn.
 
 En längre lagring av telemetri behåller inte inspelningar längre. En sessions räkningar, signaler och enhet upphör tillsammans med dess inspelning; bara sessionens loggar, spans och undantag följer telemetrins lagring. Se [Lagring och radering](/docs/telemetry/session-replay#lagring-och-radering).
 
@@ -147,17 +147,17 @@ Alla med projektets Viewer-roll kan se RUM-applikationer och deras telemetri. Se
 | `CreateRumApplication`, `EditRumApplication`, `DeleteRumApplication` | Lägga till, redigera och radera applikationer. |
 | `ReadRumSessionReplay` (_List Session Replays_) | Lista inspelade sessioner och deras detaljer utan att spela upp dem eller veta vem användaren var. |
 | `ReadRumSessionReplayPayload` (_Watch Session Replays_) | Spela upp inspelningar och läsa den identifierade användarens referens och egenskaper. |
-| `ReadRumSessionReplayAudit` (_Read Session Replay Audit_) | Läsa **Replay Access Log**: vem som tittade på vilken inspelning. |
+| `ReadRumSessionReplayAudit` (_Read Session Replay Audit_) | Läsa **Åtkomstlogg för uppspelningar**: vem som tittade på vilken inspelning. |
 | `DeleteRumSessionReplay` (_Delete Session Replays_) | Radera inspelningar. |
 | `CreateRumSessionErasureRequest`, `ReadRumSessionErasureRequest` | Skicka in raderingsbegäranden och följa upp dem. |
 | `ReadRumApplicationLabelRule`, `ReadRumApplicationOwnerRule` (och deras Create, Edit och Delete) | Hantera etikettregler och ägarregler. |
 | `ReadRumApplicationOwnerUser`, `ReadRumApplicationOwnerTeam` (och deras Create, Edit och Delete) | Lägga till och ta bort ägare via API:t. |
 
-En användbar uppdelning: ge en supporttekniker `ReadRumApplication` och `ReadRumSessionReplay`. Hen kan då se vilka sessioner som hade fel utan att se någons skärm eller veta vem användaren var. Ge `ReadRumSessionReplayPayload` bara till de personer som behöver det; medlemmar med `ReadRumSessionReplayAudit` ser då varje visning på applikationens sida **Replay Access Log**. [Vem kan titta på en inspelning](/docs/telemetry/session-replay#vem-kan-titta-på-en-inspelning) visar vad varje behörighet låser upp i sessionslistan och spelaren.
+En användbar uppdelning: ge en supporttekniker `ReadRumApplication` och `ReadRumSessionReplay`. Hen kan då se vilka sessioner som hade fel utan att se någons skärm eller veta vem användaren var. Ge `ReadRumSessionReplayPayload` bara till de personer som behöver det; medlemmar med `ReadRumSessionReplayAudit` ser då varje visning på applikationens sida **Åtkomstlogg för uppspelningar**. [Vem kan titta på en inspelning](/docs/telemetry/session-replay#vem-kan-titta-på-en-inspelning) visar vad varje behörighet låser upp i sessionslistan och spelaren.
 
 ## Aviseringar på RUM-data
 
-RUM-telemetri är vanliga loggar, mätvärden och spår, så det finns ingen separat RUM-övervakning: de vanliga övervakningarna fungerar med den. Det snabbaste sättet att komma igång är applikationens sida **Recommendations**, som erbjuder övervakningar som redan är avgränsade till applikationen:
+RUM-telemetri är vanliga loggar, mätvärden och spår, så det finns ingen separat RUM-övervakning: de vanliga övervakningarna fungerar med den. Det snabbaste sättet att komma igång är applikationens sida **Rekommendationer**, som erbjuder övervakningar som redan är avgränsade till applikationen:
 
 | Grupp | Rekommendationer |
 | --- | --- |

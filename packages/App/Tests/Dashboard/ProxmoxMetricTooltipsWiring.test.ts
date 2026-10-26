@@ -228,9 +228,20 @@ describe("cluster overview: chart cards", () => {
     expect(definition).toContain(
       "<InfoTooltip label={params.title} text={params.description} />",
     );
-    // The title is rendered once, in the header, and nowhere else.
-    expect(count(definition, "> {params.title} <")).toBe(1);
-    expect(count(definition, "{params.title}")).toBe(2);
+    /*
+     * The title is rendered once, in the header, in the reader's language,
+     * and nowhere else. The (i) is named after the English title, which it
+     * translates itself.
+     */
+    expect(
+      count(
+        definition,
+        "> {translator.translateText(params.title) || params.title} <",
+      ),
+    ).toBe(1);
+    expect(count(definition, "> {params.title} <")).toBe(0);
+    expect(count(definition, "{params.title}")).toBe(1);
+    expect(count(definition, "label={params.title}")).toBe(1);
   });
 
   test("the skeleton and the loaded card both render that header", () => {

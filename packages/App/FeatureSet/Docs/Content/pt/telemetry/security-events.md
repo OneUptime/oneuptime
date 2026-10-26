@@ -39,22 +39,22 @@ Abra **Produtos → Security Events**, em **Observabilidade**. O menu dele tem u
 | **Entidades** | Eventos | Os usuários, hosts e endereços que os seus achados mais citam |
 | **Risco de entidades** | Eventos | Cada usuário, host e endereço, pontuado pelo que foi encontrado sobre ele nesta semana, os de maior risco primeiro |
 | **Correlacionar** | Eventos | Um grafo dos eventos que compartilham um host, um usuário ou um endereço IP |
-| **Detection Rules** | Detections | Regras Sigma que rodam em uma programação e abrem casos |
-| **Rule Library** | Detections | Regras de detecção prontas para adicionar, cada uma com os eventos que lê e se eles chegam, com as recomendadas marcadas |
-| **Threat Intel** | Detections | Feeds STIX/TAXII de indicadores maliciosos conhecidos |
-| **ATT&CK Coverage** | Detections | As técnicas MITRE ATT&CK que as suas regras cobrem |
+| **Regras de detecção** | Detections | Regras Sigma que rodam em uma programação e abrem casos |
+| **Biblioteca de regras** | Detections | Regras de detecção prontas para adicionar, cada uma com os eventos que lê e se eles chegam, com as recomendadas marcadas |
+| **Inteligência de ameaças** | Detections | Feeds STIX/TAXII de indicadores maliciosos conhecidos |
+| **Cobertura ATT&CK** | Detections | As técnicas MITRE ATT&CK que as suas regras cobrem |
 | **Playbooks** | Playbooks | Etapas que rodam nos casos, sozinhas ou manualmente |
 | **Aprovações** | Playbooks | As etapas de playbook aguardando alguém aprovar ou rejeitar |
 | **Execuções** | Playbooks | O que cada playbook fez, etapa por etapa |
-| **Protected Entities** | Playbooks | Os usuários e hosts aos quais nenhum playbook aplica contenção |
+| **Entidades protegidas** | Playbooks | Os usuários e hosts aos quais nenhum playbook aplica contenção |
 | **Configurações** | IA | Se o OneUptime AI classifica cada caso novo |
-| **Connections** | Connections | Seus logs, os produtos de segurança que o OneUptime consulta e os SIEMs para os quais ele envia |
+| **Conexões** | Connections | Seus logs, os produtos de segurança que o OneUptime consulta e os SIEMs para os quais ele envia |
 | **Guia de configuração** | Connections | Trechos para enviar eventos, preenchidos com a sua chave de ingestão |
 | **Prioridades de casos** | Configurações | Quão urgente é um caso: as prioridades do próprio projeto, a mais urgente primeiro |
 | **Status de casos** | Configurações | As etapas por que um caso passa, e como conta um caso em cada uma |
 | **Pontuação de risco** | Configurações | Se o risco de uma entidade abre um caso, com que risco, e quanto importa cada entidade |
 
-**Detections**, **IA**, **Connections** e **Configurações**, configuradas uma vez, ficam recolhidas até você abri-las. Novo na segurança? [Primeiros passos com a segurança](/docs/telemetry/security-getting-started) a configura em dois cliques.
+**Detecções**, **IA**, **Conexões** e **Configurações**, configuradas uma vez, ficam recolhidas até você abri-las. Novo na segurança? [Primeiros passos com a segurança](/docs/telemetry/security-getting-started) a configura em dois cliques.
 
 ## Antes de começar
 
@@ -169,15 +169,15 @@ Para enviar logs de segurança que você já coleta, como os do auditd, do syslo
     Retry_Limit      5
 ```
 
-A página **Guia de configuração**, em **Connections**, tem esses trechos com o seu próprio host e a sua chave já preenchidos.
+A página **Guia de configuração**, em **Conexões**, tem esses trechos com o seu próprio host e a sua chave já preenchidos.
 
 ### Encontrar eventos de segurança nos seus logs
 
-O cartão **Seus logs**, no topo de **Connections**, transforma em uma origem os logs que você já envia ao OneUptime. Com **Encontrar eventos de segurança nos seus logs** ativado, os logs novos do projeto são lidos a cada minuto, e cada login SSH, comando sudo, registro de auditoria do Kubernetes, mudança no AWS CloudTrail e ataque web que eles contêm é salvo como evento de segurança. Consulte [Primeiros passos com a segurança](/docs/telemetry/security-getting-started#encontrar-eventos-de-segurança-nos-seus-logs) para saber o que cada tipo cobre.
+O cartão **Seus logs**, no topo de **Conexões**, transforma em uma origem os logs que você já envia ao OneUptime. Com **Encontrar eventos de segurança nos seus logs** ativado, os logs novos do projeto são lidos a cada minuto, e cada login SSH, comando sudo, registro de auditoria do Kubernetes, mudança no AWS CloudTrail e ataque web que eles contêm é salvo como evento de segurança. Consulte [Primeiros passos com a segurança](/docs/telemetry/security-getting-started#encontrar-eventos-de-segurança-nos-seus-logs) para saber o que cada tipo cobre.
 
 ### Conecte um produto de segurança
 
-**Connections** consulta um produto de segurança por você e importa os registros novos dele como eventos de segurança. Uma conexão guarda as configurações do produto e uma credencial criptografada; um worker a consulta no intervalo que você define e pula os registros que já importou.
+**Conexões** consulta um produto de segurança por você e importa os registros novos dele como eventos de segurança. Uma conexão guarda as configurações do produto e uma credencial criptografada; um worker a consulta no intervalo que você define e pula os registros que já importou.
 
 | Produto | Importa | Guia de configuração |
 | --- | --- | --- |
@@ -193,7 +193,7 @@ O cartão **Seus logs**, no topo de **Connections**, transforma em uma origem os
 - Os alertas do próprio produto no nível de **Open Cases From** ou acima (**Alta e acima**, a menos que você escolha outro nível, ou **Nunca**) abrem [casos](/docs/telemetry/security-cases), agrupados pelo usuário, host ou endereço de que tratam.
 - Uma conexão lê os registros pelo momento em que o produto os criou, não pelo momento da atividade que descrevem. Uma regra de SIEM que roda de hora em hora cria detecções muito depois dos eventos correspondentes, e mesmo assim elas são importadas.
 - A primeira consulta olha 24 horas para trás, então uma conexão nova mostra registros recentes na hora.
-- **Testar conexão**, na linha da conexão, verifica o acesso ao produto e se os workers do próprio OneUptime estão rodando, sem importar nada. **Run now** consulta na hora.
+- **Testar conexão**, na linha da conexão, verifica o acesso ao produto e se os workers do próprio OneUptime estão rodando, sem importar nada. **Executar agora** consulta na hora.
 
 ## O que um evento contém
 
@@ -236,7 +236,7 @@ Um campo é um nome curto (`severity`, `class`, `category`, `activity`, `status`
 
 ### Facetas
 
-A barra lateral conta os eventos da janela por **Origem**, **Gravidade**, **Classe de evento**, **Category**, **Atividade**, **Status**, **Fornecedor**, **Produto**, **Detection Rule**, **Usuário de origem**, **Host de origem**, **Processo** e **Processo pai**. Clique em um valor para manter só os eventos dele, ou no sinal de menos ao lado para excluí-los. Clique de novo para desfazer. O gráfico e cada contagem descrevem exatamente os eventos da lista.
+A barra lateral conta os eventos da janela por **Origem**, **Gravidade**, **Classe de evento**, **Categoria**, **Atividade**, **Status**, **Fornecedor**, **Produto**, **Regra de detecção**, **Usuário de origem**, **Host de origem**, **Processo** e **Processo pai**. Clique em um valor para manter só os eventos dele, ou no sinal de menos ao lado para excluí-los. Clique de novo para desfazer. O gráfico e cada contagem descrevem exatamente os eventos da lista.
 
 ### Correlacionar
 
@@ -244,7 +244,7 @@ A barra lateral conta os eventos da janela por **Origem**, **Gravidade**, **Clas
 
 ## Regras de detecção
 
-Uma regra de detecção é uma regra [Sigma](https://sigmahq.io/), um formato YAML aberto para descrever atividade suspeita, que o OneUptime roda em uma programação sobre os seus eventos. Quando corresponde, ela abre um [caso](/docs/telemetry/security-cases) ou entra em um já aberto, abre um alerta, opcionalmente um incidente, e grava um Detection Finding de volta nos eventos. A **Rule Library** tem regras prontas para começar.
+Uma regra de detecção é uma regra [Sigma](https://sigmahq.io/), um formato YAML aberto para descrever atividade suspeita, que o OneUptime roda em uma programação sobre os seus eventos. Quando corresponde, ela abre um [caso](/docs/telemetry/security-cases) ou entra em um já aberto, abre um alerta, opcionalmente um incidente, e grava um Detection Finding de volta nos eventos. A **Biblioteca de regras** tem regras prontas para começar.
 
 ```mermaid title="Como uma regra de detecção dispara"
 flowchart TB
@@ -258,12 +258,12 @@ flowchart TB
 ### Crie uma regra
 
 :::steps
-1. Abra **Produtos → Security Events → Detections → Detection Rules** e clique em **Criar: Detection Rule**.
-2. Em **Sigma Rule**, cole o YAML da regra em **Sigma Rule (YAML)**. Ele é analisado ao salvar, então um erro aparece no formulário.
+1. Abra **Produtos → Security Events → Detecções → Regras de detecção** e clique em **Criar: Regra de detecção**.
+2. Em **Regra Sigma**, cole o YAML da regra em **Regra Sigma (YAML)**. Ele é analisado ao salvar, então um erro aparece no formulário.
 3. O **Nome** é preenchido com o `title` da regra: escreva por cima para chamá-la de outro jeito. Uma regra nova roda; **Habilitado** fica no formulário de edição dela.
-4. Em **Ao corresponder**, deixe **Open a Case on Match** ativado para agrupar as correspondências dela em casos, pelo valor pelo qual a regra agrupa.
+4. Em **Ao corresponder**, deixe **Abrir um caso ao corresponder** ativado para agrupar as correspondências dela em casos, pelo valor pelo qual a regra agrupa.
 5. Em **Alertas e incidentes**, escolha o que mais uma correspondência gera: **Criar um alerta** (o padrão), **Declarar um incidente**, **Ambos** ou **Nenhum**, com uma **Severidade do alerta** ou uma **Severidade do incidente** opcionais.
-6. **Mais campos** guarda a **Descrição**, **Write Detection Finding on Match** (ativado) e como as correspondências são contadas; veja [Configurações de avaliação](#configurações-de-avaliação).
+6. **Mais campos** guarda a **Descrição**, **Gravar Detection Finding ao corresponder** (ativado) e como as correspondências são contadas; veja [Configurações de avaliação](#configurações-de-avaliação).
 :::
 
 Uma primeira regra, que corresponde a logins com falha vindos de fora de `10.x.x.x`:
@@ -295,11 +295,11 @@ O OneUptime roda o núcleo booleano do Sigma:
 - `Image` e `CommandLine` leem o processo de que o evento trata, o que foi iniciado na inicialização de um processo (`processPath`, `processCommandLine`), e `ParentImage` e `ParentCommandLine` o processo que o iniciou (`parentProcessPath`, `parentProcessCommandLine`). `principalProcess` é o processo que agiu, que em uma inicialização é o processo pai.
 - `level` define a gravidade: `informational`, `low`, `medium`, `high` ou `critical`, e `medium` quando falta. Os IDs ATT&CK em `tags` (`attack.t1110`, `attack.ta0006`) preenchem os campos MITRE do achado.
 
-Agregações como `| count() by principalIp > 5` são recusadas ao salvar: use uma [regra de correlação](#regras-de-correlação), ou **Group By Field** e **Match Count Threshold**. `logsource` é apenas informativo e não restringe nada: coloque esse filtro em uma seleção, como `className: Authentication`. Um `timeframe` é ignorado, porque o intervalo da regra define a janela dela.
+Agregações como `| count() by principalIp > 5` são recusadas ao salvar: use uma [regra de correlação](#regras-de-correlação), ou **Campo de agrupamento** e **Limite de correspondências**. `logsource` é apenas informativo e não restringe nada: coloque esse filtro em uma seleção, como `className: Authentication`. Um `timeframe` é ignorado, porque o intervalo da regra define a janela dela.
 
 ### Regras de correlação
 
-Uma [correlação do Sigma](https://sigmahq.io/docs/meta/correlations.html) dispara com vários eventos juntos, e não com um só. Cole-a em **Sigma Rule (YAML)** com as regras que ela lê, como documentos YAML separados por `---`, ou cite regras que o projeto já tem pelo `name` ou pelo `id` do Sigma. A **Rule Library** tem algumas prontas, como logins com falha seguidos de um bem-sucedido.
+Uma [correlação do Sigma](https://sigmahq.io/docs/meta/correlations.html) dispara com vários eventos juntos, e não com um só. Cole-a em **Regra Sigma (YAML)** com as regras que ela lê, como documentos YAML separados por `---`, ou cite regras que o projeto já tem pelo `name` ou pelo `id` do Sigma. A **Biblioteca de regras** tem algumas prontas, como logins com falha seguidos de um bem-sucedido.
 
 | Tipo | Dispara quando | Exibido como |
 | --- | --- | --- |
@@ -352,16 +352,16 @@ detection:
 
 - Um grupo é o valor dos campos de `group-by`, como um endereço. As contagens são móveis: uma rajada que duas execuções dividem ainda é contada inteira dentro do seu `timespan`, que é de no máximo 24 horas.
 - `new_value` é um tipo próprio do OneUptime, já que o Sigma não tem uma correlação de "visto pela primeira vez": ele compara com até 30 dias de histórico. `value_sum`, `value_avg`, `value_percentile` e `value_median` são recusados ao salvar.
-- A coluna **Tipo** de **Detection Rules** nomeia o tipo de cada regra, e o formulário diz em uma frase o que a regra procura.
+- A coluna **Tipo** de **Regras de detecção** nomeia o tipo de cada regra, e o formulário diz em uma frase o que a regra procura.
 
 ### Configurações de avaliação
 
 | Campo | O que faz |
 | --- | --- |
-| **Evaluation Interval (Minutes)** | Com que frequência a regra roda: minutos inteiros, de 1 a 1440. O formulário de uma regra nova começa em 5. |
-| **Group By Field** | Opcional. As correspondências que compartilham o valor deste campo, como `principalHost`, são contadas, alertadas e deduplicadas juntas: um alerta por host em vez de centenas. |
-| **Distinct Count Field** | Opcional. Conta os valores diferentes deste campo em vez dos eventos correspondentes. Valores vazios não contam. |
-| **Match Count Threshold** | Um grupo só dispara quando a contagem dele atinge este número dentro de uma execução: de 1 a 1000000, e 1 dispara em qualquer correspondência. |
+| **Intervalo de avaliação (minutos)** | Com que frequência a regra roda: minutos inteiros, de 1 a 1440. O formulário de uma regra nova começa em 5. |
+| **Campo de agrupamento** | Opcional. As correspondências que compartilham o valor deste campo, como `principalHost`, são contadas, alertadas e deduplicadas juntas: um alerta por host em vez de centenas. |
+| **Campo de contagem distinta** | Opcional. Conta os valores diferentes deste campo em vez dos eventos correspondentes. Valores vazios não contam. |
+| **Limite de correspondências** | Um grupo só dispara quando a contagem dele atinge este número dentro de uma execução: de 1 a 1000000, e 1 dispara em qualquer correspondência. |
 
 O agrupamento e a contagem distinta aceitam os mesmos nomes de campo que a regra. Com eles, o limite diz "tantos, da mesma coisa, em uma execução", sem um monitor por cima:
 
@@ -412,7 +412,7 @@ Os achados são eventos comuns: pesquise-os em **Eventos** e faça pivô sobre e
 
 ## Monitores de eventos de segurança
 
-Um monitor de eventos de segurança conta os eventos que correspondem aos filtros dele em uma janela deslizante e aplica à contagem os critérios habituais de monitor: muda o status do monitor, abre alertas ou incidentes e aciona o plantão. Crie um em **Monitores → Criar monitor**, com **Security Events** como tipo; ele aparece lá junto com seus outros monitores.
+Um monitor de eventos de segurança conta os eventos que correspondem aos filtros dele em uma janela deslizante e aplica à contagem os critérios habituais de monitor: muda o status do monitor, abre alertas ou incidentes e aciona o plantão. Crie um em **Monitores → Criar monitor**, com **Eventos de segurança** como tipo; ele aparece lá junto com seus outros monitores.
 
 O formulário dele mostra **Monitor events that include this text**, **Monitor Security Events for (time)**, **Event Severity** e **Classe de evento**. **Filtrar por serviço de telemetria** e **Filtrar por atributos** ficam em **Mais campos**, cujo cabeçalho mostra os que um monitor usa. Os critérios dele verificam **Security Event Count**.
 
@@ -420,7 +420,7 @@ O formulário dele mostra **Monitor events that include this text**, **Monitor S
 | --- | --- | --- |
 | Corresponde a | Uma regra Sigma | Filtros de gravidade, classe, mensagem, serviço e atributos |
 | Janela | Uma depois da outra, uma por execução | Deslizante: dos últimos 5 segundos às últimas 24 horas |
-| Conta por grupo | Sim, com **Group By Field** | Não: uma única contagem para tudo o que corresponde |
+| Conta por grupo | Sim, com **Campo de agrupamento** | Não: uma única contagem para tudo o que corresponde |
 | Abre | Alertas, incidentes e achados | Um status, alertas e incidentes |
 | Se recupera | Não: os alertas ficam abertos até serem resolvidos | Sim: o status volta quando a contagem volta |
 
@@ -434,11 +434,11 @@ Os achados são eventos, então um monitor pode vigiar as próprias regras:
 - Mudanças de ritmo: filtre pelo `oneuptime.detection.rule_id` de uma regra. Uma regra que dispara toda semana e de repente cinquenta vezes por hora pede outra resposta.
 - Silêncio: achados que caem a zero, quando você normalmente vê alguns, costumam significar que uma origem parou de enviar. Use um critério que verifique uma contagem abaixo de um número.
 
-A ação **Criar monitor** na linha de uma regra abre um monitor novo já configurado assim: a classe `Detection Finding`, o ID da regra (nunca o nome dela, que uma renomeação mudaria) e a última hora. Um monitor assim conta achados, um por grupo por execução, não os eventos por trás deles. Para exigir um número de eventos antes que qualquer coisa dispare, use o **Match Count Threshold** da regra.
+A ação **Criar monitor** na linha de uma regra abre um monitor novo já configurado assim: a classe `Detection Finding`, o ID da regra (nunca o nome dela, que uma renomeação mudaria) e a última hora. Um monitor assim conta achados, um por grupo por execução, não os eventos por trás deles. Para exigir um número de eventos antes que qualquer coisa dispare, use o **Limite de correspondências** da regra.
 
 ## Inteligência de ameaças
 
-**Threat Intel** assina feeds STIX/TAXII de endereços IP, domínios, URLs, endereços de e-mail e hashes de arquivos maliciosos conhecidos. Os eventos que mencionam um deles são marcados na chegada com atributos `threat.*`, pelos quais regras e monitores podem filtrar, e a cada minuto os eventos recentes são comparados com os feeds, abrindo alertas e achados como uma regra faz. Veja [Inteligência de ameaças](/docs/telemetry/threat-intelligence).
+**Inteligência de ameaças** assina feeds STIX/TAXII de endereços IP, domínios, URLs, endereços de e-mail e hashes de arquivos maliciosos conhecidos. Os eventos que mencionam um deles são marcados na chegada com atributos `threat.*`, pelos quais regras e monitores podem filtrar, e a cada minuto os eventos recentes são comparados com os feeds, abrindo alertas e achados como uma regra faz. Veja [Inteligência de ameaças](/docs/telemetry/threat-intelligence).
 
 ## Retenção e cobrança
 
@@ -459,7 +459,7 @@ Confira o **Status** dela: com **Desabilitado** a regra não é executada, e com
 :::
 
 :::details Uma regra abre alertas demais
-Cada valor do **Group By Field** recebe o próprio alerta: agrupe por algo mais amplo, aumente o limite ou acrescente uma contagem distinta. Se o que importa é o ritmo e não cada correspondência, escolha **Nenhum** em **Alertas e incidentes** e coloque um monitor sobre os achados da regra.
+Cada valor do **Campo de agrupamento** recebe o próprio alerta: agrupe por algo mais amplo, aumente o limite ou acrescente uma contagem distinta. Se o que importa é o ritmo e não cada correspondência, escolha **Nenhum** em **Alertas e incidentes** e coloque um monitor sobre os achados da regra.
 :::
 
 ## Próximos passos

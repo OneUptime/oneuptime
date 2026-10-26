@@ -26,7 +26,7 @@ A cada minuto, o OneUptime executa cada consulta de métricas do monitor sobre o
 ## Antes de começar
 
 - Seus aplicativos ou sua infraestrutura enviam métricas ao OneUptime pelo OpenTelemetry. Veja [OpenTelemetry](/docs/telemetry/open-telemetry).
-- Saiba o nome da métrica e os atributos pelos quais você quer filtrar ou agrupar. As listas **Métrica** e **Group by** só oferecem nomes e atributos que o OneUptime já recebeu.
+- Saiba o nome da métrica e os atributos pelos quais você quer filtrar ou agrupar. As listas **Métrica** e **Agrupar por** só oferecem nomes e atributos que o OneUptime já recebeu.
 
 ## Criar um monitor de métricas
 
@@ -45,11 +45,11 @@ Em **Configuração do monitor de métricas**, escolha um **Intervalo de tempo**
 
 ### Adicionar as consultas de métricas
 
-Em **Selecionar Métricas**, escolha uma **Métrica** e como agregá-la com **Aggregate by**. Abra **Filters & grouping** para filtrar por atributos ou para agrupar com **Group by**. Clique em **Adicionar métrica** para outra consulta, ou em **Adicionar fórmula** para combiná-las. O gráfico abaixo das consultas mostra uma prévia do intervalo de tempo, para você ver os valores que os critérios vão verificar.
+Em **Selecionar Métricas**, escolha uma **Métrica** e como agregá-la com **Aggregate by**. Abra **Filters & grouping** para filtrar por atributos ou para agrupar com **Agrupar por**. Clique em **Adicionar métrica** para outra consulta, ou em **Adicionar fórmula** para combiná-las. O gráfico abaixo das consultas mostra uma prévia do intervalo de tempo, para você ver os valores que os critérios vão verificar.
 
 ### Definir os critérios
 
-Em **Critérios do monitor**, cada critério escolhe a **Métrica** a verificar (uma consulta ou uma fórmula), sua **Agregação**, uma **Condição** e um **Threshold**. Veja [Critérios](#critérios) para os critérios com que um novo monitor começa.
+Em **Critérios do monitor**, cada critério escolhe a **Métrica** a verificar (uma consulta ou uma fórmula), sua **Agregação**, uma **Condição** e um **Limite**. Veja [Critérios](#critérios) para os critérios com que um novo monitor começa.
 
 ### Criar o monitor
 
@@ -65,7 +65,7 @@ Clique em **Criar monitor**. O monitor abre na sua página **Visão geral**, e s
 | **Métrica** | A métrica a consultar. | Obrigatório |
 | **Aggregate by** | Como os valores de cada intervalo de tempo são combinados em um ponto de dados: Méd, Soma, Min, Max, Contagem, ou um percentil (P50, P75, P90, P95 ou P99). | Méd |
 | **Filter by attributes** (em **Filters & grouping**) | Somente as séries cujos atributos atendem a estas condições. | Nenhum filtro |
-| **Group by** (em **Filters & grouping**) | Uma série por valor único destes atributos (veja [Alertas por série](#alertas-por-série-group-by)). | Uma só série |
+| **Agrupar por** (em **Filters & grouping**) | Uma série por valor único destes atributos (veja [Alertas por série](#alertas-por-série-group-by)). | Uma só série |
 
 Cada consulta e cada fórmula recebe uma variável (`a`, `b`, `c` e assim por diante), na ordem em que você as adiciona.
 
@@ -79,7 +79,7 @@ Uma fórmula combina variáveis de consulta com `+`, `-`, `*`, `/`, `%`, `^` e p
 
 ### Janela de tempo móvel
 
-**Intervalo de tempo** define até onde cada avaliação olha para trás: **Past 1 Minute**, **Past 5 Minutes**, **Past 10 Minutes**, **Past 15 Minutes**, **Past 30 Minutes**, **Past 1 Hour**, **Past 2 Hours**, **Past 3 Hours**, **Past 6 Hours**, **Past 12 Hours**, **Past 1 Day**, **Past 2 Days**, **Past 3 Days**, **Past 7 Days**, **Past 14 Days**, **Past 30 Days**, **Past 60 Days**, **Past 90 Days**, **Past 180 Days** ou **Past 365 Days**.
+**Intervalo de tempo** define até onde cada avaliação olha para trás: **Past 1 Minute**, **Últimos 5 minutos**, **Past 10 Minutes**, **Últimos 15 minutos**, **Últimos 30 minutos**, **Última hora**, **Últimas 2 horas**, **Últimas 3 horas**, **Past 6 Hours**, **Past 12 Hours**, **Último dia**, **Últimos 2 dias**, **Past 3 Days**, **Past 7 Days**, **Past 14 Days**, **Past 30 Days**, **Past 60 Days**, **Past 90 Days**, **Past 180 Days** ou **Past 365 Days**.
 
 Quanto maior o intervalo, mais largo é cada intervalo de agrupamento, então um ponto de dados representa mais tempo:
 
@@ -110,13 +110,13 @@ Quanto maior o intervalo, mais largo é cada intervalo de agrupamento, então um
 | Any Value | cada ponto de dados: basta que um atenda à condição |
 
 - **Critérios de cima para baixo.** Em um monitor sem Group By, o primeiro critério que corresponde decide, então coloque o mais grave primeiro. Um monitor agrupado verifica todos os critérios para cada série (veja [A avaliação dos critérios é diferente](#a-avaliação-dos-critérios-é-diferente)).
-- **Nenhum dado não é zero.** Quando a consulta não retorna pontos de dados no intervalo de tempo, um critério faz o que diz sua configuração **Se não houver dados**, em **Mais campos**: **Ignore** (o padrão: o critério não corresponde), **Treat As Zero** ou **Trigger**.
+- **Nenhum dado não é zero.** Quando a consulta não retorna pontos de dados no intervalo de tempo, um critério faz o que diz sua configuração **Se não houver dados**, em **Mais campos**: **Ignore** (o padrão: o critério não corresponde), **Treat As Zero** ou **Gatilho**.
 - **All Values precisa de todo o intervalo de tempo.** Uma série atende a um critério **All Values** só quando seus pontos de dados cobrem o intervalo de tempo, do início até agora, sem uma lacuna de mais de um ponto de dados ausente. Quando todos os dados do monitor chegam atrasados, como os do CloudWatch, o ponto de dados mais recente ocupa o lugar de agora. Um host, um contêiner ou um deployment que acabou de começar a enviar dados, ou que ficou em silêncio por um tempo, espera até ter dados de um intervalo de tempo inteiro, e o log de avaliação mostra até onde chegou: `Waiting for 15 minutes of data: 2 of 15 minutes so far`. Uma série cujo alerta ou incidente já está aberto é julgada apenas pelos seus pontos de dados, então uma lacuna curta nos dados não o resolve. Se a métrica envia dados com menos frequência do que dura o intervalo de tempo, um único ponto de dados vale pelo intervalo inteiro quando já tem alguns minutos; para julgar quanto tempo um valor dura, o intervalo de tempo precisa cobrir pelo menos dois intervalos de envio.
 - **A indisponibilidade do próprio OneUptime não é silêncio.** Enquanto o intervalo de tempo contiver um período em que o próprio OneUptime não estava recebendo dados (estava reiniciando, sendo atualizado ou recuperando um atraso), a verificação espera: o status não muda, e nenhum incidente ou alerta é aberto ou resolvido, diga o que disser **Se não houver dados**. Veja [Quando o OneUptime não recebe dados](/docs/monitor/when-oneuptime-is-not-receiving).
 
 ## Critérios
 
-Estes monitores sempre avaliam o **Metric Value**: o valor agregado da consulta de métricas ou da fórmula configurada. O formulário de critérios não tem seletor de tipo de filtro; ele mostra **Métrica**, **Agregação**, **Condição** e **Threshold**. Quando a métrica tem uma unidade, escolha a unidade do limite ao lado dele.
+Estes monitores sempre avaliam o **Metric Value**: o valor agregado da consulta de métricas ou da fórmula configurada. O formulário de critérios não tem seletor de tipo de filtro; ele mostra **Métrica**, **Agregação**, **Condição** e **Limite**. Quando a métrica tem uma unidade, escolha a unidade do limite ao lado dele.
 
 | Condição | Corresponde quando o valor está… |
 | --- | --- |
@@ -139,17 +139,17 @@ Um novo monitor de métricas começa com dois critérios na sua primeira consult
 | Check if … is online | **Maior que** `0` | Coloca o monitor online |
 
 > [!NOTE]
-> O critério offline dispara com um valor informado de 0, não com o silêncio. Para receber um alerta quando uma métrica para de chegar, defina o **Se não houver dados** dela como **Trigger**.
+> O critério offline dispara com um valor informado de 0, não com o silêncio. Para receber um alerta quando uma métrica para de chegar, defina o **Se não houver dados** dela como **Gatilho**.
 
 ## Exemplo prático: uma fila que cresce
 
-Você quer um incidente quando a fila de checkout continua longa. A consulta `a` é o gauge `checkout.queue.depth`, com **Aggregate by** Max, e o **Intervalo de tempo** é **Past 5 Minutes**. Uma avaliação vê estes cinco pontos de dados de um minuto:
+Você quer um incidente quando a fila de checkout continua longa. A consulta `a` é o gauge `checkout.queue.depth`, com **Aggregate by** Max, e o **Intervalo de tempo** é **Últimos 5 minutos**. Uma avaliação vê estes cinco pontos de dados de um minuto:
 
 | Minuto | 10:01 | 10:02 | 10:03 | 10:04 | 10:05 |
 | --- | --- | --- | --- | --- | --- |
 | `a` | 640 | 980 | 1.500 | 1.620 | 1.100 |
 
-Um critério com **Métrica** `a`, **Condição** **Maior que** e **Threshold** `1000` dá uma resposta diferente para cada **Agregação**:
+Um critério com **Métrica** `a`, **Condição** **Maior que** e **Limite** `1000` dá uma resposta diferente para cada **Agregação**:
 
 | Agregação | Comparado com 1.000 | Corresponde? |
 | --- | --- | --- |
@@ -164,7 +164,7 @@ Um critério com **Métrica** `a`, **Condição** **Maior que** e **Threshold** 
 
 ## Alertas por série (Group By)
 
-**Group by** em uma consulta de métricas divide essa consulta em uma série por valor único de atributo (uma por host, uma por contêiner, uma por ponto de montagem), e um monitor com Group By definido avalia cada série de forma independente. Essa única configuração é a diferença entre "a frota não está bem" e "`prod-db-01` não está bem".
+**Agrupar por** em uma consulta de métricas divide essa consulta em uma série por valor único de atributo (uma por host, uma por contêiner, uma por ponto de montagem), e um monitor com Group By definido avalia cada série de forma independente. Essa única configuração é a diferença entre "a frota não está bem" e "`prod-db-01` não está bem".
 
 ### Um alerta por grupo
 
@@ -189,7 +189,7 @@ Cada alerta por grupo acompanha o seu próprio grupo. Quando o host A volta para
 
 ### Escolher um atributo para agrupar
 
-Agrupe por um atributo que realmente identifique uma coisa distinta pela qual você acionaria alguém: o atributo do host para uma métrica de host de toda a frota, o atributo do contêiner ou do pod para uma métrica de contêiner, o atributo do ponto de montagem ou do dispositivo para uma métrica de sistema de arquivos ou de E/S de disco, o atributo da interface para uma métrica de rede. A lista **Group by** é preenchida com os atributos que seu coletor realmente envia, então escolha da lista em vez de digitar uma chave à mão.
+Agrupe por um atributo que realmente identifique uma coisa distinta pela qual você acionaria alguém: o atributo do host para uma métrica de host de toda a frota, o atributo do contêiner ou do pod para uma métrica de contêiner, o atributo do ponto de montagem ou do dispositivo para uma métrica de sistema de arquivos ou de E/S de disco, o atributo da interface para uma métrica de rede. A lista **Agrupar por** é preenchida com os atributos que seu coletor realmente envia, então escolha da lista em vez de digitar uma chave à mão.
 
 Não agrupe uma métrica que já é um único escalar para o sistema inteiro (um sinalizador de líder do cluster inteiro, um acúmulo do agendador ou a CPU de um único host em um monitor de um só host). Agrupá-la produz exatamente uma série e não muda nada além dos títulos dos alertas.
 
@@ -202,11 +202,11 @@ Verifique primeiro a **Agregação** do critério: **All Values** só correspond
 :::
 
 :::details A métrica parou de chegar e nada aconteceu
-Um intervalo de tempo sem pontos de dados não é um valor de 0. Com **Se não houver dados** no padrão, **Ignore**, o critério não corresponde. Defina-o como **Trigger** em **Mais campos** do critério para alertar sobre o silêncio.
+Um intervalo de tempo sem pontos de dados não é um valor de 0. Com **Se não houver dados** no padrão, **Ignore**, o critério não corresponde. Defina-o como **Gatilho** em **Mais campos** do critério para alertar sobre o silêncio.
 :::
 
 :::details Recebo um só alerta para a frota inteira
-A consulta não tem **Group by**, então todos os hosts são reduzidos a um só número. Agrupe a consulta pelo atributo do host, do contêiner ou do ponto de montagem (veja [Alertas por série](#alertas-por-série-group-by)).
+A consulta não tem **Agrupar por**, então todos os hosts são reduzidos a um só número. Agrupe a consulta pelo atributo do host, do contêiner ou do ponto de montagem (veja [Alertas por série](#alertas-por-série-group-by)).
 :::
 
 :::details Um critério de anomalia nunca dispara

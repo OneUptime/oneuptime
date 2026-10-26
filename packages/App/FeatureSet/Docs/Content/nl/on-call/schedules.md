@@ -63,13 +63,13 @@ flowchart TB
 
 | Veld | Wat het instelt |
 | --- | --- |
-| **Layer name** | Wat de laag dekt, zoals "Primair op werkdagen". |
-| **Rotation starts at** | De datum en tijd waarop de rotatie van de laag begint. |
-| **Rotate every** | Hoe vaak de dienst overgaat naar de volgende persoon in de laag. |
-| **First hand-off time** | De eerste overdracht aan de volgende persoon, bij of na het begin. Latere overdrachten volgen elk rotatie-interval. |
-| **Restrictions** | De uren waarop de laag dienst heeft: **Geen beperkingen**, **Specifieke tijdstippen van de dag** of **Specifieke tijdstippen van de week**, in de tijdzone van het schema. Daarbuiten nemen lagere lagen het over. |
+| **Laagnaam** | Wat de laag dekt, zoals "Primair op werkdagen". |
+| **Rotatie begint op** | De datum en tijd waarop de rotatie van de laag begint. |
+| **Wissel elke** | Hoe vaak de dienst overgaat naar de volgende persoon in de laag. |
+| **Tijd van eerste overdracht** | De eerste overdracht aan de volgende persoon, bij of na het begin. Latere overdrachten volgen elk rotatie-interval. |
+| **Beperkingen** | De uren waarop de laag dienst heeft: **Geen beperkingen**, **Specifieke tijdstippen van de dag** of **Specifieke tijdstippen van de week**, in de tijdzone van het schema. Daarbuiten nemen lagere lagen het over. |
 
-Om te wijzigen welke laag eerst komt, gebruikt u **Move layer up (higher priority)** of **Move layer down (lower priority)** in het menu van een laag.
+Om te wijzigen welke laag eerst komt, gebruikt u **Laag omhoog (hogere prioriteit)** of **Laag omlaag (lagere prioriteit)** in het menu van een laag.
 
 Elke persoon houdt overal één kleur, zodat u hem of haar in één oogopslag kunt volgen: in elke laag, in het uiteindelijke schema en de overrides ervan, en op de **Tijdlijn van bereikbaarheidsschema's**.
 

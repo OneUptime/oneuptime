@@ -31,9 +31,10 @@ import { PROJECT_ID, goTo } from "./SideMenuHarness";
  *  - A resource that registers while the dialog is open is announced in it,
  *    with a link to it, and the list reads it at once - no reload. One the
  *    project already had is never taken for it, however busy it is.
- *  - An empty list shows the same guide under its table, and the guide
- *    gives way as soon as its last step sees the resource connect - before
- *    the list's own watch would count again.
+ *  - An empty list shows its showcase under its table (what the product
+ *    gives), whose button opens the same dialog; the showcase gives way as
+ *    soon as the dialog's last step sees the resource connect - before the
+ *    list's own watch would count again.
  *  - The cloud environments' dialog waits for an environment, not for a
  *    resource a cloud's monitoring API reports, and the summary over the
  *    list counts the new one.
@@ -133,6 +134,11 @@ import { RESOURCE_NAME_LOOKUP_DELAY_MS } from "../../../../App/FeatureSet/Dashbo
 import { RESOURCE_CONNECTION_POLL_INTERVAL_MS } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceOnboarding/ResourceOnboarding";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import KubernetesClustersPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Clusters";
+import KUBERNETES_CLUSTER_SHOWCASE from "../../../../App/FeatureSet/Dashboard/src/Components/Kubernetes/KubernetesClusterShowcase";
+import {
+  RESOURCE_SHOWCASE_ADD_BUTTON_TEST_ID,
+  RESOURCE_SHOWCASE_TEST_ID,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceShowcase/ResourceShowcaseCard";
 import CloudEnvironmentsPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Cloud/CloudResources";
 
 type PageComponent = FunctionComponent<PageComponentProps>;
@@ -439,7 +445,8 @@ describe("Kubernetes Clusters: Add Kubernetes Cluster", () => {
     const card: HTMLElement = listCard(CLUSTERS);
 
     expect(within(card).getAllByText("my-cluster").length).toBeGreaterThan(0);
-    // The project has a cluster: no first-run guide under the list.
+    // The project has a cluster: no showcase, and no guide, under the list.
+    expect(screen.queryByTestId(RESOURCE_SHOWCASE_TEST_ID)).toBeNull();
     expect(screen.queryByTestId("resource-name-input")).toBeNull();
     // Nothing to create by hand, here or anywhere on the page.
     expect(screen.queryByRole("button", { name: /^Create / })).toBeNull();
@@ -512,27 +519,44 @@ describe("Kubernetes Clusters: Add Kubernetes Cluster", () => {
   });
 });
 
-describe("Kubernetes Clusters: a new project's first-run guide", () => {
-  test("is the Add guide under the empty table, and gives way as soon as its last step sees the cluster connect", async () => {
+describe("Kubernetes Clusters: a new project's showcase", () => {
+  test("is under the empty table, opens the Add guide, and gives way as soon as the guide sees the cluster connect", async () => {
     await renderPage(KubernetesClustersPage);
-    await advance(RESOURCE_NAME_LOOKUP_DELAY_MS);
 
     const card: HTMLElement = listCard(CLUSTERS);
-    const guideTitle: HTMLElement = screen.getByText(
-      "Getting Started with Kubernetes Monitoring",
-    );
+    const showcase: HTMLElement = screen.getByTestId(RESOURCE_SHOWCASE_TEST_ID);
     // The list's own watch counted once, when the page opened.
     expect(counts.get("KubernetesCluster")).toBe(1);
 
-    // The empty table first, then the same guide the Add button opens.
+    // The empty table first, then what the product gives - not the guide.
     expect(
-      card.compareDocumentPosition(guideTitle) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
+      card.compareDocumentPosition(showcase) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
-    expect(screen.getByTestId("resource-name-input")).toHaveValue("my-cluster");
+    expect(
+      within(showcase).getByRole("heading", {
+        level: 2,
+        name: KUBERNETES_CLUSTER_SHOWCASE.title,
+      }),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId("resource-name-input")).toBeNull();
     expect(
       within(card).getByRole("button", { name: "Add Kubernetes Cluster" }),
     ).toBeInTheDocument();
+
+    // Its button opens the dialog the card header's opens.
+    await click(
+      within(showcase).getByTestId(RESOURCE_SHOWCASE_ADD_BUTTON_TEST_ID),
+    );
+    await advance(RESOURCE_NAME_LOOKUP_DELAY_MS);
+
+    expect(
+      within(screen.getByTestId("modal")).getByRole("heading", {
+        name: "Add Kubernetes Cluster",
+      }),
+    ).toBeInTheDocument();
+    expect(within(dialog()).getByTestId("resource-name-input")).toHaveValue(
+      "my-cluster",
+    );
 
     clusterArrives({ id: 3, name: "my-cluster" });
     // The guide's next check, sooner than the list's own watch counts again.
@@ -541,14 +565,15 @@ describe("Kubernetes Clusters: a new project's first-run guide", () => {
     );
     await advance(RESOURCE_CONNECTION_POLL_INTERVAL_MS);
 
+    // The dialog says so, the showcase gives way, and the list shows it.
     expect(
-      screen.queryByText("Getting Started with Kubernetes Monitoring"),
-    ).toBeNull();
-    expect(screen.queryByTestId("resource-name-input")).toBeNull();
+      within(dialog()).getByTestId("resource-connection-connected"),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId(RESOURCE_SHOWCASE_TEST_ID)).toBeNull();
     expect(
       within(listCard(CLUSTERS)).getAllByText("my-cluster").length,
     ).toBeGreaterThan(0);
-    // The guide said so itself: the list's watch did not count again.
+    // The dialog said so itself: the list's watch did not count again.
     expect(counts.get("KubernetesCluster")).toBe(1);
 
     // And it is over: nothing counts again.

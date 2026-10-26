@@ -25,7 +25,7 @@ flowchart TB
 
 - **Namnet är tjänstens identitet.** Stora och små bokstäver spelar ingen roll i jämförelsen, så `Checkout-API` och `checkout-api` är en tjänst. Ett nytt `service.name` startar en ny tjänst.
 - **Containrar namnger sig själva.** Telemetri från Docker- och Podman-agenterna namnger en tjänst efter dess container när den saknar `service.name`.
-- **En intagningsnyckel kan bestämma tjänsten.** OpenTelemetry-data som skickas med en nyckel som har ett **Pinned Service Name** hamnar under det namnet, oavsett vad dess `service.name` säger. Se [Intagningsnycklar](/docs/telemetry/ingestion-keys#lås-ned-en-webbläsarnyckel).
+- **En intagningsnyckel kan bestämma tjänsten.** OpenTelemetry-data som skickas med en nyckel som har ett **Fäst tjänstnamn** hamnar under det namnet, oavsett vad dess `service.name` säger. Se [Intagningsnycklar](/docs/telemetry/ingestion-keys#lås-ned-en-webbläsarnyckel).
 - **Webbläsare och telefoner är inga tjänster.** Telemetri från en webbläsare eller en mobilapp hör i stället till en [RUM-applikation](/docs/rum/applications).
 - **Etiketter kan följa med telemetrin.** Ett resursattribut med namnet `oneuptime.label.<name>` ger tjänsten etiketten `<name>:<value>`, till exempel `oneuptime.label.team=payments` för `team:payments`.
 
@@ -61,9 +61,9 @@ En tjänsts sidomeny har fem avsnitt:
 
 | Avsnitt | Sidor |
 | --- | --- |
-| **Grundläggande** | **Översikt**: förfrågningar, felfrekvens och p95-latens från dess spans, diagram och dess detaljer. **Recommendations**: färdiga monitorer för tjänsten, valda efter dess språk. **Ägare**: de personer och team som ansvarar för den. **Feed**: allt som har hänt den, från hur den skapades till varje ändring sedan dess. |
+| **Grundläggande** | **Översikt**: förfrågningar, felfrekvens och p95-latens från dess spans, diagram och dess detaljer. **Rekommendationer**: färdiga monitorer för tjänsten, valda efter dess språk. **Ägare**: de personer och team som ansvarar för den. **Feed**: allt som har hänt den, från hur den skapades till varje ändring sedan dess. |
 | **Telemetri** | Dess **Loggar**, **Spår**, **Mätvärden**, **Prestandaprofiler**, **Undantag** och **Source Maps**, redan filtrerade på den här tjänsten. |
-| **Aktivitet** | De **Incidenter**, **Varningar** och händelser under **Schemalagt underhåll** som berör den. |
+| **Aktivitet** | De **Incidenter**, **Larm** och händelser under **Schemalagt underhåll** som berör den. |
 | **Utvecklare** | **Terraform**, **API** och **AI-assistenter**: tjänsten styrd från kod. Avsnittet är hopfällt från början. |
 | **Avancerad** | **Inställningar**, **Granskningsloggar** och **Ta bort tjänst**. **Avancerad** är hopfälld från början: fäll ut den först. |
 

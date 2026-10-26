@@ -60,7 +60,7 @@ flowchart TB
 ## 开始之前
 
 - **包含工作流的套餐。** 在 OneUptime Cloud 上，工作流需要 **Growth** 套餐或更高，每个套餐每 30 天允许一定数量的运行——参见 [套餐限制](/docs/workflows/configuration#套餐限制)。没有计费的自托管安装两种限制都没有。
-- **构建的权限。** 创建和更改工作流需要 **Workflow Admin**、**Project Admin** 或 **Project Owner**，或者具有相应权限的自定义角色。**Workflow Member** 可以打开工作流并手动运行，但不能更改它们。参见 [权限](/docs/workflows/configuration#权限)。
+- **构建的权限。** 创建和更改工作流需要 **工作流管理员**、**项目管理员** 或 **项目所有者**，或者具有相应权限的自定义角色。**工作流成员** 可以打开工作流并手动运行，但不能更改它们。参见 [权限](/docs/workflows/configuration#权限)。
 
 ## 在 OneUptime 中哪里找到工作流
 
@@ -122,7 +122,7 @@ flowchart TB
 
 ### 添加触发器
 
-点击虚线的 **Choose what starts this workflow** 块，然后在 **添加触发器** 面板中点击 **Popular** 下的 **On Create Incident**。
+点击虚线的 **选择启动此工作流的方式** 块，然后在 **添加触发器** 面板中点击 **热门** 下的 **On Create Incident**。
 
 触发器会取代虚线块的位置。它上面的 ID `incident-on-create-1` 就是后续块引用它的方式。
 
@@ -134,7 +134,7 @@ flowchart TB
 
 ### 添加 API 块
 
-点击 **添加组件**，然后点击 **Popular** 下的 **API Post (JSON)**。从触发器的 **Success** 点向下拖到新块顶部的点。
+点击 **添加组件**，然后点击 **热门** 下的 **API Post (JSON)**。从触发器的 **Success** 点向下拖到新块顶部的点。
 
 ### 填写请求
 

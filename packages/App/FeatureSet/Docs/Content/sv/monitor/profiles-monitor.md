@@ -1,6 +1,6 @@
 # Profilövervakning
 
-En profilmonitor läser de kontinuerliga profiler som dina tjänster skickar till OneUptime och varnar för två saker: en funktion som tar en större andel av tiden än den borde, som en parser som blev tyngre efter en driftsättning, och profiler som slutar komma från en tjänst. Varje minut mäter den hur mycket av sitt tidsfönster som gick genom funktionen du anger, räknar de profiler som matchar dess filter, och ändrar monitorns status, skapar en varning eller deklarerar en incident när dina kriterier uppfylls.
+En profilmonitor läser de kontinuerliga profiler som dina tjänster skickar till OneUptime och varnar för två saker: en funktion som tar en större andel av tiden än den borde, som en parser som blev tyngre efter en driftsättning, och profiler som slutar komma från en tjänst. Varje minut mäter den hur mycket av sitt tidsfönster som gick genom funktionen du anger, räknar de profiler som matchar dess filter, och ändrar monitorns status, skapar ett larm eller deklarerar en incident när dina kriterier uppfylls.
 
 :::cards
 - [Skapa monitorn](#skapa-en-profilmonitor): Från en funktion i profileraren eller från Skapa monitor.
@@ -18,7 +18,7 @@ flowchart TB
     Store --> Count["Matchande profiler<br/>i tidsfönstret"]
     Share --> Check{"Kriterier uppfyllda?"}
     Count --> Check
-    Check -->|"Första träff"| Act["Ändra status,<br/>varning eller incident"]
+    Check -->|"Första träff"| Act["Ändra status,<br/>larm eller incident"]
     Check -->|Inget| Default["Standardstatus"]
 ```
 
@@ -34,7 +34,7 @@ Varje minut läser OneUptime de profiler som matchar monitorns filter och starta
 :::steps
 ### Börja från profileraren eller från Skapa monitor
 
-Snabbast är att utgå från själva funktionen: öppna funktionen i **Prestandaprofiler** och klicka på länken som erbjuder en varning för dess andel. **Skapa monitor** öppnas med monitorn ifylld för funktionen och dess tjänst, med ett tröskelvärde över det den tar i dag, som beskrivs i [Genomgånget exempel: en funktion blir tyngre](#genomgånget-exempel-en-funktion-blir-tyngre). Annars går du till **Monitorer** och klickar på **Skapa monitor**.
+Snabbast är att utgå från själva funktionen: öppna funktionen i **Prestandaprofiler** och klicka på länken som erbjuder ett larm för dess andel. **Skapa monitor** öppnas med monitorn ifylld för funktionen och dess tjänst, med ett tröskelvärde över det den tar i dag, som beskrivs i [Genomgånget exempel: en funktion blir tyngre](#genomgånget-exempel-en-funktion-blir-tyngre). Annars går du till **Monitorer** och klickar på **Skapa monitor**.
 
 ### Välj Profiles
 
@@ -92,7 +92,7 @@ Alla filter som du anger måste matcha för att en profil ska läsas. I formulä
 - **Två tal per utvärdering.** Monitorn räknar de profiler som matchar alla filter och startade inom `lastXSecondsOfProfiles`, och mäter funktionens andel av samma profiler. En profilerare laddar upp med ett jämnt intervall, så ge fönstret utrymme för flera uppladdningar.
 - **En enhet i taget.** En andel summerar samples av en enda enhet: när de typer den läser blandar enheter, som CPU-tid i nanosekunder från ett SDK och antal samples från eBPF, läser den enheten med flest samples i fönstret.
 - **Inga profiler är ett antal på 0 och ingen andel.** En tjänst vars profilerare slutar ladda upp ger antalet 0, och ett kriterium **Funktionsandel (i %)** matchar inte ett tomt fönster: varna för **Antal profiler** för att veta att profileringen har stoppat.
-- **OneUptimes eget avbrott är inte tystnad.** Så länge tidsfönstret innehåller tid då OneUptime självt inte tog emot data (det startade om, uppgraderades eller arbetade ikapp en eftersläpning) väntar kontrollen: statusen ändras inte, och ingen incident eller varning öppnas eller löses. Se [När OneUptime inte tar emot data](/docs/monitor/when-oneuptime-is-not-receiving).
+- **OneUptimes eget avbrott är inte tystnad.** Så länge tidsfönstret innehåller tid då OneUptime självt inte tog emot data (det startade om, uppgraderades eller arbetade ikapp en eftersläpning) väntar kontrollen: statusen ändras inte, och ingen incident eller larm öppnas eller löses. Se [När OneUptime inte tar emot data](/docs/monitor/when-oneuptime-is-not-receiving).
 - **Kriterier uppifrån och ned.** Det första kriteriet som matchar avgör, så lägg det allvarligaste överst.
 
 Varje statusändring registreras med sin orsak på monitorns **Statustidslinje**.
@@ -128,11 +128,11 @@ Antal profiler har inga avvikelsevillkor: det finns ingen baslinje att jämföra
 I checkout-tjänsten tar `parseOrder` 18 % av dess CPU-tid. En driftsättning som parsar en större nyttolast ska inte passera obemärkt:
 
 1. Välj checkout-tjänsten i **Prestandaprofiler** och öppna `parseOrder`.
-2. Klicka på länken som erbjuder en varning för dess andel. Profileraren föreslår 30 %: hälften över dagens andel, minst 10 enheter mer, avrundat uppåt till en multipel av 5.
-3. **Skapa monitor** öppnas med en profilmonitor för checkout-tjänsten som läser **CPU-tid** under de **Senaste 5 minuterna**, med två kriterier: **Funktionsandel (i %)** **Större än** `30` utlöser en varning, som löser sig själv, och markerar monitorn som försämrad; **Mindre än eller lika med** `30` markerar den som i drift. Incidenten är ifylld men avstängd: slå på den för att larma någon.
+2. Klicka på länken som erbjuder ett larm för dess andel. Profileraren föreslår 30 %: hälften över dagens andel, minst 10 enheter mer, avrundat uppåt till en multipel av 5.
+3. **Skapa monitor** öppnas med en profilmonitor för checkout-tjänsten som läser **CPU-tid** under de **Senaste 5 minuterna**, med två kriterier: **Funktionsandel (i %)** **Större än** `30` utlöser ett larm, som löser sig själv, och markerar monitorn som försämrad; **Mindre än eller lika med** `30` markerar den som i drift. Incidenten är ifylld men avstängd: slå på den för att larma någon.
 4. Klicka på **Skapa monitor**.
 
-När driftsättningen får `parseOrder` att ta 45 % av CPU-tiden utlöser nästa utvärdering varningen. När en rättning får den under 30 % igen löser varningen sig själv.
+När driftsättningen får `parseOrder` att ta 45 % av CPU-tiden utlöser nästa utvärdering larmet. När en rättning får den under 30 % igen löser larmet sig själv.
 
 ## Genomgånget exempel: profiler slutar komma
 

@@ -1,6 +1,6 @@
 # Regels uitvoeren op bestaande resources
 
-Labelregels, eigenaarsregels en privacyregels worden automatisch uitgevoerd wanneer een resource wordt **aangemaakt**. Een regel die u vandaag schrijft, verandert dus niets aan de monitoren, incidenten of hosts die u al hebt. **Run Now** dicht dat gat: het past één regel toe op elke resource die al in het project bestaat.
+Labelregels, eigenaarsregels en privacyregels worden automatisch uitgevoerd wanneer een resource wordt **aangemaakt**. Een regel die u vandaag schrijft, verandert dus niets aan de monitoren, incidenten of hosts die u al hebt. **Nu uitvoeren** dicht dat gat: het past één regel toe op elke resource die al in het project bestaat.
 
 ```mermaid title="Wat één uitvoering doet"
 flowchart TB
@@ -16,8 +16,8 @@ flowchart TB
 
 - **Labelregels** en **Eigenaarsregels**, voor elke resource die ze heeft: monitoren, incidenten, incidentepisodes, waarschuwingen, waarschuwingsepisodes, geplande onderhoudsgebeurtenissen, statuspagina's, services, hosts, Kubernetes-clusters, Docker-hosts, Docker Swarm-clusters, Podman-hosts, Proxmox-clusters, VMware vCenters, Ceph-clusters, storage-arrays, databases, wachtrijen, IoT-vloten, serverless functies, cloudresources, RUM-applicaties, dashboards, dienstbeleid, dienstroosters, beleid voor inkomende oproepen, workflows, runbooks, netwerkapparaten en SLO's.
 - **Privacyregels**, voor incidenten, waarschuwingen, incidentepisodes en waarschuwingsepisodes.
-- **Monitor Rules** op een statuspagina. Die synchroniseren de pagina al opnieuw telkens wanneer een regel wordt opgeslagen; er een uitvoeren synchroniseert haar meteen.
-- **Monitor Rules** op een SLO. Die synchroniseren de SLO al opnieuw telkens wanneer een regel wordt opgeslagen; er een uitvoeren synchroniseert de monitoren van de SLO meteen. Zie [Monitoren en monitorregels](/docs/slo/monitor-rules).
+- **Monitorregels** op een statuspagina. Die synchroniseren de pagina al opnieuw telkens wanneer een regel wordt opgeslagen; er een uitvoeren synchroniseert haar meteen.
+- **Monitorregels** op een SLO. Die synchroniseren de SLO al opnieuw telkens wanneer een regel wordt opgeslagen; er een uitvoeren synchroniseert de monitoren van de SLO meteen. Zie [Monitoren en monitorregels](/docs/slo/monitor-rules).
 
 Regels die een actie uitvoeren in plaats van een resource te beschrijven (**Bereikbaarheidsregels**, **Runbook-regels**, **AI-regels** en **Groeperingsregels**) kunnen niet op bestaande records worden uitgevoerd. Ze uitvoeren zou mensen oproepen, runbooks starten, herstelacties starten of episodes herschikken voor incidenten die al voorbij zijn.
 
@@ -28,7 +28,7 @@ Om een regel uit te voeren hebt u de machtiging nodig om de regel te bewerken **
 > [!IMPORTANT]
 > Een machtiging die beperkt is tot bepaalde labels, of tot resources waarvan u eigenaar bent, is niet genoeg: een uitvoering kan elke resource in het project wijzigen. Blokkeerlijsten van teams gelden zoals overal, en een blokkering die tot enkele labels is beperkt, telt ook mee: een uitvoering zou de resources met die labels wijzigen, dus een blokkering met labels op het bewerken van de resources die een regel wijzigt, weigert de uitvoering.
 
-De regels van een netwerk vragen hetzelfde wanneer u ze uitvoert op de apparaten die u al hebt. **Run Now** van een regel voor sitetoewijzing of apparaatlabels vereist de machtiging om de regel te bewerken en **Edit Network Device**. **Dry Run** en **Run Rule** van een regel voor automatisch importeren vereisen de machtiging om de regel te bewerken, **Create Network Device** en, als de regel een monitorsjabloon heeft, **Create Monitor**. Elke machtiging moet het hele project bereiken. Zie [Automatisch importeren met regels voor automatisch importeren](/docs/monitor/network-device-monitor#automatisch-importeren-met-auto-importregels).
+De regels van een netwerk vragen hetzelfde wanneer u ze uitvoert op de apparaten die u al hebt. **Nu uitvoeren** van een regel voor sitetoewijzing of apparaatlabels vereist de machtiging om de regel te bewerken en **Edit Network Device**. **Dry Run** en **Run Rule** van een regel voor automatisch importeren vereisen de machtiging om de regel te bewerken, **Create Network Device** en, als de regel een monitorsjabloon heeft, **Create Monitor**. Elke machtiging moet het hele project bereiken. Zie [Automatisch importeren met regels voor automatisch importeren](/docs/monitor/network-device-monitor#automatisch-importeren-met-auto-importregels).
 
 ## Eén regel uitvoeren
 
@@ -39,7 +39,7 @@ Open de pagina met regels, bijvoorbeeld **Monitoren → Instellingen → Labelre
 
 ### Run Now kiezen
 
-Open het menu **⋯** aan het eind van de rij van de regel en kies **Run Now**, of kies **Bekijken** en daarna **Run Now** op de eigen pagina van de regel. Een dialoogvenster zegt wat de uitvoering gaat doen.
+Open het menu **⋯** aan het eind van de rij van de regel en kies **Nu uitvoeren**, of kies **Bekijken** en daarna **Nu uitvoeren** op de eigen pagina van de regel. Een dialoogvenster zegt wat de uitvoering gaat doen.
 
 ### Kiezen of nieuwe eigenaren een melding krijgen
 
@@ -56,7 +56,7 @@ Als de uitvoering klaar is, meldt het dialoogvenster op hoeveel resources de reg
 
 ## Meerdere regels uitvoeren
 
-Selecteer regels in de tabel, open het menu met bulkacties en kies **Run Now**. De geselecteerde regels worden na elkaar uitgevoerd.
+Selecteer regels in de tabel, open het menu met bulkacties en kies **Nu uitvoeren**. De geselecteerde regels worden na elkaar uitgevoerd.
 
 - Eigenaren die door een bulkuitvoering worden toegevoegd, krijgen nooit een melding. Voer in plaats daarvan één regel uit om ze een melding te sturen.
 - Een regel die niet kan worden uitgevoerd (bijvoorbeeld omdat hij is uitgeschakeld), wordt met de reden vermeld, en de andere regels worden toch uitgevoerd.

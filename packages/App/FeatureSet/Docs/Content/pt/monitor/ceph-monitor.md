@@ -57,7 +57,7 @@ Em **Tipo de monitor**, clique em **Mais tipos de monitor** e escolha **Ceph** e
 
 ### Escolher o cluster
 
-Em **Ceph Monitor Configuration**, escolha o cluster em **Ceph Cluster**. Todo cluster que já enviou dados está na lista.
+Em **Ceph Monitor Configuration**, escolha o cluster em **Cluster Ceph**. Todo cluster que já enviou dados está na lista.
 
 ### Escolher o que acompanhar
 
@@ -65,11 +65,11 @@ Escolha uma das três abas:
 
 - **Quick Setup** — clique em um [modelo](#modelos-de-alerta-prontos). Ele define as métricas, os filtros, a agregação, o intervalo de tempo e os limites, e substitui os critérios abaixo pelos seus. Você ainda pode mudar o **Intervalo de tempo**.
 - **Custom Metric** — escolha uma métrica em **Ceph Metric** e depois defina **Agregação** e **Intervalo de tempo**. **OSD** e **Pool ID** restringem a um daemon ou a um pool.
-- **Avançado** — monte você mesmo consultas e fórmulas em **Selecionar Métricas**, por exemplo uma razão de capacidade usada a partir de `ceph_cluster_total_used_bytes / ceph_cluster_total_bytes`. Use **Group by** `ceph_daemon` ou `pool_id` para avaliar cada daemon ou pool separadamente.
+- **Avançado** — monte você mesmo consultas e fórmulas em **Selecionar Métricas**, por exemplo uma razão de capacidade usada a partir de `ceph_cluster_total_used_bytes / ceph_cluster_total_bytes`. Use **Agrupar por** `ceph_daemon` ou `pool_id` para avaliar cada daemon ou pool separadamente.
 
 ### Conferir os critérios
 
-Abra cada critério em **Critérios do monitor** e confira **Métrica**, **Agregação**, **Condição** e **Threshold**. Um modelo preenche esses campos. Com **Custom Metric** ou **Avançado**, o monitor começa com os [critérios padrão](#critérios-padrão), que só percebem uma métrica caindo para zero, então defina seu próprio limite.
+Abra cada critério em **Critérios do monitor** e confira **Métrica**, **Agregação**, **Condição** e **Limite**. Um modelo preenche esses campos. Com **Custom Metric** ou **Avançado**, o monitor começa com os [critérios padrão](#critérios-padrão), que só percebem uma métrica caindo para zero, então defina seu próprio limite.
 
 ### Criar o monitor
 
@@ -77,19 +77,19 @@ Clique em **Criar monitor**. O OneUptime abre a página do monitor e o avalia a 
 :::
 
 > [!TIP]
-> Para configurar vários modelos de uma vez, abra o cluster em **Produtos → Infraestrutura → Ceph** e vá em **Recommendations**. Escolha os modelos que quiser e quem será chamado, e o OneUptime cria um monitor por modelo.
+> Para configurar vários modelos de uma vez, abra o cluster em **Produtos → Infraestrutura → Ceph** e vá em **Recomendações**. Escolha os modelos que quiser e quem será chamado, e o OneUptime cria um monitor por modelo.
 
 ## Configurações do monitor
 
 | Campo | Aba | O que faz |
 | --- | --- | --- |
-| **Ceph Cluster** | Todas | Obrigatório. Restringe cada consulta a `resource.ceph.cluster.name`. |
+| **Cluster Ceph** | Todas | Obrigatório. Restringe cada consulta a `resource.ceph.cluster.name`. |
 | **OSD** | Custom Metric, Avançado | Opcional. Correspondência exata com o rótulo `ceph_daemon`, por exemplo `osd.3`. |
 | **Pool ID** | Custom Metric, Avançado | Opcional. Correspondência exata com o rótulo `pool_id`, por exemplo `2`. |
 | **Ceph Metric** | Custom Metric | Uma métrica do [catálogo](#métricas-coletadas). |
 | **Agregação** | Custom Metric | Como as amostras são combinadas: **Média**, **Máximo**, **Mínimo**, **Soma** ou **Contagem**. Começa pela agregação habitual da métrica. |
 | **Intervalo de tempo** | Todas | A janela móvel que a consulta lê, de **Past 1 Minute** a **Past 365 Days**. Um monitor novo começa em **Past 1 Minute**; os modelos definem o próprio. |
-| **Selecionar Métricas** | Avançado | O construtor de consultas: **Métrica**, **Aggregate by**, **Filter by attributes**, **Group by**, além de **Adicionar métrica** e **Adicionar fórmula** para combinar consultas. |
+| **Selecionar Métricas** | Avançado | O construtor de consultas: **Métrica**, **Aggregate by**, **Filter by attributes**, **Agrupar por**, além de **Adicionar métrica** e **Adicionar fórmula** para combinar consultas. |
 
 As séries de dados dos pools têm só o rótulo `pool_id`: o nome do pool existe apenas em `ceph_pool_metadata`. Filtre e agrupe as séries de pools por `pool_id`, e consulte o nome em `ceph_pool_metadata` quando precisar.
 
@@ -220,10 +220,10 @@ Um critério compara uma das consultas ou fórmulas do monitor com um limite. Os
 | **Métrica** | A consulta ou fórmula a verificar, pelo nome da variável. |
 | **Agregação** | Como os valores da janela viram uma única resposta: **Média**, **Soma**, **Maximum Value**, **Minimum Value**, **All Values** (todos os valores precisam atender, na janela inteira) ou **Any Value** (um basta). |
 | **Condição** | **Maior que**, **Menor que**, **Maior ou igual a**, **Menor ou igual a** ou **Igual a** — ou uma condição de anomalia: **Anomalously High**, **Anomalously Low** ou **Anomalous**. |
-| **Threshold** | O valor de comparação. Uma lista de unidades aparece ao lado quando a métrica tem unidade. Não aparece para condições de anomalia. |
-| **Sensibilidade** | Somente condições de anomalia. **Low** (4σ), **Medium** (3σ, o padrão) ou **High** (2σ). |
+| **Limite** | O valor de comparação. Uma lista de unidades aparece ao lado quando a métrica tem unidade. Não aparece para condições de anomalia. |
+| **Sensibilidade** | Somente condições de anomalia. **Baixo** (4σ), **Médio** (3σ, o padrão) ou **Alto** (2σ). |
 | **Janela de linha de base** | Somente condições de anomalia. 14 dias (o padrão), 28, 60 ou 90 dias de histórico. |
-| **Se não houver dados** | Em **Mais campos**. O que acontece quando a janela não tem amostras: **Ignore** (o padrão), **Treat As Zero** ou **Trigger**. |
+| **Se não houver dados** | Em **Mais campos**. O que acontece quando a janela não tem amostras: **Ignore** (o padrão), **Treat As Zero** ou **Gatilho**. |
 
 As condições de anomalia comparam cada valor com a mesma hora da semana na linha de base. Elas ficam no estado "Learning", sem gerar nada, até a janela de linha de base ter histórico suficiente.
 
@@ -241,7 +241,7 @@ Um monitor que você não monta a partir de um modelo começa com dois critério
 Esses padrões servem para poucas métricas do Ceph: `ceph_health_status` é 0 quando o cluster está saudável. Escolha um modelo ou defina seus próprios critérios.
 
 > [!IMPORTANT]
-> O silêncio não atende a nenhum dos dois critérios: um cluster que para de enviar dados deixa o monitor como estava. Para saber quando os dados param, defina **Se não houver dados** como **Trigger** em um critério. O tempo em que o próprio OneUptime não estava recebendo nunca é ausência de dados: uma verificação cuja janela contém esse tempo espera no lugar, como explica [Quando o OneUptime não recebe dados](/docs/monitor/when-oneuptime-is-not-receiving).
+> O silêncio não atende a nenhum dos dois critérios: um cluster que para de enviar dados deixa o monitor como estava. Para saber quando os dados param, defina **Se não houver dados** como **Gatilho** em um critério. O tempo em que o próprio OneUptime não estava recebendo nunca é ausência de dados: uma verificação cuja janela contém esse tempo espera no lugar, como explica [Quando o OneUptime não recebe dados](/docs/monitor/when-oneuptime-is-not-receiving).
 
 ## Solução de problemas
 

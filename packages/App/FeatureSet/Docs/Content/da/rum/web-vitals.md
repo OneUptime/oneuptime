@@ -292,7 +292,7 @@ At registrere den konkrete URL i stedet for rutemønsteret skaber én tidsserie 
 
 ## Alarmér på en vital
 
-Applikationens side **Recommendations** tilbyder en færdig monitor til hver vital. Hver af dem læser femminuttersgennemsnittet af sin metrik og udløses, når det når Googles grænse for dårlig:
+Applikationens side **Anbefalinger** tilbyder en færdig monitor til hver vital. Hver af dem læser femminuttersgennemsnittet af sin metrik og udløses, når det når Googles grænse for dårlig:
 
 | Anbefaling | Metrik | Udløses ved | Alvorlighed |
 | --- | --- | --- | --- |

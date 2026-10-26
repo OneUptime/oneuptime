@@ -17,15 +17,15 @@ Comece pela pergunta que o bloco precisa responder:
 | A pergunta | O widget |
 | --- | --- |
 | Como uma métrica mudou ao longo do tempo? | **Gráfico** |
-| Quantos logs, de qual severidade, ao longo do tempo? | **Log Chart** |
-| Quão rápidas são as requisições, e quantas falham, ao longo do tempo? | **Trace Chart** |
+| Quantos logs, de qual severidade, ao longo do tempo? | **Gráfico de registros** |
+| Quão rápidas são as requisições, e quantas falham, ao longo do tempo? | **Gráfico de traços** |
 | Qual é um número específico agora? | **Valor**, ou **Medidor** quando ele tem uma faixa conhecida |
-| Quais hosts, serviços ou endpoints se destacam? | **Tabela** ou **Trace Table** |
+| Quais hosts, serviços ou endpoints se destacam? | **Tabela** ou **Tabela de traços** |
 | O que está acontecendo agora? | **Fluxo de registros**, **Lista de traços**, **Lista de incidentes** ou **Lista de alertas** |
 | Todos os nossos sites estão no ar? | **Lista de monitores** |
-| Estamos mantendo a confiabilidade que prometemos? | **SLO** ou **SLO List** |
+| Estamos mantendo a confiabilidade que prometemos? | **SLO** ou **Lista de SLOs** |
 | Em que estado estão nossos clusters e hosts? | Um widget do grupo Infraestrutura |
-| Onde no mundo está a nossa rede, e o que está fora do ar? | **Network Map** |
+| Onde no mundo está a nossa rede, e o que está fora do ar? | **Mapa de rede** |
 | Um título, uma nota, a hora em outro escritório? | **Texto** ou **Relógio** |
 | Dados guardados fora do OneUptime? | Um widget do grupo Fontes de dados externas |
 | Algo que nenhum widget cobre? | **HTML**, depois de ter certeza de que nenhum outro widget faz isso |
@@ -127,13 +127,13 @@ Quem pode editar o painel decide o que este widget executa, e todos que veem o p
 
 | Widget | O que mostra | Configurações que importam |
 | --- | --- | --- |
-| **Log Chart** | O volume de logs ao longo do tempo, uma série por severidade, como barras, linhas ou áreas. | Severidades, texto que o corpo contém, filtros de atributos. |
+| **Gráfico de registros** | O volume de logs ao longo do tempo, uma série por severidade, como barras, linhas ou áreas. | Severidades, texto que o corpo contém, filtros de atributos. |
 | **Fluxo de registros** | As linhas de log mais recentes que correspondem a um filtro. | Severidade, texto que o corpo contém, filtros de atributos como `@service.name:checkout`, quantas linhas. |
-| **Trace Chart** | Número de requisições, número de erros ou tempo de resposta (médio, mínimo, máximo, de P50 a P99) ao longo do tempo. | A métrica, quais spans contar, e um atributo pelo qual dividir as séries. |
+| **Gráfico de traços** | Número de requisições, número de erros ou tempo de resposta (médio, mínimo, máximo, de P50 a P99) ao longo do tempo. | A métrica, quais spans contar, e um atributo pelo qual dividir as séries. |
 | **Lista de traços** | Os traces mais recentes, com a duração e o status. | Status, quantas linhas. |
-| **Trace Table** | Os principais nomes de span, status ou valores de atributo por número de requisições, com os tempos de resposta mediano, médio, mínimo e máximo. | Pelo que agrupar as linhas, e quais spans contar. |
-| **Security Events** | Os eventos de segurança mais recentes, com severidade, classe de evento e host. | Severidades, classes de evento, texto que a mensagem contém. |
-| **Security Events Flow** | Um fluxo de eventos de segurança da origem, passando pela classe de evento, até a severidade. | Severidades, quantos eventos. |
+| **Tabela de traços** | Os principais nomes de span, status ou valores de atributo por número de requisições, com os tempos de resposta mediano, médio, mínimo e máximo. | Pelo que agrupar as linhas, e quais spans contar. |
+| **Eventos de segurança** | Os eventos de segurança mais recentes, com severidade, classe de evento e host. | Severidades, classes de evento, texto que a mensagem contém. |
+| **Fluxo de eventos de segurança** | Um fluxo de eventos de segurança da origem, passando pela classe de evento, até a severidade. | Severidades, quantos eventos. |
 
 Os widgets de traces contam só os spans raiz, como faz o explorador de traces, a menos que você inclua os spans filhos nas configurações deles. Um padrão comum é um gráfico de latência no topo com uma lista de traces lentos embaixo.
 
@@ -143,7 +143,7 @@ Os widgets de traces contam só os spans raiz, como faz o explorador de traces, 
 | --- | --- | --- |
 | **Lista de incidentes** | Incidentes com o estado e a severidade deles. | Não resolvidos, reconhecidos ou resolvidos; severidade, estado, monitores e rótulos. |
 | **Lista de alertas** | Alertas com o estado e a severidade deles. | Não resolvidos, reconhecidos ou resolvidos; severidade, estado, monitores e rótulos. |
-| **Lista de monitores** | Monitores com o status atual deles. | Operacionais ou não, status, tipo de monitor e rótulos, ou uma **Label Variable** que as pessoas escolhem na barra de ferramentas. |
+| **Lista de monitores** | Monitores com o status atual deles. | Operacionais ou não, status, tipo de monitor e rótulos, ou uma **Variável de rótulo** que as pessoas escolhem na barra de ferramentas. |
 
 Como a maioria dos widgets de lista, estes três podem desenhar uma colmeia de células coloridas por status em vez de uma tabela: escolha isso em **Modo de visualização**. Eles mostram o estado atual, seja qual for o intervalo de tempo do painel.
 
@@ -164,7 +164,7 @@ O widget SLO funciona em [painéis públicos](/docs/dashboards/sharing). O que �
 
 ### SLO List
 
-Cada SLO com o status, o SLI, o orçamento de erros e a taxa de consumo, começando pelo que tem menos orçamento restante. Filtre-a por status ou rótulos, ou por uma **Label Variable** que as pessoas escolhem na barra de ferramentas. [Métricas e painéis de SLO](/docs/slo/metrics) mostra os dois widgets de SLO em ação.
+Cada SLO com o status, o SLI, o orçamento de erros e a taxa de consumo, começando pelo que tem menos orçamento restante. Filtre-a por status ou rótulos, ou por uma **Variável de rótulo** que as pessoas escolhem na barra de ferramentas. [Métricas e painéis de SLO](/docs/slo/metrics) mostra os dois widgets de SLO em ação.
 
 ## Infraestrutura
 
@@ -177,7 +177,7 @@ Cada um destes widgets lista os recursos que um agente ou um coletor informa ao 
 | **Docker** | **Hosts**, **Contêineres**, **Imagens**, **Redes**, **Volumes** | O agente Docker |
 | **Docker Swarm** | **Nós**, **Serviços** | O agente Docker Swarm |
 | **Podman** | **Hosts**, **Contêineres**, **Imagens**, **Redes**, **Volumes** | O agente Podman |
-| **Proxmox** | **Nós**, **Guests** | O agente Proxmox |
+| **Proxmox** | **Nós**, **Convidados** | O agente Proxmox |
 | **VMware** | **Hosts**, **Máquinas virtuais** | O agente VMware, ou um vCenter que você conecte |
 | **Ceph** | **OSDs**, como uma parede colorida por estado, e **Pools** | O agente Ceph |
 | **Arrays de armazenamento** | **Volumes**, e **Hardware** como uma parede colorida por status | O agente de arrays de armazenamento |
@@ -231,7 +231,7 @@ Pela API e pelo Terraform, a ordem é o `arguments.sort` do widget: uma coluna e
 
 Um [painel público](/docs/dashboards/sharing) desenha a maioria dos widgets para os visitantes, e cada um mostra só o que foi configurado para mostrar. Alguns não podem ser mostrados sem uma sessão conectada:
 
-- **Log Chart**, **Trace Chart**, **Trace Table**, **Security Events** e **Security Events Flow** dizem, no lugar deles, que não estão disponíveis em painéis públicos.
+- **Gráfico de registros**, **Gráfico de traços**, **Tabela de traços**, **Eventos de segurança** e **Fluxo de eventos de segurança** dizem, no lugar deles, que não estão disponíveis em painéis públicos.
 - Os widgets de Fontes de dados externas ficam totalmente fora de um painel público, porque as configurações deles são a própria consulta.
 
 ## Quando um widget não pode ser mostrado

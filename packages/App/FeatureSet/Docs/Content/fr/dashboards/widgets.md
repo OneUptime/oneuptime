@@ -18,12 +18,12 @@ Partez de la question à laquelle la tuile doit répondre :
 | --- | --- |
 | Comment une métrique a-t-elle évolué dans le temps ? | **Graphique** |
 | Combien de journaux, de quelle gravité, dans le temps ? | **Graphique de journaux** |
-| À quelle vitesse vont les requêtes, et combien échouent, dans le temps ? | **Trace Chart** |
+| À quelle vitesse vont les requêtes, et combien échouent, dans le temps ? | **Graphique de traces** |
 | Quelle est une valeur en ce moment ? | **Valeur**, ou **Jauge** quand elle a une plage connue |
-| Quels hôtes, services ou points de terminaison se démarquent ? | **Tableau** ou **Trace Table** |
+| Quels hôtes, services ou points de terminaison se démarquent ? | **Tableau** ou **Tableau des traces** |
 | Que se passe-t-il en ce moment ? | **Flux de journaux**, **Liste des traces**, **Liste des incidents** ou **Liste des alertes** |
 | Tous nos sites sont-ils en ligne ? | **Liste des moniteurs** |
-| Tenons-nous la fiabilité promise ? | **SLO** ou **SLO List** |
+| Tenons-nous la fiabilité promise ? | **SLO** ou **Liste des SLO** |
 | Dans quel état sont nos clusters et nos hôtes ? | Un widget du groupe Infrastructure |
 | Où est notre réseau dans le monde, et qu'est-ce qui est en panne ? | **Carte du réseau** |
 | Un titre, une note, l'heure dans un autre bureau ? | **Texte** ou **Horloge** |
@@ -129,11 +129,11 @@ Quiconque peut modifier le tableau de bord décide de ce que ce widget exécute,
 | --- | --- | --- |
 | **Graphique de journaux** | Le volume de journaux dans le temps, une série par gravité, en barres, lignes ou aires. | Gravités, texte contenu dans le corps, filtres d'attributs. |
 | **Flux de journaux** | Les dernières lignes de journal qui correspondent à un filtre. | Gravité, texte contenu dans le corps, filtres d'attributs comme `@service.name:checkout`, nombre de lignes. |
-| **Trace Chart** | Le nombre de requêtes, le nombre d'erreurs ou le temps de réponse (moyenne, minimum, maximum, P50 à P99) dans le temps. | La métrique, les spans à compter, et un attribut selon lequel répartir les séries. |
+| **Graphique de traces** | Le nombre de requêtes, le nombre d'erreurs ou le temps de réponse (moyenne, minimum, maximum, P50 à P99) dans le temps. | La métrique, les spans à compter, et un attribut selon lequel répartir les séries. |
 | **Liste des traces** | Les dernières traces, avec leur durée et leur statut. | Statut, nombre de lignes. |
-| **Trace Table** | Les principaux noms de span, statuts ou valeurs d'attribut par nombre de requêtes, avec les temps de réponse médian, moyen, minimum et maximum. | Le regroupement des lignes, et les spans à compter. |
+| **Tableau des traces** | Les principaux noms de span, statuts ou valeurs d'attribut par nombre de requêtes, avec les temps de réponse médian, moyen, minimum et maximum. | Le regroupement des lignes, et les spans à compter. |
 | **Événements de sécurité** | Les derniers événements de sécurité, avec gravité, classe d'événement et hôte. | Gravités, classes d'événements, texte contenu dans le message. |
-| **Security Events Flow** | Un flux d'événements de sécurité, de leur source à leur gravité en passant par leur classe d'événement. | Gravités, nombre d'événements. |
+| **Flux des événements de sécurité** | Un flux d'événements de sécurité, de leur source à leur gravité en passant par leur classe d'événement. | Gravités, nombre d'événements. |
 
 Les widgets de traces ne comptent que les spans racines, comme l'explorateur de traces, sauf si vous incluez les spans enfants dans leurs paramètres. Un schéma courant est un graphique de latence en haut avec une liste de traces lentes en dessous.
 
@@ -180,7 +180,7 @@ Chacun de ces widgets liste les ressources qu'un agent ou un collecteur signale 
 | **Proxmox** | **Nœuds**, **Invités** | L'agent Proxmox |
 | **VMware** | **Hôtes**, **Machines virtuelles** | L'agent VMware, ou un vCenter que vous connectez |
 | **Ceph** | **OSDs**, en mur coloré selon l'état, et **Pools** | L'agent Ceph |
-| **Baies de stockage** | **Volumes**, et **Hardware** en mur coloré selon le statut | L'agent Storage Array |
+| **Baies de stockage** | **Volumes**, et **Matériel** en mur coloré selon le statut | L'agent Storage Array |
 
 Utilisez-les pour une page qui réunit l'état de votre infrastructure et la télémétrie des charges de travail qui tournent dessus.
 
@@ -231,7 +231,7 @@ Par l'API et Terraform, l'ordre est le `arguments.sort` du widget : une colonne 
 
 Un [tableau de bord public](/docs/dashboards/sharing) dessine la plupart des widgets pour ses visiteurs, chacun ne montrant que ce pour quoi il a été configuré. Quelques-uns ne peuvent pas s'afficher sans session connectée :
 
-- **Graphique de journaux**, **Trace Chart**, **Trace Table**, **Événements de sécurité** et **Security Events Flow** indiquent à leur place qu'ils ne sont pas disponibles sur les tableaux de bord publics.
+- **Graphique de journaux**, **Graphique de traces**, **Tableau des traces**, **Événements de sécurité** et **Flux des événements de sécurité** indiquent à leur place qu'ils ne sont pas disponibles sur les tableaux de bord publics.
 - Les widgets du groupe External Data Sources sont entièrement retirés d'un tableau de bord public, car leurs paramètres sont la requête elle-même.
 
 ## Quand un widget ne peut pas être affiché

@@ -46,7 +46,7 @@ flowchart TB
 :::steps
 1. 打开 **产品 → AI / LLM → 预算** ，点击 **创建LLM Cost Budget** 。设置 **每日预算（美元）** ，并在 **服务（可选）** 中选择代理的服务，让预算只监视这个代理。
 2. 在新预算的行菜单中选择 **显示 ID** ，复制该 ID。
-3. 针对 `oneuptime.llm.budget.percent.used` 创建一个 [指标监控](/docs/monitor/metrics-monitor)，用属性 `oneuptime.llm.budget.id` 等于复制的 ID 进行过滤，并把 **时间范围** 设为 **Past 30 Minutes** 。
+3. 针对 `oneuptime.llm.budget.percent.used` 创建一个 [指标监控](/docs/monitor/metrics-monitor)，用属性 `oneuptime.llm.budget.id` 等于复制的 ID 进行过滤，并把 **时间范围** 设为 **过去 30 分钟** 。
 4. 添加一个会创建警报的条件 **大于或等于** `100`，并给它一个包含代理名称的 **警报标题** ，例如 `LLM budget exceeded: support-bot`。工作流和你的端点都会读取这个标题。
 :::
 
@@ -125,7 +125,7 @@ app.post("/circuit-breaker", (req, res) => {
 
 ### 添加触发器
 
-点击虚线框 **Choose what starts this workflow** ，在 **添加触发器** 面板中选择 **On Create Alert** 。点击触发器： **Fields to pass on** 一开始就带有标题，所以点击 **添加字段** ，勾选描述，然后点击 **保存** 。块上的 ID `alert-on-create-1` 是后续块引用它的方式。
+点击虚线框 **选择启动此工作流的方式** ，在 **添加触发器** 面板中选择 **On Create Alert** 。点击触发器： **Fields to pass on** 一开始就带有标题，所以点击 **添加字段** ，勾选描述，然后点击 **保存** 。块上的 ID `alert-on-create-1` 是后续块引用它的方式。
 
 ### 检查标题
 
@@ -197,7 +197,7 @@ API 块的 **Request Headers** ：
 :::
 
 :::details 预算警报反复打开又解决
-监视器的 **时间范围** 短于预算两点之间的 15 分钟。请把它设为 **Past 30 Minutes** 。
+监视器的 **时间范围** 短于预算两点之间的 15 分钟。请把它设为 **过去 30 分钟** 。
 :::
 
 :::details 请求始终到不了你的端点

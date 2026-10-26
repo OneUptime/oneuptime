@@ -30,10 +30,10 @@ import {
   tableShape,
   toLatinDigits,
 } from "./DocsTranslationChecks";
-import { PermissionHelper } from "Common/Types/Permission";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { isPermissionTitleKeptInEnglish } from "./DocsRoleNames";
 
 /*
  * Docs overhaul task 13: the Permission Reference, SSO, Global SSO, SCIM and
@@ -299,8 +299,6 @@ const SCIM_CLIENT_CREDENTIALS_BUTTONS: Array<string> = [
 const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
   [SSO]: [
     "Scale",
-    "Project Owner",
-    "Project Admin",
     "Create Project SSO",
     "Create Project OIDC",
     "Edit Project",
@@ -758,14 +756,6 @@ function boldLabels(markdown: string): Array<string> {
   return boldSpans(prose(markdown));
 }
 
-function isPermissionOrRole(name: string): boolean {
-  return PermissionHelper.getAllPermissionProps().some(
-    (props: { title: string }): boolean => {
-      return props.title === name;
-    },
-  );
-}
-
 function listed(
   lists: Record<string, Array<string>>,
   page: string,
@@ -1014,7 +1004,7 @@ describe("the lists this test keeps", () => {
           name,
           why:
             PLANS.includes(name) ||
-            isPermissionOrRole(name) ||
+            isPermissionTitleKeptInEnglish(name) ||
             listed(PRODUCT_TEXT_IN_ENGLISH, page).includes(name),
         });
       }

@@ -109,7 +109,7 @@ Klik bovenaan de pagina op **Enable two-factor authentication** en bevestig. De 
 U kunt bij zoveel projecten horen als u wilt. De projectkiezer linksboven in het dashboard toont ze: kies er een om ernaar te wisselen.
 
 - **Een project aanmaken**: open de projectkiezer en klik op **Nieuw project aanmaken**. Op een zelf-gehoste installatie kan de beheerder het aanmaken van projecten voorbehouden aan beheerders.
-- **Een uitnodiging accepteren**: wanneer iemand u uitnodigt, toont de bel rechtsboven de openstaande uitnodiging en opent die **Projectuitnodigingen**. Daar kiest u **Accepteren** of **Reject**.
+- **Een uitnodiging accepteren**: wanneer iemand u uitnodigt, toont de bel rechtsboven de openstaande uitnodiging en opent die **Projectuitnodigingen**. Daar kiest u **Accepteren** of **Afwijzen**.
 - **Een project verlaten**: vraag iemand die de gebruikers van het project beheert om u te verwijderen, met **Verwijderen uit project** op de pagina **Gebruikers**.
 
 ## Wat elk project voor u bewaart

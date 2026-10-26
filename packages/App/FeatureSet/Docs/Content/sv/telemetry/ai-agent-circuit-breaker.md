@@ -46,7 +46,7 @@ Kostnaden är det säkraste tecknet på en skenande agent. En budget summerar da
 :::steps
 1. Öppna **Produkter → AI / LLM → Budgetar** och klicka på **Skapa LLM Cost Budget**. Ange en **Daglig budget (USD)**, och välj agentens tjänst i **Tjänst (valfritt)** så att budgeten bara bevakar den agenten.
 2. Välj **Visa ID** i radmenyn för den nya budgeten och kopiera ID:t.
-3. Skapa en [Metrikövervakning](/docs/monitor/metrics-monitor) på `oneuptime.llm.budget.percent.used`, filtrerad på attributet `oneuptime.llm.budget.id` med ID:t du kopierade, och sätt dess **Tidsintervall** till **Past 30 Minutes**.
+3. Skapa en [Metrikövervakning](/docs/monitor/metrics-monitor) på `oneuptime.llm.budget.percent.used`, filtrerad på attributet `oneuptime.llm.budget.id` med ID:t du kopierade, och sätt dess **Tidsintervall** till **Senaste 30 minuterna**.
 4. Lägg till ett kriterium **Större än eller lika med** `100` som skapar ett larm, och ge det en **Larmtitel** som namnger agenten, till exempel `LLM budget exceeded: support-bot`. Både arbetsflödet och din slutpunkt läser den titeln.
 :::
 
@@ -125,7 +125,7 @@ Spara först slutpunktens token där arbetsflödet kan använda den utan att vis
 
 ### Lägg till utlösaren
 
-Klicka på det streckade blocket **Choose what starts this workflow** och välj **On Create Alert** i panelen **Lägg till utlösare**. Klicka på utlösaren: **Fields to pass on** börjar med titeln, så klicka på **Lägg till fält**, markera beskrivningen och klicka på **Spara**. ID:t på blocket, `alert-on-create-1`, är hur senare block hänvisar till det.
+Klicka på det streckade blocket **Välj vad som startar det här arbetsflödet** och välj **On Create Alert** i panelen **Lägg till utlösare**. Klicka på utlösaren: **Fields to pass on** börjar med titeln, så klicka på **Lägg till fält**, markera beskrivningen och klicka på **Spara**. ID:t på blocket, `alert-on-create-1`, är hur senare block hänvisar till det.
 
 ### Kontrollera titeln
 
@@ -169,7 +169,7 @@ För att reagera på flera snubbeltrådar låter du alla deras titlar börja på
 ## Testa circuit breakern
 
 :::steps
-1. Lös ut den för hand. Öppna **Varningar**, klicka på **Skapa varning** och skapa ett larm med titeln `LLM budget exceeded: test`. Körningen visas under **Arbetsflöden → Loggar → Körningar**, och din slutpunkt tar emot anropet.
+1. Lös ut den för hand. Öppna **Larm**, klicka på **Skapa larm** och skapa ett larm med titeln `LLM budget exceeded: test`. Körningen visas under **Arbetsflöden → Loggar → Körningar**, och din slutpunkt tar emot anropet.
 2. Lös ut den på riktigt. Skapa en budget med en mycket liten gräns, till exempel `0.01` USD, på en testagents tjänst, rikta en budgetmonitor mot den och låt agenten köra: procenten passerar 100, larmet öppnas, arbetsflödet körs och circuit breakern löser ut. För slingelarmet ger du en testagent ett verktyg som alltid misslyckas.
 3. Lös ut den två gånger. Skapa samma larm igen: din slutpunkt måste ta emot den andra utlösningen utan att ändra något.
 :::
@@ -197,7 +197,7 @@ Huvudet `Authorization` matchar inte den token som din slutpunkt förväntar sig
 :::
 
 :::details Budgetlarmet öppnas och löses om och om igen
-Monitorns **Tidsintervall** är kortare än budgetens 15 minuter mellan två punkter. Sätt det till **Past 30 Minutes**.
+Monitorns **Tidsintervall** är kortare än budgetens 15 minuter mellan två punkter. Sätt det till **Senaste 30 minuterna**.
 :::
 
 :::details Anropet når aldrig fram till din slutpunkt

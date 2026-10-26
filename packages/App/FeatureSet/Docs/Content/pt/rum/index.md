@@ -33,16 +33,16 @@ flowchart TB
 
 Abra **Produtos → Recursos → Monitoramento de Usuários Reais**. **Todos os aplicativos** lista suas aplicações com **Tipo de cliente**, **Status** e **Visto pela última vez**. Outras duas seções do menu lateral começam recolhidas:
 
-- **Configurações**: **Regras de proprietário**, **Regras de Rótulos** e a chave **Session Replay** de todo o projeto.
+- **Configurações**: **Regras de proprietário**, **Regras de Rótulos** e a chave **Reprodução de sessões** de todo o projeto.
 - **Avançado**: **Arquivado**, as aplicações que você arquivou.
 
 O menu lateral de uma aplicação agrupa as páginas dela assim; **Configurações**, **Desenvolvedores** e **Avançado** começam recolhidas:
 
 | Seção | Páginas |
 | --- | --- |
-| **Básico** | **Visão geral**, **Recommendations**, **Documentação** |
+| **Básico** | **Visão geral**, **Recomendações**, **Documentação** |
 | **Observabilidade** | **Métricas**, **Registros**, **Traços**, **Clientes** |
-| **Session Replay** | **Session Replay**, **User Flows**, **Replay Users**, **Health**, **Replay Policy**, **Replay Access Log**, **Documentação** |
+| **Reprodução de sessões** | **Reprodução de sessões**, **User Flows**, **Replay Users**, **Integridade**, **Replay Policy**, **Registro de acesso aos replays**, **Documentação** |
 | **Configurações** | **Configurações** |
 | **Desenvolvedores** | **Terraform**, **API**, **Assistentes de IA** |
 | **Avançado** | **Excluir aplicação** |
@@ -81,8 +81,8 @@ O OneUptime encontra a aplicação pelo `service.name`, sem diferenciar maiúscu
 | **Core Web Vitals** | Um cartão na visão geral com LCP, INP, CLS, FCP e TTFB, cada um avaliado pelos limites do Google, e o INP de cada rota de um aplicativo de página única. Veja [Core Web Vitals](/docs/rum/web-vitals) e [Aplicativos de página única](/docs/rum/web-vitals#aplicativos-de-página-única). |
 | **Métricas**, **Registros**, **Traços** | Os exploradores de telemetria, limitados a esta aplicação. |
 | **Clientes** | As plataformas de navegador e os modelos de dispositivo em que a aplicação foi usada: uma lista curta por plataforma, nunca uma linha por usuário. |
-| **Session Replay** | Gravações de sessões reais, ao lado dos erros, traços e registros delas: veja [Reprodução de sessões](/docs/telemetry/session-replay). |
-| **Recommendations** | Monitores prontos para a aplicação: Core Web Vitals ruins, requisições com falha, exceções do navegador e, assim que ela grava, orçamentos do Session Replay. |
+| **Reprodução de sessões** | Gravações de sessões reais, ao lado dos erros, traços e registros delas: veja [Reprodução de sessões](/docs/telemetry/session-replay). |
+| **Recomendações** | Monitores prontos para a aplicação: Core Web Vitals ruins, requisições com falha, exceções do navegador e, assim que ela grava, orçamentos do Session Replay. |
 
 As contagens vêm dos spans que a sua instrumentação envia. **Page loads** conta o span `documentLoad` que a instrumentação de carregamento de página registra em cada carregamento completo, então uma mudança de rota dentro de um aplicativo de página única não é um carregamento de página.
 
@@ -93,7 +93,7 @@ Uma aplicação mostra **Conectado** enquanto a telemetria chega e **Desconectad
 :::steps
 ### Criar uma chave de ingestão
 
-Abra **Configurações do projeto → Telemetria e APM → Chaves de ingestão** e clique em **Criar chave de ingestão**. Um aplicativo web precisa de uma chave **Browser**, que só funciona a partir das origens que você listar. Um aplicativo móvel precisa de uma chave **Servidor**, porque um SDK móvel não envia o cabeçalho `Origin`.
+Abra **Configurações do projeto → Telemetria e APM → Chaves de ingestão** e clique em **Criar chave de ingestão**. Um aplicativo web precisa de uma chave **Navegador**, que só funciona a partir das origens que você listar. Um aplicativo móvel precisa de uma chave **Servidor**, porque um SDK móvel não envia o cabeçalho `Origin`.
 
 ### Instrumentar seu aplicativo
 

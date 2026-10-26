@@ -29,9 +29,9 @@ De pagina **Instellingen** van de SLO toont het budget dat zijn doel toestaat na
 
 ### Het budget van een SLO met meerdere monitoren
 
-In de modus **Any Monitor Down** is het budget `(100% − target) × window`, ongeacht hoeveel monitoren de SLO meet: het venster is één tijdlijn.
+In de modus **Willekeurige monitor uitgevallen** is het budget `(100% − target) × window`, ongeacht hoeveel monitoren de SLO meet: het venster is één tijdlijn.
 
-In de modus **Monitor Seconds Average** wordt het budget geteld in monitorseconden, opgeteld over de monitoren, dus het groeit met het aantal monitoren: een SLO met drie monitoren op 99,9% over 30 dagen heeft ongeveer 129 minuten budget in plaats van 43. De percentages (SLI, resterend budget, verbruikssnelheid) betekenen hetzelfde; alleen de duren veranderen.
+In de modus **Gemiddelde monitorseconden** wordt het budget geteld in monitorseconden, opgeteld over de monitoren, dus het groeit met het aantal monitoren: een SLO met drie monitoren op 99,9% over 30 dagen heeft ongeveer 129 minuten budget in plaats van 43. De percentages (SLI, resterend budget, verbruikssnelheid) betekenen hetzelfde; alleen de duren veranderen.
 
 ### Het budget van een kalendermaand
 
@@ -39,7 +39,7 @@ Een SLO met een kalendermaand heeft vanaf de eerste dag het budget van de hele m
 
 ## Resterend budget
 
-Naarmate downtime oploopt, toont het **Overzicht** het resterende budget in zijn tegel **Error budget left**:
+Naarmate downtime oploopt, toont het **Overzicht** het resterende budget in zijn tegel **Foutbudget over**:
 
 - als percentage van het totaal, dat ook de status van de SLO bepaalt en de balk vult. De balk heeft een markering op de risicodrempel van de SLO;
 - als duur, bijvoorbeeld "31m 4s left of 43m 12s".
@@ -48,11 +48,11 @@ Als het budget op is, toont de tegel **No budget left**. Als downtime het oversc
 
 Het resterende budget wordt voor berekeningen en geschiedenisgrafieken als getal met teken opgeslagen, dus daar verschijnt een overschreden budget als negatief percentage. Een sterk negatief percentage betekent dat de overschrijding groot is ten opzichte van het budget; het is niet het deel van de tijd dat de dienst uit de lucht was.
 
-Welke seconden als downtime tellen, bepalen de downtime-statussen van de SLO en, voor een SLO met meerdere monitoren, zijn modus voor meerdere monitoren, allebei onder **Instellingen** → **Downtime Calculation**. Zie [SLO's – Overzicht](/docs/slo/introduction).
+Welke seconden als downtime tellen, bepalen de downtime-statussen van de SLO en, voor een SLO met meerdere monitoren, zijn modus voor meerdere monitoren, allebei onder **Instellingen** → **Downtimeberekening**. Zie [SLO's – Overzicht](/docs/slo/introduction).
 
 ## Looptijd van het budget
 
-De tegel **Budget runway** op het **Overzicht** beantwoordt "als dit zo doorgaat, wanneer is het budget op?". Hij deelt het resterende budget door de verbruikssnelheid van de laatste 60 minuten:
+De tegel **Resterende looptijd van budget** op het **Overzicht** beantwoordt "als dit zo doorgaat, wanneer is het budget op?". Hij deelt het resterende budget door de verbruikssnelheid van de laatste 60 minuten:
 
 ```text
 runway = budget left ÷ (burn rate × (100% − target))
@@ -68,18 +68,18 @@ runway = budget left ÷ (burn rate × (100% − target))
 
 Voor SLO's met een kalendermaand zegt de tegel ook wanneer het budget wordt teruggezet.
 
-De looptijd is een rechtlijnige projectie. In een voortschrijdend venster geeft oude downtime die uit het venster valt budget terug, wat de projectie negeert: lees haar als de minimale tijd die u nog hebt. Ze wordt niet getoond vóór de eerste evaluatie, en ook niet voor SLO's in de modus **Monitor Seconds Average**, waarvan het budget in monitorseconden en niet in kloktijd wordt geteld.
+De looptijd is een rechtlijnige projectie. In een voortschrijdend venster geeft oude downtime die uit het venster valt budget terug, wat de projectie negeert: lees haar als de minimale tijd die u nog hebt. Ze wordt niet getoond vóór de eerste evaluatie, en ook niet voor SLO's in de modus **Gemiddelde monitorseconden**, waarvan het budget in monitorseconden en niet in kloktijd wordt geteld.
 
 ## Verbranding van het foutbudget
 
-De grafiek **Error budget burn-down** op het **Overzicht** zet het resterende budget, als percentage, uit over het huidige compliancevenster:
+De grafiek **Burn-down van foutbudget** op het **Overzicht** zet het resterende budget, als percentage, uit over het huidige compliancevenster:
 
 - Een lijn op 0% geeft aan waar het budget op is, en een stippellijn geeft de risicodrempel van de SLO aan.
 - Voor SLO's met een kalendermaand loopt een vage lijn gelijkmatig af van een vol budget aan het begin van de maand tot een leeg budget bij het terugzetten. Onder die lijn geeft de maand haar budget te snel uit.
 - Bij elke evaluatie, elke 5 minuten, wordt een punt vastgelegd, dus de grafiek van een nieuwe SLO blijft leeg tot zijn eerste evaluatie.
-- Sleep over de grafiek om in te zoomen op een deel van het venster. Dubbelklik, of klik op **Reset zoom**, om weer het hele venster te zien.
+- Sleep over de grafiek om in te zoomen op een deel van het venster. Dubbelklik, of klik op **Zoom herstellen**, om weer het hele venster te zien.
 
-**Open metrics** opent de pagina **Metrieken** van de SLO, waarvan het tabblad **Error Budget History** tot 400 dagen teruggaat. Zie [SLO-metrics en -dashboards](/docs/slo/metrics).
+**Metrieken openen** opent de pagina **Metrieken** van de SLO, waarvan het tabblad **Error Budget History** tot 400 dagen teruggaat. Zie [SLO-metrics en -dashboards](/docs/slo/metrics).
 
 ## Hoe het budget herstelt
 
@@ -96,7 +96,7 @@ Een SLO met een kalendermaand wordt om middernacht op de eerste van elke maand t
 
 ### Jonge SLO's
 
-Een SLO met een voortschrijdend venster die jonger is dan zijn venster, wordt gemeten over de gegevens die er tot nu toe zijn, en zijn totale budget groeit mee: een SLO van 30 dagen die een week geleden is aangemaakt, heeft voorlopig een budget van 7 dagen. Tot het venster vol is, toont het **Overzicht** hoe vol het is, met een indicator **Window 23% full** en dezelfde opmerking in de tegel **Error budget left**. Verwacht dat de cijfers tot rust komen naarmate het venster zich vult.
+Een SLO met een voortschrijdend venster die jonger is dan zijn venster, wordt gemeten over de gegevens die er tot nu toe zijn, en zijn totale budget groeit mee: een SLO van 30 dagen die een week geleden is aangemaakt, heeft voorlopig een budget van 7 dagen. Tot het venster vol is, toont het **Overzicht** hoe vol het is, met een indicator **Window 23% full** en dezelfde opmerking in de tegel **Foutbudget over**. Verwacht dat de cijfers tot rust komen naarmate het venster zich vult.
 
 ## Statuswijzigingen en de risicodrempel
 
@@ -108,7 +108,7 @@ Het resterende budget bepaalt de status van de SLO:
 | **Risico** | Het resterende budget zit op de risicodrempel of eronder: standaard 20%. |
 | **Budget uitgeput** | Het resterende budget is nul of lager. |
 
-Stel de risicodrempel in onder **Instellingen** → **Objective**.
+Stel de risicodrempel in onder **Instellingen** → **Doelstelling**.
 
 Voortschrijdende vensters herstellen seconde voor seconde, dus een SLO vlak bij een grens zou heen en weer kunnen springen tussen twee statussen. Zodat elke statuswijziging iets betekent, verlaat een SLO een status pas als hij duidelijk over de grens is:
 

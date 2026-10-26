@@ -86,14 +86,15 @@ describe("Cloud Environments list", () => {
     expect(code).not.toContain("checkout-service");
   });
 
-  test("adds one with the platform's guide, in a dialog and as the empty list's card", () => {
+  test("adds one with the platform's guide in a dialog, which the empty list's showcase opens too", () => {
     expect(code).toContain("title: CLOUD_ENVIRONMENT_ONBOARDING.addTitle,");
     expect(code).toContain(
       "<AddResourceModal onboarding={CLOUD_ENVIRONMENT_ONBOARDING}",
     );
     expect(code).toContain(
-      "{firstRecordWatch.count === 0 && ( <AddResourceGuide onboarding={CLOUD_ENVIRONMENT_ONBOARDING}",
+      "{firstRecordWatch.count === 0 && ( <ResourceShowcaseCard showcase={CLOUD_ENVIRONMENT_SHOWCASE} addButton={{ title: CLOUD_ENVIRONMENT_ONBOARDING.addTitle,",
     );
+    expect(code).not.toContain("<AddResourceGuide");
 
     const onboarding: string = readCode(
       "Components/Cloud/CloudEnvironmentOnboarding.tsx",

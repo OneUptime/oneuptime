@@ -160,7 +160,7 @@ name:"SELECT wp_options"
 
 अकेले शब्द अपवाद संदेश में खोजते हैं।
 
-**Security Events** एक्सप्लोरर भी यही भाषा इस्तेमाल करता है, अपने खुद के फ़ील्ड के साथ, जैसे `severity`, `tactic` और `user` — देखें [सुरक्षा इवेंट](/docs/telemetry/security-events)।
+**सुरक्षा इवेंट** एक्सप्लोरर भी यही भाषा इस्तेमाल करता है, अपने खुद के फ़ील्ड के साथ, जैसे `severity`, `tactic` और `user` — देखें [सुरक्षा इवेंट](/docs/telemetry/security-events)।
 
 ## फ़िल्टर जोड़ना
 

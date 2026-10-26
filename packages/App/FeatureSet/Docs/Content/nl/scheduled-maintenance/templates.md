@@ -24,7 +24,7 @@ flowchart TB
 ## Voordat je begint
 
 - **Je abonnement.** In OneUptime Cloud vragen sjablonen het abonnement **Growth** of hoger.
-- **Je rol.** Een sjabloon maken vraagt **Project Owner**, **Project Admin**, **Project Member**, **Scheduled Maintenance Admin** of **Scheduled Maintenance Member**, of een aangepaste rol die sjablonen voor gepland onderhoud mag maken.
+- **Je rol.** Een sjabloon maken vraagt **Projecteigenaar**, **Projectbeheerder**, **Projectlid**, **Onderhoudsbeheerder** of **Onderhoudslid**, of een aangepaste rol die sjablonen voor gepland onderhoud mag maken.
 
 ## Een sjabloon maken
 

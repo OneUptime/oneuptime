@@ -57,7 +57,7 @@ Klicka på **Fler monitortyper** under **Monitortyp** och välj **Ceph** under *
 
 ### Välj klustret
 
-Välj klustret i **Ceph Cluster** under **Ceph Monitor Configuration**. Alla kluster som har skickat data finns i listan.
+Välj klustret i **Ceph-kluster** under **Ceph Monitor Configuration**. Alla kluster som har skickat data finns i listan.
 
 ### Välj vad som ska övervakas
 
@@ -65,31 +65,31 @@ Välj en av de tre flikarna:
 
 - **Quick Setup** — klicka på en [mall](#färdiga-larmmallar). Den ställer in mätvärden, filter, aggregering, tidsintervall och tröskelvärden och ersätter kriterierna nedan med sina egna. Du kan fortfarande ändra **Tidsintervall**.
 - **Custom Metric** — välj ett mätvärde i **Ceph Metric** och ställ sedan in **Aggregering** och **Tidsintervall**. **OSD** och **Pool ID** begränsar det till en daemon eller pool.
-- **Avancerad** — bygg frågor och formler själv under **Välj mått**, till exempel en kvot för använd kapacitet från `ceph_cluster_total_used_bytes / ceph_cluster_total_bytes`. Använd **Group by** `ceph_daemon` eller `pool_id` för att bedöma varje daemon eller pool för sig.
+- **Avancerad** — bygg frågor och formler själv under **Välj mått**, till exempel en kvot för använd kapacitet från `ceph_cluster_total_used_bytes / ceph_cluster_total_bytes`. Använd **Gruppera efter** `ceph_daemon` eller `pool_id` för att bedöma varje daemon eller pool för sig.
 
 ### Kontrollera kriterierna
 
-Öppna varje kriterium under **Monitorkriterier** och kontrollera **Mätvärde**, **Aggregering**, **Villkor** och **Threshold**. En mall fyller i dem. Med **Custom Metric** eller **Avancerad** startar monitorn med [standardkriterierna](#standardkriterier), som bara märker att ett mätvärde sjunker till noll, så sätt ditt eget tröskelvärde.
+Öppna varje kriterium under **Monitorkriterier** och kontrollera **Mätvärde**, **Aggregering**, **Villkor** och **Tröskel**. En mall fyller i dem. Med **Custom Metric** eller **Avancerad** startar monitorn med [standardkriterierna](#standardkriterier), som bara märker att ett mätvärde sjunker till noll, så sätt ditt eget tröskelvärde.
 
 ### Skapa monitorn
 
-Klicka på **Skapa monitor**. OneUptime öppnar monitorns sida och utvärderar den varje minut. Incidenter och larm som den skapar visas också på klustrets sidor **Incidenter** och **Varningar**.
+Klicka på **Skapa monitor**. OneUptime öppnar monitorns sida och utvärderar den varje minut. Incidenter och larm som den skapar visas också på klustrets sidor **Incidenter** och **Larm**.
 :::
 
 > [!TIP]
-> Om du vill ställa in flera mallar på en gång öppnar du klustret från **Produkter → Infrastruktur → Ceph** och går till **Recommendations**. Välj de mallar du vill ha och vem som larmas, så skapar OneUptime en monitor per mall.
+> Om du vill ställa in flera mallar på en gång öppnar du klustret från **Produkter → Infrastruktur → Ceph** och går till **Rekommendationer**. Välj de mallar du vill ha och vem som larmas, så skapar OneUptime en monitor per mall.
 
 ## Monitorinställningar
 
 | Fält | Flik | Vad det gör |
 | --- | --- | --- |
-| **Ceph Cluster** | Alla | Obligatoriskt. Begränsar varje fråga till `resource.ceph.cluster.name`. |
+| **Ceph-kluster** | Alla | Obligatoriskt. Begränsar varje fråga till `resource.ceph.cluster.name`. |
 | **OSD** | Custom Metric, Avancerad | Valfritt. Exakt matchning på etiketten `ceph_daemon`, till exempel `osd.3`. |
 | **Pool ID** | Custom Metric, Avancerad | Valfritt. Exakt matchning på etiketten `pool_id`, till exempel `2`. |
 | **Ceph Metric** | Custom Metric | Ett mätvärde från [katalogen](#insamlade-mätvärden). |
 | **Aggregering** | Custom Metric | Hur mätpunkter kombineras: **Genomsnitt**, **Maximum**, **Minimum**, **Summa** eller **Antal**. Börjar med mätvärdets vanliga aggregering. |
 | **Tidsintervall** | Alla | Det glidande fönster som frågan läser, från **Past 1 Minute** till **Past 365 Days**. En ny monitor börjar på **Past 1 Minute**; mallar sätter sitt eget. |
-| **Välj mått** | Avancerad | Frågebyggaren: **Mätvärde**, **Aggregate by**, **Filter by attributes**, **Group by**, plus **Lägg till mätvärde** och **Lägg till formel** för att kombinera frågor. |
+| **Välj mått** | Avancerad | Frågebyggaren: **Mätvärde**, **Aggregate by**, **Filter by attributes**, **Gruppera efter**, plus **Lägg till mätvärde** och **Lägg till formel** för att kombinera frågor. |
 
 Poolernas dataserier har bara etiketten `pool_id`: Poolens namn finns bara i `ceph_pool_metadata`. Filtrera och gruppera poolserier efter `pool_id`, och slå upp namnet i `ceph_pool_metadata` när du behöver det.
 
@@ -220,8 +220,8 @@ Ett kriterium jämför en av monitorns frågor eller formler med ett tröskelvä
 | **Mätvärde** | Frågan eller formeln som kontrolleras, efter dess variabelnamn. |
 | **Aggregering** | Hur värdena i fönstret blir ett svar: **Genomsnitt**, **Summa**, **Maximum Value**, **Minimum Value**, **All Values** (varje värde måste matcha, i hela fönstret) eller **Any Value** (ett räcker). |
 | **Villkor** | **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med** eller **Lika med** — eller ett avvikelsevillkor: **Anomalously High**, **Anomalously Low** eller **Anomalous**. |
-| **Threshold** | Värdet att jämföra med. Bredvid finns en enhetslista när mätvärdet har en enhet. Visas inte för avvikelsevillkor. |
-| **Känslighet** | Endast avvikelsevillkor. **Low** (4σ), **Medium** (3σ, standard) eller **High** (2σ). |
+| **Tröskel** | Värdet att jämföra med. Bredvid finns en enhetslista när mätvärdet har en enhet. Visas inte för avvikelsevillkor. |
+| **Känslighet** | Endast avvikelsevillkor. **Låg** (4σ), **Medel** (3σ, standard) eller **Hög** (2σ). |
 | **Baslinjefönster** | Endast avvikelsevillkor. 14 dagar (standard), 28, 60 eller 90 dagars historik. |
 | **Om ingen data** | Under **Fler fält**. Vad som händer när fönstret saknar mätpunkter: **Ignore** (standard), **Treat As Zero** eller **Utlösare**. |
 

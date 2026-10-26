@@ -122,7 +122,7 @@ OneUptime → Dynamics 365 템플릿은 직접 켜지 않는 한 **비공개 인
 
 무엇이든 실행하기 전에 로그인을 확인하려면 **워크플로 변수**를 열고 `dynamicsAccessToken`에서 **보기**를 클릭한 다음 **지금 새로고침**을 클릭하세요. **Access Token Fetched**가 표시되면 앱 등록이 올바른 것입니다. 그렇지 않으면 `AADSTS7000215: Invalid client secret provided`처럼 Microsoft Entra ID의 오류가 무엇이 잘못되었는지 알려 줍니다.
 
-각 워크플로는 이 값의 사본을 따로 가집니다. 클라이언트 시크릿을 교체할 때는 모든 Dynamics 365 워크플로에서 `dynamicsAccessToken`을 열고 **Update Credentials**를 사용하세요.
+각 워크플로는 이 값의 사본을 따로 가집니다. 클라이언트 시크릿을 교체할 때는 모든 Dynamics 365 워크플로에서 `dynamicsAccessToken`을 열고 **자격 증명 업데이트**를 사용하세요.
 
 ### 워크플로 만들기
 

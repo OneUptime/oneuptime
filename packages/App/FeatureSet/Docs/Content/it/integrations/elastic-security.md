@@ -44,20 +44,20 @@ Gli alert sono salvati per spazio. Apri lo spazio in cui girano le tue regole: i
 
 ### Aggiungere la connessione in OneUptime
 
-Apri **Prodotti → Security Events → Connections** (`/dashboard/{projectId}/security-events/connections`), fai clic su **Aggiungi connessione**, scegli **Elastic Security** e fai clic su **Avanti**. Compila le impostazioni della tabella qui sotto, fai clic su **Avanti** e incolla la chiave in **Chiave API**.
+Apri **Prodotti → Security Events → Connessioni** (`/dashboard/{projectId}/security-events/connections`), fai clic su **Aggiungi connessione**, scegli **Elastic Security** e fai clic su **Avanti**. Compila le impostazioni della tabella qui sotto, fai clic su **Avanti** e incolla la chiave in **Chiave API**.
 
 ### Provarla prima di salvare
 
-Fai clic su **Test these settings** sotto **Testa prima di salvare**. Il test si autentica e legge gli alert con i valori del modulo, senza salvare nulla, così uno spazio sbagliato o un privilegio mancante emerge prima che la connessione esista. Poi fai clic su **Avanti**, dai un **Nome** alla connessione e creala.
+Fai clic su **Prova queste impostazioni** sotto **Testa prima di salvare**. Il test si autentica e legge gli alert con i valori del modulo, senza salvare nulla, così uno spazio sbagliato o un privilegio mancante emerge prima che la connessione esista. Poi fai clic su **Avanti**, dai un **Nome** alla connessione e creala.
 :::
 
 | Impostazione | Cosa inserire |
 | --- | --- |
 | **Kibana URL** | L'indirizzo da cui viene servito Kibana, per esempio `https://kibana.example.com` o `https://<deployment>.kb.<region>.cloud.es.io`. Senza percorso: né `/app/security`, né `/api`, né la parte `/s/<space>`. |
 | **Kibana space** | L'ID dello spazio, non il suo nome: lettere, cifre, trattini e trattini bassi. Lascialo vuoto per lo spazio predefinito. |
-| **Chiave API** | Il valore **Base64** della chiave, da solo: OneUptime aggiunge da sé lo schema `ApiKey`. È cifrato, mai restituito dall'API e mai più mostrato. Sostituiscilo con **Update credentials** sulla connessione. |
+| **Chiave API** | Il valore **Base64** della chiave, da solo: OneUptime aggiunge da sé lo schema `ApiKey`. È cifrato, mai restituito dall'API e mai più mostrato. Sostituiscilo con **Aggiorna le credenziali** sulla connessione. |
 
-Il passaggio **Polling** ha anche una **Descrizione** facoltativa, il **Poll Interval (Minutes)**, un numero intero da `1` a `1440` che parte da `5`, e **Abilitato**, che parte attivo.
+Il passaggio **Interrogazione** ha anche una **Descrizione** facoltativa, il **Intervallo di interrogazione (minuti)**, un numero intero da `1` a `1440` che parte da `5`, e **Abilitato**, che parte attivo.
 
 ## Cosa viene importato
 
@@ -94,14 +94,14 @@ POST {Kibana URL}/api/detection_engine/signals/search
 - **L'ora di creazione è il cursore.** Gli alert vengono elencati per il loro `@timestamp`, quando l'esecuzione della regola li ha creati, mai per l'ora dell'attività a cui si riferiscono. Una regola che gira ogni ora crea alert su un'attività vecchia fino a un'ora, e un cursore sull'ora di attività li salterebbe tutti.
 - **La prima interrogazione guarda indietro di 24 ore**, così una nuova connessione mostra subito i suoi avvisi recenti.
 - **Ogni interrogazione successiva parte 1 minuto prima del cursore salvato**, così un alert creato al confine tra due finestre non viene mai perso.
-- **Un'interrogazione legge al massimo 24 ore oltre il cursore.** Una connessione il cui cursore è rimasto indietro recupera in una serie di finestre di 24 ore, e la sua **Health** indica **Catching up**.
+- **Un'interrogazione legge al massimo 24 ore oltre il cursore.** Una connessione il cui cursore è rimasto indietro recupera in una serie di finestre di 24 ore, e la sua **Integrità** indica **Catching up**.
 - **I duplicati vengono scartati in base all'`_id` dell'alert** all'interno del progetto, così la sovrapposizione, una finestra ripetuta e un'importazione non salvano mai un alert due volte.
 
 La ricerca degli alert di Kibana accetta una dimensione e un ordinamento, ma nessun token di pagina. Quindi OneUptime pagina spostando l'inizio dell'intervallo sull'ultimo alert di ogni pagina, e lascia fuori, per `_id`, gli alert che ha già letto in quell'istante. Un'esecuzione di regola spesso marca molti alert con la stessa ora, e un gruppo del genere viene letto pagina per pagina, nessuno due volte e nessuno saltato.
 
 ### Quando una finestra contiene più di quanto un'interrogazione possa leggere
 
-Un'interrogazione legge al massimo 10.000 alert, in al massimo 20 richieste. Quando una finestra ne contiene di più, l'esecuzione è **Partial**, con un avviso come questo:
+Un'interrogazione legge al massimo 10.000 alert, in al massimo 20 richieste. Quando una finestra ne contiene di più, l'esecuzione è **Parziale**, con un avviso come questo:
 
 ```text
 Stopped after collecting 10000 alerts; the window holds more.
@@ -109,28 +109,28 @@ Stopped after collecting 10000 alerts; the window holds more.
 
 Gli alert vengono letti dal più vecchio, quindi OneUptime sposta il cursore all'ora di creazione dell'ultimo alert letto, e l'interrogazione successiva parte da lì con la stessa lunghezza di finestra. Uno spazio molto attivo recupera 10.000 alert per interrogazione, invece di rileggere gli stessi. Gli alert creati in quello stesso istante vengono letti due volte, e il controllo dei duplicati scarta la seconda copia.
 
-Gli ID lasciati fuori viaggiano in ogni richiesta, e Kibana limita la dimensione di una richiesta. Quando più alert condividono un istante di quanti una richiesta ne possa lasciare fuori, circa 7.800, l'esecuzione si ferma lì come **Partial**, con un avviso che nomina l'istante.
+Gli ID lasciati fuori viaggiano in ogni richiesta, e Kibana limita la dimensione di una richiesta. Quando più alert condividono un istante di quanti una richiesta ne possa lasciare fuori, circa 7.800, l'esecuzione si ferma lì come **Parziale**, con un avviso che nomina l'istante.
 
 Quando un'esecuzione non riesce affatto a superare il cursore salvato, OneUptime accorcia invece la finestra:
 
 1. **Restringere.** L'interrogazione successiva legge una finestra lunga la metà, dallo stesso punto di partenza, e continua a dimezzarla finché una finestra non viene letta per intero, fino a un minuto. L'avviso dell'esecuzione lo dice: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **Tornare a crescere.** Dopo che una finestra è stata letta per intero, la successiva è di nuovo lunga il doppio, fino a 24 ore.
-3. **Superare un singolo minuto.** Se anche un solo minuto contiene più di quanto un'interrogazione possa leggere, il polling lo supera, così gli avvisi più recenti continuano ad arrivare. L'esecuzione resta **Partial**, e **Ultimo errore** riporta `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importa quel minuto con **Import this time range** per recuperare ciò che un'esecuzione può leggere.
+3. **Superare un singolo minuto.** Se anche un solo minuto contiene più di quanto un'interrogazione possa leggere, il polling lo supera, così gli avvisi più recenti continuano ad arrivare. L'esecuzione resta **Parziale**, e **Ultimo errore** riporta `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importa quel minuto con **Import this time range** per recuperare ciò che un'esecuzione può leggere.
 
-Un'esecuzione che fallisce del tutto, con un errore di Kibana, mantiene il cursore e la lunghezza della finestra, e l'interrogazione successiva rilegge la stessa finestra. L'unica eccezione è una richiesta scaduta: il cursore resta, ma la finestra successiva è lunga la metà, perché una finestra troppo pesante per ricevere risposta in tempo scadrebbe a ogni tentativo. Cambiare il **Poll Interval (Minutes)** non cambia nulla di tutto questo: decide quanto spesso parte un'interrogazione, non dove inizia la sua finestra.
+Un'esecuzione che fallisce del tutto, con un errore di Kibana, mantiene il cursore e la lunghezza della finestra, e l'interrogazione successiva rilegge la stessa finestra. L'unica eccezione è una richiesta scaduta: il cursore resta, ma la finestra successiva è lunga la metà, perché una finestra troppo pesante per ricevere risposta in tempo scadrebbe a ogni tentativo. Cambiare il **Intervallo di interrogazione (minuti)** non cambia nulla di tutto questo: decide quanto spesso parte un'interrogazione, non dove inizia la sua finestra.
 
 ### Eseguire, visualizzare in anteprima e importare su richiesta
 
-Fai clic su **Diagnostics** su una connessione per vederne le esecuzioni recenti e lavorarci a mano. Chi può modificare la connessione può avviare queste azioni; chi può vederla può leggerne la cronologia.
+Fai clic su **Diagnostica** su una connessione per vederne le esecuzioni recenti e lavorarci a mano. Chi può modificare la connessione può avviare queste azioni; chi può vederla può leggerne la cronologia.
 
-- **Run now** avvia subito un'interrogazione, con il cursore abituale, anche quando la connessione non è **Abilitato**.
+- **Esegui ora** avvia subito un'interrogazione, con il cursore abituale, anche quando la connessione non è **Abilitato**.
 - **Preview alerts** legge un intervallo di tempo fino a 7 giorni e non importa nulla.
 - **Import this time range** importa un intervallo fino a 7 giorni, dopo la tua conferma, senza spostare il cursore. Gli avvisi già importati vengono saltati.
 - **Copy diagnostics** su un'esecuzione copia il suo rapporto per il supporto. Non contiene mai credenziali.
 
 ## Testare la connessione
 
-**Testa la connessione** sulla riga di una connessione, e **Test these settings** nel modulo, vengono eseguiti nel processo dell'API, non in un worker in background, così un test risponde anche quando il problema sono i worker. Esegue questi controlli, in ordine:
+**Testa la connessione** sulla riga di una connessione, e **Prova queste impostazioni** nel modulo, vengono eseguiti nel processo dell'API, non in un worker in background, così un test risponde anche quando il problema sono i worker. Esegue questi controlli, in ordine:
 
 | Controllo | Cosa verifica |
 | --- | --- |
@@ -154,7 +154,7 @@ In Kibana, apri **Stack Management → API keys**, fai clic su **Create API key*
 
 ### Aggiungere la destinazione
 
-Apri **Prodotti → Security Events → Connections**. In **Invia al tuo SIEM**, fai clic su **Aggiungi destinazione**, scegli Elastic Security in **SIEM** e fai clic su **Avanti**. Inserisci l'**URL di Elasticsearch**, l'endpoint Elasticsearch del deployment e non quello di Kibana, e incolla la chiave in **Chiave API**. **Data stream** è facoltativo: se resta vuoto, i documenti vanno in `logs-oneuptime.security-default`, che Elasticsearch crea alla prima scrittura.
+Apri **Prodotti → Security Events → Connessioni**. In **Invia al tuo SIEM**, fai clic su **Aggiungi destinazione**, scegli Elastic Security in **SIEM** e fai clic su **Avanti**. Inserisci l'**URL di Elasticsearch**, l'endpoint Elasticsearch del deployment e non quello di Kibana, e incolla la chiave in **Chiave API**. **Data stream** è facoltativo: se resta vuoto, i documenti vanno in `logs-oneuptime.security-default`, che Elasticsearch crea alla prima scrittura.
 
 ### Inviare un evento di prova e iniziare a inviare
 
@@ -191,7 +191,7 @@ Il **Ultimo errore** della connessione conserva il messaggio di errore completo,
 
 :::details Last Error inizia con `Elastic Security status request`
 - `Elastic Security status request failed (HTTP ...)`: Kibana ha rifiutato la richiesta di stato.
-  - `HTTP 401`: Kibana non ha accettato la chiave API. Non è il valore **Base64**, oppure è scaduta o è stata invalidata. Crea una nuova chiave e salvala con **Update credentials**.
+  - `HTTP 401`: Kibana non ha accettato la chiave API. Non è il valore **Base64**, oppure è scaduta o è stata invalidata. Crea una nuova chiave e salvala con **Aggiorna le credenziali**.
   - `HTTP 404`: la **Kibana URL** ha un percorso, oppure non è Kibana.
   - `HTTP 503`: Kibana si dichiara non disponibile, di solito perché non riesce a raggiungere Elasticsearch.
   - `HTTP 3xx`: Kibana ha reindirizzato la richiesta, e i reindirizzamenti vengono rifiutati. Usa l'indirizzo da cui viene servito Kibana.
@@ -216,8 +216,8 @@ Nessuna interrogazione è terminata per questa connessione. Esegui **Testa la co
 :::
 
 :::details Un'esecuzione è Partial
-- `Stopped after collecting 10000 alerts; the window holds more`: la finestra conteneva più dei 10.000 alert che legge un'esecuzione. Non si perde nulla: l'interrogazione successiva parte dopo l'ultimo alert letto. Una connessione che resta **Partial** un'interrogazione dopo l'altra sta recuperando un arretrato, e i suoi **Last Polled** e **Last Event Imported** continuano ad avanzare. Se non recupera mai, lo spazio crea più di 10.000 alert per intervallo di polling: accorcia il **Poll Interval (Minutes)**.
-- `More records were created in the one minute from ... than one poll can read`: il polling ha superato quel minuto. Importalo con **Import this time range** in **Diagnostics**. Un'importazione legge quanto un'interrogazione.
+- `Stopped after collecting 10000 alerts; the window holds more`: la finestra conteneva più dei 10.000 alert che legge un'esecuzione. Non si perde nulla: l'interrogazione successiva parte dopo l'ultimo alert letto. Una connessione che resta **Parziale** un'interrogazione dopo l'altra sta recuperando un arretrato, e i suoi **Ultima interrogazione** e **Ultimo evento importato** continuano ad avanzare. Se non recupera mai, lo spazio crea più di 10.000 alert per intervallo di polling: accorcia il **Intervallo di interrogazione (minuti)**.
+- `More records were created in the one minute from ... than one poll can read`: il polling ha superato quel minuto. Importalo con **Import this time range** in **Diagnostica**. Un'importazione legge quanto un'interrogazione.
 :::
 
 :::details Il test riesce, ma non viene importato nulla

@@ -236,6 +236,17 @@ export const SLO_WINDOW_TYPE_CHOICE_DESCRIPTIONS: Record<
   ),
 };
 
+/*
+ * Each window type's name, as its answer reads. The enum value is its
+ * English name, which is what is stored; the answer is looked up by the
+ * name here (FormField draws a radio answer's title in the reader's
+ * language), so "Calendar Month" is a key of its own and not only a value.
+ */
+export const SLO_WINDOW_TYPE_NAMES: Record<SloWindowType, string> = {
+  [SloWindowType.Rolling]: translationKey("Rolling"),
+  [SloWindowType.CalendarMonth]: translationKey("Calendar Month"),
+};
+
 export type GetSloWindowTypeChoicesFunction = () => Array<RadioButton>;
 
 export const getSloWindowTypeChoices: GetSloWindowTypeChoicesFunction =
@@ -243,7 +254,7 @@ export const getSloWindowTypeChoices: GetSloWindowTypeChoicesFunction =
     return Object.values(SloWindowType).map(
       (windowType: SloWindowType): RadioButton => {
         return {
-          title: windowType,
+          title: SLO_WINDOW_TYPE_NAMES[windowType],
           value: windowType,
           description: SLO_WINDOW_TYPE_CHOICE_DESCRIPTIONS[windowType],
         };

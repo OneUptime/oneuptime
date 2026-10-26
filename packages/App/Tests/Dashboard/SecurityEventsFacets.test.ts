@@ -14,9 +14,20 @@ import Dictionary from "Common/Types/Dictionary";
 import ObjectID from "Common/Types/ObjectID";
 import OcsfSeverity from "Common/Types/SecurityEvent/OcsfSeverity";
 import {
+  FacetValueState,
+  readFacetChip,
+} from "Common/UI/Components/TelemetryViewer/FacetSelection";
+import { getFilterChipKeyText } from "Common/UI/Components/TelemetryViewer/components/TelemetryActiveFilterChips";
+import {
   FacetConfig,
   FacetValue,
 } from "Common/UI/Components/TelemetryViewer/types";
+import {
+  Translator,
+  createTranslator,
+} from "Common/UI/Utils/TranslateTemplate";
+import fs from "fs";
+import path from "path";
 import {
   SECURITY_EVENT_ATTRIBUTE_FACET_PREFIX,
   SECURITY_EVENT_EXCLUDE_FACET_PREFIX,
@@ -268,6 +279,23 @@ describe("facet key grammar", () => {
   });
 });
 
+const DASHBOARD_LOCALES: string = path.resolve(
+  __dirname,
+  "../../FeatureSet/Dashboard/src/Locales",
+);
+
+function translatorFor(code: string): Translator {
+  const locale: Record<string, unknown> = JSON.parse(
+    fs.readFileSync(path.join(DASHBOARD_LOCALES, `${code}.json`), "utf8"),
+  ) as Record<string, unknown>;
+
+  return createTranslator((text: string): string | undefined => {
+    const value: unknown = locale[text];
+
+    return typeof value === "string" ? value : undefined;
+  }, code);
+}
+
 describe("chip labels", () => {
   test("a known facet reads by its title", () => {
     expect(getSecurityEventFacetChipDisplayKey("severityName")).toBe(
@@ -291,21 +319,63 @@ describe("chip labels", () => {
 
   /*
    * The one mistake a filter chip must never make: reading as the opposite
-   * of the filter it applies.
+   * of the filter it applies. The key names the field, as an include chip
+   * does; the chip row every explorer shares reads the chip as an exclusion
+   * and says so in the reader's language ("Severity is not", "Schweregrad
+   * ist nicht"), so the words never glue an English "is not" onto a
+   * translated field.
    */
-  test("an excluded chip says it excludes", () => {
+  test("an excluded chip names its field, and the chip row says it excludes", () => {
+    const severity: string = toSecurityEventExcludeFacetKey("severityName");
+    const matched: string = toSecurityEventExcludeFacetKey(
+      `${SECURITY_EVENT_ATTRIBUTE_FACET_PREFIX}threat.matched`,
+    );
+
+    expect(getSecurityEventFacetChipDisplayKey(severity)).toBe("Severity");
+    expect(getSecurityEventFacetChipDisplayKey(matched)).toBe("threat.matched");
+
+    // The chip row reads both as exclusions...
     expect(
-      getSecurityEventFacetChipDisplayKey(
-        toSecurityEventExcludeFacetKey("severityName"),
+      readFacetChip({ facetKey: severity, value: "Informational" })?.state,
+    ).toBe(FacetValueState.Excluded);
+    expect(readFacetChip({ facetKey: matched, value: "true" })?.state).toBe(
+      FacetValueState.Excluded,
+    );
+    // ...and an include chip as an include.
+    expect(
+      readFacetChip({ facetKey: "severityName", value: "Informational" })
+        ?.state,
+    ).toBe(FacetValueState.Included);
+
+    // So the chip's key says it excludes, in English and in German.
+    expect(
+      getFilterChipKeyText(
+        getSecurityEventFacetChipDisplayKey(severity),
+        true,
+        translatorFor("en"),
       ),
     ).toBe("Severity is not");
     expect(
-      getSecurityEventFacetChipDisplayKey(
-        toSecurityEventExcludeFacetKey(
-          `${SECURITY_EVENT_ATTRIBUTE_FACET_PREFIX}threat.matched`,
-        ),
+      getFilterChipKeyText(
+        getSecurityEventFacetChipDisplayKey(matched),
+        true,
+        translatorFor("en"),
       ),
     ).toBe("threat.matched is not");
+    expect(
+      getFilterChipKeyText(
+        getSecurityEventFacetChipDisplayKey(severity),
+        true,
+        translatorFor("de"),
+      ),
+    ).toBe("Schweregrad ist nicht");
+    expect(
+      getFilterChipKeyText(
+        getSecurityEventFacetChipDisplayKey(matched),
+        true,
+        translatorFor("de"),
+      ),
+    ).toBe("threat.matched ist nicht");
   });
 
   test("an unknown key keeps its raw name rather than guessing", () => {

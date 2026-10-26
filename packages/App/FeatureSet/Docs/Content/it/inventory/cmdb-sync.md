@@ -130,7 +130,7 @@ curl -X POST 'https://oneuptime.com/api/inventory-item/get-list?output-type=csv'
   -o inventory.csv
 ```
 
-L'elenco **All Items** della dashboard esporta allo stesso modo, con le colonne di campi personalizzati che hai attivato. Ogni [dettaglio dell'asset](#dettagli-dellasset) è lì anche una colonna: **Hostname**, **Indirizzo IP**, **Numero di serie**, **Modello** e le altre partono nascoste, quindi attivale dal selettore di colonne, e l'esportazione contiene una colonna per dato, che una riga sia un host o un dispositivo di rete.
+L'elenco **All Items** della dashboard esporta allo stesso modo, con le colonne di campi personalizzati che hai attivato. Ogni [dettaglio dell'asset](#dettagli-dellasset) è lì anche una colonna: **Nome host**, **Indirizzo IP**, **Numero di serie**, **Modello** e le altre partono nascoste, quindi attivale dal selettore di colonne, e l'esportazione contiene una colonna per dato, che una riga sia un host o un dispositivo di rete.
 
 ## Dettagli dell'asset
 
@@ -138,17 +138,17 @@ Host e dispositivi di rete sono descritti dagli stessi dati, memorizzati con le 
 
 | Dato | Chiave | Su un host | Su un dispositivo di rete |
 | --- | --- | --- | --- |
-| Hostname | `host.name` | Il nome dell'host. È l'identità dell'host, quindi si trova in `identifyingAttributes` | Il nome proprio del dispositivo: il suo `sysName` SNMP, altrimenti il nome NetBIOS o DNS trovato dalla scoperta. Mai il suo indirizzo IP |
+| Nome host | `host.name` | Il nome dell'host. È l'identità dell'host, quindi si trova in `identifyingAttributes` | Il nome proprio del dispositivo: il suo `sysName` SNMP, altrimenti il nome NetBIOS o DNS trovato dalla scoperta. Mai il suo indirizzo IP |
 | Indirizzo IP | `host.ip` | Ogni indirizzo segnalato dal collector | L'indirizzo che OneUptime interroga, quando è un indirizzo IP, altrimenti l'indirizzo in cui la sua sonda ha risolto quel nome DNS |
 | Indirizzo MAC | `host.mac` | Rilevato | Inserito sul dispositivo, o appreso dalla tabella ARP di un router percorso |
 | Numero di serie | `host.serial_number` | Apposto | ENTITY-MIB |
-| Manufacturer | `device.manufacturer` | Apposto | ENTITY-MIB, altrimenti ciò che nominano `sysDescr` o `sysObjectID` |
+| Produttore | `device.manufacturer` | Apposto | ENTITY-MIB, altrimenti ciò che nominano `sysDescr` o `sysObjectID` |
 | Modello | `device.model.name` | Apposto | ENTITY-MIB, altrimenti ciò che nomina `sysDescr` |
 | Versione firmware | `device.firmware.version` | Apposta | ENTITY-MIB, altrimenti ciò che nomina `sysDescr` |
 | Sistema operativo | `os.name` | `os.description` (o `os.type`) | Ciò che nomina `sysDescr`: Cisco IOS, Junos OS, Arista EOS, Linux |
 | Versione OS | `os.version` | Rilevata | ENTITY-MIB, altrimenti ciò che nomina `sysDescr` |
 | Device Type | `device.type` | Apposto. Altrimenti la scheda lo classifica in base al sistema operativo e al nome (Server, Firewall, ...) | Il suo ruolo: quello che hai assegnato, altrimenti quello con cui lo disegna la mappa della topologia |
-| Location | `device.location` | Apposta. Altrimenti la scheda mostra la sua zona cloud | `sysLocation`. La scheda mostra prima il suo sito |
+| Posizione | `device.location` | Apposta. Altrimenti la scheda mostra la sua zona cloud | `sysLocation`. La scheda mostra prima il suo sito |
 
 La [tabella degli host](#attributi-di-asset-degli-host) e la [tabella dei dispositivi di rete](#attributi-di-asset-dei-dispositivi-di-rete) qui sotto dicono in dettaglio da dove viene ogni valore.
 
@@ -188,7 +188,7 @@ Un dispositivo di rete (`entityType: network.device`) viene replicato dal suo re
 
 | Campo | Chiave | Da dove viene |
 | --- | --- | --- |
-| Hostname | `host.name` | Il nome proprio del dispositivo: il suo `sysName` SNMP, altrimenti il nome NetBIOS o DNS inverso trovato dalla scoperta. Omesso quando solo il suo indirizzo IP lo nomina |
+| Nome host | `host.name` | Il nome proprio del dispositivo: il suo `sysName` SNMP, altrimenti il nome NetBIOS o DNS inverso trovato dalla scoperta. Omesso quando solo il suo indirizzo IP lo nomina |
 | Indirizzo IP | `host.ip` | L'indirizzo che OneUptime interroga, quando è un indirizzo IP. Per un dispositivo interrogato tramite un nome DNS, l'indirizzo in cui la sua sonda ha risolto quel nome l'ultima volta |
 | Nome DNS | `net.device.dns_name` | Il nome DNS inverso trovato alla scoperta, o il nome DNS che OneUptime interroga |
 | Indirizzo MAC | `host.mac` | Inserito sul dispositivo, o appreso dalla tabella ARP di un router percorso |

@@ -52,7 +52,7 @@ Le workflow s'ouvre dans le **Constructeur** avec trois étapes : **On Create In
 @tab De zéro
 1. Enregistrez l'URL comme variable globale secrète : allez dans **Flux de travail → Variables globales**, cliquez sur **Créer : Variable de flux de travail**, nommez-la `DISCORD_WEBHOOK_URL`, et cliquez sur **Suivant**. Collez l'URL dans **Contenu**, activez **Secret**, et cliquez sur **Créer : Variable de flux de travail**.
 2. Allez dans **Flux de travail**, cliquez sur **Créer un flux de travail**, choisissez **Partir de zéro**, nommez le workflow, et cliquez sur **Créer un flux de travail**.
-3. Dans le **Constructeur**, cliquez sur **Choisissez ce qui démarre ce flux de travail** et choisissez **On Create Incident** sous **Popular**. Cliquez sur le déclencheur : ses **Fields to pass on** commencent par **Titre**, alors cliquez sur **Ajouter un champ** et choisissez les autres champs que votre message affiche, par exemple **Numéro d'incident avec préfixe**.
+3. Dans le **Constructeur**, cliquez sur **Choisissez ce qui démarre ce flux de travail** et choisissez **On Create Incident** sous **Populaires**. Cliquez sur le déclencheur : ses **Fields to pass on** commencent par **Titre**, alors cliquez sur **Ajouter un champ** et choisissez les autres champs que votre message affiche, par exemple **Numéro d'incident avec préfixe**.
 4. Cliquez sur **Ajouter un composant**, cherchez `discord`, et cliquez sur **Send Message to Discord**. Reliez la sortie **Success** du déclencheur à cette étape.
 5. Cliquez sur la nouvelle étape. Dans **Discord Incoming Webhook URL**, cliquez sur **{ }** et choisissez `DISCORD_WEBHOOK_URL` sous **Variables globales**. Dans **Message Text**, écrivez le message, et insérez les champs de l'incident avec **{ }**.
 :::

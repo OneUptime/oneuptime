@@ -31,7 +31,7 @@ flowchart TB
 
 ## Een gratis lijst toevoegen
 
-De kaart **Gratis lijsten** op **Threat Intel** voegt met één klik een gratis blokkeerlijst toe: klik bij een lijst op **Lijst toevoegen**, en OneUptime maakt een feed die de lijst volgens haar schema downloadt. Een lijst die het project al leest, toont **Toegevoegd**.
+De kaart **Gratis lijsten** op **Dreigingsinformatie** voegt met één klik een gratis blokkeerlijst toe: klik bij een lijst op **Lijst toevoegen**, en OneUptime maakt een feed die de lijst volgens haar schema downloadt. Een lijst die het project al leest, toont **Toegevoegd**.
 
 | Lijst | Gepubliceerd door | Gelezen | Confidence | Een overeenkomst opent |
 | --- | --- | --- | --- | --- |
@@ -46,41 +46,41 @@ De tegel van een lijst linkt naar haar voorwaarden: Feodo Tracker is vrij voor e
 :::steps
 ### Ga naar Threat Intel
 
-Open **Producten → Security Events → Detections → Threat Intel**.
+Open **Producten → Security Events → Detecties → Dreigingsinformatie**.
 
 ### Maak de feed aan
 
-Klik op **Threat Intel Feed aanmaken** en kies de **Bron**: **Lijst van indicatoren**, **TAXII-collectie** of **Google SecOps**. De volgende stap vraagt alleen naar die bron: voor een lijst de **Lijst-URL**, voor een collectie **TAXII-server** en **Aanmelden**, of de **Google SecOps-verbinding**. **Bij overeenkomst** komt als laatste. De velden staan in de tabel hieronder.
+Klik op **Feed met dreigingsinformatie aanmaken** en kies de **Bron**: **Lijst van indicatoren**, **TAXII-collectie** of **Google SecOps**. De volgende stap vraagt alleen naar die bron: voor een lijst de **Lijst-URL**, voor een collectie **TAXII-server** en **Aanmelden**, of de **Google SecOps-verbinding**. **Bij overeenkomst** komt als laatste. De velden staan in de tabel hieronder.
 
 ### Controleer de eerste ophaalronde
 
-Binnen een minuut of twee toont de rij van de feed **Last Polled**, en **Last Poll Summary** vertelt wat de ophaalronde binnenhaalde. Indicatoren verschijnen in de tabel **Indicatoren** onder de feeds.
+Binnen een minuut of twee toont de rij van de feed **Laatst opgevraagd**, en **Samenvatting van de laatste opvraging** vertelt wat de ophaalronde binnenhaalde. Indicatoren verschijnen in de tabel **Indicatoren** onder de feeds.
 :::
 
 | Veld | Wat je invult |
 | --- | --- |
 | **Bron** | Waar de indicatoren vandaan komen. Die wordt vastgelegd wanneer de feed wordt aangemaakt: een feed van een andere bron is een nieuwe feed. |
 | **Lijst-URL** | Voor een lijst: het `https`-adres van een tekstbestand met één IP-adres, domein, URL of bestandshash per regel. |
-| **Confidence** | Voor een lijst: hoe zeker de lijst is, 1 tot 100. Elke indicator op de lijst krijgt die waarde, en die bepaalt het [dreigingsniveau](#dreigingsniveaus); leeg is Medium. |
-| **Google SecOps-verbinding** | Voor Google SecOps: de verbinding waarvan de sleutel de indicatoren leest die Google SecOps vond. **Google SecOps verbinden** opent **Connections** als er nog geen is. |
-| **TAXII API Root URL** | De TAXII 2.1-API-root van de server, zoals `https://taxii.example.com/api1/`. Collecties worden daaronder geadresseerd. |
-| **Collection ID** | De collectie die de indicatoren publiceert. |
-| **Poll Interval (Minutes)** | Hoe vaak de bron wordt gelezen: 1 tot 1440 minuten, standaard 60. Een lijst wordt hooguit elke 15 minuten gelezen. |
-| **Minimum Confidence** | Voor een TAXII-collectie of Google SecOps: indicatoren met een lagere confidence worden overgeslagen, 0 tot 100, en 0 houdt alles. Indicatoren zonder confidence komen altijd door. |
+| **Betrouwbaarheid** | Voor een lijst: hoe zeker de lijst is, 1 tot 100. Elke indicator op de lijst krijgt die waarde, en die bepaalt het [dreigingsniveau](#dreigingsniveaus); leeg is Medium. |
+| **Google SecOps-verbinding** | Voor Google SecOps: de verbinding waarvan de sleutel de indicatoren leest die Google SecOps vond. **Google SecOps verbinden** opent **Verbindingen** als er nog geen is. |
+| **Hoofd-URL van de TAXII-API** | De TAXII 2.1-API-root van de server, zoals `https://taxii.example.com/api1/`. Collecties worden daaronder geadresseerd. |
+| **Collectie-ID** | De collectie die de indicatoren publiceert. |
+| **Opvraaginterval (minuten)** | Hoe vaak de bron wordt gelezen: 1 tot 1440 minuten, standaard 60. Een lijst wordt hooguit elke 15 minuten gelezen. |
+| **Minimale betrouwbaarheid** | Voor een TAXII-collectie of Google SecOps: indicatoren met een lagere confidence worden overgeslagen, 0 tot 100, en 0 houdt alles. Indicatoren zonder confidence komen altijd door. |
 | **Aanmelden** | Hoe OneUptime zich aanmeldt: **Niet aanmelden** voor een openbare collectie, **Bearer-token** voor een token van de beheerder van de server, of **Gebruikersnaam en wachtwoord** voor HTTP Basic-authenticatie. |
-| **API Token**, **Basic Auth Username** en **Basic Auth Password** | Alleen gevraagd voor de gekozen aanmelding. |
-| **Open a Case on Match** | Standaard aan: elke gebeurtenis die een indicator noemt, opent een [zaak](/docs/telemetry/security-cases) over die indicator, of wordt toegevoegd aan de open zaak die er al over gaat. |
+| **API-token**, **Gebruikersnaam voor Basic Auth** en **Wachtwoord voor Basic Auth** | Alleen gevraagd voor de gekozen aanmelding. |
+| **Zaak openen bij overeenkomst** | Standaard aan: elke gebeurtenis die een indicator noemt, opent een [zaak](/docs/telemetry/security-cases) over die indicator, of wordt toegevoegd aan de open zaak die er al over gaat. |
 | **Waarschuwingen en incidenten** | Standaard **Een waarschuwing maken**: elke gematchte indicator opent een waarschuwing. |
 | **Ernst van waarschuwing** | De ernst van elke waarschuwing die deze feed opent. Laat het leeg om het dreigingsniveau van elke indicator te nemen. |
 | **Een incident melden** of **Beide** | Onder **Waarschuwingen en incidenten**. Incidenten sturen on-call-escalatie, SLA's en statuspagina's aan, en voor indicatormatches zijn waarschuwingen meestal genoeg. |
 | **Ernst van incident** | Zoals **Ernst van waarschuwing**, voor incidenten. |
-| **Write Detection Finding on Match** | Standaard aan: elke match schrijft een bevinding in de gebeurtenisstroom. |
+| **Detection Finding schrijven bij overeenkomst** | Standaard aan: elke match schrijft een bevinding in de gebeurtenisstroom. |
 
-De tokens en wachtwoorden van een TAXII-feed worden versleuteld en na het opslaan nooit meer getoond. Om ze te wijzigen, kies je **Update Credentials** in de rij van de feed en daarna **Bearer-token**, **Gebruikersnaam en wachtwoord** of **Niet aanmelden**, dat wist wat is opgeslagen: je keuze vervangt de aanmelding van de feed, dus het opslaan van een token wist een opgeslagen wachtwoord, en omgekeerd.
+De tokens en wachtwoorden van een TAXII-feed worden versleuteld en na het opslaan nooit meer getoond. Om ze te wijzigen, kies je **Inloggegevens bijwerken** in de rij van de feed en daarna **Bearer-token**, **Gebruikersnaam en wachtwoord** of **Niet aanmelden**, dat wist wat is opgeslagen: je keuze vervangt de aanmelding van de feed, dus het opslaan van een token wist een opgeslagen wachtwoord, en omgekeerd.
 
 ### Hoe een feed wordt opgehaald
 
-Elke ophaalronde vraagt om de objecten die sinds de vorige zijn toegevoegd, via de cursor `added_after` van TAXII, en leest tot 10 pagina's van 500 objecten. Een grote collectie synchroniseert dus over meerdere ophaalrondes: **Last Poll Summary** meldt wanneer er nog pagina's resten. Om een grote eerste synchronisatie sneller af te ronden, verlaag je **Poll Interval (Minutes)**, tot 1, totdat hij is bijgewerkt.
+Elke ophaalronde vraagt om de objecten die sinds de vorige zijn toegevoegd, via de cursor `added_after` van TAXII, en leest tot 10 pagina's van 500 objecten. Een grote collectie synchroniseert dus over meerdere ophaalrondes: **Samenvatting van de laatste opvraging** meldt wanneer er nog pagina's resten. Om een grote eerste synchronisatie sneller af te ronden, verlaag je **Opvraaginterval (minuten)**, tot 1, totdat hij is bijgewerkt.
 
 Ophaalrondes noemen zichzelf met de user agent `OneUptime/<version> (+https://oneuptime.com)`. Antwoordt de firewall van de aanbieder `403`, vraag dan om hem toe te staan: veel firewalls blokkeren verzoeken die op een naamloos script lijken.
 
@@ -90,7 +90,7 @@ Een uitgeschakelde feed wordt niet opgehaald en niet vergeleken. De indicatoren 
 
 - Elke ophaalronde downloadt de hele lijst en leest die regel voor regel: de eerste waarde op een regel, tot een spatie, tab, komma of puntkomma. Regels die beginnen met `#`, `;` of `//` zijn commentaar, een poort na een adres of domein valt weg, en een adresbereik zoals `198.51.100.0/24` wordt overgeslagen.
 - Een waarde blijft 2 dagen na de ophaalronde die haar het laatst las een actieve indicator, en een waarde die de lijst laat vallen, matcht vanaf de volgende ophaalronde niet meer. Een lijst die niet is veranderd, wordt eens per dag opnieuw geschreven.
-- Een lijst bevat hooguit 50.000 indicatoren. **Last Poll Summary** vertelt hoeveel er zijn gelezen, hoeveel regels zijn overgeslagen en hoeveel er zijn weggelaten.
+- Een lijst bevat hooguit 50.000 indicatoren. **Samenvatting van de laatste opvraging** vertelt hoeveel er zijn gelezen, hoeveel regels zijn overgeslagen en hoeveel er zijn weggelaten.
 - Het adres moet `https` gebruiken en valt onder dezelfde uitgaande regels als een verbinding: op OneUptime Cloud wordt een privéadres geweigerd.
 
 ### Hoe Google SecOps wordt gelezen
@@ -121,7 +121,7 @@ Vergelijkingen die met `OR` zijn verbonden, binnen één `[...]` of over meerder
 [ipv4-addr:value = '198.51.100.7'] OR [url:value = 'http://evil.example/x']
 ```
 
-Elk ander patroon, met `AND`, `FOLLOWEDBY`, `NOT`, `LIKE`, `MATCHES`, een tijdskwalificatie zoals `WITHIN`, of een ander objecttype, wordt in zijn geheel overgeslagen en als niet-ondersteund geteld in **Last Poll Summary**. Slechts een deel van een `AND`-patroon vertalen zou veel meer matchen dan de auteur van de feed bedoelde.
+Elk ander patroon, met `AND`, `FOLLOWEDBY`, `NOT`, `LIKE`, `MATCHES`, een tijdskwalificatie zoals `WITHIN`, of een ander objecttype, wordt in zijn geheel overgeslagen en als niet-ondersteund geteld in **Samenvatting van de laatste opvraging**. Slechts een deel van een `AND`-patroon vertalen zou veel meer matchen dan de auteur van de feed bedoelde.
 
 ### Hoe lang een indicator actief blijft
 
@@ -129,7 +129,7 @@ Elk ander patroon, met `AND`, `FOLLOWEDBY`, `NOT`, `LIKE`, `MATCHES`, een tijdsk
 - Een ingetrokken indicator, of een indicator die is bijgewerkt met een `valid_until` in het verleden, stopt met matchen zodra de update is opgehaald. Hetzelfde geldt voor een waarde die de aanbieder uit een bijgewerkt patroon laat vallen.
 - Waarden worden in kleine letters opgeslagen en gematcht ongeacht hun hoofdletters.
 
-De tabel **Indicatoren** toont indicatoren zoals ze zijn opgeslagen, met een **Status** van **Actief**, **Verlopen** of **Revoked**. Een opnieuw opgehaalde indicator kan een tijdje dubbel verschijnen, en een verlopen of ingetrokken rij blijft in de lijst staan tot de opslagopschoning hem verwijdert, tot ongeveer een maand nadat hij verloopt. Matchen controleert altijd geldigheid en intrekking, dus zo'n rij matcht nooit.
+De tabel **Indicatoren** toont indicatoren zoals ze zijn opgeslagen, met een **Status** van **Actief**, **Verlopen** of **Ingetrokken**. Een opnieuw opgehaalde indicator kan een tijdje dubbel verschijnen, en een verlopen of ingetrokken rij blijft in de lijst staan tot de opslagopschoning hem verwijdert, tot ongeveer een maand nadat hij verloopt. Matchen controleert altijd geldigheid en intrekking, dus zo'n rij matcht nooit.
 
 ## Hoe matches worden gevonden
 
@@ -170,13 +170,13 @@ Elke minuut worden de actieve indicatoren van elke ingeschakelde feed vergeleken
 - De eerste controle dekt de laatste 15 minuten. Na een storing haalt de volgende controle hoogstens de laatste 24 uur in.
 - Elk venster wordt één keer gecontroleerd. Intel die binnenkomt nadat zijn venster is gecontroleerd, geldt alleen voor latere gebeurtenissen.
 - Een gebeurtenis die te laat binnenkomt, met een tijd van vóór de vorige controle, wordt nog steeds bij binnenkomst gemarkeerd, maar niet vergeleken.
-- Elke controle legt elke gematchte indicatorwaarde vast als Detection Finding, tot 10.000 per feed. Waarschuwingen, incidenten en zaken openen voor de 100 waarden die in de meeste gebeurtenissen voorkomen; de rest deelt één zaak over de feed, en de **Last Match Error** van de feed zegt hoeveel er matchten.
+- Elke controle legt elke gematchte indicatorwaarde vast als Detection Finding, tot 10.000 per feed. Waarschuwingen, incidenten en zaken openen voor de 100 waarden die in de meeste gebeurtenissen voorkomen; de rest deelt één zaak over de feed, en de **Laatste fout bij matchen** van de feed zegt hoeveel er matchten.
 
 ### Wat een match doet
 
 - Een waarschuwing, met de titel `[Threat Intel] <feed name> — <indicator value>`, één per feed en waarde zolang ze openstaat. Zodra ze is opgelost, opent de volgende match een nieuwe. Waarschuwingen worden niet automatisch opgelost.
 - Een incident, alleen met **Een incident melden** of **Beide** onder **Waarschuwingen en incidenten**, op dezelfde manier ontdubbeld.
-- Een Threat Intel-bevinding, met **Write Detection Finding on Match**: een gebeurtenis `Detection Finding` (OCSF-klasse 2004) van het product `OneUptime Threat Intel`, met het dreigingsniveau van de indicator als ernst, en deze attributen:
+- Een Threat Intel-bevinding, met **Detection Finding schrijven bij overeenkomst**: een gebeurtenis `Detection Finding` (OCSF-klasse 2004) van het product `OneUptime Threat Intel`, met het dreigingsniveau van de indicator als ernst, en deze attributen:
 
 | Attribuut | Waarde |
 | --- | --- |
@@ -206,7 +206,7 @@ Een indicator zonder score telt als Medium: iemand koos er toch voor om hem in e
 2. Je ernstniveau dat naar het dreigingsniveau is genoemd, zoals High, ongeacht hoofdletters.
 3. Op rang: Critical en High krijgen je zwaarste ernstniveau, Medium en Low je lichtste.
 
-Het dreigingsniveau hoort bij elke indicator, niet bij de feed, dus één feed kan in dezelfde minuut een waarschuwing Critical en een waarschuwing Low openen. **Minimum Confidence** filtert op hetzelfde getal: een minimum van 70 houdt alleen indicatoren High en Critical over, plus die zonder score, die altijd doorkomen.
+Het dreigingsniveau hoort bij elke indicator, niet bij de feed, dus één feed kan in dezelfde minuut een waarschuwing Critical en een waarschuwing Low openen. **Minimale betrouwbaarheid** filtert op hetzelfde getal: een minimum van 70 houdt alleen indicatoren High en Critical over, plus die zonder score, die altijd doorkomen.
 
 ## De matches van een feed bewaken
 
@@ -219,11 +219,11 @@ Indicatoren zijn configuratie, geen telemetrie, en worden niet gefactureerd als 
 ## Probleemoplossing
 
 :::details Last Error is ingesteld na een ophaalronde
-`401` of `403`: de inloggegevens zijn onjuist of ontbreken; vervang ze met **Update Credentials**. Een `403` kan ook de firewall van de aanbieder zijn die de user agent blokkeert. `404`: controleer de **TAXII API Root URL**, die meestal eindigt op een pad zoals `/api1/`, en de **Collection ID**. De fout verdwijnt bij de volgende geslaagde ophaalronde.
+`401` of `403`: de inloggegevens zijn onjuist of ontbreken; vervang ze met **Inloggegevens bijwerken**. Een `403` kan ook de firewall van de aanbieder zijn die de user agent blokkeert. `404`: controleer de **Hoofd-URL van de TAXII-API**, die meestal eindigt op een pad zoals `/api1/`, en de **Collectie-ID**. De fout verdwijnt bij de volgende geslaagde ophaalronde.
 :::
 
 :::details De feed haalt op, maar er verschijnen geen indicatoren
-Lees **Last Poll Summary**. Geen objecten opgehaald: de collectie is leeg of publiceert geen indicatoren. Niet-ondersteunde patronen: de aanbieder gebruikt patroonfuncties die deze pagina als overgeslagen noemt. Onder de minimale confidence: verlaag **Minimum Confidence**. Al inactief: de aanbieder stuurde indicatoren die al waren ingetrokken of verlopen.
+Lees **Samenvatting van de laatste opvraging**. Geen objecten opgehaald: de collectie is leeg of publiceert geen indicatoren. Niet-ondersteunde patronen: de aanbieder gebruikt patroonfuncties die deze pagina als overgeslagen noemt. Onder de minimale confidence: verlaag **Minimale betrouwbaarheid**. Al inactief: de aanbieder stuurde indicatoren die al waren ingetrokken of verlopen.
 :::
 
 :::details Er zijn indicatoren, maar niets matcht

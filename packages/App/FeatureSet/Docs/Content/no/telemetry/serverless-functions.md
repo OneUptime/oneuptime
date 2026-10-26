@@ -197,7 +197,7 @@ Et ressursattributt som starter med `oneuptime.label.`, blir en prosjektetikett 
 OTEL_RESOURCE_ATTRIBUTES="faas.name=checkout-handler,oneuptime.label.team=payments,oneuptime.label.env=production"
 ```
 
-Vil du heller merke funksjoner eller tildele eiere ut fra navnene deres, åpner du **Produkter → Infrastruktur → Serverløs** og bruker **Etikettregler** og **Eierregler** i sidemenyen. Regler kjører når en funksjon opprettes, også automatisk oppdagede. For å bruke en regel på funksjonene du allerede har, bruker du dens **Run Now** (se [Kjøre regler på eksisterende ressurser](/docs/configuration/run-rules-now)).
+Vil du heller merke funksjoner eller tildele eiere ut fra navnene deres, åpner du **Produkter → Infrastruktur → Serverløs** og bruker **Etikettregler** og **Eierregler** i sidemenyen. Regler kjører når en funksjon opprettes, også automatisk oppdagede. For å bruke en regel på funksjonene du allerede har, bruker du dens **Kjør nå** (se [Kjøre regler på eksisterende ressurser](/docs/configuration/run-rules-now)).
 
 ## Feilsøking
 
