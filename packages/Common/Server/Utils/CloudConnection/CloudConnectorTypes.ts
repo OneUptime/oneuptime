@@ -1,3 +1,4 @@
+import { CloudResourceRelationship } from "../../../Types/Cloud/CloudInventory";
 import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
 import { CloudMonitoredResource } from "../../../Types/Cloud/CloudMonitoredResource";
 import { CloudConnectionTestResult } from "../../../Types/CloudConnection/CloudConnectionTest";
@@ -76,6 +77,25 @@ export interface CloudConnectionPullState {
   azureMetricDefinitions?: JSONObject | undefined;
   // The accounts the last read reached.
   accounts?: Array<string> | undefined;
+  // When the inventory last listed every resource (CloudInventory).
+  inventoryListedAt?: string | undefined;
+  /*
+   * Per account and place ("123456789012|us-east-1"), the newest change
+   * the last read of the cloud's activity log brought in, as an ISO time.
+   */
+  changeCursors?: Record<string, string> | undefined;
+  // When the provider's health events were last read.
+  healthReadAt?: string | undefined;
+  // When the accounts' billing was last read.
+  costReadAt?: string | undefined;
+  /*
+   * A connection that reads a whole organization: its accounts as last
+   * listed (id and name), when they were listed, and each account's own
+   * read state - its Regions, its cursors - by account id.
+   */
+  organizationAccounts?: Array<{ id: string; name: string }> | undefined;
+  organizationListedAt?: string | undefined;
+  accountStates?: Record<string, CloudConnectionPullState> | undefined;
 }
 
 /*
@@ -141,8 +161,59 @@ export interface CloudReadResult {
   nextState: CloudConnectionPullState;
 }
 
+/*
+ * One resource an inventory listed (CloudInventory): who it is - the same
+ * identity its metrics give it, so both are one row - and what the cloud's
+ * own index says of it.
+ */
+export interface CloudInventoryItem {
+  resource: CloudMonitoredResource;
+  // Its name in the cloud when that is not its identity: a Name tag.
+  displayName?: string | undefined;
+  tags: Record<string, string>;
+  properties: JSONObject;
+  relationships: Array<CloudResourceRelationship>;
+  endpoints: Array<string>;
+}
+
+// An account an inventory reached, with the name its cloud gives it.
+export interface CloudInventoryAccount {
+  accountId: string;
+  // An AWS account alias, an Azure subscription's or a project's name.
+  name?: string | undefined;
+}
+
+export interface CloudInventoryOptions extends CloudConnectorCallOptions {
+  state: CloudConnectionPullState;
+  connectionId: string;
+  budget: CloudReadBudget;
+}
+
+export interface CloudInventoryResult {
+  accounts: Array<CloudInventoryAccount>;
+  items: Array<CloudInventoryItem>;
+  /*
+   * Per account, the types listed to their last page in every place they
+   * live. A resource of one of them the connection holds and the listing
+   * does not have is gone from the cloud.
+   */
+  completelyListed: Array<{ accountId: string; resourceTypes: Array<string> }>;
+  warnings: Array<string>;
+  // False when the budget stopped the listing part way.
+  complete: boolean;
+}
+
 export interface CloudConnector {
   provider: CloudProvider;
+  /*
+   * Lists every resource of the connection's accounts from the cloud's own
+   * index, with tags, properties, relationships and endpoints. Optional: a
+   * connector without it is read from its metrics alone.
+   */
+  readInventory?(
+    settings: CloudConnectionSettings,
+    options: CloudInventoryOptions,
+  ): Promise<CloudInventoryResult>;
   /*
    * Shape checks the catalog's required flags cannot express (a GUID, a
    * Region, a role ARN, a service account key). Throws a

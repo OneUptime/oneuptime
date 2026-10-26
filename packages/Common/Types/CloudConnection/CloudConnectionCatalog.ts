@@ -73,6 +73,11 @@ export interface CloudConnectionField {
    */
   isAdvanced?: boolean | undefined;
   /*
+   * Never shown on the form: a value the pasted output fills in, kept like
+   * any other setting (an Azure client secret's expiry).
+   */
+  isHidden?: boolean | undefined;
+  /*
    * The sign-in methods the field belongs to; every method when absent.
    * A field of another method is neither asked for nor stored.
    */
@@ -119,6 +124,20 @@ export interface CloudConnectionDefinition {
 // The setting that says how often a connection's metrics are read.
 export const READ_INTERVAL_FIELD_KEY: string = "readIntervalInMinutes";
 
+/*
+ * The setting that says whether a connection reads the one account its
+ * command was run in, or every account of the organization
+ * (CloudConnectionSetupScope). Chosen on the form's first step, where it
+ * decides which command is shown.
+ */
+export const READ_SCOPE_FIELD_KEY: string = "readScope";
+
+/*
+ * Where an Azure connection keeps when its client secret expires, read from
+ * the endDateTime its setup command prints with the secret.
+ */
+export const AZURE_SECRET_EXPIRES_AT_KEY: string = "clientSecretExpiresAt";
+
 // The intervals a connection may be read at, in minutes.
 export const CLOUD_CONNECTION_READ_INTERVALS: Array<number> = [
   5, 10, 15, 30, 60,
@@ -144,6 +163,27 @@ function readIntervalField(defaultMinutes: number): CloudConnectionField {
   };
 }
 
+function readScopeField(data: {
+  one: string;
+  every: string;
+  authMethods?: Array<CloudConnectionAuthMethod> | undefined;
+}): CloudConnectionField {
+  return {
+    key: READ_SCOPE_FIELD_KEY,
+    title: "What to read",
+    description:
+      "One account, or every account of the organization. The command changes with it.",
+    type: "dropdown",
+    required: false,
+    options: [
+      { label: data.one, value: "account" },
+      { label: data.every, value: "organization" },
+    ],
+    defaultValue: "account",
+    authMethods: data.authMethods,
+  };
+}
+
 export const CloudConnectionCatalog: Array<CloudConnectionDefinition> = [
   {
     provider: CloudProvider.AWS,
@@ -151,8 +191,9 @@ export const CloudConnectionCatalog: Array<CloudConnectionDefinition> = [
     description:
       "EC2, RDS, Lambda, load balancers and more, read from CloudWatch.",
     summary:
-      "Every resource that reports to CloudWatch, in every region you use, with its key metrics.",
-    explanation: "OneUptime can only read metrics and tags.",
+      "Every resource in every region you use, with its key metrics, what changed and what it costs.",
+    explanation:
+      "OneUptime can only read: metrics, resources and how they are set up, changes, health events and costs. Never data or secrets.",
     icon: IconProp.Cloud,
     docsPath: "/docs/telemetry/cloud-accounts#amazon-web-services",
     shellTitle: "AWS CloudShell",
@@ -163,14 +204,14 @@ export const CloudConnectionCatalog: Array<CloudConnectionDefinition> = [
         title: "IAM role",
         description:
           "Recommended. Nothing secret is stored: OneUptime signs in with a role you can delete at any time.",
-        hint: "Run this in AWS CloudShell. It creates a role that can only read metrics and tags, and prints the role's ARN.",
+        hint: "Run this in AWS CloudShell. It creates a role that can only read, and prints the role's ARN.",
       },
       {
         method: CloudConnectionAuthMethod.AwsAccessKey,
         title: "Access key",
         description:
           "An IAM user's access key. Use it when a role is not possible.",
-        hint: "Run this in AWS CloudShell. It creates a user that can only read metrics and tags, and prints its access key.",
+        hint: "Run this in AWS CloudShell. It creates a user that can only read, and prints its access key.",
       },
     ],
     configFields: [
@@ -192,6 +233,11 @@ export const CloudConnectionCatalog: Array<CloudConnectionDefinition> = [
         placeholder: "AKIA...",
         authMethods: [CloudConnectionAuthMethod.AwsAccessKey],
       },
+      readScopeField({
+        one: "This account",
+        every: "Every account in the organization",
+        authMethods: [CloudConnectionAuthMethod.AwsRole],
+      }),
       {
         key: "regions",
         title: "Regions",
@@ -224,8 +270,9 @@ export const CloudConnectionCatalog: Array<CloudConnectionDefinition> = [
     description:
       "Virtual machines, App Service, SQL, storage and more, read from Azure Monitor.",
     summary:
-      "Every resource in the subscriptions the app can read, with its key metrics.",
-    explanation: "OneUptime can only read resources and metrics.",
+      "Every resource in the subscriptions the app can read, with its key metrics, what changed and what it costs.",
+    explanation:
+      "OneUptime can only read: resources, metrics, the activity log and costs. Never data or secrets.",
     icon: IconProp.Cloud,
     docsPath: "/docs/telemetry/cloud-accounts#microsoft-azure",
     shellTitle: "Azure Cloud Shell",
@@ -234,8 +281,9 @@ export const CloudConnectionCatalog: Array<CloudConnectionDefinition> = [
       {
         method: CloudConnectionAuthMethod.AzureClientSecret,
         title: "App registration",
-        description: "An app with the Monitoring Reader role.",
-        hint: "Run this in Azure Cloud Shell. It creates an app with the Monitoring Reader role on your subscription, and prints its details.",
+        description:
+          "An app with the Monitoring Reader and Cost Management Reader roles.",
+        hint: "Run this in Azure Cloud Shell. It creates an app that can only read, and prints its details.",
       },
     ],
     configFields: [
@@ -255,6 +303,10 @@ export const CloudConnectionCatalog: Array<CloudConnectionDefinition> = [
         required: true,
         placeholder: "00000000-0000-0000-0000-000000000000",
       },
+      readScopeField({
+        one: "This subscription",
+        every: "Every subscription in the tenant",
+      }),
       {
         key: "subscriptionIds",
         title: "Subscriptions",
@@ -279,6 +331,15 @@ export const CloudConnectionCatalog: Array<CloudConnectionDefinition> = [
         isAdvanced: true,
       },
       readIntervalField(5),
+      {
+        key: AZURE_SECRET_EXPIRES_AT_KEY,
+        title: "Client secret expires",
+        description:
+          "When the client secret stops working, as the setup command printed it.",
+        type: "text",
+        required: false,
+        isHidden: true,
+      },
     ],
     secretFields: [
       {
@@ -299,8 +360,9 @@ export const CloudConnectionCatalog: Array<CloudConnectionDefinition> = [
     description:
       "Compute Engine, Cloud SQL, Cloud Run, buckets and more, read from Cloud Monitoring.",
     summary:
-      "Every resource that reports to Cloud Monitoring in your projects, with its key metrics.",
-    explanation: "OneUptime can only read metrics.",
+      "Every resource in your projects, with its key metrics and what changed.",
+    explanation:
+      "OneUptime can only read: metrics, resources and the audit log. Never data or secrets.",
     icon: IconProp.Cloud,
     docsPath: "/docs/telemetry/cloud-accounts#google-cloud",
     shellTitle: "Google Cloud Shell",
@@ -309,11 +371,16 @@ export const CloudConnectionCatalog: Array<CloudConnectionDefinition> = [
       {
         method: CloudConnectionAuthMethod.GcpServiceAccountKey,
         title: "Service account",
-        description: "A service account with the Monitoring Viewer role.",
-        hint: "Run this in Cloud Shell, in the project to monitor. It creates a service account with the Monitoring Viewer role, and prints its key.",
+        description:
+          "A service account with the Monitoring Viewer, Cloud Asset Viewer and Logs Viewer roles.",
+        hint: "Run this in Cloud Shell, in the project to monitor. It creates a service account that can only read, and prints its key.",
       },
     ],
     configFields: [
+      readScopeField({
+        one: "This project",
+        every: "Every project in the organization",
+      }),
       {
         key: "projectIds",
         title: "Projects",

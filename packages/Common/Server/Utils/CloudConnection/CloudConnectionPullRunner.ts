@@ -18,6 +18,9 @@ import logger from "../Logger";
 import CloudConnectionResourceSync, {
   CloudConnectionSyncResult,
 } from "./CloudConnectionResourceSync";
+import CloudConnectionLanes, {
+  CloudInventoryLaneOutcome,
+} from "./CloudConnectionLanes";
 import CloudConnectionScheduler from "./CloudConnectionScheduler";
 import CloudConnectorRegistry from "./CloudConnectorRegistry";
 import {
@@ -45,7 +48,10 @@ import {
  *      linked before their metrics land, so they carry the cloud's names -
  *      and hands the metrics to the metrics ingest (the importer the App
  *      gives it), exactly as a collector's cloud receiver would;
- *   5. records the outcome on the connection: when it read, what it found,
+ *   5. on their own slower beat, lists every resource of the accounts (the
+ *      inventory) and keeps the connection's cloud accounts
+ *      (CloudConnectionLanes);
+ *   6. records the outcome on the connection: when it read, what it found,
  *      the error (secrets removed), where it got to and when it reads next.
  *
  * A failure never escapes as anything but a recorded outcome, and the
@@ -56,6 +62,12 @@ import {
 // One read stops after this many cloud API calls, or this long.
 export const CLOUD_READ_MAX_REQUESTS: number = 3000;
 export const CLOUD_READ_MAX_DURATION_MS: number = 6 * 60 * 1000;
+/*
+ * A read is over this long after it starts - a little inside the job's own
+ * timeout (CLOUD_CONNECTION_PULL_JOB_TIMEOUT_MS) - so its slower lanes stop
+ * before the job is stopped under them.
+ */
+export const CLOUD_READ_DEADLINE_MS: number = 8 * 60 * 1000 + 30 * 1000;
 // After a failure the next read waits at least this long.
 const RETRY_AFTER_FAILURE_MS: number = 15 * 60 * 1000;
 // After a refused credential, the next read waits this long.
@@ -231,17 +243,53 @@ export default class CloudConnectionPullRunner {
         );
       }
 
+      // The inventory and the accounts, on their own beat.
+      const state: CloudConnectionPullState = { ...read.nextState };
+      const inventory: CloudInventoryLaneOutcome =
+        await CloudConnectionLanes.runInventory({
+          projectId: connection.projectId,
+          connectionId: connection.id!,
+          connector,
+          settings,
+          state,
+          transport,
+          now,
+          deadlineMs: startedAt + CLOUD_READ_DEADLINE_MS,
+          sleep: dependencies.sleep,
+        });
+
+      warnings.push(...inventory.warnings);
+
+      await CloudConnectionLanes.keepAccounts({
+        projectId: connection.projectId,
+        connectionId: connection.id!,
+        provider: definition.provider,
+        accountIds: read.accounts,
+        named: inventory.accounts,
+        inventoryListedAt: inventory.ran ? now : undefined,
+        recount:
+          inventory.ran ||
+          synced.newResources > 0 ||
+          synced.archivedResources > 0,
+      });
+
+      // What the connection holds after the last sync of this read.
+      const held: CloudConnectionSyncResult = inventory.synced || synced;
+
       const status: CloudConnectionReadStatus =
         read.complete && !synced.hasMore ? "success" : "partial";
 
       const summary: CloudConnectionReadSummary = {
         status,
         accounts: read.accounts,
-        resourceCount: synced.resourceCount,
-        resourceTypes: synced.resourceTypes,
-        regions: synced.regions,
-        newResources: synced.newResources,
-        archivedResources: synced.archivedResources,
+        resourceCount: held.resourceCount,
+        resourceTypes: held.resourceTypes,
+        regions: held.regions,
+        newResources:
+          synced.newResources + (inventory.synced?.newResources || 0),
+        archivedResources:
+          synced.archivedResources +
+          (inventory.synced?.archivedResources || 0),
         pointsWritten: read.pointsWritten,
         requestCount: read.requestCount,
         warnings: warnings.slice(0, 10),
@@ -254,7 +302,7 @@ export default class CloudConnectionPullRunner {
         lastSuccessfulPullAt: now,
         lastError: null,
         lastPullResult: summary as unknown as JSONObject,
-        pullState: read.nextState as unknown as JSONObject,
+        pullState: state as unknown as JSONObject,
         nextPullAt: CloudConnectionPullRunner.nextPullAt({
           now,
           intervalInMinutes: interval,

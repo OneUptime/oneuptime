@@ -38,6 +38,8 @@ import {
   getCloudMonitoredResourceNameCandidates,
 } from "../../Types/Cloud/CloudMonitoredResource";
 import { mdText, MarkdownText } from "../../Utils/Markdown/FeedMarkdown";
+import { CloudResourceRelationship } from "../../Types/Cloud/CloudInventory";
+import Dictionary from "../../Types/Dictionary";
 
 const LAST_SEEN_CACHE_NAMESPACE: string = "cloud-resource-last-seen";
 const LAST_SEEN_THROTTLE_SECONDS: number = 60;
@@ -102,6 +104,18 @@ const MONITORED_RESOURCE_BUDGET_WARNING_MS: number = 10 * 60 * 1000;
 interface MonitoredResourceCount {
   count: number;
   readAtMs: number;
+}
+
+/*
+ * What a cloud connection's inventory knows of a resource beyond its
+ * metrics (CloudInventory): written when the row is created, and by every
+ * listing after that.
+ */
+export interface CloudResourceInventoryColumns {
+  cloudTags: Dictionary<string>;
+  cloudProperties: JSONObject;
+  cloudRelationships: Array<CloudResourceRelationship>;
+  cloudEndpoints: Array<string>;
 }
 
 export interface CloudMonitoredResourceFindOrCreateResult {
@@ -535,6 +549,8 @@ export class Service extends ProjectReferencesService<Model> {
   public async findOrCreateMonitoredResource(data: {
     projectId: ObjectID;
     resource: CloudMonitoredResource;
+    // A resource an inventory listed: what it knows, set on the new row.
+    inventory?: CloudResourceInventoryColumns | undefined;
   }): Promise<CloudMonitoredResourceFindOrCreateResult> {
     const resourceIdentifier: string = buildCloudMonitoredResourceIdentifier(
       data.resource,
@@ -573,6 +589,7 @@ export class Service extends ProjectReferencesService<Model> {
         resource: data.resource,
         resourceIdentifier: resourceIdentifier,
         name: name,
+        inventory: data.inventory,
       });
     } catch (error) {
       const winner: Model | null = await this.findMonitoredResourceRow(
@@ -601,6 +618,7 @@ export class Service extends ProjectReferencesService<Model> {
         resource: data.resource,
         resourceIdentifier: resourceIdentifier,
         name: uniqueName,
+        inventory: data.inventory,
       });
     }
 
@@ -643,6 +661,43 @@ export class Service extends ProjectReferencesService<Model> {
         .update(JSON.stringify(metadata))
         .digest("hex"),
       describe: `cloud resource ${data.cloudResourceId.toString()} (${data.resource.provider} ${data.resource.resourceType})`,
+    });
+  }
+
+  /**
+   * A resource an inventory listed: it is alive (listed is alive, so a
+   * resource with no metrics OneUptime reads never goes "not reporting"),
+   * and what the inventory knows of it replaces what the last listing did.
+   * The name is never touched: a person may have renamed it. Ignores hooks:
+   * a listing is a reading, not an edit, and writes no feed item.
+   */
+  @CaptureSpan()
+  public async recordInventoryListing(data: {
+    cloudResourceId: ObjectID;
+    resource: CloudMonitoredResource;
+    inventory: CloudResourceInventoryColumns;
+    listedAt: Date;
+  }): Promise<void> {
+    /*
+     * The attributes that select the resource's metrics are left as they
+     * are: metrics that arrive in another shape (a JSON metric stream) wrote
+     * theirs, and a listing must not point the resource's charts elsewhere.
+     */
+    const columns: PartialEntity<Model> = this.getMonitoredResourceColumns(
+      data.resource,
+    );
+    delete columns.telemetryAttributes;
+
+    await this.updateOneById({
+      id: data.cloudResourceId,
+      data: {
+        ...columns,
+        ...data.inventory,
+        inventoriedAt: data.listedAt,
+        lastSeenAt: data.listedAt,
+        otelCollectorStatus: "connected",
+      } as never,
+      props: { isRoot: true, ignoreHooks: true },
     });
   }
 
@@ -895,6 +950,7 @@ export class Service extends ProjectReferencesService<Model> {
     resource: CloudMonitoredResource;
     resourceIdentifier: string;
     name: string;
+    inventory?: CloudResourceInventoryColumns | undefined;
   }): Promise<Model> {
     const row: Model = new Model();
     row.projectId = data.projectId;
@@ -908,6 +964,15 @@ export class Service extends ProjectReferencesService<Model> {
       data.resource,
     );
     Object.assign(row, columns);
+
+    /*
+     * Set before the create, so the label and owner rules - which run on
+     * create - can match the resource's tags.
+     */
+    if (data.inventory) {
+      Object.assign(row, data.inventory);
+      row.inventoriedAt = OneUptimeDate.getCurrentDate();
+    }
 
     return await this.create({
       data: row,

@@ -7,6 +7,7 @@ import {
 } from "../../../../Types/Cloud/CloudKeyMetrics";
 import { CloudMonitoredResource } from "../../../../Types/Cloud/CloudMonitoredResource";
 import { splitCloudConnectionList } from "../../../../Types/CloudConnection/CloudConnectionCatalog";
+import { CloudConnectionSetupScope } from "../../../../Types/CloudConnection/CloudConnectionSetupCommands";
 import {
   CloudConnectionFailureKind,
   CloudConnectionTestResult,
@@ -39,6 +40,9 @@ import {
   CloudConnector,
   CloudConnectorCallOptions,
   CloudDiscoveredResource,
+  CloudInventoryItem,
+  CloudInventoryOptions,
+  CloudInventoryResult,
   CloudReadBudget,
   CloudReadBudgetSpent,
   CloudReadOptions,
@@ -46,6 +50,14 @@ import {
   getCloudSecretValues,
   readCloudSetting,
 } from "../CloudConnectorTypes";
+import GcpInventoryClient, {
+  GCP_INVENTORY_TYPES,
+  GcpAsset,
+  GcpAssetListing,
+  GcpInventoryType,
+  addGcpTopicEdges,
+  buildGcpInventoryItem,
+} from "./GcpInventory";
 import GcpMonitoring, { GcpTimeSeries } from "./GcpMonitoring";
 
 /*
@@ -64,6 +76,18 @@ import GcpMonitoring, { GcpTimeSeries } from "./GcpMonitoring";
 const PROVIDER_TITLE: string = "Google Cloud";
 const CONCURRENCY: number = 6;
 export const GCP_MAX_PROJECTS: number = 20;
+// The most projects of an organization one connection reads.
+export const GCP_MAX_ORGANIZATION_PROJECTS: number = 50;
+const DAY_MS: number = 24 * 60 * 60 * 1000;
+
+function isOlderThan(
+  iso: string | undefined,
+  ageMs: number,
+  now: Date,
+): boolean {
+  const time: number = iso ? Date.parse(iso) : NaN;
+  return !Number.isFinite(time) || now.getTime() - time >= ageMs;
+}
 // A test looks back this far, for the first metric of each resource type.
 const TEST_LOOK_BACK_MS: number = 30 * 60 * 1000;
 
@@ -111,6 +135,69 @@ export default class GcpCloudConnector implements CloudConnector {
     return key.projectId ? [key.projectId] : [];
   }
 
+  // Whether the connection reads every project of a Google Cloud organization.
+  public isOrganization(settings: CloudConnectionSettings): boolean {
+    return (
+      readCloudSetting(settings.config, "readScope") ===
+      CloudConnectionSetupScope.Organization
+    );
+  }
+
+  /*
+   * The projects a read reads: those the connection names (or the key's
+   * own) - or, for an organization, every active project the service
+   * account may see, searched once a day and kept in the read state.
+   */
+  public async resolveProjects(data: {
+    settings: CloudConnectionSettings;
+    options: CloudConnectorCallOptions;
+    budget: CloudReadBudget;
+    state: CloudConnectionPullState;
+    now: Date;
+  }): Promise<Array<string>> {
+    if (!this.isOrganization(data.settings)) {
+      return this.getProjects(data.settings);
+    }
+
+    const known: Array<{ id: string; name: string }> =
+      data.state.organizationAccounts || [];
+
+    if (
+      known.length > 0 &&
+      !isOlderThan(data.state.organizationListedAt, DAY_MS, data.now)
+    ) {
+      return known.map((project: { id: string }): string => {
+        return project.id;
+      });
+    }
+
+    const client: GcpInventoryClient = new GcpInventoryClient({
+      serviceAccountJson: readCloudSetting(
+        data.settings.secrets,
+        "serviceAccountJson",
+      ),
+      transport: data.options.transport,
+      requestTimeoutInMs: data.options.requestTimeoutInMs,
+      budget: data.budget,
+    });
+    const found: Array<{ projectId: string; displayName: string }> = (
+      await client.searchProjects()
+    ).slice(0, GCP_MAX_ORGANIZATION_PROJECTS);
+
+    data.state.organizationAccounts = found.map(
+      (project: { projectId: string; displayName: string }) => {
+        return { id: project.projectId, name: project.displayName };
+      },
+    );
+    data.state.organizationListedAt = data.now.toISOString();
+
+    return found.length > 0
+      ? found.map((project: { projectId: string }): string => {
+          return project.projectId;
+        })
+      : this.getProjects(data.settings);
+  }
+
   public validateSettings(settings: CloudConnectionSettings): void {
     const json: string = readCloudSetting(
       settings.secrets,
@@ -156,6 +243,129 @@ export default class GcpCloudConnector implements CloudConnector {
       requestTimeoutInMs: options.requestTimeoutInMs,
       budget,
     });
+  }
+
+  /*
+   * The projects' inventory (GcpInventory): every asset of the inventory's
+   * types in each project read, and each project's name. A project whose
+   * Cloud Asset API is off, or that the service account may not list, is a
+   * warning that says what to run.
+   */
+  public async readInventory(
+    settings: CloudConnectionSettings,
+    options: CloudInventoryOptions,
+  ): Promise<CloudInventoryResult> {
+    const client: GcpInventoryClient = new GcpInventoryClient({
+      serviceAccountJson: readCloudSetting(
+        settings.secrets,
+        "serviceAccountJson",
+      ),
+      transport: options.transport,
+      requestTimeoutInMs: options.requestTimeoutInMs,
+      budget: options.budget,
+    });
+    const organization: Array<{ id: string; name: string }> =
+      this.isOrganization(settings)
+        ? options.state.organizationAccounts || []
+        : [];
+    const projects: Array<string> =
+      organization.length > 0
+        ? organization.map((project: { id: string }): string => {
+            return project.id;
+          })
+        : this.getProjects(settings).slice(0, GCP_MAX_PROJECTS);
+    const organizationNames: Map<string, string> = new Map(
+      organization.map((project: { id: string; name: string }) => {
+        return [project.id, project.name];
+      }),
+    );
+    const items: Array<CloudInventoryItem> = [];
+    const accounts: Array<{ accountId: string; name?: string | undefined }> =
+      [];
+    const completelyListed: Array<{
+      accountId: string;
+      resourceTypes: Array<string>;
+    }> = [];
+    const warnings: Array<string> = [];
+    let complete: boolean = true;
+
+    for (const projectId of projects) {
+      if (options.budget.isSpent()) {
+        complete = false;
+        break;
+      }
+
+      let listing: GcpAssetListing;
+
+      try {
+        listing = await client.listAssets(projectId);
+      } catch (error) {
+        if (error instanceof CloudReadBudgetSpent) {
+          complete = false;
+          break;
+        }
+
+        if (
+          error instanceof LlmProviderError &&
+          error.kind === CloudConnectionFailureKind.Authentication
+        ) {
+          throw error;
+        }
+
+        warnings.push(
+          error instanceof LlmProviderError &&
+            error.kind === CloudConnectionFailureKind.Permission
+            ? `The service account may not list the resources of ${projectId}. Run the setup command again: it gives it the Cloud Asset Viewer role.`
+            : `Could not list the resources of ${projectId}: ${
+                error instanceof Error ? error.message : String(error)
+              }`,
+        );
+        accounts.push({ accountId: projectId });
+        continue;
+      }
+
+      const assets: Map<CloudInventoryItem, GcpAsset> = new Map();
+      const projectItems: Array<CloudInventoryItem> = [];
+
+      for (const asset of listing.assets) {
+        const item: CloudInventoryItem | null = buildGcpInventoryItem(asset, {
+          projectId,
+        });
+
+        if (item) {
+          projectItems.push(item);
+          assets.set(item, asset);
+        }
+      }
+
+      addGcpTopicEdges({ items: projectItems, assets });
+      items.push(...projectItems);
+
+      if (listing.complete) {
+        completelyListed.push({
+          accountId: projectId,
+          resourceTypes: Array.from(
+            new Set(
+              GCP_INVENTORY_TYPES.map((type: GcpInventoryType): string => {
+                return type.monitoredType || type.assetType;
+              }),
+            ),
+          ),
+        });
+      } else {
+        complete = false;
+      }
+
+      accounts.push({
+        accountId: projectId,
+        name:
+          organizationNames.get(projectId) ||
+          (await client.getProjectName(projectId)) ||
+          undefined,
+      });
+    }
+
+    return { accounts, items, completelyListed, warnings, complete };
   }
 
   private resourceAttributes(data: {
@@ -356,7 +566,13 @@ export default class GcpCloudConnector implements CloudConnector {
       options,
       budget,
     );
-    const projects: Array<string> = this.getProjects(settings);
+    const projects: Array<string> = await this.resolveProjects({
+      settings,
+      options,
+      budget,
+      state,
+      now,
+    });
     const cursors: Record<string, string> = { ...(state.cursors || {}) };
     const window: MetricWindow | null = getMetricWindow({
       policy: getMetricWindowPolicy({

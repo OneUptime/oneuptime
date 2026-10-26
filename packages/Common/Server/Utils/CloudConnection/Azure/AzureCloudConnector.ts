@@ -6,8 +6,13 @@ import {
   getAzureStoredMetricName,
 } from "../../../../Types/Cloud/CloudKeyMetrics";
 import { CloudMonitoredResource } from "../../../../Types/Cloud/CloudMonitoredResource";
-import { getCloudResourceTypeDescriptor } from "../../../../Types/Cloud/CloudResourceCatalog";
+import {
+  AZURE_RESOURCE_TYPES,
+  CloudResourceTypeDescriptor,
+  getCloudResourceTypeDescriptor,
+} from "../../../../Types/Cloud/CloudResourceCatalog";
 import { splitCloudConnectionList } from "../../../../Types/CloudConnection/CloudConnectionCatalog";
+import { AZURE_SECRET_EXPIRES_AT_KEY } from "../../../../Types/CloudConnection/CloudConnectionCatalog";
 import {
   CloudConnectionFailureKind,
   CloudConnectionTestResult,
@@ -41,6 +46,9 @@ import {
   CloudConnector,
   CloudConnectorCallOptions,
   CloudDiscoveredResource,
+  CloudInventoryItem,
+  CloudInventoryOptions,
+  CloudInventoryResult,
   CloudKnownResource,
   CloudReadBudget,
   CloudReadBudgetSpent,
@@ -55,6 +63,7 @@ import AzureArm, {
   AzureResource,
   AzureSubscription,
 } from "./AzureArm";
+import { buildAzureInventoryItem, buildAzureInventoryQuery } from "./AzureInventory";
 
 /*
  * MICROSOFT AZURE: every subscription an app registration may read, from
@@ -185,6 +194,64 @@ function isOlderThan(
 ): boolean {
   const time: number = iso ? Date.parse(iso) : NaN;
   return !Number.isFinite(time) || now.getTime() - time >= ageMs;
+}
+
+// How long before a client secret expires a read starts saying so.
+export const AZURE_SECRET_EXPIRY_WARNING_DAYS: number = 30;
+
+/*
+ * A read's warning that the app's client secret expires soon, from the
+ * expiry its setup command printed (AZURE_SECRET_EXPIRES_AT_KEY) - or null
+ * when it does not expire within AZURE_SECRET_EXPIRY_WARNING_DAYS, or the
+ * connection was made before the command printed it.
+ */
+export function getAzureSecretExpiryWarning(data: {
+  settings: CloudConnectionSettings;
+  now: Date;
+}): string | null {
+  const expiresAt: number = Date.parse(
+    readCloudSetting(data.settings.config, AZURE_SECRET_EXPIRES_AT_KEY),
+  );
+
+  if (!Number.isFinite(expiresAt)) {
+    return null;
+  }
+
+  const daysLeft: number = Math.floor(
+    (expiresAt - data.now.getTime()) / (24 * 60 * 60 * 1000),
+  );
+
+  if (daysLeft > AZURE_SECRET_EXPIRY_WARNING_DAYS || daysLeft < 0) {
+    return null;
+  }
+
+  return `The app's client secret expires on ${new Date(expiresAt)
+    .toISOString()
+    .slice(
+      0,
+      10,
+    )}. Run the setup command again and paste what it prints before then, or reading stops.`;
+}
+
+/*
+ * Microsoft Entra refuses an expired client secret with AADSTS7000222: said
+ * as what it is and what to do, rather than as a refused credential.
+ */
+export function explainExpiredAzureSecret(error: unknown): unknown {
+  if (
+    error instanceof LlmProviderError &&
+    (error.responseBody || "").includes("AADSTS7000222")
+  ) {
+    return new LlmProviderError({
+      message:
+        "The app's client secret has expired. Run the setup command again and paste what it prints.",
+      kind: CloudConnectionFailureKind.Authentication,
+      statusCode: error.statusCode,
+      responseBody: error.responseBody,
+    });
+  }
+
+  return error;
 }
 
 export default class AzureCloudConnector implements CloudConnector {
@@ -532,7 +599,7 @@ export default class AzureCloudConnector implements CloudConnector {
     }
 
     const failure: LlmProviderError = LlmProviderError.from({
-      error: data.error,
+      error: explainExpiredAzureSecret(data.error),
       step: "test",
       providerTitle: PROVIDER_TITLE,
       secretValues: getCloudSecretValues(data.settings),
@@ -604,7 +671,138 @@ export default class AzureCloudConnector implements CloudConnector {
     return definitions;
   }
 
+  /*
+   * The subscriptions' inventory (AzureInventory): one Resource Graph query
+   * over the subscriptions read, with each subscription named as Azure
+   * names it.
+   */
+  public async readInventory(
+    settings: CloudConnectionSettings,
+    options: CloudInventoryOptions,
+  ): Promise<CloudInventoryResult> {
+    try {
+      return await this.listInventory(settings, options);
+    } catch (error) {
+      throw explainExpiredAzureSecret(error);
+    }
+  }
+
+  private async listInventory(
+    settings: CloudConnectionSettings,
+    options: CloudInventoryOptions,
+  ): Promise<CloudInventoryResult> {
+    const arm: AzureArm = this.arm(settings, options, options.budget);
+    const subscriptions: Array<AzureSubscription> = (
+      await this.getSubscriptions(arm, settings)
+    ).slice(0, AZURE_MAX_SUBSCRIPTIONS);
+    const subscriptionIds: Array<string> = subscriptions.map(
+      (subscription: AzureSubscription): string => {
+        return subscription.subscriptionId;
+      },
+    );
+    const names: Map<string, string> = new Map();
+
+    for (const subscription of subscriptions) {
+      if (
+        subscription.displayName &&
+        subscription.displayName !== subscription.subscriptionId
+      ) {
+        names.set(
+          subscription.subscriptionId.toLowerCase(),
+          subscription.displayName,
+        );
+      }
+    }
+
+    // Subscriptions the connection names are named by listing them once.
+    if (names.size === 0 && subscriptionIds.length > 0) {
+      try {
+        for (const subscription of await arm.listSubscriptions()) {
+          if (subscription.displayName) {
+            names.set(
+              subscription.subscriptionId.toLowerCase(),
+              subscription.displayName,
+            );
+          }
+        }
+      } catch (error) {
+        if (error instanceof CloudReadBudgetSpent) {
+          throw error;
+        }
+      }
+    }
+
+    const listing: { rows: Array<JSONObject>; complete: boolean } =
+      subscriptionIds.length > 0
+        ? await arm.queryResourceGraph({
+            subscriptionIds,
+            query: buildAzureInventoryQuery(),
+          })
+        : { rows: [], complete: true };
+
+    const items: Array<CloudInventoryItem> = [];
+
+    for (const row of listing.rows) {
+      const item: CloudInventoryItem | null = buildAzureInventoryItem(row);
+
+      if (item) {
+        items.push(item);
+      }
+    }
+
+    const knownTypes: Array<string> = AZURE_RESOURCE_TYPES.map(
+      (descriptor: CloudResourceTypeDescriptor): string => {
+        return descriptor.type;
+      },
+    );
+
+    return {
+      accounts: subscriptionIds.map((subscriptionId: string) => {
+        return {
+          accountId: subscriptionId,
+          name: names.get(subscriptionId.toLowerCase()),
+        };
+      }),
+      items,
+      completelyListed: listing.complete
+        ? subscriptionIds.map((subscriptionId: string) => {
+            return { accountId: subscriptionId, resourceTypes: knownTypes };
+          })
+        : [],
+      warnings: listing.complete
+        ? []
+        : [
+            "The subscriptions have more resources than one inventory lists: the rest are listed next time.",
+          ],
+      complete: listing.complete,
+    };
+  }
+
   public async read(
+    settings: CloudConnectionSettings,
+    options: CloudReadOptions,
+  ): Promise<CloudReadResult> {
+    try {
+      const result: CloudReadResult = await this.readSubscriptions(
+        settings,
+        options,
+      );
+      const expiry: string | null = getAzureSecretExpiryWarning({
+        settings,
+        now: options.now ? options.now() : new Date(),
+      });
+
+      if (expiry) {
+        result.warnings.unshift(expiry);
+      }
+
+      return result;
+    } catch (error) {
+      throw explainExpiredAzureSecret(error);
+    }
+  }
+
+  private async readSubscriptions(
     settings: CloudConnectionSettings,
     options: CloudReadOptions,
   ): Promise<CloudReadResult> {

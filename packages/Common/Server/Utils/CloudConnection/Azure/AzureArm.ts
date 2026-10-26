@@ -34,6 +34,14 @@ import {
  *       &interval=PT1M&aggregation=Average,Total
  *       -> per metric, its series' points
  *
+ *   POST {arm}/providers/Microsoft.ResourceGraph/resources?api-version=2022-10-01
+ *       { subscriptions, query, options: { $top, $skipToken } }
+ *       -> the rows of a Resource Graph query over the subscriptions
+ *          (data[], $skipToken): the inventory's one listing of every
+ *          resource with its tags and properties
+ *   GET/POST anything else the inventory, the changes and the billing read,
+ *       through get() and post() - always on the management host.
+ *
  * Listing and metric definitions are free; Azure Monitor gives each
  * subscription its first million metric reads a month free.
  */
@@ -42,6 +50,10 @@ export const AZURE_SUBSCRIPTIONS_API_VERSION: string = "2022-12-01";
 export const AZURE_RESOURCES_API_VERSION: string = "2021-04-01";
 export const AZURE_METRIC_DEFINITIONS_API_VERSION: string = "2018-01-01";
 export const AZURE_METRICS_API_VERSION: string = "2023-10-01";
+export const AZURE_RESOURCE_GRAPH_API_VERSION: string = "2022-10-01";
+// Rows of a Resource Graph page, and pages of one query at most.
+const RESOURCE_GRAPH_PAGE_SIZE: number = 1000;
+const RESOURCE_GRAPH_MAX_PAGES: number = 20;
 
 const PROVIDER_TITLE: string = "Azure";
 const MAX_LIST_PAGES: number = 50;
@@ -108,6 +120,92 @@ export default class AzureArm {
 
   public getManagementBaseUrl(): string {
     return EntraTokenClient.getEndpoints(this.options.cloud).managementBaseUrl;
+  }
+
+  // A GET on the management host, signed in as the app.
+  public async getJson(url: string, step: string): Promise<JSONObject> {
+    return await this.get(url, step);
+  }
+
+  // A POST of a JSON body on the management host, signed in as the app.
+  public async post(
+    url: string,
+    body: JSONObject,
+    step: string,
+  ): Promise<JSONObject> {
+    if (this.options.budget && !this.options.budget.take()) {
+      throw new CloudReadBudgetSpent();
+    }
+
+    const token: string = await this.tokens.getAccessToken(
+      this.getManagementBaseUrl(),
+    );
+
+    return await LlmProviderHttp.requestJson({
+      transport: this.options.transport,
+      method: "POST",
+      url,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+      timeoutInMs: this.options.requestTimeoutInMs,
+      step,
+      providerTitle: PROVIDER_TITLE,
+      secretValues: [this.options.clientSecret, token],
+    });
+  }
+
+  /*
+   * Every row of a Resource Graph query over the subscriptions, page by
+   * page. `complete` is false when it stopped at RESOURCE_GRAPH_MAX_PAGES.
+   */
+  public async queryResourceGraph(data: {
+    subscriptionIds: Array<string>;
+    query: string;
+  }): Promise<{ rows: Array<JSONObject>; complete: boolean }> {
+    const url: string = `${this.getManagementBaseUrl()}/providers/Microsoft.ResourceGraph/resources?${buildQueryString(
+      [["api-version", AZURE_RESOURCE_GRAPH_API_VERSION]],
+    )}`;
+    const rows: Array<JSONObject> = [];
+    let skipToken: string = "";
+
+    for (let page: number = 0; page < RESOURCE_GRAPH_MAX_PAGES; page++) {
+      const options: JSONObject = {
+        $top: RESOURCE_GRAPH_PAGE_SIZE,
+        resultFormat: "objectArray",
+      };
+
+      if (skipToken) {
+        options["$skipToken"] = skipToken;
+      }
+
+      const response: JSONObject = await this.post(
+        url,
+        {
+          subscriptions: data.subscriptionIds,
+          query: data.query,
+          options,
+        },
+        "resource graph query",
+      );
+
+      for (const row of readArray(response["data"])) {
+        rows.push(readObject(row));
+      }
+
+      const next: string = readText(response["$skipToken"]);
+
+      if (!next || next === skipToken) {
+        return { rows, complete: true };
+      }
+
+      skipToken = next;
+    }
+
+    return { rows, complete: false };
   }
 
   private async get(url: string, step: string): Promise<JSONObject> {

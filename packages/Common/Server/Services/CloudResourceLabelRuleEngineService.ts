@@ -4,6 +4,7 @@ import CloudResource from "../../Models/DatabaseModels/CloudResource";
 import CloudResourceLabelRule from "../../Models/DatabaseModels/CloudResourceLabelRule";
 import CloudResourceLabelRuleService from "./CloudResourceLabelRuleService";
 import CloudResourceService from "./CloudResourceService";
+import { getCloudTagRuleMatchValues } from "../../Types/Cloud/CloudInventory";
 import CloudResourceFeedService from "./CloudResourceFeedService";
 import { CloudResourceFeedEventType } from "../../Models/DatabaseModels/CloudResourceFeed";
 import { Purple500 } from "../../Types/BrandColors";
@@ -35,6 +36,7 @@ class CloudResourceLabelRuleEngineServiceClass
     matchLabels: { _id: true },
     nameRegexPattern: true,
     descriptionRegexPattern: true,
+    cloudTagPattern: true,
     labelsToAdd: { _id: true },
   };
 
@@ -133,6 +135,7 @@ class CloudResourceLabelRuleEngineServiceClass
           name: true,
           description: true,
           labels: { _id: true },
+          cloudTags: true,
         },
         props: { isRoot: true },
       });
@@ -250,6 +253,7 @@ class CloudResourceLabelRuleEngineServiceClass
         "matchLabels",
         "nameRegexPattern",
         "descriptionRegexPattern",
+        "cloudTagPattern",
       ],
       emptyResult: true,
       matchesLegacyRule: (legacyRule: CloudResourceLabelRule): boolean => {
@@ -298,6 +302,21 @@ class CloudResourceLabelRuleEngineServiceClass
         ))
     ) {
       return false;
+    }
+
+    // Any one of the resource's tags, written key=value, matching is enough.
+    if (rule.cloudTagPattern) {
+      const tagPattern: string = rule.cloudTagPattern;
+
+      if (
+        !getCloudTagRuleMatchValues(cloudResource.cloudTags).some(
+          (value: string): boolean => {
+            return this.testRegex(tagPattern, value);
+          },
+        )
+      ) {
+        return false;
+      }
     }
 
     return true;

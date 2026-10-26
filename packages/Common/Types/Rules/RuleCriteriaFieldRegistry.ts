@@ -126,11 +126,13 @@ export const RULE_CRITERIA_FIELDS_BY_MODEL: Readonly<
     "matchLabels",
     "nameRegexPattern",
     "descriptionRegexPattern",
+    "cloudTagPattern",
   ],
   CloudResourceOwnerRule: [
     "matchLabels",
     "nameRegexPattern",
     "descriptionRegexPattern",
+    "cloudTagPattern",
   ],
   DashboardLabelRule: [
     "dashboardLabels",

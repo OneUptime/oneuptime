@@ -2,14 +2,27 @@ import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
 import { CloudConnectionAuthMethod } from "../../../Types/CloudConnection/CloudConnectionCatalog";
 import { isAwsRoleArn } from "../../../Types/CloudConnection/CloudConnectionPaste";
 import {
+  AWS_ORGANIZATION_STACK_SET_NAME,
   AWS_READ_ONLY_ACTIONS,
+  AWS_READ_ONLY_ACTION_GROUPS,
+  AWS_SCOPED_READ_RESOURCES,
+  AZURE_COST_READ_ROLE,
   AZURE_READ_ONLY_ROLE,
   CLOUD_CONNECTION_READ_ONLY_NAME,
+  CloudConnectionSetupScope,
+  GCP_AUDIT_LOG_ROLE,
+  GCP_INVENTORY_ROLE,
   GCP_READ_ONLY_ROLE,
+  GCP_READ_ONLY_ROLES,
+  GCP_SERVICES,
   GCP_SERVICE_ACCOUNT_ID,
+  canSetUpOrganization,
   getAwsAccessKeySetupCommand,
   getAwsExternalIdForProject,
+  getAwsOrganizationSetupCommand,
+  getAwsReadOnlyPolicy,
   getAwsReadOnlyPolicyDocument,
+  getAwsReadOnlyRoleTemplate,
   getAwsRoleNameForExternalId,
   getAwsRoleSetupCommand,
   getAwsTrustPolicyDocument,
@@ -21,11 +34,14 @@ import { describe, expect, test } from "@jest/globals";
 
 /*
  * The one command each cloud's setup step shows creates access that can
- * only read - and these hold it to that: the AWS policy names three read
- * actions and nothing else, the role trusts this OneUptime with this
- * project's own external id only, Azure's app gets the built-in Monitoring
- * Reader role, Google Cloud's service account Monitoring Viewer. Each
- * command can be run again.
+ * only read - and these hold it to that: every AWS action reads (Describe,
+ * List, Get or Lookup) and none reads data or writes, API Gateway's one
+ * read action is held to the APIs' own definitions, the role trusts this
+ * OneUptime with this project's own external id only, Azure's app gets the
+ * built-in Monitoring Reader and Cost Management Reader roles, Google
+ * Cloud's service account Monitoring Viewer, Cloud Asset Viewer and Logs
+ * Viewer. Each command can be run again, for one account or a whole
+ * organization.
  */
 
 const PROJECT: string = "11111111-1111-4111-8111-111111111111";
@@ -83,24 +99,72 @@ describe("the external id", () => {
 });
 
 describe("AWS", () => {
-  test("the policy allows the three read actions on everything, and nothing else", () => {
-    expect(JSON.parse(getAwsReadOnlyPolicyDocument())).toEqual({
-      Version: "2012-10-17",
-      Statement: [
-        {
-          Effect: "Allow",
-          Action: [
-            "cloudwatch:GetMetricData",
-            "cloudwatch:ListMetrics",
-            "tag:GetResources",
-          ],
-          Resource: "*",
-        },
-      ],
-    });
+  test("every action reads: Describe, List, Get or Lookup - and API Gateway's GET", () => {
     for (const action of AWS_READ_ONLY_ACTIONS) {
-      expect(action).toMatch(/:(Get|List)/);
+      expect(action).toMatch(/^[a-z0-9-]+:(Describe|List|Get|Lookup|GET$)/);
     }
+  });
+
+  test("no action reads data or a secret, and none writes", () => {
+    for (const action of AWS_READ_ONLY_ACTIONS) {
+      const [service, name] = action.split(":") as [string, string];
+
+      // Objects, rows, messages, secrets, parameters, logs' contents.
+      expect([
+        "s3",
+        "secretsmanager",
+        "ssm",
+        "kms",
+        "logs",
+        "athena",
+      ]).not.toContain(service);
+      expect(name).not.toMatch(
+        /^(Put|Create|Delete|Update|Modify|Start|Stop|Reboot|Terminate|Attach|Detach|Set|Send|Invoke|Receive|Scan|Query|GetItem|BatchGet|GetObject|GetSecret|Decrypt)/,
+      );
+    }
+
+    expect(AWS_READ_ONLY_ACTIONS).not.toContain("*");
+    expect(AWS_READ_ONLY_ACTIONS).not.toContain("lambda:GetFunction");
+  });
+
+  test("each action is named once, in a group that says what it is for", () => {
+    expect(new Set(AWS_READ_ONLY_ACTIONS).size).toBe(
+      AWS_READ_ONLY_ACTIONS.length,
+    );
+
+    for (const group of AWS_READ_ONLY_ACTION_GROUPS) {
+      expect(group.purpose.length).toBeGreaterThan(0);
+      expect(group.actions.length).toBeGreaterThan(0);
+    }
+  });
+
+  test("the policy allows the read actions on everything, but API Gateway's only on API definitions - never on its keys", () => {
+    const policy: ReturnType<typeof getAwsReadOnlyPolicy> =
+      JSON.parse(getAwsReadOnlyPolicyDocument());
+
+    expect(policy).toEqual(getAwsReadOnlyPolicy());
+    expect(policy.Statement).toHaveLength(2);
+    expect(policy.Statement[0]).toEqual({
+      Effect: "Allow",
+      Action: AWS_READ_ONLY_ACTIONS.filter((action: string): boolean => {
+        return action !== "apigateway:GET";
+      }),
+      Resource: "*",
+    });
+    expect(policy.Statement[1]).toEqual({
+      Effect: "Allow",
+      Action: ["apigateway:GET"],
+      Resource: AWS_SCOPED_READ_RESOURCES["apigateway:GET"],
+    });
+
+    for (const resource of AWS_SCOPED_READ_RESOURCES["apigateway:GET"]!) {
+      expect(resource).not.toContain("apikeys");
+      expect(resource).toMatch(/::\/(restapis|apis)(\/\*)?$/);
+    }
+  });
+
+  test("the policy fits an IAM inline policy's 10,240 characters with room to spare", () => {
+    expect(getAwsReadOnlyPolicyDocument().length).toBeLessThan(5000);
   });
 
   test("the trust policy names the principal and requires the external id", () => {
@@ -195,6 +259,12 @@ describe("AWS", () => {
       }),
       getAzureSetupCommand(),
       getGcpSetupCommand(),
+      getAzureSetupCommand(CloudConnectionSetupScope.Organization),
+      getGcpSetupCommand(CloudConnectionSetupScope.Organization),
+      getAwsOrganizationSetupCommand({
+        trustedPrincipalArn: TRUSTED,
+        externalId: getAwsExternalIdForProject(PROJECT),
+      }),
     ]) {
       expect(command).not.toMatch(/<[A-Z_]+>/);
       expect(command).not.toContain("${");
@@ -202,29 +272,159 @@ describe("AWS", () => {
   });
 });
 
-describe("Azure", () => {
-  test("creates an app with Monitoring Reader on the subscription the shell is in", () => {
-    expect(getAzureSetupCommand()).toBe(
-      `az ad sp create-for-rbac --name ${CLOUD_CONNECTION_READ_ONLY_NAME} --role "Monitoring Reader" --scopes "/subscriptions/$(az account show --query id --output tsv)"`,
+describe("AWS organizations", () => {
+  const data: { trustedPrincipalArn: string; externalId: string } = {
+    trustedPrincipalArn: TRUSTED,
+    externalId: getAwsExternalIdForProject(PROJECT),
+  };
+
+  test("the template makes the same role, trust and policy the command does", () => {
+    const template: {
+      Resources: {
+        OneUptimeReadOnlyRole: {
+          Type: string;
+          Properties: {
+            RoleName: string;
+            AssumeRolePolicyDocument: unknown;
+            Policies: Array<{ PolicyName: string; PolicyDocument: unknown }>;
+          };
+        };
+      };
+    } = JSON.parse(getAwsReadOnlyRoleTemplate(data));
+    const role: (typeof template)["Resources"]["OneUptimeReadOnlyRole"] =
+      template.Resources.OneUptimeReadOnlyRole;
+
+    expect(role.Type).toBe("AWS::IAM::Role");
+    expect(role.Properties.RoleName).toBe(
+      getAwsRoleNameForExternalId(data.externalId),
     );
+    expect(role.Properties.AssumeRolePolicyDocument).toEqual(
+      JSON.parse(getAwsTrustPolicyDocument(data)),
+    );
+    expect(role.Properties.Policies).toEqual([
+      {
+        PolicyName: CLOUD_CONNECTION_READ_ONLY_NAME,
+        PolicyDocument: getAwsReadOnlyPolicy(),
+      },
+    ]);
+  });
+
+  test("the organization command deploys the template to every account through a StackSet, then makes the role here and prints its ARN last", () => {
+    const command: string = getAwsOrganizationSetupCommand(data);
+    const lines: Array<string> = command.split("\n");
+
+    expect(lines[0]).toBe("cat > oneuptime-read-only.json <<'TEMPLATE'");
+    expect(JSON.parse(lines[1]!)).toEqual(
+      JSON.parse(getAwsReadOnlyRoleTemplate(data)),
+    );
+    expect(lines[2]).toBe("TEMPLATE");
+    expect(lines[3]).toContain(
+      `aws cloudformation create-stack-set --stack-set-name ${AWS_ORGANIZATION_STACK_SET_NAME}`,
+    );
+    expect(lines[3]).toContain("--permission-model SERVICE_MANAGED");
+    expect(lines[3]).toContain("--auto-deployment Enabled=true");
+    // Run again: the StackSet is updated rather than failing.
+    expect(lines[3]).toContain("|| aws cloudformation update-stack-set");
+    expect(lines[4]).toContain("aws cloudformation create-stack-instances");
+    expect(lines[4]).toContain("OrganizationalUnitIds=");
+    expect(command.endsWith(getAwsRoleSetupCommand(data))).toBe(true);
+    expect(lines[lines.length - 1]).toBe(
+      'aws iam get-role --role-name "$ROLE" --query Role.Arn --output text',
+    );
+  });
+
+  test("an organization is set up through a role only: an access key's user cannot sign in to the members' roles", () => {
+    expect(
+      canSetUpOrganization(
+        CloudProvider.AWS,
+        CloudConnectionAuthMethod.AwsRole,
+      ),
+    ).toBe(true);
+    expect(
+      canSetUpOrganization(
+        CloudProvider.AWS,
+        CloudConnectionAuthMethod.AwsAccessKey,
+      ),
+    ).toBe(false);
+    expect(
+      getCloudConnectionSetupCommand(
+        CloudProvider.AWS,
+        CloudConnectionAuthMethod.AwsAccessKey,
+        { scope: CloudConnectionSetupScope.Organization },
+      ),
+    ).toBe(getAwsAccessKeySetupCommand());
+  });
+});
+
+describe("Azure", () => {
+  test("creates an app with Monitoring Reader on the subscription the shell is in, adds Cost Management Reader, and prints what it made with the password's expiry", () => {
+    const lines: Array<string> = getAzureSetupCommand().split("\n");
+
+    expect(lines).toEqual([
+      'SCOPE="/subscriptions/$(az account show --query id --output tsv)"',
+      `OUT=$(az ad sp create-for-rbac --name ${CLOUD_CONNECTION_READ_ONLY_NAME} --role "Monitoring Reader" --scopes "$SCOPE")`,
+      'APP=$(echo "$OUT" | jq -r .appId)',
+      'az role assignment create --assignee "$APP" --role "Cost Management Reader" --scope "$SCOPE" > /dev/null',
+      'END=$(az ad app credential list --id "$APP" --query "max([].endDateTime)" --output tsv)',
+      `echo "$OUT" | jq --arg end "$END" '. + {endDateTime: $end}'`,
+    ]);
     expect(AZURE_READ_ONLY_ROLE).toBe("Monitoring Reader");
+    expect(AZURE_COST_READ_ROLE).toBe("Cost Management Reader");
+  });
+
+  test("for every subscription, the same on the tenant's root management group", () => {
+    const lines: Array<string> = getAzureSetupCommand(
+      CloudConnectionSetupScope.Organization,
+    ).split("\n");
+
+    expect(lines[0]).toBe(
+      'SCOPE="/providers/Microsoft.Management/managementGroups/$(az account show --query tenantId --output tsv)"',
+    );
+    expect(lines.slice(1)).toEqual(getAzureSetupCommand().split("\n").slice(1));
   });
 });
 
 describe("Google Cloud", () => {
-  test("turns on Cloud Monitoring, creates the service account, grants Monitoring Viewer and prints a key it then deletes", () => {
+  const member: string = `${GCP_SERVICE_ACCOUNT_ID}@$PROJECT_ID.iam.gserviceaccount.com`;
+
+  test("turns on the APIs it reads, creates the service account, grants its read-only roles on the project and prints a key it then deletes", () => {
     const lines: Array<string> = getGcpSetupCommand().split("\n");
-    const member: string = `${GCP_SERVICE_ACCOUNT_ID}@$PROJECT_ID.iam.gserviceaccount.com`;
 
     expect(lines).toEqual([
       "PROJECT_ID=$(gcloud config get-value project)",
-      "gcloud services enable monitoring.googleapis.com",
-      `gcloud iam service-accounts create ${GCP_SERVICE_ACCOUNT_ID} --display-name "OneUptime (read only)"`,
-      `gcloud projects add-iam-policy-binding "$PROJECT_ID" --member "serviceAccount:${member}" --role ${GCP_READ_ONLY_ROLE} --condition=None > /dev/null`,
+      `gcloud services enable ${GCP_SERVICES.join(" ")}`,
+      `gcloud iam service-accounts create ${GCP_SERVICE_ACCOUNT_ID} --display-name "OneUptime (read only)" > /dev/null 2>&1 || true`,
+      ...GCP_READ_ONLY_ROLES.map((role: string): string => {
+        return `gcloud projects add-iam-policy-binding "$PROJECT_ID" --member "serviceAccount:${member}" --role ${role} --condition=None > /dev/null`;
+      }),
       `gcloud iam service-accounts keys create oneuptime-key.json --iam-account "${member}"`,
       "cat oneuptime-key.json && rm oneuptime-key.json",
     ]);
     expect(GCP_READ_ONLY_ROLE).toBe("roles/monitoring.viewer");
+    expect(GCP_READ_ONLY_ROLES).toEqual([
+      "roles/monitoring.viewer",
+      GCP_INVENTORY_ROLE,
+      GCP_AUDIT_LOG_ROLE,
+    ]);
+    expect(GCP_SERVICES).toContain("cloudasset.googleapis.com");
+  });
+
+  test("for every project, grants the roles on the project's organization instead", () => {
+    const lines: Array<string> = getGcpSetupCommand(
+      CloudConnectionSetupScope.Organization,
+    ).split("\n");
+
+    expect(lines[1]).toBe(
+      'ORG_ID=$(gcloud projects get-ancestors "$PROJECT_ID" --format="value(id)" | tail -1)',
+    );
+
+    for (const role of GCP_READ_ONLY_ROLES) {
+      expect(lines).toContain(
+        `gcloud organizations add-iam-policy-binding "$ORG_ID" --member "serviceAccount:${member}" --role ${role} --condition=None > /dev/null`,
+      );
+    }
+
+    expect(lines.join("\n")).not.toContain("gcloud projects add-iam-policy-binding");
   });
 });
 
@@ -259,6 +459,33 @@ describe("getCloudConnectionSetupCommand", () => {
         CloudConnectionAuthMethod.GcpServiceAccountKey,
       ),
     ).toBe(getGcpSetupCommand());
+    expect(
+      getCloudConnectionSetupCommand(
+        CloudProvider.AWS,
+        CloudConnectionAuthMethod.AwsRole,
+        {
+          trustedPrincipalArn: TRUSTED,
+          externalId,
+          scope: CloudConnectionSetupScope.Organization,
+        },
+      ),
+    ).toBe(
+      getAwsOrganizationSetupCommand({ trustedPrincipalArn: TRUSTED, externalId }),
+    );
+    expect(
+      getCloudConnectionSetupCommand(
+        CloudProvider.Azure,
+        CloudConnectionAuthMethod.AzureClientSecret,
+        { scope: CloudConnectionSetupScope.Organization },
+      ),
+    ).toBe(getAzureSetupCommand(CloudConnectionSetupScope.Organization));
+    expect(
+      getCloudConnectionSetupCommand(
+        CloudProvider.GCP,
+        CloudConnectionAuthMethod.GcpServiceAccountKey,
+        { scope: CloudConnectionSetupScope.Organization },
+      ),
+    ).toBe(getGcpSetupCommand(CloudConnectionSetupScope.Organization));
   });
 
   test("an AWS role command waits for what the role trusts", () => {

@@ -5,7 +5,9 @@ import {
   CloudConnectionCatalog,
   CloudConnectionDefinition,
   CloudConnectionField,
+  AZURE_SECRET_EXPIRES_AT_KEY,
   READ_INTERVAL_FIELD_KEY,
+  READ_SCOPE_FIELD_KEY,
   getCloudConnectionAuthMethod,
   getCloudConnectionAuthMethodDefinition,
   getCloudConnectionDefinition,
@@ -195,7 +197,12 @@ describe("fields by sign-in method", () => {
           CloudConnectionAuthMethod.AwsRole,
         ),
       ),
-    ).toEqual(["roleArn", "regions", READ_INTERVAL_FIELD_KEY]);
+    ).toEqual([
+      "roleArn",
+      READ_SCOPE_FIELD_KEY,
+      "regions",
+      READ_INTERVAL_FIELD_KEY,
+    ]);
     expect(
       keysOf(
         getCloudConnectionFieldsForMethod(
@@ -220,6 +227,50 @@ describe("fields by sign-in method", () => {
         ),
       ),
     ).toEqual(["secretAccessKey"]);
+  });
+
+  test("what to read - one account or the whole organization - is asked for on the first step, never folded, and an access key's AWS connection never offers it", () => {
+    for (const provider of [
+      CloudProvider.AWS,
+      CloudProvider.Azure,
+      CloudProvider.GCP,
+    ]) {
+      const scope: CloudConnectionField | undefined = definitionOf(
+        provider,
+      ).configFields.find((field: CloudConnectionField): boolean => {
+        return field.key === READ_SCOPE_FIELD_KEY;
+      });
+
+      expect(scope).toBeDefined();
+      expect(scope!.isAdvanced).toBeFalsy();
+      expect(scope!.required).toBe(false);
+      expect(scope!.defaultValue).toBe("account");
+      expect(
+        (scope!.options || []).map((option: { value: string }): string => {
+          return option.value;
+        }),
+      ).toEqual(["account", "organization"]);
+    }
+
+    expect(
+      keysOf(
+        getCloudConnectionFieldsForMethod(
+          definitionOf(CloudProvider.AWS).configFields,
+          CloudConnectionAuthMethod.AwsAccessKey,
+        ),
+      ),
+    ).not.toContain(READ_SCOPE_FIELD_KEY);
+  });
+
+  test("the Azure client secret's expiry is a setting kept from the paste, never shown", () => {
+    const expiry: CloudConnectionField | undefined = definitionOf(
+      CloudProvider.Azure,
+    ).configFields.find((field: CloudConnectionField): boolean => {
+      return field.key === AZURE_SECRET_EXPIRES_AT_KEY;
+    });
+
+    expect(expiry?.isHidden).toBe(true);
+    expect(expiry?.required).toBe(false);
   });
 
   test("Azure and Google Cloud ask for the same fields whatever the method", () => {

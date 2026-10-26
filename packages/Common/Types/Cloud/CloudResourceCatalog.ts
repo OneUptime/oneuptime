@@ -1818,11 +1818,32 @@ export const GCP_MONITORED_RESOURCE_RULES: ReadonlyArray<GcpMonitoredResourceRul
  * ---- Lookups -------------------------------------------------------------
  */
 
+/*
+ * ---- Listed only ---------------------------------------------------------
+ *
+ * Types a cloud connection's inventory lists (CloudInventory) that publish
+ * no metrics of their own - the networks other resources run in, which an
+ * account's topology draws them inside. No metric rule finds them, so they
+ * are kept apart from the lists above, which every rule is held to.
+ */
+export const INVENTORY_ONLY_RESOURCE_TYPES: ReadonlyArray<CloudResourceTypeDescriptor> =
+  [
+    descriptorOf(CloudProvider.AWS, "AWS::EC2::VPC", "VPC", IAAS, C.Networking),
+    descriptorOf(
+      CloudProvider.GCP,
+      "compute.googleapis.com/Network",
+      "VPC Network",
+      IAAS,
+      C.Networking,
+    ),
+  ];
+
 export const CLOUD_RESOURCE_TYPES: ReadonlyArray<CloudResourceTypeDescriptor> =
   [
     ...AZURE_RESOURCE_TYPES,
     ...AWS_RESOURCE_TYPES,
     ...GCP_MONITORED_RESOURCE_RULES,
+    ...INVENTORY_ONLY_RESOURCE_TYPES,
   ];
 
 function typeLookupKey(provider: string, type: string): string {
