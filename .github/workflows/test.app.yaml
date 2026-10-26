@@ -177,7 +177,7 @@ jobs:
   # esbuild and serve them against fixture data: no database or Docker stack.
   # They used to run one after another in a single 41-minute job, the longest
   # of every pull request's checks. They are independent - each starts its
-  # own fixture server on its own port - so they run here in eleven groups
+  # own fixture server on its own port - so they run here in twelve groups
   # balanced by measured duration. Event Overview and the Workflow Builder
   # suite fill a group each on their own (20.4 and 19.4 minutes on
   # 2026-10-17's slowest runner); the other groups hold 15 to 17 minutes of
@@ -270,6 +270,9 @@ jobs:
           # 2026-10-26 (8 tests, about 35 seconds locally: a host's name and
           # its hero's controls at five widths, zoomed and not, and on a
           # phone), when this group took 17.8 minutes: about 18.5.
+          # Logs AI (2.5 minutes, Chromium only) and External MCP Servers (1.0)
+          # moved here from group 7 on 2026-10-26, when 14.0.93's gate run took
+          # this group 15.8 minutes and group 7 23.4: about 19.5.
           - group: 2
             browsers: chromium firefox
             suites: >-
@@ -281,6 +284,8 @@ jobs:
               test-color-picker-ui
               test-diagrams-ui
               test-runbook-steps-ui
+              test-logs-ai-ui
+              test-external-mcp-servers-ui
           # Value Picker also runs in Firefox (the chip editor's caret handling
           # differs in each). Discovery (about 5 minutes) moved to group 6
           # when this group took 23.5 minutes. Global Runners (about a
@@ -360,6 +365,9 @@ jobs:
           # it read with the dialog its View opens, at 1280 and 390 pixels,
           # light and dark, German and Persian) joined it on 2026-10-24, the
           # lightest group: about 20.5.
+          # Kubernetes Events and Topology (2.8 minutes each on 14.0.93's gate
+          # run) moved to group 9, and AI Context (1.6) to group 11, on
+          # 2026-10-26, when that run took this group 25.8 minutes: about 19.
           - group: 5
             browsers: chromium
             suites: >-
@@ -370,16 +378,13 @@ jobs:
               test-llm-provider-test-ui
               test-custom-field-options-ui
               test-pagination-ui
-              test-topology-ui
               test-status-timeline-ui
               test-episode-bulk-add-ui
               test-runbook-triggers-ui
               test-network-first-run-ui
               test-runbook-variables-ui
               test-dashboard-value-widget-ui
-              test-kubernetes-events-ui
               test-owners-on-create-ui
-              test-ai-context-ui
           # Added when group 5 took 25.5 of the job's 30 minutes and groups 1,
           # 3 and 4 23.5 to 24.3 on one run: group 5's last five suites, with
           # Discovery from group 3, Status Page Theme from group 1 and Calendar
@@ -460,6 +465,8 @@ jobs:
           # on 2026-10-26, and Public Dashboard Theme grew by 5 tests that day
           # (the page at a phone's width: about 20 seconds locally), so
           # Dashboard Templates moved on to group 10: about 21.
+          # Logs AI and External MCP Servers moved to group 2 on 2026-10-26,
+          # when 14.0.93's gate run took this group 23.4 minutes: about 20.
           - group: 7
             browsers: chromium
             suites: >-
@@ -468,8 +475,6 @@ jobs:
               test-auto-remediation-rules-ui
               test-custom-roles-ui
               test-public-dashboard-theme-ui
-              test-external-mcp-servers-ui
-              test-logs-ai-ui
           # Dashboard Time Range (about 3.5 minutes with its bundle locally: a
           # dashboard's default time range and auto-refresh inside OneUptime
           # and on its public page, at a laptop's width and, for what a phone
@@ -538,6 +543,9 @@ jobs:
           # 2026-10-26, when this group's run step took 15.1 minutes on
           # master's run of 03:08 that day, the lightest that holds several
           # suites: about 17.
+          # Security Events Empty States (2.2 minutes) and Shared UI (2.5) moved
+          # to group 11, and New Version (1.4) to group 12, on 2026-10-26, when
+          # 14.0.93's gate run took this group 24.4 minutes: about 18.5.
           - group: 8
             browsers: chromium
             suites: >-
@@ -548,10 +556,7 @@ jobs:
               test-resource-onboarding-ui
               test-vmware-host-page-ui
               test-public-addresses-ui
-              test-security-events-empty-states-ui
               test-meraki-traffic-ui
-              test-new-version-ui
-              test-shared-ui-ui
               test-docker-swarm-pages-ui
           # Added on 2026-10-21, when every group took 20 to 26 minutes on one
           # run (groups 1 and 5 near 25) and Resource Topology would have
@@ -583,18 +588,22 @@ jobs:
           # and dark) joined them on 2026-10-24, when this group's run step
           # took 16.7 and 17.1 minutes on master's two runs that day, the most
           # steady of the lightest: about 19.5.
+          # Code (13.0 minutes on 14.0.93's gate run, twice the 6.4 it took when
+          # it came here), Exceptions AI and Acknowledgement Timeout moved to
+          # group 12 on 2026-10-26, when this group ran past its run step's 28
+          # minutes with every suite passing; Kubernetes Events and Topology
+          # (2.8 minutes each) came from group 5: about 20.
           - group: 9
             browsers: chromium
             suites: >-
-              test-code-ui
               test-model-tables-ui
               test-home-overview-ui
               test-resource-topology-ui
               test-runbooks-menu-ui
               test-postmortems-ui
-              test-acknowledgement-timeout-ui
               test-archivable-values-ui
-              test-exceptions-ai-ui
+              test-kubernetes-events-ui
+              test-topology-ui
           # Added on 2026-10-22 with the second half of Event Overview (about
           # 13 minutes on a slow runner) and Navigation Search from group 2
           # (2.9 to 3.5): about 18.5 with the setup. Chromium only. Owner
@@ -611,6 +620,9 @@ jobs:
           # only) from group 7 joined them on 2026-10-26, when this group's
           # run step took 14.6 minutes on master's run of 03:08 that day, the
           # lightest of the eleven: about 19.
+          # Global Runners (1.9 minutes) moved to group 12 on 2026-10-26, when
+          # 14.0.93's gate run took this group 22.6 minutes and master's run of
+          # 15:35 that day 26.5: about 20.5 to 24.5.
           - group: 10
             browsers: chromium
             event_overview_shard: 2/2
@@ -619,7 +631,6 @@ jobs:
               test-navigation-search-ui
               test-owner-filters-ui
               test-bulk-actions-ui
-              test-global-runners-ui
               test-dashboard-templates-ui
           # Security Operations on its own, Chromium only, from 2026-10-25. In
           # group 8 it took 9.8 of that group's 23.4 minutes on master's run of
@@ -630,10 +641,31 @@ jobs:
           # actions, the Security Events pass and the SIEM and SOAR work still
           # to add theirs: alone, about 15 minutes with the setup, it has room
           # for them.
+          # AI Context (1.6 minutes) from group 5, and Security Events Empty
+          # States (2.2) and Shared UI (2.5) from group 8, joined it on
+          # 2026-10-26, when 14.0.93's gate run took this group 12.2 minutes:
+          # about 18.5, with room for Security Operations to grow.
           - group: 11
             browsers: chromium
             suites: >-
               test-security-operations-ui
+              test-ai-context-ui
+              test-security-events-empty-states-ui
+              test-shared-ui-ui
+          # Added on 2026-10-26, when group 9 ran past its run step's 28
+          # minutes on 14.0.93's gate run with every suite passing: Code had
+          # grown to 13.0 minutes (6.4 when it joined group 9). Code, with
+          # Exceptions AI (2.4) and Acknowledgement Timeout (0.5) from group
+          # 9, New Version (1.4) from group 8 and Global Runners (1.9) from
+          # group 10, all Chromium only: about 19.
+          - group: 12
+            browsers: chromium
+            suites: >-
+              test-code-ui
+              test-exceptions-ai-ui
+              test-acknowledgement-timeout-ui
+              test-new-version-ui
+              test-global-runners-ui
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass
