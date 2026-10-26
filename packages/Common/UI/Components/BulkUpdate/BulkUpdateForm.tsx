@@ -1120,6 +1120,12 @@ const BulkUpdateForm: <T extends GenericObject>(
            */
           disableSubmitButton={actionInProgress && (!isStoppable || isStopping)}
           submitButtonText={getProgressButtonText()}
+          /*
+           * The focus starts on the dialog, not on Stop: the Enter that
+           * confirmed the action, held a moment too long, or one pressed to
+           * get on, must not stop the run it just started.
+           */
+          isInitialFocusOnDialog={true}
           onSubmit={() => {
             if (actionInProgress) {
               if (isStoppable && !isStopping) {

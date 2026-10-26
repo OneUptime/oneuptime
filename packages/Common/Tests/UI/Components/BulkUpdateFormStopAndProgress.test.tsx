@@ -173,6 +173,37 @@ describe("BulkUpdateForm while a run goes on", () => {
     expect(footerButton()).toHaveTextContent("Close");
   });
 
+  /*
+   * Stop is the dialog's one button while a run goes on, and the focus used
+   * to start on it: the Enter that confirmed the action, held a moment too
+   * long, stopped the run it had just started. The focus starts on the
+   * dialog instead, as it did when the one button was a Close that could
+   * not be pressed.
+   */
+  test("the dialog opens with the focus on itself, not on Stop", async () => {
+    const gates: Array<Gate> = rows(2).map(() => {
+      return gate();
+    });
+    renderWith(rows(2), gatedAction({ gates }));
+
+    await screen.findByText("In Progress");
+
+    expect(footerButton()).toHaveTextContent("Stop");
+    expect(footerButton()).not.toBeDisabled();
+    expect(footerButton()).not.toHaveFocus();
+    expect(screen.getByRole("dialog")).toHaveFocus();
+
+    await act(async () => {
+      gates.forEach((g: Gate) => {
+        g.release();
+      });
+    });
+
+    // Nothing stopped it: every item ran.
+    await screen.findByText("Completed");
+    expect(screen.queryByTestId("bulk-action-not-started-count")).toBeNull();
+  });
+
   test("Stop starts no more items, finishes the ones running, and the end says how many were not started", async () => {
     const items: Array<Row> = rows(6);
     const gates: Array<Gate> = items.map(() => {

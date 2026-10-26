@@ -34,6 +34,8 @@ export interface ComponentProps {
    * beside Delete. Never primary.
    */
   secondaryButton?: ModalSecondaryButton | undefined;
+  // The focus starts on the dialog, not its button (Modal's own prop).
+  isInitialFocusOnDialog?: boolean | undefined;
 }
 
 /*
@@ -85,6 +87,7 @@ const ConfirmModal: FunctionComponent<ComponentProps> = (
       submitButtonStyleType={submitButtonType}
       error={props.error}
       secondaryButton={props.secondaryButton}
+      isInitialFocusOnDialog={props.isInitialFocusOnDialog}
     >
       {/*
        * The modal body is already the scroll container. A second one here gave
