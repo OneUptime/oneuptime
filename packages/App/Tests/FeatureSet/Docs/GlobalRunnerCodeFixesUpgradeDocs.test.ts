@@ -440,20 +440,23 @@ describe("the English step of What you need to do", () => {
 });
 
 describe("a global Runner takes code fixes, and runs no repository command", () => {
-  it("its heartbeat grants it code fixes, and never AI commands, whatever its row says", () => {
+  it("its heartbeat grants it code fixes whether or not a repository names it, and never AI commands, whatever its row says", () => {
     const runner: Runner = new Runner();
     runner.isGlobalRunner = true;
-    runner.canRunCodeFixTasks = false;
     runner.canRunAiCommands = true;
 
-    const answer: JSONObject = RunnerIngressAPI.getHeartbeatAnswer(runner);
+    for (const isPickedByACodeRepository of [false, true]) {
+      const answer: JSONObject = RunnerIngressAPI.getHeartbeatAnswer(runner, {
+        isPickedByACodeRepository,
+      });
 
-    expect(answer["isGlobalRunner"]).toBe(true);
-    expect(answer["capabilities"]).toEqual({
-      canRunRunbooks: true,
-      canRunCodeFixTasks: true,
-      canRunAiCommands: false,
-    });
+      expect(answer["isGlobalRunner"]).toBe(true);
+      expect(answer["capabilities"]).toEqual({
+        canRunRunbooks: true,
+        canRunCodeFixTasks: true,
+        canRunAiCommands: false,
+      });
+    }
   });
 
   it("its code-fix pair proves a Runner that serves every project", () => {
