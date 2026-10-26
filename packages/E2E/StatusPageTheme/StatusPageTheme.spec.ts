@@ -28,6 +28,8 @@ import {
  *   - On its own domain a Light or Dark page offers no switch; on the
  *     Dashboard's preview (its OneUptime address, where the rest of this
  *     suite opens it) every page does, for the visit only.
+ *   - The SSO page offers Log in with password under its providers, lined
+ *     up with them.
  *   - The footer's language and theme controls sit centred on a phone, and
  *     the switch is a target a thumb can hit.
  *
@@ -749,6 +751,7 @@ test.describe("the dark theme on every surface", () => {
       "Subscribe by Email",
     ],
     ["sign-in", `${PAGE}/login`, "theme=Dark&private=1&sso=1", "Welcome back!"],
+    ["sso", `${PAGE}/sso`, "theme=Dark&private=1&sso=1", "Acme Okta"],
     ["not-found", `${PAGE}/no-such-page`, "theme=Dark", "Page not found."],
   ];
 
@@ -1103,6 +1106,57 @@ test.describe("a logo made for the dark theme", () => {
       "src",
       /\/status-page-api\/logo\/00000000-0000-4000-8000-000000000001$/,
     );
+  });
+});
+
+/*
+ * The SSO page, while it lists the page's providers (#4911 follow-up): under
+ * them, "or" and Log in with password, back to the email and password form,
+ * as the sign-in page offers Log in with SSO the other way.
+ */
+test.describe("the SSO page", () => {
+  test("offers the way back to the password form under its providers", async ({
+    page,
+  }: { page: Page }, testInfo: TestInfo) => {
+    await page.emulateMedia({ colorScheme: "light" });
+    await openPage(page, `${PAGE}/sso`, "theme=System&private=1&sso=1", "");
+    await expect(page.getByText("Acme Okta", { exact: true })).toBeVisible();
+
+    const back: Locator = page.getByRole("link", {
+      name: "Log in with password",
+    });
+
+    await expect(back).toBeVisible();
+    await expect(page.getByTestId("sign-in-options-divider")).toBeVisible();
+
+    // Under the providers, as wide as they are.
+    const provider: { y: number; width: number } | null = await page
+      .getByText("Acme Okta", { exact: true })
+      .boundingBox();
+    const link: { y: number } | null = await back.boundingBox();
+
+    expect(provider).not.toBeNull();
+    expect(link).not.toBeNull();
+    expect(link!.y).toBeGreaterThan(provider!.y);
+
+    // The provider's card and the link line up, edge to edge.
+    const card: { x: number; width: number } | null = await page
+      .getByText("Acme Okta", { exact: true })
+      .locator("xpath=ancestor::div[contains(@class, 'rounded-lg')][1]")
+      .boundingBox();
+    const linkBox: { x: number; width: number } | null =
+      await back.boundingBox();
+
+    expect(card).not.toBeNull();
+    expect(Math.abs(card!.x - linkBox!.x)).toBeLessThanOrEqual(1);
+    expect(Math.abs(card!.width - linkBox!.width)).toBeLessThanOrEqual(1);
+    await shoot(page, testInfo, "sso-light");
+
+    await back.click();
+    await expect(
+      page.getByText("Welcome back!", { exact: true }),
+    ).toBeVisible();
+    expect(new URL(page.url()).pathname).toBe(`${PAGE}/login`);
   });
 });
 

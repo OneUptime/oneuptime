@@ -241,18 +241,14 @@ describe("the page's logo", () => {
       return code.split(text).length - 1;
     };
 
-    const logos: number = count(
-      app,
-      "logoFileId={new ObjectID(statusPageLogoFileId)}",
-    );
+    // Counted by the values, which prettier may wrap onto lines of their own.
+    const logos: number = count(app, "new ObjectID(statusPageLogoFileId)");
 
     expect(logos).toBeGreaterThan(5);
-    expect(
-      count(
-        app,
-        "darkThemeLogoFileId={new ObjectID(statusPageDarkThemeLogoFileId)}",
-      ),
-    ).toBe(logos);
+    expect(count(app, "new ObjectID(statusPageDarkThemeLogoFileId)")).toBe(
+      logos,
+    );
+    expect(count(app, "darkThemeLogoFileId={")).toBe(logos);
   });
 });
 

@@ -53,8 +53,14 @@ const LoginPage: FunctionComponent<ComponentProps> = (
    * That notice is the ONLY message then: neither list shows an empty state of
    * its own (hideEmptyState), and both stay mounted but hidden, so they keep
    * their loaded state and add no blank space above the notice. An empty
-   * list next to one with providers shows nothing either, rather than "No
-   * items found." under a provider that is right there.
+   * list next to one with providers is hidden too, rather than "No items
+   * found." - or the blank space of an empty list - under a provider that is
+   * right there.
+   *
+   * The lists' own padding is taken back (-mx-2, and the last list's mb-5),
+   * so a provider's card lines up with Log in with password under it, and
+   * the "or" sits as far below the cards as it sits below the sign-in
+   * page's button.
    */
   const [ssoProviderCount, setSsoProviderCount] = useState<number | null>(null);
   const [oidcProviderCount, setOidcProviderCount] = useState<number | null>(
@@ -152,81 +158,85 @@ const LoginPage: FunctionComponent<ComponentProps> = (
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10 space-y-6">
           <div
-            className="space-y-6"
+            className="-mx-2 -mb-5"
             hidden={hasNoProviders}
             data-testid="status-page-sso-provider-lists"
           >
-            <ModelList<StatusPageSSO>
-              id="sso-list"
-              overrideFetchApiUrl={URL.fromString(
-                STATUS_PAGE_API_URL.toString(),
-              ).addRoute(
-                "/sso/" + StatusPageUtil.getStatusPageId()?.toString(),
-              )}
-              modelType={StatusPageSSO}
-              titleField="name"
-              descriptionField="description"
-              select={{
-                name: true,
-                description: true,
-                _id: true,
-              }}
-              noItemsMessage={""}
-              hideEmptyState={true}
-              onListLoaded={(list: Array<StatusPageSSO>) => {
-                setSsoProviderCount(list.length);
-              }}
-              onSelectChange={(list: Array<StatusPageSSO>) => {
-                if (list && list.length > 0) {
-                  setIsLoading(true);
-                  Navigation.navigate(
-                    URL.fromURL(STATUS_PAGE_SSO_API_URL).addRoute(
-                      new Route(
-                        `/${StatusPageUtil.getStatusPageId()?.toString()}/${
-                          list[0]?._id
-                        }`,
+            <div hidden={ssoProviderCount === 0}>
+              <ModelList<StatusPageSSO>
+                id="sso-list"
+                overrideFetchApiUrl={URL.fromString(
+                  STATUS_PAGE_API_URL.toString(),
+                ).addRoute(
+                  "/sso/" + StatusPageUtil.getStatusPageId()?.toString(),
+                )}
+                modelType={StatusPageSSO}
+                titleField="name"
+                descriptionField="description"
+                select={{
+                  name: true,
+                  description: true,
+                  _id: true,
+                }}
+                noItemsMessage={""}
+                hideEmptyState={true}
+                onListLoaded={(list: Array<StatusPageSSO>) => {
+                  setSsoProviderCount(list.length);
+                }}
+                onSelectChange={(list: Array<StatusPageSSO>) => {
+                  if (list && list.length > 0) {
+                    setIsLoading(true);
+                    Navigation.navigate(
+                      URL.fromURL(STATUS_PAGE_SSO_API_URL).addRoute(
+                        new Route(
+                          `/${StatusPageUtil.getStatusPageId()?.toString()}/${
+                            list[0]?._id
+                          }`,
+                        ),
                       ),
-                    ),
-                  );
-                }
-              }}
-            />
+                    );
+                  }
+                }}
+              />
+            </div>
 
-            <ModelList<StatusPageOIDC>
-              id="oidc-list"
-              overrideFetchApiUrl={URL.fromString(
-                STATUS_PAGE_API_URL.toString(),
-              ).addRoute(
-                "/oidc/" + StatusPageUtil.getStatusPageId()?.toString(),
-              )}
-              modelType={StatusPageOIDC}
-              titleField="name"
-              descriptionField="description"
-              select={{
-                name: true,
-                description: true,
-                _id: true,
-              }}
-              noItemsMessage={t("accounts.sso.noProviders")}
-              hideEmptyState={true}
-              onListLoaded={(list: Array<StatusPageOIDC>) => {
-                setOidcProviderCount(list.length);
-              }}
-              onSelectChange={(list: Array<StatusPageOIDC>) => {
-                if (list && list.length > 0) {
-                  setIsLoading(true);
-                  Navigation.navigate(
-                    URL.fromURL(STATUS_PAGE_OIDC_API_URL).addRoute(
-                      new Route(
-                        `/${StatusPageUtil.getStatusPageId()?.toString()}/${
-                          list[0]?._id
-                        }`,
+            <div hidden={oidcProviderCount === 0}>
+              <ModelList<StatusPageOIDC>
+                id="oidc-list"
+                overrideFetchApiUrl={URL.fromString(
+                  STATUS_PAGE_API_URL.toString(),
+                ).addRoute(
+                  "/oidc/" + StatusPageUtil.getStatusPageId()?.toString(),
+                )}
+                modelType={StatusPageOIDC}
+                titleField="name"
+                descriptionField="description"
+                select={{
+                  name: true,
+                  description: true,
+                  _id: true,
+                }}
+                noItemsMessage={t("accounts.sso.noProviders")}
+                hideEmptyState={true}
+                onListLoaded={(list: Array<StatusPageOIDC>) => {
+                  setOidcProviderCount(list.length);
+                }}
+                onSelectChange={(list: Array<StatusPageOIDC>) => {
+                  if (list && list.length > 0) {
+                    setIsLoading(true);
+                    Navigation.navigate(
+                      URL.fromURL(STATUS_PAGE_OIDC_API_URL).addRoute(
+                        new Route(
+                          `/${StatusPageUtil.getStatusPageId()?.toString()}/${
+                            list[0]?._id
+                          }`,
+                        ),
                       ),
-                    ),
-                  );
-                }
-              }}
-            />
+                    );
+                  }
+                }}
+              />
+            </div>
           </div>
 
           {offersPasswordSignIn && (

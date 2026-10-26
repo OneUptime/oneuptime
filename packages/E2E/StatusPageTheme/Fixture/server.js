@@ -44,6 +44,15 @@ const inter = path.join(
 const logo = path.join(__dirname, "logo.svg");
 const darkLogo = path.join(__dirname, "logo-dark.svg");
 
+// The page's single sign-on provider, which its SSO page lists.
+const ssoProviders = [
+  {
+    _id: "00000000-0000-4000-8000-000000000800",
+    name: "Acme Okta",
+    description: "Sign in with your Acme account.",
+  },
+];
+
 /*
  * The page's bundle is Index.js, so the template's own
  * <script src="/status-page/dist/Index.js"> loads it.
@@ -216,6 +225,24 @@ async function main() {
     // Its logo for the dark theme (darkLogo=1), as the sign-in pages load it.
     if (url.pathname.startsWith("/status-page-api/dark-theme-logo/")) {
       send(response, darkLogo, "image/svg+xml");
+      return;
+    }
+
+    /*
+     * The SSO page's lists of providers, which its ModelList reads with
+     * Common's own API client, over HTTP rather than through MockApi: one
+     * SAML provider and no OpenID Connect one, each list a bare array, as
+     * the API answers it.
+     */
+    if (url.pathname.startsWith("/status-page-api/sso/")) {
+      response.setHeader("Content-Type", "application/json");
+      response.end(JSON.stringify(ssoProviders));
+      return;
+    }
+
+    if (url.pathname.startsWith("/status-page-api/oidc/")) {
+      response.setHeader("Content-Type", "application/json");
+      response.end("[]");
       return;
     }
 
