@@ -525,6 +525,47 @@ describe("the side menu scrolls its lit entry into sight", () => {
     expect(list.scrollTop).toBe(0);
   });
 
+  /*
+   * The card ends above the window's bottom edge wherever it is: under the
+   * page's title on a page not yet scrolled, below the header once the
+   * page scrolls it there.
+   */
+  test("its card is fitted to the window on a desktop, and refitted as the page scrolls", async () => {
+    let cardTop: number = 200;
+    jest
+      .spyOn(Element.prototype, "getBoundingClientRect")
+      .mockImplementation((): DOMRect => {
+        return { top: cardTop, bottom: cardTop + 300 } as DOMRect;
+      });
+    goTo("/k/1/topology");
+
+    await act(async () => {
+      render(clusterMenu());
+    });
+
+    const card: HTMLElement = document.querySelector(
+      "aside[role='navigation'] div.sticky > div",
+    ) as HTMLElement;
+
+    expect(card).not.toBeNull();
+
+    expect(card.style.maxHeight).toBe(
+      `${window.innerHeight - 200 - SIDE_MENU_BOTTOM_GAP_IN_PX}px`,
+    );
+
+    // The page scrolls; the card sticks 88px from the top.
+    cardTop = 88;
+    await act(async () => {
+      window.dispatchEvent(new Event("scroll"));
+    });
+
+    await waitFor(() => {
+      expect(card.style.maxHeight).toBe(
+        `${window.innerHeight - 88 - SIDE_MENU_BOTTOM_GAP_IN_PX}px`,
+      );
+    });
+  });
+
   test("on a phone, when its menu is opened", async () => {
     setViewportWidth(375);
     goTo("/k/1/vpas");
