@@ -17,8 +17,8 @@ export const metadataAnswer = (dashboard, isUnlocked) => {
     enableMasterPassword: Boolean(dashboard.hasPassword),
     pageTitle: dashboard.title,
     faviconFile: null,
-    description: isPromptOnly ? "" : dashboard.text,
-    pageDescription: isPromptOnly ? "" : dashboard.text,
+    description: isPromptOnly ? "" : dashboard.description,
+    pageDescription: isPromptOnly ? "" : dashboard.description,
     logoFile: null,
     theme: "Light",
   };
@@ -44,9 +44,9 @@ export const viewConfigAnswer = (dashboard) => {
   return {
     _id: dashboard.id,
     name: dashboard.title,
-    description: dashboard.text,
+    description: dashboard.description,
     pageTitle: dashboard.title,
-    pageDescription: dashboard.text,
+    pageDescription: dashboard.description,
     logoFile: null,
     dashboardViewConfig: JSONFunctions.serialize(config),
   };

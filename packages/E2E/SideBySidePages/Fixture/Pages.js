@@ -54,12 +54,14 @@ export const DASHBOARDS = {
   north: {
     id: dashboardId(1),
     title: "North Region Board",
+    description: "Everything in the north region.",
     text: "Everything in the **north** region.",
   },
   // Shared with a password.
   south: {
     id: dashboardId(2),
     title: "South Region Board",
+    description: "Everything in the south region.",
     text: "Everything in the **south** region.",
     hasPassword: true,
   },
@@ -67,6 +69,7 @@ export const DASHBOARDS = {
   west: {
     id: dashboardId(3),
     title: "West Region Board",
+    description: "Everything in the west region.",
     text: "Everything in the **west** region.",
     hasPassword: true,
   },

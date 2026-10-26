@@ -28,6 +28,13 @@ const dashboardId = (value: number): string => {
 
 const PASSWORD: string = "open sesame";
 
+// Each tab as the visitor sees it, for a reviewer to look at.
+const SCREENSHOTS: string = "../../output/playwright/side-by-side-pages-ui";
+
+const snapshot = async (page: Page, name: string): Promise<void> => {
+  await page.screenshot({ path: `${SCREENSHOTS}/${name}.png`, fullPage: true });
+};
+
 interface FixturePage {
   id: string;
   title: string;
@@ -211,6 +218,7 @@ test.describe("Status pages open side by side", () => {
       id: ACME.id,
       header: "statusPageIdHeader",
     });
+    await snapshot(first, "status-page-first-tab-refreshed");
 
     // And the second tab, a minute on, its own.
     await second.bringToFront();
@@ -227,6 +235,7 @@ test.describe("Status pages open side by side", () => {
       id: GLOBEX.id,
       header: "statusPageIdHeader",
     });
+    await snapshot(second, "status-page-second-tab-refreshed");
   });
 
   test("each tab's links, and its Subscribe form, are for its own page", async ({
@@ -269,6 +278,7 @@ test.describe("Status pages open side by side", () => {
     await first.getByRole("button", { name: "Subscribe", exact: true }).click();
 
     await expect(first.getByText("An email with the link")).toBeVisible();
+    await snapshot(first, "status-page-first-tab-subscribed");
 
     const subscriptions: Array<FixtureRequest> = await requestsTo(
       first,
@@ -342,6 +352,7 @@ test.describe("Status pages open side by side", () => {
       id: INITECH.id,
       header: "statusPageIdHeader",
     });
+    await snapshot(first, "status-page-private-page-unlocked");
 
     // The public page in the other tab is as it was.
     await second.bringToFront();
@@ -379,6 +390,7 @@ test.describe("Status pages open side by side", () => {
       id: GLOBEX.id,
       header: "statusPageIdHeader",
     });
+    await snapshot(page, "status-page-other-address-opened");
   });
 });
 
@@ -453,6 +465,7 @@ test.describe("Public dashboards open side by side", () => {
       id: SOUTH.id,
       header: "dashboardIdHeader",
     });
+    await snapshot(first, "public-dashboard-first-tab-unlocked");
 
     await second.bringToFront();
     await second.reload();
@@ -461,6 +474,7 @@ test.describe("Public dashboards open side by side", () => {
       id: NORTH.id,
       header: "dashboardIdHeader",
     });
+    await snapshot(second, "public-dashboard-second-tab");
   });
 
   test("two dashboards behind passwords each ask for, and open with, their own", async ({
