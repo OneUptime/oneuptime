@@ -5452,7 +5452,7 @@ test.describe("detections", () => {
    * has (768 to 1023px), "Waiting for Approval" was cut to "Waiting for
    * Appr…" - and in German, French and Italian at every width - and so were
    * Assigned to Me's Dutch and Japanese names, and a case's Playbook Runs in
-   * ten languages (five of them at every width). The page is Approvals now,
+   * ten languages (six of them at every width). The page is Approvals now,
    * those two are Mijn zaken and 自分の担当, and a case's entry is
    * Playbooks: every entry that carries a count - the three of Security
    * Events' menu and the one of a case's - keeps its whole name, in English

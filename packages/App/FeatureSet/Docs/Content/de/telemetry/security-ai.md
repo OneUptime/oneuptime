@@ -40,7 +40,7 @@ Eine Triage liest nur. Sie läuft mit der eigenen KI des Projekts: **KI aktivier
 | Eine Einschätzung wie **Wahrscheinlich bösartig** | Die Triage ist fertig. **Erneut triagieren** liest den Fall neu. |
 | **Die Triage wurde nicht abgeschlossen** | Der Lauf wurde abgebrochen. **Erneut versuchen** startet einen neuen. |
 
-Ein Security Viewer liest dieselbe Karte: **Mit KI triagieren** und **Erneut versuchen** bleiben ausgegraut, daneben eine Zeile, die sagt, wer eine Triage starten kann, und **Erneut triagieren** und **Priorität setzen** werden nicht angeboten.
+Ein Security Viewer liest dieselbe Karte: **Mit KI triagieren** und **Erneut versuchen** bleiben ausgegraut, und daneben steht, wer eine Triage starten kann; **Erneut triagieren** und **Priorität setzen** werden nicht angeboten.
 
 Eine Triage liest:
 

@@ -99,8 +99,8 @@ export const SECURITY_CASE_MENU: Array<SecurityCaseMenuSection> = [
         /*
          * "Playbooks": the playbooks that ran on the case, as Google SecOps
          * SOAR names a case's tab of them. "Playbook Runs" with its count
-         * was cut short in German, French, Spanish, Italian and Portuguese
-         * at every width, and in five more languages beside a tablet's
+         * was cut short in German, French, Spanish, Italian, Portuguese and
+         * Dutch at every width, and in four more languages beside a tablet's
          * menu; Security Events > Playbooks > Playbook Runs keeps its name.
          */
         page: PageMap.SECURITY_CASE_VIEW_PLAYBOOK_RUNS,
