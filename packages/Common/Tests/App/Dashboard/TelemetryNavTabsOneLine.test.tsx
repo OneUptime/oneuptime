@@ -21,7 +21,11 @@ import TelemetryNavTabs, {
   TELEMETRY_NAV_TABS_TEST_IDS,
   TelemetryTab,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Telemetry/NavTabs";
-import { TAB_BAR_FADE_CLASS_NAMES } from "../../../../App/FeatureSet/Dashboard/src/Components/Telemetry/TabBarScroll";
+import {
+  TAB_BAR_FADE_CLASS_NAMES,
+  TAB_BAR_PEEK_PX,
+  TAB_BAR_SCROLL_PADDING_CLASS_NAME,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Telemetry/TabBarScroll";
 import LogsNavTabs from "../../../../App/FeatureSet/Dashboard/src/Components/Logs/LogsNavTabs";
 import TracesNavTabs from "../../../../App/FeatureSet/Dashboard/src/Components/Traces/TracesNavTabs";
 import MetricsNavTabs from "../../../../App/FeatureSet/Dashboard/src/Components/Metrics/MetricsNavTabs";
@@ -37,10 +41,11 @@ import { PROJECT_ID, goTo } from "./SideMenuHarness";
  * NavTabs): on a phone Viewer, Insights, AI, Setup Guide and Settings do
  * not fit, and they used to wrap - Setup Guide alone on a second line, in
  * Logs, Traces, Metrics, Exceptions and AI / LLM alike. Now the line
- * scrolls sideways, its hidden edges fade, and the lit tab is scrolled to
- * the middle. jsdom lays nothing out, so the browser suite (packages/E2E/
- * LogsAi) measures the phone; this holds the markup that makes it so, in
- * every product, and what the bar does with what it measures.
+ * scrolls sideways, its hidden edges fade, and the lit tab is scrolled into
+ * view with the next tab peeking past the fade - and no further, so the
+ * first tabs stay in sight. jsdom lays nothing out, so the browser suite
+ * (packages/E2E/LogsAi) measures the phone; this holds the markup that makes
+ * it so, in every product, and what the bar does with what it measures.
  */
 
 const TABS: Array<TelemetryTab> = [
@@ -121,6 +126,11 @@ describe("a telemetry product's tab bar is one line", () => {
     expect(line).toContain("[&::-webkit-scrollbar]:hidden");
     // It may shrink to the page, never push it wider.
     expect(line).toContain("min-w-0");
+    /*
+     * A tab the keyboard reaches is scrolled clear of the fades, as the lit
+     * tab is (its scroll padding).
+     */
+    expect(line).toContain(TAB_BAR_SCROLL_PADDING_CLASS_NAME);
 
     const bar: Array<string> = classesOf(
       screen.getByTestId(TELEMETRY_NAV_TABS_TEST_IDS.bar),
@@ -231,15 +241,30 @@ describe("a telemetry product's tab bar is one line", () => {
     expect(scroller()).toHaveAttribute("data-hidden-right", "true");
   });
 
-  test("the lit tab is scrolled to the middle of the bar when the page opens", () => {
-    /*
-     * Settings, the last tab, sits past a 326px bar's edge at 470..572; the
-     * bar is at 32..358. The bar scrolls by the distance between their
-     * middles, and only the bar: the page is not asked to scroll.
-     */
-    const boxes: Map<string, { left: number; right: number }> = new Map([
-      ["Settings", { left: 470, right: 572 }],
-    ]);
+  /*
+   * What a phone measures, in a bar at 32..358: each tab's box by its
+   * words, as the bar opens unscrolled.
+   */
+  const PHONE_TAB_BOXES: Map<string, { left: number; right: number }> = new Map(
+    [
+      ["Viewer", { left: 36, right: 129 }],
+      ["Insights", { left: 133, right: 229 }],
+      ["AI", { left: 233, right: 290 }],
+      ["Setup Guide", { left: 294, right: 426 }],
+      ["Settings", { left: 430, right: 532 }],
+    ],
+  );
+
+  // Renders the bar with that phone's boxes, and the page's own scroll spied.
+  const renderOnPhone: (activeKey: string) => {
+    scrollIntoView: ReturnType<typeof jest.fn>;
+    restore: () => void;
+  } = (
+    activeKey: string,
+  ): {
+    scrollIntoView: ReturnType<typeof jest.fn>;
+    restore: () => void;
+  } => {
     const originalRect: () => DOMRect =
       HTMLElement.prototype.getBoundingClientRect;
     const scrollIntoView: ReturnType<typeof jest.fn> = jest.fn();
@@ -256,7 +281,7 @@ describe("a telemetry product's tab bar is one line", () => {
         this.getAttribute("data-testid") ===
         TELEMETRY_NAV_TABS_TEST_IDS.scroller
           ? { left: 32, right: 358 }
-          : boxes.get(this.textContent || "");
+          : PHONE_TAB_BOXES.get(this.textContent || "");
 
       if (!box) {
         return originalRect.call(this);
@@ -277,19 +302,58 @@ describe("a telemetry product's tab bar is one line", () => {
       } as DOMRect;
     };
 
-    try {
-      render(
-        <MemoryRouter>
-          <TelemetryNavTabs tabs={TABS} activeKey="settings" />
-        </MemoryRouter>,
-      );
+    render(
+      <MemoryRouter>
+        <TelemetryNavTabs tabs={TABS} activeKey={activeKey} />
+      </MemoryRouter>,
+    );
 
-      expect(scroller().scrollLeft).toBe((470 + 572) / 2 - (32 + 358) / 2);
-      expect(scrollIntoView).not.toHaveBeenCalled();
+    return {
+      scrollIntoView,
+      restore: (): void => {
+        HTMLElement.prototype.getBoundingClientRect = originalRect;
+        delete (
+          HTMLElement.prototype as unknown as { scrollIntoView?: unknown }
+        ).scrollIntoView;
+      },
+    };
+  };
+
+  test("a lit tab past the bar's edge is scrolled into view when the page opens, the next tab's 3rem peeking", () => {
+    /*
+     * Settings, the last tab, sits past the bar's edge at 430..532. The bar
+     * scrolls until its end is 3rem inside the bar's - the browser stops it
+     * at the end - and only the bar: the page is not asked to scroll.
+     */
+    const phone: {
+      scrollIntoView: ReturnType<typeof jest.fn>;
+      restore: () => void;
+    } = renderOnPhone("settings");
+
+    try {
+      expect(scroller().scrollLeft).toBe(532 - (358 - TAB_BAR_PEEK_PX));
+      expect(phone.scrollIntoView).not.toHaveBeenCalled();
     } finally {
-      HTMLElement.prototype.getBoundingClientRect = originalRect;
-      delete (HTMLElement.prototype as unknown as { scrollIntoView?: unknown })
-        .scrollIntoView;
+      phone.restore();
+    }
+  });
+
+  test("a lit tab already in view leaves the bar where it is, so the first tabs stay in sight", () => {
+    /*
+     * AI, the third tab, ends 68px inside the bar: nothing scrolls, and
+     * Viewer, the first, stays whole. Brought to the middle it hid Viewer
+     * behind the fade.
+     */
+    const phone: {
+      scrollIntoView: ReturnType<typeof jest.fn>;
+      restore: () => void;
+    } = renderOnPhone("ai");
+
+    try {
+      expect(scroller().scrollLeft).toBe(0);
+      expect(phone.scrollIntoView).not.toHaveBeenCalled();
+    } finally {
+      phone.restore();
     }
   });
 

@@ -1191,6 +1191,8 @@ export const TELEMETRY_AI_TEST_IDS: {
   // An entry's kind ("Pull request", "Investigation"), before its finding.
   logKind: string;
   logVerdict: string;
+  // When an entry started, in its own direction (a <bdi>).
+  logTime: string;
   logsEmpty: string;
   logsSettings: string;
   logsLoadMore: string;
@@ -1206,6 +1208,7 @@ export const TELEMETRY_AI_TEST_IDS: {
   logEntry: "telemetry-ai-log-entry",
   logKind: "telemetry-ai-log-kind",
   logVerdict: "telemetry-ai-log-verdict",
+  logTime: "telemetry-ai-log-time",
   logsEmpty: "telemetry-ai-logs-empty",
   logsSettings: "telemetry-ai-logs-settings",
   logsLoadMore: "telemetry-ai-logs-load-more",

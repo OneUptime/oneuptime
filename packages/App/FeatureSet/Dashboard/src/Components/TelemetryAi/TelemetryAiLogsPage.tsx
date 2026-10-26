@@ -176,9 +176,15 @@ export const TelemetryAiLogRow: FunctionComponent<TelemetryAiLogRowProps> = (
   );
 
   if (hasDate) {
+    /*
+     * The time in its own direction, as a finding's Details rail draws it:
+     * "2 hours ago" on a Persian page read "hours ago 2".
+     */
     meta.push(
       <span key="at" title={OneUptimeDate.getDateAsLocalFormattedString(at)}>
-        {OneUptimeDate.fromNow(at)}
+        <bdi data-testid={TELEMETRY_AI_TEST_IDS.logTime}>
+          {OneUptimeDate.fromNow(at)}
+        </bdi>
       </span>,
     );
   }
@@ -303,7 +309,11 @@ export const TelemetryAiLogRow: FunctionComponent<TelemetryAiLogRowProps> = (
                 <span>
                   {translator.translateText(TELEMETRY_AI_LOG_OPEN_TASK)}
                 </span>
-                <Icon icon={IconProp.ArrowRight} className="h-3.5 w-3.5" />
+                {/* It points the way the words run, right to left too. */}
+                <Icon
+                  icon={IconProp.ArrowRight}
+                  className="h-3.5 w-3.5 rtl:rotate-180"
+                />
               </Link>
             ) : (
               <></>

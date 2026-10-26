@@ -208,6 +208,22 @@ describe("Logs → AI → Activity", () => {
     ).toBeInTheDocument();
   });
 
+  test("an entry's time is drawn in its own direction, so a Persian page reads it as written", async () => {
+    serve(ok({ entries: [entry({})], totalCount: 1 }));
+    openPage();
+
+    const [investigation] = await shownEntries(1);
+    const time: HTMLElement = within(investigation!).getByTestId(
+      TELEMETRY_AI_TEST_IDS.logTime,
+    );
+
+    // A <bdi>: "2 hours ago" read "hours ago 2" right to left.
+    expect(time.tagName).toBe("BDI");
+    expect((time.textContent || "").trim().length).toBeGreaterThan(0);
+    // The exact time stays under the pointer, on the time's own box.
+    expect(time.parentElement!.getAttribute("title")).toBeTruthy();
+  });
+
   test("an entry's finding opens under Logs' own AI tab", async () => {
     serve(ok({ entries: [entry({})], totalCount: 1 }));
     openPage();

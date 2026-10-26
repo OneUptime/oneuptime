@@ -26,6 +26,7 @@ import {
   getTabBarHiddenEdges,
   getTabBarScrollDelta,
   NO_HIDDEN_EDGES,
+  TAB_BAR_SCROLL_PADDING_CLASS_NAME,
   TabBarHiddenEdges,
 } from "./TabBarScroll";
 
@@ -120,8 +121,9 @@ function isRightToLeft(element: HTMLElement): boolean {
 /*
  * The tab bar's sideways scroll (TabBarScroll): which of its edges hide
  * tabs - read again as it scrolls and whenever it or its tabs change size -
- * and the lit tab scrolled to the bar's middle when the page opens or
- * another tab is lit. Only the bar scrolls: the page never moves.
+ * and the lit tab scrolled into view, its next tab peeking past the fade,
+ * when the page opens or another tab is lit. Only the bar scrolls: the
+ * page never moves.
  */
 function useTabBarScroll(activeKey: string): {
   scrollerRef: MutableRefObject<HTMLDivElement | null>;
@@ -256,7 +258,9 @@ const TelemetryNavTabs: FunctionComponent<Props> = (
    * out of sight and an edge that hides tabs faded (TabBarScroll). They
    * used to wrap, and Setup Guide sat alone on a second line. The bar is as
    * wide as its tabs and never wider than the page. The padding is the
-   * scroller's own, so a focused tab's ring is not cut at its top or bottom.
+   * scroller's own, so a focused tab's ring is not cut at its top or bottom,
+   * and its scroll padding keeps a tab the keyboard reaches clear of the
+   * fades.
    */
   return (
     <div className="flex min-w-0 max-w-full flex-wrap items-center justify-between gap-3">
@@ -270,7 +274,7 @@ const TelemetryNavTabs: FunctionComponent<Props> = (
           data-testid={TELEMETRY_NAV_TABS_TEST_IDS.scroller}
           data-hidden-left={hiddenEdges.left ? "true" : "false"}
           data-hidden-right={hiddenEdges.right ? "true" : "false"}
-          className={`flex min-w-0 items-center gap-1 overflow-x-auto p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${getTabBarFadeClassName(
+          className={`flex min-w-0 items-center gap-1 overflow-x-auto p-1 ${TAB_BAR_SCROLL_PADDING_CLASS_NAME} [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${getTabBarFadeClassName(
             hiddenEdges,
           )}`}
         >

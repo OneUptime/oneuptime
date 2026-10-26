@@ -42,9 +42,10 @@ export interface ComponentProps {
     | undefined;
   /*
    * What a switch's setting comes to right now, when that is not what its
-   * name promises - "Every AI rule says Don't fix, so nothing is fixed"
-   * under Fix new incidents automatically, while it is on: a line under its
-   * sentences (ModelSwitchRow's getWarning). Nothing for the rest.
+   * name promises - "Every enabled AI rule is set to “Don't fix”, so
+   * nothing is fixed" under Fix new incidents automatically, while it is
+   * on: a line under its sentences (ModelSwitchRow's getWarning). Nothing
+   * for the rest.
    */
   getWarning?:
     | ((column: ModelSwitchColumn<Project>, isOn: boolean) => ReactNode)

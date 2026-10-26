@@ -235,7 +235,7 @@ export const COULD_NOT_START_THE_FIX: string = translationKey(
  * A fix for this trace that already did its work, by how it came out
  * (FinishedFixOutcome): the trace links to its task instead of offering a
  * second fix - which would only open a second pull request for the same
- * evidence. "View the task" is the link, as on a telemetry finding.
+ * evidence.
  */
 export const FINISHED_FIX_SENTENCES: Readonly<
   Record<FinishedFixOutcome, string>
@@ -247,11 +247,27 @@ export const FINISHED_FIX_SENTENCES: Readonly<
     "OneUptime AI already looked at this and found nothing to change.",
   ),
   [FinishedFixOutcome.WaitingForYou]: translationKey(
-    "OneUptime AI has a question about its fix for this.",
+    "OneUptime AI has a question about fixing this.",
   ),
 };
 
 export const VIEW_THE_TASK: string = translationKey("View the task");
+
+// The task waits for the reader's answer: the link says that is what it is for.
+export const ANSWER_IT: string = translationKey("Answer it");
+
+/*
+ * Each outcome's link to its task: "View the task", as on a telemetry
+ * finding - and "Answer it" for a fix that waits for an answer, which is
+ * the one thing to do there (the task opens on its question, with the
+ * reply box under it).
+ */
+export const FINISHED_FIX_LINKS: Readonly<Record<FinishedFixOutcome, string>> =
+  {
+    [FinishedFixOutcome.Fixed]: VIEW_THE_TASK,
+    [FinishedFixOutcome.NothingToChange]: VIEW_THE_TASK,
+    [FinishedFixOutcome.WaitingForYou]: ANSWER_IT,
+  };
 
 /*
  * Each outcome's mark, as Code marks its task: a check for one that is

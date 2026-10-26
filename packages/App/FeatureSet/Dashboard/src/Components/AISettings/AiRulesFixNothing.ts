@@ -51,16 +51,23 @@ export enum AiRulesFixNothingLaneKind {
   Telemetry = "Telemetry",
 }
 
+/*
+ * Said of the ENABLED rules, as the engine counts them: the rules table the
+ * link opens lists the turned-off ones too, and "Every AI rule says Don't
+ * fix" read wrong beside a disabled rule that fixes. The rule's own choice
+ * is named in quotes, as its Fix step names it, so the reader knows what to
+ * change.
+ */
 export const AI_RULES_FIX_NOTHING_COPY: Readonly<{
   sentence: Readonly<Record<AiRulesFixNothingLaneKind, string>>;
   link: string;
 }> = {
   sentence: {
     [AiRulesFixNothingLaneKind.Signal]: translationKey(
-      "Every AI rule says Don't fix, so nothing is fixed.",
+      "Every enabled AI rule is set to “Don't fix”, so nothing is fixed.",
     ),
     [AiRulesFixNothingLaneKind.Telemetry]: translationKey(
-      "Every AI rule says Don't fix, so OneUptime AI opens no pull request on its own.",
+      "Every enabled AI rule is set to “Don't fix”, so OneUptime AI opens no pull request on its own.",
     ),
   },
   link: translationKey("Review the AI rules"),

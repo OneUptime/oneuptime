@@ -406,6 +406,8 @@ describe("RemediationDecisionList", () => {
     expect(glue.firstChild?.textContent).toBe("\u00a0");
     expect(arrow).toHaveAttribute("aria-hidden", "true");
     expect(arrow).toHaveClass("inline-block");
+    // On a page that reads right to left it points the way the words run.
+    expect(arrow).toHaveClass("rtl:rotate-180");
     expect(link).not.toHaveClass("inline-flex");
   });
 

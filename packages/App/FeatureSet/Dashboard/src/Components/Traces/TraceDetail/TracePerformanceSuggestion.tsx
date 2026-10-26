@@ -18,6 +18,7 @@ import {
   AI_IS_WORKING_ON_A_FIX,
   CONNECT_REPOSITORY_TO_FIX,
   COULD_NOT_START_THE_FIX,
+  FINISHED_FIX_LINKS,
   FINISHED_FIX_MARKS,
   FINISHED_FIX_SENTENCES,
   FIX_PERFORMANCE_BUTTON_TITLE,
@@ -27,7 +28,6 @@ import {
   SHOW_THEM,
   TRACE_FIX_PERFORMANCE_DONE_TEST_IDS,
   VIEW_TASK_PROGRESS,
-  VIEW_THE_TASK,
   getPerformanceFindingWords,
 } from "./TracePerformanceSuggestionCopy";
 
@@ -168,7 +168,9 @@ const TracePerformanceSuggestion: FunctionComponent<ComponentProps> = (
                   to={props.taskRoute}
                   dataTestId={TRACE_FIX_PERFORMANCE_DONE_TEST_IDS.link}
                 >
-                  {translator.translateText(VIEW_THE_TASK)}
+                  {translator.translateText(
+                    FINISHED_FIX_LINKS[suggestion.fixOutcome],
+                  )}
                 </Link>
               </>
             )}

@@ -7,7 +7,9 @@
  * onto a line of its own under the rest.
  *
  * An edge that hides tabs fades out, so a reader sees there is more past
- * it; an edge with nothing behind it stays sharp. Pure and React-free: the
+ * it; an edge with nothing behind it stays sharp. The lit tab is scrolled
+ * into view with the next tab peeking past the fade, and no further, so
+ * the first tabs stay in sight whenever they can. Pure and React-free: the
  * component measures, this decides, and the tests read it.
  */
 
@@ -115,13 +117,32 @@ export interface TabBarBox {
 }
 
 /*
- * How far to scroll the lit tab to the middle of the bar, as a phone's
- * scrolling tabs do, so the tabs on either side of it peek past the fades
- * and a reader sees where they are: Viewer and Insights before AI, Setup
- * Guide after it. The browser stops the scroll at either end, so the first
- * tab stays at the start and the last at the end. Added to scrollLeft, it
- * works the same either way the page reads - more to the right is a larger
- * scrollLeft in both. A tab wider than the bar shows its start.
+ * How much of the bar is kept beside the lit tab when it is scrolled into
+ * view (3rem): the edge's 1.5rem fade, the next tab's own padding, and the
+ * start of its name - so a reader sees there is more past the edge. The
+ * scroller keeps the same room for a tab the keyboard reaches
+ * (TAB_BAR_SCROLL_PADDING_CLASS_NAME), so a focused tab never sits under
+ * the fade.
+ */
+export const TAB_BAR_PEEK_PX: number = 48;
+
+export const TAB_BAR_SCROLL_PADDING_CLASS_NAME: string = "scroll-px-12";
+
+/*
+ * How far to scroll the bar so the lit tab is in view, with room beside it
+ * for the next tab to peek past the fade - and no further: a lit tab that
+ * is already in view stays where it is. The first tabs (Viewer, or
+ * Exceptions with its count) are what a reader looks for, so they stay in
+ * sight whenever the lit tab leaves room for them. Bringing the lit tab to
+ * the middle instead hid them whole behind the fade whenever the widths
+ * fell that way: German Exceptions on a 390px phone showed no Exceptions
+ * tab at all.
+ *
+ * The browser stops the scroll at either end, so the first tab stays at
+ * the start and the last at the end. Added to scrollLeft, it works the
+ * same either way the page reads - more to the right is a larger
+ * scrollLeft in both. A tab too wide for the room keeps what it can of it,
+ * and one wider than the bar shows its start.
  */
 export function getTabBarScrollDelta(data: {
   tab: TabBarBox;
@@ -138,9 +159,24 @@ export function getTabBarScrollDelta(data: {
     return 0;
   }
 
-  if (tab.right - tab.left >= bar.right - bar.left) {
+  // The bar's room on each side of the lit tab, were it in the middle.
+  const room: number = (bar.right - bar.left - (tab.right - tab.left)) / 2;
+
+  if (room <= 0) {
     return data.isRightToLeft ? tab.right - bar.right : tab.left - bar.left;
   }
 
-  return (tab.left + tab.right) / 2 - (bar.left + bar.right) / 2;
+  const peek: number = Math.min(TAB_BAR_PEEK_PX, room);
+
+  // Under the end edge's fade, or past it: bring it in, its next tab peeking.
+  if (tab.right > bar.right - peek) {
+    return tab.right - (bar.right - peek);
+  }
+
+  // The same at the start edge.
+  if (tab.left < bar.left + peek) {
+    return tab.left - (bar.left + peek);
+  }
+
+  return 0;
 }

@@ -433,8 +433,9 @@ describe("ModelSwitchRow says what the switch does", () => {
 
 /*
  * What the setting comes to right now, when that is not what the switch's
- * name promises (getWarning): "Every AI rule says Don't fix, so nothing is
- * fixed" under Fix new incidents automatically, while it is on.
+ * name promises (getWarning): "Every enabled AI rule is set to “Don't fix”,
+ * so nothing is fixed" under Fix new incidents automatically, while it is
+ * on.
  */
 describe("ModelSwitchRow says what its setting comes to, when that is a warning", () => {
   const WARNING_ID: string = getModelSwitchWarningTestId(TEST_ID);

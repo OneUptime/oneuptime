@@ -97,19 +97,25 @@ describe("what the switch says", () => {
       ).toBe("Don't fix");
     }
 
+    /*
+     * Named in quotes, as the product names a setting in a sentence, and
+     * said of the enabled rules only: the rules table the link opens lists
+     * the turned-off ones too.
+     */
     for (const sentence of Object.values(AI_RULES_FIX_NOTHING_COPY.sentence)) {
-      expect(sentence).toContain(`says ${dontFix!.title},`);
+      expect(sentence).toContain(`is set to “${dontFix!.title}”,`);
+      expect(sentence.startsWith("Every enabled AI rule ")).toBe(true);
     }
   });
 
   test("incidents and alerts: nothing is fixed; a telemetry lane: no pull request on its own", () => {
     expect(
       AI_RULES_FIX_NOTHING_COPY.sentence[AiRulesFixNothingLaneKind.Signal],
-    ).toBe("Every AI rule says Don't fix, so nothing is fixed.");
+    ).toBe("Every enabled AI rule is set to “Don't fix”, so nothing is fixed.");
     expect(
       AI_RULES_FIX_NOTHING_COPY.sentence[AiRulesFixNothingLaneKind.Telemetry],
     ).toBe(
-      "Every AI rule says Don't fix, so OneUptime AI opens no pull request on its own.",
+      "Every enabled AI rule is set to “Don't fix”, so OneUptime AI opens no pull request on its own.",
     );
     expect(AI_RULES_FIX_NOTHING_COPY.link).toBe("Review the AI rules");
   });

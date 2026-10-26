@@ -460,7 +460,7 @@ describe("the fix switch says when every AI rule says Don't fix", () => {
     const warning: HTMLElement = await warningOf(INCIDENT_FIX);
 
     expect(warning).toHaveTextContent(
-      "Every AI rule says Don't fix, so nothing is fixed. Review the AI rules",
+      "Every enabled AI rule is set to “Don't fix”, so nothing is fixed. Review the AI rules",
     );
     // Under the fix switch's own sentences, in its row.
     expect(screen.getByTestId(`${INCIDENT_FIX}-row`).contains(warning)).toBe(
@@ -548,7 +548,7 @@ describe("the fix switch says when every AI rule says Don't fix", () => {
     await press(control);
 
     expect(await warningOf(INCIDENT_FIX)).toHaveTextContent(
-      "Every AI rule says Don't fix, so nothing is fixed.",
+      "Every enabled AI rule is set to “Don't fix”, so nothing is fixed.",
     );
   });
 
@@ -572,7 +572,7 @@ describe("the fix switch says when every AI rule says Don't fix", () => {
     );
 
     expect(warning).toHaveTextContent(
-      "Every AI rule says Don't fix, so OneUptime AI opens no pull request on its own. Review the AI rules",
+      "Every enabled AI rule is set to “Don't fix”, so OneUptime AI opens no pull request on its own. Review the AI rules",
     );
     expect(
       within(warning).getByRole("link", { name: "Review the AI rules" }),

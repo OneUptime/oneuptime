@@ -201,10 +201,11 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   onSavingChange?: ((isSaving: boolean) => void) | undefined;
   /*
    * What the switch's setting comes to right now, when that is not what its
-   * name promises, for the way it is set: "Every AI rule says Don't fix, so
-   * nothing is fixed" under Fix new incidents automatically, while it is
-   * on. A line of its own under the switch's sentences, marked and in the
-   * warning colour, and read out with them; nothing when it gives nothing.
+   * name promises, for the way it is set: "Every enabled AI rule is set to
+   * “Don't fix”, so nothing is fixed" under Fix new incidents
+   * automatically, while it is on. A line of its own under the switch's
+   * sentences, marked and in the warning colour, and read out with them;
+   * nothing when it gives nothing.
    */
   getWarning?: ((isOn: boolean) => ReactNode) | undefined;
 }

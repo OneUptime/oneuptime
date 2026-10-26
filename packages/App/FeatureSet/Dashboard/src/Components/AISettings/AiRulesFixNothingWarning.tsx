@@ -26,8 +26,8 @@ import {
 } from "./AiRulesFixNothing";
 
 /*
- * "Every AI rule says Don't fix, so nothing is fixed": the line a lane's
- * fix switch says while it is on and its rules fix nothing
+ * "Every enabled AI rule is set to “Don't fix”, so nothing is fixed": the
+ * line a lane's fix switch says while it is on and its rules fix nothing
  * (AiRulesFixNothing), with the way to the rules - More settings opened at
  * the AI rules card, on the same page.
  */

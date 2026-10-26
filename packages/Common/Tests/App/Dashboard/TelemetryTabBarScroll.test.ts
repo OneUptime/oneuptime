@@ -5,6 +5,8 @@ import {
   getTabBarScrollDelta,
   NO_HIDDEN_EDGES,
   TAB_BAR_FADE_CLASS_NAMES,
+  TAB_BAR_PEEK_PX,
+  TAB_BAR_SCROLL_PADDING_CLASS_NAME,
   TabBarHiddenEdges,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Telemetry/TabBarScroll";
 
@@ -14,7 +16,9 @@ import {
  * AI, Setup Guide and Settings need about 510px in English and 650px in
  * German; a 390px phone gives them 326. They used to wrap, and Setup Guide
  * sat alone on a second line. What the bar measures is decided here: which
- * edges hide tabs (and fade), and how far to scroll the lit tab into view.
+ * edges hide tabs (and fade), and how far to scroll the lit tab into view -
+ * just far enough for the next tab to peek past the fade, so the first tabs
+ * stay in sight whenever they can.
  */
 
 // A bar 326px wide holding 509px of tabs, as English draws them on a phone.
@@ -218,68 +222,92 @@ describe("scrolling the lit tab into view", () => {
   // The bar is at 32..358 on a 390px phone (16px padding each side).
   const bar: { left: number; right: number } = { left: 32, right: 358 };
 
-  test("the lit tab is brought to the bar's middle, so its neighbours peek past both fades", () => {
-    // AI, the third tab, partly under the right fade (German).
-    expect(
-      getTabBarScrollDelta({
-        tab: { left: 297, right: 354 },
-        bar,
-        isRightToLeft: false,
-      }),
-    ).toBe((297 + 354) / 2 - (32 + 358) / 2);
-    /*
-     * Settings, the last, well past the edge: to the middle (the browser
-     * stops at the end).
-     */
-    expect(
-      getTabBarScrollDelta({
-        tab: { left: 470, right: 572 },
-        bar,
-        isRightToLeft: false,
-      }),
-    ).toBe((470 + 572) / 2 - 195);
-    /*
-     * Viewer, the first, before the middle: a negative scroll the browser
-     * stops at the start.
-     */
-    expect(
-      getTabBarScrollDelta({
-        tab: { left: 37, right: 130 },
-        bar,
-        isRightToLeft: false,
-      }),
-    ).toBeLessThan(0);
+  const scrollFor: (
+    tab: { left: number; right: number },
+    isRightToLeft?: boolean,
+  ) => number = (
+    tab: { left: number; right: number },
+    isRightToLeft: boolean = false,
+  ): number => {
+    return getTabBarScrollDelta({ tab, bar, isRightToLeft });
+  };
+
+  test("the room kept beside the lit tab is 3rem, and the scroller keeps it for a tab the keyboard reaches", () => {
+    expect(TAB_BAR_PEEK_PX).toBe(48);
+    // Tailwind's scroll-px-12 is 3rem of scroll padding on both sides.
+    expect(TAB_BAR_SCROLL_PADDING_CLASS_NAME).toBe("scroll-px-12");
   });
 
-  test("a tab already in the middle stays", () => {
-    expect(
-      getTabBarScrollDelta({
-        tab: { left: 150, right: 240 },
-        bar,
-        isRightToLeft: false,
-      }),
-    ).toBe(0);
+  test("a lit tab already in view, with room beside it, stays where it is: the first tabs stay in sight", () => {
+    // AI, the third tab, in English: in view with room to spare.
+    expect(scrollFor({ left: 233, right: 290 })).toBe(0);
+    // A tab in the middle of a scrolled bar stays too.
+    expect(scrollFor({ left: 150, right: 240 })).toBe(0);
+    /*
+     * Viewer, the first, at the start: a scroll back the browser stops at
+     * the start, so nothing moves.
+     */
+    expect(scrollFor({ left: 36, right: 129 })).toBeLessThanOrEqual(0);
+  });
+
+  test("a lit tab under the end's fade, or past it, comes in just far enough for the next tab to peek", () => {
+    // AI in German ends at 326, under the right fade: in by 16px.
+    expect(scrollFor({ left: 269, right: 326 })).toBe(
+      326 - (358 - TAB_BAR_PEEK_PX),
+    );
+    // Settings, the last, well past the edge (the browser stops at the end).
+    expect(scrollFor({ left: 470, right: 572 })).toBe(
+      572 - (358 - TAB_BAR_PEEK_PX),
+    );
+  });
+
+  test("a lit tab behind the start's edge comes back, the tab before it peeking", () => {
+    expect(scrollFor({ left: -60, right: 40 })).toBe(
+      -60 - (32 + TAB_BAR_PEEK_PX),
+    );
+  });
+
+  test("German Exceptions on a phone: the AI tab comes into view and Exceptions, the first tab, stays in sight", () => {
+    /*
+     * Unscrolled, as Chromium draws them in a bar at 33..357: Ausnahmen
+     * with its count at 37..193, Einblicke 197..304, KI 308..365. The bar
+     * used to bring KI to its middle (142px), and Ausnahmen went wholly
+     * behind the fade.
+     */
+    const delta: number = getTabBarScrollDelta({
+      tab: { left: 308, right: 365 },
+      bar: { left: 33, right: 357 },
+      isRightToLeft: false,
+    });
+
+    expect(delta).toBe(365 - (357 - TAB_BAR_PEEK_PX));
+    /*
+     * Ausnahmen's end is then past the 1.5rem fade and its 12px padding:
+     * its name shows.
+     */
+    expect(193 - delta).toBeGreaterThan(33 + 24 + 12);
   });
 
   test("right to left it is the same arithmetic: more to the right is a larger scrollLeft there too", () => {
-    expect(
-      getTabBarScrollDelta({
-        tab: { left: -100, right: -10 },
-        bar,
-        isRightToLeft: true,
-      }),
-    ).toBe((-100 + -10) / 2 - 195);
+    // The tab after the lit one is to its left: a lit tab under the left fade comes in.
+    expect(scrollFor({ left: 50, right: 110 }, true)).toBe(
+      50 - (32 + TAB_BAR_PEEK_PX),
+    );
+    // The first tab, at the start on the right, stays (the browser stops there).
+    expect(scrollFor({ left: 260, right: 354 }, true)).toBeGreaterThanOrEqual(
+      0,
+    );
+    expect(scrollFor({ left: 150, right: 240 }, true)).toBe(0);
   });
 
-  test("a tab wider than the bar shows its start: its left edge, or its right one right to left", () => {
+  test("a tab too wide for the room keeps what room there is, and one wider than the bar shows its start", () => {
+    // 280px of a 326px bar: 23px each side, not 48.
+    expect(scrollFor({ left: 100, right: 380 })).toBe(380 - (358 - 23));
+
     const wide: { left: number; right: number } = { left: 100, right: 500 };
 
-    expect(getTabBarScrollDelta({ tab: wide, bar, isRightToLeft: false })).toBe(
-      100 - 32,
-    );
-    expect(getTabBarScrollDelta({ tab: wide, bar, isRightToLeft: true })).toBe(
-      500 - 358,
-    );
+    expect(scrollFor(wide)).toBe(100 - 32);
+    expect(scrollFor(wide, true)).toBe(500 - 358);
   });
 
   test("boxes that are not laid out (jsdom, a hidden bar) scroll nothing", () => {

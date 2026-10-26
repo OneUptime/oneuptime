@@ -13,6 +13,7 @@ import { BrowserRouter } from "react-router-dom";
 import TracePerformanceSuggestion from "../../../../App/FeatureSet/Dashboard/src/Components/Traces/TraceDetail/TracePerformanceSuggestion";
 import {
   FINISHED_FIX_MARKS,
+  FINISHED_FIX_LINKS,
   FINISHED_FIX_SENTENCES,
   PerformanceFindingWords,
   TRACE_FIX_PERFORMANCE_DONE_TEST_IDS,
@@ -454,20 +455,32 @@ describe("what each offer draws", () => {
       FinishedFixOutcome.Fixed,
       "OneUptime AI already opened a pull request that fixes this.",
       "text-emerald-600",
+      "View the task",
     ],
     [
       FinishedFixOutcome.NothingToChange,
       "OneUptime AI already looked at this and found nothing to change.",
       "text-gray-400",
+      "View the task",
     ],
+    /*
+     * A task that waits for an answer: the link says what it is for - the
+     * task opens on its question, the reply box under it.
+     */
     [
       FinishedFixOutcome.WaitingForYou,
-      "OneUptime AI has a question about its fix for this.",
+      "OneUptime AI has a question about fixing this.",
       "text-amber-600",
+      "Answer it",
     ],
   ])(
     "Done (%s): how the fix came out, marked as Code marks its task, and a link to it - never the fix again",
-    (outcome: FinishedFixOutcome, sentence: string, markClass: string) => {
+    (
+      outcome: FinishedFixOutcome,
+      sentence: string,
+      markClass: string,
+      linkWords: string,
+    ) => {
       const { onFix } = renderStrip({
         suggestion: done(outcome),
         taskRoute: TASK_ROUTE,
@@ -487,8 +500,9 @@ describe("what each offer draws", () => {
         TRACE_FIX_PERFORMANCE_DONE_TEST_IDS.done,
       );
       expect(line).toHaveAttribute("data-outcome", outcome);
-      expect(line).toHaveTextContent(`${sentence} ${VIEW_THE_TASK}`);
+      expect(line).toHaveTextContent(`${sentence} ${linkWords}`);
       expect(FINISHED_FIX_SENTENCES[outcome]).toBe(sentence);
+      expect(FINISHED_FIX_LINKS[outcome]).toBe(linkWords);
       expect(FINISHED_FIX_MARKS[outcome].className).toBe(markClass);
       expect(line.querySelector(`.${markClass}`)).not.toBeNull();
 
@@ -498,6 +512,7 @@ describe("what each offer draws", () => {
       expect(link.closest("a")!.getAttribute("href")).toBe(
         "/dashboard/p/code/tasks/run-1",
       );
+      expect(link).toHaveTextContent(linkWords);
       // The same words as a telemetry finding's link to its task.
       expect(VIEW_THE_TASK).toBe(TELEMETRY_AI_FIX_COPY.viewTask);
       // Not a working line: no live dot, no status that would be announced.

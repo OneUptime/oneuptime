@@ -1190,25 +1190,28 @@ test.describe("fix performance with AI", () => {
   }: {
     page: Page;
   }) => {
-    for (const [query, outcome, sentence] of [
+    for (const [query, outcome, sentence, linkWords] of [
       [
         "fix=nothing",
         "NothingToChange",
         "OneUptime AI already looked at this and found nothing to change.",
+        "View the task",
       ],
+      // Waiting for an answer: the link is what to do there.
       [
         "fix=question",
         "WaitingForYou",
-        "OneUptime AI has a question about its fix for this.",
+        "OneUptime AI has a question about fixing this.",
+        "Answer it",
       ],
     ]) {
       await openLoaded(page, "report", query);
 
       const done: Locator = page.getByTestId("trace-fix-performance-done");
       await expect(done).toHaveAttribute("data-outcome", outcome!);
-      await expect(done).toContainText(sentence!);
+      await expect(done).toHaveText(`${sentence!} ${linkWords!}`);
       await expect(
-        done.getByRole("link", { name: "View the task" }),
+        done.getByRole("link", { name: linkWords!, exact: true }),
       ).toHaveAttribute(
         "href",
         `/dashboard/${PROJECT_ID}/code/tasks/70000000-0000-4000-8000-000000000010`,

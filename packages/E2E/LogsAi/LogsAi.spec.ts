@@ -256,7 +256,9 @@ test.describe("Logs → AI tab", () => {
    * need about 510px and a phone gives them 326, so they used to wrap,
    * Setup Guide and Settings on a line of their own. They stay on one line
    * now, the line scrolls sideways with its hidden edge faded, and the lit
-   * tab opens in its middle - only the bar scrolls, never the page.
+   * tab opens in view with the next tab peeking past the fade - scrolled no
+   * further, so the first tabs stay in sight. Only the bar scrolls, never
+   * the page.
    */
   test("the tabs stay on one line: on a phone the line scrolls, the lit tab in view and its neighbours peeking", async ({
     page,
@@ -334,12 +336,25 @@ test.describe("Logs → AI tab", () => {
       expect(opened.overflow).toBeGreaterThan(100);
       await expectNoSidewaysScroll(page);
 
-      // The lit tab opens whole, near the middle, with a tab on each side.
+      /*
+       * The lit tab opens whole, with room past it for the next tab to
+       * peek. AI fits in English, so nothing scrolls: Viewer, the first
+       * tab, stays whole at the start, and Setup Guide peeks past the right
+       * fade (1.5rem) by more than its own padding.
+       */
       expect(opened.litLeft).toBeGreaterThanOrEqual(opened.barLeft);
-      expect(opened.litRight).toBeLessThanOrEqual(opened.barRight);
-      expect(opened.scrollLeft).toBeGreaterThan(0);
-      await expect(scroller).toHaveAttribute("data-hidden-left", "true");
+      expect(opened.litRight).toBeLessThanOrEqual(opened.barRight - 47);
+      expect(opened.scrollLeft).toBe(0);
+      await expect(scroller).toHaveAttribute("data-hidden-left", "false");
       await expect(scroller).toHaveAttribute("data-hidden-right", "true");
+
+      const setupGuideLeft: number = await tabs
+        .getByRole("link", { name: "Setup Guide", exact: true })
+        .evaluate((link: Element): number => {
+          return link.getBoundingClientRect().left;
+        });
+
+      expect(setupGuideLeft).toBeLessThan(opened.barRight - 24 - 12);
 
       // Scrolled to its end, the last tab is whole and that edge is sharp.
       await scroller.evaluate((element: Element): void => {
@@ -369,6 +384,117 @@ test.describe("Logs → AI tab", () => {
     });
 
     await screenshot(page, testInfo, "tabs-one-line");
+  });
+
+  /*
+   * In German AI does not fit with room past it on a phone: the bar
+   * scrolls just that far, so Betrachter (Viewer) still shows past the left
+   * fade and Einrichtungsanleitung (Setup Guide) peeks past the right one.
+   * Bringing the lit tab to the middle hid a first tab wholly behind the
+   * fade (German Exceptions showed no Exceptions tab at all).
+   */
+  test("on a phone in German the lit tab scrolls just into view, the first tab still in sight", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    test.skip(!isPhone(testInfo), "Only a phone's bar scrolls.");
+
+    await page.goto(`${AI}/insights?lang=de`);
+
+    const tabs: Locator = page.getByTestId("telemetry-nav-tabs");
+    const scroller: Locator = page.getByTestId("telemetry-nav-tabs-scroller");
+
+    await expect(
+      tabs.getByRole("link", { name: "KI", exact: true }),
+    ).toHaveAttribute("aria-current", "page");
+
+    const boxes: {
+      scrollLeft: number;
+      barLeft: number;
+      barRight: number;
+      firstRight: number;
+      litLeft: number;
+      litRight: number;
+    } = await scroller.evaluate(
+      (
+        element: Element,
+      ): {
+        scrollLeft: number;
+        barLeft: number;
+        barRight: number;
+        firstRight: number;
+        litLeft: number;
+        litRight: number;
+      } => {
+        const bar: DOMRect = element.getBoundingClientRect();
+        const first: DOMRect = element.children[0]!.getBoundingClientRect();
+        const lit: DOMRect = element
+          .querySelector("[aria-current='page']")!
+          .getBoundingClientRect();
+
+        return {
+          scrollLeft: element.scrollLeft,
+          barLeft: bar.left,
+          barRight: bar.right,
+          firstRight: first.right,
+          litLeft: lit.left,
+          litRight: lit.right,
+        };
+      },
+    );
+
+    // Scrolled, but only a little: the lit tab whole, room past it.
+    expect(boxes.scrollLeft).toBeGreaterThan(0);
+    expect(boxes.scrollLeft).toBeLessThan(48);
+    expect(boxes.litLeft).toBeGreaterThanOrEqual(boxes.barLeft);
+    expect(boxes.litRight).toBeLessThanOrEqual(boxes.barRight - 47);
+    // The first tab's name still shows past the left fade and its padding.
+    expect(boxes.firstRight).toBeGreaterThan(boxes.barLeft + 24 + 12 + 40);
+    await expect(scroller).toHaveAttribute("data-hidden-left", "true");
+    await expect(scroller).toHaveAttribute("data-hidden-right", "true");
+    await expectNoSidewaysScroll(page);
+
+    await screenshot(page, testInfo, "tabs-one-line-german");
+  });
+
+  /*
+   * Between a phone and a laptop the page header puts the bar on a line of
+   * its own beside the title's: from 640px to about 700px German's tabs are
+   * wider than that line, and the bar kept their width and pushed the page
+   * sideways. It scrolls inside the page there too.
+   */
+  test("at 640px in German the bar scrolls inside the page, never pushing it sideways", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    test.skip(isPhone(testInfo), "The laptop project resizes to 640px.");
+
+    await page.setViewportSize({ width: 640, height: 900 });
+    await page.goto(`${AI}/insights?lang=de`);
+
+    const scroller: Locator = page.getByTestId("telemetry-nav-tabs-scroller");
+
+    await expect(scroller).toBeVisible({ timeout: 60000 });
+    await expect(scroller).toHaveAttribute("data-hidden-right", "true");
+
+    const widths: { overflow: number; barRight: number; pageWidth: number } =
+      await scroller.evaluate(
+        (
+          element: Element,
+        ): { overflow: number; barRight: number; pageWidth: number } => {
+          return {
+            overflow: element.scrollWidth - element.clientWidth,
+            barRight: element.getBoundingClientRect().right,
+            pageWidth: document.documentElement.clientWidth,
+          };
+        },
+      );
+
+    expect(widths.overflow).toBeGreaterThan(0);
+    expect(widths.barRight).toBeLessThanOrEqual(widths.pageWidth);
+    await expectNoSidewaysScroll(page);
   });
 });
 
@@ -462,7 +588,7 @@ test.describe("Logs → AI → Settings", () => {
     const warning: Locator = switches.getByTestId("ai-rules-fix-nothing");
 
     await expect(warning).toHaveText(
-      "Every AI rule says Don't fix, so OneUptime AI opens no pull request on its own. Review the AI rules",
+      "Every enabled AI rule is set to “Don't fix”, so OneUptime AI opens no pull request on its own. Review the AI rules",
       { timeout: 60000 },
     );
     // The switch is still on: the rules decide what it fixes.
