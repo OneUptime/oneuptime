@@ -25,9 +25,9 @@ import HostConnectionWatch from "./HostConnectionWatch";
 /*
  * Adding a host, OneUptime's default way: pick what the host runs and a
  * key, run one command on the host, and watch it connect. The Hosts list
- * shows it as its first-run card and in its Add Host dialog; a host that
- * was set up by hand shows it on its Collector page, to hand its collector
- * over to OneUptime.
+ * shows it in its Add Host dialog (an empty list's showcase opens that
+ * too); a host that was set up by hand shows it on its Collector page, to
+ * hand its collector over to OneUptime.
  *
  * The same shape every "add it, then it just reports" flow takes: a few ways
  * in at the top, the key, the one thing to run, then a live last step that
