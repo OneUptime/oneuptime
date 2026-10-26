@@ -298,7 +298,11 @@ import {
   PHONE_NUMBER_LIST_EXAMPLE,
   TEST_SEND_FROM_PHONE_NUMBER_FIELD,
 } from "../../../Types/CallAndSMS/TwilioPhoneNumbers";
-import TwilioConfigPhoneNumbers from "../../../../App/FeatureSet/Dashboard/src/Components/CallSMS/TwilioConfigPhoneNumbers";
+import TwilioConfigPhoneNumbers, {
+  TWILIO_CONFIG_NUMBER_LINE_CLASS_NAME,
+  TWILIO_CONFIG_NUMBER_LINE_WITH_ICON_CLASS_NAME,
+  TWILIO_CONFIG_NUMBER_WITH_ICON_CLASS_NAME,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/CallSMS/TwilioConfigPhoneNumbers";
 import ProjectCallSMSConfig from "../../../Models/DatabaseModels/ProjectCallSMSConfig";
 import Phone from "../../../Types/Phone";
 import Column from "../../../UI/Components/ModelTable/Column";
@@ -755,11 +759,12 @@ describe("a config's numbers in its row", () => {
 
   /*
    * In German the Twilio Config table ran 51px past its card at 1280px
-   * beside the side menu. The cell gives way before the rows scroll
-   * sideways (the Table's give-way, data-table-shrinks): a number ends in
-   * "...", its icon and its "+1 more" kept whole.
+   * beside the side menu. A number is never cut short - "+14155..." says
+   * nothing about which number it is - so where the column is narrow, the
+   * "+1 more" goes onto a line of its own under the number instead, and
+   * the column needs no more than one number's width.
    */
-  test("gives way before the table scrolls: a number ends in ..., its icon and its count kept whole", () => {
+  test("a number is never cut short: its icon and it stay together, whole, and its count wraps under it where the column is narrow", () => {
     render(
       <TwilioConfigPhoneNumbers
         config={{
@@ -771,19 +776,66 @@ describe("a config's numbers in its row", () => {
 
     const cell: HTMLElement = screen.getByTestId("twilio-config-phone-numbers");
 
-    expect(cell).toHaveAttribute("data-table-shrinks", "true");
+    // Not one of the table's values cut short to make it fit.
+    expect(cell).not.toHaveAttribute("data-table-shrinks");
 
     const sms: HTMLElement = within(cell).getByTitle("SMS");
-    expect(sms).toHaveClass("min-w-0");
-    expect(within(sms).getByText(SG_MOBILE)).toHaveClass("min-w-0", "truncate");
-    expect(within(sms).getByText("+1 more")).toHaveClass(
-      "flex-none",
+    const number: HTMLElement = within(sms).getByText(SG_MOBILE);
+
+    expect(number).toHaveClass("whitespace-nowrap");
+    expect(number).not.toHaveClass("truncate");
+    expect(number).not.toHaveClass("min-w-0");
+
+    // The line wraps between the number and its count, never inside them.
+    expect(sms.className).toBe(TWILIO_CONFIG_NUMBER_LINE_WITH_ICON_CLASS_NAME);
+    expect(TWILIO_CONFIG_NUMBER_LINE_CLASS_NAME.split(" ")).toEqual([
+      "flex",
+      "flex-wrap",
+      "items-center",
+      "gap-x-1.5",
+    ]);
+    expect(within(sms).getByText("+1 more")).toHaveClass("whitespace-nowrap");
+
+    /*
+     * The icon and the number are one piece that does not wrap, hung to
+     * the left of the line by the icon's 16px and its 6px gap, so a count
+     * on a line of its own starts under the number.
+     */
+    const iconAndNumber: HTMLElement = number.parentElement as HTMLElement;
+    expect(iconAndNumber.className).toBe(
+      TWILIO_CONFIG_NUMBER_WITH_ICON_CLASS_NAME,
+    );
+    expect(
+      within(iconAndNumber).getByRole("img", { name: "SMS" }),
+    ).toBeInTheDocument();
+    expect(TWILIO_CONFIG_NUMBER_WITH_ICON_CLASS_NAME).toContain(
       "whitespace-nowrap",
     );
-    // The icon keeps its 16px.
+    expect(TWILIO_CONFIG_NUMBER_WITH_ICON_CLASS_NAME).toContain("-ml-[22px]");
+    expect(TWILIO_CONFIG_NUMBER_LINE_WITH_ICON_CLASS_NAME).toContain(
+      "pl-[22px]",
+    );
+    // 22px: the icon's 16 and the gap's 6 (gap-1.5).
+    expect(TWILIO_CONFIG_NUMBER_WITH_ICON_CLASS_NAME).toContain("gap-1.5");
     expect(
       within(sms).getByRole("img", { name: "SMS" }).querySelector("svg"),
     ).toHaveClass("h-4", "w-4", "flex-none");
+  });
+
+  test("a line with no icon - every number sends both - wraps the same, with nothing hung", () => {
+    render(
+      <TwilioConfigPhoneNumbers
+        config={{
+          twilioPrimaryPhoneNumber: new Phone(SG_NATIONAL),
+        }}
+      />,
+    );
+
+    const cell: HTMLElement = screen.getByTestId("twilio-config-phone-numbers");
+    const line: HTMLElement = cell.firstElementChild as HTMLElement;
+
+    expect(line.className).toBe(TWILIO_CONFIG_NUMBER_LINE_CLASS_NAME);
+    expect(within(line).queryByRole("img")).toBeNull();
   });
 
   test("one with SMS numbers shows its primary and its first SMS number, calls first, each saying what it sends", () => {
