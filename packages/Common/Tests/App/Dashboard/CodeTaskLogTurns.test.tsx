@@ -20,7 +20,7 @@ import {
 } from "@testing-library/react";
 import { createInstance, i18n } from "i18next";
 import type { SpyInstance } from "jest-mock";
-import React, { ReactElement } from "react";
+import React from "react";
 import { I18nextProvider, initReactI18next } from "react-i18next";
 import { MemoryRouter, Route as RouterRoute, Routes } from "react-router-dom";
 import AIRunStatus from "../../../Types/AI/AIRunStatus";
@@ -367,7 +367,9 @@ describe("the Log page's turn picker", () => {
     getTaskMock.mockResolvedValue(taskAnswer(THREE_TURNS) as never);
     const postSpy: SpyInstance<typeof API.post> = jest
       .spyOn(API, "post")
-      .mockResolvedValue(logAnswer("read src/checkout.ts") as never);
+      .mockResolvedValue(
+        logAnswer("read src/checkout.ts") as never,
+      ) as unknown as SpyInstance<typeof API.post>;
 
     drawLog(`?turn=${SECOND_RUN_ID}`);
 
@@ -452,7 +454,9 @@ describe("the Log page's turn picker", () => {
     getTaskMock.mockResolvedValue(taskAnswer(THREE_TURNS) as never);
     const postSpy: SpyInstance<typeof API.post> = jest
       .spyOn(API, "post")
-      .mockResolvedValue(logAnswer("read src/checkout.ts") as never);
+      .mockResolvedValue(
+        logAnswer("read src/checkout.ts") as never,
+      ) as unknown as SpyInstance<typeof API.post>;
 
     drawLog(`?turn=${OTHER_TASK_RUN_ID}`);
 

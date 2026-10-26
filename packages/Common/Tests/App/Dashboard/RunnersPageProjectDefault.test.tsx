@@ -418,7 +418,7 @@ describe("Set as Project Default", () => {
     expect(
       within(dialog).getByTestId("confirm-modal-description").textContent,
     ).toBe(
-      "Runbook steps that pick no Runner, and AI in the code repositories that pick none, will run on it instead of prod-eu-west-1.",
+      "Runbook steps and code repositories that pick no Runner will run on it instead of prod-eu-west-1.",
     );
     /*
      * The Runner is not connected: said as a warning of its own, under what

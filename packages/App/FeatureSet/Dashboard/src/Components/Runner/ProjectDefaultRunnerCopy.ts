@@ -79,10 +79,10 @@ export const ProjectDefaultRunnerCopy: {
     "Make {{runner}} the project default?",
   ),
   makeDefaultConfirmDescription: translationKey(
-    "Runbook steps that pick no Runner will run on it, including the JavaScript steps that run on the Global Runner now, and so will AI in the code repositories that pick no Runner.",
+    "Runbook steps and code repositories that pick no Runner will run on it, including those on the Global Runner now.",
   ),
   replaceDefaultConfirmDescription: translationKey(
-    "Runbook steps that pick no Runner, and AI in the code repositories that pick none, will run on it instead of {{current}}.",
+    "Runbook steps and code repositories that pick no Runner will run on it instead of {{current}}.",
   ),
   makeDefaultConfirmButton: translationKey("Make Project Default"),
   makeDefaultNotConnectedWarning: translationKey(
@@ -92,7 +92,7 @@ export const ProjectDefaultRunnerCopy: {
     "Stop using {{runner}} as the project default?",
   ),
   stopDefaultConfirmDescription: translationKey(
-    "Runbook steps that pick no Runner will run on the Global Runner if they are JavaScript steps. Other steps will need a Runner picked. AI in the code repositories that pick no Runner will work on the Global Runner.",
+    "JavaScript steps and code repositories that pick no Runner will run on the Global Runner. Other steps will need a Runner picked.",
   ),
   stopDefaultConfirmButton: translationKey("Stop Using as Default"),
   customCardSentence: translationKey(

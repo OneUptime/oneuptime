@@ -310,7 +310,7 @@ describe("the Project Default card on a Runner's page", () => {
       "Make office-runner the project default?",
     );
     expect(dialog).toHaveTextContent(
-      "Runbook steps that pick no Runner, and AI in the code repositories that pick none, will run on it instead of prod-eu-west-1.",
+      "Runbook steps and code repositories that pick no Runner will run on it instead of prod-eu-west-1.",
     );
     expect(writes).toEqual([]);
 

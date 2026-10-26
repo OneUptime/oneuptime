@@ -97,9 +97,12 @@ describe("the time limit the model asked for", () => {
     [-30, 120],
     [Number.NaN, 120],
     [Number.POSITIVE_INFINITY, 120],
-  ])("%p asks for nothing: two minutes", (requested: unknown, seconds) => {
-    expect(getRequestedAgentCommandTimeoutSeconds(requested)).toBe(seconds);
-  });
+  ])(
+    "%p asks for nothing: two minutes",
+    (requested: unknown, seconds: number) => {
+      expect(getRequestedAgentCommandTimeoutSeconds(requested)).toBe(seconds);
+    },
+  );
 
   test.each([
     [1, 1],

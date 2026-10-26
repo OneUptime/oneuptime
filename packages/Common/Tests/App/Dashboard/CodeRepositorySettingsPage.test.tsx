@@ -197,6 +197,7 @@ type FormField = ModelField<CodeRepository>;
 interface DetailField {
   field?: Record<string, unknown>;
   title?: string;
+  description?: string;
   placeholder?: string;
   getElement?: ((item: CodeRepository) => ReactElement) | undefined;
 }
