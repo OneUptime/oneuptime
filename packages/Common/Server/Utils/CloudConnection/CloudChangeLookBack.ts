@@ -40,7 +40,9 @@ import {
  *   - with a copy of the connection's read state, so no cursor moves - the
  *     regular reads carry on exactly as before;
  *   - within a small budget of its own (LOOK_BACK_MAX_REQUESTS a
- *     connection, LOOK_BACK_MAX_DURATION_MS each);
+ *     connection, LOOK_BACK_MAX_DURATION_MS each), the connections read
+ *     side by side, so the investigation waits for the slowest one, not
+ *     for all of them in turn;
  *   - once per subject in LOOK_BACK_FENCE_SECONDS, however many reads of
  *     its changes ask (an investigation, then a remediation decision).
  *
@@ -184,22 +186,31 @@ export default class CloudChangeLookBack {
         return { connections: 0, recorded: 0, skipped: "no-connection" };
       }
 
+      const outcomes: Array<number | null> = await Promise.all(
+        Array.from(byConnection.entries())
+          .slice(0, LOOK_BACK_MAX_CONNECTIONS)
+          .map(
+            ([connectionId, held]: [
+              string,
+              Array<CloudResource>,
+            ]): Promise<number | null> => {
+              return CloudChangeLookBack.readConnection(
+                {
+                  projectId: data.projectId,
+                  connectionId: new ObjectID(connectionId),
+                  resources: held,
+                  since: data.since,
+                },
+                dependencies,
+              );
+            },
+          ),
+      );
+
       let connections: number = 0;
       let recorded: number = 0;
 
-      for (const [connectionId, held] of Array.from(
-        byConnection.entries(),
-      ).slice(0, LOOK_BACK_MAX_CONNECTIONS)) {
-        const written: number | null = await CloudChangeLookBack.readConnection(
-          {
-            projectId: data.projectId,
-            connectionId: new ObjectID(connectionId),
-            resources: held,
-            since: data.since,
-          },
-          dependencies,
-        );
-
+      for (const written of outcomes) {
         if (written !== null) {
           connections++;
           recorded += written;

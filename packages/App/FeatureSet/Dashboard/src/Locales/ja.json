@@ -35801,7 +35801,6 @@
   "The checkout stack's production account": "チェックアウト スタックの本番アカウント",
   "The first read lists every resource of the account, whether it reports metrics or not. If none appear then, check that the access is for the right account, subscription or project.": "最初の読み取りでは、メトリクスを報告するかどうかにかかわらず、アカウントのすべてのリソースを一覧にします。それでも何も表示されない場合は、アクセス権が正しいアカウント、サブスクリプション、プロジェクトのものか確認してください。",
   "The host names and addresses it answers on. A monitor that checks one of them can be linked to it.": "応答するホスト名とアドレスです。そのいずれかをチェックするモニターは、このリソースにリンクできます。",
-  "The hosts, clusters, databases, cloud resources and services this monitor watches. Its incidents and alerts are linked to them, so AI can fix them there.": "このモニターが監視するホスト、クラスター、データベース、クラウドリソース、サービスです。インシデントとアラートはこれらにリンクされるので、AI がそこで修正できます。",
   "The map appears once a cloud connection lists this account's resources. Connect the account to list them.": "クラウド接続がこのアカウントのリソースを一覧にすると、マップが表示されます。一覧にするにはアカウントを接続してください。",
   "Web App": "Web アプリ",
   "Web Apps": "Web アプリ",

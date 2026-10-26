@@ -35801,7 +35801,6 @@
   "The checkout stack's production account": "Продакшен-аккаунт стека оформления заказа",
   "The first read lists every resource of the account, whether it reports metrics or not. If none appear then, check that the access is for the right account, subscription or project.": "Первое чтение выводит каждый ресурс аккаунта, сообщает он метрики или нет. Если ни одного не появится, проверьте, что доступ выдан для нужного аккаунта, подписки или проекта.",
   "The host names and addresses it answers on. A monitor that checks one of them can be linked to it.": "Имена хостов и адреса, на которых он отвечает. Монитор, проверяющий один из них, можно связать с ним.",
-  "The hosts, clusters, databases, cloud resources and services this monitor watches. Its incidents and alerts are linked to them, so AI can fix them there.": "Хосты, кластеры, базы данных, облачные ресурсы и сервисы, за которыми следит этот монитор. Его инциденты и оповещения связываются с ними, чтобы ИИ мог исправить их там.",
   "The map appears once a cloud connection lists this account's resources. Connect the account to list them.": "Карта появится, когда облачное подключение внесёт ресурсы этого аккаунта в список. Подключите аккаунт, чтобы получить их список.",
   "Web App": "Веб-приложение",
   "Web Apps": "Веб-приложения",

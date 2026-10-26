@@ -3,8 +3,12 @@ import PageMap from "../../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../../Utils/RouteMap";
 import AppLink from "../../../../Components/AppLink/AppLink";
 import { getCloudAccountResourcesQuery } from "../../../../Components/Cloud/CloudAccountScope";
+import OwnersCell from "../../../../Components/ResourceOwners/OwnersCell";
+import useResourceOwners from "../../../../Components/ResourceOwners/useResourceOwners";
 import useCloudAccount, { CloudAccountRead } from "./UseCloudAccount";
 import CloudResource from "Common/Models/DatabaseModels/CloudResource";
+import CloudResourceOwnerTeam from "Common/Models/DatabaseModels/CloudResourceOwnerTeam";
+import CloudResourceOwnerUser from "Common/Models/DatabaseModels/CloudResourceOwnerUser";
 import Route from "Common/Types/API/Route";
 import { Gray500, Green } from "Common/Types/BrandColors";
 import {
@@ -13,6 +17,8 @@ import {
   getCloudResourceTypeLabel,
 } from "Common/Types/Cloud/CloudResourceCatalog";
 import ObjectID from "Common/Types/ObjectID";
+import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
+import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import LabelsElement from "Common/UI/Components/Label/Labels";
@@ -27,7 +33,8 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 /*
  * A cloud account's Resources: every live Cloud Resource of its cloud and
  * account id - those its connections list and those its telemetry reports
- * - each a click from its own page.
+ * - each a click from its own page. Found by owner and label as on All
+ * Resources, with the same bulk label and owner actions.
  */
 const CloudAccountResources: FunctionComponent<
   PageComponentProps
@@ -35,6 +42,36 @@ const CloudAccountResources: FunctionComponent<
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
   const read: CloudAccountRead = useCloudAccount(modelId);
   const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+
+  const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
+    useBulkLabelActions<CloudResource>({ modelType: CloudResource });
+
+  const { bulkActions: ownerBulkActions, modals: ownerBulkActionModals } =
+    useBulkOwnerActions<CloudResource>({
+      ownerUserModelType: CloudResourceOwnerUser,
+      ownerTeamModelType: CloudResourceOwnerTeam,
+      resourceIdField: "cloudResourceId",
+    });
+
+  /*
+   * The Owner and Labels chips above the table - the server answers the
+   * Owner chip in the list's own query - and the Owners column shows who
+   * owns each resource.
+   */
+  const {
+    getOwnersForResource,
+    isLoadingOwners,
+    onResourcesFetched,
+    filterBar,
+    emptyState: facetEmptyState,
+    mergeFiltersIntoQuery,
+  } = useResourceOwners<CloudResource>({
+    persistKey: "cloud-account-resources-table",
+    ownerUserModelType: CloudResourceOwnerUser,
+    ownerTeamModelType: CloudResourceOwnerTeam,
+    resourceIdField: "cloudResourceId",
+    showLabelsFacet: true,
+  });
 
   if (read.isLoading) {
     return <PageLoader isVisible={true} />;
@@ -74,15 +111,25 @@ const CloudAccountResources: FunctionComponent<
         modelType={CloudResource}
         id="cloud-account-resources-table"
         userPreferencesKey="cloud-account-resources-table"
-        query={getCloudAccountResourcesQuery({
-          projectId,
-          provider,
-          accountId: (read.account.accountId as string) || "",
-        })}
+        topContent={filterBar}
+        emptyState={facetEmptyState}
+        query={mergeFiltersIntoQuery(
+          getCloudAccountResourcesQuery({
+            projectId,
+            provider,
+            accountId: (read.account.accountId as string) || "",
+          }),
+        )}
+        onFetchSuccess={(data: Array<CloudResource>) => {
+          onResourcesFetched(data);
+        }}
         isDeleteable={false}
         isEditable={false}
         isCreateable={false}
         isViewable={true}
+        bulkActions={{
+          buttons: [...labelBulkActions, ...ownerBulkActions],
+        }}
         showRefreshButton={true}
         name="Cloud Resources"
         searchableFields={["name", "providerResourceId"]}
@@ -208,11 +255,29 @@ const CloudAccountResources: FunctionComponent<
               return <LabelsElement labels={item["labels"] || []} />;
             },
           },
+          {
+            field: {
+              _id: true,
+            },
+            title: "Owners",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            getElement: (item: CloudResource): ReactElement => {
+              return (
+                <OwnersCell
+                  owners={getOwnersForResource(item)}
+                  isLoading={isLoadingOwners}
+                />
+              );
+            },
+          },
         ]}
         onViewPage={(item: CloudResource): Promise<Route> => {
           return Promise.resolve(viewRoute(item));
         }}
       />
+      {labelBulkActionModals}
+      {ownerBulkActionModals}
     </Fragment>
   );
 };

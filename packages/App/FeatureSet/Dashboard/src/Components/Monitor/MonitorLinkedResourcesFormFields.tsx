@@ -41,7 +41,7 @@ export const getMonitorLinkedResourcesFormFields: () => Fields<Monitor> =
         },
         title: "Linked Resources",
         description:
-          "The hosts, clusters, databases, cloud resources and services this monitor watches. Its incidents and alerts are linked to them, so AI can fix them there.",
+          "The hosts, clusters, databases and services this monitor watches. Its incidents and alerts are linked to them, so AI can fix them there.",
         fieldType: FormFieldSchemaType.CustomComponent,
         required: false,
         getCustomElement: (

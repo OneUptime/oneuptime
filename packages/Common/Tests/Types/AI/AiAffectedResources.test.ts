@@ -322,8 +322,24 @@ describe("getPageAffectedResource - what an incident declared on a page is about
     ).toEqual({ kind: AiAffectedResourceKind.Host, id: HOST_ID });
   });
 
+  test("a cloud resource's page is about the cloud resource: incidents and alerts hold them now", () => {
+    expect(
+      getPageAffectedResource(
+        resourcePage(AIResourceType.CloudResource, CLUSTER_ID),
+      ),
+    ).toEqual({ kind: AiAffectedResourceKind.CloudResource, id: CLUSTER_ID });
+    // Linked for its changes and its page, never fixed: no agent acts on a cloud.
+    expect(
+      getAiAffectedResourceKindInfo(AiAffectedResourceKind.CloudResource),
+    ).toEqual({
+      kind: AiAffectedResourceKind.CloudResource,
+      relation: "cloudResources",
+      noun: "cloud resource",
+      isFixedByOneUptimeAi: false,
+    });
+  });
+
   test.each([
-    ["a cloud resource's page", resourcePage(AIResourceType.CloudResource)],
     [
       "a serverless function's page",
       resourcePage(AIResourceType.ServerlessFunction),

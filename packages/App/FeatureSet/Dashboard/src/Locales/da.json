@@ -35801,7 +35801,6 @@
   "The checkout stack's production account": "Checkout-stakkens produktionskonto",
   "The first read lists every resource of the account, whether it reports metrics or not. If none appear then, check that the access is for the right account, subscription or project.": "Første læsning viser alle kontoens ressourcer, uanset om de rapporterer metrikker. Vises der så ingen, så tjek, at adgangen gælder den rigtige konto, det rigtige abonnement eller projekt.",
   "The host names and addresses it answers on. A monitor that checks one of them can be linked to it.": "De værtsnavne og adresser, den svarer på. En overvågning, der tjekker et af dem, kan tilknyttes den.",
-  "The hosts, clusters, databases, cloud resources and services this monitor watches. Its incidents and alerts are linked to them, so AI can fix them there.": "De værter, klynger, databaser, cloud-ressourcer og tjenester, denne overvågning holder øje med. Dens hændelser og advarsler tilknyttes dem, så AI kan rette dem der.",
   "The map appears once a cloud connection lists this account's resources. Connect the account to list them.": "Kortet vises, så snart en cloudforbindelse viser denne kontos ressourcer. Forbind kontoen for at vise dem.",
   "Web App": "Webapp",
   "Web Apps": "Webapps",

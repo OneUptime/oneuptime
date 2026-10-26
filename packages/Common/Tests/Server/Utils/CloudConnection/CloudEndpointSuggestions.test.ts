@@ -13,10 +13,15 @@ import CloudResourceService from "../../../../Server/Services/CloudResourceServi
 import MonitorService from "../../../../Server/Services/MonitorService";
 import CloudEndpointSuggestions, {
   CLOUD_ENDPOINT_CNAME_DEPTH,
+  CLOUD_ENDPOINT_DNS_TIMEOUT_MS,
   CLOUD_ENDPOINT_SUGGESTION_LIMIT,
   CloudEndpointDns,
+  CloudEndpointResolver,
+  createCloudEndpointDns,
   getCloudEndpointNames,
 } from "../../../../Server/Utils/CloudConnection/CloudEndpointSuggestions";
+import fs from "fs";
+import path from "path";
 import URL from "../../../../Types/API/URL";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Includes from "../../../../Types/BaseDatabase/Includes";
@@ -424,5 +429,152 @@ describe("suggestions for a monitor", () => {
         fakeDns({}),
       ),
     ).toHaveLength(CLOUD_ENDPOINT_SUGGESTION_LIMIT);
+  });
+});
+
+/*
+ * The lookups the server makes: asked of the DNS servers (c-ares), never
+ * through the operating system's getaddrinfo - which holds one of libuv's
+ * four threads for as long as a slow name takes, whatever timeout the
+ * caller gave up at, and answers names /etc/hosts makes up.
+ */
+describe("the system's DNS lookups", () => {
+  function fakeResolver(data: {
+    cname?: (host: string) => Promise<Array<string>>;
+    ipv4?: (host: string) => Promise<Array<string>>;
+    ipv6?: (host: string) => Promise<Array<string>>;
+  }): CloudEndpointResolver & { calls: Array<string> } {
+    const calls: Array<string> = [];
+
+    return {
+      calls,
+      resolveCname: (host: string): Promise<Array<string>> => {
+        calls.push(`cname ${host}`);
+        return data.cname ? data.cname(host) : Promise.resolve([]);
+      },
+      resolve4: (host: string): Promise<Array<string>> => {
+        calls.push(`a ${host}`);
+        return data.ipv4 ? data.ipv4(host) : Promise.resolve([]);
+      },
+      resolve6: (host: string): Promise<Array<string>> => {
+        calls.push(`aaaa ${host}`);
+        return data.ipv6 ? data.ipv6(host) : Promise.resolve([]);
+      },
+    };
+  }
+
+  test("a name's CNAME targets, as the resolver answers them", async () => {
+    const lookups: CloudEndpointDns = createCloudEndpointDns(
+      fakeResolver({
+        cname: async (): Promise<Array<string>> => {
+          return ["web-alb-123.eu-west-1.elb.amazonaws.com"];
+        },
+      }),
+    );
+
+    expect(await lookups.resolveCname("shop.example.com")).toEqual([
+      "web-alb-123.eu-west-1.elb.amazonaws.com",
+    ]);
+  });
+
+  test("a name's addresses: its IPv4 ones, then its IPv6 ones, asked together", async () => {
+    const resolver: ReturnType<typeof fakeResolver> = fakeResolver({
+      ipv4: async (): Promise<Array<string>> => {
+        return ["198.51.100.7"];
+      },
+      ipv6: async (): Promise<Array<string>> => {
+        return ["2001:db8::7"];
+      },
+    });
+
+    expect(
+      await createCloudEndpointDns(resolver).resolveAddresses(
+        "web-alb-123.eu-west-1.elb.amazonaws.com",
+      ),
+    ).toEqual(["198.51.100.7", "2001:db8::7"]);
+    expect(resolver.calls).toEqual([
+      "a web-alb-123.eu-west-1.elb.amazonaws.com",
+      "aaaa web-alb-123.eu-west-1.elb.amazonaws.com",
+    ]);
+  });
+
+  test("a query that fails answers nothing - a name with only IPv4 addresses keeps them", async () => {
+    const lookups: CloudEndpointDns = createCloudEndpointDns(
+      fakeResolver({
+        cname: async (): Promise<Array<string>> => {
+          throw Object.assign(new Error("queryCname ENOTFOUND"), {
+            code: "ENOTFOUND",
+          });
+        },
+        ipv4: async (): Promise<Array<string>> => {
+          return ["198.51.100.7"];
+        },
+        ipv6: async (): Promise<Array<string>> => {
+          throw Object.assign(new Error("queryAaaa ENODATA"), {
+            code: "ENODATA",
+          });
+        },
+      }),
+    );
+
+    expect(await lookups.resolveCname("shop.example.com")).toEqual([]);
+    expect(await lookups.resolveAddresses("shop.example.com")).toEqual([
+      "198.51.100.7",
+    ]);
+  });
+
+  test("a query slower than the timeout answers nothing, and the lookup goes on", async () => {
+    const lookups: CloudEndpointDns = createCloudEndpointDns(
+      fakeResolver({
+        cname: (): Promise<Array<string>> => {
+          // Never answers.
+          return new Promise<Array<string>>(() => {});
+        },
+        ipv4: async (): Promise<Array<string>> => {
+          return ["198.51.100.7"];
+        },
+      }),
+      20,
+    );
+
+    expect(await lookups.resolveCname("slow.example.com")).toEqual([]);
+    expect(await lookups.resolveAddresses("slow.example.com")).toEqual([
+      "198.51.100.7",
+    ]);
+  });
+
+  test("an answer that is not a list of names is no answer", async () => {
+    const lookups: CloudEndpointDns = createCloudEndpointDns(
+      fakeResolver({
+        cname: async (): Promise<Array<string>> => {
+          return [42, null, "next.example.com"] as unknown as Array<string>;
+        },
+        ipv4: async (): Promise<Array<string>> => {
+          return "198.51.100.7" as unknown as Array<string>;
+        },
+      }),
+    );
+
+    expect(await lookups.resolveCname("odd.example.com")).toEqual([
+      "next.example.com",
+    ]);
+    expect(await lookups.resolveAddresses("odd.example.com")).toEqual([]);
+  });
+
+  test("the server's own lookups use a resolver with one try and the timeout, never getaddrinfo", () => {
+    const source: string = fs.readFileSync(
+      path.resolve(
+        __dirname,
+        "../../../../Server/Utils/CloudConnection/CloudEndpointSuggestions.ts",
+      ),
+      "utf8",
+    );
+
+    expect(source).toContain("new dns.promises.Resolver({");
+    expect(source).toContain("timeout: CLOUD_ENDPOINT_DNS_TIMEOUT_MS,");
+    expect(source).toContain("tries: 1,");
+    expect(source).not.toContain("dns.promises.lookup(");
+    expect(source).not.toContain("dns.lookup(");
+    expect(CLOUD_ENDPOINT_DNS_TIMEOUT_MS).toBeLessThanOrEqual(2000);
   });
 });

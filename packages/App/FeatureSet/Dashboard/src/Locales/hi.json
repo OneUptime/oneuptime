@@ -35801,7 +35801,6 @@
   "The checkout stack's production account": "चेकआउट स्टैक का प्रोडक्शन खाता",
   "The first read lists every resource of the account, whether it reports metrics or not. If none appear then, check that the access is for the right account, subscription or project.": "पहली बार पढ़ने पर खाते का हर संसाधन सूचीबद्ध होता है, चाहे वह मेट्रिक्स भेजे या नहीं। अगर तब भी कोई न दिखे, तो जाँचें कि एक्सेस सही खाते, सदस्यता या प्रोजेक्ट के लिए है।",
   "The host names and addresses it answers on. A monitor that checks one of them can be linked to it.": "वे होस्ट नाम और पते जिन पर यह जवाब देता है। इनमें से किसी को जाँचने वाला मॉनिटर इससे लिंक किया जा सकता है।",
-  "The hosts, clusters, databases, cloud resources and services this monitor watches. Its incidents and alerts are linked to them, so AI can fix them there.": "वे होस्ट, क्लस्टर, डेटाबेस, क्लाउड संसाधन और सेवाएँ जिन पर यह मॉनिटर नज़र रखता है। इसकी घटनाएं और अलर्ट उनसे लिंक होते हैं, ताकि AI उन्हें वहीं ठीक कर सके।",
   "The map appears once a cloud connection lists this account's resources. Connect the account to list them.": "कोई क्लाउड कनेक्शन इस खाते के संसाधन सूचीबद्ध करते ही नक्शा दिखता है। उन्हें सूचीबद्ध करने के लिए खाता कनेक्ट करें।",
   "Web App": "वेब ऐप",
   "Web Apps": "वेब ऐप",

@@ -315,6 +315,80 @@ describe("a look back for an investigation", () => {
     expect(outcome.connections).toBe(LOOK_BACK_MAX_CONNECTIONS);
     expect(readOptions).toHaveLength(LOOK_BACK_MAX_CONNECTIONS);
   });
+
+  /*
+   * Each connection may take its whole LOOK_BACK_MAX_DURATION_MS: read one
+   * after another, five slow accounts would hold the investigation for five
+   * times that.
+   */
+  test("reads its connections side by side: the investigation waits for the slowest, not for all in turn", async () => {
+    resources = [];
+
+    for (let index: number = 0; index < 3; index++) {
+      const id: ObjectID = new ObjectID(
+        `77777777-7777-4777-8777-${String(index).padStart(12, "0")}`,
+      );
+      connections.set(id.toString(), connectionRow(id));
+      resources.push(resourceRow({ index, connectionId: id }));
+    }
+
+    const releases: Array<() => void> = [];
+
+    readChanges = (): Promise<CloudChangesResult> => {
+      return new Promise<CloudChangesResult>(
+        (resolve: (result: CloudChangesResult) => void) => {
+          releases.push(() => {
+            resolve({ changes: [change("evt-1")], warnings: [], complete: true });
+          });
+        },
+      );
+    };
+
+    const pending: Promise<CloudChangeLookBackOutcome> = lookBack(
+      resources.map((resource: CloudResource): string => {
+        return resource.id!.toString();
+      }),
+    );
+
+    // Every connection is asked before any of them has answered.
+    for (let turn: number = 0; turn < 50 && releases.length < 3; turn++) {
+      await Promise.resolve();
+    }
+
+    expect(releases).toHaveLength(3);
+
+    for (const release of releases) {
+      release();
+    }
+
+    expect(await pending).toEqual({ connections: 3, recorded: 3 });
+  });
+
+  test("one connection that fails leaves the others' changes written", async () => {
+    const other: ObjectID = new ObjectID(
+      "88888888-8888-4888-8888-000000000001",
+    );
+    connections.set(other.toString(), connectionRow(other));
+    resources = [
+      resourceRow({ index: 1, connectionId: CONNECTION }),
+      resourceRow({ index: 2, connectionId: other, accountId: "210987654321" }),
+    ];
+    readChanges = async (
+      options: CloudChangesOptions,
+    ): Promise<CloudChangesResult> => {
+      if (options.connectionId === other.toString()) {
+        throw new Error("CloudTrail is throttling this account");
+      }
+
+      return { changes: [change("evt-1")], warnings: [], complete: true };
+    };
+
+    expect(await lookBack([resourceId(1), resourceId(2)])).toEqual({
+      connections: 1,
+      recorded: 1,
+    });
+    expect(logger.error).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe("what a look back leaves alone", () => {

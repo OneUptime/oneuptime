@@ -35801,7 +35801,6 @@
   "The checkout stack's production account": "結帳堆疊的正式環境帳戶",
   "The first read lists every resource of the account, whether it reports metrics or not. If none appear then, check that the access is for the right account, subscription or project.": "首次讀取會列出該帳戶的每個資源，無論其是否回報指標。如果屆時仍未出現任何資源，請檢查存取權限是否針對正確的帳戶、訂閱或專案。",
   "The host names and addresses it answers on. A monitor that checks one of them can be linked to it.": "它回應的主機名稱和位址。檢查其中任一個的監測器都可以連結到它。",
-  "The hosts, clusters, databases, cloud resources and services this monitor watches. Its incidents and alerts are linked to them, so AI can fix them there.": "此監測器所監看的主機、叢集、資料庫、雲端資源和服務。其事件和警示會連結到它們，以便 AI 在那裡修復。",
   "The map appears once a cloud connection lists this account's resources. Connect the account to list them.": "雲端連線列出此帳戶的資源後，地圖就會出現。連線該帳戶以列出資源。",
   "Web App": "Web 應用程式",
   "Web Apps": "Web 應用程式",

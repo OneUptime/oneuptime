@@ -15,36 +15,44 @@ export interface ComponentProps {
   modelId: ObjectID;
 }
 
+/*
+ * A cloud account's pages: what it holds first (its Overview, its
+ * Resources and how they fit together), then what changed in it, its own
+ * settings, its API pages and, last, deleting it.
+ */
 const CloudAccountSideMenu: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const populate: (page: PageMap) => Route = (page: PageMap): Route => {
-    return RouteUtil.populateRouteParams(RouteMap[page] as Route, {
-      modelId: props.modelId,
-    });
-  };
-
   return (
     <SideMenu>
       <SideMenuSection title="Basic">
         <SideMenuItem
           link={{
             title: "Overview",
-            to: populate(PageMap.CLOUD_ACCOUNT_VIEW),
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.CLOUD_ACCOUNT_VIEW] as Route,
+              { modelId: props.modelId },
+            ),
           }}
           icon={IconProp.Info}
         />
         <SideMenuItem
           link={{
             title: "Resources",
-            to: populate(PageMap.CLOUD_ACCOUNT_VIEW_RESOURCES),
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.CLOUD_ACCOUNT_VIEW_RESOURCES] as Route,
+              { modelId: props.modelId },
+            ),
           }}
           icon={IconProp.SquareStack}
         />
         <SideMenuItem
           link={{
             title: "Topology",
-            to: populate(PageMap.CLOUD_ACCOUNT_VIEW_TOPOLOGY),
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.CLOUD_ACCOUNT_VIEW_TOPOLOGY] as Route,
+              { modelId: props.modelId },
+            ),
           }}
           icon={IconProp.FlowDiagram}
         />
@@ -54,7 +62,10 @@ const CloudAccountSideMenu: FunctionComponent<ComponentProps> = (
         <SideMenuItem
           link={{
             title: "Changes",
-            to: populate(PageMap.CLOUD_ACCOUNT_VIEW_CHANGES),
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.CLOUD_ACCOUNT_VIEW_CHANGES] as Route,
+              { modelId: props.modelId },
+            ),
           }}
           icon={IconProp.Activity}
         />
@@ -64,7 +75,10 @@ const CloudAccountSideMenu: FunctionComponent<ComponentProps> = (
         <SideMenuItem
           link={{
             title: "Settings",
-            to: populate(PageMap.CLOUD_ACCOUNT_VIEW_SETTINGS),
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.CLOUD_ACCOUNT_VIEW_SETTINGS] as Route,
+              { modelId: props.modelId },
+            ),
           }}
           icon={IconProp.Settings}
         />
@@ -80,7 +94,10 @@ const CloudAccountSideMenu: FunctionComponent<ComponentProps> = (
         <SideMenuItem
           link={{
             title: "Delete Account",
-            to: populate(PageMap.CLOUD_ACCOUNT_VIEW_DELETE),
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.CLOUD_ACCOUNT_VIEW_DELETE] as Route,
+              { modelId: props.modelId },
+            ),
           }}
           icon={IconProp.Trash}
           className="danger-on-hover"

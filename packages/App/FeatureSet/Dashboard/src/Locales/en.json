@@ -35801,7 +35801,6 @@
   "The checkout stack's production account": "The checkout stack's production account",
   "The first read lists every resource of the account, whether it reports metrics or not. If none appear then, check that the access is for the right account, subscription or project.": "The first read lists every resource of the account, whether it reports metrics or not. If none appear then, check that the access is for the right account, subscription or project.",
   "The host names and addresses it answers on. A monitor that checks one of them can be linked to it.": "The host names and addresses it answers on. A monitor that checks one of them can be linked to it.",
-  "The hosts, clusters, databases, cloud resources and services this monitor watches. Its incidents and alerts are linked to them, so AI can fix them there.": "The hosts, clusters, databases, cloud resources and services this monitor watches. Its incidents and alerts are linked to them, so AI can fix them there.",
   "The map appears once a cloud connection lists this account's resources. Connect the account to list them.": "The map appears once a cloud connection lists this account's resources. Connect the account to list them.",
   "Web App": "Web App",
   "Web Apps": "Web Apps",

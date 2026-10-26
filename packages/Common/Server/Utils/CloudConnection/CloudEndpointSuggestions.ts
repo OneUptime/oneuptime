@@ -32,7 +32,11 @@ import logger from "../Logger";
  * (so a monitor the caller may not read suggests nothing), the resources
  * with theirs. DNS answers are never returned, only the caller's own
  * resources that match them. Lookups are bounded: a few hosts, a short
- * chain, a timeout each.
+ * chain, one try and a timeout each - and asked of the DNS servers
+ * directly (c-ares), never through the operating system's getaddrinfo,
+ * which runs on libuv's small thread pool (four threads, shared with file
+ * reads and crypto) and keeps a thread for as long as a slow name takes,
+ * whatever timeout the caller gave up at.
  */
 
 // A CNAME chain is followed this far, at most.
@@ -48,6 +52,13 @@ export interface CloudEndpointDns {
   resolveCname: (host: string) => Promise<Array<string>>;
   // The addresses a name resolves to; [] when it cannot be resolved.
   resolveAddresses: (host: string) => Promise<Array<string>>;
+}
+
+// The queries of a DNS resolver the lookups ask (dns.promises.Resolver's).
+export interface CloudEndpointResolver {
+  resolveCname: (host: string) => Promise<Array<string>>;
+  resolve4: (host: string) => Promise<Array<string>>;
+  resolve6: (host: string) => Promise<Array<string>>;
 }
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
@@ -71,32 +82,63 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   );
 }
 
-export const SYSTEM_CLOUD_ENDPOINT_DNS: CloudEndpointDns = {
-  resolveCname: async (host: string): Promise<Array<string>> => {
+/*
+ * The lookups a resolver answers: a name's CNAME targets, and its IPv4 and
+ * IPv6 addresses together. Every query that fails, finds nothing or takes
+ * longer than `timeoutMs` answers [] - a name that cannot be followed is
+ * still compared as written.
+ */
+export function createCloudEndpointDns(
+  resolver: CloudEndpointResolver,
+  timeoutMs: number = CLOUD_ENDPOINT_DNS_TIMEOUT_MS,
+): CloudEndpointDns {
+  const ask: (
+    query: () => Promise<Array<string>>,
+  ) => Promise<Array<string>> = async (
+    query: () => Promise<Array<string>>,
+  ): Promise<Array<string>> => {
     try {
-      return await withTimeout(
-        dns.promises.resolveCname(host),
-        CLOUD_ENDPOINT_DNS_TIMEOUT_MS,
-      );
-    } catch {
-      return [];
-    }
-  },
-  resolveAddresses: async (host: string): Promise<Array<string>> => {
-    try {
-      const results: Array<dns.LookupAddress> = await withTimeout(
-        dns.promises.lookup(host, { all: true, verbatim: true }),
-        CLOUD_ENDPOINT_DNS_TIMEOUT_MS,
-      );
+      const answer: unknown = await withTimeout(query(), timeoutMs);
 
-      return results.map((result: dns.LookupAddress): string => {
-        return result.address;
-      });
+      return Array.isArray(answer)
+        ? answer.filter((value: unknown): value is string => {
+            return typeof value === "string";
+          })
+        : [];
     } catch {
       return [];
     }
-  },
-};
+  };
+
+  return {
+    resolveCname: (host: string): Promise<Array<string>> => {
+      return ask((): Promise<Array<string>> => {
+        return resolver.resolveCname(host);
+      });
+    },
+    resolveAddresses: async (host: string): Promise<Array<string>> => {
+      const [ipv4, ipv6]: [Array<string>, Array<string>] = await Promise.all([
+        ask((): Promise<Array<string>> => {
+          return resolver.resolve4(host);
+        }),
+        ask((): Promise<Array<string>> => {
+          return resolver.resolve6(host);
+        }),
+      ]);
+
+      return [...ipv4, ...ipv6];
+    },
+  };
+}
+
+// One try each, given up at the timeout by the resolver itself too.
+export const SYSTEM_CLOUD_ENDPOINT_DNS: CloudEndpointDns =
+  createCloudEndpointDns(
+    new dns.promises.Resolver({
+      timeout: CLOUD_ENDPOINT_DNS_TIMEOUT_MS,
+      tries: 1,
+    }),
+  );
 
 /*
  * Every name a host answers under, in order: the host, each name of its

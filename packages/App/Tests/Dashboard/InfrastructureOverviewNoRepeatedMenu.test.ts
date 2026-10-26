@@ -112,6 +112,20 @@ const OVERVIEWS: Array<OverviewCase> = [
       "CLOUD_RESOURCE_VIEW_DOCUMENTATION",
     ],
   },
+  /*
+   * A cloud account never had the card: its Overview links its Resources
+   * tile, and the rest of what it holds is a page of its side menu.
+   */
+  {
+    name: "Cloud account",
+    overview: "Pages/Cloud/Accounts/View/Overview.tsx",
+    sideMenu: "Pages/Cloud/Accounts/View/SideMenu.tsx",
+    formerLinks: [
+      "CLOUD_ACCOUNT_VIEW_RESOURCES",
+      "CLOUD_ACCOUNT_VIEW_TOPOLOGY",
+      "CLOUD_ACCOUNT_VIEW_CHANGES",
+    ],
+  },
   {
     name: "Service",
     overview: "Pages/Service/View/Index.tsx",

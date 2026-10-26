@@ -35801,7 +35801,6 @@
   "The checkout stack's production account": "结账堆栈的生产账户",
   "The first read lists every resource of the account, whether it reports metrics or not. If none appear then, check that the access is for the right account, subscription or project.": "首次读取会列出该账户的每个资源，无论其是否上报指标。如果届时仍未出现任何资源，请检查访问权限是否针对正确的账户、订阅或项目。",
   "The host names and addresses it answers on. A monitor that checks one of them can be linked to it.": "它应答的主机名和地址。检查其中任意一个的监视器都可以关联到它。",
-  "The hosts, clusters, databases, cloud resources and services this monitor watches. Its incidents and alerts are linked to them, so AI can fix them there.": "此监视器所监视的主机、集群、数据库、云资源和服务。其事件和警报会关联到它们，以便 AI 在那里修复。",
   "The map appears once a cloud connection lists this account's resources. Connect the account to list them.": "云连接列出此账户的资源后，地图就会出现。连接该账户以列出资源。",
   "Web App": "Web 应用",
   "Web Apps": "Web 应用",

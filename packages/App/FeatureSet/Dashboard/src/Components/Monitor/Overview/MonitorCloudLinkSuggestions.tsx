@@ -117,7 +117,7 @@ const MonitorCloudLinkSuggestions: FunctionComponent<ComponentProps> = (
                           RouteMap[PageMap.CLOUD_RESOURCE_VIEW] as Route,
                           { modelId: new ObjectID(suggestion.cloudResourceId) },
                         )}
-                        className="text-sm font-medium text-indigo-600 hover:text-indigo-700 break-all"
+                        className="break-all text-sm font-medium text-gray-900 hover:underline"
                       >
                         <span>
                           {suggestion.name || suggestion.cloudResourceId}

@@ -35801,7 +35801,6 @@
   "The checkout stack's production account": "حساب تولید پشتهٔ پرداخت",
   "The first read lists every resource of the account, whether it reports metrics or not. If none appear then, check that the access is for the right account, subscription or project.": "نخستین خواندن همهٔ منابع حساب را فهرست می‌کند، چه متریک گزارش دهند چه نه. اگر آن‌وقت هیچ‌کدام ظاهر نشد، بررسی کنید که دسترسی برای حساب، اشتراک یا پروژهٔ درست باشد.",
   "The host names and addresses it answers on. A monitor that checks one of them can be linked to it.": "نام‌های میزبان و نشانی‌هایی که روی آن‌ها پاسخ می‌دهد. مانیتوری که یکی از آن‌ها را بررسی کند می‌تواند به آن پیوند شود.",
-  "The hosts, clusters, databases, cloud resources and services this monitor watches. Its incidents and alerts are linked to them, so AI can fix them there.": "میزبان‌ها، کلاسترها، پایگاه‌های داده، منابع ابری و سرویس‌هایی که این مانیتور زیر نظر دارد. حوادث و هشدارهایش به آن‌ها پیوند می‌شوند تا هوش مصنوعی بتواند همان‌جا آن‌ها را درست کند.",
   "The map appears once a cloud connection lists this account's resources. Connect the account to list them.": "به محض اینکه یک اتصال ابری منابع این حساب را فهرست کند نقشه ظاهر می‌شود. برای فهرست‌کردن آن‌ها حساب را متصل کنید.",
   "Web App": "برنامهٔ وب",
   "Web Apps": "برنامه‌های وب",
