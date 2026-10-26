@@ -209,10 +209,12 @@ describe("the English upgrade note on the header ONEUPTIME_SECRET travels in", (
     ]);
   });
 
-  it("says a body is read only by the in-cluster Runner's registration", () => {
+  it("says the key is read from the header alone, never from a body", () => {
     expect(ENGLISH_NOTE).toContain(
-      "a body is read for it only by the in-cluster Runner's registration, so a Runner of an earlier release still registers while the app logs that it should be updated",
+      "Those routes read it from the `clusterkey` request header alone.",
     );
+    // The in-cluster Runner's registration read a body for it; that Runner is gone.
+    expect(ENGLISH_NOTE).not.toContain("a body is read");
   });
 
   it("is held to code in which no route reads a body for the key, and no Runner registers with it", async () => {
@@ -321,7 +323,7 @@ describe("the English upgrade note on the header ONEUPTIME_SECRET travels in", (
 
   it("tells a script's owner where the key goes now, and when to change it", () => {
     expect(ENGLISH_NOTE).toContain(
-      "A script of yours that calls a route with `ONEUPTIME_SECRET` sends it in the `clusterkey` header now, and if it ever put it in a URL, change `ONEUPTIME_SECRET` on the app and the Runner.",
+      "A script of yours that calls a route with `ONEUPTIME_SECRET` sends it in the `clusterkey` header now, and if it ever put it in a URL, change `ONEUPTIME_SECRET` on the app and on every service that uses it.",
     );
     expect(ENGLISH_NOTE).toContain(
       "An installation's own services need no change, during a rolling upgrade too.",

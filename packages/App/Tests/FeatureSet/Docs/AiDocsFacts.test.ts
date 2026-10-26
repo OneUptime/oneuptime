@@ -1143,7 +1143,7 @@ describe("Code", () => {
     expect(englishPage(CODE_PAGE)).not.toContain("The key is shown once");
   });
 
-  it("says a repository picks its Runner on its Settings page, and that the bundled Runner runs by default", () => {
+  it("says a repository picks its Runner on its Settings page, and that the bundled global Runner runs by default", () => {
     const runner: string = flat(
       readRepoFile("Common/Models/DatabaseModels/Runner.ts"),
     );
@@ -1190,10 +1190,12 @@ describe("Code", () => {
       `Each repository picks the Runner AI works in it on: on its ${bold("Settings")} page in Code, open ${bold("More settings")}, click ${bold("Edit")} on the ${bold("Runner")} card and pick one.`,
     );
 
-    expect(values).toContain("runner:\n  enabled: true");
-    expect(compose).toContain("  runner:\n");
+    // The bundled global Runner, on by default, does the code fixes.
+    expect(values).toContain("\nglobalRunner:\n  enabled: true");
+    expect(compose).toContain("  global-runner:\n");
+    expect(compose).not.toContain("  runner:\n");
     expect(page).toContain(
-      "The `runner` service of Docker Compose, or the Helm chart's Runner (`runner.enabled`, on by default)",
+      "the bundled global Runner (`global-runner` in Docker Compose, `globalRunner` in the Helm chart, on by default) runs AI code fixes in every repository that works on a global Runner",
     );
   });
 
