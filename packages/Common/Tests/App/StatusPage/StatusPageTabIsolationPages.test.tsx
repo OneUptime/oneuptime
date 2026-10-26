@@ -199,6 +199,9 @@ import SmsSubscribe from "../../../../App/FeatureSet/StatusPage/src/Pages/Subscr
 import SlackSubscribe from "../../../../App/FeatureSet/StatusPage/src/Pages/Subscribe/SlackSubscribe";
 import MicrosoftTeamsSubscribe from "../../../../App/FeatureSet/StatusPage/src/Pages/Subscribe/MicrosoftTeamsSubscribe";
 import WebhookSubscribe from "../../../../App/FeatureSet/StatusPage/src/Pages/Subscribe/WebhookSubscribe";
+import ForgotPassword from "../../../../App/FeatureSet/StatusPage/src/Pages/Accounts/ForgotPassword";
+import ResetPassword from "../../../../App/FeatureSet/StatusPage/src/Pages/Accounts/ResetPassword";
+import MasterPassword from "../../../../App/FeatureSet/StatusPage/src/Pages/Accounts/MasterPassword";
 
 const PAGE_A: string = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const PAGE_B: string = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
@@ -729,5 +732,96 @@ describe("subscribing from a tab", () => {
       statusPageId: PAGE_A,
       header: PAGE_A,
     });
+  });
+});
+
+/*
+ * The sign-in pages, on the page's OneUptime address, lead to that page's
+ * own pages: never to a route's placeholder (/status-page/:statusPageId/sso,
+ * which named no page and left the tab on whatever page another tab had
+ * opened), and never off the page to OneUptime's own front page.
+ */
+describe("the sign-in pages of a tab", () => {
+  let navigatedTo: Array<{ to: string; force: boolean }> = [];
+
+  beforeEach(() => {
+    navigatedTo = [];
+    getJestSpyOn(Navigation, "navigate").mockImplementation(
+      (to: unknown, options?: { forceNavigate?: boolean }): void => {
+        navigatedTo.push({
+          to: String(to),
+          force: Boolean(options?.forceNavigate),
+        });
+      },
+    );
+  });
+
+  const signInProps: {
+    statusPageName: string;
+    logoFileId: ObjectID;
+    forceSSO: boolean;
+  } = {
+    statusPageName: "Page A",
+    logoFileId: new ObjectID(""),
+    forceSSO: true,
+  };
+
+  // A private page of the tab's, which another tab's page does not change.
+  const openPrivatePageA: (path: string) => void = (path: string): void => {
+    openAt(`/status-page/${PAGE_A}/${path}`);
+    StatusPageUtil.setStatusPageId(new ObjectID(PAGE_A));
+    StatusPageUtil.setIsPrivateStatusPage(true);
+    anotherTabOpens(PAGE_B);
+  };
+
+  test.each([
+    { name: "Forgot Password", Page: ForgotPassword, path: "forgot-password" },
+    { name: "Reset Password", Page: ResetPassword, path: "reset-password" },
+  ])(
+    "$name, on a page that requires single sign-on, goes to that page's own single sign-on",
+    async (row: {
+      name: string;
+      Page: typeof ForgotPassword;
+      path: string;
+    }) => {
+      openPrivatePageA(row.path);
+
+      await act(async () => {
+        render(
+          <MemoryRouter>
+            <row.Page {...signInProps} />
+          </MemoryRouter>,
+        );
+      });
+
+      expect(navigatedTo).toEqual([
+        { to: `/status-page/${PAGE_A}/sso`, force: false },
+      ]);
+    },
+  );
+
+  test("the password prompt of a page everyone may see goes to that page's overview", async () => {
+    openAt(`/status-page/${PAGE_A}/master-password`);
+    StatusPageUtil.setStatusPageId(new ObjectID(PAGE_A));
+    StatusPageUtil.setIsPrivateStatusPage(false);
+    // Another tab's private page, behind a password, changes nothing here.
+    anotherTabOpens(PAGE_B);
+    window.localStorage.setItem(`isPrivateStatusPage-${PAGE_B}`, "true");
+    window.localStorage.setItem(`requiresMasterPassword-${PAGE_B}`, "true");
+
+    await act(async () => {
+      render(
+        <MemoryRouter>
+          <MasterPassword
+            statusPageName="Page A"
+            logoFileId={new ObjectID("")}
+          />
+        </MemoryRouter>,
+      );
+    });
+
+    expect(navigatedTo).toEqual([
+      { to: `/status-page/${PAGE_A}`, force: true },
+    ]);
   });
 });
