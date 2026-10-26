@@ -39,7 +39,7 @@ Die Regeln eines Netzwerks verlangen dasselbe, wenn Sie sie auf die Geräte anwe
 
 ### Jetzt ausführen wählen
 
-Öffnen Sie das Menü **⋯** am Ende der Zeile der Regel und wählen Sie **Jetzt ausführen**, oder wählen Sie **Ansehen** und dann **Jetzt ausführen** auf der eigenen Seite der Regel. Ein Dialog sagt, was die Ausführung tun wird.
+Öffnen Sie das Menü **⋯** am Ende der Zeile der Regel und wählen Sie **Jetzt ausführen**, oder wählen Sie **Anzeigen** und dann **Jetzt ausführen** auf der eigenen Seite der Regel. Ein Dialog sagt, was die Ausführung tun wird.
 
 ### Entscheiden, ob neue Eigentümer benachrichtigt werden
 

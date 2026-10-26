@@ -5,11 +5,16 @@ import { initReactI18next } from "react-i18next";
 import React, { ReactElement } from "react";
 import { afterEach, beforeAll, describe, expect, test } from "@jest/globals";
 import TableColumnListComponent, {
+  getTableColumnListMoreText,
   getTableColumnListVisibleCount,
   TABLE_COLUMN_LIST_TOGGLE_CLASS_NAME,
   TABLE_COLUMN_LIST_TOGGLE_LINE_CLASS_NAME,
   TABLE_COLUMN_LIST_VISIBLE_COUNT,
 } from "../../../UI/Components/TableColumnList/TableColumnListComponent";
+import {
+  createTranslator,
+  PluralTemplate,
+} from "../../../UI/Utils/TranslateTemplate";
 
 /*
  * The list a table cell draws for a row's labels (LabelsElement) and similar
@@ -30,10 +35,26 @@ import TableColumnListComponent, {
  * with translations switched on.
  */
 
+/*
+ * The list's fold is one sentence with its count ("{{count}} more
+ * resources"), looked up whole; the labels' sentence is left untranslated
+ * here, so it reads as the English it falls back to.
+ */
 const GERMAN: Record<string, string> = {
   "No labels attached.": "Keine Labels zugeordnet.",
   "Show less": "Weniger anzeigen",
-  "more resources": "weitere Ressourcen",
+  "{{count}} more resources": "{{count}} weitere Ressourcen",
+  "{{count}} more resources_one": "{{count}} weitere Ressource",
+};
+
+const LABELS_MORE: PluralTemplate = {
+  one: "{{count}} more label",
+  other: "{{count}} more labels",
+};
+
+const RESOURCES_MORE: PluralTemplate = {
+  one: "{{count}} more resource",
+  other: "{{count}} more resources",
 };
 
 interface Item {
@@ -65,7 +86,7 @@ function list(listItems: Array<Item>): ReactElement {
   return (
     <TableColumnListComponent<Item>
       items={listItems}
-      moreText="more labels"
+      moreTemplate={LABELS_MORE}
       noItemsMessage="No labels attached."
       getEachElement={(item: Item): ReactElement => {
         return <span data-testid="item">{item.name}</span>;
@@ -115,15 +136,14 @@ describe("TableColumnListComponent", () => {
   });
 
   /*
-   * The words after the count are the page's, and the locale files have
-   * them ("more resources": "weitere Ressourcen"). The whole title is no
-   * key, so they were never looked up: German read "2 more resources".
+   * The fold is the list's own sentence, count and words together, looked
+   * up whole: "2 weitere Ressourcen".
    */
-  test("the words after the count are looked up in the reader's language", () => {
+  test("the fold's sentence is looked up whole, in the reader's language", () => {
     render(
       <TableColumnListComponent<Item>
         items={items("EU", "Night", "Desk", "Pager", "Voice")}
-        moreText="more resources"
+        moreTemplate={RESOURCES_MORE}
         noItemsMessage="No resources."
         getEachElement={(item: Item): ReactElement => {
           return <span data-testid="item">{item.name}</span>;
@@ -183,7 +203,7 @@ describe("TableColumnListComponent", () => {
     render(
       <TableColumnListComponent<Item>
         items={items("A", "B", "C", "D", "E")}
-        moreText="more labels"
+        moreTemplate={LABELS_MORE}
         noItemsMessage="No labels attached."
         dataTestId="row-labels"
         getEachElement={(item: Item): ReactElement => {
@@ -210,41 +230,112 @@ describe("TableColumnListComponent", () => {
     expect(container.querySelector("[data-testid$='-more']")).toBeNull();
   });
 
-  /*
-   * A page that words the button as a sentence of its own - "1 more
-   * template", "2 more templates", each language with its plural forms -
-   * hands the count to getMoreText, and the button reads what it returns.
-   */
-  test("a page's own sentence for the count takes the place of count and words", () => {
-    const counts: Array<number> = [];
-
+  test("the count is the one the fold hides, and the open list folds back to the same sentence", () => {
     render(
       <TableColumnListComponent<Item>
         items={items("A", "B", "C", "D", "E", "F")}
-        moreText="more labels"
-        getMoreText={(count: number): string => {
-          counts.push(count);
-          return count === 1
-            ? "1 weitere Vorlage"
-            : `${count} weitere Vorlagen`;
-        }}
-        noItemsMessage="No labels attached."
+        moreTemplate={RESOURCES_MORE}
+        noItemsMessage="No resources."
         getEachElement={(item: Item): ReactElement => {
           return <span data-testid="item">{item.name}</span>;
         }}
       />,
     );
 
-    expect(
-      screen.getByRole("button", { name: "3 weitere Vorlagen" }),
-    ).toBeInTheDocument();
-    expect(counts).toContain(3);
-
-    fireEvent.click(screen.getByRole("button", { name: "3 weitere Vorlagen" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "3 weitere Ressourcen" }),
+    );
     expect(shownItems()).toEqual(["A", "B", "C", "D", "E", "F"]);
+    fireEvent.click(screen.getByRole("button", { name: "Weniger anzeigen" }));
     expect(
-      screen.getByRole("button", { name: "Weniger anzeigen" }),
+      screen.getByRole("button", { name: "3 weitere Ressourcen" }),
     ).toBeInTheDocument();
+  });
+});
+
+/*
+ * The fold's words are one sentence in each language, with that language's
+ * plural forms: a count followed by words looked up on their own read "2
+ * ещё мониторов" in Russian and "2 件のモニター（ほか）" in Japanese, and kept
+ * the words English in every language but German and Spanish.
+ */
+describe("the fold's sentence, in every language's plural forms", () => {
+  const MONITORS: PluralTemplate = {
+    one: "{{count}} more monitor",
+    other: "{{count}} more monitors",
+  };
+
+  function moreText(
+    language: string,
+    words: Record<string, string>,
+    count: number,
+  ): string {
+    return getTableColumnListMoreText({
+      translator: createTranslator((key: string): string | undefined => {
+        return words[key];
+      }, language),
+      template: MONITORS,
+      count: count,
+    });
+  }
+
+  test("English: the template's own two forms", () => {
+    expect(moreText("en", {}, 2)).toBe("2 more monitors");
+    expect(moreText("en", {}, 1)).toBe("1 more monitor");
+    expect(moreText("en", {}, 12)).toBe("12 more monitors");
+  });
+
+  test("Russian: its general form for 2, 5 and 11, its 'one' form for 21", () => {
+    const words: Record<string, string> = {
+      "{{count}} more monitors": "Ещё мониторов: {{count}}",
+      "{{count}} more monitors_one": "Ещё {{count}} монитор",
+    };
+
+    expect(moreText("ru", words, 2)).toBe("Ещё мониторов: 2");
+    expect(moreText("ru", words, 5)).toBe("Ещё мониторов: 5");
+    expect(moreText("ru", words, 11)).toBe("Ещё мониторов: 11");
+    expect(moreText("ru", words, 21)).toBe("Ещё 21 монитор");
+  });
+
+  test("Japanese, Korean and Chinese: one form, the count inside the sentence", () => {
+    expect(
+      moreText(
+        "ja",
+        { "{{count}} more monitors": "ほか {{count}} 件のモニター" },
+        2,
+      ),
+    ).toBe("ほか 2 件のモニター");
+    expect(
+      moreText("ko", { "{{count}} more monitors": "모니터 {{count}}개 더" }, 3),
+    ).toBe("모니터 3개 더");
+    expect(
+      moreText(
+        "zh-CN",
+        { "{{count}} more monitors": "另外 {{count}} 个监视器" },
+        4,
+      ),
+    ).toBe("另外 4 个监视器");
+  });
+
+  test("German writes a big count its own way", () => {
+    expect(
+      moreText(
+        "de",
+        { "{{count}} more monitors": "{{count}} weitere Monitore" },
+        1234,
+      ),
+    ).toBe("1.234 weitere Monitore");
+  });
+
+  test("a language that left the sentence in English reads the English sentence, not a count glued to English words", () => {
+    expect(
+      moreText(
+        "fr",
+        { "{{count}} more monitors": "{{count}} more monitors" },
+        2,
+      ),
+    ).toBe("2 more monitors");
+    expect(moreText("fr", {}, 2)).toBe("2 more monitors");
   });
 });
 
@@ -294,7 +385,7 @@ describe("the button that opens and folds the list", () => {
     render(
       <TableColumnListComponent<Item>
         items={items("A", "B", "C", "D", "E")}
-        moreText="more labels"
+        moreTemplate={LABELS_MORE}
         noItemsMessage="No labels attached."
         dataTestId="row-labels"
         getEachElement={(item: Item): ReactElement => {

@@ -54,7 +54,7 @@ Sophos किसी भी SFOS संस्करण में गेटवे 
 3. डिवाइस के **सेटिंग्स** पेज पर, **Polling & Data Collection** के तहत, **Vendor Health Template** से **Sophos Firewall (SFOS / XGS)** टेम्पलेट लागू करें और **Add a Vendor's Tables** से उसकी टेबल जोड़ें। या **Auto-Apply Vendor Health Template** चालू करें, और पहला पोल दोनों कर देता है।
 :::
 
-अगले पोल के बाद, डिवाइस का **SNMP Tables** पेज हर IPsec कनेक्शन को उसकी स्थिति (active, inactive, partially active) के साथ, और CPU कोर, सूचीबद्ध करता है। SFOS अपने कोर 196608 से गिनता है, इसीलिए CPU किसी अकेले `hrProcessorLoad.1` के बजाय एक टेबल से आता है।
+अगले पोल के बाद, डिवाइस का **SNMP टेबल** पेज हर IPsec कनेक्शन को उसकी स्थिति (active, inactive, partially active) के साथ, और CPU कोर, सूचीबद्ध करता है। SFOS अपने कोर 196608 से गिनता है, इसीलिए CPU किसी अकेले `hrProcessorLoad.1` के बजाय एक टेबल से आता है।
 
 ### हर IPsec टनल पर अलर्ट
 

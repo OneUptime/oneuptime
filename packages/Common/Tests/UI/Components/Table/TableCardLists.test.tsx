@@ -80,7 +80,10 @@ function resourceList(items: Array<Resource>): ReactElement {
   return (
     <TableColumnListComponent<Resource>
       items={items}
-      moreText="more resources"
+      moreTemplate={{
+        one: "{{count}} more resource",
+        other: "{{count}} more resources",
+      }}
       noItemsMessage="No resources."
       getEachElement={resourceLink}
     />

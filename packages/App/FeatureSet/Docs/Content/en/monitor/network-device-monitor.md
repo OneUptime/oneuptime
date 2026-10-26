@@ -378,7 +378,7 @@ Add any OIDs you want collected on every poll, on a template or as device-specif
 | Name | A friendly name for the OID, such as sysDescr. | No |
 | Description | What the OID represents. | No |
 
-Collected values are charted on the device's **Metrics** page, and the **SNMP OID Value** and **SNMP OID Exists** criteria alert on them. The OID picker on those criteria lists the OIDs the selected device collects, its template's and its own, so there is nothing to type.
+Collected values are charted on the device's **Metrics** page, and the **SNMP OID Value**, **SNMP OID Exists** and **SNMP OID Rate (per second)** criteria alert on them. A counter (Counter32 or Counter64) only grows, so alert on how fast it grew since the previous poll. The OID picker on those criteria lists the OIDs the selected device collects, its template's and its own, so there is nothing to type.
 
 Long OID lists are split across several SNMP GET requests so each fits in one UDP datagram. If you kept your OID lists short because an older release reported a device answering `tooBig` as offline, you no longer need to.
 
@@ -386,12 +386,12 @@ Long OID lists are split across several SNMP GET requests so each fits in one UD
 
 A device's **SNMP Walk** page, under **More** in its menu, lists every OID the device answers, with its type, its value and, where OneUptime knows the MIB, its name. It is the `snmpwalk` you would otherwise run from the probe's network, run by the device's own probe with the credentials OneUptime holds for the device, which never reach your browser.
 
-Type a numeric OID under **Start at OID**, or pick one of the **Common starting points**: **Everything**, **System**, **Interfaces**, **Host resources** or **Vendor-specific**. Then press **Walk**. The probe picks the walk up within ten seconds and sends one request at a time, at most 1,000 OIDs in at most 45 seconds, so a walk never floods the device. When there is more to read, **Continue walking** reads the next 1,000 from where it stopped. A device has one walk running at a time, and its walks are kept for two days.
+Type a numeric OID under **Start at OID**, or press one of the starting points below it: **Everything**, **System**, **Interfaces**, **Host resources** or **Vendor-specific**. Then press **Walk**. The probe picks the walk up within ten seconds and sends one request at a time, at most 1,000 OIDs in at most 45 seconds, so a walk never floods the device. When there is more to read, **Continue walking** reads the next 1,000 from where it stopped. A device has one walk running at a time, and its walks are kept for two days.
 
 Each row says where its OID is known: a value a vendor health template collects, a column of a vendor template's SNMP table, a counter the interface walk already charts for every port, or an OID under its vendor's MIB. From a row:
 
 - **Collect** adds the OID to the device's **Device-Specific Health OIDs**: every poll collects it from the next one on, and the device's **Metrics** page charts it. On a device linked to an OID Collection Template, the row's menu can add it to the template instead, for every device that uses it.
-- **Alert on it**, once the OID is collected, opens a new Network Device monitor for the device with one **SNMP OID Value** criteria on the OID, starting from the walked value: a counter or gauge alerts above it, an uptime below it (the device restarted), and anything else when it changes.
+- **Alert on it**, once the OID is collected, opens a new Network Device monitor for the device with one criteria on the OID. A counter starts on **SNMP OID Rate (per second)** and a gauge on **SNMP OID Value**, each above a threshold you set; an uptime alerts below ten minutes (the device restarted), and anything else when it changes from the walked value.
 - **Copy OID**, in the row's menu, copies the OID.
 
 A walk that fails says why, and what to check: a device that does not answer (SNMP off, UDP 161 blocked or, on v1 and v2c, a wrong community string, which an agent ignores without a word), an SNMPv3 user, password or protocol the device refused, or a part of the tree the credentials' SNMP view leaves out. A walk that stops part of the way keeps what it read. Walking needs the **Create Network Device Diagnostic** permission and a probe recent enough to walk SNMP: with an older probe, the page asks you to update it.
@@ -781,6 +781,7 @@ Criteria check each poll result and trap, and open incidents or alerts.
 | SNMP Response Time (in ms) | The walk's response time in milliseconds, never the ping's. | Not evaluated |
 | SNMP OID Value | The value one OID returned. | Not evaluated |
 | SNMP OID Exists | Whether an OID returns a value. | Not evaluated |
+| SNMP OID Rate (per second) | How fast a counter OID grew, per second, since the previous poll: a counter only grows, so alert on this, not on its value. No verdict until it has been read twice. | Not evaluated |
 | SNMP Interface Is Down | True when an administratively enabled interface is operationally down. | Not evaluated |
 | SNMP Interface Utilization (in %) | The busiest interface's link utilization. | Not evaluated |
 | SNMP Interface Errors (per second) | The worst interface's error rate. | Not evaluated |

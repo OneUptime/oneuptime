@@ -245,6 +245,7 @@ const MonitorGroupView: FunctionComponent<
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "Monitor Group Name",
+            hideColumnDescription: true,
             validation: {
               minLength: 2,
             },
@@ -257,6 +258,7 @@ const MonitorGroupView: FunctionComponent<
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "Description",
+            hideColumnDescription: true,
           },
           getLabelsFormField<MonitorGroup>(),
         ]}

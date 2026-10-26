@@ -83,7 +83,7 @@ Die Token-Zahl ist eine Schätzung: die Größe der Notizen in UTF-8-Bytes getei
 
 ## Was ein Lauf gelesen hat
 
-Jeder Lauf hält die Notizen, die er gelesen hat, Wort für Wort fest. Seine Aktivität zeigt **KI-Kontext des Projekts gelesen** oder, wie viele KI-Regeln er außerdem gelesen hat, mit etwa wie vielen Tokens. **Ansehen** öffnet die Notizen so, wie der Lauf sie gelesen hat: zuerst die des Projekts, dann die jeder Regel unter ihrem Namen, auch nachdem sie geändert wurden. Wurden die Notizen einer Regel wegen der Grenze des Laufs ausgelassen, sagt das ein Warnhinweis.
+Jeder Lauf hält die Notizen, die er gelesen hat, Wort für Wort fest. Seine Aktivität zeigt **KI-Kontext des Projekts gelesen** oder, wie viele KI-Regeln er außerdem gelesen hat, mit etwa wie vielen Tokens. **Anzeigen** öffnet die Notizen so, wie der Lauf sie gelesen hat: zuerst die des Projekts, dann die jeder Regel unter ihrem Namen, auch nachdem sie geändert wurden. Wurden die Notizen einer Regel wegen der Grenze des Laufs ausgelassen, sagt das ein Warnhinweis.
 
 ## Wer ihn ändern kann
 

@@ -241,6 +241,8 @@ De agent stuurt elk Kubernetes-event van het cluster naar OneUptime: uit elke na
 | Aantal | Hoe vaak het gebeurde: een herhaling verhoogt het aantal in plaats van een regel toe te voegen |
 | Laatst gezien | Wanneer het voor het laatst gebeurde; beweeg erboven om te zien wanneer het voor het eerst gebeurde |
 
+Op een scherm smaller dan 1024 pixels toont de kolom **Gebeurtenis** ook **Aantal** en **Last seen**, die daar geen eigen kolom hebben.
+
 ### Events doorzoeken en erop alarmeren
 
 Elk event is ook een log. Een waarschuwing wordt opgeslagen met de ernst **Warning**, en wat het event zegt staat in de attributen:

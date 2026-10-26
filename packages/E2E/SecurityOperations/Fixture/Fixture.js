@@ -365,18 +365,20 @@ const dataScenario = DATA_SCENARIOS.includes(params.get("data"))
  * JSON, which every page the suite opens would parse if it were bundled
  * into the entry.
  */
-const LOCALE_LOADERS = {
-  de: () => import("../../../App/FeatureSet/Dashboard/src/Locales/de.json"),
-  es: () => import("../../../App/FeatureSet/Dashboard/src/Locales/es.json"),
-  fa: () => import("../../../App/FeatureSet/Dashboard/src/Locales/fa.json"),
-  fr: () => import("../../../App/FeatureSet/Dashboard/src/Locales/fr.json"),
-  it: () => import("../../../App/FeatureSet/Dashboard/src/Locales/it.json"),
-  ja: () => import("../../../App/FeatureSet/Dashboard/src/Locales/ja.json"),
-  nl: () => import("../../../App/FeatureSet/Dashboard/src/Locales/nl.json"),
-  pt: () => import("../../../App/FeatureSet/Dashboard/src/Locales/pt.json"),
-};
-const LANGUAGES = Object.keys(LOCALE_LOADERS);
-const language = LANGUAGES.includes(params.get("lang"))
+// A Map, so ?lang= picks one of these loaders and nothing an object inherits.
+const LOCALE_LOADERS = new Map(
+  Object.entries({
+    de: () => import("../../../App/FeatureSet/Dashboard/src/Locales/de.json"),
+    es: () => import("../../../App/FeatureSet/Dashboard/src/Locales/es.json"),
+    fa: () => import("../../../App/FeatureSet/Dashboard/src/Locales/fa.json"),
+    fr: () => import("../../../App/FeatureSet/Dashboard/src/Locales/fr.json"),
+    it: () => import("../../../App/FeatureSet/Dashboard/src/Locales/it.json"),
+    ja: () => import("../../../App/FeatureSet/Dashboard/src/Locales/ja.json"),
+    nl: () => import("../../../App/FeatureSet/Dashboard/src/Locales/nl.json"),
+    pt: () => import("../../../App/FeatureSet/Dashboard/src/Locales/pt.json"),
+  }),
+);
+const language = LOCALE_LOADERS.has(params.get("lang"))
   ? params.get("lang")
   : "en";
 /*
@@ -3436,7 +3438,7 @@ const resources = { en: { translation: {} } };
 
 if (language !== "en") {
   resources[language] = {
-    translation: (await LOCALE_LOADERS[language]()).default,
+    translation: (await LOCALE_LOADERS.get(language)()).default,
   };
 }
 

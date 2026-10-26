@@ -161,7 +161,7 @@ A posição de um status define como ele conta, mostrado em **Conta como**: acim
 
 ## Ver todos os post-mortems
 
-**Incidentes → Post-mortems** lista o post-mortem de cada incidente do projeto, do mais recente para o mais antigo, com as colunas **Incidente**, **Título**, **Status do post-mortem**, **Gravidade**, **Proprietários** e **Declarado**. **Visualizar** em uma linha abre a página **Post-mortem** do incidente.
+**Incidentes → Post-mortems** lista o post-mortem de cada incidente do projeto, do mais recente para o mais antigo, com as colunas **Incidente**, **Título**, **Status do post-mortem**, **Gravidade**, **Proprietários** e **Declarado**. **Ver** em uma linha abre a página **Post-mortem** do incidente.
 
 Acima da lista, um bloco por status conta os post-mortems que estão nele. Clique em um bloco para listar só esses, e clique de novo para listar todos.
 

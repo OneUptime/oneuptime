@@ -79,7 +79,7 @@ Editar um SLO não aplica as regras de novo, e uma regra nunca remove nada: nem 
 
 ## Executar uma regra em SLOs existentes
 
-Uma regra que você escreve hoje vale para os SLOs criados depois dela. Para aplicá-la aos SLOs que você já tem, clique em **Executar agora** na linha da regra, ou em **Visualizar** e depois em **Executar agora** na página da regra. Você também pode selecionar várias regras e executá-las pelas ações em massa da tabela.
+Uma regra que você escreve hoje vale para os SLOs criados depois dela. Para aplicá-la aos SLOs que você já tem, clique em **Executar agora** na linha da regra, ou em **Ver** e depois em **Executar agora** na página da regra. Você também pode selecionar várias regras e executá-las pelas ações em massa da tabela.
 
 Uma execução verifica cada SLO do projeto, inclusive os arquivados, e informa a quantos correspondeu e quantos mudou. Os proprietários que uma execução adiciona só são notificados quando você escolhe notificá-los na caixa de diálogo da execução e a regra tem **Notificar proprietários** ligado. Veja [Executar regras em recursos existentes](/docs/configuration/run-rules-now).
 

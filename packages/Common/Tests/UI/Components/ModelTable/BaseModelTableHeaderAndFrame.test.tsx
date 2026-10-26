@@ -384,6 +384,9 @@ describe("a table's header controls on a phone", () => {
       "max-md:min-w-[11rem]",
       "max-md:flex-1",
       "md:w-56",
+      // From md up too, while the controls are on a line of their own.
+      "[[data-actions-under-title=true]_&]:min-w-[11rem]",
+      "[[data-actions-under-title=true]_&]:flex-1",
     ]);
     // No fixed phone width of its own any more.
     expect(slot).not.toHaveClass("w-44");
@@ -415,6 +418,8 @@ describe("a table's header controls on a phone", () => {
       "w-full",
       "md:w-[26rem]",
       "lg:w-[32rem]",
+      // What the buttons leave of a line of their own.
+      "[[data-actions-under-title=true]_&]:flex-1",
     ]);
 
     expect(buttons).toHaveClass(

@@ -54,7 +54,7 @@ flowchart TB
 3. 在设备的**设置**页面上，在 **Polling & Data Collection** 下，从 **Vendor Health Template** 应用 **Sophos Firewall (SFOS / XGS)** 模板，并从 **Add a Vendor's Tables** 添加其表。或者开启 **Auto-Apply Vendor Health Template**，首次轮询会同时完成这两项。
 :::
 
-下一次轮询后，设备的 **SNMP Tables** 页面会列出每个 IPsec 连接及其状态（active、inactive、partially active），以及各个 CPU 核心。SFOS 从 196608 开始为其核心编号，这就是 CPU 来自表而不是单个 `hrProcessorLoad.1` 的原因。
+下一次轮询后，设备的 **SNMP 表** 页面会列出每个 IPsec 连接及其状态（active、inactive、partially active），以及各个 CPU 核心。SFOS 从 196608 开始为其核心编号，这就是 CPU 来自表而不是单个 `hrProcessorLoad.1` 的原因。
 
 ### 对每条 IPsec 隧道发出警报
 

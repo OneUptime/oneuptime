@@ -59,7 +59,7 @@ Verwenden Sie eine globale Variable in jedem Workflow mit:
 
 Haben Sie Ihren PagerDuty-Schlüssel zum Beispiel als `PAGERDUTY_KEY` gespeichert, kann jeder Baustein ihn als `{{global.variables.PAGERDUTY_KEY}}` verwenden – der Editor speichert den Verweis, und die Protokollierung des Workflows entfernt den aufgelösten geheimen Wert.
 
-Die Liste zeigt Name und Beschreibung jeder Variable. Klicken Sie in einer Zeile auf **Ansehen**, um die Seite der Variable zu öffnen. Sie zeigt, ob die Variable statisch oder OAuth 2.0 ist, und dort erledigen Sie alles andere:
+Die Liste zeigt Name und Beschreibung jeder Variable. Klicken Sie in einer Zeile auf **Anzeigen**, um die Seite der Variable zu öffnen. Sie zeigt, ob die Variable statisch oder OAuth 2.0 ist, und dort erledigen Sie alles andere:
 
 | Schaltfläche                      | Was sie tut                                                                                                                                             |
 | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -74,7 +74,7 @@ Eine Variable können Sie auch über die API aktualisieren, was [am Ende dieser 
 
 ## Lokale Workflow-Variablen
 
-Variablen, die auf einen Workflow beschränkt sind, verwaltet unter **Arbeitsablaufvariablen** im Menü dieses Workflows. Sie funktionieren wie globale Variablen: **Arbeitsablaufvariable erstellen** legt eine statische Variable an, das Menü **Mehr** (**⋯**) eine OAuth-2.0-Variable, und **Ansehen** öffnet die eigene Seite einer Variable. Verweisen Sie auf sie mit:
+Variablen, die auf einen Workflow beschränkt sind, verwaltet unter **Arbeitsablaufvariablen** im Menü dieses Workflows. Sie funktionieren wie globale Variablen: **Arbeitsablaufvariable erstellen** legt eine statische Variable an, das Menü **Mehr** (**⋯**) eine OAuth-2.0-Variable, und **Anzeigen** öffnet die eigene Seite einer Variable. Verweisen Sie auf sie mit:
 
 ```text
 {{local.variables.NAME}}
@@ -146,7 +146,7 @@ Unter manchen Feldern ergänzt das Formular eine Hilfezeile für den gewählten 
 
 Wenn Sie eine neue OAuth-2.0-Variable speichern, ruft OneUptime sofort ihr erstes Token ab und sagt Ihnen, was der Anbieter geantwortet hat. Ein Tippfehler im Secret oder in der URL zeigt sich dann, nicht Stunden später in einer fehlgeschlagenen Ausführung. Ein Token abzurufen schreibt in die Variable, daher braucht das die Berechtigung, Workflow-Variablen zu bearbeiten; dürfen Sie Variablen anlegen, aber nicht bearbeiten, ruft die erste Ausführung, die die Variable verwendet, ihr Token ab.
 
-Die Seite der Variable (klicken Sie in ihrer Zeile auf **Ansehen**) hat eine Karte **OAuth-2.0-Einstellungen**. **Einstellungen bearbeiten** durchläuft dieselben Schritte **Anbieter** (Token-URL), **Anmeldedaten** (Client-ID) und **Erweitert** (Scope, zusätzliche Parameter, Client-Authentifizierung). **Weiter** geht weiter, und **Änderungen speichern** steht auf dem letzten Schritt. Jeder Schritt ist schon ausgefüllt, daher öffnet die Liste der Schritte neben dem Formular jeden davon: Ändern Sie eine Einstellung auf ihrem Schritt, öffnen Sie dann den letzten Schritt und speichern Sie. Der Grant-Typ ist nach dem Speichern fest.
+Die Seite der Variable (klicken Sie in ihrer Zeile auf **Anzeigen**) hat eine Karte **OAuth-2.0-Einstellungen**. **Einstellungen bearbeiten** durchläuft dieselben Schritte **Anbieter** (Token-URL), **Anmeldedaten** (Client-ID) und **Erweitert** (Scope, zusätzliche Parameter, Client-Authentifizierung). **Weiter** geht weiter, und **Änderungen speichern** steht auf dem letzten Schritt. Jeder Schritt ist schon ausgefüllt, daher öffnet die Liste der Schritte neben dem Formular jeden davon: Ändern Sie eine Einstellung auf ihrem Schritt, öffnen Sie dann den letzten Schritt und speichern Sie. Der Grant-Typ ist nach dem Speichern fest.
 
 ### Die Karte Zugriffstoken
 

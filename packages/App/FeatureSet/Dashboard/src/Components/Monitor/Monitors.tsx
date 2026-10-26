@@ -1,5 +1,6 @@
 import MonitorElement from "./Monitor";
 import TableColumnListComponent from "Common/UI/Components/TableColumnList/TableColumnListComponent";
+import { MORE_MONITORS_TEMPLATE } from "../TableColumnList/MoreItemsTemplates";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -14,7 +15,7 @@ const MonitorsElement: FunctionComponent<ComponentProps> = (
   return (
     <TableColumnListComponent
       items={props.monitors}
-      moreText="more monitors"
+      moreTemplate={MORE_MONITORS_TEMPLATE}
       getEachElement={(monitor: Monitor) => {
         return (
           <MonitorElement

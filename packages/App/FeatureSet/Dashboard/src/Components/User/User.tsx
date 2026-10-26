@@ -202,7 +202,15 @@ const UserElement: FunctionComponent<ComponentProps> = (
     );
 
     return (
-      <div className="flex">
+      <div
+        className="flex"
+        /*
+         * In a table's cell the name and the email end in "..." where the
+         * person's box ends, so a table that would run past its card may
+         * narrow it (Common's TableLayout TABLE_SHRINKABLE_ATTRIBUTE).
+         */
+        data-table-shrinks={isTableCell ? "true" : undefined}
+      >
         <div
           className={`${AVATAR_WRAPPER_CLASS_NAME}${
             isNotNotified ? " opacity-50 grayscale" : ""

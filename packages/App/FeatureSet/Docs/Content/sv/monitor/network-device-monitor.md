@@ -293,7 +293,7 @@ Tysta ett gränssnitt på enhetens sida **Gränssnitt**, för en labbport eller 
 
 ### Tillverkarnas hälsomallar
 
-I redigeraren **Health OIDs** tillämpar **Vendor Health Template** en färdig uppsättning OID:er för enhetens tillverkare. Många mallar levererar också [SNMP-tabeller](#snmp-tabeller), som läggs till med **Add a Vendor's Tables** i redigeraren **SNMP Tables**.
+I redigeraren **Health OIDs** tillämpar **Vendor Health Template** en färdig uppsättning OID:er för enhetens tillverkare. Många mallar levererar också [SNMP-tabeller](#snmp-tabeller), som läggs till med **Add a Vendor's Tables** i redigeraren **SNMP-tabeller**.
 
 | Tillverkarmall | Hälso-OID:er | SNMP-tabeller |
 | --- | --- | --- |
@@ -378,7 +378,7 @@ Lägg till de OID:er du vill samla in vid varje avsökning, i en mall eller som 
 | Namn | Ett lättläst namn för OID:n, till exempel sysDescr. | Nej |
 | Beskrivning | Vad OID:n representerar. | Nej |
 
-Insamlade värden visas i diagram på enhetens sida **Mätvärden**, och kriterierna **SNMP OID Value** och **SNMP OID Exists** varnar för dem. OID-väljaren i de kriterierna listar de OID:er som den valda enheten samlar in, mallens och dess egna, så det finns inget att skriva.
+Insamlade värden visas i diagram på enhetens sida **Mätvärden**, och kriterierna **SNMP OID Value**, **SNMP OID Exists** och **SNMP OID Rate (per second)** varnar för dem. En räknare (Counter32 eller Counter64) växer bara, så varna för hur snabbt den har vuxit sedan förra avsökningen. OID-väljaren i de kriterierna listar de OID:er som den valda enheten samlar in, mallens och dess egna, så det finns inget att skriva.
 
 Långa OID-listor delas upp på flera SNMP GET-förfrågningar så att varje får plats i ett UDP-datagram. Om du höll dina OID-listor korta för att en äldre version rapporterade en enhet som svarade `tooBig` som offline, behöver du inte det längre.
 
@@ -386,12 +386,12 @@ Långa OID-listor delas upp på flera SNMP GET-förfrågningar så att varje få
 
 En enhets sida **SNMP-walk**, under **Mer** i dess meny, visar varje OID som enheten svarar på, med typ, värde och, där OneUptime känner MIB:en, namn. Det är den `snmpwalk` du annars skulle köra från sondens nätverk, körd av enhetens egen sond med de autentiseringsuppgifter som OneUptime sparar för den, och som aldrig når din webbläsare.
 
-Skriv en numerisk OID under **Start-OID**, eller välj en av **Vanliga startpunkter**: **Allt**, **System**, **Gränssnitt**, **Värdresurser** eller **Leverantörsspecifik**. Tryck sedan på **Starta walk**. Sonden plockar upp walken inom tio sekunder och skickar en förfrågan i taget, högst 1 000 OID:er på högst 45 sekunder, så att en walk aldrig översvämmar enheten. Finns det mer att läsa läser **Fortsätt walk** nästa 1 000 från där den stannade. En enhet har en walk åt gången, och dess walkar sparas i två dagar.
+Skriv en numerisk OID under **Start-OID**, eller tryck på en av startpunkterna under det: **Allt**, **System**, **Gränssnitt**, **Värdresurser** eller **Leverantörsspecifik**. Tryck sedan på **Starta walk**. Sonden plockar upp walken inom tio sekunder och skickar en förfrågan i taget, högst 1 000 OID:er på högst 45 sekunder, så att en walk aldrig översvämmar enheten. Finns det mer att läsa läser **Fortsätt walk** nästa 1 000 från där den stannade. En enhet har en walk åt gången, och dess walkar sparas i två dagar.
 
 Varje rad säger var dess OID är känd: ett värde som en leverantörs hälsomall samlar in, en kolumn i en leverantörsmalls SNMP-tabell, en räknare som gränssnittswalken redan visar i diagram för varje port, eller en OID under leverantörens MIB. Från en rad:
 
 - **Samla in** lägger till OID:n i enhetens **Device-Specific Health OIDs**: varje avsökning samlar in den från och med nästa, och enhetens sida **Mätvärden** visar den i ett diagram. På en enhet som är kopplad till en OID Collection Template kan radens meny i stället lägga till den i mallen, för varje enhet som använder den.
-- **Skapa larm** visas när OID:n samlas in och öppnar en ny nätverksenhetsmonitor för enheten med ett kriterium **SNMP OID Value** på OID:n, utifrån det lästa värdet: en räknare eller mätare varnar över det, en drifttid under det (enheten startade om), allt annat när det ändras.
+- **Skapa larm** visas när OID:n samlas in och öppnar en ny nätverksenhetsmonitor för enheten med ett kriterium på OID:n. En räknare börjar på **SNMP OID Rate (per second)** och en mätare på **SNMP OID Value**, båda över ett tröskelvärde du själv anger; en drifttid varnar under tio minuter (enheten startade om), allt annat när det ändras från det lästa värdet.
 - **Kopiera OID**, i radens meny, kopierar OID:n.
 
 En walk som misslyckas säger varför, och vad du ska kontrollera: en enhet som inte svarar (SNMP avstängt, UDP 161 blockerad eller, för v1 och v2c, en felaktig community-sträng, som en agent ignorerar utan ett ord), en SNMPv3-användare, ett lösenord eller ett protokoll som enheten avvisade, eller en del av trädet som autentiseringsuppgifternas SNMP-vy utelämnar. En walk som stannar halvvägs behåller det den har läst. En walk kräver behörigheten **Create Network Device Diagnostic** och en sond som är ny nog för SNMP-walk: med en äldre ber sidan dig att uppdatera den.
@@ -408,13 +408,13 @@ En del av det en enhet vet är en lista: en rad per IPsec-tunnel, Wi-Fi-radio, S
 | Radnamn | Valfria kolumner vars värden namnger varje rad, till exempel en tunnels anslutningsnamn. Utan dem namnges rader efter sitt index. Ett namn kan komma från en syskontabell som delar indexet (Fabric Engine namnger IS-IS-adjacencies från `rcIsisAdjHostName`), eller från en överordnad tabell vars index inleder den här tabellens (Aruba Instant namnger varje radio efter dess accesspunkt). En tabell som indexeras efter ett namn (ArubaOS indexerar sina SSID:er efter SSID) namnges efter sitt avkodade index. |
 | Radgräns | Hur många rader som behålls: 100 som standard, högst 250. |
 
-Tal läses som tal, och text som börjar med ett tal läses som det talet (`"36"`, `"-95 dBm"`, `"80MHz"`), eftersom många tillverkare lägger tal i strängar. Sätt en kolumns värdetyp till **Text only** för värden som bara ser numeriska ut. **Value labels** gör koder till ord (`0=inactive, 1=active`): det råa värdet är fortfarande det som visas i diagram och jämförs, etiketten är det som visas. **Healthy values** (`1`) anger vilka värden som betyder att allt är bra: de färgar raden på enhetens sida **SNMP Tables** och driver kriteriet **SNMP Table Row Is Unhealthy**.
+Tal läses som tal, och text som börjar med ett tal läses som det talet (`"36"`, `"-95 dBm"`, `"80MHz"`), eftersom många tillverkare lägger tal i strängar. Sätt en kolumns värdetyp till **Text only** för värden som bara ser numeriska ut. **Value labels** gör koder till ord (`0=inactive, 1=active`): det råa värdet är fortfarande det som visas i diagram och jämförs, etiketten är det som visas. **Healthy values** (`1`) anger vilka värden som betyder att allt är bra: de färgar raden på enhetens sida **SNMP-tabeller** och driver kriteriet **SNMP Table Row Is Unhealthy**.
 
 Vissa kolumner i tillverkarmallar **justerar** också talet de läser, för MIB:ar som håller ett värde i en egen enhet: ArubaOS rapporterar sändeffekten fördubblad (läses × 0.5), Aruba Instant brusgolvet utan tecken (× −1), Aerohive brusgolvet plus 256 (− 256) och Extremes kontroller kanalbredden i steg om 20 MHz (× 20). Det justerade talet är det som visas, ritas i diagram och jämförs, så **Noise Floor Större än -80** betyder samma sak hos varje tillverkare, och tabellredigeraren visar beräkningen under kolumnen.
 
 Tabeller kommer från en [OID Collection Template](#oid-collection-templates), delad av varje kopplad enhet (upp till 10 tabeller), eller från enheten själv under **Device-Specific SNMP Tables** (upp till 10 till). De slås ihop efter nyckel vid varje avsökning, mallen först, och en enhetstabell med samma nyckel ersätter mallens. Båda redigerarna erbjuder **Add a Vendor's Tables**.
 
-Sonden walkar varje kolumn som ett underträd, inom en budget på 30 sekunder som alla tabeller på enheten delar. En tabell som inte kan walkas säger varför och får aldrig avsökningen att misslyckas: enhetens sida **SNMP Tables** behåller sina senaste bra rader och säger att den senaste walken misslyckades, medan kriterier bara bedömer det som den här walken producerade, så en timeout läses aldrig som en tom tabell. Varje numerisk cell registreras som mätvärdet `oneuptime.monitor.snmp.table.value`, med attributen `snmpTableKey`, `snmpTableName`, `snmpTableColumn`, `snmpTableColumnOid`, `snmpTableRow` och `snmpTableRowIndex`, så en instrumentpanel kan visa varje tunnels status eller varje radios sändeffekt i ett diagram, och en mätvärdesmonitor kan gruppera efter `snmpTableRow`.
+Sonden walkar varje kolumn som ett underträd, inom en budget på 30 sekunder som alla tabeller på enheten delar. En tabell som inte kan walkas säger varför och får aldrig avsökningen att misslyckas: enhetens sida **SNMP-tabeller** behåller sina senaste bra rader och säger att den senaste walken misslyckades, medan kriterier bara bedömer det som den här walken producerade, så en timeout läses aldrig som en tom tabell. Varje numerisk cell registreras som mätvärdet `oneuptime.monitor.snmp.table.value`, med attributen `snmpTableKey`, `snmpTableName`, `snmpTableColumn`, `snmpTableColumnOid`, `snmpTableRow` och `snmpTableRowIndex`, så en instrumentpanel kan visa varje tunnels status eller varje radios sändeffekt i ett diagram, och en mätvärdesmonitor kan gruppera efter `snmpTableRow`.
 
 ### Fliken Wi-Fi
 
@@ -781,6 +781,7 @@ Kriterier kontrollerar varje avsökningsresultat och varje trap, och skapar inci
 | SNMP Response Time (in ms) | Walkens svarstid i millisekunder, aldrig pingens. | Utvärderas inte |
 | SNMP OID Value | Värdet som en OID returnerade. | Utvärderas inte |
 | SNMP OID Exists | Om en OID returnerar ett värde. | Utvärderas inte |
+| SNMP OID Rate (per second) | Hur snabbt en räknar-OID har vuxit per sekund sedan förra avsökningen: en räknare växer bara, så varna för detta och inte för dess värde. Inget utfall förrän den har lästs två gånger. | Utvärderas inte |
 | SNMP Interface Is Down | Sant när ett administrativt aktiverat gränssnitt är nere i drift. | Utvärderas inte |
 | SNMP Interface Utilization (in %) | Länkutnyttjandet på det mest belastade gränssnittet. | Utvärderas inte |
 | SNMP Interface Errors (per second) | Felfrekvensen på det sämsta gränssnittet. | Utvärderas inte |

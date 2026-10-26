@@ -109,7 +109,7 @@ export const POSTMORTEM_RULE_TEMPLATES_COLUMN_TITLE: string =
 
 /*
  * After a rule's first three templates in the table, the button that shows
- * the rest: "2 more templates" (TableColumnListComponent's getMoreText).
+ * the rest: "2 more templates" (TableColumnListComponent's moreTemplate).
  */
 export const POSTMORTEM_RULE_MORE_TEMPLATES: PluralTemplate = {
   one: "{{count}} more template",

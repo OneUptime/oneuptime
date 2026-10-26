@@ -102,7 +102,7 @@ Um padrão é uma expressão regular, como `^api-.*`, ou um curinga `*`, como `*
 - Quando um rótulo é excluído, os SLOs cujas regras o usavam são reavaliados.
 - As regras mantêm a lista de monitores de um SLO atualizada mesmo enquanto o SLO está desligado ou arquivado, então ele retoma com os monitores certos.
 
-As regras se ressincronizam a cada salvamento, então **Executar agora** serve para colocar em dia o que o SLO deixou passar. Ele está em cada linha, na página da regra (**Visualizar**) e nas ações em massa da tabela. Executar uma regra reavalia todas as regras de monitor habilitadas do SLO juntas, e depois a caixa de diálogo diz quantos monitores foram associados e desassociados. Executar uma regra exige permissão para editar as regras de monitor de SLO. Veja [Executar regras em recursos existentes](/docs/configuration/run-rules-now).
+As regras se ressincronizam a cada salvamento, então **Executar agora** serve para colocar em dia o que o SLO deixou passar. Ele está em cada linha, na página da regra (**Ver**) e nas ações em massa da tabela. Executar uma regra reavalia todas as regras de monitor habilitadas do SLO juntas, e depois a caixa de diálogo diz quantos monitores foram associados e desassociados. Executar uma regra exige permissão para editar as regras de monitor de SLO. Veja [Executar regras em recursos existentes](/docs/configuration/run-rules-now).
 
 ### Quais monitores pertencem a uma regra
 

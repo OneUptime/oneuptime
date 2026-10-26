@@ -293,7 +293,7 @@ flowchart TB
 
 ### 廠商健康範本
 
-在 **Health OIDs** 編輯器中，**Vendor Health Template** 會套用一組為裝置廠商預先建立的 OID。許多範本還附帶 [SNMP 表格](#snmp-表格)，可在 **SNMP Tables** 編輯器中透過 **Add a Vendor's Tables** 新增。
+在 **Health OIDs** 編輯器中，**Vendor Health Template** 會套用一組為裝置廠商預先建立的 OID。許多範本還附帶 [SNMP 表格](#snmp-表格)，可在 **SNMP 表格** 編輯器中透過 **Add a Vendor's Tables** 新增。
 
 | 廠商範本 | 健康 OID | SNMP 表格 |
 | --- | --- | --- |
@@ -378,7 +378,7 @@ flowchart TB
 | 名稱 | OID 的好記名稱，例如 sysDescr。 | 否 |
 | 描述 | 該 OID 代表什麼。 | 否 |
 
-收集到的值會在裝置的**指標**頁面上繪製成圖表，**SNMP OID Value** 和 **SNMP OID Exists** 條件會根據它們發出警示。這些條件上的 OID 選擇器會列出選取的裝置收集的 OID（包括其範本的和它自己的），所以不需要手動輸入。
+收集到的值會在裝置的**指標**頁面上繪製成圖表，**SNMP OID Value**、**SNMP OID Exists** 和 **SNMP OID Rate (per second)** 條件會根據它們發出警示。計數器（Counter32 或 Counter64）只增不減，所以應依它自上次輪詢以來增長的速度發出警示。這些條件上的 OID 選擇器會列出選取的裝置收集的 OID（包括其範本的和它自己的），所以不需要手動輸入。
 
 長的 OID 清單會拆分成多個 SNMP GET 要求，讓每個要求都能放進一個 UDP 資料包。如果你因為舊版本把回應 `tooBig` 的裝置回報為離線而讓 OID 清單保持簡短，現在已經不需要了。
 
@@ -386,12 +386,12 @@ flowchart TB
 
 裝置的**SNMP 遍歷**頁面（在其選單的**更多**下）列出裝置回應的每個 OID，包括類型、值，以及在 OneUptime 認得該 MIB 時的名稱。它就是你原本要在探測器網路中執行的 `snmpwalk`，只是由裝置自己的探測器使用 OneUptime 為該裝置保存的憑證來執行，憑證從不會到達你的瀏覽器。
 
-在**起始 OID**中輸入數字 OID，或從**常用起點**中選擇**全部**、**系統**、**介面**、**主機資源**或**廠商專屬**，然後按一下**遍歷**。探測器會在十秒內接手遍歷，並一次只送出一個請求，每次遍歷最多讀取 1,000 個 OID、最長 45 秒，因此遍歷絕不會壓垮裝置。如果還有更多內容，**繼續遍歷**會從停下的位置讀取接下來的 1,000 個。每台裝置同一時間只執行一次遍歷，遍歷結果保留兩天。
+在**起始 OID**中輸入數字 OID，或從其下方的起點中選擇**全部**、**系統**、**介面**、**主機資源**或**廠商專屬**，然後按一下**遍歷**。探測器會在十秒內接手遍歷，並一次只送出一個請求，每次遍歷最多讀取 1,000 個 OID、最長 45 秒，因此遍歷絕不會壓垮裝置。如果還有更多內容，**繼續遍歷**會從停下的位置讀取接下來的 1,000 個。每台裝置同一時間只執行一次遍歷，遍歷結果保留兩天。
 
 每一列都會說明其 OID 在哪裡已知：廠商健康範本收集的值、廠商範本 SNMP 表格的某一欄、介面遍歷已為每個連接埠繪製圖表的計數器，或其廠商 MIB 下的 OID。在一列上可以：
 
 - **收集**將 OID 加入裝置的**Device-Specific Health OIDs**：從下次輪詢起每次輪詢都會收集它，裝置的**指標**頁面會繪製它的圖表。在連結了 OID Collection Template 的裝置上，列選單也可以改為把它加入範本，供使用該範本的每台裝置收集。
-- **設定警示**在 OID 開始收集後出現，會為該裝置開啟一個新的 Network Device 監測器，其中包含一個針對該 OID 的 **SNMP OID Value** 條件，並以讀取到的值為起點：計數器或量測值高於它時發出警示，運作時間低於它時發出警示（裝置已重新啟動），其他值在變化時發出警示。
+- **設定警示**在 OID 開始收集後出現，會為該裝置開啟一個新的 Network Device 監測器，其中包含一個針對該 OID 的條件。計數器從 **SNMP OID Rate (per second)** 開始，量測值從 **SNMP OID Value** 開始，兩者都在超過你設定的閾值時發出警示；運作時間低於十分鐘時發出警示（裝置已重新啟動），其他值在與讀取到的值不同時發出警示。
 - **複製 OID**在列選單中，用於複製該 OID。
 
 失敗的遍歷會說明原因以及要檢查什麼：裝置沒有回應（SNMP 已關閉、UDP 161 被封鎖，或在 v1 和 v2c 下社群字串錯誤，代理程式會默默忽略它不認得的社群），裝置拒絕了 SNMPv3 使用者、密碼或通訊協定，或者憑證的 SNMP 檢視不包含樹狀結構的這一部分。中途停止的遍歷會保留已讀取的內容。遍歷需要 **Create Network Device Diagnostic** 權限，以及夠新、能夠執行 SNMP 遍歷的探測器：如果探測器較舊，頁面會提示你更新它。
@@ -408,13 +408,13 @@ flowchart TB
 | 列名稱 | 選用的欄，其值用來為每一列命名，例如通道的連線名稱。沒有它們時，列以索引命名。名稱可以來自共用相同索引的同層表格（Fabric Engine 用 `rcIsisAdjHostName` 為 IS-IS 相鄰關係命名），也可以來自其索引是此表格索引開頭部分的上層表格（Aruba Instant 用存取點的名稱為每個射頻命名）。以名稱為索引的表格（ArubaOS 以 SSID 作為其 SSID 表格的索引）會以解碼後的索引命名。 |
 | 列數上限 | 保留多少列：預設 100，最多 250。 |
 
-數字會當作數字讀取，以數字開頭的文字也會當作該數字讀取（`"36"`、`"-95 dBm"`、`"80MHz"`），因為很多廠商會把數字放在字串裡。對於只是看起來像數字的值，請把欄的值類型設為 **Text only**。**Value labels** 會把代碼變成文字（`0=inactive, 1=active`）：用於繪圖和比較的仍是原始值，顯示的是標籤。**Healthy values**（`1`）說明哪些值代表一切正常：它們會為裝置 **SNMP Tables** 頁面上的列上色，並驅動 **SNMP Table Row Is Unhealthy** 條件。
+數字會當作數字讀取，以數字開頭的文字也會當作該數字讀取（`"36"`、`"-95 dBm"`、`"80MHz"`），因為很多廠商會把數字放在字串裡。對於只是看起來像數字的值，請把欄的值類型設為 **Text only**。**Value labels** 會把代碼變成文字（`0=inactive, 1=active`）：用於繪圖和比較的仍是原始值，顯示的是標籤。**Healthy values**（`1`）說明哪些值代表一切正常：它們會為裝置 **SNMP 表格** 頁面上的列上色，並驅動 **SNMP Table Row Is Unhealthy** 條件。
 
 有些廠商範本的欄還會對讀取的數字進行**調整**，用於以自身單位儲存數值的 MIB：ArubaOS 回報的發射功率是兩倍（讀取值 × 0.5），Aruba Instant 回報的雜訊底限不帶正負號（× −1），Aerohive 回報的雜訊底限加了 256（− 256），Extreme 的控制器以 20 MHz 為級距回報頻道頻寬（× 20）。顯示、繪圖和比較使用的是調整後的數字，所以 **Noise Floor 大於 -80** 在每個廠商上意義都相同，表格編輯器會在欄下方顯示這項換算。
 
 表格來自 [OID Collection Template](#oid-收集範本)，由每台連結的裝置共用（最多 10 個表格），或來自裝置本身的 **Device-Specific SNMP Tables**（再多 10 個）。它們在每次輪詢時依鍵合併，範本優先，鍵相同的裝置表格會取代範本的表格。兩個編輯器都提供 **Add a Vendor's Tables**。
 
-探測器把每一欄當作子樹遍歷，在裝置上所有表格共用的 30 秒時間預算內完成。無法遍歷的表格會說明原因，且絕不會讓輪詢失敗：裝置的 **SNMP Tables** 頁面會保留上一次正常的列，並說明最近一次遍歷失敗；而條件只判斷這次遍歷的結果，因此逾時永遠不會被當作空表格。每個數值儲存格都會記錄為指標 `oneuptime.monitor.snmp.table.value`，帶有屬性 `snmpTableKey`、`snmpTableName`、`snmpTableColumn`、`snmpTableColumnOid`、`snmpTableRow` 和 `snmpTableRowIndex`，所以儀表板可以繪製每條通道的狀態或每個射頻的發射功率，Metrics 監測器也可以依 `snmpTableRow` 分組。
+探測器把每一欄當作子樹遍歷，在裝置上所有表格共用的 30 秒時間預算內完成。無法遍歷的表格會說明原因，且絕不會讓輪詢失敗：裝置的 **SNMP 表格** 頁面會保留上一次正常的列，並說明最近一次遍歷失敗；而條件只判斷這次遍歷的結果，因此逾時永遠不會被當作空表格。每個數值儲存格都會記錄為指標 `oneuptime.monitor.snmp.table.value`，帶有屬性 `snmpTableKey`、`snmpTableName`、`snmpTableColumn`、`snmpTableColumnOid`、`snmpTableRow` 和 `snmpTableRowIndex`，所以儀表板可以繪製每條通道的狀態或每個射頻的發射功率，Metrics 監測器也可以依 `snmpTableRow` 分組。
 
 ### Wi-Fi 分頁
 
@@ -781,6 +781,7 @@ Network Device 監測器沒有自己的間隔：每當裝置的輪詢結果到�
 | SNMP Response Time (in ms) | 遍歷的回應時間（毫秒），絕不是 Ping 的時間。 | 不評估 |
 | SNMP OID Value | 一個 OID 傳回的值。 | 不評估 |
 | SNMP OID Exists | OID 是否傳回值。 | 不評估 |
+| SNMP OID Rate (per second) | 計數器 OID 自上次輪詢以來每秒增長的速度：計數器只增不減，所以應依此發出警示，而不是依它的值。讀取兩次之前不做判定。 | 不評估 |
 | SNMP Interface Is Down | 管理上已啟用的介面在運作上停擺時為 true。 | 不評估 |
 | SNMP Interface Utilization (in %) | 最繁忙介面的連結使用率。 | 不評估 |
 | SNMP Interface Errors (per second) | 最差介面的錯誤率。 | 不評估 |

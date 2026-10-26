@@ -401,6 +401,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
       PermissionGate.gateCardButton(
         {
           title: "Create Scheduled Maintenance Event",
+          phoneTitle: "Create",
           onClick: () => {
             Navigation.navigate(
               RouteUtil.getPageRoute(
@@ -609,7 +610,6 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
           }}
           noItemsMessage={props.noItemsMessage}
           showViewIdButton={true}
-          viewButtonText="View Event"
           showRefreshButton={true}
           searchableFields={["title", "description"]}
           viewPageRoute={props.viewPageRoute}
@@ -842,7 +842,11 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
             },
 
             {
-              // Unified "Resources Affected" cell mirroring the form picker.
+              /*
+               * One "Affected Resources" cell mirroring the form picker,
+               * named as the alerts list, the event's own card and the
+               * list's filter chip name it.
+               */
               field: {
                 monitors: {
                   name: true,
@@ -916,7 +920,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                   serviceColor: true,
                 },
               },
-              title: "Resources Affected",
+              title: "Affected Resources",
               type: FieldType.EntityArray,
               hideOnMobile: true,
 

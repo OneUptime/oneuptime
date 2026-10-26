@@ -119,7 +119,7 @@ Um host executa a primeira configuração da lista que se aplica a ele: arraste 
 
 ### Versões e restauração
 
-A lista **Versões** de uma configuração guarda cada alteração salva, a mais recente primeiro, com quem salvou e quando. Selecione **Visualizar** para ler uma versão e **Restaurar** para enviá-la de novo aos hosts: ela é salva como uma nova versão que diz qual restaurou, então a lista sempre mostra o que cada host recebeu.
+A lista **Versões** de uma configuração guarda cada alteração salva, a mais recente primeiro, com quem salvou e quando. Selecione **Ver** para ler uma versão e **Restaurar** para enviá-la de novo aos hosts: ela é salva como uma nova versão que diz qual restaurou, então a lista sempre mostra o que cada host recebeu.
 
 ### Escolha uma configuração para um único host
 
