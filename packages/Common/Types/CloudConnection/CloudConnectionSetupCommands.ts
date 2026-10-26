@@ -25,9 +25,9 @@ import { CloudConnectionAuthMethod } from "./CloudConnectionCatalog";
  *     subscription. Prints its app id, password, tenant and when the
  *     password expires.
  *   - Google Cloud: a service account with the built-in Monitoring Viewer,
- *     Cloud Asset Viewer and Logs Viewer roles on the current project - or
- *     on its organization, for every project - and a JSON key. Prints the
- *     key.
+ *     Cloud Asset Viewer, Logs Viewer and Service Health Viewer roles on the
+ *     current project - or on its organization, for every project - and a
+ *     JSON key. Prints the key.
  *
  * Each can be run again: a role, a user or a service account that is
  * already there is updated, not duplicated.
@@ -165,10 +165,12 @@ export const AZURE_COST_READ_ROLE: string = "Cost Management Reader";
 export const GCP_READ_ONLY_ROLE: string = "roles/monitoring.viewer";
 export const GCP_INVENTORY_ROLE: string = "roles/cloudasset.viewer";
 export const GCP_AUDIT_LOG_ROLE: string = "roles/logging.viewer";
+export const GCP_SERVICE_HEALTH_ROLE: string = "roles/servicehealth.viewer";
 export const GCP_READ_ONLY_ROLES: Array<string> = [
   GCP_READ_ONLY_ROLE,
   GCP_INVENTORY_ROLE,
   GCP_AUDIT_LOG_ROLE,
+  GCP_SERVICE_HEALTH_ROLE,
 ];
 // The Google Cloud APIs a connection calls, turned on by the command.
 export const GCP_SERVICES: Array<string> = [
@@ -176,6 +178,7 @@ export const GCP_SERVICES: Array<string> = [
   "cloudasset.googleapis.com",
   "logging.googleapis.com",
   "cloudresourcemanager.googleapis.com",
+  "servicehealth.googleapis.com",
 ];
 
 // The StackSet that puts the role in every account of an AWS Organization.
@@ -217,7 +220,11 @@ export function getAwsRoleNameForExternalId(externalId: string): string {
 // The read-only policy as an object, for the commands and the template.
 export function getAwsReadOnlyPolicy(): {
   Version: string;
-  Statement: Array<{ Effect: string; Action: Array<string>; Resource: string | Array<string> }>;
+  Statement: Array<{
+    Effect: string;
+    Action: Array<string>;
+    Resource: string | Array<string>;
+  }>;
 } {
   const scoped: Array<string> = Object.keys(AWS_SCOPED_READ_RESOURCES);
 
@@ -234,7 +241,11 @@ export function getAwsReadOnlyPolicy(): {
       ...scoped.map(
         (
           action: string,
-        ): { Effect: string; Action: Array<string>; Resource: Array<string> } => {
+        ): {
+          Effect: string;
+          Action: Array<string>;
+          Resource: Array<string>;
+        } => {
           return {
             Effect: "Allow",
             Action: [action],

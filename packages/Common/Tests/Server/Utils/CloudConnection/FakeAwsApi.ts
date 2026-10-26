@@ -1,5 +1,5 @@
 import { DataSourceHttpRequest } from "../../../../Server/Utils/DataSource/HttpFetch";
-import { JSONObject } from "../../../../Types/JSON";
+import { JSONObject, JSONValue } from "../../../../Types/JSON";
 import {
   FakeProviderApi,
   FakeResponse,
@@ -11,8 +11,8 @@ import {
 
 /*
  * AWS in a test: CloudWatch (per Region), STS, the Resource Groups
- * Tagging API, Cloud Control (per Region), Organizations and IAM's account
- * alias, answering the way they do - the JSON protocols with the action in
+ * Tagging API, Cloud Control (per Region), Organizations, IAM's account
+ * alias, CloudTrail (per Region) and AWS Health, answering the way they do - the JSON protocols with the action in
  * X-Amz-Target, STS and IAM in XML - and every error the way the
  * production transport throws it. Each Region's CloudWatch holds metrics
  * (what ListMetrics lists) and values (what GetMetricData returns for a
@@ -49,6 +49,11 @@ export interface FakeRegion {
     | undefined;
   // Cloud Control: type -> the error ListResources answers with instead.
   resourceErrors?: Record<string, FakeResponse> | undefined;
+  // CloudTrail: the Region's write events, as LookupEvents describes them.
+  trailEvents?: Array<JSONObject> | undefined;
+  // Events per LookupEvents page (50 when not set).
+  trailPageSize?: number | undefined;
+  trailError?: FakeResponse | undefined;
 }
 
 export interface FakeOrganizationAccount {
@@ -68,6 +73,10 @@ export interface FakeAwsOptions {
   organizationAccounts?: Array<FakeOrganizationAccount> | undefined;
   organizationsError?: FakeResponse | undefined;
   accountAlias?: string | undefined;
+  // AWS Health: events as DescribeEvents lists them, and each one's words.
+  healthEvents?: Array<JSONObject> | undefined;
+  healthDescriptions?: Record<string, string> | undefined;
+  healthError?: FakeResponse | undefined;
 }
 
 export interface FakeAws extends FakeProviderApi {
@@ -88,6 +97,20 @@ export interface FakeAws extends FakeProviderApi {
   // The Regions Organizations was asked in, one entry a call.
   organizationsCalls: Array<string>;
   assumedRoles: Array<string>;
+  // LookupEvents calls by Region and the account they were signed for.
+  cloudTrailCalls: Array<{ region: string; body: JSONObject; account: string }>;
+  // AWS Health calls by action.
+  healthCalls: Array<{ action: string; body: JSONObject }>;
+}
+
+// Twelve digits: an AWS account id.
+function isAccountId(text: string): boolean {
+  return (
+    text.length === 12 &&
+    Array.from(text).every((char: string): boolean => {
+      return char >= "0" && char <= "9";
+    })
+  );
 }
 
 // The account a role session's key names: ASIA + the 12-digit account + ROLE.
@@ -105,13 +128,13 @@ function accountOfKey(request: DataSourceHttpRequest): string {
     index + marker.length + 12,
   );
 
-  return /^\d{12}$/.test(digits) ? digits : "";
+  return isAccountId(digits) ? digits : "";
 }
 
 // The 12-digit account of a role ARN, or "".
 function accountOfRoleArn(roleArn: string): string {
   const parts: Array<string> = roleArn.split(":");
-  return parts.length >= 5 && /^\d{12}$/.test(parts[4] || "") ? parts[4]! : "";
+  return parts.length >= 5 && isAccountId(parts[4] || "") ? parts[4]! : "";
 }
 
 export function awsError(
@@ -178,6 +201,8 @@ export function createFakeAws(options: FakeAwsOptions): FakeAws {
   const cloudControlCalls: FakeAws["cloudControlCalls"] = [];
   const assumedRoles: Array<string> = [];
   const organizationsCalls: Array<string> = [];
+  const cloudTrailCalls: FakeAws["cloudTrailCalls"] = [];
+  const healthCalls: FakeAws["healthCalls"] = [];
   const getMetricDataTurns: Map<string, number> = new Map();
   const account: string = options.account || FAKE_ACCOUNT_ID;
 
@@ -272,7 +297,45 @@ export function createFakeAws(options: FakeAwsOptions): FakeAws {
           return options.organizationsError;
         }
 
-        return json({ Accounts: options.organizationAccounts || [] });
+        return json({
+          Accounts: (options.organizationAccounts ||
+            []) as unknown as JSONValue,
+        });
+      }
+
+      // AWS Health's one endpoint, in us-east-1.
+      if (service === "health") {
+        const action: string =
+          headerOf(request, "X-Amz-Target").split(".")[1] || "";
+        const body: JSONObject = bodyOf(request);
+        healthCalls.push({ action, body });
+
+        if (options.healthError) {
+          return options.healthError;
+        }
+
+        if (action === "DescribeEventDetails") {
+          const arns: Array<string> = (body["eventArns"] ||
+            []) as Array<string>;
+
+          return json({
+            successfulSet: arns
+              .filter((arn: string): boolean => {
+                return Boolean(options.healthDescriptions?.[arn]);
+              })
+              .map((arn: string) => {
+                return {
+                  event: { arn },
+                  eventDescription: {
+                    latestDescription: options.healthDescriptions![arn],
+                  },
+                };
+              }),
+            failedSet: [],
+          });
+        }
+
+        return json({ events: options.healthEvents || [] });
       }
 
       const fakeRegion: FakeRegion | undefined = options.regions[region];
@@ -334,6 +397,41 @@ export function createFakeAws(options: FakeAwsOptions): FakeAws {
               };
             },
           ),
+        });
+      }
+
+      if (service === "cloudtrail") {
+        cloudTrailCalls.push({
+          region,
+          body,
+          account: accountOfKey(request) || account,
+        });
+
+        if (fakeRegion.trailError) {
+          return fakeRegion.trailError;
+        }
+
+        const start: number = Number(body["StartTime"]);
+        const end: number = Number(body["EndTime"]);
+        // Newest first, as LookupEvents lists them.
+        const events: Array<JSONObject> = (fakeRegion.trailEvents || [])
+          .filter((event: JSONObject): boolean => {
+            const time: number = Number(event["EventTime"]);
+            return time >= start && time <= end;
+          })
+          .sort((a: JSONObject, b: JSONObject): number => {
+            return Number(b["EventTime"]) - Number(a["EventTime"]);
+          });
+        const pageSize: number = fakeRegion.trailPageSize || 50;
+        const offset: number = body["NextToken"]
+          ? Number(body["NextToken"])
+          : 0;
+
+        return json({
+          Events: events.slice(offset, offset + pageSize),
+          ...(offset + pageSize < events.length
+            ? { NextToken: String(offset + pageSize) }
+            : {}),
         });
       }
 
@@ -448,5 +546,7 @@ export function createFakeAws(options: FakeAwsOptions): FakeAws {
     cloudControlCalls,
     organizationsCalls,
     assumedRoles,
+    cloudTrailCalls,
+    healthCalls,
   };
 }

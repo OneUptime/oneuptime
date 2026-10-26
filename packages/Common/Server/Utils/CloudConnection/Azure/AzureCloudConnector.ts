@@ -11,8 +11,10 @@ import {
   CloudResourceTypeDescriptor,
   getCloudResourceTypeDescriptor,
 } from "../../../../Types/Cloud/CloudResourceCatalog";
-import { splitCloudConnectionList } from "../../../../Types/CloudConnection/CloudConnectionCatalog";
-import { AZURE_SECRET_EXPIRES_AT_KEY } from "../../../../Types/CloudConnection/CloudConnectionCatalog";
+import {
+  AZURE_SECRET_EXPIRES_AT_KEY,
+  splitCloudConnectionList,
+} from "../../../../Types/CloudConnection/CloudConnectionCatalog";
 import {
   CloudConnectionFailureKind,
   CloudConnectionTestResult,
@@ -45,6 +47,9 @@ import {
   CloudConnectionSettings,
   CloudConnector,
   CloudConnectorCallOptions,
+  CloudChange,
+  CloudChangesOptions,
+  CloudChangesResult,
   CloudDiscoveredResource,
   CloudInventoryItem,
   CloudInventoryOptions,
@@ -63,7 +68,16 @@ import AzureArm, {
   AzureResource,
   AzureSubscription,
 } from "./AzureArm";
-import { buildAzureInventoryItem, buildAzureInventoryQuery } from "./AzureInventory";
+import {
+  buildAzureInventoryItem,
+  buildAzureInventoryQuery,
+} from "./AzureInventory";
+import { readAzureActivityEvent } from "./AzureChanges";
+import {
+  getChangePlace,
+  getChangeWindowStart,
+  keepNewChanges,
+} from "../CloudChangeWindow";
 
 /*
  * MICROSOFT AZURE: every subscription an app registration may read, from
@@ -240,7 +254,7 @@ export function getAzureSecretExpiryWarning(data: {
 export function explainExpiredAzureSecret(error: unknown): unknown {
   if (
     error instanceof LlmProviderError &&
-    (error.responseBody || "").includes("AADSTS7000222")
+    `${error.responseBody || ""} ${error.message}`.includes("AADSTS7000222")
   ) {
     return new LlmProviderError({
       message:
@@ -669,6 +683,139 @@ export default class AzureCloudConnector implements CloudConnector {
     };
 
     return definitions;
+  }
+
+  /*
+   * What changed in each subscription since the last read, and Azure's
+   * Service Health and Resource Health events about it: one Activity Log
+   * read per subscription (AzureChanges). A look back for an investigation
+   * reads only the subscriptions it names and moves no cursor.
+   */
+  public async readChanges(
+    settings: CloudConnectionSettings,
+    options: CloudChangesOptions,
+  ): Promise<CloudChangesResult> {
+    try {
+      return await this.readActivity(settings, options);
+    } catch (error) {
+      throw explainExpiredAzureSecret(error);
+    }
+  }
+
+  private async readActivity(
+    settings: CloudConnectionSettings,
+    options: CloudChangesOptions,
+  ): Promise<CloudChangesResult> {
+    const now: Date = options.now ? options.now() : new Date();
+    const arm: AzureArm = this.arm(settings, options, options.budget);
+    const result: CloudChangesResult = {
+      changes: [],
+      warnings: [],
+      complete: true,
+    };
+    const isLookBack: boolean = Boolean(options.since);
+    let subscriptionIds: Array<string> =
+      options.state.accounts && options.state.accounts.length > 0
+        ? options.state.accounts
+        : (await this.getSubscriptions(arm, settings)).map(
+            (subscription: AzureSubscription): string => {
+              return subscription.subscriptionId;
+            },
+          );
+
+    if (options.only) {
+      const wanted: Set<string> = new Set(
+        options.only.map((entry: { accountId: string }): string => {
+          return entry.accountId.toLowerCase();
+        }),
+      );
+      subscriptionIds = subscriptionIds.filter((id: string): boolean => {
+        return wanted.has(id.toLowerCase());
+      });
+    }
+
+    let refused: boolean = false;
+
+    const outcomes: Array<Settled<Array<CloudChange>>> =
+      await mapWithConcurrency(
+        subscriptionIds.slice(0, AZURE_MAX_SUBSCRIPTIONS),
+        CONCURRENCY,
+        async (subscriptionId: string): Promise<Array<CloudChange>> => {
+          const events: Array<JSONObject> = await arm.listActivityLog({
+            subscriptionId,
+            start: getChangeWindowStart({
+              state: options.state,
+              place: getChangePlace(subscriptionId, ""),
+              now,
+              since: options.since,
+            }),
+            end: now,
+          });
+
+          return events
+            .map((event: JSONObject): CloudChange | null => {
+              return readAzureActivityEvent({ event, subscriptionId });
+            })
+            .filter((change: CloudChange | null): boolean => {
+              return change !== null;
+            }) as Array<CloudChange>;
+        },
+      );
+
+    outcomes.forEach((outcome: Settled<Array<CloudChange>>, index: number) => {
+      const subscriptionId: string = subscriptionIds[index]!;
+
+      if (outcome.ok) {
+        result.changes.push(
+          ...keepNewChanges({
+            state: options.state,
+            place: getChangePlace(subscriptionId, ""),
+            changes: outcome.value,
+            now,
+            complete: true,
+            isLookBack,
+          }),
+        );
+        return;
+      }
+
+      result.complete = false;
+
+      if (outcome.error instanceof CloudReadBudgetSpent) {
+        return;
+      }
+
+      if (
+        outcome.error instanceof LlmProviderError &&
+        outcome.error.kind === CloudConnectionFailureKind.Authentication
+      ) {
+        throw outcome.error;
+      }
+
+      if (
+        outcome.error instanceof LlmProviderError &&
+        outcome.error.kind === CloudConnectionFailureKind.Permission
+      ) {
+        refused = true;
+        return;
+      }
+
+      result.warnings.push(
+        `Could not read what changed in subscription ${subscriptionId}: ${
+          outcome.error instanceof Error
+            ? outcome.error.message
+            : String(outcome.error)
+        }`,
+      );
+    });
+
+    if (refused) {
+      result.warnings.push(
+        "The app may not read a subscription's Activity Log. Give it the Monitoring Reader role on it.",
+      );
+    }
+
+    return result;
   }
 
   /*

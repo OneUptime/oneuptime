@@ -13,10 +13,13 @@ import {
   CloudConnectionSettings,
   CloudConnector,
   CloudConnectorTransport,
+  CloudChangesResult,
   CloudInventoryAccount,
   CloudInventoryResult,
   CloudReadBudget,
 } from "./CloudConnectorTypes";
+import CloudChangeRecorder from "./CloudChangeRecorder";
+import { forgetStalePlaces } from "./CloudChangeWindow";
 
 /*
  * WHAT A READ DOES BESIDES READING METRICS.
@@ -28,6 +31,10 @@ import {
  *   - lists every resource of the connection's accounts (the inventory,
  *     every CLOUD_INVENTORY_INTERVAL_MS), keeping their tags, properties,
  *     relationships and endpoints;
+ *   - reads what changed in the accounts since the last read, and the
+ *     provider's health events about them, and keeps them as change events
+ *     (CloudChangeRecorder) - every read, after the inventory, so a change
+ *     to a resource the inventory just listed is tied to it;
  *   - keeps the connection's cloud accounts (CloudAccount): one row for
  *     each account it reaches, with the name its cloud gives it and its
  *     resources counted.
@@ -41,6 +48,9 @@ import {
 export const CLOUD_INVENTORY_INTERVAL_MS: number = 30 * 60 * 1000;
 export const CLOUD_INVENTORY_MAX_REQUESTS: number = 1500;
 export const CLOUD_INVENTORY_MAX_DURATION_MS: number = 3 * 60 * 1000;
+// What reading the accounts' changes and health events may take, each read.
+export const CLOUD_CHANGES_MAX_REQUESTS: number = 300;
+export const CLOUD_CHANGES_MAX_DURATION_MS: number = 90 * 1000;
 /*
  * A lane starts only with at least this long left before the read's
  * deadline; with less, it stays due and runs on the next read.
@@ -65,6 +75,13 @@ export function getLaneDurationMs(data: {
   return Math.min(data.maxDurationMs, left);
 }
 
+export interface CloudChangesLaneOutcome {
+  ran: boolean;
+  warnings: Array<string>;
+  // Change events written.
+  recorded: number;
+}
+
 export interface CloudInventoryLaneOutcome {
   // Whether the inventory ran on this read.
   ran: boolean;
@@ -73,7 +90,11 @@ export interface CloudInventoryLaneOutcome {
   synced?: CloudConnectionSyncResult | undefined;
 }
 
-function isOlderThan(iso: string | undefined, ageMs: number, now: Date): boolean {
+function isOlderThan(
+  iso: string | undefined,
+  ageMs: number,
+  now: Date,
+): boolean {
   const time: number = iso ? Date.parse(iso) : NaN;
   return !Number.isFinite(time) || now.getTime() - time >= ageMs;
 }
@@ -90,7 +111,11 @@ export default class CloudConnectionLanes {
     state: CloudConnectionPullState,
     now: Date,
   ): boolean {
-    return isOlderThan(state.inventoryListedAt, CLOUD_INVENTORY_INTERVAL_MS, now);
+    return isOlderThan(
+      state.inventoryListedAt,
+      CLOUD_INVENTORY_INTERVAL_MS,
+      now,
+    );
   }
 
   /*
@@ -186,6 +211,78 @@ export default class CloudConnectionLanes {
       accounts: inventory.accounts,
       synced,
     };
+  }
+
+  /*
+   * What changed in the connection's accounts since the last read, kept as
+   * change events. The connector moves the state's cursors on as it reads.
+   */
+  public static async runChanges(data: {
+    projectId: ObjectID;
+    provider: CloudProvider;
+    connectionId: ObjectID;
+    connector: CloudConnector;
+    settings: CloudConnectionSettings;
+    state: CloudConnectionPullState;
+    transport: CloudConnectorTransport;
+    now: Date;
+    deadlineMs: number;
+    sleep?: ((milliseconds: number) => Promise<void>) | undefined;
+  }): Promise<CloudChangesLaneOutcome> {
+    const durationMs: number = getLaneDurationMs({
+      maxDurationMs: CLOUD_CHANGES_MAX_DURATION_MS,
+      deadlineMs: data.deadlineMs,
+      nowMs: Date.now(),
+    });
+
+    if (!data.connector.readChanges || durationMs <= 0) {
+      return { ran: false, warnings: [], recorded: 0 };
+    }
+
+    const budget: CloudReadBudget = new CloudReadBudget({
+      maxRequests: CLOUD_CHANGES_MAX_REQUESTS,
+      maxDurationMs: durationMs,
+    });
+
+    try {
+      const result: CloudChangesResult = await data.connector.readChanges(
+        data.settings,
+        {
+          transport: data.transport,
+          now: () => {
+            return data.now;
+          },
+          sleep: data.sleep,
+          state: data.state,
+          connectionId: data.connectionId.toString(),
+          budget,
+        },
+      );
+
+      const recorded: number = await CloudChangeRecorder.record({
+        projectId: data.projectId,
+        provider: data.provider,
+        changes: result.changes,
+      });
+
+      forgetStalePlaces(data.state, data.now);
+
+      return { ran: true, warnings: result.warnings, recorded };
+    } catch (error) {
+      if (isRefusedCredential(error)) {
+        throw error;
+      }
+
+      return {
+        ran: true,
+        warnings: [
+          `Could not read what changed: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        ],
+        recorded: 0,
+      };
+    }
   }
 
   /*

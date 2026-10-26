@@ -46,6 +46,9 @@ import {
   CloudConnectionSettings,
   CloudConnector,
   CloudConnectorCallOptions,
+  CloudChange,
+  CloudChangesOptions,
+  CloudChangesResult,
   CloudDiscoveredResource,
   CloudInventoryOptions,
   CloudInventoryResult,
@@ -79,6 +82,12 @@ import {
   AwsOrganizationAccount,
   listAwsOrganizationAccounts,
 } from "./AwsOrganizations";
+import { lookupAwsChanges, readAwsHealthEvents } from "./AwsChanges";
+import {
+  getChangePlace,
+  getChangeWindowStart,
+  keepNewChanges,
+} from "../CloudChangeWindow";
 import {
   AwsInventoryOutcome,
   getAwsAccountAlias,
@@ -131,6 +140,11 @@ const TEST_PROBE_NAMESPACES: Array<string> = [
 const TEST_MAX_REGIONS: number = 3;
 // The most accounts of an organization one connection reads.
 export const AWS_MAX_ORGANIZATION_ACCOUNTS: number = 50;
+// How often AWS Health is asked, and how long after a refusal it is not.
+const HEALTH_INTERVAL_MS: number = 15 * 60 * 1000;
+const HEALTH_PAUSE_MS: number = DAY_MS;
+// CloudTrail Regions read at once for one account.
+const CHANGE_REGION_CONCURRENCY: number = 4;
 
 interface AwsSeries {
   metric: AwsListedMetric;
@@ -1466,6 +1480,305 @@ export default class AwsCloudConnector implements CloudConnector {
     }
 
     result.warnings = result.warnings.slice(0, 50);
+
+    return result;
+  }
+
+  /*
+   * The accounts a read of changes covers, each with the settings it is
+   * signed in with and the Regions its activity is read in: the ones the
+   * connection names, or the ones its metrics were found in - and
+   * us-east-1 always, where IAM, CloudFront and Route 53 record theirs.
+   */
+  private getChangeAccounts(
+    settings: CloudConnectionSettings,
+    state: CloudConnectionPullState,
+  ): Array<{
+    accountId: string;
+    name: string;
+    settings: CloudConnectionSettings;
+    regions: Array<string>;
+  }> {
+    const configured: Array<string> = this.getConfiguredRegions(settings);
+    const regionsOf: (
+      accountState: CloudConnectionPullState,
+    ) => Array<string> = (
+      accountState: CloudConnectionPullState,
+    ): Array<string> => {
+      const active: Array<string> =
+        configured.length > 0
+          ? configured
+          : (accountState.activePairs || [])
+              .map((key: string): string => {
+                return readPair(key)?.region || "";
+              })
+              .filter((region: string): boolean => {
+                return Boolean(region);
+              });
+
+      return Array.from(new Set([...active, "us-east-1"]));
+    };
+
+    if (!this.isOrganization(settings)) {
+      return [
+        {
+          accountId: state.accounts?.[0] || "",
+          name: "",
+          settings,
+          regions: regionsOf(state),
+        },
+      ];
+    }
+
+    return (state.organizationAccounts || []).map(
+      (account: { id: string; name: string }) => {
+        return {
+          accountId: account.id,
+          name: account.name,
+          settings: this.settingsForAccount(settings, account.id),
+          regions: regionsOf(state.accountStates?.[account.id] || {}),
+        };
+      },
+    );
+  }
+
+  /*
+   * What changed in each account (CloudTrail, every Region it is read in)
+   * since the last read, and - every 15 minutes - AWS Health's events about
+   * it. A look back for an investigation reads only the accounts and
+   * Regions it names, from its own start, and moves no cursor.
+   */
+  public async readChanges(
+    settings: CloudConnectionSettings,
+    options: CloudChangesOptions,
+  ): Promise<CloudChangesResult> {
+    const now: Date = options.now ? options.now() : new Date();
+    const state: CloudConnectionPullState = options.state;
+    const result: CloudChangesResult = {
+      changes: [],
+      warnings: [],
+      complete: true,
+    };
+    const isLookBack: boolean = Boolean(options.since);
+    const isOrganization: boolean = this.isOrganization(settings);
+    let refusedTrail: boolean = false;
+    const healthDue: boolean =
+      !isLookBack &&
+      isOlderThan(state.healthReadAt, HEALTH_INTERVAL_MS, now) &&
+      !(
+        state.healthPausedUntil &&
+        Date.parse(state.healthPausedUntil) > now.getTime()
+      );
+    let healthRefused: boolean = false;
+
+    for (const account of this.getChangeAccounts(settings, state)) {
+      const only:
+        | { accountId: string; regions?: Array<string> | undefined }
+        | undefined = options.only?.find(
+        (entry: { accountId: string }): boolean => {
+          return entry.accountId === account.accountId;
+        },
+      );
+
+      if (options.only && !only) {
+        continue;
+      }
+
+      if (options.budget.isSpent()) {
+        result.complete = false;
+        break;
+      }
+
+      let credentials: AwsCredentials;
+      let accountId: string = account.accountId;
+
+      try {
+        credentials = await this.getCredentials(account.settings, {
+          ...options,
+          connectionId: options.connectionId,
+          budget: options.budget,
+        });
+
+        if (!accountId) {
+          accountId = (
+            await getCallerIdentity({
+              transport: options.transport,
+              credentials,
+              region: this.getStsRegion(settings),
+              now: options.now,
+              timeoutInMs: options.requestTimeoutInMs,
+              budget: options.budget,
+            })
+          ).account;
+        }
+      } catch (error) {
+        if (error instanceof CloudReadBudgetSpent) {
+          result.complete = false;
+          break;
+        }
+
+        // An organization's member without its role: the others are read.
+        if (isOrganization && error instanceof LlmProviderError) {
+          continue;
+        }
+
+        throw error;
+      }
+
+      const regions: Array<string> =
+        only?.regions && only.regions.length > 0
+          ? Array.from(new Set([...only.regions, "us-east-1"]))
+          : account.regions;
+
+      const outcomes: Array<
+        Settled<{ changes: Array<CloudChange>; complete: boolean }>
+      > = await mapWithConcurrency(
+        regions,
+        CHANGE_REGION_CONCURRENCY,
+        async (
+          region: string,
+        ): Promise<{ changes: Array<CloudChange>; complete: boolean }> => {
+          return await lookupAwsChanges({
+            credentials,
+            accountId,
+            region,
+            start: getChangeWindowStart({
+              state,
+              place: getChangePlace(accountId, region),
+              now,
+              since: options.since,
+            }),
+            end: now,
+            options,
+            budget: options.budget,
+          });
+        },
+      );
+
+      for (let index: number = 0; index < outcomes.length; index++) {
+        const outcome: Settled<{
+          changes: Array<CloudChange>;
+          complete: boolean;
+        }> = outcomes[index]!;
+        const region: string = regions[index]!;
+
+        if (outcome.ok) {
+          result.changes.push(
+            ...keepNewChanges({
+              state,
+              place: getChangePlace(accountId, region),
+              changes: outcome.value.changes,
+              now,
+              complete: outcome.value.complete,
+              isLookBack,
+            }),
+          );
+          result.complete = result.complete && outcome.value.complete;
+          continue;
+        }
+
+        result.complete = false;
+
+        if (outcome.error instanceof CloudReadBudgetSpent) {
+          continue;
+        }
+
+        if (
+          outcome.error instanceof LlmProviderError &&
+          outcome.error.kind === CloudConnectionFailureKind.Authentication
+        ) {
+          /*
+           * us-east-1 is open to every account: a credential refused there
+           * is refused. Anywhere else it is a Region the account has not
+           * opted in to, which has nothing to read.
+           */
+          if (region === "us-east-1" && !isOrganization) {
+            throw outcome.error;
+          }
+
+          continue;
+        }
+
+        if (
+          outcome.error instanceof LlmProviderError &&
+          outcome.error.kind === CloudConnectionFailureKind.Permission
+        ) {
+          refusedTrail = true;
+          continue;
+        }
+
+        result.warnings.push(
+          `Could not read what changed in ${account.name || accountId}, ${region}: ${
+            outcome.error instanceof Error
+              ? outcome.error.message
+              : String(outcome.error)
+          }`,
+        );
+      }
+
+      if (healthDue && !healthRefused && !options.budget.isSpent()) {
+        try {
+          const health: Array<CloudChange> | null = await readAwsHealthEvents({
+            credentials,
+            accountId,
+            start: new Date(
+              Math.max(
+                Date.parse(state.healthReadAt || "") || 0,
+                now.getTime() - DAY_MS,
+              ),
+            ),
+            options,
+            budget: options.budget,
+          });
+
+          if (health === null) {
+            healthRefused = true;
+          } else {
+            result.changes.push(
+              ...keepNewChanges({
+                state,
+                place: getChangePlace(accountId, "health"),
+                changes: health,
+                now,
+                complete: true,
+                isLookBack,
+              }),
+            );
+          }
+        } catch (error) {
+          if (
+            error instanceof LlmProviderError &&
+            error.kind === CloudConnectionFailureKind.Authentication &&
+            !isOrganization
+          ) {
+            throw error;
+          }
+
+          // Health is a bonus: a refusal or a failure is not the read's.
+          if (!(error instanceof CloudReadBudgetSpent)) {
+            healthRefused =
+              error instanceof LlmProviderError &&
+              error.kind === CloudConnectionFailureKind.Permission;
+          }
+        }
+      }
+    }
+
+    if (healthDue) {
+      state.healthReadAt = now.toISOString();
+
+      if (healthRefused) {
+        state.healthPausedUntil = new Date(
+          now.getTime() + HEALTH_PAUSE_MS,
+        ).toISOString();
+      }
+    }
+
+    if (refusedTrail) {
+      result.warnings.push(
+        "The role may not read CloudTrail (cloudtrail:LookupEvents). Run the setup command again to allow it.",
+      );
+    }
 
     return result;
   }

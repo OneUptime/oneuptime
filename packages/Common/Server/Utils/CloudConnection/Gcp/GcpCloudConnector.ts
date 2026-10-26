@@ -39,6 +39,9 @@ import {
   CloudConnectionSettings,
   CloudConnector,
   CloudConnectorCallOptions,
+  CloudChange,
+  CloudChangesOptions,
+  CloudChangesResult,
   CloudDiscoveredResource,
   CloudInventoryItem,
   CloudInventoryOptions,
@@ -59,6 +62,13 @@ import GcpInventoryClient, {
   buildGcpInventoryItem,
 } from "./GcpInventory";
 import GcpMonitoring, { GcpTimeSeries } from "./GcpMonitoring";
+import { readGcpAuditEntry, readGcpHealthEvent } from "./GcpChanges";
+import {
+  getChangePlace,
+  getChangeWindowStart,
+  keepNewChanges,
+} from "../CloudChangeWindow";
+import { JSONObject } from "../../../../Types/JSON";
 
 /*
  * GOOGLE CLOUD: the projects a service account may read, from Cloud
@@ -79,6 +89,8 @@ export const GCP_MAX_PROJECTS: number = 20;
 // The most projects of an organization one connection reads.
 export const GCP_MAX_ORGANIZATION_PROJECTS: number = 50;
 const DAY_MS: number = 24 * 60 * 60 * 1000;
+// How often Service Health is asked, and how long after a refusal it is not.
+const HEALTH_INTERVAL_MS: number = 15 * 60 * 1000;
 
 function isOlderThan(
   iso: string | undefined,
@@ -243,6 +255,215 @@ export default class GcpCloudConnector implements CloudConnector {
       requestTimeoutInMs: options.requestTimeoutInMs,
       budget,
     });
+  }
+
+  /*
+   * What changed in each project since the last read (its Admin Activity
+   * audit log) and - every 15 minutes - Google Cloud's Service Health
+   * events about it. A look back for an investigation reads only the
+   * projects it names and moves no cursor.
+   */
+  public async readChanges(
+    settings: CloudConnectionSettings,
+    options: CloudChangesOptions,
+  ): Promise<CloudChangesResult> {
+    const now: Date = options.now ? options.now() : new Date();
+    const state: CloudConnectionPullState = options.state;
+    const client: GcpInventoryClient = new GcpInventoryClient({
+      serviceAccountJson: readCloudSetting(
+        settings.secrets,
+        "serviceAccountJson",
+      ),
+      transport: options.transport,
+      requestTimeoutInMs: options.requestTimeoutInMs,
+      budget: options.budget,
+    });
+    const isLookBack: boolean = Boolean(options.since);
+    const result: CloudChangesResult = {
+      changes: [],
+      warnings: [],
+      complete: true,
+    };
+    let projects: Array<string> = this.isOrganization(settings)
+      ? (state.organizationAccounts || []).map(
+          (project: { id: string }): string => {
+            return project.id;
+          },
+        )
+      : this.getProjects(settings);
+
+    if (options.only) {
+      const wanted: Set<string> = new Set(
+        options.only.map((entry: { accountId: string }): string => {
+          return entry.accountId;
+        }),
+      );
+      projects = projects.filter((projectId: string): boolean => {
+        return wanted.has(projectId);
+      });
+    }
+
+    let refused: boolean = false;
+
+    const outcomes: Array<
+      Settled<{ changes: Array<CloudChange>; complete: boolean }>
+    > = await mapWithConcurrency(
+      projects,
+      3,
+      async (
+        projectId: string,
+      ): Promise<{ changes: Array<CloudChange>; complete: boolean }> => {
+        const listing: { entries: Array<JSONObject>; complete: boolean } =
+          await client.listAuditEntries({
+            projectId,
+            start: getChangeWindowStart({
+              state,
+              place: getChangePlace(projectId, ""),
+              now,
+              since: options.since,
+            }),
+            end: now,
+          });
+
+        return {
+          changes: listing.entries
+            .map((entry: JSONObject): CloudChange | null => {
+              return readGcpAuditEntry({ entry, projectId });
+            })
+            .filter((change: CloudChange | null): boolean => {
+              return change !== null;
+            }) as Array<CloudChange>,
+          complete: listing.complete,
+        };
+      },
+    );
+
+    outcomes.forEach(
+      (
+        outcome: Settled<{ changes: Array<CloudChange>; complete: boolean }>,
+        index: number,
+      ) => {
+        const projectId: string = projects[index]!;
+
+        if (outcome.ok) {
+          result.changes.push(
+            ...keepNewChanges({
+              state,
+              place: getChangePlace(projectId, ""),
+              changes: outcome.value.changes,
+              now,
+              complete: outcome.value.complete,
+              isLookBack,
+            }),
+          );
+          result.complete = result.complete && outcome.value.complete;
+          return;
+        }
+
+        result.complete = false;
+
+        if (outcome.error instanceof CloudReadBudgetSpent) {
+          return;
+        }
+
+        if (
+          outcome.error instanceof LlmProviderError &&
+          outcome.error.kind === CloudConnectionFailureKind.Authentication
+        ) {
+          throw outcome.error;
+        }
+
+        if (
+          outcome.error instanceof LlmProviderError &&
+          outcome.error.kind === CloudConnectionFailureKind.Permission
+        ) {
+          refused = true;
+          return;
+        }
+
+        // A project whose Logging API is off: its message says how to turn it on.
+        result.warnings.push(
+          `Could not read what changed in ${projectId}: ${
+            outcome.error instanceof Error
+              ? outcome.error.message
+              : String(outcome.error)
+          }`,
+        );
+      },
+    );
+
+    if (refused) {
+      result.warnings.push(
+        "The service account may not read a project's audit log. Run the setup command again: it gives it the Logs Viewer role.",
+      );
+    }
+
+    // Service Health: a bonus, paused for a day when it is not allowed.
+    const healthDue: boolean =
+      !isLookBack &&
+      isOlderThan(state.healthReadAt, HEALTH_INTERVAL_MS, now) &&
+      !(
+        state.healthPausedUntil &&
+        Date.parse(state.healthPausedUntil) > now.getTime()
+      );
+
+    if (healthDue) {
+      let paused: boolean = false;
+
+      for (const projectId of projects) {
+        if (options.budget.isSpent() || paused) {
+          break;
+        }
+
+        try {
+          const events: Array<JSONObject> =
+            await client.listServiceHealthEvents({
+              projectId,
+              start: new Date(
+                Math.max(
+                  Date.parse(state.healthReadAt || "") || 0,
+                  now.getTime() - DAY_MS,
+                ),
+              ),
+            });
+
+          result.changes.push(
+            ...keepNewChanges({
+              state,
+              place: getChangePlace(projectId, "health"),
+              changes: events
+                .map((event: JSONObject): CloudChange | null => {
+                  return readGcpHealthEvent({ event, projectId });
+                })
+                .filter((change: CloudChange | null): boolean => {
+                  return change !== null;
+                }) as Array<CloudChange>,
+              now,
+              complete: true,
+              isLookBack,
+            }),
+          );
+        } catch (error) {
+          if (
+            error instanceof LlmProviderError &&
+            (error.kind === CloudConnectionFailureKind.Permission ||
+              error.kind === CloudConnectionFailureKind.Settings)
+          ) {
+            paused = true;
+          }
+        }
+      }
+
+      state.healthReadAt = now.toISOString();
+
+      if (paused) {
+        state.healthPausedUntil = new Date(
+          now.getTime() + DAY_MS,
+        ).toISOString();
+      }
+    }
+
+    return result;
   }
 
   /*

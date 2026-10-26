@@ -96,6 +96,15 @@ export interface CloudConnectionPullState {
   organizationAccounts?: Array<{ id: string; name: string }> | undefined;
   organizationListedAt?: string | undefined;
   accountStates?: Record<string, CloudConnectionPullState> | undefined;
+  /*
+   * Per place, the changes the next read may bring in again, each id with
+   * its time (epoch ms): the activity logs deliver late, so each read looks
+   * back over what the last one saw, and these keep a change from being
+   * written twice.
+   */
+  recentChanges?: Record<string, Record<string, number>> | undefined;
+  // Until when the provider's health events are not read again (no access).
+  healthPausedUntil?: string | undefined;
 }
 
 /*
@@ -203,8 +212,77 @@ export interface CloudInventoryResult {
   complete: boolean;
 }
 
+/*
+ * One change a cloud account's activity log recorded - AWS CloudTrail, the
+ * Azure Activity Log, Google Cloud's Admin Activity audit log - or one
+ * health event its provider published (CloudChangeRecorder).
+ */
+export interface CloudChange {
+  kind: "change" | "health";
+  provider: CloudProvider;
+  accountId: string;
+  // The Region it happened in; "" for a global service.
+  region: string;
+  time: Date;
+  /*
+   * The provider's id for the event: CloudTrail's EventId, Azure's
+   * eventDataId, Google Cloud's insertId, a health event's id with its
+   * status. A change event is written once per id.
+   */
+  eventId: string;
+  /*
+   * What was done, as the cloud names it: "ec2:AuthorizeSecurityGroupIngress",
+   * "Microsoft.Network/networkSecurityGroups/write",
+   * "v1.compute.instances.stop" - or a health event's type.
+   */
+  operation: string;
+  // Who did it: an IAM user or role, an Azure caller, a Google principal.
+  actor: string;
+  /*
+   * What it changed, as the cloud names it: an ARN, an ARM id, a full
+   * resource name, or a plain id with its type ("sg-0abc", AWS::EC2::SecurityGroup).
+   */
+  resources: Array<{ id: string; type?: string | undefined }>;
+  failed: boolean;
+  // A health event's own title and description, as the provider wrote them.
+  title?: string | undefined;
+  description?: string | undefined;
+}
+
+export interface CloudChangesOptions extends CloudConnectorCallOptions {
+  /*
+   * Moved on as the connector reads: changeCursors, recentChanges and
+   * healthReadAt.
+   */
+  state: CloudConnectionPullState;
+  connectionId: string;
+  budget: CloudReadBudget;
+  /*
+   * Read from this time, not from the cursors, and move no cursor: an
+   * investigation's look back over the accounts it names in `only`.
+   */
+  since?: Date | undefined;
+  only?:
+    | Array<{ accountId: string; regions?: Array<string> | undefined }>
+    | undefined;
+}
+
+export interface CloudChangesResult {
+  changes: Array<CloudChange>;
+  warnings: Array<string>;
+  complete: boolean;
+}
+
 export interface CloudConnector {
   provider: CloudProvider;
+  /*
+   * What changed in the connection's accounts since the last read, and the
+   * provider's health events about them. Optional, like the inventory.
+   */
+  readChanges?(
+    settings: CloudConnectionSettings,
+    options: CloudChangesOptions,
+  ): Promise<CloudChangesResult>;
   /*
    * Lists every resource of the connection's accounts from the cloud's own
    * index, with tags, properties, relationships and endpoints. Optional: a

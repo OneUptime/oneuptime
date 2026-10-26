@@ -139,8 +139,9 @@ describe("AWS", () => {
   });
 
   test("the policy allows the read actions on everything, but API Gateway's only on API definitions - never on its keys", () => {
-    const policy: ReturnType<typeof getAwsReadOnlyPolicy> =
-      JSON.parse(getAwsReadOnlyPolicyDocument());
+    const policy: ReturnType<typeof getAwsReadOnlyPolicy> = JSON.parse(
+      getAwsReadOnlyPolicyDocument(),
+    );
 
     expect(policy).toEqual(getAwsReadOnlyPolicy());
     expect(policy.Statement).toHaveLength(2);
@@ -405,6 +406,7 @@ describe("Google Cloud", () => {
       "roles/monitoring.viewer",
       GCP_INVENTORY_ROLE,
       GCP_AUDIT_LOG_ROLE,
+      "roles/servicehealth.viewer",
     ]);
     expect(GCP_SERVICES).toContain("cloudasset.googleapis.com");
   });
@@ -424,7 +426,9 @@ describe("Google Cloud", () => {
       );
     }
 
-    expect(lines.join("\n")).not.toContain("gcloud projects add-iam-policy-binding");
+    expect(lines.join("\n")).not.toContain(
+      "gcloud projects add-iam-policy-binding",
+    );
   });
 });
 
@@ -470,7 +474,10 @@ describe("getCloudConnectionSetupCommand", () => {
         },
       ),
     ).toBe(
-      getAwsOrganizationSetupCommand({ trustedPrincipalArn: TRUSTED, externalId }),
+      getAwsOrganizationSetupCommand({
+        trustedPrincipalArn: TRUSTED,
+        externalId,
+      }),
     );
     expect(
       getCloudConnectionSetupCommand(

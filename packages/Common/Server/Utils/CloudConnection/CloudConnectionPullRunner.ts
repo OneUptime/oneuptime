@@ -19,6 +19,7 @@ import CloudConnectionResourceSync, {
   CloudConnectionSyncResult,
 } from "./CloudConnectionResourceSync";
 import CloudConnectionLanes, {
+  CloudChangesLaneOutcome,
   CloudInventoryLaneOutcome,
 } from "./CloudConnectionLanes";
 import CloudConnectionScheduler from "./CloudConnectionScheduler";
@@ -260,6 +261,23 @@ export default class CloudConnectionPullRunner {
 
       warnings.push(...inventory.warnings);
 
+      // What changed, after the inventory: a just-listed resource is matched.
+      const changes: CloudChangesLaneOutcome =
+        await CloudConnectionLanes.runChanges({
+          projectId: connection.projectId,
+          provider: definition.provider,
+          connectionId: connection.id!,
+          connector,
+          settings,
+          state,
+          transport,
+          now,
+          deadlineMs: startedAt + CLOUD_READ_DEADLINE_MS,
+          sleep: dependencies.sleep,
+        });
+
+      warnings.push(...changes.warnings);
+
       await CloudConnectionLanes.keepAccounts({
         projectId: connection.projectId,
         connectionId: connection.id!,
@@ -288,9 +306,9 @@ export default class CloudConnectionPullRunner {
         newResources:
           synced.newResources + (inventory.synced?.newResources || 0),
         archivedResources:
-          synced.archivedResources +
-          (inventory.synced?.archivedResources || 0),
+          synced.archivedResources + (inventory.synced?.archivedResources || 0),
         pointsWritten: read.pointsWritten,
+        changesRecorded: changes.recorded,
         requestCount: read.requestCount,
         warnings: warnings.slice(0, 10),
         durationMs: Date.now() - startedAt,
@@ -329,6 +347,7 @@ export default class CloudConnectionPullRunner {
         newResources: 0,
         archivedResources: 0,
         pointsWritten: 0,
+        changesRecorded: 0,
         requestCount: 0,
         warnings: [],
         failureKind: failure.kind,

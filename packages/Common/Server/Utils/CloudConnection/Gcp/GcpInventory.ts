@@ -59,6 +59,11 @@ export const GCP_CLOUD_PLATFORM_READ_SCOPE: string =
 const ASSET_BASE_URL: string = "https://cloudasset.googleapis.com/v1";
 const RESOURCE_MANAGER_BASE_URL: string =
   "https://cloudresourcemanager.googleapis.com/v3";
+const LOGGING_BASE_URL: string = "https://logging.googleapis.com/v2";
+const SERVICE_HEALTH_BASE_URL: string =
+  "https://servicehealth.googleapis.com/v1";
+// Pages of one project's audit log per read at most: 2,500 changes.
+export const GCP_CHANGE_MAX_PAGES: number = 5;
 const PAGE_SIZE: number = 1000;
 const MAX_PAGES: number = 20;
 
@@ -83,7 +88,10 @@ export interface GcpInventoryType {
   monitoredType?: string | undefined;
   // Its identity labels, and the rest the resolver reads (a VM's name).
   labels?:
-    | ((asset: GcpAsset, context: GcpInventoryContext) => Record<string, string> | null)
+    | ((
+        asset: GcpAsset,
+        context: GcpInventoryContext,
+      ) => Record<string, string> | null)
     | undefined;
   properties: ReadonlyArray<string>;
   relationships?:
@@ -94,7 +102,9 @@ export interface GcpInventoryType {
 
 function tail(value: string): string {
   const slash: number = value.lastIndexOf("/");
-  return slash >= 0 && slash < value.length - 1 ? value.slice(slash + 1) : value;
+  return slash >= 0 && slash < value.length - 1
+    ? value.slice(slash + 1)
+    : value;
 }
 
 function textAt(data: JSONObject, path: string): string {
@@ -127,7 +137,9 @@ export function computeUrlToFullName(url: string): string {
   return `//compute.googleapis.com/${url.slice(index + marker.length)}`;
 }
 
-function networkRelationships(asset: GcpAsset): Array<CloudResourceRelationship> {
+function networkRelationships(
+  asset: GcpAsset,
+): Array<CloudResourceRelationship> {
   const relationships: Array<CloudResourceRelationship> = [];
 
   for (const raw of readArray(asset.data["networkInterfaces"])) {
@@ -205,7 +217,12 @@ export const GCP_INVENTORY_TYPES: ReadonlyArray<GcpInventoryType> = [
           }
         : null;
     },
-    properties: ["status", "cpuPlatform", "scheduling.preemptible", "deletionProtection"],
+    properties: [
+      "status",
+      "cpuPlatform",
+      "scheduling.preemptible",
+      "deletionProtection",
+    ],
     relationships: networkRelationships,
     endpoints: instanceAddresses,
   },
@@ -248,7 +265,9 @@ export const GCP_INVENTORY_TYPES: ReadonlyArray<GcpInventoryType> = [
         ? {
             project_id: context.projectId,
             bucket_name: name,
-            location: (textAt(asset.data, "location") || asset.location).toLowerCase(),
+            location: (
+              textAt(asset.data, "location") || asset.location
+            ).toLowerCase(),
           }
         : null;
     },
@@ -307,7 +326,10 @@ export const GCP_INVENTORY_TYPES: ReadonlyArray<GcpInventoryType> = [
       "serviceConfig.timeoutSeconds",
     ],
     endpoints: (asset: GcpAsset) => {
-      return [readCloudPath(asset.data, "serviceConfig.uri"), asset.data["url"]];
+      return [
+        readCloudPath(asset.data, "serviceConfig.uri"),
+        asset.data["url"],
+      ];
     },
   },
   {
@@ -380,7 +402,9 @@ export const GCP_INVENTORY_TYPES: ReadonlyArray<GcpInventoryType> = [
   },
 ];
 
-export function getGcpInventoryType(assetType: string): GcpInventoryType | null {
+export function getGcpInventoryType(
+  assetType: string,
+): GcpInventoryType | null {
   return (
     GCP_INVENTORY_TYPES.find((type: GcpInventoryType): boolean => {
       return type.assetType === assetType;
@@ -551,7 +575,11 @@ export default class GcpInventoryClient {
     });
   }
 
-  private async get(url: string, step: string): Promise<JSONObject> {
+  private async get(
+    url: string,
+    step: string,
+    api: string,
+  ): Promise<JSONObject> {
     if (this.budget && !this.budget.take()) {
       throw new CloudReadBudgetSpent();
     }
@@ -573,11 +601,15 @@ export default class GcpInventoryClient {
         secretValues: [accessToken],
       });
     } catch (error) {
-      throw GcpInventoryClient.classify(error);
+      throw GcpInventoryClient.classify(error, api);
     }
   }
 
-  public static classify(error: unknown): LlmProviderError {
+  /*
+   * A 403 that says the API is off is a setting to turn on, said with the
+   * command that turns that API on; any other 403 is a missing role.
+   */
+  public static classify(error: unknown, api: string): LlmProviderError {
     const failure: LlmProviderError =
       error instanceof LlmProviderError
         ? error
@@ -593,7 +625,7 @@ export default class GcpInventoryClient {
       (body.includes("has not been used") || body.includes("is disabled"))
     ) {
       return new LlmProviderError({
-        message: `${failure.message} Turn on the Cloud Asset API for the project: gcloud services enable cloudasset.googleapis.com`,
+        message: `${failure.message} Turn it on for the project: gcloud services enable ${api}`,
         kind: CloudConnectionFailureKind.Settings,
         statusCode: failure.statusCode,
         responseBody: failure.responseBody,
@@ -610,6 +642,109 @@ export default class GcpInventoryClient {
     }
 
     return failure;
+  }
+
+  private async post(
+    url: string,
+    body: JSONObject,
+    step: string,
+    api: string,
+  ): Promise<JSONObject> {
+    if (this.budget && !this.budget.take()) {
+      throw new CloudReadBudgetSpent();
+    }
+
+    const accessToken: string = await this.token.getAccessToken();
+
+    try {
+      return await LlmProviderHttp.requestJson({
+        transport: this.transport,
+        method: "POST",
+        url,
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+        timeoutInMs: this.requestTimeoutInMs,
+        step,
+        providerTitle: PROVIDER_TITLE,
+        secretValues: [accessToken],
+      });
+    } catch (error) {
+      throw GcpInventoryClient.classify(error, api);
+    }
+  }
+
+  /*
+   * A project's Admin Activity audit log entries in [start, end), oldest
+   * first: every change to the project's resources and their access.
+   * `complete` is false when it stopped at GCP_CHANGE_MAX_PAGES.
+   */
+  public async listAuditEntries(data: {
+    projectId: string;
+    start: Date;
+    end: Date;
+  }): Promise<{ entries: Array<JSONObject>; complete: boolean }> {
+    const entries: Array<JSONObject> = [];
+    let pageToken: string = "";
+    const logName: string = `projects/${data.projectId}/logs/cloudaudit.googleapis.com%2Factivity`;
+
+    for (let page: number = 0; page < GCP_CHANGE_MAX_PAGES; page++) {
+      const body: JSONObject = {
+        resourceNames: [`projects/${data.projectId}`],
+        filter: `logName="${logName}" AND timestamp>="${data.start.toISOString()}" AND timestamp<"${data.end.toISOString()}"`,
+        orderBy: "timestamp asc",
+        pageSize: 500,
+      };
+
+      if (pageToken) {
+        body["pageToken"] = pageToken;
+      }
+
+      const response: JSONObject = await this.post(
+        `${LOGGING_BASE_URL}/entries:list`,
+        body,
+        "audit log request",
+        "logging.googleapis.com",
+      );
+
+      for (const raw of readArray(response["entries"])) {
+        entries.push(readObject(raw));
+      }
+
+      const next: string = readText(response["nextPageToken"]);
+
+      if (!next || next === pageToken) {
+        return { entries, complete: true };
+      }
+
+      pageToken = next;
+    }
+
+    return { entries, complete: false };
+  }
+
+  // A project's Service Health events updated since `start`.
+  public async listServiceHealthEvents(data: {
+    projectId: string;
+    start: Date;
+  }): Promise<Array<JSONObject>> {
+    const response: JSONObject = await this.get(
+      `${SERVICE_HEALTH_BASE_URL}/projects/${encodeURIComponent(
+        data.projectId,
+      )}/locations/global/events?${buildQueryString([
+        ["filter", `update_time>="${data.start.toISOString()}"`],
+        ["pageSize", 100],
+      ])}`,
+      "service health request",
+      "servicehealth.googleapis.com",
+    );
+
+    return readArray(response["events"]).map((raw: unknown): JSONObject => {
+      return readObject(raw);
+    });
   }
 
   // Every asset of the inventory's types in one project, page by page.
@@ -632,6 +767,7 @@ export default class GcpInventoryClient {
       const response: JSONObject = await this.get(
         `${ASSET_BASE_URL}/projects/${encodeURIComponent(projectId)}/assets?${query}`,
         "assets request",
+        "cloudasset.googleapis.com",
       );
 
       for (const raw of readArray(response["assets"])) {
@@ -676,6 +812,7 @@ export default class GcpInventoryClient {
           ["pageToken", pageToken],
         ])}`,
         "projects request",
+        "cloudresourcemanager.googleapis.com",
       );
 
       for (const raw of readArray(response["projects"])) {
@@ -708,6 +845,7 @@ export default class GcpInventoryClient {
       const response: JSONObject = await this.get(
         `${RESOURCE_MANAGER_BASE_URL}/projects/${encodeURIComponent(projectId)}`,
         "project request",
+        "cloudresourcemanager.googleapis.com",
       );
 
       return readText(response["displayName"]);

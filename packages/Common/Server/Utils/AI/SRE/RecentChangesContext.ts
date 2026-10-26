@@ -8,6 +8,8 @@ import {
   RecentChangesActivity,
 } from "../../../../Types/AI/AIChatTypes";
 import InBetween from "../../../../Types/BaseDatabase/InBetween";
+import Includes from "../../../../Types/BaseDatabase/Includes";
+import IncludesNone from "../../../../Types/BaseDatabase/IncludesNone";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "../../../../Types/Database/LimitMax";
 import OneUptimeDate from "../../../../Types/Date";
@@ -15,6 +17,7 @@ import Dictionary from "../../../../Types/Dictionary";
 import ObjectID from "../../../../Types/ObjectID";
 import PositiveNumber from "../../../../Types/PositiveNumber";
 import {
+  ChangeEventAttribute,
   ChangeEventFields,
   describeChangeEventFields,
   readChangeEventFields,
@@ -87,6 +90,13 @@ export const MAX_CHECKED_CHANGES: number = 4;
 
 // The most change events read from the window.
 export const MAX_CHANGES_READ: number = 200;
+
+/*
+ * The most of a cloud account's changes read from the window, read apart
+ * from the others: a busy account records hundreds an hour, and must not
+ * crowd a deploy out of the read.
+ */
+export const MAX_CLOUD_CHANGES_READ: number = 200;
 
 // The window on each side of a change its service's telemetry is read for.
 export const IMPACT_WINDOW_MINUTES: number = 30;
@@ -253,8 +263,9 @@ export function toRecordedChange(row: ChangeEvent): RecordedChange | null {
 }
 
 /*
- * What makes two events the same change: the service they belong to, or
- * the Deployment they rolled out, or nothing (each its own).
+ * What makes two events the same change: the service they belong to, the
+ * Deployment they rolled out, the cloud resource they changed, or nothing
+ * (each its own).
  */
 function changeGroupKey(change: RecordedChange): string {
   if (change.serviceId) {
@@ -263,6 +274,11 @@ function changeGroupKey(change: RecordedChange): string {
 
   if (change.fields.kubernetesDeployment) {
     return `deployment:${change.fields.kubernetesClusterId || change.fields.kubernetesClusterName || ""}:${change.fields.kubernetesNamespace || ""}:${change.fields.kubernetesDeployment}`;
+  }
+
+  // The calls one rollout makes to one cloud resource are one change.
+  if (change.fields.cloudResourceId) {
+    return `cloud:${change.fields.cloudAccountId || ""}:${change.fields.cloudResourceId}`;
   }
 
   return `event:${change.id}`;
@@ -419,24 +435,58 @@ export default class RecentChangesContext {
     const windowEnd: Date =
       lookahead.getTime() < now.getTime() ? lookahead : now;
 
-    const rows: Array<ChangeEvent> = await ChangeEventService.findBy({
-      query: {
-        projectId: data.projectId,
-        time: new InBetween(windowStart, windowEnd),
-      } as never,
-      select: {
-        _id: true,
-        time: true,
-        eventType: true,
-        title: true,
-        primaryEntityId: true,
-        attributes: true,
-      } as never,
-      sort: { time: SortOrder.Descending } as never,
-      limit: MAX_CHANGES_READ,
-      skip: 0,
-      props: { isRoot: true },
-    });
+    // A cloud account's changes are read apart: see MAX_CLOUD_CHANGES_READ.
+    const reads: Array<Array<ChangeEvent>> = await Promise.all(
+      [
+        {
+          attributeKeys: new IncludesNone([ChangeEventAttribute.CloudProvider]),
+          limit: MAX_CHANGES_READ,
+        },
+        {
+          attributeKeys: new Includes([ChangeEventAttribute.CloudProvider]),
+          limit: MAX_CLOUD_CHANGES_READ,
+        },
+      ].map(
+        (scope: {
+          attributeKeys: Includes | IncludesNone;
+          limit: number;
+        }): Promise<Array<ChangeEvent>> => {
+          return ChangeEventService.findBy({
+            query: {
+              projectId: data.projectId,
+              time: new InBetween(windowStart, windowEnd),
+              attributeKeys: scope.attributeKeys,
+            } as never,
+            select: {
+              _id: true,
+              time: true,
+              eventType: true,
+              title: true,
+              primaryEntityId: true,
+              attributes: true,
+            } as never,
+            sort: { time: SortOrder.Descending } as never,
+            limit: scope.limit,
+            skip: 0,
+            props: { isRoot: true },
+          });
+        },
+      ),
+    );
+
+    const seenIds: Set<string> = new Set<string>();
+    const rows: Array<ChangeEvent> = reads
+      .flat()
+      .filter((row: ChangeEvent): boolean => {
+        const id: string = row._id?.toString() || "";
+
+        if (id && seenIds.has(id)) {
+          return false;
+        }
+
+        seenIds.add(id);
+        return true;
+      });
 
     const relevance: ChangeRelevance = buildChangeRelevance({
       resources: data.linked?.resources || [],

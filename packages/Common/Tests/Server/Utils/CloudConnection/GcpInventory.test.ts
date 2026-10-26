@@ -96,9 +96,7 @@ describe("identity", () => {
     });
 
     expect(item!.resource.identityKey).toBe(metric!.identityKey);
-    expect(item!.resource.providerResourceId).toBe(
-      metric!.providerResourceId,
-    );
+    expect(item!.resource.providerResourceId).toBe(metric!.providerResourceId);
     expect(item!.resource.region).toBe("europe-west1");
     expect(item!.displayName).toBe("web-1");
   });
@@ -368,6 +366,7 @@ describe("the client", () => {
         responseBody:
           "Cloud Asset API has not been used in project 123 before or it is disabled.",
       }),
+      "cloudasset.googleapis.com",
     );
 
     expect(failure.kind).toBe(CloudConnectionFailureKind.Settings);
@@ -385,6 +384,7 @@ describe("the client", () => {
           statusCode: 403,
           responseBody: "PERMISSION_DENIED: cloudasset.assets.listResource",
         }),
+        "cloudasset.googleapis.com",
       ).kind,
     ).toBe(CloudConnectionFailureKind.Permission);
   });
@@ -430,19 +430,22 @@ describe("the client", () => {
         };
       }) as never,
     });
-    (client as unknown as { token: { getAccessToken: () => Promise<string> } }).token =
-      {
-        getAccessToken: async () => {
-          return "token";
-        },
-      };
+    (
+      client as unknown as { token: { getAccessToken: () => Promise<string> } }
+    ).token = {
+      getAccessToken: async () => {
+        return "token";
+      },
+    };
 
     const listing: GcpAssetListing = await client.listAssets("p");
 
     expect(listing.complete).toBe(true);
-    expect(listing.assets.map((entry: GcpAsset) => {
-      return [entry.assetType, entry.location];
-    })).toEqual([
+    expect(
+      listing.assets.map((entry: GcpAsset) => {
+        return [entry.assetType, entry.location];
+      }),
+    ).toEqual([
       ["compute.googleapis.com/Instance", "z"],
       ["storage.googleapis.com/Bucket", "EU"],
     ]);

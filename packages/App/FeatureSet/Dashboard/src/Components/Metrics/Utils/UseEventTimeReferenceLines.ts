@@ -83,6 +83,8 @@ const CHANGE_EVENT_TYPE_LABELS: Record<string, string> = {
   // What OneUptime itself changed (OwnChangeRecorder).
   remediation: translationKey("AI fix"),
   runbook: translationKey("Runbook"),
+  // What a cloud provider published about an account's health.
+  "provider-event": translationKey("Cloud health"),
 };
 
 export function getChangeEventMarkerLabel(

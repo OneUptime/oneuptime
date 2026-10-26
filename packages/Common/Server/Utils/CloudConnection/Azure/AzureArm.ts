@@ -51,6 +51,10 @@ export const AZURE_RESOURCES_API_VERSION: string = "2021-04-01";
 export const AZURE_METRIC_DEFINITIONS_API_VERSION: string = "2018-01-01";
 export const AZURE_METRICS_API_VERSION: string = "2023-10-01";
 export const AZURE_RESOURCE_GRAPH_API_VERSION: string = "2022-10-01";
+export const AZURE_ACTIVITY_LOG_API_VERSION: string = "2015-04-01";
+// The fields of an Activity Log event read: never its claims or request.
+const ACTIVITY_LOG_FIELDS: string =
+  "eventDataId,eventTimestamp,operationName,status,caller,resourceId,category,level,properties,resourceType";
 // Rows of a Resource Graph page, and pages of one query at most.
 const RESOURCE_GRAPH_PAGE_SIZE: number = 1000;
 const RESOURCE_GRAPH_MAX_PAGES: number = 20;
@@ -206,6 +210,33 @@ export default class AzureArm {
     }
 
     return { rows, complete: false };
+  }
+
+  /*
+   * A subscription's Activity Log events in [start, end): its
+   * administrative operations and its service and resource health events,
+   * page by page (nextLink). `complete` is false when it stopped at
+   * MAX_LIST_PAGES.
+   */
+  public async listActivityLog(data: {
+    subscriptionId: string;
+    start: Date;
+    end: Date;
+  }): Promise<Array<JSONObject>> {
+    EntraTokenClient.validateGuid(data.subscriptionId, "Subscription ID");
+
+    const filter: string = `eventTimestamp ge '${data.start.toISOString()}' and eventTimestamp le '${data.end.toISOString()}'`;
+    const url: string = `${this.getManagementBaseUrl()}/subscriptions/${encodeURIComponent(
+      data.subscriptionId.trim(),
+    )}/providers/Microsoft.Insights/eventtypes/management/values?${buildQueryString(
+      [
+        ["api-version", AZURE_ACTIVITY_LOG_API_VERSION],
+        ["$filter", filter],
+        ["$select", ACTIVITY_LOG_FIELDS],
+      ],
+    )}`;
+
+    return await this.listPaged(url, "activity log request");
   }
 
   private async get(url: string, step: string): Promise<JSONObject> {
