@@ -14598,7 +14598,6 @@
   "Please upload a CSV file.": "Bitte laden Sie eine CSV-Datei hoch.",
   "Please wait while private users are being added. This may take a moment.": "Bitte warten Sie, während private Benutzer hinzugefügt werden. Dies kann einen Moment dauern.",
   "Please wait while subscribers are being added. This may take a moment.": "Bitte warten Sie, während Abonnenten hinzugefügt werden. Dies kann einen Moment dauern.",
-  "Please wait while the bulk action is being performed. This may take a moment.": "Bitte warten Sie, während die Massenaktion ausgeführt wird. Dies kann einen Moment dauern.",
   "Please wait while your {{itemsName}} are being imported.": "Bitte warten Sie, während Ihre {{itemsName}} importiert werden.",
   "Plot the per-second rate of change instead of the raw value. Recommended for cumulative counters (e.g. system.disk.io).": "Die Änderungsrate pro Sekunde statt des Rohwerts darstellen. Empfohlen für kumulative Zähler (z. B. system.disk.io).",
   "Plot this metric as a per-second rate of change": "Diese Metrik als Änderungsrate pro Sekunde darstellen",
@@ -35695,5 +35694,15 @@
   "Volume Detail": "Volume-Details",
   "Watch Session": "Sitzung ansehen",
   "Workspace Microsoft Teams Connection": "Microsoft-Teams-Verbindung des Arbeitsbereichs",
-  "Workspace Slack Connection": "Slack-Verbindung des Arbeitsbereichs"
+  "Workspace Slack Connection": "Slack-Verbindung des Arbeitsbereichs",
+  "About {{count}} hours left": "Noch etwa {{count}} Stunden",
+  "About {{count}} hours left_one": "Noch etwa {{count}} Stunde",
+  "About {{count}} minutes left": "Noch etwa {{count}} Minuten",
+  "About {{count}} minutes left_one": "Noch etwa {{count}} Minute",
+  "Keep this page open until this finishes.": "Lassen Sie diese Seite geöffnet, bis der Vorgang abgeschlossen ist.",
+  "Keep this page open until this finishes. You can stop at any time: what is already done stays done.": "Lassen Sie diese Seite geöffnet, bis der Vorgang abgeschlossen ist. Sie können jederzeit stoppen: Was bereits erledigt ist, bleibt erledigt.",
+  "Less than a minute left": "Noch weniger als eine Minute",
+  "Stopping. The ones already started are finishing.": "Wird gestoppt. Was bereits begonnen wurde, wird noch abgeschlossen.",
+  "{{count}} {{itemsName}} not started: you stopped the action": "{{count}} {{itemsName}} nicht begonnen: Sie haben die Aktion gestoppt",
+  "{{count}} {{itemsName}} not started: you stopped the action_one": "{{count}} {{itemName}} nicht begonnen: Sie haben die Aktion gestoppt"
 }

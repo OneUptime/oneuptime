@@ -14598,7 +14598,6 @@
   "Please upload a CSV file.": "CSV ファイルをアップロードしてください。",
   "Please wait while private users are being added. This may take a moment.": "プライベートユーザーを追加しています。しばらくお待ちください。",
   "Please wait while subscribers are being added. This may take a moment.": "購読者を追加しています。しばらくお待ちください。",
-  "Please wait while the bulk action is being performed. This may take a moment.": "一括操作を実行しています。しばらくお待ちください。",
   "Please wait while your {{itemsName}} are being imported.": "{{itemsName}}をインポートしています。しばらくお待ちください。",
   "Plot the per-second rate of change instead of the raw value. Recommended for cumulative counters (e.g. system.disk.io).": "生の値ではなく、1 秒あたりの変化率をプロットします。累積カウンター（例: system.disk.io）に推奨されます。",
   "Plot this metric as a per-second rate of change": "このメトリクスを 1 秒あたりの変化率としてプロット",
@@ -35695,5 +35694,15 @@
   "Volume Detail": "ボリュームの詳細",
   "Watch Session": "セッションを視聴",
   "Workspace Microsoft Teams Connection": "ワークスペースの Microsoft Teams 接続",
-  "Workspace Slack Connection": "ワークスペースの Slack 接続"
+  "Workspace Slack Connection": "ワークスペースの Slack 接続",
+  "About {{count}} hours left": "残り約 {{count}} 時間",
+  "About {{count}} hours left_one": "残り約 {{count}} 時間",
+  "About {{count}} minutes left": "残り約 {{count}} 分",
+  "About {{count}} minutes left_one": "残り約 {{count}} 分",
+  "Keep this page open until this finishes.": "完了するまでこのページを開いたままにしてください。",
+  "Keep this page open until this finishes. You can stop at any time: what is already done stays done.": "完了するまでこのページを開いたままにしてください。いつでも停止できます。すでに完了したものはそのまま残ります。",
+  "Less than a minute left": "残り 1 分未満",
+  "Stopping. The ones already started are finishing.": "停止しています。すでに開始したものは最後まで処理されます。",
+  "{{count}} {{itemsName}} not started: you stopped the action": "{{itemsName}}: {{count}} 件未開始（操作を停止しました）",
+  "{{count}} {{itemsName}} not started: you stopped the action_one": "{{itemName}}: {{count}} 件未開始（操作を停止しました）"
 }

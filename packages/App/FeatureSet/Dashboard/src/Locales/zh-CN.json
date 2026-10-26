@@ -14598,7 +14598,6 @@
   "Please upload a CSV file.": "Please upload a CSV file.",
   "Please wait while private users are being added. This may take a moment.": "Please wait while private users are being added. This may take a moment.",
   "Please wait while subscribers are being added. This may take a moment.": "Please wait while subscribers are being added. This may take a moment.",
-  "Please wait while the bulk action is being performed. This may take a moment.": "正在执行批量操作，请稍候。这可能需要一点时间。",
   "Please wait while your {{itemsName}} are being imported.": "正在导入您的{{itemsName}}，请稍候。",
   "Plot the per-second rate of change instead of the raw value. Recommended for cumulative counters (e.g. system.disk.io).": "Plot the per-second rate of change instead of the raw value. Recommended for cumulative counters (e.g. system.disk.io).",
   "Plot this metric as a per-second rate of change": "Plot this metric as a per-second rate of change",
@@ -35695,5 +35694,15 @@
   "Volume Detail": "卷详情",
   "Watch Session": "观看会话",
   "Workspace Microsoft Teams Connection": "工作区的 Microsoft Teams 连接",
-  "Workspace Slack Connection": "工作区的 Slack 连接"
+  "Workspace Slack Connection": "工作区的 Slack 连接",
+  "About {{count}} hours left": "大约还剩 {{count}} 小时",
+  "About {{count}} hours left_one": "大约还剩 {{count}} 小时",
+  "About {{count}} minutes left": "大约还剩 {{count}} 分钟",
+  "About {{count}} minutes left_one": "大约还剩 {{count}} 分钟",
+  "Keep this page open until this finishes.": "请保持此页面打开，直到操作完成。",
+  "Keep this page open until this finishes. You can stop at any time: what is already done stays done.": "请保持此页面打开，直到操作完成。您可以随时停止：已完成的部分会保留。",
+  "Less than a minute left": "剩余不到 1 分钟",
+  "Stopping. The ones already started are finishing.": "正在停止。已开始的项目正在完成。",
+  "{{count}} {{itemsName}} not started: you stopped the action": "{{count}} 个{{itemsName}}未开始：您已停止此操作",
+  "{{count}} {{itemsName}} not started: you stopped the action_one": "{{count}} 个{{itemName}}未开始：您已停止此操作"
 }

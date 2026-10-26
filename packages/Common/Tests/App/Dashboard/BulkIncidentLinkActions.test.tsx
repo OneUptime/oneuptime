@@ -682,7 +682,7 @@ describe("useBulkIncidentLinkActions", () => {
       );
     });
 
-    test("creates one link per alert, reporting progress after each", async () => {
+    test("creates one link per alert, one at a time, reporting progress as it goes", async () => {
       renderHarness();
       const items: Array<Alert> = makeAlerts(3);
 
@@ -699,36 +699,31 @@ describe("useBulkIncidentLinkActions", () => {
         expect(link.projectId?.toString()).toBe(PROJECT_ID);
       });
 
-      expect(callOrder).toEqual([
-        "start",
-        "progress",
-        "progress",
-        "progress",
-        "end",
-      ]);
-      expect(progressSnapshots).toEqual([
-        {
-          inProgress: 2,
-          success: ["Alert 1"],
-          failed: [],
-          failedMessages: [],
-          total: 3,
-        },
-        {
-          inProgress: 1,
-          success: ["Alert 1", "Alert 2"],
-          failed: [],
-          failedMessages: [],
-          total: 3,
-        },
-        {
-          inProgress: 0,
-          success: ["Alert 1", "Alert 2", "Alert 3"],
-          failed: [],
-          failedMessages: [],
-          total: 3,
-        },
-      ]);
+      /*
+       * Through the shared runner: the first alert done is reported at once,
+       * the rest at most ten times a second, and the end always.
+       */
+      expect(callOrder[0]).toBe("start");
+      expect(callOrder[callOrder.length - 1]).toBe("end");
+      expect(
+        callOrder.filter((call: string) => {
+          return call === "progress";
+        }).length,
+      ).toBeGreaterThanOrEqual(2);
+      expect(progressSnapshots[0]).toEqual({
+        inProgress: 2,
+        success: ["Alert 1"],
+        failed: [],
+        failedMessages: [],
+        total: 3,
+      });
+      expect(progressSnapshots[progressSnapshots.length - 1]).toEqual({
+        inProgress: 0,
+        success: ["Alert 1", "Alert 2", "Alert 3"],
+        failed: [],
+        failedMessages: [],
+        total: 3,
+      });
 
       // The dialog closes so the progress modal is visible.
       expect(

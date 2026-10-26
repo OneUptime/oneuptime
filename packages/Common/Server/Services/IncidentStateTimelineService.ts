@@ -450,7 +450,17 @@ export class Service extends ProjectReferencesService<IncidentStateTimeline> {
     /*
      * now there are three cases.
      * 1. This is the first status OR there's no status after this.
+     *
+     * Moving a neighbour is an update of this table, and that update's own
+     * hook (onUpdateSuccess) refreshes the incident's metrics and
+     * measurements - once the new row and the neighbour are both saved,
+     * which is all they read of the change. A change that moved one does not
+     * refresh them a second time below.
      */
+    const movedANeighbour: boolean = Boolean(
+      onCreate.carryForward.statusTimelineBeforeThisStatus,
+    );
+
     if (!onCreate.carryForward.statusTimelineBeforeThisStatus) {
       // This is the first status, no need to update previous status.
       logger.debug("This is the first status.", {
@@ -799,33 +809,37 @@ ${FeedMarkdown.asMarkdown(createdItem.rootCause)}`.toString()
       props: onCreate.createBy.props,
     });
 
-    IncidentService.refreshIncidentMetrics({
-      incidentId: createdItem.incidentId,
-    }).catch((error: Error) => {
-      logger.error(`Error while refreshing incident metrics:`, {
-        projectId: createdItem.projectId?.toString(),
-        incidentId: createdItem.incidentId?.toString(),
-      } as LogAttributes);
-      logger.error(error, {
-        projectId: createdItem.projectId?.toString(),
-        incidentId: createdItem.incidentId?.toString(),
-      } as LogAttributes);
-    });
-
     /*
      * A new timeline row moves every anchor that resolves against it, so the
-     * derived measurements have to be recomputed. Fire-and-forget: the state
-     * change itself is the user-visible write and must not fail because a
-     * derived number could not be recalculated.
+     * metrics and the derived measurements have to be worked out again -
+     * here for an incident's first row, and by the neighbour's update above
+     * for every other (movedANeighbour). Fire-and-forget: the state change
+     * itself is the user-visible write and must not fail because a derived
+     * number could not be recalculated.
      */
-    IncidentMeasurementValueService.recomputeForIncident({
-      incidentId: createdItem.incidentId!,
-    }).catch((error: Error) => {
-      logger.error(`Error while recomputing incident measurements:`, {
-        incidentId: createdItem.incidentId?.toString(),
-      } as LogAttributes);
-      logger.error(error);
-    });
+    if (!movedANeighbour) {
+      IncidentService.refreshIncidentMetrics({
+        incidentId: createdItem.incidentId,
+      }).catch((error: Error) => {
+        logger.error(`Error while refreshing incident metrics:`, {
+          projectId: createdItem.projectId?.toString(),
+          incidentId: createdItem.incidentId?.toString(),
+        } as LogAttributes);
+        logger.error(error, {
+          projectId: createdItem.projectId?.toString(),
+          incidentId: createdItem.incidentId?.toString(),
+        } as LogAttributes);
+      });
+
+      IncidentMeasurementValueService.recomputeForIncident({
+        incidentId: createdItem.incidentId!,
+      }).catch((error: Error) => {
+        logger.error(`Error while recomputing incident measurements:`, {
+          incidentId: createdItem.incidentId?.toString(),
+        } as LogAttributes);
+        logger.error(error);
+      });
+    }
 
     /*
      * An on-call policy that pages again when an acknowledged incident is
@@ -1030,6 +1044,11 @@ ${FeedMarkdown.asMarkdown(createdItem.rootCause)}`.toString()
     }
   }
 
+  /*
+   * Refreshes the metrics of each affected incident once. Its measurements
+   * are recomputed beside it, by recomputeMeasurementsForIncidentIds - this
+   * used to recompute them as well, so every update recomputed them twice.
+   */
   private refreshIncidentMetricsForIncidentIds(
     incidentIds: Array<ObjectID>,
   ): void {
@@ -1052,19 +1071,6 @@ ${FeedMarkdown.asMarkdown(createdItem.rootCause)}`.toString()
         logger.error(error, {
           incidentId: incidentId.toString(),
         } as LogAttributes);
-      });
-
-      /*
-       * Deleting a timeline row can move an anchor or remove it entirely, so
-       * the derived measurements must be recomputed from what is left.
-       */
-      IncidentMeasurementValueService.recomputeForIncident({
-        incidentId: incidentId,
-      }).catch((error: Error) => {
-        logger.error(`Error while recomputing incident measurements:`, {
-          incidentId: incidentId?.toString(),
-        } as LogAttributes);
-        logger.error(error);
       });
     }
   }

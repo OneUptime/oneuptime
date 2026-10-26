@@ -356,6 +356,15 @@ const publicAutoRefresh: (page: Page) => Locator = (page: Page): Locator => {
   return page.getByTestId(PUBLIC_AUTO_REFRESH_MENU);
 };
 
+/*
+ * The toolbar's menu words in Persian: the Dashboard draws them translated
+ * (since #5287), so its button and item are found by them.
+ */
+const PERSIAN_EDIT_WORDS: { options: string; edit: string } = {
+  options: "گزینه‌های بیشتر داشبورد",
+  edit: "ویرایش داشبورد",
+};
+
 // The toolbar's "More dashboard options" menu, then its "Edit Dashboard".
 const enterEditMode: (
   page: Page,
@@ -749,7 +758,7 @@ test.describe("the dashboard inside OneUptime", () => {
     // Right to left.
     await page.goto(appPath("wall", "?lang=fa"));
     await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
-    await enterEditMode(page);
+    await enterEditMode(page, PERSIAN_EDIT_WORDS);
     await expect(page.getByTestId(DEFAULTS_BAR)).toContainText(
       "بازه زمانی پیش‌فرض",
     );
@@ -969,7 +978,7 @@ test.describe("the dashboard inside OneUptime", () => {
 
     await page.goto(appPath("wall", "?lang=fa"));
     await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
-    await enterEditMode(page);
+    await enterEditMode(page, PERSIAN_EDIT_WORDS);
 
     const button: Locator = page.getByTestId(DEFAULT_TIME_RANGE_PICKER);
 
@@ -989,10 +998,10 @@ test.describe("the dashboard inside OneUptime", () => {
     await page.keyboard.press("Escape");
     await expect(menu).toHaveCount(0);
 
-    // The time range picker, in view mode.
-    await openApp(page, "wall", "Past 1 Day", "?lang=fa");
+    // The time range picker, in view mode: its button reads Persian (#5287).
+    await openApp(page, "wall", "۱ روز گذشته", "?lang=fa");
 
-    const rail: Locator = await openRangePicker(page, "Past 1 Day");
+    const rail: Locator = await openRangePicker(page, "۱ روز گذشته");
     const railBox: { x: number; width: number } | null =
       await rail.boundingBox();
     const preview: Locator = rail.locator("xpath=following-sibling::*[1]");
