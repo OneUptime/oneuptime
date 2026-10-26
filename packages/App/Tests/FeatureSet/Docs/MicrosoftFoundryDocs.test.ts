@@ -895,7 +895,7 @@ describe("the example request and response are LLMService's", () => {
     expect(request.data["model"]).toBe(curls[0]!.body["model"]);
     expect(request.data["messages"]).toEqual(curls[0]!.body["messages"]);
 
-    // And the answer shown is one OneUptime reads.
+    // And the answer shown is one OneUptime reads, from the deployment asked.
     expect(response).toEqual({
       content: "OK",
       toolCalls: undefined,
@@ -906,6 +906,7 @@ describe("the example request and response are LLMService's", () => {
         totalTokens: 14,
         cachedInputTokens: undefined,
       },
+      modelName: curls[0]!.body["model"],
     });
   });
 

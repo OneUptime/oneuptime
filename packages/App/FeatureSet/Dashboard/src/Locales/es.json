@@ -35560,6 +35560,8 @@
   "{{count}} more status pages_one": "{{count}} página de estado más",
   "{{count}} more technologies": "{{count}} tecnologías más",
   "{{count}} more technologies_one": "{{count}} tecnología más",
+  "First model the server lists": "Primer modelo que lista el servidor",
+  "Leave empty for the first model your server lists. To use another, type its name exactly as your server lists it.": "Déjelo vacío para usar el primer modelo que lista su servidor. Para usar otro, escriba su nombre exactamente como lo lista su servidor.",
   "Served with your own proxy's HTTPS, unless you upload a certificate.": "Se sirve con el HTTPS de tu propio proxy, salvo que subas un certificado.",
   "We check for this record every 15 minutes. Added it already? Click Check now.": "Comprobamos este registro cada 15 minutos. ¿Ya lo has añadido? Haz clic en Comprobar ahora.",
   "Serve this status page on your own domain. Point each domain's CNAME record to {{cnameRecord}}.": "Sirve esta página de estado en tu propio dominio. Apunta el registro CNAME de cada dominio a {{cnameRecord}}.",

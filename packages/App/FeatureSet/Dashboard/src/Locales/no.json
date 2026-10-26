@@ -35560,6 +35560,8 @@
   "{{count}} more status pages_one": "{{count}} statusside til",
   "{{count}} more technologies": "{{count}} teknologier til",
   "{{count}} more technologies_one": "{{count}} teknologi til",
+  "First model the server lists": "Første modell på serverens liste",
+  "Leave empty for the first model your server lists. To use another, type its name exactly as your server lists it.": "La feltet stå tomt for den første modellen på listen fra serveren din. Vil du bruke en annen, skriver du navnet nøyaktig slik det står på listen fra serveren din.",
   "Served with your own proxy's HTTPS, unless you upload a certificate.": "Leveres med HTTPS fra din egen proxy, med mindre du laster opp et sertifikat.",
   "We check for this record every 15 minutes. Added it already? Click Check now.": "Vi sjekker denne posten hvert 15. minutt. Allerede lagt til? Klikk på Sjekk nå.",
   "Serve this status page on your own domain. Point each domain's CNAME record to {{cnameRecord}}.": "Vis denne statussiden på ditt eget domene. Pek hvert domenes CNAME-post til {{cnameRecord}}.",

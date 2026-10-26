@@ -993,6 +993,8 @@
   "Never put keys here.": "यहाँ कभी कुंजियाँ न डालें।",
   "Your deployment's name, exactly as Foundry shows it.": "आपके डिप्लॉयमेंट का नाम, ठीक वैसा जैसा Foundry दिखाता है।",
   "{{name}} (default)": "{{name}} (डिफ़ॉल्ट)",
+  "Leave empty for the first model your server lists. To use another, type its name exactly as your server lists it.": "आपके सर्वर की सूची के पहले मॉडल के लिए खाली छोड़ें। कोई दूसरा मॉडल इस्तेमाल करने के लिए उसका नाम ठीक वैसा ही लिखें जैसा आपके सर्वर की सूची में है।",
+  "First model the server lists": "सर्वर की सूची का पहला मॉडल",
   "Visitors share an address": "आगंतुक एक ही पता साझा कर रहे हैं",
   "Several people signed in from one private network address in the last 30 days. OneUptime counts them as one visitor, so one person's failed sign-ins can lock the others out.": "पिछले 30 दिनों में कई लोगों ने एक ही निजी नेटवर्क पते से साइन इन किया। OneUptime उन्हें एक ही आगंतुक मानता है, इसलिए एक व्यक्ति के असफल साइन-इन दूसरों को बाहर कर सकते हैं।",
   "Usually something in front of OneUptime hands it every visitor from an address of its own:": "आमतौर पर OneUptime के सामने मौजूद कोई चीज़ हर आगंतुक को अपने ही पते से आगे भेजती है:",

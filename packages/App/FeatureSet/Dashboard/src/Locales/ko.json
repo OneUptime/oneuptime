@@ -35560,6 +35560,8 @@
   "{{count}} more status pages_one": "상태 페이지 {{count}}개 더",
   "{{count}} more technologies": "기술 {{count}}개 더",
   "{{count}} more technologies_one": "기술 {{count}}개 더",
+  "First model the server lists": "서버 목록의 첫 번째 모델",
+  "Leave empty for the first model your server lists. To use another, type its name exactly as your server lists it.": "비워 두면 서버 목록의 첫 번째 모델을 사용합니다. 다른 모델을 쓰려면 서버 목록에 나온 이름 그대로 입력합니다.",
   "Served with your own proxy's HTTPS, unless you upload a certificate.": "인증서를 업로드하지 않으면 자체 프록시의 HTTPS로 제공됩니다.",
   "We check for this record every 15 minutes. Added it already? Click Check now.": "이 레코드는 15분마다 확인됩니다. 이미 추가하셨나요? 지금 확인을 클릭하세요.",
   "Serve this status page on your own domain. Point each domain's CNAME record to {{cnameRecord}}.": "이 상태 페이지를 자체 도메인에서 제공하세요. 각 도메인의 CNAME 레코드를 {{cnameRecord}}(으)로 지정하세요.",
