@@ -157,7 +157,7 @@ Moving on from **Resolved** to a state after it, "Closed" say, changes none of t
 
 ## The state timeline
 
-The alert's **State Timeline** page is the record of every state it has been in. Its card, **Status Timeline**, draws them as a timeline: a band with each state as long as it lasted, and under it every change, newest first. **Table**, in the card's header, lists them as rows instead, with **Alert Status**, **Starts At**, **Ends At** and **Duration**.
+The alert's **State Timeline** page is the record of every state it has been in. Its card draws them as a timeline: a band with each state as long as it lasted, and under it every change, newest first. **Table**, in the card's header, lists them as rows instead, with **Alert Status**, **Starts At**, **Ends At** and **Duration**.
 
 - **View Cause** shows the root cause recorded with that change.
 - **View Logs** shows what OneUptime recorded when the alert changed, such as the monitor check that caused it.

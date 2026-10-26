@@ -392,7 +392,8 @@ describe("every language names the way there as its Dashboard draws it", () => {
         entry?.closest("div.mb-2")?.querySelector("h6")?.textContent?.trim() ||
         "";
       const entryTitle: string = (
-        entry?.querySelector("span.truncate")?.textContent ||
+        entry?.querySelector('[data-testid="side-menu-item-title"]')
+          ?.textContent ||
         entry?.textContent ||
         ""
       ).trim();

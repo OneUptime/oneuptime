@@ -292,6 +292,10 @@ describe.each(MENU_KINDS)(
       expect(resultTitles()).toEqual([]);
     });
 
+    /*
+     * Recorded as recent in a menu that folds, the one with a Recent row; a
+     * menu that shows every category keeps no list (NavBarRecentProducts).
+     */
     test("clicking an alias result navigates to that product and records it as recent", () => {
       const onClose: Mock<() => void> = jest.fn<() => void>();
       renderMenu(ITEMS, onClose);
@@ -306,7 +310,7 @@ describe.each(MENU_KINDS)(
       expect(onClose).toHaveBeenCalledTimes(1);
       expect(
         JSON.parse(window.localStorage.getItem(RECENT_STORAGE_KEY)!),
-      ).toEqual(["/products/kubernetes"]);
+      ).toEqual(isFolding ? ["/products/kubernetes"] : null);
     });
 
     test("keyboard navigation uses the order of alias results on screen", () => {
@@ -327,7 +331,7 @@ describe.each(MENU_KINDS)(
       expect(onClose).toHaveBeenCalledTimes(1);
       expect(
         JSON.parse(window.localStorage.getItem(RECENT_STORAGE_KEY)!),
-      ).toEqual(["/products/kubernetes"]);
+      ).toEqual(isFolding ? ["/products/kubernetes"] : null);
     });
 
     test("a new alias query resets the keyboard selection to its first match", () => {
@@ -375,6 +379,10 @@ describe.each(MENU_KINDS)(
       expect(Navigation.navigate).not.toHaveBeenCalled();
     });
 
+    /*
+     * A menu that folds draws a Recent row while idle. A menu that shows
+     * every category draws none: its products are all on screen already.
+     */
     test("recent products disappear during alias search and return when it is cleared", () => {
       window.localStorage.setItem(
         RECENT_STORAGE_KEY,
@@ -382,8 +390,17 @@ describe.each(MENU_KINDS)(
       );
       renderMenu();
 
-      expect(screen.getByRole("heading", { name: "Recent" })).toBeVisible();
-      expect(resultTitles()).toEqual(["Kubernetes", ...idleTitles]);
+      const recent: Array<string> = isFolding ? ["Kubernetes"] : [];
+      const expectRecentRow: () => void = (): void => {
+        if (isFolding) {
+          expect(screen.getByRole("heading", { name: "Recent" })).toBeVisible();
+        } else {
+          expect(screen.queryByRole("heading", { name: "Recent" })).toBeNull();
+        }
+      };
+
+      expectRecentRow();
+      expect(resultTitles()).toEqual([...recent, ...idleTitles]);
 
       queryFor("rum");
       expect(screen.queryByRole("heading", { name: "Recent" })).toBeNull();
@@ -393,8 +410,8 @@ describe.each(MENU_KINDS)(
 
       expect(screen.getByRole("combobox")).toHaveValue("");
       expect(screen.getByRole("combobox")).toHaveFocus();
-      expect(screen.getByRole("heading", { name: "Recent" })).toBeVisible();
-      expect(resultTitles()).toEqual(["Kubernetes", ...idleTitles]);
+      expectRecentRow();
+      expect(resultTitles()).toEqual([...recent, ...idleTitles]);
     });
 
     test("a whitespace-only query keeps the idle menu, and every category is reachable from it", () => {
@@ -406,8 +423,14 @@ describe.each(MENU_KINDS)(
 
       queryFor(" \t ");
 
-      expect(screen.getByRole("heading", { name: "Recent" })).toBeVisible();
-      expect(resultTitles()).toEqual(["Real User Monitoring", ...idleTitles]);
+      const recent: Array<string> = isFolding ? ["Real User Monitoring"] : [];
+
+      if (isFolding) {
+        expect(screen.getByRole("heading", { name: "Recent" })).toBeVisible();
+      } else {
+        expect(screen.queryByRole("heading", { name: "Recent" })).toBeNull();
+      }
+      expect(resultTitles()).toEqual([...recent, ...idleTitles]);
       expect(screen.queryByText("No results found.")).toBeNull();
 
       // A folded category is one click away; open each of them.
@@ -417,10 +440,7 @@ describe.each(MENU_KINDS)(
         }
       }
 
-      expect(resultTitles()).toEqual([
-        "Real User Monitoring",
-        ...CATALOG_ON_SCREEN,
-      ]);
+      expect(resultTitles()).toEqual([...recent, ...CATALOG_ON_SCREEN]);
       /*
        * Every category has a row that folds it in a menu that folds:
        * Essentials, open from the start, then Resources, Observability and

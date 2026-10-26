@@ -20,7 +20,7 @@ flowchart TB
 
 ## Åpne tidslinjen
 
-- **Vakttjeneste** > **Tidslinje for vaktplaner** viser alle vaktplanene du kan se, gruppert etter teamet som eier dem. Knappen **Tidslinjevisning** på **Vaktplaner** åpner den samme siden.
+- **Vakttjeneste** > **Tidslinje for vaktplaner** viser alle vaktplanene du kan se, gruppert etter teamet som eier dem. På **Vaktplaner** åpner **Tidslinje for vaktplaner** i menyen **⋯** den samme siden.
 - **Team** > et team > **Vaktplaner** viser bare vaktplanene teamet eier.
 
 Et team eier en vaktplan når det står på vaktplanens side **Eiere**. Vaktplaner uten et eierteam grupperes under **Ingen eierteam**. Slå av **Grupper etter team** for å se alle vaktplanene i én liste, sortert etter navn.

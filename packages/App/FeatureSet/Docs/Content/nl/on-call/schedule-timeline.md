@@ -20,7 +20,7 @@ flowchart TB
 
 ## De tijdlijn openen
 
-- **Bereikbaarheidsdienst** > **Tijdlijn van bereikbaarheidsschema's** toont elk schema dat u kunt zien, gegroepeerd per eigenaarsteam. De knop **Tijdlijnweergave** op **Bereikbaarheidsschema's** opent dezelfde pagina.
+- **Bereikbaarheidsdienst** > **Tijdlijn van bereikbaarheidsschema's** toont elk schema dat u kunt zien, gegroepeerd per eigenaarsteam. Op **Bereikbaarheidsschema's** opent **Tijdlijn van bereikbaarheidsschema's** in het menu **⋯** dezelfde pagina.
 - **Teams** > een team > **Bereikbaarheidsschema's** toont alleen de schema's van dat team.
 
 Een team is eigenaar van een schema wanneer het op de pagina **Eigenaren** van het schema staat. Schema's zonder eigenaarsteam staan gegroepeerd onder **Geen eigenaarteam**. Zet **Groeperen op team** uit om alle schema's in één lijst te zien, gesorteerd op naam.

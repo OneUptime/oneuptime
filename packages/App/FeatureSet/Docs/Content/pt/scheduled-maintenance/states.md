@@ -142,7 +142,7 @@ Arquive um estado próprio que sua equipe não deve mais usar, em vez de excluí
 
 ## A linha do tempo de estado
 
-A página **Linha do tempo de estado** do evento é o registro de cada estado em que ele esteve. O cartão dela, **Linha do tempo de status**, os desenha como uma linha do tempo: uma faixa com cada estado do tamanho que durou e, abaixo, cada mudança, a mais recente primeiro. **Tabela**, no cabeçalho do cartão, os lista como linhas, com **Status da manutenção programada**, **Começa em**, **Termina em**, **Duração**, se os assinantes deviam ser avisados e como foi a notificação deles.
+A página **Linha do tempo de estado** do evento é o registro de cada estado em que ele esteve. O cartão dela os desenha como uma linha do tempo: uma faixa com cada estado do tamanho que durou e, abaixo, cada mudança, a mais recente primeiro. **Tabela**, no cabeçalho do cartão, os lista como linhas, com **Status da manutenção programada**, **Começa em**, **Termina em**, **Duração**, se os assinantes deviam ser avisados e como foi a notificação deles.
 
 No painel, as linhas podem ser adicionadas e excluídas, mas não editadas, e um evento sempre mantém pelo menos uma. Pela API, o `startsAt` de uma linha pode ser corrigido, e cada medição calculada a partir da linha do tempo acompanha a correção. Excluir a linha mais recente devolve o evento ao estado da linha anterior.
 

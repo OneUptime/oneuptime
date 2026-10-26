@@ -184,8 +184,8 @@ const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
         modelType={IncidentStateTimeline}
         id="incident-status-timeline"
         name="Incident > State Timeline"
-        title="Status Timeline"
-        description="Each status this incident has been in, when it began and how long it lasted."
+        title="State Timeline"
+        description="Each state this incident has been in, when it began and how long it lasted."
         headerElement={viewSwitch}
         query={{
           incidentId: modelId,
@@ -194,8 +194,8 @@ const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
         stateColumn="incidentState"
         stateSelect={INCIDENT_FINAL_STATE.stateSelect}
         getFinalStateRule={INCIDENT_FINAL_STATE.getFinalStateRule}
-        ariaLabel="Status timeline of this incident"
-        emptyMessage="No status recorded for this incident yet."
+        ariaLabel="State timeline of this incident"
+        emptyMessage="No state recorded for this incident yet."
         isCreateable={true}
         formFields={INCIDENT_STATE_TIMELINE_FORM_FIELDS}
         onBeforeCreate={onBeforeCreate}
@@ -308,12 +308,12 @@ const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
         ]}
         onBeforeCreate={onBeforeCreate}
         cardProps={{
-          title: "Status Timeline",
+          title: "State Timeline",
           description:
-            "Each status this incident has been in, when it began and how long it lasted.",
+            "Each state this incident has been in, when it began and how long it lasted.",
           rightElement: viewSwitch,
         }}
-        noItemsMessage={"No status timeline created for this incident so far."}
+        noItemsMessage={"No state recorded for this incident yet."}
         formFields={INCIDENT_STATE_TIMELINE_FORM_FIELDS}
         showRefreshButton={true}
         viewPageRoute={Navigation.getCurrentRoute()}

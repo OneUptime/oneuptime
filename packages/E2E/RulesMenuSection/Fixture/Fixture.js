@@ -21,7 +21,8 @@
  *   - groups=1     the project has monitor groups on: a status page's
  *                  resources entry reads Resources rather than Monitors
  *   - rules=2      the SLO has two enabled monitor rules (none by default)
- *   - lang=de      the Dashboard's German words
+ *   - lang=de      the Dashboard's German words (fr and fa: French and
+ *                  Persian, whose long menu titles wrap)
  *   - theme=dark   dark mode
  *
  * Every read the fixture does not model is recorded on
@@ -60,6 +61,8 @@ import PermissionUtil from "Common/UI/Utils/Permission";
 import ProjectUtil from "Common/UI/Utils/Project";
 import UserUtil from "Common/UI/Utils/User";
 import DE from "../../../App/FeatureSet/Dashboard/src/Locales/de.json";
+import FR from "../../../App/FeatureSet/Dashboard/src/Locales/fr.json";
+import FA from "../../../App/FeatureSet/Dashboard/src/Locales/fa.json";
 
 const PROJECT_ID = "10000000-0000-4000-8000-0000000000f1";
 const STATUS_PAGE_ID = "20000000-0000-4000-8000-0000000000f2";
@@ -70,7 +73,8 @@ const params = new URLSearchParams(window.location.search);
 const monitorGroupsOn = params.get("groups") === "1";
 // How many enabled monitor rules the SLO has.
 const enabledMonitorRules = Number(params.get("rules") || 0);
-const language = params.get("lang") === "de" ? "de" : "en";
+const LANGUAGES = { de: DE, fr: FR, fa: FA };
+const language = LANGUAGES[params.get("lang")] ? params.get("lang") : "en";
 
 window.__rulesMenuFixture = { unhandled: [] };
 
@@ -264,7 +268,7 @@ await i18next.use(initReactI18next).init({
   fallbackLng: language,
   resources: {
     en: { translation: {} },
-    de: { translation: DE },
+    [language]: { translation: LANGUAGES[language] || {} },
   },
   interpolation: { escapeValue: false },
   keySeparator: false,

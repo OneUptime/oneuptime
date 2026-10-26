@@ -12,6 +12,11 @@ import NavBarItem from "./NavBarItem";
 import NavBarMenuModal from "./NavBarMenuModal";
 import NavBarMobileMenu from "./NavBarMobileMenu";
 import { isMoreMenuItemActive } from "./NavBarMenuCatalog";
+import {
+  doesMenuShowRecentProducts,
+  getVisitedProductRoute,
+  rememberRecentProductRoute,
+} from "./NavBarRecentProducts";
 import Button, { ButtonStyleType } from "../Button/Button";
 import Navigation from "../../Utils/Navigation";
 import useComponentOutsideClick from "../../Types/UseComponentOutsideClick";
@@ -123,6 +128,27 @@ const Navbar: FunctionComponent<ComponentProps> = (
   const hasMoreMenu: boolean = Boolean(
     !props.children && props.moreMenuItems && props.moreMenuItems.length > 0,
   );
+
+  /*
+   * The product of the page the user is on, remembered as visited however
+   * they got here: a Home tile, Search, a link in a notification, the back
+   * button or a typed address, not only a pick in the products menu. Its
+   * Recently visited row (NavBarRecentProducts) used to know only the
+   * products opened from the menu itself. A menu that shows no such row -
+   * one that folds no categories, as the Admin Dashboard's six products -
+   * remembers nothing (doesMenuShowRecentProducts).
+   */
+  const visitedProductRoute: string | undefined =
+    hasMoreMenu &&
+    doesMenuShowRecentProducts(props.moreMenuCategoriesOpenByDefault)
+      ? getVisitedProductRoute(props.moreMenuItems || [], isMoreMenuItemActive)
+      : undefined;
+
+  useEffect(() => {
+    if (visitedProductRoute) {
+      rememberRecentProductRoute(visitedProductRoute);
+    }
+  }, [visitedProductRoute]);
 
   // Use the existing outside click hook for mobile menu
   const {

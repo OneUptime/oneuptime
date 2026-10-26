@@ -20,7 +20,7 @@ flowchart TB
 
 ## Open the timeline
 
-- **On-Call Duty** > **Schedule Timeline** shows every schedule you can see, grouped by owning team. The **Timeline View** button on **On-Call Schedules** opens the same page.
+- **On-Call Duty** > **Schedule Timeline** shows every schedule you can see, grouped by owning team. On **On-Call Schedules**, **Schedule Timeline** in the **⋯** menu opens the same page.
 - **Teams** > a team > **On-Call Schedules** shows only the schedules that team owns.
 
 A team owns a schedule when it is listed on the schedule's **Owners** page. Schedules without an owning team are grouped under **No owner team**. Turn **Group by team** off to see all schedules in one list, sorted by name.

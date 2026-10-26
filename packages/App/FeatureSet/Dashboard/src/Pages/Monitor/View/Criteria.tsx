@@ -34,7 +34,13 @@ import { useAsyncEffect } from "use-async-effect";
 import MonitorTestForm from "../../../Components/Form/Monitor/MonitorTest";
 import Probe from "Common/Models/DatabaseModels/Probe";
 import ProbeUtil from "../../../Utils/Probe";
-import { ButtonSize } from "Common/UI/Components/Button/Button";
+import Button, {
+  ButtonSize,
+  ButtonStyleType,
+} from "Common/UI/Components/Button/Button";
+import PageMap from "../../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import Route from "Common/Types/API/Route";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
@@ -103,6 +109,14 @@ const MonitorCriteria: FunctionComponent<
       return <ErrorMessage message={error} />;
     }
 
+    /*
+     * A manual monitor has no criteria, so its menu lists no Criteria page
+     * (MonitorTypeHelper.doesMonitorTypeHaveCriteria): an entry that only
+     * opened "there is nothing here" would be one more row to read on
+     * every visit. The address still answers - an old bookmark, a link
+     * someone shared - and says why there is nothing, with one way on:
+     * the overview, where the status is set.
+     */
     if (monitorType === MonitorType.Manual) {
       return (
         <EmptyState
@@ -115,6 +129,28 @@ const MonitorCriteria: FunctionComponent<
                 "A manual monitor has no criteria: you set its status yourself, from the ⋯ menu on its overview.",
               )}
             </>
+          }
+          footer={
+            /*
+             * The wrapper takes off the dialog-footer margin Button
+             * carries from md, which set it off centre.
+             */
+            <div className="[&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0">
+              <Button
+                title="Go to Overview"
+                icon={IconProp.Info}
+                buttonStyle={ButtonStyleType.NORMAL}
+                dataTestId="manual-monitor-criteria-go-to-overview"
+                onClick={() => {
+                  Navigation.navigate(
+                    RouteUtil.populateRouteParams(
+                      RouteMap[PageMap.MONITOR_VIEW] as Route,
+                      { modelId: modelId },
+                    ),
+                  );
+                }}
+              />
+            </div>
           }
         />
       );

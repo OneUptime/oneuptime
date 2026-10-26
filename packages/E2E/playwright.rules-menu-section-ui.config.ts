@@ -10,13 +10,22 @@ import path from "path";
  * jsdom cannot show is checked here: a folded section out of sight and out
  * of the keyboard's way, opened by click and by keyboard, opening by itself
  * on its own pages and staying open while the pages change, the phone menu,
- * German and dark mode.
+ * German and dark mode. SideMenuNavigation.spec.ts measures the shared menu
+ * itself: the current entry, long titles in French, German and Persian, and
+ * the lit entry kept in sight in a menu taller than the window, with the
+ * list fading out at an edge that hides entries. SideMenuWordBreaks.spec.ts
+ * measures where its words break, in Firefox too: Firefox hyphenates
+ * whatever word ends a line where Chrome moves it whole to the next.
  */
 const port: string = process.env["RULES_MENU_SECTION_FIXTURE_PORT"] || "4385";
 
 export default defineConfig({
   testDir: "./RulesMenuSection",
-  testMatch: ["RulesMenuSection.spec.ts"],
+  testMatch: [
+    "RulesMenuSection.spec.ts",
+    "SideMenuNavigation.spec.ts",
+    "SideMenuWordBreaks.spec.ts",
+  ],
   fullyParallel: false,
   workers: 1,
   timeout: 90000,
@@ -30,6 +39,15 @@ export default defineConfig({
       name: "chromium",
       use: {
         ...devices["Desktop Chrome"],
+        viewport: { width: 1280, height: 900 },
+      },
+    },
+    // Where words break differs by browser: that spec runs in Firefox too.
+    {
+      name: "firefox",
+      testMatch: "SideMenuWordBreaks.spec.ts",
+      use: {
+        ...devices["Desktop Firefox"],
         viewport: { width: 1280, height: 900 },
       },
     },

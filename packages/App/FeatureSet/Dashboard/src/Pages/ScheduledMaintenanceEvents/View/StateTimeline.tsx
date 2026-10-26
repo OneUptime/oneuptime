@@ -168,8 +168,8 @@ const ScheduledMaintenanceViewStateTimeline: FunctionComponent<
         modelType={ScheduledMaintenanceStateTimeline}
         id="scheduled-maintenance-status-timeline"
         name="Scheduled Maintenance Events > State Timeline"
-        title="Status Timeline"
-        description="Each status this maintenance event has been in, when it began and how long it lasted."
+        title="State Timeline"
+        description="Each state this maintenance event has been in, when it began and how long it lasted."
         headerElement={viewSwitch}
         query={{
           scheduledMaintenanceId: modelId,
@@ -178,8 +178,8 @@ const ScheduledMaintenanceViewStateTimeline: FunctionComponent<
         stateColumn="scheduledMaintenanceState"
         stateSelect={SCHEDULED_MAINTENANCE_FINAL_STATE.stateSelect}
         getFinalStateRule={SCHEDULED_MAINTENANCE_FINAL_STATE.getFinalStateRule}
-        ariaLabel="Status timeline of this maintenance event"
-        emptyMessage="No status recorded for this maintenance event yet."
+        ariaLabel="State timeline of this maintenance event"
+        emptyMessage="No state recorded for this maintenance event yet."
         isCreateable={true}
         formFields={SCHEDULED_MAINTENANCE_STATE_TIMELINE_FORM_FIELDS}
         onBeforeCreate={onBeforeCreate}
@@ -241,14 +241,12 @@ const ScheduledMaintenanceViewStateTimeline: FunctionComponent<
         }}
         onBeforeCreate={onBeforeCreate}
         cardProps={{
-          title: "Status Timeline",
+          title: "State Timeline",
           description:
-            "Each status this maintenance event has been in, when it began and how long it lasted.",
+            "Each state this maintenance event has been in, when it began and how long it lasted.",
           rightElement: viewSwitch,
         }}
-        noItemsMessage={
-          "No status timeline created for this Scheduled Maintenance so far."
-        }
+        noItemsMessage={"No state recorded for this maintenance event yet."}
         formFields={SCHEDULED_MAINTENANCE_STATE_TIMELINE_FORM_FIELDS}
         showRefreshButton={true}
         viewPageRoute={Navigation.getCurrentRoute()}

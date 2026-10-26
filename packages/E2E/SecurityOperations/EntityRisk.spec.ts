@@ -258,7 +258,8 @@ async function litEntries(page: Page): Promise<Array<string>> {
     .evaluateAll((anchors: Array<Element>): Array<string> => {
       return anchors.map((anchor: Element): string => {
         return (
-          anchor.querySelector("span.truncate")?.textContent ||
+          anchor.querySelector('[data-testid="side-menu-item-title"]')
+            ?.textContent ||
           anchor.textContent ||
           ""
         ).trim();

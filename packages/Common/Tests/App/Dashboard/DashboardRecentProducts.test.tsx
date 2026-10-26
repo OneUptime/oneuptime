@@ -359,3 +359,139 @@ describe("the Dashboard's Recently visited products", () => {
     expect(recentTitles(label)[1]).toBe("Paramètres du projet");
   });
 });
+
+/*
+ * A product counts as visited however it was reached: a Home tile, Search,
+ * a link in a notification, the back button or a typed address - not only
+ * a pick in the products menu (#4922's follow-up). The navbar is drawn on
+ * every page, so it remembers the product of each page it is drawn on.
+ */
+describe("a product reached without the products menu", () => {
+  /*
+   * A record's page. Built when a test runs, not when the file loads: the
+   * project id comes from the address bar.
+   */
+  const incidentPage: () => string = (): string => {
+    return `${routeFor(PageMap.INCIDENTS)}/0b5f4f5e-3c3a-4f0e-9a51-2f9c7f0d2a11`;
+  };
+  const monitorPage: () => string = (): string => {
+    return `${routeFor(PageMap.MONITORS)}/3c1e9a2b-8d4f-4c6e-a1b2-c3d4e5f60718`;
+  };
+
+  beforeEach(async () => {
+    window.localStorage.clear();
+    setViewportWidth(DESKTOP_WIDTH);
+    goTo(`/dashboard/${PROJECT_ID}/home`);
+    await translation.changeLanguage("en");
+    jest.spyOn(Navigation, "navigate").mockImplementation((): void => {});
+  });
+
+  afterEach(() => {
+    cleanup();
+    jest.restoreAllMocks();
+    window.localStorage.clear();
+    setViewportWidth(ORIGINAL_WIDTH);
+  });
+
+  // The app moves to a page: the navbar is drawn again there.
+  function arriveAt(
+    view: ReturnType<typeof render>,
+    path: string,
+  ): ReturnType<typeof render> {
+    goTo(path);
+    view.rerender(navbar());
+    return view;
+  }
+
+  test("is remembered when one of its pages opens, a record's page too", () => {
+    const view: ReturnType<typeof render> = render(navbar());
+    expect(stored()).toEqual([]);
+
+    arriveAt(view, monitorPage());
+    expect(stored()).toEqual([routeFor(PageMap.MONITORS)]);
+
+    arriveAt(view, incidentPage());
+    expect(stored()).toEqual([
+      routeFor(PageMap.INCIDENTS),
+      routeFor(PageMap.MONITORS),
+    ]);
+  });
+
+  test("Home is no product: arriving there remembers nothing", () => {
+    const view: ReturnType<typeof render> = render(navbar());
+
+    arriveAt(view, routeFor(PageMap.LOGS));
+    arriveAt(view, `/dashboard/${PROJECT_ID}/home`);
+
+    expect(stored()).toEqual([routeFor(PageMap.LOGS)]);
+  });
+
+  test("moving between a product's own pages adds nothing", () => {
+    const view: ReturnType<typeof render> = render(navbar());
+
+    arriveAt(view, routeFor(PageMap.MONITORS));
+    arriveAt(view, monitorPage());
+    arriveAt(view, `${monitorPage()}/criteria`);
+
+    expect(stored()).toEqual([routeFor(PageMap.MONITORS)]);
+  });
+
+  test("coming back to a product puts it first again, once", () => {
+    const view: ReturnType<typeof render> = render(navbar());
+
+    for (const pageMapKey of [
+      PageMap.MONITORS,
+      PageMap.INCIDENTS,
+      PageMap.LOGS,
+      PageMap.MONITORS,
+    ]) {
+      arriveAt(view, routeFor(pageMapKey));
+    }
+
+    expect(stored()).toEqual([
+      routeFor(PageMap.MONITORS),
+      routeFor(PageMap.LOGS),
+      routeFor(PageMap.INCIDENTS),
+    ]);
+  });
+
+  test("the products visited that way fill the Recently visited row", () => {
+    const view: ReturnType<typeof render> = render(navbar());
+
+    // A Home tile, Search and a link in an email, say.
+    arriveAt(view, routeFor(PageMap.STATUS_PAGES));
+    arriveAt(view, routeFor(PageMap.TRACES));
+    arriveAt(view, incidentPage());
+    arriveAt(view, `/dashboard/${PROJECT_ID}/home`);
+
+    openProducts();
+
+    expect(recentTitles()).toEqual(["Incidents", "Traces", "Status Pages"]);
+  });
+
+  test("the page's own product is still left out of the row", () => {
+    const view: ReturnType<typeof render> = render(navbar());
+
+    arriveAt(view, routeFor(PageMap.TRACES));
+    arriveAt(view, incidentPage());
+
+    openProducts("Incidents");
+
+    expect(recentTitles()).toEqual(["Traces"]);
+  });
+
+  test("a browser that refuses storage still draws the navbar on every page", () => {
+    const storage: { setItem: (key: string, value: string) => void } =
+      Storage.prototype as unknown as {
+        setItem: (key: string, value: string) => void;
+      };
+    jest.spyOn(storage, "setItem").mockImplementation((): void => {
+      throw new Error("QuotaExceededError");
+    });
+
+    const view: ReturnType<typeof render> = render(navbar());
+    arriveAt(view, routeFor(PageMap.MONITORS));
+
+    expect(screen.getByRole("button", { name: "Monitors" })).toBeVisible();
+  });
+});

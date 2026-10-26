@@ -19,6 +19,7 @@ import * as React from "react";
 import { Location } from "react-router-dom";
 import AdminNavBar from "../../../../App/FeatureSet/AdminDashboard/src/Components/NavBar/NavBar";
 import { CATEGORY_FOLDS_STORAGE_KEY } from "../../../UI/Components/Navbar/NavBarMenuCatalog";
+import { RECENT_PRODUCTS_STORAGE_KEY } from "../../../UI/Components/Navbar/NavBarRecentProducts";
 import Navigation from "../../../UI/Utils/Navigation";
 
 /*
@@ -72,6 +73,7 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
+  jest.restoreAllMocks();
   window.localStorage.clear();
   Object.defineProperty(window, "innerWidth", {
     configurable: true,
@@ -129,5 +131,51 @@ describe("the Admin Dashboard menu", () => {
     fireEvent.click(screen.getByRole("button", { name: "Menu" }));
 
     expect(screen.getAllByRole("option")).toHaveLength(5);
+  });
+
+  /*
+   * Every entry of this menu is on screen at once, so a Recently visited
+   * row only drew the same cards a second time, above themselves (#4922's
+   * follow-up). The menu has no such row, and keeps no list for one.
+   */
+  test("draws no Recently visited row, whatever the browser remembers", () => {
+    window.localStorage.setItem(
+      RECENT_PRODUCTS_STORAGE_KEY,
+      JSON.stringify(["/admin/users", "/admin/projects", "/admin/settings"]),
+    );
+
+    render(<AdminNavBar />);
+    fireEvent.click(screen.getByRole("button", { name: "Menu" }));
+
+    const menu: HTMLElement = screen.getByRole("dialog", {
+      name: "Products menu",
+    });
+    expect(within(menu).queryByRole("group", { name: /Recent/ })).toBeNull();
+    expect(within(menu).queryByText("Recently visited")).toBeNull();
+    // Each entry once.
+    expect(within(menu).getAllByRole("option")).toHaveLength(5);
+  });
+
+  test("remembers no page it is on, and no entry opened from it", () => {
+    Navigation.setLocation({
+      pathname: "/admin/users",
+      search: "",
+      hash: "",
+      state: null,
+      key: "test",
+    } as Location);
+    jest.spyOn(Navigation, "navigate").mockImplementation((): void => {});
+
+    render(<AdminNavBar />);
+    // On one of its pages, the bar's button is named after it.
+    fireEvent.click(screen.getByRole("button", { name: "Users" }));
+    fireEvent.click(
+      within(screen.getByRole("dialog", { name: "Products menu" })).getByRole(
+        "link",
+        { name: /Projects/ },
+      ),
+    );
+
+    expect(window.localStorage.getItem(RECENT_PRODUCTS_STORAGE_KEY)).toBeNull();
   });
 });
