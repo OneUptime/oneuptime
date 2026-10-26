@@ -154,7 +154,7 @@ sudo systemctl enable --now oneuptime-docker-swarm-agent
 
 ## De agent upgraden
 
-De agent meldt de collectorversie die hij draait. Is die ouder dan de versie die deze OneUptime-release vastzet, dan verschijnt er een waarschuwingsteken naast de versie van de agent op de pagina **Overzicht** van het cluster. Selecteer het om deze commando's te zien.
+De agent meldt de versie van zijn bestanden: de collectorrelease die ze draaien, waarvan het laatste getal omhooggaat telkens wanneer OneUptime de bestanden wijzigt en niet de collector. Is die ouder dan de versie die deze OneUptime-release levert, dan verschijnt er een waarschuwingsteken naast de versie van de agent op de pagina **Overzicht** van het cluster. Selecteer het om deze commando's te zien.
 
 Voer het installatiescript opnieuw uit op de managernode en beantwoord de vragen met dezelfde URL, sleutel en clusternaam. Het downloadt de nieuwste bestanden, pullt de images en herstart de agent:
 
@@ -239,7 +239,7 @@ De naam van het cluster komt uit `DOCKER_SWARM_CLUSTER_NAME`. Wijzig hem in `.en
 :::
 
 :::details Taak-CPU is een vlakke lijn
-Een oudere `otel-collector-config.yaml` stuurt het eigen CPU-cijfer van de receiver `docker_stats`. Sinds collector 0.150.0 berekent de receiver dat uit één statistiekmeting: alle CPU die een container sinds zijn start heeft gebruikt, gedeeld door alle CPU die de node sinds het opstarten heeft gebruikt. De lijn beweegt nauwelijks en volgt de belasting niet, terwijl `container.cpu.usage.total` dat wel doet. De collectorversie is niet veranderd, dus er verschijnt geen waarschuwingsteken: download de bestanden van de agent opnieuw, zoals [De agent upgraden](#de-agent-upgraden) laat zien. Vanaf zijn tweede meting stuurt de collector dan de CPU die elke container in elk interval van 30 seconden heeft gebruikt. Al opgeslagen metingen blijven zoals ze waren.
+Een oudere `otel-collector-config.yaml` stuurt het eigen CPU-cijfer van de receiver `docker_stats`. Sinds collector 0.150.0 berekent de receiver dat uit één statistiekmeting: alle CPU die een container sinds zijn start heeft gebruikt, gedeeld door alle CPU die de node sinds het opstarten heeft gebruikt. De lijn beweegt nauwelijks en volgt de belasting niet, terwijl `container.cpu.usage.total` dat wel doet. Zo'n agent meldt versie 0.161.0 of ouder, dus er verschijnt een waarschuwingsteken naast zijn versie: download de bestanden van de agent opnieuw, zoals [De agent upgraden](#de-agent-upgraden) laat zien. Vanaf zijn tweede meting stuurt de collector dan de CPU die elke container in elk interval van 30 seconden heeft gebruikt. Al opgeslagen metingen blijven zoals ze waren.
 :::
 
 ## Volgende stappen

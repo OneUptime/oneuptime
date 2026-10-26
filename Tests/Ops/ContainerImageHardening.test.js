@@ -893,6 +893,8 @@ describe("Nginx", () => {
 
 describe("the OpenTelemetry collector pin", () => {
   const COLLECTOR = /otel\/opentelemetry-collector-contrib:(\d+\.\d+\.\d+)/g;
+  // The Swarm agent's files version: APP_VERSION's default in its compose file.
+  const SWARM_APP_VERSION_DEFAULT = /APP_VERSION=\$\{APP_VERSION:-([^}]+)\}/;
 
   function pinsIn(relativePath) {
     return [...read(relativePath).matchAll(COLLECTOR)].map((match) => {
@@ -948,14 +950,56 @@ describe("the OpenTelemetry collector pin", () => {
     );
   });
 
+  /*
+   * The version a pinned-collector agent's files report: the collector
+   * release they pin, with the last number raised each time OneUptime
+   * changes the files on the same collector (the Swarm agent's 0.161.1, after
+   * #5076's CPU processors) - never a number below the collector's, and
+   * never another collector line (Common's AgentFilesVersion.test.ts holds
+   * the files to it).
+   */
+  function isFilesVersionOf(version, collector) {
+    const parts = (value) => {
+      return String(value)
+        .split(".")
+        .map((part) => {
+          return Number(part);
+        });
+    };
+    const [major, minor, patch] = parts(version);
+    const [collectorMajor, collectorMinor, collectorPatch] = parts(collector);
+    return (
+      major === collectorMajor &&
+      minor === collectorMinor &&
+      Number.isInteger(patch) &&
+      patch >= collectorPatch
+    );
+  }
+
   test("the Swarm agent's APP_VERSION default and the severity model follow it", () => {
     const [version] = pinsIn("agents/DockerAgent/Dockerfile.tpl");
-    expect(read("agents/DockerSwarmAgent/docker-compose.yml")).toContain(
-      `APP_VERSION=\${APP_VERSION:-${version}}`,
-    );
+    const filesVersion = read(
+      "agents/DockerSwarmAgent/docker-compose.yml",
+    ).match(SWARM_APP_VERSION_DEFAULT)?.[1];
+    expect({
+      version: filesVersion,
+      isOfThePin: isFilesVersionOf(filesVersion, version),
+    }).toEqual({
+      version: filesVersion,
+      isOfThePin: true,
+    });
     expect(read("Tests/Ops/Utils/StanzaSeverity.js")).toContain(
       `const OTEL_COLLECTOR_VERSION = "${version}";`,
     );
+  });
+
+  test("a files version is the pin or a later patch of it, never another collector", () => {
+    expect(isFilesVersionOf("0.161.0", "0.161.0")).toBe(true);
+    expect(isFilesVersionOf("0.161.1", "0.161.0")).toBe(true);
+    expect(isFilesVersionOf("0.160.9", "0.161.0")).toBe(false);
+    expect(isFilesVersionOf("0.162.0", "0.161.0")).toBe(false);
+    expect(isFilesVersionOf("1.161.0", "0.161.0")).toBe(false);
+    expect(isFilesVersionOf("0.161", "0.161.0")).toBe(false);
   });
 
   test("the Swarm, VMware, Database, Proxmox, Ceph and Storage Array compose files run the pinned collector", () => {
@@ -1004,13 +1048,21 @@ describe("the OpenTelemetry collector pin", () => {
           return attribute.key === "oneuptime.agent.version";
         },
       );
-      expect(stamps).toEqual([
-        {
+      expect(stamps).toHaveLength(1);
+      expect(stamps[0]).toEqual(
+        expect.objectContaining({
           key: "oneuptime.agent.version",
-          value: pinsIn(`agents/${agent}/docker-compose.yml`)[0],
           action: "upsert",
-        },
-      ]);
+        }),
+      );
+      // The files' version, on the collector the compose file beside it runs.
+      expect({
+        file,
+        isOfThePin: isFilesVersionOf(
+          stamps[0].value,
+          pinsIn(`agents/${agent}/docker-compose.yml`)[0],
+        ),
+      }).toEqual({ file, isOfThePin: true });
       // Every pipeline runs the processor that stamps it.
       for (const pipeline of Object.values(config.service.pipelines)) {
         expect(pipeline.processors).toContain("resource");

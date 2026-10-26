@@ -17,6 +17,7 @@ import { getAllDockerSwarmAlertTemplates } from "../../../../Types/Monitor/Docke
 import { getAllHostAlertTemplates } from "../../../../Types/Monitor/HostAlertTemplates";
 import { getAllIoTAlertTemplates } from "../../../../Types/Monitor/IotAlertTemplates";
 import { getAllKubernetesAlertTemplates } from "../../../../Types/Monitor/KubernetesAlertTemplates";
+import { getAllKubernetesEventAlertTemplates } from "../../../../Types/Monitor/KubernetesEventAlertTemplates";
 import { getAllPodmanAlertTemplates } from "../../../../Types/Monitor/PodmanAlertTemplates";
 import { getAllProxmoxAlertTemplates } from "../../../../Types/Monitor/ProxmoxAlertTemplates";
 import {
@@ -112,9 +113,17 @@ interface ModuleExpectation {
 const MODULE_EXPECTATIONS: Array<ModuleExpectation> = [
   {
     resourceType: MonitorRecommendationResourceType.Kubernetes,
-    monitorTypes: [MonitorType.Kubernetes],
-    templateCount: getAllKubernetesAlertTemplates().length,
-    contextFreeTemplateCount: getAllKubernetesAlertTemplates().length,
+    /*
+     * The metric templates, and the cluster's warning events, which are logs
+     * (KubernetesEventAlertTemplates): a Logs monitor scoped to the cluster.
+     */
+    monitorTypes: [MonitorType.Kubernetes, MonitorType.Logs],
+    templateCount:
+      getAllKubernetesAlertTemplates().length +
+      getAllKubernetesEventAlertTemplates().length,
+    contextFreeTemplateCount:
+      getAllKubernetesAlertTemplates().length +
+      getAllKubernetesEventAlertTemplates().length,
     identifierFieldName: "clusterIdentifier",
   },
   {

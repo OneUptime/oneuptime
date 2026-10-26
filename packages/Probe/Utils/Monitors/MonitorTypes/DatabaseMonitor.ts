@@ -16,6 +16,10 @@ import {
   getDatabaseHealthQueries,
   getProbeQuery,
 } from "./DatabaseMonitor/DatabaseHealthQueries";
+import DatabaseCounterHistory, {
+  getDatabaseCounterHistoryKey,
+  pickDatabaseRatioCounters,
+} from "./DatabaseMonitor/DatabaseCounterHistory";
 import SqlServerPlatformUtil from "Common/Types/Monitor/DatabaseMonitor/SqlServerPlatform";
 import { DatabaseMetricGroup } from "Common/Types/Monitor/DatabaseMetricCatalog";
 import MonitorMetricType from "Common/Types/Monitor/MonitorMetricType";
@@ -174,6 +178,13 @@ interface DatabaseHealthSession {
  * read sys.dm_os_performance_counters.
  */
 export default class DatabaseMonitor {
+  /*
+   * The previous check's ratio counters, per monitor and database, for this
+   * probe process (DatabaseCounterHistory).
+   */
+  private static counterHistory: DatabaseCounterHistory =
+    new DatabaseCounterHistory();
+
   public static async execute(
     config: MonitorStepDatabaseMonitor,
     options?: DatabaseMonitorExecuteOptions,
@@ -380,6 +391,12 @@ export default class DatabaseMonitor {
       this.applyDerivedMetrics({
         databaseType: config.databaseType,
         rawColumns,
+        previousCounters: this.swapRatioCounters({
+          monitorId: options.monitorId,
+          config,
+          rawColumns,
+          readAt: responseReceivedAt,
+        }),
         metrics,
       });
 
@@ -947,19 +964,109 @@ export default class DatabaseMonitor {
     }
   }
 
+  /*
+   * Keeps this check's ratio counters for the next check of the same
+   * monitor and database, and hands back the previous check's. Nothing to
+   * keep without a monitor (no key) or when this check read none of them -
+   * the group is off, or failed this time - and then the previous reading
+   * stays, so the next check divides over both intervals.
+   */
+  public static swapRatioCounters(input: {
+    monitorId?: ObjectID | undefined;
+    config: MonitorStepDatabaseMonitor;
+    rawColumns: Record<string, number>;
+    readAt: Date;
+  }): Record<string, number> | undefined {
+    const monitorId: string = input.monitorId?.toString() || "";
+
+    if (!monitorId) {
+      return undefined;
+    }
+
+    const counters: Record<string, number> = pickDatabaseRatioCounters(
+      input.rawColumns,
+    );
+
+    if (Object.keys(counters).length === 0) {
+      return undefined;
+    }
+
+    return this.counterHistory.swap(
+      getDatabaseCounterHistoryKey({
+        monitorId: monitorId,
+        databaseType: input.config.databaseType,
+        host: input.config.host,
+        port: input.config.port,
+        databaseName: input.config.databaseName,
+        username: input.config.username,
+      }),
+      { counters, readAt: input.readAt },
+    )?.counters;
+  }
+
+  // Forgets every previous reading, as a probe that just started has none.
+  public static resetCounterHistory(): void {
+    this.counterHistory.clear();
+  }
+
+  /*
+   * How far a counter moved since the previous reading, or null when that
+   * cannot be told: either reading lacks it, or it went backwards (the
+   * server restarted, or its statistics were reset).
+   */
+  public static counterDelta(input: {
+    column: string;
+    rawColumns: Record<string, number>;
+    previousCounters: Record<string, number> | undefined;
+  }): number | null {
+    const current: number | undefined = input.rawColumns[input.column];
+    const previous: number | undefined = input.previousCounters?.[input.column];
+
+    if (current === undefined || previous === undefined) {
+      return null;
+    }
+
+    const delta: number = current - previous;
+
+    if (!Number.isFinite(delta) || delta < 0) {
+      return null;
+    }
+
+    return delta;
+  }
+
   /**
    * Ratios the engines do not hand us directly.
    *
    * These are computed here rather than in SQL so the arithmetic is testable
    * without a database, and so a divide-by-zero on an idle server yields "no
    * value" rather than NaN written into a metric series.
+   *
+   * Cache Hit Ratio (PostgreSQL, MySQL) and Rollback Ratio (PostgreSQL) are
+   * divided from what their counters moved since `previousCounters`, the
+   * previous check of this monitor on this probe (DatabaseCounterHistory):
+   * the ratio over the monitor's interval. Divided as read, the counters
+   * are a ratio over the server's whole life that barely moves - a cache
+   * whose hit rate fell to 80% an hour ago still read 99.9%. With no
+   * previous reading (the probe's first check of the monitor), a counter
+   * that went backwards (a server restart, a statistics reset) or nothing
+   * to divide (an idle interval), the ratio has no value on this check.
+   * SQL Server's buffer cache hit ratio is the engine's own figure over its
+   * recent page reads, so it is read as it is.
    */
   public static applyDerivedMetrics(input: {
     databaseType: SqlDatabaseType;
     rawColumns: Record<string, number>;
+    previousCounters?: Record<string, number> | undefined;
     metrics: Partial<Record<MonitorMetricType, number>>;
   }): void {
-    const { databaseType, rawColumns, metrics } = input;
+    const { databaseType, rawColumns, previousCounters, metrics } = input;
+
+    const deltaOf: (column: string) => number | null = (
+      column: string,
+    ): number | null => {
+      return this.counterDelta({ column, rawColumns, previousCounters });
+    };
 
     const connectionsTotal: number | undefined =
       metrics[MonitorMetricType.DatabaseConnectionsTotal];
@@ -976,10 +1083,10 @@ export default class DatabaseMonitor {
     }
 
     if (databaseType === SqlDatabaseType.PostgreSQL) {
-      const hit: number | undefined = rawColumns["blks_hit"];
-      const read: number | undefined = rawColumns["blks_read"];
+      const hit: number | null = deltaOf("blks_hit");
+      const read: number | null = deltaOf("blks_read");
 
-      if (hit !== undefined && read !== undefined && hit + read > 0) {
+      if (hit !== null && read !== null && hit + read > 0) {
         metrics[MonitorMetricType.DatabaseCacheHitPercent] =
           (hit / (hit + read)) * 100;
       }
@@ -987,6 +1094,7 @@ export default class DatabaseMonitor {
       const commit: number | undefined = rawColumns["xact_commit"];
       const rollback: number | undefined = rawColumns["xact_rollback"];
 
+      // A counter, as the engine keeps it: cumulative since the server started.
       if (
         commit !== undefined &&
         rollback !== undefined &&
@@ -994,18 +1102,36 @@ export default class DatabaseMonitor {
       ) {
         metrics[MonitorMetricType.DatabaseTransactionsTotal] =
           commit + rollback;
+      }
+
+      const committed: number | null = deltaOf("xact_commit");
+      const rolledBack: number | null = deltaOf("xact_rollback");
+
+      if (
+        committed !== null &&
+        rolledBack !== null &&
+        committed + rolledBack > 0
+      ) {
         metrics[MonitorMetricType.DatabaseRollbackPercent] =
-          (rollback / (commit + rollback)) * 100;
+          (rolledBack / (committed + rolledBack)) * 100;
       }
     }
 
     if (databaseType === SqlDatabaseType.MySQL) {
-      const requests: number | undefined = rawColumns["bp_read_requests"];
-      const diskReads: number | undefined = rawColumns["bp_disk_reads"];
+      const requests: number | null = deltaOf("bp_read_requests");
+      const diskReads: number | null = deltaOf("bp_disk_reads");
 
-      if (requests !== undefined && diskReads !== undefined && requests > 0) {
-        metrics[MonitorMetricType.DatabaseCacheHitPercent] =
-          (1 - diskReads / requests) * 100;
+      /*
+       * Innodb_buffer_pool_reads counts the requests the pool could not
+       * serve, so it never outgrows read_requests over one interval; held to
+       * 0-100 all the same, so a counter quirk never writes a percent past
+       * either end.
+       */
+      if (requests !== null && diskReads !== null && requests > 0) {
+        metrics[MonitorMetricType.DatabaseCacheHitPercent] = Math.min(
+          100,
+          Math.max(0, (1 - diskReads / requests) * 100),
+        );
       }
     }
 

@@ -154,7 +154,7 @@ sudo systemctl enable --now oneuptime-docker-swarm-agent
 
 ## Atualizando o agente
 
-O agente relata a versão do coletor que executa. Quando ela é mais antiga que a versão que esta versão do OneUptime fixa, um sinal de aviso aparece ao lado da versão do agente na página **Visão geral** do cluster. Selecione-o para ver estes comandos.
+O agente relata a versão dos seus arquivos: a versão do coletor que eles executam, com o último número aumentando sempre que o OneUptime muda os arquivos e não o coletor. Quando ela é mais antiga que a versão que esta versão do OneUptime entrega, um sinal de aviso aparece ao lado da versão do agente na página **Visão geral** do cluster. Selecione-o para ver estes comandos.
 
 Execute o script de instalação de novo no nó manager e responda às perguntas dele com a mesma URL, a mesma chave e o mesmo nome de cluster. Ele baixa os arquivos mais recentes, baixa as imagens e reinicia o agente:
 
@@ -239,7 +239,7 @@ O nome do cluster vem de `DOCKER_SWARM_CLUSTER_NAME`. Mude-o em `.env` e execute
 :::
 
 :::details A CPU das tarefas é uma linha plana
-Um `otel-collector-config.yaml` antigo envia o valor de CPU calculado pelo próprio receiver `docker_stats`. Desde o coletor 0.150.0, o receiver o calcula a partir de uma única leitura de estatísticas: toda a CPU que um contêiner usou desde que iniciou, dividida por toda a CPU que o nó usou desde que foi ligado. A linha mal se move e não acompanha a carga, enquanto `container.cpu.usage.total` acompanha. A versão do coletor não mudou, então nenhum sinal de aviso aparece: baixe de novo os arquivos do agente como mostra [Atualizando o agente](#atualizando-o-agente). A partir da segunda leitura, o coletor passa a enviar a CPU que cada contêiner usou em cada intervalo de 30 segundos. As leituras já armazenadas ficam como estavam.
+Um `otel-collector-config.yaml` antigo envia o valor de CPU calculado pelo próprio receiver `docker_stats`. Desde o coletor 0.150.0, o receiver o calcula a partir de uma única leitura de estatísticas: toda a CPU que um contêiner usou desde que iniciou, dividida por toda a CPU que o nó usou desde que foi ligado. A linha mal se move e não acompanha a carga, enquanto `container.cpu.usage.total` acompanha. Um agente assim relata a versão 0.161.0 ou anterior, então um sinal de aviso aparece ao lado da versão dele: baixe de novo os arquivos do agente como mostra [Atualizando o agente](#atualizando-o-agente). A partir da segunda leitura, o coletor passa a enviar a CPU que cada contêiner usou em cada intervalo de 30 segundos. As leituras já armazenadas ficam como estavam.
 :::
 
 ## Próximos passos

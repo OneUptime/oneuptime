@@ -31,6 +31,9 @@
  *   ?busy=1      1,500 more Normal events in the last hour, more than one
  *                read takes: the warnings must still all show
  *   ?fail=       events (the first read of Events fails, the next works)
+ *   ?alerting=   on (a Logs monitor alerts on the cluster's warning events,
+ *                the Warning Events recommendation's own) | disabled (that
+ *                monitor, turned off) - by default nothing alerts on them
  *   ?lang=       de reads the German locale file
  *   ?theme=      dark adds html.dark (handled by server.js)
  *
@@ -61,6 +64,8 @@ import KubernetesNodeDetail from "../../../App/FeatureSet/Dashboard/src/Pages/Ku
 import KubernetesHPADetail from "../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/View/HPADetail";
 import KubernetesDeploymentDetail from "../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/View/DeploymentDetail";
 import KubernetesNamespaceDetail from "../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/View/NamespaceDetail";
+import KubernetesRecommendations from "../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/View/Recommendations";
+import { getKubernetesWarningEventsTemplate } from "Common/Types/Monitor/KubernetesEventAlertTemplates";
 import RouteMap from "../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import PageMap from "../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import Log from "Common/Models/AnalyticsModels/Log";
@@ -99,6 +104,9 @@ const EVENTS = ["normal-only", "none"].includes(params.get("events"))
 const IS_BUSY = params.get("busy") === "1";
 const FAIL = params.get("fail") === "events" ? "events" : "";
 const LANGUAGE = params.get("lang") === "de" ? "de" : "en";
+const ALERTING = ["on", "disabled"].includes(params.get("alerting"))
+  ? params.get("alerting")
+  : "off";
 
 const GLOBAL_PERMISSIONS = [
   Permission.Public,
@@ -807,6 +815,33 @@ const alertStates = [
 ];
 
 /*
+ * The Logs monitor the cluster's Warning Events recommendation creates
+ * (KubernetesEventAlertTemplates), as a monitor list returns it: what
+ * ?alerting=on puts on the project, and ?alerting=disabled turns off.
+ */
+const warningEventsMonitor = {
+  _id: uuid("58000000", 1),
+  name: `${CLUSTER_NAME} - Warning Events`,
+  monitorType: "Logs",
+  disableActiveMonitoring: ALERTING === "disabled",
+  monitorSteps: {
+    data: {
+      monitorStepsInstanceArray: [
+        getKubernetesWarningEventsTemplate().getMonitorStep({
+          clusterIdentifier: CLUSTER_IDENTIFIER,
+          onlineMonitorStatusId: new ObjectID(uuid("55000000", 1)),
+          offlineMonitorStatusId: new ObjectID(uuid("55000000", 2)),
+          defaultIncidentSeverityId: new ObjectID(uuid("56000000", 2)),
+          defaultAlertSeverityId: new ObjectID(uuid("57000000", 2)),
+          monitorName: CLUSTER_NAME,
+        }),
+      ],
+      defaultMonitorStatusId: new ObjectID(uuid("55000000", 1)),
+    },
+  },
+};
+
+/*
  * The project's records, by table. Tables the pages read that this project
  * has nothing in are modelled as empty; a read of any other is `unhandled`.
  */
@@ -829,9 +864,44 @@ const store = {
   Incident: [],
   Alert: [],
   ScheduledMaintenance: [],
-  // What the Recommendations menu item reads: no monitors, nothing dismissed.
-  Monitor: [],
+  /*
+   * What the Recommendations menu item and page, and the Events page's last
+   * line, read: no monitors - or, with ?alerting=, the Warning Events
+   * recommendation's Logs monitor - and nothing dismissed.
+   */
+  Monitor: ALERTING === "off" ? [] : [warningEventsMonitor],
   RecommendationDismissal: [],
+  /*
+   * What the cluster's Recommendations page reads to build a monitor and
+   * fill its create panel: the project's statuses and severities, and no
+   * on-call policies, labels or teams yet.
+   */
+  MonitorStatus: [
+    {
+      _id: uuid("55000000", 1),
+      name: "Operational",
+      isOperationalState: true,
+      isOfflineState: false,
+      priority: 1,
+    },
+    {
+      _id: uuid("55000000", 2),
+      name: "Offline",
+      isOperationalState: false,
+      isOfflineState: true,
+      priority: 2,
+    },
+  ],
+  IncidentSeverity: [
+    { _id: uuid("56000000", 1), name: "Critical", order: 1 },
+    { _id: uuid("56000000", 2), name: "Major", order: 2 },
+  ],
+  AlertSeverity: [
+    { _id: uuid("57000000", 1), name: "Critical", order: 1 },
+    { _id: uuid("57000000", 2), name: "Warning", order: 2 },
+  ],
+  OnCallDutyPolicy: [],
+  Label: [],
   // The databases a Deployment's page finds running in it: none here.
   DatabaseServer: [],
 };
@@ -1493,6 +1563,8 @@ const PAGES = [
     KubernetesDeploymentDetail,
   ],
   [PageMap.KUBERNETES_CLUSTER_VIEW_NAMESPACE_DETAIL, KubernetesNamespaceDetail],
+  // Where the Events page's "Turn on warning alerts" goes.
+  [PageMap.KUBERNETES_CLUSTER_VIEW_RECOMMENDATIONS, KubernetesRecommendations],
 ].map(([pageKey, Component]) => {
   return {
     path: RouteMap[pageKey].toString(),

@@ -364,6 +364,8 @@ Forsinkelsen i sekunder står på null på en inaktiv primærserver selv når en
 
 Tellere som slutter på `total`, er kumulative siden serveren startet. Sammenlign to tidspunkter for å få en rate; én enkelt verdi gir bare mening sammenlignet med sin egen historikk, og den nullstilles når serveren starter på nytt (noe **Uptime** viser deg).
 
+**Cache Hit Ratio** og **Rollback Ratio** regnes ut ved hver kontroll fra hvor mye tellerne har flyttet seg siden monitorens forrige kontroll, ikke siden serveren startet, så en hurtigbuffer som begynner å bomme, synes med en gang. Den første kontrollen etter at proben starter, og den første etter at serveren starter på nytt, har ingen av dem.
+
 ## Sett opp kriterier
 
 | Filtertype | Hva den sjekker |

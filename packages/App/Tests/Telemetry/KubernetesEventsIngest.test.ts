@@ -31,6 +31,12 @@ import ServiceType from "Common/Types/Telemetry/ServiceType";
 import { JSONObject } from "Common/Types/JSON";
 import KubernetesEventAttribute from "Common/Types/Kubernetes/KubernetesEvent";
 import {
+  KUBERNETES_WARNING_EVENTS_GROUP_BY,
+  buildKubernetesWarningEventsLogMonitor,
+} from "Common/Types/Monitor/KubernetesEventAlertTemplates";
+import { MonitorStepLogMonitorUtil } from "Common/Types/Monitor/MonitorStepLogMonitor";
+import InBetween from "Common/Types/BaseDatabase/InBetween";
+import {
   KubernetesEventFields,
   WatchType,
   issue5179Events,
@@ -602,5 +608,113 @@ describe("a protobuf payload", () => {
       [KubernetesEventAttribute.Namespace]: "aks-istio-system",
       [KubernetesEventAttribute.Count]: "3",
     });
+  });
+});
+
+/*
+ * Follow-up of #5201: a cluster's Warning Events alert (Common's
+ * KubernetesEventAlertTemplates) is a Logs monitor over these records. What
+ * it filters on, groups by and looks back over must be what ingest stores:
+ * read here from the rows ingest hands the writer.
+ */
+describe("the Warning Events alert counts what ingest stores", () => {
+  // Whether a stored row is one the cluster's alert counts.
+  function counted(
+    row: JSONObject,
+    clusterName: string = CLUSTER_NAME,
+  ): boolean {
+    const filter: Record<string, string | number | boolean> =
+      buildKubernetesWarningEventsLogMonitor(clusterName).attributes;
+
+    return Object.entries(filter).every(
+      ([key, value]: [string, string | number | boolean]): boolean => {
+        return attributesOf(row)[key] === value;
+      },
+    );
+  }
+
+  function storedAtMs(row: JSONObject): number {
+    return Number(BigInt(row["timeUnixNano"] as string) / BigInt(1000000));
+  }
+
+  test("every warning of the cluster, grouped by what ingest stamps, and no Normal event", async () => {
+    const rows: Array<JSONObject> = setupIngestMocks();
+
+    await OtelLogsIngestService.processLogsFromQueue(
+      agentRequest([
+        ...EVENTS.map((fields: KubernetesEventFields) => {
+          return eventRecord(fields);
+        }),
+        eventRecord(PULLED),
+      ]),
+    );
+
+    const warnings: number = EVENTS.filter(
+      (fields: KubernetesEventFields): boolean => {
+        return fields.type === "Warning";
+      },
+    ).length;
+    const countedRows: Array<JSONObject> = rows.filter((row: JSONObject) => {
+      return counted(row);
+    });
+
+    expect(warnings).toBeGreaterThan(0);
+    expect(countedRows).toHaveLength(warnings);
+    expect(counted(rows[rows.length - 1]!)).toBe(false);
+
+    // Every key the alert splits by is on every warning, so each has a group.
+    for (const row of countedRows) {
+      for (const key of KUBERNETES_WARNING_EVENTS_GROUP_BY) {
+        expect({ key, isText: typeof attributesOf(row)[key] }).toEqual({
+          key,
+          isText: "string",
+        });
+      }
+    }
+  });
+
+  test("not another cluster's warnings", async () => {
+    const rows: Array<JSONObject> = setupIngestMocks();
+
+    await OtelLogsIngestService.processLogsFromQueue(
+      agentRequest([eventRecord(OOM)]),
+    );
+
+    expect(counted(rows[0]!)).toBe(true);
+    expect(counted(rows[0]!, "eks-staging")).toBe(false);
+  });
+
+  test("a warning from a minute ago is in the alert's window; the DELETED of an older one is not", async () => {
+    const rows: Array<JSONObject> = setupIngestMocks();
+    const fresh: KubernetesEventFields = {
+      ...OOM,
+      uid: "6f2a8c10-0b1e-4e55-9c1a-5179000000ff",
+      lastSeen: new Date(Date.now() - 60 * 1000).toISOString(),
+    };
+
+    await OtelLogsIngestService.processLogsFromQueue(
+      agentRequest([
+        eventRecord(fresh),
+        // OOM last happened 12 minutes ago; Kubernetes deletes it an hour on.
+        eventRecord(OOM, { watchType: "DELETED" }),
+      ]),
+    );
+
+    const window: InBetween<Date> = MonitorStepLogMonitorUtil.toQuery(
+      buildKubernetesWarningEventsLogMonitor(CLUSTER_NAME),
+      new Date(),
+    ).time as InBetween<Date>;
+    const inWindow: (row: JSONObject) => boolean = (
+      row: JSONObject,
+    ): boolean => {
+      return (
+        storedAtMs(row) >= window.startValue.getTime() &&
+        storedAtMs(row) <= window.endValue.getTime()
+      );
+    };
+
+    expect(counted(rows[0]!) && inWindow(rows[0]!)).toBe(true);
+    expect(counted(rows[1]!)).toBe(true);
+    expect(inWindow(rows[1]!)).toBe(false);
   });
 });
