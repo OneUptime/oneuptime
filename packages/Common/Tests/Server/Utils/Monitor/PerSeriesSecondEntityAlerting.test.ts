@@ -193,6 +193,7 @@ function emptyResourceContext(): SeriesResolvedResourceIds {
     iotFleetIds: [],
     databaseServerIds: [],
     storageArrayIds: [],
+    cloudResourceIds: [],
   };
 }
 

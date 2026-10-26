@@ -3,6 +3,7 @@ import AlertSeverity from "./AlertSeverity";
 import AlertState from "./AlertState";
 import CephCluster from "./CephCluster";
 import StorageArray from "./StorageArray";
+import CloudResource from "./CloudResource";
 import DatabaseServer from "./DatabaseServer";
 import DockerHost from "./DockerHost";
 import DockerResource from "./DockerResource";
@@ -1294,6 +1295,60 @@ export default class Alert extends BaseModel {
     },
   })
   public storageArrays?: Array<StorageArray> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.CreateAlert,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
+      Permission.ReadAlert,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.EditAlert,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: CloudResource,
+    title: "Cloud Resources",
+    description: "List of cloud resources affected by this alert.",
+  })
+  @ManyToMany(
+    () => {
+      return CloudResource;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "AlertCloudResource",
+    inverseJoinColumn: {
+      name: "cloudResourceId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "alertId",
+      referencedColumnName: "_id",
+    },
+  })
+  public cloudResources?: Array<CloudResource> = undefined;
 
   @ColumnAccessControl({
     create: [

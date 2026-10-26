@@ -218,6 +218,7 @@ describe("MonitorIncident drops criteria references the project cannot use", () 
         iotFleetIds: [],
         databaseServerIds: [],
         storageArrayIds: [],
+        cloudResourceIds: [],
       });
 
     // Linked by hand (Monitor > Overview > Linked Resources): nothing here.
