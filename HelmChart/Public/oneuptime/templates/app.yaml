@@ -179,13 +179,6 @@ spec:
             - name: DISABLE_QUEUE_WORKERS
               value: {{ $.Values.worker.enabled | default false | quote }}
             {{- include "oneuptime.env.registerProbeKey" (dict "Values" $.Values "Release" $.Release) | nindent 12 }}
-            {{- if $.Values.runner.enabled }}
-            {{- /*
-            The shared Runner's key: the app lets the Runner (runner.yaml)
-            register as the installation's shared Runner with it.
-            */}}
-            {{- include "oneuptime.env.runnerKey" (dict "Values" $.Values "Release" $.Release) | nindent 12 }}
-            {{- end }}
             {{- with (default $.Values.extraEnv $.Values.app.extraEnv) }}
             {{- toYaml . | nindent 12 }}
             {{- end }}

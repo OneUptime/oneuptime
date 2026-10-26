@@ -97,9 +97,8 @@ export enum CodeWorkerKind {
   // One of the repository's project's own Runners (a Runner row).
   ProjectRunner = "project-runner",
   /*
-   * A global Runner for code: an AI agent with no project, which serves
-   * every project (the installation's bundled Runner, OneUptime Cloud's
-   * fleet).
+   * A global Runner: a Runner row with no project (isGlobalRunner), which
+   * OneUptime runs for every project.
    */
   GlobalRunner = "global-runner",
   // An AI agent of the project's own, from before Runners.

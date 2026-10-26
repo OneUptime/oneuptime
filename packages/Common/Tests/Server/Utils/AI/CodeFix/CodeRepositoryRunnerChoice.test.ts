@@ -133,7 +133,7 @@ describe("CodeRepositoryRunnerChoice", () => {
       .spyOn(AIAgentService, "getOnlineProjectAIAgent")
       .mockResolvedValue(null);
     globalOnline = jest
-      .spyOn(AIAgentService, "hasOnlineGlobalCodeRunner")
+      .spyOn(RunnerService, "hasOnlineGlobalRunner")
       .mockResolvedValue(true);
   });
 

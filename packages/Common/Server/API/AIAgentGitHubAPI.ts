@@ -14,7 +14,9 @@ import CodeRepository from "../../Models/DatabaseModels/CodeRepository";
 import AIRunService from "../Services/AIRunService";
 import CodeRepositoryService from "../Services/CodeRepositoryService";
 import CodeFixAgentAuth, {
+  CODE_FIX_RUN_HOLD_SELECT,
   CodeFixAgentIdentity,
+  CodeFixRunAccess,
 } from "../Utils/AI/CodeFix/CodeFixAgentAuth";
 import CodeFixTaskType, {
   CodeFixTaskTypeHelper,
@@ -59,6 +61,7 @@ const MAX_REVIEW_BODY_LENGTH: number = 60000;
 const MAX_INLINE_REVIEW_COMMENTS: number = 25;
 
 interface AuthorizedGitHubRun {
+  aiAgent: CodeFixAgentIdentity;
   run: AIRun;
   github: GitHubTaskContext;
   codeRepository: CodeRepository;
@@ -90,7 +93,7 @@ export default class AIAgentGitHubAPI {
             return;
           }
 
-          const { github, codeRepository, run } = authorized;
+          const { aiAgent, github, codeRepository, run } = authorized;
 
           const isPullRequest: boolean =
             github.pullRequestNumber !== undefined &&
@@ -167,9 +170,11 @@ export default class AIAgentGitHubAPI {
               organizationName: github.organizationName,
               repositoryName: github.repositoryName,
               mainBranchName: codeRepository.mainBranchName,
-              setupCommand: codeRepository.setupCommand || null,
-              buildCommand: codeRepository.buildCommand || null,
-              testCommand: codeRepository.testCommand || null,
+              // None for a global Runner, which runs no repository command.
+              ...CodeFixAgentAuth.getRepositoryCommands(
+                aiAgent,
+                codeRepository,
+              ),
             },
             issue: issue
               ? {
@@ -413,8 +418,7 @@ export default class AIAgentGitHubAPI {
     const run: AIRun | null = await AIRunService.findOneById({
       id: taskId,
       select: {
-        _id: true,
-        projectId: true,
+        ...CODE_FIX_RUN_HOLD_SELECT,
         runType: true,
         codeFixTaskType: true,
         taskContext: true,
@@ -424,12 +428,13 @@ export default class AIAgentGitHubAPI {
 
     /*
      * A denial answers exactly like a missing run, so a probing key cannot
-     * tell "another tenant's run" from "no such run".
+     * tell "another tenant's run" from "no such run" - and a global Runner
+     * is served only the run it holds (deniesAccessToRun).
      */
     if (
       !run ||
       !run.projectId ||
-      CodeFixAgentAuth.deniesAccessToProject(aiAgent, run.projectId)
+      CodeFixAgentAuth.deniesAccessToRun(aiAgent, run, CodeFixRunAccess.Work)
     ) {
       Response.sendErrorResponse(
         req,
@@ -510,7 +515,12 @@ export default class AIAgentGitHubAPI {
       return null;
     }
 
-    return { run: run, github: github, codeRepository: codeRepository };
+    return {
+      aiAgent: aiAgent,
+      run: run,
+      github: github,
+      codeRepository: codeRepository,
+    };
   }
 
   public getRouter(): ExpressRouter {

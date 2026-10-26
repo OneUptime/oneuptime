@@ -1,5 +1,5 @@
 import { spawn } from "child_process";
-import { RUNS_PROJECT_AUTHORED_COMMANDS } from "../Config";
+import { runsProjectAuthoredCommands } from "../Config";
 import FixVerificationStatus from "Common/Types/AI/FixVerificationStatus";
 import { CodeAgent, CodeAgentResult } from "../CodeAgents/Index";
 import { CodeRepositoryInfo } from "./BackendAPI";
@@ -89,6 +89,13 @@ const REPAIR_AGENT_TIMEOUT_MS: number = 15 * 60 * 1000;
  */
 export const NO_COMMANDS_VERIFICATION_SUMMARY: string =
   "The AI builds and tests its change as it works, the way the repository says to (its AGENTS.md first), and its summary says which checks it ran. No build or test commands are set for this repository in OneUptime, so no separate pass ran after it.";
+
+/*
+ * What a fix on a global Runner says in its log, in place of verification:
+ * it runs no command, so the repository's own CI checks the change.
+ */
+export const GLOBAL_RUNNER_VERIFICATION_LOG: string =
+  "This is a global Runner, so no command runs here - not the repository's setup, build or test commands, and none the AI composes. The fix opens for review and your repository's own CI checks it; run a Runner of your own to have fixes built and tested on the Runner before the pull request opens.";
 
 export interface VerificationCommand {
   // Which repository field the command came from.
@@ -189,16 +196,16 @@ export default class BuildVerification {
     onOutput?: ((chunk: string) => void) | undefined;
   }): Promise<CommandRunResult> {
     /*
-     * The spawn point holds the shared-Runner rule too, not only
-     * verifyWithRepairs: a repository's command never runs on the shared
-     * in-cluster Runner, whoever asks (see RUNS_PROJECT_AUTHORED_COMMANDS).
-     * Reported as not passed, so nothing can read it as a green build.
+     * The spawn point holds the global-Runner rule too, not only
+     * verifyWithRepairs: a repository's command never runs on a global
+     * Runner, whoever asks (see runsProjectAuthoredCommands). Reported as
+     * not passed, so nothing can read it as a green build.
      */
-    if (!RUNS_PROJECT_AUTHORED_COMMANDS) {
+    if (!runsProjectAuthoredCommands()) {
       return {
         passed: false,
         failedCommand: data.command,
-        outputTail: `The ${data.command.label} command was not run: a shared Runner does not run a repository's commands.`,
+        outputTail: `The ${data.command.label} command was not run: a global Runner does not run a repository's commands.`,
       };
     }
 
@@ -484,26 +491,25 @@ export default class BuildVerification {
     );
 
     /*
-     * The shared in-cluster Runner never runs a repository's configured
-     * commands: it serves every project, so nothing one project configures
-     * runs on it (see RUNS_PROJECT_AUTHORED_COMMANDS in Config). The fix is
-     * still written and opened for review; the
-     * repository's own CI and the reviewer check it. Reported honestly as
-     * Skipped, the same status a repository with no commands gets, so the
-     * pull request never implies a green build. A Runner of the project's
-     * own runs verification as before.
+     * A global Runner never runs a repository's configured commands: it
+     * serves every project, so nothing one project configures runs on it
+     * (see runsProjectAuthoredCommands in Config). The fix is still written
+     * and opened for review; the repository's own CI and the reviewer check
+     * it. Reported honestly as Skipped, the same status a repository with no
+     * commands gets, so the pull request never implies a green build. A
+     * Runner of the project's own runs verification as before.
+     *
+     * The server hands a global Runner none of a repository's commands
+     * (CodeFixAgentAuth.getRepositoryCommands), so whether the repository
+     * has any is not known here: the run says so either way.
      */
-    if (!RUNS_PROJECT_AUTHORED_COMMANDS) {
-      if (commands.length > 0) {
-        await data.log(
-          "This is a shared Runner, so the repository's setup/build/test commands are not run here. The fix opens for review and your repository's own CI checks it; run a Runner of your own to have fixes verified on the Runner before the pull request opens.",
-        );
-      }
+    if (!runsProjectAuthoredCommands()) {
+      await data.log(GLOBAL_RUNNER_VERIFICATION_LOG);
 
       return {
         status: FixVerificationStatus.Skipped,
         summary:
-          "Not verified — a shared Runner does not build or test the change. The pull request opened for review; your repository's own CI checks the change. Run a Runner of your own (Runbooks → Runners) to have fixes built and tested on the Runner before the pull request opens.",
+          "Not verified — a global Runner does not build or test the change. The pull request opened for review; your repository's own CI checks the change. Run a Runner of your own (Runbooks → Runners) to have fixes built and tested on the Runner before the pull request opens.",
         repairAttemptsUsed: 0,
         repairSummaries: [],
         repairPaths: [],

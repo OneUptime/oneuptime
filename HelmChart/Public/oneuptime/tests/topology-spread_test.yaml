@@ -45,7 +45,7 @@ tests:
       - templates/home.yaml
       - templates/nginx.yaml
       - templates/worker.yaml
-      - templates/runner.yaml
+      - templates/global-runner.yaml
       - templates/telemetry-writer.yaml
       - templates/probe.yaml
       - templates/test-server.yaml
@@ -89,8 +89,8 @@ tests:
       - equal:
           path: spec.template.spec.topologySpreadConstraints[0].labelSelector.matchLabels
           value:
-            app: oneuptime-runner
-        template: templates/runner.yaml
+            app: oneuptime-global-runner
+        template: templates/global-runner.yaml
         documentSelector:
           path: kind
           value: Deployment
@@ -466,7 +466,7 @@ tests:
       - templates/home.yaml
       - templates/nginx.yaml
       - templates/worker.yaml
-      - templates/runner.yaml
+      - templates/global-runner.yaml
       - templates/telemetry-writer.yaml
       - templates/probe.yaml
       - templates/test-server.yaml
@@ -572,7 +572,7 @@ tests:
                         appname: oneuptime
                     matchLabelKeys:
                       - app
-        template: templates/runner.yaml
+        template: templates/global-runner.yaml
         documentSelector:
           path: kind
           value: Deployment

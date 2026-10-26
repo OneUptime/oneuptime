@@ -12,7 +12,7 @@ templates:
   - templates/home.yaml
   - templates/telemetry-writer.yaml
   - templates/probe.yaml
-  - templates/runner.yaml
+  - templates/global-runner.yaml
 set:
   worker:
     enabled: true
@@ -116,8 +116,8 @@ tests:
               fieldRef:
                 fieldPath: metadata.name
 
-  - it: names the runner deployment
-    template: templates/runner.yaml
+  - it: names the global Runner deployment
+    template: templates/global-runner.yaml
     documentSelector:
       path: kind
       value: Deployment
@@ -126,7 +126,7 @@ tests:
           path: spec.template.spec.containers[0].env
           content:
             name: K8S_DEPLOYMENT_NAME
-            value: oneuptime-runner
+            value: oneuptime-global-runner
 
   - it: omits the cluster name unless one is configured
     template: templates/app.yaml

@@ -22,7 +22,7 @@ flowchart TB
         Ingress["ingress"]
         App["app"]
         Probe["probe-1"]
-        Runner["runner"]
+        Runner["global-runner"]
         subgraph Data["데이터 저장소"]
             direction LR
             PG[("postgres")]
@@ -38,7 +38,7 @@ flowchart TB
     App --> CH
     App --> VK
     Probe -->|결과| Ingress
-    Runner -->|작업| Ingress
+    Runner -->|작업| App
     Probe -->|검사| Targets
     Data ~~~ Probe
     Data ~~~ Runner
@@ -49,7 +49,7 @@ flowchart TB
 | `ingress` | `oneuptime/nginx` | 포트 80과 443으로 들어오는 모든 트래픽을 받아 앱으로 라우팅합니다. OneUptime이 인증서를 관리할 때 HTTPS를 제공합니다. |
 | `app` | `oneuptime/app` | 대시보드, API, 상태 페이지, 텔레메트리 수집, 백그라운드 워커. |
 | `probe-1` | `oneuptime/probe` | 모니터의 검사를 실행하는 글로벌 프로브. 호스트의 네트워크를 사용합니다. |
-| `runner` | `oneuptime/runner` | AI 코드 수정을 실행하는 인스턴스의 Runner. 호스트의 네트워크를 사용합니다. |
+| `global-runner` | `oneuptime/runner` | 모든 프로젝트의 런북 JavaScript 단계와 OneUptime AI의 코드 수정을 실행하는, 함께 제공되는 글로벌 Runner. |
 | `postgres` | `postgres:15` | 구성과 상태: 모니터, 인시던트, 사용자. `postgres` 볼륨에 저장됩니다. |
 | `clickhouse` | `clickhouse/clickhouse-server:26.7` | 텔레메트리: 로그, 메트릭, 트레이스, 예외. `clickhouse` 볼륨에 저장됩니다. |
 | `valkey` | `valkey/valkey:9.1-alpine` | 캐시와 큐. 디스크에는 아무것도 보관하지 않습니다. |
@@ -86,7 +86,6 @@ flowchart TB
 | 443 | `ingress` | `STATUS_PAGE_HTTPS_PORT` | OneUptime이 인증서를 관리할 때 인스턴스의 HTTPS, 그리고 사용자 지정 도메인의 상태 페이지와 대시보드. |
 | 5400 | `postgres` | `docker-compose.yml`에서 설정 | `npm run backup`과 `restore.sh`가 서버 자체에서 PostgreSQL에 접근하게 합니다. `127.0.0.1`에만 게시됩니다. |
 | 3874 | `probe-1` | `GLOBAL_PROBE_1_PORT` | 프로브 자체의 서버. 서버 바깥에서는 필요하지 않습니다. |
-| 3876 | `runner` | `ONEUPTIME_RUNNER_PORT` | Runner 자체의 서버. 서버 바깥에서는 필요하지 않습니다. |
 
 설치 과정을 보여 주는 [동영상](https://youtu.be/j1SWmMW2oL4)도 있습니다.
 
@@ -158,8 +157,7 @@ npm start
 | `DATABASE_PASSWORD`, `CLICKHOUSE_PASSWORD`, `VALKEY_PASSWORD` | 세 데이터 저장소. |
 | `REGISTER_PROBE_KEY` | 인스턴스에 프로브를 등록하는 일. |
 | `GLOBAL_PROBE_1_KEY`, `GLOBAL_PROBE_2_KEY` | Docker Compose가 실행할 수 있는 글로벌 프로브(기본적으로 `probe-1`이 실행됩니다). |
-| `ONEUPTIME_RUNNER_KEY` | 함께 제공되는 Runner. |
-| `GLOBAL_RUNNER_KEY` | 모든 프로젝트의 JavaScript 단계를 실행하는, 함께 제공되는 글로벌 Runner. |
+| `GLOBAL_RUNNER_KEY` | 모든 프로젝트의 JavaScript 단계와 AI 코드 수정을 실행하는, 함께 제공되는 글로벌 Runner. |
 
 > [!IMPORTANT]
 > OneUptime이 시작된 뒤에는 비밀 값을 유지하세요. PostgreSQL은 데이터베이스를 만들 때만 비밀번호를 받으며, 나중에 `ENCRYPTION_SECRET`을 바꾸면 이전 값으로 암호화된 모든 값을 읽을 수 없게 됩니다. 그래서 `npm start`는 새로 설치할 때, PostgreSQL이 데이터베이스를 만들기 전에만 `DATABASE_PASSWORD`와 `ENCRYPTION_SECRET`을 설정합니다.
@@ -234,7 +232,7 @@ ONEUPTIME_HTTP_PORT=127.0.0.1:8080
 STATUS_PAGE_HTTPS_PORT=127.0.0.1:8443
 ```
 
-프로브와 Runner는 호스트의 네트워크를 사용해 `http://localhost`로 OneUptime에 접근합니다. `npm start`가 이들을 ingress의 새 포트인 `http://localhost:8080`으로 옮기고 그 사실을 알려 줍니다.
+프로브는 호스트의 네트워크를 사용해 `http://localhost`로 OneUptime에 접근합니다. `npm start`가 프로브를 ingress의 새 포트인 `http://localhost:8080`으로 옮기고 그 사실을 알려 줍니다.
 
 #### OneUptime에 프록시 뒤에 있다고 알리기
 
@@ -541,7 +539,7 @@ Let's Encrypt가 인증서를 발급하기 전까지 ingress는 임시 자체 �
 :::
 
 :::details ingress 포트를 옮긴 뒤 함께 제공되는 프로브가 연결 끊김으로 표시됨
-Admin Dashboard는 **설정 > 모니터링 > 글로벌 프로브**에서 프로브를 보여 줍니다. 프로브는 `GLOBAL_PROBE_1_ONEUPTIME_URL`로 OneUptime에 접근하며, 기본값은 `http://localhost`(포트 80)입니다. 이 값과 `ONEUPTIME_RUNNER_ONEUPTIME_URL`이 `localhost`를 가리키는 동안에는 `npm start`가 ingress의 포트로 옮겨 줍니다. 다른 주소로 설정했거나 Docker CLI로 OneUptime을 시작했다면, 둘 다 ingress의 새 포트(예: `http://localhost:8080`)로 설정한 뒤 OneUptime을 다시 시작하세요.
+Admin Dashboard는 **설정 > 모니터링 > 글로벌 프로브**에서 프로브를 보여 줍니다. 프로브는 `GLOBAL_PROBE_1_ONEUPTIME_URL`로 OneUptime에 접근하며, 기본값은 `http://localhost`(포트 80)입니다. 이 값이 `localhost`를 가리키는 동안에는 `npm start`가 ingress의 포트로 옮겨 줍니다. 다른 주소로 설정했거나 Docker CLI로 OneUptime을 시작했다면, 이 값을 ingress의 새 포트(예: `http://localhost:8080`)로 설정한 뒤 OneUptime을 다시 시작하세요.
 :::
 
 ## 다음 단계

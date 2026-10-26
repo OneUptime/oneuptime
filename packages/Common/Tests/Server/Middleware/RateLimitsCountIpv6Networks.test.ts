@@ -108,7 +108,6 @@ import WrongComponentKeyLimit, {
   WRONG_COMPONENT_KEYS_PER_ADDRESS,
   WRONG_PROBE_KEYS_MESSAGE,
   WRONG_PROBE_REGISTRATION_KEYS_MESSAGE,
-  WRONG_SHARED_RUNNER_KEYS_MESSAGE,
 } from "../../../Server/Utils/RateLimit/WrongComponentKeyLimit";
 import { WrongKeyRefusal } from "../../../Server/Utils/RateLimit/WrongKeyLimit";
 import Exception from "../../../Types/Exception/Exception";
@@ -563,9 +562,8 @@ function wrongClusterKeySurface(): Surface {
  * Wrong probe, Runner and AI agent keys (WrongComponentKeyLimit): every
  * request presents another wrong key. A probe's or an agent's key is counted
  * for that one component, so every request here is about one probe or one
- * Runner, whichever resource it names; REGISTER_PROBE_KEY and the shared
- * Runner's key are counted for the client alone. Each answers a refused
- * client 429 with Retry-After.
+ * Runner, whichever resource it names; REGISTER_PROBE_KEY is counted for the
+ * client alone. Each answers a refused client 429 with Retry-After.
  */
 function wrongComponentKeySurface(
   name: string,
@@ -735,11 +733,6 @@ function everySurface(): Array<Surface> {
       "wrong probe registration keys",
       ComponentKeyKind.ProbeRegistration,
       WRONG_PROBE_REGISTRATION_KEYS_MESSAGE,
-    ),
-    wrongComponentKeySurface(
-      "wrong shared Runner keys",
-      ComponentKeyKind.SharedRunner,
-      WRONG_SHARED_RUNNER_KEYS_MESSAGE,
     ),
   ];
 }

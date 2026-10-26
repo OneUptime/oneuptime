@@ -4,15 +4,15 @@
  * Scripts/Install/FollowIngressPort.js, a step of `npm start` before Compose
  * starts anything.
  *
- * The bundled probes and the shared Runner use the host's network and reach
- * OneUptime through the ingress, at URLs config.example.env ships as
- * http://localhost (port 80). Moving the ingress (ONEUPTIME_HTTP_PORT=8080,
- * because port 80 was taken) left them calling port 80, so the probe never
- * registered and monitors never ran (#1834, #2035; the Docker Compose guide's
- * troubleshooting said to set the three URLs by hand). `npm start` now moves
- * each of them that calls this server over plain HTTP on another port than
- * the ingress's, and leaves every other value - and every other line - as
- * it is.
+ * The bundled probes use the host's network and reach OneUptime through the
+ * ingress, at URLs config.example.env ships as http://localhost (port 80).
+ * Moving the ingress (ONEUPTIME_HTTP_PORT=8080, because port 80 was taken)
+ * left them calling port 80, so the probe never registered and monitors never
+ * ran (#1834, #2035; the Docker Compose guide's troubleshooting said to set
+ * the URLs by hand). `npm start` now moves each of them that calls this
+ * server over plain HTTP on another port than the ingress's, and leaves every
+ * other value - and every other line - as it is. The bundled global Runner
+ * reaches the app on OneUptime's own network, so it has no such URL.
  */
 
 const fs = require("fs");
@@ -113,7 +113,7 @@ describe("followIngressPort on config.env", () => {
     expect(result.moved).toEqual([]);
   });
 
-  test("an ingress moved to 8080 moves the two probes and the Runner, and nothing else", () => {
+  test("an ingress moved to 8080 moves the two probes, and nothing else", () => {
     const before = withSetting(TEMPLATE, "ONEUPTIME_HTTP_PORT", "8080");
     const result = followIngressPort(before);
     const settings = readSettings(result.contents);
@@ -121,7 +121,6 @@ describe("followIngressPort on config.env", () => {
     expect(result.moved).toEqual([
       "GLOBAL_PROBE_1_ONEUPTIME_URL",
       "GLOBAL_PROBE_2_ONEUPTIME_URL",
-      "ONEUPTIME_RUNNER_ONEUPTIME_URL",
     ]);
     for (const key of BUNDLED_URL_SETTINGS) {
       expect(settings.get(key)).toBe("http://localhost:8080");
@@ -134,8 +133,29 @@ describe("followIngressPort on config.env", () => {
     expect(changed).toEqual([
       "GLOBAL_PROBE_1_ONEUPTIME_URL=http://localhost",
       "GLOBAL_PROBE_2_ONEUPTIME_URL=http://localhost",
-      "ONEUPTIME_RUNNER_ONEUPTIME_URL=http://localhost",
     ]);
+  });
+
+  /*
+   * The shared Runner, which used the host's network, is gone, and nothing
+   * reads its URL. A config.env from before keeps the line, untouched.
+   */
+  test("leaves the shared Runner's old URL in an older config.env alone", () => {
+    expect(BUNDLED_URL_SETTINGS).not.toContain(
+      "ONEUPTIME_RUNNER_ONEUPTIME_URL",
+    );
+
+    const before = withSetting(
+      withSetting(TEMPLATE, "ONEUPTIME_HTTP_PORT", "8080"),
+      "ONEUPTIME_RUNNER_ONEUPTIME_URL",
+      "http://localhost",
+    );
+    const result = followIngressPort(before);
+
+    expect(
+      readSettings(result.contents).get("ONEUPTIME_RUNNER_ONEUPTIME_URL"),
+    ).toBe("http://localhost");
+    expect(result.moved).not.toContain("ONEUPTIME_RUNNER_ONEUPTIME_URL");
   });
 
   test("the Docker Compose guide's proxy settings need nothing more", () => {
@@ -144,7 +164,6 @@ describe("followIngressPort on config.env", () => {
     for (const [key, value] of [
       ["ONEUPTIME_HTTP_PORT", "127.0.0.1:8080"],
       ["GLOBAL_PROBE_1_ONEUPTIME_URL", "http://localhost:8080"],
-      ["ONEUPTIME_RUNNER_ONEUPTIME_URL", "http://localhost:8080"],
     ]) {
       config = withSetting(config, key, value);
     }
@@ -212,18 +231,18 @@ describe("followIngressPort on config.env", () => {
   test("it says what it moved, in one line of npm start's list", () => {
     expect(
       describeMoved(
-        ["GLOBAL_PROBE_1_ONEUPTIME_URL", "ONEUPTIME_RUNNER_ONEUPTIME_URL"],
+        ["GLOBAL_PROBE_1_ONEUPTIME_URL", "GLOBAL_PROBE_2_ONEUPTIME_URL"],
         "http://localhost:8080",
       ),
     ).toBe(
-      "  ✓ Pointed the bundled probe and Runner at the ingress: GLOBAL_PROBE_1_ONEUPTIME_URL and ONEUPTIME_RUNNER_ONEUPTIME_URL are now http://localhost:8080 in config.env.",
+      "  ✓ Pointed the bundled probes at the ingress: GLOBAL_PROBE_1_ONEUPTIME_URL and GLOBAL_PROBE_2_ONEUPTIME_URL are now http://localhost:8080 in config.env.",
     );
     expect(
       describeMoved(["GLOBAL_PROBE_1_ONEUPTIME_URL"], "http://localhost:8080"),
     ).toContain("GLOBAL_PROBE_1_ONEUPTIME_URL is now http://localhost:8080");
   });
 
-  test("it names what it moved: the probe, the probes, the Runner, or them together", () => {
+  test("it names what it moved: the probe or the probes", () => {
     const subjectOf = (moved) => {
       const line = describeMoved(moved, "http://localhost:8080");
 
@@ -239,13 +258,8 @@ describe("followIngressPort on config.env", () => {
         "GLOBAL_PROBE_2_ONEUPTIME_URL",
       ]),
     ).toBe("the bundled probes");
-    expect(subjectOf(["ONEUPTIME_RUNNER_ONEUPTIME_URL"])).toBe(
-      "the bundled Runner",
-    );
-    expect(subjectOf(BUNDLED_URL_SETTINGS)).toBe(
-      "the bundled probes and Runner",
-    );
-    // A fresh config.example.env moves all three, and says so in those words.
+    expect(subjectOf(BUNDLED_URL_SETTINGS)).toBe("the bundled probes");
+    // A fresh config.example.env moves both, and says so in those words.
     expect(
       describeMoved(
         followIngressPort(withSetting(TEMPLATE, "ONEUPTIME_HTTP_PORT", "8080"))
@@ -253,7 +267,7 @@ describe("followIngressPort on config.env", () => {
         "http://localhost:8080",
       ),
     ).toBe(
-      "  ✓ Pointed the bundled probes and Runner at the ingress: GLOBAL_PROBE_1_ONEUPTIME_URL, GLOBAL_PROBE_2_ONEUPTIME_URL and ONEUPTIME_RUNNER_ONEUPTIME_URL are now http://localhost:8080 in config.env.",
+      "  ✓ Pointed the bundled probes at the ingress: GLOBAL_PROBE_1_ONEUPTIME_URL and GLOBAL_PROBE_2_ONEUPTIME_URL are now http://localhost:8080 in config.env.",
     );
   });
 });
@@ -298,11 +312,7 @@ describe("init", () => {
           logged.push(line);
         },
       }),
-    ).toEqual([
-      "GLOBAL_PROBE_1_ONEUPTIME_URL",
-      "GLOBAL_PROBE_2_ONEUPTIME_URL",
-      "ONEUPTIME_RUNNER_ONEUPTIME_URL",
-    ]);
+    ).toEqual(["GLOBAL_PROBE_1_ONEUPTIME_URL", "GLOBAL_PROBE_2_ONEUPTIME_URL"]);
     expect(files.writes).toBe(1);
     expect(logged).toHaveLength(1);
   });
@@ -413,20 +423,26 @@ describe("npm start", () => {
     expect(base.services["probe-2"].environment.ONEUPTIME_URL).toBe(
       "${GLOBAL_PROBE_2_ONEUPTIME_URL}",
     );
-    expect(base.services.runner.network_mode).toBe("host");
-    expect(base.services.runner.environment.ONEUPTIME_URL).toBe(
-      "${ONEUPTIME_RUNNER_ONEUPTIME_URL}",
-    );
 
     // The other services reach the app on OneUptime's own network.
     expect(base.services["global-runner"].network_mode).toBeUndefined();
+    expect(base.services["global-runner"].environment.ONEUPTIME_URL).toBe(
+      "http://app:${APP_PORT}",
+    );
+
+    // And no other service is on the host's network.
+    const onTheHostsNetwork = Object.keys(base.services).filter((name) => {
+      return base.services[name].network_mode === "host";
+    });
+
+    expect(onTheHostsNetwork.sort()).toEqual(["e2e", "probe-1", "probe-2"]);
   });
 });
 
 const describeWithCompose = hasDockerCompose() ? describe : describe.skip;
 
 describeWithCompose("as Compose renders a moved ingress", () => {
-  test("the bundled probe and Runner get the ingress's new address", () => {
+  test("the bundled probe gets the ingress's new address", () => {
     const moved = readSettings(
       followIngressPort(withSetting(TEMPLATE, "ONEUPTIME_HTTP_PORT", "8080"))
         .contents,
@@ -434,15 +450,9 @@ describeWithCompose("as Compose renders a moved ingress", () => {
     const rendered = renderCompose(["docker-compose.yml"], {
       ONEUPTIME_HTTP_PORT: "8080",
       GLOBAL_PROBE_1_ONEUPTIME_URL: moved.get("GLOBAL_PROBE_1_ONEUPTIME_URL"),
-      ONEUPTIME_RUNNER_ONEUPTIME_URL: moved.get(
-        "ONEUPTIME_RUNNER_ONEUPTIME_URL",
-      ),
     });
 
     expect(rendered.services["probe-1"].environment.ONEUPTIME_URL).toBe(
-      "http://localhost:8080",
-    );
-    expect(rendered.services.runner.environment.ONEUPTIME_URL).toBe(
       "http://localhost:8080",
     );
     expect(String(rendered.services.ingress.ports[0].published)).toBe("8080");

@@ -20,6 +20,18 @@ import {
  *     guard on the strict policy: public internet addresses only, never a
  *     private, loopback or link-local address or a cloud metadata endpoint -
  *     so never a project's network, nor the network the Runner sits in.
+ *   - OneUptime AI's code fixes, in every code repository on the Global
+ *     Runner (Types/Runner/CodeRepositoryRunner), one at a time, each in a
+ *     workspace of its own that is deleted when the fix ends. The code agent
+ *     writes the fix with its file tools alone: none of the repository's own
+ *     commands (setup, build, test) and no command a model composes ever
+ *     runs there. The server never hands a global Runner either - a
+ *     repository's commands, or the command tool to the model
+ *     (CodeFixAgentAuth) - and the Runner refuses both
+ *     (Config.runsProjectAuthoredCommands). A global Runner acts only for
+ *     the run it claimed and is handed a repository's token only for that
+ *     run (CodeFixAgentAuth.deniesAccessToRun); a GitHub repository's token
+ *     covers that one repository and is revoked when the fix ends.
  *
  * Bash, SSH and Kubernetes steps never run on a global Runner. A shell
  * cannot be kept apart from the other projects' steps on the same host
@@ -45,6 +57,15 @@ import {
 export const GLOBAL_RUNNER_STEP_TYPES: ReadonlyArray<RunbookStepType> = [
   RunbookStepType.JavaScript,
 ];
+
+/*
+ * The code agent's tool that runs a shell command in the repository
+ * (packages/Runner InHouseCodeAgent). Never offered on a global Runner: the
+ * Runner leaves it out and refuses the call, and the server takes it out of
+ * the tools the model is offered for a global Runner's run
+ * (CodeFixAgentAuth.getOfferedTools).
+ */
+export const CODE_AGENT_COMMAND_TOOL_NAME: string = "run_command";
 
 // Whether a global Runner may run a step of this type.
 export function canGlobalRunnersRunStepType(stepType: unknown): boolean {

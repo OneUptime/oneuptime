@@ -151,12 +151,15 @@ describe("the note is true to the code", () => {
     );
     expect(takeover).toContain("return isShippedSecretValue(row.key);");
 
+    /*
+     * The bundled Runner took over its global agent the same way until
+     * global Runners took its work: nothing registers an agent any more.
+     */
     const aiAgentApi: string = source(
       "packages/Common/Server/API/AIAgentAPI.ts",
     );
-    expect(aiAgentApi).toContain(
-      "AIAgentService.findGlobalAIAgentToTakeOver({",
-    );
+    expect(aiAgentApi).not.toContain("findGlobalAIAgentToTakeOver");
+    expect(aiAgentApi).not.toContain("/register`");
   });
 
   it("verifyProbeKey refuses a shipped probe key before it reads the cache or the database", () => {
@@ -181,10 +184,10 @@ describe("the note is true to the code", () => {
     const aiAgentApi: string = source(
       "packages/Common/Server/API/AIAgentAPI.ts",
     );
-    // Both the registration and the heartbeat refuse a shipped key.
+    // The heartbeat refuses a shipped key; there is no registration any more.
     expect(
       aiAgentApi.split("if (isShippedSecretValue(aiAgentKey)) {").length - 1,
-    ).toBe(2);
+    ).toBe(1);
   });
 
   it("EnvironmentConfig reads REGISTER_PROBE_KEY with no shipped fallback", () => {
@@ -200,7 +203,7 @@ describe("the note is true to the code", () => {
     );
   });
 
-  it("the install script generates all four keys, beside the cluster key", () => {
+  it("the install script generates the probe keys and the global Runner's key, beside the cluster key", () => {
     const script: string = source(
       "Scripts/Install/ReplacePlaceholderSecrets.js",
     );
@@ -215,10 +218,13 @@ describe("the note is true to the code", () => {
       "REGISTER_PROBE_KEY",
       "GLOBAL_PROBE_1_KEY",
       "GLOBAL_PROBE_2_KEY",
-      "ONEUPTIME_RUNNER_KEY",
+      "GLOBAL_RUNNER_KEY",
     ]) {
       expect(block).toContain(`"${key}"`);
     }
+
+    // The shared Runner's key went with the shared Runner.
+    expect(block).not.toContain('"ONEUPTIME_RUNNER_KEY"');
 
     // It is a step of the start script, not a prestart hook ignore-scripts skips.
     const packageJson: { scripts: Record<string, string> } = JSON.parse(

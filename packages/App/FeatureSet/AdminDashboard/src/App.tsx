@@ -28,7 +28,6 @@ import SettingsTelegram from "./Pages/Settings/Telegram/Index";
 import SettingsEmail from "./Pages/Settings/Email/Index";
 import SettingsProbes from "./Pages/Settings/Probes/Index";
 import SettingsGlobalRunners from "./Pages/Settings/GlobalRunners/Index";
-import SettingsAIAgents from "./Pages/Settings/AIAgents/Index";
 import SettingsLlmProviders from "./Pages/Settings/LlmProviders/Index";
 import SendEmail from "./Pages/SendEmail/Index";
 import MoreEmail from "./Pages/More/Email";
@@ -280,11 +279,6 @@ const App: () => JSX.Element = () => {
         <PageRoute
           path={RouteMap[PageMap.SETTINGS_GLOBAL_RUNNERS]?.toString() || ""}
           element={<SettingsGlobalRunners />}
-        />
-
-        <PageRoute
-          path={RouteMap[PageMap.SETTINGS_AI_AGENTS]?.toString() || ""}
-          element={<SettingsAIAgents />}
         />
 
         <PageRoute
