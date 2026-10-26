@@ -79,6 +79,7 @@ Hver samtale har en tillatelsesmodus, som du velger i skrivefeltet, ved siden av
 Hva Spør AI kan gjøre når en modus tillater det:
 
 - Opprette en hendelse, bekrefte eller løse hendelser og varsler, og endre alvorlighetsgraden til en hendelse.
+- Knytte en hendelse eller et varsel til infrastrukturen og tjenestene den gjelder. En hendelse den oppretter på siden til en ressurs, for eksempel en verts, knyttes til den ressursen, og godkjenningskortet viser hva hver handling knytter til. OneUptime AI undersøker og retter det en hendelse eller et varsel er knyttet til.
 - Legge inn et internt notat på en hendelse eller et varsel. Interne notater vises aldri på en statusside.
 - Publisere en offentlig statusoppdatering på en hendelse. Det er en egen handling, fordi den varsler abonnentene på statussiden.
 - Kalle ut en vaktretningslinje, kjøre en runbook eller starte en AI-undersøkelse av en hendelse eller et varsel.
