@@ -35811,9 +35811,9 @@
   "What to read": "Что читать",
   "When the client secret stops working, as the setup command printed it.": "Когда секрет клиента перестанет работать, как его вывела команда настройки.",
   "Where the account's resources are, most first, as last counted.": "Где находятся ресурсы аккаунта, по убыванию количества, по последнему подсчёту.",
-  "{{count}} changes kept by the last read": "Изменений сохранено последним чтением: {{count}}",
-  "{{count}} changes kept by the last read_one": "{{count}} изменение сохранено последним чтением",
   "{{via}} leads to {{endpoint}}, which it answers on.": "{{via}} ведёт к {{endpoint}}, на котором он отвечает.",
   "Link resource": "Связать ресурс",
-  "View Account": "Просмотр аккаунта"
+  "View Account": "Просмотр аккаунта",
+  "{{count}} new changes": "Новых изменений: {{count}}",
+  "{{count}} new changes_one": "{{count}} новое изменение"
 }

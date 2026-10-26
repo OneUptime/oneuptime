@@ -184,8 +184,29 @@ describe("an account a read reaches for the first time", () => {
       ],
     });
 
-    expect(created[0]!.name!.length).toBeLessThanOrEqual(50);
-    expect(created[0]!.providerAccountName!.length).toBeLessThanOrEqual(100);
+    // Both are short texts of 100: an Azure subscription's 64 characters fit whole.
+    expect(created[0]!.name).toBe("x".repeat(100));
+    expect(created[0]!.providerAccountName).toBe("x".repeat(100));
+  });
+
+  test("an Azure subscription's name of 64 characters is kept whole", async () => {
+    const name: string = "Contoso Production Workloads - Europe West - Payments Platform 01".slice(0, 64);
+
+    await CloudAccountService.recordAccountsSeen({
+      projectId: PROJECT,
+      connectionId: CONNECTION,
+      provider: CloudProvider.Azure,
+      accounts: [
+        {
+          accountId: "00000000-0000-4000-8000-000000000002",
+          name: name,
+        },
+      ],
+    });
+
+    expect(name).toHaveLength(64);
+    expect(created[0]!.name).toBe(name);
+    expect(created[0]!.providerAccountName).toBe(name);
   });
 
   test("an account with no id is no account", async () => {

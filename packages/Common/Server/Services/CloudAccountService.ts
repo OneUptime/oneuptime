@@ -100,7 +100,7 @@ export class Service extends ProjectReferencesService<Model> {
           created.accountId = accountId;
           created.name = (providerName || accountId).slice(
             0,
-            ColumnLength.Name,
+            ColumnLength.ShortText,
           );
           created.cloudConnectionId = data.connectionId;
 

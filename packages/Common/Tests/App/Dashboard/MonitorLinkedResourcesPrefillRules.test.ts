@@ -59,6 +59,7 @@ describe("what a monitor can be linked to", () => {
       "DockerSwarmCluster",
       "IoTFleet",
       "DatabaseServer",
+      "CloudResource",
       "Service",
     ]);
 
@@ -73,11 +74,14 @@ describe("what a monitor can be linked to", () => {
     );
   });
 
-  test("each create form's field writes the linked kinds, and maintenance its network sites too", () => {
+  test("each create form's field writes the linked kinds, and maintenance its network sites too - never cloud resources, which an event does not hold", () => {
     expect(INCIDENT_PREFILL_PAYLOAD_KEYS).toEqual(MONITOR_LINKED_RESOURCE_KEYS);
     expect(ALERT_PREFILL_PAYLOAD_KEYS).toEqual(MONITOR_LINKED_RESOURCE_KEYS);
+    expect(MONITOR_LINKED_RESOURCE_KEYS).toContain("cloudResources");
     expect(SCHEDULED_MAINTENANCE_PREFILL_PAYLOAD_KEYS).toEqual([
-      ...MONITOR_LINKED_RESOURCE_KEYS,
+      ...MONITOR_LINKED_RESOURCE_KEYS.filter((key: string): boolean => {
+        return key !== "cloudResources";
+      }),
       "networkSites",
     ]);
   });

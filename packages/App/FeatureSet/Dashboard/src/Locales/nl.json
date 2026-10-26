@@ -35811,9 +35811,9 @@
   "What to read": "Wat lezen",
   "When the client secret stops working, as the setup command printed it.": "Wanneer het clientgeheim niet meer werkt, zoals de instellingsopdracht het toonde.",
   "Where the account's resources are, most first, as last counted.": "Waar de resources van het account zich bevinden, de meeste eerst, volgens de laatste telling.",
-  "{{count}} changes kept by the last read": "{{count}} wijzigingen bewaard bij de laatste keer lezen",
-  "{{count}} changes kept by the last read_one": "{{count}} wijziging bewaard bij de laatste keer lezen",
   "{{via}} leads to {{endpoint}}, which it answers on.": "{{via}} leidt naar {{endpoint}}, waarop deze antwoordt.",
   "Link resource": "Resource koppelen",
-  "View Account": "Account bekijken"
+  "View Account": "Account bekijken",
+  "{{count}} new changes": "{{count}} nieuwe wijzigingen",
+  "{{count}} new changes_one": "{{count}} nieuwe wijziging"
 }

@@ -167,9 +167,14 @@ export default class CloudAccount extends BaseModel {
     read: readPermissions,
     update: updatePermissions,
   })
+  /*
+   * A display name, as a host's or a cloud resource's is: plain text, long
+   * enough for an Azure subscription's 64 characters (a person's name type,
+   * TableColumnType.Name, would ask the API for an object).
+   */
   @TableColumn({
     required: true,
-    type: TableColumnType.Name,
+    type: TableColumnType.ShortText,
     canReadOnRelationQuery: true,
     title: "Name",
     description:
@@ -178,8 +183,8 @@ export default class CloudAccount extends BaseModel {
   })
   @Column({
     nullable: false,
-    type: ColumnType.Name,
-    length: ColumnLength.Name,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
   })
   public name?: string = undefined;
 

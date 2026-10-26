@@ -35811,9 +35811,9 @@
   "What to read": "Cosa leggere",
   "When the client secret stops working, as the setup command printed it.": "Quando il segreto client smette di funzionare, come l'ha stampato il comando di configurazione.",
   "Where the account's resources are, most first, as last counted.": "Dove si trovano le risorse dell'account, prima le più numerose, secondo l'ultimo conteggio.",
-  "{{count}} changes kept by the last read": "{{count}} modifiche conservate dall'ultima lettura",
-  "{{count}} changes kept by the last read_one": "{{count}} modifica conservata dall'ultima lettura",
   "{{via}} leads to {{endpoint}}, which it answers on.": "{{via}} porta a {{endpoint}}, su cui risponde.",
   "Link resource": "Collega risorsa",
-  "View Account": "Visualizza account"
+  "View Account": "Visualizza account",
+  "{{count}} new changes": "{{count}} nuove modifiche",
+  "{{count}} new changes_one": "{{count}} nuova modifica"
 }

@@ -35811,9 +35811,9 @@
   "What to read": "읽을 대상",
   "When the client secret stops working, as the setup command printed it.": "설정 명령이 출력한, 클라이언트 비밀이 더 이상 작동하지 않는 시점입니다.",
   "Where the account's resources are, most first, as last counted.": "계정의 리소스가 있는 곳으로, 많은 것부터 마지막으로 집계한 기준입니다.",
-  "{{count}} changes kept by the last read": "마지막 읽기에서 변경 사항 {{count}}개 저장",
-  "{{count}} changes kept by the last read_one": "마지막 읽기에서 변경 사항 {{count}}개 저장",
   "{{via}} leads to {{endpoint}}, which it answers on.": "{{via}}은(는) {{endpoint}}(으)로 이어지며 이 리소스가 그곳에서 응답합니다.",
   "Link resource": "리소스 연결",
-  "View Account": "계정 보기"
+  "View Account": "계정 보기",
+  "{{count}} new changes": "새 변경 사항 {{count}}개",
+  "{{count}} new changes_one": "새 변경 사항 {{count}}개"
 }

@@ -412,8 +412,9 @@ export const CREATE_FROM_RECORD_KINDS: ReadonlyArray<CreateFromRecordKindDefinit
     {
       kind: CreateFromRecordKind.CloudResource,
       queryParam: "cloudResourceId",
+      // The resource's own trail: Project > Cloud > View Resource.
       listTitle: "Cloud",
-      listPage: PageMap.CLOUD_MONITORED_RESOURCES,
+      listPage: PageMap.CLOUD_RESOURCES,
       viewTitle: "View Resource",
       viewPage: PageMap.CLOUD_RESOURCE_VIEW,
       field: namedRecords("cloudResources"),

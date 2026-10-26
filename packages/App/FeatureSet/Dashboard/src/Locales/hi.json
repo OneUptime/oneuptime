@@ -35811,9 +35811,9 @@
   "What to read": "क्या पढ़ना है",
   "When the client secret stops working, as the setup command printed it.": "क्लाइंट सीक्रेट कब काम करना बंद करता है, जैसा सेटअप आदेश ने दिखाया।",
   "Where the account's resources are, most first, as last counted.": "खाते के संसाधन कहाँ हैं, सबसे अधिक पहले, आख़िरी गिनती के अनुसार।",
-  "{{count}} changes kept by the last read": "आख़िरी बार पढ़ने में {{count}} परिवर्तन सहेजे गए",
-  "{{count}} changes kept by the last read_one": "आख़िरी बार पढ़ने में {{count}} परिवर्तन सहेजा गया",
   "{{via}} leads to {{endpoint}}, which it answers on.": "{{via}} से {{endpoint}} तक पहुँचते हैं, जिस पर यह जवाब देता है।",
   "Link resource": "संसाधन लिंक करें",
-  "View Account": "खाता देखें"
+  "View Account": "खाता देखें",
+  "{{count}} new changes": "{{count}} नए परिवर्तन",
+  "{{count}} new changes_one": "{{count}} नया परिवर्तन"
 }

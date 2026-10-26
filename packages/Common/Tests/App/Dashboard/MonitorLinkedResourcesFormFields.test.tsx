@@ -29,6 +29,7 @@ const OTHER_KEYS: Array<string> = [
   "dockerSwarmClusters",
   "iotFleets",
   "databaseServers",
+  "cloudResources",
   "services",
 ];
 

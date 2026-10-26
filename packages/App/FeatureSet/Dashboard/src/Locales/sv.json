@@ -35811,9 +35811,9 @@
   "What to read": "Vad som ska läsas",
   "When the client secret stops working, as the setup command printed it.": "När klienthemligheten slutar fungera, som installationskommandot skrev ut det.",
   "Where the account's resources are, most first, as last counted.": "Var kontots resurser finns, flest först, enligt senaste räkningen.",
-  "{{count}} changes kept by the last read": "{{count}} ändringar sparade vid senaste läsningen",
-  "{{count}} changes kept by the last read_one": "{{count}} ändring sparad vid senaste läsningen",
   "{{via}} leads to {{endpoint}}, which it answers on.": "{{via}} leder till {{endpoint}}, som den svarar på.",
   "Link resource": "Länka resurs",
-  "View Account": "Visa konto"
+  "View Account": "Visa konto",
+  "{{count}} new changes": "{{count}} nya ändringar",
+  "{{count}} new changes_one": "{{count}} ny ändring"
 }

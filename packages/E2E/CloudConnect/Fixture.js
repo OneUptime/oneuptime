@@ -13,11 +13,17 @@ import { initReactI18next } from "react-i18next";
 import "Common/UI/Styles/Theme.css";
 import CloudConnectPage from "../../App/FeatureSet/Dashboard/src/Pages/Cloud/Connect";
 import CloudLayout from "../../App/FeatureSet/Dashboard/src/Pages/Cloud/Layout";
+import CloudAccountsPage from "../../App/FeatureSet/Dashboard/src/Pages/Cloud/Accounts/Accounts";
+import CloudAccountViewLayout from "../../App/FeatureSet/Dashboard/src/Pages/Cloud/Accounts/View/Layout";
+import CloudAccountOverviewPage from "../../App/FeatureSet/Dashboard/src/Pages/Cloud/Accounts/View/Overview";
+import CloudAccountResourcesPage from "../../App/FeatureSet/Dashboard/src/Pages/Cloud/Accounts/View/Resources";
 import PageMap from "../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap from "../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import JA from "../../App/FeatureSet/Dashboard/src/Locales/ja.json";
 import DE from "../../App/FeatureSet/Dashboard/src/Locales/de.json";
+import CloudAccount from "Common/Models/DatabaseModels/CloudAccount";
 import CloudConnection from "Common/Models/DatabaseModels/CloudConnection";
+import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import Project from "Common/Models/DatabaseModels/Project";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import ObjectID from "Common/Types/ObjectID";
@@ -50,6 +56,13 @@ import UserUtil from "Common/UI/Utils/User";
  *   ?verdict=   pass (default) | warn | auth | slow
  *   ?cloud=     aws | azure | gcp (the page opens that cloud's form)
  *   ?theme=dark   ?lang=ja|de
+ *
+ * Cloud > Accounts and one account's pages are drawn too
+ * (/dashboard/<project>/cloud/accounts[/<account>[/resources]]): with
+ * ?state=connected, the AWS account the AWS connection reads (being read),
+ * the Azure subscription of the connection that is not working (not read
+ * lately) and a Google Cloud project no connection reads any more, each
+ * with what it holds; the AWS account's resources are its Resources.
  */
 
 const params = new URLSearchParams(window.location.search);
@@ -187,6 +200,7 @@ const connections =
               newResources: 0,
               archivedResources: 0,
               pointsWritten: 1840,
+              changesRecorded: 12,
               requestCount: 64,
               warnings: [],
               durationMs: 5400,
@@ -252,7 +266,164 @@ const connections =
           }),
         ];
 
+/*
+ * The accounts the connections read. One now for every time the fixture
+ * stamps, so "read 4 minutes ago" never crosses the hour the status pill
+ * turns at while a test runs.
+ */
+const NOW = Date.now();
+const MINUTE = 60 * 1000;
+
+function account(id, fields) {
+  const item = new CloudAccount();
+  Object.assign(item, {
+    _id: id,
+    projectId: new ObjectID(PROJECT_ID),
+    createdAt: new Date("2026-10-20T08:00:00.000Z"),
+    labels: [],
+    ...fields,
+  });
+  return item;
+}
+
+function readingConnection(id, name) {
+  return Object.assign(new CloudConnection(), { _id: id, name: name });
+}
+
+const AWS_ACCOUNT_ID = "30000000-0000-4000-8000-000000000001";
+const AZURE_ACCOUNT_ID = "30000000-0000-4000-8000-000000000002";
+const GCP_ACCOUNT_ID = "30000000-0000-4000-8000-000000000003";
+
+const accounts =
+  dataState === "connected"
+    ? [
+        account(AWS_ACCOUNT_ID, {
+          name: "Production",
+          description: "Checkout, orders and the storefront.",
+          provider: "aws",
+          accountId: "123456789012",
+          providerAccountName: "acme-production",
+          cloudConnectionId: new ObjectID(
+            "20000000-0000-4000-8000-000000000001",
+          ),
+          cloudConnection: readingConnection(
+            "20000000-0000-4000-8000-000000000001",
+            "AWS 123456789012",
+          ),
+          resourceCount: 46,
+          regionCount: 2,
+          resourceSummary: {
+            resourceCount: 46,
+            types: [
+              { type: "AWS::EC2::Instance", count: 24 },
+              { type: "AWS::RDS::DBInstance", count: 9 },
+              { type: "AWS::Lambda::Function", count: 7 },
+              { type: "AWS::ElasticLoadBalancingV2::LoadBalancer", count: 4 },
+              { type: "AWS::S3::Bucket", count: 2 },
+            ],
+            regions: [
+              { region: "us-east-1", count: 31 },
+              { region: "eu-west-1", count: 15 },
+            ],
+          },
+          lastSeenAt: new Date(NOW - 4 * MINUTE),
+          inventoryListedAt: new Date(NOW - 22 * MINUTE),
+        }),
+        account(AZURE_ACCOUNT_ID, {
+          name: "Contoso production",
+          provider: "azure",
+          accountId: "7c4a1f2e-9d3b-4e5f-8a6b-1c2d3e4f5a6b",
+          providerAccountName: "Contoso production",
+          cloudConnectionId: new ObjectID(
+            "20000000-0000-4000-8000-000000000002",
+          ),
+          cloudConnection: readingConnection(
+            "20000000-0000-4000-8000-000000000002",
+            "Contoso production",
+          ),
+          resourceCount: 37,
+          regionCount: 2,
+          resourceSummary: {
+            resourceCount: 37,
+            types: [
+              { type: "Microsoft.Compute/virtualMachines", count: 18 },
+              { type: "Microsoft.Sql/servers/databases", count: 6 },
+            ],
+            regions: [
+              { region: "westeurope", count: 29 },
+              { region: "northeurope", count: 8 },
+            ],
+          },
+          lastSeenAt: new Date(NOW - 26 * 60 * MINUTE),
+          inventoryListedAt: new Date(NOW - 26 * 60 * MINUTE),
+        }),
+        account(GCP_ACCOUNT_ID, {
+          name: "acme-legacy",
+          provider: "gcp",
+          accountId: "acme-legacy",
+          resourceCount: 3,
+          regionCount: 1,
+          resourceSummary: {
+            resourceCount: 3,
+            types: [{ type: "gce_instance", count: 3 }],
+            regions: [{ region: "europe-west1", count: 3 }],
+          },
+          lastSeenAt: new Date("2026-10-19T12:00:00.000Z"),
+        }),
+      ]
+    : [];
+
+function cloudResource(id, fields) {
+  return Object.assign(new CloudResource(), {
+    _id: id,
+    projectId: new ObjectID(PROJECT_ID),
+    cloudProvider: "aws",
+    cloudAccountId: "123456789012",
+    isArchived: false,
+    labels: [],
+    ...fields,
+  });
+}
+
+// The AWS account's resources, as its Resources page lists them.
+const AWS_RESOURCES = [
+  cloudResource("40000000-0000-4000-8000-000000000001", {
+    name: "web-alb",
+    cloudResourceType: "AWS::ElasticLoadBalancingV2::LoadBalancer",
+    cloudRegion: "us-east-1",
+    otelCollectorStatus: "connected",
+    lastSeenAt: new Date(NOW - 3 * MINUTE),
+  }),
+  cloudResource("40000000-0000-4000-8000-000000000002", {
+    name: "orders-db",
+    cloudResourceType: "AWS::RDS::DBInstance",
+    cloudRegion: "eu-west-1",
+    otelCollectorStatus: "connected",
+    lastSeenAt: new Date(NOW - 3 * MINUTE),
+  }),
+  cloudResource("40000000-0000-4000-8000-000000000003", {
+    name: "nightly-export",
+    cloudResourceType: "AWS::Lambda::Function",
+    cloudRegion: "us-east-1",
+    otelCollectorStatus: "disconnected",
+    lastSeenAt: new Date(NOW - 3 * 24 * 60 * MINUTE),
+  }),
+];
+
+// A query's value as the list sent it: an Includes' values, or the value.
+function plainValues(value) {
+  if (value && typeof value === "object" && Array.isArray(value.values)) {
+    return value.values.map(String);
+  }
+  if (value && typeof value === "object" && Array.isArray(value.value)) {
+    return value.value.map(String);
+  }
+  return value === undefined || value === null ? [] : [String(value)];
+}
+
 const state = {
+  // What each list read asked for, by model.
+  listRequests: [],
   // Every connection a form created, as the model it sent.
   creates: [],
   // Every update: the id and the data.
@@ -431,11 +602,48 @@ ModelAPI.getList = async (args) => {
     const data = connections.map(copy);
     return { data: data, count: data.length, skip: 0, limit: args.limit };
   }
+
+  if (args.modelType === CloudAccount) {
+    state.listRequests.push({ model: "CloudAccount" });
+    const data = accounts.map((item) => {
+      return Object.assign(new CloudAccount(), item);
+    });
+    return { data: data, count: data.length, skip: 0, limit: args.limit };
+  }
+
+  if (args.modelType === CloudResource) {
+    const query = args.query || {};
+    const provider = String(query.cloudProvider || "");
+    const accountIds = plainValues(query.cloudAccountId);
+    state.listRequests.push({
+      model: "CloudResource",
+      cloudProvider: provider,
+      cloudAccountIds: accountIds,
+      isArchived: query.isArchived,
+    });
+    const data = AWS_RESOURCES.filter((item) => {
+      return (
+        item.cloudProvider === provider &&
+        accountIds.includes(item.cloudAccountId)
+      );
+    }).map((item) => {
+      return Object.assign(new CloudResource(), item);
+    });
+    return { data: data, count: data.length, skip: 0, limit: args.limit };
+  }
+
   return { data: [], count: 0, skip: 0, limit: args.limit };
 };
 
 // One connection, as the list asks after a read it started (Read now).
 ModelAPI.getItem = async (args) => {
+  if (args.modelType === CloudAccount) {
+    const found = accounts.find((item) => {
+      return item._id === args.id.toString();
+    });
+    return found ? Object.assign(new CloudAccount(), found) : null;
+  }
+
   state.itemAsks++;
   if (args.modelType === CloudConnection) {
     const found = connections.find((item) => {
@@ -449,6 +657,9 @@ ModelAPI.getItem = async (args) => {
 ModelAPI.count = async (args) => {
   if (args.modelType === CloudConnection) {
     return connections.length;
+  }
+  if (args.modelType === CloudAccount) {
+    return accounts.length;
   }
   return 0;
 };
@@ -569,6 +780,40 @@ function FixtureConnect() {
   );
 }
 
+const ACCOUNTS_ROUTE = RouteMap[PageMap.CLOUD_ACCOUNTS];
+const ACCOUNT_ROUTE = RouteMap[PageMap.CLOUD_ACCOUNT_VIEW];
+const ACCOUNT_RESOURCES_ROUTE = RouteMap[PageMap.CLOUD_ACCOUNT_VIEW_RESOURCES];
+
+// A Dashboard page, given what App.tsx gives every page.
+function withNavigation(Component, pageRoute) {
+  return function NavigatedPage() {
+    useNavigationHooks();
+
+    return (
+      <Component
+        currentProject={project}
+        pageRoute={pageRoute}
+        hasPaymentMethod={true}
+      />
+    );
+  };
+}
+
+const FixtureAccountsLayout = withNavigation(CloudLayout, ACCOUNTS_ROUTE);
+const FixtureAccounts = withNavigation(CloudAccountsPage, ACCOUNTS_ROUTE);
+const FixtureAccountLayout = withNavigation(
+  CloudAccountViewLayout,
+  ACCOUNT_ROUTE,
+);
+const FixtureAccountOverview = withNavigation(
+  CloudAccountOverviewPage,
+  ACCOUNT_ROUTE,
+);
+const FixtureAccountResources = withNavigation(
+  CloudAccountResourcesPage,
+  ACCOUNT_RESOURCES_ROUTE,
+);
+
 // A page the Connect page links to that is not modelled: says where it is.
 function StubPage() {
   useNavigationHooks();
@@ -600,6 +845,22 @@ function FixtureApp() {
       <Routes>
         <Route element={<FixtureLayout />}>
           <Route path={CONNECT_ROUTE.toString()} element={<FixtureConnect />} />
+        </Route>
+        <Route element={<FixtureAccountsLayout />}>
+          <Route
+            path={ACCOUNTS_ROUTE.toString()}
+            element={<FixtureAccounts />}
+          />
+        </Route>
+        <Route element={<FixtureAccountLayout />}>
+          <Route
+            path={ACCOUNT_ROUTE.toString()}
+            element={<FixtureAccountOverview />}
+          />
+          <Route
+            path={ACCOUNT_RESOURCES_ROUTE.toString()}
+            element={<FixtureAccountResources />}
+          />
         </Route>
         <Route path="*" element={<StubPage />} />
       </Routes>

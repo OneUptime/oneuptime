@@ -13,7 +13,10 @@ import path from "path";
  * it found and what reading it costs, an AWS role or an access key, and the
  * list's status and actions, Read now watched to its end - at desktop and
  * phone width, beside the side menu at 768 and 1024, in the dark theme and
- * in Japanese.
+ * in Japanese. What to read - one account, or every account of its
+ * organization - changes the command and what the read asks for. And
+ * Cloud > Accounts: the accounts the connections read, each one's
+ * Overview and Resources.
  *
  * The screenshots under output/playwright/cloud-connect-ui are for the
  * people who review the page.
@@ -229,7 +232,13 @@ test.describe("connecting Azure", () => {
     await expect(shell).toHaveAttribute("target", "_blank");
     await expect(
       dialog(page).getByTestId("cloud-setup-read-only"),
-    ).toContainText("OneUptime can only read resources and metrics.");
+    ).toContainText(
+      "OneUptime can only read: resources, metrics and the activity log. Never data or secrets.",
+    );
+    // What to read: the subscription the command is run in, unless told otherwise.
+    await expect(
+      dialog(page).getByRole("radio", { name: "This subscription" }),
+    ).toBeChecked();
     await expectNoSidewaysScroll(page);
     await shoot(page, "azure-command");
 
@@ -268,6 +277,7 @@ test.describe("connecting Azure", () => {
       provider: "azure",
       config: {
         authMethod: "azure-client-secret",
+        readScope: "account",
         tenantId: TENANT,
         clientId: APP,
         cloud: "public",
@@ -397,6 +407,7 @@ test.describe("one paste, whatever the cloud", () => {
       provider: "aws",
       config: {
         authMethod: "aws-role",
+        readScope: "account",
         roleArn: ROLE_ARN,
         readIntervalInMinutes: "10",
       },
@@ -467,6 +478,125 @@ test.describe("connecting AWS", () => {
     expect(state.roleSetupAsks).toBe(1);
   });
 
+  /*
+   * What to read sits above the command, which follows it: this account by
+   * default, or every account of the AWS Organization - a StackSet run in
+   * the management account - and the read asks for the organization too.
+   * An access key's user reads its own account only, so it is not asked.
+   */
+  test("What to read: this account first, the organization a click away, and the command and the test follow", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "cloud=aws");
+
+    const scope: Locator = dialog(page).getByTestId("cloud-connection-scope");
+    const one: Locator = dialog(page).getByRole("radio", {
+      name: "This account",
+    });
+    const every: Locator = dialog(page).getByRole("radio", {
+      name: "Every account in the organization",
+    });
+    const code: Locator = dialog(page).getByTestId("cloud-setup-command-code");
+
+    await expect(
+      dialog(page).getByRole("radiogroup", { name: "What to read" }),
+    ).toBeVisible();
+    await expect(one).toBeChecked();
+    await expect(code).not.toContainText("create-stack-set");
+
+    await every.check();
+    await expect(code).toContainText(
+      "aws cloudformation activate-organizations-access",
+    );
+    await expect(code).toContainText("--permission-model SERVICE_MANAGED");
+    // The management account's own role, the one that may list the accounts.
+    await expect(code).toContainText("organizations:ListAccounts");
+    await expect(code).toContainText(
+      'aws iam get-role --role-name "$ROLE" --query Role.Arn --output text',
+    );
+    await expectNoSidewaysScroll(page);
+    await shoot(page, "aws-organization-command");
+
+    // An access key reads its own account: nothing to choose, one account's command.
+    await dialog(page).getByRole("radio", { name: /Access key/ }).check();
+    await expect(scope).toHaveCount(0);
+    await expect(code).toContainText("aws iam create-access-key");
+    await expect(code).not.toContainText("create-stack-set");
+
+    // Back to the role: the organization is still what it reads.
+    await dialog(page).getByRole("radio", { name: /IAM role/ }).check();
+    await expect(every).toBeChecked();
+
+    await next(page).click();
+    await pasteBox(page).fill(`${ROLE_ARN}\n`);
+    await next(page).click();
+    await expect(
+      dialog(page).getByTestId("cloud-connection-test-pass"),
+    ).toBeVisible();
+
+    let state: FixtureState = await fixture(page);
+    expect(state.tests[0]!.body["config"]).toMatchObject({
+      authMethod: "aws-role",
+      readScope: "organization",
+      roleArn: ROLE_ARN,
+    });
+
+    await submit(page).click();
+    await expect(dialog(page)).toHaveCount(0);
+
+    state = await fixture(page);
+    expect(state.creates[0]!.config).toMatchObject({
+      authMethod: "aws-role",
+      readScope: "organization",
+    });
+  });
+
+  test("every subscription of an Azure tenant, every project of a Google Cloud organization: the command grants the role there", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "cloud=azure");
+
+    const azureCode: Locator = dialog(page).getByTestId(
+      "cloud-setup-command-code",
+    );
+    await expect(azureCode).toContainText(
+      'SCOPE="/subscriptions/$(az account show --query id --output tsv)"',
+    );
+    await dialog(page)
+      .getByRole("radio", { name: "Every subscription in the tenant" })
+      .check();
+    await expect(azureCode).toContainText(
+      "/providers/Microsoft.Management/managementGroups/",
+    );
+    // The secret's expiry is printed with the rest, for OneUptime to warn about.
+    await expect(azureCode).toContainText("endDateTime");
+    await shoot(page, "azure-organization-command");
+
+    await open(page, "cloud=gcp");
+
+    const gcpCode: Locator = dialog(page).getByTestId(
+      "cloud-setup-command-code",
+    );
+    await expect(
+      dialog(page).getByRole("radio", { name: "This project" }),
+    ).toBeChecked();
+    await expect(gcpCode).not.toContainText(
+      "gcloud organizations add-iam-policy-binding",
+    );
+    await dialog(page)
+      .getByRole("radio", { name: "Every project in the organization" })
+      .check();
+    await expect(gcpCode).toContainText(
+      "gcloud organizations add-iam-policy-binding",
+    );
+    await expect(gcpCode).toContainText("roles/servicehealth.viewer");
+    await expectNoSidewaysScroll(page);
+  });
+
   test("a OneUptime that cannot sign in to a role offers an access key, with nothing to choose", async ({
     page,
   }: {
@@ -506,6 +636,12 @@ test.describe("the connected accounts", () => {
     await expect(
       page.getByTestId("cloud-connection-regions").first(),
     ).toHaveText("us-east-1, eu-west-1");
+    // What its activity log and AWS Health added on the last read.
+    await expect(
+      page.getByTestId("cloud-connection-changes").first(),
+    ).toHaveText("12 new changes");
+    // A read that added none says nothing about it.
+    await expect(page.getByTestId("cloud-connection-changes")).toHaveCount(1);
     // Under how it is doing: when it was last read, and how often it is.
     await expect(
       page.getByTestId("cloud-connection-last-read").first(),
@@ -840,5 +976,274 @@ test.describe("in the dark and in another language", () => {
     ).toContainText("gcloud iam service-accounts keys create");
     await expectNoSidewaysScroll(page);
     await shoot(page, "gcp-command-ja");
+  });
+});
+
+/*
+ * Cloud > Accounts: the AWS accounts, Azure subscriptions and Google Cloud
+ * projects the connections read, each a page of its own - what it holds by
+ * type and Region, which connection reads it and how lately - and its
+ * Resources, found by owner and label as on All Resources. An empty list
+ * says in one line why it is empty, and the way in is under it.
+ */
+const ACCOUNTS_PATH: string = `/dashboard/${PROJECT_ID}/cloud/accounts`;
+const AWS_ACCOUNT: string = "30000000-0000-4000-8000-000000000001";
+const AZURE_ACCOUNT: string = "30000000-0000-4000-8000-000000000002";
+const GCP_ACCOUNT: string = "30000000-0000-4000-8000-000000000003";
+
+interface ListRequest {
+  model: string;
+  cloudProvider?: string;
+  cloudAccountIds?: Array<string>;
+  isArchived?: boolean;
+}
+
+async function openAccounts(page: Page, address: string): Promise<void> {
+  await page.goto(address);
+  await page.evaluate(async () => {
+    await document.fonts.ready;
+  });
+}
+
+async function listRequests(page: Page): Promise<Array<ListRequest>> {
+  return await page.evaluate(() => {
+    return JSON.parse(
+      JSON.stringify(
+        (
+          window as unknown as {
+            __cloudConnectFixture: { state: { listRequests: unknown } };
+          }
+        ).__cloudConnectFixture.state.listRequests,
+      ),
+    );
+  });
+}
+
+// The side menu beside a page (a phone folds it behind a button).
+function sideMenu(page: Page): Locator {
+  return page.getByRole("navigation", { name: "Main navigation" }).first();
+}
+
+// One row of an account's Resources by type or by Region: its words and its count.
+function countRow(card: Locator, label: string): Locator {
+  return card.getByRole("listitem").filter({ hasText: label });
+}
+
+test.describe("cloud accounts", () => {
+  test("the list: each account a connection reads, what it holds, and its page a click away", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openAccounts(page, `${ACCOUNTS_PATH}?state=connected`);
+
+    await expect(page.getByText("Cloud Accounts").first()).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: "Production", exact: true }),
+    ).toBeVisible();
+    await expect(page.getByText("123456789012").first()).toBeVisible();
+    await expect(page.getByText("AWS · acme-production")).toBeVisible();
+    // The Azure subscription is named as in Azure already: said once.
+    await expect(page.getByRole("cell", { name: "Contoso production Azure" })).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: "acme-legacy", exact: true }),
+    ).toBeVisible();
+    // A connection adds accounts: there is nothing to create here.
+    await expect(
+      page
+        .getByTestId("card-header-actions")
+        .first()
+        .getByRole("button", { name: /^Create / }),
+    ).toHaveCount(0);
+    await expect(page.getByTestId("cloud-connect-callout")).toHaveCount(0);
+    // Beside the list, the side menu says where this is: Cloud > Accounts.
+    if (test.info().project.name === "desktop") {
+      await expect(
+        sideMenu(page).getByRole("link", { name: "Accounts", exact: true }),
+      ).toHaveAttribute("aria-current", "page");
+    }
+    await expectNoSidewaysScroll(page);
+    await shoot(page, "accounts-list");
+
+    await page.getByRole("link", { name: "Production", exact: true }).click();
+    await expect(page).toHaveURL(`${ACCOUNTS_PATH}/${AWS_ACCOUNT}`);
+    await expect(page.getByTestId("resource-overview-status")).toHaveText(
+      "Reading",
+    );
+  });
+
+  test("nothing connected: the list says why in one line, and the way in is under it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openAccounts(page, `${ACCOUNTS_PATH}?state=empty`);
+
+    const empty: Locator = page.locator('[data-empty-state-kind="empty"]');
+    await expect(empty).toContainText("No cloud accounts yet");
+    await expect(empty).toContainText(
+      "An account appears here once a cloud connection reads it.",
+    );
+    const callout: Locator = page.getByTestId("cloud-connect-callout");
+    await expect(callout).toContainText("Connect a cloud account");
+
+    for (const provider of ["aws", "azure", "gcp"]) {
+      await expect(
+        callout.getByTestId(`cloud-connection-tile-${provider}`),
+      ).toBeEnabled();
+    }
+
+    await expectNoSidewaysScroll(page);
+    await shoot(page, "accounts-empty");
+  });
+
+  test("an account's Overview: which cloud and account, the connection that reads it, and what it holds by type and Region", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openAccounts(page, `${ACCOUNTS_PATH}/${AWS_ACCOUNT}?state=connected`);
+
+    await expect(
+      page
+        .getByTestId("resource-overview-title-block")
+        .getByRole("heading", { name: "Production", level: 1 }),
+    ).toBeVisible();
+    await expect(page.getByTestId("resource-overview-status")).toHaveText(
+      "Reading",
+    );
+    await expect(
+      page.getByTestId("resource-overview-title-block"),
+    ).toContainText("123456789012");
+
+    // The tiles: how many resources (the way to them), Regions and types.
+    const resources: Locator = page.getByRole("link", { name: /Resources/ }).filter({
+      hasText: "46",
+    });
+    await expect(resources.first()).toHaveAttribute(
+      "href",
+      `${ACCOUNTS_PATH}/${AWS_ACCOUNT}/resources`,
+    );
+
+    // The Details card: the account's cloud, its name there and its connection.
+    const details: Locator = page.getByTestId("resource-overview-details");
+    await expect(details).toContainText("Amazon Web Services");
+    await expect(details).toContainText("acme-production");
+    await expect(
+      details.getByRole("link", { name: "AWS 123456789012" }),
+    ).toHaveAttribute("href", `/dashboard/${PROJECT_ID}/cloud/connect`);
+
+    // What it holds, most first, in its cloud's words.
+    const byType: Locator = page
+      .getByTestId("card")
+      .filter({ hasText: "Resources by Type" });
+    await expect(countRow(byType, "EC2 Instance")).toContainText("24");
+    await expect(countRow(byType, "RDS DB Instance")).toContainText("9");
+    await expect(byType.getByRole("listitem").first()).toContainText(
+      "EC2 Instance",
+    );
+    const byRegion: Locator = page
+      .getByTestId("card")
+      .filter({ hasText: "Resources by Region" });
+    await expect(countRow(byRegion, "us-east-1")).toContainText("31");
+    await expect(countRow(byRegion, "eu-west-1")).toContainText("15");
+
+    // Its pages, in its own side menu beside it.
+    if (test.info().project.name === "desktop") {
+      for (const name of ["Overview", "Resources", "Topology", "Changes"]) {
+        await expect(
+          sideMenu(page).getByRole("link", { name: name, exact: true }),
+        ).toBeVisible();
+      }
+    }
+
+    await expectNoSidewaysScroll(page);
+    await shoot(page, "account-overview");
+  });
+
+  test("an account whose connection stopped reading warns, and one no connection reads says so", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openAccounts(
+      page,
+      `${ACCOUNTS_PATH}/${AZURE_ACCOUNT}?state=connected`,
+    );
+    await expect(page.getByTestId("resource-overview-status")).toHaveText(
+      "Not read lately",
+    );
+
+    await openAccounts(page, `${ACCOUNTS_PATH}/${GCP_ACCOUNT}?state=connected`);
+    await expect(page.getByTestId("resource-overview-status")).toHaveText(
+      "Not connected",
+    );
+    // No connection: no link to one.
+    await expect(
+      page.getByTestId("resource-overview-details").getByRole("link"),
+    ).toHaveCount(0);
+  });
+
+  test("an account's Resources: its own and no other, each a click from its page, found by owner and label", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openAccounts(
+      page,
+      `${ACCOUNTS_PATH}/${AWS_ACCOUNT}/resources?state=connected`,
+    );
+
+    await expect(
+      page.getByRole("link", { name: "web-alb", exact: true }),
+    ).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/cloud/40000000-0000-4000-8000-000000000001`,
+    );
+    await expect(
+      page.getByText("Elastic Load Balancer (ALB, NLB, GWLB)").first(),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: "orders-db", exact: true }),
+    ).toBeVisible();
+    await expect(page.getByText("Not reporting").first()).toBeVisible();
+
+    // Read by the account's cloud and id, archived ones left out.
+    const reads: Array<ListRequest> = (await listRequests(page)).filter(
+      (request: ListRequest): boolean => {
+        return request.model === "CloudResource";
+      },
+    );
+    expect(reads.length).toBeGreaterThan(0);
+    expect(reads[0]).toMatchObject({
+      cloudProvider: "aws",
+      isArchived: false,
+    });
+    expect(reads[0]!.cloudAccountIds).toContain("123456789012");
+
+    // The Owner and Labels chips over the table, as on All Resources.
+    const bar: Locator = page.getByTestId("facet-filter-bar");
+    await expect(bar.getByRole("button", { name: /^Owner/ })).toBeVisible();
+    await expect(bar.getByRole("button", { name: /^Labels/ })).toBeVisible();
+
+    await expectNoSidewaysScroll(page);
+    await shoot(page, "account-resources");
+  });
+
+  test("dark and German: the Overview reads in German on a dark page", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openAccounts(
+      page,
+      `${ACCOUNTS_PATH}/${AWS_ACCOUNT}?state=connected&theme=dark&lang=de`,
+    );
+
+    await expect(page.getByTestId("resource-overview-status")).toBeVisible();
+    await expect(page.locator("html")).toHaveClass(/dark/);
+    // Nothing on the Overview is wider than the window.
+    await expectNoSidewaysScroll(page);
+    await shoot(page, "account-overview-dark-de");
   });
 });

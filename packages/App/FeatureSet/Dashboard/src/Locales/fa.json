@@ -35811,9 +35811,9 @@
   "What to read": "چه چیزی خوانده شود",
   "When the client secret stops working, as the setup command printed it.": "زمانی که راز سرویس‌گیرنده از کار می‌افتد، همان‌طور که فرمان راه‌اندازی چاپ کرده است.",
   "Where the account's resources are, most first, as last counted.": "منابع حساب کجا هستند، بیشترین نخست، بر پایهٔ آخرین شمارش.",
-  "{{count}} changes kept by the last read": "{{count}} تغییر در آخرین خواندن نگه داشته شد",
-  "{{count}} changes kept by the last read_one": "{{count}} تغییر در آخرین خواندن نگه داشته شد",
   "{{via}} leads to {{endpoint}}, which it answers on.": "{{via}} به {{endpoint}} می‌رسد که این منبع روی آن پاسخ می‌دهد.",
   "Link resource": "پیوند منبع",
-  "View Account": "مشاهده حساب"
+  "View Account": "مشاهده حساب",
+  "{{count}} new changes": "{{count}} تغییر تازه",
+  "{{count}} new changes_one": "{{count}} تغییر تازه"
 }

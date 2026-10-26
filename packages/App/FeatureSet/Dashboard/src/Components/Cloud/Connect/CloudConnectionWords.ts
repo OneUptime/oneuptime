@@ -74,9 +74,13 @@ const RESOURCE_COUNT: PluralTemplate = {
   other: "{{count}} resources",
 };
 
+/*
+ * Short, under the count and the regions of a column that has to fit
+ * beside the side menu at 1280 pixels in every language.
+ */
 const CHANGES_RECORDED: PluralTemplate = {
-  one: "{{count}} change kept by the last read",
-  other: "{{count}} changes kept by the last read",
+  one: "{{count}} new change",
+  other: "{{count}} new changes",
 };
 
 function pluralOf(
@@ -303,8 +307,9 @@ export function getResourceCountWords(count: number): CloudTemplate {
 }
 
 /*
- * "3 changes kept by the last read": what the account's activity log and
- * its provider's health events added, kept as change events.
+ * "3 new changes": what the last read added from the accounts' activity
+ * logs and their provider's health events, kept as change events. Shown
+ * only when the last read added some.
  */
 export function getChangesRecordedWords(count: number): CloudTemplate {
   return pluralOf(CHANGES_RECORDED, count);

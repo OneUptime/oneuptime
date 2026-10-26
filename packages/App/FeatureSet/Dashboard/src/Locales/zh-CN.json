@@ -35811,9 +35811,9 @@
   "What to read": "读取范围",
   "When the client secret stops working, as the setup command printed it.": "客户端密码失效的时间，即设置命令输出的时间。",
   "Where the account's resources are, most first, as last counted.": "该账户资源所在的位置，按数量从多到少，以最近一次统计为准。",
-  "{{count}} changes kept by the last read": "上次读取保存了 {{count}} 项更改",
-  "{{count}} changes kept by the last read_one": "上次读取保存了 {{count}} 项更改",
   "{{via}} leads to {{endpoint}}, which it answers on.": "{{via}} 指向 {{endpoint}}，它在该地址上应答。",
   "Link resource": "关联资源",
-  "View Account": "查看账户"
+  "View Account": "查看账户",
+  "{{count}} new changes": "{{count}} 项新更改",
+  "{{count}} new changes_one": "{{count}} 项新更改"
 }
