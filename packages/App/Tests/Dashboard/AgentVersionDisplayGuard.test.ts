@@ -725,7 +725,7 @@ describe("the hero's agent chip lives in the component only", () => {
 });
 
 describe("the details row draws the element it is given", () => {
-  test("ResourceOverview shows a row's element in place of its plain value, and '—' when there is no value", () => {
+  test("ResourceOverview shows a row's element in place of its plain value, and no row without a value", () => {
     const source: string = fs
       .readFileSync(
         path.join(
@@ -738,8 +738,15 @@ describe("the details row draws the element it is given", () => {
       )
       .replace(/\s+/g, " ");
     expect(source).toContain("element?: ReactElement | undefined;");
+    /*
+     * Only the rows with a value are drawn (ResourceOverviewDetails), so an
+     * agent version's element - its upgrade sign - is drawn only beside a
+     * version the agent reported; a row it never reported is not drawn.
+     */
     expect(source).toContain(
-      '{row.value && row.value.length > 0 ? row.element || row.value : "—"}',
+      "getReportedResourceOverviewDetailRows(props.detailRows)",
     );
+    expect(source).toContain("{row.element || row.value}");
+    expect(source).not.toContain(': "—"}');
   });
 });

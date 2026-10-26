@@ -9,6 +9,7 @@ import {
   AgentVersionState,
   CEPH_AGENT_VERSION,
   DATABASE_AGENT_VERSION,
+  DOCKER_SWARM_AGENT_COLLECTOR_VERSION,
   DOCKER_SWARM_AGENT_VERSION,
   HOST_COLLECTOR_VERSION,
   ONEUPTIME_AGENT_PLACEHOLDER_VERSION,
@@ -336,17 +337,25 @@ describe("the resource AI agent reports the OneUptime version its image was buil
 });
 
 describe("pinned-collector agents report exactly the pin this release ships", () => {
-  test("the Docker Swarm agent reports its compose file's collector pin", () => {
+  /*
+   * The image is the collector; APP_VERSION is the version of the files,
+   * which moved on to 0.161.1 when #5076 changed the config on the same
+   * collector (AgentFilesVersion.test.ts).
+   */
+  test("the Docker Swarm agent reports its files' version, on the collector its compose file pins", () => {
     const compose: string = readRepoFile(
       "agents",
       "DockerSwarmAgent",
       "docker-compose.yml",
     );
     expect(compose).toContain(
-      `image: otel/opentelemetry-collector-contrib:${DOCKER_SWARM_AGENT_VERSION}`,
+      `image: otel/opentelemetry-collector-contrib:${DOCKER_SWARM_AGENT_COLLECTOR_VERSION}`,
     );
     expect(compose).toContain(
       `- APP_VERSION=\${APP_VERSION:-${DOCKER_SWARM_AGENT_VERSION}}`,
+    );
+    expect(AGENT_KINDS[AgentKind.DockerSwarmAgent].collectorVersion).toBe(
+      DOCKER_SWARM_AGENT_COLLECTOR_VERSION,
     );
     expect(
       readRepoFile("agents", "DockerSwarmAgent", "otel-collector-config.yaml"),
@@ -503,9 +512,15 @@ describe("the Proxmox, Ceph, VMware and Storage Array agents report the collecto
     },
   );
 
+  /*
+   * The image is the collector the kind pins; the stamp below is the
+   * version of the files, which is that collector's until the files change
+   * on it (AgentFilesVersion.test.ts).
+   */
   test.each(AGENTS)(
     "agents/%s runs the pinned collector, never :latest",
-    (dir: string, _kind: AgentKind, pin: string) => {
+    (dir: string, kind: AgentKind) => {
+      const collector: string = AGENT_KINDS[kind].collectorVersion as string;
       const compose: Record<string, unknown> = yaml.load(
         readRepoFile("agents", dir, "docker-compose.yml"),
       ) as Record<string, unknown>;
@@ -518,7 +533,9 @@ describe("the Proxmox, Ceph, VMware and Storage Array agents report the collecto
         .filter((image: string): boolean => {
           return image.startsWith("otel/opentelemetry-collector-contrib");
         });
-      expect(images).toEqual([`otel/opentelemetry-collector-contrib:${pin}`]);
+      expect(images).toEqual([
+        `otel/opentelemetry-collector-contrib:${collector}`,
+      ]);
     },
   );
 
@@ -601,13 +618,19 @@ describe("the Proxmox, Ceph, VMware and Storage Array agents report the collecto
       readRepoFile("agents", "VMwareAgent", "docker-compose.yml"),
     );
     expect(VMWARE_AGENT_COMPOSE_FILE).toContain(
-      `image: otel/opentelemetry-collector-contrib:${VMWARE_AGENT_VERSION}`,
+      `image: otel/opentelemetry-collector-contrib:${AGENT_KINDS[AgentKind.VMwareAgent].collectorVersion}`,
+    );
+    expect(VMWARE_AGENT_VERSION).toBe(
+      AGENT_KINDS[AgentKind.VMwareAgent].pinnedVersion,
     );
   });
 
   test("the Proxmox journald wrapper image is built on the same pin", () => {
     expect(PROXMOX_AGENT_COLLECTOR_IMAGE).toBe(
-      `otel/opentelemetry-collector-contrib:${PROXMOX_AGENT_VERSION}`,
+      `otel/opentelemetry-collector-contrib:${AGENT_KINDS[AgentKind.ProxmoxAgent].collectorVersion}`,
+    );
+    expect(PROXMOX_AGENT_VERSION).toBe(
+      AGENT_KINDS[AgentKind.ProxmoxAgent].pinnedVersion,
     );
     expect(readRepoFile("agents", "ProxmoxAgent", "README.md")).toContain(
       `FROM ${PROXMOX_AGENT_COLLECTOR_IMAGE} AS otelcol`,
@@ -683,7 +706,7 @@ describe("the host guide installs the release it pins, and its config reports it
  * agents' configs against, so the pins here cannot drift from the collector
  * the configs are known to start on.
  */
-describe("every pin is the collector the configs are validated against", () => {
+describe("every collector pin is the collector the configs are validated against", () => {
   test.each(PINNED_COLLECTOR)("%s", (kind: AgentKind) => {
     const validated: string | undefined = readRepoFile(
       "Tests",
@@ -693,7 +716,7 @@ describe("every pin is the collector the configs are validated against", () => {
       /^COLLECTOR_IMAGE="otel\/opentelemetry-collector-contrib:([^"]+)"$/m,
     )?.[1];
     expect(validated).toMatch(/^\d+\.\d+\.\d+$/);
-    expect(AGENT_KINDS[kind].pinnedVersion).toBe(validated);
+    expect(AGENT_KINDS[kind].collectorVersion).toBe(validated);
   });
 });
 

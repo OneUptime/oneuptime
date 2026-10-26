@@ -469,3 +469,56 @@ describe("the Database Health Monitor page's criteria", () => {
     expect(onPage).toEqual(keys);
   });
 });
+
+/*
+ * Follow-up of #5076: Cache Hit Ratio and Rollback Ratio were the engine's
+ * counters divided as read - a ratio over the server's whole life - and are
+ * divided over the monitor's interval now. The page, the metric picker's
+ * descriptions and the probe say the same.
+ */
+describe("the Database Health Monitor page's ratios", () => {
+  const RATIOS: Array<string> = ["Cache Hit Ratio", "Rollback Ratio"];
+
+  it("says the two ratios are worked out since the monitor's previous check, not since the server started", () => {
+    expect(englishPage()).toContain(
+      "**Cache Hit Ratio** and **Rollback Ratio** are worked out on every check from what their counters moved since the monitor's previous check, not since the server started",
+    );
+  });
+
+  it("says the first check after the probe starts, or the server restarts, carries neither", () => {
+    expect(englishPage()).toContain(
+      "The first check after the probe starts, and the first after the server restarts, carry neither.",
+    );
+  });
+
+  it("the metric picker describes both as shares since the previous check", () => {
+    for (const name of RATIOS) {
+      const definition: DatabaseMetricDefinition | undefined =
+        getAllDatabaseMetrics().find(
+          (candidate: DatabaseMetricDefinition): boolean => {
+            return candidate.friendlyName === name;
+          },
+        );
+
+      expect(definition?.description).toContain("since the previous check");
+    }
+  });
+
+  it("the probe divides both by the previous check's counters", () => {
+    const probe: string = readSource(
+      "Probe/Utils/Monitors/MonitorTypes/DatabaseMonitor.ts",
+    );
+
+    expect(probe).toContain("previousCounters: this.swapRatioCounters({");
+    for (const column of [
+      "blks_hit",
+      "blks_read",
+      "xact_commit",
+      "xact_rollback",
+      "bp_read_requests",
+      "bp_disk_reads",
+    ]) {
+      expect(probe).toContain(`deltaOf("${column}")`);
+    }
+  });
+});

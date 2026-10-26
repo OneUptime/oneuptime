@@ -182,11 +182,11 @@ describe("NetworkDeviceDiscoveryScan.useShortDeviceNames", () => {
   /*
    * A naming choice, not a sweep one. It has no counterpart in the SNMP
    * config block and says nothing about what the probe sends, so it must not
-   * carry the "Ignored when Check SNMP is off." note those fields do.
+   * carry the "Ignored on an ICMP scan." note those fields do.
    */
   test("is not documented as part of the SNMP configuration", () => {
     expect(metadata().description ?? "").not.toContain(
-      "Ignored when Check SNMP is off.",
+      "Ignored on an ICMP scan.",
     );
   });
 });
