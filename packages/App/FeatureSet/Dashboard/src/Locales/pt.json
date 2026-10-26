@@ -14600,7 +14600,6 @@
   "Please upload a CSV file.": "Please upload a CSV file.",
   "Please wait while private users are being added. This may take a moment.": "Please wait while private users are being added. This may take a moment.",
   "Please wait while subscribers are being added. This may take a moment.": "Please wait while subscribers are being added. This may take a moment.",
-  "Please wait while the bulk action is being performed. This may take a moment.": "Aguarde enquanto a ação em massa é executada. Isso pode levar um momento.",
   "Please wait while your {{itemsName}} are being imported.": "Aguarde enquanto seus itens ({{itemsName}}) são importados.",
   "Plot the per-second rate of change instead of the raw value. Recommended for cumulative counters (e.g. system.disk.io).": "Plot the per-second rate of change instead of the raw value. Recommended for cumulative counters (e.g. system.disk.io).",
   "Plot this metric as a per-second rate of change": "Plot this metric as a per-second rate of change",
@@ -35598,5 +35597,15 @@
   "Text Input": "Entrada de texto",
   "Is First Membership": "Is First Membership",
   "Incident SLA breached": "SLA de incidente violado",
-  "An incident you own misses its SLA response or resolution deadline.": "Um incidente do qual você é proprietário perde o prazo de SLA de resposta ou de resolução."
+  "An incident you own misses its SLA response or resolution deadline.": "Um incidente do qual você é proprietário perde o prazo de SLA de resposta ou de resolução.",
+  "About {{count}} hours left": "Cerca de {{count}} horas restantes",
+  "About {{count}} hours left_one": "Cerca de {{count}} hora restante",
+  "About {{count}} minutes left": "Cerca de {{count}} minutos restantes",
+  "About {{count}} minutes left_one": "Cerca de {{count}} minuto restante",
+  "Keep this page open until this finishes.": "Mantenha esta página aberta até que a ação termine.",
+  "Keep this page open until this finishes. You can stop at any time: what is already done stays done.": "Mantenha esta página aberta até que a ação termine. Você pode parar a qualquer momento: o que já foi feito continua feito.",
+  "Less than a minute left": "Menos de um minuto restante",
+  "Stopping. The ones already started are finishing.": "Parando. Os que já começaram estão terminando.",
+  "{{count}} {{itemsName}} not started: you stopped the action": "{{itemsName}} não iniciados: {{count}} (você parou a ação)",
+  "{{count}} {{itemsName}} not started: you stopped the action_one": "{{itemName}} não iniciado: {{count}} (você parou a ação)"
 }

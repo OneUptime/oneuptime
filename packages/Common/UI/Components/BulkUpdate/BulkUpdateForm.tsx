@@ -18,6 +18,7 @@ import {
   PluralTemplate,
   TranslatableTerm,
   translatableTerm,
+  translationKey,
   Translator,
 } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
@@ -67,17 +68,22 @@ export const BULK_NOT_STARTED_COUNT: PluralTemplate = {
  * this page: closing it stops the rest (the browser asks first), and a Stop
  * leaves what is done as it is.
  */
-export const BULK_KEEP_PAGE_OPEN: string =
-  "Keep this page open until this finishes. You can stop at any time: what is already done stays done.";
+export const BULK_KEEP_PAGE_OPEN: string = translationKey(
+  "Keep this page open until this finishes. You can stop at any time: what is already done stays done.",
+);
 
-export const BULK_KEEP_PAGE_OPEN_NOT_STOPPABLE: string =
-  "Keep this page open until this finishes.";
+export const BULK_KEEP_PAGE_OPEN_NOT_STOPPABLE: string = translationKey(
+  "Keep this page open until this finishes.",
+);
 
-export const BULK_STOPPING: string =
-  "Stopping. The ones already started are finishing.";
+export const BULK_STOPPING: string = translationKey(
+  "Stopping. The ones already started are finishing.",
+);
 
 // How long a run has left, as estimateBulkTimeLeftInMs works it out.
-export const BULK_TIME_LEFT_UNDER_A_MINUTE: string = "Less than a minute left";
+export const BULK_TIME_LEFT_UNDER_A_MINUTE: string = translationKey(
+  "Less than a minute left",
+);
 
 export const BULK_TIME_LEFT_MINUTES: PluralTemplate = {
   one: "About {{count}} minute left",

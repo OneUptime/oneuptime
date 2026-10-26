@@ -14600,7 +14600,6 @@
   "Please upload a CSV file.": "Please upload a CSV file.",
   "Please wait while private users are being added. This may take a moment.": "Please wait while private users are being added. This may take a moment.",
   "Please wait while subscribers are being added. This may take a moment.": "Please wait while subscribers are being added. This may take a moment.",
-  "Please wait while the bulk action is being performed. This may take a moment.": "बल्क कार्रवाई की जा रही है, कृपया प्रतीक्षा करें। इसमें कुछ समय लग सकता है।",
   "Please wait while your {{itemsName}} are being imported.": "आपके {{itemsName}} आयात किए जा रहे हैं, कृपया प्रतीक्षा करें।",
   "Plot the per-second rate of change instead of the raw value. Recommended for cumulative counters (e.g. system.disk.io).": "Plot the per-second rate of change instead of the raw value. Recommended for cumulative counters (e.g. system.disk.io).",
   "Plot this metric as a per-second rate of change": "Plot this metric as a per-second rate of change",
@@ -35598,5 +35597,15 @@
   "Text Input": "टेक्स्ट इनपुट",
   "Is First Membership": "Is First Membership",
   "Incident SLA breached": "घटना का SLA उल्लंघन",
-  "An incident you own misses its SLA response or resolution deadline.": "आपके स्वामित्व वाली कोई घटना अपनी SLA प्रतिक्रिया या समाधान की समय-सीमा चूक जाती है।"
+  "An incident you own misses its SLA response or resolution deadline.": "आपके स्वामित्व वाली कोई घटना अपनी SLA प्रतिक्रिया या समाधान की समय-सीमा चूक जाती है।",
+  "About {{count}} hours left": "लगभग {{count}} घंटे बाकी",
+  "About {{count}} hours left_one": "लगभग {{count}} घंटा बाकी",
+  "About {{count}} minutes left": "लगभग {{count}} मिनट बाकी",
+  "About {{count}} minutes left_one": "लगभग {{count}} मिनट बाकी",
+  "Keep this page open until this finishes.": "यह पूरा होने तक इस पेज को खुला रखें।",
+  "Keep this page open until this finishes. You can stop at any time: what is already done stays done.": "यह पूरा होने तक इस पेज को खुला रखें। आप कभी भी रोक सकते हैं: जो पहले हो चुका है, वह वैसा ही रहेगा।",
+  "Less than a minute left": "एक मिनट से कम बाकी",
+  "Stopping. The ones already started are finishing.": "रोका जा रहा है। जो पहले शुरू हो चुके हैं, वे पूरे किए जा रहे हैं।",
+  "{{count}} {{itemsName}} not started: you stopped the action": "{{count}} {{itemsName}} शुरू नहीं हुए: आपने कार्रवाई रोक दी",
+  "{{count}} {{itemsName}} not started: you stopped the action_one": "{{count}} {{itemName}} शुरू नहीं हुआ: आपने कार्रवाई रोक दी"
 }

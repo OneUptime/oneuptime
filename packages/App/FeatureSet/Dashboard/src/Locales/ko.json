@@ -14600,7 +14600,6 @@
   "Please upload a CSV file.": "Please upload a CSV file.",
   "Please wait while private users are being added. This may take a moment.": "Please wait while private users are being added. This may take a moment.",
   "Please wait while subscribers are being added. This may take a moment.": "Please wait while subscribers are being added. This may take a moment.",
-  "Please wait while the bulk action is being performed. This may take a moment.": "일괄 작업을 수행하는 중입니다. 잠시 기다려 주세요.",
   "Please wait while your {{itemsName}} are being imported.": "{{itemsName}}을(를) 가져오는 중입니다. 잠시 기다려 주세요.",
   "Plot the per-second rate of change instead of the raw value. Recommended for cumulative counters (e.g. system.disk.io).": "Plot the per-second rate of change instead of the raw value. Recommended for cumulative counters (e.g. system.disk.io).",
   "Plot this metric as a per-second rate of change": "Plot this metric as a per-second rate of change",
@@ -35598,5 +35597,15 @@
   "Text Input": "텍스트 입력",
   "Is First Membership": "Is First Membership",
   "Incident SLA breached": "인시던트 SLA 위반",
-  "An incident you own misses its SLA response or resolution deadline.": "내가 소유한 인시던트가 SLA 응답 기한 또는 해결 기한을 넘깁니다."
+  "An incident you own misses its SLA response or resolution deadline.": "내가 소유한 인시던트가 SLA 응답 기한 또는 해결 기한을 넘깁니다.",
+  "About {{count}} hours left": "약 {{count}}시간 남음",
+  "About {{count}} hours left_one": "약 {{count}}시간 남음",
+  "About {{count}} minutes left": "약 {{count}}분 남음",
+  "About {{count}} minutes left_one": "약 {{count}}분 남음",
+  "Keep this page open until this finishes.": "완료될 때까지 이 페이지를 열어 두세요.",
+  "Keep this page open until this finishes. You can stop at any time: what is already done stays done.": "완료될 때까지 이 페이지를 열어 두세요. 언제든지 중지할 수 있으며, 이미 완료된 작업은 그대로 유지됩니다.",
+  "Less than a minute left": "1분 미만 남음",
+  "Stopping. The ones already started are finishing.": "중지하는 중입니다. 이미 시작된 항목은 마저 처리됩니다.",
+  "{{count}} {{itemsName}} not started: you stopped the action": "{{itemsName}} {{count}}개 시작 안 됨: 작업을 중지했습니다",
+  "{{count}} {{itemsName}} not started: you stopped the action_one": "{{itemName}} {{count}}개 시작 안 됨: 작업을 중지했습니다"
 }
