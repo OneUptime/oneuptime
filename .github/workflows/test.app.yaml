@@ -305,7 +305,11 @@ jobs:
           # current entry, long French, German and Persian titles, and the lit
           # entry kept in sight in a menu taller than the window), when this
           # group took 18.2 to 18.9 minutes on master's runs of 2026-10-24:
-          # about 19.5 to 20.
+          # about 19.5 to 20. Its UI review added SideMenuWordBreaks.spec.ts
+          # the same day (6 tests in Chromium and the same 6 in Firefox,
+          # which this group installs: where the menu's words break, since
+          # Firefox hyphenates words Chrome moves whole) and 2 tests of the
+          # list's fades: about 40 seconds more, about 20 to 20.5.
           - group: 3
             browsers: chromium firefox
             suites: >-
