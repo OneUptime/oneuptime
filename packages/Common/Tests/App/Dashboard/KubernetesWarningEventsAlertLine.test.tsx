@@ -291,22 +291,29 @@ describe("what it reads, and when it says nothing", () => {
 });
 
 /*
- * #5298's UI review: the line sat right under the events list's "Showing
- * 1-11 of 11 events", in the pager's grey, and read as part of the pager.
- * It is a line of its own under a rule now, in either state.
+ * #5298's UI review: the line sat 6px under the events list's pager, in the
+ * pager's grey, and read as part of it. It is the card's footer now, under
+ * the pager, in either state: a rule across the card as the pager's own,
+ * the card's padding, ending the card as the pager did.
  */
-describe("a line of its own, under a rule", () => {
+describe("the Events card's footer, under the pager", () => {
   function classesOf(element: HTMLElement): Array<string> {
     return element.className.split(" ").filter(Boolean);
   }
 
-  test("the class: a rule above it, room on either side of the rule, no card", () => {
+  test("the class: a rule across the card, the card's padding, the card's end", () => {
     const classes: Array<string> =
       KUBERNETES_WARNING_ALERTS_LINE_CLASS_NAME.split(" ");
 
+    // A rule in the pager's own grey, across the card.
     expect(classes).toEqual(
-      expect.arrayContaining(["border-t", "border-gray-100", "mt-5", "pt-4"]),
+      expect.arrayContaining(["border-t", "border-gray-200"]),
     );
+    expect(classes).toEqual(
+      expect.arrayContaining(["-mx-5", "md:-mx-6", "px-5", "md:px-6"]),
+    );
+    // Right under the pager (which ends its card, -mb-6), and ending it.
+    expect(classes).toEqual(expect.arrayContaining(["mt-6", "-mb-6", "py-3"]));
     // Its words and icon side by side, the icon on the first line.
     expect(classes).toEqual(
       expect.arrayContaining(["flex", "items-start", "gap-2"]),

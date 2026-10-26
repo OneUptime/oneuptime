@@ -44,8 +44,17 @@ import {
 export const KUBERNETES_WARNING_ALERTS_TEST_ID: string =
   "kubernetes-warning-alerts";
 
+/*
+ * The Events card's footer, under the list's pager (#5298's UI review): a
+ * rule across the card, as the pager's own, and the card's padding, so its
+ * words start where "Showing 1-11 of 11 events" does. The pager ends its
+ * card - the list's footer runs to the card's edges and bottom (-mb-6) -
+ * so the line, after it, does the same: right under it (mt-6 makes up the
+ * pager's -mb-6), ending the card. It used to sit 6px under the pager's
+ * Rows per page, in its grey, and read as part of the pager.
+ */
 export const KUBERNETES_WARNING_ALERTS_LINE_CLASS_NAME: string =
-  "mt-5 flex items-start gap-2 border-t border-gray-100 pt-4 text-sm text-gray-500";
+  "-mx-5 -mb-6 mt-6 flex items-start gap-2 border-t border-gray-200 px-5 py-3 text-sm text-gray-500 md:-mx-6 md:px-6";
 
 export interface ComponentProps {
   // The cluster's record id, for its Recommendations page.
@@ -120,10 +129,7 @@ const KubernetesWarningEventsAlertLine: FunctionComponent<ComponentProps> = (
 
   const firstMonitor: Monitor | undefined = alertingMonitors[0];
 
-  /*
-   * A line of its own under a rule: right under the list's "Showing 1-11 of
-   * 11 events" it read as part of the pager.
-   */
+  // The card's footer, under the pager (KUBERNETES_WARNING_ALERTS_LINE_CLASS_NAME).
   const renderLine: (content: ReactElement) => ReactElement = (
     content: ReactElement,
   ): ReactElement => {
