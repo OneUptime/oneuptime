@@ -104,35 +104,36 @@ describe("the form validation messages in every frontend's locales", () => {
       },
     );
 
-    test.each(LANGUAGES.filter((language: string) => language !== "en"))(
-      "%s reads translated wherever the Dashboard does",
-      (language: string) => {
-        const locale: Record<string, unknown> = readLocale(frontend, language);
-        const dashboard: Record<string, unknown> = readLocale(
-          "Dashboard",
-          language,
-        );
+    test.each(
+      LANGUAGES.filter((language: string): boolean => {
+        return language !== "en";
+      }),
+    )("%s reads translated wherever the Dashboard does", (language: string) => {
+      const locale: Record<string, unknown> = readLocale(frontend, language);
+      const dashboard: Record<string, unknown> = readLocale(
+        "Dashboard",
+        language,
+      );
 
-        for (const message of FORM_VALIDATION_MESSAGES) {
-          if (dashboard[message] === message) {
-            // The Dashboard has not worded it in this language either.
-            continue;
-          }
-
-          expect({
-            frontend,
-            language,
-            message,
-            translated: locale[message] !== message,
-          }).toEqual({
-            frontend,
-            language,
-            message,
-            translated: true,
-          });
+      for (const message of FORM_VALIDATION_MESSAGES) {
+        if (dashboard[message] === message) {
+          // The Dashboard has not worded it in this language either.
+          continue;
         }
-      },
-    );
+
+        expect({
+          frontend,
+          language,
+          message,
+          translated: locale[message] !== message,
+        }).toEqual({
+          frontend,
+          language,
+          message,
+          translated: true,
+        });
+      }
+    });
   });
 
   test("the Admin Dashboard words them as the Dashboard does", () => {
