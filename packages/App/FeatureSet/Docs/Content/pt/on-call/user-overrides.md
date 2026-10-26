@@ -68,7 +68,7 @@ Quando alguém sai do projeto, cada substituição que nomeia essa pessoa e que 
 
 ## Quem pode adicionar substituições
 
-**Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** e **On-Call Member** podem adicionar e excluir substituições; **Viewer** e **On-Call Viewer** podem vê-las. Em uma função personalizada, as permissões são **Create On-Call Duty Policy User Override**, **Delete On-Call Duty Policy User Override** e **Read On-Call Duty Policy User Override**. Na **Linha do tempo de plantões**, só quem pode ler substituições vê de quem é o turno coberto.
+**Proprietário do projeto**, **Administrador do projeto**, **Membro do projeto**, **Administrador de plantão** e **Membro de plantão** podem adicionar e excluir substituições; **Visualizador** e **Visualizador de plantão** podem vê-las. Em uma função personalizada, as permissões são **Create On-Call Duty Policy User Override**, **Delete On-Call Duty Policy User Override** e **Read On-Call Duty Policy User Override**. Na **Linha do tempo de plantões**, só quem pode ler substituições vê de quem é o turno coberto.
 
 No OneUptime Cloud, as substituições de usuário precisam do plano **Growth**.
 

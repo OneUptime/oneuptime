@@ -1,5 +1,4 @@
 import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
-import { PermissionHelper } from "Common/Types/Permission";
 import ComponentMetadata, {
   Argument,
   Port,
@@ -35,6 +34,7 @@ import {
   tableShape,
 } from "./DocsTranslationChecks";
 import { describe, expect, it } from "@jest/globals";
+import { isPermissionTitleKeptInEnglish } from "./DocsRoleNames";
 
 /*
  * The seven Workflows pages - the overview, authoring, triggers, components,
@@ -109,7 +109,6 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
     "URL",
     "Request Body",
     "Value",
-    "Project Admin",
     ...PLANS,
   ],
   "workflows/authoring": [
@@ -218,8 +217,6 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
   ],
   "workflows/configuration": [
     // Role and permission names, as the permission picker lists them.
-    "Project Admin",
-    "Project Member",
     "Edit Workflow",
     "Delete Workflow",
     // Generate Text with AI's settings and value, and the Incoming Email trigger's values.
@@ -372,14 +369,6 @@ function stepDefinedNames(): Set<string> {
   return names;
 }
 
-function isPermissionOrRole(name: string): boolean {
-  return PermissionHelper.getAllPermissionProps().some(
-    (props: { title: string }): boolean => {
-      return props.title === name;
-    },
-  );
-}
-
 describe("the lists this test keeps", () => {
   it("name only bold Dashboard labels the English page has", () => {
     for (const [lists, kind] of [
@@ -412,7 +401,9 @@ describe("the lists this test keeps", () => {
           page,
           name,
           why:
-            steps.has(name) || isPermissionOrRole(name) || PLANS.includes(name),
+            steps.has(name) ||
+            isPermissionTitleKeptInEnglish(name) ||
+            PLANS.includes(name),
         }).toEqual({ page, name, why: true });
       }
     }

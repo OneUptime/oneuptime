@@ -46,11 +46,11 @@ Cada uno de estos permisos también se puede conceder por separado, desde crear 
 
 | Origen | Abre un caso cuando | Cómo desactivarlo |
 | --- | --- | --- |
-| Reglas de detección | Una regla coincide | **Open a Case on Match**, en el paso **Al coincidir** de la regla |
-| Inteligencia de amenazas | Un evento nombra un indicador conocido | **Open a Case on Match**, en el paso **Al coincidir** del feed |
+| Reglas de detección | Una regla coincide | **Abrir un caso al coincidir**, en el paso **Al coincidir** de la regla |
+| Inteligencia de amenazas | Un evento nombra un indicador conocido | **Abrir un caso al coincidir**, en el paso **Al coincidir** del feed |
 | Productos conectados | Se importa una alerta propia del producto con un nivel igual o superior al umbral de la conexión | **Open Cases From** con el valor **Nunca**, en el paso **Sondeo** de la conexión |
 | Riesgo de entidades | El riesgo de un usuario, host o dirección alcanza el umbral del proyecto | **Casos de riesgo**, en **Ajustes → Puntuación de riesgo** |
-| Personas | Alguien abre uno desde **Casos de seguridad**, o con **Open Case** en el panel de un evento | No se puede desactivar |
+| Personas | Alguien abre uno desde **Casos de seguridad**, o con **Abrir caso** en el panel de un evento | No se puede desactivar |
 
 Todos los orígenes abren casos por defecto, salvo el riesgo de entidades en los proyectos creados antes de que existiera: en ellos, activa primero **Casos de riesgo** ([Riesgo de entidades](/docs/telemetry/security-entity-risk)). Una conexión abre casos para **Alta y superior** salvo que elijas otro nivel; las alertas por debajo de ese nivel se siguen importando como eventos.
 
@@ -92,7 +92,7 @@ Un caso tiene su propio menú lateral, como un incidente, y cada parte del caso 
 | **Notas** | **Notas privadas** |
 | **Avanzado** | **Registros de auditoría**, **Eliminar caso**, plegados hasta que haces clic en **Avanzado** |
 
-Cada página mantiene arriba la cabecera del caso: su número, prioridad, estado y título, **Asignarme**, **Run Playbook**, **Declarar incidente** y **Close Case**, y, en el menú ⋯ junto a ellos, **Establecer prioridad**, **Asignar a otra persona**, **Cambiar estado**, **Editar caso** y **Eliminar caso**. Así el caso se puede gestionar desde cualquiera de sus páginas, y un enlace al caso sigue abriendo su **Vista general**.
+Cada página mantiene arriba la cabecera del caso: su número, prioridad, estado y título, **Asignarme**, **Ejecutar playbook**, **Declarar incidente** y **Cerrar caso**, y, en el menú ⋯ junto a ellos, **Establecer prioridad**, **Asignar a otra persona**, **Cambiar estado**, **Editar caso** y **Eliminar caso**. Así el caso se puede gestionar desde cualquiera de sus páginas, y un enlace al caso sigue abriendo su **Vista general**.
 
 - **Vista general**: la descripción, las etiquetas y los pasos de estado del caso, quién lo tiene y qué lo abrió, y sus cifras: cuántas detecciones tiene, cuánto tiempo lleva abierto y cuánto se tardó en reconocerlo y en contenerlo.
 - **OneUptime AI**, en la **Vista general**: lo que OneUptime AI ha sacado del caso, la prioridad y el playbook que sugiere, y la evidencia que hay detrás. Consulta [OneUptime AI en la seguridad](/docs/telemetry/security-ai).
@@ -111,12 +111,12 @@ Cada página mantiene arriba la cabecera del caso: su número, prioridad, estado
 No tienes que abrir un caso para gestionarlo. En las listas de la cola, el menú ⋯ de la fila de un caso tiene **Asignarme**, **Asignar a otra persona**, **Cambiar estado** y **Cambiar prioridad**. Para gestionar varios casos a la vez, selecciónalos y usa las mismas acciones en **Acciones masivas**: te dice qué casos cambió, cuáles dejó como estaban y por qué.
 
 - Para darle un caso a otra persona, usa **Asignar a otra persona** y elige una persona o un equipo. El caso de un equipo espera en **Sin asignar** hasta que alguien del equipo lo toma.
-- Un estado que cierra un caso pide un veredicto y una nota de cierre, como hace **Close Case**.
+- Un estado que cierra un caso pide un veredicto y una nota de cierre, como hace **Cerrar caso**.
 - Un caso cerrado no se asigna a nadie. Para volver a gestionarlo, reábrelo con **Cambiar estado**.
 
 ### Cerrar un caso
 
-**Close Case** pide un veredicto y una nota de cierre opcional:
+**Cerrar caso** pide un veredicto y una nota de cierre opcional:
 
 | Veredicto | Significado |
 | --- | --- |
@@ -144,11 +144,11 @@ Algunos son predefinidos, porque OneUptime lee lo que significan. Se les puede c
 | El estado nuevo | Los casos nuevos empiezan en él |
 | El estado reconocido | Al llegar a él se registra cuándo se reconoció el caso, y **Reabrir** devuelve a él un caso cerrado |
 | El estado contenido | Al llegar a él se registra cuándo se contuvo el caso |
-| El estado cerrado | **Close Case** lleva un caso a él, con un veredicto |
+| El estado cerrado | **Cerrar caso** lleva un caso a él, con un veredicto |
 | Las prioridades Crítico, Alta, Medium, Low e Informativos | Una detección abre su caso en la prioridad de su gravedad, y un caso que abre una persona empieza en Medium |
 
 - El lugar de un estado decide qué cuenta un caso que está en él, como muestra la columna **Cuenta como**: desde el estado reconocido hacia abajo, reconocido; desde el estado contenido hacia abajo, contenido; desde el estado cerrado hacia abajo, cerrado. Un estado que añades se coloca justo encima del estado cerrado, y pasar un caso a un estado que lo cierra pide antes un veredicto.
-- El puesto de una prioridad es su urgencia, la más urgente primero: **For Cases At Least**, las opciones de notificación y las reglas de Slack y Microsoft Teams leen este orden. Una prioridad que añades va al final, y la columna **Gravedad de la detección** muestra qué detecciones abren sus casos en cada prioridad predefinida.
+- El puesto de una prioridad es su urgencia, la más urgente primero: **Para casos de al menos**, las opciones de notificación y las reglas de Slack y Microsoft Teams leen este orden. Una prioridad que añades va al final, y la columna **Gravedad de la detección** muestra qué detecciones abren sus casos en cada prioridad predefinida.
 
 Para dejar de usar un estado o una prioridad propios, usa **Archivar** en su fila. Nadie puede volver a elegirlo, y la API, Terraform y MCP lo rechazan, pero los casos que lo tienen lo conservan, y puedes seguir filtrando por él. Los valores archivados aparecen en la sección plegada **Estados de caso archivados** o **Prioridades de caso archivadas** bajo la tabla, donde **Desarchivar** devuelve uno. **Eliminar** se rechaza mientras haya casos con el valor o un playbook que parta de la prioridad.
 
@@ -212,11 +212,11 @@ Un playbook es una lista de pasos que se ejecutan sobre un caso. Crea uno en **P
 | Clasificado como probablemente malicioso | Una vez, cuando la clasificación de OneUptime AI lee el caso como Probablemente malicioso |
 | Manual | Solo cuando alguien lo ejecuta desde un caso |
 
-Cualquier playbook habilitado también se puede ejecutar a mano, con **Run Playbook** en un caso. Un playbook que se ejecuta por sí solo se puede acotar:
+Cualquier playbook habilitado también se puede ejecutar a mano, con **Ejecutar playbook** en un caso. Un playbook que se ejecuta por sí solo se puede acotar:
 
-- **For Cases At Least**: solo los casos de esta prioridad o superior.
-- **Only For Detections From**: solo cuando la detección que originó el caso procede de este origen.
-- **Only For These Detection Rules**: solo cuando procede de una de estas reglas.
+- **Para casos de al menos**: solo los casos de esta prioridad o superior.
+- **Solo para detecciones de**: solo cuando la detección que originó el caso procede de este origen.
+- **Solo para estas reglas de detección**: solo cuando procede de una de estas reglas.
 
 Un playbook deshabilitado no se ejecuta ni por sí solo ni a mano.
 
@@ -248,9 +248,9 @@ Un playbook deshabilitado no se ejecuta ni por sí solo ni a mano.
 
 Un playbook tiene como máximo 25 pasos. Se ejecutan en orden, cada uno cuando ha terminado el anterior. Además, cada paso puede:
 
-- **Needs Approval**: detener la ejecución antes del paso hasta que alguien lo apruebe en el caso. Los cuatro pasos que dejan a alguien sin acceso siempre se detienen, salvo que un Security Admin lo desactive.
-- **Only If Threat Intel Matched**: omitir el paso salvo que un paso **Check entities against threat intel** anterior de la misma ejecución haya encontrado un indicador conocido.
-- **Carry On If It Fails**: ejecutar el paso siguiente aunque este falle. Si está desactivado, un paso fallido detiene la ejecución.
+- **Requiere aprobación**: detener la ejecución antes del paso hasta que alguien lo apruebe en el caso. Los cuatro pasos que dejan a alguien sin acceso siempre se detienen, salvo que un Security Admin lo desactive.
+- **Solo si hubo coincidencia de inteligencia de amenazas**: omitir el paso salvo que un paso **Comprobar las entidades con la inteligencia de amenazas** anterior de la misma ejecución haya encontrado un indicador conocido.
+- **Continuar si falla**: ejecutar el paso siguiente aunque este falle. Si está desactivado, un paso fallido detiene la ejecución.
 
 ### Contención
 
@@ -271,15 +271,15 @@ Un caso agrupado por una dirección, como un ataque de fuerza bruta contra tu VP
 
 #### Entidades protegidas
 
-**Protected Entities**, en **Playbooks** en el menú, lista los usuarios y hosts a los que ningún playbook aplica contención, como las cuentas de acceso de emergencia, los controladores de dominio y las puertas de enlace VPN. Un valor coincide sin distinguir mayúsculas de minúsculas, y `*` representa cualquier secuencia de caracteres: `svc-*` protege todas las cuentas de servicio. Un paso informa de un usuario o host protegido como protegido y no lo toca. La lista la mantienen los Security Admins.
+**Entidades protegidas**, en **Playbooks** en el menú, lista los usuarios y hosts a los que ningún playbook aplica contención, como las cuentas de acceso de emergencia, los controladores de dominio y las puertas de enlace VPN. Un valor coincide sin distinguir mayúsculas de minúsculas, y `*` representa cualquier secuencia de caracteres: `svc-*` protege todas las cuentas de servicio. Un paso informa de un usuario o host protegido como protegido y no lo toca. La lista la mantienen los Security Admins.
 
 #### Aprobación
 
-Los cuatro pasos que dejan a alguien sin acceso esperan aprobación. Solo un Security Admin puede desactivar **Needs Approval** en uno de ellos, y OneUptime registra quién lo hizo. La aprobación lista en **Act On** los usuarios o hosts sobre los que actuaría el paso, todos marcados: desmarca los que deba dejar intactos. Los protegidos no se ofrecen. Quien inició una ejecución no puede aprobar sus pasos: lo hace otra persona, aunque sí puede rechazarlos.
+Los cuatro pasos que dejan a alguien sin acceso esperan aprobación. Solo un Security Admin puede desactivar **Requiere aprobación** en uno de ellos, y OneUptime registra quién lo hizo. La aprobación lista en **Actuar sobre** los usuarios o hosts sobre los que actuaría el paso, todos marcados: desmarca los que deba dejar intactos. Los protegidos no se ofrecen. Quien inició una ejecución no puede aprobar sus pasos: lo hace otra persona, aunque sí puede rechazarlos.
 
 #### Deshacer
 
-Los pasos para deshacer actúan sobre los usuarios o hosts de los que trata el caso, igual que los pasos que deshacen. Cuando la ejecución se ha detenido, un usuario o host contenido tiene además un botón propio en su paso: **Unsuspend**, **Lift Containment** o **Liberar**. El cierre de una sesión de Okta no se puede deshacer. Cada reversión se guarda en la cronología del caso y en el registro de auditoría del proyecto.
+Los pasos para deshacer actúan sobre los usuarios o hosts de los que trata el caso, igual que los pasos que deshacen. Cuando la ejecución se ha detenido, un usuario o host contenido tiene además un botón propio en su paso: **Reactivar**, **Levantar la contención** o **Liberar**. El cierre de una sesión de Okta no se puede deshacer. Cada reversión se guarda en la cronología del caso y en el registro de auditoría del proyecto.
 
 ### Mensajes
 
@@ -311,7 +311,7 @@ Cada ejecución aparece, paso a paso, en su caso y en **Productos → Eventos de
 | Fallido | Un paso falló y la ejecución se detuvo |
 | Cancelado | Alguien la canceló o rechazó un paso |
 
-Un paso que espera aprobación muestra **Approve** y **Rechazar** en la ejecución, con un comentario opcional. Aprobar hace que la ejecución continúe desde ese paso; rechazar la termina. La decisión, quién la tomó y su comentario se guardan en el paso, en la cronología del caso y en el registro de auditoría del proyecto. La página **Aprobaciones**, en **Playbooks** en el menú, lista las ejecuciones que esperan una decisión y las cuenta; **Ejecuciones** lista todas las ejecuciones. En **Ejecuciones** y en la página de un playbook, cada ejecución es una línea que dice hasta dónde llegó, o el paso en el que se detuvo; **Mostrar pasos** abre sus pasos. Una ejecución que espera aprobación se abre sola.
+Un paso que espera aprobación muestra **Aprobar** y **Rechazar** en la ejecución, con un comentario opcional. Aprobar hace que la ejecución continúe desde ese paso; rechazar la termina. La decisión, quién la tomó y su comentario se guardan en el paso, en la cronología del caso y en el registro de auditoría del proyecto. La página **Aprobaciones**, en **Playbooks** en el menú, lista las ejecuciones que esperan una decisión y las cuenta; **Ejecuciones** lista todas las ejecuciones. En **Ejecuciones** y en la página de un playbook, cada ejecución es una línea que dice hasta dónde llegó, o el paso en el que se detuvo; **Mostrar pasos** abre sus pasos. Una ejecución que espera aprobación se abre sola.
 
 Una ejecución que deja de recibir noticias de su worker, por ejemplo tras un reinicio, se retoma: una ejecución en cola vuelve a ponerse en cola a los 2 minutos, y una ejecución que lleva 30 minutos sin dar señales se marca como fallida.
 
@@ -329,12 +329,12 @@ Encima, una franja muestra cómo está configurada la seguridad: sus orígenes, 
 ## Encontrar amenazas
 
 - **Entidades** clasifica los usuarios, hosts, direcciones y hashes que más nombran tus hallazgos, en el último día, semana o mes, y busca cualquier valor en 30 días de eventos. Selecciona una entidad para abrirla en **Correlacionar**.
-- **Rule Library** tiene reglas de detección listas para usar, para amenazas de identidad, endpoints, nube, red, web y Kubernetes. Cada una es una regla Sigma escrita para los campos a los que se normaliza cada origen conectado. Su fila dice qué encuentra, las tácticas y técnicas de MITRE ATT&CK con las que está etiquetada, los eventos que lee y si llegó alguno en los últimos 7 días (**Recibidos** o **No recibidos**), y su gravedad. Filtra la lista por categoría, por los datos que leen las reglas y por si ya las has añadido, o búscala por nombre, técnica de ATT&CK o gravedad; la dirección de la página conserva los filtros. Selecciona una regla para ver sus detalles: cómo empezar a enviar los eventos que lee, cómo se ejecuta y su regla Sigma. **Añadir** la crea como una regla de detección tuya, activada y que abre casos en lugar de alertas; cámbiala en **Reglas de detección** como cualquier otra. Las reglas marcadas como **Recomendadas** encuentran amenazas en datos que OneUptime ya tiene, y un botón añade las que aún no tiene.
-- **ATT&CK Coverage** lista las tácticas de MITRE ATT&CK, cada una con cuántas de sus técnicas cubren tus reglas habilitadas y para cuántas más tiene reglas la **Rule Library**. Abre una táctica para ver sus técnicas, o cambia a **Matriz** para ver la matriz entera. Selecciona una técnica para ver las reglas de la biblioteca que la cubren y abrir la **Rule Library** con ellas.
+- **Biblioteca de reglas** tiene reglas de detección listas para usar, para amenazas de identidad, endpoints, nube, red, web y Kubernetes. Cada una es una regla Sigma escrita para los campos a los que se normaliza cada origen conectado. Su fila dice qué encuentra, las tácticas y técnicas de MITRE ATT&CK con las que está etiquetada, los eventos que lee y si llegó alguno en los últimos 7 días (**Recibidos** o **No recibidos**), y su gravedad. Filtra la lista por categoría, por los datos que leen las reglas y por si ya las has añadido, o búscala por nombre, técnica de ATT&CK o gravedad; la dirección de la página conserva los filtros. Selecciona una regla para ver sus detalles: cómo empezar a enviar los eventos que lee, cómo se ejecuta y su regla Sigma. **Añadir** la crea como una regla de detección tuya, activada y que abre casos en lugar de alertas; cámbiala en **Reglas de detección** como cualquier otra. Las reglas marcadas como **Recomendadas** encuentran amenazas en datos que OneUptime ya tiene, y un botón añade las que aún no tiene.
+- **Cobertura de ATT&CK** lista las tácticas de MITRE ATT&CK, cada una con cuántas de sus técnicas cubren tus reglas habilitadas y para cuántas más tiene reglas la **Biblioteca de reglas**. Abre una táctica para ver sus técnicas, o cambia a **Matriz** para ver la matriz entera. Selecciona una técnica para ver las reglas de la biblioteca que la cubren y abrir la **Biblioteca de reglas** con ellas.
 
 ## Automatizar
 
-- **Flujos de trabajo**: un caso o una nota puede iniciar un flujo de trabajo cuando se crea, se actualiza o se elimina. Un paso **Run a workflow** inicia un flujo de trabajo cuyo desencadenante es un webhook.
+- **Flujos de trabajo**: un caso o una nota puede iniciar un flujo de trabajo cuando se crea, se actualiza o se elimina. Un paso **Ejecutar un flujo de trabajo** inicia un flujo de trabajo cuyo desencadenante es un webhook.
 - **API**: los casos, las notas, las detecciones, los playbooks, las ejecuciones, las entidades protegidas y las prioridades y estados de caso tienen la misma API REST que el resto de OneUptime, en `/security-case`, `/security-case-note`, `/security-detection`, `/security-playbook`, `/security-playbook-run`, `/security-protected-entity`, `/security-case-priority` y `/security-case-status`. Consulta [Referencia de la API](/docs/api-reference/api-reference).
 - Agentes de IA: el servidor MCP tiene herramientas para casos, notas, detecciones, playbooks y prioridades y estados de caso. Consulta [Servidor MCP](/docs/ai/mcp-server).
 - Terraform: los recursos `oneuptime_security_case_priority` y `oneuptime_security_case_status` mantienen como código las prioridades y estados de un proyecto.
@@ -342,7 +342,7 @@ Encima, una franja muestra cómo está configurada la seguridad: sus orígenes, 
 ## Solución de problemas
 
 :::details Una regla coincide, pero no se abre ningún caso
-Comprueba **Open a Case on Match** en el paso **Al coincidir** de la regla. Una detección sobre una entidad que ya tiene un caso abierto se suma a ese caso en lugar de abrir otro: búscala en **Detecciones** dentro del caso abierto.
+Comprueba **Abrir un caso al coincidir** en el paso **Al coincidir** de la regla. Una detección sobre una entidad que ya tiene un caso abierto se suma a ese caso en lugar de abrir otro: búscala en **Detecciones** dentro del caso abierto.
 :::
 
 :::details No se avisó a nadie de un caso
@@ -350,7 +350,7 @@ Mira la **Cronología** del caso, que indica a quién se notificó. Una notifica
 :::
 
 :::details Un playbook no se ejecutó
-Comprueba que está habilitado, que su ajuste **Disparador** encaja (con Caso abierto se ejecuta una sola vez, al abrirse un caso) y que el caso cumple sus ajustes **For Cases At Least**, **Only For Detections From** y **Only For These Detection Rules**. Un caso abierto a mano no tiene detección, así que un playbook limitado a un origen o a unas reglas no se ejecuta sobre él.
+Comprueba que está habilitado, que su ajuste **Disparador** encaja (con Caso abierto se ejecuta una sola vez, al abrirse un caso) y que el caso cumple sus ajustes **Para casos de al menos**, **Solo para detecciones de** y **Solo para estas reglas de detección**. Un caso abierto a mano no tiene detección, así que un playbook limitado a un origen o a unas reglas no se ejecuta sobre él.
 :::
 
 :::details Falló un paso de contención

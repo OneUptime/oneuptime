@@ -42,18 +42,18 @@ Het scherm is in tweeën verdeeld:
 | Deel | Wat het bevat |
 | ---- | ------------- |
 | **Groepsnavigator** (links) | Elke groep op de pagina, als boom, met een vak **Search groups...** erboven en een telling eronder, zoals `3 groups · 12 resources`. Een lange lijst eindigt met een knop **Show N more of M**. |
-| **Top of page** | De eerste rij van de navigator: resources zonder groep, die bezoekers als eerste zien, boven elke groep. Op een pagina zonder groepen heet het rechterdeelvenster in plaats daarvan **All resources**. |
+| **Bovenaan de pagina** | De eerste rij van de navigator: resources zonder groep, die bezoekers als eerste zien, boven elke groep. Op een pagina zonder groepen heet het rechterdeelvenster in plaats daarvan **Alle resources**. |
 | **Resourcedeelvenster** (rechts) | De resources van de geselecteerde groep. De kop ervan bevat **Edit Group**, de primaire knop **Monitor toevoegen** en een menu **Meer acties**. |
 | Kaartkop | **New Group**, en een menu met drie puntjes met **Import groups from CSV** en **Vernieuwen**. |
 
-**Lege toestanden vertellen u wat u moet doen.** Een lege groep toont **No monitors here yet** met **Monitor toevoegen**, **Add Multiple** en, alleen zolang de pagina helemaal geen groepen heeft, **Create a Group**. Een zoekopdracht zonder resultaat toont **No resources match your search**.
+**Lege toestanden vertellen u wat u moet doen.** Een lege groep toont **No monitors here yet** met **Monitor toevoegen**, **Add Multiple** en, alleen zolang de pagina helemaal geen groepen heeft, **Create a Group**. Een zoekopdracht zonder resultaat toont **Geen resources komen overeen met uw zoekopdracht**.
 
 ## Een monitor toevoegen
 
 :::steps
 ### Kiezen waar de rij komt
 
-Selecteer in de groepsnavigator de groep waarin de resource thuishoort, of **Top of page** voor een rij zonder groep.
+Selecteer in de groepsnavigator de groep waarin de resource thuishoort, of **Bovenaan de pagina** voor een rij zonder groep.
 
 ### Klikken op Monitor toevoegen
 
@@ -196,7 +196,7 @@ De volgorde bepaalt u zelf, niet het alfabet:
 | ---- | ----------------- |
 | Resources binnen een groep | Sleep een rij. Het deelvenster zegt het: **Drag a row to change the order visitors see**. |
 | Groepen ten opzichte van elkaar | **Omhoog** / **Omlaag** in het rijmenu van de navigator, of **Move group up** / **Move group down** in **Meer acties**. |
-| Resources zonder groep | Die staan in **Top of page** en verschijnen altijd boven elke groep, dus zet daar wat iedereen als eerste controleert. |
+| Resources zonder groep | Die staan in **Bovenaan de pagina** en verschijnen altijd boven elke groep, dus zet daar wat iedereen als eerste controleert. |
 
 **Twee gevallen waarin slepen uit staat.** Zoeken met het vak **Search in {group}...** zet herschikken uit (het deelvenster zegt `N of M shown · drag to reorder is off while filtering`), dus maak eerst de zoekopdracht leeg. En rastergroepen worden nooit door slepen herschikt, omdat de plaats van een monitor uit zijn rij en kolom volgt.
 
@@ -204,12 +204,12 @@ Zet de service waarover het meest wordt gevraagd bovenaan. Bezoekers die tijdens
 
 ## Monitoren automatisch toevoegen met monitorregels
 
-Een monitorregel voegt monitoren voor u aan de pagina toe: beschrijf de monitoren één keer, en elke overeenkomende monitor komt in de groep die u kiest. U vindt ze onder **Regels → Monitor Rules**, direct onder Middelen in het zijmenu van de pagina.
+Een monitorregel voegt monitoren voor u aan de pagina toe: beschrijf de monitoren één keer, en elke overeenkomende monitor komt in de groep die u kiest. U vindt ze onder **Regels → Monitorregels**, direct onder Middelen in het zijmenu van de pagina.
 
 :::steps
 ### Monitor Rules openen
 
-Open de statuspagina, kies **Monitor Rules** in de sectie **Regels** van het zijmenu (klik op de titel van de sectie als die is ingeklapt) en klik op **Monitorregel aanmaken**.
+Open de statuspagina, kies **Monitorregels** in de sectie **Regels** van het zijmenu (klik op de titel van de sectie als die is ingeklapt) en klik op **Monitorregel aanmaken**.
 
 ### Zeggen met welke monitoren hij overeenkomt
 
@@ -221,7 +221,7 @@ Kies op **Groep** de groep bij **Monitoren toevoegen aan**, of laat het leeg om 
 
 ### De regel opslaan
 
-De regel draait meteen tegen elke monitor die al bestaat, en de lijst toont onder **Adds Monitors To** de groep waaraan hij monitoren toevoegt. Een nieuwe regel staat aan: zijn schakelaar **Ingeschakeld** staat in zijn bewerkformulier.
+De regel draait meteen tegen elke monitor die al bestaat, en de lijst toont onder **Voegt monitoren toe aan** de groep waaraan hij monitoren toevoegt. Een nieuwe regel staat aan: zijn schakelaar **Ingeschakeld** staat in zijn bewerkformulier.
 :::
 
 Daarna draait een regel opnieuw voor een monitor telkens wanneer er een wordt aangemaakt of wanneer de labels, de naam of de beschrijving ervan veranderen. Een regel verwijdert alleen de resources die hij zelf heeft toegevoegd: hem uitzetten of verwijderen haalt die van de pagina, en een monitor die u met de hand hebt toegevoegd, wordt nooit aangeraakt. Een monitor die al op de pagina staat, wordt nooit twee keer toegevoegd.

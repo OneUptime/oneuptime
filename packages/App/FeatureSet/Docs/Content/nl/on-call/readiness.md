@@ -27,8 +27,8 @@ Een responder is iedereen die een bereikbaarheidsbeleid kan oproepen: een persoo
 | Status | Wat die betekent |
 | --- | --- |
 | **Gereed** | De persoon heeft een geverifieerde methode op een kanaal dat het project heeft aangezet, en een regel voor elke ernst, op elk tabblad van de eigen bereikbaarheidsregels. |
-| **Needs setup** | De persoon is bereikbaar, maar voor sommige ernstniveaus is er geen regel. De rij telt deze gaten. |
-| **Unreachable** | Niets bereikt de persoon: geen geverifieerde methode, elke geverifieerde methode staat op een kanaal dat het project heeft uitgezet, of de persoon is geen lid van het project. |
+| **Moet worden ingesteld** | De persoon is bereikbaar, maar voor sommige ernstniveaus is er geen regel. De rij telt deze gaten. |
+| **Onbereikbaar** | Niets bereikt de persoon: geen geverifieerde methode, elke geverifieerde methode staat op een kanaal dat het project heeft uitgezet, of de persoon is geen lid van het project. |
 
 Een gat is een ernst zonder regel, op het tabblad voor incidenten, incidentepisodes, waarschuwingen of waarschuwingsepisodes. Een regel die een ernst bewust uitzet, is geen gat. Een oproep die op een gat stuit, bereikt de persoon toch via de geverifieerde methoden, tenzij het project die terugval heeft uitgezet: zie [Als geen regel past](/docs/notifications/index#als-geen-regel-past).
 
@@ -36,18 +36,18 @@ Een gat is een ernst zonder regel, op het tabblad voor incidenten, incidentepiso
 
 Open **Bereikbaarheidsdienst → Gereedheid**. De kaart **On-call readiness** toont iedereen die een bereikbaarheidsbeleid in het project kan bereiken, met de mensen die eerst iets nodig hebben bovenaan. Iedereen in het project kan de pagina openen.
 
-Boven de lijst tellen de tegels **Responders**, **Gereed**, **Needs setup** en **Unreachable**. Klik op **Gereed**, **Needs setup** of **Unreachable** om alleen die responders te tonen, en klik er nog eens op om iedereen te tonen.
+Boven de lijst tellen de tegels **Ontvangers**, **Gereed**, **Moet worden ingesteld** en **Onbereikbaar**. Klik op **Gereed**, **Moet worden ingesteld** of **Onbereikbaar** om alleen die responders te tonen, en klik er nog eens op om iedereen te tonen.
 
 | Kolom | Wat die toont |
 | --- | --- |
-| **Responder** | De persoon, met het e-mailadres. |
-| **Status** | **Gereed**, **Unreachable**, of hoeveel gaten de persoon heeft. |
+| **Ontvanger** | De persoon, met het e-mailadres. |
+| **Status** | **Gereed**, **Onbereikbaar**, of hoeveel gaten de persoon heeft. |
 | **Teams** | De teams die de persoon via een escalatieregel oproepen. |
 | **Kanalen** | Een segment per kanaal: gevuld voor een geverifieerde methode, hol voor een die nog niet is geverifieerd. |
 | **Coverage** | Voor hoeveel ernstniveaus er een regel is, op elk tabblad, van allemaal. |
 | **Reached via** | Hoe het beleid de persoon bereikt: `Direct`, `Team`, `Schedule` of `Override`. |
 
-**Coverage** in een rij toont de meldingsmethoden van de persoon, waarom die deze status heeft, en een raster van elke ernst met of zonder regel. De trechter filtert de lijst op **Responder**, **Status**, **Team** of **Reached via**. Het antwoord kan een minuut oud zijn: **Vernieuwen** bepaalt het opnieuw.
+**Coverage** in een rij toont de meldingsmethoden van de persoon, waarom die deze status heeft, en een raster van elke ernst met of zonder regel. De trechter filtert de lijst op **Ontvanger**, **Status**, **Team** of **Reached via**. Het antwoord kan een minuut oud zijn: **Vernieuwen** bepaalt het opnieuw.
 
 ## Mensen herinneren hun instellingen af te ronden
 
@@ -55,28 +55,28 @@ Alleen de persoon zelf kan de eigen meldingsmethoden en regels toevoegen en veri
 
 :::steps
 1. Vink op de pagina Gereedheid de responders aan die je wilt herinneren. Responders die gereed zijn, kun je niet aanvinken: er is niets om ze aan te herinneren.
-2. Klik op **Send setup reminder**. De bevestiging noemt iedereen die zo een e-mail krijgt.
+2. Klik op **Herinnering voor instellingen sturen**. De bevestiging noemt iedereen die zo een e-mail krijgt.
 3. Bevestig. Elke persoon krijgt één e-mail die zegt wat er in de eigen instellingen ontbreekt, met een link naar de pagina die het oplost.
 :::
 
-Een banner zegt daarna hoeveel herinneringen zijn verstuurd, overgeslagen of mislukt, en waarom, voor elke herinnering die niet is verstuurd. Niemand wordt vaker dan één keer per 24 uur herinnerd, en één ronde herinnert hoogstens 250 mensen. Herinneringen versturen vraagt **Project Owner**, **Project Admin** of **On-Call Admin**, of **Edit On-Call Duty Policy** in een aangepaste rol.
+Een banner zegt daarna hoeveel herinneringen zijn verstuurd, overgeslagen of mislukt, en waarom, voor elke herinnering die niet is verstuurd. Niemand wordt vaker dan één keer per 24 uur herinnerd, en één ronde herinnert hoogstens 250 mensen. Herinneringen versturen vraagt **Projecteigenaar**, **Projectbeheerder** of **Bereikbaarheidsbeheerder**, of **Edit On-Call Duty Policy** in een aangepaste rol.
 
 ## Gereedheid op andere pagina's
 
-- Op het **Overzicht** van een beleid toont **Responder readiness** iedereen die dat beleid kan oproepen en aandacht nodig heeft, en **Recheck** leest het opnieuw. Je eigen rij heeft een knop naar de pagina die het oplost; de rij van iemand anders opent een e-mail aan die persoon in je eigen mailprogramma, met de oplossing erin.
+- Op het **Overzicht** van een beleid toont **Gereedheid van ontvangers** iedereen die dat beleid kan oproepen en aandacht nodig heeft, en **Opnieuw controleren** leest het opnieuw. Je eigen rij heeft een knop naar de pagina die het oplost; de rij van iemand anders opent een e-mail aan die persoon in je eigen mailprogramma, met de oplossing erin.
 - Op de **Escalatieregels** van een beleid zegt een niveau op zijn kaart wanneer niet al zijn responders kunnen worden opgeroepen. Zie [Het escalatieoverzicht](/docs/on-call/escalation-rules#het-escalatieoverzicht).
 - Open onder **Gebruikers** een lid, en dan **Gereedheid** in de sectie **Bereikbaarheid**: de status, de methoden en het dekkingsraster van die persoon.
 - Voor je eigen instellingen leidt **Gebruikersinstellingen → Instellingschecklist** je erdoorheen. Zie [De instellingschecklist](/docs/notifications/index#de-instellingschecklist).
 
 ## De wekelijkse e-mail over gereedheid
 
-Eén keer per week controleert OneUptime elk project dat een bereikbaarheidsbeleid heeft. Is iemand daarin **Unreachable** of **Needs setup**, dan krijgen de eigenaren van het project één e-mail die deze mensen in twee groepen toont, wie helemaal niet kan worden opgeroepen en wie met gaten bereikbaar is, tot 20 namen per groep, met een link naar de pagina Gereedheid.
+Eén keer per week controleert OneUptime elk project dat een bereikbaarheidsbeleid heeft. Is iemand daarin **Onbereikbaar** of **Moet worden ingesteld**, dan krijgen de eigenaren van het project één e-mail die deze mensen in twee groepen toont, wie helemaal niet kan worden opgeroepen en wie met gaten bereikbaar is, tot 20 namen per groep, met een link naar de pagina Gereedheid.
 
 Een week waarin iedereen gereed is, verstuurt niets, dus de e-mail betekent altijd dat er iets moet worden opgelost. Kan iemand helemaal niet worden opgeroepen, dan begint het onderwerp met `[Action Required]`.
 
 ## Bereikbaarheidstijd gebruiker
 
-**Bereikbaarheidsdienst → Rapporten → Bereikbaarheidstijd gebruiker** toont hoe lang elke persoon dienst had, over een periode die je kiest: om te beginnen **Past 1 Month**.
+**Bereikbaarheidsdienst → Rapporten → Bereikbaarheidstijd gebruiker** toont hoe lang elke persoon dienst had, over een periode die je kiest: om te beginnen **Afgelopen maand**.
 
 | Kolom | Wat die toont |
 | --- | --- |
@@ -101,7 +101,7 @@ De lijst bevat alleen mensen die een bereikbaarheidsbeleid kan oproepen. Een tea
 :::
 
 :::details De eigenaren krijgen de wekelijkse e-mail nooit
-Die wordt alleen verstuurd in een week waarin iemand **Unreachable** of **Needs setup** is, en alleen naar de eigenaren van het project.
+Die wordt alleen verstuurd in een week waarin iemand **Onbereikbaar** of **Moet worden ingesteld** is, en alleen naar de eigenaren van het project.
 :::
 
 ## Volgende stappen

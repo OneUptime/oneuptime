@@ -8,7 +8,7 @@ import LabelsElement from "Common/UI/Components/Label/Labels";
 import Label from "Common/Models/DatabaseModels/Label";
 import OneUptimeDate from "Common/Types/Date";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import AppLink from "../AppLink/AppLink";
 import EditInSettingsLink from "./EditInSettingsLink";
@@ -296,16 +296,33 @@ const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
     getReportedResourceOverviewDetailRows(props.detailRows);
   const status: string = (props.status || "").toLowerCase();
   const isConnected: boolean = status === "connected" || status === "active";
+  /*
+   * One whole sentence either way, in the reader's language: "Last seen" and
+   * a German time read "Zuletzt gesehen vor 5 Minuten", never "Last seen vor
+   * 5 Minuten", and a resource that never reported reads "Never seen".
+   */
   const lastSeenText: string = props.lastSeenAt
-    ? OneUptimeDate.fromNow(props.lastSeenAt)
-    : "never";
+    ? translator.translateTemplate("Last seen {{time}}", {
+        time: OneUptimeDate.fromNow(props.lastSeenAt),
+      })
+    : translator.translateText("Never seen") || "Never seen";
 
   const statusTone: ResourceOverviewStatusTone =
     props.statusTone || (isConnected ? "positive" : "warning");
   const statusBadgeClass: string = STATUS_TONE_CLASSES[statusTone].badge;
   const statusDotClass: string = STATUS_TONE_CLASSES[statusTone].dot;
+  /*
+   * The pill's word: one the product words ("Connected", "Seen recently",
+   * "Reporting") in the reader's language, one a page worded itself as
+   * given.
+   */
+  const givenStatusLabel: string =
+    props.statusLabel ||
+    (isConnected
+      ? translationKey("Connected")
+      : translationKey("Disconnected"));
   const statusLabel: string =
-    props.statusLabel || (isConnected ? "Connected" : "Disconnected");
+    translator.translateText(givenStatusLabel) || givenStatusLabel;
 
   return (
     <Fragment>
@@ -361,9 +378,7 @@ const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
                 ) : (
                   <></>
                 )}
-                <div className="mt-1 text-xs text-gray-400">
-                  Last seen {lastSeenText}
-                </div>
+                <div className="mt-1 text-xs text-gray-400">{lastSeenText}</div>
               </div>
             </div>
             {props.controls ? (

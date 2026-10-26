@@ -24,7 +24,7 @@ flowchart TB
     ack["Vous prenez en compte"] -.->|"arrête le reste"| third
 ```
 
-La plupart des messages peuvent prendre en compte l'alerte : les e-mails, les SMS et les messages WhatsApp, Telegram, Slack et Microsoft Teams contiennent un lien de prise en compte, et un appel vous demande d'appuyer sur 1. Si vous ne pouvez pas prendre une alerte, les mêmes messages vous permettent de l'escalader, et un appel vous demande d'appuyer sur 2 : la politique alerte tout de suite son niveau suivant, et vous n'êtes plus alerté à ce sujet. Voir [Escalader une alerte](/docs/on-call/escalation-rules#escalader-une-alerte). Chaque alerte reçue figure dans **Paramètres utilisateur → Journaux d'astreinte**, où **View Timeline** montre chaque message envoyé et s'il a été livré.
+La plupart des messages peuvent prendre en compte l'alerte : les e-mails, les SMS et les messages WhatsApp, Telegram, Slack et Microsoft Teams contiennent un lien de prise en compte, et un appel vous demande d'appuyer sur 1. Si vous ne pouvez pas prendre une alerte, les mêmes messages vous permettent de l'escalader, et un appel vous demande d'appuyer sur 2 : la politique alerte tout de suite son niveau suivant, et vous n'êtes plus alerté à ce sujet. Voir [Escalader une alerte](/docs/on-call/escalation-rules#escalader-une-alerte). Chaque alerte reçue figure dans **Paramètres utilisateur → Journaux d'astreinte**, où **Voir la chronologie** montre chaque message envoyé et s'il a été livré.
 
 ## Les quatre onglets
 

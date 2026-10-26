@@ -59,15 +59,25 @@ test.describe.skip("Docker Swarm Product Onboarding", () => {
       timeout: 30000,
     });
 
-    // Empty state renders the DocumentationCard install guide.
+    /*
+     * The empty list shows what Docker Swarm monitoring gives (its
+     * showcase). Its Add Docker Swarm Cluster opens the DocumentationCard
+     * install guide in a dialog.
+     */
+    const showcase: Locator = page.getByTestId("resource-showcase");
+    await expect(showcase).toBeVisible({ timeout: 60000 });
+    await expect(showcase.getByRole("heading", { level: 2 })).toHaveText(
+      "See every node, service and task in your swarm",
+    );
+    await showcase.getByTestId("resource-showcase-add-button").click();
     await expect(
-      page.getByText("Getting Started with Docker Swarm Monitoring"),
-    ).toBeVisible({ timeout: 60000 });
+      page.getByRole("dialog", { name: "Add Docker Swarm Cluster" }),
+    ).toBeVisible({ timeout: 30000 });
     await expect(page.getByText("No ingestion keys yet")).toBeVisible({
       timeout: 30000,
     });
 
-    // Create a telemetry ingestion key from the inline ModelFormModal.
+    // Create a telemetry ingestion key from the guide's ModelFormModal.
     const keyName: string =
       "E2E Docker Swarm Key " + Faker.generateName().toString();
     await page.getByRole("button", { name: "Create Ingestion Key" }).click();
@@ -166,7 +176,7 @@ test.describe.skip("Docker Swarm Product Onboarding", () => {
 
   /*
    * Stretch: post a minimal OTLP metrics fixture with the ingestion key
-   * minted above and assert the clusters page flips from the install guide to
+   * minted above and assert the clusters page flips from the showcase to
    * a Connected cluster row without a reload (exercises the first-data poll).
    */
   test("should flip the empty state to a Connected cluster row when first OTLP metrics arrive", async ({
@@ -182,17 +192,24 @@ test.describe.skip("Docker Swarm Product Onboarding", () => {
     const dockerSwarmPageUrl: string = URL.fromString(BASE_URL.toString())
       .addRoute(`/dashboard/${projectId}/docker-swarm`)
       .toString();
+    const addButton: Locator = page.getByTestId("resource-showcase-add-button");
     await gotoProjectPage({
       page,
       projectId,
       url: dockerSwarmPageUrl,
-      ready: page.getByText("Getting Started with Docker Swarm Monitoring"),
+      ready: addButton,
     });
 
     /*
-     * Mint a key, then read the interpolated secret back out of the guide's
-     * Docker Compose .env (the install script option asks for it instead).
+     * The showcase's Add Docker Swarm Cluster opens the guide: mint a key,
+     * then read the interpolated secret back out of its Docker Compose .env
+     * (the install script option asks for it instead).
      */
+    await addButton.click();
+    const addCluster: Locator = page.getByRole("dialog", {
+      name: "Add Docker Swarm Cluster",
+    });
+    await expect(addCluster).toBeVisible({ timeout: 30000 });
     await page.getByRole("button", { name: "Create Ingestion Key" }).click();
     await submitIngestionKeyModal({
       page,
@@ -211,6 +228,13 @@ test.describe.skip("Docker Swarm Product Onboarding", () => {
 
     const bodyText: string = await page.locator("body").innerText();
     const ingestionKey: string = bodyText.match(serviceTokenEnvLineRegex)![1]!;
+
+    /*
+     * Done leaves the list, still empty. What flips it is the list's own
+     * check: the dialog, left open, would name the new cluster too.
+     */
+    await addCluster.getByRole("button", { name: "Done", exact: true }).click();
+    await expect(addCluster).toHaveCount(0);
 
     const clusterName: string =
       "e2e-swarm-" + Faker.generateName().toString().toLowerCase();
@@ -285,6 +309,8 @@ test.describe.skip("Docker Swarm Product Onboarding", () => {
     await expect(page.getByText(clusterName, { exact: true })).toBeVisible({
       timeout: 120000,
     });
+    // The showcase, whose example says Connected too, gives way to the table.
+    await expect(page.getByTestId("resource-showcase")).toHaveCount(0);
     await expect(
       page.getByText("Connected", { exact: true }).first(),
     ).toBeVisible({ timeout: 30000 });

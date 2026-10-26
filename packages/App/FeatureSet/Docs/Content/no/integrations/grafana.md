@@ -121,7 +121,7 @@ Gå til **Arbeidsflyter**, klikk på **Opprett arbeidsflyt** og deretter på **S
 
 ### Legg til Webhook-triggeren
 
-Klikk på den stiplede blokken **Choose what starts this workflow**, og velg **Webhook**. Klikk på triggeren, deretter på **Kopier URL**, og bruk den URL-en i kontaktpunktet i Grafana.
+Klikk på den stiplede blokken **Velg hva som starter denne arbeidsflyten**, og velg **Webhook**. Klikk på triggeren, deretter på **Kopier URL**, og bruk den URL-en i kontaktpunktet i Grafana.
 
 ### Kontroller at varslingen er utløst
 

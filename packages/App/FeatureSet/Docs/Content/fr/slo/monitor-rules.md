@@ -20,7 +20,7 @@ flowchart TB
     union --> sli["SLI et budget d'erreur"]
 ```
 
-Un nouveau SLO n'a aucun moniteur, car le formulaire de création ne les demande pas. Tant qu'il n'en a pas, il ne peut pas être évalué : ses pages affichent **No monitors attached**, et sa **Vue d'ensemble** propose les deux façons de rattacher des moniteurs.
+Un nouveau SLO n'a aucun moniteur, car le formulaire de création ne les demande pas. Tant qu'il n'en a pas, il ne peut pas être évalué : ses pages affichent **Aucun moniteur rattaché**, et sa **Vue d'ensemble** propose les deux façons de rattacher des moniteurs.
 
 ## Rattacher des moniteurs à la main
 
@@ -47,7 +47,7 @@ La page **Moniteurs** affiche, pour chaque moniteur :
 | Colonne | Ce qu'elle affiche |
 | --- | --- |
 | **État actuel** | Le statut actuel du moniteur, ou **Archivé**, **Désactivé**, **Sondes non activées**, **Sondes déconnectées** ou **Inconnu** quand il n'est pas vérifié ou n'a encore rien signalé. |
-| **Source** | **Rule** si l'une des règles de moniteurs du SLO l'a rattaché, **Manuel** si quelqu'un l'a rattaché à la main. |
+| **Source** | **Règle** si l'une des règles de moniteurs du SLO l'a rattaché, **Manuel** si quelqu'un l'a rattaché à la main. |
 | **Étiquettes** | Les étiquettes du moniteur. |
 
 ## Rattacher des moniteurs avec une règle
@@ -69,10 +69,10 @@ Dans **Critères de correspondance**, cliquez sur **Ajouter une condition**, cho
 
 ### Enregistrer la règle
 
-Cliquez sur **Créer : Règle de moniteurs du SLO**. La règle est activée au départ, et les moniteurs du SLO sont réévalués aussitôt : chaque moniteur qui correspond est rattaché avec la source **Rule**.
+Cliquez sur **Créer : Règle de moniteurs du SLO**. La règle est activée au départ, et les moniteurs du SLO sont réévalués aussitôt : chaque moniteur qui correspond est rattaché avec la source **Règle**.
 :::
 
-Le tableau des règles affiche, pour chaque règle, son nom, ses critères de correspondance en toutes lettres et si elle est activée. Pour mettre une règle en pause, désactivez **Activé** dans son formulaire de modification. **View Monitors** ouvre la page **Moniteurs** du SLO.
+Le tableau des règles affiche, pour chaque règle, son nom, ses critères de correspondance en toutes lettres et si elle est activée. Pour mettre une règle en pause, désactivez **Activé** dans son formulaire de modification. **Voir les moniteurs** ouvre la page **Moniteurs** du SLO.
 
 ### Critères de correspondance
 
@@ -102,7 +102,7 @@ Un modèle est une expression régulière, comme `^api-.*`, ou un joker `*`, com
 - Quand une étiquette est supprimée, les SLO dont les règles l'utilisaient sont réévalués.
 - Les règles tiennent la liste des moniteurs d'un SLO à jour même quand le SLO est désactivé ou archivé, il reprend donc avec les bons moniteurs.
 
-Les règles se resynchronisent à chaque enregistrement, **Run Now** sert donc à rattraper ce qui aurait échappé au SLO. Il se trouve sur chaque ligne, sur la page de la règle (**Voir**) et dans les actions groupées du tableau. Exécuter une règle réévalue ensemble toutes les règles de moniteurs activées du SLO, puis la boîte de dialogue indique combien de moniteurs ont été rattachés et détachés. Exécuter une règle demande la permission de modifier les règles de moniteurs des SLO. Voir [Exécuter des règles sur les ressources existantes](/docs/configuration/run-rules-now).
+Les règles se resynchronisent à chaque enregistrement, **Exécuter maintenant** sert donc à rattraper ce qui aurait échappé au SLO. Il se trouve sur chaque ligne, sur la page de la règle (**Voir**) et dans les actions groupées du tableau. Exécuter une règle réévalue ensemble toutes les règles de moniteurs activées du SLO, puis la boîte de dialogue indique combien de moniteurs ont été rattachés et détachés. Exécuter une règle demande la permission de modifier les règles de moniteurs des SLO. Voir [Exécuter des règles sur les ressources existantes](/docs/configuration/run-rules-now).
 
 ### Quels moniteurs appartiennent à une règle
 
@@ -114,7 +114,7 @@ Les règles se resynchronisent à chaque enregistrement, **Run Now** sert donc �
 
 Tant qu'au moins une règle est activée, ce sont les règles qui gèrent les moniteurs du SLO :
 
-- on ne peut pas ajouter de moniteurs à la main : **Ajouter des moniteurs** est désactivé, et un bandeau indique **This SLO's monitors are managed by its monitor rules**, avec un lien **Gérer les règles de moniteurs** ;
+- on ne peut pas ajouter de moniteurs à la main : **Ajouter des moniteurs** est désactivé, et un bandeau indique **Les moniteurs de ce SLO sont gérés par ses règles de moniteurs**, avec un lien **Gérer les règles de moniteurs** ;
 - on ne peut pas retirer à la main les moniteurs qu'une règle a rattachés, car la règle les rattacherait de nouveau : leur bouton **Supprimer** est verrouillé, et son info-bulle explique pourquoi ;
 - les moniteurs rattachés à la main avant l'activation des règles peuvent toujours être retirés.
 
@@ -153,7 +153,7 @@ Une règle de moniteurs a rattaché ce moniteur et le rattacherait de nouveau. M
 :::
 
 :::details Un moniteur auquel une règle devrait correspondre n'est pas rattaché
-Vérifiez que la règle est activée et que chaque condition est remplie avec **Toutes requises**. Les étiquettes qu'ajoute une règle d'étiquettes de moniteurs comptent aussi. Cliquez sur **Run Now** sur la règle pour resynchroniser le SLO.
+Vérifiez que la règle est activée et que chaque condition est remplie avec **Toutes requises**. Les étiquettes qu'ajoute une règle d'étiquettes de moniteurs comptent aussi. Cliquez sur **Exécuter maintenant** sur la règle pour resynchroniser le SLO.
 :::
 
 :::details L'enregistrement d'une règle échoue avec une erreur de modèle

@@ -60,11 +60,11 @@ OneUptime 每分钟轮询一次已过轮询间隔的每个已启用连接。一�
 
 ### 在 OneUptime 中添加连接
 
-打开 **产品 → Security Events → Connections**（`/dashboard/{projectId}/security-events/connections`），点击 **添加连接**，选择 **Microsoft Sentinel**，然后点击 **下一步**。填写下表中的设置，点击 **下一步**，并把密码的值粘贴到 **Client secret** 中。
+打开 **产品 → Security Events → 连接**（`/dashboard/{projectId}/security-events/connections`），点击 **添加连接**，选择 **Microsoft Sentinel**，然后点击 **下一步**。填写下表中的设置，点击 **下一步**，并把密码的值粘贴到 **客户端密钥** 中。
 
 ### 保存之前先测试
 
-点击 **保存前测试** 下的 **Test these settings**。测试会用表单中的值登录并读取事件，但不会存储任何内容，因此错误的密码或缺失的角色会在连接存在之前暴露出来。然后点击 **下一步**，为连接填写 **名称** 并创建它。
+点击 **保存前测试** 下的 **测试这些设置**。测试会用表单中的值登录并读取事件，但不会存储任何内容，因此错误的密码或缺失的角色会在连接存在之前暴露出来。然后点击 **下一步**，为连接填写 **名称** 并创建它。
 :::
 
 | 设置 | 在哪里找到 |
@@ -75,9 +75,9 @@ OneUptime 每分钟轮询一次已过轮询间隔的每个已启用连接。一�
 | **Resource group** | 工作区的 **Overview** 页面。1 到 90 个字母、数字、下划线、连字符、句点或括号，不能以句点结尾。 |
 | **Workspace name** | 工作区的 **Overview** 页面。3 到 90 个字母、数字或连字符，以字母或数字开头和结尾。 |
 | **云** | **Azure 公有云**（`login.microsoftonline.com`、`management.azure.com`）或 **Azure Government（美国）** （`login.microsoftonline.us`、`management.usgovcloudapi.net`）。 |
-| **Client secret** | 密码的 **Value**。它会被加密，API 从不返回，也不会再次显示。在连接上用 **Update credentials** 替换它。 |
+| **客户端密钥** | 密码的 **Value**。它会被加密，API 从不返回，也不会再次显示。在连接上用 **更新凭据** 替换它。 |
 
-**Polling** 步骤还有可选的 **描述**、**Poll Interval (Minutes)**（`1` 到 `1440` 之间的整数，初始为 `5`），以及初始为开启的 **已启用**。
+**轮询** 步骤还有可选的 **描述**、**轮询间隔（分钟）**（`1` 到 `1440` 之间的整数，初始为 `5`），以及初始为开启的 **已启用**。
 
 ## 导入的内容
 
@@ -114,12 +114,12 @@ GET https://management.azure.com/subscriptions/{sub}/resourceGroups/{rg}/provide
 - **创建时间就是游标。** 每小时运行一次的计划分析规则，会在它匹配的活动发生很久之后才创建事件，而事件的 `firstActivityTimeUtc` 可能早几个小时甚至几天。基于活动时间的游标会跳过所有这样的事件。活动时间保留在 `attributes` 中，Diagnostics 中的样本会同时显示这两个时间。
 - **第一次轮询会回溯 24 小时**，所以新连接会立刻显示最近的事件。
 - **之后的每次轮询都从保存的游标之前 1 分钟开始**，所以在两个窗口边界上创建的事件永远不会被跳过。
-- **一次轮询最多读取游标之后 24 小时。** 游标落后的连接会通过一连串 24 小时的窗口追赶，此时它的 **Health** 显示为 **Catching up**。
+- **一次轮询最多读取游标之后 24 小时。** 游标落后的连接会通过一连串 24 小时的窗口追赶，此时它的 **健康状况** 显示为 **Catching up**。
 - **重复项按事件的 GUID**（`name`）**在项目内去重**，所以重叠部分、重试的窗口和导入都不会把同一个事件存储两次。
 
 ### 当一个窗口包含的内容超过一次轮询能读取的量时
 
-一次轮询最多读取 20 页、每页 50 个事件：共 1,000 个事件。当这个上限让它在窗口结束之前停下时，这次运行为 **Partial**，并带有类似这样的警告：
+一次轮询最多读取 20 页、每页 50 个事件：共 1,000 个事件。当这个上限让它在窗口结束之前停下时，这次运行为 **部分**，并带有类似这样的警告：
 
 ```text
 Stopped after 20 incidents requests (the per-run request limit) before reading the whole window. Incidents are read oldest first; every incident created before 2026-09-14T08:12:44.000Z was read.
@@ -131,22 +131,22 @@ Stopped after 20 incidents requests (the per-run request limit) before reading t
 
 1. **缩小。** 下一次轮询从同一个起点读取长度减半的窗口，并不断减半，直到某个窗口能被完整读取，最短为一分钟。运行的警告会说明这一点：`This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **恢复。** 一个窗口被完整读取后，下一个窗口的长度会再次加倍，最长为 24 小时。
-3. **越过单独的一分钟。** 如果连一分钟内的内容都超过一次轮询能读取的量，轮询会越过这一分钟，让更新的事件继续到达。这次运行仍为 **Partial**，**最近错误** 显示 `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` 用 **Import this time range** 导入这一分钟，即可找回一次运行能读取的内容。
+3. **越过单独的一分钟。** 如果连一分钟内的内容都超过一次轮询能读取的量，轮询会越过这一分钟，让更新的事件继续到达。这次运行仍为 **部分**，**最近错误** 显示 `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` 用 **Import this time range** 导入这一分钟，即可找回一次运行能读取的内容。
 
-因 Microsoft Entra ID 或 Azure Resource Manager 的错误而彻底失败的运行，会保留游标和窗口长度，下一次轮询会再次读取同一个窗口。唯一的例外是请求超时：游标保持不变，但下一个窗口的长度减半，因为太重而无法及时响应的窗口每次重试都会超时。更改 **Poll Interval (Minutes)** 不会改变以上任何一点：它决定轮询多久开始一次，而不是窗口从哪里开始。
+因 Microsoft Entra ID 或 Azure Resource Manager 的错误而彻底失败的运行，会保留游标和窗口长度，下一次轮询会再次读取同一个窗口。唯一的例外是请求超时：游标保持不变，但下一个窗口的长度减半，因为太重而无法及时响应的窗口每次重试都会超时。更改 **轮询间隔（分钟）** 不会改变以上任何一点：它决定轮询多久开始一次，而不是窗口从哪里开始。
 
 ### 按需运行、预览和导入
 
-在连接上点击 **Diagnostics**，可以查看它最近的运行，并手动操作它。能更改该连接的人都可以启动这些操作；能查看它的人都可以阅读历史记录。
+在连接上点击 **诊断**，可以查看它最近的运行，并手动操作它。能更改该连接的人都可以启动这些操作；能查看它的人都可以阅读历史记录。
 
-- **Run now** 会立即开始一次轮询，使用通常的游标，即使连接未处于 **已启用** 状态也可以。
+- **立即运行** 会立即开始一次轮询，使用通常的游标，即使连接未处于 **已启用** 状态也可以。
 - **Preview incidents** 读取最长 7 天的时间范围，不导入任何内容。
 - **Import this time range** 在你确认后导入最长 7 天的范围，不会移动游标。已导入的事件会被跳过。
 - 运行上的 **Copy diagnostics** 会复制它的报告以便提供给支持人员。报告从不包含凭据。
 
 ## 测试连接
 
-连接所在行中的 **测试连接** 和表单中的 **Test these settings** 在 API 进程中运行，而不是在后台工作进程中运行，所以即使工作进程出了问题，测试仍然会给出结果。它按顺序运行以下检查：
+连接所在行中的 **测试连接** 和表单中的 **测试这些设置** 在 API 进程中运行，而不是在后台工作进程中运行，所以即使工作进程出了问题，测试仍然会给出结果。它按顺序运行以下检查：
 
 | 检查 | 检查的内容 |
 | --- | --- |
@@ -174,7 +174,7 @@ OneUptime 也可以通过 Azure Monitor 的 Logs Ingestion API 把它发现的�
 
 ### 添加目标
 
-打开 **产品 → Security Events → Connections**。在 **发送到你的 SIEM** 下点击 **添加目标**，在 **SIEM** 下选择 Microsoft Sentinel，然后点击 **下一步**。填写 **目录（租户）ID**、**应用程序（客户端）ID** 和 **Client secret**，从数据收集终结点（或规则）的 **Overview** 中取得的 **日志引入终结点**，以及从规则的 **JSON View** 中取得的 **数据收集规则不可变 ID**。**流** 是可选的：留空时为 `Custom-OneUptimeSecurityEvents_CL`。
+打开 **产品 → Security Events → 连接**。在 **发送到你的 SIEM** 下点击 **添加目标**，在 **SIEM** 下选择 Microsoft Sentinel，然后点击 **下一步**。填写 **目录（租户）ID**、**应用程序（客户端）ID** 和 **客户端密钥**，从数据收集终结点（或规则）的 **Overview** 中取得的 **日志引入终结点**，以及从规则的 **JSON View** 中取得的 **数据收集规则不可变 ID**。**流** 是可选的：留空时为 `Custom-OneUptimeSecurityEvents_CL`。
 
 ### 发送测试事件并开始发送
 
@@ -234,7 +234,7 @@ OneUptime 也可以通过 Azure Monitor 的 Logs Ingestion API 把它发现的�
 
 :::details Last Error 以 `Microsoft Sentinel token request` 开头
 - `Microsoft Sentinel token request failed (HTTP ...)`：Microsoft Entra ID 拒绝颁发令牌，所以根本没有连接 Azure。消息会引用 Entra 的代码：
-  - `AADSTS7000215` 或 `invalid_client`：**Client secret** 错误或已过期，或者填的是密码的 ID 而不是它的值。创建一个新密码，并用 **Update credentials** 保存。
+  - `AADSTS7000215` 或 `invalid_client`：**客户端密钥** 错误或已过期，或者填的是密码的 ID 而不是它的值。创建一个新密码，并用 **更新凭据** 保存。
   - `AADSTS700016` 或 `unauthorized_client`：**应用程序（客户端）ID** 不在所填的 **目录（租户）ID** 中。把两者与应用的 **Overview** 页面进行比较。
   - `AADSTS90002` 或 `HTTP 404`：没有这样的租户。**目录（租户）ID** 错误，或者它位于另一个云中：请检查 **云**。
   - `HTTP 429` 或 `HTTP 5xx`：Microsoft Entra ID 正在限流或不可用。下一次轮询会重试。
@@ -258,9 +258,9 @@ OneUptime 也可以通过 Azure Monitor 的 Logs Ingestion API 把它发现的�
 :::
 
 :::details 运行为 Partial
-- `Stopped after 20 incidents requests (the per-run request limit) before reading the whole window`：窗口中的事件超过了一次运行能读取的 1,000 个。不会丢失任何内容：下一次轮询会从读取的最后一个事件之后开始。一次又一次轮询都保持 **Partial** 的连接正在追赶积压，它的 **Last Polled** 和 **Last Event Imported** 会持续前进。
+- `Stopped after 20 incidents requests (the per-run request limit) before reading the whole window`：窗口中的事件超过了一次运行能读取的 1,000 个。不会丢失任何内容：下一次轮询会从读取的最后一个事件之后开始。一次又一次轮询都保持 **部分** 的连接正在追赶积压，它的 **最近轮询** 和 **最近导入的事件** 会持续前进。
 - `Microsoft Sentinel returned incidents out of creation-time order, so this run cannot name a point to resume from.`：API 忽略了从早到晚的顺序，所以这次运行无法把游标移到它的最后一个事件，下一次轮询会改为读取更短的窗口。如果反复出现，请把这次运行的报告发送给 OneUptime 支持人员。
-- `More records were created in the one minute from ... than one poll can read`：轮询越过了这一分钟。请在 **Diagnostics** 中用 **Import this time range** 导入它。一次导入读取的量与一次轮询相同。
+- `More records were created in the one minute from ... than one poll can read`：轮询越过了这一分钟。请在 **诊断** 中用 **Import this time range** 导入它。一次导入读取的量与一次轮询相同。
 :::
 
 :::details 测试通过，但没有导入任何内容

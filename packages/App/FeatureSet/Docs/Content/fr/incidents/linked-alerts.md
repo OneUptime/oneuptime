@@ -121,7 +121,7 @@ Quelle que soit la façon choisie, vous arrivez sur le formulaire habituel **Dé
 | **Étiquettes**            | Chaque étiquette de chaque alerte sélectionnée.                                                                                                                                                                                                                                        |
 | **Incident privé**        | Activé si l'une des alertes est privée. Le formulaire le dit, et les propriétaires des alertes deviennent propriétaires de l'incident — voir plus bas.                                                                                                                                 |
 
-« La plus grave » suit l'ordre de vos gravités d'alerte : la première gravité d'alerte de la liste est la plus grave. Avec les gravités dont part chaque projet, une alerte **Élevé** devient un **Critical Incident** et une alerte **Low** un **Major Incident**.
+« La plus grave » suit l'ordre de vos gravités d'alerte : la première gravité d'alerte de la liste est la plus grave. Avec les gravités dont part chaque projet, une alerte **Élevé** devient un **Critical Incident** et une alerte **Faible** un **Major Incident**.
 
 Tout est modifiable avant l'envoi. **Étiquettes** et **Incident privé** se trouvent sous **Plus de champs** dans la première étape du formulaire, dont l'en-tête replié affiche chacun tant qu'il est défini.
 

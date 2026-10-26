@@ -225,9 +225,9 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 
 | 그룹 | 수집하는 것 | 필요한 것 |
 |---|---|---|
-| Connections | 연결 수, 설정된 상한, 중단된 연결, 서버 가동 시간 | PostgreSQL: `pg_monitor`. MySQL: `performance_schema`. SQL Server: `VIEW SERVER STATE` |
+| 연결 | 연결 수, 설정된 상한, 중단된 연결, 서버 가동 시간 | PostgreSQL: `pg_monitor`. MySQL: `performance_schema`. SQL Server: `VIEW SERVER STATE` |
 | Activity | 가장 오래 실행 중인 쿼리, 가장 오래 열린 트랜잭션, 열린 트랜잭션 | PostgreSQL: `pg_monitor`. MySQL: `PROCESS`. SQL Server: `VIEW SERVER STATE` |
-| Throughput | 트랜잭션, 쿼리, 캐시 적중률, 디스크 읽기와 쓰기, I/O 시간 | PostgreSQL: `CONNECT` 외에는 필요 없음. MySQL: `performance_schema`. SQL Server: `VIEW SERVER STATE` |
+| 처리량 | 트랜잭션, 쿼리, 캐시 적중률, 디스크 읽기와 쓰기, I/O 시간 | PostgreSQL: `CONNECT` 외에는 필요 없음. MySQL: `performance_schema`. SQL Server: `VIEW SERVER STATE` |
 | Locks | 차단된 세션, 잠금 대기, 교착 상태, 테이블 잠금 대기 | PostgreSQL: `pg_monitor`. MySQL: `performance_schema`. SQL Server: `VIEW SERVER STATE` |
 | Storage | 데이터베이스 크기, 임시 파일로의 유출, 로그 공간, tempdb 여유 공간 | PostgreSQL: `CONNECT` 외에는 필요 없음. MySQL: 데이터베이스에 대한 `SELECT`. SQL Server: 데이터베이스 크기에는 필요 없음, 로그 공간과 tempdb 여유 공간에는 `VIEW SERVER STATE` |
 | Replication | 연결된 복제본, 초와 바이트 단위의 복제 지연, 비활성 슬롯, 복구 상태 | PostgreSQL: `pg_monitor`. MySQL: `REPLICATION CLIENT`. SQL Server: `VIEW SERVER STATE`, Azure SQL Database에서는 수집하지 않음 |
@@ -274,28 +274,28 @@ Azure SQL Database에서는 이 표에서 `VIEW SERVER STATE`라고 한 곳을 �
 
 | 메트릭 | 시리즈 | Group | Engines |
 |---|---|---|---|
-| **Uptime** (s) | `oneuptime.monitor.database.uptime.seconds` | Connections | PostgreSQL, MySQL, SQL Server |
-| **Metric Groups Failed** | `oneuptime.monitor.database.metric.groups.failed` | Connections | PostgreSQL, MySQL, SQL Server |
+| **Uptime** (s) | `oneuptime.monitor.database.uptime.seconds` | 연결 | PostgreSQL, MySQL, SQL Server |
+| **Metric Groups Failed** | `oneuptime.monitor.database.metric.groups.failed` | 연결 | PostgreSQL, MySQL, SQL Server |
 
 ### 연결
 
 | 메트릭 | 시리즈 | Group | Engines |
 |---|---|---|---|
-| **Connections** | `oneuptime.monitor.database.connections.total` | Connections | PostgreSQL, MySQL, SQL Server |
-| **Active Connections** | `oneuptime.monitor.database.connections.active` | Connections | PostgreSQL, MySQL, SQL Server |
-| **Maximum Connections** | `oneuptime.monitor.database.connections.max` | Connections | PostgreSQL, MySQL |
-| **Connections Used** (%) | `oneuptime.monitor.database.connections.used.percent` | Connections | PostgreSQL, MySQL |
-| **Idle In Transaction** | `oneuptime.monitor.database.connections.idle.in.transaction` | Connections | PostgreSQL |
-| **Aborted Connects** | `oneuptime.monitor.database.connections.aborted.total` | Connections | MySQL |
+| **Connections** | `oneuptime.monitor.database.connections.total` | 연결 | PostgreSQL, MySQL, SQL Server |
+| **Active Connections** | `oneuptime.monitor.database.connections.active` | 연결 | PostgreSQL, MySQL, SQL Server |
+| **Maximum Connections** | `oneuptime.monitor.database.connections.max` | 연결 | PostgreSQL, MySQL |
+| **Connections Used** (%) | `oneuptime.monitor.database.connections.used.percent` | 연결 | PostgreSQL, MySQL |
+| **Idle In Transaction** | `oneuptime.monitor.database.connections.idle.in.transaction` | 연결 | PostgreSQL |
+| **Aborted Connects** | `oneuptime.monitor.database.connections.aborted.total` | 연결 | MySQL |
 
 ### 처리량
 
 | 메트릭 | 시리즈 | Group | Engines |
 |---|---|---|---|
-| **Transactions** | `oneuptime.monitor.database.transactions.total` | Throughput | PostgreSQL, SQL Server |
-| **Queries** | `oneuptime.monitor.database.queries.total` | Throughput | MySQL, SQL Server |
-| **Slow Queries** | `oneuptime.monitor.database.queries.slow.total` | Throughput | MySQL |
-| **Rollback Ratio** (%) | `oneuptime.monitor.database.rollback.percent` | Throughput | PostgreSQL |
+| **Transactions** | `oneuptime.monitor.database.transactions.total` | 처리량 | PostgreSQL, SQL Server |
+| **Queries** | `oneuptime.monitor.database.queries.total` | 처리량 | MySQL, SQL Server |
+| **Slow Queries** | `oneuptime.monitor.database.queries.slow.total` | 처리량 | MySQL |
+| **Rollback Ratio** (%) | `oneuptime.monitor.database.rollback.percent` | 처리량 | PostgreSQL |
 | **Longest Running Query** (s) | `oneuptime.monitor.database.query.longest.seconds` | Activity | PostgreSQL, MySQL, SQL Server |
 | **Longest Open Transaction** (s) | `oneuptime.monitor.database.transaction.longest.seconds` | Activity | PostgreSQL, MySQL, SQL Server |
 | **Open Transactions** | `oneuptime.monitor.database.transaction.open.count` | Activity | MySQL |
@@ -315,13 +315,13 @@ Azure SQL Database에서는 이 표에서 `VIEW SERVER STATE`라고 한 곳을 �
 
 | 메트릭 | 시리즈 | Group | Engines |
 |---|---|---|---|
-| **Cache Hit Ratio** (%) | `oneuptime.monitor.database.cache.hit.percent` | Throughput | PostgreSQL, MySQL, SQL Server |
-| **Disk Reads** | `oneuptime.monitor.database.disk.reads.total` | Throughput | PostgreSQL, MySQL, SQL Server |
-| **Disk Writes** | `oneuptime.monitor.database.disk.writes.total` | Throughput | MySQL, SQL Server |
-| **I/O Read Time** (ms) | `oneuptime.monitor.database.io.read.time.ms` | Throughput | PostgreSQL, SQL Server |
-| **I/O Write Time** (ms) | `oneuptime.monitor.database.io.write.time.ms` | Throughput | PostgreSQL, SQL Server |
-| **Page Life Expectancy** (s) | `oneuptime.monitor.database.page.life.expectancy.seconds` | Throughput | SQL Server |
-| **Memory Grants Pending** | `oneuptime.monitor.database.memory.grants.pending` | Throughput | SQL Server |
+| **Cache Hit Ratio** (%) | `oneuptime.monitor.database.cache.hit.percent` | 처리량 | PostgreSQL, MySQL, SQL Server |
+| **Disk Reads** | `oneuptime.monitor.database.disk.reads.total` | 처리량 | PostgreSQL, MySQL, SQL Server |
+| **Disk Writes** | `oneuptime.monitor.database.disk.writes.total` | 처리량 | MySQL, SQL Server |
+| **I/O Read Time** (ms) | `oneuptime.monitor.database.io.read.time.ms` | 처리량 | PostgreSQL, SQL Server |
+| **I/O Write Time** (ms) | `oneuptime.monitor.database.io.write.time.ms` | 처리량 | PostgreSQL, SQL Server |
+| **Page Life Expectancy** (s) | `oneuptime.monitor.database.page.life.expectancy.seconds` | 처리량 | SQL Server |
+| **Memory Grants Pending** | `oneuptime.monitor.database.memory.grants.pending` | 처리량 | SQL Server |
 
 PostgreSQL은 `track_io_timing`이 켜져 있을 때만 I/O 읽기 시간과 쓰기 시간을 측정합니다. 기본값은 꺼짐이며, 이때 PostgreSQL은 둘 다 `0`으로 보고합니다. 그래서 PostgreSQL에서 이 두 시리즈가 평평한 0이면 대개 "빠르다"가 아니라 "측정하지 않았다"는 뜻입니다. 이는 권한 문제가 아니라 서버 설정입니다.
 
@@ -412,7 +412,7 @@ Database Health 모니터에서 표현식은 다음 변수에 접근할 수 있�
 | 2 | **저하됨** | `Database Metric` → Connections Used가 `90`보다 큼. 순간적인 급증으로 호출되지 않도록 All Values로 5분 동안 평가합니다. |
 | 3 | **저하됨** | `Database Metric` → Transaction ID Used가 `80`보다 큼. |
 | 4 | **저하됨** | `Database Metric` → Blocked Sessions가 5분 동안 `0`보다 큼. |
-| 5 | **Online** | `Database Is Online`이 `true`. |
+| 5 | **온라인** | `Database Is Online`이 `true`. |
 
 기준은 위에서 아래로 평가되고 처음 일치한 기준이 적용되므로, 알림 기준을 먼저 두고 정상 기준을 마지막에 두세요.
 

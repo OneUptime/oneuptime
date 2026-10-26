@@ -524,10 +524,16 @@ describe("the environments list and its Add guide", () => {
     );
   });
 
-  it("says the guide is in the dashboard until the first environment or resource arrives", () => {
-    // Both lists count with the shared first-record watch.
+  it("says where the guide is in the dashboard: behind Add, and until the first resource arrives", () => {
+    /*
+     * An empty All Environments shows what the product gives, with Add
+     * Cloud Environment - which opens the guide.
+     */
     expect(readSource(ENVIRONMENTS_PAGE)).toContain(
-      "{firstRecordWatch.count === 0 && (\n        <AddResourceGuide\n          onboarding={CLOUD_ENVIRONMENT_ONBOARDING}",
+      "{firstRecordWatch.count === 0 && (\n        <ResourceShowcaseCard\n          showcase={CLOUD_ENVIRONMENT_SHOWCASE}",
+    );
+    expect(readSource(ENVIRONMENTS_PAGE)).toContain(
+      "<AddResourceModal\n          onboarding={CLOUD_ENVIRONMENT_ONBOARDING}",
     );
     expect(readSource(ENVIRONMENT_ONBOARDING)).toContain(
       "<CloudDocumentationCard",
@@ -543,7 +549,7 @@ describe("the environments list and its Add guide", () => {
       "            defaultCollapsed={true}\n          >\n            <CloudMonitoringDocumentationCard",
     );
     expect(pageProse(HUB)).toContain(
-      "under **Cloud → All Environments** until your first environment arrives",
+      "under **Cloud → All Environments**, click **Add Cloud Environment**",
     );
     expect(pageProse(RESOURCES)).toContain(
       "under **Cloud → All Resources** until the first resource arrives",

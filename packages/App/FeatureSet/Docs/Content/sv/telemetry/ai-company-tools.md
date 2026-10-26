@@ -46,7 +46,7 @@ Under **Autentiseringsuppgifter** fyller du i det som verktyget ber om. Hemlighe
 
 ### Välj vem som får läsa
 
-Under **Privacy** ställer du in **Vem som kan läsa konversationer** och **Spara det som skrevs**, som [Integritet](#integritet) förklarar.
+Under **Integritet** ställer du in **Vem som kan läsa konversationer** och **Spara det som skrevs**, som [Integritet](#integritet) förklarar.
 
 ### Testa det
 
@@ -90,7 +90,7 @@ Ge appen programbehörigheterna `AiEnterpriseInteraction.Read.All` och `User.Rea
 
 ### Anslut Copilot
 
-Fyll i **Katalog-ID (tenant)**, **Program-ID (klient)** och **Client secret**. Vill du bara läsa vissa personer anger du en grupps objekt-id i **Endast personer i den här gruppen** under **Fler fält** och ger appen även `GroupMember.Read.All`. För Azure Government ändrar du **Moln** på samma ställe.
+Fyll i **Katalog-ID (tenant)**, **Program-ID (klient)** och **Klienthemlighet**. Vill du bara läsa vissa personer anger du en grupps objekt-id i **Endast personer i den här gruppen** under **Fler fält** och ger appen även `GroupMember.Read.All`. För Azure Government ändrar du **Moln** på samma ställe.
 :::
 
 ## Integritet

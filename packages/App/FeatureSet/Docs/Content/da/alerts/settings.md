@@ -25,7 +25,7 @@ Konfigurationen af advarsler ligger under **Advarsler**, ikke i **Projektindstil
 
 Sektionen **Indstillinger** rummer **Advarselsstatus** og **Advarselsalvor**, som er beskrevet på [Advarselstilstande og alvorsgrader](/docs/alerts/states-and-severities), og derefter **Noteskabeloner**, **Brugerdefinerede felter**, **Målinger**, **Medlemskab af episoder** og **Nummerering**, som er beskrevet nedenfor.
 
-To andre sektioner handler på advarsler. **Advarsler → AI → Indstillinger** afgør, hvad OneUptime AI gør af sig selv: **Undersøg nye advarsler**, slået til for nye projekter, og **Ret nye advarsler automatisk**, slået fra, indtil du slår det til. Se [AI SRE](/docs/ai/ai-sre). **Advarsler → Arbejdsområde** rummer de Slack- og Microsoft Teams-regler, der slår advarsler og episoder op i kanaler, og dens fane **Summary**. Se [Slack](/docs/workspace-connections/slack).
+To andre sektioner handler på advarsler. **Advarsler → AI → Indstillinger** afgør, hvad OneUptime AI gør af sig selv: **Undersøg nye advarsler**, slået til for nye projekter, og **Ret nye advarsler automatisk**, slået fra, indtil du slår det til. Se [AI SRE](/docs/ai/ai-sre). **Advarsler → Arbejdsområde** rummer de Slack- og Microsoft Teams-regler, der slår advarsler og episoder op i kanaler, og dens fane **Oversigt**. Se [Slack](/docs/workspace-connections/slack).
 
 ## De regler, en ny advarsel passerer
 
@@ -59,7 +59,7 @@ Reglerne adskiller sig i, hvordan flere match afgøres:
 
 **Vagtregler**, **Ejerregler**, **Etiketregler** og **Privatlivsregler** har to faner: **Alert Rules** for advarsler og **Episode Rules**, som handler på samme måde på hver ny advarselsepisode. En ny regel starter aktiveret; slå **Aktiveret** fra på dens redigeringsformular for at sætte den på pause, og listen viser et grønt **Aktiveret** eller et rødt **Deaktiveret** for hver regel.
 
-De fleste regler handler på advarsler og episoder, der oprettes, efter at du har gemt dem. For at anvende en ejer-, etiket- eller privatlivsregel på dem, du allerede har, bruger du **Run Now**: se [Kør regler på eksisterende ressourcer](/docs/configuration/run-rules-now). Påmindelsesregler er undtagelsen: Når du gemmer en, matches hver åben advarsel igen.
+De fleste regler handler på advarsler og episoder, der oprettes, efter at du har gemt dem. For at anvende en ejer-, etiket- eller privatlivsregel på dem, du allerede har, bruger du **Kør nu**: se [Kør regler på eksisterende ressourcer](/docs/configuration/run-rules-now). Påmindelsesregler er undtagelsen: Når du gemmer en, matches hver åben advarsel igen.
 
 ### Betingelser
 
@@ -157,7 +157,7 @@ Hver advarselsmodel har workflow-udløsere og -handlinger, opkaldt efter den: **
 
 ## Hvem der kan ændre dem
 
-Regler, brugerdefinerede felter og målinger kræver en Project Owner eller Project Admin eller en brugerdefineret rolle med reglens egen tilladelse. **Alert Member** arbejder med advarsler og episoder, deres noter, ejere og tilstandstidslinjer og noteskabeloner, og **Alert Admin** administrerer også advarselstilstande og alvorsgrader. Se [Brugere, teams og tilladelser](/docs/permissions/index).
+Regler, brugerdefinerede felter og målinger kræver en Project Owner eller Project Admin eller en brugerdefineret rolle med reglens egen tilladelse. **Advarselsmedlem** arbejder med advarsler og episoder, deres noter, ejere og tilstandstidslinjer og noteskabeloner, og **Advarselsadministrator** administrerer også advarselstilstande og alvorsgrader. Se [Brugere, teams og tilladelser](/docs/permissions/index).
 
 ## Næste skridt
 

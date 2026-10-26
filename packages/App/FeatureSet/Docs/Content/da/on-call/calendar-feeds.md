@@ -24,7 +24,7 @@ flowchart TB
 - Overrides respekteres. Når nogen dækker for dig, flytter begivenheden til dem (`(covering for <Name>)` tilføjes) og forbliver den samme begivenhed i din kalenderapp, så den opdateres på stedet i stedet for at blive dubleret. En delvis override deler vagten i begivenheder, der støder op til hinanden.
 - To dages historik og 90 dage frem som standard. Du kan udvide det til 60 dage tilbage og 180 dage frem; et feed, der ville overstige 5.000 begivenheder, bliver afkortet og siger det i kalenderens beskrivelse.
 - Begivenheder er markeret som ledige (`TRANSP:TRANSPARENT`), så et abonneret feed aldrig blokerer din tilgængelighed, og intet er markeret som privat, så en delt teamkalender viser titlerne for alle, der kan se den.
-- Tider sendes i UTC og omregnes af din kalenderapp; beskrivelsen skriver klokkeslættet i vagtplanens zone og i din. Angiv din egen tidszone som **Tidszone** på din **Profil** (dit billede øverst til højre i dashboardet), og vagtplanens i dens kort **Schedule timezone** på dens side **Lag**. En vagtplan uden tidszone udregnes i serverens zone, ligesom ved tilkald, og begivenheden siger det.
+- Tider sendes i UTC og omregnes af din kalenderapp; beskrivelsen skriver klokkeslættet i vagtplanens zone og i din. Angiv din egen tidszone som **Tidszone** på din **Profil** (dit billede øverst til højre i dashboardet), og vagtplanens i dens kort **Tidsplanens tidszone** på dens side **Lag**. En vagtplan uden tidszone udregnes i serverens zone, ligesom ved tilkald, og begivenheden siger det.
 
 Faste tildelinger — en bruger eller et team, der er nævnt direkte i en regel i en eskaleringspolitik — har ingen start eller slutning og vises ikke i noget feed. På OneUptime Cloud følger feeds samme plan som vagtplaner (Growth); et projekt under den plan får en tom kalender i stedet for en fejl.
 
@@ -327,7 +327,7 @@ Disse apps validerer TLS på enheden. Importér din interne CA i enhedens tillid
 :::
 
 :::details Tiderne er forkerte
-Alle tider i filen er UTC; kalenderappen omregner til sin egen zone. Ser vagterne ud til at være forskudt med en fast forskel, så tjek vagtplanens tidszone (**Schedule timezone** på dens side **Lag**) og din egen (**Tidszone** på din **Profil**). En vagtplan uden tidszone udregnes i serverens zone, og begivenheden siger det.
+Alle tider i filen er UTC; kalenderappen omregner til sin egen zone. Ser vagterne ud til at være forskudt med en fast forskel, så tjek vagtplanens tidszone (**Tidsplanens tidszone** på dens side **Lag**) og din egen (**Tidszone** på din **Profil**). En vagtplan uden tidszone udregnes i serverens zone, og begivenheden siger det.
 :::
 
 :::details Feedet siger, at det er blevet afkortet

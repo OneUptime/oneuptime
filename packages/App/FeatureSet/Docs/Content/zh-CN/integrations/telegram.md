@@ -57,7 +57,7 @@ flowchart TB
 @tab 从零开始
 1. 把令牌保存为机密的全局变量：前往 **工作流 → 全局变量**，点击 **创建工作流 变量**，将其命名为 `TELEGRAM_BOT_TOKEN`，然后点击 **下一步**。把令牌粘贴到 **内容** 中，打开 **密钥**，然后点击 **创建工作流 变量**。
 2. 前往 **工作流**，点击 **创建工作流**，选择 **从零开始**，为工作流命名，然后点击 **创建工作流**。
-3. 在 **生成器** 中，点击 **Choose what starts this workflow**，然后在 **Popular** 下选择 **On Create Alert**。点击触发器：它的 **Fields to pass on** 已经包含 **标题**，所以点击 **添加字段**，再选择消息要显示的其他字段，例如 **Alert Number With Prefix**。
+3. 在 **生成器** 中，点击 **选择启动此工作流的方式**，然后在 **热门** 下选择 **On Create Alert**。点击触发器：它的 **Fields to pass on** 已经包含 **标题**，所以点击 **添加字段**，再选择消息要显示的其他字段，例如 **Alert Number With Prefix**。
 4. 点击 **添加组件**，搜索 `telegram`，然后点击 **Send Message to Telegram**。把触发器的 **Success** 输出连接到它。
 5. 点击新步骤。在 **Telegram Bot Token** 中点击 **{ }**，然后在 **Global variables** 下选择 `TELEGRAM_BOT_TOKEN`。在 **Chat ID** 中输入聊天的 ID，在 **Message Text** 中写下消息，并用 **{ }** 插入警报的字段。
 :::

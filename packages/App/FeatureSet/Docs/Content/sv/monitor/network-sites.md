@@ -2,7 +2,7 @@
 
 En nätverksplats är en plats: en region, en marknad, en franchisetagare, ett distributionscenter, en butik. Platser ligger inuti varandra, nätverksenheter kopplas till dem, och OneUptime sammanfattar enheternas hälsa uppåt i trädet, så att en enda status på en region besvarar "är något fel där ute?".
 
-Du hittar dem under **Nätverk → Platser**, och på en karta under **Nätverk → Map**. Den här sidan slår fast hur en plats status räknas fram från det som ligger under den, vad dess upptid betyder och hur schemalagt underhåll ändrar båda.
+Du hittar dem under **Nätverk → Platser**, och på en karta under **Nätverk → Karta**. Den här sidan slår fast hur en plats status räknas fram från det som ligger under den, vad dess upptid betyder och hur schemalagt underhåll ändrar båda.
 
 :::cards
 - [Lägg till en plats](#lägg-till-en-plats): Tre steg, eller en CSV-fil för en hel miljö.
@@ -51,7 +51,7 @@ Varje enhet kopplas till en plats. En plats underträd är platsen själv plus v
 
 :::steps
 ### Börja en ny plats
-Gå till **Nätverk → Platser** och klicka på **Lägg till Site**.
+Gå till **Nätverk → Platser** och klicka på **Lägg till Plats**.
 
 ### Ange vad platsen är
 I steget **Site Details** väljer du **Site Type** (vilken sorts plats det är: en region, en butik, ett datacenter) och skriver ett **Namn**. Beskrivningen, adressen och den latitud och longitud som fäster platsen på kartan är hopfällda under **Fler fält**: fyll i dem nu eller senare.
@@ -60,7 +60,7 @@ I steget **Site Details** väljer du **Site Type** (vilken sorts plats det är: 
 I steget **Hierarchy** väljer du **Parent Site** om platsen ligger under en annan. Lämna det tomt för att hålla platsen på översta nivån.
 
 ### Ange dess standardvärden
-I steget **Monitoring Defaults** väljer du [standardsonden och standardautentiseringsprofilen](#standardvärden-för-övervakning) för enheter som läggs till på platsen, och klickar på **Lägg till Site**.
+I steget **Monitoring Defaults** väljer du [standardsonden och standardautentiseringsprofilen](#standardvärden-för-övervakning) för enheter som läggs till på platsen, och klickar på **Lägg till Plats**.
 :::
 
 På en plats egen sida **Child Sites** frågar **Lägg till Underordnad plats** bara efter typen och namnet, på en sida med läget hopfällt, och placerar den nya platsen under den.
@@ -82,7 +82,7 @@ Store 0660,Unit,Leeds,"1 High Street, Leeds",53.7997,-1.5492
 
 ## Kartan
 
-**Nätverk → Map** visar dina platser på en karta, inramad där de än ligger; klicka på en plats för att gå ner i den. En plats med platser under sig visar dem, på kartan och som en graf över länkarna mellan dem. En plats utan platser under sig men med egna enheter, eller en plats vars typ är på enhetsnivå, öppnar de enheternas levande topologi.
+**Nätverk → Karta** visar dina platser på en karta, inramad där de än ligger; klicka på en plats för att gå ner i den. En plats med platser under sig visar dem, på kartan och som en graf över länkarna mellan dem. En plats utan platser under sig men med egna enheter, eller en plats vars typ är på enhetsnivå, öppnar de enheternas levande topologi.
 
 Ett projekt som ännu saknar platser har ändå en karta: Map visar i stället dess enheters topologi, och att gruppera enheter i platser placerar dem på kartan efter läge.
 
@@ -208,11 +208,11 @@ Upptiden rättas med händelsens angivna start- och sluttid, inte med när en pr
 
 Att koppla en monitor till samma händelse gör fortfarande det det alltid har gjort: den monitorns aktiva övervakning pausas under fönstret. De två är oberoende: koppla platsen för att hålla den utanför sammanfattningen och dess upptid, och koppla monitorerna för att få dem att sluta varna.
 
-## Varningar på en plats
+## Larm på en plats
 
-Kortet **Alerting** på en plats sida **Inställningar** har **Alert When Unhealthy**: en varning öppnas när platsens sammanfattning övergår till en status som inte är i drift, och löser sig själv när platsen återhämtar sig. **Varningsallvar** anger dess allvarlighetsgrad; tomt betyder projektets allvarligaste.
+Kortet **Alerting** på en plats sida **Inställningar** har **Alert When Unhealthy**: ett larm öppnas när platsens sammanfattning övergår till en status som inte är i drift, och löser sig själv när platsen återhämtar sig. **Larmallvar** anger dess allvarlighetsgrad; tomt betyder projektets allvarligaste.
 
-Den varnar bara för ändringen: att slå på den för en plats som redan är ohälsosam förbereder nästa ändring i stället för att varna om det förflutna. Degraded är inte i drift, så en plats med procentpolicyn varnar så snart en av dess rapporterande enheter är nere, precis som en plats med policyn för sämsta status; varningen förblir öppen, utan en andra, medan platsen växlar mellan Degraded och Offline, och dess titel namnger den status som platsen nådde först.
+Den varnar bara för ändringen: att slå på den för en plats som redan är ohälsosam förbereder nästa ändring i stället för att varna om det förflutna. Degraded är inte i drift, så en plats med procentpolicyn varnar så snart en av dess rapporterande enheter är nere, precis som en plats med policyn för sämsta status; larmet förblir öppen, utan en andra, medan platsen växlar mellan Degraded och Offline, och dess titel namnger den status som platsen nådde först.
 
 ## Felsökning
 
@@ -228,7 +228,7 @@ Ingen sammanfattning har någonsin körts för platsen, så den har inga tidslin
 Arkiverade enheter, och enheter som inte har rapporterat än, röstar aldrig. En enhet med bunden monitor utan någon monitor bunden har inte heller rapporterat. Kontrollera enhetens status: en enhet som står som **Väntar** börjar rösta efter sin första avsökning.
 :::
 
-:::details En plats varning utlöstes inte
+:::details En plats larm utlöstes inte
 **Alert When Unhealthy** utlöses vid en övergång från en status i drift till vilken annan som helst, så en plats som redan var ohälsosam när du slog på den varnar vid sin nästa ändring, efter att den har återhämtat sig. Kontrollera också att dess enheter röstar: arkiverade enheter och enheter som väntar på sin första avsökning gör det aldrig, och enheterna på en plats under underhåll röstar inte i sammanfattningarna ovanför den.
 :::
 

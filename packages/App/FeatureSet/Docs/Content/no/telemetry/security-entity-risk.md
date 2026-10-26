@@ -29,7 +29,7 @@ flowchart TB
 ## Før du begynner
 
 - Sikkerhetshendelser som kommer inn, og deteksjonsregler, trusseletterretning eller tilkoblede produkter som finner noe i dem. Se [Kom i gang med sikkerhet](/docs/telemetry/security-getting-started).
-- Deteksjonsregler som grupperer etter et felt som nevner noen: **Group By Field**, for eksempel `principalUser`, `principalHost` eller `principalIp`, eller feltene en korrelasjon grupperer etter. En regel som ikke grupperer etter noe, legger ikke til risiko.
+- Deteksjonsregler som grupperer etter et felt som nevner noen: **Grupperingsfelt**, for eksempel `principalUser`, `principalHost` eller `principalIp`, eller feltene en korrelasjon grupperer etter. En regel som ikke grupperer etter noe, legger ikke til risiko.
 - For å endre **Risikovurdering**: Project Owner eller Project Admin for bryteren og terskelen, og en rolle som kan opprette deteksjonsregler for listen over entiteter. Security Viewer leser alt. Se [Roller](/docs/permissions/reference#roller).
 
 ## Slik telles en poengsum

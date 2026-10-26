@@ -174,7 +174,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 :::
 
 > [!TIP]
-> Les mêmes étapes figurent dans le tableau de bord, avec votre jeton déjà renseigné : sous **Cloud → Tous les environnements** jusqu'à l'arrivée de votre premier environnement, et dans l'onglet **Documentation** de chaque environnement.
+> Les mêmes étapes figurent dans le tableau de bord, avec votre jeton déjà renseigné : sous **Cloud → Tous les environnements**, cliquez sur **Ajouter un environnement cloud**. L'onglet **Documentation** de chaque environnement les affiche aussi.
 
 ## Ce que vous obtenez
 

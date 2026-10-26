@@ -194,8 +194,8 @@ describe("the words are the Dashboard's to translate", () => {
     ).toBe("Pull Requests gegen die Produktion prüfen");
     /*
      * When an exception was last thrown is a sentence of the review's own,
-     * worded with its German time: the shared "Last seen {{time}}" stays
-     * English, as other pages fill it with an English time.
+     * worded with its German time: an exception is thrown, not seen, so it
+     * is not the heroes' shared "Last seen {{time}}".
      */
     expect(PRODUCTION_REVIEW_COPY.lastThrown).not.toBe("Last seen {{time}}");
     expect(
@@ -205,7 +205,11 @@ describe("the words are the Dashboard's to translate", () => {
     ).toBe("Zuletzt aufgetreten vor 5 Minuten");
     expect(
       (germanLocale as unknown as Record<string, string>)["Last seen {{time}}"],
-    ).toBe("Last seen {{time}}");
+    ).not.toBe(
+      (germanLocale as unknown as Record<string, string>)[
+        PRODUCTION_REVIEW_COPY.lastThrown
+      ],
+    );
     expect(
       german.translatePlural(
         { one: "{{count}} error", other: "{{count}} errors" },

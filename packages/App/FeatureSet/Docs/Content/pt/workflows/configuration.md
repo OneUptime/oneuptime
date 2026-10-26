@@ -99,7 +99,7 @@ Os gatilhos de webhook dão a você uma URL única. Qualquer pessoa que conheça
 - Para workflows sensíveis, peça ao sistema que chama que envie um token compartilhado em um cabeçalho (como `X-Webhook-Token`) e verifique-o com um bloco **If / Else** antes de fazer qualquer coisa importante. Salve o token esperado como variável secreta.
 - Para workflows muito sensíveis, prefira um gatilho de evento do OneUptime e um passo de importação manual a um webhook público.
 
-Só quem pode editar o workflow — **Project Owner**, **Project Admin**, **Workflow Admin** ou **Edit Workflow** — pode ver ou redefinir a URL de webhook dele. Qualquer pessoa com a URL pode iniciar o workflow de qualquer lugar, sem fazer login, então todos os outros veem uma nota dizendo a quem pedir. Isso inclui um **Workflow Member**, que roda o workflow manualmente pelo **Construtor**.
+Só quem pode editar o workflow — **Proprietário do projeto**, **Administrador do projeto**, **Administrador de fluxos de trabalho** ou **Edit Workflow** — pode ver ou redefinir a URL de webhook dele. Qualquer pessoa com a URL pode iniciar o workflow de qualquer lugar, sem fazer login, então todos os outros veem uma nota dizendo a quem pedir. Isso inclui um **Membro de fluxos de trabalho**, que roda o workflow manualmente pelo **Construtor**.
 
 ## Segurança do e-mail recebido
 
@@ -110,7 +110,7 @@ O gatilho Incoming Email dá ao workflow um endereço próprio, e qualquer pesso
 - Qualquer pessoa pode colocar qualquer remetente em um e-mail, então **From** não prova quem o enviou. Antes que um workflow faça algo importante, verifique algo que só o remetente real saiba — um token no assunto ou em um cabeçalho — com um bloco **If / Else**. Salve o token esperado como variável secreta.
 - A chave fica oculta em tudo o que a execução recebe — **To**, **CC**, os cabeçalhos e os corpos —, porque o log da execução fica visível para qualquer pessoa que pode ler as execuções do workflow.
 
-Só quem pode editar o workflow — **Project Owner**, **Project Admin**, **Workflow Admin** ou **Edit Workflow** — pode ver ou redefinir o endereço dele. Todos os outros veem uma nota dizendo a quem pedir.
+Só quem pode editar o workflow — **Proprietário do projeto**, **Administrador do projeto**, **Administrador de fluxos de trabalho** ou **Edit Workflow** — pode ver ou redefinir o endereço dele. Todos os outros veem uma nota dizendo a quem pedir.
 
 ## Acesso de rede para fora
 
@@ -166,30 +166,30 @@ As falhas de validação, configuração, acesso, limite, créditos, concorrênc
 
 Os workflows respeitam o controle de acesso baseado em papéis do seu projeto. Os três papéis de workflow:
 
-- **Workflow Admin** — monta workflows: cria, altera, executa e exclui, e gerencia as variáveis que eles usam.
-- **Workflow Member** — usa workflows: abre os workflows e as execuções deles, e roda um workflow manualmente com **Executar fluxo de trabalho**. Um membro não pode criar, alterar nem excluir um workflow, nem rodar um dos passos dele sozinho.
-- **Workflow Viewer** — lê os workflows e as execuções deles.
+- **Administrador de fluxos de trabalho** — monta workflows: cria, altera, executa e exclui, e gerencia as variáveis que eles usam.
+- **Membro de fluxos de trabalho** — usa workflows: abre os workflows e as execuções deles, e roda um workflow manualmente com **Executar fluxo de trabalho**. Um membro não pode criar, alterar nem excluir um workflow, nem rodar um dos passos dele sozinho.
+- **Visualizador de fluxos de trabalho** — lê os workflows e as execuções deles.
 
-**Project Owner** e **Project Admin** podem fazer tudo o que um Workflow Admin pode. **Project Member** pode criar e excluir workflows, mas não alterá-los nem executá-los.
+**Proprietário do projeto** e **Administrador do projeto** podem fazer tudo o que um Workflow Admin pode. **Membro do projeto** pode criar e excluir workflows, mas não alterá-los nem executá-los.
 
 As permissões individuais, para uma equipe ou uma chave de API que precisa de exatamente uma coisa:
 
 - **Create / Read / Edit / Delete Workflow** — as permissões básicas sobre o próprio workflow. Alterar um workflow, inclusive ligá-lo, desligá-lo ou arquivá-lo, exige **Edit Workflow**; **Delete Workflow** só exclui.
-- **Edit Workflow** — também é o que é preciso para rodar um passo sozinho com **Run just this step**, e para ver ou redefinir a URL de webhook e o endereço de e-mail recebido de um workflow. Rodar um workflow inteiro manualmente exige **Edit Workflow**, **Workflow Admin** ou **Workflow Member**.
+- **Edit Workflow** — também é o que é preciso para rodar um passo sozinho com **Run just this step**, e para ver ou redefinir a URL de webhook e o endereço de e-mail recebido de um workflow. Rodar um workflow inteiro manualmente exige **Edit Workflow**, **Administrador de fluxos de trabalho** ou **Membro de fluxos de trabalho**.
 - **Read Workflow Log** — necessária para ver as execuções.
 - **Create / Read / Edit / Delete Workflow Variables** — gerenciar as variáveis globais e de workflow.
 
 Uma execução manual só alcança os workflows que você pode abrir: um papel limitado a alguns rótulos, ou aos workflows que a sua equipe possui, só roda esses. Quem não pode rodar um workflow vê **Executar fluxo de trabalho** em cinza, com o motivo na dica.
 
-Dê **Workflow Admin** a quem monta a automação, e **Workflow Member** a quem só a inicia. Reserve o acesso de edição de variáveis a quem gerencia os segredos do projeto. Veja [Usuários, equipes e permissões](/docs/permissions/index) para saber como os papéis são concedidos.
+Dê **Administrador de fluxos de trabalho** a quem monta a automação, e **Membro de fluxos de trabalho** a quem só a inicia. Reserve o acesso de edição de variáveis a quem gerencia os segredos do projeto. Veja [Usuários, equipes e permissões](/docs/permissions/index) para saber como os papéis são concedidos.
 
 ## O que os passos de um workflow podem fazer
 
-Os passos que leem e alteram registros do OneUptime — os componentes Find, Create, Update e Delete, e os gatilhos On Create, On Update, On Create or Update e On Delete — agem como **Project Admin** do projeto do workflow. Seja quem for que montou o workflow, um passo passa pelas mesmas verificações que um Project Admin passa no dashboard e na API:
+Os passos que leem e alteram registros do OneUptime — os componentes Find, Create, Update e Delete, e os gatilhos On Create, On Update, On Create or Update e On Delete — agem como **Administrador do projeto** do projeto do workflow. Seja quem for que montou o workflow, um passo passa pelas mesmas verificações que um Project Admin passa no dashboard e na API:
 
 - **Só o projeto do próprio workflow.** Um passo lê e grava os registros do projeto ao qual o workflow pertence e de nenhum outro, e um Update nunca move um registro para outro projeto.
-- **Só o que um Project Admin pode fazer.** Um passo não pode fazer o que só **Project Owner** e as permissões de cobrança ou de exclusão do projeto permitem, e não pode ler quem criou uma sonda ou um agente de IA, o que só os proprietários do projeto veem.
-- **Não quem tem acesso.** Um passo não cria, não altera nem exclui equipes, membros de equipe, permissões de equipe, funções personalizadas ou permissões de chaves de API, mesmo que um Project Admin possa. Quem monta um workflow decide o que seus passos fazem, e pode ser um **Project Member**, então um passo que pudesse fazer isso daria a quem o montou um acesso que não lhe foi dado, como **Project Admin**. O passo é recusado, e o log da execução diz que uma pessoa que gerencia as equipes e as chaves de API do projeto precisa fazer a alteração. Gatilhos e passos Find sobre esses registros continuam funcionando.
+- **Só o que um Project Admin pode fazer.** Um passo não pode fazer o que só **Proprietário do projeto** e as permissões de cobrança ou de exclusão do projeto permitem, e não pode ler quem criou uma sonda ou um agente de IA, o que só os proprietários do projeto veem.
+- **Não quem tem acesso.** Um passo não cria, não altera nem exclui equipes, membros de equipe, permissões de equipe, funções personalizadas ou permissões de chaves de API, mesmo que um Project Admin possa. Quem monta um workflow decide o que seus passos fazem, e pode ser um **Membro do projeto**, então um passo que pudesse fazer isso daria a quem o montou um acesso que não lhe foi dado, como **Administrador do projeto**. O passo é recusado, e o log da execução diz que uma pessoa que gerencia as equipes e as chaves de API do projeto precisa fazer a alteração. Gatilhos e passos Find sobre esses registros continuam funcionando.
 - **Não a leitura de configurações que guardam credenciais.** Um Project Admin pode ler servidores SMTP, provedores de chamadas e SMS, credenciais SNMP, conexões de videochamada e chaves de API, mas isso nunca é emprestado a um passo, não importa quem construiu ou salvou o workflow. Um passo não pode nomear uma dessas configurações, como o servidor SMTP com que uma página de status envia e-mails ou a chave de API a que uma permissão é concedida. O passo é recusado, e o log de execução dele diz que uma pessoa que pode lê-las (a permissão de leitura desse tipo de configuração, ou um Project Owner ou Project Admin) precisa fazer a alteração. Um passo que mantém a configuração que um registro já nomeia, ou a limpa, não é recusado.
 - **Só o que o seu plano inclui.** No OneUptime Cloud, um passo que cria ou altera algo que o seu plano não inclui é recusado com o plano necessário, como no dashboard. Instalações self-hosted sem cobrança não têm limites de plano.
 - **Nada do que o OneUptime guarda para si.** Isto é recusado a todos, workflows incluídos:

@@ -31,12 +31,12 @@ flowchart TB
 
 De aggregatie is hoe de grafieken van de SLO zelf en het sjabloon SLO Dashboard de punten combineren die in één grafiekinterval vallen. Percentages en duren worden gemiddeld. Verbruikssnelheid en status nemen het maximum, zodat een korte verbruikspiek of een kort uitstapje naar Budget Exhausted niet wordt weggemiddeld.
 
-Voor een SLO in de modus **Monitor Seconds Average** telt `oneuptime.slo.error.budget.remaining.seconds` monitorseconden, opgeteld over zijn monitoren, net als zijn foutbudget: zie [Foutbudgetten](/docs/slo/error-budget).
+Voor een SLO in de modus **Gemiddelde monitorseconden** telt `oneuptime.slo.error.budget.remaining.seconds` monitorseconden, opgeteld over zijn monitoren, net als zijn foutbudget: zie [Foutbudgetten](/docs/slo/error-budget).
 
 ### Wanneer er geen punt wordt geschreven
 
 - Een uitgeschakelde of gearchiveerde SLO wordt niet geëvalueerd, dus hij stuurt niets.
-- Een SLO die **Gepauzeerd** of **Misconfigured** is, meet niets, dus hij stuurt alleen `oneuptime.slo.target.percent`, wat configuratie is en geen meting. Zijn grafieken voor SLI, budget, verbruikssnelheid en status tonen een gat.
+- Een SLO die **Gepauzeerd** of **Verkeerd geconfigureerd** is, meet niets, dus hij stuurt alleen `oneuptime.slo.target.percent`, wat configuratie is en geen meting. Zijn grafieken voor SLI, budget, verbruikssnelheid en status tonen een gat.
 - Een waarde die geen echt getal is, zoals een verbruikssnelheid over een venster zonder gegevens, wordt overgeslagen en nooit als 0 geschreven.
 
 ### Attributen
@@ -66,7 +66,7 @@ De pagina **Metrieken** van een SLO heeft vier tabbladen:
 
 | Tabblad | Wat het toont |
 | --- | --- |
-| **SLO Metrics** | De `oneuptime.slo.*`-reeksen in drie kaarten die één tijdsbereik delen, standaard de afgelopen dag: **Objective** (de SLI met het doel erover, en het resterende budget), **Burn** (verbruikssnelheid en resterende budgettijd) en **Status**. |
+| **SLO Metrics** | De `oneuptime.slo.*`-reeksen in drie kaarten die één tijdsbereik delen, standaard de afgelopen dag: **Doelstelling** (de SLI met het doel erover, en het resterende budget), **Verbruik** (verbruikssnelheid en resterende budgettijd) en **Status**. |
 | **Error Budget History** | De SLI, het resterende budget en de verbruikssnelheid over de geschiedenis op lange termijn, met lijnen op het doel, op de grenzen voor risico en uitputting, en op de drempel van elke ingeschakelde regel voor verbruikssnelheid. |
 | **Incidentmetrieken** | Het aantal, de tijd tot bevestiging, de tijd tot oplossing en de duur van de incidenten die deze SLO raken, standaard de afgelopen week. Incidenten die zijn regels voor verbruikssnelheid hebben gemeld, tellen mee. |
 | **Waarschuwingsmetrieken** | Hetzelfde voor waarschuwingen. Waarschuwingen die zijn regels voor verbruikssnelheid hebben gegeven, tellen mee. |
@@ -98,7 +98,7 @@ De [SLO-widget](/docs/dashboards/widgets#slo) toont de SLI, het resterende budge
 | Instelling | Hoe hij zich gedraagt |
 | --- | --- |
 | **Service Level Objective** | Zet de widget vast op één SLO. De kiezer toont SLO's die niet gearchiveerd zijn. |
-| **Follow SLO Variable** | Toont de SLO die in een dashboardvariabele is gekozen: een variabele **Telemetry Attribute** op de sleutel `sloName`. Wordt genegeerd zolang een SLO is vastgezet. |
+| **Follow SLO Variable** | Toont de SLO die in een dashboardvariabele is gekozen: een variabele **Telemetrie-attribuut** op de sleutel `sloName`. Wordt genegeerd zolang een SLO is vastgezet. |
 
 Op een [openbaar dashboard](/docs/dashboards/sharing) laat een widget die een variabele volgt kijkers elke niet-gearchiveerde SLO van het project op naam kiezen. Een vastgezette widget toont alleen zijn eigen SLO, en blijft de laatste cijfers tonen van een SLO die later wordt gearchiveerd.
 
@@ -115,7 +115,7 @@ Eén SLO-variabele in de werkbalk bepaalt de reikwijdte van het hele bord. Het i
 ## Problemen oplossen
 
 :::details Een SLO ontbreekt in de SLO-kiezer van de werkbalk
-De kiezer toont de SLO-namen die de afgelopen dag zijn verstuurd. Een nieuwe SLO verschijnt na zijn eerste evaluatie; een SLO die **Gepauzeerd** of **Misconfigured** is, blijft kiesbaar omdat hij zijn doel nog verstuurt; een uitgeschakelde of gearchiveerde SLO verdwijnt ongeveer een dag na zijn laatste punt.
+De kiezer toont de SLO-namen die de afgelopen dag zijn verstuurd. Een nieuwe SLO verschijnt na zijn eerste evaluatie; een SLO die **Gepauzeerd** of **Verkeerd geconfigureerd** is, blijft kiesbaar omdat hij zijn doel nog verstuurt; een uitgeschakelde of gearchiveerde SLO verdwijnt ongeveer een dag na zijn laatste punt.
 :::
 
 :::details Een naam kiezen toont twee SLO's

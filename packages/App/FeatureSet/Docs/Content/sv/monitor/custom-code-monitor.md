@@ -181,7 +181,7 @@ Kriterierna för en monitor med anpassad kod kan kontrollera:
 | **Result Value** | `data` som skriptet returnerade. Jämförs som ett tal när det är ett tal. | Samma, plus Större än, Mindre än, Större än eller lika med, Mindre än eller lika med, Sant och Falskt |
 | **Körningstid (i ms)** | Hur länge skriptet körde. | Numeriska jämförelser |
 
-Standardkriterierna markerar monitorn som online när **Fel** är tomt, och som offline — med en incident som löser sig själv när skriptet lyckas igen — när det inte är det. I incident- och larmmallar finns körningen tillgänglig som `{{result}}`, `{{scriptError}}`, `{{logMessages}}` och `{{executionTimeInMs}}`: se [Incident- och varningsmallar](/docs/monitor/incident-alert-templating).
+Standardkriterierna markerar monitorn som online när **Fel** är tomt, och som offline — med en incident som löser sig själv när skriptet lyckas igen — när det inte är det. I incident- och larmmallar finns körningen tillgänglig som `{{result}}`, `{{scriptError}}`, `{{logMessages}}` och `{{executionTimeInMs}}`: se [Incident- och larmmallar](/docs/monitor/incident-alert-templating).
 
 ### Larma på returnerade data
 
@@ -257,5 +257,5 @@ Monitorn kan inte använda hemligheten, eller så stämmer namnet i hänvisninge
 :::cards
 - [Syntetisk övervakning](/docs/monitor/synthetic-monitor): Styr en riktig webbläsare i stället för att anropa API:er.
 - [Övervakningshemligheter](/docs/monitor/monitor-secrets): Spara inloggningsuppgifterna som ditt skript använder.
-- [Incident- och varningsmallar](/docs/monitor/incident-alert-templating): Lägg in skriptets resultat och loggar i incidenter.
+- [Incident- och larmmallar](/docs/monitor/incident-alert-templating): Lägg in skriptets resultat och loggar i incidenter.
 :::

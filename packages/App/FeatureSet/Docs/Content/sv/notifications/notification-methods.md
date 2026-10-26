@@ -98,7 +98,7 @@ Fliken **Push Notifications** listar dina **Enheter för push-aviseringar**.
 - **En telefon.** Installera appen OneUptime On-Call, anslut den till ditt OneUptime, logga in och tillåt aviseringar: telefonen lägger själv till sig i listan. Se [Appar – Översikt](/docs/mobile-desktop-apps/index).
 - **Den här webbläsaren.** Klicka på **Registrera enhet**, fyll i **Enhetsnamn**, och tillåt aviseringar när webbläsaren frågar.
 - **Testavisering** på en enhets rad skickar en push till den direkt.
-- **Kritiska varningar** visar om telefonens larm tar sig igenom tyst läge och Stör ej. Det slås på i appen, aldrig här, och en webbläsare kan inte göra det. Se [Kritiska jourlarm](/docs/self-hosted/push-notifications#kritiska-jourlarm-åsidosätter-tyst-läge).
+- **Kritiska larm** visar om telefonens larm tar sig igenom tyst läge och Stör ej. Det slås på i appen, aldrig här, och en webbläsare kan inte göra det. Se [Kritiska jourlarm](/docs/self-hosted/push-notifications#kritiska-jourlarm-åsidosätter-tyst-läge).
 - En enhet som är märkt **Tar inte emot aviseringar** får ingenting skickat. Öppna appen på den telefonen, eller registrera webbläsaren igen, så är den med igen.
 
 ## Webhooks
@@ -169,7 +169,7 @@ En webhook behöver ingen verifiering, så när du lägger till den läggs dess 
 
 **SMS**, **Telefonsamtal**, **WhatsApp** och **Telegram** är avstängda i varje nytt projekt, eftersom varje meddelande kostar pengar: i OneUptime Cloud betalas det från projektets saldo, och SMS och samtal går i stället via projektets eget Twilio-konto när standardkontot skickar dem. E-post, push, Slack, Microsoft Teams och webhooks är alltid påslagna.
 
-Så länge en kanal är avstängd kan ingen i projektet lägga till en metod på den: dess kort saknar knapp för att lägga till och berättar vem som kan slå på den. En projektägare, en **Billing Admin** eller någon med **Manage Billing** slår på den, i kortet **Aviseringskanaler** under **Projektinställningar → Aviseringar → Aviseringsinställningar**. En projektadministratör kan inte göra det. I en självhostad OneUptime behöver SMS och samtal dessutom ett Twilio-konto, och Telegram en bot som serverns administratör ansluter; se [Twilio-integration](/docs/self-hosted/twilio-integration).
+Så länge en kanal är avstängd kan ingen i projektet lägga till en metod på den: dess kort saknar knapp för att lägga till och berättar vem som kan slå på den. En projektägare, en **Faktureringsadministratör** eller någon med **Manage Billing** slår på den, i kortet **Aviseringskanaler** under **Projektinställningar → Aviseringar → Aviseringsinställningar**. En projektadministratör kan inte göra det. I en självhostad OneUptime behöver SMS och samtal dessutom ett Twilio-konto, och Telegram en bot som serverns administratör ansluter; se [Twilio-integration](/docs/self-hosted/twilio-integration).
 
 ## Ta bort en metod
 

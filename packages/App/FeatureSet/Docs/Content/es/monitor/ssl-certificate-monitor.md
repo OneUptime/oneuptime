@@ -92,7 +92,7 @@ Un monitor de certificado SSL nuevo empieza con tres criterios, así que le avis
 2. **El certificado caduca pronto** — el certificado es válido pero caduca en 14 días o menos. Se crea una **alerta** llamada «_monitor name_ certificate expires soon».
 3. **El certificado es válido** — el monitor se marca como **Operativo**.
 
-El aviso de «caduca pronto» es una alerta, no un incidente: no aparece en sus páginas de estado, no avisa a nadie salvo que le añada una política de guardia, y no cambia el estado del monitor. Usa la segunda gravedad de alerta de su proyecto, **Low** en un proyecto nuevo. Cuando se detecta el certificado renovado, el monitor vuelve a «El certificado es válido» y la alerta se resuelve sola.
+El aviso de «caduca pronto» es una alerta, no un incidente: no aparece en sus páginas de estado, no avisa a nadie salvo que le añada una política de guardia, y no cambia el estado del monitor. Usa la segunda gravedad de alerta de su proyecto, **Baja** en un proyecto nuevo. Cuando se detecta el certificado renovado, el monitor vuelve a «El certificado es válido» y la alerta se resuelve sola.
 
 Los criterios se comprueban de arriba abajo, y el primero que coincide decide qué ocurre. Por eso «caduca pronto» está por encima de «es válido»: un certificado a punto de caducar sigue siendo válido, así que coincidiría con ambos.
 

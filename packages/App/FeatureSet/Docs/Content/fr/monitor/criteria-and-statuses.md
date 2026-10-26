@@ -45,7 +45,7 @@ Ouvrez un critère : il a un nom et trois sections, chacune se repliant en un r�
 
 ### Filtres
 
-Un filtre lit une donnée de la vérification et la compare : un **Type de filtre** (ce qui est lu, comme **Code de statut de la réponse**), une **Condition de filtre** (comment comparer, comme **Supérieur à**) et une **Valeur**. Les moniteurs qui comparent des métriques, comme les moniteurs Kubernetes et de métriques, demandent plutôt une **Condition** et un **Threshold**. Chaque type de moniteur propose ses propres types de filtre, listés sur sa page, par exemple [Surveillance de site web](/docs/monitor/website-monitor#critères-de-surveillance).
+Un filtre lit une donnée de la vérification et la compare : un **Type de filtre** (ce qui est lu, comme **Code de statut de la réponse**), une **Condition de filtre** (comment comparer, comme **Supérieur à**) et une **Valeur**. Les moniteurs qui comparent des métriques, comme les moniteurs Kubernetes et de métriques, demandent plutôt une **Condition** et un **Seuil**. Chaque type de moniteur propose ses propres types de filtre, listés sur sa page, par exemple [Surveillance de site web](/docs/monitor/website-monitor#critères-de-surveillance).
 
 À partir de deux filtres, la **Condition de correspondance** apparaît en dessous : **Tous** signifie que chaque filtre doit correspondre, **Au moins un** qu'un seul suffit. Un nouveau critère commence sur **Tous**.
 

@@ -48,7 +48,7 @@ Listens sidemenu har de sider, der passer på alle dine dashboards:
 | **Dashboards** | Projektets dashboards. Opret et, eller hent dashboards ind med **Import JSON**. |
 | **Indstillinger → Ejerregler** | Tilføj automatisk ejere til nye dashboards. |
 | **Indstillinger → Etiketregler** | Tilføj automatisk etiketter til nye dashboards. |
-| **Indstillinger → Data Sources** | Forbind Prometheus, SQL-databaser, ClickHouse, Loki, Elasticsearch eller et REST API. |
+| **Indstillinger → Datakilder** | Forbind Prometheus, SQL-databaser, ClickHouse, Loki, Elasticsearch eller et REST API. |
 | **Avanceret → Arkiveret** | Dashboards, du har arkiveret. Fjern dem fra arkivet her. |
 
 Åbn et dashboard, og dets egen sidemenu har disse sider. Alle sektioner undtagen **Grundlæggende** starter sammenfoldet: klik på titlen for at åbne den.

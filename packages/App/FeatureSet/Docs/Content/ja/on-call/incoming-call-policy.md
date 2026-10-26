@@ -160,7 +160,7 @@ OneUptime は番号の音声 webhook を `https://<your host>/notification/incom
 
 確認済みの番号は、プロジェクトごとに 1 人 1 つまでです。変更するには、先に古い番号を削除します。これらの番号は、オンコールの呼び出しに使われる **通知方法** の電話番号とは別のものです。[通知方法](/docs/notifications/notification-methods) を参照してください。
 
-着信用の番号は SMS で確認するため、先にプロジェクトで **SMS** をオンにしておく必要があります。 **プロジェクト設定 > 通知 > 通知設定** の **通知チャネル** カードでこれをオンにできるのは、プロジェクトのオーナー、 **Billing Admin** 、または **Manage Billing** を持つ人です。
+着信用の番号は SMS で確認するため、先にプロジェクトで **SMS** をオンにしておく必要があります。 **プロジェクト設定 > 通知 > 通知設定** の **通知チャネル** カードでこれをオンにできるのは、プロジェクトのオーナー、 **請求管理者** 、または **Manage Billing** を持つ人です。
 
 ## 音声メッセージとポリシーの設定
 
@@ -225,8 +225,8 @@ Twilio はメッセージを音声合成で読み上げるため、聞こえて�
 
 ポリシーの電話番号には、ポリシー自体と同じロールが適用されます。
 
-- **番号の検索** - 予約する番号を Twilio で探すこと、または Twilio アカウントにすでにある番号を一覧表示すること - には、着信ポリシーを読み取る権限と、通話と SMS の設定を読み取る権限が必要です。そのどちらかを通じて Twilio アカウントを読み取るからです。 **Project Owner** 、 **Project Admin** 、 **Project Member** 、 **Viewer** 、 **Settings Admin** 、 **Settings Member** 、 **Settings Viewer** は両方を持っています。カスタムロールでは **Read Incoming Call Policy** と **Read Call and SMS** です。
-- **番号の予約、既存の番号の使用、番号の解放** には、着信ポリシーを編集する権限が必要です。 **Project Owner** 、 **Project Admin** 、 **Project Member** 、 **Settings Admin** 、 **Settings Member** 、またはカスタムロールの **Edit Incoming Call Policy** です。これらの操作で変わるのは、編集できるポリシーの番号です。一部のラベルに限定されたロールでは、それらのラベルが付いたポリシーです。
+- **番号の検索** - 予約する番号を Twilio で探すこと、または Twilio アカウントにすでにある番号を一覧表示すること - には、着信ポリシーを読み取る権限と、通話と SMS の設定を読み取る権限が必要です。そのどちらかを通じて Twilio アカウントを読み取るからです。 **プロジェクト所有者** 、 **プロジェクト管理者** 、 **プロジェクトメンバー** 、 **閲覧者** 、 **設定管理者** 、 **設定メンバー** 、 **設定閲覧者** は両方を持っています。カスタムロールでは **Read Incoming Call Policy** と **Read Call and SMS** です。
+- **番号の予約、既存の番号の使用、番号の解放** には、着信ポリシーを編集する権限が必要です。 **プロジェクト所有者** 、 **プロジェクト管理者** 、 **プロジェクトメンバー** 、 **設定管理者** 、 **設定メンバー** 、またはカスタムロールの **Edit Incoming Call Policy** です。これらの操作で変わるのは、編集できるポリシーの番号です。一部のラベルに限定されたロールでは、それらのラベルが付いたポリシーです。
 
 これらの権限のいずれかに対するラベルなしのチームのブロックは、その権限を取り除きます。それ以外の人には、 **電話番号を追加** と **解放** がロックされた状態でページに残り、ツールチップに必要な権限が表示されます。API は、必要な権限を伝える文でリクエストを拒否します: "Looking up phone numbers needs permission to read incoming call policies and call and SMS settings." または "Adding or releasing a phone number needs permission to edit incoming call policies." 番号の予約料金は OneUptime の残高ではなく自分の Twilio アカウントに請求されるため、請求の権限は不要です。
 

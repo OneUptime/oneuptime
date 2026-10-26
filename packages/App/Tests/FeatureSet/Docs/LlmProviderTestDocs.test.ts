@@ -6,6 +6,7 @@ import LlmProviderTestFailure from "Common/Server/Utils/LLM/LlmProviderTestFailu
 import LlmType from "Common/Types/LLM/LlmType";
 import { PermissionHelper } from "Common/Types/Permission";
 import { drawnDashboardLabel } from "./DocsDashboardLabels";
+import { writtenPermissionTitle } from "./DocsRoleNames";
 import { boldSpans, strayMarkers } from "./DocsTranslationChecks";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
@@ -20,7 +21,8 @@ import path from "path";
  * test a provider - whoever may change it, the provider's update list - and
  * what a test says. This holds every language's paragraph to that: the
  * permissions the server asks (LlmProviderTestAccess, the model's update
- * list) and no others, the Test button and the fields under the names that
+ * list) and no others, a built-in role named as that language's Dashboard
+ * names it, the Test button and the fields under the names that
  * language's Dashboard draws them (Persian included: the AI pages name the
  * Dashboard as each language's Dashboard draws it), a failure that says what
  * to check before what the provider answered, and markers that close in
@@ -66,7 +68,7 @@ function testingParagraph(language: string): string {
       return (
         spans.includes(test) &&
         TESTERS.every((title: string): boolean => {
-          return spans.includes(title);
+          return spans.includes(writtenPermissionTitle(language, title));
         })
       );
     });
@@ -100,8 +102,11 @@ describe("who may test an LLM provider, as the server asks it", () => {
       const spans: Array<string> = boldSpans(testingParagraph(language));
 
       for (const title of TESTERS) {
-        expect({ title, named: spans.includes(title) }).toEqual({
+        const written: string = writtenPermissionTitle(language, title);
+
+        expect({ title, written, named: spans.includes(written) }).toEqual({
           title,
+          written,
           named: true,
         });
       }
@@ -111,7 +116,10 @@ describe("who may test an LLM provider, as the server asks it", () => {
       ).filter((title: string): boolean => {
         return !TESTERS.includes(title);
       })) {
-        expect({ reader, named: spans.includes(reader) }).toEqual({
+        expect({
+          reader,
+          named: spans.includes(writtenPermissionTitle(language, reader)),
+        }).toEqual({
           reader,
           named: false,
         });

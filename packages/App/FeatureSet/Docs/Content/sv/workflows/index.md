@@ -60,7 +60,7 @@ Du bygger allt detta visuellt på en arbetsyta. De flesta arbetsflöden behöver
 ## Innan du börjar
 
 - **En plan som omfattar arbetsflöden.** I OneUptime Cloud kräver arbetsflöden planen **Growth** eller högre, och varje plan tillåter ett antal körningar var 30:e dag — se [Plangränser](/docs/workflows/configuration#plangränser). Självhostade installationer utan fakturering har ingen av gränserna.
-- **Behörighet att bygga.** Att skapa och ändra arbetsflöden kräver **Workflow Admin**, **Project Admin** eller **Project Owner**, eller en anpassad roll med motsvarande behörigheter. En **Workflow Member** kan öppna arbetsflöden och köra dem manuellt, men inte ändra dem. Se [Behörigheter](/docs/workflows/configuration#behörigheter).
+- **Behörighet att bygga.** Att skapa och ändra arbetsflöden kräver **Arbetsflödesadministratör**, **Projektadministratör** eller **Projektägare**, eller en anpassad roll med motsvarande behörigheter. En **Arbetsflödesmedlem** kan öppna arbetsflöden och köra dem manuellt, men inte ändra dem. Se [Behörigheter](/docs/workflows/configuration#behörigheter).
 
 ## Var du hittar arbetsflöden i OneUptime
 
@@ -122,7 +122,7 @@ Det nya arbetsflödet öppnas i **Byggare**, avstängt.
 
 ### Lägg till utlösaren
 
-Klicka på det streckade blocket **Choose what starts this workflow** och klicka sedan på **On Create Incident** under **Popular** i panelen **Lägg till utlösare**.
+Klicka på det streckade blocket **Välj vad som startar det här arbetsflödet** och klicka sedan på **On Create Incident** under **Populära** i panelen **Lägg till utlösare**.
 
 Utlösaren tar det streckade blockets plats. ID:t på det, `incident-on-create-1`, är hur senare block hänvisar till det.
 
@@ -134,7 +134,7 @@ Utlösaren skickar den nya incidenten vidare med de här fälten. Ett fält du i
 
 ### Lägg till API-blocket
 
-Klicka på **Lägg till komponent** och klicka sedan på **API Post (JSON)** under **Popular**. Dra från utlösarens punkt **Success** ned till den översta punkten på det nya blocket.
+Klicka på **Lägg till komponent** och klicka sedan på **API Post (JSON)** under **Populära**. Dra från utlösarens punkt **Success** ned till den översta punkten på det nya blocket.
 
 ### Fyll i förfrågan
 

@@ -48,7 +48,7 @@ flowchart TB
 | **儀表板** | 專案中的儀表板。建立一個，或透過 **Import JSON** 匯入儀表板。 |
 | **設定 → 擁有者規則** | 自動為新儀表板新增擁有者。 |
 | **設定 → 標籤規則** | 自動為新儀表板新增標籤。 |
-| **設定 → Data Sources** | 連線 Prometheus、SQL 資料庫、ClickHouse、Loki、Elasticsearch 或 REST API。 |
+| **設定 → 資料來源** | 連線 Prometheus、SQL 資料庫、ClickHouse、Loki、Elasticsearch 或 REST API。 |
 | **進階 → 已封存** | 你封存的儀表板。在這裡取消封存。 |
 
 開啟一個儀表板後，它自己的側邊選單包含以下頁面。除了 **基礎** 之外，所有區段預設都是收合的：點選標題即可展開。

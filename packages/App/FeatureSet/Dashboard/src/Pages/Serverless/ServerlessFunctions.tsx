@@ -29,14 +29,14 @@ import useFirstRecordWatch, {
   FirstRecordWatch,
 } from "../../Components/Infrastructure/UseFirstRecordWatch";
 import {
-  FIRST_RUN_GUIDE_DESCRIPTION,
   getFirstRunEmptyState,
   getFirstRunTopContent,
 } from "../../Components/Infrastructure/FirstRecordWatch";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import AddResourceGuide from "../../Components/ResourceOnboarding/AddResourceGuide";
 import AddResourceModal from "../../Components/ResourceOnboarding/AddResourceModal";
 import SERVERLESS_FUNCTION_ONBOARDING from "../../Components/Serverless/ServerlessFunctionOnboarding";
+import ResourceShowcaseCard from "../../Components/ResourceShowcase/ResourceShowcaseCard";
+import SERVERLESS_FUNCTION_SHOWCASE from "../../Components/Serverless/ServerlessFunctionShowcase";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -339,16 +339,13 @@ const ServerlessFunctions: FunctionComponent<
         }}
       />
       {firstRecordWatch.count === 0 && (
-        <AddResourceGuide
-          onboarding={SERVERLESS_FUNCTION_ONBOARDING}
-          title={SERVERLESS_FUNCTION_ONBOARDING.firstRunTitle}
-          description={FIRST_RUN_GUIDE_DESCRIPTION}
-          onConnected={() => {
-            // The guide gives way, and the table reads the new function.
-            firstRecordWatch.onRecordCreated();
-            setConnectedCount((count: number): number => {
-              return count + 1;
-            });
+        <ResourceShowcaseCard
+          showcase={SERVERLESS_FUNCTION_SHOWCASE}
+          addButton={{
+            title: SERVERLESS_FUNCTION_ONBOARDING.addTitle,
+            onClick: () => {
+              setIsAddFunctionOpen(true);
+            },
           }}
         />
       )}
@@ -359,6 +356,8 @@ const ServerlessFunctions: FunctionComponent<
             setIsAddFunctionOpen(false);
           }}
           onConnected={() => {
+            // The showcase gives way, and the table reads the new function.
+            firstRecordWatch.onRecordCreated();
             setConnectedCount((count: number): number => {
               return count + 1;
             });

@@ -58,7 +58,7 @@ Beide halten ein Problem fest, und beide können die Bereitschaft alarmieren. De
 | **Was es ist** | Ein Problem, das Ihre Nutzer betrifft, etwa ein Ausfall oder eine Verlangsamung | Ein Problem, das sich Ihr Team ansehen sollte, bevor Nutzer betroffen sind |
 | **Auf Statusseiten** | Kann erscheinen und informiert Abonnenten | Nie |
 | **Anfangsstatus** | **Identifiziert**, **Bestätigt**, **Behoben** | **Identifiziert**, **Bestätigt**, **Behoben** |
-| **Anfangsschweregrade** | Critical Incident, Major Incident, Minor Incident | **Hoch**, **Low** |
+| **Anfangsschweregrade** | Critical Incident, Major Incident, Minor Incident | **Hoch**, **Niedrig** |
 
 Wer einen bestätigt, sagt damit, dass sich jemand darum kümmert, und hält seine Bereitschaftsrichtlinien davon ab, die nächste Stufe zu alarmieren. Wer ihn behebt, schließt ihn ab. Sie können eigene Status und Schweregrade hinzufügen und Warnungen mit dem Vorfall verknüpfen, zu dem sie sich als zugehörig erweisen.
 

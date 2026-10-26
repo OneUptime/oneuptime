@@ -142,13 +142,13 @@ curl -X POST 'https://oneuptime.com/api/inventory-item/get-list?output-type=csv'
 | آدرس IP | `host.ip` | هر نشانی‌ای که گردآورنده گزارش می‌کند | نشانی‌ای که OneUptime پیمایش می‌کند، وقتی یک آدرس IP باشد، وگرنه نشانی‌ای که پراب آن، آن نام DNS را به آن تبدیل کرده است |
 | آدرس MAC | `host.mac` | شناسایی‌شده | روی دستگاه تایپ‌شده، یا آموخته‌شده از جدول ARP یک مسیریاب پیمایش‌شده |
 | شماره سریال | `host.serial_number` | ثبت‌شده | ENTITY-MIB |
-| Manufacturer | `device.manufacturer` | ثبت‌شده | ENTITY-MIB، وگرنه آنچه `sysDescr` یا `sysObjectID` نام می‌برد |
+| سازنده | `device.manufacturer` | ثبت‌شده | ENTITY-MIB، وگرنه آنچه `sysDescr` یا `sysObjectID` نام می‌برد |
 | مدل | `device.model.name` | ثبت‌شده | ENTITY-MIB، وگرنه آنچه `sysDescr` نام می‌برد |
 | نسخه فریم‌ور | `device.firmware.version` | ثبت‌شده | ENTITY-MIB، وگرنه آنچه `sysDescr` نام می‌برد |
 | سیستم‌عامل | `os.name` | `os.description` (یا `os.type`) | آنچه `sysDescr` نام می‌برد: Cisco IOS، Junos OS، Arista EOS، Linux |
 | نسخه سیستم‌عامل | `os.version` | شناسایی‌شده | ENTITY-MIB، وگرنه آنچه `sysDescr` نام می‌برد |
 | Device Type | `device.type` | ثبت‌شده. وگرنه کارت آن را از سیستم‌عامل و نامش دسته‌بندی می‌کند (سرور، دیواره آتش، ...) | نقشش: نقشی که شما داده‌اید، وگرنه نقشی که نقشه توپولوژی برایش می‌کشد |
-| Location | `device.location` | ثبت‌شده. وگرنه کارت منطقه ابری‌اش را نشان می‌دهد | `sysLocation`. کارت نخست سایتش را نشان می‌دهد |
+| مکان | `device.location` | ثبت‌شده. وگرنه کارت منطقه ابری‌اش را نشان می‌دهد | `sysLocation`. کارت نخست سایتش را نشان می‌دهد |
 
 [جدول میزبان](#ویژگیهای-دارایی-میزبان) و [جدول دستگاه شبکه](#ویژگیهای-دارایی-دستگاه-شبکه) در ادامه به تفصیل می‌گویند هر مقدار از کجا می‌آید.
 

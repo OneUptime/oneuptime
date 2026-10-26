@@ -5,7 +5,7 @@ Les règles d'étiquettes et les règles de propriétaires organisent vos ressou
 :::cards
 - [Créer une règle](#créer-une-règle): Deux étapes : ce à quoi la règle correspond, puis ce qu'elle ajoute.
 - [Hériter des étiquettes et des propriétaires](#hériter-des-étiquettes-et-des-propriétaires): Transmettre ce que portent les moniteurs, hôtes et services d'un événement.
-- [Quand les règles s'exécutent](#quand-les-règles-sexécutent): Les nouvelles ressources, et **Run Now** pour celles que vous avez déjà.
+- [Quand les règles s'exécutent](#quand-les-règles-sexécutent): Les nouvelles ressources, et **Exécuter maintenant** pour celles que vous avez déjà.
 :::
 
 ## Fonctionnement
@@ -115,7 +115,7 @@ Chaque règle activée s'exécute quand une ressource est créée, depuis le tab
 - Une règle ne retire jamais rien : ni les étiquettes ou propriétaires ajoutés à la main, ni ceux qu'elle a ajoutés elle-même.
 - Une règle désactivée ne fait rien.
 
-Une règle écrite aujourd'hui s'applique aux ressources créées après elle. Pour l'appliquer à celles que vous avez déjà, utilisez **Run Now** : voir [Exécuter des règles sur les ressources existantes](/docs/configuration/run-rules-now). Les règles d'étiquettes peuvent aussi être copiées d'un projet à l'autre : voir [Importer et exporter des règles d'étiquettes](/docs/configuration/label-rule-import-export).
+Une règle écrite aujourd'hui s'applique aux ressources créées après elle. Pour l'appliquer à celles que vous avez déjà, utilisez **Exécuter maintenant** : voir [Exécuter des règles sur les ressources existantes](/docs/configuration/run-rules-now). Les règles d'étiquettes peuvent aussi être copiées d'un projet à l'autre : voir [Importer et exporter des règles d'étiquettes](/docs/configuration/label-rule-import-export).
 
 ## Modèles
 

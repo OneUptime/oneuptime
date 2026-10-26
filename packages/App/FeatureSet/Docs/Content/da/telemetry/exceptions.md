@@ -77,7 +77,7 @@ Sidens sidemenu samler det, du gør med en undtagelse:
 | **Context** | Den seneste forekomsts attributter, dens sessionsoptagelse, når der er en, og de trin, der førte til den. |
 | **Protokoller** | De protokoller, der blev skrevet omkring den seneste forekomst. |
 | **AI Assistance** | AI-opgaver, der retter undtagelsen eller tester den. |
-| **Indstillinger** | Løs eller arkivér undtagelsen. Den ligger under **Manage**, som er foldet sammen fra start. |
+| **Indstillinger** | Løs eller arkivér undtagelsen. Den ligger under **Administrer**, som er foldet sammen fra start. |
 
 ## Løs, genåbn og arkivér
 
@@ -86,7 +86,7 @@ Knapperne øverst på undtagelsens side og dens side **Indstillinger** ændrer d
 | Handling | Hvornår du bruger den | Hvad der sker bagefter |
 | --- | --- | --- |
 | **Løs** | Du har udrullet rettelsen. | Den forlader listen **Uløst**. En ny forekomst genåbner den. |
-| **Reopen** | Rettelsen virkede ikke. | Den er uløst igen. |
+| **Genåbn** | Rettelsen virkede ikke. | Den er uløst igen. |
 | **Arkiver** | Det er støj, du ikke vil rette. | Den forlader listen. Nye forekomster tælles, men sender ikke længere notifikationer. |
 | **Fjern fra arkiv** | Du vil høre om den igen. | Den er tilbage i den liste, den hører til i. |
 
@@ -124,8 +124,8 @@ Hvert 15. minut gennemgår OneUptime dine undtagelser for nye, for dem, der plud
 
 | Fund | Hvornår OneUptime opretter det | Pull requesten |
 | --- | --- | --- |
-| **New Exception** | En undtagelse, der første gang blev set inden for de seneste 24 timer, og som allerede er sket 3 eller flere gange. | Retter undtagelsen eller håndterer den bedre. |
-| **Exception Spike** | En undtagelse, der er sket 10 eller flere gange i den seneste time, med 5 eller flere gange sin timerate i de 24 timer før. | Retter undtagelsen eller håndterer den bedre. |
+| **Ny undtagelse** | En undtagelse, der første gang blev set inden for de seneste 24 timer, og som allerede er sket 3 eller flere gange. | Retter undtagelsen eller håndterer den bedre. |
+| **Stigning i undtagelser** | En undtagelse, der er sket 10 eller flere gange i den seneste time, med 5 eller flere gange sin timerate i de 24 timer før. | Retter undtagelsen eller håndterer den bedre. |
 | **Manglende stack trace** | De undtagelser, en tjeneste registrerede det seneste døgn, har intet stack trace og er tilsammen sket 20 eller flere gange. | Får tjenesten til at registrere et stack trace med hver undtagelse. |
 
 En ny eller stigende undtagelses pull request er undtagelsens egen AI-opgave, den som dens side **AI Assistance** starter, og den venter på, at OneUptime AI undersøger fundet. Finder den koden skyldig (`code-fault`), retter pull requesten den, som **Fix this exception with AI** gør. Finder den en forventet fejl (`user-error` eller `expected-denial`), håndterer pull requesten fejlen bedre, som **Forbedr fejlhåndtering** gør. Enhver anden konklusion åbner ingen pull request af sig selv. Med **Arkivér forventede undtagelser** slået til arkiveres en forventet afvisning i stedet og får ingen pull request.

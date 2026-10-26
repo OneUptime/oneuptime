@@ -15,9 +15,14 @@ import { escapeRegExp } from "Common/Utils/RegExpEscape";
  * environments) are added the way a host is (Components/ResourceOnboarding):
  * they have no create form, since a row typed in by hand only waited for data
  * nothing sent. The card header's Add button opens the resource's Add guide in
- * a dialog, and the empty list shows the same guide under its table. Lists
- * whose rows a form adds (databases, queues, RUM applications, vCenters) keep
- * their Create button.
+ * a dialog. Lists whose rows a form adds (databases, queues, RUM applications,
+ * vCenters) keep their Create button, and the form's guide follows it.
+ *
+ * Under an empty table each of them shows its showcase
+ * (Components/ResourceShowcase): what the product gives, with the list's Add
+ * button - the same dialog, or the same create form - rather than every step
+ * of the guide up front. Cloud Resources, which nothing adds by hand, keeps
+ * its Connect tiles and its folded guide.
  *
  * The App test suite runs in a plain Node environment without a React renderer.
  * These tests therefore pin the JSX wiring directly, following the same source
@@ -42,19 +47,24 @@ interface ResourceInventoryPageCase {
   readonly modelType: string;
   readonly countState: string;
   readonly countSetter: string;
-  readonly documentationCard: string;
+  /*
+   * What an empty list shows under its table: its showcase (the constant
+   * ResourceShowcaseCard is handed), or - Cloud Resources - a guide card.
+   */
+  readonly showcase?: string | undefined;
+  readonly documentationCard?: string | undefined;
   /*
    * The infrastructure lists count through the shared useFirstRecordWatch:
    * while the count is zero it watches for the first record, then shows it
-   * (the table's refreshToggle) and puts the guide away.
+   * (the table's refreshToggle) and puts the showcase away.
    */
   readonly watchesForFirstRecord?: boolean | undefined;
   /*
-   * Adding one by hand is a way to connect here (a vCenter through a probe,
-   * a database or queue endpoint), so the empty table keeps its Create
-   * button; on the other lists only the card header has it.
+   * A form adds its rows (a vCenter through a probe, a database or queue
+   * endpoint, a RUM application): the showcase's button opens the table's
+   * own create form (useShowcaseCreateForm).
    */
-  readonly isAddedByHand?: boolean | undefined;
+  readonly isAddedByForm?: boolean | undefined;
   /*
    * False for a list whose rows only discovery creates - the Cloud Resources
    * discovered from cloud monitoring, which no form could identify - so it
@@ -69,36 +79,33 @@ interface ResourceInventoryPageCase {
   /*
    * Not created by a form, but added from a button of the card header (Add
    * Host, Add Kubernetes Cluster) that the empty table would repeat: while
-   * the list waits for its first record, the guide under it is the way in,
-   * so it does not.
+   * the list waits for its first record, the showcase under it has the
+   * button, so the table does not.
    */
   readonly isAddedFromHeader?: boolean | undefined;
   /*
    * That button, as the card header writes its title, and the dialog it
-   * opens: the same guide the empty list shows under its table.
+   * opens - which the showcase's button opens too.
    */
   readonly addButtonTitle?: string | undefined;
   readonly addDialog?: string | undefined;
-  /*
-   * The onboarding config (Components/ResourceOnboarding) an Add guide is
-   * drawn from: the empty list's card is that resource's guide, not another
-   * one's.
-   */
+  // The onboarding config (Components/ResourceOnboarding) the dialog draws.
   readonly onboarding?: string | undefined;
 }
 
 /*
  * A list whose resources register themselves when their agent first reports:
  * no create form, the card header's Add button opens the resource's Add guide
- * in a dialog (AddResourceModal), and the empty list shows the same guide,
- * from the same onboarding config, as its first-run card. Either one seeing
- * the resource connect makes the table read it again (connectedCount).
+ * in a dialog (AddResourceModal), and the empty list's showcase has the same
+ * button. The dialog seeing the resource connect makes the table read it
+ * again (connectedCount) and puts the showcase away at once.
  */
 function addedByGuide(data: {
   label: string;
   relativePath: string;
   modelType: string;
   onboarding: string;
+  showcase: string;
 }): ResourceInventoryPageCase {
   return {
     label: data.label,
@@ -107,7 +114,7 @@ function addedByGuide(data: {
     countState: "firstRecordWatch.count",
     countSetter: "firstRecordWatch.onRecordCreated",
     watchesForFirstRecord: true,
-    documentationCard: "AddResourceGuide",
+    showcase: data.showcase,
     onboarding: data.onboarding,
     isCreateable: false,
     isAddedFromHeader: true,
@@ -118,6 +125,25 @@ function addedByGuide(data: {
   };
 }
 
+// A list whose rows a form adds, which watches for its first record.
+function addedByForm(data: {
+  label: string;
+  relativePath: string;
+  modelType: string;
+  showcase: string;
+}): ResourceInventoryPageCase {
+  return {
+    label: data.label,
+    relativePath: data.relativePath,
+    modelType: data.modelType,
+    countState: "firstRecordWatch.count",
+    countSetter: "firstRecordWatch.onRecordCreated",
+    watchesForFirstRecord: true,
+    showcase: data.showcase,
+    isAddedByForm: true,
+  };
+}
+
 const RESOURCE_INVENTORY_PAGES: ReadonlyArray<ResourceInventoryPageCase> = [
   {
     label: "RUM applications",
@@ -125,64 +151,68 @@ const RESOURCE_INVENTORY_PAGES: ReadonlyArray<ResourceInventoryPageCase> = [
     modelType: "RumApplication",
     countState: "count",
     countSetter: "setCount",
-    documentationCard: "RumDocumentationCard",
+    showcase: "RUM_APPLICATION_SHOWCASE",
+    isAddedByForm: true,
   },
   addedByGuide({
     label: "Kubernetes clusters",
     relativePath: "Kubernetes/Clusters.tsx",
     modelType: "KubernetesCluster",
     onboarding: "KUBERNETES_CLUSTER_ONBOARDING",
+    showcase: "KUBERNETES_CLUSTER_SHOWCASE",
   }),
   addedByGuide({
     label: "Docker hosts",
     relativePath: "Docker/Hosts.tsx",
     modelType: "DockerHost",
     onboarding: "DOCKER_HOST_ONBOARDING",
+    showcase: "DOCKER_HOST_SHOWCASE",
   }),
   addedByGuide({
     label: "Podman hosts",
     relativePath: "Podman/Hosts.tsx",
     modelType: "PodmanHost",
     onboarding: "PODMAN_HOST_ONBOARDING",
+    showcase: "PODMAN_HOST_SHOWCASE",
   }),
   addedByGuide({
     label: "Docker Swarm clusters",
     relativePath: "DockerSwarm/Clusters.tsx",
     modelType: "DockerSwarmCluster",
     onboarding: "DOCKER_SWARM_CLUSTER_ONBOARDING",
+    showcase: "DOCKER_SWARM_CLUSTER_SHOWCASE",
   }),
   addedByGuide({
     label: "Proxmox clusters",
     relativePath: "Proxmox/Clusters.tsx",
     modelType: "ProxmoxCluster",
     onboarding: "PROXMOX_CLUSTER_ONBOARDING",
+    showcase: "PROXMOX_CLUSTER_SHOWCASE",
   }),
-  {
+  addedByForm({
     label: "vCenters",
     relativePath: "VMware/VCenters.tsx",
     modelType: "VMwareVCenter",
-    countState: "firstRecordWatch.count",
-    countSetter: "firstRecordWatch.onRecordCreated",
-    watchesForFirstRecord: true,
-    isAddedByHand: true,
-    documentationCard: "VMwareDocumentationCard",
-  },
+    showcase: "VMWARE_VCENTER_SHOWCASE",
+  }),
   addedByGuide({
     label: "Ceph clusters",
     relativePath: "Ceph/Clusters.tsx",
     modelType: "CephCluster",
     onboarding: "CEPH_CLUSTER_ONBOARDING",
+    showcase: "CEPH_CLUSTER_SHOWCASE",
   }),
   addedByGuide({
     label: "storage arrays",
     relativePath: "StorageArray/StorageArrays.tsx",
     modelType: "StorageArray",
     onboarding: "STORAGE_ARRAY_ONBOARDING",
+    showcase: "STORAGE_ARRAY_SHOWCASE",
   }),
   /*
-   * A host is added by one command on it, not by a form: the first run is
-   * the Add Host guide, and a host typed in by hand would only wait for
-   * telemetry nothing sends.
+   * A host is added by one command on it, not by a form: Add Host opens
+   * that guide, and a host typed in by hand would only wait for telemetry
+   * nothing sends.
    */
   {
     label: "hosts",
@@ -191,7 +221,7 @@ const RESOURCE_INVENTORY_PAGES: ReadonlyArray<ResourceInventoryPageCase> = [
     countState: "firstRecordWatch.count",
     countSetter: "firstRecordWatch.onRecordCreated",
     watchesForFirstRecord: true,
-    documentationCard: "AddHostGuide",
+    showcase: "HOST_SHOWCASE",
     isCreateable: false,
     isAddedFromHeader: true,
     addButtonTitle: '"Add Host"',
@@ -204,6 +234,7 @@ const RESOURCE_INVENTORY_PAGES: ReadonlyArray<ResourceInventoryPageCase> = [
     relativePath: "IoT/Fleets.tsx",
     modelType: "IoTFleet",
     onboarding: "IOT_FLEET_ONBOARDING",
+    showcase: "IOT_FLEET_SHOWCASE",
   }),
   // The cloud environments an app's OpenTelemetry reports.
   addedByGuide({
@@ -211,33 +242,27 @@ const RESOURCE_INVENTORY_PAGES: ReadonlyArray<ResourceInventoryPageCase> = [
     relativePath: "Cloud/CloudResources.tsx",
     modelType: "CloudResource",
     onboarding: "CLOUD_ENVIRONMENT_ONBOARDING",
+    showcase: "CLOUD_ENVIRONMENT_SHOWCASE",
   }),
   addedByGuide({
     label: "serverless functions",
     relativePath: "Serverless/ServerlessFunctions.tsx",
     modelType: "ServerlessFunction",
     onboarding: "SERVERLESS_FUNCTION_ONBOARDING",
+    showcase: "SERVERLESS_FUNCTION_SHOWCASE",
   }),
-  {
+  addedByForm({
     label: "databases",
     relativePath: "Database/Databases.tsx",
     modelType: "DatabaseServer",
-    countState: "firstRecordWatch.count",
-    countSetter: "firstRecordWatch.onRecordCreated",
-    watchesForFirstRecord: true,
-    isAddedByHand: true,
-    documentationCard: "DatabaseDocumentationCard",
-  },
-  {
+    showcase: "DATABASE_SHOWCASE",
+  }),
+  addedByForm({
     label: "queues",
     relativePath: "MessageQueue/MessageQueues.tsx",
     modelType: "MessageQueue",
-    countState: "firstRecordWatch.count",
-    countSetter: "firstRecordWatch.onRecordCreated",
-    watchesForFirstRecord: true,
-    isAddedByHand: true,
-    documentationCard: "MessageQueueDocumentationCard",
-  },
+    showcase: "MESSAGE_QUEUE_SHOWCASE",
+  }),
   {
     label: "cloud resources discovered from cloud monitoring",
     relativePath: "Cloud/MonitoredResources.tsx",
@@ -249,6 +274,13 @@ const RESOURCE_INVENTORY_PAGES: ReadonlyArray<ResourceInventoryPageCase> = [
     isCreateable: false,
   },
 ];
+
+// The opening of what an empty list shows under its table.
+function firstRunCardOf(resourceCase: ResourceInventoryPageCase): string {
+  return resourceCase.showcase
+    ? `<ResourceShowcaseCard showcase={${resourceCase.showcase}}`
+    : `<${resourceCase.documentationCard as string}`;
+}
 
 function squash(source: string): string {
   return source.replace(/\s+/g, " ");
@@ -296,7 +328,7 @@ function toPosixRelativePath(absolutePath: string): string {
 }
 
 describe("empty resource inventory page catalog", () => {
-  test("covers every page that combines a model table with setup documentation", () => {
+  test("covers every page that combines a model table with a first-run card", () => {
     const discoveredPages: Array<string> = getAllTsxFiles(DASHBOARD_PAGES)
       .filter((absolutePath: string): boolean => {
         const source: string = fs.readFileSync(absolutePath, "utf8");
@@ -304,7 +336,7 @@ describe("empty resource inventory page catalog", () => {
         return (
           source.includes("<ModelTable<") &&
           source.match(
-            /<(?:[A-Za-z]+DocumentationCard|AddHostGuide|AddResourceGuide)\b/,
+            /<(?:ResourceShowcaseCard|[A-Za-z]+DocumentationCard|AddHostGuide|AddResourceGuide)\b/,
           ) !== null
         );
       })
@@ -330,6 +362,19 @@ describe("empty resource inventory page catalog", () => {
 
     expect(new Set(paths).size).toBe(paths.length);
   });
+
+  test("each list shows a showcase of its own", () => {
+    const showcases: Array<string> = RESOURCE_INVENTORY_PAGES.map(
+      (resourceCase: ResourceInventoryPageCase): string => {
+        return resourceCase.showcase || "";
+      },
+    ).filter((showcase: string): boolean => {
+      return showcase.length > 0;
+    });
+
+    expect(showcases).toHaveLength(15);
+    expect(new Set(showcases).size).toBe(showcases.length);
+  });
 });
 
 describe.each(RESOURCE_INVENTORY_PAGES)(
@@ -339,10 +384,16 @@ describe.each(RESOURCE_INVENTORY_PAGES)(
     const code: string = readCode(resourceCase);
     const modelTable: string = `<ModelTable<${resourceCase.modelType}>`;
     const zeroState: string = `{${resourceCase.countState} === 0 && (`;
-    // An Add guide is the one of this list's own resource.
-    const documentationCard: string = resourceCase.onboarding
-      ? `<${resourceCase.documentationCard} onboarding={${resourceCase.onboarding}}`
-      : `<${resourceCase.documentationCard}`;
+    const firstRunCard: string = firstRunCardOf(resourceCase);
+
+    // The JSX of what an empty list shows under its table.
+    const firstRunCardSource: () => string = (): string => {
+      const cardStart: number = source.indexOf(
+        firstRunCard,
+        source.indexOf(zeroState),
+      );
+      return source.slice(cardStart, source.indexOf("/>", cardStart));
+    };
 
     test("keeps the inventory table mounted when the count is zero", () => {
       expect(source).toContain(modelTable);
@@ -365,7 +416,7 @@ describe.each(RESOURCE_INVENTORY_PAGES)(
       );
     });
 
-    test("where rows register themselves, the card header's Add button opens the guide in a dialog", () => {
+    test("where rows register themselves, the card header's Add button and the showcase's open the guide in a dialog", () => {
       if (!resourceCase.isAddedFromHeader) {
         return;
       }
@@ -395,6 +446,11 @@ describe.each(RESOURCE_INVENTORY_PAGES)(
       );
       expect(dialogStart).toBeGreaterThan(tableEnd);
 
+      // The showcase's button says the same and opens the same dialog.
+      expect(firstRunCardSource()).toContain(
+        `addButton={{ title: ${resourceCase.addButtonTitle as string}, onClick: () => { set${setter}(true); }, }}`,
+      );
+
       // One it sees connect shows in the list at once.
       const dialog: string = source.slice(
         dialogStart,
@@ -403,50 +459,71 @@ describe.each(RESOURCE_INVENTORY_PAGES)(
       expect(dialog).toContain("setConnectedCount(");
     });
 
-    test("renders setup documentation only for a zero count", () => {
+    test("where a form adds rows, the showcase's button opens the table's own create form", () => {
+      if (!resourceCase.isAddedByForm) {
+        return;
+      }
+
+      const tableStart: number = source.indexOf(modelTable);
+      const tableEnd: number = source.indexOf("/>", tableStart);
+      const table: string = source.slice(tableStart, tableEnd);
+
+      expect(code).toContain(
+        `const showcaseCreateForm: ShowcaseCreateForm = useShowcaseCreateForm({ modelType: ${resourceCase.modelType},`,
+      );
+      expect(table).toContain(
+        "showCreateForm={showcaseCreateForm.showCreateForm}",
+      );
+      expect(firstRunCardSource()).toContain(
+        "addButton={showcaseCreateForm.addButton}",
+      );
+      // The hook is called with the others, before the page can return early.
+      expect(code.indexOf("useShowcaseCreateForm({")).toBeLessThan(
+        code.indexOf("<PageLoader"),
+      );
+    });
+
+    test("renders its first-run card only for a zero count", () => {
       expect(source).toContain(zeroState);
       expect(
-        source.indexOf(documentationCard, source.indexOf(zeroState)),
+        source.indexOf(firstRunCard, source.indexOf(zeroState)),
       ).toBeGreaterThan(source.indexOf(zeroState));
     });
 
-    test("places the empty table above the documentation", () => {
+    test("places the empty table above its first-run card", () => {
       const tableStart: number = source.indexOf(modelTable);
       const zeroStateStart: number = source.indexOf(zeroState);
-      const documentationStart: number = source.indexOf(
-        documentationCard,
-        zeroStateStart,
-      );
+      const cardStart: number = source.indexOf(firstRunCard, zeroStateStart);
 
       expect(tableStart).toBeGreaterThan(-1);
       expect(zeroStateStart).toBeGreaterThan(tableStart);
-      expect(documentationStart).toBeGreaterThan(zeroStateStart);
+      expect(cardStart).toBeGreaterThan(zeroStateStart);
     });
 
-    test("hides the guide immediately after the first one is added, by hand or through the guide", () => {
+    test("puts the showcase away as soon as the first one is added, by hand or through the dialog", () => {
       if (resourceCase.isCreateable === false) {
         // Nothing is created here: no create callback to count it.
         expect(source).not.toContain("onCreateSuccess={");
 
         if (resourceCase.isAddedFromHeader) {
           /*
-           * Added through the guide: once its last step sees the first one
-           * connect, the guide gives way at once - not at the watch's next
-           * count - and the table reads the new row.
+           * Added through the dialog: once its last step sees the first one
+           * connect, the showcase gives way at once - not at the watch's
+           * next count - and the table reads the new row.
            */
-          const guideStart: number = source.indexOf(
-            documentationCard,
+          const dialogStart: number = source.indexOf(
+            resourceCase.addDialog as string,
             source.indexOf(zeroState),
           );
-          const guide: string = source.slice(
-            guideStart,
-            source.indexOf("/>", guideStart),
+          const dialog: string = source.slice(
+            dialogStart,
+            source.indexOf("/>", dialogStart),
           );
 
-          expect(guideStart).toBeGreaterThan(-1);
-          expect(guide).toMatch(/ on(?:Host)?Connected=\{\(\) => \{/);
-          expect(guide).toContain(`${resourceCase.countSetter}();`);
-          expect(guide).toContain("setConnectedCount(");
+          expect(dialogStart).toBeGreaterThan(-1);
+          expect(dialog).toMatch(/ on(?:Host)?Connected=\{\(\) => \{/);
+          expect(dialog).toContain(`${resourceCase.countSetter}();`);
+          expect(dialog).toContain("setConnectedCount(");
         }
         return;
       }
@@ -502,38 +579,25 @@ describe.each(RESOURCE_INVENTORY_PAGES)(
       expect(code).not.toContain("FIRST_DATA_POLL_INTERVAL_MS");
     });
 
-    test("an empty list points to the guide, and repeats Create only where adding by hand connects", () => {
-      if (!resourceCase.watchesForFirstRecord) {
-        return;
-      }
-
+    test("an empty list's table does not repeat Create: the showcase under it has the button", () => {
       const tableStart: number = source.indexOf(modelTable);
       const tableEnd: number = source.indexOf("/>", tableStart);
       const table: string = source.slice(tableStart, tableEnd);
 
-      if (
-        resourceCase.isCreateable === false &&
-        !resourceCase.isAddedFromHeader
-      ) {
+      if (!resourceCase.showcase) {
         // No create button anywhere, so nothing for the empty state to hide.
         expect(table).not.toContain("getFirstRunEmptyState(");
-      } else {
-        expect(table).toContain("emptyState={getFirstRunEmptyState({");
-        expect(table).toContain("count: firstRecordWatch.count,");
-        expect(table.includes("isAddedByHand: true,")).toBe(
-          resourceCase.isAddedByHand === true,
+        // Its folded guide says what to do, not "No X yet" a second time.
+        expect(firstRunCardSource()).toContain(
+          "description={FIRST_RUN_GUIDE_DESCRIPTION}",
         );
+        return;
       }
 
-      // The guide says what to do, not "No X yet" a second time.
-      const guideStart: number = source.indexOf(
-        documentationCard,
-        source.indexOf(zeroState),
-      );
-      expect(guideStart).toBeGreaterThan(-1);
-      expect(source.slice(guideStart, guideStart + 300)).toContain(
-        "description={FIRST_RUN_GUIDE_DESCRIPTION}",
-      );
+      expect(table).toContain("emptyState={getFirstRunEmptyState({");
+      expect(table).toContain(`count: ${resourceCase.countState},`);
+      expect(table).not.toContain("isAddedByHand");
+      expect(firstRunCardSource()).toContain("addButton={");
     });
   },
 );

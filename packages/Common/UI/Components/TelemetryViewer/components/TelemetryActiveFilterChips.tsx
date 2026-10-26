@@ -1,5 +1,10 @@
 import React, { FunctionComponent, ReactElement } from "react";
-import { translatableTerm, Translator } from "../../../Utils/TranslateTemplate";
+import {
+  composedValue,
+  translatableTerm,
+  translationKey,
+  Translator,
+} from "../../../Utils/TranslateTemplate";
 import useTranslator from "../../../Utils/UseTranslator";
 import { ActiveFilter } from "../types";
 import Icon from "../../Icon/Icon";
@@ -26,6 +31,35 @@ export interface TelemetryActiveFilterChipsProps {
    */
   signal?: TelemetrySignal | undefined;
 }
+
+/*
+ * How an exclusion's key reads: "Severity is not", in the reader's language,
+ * the field's name translated with it when it is one of the product's own
+ * ("Severity") and as written when it is an attribute (device.hostname).
+ * Every explorer's exclusion chip says it excludes in words, not in red
+ * alone: "Severity: Informational" reads as the opposite of the filter it
+ * applies, the one mistake a filter chip must never make.
+ */
+export const EXCLUDED_CHIP_KEY_TEMPLATE: string =
+  translationKey("{{field}} is not");
+
+export const getFilterChipKeyText: (
+  displayKey: string,
+  isExcluded: boolean,
+  translator: Translator,
+) => string = (
+  displayKey: string,
+  isExcluded: boolean,
+  translator: Translator,
+): string => {
+  if (isExcluded) {
+    return translator.translateTemplate(EXCLUDED_CHIP_KEY_TEMPLATE, {
+      field: translatableTerm(displayKey),
+    });
+  }
+
+  return translator.translateText(displayKey) || displayKey;
+};
 
 const TelemetryActiveFilterChips: FunctionComponent<
   TelemetryActiveFilterChipsProps
@@ -68,6 +102,11 @@ const TelemetryActiveFilterChips: FunctionComponent<
          */
         const reading: FacetChipReading | null = readFacetChip(filter);
         const isExcluded: boolean = reading?.state === FacetValueState.Excluded;
+        const keyText: string = getFilterChipKeyText(
+          filter.displayKey,
+          isExcluded,
+          translator,
+        );
         return (
           <span
             key={chipKey}
@@ -85,7 +124,7 @@ const TelemetryActiveFilterChips: FunctionComponent<
                   : "font-medium text-indigo-500"
               }
             >
-              {translator.translateText(filter.displayKey)}:
+              {keyText}:
             </span>
             <span>{filter.displayValue}</span>
             <button
@@ -99,7 +138,14 @@ const TelemetryActiveFilterChips: FunctionComponent<
                 props.onRemove(filter.facetKey, filter.value);
               }}
               title={translator.translateTemplate("Remove {{key}}: {{value}}", {
-                key: translatableTerm(filter.displayKey),
+                // In the sentence's language, so it never mixes two.
+                key: composedValue((sentence: Translator): string => {
+                  return getFilterChipKeyText(
+                    filter.displayKey,
+                    isExcluded,
+                    sentence,
+                  );
+                }),
                 value: filter.displayValue,
               })}
             >

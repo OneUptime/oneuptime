@@ -142,13 +142,13 @@ Hosts en netwerkapparaten worden met dezelfde gegevens beschreven, opgeslagen on
 | IP-adres | `host.ip` | Elk adres dat de collector meldt | Het adres dat OneUptime pollt, als het een IP-adres is, anders het adres waarnaar zijn probe die DNS-naam heeft omgezet |
 | MAC-adres | `host.mac` | Gedetecteerd | Op het apparaat ingevoerd, of geleerd uit de ARP-tabel van een doorlopen router |
 | Serienummer | `host.serial_number` | Gestempeld | ENTITY-MIB |
-| Manufacturer | `device.manufacturer` | Gestempeld | ENTITY-MIB, anders wat `sysDescr` of `sysObjectID` noemt |
+| Fabrikant | `device.manufacturer` | Gestempeld | ENTITY-MIB, anders wat `sysDescr` of `sysObjectID` noemt |
 | Model | `device.model.name` | Gestempeld | ENTITY-MIB, anders wat `sysDescr` noemt |
 | Firmwareversie | `device.firmware.version` | Gestempeld | ENTITY-MIB, anders wat `sysDescr` noemt |
 | Besturingssysteem | `os.name` | `os.description` (of `os.type`) | Wat `sysDescr` noemt: Cisco IOS, Junos OS, Arista EOS, Linux |
 | OS-versie | `os.version` | Gedetecteerd | ENTITY-MIB, anders wat `sysDescr` noemt |
 | Device Type | `device.type` | Gestempeld. Anders deelt de kaart het in op basis van besturingssysteem en naam (Server, Firewall, ...) | Zijn rol: de rol die jij toewees, anders de rol waarmee de topologiekaart het tekent |
-| Location | `device.location` | Gestempeld. Anders toont de kaart zijn cloudzone | `sysLocation`. De kaart toont eerst zijn site |
+| Locatie | `device.location` | Gestempeld. Anders toont de kaart zijn cloudzone | `sysLocation`. De kaart toont eerst zijn site |
 
 De [hosttabel](#assetattributen-van-hosts) en de [netwerkapparatentabel](#assetattributen-van-netwerkapparaten) hieronder vertellen in detail waar elke waarde vandaan komt.
 

@@ -64,7 +64,7 @@ Klicka på **Registrera enhet**, behåll det föreslagna **Enhetsnamn**, till ex
 Klicka på **Send Test Notification** i dialogrutan **Browser Registered**. Visas ingenting, titta på Windows egna aviseringsinställningar: se [Felsökning](#felsökning).
 :::
 
-En webbläsare ringer inte högre än Windows tillåter: den kan inte åsidosätta Stör ej. Använd mobilappen med kritiska varningar för larm som måste väcka dig: se [Android-installation](/docs/mobile-desktop-apps/android-installation#ring-igenom-tyst-läge) eller [iOS-installation](/docs/mobile-desktop-apps/ios-installation#ring-igenom-tyst-läge).
+En webbläsare ringer inte högre än Windows tillåter: den kan inte åsidosätta Stör ej. Använd mobilappen med kritiska larm för larm som måste väcka dig: se [Android-installation](/docs/mobile-desktop-apps/android-installation#ring-igenom-tyst-läge) eller [iOS-installation](/docs/mobile-desktop-apps/ios-installation#ring-igenom-tyst-läge).
 
 På ett OneUptime i egen drift behöver webbläsaraviseringar serverns VAPID-nycklar: se [Push-aviseringar](/docs/self-hosted/push-notifications#egeninstallerad-konfiguration).
 

@@ -144,10 +144,10 @@ SMS, कॉल, WhatsApp और Telegram संदेशों का भुग�
 
 | करने के लिए | ज़रूरी है |
 | --- | --- |
-| बिलिंग पेज पढ़ना: प्लान, चालान, उपयोग, शेष और भुगतान विधियां | Project Owner, **Manage Billing**, **Billing Admin**, **Billing Member** या **Billing Viewer** |
-| चालान डाउनलोड करना | Project Owner, Project Admin, **Manage Billing**, **Read Invoices**, **Billing Admin** या **Billing Member** |
-| बिलिंग पता और चालान ईमेल बदलना | Project Owner, **Manage Billing**, **Billing Admin** या **Billing Member** |
-| SMS, कॉल, WhatsApp या Telegram चालू या बंद करना | Project Owner, **Manage Billing** या **Billing Admin** |
+| बिलिंग पेज पढ़ना: प्लान, चालान, उपयोग, शेष और भुगतान विधियां | Project Owner, **Manage Billing**, **बिलिंग एडमिन**, **बिलिंग सदस्य** या **बिलिंग दर्शक** |
+| चालान डाउनलोड करना | Project Owner, Project Admin, **Manage Billing**, **Read Invoices**, **बिलिंग एडमिन** या **बिलिंग सदस्य** |
+| बिलिंग पता और चालान ईमेल बदलना | Project Owner, **Manage Billing**, **बिलिंग एडमिन** या **बिलिंग सदस्य** |
+| SMS, कॉल, WhatsApp या Telegram चालू या बंद करना | Project Owner, **Manage Billing** या **बिलिंग एडमिन** |
 | भुगतान विधि जोड़ना | Project Owner, **Manage Billing** या **Create Payment Method** |
 | चालान का भुगतान करना | Project Owner, **Manage Billing** या **Edit Invoices** |
 | प्लान बदलना, शेष रिचार्ज करना या ऑटो रिचार्ज बदलना | Project Owner या **Manage Billing** |

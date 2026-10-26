@@ -56,11 +56,11 @@ Velg en av de tre fanene:
 
 - **Quick Setup** - klikk på en [mal](#ferdige-varslingsmaler). Den setter metrikken, attributtfiltrene, aggregeringen, tidsintervallet, grupperingen og tersklene og erstatter kriteriene nedenfor med sine egne. Du kan fortsatt endre **Tidsintervall**.
 - **Custom Metric** - velg én metrikk i **VMware Metric**, og sett deretter **Aggregering** og **Tidsintervall**. Skjemaet grupperer den etter objektet den beskriver, så hver vert, VM eller datastore vurderes for seg, og [filtrene](#monitorinnstillinger) snevrer den inn til ett datasenter, én klynge, én vert, én VM, én datastore eller én ressurspool.
-- **Avansert** - bygg spørringer og formler selv under **Velg målinger**, med filtre på attributter som `disk_state`, `power_state` eller `status`. Bruk **Group by** med et [identitetsattributt](#identitetsattributter) for å vurdere hvert objekt for seg.
+- **Avansert** - bygg spørringer og formler selv under **Velg målinger**, med filtre på attributter som `disk_state`, `power_state` eller `status`. Bruk **Grupper etter** med et [identitetsattributt](#identitetsattributter) for å vurdere hvert objekt for seg.
 
 ### Sjekk kriteriene
 
-Åpne hvert kriterium under **Monitorkriterier**, og sjekk **Metrikk**, **Aggregering**, **Betingelse** og **Threshold**. En mal fyller dem ut. Med **Custom Metric** eller **Avansert** starter monitoren med [standardkriteriene](#standardkriterier), som bare oppdager at en metrikk faller til null, så sett din egen terskel.
+Åpne hvert kriterium under **Monitorkriterier**, og sjekk **Metrikk**, **Aggregering**, **Betingelse** og **Terskel**. En mal fyller dem ut. Med **Custom Metric** eller **Avansert** starter monitoren med [standardkriteriene](#standardkriterier), som bare oppdager at en metrikk faller til null, så sett din egen terskel.
 
 ### Opprett monitoren
 
@@ -68,7 +68,7 @@ Klikk på **Opprett monitor**. OneUptime åpner monitorens side og evaluerer den
 :::
 
 > [!TIP]
-> For å sette opp flere maler på én gang åpner du vCenteret fra **Produkter → Infrastruktur → VMware** og går til **Recommendations**. Velg malene du vil ha, velg hvem som skal tilkalles, og OneUptime oppretter én monitor per mal.
+> For å sette opp flere maler på én gang åpner du vCenteret fra **Produkter → Infrastruktur → VMware** og går til **Anbefalinger**. Velg malene du vil ha, velg hvem som skal tilkalles, og OneUptime oppretter én monitor per mal.
 
 ## Monitorinnstillinger
 
@@ -77,14 +77,14 @@ Klikk på **Opprett monitor**. OneUptime åpner monitorens side og evaluerer den
 | **vCenter** | Alle | Påkrevd. Begrenser hver spørring til `resource.vmware.vcenter.name`. |
 | **Datasenter** | Custom Metric, Avansert | Valgfritt. Ett datasenter: `resource.vcenter.datacenter.name`. Hver serie bærer det. |
 | **Klynge** | Custom Metric, Avansert | Valgfritt. Én klynge: `resource.vcenter.cluster.name`. Samsvarer med klyngens egne serier og seriene til vertene, VM-ene og ressurspoolene i den; en frittstående ESXi-vert har ingen. |
-| **ESXi Host** | Custom Metric, Avansert | Valgfritt. Én ESXi-vert: `resource.vcenter.host.name`. Samsvarer med vertens egne serier **og** seriene til hver VM den kjører, fordi en VM bærer navnet til verten sin. |
-| **Virtual Machine** | Custom Metric, Avansert | Valgfritt. Én VM: `resource.vcenter.vm.name`. VM-navn trenger ikke være unike: legg til en vert eller en klynge når to VM-er deler et navn. |
-| **Datastore** | Custom Metric, Avansert | Valgfritt. Én datastore: `resource.vcenter.datastore.name`. |
+| **ESXi-vert** | Custom Metric, Avansert | Valgfritt. Én ESXi-vert: `resource.vcenter.host.name`. Samsvarer med vertens egne serier **og** seriene til hver VM den kjører, fordi en VM bærer navnet til verten sin. |
+| **Virtuell maskin** | Custom Metric, Avansert | Valgfritt. Én VM: `resource.vcenter.vm.name`. VM-navn trenger ikke være unike: legg til en vert eller en klynge når to VM-er deler et navn. |
+| **Datalager** | Custom Metric, Avansert | Valgfritt. Én datastore: `resource.vcenter.datastore.name`. |
 | **Resource Pool Path** | Custom Metric, Avansert | Valgfritt. Én ressurspool, via inventarstien (`/DC/host/Cluster/Resources/pool`): `resource.vcenter.resource_pool.inventory_path`. En sti, fordi poolnavn bare er unike innenfor det overordnede objektet. |
 | **VMware Metric** | Custom Metric | Én metrikk fra [katalogen](#innsamlede-metrikker). |
 | **Aggregering** | Custom Metric | Hvordan prøver kombineres: **Gjennomsnitt**, **Maksimum**, **Minimum**, **Sum** eller **Antall**. Starter på metrikkens vanlige aggregering. |
-| **Tidsintervall** | Alle | Det glidende vinduet spørringen leser, fra **Past 1 Minute** til **Past 365 Days**. En ny monitor starter på **Past 5 Minutes**; maler setter sitt eget. |
-| **Velg målinger** | Avansert | Spørringsbyggeren: **Metrikk**, **Aggregate by**, **Filter by attributes**, **Group by**, pluss **Legg til metrikk** og **Legg til formel** for å kombinere spørringer. |
+| **Tidsintervall** | Alle | Det glidende vinduet spørringen leser, fra **Past 1 Minute** til **Past 365 Days**. En ny monitor starter på **Siste 5 minutter**; maler setter sitt eget. |
+| **Velg målinger** | Avansert | Spørringsbyggeren: **Metrikk**, **Aggregate by**, **Filter by attributes**, **Grupper etter**, pluss **Legg til metrikk** og **Legg til formel** for å kombinere spørringer. |
 
 vCenter leses én gang per innsamlingsintervall, 2 minutter som standard, så et vindu på 1 minutt inneholder kanskje ingen prøve i det hele tatt. Hold vinduet på 5 minutter eller mer, og lengre hvis du har økt innsamlingsintervallet for et stort inventar.
 
@@ -99,7 +99,7 @@ Receiveren `vcenter` sender én OpenTelemetry-ressurs per vSphere-objekt og navn
 | ESXi-vert           | `vcenter.datacenter.name`, `vcenter.host.name` (+ `vcenter.cluster.name` når den er i en klynge)                               |
 | Virtuell maskin     | `vcenter.datacenter.name`, `vcenter.host.name`, `vcenter.vm.name`, `vcenter.vm.id` (+ `vcenter.cluster.name`; `vcenter.resource_pool.*` eller `vcenter.virtual_app.*`) |
 | VM-mal              | `vcenter.datacenter.name`, `vcenter.host.name`, `vcenter.vm_template.name`, `vcenter.vm_template.id`                           |
-| Datastore           | `vcenter.datacenter.name`, `vcenter.datastore.name`                                                                            |
+| Datalager           | `vcenter.datacenter.name`, `vcenter.datastore.name`                                                                            |
 | Ressurspool         | `vcenter.datacenter.name`, `vcenter.resource_pool.name`, `vcenter.resource_pool.inventory_path` (+ `vcenter.cluster.name` eller `vcenter.host.name`) |
 
 I monitorfiltre og grupperingsnøkler begynner ressursattributter med `resource.` (`resource.vcenter.host.name`), mens datapunktattributter ikke gjør det (`disk_state`, `power_state`, `status`, `effective`, `direction`, `object`, `type`). Det boolske attributtet `effective` lagres som teksten `"true"` eller `"false"`, så filtrer det med teksten. Filtrer på et identitetsattributt for å treffe ett objekt, og grupper etter det for å vurdere hvert objekt for seg.
@@ -117,15 +117,15 @@ Malene leser de siste 5 minuttene, med mindre tabellen sier noe annet. Et kriter
 | Host Disk Latency High | Vert | Warning | `vcenter.host.disk.latency.max`, Max per vert | Over 50 ms: hver VM med disker på den stien venter på lagring. Krever ytelsestellernivå 3 | Ved 45 ms eller mindre |
 | Host Network Packet Errors | Vert | Warning | `vcenter.host.network.packet.error.rate`, Max per vert | Over 0: nesten alltid en feil i kabel, SFP eller switchport | Ved 0 |
 | Host Network Packet Drops | Vert | Warning | `vcenter.host.network.packet.drop.rate`, Max per vert | Over 0: en overbooket uplink, eller ringbuffere i NIC-en som renner over | Ved 0 |
-| VM CPU Saturation | Virtual Machine | Warning | `vcenter.vm.cpu.utilization`, Avg per `resource.vcenter.vm.name`, **siste 15 minutter** | Over 90 % av VM-ens vCPU-er i alle 15 minuttene: en VM kan bruke det den har fått, så bare en som aldri går ned, tilkaller | Ved 81 % eller mindre |
-| VM CPU Ready Contention | Virtual Machine | Warning | `vcenter.vm.cpu.readiness`, Avg per VM | Over 10 %: VM-en var klar til å kjøre, men verten hadde ingen fysisk kjerne til den. Usynlig fra innsiden av gjesten | Ved 9 % eller mindre |
-| VM Memory Saturation | Virtual Machine | Warning | `vcenter.vm.memory.utilization`, Avg per VM | Over 90 % av minnet: gjesten er i ferd med å begynne å pagere | Ved 81 % eller mindre |
-| VM Memory Ballooning | Virtual Machine | Warning | `vcenter.vm.memory.ballooned`, Max per VM | Over 0: verten mangler minne og tar det tilbake fra denne gjesten | Ved 0 |
-| VM Memory Swapping | Virtual Machine | Kritisk | `vcenter.vm.memory.swapped`, Max per VM | Over 0: verten swapper VM-ens minne, siste utvei etter ballooning og komprimering | Ved 0 |
-| VM Disk Latency High | Virtual Machine | Warning | `vcenter.vm.disk.latency.max`, Max per VM | Over 50 ms: applikasjoner i gjesten får tidsavbrudd på I/O | Ved 45 ms eller mindre |
-| VM Disk Usage High | Virtual Machine | Warning | `vcenter.vm.disk.utilization`, Avg per VM | Over 90 % av den tildelte lagringen er brukt: en thin-provisjonert VM er i ferd med å kreve hele størrelsen sin | Ved 81 % eller mindre |
-| Datastore Capacity Warning | Datastore | Warning | `vcenter.datastore.disk.utilization`, Avg per `resource.vcenter.datastore.name` | Over 80 %: et tidlig varsel, siden thin-disker og snapshots raskt bruker resten | Ved 72 % eller mindre |
-| Datastore Capacity Critical | Datastore | Kritisk | `vcenter.datastore.disk.utilization`, Avg per datastore | Over 90 %: en full datastore setter hver VM med en disk på den på pause | Ved 81 % eller mindre |
+| VM CPU Saturation | Virtuell maskin | Warning | `vcenter.vm.cpu.utilization`, Avg per `resource.vcenter.vm.name`, **siste 15 minutter** | Over 90 % av VM-ens vCPU-er i alle 15 minuttene: en VM kan bruke det den har fått, så bare en som aldri går ned, tilkaller | Ved 81 % eller mindre |
+| VM CPU Ready Contention | Virtuell maskin | Warning | `vcenter.vm.cpu.readiness`, Avg per VM | Over 10 %: VM-en var klar til å kjøre, men verten hadde ingen fysisk kjerne til den. Usynlig fra innsiden av gjesten | Ved 9 % eller mindre |
+| VM Memory Saturation | Virtuell maskin | Warning | `vcenter.vm.memory.utilization`, Avg per VM | Over 90 % av minnet: gjesten er i ferd med å begynne å pagere | Ved 81 % eller mindre |
+| VM Memory Ballooning | Virtuell maskin | Warning | `vcenter.vm.memory.ballooned`, Max per VM | Over 0: verten mangler minne og tar det tilbake fra denne gjesten | Ved 0 |
+| VM Memory Swapping | Virtuell maskin | Kritisk | `vcenter.vm.memory.swapped`, Max per VM | Over 0: verten swapper VM-ens minne, siste utvei etter ballooning og komprimering | Ved 0 |
+| VM Disk Latency High | Virtuell maskin | Warning | `vcenter.vm.disk.latency.max`, Max per VM | Over 50 ms: applikasjoner i gjesten får tidsavbrudd på I/O | Ved 45 ms eller mindre |
+| VM Disk Usage High | Virtuell maskin | Warning | `vcenter.vm.disk.utilization`, Avg per VM | Over 90 % av den tildelte lagringen er brukt: en thin-provisjonert VM er i ferd med å kreve hele størrelsen sin | Ved 81 % eller mindre |
+| Datastore Capacity Warning | Datalager | Warning | `vcenter.datastore.disk.utilization`, Avg per `resource.vcenter.datastore.name` | Over 80 %: et tidlig varsel, siden thin-disker og snapshots raskt bruker resten | Ved 72 % eller mindre |
+| Datastore Capacity Critical | Datalager | Kritisk | `vcenter.datastore.disk.utilization`, Avg per datastore | Over 90 %: en full datastore setter hver VM med en disk på den på pause | Ved 81 % eller mindre |
 | Cluster Host Not Effective | Klynge | Kritisk | `vcenter.cluster.host.count` filtrert til `effective = false`, Max per `resource.vcenter.cluster.name` | Over 0: en vert er i vedlikeholdsmodus, frakoblet eller svarer ikke, så klyngen kjører med mindre kapasitet enn den er dimensjonert for | Ved 0 |
 | Datacenter Hosts Unhealthy | Datasenter | Kritisk | `vcenter.datacenter.host.count` filtrert til `status = red`, Max per `resource.vcenter.datacenter.name` | Over 0: en vert har en kritisk alarm, som en maskinvaresensor, en tapt lagringssti eller en feil i HA-agenten | Ved 0 |
 | Datacenter Hosts Degraded | Datasenter | Warning | `vcenter.datacenter.host.count` filtrert til `status = yellow`, Max per datasenter | Over 0: en vert har en advarselsalarm | Ved 0 |
@@ -260,7 +260,7 @@ Sendes bare for klynger med vSAN, vertene i dem og VM-ene på en vSAN-datastore.
 | `vcenter.vm.vsan.throughput`        | `By/s`            | VM-ens vSAN-gjennomstrømning, etter `direction`                                                                                                 |
 
 > [!NOTE]
-> En VMs strømtilstand er ikke en metrikk. Receiveren sender bare `vcenter.vm.cpu.*` for påslåtte VM-er, så OneUptime skiller **Powered on** fra **Powered off** ut fra om CPU-data kom i samme innsamling som VM-ens minne- og diskdata; vCenterets side **Virtuelle maskiner** viser resultatet. For å varsle om avslåtte verter eller om hvor mange VM-er som kjører, bruker du attributtet `power_state` på `vcenter.datacenter.host.count`, `vcenter.datacenter.vm.count` eller `vcenter.cluster.vm.count`.
+> En VMs strømtilstand er ikke en metrikk. Receiveren sender bare `vcenter.vm.cpu.*` for påslåtte VM-er, så OneUptime skiller **Powered on** fra **Slått av** ut fra om CPU-data kom i samme innsamling som VM-ens minne- og diskdata; vCenterets side **Virtuelle maskiner** viser resultatet. For å varsle om avslåtte verter eller om hvor mange VM-er som kjører, bruker du attributtet `power_state` på `vcenter.datacenter.host.count`, `vcenter.datacenter.vm.count` eller `vcenter.cluster.vm.count`.
 
 ## Overvåkingskriterier
 
@@ -271,10 +271,10 @@ Et kriterium sammenligner en av monitorens spørringer eller formler med en ters
 | **Metrikk** | Spørringen eller formelen som skal sjekkes, etter variabelnavnet. |
 | **Aggregering** | Hvordan verdiene i vinduet blir til ett svar: **Gjennomsnitt**, **Sum**, **Maximum Value**, **Minimum Value**, **All Values** (hver verdi må samsvare, i hele vinduet) eller **Any Value** (én er nok). |
 | **Betingelse** | **Større enn**, **Mindre enn**, **Større enn eller lik**, **Mindre enn eller lik** eller **Lik** — eller en anomalibetingelse: **Anomalously High**, **Anomalously Low** eller **Anomalous**. |
-| **Threshold** | Verdien det sammenlignes med. En enhetsliste står ved siden av når metrikken har en enhet. Vises ikke for anomalibetingelser. |
+| **Terskel** | Verdien det sammenlignes med. En enhetsliste står ved siden av når metrikken har en enhet. Vises ikke for anomalibetingelser. |
 | **Følsomhet** | Bare anomalibetingelser. **Lav** (4σ), **Middels** (3σ, standarden) eller **Høy** (2σ). |
 | **Grunnlinjevindu** | Bare anomalibetingelser. 14 dager (standarden), 28, 60 eller 90 dagers historikk. |
-| **Hvis ingen data** | Under **Flere felt**. Hva som skjer når vinduet ikke har noen prøver: **Ignore** (standarden), **Treat As Zero** eller **Trigger**. |
+| **Hvis ingen data** | Under **Flere felt**. Hva som skjer når vinduet ikke har noen prøver: **Ignore** (standarden), **Treat As Zero** eller **Utløser**. |
 
 Anomalibetingelser sammenligner hver verdi med den samme timen i uken i grunnlinjen. De blir værende i tilstanden "Learning", og sender ikke ut noe, til grunnlinjevinduet inneholder nok historikk.
 
@@ -296,7 +296,7 @@ En monitor du ikke bygger fra en mal, starter med to kriterier:
 | 2 | Check if _monitor name_ is online | En hvilken som helst verdi er over `0` | Markerer monitoren som **I drift**. |
 
 > [!IMPORTANT]
-> Stillhet samsvarer ikke med noen av kriteriene: et vCenter som slutter å sende data, lar monitoren stå slik den var. For å få beskjed når data uteblir, setter du **Hvis ingen data** til **Trigger** på et kriterium. Tid der OneUptime selv ikke mottok noe, teller aldri som manglende data: en sjekk der vinduet inneholder den tiden, venter i stedet, slik [Når OneUptime ikke mottar data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
+> Stillhet samsvarer ikke med noen av kriteriene: et vCenter som slutter å sende data, lar monitoren stå slik den var. For å få beskjed når data uteblir, setter du **Hvis ingen data** til **Utløser** på et kriterium. Tid der OneUptime selv ikke mottok noe, teller aldri som manglende data: en sjekk der vinduet inneholder den tiden, venter i stedet, slik [Når OneUptime ikke mottar data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
 
 ## Terraform
 

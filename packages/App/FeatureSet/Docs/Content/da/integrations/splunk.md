@@ -44,11 +44,11 @@ Vil du hellere godkende med en adgangskode, så spring dette trin over, og hav b
 
 ### Tilføj forbindelsen i OneUptime
 
-Åbn **Produkter → Security Events → Connections** (`/dashboard/{projectId}/security-events/connections`), klik på **Tilføj forbindelse**, vælg **Splunk Enterprise Security**, og klik på **Næste**. Udfyld indstillingerne i tabellen nedenfor, klik på **Næste**, og indsæt tokenet i **Authentication token** eller adgangskoden i **Adgangskode**.
+Åbn **Produkter → Security Events → Forbindelser** (`/dashboard/{projectId}/security-events/connections`), klik på **Tilføj forbindelse**, vælg **Splunk Enterprise Security**, og klik på **Næste**. Udfyld indstillingerne i tabellen nedenfor, klik på **Næste**, og indsæt tokenet i **Authentication token** eller adgangskoden i **Adgangskode**.
 
 ### Test den, før du gemmer
 
-Klik på **Test these settings** under **Test, før du gemmer**. Testen godkender og kører din søgning med værdierne i formularen og gemmer intet, så en forkert port eller en manglende rolle viser sig, før forbindelsen findes. Klik derefter på **Næste**, giv forbindelsen et **Navn**, og opret den.
+Klik på **Test disse indstillinger** under **Test, før du gemmer**. Testen godkender og kører din søgning med værdierne i formularen og gemmer intet, så en forkert port eller en manglende rolle viser sig, før forbindelsen findes. Klik derefter på **Næste**, giv forbindelsen et **Navn**, og opret den.
 :::
 
 | Indstilling | Hvad du skal angive |
@@ -59,9 +59,9 @@ Klik på **Test these settings** under **Test, før du gemmer**. Testen godkende
 | **Authentication token** | Tokenet fra første trin. Når et token er gemt, er det det, der bruges, og ikke brugernavnet eller adgangskoden. |
 | **Adgangskode** | Splunk-brugerens adgangskode, kun når der ikke bruges noget token. |
 
-**Authentication token** og **Adgangskode** krypteres, returneres aldrig af API'et og vises aldrig igen. Erstat dem med **Update credentials** på forbindelsen. For at skifte fra den ene godkendelse til den anden angiver du den nye dér og slår **Remove the stored Authentication token** eller **Remove the stored Password** til.
+**Authentication token** og **Adgangskode** krypteres, returneres aldrig af API'et og vises aldrig igen. Erstat dem med **Opdater legitimationsoplysninger** på forbindelsen. For at skifte fra den ene godkendelse til den anden angiver du den nye dér og slår **Remove the stored Authentication token** eller **Remove the stored Password** til.
 
-Trinnet **Polling** har også en valgfri **Beskrivelse**, **Poll Interval (Minutes)**, et heltal fra `1` til `1440`, der starter på `5`, og **Aktiveret**, som starter slået til.
+Trinnet **Hentning** har også en valgfri **Beskrivelse**, **Hentningsinterval (minutter)**, et heltal fra `1` til `1440`, der starter på `5`, og **Aktiveret**, som starter slået til.
 
 ## Hvad der importeres
 
@@ -101,14 +101,14 @@ POST {Splunk management URL}/services/search/v2/jobs/export
 - **Oprettelsestidspunktet er markøren.** Vinduet gælder `_time`, som for et notable event er, da korrelationssøgningen oprettede det, ikke da den fundne aktivitet fandt sted. En søgning, der kører hver time, daterer sine notable events til tidspunktet for sin kørsel, så ingen havner bag markøren.
 - **Den første poll ser 24 timer tilbage**, så en ny forbindelse straks viser sine nylige notable events.
 - **Hver senere poll starter 1 minut før den gemte markør**, så en række, der er oprettet på grænsen mellem to vinduer, aldrig går tabt.
-- **En poll læser højst 24 timer forbi markøren.** En forbindelse, hvis markør er kommet bagud, indhenter i en række vinduer på 24 timer, og dens **Health** viser **Catching up**.
+- **En poll læser højst 24 timer forbi markøren.** En forbindelse, hvis markør er kommet bagud, indhenter i en række vinduer på 24 timer, og dens **Sundhed** viser **Catching up**.
 - **Dubletter fjernes efter `event_id`**, eller Splunks egne `_bkt` og `_cd`, i projektet, så overlappet, et gentaget vindue og en import aldrig gemmer en række to gange.
 
 Et search head, der er ældre end 9.0.1, svarer `404` på anmodningen til `search/v2/jobs/export`. OneUptime sender den så til det forældede `search/jobs/export`, og kørslen siger det i en advarsel. Opgradér search headet: aktuelle versioner slår det endpoint fra.
 
 ### Når et vindue indeholder mere, end én poll kan læse
 
-En poll læser højst 10.000 rækker. Når et vindue indeholder flere, er kørslen **Partial** med en advarsel som:
+En poll læser højst 10.000 rækker. Når et vindue indeholder flere, er kørslen **Delvis** med en advarsel som:
 
 ```text
 Stopped after collecting 10000 records; the window holds more. Records are read oldest first, and the last one read was created at 2026-09-14T08:12:44.000Z, where the next poll can resume.
@@ -120,22 +120,22 @@ Når en kørsel slet ikke kan komme forbi den gemte markør, gør OneUptime i st
 
 1. **Indsnævr.** Den næste poll læser et vindue, der er halvt så langt, fra det samme startpunkt, og bliver ved med at halvere, indtil et vindue læses helt, ned til ét minut. Kørslens advarsel siger det: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **Voks igen.** Når et vindue er læst helt, er det næste igen dobbelt så langt, op til 24 timer.
-3. **Gå forbi et enkelt minut.** Hvis selv ét minut indeholder mere, end en poll kan læse, går pollingen forbi det, så nyere notable events bliver ved med at komme. Kørslen forbliver **Partial**, og **Seneste fejl** lyder `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importér det minut med **Import this time range** for at hente det, én kørsel kan læse.
+3. **Gå forbi et enkelt minut.** Hvis selv ét minut indeholder mere, end en poll kan læse, går pollingen forbi det, så nyere notable events bliver ved med at komme. Kørslen forbliver **Delvis**, og **Seneste fejl** lyder `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importér det minut med **Import this time range** for at hente det, én kørsel kan læse.
 
-En kørsel, der mislykkes helt, med en fejl fra Splunk, beholder markøren og vindueslængden, og den næste poll læser det samme vindue igen. Den eneste undtagelse er en anmodning, der fik timeout: markøren bliver, men det næste vindue er halvt så langt, fordi et vindue, der er for tungt til at blive besvaret i tide, ville få timeout ved hvert forsøg. At ændre **Poll Interval (Minutes)** ændrer intet af dette: det afgør, hvor ofte en poll starter, ikke hvor dens vindue begynder.
+En kørsel, der mislykkes helt, med en fejl fra Splunk, beholder markøren og vindueslængden, og den næste poll læser det samme vindue igen. Den eneste undtagelse er en anmodning, der fik timeout: markøren bliver, men det næste vindue er halvt så langt, fordi et vindue, der er for tungt til at blive besvaret i tide, ville få timeout ved hvert forsøg. At ændre **Hentningsinterval (minutter)** ændrer intet af dette: det afgør, hvor ofte en poll starter, ikke hvor dens vindue begynder.
 
 ### Kør, se forhåndsvisning og importér efter behov
 
-Klik på **Diagnostics** på en forbindelse for at se dens seneste kørsler og arbejde med den manuelt. Alle, der kan ændre forbindelsen, kan starte disse handlinger; alle, der kan se den, kan læse historikken.
+Klik på **Diagnosticering** på en forbindelse for at se dens seneste kørsler og arbejde med den manuelt. Alle, der kan ændre forbindelsen, kan starte disse handlinger; alle, der kan se den, kan læse historikken.
 
-- **Run now** starter straks en poll med den sædvanlige markør, også når forbindelsen ikke er **Aktiveret**.
+- **Kør nu** starter straks en poll med den sædvanlige markør, også når forbindelsen ikke er **Aktiveret**.
 - **Preview notable events** læser et tidsinterval på op til 7 dage og importerer intet.
 - **Import this time range** importerer et interval på op til 7 dage, efter at du har bekræftet, uden at flytte markøren. Rækker, der allerede er importeret, springes over.
 - **Copy diagnostics** på en kørsel kopierer dens rapport til support. Den indeholder aldrig legitimationsoplysninger.
 
 ## Test forbindelse
 
-**Test forbindelse** på en forbindelses række og **Test these settings** i formularen kører i API-processen, ikke i en baggrundsworker, så en test også svarer, når det er workerne, der er problemet. Den kører disse kontroller i rækkefølge:
+**Test forbindelse** på en forbindelses række og **Test disse indstillinger** i formularen kører i API-processen, ikke i en baggrundsworker, så en test også svarer, når det er workerne, der er problemet. Den kører disse kontroller i rækkefølge:
 
 | Kontrol | Hvad den kontrollerer |
 | --- | --- |
@@ -159,7 +159,7 @@ OneUptime kan også sende det, den finder, til Splunk gennem dens HTTP Event Col
 
 ### Tilføj destinationen
 
-Åbn **Produkter → Security Events → Connections**. Klik på **Tilføj destination** under **Send til dit SIEM**, vælg Splunk under **SIEM**, og klik på **Næste**. Udfyld **HEC-URL**, og indsæt tokenet i **HEC-token**. **Index** og **Kildetype** er valgfrie: står de tomme, går hændelserne til tokenets standardindeks med sourcetypen `oneuptime:security`.
+Åbn **Produkter → Security Events → Forbindelser**. Klik på **Tilføj destination** under **Send til dit SIEM**, vælg Splunk under **SIEM**, og klik på **Næste**. Udfyld **HEC-URL**, og indsæt tokenet i **HEC-token**. **Indeks** og **Kildetype** er valgfrie: står de tomme, går hændelserne til tokenets standardindeks med sourcetypen `oneuptime:security`.
 
 ### Send en testhændelse, og begynd at sende
 
@@ -176,7 +176,7 @@ Forbindelsens **Seneste fejl** gemmer hele fejlmeddelelsen, med legitimationsopl
 
 :::details Last Error starter med `Splunk Enterprise Security authentication request`
 - `Splunk Enterprise Security authentication request failed (HTTP ...)`: Splunk nægtede at sige, hvem kalderen er.
-  - `HTTP 401`: Splunk accepterede ikke legitimationsoplysningerne. Tokenet er forkert, udløbet eller slettet, tokengodkendelse er slået fra på search headet, eller brugernavnet eller adgangskoden er forkert. Opret et nyt token, og gem det med **Update credentials**.
+  - `HTTP 401`: Splunk accepterede ikke legitimationsoplysningerne. Tokenet er forkert, udløbet eller slettet, tokengodkendelse er slået fra på search headet, eller brugernavnet eller adgangskoden er forkert. Opret et nyt token, og gem det med **Opdater legitimationsoplysninger**.
   - `HTTP 404`: **Splunk management URL** er ikke REST API'et. Den peger på Splunk Web på port `8000`, eller den har en sti, som search headet ikke udstiller.
 - `Splunk Enterprise Security authentication request returned ...`: noget andet end search headets REST API svarede, for eksempel HTML'en fra Splunk Web på port `8000` eller en proxys side. Peg URL'en på administrationsporten.
 :::
@@ -201,8 +201,8 @@ Ingen poll er blevet færdig for denne forbindelse. Kør **Test forbindelse**: d
 :::
 
 :::details En kørsel er Partial
-- `Stopped after collecting 10000 records; the window holds more`: vinduet indeholdt mere end de 10.000 rækker, én kørsel læser. Intet går tabt: den næste poll starter efter den sidst læste række. En forbindelse, der forbliver **Partial** poll efter poll, er ved at indhente et efterslæb, og dens **Last Polled** og **Last Event Imported** bliver ved med at rykke frem. Hvis den aldrig indhenter, finder søgningen i **Søg** mere end 10.000 rækker pr. pollinterval: indsnævr den, eller gør **Poll Interval (Minutes)** kortere.
-- `More records were created in the one minute from ... than one poll can read`: pollingen gik forbi det minut. Importér det med **Import this time range** i **Diagnostics**. En import læser lige så meget som en poll.
+- `Stopped after collecting 10000 records; the window holds more`: vinduet indeholdt mere end de 10.000 rækker, én kørsel læser. Intet går tabt: den næste poll starter efter den sidst læste række. En forbindelse, der forbliver **Delvis** poll efter poll, er ved at indhente et efterslæb, og dens **Senest hentet** og **Seneste importerede hændelse** bliver ved med at rykke frem. Hvis den aldrig indhenter, finder søgningen i **Søg** mere end 10.000 rækker pr. pollinterval: indsnævr den, eller gør **Hentningsinterval (minutter)** kortere.
+- `More records were created in the one minute from ... than one poll can read`: pollingen gik forbi det minut. Importér det med **Import this time range** i **Diagnosticering**. En import læser lige så meget som en poll.
 :::
 
 :::details Testen lykkes, men intet importeres

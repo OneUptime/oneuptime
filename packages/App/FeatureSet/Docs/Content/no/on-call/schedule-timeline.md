@@ -23,7 +23,7 @@ flowchart TB
 - **Vakttjeneste** > **Tidslinje for vaktplaner** viser alle vaktplanene du kan se, gruppert etter teamet som eier dem. Knappen **Tidslinjevisning** på **Vaktplaner** åpner den samme siden.
 - **Team** > et team > **Vaktplaner** viser bare vaktplanene teamet eier.
 
-Et team eier en vaktplan når det står på vaktplanens side **Eiere**. Vaktplaner uten et eierteam grupperes under **No owner team**. Slå av **Group by team** for å se alle vaktplanene i én liste, sortert etter navn.
+Et team eier en vaktplan når det står på vaktplanens side **Eiere**. Vaktplaner uten et eierteam grupperes under **Ingen eierteam**. Slå av **Grupper etter team** for å se alle vaktplanene i én liste, sortert etter navn.
 
 ## Les rutenettet
 
@@ -34,16 +34,16 @@ Et team eier en vaktplan når det står på vaktplanens side **Eiere**. Vaktplan
 | En stolpe merket **⇄** | En overstyring: noen dekker en vakt. Den smale banen under den nevner personen hvis vakt dekkes, gjennomstreket. |
 | En skravert gul blokk | Et hull i dekningen: ingen har vakt. Et varsel som eskalerer til den vaktplanen, varsler da ingen. |
 | Den røde streken | Nå. |
-| Linjen under navnet på en vaktplan | Hvem som har vakt nå, eller **No one on call now**. |
+| Linjen under navnet på en vaktplan | Hvem som har vakt nå, eller **Ingen på vakt nå**. |
 
 Hold pekeren over en stolpe eller et hull, eller gå til den med tastaturet, for å se detaljene.
 
-Under rutenettet viser **On call this week** (**On call this month** i månedsvisningen) alle som har vakt i perioden. Hold pekeren over et navn for å se hvor lenge personen har vakt, og i hvor mange vaktplaner.
+Under rutenettet viser **På vakt denne uken** (**På vakt denne måneden** i månedsvisningen) alle som har vakt i perioden. Hold pekeren over et navn for å se hvor lenge personen har vakt, og i hvor mange vaktplaner.
 
 ## Endre periode og tidssone
 
 - Bytt mellom **Uke** og **Måned**, bla med pilene, og gå tilbake med **I dag**.
-- Tidene vises i din egen tidssone. Tidssoneknappen åpner **View timeline in timezone**, som viser tidslinjen i en hvilken som helst annen sone uten å endre når noen har vakt: hver vaktplan overleverer fortsatt i sin egen tidssone.
+- Tidene vises i din egen tidssone. Tidssoneknappen åpner **Vis tidslinjen i tidssone**, som viser tidslinjen i en hvilken som helst annen sone uten å endre når noen har vakt: hver vaktplan overleverer fortsatt i sin egen tidssone.
 - Tidslinjen dekker 180 dager bakover og 365 dager fremover.
 
 > [!NOTE]
@@ -52,9 +52,9 @@ Under rutenettet viser **On call this week** (**On call this month** i månedsvi
 ## Finn en vaktplan eller en person
 
 - **Søk** finner navn på vaktplaner, navn på team og personene som har vakt.
-- Teamfilteret snevrer visningen inn til ett team eller til **My teams**; **Schedules I'm on** beholder bare vaktplanene du er en del av.
-- Klikk på **with no one on call now** eller **with coverage gaps this week** (**with coverage gaps this month** i månedsvisningen) over rutenettet for å se bare de vaktplanene. Klikk igjen for å se alle.
-- Klikk på en person under rutenettet, eller på en av personens stolper, for å utheve alle vaktene til personen. **Clear highlight** opphever det, og **Clear filters** tilbakestiller søket og filtrene.
+- Teamfilteret snevrer visningen inn til ett team eller til **Mine team**; **Tidsplaner jeg er med i** beholder bare vaktplanene du er en del av.
+- Klikk på **uten noen på vakt nå** eller **med hull i dekningen denne uken** (**med hull i dekningen denne måneden** i månedsvisningen) over rutenettet for å se bare de vaktplanene. Klikk igjen for å se alle.
+- Klikk på en person under rutenettet, eller på en av personens stolper, for å utheve alle vaktene til personen. **Fjern utheving** opphever det, og **Fjern filtre** tilbakestiller søket og filtrene.
 
 ## Hvem som ser hva
 

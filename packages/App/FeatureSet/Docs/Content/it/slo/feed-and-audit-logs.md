@@ -23,7 +23,7 @@ flowchart LR
 
 ## Il feed dello SLO
 
-Il feed si trova nella pagina **Feed** dello SLO, e i suoi ultimi elementi in **Recent activity** nella **Panoramica** dello SLO. Gli elementi rimandano allo SLO, ai monitor, agli avvisi e agli incidenti che citano, e la maggior parte ha dettagli con i numeri o i valori vecchi e nuovi, che **Mostra dettagli** apre sotto l'elemento.
+Il feed si trova nella pagina **Feed** dello SLO, e i suoi ultimi elementi in **Attività recente** nella **Panoramica** dello SLO. Gli elementi rimandano allo SLO, ai monitor, agli avvisi e agli incidenti che citano, e la maggior parte ha dettagli con i numeri o i valori vecchi e nuovi, che **Mostra dettagli** apre sotto l'elemento.
 
 | Evento | Pubblicato quando |
 | --- | --- |
@@ -31,7 +31,7 @@ Il feed si trova nella pagina **Feed** dello SLO, e i suoi ultimi elementi in **
 | SLO aggiornato | Cambiano il nome, la descrizione, le etichette, l'obiettivo, la finestra di conformità, il fuso orario, la soglia a rischio, la modalità multi-monitor o gli stati di inattività. Mostra ogni valore vecchio e nuovo. |
 | SLO abilitato o disabilitato | La valutazione viene attivata o disattivata. |
 | SLO archiviato o ripristinato | Lo SLO viene archiviato o tolto dall'archivio. |
-| Stato cambiato | Una valutazione porta lo SLO a un nuovo stato. Mostra lo SLI, il budget di errore, il tasso di consumo e la soglia a rischio che lo spiegano, e il motivo per **In pausa** o **Misconfigured**. |
+| Stato cambiato | Una valutazione porta lo SLO a un nuovo stato. Mostra lo SLI, il budget di errore, il tasso di consumo e la soglia a rischio che lo spiegano, e il motivo per **In pausa** o **Configurato male**. |
 | Avviso di tasso di consumo generato | Una regola del tasso di consumo crea un avviso. Rimanda all'avviso e mostra i tassi di consumo che l'hanno fatto scattare. |
 | Incidente di tasso di consumo dichiarato | Una regola del tasso di consumo dichiara un incidente. Rimanda all'incidente e mostra i tassi di consumo che l'hanno fatto scattare. |
 | Avviso o incidente di tasso di consumo risolto | L'avviso o l'incidente di una regola si chiude: risolto automaticamente, o a mano mentre la risoluzione automatica era disattivata. |

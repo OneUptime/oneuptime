@@ -39,7 +39,7 @@ Gjør `device.id` til en ID per installasjon, aldri en annonse-ID eller noe anne
 ## Før du begynner
 
 - En app med et OpenTelemetry-SDK: OpenTelemetry Java SDK eller OpenTelemetry Android, opentelemetry-swift, eller OpenTelemetry JavaScript SDK for React Native.
-- En **Server**-inntaksnøkkel, opprettet under **Prosjektinnstillinger → Telemetri og APM → Inntaksnøkler** med **Opprett ingestion-nøkkel**. En **Browser**-nøkkel avvises fra en mobilapp: Den kontrolleres mot headeren `Origin`, som mobil-SDK-er ikke sender.
+- En **Server**-inntaksnøkkel, opprettet under **Prosjektinnstillinger → Telemetri og APM → Inntaksnøkler** med **Opprett ingestion-nøkkel**. En **Nettleser**-nøkkel avvises fra en mobilapp: Den kontrolleres mot headeren `Origin`, som mobil-SDK-er ikke sender.
 - Disse OTLP-innstillingene. Hvis du drifter OneUptime selv, bytter du ut `https://oneuptime.com` med din egen vert.
 
 | Innstilling | Verdi |
@@ -51,7 +51,7 @@ Gjør `device.id` til en ID per installasjon, aldri en annonse-ID eller noe anne
 | Logger | `POST https://oneuptime.com/otlp/v1/logs` |
 
 > [!WARNING]
-> Nøkkelen følger med i appen din, og en app kan pakkes ut, så gå ut fra at noen kopierer den. Sett et **Pinned Service Name** på nøkkelens side, slik at en kopi ikke kan skrive under navnene på backend-tjenestene dine, legg til en **Requests Per Minute Limit** og en dato under **Utløper**, og bytt nøkkelen med utgivelsene dine.
+> Nøkkelen følger med i appen din, og en app kan pakkes ut, så gå ut fra at noen kopierer den. Sett et **Festet tjenestenavn** på nøkkelens side, slik at en kopi ikke kan skrive under navnene på backend-tjenestene dine, legg til en **Requests Per Minute Limit** og en dato under **Utløper**, og bytt nøkkelen med utgivelsene dine.
 
 ## Sett opp plattformen din
 
@@ -193,9 +193,9 @@ Kjør appen og bruk den et øyeblikk. Den vises under **Produkter → Ressurser 
 
 ## Session Replay på mobil
 
-React Native-apper kan ta opp økter med `@oneuptime/react-native-replay`. Det tar opp det native visningstreet som en trådramme, aldri skjermbilder eller teksten på skjermen, og opptakene åpnes i den samme avspilleren som opptak fra nettet. Det sender med en **Browser**-nøkkel der **Allowed Origins** lister appen din som `app://` etterfulgt av Android-applikasjons-ID-en eller iOS-bundle-ID-en: en annen nøkkel enn Server-nøkkelen OpenTelemetry-SDK-et ditt bruker. [Installere i React Native](/docs/telemetry/session-replay#installasjon-i-react-native) viser deg hvordan.
+React Native-apper kan ta opp økter med `@oneuptime/react-native-replay`. Det tar opp det native visningstreet som en trådramme, aldri skjermbilder eller teksten på skjermen, og opptakene åpnes i den samme avspilleren som opptak fra nettet. Det sender med en **Nettleser**-nøkkel der **Tillatte opprinnelser** lister appen din som `app://` etterfulgt av Android-applikasjons-ID-en eller iOS-bundle-ID-en: en annen nøkkel enn Server-nøkkelen OpenTelemetry-SDK-et ditt bruker. [Installere i React Native](/docs/telemetry/session-replay#installasjon-i-react-native) viser deg hvordan.
 
-Native Android- og iOS-apper og de andre plattformene har ingen øktopptaker: Siden **Session Replay** forblir tom, mens spor, logger, målinger, unntak og siden **Klienter** virker som vanlig.
+Native Android- og iOS-apper og de andre plattformene har ingen øktopptaker: Siden **Øktavspilling** forblir tom, mens spor, logger, målinger, unntak og siden **Klienter** virker som vanlig.
 
 ## Feilsøking
 

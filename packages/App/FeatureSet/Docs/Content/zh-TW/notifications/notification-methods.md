@@ -169,7 +169,7 @@ Webhook 不需要驗證，因此新增後會立即新增其規則。私有地址
 
 **SMS**、 **語音電話**、 **WhatsApp** 和 **Telegram** 在每個新專案中預設關閉，因為每則訊息都要花錢：在 OneUptime Cloud 上，費用從專案餘額中支付；如果專案的預設 Twilio 帳戶用於傳送簡訊和電話，它們會改為透過專案自己的 Twilio 帳戶傳送。郵件、推播、Slack、Microsoft Teams 和 Webhook 一律開啟。
 
-管道關閉期間，專案中的任何人都無法在該管道上新增通知方式：它的卡片上沒有新增按鈕，並會說明誰可以開啟它。由專案擁有者、 **Billing Admin** 或擁有 **Manage Billing** 權限的人在 **專案設定 → 通知 → 通知設定** 的 **通知管道** 卡片中開啟。專案管理員無法開啟。在自架的 OneUptime 上，簡訊和電話還需要 Twilio 帳戶，Telegram 還需要伺服器管理員連接的機器人；請參閱 [Twilio 整合](/docs/self-hosted/twilio-integration)。
+管道關閉期間，專案中的任何人都無法在該管道上新增通知方式：它的卡片上沒有新增按鈕，並會說明誰可以開啟它。由專案擁有者、 **帳單管理員** 或擁有 **Manage Billing** 權限的人在 **專案設定 → 通知 → 通知設定** 的 **通知管道** 卡片中開啟。專案管理員無法開啟。在自架的 OneUptime 上，簡訊和電話還需要 Twilio 帳戶，Telegram 還需要伺服器管理員連接的機器人；請參閱 [Twilio 整合](/docs/self-hosted/twilio-integration)。
 
 ## 刪除通知方式
 

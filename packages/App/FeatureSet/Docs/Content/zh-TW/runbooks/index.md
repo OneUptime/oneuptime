@@ -45,7 +45,7 @@ HTTP 和 AI 步驟在 OneUptime Worker 上執行。Bash、SSH 和 kubectl 步驟
 | **Runbook** | 範本。一個具名、可重複使用的程序，包含有序的步驟清單和 **執行此操作手冊** 開關。 |
 | **步驟** | Runbook 中的一個項目。它有類型（Manual、JavaScript、HTTP request、Bash、SSH、kubectl 或 AI）、標題、描述以及與類型相關的設定。 |
 | **Runbook 規則** | 一條規則，會自動將一個或多個 Runbook 關聯到符合其條件（監測器、嚴重性、標籤、監測器標籤、標題或描述）的事件、警示或排定維護事件。 |
-| **執行** | Runbook 的一次執行。在規則觸發、有人在事件上點選 **執行操作手冊** ，或在 Runbook 本身點選 **Run Now** 時建立。它保存步驟的快照，以及每個步驟的狀態和輸出。 |
+| **執行** | Runbook 的一次執行。在規則觸發、有人在事件上點選 **執行操作手冊** ，或在 Runbook 本身點選 **立即執行** 時建立。它保存步驟的快照，以及每個步驟的狀態和輸出。 |
 | **快照** | 保存在每次執行中的 Runbook 步驟凍結副本。之後編輯 Runbook 不會改寫過去執行的歷史。 |
 | **Runner** | 您在自己基礎架構中的主機上執行的小型代理程式。它會執行指定它的 JavaScript、Bash、SSH 和 kubectl 步驟。也稱為 Runbook 代理程式。 全域 Runner 是 OneUptime 為所有專案執行的 Runner，除非專案有預設 Runner，它會執行未指定任何 Runner 的 JavaScript 步驟。 |
 | **變數** | 步驟透過名稱使用的值，例如主機或 URL：`{{global.variables.NAME}}` 表示專案的變數，每個 Runbook 都可以使用；`{{local.variables.NAME}}` 表示 Runbook 自己的變數。 |
@@ -73,7 +73,7 @@ HTTP 和 AI 步驟在 OneUptime Worker 上執行。Bash、SSH 和 kubectl 步驟
 | --- | --- | --- |
 | Runbook 規則 | **事件** 、 **警示** 或 **排定維護** → **規則** → **Runbook 規則** | 新的事件、警示或排定維護事件 |
 | **執行操作手冊** | 事件、警示或排定維護事件的 **運行手冊** 頁面 | 該事件、警示或排定維護事件 |
-| **Run Now** | Runbook 的 **概覽** 頁面 | 無：一次臨時執行 |
+| **立即執行** | Runbook 的 **概覽** 頁面 | 無：一次臨時執行 |
 | AI 規則 | 請參閱 [AI SRE](/docs/ai/ai-sre) | 事件或警示 |
 | Runbook 的排程 | Runbook 的 **觸發器** 頁面，請參閱 [Runbook 觸發器](/docs/runbooks/triggers#依排程執行) | 無：一次無人看管的執行 |
 | 對 Runbook Webhook URL 的呼叫 | Runbook 的 **觸發器** 頁面，請參閱 [Runbook 觸發器](/docs/runbooks/triggers#呼叫-webhook) | 無：執行會保留呼叫傳送的值 |
@@ -87,8 +87,8 @@ Runbook 位於 **產品** 下的 **儀表板與自動化** 群組中。
 | 頁面 | 在這裡做什麼 |
 | --- | --- |
 | **產品 → 運行手冊** | 瀏覽、建立和開啟 Runbook。 |
-| Runbook 的 **步驟** | 撰寫步驟並調整順序，然後選擇 **Save Steps** 。 |
-| Runbook 的 **概覽** | 查看最近的執行和結果，並點選 **Run Now** 。 |
+| Runbook 的 **步驟** | 撰寫步驟並調整順序，然後選擇 **儲存步驟** 。 |
+| Runbook 的 **概覽** | 查看最近的執行和結果，並點選 **立即執行** 。 |
 | Runbook 的 **執行次數** | 該 Runbook 的所有執行，可依狀態或開始日期篩選。 |
 | Runbook 的 **觸發器** | 依[排程](/docs/runbooks/triggers#依排程執行)執行，或從其他工具透過其 [Webhook URL](/docs/runbooks/triggers#呼叫-webhook) 執行。 |
 | Runbook 的 **變數** | 管理只有該 Runbook 的步驟使用的 [變數](/docs/runbooks/variables)。 |
@@ -118,7 +118,7 @@ Runbook 自己的側邊選單依下列方式組織頁面。預設只展開**基�
 :::steps
 ### 建立 Runbook
 
-在 **運行手冊** 中點選 **建立操作手冊** ，將其命名為「DB primary failover」。它會在 **步驟** 開啟：新增以下步驟，然後點選 **Save Steps** ：
+在 **運行手冊** 中點選 **建立操作手冊** ，將其命名為「DB primary failover」。它會在 **步驟** 開啟：新增以下步驟，然後點選 **儲存步驟** ：
 
 | # | 類型 | 標題 |
 | --- | --- | --- |

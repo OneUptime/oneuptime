@@ -584,7 +584,7 @@ flowchart TB
 
 **值班规则**、**所有者规则**、**标签规则** 和 **隐私规则** 页面带有选项卡——一个 **Incident Rules** 选项卡和一个 **Episode Rules** 选项卡，各有自己的表格。除非你特别针对片段，否则请配置 **Incident Rules** 选项卡。**分组规则**、**Runbook 规则**、**AI 规则**、**SLA 规则** 和 **Reminder Rules** 都是单个表格。
 
-所有者、标签和隐私规则只作用于规则存在之后创建的事件和片段。要把其中某条规则应用到已经存在的事件上，请在规则所在行、规则自己的页面或表格的批量操作中使用 **Run Now**——参见 [对现有资源运行规则](/docs/configuration/run-rules-now)。值班、Runbook、AI、分组、SLA 和提醒规则不能针对现有事件运行。
+所有者、标签和隐私规则只作用于规则存在之后创建的事件和片段。要把其中某条规则应用到已经存在的事件上，请在规则所在行、规则自己的页面或表格的批量操作中使用 **立即运行**——参见 [对现有资源运行规则](/docs/configuration/run-rules-now)。值班、Runbook、AI、分组、SLA 和提醒规则不能针对现有事件运行。
 
 **新规则以开启状态开始。** 创建规则时不会询问是否启用：它以启用状态开始，与通过 API 或 Terraform 创建的规则完全一样，表单上的其他每个开关也都按 API 会存储的方式开始——例如所有者规则上的 **通知所有者** 是开启的。要暂停一条规则而不删除它，请在其编辑表单上关闭 **已启用**；列表会为每条规则显示绿色的 **已启用** 或红色的 **已禁用** 徽章。分组规则是例外：它们的创建表单会显示已经开启的 **已启用** 开关。
 
@@ -662,7 +662,7 @@ flowchart TB
 
 ## 用工作流驱动事件
 
-事件的工作流触发器不是手写的——OneUptime 从数据模型生成它们，所以事件家族中的每个模型都会获得以模型单数名称命名的 **On Create X**、**On Update X**、**On Create or Update X** 和 **On Delete X** 组件。最主要的是 **On Create Incident**、**On Update Incident**、**On Create or Update Incident** 和 **On Delete Incident**。你可以在 `/dashboard/{projectId}/workflows` 的 **Add Trigger** 面板中，在 **OneUptime resources** → **Incident** 下找到它们；前两个也位于 **Popular** 下。
+事件的工作流触发器不是手写的——OneUptime 从数据模型生成它们，所以事件家族中的每个模型都会获得以模型单数名称命名的 **On Create X**、**On Update X**、**On Create or Update X** 和 **On Delete X** 组件。最主要的是 **On Create Incident**、**On Update Incident**、**On Create or Update Incident** 和 **On Delete Incident**。你可以在 `/dashboard/{projectId}/workflows` 的 **Add Trigger** 面板中，在 **OneUptime 资源** → **Incident** 下找到它们；前两个也位于 **热门** 下。
 
 同样的生成机制还为配置本身提供了触发器：**On Create Incident State**、**On Update Incident Severity**、**On Create Incident Template**、**On Create Incident Note Template**、**On Create Incident State Timeline**、**On Create Incident Public Note**、**On Create Incident Internal Note**、**On Create Incident On-Call Rule**、**On Create Incident Role**、**On Create Incident Member** 等。每个模型还会获得对应的操作组件——**Find One Incident**、**Create One Incident**、**Update One Incident**、**Delete One Incident** 及其多行版本——所以名称相似的触发器和操作会并排出现在同一个类别中。**On Create Incident** 启动工作流；**Create One Incident** 创建一个事件。
 

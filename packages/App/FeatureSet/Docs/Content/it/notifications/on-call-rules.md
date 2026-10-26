@@ -24,7 +24,7 @@ flowchart TB
     ack["Riconoscete"] -.->|"ferma il resto"| third
 ```
 
-La maggior parte dei messaggi può riconoscere la chiamata: e-mail, SMS e messaggi WhatsApp, Telegram, Slack e Microsoft Teams contengono un link per riconoscerla, e una telefonata vi chiede di premere 1. Se non potete gestire una chiamata, gli stessi messaggi vi permettono di escalarla, e una telefonata vi chiede di premere 2: la policy avvisa subito il livello successivo, e non venite più avvisati al riguardo. Vedi [Escalare un avviso](/docs/on-call/escalation-rules#escalare-un-avviso). Ogni chiamata ricevuta compare in **Impostazioni utente → Registri di reperibilità**, dove **View Timeline** mostra ogni messaggio inviato e se è stato consegnato.
+La maggior parte dei messaggi può riconoscere la chiamata: e-mail, SMS e messaggi WhatsApp, Telegram, Slack e Microsoft Teams contengono un link per riconoscerla, e una telefonata vi chiede di premere 1. Se non potete gestire una chiamata, gli stessi messaggi vi permettono di escalarla, e una telefonata vi chiede di premere 2: la policy avvisa subito il livello successivo, e non venite più avvisati al riguardo. Vedi [Escalare un avviso](/docs/on-call/escalation-rules#escalare-un-avviso). Ogni chiamata ricevuta compare in **Impostazioni utente → Registri di reperibilità**, dove **Visualizza cronologia** mostra ogni messaggio inviato e se è stato consegnato.
 
 ## Le quattro schede
 

@@ -90,7 +90,7 @@ Dai all'app le autorizzazioni applicative `AiEnterpriseInteraction.Read.All` e `
 
 ### Collega Copilot
 
-Compila **ID directory (tenant)**, **ID applicazione (client)** e **Client secret**. Per leggere solo alcune persone, metti l'ID oggetto di un gruppo in **Solo le persone di questo gruppo**, in **Altri campi**, e dai all'app anche `GroupMember.Read.All`. Per Azure Government, cambia lì **Cloud**.
+Compila **ID directory (tenant)**, **ID applicazione (client)** e **Segreto client**. Per leggere solo alcune persone, metti l'ID oggetto di un gruppo in **Solo le persone di questo gruppo**, in **Altri campi**, e dai all'app anche `GroupMember.Read.All`. Per Azure Government, cambia lì **Cloud**.
 :::
 
 ## Privacy

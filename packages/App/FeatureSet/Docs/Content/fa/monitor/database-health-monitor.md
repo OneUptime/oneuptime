@@ -225,9 +225,9 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 
 | گروه | چه گردآوری می‌کند | نیاز دارد |
 |---|---|---|
-| Connections | شمار اتصال‌ها، سقف پیکربندی‌شده، اتصال‌های نیمه‌کاره‌مانده، زمان کارکرد سرور | PostgreSQL: `pg_monitor`. MySQL: `performance_schema`. SQL Server: `VIEW SERVER STATE` |
+| اتصال‌ها | شمار اتصال‌ها، سقف پیکربندی‌شده، اتصال‌های نیمه‌کاره‌مانده، زمان کارکرد سرور | PostgreSQL: `pg_monitor`. MySQL: `performance_schema`. SQL Server: `VIEW SERVER STATE` |
 | Activity | طولانی‌ترین کوئری در حال اجرا، طولانی‌ترین تراکنش باز، تراکنش‌های باز | PostgreSQL: `pg_monitor`. MySQL: `PROCESS`. SQL Server: `VIEW SERVER STATE` |
-| Throughput | تراکنش‌ها، کوئری‌ها، نسبت برخورد حافظهٔ نهان، خواندن و نوشتن دیسک، زمان I/O | PostgreSQL: چیزی جز `CONNECT` لازم نیست. MySQL: `performance_schema`. SQL Server: `VIEW SERVER STATE` |
+| توان عملیاتی | تراکنش‌ها، کوئری‌ها، نسبت برخورد حافظهٔ نهان، خواندن و نوشتن دیسک، زمان I/O | PostgreSQL: چیزی جز `CONNECT` لازم نیست. MySQL: `performance_schema`. SQL Server: `VIEW SERVER STATE` |
 | Locks | نشست‌های مسدودشده، انتظار برای قفل، بن‌بست‌ها، انتظار برای قفل جدول | PostgreSQL: `pg_monitor`. MySQL: `performance_schema`. SQL Server: `VIEW SERVER STATE` |
 | Storage | اندازهٔ پایگاه داده، سرریز به فایل‌های موقت، فضای لاگ، فضای آزاد tempdb | PostgreSQL: چیزی جز `CONNECT` لازم نیست. MySQL: `SELECT` روی پایگاه داده. SQL Server: برای اندازهٔ پایگاه داده چیزی لازم نیست؛ برای فضای لاگ و فضای آزاد tempdb `VIEW SERVER STATE` |
 | Replication | رونوشت‌های متصل، تأخیر تکثیر بر حسب ثانیه و بایت، اسلات‌های غیرفعال، وضعیت بازیابی | PostgreSQL: `pg_monitor`. MySQL: `REPLICATION CLIENT`. SQL Server: `VIEW SERVER STATE`؛ در Azure SQL Database گردآوری نمی‌شود |
@@ -274,28 +274,28 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 
 | متریک | سری | Group | Engines |
 |---|---|---|---|
-| **Uptime** (s) | `oneuptime.monitor.database.uptime.seconds` | Connections | PostgreSQL, MySQL, SQL Server |
-| **Metric Groups Failed** | `oneuptime.monitor.database.metric.groups.failed` | Connections | PostgreSQL, MySQL, SQL Server |
+| **Uptime** (s) | `oneuptime.monitor.database.uptime.seconds` | اتصال‌ها | PostgreSQL, MySQL, SQL Server |
+| **Metric Groups Failed** | `oneuptime.monitor.database.metric.groups.failed` | اتصال‌ها | PostgreSQL, MySQL, SQL Server |
 
 ### اتصال‌ها
 
 | متریک | سری | Group | Engines |
 |---|---|---|---|
-| **Connections** | `oneuptime.monitor.database.connections.total` | Connections | PostgreSQL, MySQL, SQL Server |
-| **Active Connections** | `oneuptime.monitor.database.connections.active` | Connections | PostgreSQL, MySQL, SQL Server |
-| **Maximum Connections** | `oneuptime.monitor.database.connections.max` | Connections | PostgreSQL, MySQL |
-| **Connections Used** (%) | `oneuptime.monitor.database.connections.used.percent` | Connections | PostgreSQL, MySQL |
-| **Idle In Transaction** | `oneuptime.monitor.database.connections.idle.in.transaction` | Connections | PostgreSQL |
-| **Aborted Connects** | `oneuptime.monitor.database.connections.aborted.total` | Connections | MySQL |
+| **Connections** | `oneuptime.monitor.database.connections.total` | اتصال‌ها | PostgreSQL, MySQL, SQL Server |
+| **Active Connections** | `oneuptime.monitor.database.connections.active` | اتصال‌ها | PostgreSQL, MySQL, SQL Server |
+| **Maximum Connections** | `oneuptime.monitor.database.connections.max` | اتصال‌ها | PostgreSQL, MySQL |
+| **Connections Used** (%) | `oneuptime.monitor.database.connections.used.percent` | اتصال‌ها | PostgreSQL, MySQL |
+| **Idle In Transaction** | `oneuptime.monitor.database.connections.idle.in.transaction` | اتصال‌ها | PostgreSQL |
+| **Aborted Connects** | `oneuptime.monitor.database.connections.aborted.total` | اتصال‌ها | MySQL |
 
 ### توان عملیاتی
 
 | متریک | سری | Group | Engines |
 |---|---|---|---|
-| **Transactions** | `oneuptime.monitor.database.transactions.total` | Throughput | PostgreSQL, SQL Server |
-| **Queries** | `oneuptime.monitor.database.queries.total` | Throughput | MySQL, SQL Server |
-| **Slow Queries** | `oneuptime.monitor.database.queries.slow.total` | Throughput | MySQL |
-| **Rollback Ratio** (%) | `oneuptime.monitor.database.rollback.percent` | Throughput | PostgreSQL |
+| **Transactions** | `oneuptime.monitor.database.transactions.total` | توان عملیاتی | PostgreSQL, SQL Server |
+| **Queries** | `oneuptime.monitor.database.queries.total` | توان عملیاتی | MySQL, SQL Server |
+| **Slow Queries** | `oneuptime.monitor.database.queries.slow.total` | توان عملیاتی | MySQL |
+| **Rollback Ratio** (%) | `oneuptime.monitor.database.rollback.percent` | توان عملیاتی | PostgreSQL |
 | **Longest Running Query** (s) | `oneuptime.monitor.database.query.longest.seconds` | Activity | PostgreSQL, MySQL, SQL Server |
 | **Longest Open Transaction** (s) | `oneuptime.monitor.database.transaction.longest.seconds` | Activity | PostgreSQL, MySQL, SQL Server |
 | **Open Transactions** | `oneuptime.monitor.database.transaction.open.count` | Activity | MySQL |
@@ -315,13 +315,13 @@ MySQL استاندارد هیچ نوع شمارندهٔ بن‌بستی ارائ
 
 | متریک | سری | Group | Engines |
 |---|---|---|---|
-| **Cache Hit Ratio** (%) | `oneuptime.monitor.database.cache.hit.percent` | Throughput | PostgreSQL, MySQL, SQL Server |
-| **Disk Reads** | `oneuptime.monitor.database.disk.reads.total` | Throughput | PostgreSQL, MySQL, SQL Server |
-| **Disk Writes** | `oneuptime.monitor.database.disk.writes.total` | Throughput | MySQL, SQL Server |
-| **I/O Read Time** (ms) | `oneuptime.monitor.database.io.read.time.ms` | Throughput | PostgreSQL, SQL Server |
-| **I/O Write Time** (ms) | `oneuptime.monitor.database.io.write.time.ms` | Throughput | PostgreSQL, SQL Server |
-| **Page Life Expectancy** (s) | `oneuptime.monitor.database.page.life.expectancy.seconds` | Throughput | SQL Server |
-| **Memory Grants Pending** | `oneuptime.monitor.database.memory.grants.pending` | Throughput | SQL Server |
+| **Cache Hit Ratio** (%) | `oneuptime.monitor.database.cache.hit.percent` | توان عملیاتی | PostgreSQL, MySQL, SQL Server |
+| **Disk Reads** | `oneuptime.monitor.database.disk.reads.total` | توان عملیاتی | PostgreSQL, MySQL, SQL Server |
+| **Disk Writes** | `oneuptime.monitor.database.disk.writes.total` | توان عملیاتی | MySQL, SQL Server |
+| **I/O Read Time** (ms) | `oneuptime.monitor.database.io.read.time.ms` | توان عملیاتی | PostgreSQL, SQL Server |
+| **I/O Write Time** (ms) | `oneuptime.monitor.database.io.write.time.ms` | توان عملیاتی | PostgreSQL, SQL Server |
+| **Page Life Expectancy** (s) | `oneuptime.monitor.database.page.life.expectancy.seconds` | توان عملیاتی | SQL Server |
+| **Memory Grants Pending** | `oneuptime.monitor.database.memory.grants.pending` | توان عملیاتی | SQL Server |
 
 PostgreSQL زمان خواندن و نوشتن I/O را فقط وقتی اندازه می‌گیرد که `track_io_timing` روشن باشد. این گزینه به‌طور پیش‌فرض خاموش است و در این حالت PostgreSQL هر دو را `0` گزارش می‌کند — پس در PostgreSQL صفرِ ثابت در این دو سری معمولاً یعنی «اندازه‌گیری نشده»، نه «سریع». این یک تنظیم سرور است، نه مشکل مجوز.
 
@@ -412,7 +412,7 @@ PostgreSQL زمان خواندن و نوشتن I/O را فقط وقتی اندا
 | ۲ | **کاهش کارایی** | `Database Metric` → Connections Used بزرگ‌تر از `90` است، که در ۵ دقیقه با All Values ارزیابی می‌شود تا یک جهش تکی کسی را فرانخواند. |
 | ۳ | **کاهش کارایی** | `Database Metric` → Transaction ID Used بزرگ‌تر از `80` است. |
 | ۴ | **کاهش کارایی** | `Database Metric` → Blocked Sessions در ۵ دقیقه بزرگ‌تر از `0` است. |
-| ۵ | **Online** | `Database Is Online` برابر `true` است. |
+| ۵ | **آنلاین** | `Database Is Online` برابر `true` است. |
 
 معیارها از بالا به پایین ارزیابی می‌شوند و نخستین جور شدن برنده است، پس معیارهای هشدار را اول و معیار سالم را آخر بگذارید.
 

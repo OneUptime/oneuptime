@@ -56,7 +56,7 @@ Digitate una query e premete Invio, ad esempio `service:checkout status:error du
 
 ### Restringere con i filtri
 
-Fate clic su un valore nella barra laterale **Filtri** per aggiungerlo come chip. La barra laterale filtra per **Servizio**, per l'host, il cluster o l'altra risorsa che ha inviato lo span, per **Stato**, **Categoria di span**, **Ha eccezione**, **Tipo di span**, **Nome dello span**, **Service Instance** e **Nome dell'host**.
+Fate clic su un valore nella barra laterale **Filtri** per aggiungerlo come chip. La barra laterale filtra per **Servizio**, per l'host, il cluster o l'altra risorsa che ha inviato lo span, per **Stato**, **Categoria di span**, **Ha eccezione**, **Tipo di span**, **Nome dello span**, **Istanza del servizio** e **Nome dell'host**.
 
 ### Aprire uno span
 
@@ -101,8 +101,8 @@ Per altro, passate l'elenco da **Span** ad **Analytics**. Scegliete una serie te
 
 ## Seguire, salvare e condividere
 
-- Fate clic su **In pausa** sopra l'elenco per attivare gli aggiornamenti in diretta. Il pulsante mostra poi **Live**, e l'elenco cerca nuovi span ogni 10 secondi. Fate di nuovo clic per mettere in pausa.
-- **Saved Views** conserva una ricerca, i suoi filtri e l'intervallo di tempo sotto un nome, per tutti nel progetto. Le viste salvate funzionano come nell'[Esploratore log](/docs/telemetry/logs-explorer#salvare-una-vista).
+- Fate clic su **In pausa** sopra l'elenco per attivare gli aggiornamenti in diretta. Il pulsante mostra poi **In diretta**, e l'elenco cerca nuovi span ogni 10 secondi. Fate di nuovo clic per mettere in pausa.
+- **Viste salvate** conserva una ricerca, i suoi filtri e l'intervallo di tempo sotto un nome, per tutti nel progetto. Le viste salvate funzionano come nell'[Esploratore log](/docs/telemetry/logs-explorer#salvare-una-vista).
 - I pulsanti **Registri** e **Metriche** aprono quegli esploratori per la stessa finestra di tempo, con tutto il vostro filtraggio che possono usare. Puntate un pulsante per vedere che cosa non può riportare.
 
 ## Informazioni sulle tracce

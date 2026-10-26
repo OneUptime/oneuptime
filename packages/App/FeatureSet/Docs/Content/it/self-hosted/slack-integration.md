@@ -39,7 +39,7 @@ sequenceDiagram
 - Un'area di lavoro Slack in cui puoi creare e installare app.
 - Un nome host HTTPS pubblico per OneUptime che Slack possa raggiungere. Vedi [Accesso di rete](#accesso-di-rete-per-le-installazioni-self-hosted).
 - Accesso alla configurazione del server: `config.env` per Docker Compose, o i tuoi values di Helm per Kubernetes.
-- Per connettere un progetto, il ruolo **Project Owner**, **Project Admin** o **Project Member** in quel progetto.
+- Per connettere un progetto, il ruolo **Proprietario del progetto**, **Amministratore del progetto** o **Membro del progetto** in quel progetto.
 
 ## Configurare l'app Slack
 
@@ -239,7 +239,7 @@ Quando Slack ti rimanda indietro e la connessione non è stata fatta, la pagina 
 | La pagina dice | Cosa fare |
 | --- | --- |
 | **"Questo link di connessione non è valido, è scaduto o è già stato usato. Ricomincia."** | Il link funziona una volta, per 15 minuti, nel browser che l'ha avviato. Ricomincia dalla pagina Slack e completa in Slack entro 15 minuti, nello stesso browser. |
-| **"Non hai l'autorizzazione per connettere questo progetto a Slack."** | Installare OneUptime in Slack richiede **Project Owner**, **Project Admin** o **Project Member**. Viene verificato di nuovo quando Slack ti rimanda indietro, quindi un ruolo tolto nel frattempo chiude la connessione anche qui. |
+| **"Non hai l'autorizzazione per connettere questo progetto a Slack."** | Installare OneUptime in Slack richiede **Proprietario del progetto**, **Amministratore del progetto** o **Membro del progetto**. Viene verificato di nuovo quando Slack ti rimanda indietro, quindi un ruolo tolto nel frattempo chiude la connessione anche qui. |
 | **"Non sei più membro di questo progetto."** | Per connettere il tuo account Slack devi essere membro del progetto quando Slack ti rimanda indietro. |
 | **"Questo progetto non è ancora connesso a nessuno spazio di lavoro Slack."** | Installa prima OneUptime in Slack da **Impostazioni del progetto > Area di lavoro > Slack**, poi connetti il tuo account. |
 | **"Hai effettuato l'accesso a uno spazio di lavoro Slack diverso da quello a cui è connesso questo progetto."** | Connetti il tuo account mentre hai effettuato l'accesso all'area di lavoro Slack in cui è installato il progetto. |

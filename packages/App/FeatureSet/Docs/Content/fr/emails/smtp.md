@@ -51,7 +51,7 @@ Tout le reste est replié sous **Plus de champs**, à la fin de l'étape **Serve
 
 ### Enregistrer et envoyer un e-mail de test
 
-Enregistrez la configuration. Une fois une configuration de projet enregistrée, **Envoyer un e-mail de test** sur sa ligne vérifie qu'elle fonctionne. Il faut pour cela l'autorisation d'ajouter des configurations SMTP : **Project Owner**, **Project Admin**, ou **Create SMTP Config** et **Read SMTP Config** dans un rôle personnalisé. Sur OneUptime Cloud, il faut aussi le plan **Growth**, comme pour ajouter une configuration. Pour les autres, le bouton est verrouillé et son info-bulle indique ce qu'il faut.
+Enregistrez la configuration. Une fois une configuration de projet enregistrée, **Envoyer un e-mail de test** sur sa ligne vérifie qu'elle fonctionne. Il faut pour cela l'autorisation d'ajouter des configurations SMTP : **Propriétaire du projet**, **Administrateur du projet**, ou **Create SMTP Config** et **Read SMTP Config** dans un rôle personnalisé. Sur OneUptime Cloud, il faut aussi le plan **Growth**, comme pour ajouter une configuration. Pour les autres, le bouton est verrouillé et son info-bulle indique ce qu'il faut.
 
 Le test demande une adresse **E-mail** à laquelle envoyer, la vôtre au départ. Vérifiez que le message arrive.
 :::

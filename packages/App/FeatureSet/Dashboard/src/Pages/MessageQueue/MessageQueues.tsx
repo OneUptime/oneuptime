@@ -38,7 +38,6 @@ import useFirstRecordWatch, {
   FirstRecordWatch,
 } from "../../Components/Infrastructure/UseFirstRecordWatch";
 import {
-  FIRST_RUN_GUIDE_DESCRIPTION,
   getFirstRunEmptyState,
   getFirstRunTopContent,
 } from "../../Components/Infrastructure/FirstRecordWatch";
@@ -47,7 +46,11 @@ import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
 import { JSONObject } from "Common/Types/JSON";
-import MessageQueueDocumentationCard from "./Utils/MessageQueueDocumentationCard";
+import ResourceShowcaseCard from "../../Components/ResourceShowcase/ResourceShowcaseCard";
+import useShowcaseCreateForm, {
+  ShowcaseCreateForm,
+} from "../../Components/ResourceShowcase/UseShowcaseCreateForm";
+import MESSAGE_QUEUE_SHOWCASE from "../../Components/MessageQueue/MessageQueueShowcase";
 import MessageQueueAddedModal from "./Utils/MessageQueueAddedModal";
 import {
   MESSAGE_QUEUE_DESTINATION_DESCRIPTION,
@@ -158,6 +161,11 @@ const MessageQueues: FunctionComponent<
   const firstRecordWatch: FirstRecordWatch = useFirstRecordWatch<MessageQueue>({
     modelType: MessageQueue,
   });
+  // The showcase's Create Queue: the table's own form.
+  const showcaseCreateForm: ShowcaseCreateForm = useShowcaseCreateForm({
+    modelType: MessageQueue,
+    singularName: "Queue",
+  });
   /*
    * The queue Add Queue just saved: its setup guide opens on its own
    * (MessageQueueAddedModal), for its messaging system.
@@ -260,8 +268,8 @@ const MessageQueues: FunctionComponent<
         emptyState={getFirstRunEmptyState({
           emptyState: facetEmptyState,
           count: firstRecordWatch.count,
-          isAddedByHand: true,
         })}
+        showCreateForm={showcaseCreateForm.showCreateForm}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
         query={mergeFiltersIntoQuery({ isArchived: false })}
@@ -685,9 +693,9 @@ const MessageQueues: FunctionComponent<
         }}
       />
       {firstRecordWatch.count === 0 && (
-        <MessageQueueDocumentationCard
-          title="Getting Started with Queues"
-          description={FIRST_RUN_GUIDE_DESCRIPTION}
+        <ResourceShowcaseCard
+          showcase={MESSAGE_QUEUE_SHOWCASE}
+          addButton={showcaseCreateForm.addButton}
         />
       )}
       {addedQueue && (

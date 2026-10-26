@@ -11,6 +11,8 @@ import {
 import {
   Translator,
   composedValue,
+  getGlobalTranslator,
+  translatableTerm,
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
 
@@ -178,9 +180,31 @@ export interface TimeToStateTextInput {
   reachedAt?: Date | undefined;
   // The project's own name for the state, e.g. "Mitigated".
   stateName?: string | undefined;
-  // Used when the project has no such state, e.g. "acknowledged".
+  // Used when the project has no such state, e.g. "Acknowledged".
   fallbackStateName: string;
 }
+
+/*
+ * "Not yet acknowledged": one sentence, looked up whole. The state goes in
+ * as a term, so one of OneUptime's own names ("Acknowledged") reads in the
+ * reader's words, as the state's badge reads it, and a name the project
+ * gave its state reads as written.
+ */
+export const NOT_YET_IN_STATE_TEMPLATE: string = translationKey(
+  "Not yet {{stateName}}",
+);
+
+export const getNotYetInStateText: (
+  stateName: string,
+  translator?: Translator,
+) => string = (
+  stateName: string,
+  translator: Translator = getGlobalTranslator(),
+): string => {
+  return translator.translateTemplate(NOT_YET_IN_STATE_TEMPLATE, {
+    stateName: translatableTerm(stateName.trim(), { inSentence: true }),
+  });
+};
 
 /*
  * "12 minutes" once the state was reached, "Not yet acknowledged" before.
@@ -188,15 +212,18 @@ export interface TimeToStateTextInput {
  * "less than a minute" rather than as the absolute gap, which would claim a
  * response time that never happened.
  */
-export const getTimeToStateText: (input: TimeToStateTextInput) => string = (
+export const getTimeToStateText: (
   input: TimeToStateTextInput,
+  translator?: Translator,
+) => string = (
+  input: TimeToStateTextInput,
+  translator: Translator = getGlobalTranslator(),
 ): string => {
   if (!input.reachedAt) {
-    const stateName: string = (
-      input.stateName?.trim() || input.fallbackStateName
-    ).toLowerCase();
-
-    return `Not yet ${stateName}`;
+    return getNotYetInStateText(
+      input.stateName?.trim() || input.fallbackStateName,
+      translator,
+    );
   }
 
   if (!input.startedAt) {

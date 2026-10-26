@@ -141,7 +141,7 @@ Rellena **ID del proyecto** y pega el archivo de clave entero como **Clave de la
 
 ## Ver el uso
 
-Abre **Uso** y elige **Cuentas de proveedor**. Muestra el coste, los tokens y las solicitudes que tus cuentas informaron para el periodo, ordenados por **Modelo**, **Person**, **Proveedor**, **Proyecto o recurso**, **Clave de API** o **Conexión**. El periodo empieza a la medianoche UTC de su primer día, porque los proveedores informan de días completos.
+Abre **Uso** y elige **Cuentas de proveedor**. Muestra el coste, los tokens y las solicitudes que tus cuentas informaron para el periodo, ordenados por **Modelo**, **Persona**, **Proveedor**, **Proyecto o recurso**, **Clave de API** o **Conexión**. El periodo empieza a la medianoche UTC de su primer día, porque los proveedores informan de días completos.
 
 **Cuentas de proveedor** y **Tus llamadas de IA** nunca se suman. Una llamada que tu aplicación hace con una clave de una cuenta conectada está en ambos, así que sumarlos la contaría dos veces.
 

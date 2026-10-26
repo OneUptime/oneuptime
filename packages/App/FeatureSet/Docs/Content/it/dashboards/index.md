@@ -48,7 +48,7 @@ Il menu laterale dell'elenco contiene le pagine che si occupano di tutte le tue 
 | **Dashboard** | Le dashboard del progetto. Creane una, oppure importa dashboard con **Import JSON**. |
 | **Impostazioni → Regole del proprietario** | Aggiungere automaticamente proprietari alle nuove dashboard. |
 | **Impostazioni → Regole etichette** | Aggiungere automaticamente etichette alle nuove dashboard. |
-| **Impostazioni → Data Sources** | Collegare Prometheus, database SQL, ClickHouse, Loki, Elasticsearch o un'API REST. |
+| **Impostazioni → Origini dati** | Collegare Prometheus, database SQL, ClickHouse, Loki, Elasticsearch o un'API REST. |
 | **Avanzato → Archiviato** | Le dashboard che hai archiviato. Ripristinale da qui. |
 
 Apri una dashboard, e il suo menu laterale ha queste pagine. Ogni sezione tranne **Base** parte chiusa: fai clic sul suo titolo per aprirla.

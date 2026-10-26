@@ -160,7 +160,7 @@ name:"SELECT wp_options"
 
 单独的词搜索异常消息。
 
-**Security Events** 浏览器使用相同的语言，但有自己的字段，例如 `severity`、`tactic` 和 `user`，参见 [安全事件](/docs/telemetry/security-events)。
+**安全事件** 浏览器使用相同的语言，但有自己的字段，例如 `severity`、`tactic` 和 `user`，参见 [安全事件](/docs/telemetry/security-events)。
 
 ## 组合过滤条件
 

@@ -285,7 +285,7 @@ Konvertér mellem tekst og JSON, eller kombiner to JSON-objekter.
 
 ## Conditions
 
-Forgren på en sammenligning. I panelet **Tilføj komponent** hedder denne blok **If / Else**, under **Popular**. Brug [Switch / Case](#switch-case) for at vælge mellem mere end to veje.
+Forgren på en sammenligning. I panelet **Tilføj komponent** hedder denne blok **If / Else**, under **Populære**. Brug [Switch / Case](#switch-case) for at vælge mellem mere end to veje.
 
 Dens indstillinger læses som en sætning: **Hvis** *værdi, der skal tjekkes* *sammenligning* *værdi, der sammenlignes med*, fortsæt på **Yes**, ellers på **No**. Under indstillingerne læses betingelsen tilbage med ord, så du kan se, at den siger det, du mener. På lærredet viser blokken også sin betingelse, for eksempel *Hvis environment is equal to “production”*.
 
@@ -315,7 +315,7 @@ Talsammenligningerne sammenligner tal, og tekstsammenligningerne sammenligner te
 
 ## Switch / Case
 
-Tag én af flere veje afhængigt af en værdi. I panelet **Tilføj komponent** hedder denne blok **Switch / Case**, under **Popular**.
+Tag én af flere veje afhængigt af en værdi. I panelet **Tilføj komponent** hedder denne blok **Switch / Case**, under **Populære**.
 
 Den sammenligner én værdi med hvert af sine tilfælde efter tur, fra toppen, og fortsætter ad det første tilfælde, der passer, eller ad **Default**, når intet passer. Kun én vej kører: en værdi, der passer med to tilfælde, tager det første af dem.
 
@@ -361,7 +361,7 @@ Brug det til at dele fælles logik: byg et «post i hændelseskanalen»-workflow
 
 ## OneUptime-datakomponenter
 
-For hver slags post i OneUptime (monitorer, hændelser, advarsler, statussider, vagtpolitikker og mange flere) har panelet **Tilføj komponent** disse komponenter: under **OneUptime resources** klikker du på posttypen (**Browse all resources** har dem, der ikke vises), eller du søger på typens navn. Hver titel genereres ud fra posttypen, så sættet for Monitor lyder:
+For hver slags post i OneUptime (monitorer, hændelser, advarsler, statussider, vagtpolitikker og mange flere) har panelet **Tilføj komponent** disse komponenter: under **OneUptime-ressourcer** klikker du på posttypen (**Gennemse alle ressourcer** har dem, der ikke vises), eller du søger på typens navn. Hver titel genereres ud fra posttypen, så sættet for Monitor lyder:
 
 | Komponent                | Hvad den gør                                                                   |
 | ------------------------ | ------------------------------------------------------------------------------ |
@@ -422,7 +422,7 @@ sætter **Notification Count** og lader postens andre brugerdefinerede felter v�
 
 Du skriver sjældent disse nøgler selv. I komponentens indstillinger viser **Add a field** (eller **Add a condition** på en forespørgsel) modellens kolonner ved navn, med den slags værdi, hver tager. Søg ved navn, ved kolonnenøgle eller ved det, feltet gør, og tryk på **Enter** for at tilføje det bedste match. Ved oprettelse kommer de felter, posten ikke kan oprettes uden, først, derefter modellens hovedfelter (dem, den selv udfylder, hvis du udelader dem) og så resten.
 
-Felter, som OneUptime selv udfylder, tilbydes ikke, når du skriver en post: postens `_id`, **Oprettet den**, **Opdateret den**, **Created by User**, slugs, postnumre og notifikationsstatusser. Hvem der oprettede, arkiverede eller løste en post, og hvornår, er aldrig et workflows at sætte: en post, som et workflow opretter, er oprettet af ingen, en værdi, et workflow sender for et af de felter ved siden af andre felter, ignoreres, og en Update, der ikke sender andet, mislykkes med en meddelelse, der nævner dem. En opdatering tilbyder kun felter, der kan ændres, efter at en post findes. En forespørgsel tilbyder stadig ID'et, tidsstemplerne og **Created by User**, fordi de er nyttige at filtrere på. **Deleted At** tilbydes ingen steder: poster slettes helt, så det er altid tomt.
+Felter, som OneUptime selv udfylder, tilbydes ikke, når du skriver en post: postens `_id`, **Oprettet den**, **Opdateret den**, **Oprettet af bruger**, slugs, postnumre og notifikationsstatusser. Hvem der oprettede, arkiverede eller løste en post, og hvornår, er aldrig et workflows at sætte: en post, som et workflow opretter, er oprettet af ingen, en værdi, et workflow sender for et af de felter ved siden af andre felter, ignoreres, og en Update, der ikke sender andet, mislykkes med en meddelelse, der nævner dem. En opdatering tilbyder kun felter, der kan ændres, efter at en post findes. En forespørgsel tilbyder stadig ID'et, tidsstemplerne og **Oprettet af bruger**, fordi de er nyttige at filtrere på. **Deleted At** tilbydes ingen steder: poster slettes helt, så det er altid tomt.
 
 **Skip** og **Limit** er to talfelter på Find Many, Update Many og Delete Many, under **Flere felter** — `Skip: 0` med `Limit: 100` tager de første hundrede match. **Limit** er som standard `10`, og på Update Many og Delete Many begrænser den, hvor mange poster der faktisk skrives, ikke kun hvor mange der kommer tilbage. Så `Items Deleted: 10` betyder, at ti poster blev slettet, ikke at ti matchede. Hæv **Limit**, når du vil ændre mere end ti.
 

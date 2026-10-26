@@ -56,11 +56,11 @@ Escolha uma das três abas:
 
 - **Quick Setup** - clique em um [modelo](#modelos-de-alerta-prontos). Ele define a métrica, os filtros de atributos, a agregação, o intervalo de tempo, o agrupamento e os limites, e substitui os critérios abaixo pelos seus. Você ainda pode mudar o **Intervalo de tempo**.
 - **Custom Metric** - escolha uma métrica em **VMware Metric** e depois defina **Agregação** e **Intervalo de tempo**. O formulário a agrupa pelo objeto que ela descreve, então cada host, VM ou datastore é avaliado separadamente, e os [filtros](#configurações-do-monitor) a restringem a um datacenter, cluster, host, VM, datastore ou resource pool.
-- **Avançado** - monte você mesmo consultas e fórmulas em **Selecionar Métricas**, com filtros em atributos como `disk_state`, `power_state` ou `status`. Use **Group by** com um [atributo de identidade](#atributos-de-identidade) para avaliar cada objeto separadamente.
+- **Avançado** - monte você mesmo consultas e fórmulas em **Selecionar Métricas**, com filtros em atributos como `disk_state`, `power_state` ou `status`. Use **Agrupar por** com um [atributo de identidade](#atributos-de-identidade) para avaliar cada objeto separadamente.
 
 ### Conferir os critérios
 
-Abra cada critério em **Critérios do monitor** e confira **Métrica**, **Agregação**, **Condição** e **Threshold**. Um modelo os preenche. Com **Custom Metric** ou **Avançado**, o monitor começa com os [critérios padrão](#critérios-padrão), que só percebem uma métrica caindo para zero, então defina o seu próprio limite.
+Abra cada critério em **Critérios do monitor** e confira **Métrica**, **Agregação**, **Condição** e **Limite**. Um modelo os preenche. Com **Custom Metric** ou **Avançado**, o monitor começa com os [critérios padrão](#critérios-padrão), que só percebem uma métrica caindo para zero, então defina o seu próprio limite.
 
 ### Criar o monitor
 
@@ -68,7 +68,7 @@ Clique em **Criar monitor**. O OneUptime abre a página do monitor e o avalia a 
 :::
 
 > [!TIP]
-> Para configurar vários modelos de uma vez, abra o vCenter em **Produtos → Infraestrutura → VMware** e vá em **Recommendations**. Escolha os modelos que quiser, decida quem é acionado, e o OneUptime cria um monitor por modelo.
+> Para configurar vários modelos de uma vez, abra o vCenter em **Produtos → Infraestrutura → VMware** e vá em **Recomendações**. Escolha os modelos que quiser, decida quem é acionado, e o OneUptime cria um monitor por modelo.
 
 ## Configurações do monitor
 
@@ -77,14 +77,14 @@ Clique em **Criar monitor**. O OneUptime abre a página do monitor e o avalia a 
 | **vCenter** | Todas | Obrigatório. Restringe cada consulta a `resource.vmware.vcenter.name`. |
 | **Datacenter** | Custom Metric, Avançado | Opcional. Um datacenter: `resource.vcenter.datacenter.name`. Toda série o carrega. |
 | **Cluster** | Custom Metric, Avançado | Opcional. Um cluster: `resource.vcenter.cluster.name`. Corresponde às séries do próprio cluster e às dos hosts, VMs e resource pools que ele contém; um host ESXi independente não tem nenhum. |
-| **ESXi Host** | Custom Metric, Avançado | Opcional. Um host ESXi: `resource.vcenter.host.name`. Corresponde às séries do próprio host **e** às de cada VM que ele executa, porque uma VM carrega o nome do seu host. |
-| **Virtual Machine** | Custom Metric, Avançado | Opcional. Uma VM: `resource.vcenter.vm.name`. Os nomes de VM não precisam ser únicos: adicione um host ou um cluster quando duas VMs tiverem o mesmo nome. |
+| **Host ESXi** | Custom Metric, Avançado | Opcional. Um host ESXi: `resource.vcenter.host.name`. Corresponde às séries do próprio host **e** às de cada VM que ele executa, porque uma VM carrega o nome do seu host. |
+| **Máquina virtual** | Custom Metric, Avançado | Opcional. Uma VM: `resource.vcenter.vm.name`. Os nomes de VM não precisam ser únicos: adicione um host ou um cluster quando duas VMs tiverem o mesmo nome. |
 | **Datastore** | Custom Metric, Avançado | Opcional. Um datastore: `resource.vcenter.datastore.name`. |
 | **Resource Pool Path** | Custom Metric, Avançado | Opcional. Um resource pool, pelo seu caminho de inventário (`/DC/host/Cluster/Resources/pool`): `resource.vcenter.resource_pool.inventory_path`. Um caminho, porque os nomes de pools só são únicos dentro do seu objeto pai. |
 | **VMware Metric** | Custom Metric | Uma métrica do [catálogo](#métricas-coletadas). |
 | **Agregação** | Custom Metric | Como as amostras são combinadas: **Média**, **Máximo**, **Mínimo**, **Soma** ou **Contagem**. Começa na agregação usual da métrica. |
-| **Intervalo de tempo** | Todas | A janela móvel que a consulta lê, de **Past 1 Minute** a **Past 365 Days**. Um monitor novo começa em **Past 5 Minutes**; os modelos definem a sua. |
-| **Selecionar Métricas** | Avançado | O construtor de consultas: **Métrica**, **Aggregate by**, **Filter by attributes**, **Group by**, além de **Adicionar métrica** e **Adicionar fórmula** para combinar consultas. |
+| **Intervalo de tempo** | Todas | A janela móvel que a consulta lê, de **Past 1 Minute** a **Past 365 Days**. Um monitor novo começa em **Últimos 5 minutos**; os modelos definem a sua. |
+| **Selecionar Métricas** | Avançado | O construtor de consultas: **Métrica**, **Aggregate by**, **Filter by attributes**, **Agrupar por**, além de **Adicionar métrica** e **Adicionar fórmula** para combinar consultas. |
 
 O vCenter é lido uma vez por intervalo de coleta, 2 minutos por padrão, então uma janela de 1 minuto pode não ter nenhuma amostra. Mantenha a janela em 5 minutos ou mais, e maior se você aumentou o intervalo de coleta para um inventário grande.
 
@@ -117,13 +117,13 @@ Os modelos leem os últimos 5 minutos, a menos que a tabela diga outra coisa. Um
 | Host Disk Latency High | Host | Warning | `vcenter.host.disk.latency.max`, Max por host | Acima de 50 ms: cada VM cujos discos estão nesse caminho espera pelo armazenamento. Precisa do nível 3 de contadores de desempenho | Em 45 ms ou menos |
 | Host Network Packet Errors | Host | Warning | `vcenter.host.network.packet.error.rate`, Max por host | Acima de 0: quase sempre uma falha de cabo, SFP ou porta de switch | Em 0 |
 | Host Network Packet Drops | Host | Warning | `vcenter.host.network.packet.drop.rate`, Max por host | Acima de 0: um uplink sobrecarregado, ou buffers em anel da NIC que transbordam | Em 0 |
-| VM CPU Saturation | Virtual Machine | Warning | `vcenter.vm.cpu.utilization`, Avg por `resource.vcenter.vm.name`, **últimos 15 minutos** | Acima de 90 % das vCPUs da VM durante os 15 minutos: uma VM pode usar o que recebeu, então só aciona uma que nunca desce | Em 81 % ou menos |
-| VM CPU Ready Contention | Virtual Machine | Warning | `vcenter.vm.cpu.readiness`, Avg por VM | Acima de 10 %: a VM estava pronta para rodar, mas o host não tinha um núcleo físico para ela. Invisível de dentro do convidado | Em 9 % ou menos |
-| VM Memory Saturation | Virtual Machine | Warning | `vcenter.vm.memory.utilization`, Avg por VM | Acima de 90 % da sua memória: o convidado está prestes a paginar | Em 81 % ou menos |
-| VM Memory Ballooning | Virtual Machine | Warning | `vcenter.vm.memory.ballooned`, Max por VM | Acima de 0: falta memória ao host, e ele a toma de volta deste convidado | Em 0 |
-| VM Memory Swapping | Virtual Machine | Crítico | `vcenter.vm.memory.swapped`, Max por VM | Acima de 0: o host faz swap da memória da VM, o último recurso depois do ballooning e da compressão | Em 0 |
-| VM Disk Latency High | Virtual Machine | Warning | `vcenter.vm.disk.latency.max`, Max por VM | Acima de 50 ms: as aplicações do convidado esgotam o tempo de espera na E/S | Em 45 ms ou menos |
-| VM Disk Usage High | Virtual Machine | Warning | `vcenter.vm.disk.utilization`, Avg por VM | Acima de 90 % do seu armazenamento provisionado comprometido: uma VM com thin provisioning está prestes a reivindicar o seu tamanho total | Em 81 % ou menos |
+| VM CPU Saturation | Máquina virtual | Warning | `vcenter.vm.cpu.utilization`, Avg por `resource.vcenter.vm.name`, **últimos 15 minutos** | Acima de 90 % das vCPUs da VM durante os 15 minutos: uma VM pode usar o que recebeu, então só aciona uma que nunca desce | Em 81 % ou menos |
+| VM CPU Ready Contention | Máquina virtual | Warning | `vcenter.vm.cpu.readiness`, Avg por VM | Acima de 10 %: a VM estava pronta para rodar, mas o host não tinha um núcleo físico para ela. Invisível de dentro do convidado | Em 9 % ou menos |
+| VM Memory Saturation | Máquina virtual | Warning | `vcenter.vm.memory.utilization`, Avg por VM | Acima de 90 % da sua memória: o convidado está prestes a paginar | Em 81 % ou menos |
+| VM Memory Ballooning | Máquina virtual | Warning | `vcenter.vm.memory.ballooned`, Max por VM | Acima de 0: falta memória ao host, e ele a toma de volta deste convidado | Em 0 |
+| VM Memory Swapping | Máquina virtual | Crítico | `vcenter.vm.memory.swapped`, Max por VM | Acima de 0: o host faz swap da memória da VM, o último recurso depois do ballooning e da compressão | Em 0 |
+| VM Disk Latency High | Máquina virtual | Warning | `vcenter.vm.disk.latency.max`, Max por VM | Acima de 50 ms: as aplicações do convidado esgotam o tempo de espera na E/S | Em 45 ms ou menos |
+| VM Disk Usage High | Máquina virtual | Warning | `vcenter.vm.disk.utilization`, Avg por VM | Acima de 90 % do seu armazenamento provisionado comprometido: uma VM com thin provisioning está prestes a reivindicar o seu tamanho total | Em 81 % ou menos |
 | Datastore Capacity Warning | Datastore | Warning | `vcenter.datastore.disk.utilization`, Avg por `resource.vcenter.datastore.name` | Acima de 80 %: um aviso antecipado, já que discos thin e snapshots consomem o resto rapidamente | Em 72 % ou menos |
 | Datastore Capacity Critical | Datastore | Crítico | `vcenter.datastore.disk.utilization`, Avg por datastore | Acima de 90 %: um datastore cheio pausa cada VM que tem um disco nele | Em 81 % ou menos |
 | Cluster Host Not Effective | Cluster | Crítico | `vcenter.cluster.host.count` filtrada para `effective = false`, Max por `resource.vcenter.cluster.name` | Acima de 0: um host está em modo de manutenção, desconectado ou sem resposta, então o cluster roda com menos capacidade do que foi dimensionado | Em 0 |
@@ -260,7 +260,7 @@ Enviadas só para clusters com vSAN, os hosts que eles contêm e as VMs em um da
 | `vcenter.vm.vsan.throughput`        | `By/s`            | Vazão do vSAN da VM, por `direction`                                                                                                            |
 
 > [!NOTE]
-> O estado de energia de uma VM não é uma métrica. O receiver só envia `vcenter.vm.cpu.*` para VMs ligadas, então o OneUptime distingue **Powered on** de **Powered off** pela chegada ou não de dados de CPU na mesma coleta que os dados de memória e disco da VM; a página **Máquinas virtuais** do vCenter mostra o resultado. Para alertar sobre hosts desligados ou sobre quantas VMs estão rodando, use o atributo `power_state` de `vcenter.datacenter.host.count`, `vcenter.datacenter.vm.count` ou `vcenter.cluster.vm.count`.
+> O estado de energia de uma VM não é uma métrica. O receiver só envia `vcenter.vm.cpu.*` para VMs ligadas, então o OneUptime distingue **Powered on** de **Desligada** pela chegada ou não de dados de CPU na mesma coleta que os dados de memória e disco da VM; a página **Máquinas virtuais** do vCenter mostra o resultado. Para alertar sobre hosts desligados ou sobre quantas VMs estão rodando, use o atributo `power_state` de `vcenter.datacenter.host.count`, `vcenter.datacenter.vm.count` ou `vcenter.cluster.vm.count`.
 
 ## Critérios de monitoramento
 
@@ -271,10 +271,10 @@ Um critério compara uma das consultas ou fórmulas do monitor com um limite. Os
 | **Métrica** | A consulta ou fórmula a verificar, pelo nome da sua variável. |
 | **Agregação** | Como os valores da janela viram uma única resposta: **Média**, **Soma**, **Maximum Value**, **Minimum Value**, **All Values** (todo valor precisa corresponder, na janela inteira) ou **Any Value** (basta um). |
 | **Condição** | **Maior que**, **Menor que**, **Maior ou igual a**, **Menor ou igual a** ou **Igual a** — ou uma condição de anomalia: **Anomalously High**, **Anomalously Low** ou **Anomalous**. |
-| **Threshold** | O valor com que comparar. Uma lista de unidades fica ao lado quando a métrica tem unidade. Não aparece nas condições de anomalia. |
+| **Limite** | O valor com que comparar. Uma lista de unidades fica ao lado quando a métrica tem unidade. Não aparece nas condições de anomalia. |
 | **Sensibilidade** | Só condições de anomalia. **Baixo** (4σ), **Médio** (3σ, o padrão) ou **Alto** (2σ). |
 | **Janela de linha de base** | Só condições de anomalia. 14 dias (o padrão), 28, 60 ou 90 dias de histórico. |
-| **Se não houver dados** | Em **Mais campos**. O que acontece quando a janela não tem amostras: **Ignore** (o padrão), **Treat As Zero** ou **Trigger**. |
+| **Se não houver dados** | Em **Mais campos**. O que acontece quando a janela não tem amostras: **Ignore** (o padrão), **Treat As Zero** ou **Gatilho**. |
 
 As condições de anomalia comparam cada valor com a mesma hora da semana na linha de base. Elas ficam em um estado "Learning", e não disparam nada, até que a janela de linha de base tenha histórico suficiente.
 
@@ -296,7 +296,7 @@ Um monitor que você não monta a partir de um modelo começa com dois critério
 | 2 | Check if _monitor name_ is online | Algum valor está acima de `0` | Marca o monitor como **Operacional**. |
 
 > [!IMPORTANT]
-> O silêncio não corresponde a nenhum dos dois critérios: um vCenter que para de enviar dados deixa o monitor como estava. Para ser avisado quando os dados param, defina **Se não houver dados** como **Trigger** em um critério. O tempo em que o próprio OneUptime não estava recebendo nunca conta como ausência de dados: uma verificação cuja janela o contém espera, como explica [Quando o OneUptime não recebe dados](/docs/monitor/when-oneuptime-is-not-receiving).
+> O silêncio não corresponde a nenhum dos dois critérios: um vCenter que para de enviar dados deixa o monitor como estava. Para ser avisado quando os dados param, defina **Se não houver dados** como **Gatilho** em um critério. O tempo em que o próprio OneUptime não estava recebendo nunca conta como ausência de dados: uma verificação cuja janela o contém espera, como explica [Quando o OneUptime não recebe dados](/docs/monitor/when-oneuptime-is-not-receiving).
 
 ## Terraform
 

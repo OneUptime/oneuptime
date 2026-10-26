@@ -22,7 +22,9 @@ import Permission from "../../../Types/Permission";
  * where services come from, with the setup guide beside Create, and its
  * create form says what the name is matched on. The RUM list described
  * itself in resource attributes ("browser.* / device.*"), and the setup
- * guide under its empty list said the list was empty a second time.
+ * guide under its empty list said the list was empty a second time; an
+ * empty list shows what RUM gives now (Components/ResourceShowcase), and
+ * the guide follows the create form.
  *
  * Each page is rendered with its table recorded, so what the page really
  * hands the table is what is tested.
@@ -91,23 +93,6 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
 });
 
 jest.mock(
-  "../../../../App/FeatureSet/Dashboard/src/Components/Rum/RumDocumentationCard",
-  () => {
-    return {
-      __esModule: true,
-      default: (props: { title: string; description: string }) => {
-        return (
-          <div data-testid="rum-guide">
-            <h2>{props.title}</h2>
-            <p>{props.description}</p>
-          </div>
-        );
-      },
-    };
-  },
-);
-
-jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/ResourceOwners/useResourceOwners",
   () => {
     const actual: Record<string, unknown> = jest.requireActual(
@@ -169,6 +154,8 @@ jest.mock("../../../UI/Components/BulkUpdate/BulkArchiveActions", () => {
 
 import ServicesPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Service/Services";
 import RumApplications from "../../../../App/FeatureSet/Dashboard/src/Pages/Rum/RumApplications";
+import RUM_APPLICATION_SHOWCASE from "../../../../App/FeatureSet/Dashboard/src/Components/Rum/RumApplicationShowcase";
+import { RESOURCE_SHOWCASE_TEST_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceShowcase/ResourceShowcaseCard";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import {
   SERVICE_NAME_HELP,
@@ -347,7 +334,7 @@ describe("the RUM Applications list", () => {
     expect(card.description).not.toMatch(/browser\.\*|device\.\*/);
   });
 
-  test("a project without applications shows the guide, which does not say the list is empty again", async () => {
+  test("a project without applications shows the showcase under the list, and the table does not repeat Create", async () => {
     applicationCount = 0;
 
     await act(async () => {
@@ -355,17 +342,18 @@ describe("the RUM Applications list", () => {
     });
 
     expect(
-      await screen.findByText("Getting Started with Real User Monitoring"),
+      await screen.findByText(RUM_APPLICATION_SHOWCASE.title),
     ).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        "Pick what you are instrumenting and follow the steps. Your app appears in the list above once its first telemetry arrives.",
-      ),
-    ).toBeInTheDocument();
+    // What the product gives, not the guide: that follows the create form.
+    expect(screen.queryByTestId("setup-guide")).toBeNull();
     expect(screen.queryByText(/No RUM applications connected yet/)).toBeNull();
+    expect(
+      (lastTable()["emptyState"] as { hideCreateButton?: boolean })
+        .hideCreateButton,
+    ).toBe(true);
   });
 
-  test("a project with applications shows no guide under the list", async () => {
+  test("a project with applications shows no showcase under the list", async () => {
     await act(async () => {
       render(<RumApplications {...PAGE_PROPS} />);
     });
@@ -373,7 +361,11 @@ describe("the RUM Applications list", () => {
     await waitFor(() => {
       expect(modelTableCalls.length).toBeGreaterThan(0);
     });
-    expect(screen.queryByTestId("rum-guide")).toBeNull();
+    expect(screen.queryByTestId(RESOURCE_SHOWCASE_TEST_ID)).toBeNull();
+    expect(
+      (lastTable()["emptyState"] as { hideCreateButton?: boolean } | undefined)
+        ?.hideCreateButton,
+    ).toBeUndefined();
   });
 });
 

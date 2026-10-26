@@ -55,10 +55,11 @@ const DECLARED_AT: string = "Declared At";
 const DECLARED_AT_DESCRIPTION: string =
   "When was this incident first declared?";
 const GERMAN_DESCRIPTION: string =
-  "Wann wurde dieser Vorfall erstmals deklariert?";
+  "Wann wurde dieser Vorfall erstmals gemeldet?";
 
 const GERMAN_TRANSLATIONS: Record<string, string> = {
-  [DECLARED_AT]: "Erklärt am",
+  // German declares an incident as its Dashboard does: "Vorfall melden".
+  [DECLARED_AT]: "Gemeldet am",
   [DECLARED_AT_DESCRIPTION]: GERMAN_DESCRIPTION,
   [TIMEZONE_DESCRIPTION_TEMPLATE]:
     "Diese Angabe bezieht sich auf Ihre Zeitzone - {{abbreviation}} ({{timezone}}).",
@@ -192,7 +193,7 @@ describe("FormField - a DateTime field in German", () => {
     );
     expect(screen.queryByText(/When was this incident/)).toBeNull();
     expect(screen.queryByText(/This is in your timezone/)).toBeNull();
-    expect(screen.getByText("Erklärt am")).toBeInTheDocument();
+    expect(screen.getByText("Gemeldet am")).toBeInTheDocument();
   });
 
   test("the zone is shown as is, not escaped", () => {

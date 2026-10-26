@@ -48,7 +48,7 @@ flowchart TB
 | **仪表板** | 项目中的仪表板。新建一个，或通过 **Import JSON** 导入仪表板。 |
 | **设置 → 所有者规则** | 自动为新仪表板添加所有者。 |
 | **设置 → 标签规则** | 自动为新仪表板添加标签。 |
-| **设置 → Data Sources** | 连接 Prometheus、SQL 数据库、ClickHouse、Loki、Elasticsearch 或 REST API。 |
+| **设置 → 数据源** | 连接 Prometheus、SQL 数据库、ClickHouse、Loki、Elasticsearch 或 REST API。 |
 | **高级 → 已归档** | 你归档的仪表板。在这里取消归档。 |
 
 打开一个仪表板后，它自己的侧边菜单包含以下页面。除 **基础** 外，所有分区默认折叠：点击标题即可展开。

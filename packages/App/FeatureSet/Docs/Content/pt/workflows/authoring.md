@@ -15,7 +15,7 @@ Os workflows são criados desligados, então o gatilho deles não os inicia até
 
 ## O canvas
 
-Um workflow criado do zero abre com um único bloco tracejado escrito **Choose what starts this workflow**. Esse bloco é o ponto de partida: clique nele para escolher um gatilho. Um workflow criado a partir de um modelo abre com os blocos já no lugar.
+Um workflow criado do zero abre com um único bloco tracejado escrito **Escolha o que inicia este fluxo de trabalho**. Esse bloco é o ponto de partida: clique nele para escolher um gatilho. Um workflow criado a partir de um modelo abre com os blocos já no lugar.
 
 Todo workflow tem exatamente um **gatilho** no topo. Todo o resto é um **componente** que faz alguma coisa. Para trocar o gatilho, exclua-o: o espaço reservado tracejado volta ao lugar dele, e clicar nele permite escolher outro. Excluir um bloco também exclui as linhas dele, então ligue de novo o novo gatilho ao primeiro bloco.
 
@@ -30,7 +30,7 @@ As alterações são salvas automaticamente. Um selo na barra de ferramentas aco
 
 O botão da barra de ferramentas mostra **Adicionar gatilho** enquanto o workflow não tem um gatilho, e **Adicionar componente** assim que tem um.
 
-Os dois painéis abrem nos blocos que a maioria dos workflows usa, em **Popular**, seguidos pelos outros blocos integrados. Em **OneUptime resources**, clique em um recurso como **Incidente** para ver o que dá para fazer com ele; **Browse all resources** lista todos. Ou pesquise: digite algumas palavras, como `create incident`, e o resultado mais próximo aparece primeiro. Pressione `/` para ir à caixa de busca, as setas para percorrer os resultados e **Enter** para adicionar o bloco destacado. Clicar em um bloco o adiciona.
+Os dois painéis abrem nos blocos que a maioria dos workflows usa, em **Populares**, seguidos pelos outros blocos integrados. Em **Recursos do OneUptime**, clique em um recurso como **Incidente** para ver o que dá para fazer com ele; **Navegar por todos os recursos** lista todos. Ou pesquise: digite algumas palavras, como `create incident`, e o resultado mais próximo aparece primeiro. Pressione `/` para ir à caixa de busca, as setas para percorrer os resultados e **Enter** para adicionar o bloco destacado. Clicar em um bloco o adiciona.
 
 Um novo bloco aparece abaixo do bloco mais baixo do canvas, e um novo gatilho ocupa o lugar do bloco tracejado, no topo. O novo bloco fica selecionado e, se cair fora da área visível, o canvas rola só o suficiente para mostrá-lo. As configurações dele não se abrem sozinhas: clique no bloco quando estiver pronto para configurá-lo. Enquanto as configurações obrigatórias não estiverem preenchidas, ele mostra **Click to set up**.
 
@@ -84,7 +84,7 @@ A caixa de diálogo abre no que você provavelmente veio procurar. Para um gatil
 
 Abaixo disso, de cima para baixo:
 
-- **ID**, **Inputs** e **Outputs**, lado a lado — o identificador do bloco, de onde ele é alcançado e o que roda depois dele.
+- **ID**, **Entradas** e **Outputs**, lado a lado — o identificador do bloco, de onde ele é alcançado e o que roda depois dele.
 - **Returns** — os dados que este bloco entrega aos passos seguintes. Cada valor mostra a referência exata que o lê, com um botão para copiá-la.
 - **How to use** — o que o bloco faz em uma frase, os passos para configurá-lo, um exemplo para copiar e os erros mais comuns. O exemplo é montado a partir do seu workflow: usa o ID deste bloco, e os valores do gatilho onde coloca dados em uma mensagem. **Learn more** abre a explicação mais longa, e os links levam ao guia completo. Todo bloco tem uma, e o botão **How to use** no topo da caixa de diálogo vai direto para ela.
 
@@ -130,7 +130,7 @@ O jeito mais rápido de pegar o jeito do canvas é um workflow de dois blocos qu
 
 :::steps
 1. Clique no bloco tracejado de espaço reservado e depois em **Manual**, no painel **Adicionar gatilho**.
-2. Clique em **Adicionar componente** e depois em **Registro**, em **Popular**. O novo bloco aparece abaixo do gatilho. Ligue o ponto **Execute** do gatilho ao ponto de entrada do bloco Log, mais abaixo.
+2. Clique em **Adicionar componente** e depois em **Registro**, em **Populares**. O novo bloco aparece abaixo do gatilho. Ligue o ponto **Execute** do gatilho ao ponto de entrada do bloco Log, mais abaixo.
 3. Clique no bloco Log, que mostra **Click to set up**, e digite `Hello from ` no **Value** dele. Clique em **{ }** e depois em **JSON**, em **Manual**. A configuração mostra **Manual › JSON** e salva `{{local.components.manual-1.returnValues.value}}`. `manual-1` é o **Identifier** do gatilho, mostrado no bloco do gatilho. Clique em **Salvar**.
 4. De volta ao **Construtor**, clique em **Executar fluxo de trabalho**, coloque `{ "name": "Ada" }` no campo **JSON**, clique em **Executar fluxo de trabalho manualmente** e confirme com **Executar**. O workflow continua desligado, e não precisa estar ligado: uma execução que você mesmo inicia é uma **Execução de teste**.
 5. Um painel **Execução do Fluxo de Trabalho** se abre sozinho e acompanha a execução. Ele mostra **Execução de teste** no topo, e o log mostra `Value:` seguido de `Hello from` e do JSON que você digitou.

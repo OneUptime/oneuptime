@@ -63,13 +63,13 @@ flowchart TB
 
 | Felt | Hvad det angiver |
 | --- | --- |
-| **Layer name** | Hvad laget dækker, fx "Primær på hverdage". |
-| **Rotation starts at** | Den dato og det klokkeslæt, lagets rotation begynder. |
-| **Rotate every** | Hvor ofte vagten går videre til den næste person i laget. |
-| **First hand-off time** | Den første overdragelse til den næste person, ved eller efter starten. Senere overdragelser følger hvert rotationsinterval. |
-| **Restrictions** | De timer, laget har vagt: **Ingen begrænsninger**, **Bestemte tidspunkter på dagen** eller **Bestemte tidspunkter i ugen**, i vagtplanens tidszone. Uden for dem tager lavere lag over. |
+| **Lagnavn** | Hvad laget dækker, fx "Primær på hverdage". |
+| **Rotationen starter** | Den dato og det klokkeslæt, lagets rotation begynder. |
+| **Skift hver** | Hvor ofte vagten går videre til den næste person i laget. |
+| **Tidspunkt for første overdragelse** | Den første overdragelse til den næste person, ved eller efter starten. Senere overdragelser følger hvert rotationsinterval. |
+| **Begrænsninger** | De timer, laget har vagt: **Ingen begrænsninger**, **Bestemte tidspunkter på dagen** eller **Bestemte tidspunkter i ugen**, i vagtplanens tidszone. Uden for dem tager lavere lag over. |
 
-For at ændre, hvilket lag der kommer først, skal du bruge **Move layer up (higher priority)** eller **Move layer down (lower priority)** i et lags menu.
+For at ændre, hvilket lag der kommer først, skal du bruge **Flyt lag op (højere prioritet)** eller **Flyt lag ned (lavere prioritet)** i et lags menu.
 
 Hver person beholder én farve overalt, så du kan følge personen med et blik: i hvert lag, i den endelige vagtplan og dens overrides og på **Tidslinje for vagtplaner**.
 

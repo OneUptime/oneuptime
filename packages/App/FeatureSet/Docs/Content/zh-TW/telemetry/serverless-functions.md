@@ -197,7 +197,7 @@ az functionapp config appsettings set \
 OTEL_RESOURCE_ATTRIBUTES="faas.name=checkout-handler,oneuptime.label.team=payments,oneuptime.label.env=production"
 ```
 
-若要改為依函式名稱加上標籤或指派擁有者，請開啟 **產品 → 基礎設施 → 無伺服器**，並使用側邊選單中的 **標籤規則** 和 **擁有者規則**。規則會在建立函式時執行，包括自動探索到的函式。若要將規則套用到已有的函式，請使用該規則的 **Run Now**（請參閱 [對現有資源執行規則](/docs/configuration/run-rules-now)）。
+若要改為依函式名稱加上標籤或指派擁有者，請開啟 **產品 → 基礎設施 → 無伺服器**，並使用側邊選單中的 **標籤規則** 和 **擁有者規則**。規則會在建立函式時執行，包括自動探索到的函式。若要將規則套用到已有的函式，請使用該規則的 **立即執行**（請參閱 [對現有資源執行規則](/docs/configuration/run-rules-now)）。
 
 ## 疑難排解
 

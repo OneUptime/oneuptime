@@ -57,8 +57,8 @@ Begge registrerer et problem, og begge kan tilkalde den, der har vagt. Forskelle
 | --- | --- | --- |
 | **Hvad det er** | Et problem, der rammer dine brugere, for eksempel et nedbrud eller en opbremsning | Et problem, dit team bør se på, før brugerne bliver ramt |
 | **På statussider** | Kan vises, og giver abonnenter besked | Aldrig |
-| **Startstatusser** | **Identified**, **Bekræftet**, **Løst** | **Identified**, **Bekræftet**, **Løst** |
-| **Startalvorligheder** | Critical Incident, Major Incident, Minor Incident | **High**, **Low** |
+| **Startstatusser** | **Identificeret**, **Bekræftet**, **Løst** | **Identificeret**, **Bekræftet**, **Løst** |
+| **Startalvorligheder** | Critical Incident, Major Incident, Minor Incident | **Høj**, **Lav** |
 
 At bekræfte en siger, at nogen tager sig af den, og forhindrer dens vagtpolitikker i at tilkalde det næste niveau. At løse den afslutter den. Du kan tilføje dine egne statusser og alvorligheder og knytte advarsler til den hændelse, de viste sig at høre til.
 

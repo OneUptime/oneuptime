@@ -121,7 +121,7 @@ Uanset hvilken du bruger, lander du på den sædvanlige formular **Erklær ny h�
 | **Etiketter**          | Hver etiket fra hver valgt advarsel.                                                                                                                                                                                                                                                   |
 | **Privat hændelse**    | Slået til, hvis nogen af advarslerne er private. Formularen siger det, og advarslernes ejere bliver ejere af hændelsen — se nedenfor.                                                                                                                                                   |
 
-"Mest alvorlig" følger rækkefølgen af dine advarselsalvorsgrader: den første advarselsalvorsgrad i listen er den mest alvorlige. Med de alvorsgrader, hvert projekt starter med, bliver en advarsel **High** til en **Critical Incident** og en advarsel **Low** til en **Major Incident**.
+"Mest alvorlig" følger rækkefølgen af dine advarselsalvorsgrader: den første advarselsalvorsgrad i listen er den mest alvorlige. Med de alvorsgrader, hvert projekt starter med, bliver en advarsel **Høj** til en **Critical Incident** og en advarsel **Lav** til en **Major Incident**.
 
 Alt kan redigeres, før du sender. **Etiketter** og **Privat hændelse** ligger under **Flere felter** på formularens første trin, hvis sammenfoldede overskrift viser hver af dem, mens den er sat.
 

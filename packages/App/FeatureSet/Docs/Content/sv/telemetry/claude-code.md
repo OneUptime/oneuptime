@@ -266,6 +266,6 @@ OneUptime avvisar en felaktig `x-oneuptime-token`. Kopiera nyckeln igen från **
 
 :::cards
 - [AI-kodassistenter](/docs/telemetry/ai-coding-assistants): Så tilldelas kostnader för alla kodassistenter.
-- [AI- / LLM-observerbarhet](/docs/telemetry/ai-llm-observability): Konversationer, varningar, kostnad och budgetar för dina egna AI-anrop.
+- [AI- / LLM-observerbarhet](/docs/telemetry/ai-llm-observability): Konversationer, larm, kostnad och budgetar för dina egna AI-anrop.
 - [Metrikövervakning](/docs/monitor/metrics-monitor): Varna på kostnad eller tokens per utvecklare.
 :::

@@ -59,11 +59,11 @@ Scegliete una delle tre schede:
 
 - **Quick Setup** – fate clic su un [modello](#modelli-di-avviso-pronti). Imposta la metrica, l'aggregazione, l'intervallo di tempo e le soglie, e sostituisce i criteri più sotto con i propri. Potete comunque cambiare l'**Intervallo di tempo**.
 - **Custom Metric** – scegliete una metrica da **Docker Swarm Metric**, poi impostate **Aggregazione** e **Intervallo di tempo**. I [filtri](#impostazioni-del-monitor) la restringono ad alcuni task.
-- **Avanzato** – costruite voi query e formule in **Seleziona metriche**. Usate **Group by** `resource.container.name` per giudicare ogni task separatamente.
+- **Avanzato** – costruite voi query e formule in **Seleziona metriche**. Usate **Raggruppa per** `resource.container.name` per giudicare ogni task separatamente.
 
 ### Rivedere i criteri
 
-Aprite ogni criterio in **Criteri del monitor** e verificatene **Metrica**, **Aggregazione**, **Condizione** e **Threshold**. Un modello li compila. Con **Custom Metric** o **Avanzato**, il monitor parte con i [criteri predefiniti](#criteri-predefiniti), che notano solo una metrica che scende a zero, quindi impostate la vostra soglia.
+Aprite ogni criterio in **Criteri del monitor** e verificatene **Metrica**, **Aggregazione**, **Condizione** e **Soglia**. Un modello li compila. Con **Custom Metric** o **Avanzato**, il monitor parte con i [criteri predefiniti](#criteri-predefiniti), che notano solo una metrica che scende a zero, quindi impostate la vostra soglia.
 
 ### Creare il monitor
 
@@ -71,7 +71,7 @@ Fate clic su **Crea monitor**. OneUptime apre la pagina del monitor e lo valuta 
 :::
 
 > [!TIP]
-> Per configurare più modelli alla volta, aprite il cluster da **Prodotti → Infrastruttura → Docker Swarm** e andate in **Recommendations**. Scegliete i modelli che volete, scegliete chi viene avvisato, e OneUptime crea un monitor per modello.
+> Per configurare più modelli alla volta, aprite il cluster da **Prodotti → Infrastruttura → Docker Swarm** e andate in **Raccomandazioni**. Scegliete i modelli che volete, scegliete chi viene avvisato, e OneUptime crea un monitor per modello.
 
 ## Impostazioni del monitor
 
@@ -85,7 +85,7 @@ Fate clic su **Crea monitor**. OneUptime apre la pagina del monitor e lo valuta 
 | **Docker Swarm Metric** | Custom Metric | Una metrica del [catalogo](#metriche-raccolte). |
 | **Aggregazione** | Custom Metric | Come vengono combinati i campioni: **Media**, **Massimo**, **Minimo**, **Somma** o **Conteggio**. Parte dall'aggregazione abituale della metrica. |
 | **Intervallo di tempo** | Tutte | La finestra mobile che la query legge, da **Past 1 Minute** a **Past 365 Days**. Un nuovo monitor parte da **Past 1 Minute**; i modelli impostano la propria. |
-| **Seleziona metriche** | Avanzato | Il costruttore di query: **Metrica**, **Aggregate by**, **Filter by attributes**, **Group by**, più **Aggiungi metrica** e **Aggiungi formula** per combinare le query. |
+| **Seleziona metriche** | Avanzato | Il costruttore di query: **Metrica**, **Aggregate by**, **Filter by attributes**, **Raggruppa per**, più **Aggiungi metrica** e **Aggiungi formula** per combinare le query. |
 
 > [!WARNING]
 > L'agente distribuito non imposta ancora `docker.swarm.service.name` né `docker.swarm.node.name`, quindi un monitor con **Nome del servizio** o **Nome del nodo** compilato non trova dati. Restringete invece per **Immagine del container**, oppure raggruppate per `resource.container.name`.
@@ -137,7 +137,7 @@ Il collector dell'agente usa il receiver OpenTelemetry `docker_stats`, quindi le
 | Metrica | Unità | Descrizione |
 | --- | --- | --- |
 | `container.pids.count` | count | Processi all'interno del container di un task. Un aumento improvviso può indicare una fork bomb o un leak. |
-| `container.uptime` | seconds | Da quanto tempo è in esecuzione il container di un task. Un task ripianificato o riavviato avvia un nuovo container da 0. |
+| `container.uptime` | secondi | Da quanto tempo è in esecuzione il container di un task. Un task ripianificato o riavviato avvia un nuovo container da 0. |
 
 Ogni serie porta l'identità del container come attributi di risorsa: `resource.container.name` (`<service>.<slot>.<taskid>`), `resource.container.image.name` e `resource.docker.swarm.cluster.name`.
 
@@ -150,7 +150,7 @@ Un criterio confronta una delle query o formule del monitor con una soglia. I cr
 | **Metrica** | La query o la formula da controllare, tramite il suo nome di variabile. |
 | **Aggregazione** | Come i valori della finestra diventano un'unica risposta: **Media**, **Somma**, **Maximum Value**, **Minimum Value**, **All Values** (ogni valore deve corrispondere, su tutta la finestra) o **Any Value** (ne basta uno). |
 | **Condizione** | **Maggiore di**, **Minore di**, **Maggiore o uguale a**, **Minore o uguale a** o **Uguale a**, oppure una condizione di anomalia: **Anomalously High**, **Anomalously Low** o **Anomalous**. |
-| **Threshold** | Il valore con cui confrontare. Accanto c'è un elenco di unità quando la metrica ha un'unità. Non viene mostrato per le condizioni di anomalia. |
+| **Soglia** | Il valore con cui confrontare. Accanto c'è un elenco di unità quando la metrica ha un'unità. Non viene mostrato per le condizioni di anomalia. |
 | **Sensibilità** | Solo condizioni di anomalia. **Bassa** (4σ), **Media** (3σ, il predefinito) o **Alta** (2σ). |
 | **Finestra di riferimento** | Solo condizioni di anomalia. 14 giorni (il predefinito), 28, 60 o 90 giorni di storico. |
 | **Se nessun dato** | In **Altri campi**. Cosa succede quando la finestra non ha campioni: **Ignore** (predefinito), **Treat As Zero** o **Trigger**. |

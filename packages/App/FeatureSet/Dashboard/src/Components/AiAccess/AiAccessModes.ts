@@ -455,9 +455,27 @@ export function getAiAccessLooseningRefusal(data: {
 
         return capitalizeFirst(changes.join(getListSeparator(changes)));
       }),
-      permissions: data.permissionTitles.join(", "),
+      permissions: composedValue((translator: Translator): string => {
+        return getPermissionTitlesText(data.permissionTitles, translator);
+      }),
     },
   );
+}
+
+/*
+ * The permissions a sentence names, in its language: a built-in role's name
+ * (Project Owner, Settings Admin ...) reads as the role picker draws it, a
+ * permission with no translation of its own as given.
+ */
+export function getPermissionTitlesText(
+  permissionTitles: ReadonlyArray<string>,
+  translator: Translator = getGlobalTranslator(),
+): string {
+  return permissionTitles
+    .map((title: string): string => {
+      return translator.translateText(title) || title;
+    })
+    .join(", ");
 }
 
 /*
@@ -472,7 +490,12 @@ export function getAiAccessTestPermissionRequirement(
     "Testing the connection needs permission to edit this {{noun}} (one of: {{permissions}}).",
     {
       noun: translatableTerm(data.noun, { inSentence: true }),
-      permissions: data.permissionTitles.join(", "),
+      permissions: composedValue((sentenceTranslator: Translator): string => {
+        return getPermissionTitlesText(
+          data.permissionTitles,
+          sentenceTranslator,
+        );
+      }),
     },
   );
 }

@@ -42,6 +42,7 @@ import { comparableFence, escapeRegExp } from "./DocsTranslationChecks";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { writtenPermissionTitle } from "./DocsRoleNames";
 
 /*
  * The "One Status Page per Audience" guide, and the incident and status page
@@ -1338,9 +1339,13 @@ describe("One Status Page per Audience docs", () => {
       }
 
       for (const language of ALL_LANGUAGES) {
+        // The role, as the language's Dashboard names it.
         expect(
           boldText(readPage(GUIDE_PAGE, language)).has(
-            PermissionHelper.getTitle(Permission.StatusPageViewer),
+            writtenPermissionTitle(
+              language,
+              PermissionHelper.getTitle(Permission.StatusPageViewer),
+            ),
           ),
         ).toBe(true);
       }

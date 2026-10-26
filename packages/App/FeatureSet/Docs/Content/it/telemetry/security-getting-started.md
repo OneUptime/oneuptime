@@ -18,7 +18,7 @@ Configurare la sicurezza richiede il ruolo Project Owner, Project Admin o Securi
 :::steps
 ### Attivare ciò che serve alla maggior parte dei team
 
-Apri **Prodotti → Security Events**. In **Panoramica**, fai clic su **Attiva quanto consigliato**. Si attivano tre cose in una volta: **Trova eventi di sicurezza nei tuoi log**, le regole di rilevamento consigliate e **Enrich New Cases**, un playbook che confronta ogni nuovo caso con la threat intelligence e vi lascia una checklist per lo smistamento.
+Apri **Prodotti → Security Events**. In **Panoramica**, fai clic su **Attiva quanto consigliato**. Si attivano tre cose in una volta: **Trova eventi di sicurezza nei tuoi log**, le regole di rilevamento consigliate e **Arricchisci i nuovi casi**, un playbook che confronta ogni nuovo caso con la threat intelligence e vi lascia una checklist per lo smistamento.
 
 ### Inviare un attacco di prova
 
@@ -26,7 +26,7 @@ Fai clic su **Invia un attacco di prova**. Una dozzina di accessi falliti da un 
 
 ### Aprire il caso
 
-Fai clic su **Apri il caso**. Ecco come appare un vero risultato: gli eventi che lo motivano, l'indirizzo a cui si riferisce e ciò che **Enrich New Cases** ha trovato. Chiudilo come test quando hai finito.
+Fai clic su **Apri il caso**. Ecco come appare un vero risultato: gli eventi che lo motivano, l'indirizzo a cui si riferisce e ciò che **Arricchisci i nuovi casi** ha trovato. Chiudilo come test quando hai finito.
 :::
 
 Da quel momento, **Panoramica** si apre su ciò che richiede qualcuno, sotto **Richiede attenzione**: i tuoi casi aperti, quelli che nessuno ha preso in carico e i passaggi dei playbook in attesa di approvazione. Quando non ce ne sono, mostra **Tutto tranquillo**.
@@ -43,16 +43,16 @@ flowchart LR
 
 | Parte | Dove | Cosa fa |
 | --- | --- | --- |
-| **Fonti** | **Connections** | I tuoi log, i prodotti di sicurezza che OneUptime interroga e tutto ciò che invii |
-| **Detections** | **Detections** | Regole Sigma e feed di threat intelligence che cercano minacce in ogni evento |
+| **Fonti** | **Connessioni** | I tuoi log, i prodotti di sicurezza che OneUptime interroga e tutto ciò che invii |
+| **Rilevamenti** | **Rilevamenti** | Regole Sigma e feed di threat intelligence che cercano minacce in ogni evento |
 | **Casi di sicurezza** | **Casi di sicurezza** | Ciò che è stato trovato, raggruppato per l'utente, l'host o l'indirizzo a cui si riferisce |
-| **Playbooks** | **Playbooks** | Passaggi che vengono eseguiti sui nuovi casi: arricchirli, avvisare, aprire un incidente o contenere |
+| **Playbook** | **Playbook** | Passaggi che vengono eseguiti sui nuovi casi: arricchirli, avvisare, aprire un incidente o contenere |
 
 In cima a **Panoramica**, sotto ciò che richiede qualcuno, ogni parte mostra i suoi numeri: le origini e i loro eventi delle ultime 24 ore, le regole attive, i casi aperti e i playbook che rispondono. Una parte non configurata lo dice e apre la pagina in cui configurarla.
 
 ## Trovare eventi di sicurezza nei tuoi log
 
-La scheda **I tuoi log**, in cima a **Connections**, non richiede installazioni. Con **Trova eventi di sicurezza nei tuoi log** attivo, OneUptime legge ogni minuto i nuovi log del progetto e trasforma in eventi di sicurezza le righe che riconosce:
+La scheda **I tuoi log**, in cima a **Connessioni**, non richiede installazioni. Con **Trova eventi di sicurezza nei tuoi log** attivo, OneUptime legge ogni minuto i nuovi log del progetto e trasforma in eventi di sicurezza le righe che riconosce:
 
 | Log | Cosa diventa un evento di sicurezza |
 | --- | --- |
@@ -66,7 +66,7 @@ I tuoi log restano come sono. Solo le righe che contano per la sicurezza diventa
 
 ## Inviare al tuo SIEM ciò che OneUptime trova
 
-Se il tuo team lavora già in un SIEM, OneUptime invia lì anche ciò che trova. In **Connections → Invia al tuo SIEM**, fai clic su **Aggiungi destinazione**, inserisci la regione, l'istanza e la chiave dell'account di servizio del tuo Google SecOps e fai clic su **Invia un evento di prova** prima di salvare. Vedi [Inviare eventi di sicurezza a Google SecOps](/docs/integrations/google-secops#inviare-eventi-di-sicurezza-a-google-secops).
+Se il tuo team lavora già in un SIEM, OneUptime invia lì anche ciò che trova. In **Connessioni → Invia al tuo SIEM**, fai clic su **Aggiungi destinazione**, inserisci la regione, l'istanza e la chiave dell'account di servizio del tuo Google SecOps e fai clic su **Invia un evento di prova** prima di salvare. Vedi [Inviare eventi di sicurezza a Google SecOps](/docs/integrations/google-secops#inviare-eventi-di-sicurezza-a-google-secops).
 
 ## Risoluzione dei problemi
 
@@ -79,7 +79,7 @@ La scheda indica ogni elemento che non è riuscita ad attivare, e il motivo: il 
 :::
 
 :::details L'attacco di prova non ha aperto alcun caso
-Di solito il caso si apre prima che il pulsante risponda; quando la regola è ancora in ritardo, lo dice e il caso si apre entro un minuto. Controlla di nuovo **Casi di sicurezza** e verifica in **Detections** che la regola di forza bruta sia attiva.
+Di solito il caso si apre prima che il pulsante risponda; quando la regola è ancora in ritardo, lo dice e il caso si apre entro un minuto. Controlla di nuovo **Casi di sicurezza** e verifica in **Rilevamenti** che la regola di forza bruta sia attiva.
 :::
 
 :::details Dai miei log non arriva alcun evento di sicurezza
@@ -87,7 +87,7 @@ Verifica che **Trova eventi di sicurezza nei tuoi log** sia attivo e che la sche
 :::
 
 :::details Panoramica dice che l'ultimo evento di sicurezza è arrivato giorni fa
-Da allora a Security non è arrivato niente. Apri **Connections** e verifica che **I tuoi log** e ogni connessione siano ancora attivi, e quando ognuno ha controllato l'ultima volta.
+Da allora a Security non è arrivato niente. Apri **Connessioni** e verifica che **I tuoi log** e ogni connessione siano ancora attivi, e quando ognuno ha controllato l'ultima volta.
 :::
 
 :::details La scheda che attiva Security è sparita

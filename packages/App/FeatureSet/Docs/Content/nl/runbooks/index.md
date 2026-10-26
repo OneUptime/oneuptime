@@ -45,7 +45,7 @@ HTTP- en AI-stappen lopen op de OneUptime Worker. Bash-, SSH- en kubectl-stappen
 | **Runbook** | Het sjabloon. Een benoemde, herbruikbare procedure met een geordende lijst stappen en een schakelaar **Dit runbook uitvoeren**. |
 | **Stap** | Eén onderdeel van een runbook. Een stap heeft een type (Manual, JavaScript, HTTP request, Bash, SSH, kubectl of AI), een titel, een beschrijving en typespecifieke instellingen. |
 | **Runbook-regel** | Een regel die automatisch een of meer runbooks koppelt aan incidenten, waarschuwingen of geplande onderhoudsevenementen die aan de voorwaarden voldoen: hun monitoren, ernst, labels, monitorlabels, titel of beschrijving. |
-| **Uitvoering** | Eén run van een runbook. Ontstaat wanneer een regel afgaat, wanneer iemand op een evenement op **Runbook uitvoeren** klikt, of wanneer iemand op het runbook zelf op **Run Now** klikt. Bevat een momentopname van de stappen en de status en uitvoer van elke stap. |
+| **Uitvoering** | Eén run van een runbook. Ontstaat wanneer een regel afgaat, wanneer iemand op een evenement op **Runbook uitvoeren** klikt, of wanneer iemand op het runbook zelf op **Nu uitvoeren** klikt. Bevat een momentopname van de stappen en de status en uitvoer van elke stap. |
 | **Momentopname** | De bevroren kopie van de stappen van het runbook die op elke uitvoering staat. U kunt het runbook later bewerken zonder de geschiedenis van eerdere uitvoeringen te herschrijven. |
 | **Runner** | Een kleine agent die u op een host in uw eigen infrastructuur draait. Hij voert de JavaScript-, Bash-, SSH- en kubectl-stappen uit die hem noemen. Ook wel runbook-agent genoemd. Een globale Runner, een van de Runners die OneUptime voor elk project draait, voert de JavaScript-stappen uit die er geen noemen, tenzij het project een standaard-Runner heeft. |
 | **Variabele** | Een waarde die stappen bij naam gebruiken, zoals een host of een URL: `{{global.variables.NAME}}` voor een van het project, die elk runbook kan gebruiken, of `{{local.variables.NAME}}` voor een van het runbook zelf. |
@@ -73,7 +73,7 @@ Een runbook kan ze allemaal combineren. De kracht van runbooks zit in het afwiss
 | --- | --- | --- |
 | Een runbook-regel | **Incidenten**, **Waarschuwingen** of **Geplande onderhoud** → **Regels** → **Runbook-regels** | Het nieuwe incident, de nieuwe waarschuwing of het nieuwe evenement |
 | **Runbook uitvoeren** | De pagina **Runbooks** van een incident, een waarschuwing of een gepland onderhoudsevenement | Dat evenement |
-| **Run Now** | De pagina **Overzicht** van het runbook | Niets: een losse uitvoering |
+| **Nu uitvoeren** | De pagina **Overzicht** van het runbook | Niets: een losse uitvoering |
 | Een AI-regel | Zie [AI SRE](/docs/ai/ai-sre) | Het incident of de waarschuwing |
 | Het schema van het runbook | De pagina **Triggers** van het runbook, zie [Runbook-triggers](/docs/runbooks/triggers#uitvoeren-volgens-een-schema) | Niets: een onbewaakte uitvoering |
 | Een aanroep van de webhook-URL van het runbook | De pagina **Triggers** van het runbook, zie [Runbook-triggers](/docs/runbooks/triggers#de-webhook-aanroepen) | Niets: de uitvoering bewaart de waarden die de aanroep verstuurde |
@@ -87,8 +87,8 @@ Runbooks staat onder **Producten**, in de groep **Dashboards & automatisering**.
 | Pagina | Wat u daar doet |
 | --- | --- |
 | **Producten → Runbooks** | Runbooks bekijken, maken en openen. |
-| De **Stappen** van een runbook | De stappen schrijven en herordenen, dan **Save Steps**. |
-| Het **Overzicht** van een runbook | De laatste uitvoering en de resultaten zien, en op **Run Now** klikken. |
+| De **Stappen** van een runbook | De stappen schrijven en herordenen, dan **Stappen opslaan**. |
+| Het **Overzicht** van een runbook | De laatste uitvoering en de resultaten zien, en op **Nu uitvoeren** klikken. |
 | De **Uitvoeringen** van een runbook | Elke uitvoering van dit runbook, gefilterd op status of startdatum. |
 | **Triggers** van een runbook | Het volgens een [schema](/docs/runbooks/triggers#uitvoeren-volgens-een-schema) uitvoeren, of vanuit een ander hulpmiddel via zijn [webhook-URL](/docs/runbooks/triggers#de-webhook-aanroepen). |
 | De **Variabelen** van een runbook | De [variabelen](/docs/runbooks/variables) beheren die alleen de stappen van dat runbook gebruiken. |
@@ -118,7 +118,7 @@ Stel dat u wilt dat elk incident met "db-primary" in de titel een database-failo
 :::steps
 ### Het runbook maken
 
-Klik onder **Runbooks** op **Runbook aanmaken** en noem het "DB primary failover". Het opent op **Stappen**: voeg deze stappen toe en klik dan op **Save Steps**:
+Klik onder **Runbooks** op **Runbook aanmaken** en noem het "DB primary failover". Het opent op **Stappen**: voeg deze stappen toe en klik dan op **Stappen opslaan**:
 
 | # | Type | Titel |
 | --- | --- | --- |

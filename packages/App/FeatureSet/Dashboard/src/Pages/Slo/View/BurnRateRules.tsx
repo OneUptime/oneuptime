@@ -40,11 +40,11 @@ import React, {
   useState,
 } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import {
-  TranslatableTerm,
-  translatableTerm,
-  Translator,
-} from "Common/UI/Utils/TranslateTemplate";
+  BURN_RATE_RULE_NOTHING_PICKED,
+  getNamesOrNothingPicked,
+} from "../Utils/BurnRateRuleLines";
 
 const documentationMarkdown: string = `
 ### How Burn Rate Rules Work
@@ -201,24 +201,27 @@ const renderLines: RenderLinesFunction = (
 type DescribeOwnersFunction = (
   teams: Array<Team> | undefined,
   users: Array<User> | undefined,
-) => string | TranslatableTerm;
+  translator: Translator,
+) => string;
 
 const describeOwners: DescribeOwnersFunction = (
   teams: Array<Team> | undefined,
   users: Array<User> | undefined,
-): string | TranslatableTerm => {
-  const names: Array<string> = [
-    ...(teams || []).map((team: Team): string => {
-      return team.name || "";
-    }),
-    ...(users || []).map((user: User): string => {
-      return user.name?.toString() || user.email?.toString() || "";
-    }),
-  ].filter((name: string): boolean => {
-    return Boolean(name);
-  });
-
-  return names.length > 0 ? names.join(", ") : translatableTerm("None");
+  translator: Translator,
+): string => {
+  // Each name as the line says it, or the reader's word for none.
+  return getNamesOrNothingPicked(
+    [
+      ...(teams || []).map((team: Team): string => {
+        return team.name || "";
+      }),
+      ...(users || []).map((user: User): string => {
+        return user.name?.toString() || user.email?.toString() || "";
+      }),
+    ],
+    BURN_RATE_RULE_NOTHING_PICKED.owners,
+    translator,
+  );
 };
 
 const SloBurnRateRules: FunctionComponent<
@@ -506,8 +509,11 @@ const SloBurnRateRules: FunctionComponent<
               if (willCreateAlert(item)) {
                 lines.push(
                   translator.translateTemplate("Alert: {{severity}}", {
-                    severity:
-                      item.alertSeverity?.name || translatableTerm("Default"),
+                    severity: getNamesOrNothingPicked(
+                      [item.alertSeverity?.name],
+                      BURN_RATE_RULE_NOTHING_PICKED.severity,
+                      translator,
+                    ),
                   }),
                 );
               }
@@ -515,9 +521,11 @@ const SloBurnRateRules: FunctionComponent<
               if (willDeclareIncident(item)) {
                 lines.push(
                   translator.translateTemplate("Incident: {{severity}}", {
-                    severity:
-                      item.incidentSeverity?.name ||
-                      translatableTerm("Default"),
+                    severity: getNamesOrNothingPicked(
+                      [item.incidentSeverity?.name],
+                      BURN_RATE_RULE_NOTHING_PICKED.severity,
+                      translator,
+                    ),
                   }),
                 );
               }
@@ -539,23 +547,25 @@ const SloBurnRateRules: FunctionComponent<
             ): ReactElement => {
               const describePolicies: (
                 policies: Array<OnCallDutyPolicy> | undefined,
-              ) => string | TranslatableTerm = (
+              ) => string = (
                 policies: Array<OnCallDutyPolicy> | undefined,
-              ): string | TranslatableTerm => {
-                const names: Array<string> = (policies || [])
-                  .map((policy: OnCallDutyPolicy) => {
+              ): string => {
+                const names: Array<string> = (policies || []).map(
+                  (policy: OnCallDutyPolicy): string => {
                     return policy.name || "";
-                  })
-                  .filter(Boolean);
+                  },
+                );
 
                 /*
                  * A rule with no policy still declares its alert or incident,
                  * but nothing escalates it — worth saying, because "I have a
                  * fast-burn rule" is usually shorthand for "I will get paged".
                  */
-                return names.length > 0
-                  ? names.join(", ")
-                  : translatableTerm("No escalation");
+                return getNamesOrNothingPicked(
+                  names,
+                  BURN_RATE_RULE_NOTHING_PICKED.onCallPolicies,
+                  translator,
+                );
               };
 
               const lines: Array<string> = [];
@@ -607,6 +617,7 @@ const SloBurnRateRules: FunctionComponent<
                     owners: describeOwners(
                       item.alertOwnerTeams,
                       item.alertOwnerUsers,
+                      translator,
                     ),
                   }),
                 );
@@ -618,6 +629,7 @@ const SloBurnRateRules: FunctionComponent<
                     owners: describeOwners(
                       item.incidentOwnerTeams,
                       item.incidentOwnerUsers,
+                      translator,
                     ),
                   }),
                 );

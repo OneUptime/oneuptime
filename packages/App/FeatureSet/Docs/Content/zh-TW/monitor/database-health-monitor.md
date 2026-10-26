@@ -225,9 +225,9 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 
 | 群組 | 收集的內容 | 需要 |
 |---|---|---|
-| Connections | 連線數、設定的上限、中止的連線、伺服器運作時間 | PostgreSQL：`pg_monitor`。MySQL：`performance_schema`。SQL Server：`VIEW SERVER STATE` |
+| 連線 | 連線數、設定的上限、中止的連線、伺服器運作時間 | PostgreSQL：`pg_monitor`。MySQL：`performance_schema`。SQL Server：`VIEW SERVER STATE` |
 | Activity | 執行最久的查詢、開啟最久的交易、開啟中的交易 | PostgreSQL：`pg_monitor`。MySQL：`PROCESS`。SQL Server：`VIEW SERVER STATE` |
-| Throughput | 交易、查詢、快取命中率、磁碟讀寫、I/O 時間 | PostgreSQL：除 `CONNECT` 外不需其他權限。MySQL：`performance_schema`。SQL Server：`VIEW SERVER STATE` |
+| 輸送量 | 交易、查詢、快取命中率、磁碟讀寫、I/O 時間 | PostgreSQL：除 `CONNECT` 外不需其他權限。MySQL：`performance_schema`。SQL Server：`VIEW SERVER STATE` |
 | Locks | 被封鎖的工作階段、鎖定等待、死結、資料表鎖定等待 | PostgreSQL：`pg_monitor`。MySQL：`performance_schema`。SQL Server：`VIEW SERVER STATE` |
 | Storage | 資料庫大小、溢出到暫存檔、記錄空間、tempdb 可用空間 | PostgreSQL：除 `CONNECT` 外不需其他權限。MySQL：對該資料庫的 `SELECT`。SQL Server：資料庫大小不需權限；記錄空間和 tempdb 可用空間需要 `VIEW SERVER STATE` |
 | Replication | 已連線的複本、以秒和位元組計的複寫延遲、非作用中的槽位、復原狀態 | PostgreSQL：`pg_monitor`。MySQL：`REPLICATION CLIENT`。SQL Server：`VIEW SERVER STATE`；在 Azure SQL Database 上不收集 |
@@ -274,28 +274,28 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 
 | 指標 | 序列 | Group | Engines |
 |---|---|---|---|
-| **Uptime** (s) | `oneuptime.monitor.database.uptime.seconds` | Connections | PostgreSQL, MySQL, SQL Server |
-| **Metric Groups Failed** | `oneuptime.monitor.database.metric.groups.failed` | Connections | PostgreSQL, MySQL, SQL Server |
+| **Uptime** (s) | `oneuptime.monitor.database.uptime.seconds` | 連線 | PostgreSQL, MySQL, SQL Server |
+| **Metric Groups Failed** | `oneuptime.monitor.database.metric.groups.failed` | 連線 | PostgreSQL, MySQL, SQL Server |
 
 ### 連線
 
 | 指標 | 序列 | Group | Engines |
 |---|---|---|---|
-| **Connections** | `oneuptime.monitor.database.connections.total` | Connections | PostgreSQL, MySQL, SQL Server |
-| **Active Connections** | `oneuptime.monitor.database.connections.active` | Connections | PostgreSQL, MySQL, SQL Server |
-| **Maximum Connections** | `oneuptime.monitor.database.connections.max` | Connections | PostgreSQL, MySQL |
-| **Connections Used** (%) | `oneuptime.monitor.database.connections.used.percent` | Connections | PostgreSQL, MySQL |
-| **Idle In Transaction** | `oneuptime.monitor.database.connections.idle.in.transaction` | Connections | PostgreSQL |
-| **Aborted Connects** | `oneuptime.monitor.database.connections.aborted.total` | Connections | MySQL |
+| **Connections** | `oneuptime.monitor.database.connections.total` | 連線 | PostgreSQL, MySQL, SQL Server |
+| **Active Connections** | `oneuptime.monitor.database.connections.active` | 連線 | PostgreSQL, MySQL, SQL Server |
+| **Maximum Connections** | `oneuptime.monitor.database.connections.max` | 連線 | PostgreSQL, MySQL |
+| **Connections Used** (%) | `oneuptime.monitor.database.connections.used.percent` | 連線 | PostgreSQL, MySQL |
+| **Idle In Transaction** | `oneuptime.monitor.database.connections.idle.in.transaction` | 連線 | PostgreSQL |
+| **Aborted Connects** | `oneuptime.monitor.database.connections.aborted.total` | 連線 | MySQL |
 
 ### 輸送量
 
 | 指標 | 序列 | Group | Engines |
 |---|---|---|---|
-| **Transactions** | `oneuptime.monitor.database.transactions.total` | Throughput | PostgreSQL, SQL Server |
-| **Queries** | `oneuptime.monitor.database.queries.total` | Throughput | MySQL, SQL Server |
-| **Slow Queries** | `oneuptime.monitor.database.queries.slow.total` | Throughput | MySQL |
-| **Rollback Ratio** (%) | `oneuptime.monitor.database.rollback.percent` | Throughput | PostgreSQL |
+| **Transactions** | `oneuptime.monitor.database.transactions.total` | 輸送量 | PostgreSQL, SQL Server |
+| **Queries** | `oneuptime.monitor.database.queries.total` | 輸送量 | MySQL, SQL Server |
+| **Slow Queries** | `oneuptime.monitor.database.queries.slow.total` | 輸送量 | MySQL |
+| **Rollback Ratio** (%) | `oneuptime.monitor.database.rollback.percent` | 輸送量 | PostgreSQL |
 | **Longest Running Query** (s) | `oneuptime.monitor.database.query.longest.seconds` | Activity | PostgreSQL, MySQL, SQL Server |
 | **Longest Open Transaction** (s) | `oneuptime.monitor.database.transaction.longest.seconds` | Activity | PostgreSQL, MySQL, SQL Server |
 | **Open Transactions** | `oneuptime.monitor.database.transaction.open.count` | Activity | MySQL |
@@ -315,13 +315,13 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 
 | 指標 | 序列 | Group | Engines |
 |---|---|---|---|
-| **Cache Hit Ratio** (%) | `oneuptime.monitor.database.cache.hit.percent` | Throughput | PostgreSQL, MySQL, SQL Server |
-| **Disk Reads** | `oneuptime.monitor.database.disk.reads.total` | Throughput | PostgreSQL, MySQL, SQL Server |
-| **Disk Writes** | `oneuptime.monitor.database.disk.writes.total` | Throughput | MySQL, SQL Server |
-| **I/O Read Time** (ms) | `oneuptime.monitor.database.io.read.time.ms` | Throughput | PostgreSQL, SQL Server |
-| **I/O Write Time** (ms) | `oneuptime.monitor.database.io.write.time.ms` | Throughput | PostgreSQL, SQL Server |
-| **Page Life Expectancy** (s) | `oneuptime.monitor.database.page.life.expectancy.seconds` | Throughput | SQL Server |
-| **Memory Grants Pending** | `oneuptime.monitor.database.memory.grants.pending` | Throughput | SQL Server |
+| **Cache Hit Ratio** (%) | `oneuptime.monitor.database.cache.hit.percent` | 輸送量 | PostgreSQL, MySQL, SQL Server |
+| **Disk Reads** | `oneuptime.monitor.database.disk.reads.total` | 輸送量 | PostgreSQL, MySQL, SQL Server |
+| **Disk Writes** | `oneuptime.monitor.database.disk.writes.total` | 輸送量 | MySQL, SQL Server |
+| **I/O Read Time** (ms) | `oneuptime.monitor.database.io.read.time.ms` | 輸送量 | PostgreSQL, SQL Server |
+| **I/O Write Time** (ms) | `oneuptime.monitor.database.io.write.time.ms` | 輸送量 | PostgreSQL, SQL Server |
+| **Page Life Expectancy** (s) | `oneuptime.monitor.database.page.life.expectancy.seconds` | 輸送量 | SQL Server |
+| **Memory Grants Pending** | `oneuptime.monitor.database.memory.grants.pending` | 輸送量 | SQL Server |
 
 只有在 `track_io_timing` 開啟時，PostgreSQL 才會測量 I/O 讀寫時間。它預設是關閉的，這時 PostgreSQL 會把兩者都回報為 `0`——所以在 PostgreSQL 上，這兩個序列一直是零通常表示「沒有測量」，而不是「很快」。這是伺服器設定，不是權限問題。
 
@@ -412,7 +412,7 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 | 2 | **效能下降** | `Database Metric` → Connections Used 大於 `90`，以 All Values 在 5 分鐘內評估，這樣單次尖峰不會呼叫任何人。 |
 | 3 | **效能下降** | `Database Metric` → Transaction ID Used 大於 `80`。 |
 | 4 | **效能下降** | `Database Metric` → Blocked Sessions 在 5 分鐘內大於 `0`。 |
-| 5 | **Online** | `Database Is Online` 為 `true`。 |
+| 5 | **在線** | `Database Is Online` 為 `true`。 |
 
 條件會依由上而下的順序評估，第一個符合的條件生效，所以請把警示條件放在前面，把健康條件放在最後。
 

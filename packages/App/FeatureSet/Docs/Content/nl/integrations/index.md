@@ -113,7 +113,7 @@ Begin voor een alertingtool met een [Incoming Request-monitor](/docs/monitor/inc
 
 :::steps
 1. Open **Workflows**, klik op **Workflow maken** en daarna op **Vanaf nul beginnen**. Geef de workflow een naam en klik op **Workflow maken**.
-2. Klik op het gestippelde blok **Choose what starts this workflow** en kies **Webhook**. Klik op de trigger en daarna op **URL kopiëren**.
+2. Klik op het gestippelde blok **Kies wat deze workflow start** en kies **Webhook**. Klik op de trigger en daarna op **URL kopiëren**.
 3. Stuur in de andere tool de webhook naar die URL als een `POST` met `Content-Type: application/json`.
 4. Voeg de blokken toe die erop reageren. Ze lezen het verzoek met verwijzingen zoals `{{local.components.webhook-1.returnValues.request-body.status}}`: een **If / Else**-blok om een veld te controleren, en daarna **Create One Incident** om een incident te melden.
 5. Zet **Ingeschakeld** aan bovenaan de **Bouwer**, stuur een test vanuit de andere tool en open **Logboeken → Uitvoeringen** om te zien wat er binnenkwam.

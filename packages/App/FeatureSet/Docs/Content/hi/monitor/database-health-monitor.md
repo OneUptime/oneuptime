@@ -225,9 +225,9 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 
 | ग्रुप | क्या इकट्ठा करता है | क्या चाहिए |
 |---|---|---|
-| Connections | कनेक्शन की गिनती, सेट की गई सीमा, रद्द हुए कनेक्शन प्रयास, सर्वर का अपटाइम | PostgreSQL: `pg_monitor`। MySQL: `performance_schema`। SQL Server: `VIEW SERVER STATE` |
+| कनेक्शन | कनेक्शन की गिनती, सेट की गई सीमा, रद्द हुए कनेक्शन प्रयास, सर्वर का अपटाइम | PostgreSQL: `pg_monitor`। MySQL: `performance_schema`। SQL Server: `VIEW SERVER STATE` |
 | Activity | सबसे लंबी चल रही क्वेरी, सबसे लंबा खुला ट्रांज़ैक्शन, खुले ट्रांज़ैक्शन | PostgreSQL: `pg_monitor`। MySQL: `PROCESS`। SQL Server: `VIEW SERVER STATE` |
-| Throughput | ट्रांज़ैक्शन, क्वेरी, कैश हिट अनुपात, डिस्क रीड और राइट, I/O समय | PostgreSQL: `CONNECT` के अलावा कुछ नहीं। MySQL: `performance_schema`। SQL Server: `VIEW SERVER STATE` |
+| थ्रूपुट | ट्रांज़ैक्शन, क्वेरी, कैश हिट अनुपात, डिस्क रीड और राइट, I/O समय | PostgreSQL: `CONNECT` के अलावा कुछ नहीं। MySQL: `performance_schema`। SQL Server: `VIEW SERVER STATE` |
 | Locks | ब्लॉक हुए सेशन, लॉक प्रतीक्षा, डेडलॉक, टेबल लॉक प्रतीक्षा | PostgreSQL: `pg_monitor`। MySQL: `performance_schema`। SQL Server: `VIEW SERVER STATE` |
 | Storage | डेटाबेस का आकार, अस्थायी फ़ाइलों में जाना, लॉग की जगह, tempdb की खाली जगह | PostgreSQL: `CONNECT` के अलावा कुछ नहीं। MySQL: डेटाबेस पर `SELECT`। SQL Server: डेटाबेस के आकार के लिए कुछ नहीं; लॉग की जगह और tempdb की खाली जगह के लिए `VIEW SERVER STATE` |
 | Replication | जुड़ी हुई रेप्लिका, सेकंड और बाइट में रेप्लिकेशन लैग, निष्क्रिय स्लॉट, रिकवरी स्थिति | PostgreSQL: `pg_monitor`। MySQL: `REPLICATION CLIENT`। SQL Server: `VIEW SERVER STATE`; Azure SQL Database पर इकट्ठा नहीं होता |
@@ -274,28 +274,28 @@ Azure SQL Database पर, जहाँ भी यह तालिका `VIEW S
 
 | मेट्रिक | सीरीज़ | Group | Engines |
 |---|---|---|---|
-| **Uptime** (s) | `oneuptime.monitor.database.uptime.seconds` | Connections | PostgreSQL, MySQL, SQL Server |
-| **Metric Groups Failed** | `oneuptime.monitor.database.metric.groups.failed` | Connections | PostgreSQL, MySQL, SQL Server |
+| **Uptime** (s) | `oneuptime.monitor.database.uptime.seconds` | कनेक्शन | PostgreSQL, MySQL, SQL Server |
+| **Metric Groups Failed** | `oneuptime.monitor.database.metric.groups.failed` | कनेक्शन | PostgreSQL, MySQL, SQL Server |
 
 ### कनेक्शन
 
 | मेट्रिक | सीरीज़ | Group | Engines |
 |---|---|---|---|
-| **Connections** | `oneuptime.monitor.database.connections.total` | Connections | PostgreSQL, MySQL, SQL Server |
-| **Active Connections** | `oneuptime.monitor.database.connections.active` | Connections | PostgreSQL, MySQL, SQL Server |
-| **Maximum Connections** | `oneuptime.monitor.database.connections.max` | Connections | PostgreSQL, MySQL |
-| **Connections Used** (%) | `oneuptime.monitor.database.connections.used.percent` | Connections | PostgreSQL, MySQL |
-| **Idle In Transaction** | `oneuptime.monitor.database.connections.idle.in.transaction` | Connections | PostgreSQL |
-| **Aborted Connects** | `oneuptime.monitor.database.connections.aborted.total` | Connections | MySQL |
+| **Connections** | `oneuptime.monitor.database.connections.total` | कनेक्शन | PostgreSQL, MySQL, SQL Server |
+| **Active Connections** | `oneuptime.monitor.database.connections.active` | कनेक्शन | PostgreSQL, MySQL, SQL Server |
+| **Maximum Connections** | `oneuptime.monitor.database.connections.max` | कनेक्शन | PostgreSQL, MySQL |
+| **Connections Used** (%) | `oneuptime.monitor.database.connections.used.percent` | कनेक्शन | PostgreSQL, MySQL |
+| **Idle In Transaction** | `oneuptime.monitor.database.connections.idle.in.transaction` | कनेक्शन | PostgreSQL |
+| **Aborted Connects** | `oneuptime.monitor.database.connections.aborted.total` | कनेक्शन | MySQL |
 
 ### थ्रूपुट
 
 | मेट्रिक | सीरीज़ | Group | Engines |
 |---|---|---|---|
-| **Transactions** | `oneuptime.monitor.database.transactions.total` | Throughput | PostgreSQL, SQL Server |
-| **Queries** | `oneuptime.monitor.database.queries.total` | Throughput | MySQL, SQL Server |
-| **Slow Queries** | `oneuptime.monitor.database.queries.slow.total` | Throughput | MySQL |
-| **Rollback Ratio** (%) | `oneuptime.monitor.database.rollback.percent` | Throughput | PostgreSQL |
+| **Transactions** | `oneuptime.monitor.database.transactions.total` | थ्रूपुट | PostgreSQL, SQL Server |
+| **Queries** | `oneuptime.monitor.database.queries.total` | थ्रूपुट | MySQL, SQL Server |
+| **Slow Queries** | `oneuptime.monitor.database.queries.slow.total` | थ्रूपुट | MySQL |
+| **Rollback Ratio** (%) | `oneuptime.monitor.database.rollback.percent` | थ्रूपुट | PostgreSQL |
 | **Longest Running Query** (s) | `oneuptime.monitor.database.query.longest.seconds` | Activity | PostgreSQL, MySQL, SQL Server |
 | **Longest Open Transaction** (s) | `oneuptime.monitor.database.transaction.longest.seconds` | Activity | PostgreSQL, MySQL, SQL Server |
 | **Open Transactions** | `oneuptime.monitor.database.transaction.open.count` | Activity | MySQL |
@@ -315,13 +315,13 @@ Azure SQL Database पर, जहाँ भी यह तालिका `VIEW S
 
 | मेट्रिक | सीरीज़ | Group | Engines |
 |---|---|---|---|
-| **Cache Hit Ratio** (%) | `oneuptime.monitor.database.cache.hit.percent` | Throughput | PostgreSQL, MySQL, SQL Server |
-| **Disk Reads** | `oneuptime.monitor.database.disk.reads.total` | Throughput | PostgreSQL, MySQL, SQL Server |
-| **Disk Writes** | `oneuptime.monitor.database.disk.writes.total` | Throughput | MySQL, SQL Server |
-| **I/O Read Time** (ms) | `oneuptime.monitor.database.io.read.time.ms` | Throughput | PostgreSQL, SQL Server |
-| **I/O Write Time** (ms) | `oneuptime.monitor.database.io.write.time.ms` | Throughput | PostgreSQL, SQL Server |
-| **Page Life Expectancy** (s) | `oneuptime.monitor.database.page.life.expectancy.seconds` | Throughput | SQL Server |
-| **Memory Grants Pending** | `oneuptime.monitor.database.memory.grants.pending` | Throughput | SQL Server |
+| **Cache Hit Ratio** (%) | `oneuptime.monitor.database.cache.hit.percent` | थ्रूपुट | PostgreSQL, MySQL, SQL Server |
+| **Disk Reads** | `oneuptime.monitor.database.disk.reads.total` | थ्रूपुट | PostgreSQL, MySQL, SQL Server |
+| **Disk Writes** | `oneuptime.monitor.database.disk.writes.total` | थ्रूपुट | MySQL, SQL Server |
+| **I/O Read Time** (ms) | `oneuptime.monitor.database.io.read.time.ms` | थ्रूपुट | PostgreSQL, SQL Server |
+| **I/O Write Time** (ms) | `oneuptime.monitor.database.io.write.time.ms` | थ्रूपुट | PostgreSQL, SQL Server |
+| **Page Life Expectancy** (s) | `oneuptime.monitor.database.page.life.expectancy.seconds` | थ्रूपुट | SQL Server |
+| **Memory Grants Pending** | `oneuptime.monitor.database.memory.grants.pending` | थ्रूपुट | SQL Server |
 
 PostgreSQL I/O के पढ़ने और लिखने का समय केवल तब मापता है जब `track_io_timing` चालू हो। यह डिफ़ॉल्ट रूप से बंद होता है, और तब PostgreSQL दोनों को `0` बताता है — इसलिए PostgreSQL पर इन दो सीरीज़ में सपाट शून्य का मतलब आम तौर पर "मापा नहीं गया" होता है, "तेज़" नहीं। यह सर्वर की सेटिंग है, अनुमति की समस्या नहीं।
 
@@ -412,7 +412,7 @@ Database Health मॉनिटर के लिए एक्सप्रेश�
 | 2 | **प्रदर्शन में गिरावट** | `Database Metric` → Connections Used, `90` से ज़्यादा, 5 मिनट तक All Values के साथ आँका गया, ताकि एक अकेला उछाल किसी को कॉल न करे। |
 | 3 | **प्रदर्शन में गिरावट** | `Database Metric` → Transaction ID Used, `80` से ज़्यादा। |
 | 4 | **प्रदर्शन में गिरावट** | `Database Metric` → Blocked Sessions, 5 मिनट तक `0` से ज़्यादा। |
-| 5 | **Online** | `Database Is Online` का मान `true` है। |
+| 5 | **ऑनलाइन** | `Database Is Online` का मान `true` है। |
 
 मानदंड ऊपर से नीचे आँके जाते हैं और पहला मेल जीतता है, इसलिए अलर्ट वाले मानदंड पहले और स्वस्थ स्थिति वाला सबसे आखिर में रखें।
 

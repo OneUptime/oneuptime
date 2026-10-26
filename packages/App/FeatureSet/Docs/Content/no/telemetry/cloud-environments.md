@@ -174,7 +174,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 :::
 
 > [!TIP]
-> De samme stegene finnes i dashbordet, med tokenet ditt fylt ut: under **Sky → All Environments** til det første miljøet ditt kommer, og på fanen **Dokumentasjon** i hvert miljø.
+> De samme stegene finnes i dashbordet, med tokenet ditt fylt ut: under **Sky → All Environments**, klikk **Legg til skymiljø**. Fanen **Dokumentasjon** i hvert miljø har dem også.
 
 ## Hva du får
 

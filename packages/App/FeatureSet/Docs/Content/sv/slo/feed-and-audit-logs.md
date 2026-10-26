@@ -23,7 +23,7 @@ flowchart LR
 
 ## SLO:ets flöde
 
-Flödet finns på SLO:ets sida **Feed**, och dess senaste poster under **Recent activity** i SLO:ets **Översikt**. Posterna länkar till det SLO, de monitorer, larm och incidenter som de nämner, och de flesta har detaljer med siffrorna eller de gamla och nya värdena, som **Visa detaljer** fäller ut under posten.
+Flödet finns på SLO:ets sida **Feed**, och dess senaste poster under **Senaste aktivitet** i SLO:ets **Översikt**. Posterna länkar till det SLO, de monitorer, larm och incidenter som de nämner, och de flesta har detaljer med siffrorna eller de gamla och nya värdena, som **Visa detaljer** fäller ut under posten.
 
 | Händelse | Publiceras när |
 | --- | --- |
@@ -31,7 +31,7 @@ Flödet finns på SLO:ets sida **Feed**, och dess senaste poster under **Recent 
 | SLO uppdaterat | Namnet, beskrivningen, etiketterna, målet, efterlevnadsfönstret, tidszonen, tröskeln för riskzon, läget för flera monitorer eller driftstoppsstatusarna ändras. Visar varje gammalt och nytt värde. |
 | SLO aktiverat eller inaktiverat | Utvärderingen slås på eller av. |
 | SLO arkiverat eller återställt | SLO:et arkiveras eller avarkiveras. |
-| Status ändrad | En utvärdering flyttar SLO:et till en ny status. Visar den SLI, den felbudget, den förbrukningstakt och den tröskel för riskzon som förklarar den, och orsaken vid **Pausad** eller **Misconfigured**. |
+| Status ändrad | En utvärdering flyttar SLO:et till en ny status. Visar den SLI, den felbudget, den förbrukningstakt och den tröskel för riskzon som förklarar den, och orsaken vid **Pausad** eller **Felkonfigurerad**. |
 | Larm för förbrukningstakt utlöst | En regel för förbrukningstakt skapar ett larm. Länkar till det och visar de förbrukningstakter som utlöste det. |
 | Incident för förbrukningstakt deklarerad | En regel för förbrukningstakt deklarerar en incident. Länkar till den och visar de förbrukningstakter som utlöste den. |
 | Larm eller incident för förbrukningstakt löst | En regels larm eller incident stängs: löst automatiskt, eller för hand medan automatisk lösning var avstängd. |

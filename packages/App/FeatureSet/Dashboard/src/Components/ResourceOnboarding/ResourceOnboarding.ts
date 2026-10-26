@@ -8,8 +8,9 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  * Adding a resource the way a host is added (Add Host): the list's Add
  * button opens the resource's setup guide in a dialog - where it runs, the
  * key, the commands, already filled in - and the guide's last step watches
- * for the resource to connect and says so, with a link to it. The same
- * guide is the list's first-run card while the project has none.
+ * for the resource to connect and says so, with a link to it. While the
+ * project has none, the list shows what the product gives under its empty
+ * table instead (Components/ResourceShowcase), with the same Add button.
  *
  * Kubernetes clusters, Docker and Podman hosts, Docker Swarm, Proxmox and
  * Ceph clusters, storage arrays, IoT fleets, serverless functions, cloud

@@ -3,9 +3,9 @@
  * (Components/ResourceOnboarding): a list's Add button opens the resource's
  * setup guide in a dialog, the guide asks for the name the agent is told and
  * writes it into the commands, and its last step watches for the resource to
- * connect. An empty list shows the same guide as its first-run card. A
- * database or a queue is added with its form, and its guide then opens on
- * its own.
+ * connect. An empty list shows what the product gives instead
+ * (Components/ResourceShowcase), with the same Add button. A database or a
+ * queue is added with its form, and its guide then opens on its own.
  *
  * The layouts (Page + each product's side menu) and the list pages are the
  * production components from this branch, mounted under their real RouteMap

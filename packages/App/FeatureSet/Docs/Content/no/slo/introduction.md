@@ -46,7 +46,7 @@ Du trenger en rolle som kan opprette SLO-er: Project Owner, Project Admin eller 
 
 ### Gi det et navn og et mål
 
-Skriv inn et **Navn**, for eksempel «API Availability», og et **Target (%)**: andelen av tiden monitorene skal være tilgjengelige. Målet starter på `99.9`. Det må være større enn 0 og høyst 99,999, fordi et mål på 100 % ikke gir noe feilbudsjett å følge med på.
+Skriv inn et **Navn**, for eksempel «API Availability», og et **Mål (%)**: andelen av tiden monitorene skal være tilgjengelige. Målet starter på `99.9`. Det må være større enn 0 og høyst 99,999, fordi et mål på 100 % ikke gir noe feilbudsjett å følge med på.
 
 ### Sjekk standardverdiene under Flere felt
 
@@ -58,7 +58,7 @@ Klikk på **Opprett Service Level Objective**. OneUptime åpner det nye SLO-et. 
 
 ### Knytt til monitorer
 
-Klikk på **Create a monitor rule** for å knytte til alle monitorer som samsvarer, nå og senere, eller på **Add monitors** for å velge dem for hånd. Se [Monitorer og monitorregler](/docs/slo/monitor-rules).
+Klikk på **Opprett en monitorregel** for å knytte til alle monitorer som samsvarer, nå og senere, eller på **Legg til monitorer** for å velge dem for hånd. Se [Monitorer og monitorregler](/docs/slo/monitor-rules).
 
 ### Se de første tallene komme inn
 
@@ -71,8 +71,8 @@ Feltene under **Flere felt**:
 | --- | --- | --- |
 | **Beskrivelse** | Hva SLO-et er til. | Tom |
 | **Risikoterskel (%)** | Andelen av gjenværende feilbudsjett der SLO-et går over til **I faresonen**. Et heltall fra 0 til 100. | 20 |
-| **Window Type** | **Rolling**: de siste N dagene, som henter seg inn etter hvert som gammel nedetid faller ut av vinduet. **Calendar Month**: hver måned for seg, nullstilt den 1. | **Rolling** |
-| **Window (Days)** | Bare rullerende vinduer: hvor mange dager det skal ses bakover, fra 1 til 366. Vanlig er 28 eller 30. | 30 |
+| **Vindustype** | **Rullerende**: de siste N dagene, som henter seg inn etter hvert som gammel nedetid faller ut av vinduet. **Kalendermåned**: hver måned for seg, nullstilt den 1. | **Rullerende** |
+| **Vindu (dager)** | Bare rullerende vinduer: hvor mange dager det skal ses bakover, fra 1 til 366. Vanlig er 28 eller 30. | 30 |
 | **Tidssone** | Bare kalendermåneder: tidssonen der hver måned starter og slutter. | UTC |
 | **Etiketter** | Etiketter for å organisere og filtrere SLO-er. | Ingen |
 
@@ -80,11 +80,11 @@ Alt som bestemmer hvordan SLO-et måler, starter med en standardverdi som du end
 
 | Innstilling | Et nytt SLO starter med | Endres under |
 | --- | --- | --- |
-| Monitorer | Ingen | **Monitorer** eller **Monitor Rules** |
-| Nedetidsstatuser | Alle prosjektets ikke-operative statuser | **Innstillinger** → **Downtime Calculation** |
-| Modus for flere monitorer | **Any Monitor Down** | **Innstillinger** → **Downtime Calculation** |
+| Monitorer | Ingen | **Monitorer** eller **Monitorregler** |
+| Nedetidsstatuser | Alle prosjektets ikke-operative statuser | **Innstillinger** → **Beregning av nedetid** |
+| Modus for flere monitorer | **En hvilken som helst monitor nede** | **Innstillinger** → **Beregning av nedetid** |
 | Evaluering | På | **Innstillinger** → **Evaluering** |
-| Forbruksrateregler | En regel **Fast burn** og en regel **Slow burn**, tilpasset vinduet | **Burn Rate Rules** |
+| Forbruksrateregler | En regel **Fast burn** og en regel **Slow burn**, tilpasset vinduet | **Forbruksrateregler** |
 
 ## Hva et SLO består av
 
@@ -99,7 +99,7 @@ Alt som bestemmer hvordan SLO-et måler, starter med en standardverdi som du end
 
 ### Hvilke statuser som teller som nedetid
 
-Hvert SLO har sin egen liste over monitorstatuser som teller som nedetid. Et nytt SLO starter med alle prosjektets statuser som ikke er merket som operative, som Degraded og Offline, slik statussidene dine gjør. Endre listen under **Innstillinger** → **Downtime Calculation**. La den være tom for å telle alle ikke-operative statuser, også dem som legges til i prosjektet senere.
+Hvert SLO har sin egen liste over monitorstatuser som teller som nedetid. Et nytt SLO starter med alle prosjektets statuser som ikke er merket som operative, som Degraded og Offline, slik statussidene dine gjør. Endre listen under **Innstillinger** → **Beregning av nedetid**. La den være tom for å telle alle ikke-operative statuser, også dem som legges til i prosjektet senere.
 
 > [!TIP]
 > Mål de samme monitorene på to måter med to SLO-er: et strengt tilgjengelighets-SLO der både Degraded og Offline teller, og et mildere SLO for fullt brudd der bare Offline teller.
@@ -108,19 +108,19 @@ Hvert SLO har sin egen liste over monitorstatuser som teller som nedetid. Et nyt
 
 | Vindustype | Hvordan det oppfører seg |
 | --- | --- |
-| **Rolling** | Ser et fast antall dager bakover fra nå. Gammel nedetid faller ut av vinduet, så budsjettet kommer gradvis tilbake. |
-| **Calendar Month** | Måler fra den første i måneden, i tidssonen til SLO-et (UTC som standard). Hele budsjettet kommer tilbake ved starten av hver måned. |
+| **Rullerende** | Ser et fast antall dager bakover fra nå. Gammel nedetid faller ut av vinduet, så budsjettet kommer gradvis tilbake. |
+| **Kalendermåned** | Måler fra den første i måneden, i tidssonen til SLO-et (UTC som standard). Hele budsjettet kommer tilbake ved starten av hver måned. |
 
 ### Flere monitorer på ett SLO
 
-Når et SLO måler mer enn én monitor, bestemmer **Multi Monitor Mode** hvordan nedetiden deres kombineres. Et nytt SLO bruker **Any Monitor Down**.
+Når et SLO måler mer enn én monitor, bestemmer **Modus for flere monitorer** hvordan nedetiden deres kombineres. Et nytt SLO bruker **En hvilken som helst monitor nede**.
 
 | Modus | Hvordan nedetid telles | Bruk den når |
 | --- | --- | --- |
-| **Any Monitor Down** | Ethvert øyeblikk der minst én monitor er nede, teller som nedetid for hele SLO-et. Overlappende brudd teller én gang. | Monitorene til sammen er én tjeneste: går én av dem ned, merker brukerne det. |
-| **Monitor Seconds Average** | Nedetiden til hver monitor teller for seg, i gjennomsnitt over all overvåket tid: SLI = 1 − (sekunder nede for alle monitorer ÷ overvåkede sekunder for alle monitorer). | Monitorene er en flåte av like ressurser, og delvis påvirkning skal telle delvis. |
+| **En hvilken som helst monitor nede** | Ethvert øyeblikk der minst én monitor er nede, teller som nedetid for hele SLO-et. Overlappende brudd teller én gang. | Monitorene til sammen er én tjeneste: går én av dem ned, merker brukerne det. |
+| **Gjennomsnitt av monitorsekunder** | Nedetiden til hver monitor teller for seg, i gjennomsnitt over all overvåket tid: SLI = 1 − (sekunder nede for alle monitorer ÷ overvåkede sekunder for alle monitorer). | Monitorene er en flåte av like ressurser, og delvis påvirkning skal telle delvis. |
 
-Si at monitor A er nede fra 10:00 til 11:00 mens monitor B er tilgjengelig. **Any Monitor Down** registrerer 60 minutter nedetid; **Monitor Seconds Average** registrerer tilsvarende 30 minutter, fordi én av to monitorer var nede i en time. I den modusen telles også budsjettet i monitorsekunder: se [Feilbudsjetter](/docs/slo/error-budget).
+Si at monitor A er nede fra 10:00 til 11:00 mens monitor B er tilgjengelig. **En hvilken som helst monitor nede** registrerer 60 minutter nedetid; **Gjennomsnitt av monitorsekunder** registrerer tilsvarende 30 minutter, fordi én av to monitorer var nede i en time. I den modusen telles også budsjettet i monitorsekunder: se [Feilbudsjetter](/docs/slo/error-budget).
 
 ## SLO-status
 
@@ -131,7 +131,7 @@ OneUptime gir hvert evaluerte SLO en status:
 | **Feilfri** | Det er mer budsjett igjen enn risikoterskelen. |
 | **I faresonen** | Gjenværende budsjett har falt til risikoterskelen eller under: 20 % som standard. |
 | **Budsjett oppbrukt** | Budsjettet er brukt helt opp, eller overskredet. |
-| **Misconfigured** | SLO-et kan ikke måles: det har ingen monitorer, monitorene finnes ikke lenger eller har ennå ikke registrert noen status i vinduet, eller målet er utenfor gyldig område. |
+| **Feilkonfigurert** | SLO-et kan ikke måles: det har ingen monitorer, monitorene finnes ikke lenger eller har ennå ikke registrert noen status i vinduet, eller målet er utenfor gyldig område. |
 | **Pauset** | Alle monitorene det måler, er arkivert eller har aktiv overvåking slått av, for hånd, av en manuell hendelse eller av planlagt vedlikehold. Det fortsetter av seg selv så snart en av dem overvåkes igjen. |
 
 Et deaktivert eller arkivert SLO evalueres ikke, så statusen blir stående som den var; SLO-listen viser i stedet et merke **Deaktivert** eller **Arkivert**. Eierne av et SLO får beskjed når statusen endres til **I faresonen** eller **Budsjett oppbrukt**: se [Feilbudsjetter](/docs/slo/error-budget).
@@ -140,7 +140,7 @@ Et deaktivert eller arkivert SLO evalueres ikke, så statusen blir stående som 
 
 Siden **SLOs** viser hvert SLO som ikke er arkivert, med status, SLI, gjenværende budsjett, forbruksrate, mål, vindu, monitorer, etiketter og eiere.
 
-- Flisene over listen teller SLO-er etter status: **Feilfri**, **I faresonen**, **Budsjett oppbrukt**, **Misconfigured**, **Pauset** og **Deaktivert**. De vises så snart det finnes et SLO som ikke er arkivert. Klikk på en flis for å se bare de SLO-ene, og igjen for å se alle.
+- Flisene over listen teller SLO-er etter status: **Feilfri**, **I faresonen**, **Budsjett oppbrukt**, **Feilkonfigurert**, **Pauset** og **Deaktivert**. De vises så snart det finnes et SLO som ikke er arkivert. Klikk på en flis for å se bare de SLO-ene, og igjen for å se alle.
 - Velg SLO-er for å legge til eller fjerne etiketter og eiere, aktivere eller deaktivere dem, arkivere dem eller slette dem, alle på én gang.
 - Sidemenyens seksjon **Innstillinger** inneholder **Etikettregler** og **Eierregler**, som setter etiketter på nye SLO-er og gir dem eiere: se [Etikett- og eierregler](/docs/slo/label-and-owner-rules).
 - Sidemenyens seksjon **Avansert** inneholder **Arkivert**, listen over arkiverte SLO-er.
@@ -157,14 +157,14 @@ Siden **SLOs** viser hvert SLO som ikke er arkivert, med status, SLI, gjenværen
 | **Varsler** | Varslene som forbruksratereglene har utløst. Merket teller de åpne. |
 | **Feed** | Hva som har skjedd med SLO-et, som en tidslinje. Se [SLO-feed og revisjonslogger](/docs/slo/feed-and-audit-logs). |
 | **Monitorer** | Monitorene det måler, og om hver av dem ble knyttet til av en person eller en regel. |
-| **Monitor Rules** | Reglene som knytter til monitorer som samsvarer. |
-| **Burn Rate Rules** | Reglene som utløser varsler og erklærer hendelser når budsjettet brennes for fort. |
+| **Monitorregler** | Reglene som knytter til monitorer som samsvarer. |
+| **Forbruksrateregler** | Reglene som utløser varsler og erklærer hendelser når budsjettet brennes for fort. |
 | **Eiere** | Brukerne og teamene som får høre om statusendringene. |
 | **Innstillinger** | Målet, samsvarsperioden, nedetidsberegningen, evalueringsbryteren og arkiveringskortet. |
 | **Revisjonslogger** | Hvem som har endret SLO-et, reglene og eierne, og når. |
-| **Delete SLO** | Sletter SLO-et for godt og løser forbruksratevarslene og -hendelsene det hadde åpne. |
+| **Slett SLO** | Sletter SLO-et for godt og løser forbruksratevarslene og -hendelsene det hadde åpne. |
 
-**Monitorer** ligger i en seksjon **Konfigurasjon**, **Monitor Rules** og **Burn Rate Rules** i en seksjon **Regler**, og **Eiere**, **Innstillinger**, **Revisjonslogger** og **Delete SLO** i en seksjon **Management**. Alle tre starter slått sammen, akkurat som en seksjon **Utvikler** for å styre SLO-et fra kode: klikk på tittelen til en seksjon for å åpne den.
+**Monitorer** ligger i en seksjon **Konfigurasjon**, **Monitorregler** og **Forbruksrateregler** i en seksjon **Regler**, og **Eiere**, **Innstillinger**, **Revisjonslogger** og **Slett SLO** i en seksjon **Administrasjon**. Alle tre starter slått sammen, akkurat som en seksjon **Utvikler** for å styre SLO-et fra kode: klikk på tittelen til en seksjon for å åpne den.
 
 Når noe hindrer et SLO i å måle, forteller et banner øverst på hver av sidene hva som er galt, og lenker til siden som løser det: se [Feilsøking](#feilsøking).
 
@@ -172,16 +172,16 @@ Når noe hindrer et SLO i å måle, forteller et banner øverst på hver av side
 
 **Oversikt** svarer på «holder vi oss innenfor budsjettet?», ovenfra og ned:
 
-- **Sammendraget**: statusen, en setning om hva den betyr, og beskrivelsen. Ved siden av står **Oppdater** og når SLO-et sist ble evaluert. Under står målet, **Compliance window** (med en fyllingsindikator mens et ungt rullerende vindu fylles opp: se [Unge SLO-er og fyllingsindikatoren for vinduet](#unge-slo-er-og-fyllingsindikatoren-for-vinduet)), antallet monitorer og eierne, med **Legg til eiere** for å legge til en der og da.
+- **Sammendraget**: statusen, en setning om hva den betyr, og beskrivelsen. Ved siden av står **Oppdater** og når SLO-et sist ble evaluert. Under står målet, **Samsvarsvindu** (med en fyllingsindikator mens et ungt rullerende vindu fylles opp: se [Unge SLO-er og fyllingsindikatoren for vinduet](#unge-slo-er-og-fyllingsindikatoren-for-vinduet)), antallet monitorer og eierne, med **Legg til eiere** for å legge til en der og da.
 - **Nøkkeltallene**:
   - **SLI**: andelen god tid i vinduet, og hvor mye den ligger over eller under målet.
-  - **Error budget left**: en prosentandel, en varighet som "12m 30s left of 43m 12s" og en stolpe med et merke ved risikoterskelen. Når budsjettet er overskredet, viser den **Budget exceeded** og hvor mye.
-  - **Burn rate**: hvor fort budsjettet brukes de siste 60 minuttene, perioden standardregelen for raskt forbruk bruker. Blir gul over 1× og rød, med **Rule threshold reached**, ved den laveste terskelen blant de aktiverte forbruksratereglene til SLO-et.
-  - **Budget runway**: hvor lenge budsjettet varer i det tempoet. Se [Feilbudsjetter](/docs/slo/error-budget#rekkevidden-til-budsjettet).
-- **Error budget burn-down**: gjenværende budsjett over det gjeldende vinduet. Se [Feilbudsjetter](/docs/slo/error-budget#forbruket-av-feilbudsjettet).
-- **Recent activity**: de nyeste elementene i feeden til SLO-et.
-- **SLO Details**: navnet, beskrivelsen og etikettene, de eneste innstillingene som redigeres i oversikten.
-- **Open alerts & incidents**: det forbruksratereglene har åpent akkurat nå.
+  - **Feilbudsjett igjen**: en prosentandel, en varighet som "12m 30s left of 43m 12s" og en stolpe med et merke ved risikoterskelen. Når budsjettet er overskredet, viser den **Budget exceeded** og hvor mye.
+  - **Forbruksrate**: hvor fort budsjettet brukes de siste 60 minuttene, perioden standardregelen for raskt forbruk bruker. Blir gul over 1× og rød, med **Regelterskel nådd**, ved den laveste terskelen blant de aktiverte forbruksratereglene til SLO-et.
+  - **Budsjettets rekkevidde**: hvor lenge budsjettet varer i det tempoet. Se [Feilbudsjetter](/docs/slo/error-budget#rekkevidden-til-budsjettet).
+- **Nedbrenning av feilbudsjett**: gjenværende budsjett over det gjeldende vinduet. Se [Feilbudsjetter](/docs/slo/error-budget#forbruket-av-feilbudsjettet).
+- **Nylig aktivitet**: de nyeste elementene i feeden til SLO-et.
+- **SLO-detaljer**: navnet, beskrivelsen og etikettene, de eneste innstillingene som redigeres i oversikten.
+- **Åpne varsler og hendelser**: det forbruksratereglene har åpent akkurat nå.
 - **Burn rate rules**: terskelen til hver aktivert regel ved siden av gjeldende forbruksrate, og hva regelen erklærer.
 
 ### Innstillinger
@@ -190,9 +190,9 @@ Siden **Innstillinger** samler hvordan et SLO måler, med ett kort for hver ting
 
 | Kort | Det du endrer | Greit å vite |
 | --- | --- | --- |
-| **Objective** | **Target (%)** og **Risikoterskel (%)**, med **Edit Objective**. | Viser nedetiden målet tillater, for eksempel «43m 12s nedetid per vindu på 30 dager». |
-| **Compliance Period** | **Window Type**, **Window (Days)** og **Tidssone**, med **Edit Period**. | Forbruksrateregler beholder tersklene sine når vinduet endres, så gå gjennom dem etterpå. |
-| **Downtime Calculation** | **Multi Monitor Mode** og **Overvåkerstatuser for nedetid**, med **Edit Downtime Calculation**. | Uten statuser teller alle ikke-operative statuser, også dem som legges til senere. |
+| **Mål** | **Mål (%)** og **Risikoterskel (%)**, med **Rediger mål**. | Viser nedetiden målet tillater, for eksempel «43m 12s nedetid per vindu på 30 dager». |
+| **Samsvarsperiode** | **Vindustype**, **Vindu (dager)** og **Tidssone**, med **Rediger periode**. | Forbruksrateregler beholder tersklene sine når vinduet endres, så gå gjennom dem etterpå. |
+| **Beregning av nedetid** | **Modus for flere monitorer** og **Overvåkerstatuser for nedetid**, med **Rediger beregning av nedetid**. | Uten statuser teller alle ikke-operative statuser, også dem som legges til senere. |
 | **Evaluering** | Bryteren **Evaluer dette SLO-et**, som lagrer så snart du slår den om. | Å slå den av ber om bekreftelse, fordi det også løser de åpne forbruksratevarslene og -hendelsene til SLO-et. |
 | **Archive SLO** | **Arkiver** eller **Fjern fra arkiv**. | Se [Arkivere et SLO](#arkivere-et-slo). |
 
@@ -235,7 +235,7 @@ Sidemenyen til en monitor har også en side **SLOs**: SLO-ene som måler den mon
 
 Et SLO med rullerende vindu som er yngre enn vinduet sitt, måles over dataene som finnes så langt: et SLO på 30 dager som ble opprettet i går, har én dag med data. Feilbudsjettet starter lite og vokser etter hvert som vinduet fylles, så de første tallene svinger mer enn de vil gjøre senere.
 
-Så lenge det er slik, sier **Oversikt** fra: sammendraget viser en indikator **Window 23% full** (**Window under 1% full** den første dagen), og flisen **Error budget left** gjentar det under tallet sitt. Begge forsvinner når vinduet er fullt. SLO-er med kalendermåned viser dem aldri, fordi budsjettet deres dekker hele måneden fra første dag, og det gjør heller ikke SLO-er i modusen **Monitor Seconds Average**, der budsjettet telles på tvers av monitorene.
+Så lenge det er slik, sier **Oversikt** fra: sammendraget viser en indikator **Window 23% full** (**Window under 1% full** den første dagen), og flisen **Feilbudsjett igjen** gjentar det under tallet sitt. Begge forsvinner når vinduet er fullt. SLO-er med kalendermåned viser dem aldri, fordi budsjettet deres dekker hele måneden fra første dag, og det gjør heller ikke SLO-er i modusen **Gjennomsnitt av monitorsekunder**, der budsjettet telles på tvers av monitorene.
 
 ## Feilsøking
 
@@ -243,13 +243,13 @@ Et banner øverst på sidene til SLO-et forteller hva som hindrer det i å måle
 
 | Banner | Hva det betyr | Hva du gjør |
 | --- | --- | --- |
-| **No monitors attached** | SLO-et har ingen monitorer, så det er ingenting å måle. | Knytt til monitorer, eller opprett en monitorregel. |
+| **Ingen monitorer knyttet til** | SLO-et har ingen monitorer, så det er ingenting å måle. | Knytt til monitorer, eller opprett en monitorregel. |
 | **Waiting for SLO evaluation** | Monitorer er knyttet til, men den siste evalueringen hadde ingen statusdata fra dem. | Sjekk at monitorene blir sjekket. Tallene vises etter neste evaluering med data. |
 | **Measurement is paused** | Alle monitorene det måler, er arkivert eller har aktiv overvåking slått av. | Slå på overvåking igjen for minst én monitor, eller vent til vedlikeholdet er ferdig. |
-| **The target is out of range** | Målet er ikke større enn 0 og mindre enn 100. | Angi et mål som 99,9 under **Innstillinger** → **Objective**. |
+| **The target is out of range** | Målet er ikke større enn 0 og mindre enn 100. | Angi et mål som 99,9 under **Innstillinger** → **Mål**. |
 | **This SLO is disabled** | Evalueringen er slått av. | Klikk på **Slå på evaluering**. |
 | **This SLO is archived** | SLO-et er arkivert. | Fjern det fra arkivet under **Innstillinger**. |
-| **Not evaluated yet** | SLO-et er nettopp opprettet. | Vent på den første evalueringen, høyst noen minutter. |
+| **Ikke evaluert ennå** | SLO-et er nettopp opprettet. | Vent på den første evalueringen, høyst noen minutter. |
 
 ## Neste steg
 

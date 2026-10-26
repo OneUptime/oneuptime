@@ -31,7 +31,7 @@ flowchart TB
 
 Die Aggregation bestimmt, wie die eigenen Diagramme des SLO und die Vorlage SLO Dashboard die Punkte zusammenfassen, die in einen Diagrammabschnitt fallen. Prozentwerte und Dauern werden gemittelt. Burn-Rate und Status nehmen das Maximum, damit eine kurze Verbrauchsspitze oder ein kurzer Ausflug in Budget ausgeschöpft nicht weggemittelt wird.
 
-Bei einem SLO im Modus **Monitor Seconds Average** zählt `oneuptime.slo.error.budget.remaining.seconds` Monitorsekunden, summiert über seine Monitore, so wie sein Fehlerbudget: siehe [Fehlerbudgets](/docs/slo/error-budget).
+Bei einem SLO im Modus **Durchschnitt der Monitorsekunden** zählt `oneuptime.slo.error.budget.remaining.seconds` Monitorsekunden, summiert über seine Monitore, so wie sein Fehlerbudget: siehe [Fehlerbudgets](/docs/slo/error-budget).
 
 ### Wann kein Punkt geschrieben wird
 
@@ -98,7 +98,7 @@ Das [SLO-Widget](/docs/dashboards/widgets#slo) zeigt den SLI, das verbleibende B
 | Einstellung | Wie es sich verhält |
 | --- | --- |
 | **Service Level Objective** | Heftet das Widget an ein SLO. Die Auswahl listet SLOs, die nicht archiviert sind. |
-| **Follow SLO Variable** | Zeigt das SLO, das in einer Dashboard-Variablen gewählt ist: einer Variablen **Telemetry Attribute** auf dem Schlüssel `sloName`. Wird ignoriert, solange ein SLO angeheftet ist. |
+| **Follow SLO Variable** | Zeigt das SLO, das in einer Dashboard-Variablen gewählt ist: einer Variablen **Telemetrieattribut** auf dem Schlüssel `sloName`. Wird ignoriert, solange ein SLO angeheftet ist. |
 
 Auf einem [öffentlichen Dashboard](/docs/dashboards/sharing) lässt ein Widget, das einer Variablen folgt, Betrachter jedes nicht archivierte SLO des Projekts nach Namen wählen. Ein angeheftetes Widget zeigt immer nur sein eigenes SLO und zeigt die letzten Zahlen eines SLO, das später archiviert wurde, weiter an.
 

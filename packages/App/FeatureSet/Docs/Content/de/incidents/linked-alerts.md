@@ -121,7 +121,7 @@ Welchen Weg Sie auch nehmen, Sie landen im üblichen Formular **Neuen Vorfall me
 | **Beschriftungen**     | Jede Beschriftung jeder gewählten Warnung. |
 | **Privater Vorfall**   | An, wenn eine der Warnungen privat ist. Das Formular sagt das, und die Eigentümer der Warnungen werden Eigentümer des Vorfalls – siehe unten. |
 
-„Schwerste“ folgt Ihrer Reihenfolge der Warnungsschweregrade: Der erste Warnungsschweregrad in der Liste ist der schwerste. Mit den Schweregraden, mit denen jedes Projekt startet, wird eine Warnung **Hoch** zu einem **Critical Incident** und eine Warnung **Low** zu einem **Major Incident**.
+„Schwerste“ folgt Ihrer Reihenfolge der Warnungsschweregrade: Der erste Warnungsschweregrad in der Liste ist der schwerste. Mit den Schweregraden, mit denen jedes Projekt startet, wird eine Warnung **Hoch** zu einem **Critical Incident** und eine Warnung **Niedrig** zu einem **Major Incident**.
 
 Vor dem Absenden lässt sich alles bearbeiten. **Beschriftungen** und **Privater Vorfall** stehen unter **Weitere Felder** im ersten Schritt des Formulars, dessen eingeklappte Überschrift jedes davon zeigt, solange es gesetzt ist.
 

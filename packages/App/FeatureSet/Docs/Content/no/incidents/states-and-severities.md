@@ -54,12 +54,12 @@ Tre tilstander opprettes med prosjektet, i denne rekkefølgen. Opprettelsen er i
 
 | Tilstand         | `order` | Flagg                 | Farge     | Hva den betyr                                      |
 | ---------------- | ------- | --------------------- | --------- | -------------------------------------------------- |
-| **Identified**   | `1`     | `isCreatedState`      | `#fd625e` | Tilstanden nye hendelser havner i.                 |
+| **Identifisert**   | `1`     | `isCreatedState`      | `#fd625e` | Tilstanden nye hendelser havner i.                 |
 | **Bekreftet**    | `2`     | `isAcknowledgedState` | `#ffbf53` | Noen har tatt hendelsen.                           |
 | **Løst**         | `3`     | `isResolvedState`     | `#2ab57d` | Hendelsen er over og slutter å telle som aktiv.    |
 
 > [!NOTE]
-> Den første tilstanden heter **Identified**, selv om flere beskrivelser i produktet fortsatt kaller den "created"-tilstanden. Når et dokument eller et verktøytips sier "opprettelsestilstand", mener det tilstanden som har `isCreatedState` — i et nytt prosjekt er det **Identified**.
+> Den første tilstanden heter **Identifisert**, selv om flere beskrivelser i produktet fortsatt kaller den "created"-tilstanden. Når et dokument eller et verktøytips sier "opprettelsestilstand", mener det tilstanden som har `isCreatedState` — i et nytt prosjekt er det **Identifisert**.
 
 ## Hva hvert tilstandsflagg faktisk gjør
 
@@ -74,7 +74,7 @@ Det forventes bare én tilstand per prosjekt med hvert flagg — oppslagene hent
 - **De beholder rekkefølgen sin.** Opprettelsestilstanden kommer før den bekreftede, og den bekreftede før den løste. En dragning som ville bryte det — **Løst** over **Bekreftet** for eksempel — avvises, radene går tilbake, og siden sier hvorfor.
 - **De kan ikke slettes.** **Slett** blir værende i radens meny, låst, med årsaken. En massesletting hopper over dem og nevner dem som ikke slettet. API-et nekter også å slette et prosjekts siste opprettelses-, bekreftede eller løste tilstand.
 
-Fordi grensesnittet leser tilstandsnavn dynamisk, endrer et nytt navn det du ser overalt — statistikkflisene (**Acknowledged in** og **Resolved in** med de forhåndsopprettede navnene), bekreftelsen **Merk hendelse som …** for en egen tilstand og merket i listen over hendelser følger alle navnet du ga raden.
+Fordi grensesnittet leser tilstandsnavn dynamisk, endrer et nytt navn det du ser overalt — statistikkflisene (**Bekreftet etter** og **Løst etter** med de forhåndsopprettede navnene), bekreftelsen **Merk hendelse som …** for en egen tilstand og merket i listen over hendelser følger alle navnet du ga raden.
 
 ## Legg til dine egne tilstander
 
@@ -188,7 +188,7 @@ En hendelse er bekreftet fra det øyeblikket den går inn i den bekreftede tilst
 - **Bekreft tilbys ikke lenger.** Ikke i hendelsens overskrift, ikke i mobilappen (knappen og sveipet), ikke i Slack eller Microsoft Teams og ikke via `acknowledge_incident` på OneUptime MCP-serveren. Å bekrefte den likevel — fra en tilkallingsside, Slack eller Teams — avvises med "Incident is already acknowledged." (eller "Incident is already resolved."), i stedet for å flytte den opp i listen igjen.
 - **Vakten slutter å tilkalle for den.** En vakthavende som bekrefter tilkallingen sin etter at en kollega har bekreftet hendelsen eller flyttet den videre, får tilkallingen sin bekreftet, og hendelsen blir værende der den er.
 - **SLA-en merkes som besvart** ved den første slike flyttingen; å gå videre gjennom senere tilstander beholder det tidspunktet.
-- **Tiden til bekreftelse løper til den første flyttingen** — statistikkflisen på hendelsens **Oversikt**, metrikken **Time to Acknowledge**, en måling som slutter når **Hendelsen blir bekreftet**, og MTTA i sammendragene i Slack og Microsoft Teams. En hendelse som gikk rett fra **Identified** til **Investigating**, ble bekreftet da; en som ble løst med en gang, ble bekreftet da den ble løst.
+- **Tiden til bekreftelse løper til den første flyttingen** — statistikkflisen på hendelsens **Oversikt**, metrikken **Time to Acknowledge**, en måling som slutter når **Hendelsen blir bekreftet**, og MTTA i sammendragene i Slack og Microsoft Teams. En hendelse som gikk rett fra **Identifisert** til **Investigating**, ble bekreftet da; en som ble løst med en gang, ble bekreftet da den ble løst.
 - **Et filter Bekreftet** — på widgeten med en hendelsesliste på et dashbord for eksempel — viser hendelsene i den bekreftede tilstanden din og i enhver senere tilstand, opp til løst.
 
 Varsler og episoder følger samme regel, med varseltilstandene dine.
@@ -206,7 +206,7 @@ En hendelse er løst når den går fra en tilstand over den løste tilstanden di
 
 Hendelsens side **Tilstandstidslinje** i hendelsens sidemeny er revisjonssporet for hver tilstand hendelsen har vært i. Kortet på den siden heter **Statustidslinje**, og det tegner hele hendelsens forløp som en tidslinje:
 
-- **Båndet** viser hver tilstand som et stykke i sin farge, så langt som hendelsen var i den, slik at forløpet kan leses med ett blikk. Så lenge hendelsen er åpen, går båndet frem til **Nå**; når den er løst, slutter båndet like etter den siste endringen. Pek på et stykke for å se når det begynte og hvor lenge det varte, og klikk på det for å finne endringen i listen. Endringer som ligger for tett til å skilles, tegnes som ett stripete stykke: klikk på det, eller dra over båndet, for å zoome inn, og **Reset zoom** går tilbake.
+- **Båndet** viser hver tilstand som et stykke i sin farge, så langt som hendelsen var i den, slik at forløpet kan leses med ett blikk. Så lenge hendelsen er åpen, går båndet frem til **Nå**; når den er løst, slutter båndet like etter den siste endringen. Pek på et stykke for å se når det begynte og hvor lenge det varte, og klikk på det for å finne endringen i listen. Endringer som ligger for tett til å skilles, tegnes som ett stripete stykke: klikk på det, eller dra over båndet, for å zoome inn, og **Tilbakestill zoom** går tilbake.
 - **Over båndet** står hver tilstand med tiden hendelsen var i den.
 - **Under båndet** står hver endring, nyeste først, gruppert etter dag og i din tidssone: når den begynte og sluttet, hvor lenge den varte, hvem som gjorde den og under den **Abonnenter på statussiden:** om statussidevarselet for endringen ble sendt, hoppet over eller fortsatt venter, med en lenke **flere detaljer** og — når sendingen mislyktes — en handling **Prøv på nytt**. **Prøv på nytt** sender tilstandsendringen på nytt til hver statusside hendelsen når nå, også til abonnentene som allerede har fått den.
 

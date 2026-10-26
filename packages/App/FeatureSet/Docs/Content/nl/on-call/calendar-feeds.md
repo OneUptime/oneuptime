@@ -24,7 +24,7 @@ flowchart TB
 - Overrides worden gevolgd. Wanneer iemand je vervangt, gaat de afspraak naar die persoon (`(covering for <Name>)` wordt toegevoegd) en blijft het dezelfde afspraak in je agenda-app, dus wordt hij bijgewerkt in plaats van verdubbeld. Een gedeeltelijke override splitst de dienst in aansluitende afspraken.
 - Standaard twee dagen geschiedenis en 90 dagen vooruit. Je kunt dit verruimen tot 60 dagen terug en 180 dagen vooruit; een feed die meer dan 5.000 afspraken zou bevatten, wordt ingekort en meldt dat in de beschrijving van de agenda.
 - Afspraken zijn gemarkeerd als vrij (`TRANSP:TRANSPARENT`), dus een geabonneerde feed blokkeert nooit je beschikbaarheid, en niets is gemarkeerd als privé, dus een gedeelde teamagenda toont de titels aan iedereen die hem kan zien.
-- Tijden worden in UTC verstuurd en door je agenda-app omgerekend; de beschrijving vermeldt de kloktijd in de zone van het rooster en in de jouwe. Stel je eigen tijdzone in als **Tijdzone** op je **Profiel** (je foto rechtsboven in het dashboard), en die van het rooster in de kaart **Schedule timezone** op de pagina **Lagen** ervan. Een rooster zonder tijdzone wordt uitgerekend in de zone van de server, net als bij het oproepen, en de afspraak meldt dat.
+- Tijden worden in UTC verstuurd en door je agenda-app omgerekend; de beschrijving vermeldt de kloktijd in de zone van het rooster en in de jouwe. Stel je eigen tijdzone in als **Tijdzone** op je **Profiel** (je foto rechtsboven in het dashboard), en die van het rooster in de kaart **Tijdzone van schema** op de pagina **Lagen** ervan. Een rooster zonder tijdzone wordt uitgerekend in de zone van de server, net als bij het oproepen, en de afspraak meldt dat.
 
 Vaste toewijzingen — een gebruiker of team die rechtstreeks in een regel van een escalatiebeleid staat — hebben geen begin of einde en verschijnen in geen enkele feed. Op OneUptime Cloud volgen feeds hetzelfde abonnement als bereikbaarheidsschema's (Growth); een project onder dat abonnement krijgt een lege agenda in plaats van een fout.
 
@@ -327,7 +327,7 @@ Deze apps controleren TLS op het apparaat. Importeer je interne CA in de vertrou
 :::
 
 :::details Tijden kloppen niet
-Alle tijden in het bestand zijn UTC; de agenda-app rekent ze om naar zijn eigen zone. Lijken diensten met een vaste afwijking verschoven, controleer dan de tijdzone van het rooster (**Schedule timezone** op de pagina **Lagen** ervan) en je eigen (**Tijdzone** op je **Profiel**). Een rooster zonder tijdzone wordt uitgerekend in de zone van de server, en de afspraak meldt dat.
+Alle tijden in het bestand zijn UTC; de agenda-app rekent ze om naar zijn eigen zone. Lijken diensten met een vaste afwijking verschoven, controleer dan de tijdzone van het rooster (**Tijdzone van schema** op de pagina **Lagen** ervan) en je eigen (**Tijdzone** op je **Profiel**). Een rooster zonder tijdzone wordt uitgerekend in de zone van de server, en de afspraak meldt dat.
 :::
 
 :::details De feed meldt dat hij is ingekort

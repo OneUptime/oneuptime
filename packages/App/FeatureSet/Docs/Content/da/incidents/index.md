@@ -15,7 +15,7 @@ En hændelse er den optegnelse, dit team arbejder ud fra, når noget går i styk
 ## Kort fortalt
 
 - **Sit eget produkt** — åbn **Hændelser** fra menuen **Produkter** i topbjælken; listen ligger på `/dashboard/{projectId}/incidents`.
-- **Tre forudoprettede tilstande** — **Identified**, **Bekræftet** og **Løst** oprettes for hvert nyt projekt. Du kan tilføje dine egne; de tre forudoprettede kan omdøbes og få nye farver, men aldrig slettes.
+- **Tre forudoprettede tilstande** — **Identificeret**, **Bekræftet** og **Løst** oprettes for hvert nyt projekt. Du kan tilføje dine egne; de tre forudoprettede kan omdøbes og få nye farver, men aldrig slettes.
 - **Tre forudoprettede alvorsgrader** — **Critical Incident**, **Major Incident** og **Minor Incident**. En alvorsgrad er en etiket med en farve og en rækkefølge — den har ingen adfærd i sig selv.
 - **Fem veje ind** — guiden **Erklær hændelse**, **Opret fra skabelon**, en kriterieregel på en monitor, `POST /api/incident` eller en [formular](/docs/forms/index), som alle med linket kan udfylde.
 - **Nummereret pr. projekt** — hver hændelse får et hændelsesnummer fra en tæller pr. projekt, vist med projektets præfiks: `INC-42` i et nyt projekt, eller `#42` uden præfiks.
@@ -117,7 +117,7 @@ stateDiagram-v2
 
 | Tilstand         | Rækkefølge | Farve              | Hvad den betyder                                                          |
 | ---------------- | ---------- | ------------------ | ------------------------------------------------------------------------- |
-| **Identified**   | 1          | Rød (`#fd625e`)    | Den tilstand, en helt ny hændelse havner i. Det er oprettelsestilstanden. |
+| **Identificeret**   | 1          | Rød (`#fd625e`)    | Den tilstand, en helt ny hændelse havner i. Det er oprettelsestilstanden. |
 | **Bekræftet**    | 2          | Gul (`#ffbf53`)    | Nogen har taget hændelsen og arbejder på den.                             |
 | **Løst**         | 3          | Grøn (`#2ab57d`)   | Hændelsen er overstået. Det er løsningen, der fjerner den fra din statusside. |
 
@@ -130,7 +130,7 @@ Den skelnen betyder mere, end det lyder:
 - **Aktive hændelser** er udelukkende defineret som "den aktuelle tilstand står over den løste tilstand". En egen tilstand, du tilføjer over den løste tilstand, er derfor aktiv; en, du placerer efter den, tæller som løst, ligesom den løste tilstand selv.
 
 > [!NOTE]
-> Den første forudoprettede tilstand hedder **Identified**, selv om flere beskrivelser i produktet stadig kalder den oprettelsestilstanden ("created"). Leder du efter "Created" i projektets liste over tilstande, er det rækken med navnet **Identified**.
+> Den første forudoprettede tilstand hedder **Identificeret**, selv om flere beskrivelser i produktet stadig kalder den oprettelsestilstanden ("created"). Leder du efter "Created" i projektets liste over tilstande, er det rækken med navnet **Identificeret**.
 
 Du kan tilføje dine egne tilstande under **Hændelser → Indstillinger → Hændelsesstatus**. En ny tilstand tilføjes lige over den løste tilstand, og du trækker rækkerne for at ændre rækkefølgen; kolonnen **Tæller som** viser, hvad en hændelse i hver tilstand tæller som — ikke bekræftet, bekræftet eller løst. De tre tilstande med flag har mærket **Indbygget**: de beholder deres rækkefølge og kan ikke slettes, men du kan omdøbe dem, give dem nye farver og flytte dem, og derfor læser brugerfladen tilstandsnavne dynamisk.
 
@@ -165,7 +165,7 @@ Rediger eller tilføj alvorsgrader under **Hændelser → Indstillinger → Hæn
 
 **Oversigt** og **Episoder** er åbne; **AI**, **Arbejdsområde**, **Regler**, **Indstillinger** og **Udvikler** er foldet sammen som standard, så menuen åbner på de lister, du bruger hver dag. Klik på et afsnits titel for at folde det ud og finde de sider, resten af denne dokumentation henviser til; et afsnit åbner også af sig selv, når du er på en af dets sider. Konfigurationen af hændelser ligger ikke under projektindstillingerne; den ligger helt her.
 
-Selve listen over hændelser viser **Hændelsesnummer**, **Titel**, **Tilstand**, **Alvorlighed**, **Berørte ressourcer**, **Erklæret**, **Varighed**, **Etiketter** og **Ejere**. Menuen **⋯** for enden af hver hændelses række tilbyder **Bekræft** og **Løs**, så længe hændelsen kan tage det skridt, **Skift tilstand**, **Skift alvorlighed**, **Tildel til mig**, indtil du ejer den, og **Add Owner** for at give den videre til en anden. Vælg flere hændelser for at gøre det samme ved dem alle på én gang.
+Selve listen over hændelser viser **Hændelsesnummer**, **Titel**, **Tilstand**, **Alvorlighed**, **Berørte ressourcer**, **Erklæret**, **Varighed**, **Etiketter** og **Ejere**. Menuen **⋯** for enden af hver hændelses række tilbyder **Bekræft** og **Løs**, så længe hændelsen kan tage det skridt, **Skift tilstand**, **Skift alvorlighed**, **Tildel til mig**, indtil du ejer den, og **Tilføj ejer** for at give den videre til en anden. Vælg flere hændelser for at gøre det samme ved dem alle på én gang.
 
 ## Hvad hver side på en hændelse viser
 

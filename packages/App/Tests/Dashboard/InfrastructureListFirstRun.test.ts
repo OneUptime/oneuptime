@@ -18,10 +18,14 @@ import {
  *   refreshToggle so the row shows without a reload. No page counts or
  *   polls on its own any more: six used to hide the guide while leaving
  *   the table empty, and nine never looked again.
- * - The guide under an empty table says one shared sentence of what to do;
- *   the table above already says "No X yet" and what the list is for.
+ * - Under an empty table each list shows its showcase - what the product
+ *   gives, with the list's Add button - not the setup guide: Add opens that.
+ *   The table above already says "No X yet" and what the list is for, and
+ *   does not repeat Create: the showcase has the button. Cloud Resources,
+ *   which nothing adds by hand, keeps its Connect tiles and folded guide,
+ *   which says one shared sentence of what to do.
  * - While a list waits for its first record its filter chips are put away:
- *   there is nothing to filter, and the guide is the one thing to do.
+ *   there is nothing to filter, and the showcase is the one thing to read.
  * - A first count that failed can be tried again from the error (Refresh).
  * - The words it added are in every language, and the ones it retired are
  *   in none.
@@ -103,7 +107,7 @@ describe("the first-run rules", () => {
     expect(getCountAfterCheck({ current: 2, checked: 0 })).toBe(2);
   });
 
-  test("Create is hidden from an empty table only while the list is empty, and never where adding by hand connects", () => {
+  test("Create is hidden from an empty table only while the list is empty: the showcase under it has the Add button", () => {
     expect(
       getFirstRunEmptyState({ emptyState: undefined, count: 0 })
         .hideCreateButton,
@@ -111,13 +115,6 @@ describe("the first-run rules", () => {
     expect(
       getFirstRunEmptyState({ emptyState: undefined, count: 1 })
         .hideCreateButton,
-    ).toBeUndefined();
-    expect(
-      getFirstRunEmptyState({
-        emptyState: undefined,
-        count: 0,
-        isAddedByHand: true,
-      }).hideCreateButton,
     ).toBeUndefined();
     // Not yet counted: the page shows its loader, not the table.
     expect(
@@ -195,6 +192,24 @@ const REFRESH_TOGGLES: Record<string, string> = {
   "Pages/Cloud/CloudResources.tsx": ADD_DIALOG_REFRESH_TOGGLE,
 };
 
+// Each list's showcase (Components/ResourceShowcase), by the constant it is.
+const SHOWCASES: Record<string, string> = {
+  "Pages/Host/Hosts.tsx": "HOST_SHOWCASE",
+  "Pages/Kubernetes/Clusters.tsx": "KUBERNETES_CLUSTER_SHOWCASE",
+  "Pages/Docker/Hosts.tsx": "DOCKER_HOST_SHOWCASE",
+  "Pages/Podman/Hosts.tsx": "PODMAN_HOST_SHOWCASE",
+  "Pages/DockerSwarm/Clusters.tsx": "DOCKER_SWARM_CLUSTER_SHOWCASE",
+  "Pages/Proxmox/Clusters.tsx": "PROXMOX_CLUSTER_SHOWCASE",
+  "Pages/VMware/VCenters.tsx": "VMWARE_VCENTER_SHOWCASE",
+  "Pages/Ceph/Clusters.tsx": "CEPH_CLUSTER_SHOWCASE",
+  "Pages/StorageArray/StorageArrays.tsx": "STORAGE_ARRAY_SHOWCASE",
+  "Pages/IoT/Fleets.tsx": "IOT_FLEET_SHOWCASE",
+  "Pages/Database/Databases.tsx": "DATABASE_SHOWCASE",
+  "Pages/MessageQueue/MessageQueues.tsx": "MESSAGE_QUEUE_SHOWCASE",
+  "Pages/Serverless/ServerlessFunctions.tsx": "SERVERLESS_FUNCTION_SHOWCASE",
+  "Pages/Cloud/CloudResources.tsx": "CLOUD_ENVIRONMENT_SHOWCASE",
+};
+
 describe.each(LIST_PAGES)("%s", (page: string) => {
   const source: string = code(page);
 
@@ -208,10 +223,23 @@ describe.each(LIST_PAGES)("%s", (page: string) => {
     expect(source).not.toMatch(/useState<number \| null>\(null\)/);
   });
 
-  test("the guide says the shared sentence, not a sentence of its own", () => {
-    expect(source).toContain("{firstRecordWatch.count === 0 && (");
-    expect(source).toContain("description={FIRST_RUN_GUIDE_DESCRIPTION}");
-  });
+  if (SHOWCASES[page]) {
+    test("shows its own showcase under the empty table, not the setup guide", () => {
+      expect(source).toContain(
+        `{firstRecordWatch.count === 0 && ( <ResourceShowcaseCard showcase={${SHOWCASES[page]}} addButton={`,
+      );
+      // The setup guide opens from Add, not under the table.
+      expect(source).not.toContain("FIRST_RUN_GUIDE_DESCRIPTION");
+      expect(source).not.toContain("<AddResourceGuide");
+      expect(source).not.toContain("<AddHostGuide");
+      expect(source).not.toMatch(/<[A-Za-z]*DocumentationCard\b/);
+    });
+  } else {
+    test("the folded guide says the shared sentence, not a sentence of its own", () => {
+      expect(source).toContain("{firstRecordWatch.count === 0 && (");
+      expect(source).toContain("description={FIRST_RUN_GUIDE_DESCRIPTION}");
+    });
+  }
 
   test("a failed first count offers Refresh, which counts again", () => {
     expect(source).toContain(
