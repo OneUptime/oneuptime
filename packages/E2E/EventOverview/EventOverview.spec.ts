@@ -17612,7 +17612,8 @@ test.describe("at a glance: layout", () => {
       ]);
 
       const [declared] = await statCells(page, "Reaktionszeiten bei Vorfällen");
-      expect(declared?.label).toBe("Erklärt");
+      // German calls the declared time Gemeldet (#5287).
+      expect(declared?.label).toBe("Gemeldet");
       expect(declared?.note).toBe("3 Minuten nach Beginn der Auswirkung");
       expect(declared?.description).toBe("Von eu-west-1 probe");
 
