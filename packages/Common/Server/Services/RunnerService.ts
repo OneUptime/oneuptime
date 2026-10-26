@@ -741,6 +741,27 @@ export class Service extends ProjectReferencesService<Model> {
     });
   }
 
+  /*
+   * Whether a global Runner has heartbeated within the Runner window: what
+   * a repository on the Global Runner waits for, since every global Runner
+   * takes those repositories' AI work (CodeFixAgentAuth). lastAlive is a
+   * query predicate, as for every other Runner liveness check.
+   */
+  @CaptureSpan()
+  public async hasOnlineGlobalRunner(): Promise<boolean> {
+    const count: PositiveNumber = await this.countBy({
+      query: {
+        isGlobalRunner: true,
+        lastAlive: QueryHelper.greaterThan(
+          OneUptimeDate.getSomeMinutesAgo(RUNNER_ALIVE_WINDOW_IN_MINUTES),
+        ),
+      },
+      props: { isRoot: true },
+    });
+
+    return count.toNumber() > 0;
+  }
+
   private static getReservedAgentNameRefusal(): string {
     return `Runner names starting with "${KUBERNETES_AGENT_RUNNER_NAME_PREFIX}/" are reserved for the in-cluster Runners the Kubernetes agent chart registers (with --set aiAccess.enabled=true). Choose another name.`;
   }

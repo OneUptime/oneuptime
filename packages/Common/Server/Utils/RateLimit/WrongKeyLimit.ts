@@ -12,7 +12,7 @@ import { isPrivateNetworkAddress } from "../PrivateNetworkAddress";
  *
  * A key OneUptime's own services and components prove who they are with -
  * the cluster key, a probe's or a Runner's own key, the key that registers a
- * global probe or the shared Runner - is the installation's secret, and an
+ * global probe - is the installation's secret, and an
  * operator may set some of them by hand. So, like every route that takes a
  * credential, the routes that take one limit how many wrong ones one caller
  * may try. Each such limit is one of these, with its own sets in Valkey
@@ -63,7 +63,7 @@ import { isPrivateNetworkAddress } from "../PrivateNetworkAddress";
  * components share with other callers. Every one of them that presents such a
  * key calls from a private network address: the app and its workers call
  * each other over the installation's own network, and the bundled probes, the
- * shared Runner, the agents beside them and Runners of earlier releases call
+ * global Runner, the agents beside them and Runners of earlier releases call
  * from a container network, a cluster's pod network or the server itself. And
  * such an address is often not one caller's alone: a proxy, a load balancer
  * or a container network can show many callers as one. So a key presented

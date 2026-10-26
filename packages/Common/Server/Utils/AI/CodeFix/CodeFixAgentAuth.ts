@@ -35,6 +35,11 @@ export enum CodeFixAgentSource {
   Runner = "Runner",
 }
 
+/*
+ * Who a pair proved it is. A Runner identity with no project is a global
+ * Runner (checkCredential makes one only of a row that is global and has no
+ * project); every other identity has its project.
+ */
 export interface CodeFixAgentIdentity {
   id: ObjectID;
   projectId?: ObjectID | undefined;
@@ -57,17 +62,22 @@ export interface CodeFixCredentialCheck {
  * Resolves the aiAgentId/aiAgentKey pair every code-fix protocol request
  * carries. Two registries can hold the identity:
  *
- *   - AIAgent: the in-cluster fleet (cluster-key auto-registration) and any
- *     legacy per-project agents created before the Runner merge.
- *   - Runner: the unified OneUptime Runner customers install. The
- *     dashboard issues its id + key from this table, and the Runner presents
- *     them on the code-fix protocol too — so the protocol must accept them.
+ *   - Runner: every Runner. The dashboard issues a project's Runner its id
+ *     and key, a master admin a global Runner's (the bundled one is kept
+ *     from GLOBAL_RUNNER_KEY), and the Runner presents them on the code-fix
+ *     protocol too — so the protocol must accept them.
+ *   - AIAgent: the AI agents a project created before Runners replaced the
+ *     agent container, which still take its repositories' work. An AI agent
+ *     with no project - the shared Runner's registration, before global
+ *     Runners took its work - proves nothing here.
  *
  * The Runner path is also where a Runner's code-fix capability is
- * enforced: a project's Runner takes code-fix work exactly while AI works
- * in a code repository of its project on it - a repository picks it (its
- * Runner setting in Code), or it is the project's default Runner and a
- * repository that picks none follows it
+ * enforced. A global Runner takes the code-fix work of every repository
+ * that runs on the Global Runner (Types/Runner/CodeRepositoryRunner), as it
+ * takes every project's JavaScript steps. A project's Runner takes code-fix
+ * work exactly while AI works in a code repository of its project on it - a
+ * repository picks it (its Runner setting in Code), or it is the project's
+ * default Runner and a repository that picks none follows it
  * (CodeRepositoryRunnerChoice.doesRunnerWorkInARepository). One no
  * repository works on authenticates like any other invalid credential — it
  * cannot claim work, fetch task data, or mint repository tokens, no matter
@@ -195,13 +205,12 @@ export default class CodeFixAgentAuth {
     const agentKey: string = data["aiAgentKey"] as string;
 
     /*
-     * A key this repository ships never authenticates an agent. The
-     * in-cluster fleet's global agent registers with ONEUPTIME_RUNNER_KEY,
-     * which config.example.env ships as a placeholder, and every code-fix
-     * route authenticates here. A real agent or Runner key is a long random
-     * value, never a shipped one, so refusing it here (before either registry
-     * is read) never turns away a legitimate agent, and the rule holds on
-     * every code-fix route at once.
+     * A key this repository ships never authenticates an agent or a Runner.
+     * Every code-fix route authenticates here, and a real key is a long
+     * random value, never a shipped one (the global Runner's GLOBAL_RUNNER_KEY
+     * included: a shipped one turns it off), so refusing it here (before
+     * either registry is read) never turns away a legitimate one, and the
+     * rule holds on every code-fix route at once.
      */
     if (isShippedSecretValue(agentKey)) {
       return { identity: null, agentId: agentId, isKeyRight: false };
@@ -222,6 +231,16 @@ export default class CodeFixAgentAuth {
     });
 
     if (aiAgent && aiAgent.id) {
+      /*
+       * An AI agent with no project is the shared Runner's registration,
+       * from before global Runners took the work it did: its key is right,
+       * but it proves nothing, so it can never claim every project's runs
+       * or mint their repositories' tokens again.
+       */
+      if (!aiAgent.projectId) {
+        return { identity: null, agentId: agentId, isKeyRight: true };
+      }
+
       return {
         identity: {
           id: aiAgent.id,
@@ -241,6 +260,7 @@ export default class CodeFixAgentAuth {
       select: {
         _id: true,
         projectId: true,
+        isGlobalRunner: true,
         // What the agent-row rule reads.
         name: true,
         hostInfo: true,
@@ -253,18 +273,40 @@ export default class CodeFixAgentAuth {
     if (
       runner &&
       runner.id &&
-      !RunnerServiceClass.isKubernetesAgentRunnerRow(runner) &&
-      (await CodeRepositoryRunnerChoice.doesRunnerWorkInARepository(runner))
+      !RunnerServiceClass.isKubernetesAgentRunnerRow(runner)
     ) {
-      return {
-        identity: {
-          id: runner.id,
-          projectId: runner.projectId,
-          source: CodeFixAgentSource.Runner,
-        },
-        agentId: agentId,
-        isKeyRight: true,
-      };
+      /*
+       * A global Runner takes the code-fix work of every repository on the
+       * Global Runner. It belongs to no project, and neither does its
+       * identity, so the claim and the data routes serve it across projects
+       * by each repository's Runner choice, as they serve its JavaScript
+       * steps.
+       */
+      if (runner.isGlobalRunner === true && !runner.projectId) {
+        return {
+          identity: {
+            id: runner.id,
+            source: CodeFixAgentSource.Runner,
+          },
+          agentId: agentId,
+          isKeyRight: true,
+        };
+      }
+
+      if (
+        runner.projectId &&
+        (await CodeRepositoryRunnerChoice.doesRunnerWorkInARepository(runner))
+      ) {
+        return {
+          identity: {
+            id: runner.id,
+            projectId: runner.projectId,
+            source: CodeFixAgentSource.Runner,
+          },
+          agentId: agentId,
+          isKeyRight: true,
+        };
+      }
     }
 
     /*
@@ -308,14 +350,20 @@ export default class CodeFixAgentAuth {
 
   /*
    * Who the identity is, for the repositories' Runner choice
-   * (Types/Runner/CodeRepositoryRunner): a Runner row is one of its
-   * project's Runners; an AI agent with no project is a global Runner for
-   * code (the installation's bundled Runner, OneUptime Cloud's fleet); one
-   * with a project is that project's own, from before Runners.
+   * (Types/Runner/CodeRepositoryRunner): a Runner with a project is one of
+   * that project's Runners, and one with none a global Runner; an AI agent
+   * is its project's own, from before Runners. checkCredential proves no
+   * AI agent without a project; were one ever let through, it would be
+   * served as a global Runner, never as an agent of every project.
    */
   public static getCodeWorker(identity: CodeFixAgentIdentity): CodeWorker {
     if (identity.source === CodeFixAgentSource.Runner) {
-      return { kind: CodeWorkerKind.ProjectRunner, id: identity.id };
+      return {
+        kind: identity.projectId
+          ? CodeWorkerKind.ProjectRunner
+          : CodeWorkerKind.GlobalRunner,
+        id: identity.id,
+      };
     }
 
     return {
@@ -328,8 +376,8 @@ export default class CodeFixAgentAuth {
 
   /*
    * A project-scoped identity may only touch resources of its own project.
-   * Global identities (no projectId — the in-cluster fleet) serve every
-   * tenant. Callers should answer a denial with the same "not found"
+   * Global identities (no projectId — a global Runner) serve every tenant.
+   * Callers should answer a denial with the same "not found"
    * response they give for a missing resource, so a probing key cannot
    * distinguish "exists in another tenant" from "does not exist".
    */

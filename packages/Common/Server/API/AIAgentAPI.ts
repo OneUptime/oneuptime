@@ -1,5 +1,3 @@
-import UserMiddleware from "../Middleware/UserAuthorization";
-import ClusterKeyAuthorization from "../Middleware/ClusterKeyAuthorization";
 import AIAgentService, {
   Service as AIAgentServiceType,
 } from "../Services/AIAgentService";
@@ -10,16 +8,10 @@ import {
 } from "../Utils/Express";
 import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
-import LIMIT_MAX from "../../Types/Database/LimitMax";
-import PositiveNumber from "../../Types/PositiveNumber";
-import AIAgent, {
-  AIAgentConnectionStatus,
-} from "../../Models/DatabaseModels/AIAgent";
+import AIAgent from "../../Models/DatabaseModels/AIAgent";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
-import OneUptimeDate from "../../Types/Date";
-import Version from "../../Types/Version";
 import { isShippedSecretValue } from "../EnvironmentConfig";
 import WrongComponentKeyLimit, {
   ComponentKeyKind,
@@ -27,141 +19,25 @@ import WrongComponentKeyLimit, {
 import { WrongKeyRefusal } from "../Utils/RateLimit/WrongKeyLimit";
 
 /*
- * The agent key a global AI agent registers and authenticates with is the
- * in-cluster Runner's ONEUPTIME_RUNNER_KEY. A value this repository ships for
- * it (unset, "secret" or a config.example.env placeholder) proves nothing, so
- * it is refused at registration and on the heartbeat: only the installation's
- * own Runner, with a long random key, is the global agent every project
- * shares.
+ * A value this repository ships (unset, "secret" or a config.example.env
+ * placeholder) proves nothing as an agent key, so the heartbeat refuses it
+ * before any row is read. An agent's real key is a long random value the
+ * server made.
  */
 const SHIPPED_AI_AGENT_KEY_MESSAGE: string =
-  "aiAgentKey is a value the OneUptime repository ships, which is public, so it is refused. Set ONEUPTIME_RUNNER_KEY to a long random value on the in-cluster Runner.";
+  "aiAgentKey is a value the OneUptime repository ships, which is public, so it is refused.";
 
+/*
+ * The AI agents a project created before Runners replaced the agent
+ * container. A Runner started with such an agent's id and key checks in
+ * here (RegisterRunner's fallback for credentials from before Runners) and
+ * takes the project's code-fix work as it always did. Nothing registers an
+ * agent any more: the shared Runner that registered as the installation's
+ * global AI agent is gone, and global Runners take its work.
+ */
 export default class AIAgentAPI extends BaseAPI<AIAgent, AIAgentServiceType> {
   public constructor() {
     super(AIAgent, AIAgentService);
-
-    /*
-     * Register Global AI Agent: the installation's shared Runner, which
-     * proves it is that Runner with its own key, the one the app holds too
-     * - or, a Runner of an earlier release, with the cluster key
-     * (ClusterKeyAuthorization.isAuthorizedRunnerRegistrationMiddleware).
-     * Custom AI Agent can be registered via dashboard.
-     */
-    this.router.post(
-      `${new this.entityType().getCrudApiPath()?.toString()}/register`,
-      ClusterKeyAuthorization.isAuthorizedRunnerRegistrationMiddleware,
-      async (
-        req: ExpressRequest,
-        res: ExpressResponse,
-        next: NextFunction,
-      ): Promise<void> => {
-        try {
-          const data: JSONObject = req.body;
-
-          if (!data["aiAgentKey"]) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException("aiAgentKey is missing"),
-            );
-          }
-
-          const aiAgentKey: string = data["aiAgentKey"] as string;
-
-          if (isShippedSecretValue(aiAgentKey)) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException(SHIPPED_AI_AGENT_KEY_MESSAGE),
-            );
-          }
-
-          const registeredAIAgent: AIAgent | null =
-            await AIAgentService.findOneBy({
-              query: {
-                key: aiAgentKey,
-                isGlobalAIAgent: true,
-              },
-              select: {
-                _id: true,
-              },
-              props: {
-                isRoot: true,
-              },
-            });
-
-          /*
-           * No global agent holds this key. A Runner that ran on the key
-           * config.example.env ships comes back under the random
-           * ONEUPTIME_RUNNER_KEY npm start gave it, and the agent it ran as
-           * is refused from then on: it takes that agent over, so it stays
-           * the one global agent rather than a second one appearing beside
-           * an agent that can never report in again. A global agent whose
-           * key is the installation's own is never taken over
-           * (ShippedKeyTakeover).
-           */
-          const aiAgentToTakeOver: AIAgent | null = registeredAIAgent
-            ? null
-            : await AIAgentService.findGlobalAIAgentToTakeOver({
-                presentedKey: aiAgentKey,
-              });
-
-          const aiAgent: AIAgent | null =
-            registeredAIAgent || aiAgentToTakeOver;
-
-          const defaultDescription: string =
-            "AI-powered agent that analyzes and resolves code issues, triages incidents and alerts, and helps automate operational workflows.";
-
-          if (aiAgent) {
-            await AIAgentService.updateOneById({
-              id: aiAgent.id!,
-              data: {
-                ...(aiAgentToTakeOver ? { key: aiAgentKey } : {}),
-                name: (data["aiAgentName"] as string) || "Global AI Agent",
-                description:
-                  (data["aiAgentDescription"] as string) || defaultDescription,
-                lastAlive: OneUptimeDate.getCurrentDate(),
-                connectionStatus: AIAgentConnectionStatus.Connected,
-              },
-              props: {
-                isRoot: true,
-              },
-            });
-
-            return Response.sendJsonObjectResponse(req, res, {
-              _id: aiAgent._id?.toString(),
-              message: "AI Agent already registered",
-            });
-          }
-
-          let newAIAgent: AIAgent = new AIAgent();
-          newAIAgent.isGlobalAIAgent = true;
-          newAIAgent.key = aiAgentKey;
-          newAIAgent.name =
-            (data["aiAgentName"] as string) || "Global AI Agent";
-          newAIAgent.description =
-            (data["aiAgentDescription"] as string) || defaultDescription;
-          newAIAgent.lastAlive = OneUptimeDate.getCurrentDate();
-          newAIAgent.connectionStatus = AIAgentConnectionStatus.Connected;
-          newAIAgent.aiAgentVersion = new Version("1.0.0");
-
-          newAIAgent = await AIAgentService.create({
-            data: newAIAgent,
-            props: {
-              isRoot: true,
-            },
-          });
-
-          return Response.sendJsonObjectResponse(req, res, {
-            _id: newAIAgent._id?.toString(),
-            message: "AI Agent registered successfully",
-          });
-        } catch (err) {
-          return next(err);
-        }
-      },
-    );
 
     // Alive endpoint for AI Agent heartbeat
     this.router.post(
@@ -260,48 +136,6 @@ export default class AIAgentAPI extends BaseAPI<AIAgent, AIAgentServiceType> {
           await AIAgentService.updateLastAlive(aiAgentId);
 
           return Response.sendEmptySuccessResponse(req, res);
-        } catch (err) {
-          next(err);
-        }
-      },
-    );
-
-    /*
-     * The shared global AI agents: their name, description and status, read
-     * as OneUptime, for anyone signed in. The AI agent table itself is read
-     * by a project's own members only.
-     */
-    this.router.post(
-      `${new this.entityType().getCrudApiPath()?.toString()}/global-ai-agents`,
-      UserMiddleware.getUserMiddleware,
-      UserMiddleware.requireUserAuthentication,
-      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
-        try {
-          const aiAgents: Array<AIAgent> = await AIAgentService.findBy({
-            query: {
-              isGlobalAIAgent: true,
-            },
-            select: {
-              name: true,
-              description: true,
-              lastAlive: true,
-              iconFileId: true,
-              connectionStatus: true,
-            },
-            props: {
-              isRoot: true,
-            },
-            skip: 0,
-            limit: LIMIT_MAX,
-          });
-
-          return Response.sendEntityArrayResponse(
-            req,
-            res,
-            aiAgents,
-            new PositiveNumber(aiAgents.length),
-            AIAgent,
-          );
         } catch (err) {
           next(err);
         }

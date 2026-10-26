@@ -72,8 +72,8 @@ export default class AIAgentTaskAPI {
           /*
            * Scope the claim to the agent's project when it has one. A
            * project-scoped Runner (what customers install) must never
-           * claim another tenant's code-fix run; the in-cluster Runner has
-           * no projectId and keeps serving every project. Within that, each
+           * claim another tenant's code-fix run; a global Runner has no
+           * projectId and serves every project. Within that, each
            * repository's Runner setting decides who takes its runs: a
            * project's Runner only those of the repositories that pick it, a
            * global Runner only those of repositories that pick none.

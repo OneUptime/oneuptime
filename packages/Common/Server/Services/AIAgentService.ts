@@ -10,7 +10,7 @@ import Model, {
 } from "../../Models/DatabaseModels/AIAgent";
 import AIAgentOwnerUser from "../../Models/DatabaseModels/AIAgentOwnerUser";
 import AIAgentOwnerUserService from "./AIAgentOwnerUserService";
-import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import AIAgentOwnerTeam from "../../Models/DatabaseModels/AIAgentOwnerTeam";
 import AIAgentOwnerTeamService from "./AIAgentOwnerTeamService";
 import TeamMemberService from "./TeamMemberService";
@@ -36,10 +36,8 @@ import { WhatsAppMessagePayload } from "../../Types/WhatsApp/WhatsAppMessage";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import GlobalCache from "../Infrastructure/GlobalCache";
-import QueryHelper from "../Types/Database/QueryHelper";
 import ProjectDefaultRow from "../Utils/Database/ProjectDefaultRow";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
-import ShippedKeyTakeover from "../Utils/ShippedKeyTakeover";
 import ComponentKeyWrite from "../Utils/ComponentKeyWrite";
 
 export class Service extends ProjectReferencesService<Model> {
@@ -557,45 +555,6 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
-   * The global Runners for code: the global AI agents, which take the AI
-   * work of every repository that picks no Runner of its own while its
-   * project uses global Runners (Types/Runner/CodeRepositoryRunner) - the
-   * installation's bundled Runner, OneUptime Cloud's fleet. Read as
-   * OneUptime, with what tells whether each is alive and nothing else: no
-   * key, no project.
-   */
-  @CaptureSpan()
-  public async findGlobalCodeRunners(): Promise<Array<Model>> {
-    return await this.findBy({
-      query: {
-        isGlobalAIAgent: true,
-        projectId: QueryHelper.isNull(),
-      },
-      select: {
-        _id: true,
-        name: true,
-        lastAlive: true,
-        connectionStatus: true,
-      },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
-  }
-
-  // Whether a global Runner for code is alive now (findGlobalCodeRunners).
-  @CaptureSpan()
-  public async hasOnlineGlobalCodeRunner(): Promise<boolean> {
-    const globalRunners: Array<Model> = await this.findGlobalCodeRunners();
-
-    return globalRunners.some((agent: Model): boolean => {
-      return this.isAgentAlive(agent);
-    });
-  }
-
-  /*
    * An AI agent of the project's own - from before Runners, when a project
    * created its agent itself - that is alive now, or null. It serves the
    * project's repositories that pick no Runner, as it always did.
@@ -626,119 +585,6 @@ export class Service extends ProjectReferencesService<Model> {
         return this.isAgentAlive(agent);
       }) || null
     );
-  }
-
-  /*
-   * The global AI agent the in-cluster Runner registering under a key no
-   * global agent holds takes over (API/AIAgentAPI, /register), or null: the
-   * global agent that already holds the key, else the one whose key is a
-   * value this repository ships (ShippedKeyTakeover). That is the agent of a
-   * Runner that ran on the config.example.env ONEUPTIME_RUNNER_KEY and came
-   * back under the random key npm start gave it: it stays the one global
-   * agent, rather than a second one appearing beside an agent that can never
-   * report in again. A global agent whose key is the installation's own is
-   * never taken over.
-   */
-  @CaptureSpan()
-  public async findGlobalAIAgentToTakeOver(data: {
-    presentedKey: string;
-  }): Promise<Model | null> {
-    const globalAIAgents: Array<Model> = await this.findBy({
-      query: {
-        isGlobalAIAgent: true,
-      },
-      select: {
-        _id: true,
-        key: true,
-        lastAlive: true,
-      },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
-
-    return ShippedKeyTakeover.pickRowToTakeOver({
-      rows: globalAIAgents,
-      presentedKey: data.presentedKey,
-    });
-  }
-
-  @CaptureSpan()
-  public async getAIAgentForProject(
-    projectId: ObjectID,
-  ): Promise<Model | null> {
-    // First try to get the default AI agent for the project
-    let agent: Model | null = await this.findOneBy({
-      query: {
-        projectId: projectId,
-        isDefault: true,
-      },
-      select: {
-        _id: true,
-        name: true,
-        description: true,
-        key: true,
-        aiAgentVersion: true,
-        connectionStatus: true,
-        isGlobalAIAgent: true,
-        lastAlive: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-
-    if (agent) {
-      return agent;
-    }
-
-    // If no default agent, get any global AI agent
-    agent = await this.findOneBy({
-      query: {
-        projectId: QueryHelper.isNull(),
-        isGlobalAIAgent: true,
-      },
-      select: {
-        _id: true,
-        name: true,
-        description: true,
-        key: true,
-        aiAgentVersion: true,
-        connectionStatus: true,
-        isGlobalAIAgent: true,
-        lastAlive: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-
-    if (agent) {
-      return agent;
-    }
-
-    return null;
-  }
-
-  /*
-   * Like getAIAgentForProject, but only returns an agent that is actually
-   * alive (recent heartbeat or Connected status). Used by readiness checks
-   * and the stuck-task sweeper so a task is never created — or left queued
-   * forever — for a fleet that isn't running.
-   */
-  @CaptureSpan()
-  public async getConnectedAIAgentForProject(
-    projectId: ObjectID,
-  ): Promise<Model | null> {
-    const agent: Model | null = await this.getAIAgentForProject(projectId);
-
-    if (!agent) {
-      return null;
-    }
-
-    return this.isAgentAlive(agent) ? agent : null;
   }
 
   public isAgentAlive(agent: Model): boolean {

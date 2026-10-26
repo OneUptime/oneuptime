@@ -261,9 +261,8 @@ export class Service extends DatabaseService<Model> {
      * The claiming agent's project, when it is project-scoped. A Runner a
      * customer installs carries a project-scoped credential and must only
      * ever see that project's work — without this filter it would claim the
-     * oldest queued run across every tenant. Left undefined only for the
-     * in-cluster Runner (cluster-key registered, no projectId), which
-     * serves all projects by design.
+     * oldest queued run across every tenant. Left undefined only for a
+     * global Runner (no projectId), which serves all projects by design.
      */
     projectId?: ObjectID | undefined;
     /*
