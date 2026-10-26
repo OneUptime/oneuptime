@@ -14,9 +14,17 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import IconProp from "Common/Types/Icon/IconProp";
 import {
   BulkActionButtonSchema,
-  BulkActionFailed,
   BulkActionOnClickProps,
 } from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
+import {
+  BULK_ACTION_CONCURRENCY,
+  BULK_ITEM_CHANGED,
+  BulkItemOutcome,
+  bulkItemUnchanged,
+  runBulkAction,
+} from "Common/UI/Components/BulkUpdate/BulkActionRunner";
+import BulkReadAhead from "Common/UI/Components/BulkUpdate/BulkReadAhead";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import {
@@ -45,7 +53,6 @@ import {
 import { getArchivedColumns } from "../Archive/ArchivedColumns";
 import Statusbubble from "Common/UI/Components/StatusBubble/StatusBubble";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import API from "Common/UI/Utils/API/API";
 import Query from "Common/Types/BaseDatabase/Query";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
@@ -523,27 +530,117 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
     fetchProbes();
   }, []);
 
-  const handleBulkAddProbes: (probeId: ObjectID) => Promise<void> = async (
-    probeId: ObjectID,
-  ): Promise<void> => {
-    if (!bulkActionProps) {
-      return;
+  /*
+   * Which of these monitors the probe is on, by monitor: its MonitorProbe
+   * row. One list request for a window of monitors (BulkReadAhead), not one
+   * per monitor.
+   */
+  const readProbeAssignments: (data: {
+    monitors: Array<Monitor>;
+    probeId: ObjectID;
+  }) => Promise<Map<string, MonitorProbe>> = async (data: {
+    monitors: Array<Monitor>;
+    probeId: ObjectID;
+  }): Promise<Map<string, MonitorProbe>> => {
+    const monitorIds: Array<ObjectID> = [];
+
+    for (const monitor of data.monitors) {
+      if (monitor.id) {
+        monitorIds.push(monitor.id);
+      }
     }
 
-    const { items, onProgressInfo, onBulkActionStart, onBulkActionEnd } =
-      bulkActionProps;
+    const assignments: Map<string, MonitorProbe> = new Map<
+      string,
+      MonitorProbe
+    >();
 
-    onBulkActionStart();
+    if (monitorIds.length === 0) {
+      return assignments;
+    }
 
-    const inProgressItems: Array<Monitor> = [...items];
-    const totalItems: Array<Monitor> = [...items];
-    const successItems: Array<Monitor> = [];
-    const failedItems: Array<BulkActionFailed<Monitor>> = [];
+    const result: ListResult<MonitorProbe> =
+      await ModelAPI.getList<MonitorProbe>({
+        modelType: MonitorProbe,
+        query: {
+          monitorId: new Includes(monitorIds),
+          probeId: data.probeId,
+          projectId: ProjectUtil.getCurrentProjectId()!,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        select: {
+          _id: true,
+          monitorId: true,
+        },
+        sort: {},
+      });
 
-    for (const monitor of totalItems) {
-      inProgressItems.splice(inProgressItems.indexOf(monitor), 1);
+    for (const row of result.data) {
+      const monitorId: string = row.monitorId?.toString() || "";
 
-      try {
+      if (monitorId) {
+        assignments.set(monitorId, row);
+      }
+    }
+
+    return assignments;
+  };
+
+  /*
+   * Add Probe and Remove Probe in Bulk Actions: through the shared runner
+   * (progress, Stop, a summary by monitor), several monitors at once - a
+   * monitor's probes are its own. A monitor the probe is on already (Add),
+   * or not on (Remove), or that no probe runs, is left as it is, with why.
+   */
+  const runProbeChange: (data: {
+    actionProps: BulkActionOnClickProps<Monitor>;
+    probeId: ObjectID;
+    mode: "add" | "remove";
+  }) => Promise<void> = async (data: {
+    actionProps: BulkActionOnClickProps<Monitor>;
+    probeId: ObjectID;
+    mode: "add" | "remove";
+  }): Promise<void> => {
+    const reader: BulkReadAhead<Monitor, MonitorProbe> = new BulkReadAhead<
+      Monitor,
+      MonitorProbe
+    >({
+      // Only the monitors a probe can run: the others are not read about.
+      items: data.actionProps.items.filter((monitor: Monitor) => {
+        return Boolean(
+          monitor.monitorType &&
+            MonitorTypeHelper.isProbableMonitor(
+              monitor.monitorType as MonitorType,
+            ),
+        );
+      }),
+      getKey: (monitor: Monitor): string => {
+        return monitor.id?.toString() || "";
+      },
+      readWindow: (
+        monitors: Array<Monitor>,
+      ): Promise<Map<string, MonitorProbe>> => {
+        return readProbeAssignments({
+          monitors: monitors,
+          probeId: data.probeId,
+        });
+      },
+      readOne: async (monitor: Monitor): Promise<MonitorProbe | null> => {
+        const assignments: Map<string, MonitorProbe> =
+          await readProbeAssignments({
+            monitors: [monitor],
+            probeId: data.probeId,
+          });
+
+        return assignments.get(monitor.id?.toString() || "") || null;
+      },
+    });
+
+    await runBulkAction<Monitor>({
+      actionProps: data.actionProps,
+      concurrency: BULK_ACTION_CONCURRENCY,
+      step: async (monitor: Monitor): Promise<BulkItemOutcome> => {
         if (!monitor.id) {
           throw new BadDataException("Monitor ID not found");
         }
@@ -554,51 +651,27 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
             monitor.monitorType as MonitorType,
           )
         ) {
-          failedItems.push({
-            item: monitor,
-            failedMessage: translator.translateTemplate(
+          return bulkItemUnchanged(
+            translator.translateTemplate(
               "This monitor type does not support probes",
             ),
-          });
-
-          onProgressInfo({
-            totalItems: totalItems,
-            failed: failedItems,
-            successItems: successItems,
-            inProgressItems: inProgressItems,
-          });
-
-          continue;
+          );
         }
 
-        // Check if this probe is already assigned to this monitor
-        const existingProbes: ListResult<MonitorProbe> =
-          await ModelAPI.getList<MonitorProbe>({
-            modelType: MonitorProbe,
-            query: {
-              monitorId: monitor.id,
-              probeId: probeId,
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            limit: 1,
-            skip: 0,
-            select: {
-              _id: true,
-            },
-            sort: {},
-          });
+        const assignment: MonitorProbe | null = await reader.read(monitor);
 
-        if (existingProbes.data.length > 0) {
-          failedItems.push({
-            item: monitor,
-            failedMessage: translator.translateTemplate(
-              "Probe is already assigned to this monitor",
-            ),
-          });
-        } else {
+        if (data.mode === "add") {
+          if (assignment) {
+            return bulkItemUnchanged(
+              translator.translateTemplate(
+                "Probe is already assigned to this monitor",
+              ),
+            );
+          }
+
           const monitorProbe: MonitorProbe = new MonitorProbe();
           monitorProbe.monitorId = monitor.id;
-          monitorProbe.probeId = probeId;
+          monitorProbe.probeId = data.probeId;
           monitorProbe.projectId = ProjectUtil.getCurrentProjectId()!;
           monitorProbe.isEnabled = true;
 
@@ -607,24 +680,40 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
             modelType: MonitorProbe,
           });
 
-          successItems.push(monitor);
+          return BULK_ITEM_CHANGED;
         }
-      } catch (err) {
-        failedItems.push({
-          item: monitor,
-          failedMessage: API.getFriendlyMessage(err),
-        });
-      }
 
-      onProgressInfo({
-        totalItems: totalItems,
-        failed: failedItems,
-        successItems: successItems,
-        inProgressItems: inProgressItems,
-      });
+        if (!assignment || !assignment.id) {
+          return bulkItemUnchanged(
+            translator.translateTemplate(
+              "Probe is not assigned to this monitor",
+            ),
+          );
+        }
+
+        await ModelAPI.deleteItem<MonitorProbe>({
+          modelType: MonitorProbe,
+          id: assignment.id,
+        });
+
+        return BULK_ITEM_CHANGED;
+      },
+    });
+  };
+
+  const handleBulkAddProbes: (probeId: ObjectID) => Promise<void> = async (
+    probeId: ObjectID,
+  ): Promise<void> => {
+    if (!bulkActionProps) {
+      return;
     }
 
-    onBulkActionEnd();
+    await runProbeChange({
+      actionProps: bulkActionProps,
+      probeId: probeId,
+      mode: "add",
+    });
+
     setShowAddProbesModal(false);
     setBulkActionProps(null);
   };
@@ -636,95 +725,12 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
       return;
     }
 
-    const { items, onProgressInfo, onBulkActionStart, onBulkActionEnd } =
-      bulkActionProps;
+    await runProbeChange({
+      actionProps: bulkActionProps,
+      probeId: probeId,
+      mode: "remove",
+    });
 
-    onBulkActionStart();
-
-    const inProgressItems: Array<Monitor> = [...items];
-    const totalItems: Array<Monitor> = [...items];
-    const successItems: Array<Monitor> = [];
-    const failedItems: Array<BulkActionFailed<Monitor>> = [];
-
-    for (const monitor of totalItems) {
-      inProgressItems.splice(inProgressItems.indexOf(monitor), 1);
-
-      try {
-        if (!monitor.id) {
-          throw new BadDataException("Monitor ID not found");
-        }
-
-        if (
-          !monitor.monitorType ||
-          !MonitorTypeHelper.isProbableMonitor(
-            monitor.monitorType as MonitorType,
-          )
-        ) {
-          failedItems.push({
-            item: monitor,
-            failedMessage: translator.translateTemplate(
-              "This monitor type does not support probes",
-            ),
-          });
-
-          onProgressInfo({
-            totalItems: totalItems,
-            failed: failedItems,
-            successItems: successItems,
-            inProgressItems: inProgressItems,
-          });
-
-          continue;
-        }
-
-        // Find the MonitorProbe record to delete
-        const existingProbes: ListResult<MonitorProbe> =
-          await ModelAPI.getList<MonitorProbe>({
-            modelType: MonitorProbe,
-            query: {
-              monitorId: monitor.id,
-              probeId: probeId,
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            limit: 1,
-            skip: 0,
-            select: {
-              _id: true,
-            },
-            sort: {},
-          });
-
-        if (existingProbes.data.length === 0) {
-          failedItems.push({
-            item: monitor,
-            failedMessage: translator.translateTemplate(
-              "Probe is not assigned to this monitor",
-            ),
-          });
-        } else {
-          await ModelAPI.deleteItem<MonitorProbe>({
-            modelType: MonitorProbe,
-            id: existingProbes.data[0]!.id!,
-          });
-
-          successItems.push(monitor);
-        }
-      } catch (err) {
-        failedItems.push({
-          item: monitor,
-          failedMessage: API.getFriendlyMessage(err),
-        });
-      }
-
-      onProgressInfo({
-        totalItems: totalItems,
-        failed: failedItems,
-        successItems: successItems,
-        inProgressItems: inProgressItems,
-      });
-    }
-
-    onBulkActionEnd();
     setShowRemoveProbesModal(false);
     setBulkActionProps(null);
   };

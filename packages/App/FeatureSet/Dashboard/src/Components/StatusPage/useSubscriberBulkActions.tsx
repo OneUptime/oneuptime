@@ -1,4 +1,5 @@
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
+import { BULK_ACTION_CONCURRENCY } from "Common/UI/Components/BulkUpdate/BulkActionRunner";
 import useBulkSwitchActions, {
   BulkSwitchActionsConfig,
   UNSUBSCRIBE_SWITCH_ACTION,
@@ -54,7 +55,9 @@ export const getSubscriberName: (subscriber: StatusPageSubscriber) => string = (
  * asked for them to stop (UNSUBSCRIBE_SWITCH_ACTION).
  *
  * The lists name their rows Subscriber(s), as their buttons and dialogs do,
- * and each row by getSubscriberName.
+ * and each row by getSubscriberName. A list can hold thousands of them, and
+ * one subscriber's unsubscribing touches nothing another's does, so they are
+ * unsubscribed several at once.
  */
 const SUBSCRIBER_SWITCH: BulkSwitchActionsConfig<StatusPageSubscriber> = {
   modelType: StatusPageSubscriber,
@@ -63,6 +66,7 @@ const SUBSCRIBER_SWITCH: BulkSwitchActionsConfig<StatusPageSubscriber> = {
   singularName: "Subscriber",
   pluralName: "Subscribers",
   getItemName: getSubscriberName,
+  concurrency: BULK_ACTION_CONCURRENCY,
 };
 
 const useSubscriberBulkActions: () => Array<

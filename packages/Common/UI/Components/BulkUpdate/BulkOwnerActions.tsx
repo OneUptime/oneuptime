@@ -33,15 +33,16 @@ import getOwnersFormField from "../PeoplePicker/OwnersFormField";
 import { toPeoplePickerIds } from "../PeoplePicker/PeoplePickerTypes";
 import {
   BulkActionButtonSchema,
-  BulkActionFailed,
   BulkActionOnClickProps,
 } from "./BulkUpdateForm";
 import {
+  BULK_ACTION_CONCURRENCY,
   BULK_ITEM_CHANGED,
   BulkItemOutcome,
   bulkItemUnchanged,
   runBulkAction,
 } from "./BulkActionRunner";
+import BulkReadAhead from "./BulkReadAhead";
 
 type OwnerJunctionModel = BaseModel;
 
@@ -108,6 +109,15 @@ type BulkOwnerMode = "add" | "remove";
 interface PickedOwners {
   userIds: Array<string>;
   teamIds: Array<string>;
+}
+
+/*
+ * A record's owner rows that name the people and teams picked: the ones
+ * Add Owner skips and Remove Owner deletes.
+ */
+interface PickedOwnerRows {
+  users: Array<BaseModel>;
+  teams: Array<BaseModel>;
 }
 
 /*
@@ -309,6 +319,349 @@ function useBulkOwnerActions<T extends BaseModel>(
     return added;
   };
 
+  /*
+   * The owner rows of these records that name the people and teams picked,
+   * by record: what Add Owner and Assign to Me skip, and what Remove Owner
+   * deletes. One list request per owner table for every record asked about,
+   * and none for a table nothing was picked from.
+   */
+  const readPickedOwnerRows: (data: {
+    items: Array<T>;
+    picked: PickedOwners;
+    projectId: ObjectID;
+  }) => Promise<Map<string, PickedOwnerRows>> = async (data: {
+    items: Array<T>;
+    picked: PickedOwners;
+    projectId: ObjectID;
+  }): Promise<Map<string, PickedOwnerRows>> => {
+    const itemIds: Array<ObjectID> = [];
+
+    for (const item of data.items) {
+      if (item.id) {
+        itemIds.push(item.id);
+      }
+    }
+
+    const byItem: Map<string, PickedOwnerRows> = new Map<
+      string,
+      PickedOwnerRows
+    >();
+
+    if (itemIds.length === 0) {
+      return byItem;
+    }
+
+    const rowsOf: (itemId: string) => PickedOwnerRows = (
+      itemId: string,
+    ): PickedOwnerRows => {
+      let rows: PickedOwnerRows | undefined = byItem.get(itemId);
+
+      if (!rows) {
+        rows = { users: [], teams: [] };
+        byItem.set(itemId, rows);
+      }
+
+      return rows;
+    };
+
+    const readTable: (table: {
+      modelType: { new (): OwnerJunctionModel };
+      ownerColumn: "userId" | "teamId";
+      ownerIds: Array<string>;
+    }) => Promise<Array<OwnerJunctionModel>> = async (table: {
+      modelType: { new (): OwnerJunctionModel };
+      ownerColumn: "userId" | "teamId";
+      ownerIds: Array<string>;
+    }): Promise<Array<OwnerJunctionModel>> => {
+      if (table.ownerIds.length === 0) {
+        return [];
+      }
+
+      const result: ListResult<OwnerJunctionModel> =
+        await ModelAPI.getList<OwnerJunctionModel>({
+          modelType: table.modelType,
+          query: {
+            [config.resourceIdField]: new Includes(itemIds),
+            projectId: data.projectId,
+            [table.ownerColumn]: new Includes(
+              table.ownerIds.map((id: string) => {
+                return new ObjectID(id);
+              }),
+            ),
+          } as Query<OwnerJunctionModel>,
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          select: {
+            _id: true,
+            [table.ownerColumn]: true,
+            [config.resourceIdField]: true,
+          } as Record<string, unknown>,
+          sort: {},
+        });
+
+      return result.data;
+    };
+
+    const [userRows, teamRows]: [
+      Array<OwnerJunctionModel>,
+      Array<OwnerJunctionModel>,
+    ] = await Promise.all([
+      readTable({
+        modelType: config.ownerUserModelType,
+        ownerColumn: "userId",
+        ownerIds: data.picked.userIds,
+      }),
+      readTable({
+        modelType: config.ownerTeamModelType,
+        ownerColumn: "teamId",
+        ownerIds: data.picked.teamIds,
+      }),
+    ]);
+
+    const recordIdOf: (row: OwnerJunctionModel) => string = (
+      row: OwnerJunctionModel,
+    ): string => {
+      const value: unknown = (row as unknown as Record<string, unknown>)[
+        config.resourceIdField
+      ];
+
+      return value ? String(value).toLowerCase() : "";
+    };
+
+    for (const row of userRows) {
+      const itemId: string = recordIdOf(row);
+
+      if (itemId) {
+        rowsOf(itemId).users.push(row);
+      }
+    }
+
+    for (const row of teamRows) {
+      const itemId: string = recordIdOf(row);
+
+      if (itemId) {
+        rowsOf(itemId).teams.push(row);
+      }
+    }
+
+    return byItem;
+  };
+
+  // Of the owner rows read, the ids of the people or teams they name.
+  const ownerIdsOf: (
+    rows: Array<OwnerJunctionModel>,
+    ownerColumn: "userId" | "teamId",
+  ) => Set<string> = (
+    rows: Array<OwnerJunctionModel>,
+    ownerColumn: "userId" | "teamId",
+  ): Set<string> => {
+    const ids: Set<string> = new Set<string>();
+
+    for (const row of rows) {
+      const value: unknown = (row as unknown as Record<string, unknown>)[
+        ownerColumn
+      ];
+      const id: string = value ? String(value) : "";
+
+      if (id) {
+        ids.add(id);
+      }
+    }
+
+    return ids;
+  };
+
+  /*
+   * Adds the picked people and teams a record is not owned by yet, as owners
+   * of it, each its own owner row. Whether any was added.
+   */
+  const addMissingOwners: (data: {
+    item: T;
+    picked: PickedOwners;
+    existing: PickedOwnerRows;
+    projectId: ObjectID;
+  }) => Promise<boolean> = async (data: {
+    item: T;
+    picked: PickedOwners;
+    existing: PickedOwnerRows;
+    projectId: ObjectID;
+  }): Promise<boolean> => {
+    const existingUserIds: Set<string> = ownerIdsOf(
+      data.existing.users,
+      "userId",
+    );
+    const existingTeamIds: Set<string> = ownerIdsOf(
+      data.existing.teams,
+      "teamId",
+    );
+
+    let added: boolean = false;
+
+    for (const userId of data.picked.userIds) {
+      if (existingUserIds.has(userId)) {
+        continue;
+      }
+
+      const ownerModel: OwnerJunctionModel = new config.ownerUserModelType();
+      (ownerModel as unknown as Record<string, unknown>)["userId"] =
+        new ObjectID(userId);
+      (ownerModel as unknown as Record<string, unknown>)[
+        config.resourceIdField
+      ] = data.item.id;
+      (ownerModel as unknown as Record<string, unknown>)["projectId"] =
+        data.projectId;
+      await ModelAPI.create<OwnerJunctionModel>({
+        model: ownerModel,
+        modelType: config.ownerUserModelType,
+      });
+      added = true;
+    }
+
+    for (const teamId of data.picked.teamIds) {
+      if (existingTeamIds.has(teamId)) {
+        continue;
+      }
+
+      const ownerModel: OwnerJunctionModel = new config.ownerTeamModelType();
+      (ownerModel as unknown as Record<string, unknown>)["teamId"] =
+        new ObjectID(teamId);
+      (ownerModel as unknown as Record<string, unknown>)[
+        config.resourceIdField
+      ] = data.item.id;
+      (ownerModel as unknown as Record<string, unknown>)["projectId"] =
+        data.projectId;
+      await ModelAPI.create<OwnerJunctionModel>({
+        model: ownerModel,
+        modelType: config.ownerTeamModelType,
+      });
+      added = true;
+    }
+
+    return added;
+  };
+
+  // Deletes the owner rows read for a record (Remove Owner).
+  const removeOwnerRows: (rows: PickedOwnerRows) => Promise<void> = async (
+    rows: PickedOwnerRows,
+  ): Promise<void> => {
+    for (const row of rows.users) {
+      if (!row.id) {
+        continue;
+      }
+      await ModelAPI.deleteItem<OwnerJunctionModel>({
+        modelType: config.ownerUserModelType,
+        id: row.id,
+      });
+    }
+    for (const row of rows.teams) {
+      if (!row.id) {
+        continue;
+      }
+      await ModelAPI.deleteItem<OwnerJunctionModel>({
+        modelType: config.ownerTeamModelType,
+        id: row.id,
+      });
+    }
+  };
+
+  /*
+   * A bulk Add Owner, Remove Owner or Assign to Me: the selected records'
+   * owner rows read a window at a time (BulkReadAhead: one list request per
+   * owner table for fifty records), then each record changed through the
+   * shared runner, several at once. A window whose read fails reads its
+   * records one by one.
+   */
+  const runOwnerChange: (data: {
+    actionProps: BulkActionOnClickProps<T>;
+    picked: PickedOwners;
+    mode: BulkOwnerMode | "assignToMe";
+  }) => Promise<void> = async (data: {
+    actionProps: BulkActionOnClickProps<T>;
+    picked: PickedOwners;
+    mode: BulkOwnerMode | "assignToMe";
+  }): Promise<void> => {
+    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+
+    const reader: BulkReadAhead<T, PickedOwnerRows> = new BulkReadAhead<
+      T,
+      PickedOwnerRows
+    >({
+      items: data.actionProps.items,
+      getKey: (item: T): string => {
+        return item.id?.toString() || "";
+      },
+      readWindow: async (
+        windowItems: Array<T>,
+      ): Promise<Map<string, PickedOwnerRows>> => {
+        if (!projectId) {
+          return new Map<string, PickedOwnerRows>();
+        }
+
+        return await readPickedOwnerRows({
+          items: windowItems,
+          picked: data.picked,
+          projectId: projectId,
+        });
+      },
+      readOne: async (item: T): Promise<PickedOwnerRows | null> => {
+        if (!projectId || !item.id) {
+          return null;
+        }
+
+        return (
+          (
+            await readPickedOwnerRows({
+              items: [item],
+              picked: data.picked,
+              projectId: projectId,
+            })
+          ).get(item.id.toString().toLowerCase()) || null
+        );
+      },
+    });
+
+    await runBulkAction<T>({
+      actionProps: data.actionProps,
+      concurrency: BULK_ACTION_CONCURRENCY,
+      step: async (item: T): Promise<BulkItemOutcome> => {
+        if (!item.id) {
+          throw new BadDataException("Item ID not found");
+        }
+
+        if (!projectId) {
+          throw new BadDataException("Project not found");
+        }
+
+        const existing: PickedOwnerRows = (await reader.read(item)) || {
+          users: [],
+          teams: [],
+        };
+
+        if (data.mode === "remove") {
+          await removeOwnerRows(existing);
+          return BULK_ITEM_CHANGED;
+        }
+
+        const added: boolean = await addMissingOwners({
+          item: item,
+          picked: data.picked,
+          existing: existing,
+          projectId: projectId,
+        });
+
+        // Assign to Me says why a record it added nothing to was left alone.
+        if (data.mode === "assignToMe" && !added) {
+          return bulkItemUnchanged(
+            translator.translateText(ALREADY_OWNED_BY_YOU) ||
+              ALREADY_OWNED_BY_YOU,
+          );
+        }
+
+        return BULK_ITEM_CHANGED;
+      },
+    });
+  };
+
   // The viewer, as Assign to Me adds them.
   const getMyOwnerPick: () => PickedOwners = (): PickedOwners => {
     const myUserId: string = User.getUserId()?.toString() || "";
@@ -331,125 +684,16 @@ function useBulkOwnerActions<T extends BaseModel>(
       return;
     }
 
-    const { items, onProgressInfo, onBulkActionStart, onBulkActionEnd } =
-      bulkActionProps;
-
     // Close the form modal first so the progress modal is visible
     setShowAddModal(false);
     setShowRemoveModal(false);
 
-    const userIds: Array<string> = picked.userIds;
-    const teamIds: Array<string> = picked.teamIds;
+    await runOwnerChange({
+      actionProps: bulkActionProps,
+      picked: picked,
+      mode: mode,
+    });
 
-    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
-
-    onBulkActionStart();
-
-    const totalItems: Array<T> = [...items];
-    const inProgressItems: Array<T> = [...items];
-    const successItems: Array<T> = [];
-    const failedItems: Array<BulkActionFailed<T>> = [];
-
-    for (const item of totalItems) {
-      inProgressItems.splice(inProgressItems.indexOf(item), 1);
-
-      try {
-        if (!item.id) {
-          throw new BadDataException("Item ID not found");
-        }
-        if (!projectId) {
-          throw new BadDataException("Project not found");
-        }
-
-        if (mode === "add") {
-          await addOwnersToItem(item, picked);
-        } else {
-          const fetchMatchingUsers: Promise<Array<OwnerJunctionModel>> =
-            userIds.length > 0
-              ? ModelAPI.getList<OwnerJunctionModel>({
-                  modelType: config.ownerUserModelType,
-                  query: {
-                    [config.resourceIdField]: item.id,
-                    projectId: projectId,
-                    userId: new Includes(
-                      userIds.map((id: string) => {
-                        return new ObjectID(id);
-                      }),
-                    ),
-                  } as Query<OwnerJunctionModel>,
-                  limit: LIMIT_PER_PROJECT,
-                  skip: 0,
-                  select: { _id: true } as Record<string, unknown>,
-                  sort: {},
-                }).then((r: ListResult<OwnerJunctionModel>) => {
-                  return r.data;
-                })
-              : Promise.resolve([] as Array<OwnerJunctionModel>);
-
-          const fetchMatchingTeams: Promise<Array<OwnerJunctionModel>> =
-            teamIds.length > 0
-              ? ModelAPI.getList<OwnerJunctionModel>({
-                  modelType: config.ownerTeamModelType,
-                  query: {
-                    [config.resourceIdField]: item.id,
-                    projectId: projectId,
-                    teamId: new Includes(
-                      teamIds.map((id: string) => {
-                        return new ObjectID(id);
-                      }),
-                    ),
-                  } as Query<OwnerJunctionModel>,
-                  limit: LIMIT_PER_PROJECT,
-                  skip: 0,
-                  select: { _id: true } as Record<string, unknown>,
-                  sort: {},
-                }).then((r: ListResult<OwnerJunctionModel>) => {
-                  return r.data;
-                })
-              : Promise.resolve([] as Array<OwnerJunctionModel>);
-
-          const [matchingUsers, matchingTeams]: [
-            Array<OwnerJunctionModel>,
-            Array<OwnerJunctionModel>,
-          ] = await Promise.all([fetchMatchingUsers, fetchMatchingTeams]);
-
-          for (const row of matchingUsers) {
-            if (!row.id) {
-              continue;
-            }
-            await ModelAPI.deleteItem<OwnerJunctionModel>({
-              modelType: config.ownerUserModelType,
-              id: row.id,
-            });
-          }
-          for (const row of matchingTeams) {
-            if (!row.id) {
-              continue;
-            }
-            await ModelAPI.deleteItem<OwnerJunctionModel>({
-              modelType: config.ownerTeamModelType,
-              id: row.id,
-            });
-          }
-        }
-
-        successItems.push(item);
-      } catch (err) {
-        failedItems.push({
-          item: item,
-          failedMessage: API.getFriendlyMessage(err),
-        });
-      }
-
-      onProgressInfo({
-        totalItems: totalItems,
-        failed: failedItems,
-        successItems: successItems,
-        inProgressItems: inProgressItems,
-      });
-    }
-
-    onBulkActionEnd();
     setBulkActionProps(null);
   };
 
@@ -501,19 +745,25 @@ function useBulkOwnerActions<T extends BaseModel>(
     icon: IconProp.User,
     resultLabels: ASSIGN_TO_ME_RESULT_LABELS,
     onClick: async (actionProps: BulkActionOnClickProps<T>): Promise<void> => {
-      await runBulkAction<T>({
-        actionProps: actionProps,
-        concurrency: 1,
-        step: async (item: T): Promise<BulkItemOutcome> => {
-          const added: boolean = await addOwnersToItem(item, getMyOwnerPick());
+      let picked: PickedOwners;
 
-          return added
-            ? BULK_ITEM_CHANGED
-            : bulkItemUnchanged(
-                translator.translateText(ALREADY_OWNED_BY_YOU) ||
-                  ALREADY_OWNED_BY_YOU,
-              );
-        },
+      try {
+        picked = getMyOwnerPick();
+      } catch (err) {
+        // Not signed in: every row fails with why, as it always did.
+        await runBulkAction<T>({
+          actionProps: actionProps,
+          step: async (): Promise<void> => {
+            throw err;
+          },
+        });
+        return;
+      }
+
+      await runOwnerChange({
+        actionProps: actionProps,
+        picked: picked,
+        mode: "assignToMe",
       });
     },
   };

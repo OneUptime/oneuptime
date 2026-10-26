@@ -43,6 +43,12 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * member and team of the project as soon as a table offering these actions
  * mounted. The picker searches when its list is opened instead, and the
  * tests on what it asks for say so.
+ *
+ * Since #5299 a bulk run reads the selection's owner rows a window of fifty
+ * items at a time - one list request per owner table, naming every item of
+ * the window and only the people or teams picked - and matches each row to
+ * its item by the item's id on the row. The rows the fixtures answer with
+ * carry that id, as the server's do.
  */
 
 /*
@@ -190,6 +196,8 @@ interface OwnerRowSeed {
   id?: string;
   userId?: string;
   teamId?: string;
+  // The SLO the row makes them an owner of: the first one unless said.
+  sloId?: string;
 }
 
 type MakeOwnerUserRowFunction = (
@@ -209,6 +217,8 @@ const makeOwnerUserRow: MakeOwnerUserRowFunction = (
   if (seed.userId) {
     row.userId = new ObjectID(seed.userId);
   }
+
+  row.serviceLevelObjectiveId = new ObjectID(seed.sloId || SLO_ONE_ID);
 
   return row;
 };
@@ -230,6 +240,8 @@ const makeOwnerTeamRow: MakeOwnerTeamRowFunction = (
   if (seed.teamId) {
     row.teamId = new ObjectID(seed.teamId);
   }
+
+  row.serviceLevelObjectiveId = new ObjectID(seed.sloId || SLO_ONE_ID);
 
   return row;
 };
@@ -1008,7 +1020,7 @@ describe("useBulkOwnerActions", () => {
     expect(onlyCall.modelType).toBe(ServiceLevelObjectiveOwnerTeam);
   });
 
-  test("reads the item's existing user owners with the resource-scoped query", async () => {
+  test("reads the selection's existing user owners with one resource-scoped query", async () => {
     mockLists({
       teamMembers: [makeTeamMember({ userId: ALICE_ID, name: "Alice" })],
       teams: [],
@@ -1035,11 +1047,31 @@ describe("useBulkOwnerActions", () => {
      * The foreign key is a config string. Spelling it wrong compiles, and
      * then this query matches every owner row in the project.
      */
-    expect(ownerUserCall.query.serviceLevelObjectiveId.toString()).toBe(
-      SLO_ONE_ID,
+    expect(ownerUserCall.query.serviceLevelObjectiveId).toBeInstanceOf(
+      Includes,
     );
+    expect(
+      (ownerUserCall.query.serviceLevelObjectiveId.values as Array<ObjectID>).map(
+        (id: ObjectID) => {
+          return id.toString();
+        },
+      ),
+    ).toEqual([SLO_ONE_ID]);
     expect(ownerUserCall.query.projectId.toString()).toBe(PROJECT_ID);
-    expect(ownerUserCall.select).toEqual({ userId: true });
+    // Only the people picked: whether each owns the item already.
+    expect(
+      (ownerUserCall.query.userId.values as Array<ObjectID>).map(
+        (id: ObjectID) => {
+          return id.toString();
+        },
+      ),
+    ).toEqual([ALICE_ID]);
+    // Which item each row is of, and who it names.
+    expect(ownerUserCall.select).toEqual({
+      _id: true,
+      userId: true,
+      serviceLevelObjectiveId: true,
+    });
     expect(ownerUserCall.limit).toBe(LIMIT_PER_PROJECT);
     expect(ownerUserCall.skip).toBe(0);
   });
@@ -1146,14 +1178,24 @@ describe("useBulkOwnerActions", () => {
     );
 
     const lookup: any = getListCallsFor(ServiceLevelObjectiveOwnerUser)[0];
-    expect(lookup.query.serviceLevelObjectiveId.toString()).toBe(SLO_ONE_ID);
+    expect(
+      (lookup.query.serviceLevelObjectiveId.values as Array<ObjectID>).map(
+        (id: ObjectID) => {
+          return id.toString();
+        },
+      ),
+    ).toEqual([SLO_ONE_ID]);
     expect(lookup.query.userId).toBeInstanceOf(Includes);
     expect(
       (lookup.query.userId.values as Array<ObjectID>).map((id: ObjectID) => {
         return id.toString();
       }),
     ).toEqual([ALICE_ID]);
-    expect(lookup.select).toEqual({ _id: true });
+    expect(lookup.select).toEqual({
+      _id: true,
+      userId: true,
+      serviceLevelObjectiveId: true,
+    });
   });
 
   test("skips a junction row that came back without an id", async () => {

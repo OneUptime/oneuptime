@@ -40,6 +40,13 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *     last" (the stale response used to win)
  *   - the two "opening X closes an open Y modal" tests (stacked modals share
  *     one bulkActionProps and the loser goes silently inert)
+ *
+ * Since #5299 a bulk run reads the items' current labels a window of fifty
+ * at a time - one list request, not a getItem per item (BulkReadAhead) -
+ * and falls back to a getItem per item when that request fails. The tests
+ * answer the window read from the same per-item answers getItemMock gives,
+ * row by row, the way the server answers a list: the rows it can read, and
+ * not the others. The tests at the end pin the window read itself.
  */
 
 /*
@@ -61,6 +68,8 @@ jest.mock("react-i18next", () => {
 const getListMock: MockFunction = getJestMockFunction();
 const getItemMock: MockFunction = getJestMockFunction();
 const updateByIdMock: MockFunction = getJestMockFunction();
+// The bulk run's window read of the items' labels (see the note above).
+const windowReadMock: MockFunction = getJestMockFunction();
 
 /*
  * The arrow wrappers are load bearing: jest.mock is hoisted above the compiled
@@ -72,6 +81,18 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
     __esModule: true,
     default: {
       getList: (...args: Array<any>) => {
+        /*
+         * The bulk run's read of the items' current labels asks for each
+         * item's _id with them; the Remove Labels dialog's read of the
+         * selection's labels does not, and the project's labels are not
+         * read with labels of their own.
+         */
+        const select: any = (args[0] as any)?.select;
+
+        if (select?._id === true && select?.labels) {
+          return windowReadMock(...args);
+        }
+
         return getListMock(...args);
       },
       getItem: (...args: Array<any>) => {
@@ -103,6 +124,7 @@ import Includes from "../../../Types/BaseDatabase/Includes";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import IconProp from "../../../Types/Icon/IconProp";
+import ObjectID from "../../../Types/ObjectID";
 import { Red } from "../../../Types/BrandColors";
 
 /*
@@ -507,6 +529,33 @@ describe("useBulkLabelActions", () => {
 
     getListMock.mockResolvedValue({ data: [], count: 0, skip: 0, limit: 0 });
     updateByIdMock.mockResolvedValue({});
+
+    /*
+     * A window read answers with what getItem answers for each id it asks
+     * about, leaving out an id getItem has nothing for or fails on - as the
+     * server leaves out a row it cannot read.
+     */
+    windowReadMock.mockImplementation(async (listData: any): Promise<any> => {
+      const rows: Array<Monitor> = [];
+
+      for (const id of (listData.query._id as Includes).values) {
+        try {
+          const row: Monitor | null = await getItemMock({
+            modelType: listData.modelType,
+            id: new ObjectID(id.toString()),
+            select: listData.select,
+          });
+
+          if (row && row._id) {
+            rows.push(row);
+          }
+        } catch {
+          // Left out.
+        }
+      }
+
+      return { data: rows, count: rows.length, skip: 0, limit: rows.length };
+    });
 
     window.localStorage.clear();
     window.sessionStorage.clear();
@@ -949,6 +998,10 @@ describe("useBulkLabelActions", () => {
 
       return makeItemWithLabels(data.id.toString(), []);
     });
+    // The window read fails as a whole: each item is read on its own.
+    windowReadMock.mockImplementation(async (): Promise<never> => {
+      throw new Error("The list could not be read.");
+    });
 
     render(
       <Harness
@@ -972,7 +1025,8 @@ describe("useBulkLabelActions", () => {
     expect(getItemMock).toHaveBeenCalledTimes(3);
     expect(updateByIdMock).toHaveBeenCalledTimes(2);
 
-    const finalSnapshot: ProgressSnapshot = progressSnapshots[2]!;
+    const finalSnapshot: ProgressSnapshot =
+      progressSnapshots[progressSnapshots.length - 1]!;
 
     expect(finalSnapshot.successIds).toEqual([ITEM_ONE_ID, ITEM_THREE_ID]);
     expect(finalSnapshot.failedIds).toEqual([ITEM_TWO_ID]);
@@ -999,6 +1053,9 @@ describe("useBulkLabelActions", () => {
      */
     getItemMock.mockImplementation(async (): Promise<never> => {
       throw sentinel;
+    });
+    windowReadMock.mockImplementation(async (): Promise<never> => {
+      throw new Error("The list could not be read.");
     });
 
     render(<Harness items={[makeItem(ITEM_ONE_ID)]} />);
@@ -1081,6 +1138,9 @@ describe("useBulkLabelActions", () => {
 
       return makeItemWithLabels(data.id.toString(), []);
     });
+    windowReadMock.mockImplementation(async (): Promise<never> => {
+      throw new Error("The list could not be read.");
+    });
 
     render(
       <Harness
@@ -1101,27 +1161,31 @@ describe("useBulkLabelActions", () => {
 
     await waitForBulkRunToEnd();
 
-    expect(progressSnapshots).toHaveLength(3);
-
     /*
-     * The item being worked on is spliced out of inProgressItems before its own
-     * callback fires, so the remaining count is the work still queued.
+     * Several items run at once and the modal hears at most every tenth of a
+     * second (runBulkAction), so how many reports a quick run sends depends
+     * on timing. What holds for every one: each item is in exactly one list,
+     * and the first item done - whichever it is - is reported at once.
      */
-    expect(progressSnapshots[0]).toEqual({
-      totalIds: [ITEM_ONE_ID, ITEM_TWO_ID, ITEM_THREE_ID],
-      inProgressIds: [ITEM_TWO_ID, ITEM_THREE_ID],
-      successIds: [ITEM_ONE_ID],
-      failedIds: [],
-      failedMessages: [],
-    });
-    expect(progressSnapshots[1]).toEqual({
-      totalIds: [ITEM_ONE_ID, ITEM_TWO_ID, ITEM_THREE_ID],
-      inProgressIds: [ITEM_THREE_ID],
-      successIds: [ITEM_ONE_ID],
-      failedIds: [ITEM_TWO_ID],
-      failedMessages: ["boom"],
-    });
-    expect(progressSnapshots[2]).toEqual({
+    expect(progressSnapshots.length).toBeGreaterThanOrEqual(2);
+    expect(
+      progressSnapshots[0]!.successIds.length +
+        progressSnapshots[0]!.failedIds.length,
+    ).toBe(1);
+
+    for (const snapshot of progressSnapshots) {
+      const everyId: Array<string> = [
+        ...snapshot.inProgressIds,
+        ...snapshot.successIds,
+        ...snapshot.failedIds,
+      ].sort();
+
+      expect(everyId).toEqual(
+        [ITEM_ONE_ID, ITEM_TWO_ID, ITEM_THREE_ID].sort(),
+      );
+    }
+
+    expect(progressSnapshots[progressSnapshots.length - 1]).toEqual({
       totalIds: [ITEM_ONE_ID, ITEM_TWO_ID, ITEM_THREE_ID],
       inProgressIds: [],
       successIds: [ITEM_ONE_ID, ITEM_THREE_ID],

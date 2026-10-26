@@ -115,11 +115,11 @@ export interface BulkActionRunResult<T extends GenericObject> {
 export interface RunBulkActionOptions<T extends GenericObject> {
   actionProps: BulkActionOnClickProps<T>;
   /*
-   * What to do to one item. Resolving with nothing means it was changed.
-   * Throwing means it failed, and the error's message is what the result
-   * shows against it.
+   * What to do to one item - the selection's index-th. Resolving with
+   * nothing means it was changed. Throwing means it failed, and the error's
+   * message is what the result shows against it.
    */
-  step: (item: T) => Promise<BulkItemOutcome | void>;
+  step: (item: T, index: number) => Promise<BulkItemOutcome | void>;
   /*
    * How many items are worked on at once: BULK_ACTION_CONCURRENCY unless the
    * caller says otherwise. 1 when the items' writes read shared state on the
@@ -323,7 +323,10 @@ export async function runBulkAction<T extends GenericObject>(
     const item: T = totalItems[index]!;
 
     try {
-      const outcome: BulkItemOutcome | void = await options.step(item);
+      const outcome: BulkItemOutcome | void = await options.step(
+        item,
+        index,
+      );
 
       results[index] =
         outcome && outcome.status === BulkItemStatus.Unchanged
