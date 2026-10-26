@@ -430,16 +430,27 @@ describe("declaring an incident", () => {
     });
   });
 
-  describe("the root cause names who declared it", () => {
+  /*
+   * Who declared it is the record's own creator, whichever name the write
+   * sent it under. It is no longer written into the root cause as well
+   * ("Incident created by ..."), which is left for somebody to write
+   * (Common/Utils/Incident/WhoOpenedItRootCause).
+   */
+  describe("the root cause is left for somebody to write", () => {
+    // How many times a person's name was read to write one.
+    let namesRead: number = 0;
+
     beforeEach(() => {
+      namesRead = 0;
       jest
         .spyOn(UserService, "getUserMarkdownString")
         .mockImplementation((async (data: { userId: ObjectID }) => {
+          namesRead++;
           return FeedMarkdown.asMarkdown(`user ${data.userId.toString()}`);
         }) as never);
     });
 
-    test("the person making the request", async () => {
+    test("with the person making the request: none, and nobody's name is read for one", async () => {
       stopAtTheEnd();
 
       const data: Record<string, unknown> = await declare(
@@ -447,12 +458,11 @@ describe("declaring an incident", () => {
         { tenantId: PROJECT_ID, userId: USER_ID },
       );
 
-      expect(data["rootCause"]).toBe(
-        `Incident created by user ${USER_ID.toString()}`,
-      );
+      expect(data["rootCause"]).toBeUndefined();
+      expect(namesRead).toBe(0);
     });
 
-    test("with no person on the request, the creator the write names under the relation", async () => {
+    test("with no person on the request and the creator named under the relation: none", async () => {
       stopAtTheEnd();
 
       const data: Record<string, unknown> = await declare(
@@ -460,9 +470,19 @@ describe("declaring an incident", () => {
         { isRoot: true, tenantId: PROJECT_ID },
       );
 
-      expect(data["rootCause"]).toBe(
-        `Incident created by user ${OTHER_USER_ID}`,
+      expect(data["rootCause"]).toBeUndefined();
+      expect(namesRead).toBe(0);
+    });
+
+    test("one the caller wrote is kept as written", async () => {
+      stopAtTheEnd();
+
+      const data: Record<string, unknown> = await declare(
+        { rootCause: "The pool was cut to 10." },
+        { tenantId: PROJECT_ID, userId: USER_ID },
       );
+
+      expect(data["rootCause"]).toBe("The pool was cut to 10.");
     });
   });
 });

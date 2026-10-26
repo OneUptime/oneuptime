@@ -317,11 +317,13 @@ describe("a long description or root cause", () => {
 });
 
 /*
- * An incident or alert somebody opened by hand without a root cause is given
- * one by the server: "Incident created by [Maya Chen](...)". That says who,
- * which the Declared / Created tile already says - not why.
+ * An incident or alert somebody opened by hand without a root cause used to
+ * be given one by the server: "Incident created by [Maya Chen](...)", or
+ * "Incident created by @maya on Slack." from Slack's form. That says who,
+ * which the Declared / Created tile already says - not why. New records get
+ * none; the ones written before read as none here.
  */
-describe("the root cause the server writes for a record opened by hand", () => {
+describe("the root cause the server wrote for a record opened by hand", () => {
   const MAYA_LINK: string =
     "[Maya Chen](https://oneuptime.example/dashboard/10000000-0000-4000-8000-000000000001/settings/users/80000000-0000-4000-8000-000000000001)";
 
@@ -330,6 +332,8 @@ describe("the root cause the server writes for a record opened by hand", () => {
       `Incident created by ${MAYA_LINK}`,
       `Alert created by ${MAYA_LINK}`,
       `  Incident created by ${MAYA_LINK}\n`,
+      "Incident created by @maya.chen on Slack.",
+      "Incident created via Microsoft Teams",
     ]) {
       const view: RenderResult = renderCard({
         description: "Checkout is slow.",
@@ -341,6 +345,7 @@ describe("the root cause the server writes for a record opened by hand", () => {
       ).toHaveTextContent("Not identified yet.");
       expect(view.queryByTestId("what-happened-root-cause-value")).toBeNull();
       expect(view.container).not.toHaveTextContent("created by");
+      expect(view.container).not.toHaveTextContent("created via");
 
       view.unmount();
     }
@@ -363,11 +368,22 @@ describe("the root cause the server writes for a record opened by hand", () => {
     }
   });
 
-  test("knows the server's sentence and nothing else", () => {
+  test("knows the server's sentences and nothing else", () => {
     expect(isOpenedByRootCause(`Incident created by ${MAYA_LINK}`)).toBe(true);
     expect(isOpenedByRootCause(`Alert created by ${MAYA_LINK}`)).toBe(true);
+    expect(
+      isOpenedByRootCause("Incident created by @maya.chen on Slack."),
+    ).toBe(true);
+    expect(isOpenedByRootCause("Incident created via Microsoft Teams")).toBe(
+      true,
+    );
     expect(isOpenedByRootCause("Incident created by Maya Chen")).toBe(false);
     expect(isOpenedByRootCause(`Episode created by ${MAYA_LINK}`)).toBe(false);
+    expect(
+      isOpenedByRootCause(
+        "Incident created by @maya.chen on Slack. The pool was cut to 10.",
+      ),
+    ).toBe(false);
     expect(isOpenedByRootCause("")).toBe(false);
   });
 });
