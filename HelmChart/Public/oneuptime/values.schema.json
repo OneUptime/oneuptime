@@ -1080,6 +1080,24 @@
                 "priorityClassName": {
                     "type": "string"
                 },
+                "annotations": {
+                    "type": [
+                        "object",
+                        "null"
+                    ],
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "podAnnotations": {
+                    "type": [
+                        "object",
+                        "null"
+                    ],
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
                 "extraEnv": {
                     "type": [
                         "array",
