@@ -933,9 +933,9 @@ describe("what the question becomes", () => {
 
     jest
       .spyOn(SlackUtil, "replaceMessageAtResponseUrl")
-      .mockImplementation(async (data: JSONObject) => {
+      .mockImplementation((async (data: JSONObject) => {
         replaced.push(data);
-      });
+      }) as never);
   });
 
   test("once chosen: going ahead in the project, in its place", async () => {
@@ -1008,11 +1008,11 @@ describe("what the question becomes", () => {
   test("a press whose request is gone, in a modal: told so in the modal", async () => {
     const shown: Array<JSONObject> = [];
 
-    jest
-      .spyOn(SlackUtil, "showMessageInModal")
-      .mockImplementation(async (data: JSONObject) => {
-        shown.push(data);
-      });
+    jest.spyOn(SlackUtil, "showMessageInModal").mockImplementation((async (
+      data: JSONObject,
+    ) => {
+      shown.push(data);
+    }) as never);
 
     await SlackProjectChoice.answerGone({
       responseUrl: undefined,
