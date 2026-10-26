@@ -139,7 +139,9 @@ import { OnCallRulePagingHold } from "../Utils/OnCall/OnCallRulePagingHold";
 import IncidentOwnerRuleEngineService from "./IncidentOwnerRuleEngineService";
 import IncidentPrivacyRuleEngineService from "./IncidentPrivacyRuleEngineService";
 import RunbookRuleEngineService from "./RunbookRuleEngineService";
-import AutoRemediationRuleEngineService from "./AutoRemediationRuleEngineService";
+import AutoRemediationRuleEngineService, {
+  doesWriteRemediationLinks,
+} from "./AutoRemediationRuleEngineService";
 import { Blue500, Gray500, Red500 } from "../../Types/BrandColors";
 import Label from "../../Models/DatabaseModels/Label";
 import LabelService from "./LabelService";
@@ -5433,6 +5435,28 @@ ${FeedMarkdown.asMarkdown(incident.remediationNotes || "No remediation notes pro
 
         const updatedIncidentData: IncidentUpdatePayload = (onUpdate.updateBy
           .data ?? {}) as IncidentUpdatePayload;
+
+        /*
+         * Linked to what it is about - a cluster, a host, a monitor - after
+         * auto-remediation found nothing it could fix on it because it was
+         * linked to nothing (#5293): OneUptime AI tries again, when
+         * onSubjectLinksChanged finds it may. Not awaited: an edit never
+         * waits for a fix to start.
+         */
+        if (doesWriteRemediationLinks(updatedIncidentData)) {
+          AutoRemediationRuleEngineService.onSubjectLinksChanged({
+            projectId: projectId,
+            incidentId: incidentId,
+          }).catch((relinkError: unknown) => {
+            logger.error(
+              `Trying auto-remediation again failed in IncidentService.onUpdateSuccess: ${relinkError}`,
+              {
+                projectId: projectId?.toString(),
+                incidentId: incidentId?.toString(),
+              } as LogAttributes,
+            );
+          });
+        }
 
         const createdByUserId: ObjectID | undefined | null =
           onUpdate.updateBy.props.userId;

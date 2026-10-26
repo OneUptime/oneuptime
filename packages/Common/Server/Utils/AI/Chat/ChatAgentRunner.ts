@@ -39,7 +39,11 @@ import {
   LLMToolDefinition,
 } from "../../LLM/LLMService";
 import AIToolbox, { ToolCallOutcome } from "../Toolbox/Index";
-import { ObservabilityTool, ToolContext } from "../Toolbox/ToolTypes";
+import {
+  ObservabilityTool,
+  PreparedMutation,
+  ToolContext,
+} from "../Toolbox/ToolTypes";
 import { buildObservabilityChatSystemPrompt } from "./ObservabilityChatPrompt";
 import { ObservabilityAssistantExtraTool } from "./ObservabilityAssistant";
 import {
@@ -567,11 +571,6 @@ export default class ChatAgentRunner {
     try {
       const state: TurnState = this.freshState();
 
-      const toolContext: ToolContext = {
-        projectId: request.projectId,
-        props: request.props,
-      };
-
       await this.emitEvent(request, state, {
         eventType: AIRunEventType.RunStarted,
       });
@@ -600,6 +599,12 @@ export default class ChatAgentRunner {
        */
       const pageContext: AIChatPageContext | undefined =
         await this.resolvePageContext(request);
+
+      // The tools act from that subject too (ToolContext.pageContext).
+      const toolContext: ToolContext = this.buildToolContext(
+        request,
+        pageContext,
+      );
 
       // The infrastructure that subject is about, when the turn may reach it.
       const turn: ChatTurnRequest = await this.withPageInfrastructure(
@@ -718,11 +723,6 @@ export default class ChatAgentRunner {
     const pendingToolCalls: Array<LLMToolCall> =
       paused.pendingToolCalls as unknown as Array<LLMToolCall>;
 
-    const toolContext: ToolContext = {
-      projectId: request.projectId,
-      props: request.props,
-    };
-
     /*
      * Flip the run back to Running and clear the paused state, guarded on the
      * WaitingForApproval status so two concurrent resume calls can't both take
@@ -760,15 +760,24 @@ export default class ChatAgentRunner {
 
     /*
      * Tools are never persisted: a personal conversation's command tools
-     * are built again, from current data, for the subject it kept.
+     * are built again, from current data, for the subject it kept. A
+     * shared thread hands its subject in.
      */
-    const turn: ChatTurnRequest = await this.withPageInfrastructure(
-      request,
+    const pageContext: AIChatPageContext | undefined =
       request.offersPageInfrastructure === true
         ? await this.resolvePageContext(request)
-        : undefined,
+        : request.pageContext || undefined;
+
+    const turn: ChatTurnRequest = await this.withPageInfrastructure(
+      request,
+      pageContext,
     );
     state.extraTools = turn.extraTools;
+
+    const toolContext: ToolContext = this.buildToolContext(
+      request,
+      pageContext,
+    );
 
     // Apply the decisions: run approved actions, refuse denied ones.
     for (const toolCall of pendingToolCalls) {
@@ -1053,6 +1062,15 @@ export default class ChatAgentRunner {
             continue;
           }
 
+          /*
+           * What the action will do, settled before anyone approves it: the
+           * arguments it runs with (what the tool fills in from the
+           * conversation written out) and a line naming what they name.
+           */
+          const actionDescription: string | undefined = isMutation
+            ? await this.prepareMutation(toolCall, toolContext)
+            : undefined;
+
           if (
             isMutation &&
             request.permissionMode === AIChatPermissionMode.AskForApproval
@@ -1063,6 +1081,8 @@ export default class ChatAgentRunner {
               toolCall,
               true,
               AIChatToolActionStatus.Pending,
+              undefined,
+              actionDescription,
             );
             pendingApproval.push(toolCall);
             continue;
@@ -1075,6 +1095,8 @@ export default class ChatAgentRunner {
               toolCall,
               false,
               AIChatToolActionStatus.Approved,
+              undefined,
+              actionDescription,
             );
           }
 
@@ -1375,6 +1397,60 @@ export default class ChatAgentRunner {
     }
   }
 
+  /*
+   * The tools' context for one turn: the person's props, and the subject the
+   * turn is about, which a tool acting from a page reads.
+   */
+  private static buildToolContext(
+    request: ChatTurnRequest,
+    pageContext: AIChatPageContext | undefined,
+  ): ToolContext {
+    return {
+      projectId: request.projectId,
+      props: request.props,
+      ...(pageContext ? { pageContext } : {}),
+    };
+  }
+
+  /*
+   * A mutation's arguments as they will run, and the approval card's line
+   * about them (ObservabilityTool.prepareMutation): written onto the call
+   * itself, so the pending call that is persisted for approval - and the
+   * assistant message that holds it - carry what the person approves.
+   * Arguments that did not parse are left to fail as they are; a prepare
+   * that fails leaves the model's arguments as they were.
+   */
+  private static async prepareMutation(
+    toolCall: LLMToolCall,
+    toolContext: ToolContext,
+  ): Promise<string | undefined> {
+    const tool: ObservabilityTool | undefined = AIToolbox.getToolByName(
+      toolCall.name,
+    );
+
+    if (!tool?.prepareMutation || toolCall.argumentsParseError) {
+      return undefined;
+    }
+
+    try {
+      const prepared: PreparedMutation = await tool.prepareMutation(
+        toolCall.arguments || {},
+        toolContext,
+      );
+
+      toolCall.arguments = prepared.arguments;
+
+      return prepared.description;
+    } catch (error) {
+      logger.error(
+        `AI chat could not prepare ${toolCall.name}; it runs with the model's arguments: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+      return undefined;
+    }
+  }
+
   // Upsert a tool action (mutation) into state, keyed by the tool call id.
   private static upsertToolAction(
     state: TurnState,
@@ -1382,6 +1458,8 @@ export default class ChatAgentRunner {
     requiresApproval: boolean,
     status: AIChatToolActionStatus,
     resultSummary?: string,
+    // What the action names, for the approval card (prepareMutation).
+    description?: string,
   ): void {
     const tool: ObservabilityTool | undefined = AIToolbox.getToolByName(
       toolCall.name,
@@ -1417,6 +1495,7 @@ export default class ChatAgentRunner {
       id: toolCall.id,
       toolName: toolCall.name,
       title: title,
+      ...(description ? { description } : {}),
       arguments: toolCall.arguments,
       isMutation: true,
       requiresApproval: requiresApproval,

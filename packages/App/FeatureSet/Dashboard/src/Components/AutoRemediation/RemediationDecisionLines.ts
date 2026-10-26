@@ -34,10 +34,12 @@ import {
  *
  * Two entries are folded into one line: a signal linked to no Kubernetes
  * cluster and to no infrastructure resource reads as one sentence - the one
- * that answers "why did it not fix itself?" most often - with a link to each
- * of its monitors, where they can be linked to what they watch. A lane that
- * did not run because another lane took the signal says nothing: the line
- * of the lane that did act says it all.
+ * that answers "why did it not fix itself?" most often - with what to do:
+ * add what it is about under Affected Resources, which makes OneUptime AI
+ * try again, and, for a signal with monitors, a link to each of them, where
+ * they can be linked to what they watch. A lane that did not run because
+ * another lane took the signal says nothing: the line of the lane that did
+ * act says it all.
  *
  * The lines also give the card its status pill (getRemediationDecisionStatus):
  * the decision in a few words, by the tone that matters most.
@@ -626,18 +628,31 @@ export function getRemediationDecisionLines(input: {
               ? clusterNoneLinked.monitors
               : resourceNoneLinked?.monitors || [];
 
+          /*
+           * Issue #5293: the line said only that nothing was linked, in the
+           * engine's words ("an infrastructure resource"), and nothing about
+           * what to do when the incident had no monitor - an incident Ask
+           * AI declared, say. It says what OneUptime AI fixes, and the one
+           * thing that lets it fix this one: adding what it is about under
+           * the page's Affected Resources, which makes it try again
+           * (AutoRemediationRuleEngineService.onSubjectLinksChanged). With
+           * monitors, linking them is how the next ones are linked.
+           */
           lines.push({
             key: "linked-to-nothing",
             tone: "attention",
-            text:
+            text: translator.translateTemplate(
+              "This {{signal}} is not linked to a host, cluster or database, so OneUptime AI had nothing to fix.",
+              { signal: signalTerm },
+            ),
+            whatToDo:
               monitors.length > 0
                 ? translator.translateTemplate(
-                    "This {{signal}} is not linked to a Kubernetes cluster or an infrastructure resource, so OneUptime AI had nothing it could fix. Link its monitor to the cluster, host, database or service it watches, and every {{signal}} it raises from then on will be linked to it.",
+                    "Add the one it is about under Affected Resources, and OneUptime AI tries again. Link its monitor to what it watches, and every {{signal}} it raises from then on is linked for you.",
                     { signal: signalTerm },
                   )
                 : translator.translateTemplate(
-                    "This {{signal}} is not linked to a Kubernetes cluster or an infrastructure resource, so OneUptime AI had nothing it could fix.",
-                    { signal: signalTerm },
+                    "Add the one it is about under Affected Resources, and OneUptime AI tries again.",
                   ),
             links: monitorLinks(translator, monitors),
           });

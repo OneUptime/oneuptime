@@ -27,11 +27,22 @@ export interface ComponentProps {
   onRespond: (decisions: Array<ToolDecision>) => void;
 }
 
-function argsPreview(args: JSONObject): string {
+/*
+ * The action's arguments in one line. An action whose description names
+ * what its lists stand for (the resources it links, by name) leaves those
+ * lists out here: their IDs would only repeat the description, unreadably.
+ */
+export function argsPreview(
+  args: JSONObject,
+  options?: { leaveOutLists?: boolean | undefined },
+): string {
   const parts: Array<string> = [];
   for (const key of Object.keys(args)) {
     const value: unknown = args[key];
     if (value === undefined || value === null || value === "") {
+      continue;
+    }
+    if (options?.leaveOutLists && typeof value === "object") {
       continue;
     }
     const valueString: string =
@@ -180,7 +191,9 @@ const ToolApprovalCard: FunctionComponent<ComponentProps> = (
           <div className="space-y-1.5">
             {pending.map((action: AIChatToolAction) => {
               const isApproved: boolean = selections[action.id] !== false;
-              const preview: string = argsPreview(action.arguments);
+              const preview: string = argsPreview(action.arguments, {
+                leaveOutLists: Boolean(action.description),
+              });
               return (
                 <div
                   key={action.id}
@@ -191,6 +204,18 @@ const ToolApprovalCard: FunctionComponent<ComponentProps> = (
                       <div className="truncate text-xs font-semibold text-gray-900">
                         {action.title}
                       </div>
+                      {/*
+                       * What the action names, by name (the resources an
+                       * incident is linked to): read before approving it.
+                       */}
+                      {action.description && (
+                        <div
+                          data-testid="tool-approval-description"
+                          className="mt-1 break-words text-[11px] leading-relaxed text-gray-700"
+                        >
+                          {action.description}
+                        </div>
+                      )}
                       {preview && (
                         <div className="mt-1 line-clamp-2 font-mono text-[10.5px] leading-relaxed text-gray-600">
                           {preview}
