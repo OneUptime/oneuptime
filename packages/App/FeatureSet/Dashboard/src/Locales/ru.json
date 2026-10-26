@@ -35707,5 +35707,6 @@
   "Each row is one recording of about a minute. For what is slow right now, use the Overview.": "Каждая строка — одна запись длиной около минуты. Чтобы увидеть, что тормозит прямо сейчас, откройте «Обзор».",
   "A removed column (the default order is shown)": "Удалённый столбец (показан порядок по умолчанию)",
   "Ascending": "По возрастанию",
-  "Descending": "По убыванию"
+  "Descending": "По убыванию",
+  "The browser prerendered this page before anybody opened it, so the recorder waited for the visitor to open it. A page that is never opened records nothing.": "Браузер предварительно отрисовал эту страницу до того, как её кто-то открыл, поэтому рекордер ждал, пока посетитель её откроет. Страница, которую так и не открыли, ничего не записывает."
 }

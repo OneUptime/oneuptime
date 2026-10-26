@@ -35707,5 +35707,6 @@
   "Each row is one recording of about a minute. For what is slow right now, use the Overview.": "Hver rad er ett opptak på omtrent ett minutt. Bruk Oversikt for å se hva som er tregt akkurat nå.",
   "A removed column (the default order is shown)": "En fjernet kolonne (standardrekkefølgen vises)",
   "Ascending": "Stigende",
-  "Descending": "Synkende"
+  "Descending": "Synkende",
+  "The browser prerendered this page before anybody opened it, so the recorder waited for the visitor to open it. A page that is never opened records nothing.": "Nettleseren forhåndsgjengav denne siden før noen åpnet den, så opptakeren ventet til den besøkende åpnet den. En side som aldri åpnes, tar ikke opp noe."
 }

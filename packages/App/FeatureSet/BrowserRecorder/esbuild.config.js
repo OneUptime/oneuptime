@@ -122,9 +122,19 @@ const FORBIDDEN_IN_BUNDLE = [
  * 325428 / 97660. The gzip budget below still holds it and is unchanged;
  * the raw one is the measured size plus about 1 KB, rounded up to a whole
  * KB, the rule the gzip raises below follow.
+ *
+ * Raised again from 323 KB to 325 KB on 2026-10-26 for a prerendered page
+ * recorded only once it is opened (src/Index.ts): Chrome prerenders a page
+ * it expects to be opened, and speculation rules name more, and a prerender
+ * nobody opened uploaded a session nobody visited. The recorder is now built
+ * at prerenderingchange; until then the page's API calls are queued and the
+ * errors it throws are kept by the pre-load error buffer, which the artifact
+ * did not carry before. Measured after: recorder.js 331411 bytes raw / 99218
+ * gzip; before it 329727 / 98655. The gzip budget still holds it (110 bytes
+ * to spare) and is unchanged; the raw one follows the same rule.
  */
 const LOADER_MAX_BYTES = 13.5 * 1024;
-const RECORDER_MAX_BYTES = 323 * 1024;
+const RECORDER_MAX_BYTES = 325 * 1024;
 
 /*
  * Gzip budgets, which are the numbers a customer's browser actually pays.

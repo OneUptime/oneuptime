@@ -199,6 +199,7 @@ Varje rad bär en stabil `code`. Slå upp din här.
 | `bootstrap-already-started` | Två kopior av kodsnutten på samma sida. Ta bort den ena. |
 | `bootstrap-already-running` | `bootstrap()` anropades igen medan en inspelare redan kördes. Ofarligt; vanligtvis en dubblerad integration. |
 | `bootstrap-cancelled` | En `revokeConsent()` eller `stop()` i kön `window.OneUptimeReplayQueue` kördes innan inspelaren startade, så den här sessionen spelas inte in. Korrekt om din banner redan hade avvisats. |
+| `prerender-wait` | Webbläsaren förrenderade den här sidan, så som Chrome gör med en sida som den väntar sig ska öppnas härnäst, och ingen har öppnat den än. Inspelaren startar när besökaren öppnar sidan, så en sida som aldrig öppnas spelar inte in något; anrop som din sida gör under tiden tillämpas då. |
 | `start-stopped` | `start()` fick ingen användbar policy på sökvägen för det fristående paketet. Den exakta orsaken står i `config-*`-raden precis ovanför. |
 | `rrweb-did-not-start` | DOM-inspelaren vägrade starta. Rapportera det. |
 | `rrweb-error` | DOM-inspelaren fick ett internt fel på den här sidan (felets namn står i detaljen; det loggas en gång). Inspelningen kan hoppa eller frysa runt den punkten, och efter tre sådana fel bär sessionen ett återgivningsmeddelande som säger det. Rapportera det med sidans ramverk och felets namn. |

@@ -950,6 +950,7 @@ Most of these are named on the player's **Fidelity** tab rather than left silent
 | Cross-origin stylesheets | Not recorded unless served with `Access-Control-Allow-Origin` and linked with `crossorigin`. Playback loads them from their original addresses instead, and a notice says so. See [Recording a stylesheet from another origin](#recording-a-stylesheet-from-another-origin). |
 | A very large DOM snapshot | A snapshot the recorder could not store is reported, and playback starts from the next one. |
 | Signals past a cap | Console output, network requests and clicks are capped per session or per chunk; the rail marks where capture stopped. |
+| A prerendered page before it is opened | Chrome can load and run a page it expects to be opened next before anybody opens it, and so can a site's speculation rules. The recording starts when the visitor opens the page, from what they see then, and a page that is never opened records nothing. |
 | React Native image pixels | The image frame is preserved as an opaque placeholder; user photos and downloaded pixels are not copied. |
 | React Native WebViews | Outside the native view tree. Record the hosted page separately with the web recorder if needed. |
 | React Native canvas and custom drawing | Skia, OpenGL, maps, camera/video previews and similar surfaces are opaque placeholders. |

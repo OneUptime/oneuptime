@@ -35707,5 +35707,6 @@
   "Each row is one recording of about a minute. For what is slow right now, use the Overview.": "各行は約 1 分間の記録 1 件です。今何が遅いかを見るには、概要を使ってください。",
   "A removed column (the default order is shown)": "削除された列（既定の順序で表示されます）",
   "Ascending": "昇順",
-  "Descending": "降順"
+  "Descending": "降順",
+  "The browser prerendered this page before anybody opened it, so the recorder waited for the visitor to open it. A page that is never opened records nothing.": "ブラウザーが、誰かが開く前にこのページを事前レンダリングしたため、レコーダーは訪問者がページを開くまで待ちました。一度も開かれないページは何も録画しません。"
 }

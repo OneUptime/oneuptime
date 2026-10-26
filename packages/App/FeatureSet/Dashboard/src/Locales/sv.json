@@ -35707,5 +35707,6 @@
   "Each row is one recording of about a minute. For what is slow right now, use the Overview.": "Varje rad är en inspelning på ungefär en minut. Använd Översikt för att se vad som är långsamt just nu.",
   "A removed column (the default order is shown)": "En borttagen kolumn (standardordningen visas)",
   "Ascending": "Stigande",
-  "Descending": "Fallande"
+  "Descending": "Fallande",
+  "The browser prerendered this page before anybody opened it, so the recorder waited for the visitor to open it. A page that is never opened records nothing.": "Webbläsaren förrenderade den här sidan innan någon öppnade den, så inspelaren väntade tills besökaren öppnade den. En sida som aldrig öppnas spelar inte in något."
 }

@@ -35707,5 +35707,6 @@
   "Each row is one recording of about a minute. For what is slow right now, use the Overview.": "每一行是一次约一分钟的记录。要查看现在哪里慢，请使用概览。",
   "A removed column (the default order is shown)": "已删除的列（显示默认顺序）",
   "Ascending": "升序",
-  "Descending": "降序"
+  "Descending": "降序",
+  "The browser prerendered this page before anybody opened it, so the recorder waited for the visitor to open it. A page that is never opened records nothing.": "浏览器在任何人打开之前预渲染了这个页面，因此录制器一直等到访客打开它。从未被打开的页面什么也不会录制。"
 }

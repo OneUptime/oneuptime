@@ -35707,5 +35707,6 @@
   "Each row is one recording of about a minute. For what is slow right now, use the Overview.": "هر سطر یک ضبط حدوداً یک‌دقیقه‌ای است. برای دیدن اینکه هم‌اکنون چه چیزی کند است، از نمای کلی استفاده کنید.",
   "A removed column (the default order is shown)": "ستونی حذف‌شده (ترتیب پیش‌فرض نمایش داده می‌شود)",
   "Ascending": "صعودی",
-  "Descending": "نزولی"
+  "Descending": "نزولی",
+  "The browser prerendered this page before anybody opened it, so the recorder waited for the visitor to open it. A page that is never opened records nothing.": "مرورگر این صفحه را پیش از آنکه کسی بازش کند از پیش رندر کرد، پس ضبط‌کننده منتظر ماند تا بازدیدکننده آن را باز کند. صفحه‌ای که هرگز باز نشود چیزی ضبط نمی‌کند."
 }

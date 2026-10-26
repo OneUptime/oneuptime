@@ -35707,5 +35707,6 @@
   "Each row is one recording of about a minute. For what is slow right now, use the Overview.": "每一列是一次約一分鐘的記錄。要查看目前哪裡慢，請使用概覽。",
   "A removed column (the default order is shown)": "已移除的欄（顯示預設順序）",
   "Ascending": "遞增",
-  "Descending": "遞減"
+  "Descending": "遞減",
+  "The browser prerendered this page before anybody opened it, so the recorder waited for the visitor to open it. A page that is never opened records nothing.": "瀏覽器在任何人開啟之前預先轉譯了這個頁面，因此錄製器一直等到訪客開啟它。從未被開啟的頁面什麼也不會錄製。"
 }

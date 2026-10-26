@@ -35707,5 +35707,6 @@
   "Each row is one recording of about a minute. For what is slow right now, use the Overview.": "Cada linha é uma gravação de cerca de um minuto. Para ver o que está lento agora, use a Visão geral.",
   "A removed column (the default order is shown)": "Uma coluna removida (a ordem padrão é exibida)",
   "Ascending": "Crescente",
-  "Descending": "Decrescente"
+  "Descending": "Decrescente",
+  "The browser prerendered this page before anybody opened it, so the recorder waited for the visitor to open it. A page that is never opened records nothing.": "O navegador pré-renderizou esta página antes que alguém a abrisse, então o gravador esperou o visitante abri-la. Uma página que nunca é aberta não grava nada."
 }

@@ -35707,5 +35707,6 @@
   "Each row is one recording of about a minute. For what is slow right now, use the Overview.": "Elke rij is één opname van ongeveer een minuut. Gebruik het Overzicht om te zien wat er nu traag is.",
   "A removed column (the default order is shown)": "Een verwijderde kolom (de standaardvolgorde wordt getoond)",
   "Ascending": "Oplopend",
-  "Descending": "Aflopend"
+  "Descending": "Aflopend",
+  "The browser prerendered this page before anybody opened it, so the recorder waited for the visitor to open it. A page that is never opened records nothing.": "De browser heeft deze pagina vooraf weergegeven voordat iemand hem opende, dus de recorder wachtte tot de bezoeker hem opende. Een pagina die nooit wordt geopend, neemt niets op."
 }

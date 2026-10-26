@@ -35707,5 +35707,6 @@
   "Each row is one recording of about a minute. For what is slow right now, use the Overview.": "각 행은 약 1분 길이의 기록 하나입니다. 지금 무엇이 느린지 보려면 개요를 사용하세요.",
   "A removed column (the default order is shown)": "삭제된 열(기본 순서로 표시됨)",
   "Ascending": "오름차순",
-  "Descending": "내림차순"
+  "Descending": "내림차순",
+  "The browser prerendered this page before anybody opened it, so the recorder waited for the visitor to open it. A page that is never opened records nothing.": "브라우저가 누군가 열기 전에 이 페이지를 미리 렌더링했으므로, 녹화기는 방문자가 페이지를 열 때까지 기다렸습니다. 한 번도 열리지 않은 페이지는 아무것도 녹화하지 않습니다."
 }

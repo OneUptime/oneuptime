@@ -35707,5 +35707,6 @@
   "Each row is one recording of about a minute. For what is slow right now, use the Overview.": "हर पंक्ति लगभग एक मिनट की एक रिकॉर्डिंग है। अभी क्या धीमा है, यह देखने के लिए अवलोकन का उपयोग करें।",
   "A removed column (the default order is shown)": "हटाया गया कॉलम (डिफ़ॉल्ट क्रम दिखाया जाता है)",
   "Ascending": "आरोही",
-  "Descending": "अवरोही"
+  "Descending": "अवरोही",
+  "The browser prerendered this page before anybody opened it, so the recorder waited for the visitor to open it. A page that is never opened records nothing.": "ब्राउज़र ने यह पेज किसी के खोलने से पहले ही प्रीरेंडर कर लिया था, इसलिए रिकॉर्डर ने विज़िटर के इसे खोलने तक इंतज़ार किया। जो पेज कभी नहीं खोला जाता, वह कुछ भी रिकॉर्ड नहीं करता।"
 }
