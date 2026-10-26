@@ -27,11 +27,20 @@ import {
   ATTRIBUTE_FACET_PREFIX,
   applyTypedLogFilterToRequest,
   buildLogsHistogramRequest,
+  getLogsChosenFacetKeys,
   parseLogsHistogramResponse,
   pickTypedLogFilter,
   preserveBaseAttributesInTypedFilter,
   serializeTypedLogFilter,
+  withoutLogsFacetSelection,
 } from "./LogsHistogramRequest";
+import {
+  FacetCountAnswer,
+  FacetCountRequestPart,
+  mergeFacetCountAnswers,
+  planFacetCountRequests,
+  readFacetCountAnswer,
+} from "Common/UI/Components/TelemetryViewer/FacetCountPlan";
 import { LOGS_SIGNAL, attachLogsLockedFilterDetails } from "./LogsLockedScope";
 import {
   LockedEntityKeyDisplayMap,
@@ -1555,13 +1564,6 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
         const requestData: JSONObject = {
           startTime: dateRange.startValue.toISOString(),
           endTime: dateRange.endValue.toISOString(),
-          /*
-           * Every resource type in the catalog, not just the ones the
-           * viewer preloads: the server lists each resource of a type the
-           * project has (and nothing for a type it has none of, which the
-           * sidebar folds away), so asking for all of them costs nothing.
-           */
-          facetKeys: [...LOGS_EXPLORER_FACET_KEYS],
         } as JSONObject;
 
         if (serviceIdStrings) {
@@ -1608,29 +1610,71 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
         }
 
         /*
-         * Same rule as the histogram: the typed search narrows the list, so
-         * the facet counts must be taken over the same rows.
+         * Every resource type in the catalog, not just the ones the viewer
+         * preloads: the server lists each resource of a type the project
+         * has (and nothing for a type it has none of, which the sidebar
+         * folds away), so asking for all of them costs nothing.
+         *
+         * A facet the reader chose a value in is counted in a request of
+         * its own, without its own selection, so the values beside the
+         * checked one stay listed with their counts and a second severity
+         * or service can be checked (FacetCountPlan). The rest are counted
+         * together, as always. Read through the ref: a chip change reaches
+         * this fetch through the list query it rebuilt.
          */
-        applyTypedLogFilterToRequest(requestData, typedAggregateFilter);
+        const parts: Array<FacetCountRequestPart> = planFacetCountRequests({
+          facetKeys: LOGS_EXPLORER_FACET_KEYS,
+          selectedFacetKeys: getLogsChosenFacetKeys(
+            appliedFacetFiltersRef.current,
+          ),
+        });
 
-        const response: HTTPResponse<JSONObject> = await postApi(
-          "/telemetry/logs/facets",
-          requestData,
+        const responses: Array<HTTPResponse<JSONObject>> = await Promise.all(
+          parts.map(
+            (
+              part: FacetCountRequestPart,
+            ): Promise<HTTPResponse<JSONObject>> => {
+              const partRequest: JSONObject = {
+                ...requestData,
+                facetKeys: [...part.facetKeys],
+              } as JSONObject;
+
+              /*
+               * Same rule as the histogram: the typed search narrows the
+               * list, so the facet counts must be taken over the same rows -
+               * all but the counted facet's own selection, for a facet with
+               * a value chosen.
+               */
+              applyTypedLogFilterToRequest(
+                partRequest,
+                part.withoutSelectionOf
+                  ? withoutLogsFacetSelection(
+                      typedAggregateFilter,
+                      part.withoutSelectionOf,
+                    )
+                  : typedAggregateFilter,
+              );
+
+              return postApi("/telemetry/logs/facets", partRequest);
+            },
+          ),
         );
 
         if (!isCurrent()) {
           return;
         }
 
-        const facets: FacetData = (response.data["facets"] ||
-          {}) as unknown as FacetData;
-
-        setFacetData(facets);
-        setTimedOutFacets(
-          Array.isArray(response.data["timedOutFacets"])
-            ? (response.data["timedOutFacets"] as Array<string>)
-            : [],
+        const answer: FacetCountAnswer = mergeFacetCountAnswers(
+          parts,
+          responses.map(
+            (response: HTTPResponse<JSONObject>): FacetCountAnswer => {
+              return readFacetCountAnswer(response.data);
+            },
+          ),
         );
+
+        setFacetData(answer.facets);
+        setTimedOutFacets(answer.timedOutFacets);
         setFacetError(undefined);
       } catch (err) {
         /*

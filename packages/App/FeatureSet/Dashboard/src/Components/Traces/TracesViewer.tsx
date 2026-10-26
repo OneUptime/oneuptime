@@ -144,6 +144,9 @@ import {
   TraceDurationFilter,
   TraceSearchChip,
   compileTraceAttributeFilters,
+  getTraceChipFacetKey,
+  getTraceChosenFacetKeys,
+  isTraceFieldOfFacet,
   parseTraceSearch,
   resolveTraceSearchChip,
   toNumericQueryValue,
@@ -151,6 +154,13 @@ import {
   toSpanStatusCode,
   toTraceDurationFilter,
 } from "./TracesSearchCompile";
+import {
+  FacetCountAnswer,
+  FacetCountRequestPart,
+  mergeFacetCountAnswers,
+  planFacetCountRequests,
+  readFacetCountAnswer,
+} from "Common/UI/Components/TelemetryViewer/FacetCountPlan";
 import { shouldAdoptTimeRangeOverride } from "../../Utils/SharedTelemetryTimeCursor";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
 import {
@@ -1675,293 +1685,334 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     refreshKey: resultTotalRefreshKey,
   });
 
-  // Build the aggregation request payload — shared by histogram and facets
-  const aggregationRequest: JSONObject = useMemo(() => {
-    const dateRange: InBetween<Date> =
-      RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
+  /*
+   * Build the aggregation request payload - shared by histogram and facets.
+   * `omitFacetKey` leaves the reader's own selection in one facet out (its
+   * chips and its typed tokens, never the page's scope): what that facet is
+   * counted over once a value is chosen in it (FacetCountPlan).
+   */
+  const buildAggregationRequest: (omitFacetKey: string | null) => JSONObject =
+    useCallback(
+      (omitFacetKey: string | null): JSONObject => {
+        const dateRange: InBetween<Date> =
+          RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
 
-    const payload: JSONObject = {
-      startTime: dateRange.startValue.toISOString(),
-      endTime: dateRange.endValue.toISOString(),
-      rootOnly: rootOnly,
-    };
+        const payload: JSONObject = {
+          startTime: dateRange.startValue.toISOString(),
+          endTime: dateRange.endValue.toISOString(),
+          rootOnly: rootOnly,
+        };
 
-    // Collect filter values from both active facet filters and parsed search
-    const groups: Record<string, Array<string>> = {};
-    const attributeChipValues: Record<string, Array<string>> = {};
-    const attributeSearchChips: Record<string, string> = {};
-    for (const filter of activeFilters) {
-      // `attributes.<key>` chips route into `payload.attributes`, not `groups`.
-      if (filter.facetKey.startsWith(ATTRIBUTE_SEARCH_CHIP_PREFIX)) {
-        const attrKey: string = filter.facetKey.substring(
-          ATTRIBUTE_SEARCH_CHIP_PREFIX.length,
-        );
-        attributeSearchChips[attrKey] = filter.value;
-        continue;
-      }
-      if (filter.facetKey.startsWith(ATTRIBUTE_CHIP_PREFIX)) {
-        const attrKey: string = filter.facetKey.substring(
-          ATTRIBUTE_CHIP_PREFIX.length,
-        );
-        if (!attributeChipValues[attrKey]) {
-          attributeChipValues[attrKey] = [];
+        // Collect filter values from both active facet filters and parsed search
+        const groups: Record<string, Array<string>> = {};
+        const attributeChipValues: Record<string, Array<string>> = {};
+        const attributeSearchChips: Record<string, string> = {};
+        for (const filter of activeFilters) {
+          // The counted facet's own chips are left out.
+          if (
+            omitFacetKey &&
+            getTraceChipFacetKey(filter.facetKey, ATTRIBUTE_FACET_KEYS) ===
+              omitFacetKey
+          ) {
+            continue;
+          }
+          // `attributes.<key>` chips route into `payload.attributes`, not `groups`.
+          if (filter.facetKey.startsWith(ATTRIBUTE_SEARCH_CHIP_PREFIX)) {
+            const attrKey: string = filter.facetKey.substring(
+              ATTRIBUTE_SEARCH_CHIP_PREFIX.length,
+            );
+            attributeSearchChips[attrKey] = filter.value;
+            continue;
+          }
+          if (filter.facetKey.startsWith(ATTRIBUTE_CHIP_PREFIX)) {
+            const attrKey: string = filter.facetKey.substring(
+              ATTRIBUTE_CHIP_PREFIX.length,
+            );
+            if (!attributeChipValues[attrKey]) {
+              attributeChipValues[attrKey] = [];
+            }
+            attributeChipValues[attrKey]!.push(filter.value);
+            continue;
+          }
+          if (!groups[filter.facetKey]) {
+            groups[filter.facetKey] = [];
+          }
+          groups[filter.facetKey]!.push(filter.value);
         }
-        attributeChipValues[attrKey]!.push(filter.value);
-        continue;
-      }
-      if (!groups[filter.facetKey]) {
-        groups[filter.facetKey] = [];
-      }
-      groups[filter.facetKey]!.push(filter.value);
-    }
 
-    const parsed: ParsedTraceSearch = parseTraceSearch(submittedSearch);
-    const fieldFilters: Record<string, Array<string>> = parsed.fieldFilters;
-    const freeText: string = parsed.freeText;
-    for (const key of Object.keys(fieldFilters)) {
-      if (!groups[key]) {
-        groups[key] = [];
-      }
-      groups[key]!.push(...fieldFilters[key]!);
-    }
+        const parsed: ParsedTraceSearch = parseTraceSearch(submittedSearch);
+        const fieldFilters: Record<string, Array<string>> = parsed.fieldFilters;
+        const freeText: string = parsed.freeText;
+        for (const key of Object.keys(fieldFilters)) {
+          // And so are its typed tokens (`status:error` for the Status facet).
+          if (omitFacetKey && isTraceFieldOfFacet(key, omitFacetKey)) {
+            continue;
+          }
+          if (!groups[key]) {
+            groups[key] = [];
+          }
+          groups[key]!.push(...fieldFilters[key]!);
+        }
 
-    /*
-     * The attribute half of the very same compilation the span list runs on
-     * (see baseQuery): every operator the grammar can express reaches the
-     * server in its `{_type, value}` wire shape, so the chart cannot read
-     * `@k:a*` as an exact match on two characters while the list reads it as
-     * a prefix. `attributeSearches` now carries only the pre-grammar chips a
-     * saved view can still hold.
-     */
-    const attributeFilters: TraceAttributeFilters =
-      compileTraceAttributeFilters({
-        chipValues: attributeChipValues,
-        parsed: parsed.attributeFilters,
-        legacyContainsChips: attributeSearchChips,
-        scope: { ...(props.attributeFilters || {}), ...spanScope.attributes },
-      });
-    if (Object.keys(attributeFilters.payloadAttributes).length > 0) {
-      payload["attributes"] = attributeFilters.payloadAttributes;
-    }
-    if (Object.keys(attributeFilters.payloadAttributeSearches).length > 0) {
-      payload["attributeSearches"] = attributeFilters.payloadAttributeSearches;
-    }
+        /*
+         * The attribute half of the very same compilation the span list runs on
+         * (see baseQuery): every operator the grammar can express reaches the
+         * server in its `{_type, value}` wire shape, so the chart cannot read
+         * `@k:a*` as an exact match on two characters while the list reads it as
+         * a prefix. `attributeSearches` now carries only the pre-grammar chips a
+         * saved view can still hold.
+         */
+        const attributeFilters: TraceAttributeFilters =
+          compileTraceAttributeFilters({
+            chipValues: attributeChipValues,
+            parsed: omitFacetKey
+              ? parsed.attributeFilters.filter(
+                  (filter: { key: string }): boolean => {
+                    return filter.key !== omitFacetKey;
+                  },
+                )
+              : parsed.attributeFilters,
+            legacyContainsChips: attributeSearchChips,
+            scope: {
+              ...(props.attributeFilters || {}),
+              ...spanScope.attributes,
+            },
+          });
+        if (Object.keys(attributeFilters.payloadAttributes).length > 0) {
+          payload["attributes"] = attributeFilters.payloadAttributes;
+        }
+        if (Object.keys(attributeFilters.payloadAttributeSearches).length > 0) {
+          payload["attributeSearches"] =
+            attributeFilters.payloadAttributeSearches;
+        }
 
-    /*
-     * Entity scope must constrain the histogram/facets too, not just the
-     * span list — otherwise the counts above the list are project-wide.
-     */
-    const scopedEntityKeys: Array<string> = Array.from(
-      new Set([...(props.entityKeysFilter || []), ...spanScope.entityKeys]),
-    );
+        /*
+         * Entity scope must constrain the histogram/facets too, not just the
+         * span list — otherwise the counts above the list are project-wide.
+         */
+        const scopedEntityKeys: Array<string> = Array.from(
+          new Set([...(props.entityKeysFilter || []), ...spanScope.entityKeys]),
+        );
 
-    if (scopedEntityKeys.length > 0) {
-      payload["entityKeys"] = scopedEntityKeys;
-    }
+        if (scopedEntityKeys.length > 0) {
+          payload["entityKeys"] = scopedEntityKeys;
+        }
 
-    /*
-     * The host's stored span scope, seeded into the SAME groups the chips and
-     * search tokens feed — and only where the user has not filtered that
-     * column. That reproduces the list's precedence exactly: there the scope
-     * is written first and an explicit selection overwrites it. Reading the
-     * scope once, in buildSpanQueryScope, and rendering it into both
-     * transports from that one reading is what stops the chart above the list
-     * counting rows the list excludes.
-     *
-     * The `primaryEntityId` PROP goes through the same gate, last, so the
-     * three-way precedence — user selection, then stored scope, then the host
-     * page's own resource — is the one the list applies rather than a union
-     * of all three.
-     */
-    const applyScopeGroup: (key: string, values: Array<string>) => void = (
-      key: string,
-      values: Array<string>,
-    ): void => {
-      if (values.length === 0) {
-        return;
-      }
+        /*
+         * The host's stored span scope, seeded into the SAME groups the chips and
+         * search tokens feed — and only where the user has not filtered that
+         * column. That reproduces the list's precedence exactly: there the scope
+         * is written first and an explicit selection overwrites it. Reading the
+         * scope once, in buildSpanQueryScope, and rendering it into both
+         * transports from that one reading is what stops the chart above the list
+         * counting rows the list excludes.
+         *
+         * The `primaryEntityId` PROP goes through the same gate, last, so the
+         * three-way precedence — user selection, then stored scope, then the host
+         * page's own resource — is the one the list applies rather than a union
+         * of all three.
+         */
+        const applyScopeGroup: (key: string, values: Array<string>) => void = (
+          key: string,
+          values: Array<string>,
+        ): void => {
+          if (values.length === 0) {
+            return;
+          }
 
-      if (groups[key] && groups[key]!.length > 0) {
-        return;
-      }
+          if (groups[key] && groups[key]!.length > 0) {
+            return;
+          }
 
-      groups[key] = [...values];
-    };
+          groups[key] = [...values];
+        };
 
-    applyScopeGroup("primaryEntityId", spanScope.serviceIds);
-    applyScopeGroup(
-      "statusCode",
-      spanScope.statusCodes.map((statusCode: number): string => {
-        return String(statusCode);
-      }),
-    );
-    applyScopeGroup("kind", spanScope.spanKinds);
-    applyScopeGroup("traceId", spanScope.traceIds);
-    applyScopeGroup("spanId", spanScope.spanIds);
-    applyScopeGroup(
-      "name",
-      spanScope.spanNameSearch
-        ? [spanScope.spanNameSearch]
-        : spanScope.spanNames,
-    );
-    applyScopeGroup(
-      "statusMessage",
-      spanScope.statusMessageSearch
-        ? [spanScope.statusMessageSearch]
-        : spanScope.statusMessages,
-    );
-
-    if (spanScope.hasException !== null) {
-      applyScopeGroup("hasException", [String(spanScope.hasException)]);
-    }
-
-    if (props.primaryEntityId) {
-      applyScopeGroup("primaryEntityId", [props.primaryEntityId.toString()]);
-    }
-
-    /*
-     * Mirror the list query: the Services facet narrows `serviceIds`, while
-     * every other resource facet's selections travel under
-     * `resourceFilters` so the server matches them through the resource's
-     * entity key instead of against a column that only holds Service ids.
-     */
-    const resourceIdSet: Set<string> = new Set<string>(
-      collectServiceFacetSelections(Object.entries(groups)),
-    );
-    if (resourceIdSet.size > 0) {
-      payload["serviceIds"] = Array.from(resourceIdSet);
-    }
-
-    const payloadResourceFilters: ResourceEntityFacetSelections =
-      collectResourceEntityFacetSelections(Object.entries(groups));
-    if (Object.keys(payloadResourceFilters).length > 0) {
-      payload["resourceFilters"] = payloadResourceFilters;
-    }
-
-    if (groups["statusCode"] && groups["statusCode"].length > 0) {
-      payload["statusCodes"] = groups["statusCode"].map(
-        (value: string): number => {
-          return toSpanStatusCode(value);
-        },
-      );
-    }
-
-    if (groups["kind"] && groups["kind"].length > 0) {
-      // Map friendly kind names to backend enum values
-      payload["spanKinds"] = groups["kind"].map((value: string): string => {
-        return toSpanKind(value);
-      });
-    }
-
-    /*
-     * Mirror the list's name semantics: a single name value filters the list
-     * as a substring (Search → ILIKE, see TEXT_CHIP_FIELDS in baseQuery), so
-     * route it to spanNameSearches — exact-match spanNames would make the
-     * chart disagree with the list for partial names like "ShipShipment".
-     * Multiple name values filter the list exactly (Includes), which
-     * spanNames preserves.
-     */
-    if (groups["name"] && groups["name"].length > 0) {
-      /*
-       * Dedupe so a chip plus an identical token stays a single substring
-       * match (mirrors baseQuery) instead of flipping to a multi-value exact.
-       */
-      const names: Array<string> = Array.from(new Set(groups["name"]));
-      if (names.length === 1) {
-        payload["spanNameSearches"] = names;
-      } else {
-        payload["spanNames"] = names;
-      }
-    }
-
-    if (groups["traceId"] && groups["traceId"].length > 0) {
-      payload["traceIds"] = groups["traceId"];
-    }
-
-    if (groups["spanId"] && groups["spanId"].length > 0) {
-      payload["spanIds"] = groups["spanId"];
-    }
-
-    if (groups["hasException"] && groups["hasException"].length > 0) {
-      /*
-       * Mirror baseQuery: a single distinct boolean filters; both buckets
-       * selected means no filter, so the chart never disagrees with the list.
-       */
-      const bools: Array<boolean> = Array.from(
-        new Set(
-          groups["hasException"].map((v: string): boolean => {
-            return v.toLowerCase() === "true";
+        applyScopeGroup("primaryEntityId", spanScope.serviceIds);
+        applyScopeGroup(
+          "statusCode",
+          spanScope.statusCodes.map((statusCode: number): string => {
+            return String(statusCode);
           }),
-        ),
-      );
-      if (bools.length === 1) {
-        payload["hasException"] = bools[0];
-      }
-    }
+        );
+        applyScopeGroup("kind", spanScope.spanKinds);
+        applyScopeGroup("traceId", spanScope.traceIds);
+        applyScopeGroup("spanId", spanScope.spanIds);
+        applyScopeGroup(
+          "name",
+          spanScope.spanNameSearch
+            ? [spanScope.spanNameSearch]
+            : spanScope.spanNames,
+        );
+        applyScopeGroup(
+          "statusMessage",
+          spanScope.statusMessageSearch
+            ? [spanScope.statusMessageSearch]
+            : spanScope.statusMessages,
+        );
 
-    /*
-     * Same single/multi routing as `name`: one value matches as a substring
-     * (mirrors the list's Search), several match exactly (mirrors Includes).
-     */
-    if (groups["statusMessage"] && groups["statusMessage"].length > 0) {
-      const statusMessages: Array<string> = Array.from(
-        new Set(groups["statusMessage"]),
-      );
-      if (statusMessages.length === 1) {
-        payload["statusMessageSearchText"] = statusMessages[0];
-      } else {
-        payload["statusMessages"] = statusMessages;
-      }
-    }
+        if (spanScope.hasException !== null) {
+          applyScopeGroup("hasException", [String(spanScope.hasException)]);
+        }
 
-    if (groups["durationUnixNano"] && groups["durationUnixNano"].length > 0) {
-      // Read by the same parser baseQuery uses — one reading, two renderings.
-      const duration: TraceDurationFilter = toTraceDurationFilter(
-        groups["durationUnixNano"][0]!,
-      );
-      if (duration.minDurationNano !== undefined) {
-        payload["minDurationNano"] = duration.minDurationNano;
-      }
-      if (duration.maxDurationNano !== undefined) {
-        payload["maxDurationNano"] = duration.maxDurationNano;
-      }
-      if (duration.exactDurationNano !== undefined) {
-        payload["exactDurationNano"] = duration.exactDurationNano;
-      }
-    }
+        if (props.primaryEntityId) {
+          applyScopeGroup("primaryEntityId", [
+            props.primaryEntityId.toString(),
+          ]);
+        }
 
-    /*
-     * Bare free text matches span names as a substring — but ONLY when
-     * nothing else has claimed the name column, which is exactly the rule the
-     * list applies (`Query<Span>` holds one predicate per column, so an
-     * explicit name filter wins there). Sending it unconditionally used to
-     * make the chart narrower than the list; with a stored scope pinning
-     * `name` that stopped being an edge case, so the two now agree.
-     */
-    if (
-      freeText &&
-      freeText.length > 0 &&
-      !(groups["name"] && groups["name"].length > 0)
-    ) {
-      payload["nameSearchText"] = freeText;
-    }
+        /*
+         * Mirror the list query: the Services facet narrows `serviceIds`, while
+         * every other resource facet's selections travel under
+         * `resourceFilters` so the server matches them through the resource's
+         * entity key instead of against a column that only holds Service ids.
+         */
+        const resourceIdSet: Set<string> = new Set<string>(
+          collectServiceFacetSelections(Object.entries(groups)),
+        );
+        if (resourceIdSet.size > 0) {
+          payload["serviceIds"] = Array.from(resourceIdSet);
+        }
 
-    // The same spans the list is scoped to, so the chart and facets agree.
-    if (props.exceptionScope) {
-      payload[EXCEPTION_SPAN_SCOPE_QUERY_KEY] =
-        props.exceptionScope as unknown as JSONObject;
-    }
+        const payloadResourceFilters: ResourceEntityFacetSelections =
+          collectResourceEntityFacetSelections(Object.entries(groups));
+        if (Object.keys(payloadResourceFilters).length > 0) {
+          payload["resourceFilters"] = payloadResourceFilters;
+        }
 
-    return payload;
-  }, [
-    timeRange,
-    activeFilters,
-    submittedSearch,
-    // The host's props by value, not by identity (see hostScopeKey).
-    hostScopeKey,
-    spanScope,
-    rootOnly,
-  ]);
+        if (groups["statusCode"] && groups["statusCode"].length > 0) {
+          payload["statusCodes"] = groups["statusCode"].map(
+            (value: string): number => {
+              return toSpanStatusCode(value);
+            },
+          );
+        }
+
+        if (groups["kind"] && groups["kind"].length > 0) {
+          // Map friendly kind names to backend enum values
+          payload["spanKinds"] = groups["kind"].map((value: string): string => {
+            return toSpanKind(value);
+          });
+        }
+
+        /*
+         * Mirror the list's name semantics: a single name value filters the list
+         * as a substring (Search → ILIKE, see TEXT_CHIP_FIELDS in baseQuery), so
+         * route it to spanNameSearches — exact-match spanNames would make the
+         * chart disagree with the list for partial names like "ShipShipment".
+         * Multiple name values filter the list exactly (Includes), which
+         * spanNames preserves.
+         */
+        if (groups["name"] && groups["name"].length > 0) {
+          /*
+           * Dedupe so a chip plus an identical token stays a single substring
+           * match (mirrors baseQuery) instead of flipping to a multi-value exact.
+           */
+          const names: Array<string> = Array.from(new Set(groups["name"]));
+          if (names.length === 1) {
+            payload["spanNameSearches"] = names;
+          } else {
+            payload["spanNames"] = names;
+          }
+        }
+
+        if (groups["traceId"] && groups["traceId"].length > 0) {
+          payload["traceIds"] = groups["traceId"];
+        }
+
+        if (groups["spanId"] && groups["spanId"].length > 0) {
+          payload["spanIds"] = groups["spanId"];
+        }
+
+        if (groups["hasException"] && groups["hasException"].length > 0) {
+          /*
+           * Mirror baseQuery: a single distinct boolean filters; both buckets
+           * selected means no filter, so the chart never disagrees with the list.
+           */
+          const bools: Array<boolean> = Array.from(
+            new Set(
+              groups["hasException"].map((v: string): boolean => {
+                return v.toLowerCase() === "true";
+              }),
+            ),
+          );
+          if (bools.length === 1) {
+            payload["hasException"] = bools[0];
+          }
+        }
+
+        /*
+         * Same single/multi routing as `name`: one value matches as a substring
+         * (mirrors the list's Search), several match exactly (mirrors Includes).
+         */
+        if (groups["statusMessage"] && groups["statusMessage"].length > 0) {
+          const statusMessages: Array<string> = Array.from(
+            new Set(groups["statusMessage"]),
+          );
+          if (statusMessages.length === 1) {
+            payload["statusMessageSearchText"] = statusMessages[0];
+          } else {
+            payload["statusMessages"] = statusMessages;
+          }
+        }
+
+        if (
+          groups["durationUnixNano"] &&
+          groups["durationUnixNano"].length > 0
+        ) {
+          // Read by the same parser baseQuery uses — one reading, two renderings.
+          const duration: TraceDurationFilter = toTraceDurationFilter(
+            groups["durationUnixNano"][0]!,
+          );
+          if (duration.minDurationNano !== undefined) {
+            payload["minDurationNano"] = duration.minDurationNano;
+          }
+          if (duration.maxDurationNano !== undefined) {
+            payload["maxDurationNano"] = duration.maxDurationNano;
+          }
+          if (duration.exactDurationNano !== undefined) {
+            payload["exactDurationNano"] = duration.exactDurationNano;
+          }
+        }
+
+        /*
+         * Bare free text matches span names as a substring — but ONLY when
+         * nothing else has claimed the name column, which is exactly the rule the
+         * list applies (`Query<Span>` holds one predicate per column, so an
+         * explicit name filter wins there). Sending it unconditionally used to
+         * make the chart narrower than the list; with a stored scope pinning
+         * `name` that stopped being an edge case, so the two now agree.
+         */
+        if (
+          freeText &&
+          freeText.length > 0 &&
+          !(groups["name"] && groups["name"].length > 0)
+        ) {
+          payload["nameSearchText"] = freeText;
+        }
+
+        // The same spans the list is scoped to, so the chart and facets agree.
+        if (props.exceptionScope) {
+          payload[EXCEPTION_SPAN_SCOPE_QUERY_KEY] =
+            props.exceptionScope as unknown as JSONObject;
+        }
+
+        return payload;
+      },
+      [
+        timeRange,
+        activeFilters,
+        submittedSearch,
+        // The host's props by value, not by identity (see hostScopeKey).
+        hostScopeKey,
+        spanScope,
+        rootOnly,
+      ],
+    );
+
+  // Every filter: what the list, the chart and most facets are counted over.
+  const aggregationRequest: JSONObject = useMemo(() => {
+    return buildAggregationRequest(null);
+  }, [buildAggregationRequest]);
 
   // Fetch histogram + facets from dedicated backend endpoints
   const fetchHistogramAndFacets: () => Promise<void> = useCallback(async () => {
@@ -2019,8 +2070,13 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       }
     }
 
-    const facetsPayload: JSONObject = {
-      ...aggregationRequest,
+    /*
+     * A facet the reader chose a value in is counted in a request of its
+     * own, without its own selection, so the statuses, kinds or services
+     * beside the checked one stay listed with their counts and a second can
+     * be checked (FacetCountPlan). The rest are counted together, as always.
+     */
+    const facetParts: Array<FacetCountRequestPart> = planFacetCountRequests({
       facetKeys: [
         "primaryEntityId",
         /*
@@ -2039,11 +2095,50 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         "name",
         ...Array.from(ATTRIBUTE_FACET_KEYS),
       ],
+      selectedFacetKeys: getTraceChosenFacetKeys(
+        activeFilters,
+        ATTRIBUTE_FACET_KEYS,
+      ),
+    });
+
+    const facetsPayloadOf: (part: FacetCountRequestPart) => JSONObject = (
+      part: FacetCountRequestPart,
+    ): JSONObject => {
+      const facetsPayload: JSONObject = {
+        ...(part.withoutSelectionOf
+          ? buildAggregationRequest(part.withoutSelectionOf)
+          : aggregationRequest),
+        facetKeys: [...part.facetKeys],
+      };
+
+      if (Object.keys(facetSearchTextActive).length > 0) {
+        facetsPayload["facetSearchText"] = facetSearchTextActive;
+      }
+
+      return facetsPayload;
     };
 
-    if (Object.keys(facetSearchTextActive).length > 0) {
-      facetsPayload["facetSearchText"] = facetSearchTextActive;
-    }
+    const facetsAnswer: () => Promise<FacetCountAnswer> =
+      async (): Promise<FacetCountAnswer> => {
+        const responses: Array<HTTPResponse<JSONObject>> = await Promise.all(
+          facetParts.map(
+            (
+              part: FacetCountRequestPart,
+            ): Promise<HTTPResponse<JSONObject>> => {
+              return postApi("/telemetry/traces/facets", facetsPayloadOf(part));
+            },
+          ),
+        );
+
+        return mergeFacetCountAnswers(
+          facetParts,
+          responses.map(
+            (response: HTTPResponse<JSONObject>): FacetCountAnswer => {
+              return readFacetCountAnswer(response.data);
+            },
+          ),
+        );
+      };
 
     const [histogramResult, facetsResult] = await Promise.allSettled([
       postApi(
@@ -2052,7 +2147,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
           : "/telemetry/traces/histogram",
         histogramPayload,
       ),
-      postApi("/telemetry/traces/facets", facetsPayload),
+      facetsAnswer(),
     ]);
 
     // A newer window or filter asked again meanwhile: its answer wins.
@@ -2091,8 +2186,8 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     }
 
     if (facetsResult.status === "fulfilled") {
-      const facetsRaw: Record<string, Array<FacetValue>> = (facetsResult.value
-        .data["facets"] || {}) as unknown as Record<string, Array<FacetValue>>;
+      const facetsRaw: Record<string, Array<FacetValue>> = facetsResult.value
+        .facets;
 
       /*
        * statusCode values come back as numeric strings from ClickHouse — map
@@ -2141,11 +2236,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       setFacetData(mappedFacets);
 
       // The server names isRootSpan; the sidebar shows it as Span Type.
-      const stopped: Array<string> = Array.isArray(
-        facetsResult.value.data["timedOutFacets"],
-      )
-        ? (facetsResult.value.data["timedOutFacets"] as Array<string>)
-        : [];
+      const stopped: Array<string> = facetsResult.value.timedOutFacets;
       setTimedOutFacets(
         stopped.map((facetKey: string): string => {
           return facetKey === "isRootSpan" ? SPAN_TYPE_FACET_KEY : facetKey;
@@ -2160,7 +2251,15 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
 
     setHistogramLoading(false);
     setFacetLoading(false);
-  }, [aggregationRequest, timeRange, facetSearchText, chartMetric, viewMode]);
+  }, [
+    aggregationRequest,
+    buildAggregationRequest,
+    activeFilters,
+    timeRange,
+    facetSearchText,
+    chartMetric,
+    viewMode,
+  ]);
 
   useEffect(() => {
     void fetchSpans();

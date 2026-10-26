@@ -16,6 +16,8 @@ import {
   ResourceEntityFacetSelections,
   collectResourceEntityFacetSelections,
   collectServiceFacetSelections,
+  isResourceEntityFacetKey,
+  isServiceFacetKey,
 } from "Common/Types/Telemetry/ResourceEntityFacet";
 import { HistogramBucket } from "Common/UI/Components/LogsViewer/types";
 import { LogsHistogramData } from "Common/UI/Components/LogsViewer/useLogsHistogram";
@@ -511,4 +513,98 @@ export const serializeTypedLogFilter: SerializeTypedLogFilterFunction = (
   }
 
   return JSON.stringify(picked);
+};
+
+// The key the facets endpoint counts the Service facet under.
+const SERVICE_FACET_COUNT_KEY: string = "primaryEntityId";
+
+/*
+ * The facets the reader chose a value in, by the key the facets endpoint
+ * counts each under: a Service chip (primaryEntityId, or its old name
+ * serviceId) is the Service facet's, a host or cluster chip its own facet's.
+ * Each is counted without its own selection (FacetCountPlan), so a second
+ * severity or service can be checked beside the first.
+ */
+export const getLogsChosenFacetKeys: (
+  facetFilters: Map<string, Set<string>>,
+) => Array<string> = (
+  facetFilters: Map<string, Set<string>>,
+): Array<string> => {
+  const keys: Set<string> = new Set<string>();
+
+  for (const [facetKey, values] of facetFilters.entries()) {
+    if (values.size === 0) {
+      continue;
+    }
+
+    keys.add(isServiceFacetKey(facetKey) ? SERVICE_FACET_COUNT_KEY : facetKey);
+  }
+
+  return Array.from(keys);
+};
+
+/*
+ * The list query's slice (pickTypedLogFilter) without what filters on one
+ * facet: what that facet is counted over once a value is chosen in it. The
+ * page's own scope rides the request's base fields (serviceIds, entityKeys,
+ * the page's attributes), which this leaves alone, so a service's Logs tab
+ * still counts only that service's logs.
+ */
+export const withoutLogsFacetSelection: (
+  typedFilter: Record<string, unknown> | undefined,
+  facetKey: string,
+) => Record<string, unknown> | undefined = (
+  typedFilter: Record<string, unknown> | undefined,
+  facetKey: string,
+): Record<string, unknown> | undefined => {
+  if (!typedFilter) {
+    return typedFilter;
+  }
+
+  const rest: Record<string, unknown> = { ...typedFilter };
+
+  if (isServiceFacetKey(facetKey)) {
+    delete rest[SERVICE_FACET_COUNT_KEY];
+    return rest;
+  }
+
+  if (isResourceEntityFacetKey(facetKey)) {
+    const resourceFilters: unknown = rest["resourceFilters"];
+
+    if (
+      resourceFilters &&
+      typeof resourceFilters === "object" &&
+      !Array.isArray(resourceFilters)
+    ) {
+      const others: Record<string, unknown> = {
+        ...(resourceFilters as Record<string, unknown>),
+      };
+      delete others[facetKey];
+
+      if (Object.keys(others).length > 0) {
+        rest["resourceFilters"] = others;
+      } else {
+        delete rest["resourceFilters"];
+      }
+    }
+
+    return rest;
+  }
+
+  if (facetKey.startsWith(ATTRIBUTE_FACET_PREFIX)) {
+    const attributes: unknown = rest["attributes"];
+
+    if (attributes && typeof attributes === "object") {
+      const others: Record<string, unknown> = {
+        ...(attributes as Record<string, unknown>),
+      };
+      delete others[facetKey.substring(ATTRIBUTE_FACET_PREFIX.length)];
+      rest["attributes"] = others;
+    }
+
+    return rest;
+  }
+
+  delete rest[facetKey];
+  return rest;
 };
