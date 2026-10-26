@@ -24578,8 +24578,9 @@
   "The parts of this {{noun}} that keep showing up in what OneUptime AI investigated.": "The parts of this {{noun}} that keep showing up in what OneUptime AI investigated.",
   "The second container: it lets OneUptime AI run read-only docker commands on this host while it investigates. On by default.": "Второй контейнер: через него OneUptime AI выполняет команды docker только для чтения на этом хосте во время расследования. Включено по умолчанию.",
   "This {{signal}} already has the most fixes one {{signal}} can get, so nothing more was tried.": "У этого события ({{signal}}) уже максимум исправлений, который может получить одно событие, поэтому больше ничего не предпринималось.",
-  "This {{signal}} is not linked to a Kubernetes cluster or an infrastructure resource, so OneUptime AI had nothing it could fix.": "Это событие ({{signal}}) не связано ни с кластером Kubernetes, ни с ресурсом инфраструктуры, поэтому OneUptime AI нечего было исправлять.",
-  "This {{signal}} is not linked to a Kubernetes cluster or an infrastructure resource, so OneUptime AI had nothing it could fix. Link its monitor to the cluster, host, database or service it watches, and every {{signal}} it raises from then on will be linked to it.": "Это событие ({{signal}}) не связано ни с кластером Kubernetes, ни с ресурсом инфраструктуры, поэтому OneUptime AI нечего было исправлять. Свяжите его монитор с кластером, хостом, базой данных или сервисом, за которым он следит, и каждое событие ({{signal}}), которое он создаст после этого, будет связано с ним.",
+  "This {{signal}} is not linked to a host, cluster or database, so OneUptime AI had nothing to fix.": "Это событие ({{signal}}) не связано ни с хостом, ни с кластером, ни с базой данных, поэтому OneUptime AI нечего было исправлять.",
+  "Add the host, cluster or database it is about under Affected Resources, and OneUptime AI tries again.": "Добавьте хост, кластер или базу данных, к которым оно относится, в разделе «Затронутые ресурсы», и OneUptime AI попробует снова.",
+  "Add the host, cluster or database it is about under Affected Resources, and OneUptime AI tries again. Link its monitor to what it watches, and every {{signal}} it raises from then on is linked for you.": "Добавьте хост, кластер или базу данных, к которым оно относится, в разделе «Затронутые ресурсы», и OneUptime AI попробует снова. Свяжите его монитор с тем, за чем он следит, и каждое событие ({{signal}}), которое он создаст после этого, будет связано автоматически.",
   "This {{signal}} is not linked to a Kubernetes cluster.": "Это событие ({{signal}}) не связано с кластером Kubernetes.",
   "This {{signal}} is not linked to an infrastructure resource with an AI agent.": "Это событие ({{signal}}) не связано с ресурсом инфраструктуры, у которого есть ИИ-агент.",
   "Verification: {{verified}} resolved the problem, {{failed}} did not, {{verifying}} still being checked.": "Verification: {{verified}} resolved the problem, {{failed}} did not, {{verifying}} still being checked.",
@@ -35596,5 +35597,9 @@
   "Text Input": "Ввод текста",
   "Is First Membership": "Is First Membership",
   "Incident SLA breached": "Нарушен SLA инцидента",
-  "An incident you own misses its SLA response or resolution deadline.": "Инцидент, которым вы владеете, не уложился в срок SLA на реакцию или решение."
+  "An incident you own misses its SLA response or resolution deadline.": "Инцидент, которым вы владеете, не уложился в срок SLA на реакцию или решение.",
+  "Go to Affected Resources": "Перейти к затронутым ресурсам",
+  "Linking affected resources": "Связывание затронутых ресурсов",
+  "Linked an incident to affected resources": "Инцидент связан с затронутыми ресурсами",
+  "Linked an alert to affected resources": "Оповещение связано с затронутыми ресурсами"
 }

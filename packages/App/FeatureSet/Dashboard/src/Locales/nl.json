@@ -24578,8 +24578,9 @@
   "The parts of this {{noun}} that keep showing up in what OneUptime AI investigated.": "The parts of this {{noun}} that keep showing up in what OneUptime AI investigated.",
   "The second container: it lets OneUptime AI run read-only docker commands on this host while it investigates. On by default.": "De tweede container: hiermee voert OneUptime AI tijdens een onderzoek alleen-lezen docker-opdrachten op deze host uit. Standaard aan.",
   "This {{signal}} already has the most fixes one {{signal}} can get, so nothing more was tried.": "Dit item ({{signal}}) heeft al het maximale aantal oplossingen per {{signal}}, dus er is niets meer geprobeerd.",
-  "This {{signal}} is not linked to a Kubernetes cluster or an infrastructure resource, so OneUptime AI had nothing it could fix.": "Dit item ({{signal}}) is niet gekoppeld aan een Kubernetes-cluster of een infrastructuurresource, dus OneUptime AI had niets om te herstellen.",
-  "This {{signal}} is not linked to a Kubernetes cluster or an infrastructure resource, so OneUptime AI had nothing it could fix. Link its monitor to the cluster, host, database or service it watches, and every {{signal}} it raises from then on will be linked to it.": "Dit item ({{signal}}) is niet gekoppeld aan een Kubernetes-cluster of een infrastructuurresource, dus OneUptime AI had niets om te herstellen. Koppel de monitor ervan aan het cluster, de host, de database of de service die hij bewaakt; elk item ({{signal}}) dat hij daarna genereert, wordt dan daaraan gekoppeld.",
+  "This {{signal}} is not linked to a host, cluster or database, so OneUptime AI had nothing to fix.": "Dit item ({{signal}}) is niet gekoppeld aan een host, cluster of database, dus OneUptime AI had niets om te herstellen.",
+  "Add the host, cluster or database it is about under Affected Resources, and OneUptime AI tries again.": "Voeg onder Getroffen resources de host, het cluster of de database toe waar het om gaat, en OneUptime AI probeert het opnieuw.",
+  "Add the host, cluster or database it is about under Affected Resources, and OneUptime AI tries again. Link its monitor to what it watches, and every {{signal}} it raises from then on is linked for you.": "Voeg onder Getroffen resources de host, het cluster of de database toe waar het om gaat, en OneUptime AI probeert het opnieuw. Koppel de monitor ervan aan wat hij bewaakt; elk item ({{signal}}) dat hij daarna genereert, wordt dan automatisch gekoppeld.",
   "This {{signal}} is not linked to a Kubernetes cluster.": "Dit item ({{signal}}) is niet gekoppeld aan een Kubernetes-cluster.",
   "This {{signal}} is not linked to an infrastructure resource with an AI agent.": "Dit item ({{signal}}) is niet gekoppeld aan een infrastructuurresource met een AI-agent.",
   "Verification: {{verified}} resolved the problem, {{failed}} did not, {{verifying}} still being checked.": "Verification: {{verified}} resolved the problem, {{failed}} did not, {{verifying}} still being checked.",
@@ -35596,5 +35597,9 @@
   "Text Input": "Tekstinvoer",
   "Is First Membership": "Is First Membership",
   "Incident SLA breached": "SLA van incident geschonden",
-  "An incident you own misses its SLA response or resolution deadline.": "Een incident waarvan u eigenaar bent, haalt de SLA-deadline voor reactie of oplossing niet."
+  "An incident you own misses its SLA response or resolution deadline.": "Een incident waarvan u eigenaar bent, haalt de SLA-deadline voor reactie of oplossing niet.",
+  "Go to Affected Resources": "Naar Getroffen resources",
+  "Linking affected resources": "Getroffen resources koppelen",
+  "Linked an incident to affected resources": "Incident aan getroffen resources gekoppeld",
+  "Linked an alert to affected resources": "Waarschuwing aan getroffen resources gekoppeld"
 }

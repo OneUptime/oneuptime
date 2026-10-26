@@ -24578,8 +24578,9 @@
   "The parts of this {{noun}} that keep showing up in what OneUptime AI investigated.": "The parts of this {{noun}} that keep showing up in what OneUptime AI investigated.",
   "The second container: it lets OneUptime AI run read-only docker commands on this host while it investigates. On by default.": "第二个容器：让 OneUptime AI 在调查时可以在此主机上运行只读的 docker 命令。默认开启。",
   "This {{signal}} already has the most fixes one {{signal}} can get, so nothing more was tried.": "此{{signal}}已达到一个{{signal}}可获得的最大修复次数，因此未再尝试。",
-  "This {{signal}} is not linked to a Kubernetes cluster or an infrastructure resource, so OneUptime AI had nothing it could fix.": "此{{signal}}未关联到 Kubernetes 集群或基础设施资源，因此 OneUptime AI 没有可以修复的对象。",
-  "This {{signal}} is not linked to a Kubernetes cluster or an infrastructure resource, so OneUptime AI had nothing it could fix. Link its monitor to the cluster, host, database or service it watches, and every {{signal}} it raises from then on will be linked to it.": "此{{signal}}未关联到 Kubernetes 集群或基础设施资源，因此 OneUptime AI 没有可以修复的对象。将其监视器关联到它所监视的集群、主机、数据库或服务后，此后它产生的每个{{signal}}都会关联到该对象。",
+  "This {{signal}} is not linked to a host, cluster or database, so OneUptime AI had nothing to fix.": "此{{signal}}未关联到任何主机、集群或数据库，因此 OneUptime AI 没有可以修复的对象。",
+  "Add the host, cluster or database it is about under Affected Resources, and OneUptime AI tries again.": "在受影响的资源中添加它所涉及的主机、集群或数据库，OneUptime AI 会再试一次。",
+  "Add the host, cluster or database it is about under Affected Resources, and OneUptime AI tries again. Link its monitor to what it watches, and every {{signal}} it raises from then on is linked for you.": "在受影响的资源中添加它所涉及的主机、集群或数据库，OneUptime AI 会再试一次。将其监视器关联到它所监视的对象后，此后它产生的每个{{signal}}都会自动关联。",
   "This {{signal}} is not linked to a Kubernetes cluster.": "此{{signal}}未关联到 Kubernetes 集群。",
   "This {{signal}} is not linked to an infrastructure resource with an AI agent.": "此{{signal}}未关联到带有 AI 代理的基础设施资源。",
   "Verification: {{verified}} resolved the problem, {{failed}} did not, {{verifying}} still being checked.": "Verification: {{verified}} resolved the problem, {{failed}} did not, {{verifying}} still being checked.",
@@ -35596,5 +35597,9 @@
   "Text Input": "文本输入",
   "Is First Membership": "Is First Membership",
   "Incident SLA breached": "事件 SLA 违约",
-  "An incident you own misses its SLA response or resolution deadline.": "您拥有的事件错过了 SLA 响应或解决截止时间。"
+  "An incident you own misses its SLA response or resolution deadline.": "您拥有的事件错过了 SLA 响应或解决截止时间。",
+  "Go to Affected Resources": "转到受影响的资源",
+  "Linking affected resources": "正在关联受影响的资源",
+  "Linked an incident to affected resources": "已将事件关联到受影响的资源",
+  "Linked an alert to affected resources": "已将警报关联到受影响的资源"
 }

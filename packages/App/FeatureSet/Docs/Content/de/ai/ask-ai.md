@@ -79,6 +79,7 @@ Jede Unterhaltung hat einen Berechtigungsmodus, den Sie im Eingabebereich neben 
 Was KI fragen tun kann, wenn ein Modus es erlaubt:
 
 - Einen Vorfall anlegen, Vorfälle und Warnungen bestätigen oder lösen und den Schweregrad eines Vorfalls ändern.
+- Einen Vorfall oder eine Warnung mit der Infrastruktur und den Diensten verknüpfen, um die es geht. Ein Vorfall, den es auf der Seite einer Ressource anlegt, etwa der eines Hosts, wird mit dieser Ressource verknüpft, und die Freigabekarte nennt, womit jede Aktion verknüpft. OneUptime AI untersucht und behebt, womit ein Vorfall oder eine Warnung verknüpft ist.
 - Eine interne Notiz zu einem Vorfall oder einer Warnung veröffentlichen. Interne Notizen erscheinen nie auf einer Statusseite.
 - Eine öffentliche Statusmeldung zu einem Vorfall veröffentlichen. Das ist eine eigene Aktion, weil sie die Abonnenten der Statusseite benachrichtigt.
 - Eine Bereitschaftsrichtlinie alarmieren, ein Runbook ausführen oder eine KI-Untersuchung eines Vorfalls oder einer Warnung starten.

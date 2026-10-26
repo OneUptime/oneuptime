@@ -79,6 +79,7 @@ Elk gesprek heeft een machtigingsmodus, die je in het invoervak kiest, naast het
 Wat AI vragen kan doen als een modus het toestaat:
 
 - Een incident aanmaken, incidenten en waarschuwingen bevestigen of oplossen, en de ernst van een incident wijzigen.
+- Een incident of waarschuwing koppelen aan de infrastructuur en services waar het om gaat. Een incident dat het aanmaakt op de pagina van een resource, zoals die van een host, wordt aan die resource gekoppeld, en de goedkeuringskaart noemt wat elke actie koppelt. OneUptime AI onderzoekt en herstelt waaraan een incident of waarschuwing is gekoppeld.
 - Een interne notitie plaatsen bij een incident of waarschuwing. Interne notities verschijnen nooit op een statuspagina.
 - Een openbare statusupdate bij een incident publiceren. Dat is een aparte actie, omdat de abonnees van de statuspagina een melding krijgen.
 - Een bereikbaarheidsbeleid oproepen, een runbook uitvoeren of een AI-onderzoek van een incident of waarschuwing starten.

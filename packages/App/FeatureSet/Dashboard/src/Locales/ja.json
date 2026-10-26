@@ -24578,8 +24578,9 @@
   "The parts of this {{noun}} that keep showing up in what OneUptime AI investigated.": "The parts of this {{noun}} that keep showing up in what OneUptime AI investigated.",
   "The second container: it lets OneUptime AI run read-only docker commands on this host while it investigates. On by default.": "2 つ目のコンテナです。調査中に OneUptime AI がこのホストで読み取り専用の docker コマンドを実行できるようにします。デフォルトで有効です。",
   "This {{signal}} already has the most fixes one {{signal}} can get, so nothing more was tried.": "この{{signal}}は、1 件の{{signal}}が受けられる修正の上限にすでに達しているため、それ以上は試行されませんでした。",
-  "This {{signal}} is not linked to a Kubernetes cluster or an infrastructure resource, so OneUptime AI had nothing it could fix.": "この{{signal}}は Kubernetes クラスターにもインフラストラクチャのリソースにもリンクされていないため、OneUptime AI が修正できるものはありませんでした。",
-  "This {{signal}} is not linked to a Kubernetes cluster or an infrastructure resource, so OneUptime AI had nothing it could fix. Link its monitor to the cluster, host, database or service it watches, and every {{signal}} it raises from then on will be linked to it.": "この{{signal}}は Kubernetes クラスターにもインフラストラクチャのリソースにもリンクされていないため、OneUptime AI が修正できるものはありませんでした。モニターを監視対象のクラスター、ホスト、データベース、またはサービスにリンクすると、それ以降そのモニターが発生させるすべての{{signal}}がそこにリンクされます。",
+  "This {{signal}} is not linked to a host, cluster or database, so OneUptime AI had nothing to fix.": "この{{signal}}はホスト、クラスター、データベースのいずれにもリンクされていないため、OneUptime AI が修正できるものはありませんでした。",
+  "Add the host, cluster or database it is about under Affected Resources, and OneUptime AI tries again.": "対象のホスト、クラスター、またはデータベースを影響を受けるリソースに追加すると、OneUptime AI がもう一度試します。",
+  "Add the host, cluster or database it is about under Affected Resources, and OneUptime AI tries again. Link its monitor to what it watches, and every {{signal}} it raises from then on is linked for you.": "対象のホスト、クラスター、またはデータベースを影響を受けるリソースに追加すると、OneUptime AI がもう一度試します。モニターを監視対象にリンクすると、それ以降そのモニターが発生させるすべての{{signal}}が自動的にリンクされます。",
   "This {{signal}} is not linked to a Kubernetes cluster.": "この{{signal}}は Kubernetes クラスターにリンクされていません。",
   "This {{signal}} is not linked to an infrastructure resource with an AI agent.": "この{{signal}}は、AI エージェントのあるインフラストラクチャのリソースにリンクされていません。",
   "Verification: {{verified}} resolved the problem, {{failed}} did not, {{verifying}} still being checked.": "Verification: {{verified}} resolved the problem, {{failed}} did not, {{verifying}} still being checked.",
@@ -35596,5 +35597,9 @@
   "Text Input": "テキスト入力",
   "Is First Membership": "Is First Membership",
   "Incident SLA breached": "インシデントの SLA 違反",
-  "An incident you own misses its SLA response or resolution deadline.": "あなたが所有するインシデントが SLA の応答期限または解決期限を過ぎました。"
+  "An incident you own misses its SLA response or resolution deadline.": "あなたが所有するインシデントが SLA の応答期限または解決期限を過ぎました。",
+  "Go to Affected Resources": "影響を受けるリソースへ移動",
+  "Linking affected resources": "影響を受けるリソースをリンク中",
+  "Linked an incident to affected resources": "インシデントを影響を受けるリソースにリンクしました",
+  "Linked an alert to affected resources": "アラートを影響を受けるリソースにリンクしました"
 }
