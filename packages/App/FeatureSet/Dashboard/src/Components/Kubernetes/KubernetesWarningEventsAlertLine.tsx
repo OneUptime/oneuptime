@@ -11,6 +11,7 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import IconProp from "Common/Types/Icon/IconProp";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
+import { useCardRuledBodyClassName } from "Common/UI/Components/Card/CardSurface";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
@@ -49,12 +50,15 @@ export const KUBERNETES_WARNING_ALERTS_TEST_ID: string =
  * rule across the card, as the pager's own, and the card's padding, so its
  * words start where "Showing 1-11 of 11 events" does. The pager ends its
  * card - the list's footer runs to the card's edges and bottom (-mb-6) -
- * so the line, after it, does the same: right under it (mt-6 makes up the
- * pager's -mb-6), ending the card. It used to sit 6px under the pager's
- * Rows per page, in its grey, and read as part of the pager.
+ * so the line, after it, does the same: the card's ruled body
+ * (CardSurface: its edges, its rule, its end), right under the pager (mt-6
+ * makes up the pager's -mb-6). It used to sit 6px under the pager's Rows
+ * per page, in its grey, and read as part of the pager.
+ *
+ * These are the line's own classes; its edges are the ruled body's.
  */
 export const KUBERNETES_WARNING_ALERTS_LINE_CLASS_NAME: string =
-  "-mx-5 -mb-6 mt-6 flex items-start gap-2 border-t border-gray-200 px-5 py-3 text-sm text-gray-500 md:-mx-6 md:px-6";
+  "mt-6 flex items-start gap-2 px-5 py-3 text-sm text-gray-500 md:px-6";
 
 export interface ComponentProps {
   // The cluster's record id, for its Recommendations page.
@@ -70,6 +74,7 @@ const KubernetesWarningEventsAlertLine: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  const ruledBodyClassName: string = useCardRuledBodyClassName();
   // Null until read, and when the monitors cannot be read.
   const [alertingMonitors, setAlertingMonitors] =
     useState<Array<Monitor> | null>(null);
@@ -135,7 +140,7 @@ const KubernetesWarningEventsAlertLine: FunctionComponent<ComponentProps> = (
   ): ReactElement => {
     return (
       <div
-        className={KUBERNETES_WARNING_ALERTS_LINE_CLASS_NAME}
+        className={`${ruledBodyClassName} ${KUBERNETES_WARNING_ALERTS_LINE_CLASS_NAME}`}
         data-testid={KUBERNETES_WARNING_ALERTS_TEST_ID}
       >
         <Icon
