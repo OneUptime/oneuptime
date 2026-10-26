@@ -308,8 +308,9 @@ jobs:
           # about 19.5 to 20. Its UI review added SideMenuWordBreaks.spec.ts
           # the same day (6 tests in Chromium and the same 6 in Firefox,
           # which this group installs: where the menu's words break, since
-          # Firefox hyphenates words Chrome moves whole) and 2 tests of the
-          # list's fades: about 40 seconds more, about 20 to 20.5.
+          # Firefox hyphenates words Chrome moves whole) and 3 tests of the
+          # list's fades and fitted card: 45 tests in 2.4 minutes locally,
+          # about 50 seconds more, about 20.5 to 21.
           - group: 3
             browsers: chromium firefox
             suites: >-
