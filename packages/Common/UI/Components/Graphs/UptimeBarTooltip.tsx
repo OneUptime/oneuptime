@@ -272,7 +272,7 @@ const UptimeBarTooltip: FunctionComponent<ComponentProps> = (
                       style={{
                         fontSize: "10px",
                         color: "var(--ou-text-subtle, #b0b0b0)",
-                        marginLeft: "auto",
+                        marginInlineStart: "auto",
                         whiteSpace: "nowrap",
                       }}
                     >

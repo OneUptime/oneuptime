@@ -309,7 +309,7 @@ const expectAccountsButtonStyle: ExpectButtonStyleFunction = (
   element: HTMLElement,
 ): void => {
   expect(element).toHaveClass(...ACCOUNTS_BUTTON_CLASSES.split(" "));
-  expect(element).toHaveStyle({ width: "100%", marginLeft: "0px" });
+  expect(element).toHaveStyle({ width: "100%", marginInlineStart: "0px" });
 
   for (const className of NORMAL_STYLE_CLASSES) {
     expect(element).toHaveClass(className);
@@ -1196,13 +1196,13 @@ describe("ResendVerificationEmail", () => {
           title={BUTTON}
           dataTestId="outline-control"
           className={ACCOUNTS_BUTTON_CLASSES}
-          style={{ width: "100%", marginLeft: 0 }}
+          style={{ width: "100%", marginInlineStart: "0px" }}
         />,
       );
 
       const outline: HTMLElement = screen.getByTestId("outline-control");
       expect(outline).toHaveClass("w-full", "justify-center");
-      expect(outline).toHaveStyle({ width: "100%", marginLeft: "0px" });
+      expect(outline).toHaveStyle({ width: "100%", marginInlineStart: "0px" });
 
       for (const className of NORMAL_STYLE_CLASSES) {
         expect(outline).not.toHaveClass(className);

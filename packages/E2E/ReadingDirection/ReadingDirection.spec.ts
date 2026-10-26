@@ -49,7 +49,12 @@ const styleOf: (locator: Locator, property: string) => Promise<string> =
 const open: (
   page: Page,
   query: string,
-) => Promise<void> = async (page: Page, query: string): Promise<void> => {
+  hasTableRows?: boolean,
+) => Promise<void> = async (
+  page: Page,
+  query: string,
+  hasTableRows: boolean = true,
+): Promise<void> => {
   // Nothing leaves the fixture's own server.
   await page.route(
     (url: URL): boolean => {
@@ -61,10 +66,13 @@ const open: (
   );
   await page.goto(`/reading-direction?${query}`);
   await expect(page.getByTestId("section-dates")).toBeVisible();
+
   // The table measures whether it overflows its card once it is drawn.
-  await expect(
-    page.locator("[data-testid=section-table] td").first(),
-  ).toBeVisible();
+  if (hasTableRows) {
+    await expect(
+      page.locator("[data-testid=section-table] td").first(),
+    ).toBeVisible();
+  }
 };
 
 const LANGUAGES: Array<{ lang: string; dir: "ltr" | "rtl" }> = [
@@ -389,11 +397,12 @@ test.describe("notes read the way they are written", () => {
     expect(await english.getAttribute("dir")).toBe("ltr");
     expect(await persian.getAttribute("dir")).toBe("rtl");
 
-    // The English note's bullets sit at its left.
-    const item: Box = await boxOf(english.locator("li").first());
-    const note: Box = await boxOf(english);
+    // The English note's list is indented from its left, where its bullets sit.
+    const list: Locator = english.locator("ul").first();
 
-    expect(item.left - note.left).toBeLessThan(note.right - item.right);
+    expect(await styleOf(list, "direction")).toBe("ltr");
+    expect(await styleOf(list, "padding-left")).toBe("24px");
+    expect(await styleOf(list, "padding-right")).toBe("0px");
 
     // In the Persian note, its English paragraph starts at the left.
     const paragraphs: Locator = persian.locator("p");
@@ -643,7 +652,8 @@ test.describe("a phone", () => {
   }: {
     page: Page;
   }) => {
-    await open(page, "lang=fa&width=340");
+    // A phone draws a table's rows as cards: no cells to wait for.
+    await open(page, "lang=fa&width=340", false);
 
     const overflow: number = await page.evaluate((): number => {
       return document.documentElement.scrollWidth - window.innerWidth;

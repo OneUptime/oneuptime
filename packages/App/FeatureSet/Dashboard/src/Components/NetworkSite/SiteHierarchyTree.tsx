@@ -205,7 +205,7 @@ const SiteHierarchyTree: FunctionComponent<ComponentProps> = (
       <Fragment key={siteId}>
         <div
           className="flex items-center gap-2 rounded py-1.5 pr-2 hover:bg-gray-50"
-          style={{ paddingLeft: `${node.depth * 1.5}rem` }}
+          style={{ paddingInlineStart: `${node.depth * 1.5}rem` }}
         >
           {hasChildren ? (
             <button
