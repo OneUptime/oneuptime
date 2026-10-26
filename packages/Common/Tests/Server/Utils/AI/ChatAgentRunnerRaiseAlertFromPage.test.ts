@@ -49,8 +49,9 @@ import { afterEach, describe, expect, test } from "@jest/globals";
  *
  *   - nothing is created before the person approves: the action is
  *     prepared first, the page's host and the severity the alert takes
- *     written into the arguments, and the approval card says what the host
- *     is ("Linked to host "test01".");
+ *     written into the arguments, and the approval card says the
+ *     severity and what the host is ("Severity: High. Linked to host
+ *     "test01".");
  *   - what was approved is what runs: resumed after approval, the alert is
  *     created linked to test01 with that severity, as the person who
  *     approved, and the chat shows its card;
@@ -324,7 +325,9 @@ describe("Ask AI on a host's page raises an alert linked to the host (issue #530
     expect(actions[0]!.status).toBe(AIChatToolActionStatus.Pending);
     expect(actions[0]!.requiresApproval).toBe(true);
     expect(actions[0]!.title).toBe("Create alert: High memory usage on test01");
-    expect(actions[0]!.description).toBe('Linked to host "test01".');
+    expect(actions[0]!.description).toBe(
+      'Severity: High. Linked to host "test01".',
+    );
     expect(actions[0]!.arguments).toEqual({
       ...RAISE_CALL.arguments,
       affectedResources: [{ resourceType: "Host", resourceId: HOST_ID }],
@@ -418,7 +421,9 @@ describe("Ask AI on a host's page raises an alert linked to the host (issue #530
     expect(alert.alertSeverityId?.toString()).toBe(HIGH_ID);
 
     const actions: Array<AIChatToolAction> = lastToolActions(spies);
-    expect(actions[0]!.description).toBe('Linked to host "test01".');
+    expect(actions[0]!.description).toBe(
+      'Severity: High. Linked to host "test01".',
+    );
     expect(actions[0]!.status).toBe(AIChatToolActionStatus.Executed);
   });
 

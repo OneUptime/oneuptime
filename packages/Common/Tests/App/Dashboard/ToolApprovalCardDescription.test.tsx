@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom";
 import React from "react";
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { act, cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, test } from "@jest/globals";
 import ToolApprovalCard, {
   argsPreview,
@@ -70,7 +70,12 @@ describe("the approval card names what an action links", () => {
     expect(
       within(card).getByText("Create incident: High memory usage"),
     ).toBeInTheDocument();
-    expect(card).toHaveTextContent("title: High memory usage");
+    /*
+     * The title the incident takes is the card's own title: the argument
+     * line, cut at two lines, does not spend them repeating it (#5301's UI
+     * review).
+     */
+    expect(card).not.toHaveTextContent("title: High memory usage");
     expect(card).toHaveTextContent("severityName: SEV2");
     expect(card).not.toHaveTextContent(HOST_ID);
     expect(card).not.toHaveTextContent("affectedResources");
@@ -196,5 +201,168 @@ describe("argsPreview", () => {
     expect(
       argsPreview({ title: "", note: null, count: 0 }, { leaveOutLists: true }),
     ).toBe("count: 0");
+  });
+
+  /*
+   * #5301's UI review: "Create alert: High memory usage on test01" over
+   * "title: High memory usage on test01 · description: Memory in use…":
+   * the line is cut at two lines, and the repeat pushed the description
+   * the alert will carry out of sight on a phone.
+   */
+  test("leaves out the argument the action's title ends with", () => {
+    expect(
+      argsPreview(
+        {
+          title: "High memory usage on test01",
+          description: "Memory in use on test01 is at 78%.",
+          severityName: "High",
+        },
+        { title: "Create alert: High memory usage on test01" },
+      ),
+    ).toBe(
+      "description: Memory in use on test01 is at 78%.  ·  severityName: High",
+    );
+  });
+
+  test("leaves it out whatever the spaces around it, and when the title is the argument itself", () => {
+    expect(
+      argsPreview(
+        { title: "  Checkout down ", severityName: "SEV1" },
+        { title: "Create incident: Checkout down" },
+      ),
+    ).toBe("severityName: SEV1");
+    expect(
+      argsPreview({ name: "Nightly backup" }, { title: "Nightly backup" }),
+    ).toBe("");
+  });
+
+  test("keeps an argument the title only mentions: a severity that is a word of the title is still the severity", () => {
+    expect(
+      argsPreview(
+        { title: "P1 outage in EU", severityName: "P1" },
+        { title: "Create incident: P1 outage in EU" },
+      ),
+    ).toBe("severityName: P1");
+    // An ID inside a sentence-like title is kept as before.
+    expect(
+      argsPreview(
+        { incidentId: HOST_ID },
+        { title: `Acknowledge incident ${HOST_ID}` },
+      ),
+    ).toBe(`incidentId: ${HOST_ID}`);
+  });
+
+  test("never leaves out a list or a number for matching the title", () => {
+    expect(
+      argsPreview({ count: 3, tags: ["3"] }, { title: "Create something: 3" }),
+    ).toBe('count: 3  ·  tags: ["3"]');
+  });
+});
+
+/*
+ * Allow and Skip beside the action where the card has room, and under it
+ * where it has not (#5301's UI review): beside it on a phone, German's
+ * "Zulassen" and "Überspringen" left the title 85 px and cut it at three
+ * lines. The card measures its own width - it sits in the Ask AI panel,
+ * the full-page chat and an incident's AI card, each as wide as it is -
+ * so the browser suite measures the layout; this holds the wiring.
+ */
+describe("the approval card's layout and its choice", () => {
+  test("each action measures its own width, and goes side by side only from 28rem", () => {
+    render(
+      <ToolApprovalCard
+        toolActions={[action()]}
+        interactive={true}
+        isSubmitting={false}
+        onRespond={() => {}}
+      />,
+    );
+
+    const row: HTMLElement = screen.getByTestId("tool-approval-action");
+    expect(row.className).toContain("[container-type:inline-size]");
+
+    const layout: HTMLElement = row.firstElementChild as HTMLElement;
+    const classes: Array<string> = layout.className.split(" ");
+    // Stacked unless the card is wide enough for both.
+    expect(classes).toContain("flex-col");
+    expect(classes).not.toContain("flex-row");
+    expect(classes).toContain("[@container(min-width:28rem)]:flex-row");
+    expect(classes).toContain("[@container(min-width:28rem)]:items-start");
+    expect(classes).toContain("[@container(min-width:28rem)]:justify-between");
+
+    // The choice keeps its own width at the start of its line when stacked.
+    const choice: HTMLElement = screen.getByTestId("tool-approval-choice");
+    expect(choice.className).toContain("self-start");
+    expect(choice.className).toContain("flex-shrink-0");
+    expect(layout.lastElementChild).toBe(choice);
+  });
+
+  test("Allow and Skip are a pair named after the action they decide, and say which is chosen", () => {
+    render(
+      <ToolApprovalCard
+        toolActions={[
+          action(),
+          action({
+            id: "call-raise",
+            toolName: "create_alert",
+            title: "Create alert: High memory usage",
+          }),
+        ]}
+        interactive={true}
+        isSubmitting={false}
+        onRespond={() => {}}
+      />,
+    );
+
+    const incident: HTMLElement = screen.getByRole("group", {
+      name: "Create incident: High memory usage",
+    });
+    const alert: HTMLElement = screen.getByRole("group", {
+      name: "Create alert: High memory usage",
+    });
+
+    // Allowed by default, each on its own.
+    expect(
+      within(alert).getByRole("button", { name: "Allow" }),
+    ).toHaveAttribute("aria-pressed", "true");
+    expect(within(alert).getByRole("button", { name: "Skip" })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+
+    act(() => {
+      within(alert).getByRole("button", { name: "Skip" }).click();
+    });
+
+    expect(within(alert).getByRole("button", { name: "Skip" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(
+      within(alert).getByRole("button", { name: "Allow" }),
+    ).toHaveAttribute("aria-pressed", "false");
+    // The other action is still allowed.
+    expect(
+      within(incident).getByRole("button", { name: "Allow" }),
+    ).toHaveAttribute("aria-pressed", "true");
+    expect(
+      screen.getByRole("button", { name: "Run 1 action" }),
+    ).toBeInTheDocument();
+  });
+
+  test("a card only waiting for approval draws no choice", () => {
+    render(
+      <ToolApprovalCard
+        toolActions={[action()]}
+        interactive={false}
+        isSubmitting={false}
+        onRespond={() => {}}
+      />,
+    );
+
+    expect(
+      screen.queryByTestId("tool-approval-choice"),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("group")).not.toBeInTheDocument();
   });
 });

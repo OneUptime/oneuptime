@@ -1,6 +1,7 @@
 import {
   AlertSeverityChoice,
   CreateAlertTool,
+  describeAlertForPerson,
   pickAlertSeverity,
 } from "../../../../Server/Utils/AI/Toolbox/AlertWriteTools";
 import { CreateIncidentTool } from "../../../../Server/Utils/AI/Toolbox/IncidentWriteTools";
@@ -630,7 +631,13 @@ describe("create_alert, prepared for approval", () => {
       affectedResources: [{ resourceType: "Host", resourceId: HOST_ID }],
       severityName: "High",
     });
-    expect(prepared.description).toBe('Linked to host "test01".');
+    /*
+     * The severity first, in words: the argument line under it is cut at
+     * two lines, and on a phone it never showed the severity.
+     */
+    expect(prepared.description).toBe(
+      'Severity: High. Linked to host "test01".',
+    );
     // buildActionTitle's title stands: it names the alert by its title.
     expect(prepared.title).toBeUndefined();
   });
@@ -647,6 +654,7 @@ describe("create_alert, prepared for approval", () => {
       title: "High memory usage",
       severityName: "Low",
     });
+    expect(prepared.description).toBe("Severity: Low.");
   });
 
   test("a severity the project does not have is written out as the one it will take", async () => {
@@ -658,6 +666,8 @@ describe("create_alert, prepared for approval", () => {
     );
 
     expect(prepared.arguments["severityName"]).toBe("High");
+    // The card says the one it will take, not the one the model named.
+    expect(prepared.description).toBe("Severity: High.");
   });
 
   test("a call's own list is kept as named, and named on the card", async () => {
@@ -683,11 +693,11 @@ describe("create_alert, prepared for approval", () => {
 
     expect(prepared.arguments).toEqual(args);
     expect(prepared.description).toBe(
-      'Linked to Kubernetes cluster "prod-east".',
+      'Severity: Low. Linked to Kubernetes cluster "prod-east".',
     );
   });
 
-  test("off a resource's page, only the severity is written out and the card says nothing more", async () => {
+  test("off a resource's page, only the severity is written out and the card says only the severity", async () => {
     mockSeverities();
 
     const prepared: PreparedMutation = await CreateAlertTool.prepareMutation!(
@@ -699,7 +709,7 @@ describe("create_alert, prepared for approval", () => {
       title: "Checkout slow",
       severityName: "High",
     });
-    expect(prepared.description).toBeUndefined();
+    expect(prepared.description).toBe("Severity: High.");
   });
 
   test("a resource the person may not view is flagged on the card before they approve", async () => {
@@ -712,7 +722,7 @@ describe("create_alert, prepared for approval", () => {
     );
 
     expect(prepared.description).toBe(
-      "The resources named will not be linked.",
+      "Severity: High. The resources named will not be linked.",
     );
   });
 
@@ -734,6 +744,11 @@ describe("create_alert, prepared for approval", () => {
       title: "High memory usage",
       severityName: "Low",
     });
+    /*
+     * Which severity it takes is not known before it runs, so the card
+     * says none: the argument line still shows the model's.
+     */
+    expect(prepared.description).toBeUndefined();
   });
 
   test("a project with no severities writes none out: running the action says why", async () => {
@@ -745,6 +760,7 @@ describe("create_alert, prepared for approval", () => {
     );
 
     expect(prepared.arguments).toEqual({ title: "High memory usage" });
+    expect(prepared.description).toBeUndefined();
   });
 
   test("it only reads: nothing is created before the person approves", async () => {
@@ -787,6 +803,56 @@ describe("create_alert, prepared for approval", () => {
     const alert: Alert = createdAlert(create);
     expect(idsOf(alert.hosts)).toEqual([HOST_ID]);
     expect(alert.alertSeverityId?.toString()).toBe(LOW_ID);
+  });
+});
+
+/*
+ * The approval card's line under "Create alert: <title>" (#5301's UI
+ * review): the severity the alert takes, in words, then what it is linked
+ * to. The argument line under it is cut at two lines, and on a phone the
+ * severity - written last there - was never seen before approving.
+ */
+describe("the approval card's line for create_alert", () => {
+  test("says the severity first, then what the alert is linked to", () => {
+    expect(
+      describeAlertForPerson({
+        severityName: "High",
+        linked: 'Linked to host "test01".',
+      }),
+    ).toBe('Severity: High. Linked to host "test01".');
+  });
+
+  test("says the severity alone when nothing is linked", () => {
+    expect(
+      describeAlertForPerson({ severityName: "Low", linked: undefined }),
+    ).toBe("Severity: Low.");
+  });
+
+  test("says what is linked alone when the severity is not known yet", () => {
+    expect(
+      describeAlertForPerson({
+        severityName: null,
+        linked: "The resources named will not be linked.",
+      }),
+    ).toBe("The resources named will not be linked.");
+  });
+
+  test("says nothing when there is nothing to say, so the card draws no empty line", () => {
+    expect(
+      describeAlertForPerson({ severityName: null, linked: undefined }),
+    ).toBeUndefined();
+    expect(describeAlertForPerson({ severityName: "", linked: "" })).toBe(
+      undefined,
+    );
+  });
+
+  test("keeps a project's own severity name as it is written", () => {
+    expect(
+      describeAlertForPerson({
+        severityName: "P2 - Needs a look",
+        linked: undefined,
+      }),
+    ).toBe("Severity: P2 - Needs a look.");
   });
 });
 

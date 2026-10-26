@@ -40,18 +40,21 @@ import { AIResourceType } from "../../../Types/AI/AIResourceContext";
 import AIRunEventType from "../../../Types/AI/AIRunEventType";
 import IconProp from "../../../Types/Icon/IconProp";
 import ObjectID from "../../../Types/ObjectID";
+import Navigation from "../../../UI/Utils/Navigation";
 
 /*
  * WHAT THE PERSON SEES WHEN ASK AI RAISES AN ALERT (#5301), drawn by the
  * chat's own components from what the server's create_alert hands them:
  *
- *   - the approval card: "Create alert: <title>", the host it is linked to
- *     by name ("Linked to host "test01"."), and the severity the alert
- *     takes in the argument line - never the host's ID;
+ *   - the approval card: "Create alert: <title>", then the severity the
+ *     alert takes and the host it is linked to, by name ("Severity: High.
+ *     Linked to host "test01"."), then the description it will carry -
+ *     never the host's ID, and never the title twice;
  *   - the step in the chat's activity, in words in every Dashboard
  *     language ("Creating alert"), never the tool's own name;
  *   - the card under the answer once it ran: the alert by the number the
- *     person knows it by, its severity and what it is linked to;
+ *     person knows it by, its severity and what it is linked to, with an
+ *     Open that goes to it;
  *   - the line an evidence list gives a run that raised one;
  *   - and Ask AI's home, which says what it can do: create incidents and
  *     alerts, in the language the rest of the home reads in.
@@ -224,15 +227,25 @@ describe("the approval card for an alert Ask AI raises on host test01's page", (
     expect(screen.getByTestId("tool-approval-title")).toHaveTextContent(
       "Create alert: High memory usage on test01",
     );
+    /*
+     * The severity in words, first: the argument line is cut at two
+     * lines, and on a phone the severity, written last there, was never
+     * seen before approving.
+     */
     expect(screen.getByTestId("tool-approval-description")).toHaveTextContent(
-      'Linked to host "test01".',
+      'Severity: High. Linked to host "test01".',
     );
 
     const card: HTMLElement = screen.getByTestId(
       "tool-approval-description",
     ).parentElement!;
+    // The description the alert will carry, which only this line shows.
+    expect(card).toHaveTextContent(
+      "description: Memory in use on test01 has been at 78% for 20 minutes.",
+    );
     expect(card).toHaveTextContent("severityName: High");
-    expect(card).toHaveTextContent("title: High memory usage on test01");
+    // The title is the card's own; the argument line does not repeat it.
+    expect(card).not.toHaveTextContent("title: High memory usage on test01");
     expect(card).not.toHaveTextContent(HOST_ID);
     expect(card).not.toHaveTextContent("affectedResources");
 
@@ -353,6 +366,93 @@ describe("the card under the answer, once the alert is raised", () => {
     expect(within(facts).getByText("ALT-12")).toBeInTheDocument();
     expect(within(facts).getByText("Description")).toBeInTheDocument();
     expect(facts).not.toHaveTextContent(HOST_ID);
+  });
+
+  /*
+   * The one next step after raising an alert is opening it. The card
+   * carried a link to the alert that nothing drew: the only way there was
+   * the "Created alert ALT-12" chip among the sources.
+   */
+  test("its Open goes to the alert", async () => {
+    stubTheProject();
+    const navigate: jest.SpiedFunction<typeof Navigation.navigate> = jest
+      .spyOn(Navigation, "navigate")
+      .mockImplementation((): void => {});
+
+    const result: ToolExecutionResult = await CreateAlertTool.execute(
+      { ...CALL_ARGUMENTS },
+      HOST_PAGE_CONTEXT,
+    );
+
+    render(<WidgetRenderer widgets={[{ ...result.widget!, id: "W1" }]} />);
+
+    const open: HTMLElement = screen.getByRole("button", { name: "Open" });
+    expect(screen.getByTestId("ai-chat-resource-card")).toContainElement(open);
+
+    act(() => {
+      open.click();
+    });
+
+    expect(navigate).toHaveBeenCalledTimes(1);
+    expect(navigate.mock.calls[0]![0]!.toString()).toContain(
+      `/alerts/${ALERT_ID}`,
+    );
+  });
+
+  /*
+   * On a phone the heading was cut at one line - "ALT-12 · High memory
+   * usage on t…" - losing the alert's own title. It wraps, as the
+   * approval card's title does, and so do the facts under it.
+   */
+  test("its heading and facts wrap rather than being cut at one line", async () => {
+    stubTheProject();
+
+    const result: ToolExecutionResult = await CreateAlertTool.execute(
+      { ...CALL_ARGUMENTS },
+      HOST_PAGE_CONTEXT,
+    );
+
+    render(<WidgetRenderer widgets={[{ ...result.widget!, id: "W1" }]} />);
+
+    const heading: HTMLElement = screen.getByTestId(
+      "ai-chat-resource-card-heading",
+    );
+    expect(heading).toHaveTextContent("ALT-12 · High memory usage on test01");
+    expect(heading.className).toContain("break-words");
+    expect(heading.className).toContain("line-clamp-3");
+    expect(heading.className).not.toContain("truncate");
+
+    const description: HTMLElement = screen.getByText(
+      CALL_ARGUMENTS.description,
+    );
+    expect(description.tagName).toBe("DD");
+    expect(description.className).toContain("break-words");
+    expect(description.className).toContain("line-clamp-2");
+    expect(description.className).not.toContain("truncate");
+  });
+
+  test("in every Dashboard language its Open reads in that language", async () => {
+    stubTheProject();
+
+    const result: ToolExecutionResult = await CreateAlertTool.execute(
+      { ...CALL_ARGUMENTS },
+      HOST_PAGE_CONTEXT,
+    );
+
+    for (const language of LANGUAGES) {
+      const open: string | undefined = LOCALES[language]!["Open"];
+      expect(open).toBeDefined();
+
+      await act(async () => {
+        await i18next.changeLanguage(language);
+      });
+
+      render(<WidgetRenderer widgets={[{ ...result.widget!, id: "W1" }]} />);
+      expect(
+        screen.getByTestId("ai-chat-resource-card-open"),
+      ).toHaveTextContent(open!);
+      cleanup();
+    }
   });
 });
 

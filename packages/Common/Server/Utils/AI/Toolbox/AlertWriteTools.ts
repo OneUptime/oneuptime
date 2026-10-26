@@ -218,6 +218,31 @@ async function getAlertSeverityNameForPerson(data: {
 }
 
 /*
+ * The approval card's line under "Create alert: <title>": the severity the
+ * alert takes, then what it is linked to - 'Severity: High. Linked to host
+ * "test01".' The severity is said in words here because the argument line
+ * under it is cut at two lines, and on a phone the severity, written last,
+ * was never seen before the person approved (#5301's UI review). Undefined
+ * when there is nothing to say.
+ */
+export function describeAlertForPerson(data: {
+  severityName: string | null;
+  linked: string | undefined;
+}): string | undefined {
+  const parts: Array<string> = [];
+
+  if (data.severityName) {
+    parts.push(`Severity: ${data.severityName}.`);
+  }
+
+  if (data.linked) {
+    parts.push(data.linked);
+  }
+
+  return parts.length > 0 ? parts.join(" ") : undefined;
+}
+
+/*
  * create_alert raises an alert from the conversation, as the dashboard's
  * Create Alert form does (issue #5301: Ask AI declared incidents, but could
  * not raise an alert). It is create_incident's twin:
@@ -295,10 +320,13 @@ export const CreateAlertTool: ObservabilityTool = {
 
     return {
       arguments: severityName ? { ...prepared, severityName } : prepared,
-      description: AffectedResourceLinks.describeForPerson({
-        linked: toLink.linked,
-        hasNotLinked: toLink.notLinked.length > 0,
-        verb: "Linked to",
+      description: describeAlertForPerson({
+        severityName,
+        linked: AffectedResourceLinks.describeForPerson({
+          linked: toLink.linked,
+          hasNotLinked: toLink.notLinked.length > 0,
+          verb: "Linked to",
+        }),
       }),
     };
   },
