@@ -21,7 +21,7 @@ frames are CASE-142 from the same fixture, with the old name put back for
 | `before-menu-800-en.png` | "Waiting for App..." cut short beside its count of 1, at 800px. |
 | `after-menu-800-en.png` | "Approvals" whole beside its count. |
 | `before-menu-800-de.png` | German "Wartet auf Genehmigung" cut short at 800px. |
-| `after-menu-800-de.png` | "Genehmigungen" whole. ("Playbook-Ausführungen", which has no count, is still cut at this width: a follow-up.) |
+| `after-menu-800-de.png` | "Genehmigungen" whole. ("Playbook-Ausführungen", which has no count, is still cut at this width here; the UI review made it "Ausführungen": `review-after-menu-800-de-runs.png`.) |
 | `before-menu-1280-de.png` | German cut short even at 1280px, beside the 256px menu. |
 | `after-menu-1280-de.png` | Whole at 1280px. |
 | `after-menu-800-en-dark.png` | Dark theme, 800px. |
