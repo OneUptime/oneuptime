@@ -1,5 +1,6 @@
 import { CustomDomainCertificateStatus } from "Common/Types/CustomDomain/CustomDomainVerification";
 import { CustomDomainCertificate } from "Common/Types/CustomDomain/CustomDomainCertificates";
+import Protocol from "Common/Types/API/Protocol";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
@@ -35,6 +36,26 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  * the Dashboard locale files.
  */
 
+/*
+ * What the installation does for every custom domain: whether it issues free
+ * certificates - only with a Let's Encrypt account key, which a self-hosted
+ * installation that ends TLS at its own proxy often has none of (the browser
+ * is told whether there is one: Common/UI/Config
+ * CUSTOM_DOMAIN_FREE_CERTIFICATES) - and the protocol it is reached over,
+ * which is what a domain it issues no certificate for is opened with, as
+ * the server links to it (StatusPageService.getUsableCustomDomain, rule 3).
+ */
+export interface CustomDomainInstallation {
+  issuesFreeCertificates: boolean;
+  protocol: Protocol;
+}
+
+// What every installation was taken to be before it said: one that issues them.
+export const FREE_CERTIFICATE_INSTALLATION: CustomDomainInstallation = {
+  issuesFreeCertificates: true,
+  protocol: Protocol.HTTPS,
+};
+
 // Where a custom domain is on its way to being served over HTTPS.
 export enum CustomDomainState {
   // The CNAME record is not found yet: the one step only its owner can take.
@@ -51,6 +72,12 @@ export enum CustomDomainState {
   CertificateIssued = "CertificateIssued",
   // It serves its free certificate, but the last renewal failed.
   RenewalFailed = "RenewalFailed",
+  /*
+   * Verified, on an installation that issues no free certificates: its HTTPS
+   * is the installation's own proxy's, or a certificate its owner uploads.
+   * There is nothing to wait for, so it is live, as the server holds it.
+   */
+  VerifiedWithoutFreeCertificate = "VerifiedWithoutFreeCertificate",
 }
 
 export interface CustomDomainStateInput {
@@ -63,16 +90,20 @@ export interface CustomDomainStateInput {
 /*
  * Where a domain is, from its own row and - when the page has it - its
  * certificate. Without the certificate (not loaded yet, or the request
- * failed) the row alone decides, as it always did.
+ * failed) the row alone decides, as it always did. On an installation that
+ * issues no free certificates, a verified domain has none to wait for: it
+ * used to read "Issuing a free certificate" for ever.
  */
 export const getCustomDomainState: (
   domain: CustomDomainStateInput,
   certificate?: CustomDomainCertificate | undefined,
   now?: Date | undefined,
+  installation?: CustomDomainInstallation | undefined,
 ) => CustomDomainState = (
   domain: CustomDomainStateInput,
   certificate?: CustomDomainCertificate | undefined,
   now?: Date | undefined,
+  installation?: CustomDomainInstallation | undefined,
 ): CustomDomainState => {
   if (!domain.isCnameVerified) {
     return CustomDomainState.WaitingForDns;
@@ -80,6 +111,10 @@ export const getCustomDomainState: (
 
   if (domain.isCustomCertificate) {
     return CustomDomainState.UsesUploadedCertificate;
+  }
+
+  if (!(installation || FREE_CERTIFICATE_INSTALLATION).issuesFreeCertificates) {
+    return CustomDomainState.VerifiedWithoutFreeCertificate;
   }
 
   if (certificate) {
@@ -144,22 +179,30 @@ export const getCustomDomainCertificateError: (
  * Whether the domain's row offers DNS Setup, the dialog whose Check now
  * verifies the record and orders the certificate: until the record is
  * verified, and on a domain whose free certificate is not in place - not
- * ordered yet, an order that keeps failing, or one that has expired.
+ * ordered yet, an order that keeps failing, or one that has expired. On an
+ * installation that issues no free certificates, a verified domain has no
+ * certificate to order: nothing is left to set up.
  */
 export const isCustomDomainDnsSetupAvailable: (
   domain: CustomDomainStateInput,
   certificate?: CustomDomainCertificate | undefined,
   now?: Date | undefined,
+  installation?: CustomDomainInstallation | undefined,
 ) => boolean = (
   domain: CustomDomainStateInput,
   certificate?: CustomDomainCertificate | undefined,
   now?: Date | undefined,
+  installation?: CustomDomainInstallation | undefined,
 ): boolean => {
   if (!domain.isCnameVerified) {
     return true;
   }
 
   if (domain.isCustomCertificate) {
+    return false;
+  }
+
+  if (!(installation || FREE_CERTIFICATE_INSTALLATION).issuesFreeCertificates) {
     return false;
   }
 
@@ -202,6 +245,9 @@ export const CUSTOM_DOMAIN_STATUS: Record<CustomDomainState, string> = {
   [CustomDomainState.RenewalFailed]: translationKey(
     "Certificate issued, but renewing it failed. We keep trying.",
   ),
+  [CustomDomainState.VerifiedWithoutFreeCertificate]: translationKey(
+    "Verified. This installation issues no free certificates: serve HTTPS for this domain at your own proxy, or upload a certificate.",
+  ),
 };
 
 /*
@@ -241,6 +287,8 @@ export const CustomDomainCopy: {
   // Under the folded Advanced section's title.
   advancedSummaryFreeCertificate: string;
   advancedSummaryUploadedCertificate: string;
+  // The same, on an installation that issues no free certificates.
+  advancedSummaryWithoutFreeCertificate: string;
   dnsSetupTitle: string;
   dnsSetupRecordType: string;
   dnsSetupRecordName: string;
@@ -251,6 +299,8 @@ export const CustomDomainCopy: {
   dnsSetupRootDomain: string;
   dnsSetupWhatHappensNext: string;
   dnsSetupWhatHappensNextUploaded: string;
+  // On an installation that issues no free certificates: no order to wait for.
+  dnsSetupWhatHappensNextWithoutFreeCertificate: string;
   // DNS Setup on a verified domain whose free certificate is not issued yet.
   dnsSetupVerifiedNotIssued: string;
   // DNS Setup on a verified domain whose free certificate has expired.
@@ -275,6 +325,9 @@ export const CustomDomainCopy: {
   advancedSummaryUploadedCertificate: translationKey(
     "Uses the certificate you upload.",
   ),
+  advancedSummaryWithoutFreeCertificate: translationKey(
+    "Served with your own proxy's HTTPS, unless you upload a certificate.",
+  ),
   dnsSetupTitle: translationKey("DNS Setup"),
   dnsSetupRecordType: translationKey("Type"),
   dnsSetupRecordName: translationKey("Name"),
@@ -290,6 +343,9 @@ export const CustomDomainCopy: {
   ),
   dnsSetupWhatHappensNextUploaded: translationKey(
     "We check for this record every 15 minutes, and once it is live we serve this domain with the certificate you uploaded. Added it already? Click Check now.",
+  ),
+  dnsSetupWhatHappensNextWithoutFreeCertificate: translationKey(
+    "We check for this record every 15 minutes. Added it already? Click Check now.",
   ),
   dnsSetupVerifiedNotIssued: translationKey(
     "Your CNAME record is verified, but the free SSL certificate for this domain is not issued yet. Click Check now to try again and see why.",
@@ -314,6 +370,11 @@ export const CustomDomainCopy: {
 export interface CustomDomainKindCopy {
   // The card's description, with {{cnameRecord}}.
   cardDescription: string;
+  /*
+   * The same, on an installation that issues no free certificates: it does
+   * not promise one.
+   */
+  cardDescriptionWithoutFreeCertificates: string;
   // DNS Setup's first sentence, with {{domain}}.
   dnsSetupIntro: string;
   // DNS Setup where the installation has no CNAME record, with {{variable}}.
@@ -327,6 +388,9 @@ export interface CustomDomainKindCopy {
 export const STATUS_PAGE_CUSTOM_DOMAIN_COPY: CustomDomainKindCopy = {
   cardDescription: translationKey(
     "Serve this status page on your own domain. Point each domain's CNAME record to {{cnameRecord}}, and we issue its SSL certificate and renew it for you.",
+  ),
+  cardDescriptionWithoutFreeCertificates: translationKey(
+    "Serve this status page on your own domain. Point each domain's CNAME record to {{cnameRecord}}.",
   ),
   dnsSetupIntro: translationKey(
     "Add this record at your DNS provider to point {{domain}} to your status page.",
@@ -347,6 +411,9 @@ export const STATUS_PAGE_CUSTOM_DOMAIN_COPY: CustomDomainKindCopy = {
 export const DASHBOARD_CUSTOM_DOMAIN_COPY: CustomDomainKindCopy = {
   cardDescription: translationKey(
     "Serve this dashboard on your own domain. Point each domain's CNAME record to {{cnameRecord}}, and we issue its SSL certificate and renew it for you.",
+  ),
+  cardDescriptionWithoutFreeCertificates: translationKey(
+    "Serve this dashboard on your own domain. Point each domain's CNAME record to {{cnameRecord}}.",
   ),
   dnsSetupIntro: translationKey(
     "Add this record at your DNS provider to point {{domain}} to your dashboard.",

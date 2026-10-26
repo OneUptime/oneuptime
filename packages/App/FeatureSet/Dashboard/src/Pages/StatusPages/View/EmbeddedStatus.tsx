@@ -1,4 +1,11 @@
 import PageComponentProps from "../../PageComponentProps";
+import { getCustomDomainInstallation } from "../../../Components/CustomDomain/CustomDomainKinds";
+import {
+  getFirstLiveAddress,
+  getPublicAddresses,
+  PublicAddress,
+} from "../../../Components/CustomDomain/PublicAddressCopy";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
@@ -136,6 +143,16 @@ const StatusPageEmbeddedStatus: FunctionComponent<
     fallbackStatusPageUrl,
   );
 
+  /*
+   * Where the badge's Markdown links to: the page's first live address, as
+   * its Status Page Link card lists them (PublicAddressCopy) - a custom
+   * domain visitors can open, alphabetically first, or else its address on
+   * OneUptime. It used to take only a domain whose free certificate was in
+   * place, so a domain on an uploaded certificate - and, on an installation
+   * that issues no free certificates, every verified domain - was left out
+   * for the OneUptime address. The domains' own rows decide, as the server
+   * decides where its emails link (StatusPageService.getUsableCustomDomain).
+   */
   useEffect(() => {
     const fetchStatusPageUrl: () => Promise<void> = async (): Promise<void> => {
       try {
@@ -144,24 +161,32 @@ const StatusPageEmbeddedStatus: FunctionComponent<
             modelType: StatusPageDomain,
             query: {
               statusPageId: modelId,
-              isSslProvisioned: true,
             } as Query<StatusPageDomain>,
             select: {
               fullDomain: true,
+              isCnameVerified: true,
+              isCustomCertificate: true,
+              isSslOrdered: true,
+              isSslProvisioned: true,
             },
             sort: {
               createdAt: SortOrder.Descending,
             } as Sort<StatusPageDomain>,
-            limit: 1,
+            limit: LIMIT_PER_PROJECT,
             skip: 0,
           });
 
-        const domain: StatusPageDomain | undefined = domains.data[0];
+        const firstLive: PublicAddress<StatusPageDomain> | undefined =
+          getFirstLiveAddress<StatusPageDomain>(
+            getPublicAddresses<StatusPageDomain>({
+              domains: domains.data,
+              oneUptimeUrl: fallbackStatusPageUrl,
+              installation: getCustomDomainInstallation(),
+            }),
+          );
 
-        if (domain?.fullDomain) {
-          setStatusPageUrl(`https://${domain.fullDomain}`);
-          return;
-        }
+        setStatusPageUrl(firstLive ? firstLive.url : fallbackStatusPageUrl);
+        return;
       } catch {
         // Ignore error and fall back to default route.
       }

@@ -1,10 +1,15 @@
 import {
   CustomDomainCopy,
+  CustomDomainInstallation,
   CustomDomainState,
   getCustomDomainState,
   isCustomDomainDnsSetupAvailable,
 } from "./CustomDomainCopy";
-import { CustomDomainKind, CustomDomainModel } from "./CustomDomainKinds";
+import {
+  CustomDomainKind,
+  CustomDomainModel,
+  getCustomDomainInstallation,
+} from "./CustomDomainKinds";
 import CustomDomainDnsSetupModal from "./CustomDomainDnsSetupModal";
 import CustomDomainName from "./CustomDomainName";
 import CustomDomainStatus from "./CustomDomainStatus";
@@ -83,10 +88,16 @@ import React, {
 const certificateSection: FormFieldCollapsibleSection<CustomDomainModel> =
   getAdvancedFormSection<CustomDomainModel>({
     getSummary: (values: FormValues<CustomDomainModel>): Array<string> => {
+      /*
+       * An installation without a Let's Encrypt account key issues no free
+       * certificate, so the folded header does not promise one.
+       */
       return [
         values.isCustomCertificate
           ? CustomDomainCopy.advancedSummaryUploadedCertificate
-          : CustomDomainCopy.advancedSummaryFreeCertificate,
+          : getCustomDomainInstallation().issuesFreeCertificates
+            ? CustomDomainCopy.advancedSummaryFreeCertificate
+            : CustomDomainCopy.advancedSummaryWithoutFreeCertificate,
       ];
     },
   });
@@ -105,6 +116,7 @@ const CustomDomainsTable: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
   const kind: CustomDomainKind = props.kind;
   const cnameRecord: string = kind.getCnameRecord();
+  const installation: CustomDomainInstallation = getCustomDomainInstallation();
   const crudApiPath: string =
     new kind.modelType().crudApiPath?.toString() || "";
 
@@ -264,9 +276,14 @@ const CustomDomainsTable: FunctionComponent<ComponentProps> = (
         cardProps={{
           title: "Custom Domains",
           description: cnameRecord
-            ? translator.translateTemplate(kind.copy.cardDescription, {
-                cnameRecord: cnameRecord,
-              })
+            ? translator.translateTemplate(
+                installation.issuesFreeCertificates
+                  ? kind.copy.cardDescription
+                  : kind.copy.cardDescriptionWithoutFreeCertificates,
+                {
+                  cnameRecord: cnameRecord,
+                },
+              )
             : CustomDomainCopy.cardDescriptionNotEnabled,
         }}
         refreshToggle={refreshToggle}
@@ -308,7 +325,12 @@ const CustomDomainsTable: FunctionComponent<ComponentProps> = (
              * orders it again and says why it failed.
              */
             isVisible: (item: CustomDomainModel): boolean => {
-              return isCustomDomainDnsSetupAvailable(item, certificateOf(item));
+              return isCustomDomainDnsSetupAvailable(
+                item,
+                certificateOf(item),
+                undefined,
+                installation,
+              );
             },
             onClick: async (
               item: CustomDomainModel,
@@ -563,6 +585,8 @@ const CustomDomainsTable: FunctionComponent<ComponentProps> = (
             getCustomDomainState(
               dnsSetupDomain,
               certificateOf(dnsSetupDomain),
+              undefined,
+              installation,
             ) === CustomDomainState.CertificateExpired
           }
           checkNowGate={updateGate}

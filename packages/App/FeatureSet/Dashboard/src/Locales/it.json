@@ -35082,5 +35082,10 @@
   "Approvals": "Approvazioni",
   "This playbook is already running on this case. Its run is under the case's Playbooks.": "Questo playbook è già in esecuzione su questo caso. La sua esecuzione è in Playbooks del caso.",
   "A playbook runs here when the case opens or grows, or when someone runs it on the case.": "Un playbook viene eseguito qui quando il caso si apre o cresce, oppure quando qualcuno lo esegue sul caso.",
-  "No playbook has run on this case yet.": "Nessun playbook è stato ancora eseguito su questo caso."
+  "No playbook has run on this case yet.": "Nessun playbook è stato ancora eseguito su questo caso.",
+  "Verified. This installation issues no free certificates: serve HTTPS for this domain at your own proxy, or upload a certificate.": "Verificato. Questa installazione non emette certificati gratuiti: servi l'HTTPS di questo dominio dal tuo proxy o carica un certificato.",
+  "Served with your own proxy's HTTPS, unless you upload a certificate.": "Servito con l'HTTPS del tuo proxy, a meno che tu non carichi un certificato.",
+  "We check for this record every 15 minutes. Added it already? Click Check now.": "Controlliamo questo record ogni 15 minuti. L'hai già aggiunto? Fai clic su Verifica ora.",
+  "Serve this status page on your own domain. Point each domain's CNAME record to {{cnameRecord}}.": "Pubblica questa pagina di stato sul tuo dominio. Fai puntare il record CNAME di ogni dominio a {{cnameRecord}}.",
+  "Serve this dashboard on your own domain. Point each domain's CNAME record to {{cnameRecord}}.": "Pubblica questa dashboard sul tuo dominio. Fai puntare il record CNAME di ogni dominio a {{cnameRecord}}."
 }

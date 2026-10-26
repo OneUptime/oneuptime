@@ -55,6 +55,7 @@ import ProjectUtil from "../../../UI/Utils/Project";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import { getJestSpyOn } from "../../Spy";
 import { MORE_FIELDS_SECTION_TITLE } from "../../../UI/Components/Forms/Utils/AdvancedFormSection";
+import { HTTP_PROTOCOL } from "../../../UI/Config";
 import PermissionUtil from "../../../UI/Utils/Permission";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
 import Permission from "../../../Types/Permission";
@@ -119,6 +120,16 @@ jest.mock("../../../UI/Config", () => {
 
   Object.defineProperty(mocked, "StatusPageCNameRecord", cnameRecord);
   Object.defineProperty(mocked, "DashboardCNameRecord", cnameRecord);
+
+  // Whether the installation issues free certificates: yes unless a test says.
+  Object.defineProperty(mocked, "CUSTOM_DOMAIN_FREE_CERTIFICATES", {
+    get: (): boolean => {
+      return (
+        (globalThis as unknown as { __issuesFreeCertificates?: boolean })
+          .__issuesFreeCertificates !== false
+      );
+    },
+  });
 
   return mocked;
 });
@@ -298,6 +309,12 @@ function setCnameRecord(value: string): void {
   (globalThis as unknown as { __cnameRecord: string }).__cnameRecord = value;
 }
 
+function setIssuesFreeCertificates(value: boolean): void {
+  (
+    globalThis as unknown as { __issuesFreeCertificates?: boolean }
+  ).__issuesFreeCertificates = value;
+}
+
 // What the signed-in member holds in the project; an admin unless a test says.
 let mockPermissions: Array<Permission> = [Permission.ProjectAdmin];
 
@@ -418,6 +435,7 @@ describe.each(PAGES)("Custom Domains on $name", (page: PageCase) => {
 
   beforeEach(() => {
     setCnameRecord(page.cnameRecord);
+    setIssuesFreeCertificates(true);
     mockTableProps = null;
     mockPermissions = [Permission.ProjectAdmin];
     PermissionGate.clearPermissionPropsCache();
@@ -1353,6 +1371,129 @@ describe.each(PAGES)("Custom Domains on $name", (page: PageCase) => {
       expect(screen.getByTestId("card-description")).toHaveTextContent(
         "Custom Domains not enabled for this OneUptime installation.",
       );
+    });
+  });
+
+  /*
+   * An installation without a Let's Encrypt account key issues no free
+   * certificate: a self-hosted one that ends TLS at its own proxy. A
+   * verified domain there read "Issuing a free certificate, usually within
+   * 15 minutes." for ever, and kept offering DNS Setup for an order that
+   * could never be placed.
+   */
+  describe("on an installation that issues no free certificates", () => {
+    beforeEach(() => {
+      setIssuesFreeCertificates(false);
+    });
+
+    afterEach(() => {
+      setIssuesFreeCertificates(true);
+    });
+
+    test("a verified domain is verified, and says where its HTTPS comes from", () => {
+      renderPage();
+
+      for (const verified of [VERIFIED, ORDERED, PROVISIONED]) {
+        expect([verified, statusOf(verified)]).toEqual([
+          verified,
+          CUSTOM_DOMAIN_STATUS[
+            CustomDomainState.VerifiedWithoutFreeCertificate
+          ],
+        ]);
+      }
+
+      expect(statusOf(UNVERIFIED)).toBe(
+        CUSTOM_DOMAIN_STATUS[CustomDomainState.WaitingForDns],
+      );
+      expect(statusOf(UPLOADED)).toBe(
+        CUSTOM_DOMAIN_STATUS[CustomDomainState.UsesUploadedCertificate],
+      );
+      expect(screen.queryByText(/Issuing a free certificate/)).toBeNull();
+    });
+
+    test("a verified domain opens, as the installation itself is reached", () => {
+      renderPage();
+
+      const link: HTMLElement = within(
+        within(rowOf(VERIFIED)).getByTestId("domain-cell"),
+      ).getByTestId(CUSTOM_DOMAIN_NAME_TEST_IDS.link);
+
+      expect(link).toHaveAttribute("href", `${HTTP_PROTOCOL}${VERIFIED}`);
+      expect(link).toHaveAttribute("target", "_blank");
+
+      // One on an uploaded certificate is HTTPS, as anywhere.
+      expect(
+        within(within(rowOf(UPLOADED)).getByTestId("domain-cell")).getByTestId(
+          CUSTOM_DOMAIN_NAME_TEST_IDS.link,
+        ),
+      ).toHaveAttribute("href", `https://${UPLOADED}`);
+    });
+
+    test("DNS Setup is offered until the record is found, then never: there is no order to place", () => {
+      renderPage();
+
+      expect(
+        within(rowOf(UNVERIFIED)).getByRole("button", {
+          name: CustomDomainCopy.dnsSetupTitle,
+        }),
+      ).toBeInTheDocument();
+
+      for (const verified of [VERIFIED, ORDERED, PROVISIONED, UPLOADED]) {
+        expect([
+          verified,
+          within(rowOf(verified)).queryByRole("button", {
+            name: CustomDomainCopy.dnsSetupTitle,
+          }),
+        ]).toEqual([verified, null]);
+      }
+    });
+
+    test("an order the server recorded as failed is not shown as a failure", async () => {
+      renderPage();
+
+      await loadCertificates([
+        {
+          domainId: rowNamed(VERIFIED)._id!.toString(),
+          lastOrderError:
+            "No lets encrypt account key found in environment variables. Please add one.",
+        },
+      ]);
+
+      expect(statusOf(VERIFIED)).toBe(
+        CUSTOM_DOMAIN_STATUS[CustomDomainState.VerifiedWithoutFreeCertificate],
+      );
+      expect(errorOf(VERIFIED)).toBeNull();
+    });
+
+    test("the card points domains at the record, promising no certificate", () => {
+      renderPage();
+
+      expect(screen.getByTestId("card-description")).toHaveTextContent(
+        page.copy.cardDescriptionWithoutFreeCertificates.replace(
+          "{{cnameRecord}}",
+          page.cnameRecord,
+        ),
+      );
+      expect(screen.getByTestId("card-description")).not.toHaveTextContent(
+        "we issue its SSL certificate",
+      );
+    });
+
+    test("the folded certificate options say the proxy serves it, unless a certificate is uploaded", () => {
+      renderPage();
+
+      const section: FormFieldCollapsibleSection<CustomDomainModel> = fieldOf(
+        "isCustomCertificate",
+      ).collapsibleSection!;
+
+      expect(section.getSummary!({} as FormValues<CustomDomainModel>)).toEqual([
+        CustomDomainCopy.advancedSummaryWithoutFreeCertificate,
+      ]);
+      expect(
+        section.getSummary!({
+          isCustomCertificate: true,
+        } as FormValues<CustomDomainModel>),
+      ).toEqual([CustomDomainCopy.advancedSummaryUploadedCertificate]);
     });
   });
 

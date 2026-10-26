@@ -35082,5 +35082,10 @@
   "Approvals": "Goedkeuringen",
   "This playbook is already running on this case. Its run is under the case's Playbooks.": "Dit playbook loopt al voor deze zaak. De uitvoering staat onder Playbooks van de zaak.",
   "A playbook runs here when the case opens or grows, or when someone runs it on the case.": "Een playbook draait hier wanneer de zaak wordt geopend of groeit, of wanneer iemand het op de zaak uitvoert.",
-  "No playbook has run on this case yet.": "Er is nog geen playbook uitgevoerd voor deze zaak."
+  "No playbook has run on this case yet.": "Er is nog geen playbook uitgevoerd voor deze zaak.",
+  "Verified. This installation issues no free certificates: serve HTTPS for this domain at your own proxy, or upload a certificate.": "Geverifieerd. Deze installatie geeft geen gratis certificaten uit: lever HTTPS voor dit domein via uw eigen proxy, of upload een certificaat.",
+  "Served with your own proxy's HTTPS, unless you upload a certificate.": "Wordt geleverd met de HTTPS van uw eigen proxy, tenzij u een certificaat uploadt.",
+  "We check for this record every 15 minutes. Added it already? Click Check now.": "We controleren elke 15 minuten op dit record. Al toegevoegd? Klik op Nu controleren.",
+  "Serve this status page on your own domain. Point each domain's CNAME record to {{cnameRecord}}.": "Bied deze statuspagina aan op uw eigen domein. Laat het CNAME-record van elk domein verwijzen naar {{cnameRecord}}.",
+  "Serve this dashboard on your own domain. Point each domain's CNAME record to {{cnameRecord}}.": "Bied dit dashboard aan op uw eigen domein. Laat het CNAME-record van elk domein verwijzen naar {{cnameRecord}}."
 }

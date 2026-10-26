@@ -35082,5 +35082,10 @@
   "Approvals": "تأییدها",
   "This playbook is already running on this case. Its run is under the case's Playbooks.": "این پلی‌بوک از قبل روی این پرونده در حال اجراست. اجرای آن در «Playbooks» این پرونده است.",
   "A playbook runs here when the case opens or grows, or when someone runs it on the case.": "پلی‌بوک وقتی اینجا اجرا می‌شود که پرونده باز شود یا بزرگ‌تر شود، یا کسی آن را روی پرونده اجرا کند.",
-  "No playbook has run on this case yet.": "هنوز هیچ پلی‌بوکی روی این پرونده اجرا نشده است."
+  "No playbook has run on this case yet.": "هنوز هیچ پلی‌بوکی روی این پرونده اجرا نشده است.",
+  "Verified. This installation issues no free certificates: serve HTTPS for this domain at your own proxy, or upload a certificate.": "تأیید شد. این نصب گواهی رایگان صادر نمی‌کند: HTTPS این دامنه را از پروکسی خودتان ارائه کنید، یا یک گواهی بارگذاری کنید.",
+  "Served with your own proxy's HTTPS, unless you upload a certificate.": "با HTTPS پروکسی خودتان ارائه می‌شود، مگر اینکه گواهی بارگذاری کنید.",
+  "We check for this record every 15 minutes. Added it already? Click Check now.": "ما هر ۱۵ دقیقه این رکورد را بررسی می‌کنیم. قبلاً اضافه کرده‌اید؟ روی «اکنون بررسی کن» کلیک کنید.",
+  "Serve this status page on your own domain. Point each domain's CNAME record to {{cnameRecord}}.": "این صفحه وضعیت را روی دامنه خودتان ارائه کنید. رکورد CNAME هر دامنه را به {{cnameRecord}} اشاره دهید.",
+  "Serve this dashboard on your own domain. Point each domain's CNAME record to {{cnameRecord}}.": "این داشبورد را روی دامنه خودتان ارائه کنید. رکورد CNAME هر دامنه را به {{cnameRecord}} اشاره دهید."
 }
