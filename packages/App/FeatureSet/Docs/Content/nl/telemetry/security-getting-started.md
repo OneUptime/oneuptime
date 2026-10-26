@@ -18,7 +18,7 @@ Voor het instellen van beveiliging is de rol Project Owner, Project Admin of Sec
 :::steps
 ### Inschakelen wat de meeste teams nodig hebben
 
-Open **Producten → Security Events**. Klik op **Overzicht** op **Aanbevolen inschakelen**. Daarmee gaan drie dingen tegelijk aan: **Beveiligingsgebeurtenissen in uw logboeken vinden**, de aanbevolen detectieregels en **Enrich New Cases**, een playbook dat elke nieuwe zaak vergelijkt met dreigingsinformatie en er een checklist voor de beoordeling in achterlaat.
+Open **Producten → Security Events**. Klik op **Overzicht** op **Aanbevolen inschakelen**. Daarmee gaan drie dingen tegelijk aan: **Beveiligingsgebeurtenissen in uw logboeken vinden**, de aanbevolen detectieregels en **Nieuwe zaken verrijken**, een playbook dat elke nieuwe zaak vergelijkt met dreigingsinformatie en er een checklist voor de beoordeling in achterlaat.
 
 ### Een testaanval versturen
 
@@ -26,7 +26,7 @@ Klik op **Testaanval sturen**. Een dozijn mislukte aanmeldingen vanaf een docume
 
 ### De zaak openen
 
-Klik op **Zaak openen**. Zo ziet een echte bevinding eruit: de gebeurtenissen erachter, het adres waar het om gaat en wat **Enrich New Cases** heeft gevonden. Sluit de zaak als test wanneer u klaar bent.
+Klik op **Zaak openen**. Zo ziet een echte bevinding eruit: de gebeurtenissen erachter, het adres waar het om gaat en wat **Nieuwe zaken verrijken** heeft gevonden. Sluit de zaak als test wanneer u klaar bent.
 :::
 
 Vanaf dan opent **Overzicht** met wat iemand nodig heeft, onder **Vraagt aandacht**: uw open zaken, de zaken die niemand heeft opgepakt en de playbookstappen die op goedkeuring wachten. Als die er niet zijn, staat er **Alles rustig**.
@@ -43,8 +43,8 @@ flowchart LR
 
 | Onderdeel | Waar | Wat het doet |
 | --- | --- | --- |
-| **Bronnen** | **Connections** | Uw logs, de beveiligingsproducten die OneUptime opvraagt en alles wat u stuurt |
-| **Detections** | **Detections** | Sigma-regels en feeds met dreigingsinformatie die in elke gebeurtenis naar bedreigingen zoeken |
+| **Bronnen** | **Verbindingen** | Uw logs, de beveiligingsproducten die OneUptime opvraagt en alles wat u stuurt |
+| **Detecties** | **Detecties** | Sigma-regels en feeds met dreigingsinformatie die in elke gebeurtenis naar bedreigingen zoeken |
 | **Beveiligingszaken** | **Beveiligingszaken** | Wat er gevonden is, gegroepeerd per gebruiker, host of adres waar het om gaat |
 | **Playbooks** | **Playbooks** | Stappen die op nieuwe zaken draaien: ze verrijken, waarschuwen, een incident openen of indammen |
 
@@ -52,7 +52,7 @@ Boven aan **Overzicht**, onder wat iemand nodig heeft, toont elk onderdeel zijn 
 
 ## Beveiligingsgebeurtenissen in uw logs vinden
 
-De kaart **Uw logboeken**, boven aan **Connections**, hoeft niet geïnstalleerd te worden. Met **Beveiligingsgebeurtenissen in uw logboeken vinden** aan leest OneUptime elke minuut de nieuwe logs van het project en maakt van de regels die het herkent beveiligingsgebeurtenissen:
+De kaart **Uw logboeken**, boven aan **Verbindingen**, hoeft niet geïnstalleerd te worden. Met **Beveiligingsgebeurtenissen in uw logboeken vinden** aan leest OneUptime elke minuut de nieuwe logs van het project en maakt van de regels die het herkent beveiligingsgebeurtenissen:
 
 | Logs | Wat een beveiligingsgebeurtenis wordt |
 | --- | --- |
@@ -66,7 +66,7 @@ Uw logs blijven zoals ze zijn. Alleen de regels die voor beveiliging tellen, wor
 
 ## Wat OneUptime vindt naar uw SIEM sturen
 
-Werkt uw team al in een SIEM, dan stuurt OneUptime wat het vindt ook daarheen. Klik onder **Connections → Naar uw SIEM sturen** op **Bestemming toevoegen**, vul de regio, de instantie en de serviceaccountsleutel van uw Google SecOps in en klik vóór het opslaan op **Testgebeurtenis verzenden**. Zie [Beveiligingsgebeurtenissen naar Google SecOps sturen](/docs/integrations/google-secops#beveiligingsgebeurtenissen-naar-google-secops-sturen).
+Werkt uw team al in een SIEM, dan stuurt OneUptime wat het vindt ook daarheen. Klik onder **Verbindingen → Naar uw SIEM sturen** op **Bestemming toevoegen**, vul de regio, de instantie en de serviceaccountsleutel van uw Google SecOps in en klik vóór het opslaan op **Testgebeurtenis verzenden**. Zie [Beveiligingsgebeurtenissen naar Google SecOps sturen](/docs/integrations/google-secops#beveiligingsgebeurtenissen-naar-google-secops-sturen).
 
 ## Problemen oplossen
 
@@ -79,7 +79,7 @@ De kaart noemt alles wat niet kon worden ingeschakeld, en waarom: uw rol, uw abo
 :::
 
 :::details De testaanval heeft geen zaak geopend
-Meestal is de zaak al open voordat de knop antwoordt; loopt de regel nog achter, dan meldt hij dat en opent de zaak binnen een minuut. Kijk opnieuw bij **Beveiligingszaken** en controleer onder **Detections** of de brute-forceregel aanstaat.
+Meestal is de zaak al open voordat de knop antwoordt; loopt de regel nog achter, dan meldt hij dat en opent de zaak binnen een minuut. Kijk opnieuw bij **Beveiligingszaken** en controleer onder **Detecties** of de brute-forceregel aanstaat.
 :::
 
 :::details Uit mijn logs komt geen beveiligingsgebeurtenis
@@ -87,7 +87,7 @@ Controleer of **Beveiligingsgebeurtenissen in uw logboeken vinden** aanstaat en 
 :::
 
 :::details Overzicht zegt dat de laatste beveiligingsgebeurtenis dagen geleden binnenkwam
-Sindsdien heeft niets Security bereikt. Open **Connections** en controleer of **Uw logboeken** en elke verbinding nog aanstaan, en wanneer elk voor het laatst controleerde.
+Sindsdien heeft niets Security bereikt. Open **Verbindingen** en controleer of **Uw logboeken** en elke verbinding nog aanstaan, en wanneer elk voor het laatst controleerde.
 :::
 
 :::details De kaart die Security inschakelt is weg

@@ -31,7 +31,7 @@ flowchart LR
 | Kluster-collector | Deployment | Klustermätvärden, Kubernetes-händelser och de fullständiga specifikationerna för poddar, noder och workloads, från Kubernetes-API:et. | Ja |
 | Nod-collector | DaemonSet | Poddloggar från `/var/log/pods`, kubelet- och cAdvisor-mätvärden och nodens operativsystemmätvärden. | Ja |
 | eBPF-instrumentering (OBI) | DaemonSet | HTTP-, gRPC-, SQL- och Redis-spår och förfrågningsmätvärden från varje podd, och tjänstekartan. | Ja |
-| Kubernetes AI-agent | Deployment | Låter OneUptime AI köra skrivskyddad `kubectl` medan den utreder en incident eller varning i det här klustret. | Ja |
+| Kubernetes AI-agent | Deployment | Låter OneUptime AI köra skrivskyddad `kubectl` medan den utreder en incident eller larm i det här klustret. | Ja |
 | Logg-tailer | Deployment | Poddloggar via Kubernetes-API:et, där nod-collectorn inte kan läsa dem. | Med presets `gke-autopilot` och `eks-fargate` |
 | eBPF-profilerare | DaemonSet | Kontinuerliga CPU-flamgrafer för varje process. | Nej |
 | kube-state-metrics | Deployment | Poddfaser, containrars vänteorsaker och resurskvoter. | Nej |

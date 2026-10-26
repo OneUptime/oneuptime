@@ -100,7 +100,7 @@ OneUptime 会加密保存登录的刷新令牌，并至少每周刷新一次，�
 
 卡片上的 **移除** 会把通话从事件页面上移除。会议本身不会被删除，拥有链接的任何人仍然可以加入。
 
-开始和移除通话需要处理事件（或警报）的权限： **Project Owner**、 **Project Admin**、 **Project Member**、 **Incident Admin** 或 **Incident Member**，或自定义角色中的 **Create Incident Video Call** 和 **Delete Incident Video Call**。能读取该事件的每个人都能看到它的通话。
+开始和移除通话需要处理事件（或警报）的权限： **项目所有者**、 **项目管理员**、 **项目成员**、 **事件管理员** 或 **事件成员**，或自定义角色中的 **Create Incident Video Call** 和 **Delete Incident Video Call**。能读取该事件的每个人都能看到它的通话。
 
 ## 通话转录
 
@@ -146,7 +146,7 @@ Microsoft 只允许应用读取日历上的 Teams 会议的转录，因此 OneUp
 
 ### 谁可以做什么
 
-获取、添加、替换和删除转录，让它重新被读取，以及驳回建议，都需要开始事件通话的权限： **Project Owner**、 **Project Admin**、 **Project Member**、 **Incident Admin** 或 **Incident Member**，或自定义角色中的 **Create Incident Video Call**。 **用作根本原因** 需要编辑事件根本原因的权限。能读取该事件的每个人都能看到其通话的转录，以及 OneUptime AI 从中读取的内容。
+获取、添加、替换和删除转录，让它重新被读取，以及驳回建议，都需要开始事件通话的权限： **项目所有者**、 **项目管理员**、 **项目成员**、 **事件管理员** 或 **事件成员**，或自定义角色中的 **Create Incident Video Call**。 **用作根本原因** 需要编辑事件根本原因的权限。能读取该事件的每个人都能看到其通话的转录，以及 OneUptime AI 从中读取的内容。
 
 ### OneUptime AI 读取什么
 
@@ -160,7 +160,7 @@ Microsoft 只允许应用读取日历上的 Teams 会议的转录，因此 OneUp
 
 连接表单中的 **Start test meeting** 和连接所在行的 **测试** 会使用连接的设置创建一个真实的会议并显示其链接。这是唯一能证明凭据、提供商端的权限以及主持人可以协同工作的检查。不会向任何地方发布任何内容。
 
-连接提供商需要 **Project Owner**、 **Project Admin** 或 **Settings Admin**，或自定义角色中的 **Create Video Call Connection** 和 **Edit Video Call Connection**。
+连接提供商需要 **项目所有者**、 **项目管理员** 或 **设置管理员**，或自定义角色中的 **Create Video Call Connection** 和 **Edit Video Call Connection**。
 
 ### Zoom
 
@@ -169,7 +169,7 @@ OneUptime 通过 Zoom **Server-to-Server OAuth** 应用为每个事件创建 Zoo
 :::steps
 1. 在 [Zoom App Marketplace](https://marketplace.zoom.us/) 中，选择 **Develop** > **Build App**，创建一个 **Server-to-Server OAuth** 应用。创建它需要 Zoom 账户管理员，或允许 Server-to-Server OAuth 应用的角色。
 2. 在应用的 **Scopes** 页面，添加 **meeting:write:meeting:admin** （为用户创建会议）。在细粒度权限范围出现之前创建的应用可以改用 **meeting:write:admin**。要让 OneUptime 也读取 [通话转录](#通话转录)，请添加 **cloud_recording:read:list_recording_files:admin** 和 **cloud_recording:read:meeting_transcript:admin** （在细粒度权限范围出现之前创建的应用使用 **recording:read:admin** ）。
-3. 点击 **Activate** 激活应用，然后将其 **App Credentials** 页面上的 **Account ID**、 **Client ID** 和 **Client secret** 复制到连接表单中。
+3. 点击 **Activate** 激活应用，然后将其 **App Credentials** 页面上的 **Account ID**、 **Client ID** 和 **客户端密钥** 复制到连接表单中。
 4. 填写 **Meeting host**：一个已授权 Zoom 用户的电子邮件，最好是 incidents@example.com 之类的服务账户，这样有人离职后会议仍能正常进行。由 Basic（免费）用户主持的会议会在 40 分钟后结束。
 5. 由于主持人是一个永远不会加入的服务账户，响应人员无需等待主持人即可加入。请确保您 Zoom 账户的 **Waiting room** 设置没有被锁定为开启，否则谁都无法进入。
 :::
@@ -203,7 +203,7 @@ OneUptime 通过一个代表已授权 Teams 用户组织会议的 Microsoft Entr
 :::steps
 1. 在 [Microsoft Entra 管理中心](https://entra.microsoft.com/) 中，打开 **App registrations** > **New registration**，注册一个单租户应用。复制其 **Directory (tenant) ID** 和 **Application (client) ID**。
 2. 在 **API permissions** 下，添加 Microsoft Graph 的 **application** 权限 **OnlineMeetings.ReadWrite.All** （如果还要 [录制并转录事件通话](#录制并转录每次通话)，再添加 **Calendars.ReadWrite** 和 **OnlineMeetingTranscript.Read.All** ），然后点击 **Grant admin consent**。
-3. 在 **Certificates & secrets** 下创建一个客户端密码，并将其 **Value** （不是 Secret ID）粘贴到连接表单的 **Client secret** 中。
+3. 在 **Certificates & secrets** 下创建一个客户端密码，并将其 **Value** （不是 Secret ID）粘贴到连接表单的 **客户端密钥** 中。
 4. 选择组织者：一个已授权的 Teams 用户，最好是服务账户。从 Entra 管理中心的 **Users** 中复制其 **Object ID** 到 **Organizer object ID**。
 5. 使用应用程序访问策略允许该应用为组织者创建会议。在 Teams PowerShell 中，执行 `Connect-MicrosoftTeams` 之后，运行下面两条命令。
 :::

@@ -56,7 +56,7 @@ Skriv en forespørgsel, og tryk på Enter, for eksempel `service:checkout status
 
 ### Indsnævr med filtre
 
-Klik på en værdi i sidepanelet **Filtre** for at tilføje den som en chip. Sidepanelet filtrerer efter **Tjeneste**, efter den vært, klynge eller anden ressource, der sendte spannet, efter **Status**, **Span-kategori**, **Har undtagelse**, **Span-type**, **Span-navn**, **Service Instance** og **Værtens navn**.
+Klik på en værdi i sidepanelet **Filtre** for at tilføje den som en chip. Sidepanelet filtrerer efter **Tjeneste**, efter den vært, klynge eller anden ressource, der sendte spannet, efter **Status**, **Span-kategori**, **Har undtagelse**, **Span-type**, **Span-navn**, **Tjenesteinstans** og **Værtens navn**.
 
 ### Åbn et span
 
@@ -102,7 +102,7 @@ For mere skal du skifte listen fra **Spans** til **Analytics**. Vælg en tidsser
 ## Følg, gem og del
 
 - Klik på **Sat på pause** over listen for at slå live-opdateringer til. Knappen viser derefter **Live**, og listen kigger efter nye spans hvert 10. sekund. Klik igen for at sætte på pause.
-- **Saved Views** gemmer en søgning, dens filtre og tidsintervallet under et navn til alle i projektet. Gemte visninger fungerer som i [Protokoludforsker](/docs/telemetry/logs-explorer#gem-en-visning).
+- **Gemte visninger** gemmer en søgning, dens filtre og tidsintervallet under et navn til alle i projektet. Gemte visninger fungerer som i [Protokoludforsker](/docs/telemetry/logs-explorer#gem-en-visning).
 - Knapperne **Protokoller** og **Metrikker** åbner de udforskere for det samme tidsvindue, med så meget af din filtrering, som de kan bruge. Peg på en knap for at se, hvad den ikke kan tage med.
 
 ## Indsigter i spor

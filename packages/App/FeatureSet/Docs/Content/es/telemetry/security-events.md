@@ -40,13 +40,13 @@ Abre **Productos → Eventos de seguridad**, en **Observabilidad**. Su menú tie
 | **Riesgo de entidades** | Eventos | Cada usuario, host y dirección, puntuado por lo encontrado sobre él esta semana, primero los de mayor riesgo |
 | **Correlacionar** | Eventos | Un grafo de los eventos que comparten un host, un usuario o una dirección IP |
 | **Reglas de detección** | Detecciones | Reglas Sigma que se ejecutan según una programación y abren casos |
-| **Rule Library** | Detecciones | Reglas de detección listas para añadir, cada una con los eventos que lee y si llegan, con las recomendadas marcadas |
+| **Biblioteca de reglas** | Detecciones | Reglas de detección listas para añadir, cada una con los eventos que lee y si llegan, con las recomendadas marcadas |
 | **Inteligencia de amenazas** | Detecciones | Feeds STIX/TAXII de indicadores maliciosos conocidos |
-| **ATT&CK Coverage** | Detecciones | Las técnicas de MITRE ATT&CK que cubren tus reglas |
+| **Cobertura de ATT&CK** | Detecciones | Las técnicas de MITRE ATT&CK que cubren tus reglas |
 | **Playbooks** | Playbooks | Pasos que se ejecutan sobre los casos, por sí solos o a mano |
 | **Esperando aprobación** | Playbooks | Los pasos de playbook que esperan que alguien los apruebe o los rechace |
 | **Ejecuciones de playbooks** | Playbooks | Lo que hizo cada playbook, paso a paso |
-| **Protected Entities** | Playbooks | Los usuarios y hosts a los que ningún playbook aplica contención |
+| **Entidades protegidas** | Playbooks | Los usuarios y hosts a los que ningún playbook aplica contención |
 | **Ajustes** | IA | Si OneUptime AI clasifica cada caso nuevo |
 | **Conexiones** | Conexiones | Sus registros, los productos de seguridad que consulta OneUptime y los SIEM a los que envía |
 | **Guía de configuración** | Conexiones | Fragmentos para enviar eventos, rellenados con tu clave de ingesta |
@@ -242,7 +242,7 @@ La barra lateral cuenta los eventos de la ventana por **Origen**, **Gravedad**, 
 
 ## Reglas de detección
 
-Una regla de detección es una regla [Sigma](https://sigmahq.io/), un formato YAML abierto para describir actividad sospechosa, que OneUptime ejecuta según una programación sobre tus eventos. Cuando coincide, abre un [caso](/docs/telemetry/security-cases) o se suma a uno, abre una alerta, opcionalmente un incidente, y escribe un Detection Finding de vuelta en los eventos. La **Rule Library** tiene reglas listas para usar como punto de partida.
+Una regla de detección es una regla [Sigma](https://sigmahq.io/), un formato YAML abierto para describir actividad sospechosa, que OneUptime ejecuta según una programación sobre tus eventos. Cuando coincide, abre un [caso](/docs/telemetry/security-cases) o se suma a uno, abre una alerta, opcionalmente un incidente, y escribe un Detection Finding de vuelta en los eventos. La **Biblioteca de reglas** tiene reglas listas para usar como punto de partida.
 
 ```mermaid title="Cómo se dispara una regla de detección"
 flowchart TB
@@ -259,7 +259,7 @@ flowchart TB
 1. Abre **Productos → Eventos de seguridad → Detecciones → Reglas de detección** y haz clic en **Crear Regla de detección**.
 2. En **Regla Sigma**, pega el YAML de la regla en **Regla Sigma (YAML)**. Se analiza al guardar, así que un error aparece en el formulario.
 3. El **Nombre** se rellena con el `title` de la regla: escríbelo encima para llamarla de otra forma. Una regla nueva se ejecuta; **Habilitado** está en su formulario de edición.
-4. En **Al coincidir**, deja **Open a Case on Match** activado para agrupar sus coincidencias en casos, por el valor por el que agrupa la regla.
+4. En **Al coincidir**, deja **Abrir un caso al coincidir** activado para agrupar sus coincidencias en casos, por el valor por el que agrupa la regla.
 5. En **Alertas e incidentes**, elige qué más genera una coincidencia: **Crear una alerta** (el valor por defecto), **Declarar un incidente**, **Ambos** o **Ninguno**, con una **Gravedad de la alerta** o una **Gravedad del incidente** opcionales.
 6. **Más campos** contiene la **Descripción**, **Escribir un hallazgo de detección al coincidir** (activado) y cómo se cuentan las coincidencias; consulta [Ajustes de evaluación](#ajustes-de-evaluación).
 :::
@@ -297,7 +297,7 @@ Las agregaciones como `| count() by principalIp > 5` se rechazan al guardar: usa
 
 ### Reglas de correlación
 
-Una [correlación de Sigma](https://sigmahq.io/docs/meta/correlations.html) se dispara con varios eventos juntos en lugar de con uno. Pégala en **Regla Sigma (YAML)** con las reglas que lee, como documentos YAML separados por `---`, o nombra reglas que el proyecto ya tiene por su `name` o su `id` de Sigma. La **Rule Library** tiene algunas listas para usar, como inicios de sesión fallidos seguidos de uno correcto.
+Una [correlación de Sigma](https://sigmahq.io/docs/meta/correlations.html) se dispara con varios eventos juntos en lugar de con uno. Pégala en **Regla Sigma (YAML)** con las reglas que lee, como documentos YAML separados por `---`, o nombra reglas que el proyecto ya tiene por su `name` o su `id` de Sigma. La **Biblioteca de reglas** tiene algunas listas para usar, como inicios de sesión fallidos seguidos de uno correcto.
 
 | Tipo | Se dispara cuando | Se muestra como |
 | --- | --- | --- |

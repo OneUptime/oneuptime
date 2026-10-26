@@ -102,7 +102,7 @@ Alertmanager: {{requestBody.externalURL}}
 - `{{requestBody.alerts[0].annotations.summary}}` läser aviseringens första larm, och det är inte alltid det larm som incidenten öppnades för.
 - En referens till ett fält som aviseringen inte har lämnas som den är skriven, med klammerparenteser och allt, i stället för att tömmas.
 
-Se [Incident- och varningsmallar](/docs/monitor/incident-alert-templating) för alla variabler som du kan använda.
+Se [Incident- och larmmallar](/docs/monitor/incident-alert-templating) för alla variabler som du kan använda.
 
 ## Konfigurera Alertmanager
 
@@ -187,7 +187,7 @@ Gå till **Arbetsflöden**, klicka på **Skapa arbetsflöde** och sedan på **B�
 
 ### Lägg till Webhook-utlösaren
 
-Klicka på det streckade blocket **Choose what starts this workflow** och välj **Webhook**. Klicka på utlösaren, sedan på **Kopiera URL**, och använd den URL:en i mottagaren i `alertmanager.yml`.
+Klicka på det streckade blocket **Välj vad som startar det här arbetsflödet** och välj **Webhook**. Klicka på utlösaren, sedan på **Kopiera URL**, och använd den URL:en i mottagaren i `alertmanager.yml`.
 
 ### Kontrollera att aviseringen är utlöst
 

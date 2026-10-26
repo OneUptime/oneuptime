@@ -44,7 +44,7 @@ Ogni nuovo progetto parte con tre stati di avviso, in quest'ordine:
 
 | Stato            | `order` | Flag                  | Colore    | Che cosa significa                                |
 | ---------------- | ------- | --------------------- | --------- | ------------------------------------------------- |
-| **Identified**   | `1`     | `isCreatedState`      | `#fd625e` | Lo stato in cui partono i nuovi avvisi.           |
+| **Identificate**   | `1`     | `isCreatedState`      | `#fd625e` | Lo stato in cui partono i nuovi avvisi.           |
 | **Riconosciuto** | `2`     | `isAcknowledgedState` | `#ffbf53` | Qualcuno se ne sta occupando, e le chiamate si fermano. |
 | **Risolto**      | `3`     | `isResolvedState`     | `#2ab57d` | L'avviso è concluso e non conta più come attivo.  |
 
@@ -99,10 +99,10 @@ Ogni nuovo progetto parte con due gravità di avviso, dalla più grave:
 
 | Gravità  | `order` | Colore    | Descrizione predefinita                                                           |
 | -------- | ------- | --------- | --------------------------------------------------------------------------------- |
-| **High** | `1`     | `#b70400` | Issues causing very high impact to customers. Immediate attention is required.    |
-| **Low**  | `2`     | `#ffbf53` | Issues causing low impact to customers.                                           |
+| **Alto** | `1`     | `#b70400` | Issues causing very high impact to customers. Immediate attention is required.    |
+| **Basso**  | `2`     | `#ffbf53` | Issues causing low impact to customers.                                           |
 
-Gli incidenti partono con tre gravità e gli avvisi con due. Quando il modello di una raccomandazione di monitor dice **Critico** o **Warning**, OneUptime lo associa alla vostra prima e seconda gravità di avviso, che in un nuovo progetto sono **High** e **Low**.
+Gli incidenti partono con tre gravità e gli avvisi con due. Quando il modello di una raccomandazione di monitor dice **Critico** o **Warning**, OneUptime lo associa alla vostra prima e seconda gravità di avviso, che in un nuovo progetto sono **Alto** e **Basso**.
 
 ## Modificare le gravità
 

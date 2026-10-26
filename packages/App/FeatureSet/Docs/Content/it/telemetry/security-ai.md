@@ -60,7 +60,7 @@ Può anche leggere il resto di OneUptime come fa l'indagine di un incidente: log
 | Probabile falso positivo | Il rilevamento sembra aver frainteso un'attività normale | False Positive |
 | Non conclusivo | Le prove non bastavano per decidere, e una persona deve guardare | Niente |
 
-La lettura è di OneUptime AI, mai il verdetto del caso: **Close Case** parte dal verdetto che suggerisce, e una persona sceglie. Sotto la lettura, la scheda mostra:
+La lettura è di OneUptime AI, mai il verdetto del caso: **Chiudi caso** parte dal verdetto che suggerisce, e una persona sceglie. Sotto la lettura, la scheda mostra:
 
 - **Priorità suggerita**, con **Imposta la priorità** quando il caso ha un'altra priorità.
 - **Playbook suggerito**, con **Esegui il playbook**, che lo esegue a tuo nome, con ogni approvazione che richiede.
@@ -86,7 +86,7 @@ I nuovi progetti partono con l'opzione attiva; un progetto creato prima la tiene
 
 ## Eseguire un playbook dopo una classificazione
 
-Un playbook il cui **Trigger** è **Classificato come probabilmente dannoso** parte una volta su un caso, quando una classificazione lo legge come Probabilmente dannoso. **For Cases At Least**, **Only For Detections From** e **Only For These Detection Rules** lo restringono come per qualsiasi trigger, e i suoi passi di contenimento attendono l'approvazione come sempre. Non parte:
+Un playbook il cui **Trigger** è **Classificato come probabilmente dannoso** parte una volta su un caso, quando una classificazione lo legge come Probabilmente dannoso. **Per casi di almeno**, **Solo per rilevamenti da** e **Solo per queste regole di rilevamento** lo restringono come per qualsiasi trigger, e i suoi passi di contenimento attendono l'approvazione come sempre. Non parte:
 
 - dopo una classificazione che ha trovato testo scritto per manipolare un'IA;
 - una seconda volta sullo stesso caso, per quante volte il caso venga classificato;
@@ -96,7 +96,7 @@ A un nuovo playbook questo trigger viene proposto solo mentre l'IA del progetto 
 
 ## Scrivere la bozza di una regola di rilevamento
 
-In **Detection Rules**, sotto il campo **Sigma Rule (YAML)**, fai clic su **Draft with AI** e di' che cosa deve rilevare la regola, per esempio dieci accessi falliti da uno stesso indirizzo IP in cinque minuti. **Scrivi la regola** inserisce una regola Sigma nel campo, controllata come una regola salvata. Leggila, modificala se serve e salvala come al solito: non viene salvato nulla finché non lo fai tu. Se il campo contiene già una regola, il pulsante diventa **Riscrivi con l'IA**, e la bozza sostituisce quella regola.
+In **Regole di rilevamento**, sotto il campo **Regola Sigma (YAML)**, fai clic su **Bozza con IA** e di' che cosa deve rilevare la regola, per esempio dieci accessi falliti da uno stesso indirizzo IP in cinque minuti. **Scrivi la regola** inserisce una regola Sigma nel campo, controllata come una regola salvata. Leggila, modificala se serve e salvala come al solito: non viene salvato nulla finché non lo fai tu. Se il campo contiene già una regola, il pulsante diventa **Riscrivi con l'IA**, e la bozza sostituisce quella regola.
 
 Per scrivere una bozza serve un ruolo che possa creare regole di rilevamento.
 
@@ -129,7 +129,7 @@ Una parte dei dati del caso, come il messaggio di un evento o un nome utente, è
 :::
 
 :::details Un playbook con il trigger IA non è partito
-Controlla che il playbook sia abilitato, che la classificazione abbia letto il caso come Probabilmente dannoso, e che le sue impostazioni **For Cases At Least**, **Only For Detections From** e **Only For These Detection Rules** corrispondano al caso. Parte una volta per caso, e non dopo una classificazione che ha trovato testo scritto per manipolare un'IA.
+Controlla che il playbook sia abilitato, che la classificazione abbia letto il caso come Probabilmente dannoso, e che le sue impostazioni **Per casi di almeno**, **Solo per rilevamenti da** e **Solo per queste regole di rilevamento** corrispondano al caso. Parte una volta per caso, e non dopo una classificazione che ha trovato testo scritto per manipolare un'IA.
 :::
 
 ## Passi successivi

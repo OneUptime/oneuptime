@@ -27,7 +27,7 @@ flowchart TB
 :::steps
 ### Aprire la finestra delle variabili
 
-Apri la dashboard, scegli **⋯ → Edit Dashboard** e fai clic su **Variabili** nella barra degli strumenti. La finestra **Variabili della dashboard** elenca le variabili della dashboard; il pulsante nella barra degli strumenti le conta.
+Apri la dashboard, scegli **⋯ → Modifica dashboard** e fai clic su **Variabili** nella barra degli strumenti. La finestra **Variabili della dashboard** elenca le variabili della dashboard; il pulsante nella barra degli strumenti le conta.
 
 ### Aggiungerne una
 
@@ -35,7 +35,7 @@ Fai clic su **Aggiungi variabile**. Una nuova variabile legge un attributo di te
 
 ### Compilarla
 
-Dalle un **Nome**, che usano i widget e i link, come `service`: lettere, cifre e trattini bassi, che inizi con una lettera o un trattino basso, e diverso dagli altri nomi della dashboard. Aggiungi un'**Etichetta** per la barra degli strumenti se vuoi, un valore **Predefinito** da cui partire, e spunta **Allow multi-select** per permettere di scegliere più valori.
+Dalle un **Nome**, che usano i widget e i link, come `service`: lettere, cifre e trattini bassi, che inizi con una lettera o un trattino basso, e diverso dagli altri nomi della dashboard. Aggiungi un'**Etichetta** per la barra degli strumenti se vuoi, un valore **Predefinito** da cui partire, e spunta **Consenti selezione multipla** per permettere di scegliere più valori.
 
 ### Salvarla
 
@@ -63,11 +63,11 @@ Imposta la **Chiave attributo**, come `service.name`, `host.name` o `k8s.namespa
 
 ### Project Labels
 
-Scegli etichette di progetto esistenti da offrire come menu a tendina della dashboard. Per esempio, crea una variabile chiamata `UNIT`, imposta la sua origine su **Project Labels** e scegli le etichette `0660` e `0661`.
+Scegli etichette di progetto esistenti da offrire come menu a tendina della dashboard. Per esempio, crea una variabile chiamata `UNIT`, imposta la sua origine su **Etichette del progetto** e scegli le etichette `0660` e `0661`.
 
 La dashboard salva gli ID e i nomi visualizzati delle etichette scelte. Il filtro usa gli ID, quindi rinominare un'etichetta del progetto non rompe il suo collegamento. I nomi visualizzati vengono salvati con la dashboard; riseleziona un'etichetta rinominata nell'editor delle variabili per aggiornarne il nome visualizzato. Le dashboard pubbliche mostrano queste stesse scelte salvate.
 
-In un widget **Elenco monitor**, apri **Filtri → Label Variable** e seleziona `UNIT`. Scegliendo `0660` vengono mostrati i monitor che hanno quell'etichetta. Gli altri widget non sono interessati, a meno che non supportino e colleghino esplicitamente la variabile: la **SLO List** ha la stessa impostazione **Label Variable**.
+In un widget **Elenco monitor**, apri **Filtri → Variabile etichetta** e seleziona `UNIT`. Scegliendo `0660` vengono mostrati i monitor che hanno quell'etichetta. Gli altri widget non sono interessati, a meno che non supportino e colleghino esplicitamente la variabile: la **Elenco SLO** ha la stessa impostazione **Variabile etichetta**.
 
 I filtri fissi del widget restano attivi. Per esempio, con un'etichetta fissa `network` e `UNIT` impostata su `0660`, un monitor deve avere entrambe le etichette. Più unità selezionate corrispondono a una qualsiasi di esse. Scegliere **Tutti** rimuove solo la condizione della variabile, e mantiene i filtri fissi su etichetta, stato e tipo di monitor.
 
@@ -81,7 +81,7 @@ Una variabile Query di una dashboard più vecchia viene conservata e mostra una 
 
 ## Selezione multipla e valori predefiniti
 
-Con **Allow multi-select** spuntato, chi guarda sceglie uno o più valori, e i widget mostrano uno qualsiasi di essi. Una selezione vuota significa **Tutti**, e una variabile a selezione multipla parte sempre da **Tutti**, quindi il suo valore **Predefinito** è disattivato.
+Con **Consenti selezione multipla** spuntato, chi guarda sceglie uno o più valori, e i widget mostrano uno qualsiasi di essi. Una selezione vuota significa **Tutti**, e una variabile a selezione multipla parte sempre da **Tutti**, quindi il suo valore **Predefinito** è disattivato.
 
 Una variabile a selezione singola parte dal suo valore **Predefinito**, oppure da **Tutti** quando non ne ha. **Tutti** rimuove il filtro della variabile, quindi i widget mostrano tutto.
 
@@ -91,9 +91,9 @@ Usa la selezione multipla per confrontare "checkout e payments insieme" senza la
 
 Ogni origine raggiunge i widget a modo suo:
 
-- Le variabili **Telemetry Attribute** filtrano i widget senza nulla da impostare su di essi: ogni grafico, valore, indicatore e tabella di metriche; il **Log Chart**, il **Flusso di log**, il **Trace Chart** e la **Trace Table**; e gli elenchi dell'infrastruttura le cui risorse hanno l'attributo, come `host.name` negli elenchi degli host e `k8s.namespace.name` negli elenchi di Kubernetes. Il grafico di una metrica senza l'attributo non mostra dati mentre è scelto un valore: scegli **Tutti** per rivederlo. L'**Elenco delle tracce** e gli elenchi di incidenti e avvisi non le seguono.
-- Le variabili **Project Labels** filtrano un **Elenco monitor** o una **SLO List** la cui **Label Variable** le nomina.
-- **Qualsiasi variabile** può essere scritta in un testo come `{{name}}`: in un [widget HTML](/docs/dashboards/widgets#html), nella query di una [fonte di dati esterna](/docs/dashboards/data-sources), e nel titolo di un **Elenco monitor** o di una **SLO List**. Un titolo come `{{UNIT}} NETWORK` mostra `0660 NETWORK`, `0660, 0661 NETWORK` o `All NETWORK`. Un titolo controlla solo il testo visualizzato; configura **Label Variable** per filtrare la query dei monitor.
+- Le variabili **Attributo di telemetria** filtrano i widget senza nulla da impostare su di essi: ogni grafico, valore, indicatore e tabella di metriche; il **Grafico dei log**, il **Flusso di log**, il **Grafico delle tracce** e la **Tabella delle tracce**; e gli elenchi dell'infrastruttura le cui risorse hanno l'attributo, come `host.name` negli elenchi degli host e `k8s.namespace.name` negli elenchi di Kubernetes. Il grafico di una metrica senza l'attributo non mostra dati mentre è scelto un valore: scegli **Tutti** per rivederlo. L'**Elenco delle tracce** e gli elenchi di incidenti e avvisi non le seguono.
+- Le variabili **Etichette del progetto** filtrano un **Elenco monitor** o una **Elenco SLO** la cui **Variabile etichetta** le nomina.
+- **Qualsiasi variabile** può essere scritta in un testo come `{{name}}`: in un [widget HTML](/docs/dashboards/widgets#html), nella query di una [fonte di dati esterna](/docs/dashboards/data-sources), e nel titolo di un **Elenco monitor** o di una **Elenco SLO**. Un titolo come `{{UNIT}} NETWORK` mostra `0660 NETWORK`, `0660, 0661 NETWORK` o `All NETWORK`. Un titolo controlla solo il testo visualizzato; configura **Variabile etichetta** per filtrare la query dei monitor.
 
 Il [widget SLO](/docs/dashboards/widgets#slo) può seguire una variabile Telemetry Attribute sulla chiave `sloName`, così chi guarda sceglie quale SLO mostra.
 

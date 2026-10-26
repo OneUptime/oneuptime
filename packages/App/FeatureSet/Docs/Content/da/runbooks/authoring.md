@@ -29,7 +29,7 @@ Klik på **Opret Runbook**, angiv et **Navn** og eventuelt en **Beskrivelse** af
 
 ### Tilføj trin
 
-Under **Start your runbook** vælger du typen af det første trin; under det sidste trin tilbyder **Add another step** de samme syv typer. Hvert trin åbner med sin **Titel** og det, dets type kræver; resten, f.eks. dets **Beskrivelse** og timeouts, er foldet sammen under **Flere felter**. Når runbooket har et trin, tilføjer **Tilføj trin** øverst på kortet et Manual-trin.
+Under **Kom i gang med din runbook** vælger du typen af det første trin; under det sidste trin tilbyder **Tilføj endnu et trin** de samme syv typer. Hvert trin åbner med sin **Titel** og det, dets type kræver; resten, f.eks. dets **Beskrivelse** og timeouts, er foldet sammen under **Flere felter**. Når runbooket har et trin, tilføjer **Tilføj trin** øverst på kortet et Manual-trin.
 
 ### Sæt trinnene i rækkefølge
 
@@ -37,7 +37,7 @@ Trin kører **i rækkefølge**. Du ændrer rækkefølgen ved at trække et trin 
 
 ### Gem trinnene
 
-Klik på **Save Steps**. Indtil du gør det, viser editoren **Ikke-gemte ændringer**. Når de er gemt, ser du **Gemt**, og runbooket er klar til at [køre](/docs/runbooks/running).
+Klik på **Gem trin**. Indtil du gør det, viser editoren **Ikke-gemte ændringer**. Når de er gemt, ser du **Gemt**, og runbooket er klar til at [køre](/docs/runbooks/running).
 :::
 
 ## Et trins opbygning
@@ -98,11 +98,11 @@ Et udgående HTTP-kald, foretaget af OneUptime Worker. Der kræves ingen Runner.
 
 | Felt | Hvad det gør | Standard |
 | --- | --- | --- |
-| **Method** | `GET`, `POST`, `PUT`, `PATCH`, `DELETE` eller `HEAD`. | `GET` |
+| **Metode** | `GET`, `POST`, `PUT`, `PATCH`, `DELETE` eller `HEAD`. | `GET` |
 | **URL** | Det endpoint, der skal kaldes. | Tom |
-| **Headers (JSON)** | Under **Flere felter**. Et JSON-objekt, f.eks. `{ "Authorization": "Bearer ..." }`. Headers, der ikke er gyldig JSON, får trinnet til at fejle. | Ingen |
-| **Body** | Vises for `POST`, `PUT`, `PATCH` og `DELETE`. Sendes som JSON, når den kan læses som JSON, og ellers som tekst. | Ingen |
-| **Request timeout** | Hvor længe der ventes på endpointets svar, før trinnet fejler. | 30 sekunder |
+| **Headere (JSON)** | Under **Flere felter**. Et JSON-objekt, f.eks. `{ "Authorization": "Bearer ..." }`. Headers, der ikke er gyldig JSON, får trinnet til at fejle. | Ingen |
+| **Brødtekst** | Vises for `POST`, `PUT`, `PATCH` og `DELETE`. Sendes som JSON, når den kan læses som JSON, og ellers som tekst. | Ingen |
+| **Timeout for anmodning** | Hvor længe der ventes på endpointets svar, før trinnet fejler. | 30 sekunder |
 
 Trinnet lykkes ved et `2xx`- eller `3xx`-svar og fejler ved alt andet med `HTTP <status>` som fejl. Omdirigeringer følges ikke. Svarets status, headers og body registreres, op til 50 KB.
 
@@ -190,9 +190,9 @@ Bed AI om at analysere, opsummere eller beslutte noget midt i kørslen. Svaret b
 | Felt | Hvad det gør |
 | --- | --- |
 | **Prompt** | Hvad AI'en skal gøre. For eksempel: "Gennemgå outputtet fra de foregående trin, og sig, om det er sikkert at fortsætte med afhjælpningen." |
-| **LLM provider** | Valgfri. **Projektstandard** bruger projektets standardudbyder. Fastlæg en udbyder, når trinnet har brug for en bestemt model, f.eks. en selvhostet model til data, der ikke må forlade dit netværk. Se [LLM-udbydere](/docs/ai/llm-provider). |
-| **Include previous step context** | Når den er slået til, ser AI'en alt om de trin, der kørte før dette: titel, type, status, output og fejlmeddelelser. Den får op til 4.000 tegn af hvert trins output. |
-| **Include trigger context** | Når den er slået til, ser AI'en, hvad der startede kørslen: den tilknyttede hændelse, advarsel eller planlagte vedligeholdelsesbegivenhed (beskrivelse, alvorlighed, nuværende tilstand, berørte monitorer, grundårsag, tilstandstidslinje og offentlige noter), eller hvem der kørte runbooket manuelt. |
+| **LLM-udbyder** | Valgfri. **Projektstandard** bruger projektets standardudbyder. Fastlæg en udbyder, når trinnet har brug for en bestemt model, f.eks. en selvhostet model til data, der ikke må forlade dit netværk. Se [LLM-udbydere](/docs/ai/llm-provider). |
+| **Medtag kontekst fra forrige trin** | Når den er slået til, ser AI'en alt om de trin, der kørte før dette: titel, type, status, output og fejlmeddelelser. Den får op til 4.000 tegn af hvert trins output. |
+| **Medtag udløserkontekst** | Når den er slået til, ser AI'en, hvad der startede kørslen: den tilknyttede hændelse, advarsel eller planlagte vedligeholdelsesbegivenhed (beskrivelse, alvorlighed, nuværende tilstand, berørte monitorer, grundårsag, tilstandstidslinje og offentlige noter), eller hvem der kørte runbooket manuelt. |
 
 For at holde et menneske med i løkken slår du **Kræv godkendelse** til på trinnet efter et AI-trin: AI'en analyserer, en person læser svaret, og det afhjælpende trin kører først, når personen godkender det.
 
@@ -226,7 +226,7 @@ Gennem API'et og Terraform er kontakten et trins felt `requireApprovalBeforeRunn
 
 ## Gem og rediger
 
-Ændringer af trinnene træder i kraft, når du klikker på **Save Steps**. Hver kørsel arbejder ud fra det øjebliksbillede, der blev taget, da den startede, så igangværende udførelser beholder de trin, de startede med, og redigering omskriver aldrig historikken for tidligere kørsler.
+Ændringer af trinnene træder i kraft, når du klikker på **Gem trin**. Hver kørsel arbejder ud fra det øjebliksbillede, der blev taget, da den startede, så igangværende udførelser beholder de trin, de startede med, og redigering omskriver aldrig historikken for tidligere kørsler.
 
 ## Et gennemgået eksempel
 

@@ -34,8 +34,8 @@ Ambos registram um problema, e ambos podem acionar quem está de plantão. O que
 | **O que é**                      | Um problema que sua equipe deve examinar antes que os usuários sejam afetados | Um problema que afeta seus usuários, como uma queda |
 | **Em páginas de status**         | Nunca                                                  | Pode aparecer e avisa os assinantes               |
 | **Notas**                        | Notas privadas, só para sua equipe                     | Notas públicas para clientes e notas privadas     |
-| **Estados iniciais**             | **Identified**, **Confirmado**, **Resolvido**          | **Identified**, **Confirmado**, **Resolvido**     |
-| **Gravidades iniciais**          | **High**, **Low**                                      | Critical Incident, Major Incident, Minor Incident |
+| **Estados iniciais**             | **Identificadas**, **Confirmado**, **Resolvido**          | **Identificadas**, **Confirmado**, **Resolvido**     |
+| **Gravidades iniciais**          | **Alto**, **Baixo**                                      | Critical Incident, Major Incident, Minor Incident |
 | **Números em um projeto novo**   | `ALT-42`, e `AE-42` para episódios                     | `INC-42`, e `IE-42` para episódios                |
 
 Gere um alerta quando sua equipe deve olhar antes que alguém de fora perceba, e declare um incidente quando os usuários forem afetados. Se um alerta se revelar parte de uma queda, declare um incidente a partir dele ou vincule-o ao incidente que o explica: veja [Alertas vinculados](/docs/incidents/linked-alerts).
@@ -64,9 +64,9 @@ Abra **Alertas** no menu **Produtos** da barra superior. A lista de alertas fica
 
 **Alertas** e **Episódios** ficam abertas; **IA**, **Espaço de trabalho**, **Regras**, **Configurações** e **Desenvolvedores** começam recolhidas, e uma seção se abre sozinha quando você está em uma de suas páginas. A configuração dos alertas fica aqui, não em **Configurações do projeto**.
 
-A lista mostra **Número do alerta**, **Título**, **Estado**, **Gravidade**, **Recursos afetados** (primeiro o monitor do alerta), **Criado**, **Duração**, **Rótulos** e **Proprietários**. Selecione alertas para agir em vários de uma vez: **Confirmar**, **Resolver**, **Alterar estado**, **Alterar gravidade**, **Atribuir a mim**, **Add Owner**, **Remove Owner**, **Add Labels**, **Remove Labels**, **Vincular a incidente**, **Declarar incidente** ou excluí-los.
+A lista mostra **Número do alerta**, **Título**, **Estado**, **Gravidade**, **Recursos afetados** (primeiro o monitor do alerta), **Criado**, **Duração**, **Rótulos** e **Proprietários**. Selecione alertas para agir em vários de uma vez: **Confirmar**, **Resolver**, **Alterar estado**, **Alterar gravidade**, **Atribuir a mim**, **Adicionar proprietário**, **Remover proprietário**, **Adicionar rótulos**, **Remover rótulos**, **Vincular a incidente**, **Declarar incidente** ou excluí-los.
 
-O menu **⋯** no fim da linha de cada alerta faz o mesmo só para esse alerta: **Confirmar** e **Resolver** enquanto o alerta puder dar esse passo, **Alterar estado**, **Alterar gravidade**, **Atribuir a mim** até você ser o proprietário e **Add Owner** para passá-lo a outra pessoa.
+O menu **⋯** no fim da linha de cada alerta faz o mesmo só para esse alerta: **Confirmar** e **Resolver** enquanto o alerta puder dar esse passo, **Alterar estado**, **Alterar gravidade**, **Atribuir a mim** até você ser o proprietário e **Adicionar proprietário** para passá-lo a outra pessoa.
 
 ## Criar um alerta manualmente
 
@@ -88,7 +88,7 @@ Clique em **Próximo** para chegar a **Recursos e plantão**. Escolha o **Monito
 Clique em **Próximo** para revisar o resumo e depois em **Criar alerta**. A página do alerta abre e as regras começam a ser executadas. No resumo, a linha **Proprietários** lista cada regra de proprietário que vai adicionar alguém, e quem: veja [Quem será o proprietário](/docs/incidents/declaring-incidents#quem-será-o-proprietário).
 :::
 
-Se você deixar **Estado Inicial** vazio, o alerta começa onde todo alerta novo começa: no seu estado de criação, **Identified** em um projeto novo. Escolher um estado posterior registra um alerta do qual alguém já está cuidando, ou que já terminou; veja [Criado já confirmado ou resolvido](#criado-já-confirmado-ou-resolvido).
+Se você deixar **Estado Inicial** vazio, o alerta começa onde todo alerta novo começa: no seu estado de criação, **Identificadas** em um projeto novo. Escolher um estado posterior registra um alerta do qual alguém já está cuidando, ou que já terminou; veja [Criado já confirmado ou resolvido](#criado-já-confirmado-ou-resolvido).
 
 ## O que acontece quando um alerta é criado
 

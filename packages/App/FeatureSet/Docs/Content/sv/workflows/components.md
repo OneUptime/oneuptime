@@ -285,7 +285,7 @@ Konvertera mellan text och JSON, eller kombinera två JSON-objekt.
 
 ## Conditions
 
-Förgrena på en jämförelse. I panelen **Lägg till komponent** heter det här blocket **If / Else**, under **Popular**. Använd [Switch / Case](#switch-case) för att välja mellan fler än två vägar.
+Förgrena på en jämförelse. I panelen **Lägg till komponent** heter det här blocket **If / Else**, under **Populära**. Använd [Switch / Case](#switch-case) för att välja mellan fler än två vägar.
 
 Dess inställningar läses som en mening: **Om** *värde att kontrollera* *jämförelse* *värde att jämföra med*, fortsätt på **Yes**, annars på **No**. Under inställningarna läses villkoret upp i ord, så att du kan se att det säger det du menar. På arbetsytan visar blocket också sitt villkor, till exempel *Om environment is equal to “production”*.
 
@@ -315,7 +315,7 @@ Taljämförelserna jämför tal och textjämförelserna jämför text, så du be
 
 ## Switch / Case
 
-Ta en av flera vägar beroende på ett värde. I panelen **Lägg till komponent** heter det här blocket **Switch / Case**, under **Popular**.
+Ta en av flera vägar beroende på ett värde. I panelen **Lägg till komponent** heter det här blocket **Switch / Case**, under **Populära**.
 
 Det jämför ett värde med vart och ett av sina fall i tur och ordning, uppifrån, och fortsätter längs det första fallet som matchar, eller längs **Default** när inget matchar. Bara en väg körs: ett värde som matchar två fall tar det första av dem.
 
@@ -361,7 +361,7 @@ Använd det för att dela gemensam logik: bygg ett ”posta i incidentkanalen”
 
 ## OneUptime-datakomponenter
 
-För varje typ av post i OneUptime (monitorer, incidenter, larm, statussidor, jourpolicyer och många fler) har panelen **Lägg till komponent** de här komponenterna: under **OneUptime resources** klickar du på posttypen (**Browse all resources** har de som inte visas), eller så söker du efter typens namn. Varje titel genereras utifrån posttypen, så uppsättningen för Monitor lyder:
+För varje typ av post i OneUptime (monitorer, incidenter, larm, statussidor, jourpolicyer och många fler) har panelen **Lägg till komponent** de här komponenterna: under **OneUptime-resurser** klickar du på posttypen (**Bläddra bland alla resurser** har de som inte visas), eller så söker du efter typens namn. Varje titel genereras utifrån posttypen, så uppsättningen för Monitor lyder:
 
 | Komponent                | Vad den gör                                                                    |
 | ------------------------ | ------------------------------------------------------------------------------ |
@@ -422,7 +422,7 @@ sätter **Notification Count** och låter postens övriga anpassade fält vara s
 
 Du skriver sällan de här nycklarna själv. I komponentens inställningar visar **Add a field** (eller **Add a condition** på en fråga) modellens kolumner efter namn, med den typ av värde var och en tar. Sök efter namn, efter kolumnnyckel eller efter vad fältet gör, och tryck på **Enter** för att lägga till den bästa träffen. När du skapar kommer de fält som posten inte kan skapas utan först, sedan modellens huvudfält (de den fyller i själv om du utelämnar dem) och sedan resten.
 
-Fält som OneUptime fyller i själv erbjuds inte när du skriver en post: postens `_id`, **Skapad den**, **Uppdaterad den**, **Created by User**, slugs, postnummer och aviseringsstatusar. Vem som skapade, arkiverade eller löste en post, och när, är aldrig något ett arbetsflöde sätter: en post som ett arbetsflöde skapar är skapad av ingen, ett värde som ett arbetsflöde skickar för något av de fälten bredvid andra fält ignoreras, och en Update som inte skickar något annat misslyckas med ett meddelande som nämner dem. En uppdatering erbjuder bara fält som kan ändras efter att en post finns. En fråga erbjuder fortfarande ID:t, tidsstämplarna och **Created by User**, eftersom de är användbara att filtrera på. **Deleted At** erbjuds ingenstans: poster tas bort helt, så det är alltid tomt.
+Fält som OneUptime fyller i själv erbjuds inte när du skriver en post: postens `_id`, **Skapad den**, **Uppdaterad den**, **Skapad av användare**, slugs, postnummer och aviseringsstatusar. Vem som skapade, arkiverade eller löste en post, och när, är aldrig något ett arbetsflöde sätter: en post som ett arbetsflöde skapar är skapad av ingen, ett värde som ett arbetsflöde skickar för något av de fälten bredvid andra fält ignoreras, och en Update som inte skickar något annat misslyckas med ett meddelande som nämner dem. En uppdatering erbjuder bara fält som kan ändras efter att en post finns. En fråga erbjuder fortfarande ID:t, tidsstämplarna och **Skapad av användare**, eftersom de är användbara att filtrera på. **Deleted At** erbjuds ingenstans: poster tas bort helt, så det är alltid tomt.
 
 **Skip** och **Limit** är två talfält på Find Many, Update Many och Delete Many, under **Fler fält** — `Skip: 0` med `Limit: 100` tar de första hundra träffarna. **Limit** är `10` som standard, och på Update Many och Delete Many begränsar den hur många poster som faktiskt skrivs, inte bara hur många som kommer tillbaka. Så `Items Deleted: 10` betyder att tio poster togs bort, inte att tio matchade. Höj **Limit** när du vill ändra fler än tio.
 

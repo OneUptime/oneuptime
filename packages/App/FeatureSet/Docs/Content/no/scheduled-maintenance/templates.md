@@ -24,7 +24,7 @@ flowchart TB
 ## Før du begynner
 
 - **Abonnementet ditt.** På OneUptime Cloud krever maler abonnementet **Growth** eller høyere.
-- **Rollen din.** Å opprette en mal krever **Project Owner**, **Project Admin**, **Project Member**, **Scheduled Maintenance Admin** eller **Scheduled Maintenance Member**, eller en egendefinert rolle som kan opprette maler for planlagt vedlikehold.
+- **Rollen din.** Å opprette en mal krever **Prosjekteier**, **Prosjektadministrator**, **Prosjektmedlem**, **Vedlikeholdsadministrator** eller **Vedlikeholdsmedlem**, eller en egendefinert rolle som kan opprette maler for planlagt vedlikehold.
 
 ## Opprett en mal
 

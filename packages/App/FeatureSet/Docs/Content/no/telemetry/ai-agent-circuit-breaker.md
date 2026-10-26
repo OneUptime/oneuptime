@@ -46,7 +46,7 @@ Forbruk er det sikreste tegnet på en løpsk agent. Et budsjett summerer dagens 
 :::steps
 1. Åpne **Produkter → AI / LLM → Budsjetter**, og klikk på **Opprett LLM Cost Budget**. Angi et **Daglig budsjett (USD)**, og velg agentens tjeneste i **Tjeneste (valgfritt)**, slik at budsjettet bare følger med på den agenten.
 2. Velg **Vis ID** i radmenyen til det nye budsjettet, og kopier ID-en.
-3. Opprett en [Metrikk-overvåking](/docs/monitor/metrics-monitor) på `oneuptime.llm.budget.percent.used`, filtrert på attributtet `oneuptime.llm.budget.id` med ID-en du kopierte, og sett **Tidsintervall** til **Past 30 Minutes**.
+3. Opprett en [Metrikk-overvåking](/docs/monitor/metrics-monitor) på `oneuptime.llm.budget.percent.used`, filtrert på attributtet `oneuptime.llm.budget.id` med ID-en du kopierte, og sett **Tidsintervall** til **Siste 30 minutter**.
 4. Legg til et kriterium **Større enn eller lik** `100` som oppretter et varsel, og gi det en **Varseltittel** som navngir agenten, for eksempel `LLM budget exceeded: support-bot`. Både arbeidsflyten og endepunktet ditt leser den tittelen.
 :::
 
@@ -125,7 +125,7 @@ Lagre først endepunktets token et sted der arbeidsflyten kan bruke det uten å 
 
 ### Legg til utløseren
 
-Klikk på den stiplede blokken **Choose what starts this workflow**, og velg **On Create Alert** i panelet **Legg til trigger**. Klikk på utløseren: **Fields to pass on** starter med tittelen, så klikk på **Legg til felt**, kryss av for beskrivelsen, og klikk på **Lagre**. ID-en på blokken, `alert-on-create-1`, er det senere blokker bruker for å vise til den.
+Klikk på den stiplede blokken **Velg hva som starter denne arbeidsflyten**, og velg **On Create Alert** i panelet **Legg til trigger**. Klikk på utløseren: **Fields to pass on** starter med tittelen, så klikk på **Legg til felt**, kryss av for beskrivelsen, og klikk på **Lagre**. ID-en på blokken, `alert-on-create-1`, er det senere blokker bruker for å vise til den.
 
 ### Sjekk tittelen
 
@@ -197,7 +197,7 @@ Hodet `Authorization` samsvarer ikke med tokenet endepunktet ditt forventer. Sje
 :::
 
 :::details Budsjettvarselet åpnes og løses om og om igjen
-Monitorens **Tidsintervall** er kortere enn budsjettets 15 minutter mellom to punkter. Sett det til **Past 30 Minutes**.
+Monitorens **Tidsintervall** er kortere enn budsjettets 15 minutter mellom to punkter. Sett det til **Siste 30 minutter**.
 :::
 
 :::details Forespørselen når aldri frem til endepunktet ditt

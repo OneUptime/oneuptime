@@ -1,6 +1,6 @@
 # Spårningsövervakning
 
-En spårningsmonitor räknar inom ett tidsfönster de spans som dina tjänster skickar till OneUptime och som matchar dina filter (span-namn, status, tjänst, attribut). När antalet uppfyller dina kriterier ändrar den monitorns status, skapar en varning eller deklarerar en incident. Använd den för att varnas om misslyckade förfrågningar till en slutpunkt, en ökning av fel-spans eller en tjänst som har slutat skicka spårningar.
+En spårningsmonitor räknar inom ett tidsfönster de spans som dina tjänster skickar till OneUptime och som matchar dina filter (span-namn, status, tjänst, attribut). När antalet uppfyller dina kriterier ändrar den monitorns status, skapar ett larm eller deklarerar en incident. Använd den för att varnas om misslyckade förfrågningar till en slutpunkt, en ökning av fel-spans eller en tjänst som har slutat skicka spårningar.
 
 :::cards
 - [Skapa monitorn](#skapa-en-spårningsmonitor): Välj vilka spans som räknas och när du ska varnas.
@@ -86,7 +86,7 @@ Om du vill att lyckade förfrågningar ska visas som OK, lägger du till en spå
 - **Varje minut.** En spårningsmonitor kontrolleras inte av sonder, så den har inget intervall att ange och ingen sida **Sonder och intervall**.
 - **Ett tal per utvärdering.** Monitorn räknar de spans som matchar alla filter och startade inom **Övervakningsspår för (tid)** före utvärderingen. Med **Senaste 5 minuterna** ser varje utvärdering fem minuter bakåt, så fönstren för utvärderingar i följd överlappar.
 - **Inga spans är ett antal på 0.** En tjänst som slutar skicka spårningar ger 0, och det är vad standardkriteriet för offline letar efter.
-- **OneUptimes eget avbrott är inte tystnad.** Så länge tidsfönstret innehåller tid då OneUptime självt inte tog emot data (det startade om, uppgraderades eller arbetade ikapp en eftersläpning) väntar kontrollen: statusen ändras inte, och ingen incident eller varning öppnas eller löses. Se [När OneUptime inte tar emot data](/docs/monitor/when-oneuptime-is-not-receiving).
+- **OneUptimes eget avbrott är inte tystnad.** Så länge tidsfönstret innehåller tid då OneUptime självt inte tog emot data (det startade om, uppgraderades eller arbetade ikapp en eftersläpning) väntar kontrollen: statusen ändras inte, och ingen incident eller larm öppnas eller löses. Se [När OneUptime inte tar emot data](/docs/monitor/when-oneuptime-is-not-receiving).
 - **Kriterier uppifrån och ned.** Det första kriteriet som matchar avgör, så lägg det allvarligaste överst.
 
 Varje statusändring registreras med sin orsak på monitorns **Statustidslinje**.
@@ -160,5 +160,5 @@ Det lär sig fortfarande: timmen i veckan som det jämför med har ännu inte ti
 - [Undantagsövervakning](/docs/monitor/exceptions-monitor): Varnas om de undantag som dina tjänster registrerar.
 - [Loggövervakning](/docs/monitor/logs-monitor): Varnas om loggvolym och logginnehåll.
 - [Söksyntax](/docs/telemetry/search-syntax): Hitta span-namn och spannstatusar i spårningsutforskaren.
-- [Incident- och varningsmallar](/docs/monitor/incident-alert-templating): Skriv användbara titlar och beskrivningar för varningar.
+- [Incident- och larmmallar](/docs/monitor/incident-alert-templating): Skriv användbara titlar och beskrivningar för larm.
 :::

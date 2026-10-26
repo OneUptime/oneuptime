@@ -147,7 +147,7 @@ Tilføj et JavaScript-, Bash-, SSH- eller kubectl-trin i dit runbooks **Trin**.
 
 ### Gem trinnene
 
-Klik på **Save Steps**. Når en kørsel når trinnet, sætter Workeren et job i kø til den Runners ID, og kun den Runner kan overtage det. Et trin på **Global Runner** venter på den globale Runner, der er ledig.
+Klik på **Gem trin**. Når en kørsel når trinnet, sætter Workeren et job i kø til den Runners ID, og kun den Runner kan overtage det. Et trin på **Global Runner** venter på den globale Runner, der er ledig.
 :::
 
 Bash køres med `bash -c`. JavaScript kører i en `isolated-vm`-sandkasse på Runneren uden adgang til filsystemet eller processer; det kan kalde offentlige HTTP-API'er med `axios`, men ikke adresser på et privat netværk. Et SSH- eller kubectl-trin logger ind med en hemmelig [runbook-variabel](/docs/runbooks/variables), som skal vise trinnets Runner under **Dine Runnere, der må bruge den**.

@@ -97,7 +97,7 @@ L'onglet **Custom Metric** propose ces métriques, regroupées par type de resso
 
 ### Ce qui est évalué
 
-Ces moniteurs évaluent toujours la **Metric Value** – la valeur de la requête de métrique ou de la formule configurée. Le formulaire de critère n'a pas de sélecteur de type de filtre ; il affiche **Métrique**, **Agrégation**, **Condition** et **Threshold**.
+Ces moniteurs évaluent toujours la **Metric Value** – la valeur de la requête de métrique ou de la formule configurée. Le formulaire de critère n'a pas de sélecteur de type de filtre ; il affiche **Métrique**, **Agrégation**, **Condition** et **Seuil**.
 
 ### Types d'agrégation
 
@@ -112,7 +112,7 @@ Ces moniteurs évaluent toujours la **Metric Value** – la valeur de la requêt
 
 ### Conditions
 
-Les seuils statiques sont comparés au **Threshold** que vous saisissez : **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à** et **Égal à**.
+Les seuils statiques sont comparés au **Seuil** que vous saisissez : **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à** et **Égal à**.
 
 La détection d'anomalies par rapport à une référence n'a pas besoin de seuil. Choisissez l'une de ces conditions, et le formulaire affiche **Sensibilité** et **Fenêtre de référence** à la place :
 

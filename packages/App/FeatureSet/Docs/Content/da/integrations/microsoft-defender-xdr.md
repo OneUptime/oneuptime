@@ -48,15 +48,15 @@ Forbindelsen logger på med [OAuth 2.0-flowet for klientlegitimationsoplysninger
 
 Gå til **Certificates & secrets → Client secrets → New client secret**, vælg, hvornår den udløber, og vælg **Add**. Kopiér hemmelighedens **Value**, ikke dens **Secret ID**, før du forlader siden: den vises aldrig igen.
 
-Notér, hvornår hemmeligheden udløber. Den dag stopper pollingen med `Microsoft Defender XDR token request failed (HTTP 401)`, indtil du erstatter den med **Update credentials**.
+Notér, hvornår hemmeligheden udløber. Den dag stopper pollingen med `Microsoft Defender XDR token request failed (HTTP 401)`, indtil du erstatter den med **Opdater legitimationsoplysninger**.
 
 ### Tilføj forbindelsen i OneUptime
 
-Åbn **Produkter → Security Events → Connections** (`/dashboard/{projectId}/security-events/connections`), klik på **Tilføj forbindelse**, vælg **Microsoft Defender XDR** under **EDR / XDR**, og klik på **Næste**. Udfyld indstillingerne i tabellen nedenfor, klik på **Næste**, og indsæt hemmelighedens værdi i **Client secret**.
+Åbn **Produkter → Security Events → Forbindelser** (`/dashboard/{projectId}/security-events/connections`), klik på **Tilføj forbindelse**, vælg **Microsoft Defender XDR** under **EDR / XDR**, og klik på **Næste**. Udfyld indstillingerne i tabellen nedenfor, klik på **Næste**, og indsæt hemmelighedens værdi i **Klienthemmelighed**.
 
 ### Test den, før du gemmer
 
-Klik på **Test these settings** under **Test, før du gemmer**. Testen logger på og læser advarsler med værdierne i formularen og gemmer intet, så en forkert hemmelighed eller et manglende samtykke viser sig, før forbindelsen findes. Klik derefter på **Næste**, giv forbindelsen et **Navn**, og opret den.
+Klik på **Test disse indstillinger** under **Test, før du gemmer**. Testen logger på og læser advarsler med værdierne i formularen og gemmer intet, så en forkert hemmelighed eller et manglende samtykke viser sig, før forbindelsen findes. Klik derefter på **Næste**, giv forbindelsen et **Navn**, og opret den.
 :::
 
 | Indstilling | Hvor du finder den |
@@ -64,9 +64,9 @@ Klik på **Test these settings** under **Test, før du gemmer**. Testen logger p
 | **Mappe-id (tenant)** | Appens side **Overview**. Lejerens GUID eller et verificeret domæne som `contoso.onmicrosoft.com`. |
 | **Program-id (klient)** | Appens side **Overview**. GUID'et for den app, der har `SecurityAlert.Read.All`. |
 | **Cloud** | **Offentlig Azure-sky**, som også betjener Microsoft 365 GCC, eller **Azure Government (USA)** til GCC High (`login.microsoftonline.us` og `graph.microsoft.us`). Microsoft 365 DoD og 21Vianet-skyen i Kina understøttes ikke. |
-| **Client secret** | Hemmelighedens **Value**. Den krypteres, returneres aldrig af API'et og vises aldrig igen. Erstat den med **Update credentials** på forbindelsen. |
+| **Klienthemmelighed** | Hemmelighedens **Value**. Den krypteres, returneres aldrig af API'et og vises aldrig igen. Erstat den med **Opdater legitimationsoplysninger** på forbindelsen. |
 
-Trinnet **Polling** har også en valgfri **Beskrivelse**, **Poll Interval (Minutes)**, et heltal fra `1` til `1440`, der starter på `5`, og **Aktiveret**, som starter slået til.
+Trinnet **Hentning** har også en valgfri **Beskrivelse**, **Hentningsinterval (minutter)**, et heltal fra `1` til `1440`, der starter på `5`, og **Aktiveret**, som starter slået til.
 
 ## Hvad der importeres
 
@@ -106,7 +106,7 @@ GET https://graph.microsoft.com/v1.0/security/alerts_v2?$filter=createdDateTime 
 
 ### Når et vindue indeholder mere, end én poll kan læse
 
-En poll læser højst 20 sider med 100 advarsler: 2.000 advarsler. Når den grænse stopper den før slutningen af dens vindue, er kørslen **Partial** med denne advarsel:
+En poll læser højst 20 sider med 100 advarsler: 2.000 advarsler. Når den grænse stopper den før slutningen af dens vindue, er kørslen **Delvis** med denne advarsel:
 
 ```text
 Stopped after 20 alerts requests (the per-run request limit) before reading the whole window. Microsoft Graph lists alerts newest first and documents no way to sort them oldest first, so this run cannot name a point to resume from.
@@ -116,22 +116,22 @@ Stopped after 20 alerts requests (the per-run request limit) before reading the 
 
 1. **Indsnævr.** Den næste poll læser et vindue, der er halvt så langt, fra det samme startpunkt, og bliver ved med at halvere, indtil et vindue læses helt, ned til ét minut. Kørslens advarsel siger det: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.` Advarsler, der allerede er importeret fra det længere vindue, springes over som dubletter.
 2. **Voks igen.** Når et vindue er læst helt, flyttes markøren til dets slutning, og det næste vindue er igen dobbelt så langt, op til 24 timer.
-3. **Gå forbi et enkelt minut.** Hvis selv ét minut indeholder mere end 2.000 advarsler, går pollingen forbi det, så nyere advarsler bliver ved med at komme. Kørslen forbliver **Partial**, og **Seneste fejl** lyder `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importér det minut med **Import this time range** for at hente det, én kørsel kan læse.
+3. **Gå forbi et enkelt minut.** Hvis selv ét minut indeholder mere end 2.000 advarsler, går pollingen forbi det, så nyere advarsler bliver ved med at komme. Kørslen forbliver **Delvis**, og **Seneste fejl** lyder `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importér det minut med **Import this time range** for at hente det, én kørsel kan læse.
 
-En kørsel, der er **Partial** af en anden grund, for eksempel en advarsel, der ikke kunne læses som en sikkerhedsbegivenhed, prøves igen på samme måde fra det samme startpunkt. At ændre **Poll Interval (Minutes)** ændrer intet af dette: det afgør, hvor ofte en poll starter, ikke hvor dens vindue begynder.
+En kørsel, der er **Delvis** af en anden grund, for eksempel en advarsel, der ikke kunne læses som en sikkerhedsbegivenhed, prøves igen på samme måde fra det samme startpunkt. At ændre **Hentningsinterval (minutter)** ændrer intet af dette: det afgør, hvor ofte en poll starter, ikke hvor dens vindue begynder.
 
 ### Kør, se forhåndsvisning og importér efter behov
 
-Klik på **Diagnostics** på en forbindelse for at se dens seneste kørsler og arbejde med den manuelt. Alle, der kan ændre forbindelsen, kan starte disse handlinger; alle, der kan se den, kan læse historikken.
+Klik på **Diagnosticering** på en forbindelse for at se dens seneste kørsler og arbejde med den manuelt. Alle, der kan ændre forbindelsen, kan starte disse handlinger; alle, der kan se den, kan læse historikken.
 
-- **Run now** starter straks en poll med den sædvanlige markør, også når forbindelsen ikke er **Aktiveret**.
+- **Kør nu** starter straks en poll med den sædvanlige markør, også når forbindelsen ikke er **Aktiveret**.
 - **Preview alerts** læser et tidsinterval på op til 7 dage og importerer intet.
 - **Import this time range** importerer et interval på op til 7 dage, efter at du har bekræftet, uden at flytte markøren. Advarsler, der allerede er importeret, springes over.
 - **Copy diagnostics** på en kørsel kopierer dens rapport til support. Den indeholder aldrig legitimationsoplysninger.
 
 ## Test forbindelse
 
-**Test forbindelse** på en forbindelses række og **Test these settings** i formularen kører i API-processen, ikke i en baggrundsworker, så en test også svarer, når det er workerne, der er problemet. Den kører disse kontroller i rækkefølge:
+**Test forbindelse** på en forbindelses række og **Test disse indstillinger** i formularen kører i API-processen, ikke i en baggrundsworker, så en test også svarer, når det er workerne, der er problemet. Den kører disse kontroller i rækkefølge:
 
 | Kontrol | Hvad den kontrollerer |
 | --- | --- |
@@ -150,7 +150,7 @@ Forbindelsens **Seneste fejl** gemmer hele fejlmeddelelsen, med legitimationsopl
 
 :::details Last Error starter med `Microsoft Defender XDR token request`
 - `Microsoft Defender XDR token request failed (HTTP ...)`: Microsoft Entra ID nægtede at udstede et token, så Graph blev aldrig kontaktet. Meddelelsen slutter med et tip ud fra Entras `error`-kode:
-  - `invalid_client` (`AADSTS7000215`): hemmeligheden er forkert, udløbet eller tilhører en anden app. Opret en ny under **Certificates & secrets**, og gem den med **Update credentials**.
+  - `invalid_client` (`AADSTS7000215`): hemmeligheden er forkert, udløbet eller tilhører en anden app. Opret en ny under **Certificates & secrets**, og gem den med **Opdater legitimationsoplysninger**.
   - `unauthorized_client` (`AADSTS700016`): **Program-id (klient)** findes ikke i det **Mappe-id (tenant)**, eller **Cloud** er forkert.
   - `AADSTS90002`: den lejer findes ikke.
   - `invalid_scope`: Graph-omfanget findes ikke i den sky, du valgte. Tjek **Cloud**.
@@ -162,7 +162,7 @@ Forbindelsens **Seneste fejl** gemmer hele fejlmeddelelsen, med legitimationsopl
 - `Microsoft Defender XDR alerts request failed (HTTP ...)`: Graph nægtede at vise advarslerne. Meddelelsen navngiver Graphs fejlkode og et tip:
   - `403` (`Authorization_RequestDenied`): `SecurityAlert.Read.All` eller dens administratorsamtykke mangler, eller lejeren har ingen licens til Defender XDR. Samtykke tager et par minutter om at træde i kraft.
   - `401` (`InvalidAuthenticationToken`) efter et udstedt token: **Cloud** passer som regel ikke til lejeren.
-  - `429` (`TooManyRequests`): Graph begrænser appen, og den næste poll læser det samme vindue igen. Meddelelsen kan ikke citere Graphs `Retry-After`, fordi OneUptimes HTTP-klient ikke gemmer svarheadere ved en fejl. Bliver det ved, så hæv **Poll Interval (Minutes)**.
+  - `429` (`TooManyRequests`): Graph begrænser appen, og den næste poll læser det samme vindue igen. Meddelelsen kan ikke citere Graphs `Retry-After`, fordi OneUptimes HTTP-klient ikke gemmer svarheadere ved en fejl. Bliver det ved, så hæv **Hentningsinterval (minutter)**.
   - `5xx`: et problem på Graphs side. Den næste poll prøver igen.
   - `400`: Graph ville ikke køre forespørgslen, som OneUptime bygger, ikke dine indstillinger. Kopiér meddelelsen til OneUptimes support.
 - `Microsoft Defender XDR alerts request returned ...`: Graph svarede `200`, men med noget, connectoren ikke kunne bruge: en brødtekst, der ikke er JSON, ingen liste `value` eller et `@odata.nextLink`, der ikke er et `https://`-link på din skys Graph-vært. Sådan et link afvises, så tokenet aldrig sendes andre steder hen. Det rapporteres i stedet for at blive opfattet som et tomt vindue, så markøren aldrig går forbi advarsler, som ingen har læst.
@@ -174,10 +174,10 @@ Poll-jobbet har aldrig kørt. Læs kontrollerne **Background workers** og **Poll
 :::
 
 :::details Polls lykkes, men en advarsel, du kender, mangler
-Sammenlign advarslens `createdDateTime` i Defender-portalen med kørslens vindue i **Diagnostics**: vinduer går efter oprettelsestidspunkt, ikke aktivitetstidspunkt.
+Sammenlign advarslens `createdDateTime` i Defender-portalen med kørslens vindue i **Diagnosticering**: vinduer går efter oprettelsestidspunkt, ikke aktivitetstidspunkt.
 
 - En advarsel, der blev oprettet, før forbindelsen fandtes, er ældre end det første tilbageblik på 24 timer. Importér den med **Import this time range**.
-- En kørsel, der er **Partial**, blev stoppet af grænsen på 2.000 advarsler. Den næste poll læser et kortere vindue fra den samme start, så advarslen importeres, så snart et vindue, der indeholder den, er læst helt.
+- En kørsel, der er **Delvis**, blev stoppet af grænsen på 2.000 advarsler. Den næste poll læser et kortere vindue fra den samme start, så advarslen importeres, så snart et vindue, der indeholder den, er læst helt.
 - Hvis **Seneste fejl** navngiver et minut, pollingen gik forbi, så importér det minut med **Import this time range**.
 :::
 

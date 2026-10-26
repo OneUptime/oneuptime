@@ -45,7 +45,7 @@ HTTP- og AI-trin kører på OneUptime Worker. Bash-, SSH- og kubectl-trin kører
 | **Runbook** | Skabelonen. En navngivet, genbrugelig procedure med en ordnet liste af trin og en kontakt **Kør dette runbook**. |
 | **Trin** | Ét punkt i et runbook. Det har en type (Manual, JavaScript, HTTP request, Bash, SSH, kubectl eller AI), en titel, en beskrivelse og typespecifikke indstillinger. |
 | **Runbook-regel** | En regel, der automatisk knytter et eller flere runbooks til hændelser, advarsler eller planlagte vedligeholdelsesbegivenheder, der opfylder dens betingelser: deres monitorer, alvorlighed, etiketter, monitoretiketter, titel eller beskrivelse. |
-| **Udførelse** | Én kørsel af et runbook. Oprettes, når en regel udløses, når nogen klikker på **Kør runbook** på en begivenhed, eller når nogen klikker på **Run Now** på selve runbooket. Den rummer et øjebliksbillede af trinnene og hvert trins status og output. |
+| **Udførelse** | Én kørsel af et runbook. Oprettes, når en regel udløses, når nogen klikker på **Kør runbook** på en begivenhed, eller når nogen klikker på **Kør nu** på selve runbooket. Den rummer et øjebliksbillede af trinnene og hvert trins status og output. |
 | **Øjebliksbillede** | Den fastfrosne kopi af runbookets trin, der ligger på hver udførelse. Du kan redigere runbooket senere uden at omskrive historikken for tidligere kørsler. |
 | **Runner** | En lille agent, du kører på en vært i din egen infrastruktur. Den kører de JavaScript-, Bash-, SSH- og kubectl-trin, der nævner den. Kaldes også en runbook-agent. En global Runner, en af dem, OneUptime kører for alle projekter, kører de JavaScript-trin, der ikke nævner nogen, medmindre projektet har en standard-Runner. |
 | **Variabel** | En værdi, som trin bruger ved navn, f.eks. en vært eller en URL: `{{global.variables.NAME}}` for en af projektets, som alle runbooks kan bruge, eller `{{local.variables.NAME}}` for en af runbookets egne. |
@@ -73,7 +73,7 @@ Et runbook kan blande dem alle. Styrken ved runbooks er at flette menneskelige k
 | --- | --- | --- |
 | En runbook-regel | **Hændelser**, **Advarsler** eller **Planlagt vedligeholdelse** → **Regler** → **Runbook-regler** | Den nye hændelse, advarsel eller begivenhed |
 | **Kør runbook** | Siden **Runbooks** for en hændelse, en advarsel eller en planlagt vedligeholdelsesbegivenhed | Den begivenhed |
-| **Run Now** | Runbookets side **Oversigt** | Intet: en ad hoc-kørsel |
+| **Kør nu** | Runbookets side **Oversigt** | Intet: en ad hoc-kørsel |
 | En AI-regel | Se [AI SRE](/docs/ai/ai-sre) | Hændelsen eller advarslen |
 | Runbookets tidsplan | Runbookets side **Udløsere**, se [Runbook-udløsere](/docs/runbooks/triggers#kør-efter-en-tidsplan) | Intet: en kørsel uden opsyn |
 | Et kald til runbookets webhook-URL | Runbookets side **Udløsere**, se [Runbook-udløsere](/docs/runbooks/triggers#kald-webhooken) | Intet: kørslen gemmer de værdier, kaldet sendte |
@@ -87,8 +87,8 @@ Runbooks ligger under **Produkter**, i gruppen **Dashboards og automatisering**.
 | Side | Hvad du gør der |
 | --- | --- |
 | **Produkter → Runbooks** | Gennemse, opret og åbn runbooks. |
-| Et runbooks **Trin** | Skriv og omarranger dets trin, og vælg så **Save Steps**. |
-| Et runbooks **Oversigt** | Se den seneste kørsel og resultaterne, og klik på **Run Now**. |
+| Et runbooks **Trin** | Skriv og omarranger dets trin, og vælg så **Gem trin**. |
+| Et runbooks **Oversigt** | Se den seneste kørsel og resultaterne, og klik på **Kør nu**. |
 | Et runbooks **Udførelser** | Alle kørsler af dette runbook, filtreret efter status eller startdato. |
 | Et runbooks **Udløsere** | Kør det efter en [tidsplan](/docs/runbooks/triggers#kør-efter-en-tidsplan), eller fra et andet værktøj via dets [webhook-URL](/docs/runbooks/triggers#kald-webhooken). |
 | Et runbooks **Variabler** | Administrer de [variabler](/docs/runbooks/variables), som kun det runbooks trin bruger. |
@@ -118,7 +118,7 @@ Antag, at hver hændelse med "db-primary" i titlen skal starte et database-failo
 :::steps
 ### Opret runbooket
 
-Under **Runbooks** klikker du på **Opret Runbook** og kalder det "DB primary failover". Det åbner på **Trin**: tilføj disse trin, og klik så på **Save Steps**:
+Under **Runbooks** klikker du på **Opret Runbook** og kalder det "DB primary failover". Det åbner på **Trin**: tilføj disse trin, og klik så på **Gem trin**:
 
 | # | Type | Titel |
 | --- | --- | --- |

@@ -71,7 +71,7 @@ Los campos de **Más campos**:
 | --- | --- | --- |
 | **Descripción** | Para qué sirve el SLO. | Vacío |
 | **Umbral de riesgo (%)** | La parte del presupuesto de errores restante en la que el SLO pasa a **En riesgo**. Un número entero de 0 a 100. | 20 |
-| **Tipo de ventana** | **Móvil**: los últimos N días, que se recuperan a medida que el tiempo de inactividad antiguo sale de la ventana. **Calendar Month**: cada mes por separado, que se reinicia el día 1. | **Móvil** |
+| **Tipo de ventana** | **Móvil**: los últimos N días, que se recuperan a medida que el tiempo de inactividad antiguo sale de la ventana. **Mes natural**: cada mes por separado, que se reinicia el día 1. | **Móvil** |
 | **Ventana (días)** | Solo ventanas móviles: cuántos días mirar hacia atrás, de 1 a 366. Lo habitual es 28 o 30. | 30 |
 | **Zona horaria** | Solo meses naturales: la zona horaria en la que empieza y termina cada mes. | UTC |
 | **Etiquetas** | Etiquetas para organizar y filtrar los SLO. | Ninguna |
@@ -109,7 +109,7 @@ Cada SLO tiene su propia lista de estados de monitor que cuentan como tiempo de 
 | Tipo de ventana | Cómo se comporta |
 | --- | --- |
 | **Móvil** | Mira hacia atrás un número fijo de días desde ahora. El tiempo de inactividad antiguo sale de la ventana, así que el presupuesto vuelve poco a poco. |
-| **Calendar Month** | Mide desde el primer día del mes, en la zona horaria del SLO (UTC de forma predeterminada). Todo el presupuesto vuelve al empezar cada mes. |
+| **Mes natural** | Mide desde el primer día del mes, en la zona horaria del SLO (UTC de forma predeterminada). Todo el presupuesto vuelve al empezar cada mes. |
 
 ### Varios monitores en un SLO
 

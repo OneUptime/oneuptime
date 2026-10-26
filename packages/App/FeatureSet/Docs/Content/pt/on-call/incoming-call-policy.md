@@ -38,7 +38,7 @@ flowchart TB
 :::steps
 ### Adicione sua conta do Twilio
 
-Vá em **Configurações do projeto** > **Notificações** > **Configurações de notificação**. No cartão **Configuração do Twilio**, clique em **Criar: Configuração do Twilio** e preencha o formulário:
+Vá em **Configurações do projeto** > **Notificações** > **Configurações de notificação**. No cartão **Configuração do Twilio**, clique em **Criar configuração do Twilio** e preencha o formulário:
 
 - **Nome** e **Descrição**: para que serve a conta, por exemplo "Linha de suporte".
 - **SID da Conta Twilio**: do console do Twilio. Começa com `AC`.
@@ -56,7 +56,7 @@ A **Visão geral** da política mostra um cartão **Configuração** com três p
 
 ### Adicione um número de telefone
 
-No segundo passo, clique em **Add Phone Number**. Escolha **Use Existing Phone Number** para trazer um número que sua conta do Twilio já tem, ou **Reserve New Phone Number** para conseguir um novo. O OneUptime aponta o número para si mesmo, então não há nada a configurar no Twilio. Veja [Números de telefone](#números-de-telefone).
+No segundo passo, clique em **Adicionar número de telefone**. Escolha **Usar número de telefone existente** para trazer um número que sua conta do Twilio já tem, ou **Reservar novo número de telefone** para conseguir um novo. O OneUptime aponta o número para si mesmo, então não há nada a configurar no Twilio. Veja [Números de telefone](#números-de-telefone).
 
 ### Adicione regras de escalonamento
 
@@ -68,7 +68,7 @@ Cada pessoa que uma regra pode fazer tocar adiciona e verifica o próprio númer
 
 ### Ligue para o número
 
-Quando os três passos estiverem concluídos, o cartão vira **Phone Numbers & Twilio Configuration**. Ligue para o número de qualquer telefone e depois abra os **Registros de chamadas** da política para ver quem tocou.
+Quando os três passos estiverem concluídos, o cartão vira **Números de telefone e configuração do Twilio**. Ligue para o número de qualquer telefone e depois abra os **Registros de chamadas** da política para ver quem tocou.
 :::
 
 ## Como uma chamada é roteada
@@ -127,16 +127,16 @@ Por exemplo, três regras que tentam duas rotações e depois uma liderança:
 
 ## Números de telefone
 
-Uma política pode ter vários números, e todos fazem tocar as mesmas regras. Cada número pertence a uma única política. Adicione-os com **Add Phone Number** na **Visão geral** da política:
+Uma política pode ter vários números, e todos fazem tocar as mesmas regras. Cada número pertence a uma única política. Adicione-os com **Adicionar número de telefone** na **Visão geral** da política:
 
 :::tabs
 @tab Usar um número que você já tem
-1. Clique em **Add Phone Number** e depois em **Use Existing Phone Number**. O OneUptime lista os números da conta do Twilio da política.
+1. Clique em **Adicionar número de telefone** e depois em **Usar número de telefone existente**. O OneUptime lista os números da conta do Twilio da política.
 2. Clique em **Selecionar** ao lado do número e depois em **Atribuir número**.
 
 Um número cujas chamadas já vão para outro lugar avisa isso com "Currently has a webhook configured". Atribuí-lo manda as chamadas dele para o OneUptime.
 @tab Reservar um número novo
-1. Clique em **Add Phone Number**, depois em **Reserve New Phone Number** e em **Pesquisar números**.
+1. Clique em **Adicionar número de telefone**, depois em **Reservar novo número de telefone** e em **Pesquisar números**.
 2. Escolha um **País**. Se quiser, preencha **Código de área (opcional)**, por exemplo 415, ou **Contém (opcional)** com os dígitos que o número deve conter. Clique em **Pesquisar**: até 10 números locais são listados.
 3. Clique em **Reservar** ao lado de um número e confirme com **Reservar**. O Twilio cobra o número na sua conta do Twilio.
 :::
@@ -146,7 +146,7 @@ O OneUptime define o webhook de voz do número como `https://<your host>/notific
 Para liberar um número, clique em **Liberar** ao lado dele e confirme com **Liberar número**.
 
 > [!CAUTION]
-> Liberar um número o devolve ao Twilio, mesmo um número trazido com **Use Existing Phone Number**, e talvez você não o recupere. Excluir uma política, ou a configuração do Twilio que ela usa, também libera os números dela.
+> Liberar um número o devolve ao Twilio, mesmo um número trazido com **Usar número de telefone existente**, e talvez você não o recupere. Excluir uma política, ou a configuração do Twilio que ela usa, também libera os números dela.
 
 ## Números das pessoas de plantão
 
@@ -160,7 +160,7 @@ Uma regra faz tocar uma pessoa no número que ela verificou para chamadas recebi
 
 Cada pessoa pode ter um número verificado por projeto. Para trocá-lo, exclua antes o número antigo. Esses números são separados dos números de telefone em **Métodos de notificação**, que os acionamentos de plantão usam. Veja [Métodos de notificação](/docs/notifications/notification-methods).
 
-Os números para chamadas recebidas são verificados por SMS, então o **SMS** precisa estar ligado no projeto antes. Um proprietário do projeto ou alguém com o papel **Billing Admin** ou a permissão **Manage Billing** o liga no cartão **Canais de notificação** de **Configurações do projeto > Notificações > Configurações de notificação**.
+Os números para chamadas recebidas são verificados por SMS, então o **SMS** precisa estar ligado no projeto antes. Um proprietário do projeto ou alguém com o papel **Administrador de cobrança** ou a permissão **Manage Billing** o liga no cartão **Canais de notificação** de **Configurações do projeto > Notificações > Configurações de notificação**.
 
 ## Mensagens de voz e configurações da política
 
@@ -182,19 +182,19 @@ O Twilio lê as mensagens com uma voz sintetizada, então escreva-as do jeito qu
 
 ## Registros de chamadas
 
-Toda chamada aparece na página **Registros de chamadas** da política, em **Registros** no menu lateral dela: o **Chamador**, o **Number Called**, o **Status** dela, quem atendeu (**Atendida por**), a **Duração** e quando ela começou (**Iniciado em**). Clique em **View Timeline** em uma chamada para ver a **Linha do tempo da chamada**: cada pessoa que tocou, em qual número e como cada tentativa terminou.
+Toda chamada aparece na página **Registros de chamadas** da política, em **Registros** no menu lateral dela: o **Chamador**, o **Número chamado**, o **Status** dela, quem atendeu (**Atendida por**), a **Duração** e quando ela começou (**Iniciado em**). Clique em **Ver linha do tempo** em uma chamada para ver a **Linha do tempo da chamada**: cada pessoa que tocou, em qual número e como cada tentativa terminou.
 
 | Status | O que aconteceu |
 | --- | --- |
-| **Initiated**, **Escalonado** | A chamada ainda está em andamento: chegou e um telefone está tocando, ou passou para uma regra seguinte. |
+| **Iniciada**, **Escalonado** | A chamada ainda está em andamento: chegou e um telefone está tocando, ou passou para uma regra seguinte. |
 | **Concluído** | Alguém atendeu, e a chamada foi transferida. |
 | **Sem Resposta** | Todas as regras de escalonamento foram tentadas e ninguém atendeu. Quem ligou ouviu a sua **Mensagem de Sem Resposta**. |
-| **Caller Hung Up** | Quem ligou desligou enquanto o telefone de uma pessoa tocava. |
+| **Quem ligou desligou** | Quem ligou desligou enquanto o telefone de uma pessoa tocava. |
 | **Falhou** | Não foi possível tocar para ninguém: nenhuma regra de escalonamento tinha uma pessoa de plantão com um número verificado para chamadas recebidas (quem ligou ouviu a sua **Mensagem de Ninguém Disponível**), ou **Atender chamadas** está desligado. |
 
 ## Chamadas perdidas
 
-Uma chamada é perdida quando termina sem alcançar ninguém: o status dela é **Sem Resposta**, **Caller Hung Up** ou **Falhou**.
+Uma chamada é perdida quando termina sem alcançar ninguém: o status dela é **Sem Resposta**, **Quem ligou desligou** ou **Falhou**.
 
 ### Quem é avisado
 
@@ -225,10 +225,10 @@ Um fluxo de trabalho pode ler registros de chamadas com **Find One** e **Find Ma
 
 Os números de telefone de uma política seguem os mesmos papéis da própria política:
 
-- **Pesquisar números** - procurar no Twilio um número para reservar, ou listar os números que sua conta do Twilio já tem - exige permissão para ler políticas de chamadas recebidas e para ler configurações de chamadas e SMS, porque lê sua conta do Twilio por meio de uma delas. **Project Owner**, **Project Admin**, **Project Member**, **Viewer**, **Settings Admin**, **Settings Member** e **Settings Viewer** têm as duas. Em um papel personalizado, são **Read Incoming Call Policy** e **Read Call and SMS**.
-- **Reservar um número, usar um existente e liberar um** exigem permissão para editar políticas de chamadas recebidas: **Project Owner**, **Project Admin**, **Project Member**, **Settings Admin** e **Settings Member**, ou **Edit Incoming Call Policy** em um papel personalizado. Eles mudam os números de uma política que você pode editar: com um papel limitado a alguns rótulos, as políticas que têm esses rótulos.
+- **Pesquisar números** - procurar no Twilio um número para reservar, ou listar os números que sua conta do Twilio já tem - exige permissão para ler políticas de chamadas recebidas e para ler configurações de chamadas e SMS, porque lê sua conta do Twilio por meio de uma delas. **Proprietário do projeto**, **Administrador do projeto**, **Membro do projeto**, **Visualizador**, **Administrador de configurações**, **Membro de configurações** e **Visualizador de configurações** têm as duas. Em um papel personalizado, são **Read Incoming Call Policy** e **Read Call and SMS**.
+- **Reservar um número, usar um existente e liberar um** exigem permissão para editar políticas de chamadas recebidas: **Proprietário do projeto**, **Administrador do projeto**, **Membro do projeto**, **Administrador de configurações** e **Membro de configurações**, ou **Edit Incoming Call Policy** em um papel personalizado. Eles mudam os números de uma política que você pode editar: com um papel limitado a alguns rótulos, as políticas que têm esses rótulos.
 
-Um bloqueio de equipe sem rótulos em uma dessas permissões a retira. Para qualquer outra pessoa, **Add Phone Number** e **Liberar** continuam na página, bloqueados, e a dica deles diz o que é preciso. A API recusa a requisição com uma frase que diz o que é preciso: "Looking up phone numbers needs permission to read incoming call policies and call and SMS settings." ou "Adding or releasing a phone number needs permission to edit incoming call policies." Reservar um número é cobrado na sua própria conta do Twilio, não no seu saldo do OneUptime, então não exige permissão de faturamento.
+Um bloqueio de equipe sem rótulos em uma dessas permissões a retira. Para qualquer outra pessoa, **Adicionar número de telefone** e **Liberar** continuam na página, bloqueados, e a dica deles diz o que é preciso. A API recusa a requisição com uma frase que diz o que é preciso: "Looking up phone numbers needs permission to read incoming call policies and call and SMS settings." ou "Adding or releasing a phone number needs permission to edit incoming call policies." Reservar um número é cobrado na sua própria conta do Twilio, não no seu saldo do OneUptime, então não exige permissão de faturamento.
 
 ## Criar políticas com a API ou o Terraform
 
@@ -267,7 +267,7 @@ Se as chamadas acabarem na caixa postal de uma pessoa, defina o **Tempo de toque
 :::
 
 :::details Não é possível reservar um número novo
-Em muitos países, o Twilio exige um regulatory bundle aprovado antes de vender números locais, e alguns números exigem saldo positivo no Twilio. Configure isso no console do Twilio, ou consiga o número lá e adicione-o com **Use Existing Phone Number**.
+Em muitos países, o Twilio exige um regulatory bundle aprovado antes de vender números locais, e alguns números exigem saldo positivo no Twilio. Configure isso no console do Twilio, ou consiga o número lá e adicione-o com **Usar número de telefone existente**.
 :::
 
 :::details Não é possível mudar a conta do Twilio da política

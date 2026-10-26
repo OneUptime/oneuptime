@@ -619,7 +619,7 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 
 当此集群上出现事件或警报时，OneUptime AI 会进行调查。chart 中的 **Kubernetes AI 代理** 为它提供一个终端：它像值班工程师那样运行只读的 `kubectl`（describe 出故障的 Pod、读取其事件、查看崩溃容器的日志、检查节点容量），并在事件页面上引用它运行的每一条命令。
 
-该代理 **默认开启** 且 **只读**：一个小型 Deployment（`kubernetes-agent-ai-agent`，Pod 标签 `component=ai-agent`，镜像 `oneuptime/kubernetes-ai-agent`），其 ServiceAccount 只能读取。它使用与 Collector 相同的 `oneuptime.apiKey` 和 `clusterName` 自行注册，因此无需在仪表板中进行任何设置：集群的 **AI 代理** 页面（Kubernetes → 集群 → 人工智能 → 智能体）会在一分钟内显示其为已连接，该状态旁边 **⋯** 菜单中的 **测试连接** 会通过它运行 `kubectl version` 和 `kubectl auth can-i --list`。AI 用它做过的一切都在集群的 **AI 日志** 页面（人工智能 → 日志）上，而关于该集群值得了解的内容——反复出现的问题及其原因、导致其中大多数问题的节点或工作负载、AI 修复了什么——则在 **AI Insights** 页面（人工智能 → Insights）上。该代理内置一个固定版本的 kubectl（v1.36.5）。它不是 Runner，也永远不会出现在 Runbooks → Runners 下：OneUptime 从不向它提供凭据，从不在它上面运行 runbook，它也永远不会被接受为 AI 规则的命令 Runner。
+该代理 **默认开启** 且 **只读**：一个小型 Deployment（`kubernetes-agent-ai-agent`，Pod 标签 `component=ai-agent`，镜像 `oneuptime/kubernetes-ai-agent`），其 ServiceAccount 只能读取。它使用与 Collector 相同的 `oneuptime.apiKey` 和 `clusterName` 自行注册，因此无需在仪表板中进行任何设置：集群的 **AI 代理** 页面（Kubernetes → 集群 → 人工智能 → 智能体）会在一分钟内显示其为已连接，该状态旁边 **⋯** 菜单中的 **测试连接** 会通过它运行 `kubectl version` 和 `kubectl auth can-i --list`。AI 用它做过的一切都在集群的 **AI 日志** 页面（人工智能 → 日志）上，而关于该集群值得了解的内容——反复出现的问题及其原因、导致其中大多数问题的节点或工作负载、AI 修复了什么——则在 **AI 洞察** 页面（人工智能 → Insights）上。该代理内置一个固定版本的 kubectl（v1.36.5）。它不是 Runner，也永远不会出现在 Runbooks → Runners 下：OneUptime 从不向它提供凭据，从不在它上面运行 runbook，它也永远不会被接受为 AI 规则的命令 Runner。
 
 对于在 AI 代理出现之前安装的代理，请先刷新 chart 索引，然后升级（在自托管的 OneUptime 上，请先升级 OneUptime——见 [升级代理](#升级代理)）：
 
@@ -709,7 +709,7 @@ kubectl logs -n oneuptime-agent -l component=ai-agent --tail=100
 
 - **"This OneUptime server does not have the Kubernetes AI agent API"** — chart 比你的 OneUptime 服务器更新。请升级 OneUptime，或安装与你的服务器匹配的 chart 版本（`--version <your OneUptime version>`）。代理每 5 分钟重试一次。
 - **会自行解除的拒绝** — 之前的代理 Pod 仍在上报（没有正常关闭就被替换的 Pod），或者旧的集群内 Runner 在升级期间仍在关闭。代理会在服务器指定的等待时间之后重试。
-- **需要你处理的拒绝** — `clusterName` 为空或过长，或者项目已达到 AI 代理的上限；日志会指明需要更改什么。如果代理始终无法连接，且其日志显示 `Another Kubernetes AI agent for cluster "<name>" is online`，说明两个安装共用了同一个 `clusterName`（AI 代理页面也会对此发出警告）：已经连接的那个只要在运行就会一直占用它，因此请为每个集群提供自己的 `clusterName`，或移除多余的发布。带有 **Pinned Service Name** 的摄取密钥无法注册代理——请给 chart 一个不带它的密钥。
+- **需要你处理的拒绝** — `clusterName` 为空或过长，或者项目已达到 AI 代理的上限；日志会指明需要更改什么。如果代理始终无法连接，且其日志显示 `Another Kubernetes AI agent for cluster "<name>" is online`，说明两个安装共用了同一个 `clusterName`（AI 代理页面也会对此发出警告）：已经连接的那个只要在运行就会一直占用它，因此请为每个集群提供自己的 `clusterName`，或移除多余的发布。带有 **固定的服务名称** 的摄取密钥无法注册代理——请给 chart 一个不带它的密钥。
 
 AI 代理页面上代理状态旁边 **⋯** 菜单中的 **重置代理**，会在你确认后让服务器忘记该代理的密钥（Project Owner、Project Admin 或拥有 **Edit AI Rule** 权限者可以在其可编辑的集群上执行）；Pod 会在几分钟内自行重新连接。代理的就绪状态不依赖 OneUptime，因此配置错误的 AI 代理永远不会让 `helm upgrade --wait` 失败——只有无法拉取镜像的 Pod 才会。
 
@@ -753,7 +753,7 @@ chart 现在默认运行 [Kubernetes AI 代理](#kubernetes-ai-代理)。它取�
 - `aiAccess.image` 和 `aiAccess.resources` 不会沿用：AI 代理是一个不同的镜像，有它自己的 `aiAgent.image` 和 `aiAgent.resources`。
 - 在 OneUptime 中，每个集群都会保留其 AI 设置，但升级服务器时会做两项更改：如果有人解绑或删除了某个集群的 Runner（集群内 Runner 或任何其他 Runner），该集群启动时 **使用 kubectl 调查** 和修复都处于关闭状态（请在其 AI 代理页面上重新开启）；而对于项目从未开启 **Enable AI Command Execution** 的集群，**自动** 或 **跳过批准** 会变为 **请求批准**——那个开关过去会拦住这些修复，而通过 AI 代理进行的修复已不再需要它。
 
-要回退，请使用 `helm rollback kubernetes-agent <revision> --namespace oneuptime-agent`（`helm history` 会列出修订版本），而不是 `helm upgrade --version <older version>`：旧 chart 的 schema 会拒绝存储在发布中的 `aiAgent` 值。在升级后一周内，回滚会带回集群内 Runner，并且一旦 AI 代理停止，它会自行重新连接。超过这个期限，OneUptime 可能已经移除了旧的 Runner（集群的 **Feed** 会显示具体时间）。此时回滚后的 Runner 会连接，但不会被使用，直到你用 API 或 Terraform 再次把它绑定到集群（集群的 **AI Access Runner**；Project Owner、Project Admin 或拥有 **Edit AI Rule** 权限者可以执行），或者再次升级 chart。
+要回退，请使用 `helm rollback kubernetes-agent <revision> --namespace oneuptime-agent`（`helm history` 会列出修订版本），而不是 `helm upgrade --version <older version>`：旧 chart 的 schema 会拒绝存储在发布中的 `aiAgent` 值。在升级后一周内，回滚会带回集群内 Runner，并且一旦 AI 代理停止，它会自行重新连接。超过这个期限，OneUptime 可能已经移除了旧的 Runner（集群的 **动态** 会显示具体时间）。此时回滚后的 Runner 会连接，但不会被使用，直到你用 API 或 Terraform 再次把它绑定到集群（集群的 **AI Access Runner**；Project Owner、Project Admin 或拥有 **Edit AI Rule** 权限者可以执行），或者再次升级 chart。
 
 Kubernetes AI 代理与 OneUptime 12 中已停用的 AI Agent 无关。
 

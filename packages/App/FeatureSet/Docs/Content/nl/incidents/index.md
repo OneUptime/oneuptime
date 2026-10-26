@@ -15,7 +15,7 @@ Een incident is het dossier van waaruit je team werkt als er iets stukgaat: wat 
 ## In één oogopslag
 
 - **Een eigen product** — open **Incidenten** vanuit het menu **Producten** in de bovenbalk; de lijst staat op `/dashboard/{projectId}/incidents`.
-- **Drie vooraf aangemaakte statussen** — **Identified**, **Bevestigd** en **Opgelost** worden voor elk nieuw project aangemaakt. Je kunt er zelf statussen bij zetten; de drie vooraf aangemaakte statussen kun je hernoemen en een andere kleur geven, maar nooit verwijderen.
+- **Drie vooraf aangemaakte statussen** — **Geïdentificeerd**, **Bevestigd** en **Opgelost** worden voor elk nieuw project aangemaakt. Je kunt er zelf statussen bij zetten; de drie vooraf aangemaakte statussen kun je hernoemen en een andere kleur geven, maar nooit verwijderen.
 - **Drie vooraf aangemaakte ernstniveaus** — **Critical Incident**, **Major Incident** en **Minor Incident**. Een ernst is een label met een kleur en een volgorde — het heeft geen eigen gedrag.
 - **Vijf manieren om binnen te komen** — de wizard **Incident melden**, **Maken op basis van sjabloon**, een criteriaregel van een monitor, `POST /api/incident`, of een [formulier](/docs/forms/index) dat iedereen met de link kan invullen.
 - **Genummerd per project** — elk incident krijgt een incidentnummer uit een teller per project, getoond met het voorvoegsel van je project: `INC-42` in een nieuw project, of `#42` zonder voorvoegsel.
@@ -117,7 +117,7 @@ stateDiagram-v2
 
 | Status           | Volgorde | Kleur              | Wat het betekent                                                          |
 | ---------------- | -------- | ------------------ | ------------------------------------------------------------------------- |
-| **Identified**   | 1        | Rood (`#fd625e`)   | De status waarin een gloednieuw incident belandt. Dit is de aanmaakstatus. |
+| **Geïdentificeerd**   | 1        | Rood (`#fd625e`)   | De status waarin een gloednieuw incident belandt. Dit is de aanmaakstatus. |
 | **Bevestigd**    | 2        | Geel (`#ffbf53`)   | Iemand heeft het incident opgepakt en werkt eraan.                        |
 | **Opgelost**     | 3        | Groen (`#2ab57d`)  | Het incident is voorbij. Oplossen is wat het van je statuspagina haalt.   |
 
@@ -130,7 +130,7 @@ Dat onderscheid doet er meer toe dan het lijkt:
 - **Actieve incidenten** is puur gedefinieerd als "de huidige status staat boven de opgeloste status". Een eigen status die je boven de opgeloste status toevoegt, is dus actief; een status die je erna plaatst, telt als opgelost, net als de opgeloste status zelf.
 
 > [!NOTE]
-> De eerste vooraf aangemaakte status heet **Identified**, ook al noemen verschillende beschrijvingen in het product hem nog de aanmaakstatus ("created"). Zoek je "Created" in de statuslijst van je project, dan is dat de rij met de naam **Identified**.
+> De eerste vooraf aangemaakte status heet **Geïdentificeerd**, ook al noemen verschillende beschrijvingen in het product hem nog de aanmaakstatus ("created"). Zoek je "Created" in de statuslijst van je project, dan is dat de rij met de naam **Geïdentificeerd**.
 
 Je kunt eigen statussen toevoegen onder **Incidenten → Instellingen → Status incident**. Een nieuwe status wordt net boven de opgeloste status toegevoegd, en je sleept de rijen om ze anders te ordenen; de kolom **Telt als** laat zien waarvoor een incident in elke status telt — niet bevestigd, bevestigd of opgelost. De drie statussen met een vlag hebben het label **Ingebouwd**: ze houden hun volgorde en kunnen niet worden verwijderd, maar je kunt ze hernoemen, een andere kleur geven en verplaatsen, en daarom leest de interface statusnamen dynamisch.
 
@@ -165,7 +165,7 @@ Open **Incidenten** vanuit het menu **Producten** in de bovenbalk. Het zijmenu i
 
 **Overzicht** en **Episoden** staan open; **AI**, **Werkruimte**, **Regels**, **Instellingen** en **Ontwikkelaars** zijn standaard ingeklapt, zodat het menu opent op de lijsten die je elke dag gebruikt. Klik op de titel van een sectie om die uit te klappen en de pagina's te vinden waar de rest van deze documentatie naar verwijst; een sectie gaat ook vanzelf open wanneer je op een van haar pagina's bent. De incidentconfiguratie staat niet onder de projectinstellingen; die staat helemaal hier.
 
-De incidentenlijst zelf toont **Incidentnummer**, **Titel**, **Status**, **Ernst**, **Getroffen middelen**, **Verklaard**, **Duur**, **Labels** en **Eigenaren**. Het menu **⋯** aan het eind van de rij van elk incident biedt **Bevestigen** en **Oplossen** zolang het incident die stap kan zetten, **Status wijzigen**, **Ernst wijzigen**, **Aan mij toewijzen** totdat je de eigenaar bent, en **Add Owner** om het aan iemand anders over te dragen. Selecteer meerdere incidenten om hetzelfde met allemaal tegelijk te doen.
+De incidentenlijst zelf toont **Incidentnummer**, **Titel**, **Status**, **Ernst**, **Getroffen middelen**, **Verklaard**, **Duur**, **Labels** en **Eigenaren**. Het menu **⋯** aan het eind van de rij van elk incident biedt **Bevestigen** en **Oplossen** zolang het incident die stap kan zetten, **Status wijzigen**, **Ernst wijzigen**, **Aan mij toewijzen** totdat je de eigenaar bent, en **Eigenaar toevoegen** om het aan iemand anders over te dragen. Selecteer meerdere incidenten om hetzelfde met allemaal tegelijk te doen.
 
 ## Wat elke pagina van een incident toont
 

@@ -60,7 +60,7 @@ Die Ressource wird mit Ihren eigenen Berechtigungen nachgeschlagen: Können Sie 
 
 Unter **Weitere Felder**:
 
-- **Erklärt am** – beginnt mit dem Moment, in dem Sie die Seite geöffnet haben. Von diesem Zeitstempel aus wird jede Dauer des Vorfalls gemessen; datieren Sie ihn also zurück, wenn Sie etwas erfassen, das früher begann.
+- **Gemeldet am** – beginnt mit dem Moment, in dem Sie die Seite geöffnet haben. Von diesem Zeitstempel aus wird jede Dauer des Vorfalls gemessen; datieren Sie ihn also zurück, wenn Sie etwas erfassen, das früher begann.
 - **Anfangsstatus** – optional und zunächst leer. Bleibt er leer, beginnt der Vorfall in dem Status mit `isCreatedState`, den neue Projekte als **Identifiziert** anlegen – oder im Anfangsstatus der Vorlage, wenn Sie aus einer Vorlage melden. Wählen Sie einen späteren Status nur, wenn Sie einen Vorfall erfassen, der diesen Punkt schon hinter sich hatte, bestätigt oder behoben. Ein solcher Vorfall alarmiert niemanden – siehe [Bereits bestätigt oder behoben gemeldet](#bereits-bestätigt-oder-behoben-gemeldet).
 - **Beschriftungen** – optional. Beschriftungen gruppieren zusammengehörige Vorfälle, damit Sie danach filtern können, und ein Team, dessen Berechtigungen auf Beschriftungen beschränkt sind, sieht nur die Vorfälle, die eine seiner Beschriftungen tragen.
 - **Privater Vorfall** – Kontrollkästchen, standardmäßig aus (`isPrivate`). Ein privater Vorfall ist nur für seine Eigentümer-Benutzer, die Mitglieder seiner Eigentümer-Teams, Projektadmins und Projekteigentümer sichtbar – und ist auf jeder Statusseite verborgen, unabhängig von jeder anderen Einstellung, auch auf den Statusseiten, auf die er beschränkt ist. Die Vorfallliste markiert ihn mit einem roten **Privat**-Etikett.

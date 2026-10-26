@@ -147,7 +147,7 @@ Runbook의 **단계**에 JavaScript, Bash, SSH 또는 kubectl 단계를 추가�
 
 ### 단계 저장
 
-**Save Steps**를 클릭합니다. 실행이 그 단계에 도달하면 Worker는 그 Runner의 ID로 작업을 큐에 넣고, 그 Runner만 작업을 가져갈 수 있습니다. **글로벌 Runner**로 지정된 단계는 비어 있는 글로벌 Runner를 기다립니다.
+**단계 저장**을 클릭합니다. 실행이 그 단계에 도달하면 Worker는 그 Runner의 ID로 작업을 큐에 넣고, 그 Runner만 작업을 가져갈 수 있습니다. **글로벌 Runner**로 지정된 단계는 비어 있는 글로벌 Runner를 기다립니다.
 :::
 
 Bash는 `bash -c`로 실행됩니다. JavaScript는 Runner의 `isolated-vm` 샌드박스에서 파일 시스템이나 프로세스에 접근하지 않고 실행됩니다. `axios`로 공개 HTTP API를 호출할 수 있지만 사설 네트워크의 주소는 호출할 수 없습니다. SSH와 kubectl 단계는 시크릿 [Runbook 변수](/docs/runbooks/variables)로 로그인하며, 그 변수의 **사용할 수 있는 Runner**에 단계의 Runner가 있어야 합니다.

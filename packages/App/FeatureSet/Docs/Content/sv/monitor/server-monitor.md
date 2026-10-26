@@ -211,7 +211,7 @@ Värden som operativsystemet inte tillhandahåller utelämnas. Monitorns flik **
 
 ## Övervakningskriterier
 
-Kriterier avgör när monitorn är online, försämrad eller offline, och när den öppnar en varning eller en incident. Varje filter i ett kriterium har en **Filtertyp**, ett **Filtervillkor** och för de flesta typer ett värde.
+Kriterier avgör när monitorn är online, försämrad eller offline, och när den öppnar ett larm eller en incident. Varje filter i ett kriterium har en **Filtertyp**, ett **Filtervillkor** och för de flesta typer ett värde.
 
 | Filtertyp | Vad den kontrollerar | Filtervillkor |
 | --- | --- | --- |
@@ -228,7 +228,7 @@ Kriterier avgör när monitorn är online, försämrad eller offline, och när d
 | Server Process Command | Om en process med exakt den här kommandoraden körs (skiftlägesokänsligt) | Is Executing, Is Not Executing |
 | Server Process PID | Om en process med det här PID:t körs | Is Executing, Is Not Executing |
 
-**Diskväg** tar en monteringspunkt eller en enhet, till exempel `/`, `/mnt/data`, `C:\` eller `/dev/sda1`; tom är den `/`. Ange `*` för att kontrollera varje disk som agenten rapporterar: varje disk som passerar tröskeln får en egen varning, så att en andra disk som fylls inte döljs bakom den första diskens öppna varning.
+**Diskväg** tar en monteringspunkt eller en enhet, till exempel `/`, `/mnt/data`, `C:\` eller `/dev/sda1`; tom är den `/`. Ange `*` för att kontrollera varje disk som agenten rapporterar: varje disk som passerar tröskeln får ett eget larm, så att en andra disk som fylls inte döljs bakom den första diskens öppna larm.
 
 ### Utvärdera över en tidsperiod
 
@@ -240,7 +240,7 @@ Kriterier avgör när monitorn är online, försämrad eller offline, och när d
 
 | Om ingen data | Beteende | Använd den för |
 | --- | --- | --- |
-| **Ignore** (standard) | Kriteriet matchar inte. | Vanliga tröskelvarningar. |
+| **Ignore** (standard) | Kriteriet matchar inte. | Vanliga tröskellarm. |
 | **Utlösare** | De saknade data behandlas som problemet. | Heartbeat-liknande kontroller, där tystnad i sig är ett fel. |
 | **Treat As Zero** | Fönstret jämförs som en enda nolla. | Räknare, där "inga händelser" verkligen betyder noll. |
 
@@ -254,7 +254,7 @@ Kriterier avgör när monitorn är online, försämrad eller offline, och när d
 | Markera servern som offline när agenten slutar rapportera | Is Online | Falskt | — |
 | Varna när CPU-användningen är över 90 % | CPU Usage (in %) | Större än | `90` |
 | Varna när rotdisken är mer än 85 % full | Disk Usage (in %), **Diskväg** `/` | Större än | `85` |
-| Varna för varje disk som är mer än 85 % full, en varning per disk | Disk Usage (in %), **Diskväg** `*` | Större än | `85` |
+| Varna för varje disk som är mer än 85 % full, ett larm per disk | Disk Usage (in %), **Diskväg** `*` | Större än | `85` |
 | Varna när minnesanvändningen är över 80 % | Memory Usage (in %) | Större än | `80` |
 | Varna när nginx slutar köras | Server Process Name | Is Not Executing | `nginx` |
 
@@ -294,5 +294,5 @@ Bara ett **Is Online**-kriterium markerar en tyst server som offline. Lägg till
 :::cards
 - [Värdövervakning](/docs/monitor/host-monitor): Monitorn för nya servrar, byggd på OpenTelemetry-värdmått.
 - [OpenTelemetry-collector på värden](/docs/telemetry/host-otel-collector): Skicka värdmått och loggar från Linux, macOS och Windows.
-- [Incident- och varningsmallar](/docs/monitor/incident-alert-templating): Lägg in CPU-, minnes-, disk- och processuppgifter i incidenttitlar.
+- [Incident- och larmmallar](/docs/monitor/incident-alert-templating): Lägg in CPU-, minnes-, disk- och processuppgifter i incidenttitlar.
 :::

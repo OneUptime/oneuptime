@@ -88,7 +88,7 @@ flowchart TB
 
 詢問 AI 執行的每項操作都以你的身分進行：它做出與儀表板對同一操作相同的變更，使用你在專案中的權限，並且變更記在你名下。在聊天中確認一個事件，會產生與事件狀態面板相同的狀態變更，因此事件的時間軸與動態會顯示是你變更了它的狀態。從聊天送出的呼叫會顯示你是觸發者。
 
-- **每項操作需要什麼。** 即儀表板對同一變更要求的權限。確認或解決事件需要變更其狀態的權限：**Project Owner**、**Project Admin**、**Project Member**、**Incident Admin** 與 **Incident Member**，或自訂角色中的 **Create Incident State Timeline**；警示需要針對警示的相同權限（**Create Alert State Timeline**）。呼叫待命政策需要執行它的權限（**Create On-Call Duty Policy Execution Log**），執行運行手冊需要啟動運行手冊執行的權限：可執行運行手冊的角色（僅限其標籤涵蓋的運行手冊），或自訂角色中的 **Create Runbook Execution**，它涵蓋專案中的所有運行手冊。變更事件的嚴重程度、為事件或警示啟動 AI 調查，以及在已連線存放庫中寫入程式碼，需要變更該事件、警示或存放庫的權限。你無權執行的操作會被拒絕，AI 會告訴你需要哪項權限。如果你擁有該權限，但你所屬的某個團隊封鎖了它，AI 會告訴你這一點：對某些標籤的封鎖會讓詢問 AI 對所有記錄拒絕該操作，而不僅是帶有這些標籤的記錄。
+- **每項操作需要什麼。** 即儀表板對同一變更要求的權限。確認或解決事件需要變更其狀態的權限：**專案擁有者**、**專案管理員**、**專案成員**、**事件管理員** 與 **事件成員**，或自訂角色中的 **Create Incident State Timeline**；警示需要針對警示的相同權限（**Create Alert State Timeline**）。呼叫待命政策需要執行它的權限（**Create On-Call Duty Policy Execution Log**），執行運行手冊需要啟動運行手冊執行的權限：可執行運行手冊的角色（僅限其標籤涵蓋的運行手冊），或自訂角色中的 **Create Runbook Execution**，它涵蓋專案中的所有運行手冊。變更事件的嚴重程度、為事件或警示啟動 AI 調查，以及在已連線存放庫中寫入程式碼，需要變更該事件、警示或存放庫的權限。你無權執行的操作會被拒絕，AI 會告訴你需要哪項權限。如果你擁有該權限，但你所屬的某個團隊封鎖了它，AI 會告訴你這一點：對某些標籤的封鎖會讓詢問 AI 對所有記錄拒絕該操作，而不僅是帶有這些標籤的記錄。
 - **哪些記錄。** 即你有權變更的記錄，與 OneUptime 其他地方一致：如果你的角色只限於某些標籤或你擁有的記錄，對任何其他記錄的操作都不會產生變更。只有當你啟動運行手冊執行的權限涵蓋某個運行手冊時，它才會執行。在 OneUptime Cloud 上，專案方案未包含的操作會被拒絕，並說明所需的方案。
 - **當操作被拒絕時。** 不會有任何變更，AI 會明確告訴你操作沒有執行以及原因，而不是再試一次。
 - **Slack、Microsoft Teams 與 AI 調查。** AI 在 Slack 與 Microsoft Teams 中的回答，以及自主 AI 調查，都只會讀取：它們不執行上述任何操作。要從 Slack 或 Microsoft Teams 操作，請使用 OneUptime 訊息上的按鈕，它們同樣以你的身分執行（請參閱 [Slack](/docs/workspace-connections/slack#從-slack-處理事件警示和活動) 與 [Microsoft Teams](/docs/workspace-connections/microsoft-teams#從-microsoft-teams-處理事件警示和活動)）。

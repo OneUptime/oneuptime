@@ -147,7 +147,7 @@ Ouvrez **Plus de champs** de l'étape : sa liste déroulante **Agent Runbook** a
 
 ### Enregistrer les étapes
 
-Cliquez sur **Save Steps**. Quand une exécution atteint l'étape, le Worker met en file une tâche pour l'ID de cet agent, et seul cet agent peut la prendre en charge. Une étape sur **Agent Runbook global** attend l'agent global qui se libère.
+Cliquez sur **Enregistrer les étapes**. Quand une exécution atteint l'étape, le Worker met en file une tâche pour l'ID de cet agent, et seul cet agent peut la prendre en charge. Une étape sur **Agent Runbook global** attend l'agent global qui se libère.
 :::
 
 Bash est exécuté avec `bash -c`. JavaScript s'exécute dans un bac à sable `isolated-vm` sur l'agent, sans accès au système de fichiers ni aux processus ; il peut appeler des API HTTP publiques avec `axios`, mais pas des adresses d'un réseau privé. Une étape SSH ou kubectl se connecte avec une [variable de runbook](/docs/runbooks/variables) secrète, qui doit lister l'agent Runbook de l'étape sous **Vos agents Runbook qui peuvent l'utiliser**.

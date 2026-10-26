@@ -228,7 +228,7 @@ Enheterna är mottagarens egna OTLP-enheter, som OneUptime skalar för visning: 
 
 ### VM:ars strömtillstånd
 
-Mottagaren skickar inget mätvärde för en VM:s strömtillstånd. Den skickar `vcenter.vm.cpu.*` **bara för påslagna VM:ar**, så OneUptime härleder tillståndet ur det som kom in i varje insamling: En VM som rapporterade CPU-mätvärden är **Powered on**; en som bara rapporterade minnes- och diskanvändning är **Powered off** (eller pausad: vSphere skiljer inte på de två här). VM-mallar har inget strömtillstånd. Detta läser **en hel insamling i taget**, och därför har den medföljande processorn `batch` en stor `send_batch_size` och med avsikt ingen `send_batch_max_size`: En insamling som delas över två exporter skulle nollställa inventariets räknare och "stänga av" VM:ar. Behåll batch-inställningarna som de levereras.
+Mottagaren skickar inget mätvärde för en VM:s strömtillstånd. Den skickar `vcenter.vm.cpu.*` **bara för påslagna VM:ar**, så OneUptime härleder tillståndet ur det som kom in i varje insamling: En VM som rapporterade CPU-mätvärden är **Powered on**; en som bara rapporterade minnes- och diskanvändning är **Avstängd** (eller pausad: vSphere skiljer inte på de två här). VM-mallar har inget strömtillstånd. Detta läser **en hel insamling i taget**, och därför har den medföljande processorn `batch` en stor `send_batch_size` och med avsikt ingen `send_batch_max_size`: En insamling som delas över två exporter skulle nollställa inventariets räknare och "stänga av" VM:ar. Behåll batch-inställningarna som de levereras.
 
 ## vCenter i OneUptime
 
@@ -242,14 +242,14 @@ Sidan **Översikt** besvarar först "är det här vCenter friskt": de effektiva 
 
 Välj en värd för att öppna dess sida. Den svarar på det som sidan för en värd utanför VMware svarar på, med det som vCenter vet om en hypervisor:
 
-- **Översikt**: CPU, minne, den långsammaste diskens latens och nätverksgenomströmning under det tidsintervall du väljer, som rutor och diagram (dra över ett diagram för att zooma in); de incidenter och varningar som är öppna på värden; dess mest belastade virtuella maskiner, där de som väntar på en fysisk CPU är markerade; dess fysiska nätverkskort och lagringsenheter, där paketfel och långsamma diskar är markerade; vilka värdvarningar som är påslagna; och värdens detaljer.
+- **Översikt**: CPU, minne, den långsammaste diskens latens och nätverksgenomströmning under det tidsintervall du väljer, som rutor och diagram (dra över ett diagram för att zooma in); de incidenter och larm som är öppna på värden; dess mest belastade virtuella maskiner, där de som väntar på en fysisk CPU är markerade; dess fysiska nätverkskort och lagringsenheter, där paketfel och långsamma diskar är markerade; vilka värdlarm som är påslagna; och värdens detaljer.
 - **Virtuella maskiner**: värdens VM:ar och mallar, med status, resurspool, CPU ready, CPU och minne.
 - **Mätvärden**: värdens CPU-, minnes-, nätverks- och diskserier som diagram, per nätverkskort och lagringsenhet, där var och en kan öppnas i mätvärdesutforskaren.
 - **Loggar**: värdens egen syslog, så snart den skickar den (se [Skicka ESXi-syslog](#valfritt-skicka-esxi-syslog)). Fram till dess ger fliken de kommandon som pekar den här värden, eller hela dess kluster, mot agenten. En vCenter som en sond samlar in har ingen syslog, eftersom en sond inte tar emot den.
 
 När vCenter slutar rapportera en värd säger sidan det ovanför sina flikar, med när vCenter senast rapporterade den. Efter 15 minuter utan rapport lämnar värden inventariet: dess sida säger det då och visar fortfarande dess tidigare mätvärden.
 
-De fem värdvarningarna (CPU- och minnesmättnad, hög disklatens, nätverkspaketfel och kastade paket) bevakar var och en alla värdar i vCenter och utlöses för varje värd som går över dem. Kortet **Värdvarningar** på en värds sida visar vilka som är påslagna, och dess knapp öppnar vCenters **Recommendations** med de saknade redan valda: Skapa dem där, en gång, för alla värdar.
+De fem värdlarmen (CPU- och minnesmättnad, hög disklatens, nätverkspaketfel och kastade paket) bevakar var och en alla värdar i vCenter och utlöses för varje värd som går över dem. Kortet **Värdlarm** på en värds sida visar vilka som är påslagna, och dess knapp öppnar vCenters **Rekommendationer** med de saknade redan valda: Skapa dem där, en gång, för alla värdar.
 
 ### Virtuella maskiner
 

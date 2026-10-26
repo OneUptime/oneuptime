@@ -167,7 +167,7 @@ Au-dessus de la liste, une tuile par statut compte les post-mortems qui s'y trou
 
 Filtrez la liste avec les puces au-dessus : **Propriétaire**, une personne ou une équipe ; **Gravité** ; **Statut du post-mortem** ; **État de l'incident** ; **Étiquettes** ; et **Ressources affectées**. Pour voir les post-mortems qu'une équipe doit encore pour vos incidents les plus graves, choisissez l'équipe sous **Propriétaire**, la gravité sous **Gravité**, et **Non démarré** et **Brouillon** sous **Statut du post-mortem**. Les filtres sont gardés dans l'adresse de la page : vous pouvez donc mettre la liste en favori ou la partager.
 
-Pour en modifier plusieurs à la fois, sélectionnez-les et ouvrez **Actions groupées** : **Modifier le statut du post-mortem** les place tous dans un même statut, comme **Pas nécessaire** pour les incidents qui n'en ont pas besoin, et **Ajouter un propriétaire** et **Remove Owner** changent leurs propriétaires.
+Pour en modifier plusieurs à la fois, sélectionnez-les et ouvrez **Actions groupées** : **Modifier le statut du post-mortem** les place tous dans un même statut, comme **Pas nécessaire** pour les incidents qui n'en ont pas besoin, et **Ajouter un propriétaire** et **Retirer un propriétaire** changent leurs propriétaires.
 
 ## Post-mortems des épisodes
 

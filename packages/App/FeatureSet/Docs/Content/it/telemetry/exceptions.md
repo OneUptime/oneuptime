@@ -77,7 +77,7 @@ Il menu laterale della pagina raggruppa ciò che fate con un'eccezione:
 | **Context** | Gli attributi dell'ultima occorrenza, la sua registrazione della sessione quando c'è, e i passaggi che hanno portato a essa. |
 | **Registri** | I log scritti intorno all'ultima occorrenza. |
 | **AI Assistance** | Attività di IA che correggono l'eccezione o la testano. |
-| **Impostazioni** | Risolvere o archiviare l'eccezione. Si trova sotto **Manage**, inizialmente compresso. |
+| **Impostazioni** | Risolvere o archiviare l'eccezione. Si trova sotto **Gestisci**, inizialmente compresso. |
 
 ## Risolvere, riaprire e archiviare
 
@@ -86,7 +86,7 @@ I pulsanti in cima alla pagina dell'eccezione, e la sua pagina **Impostazioni**,
 | Azione | Quando usarla | Che cosa succede dopo |
 | --- | --- | --- |
 | **Risolvi** | Avete distribuito la correzione. | Lascia l'elenco **Non risolto**. Una nuova occorrenza la riapre. |
-| **Reopen** | La correzione non ha funzionato. | È di nuovo non risolta. |
+| **Riapri** | La correzione non ha funzionato. | È di nuovo non risolta. |
 | **Archivia** | È rumore che non intendete correggere. | Lascia l'elenco. Le nuove occorrenze vengono contate ma smettono di generare notifiche. |
 | **Annulla archiviazione** | Volete tornare a sentirne parlare. | Torna nell'elenco a cui appartiene. |
 
@@ -124,8 +124,8 @@ Ogni 15 minuti OneUptime esamina le vostre eccezioni alla ricerca di quelle nuov
 
 | Rilevamento | Quando OneUptime lo registra | La pull request |
 | --- | --- | --- |
-| **New Exception** | Un'eccezione vista per la prima volta nelle ultime 24 ore che si è già verificata 3 volte o più. | Corregge l'eccezione, o la gestisce meglio. |
-| **Exception Spike** | Un'eccezione che si è verificata 10 volte o più nell'ultima ora, a 5 volte o più il suo ritmo orario delle 24 ore precedenti. | Corregge l'eccezione, o la gestisce meglio. |
+| **Nuova eccezione** | Un'eccezione vista per la prima volta nelle ultime 24 ore che si è già verificata 3 volte o più. | Corregge l'eccezione, o la gestisce meglio. |
+| **Picco di eccezioni** | Un'eccezione che si è verificata 10 volte o più nell'ultima ora, a 5 volte o più il suo ritmo orario delle 24 ore precedenti. | Corregge l'eccezione, o la gestisce meglio. |
 | **Stack trace mancante** | Le eccezioni che un servizio ha registrato nell'ultimo giorno non hanno alcuno stack trace e, insieme, si sono verificate 20 volte o più. | Fa sì che il servizio registri uno stack trace con ogni eccezione. |
 
 La pull request di un'eccezione nuova o in aumento è l'attività IA propria dell'eccezione, quella che avvia la sua pagina **AI Assistance**, e aspetta che OneUptime AI abbia analizzato il rilevamento. Se trova il codice responsabile (`code-fault`), la pull request lo corregge, come fa **Fix this exception with AI**. Se trova un errore previsto (`user-error` o `expected-denial`), la pull request gestisce meglio l'errore, come fa **Migliora la gestione degli errori**. Qualsiasi altro verdetto non apre da solo alcuna pull request. Con **Archivia le eccezioni previste** attivo, un rifiuto previsto viene invece archiviato e non riceve alcuna pull request.

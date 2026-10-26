@@ -73,13 +73,13 @@ En ny betingelse på navn eller beskrivelse starter på **Inneholder**. Et møns
 ## Når regler kjører
 
 - **Når et SLO opprettes**, fra dashbordet eller via API-et: hver aktiverte etikettregel, deretter hver aktiverte eierregel.
-- **Når du kjører en regel** med **Run Now**: se nedenfor.
+- **Når du kjører en regel** med **Kjør nå**: se nedenfor.
 
 Å redigere et SLO bruker ikke reglene på nytt, og en regel fjerner aldri noe: verken etiketter eller eiere som noen har lagt til for hånd, eller dem den har lagt til selv. En regel som er slått av, gjør ingenting.
 
 ## Kjør en regel på eksisterende SLO-er
 
-En regel du skriver i dag, gjelder for SLO-ene som opprettes etter den. For å bruke den på SLO-ene du allerede har, klikker du på **Run Now** i raden til regelen, eller på **Vis** og deretter **Run Now** på regelens egen side. Du kan også velge flere regler og kjøre dem fra tabellens massehandlinger.
+En regel du skriver i dag, gjelder for SLO-ene som opprettes etter den. For å bruke den på SLO-ene du allerede har, klikker du på **Kjør nå** i raden til regelen, eller på **Vis** og deretter **Kjør nå** på regelens egen side. Du kan også velge flere regler og kjøre dem fra tabellens massehandlinger.
 
 En kjøring sjekker hvert SLO i prosjektet, også de arkiverte, og forteller hvor mange den traff og hvor mange den endret. Eiere som en kjøring legger til, får bare beskjed når du velger å gi dem beskjed i kjøringsdialogen og regelen har **Varsle eiere** slått på. Se [Kjøre regler på eksisterende ressurser](/docs/configuration/run-rules-now).
 

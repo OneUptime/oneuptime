@@ -146,7 +146,7 @@ Ogni team di cui siete membri è a un clic sotto **Proprietari**, e il riepilogo
 Aprite la pagina **Avvisi dei membri** dell'episodio, fate clic su **Aggiungi avvisi** e selezionate gli avvisi che ne fanno parte, quanti ve ne servono in una volta. Per partire invece dagli avvisi, selezionateli nell'elenco **Avvisi** e scegliete **Aggiungi a un nuovo episodio** in **Azioni di massa** (vedi [Episodi](/docs/incidents/episodes)).
 :::
 
-Un episodio creato da voi non ha una regola di raggruppamento, quindi l'elenco mostra la sua **Regola di raggruppamento** come **Manual**, e non gli si applica nessuna impostazione del ciclo di vita. Si risolve comunque da solo quando ogni avviso al suo interno è risolto.
+Un episodio creato da voi non ha una regola di raggruppamento, quindi l'elenco mostra la sua **Regola di raggruppamento** come **Manuale**, e non gli si applica nessuna impostazione del ciclo di vita. Si risolve comunque da solo quando ogni avviso al suo interno è risolto.
 
 ## Che cosa mostra ogni pagina di un episodio
 

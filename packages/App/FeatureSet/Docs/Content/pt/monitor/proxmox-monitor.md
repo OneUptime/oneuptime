@@ -48,7 +48,7 @@ Em **Tipo de monitor**, clique em **Mais tipos de monitor** e escolha **Proxmox*
 
 ### Escolher o cluster
 
-Em **Proxmox Monitor Configuration**, escolha o cluster em **Proxmox Cluster**. Todo cluster que enviou dados está na lista.
+Em **Proxmox Monitor Configuration**, escolha o cluster em **Cluster Proxmox**. Todo cluster que enviou dados está na lista.
 
 ### Escolher o que monitorar
 
@@ -56,11 +56,11 @@ Escolha uma das três abas:
 
 - **Quick Setup** – clique em um [modelo](#modelos-de-alerta-prontos). Ele define as métricas, os filtros, a agregação, o intervalo de tempo e os limites, e substitui os critérios abaixo pelos dele. Você ainda pode mudar o **Intervalo de tempo**.
 - **Custom Metric** – escolha uma métrica em **Proxmox Metric** e depois defina **Agregação** e **Intervalo de tempo**. Os [filtros](#configurações-do-monitor) a restringem a um tipo de recurso ou a um único recurso.
-- **Avançado** – monte você mesmo consultas e fórmulas em **Selecionar Métricas**, por exemplo uma porcentagem de memória a partir de `pve_memory_usage_bytes / pve_memory_size_bytes`. Use **Group by** `id` para avaliar cada recurso separadamente.
+- **Avançado** – monte você mesmo consultas e fórmulas em **Selecionar Métricas**, por exemplo uma porcentagem de memória a partir de `pve_memory_usage_bytes / pve_memory_size_bytes`. Use **Agrupar por** `id` para avaliar cada recurso separadamente.
 
 ### Revisar os critérios
 
-Abra cada critério em **Critérios do monitor** e confira sua **Métrica**, **Agregação**, **Condição** e **Threshold**. Um modelo os preenche. Com **Custom Metric** ou **Avançado**, o monitor começa com os [critérios padrão](#critérios-padrão), que só percebem uma métrica caindo para zero, então defina o seu próprio limite.
+Abra cada critério em **Critérios do monitor** e confira sua **Métrica**, **Agregação**, **Condição** e **Limite**. Um modelo os preenche. Com **Custom Metric** ou **Avançado**, o monitor começa com os [critérios padrão](#critérios-padrão), que só percebem uma métrica caindo para zero, então defina o seu próprio limite.
 
 ### Criar o monitor
 
@@ -68,13 +68,13 @@ Clique em **Criar monitor**. O OneUptime abre a página do monitor e o avalia a 
 :::
 
 > [!TIP]
-> Para configurar vários modelos de uma vez, abra o cluster em **Produtos → Infraestrutura → Proxmox** e vá para **Recommendations**. Escolha os modelos que quiser, escolha quem é acionado, e o OneUptime cria um monitor por modelo.
+> Para configurar vários modelos de uma vez, abra o cluster em **Produtos → Infraestrutura → Proxmox** e vá para **Recomendações**. Escolha os modelos que quiser, escolha quem é acionado, e o OneUptime cria um monitor por modelo.
 
 ## Configurações do monitor
 
 | Campo | Aba | O que faz |
 | --- | --- | --- |
-| **Proxmox Cluster** | Todas | Obrigatório. Restringe cada consulta a `resource.proxmox.cluster.name`. |
+| **Cluster Proxmox** | Todas | Obrigatório. Restringe cada consulta a `resource.proxmox.cluster.name`. |
 | **Escopo do recurso** | Custom Metric, Avançado | Opcional. **Nó**, **Guest (VM / container)**, **Armazenamento** ou **Cluster** – uma correspondência exata com `pve.scope`. |
 | **PVE ID** | Custom Metric, Avançado | Opcional. Correspondência exata com `pve.id`: um nome de nó (`pve1`), um VMID (`100`) ou `<node>/<storage>` (`pve1/local`). Combine-o com um escopo para mirar um único recurso. |
 | **Nome do nó** | Custom Metric, Avançado | Opcional. Só as séries do próprio nó (`pve.scope = node` e `pve.id`). Ele não consegue selecionar os convidados nem o armazenamento desse nó. |
@@ -82,7 +82,7 @@ Clique em **Criar monitor**. O OneUptime abre a página do monitor e o avalia a 
 | **Proxmox Metric** | Custom Metric | Uma métrica do [catálogo](#métricas-coletadas). |
 | **Agregação** | Custom Metric | Como as amostras são combinadas: **Média**, **Máximo**, **Mínimo**, **Soma** ou **Contagem**. Começa na agregação usual da métrica. |
 | **Intervalo de tempo** | Todas | A janela móvel que a consulta lê, de **Past 1 Minute** a **Past 365 Days**. Um monitor novo começa em **Past 1 Minute**; os modelos definem a sua. |
-| **Selecionar Métricas** | Avançado | O construtor de consultas: **Métrica**, **Aggregate by**, **Filter by attributes**, **Group by**, além de **Adicionar métrica** e **Adicionar fórmula** para combinar consultas. |
+| **Selecionar Métricas** | Avançado | O construtor de consultas: **Métrica**, **Aggregate by**, **Filter by attributes**, **Agrupar por**, além de **Adicionar métrica** e **Adicionar fórmula** para combinar consultas. |
 
 ## Identidade dos recursos
 
@@ -153,7 +153,7 @@ O agente consulta o prometheus-pve-exporter a cada 30 segundos com os coletores 
 | Métrica | Unidade | Descrição |
 | --- | --- | --- |
 | `pve_up` | — | 1 quando o nó ou o convidado está ativo ou em execução, 0 caso contrário. |
-| `pve_uptime_seconds` | seconds | Tempo de atividade do nó ou do convidado. |
+| `pve_uptime_seconds` | segundos | Tempo de atividade do nó ou do convidado. |
 | `pve_version_info` | count | A versão do Proxmox VE, nos rótulos. Sempre 1. |
 
 ### Nó
@@ -209,10 +209,10 @@ Vêm do coletor `replication` do exportador, no nível do nó. As séries só ex
 | Métrica | Unidade | Descrição |
 | --- | --- | --- |
 | `pve_replication_failed_syncs` | count | Tentativas de sincronização com falha seguidas. Acima de 0, a réplica está ficando defasada. |
-| `pve_replication_duration_seconds` | seconds | Quanto tempo levou a última sincronização. |
-| `pve_replication_last_sync_timestamp_seconds` | seconds | Hora Unix da última sincronização **bem-sucedida**. |
-| `pve_replication_last_try_timestamp_seconds` | seconds | Hora Unix da última **tentativa**. Se for mais recente que a última sincronização, a tentativa mais recente falhou. |
-| `pve_replication_next_sync_timestamp_seconds` | seconds | Hora Unix da próxima sincronização agendada. |
+| `pve_replication_duration_seconds` | segundos | Quanto tempo levou a última sincronização. |
+| `pve_replication_last_sync_timestamp_seconds` | segundos | Hora Unix da última sincronização **bem-sucedida**. |
+| `pve_replication_last_try_timestamp_seconds` | segundos | Hora Unix da última **tentativa**. Se for mais recente que a última sincronização, a tentativa mais recente falhou. |
+| `pve_replication_next_sync_timestamp_seconds` | segundos | Hora Unix da próxima sincronização agendada. |
 | `pve_replication_info` | count | Metadados do job – tipo, origem, destino, convidado – nos rótulos. Sempre 1. |
 
 ## Critérios de monitoramento
@@ -224,10 +224,10 @@ Um critério compara uma das consultas ou fórmulas do monitor com um limite. Os
 | **Métrica** | A consulta ou fórmula a verificar, pelo nome da variável. |
 | **Agregação** | Como os valores da janela viram uma única resposta: **Média**, **Soma**, **Maximum Value**, **Minimum Value**, **All Values** (todos os valores precisam corresponder, na janela inteira) ou **Any Value** (basta um). |
 | **Condição** | **Maior que**, **Menor que**, **Maior ou igual a**, **Menor ou igual a** ou **Igual a** – ou uma condição de anomalia: **Anomalously High**, **Anomalously Low** ou **Anomalous**. |
-| **Threshold** | O valor com que comparar. Uma lista de unidades fica ao lado quando a métrica tem unidade. Não aparece em condições de anomalia. |
+| **Limite** | O valor com que comparar. Uma lista de unidades fica ao lado quando a métrica tem unidade. Não aparece em condições de anomalia. |
 | **Sensibilidade** | Só condições de anomalia. **Baixo** (4σ), **Médio** (3σ, o padrão) ou **Alto** (2σ). |
 | **Janela de linha de base** | Só condições de anomalia. 14 dias (o padrão), 28, 60 ou 90 dias de histórico. |
-| **Se não houver dados** | Em **Mais campos**. O que acontece quando a janela não tem amostras: **Ignore** (o padrão), **Treat As Zero** ou **Trigger**. |
+| **Se não houver dados** | Em **Mais campos**. O que acontece quando a janela não tem amostras: **Ignore** (o padrão), **Treat As Zero** ou **Gatilho**. |
 
 As condições de anomalia comparam cada valor com a mesma hora da semana na linha de base. Elas ficam em um estado "Learning", e não geram nada, até a janela de linha de base ter histórico suficiente.
 
@@ -243,7 +243,7 @@ Um monitor que você não cria a partir de um modelo começa com dois critérios
 | 2 | Check if _monitor name_ is online | Qualquer valor está acima de `0` | Marca o monitor como **Operacional**. |
 
 > [!IMPORTANT]
-> O silêncio não corresponde a nenhum dos dois critérios: um cluster que para de enviar dados deixa o monitor como estava. Para ser avisado quando os dados param, defina **Se não houver dados** como **Trigger** em um critério. O tempo em que o próprio OneUptime não estava recebendo nunca é ausência de dados: uma verificação cuja janela contém esse tempo espera no lugar, como explica [Quando o OneUptime não recebe dados](/docs/monitor/when-oneuptime-is-not-receiving).
+> O silêncio não corresponde a nenhum dos dois critérios: um cluster que para de enviar dados deixa o monitor como estava. Para ser avisado quando os dados param, defina **Se não houver dados** como **Gatilho** em um critério. O tempo em que o próprio OneUptime não estava recebendo nunca é ausência de dados: uma verificação cuja janela contém esse tempo espera no lugar, como explica [Quando o OneUptime não recebe dados](/docs/monitor/when-oneuptime-is-not-receiving).
 
 ## Solução de problemas
 

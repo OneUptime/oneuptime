@@ -1,6 +1,6 @@
 # Monitorer og monitorregler
 
-Et SLO måler tilgængeligheden af de monitorer, der er knyttet til det. Tilknyt dem manuelt, lad monitorregler tilknytte hver monitor, der matcher, eller gør begge dele. Denne side handler om et SLO's side **Monitorer**, under **Konfiguration** i dets sidemenu, og dets side **Monitor Rules**, under **Regler**.
+Et SLO måler tilgængeligheden af de monitorer, der er knyttet til det. Tilknyt dem manuelt, lad monitorregler tilknytte hver monitor, der matcher, eller gør begge dele. Denne side handler om et SLO's side **Monitorer**, under **Konfiguration** i dets sidemenu, og dets side **Monitorregler**, under **Regler**.
 
 :::cards
 - [Vælg monitorer manuelt](#tilknyt-monitorer-manuelt): Bedst til et lille, fast sæt.
@@ -20,7 +20,7 @@ flowchart TB
     union --> sli["SLI og fejlbudget"]
 ```
 
-Et nyt SLO har ingen monitorer, fordi oprettelsesformularen ikke beder om nogen. Indtil det har en, kan det ikke evalueres: dets sider viser **No monitors attached**, og dets **Oversigt** tilbyder begge måder at tilknytte monitorer på.
+Et nyt SLO har ingen monitorer, fordi oprettelsesformularen ikke beder om nogen. Indtil det har en, kan det ikke evalueres: dets sider viser **Ingen monitorer tilknyttet**, og dets **Oversigt** tilbyder begge måder at tilknytte monitorer på.
 
 ## Tilknyt monitorer manuelt
 
@@ -37,7 +37,7 @@ Klik på **Tilføj monitorer**, og vælg monitorer fra projektet. Kun monitorer,
 
 ### Gem listen
 
-Klik på **Tilføj monitorer**. Monitorerne vises på listen med kilden **Manual** og tæller med i SLI'en fra næste evaluering.
+Klik på **Tilføj monitorer**. Monitorerne vises på listen med kilden **Manuel** og tæller med i SLI'en fra næste evaluering.
 :::
 
 Klik på **Fjern** i en monitors række for at tage den ud af SLO'et. Selve monitoren ændres ikke; den holder bare op med at tælle med i SLO'ets SLI og fejlbudget.
@@ -47,7 +47,7 @@ Siden **Monitorer** viser for hver monitor:
 | Kolonne | Hvad den viser |
 | --- | --- |
 | **Aktuel status** | Monitorens aktuelle status, eller **Arkiveret**, **Deaktiveret**, **Sonder ikke aktiveret**, **Sonder afbrudt** eller **Ukendt**, når den ikke bliver tjekket eller endnu ikke har rapporteret noget. |
-| **Kilde** | **Rule**, hvis en af SLO'ets monitorregler har tilknyttet den, **Manual**, hvis nogen har tilknyttet den manuelt. |
+| **Kilde** | **Regel**, hvis en af SLO'ets monitorregler har tilknyttet den, **Manuel**, hvis nogen har tilknyttet den manuelt. |
 | **Etiketter** | Monitorens etiketter. |
 
 ## Tilknyt monitorer med en regel
@@ -57,7 +57,7 @@ En monitorregel beskriver de monitorer, et SLO skal måle, som "hver monitor med
 :::steps
 ### Åbn Monitor Rules
 
-Åbn SLO'et, gå til **Monitor Rules**, og klik på **Opret SLO Monitor Rule**.
+Åbn SLO'et, gå til **Monitorregler**, og klik på **Opret SLO Monitor Rule**.
 
 ### Giv reglen et navn
 
@@ -69,10 +69,10 @@ Under **Matchkriterier** klikker du på **Tilføj betingelse**, vælger et felt 
 
 ### Gem reglen
 
-Klik på **Opret SLO Monitor Rule**. Reglen starter aktiveret, og SLO'ets monitorer vurderes igen med det samme: hver monitor, der matcher, tilknyttes med kilden **Rule**.
+Klik på **Opret SLO Monitor Rule**. Reglen starter aktiveret, og SLO'ets monitorer vurderes igen med det samme: hver monitor, der matcher, tilknyttes med kilden **Regel**.
 :::
 
-Regeltabellen viser for hver regel navnet, matchkriterierne i almindelige ord og om den er aktiveret. For at sætte en regel på pause slår du **Aktiveret** fra i dens redigeringsformular. **View Monitors** åbner SLO'ets side **Monitorer**.
+Regeltabellen viser for hver regel navnet, matchkriterierne i almindelige ord og om den er aktiveret. For at sætte en regel på pause slår du **Aktiveret** fra i dens redigeringsformular. **Vis monitorer** åbner SLO'ets side **Monitorer**.
 
 ### Matchkriterier
 
@@ -102,19 +102,19 @@ Et mønster er et regulært udtryk, som `^api-.*`, eller et `*`-jokertegn, som `
 - Når en etiket slettes, vurderes de SLO'er, hvis regler brugte den, igen.
 - Regler holder et SLO's monitorliste opdateret, også mens SLO'et er deaktiveret eller arkiveret, så det fortsætter med de rigtige monitorer.
 
-Regler synkroniserer igen ved hver gemning, så **Run Now** er til at indhente det, SLO'et er gået glip af. Den findes i hver række, på reglens egen side (**Vis**) og i tabellens massehandlinger. At køre en regel vurderer alle SLO'ets aktiverede monitorregler igen samlet, og bagefter fortæller dialogen, hvor mange monitorer der blev tilknyttet og frakoblet. At køre en regel kræver tilladelse til at redigere SLO-monitorregler. Se [Kør regler på eksisterende ressourcer](/docs/configuration/run-rules-now).
+Regler synkroniserer igen ved hver gemning, så **Kør nu** er til at indhente det, SLO'et er gået glip af. Den findes i hver række, på reglens egen side (**Vis**) og i tabellens massehandlinger. At køre en regel vurderer alle SLO'ets aktiverede monitorregler igen samlet, og bagefter fortæller dialogen, hvor mange monitorer der blev tilknyttet og frakoblet. At køre en regel kræver tilladelse til at redigere SLO-monitorregler. Se [Kør regler på eksisterende ressourcer](/docs/configuration/run-rules-now).
 
 ### Hvilke monitorer en regel ejer
 
 - En monitor forbliver tilknyttet, så længe en aktiveret regel matcher den, og frakobles, så snart ingen gør det længere.
 - At slå en regel fra eller slette den frakobler kun de monitorer, som ingen anden aktiveret regel stadig matcher.
-- Regler frakobler kun monitorer, som en regel har tilknyttet. En manuelt tilknyttet monitor overtages aldrig af en regel, der tilfældigvis matcher den, og frakobles ikke, når den holder op med at matche. Dens kilde forbliver **Manual**.
+- Regler frakobler kun monitorer, som en regel har tilknyttet. En manuelt tilknyttet monitor overtages aldrig af en regel, der tilfældigvis matcher den, og frakobles ikke, når den holder op med at matche. Dens kilde forbliver **Manuel**.
 
 ## Manuelt valg, mens regler er slået til
 
 Så længe mindst én regel er aktiveret, er det reglerne, der styrer SLO'ets monitorer:
 
-- monitorer kan ikke tilføjes manuelt: **Tilføj monitorer** er deaktiveret, og et banner siger **This SLO's monitors are managed by its monitor rules**, med et link **Manage Monitor Rules**;
+- monitorer kan ikke tilføjes manuelt: **Tilføj monitorer** er deaktiveret, og et banner siger **Denne SLO's monitorer styres af dens monitorregler**, med et link **Administrer monitorregler**;
 - monitorer, som en regel har tilknyttet, kan ikke fjernes manuelt, fordi reglen ville tilknytte dem igen: deres knap **Fjern** er låst, og værktøjstippet forklarer hvorfor;
 - monitorer, der blev tilknyttet manuelt, før regler blev slået til, kan stadig fjernes.
 
@@ -153,7 +153,7 @@ En monitorregel har tilknyttet den monitor og ville tilknytte den igen. Ændr el
 :::
 
 :::details En monitor, som en regel burde matche, er ikke tilknyttet
-Tjek, at reglen er aktiveret, og at hver betingelse er opfyldt med **Alle skal matche**. Etiketter, som en monitoretiketregel tilføjer, tæller også. Klik på **Run Now** på reglen for at synkronisere SLO'et igen.
+Tjek, at reglen er aktiveret, og at hver betingelse er opfyldt med **Alle skal matche**. Etiketter, som en monitoretiketregel tilføjer, tæller også. Klik på **Kør nu** på reglen for at synkronisere SLO'et igen.
 :::
 
 :::details Det mislykkes at gemme en regel med en mønsterfejl

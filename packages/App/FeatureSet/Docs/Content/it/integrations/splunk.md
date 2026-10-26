@@ -44,11 +44,11 @@ Per autenticarti invece con una password, salta questo passo e tieni a portata d
 
 ### Aggiungere la connessione in OneUptime
 
-Apri **Prodotti → Security Events → Connections** (`/dashboard/{projectId}/security-events/connections`), fai clic su **Aggiungi connessione**, scegli **Splunk Enterprise Security** e fai clic su **Avanti**. Compila le impostazioni della tabella qui sotto, fai clic su **Avanti** e incolla il token in **Authentication token**, oppure la password in **Password**.
+Apri **Prodotti → Security Events → Connessioni** (`/dashboard/{projectId}/security-events/connections`), fai clic su **Aggiungi connessione**, scegli **Splunk Enterprise Security** e fai clic su **Avanti**. Compila le impostazioni della tabella qui sotto, fai clic su **Avanti** e incolla il token in **Authentication token**, oppure la password in **Password**.
 
 ### Provarla prima di salvare
 
-Fai clic su **Test these settings** sotto **Testa prima di salvare**. Il test si autentica ed esegue la tua ricerca con i valori del modulo, senza salvare nulla, così una porta sbagliata o un ruolo mancante emerge prima che la connessione esista. Poi fai clic su **Avanti**, dai un **Nome** alla connessione e creala.
+Fai clic su **Prova queste impostazioni** sotto **Testa prima di salvare**. Il test si autentica ed esegue la tua ricerca con i valori del modulo, senza salvare nulla, così una porta sbagliata o un ruolo mancante emerge prima che la connessione esista. Poi fai clic su **Avanti**, dai un **Nome** alla connessione e creala.
 :::
 
 | Impostazione | Cosa inserire |
@@ -59,9 +59,9 @@ Fai clic su **Test these settings** sotto **Testa prima di salvare**. Il test si
 | **Authentication token** | Il token del primo passo. Quando è salvato un token, viene usato quello, e non il nome utente né la password. |
 | **Password** | La password dell'utente Splunk, solo quando non si usa nessun token. |
 
-**Authentication token** e **Password** sono cifrati, mai restituiti dall'API e mai più mostrati. Sostituiscine uno con **Update credentials** sulla connessione. Per passare da un tipo di autenticazione all'altro, inserisci lì quello nuovo e attiva **Remove the stored Authentication token** o **Remove the stored Password**.
+**Authentication token** e **Password** sono cifrati, mai restituiti dall'API e mai più mostrati. Sostituiscine uno con **Aggiorna le credenziali** sulla connessione. Per passare da un tipo di autenticazione all'altro, inserisci lì quello nuovo e attiva **Remove the stored Authentication token** o **Remove the stored Password**.
 
-Il passaggio **Polling** ha anche una **Descrizione** facoltativa, il **Poll Interval (Minutes)**, un numero intero da `1` a `1440` che parte da `5`, e **Abilitato**, che parte attivo.
+Il passaggio **Interrogazione** ha anche una **Descrizione** facoltativa, il **Intervallo di interrogazione (minuti)**, un numero intero da `1` a `1440` che parte da `5`, e **Abilitato**, che parte attivo.
 
 ## Cosa viene importato
 
@@ -100,14 +100,14 @@ POST {Splunk management URL}/services/search/v2/jobs/export
 - **L'ora di creazione è il cursore.** La finestra riguarda `_time`, che per un notable event è quando la ricerca di correlazione l'ha creato, non quando è avvenuta l'attività che ha trovato. Una ricerca che gira ogni ora data i suoi notable event all'ora della sua esecuzione, quindi nessuno finisce dietro il cursore.
 - **La prima interrogazione guarda indietro di 24 ore**, così una nuova connessione mostra subito i suoi notable event recenti.
 - **Ogni interrogazione successiva parte 1 minuto prima del cursore salvato**, così una riga creata al confine tra due finestre non viene mai persa.
-- **Un'interrogazione legge al massimo 24 ore oltre il cursore.** Una connessione il cui cursore è rimasto indietro recupera in una serie di finestre di 24 ore, e la sua **Health** indica **Catching up**.
+- **Un'interrogazione legge al massimo 24 ore oltre il cursore.** Una connessione il cui cursore è rimasto indietro recupera in una serie di finestre di 24 ore, e la sua **Integrità** indica **Catching up**.
 - **I duplicati vengono scartati in base a `event_id`**, o ai `_bkt` e `_cd` propri di Splunk, all'interno del progetto, così la sovrapposizione, una finestra ripetuta e un'importazione non salvano mai una riga due volte.
 
 Un search head precedente alla 9.0.1 risponde `404` alla richiesta a `search/v2/jobs/export`. OneUptime la invia allora a `search/jobs/export`, deprecato, e l'esecuzione lo segnala in un avviso. Aggiorna il search head: le versioni attuali disattivano quell'endpoint.
 
 ### Quando una finestra contiene più di quanto un'interrogazione possa leggere
 
-Un'interrogazione legge al massimo 10.000 righe. Quando una finestra ne contiene di più, l'esecuzione è **Partial**, con un avviso come questo:
+Un'interrogazione legge al massimo 10.000 righe. Quando una finestra ne contiene di più, l'esecuzione è **Parziale**, con un avviso come questo:
 
 ```text
 Stopped after collecting 10000 records; the window holds more. Records are read oldest first, and the last one read was created at 2026-09-14T08:12:44.000Z, where the next poll can resume.
@@ -119,22 +119,22 @@ Quando un'esecuzione non riesce affatto a superare il cursore salvato, OneUptime
 
 1. **Restringere.** L'interrogazione successiva legge una finestra lunga la metà, dallo stesso punto di partenza, e continua a dimezzarla finché una finestra non viene letta per intero, fino a un minuto. L'avviso dell'esecuzione lo dice: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **Tornare a crescere.** Dopo che una finestra è stata letta per intero, la successiva è di nuovo lunga il doppio, fino a 24 ore.
-3. **Superare un singolo minuto.** Se anche un solo minuto contiene più di quanto un'interrogazione possa leggere, il polling lo supera, così i notable event più recenti continuano ad arrivare. L'esecuzione resta **Partial**, e **Ultimo errore** riporta `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importa quel minuto con **Import this time range** per recuperare ciò che un'esecuzione può leggere.
+3. **Superare un singolo minuto.** Se anche un solo minuto contiene più di quanto un'interrogazione possa leggere, il polling lo supera, così i notable event più recenti continuano ad arrivare. L'esecuzione resta **Parziale**, e **Ultimo errore** riporta `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importa quel minuto con **Import this time range** per recuperare ciò che un'esecuzione può leggere.
 
-Un'esecuzione che fallisce del tutto, con un errore di Splunk, mantiene il cursore e la lunghezza della finestra, e l'interrogazione successiva rilegge la stessa finestra. L'unica eccezione è una richiesta scaduta: il cursore resta, ma la finestra successiva è lunga la metà, perché una finestra troppo pesante per ricevere risposta in tempo scadrebbe a ogni tentativo. Cambiare il **Poll Interval (Minutes)** non cambia nulla di tutto questo: decide quanto spesso parte un'interrogazione, non dove inizia la sua finestra.
+Un'esecuzione che fallisce del tutto, con un errore di Splunk, mantiene il cursore e la lunghezza della finestra, e l'interrogazione successiva rilegge la stessa finestra. L'unica eccezione è una richiesta scaduta: il cursore resta, ma la finestra successiva è lunga la metà, perché una finestra troppo pesante per ricevere risposta in tempo scadrebbe a ogni tentativo. Cambiare il **Intervallo di interrogazione (minuti)** non cambia nulla di tutto questo: decide quanto spesso parte un'interrogazione, non dove inizia la sua finestra.
 
 ### Eseguire, visualizzare in anteprima e importare su richiesta
 
-Fai clic su **Diagnostics** su una connessione per vederne le esecuzioni recenti e lavorarci a mano. Chi può modificare la connessione può avviare queste azioni; chi può vederla può leggerne la cronologia.
+Fai clic su **Diagnostica** su una connessione per vederne le esecuzioni recenti e lavorarci a mano. Chi può modificare la connessione può avviare queste azioni; chi può vederla può leggerne la cronologia.
 
-- **Run now** avvia subito un'interrogazione, con il cursore abituale, anche quando la connessione non è **Abilitato**.
+- **Esegui ora** avvia subito un'interrogazione, con il cursore abituale, anche quando la connessione non è **Abilitato**.
 - **Preview notable events** legge un intervallo di tempo fino a 7 giorni e non importa nulla.
 - **Import this time range** importa un intervallo fino a 7 giorni, dopo la tua conferma, senza spostare il cursore. Le righe già importate vengono saltate.
 - **Copy diagnostics** su un'esecuzione copia il suo rapporto per il supporto. Non contiene mai credenziali.
 
 ## Testare la connessione
 
-**Testa la connessione** sulla riga di una connessione, e **Test these settings** nel modulo, vengono eseguiti nel processo dell'API, non in un worker in background, così un test risponde anche quando il problema sono i worker. Esegue questi controlli, in ordine:
+**Testa la connessione** sulla riga di una connessione, e **Prova queste impostazioni** nel modulo, vengono eseguiti nel processo dell'API, non in un worker in background, così un test risponde anche quando il problema sono i worker. Esegue questi controlli, in ordine:
 
 | Controllo | Cosa verifica |
 | --- | --- |
@@ -158,7 +158,7 @@ In Splunk Web, apri **Settings → Data inputs → HTTP Event Collector** e fai 
 
 ### Aggiungere la destinazione
 
-Apri **Prodotti → Security Events → Connections**. In **Invia al tuo SIEM**, fai clic su **Aggiungi destinazione**, scegli Splunk in **SIEM** e fai clic su **Avanti**. Inserisci l'**URL HEC** e incolla il token in **Token HEC**. **Index** e **Tipo di origine** sono facoltativi: se restano vuoti, gli eventi vanno nell'indice predefinito del token con il sourcetype `oneuptime:security`.
+Apri **Prodotti → Security Events → Connessioni**. In **Invia al tuo SIEM**, fai clic su **Aggiungi destinazione**, scegli Splunk in **SIEM** e fai clic su **Avanti**. Inserisci l'**URL HEC** e incolla il token in **Token HEC**. **Indice** e **Tipo di origine** sono facoltativi: se restano vuoti, gli eventi vanno nell'indice predefinito del token con il sourcetype `oneuptime:security`.
 
 ### Inviare un evento di prova e iniziare a inviare
 
@@ -175,7 +175,7 @@ Il **Ultimo errore** della connessione conserva il messaggio di errore completo,
 
 :::details Last Error inizia con `Splunk Enterprise Security authentication request`
 - `Splunk Enterprise Security authentication request failed (HTTP ...)`: Splunk si è rifiutato di dire chi è il chiamante.
-  - `HTTP 401`: Splunk non ha accettato le credenziali. Il token è sbagliato, scaduto o eliminato, l'autenticazione con token è disattivata sul search head, oppure il nome utente o la password sono sbagliati. Crea un nuovo token e salvalo con **Update credentials**.
+  - `HTTP 401`: Splunk non ha accettato le credenziali. Il token è sbagliato, scaduto o eliminato, l'autenticazione con token è disattivata sul search head, oppure il nome utente o la password sono sbagliati. Crea un nuovo token e salvalo con **Aggiorna le credenziali**.
   - `HTTP 404`: la **Splunk management URL** non è l'API REST. Punta a Splunk Web sulla porta `8000`, oppure ha un percorso che il search head non serve.
 - `Splunk Enterprise Security authentication request returned ...`: ha risposto qualcosa di diverso dall'API REST del search head, per esempio l'HTML di Splunk Web sulla porta `8000` o la pagina di un proxy. Fai puntare l'URL alla porta di gestione.
 :::
@@ -200,8 +200,8 @@ Nessuna interrogazione è terminata per questa connessione. Esegui **Testa la co
 :::
 
 :::details Un'esecuzione è Partial
-- `Stopped after collecting 10000 records; the window holds more`: la finestra conteneva più delle 10.000 righe che legge un'esecuzione. Non si perde nulla: l'interrogazione successiva parte dopo l'ultima riga letta. Una connessione che resta **Partial** un'interrogazione dopo l'altra sta recuperando un arretrato, e i suoi **Last Polled** e **Last Event Imported** continuano ad avanzare. Se non recupera mai, la ricerca di **Cerca** trova più di 10.000 righe per intervallo di polling: restringila, oppure accorcia il **Poll Interval (Minutes)**.
-- `More records were created in the one minute from ... than one poll can read`: il polling ha superato quel minuto. Importalo con **Import this time range** in **Diagnostics**. Un'importazione legge quanto un'interrogazione.
+- `Stopped after collecting 10000 records; the window holds more`: la finestra conteneva più delle 10.000 righe che legge un'esecuzione. Non si perde nulla: l'interrogazione successiva parte dopo l'ultima riga letta. Una connessione che resta **Parziale** un'interrogazione dopo l'altra sta recuperando un arretrato, e i suoi **Ultima interrogazione** e **Ultimo evento importato** continuano ad avanzare. Se non recupera mai, la ricerca di **Cerca** trova più di 10.000 righe per intervallo di polling: restringila, oppure accorcia il **Intervallo di interrogazione (minuti)**.
+- `More records were created in the one minute from ... than one poll can read`: il polling ha superato quel minuto. Importalo con **Import this time range** in **Diagnostica**. Un'importazione legge quanto un'interrogazione.
 :::
 
 :::details Il test riesce, ma non viene importato nulla

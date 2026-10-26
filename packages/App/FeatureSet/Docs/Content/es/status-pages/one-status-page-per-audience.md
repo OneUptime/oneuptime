@@ -82,7 +82,7 @@ Para el personal, usa **Añadir en masa** en **Suscriptores por correo electrón
 
 ### Dejar que los responsables lean las páginas de estado
 
-El selector solo lista las páginas de estado que la persona puede leer, y los roles de incidentes no pueden leer páginas de estado. Da a los responsables el rol **Status Page Viewer** junto a su rol de incidentes; se puede limitar a páginas con determinadas etiquetas. Sin él, el selector está vacío.
+El selector solo lista las páginas de estado que la persona puede leer, y los roles de incidentes no pueden leer páginas de estado. Da a los responsables el rol **Visor de páginas de estado** junto a su rol de incidentes; se puede limitar a páginas con determinadas etiquetas. Sin él, el selector está vacío.
 
 ### Decidir qué dice cada mensaje
 
@@ -251,7 +251,7 @@ Consulta [Notas, responsables y actividad de incidentes](/docs/incidents/notes-o
 
 ## Permisos
 
-- **Elegir una página de estado necesita acceso de lectura a ella.** Las páginas de estado se leen con los roles de páginas de estado, no con los roles de incidentes, y una página de estado se puede restringir por etiqueta. Da a los responsables **Status Page Viewer**, limitado a etiquetas si quieres. Sin él, el selector está vacío, y la API rechaza una página que quien llama no puede leer, tanto en los incidentes como en las plantillas de incidente.
+- **Elegir una página de estado necesita acceso de lectura a ella.** Las páginas de estado se leen con los roles de páginas de estado, no con los roles de incidentes, y una página de estado se puede restringir por etiqueta. Da a los responsables **Visor de páginas de estado**, limitado a etiquetas si quieres. Sin él, el selector está vacío, y la API rechaza una página que quien llama no puede leer, tanto en los incidentes como en las plantillas de incidente.
 - **Las páginas que el editor no puede ver se conservan.** Un editor que solo puede leer algunas de las páginas de un incidente solo ve esas en el selector, y al guardar se conservan las páginas que no puede ver.
 - **Las páginas a las que está limitado un incidente forman parte del incidente.** Como sus monitores, cualquiera que pueda leer el incidente ve sus nombres, en la tarjeta **Alcance de páginas de estado**, en la vista general y en la actividad del incidente, pueda leer o no esas páginas de estado.
 - **A qué llegó un envío también forma parte del incidente.** En cuanto una notificación ha salido, su mensaje de estado y su elemento de la actividad nombran todas las páginas de estado a las que fue, con lo que se envió y lo que falló en cada una, y cualquiera que pueda leer el incidente los ve, pueda leer o no esas páginas de estado. Solo el resumen y la vista previa de abajo, que miran hacia adelante, se limitan a las páginas que la persona puede leer.

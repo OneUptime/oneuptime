@@ -138,7 +138,7 @@ Ve a **Ajustes del proyecto → Avanzado → Claves de API** y haz clic en **Cre
 
 ### Elige qué puede hacer
 
-En **Acceso**, elige **Viewer** para un agente que solo lee, o **Project Admin** para uno que además crea, actualiza y elimina (consulta [Permisos de las claves de API](#permisos-de-las-claves-de-api)).
+En **Acceso**, elige **Visor** para un agente que solo lee, o **Administrador del proyecto** para uno que además crea, actualiza y elimina (consulta [Permisos de las claves de API](#permisos-de-las-claves-de-api)).
 
 ### Copia la clave
 
@@ -420,8 +420,8 @@ Estas funcionan sin credenciales, solo con las herramientas de páginas de estad
 
 | Lo que hace el agente | Elegir en **Acceso** |
 | --- | --- |
-| Solo lee | **Viewer**, o añade permisos de lectura en la página de la clave |
-| También crea, actualiza y elimina | **Project Admin**, o añade el rol Project Admin en la página de la clave |
+| Solo lee | **Visor**, o añade permisos de lectura en la página de la clave |
+| También crea, actualiza y elimina | **Administrador del proyecto**, o añade el rol Project Admin en la página de la clave |
 
 Da a cada clave lo mínimo que necesita, rota las claves con regularidad, usa una clave distinta para cada entorno y vigila en OneUptime lo que hace cada clave.
 

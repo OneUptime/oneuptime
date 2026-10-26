@@ -309,13 +309,13 @@ Quando uma função do seu próprio código ocupa pelo menos 5% do tempo ou da m
 | --- | --- |
 | **Gráfico de chama** | Cada barra é uma função da pilha de chamadas, e a largura dela é proporcional ao tempo ou aos recursos consumidos. Clique em uma função para aplicar zoom e ver quem a chama e quem ela chama. |
 | **Top functions** | As funções do perfil, ordenadas por tempo próprio ou total. **Somente meu código** oculta os frames de bibliotecas. |
-| **Diff vs. baseline** | O perfil comparado com um período anterior (**vs. 1 hora atrás**, **vs. ontem** ou **vs. semana passada**), com as funções **Most regressed** e **Most improved**. |
+| **Diff vs. baseline** | O perfil comparado com um período anterior (**vs. 1 hora atrás**, **vs. ontem** ou **vs. semana passada**), com as funções **Mais pioraram** e **Mais melhoraram**. |
 
-**Download pprof** salva o perfil para ferramentas locais como `go tool pprof`.
+**Baixar pprof** salva o perfil para ferramentas locais como `go tool pprof`.
 
 ### Correlação com traces
 
-Quando um perfil traz IDs de trace e de span (por exemplo, como rótulos de amostra `trace_id` / `span_id`), você vai direto de um span lento de um trace ao perfil de CPU ou memória correspondente para entender exatamente que código estava rodando, e **Open linked trace** faz o caminho inverso.
+Quando um perfil traz IDs de trace e de span (por exemplo, como rótulos de amostra `trace_id` / `span_id`), você vai direto de um span lento de um trace ao perfil de CPU ou memória correspondente para entender exatamente que código estava rodando, e **Abrir trace vinculado** faz o caminho inverso.
 
 A aba **Perfil** de um span também inclui as amostras vinculadas aos spans aninhados sob ele, porque os profilers costumam atribuir o tempo de CPU de uma requisição a um span filho em vez do próprio span da requisição.
 

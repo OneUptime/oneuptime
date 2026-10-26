@@ -46,7 +46,7 @@ La dépense est le signe le plus sûr d'un agent emballé. Un budget additionne 
 :::steps
 1. Ouvrez **Produits → IA / LLM → Budgets** et cliquez sur **Créer : Budget de coûts LLM**. Fixez un **Budget quotidien (USD)**, et choisissez le service de l'agent dans **Service (facultatif)** pour que le budget ne surveille que cet agent.
 2. Dans le menu de la ligne du nouveau budget, choisissez **Afficher l'ID** et copiez l'ID.
-3. Créez un [moniteur de métriques](/docs/monitor/metrics-monitor) sur `oneuptime.llm.budget.percent.used`, filtré par l'attribut `oneuptime.llm.budget.id` avec l'ID copié, et réglez sa **Plage temporelle** sur **Past 30 Minutes**.
+3. Créez un [moniteur de métriques](/docs/monitor/metrics-monitor) sur `oneuptime.llm.budget.percent.used`, filtré par l'attribut `oneuptime.llm.budget.id` avec l'ID copié, et réglez sa **Plage temporelle** sur **30 dernières minutes**.
 4. Ajoutez un critère **Supérieur ou égal à** `100` qui crée une alerte, et donnez-lui un **Titre de l'alerte** qui nomme l'agent, par exemple `LLM budget exceeded: support-bot`. Le flux de travail et votre endpoint lisent tous deux ce titre.
 :::
 
@@ -197,7 +197,7 @@ L'en-tête `Authorization` ne correspond pas au jeton qu'attend votre endpoint. 
 :::
 
 :::details L'alerte de budget s'ouvre et se résout sans arrêt
-La **Plage temporelle** du moniteur est plus courte que les 15 minutes qui séparent deux points du budget. Réglez-la sur **Past 30 Minutes**.
+La **Plage temporelle** du moniteur est plus courte que les 15 minutes qui séparent deux points du budget. Réglez-la sur **30 dernières minutes**.
 :::
 
 :::details La requête n'atteint jamais votre endpoint

@@ -15,7 +15,7 @@ Um incidente é o registro a partir do qual sua equipe trabalha quando algo queb
 ## Visão rápida
 
 - **Um produto próprio** — abra **Incidentes** no menu **Produtos** da barra superior; a lista fica em `/dashboard/{projectId}/incidents`.
-- **Três estados iniciais** — **Identified**, **Confirmado** e **Resolvido** são criados para todo projeto novo. Você pode adicionar os seus; os três iniciais podem ser renomeados e recoloridos, mas nunca excluídos.
+- **Três estados iniciais** — **Identificadas**, **Confirmado** e **Resolvido** são criados para todo projeto novo. Você pode adicionar os seus; os três iniciais podem ser renomeados e recoloridos, mas nunca excluídos.
 - **Três severidades iniciais** — **Critical Incident**, **Major Incident** e **Minor Incident**. Uma severidade é um rótulo com uma cor e uma ordem — ela não tem comportamento próprio.
 - **Cinco caminhos de entrada** — o assistente **Declarar incidente**, **Criar a partir de modelo**, uma regra de critérios de monitor, `POST /api/incident`, ou um [formulário](/docs/forms/index) que qualquer pessoa com o link pode preencher.
 - **Numerados por projeto** — cada incidente recebe um número de incidente de um contador do projeto, exibido com o prefixo do seu projeto: `INC-42` em um projeto novo, ou `#42` sem prefixo.
@@ -117,7 +117,7 @@ stateDiagram-v2
 
 | Estado            | Ordem | Cor                   | O que significa                                                           |
 | ----------------- | ----- | --------------------- | ------------------------------------------------------------------------- |
-| **Identified**    | 1     | Vermelho (`#fd625e`)  | O estado em que cai um incidente recém-criado. É o estado de criação.     |
+| **Identificadas**    | 1     | Vermelho (`#fd625e`)  | O estado em que cai um incidente recém-criado. É o estado de criação.     |
 | **Confirmado**    | 2     | Amarelo (`#ffbf53`)   | Alguém assumiu o incidente e está trabalhando nele.                       |
 | **Resolvido**     | 3     | Verde (`#2ab57d`)     | O incidente acabou. É a resolução que o tira da sua página de status.     |
 
@@ -130,7 +130,7 @@ Essa distinção importa mais do que parece:
 - **Incidentes ativos** é definido unicamente como «o estado atual fica acima do estado resolvido». Um estado personalizado que você adiciona acima do estado resolvido é, portanto, ativo; um que você coloca depois conta como resolvido, assim como o próprio estado resolvido.
 
 > [!NOTE]
-> O primeiro estado inicial se chama **Identified**, embora várias descrições dentro do produto ainda o chamem de estado de criação («created»). Se você estiver procurando «Created» na lista de estados do seu projeto, é a linha chamada **Identified**.
+> O primeiro estado inicial se chama **Identificadas**, embora várias descrições dentro do produto ainda o chamem de estado de criação («created»). Se você estiver procurando «Created» na lista de estados do seu projeto, é a linha chamada **Identificadas**.
 
 Você pode adicionar seus próprios estados em **Incidentes → Configurações → Estado do incidente**. Um estado novo é adicionado logo acima do estado resolvido, e você reordena as linhas arrastando-as; a coluna **Conta como** mostra como conta um incidente em cada estado — não confirmado, confirmado ou resolvido. Os três estados marcados levam a etiqueta **Integrado**: eles mantêm sua ordem e não podem ser excluídos, mas você pode renomeá-los, recolori-los e movê-los, e é por isso que a interface lê os nomes dos estados de forma dinâmica.
 
@@ -165,7 +165,7 @@ Abra **Incidentes** no menu **Produtos** da barra superior. Seu menu lateral é 
 
 **Visão geral** e **Episódios** ficam abertas; **IA**, **Espaço de trabalho**, **Regras**, **Configurações** e **Desenvolvedores** ficam recolhidas por padrão, para que o menu abra nas listas que você usa todos os dias. Clique no título de uma seção para expandi-la e encontrar as páginas a que o resto desta documentação se refere; uma seção também se abre sozinha sempre que você está em uma de suas páginas. A configuração de incidentes não fica nas configurações do projeto; ela vive toda aqui.
 
-A lista de incidentes mostra **Número do incidente**, **Título**, **Estado**, **Gravidade**, **Recursos afetados**, **Declarado**, **Duração**, **Rótulos** e **Proprietários**. O menu **⋯** no fim da linha de cada incidente oferece **Confirmar** e **Resolver** enquanto o incidente puder dar esse passo, **Alterar estado**, **Alterar gravidade**, **Atribuir a mim** até você ser o proprietário e **Add Owner** para passá-lo a outra pessoa. Selecione vários incidentes para fazer o mesmo com todos de uma vez.
+A lista de incidentes mostra **Número do incidente**, **Título**, **Estado**, **Gravidade**, **Recursos afetados**, **Declarado**, **Duração**, **Rótulos** e **Proprietários**. O menu **⋯** no fim da linha de cada incidente oferece **Confirmar** e **Resolver** enquanto o incidente puder dar esse passo, **Alterar estado**, **Alterar gravidade**, **Atribuir a mim** até você ser o proprietário e **Adicionar proprietário** para passá-lo a outra pessoa. Selecione vários incidentes para fazer o mesmo com todos de uma vez.
 
 ## O que cada página de um incidente mostra
 

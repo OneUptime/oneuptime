@@ -39,7 +39,7 @@ Le regole differiscono nel modo in cui si risolvono più corrispondenze:
 - **Regole del proprietario**, **Regole etichette** e **Regole di runbook** agiscono tutte quando corrispondono. Proprietari ed etichette aggiunti da più regole vengono aggiunti una volta sola.
 - **Reminder Rules** vengono controllate dall'alto verso il basso nel loro elenco, e vince la prima che corrisponde. Trascinate una regola per cambiarne la posizione; una nuova regola va in fondo.
 
-Una nuova regola parte abilitata; disattivate **Abilitato** nel suo modulo di modifica per metterla in pausa, e l'elenco mostra per ogni regola un **Abilitato** verde o un **Disabilitato** rosso. Le regole del proprietario, delle etichette e di runbook agiscono sugli eventi creati dopo averle salvate. Per applicare una regola del proprietario o delle etichette agli eventi che avete già, usate **Run Now**: vedere [Eseguire le regole sulle risorse esistenti](/docs/configuration/run-rules-now).
+Una nuova regola parte abilitata; disattivate **Abilitato** nel suo modulo di modifica per metterla in pausa, e l'elenco mostra per ogni regola un **Abilitato** verde o un **Disabilitato** rosso. Le regole del proprietario, delle etichette e di runbook agiscono sugli eventi creati dopo averle salvate. Per applicare una regola del proprietario o delle etichette agli eventi che avete già, usate **Esegui ora**: vedere [Eseguire le regole sulle risorse esistenti](/docs/configuration/run-rules-now).
 
 ## Regole del proprietario e delle etichette
 
@@ -119,16 +119,16 @@ Ogni modello della manutenzione ha trigger e azioni di workflow, con il suo nome
 
 | Ruolo                             | Cosa può fare                                                                                        |
 | --------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| **Scheduled Maintenance Viewer**  | Legge gli eventi, e non modifica nulla.                                                              |
-| **Scheduled Maintenance Member**  | Crea, modifica ed elimina eventi con le loro note, cronologie di stato e proprietari, e entrambi i tipi di modelli. |
-| **Scheduled Maintenance Admin**   | Tutto ciò che fa un membro, e in più crea, modifica ed elimina gli stati di manutenzione.            |
+| **Visualizzatore della manutenzione programmata**  | Legge gli eventi, e non modifica nulla.                                                              |
+| **Membro della manutenzione programmata**  | Crea, modifica ed elimina eventi con le loro note, cronologie di stato e proprietari, e entrambi i tipi di modelli. |
+| **Amministratore della manutenzione programmata**   | Tutto ciò che fa un membro, e in più crea, modifica ed elimina gli stati di manutenzione.            |
 
-Regole, campi personalizzati e misurazioni richiedono **Project Owner** o **Project Admin**, oppure un ruolo personalizzato con il permesso proprio di quella pagina, come **Create Scheduled Maintenance Owner Rule**. Le regole di runbook accettano anche **Runbook Admin**. **Project Member** lavora con eventi e modelli, come **Scheduled Maintenance Member**. Vedere [Utenti, team e autorizzazioni](/docs/permissions/index).
+Regole, campi personalizzati e misurazioni richiedono **Proprietario del progetto** o **Amministratore del progetto**, oppure un ruolo personalizzato con il permesso proprio di quella pagina, come **Create Scheduled Maintenance Owner Rule**. Le regole di runbook accettano anche **Amministratore dei runbook**. **Membro del progetto** lavora con eventi e modelli, come **Membro della manutenzione programmata**. Vedere [Utenti, team e autorizzazioni](/docs/permissions/index).
 
 ## Risoluzione dei problemi
 
 :::details Una regola del proprietario non ha aggiunto nessuno a un nuovo evento
-Aprite la regola e controllate le sue condizioni: ogni condizione compilata deve essere vera. Un modello del titolo è un'espressione regolare, quindi `db upgrade` non corrisponde a «DB-Upgrade»; scrivete `db.upgrade`. Inoltre una regola agisce solo sugli eventi creati dopo il suo salvataggio: usate **Run Now** per quelli che avete già.
+Aprite la regola e controllate le sue condizioni: ogni condizione compilata deve essere vera. Un modello del titolo è un'espressione regolare, quindi `db upgrade` non corrisponde a «DB-Upgrade»; scrivete `db.upgrade`. Inoltre una regola agisce solo sugli eventi creati dopo il suo salvataggio: usate **Esegui ora** per quelli che avete già.
 :::
 
 :::details I proprietari non hanno ricevuto nessun promemoria

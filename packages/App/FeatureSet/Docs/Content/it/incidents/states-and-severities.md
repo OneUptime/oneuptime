@@ -54,12 +54,12 @@ Con il progetto vengono creati tre stati, in quest'ordine. La creazione è idemp
 
 | Stato              | `order` | Flag                  | Colore    | Che cosa significa                                 |
 | ------------------ | ------- | --------------------- | --------- | -------------------------------------------------- |
-| **Identified**     | `1`     | `isCreatedState`      | `#fd625e` | Lo stato in cui finiscono i nuovi incidenti.       |
+| **Identificate**     | `1`     | `isCreatedState`      | `#fd625e` | Lo stato in cui finiscono i nuovi incidenti.       |
 | **Riconosciuto**   | `2`     | `isAcknowledgedState` | `#ffbf53` | Qualcuno ha preso in carico l'incidente.           |
 | **Risolto**        | `3`     | `isResolvedState`     | `#2ab57d` | L'incidente è finito e smette di contare come attivo. |
 
 > [!NOTE]
-> Il primo stato si chiama **Identified**, anche se diverse descrizioni nel prodotto lo chiamano ancora stato «created». Quando una documentazione o un tooltip dice «stato di creazione», intende lo stato che porta `isCreatedState` — in un progetto nuovo, è **Identified**.
+> Il primo stato si chiama **Identificate**, anche se diverse descrizioni nel prodotto lo chiamano ancora stato «created». Quando una documentazione o un tooltip dice «stato di creazione», intende lo stato che porta `isCreatedState` — in un progetto nuovo, è **Identificate**.
 
 ## Che cosa fa davvero ogni flag di stato
 
@@ -74,7 +74,7 @@ Ci si aspetta che un solo stato per progetto abbia ciascun flag — le ricerche 
 - **Mantengono il loro ordine.** Lo stato di creazione viene prima di quello riconosciuto, e quello riconosciuto prima di quello risolto. Un trascinamento che lo romperebbe — **Risolto** sopra **Riconosciuto**, ad esempio — viene rifiutato, le righe tornano al loro posto e la pagina dice perché.
 - **Non possono essere eliminati.** Il loro **Elimina** resta nel menu della riga, bloccato, con il motivo. Un'eliminazione di massa li salta e li elenca come non eliminati. Anche l'API si rifiuta di eliminare l'ultimo stato di creazione, riconosciuto o risolto di un progetto.
 
-Poiché l'interfaccia legge i nomi degli stati in modo dinamico, rinominare uno stato cambia ciò che vedete ovunque — i riquadri statistici (**Acknowledged in** e **Resolved in** con i nomi predefiniti), la conferma **Segna l'incidente come …** di uno stato personalizzato e l'etichetta nell'elenco degli incidenti seguono il nome che avete dato alla riga.
+Poiché l'interfaccia legge i nomi degli stati in modo dinamico, rinominare uno stato cambia ciò che vedete ovunque — i riquadri statistici (**Riconosciuto in** e **Risolto in** con i nomi predefiniti), la conferma **Segna l'incidente come …** di uno stato personalizzato e l'etichetta nell'elenco degli incidenti seguono il nome che avete dato alla riga.
 
 ## Aggiungere i vostri stati
 
@@ -188,7 +188,7 @@ Un incidente è riconosciuto dal momento in cui passa nel vostro stato riconosci
 - **Riconosci non viene più offerto.** Né nell'intestazione dell'incidente, né nell'app mobile (il suo pulsante e il suo scorrimento), né in Slack o Microsoft Teams, né tramite `acknowledge_incident` del server MCP di OneUptime. Riconoscerlo comunque — da un avviso di reperibilità, da Slack o da Teams — viene rifiutato con «Incident is already acknowledged.» (o «Incident is already resolved.»), invece di riportarlo indietro nel suo elenco.
 - **La reperibilità smette di avvisare per lui.** Un responder che riconosce il proprio avviso dopo che un collega ha riconosciuto l'incidente, o l'ha fatto avanzare, vede il proprio avviso riconosciuto e l'incidente resta dov'è.
 - **Lo SLA viene segnato come con risposta**, al primo spostamento di questo tipo; avanzare poi attraverso stati successivi mantiene quell'ora.
-- **Il tempo di riconoscimento corre fino a quel primo spostamento** — il riquadro statistico della **Panoramica** dell'incidente, la metrica **Time to Acknowledge**, una misurazione che termina quando **L'incidente viene riconosciuto**, e l'MTTA nei riepiloghi di Slack e Microsoft Teams. Un incidente passato direttamente da **Identified** a **Investigating** è stato riconosciuto allora; uno risolto subito è stato riconosciuto al momento della risoluzione.
+- **Il tempo di riconoscimento corre fino a quel primo spostamento** — il riquadro statistico della **Panoramica** dell'incidente, la metrica **Time to Acknowledge**, una misurazione che termina quando **L'incidente viene riconosciuto**, e l'MTTA nei riepiloghi di Slack e Microsoft Teams. Un incidente passato direttamente da **Identificate** a **Investigating** è stato riconosciuto allora; uno risolto subito è stato riconosciuto al momento della risoluzione.
 - **Un filtro Riconosciuto** — sul widget dell'elenco degli incidenti di una dashboard, ad esempio — mostra gli incidenti nel vostro stato riconosciuto e in qualsiasi stato successivo, prima della risoluzione.
 
 Avvisi ed episodi seguono la stessa regola, con i vostri stati degli avvisi.
@@ -206,7 +206,7 @@ Passare da **Risolto** a uno stato successivo — **Closed**, ad esempio — non
 
 La pagina **Cronologia stato** nel menu laterale dell'incidente è la traccia di audit di ogni stato in cui è stato l'incidente. La scheda di quella pagina si intitola **Cronologia di stato**, e disegna l'intera vita dell'incidente come una cronologia:
 
-- **La banda** mostra ogni stato come un tratto del suo colore, lungo quanto l'incidente vi è rimasto, così l'andamento dell'incidente si legge a colpo d'occhio. Finché l'incidente è aperto, la banda arriva fino a **Ora**; una volta risolto, termina poco dopo il suo ultimo cambio. Puntate un tratto per vedere quando è iniziato e quanto è durato, e fateci clic per trovarne il cambio nell'elenco. I cambi troppo vicini per distinguerli sono disegnati come un unico tratto a righe: fateci clic, o trascinate sulla banda, per ingrandire, e **Reset zoom** torna indietro.
+- **La banda** mostra ogni stato come un tratto del suo colore, lungo quanto l'incidente vi è rimasto, così l'andamento dell'incidente si legge a colpo d'occhio. Finché l'incidente è aperto, la banda arriva fino a **Ora**; una volta risolto, termina poco dopo il suo ultimo cambio. Puntate un tratto per vedere quando è iniziato e quanto è durato, e fateci clic per trovarne il cambio nell'elenco. I cambi troppo vicini per distinguerli sono disegnati come un unico tratto a righe: fateci clic, o trascinate sulla banda, per ingrandire, e **Reimposta lo zoom** torna indietro.
 - **Sopra la banda**, ogni stato è elencato con il tempo che l'incidente vi ha trascorso.
 - **Sotto la banda**, ogni cambio è elencato dal più recente, raggruppato per giorno e nel vostro fuso orario: quando è iniziato e finito, quanto è durato, chi l'ha fatto e, sotto, **Iscritti alla pagina di stato:** se la notifica della pagina di stato per quel cambio è stata inviata, saltata o è ancora in attesa, con un link **maggiori dettagli** e — quando l'invio è fallito — un'azione **Riprova**. **Riprova** invia di nuovo il cambio di stato a ogni pagina di stato che l'incidente raggiunge adesso, compresi gli iscritti che l'hanno già ricevuto.
 

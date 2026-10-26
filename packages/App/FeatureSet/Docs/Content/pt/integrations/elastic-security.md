@@ -44,20 +44,20 @@ Os alertas são guardados por espaço. Abra o espaço onde as suas regras rodam:
 
 ### Adicionar a conexão no OneUptime
 
-Abra **Produtos → Security Events → Connections** (`/dashboard/{projectId}/security-events/connections`), clique em **Adicionar conexão**, escolha **Elastic Security** e clique em **Próximo**. Preencha as configurações da tabela abaixo, clique em **Próximo** e cole a chave em **Chave de API**.
+Abra **Produtos → Security Events → Conexões** (`/dashboard/{projectId}/security-events/connections`), clique em **Adicionar conexão**, escolha **Elastic Security** e clique em **Próximo**. Preencha as configurações da tabela abaixo, clique em **Próximo** e cole a chave em **Chave de API**.
 
 ### Testar antes de salvar
 
-Clique em **Test these settings** em **Testar antes de salvar**. O teste se autentica e lê alertas com os valores do formulário, sem salvar nada, então um espaço errado ou um privilégio que falta aparece antes de a conexão existir. Depois clique em **Próximo**, dê um **Nome** à conexão e crie-a.
+Clique em **Testar estas configurações** em **Testar antes de salvar**. O teste se autentica e lê alertas com os valores do formulário, sem salvar nada, então um espaço errado ou um privilégio que falta aparece antes de a conexão existir. Depois clique em **Próximo**, dê um **Nome** à conexão e crie-a.
 :::
 
 | Configuração | O que informar |
 | --- | --- |
 | **Kibana URL** | O endereço de onde o Kibana é servido, por exemplo `https://kibana.example.com` ou `https://<deployment>.kb.<region>.cloud.es.io`. Sem caminho: nem `/app/security`, nem `/api`, nem a parte `/s/<space>`. |
 | **Kibana space** | O ID do espaço, não o nome dele: letras, dígitos, hifens e sublinhados. Deixe vazio para o espaço padrão. |
-| **Chave de API** | O valor **Base64** da chave, sozinho: o OneUptime adiciona o esquema `ApiKey` por conta própria. Ele é criptografado, nunca devolvido pela API e nunca mostrado de novo. Substitua-o com **Update credentials** na conexão. |
+| **Chave de API** | O valor **Base64** da chave, sozinho: o OneUptime adiciona o esquema `ApiKey` por conta própria. Ele é criptografado, nunca devolvido pela API e nunca mostrado de novo. Substitua-o com **Atualizar credenciais** na conexão. |
 
-A etapa **Polling** também tem uma **Descrição** opcional, o **Poll Interval (Minutes)**, um número inteiro de `1` a `1440` que começa em `5`, e **Habilitado**, que começa ativado.
+A etapa **Consulta periódica** também tem uma **Descrição** opcional, o **Intervalo de consulta (minutos)**, um número inteiro de `1` a `1440` que começa em `5`, e **Habilitado**, que começa ativado.
 
 ## O que é importado
 
@@ -93,14 +93,14 @@ POST {Kibana URL}/api/detection_engine/signals/search
 - **O horário de criação é o cursor.** Os alertas são listados pelo próprio `@timestamp`, quando a execução da regra os criou, nunca pelo horário da atividade de que tratam. Uma regra que roda de hora em hora cria alertas sobre uma atividade de até uma hora atrás, e um cursor pelo horário de atividade pularia todos eles.
 - **A primeira consulta olha 24 horas para trás**, para que uma nova conexão mostre logo os alertas recentes dela.
 - **Cada consulta seguinte começa 1 minuto antes do cursor salvo**, para que um alerta criado na fronteira entre duas janelas nunca se perca.
-- **Uma consulta lê no máximo 24 horas além do cursor.** Uma conexão cujo cursor ficou para trás se atualiza em uma série de janelas de 24 horas, e a **Health** dela mostra **Catching up**.
+- **Uma consulta lê no máximo 24 horas além do cursor.** Uma conexão cujo cursor ficou para trás se atualiza em uma série de janelas de 24 horas, e a **Integridade** dela mostra **Catching up**.
 - **As duplicatas são descartadas pelo `_id` do alerta** dentro do projeto, para que a sobreposição, uma janela repetida e uma importação nunca salvem um alerta duas vezes.
 
 A pesquisa de alertas do Kibana aceita um tamanho e uma ordenação, mas nenhum token de página. Então o OneUptime pagina movendo o início do intervalo para o último alerta de cada página, e deixa de fora, por `_id`, os alertas que já leu naquele instante. Uma execução de regra costuma marcar muitos alertas com o mesmo horário, e esse grupo é lido página por página, nenhum duas vezes e nenhum pulado.
 
 ### Quando uma janela contém mais do que uma consulta consegue ler
 
-Uma consulta lê no máximo 10.000 alertas, em no máximo 20 requisições. Quando uma janela contém mais, a execução fica **Partial**, com um aviso como este:
+Uma consulta lê no máximo 10.000 alertas, em no máximo 20 requisições. Quando uma janela contém mais, a execução fica **Parcial**, com um aviso como este:
 
 ```text
 Stopped after collecting 10000 alerts; the window holds more.
@@ -108,28 +108,28 @@ Stopped after collecting 10000 alerts; the window holds more.
 
 Os alertas são lidos do mais antigo para o mais novo, então o OneUptime move o cursor para o horário de criação do último alerta lido, e a consulta seguinte começa ali, com o mesmo tamanho de janela. Um espaço movimentado se atualiza 10.000 alertas por consulta, em vez de reler os mesmos. Os alertas criados nesse mesmo instante são lidos duas vezes, e a verificação de duplicatas descarta a segunda cópia.
 
-Os IDs deixados de fora vão em cada requisição, e o Kibana limita o tamanho de uma requisição. Quando mais alertas compartilham um instante do que uma requisição consegue deixar de fora, cerca de 7.800, a execução para ali como **Partial**, com um aviso que nomeia o instante.
+Os IDs deixados de fora vão em cada requisição, e o Kibana limita o tamanho de uma requisição. Quando mais alertas compartilham um instante do que uma requisição consegue deixar de fora, cerca de 7.800, a execução para ali como **Parcial**, com um aviso que nomeia o instante.
 
 Quando uma execução não consegue passar do cursor salvo de jeito nenhum, o OneUptime encurta a janela em vez disso:
 
 1. **Reduzir.** A consulta seguinte lê uma janela com a metade do tamanho, a partir do mesmo ponto de partida, e continua dividindo pela metade até que uma janela seja lida por inteiro, até um minuto. O aviso da execução diz isso: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **Voltar a crescer.** Depois que uma janela é lida por inteiro, a seguinte volta a ter o dobro do tamanho, até 24 horas.
-3. **Passar de um único minuto.** Se até um minuto contém mais do que uma consulta consegue ler, a consulta passa dele, para que os alertas mais novos continuem chegando. A execução continua **Partial**, e **Último erro** mostra `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importe esse minuto com **Import this time range** para recuperar o que uma execução consegue ler.
+3. **Passar de um único minuto.** Se até um minuto contém mais do que uma consulta consegue ler, a consulta passa dele, para que os alertas mais novos continuem chegando. A execução continua **Parcial**, e **Último erro** mostra `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importe esse minuto com **Import this time range** para recuperar o que uma execução consegue ler.
 
-Uma execução que falha por completo, com um erro do Kibana, mantém o cursor e o tamanho da janela, e a consulta seguinte relê a mesma janela. A única exceção é uma requisição que expirou: o cursor fica, mas a janela seguinte tem a metade do tamanho, porque uma janela pesada demais para ser respondida a tempo expiraria em toda tentativa. Mudar o **Poll Interval (Minutes)** não muda nada disso: ele decide com que frequência uma consulta começa, não onde a janela dela começa.
+Uma execução que falha por completo, com um erro do Kibana, mantém o cursor e o tamanho da janela, e a consulta seguinte relê a mesma janela. A única exceção é uma requisição que expirou: o cursor fica, mas a janela seguinte tem a metade do tamanho, porque uma janela pesada demais para ser respondida a tempo expiraria em toda tentativa. Mudar o **Intervalo de consulta (minutos)** não muda nada disso: ele decide com que frequência uma consulta começa, não onde a janela dela começa.
 
 ### Executar, pré-visualizar e importar sob demanda
 
-Clique em **Diagnostics** em uma conexão para ver as execuções recentes dela e trabalhar com ela manualmente. Quem pode alterar a conexão pode iniciar essas ações; quem pode vê-la pode ler o histórico.
+Clique em **Diagnóstico** em uma conexão para ver as execuções recentes dela e trabalhar com ela manualmente. Quem pode alterar a conexão pode iniciar essas ações; quem pode vê-la pode ler o histórico.
 
-- **Run now** inicia uma consulta na hora, com o cursor de sempre, mesmo quando a conexão não está **Habilitado**.
+- **Executar agora** inicia uma consulta na hora, com o cursor de sempre, mesmo quando a conexão não está **Habilitado**.
 - **Preview alerts** lê um intervalo de tempo de até 7 dias e não importa nada.
 - **Import this time range** importa um intervalo de até 7 dias, depois que você confirma, sem mover o cursor. Os alertas já importados são pulados.
 - **Copy diagnostics** em uma execução copia o relatório dela para o suporte. Ele nunca inclui credenciais.
 
 ## Testar conexão
 
-**Testar conexão** na linha de uma conexão, e **Test these settings** no formulário, rodam no processo da API, não em um worker em segundo plano, para que um teste responda mesmo quando o problema são os workers. Ele faz estas verificações, em ordem:
+**Testar conexão** na linha de uma conexão, e **Testar estas configurações** no formulário, rodam no processo da API, não em um worker em segundo plano, para que um teste responda mesmo quando o problema são os workers. Ele faz estas verificações, em ordem:
 
 | Verificação | O que ela verifica |
 | --- | --- |
@@ -153,7 +153,7 @@ No Kibana, abra **Stack Management → API keys**, clique em **Create API key**,
 
 ### Adicione o destino
 
-Abra **Produtos → Security Events → Connections**. Em **Enviar para o seu SIEM**, clique em **Adicionar destino**, escolha Elastic Security em **SIEM** e clique em **Próximo**. Preencha a **URL do Elasticsearch**, o endpoint do Elasticsearch da implantação e não o do Kibana, e cole a chave em **Chave de API**. **Fluxo de dados** é opcional: vazio, os documentos vão para `logs-oneuptime.security-default`, que o Elasticsearch cria na primeira gravação.
+Abra **Produtos → Security Events → Conexões**. Em **Enviar para o seu SIEM**, clique em **Adicionar destino**, escolha Elastic Security em **SIEM** e clique em **Próximo**. Preencha a **URL do Elasticsearch**, o endpoint do Elasticsearch da implantação e não o do Kibana, e cole a chave em **Chave de API**. **Fluxo de dados** é opcional: vazio, os documentos vão para `logs-oneuptime.security-default`, que o Elasticsearch cria na primeira gravação.
 
 ### Envie um evento de teste e comece a enviar
 
@@ -190,7 +190,7 @@ O **Último erro** da conexão guarda a mensagem de erro completa, com as creden
 
 :::details Last Error começa com `Elastic Security status request`
 - `Elastic Security status request failed (HTTP ...)`: o Kibana recusou a requisição de status.
-  - `HTTP 401`: o Kibana não aceitou a chave de API. Ela não é o valor **Base64**, ou expirou ou foi invalidada. Crie uma nova chave e salve-a com **Update credentials**.
+  - `HTTP 401`: o Kibana não aceitou a chave de API. Ela não é o valor **Base64**, ou expirou ou foi invalidada. Crie uma nova chave e salve-a com **Atualizar credenciais**.
   - `HTTP 404`: a **Kibana URL** tem um caminho, ou não é o Kibana.
   - `HTTP 503`: o Kibana se declara indisponível, normalmente porque não consegue alcançar o Elasticsearch.
   - `HTTP 3xx`: o Kibana redirecionou a requisição, e redirecionamentos são recusados. Use o endereço de onde o Kibana é servido.
@@ -215,8 +215,8 @@ Nenhuma consulta terminou para essa conexão. Rode **Testar conexão**: as verif
 :::
 
 :::details Uma execução está Partial
-- `Stopped after collecting 10000 alerts; the window holds more`: a janela continha mais do que os 10.000 alertas que uma execução lê. Nada se perde: a consulta seguinte começa depois do último alerta lido. Uma conexão que continua **Partial** consulta após consulta está se atualizando de um atraso, e os seus **Last Polled** e **Last Event Imported** continuam avançando. Se ela nunca se atualiza, o espaço cria mais de 10.000 alertas por intervalo de consulta: encurte o **Poll Interval (Minutes)**.
-- `More records were created in the one minute from ... than one poll can read`: a consulta passou desse minuto. Importe-o com **Import this time range** em **Diagnostics**. Uma importação lê tanto quanto uma consulta.
+- `Stopped after collecting 10000 alerts; the window holds more`: a janela continha mais do que os 10.000 alertas que uma execução lê. Nada se perde: a consulta seguinte começa depois do último alerta lido. Uma conexão que continua **Parcial** consulta após consulta está se atualizando de um atraso, e os seus **Última consulta** e **Último evento importado** continuam avançando. Se ela nunca se atualiza, o espaço cria mais de 10.000 alertas por intervalo de consulta: encurte o **Intervalo de consulta (minutos)**.
+- `More records were created in the one minute from ... than one poll can read`: a consulta passou desse minuto. Importe-o com **Import this time range** em **Diagnóstico**. Uma importação lê tanto quanto uma consulta.
 :::
 
 :::details O teste passa, mas nada é importado

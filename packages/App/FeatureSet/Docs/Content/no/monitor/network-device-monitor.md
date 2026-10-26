@@ -58,11 +58,11 @@ Enheten og monitoren gjør forskjellige jobber:
 | **Venter på første sjekk** | Det er lagt til enheter, og sonden deres har ikke sjekket dem ennå. |
 | **Alle 40 enhetene er oppe** | Alle enheter svarer. Enheter som fortsatt venter på sin første sjekk, telles på en egen linje. |
 
-Under den sier én linje om noe oppretter en hendelse når en enhet går ned: hvor mange [varslingspolicyer](#varslingspolicyer) som er slått på, eller en lenke **Set up alerts** når det ikke finnes noen. Knappene **Add Device** og **Discover Devices** ved siden av åpner de skjemaene, og flisene og listene under gir detaljene: enheter og lokasjoner som trenger oppmerksomhet, flåten per produsent og nylige skanninger.
+Under den sier én linje om noe oppretter en hendelse når en enhet går ned: hvor mange [varslingspolicyer](#varslingspolicyer) som er slått på, eller en lenke **Sett opp varsler** når det ikke finnes noen. Knappene **Legg til enhet** og **Discover Devices** ved siden av åpner de skjemaene, og flisene og listene under gir detaljene: enheter og lokasjoner som trenger oppmerksomhet, flåten per produsent og nylige skanninger.
 
-Før noe er lagt til, leder oversikten deg i stedet gjennom tre trinn. **Sett en sonde på nettverket ditt**: en sonde pinger og går gjennom enhetene dine fra innsiden av nettverket deres, så **Legg til en sonde** gir en sonde navn, viser kommandoen som starter den, og følger med når den kobler til. **Legg til enhetene dine**: **Finn enheter** skanner et adresseområde slik at du kan velge hva du vil legge til, best for et helt nettverk eller en ny lokasjon, og **Legg til én enhet** legger til én etter IP-adresse eller vertsnavn. **Få beskjed når en enhet går ned**: **Set up alerts** åpner [varslingspolicyene](#varslingspolicyer), der den anbefalte policyen er ett klikk unna. På OneUptime Cloud krever det Growth-abonnementet å [legge til en sonde](/docs/probe/custom-probe): under det sier trinnet fra og lenker i stedet til faktureringsinnstillingene dine, og OneUptimes egne sonder på internett kan fortsatt sjekke enheter med en offentlig adresse.
+Før noe er lagt til, leder oversikten deg i stedet gjennom tre trinn. **Sett en sonde på nettverket ditt**: en sonde pinger og går gjennom enhetene dine fra innsiden av nettverket deres, så **Legg til en sonde** gir en sonde navn, viser kommandoen som starter den, og følger med når den kobler til. **Legg til enhetene dine**: **Finn enheter** skanner et adresseområde slik at du kan velge hva du vil legge til, best for et helt nettverk eller en ny lokasjon, og **Legg til én enhet** legger til én etter IP-adresse eller vertsnavn. **Få beskjed når en enhet går ned**: **Sett opp varsler** åpner [varslingspolicyene](#varslingspolicyer), der den anbefalte policyen er ett klikk unna. På OneUptime Cloud krever det Growth-abonnementet å [legge til en sonde](/docs/probe/custom-probe): under det sier trinnet fra og lenker i stedet til faktureringsinnstillingene dine, og OneUptimes egne sonder på internett kan fortsatt sjekke enheter med en offentlig adresse.
 
-Nettverk-menyen holder det du åpner hver dag synlig: **Oversikt**, **Devices**, **Lokasjoner**, **Map**, **Traffic**, **Hendelser** og **Discovery**. Resten er foldet inn i seksjoner, og en seksjon folder seg ut av seg selv på hver av sidene sine:
+Nettverk-menyen holder det du åpner hver dag synlig: **Oversikt**, **Devices**, **Lokasjoner**, **Kart**, **Traffic**, **Hendelser** og **Discovery**. Resten er foldet inn i seksjoner, og en seksjon folder seg ut av seg selv på hver av sidene sine:
 
 | Seksjon | Sider |
 | --- | --- |
@@ -75,16 +75,16 @@ Nettverk-menyen holder det du åpner hver dag synlig: **Oversikt**, **Devices**,
 
 :::steps
 ### Åpne listen over enheter
-Gå til **Nettverk → Devices** og klikk på **Add Device**. **Add Device** på Nettverk-**Oversikt** åpner det samme skjemaet.
+Gå til **Nettverk → Devices** og klikk på **Legg til enhet**. **Legg til enhet** på Nettverk-**Oversikt** åpner det samme skjemaet.
 
 ### Skriv enhetens adresse
 Skriv IP-adressen eller vertsnavnet i **Vertsnavn**. La **Navn** stå tomt for å gi enheten navn etter vertsnavnet.
 
 ### Kontroller lokasjonen og sonden
-Velg den **Site** enheten står på, hvis du bruker lokasjoner. **Sonde** fyller seg selv ut med lokasjonens standardsonde, eller med prosjektets eneste egendefinerte sonde; sørg for at det er en sonde som kan nå enheten.
+Velg den **Lokasjon** enheten står på, hvis du bruker lokasjoner. **Sonde** fyller seg selv ut med lokasjonens standardsonde, eller med prosjektets eneste egendefinerte sonde; sørg for at det er en sonde som kan nå enheten.
 
 ### Legg til enheten
-Klikk på **Add Device**. Innen et par minutter pinger sonden enheten, og statusen blir **Up** eller **Down**. Med SNMP-påloggingsinformasjon fylles også enhetens oversikt ut med identiteten, grensesnittene og helsen etter det første vellykkede walket.
+Klikk på **Legg til enhet**. Innen et par minutter pinger sonden enheten, og statusen blir **Oppe** eller **Nede**. Med SNMP-påloggingsinformasjon fylles også enhetens oversikt ut med identiteten, grensesnittene og helsen etter det første vellykkede walket.
 :::
 
 Skjemaet er én side — vertsnavnet, et navn, lokasjonen og sonden — med **SNMP** og **Flere felt** foldet sammen under. Det spør ikke om hvordan enheten overvåkes: hver enhet du legger til, polles av sonden sin, og [overstyringen med bundet monitor](#overstyringen-med-bundet-monitor) ligger på enhetens side **Innstillinger** for de få enhetene som trenger den.
@@ -158,7 +158,7 @@ De andre massehandlingene beskrives der de hører hjemme: **Set OID Collection T
 
 ## Hva en polling faktisk gjør
 
-Hver polling av en sondepollet enhet er et ping. Når enheten har brukbar SNMP-påloggingsinformasjon, kjører sonden også et fullt SNMP-walk. De to kjører side om side, og walket venter aldri på pinget, så SNMP-utstyr bak en ACL som forkaster ICMP, rapporterer likevel **Up**.
+Hver polling av en sondepollet enhet er et ping. Når enheten har brukbar SNMP-påloggingsinformasjon, kjører sonden også et fullt SNMP-walk. De to kjører side om side, og walket venter aldri på pinget, så SNMP-utstyr bak en ACL som forkaster ICMP, rapporterer likevel **Oppe**.
 
 | Resultat | Enhet med bare ping | Enhet med SNMP-påloggingsinformasjon |
 | --- | --- | --- |
@@ -175,12 +175,12 @@ Pakketapet gjenbruker [Ping-monitorens](/docs/monitor/ping-monitor) serie, så d
 
 ### "SNMP failing" er ikke "Down"
 
-En enhet som svarer på ping, men hvis walk feiler, er **Up**, merket med **SNMP failing**, og begge halvdelene betyr noe:
+En enhet som svarer på ping, men hvis walk feiler, er **Oppe**, merket med **SNMP failing**, og begge halvdelene betyr noe:
 
 - Den er oppe fordi noe svarer på den adressen. Å fargelegge den rød ville lagt en enhet som fungerer fint, inn i hendelsestellingen din.
 - Den er SNMP failing fordi grensesnittene, inventaret og helse-OID-ene har sluttet å bli oppdatert, nesten alltid på grunn av påloggingsinformasjon, en deaktivert SNMP-agent eller en ACL. Ingenting annet på siden ville fortalt deg at tallene er frosset.
 
-En enhet der både ping og walk feiler, er rett og slett **Down**, så merkingen står bare noensinne ved siden av en grønn status.
+En enhet der både ping og walk feiler, er rett og slett **Nede**, så merkingen står bare noensinne ved siden av en grønn status.
 
 ### Slik leser du en enhets status
 
@@ -188,8 +188,8 @@ Hvert sted som viser en enhet — listen Devices, en lokasjons Devices-side, ove
 
 | Avgjørelse | Betyr |
 | --- | --- |
-| **Up** | Den siste pollingen (ping eller SNMP), eller den bundne monitoren, nådde enheten. |
-| **Down** | Den siste pollingen (ping eller SNMP), eller den bundne monitoren, nådde ikke enheten. |
+| **Oppe** | Den siste pollingen (ping eller SNMP), eller den bundne monitoren, nådde enheten. |
+| **Nede** | Den siste pollingen (ping eller SNMP), eller den bundne monitoren, nådde ikke enheten. |
 | **Venter** | Ingen avgjørelse ennå: aldri pollet, ingen sonde tildelt eller ingen monitor bundet. |
 
 | Tillegg | Vises når | Hva du gjør |
@@ -269,7 +269,7 @@ De fleste enheter trenger ikke dette. Hver sondepollet enhet har allerede en til
 
 ## Polling og datainnsamling
 
-Pollingen ligger på enhetens side **Innstillinger**, på kortet **Polling & Data Collection** (**Rediger Polling**). Standardverdiene passer for en ny enhet, så den trenger ingen finjustering:
+Pollingen ligger på enhetens side **Innstillinger**, på kortet **Polling & Data Collection** (**Rediger Henting**). Standardverdiene passer for en ny enhet, så den trenger ingen finjustering:
 
 | Innstilling | Beskrivelse | Standard |
 | --- | --- | --- |
@@ -289,7 +289,7 @@ Alt fra **Walk Interfaces** og nedover krever SNMP-påloggingsinformasjon: på e
 
 Med **Walk Interfaces** slått på og påloggingsinformasjon funnet følger hver polling hvert grensesnitts drifts- og administrative status, bits inn og ut, utnyttelse og feil. Det samme walket samler inn LLDP- og CDP-naboene for kartet.
 
-Demp et grensesnitt på enhetens side **Interfaces**, for en labport eller en lenke som er koblet fra med vilje, så blir det i inventaret, men forlater varsler og målinger. Et mislykket walk tømmer aldri halvparten av det innsamlede: det siste øyeblikksbildet av grensesnittene blir stående, og enheten merkes med **SNMP failing** så ingen tar det for et aktuelt.
+Demp et grensesnitt på enhetens side **Grensesnitt**, for en labport eller en lenke som er koblet fra med vilje, så blir det i inventaret, men forlater varsler og målinger. Et mislykket walk tømmer aldri halvparten av det innsamlede: det siste øyeblikksbildet av grensesnittene blir stående, og enheten merkes med **SNMP failing** så ingen tar det for et aktuelt.
 
 ### Produsentenes helsemaler
 
@@ -322,7 +322,7 @@ I redigeringsverktøyet **Health OIDs** bruker **Vendor Health Template** et fer
 
 Malens OID-er kopieres til enhetens egen liste, der du kan beskjære eller utvide dem. Etter at det første walket har identifisert produsenten, tilbyr enhetens oversikt den tilsvarende malen så lenge den vil legge til noe, og **Legg til tilstandssjekker** legger den til med ett klikk. Matchingen leser enhetens `sysObjectID`, og dens `sysDescr` der ett enterprisenummer rommer to operativsystemer: Extreme Fabric Engine på universell maskinvare rapporterer det samme enterprisenummeret (1916) som EXOS, og bare beskrivelsen (`…-FabricEngine (9.0.4.0)`) skiller dem. UniFi-tilgangspunkter skilles fra Ubiquitis rutere på samme måte (`U6-Pro 6.6.50.15098`), også når eldre fastvare svarer med Net-SNMP-grenen, og IQ Engine-tilgangspunkter fra Aerohive-svitsjene som deler grenen deres (`AP230, HiveOS 8.2r1`).
 
-Enheter med **Auto-Apply Vendor Health Template** slått på får malens OID-er og tabeller ved første polling: enheter som en automatisk importregel henter inn, og enheter som importeres fra **Review Results** med bryteren for produsentmal slått på, slik den er med mindre du slår den av. For å gi mange enheter malen sin samtidig, som en oppdaget flåte fra før bryteren fantes, merker du dem i listen **Devices** og bruker **Bruk produsentmal** (se [Endre mange enheter samtidig](#endre-mange-enheter-samtidig)).
+Enheter med **Auto-Apply Vendor Health Template** slått på får malens OID-er og tabeller ved første polling: enheter som en automatisk importregel henter inn, og enheter som importeres fra **Se gjennom resultater** med bryteren for produsentmal slått på, slik den er med mindre du slår den av. For å gi mange enheter malen sin samtidig, som en oppdaget flåte fra før bryteren fantes, merker du dem i listen **Devices** og bruker **Bruk produsentmal** (se [Endre mange enheter samtidig](#endre-mange-enheter-samtidig)).
 
 Å bruke en produsentmal er en engangskopi, så ingenting spres når malen endres. For alt utover én enkelt enhet bruker du heller en **OID Collection Template**; produsentmalene tilbys som utgangspunkt når du oppretter en.
 
@@ -352,7 +352,7 @@ En OID i en mal samles inn slik den er skrevet, så en OID som peker på én rad
 Det finnes tre måter å knytte enheter på, og i en flåte som discovery fortsetter å finne, er den tredje viktigst:
 
 - Én enhet om gangen, på enhetens kort **Polling & Data Collection**.
-- Samlet, ved å merke enheter i listen **Devices** og bruke **Set OID Collection Template**. Listens kolonne **Template** viser hvilke enheter som er knyttet til hva.
+- Samlet, ved å merke enheter i listen **Devices** og bruke **Set OID Collection Template**. Listens kolonne **Mal** viser hvilke enheter som er knyttet til hva.
 - Automatisk, ved å sette en OID Collection Template på en automatisk importregel, slik at hver enhet en skanning importerer, knyttes til i samme øyeblikk som den opprettes.
 
 En enhet samler først inn malens OID-er og deretter sine egne **Device-Specific Health OIDs**. Når begge angir samme OID, samles den inn én gang, med enhetens navn og beskrivelse som vinner, og malens oppføringer beholder plassen sin, så enhetsspesifikke tillegg kan aldri skyve dem ut.
@@ -386,7 +386,7 @@ Lange OID-lister deles over flere SNMP GET-forespørsler slik at hver får plass
 
 En enhets side **SNMP-walk**, under **Mer** i menyen, viser hver OID enheten svarer på, med type, verdi og, der OneUptime kjenner MIB-en, navn. Det er den `snmpwalk` du ellers ville kjørt fra sondens nettverk, kjørt av enhetens egen sonde med påloggingsinformasjonen OneUptime har lagret for den, som aldri når nettleseren din.
 
-Skriv en numerisk OID under **Start-OID**, eller velg en av **Vanlige startpunkter**: **Alt**, **System**, **Interfaces**, **Vertsressurser** eller **Leverandørspesifikk**. Trykk deretter på **Start walk**. Sonden plukker opp walken innen ti sekunder og sender én forespørsel om gangen, høyst 1 000 OID-er på høyst 45 sekunder, så en walk aldri oversvømmer enheten. Er det mer å lese, leser **Fortsett walk** de neste 1 000 fra der den stoppet. En enhet har én walk om gangen, og walkene lagres i to dager.
+Skriv en numerisk OID under **Start-OID**, eller velg en av **Vanlige startpunkter**: **Alt**, **System**, **Grensesnitt**, **Vertsressurser** eller **Leverandørspesifikk**. Trykk deretter på **Start walk**. Sonden plukker opp walken innen ti sekunder og sender én forespørsel om gangen, høyst 1 000 OID-er på høyst 45 sekunder, så en walk aldri oversvømmer enheten. Er det mer å lese, leser **Fortsett walk** de neste 1 000 fra der den stoppet. En enhet har én walk om gangen, og walkene lagres i to dager.
 
 Hver rad sier hvor OID-en er kjent: en verdi som en leverandørs helsemal samler inn, en kolonne i SNMP-tabellen til en leverandørmal, en teller som grensesnitt-walken allerede viser i diagrammer for hver port, eller en OID under leverandørens MIB. Fra en rad:
 
@@ -469,7 +469,7 @@ SFP-, SFP+-, SFP28- og QSFP-optikken i en enhets porter leses ved hver polling s
 - Enhetens egne terskler: de lave og høye advarsels- og alarmgrensene svitsjen rapporterer for hver måling. En modul vurderes mot dem og ingenting annet; OneUptime finner aldri på egne grenser.
 - En måneds mottatt effekt: døgngjennomsnittet for den svakeste lanen de siste 30 dagene. En skitten kontakt, en bøyd fiber eller en modul som slites, vises her uker før lenken faller.
 
-Enhetens side **Interfaces** åpner med et kort **Transceivere**: problemene først, deretter én rad per modul med porten, hva den er, en status i ord og målingene. En måling over en terskel fargelegges og navngis (**Lav alarm**, **Høy advarsel**), og et lite diagram over månedens mottatte effekt står ved siden av RX-verdien; raden til en QSFP viser den dårligste lanen. Klikk på en rad for å se hver lane mot hver terskel, utviklingen i mottatt effekt med den beste dagen og modulens identitet. En enhet som ikke rapporterer noen optikk, med bare kobberporter eller en agent som ikke eksponerer dem, viser ikke noe kort.
+Enhetens side **Grensesnitt** åpner med et kort **Transceivere**: problemene først, deretter én rad per modul med porten, hva den er, en status i ord og målingene. En måling over en terskel fargelegges og navngis (**Lav alarm**, **Høy advarsel**), og et lite diagram over månedens mottatte effekt står ved siden av RX-verdien; raden til en QSFP viser den dårligste lanen. Klikk på en rad for å se hver lane mot hver terskel, utviklingen i mottatt effekt med den beste dagen og modulens identitet. En enhet som ikke rapporterer noen optikk, med bare kobberporter eller en agent som ikke eksponerer dem, viser ikke noe kort.
 
 | Status | Betyr |
 | --- | --- |
@@ -553,7 +553,7 @@ Bare en SNMP-skanning ber om påloggingsinformasjon: velger du **SNMP**, kommer 
 Klikk på **Start skanning**. Sonden skanner området og rapporterer hvor mange verter den skannet og hvor mange som svarte: hvor mange som svarte på SNMP, eller, ved en ICMP-skanning, hvor mange som svarte på ping.
 
 ### Importer det den fant
-Klikk på **Review Results** på skanningen, velg vertene som skal importeres, og klikk på **Neste**. Velg hvor ofte de sjekkes og om hver får en monitor, og importer dem så; se [Import av det en skanning fant](#import-av-det-en-skanning-fant).
+Klikk på **Se gjennom resultater** på skanningen, velg vertene som skal importeres, og klikk på **Neste**. Velg hvor ofte de sjekkes og om hver får en monitor, og importer dem så; se [Import av det en skanning fant](#import-av-det-en-skanning-fant).
 :::
 
 | Felt | Beskrivelse | Påkrevd |
@@ -570,7 +570,7 @@ Foldet sammen under **Flere felt** på første trinn, for skanningene som trenge
 | Navn | Hva skanningen er til, så du kan skille den fra andre skanninger. Listen viser skannemålet når dette står tomt. | Tomt |
 | Slå opp Windows-navn (NetBIOS) | Spør hver vert som mangler SNMP-systemnavn, om NetBIOS-navnet, Windows-datamaskinnavnet, over UDP 137. Det navnet vinner over vertens omvendte DNS-navn. Bare private adresser og egendefinerte sonder; se [Slik får oppdagede enheter navn](#slik-får-oppdagede-enheter-navn). | På |
 | Name devices by their short hostname | Gi importerte enheter navn etter første del av et fullt kvalifisert vertsnavn: `core-sw-01` i stedet for `core-sw-01.corp.example.com`. | Av |
-| Repeat this scan | Kjør skanningen igjen med et intervall, **Rescan Interval (Minutes)**, på minst 15 minutter, for å holde discovery i gang; se [automatiske importregler](#importer-automatisk-med-automatiske-importregler). Verter som en gjentatt skanning finner, venter på gjennomgangen din med mindre en automatisk importregel treffer dem. | Av |
+| Repeat this scan | Kjør skanningen igjen med et intervall, **Intervall for ny skanning (minutter)**, på minst 15 minutter, for å holde discovery i gang; se [automatiske importregler](#importer-automatisk-med-automatiske-importregler). Verter som en gjentatt skanning finner, venter på gjennomgangen din med mindre en automatisk importregel treffer dem. | Av |
 
 ### Notasjon for skannemål
 
@@ -615,7 +615,7 @@ Når vertene du importerer, omfatter SNMP-verter, tilbyr trinnet **Overvåking**
 
 ### Import av det en skanning fant
 
-**Review Results** åpner skanningens verter, de som er funnet så langt hvis den fortsatt kjører, i en dialog som importerer dem i tre trinn:
+**Se gjennom resultater** åpner skanningens verter, de som er funnet så langt hvis den fortsatt kjører, i en dialog som importerer dem i tre trinn:
 
 1. Trinnet **Velg enheter** viser hver vert under navnet enheten får, med adressen og produsenten; alle verter som ikke er lagt til ennå, er valgt fra start. Søk etter navn, DNS-navn, adresse eller produsent, eller skriv inn et subnett (`10.48.11.0/24`) eller et oktettområde (`10.48.11-12.0-255`) for å vise vertene i det. **Svar** (**SNMP** eller **Ingen SNMP**) og **Navn** (**Med navn** eller **Bare adresse**) snevrer inn listen ytterligere. Avmerkingsboksen over listen velger eller fjerner alle viste verter, på alle sider, og bare de valgte vertene listen viser, importeres.
 2. Trinnet **Overvåking** spør med **Sjekk hvert** hvor ofte skanningens sonde sjekker enhetene, som blir hver enhets **Polling Interval (Minutes)**, og hvem som får vite det når en går ned. **Bare status** importerer dem med en status og uten monitor. **Én overvåking for hver enhet** gir hver en monitor fra malen du velger under **Overvåkingsmal**: monitoren fra en nettverksenhetsmal leser enhetens spørringer, og monitoren fra en Ping-, IP-, Port- eller NTP-mal sjekker enhetens egen adresse fra skanningens sonde etter malens plan. Maler av andre typer kan ikke sjekke en enhet og vises ikke; **Administrer maler** åpner malene dine i en ny fane, og en mal du legger til der, står i listen når du kommer tilbake. Før importen viser trinnet hva hver av malens kontroller utløser: en hendelse, et varsel eller bare monitorens status. Kontrollene i en nettverksenhetsmal som leser et SNMP-walk, står under **Bare SNMP-enheter**, fordi verter som bare svarte på ping, pinges, men walkes ikke, før de har SNMP-påloggingsinformasjon; når alle vertene bare svarte på ping, samles de kontrollene på én linje. Malen **Network device alert pack (recommended)** tilbys først, og et prosjekt som ikke har den ennå, får den når du importerer. Sammendraget ved siden av valgene sier hva importen vil opprette, også hvor mange enheter abonnementet ditt ikke har plass til å overvåke.
@@ -632,11 +632,11 @@ En oppdaget vert får navn etter det første av disse den har:
 3. Det omvendte DNS-navnet, PTR-oppføringen sonden slår opp etter skanningen.
 4. IP-adressen.
 
-Enhetens egne navn kommer først fordi det er navnene eierne bruker: en Windows-vert som heter `WB0024KDS03`, beholder det navnet også når den omvendte sonen kaller den `wb-0024-kds03.wbhq.com`. Det omvendte DNS-navnet beholdes også: **Review Results** viser det ved siden av adressen, og enheten beholder det som sitt **DNS Name**. NetBIOS kutter et datamaskinnavn til 15 tegn, så et NetBIOS-navn som er starten på et lengre omvendt DNS-navn (`WB-0024-KITCHEN` for `wb-0024-kitchen-display-03.wbhq.com`), viker for det omvendte DNS-navnet.
+Enhetens egne navn kommer først fordi det er navnene eierne bruker: en Windows-vert som heter `WB0024KDS03`, beholder det navnet også når den omvendte sonen kaller den `wb-0024-kds03.wbhq.com`. Det omvendte DNS-navnet beholdes også: **Se gjennom resultater** viser det ved siden av adressen, og enheten beholder det som sitt **DNS Name**. NetBIOS kutter et datamaskinnavn til 15 tegn, så et NetBIOS-navn som er starten på et lengre omvendt DNS-navn (`WB-0024-KITCHEN` for `wb-0024-kitchen-display-03.wbhq.com`), viker for det omvendte DNS-navnet.
 
-**Review Results** viser navnet en enhet kommer til å få, og den får det samme navnet enten du importerer den der eller en [automatisk importregel](#importer-automatisk-med-automatiske-importregler) gjør det. Enhetens vertsnavn er alltid IP-adressen. Så lenge en enhets navn fortsatt er det discovery ga den, viser oversikten hvor navnet kom fra som **Navnekilde**.
+**Se gjennom resultater** viser navnet en enhet kommer til å få, og den får det samme navnet enten du importerer den der eller en [automatisk importregel](#importer-automatisk-med-automatiske-importregler) gjør det. Enhetens vertsnavn er alltid IP-adressen. Så lenge en enhets navn fortsatt er det discovery ga den, viser oversikten hvor navnet kom fra som **Navnekilde**.
 
-**Name devices by their short hostname** kutter et fullt kvalifisert navn til den første etiketten: `core-sw-01.corp.example.com` importeres som `core-sw-01`. Det gjelder et omvendt DNS-navn og et `sysName` som er et fullt kvalifisert vertsnavn; alt annet (`Core Switch`, `ubuntu-22.04`, en IP-adresse) blir stående som det er. Det endrer bare hva enhetene heter, så det trengs ingen ny skanning: **Review Results** og automatiske importregler bruker det neste gang de gir en vert navn, og enheter som allerede er importert, beholder navnene sine.
+**Gi enheter navn etter det korte vertsnavnet** kutter et fullt kvalifisert navn til den første etiketten: `core-sw-01.corp.example.com` importeres som `core-sw-01`. Det gjelder et omvendt DNS-navn og et `sysName` som er et fullt kvalifisert vertsnavn; alt annet (`Core Switch`, `ubuntu-22.04`, en IP-adresse) blir stående som det er. Det endrer bare hva enhetene heter, så det trengs ingen ny skanning: **Se gjennom resultater** og automatiske importregler bruker det neste gang de gir en vert navn, og enheter som allerede er importert, beholder navnene sine.
 
 En enhet som er importert fra en vert med et omvendt DNS-navn, beholder hele navnet som sitt **DNS Name**, enten skanningen bruker korte navn eller ikke. Det vises på enhetens oversikt, søket i listen **Devices** finner det, og lokasjonstildelingsregler matcher vertsnavnmønstre mot det, så en regel `*.store-0660.corp.example.com` fortsetter å plassere en enhet som har mistet domenet i navnet. Et NetBIOS-navn lagres aldri som DNS Name: verten rapporterer det om seg selv, og det er ikke en DNS-oppføring.
 
@@ -656,7 +656,7 @@ Windows- og Samba-verter har ofte ingen SNMP-agent, så uten dette vises de med 
 :::
 
 :::details Når en vert ikke har noe navn
-En vert som vises med adressen i **Review Results**, viser **No name found** og en (i) ved siden av. Hold pekeren over (i), eller gi den fokus, for å se hva hver måte å gi den navn på ga:
+En vert som vises med adressen i **Se gjennom resultater**, viser **No name found** og en (i) ved siden av. Hold pekeren over (i), eller gi den fokus, for å se hva hver måte å gi den navn på ga:
 
 - SNMP: skanningen sjekket ikke SNMP, verten svarte ikke, eller den svarte uten systemnavn eller med et som ikke kan være et navn, som `localhost` eller en IP-adresse.
 - NetBIOS: alternativet er slått av for skanningen, skanningen kjørte på en global sonde, adressen ble ikke spurt (en offentlig adresse, eller verts- eller tidsgrensen ble nådd), eller verten svarte ikke på UDP 137.
@@ -666,7 +666,7 @@ Sonden slår opp navn gjennom sine egne DNS-servere, de i `/etc/resolv.conf` der
 :::
 
 :::details Bedre navn funnet senere
-En skanning finner ikke alltid en verts beste navn første gang. Delresultatene en skanning som pågår laster opp, har ingen navn, fordi omvendte DNS- og NetBIOS-navn slås opp én gang, etter skanningen, så en vert som importeres fra dem — av en automatisk importregel, eller fra **Review Results** mens skanningen fortsatt pågår — får først navn etter IP-adressen. Et NetBIOS-svar kan gå tapt, og en vert kan få en SNMP-agent etter at den er importert.
+En skanning finner ikke alltid en verts beste navn første gang. Delresultatene en skanning som pågår laster opp, har ingen navn, fordi omvendte DNS- og NetBIOS-navn slås opp én gang, etter skanningen, så en vert som importeres fra dem — av en automatisk importregel, eller fra **Se gjennom resultater** mens skanningen fortsatt pågår — får først navn etter IP-adressen. Et NetBIOS-svar kan gå tapt, og en vert kan få en SNMP-agent etter at den er importert.
 
 Derfor husker en enhet som discovery har gitt navn, hvor navnet kom fra. Når en fullført skanning av adressen finner et bedre navn — SNMP-systemnavnet eller NetBIOS-navnet i stedet for det omvendte DNS-navnet, et hvilket som helst navn i stedet for IP-adressen — får enheten nytt navn etter navnet en import ville gitt den nå, og DNS Name fylles ut hvis den ikke har et. Hvis en annen enhet allerede har det navnet, får enheten navnet med adressen i parentes (`FILESRV01 (10.0.0.5)`), og hvis også det er tatt, beholder den navnet sitt.
 
@@ -677,16 +677,16 @@ Et navn blir bare bedre: en enhet beholder navnet når DNS-oppføringen endres, 
 
 Å gå gjennom hver skanning for hånd skalerer ikke forbi de første delnettene. **Nettverk → Regler → Auto Import Rules** er der du skriver ned importen én gang: en regel sier hvilke oppdagede verter den gjør krav på (et IP-område, og valgfrie mønstre for systemnavn, beskrivelse og `sysObjectID`) og eventuelt hvilken monitormal og hvilken [OID Collection Template](#oid-collection-templates) enhetene den importerer, får. En regel som er merket som unntak, gjør ikke krav på noe og nedlegger veto mot de andre: slik skjæres skrivere og telefoner ut av en bred delnettsregel.
 
-I en regel bestemmer **Sjekk hvert** hvor ofte skanningens sonde poller hver enhet regelen importerer, slik **Sjekk hvert** gjør når du importerer fra **Review Results**; tomt er det hvert 5. minutt. En regel med **Include Ping-Only Hosts** slått på importerer også verter som bare svarte på ping, blant dem hver vert en [ICMP-skanning](#icmp-skanninger) finner, og gir også dem monitormalen sin: sonden pinger dem, så malens kontroller av om en enhet er oppe, og av trapene den sender, virker for dem med en gang, og kontrollene som leser et SNMP-walk, så snart enheten har påloggingsinformasjon.
+I en regel bestemmer **Sjekk hvert** hvor ofte skanningens sonde poller hver enhet regelen importerer, slik **Sjekk hvert** gjør når du importerer fra **Se gjennom resultater**; tomt er det hvert 5. minutt. En regel med **Include Ping-Only Hosts** slått på importerer også verter som bare svarte på ping, blant dem hver vert en [ICMP-skanning](#icmp-skanninger) finner, og gir også dem monitormalen sin: sonden pinger dem, så malens kontroller av om en enhet er oppe, og av trapene den sender, virker for dem med en gang, og kontrollene som leser et SNMP-walk, så snart enheten har påloggingsinformasjon.
 
-Regler har ingen egen tidsplan og trenger ingen. Aktiverte regler kjører av seg selv mot hver skannings resultater etter hvert som de kommer, inkludert delresultatene en lang skanning laster opp mens den fortsatt pågår, så verter importeres innen ett minutt etter at de er funnet i stedet for på slutten av området. Slå på **Repeat this scan** på en discovery-skanning, så blir paret en fast ordning: skanningen skanner området sitt på nytt med intervallet ditt, og hver nye vert den finner, importeres uten at noen trykker på noe.
+Regler har ingen egen tidsplan og trenger ingen. Aktiverte regler kjører av seg selv mot hver skannings resultater etter hvert som de kommer, inkludert delresultatene en lang skanning laster opp mens den fortsatt pågår, så verter importeres innen ett minutt etter at de er funnet i stedet for på slutten av området. Slå på **Gjenta denne skanningen** på en discovery-skanning, så blir paret en fast ordning: skanningen skanner området sitt på nytt med intervallet ditt, og hver nye vert den finner, importeres uten at noen trykker på noe.
 
 Å lagre en regel bruker den også på resultater prosjektet allerede har: en regel du skriver eller aktiverer i dag, når verter som er oppdaget de siste 24 timene, innen omtrent ett minutt, så en regel som skrives etter en enkeltstående skanning, blir ikke stående og vente på en skanning som aldri kjører igjen. Eldre resultater får være, fordi å importere et miljø som ble oppdaget forrige måned, er en beslutning, ikke en bieffekt av å lagre en regel. De to knappene på en regel er måten å ta den beslutningen på, og de når hver skanning i prosjektet, uansett hvor gammel:
 
 - **Dry Run** vurderer hver fullførte skanning og rapporterer hva regelen ville importert og overvåket. Ingenting skrives, så det er den trygge måten å se hva en regel ville gjort krav på før du aktiverer den i et miljø i drift. En deaktivert regel kan kjøres som Dry Run; bare en ekte kjøring krever at den er aktivert, og derfor starter en regel som opprettes i dashbordet, med **Aktivert** slått av: kjør en Dry Run, og slå den deretter på.
 - **Run Rule** gjør den samme vurderingen og utfører importen.
 
-**Hvem kan kjøre en regel.** En kjøring når hver skanning i prosjektet, så å trykke på **Dry Run** eller **Run Rule** krever tillatelser som når hele prosjektet: tillatelse til å redigere regelen, til å opprette nettverksenheter og - når regelen har en monitormal - til å opprette monitorer, hver med omfang over alle ressursene i prosjektet. En tillatelse som er begrenset til etiketter eller til egne enheter, er ikke nok, og en teamblokkering med etiketter på å opprette enheter eller monitorer avviser kjøringen. **Run Now** for en lokasjonstildelingsregel eller en regel for enhetsetiketter krever tillatelse til å redigere regelen og til å redigere nettverksenheter, med omfang over hele prosjektet på samme måte (se [Kjør regler på eksisterende ressurser](/docs/configuration/run-rules-now#før-du-begynner), som navngir hver tillatelse).
+**Hvem kan kjøre en regel.** En kjøring når hver skanning i prosjektet, så å trykke på **Dry Run** eller **Run Rule** krever tillatelser som når hele prosjektet: tillatelse til å redigere regelen, til å opprette nettverksenheter og - når regelen har en monitormal - til å opprette monitorer, hver med omfang over alle ressursene i prosjektet. En tillatelse som er begrenset til etiketter eller til egne enheter, er ikke nok, og en teamblokkering med etiketter på å opprette enheter eller monitorer avviser kjøringen. **Kjør nå** for en lokasjonstildelingsregel eller en regel for enhetsetiketter krever tillatelse til å redigere regelen og til å redigere nettverksenheter, med omfang over hele prosjektet på samme måte (se [Kjør regler på eksisterende ressurser](/docs/configuration/run-rules-now#før-du-begynner), som navngir hver tillatelse).
 
 Store miljøer importeres i avmålte batcher. Å opprette en enhet eller en monitor kjører hele pipelinen — lokasjonstildeling, eiere, etiketter og, for monitorer, abonnementet, statusen og arbeidet med statussider — så en kjøring oppretter noen hundre av hver om gangen i stedet for titusener på én gang. Ett trykk på **Run Rule** driver så mange batcher som miljøet trenger og rapporterer totalen, så en skanning av 900 rutere er ett trykk. Hvis en kjøring stopper med arbeid igjen, sier rapporten nøyaktig hvor mye ("Stopped at the run cap with 409 active Network Device monitors still to create"), og å trykke på knappen igjen fortsetter: verter som allerede er importert og monitorer som allerede er opprettet, hoppes over, så å kjøre igjen legger aldri til to ganger.
 
@@ -741,7 +741,7 @@ OneUptime holder deretter én nettverksenhetsmonitor per enhet som passer, laget
 > [!IMPORTANT]
 > Hver monitor en policy oppretter, teller mot abonnementet ditt. En policy over et stort miljø er mange monitorer fra én lagring, så bekreftelsen av den anbefalte policyen oppgir prosjektets antall enheter før den oppretter noe.
 
-Tabellens kolonne **Covered Devices** viser **Not counted yet** frem til policyens første synkronisering, og **Last Sync** sier når den var, eller hvorfor den feilet.
+Tabellens kolonne **Covered Devices** viser **Ikke telt ennå** frem til policyens første synkronisering, og **Last Sync** sier når den var, eller hvorfor den feilet.
 
 Når det ikke finnes noen policyer ennå, tilbyr siden **Create the recommended policy**: en monitormal **Network device alert pack (recommended)**, som bærer den [anbefalte varslingspakken](#anbefalt-varslingspakke), og en policy **Alert on every device** som bruker den på hele prosjektet. Malen finnes igjen via en markør i beskrivelsen, så handlingen oppretter aldri en ekstra kopi, og det er en monitormal du også kan bruke til monitorer du oppretter selv. Snevre inn policyens omfang etterpå hvis hele prosjektet er for mye.
 
@@ -752,7 +752,7 @@ Når det ikke finnes noen policyer ennå, tilbyr siden **Create the recommended 
 For å opprette en fra **Monitorer** i stedet:
 
 1. Gå til **Monitorer** og klikk på **Opprett monitor**.
-2. Velg **Network Device** som monitortype.
+2. Velg **Nettverksenhet** som monitortype.
 3. Velg nettverksenheten det skal varsles om. Alt om innsamling av data — vertsnavn, påloggingsinformasjon, tidsplan, grensesnittwalks, helse-OID-er — kommer fra enheten; monitoren velger bare hva det skal varsles om, gjennom kriteriene sine.
 
 En nettverksenhetsmonitor har ikke noe eget intervall: den vurderes hver gang enhetens pollingresultater kommer inn, og hver gang en trap fra enheten kommer inn.
@@ -945,7 +945,7 @@ Klikk på en ikke-administrert peer, så registrerer **Add to Monitoring** den s
 
 ### Eksporter kartet som PDF
 
-**Eksporter PDF**, øverst på kartet, laster ned kartet du ser på som en PDF du kan legge ved en vurdering, en endringsforespørsel eller en hendelsesgjennomgang, eller lese frakoblet. Hver visning av enhetskartet har den: **Device Topology**, en lokasjon på **Map** og fanen **Nettverk** under **Topologi**.
+**Eksporter PDF**, øverst på kartet, laster ned kartet du ser på som en PDF du kan legge ved en vurdering, en endringsforespørsel eller en hendelsesgjennomgang, eller lese frakoblet. Hver visning av enhetskartet har den: **Device Topology**, en lokasjon på **Kart** og fanen **Nettverk** under **Topologi**.
 
 PDF-en inneholder:
 
@@ -958,9 +958,9 @@ En liten lokasjon får plass på én A4-side. Et større nettverk får en størr
 
 ### Ping og traceroute fra kartet
 
-Et klikk på en administrert enhet på kartet åpner skuffen dens, og skuffens seksjon **Connectivity** svarer på de to spørsmålene som pleier å følge "er den oppe?": hvordan har den hatt det, og kan jeg nå den akkurat nå.
+Et klikk på en administrert enhet på kartet åpner skuffen dens, og skuffens seksjon **Tilkobling** svarer på de to spørsmålene som pleier å følge "er den oppe?": hvordan har den hatt det, og kan jeg nå den akkurat nå.
 
-- **Round-trip time, past hour** er et lite diagram over enhetens pingsvartid fra dens egne pollinger, med den nåværende, gjennomsnittlige og høyeste verdien under og timens verste pakketap ved siden av. **Open metrics** åpner enhetens side **Målinger**. En enhet som ikke er pinget den siste timen, viser **No ping data in the last hour.**
+- **Round-trip time, past hour** er et lite diagram over enhetens pingsvartid fra dens egne pollinger, med den nåværende, gjennomsnittlige og høyeste verdien under og timens verste pakketap ved siden av. **Åpne målinger** åpner enhetens side **Målinger**. En enhet som ikke er pinget den siste timen, viser **No ping data in the last hour.**
 - **Ping** sender fem ICMP-ekkoforespørsler til enheten og rapporterer om den svarte, laveste, gjennomsnittlige og høyeste svartid, jitter og pakketap. En enhet som svarer på noen av dem, rapporteres som tilgjengelig, med pakketap.
 - **Traceroute** rapporterer veien fra sonden til enheten hopp for hopp — hoppnummeret, verten som svarte, og svartiden — med hopp uten svar merket `* * *` og, når ruten ikke nådde enheten, hoppet der den brøt sammen.
 
@@ -979,7 +979,7 @@ For det må kartet vite hvilken lært MAC som er enhetens. Det finnes to måter,
 
 Svitsjen enheten henger på, trenger også **Collect Connected Endpoints** slått på: det er derfra porten kommer. Adresser matches innenfor enhetens lokasjon, siden hver filial har en `10.0.0.5`; en MAC treffer uansett lokasjon.
 
-Enhetens oversikt har et kort **Connected to** som navngir svitsjen, porten og VLAN-et. En svitsj, ruter eller brannmur som rapporterer naboene sine over LLDP eller CDP, viser dem der i stedet: sin egen port, naboen (en lenke når den er en enhet her) og porten i den andre enden, med **Åpne kartet** ved siden av. På kartet viser enhetens skuff det samme under **Connected to**, og lenkens skuff sier at den ble lært fra svitsjens videresendingstabell. Parent-Child-visningen tegner enheten under svitsjen. En lenke du har tegnet for hånd under **Device Links** for det samme paret, slås sammen med den lærte i stedet for å doble den: den lærte porten erstatter en feilskrevet, og en forelder du har satt på den håndtegnede lenken, beholdes.
+Enhetens oversikt har et kort **Koblet til** som navngir svitsjen, porten og VLAN-et. En svitsj, ruter eller brannmur som rapporterer naboene sine over LLDP eller CDP, viser dem der i stedet: sin egen port, naboen (en lenke når den er en enhet her) og porten i den andre enden, med **Åpne kartet** ved siden av. På kartet viser enhetens skuff det samme under **Koblet til**, og lenkens skuff sier at den ble lært fra svitsjens videresendingstabell. Parent-Child-visningen tegner enheten under svitsjen. En lenke du har tegnet for hånd under **Device Links** for det samme paret, slås sammen med den lærte i stedet for å doble den: den lærte porten erstatter en feilskrevet, og en forelder du har satt på den håndtegnede lenken, beholdes.
 
 ![Parent-Child-topologivisning som tegner en kasse med bare ping under svitsjen sin via en lært lenke](/docs/static/images/NetworkTopologyLearnedLink.png)
 
@@ -1033,7 +1033,7 @@ Enheten ble pollet, og det ble ikke forsøkt noe walk, fordi det ikke ble funnet
 :::details En enhet med bare ping er ikke koblet til svitsjen sin
 Kartet tegner kabelen for en enhet med bare ping fra svitsjens videresendingstabell, og for det må tre ting stemme:
 
-- Svitsjen samler inn endepunkter: **Collect Connected Endpoints** slått på i pollinginnstillingene, med påloggingsinformasjon som lar walket lykkes. Enhetens oversikt viser et kort **Connected to** så snart en svitsj har lært den.
+- Svitsjen samler inn endepunkter: **Collect Connected Endpoints** slått på i pollinginnstillingene, med påloggingsinformasjon som lar walket lykkes. Enhetens oversikt viser et kort **Koblet til** så snart en svitsj har lært den.
 - Enhetens MAC er kjent: **MAC-adresse** er angitt, eller en ruter på lokasjonen samler inn endepunkter og enhetens vertsnavn er adressen som ruterens ARP-tabell binder. En enhet som er registrert etter DNS-navn uten MAC, kan ikke matches, så skriv inn MAC-en.
 - Samme lokasjon: en adresse matches bare mot en enhet på den samme lokasjonen som svitsjen som lærte den. En enhet uten lokasjon matches bare på adresse når den svitsjen heller ikke har noen lokasjon; hvis svitsjen er på en lokasjon, legg enheten på den samme. En MAC treffer uansett lokasjon.
 
@@ -1041,7 +1041,7 @@ Hvis enheten står bak en ikke-administrert svitsj eller en hub, lærer den admi
 :::
 
 :::details Bare noen av de oppdagede enhetene ble importert
-En import fra **Review Results** svarer på dette i sitt siste trinn: hver vert den ikke importerte, og hver enhet den importerte uten monitoren sin, står under årsaken, og et nytt forsøk prøver bare de mislykkede vertene igjen. For å se den senere klikker du på **Review Results** på skanningen og så på **Vis resultater**.
+En import fra **Se gjennom resultater** svarer på dette i sitt siste trinn: hver vert den ikke importerte, og hver enhet den importerte uten monitoren sin, står under årsaken, og et nytt forsøk prøver bare de mislykkede vertene igjen. For å se den senere klikker du på **Se gjennom resultater** på skanningen og så på **Vis resultater**.
 
 For en automatisk importregel svarer kjøringsrapporten på det, i dialogen som åpnes når en kjøring er ferdig, ikke i en logg. En kjøring som stoppet ved batchgrensen, sier det og navngir det som gjenstår: trykk på **Run Rule** igjen, så fortsetter den der den stoppet. En kjøring som ble ferdig, men gjorde krav på færre verter enn du forventet, sier hvor resten ble av: stoppet av en unntaksregel, allerede registrert på den adressen, eller ikke truffet av regelens kriterier.
 

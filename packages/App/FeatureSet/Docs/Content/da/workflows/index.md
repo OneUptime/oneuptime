@@ -60,7 +60,7 @@ Du bygger det hele visuelt på et lærred. De fleste workflows kræver ingen kod
 ## Før du starter
 
 - **Et abonnement, der omfatter workflows.** I OneUptime Cloud kræver workflows abonnementet **Growth** eller højere, og hvert abonnement tillader et antal kørsler hver 30. dag — se [Plangrænser](/docs/workflows/configuration#plangrænser). Selvhostede installationer uden fakturering har ingen af grænserne.
-- **Tilladelse til at bygge.** At oprette og ændre workflows kræver **Workflow Admin**, **Project Admin** eller **Project Owner**, eller en brugerdefineret rolle med de tilsvarende tilladelser. Et **Workflow Member** kan åbne workflows og køre dem manuelt, men ikke ændre dem. Se [Tilladelser](/docs/workflows/configuration#tilladelser).
+- **Tilladelse til at bygge.** At oprette og ændre workflows kræver **Arbejdsgangsadministrator**, **Projektadministrator** eller **Projektejer**, eller en brugerdefineret rolle med de tilsvarende tilladelser. Et **Arbejdsgangsmedlem** kan åbne workflows og køre dem manuelt, men ikke ændre dem. Se [Tilladelser](/docs/workflows/configuration#tilladelser).
 
 ## Hvor du finder workflows i OneUptime
 
@@ -122,7 +122,7 @@ Det nye workflow åbner i **Bygger**, slået fra.
 
 ### Tilføj triggeren
 
-Klik på den stiplede blok **Choose what starts this workflow**, og klik så på **On Create Incident** under **Popular** i panelet **Tilføj trigger**.
+Klik på den stiplede blok **Vælg, hvad der starter denne arbejdsgang**, og klik så på **On Create Incident** under **Populære** i panelet **Tilføj trigger**.
 
 Triggeren tager den stiplede bloks plads. ID'et på den, `incident-on-create-1`, er det, senere blokke henviser til den med.
 
@@ -134,7 +134,7 @@ Triggeren sender den nye hændelse videre med disse felter. Et felt, du ikke væ
 
 ### Tilføj API-blokken
 
-Klik på **Tilføj komponent**, og klik så på **API Post (JSON)** under **Popular**. Træk fra triggerens punkt **Success** ned til det øverste punkt på den nye blok.
+Klik på **Tilføj komponent**, og klik så på **API Post (JSON)** under **Populære**. Træk fra triggerens punkt **Success** ned til det øverste punkt på den nye blok.
 
 ### Udfyld forespørgslen
 

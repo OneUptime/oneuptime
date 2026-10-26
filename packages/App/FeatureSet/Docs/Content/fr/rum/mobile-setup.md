@@ -51,7 +51,7 @@ Faites de `device.id` un identifiant propre à l'installation, jamais un identif
 | Journaux | `POST https://oneuptime.com/otlp/v1/logs` |
 
 > [!WARNING]
-> La clé est livrée dans votre application, et une application peut être décompressée : partez donc du principe que quelqu'un la copiera. Sur la page de la clé, définissez un **Pinned Service Name** pour qu'une copie ne puisse pas écrire sous les noms de vos services backend, ajoutez une **Requests Per Minute Limit** et une date **Expire le**, et renouvelez la clé à chaque version.
+> La clé est livrée dans votre application, et une application peut être décompressée : partez donc du principe que quelqu'un la copiera. Sur la page de la clé, définissez un **Nom du service épinglé** pour qu'une copie ne puisse pas écrire sous les noms de vos services backend, ajoutez une **Requests Per Minute Limit** et une date **Expire le**, et renouvelez la clé à chaque version.
 
 ## Configurer votre plateforme
 

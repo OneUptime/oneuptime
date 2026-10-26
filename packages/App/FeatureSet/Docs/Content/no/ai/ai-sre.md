@@ -101,7 +101,7 @@ I utgangspunktet kan en undersøkelse bare bruke telemetrien agentene dine sende
 Siden til hver klynge har en del **KI** i sidemenyen:
 
 - **Agent**: klyngens side **AI-agent**: om agenten er tilkoblet, hva KI-en får gjøre på klyngen, og alt som trenger oppmerksomhet, hver med trinnet som løser det. Den samme forklaringen vises i hendelsens undersøkelsespanel når KI-en måtte undersøke med bare OneUptime-data.
-- **Innsikt**: klyngens side **AI Insights**: hva OneUptime AI har funnet ut om klyngen, hva som stadig går galt og hvorfor, og hva du kan gjøre med det (se [Hva KI-en har lært på en klynge](#hva-ki-en-har-lært-på-en-klynge)).
+- **Innsikt**: klyngens side **KI-innsikt**: hva OneUptime AI har funnet ut om klyngen, hva som stadig går galt og hvorfor, og hva du kan gjøre med det (se [Hva KI-en har lært på en klynge](#hva-ki-en-har-lært-på-en-klynge)).
 - **Logger**: klyngens side **AI-logger**: alt OneUptime AI har gjort på klyngen, nyeste først (se [Alt KI-en har gjort på en klynge](#alt-ki-en-har-gjort-på-en-klynge)).
 
 Klyngens **Oversikt** slutter med et kort **AI-agent** som oppsummerer AI-agentens side: om agenten er tilkoblet, om **Undersøk med kubectl** er på, hvordan rettelser kjøres (**Av**, **Be om godkjenning**, **Automatisk** eller **Hopp over godkjenning**) og hva som trenger oppmerksomhet, med en lenke til AI-agentens side, der de endres.
@@ -121,7 +121,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 `kubernetes-agent` i `oneuptime-agent` er releasenavnet og navnerommet som installasjonsveiledningen i dashbordet bruker; installerte du agenten med andre navn, bruker du dine (`helm list -A | grep kubernetes-agent` viser dem). Uten `helm repo update` kan Helm bruke charten du installerte fra, som ikke kjenner `aiAgent` og feiler med `Additional property aiAgent is not allowed`. På en selvhostet OneUptime oppgraderer du OneUptime før charten: se [Oppgrader agenten](/docs/telemetry/kubernetes-agent#oppgradere-agenten). For å kjøre charten uten AI-agenten sender du med `--set aiAgent.enabled=false`.
 
-**Test tilkoblingen** i menyen **⋯** ved siden av agentens status på AI-agentens side kjører `kubectl version` og `kubectl auth can-i --list` gjennom agenten og viser resultatene: hva den kan nå, og hva den har lov til. Sier siden at agenten ikke er tilkoblet, leser du loggen dens med `kubectl logs -n oneuptime-agent -l component=ai-agent --tail=100`. En nøkkel med et **Pinned Service Name** kan ikke registrere agenten: gi charten en nøkkel uten. Når serveren avviser en registrering, sier loggen om avvisningen forsvinner av seg selv (en tidligere agent-pod som fortsatt melder seg, eller den gamle Runneren i klyngen som fortsatt holder på å stenge ned under en oppgradering), eller hva som må endres. **Tilbakestill agenten** i samme meny får serveren til å glemme agentens nøkkel når du bekrefter; poden kobler seg til igjen av seg selv i løpet av noen minutter.
+**Test tilkoblingen** i menyen **⋯** ved siden av agentens status på AI-agentens side kjører `kubectl version` og `kubectl auth can-i --list` gjennom agenten og viser resultatene: hva den kan nå, og hva den har lov til. Sier siden at agenten ikke er tilkoblet, leser du loggen dens med `kubectl logs -n oneuptime-agent -l component=ai-agent --tail=100`. En nøkkel med et **Festet tjenestenavn** kan ikke registrere agenten: gi charten en nøkkel uten. Når serveren avviser en registrering, sier loggen om avvisningen forsvinner av seg selv (en tidligere agent-pod som fortsatt melder seg, eller den gamle Runneren i klyngen som fortsatt holder på å stenge ned under en oppgradering), eller hva som må endres. **Tilbakestill agenten** i samme meny får serveren til å glemme agentens nøkkel når du bekrefter; poden kobler seg til igjen av seg selv i løpet av noen minutter.
 
 Kubernetes-AI-agenten er ikke en Runner og vises aldri under Runbooks → Runbook-agenter. Den bruker bare sin egen ServiceAccount, så OneUptime gir den aldri påloggingsinformasjon, den brukes aldri som Bash/SSH-vert for runbooks, og den godtas aldri som kommando-Runner for en AI-regel.
 
@@ -241,7 +241,7 @@ Vær likevel klar over hva den skrivetilgangen betyr: **patch/update på workloa
 
 ### Hva KI-en har lært på en klynge
 
-Klyngens side **AI Insights** (KI → Innsikt) forteller deg hva som er verdt å vite om klyngen fra de siste 30 dagene: ikke en oversikt over hva KI-en gjorde, men hva den fant ut:
+Klyngens side **KI-innsikt** (KI → Innsikt) forteller deg hva som er verdt å vite om klyngen fra de siste 30 dagene: ikke en oversikt over hva KI-en gjorde, men hva den fant ut:
 
 - **Hva OneUptime AI fant**: de få tingene som betyr mest, det viktigste først, hver med hendelsene og varslene bak og ett neste steg:
   - et problem som stadig kommer tilbake: hvor ofte (hver hendelse og hvert varsel det utløste, teller, undersøkt eller ikke) og hvor stor del av helheten det er, om det er nytt denne uken eller blir verre, tiden på døgnet det pleier å starte (i din egen tidssone), delene av klyngen det rammer, hva den siste undersøkelsen fant og det første steget rapporten foreslår;
@@ -427,7 +427,7 @@ De er slått sammen under **Flere innstillinger** nederst på hver signaltypes s
 | Daglig tokengrense | Valgfritt maksimum av tokener per UTC-døgn for autonomt KI-arbeid knyttet til denne signaltypen, inkludert undersøkelser, utbedring og oppfølgende rettingsoppgaver. Forbruket for hendelser og for varsler telles hver for seg. Når én grense nås, settes bare den signaltypens KI-arbeid på pause til neste dag: interaktiv KI-chat blokkeres aldri. Ikke satt (standarden) betyr **ingen grense**; sett **0** for å sette det sporet på pause. |
 | Daglig grense for rettingsoppgaver | Høyeste antall rettingsoppgaver knyttet til hendelser eller varsler som opprettes per UTC-døgn. Hver signaltype har sin egen grense. Ikke satt (standarden) betyr **ingen grense**; sett 0 for å sette sporets rettingsoppgaver på pause. |
 
-KI-arbeid utenfor hendelser og varsler (triage av innsikt, og rettingsoppgaver for unntak, innsikt og ytelsesregresjoner) har ingen egen innstilling og ingen av grensene i tabellen; bare prosjektets egne daglige grenser (nedenfor) gjelder for det. Pull-forespørslene teller mot et repositorys **Max Open Fix Pull Requests** (på repositoryets side **Innstillinger**) så snart du setter en; ikke satt betyr ikke noe tak, og 0 blokkerer KI-pull-forespørsler med rettelser for det repositoryet.
+KI-arbeid utenfor hendelser og varsler (triage av innsikt, og rettingsoppgaver for unntak, innsikt og ytelsesregresjoner) har ingen egen innstilling og ingen av grensene i tabellen; bare prosjektets egne daglige grenser (nedenfor) gjelder for det. Pull-forespørslene teller mot et repositorys **Maks. åpne pull-forespørsler med rettelser** (på repositoryets side **Innstillinger**) så snart du setter en; ikke satt betyr ikke noe tak, og 0 blokkerer KI-pull-forespørsler med rettelser for det repositoryet.
 
 ### Slik telles tokener
 
@@ -480,7 +480,7 @@ Uavhengig av undersøkelser kan OneUptime AI automatisk skrive et utkast til en 
 
 ## Innsikt: proaktiv oppdagelse
 
-Undersøkelser reagerer på hendelser og varsler. **AI Insights** følger med på problemer før noen blir varslet: hvert 15. minutt går deterministiske detektorer gjennom telemetrien din etter problemer som ikke (ennå) har utløst en monitor. Det finnes **ingen KI i overvåkingssløyfen**: detektorene er statistiske kontroller med faste terskler, så den delen av funksjonen som alltid kjører, bruker ingen tokener og kan ikke hallusinere et funn. Tersklene er bevisst forsiktige: en innsikt betyr at noe virkelig har flyttet seg, ikke at et tall har vippet.
+Undersøkelser reagerer på hendelser og varsler. **KI-innsikt** følger med på problemer før noen blir varslet: hvert 15. minutt går deterministiske detektorer gjennom telemetrien din etter problemer som ikke (ennå) har utløst en monitor. Det finnes **ingen KI i overvåkingssløyfen**: detektorene er statistiske kontroller med faste terskler, så den delen av funksjonen som alltid kjører, bruker ingen tokener og kan ikke hallusinere et funn. Tersklene er bevisst forsiktige: en innsikt betyr at noe virkelig har flyttet seg, ikke at et tall har vippet.
 
 Hva detektorene følger med på:
 

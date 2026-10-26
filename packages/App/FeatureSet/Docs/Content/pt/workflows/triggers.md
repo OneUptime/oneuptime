@@ -11,7 +11,7 @@ Um gatilho é o primeiro bloco de um workflow: ele decide quando o workflow roda
 - [Gatilhos de eventos do OneUptime](#gatilhos-de-eventos-do-oneuptime): Reaja quando um registro é criado, atualizado ou excluído.
 :::
 
-Para adicionar o gatilho, clique no bloco tracejado **Choose what starts this workflow** no canvas de um workflow novo. Para trocá-lo, exclua o bloco do gatilho e o bloco tracejado volta. Veja [Criar um workflow](/docs/workflows/authoring#adicionar-blocos).
+Para adicionar o gatilho, clique no bloco tracejado **Escolha o que inicia este fluxo de trabalho** no canvas de um workflow novo. Para trocá-lo, exclua o bloco do gatilho e o bloco tracejado volta. Veja [Criar um workflow](/docs/workflows/authoring#adicionar-blocos).
 
 ## Qual gatilho devo usar?
 
@@ -39,7 +39,7 @@ Bom para: automações de um clique para as quais você quer um botão, como «g
 
 ## Schedule
 
-Rode o workflow em um agendamento recorrente. Defina a frequência em **Schedule at**: escolha um dos **Common schedules**, escreva uma expressão de **Custom cron** ou escolha uma **Variável** que contenha uma. Abaixo do campo, o agendamento é descrito em palavras, com as **Next runs**.
+Rode o workflow em um agendamento recorrente. Defina a frequência em **Schedule at**: escolha um dos **Common schedules**, escreva uma expressão de **Custom cron** ou escolha uma **Variável** que contenha uma. Abaixo do campo, o agendamento é descrito em palavras, com as **Próximas execuções**.
 
 Bom para: limpeza noturna, sincronização de hora em hora, relatórios semanais.
 
@@ -206,7 +206,7 @@ Para testar um gatilho de evento sem esperar o evento, clique em **Executar flux
 | **Página de status Assinante**            | Dar as boas-vindas a quem assina uma página de status.                                    |
 | **Política de plantão**                   | Sincronizar as mudanças da política com outro sistema de escalas.                         |
 
-No painel **Adicionar gatilho**, eles ficam em **OneUptime resources**: clique no recurso e depois no gatilho. **Browse all resources** tem todos, e a caixa de busca encontra um gatilho a partir de algumas palavras, como `incident created`.
+No painel **Adicionar gatilho**, eles ficam em **Recursos do OneUptime**: clique no recurso e depois no gatilho. **Navegar por todos os recursos** tem todos, e a caixa de busca encontra um gatilho a partir de algumas palavras, como `incident created`.
 
 ## Próximos passos
 

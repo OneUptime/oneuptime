@@ -175,6 +175,6 @@ Samma identitet i `[otel.span_attributes]` finns på varje dator. Ge varje utvec
 
 :::cards
 - [AI-kodassistenter](/docs/telemetry/ai-coding-assistants): Så tilldelas kostnader för alla kodassistenter.
-- [AI- / LLM-observerbarhet](/docs/telemetry/ai-llm-observability): Konversationer, varningar, kostnad och budgetar för dina egna AI-anrop.
+- [AI- / LLM-observerbarhet](/docs/telemetry/ai-llm-observability): Konversationer, larm, kostnad och budgetar för dina egna AI-anrop.
 - [AI-gatewayer](/docs/telemetry/ai-gateways): En gateway som tracar och prissätter varje modellanrop.
 :::

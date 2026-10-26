@@ -311,11 +311,11 @@ Wenn eine Funktion Ihres eigenen Codes mindestens 5 % der Zeit oder des Speicher
 | **Top-Funktionen** | Die Funktionen des Profils, sortiert nach eigener oder gesamter Zeit. **Nur mein Code** blendet Bibliotheks-Frames aus. |
 | **Diff vs. baseline** | Das Profil im Vergleich mit einem früheren Zeitraum – **vs. vor 1 Stunde**, **vs. gestern** oder **vs. letzte Woche** – mit den Funktionen unter **Am stärksten verschlechtert** und **Am stärksten verbessert**. |
 
-**Download pprof** speichert das Profil für lokale Werkzeuge wie `go tool pprof`.
+**pprof herunterladen** speichert das Profil für lokale Werkzeuge wie `go tool pprof`.
 
 ### Trace-Korrelation
 
-Wenn ein Profil Trace- und Span-IDs trägt (zum Beispiel als Sample-Labels `trace_id` / `span_id`), springen Sie direkt von einem langsamen Trace-Span zum passenden CPU- oder Speicherprofil, um genau zu verstehen, welcher Code lief, und **Open linked trace** führt in die andere Richtung.
+Wenn ein Profil Trace- und Span-IDs trägt (zum Beispiel als Sample-Labels `trace_id` / `span_id`), springen Sie direkt von einem langsamen Trace-Span zum passenden CPU- oder Speicherprofil, um genau zu verstehen, welcher Code lief, und **Verknüpften Trace öffnen** führt in die andere Richtung.
 
 Der Tab **Profil** eines Spans enthält auch die Samples der darunter verschachtelten Spans, weil Profiler die CPU-Zeit einer Anfrage oft einem Kind-Span statt dem Anfrage-Span selbst zuordnen.
 

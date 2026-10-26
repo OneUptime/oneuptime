@@ -46,7 +46,7 @@ O gasto é o sinal mais seguro de um agente descontrolado. Um orçamento soma o 
 :::steps
 1. Abra **Produtos → AI / LLM → Orçamentos** e clique em **Criar: LLM Cost Budget**. Defina um **Orçamento diário (USD)** e escolha o serviço do agente em **Serviço (opcional)**, para que o orçamento vigie só esse agente.
 2. No menu da linha do novo orçamento, escolha **Mostrar ID** e copie o ID.
-3. Crie um [monitor de métricas](/docs/monitor/metrics-monitor) sobre `oneuptime.llm.budget.percent.used`, filtrado pelo atributo `oneuptime.llm.budget.id` com o ID que você copiou, e defina o seu **Intervalo de tempo** como **Past 30 Minutes**.
+3. Crie um [monitor de métricas](/docs/monitor/metrics-monitor) sobre `oneuptime.llm.budget.percent.used`, filtrado pelo atributo `oneuptime.llm.budget.id` com o ID que você copiou, e defina o seu **Intervalo de tempo** como **Últimos 30 minutos**.
 4. Adicione um critério **Maior ou igual a** `100` que crie um alerta, e dê a ele um **Título do alerta** que nomeie o agente, como `LLM budget exceeded: support-bot`. O fluxo de trabalho e o seu endpoint leem esse título.
 :::
 
@@ -125,7 +125,7 @@ Abra **Produtos → Fluxos de trabalho** e clique em **Criar fluxo de trabalho**
 
 ### Adicione o gatilho
 
-Clique no bloco tracejado **Choose what starts this workflow** e escolha **On Create Alert** no painel **Adicionar gatilho**. Clique no gatilho: **Fields to pass on** começa com o título, então clique em **Adicionar campo**, marque a descrição e clique em **Salvar**. O ID no bloco, `alert-on-create-1`, é como os blocos seguintes se referem a ele.
+Clique no bloco tracejado **Escolha o que inicia este fluxo de trabalho** e escolha **On Create Alert** no painel **Adicionar gatilho**. Clique no gatilho: **Fields to pass on** começa com o título, então clique em **Adicionar campo**, marque a descrição e clique em **Salvar**. O ID no bloco, `alert-on-create-1`, é como os blocos seguintes se referem a ele.
 
 ### Verifique o título
 
@@ -197,7 +197,7 @@ O cabeçalho `Authorization` não bate com o token que o seu endpoint espera. Co
 :::
 
 :::details O alerta de orçamento abre e se resolve sem parar
-O **Intervalo de tempo** do monitor é menor que os 15 minutos entre dois pontos do orçamento. Defina-o como **Past 30 Minutes**.
+O **Intervalo de tempo** do monitor é menor que os 15 minutos entre dois pontos do orçamento. Defina-o como **Últimos 30 minutos**.
 :::
 
 :::details A requisição nunca chega ao seu endpoint

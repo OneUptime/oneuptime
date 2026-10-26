@@ -138,7 +138,7 @@ Allez dans **Paramètres du projet → Avancé → Clés API** et cliquez sur **
 
 ### Choisir ce qu'elle peut faire
 
-Sous **Accès**, choisissez **Viewer** pour un agent qui ne fait que lire, ou **Project Admin** pour un agent qui crée, met à jour et supprime aussi (voir [Autorisations des clés API](#autorisations-des-clés-api)).
+Sous **Accès**, choisissez **Lecteur** pour un agent qui ne fait que lire, ou **Administrateur du projet** pour un agent qui crée, met à jour et supprime aussi (voir [Autorisations des clés API](#autorisations-des-clés-api)).
 
 ### Copier la clé
 
@@ -420,8 +420,8 @@ Ces requêtes fonctionnent sans identifiants, avec les seuls outils des pages de
 
 | Ce que fait l'agent | Choisir sous **Accès** |
 | --- | --- |
-| Lit seulement | **Viewer**, ou ajoutez des autorisations de lecture sur la page de la clé |
-| Crée, met à jour et supprime aussi | **Project Admin**, ou ajoutez le rôle Project Admin sur la page de la clé |
+| Lit seulement | **Lecteur**, ou ajoutez des autorisations de lecture sur la page de la clé |
+| Crée, met à jour et supprime aussi | **Administrateur du projet**, ou ajoutez le rôle Project Admin sur la page de la clé |
 
 Donnez à chaque clé le minimum dont elle a besoin, renouvelez les clés régulièrement, gardez une clé distincte pour chaque environnement, et surveillez ce que fait chaque clé dans OneUptime.
 

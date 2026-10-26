@@ -167,7 +167,7 @@ Acima da lista, um bloco por status conta os post-mortems que estão nele. Cliqu
 
 Filtre a lista com os chips acima dela: **Proprietário**, uma pessoa ou uma equipe; **Gravidade**; **Status do post-mortem**; **Estado do incidente**; **Rótulos**; e **Recursos afetados**. Para ver quais post-mortems uma equipe ainda deve dos seus incidentes mais graves, escolha a equipe em **Proprietário**, a gravidade em **Gravidade**, e **Não iniciado** e **Rascunho** em **Status do post-mortem**. Os filtros ficam no endereço da página, então você pode salvar a lista nos favoritos ou compartilhá-la.
 
-Para alterar vários de uma vez, selecione-os e abra **Ações em massa**: **Alterar status do post-mortem** move todos para um mesmo status, como **Não necessário** para incidentes que não precisam de um, e **Add Owner** e **Remove Owner** mudam quem são os proprietários.
+Para alterar vários de uma vez, selecione-os e abra **Ações em massa**: **Alterar status do post-mortem** move todos para um mesmo status, como **Não necessário** para incidentes que não precisam de um, e **Adicionar proprietário** e **Remover proprietário** mudam quem são os proprietários.
 
 ## Post-mortems de episódios
 

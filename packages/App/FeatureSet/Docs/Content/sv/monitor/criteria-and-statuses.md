@@ -1,6 +1,6 @@
 # Monitorkriterier och statusar
 
-En monitors kriterier avgör vad varje kontroll betyder: om monitorn är uppe eller nere, och om OneUptime deklarerar en incident eller skapar en varning. Statusar är ditt projekts lista över vad en monitor kan vara, från **Fungerar** till **Offline**. Den här sidan förklarar båda för alla monitortyper; varje typs egen sida listar de filter den erbjuder.
+En monitors kriterier avgör vad varje kontroll betyder: om monitorn är uppe eller nere, och om OneUptime deklarerar en incident eller skapar ett larm. Statusar är ditt projekts lista över vad en monitor kan vara, från **Fungerar** till **Offline**. Den här sidan förklarar båda för alla monitortyper; varje typs egen sida listar de filter den erbjuder.
 
 :::cards
 - [Hur kriterier avgör](#hur-kriterier-avgör): Uppifrån och ned, och den första matchningen vinner.
@@ -30,7 +30,7 @@ Ordningen är en del av regeln. En ny monitor listar sina kriterier från det v�
 Ett kriterium som matchar men inte ändrar någon status avgör ändå kontrollen: monitorn behåller sin status, och kriterierna under det väntar på nästa kontroll. **Standardstatus för övervakning** gäller bara när inget kriterium matchar. För en ny monitor är den **Fungerar**; ändra den under **Fler fält**, under kriterierna.
 
 > [!NOTE]
-> En monitor som öppnar en incident eller en varning per värd, container, disk eller gränssnitt bedömer alla kriterier vid varje kontroll, så två värdar kan matcha två olika kriterier samtidigt. Det är en monitor vars fråga har en **Gruppera efter**, som en mått- eller loggmonitor, eller ett kriterium som anger `*` för varje disk eller gränssnitt. En monitor för inkommande förfrågningar som grupperar incidenter efter ett payload-fält stannar ändå vid den första matchningen.
+> En monitor som öppnar en incident eller ett larm per värd, container, disk eller gränssnitt bedömer alla kriterier vid varje kontroll, så två värdar kan matcha två olika kriterier samtidigt. Det är en monitor vars fråga har en **Gruppera efter**, som en mått- eller loggmonitor, eller ett kriterium som anger `*` för varje disk eller gränssnitt. En monitor för inkommande förfrågningar som grupperar incidenter efter ett payload-fält stannar ändå vid den första matchningen.
 
 ## Vad ett kriterium innehåller
 
@@ -38,14 +38,14 @@ Ett kriterium som matchar men inte ändrar någon status avgör ändå kontrolle
 
 | Del | Vad den innehåller |
 | --- | --- |
-| **Kriterienamn** | Namnet i listan över kriterier och i grundorsaken till varje incident och varning som kriteriet öppnar. **Lägg till kriterier** namnger ett nytt kriterium efter dess filter, och namnet följer dem tills du skriver ett eget. |
+| **Kriterienamn** | Namnet i listan över kriterier och i grundorsaken till varje incident och larm som kriteriet öppnar. **Lägg till kriterier** namnger ett nytt kriterium efter dess filter, och namnet följer dem tills du skriver ett eget. |
 | **Filter** | Vad kontrollen måste visa, som ett eller flera filter. Kubernetes- och måttmonitorer kallar dem **Alert Rules**. |
-| **Åtgärder** | Vad som händer när filtren matchar: ändra statusen, skapa en varning, deklarera en incident eller någon kombination. |
+| **Åtgärder** | Vad som händer när filtren matchar: ändra statusen, skapa ett larm, deklarera en incident eller någon kombination. |
 | **Inställningar** | **Aktivera det här kriteriet**, en valfri **Beskrivning** och, på monitorer för inkommande förfrågningar, **Group incidents and alerts by a payload field**. |
 
 ### Filter
 
-Ett filter läser en sak från kontrollen och jämför den: en **Filtertyp** (vad som läses, som **Statuskod för svar**), ett **Filtervillkor** (hur det jämförs, som **Större än**) och ett **Värde**. Monitorer som jämför mått, som Kubernetes- och måttmonitorer, frågar i stället efter ett **Villkor** och en **Threshold**. Varje monitortyp erbjuder sina egna filtertyper, som listas på dess sida, till exempel [Webbplatsövervakning](/docs/monitor/website-monitor#övervakningskriterier).
+Ett filter läser en sak från kontrollen och jämför den: en **Filtertyp** (vad som läses, som **Statuskod för svar**), ett **Filtervillkor** (hur det jämförs, som **Större än**) och ett **Värde**. Monitorer som jämför mått, som Kubernetes- och måttmonitorer, frågar i stället efter ett **Villkor** och en **Tröskel**. Varje monitortyp erbjuder sina egna filtertyper, som listas på dess sida, till exempel [Webbplatsövervakning](/docs/monitor/website-monitor#övervakningskriterier).
 
 Från två filter och uppåt visas **Matchningsvillkor** under dem: **Alla** betyder att varje filter måste matcha, **Valfri** att ett räcker. Ett nytt kriterium börjar på **Alla**.
 
@@ -58,10 +58,10 @@ Varje åtgärd är en brytare under **Åtgärder**:
 | Brytare | Vad den gör |
 | --- | --- |
 | **När filter matchar, ändra övervakarstatus.** | Flyttar monitorn till den status som valts i **Ändra övervakningsstatus till**. |
-| **När filter matchar, skapa en varning.** | Skapar de varningar som är inställda under **Skapa varning**. En varning meddelar ditt team och visas aldrig på en statussida. |
+| **När filter matchar, skapa ett larm.** | Skapar de larm som är inställda under **Skapa larm**. Ett larm meddelar ditt team och visas aldrig på en statussida. |
 | **När filter matchar, deklarera en incident.** | Deklarerar de incidenter som är inställda under **Skapa incident**. Dina statussidor kan visa dem. |
 
-En incident eller en varning frågar efter en titel, en **Allvarlighetsgrad** och, hopfällda, en beskrivning, ägare, etiketter och jourpolicyer. Titlar och beskrivningar kan innehålla värden från kontrollen, som `{{monitorName}}`: se [Incident- och varningsmallar](/docs/monitor/incident-alert-templating). För att larma någon när kriteriet matchar väljer du en policy under **Jour**: se [Jourpolicyer](/docs/on-call/policies).
+En incident eller ett larm frågar efter en titel, en **Allvarlighetsgrad** och, hopfällda, en beskrivning, ägare, etiketter och jourpolicyer. Titlar och beskrivningar kan innehålla värden från kontrollen, som `{{monitorName}}`: se [Incident- och larmmallar](/docs/monitor/incident-alert-templating). För att larma någon när kriteriet matchar väljer du en policy under **Jour**: se [Jourpolicyer](/docs/on-call/policies).
 
 ### Inställningar
 
@@ -69,7 +69,7 @@ En incident eller en varning frågar efter en titel, en **Allvarlighetsgrad** oc
 
 **Group incidents and alerts by a payload field** öppnar en incident per värde som hittas i en inkommande förfrågan, så att en enda webhook-adress kan hålla flera incidenter öppna. Se [Slå på incidentgruppering](/docs/monitor/incoming-request-monitor#aktivera-gruppering-av-incidenter).
 
-## När incidenter och varningar öppnas och stängs
+## När incidenter och larm öppnas och stängs
 
 Ett kriterium som deklarerar incidenter öppnar en när det matchar. När monitorn återhämtar sig stängs incidenten av sig själv, om kriteriet säger det.
 
@@ -85,10 +85,10 @@ flowchart TB
     R -->|"Nej"| H["Den förblir öppen tills<br/>någon löser den"]
 ```
 
-- **En i taget.** Så länge en incident som ett kriterium har deklarerat fortfarande är öppen, deklarerar samma kriterium ingen ny när det matchar igen. Varningar fungerar på samma sätt. En monitor som grupperar efter värd eller payload-fält håller en öppen per värd eller värde, och ett kriterium på en monitor för inkommande e-post med **Öppna en ny incident för varje e-postmeddelande** öppnar en per e-postmeddelande.
-- **Stängning.** Vid en senare kontroll där ett annat kriterium matchar, eller inget, löses en incident vars kriterium har **Lös incident automatiskt** påslaget, och likaså en varning med **Lös larm automatiskt**. Båda finns under **Fler fält** i incidenten eller varningen, och de kriterier som en ny monitor börjar med har dem påslagna.
+- **En i taget.** Så länge en incident som ett kriterium har deklarerat fortfarande är öppen, deklarerar samma kriterium ingen ny när det matchar igen. Larm fungerar på samma sätt. En monitor som grupperar efter värd eller payload-fält håller en öppen per värd eller värde, och ett kriterium på en monitor för inkommande e-post med **Öppna en ny incident för varje e-postmeddelande** öppnar en per e-postmeddelande.
+- **Stängning.** Vid en senare kontroll där ett annat kriterium matchar, eller inget, löses en incident vars kriterium har **Lös incident automatiskt** påslaget, och likaså ett larm med **Lös larm automatiskt**. Båda finns under **Fler fält** i incidenten eller larmet, och de kriterier som en ny monitor börjar med har dem påslagna.
 - **Flera sonder.** En monitor som kontrolleras av mer än en sond ändras bara när dess sonder är överens. Se [Hur kriterier utvärderas](/docs/monitor/create-monitor#så-utvärderas-kriterier).
-- **En överordnad monitor som är nere.** På en monitors sida **Konfiguration → Beroenden** anger **Depends On Monitors** de monitorer den är beroende av. Så länge någon av dem har en status som står i **Suppress When Parent Status Is** (vilken offline-status som helst, om fältet lämnas tomt), öppnar monitorn inga incidenter eller varningar. Dess status ändras fortfarande, och det som är öppet löses fortfarande.
+- **En överordnad monitor som är nere.** På en monitors sida **Konfiguration → Beroenden** anger **Depends On Monitors** de monitorer den är beroende av. Så länge någon av dem har en status som står i **Suppress When Parent Status Is** (vilken offline-status som helst, om fältet lämnas tomt), öppnar monitorn inga incidenter eller larm. Dess status ändras fortfarande, och det som är öppet löses fortfarande.
 - **Schemalagt underhåll.** En monitor i en underhållshändelse som pågår kontrolleras inte, så dess kriterier körs inte. Se [Schemalagt underhåll – Översikt](/docs/scheduled-maintenance/index).
 
 För att se hur en kontroll bedömdes öppnar du monitorns **Översikt**: kortet **Monitor-sammanfattning** visar vilket kriterium som matchade och vad varje kriterium gjorde, även en incident som hoppades över eftersom en redan var öppen.
@@ -139,7 +139,7 @@ Listan är en ordning. Där monitorer visas tillsammans vinner den status som st
 | Statussidor | Färgen på varje rad och dess tillgänglighet: bara statusarna i sidans **Räknas som driftstopp** räknas mot den. En ny statussida börjar med alla statusar utom den fungerande. Se [Välj vad sidan visar](/docs/status-pages/index#välja-vad-som-visas-på-sidan). |
 | Monitorgrupper | Gruppens status: den värsta bland dess monitorer. Se [Monitorgrupper](/docs/monitor/monitor-groups). |
 | SLO:er | Det driftstopp ett SLO räknar, utifrån dess egen lista över statusar. Se [Vilka statusar som räknas som driftstopp](/docs/slo/introduction#vilka-statusar-som-räknas-som-driftstopp). |
-| Beroenden | Om en överordnad monitor håller tillbaka incidenter och varningar för monitorerna som beror på den: som standard, så länge den har en offline-status. |
+| Beroenden | Om en överordnad monitor håller tillbaka incidenter och larm för monitorerna som beror på den: som standard, så länge den har en offline-status. |
 
 En status som du lägger till senare läggs inte till i listan **Räknas som driftstopp** på en befintlig statussida: lägg till den där själv.
 
@@ -202,7 +202,7 @@ Kontrollera kriteriet som matchade: **När filter matchar, deklarera en incident
 
 :::cards
 - [Skapa en monitor](/docs/monitor/create-monitor): De tre stegen för en ny monitor.
-- [Incident- och varningsmallar](/docs/monitor/incident-alert-templating): Sätt in värden från kontrollen i titlar och beskrivningar.
+- [Incident- och larmmallar](/docs/monitor/incident-alert-templating): Sätt in värden från kontrollen i titlar och beskrivningar.
 - [Monitorgrupper](/docs/monitor/monitor-groups): Samla flera monitorer i en status.
 - [Incidenter – Översikt](/docs/incidents/index): Vad som händer efter att ett kriterium har deklarerat en incident.
 :::

@@ -88,7 +88,7 @@ flowchart TB
 
 询问 AI 执行的每项操作都以你的身份进行：它做出与仪表板对同一操作相同的更改，使用你在项目中的权限，并且更改记在你的名下。在聊天中确认一个事件，会产生与事件状态面板相同的状态变更，因此事件的时间线和动态会显示是你更改了它的状态。从聊天发出的呼叫会显示你是触发者。
 
-- **每项操作需要什么。** 即仪表板对同一更改要求的权限。确认或解决事件需要更改其状态的权限：**Project Owner**、**Project Admin**、**Project Member**、**Incident Admin** 和 **Incident Member**，或自定义角色中的 **Create Incident State Timeline**；警报需要针对警报的相同权限（**Create Alert State Timeline**）。呼叫值班策略需要执行它的权限（**Create On-Call Duty Policy Execution Log**），运行运行手册需要启动运行手册执行的权限：可运行运行手册的角色（仅限其标签覆盖到的运行手册），或自定义角色中的 **Create Runbook Execution**，它覆盖项目中的所有运行手册。更改事件的严重程度、为事件或警报启动 AI 调查，以及向已连接仓库写入代码，需要更改该事件、警报或仓库的权限。你无权执行的操作会被拒绝，AI 会告诉你需要哪项权限。如果你拥有该权限，但你所在的某个团队阻止了它，AI 会告诉你这一点：对某些标签的阻止会使询问 AI 对所有记录拒绝该操作，而不仅是带有这些标签的记录。
+- **每项操作需要什么。** 即仪表板对同一更改要求的权限。确认或解决事件需要更改其状态的权限：**项目所有者**、**项目管理员**、**项目成员**、**事件管理员** 和 **事件成员**，或自定义角色中的 **Create Incident State Timeline**；警报需要针对警报的相同权限（**Create Alert State Timeline**）。呼叫值班策略需要执行它的权限（**Create On-Call Duty Policy Execution Log**），运行运行手册需要启动运行手册执行的权限：可运行运行手册的角色（仅限其标签覆盖到的运行手册），或自定义角色中的 **Create Runbook Execution**，它覆盖项目中的所有运行手册。更改事件的严重程度、为事件或警报启动 AI 调查，以及向已连接仓库写入代码，需要更改该事件、警报或仓库的权限。你无权执行的操作会被拒绝，AI 会告诉你需要哪项权限。如果你拥有该权限，但你所在的某个团队阻止了它，AI 会告诉你这一点：对某些标签的阻止会使询问 AI 对所有记录拒绝该操作，而不仅是带有这些标签的记录。
 - **哪些记录。** 即你有权更改的记录，与 OneUptime 其他地方一致：如果你的角色仅限于某些标签或你拥有的记录，对任何其他记录的操作都不会产生更改。只有当你启动运行手册执行的权限覆盖到某个运行手册时，它才会运行。在 OneUptime Cloud 上，项目套餐不包含的操作会被拒绝，并说明所需的套餐。
 - **当操作被拒绝时。** 不会有任何更改，AI 会明确告诉你操作没有执行以及原因，而不是再试一次。
 - **Slack、Microsoft Teams 和 AI 调查。** AI 在 Slack 和 Microsoft Teams 中的回答，以及自主 AI 调查，都只读取：它们不执行上述任何操作。要从 Slack 或 Microsoft Teams 操作，请使用 OneUptime 消息上的按钮，它们同样以你的身份执行（请参阅 [Slack](/docs/workspace-connections/slack#从-slack-处理事件警报和活动) 和 [Microsoft Teams](/docs/workspace-connections/microsoft-teams#从-microsoft-teams-处理事件警报和活动)）。

@@ -58,7 +58,7 @@ Tous deux consignent un problème, et tous deux peuvent alerter la personne d'as
 | **Ce que c'est** | Un problème qui touche vos utilisateurs, comme une panne ou un ralentissement | Un problème que votre équipe doit examiner avant que les utilisateurs ne soient touchés |
 | **Sur les pages de statut** | Peut apparaître, et prévient les abonnés | Jamais |
 | **États de départ** | **Identifié**, **Pris en compte**, **Résolu** | **Identifié**, **Pris en compte**, **Résolu** |
-| **Gravités de départ** | Critical Incident, Major Incident, Minor Incident | **Élevé**, **Low** |
+| **Gravités de départ** | Critical Incident, Major Incident, Minor Incident | **Élevé**, **Faible** |
 
 Le prendre en compte indique que quelqu'un s'en occupe, et empêche ses politiques d'astreinte d'alerter le niveau suivant. Le résoudre le clôt. Vous pouvez ajouter vos propres états et gravités, et lier des alertes à l'incident dont elles faisaient partie.
 

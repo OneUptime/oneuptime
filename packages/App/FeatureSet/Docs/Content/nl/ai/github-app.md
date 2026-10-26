@@ -126,7 +126,7 @@ Elke opdracht die werk start, is een volledige agent-run: een kloon, tot 40 LLM-
 
 GitHub-opdrachten zijn AI-werk buiten incidenten en waarschuwingen, dus er geldt geen dagelijkse limiet voor hersteltaken; de eigen dagelijkse AI-limieten van het project gelden wel, als het project die instelt. De enige andere limiet is die al geldt voor de taken in [Code](/docs/ai/ai-agent):
 
-- **Het maximum aan open pull requests** (**Max Open Fix Pull Requests**, onder **Meer instellingen** op de pagina **Instellingen** van de repository). **AI-fix-pullrequests** staat op **Geen limiet** tot je **Een limiet** kiest, of **Geen**, dat AI-pull-requests met een fix op die repository blokkeert. Reviews en herzieningen zijn uitgezonderd: geen van beide voegt een pull request toe aan je reviewwachtrij.
+- **Het maximum aan open pull requests** (**Max. open fix-pull-requests**, onder **Meer instellingen** op de pagina **Instellingen** van de repository). **AI-fix-pullrequests** staat op **Geen limiet** tot je **Een limiet** kiest, of **Geen**, dat AI-pull-requests met een fix op die repository blokkeert. Reviews en herzieningen zijn uitgezonderd: geen van beide voegt een pull request toe aan je reviewwachtrij.
 
 Per issue of pull request is er steeds maar één run van een soort actief. Twee keer vragen vertelt je dat hij er al mee bezig is; om een review vragen terwijl een herziening loopt, start ze allebei, omdat het verschillende verzoeken zijn.
 
@@ -134,9 +134,9 @@ Als een run niet kan starten, zegt de app in de thread waarom: hij mislukt nooit
 
 ## Uitzetten
 
-Elke repository heeft een schakelaar: **Respond to GitHub Commands**, onder **Meer instellingen** op de pagina **Instellingen** van de repository. Hij staat aan voor elke repository en slaat op zodra je hem omzet. Staat die uit, dan negeert de app vermeldingen, toewijzingen en het triggerlabel in die repository, en vertelt hij iedereen die het vraagt waar de schakelaar zit.
+Elke repository heeft een schakelaar: **Reageren op GitHub-opdrachten**, onder **Meer instellingen** op de pagina **Instellingen** van de repository. Hij staat aan voor elke repository en slaat op zodra je hem omzet. Staat die uit, dan negeert de app vermeldingen, toewijzingen en het triggerlabel in die repository, en vertelt hij iedereen die het vraagt waar de schakelaar zit.
 
-Dezelfde pagina bevat het **GitHub Trigger Label**, onder **Meer instellingen**, als je een ander label dan `oneuptime` wilt.
+Dezelfde pagina bevat het **GitHub-triggerlabel**, onder **Meer instellingen**, als je een ander label dan `oneuptime` wilt.
 
 ## Waarop je je abonneert
 
@@ -166,7 +166,7 @@ Behandel een pull request die de AI schreef zoals je er een zou behandelen van e
 ## Problemen oplossen
 
 :::details Er gebeurt niets als ik hem noem
-Controleer eerst de handle: dat is de slug van de app, niet de weergavenaam. Controleer daarna of de repository aan een project is gekoppeld (in **Producten → Code**), of **Respond to GitHub Commands** aan staat en of je GitHub App op de events hierboven is geabonneerd.
+Controleer eerst de handle: dat is de slug van de app, niet de weergavenaam. Controleer daarna of de repository aan een project is gekoppeld (in **Producten → Code**), of **Reageren op GitHub-opdrachten** aan staat en of je GitHub App op de events hierboven is geabonneerd.
 :::
 
 :::details Hij reageert met 😕 en zegt niets

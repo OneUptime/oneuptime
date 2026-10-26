@@ -23,7 +23,7 @@ flowchart TB
 - **Vagtordning** > **Tidslinje for vagtplaner** viser alle de vagtplaner, du kan se, grupperet efter det team, der ejer dem. Knappen **Tidslinjevisning** på **Vagtplaner** åbner samme side.
 - **Teams** > et team > **Vagtplaner** viser kun de vagtplaner, teamet ejer.
 
-Et team ejer en vagtplan, når det står på vagtplanens side **Ejere**. Vagtplaner uden et ejerteam grupperes under **No owner team**. Slå **Group by team** fra for at se alle vagtplaner i én liste, sorteret efter navn.
+Et team ejer en vagtplan, når det står på vagtplanens side **Ejere**. Vagtplaner uden et ejerteam grupperes under **Intet ejerteam**. Slå **Gruppér efter team** fra for at se alle vagtplaner i én liste, sorteret efter navn.
 
 ## Læs gitteret
 
@@ -34,16 +34,16 @@ Et team ejer en vagtplan, når det står på vagtplanens side **Ejere**. Vagtpla
 | En bjælke mærket **⇄** | En override: nogen dækker en vagt. Den smalle bane under den nævner den person, hvis vagt dækkes, overstreget. |
 | En skraveret ravgul blok | Et hul i dækningen: ingen har vagt. En advarsel, der eskalerer til den vagtplan, tilkalder så ingen. |
 | Den røde linje | Nu. |
-| Linjen under en vagtplans navn | Hvem der har vagt nu, eller **No one on call now**. |
+| Linjen under en vagtplans navn | Hvem der har vagt nu, eller **Ingen på vagt nu**. |
 
 Hold musen over en bjælke eller et hul, eller gå til den med tastaturet, for at se detaljerne.
 
-Under gitteret viser **On call this week** (**On call this month** i månedsvisningen) alle, der har vagt i perioden. Hold musen over et navn for at se, hvor længe personen har vagt, og på hvor mange vagtplaner.
+Under gitteret viser **På vagt denne uge** (**På vagt denne måned** i månedsvisningen) alle, der har vagt i perioden. Hold musen over et navn for at se, hvor længe personen har vagt, og på hvor mange vagtplaner.
 
 ## Skift periode og tidszone
 
 - Skift mellem **Uge** og **Måned**, flyt med pilene, og vend tilbage med **I dag**.
-- Tider vises i din egen tidszone. Tidszoneknappen åbner **View timeline in timezone**, som viser tidslinjen i en hvilken som helst anden zone uden at ændre, hvornår nogen har vagt: hver vagtplan overdrager stadig i sin egen tidszone.
+- Tider vises i din egen tidszone. Tidszoneknappen åbner **Vis tidslinjen i tidszone**, som viser tidslinjen i en hvilken som helst anden zone uden at ændre, hvornår nogen har vagt: hver vagtplan overdrager stadig i sin egen tidszone.
 - Tidslinjen dækker 180 dage tilbage og 365 dage frem.
 
 > [!NOTE]
@@ -52,9 +52,9 @@ Under gitteret viser **On call this week** (**On call this month** i månedsvisn
 ## Find en vagtplan eller en person
 
 - **Søg** finder navne på vagtplaner, navne på teams og de personer, der har vagt.
-- Teamfilteret indsnævrer visningen til ét team eller til **My teams**; **Schedules I'm on** beholder kun de vagtplaner, du er en del af.
-- Klik over gitteret på **with no one on call now** eller **with coverage gaps this week** (**with coverage gaps this month** i månedsvisningen) for kun at se de vagtplaner. Klik igen for at se dem alle.
-- Klik på en person under gitteret, eller på en af personens bjælker, for at fremhæve alle personens vagter. **Clear highlight** fjerner det igen, og **Clear filters** nulstiller søgningen og filtrene.
+- Teamfilteret indsnævrer visningen til ét team eller til **Mine teams**; **Tidsplaner, jeg er på** beholder kun de vagtplaner, du er en del af.
+- Klik over gitteret på **uden nogen på vagt nu** eller **med huller i dækningen denne uge** (**med huller i dækningen denne måned** i månedsvisningen) for kun at se de vagtplaner. Klik igen for at se dem alle.
+- Klik på en person under gitteret, eller på en af personens bjælker, for at fremhæve alle personens vagter. **Ryd fremhævning** fjerner det igen, og **Ryd filtre** nulstiller søgningen og filtrene.
 
 ## Hvem der ser hvad
 

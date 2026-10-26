@@ -122,7 +122,7 @@ Trinnet **Konfigurer** i oprettelsesguiden beder om op til syv værdier: hver sk
 
 For at kontrollere login, før noget kører, åbner du **Arbejdsgangsvariabler**, klikker på **Vis** ved `dynamicsAccessToken` og klikker på **Opdater nu**. **Access Token Fetched** betyder, at appregistreringen er i orden. Ellers nævner fejlen fra Microsoft Entra ID, hvad der er galt, f.eks. `AADSTS7000215: Invalid client secret provided`.
 
-Hvert workflow har sin egen kopi. Når du udskifter klienthemmeligheden, åbner du `dynamicsAccessToken` i hvert Dynamics 365-workflow og bruger **Update Credentials**.
+Hvert workflow har sin egen kopi. Når du udskifter klienthemmeligheden, åbner du `dynamicsAccessToken` i hvert Dynamics 365-workflow og bruger **Opdater legitimationsoplysninger**.
 
 ### Opret workflowene
 

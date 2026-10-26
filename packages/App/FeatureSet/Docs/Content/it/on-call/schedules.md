@@ -63,13 +63,13 @@ flowchart TB
 
 | Campo | Che cosa imposta |
 | --- | --- |
-| **Layer name** | Che cosa copre il livello, ad esempio «Primario feriale». |
-| **Rotation starts at** | La data e l'ora in cui inizia la rotazione del livello. |
-| **Rotate every** | Ogni quanto la reperibilità passa alla persona successiva del livello. |
-| **First hand-off time** | Il primo passaggio alla persona successiva, all'inizio o dopo. I passaggi successivi seguono ogni intervallo di rotazione. |
-| **Restrictions** | Gli orari in cui il livello è reperibile: **Nessuna restrizione**, **Orari specifici del giorno** o **Orari specifici della settimana**, nel fuso orario della pianificazione. Fuori da questi orari subentrano i livelli inferiori. |
+| **Nome del livello** | Che cosa copre il livello, ad esempio «Primario feriale». |
+| **La rotazione inizia il** | La data e l'ora in cui inizia la rotazione del livello. |
+| **Ruota ogni** | Ogni quanto la reperibilità passa alla persona successiva del livello. |
+| **Ora del primo passaggio** | Il primo passaggio alla persona successiva, all'inizio o dopo. I passaggi successivi seguono ogni intervallo di rotazione. |
+| **Restrizioni** | Gli orari in cui il livello è reperibile: **Nessuna restrizione**, **Orari specifici del giorno** o **Orari specifici della settimana**, nel fuso orario della pianificazione. Fuori da questi orari subentrano i livelli inferiori. |
 
-Per cambiare quale livello viene prima, usa **Move layer up (higher priority)** o **Move layer down (lower priority)** nel menu di un livello.
+Per cambiare quale livello viene prima, usa **Sposta il livello in alto (priorità più alta)** o **Sposta il livello in basso (priorità più bassa)** nel menu di un livello.
 
 Ogni persona mantiene un unico colore ovunque, così puoi seguirla a colpo d'occhio: su ogni livello, nella pianificazione finale e nelle sue sostituzioni, e nella **Cronologia delle reperibilità**.
 

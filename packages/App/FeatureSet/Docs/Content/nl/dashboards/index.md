@@ -48,7 +48,7 @@ Het zijmenu van de lijst bevat de pagina's die al je dashboards beheren:
 | **Dashboards** | De dashboards van het project. Maak er een, of haal dashboards binnen met **Import JSON**. |
 | **Instellingen → Eigenaarsregels** | Automatisch eigenaren toevoegen aan nieuwe dashboards. |
 | **Instellingen → Labelregels** | Automatisch labels toevoegen aan nieuwe dashboards. |
-| **Instellingen → Data Sources** | Prometheus, SQL-databases, ClickHouse, Loki, Elasticsearch of een REST-API koppelen. |
+| **Instellingen → Gegevensbronnen** | Prometheus, SQL-databases, ClickHouse, Loki, Elasticsearch of een REST-API koppelen. |
 | **Geavanceerd → Gearchiveerd** | Dashboards die je hebt gearchiveerd. Haal ze hier uit het archief. |
 
 Open een dashboard, en het eigen zijmenu ervan heeft deze pagina's. Elke sectie behalve **Basis** begint ingeklapt: klik op de titel om haar te openen.

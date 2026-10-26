@@ -42,18 +42,18 @@ La schermata è divisa in due:
 | Parte | Cosa contiene |
 | ---- | ------------- |
 | **Navigatore dei gruppi** (a sinistra) | Tutti i gruppi della pagina, ad albero, con una casella **Search groups...** sopra e un conteggio sotto, come `3 groups · 12 resources`. Un elenco lungo termina con un pulsante **Show N more of M**. |
-| **Top of page** | La prima riga del navigatore: le risorse senza gruppo, che i visitatori vedono per prime, sopra ogni gruppo. Su una pagina senza gruppi, il riquadro di destra si intitola invece **All resources**. |
+| **Inizio della pagina** | La prima riga del navigatore: le risorse senza gruppo, che i visitatori vedono per prime, sopra ogni gruppo. Su una pagina senza gruppi, il riquadro di destra si intitola invece **Tutte le risorse**. |
 | **Riquadro delle risorse** (a destra) | Le risorse del gruppo selezionato. La sua intestazione contiene **Edit Group**, il pulsante principale **Aggiungi monitor** e un menu **Altre azioni**. |
 | Intestazione della scheda | **New Group** e un menu a tre puntini con **Import groups from CSV** e **Aggiorna**. |
 
-**Gli stati vuoti vi dicono cosa fare.** Un gruppo vuoto mostra **No monitors here yet** con **Aggiungi monitor**, **Add Multiple** e, solo finché la pagina non ha alcun gruppo, **Create a Group**. Una ricerca senza risultati mostra **No resources match your search**.
+**Gli stati vuoti vi dicono cosa fare.** Un gruppo vuoto mostra **No monitors here yet** con **Aggiungi monitor**, **Add Multiple** e, solo finché la pagina non ha alcun gruppo, **Create a Group**. Una ricerca senza risultati mostra **Nessuna risorsa corrisponde alla ricerca**.
 
 ## Aggiungere un monitor
 
 :::steps
 ### Scegliere dove va la riga
 
-Nel navigatore dei gruppi, selezionate il gruppo a cui appartiene la risorsa, oppure **Top of page** per una riga senza gruppo.
+Nel navigatore dei gruppi, selezionate il gruppo a cui appartiene la risorsa, oppure **Inizio della pagina** per una riga senza gruppo.
 
 ### Fare clic su Aggiungi monitor
 
@@ -196,7 +196,7 @@ L'ordine lo decidete voi, non l'alfabeto:
 | ---- | ------------------ |
 | Le risorse dentro un gruppo | Trascinate una riga. Il riquadro lo dice: **Drag a row to change the order visitors see**. |
 | I gruppi tra loro | **Sposta su** / **Sposta giù** nel menu della riga del navigatore, oppure **Move group up** / **Move group down** in **Altre azioni**. |
-| Le risorse senza gruppo | Stanno in **Top of page** e compaiono sempre sopra ogni gruppo, quindi mettete lì la cosa che tutti controllano per prima. |
+| Le risorse senza gruppo | Stanno in **Inizio della pagina** e compaiono sempre sopra ogni gruppo, quindi mettete lì la cosa che tutti controllano per prima. |
 
 **Due casi in cui il trascinamento è disattivato.** Una ricerca nella casella **Search in {group}...** disattiva il riordino (il riquadro dice `N of M shown · drag to reorder is off while filtering`), quindi svuotate prima la ricerca. E i gruppi a griglia non si riordinano mai trascinando, perché il posto di un monitor deriva dalla sua riga e dalla sua colonna.
 
@@ -204,12 +204,12 @@ Mettete in cima il servizio su cui vi fanno più domande. I visitatori che arriv
 
 ## Aggiungere monitor automaticamente con le regole dei monitor
 
-Una regola dei monitor aggiunge monitor alla pagina per voi: descrivete i monitor una volta, e ogni monitor corrispondente finisce nel gruppo che avete scelto. Le trovate in **Regole → Monitor Rules**, subito sotto Risorse nel menu laterale della pagina.
+Una regola dei monitor aggiunge monitor alla pagina per voi: descrivete i monitor una volta, e ogni monitor corrispondente finisce nel gruppo che avete scelto. Le trovate in **Regole → Regole dei monitor**, subito sotto Risorse nel menu laterale della pagina.
 
 :::steps
 ### Aprire Monitor Rules
 
-Aprite la pagina di stato, scegliete **Monitor Rules** nella sezione **Regole** del suo menu laterale (fate clic sul titolo della sezione se è chiusa) e fate clic su **Crea regola dei monitor**.
+Aprite la pagina di stato, scegliete **Regole dei monitor** nella sezione **Regole** del suo menu laterale (fate clic sul titolo della sezione se è chiusa) e fate clic su **Crea regola dei monitor**.
 
 ### Indicare a quali monitor corrisponde
 
@@ -221,7 +221,7 @@ In **Gruppo**, scegliete **Aggiungi i monitor a**, oppure lasciatelo vuoto per a
 
 ### Salvare la regola
 
-La regola viene eseguita subito su ogni monitor già esistente, e l'elenco mostra il gruppo a cui aggiunge i monitor sotto **Adds Monitors To**. Una nuova regola è attiva: il suo interruttore **Abilitato** si trova nel suo modulo di modifica.
+La regola viene eseguita subito su ogni monitor già esistente, e l'elenco mostra il gruppo a cui aggiunge i monitor sotto **Aggiunge i monitor a**. Una nuova regola è attiva: il suo interruttore **Abilitato** si trova nel suo modulo di modifica.
 :::
 
 Dopo di che, una regola viene eseguita di nuovo per un monitor ogni volta che ne viene creato uno o cambiano le sue etichette, il suo nome o la sua descrizione. Una regola rimuove solo le risorse che ha aggiunto: disattivarla o eliminarla le toglie dalla pagina, e un monitor aggiunto a mano non viene mai toccato. Un monitor già presente sulla pagina non viene mai aggiunto due volte.

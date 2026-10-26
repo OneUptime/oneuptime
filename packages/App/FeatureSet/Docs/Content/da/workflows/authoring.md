@@ -15,7 +15,7 @@ Workflows oprettes slået fra, så deres trigger ikke starter dem, før du slår
 
 ## Lærredet
 
-Et workflow fra bunden åbner med en enkelt stiplet blok med teksten **Choose what starts this workflow**. Den blok er udgangspunktet — klik på den for at vælge en trigger. Et workflow, der er oprettet fra en skabelon, åbner med sine blokke allerede på plads.
+Et workflow fra bunden åbner med en enkelt stiplet blok med teksten **Vælg, hvad der starter denne arbejdsgang**. Den blok er udgangspunktet — klik på den for at vælge en trigger. Et workflow, der er oprettet fra en skabelon, åbner med sine blokke allerede på plads.
 
 Hvert workflow har præcis én **trigger** øverst. Alt andet er en **komponent**, der gør noget. For at skifte triggeren sletter du den: den stiplede pladsholder kommer tilbage på dens plads, og et klik på den lader dig vælge en anden. Når du sletter en blok, slettes dens linjer også, så forbind den nye trigger til den første blok igen.
 
@@ -30,7 +30,7 @@ Hvert workflow har præcis én **trigger** øverst. Alt andet er en **komponent*
 
 Knappen i værktøjslinjen hedder **Tilføj trigger**, så længe workflowet ikke har en trigger, og **Tilføj komponent**, så snart det har en.
 
-Begge paneler åbner på de blokke, de fleste workflows bruger, under **Popular**, efterfulgt af de øvrige indbyggede blokke. Under **OneUptime resources** klikker du på en ressource som **Hændelse** for at se, hvad du kan gøre med den; **Browse all resources** viser dem alle. Eller søg: skriv et par ord, som `create incident`, og det bedste match kommer først. Tryk på `/` for at hoppe til søgefeltet, på piletasterne for at gå gennem resultaterne og på **Enter** for at tilføje den fremhævede blok. Et klik på en blok tilføjer den.
+Begge paneler åbner på de blokke, de fleste workflows bruger, under **Populære**, efterfulgt af de øvrige indbyggede blokke. Under **OneUptime-ressourcer** klikker du på en ressource som **Hændelse** for at se, hvad du kan gøre med den; **Gennemse alle ressourcer** viser dem alle. Eller søg: skriv et par ord, som `create incident`, og det bedste match kommer først. Tryk på `/` for at hoppe til søgefeltet, på piletasterne for at gå gennem resultaterne og på **Enter** for at tilføje den fremhævede blok. Et klik på en blok tilføjer den.
 
 En ny blok havner under den nederste blok på lærredet, og en ny trigger tager den stiplede bloks plads øverst. Den nye blok er markeret, og hvis den havner uden for synsfeltet, ruller lærredet lige nok til at vise den. Dens indstillinger åbner ikke af sig selv: klik på blokken, når du er klar til at konfigurere den. Indtil de påkrævede indstillinger er udfyldt, står der **Click to set up** på den.
 
@@ -80,11 +80,11 @@ Hver indstilling har det inputfelt, dens værdi kræver:
 | JSON                                             | En JSON-editor.                                                                |
 | Til eller fra                                    | En kontakt med dens navn ved siden af. Klik på kontakten eller navnet for at skifte den. |
 
-Dialogen åbner ved det, du sandsynligvis kom efter. For en **Webhook**-trigger er det dens URL, med en knap **Kopiér URL**, de metoder, den accepterer, og en eksempelforespørgsel. For en **Manual**-trigger er det, hvordan workflowet startes. Enhver anden blok åbner ved sine indstillinger. En blok uden indstillinger har slet ingen sektion **Indstillinger**.
+Dialogen åbner ved det, du sandsynligvis kom efter. For en **Webhook**-trigger er det dens URL, med en knap **Kopiér URL**, de metoder, den accepterer, og en eksempelforespørgsel. For en **Manuel**-trigger er det, hvordan workflowet startes. Enhver anden blok åbner ved sine indstillinger. En blok uden indstillinger har slet ingen sektion **Indstillinger**.
 
 Derunder, oppefra og ned:
 
-- **ID**, **Inputs** og **Outputs**, side om side — blokkens identifier, hvorfra den nås, og hvad der kører efter den.
+- **ID**, **Input** og **Outputs**, side om side — blokkens identifier, hvorfra den nås, og hvad der kører efter den.
 - **Returns** — de data, denne blok giver videre til senere trin. Hver værdi viser den præcise reference, der læser den, med en knap til at kopiere den.
 - **How to use** — hvad blokken gør i én sætning, trinnene til at konfigurere den, et eksempel til at kopiere og de fejl, folk ofte laver. Eksemplet er bygget ud fra dit workflow: det bruger denne bloks ID og triggerens værdier, hvor det sætter data ind i en besked. **Learn more** åbner den længere forklaring, og linkene går til den fulde vejledning. Hver blok har en, og knappen **How to use** øverst i dialogen hopper direkte dertil.
 
@@ -129,9 +129,9 @@ Den fanger de fejl, der ellers er usynlige, indtil en kørsel går galt:
 Den hurtigste måde at lære lærredet at kende på er et workflow med to blokke, som du starter manuelt:
 
 :::steps
-1. Klik på den stiplede pladsholderblok, og klik så på **Manual** i panelet **Tilføj trigger**.
-2. Klik på **Tilføj komponent**, og klik så på **Log** under **Popular**. Den nye blok havner under triggeren. Forbind triggerens punkt **Execute** ned til Log-blokkens inputpunkt.
-3. Klik på Log-blokken, hvor der står **Click to set up**, og skriv `Hello from ` i dens **Value**. Klik på **{ }**, og klik så på **JSON** under **Manual**. Indstillingen viser **Manual › JSON** og gemmer `{{local.components.manual-1.returnValues.value}}`. `manual-1` er triggerens **Identifier**, som vises på triggerblokken. Klik på **Gem**.
+1. Klik på den stiplede pladsholderblok, og klik så på **Manuel** i panelet **Tilføj trigger**.
+2. Klik på **Tilføj komponent**, og klik så på **Log** under **Populære**. Den nye blok havner under triggeren. Forbind triggerens punkt **Execute** ned til Log-blokkens inputpunkt.
+3. Klik på Log-blokken, hvor der står **Click to set up**, og skriv `Hello from ` i dens **Value**. Klik på **{ }**, og klik så på **JSON** under **Manuel**. Indstillingen viser **Manual › JSON** og gemmer `{{local.components.manual-1.returnValues.value}}`. `manual-1` er triggerens **Identifier**, som vises på triggerblokken. Klik på **Gem**.
 4. Tilbage i **Bygger** klikker du på **Kør arbejdsgang**, skriver `{ "name": "Ada" }` i feltet **JSON**, klikker på **Kør arbejdsgang manuelt** og bekræfter med **Kør**. Workflowet er stadig slået fra, og det behøver ikke være slået til: en kørsel, du selv starter, er en **Testkørsel**.
 5. Et panel **Arbejdsgangskørsel** åbner af sig selv og følger kørslen. Øverst står der **Testkørsel**, og loggen viser `Value:` efterfulgt af `Hello from` og den JSON, du skrev.
 :::
@@ -139,7 +139,7 @@ Den hurtigste måde at lære lærredet at kende på er et workflow med to blokke
 Den cyklus — tilføj, forbind, konfigurer, kør, læs loggen — er sådan, du bygger hvert workflow.
 
 > [!TIP]
-> JSON, der skrives i **Kør arbejdsgang**, når frem til Manual-triggeren som JSON. For at læse et felt i den, som `name`, tilføjer du feltets navn til referencen: `{{local.components.manual-1.returnValues.value.name}}`. Når workflowet har kørt, viser værdivælgeren også felterne: åbn **JSON** under **Manual**.
+> JSON, der skrives i **Kør arbejdsgang**, når frem til Manual-triggeren som JSON. For at læse et felt i den, som `name`, tilføjer du feltets navn til referencen: `{{local.components.manual-1.returnValues.value.name}}`. Når workflowet har kørt, viser værdivælgeren også felterne: åbn **JSON** under **Manuel**.
 
 ## Slå det til
 

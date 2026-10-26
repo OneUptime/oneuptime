@@ -41,8 +41,8 @@ flowchart TB
 Gå till **Projektinställningar** > **Aviseringar** > **Aviseringsinställningar**. Klicka på **Skapa Twilio-konfiguration** i kortet **Twilio-konfiguration** och fyll i formuläret:
 
 - **Namn** och **Beskrivning**: vad kontot används till, till exempel "Supportlinje".
-- **Twilio Account SID**: från Twilio Console. Det börjar med `AC`.
-- **Twilio Auth Token**: från Twilio Console.
+- **Twilio-konto-SID**: från Twilio Console. Det börjar med `AC`.
+- **Twilio-autentiseringstoken**: från Twilio Console.
 - **Twilio primärt telefonnummer**: ett nummer på det kontot, för de SMS och samtal som det skickar. Under **Fler fält**, valfritt: nummer för mottagare i andra länder och nummer för SMS när kontots nummer bara kan ringa (se [Separata nummer för samtal och SMS](/docs/self-hosted/twilio-integration#separata-nummer-för-samtal-och-sms)).
 - **Ange som projektstandard**: på för projektets första Twilio-konfiguration, så att SMS och samtal till projektets medlemmar också går via det här kontot. Stäng av det om kontot bara är för inkommande samtal.
 
@@ -56,7 +56,7 @@ Policyns **Översikt** visar ett kort **Inställning** med tre numrerade steg. K
 
 ### Lägg till ett telefonnummer
 
-Klicka på **Add Phone Number** i det andra steget. Välj **Use Existing Phone Number** för att ta med ett nummer som ditt Twilio-konto redan har, eller **Reserve New Phone Number** för att få ett nytt. OneUptime pekar numret mot sig självt, så det finns inget att ställa in i Twilio. Se [Telefonnummer](#telefonnummer).
+Klicka på **Lägg till telefonnummer** i det andra steget. Välj **Använd befintligt telefonnummer** för att ta med ett nummer som ditt Twilio-konto redan har, eller **Reservera nytt telefonnummer** för att få ett nytt. OneUptime pekar numret mot sig självt, så det finns inget att ställa in i Twilio. Se [Telefonnummer](#telefonnummer).
 
 ### Lägg till eskaleringsregler
 
@@ -68,7 +68,7 @@ Alla som en regel kan ringa upp lägger till och verifierar sitt eget nummer fö
 
 ### Ring numret
 
-När alla tre stegen är klara blir kortet **Phone Numbers & Twilio Configuration**. Ring numret från valfri telefon och öppna sedan policyns **Samtalsloggar** för att se vem som ringdes upp.
+När alla tre stegen är klara blir kortet **Telefonnummer och Twilio-konfiguration**. Ring numret från valfri telefon och öppna sedan policyns **Samtalsloggar** för att se vem som ringdes upp.
 :::
 
 ## Så routas ett samtal
@@ -127,16 +127,16 @@ Till exempel tre regler som provar två rotationer och sedan en chef:
 
 ## Telefonnummer
 
-En policy kan ha flera nummer, och alla ringer samma regler. Varje nummer hör till en policy. Lägg till dem med **Add Phone Number** på policyns **Översikt**:
+En policy kan ha flera nummer, och alla ringer samma regler. Varje nummer hör till en policy. Lägg till dem med **Lägg till telefonnummer** på policyns **Översikt**:
 
 :::tabs
 @tab Använd ett nummer du har
-1. Klicka på **Add Phone Number** och sedan på **Use Existing Phone Number**. OneUptime visar numren på policyns Twilio-konto.
+1. Klicka på **Lägg till telefonnummer** och sedan på **Använd befintligt telefonnummer**. OneUptime visar numren på policyns Twilio-konto.
 2. Klicka på **Välj** bredvid numret och sedan på **Tilldela nummer**.
 
 Ett nummer som redan skickar sina samtal någon annanstans säger "Currently has a webhook configured". Att tilldela det skickar dess samtal till OneUptime i stället.
 @tab Reservera ett nytt nummer
-1. Klicka på **Add Phone Number**, sedan på **Reserve New Phone Number** och **Sök efter nummer**.
+1. Klicka på **Lägg till telefonnummer**, sedan på **Reservera nytt telefonnummer** och **Sök efter nummer**.
 2. Välj ett **Land**. Fyll om du vill i **Riktnummer (valfritt)**, till exempel 415, eller **Innehåller (valfritt)** med siffror som numret ska innehålla. Klicka på **Sök**: upp till 10 lokala nummer visas.
 3. Klicka på **Reservera** bredvid ett nummer och bekräfta med **Reservera**. Twilio debiterar numret på ditt Twilio-konto.
 :::
@@ -146,7 +146,7 @@ OneUptime ställer in numrets röst-webhook på `https://<your host>/notificatio
 För att frigöra ett nummer klickar du på **Frigör** bredvid det och bekräftar med **Frigör nummer**.
 
 > [!CAUTION]
-> Att frigöra ett nummer ger tillbaka det till Twilio, även ett nummer som du tog med via **Use Existing Phone Number**, och du kanske inte får det igen. Att ta bort en policy, eller den Twilio-konfiguration som den använder, frigör också dess nummer.
+> Att frigöra ett nummer ger tillbaka det till Twilio, även ett nummer som du tog med via **Använd befintligt telefonnummer**, och du kanske inte får det igen. Att ta bort en policy, eller den Twilio-konfiguration som den använder, frigör också dess nummer.
 
 ## Teknikernas telefonnummer
 
@@ -160,7 +160,7 @@ En regel ringer en person på det nummer som personen har verifierat för inkomm
 
 Varje person kan ha ett verifierat nummer per projekt. För att byta det tar du först bort det gamla numret. De här numren är skilda från telefonnumren under **Aviseringsmetoder**, som jourlarm använder. Se [Aviseringsmetoder](/docs/notifications/notification-methods).
 
-Nummer för inkommande samtal verifieras via SMS, så **SMS** måste först vara påslaget för projektet. En projektägare, en **Billing Admin** eller någon med **Manage Billing** slår på det i kortet **Aviseringskanaler** på **Projektinställningar > Aviseringar > Aviseringsinställningar**.
+Nummer för inkommande samtal verifieras via SMS, så **SMS** måste först vara påslaget för projektet. En projektägare, en **Faktureringsadministratör** eller någon med **Manage Billing** slår på det i kortet **Aviseringskanaler** på **Projektinställningar > Aviseringar > Aviseringsinställningar**.
 
 ## Röstmeddelanden och policyinställningar
 
@@ -182,19 +182,19 @@ Twilio läser upp meddelandena med en text-till-tal-röst, så skriv dem som du 
 
 ## Samtalsloggar
 
-Varje samtal visas på policyns sida **Samtalsloggar**, under **Loggar** i dess sidomeny: **Uppringare**, **Number Called**, dess **Status**, vem som besvarade det (**Besvarad av**), **Varaktighet** och när det startade (**Startade den**). Klicka på **View Timeline** vid ett samtal för att se dess **Samtalstidslinje**: varje person som ringdes upp, på vilket nummer och hur varje försök slutade.
+Varje samtal visas på policyns sida **Samtalsloggar**, under **Loggar** i dess sidomeny: **Uppringare**, **Uppringt nummer**, dess **Status**, vem som besvarade det (**Besvarad av**), **Varaktighet** och när det startade (**Startade den**). Klicka på **Visa tidslinje** vid ett samtal för att se dess **Samtalstidslinje**: varje person som ringdes upp, på vilket nummer och hur varje försök slutade.
 
 | Status | Vad som hände |
 | --- | --- |
-| **Initiated**, **Eskalerad** | Samtalet pågår fortfarande: det kom in och en telefon ringer, eller det gick vidare till en senare regel. |
+| **Startad**, **Eskalerad** | Samtalet pågår fortfarande: det kom in och en telefon ringer, eller det gick vidare till en senare regel. |
 | **Slutförd** | Någon svarade, och uppringaren kopplades fram. |
 | **Inget svar** | Alla eskaleringsregler provades och ingen svarade. Uppringaren hörde ditt **Meddelande vid inget svar**. |
-| **Caller Hung Up** | Uppringaren lade på medan en teknikers telefon ringde. |
+| **Den som ringde lade på** | Uppringaren lade på medan en teknikers telefon ringde. |
 | **Misslyckades** | Ingen kunde ringas upp: ingen eskaleringsregel hade en användare med jour och ett verifierat nummer för inkommande samtal (uppringaren hörde ditt **Meddelande om att ingen är tillgänglig**), eller så är **Besvara samtal** avstängt. |
 
 ## Missade samtal
 
-Ett samtal är missat när det slutar utan att nå någon: dess status är **Inget svar**, **Caller Hung Up** eller **Misslyckades**.
+Ett samtal är missat när det slutar utan att nå någon: dess status är **Inget svar**, **Den som ringde lade på** eller **Misslyckades**.
 
 ### Vem som aviseras
 
@@ -225,10 +225,10 @@ Ett arbetsflöde kan läsa samtalsloggar med **Find One** och **Find Many**, men
 
 En policys telefonnummer följer samma roller som själva policyn:
 
-- **Slå upp nummer** - söka i Twilio efter ett nummer att reservera, eller visa de nummer som ditt Twilio-konto redan har - kräver behörighet att läsa policyer för inkommande samtal och att läsa konfigurationer för samtal och SMS, eftersom det läser ditt Twilio-konto via en sådan. **Project Owner**, **Project Admin**, **Project Member**, **Viewer**, **Settings Admin**, **Settings Member** och **Settings Viewer** har båda. I en anpassad roll är det **Read Incoming Call Policy** och **Read Call and SMS**.
-- **Reservera ett nummer, använda ett befintligt och frigöra ett** kräver behörighet att redigera policyer för inkommande samtal: **Project Owner**, **Project Admin**, **Project Member**, **Settings Admin** och **Settings Member**, eller **Edit Incoming Call Policy** i en anpassad roll. De ändrar numren för en policy som du får redigera: med en roll som är begränsad till vissa etiketter, de policyer som har de etiketterna.
+- **Slå upp nummer** - söka i Twilio efter ett nummer att reservera, eller visa de nummer som ditt Twilio-konto redan har - kräver behörighet att läsa policyer för inkommande samtal och att läsa konfigurationer för samtal och SMS, eftersom det läser ditt Twilio-konto via en sådan. **Projektägare**, **Projektadministratör**, **Projektmedlem**, **Tittare**, **Inställningsadministratör**, **Inställningsmedlem** och **Inställningstittare** har båda. I en anpassad roll är det **Read Incoming Call Policy** och **Read Call and SMS**.
+- **Reservera ett nummer, använda ett befintligt och frigöra ett** kräver behörighet att redigera policyer för inkommande samtal: **Projektägare**, **Projektadministratör**, **Projektmedlem**, **Inställningsadministratör** och **Inställningsmedlem**, eller **Edit Incoming Call Policy** i en anpassad roll. De ändrar numren för en policy som du får redigera: med en roll som är begränsad till vissa etiketter, de policyer som har de etiketterna.
 
-Ett teams spärr utan etiketter på en av de här behörigheterna tar bort den. För alla andra finns **Add Phone Number** och **Frigör** kvar på sidan, låsta, och deras knappbeskrivning säger vad som krävs. API:et avvisar deras förfrågan med en mening som säger vad som krävs: "Looking up phone numbers needs permission to read incoming call policies and call and SMS settings." eller "Adding or releasing a phone number needs permission to edit incoming call policies." Att reservera ett nummer debiteras ditt eget Twilio-konto, inte ditt OneUptime-saldo, så det kräver ingen faktureringsbehörighet.
+Ett teams spärr utan etiketter på en av de här behörigheterna tar bort den. För alla andra finns **Lägg till telefonnummer** och **Frigör** kvar på sidan, låsta, och deras knappbeskrivning säger vad som krävs. API:et avvisar deras förfrågan med en mening som säger vad som krävs: "Looking up phone numbers needs permission to read incoming call policies and call and SMS settings." eller "Adding or releasing a phone number needs permission to edit incoming call policies." Att reservera ett nummer debiteras ditt eget Twilio-konto, inte ditt OneUptime-saldo, så det kräver ingen faktureringsbehörighet.
 
 ## Skapa policyer med API:et eller Terraform
 
@@ -255,7 +255,7 @@ En regel som skapas via API:et utan `escalateAfterSeconds` ringer i 20 sekunder,
 :::details Samtal når inte fram till OneUptime
 - Öppna numret i Twilio Console: **A call comes in** måste vara webhooken `https://<your host>/notification/incoming-call/voice`, med HTTP POST. OneUptime ställer in den när numret läggs till, från `HOST` och `HTTP_PROTOCOL`. Om de har ändrats sedan dess rättar du webhooken i Twilio.
 - En egen installation av OneUptime måste kunna nås från internet via https. Numrets samtalslogg i Twilio Console, och Twilios **Debugger**, visar vad OneUptime svarade.
-- Ett svar `403` betyder att förfrågans signatur inte stämde. Kontrollera att Twilio-konfigurationen har kontots aktuella **Twilio Auth Token**, och att en proxy framför OneUptime skickar vidare den värd och det schema som Twilio anropade (`X-Forwarded-Host` och `X-Forwarded-Proto`).
+- Ett svar `403` betyder att förfrågans signatur inte stämde. Kontrollera att Twilio-konfigurationen har kontots aktuella **Twilio-autentiseringstoken**, och att en proxy framför OneUptime skickar vidare den värd och det schema som Twilio anropade (`X-Forwarded-Host` och `X-Forwarded-Proto`).
 :::
 
 :::details Samtalet besvaras, men ingen ringes upp
@@ -267,7 +267,7 @@ Om samtal hamnar i en teknikers röstbrevlåda ställer du in regelns **Ringtid*
 :::
 
 :::details Ett nytt nummer kan inte reserveras
-Twilio kräver i många länder ett godkänt regulatory bundle innan det säljer lokala nummer, och vissa nummer kräver ett positivt Twilio-saldo. Ordna det i Twilio Console, eller skaffa numret där och lägg till det med **Use Existing Phone Number**.
+Twilio kräver i många länder ett godkänt regulatory bundle innan det säljer lokala nummer, och vissa nummer kräver ett positivt Twilio-saldo. Ordna det i Twilio Console, eller skaffa numret där och lägg till det med **Använd befintligt telefonnummer**.
 :::
 
 :::details Policyns Twilio-konto kan inte ändras

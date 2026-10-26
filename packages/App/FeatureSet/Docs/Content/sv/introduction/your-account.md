@@ -109,7 +109,7 @@ Klicka på **Enable two-factor authentication** högst upp på sidan och bekräf
 Du kan tillhöra hur många projekt som helst. Projektväljaren uppe till vänster i instrumentpanelen listar dem: välj ett för att byta.
 
 - **Skapa ett projekt**: öppna projektväljaren och klicka på **Skapa nytt projekt**. På en självhostad installation kan administratören förbehålla administratörer att skapa projekt.
-- **Acceptera en inbjudan**: när någon bjuder in dig visar klockan uppe till höger den väntande inbjudan och öppnar **Projektinbjudningar**. Där väljer du **Acceptera** eller **Reject**.
+- **Acceptera en inbjudan**: när någon bjuder in dig visar klockan uppe till höger den väntande inbjudan och öppnar **Projektinbjudningar**. Där väljer du **Acceptera** eller **Avvisa**.
 - **Lämna ett projekt**: be någon som hanterar projektets användare att ta bort dig, med **Ta bort från projekt** på projektets sida **Användare**.
 
 ## Det som varje projekt sparar åt dig
@@ -121,7 +121,7 @@ Du kan tillhöra hur många projekt som helst. Projektväljaren uppe till vänst
 | **Checklista för konfiguration** | Leder dig genom allt nedan och visar vad som återstår. | |
 | **Aviseringsmetoder** | E-postadresserna, telefonnumren, apparna och webhookarna som OneUptime kan nå dig på. Din inloggningsadress läggs till åt dig. | |
 | **Jourregler** | Vilken metod som används, och efter hur lång tid, när en jourpolicy larmar dig. | [Eskaleringsregler](/docs/on-call/escalation-rules) |
-| **Aviseringsinställningar** | Vilka uppdateringar om incidenter, varningar, monitorer och mer du får, och på vilken kanal. | |
+| **Aviseringsinställningar** | Vilka uppdateringar om incidenter, larm, monitorer och mer du får, och på vilken kanal. | |
 | **E-postinställningar** | Hur många e-postmeddelanden du får: ett i taget, eller samlade. | [Aviseringssammanfattning](/docs/emails/notification-rollup) |
 | **Jourloggar** | Varje larm som skickats till dig, och vad som hände med det. | |
 | **Inkommande telefonnummer** | Numret som en policy för inkommande samtal ringer dig på. | [Policy för inkommande samtal](/docs/on-call/incoming-call-policy) |

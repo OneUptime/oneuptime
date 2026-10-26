@@ -35,7 +35,7 @@ Beide halten ein Problem fest, und beide können die Bereitschaft alarmieren. De
 | **Auf Statusseiten**         | Nie                                                    | Kann erscheinen und informiert Abonnenten         |
 | **Notizen**                  | Private Notizen, nur für Ihr Team                      | Öffentliche Notizen für Kunden und private Notizen |
 | **Anfangsstatus**            | **Identifiziert**, **Bestätigt**, **Behoben**          | **Identifiziert**, **Bestätigt**, **Behoben**     |
-| **Anfangsschweregrade**      | **Hoch**, **Low**                                      | Critical Incident, Major Incident, Minor Incident |
+| **Anfangsschweregrade**      | **Hoch**, **Niedrig**                                      | Critical Incident, Major Incident, Minor Incident |
 | **Nummern in einem neuen Projekt** | `ALT-42` und `AE-42` für Episoden                | `INC-42` und `IE-42` für Episoden                 |
 
 Lösen Sie eine Warnung aus, wenn Ihr Team nachsehen sollte, bevor jemand außerhalb etwas merkt, und melden Sie einen Vorfall, wenn Nutzer betroffen sind. Stellt sich heraus, dass eine Warnung Teil eines Ausfalls ist, melden Sie daraus einen Vorfall oder verknüpfen Sie sie mit dem Vorfall, der sie erklärt: siehe [Verknüpfte Warnungen](/docs/incidents/linked-alerts).

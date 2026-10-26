@@ -64,7 +64,7 @@ Aprite l'incidente e scegliete **Note → Note pubbliche** nel suo menu laterale
 
 ### Scrivere l'aggiornamento
 
-Scrivete la nota in Markdown, oppure partite da uno dei vostri **Modelli** o da **Draft with AI**. Aggiungete file con **Attach** se gli iscritti devono vederli.
+Scrivete la nota in Markdown, oppure partite da uno dei vostri **Modelli** o da **Bozza con IA**. Aggiungete file con **Attach** se gli iscritti devono vederli.
 
 ### Decidere chi viene informato
 
@@ -81,7 +81,7 @@ Lo stesso editor si apre in una finestra da **Add Public Note** nel menu **Azion
 | ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
 | La nota                            | Il corpo, in Markdown. Obbligatorio.                                                                                                          |
 | **Modelli**                        | Inserisce uno dei vostri modelli di nota nella nota, dopo ciò che avete già digitato. Vedete [Modelli di note](#modelli-di-note).              |
-| **Draft with AI**                  | Stende la nota a partire dall'incidente, perché la modifichiate. Vedete [Generare una nota con l'IA](#generare-una-nota-con-lia).             |
+| **Bozza con IA**                  | Stende la nota a partire dall'incidente, perché la modifichiate. Vedete [Generare una nota con l'IA](#generare-una-nota-con-lia).             |
 | **Attach**                         | File condivisi con gli iscritti sulla pagina di stato. Facoltativo.                                                                           |
 | **Posted now**                     | Quando la nota dice di essere stata pubblicata: il momento in cui la pubblicate, a meno che non scegliate qui un'ora precedente, nel vostro fuso orario attuale. |
 | **Notify status page subscribers** | Casella di controllo. Attiva per impostazione predefinita, a meno che l'incidente non sia stato dichiarato senza avvisare gli iscritti — allora parte disattivata. Disattivatela per pubblicare in silenzio. |
@@ -99,7 +99,7 @@ Ogni nota mostra chi l'ha scritta, la sua ora di pubblicazione, il Markdown visu
 
 ## Pubblicare una nota privata
 
-**Note → Note private** è volutamente più semplice. È lo stesso editor, che dice **Private · Only your team can see this**, con la nota, **Modelli**, **Draft with AI** e **Attach** per i file destinati al team che risponde all'incidente. **Aggiungi nota privata** nel menu **Azioni** del feed dell'incidente lo apre in una finestra. Tramite l'API, le note private sono `/api/incident-internal-note`.
+**Note → Note private** è volutamente più semplice. È lo stesso editor, che dice **Private · Only your team can see this**, con la nota, **Modelli**, **Bozza con IA** e **Attach** per i file destinati al team che risponde all'incidente. **Aggiungi nota privata** nel menu **Azioni** del feed dell'incidente lo apre in una finestra. Tramite l'API, le note private sono `/api/incident-internal-note`.
 
 Niente ora di pubblicazione, niente casella per gli iscritti — la nota viene marcata con l'ora in cui viene creata.
 
@@ -138,7 +138,7 @@ Leggere una nota tramite l'API, Terraform o un workflow elenca solo gli allegati
 
 ## Generare una nota con l'IA
 
-L'editor ha un pulsante **Draft with AI**, su entrambe le pagine delle note e nelle finestre **Add Public Note** e **Aggiungi nota privata** del feed. Invia l'incidente al fornitore di IA del vostro progetto e mette il Markdown generato nella nota, dove lo modificate prima di pubblicarlo — nulla viene pubblicato automaticamente.
+L'editor ha un pulsante **Bozza con IA**, su entrambe le pagine delle note e nelle finestre **Add Public Note** e **Aggiungi nota privata** del feed. Invia l'incidente al fornitore di IA del vostro progetto e mette il Markdown generato nella nota, dove lo modificate prima di pubblicarlo — nulla viene pubblicato automaticamente.
 
 | Finestra                               | Che cosa scrive                                                      | Modelli                                                           |
 | -------------------------------------- | -------------------------------------------------------------------- | ----------------------------------------------------------------- |
@@ -250,7 +250,7 @@ L'intestazione della scheda ha anche un menu **Azioni** per agire senza lasciare
 
 - **Execute Runbook** — avvia un [runbook](/docs/runbooks/index) su questo incidente.
 - **Esegui criterio di reperibilità** — avvisa una policy su richiesta. Una policy archiviata non avvisa nessuno: il suo registro di esecuzione sull'incidente dice che non è stata eseguita perché la policy è archiviata.
-- **Add Public Note** — l'editor della pagina **Note pubbliche**, in una finestra: scrivete la nota, poi **Post update**. I modelli, **Draft with AI**, gli allegati, **Notify status page subscribers** con chi raggiungerà, e **Anteprima** sono tutti lì. La nota viene pubblicata adesso; per retrodatarla, scegliete **Posted now**.
+- **Add Public Note** — l'editor della pagina **Note pubbliche**, in una finestra: scrivete la nota, poi **Post update**. I modelli, **Bozza con IA**, gli allegati, **Notify status page subscribers** con chi raggiungerà, e **Anteprima** sono tutti lì. La nota viene pubblicata adesso; per retrodatarla, scegliete **Posted now**.
 - **Aggiungi nota privata** — l'editor della pagina **Note private**, in una finestra: scrivete la nota, poi **Add note**.
 
 Entrambe le azioni sulle note sono bloccate, con il nome del permesso mancante, per chi non può scrivere note. Dopo la pubblicazione di una nota la finestra si chiude e il feed la mostra.

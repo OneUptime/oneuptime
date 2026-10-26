@@ -4,7 +4,7 @@ En IoT-enhetsmonitor bevakar en flotta av enheter och säger till när en enhet 
 
 :::cards
 - [Skapa monitorn](#skapa-en-iot-enhetsmonitor): Sex steg i instrumentpanelen.
-- [Mallar](#färdiga-varningsmallar): Fem färdiga varningar, en incident per enhet.
+- [Mallar](#färdiga-larmmallar): Fem färdiga larm, en incident per enhet.
 - [Offlinedetektering](#offlinedetektering): Hur en död eller tyst enhet upptäcks.
 - [Mätvärden](#insamlade-mätvärden): `iot_*`-serierna som monitorn läser.
 :::
@@ -46,7 +46,7 @@ Gå till **Monitorer** och klicka på **Skapa monitor**.
 
 ### Välj IoT Device
 
-Klicka på **Fler monitortyper** under **Monitortyp** och välj **IoT Device** under **Infrastruktur**, eller skriv `iot` i sökfältet. Ange ett **Namn** - det används i titlarna på incidenter och varningar - och klicka på **Nästa**.
+Klicka på **Fler monitortyper** under **Monitortyp** och välj **IoT-enhet** under **Infrastruktur**, eller skriv `iot` i sökfältet. Ange ett **Namn** - det används i titlarna på incidenter och larm - och klicka på **Nästa**.
 
 ### Välj flottan
 
@@ -56,21 +56,21 @@ Välj flottan i **IoT Fleet** under **IoT Monitor Configuration**. Varje flotta 
 
 Välj en av de tre flikarna:
 
-- **Quick Setup** - klicka på en [mall](#färdiga-varningsmallar). Den sätter mätvärdet, aggregeringen, tidsintervallet, en gruppering på `device.id` och tröskelvärdena och ersätter kriterierna nedan med sina egna. Du kan fortfarande ändra **Tidsintervall**.
+- **Quick Setup** - klicka på en [mall](#färdiga-larmmallar). Den sätter mätvärdet, aggregeringen, tidsintervallet, en gruppering på `device.id` och tröskelvärdena och ersätter kriterierna nedan med sina egna. Du kan fortfarande ändra **Tidsintervall**.
 - **Custom Metric** - välj ett mätvärde i **IoT Metric** och sätt sedan **Aggregering** och **Tidsintervall**. [Filtren](#monitorinställningar) begränsar det till en enhet eller en enhetstyp. Ett anpassat mätvärde grupperas inte: det bedömer flottan som helhet.
-- **Avancerad** - bygg frågor och formler själv under **Välj mått**, även över dina egna mätvärdesnamn, till exempel använt minne i procent av en enhets minnesstorlek. Använd **Group by** `device.id` för att bedöma varje enhet för sig.
+- **Avancerad** - bygg frågor och formler själv under **Välj mått**, även över dina egna mätvärdesnamn, till exempel använt minne i procent av en enhets minnesstorlek. Använd **Gruppera efter** `device.id` för att bedöma varje enhet för sig.
 
 ### Kontrollera kriterierna
 
-Öppna varje kriterium under **Monitorkriterier** och kontrollera dess **Select Metric Variable**, **Aggregering**, **Villkor** och **Threshold**. En mall fyller i dem. Med **Custom Metric** eller **Avancerad** startar monitorn med [standardkriterierna](#standardkriterier), som bara märker att ett mätvärde sjunker till noll, så sätt ditt eget tröskelvärde.
+Öppna varje kriterium under **Monitorkriterier** och kontrollera dess **Select Metric Variable**, **Aggregering**, **Villkor** och **Tröskel**. En mall fyller i dem. Med **Custom Metric** eller **Avancerad** startar monitorn med [standardkriterierna](#standardkriterier), som bara märker att ett mätvärde sjunker till noll, så sätt ditt eget tröskelvärde.
 
 ### Skapa monitorn
 
-Klicka på **Skapa monitor**. OneUptime öppnar monitorns sida och utvärderar den varje minut. Incidenter och varningar som den skapar når dina jourregler, Slack, Microsoft Teams, e-post, SMS och webhooks som för vilken annan monitor som helst.
+Klicka på **Skapa monitor**. OneUptime öppnar monitorns sida och utvärderar den varje minut. Incidenter och larm som den skapar når dina jourregler, Slack, Microsoft Teams, e-post, SMS och webhooks som för vilken annan monitor som helst.
 :::
 
 > [!TIP]
-> För att sätta upp flera mallar på en gång öppnar du flottan från **Produkter → Infrastruktur → IoT** och går till **Recommendations**. Välj de mallar du vill ha, välj vem som ska larmas, och OneUptime skapar en monitor per mall.
+> För att sätta upp flera mallar på en gång öppnar du flottan från **Produkter → Infrastruktur → IoT** och går till **Rekommendationer**. Välj de mallar du vill ha, välj vem som ska larmas, och OneUptime skapar en monitor per mall.
 
 ## Monitorinställningar
 
@@ -83,11 +83,11 @@ Klicka på **Skapa monitor**. OneUptime öppnar monitorns sida och utvärderar d
 | **IoT Metric** | Custom Metric | Ett mätvärde från [katalogen](#insamlade-mätvärden). |
 | **Aggregering** | Custom Metric | Hur stickprov kombineras: **Genomsnitt**, **Maximum**, **Minimum**, **Summa** eller **Antal**. Börjar på mätvärdets vanliga aggregering. |
 | **Tidsintervall** | Alla | Det glidande fönstret som frågan läser, från **Past 1 Minute** till **Past 365 Days**. En ny monitor börjar på **Past 1 Minute**; mallar sätter sitt eget. |
-| **Välj mått** | Avancerad | Frågebyggaren: **Mätvärde**, **Aggregate by**, **Filter by attributes**, **Group by**, plus **Lägg till mätvärde** och **Lägg till formel** för att kombinera frågor. |
+| **Välj mått** | Avancerad | Frågebyggaren: **Mätvärde**, **Aggregate by**, **Filter by attributes**, **Gruppera efter**, plus **Lägg till mätvärde** och **Lägg till formel** för att kombinera frågor. |
 
 Filtren verkar tillsammans: med ett **Device ID** och en **Device Type** matchar en enhet av en annan typ ingenting.
 
-## Färdiga varningsmallar
+## Färdiga larmmallar
 
 **Quick Setup** erbjuder 5 mallar. Var och en bygger en komplett monitor: mätvärdesfrågan, en gruppering på `device.id`, ett kriterium som utlöser och ett som återhämtar. Tröskelvärdena är utgångspunkter som du kan redigera.
 
@@ -97,11 +97,11 @@ Ett kriterium utlöser bara när villkoret gäller för varje minut i fönstret 
 | --- | --- | --- | --- | --- | --- |
 | Device Offline | Tillgänglighet | Kritisk | `iot_device_up`, Min per `device.id`, senaste 30 minuterna | En mätning är under 1, eller en registrerad enhet skickar ingenting under hela fönstret | Tillbaka på 1 |
 | Low Battery | Power | Warning | `iot_battery_percent`, Avg per `device.id`, senaste 5 minuterna | Under 20 % | Vid 22 % eller mer |
-| Weak Signal | Connectivity | Warning | `iot_signal_strength_dbm`, Avg per `device.id`, senaste 5 minuterna | Under -100 dBm | Vid -90 dBm eller mer |
+| Weak Signal | Anslutning | Warning | `iot_signal_strength_dbm`, Avg per `device.id`, senaste 5 minuterna | Under -100 dBm | Vid -90 dBm eller mer |
 | High Temperature | Miljö | Kritisk | `iot_temperature_celsius`, Max per `device.id`, senaste 5 minuterna | Över 70 °C | Vid 63 °C eller mindre |
 | High CPU Usage | System | Warning | `iot_cpu_usage_ratio`, Avg per `device.id`, senaste 5 minuterna | Över 0.9 (90 % av processorn) | Vid 0.81 eller mindre |
 
-**Allvarlighetsgrad** är etiketten som väljaren visar. Incidenten och varningen som en mall skapar börjar på projektets allvarligaste incident- och varningsnivå; ändra dem i kriteriet.
+**Allvarlighetsgrad** är etiketten som väljaren visar. Incidenten och larmet som en mall skapar börjar på projektets allvarligaste incident- och larmnivå; ändra dem i kriteriet.
 
 - **Device Offline läser 30 minuter**, så en enhet som rapporterar med några minuters mellanrum inte kallas offline mellan två rapporter. En enhet som rapporterar mer sällan än ungefär var 15:e minut behöver ett längre fönster.
 - **High Temperature använder Max** inom varje minut, så en varm mätning inte döljs av svalare mätningar samma minut. Den måste ändå vara varm under varje minut i fönstret.
@@ -146,7 +146,7 @@ Ett kriterium jämför en av monitorns frågor eller formler med ett tröskelvä
 | **Select Metric Variable** | Frågan eller formeln som ska kontrolleras, efter variabelnamnet. |
 | **Aggregering** | Hur värdena i fönstret blir ett svar: **Genomsnitt**, **Summa**, **Maximum Value**, **Minimum Value**, **All Values** (varje värde måste matcha, i hela fönstret) eller **Any Value** (ett räcker). |
 | **Villkor** | **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med** eller **Lika med** — eller ett anomalivillkor: **Anomalously High**, **Anomalously Low** eller **Anomalous**. |
-| **Threshold** | Värdet som det jämförs med. En enhetslista står bredvid när mätvärdet har en enhet. Visas inte för anomalivillkor. |
+| **Tröskel** | Värdet som det jämförs med. En enhetslista står bredvid när mätvärdet har en enhet. Visas inte för anomalivillkor. |
 | **Känslighet** | Bara anomalivillkor. **Låg** (4σ), **Medel** (3σ, standard) eller **Hög** (2σ). |
 | **Baslinjefönster** | Bara anomalivillkor. 14 dagar (standard), 28, 60 eller 90 dagars historik. |
 | **Om ingen data** | Under **Fler fält**. Vad som händer när en serie inte har några stickprov i fönstret: **Ignore** (standard) hoppar över den, **Treat As Zero** läser den som `0`, och **Utlösare** får kriteriet att matcha. |
@@ -204,7 +204,7 @@ Flottor registrerar sig själva utifrån enheternas data. Kontrollera att enhete
 :::
 
 :::details En incident utlöses för hela flottan i stället för en per enhet
-Frågan är inte grupperad. Monitorer med **Custom Metric** bedömer flottan som helhet; använd en mall, eller **Avancerad** med **Group by** `device.id`.
+Frågan är inte grupperad. Monitorer med **Custom Metric** bedömer flottan som helhet; använd en mall, eller **Avancerad** med **Gruppera efter** `device.id`.
 :::
 
 :::details En enhet dog, men Device Offline utlöste inte
@@ -224,5 +224,5 @@ Mallarna läser `iot_*`-mätvärdesnamnen exakt och grupperar efter etiketten `d
 :::cards
 - [IoT-enheter](/docs/telemetry/iot-devices): Skicka enhetsmätvärden över OpenTelemetry eller MQTT.
 - [Metrikövervakning](/docs/monitor/metrics-monitor): Varna på vilket mätvärde som helst, inte bara IoT-mätvärden.
-- [Incident- och varningsmallar](/docs/monitor/incident-alert-templating): Sätt enhetens ID i incidenttitlar.
+- [Incident- och larmmallar](/docs/monitor/incident-alert-templating): Sätt enhetens ID i incidenttitlar.
 :::

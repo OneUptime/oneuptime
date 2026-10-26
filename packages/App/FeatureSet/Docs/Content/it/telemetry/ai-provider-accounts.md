@@ -108,7 +108,7 @@ Sulla sottoscrizione, assegna all'app il ruolo Monitoring Reader.
 
 ### Collega Azure
 
-Compila **ID directory (tenant)**, **ID applicazione (client)**, **ID sottoscrizione** e **Client secret**. Per Azure Government, cambia **Cloud** in **Altri campi**.
+Compila **ID directory (tenant)**, **ID applicazione (client)**, **ID sottoscrizione** e **Segreto client**. Per Azure Government, cambia **Cloud** in **Altri campi**.
 :::
 
 ## Amazon Bedrock
@@ -141,7 +141,7 @@ Compila **ID Progetto** e incolla l'intero file della chiave come **Chiave dell'
 
 ## Vedere l'utilizzo
 
-Apri **Utilizzo** e scegli **Account provider**. Mostra il costo, i token e le richieste che i tuoi account hanno riportato per l'intervallo, ordinati per **Modello**, **Person**, **Provider**, **Progetto o risorsa**, **Chiave API** o **Connessione**. L'intervallo inizia alla mezzanotte UTC del suo primo giorno, perché i provider riportano giorni interi.
+Apri **Utilizzo** e scegli **Account provider**. Mostra il costo, i token e le richieste che i tuoi account hanno riportato per l'intervallo, ordinati per **Modello**, **Persona**, **Provider**, **Progetto o risorsa**, **Chiave API** o **Connessione**. L'intervallo inizia alla mezzanotte UTC del suo primo giorno, perché i provider riportano giorni interi.
 
 **Account provider** e **Le tue chiamate IA** non vengono mai sommati. Una chiamata che la tua app fa con una chiave di un account collegato è in entrambi, quindi sommarli la conterebbe due volte.
 

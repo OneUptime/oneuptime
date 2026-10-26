@@ -64,7 +64,7 @@ Abra o incidente e escolha **Notas → Notas públicas** no menu lateral dele. O
 
 ### Escrever a atualização
 
-Escreva a nota em Markdown, ou comece a partir de um dos seus **Modelos** ou de **Draft with AI**. Adicione arquivos com **Attach** se os assinantes precisarem vê-los.
+Escreva a nota em Markdown, ou comece a partir de um dos seus **Modelos** ou de **Rascunho com IA**. Adicione arquivos com **Attach** se os assinantes precisarem vê-los.
 
 ### Decidir quem é avisado
 
@@ -81,7 +81,7 @@ O mesmo editor abre em uma caixa de diálogo a partir de **Add Public Note** no 
 | ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
 | A nota                             | O corpo, em Markdown. Obrigatório.                                                                                                            |
 | **Modelos**                        | Insere um dos seus modelos de nota na nota, depois do que você já digitou. Veja [Modelos de notas](#modelos-de-notas).                          |
-| **Draft with AI**                  | Redige a nota a partir do incidente, para você editar. Veja [Gerar uma nota com IA](#gerar-uma-nota-com-ia).                              |
+| **Rascunho com IA**                  | Redige a nota a partir do incidente, para você editar. Veja [Gerar uma nota com IA](#gerar-uma-nota-com-ia).                              |
 | **Attach**                         | Arquivos compartilhados com os assinantes na página de status. Opcional.                                                                      |
 | **Posted now**                     | Quando a nota diz que foi publicada: o momento em que você a publica, a menos que você escolha aqui um horário anterior, no seu fuso horário atual. |
 | **Notify status page subscribers** | Caixa de seleção. Marcada por padrão, a menos que o incidente tenha sido declarado sem notificar os assinantes — aí ela começa desmarcada. Desmarque-a para publicar em silêncio. |
@@ -99,7 +99,7 @@ Cada nota mostra quem a escreveu, seu horário de publicação, o Markdown rende
 
 ## Publicar uma nota privada
 
-**Notas → Notas privadas** é deliberadamente mais simples. É o mesmo editor, dizendo **Private · Only your team can see this**, com a nota, **Modelos**, **Draft with AI** e **Attach** para arquivos destinados à equipe de resposta ao incidente. **Adicionar nota privada** no menu **Ações** do feed do incidente o abre em uma caixa de diálogo. Pela API, as notas privadas são `/api/incident-internal-note`.
+**Notas → Notas privadas** é deliberadamente mais simples. É o mesmo editor, dizendo **Private · Only your team can see this**, com a nota, **Modelos**, **Rascunho com IA** e **Attach** para arquivos destinados à equipe de resposta ao incidente. **Adicionar nota privada** no menu **Ações** do feed do incidente o abre em uma caixa de diálogo. Pela API, as notas privadas são `/api/incident-internal-note`.
 
 Sem horário de publicação, sem caixa de assinantes — a nota é carimbada quando é criada.
 
@@ -138,7 +138,7 @@ Ler uma nota pela API, pelo Terraform ou por um workflow lista só os anexos que
 
 ## Gerar uma nota com IA
 
-O editor tem um botão **Draft with AI**, nas duas páginas de notas e nas caixas de diálogo **Add Public Note** e **Adicionar nota privada** do feed. Ele envia o incidente ao provedor de IA do seu projeto e coloca o Markdown gerado na nota, onde você o edita antes de publicar — nada é publicado automaticamente.
+O editor tem um botão **Rascunho com IA**, nas duas páginas de notas e nas caixas de diálogo **Add Public Note** e **Adicionar nota privada** do feed. Ele envia o incidente ao provedor de IA do seu projeto e coloca o Markdown gerado na nota, onde você o edita antes de publicar — nada é publicado automaticamente.
 
 | Caixa de diálogo                       | O que ela escreve                                                    | Modelos                                                           |
 | -------------------------------------- | -------------------------------------------------------------------- | ----------------------------------------------------------------- |
@@ -250,7 +250,7 @@ O cabeçalho do cartão também tem um menu **Ações** para você agir sem sair
 
 - **Execute Runbook** — inicia um [runbook](/docs/runbooks/index) neste incidente.
 - **Executar política de plantão** — aciona uma política sob demanda. Uma política arquivada não aciona ninguém: seu log de execução no incidente diz que ela não foi executada porque a política está arquivada.
-- **Add Public Note** — o editor da página **Notas públicas**, em uma caixa de diálogo: escreva a nota e depois **Post update**. Os modelos, **Draft with AI**, os anexos, **Notify status page subscribers** com quem ela alcançará, e **Pré-visualização** estão todos ali. A nota é publicada agora; para retroagi-la, escolha **Posted now**.
+- **Add Public Note** — o editor da página **Notas públicas**, em uma caixa de diálogo: escreva a nota e depois **Post update**. Os modelos, **Rascunho com IA**, os anexos, **Notify status page subscribers** com quem ela alcançará, e **Pré-visualização** estão todos ali. A nota é publicada agora; para retroagi-la, escolha **Posted now**.
 - **Adicionar nota privada** — o editor da página **Notas privadas**, em uma caixa de diálogo: escreva a nota e depois **Add note**.
 
 As duas ações de nota ficam bloqueadas, nomeando a permissão que falta, para quem não pode escrever notas. Depois que uma nota é publicada, a caixa de diálogo se fecha e o feed a mostra.

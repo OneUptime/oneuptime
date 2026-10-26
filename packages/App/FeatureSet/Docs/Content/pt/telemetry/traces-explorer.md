@@ -56,7 +56,7 @@ Digite uma consulta e pressione Enter, por exemplo `service:checkout status:erro
 
 ### Refinar com filtros
 
-Clique em um valor da barra lateral **Filtros** para adicioná-lo como chip. A barra lateral filtra por **Serviço**, pelo host, cluster ou outro recurso que enviou o span, por **Status**, **Categoria de span**, **Tem exceção**, **Tipo de span**, **Nome do span**, **Service Instance** e **Nome do Host**.
+Clique em um valor da barra lateral **Filtros** para adicioná-lo como chip. A barra lateral filtra por **Serviço**, pelo host, cluster ou outro recurso que enviou o span, por **Status**, **Categoria de span**, **Tem exceção**, **Tipo de span**, **Nome do span**, **Instância do serviço** e **Nome do Host**.
 
 ### Abrir um span
 
@@ -101,8 +101,8 @@ Para ir além, mude a lista de **Spans** para **Analytics**. Escolha uma série 
 
 ## Acompanhar, salvar e compartilhar
 
-- Clique em **Pausado** acima da lista para ativar as atualizações ao vivo. O botão passa a mostrar **Live**, e a lista procura spans novos a cada 10 segundos. Clique de novo para pausar.
-- **Saved Views** guarda uma pesquisa, seus filtros e o intervalo de tempo com um nome, para todos no projeto. As visualizações salvas funcionam como no [Explorador de registros](/docs/telemetry/logs-explorer#salvar-uma-visualização).
+- Clique em **Pausado** acima da lista para ativar as atualizações ao vivo. O botão passa a mostrar **Ao vivo**, e a lista procura spans novos a cada 10 segundos. Clique de novo para pausar.
+- **Visualizações salvas** guarda uma pesquisa, seus filtros e o intervalo de tempo com um nome, para todos no projeto. As visualizações salvas funcionam como no [Explorador de registros](/docs/telemetry/logs-explorer#salvar-uma-visualização).
 - Os botões **Registros** e **Métricas** abrem esses exploradores na mesma janela de tempo, com tanto da sua filtragem quanto eles puderem usar. Aponte para um botão para ver o que ele não consegue levar junto.
 
 ## Insights de traços

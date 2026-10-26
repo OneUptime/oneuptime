@@ -35,7 +35,7 @@ Les deux enregistrent un problème, et les deux peuvent alerter la personne d'as
 | **Sur les pages de statut**        | Jamais                                                 | Peut s'afficher, et prévient les abonnés          |
 | **Notes**                          | Notes privées, pour votre équipe uniquement            | Notes publiques pour les clients, et notes privées |
 | **États de départ**                | **Identifié**, **Pris en compte**, **Résolu**          | **Identifié**, **Pris en compte**, **Résolu**     |
-| **Gravités de départ**             | **Élevé**, **Low**                                     | Critical Incident, Major Incident, Minor Incident |
+| **Gravités de départ**             | **Élevé**, **Faible**                                     | Critical Incident, Major Incident, Minor Incident |
 | **Numéros dans un nouveau projet** | `ALT-42`, et `AE-42` pour les épisodes                 | `INC-42`, et `IE-42` pour les épisodes            |
 
 Levez une alerte quand votre équipe doit regarder avant que quiconque à l'extérieur ne remarque quoi que ce soit, et déclarez un incident quand les utilisateurs sont touchés. Quand une alerte s'avère faire partie d'une panne, déclarez un incident à partir d'elle, ou liez-la à l'incident qui l'explique : voir [Alertes liées](/docs/incidents/linked-alerts).
@@ -64,7 +64,7 @@ Ouvrez **Alertes** depuis le menu **Produits** de la barre supérieure. La liste
 
 **Alertes** et **Épisodes** sont ouvertes ; **IA**, **Espace de travail**, **Règles**, **Paramètres** et **Développeurs** commencent repliées, et une section s'ouvre d'elle-même quand vous êtes sur l'une de ses pages. La configuration des alertes se trouve ici, pas dans les **Paramètres du projet**.
 
-La liste affiche **Numéro d'alerte**, **Titre**, **État**, **Gravité**, **Ressources affectées** (le moniteur de l'alerte en premier), **Créé**, **Durée**, **Étiquettes** et **Propriétaires**. Sélectionnez des alertes pour agir sur plusieurs à la fois : **Prendre en compte**, **Résoudre**, **Modifier l'état**, **Modifier la gravité**, **M'attribuer**, **Ajouter un propriétaire**, **Remove Owner**, **Ajouter des étiquettes**, **Remove Labels**, **Lier à un incident**, **Déclarer un incident** ou les supprimer.
+La liste affiche **Numéro d'alerte**, **Titre**, **État**, **Gravité**, **Ressources affectées** (le moniteur de l'alerte en premier), **Créé**, **Durée**, **Étiquettes** et **Propriétaires**. Sélectionnez des alertes pour agir sur plusieurs à la fois : **Prendre en compte**, **Résoudre**, **Modifier l'état**, **Modifier la gravité**, **M'attribuer**, **Ajouter un propriétaire**, **Retirer un propriétaire**, **Ajouter des étiquettes**, **Retirer des étiquettes**, **Lier à un incident**, **Déclarer un incident** ou les supprimer.
 
 Le menu **⋯** au bout de la ligne de chaque alerte fait de même pour cette seule alerte : **Prendre en compte** et **Résoudre** tant que l'alerte peut franchir cette étape, **Modifier l'état**, **Modifier la gravité**, **M'attribuer** tant que vous n'en êtes pas propriétaire, et **Ajouter un propriétaire** pour la confier à quelqu'un d'autre.
 

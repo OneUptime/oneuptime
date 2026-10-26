@@ -54,12 +54,12 @@ Três estados são criados com o projeto, nesta ordem. A criação é idempotent
 
 | Estado            | `order` | Indicador             | Cor       | O que significa                                    |
 | ----------------- | ------- | --------------------- | --------- | -------------------------------------------------- |
-| **Identified**    | `1`     | `isCreatedState`      | `#fd625e` | O estado em que os novos incidentes caem.          |
+| **Identificadas**    | `1`     | `isCreatedState`      | `#fd625e` | O estado em que os novos incidentes caem.          |
 | **Confirmado**    | `2`     | `isAcknowledgedState` | `#ffbf53` | Alguém assumiu o incidente.                        |
 | **Resolvido**     | `3`     | `isResolvedState`     | `#2ab57d` | O incidente acabou e deixa de contar como ativo.   |
 
 > [!NOTE]
-> O primeiro estado se chama **Identified**, embora várias descrições dentro do produto ainda o chamem de estado «created». Quando uma documentação ou uma dica diz «estado de criação», ela se refere ao estado que tem `isCreatedState` — em um projeto novo, é **Identified**.
+> O primeiro estado se chama **Identificadas**, embora várias descrições dentro do produto ainda o chamem de estado «created». Quando uma documentação ou uma dica diz «estado de criação», ela se refere ao estado que tem `isCreatedState` — em um projeto novo, é **Identificadas**.
 
 ## O que cada indicador de estado realmente faz
 
@@ -74,7 +74,7 @@ Espera-se que só um estado por projeto tenha cada indicador — as buscas pegam
 - **Eles mantêm sua ordem.** O de criação vem antes do confirmado, e o confirmado antes do resolvido. Um arrasto que quebraria isso — **Resolvido** acima de **Confirmado**, por exemplo — é recusado, as linhas voltam ao lugar e a página diz por quê.
 - **Eles não podem ser excluídos.** O **Excluir** deles continua no menu da linha, bloqueado, com o motivo. Uma exclusão em massa os pula e os lista como não excluídos. A API também se recusa a excluir o último estado de criação, confirmado ou resolvido de um projeto.
 
-Como a interface lê os nomes dos estados de forma dinâmica, renomear um estado muda o que você vê em todo lugar — os blocos de estatísticas (**Acknowledged in** e **Resolved in** com os nomes iniciais), a confirmação **Marcar incidente como …** de um estado personalizado e a etiqueta na lista de incidentes seguem o nome que você deu à linha.
+Como a interface lê os nomes dos estados de forma dinâmica, renomear um estado muda o que você vê em todo lugar — os blocos de estatísticas (**Confirmado em** e **Resolvido em** com os nomes iniciais), a confirmação **Marcar incidente como …** de um estado personalizado e a etiqueta na lista de incidentes seguem o nome que você deu à linha.
 
 ## Adicionar seus próprios estados
 
@@ -188,7 +188,7 @@ Um incidente está confirmado a partir do momento em que passa para o seu estado
 - **Confirmar não é mais oferecido.** Nem no cabeçalho do incidente, nem no aplicativo móvel (o botão e o gesto de deslizar), nem no Slack ou no Microsoft Teams, nem pelo `acknowledge_incident` do servidor MCP do OneUptime. Confirmá-lo mesmo assim — a partir de um acionamento de plantão, do Slack ou do Teams — é recusado com «Incident is already acknowledged.» (ou «Incident is already resolved.»), em vez de fazê-lo voltar na lista.
 - **O plantão para de acionar por ele.** Um respondedor que confirma seu acionamento depois que um colega confirmou o incidente, ou o fez avançar, tem seu acionamento confirmado e o incidente fica onde está.
 - **O SLA é marcado como respondido**, no primeiro movimento desse tipo; avançar depois por estados posteriores mantém esse horário.
-- **O tempo até a confirmação corre até esse primeiro movimento** — o bloco de estatística da **Visão geral** do incidente, a métrica **Time to Acknowledge**, uma medição que termina quando **O incidente é confirmado**, e o MTTA nos resumos do Slack e do Microsoft Teams. Um incidente movido direto de **Identified** para **Investigating** foi confirmado naquele momento; um resolvido logo de cara foi confirmado quando foi resolvido.
+- **O tempo até a confirmação corre até esse primeiro movimento** — o bloco de estatística da **Visão geral** do incidente, a métrica **Time to Acknowledge**, uma medição que termina quando **O incidente é confirmado**, e o MTTA nos resumos do Slack e do Microsoft Teams. Um incidente movido direto de **Identificadas** para **Investigating** foi confirmado naquele momento; um resolvido logo de cara foi confirmado quando foi resolvido.
 - **Um filtro Confirmado** — no widget de lista de incidentes de um painel, por exemplo — mostra os incidentes no seu estado confirmado e em qualquer estado posterior, antes da resolução.
 
 Alertas e episódios seguem a mesma regra, com seus estados de alerta.
@@ -206,7 +206,7 @@ Passar de **Resolvido** para um estado posterior — **Closed**, por exemplo —
 
 A página **Linha do tempo de estado** no menu lateral do incidente é a trilha de auditoria de cada estado em que o incidente esteve. O cartão dessa página se chama **Linha do tempo de status**, e desenha toda a vida do incidente como uma linha do tempo:
 
-- **A faixa** mostra cada estado como um trecho da sua cor, tão longo quanto o incidente ficou nele, para que o andamento do incidente se leia num relance. Enquanto o incidente está aberto, a faixa vai até **Agora**; depois de resolvido, ela termina pouco depois da sua última alteração. Aponte para um trecho para ver quando começou e quanto durou, e clique nele para encontrar a alteração na lista. Alterações próximas demais para distinguir são desenhadas como um só trecho listrado: clique nele, ou arraste sobre a faixa, para ampliar, e **Reset zoom** volta atrás.
+- **A faixa** mostra cada estado como um trecho da sua cor, tão longo quanto o incidente ficou nele, para que o andamento do incidente se leia num relance. Enquanto o incidente está aberto, a faixa vai até **Agora**; depois de resolvido, ela termina pouco depois da sua última alteração. Aponte para um trecho para ver quando começou e quanto durou, e clique nele para encontrar a alteração na lista. Alterações próximas demais para distinguir são desenhadas como um só trecho listrado: clique nele, ou arraste sobre a faixa, para ampliar, e **Redefinir zoom** volta atrás.
 - **Acima da faixa**, cada estado aparece com o tempo que o incidente passou nele.
 - **Abaixo da faixa**, cada alteração aparece da mais recente para a mais antiga, agrupada por dia e no seu fuso horário: quando começou e terminou, quanto durou, quem a fez e, abaixo dela, **Assinantes da página de status:** se a notificação da página de status dessa alteração foi enviada, ignorada ou ainda está pendente, com um link **mais detalhes** e — quando o envio falhou — uma ação **Tentar novamente**. **Tentar novamente** envia de novo a mudança de estado a todas as páginas de status que o incidente alcança agora, incluindo os assinantes que já a receberam.
 

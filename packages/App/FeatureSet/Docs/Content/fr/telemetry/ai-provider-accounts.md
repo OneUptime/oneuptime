@@ -141,7 +141,7 @@ Remplissez **ID du projet** et collez le fichier de clé entier comme **Clé du 
 
 ## Voir l'utilisation
 
-Ouvrez **Utilisation** et choisissez **Comptes fournisseurs**. Vous y voyez le coût, les jetons et les requêtes que vos comptes ont déclarés pour la période, classés par **Modèle**, **Person**, **Fournisseur**, **Projet ou ressource**, **Clé API** ou **Connexion**. La période commence à minuit UTC de son premier jour, car les fournisseurs déclarent des jours entiers.
+Ouvrez **Utilisation** et choisissez **Comptes fournisseurs**. Vous y voyez le coût, les jetons et les requêtes que vos comptes ont déclarés pour la période, classés par **Modèle**, **Personne**, **Fournisseur**, **Projet ou ressource**, **Clé API** ou **Connexion**. La période commence à minuit UTC de son premier jour, car les fournisseurs déclarent des jours entiers.
 
 **Comptes fournisseurs** et **Vos appels d'IA** ne sont jamais additionnés. Un appel que votre application fait avec une clé d'un compte connecté figure dans les deux, donc les additionner le compterait deux fois.
 

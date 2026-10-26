@@ -100,9 +100,9 @@ Jedes neue Projekt beginnt mit zwei Warnungsschweregraden, den schwersten zuerst
 | Schweregrad | `order` | Farbe     | Vorangelegte Beschreibung                                                          |
 | ----------- | ------- | --------- | ---------------------------------------------------------------------------------- |
 | **Hoch**    | `1`     | `#b70400` | Issues causing very high impact to customers. Immediate attention is required.     |
-| **Low**     | `2`     | `#ffbf53` | Issues causing low impact to customers.                                            |
+| **Niedrig**     | `2`     | `#ffbf53` | Issues causing low impact to customers.                                            |
 
-Vorfälle beginnen mit drei Schweregraden, Warnungen mit zwei. Wenn die Vorlage einer Monitor-Empfehlung **Kritisch** oder **Warnung** sagt, ordnet OneUptime das Ihrem ersten und zweiten Warnungsschweregrad zu, in einem neuen Projekt **Hoch** und **Low**.
+Vorfälle beginnen mit drei Schweregraden, Warnungen mit zwei. Wenn die Vorlage einer Monitor-Empfehlung **Kritisch** oder **Warnung** sagt, ordnet OneUptime das Ihrem ersten und zweiten Warnungsschweregrad zu, in einem neuen Projekt **Hoch** und **Niedrig**.
 
 ## Schweregrade bearbeiten
 

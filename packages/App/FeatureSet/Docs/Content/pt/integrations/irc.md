@@ -46,7 +46,7 @@ A etapa segue pela saída **Sucesso** assim que o servidor aceita todas as linha
 ## Antes de começar
 
 - No OneUptime Cloud, o plano **Growth** ou um superior: os workflows e suas variáveis fazem parte dele. Instalações auto-hospedadas sem cobrança não têm limites de plano.
-- Uma função que cria workflows: **Project Owner**, **Project Admin** ou **Workflow Admin**.
+- Uma função que cria workflows: **Proprietário do projeto**, **Administrador do projeto** ou **Administrador de fluxos de trabalho**.
 - Uma conta na rede IRC, se ela pedir que você entre. A Libera.Chat pede isso para conexões vindas de alguns endereços de nuvem e de VPN.
 
 ## Configurar a integração
@@ -87,7 +87,7 @@ Comece pelo modelo, que cria o workflow inteiro para você, ou do zero.
 O workflow abre no **Construtor** com três etapas: **On Create Incident**; **Send Message to IRC**, que publica o número, o título, a gravidade e o estado do incidente em duas linhas; e uma etapa **Registro** na sua saída **Erro**, que registra por que uma mensagem não foi entregue. O servidor e o canal são guardados como as variáveis `ircServer` e `ircChannel` do workflow. Se você guardou senhas na etapa anterior, clique em **Send Message to IRC**, abra **Mais campos** e escolha cada variável com o botão **{ }** da configuração.
 @tab Do zero
 1. Abra **Fluxos de trabalho**, clique em **Criar fluxo de trabalho**, escolha **Começar do zero**, dê um nome ao workflow e clique em **Criar fluxo de trabalho**.
-2. No **Construtor**, clique em **Choose what starts this workflow** e escolha **On Create Incident** em **Popular**. Clique no gatilho e, em **Fields to pass on**, escolha os campos do incidente que a sua mensagem mostra, por exemplo o título.
+2. No **Construtor**, clique em **Escolha o que inicia este fluxo de trabalho** e escolha **On Create Incident** em **Populares**. Clique no gatilho e, em **Fields to pass on**, escolha os campos do incidente que a sua mensagem mostra, por exemplo o título.
 3. Clique em **Adicionar componente**, pesquise `irc` e clique em **Send Message to IRC**. Ligue a saída **Sucesso** do gatilho a esta etapa.
 4. Clique na nova etapa e preencha **IRC Server**, **Channel** e **Message Text**. O botão **{ }** de **Message Text** insere campos do incidente, por exemplo o título.
 5. Se você guardou senhas na etapa anterior, abra **Mais campos**. Em **Server Password**, **SASL Password** ou **Channel Key**, clique em **{ }** e escolha a variável em **Global variables**. Coloque o nome da sua conta em **SASL Username**.

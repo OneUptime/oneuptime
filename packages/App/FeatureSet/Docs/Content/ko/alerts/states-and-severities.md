@@ -44,7 +44,7 @@ flowchart TB
 
 | 상태             | `order` | 플래그                | 색상      | 의미                                              |
 | ---------------- | ------- | --------------------- | --------- | ------------------------------------------------- |
-| **Identified**   | `1`     | `isCreatedState`      | `#fd625e` | 새 경고가 시작되는 상태.                          |
+| **식별됨**   | `1`     | `isCreatedState`      | `#fd625e` | 새 경고가 시작되는 상태.                          |
 | **인지됨**       | `2`     | `isAcknowledgedState` | `#ffbf53` | 누군가 처리 중이며 호출이 멈춥니다.               |
 | **해결됨**       | `3`     | `isResolvedState`     | `#2ab57d` | 경고가 끝났고 더 이상 활성으로 간주되지 않습니다. |
 
@@ -99,10 +99,10 @@ flowchart TB
 
 | 심각도   | `order` | 색상      | 기본 설명                                                                         |
 | -------- | ------- | --------- | --------------------------------------------------------------------------------- |
-| **High** | `1`     | `#b70400` | Issues causing very high impact to customers. Immediate attention is required.    |
-| **Low**  | `2`     | `#ffbf53` | Issues causing low impact to customers.                                           |
+| **높음** | `1`     | `#b70400` | Issues causing very high impact to customers. Immediate attention is required.    |
+| **낮음**  | `2`     | `#ffbf53` | Issues causing low impact to customers.                                           |
 
-인시던트는 세 가지 심각도로, 경고는 두 가지로 시작합니다. 모니터 추천의 템플릿이 **심각** 또는 **Warning**이라고 하면, OneUptime 은 이를 첫 번째와 두 번째 경고 심각도에 대응시킵니다. 새 프로젝트에서는 **High**와 **Low**입니다.
+인시던트는 세 가지 심각도로, 경고는 두 가지로 시작합니다. 모니터 추천의 템플릿이 **심각** 또는 **Warning**이라고 하면, OneUptime 은 이를 첫 번째와 두 번째 경고 심각도에 대응시킵니다. 새 프로젝트에서는 **높음**과 **낮음**입니다.
 
 ## 심각도 편집하기
 

@@ -48,15 +48,15 @@ A conexão entra com o [fluxo de credenciais do cliente do OAuth 2.0](https://le
 
 Vá em **Certificates & secrets → Client secrets → New client secret**, escolha quando ele expira e selecione **Add**. Copie o **Value** do segredo, não o **Secret ID** dele, antes de sair da página: ele nunca mais é mostrado.
 
-Anote quando o segredo expira. Nesse dia, a consulta para com `Microsoft Defender XDR token request failed (HTTP 401)` até você substituí-lo com **Update credentials**.
+Anote quando o segredo expira. Nesse dia, a consulta para com `Microsoft Defender XDR token request failed (HTTP 401)` até você substituí-lo com **Atualizar credenciais**.
 
 ### Adicionar a conexão no OneUptime
 
-Abra **Produtos → Security Events → Connections** (`/dashboard/{projectId}/security-events/connections`), clique em **Adicionar conexão**, escolha **Microsoft Defender XDR** em **EDR / XDR** e clique em **Próximo**. Preencha as configurações da tabela abaixo, clique em **Próximo** e cole o valor do segredo em **Client secret**.
+Abra **Produtos → Security Events → Conexões** (`/dashboard/{projectId}/security-events/connections`), clique em **Adicionar conexão**, escolha **Microsoft Defender XDR** em **EDR / XDR** e clique em **Próximo**. Preencha as configurações da tabela abaixo, clique em **Próximo** e cole o valor do segredo em **Segredo do cliente**.
 
 ### Testar antes de salvar
 
-Clique em **Test these settings** em **Testar antes de salvar**. O teste entra e lê alertas com os valores do formulário, e não salva nada, então um segredo errado ou um consentimento que falta aparecem antes de a conexão existir. Depois clique em **Próximo**, dê à conexão um **Nome** e crie-a.
+Clique em **Testar estas configurações** em **Testar antes de salvar**. O teste entra e lê alertas com os valores do formulário, e não salva nada, então um segredo errado ou um consentimento que falta aparecem antes de a conexão existir. Depois clique em **Próximo**, dê à conexão um **Nome** e crie-a.
 :::
 
 | Configuração | Onde encontrar |
@@ -64,9 +64,9 @@ Clique em **Test these settings** em **Testar antes de salvar**. O teste entra e
 | **ID do diretório (tenant)** | A página **Overview** do aplicativo. O GUID do locatário, ou um domínio verificado como `contoso.onmicrosoft.com`. |
 | **ID do aplicativo (cliente)** | A página **Overview** do aplicativo. O GUID do aplicativo que tem `SecurityAlert.Read.All`. |
 | **Nuvem** | **Nuvem pública do Azure**, que também atende o Microsoft 365 GCC, ou **Azure Government (EUA)** para GCC High (`login.microsoftonline.us` e `graph.microsoft.us`). O Microsoft 365 DoD e a nuvem 21Vianet na China não são suportados. |
-| **Client secret** | O **Value** do segredo. Ele é criptografado, nunca devolvido pela API e nunca mais mostrado. Substitua-o com **Update credentials** na conexão. |
+| **Segredo do cliente** | O **Value** do segredo. Ele é criptografado, nunca devolvido pela API e nunca mais mostrado. Substitua-o com **Atualizar credenciais** na conexão. |
 
-A etapa **Polling** também tem uma **Descrição** opcional, o **Poll Interval (Minutes)**, um número inteiro de `1` a `1440` que começa em `5`, e **Habilitado**, que começa ativado.
+A etapa **Consulta periódica** também tem uma **Descrição** opcional, o **Intervalo de consulta (minutos)**, um número inteiro de `1` a `1440` que começa em `5`, e **Habilitado**, que começa ativado.
 
 ## O que é importado
 
@@ -106,7 +106,7 @@ GET https://graph.microsoft.com/v1.0/security/alerts_v2?$filter=createdDateTime 
 
 ### Quando uma janela contém mais do que uma consulta consegue ler
 
-Uma consulta lê no máximo 20 páginas de 100 alertas: 2.000 alertas. Quando esse limite a interrompe antes do fim da janela, a execução fica **Partial**, com este aviso:
+Uma consulta lê no máximo 20 páginas de 100 alertas: 2.000 alertas. Quando esse limite a interrompe antes do fim da janela, a execução fica **Parcial**, com este aviso:
 
 ```text
 Stopped after 20 alerts requests (the per-run request limit) before reading the whole window. Microsoft Graph lists alerts newest first and documents no way to sort them oldest first, so this run cannot name a point to resume from.
@@ -116,22 +116,22 @@ A [List alerts_v2](https://learn.microsoft.com/en-us/graph/api/security-list-ale
 
 1. **Reduzir.** A consulta seguinte lê uma janela com a metade do tamanho, a partir do mesmo ponto de partida, e continua dividindo pela metade até que uma janela seja lida por inteiro, até um minuto. O aviso da execução diz isso: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.` Os alertas já importados da janela mais longa são pulados como duplicatas.
 2. **Voltar a crescer.** Depois que uma janela é lida por inteiro, o cursor vai para o fim dela, e a janela seguinte volta a ter o dobro do tamanho, até 24 horas.
-3. **Passar de um único minuto.** Se até um minuto contém mais de 2.000 alertas, a consulta passa dele, para que os alertas mais novos continuem chegando. A execução continua **Partial**, e **Último erro** mostra `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importe esse minuto com **Import this time range** para recuperar o que uma execução consegue ler.
+3. **Passar de um único minuto.** Se até um minuto contém mais de 2.000 alertas, a consulta passa dele, para que os alertas mais novos continuem chegando. A execução continua **Parcial**, e **Último erro** mostra `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importe esse minuto com **Import this time range** para recuperar o que uma execução consegue ler.
 
-Uma execução **Partial** por outro motivo, como um alerta que não pôde ser lido como evento de segurança, é tentada de novo do mesmo jeito, a partir do mesmo ponto de partida. Mudar o **Poll Interval (Minutes)** não muda nada disso: ele decide com que frequência uma consulta começa, não onde a janela dela começa.
+Uma execução **Parcial** por outro motivo, como um alerta que não pôde ser lido como evento de segurança, é tentada de novo do mesmo jeito, a partir do mesmo ponto de partida. Mudar o **Intervalo de consulta (minutos)** não muda nada disso: ele decide com que frequência uma consulta começa, não onde a janela dela começa.
 
 ### Executar, pré-visualizar e importar sob demanda
 
-Clique em **Diagnostics** em uma conexão para ver as execuções recentes dela e trabalhar com ela manualmente. Quem pode alterar a conexão pode iniciar essas ações; quem pode vê-la pode ler o histórico.
+Clique em **Diagnóstico** em uma conexão para ver as execuções recentes dela e trabalhar com ela manualmente. Quem pode alterar a conexão pode iniciar essas ações; quem pode vê-la pode ler o histórico.
 
-- **Run now** inicia uma consulta na hora, com o cursor de sempre, mesmo quando a conexão não está **Habilitado**.
+- **Executar agora** inicia uma consulta na hora, com o cursor de sempre, mesmo quando a conexão não está **Habilitado**.
 - **Preview alerts** lê um intervalo de tempo de até 7 dias e não importa nada.
 - **Import this time range** importa um intervalo de até 7 dias, depois que você confirma, sem mover o cursor. Os alertas já importados são pulados.
 - **Copy diagnostics** em uma execução copia o relatório dela para o suporte. Ele nunca inclui credenciais.
 
 ## Testar conexão
 
-**Testar conexão** na linha de uma conexão, e **Test these settings** no formulário, rodam no processo da API, não em um worker em segundo plano, para que um teste responda mesmo quando o problema são os workers. Ele faz estas verificações, em ordem:
+**Testar conexão** na linha de uma conexão, e **Testar estas configurações** no formulário, rodam no processo da API, não em um worker em segundo plano, para que um teste responda mesmo quando o problema são os workers. Ele faz estas verificações, em ordem:
 
 | Verificação | O que ela verifica |
 | --- | --- |
@@ -150,7 +150,7 @@ O **Último erro** da conexão guarda a mensagem de erro completa, com as creden
 
 :::details Last Error começa com `Microsoft Defender XDR token request`
 - `Microsoft Defender XDR token request failed (HTTP ...)`: o Microsoft Entra ID se recusou a emitir um token, então o Graph nunca foi contatado. A mensagem termina com uma dica, conforme o código `error` do Entra:
-  - `invalid_client` (`AADSTS7000215`): o segredo está errado, expirou ou pertence a outro aplicativo. Crie um novo em **Certificates & secrets** e salve-o com **Update credentials**.
+  - `invalid_client` (`AADSTS7000215`): o segredo está errado, expirou ou pertence a outro aplicativo. Crie um novo em **Certificates & secrets** e salve-o com **Atualizar credenciais**.
   - `unauthorized_client` (`AADSTS700016`): o **ID do aplicativo (cliente)** não está nesse **ID do diretório (tenant)**, ou a **Nuvem** está errada.
   - `AADSTS90002`: esse locatário não existe.
   - `invalid_scope`: o escopo do Graph não existe na nuvem que você escolheu. Verifique **Nuvem**.
@@ -162,7 +162,7 @@ O **Último erro** da conexão guarda a mensagem de erro completa, com as creden
 - `Microsoft Defender XDR alerts request failed (HTTP ...)`: o Graph se recusou a listar os alertas. A mensagem nomeia o código de erro do Graph, e uma dica:
   - `403` (`Authorization_RequestDenied`): falta `SecurityAlert.Read.All` ou o consentimento do administrador dela, ou o locatário não tem licença do Defender XDR. O consentimento leva alguns minutos para valer.
   - `401` (`InvalidAuthenticationToken`) depois de um token ter sido emitido: normalmente a **Nuvem** não corresponde ao locatário.
-  - `429` (`TooManyRequests`): o Graph está limitando o aplicativo, e a consulta seguinte relê a mesma janela. A mensagem não consegue citar o `Retry-After` do Graph, porque o cliente HTTP do OneUptime não guarda cabeçalhos de resposta em um erro. Se continuar acontecendo, aumente o **Poll Interval (Minutes)**.
+  - `429` (`TooManyRequests`): o Graph está limitando o aplicativo, e a consulta seguinte relê a mesma janela. A mensagem não consegue citar o `Retry-After` do Graph, porque o cliente HTTP do OneUptime não guarda cabeçalhos de resposta em um erro. Se continuar acontecendo, aumente o **Intervalo de consulta (minutos)**.
   - `5xx`: um problema do lado do Graph. A consulta seguinte tenta de novo.
   - `400`: o Graph não quis executar a consulta, que o OneUptime monta, e não as suas configurações. Copie a mensagem para o suporte do OneUptime.
 - `Microsoft Defender XDR alerts request returned ...`: o Graph respondeu `200`, mas com algo que o conector não conseguiu usar: um corpo que não é JSON, nenhuma lista `value` ou um `@odata.nextLink` que não é um link `https://` no host do Graph da sua nuvem. Um link assim é recusado, para que o token nunca seja enviado para outro lugar. Isso é relatado em vez de tratado como uma janela vazia, para que o cursor nunca passe de alertas que ninguém leu.
@@ -174,10 +174,10 @@ O job de consulta nunca rodou. Leia as verificações **Background workers** e *
 :::
 
 :::details As consultas funcionam, mas falta um alerta que você conhece
-Compare o `createdDateTime` do alerta no portal do Defender com a janela da execução em **Diagnostics**: as janelas são pelo horário de criação, não pelo horário de atividade.
+Compare o `createdDateTime` do alerta no portal do Defender com a janela da execução em **Diagnóstico**: as janelas são pelo horário de criação, não pelo horário de atividade.
 
 - Um alerta criado antes de a conexão existir é mais antigo do que o primeiro olhar de 24 horas para trás. Importe-o com **Import this time range**.
-- Uma execução **Partial** foi interrompida pelo limite de 2.000 alertas. A consulta seguinte lê uma janela mais curta a partir do mesmo início, então o alerta é importado assim que uma janela que o contém é lida por inteiro.
+- Uma execução **Parcial** foi interrompida pelo limite de 2.000 alertas. A consulta seguinte lê uma janela mais curta a partir do mesmo início, então o alerta é importado assim que uma janela que o contém é lida por inteiro.
 - Se **Último erro** nomear um minuto que a consulta pulou, importe esse minuto com **Import this time range**.
 :::
 

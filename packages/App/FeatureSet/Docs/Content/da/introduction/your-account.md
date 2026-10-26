@@ -109,7 +109,7 @@ Første gang du tilføjer en app, en nøgle eller en adgangsnøgle, viser OneUpt
 Du kan høre til så mange projekter, du vil. Projektvælgeren øverst til venstre i dashboardet viser dem: vælg et for at skifte.
 
 - **Opret et projekt**: åbn projektvælgeren, og klik på **Opret nyt projekt**. På en selvhostet installation kan administratoren forbeholde oprettelse af projekter til administratorer.
-- **Accepter en invitation**: når nogen inviterer dig, viser klokken øverst til højre den ventende invitation og åbner **Projektinvitationer**. Der vælger du **Accepter** eller **Reject**.
+- **Accepter en invitation**: når nogen inviterer dig, viser klokken øverst til højre den ventende invitation og åbner **Projektinvitationer**. Der vælger du **Accepter** eller **Afvis**.
 - **Forlad et projekt**: bed en, der administrerer projektets brugere, om at fjerne dig med **Fjern fra projekt** på projektets side **Brugere**.
 
 ## Det, hvert projekt gemmer for dig

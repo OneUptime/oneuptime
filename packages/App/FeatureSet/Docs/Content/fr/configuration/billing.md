@@ -144,10 +144,10 @@ Quand un solde ne peut pas payer, le message n'est pas envoyé ou OneUptime AI s
 
 | Pour | Il faut |
 | --- | --- |
-| Lire les pages de facturation : le forfait, les factures, l'utilisation, les soldes et les moyens de paiement | Project Owner, **Manage Billing**, **Billing Admin**, **Billing Member** ou **Billing Viewer** |
-| Télécharger une facture | Project Owner, Project Admin, **Manage Billing**, **Read Invoices**, **Billing Admin** ou **Billing Member** |
-| Modifier l'adresse de facturation et l'e-mail des factures | Project Owner, **Manage Billing**, **Billing Admin** ou **Billing Member** |
-| Activer ou désactiver les SMS, les appels, WhatsApp ou Telegram | Project Owner, **Manage Billing** ou **Billing Admin** |
+| Lire les pages de facturation : le forfait, les factures, l'utilisation, les soldes et les moyens de paiement | Project Owner, **Manage Billing**, **Administrateur de la facturation**, **Membre de la facturation** ou **Lecteur de la facturation** |
+| Télécharger une facture | Project Owner, Project Admin, **Manage Billing**, **Read Invoices**, **Administrateur de la facturation** ou **Membre de la facturation** |
+| Modifier l'adresse de facturation et l'e-mail des factures | Project Owner, **Manage Billing**, **Administrateur de la facturation** ou **Membre de la facturation** |
+| Activer ou désactiver les SMS, les appels, WhatsApp ou Telegram | Project Owner, **Manage Billing** ou **Administrateur de la facturation** |
 | Ajouter un moyen de paiement | Project Owner, **Manage Billing** ou **Create Payment Method** |
 | Payer une facture | Project Owner, **Manage Billing** ou **Edit Invoices** |
 | Changer de forfait, recharger un solde ou modifier la recharge automatique | Project Owner ou **Manage Billing** |

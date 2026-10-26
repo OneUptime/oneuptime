@@ -42,20 +42,20 @@ OneUptime 每分钟轮询一次已过轮询间隔的每个已启用连接。一�
 
 ### 在 OneUptime 中添加连接
 
-打开 **产品 → Security Events → Connections**（`/dashboard/{projectId}/security-events/connections`），点击 **添加连接**，选择 **Okta System Log**，然后点击 **下一步**。填写下表中的设置，点击 **下一步**，然后把令牌粘贴到 **API token** 中。
+打开 **产品 → Security Events → 连接**（`/dashboard/{projectId}/security-events/connections`），点击 **添加连接**，选择 **Okta System Log**，然后点击 **下一步**。填写下表中的设置，点击 **下一步**，然后把令牌粘贴到 **API token** 中。
 
 ### 保存之前先测试
 
-点击 **保存前测试** 下的 **Test these settings**。测试会用表单中的值登录并读取事件，不保存任何内容，所以错误的 URL 或无效的过滤器会在连接创建之前就暴露出来。然后点击 **下一步**，为连接设置一个 **名称** 并创建它。
+点击 **保存前测试** 下的 **测试这些设置**。测试会用表单中的值登录并读取事件，不保存任何内容，所以错误的 URL 或无效的过滤器会在连接创建之前就暴露出来。然后点击 **下一步**，为连接设置一个 **名称** 并创建它。
 :::
 
 | 设置 | 填写什么 |
 | --- | --- |
 | **Okta organization URL** | 你的用户登录时使用的地址，例如 `https://acme.okta.com`、`https://acme.oktapreview.com` 或 `https://login.example.com`。它必须使用 `https`，且不带路径。不能使用 Admin Console 的 `-admin` 地址，因为它不提供 API。 |
 | **Event filter** | 可选。一个选择要导入哪些事件的 [System Log 过滤器](https://developer.okta.com/docs/reference/core-okta-api/#filter)，例如 `eventType sw "user.session" or eventType sw "security"`。留空时导入下面的事件族。最多 2,000 个字符，写在一行中，并且不能针对 `published`：时间范围由 OneUptime 自己设置。 |
-| **API token** | 令牌的值本身：OneUptime 会自己加上 `SSWS` 方案。它会被加密，API 从不返回它，也不会再次显示。要替换它，请在连接上使用 **Update credentials**。 |
+| **API token** | 令牌的值本身：OneUptime 会自己加上 `SSWS` 方案。它会被加密，API 从不返回它，也不会再次显示。要替换它，请在连接上使用 **更新凭据**。 |
 
-**Polling** 步骤还有可选的 **描述**、**Poll Interval (Minutes)**（`1` 到 `1440` 之间的整数，初始为 `5`），以及初始为开启的 **已启用**。
+**轮询** 步骤还有可选的 **描述**、**轮询间隔（分钟）**（`1` 到 `1440` 之间的整数，初始为 `5`），以及初始为开启的 **已启用**。
 
 ## 导入的内容
 
@@ -116,14 +116,14 @@ GET {Okta organization URL}/api/v1/logs?since={window start}&until={window end}&
 - **发布时间就是游标。** System Log 事件就是活动本身，所以 `published` 既是活动发生的时间，也是轮询读取的值。
 - **第一次轮询会回溯 24 小时**，所以新连接会立刻显示最近的事件。
 - **之后的每次轮询都从保存的游标之前 15 分钟开始。** Okta 提示，带有结束时间的请求可能会遗漏延迟的事件，但它称这种情况很少见。重叠部分会在下一次轮询中读取这些事件。延迟超过 15 分钟的事件可能会落在游标后面：导入它的时间范围即可找回。
-- **一次轮询最多读取游标之后 24 小时。** 游标落后的连接会通过一连串 24 小时的窗口追赶，此时它的 **Health** 显示为 **Catching up**。
+- **一次轮询最多读取游标之后 24 小时。** 游标落后的连接会通过一连串 24 小时的窗口追赶，此时它的 **健康状况** 显示为 **Catching up**。
 - **重复项按 `uuid` 去重**，范围是整个项目，所以重叠部分、重试的窗口和导入都不会把同一个事件存储两次。
 
 由于令牌会随每个请求一起发送，指向你的 **Okta organization URL** 之外任何地方的 `next` 链接都不会被跟随。
 
 ### 当一个窗口包含的内容超过一次轮询能读取的量时
 
-一次轮询最多用 20 个请求读取最多 10,000 个事件。当窗口中的事件更多时，这次运行为 **Partial**，并带有如下警告：
+一次轮询最多用 20 个请求读取最多 10,000 个事件。当窗口中的事件更多时，这次运行为 **部分**，并带有如下警告：
 
 ```text
 Stopped after collecting 10000 events; the window holds more. The last event read was published at 2026-09-14T08:12:44.000Z.
@@ -135,22 +135,22 @@ Stopped after collecting 10000 events; the window holds more. The last event rea
 
 1. **缩小。** 下一次轮询从同一个起点读取长度减半的窗口，并不断减半，直到某个窗口能被完整读取，最短为一分钟。运行的警告会说明这一点：`This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **恢复。** 一个窗口被完整读取后，下一个窗口的长度会再次加倍，最长为 24 小时。
-3. **越过单独的一分钟。** 如果连一分钟内的内容都超过一次轮询能读取的量，轮询会越过这一分钟，让更新的事件继续到达，之后轮询的重叠部分也不会再回到这一分钟。这次运行仍为 **Partial**，**最近错误** 显示 `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` 用 **Import this time range** 导入这一分钟，就能找回一次运行能读取的内容，或者缩小 **Event filter** 的范围。
+3. **越过单独的一分钟。** 如果连一分钟内的内容都超过一次轮询能读取的量，轮询会越过这一分钟，让更新的事件继续到达，之后轮询的重叠部分也不会再回到这一分钟。这次运行仍为 **部分**，**最近错误** 显示 `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` 用 **Import this time range** 导入这一分钟，就能找回一次运行能读取的内容，或者缩小 **Event filter** 的范围。
 
-因 Okta 的错误而彻底失败的运行，会保留游标和窗口长度，下一次轮询会再次读取同一个窗口。唯一的例外是请求超时：游标保持不变，但下一个窗口的长度减半，因为重到无法及时得到响应的窗口每次尝试都会超时。更改 **Poll Interval (Minutes)** 不会改变这些：它决定的是轮询多久开始一次，而不是窗口从哪里开始。
+因 Okta 的错误而彻底失败的运行，会保留游标和窗口长度，下一次轮询会再次读取同一个窗口。唯一的例外是请求超时：游标保持不变，但下一个窗口的长度减半，因为重到无法及时得到响应的窗口每次尝试都会超时。更改 **轮询间隔（分钟）** 不会改变这些：它决定的是轮询多久开始一次，而不是窗口从哪里开始。
 
 ### 按需运行、预览和导入
 
-在连接上点击 **Diagnostics**，可以查看它最近的运行，并手动操作它。能更改该连接的人都可以启动这些操作；能查看它的人都可以阅读历史记录。
+在连接上点击 **诊断**，可以查看它最近的运行，并手动操作它。能更改该连接的人都可以启动这些操作；能查看它的人都可以阅读历史记录。
 
-- **Run now** 会立即开始一次轮询，使用通常的游标，即使连接未处于 **已启用** 状态也可以。
+- **立即运行** 会立即开始一次轮询，使用通常的游标，即使连接未处于 **已启用** 状态也可以。
 - **Preview log events** 读取最长 7 天的时间范围，不导入任何内容。
 - **Import this time range** 在你确认后导入最长 7 天的范围，不会移动游标。已导入的事件会被跳过。Okta 会保留 90 天的 System Log。
 - 运行上的 **Copy diagnostics** 会复制它的报告以便提供给支持人员。报告从不包含凭据。
 
 ## 测试连接
 
-连接所在行中的 **测试连接** 和表单中的 **Test these settings** 在 API 进程中运行，而不是在后台工作进程中运行，所以即使工作进程出了问题，测试仍然会给出结果。它按顺序运行以下检查：
+连接所在行中的 **测试连接** 和表单中的 **测试这些设置** 在 API 进程中运行，而不是在后台工作进程中运行，所以即使工作进程出了问题，测试仍然会给出结果。它按顺序运行以下检查：
 
 | 检查 | 检查的内容 |
 | --- | --- |
@@ -172,7 +172,7 @@ Okta 拒绝了请求的参数（`E0000053`）。如果令牌有效，问题几�
 :::
 
 :::details Last Error 显示 `failed (HTTP 401)` 或 `failed (HTTP 403)`
-- `HTTP 401`：Okta 没有接受令牌（`E0000011`）。它已被吊销、30 天未被使用，或随它的管理员一起被停用；或者粘贴时带上了 `SSWS` 或多余的字符。请以只读管理员身份创建一个新令牌，并用 **Update credentials** 保存。
+- `HTTP 401`：Okta 没有接受令牌（`E0000011`）。它已被吊销、30 天未被使用，或随它的管理员一起被停用；或者粘贴时带上了 `SSWS` 或多余的字符。请以只读管理员身份创建一个新令牌，并用 **更新凭据** 保存。
 - `HTTP 403`：令牌能登录，但它的管理员无法读取 System Log（`E0000006`）。请以 Read-only Administrator 或 Super Administrator 身份创建令牌，并检查它的网络区域是否允许 OneUptime 调用来源的地址。
 :::
 
@@ -194,8 +194,8 @@ Okta 拒绝了请求的参数（`E0000053`）。如果令牌有效，问题几�
 :::
 
 :::details 运行为 Partial
-- `Stopped after collecting 10000 events`：窗口中的事件超过了一次运行能读取的 10,000 个。不会丢失任何内容：下一次轮询会从读取的最后一个事件之后开始。一次又一次轮询都保持 **Partial** 的连接正在追赶积压的内容，它的 **Last Polled** 和 **Last Event Imported** 会不断前进。如果它始终追不上，说明该组织发布的匹配事件多到一个轮询间隔装不下：请缩小 **Event filter** 的范围，或者缩短 **Poll Interval (Minutes)**。
-- `More records were created in the one minute from ... than one poll can read`：轮询越过了这一分钟。请在 **Diagnostics** 中用 **Import this time range** 导入它。一次导入读取的量与一次轮询相同。
+- `Stopped after collecting 10000 events`：窗口中的事件超过了一次运行能读取的 10,000 个。不会丢失任何内容：下一次轮询会从读取的最后一个事件之后开始。一次又一次轮询都保持 **部分** 的连接正在追赶积压的内容，它的 **最近轮询** 和 **最近导入的事件** 会不断前进。如果它始终追不上，说明该组织发布的匹配事件多到一个轮询间隔装不下：请缩小 **Event filter** 的范围，或者缩短 **轮询间隔（分钟）**。
+- `More records were created in the one minute from ... than one poll can read`：轮询越过了这一分钟。请在 **诊断** 中用 **Import this time range** 导入它。一次导入读取的量与一次轮询相同。
 :::
 
 :::details 测试通过，但没有导入任何内容

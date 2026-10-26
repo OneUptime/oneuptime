@@ -60,23 +60,23 @@ OneUptime 每分鐘輪詢一次已過輪詢間隔的每個已啟用連線。一�
 
 ### 在 OneUptime 中新增連線
 
-開啟 **產品 → Security Events → Connections**（`/dashboard/{projectId}/security-events/connections`），點選 **新增連線**，選擇 **AWS Security Hub**，然後點選 **下一步**。填寫下表中的設定，點選 **下一步**，然後把金鑰貼上到 **秘密存取金鑰** 中。
+開啟 **產品 → Security Events → 連線**（`/dashboard/{projectId}/security-events/connections`），點選 **新增連線**，選擇 **AWS Security Hub**，然後點選 **下一步**。填寫下表中的設定，點選 **下一步**，然後把金鑰貼上到 **秘密存取金鑰** 中。
 
 ### 儲存之前先測試
 
-點選 **儲存前測試** 下的 **Test these settings**。測試會用表單中的值為一個請求簽名，不儲存任何內容，所以錯誤的金鑰或缺少的權限會在連線建立之前就暴露出來。然後點選 **下一步**，為連線設定一個 **名稱** 並建立它。
+點選 **儲存前測試** 下的 **測試這些設定**。測試會用表單中的值為一個請求簽名，不儲存任何內容，所以錯誤的金鑰或缺少的權限會在連線建立之前就暴露出來。然後點選 **下一步**，為連線設定一個 **名稱** 並建立它。
 :::
 
 | 設定 | 填寫什麼 |
 | --- | --- |
 | **地區** | 地區代碼，例如 `us-east-1`、`eu-central-1` 或 `us-gov-west-1`：讀取其他帳戶的發現結果時，填寫管理員帳戶的主地區。 |
 | **存取金鑰 ID** | 金鑰的 ID：16 到 128 個字母或數字，通常是以 `AKIA` 開頭的 20 個字元，臨時認證資訊則以 `ASIA` 開頭。 |
-| **秘密存取金鑰** | 金鑰的秘密部分。它會被加密，API 從不傳回它，也不會再次顯示。要替換它，請在連線上使用 **Update credentials**。 |
+| **秘密存取金鑰** | 金鑰的秘密部分。它會被加密，API 從不傳回它，也不會再次顯示。要替換它，請在連線上使用 **更新憑證**。 |
 | **Session token** | 僅用於需要它的臨時認證資訊：沒有它時 `ASIA` 金鑰會被拒絕，有它時 `AKIA` 金鑰會被拒絕。 |
 
-來自 `aws sts assume-role` 或 `aws sts get-session-token` 的臨時認證資訊會過期，對於代入的角色最多 12 小時，之後輪詢會停止，直到你用 **Update credentials** 貼上新的認證資訊。使用這個範圍很窄的政策的長期金鑰，按你自己的排程輪換，就能讓輪詢無人值守地持續進行。要從臨時認證資訊切換到長期金鑰，請在 **Update credentials** 中輸入新金鑰，並開啟 **Remove the stored Session token**。
+來自 `aws sts assume-role` 或 `aws sts get-session-token` 的臨時認證資訊會過期，對於代入的角色最多 12 小時，之後輪詢會停止，直到你用 **更新憑證** 貼上新的認證資訊。使用這個範圍很窄的政策的長期金鑰，按你自己的排程輪換，就能讓輪詢無人值守地持續進行。要從臨時認證資訊切換到長期金鑰，請在 **更新憑證** 中輸入新金鑰，並開啟 **Remove the stored Session token**。
 
-**Polling** 步驟還有選用的 **描述**、**Poll Interval (Minutes)**（`1` 到 `1440` 之間的整數，初始為 `5`），以及初始為開啟的 **已啟用**。
+**輪詢** 步驟還有選用的 **描述**、**輪詢間隔（分鐘）**（`1` 到 `1440` 之間的整數，初始為 `5`），以及初始為開啟的 **已啟用**。
 
 ## 匯入的內容
 
@@ -113,12 +113,12 @@ POST https://securityhub.{region}.amazonaws.com/findings
 - **建立時間就是游標。** 發現結果按 `CreatedAt` 列出，從不按 `FirstObservedAt` 列出。GuardDuty 在觀察到足夠的活動後才建立發現結果，控制檢查則在 Security Hub 首次檢查資源時建立，可能是活動開始後幾小時甚至幾天。基於觀察時間的游標會把它們跳過。
 - **第一次輪詢會回溯 24 小時**，所以新連線會立刻顯示最近的發現結果。
 - **之後的每次輪詢都從儲存的游標之前 30 分鐘開始。** `CreatedAt` 由發現問題的服務設定，而發現結果到達 Security Hub 的時間更晚：GuardDuty 在五分鐘內傳送新的發現結果，透過 EventBridge 傳遞失敗時最多會重試 24 小時。重疊部分會在下一次輪詢中讀取這類發現結果。在其 `CreatedAt` 之後超過 30 分鐘才到達的發現結果可能會落在游標後面：匯入它的時間範圍即可找回。
-- **一次輪詢最多讀取游標之後 24 小時。** 游標落後的連線會透過一連串 24 小時的時間窗追趕，此時它的 **Health** 顯示為 **Catching up**。
+- **一次輪詢最多讀取游標之後 24 小時。** 游標落後的連線會透過一連串 24 小時的時間窗追趕，此時它的 **健康狀況** 顯示為 **Catching up**。
 - **重複項按發現結果的 `Id` 去除重複**，範圍是整個專案，所以重疊部分、重試的時間窗和匯入都不會把同一個發現結果儲存兩次。
 
 ### 當一個時間窗包含的內容超過一次輪詢能讀取的量時
 
-一次輪詢最多傳送 20 個請求，每個請求 100 個發現結果，也就是 2,000 個發現結果。當時間窗中的發現結果更多時，這次執行為 **Partial**，並帶有如下警告：
+一次輪詢最多傳送 20 個請求，每個請求 100 個發現結果，也就是 2,000 個發現結果。當時間窗中的發現結果更多時，這次執行為 **部分**，並帶有如下警告：
 
 ```text
 Stopped after 20 findings requests (the per-run request limit) before the window was fully read. The last finding read was created at 2026-09-14T08:12:44.000Z.
@@ -130,22 +130,22 @@ Stopped after 20 findings requests (the per-run request limit) before the window
 
 1. **縮小。** 下一次輪詢從同一個起點讀取長度減半的時間窗，並不斷減半，直到某個時間窗能被完整讀取，最短為一分鐘。執行的警告會說明這一點：`This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **恢復。** 一個時間窗被完整讀取後，下一個時間窗的長度會再次加倍，最長為 24 小時。
-3. **越過單獨的一分鐘。** 如果連一分鐘內的內容都超過一次輪詢能讀取的量，輪詢會越過這一分鐘，讓更新的發現結果繼續到達，之後輪詢的重疊部分也不會再回到這一分鐘。這次執行仍為 **Partial**，**最近的錯誤** 顯示 `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` 用 **Import this time range** 匯入這一分鐘，就能找回一次執行能讀取的內容。
+3. **越過單獨的一分鐘。** 如果連一分鐘內的內容都超過一次輪詢能讀取的量，輪詢會越過這一分鐘，讓更新的發現結果繼續到達，之後輪詢的重疊部分也不會再回到這一分鐘。這次執行仍為 **部分**，**最近的錯誤** 顯示 `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` 用 **Import this time range** 匯入這一分鐘，就能找回一次執行能讀取的內容。
 
-因 AWS 的錯誤而徹底失敗的執行，會保留游標和時間窗長度，下一次輪詢會再次讀取同一個時間窗。唯一的例外是請求逾時：游標保持不變，但下一個時間窗的長度減半，因為重到無法及時得到回應的時間窗每次嘗試都會逾時。更改 **Poll Interval (Minutes)** 不會改變這些：它決定的是輪詢多久開始一次，而不是時間窗從哪裡開始。
+因 AWS 的錯誤而徹底失敗的執行，會保留游標和時間窗長度，下一次輪詢會再次讀取同一個時間窗。唯一的例外是請求逾時：游標保持不變，但下一個時間窗的長度減半，因為重到無法及時得到回應的時間窗每次嘗試都會逾時。更改 **輪詢間隔（分鐘）** 不會改變這些：它決定的是輪詢多久開始一次，而不是時間窗從哪裡開始。
 
 ### 按需執行、預覽和匯入
 
-在連線上點選 **Diagnostics**，可以檢視它最近的執行，並手動操作它。能更改該連線的人都可以啟動這些操作；能檢視它的人都可以閱讀歷史記錄。
+在連線上點選 **診斷**，可以檢視它最近的執行，並手動操作它。能更改該連線的人都可以啟動這些操作；能檢視它的人都可以閱讀歷史記錄。
 
-- **Run now** 會立即開始一次輪詢，使用通常的游標，即使連線未處於 **已啟用** 狀態也可以。
+- **立即執行** 會立即開始一次輪詢，使用通常的游標，即使連線未處於 **已啟用** 狀態也可以。
 - **Preview findings** 讀取最長 7 天的時間範圍，不匯入任何內容。
 - **Import this time range** 在你確認後匯入最長 7 天的範圍，不會移動游標。已匯入的發現結果會被跳過。
 - 執行上的 **Copy diagnostics** 會複製它的報告以便提供給支援人員。報告從不包含認證資訊。
 
 ## 測試連線
 
-連線所在列中的 **測試連線** 和表單中的 **Test these settings** 在 API 程序中執行，而不是在背景工作程序中執行，所以即使工作程序出了問題，測試仍然會給出結果。它按順序執行以下檢查：
+連線所在列中的 **測試連線** 和表單中的 **測試這些設定** 在 API 程序中執行，而不是在背景工作程序中執行，所以即使工作程序出了問題，測試仍然會給出結果。它按順序執行以下檢查：
 
 | 檢查 | 檢查的內容 |
 | --- | --- |
@@ -167,7 +167,7 @@ AWS 拒絕了請求。訊息會引用 AWS 的錯誤代碼，如果 AWS 沒有傳
 
 - `AccessDeniedException`，或 `is not authorized to perform`：金鑰是正確的，但它的身分不能呼叫 `securityhub:GetFindings`。請附加 [設定連線](#設定連線) 中的政策。權限邊界或服務控制政策也可能拒絕它。
 - `InvalidAccessException`，或 `is not subscribed to AWS Security Hub`：在 **地區** 指定的地區中，此帳戶沒有啟用 Security Hub，或者此帳戶不是那裡的管理員。
-- `InvalidSignatureException` 或 `SignatureDoesNotMatch`，或 `The request signature we calculated does not match`：**秘密存取金鑰** 不屬於 **存取金鑰 ID**。請建立一個新的存取金鑰，並用 **Update credentials** 儲存。
+- `InvalidSignatureException` 或 `SignatureDoesNotMatch`，或 `The request signature we calculated does not match`：**秘密存取金鑰** 不屬於 **存取金鑰 ID**。請建立一個新的存取金鑰，並用 **更新憑證** 儲存。
 - `UnrecognizedClientException` 或 `InvalidClientTokenId`，或 `The security token included in the request is invalid`：AWS 不認識這個 **存取金鑰 ID**。它輸錯了、已刪除、已停用或來自另一個分割槽，或者是缺少 **Session token** 的臨時金鑰。
 - `ExpiredTokenException`，或 `The security token included in the request is expired`：臨時認證資訊已過期。請簽發新的認證資訊，或者改用長期金鑰。
 - `RequestTimeTooSkewed` 或 `RequestExpired`，或 `Signature expired`：OneUptime 主機的時鐘偏差超過 5 分鐘。請修復應用程式和工作程序主機上的 NTP。
@@ -191,8 +191,8 @@ AWS 拒絕了請求。訊息會引用 AWS 的錯誤代碼，如果 AWS 沒有傳
 :::
 
 :::details 執行為 Partial
-- `Stopped after 20 findings requests`：時間窗中的發現結果超過了一次執行能讀取的 2,000 個。不會遺失任何內容：下一次輪詢會從讀取的最後一個發現結果之後開始。一次又一次輪詢都保持 **Partial** 的連線正在追趕積壓的內容，它的 **Last Polled** 和 **Last Event Imported** 會不斷前進。如果它始終追不上，說明該帳戶在每個輪詢間隔內建立的發現結果超過 2,000 個：請縮短 **Poll Interval (Minutes)**。
-- `More records were created in the one minute from ... than one poll can read`：輪詢越過了這一分鐘。請在 **Diagnostics** 中用 **Import this time range** 匯入它。一次匯入讀取的量與一次輪詢相同。
+- `Stopped after 20 findings requests`：時間窗中的發現結果超過了一次執行能讀取的 2,000 個。不會遺失任何內容：下一次輪詢會從讀取的最後一個發現結果之後開始。一次又一次輪詢都保持 **部分** 的連線正在追趕積壓的內容，它的 **最近輪詢** 和 **最近匯入的事件** 會不斷前進。如果它始終追不上，說明該帳戶在每個輪詢間隔內建立的發現結果超過 2,000 個：請縮短 **輪詢間隔（分鐘）**。
+- `More records were created in the one minute from ... than one poll can read`：輪詢越過了這一分鐘。請在 **診斷** 中用 **Import this time range** 匯入它。一次匯入讀取的量與一次輪詢相同。
 :::
 
 :::details 測試通過，但沒有匯入任何內容

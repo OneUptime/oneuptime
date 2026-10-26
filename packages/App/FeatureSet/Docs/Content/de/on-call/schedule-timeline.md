@@ -23,7 +23,7 @@ flowchart TB
 - **Bereitschaftsdienst** > **Zeitachse der Bereitschaftspläne** zeigt jeden Plan, den Sie sehen dürfen, gruppiert nach besitzendem Team. Die Schaltfläche **Zeitachsenansicht** unter **Bereitschaftspläne** öffnet dieselbe Seite.
 - **Teams** > ein Team > **Bereitschaftspläne** zeigt nur die Pläne, die diesem Team gehören.
 
-Ein Team besitzt einen Plan, wenn es auf der Seite **Eigentümer** des Plans eingetragen ist. Pläne ohne besitzendes Team werden unter **Kein Eigentümer-Team** zusammengefasst. Schalten Sie **Group by team** aus, um alle Pläne in einer Liste zu sehen, nach Namen sortiert.
+Ein Team besitzt einen Plan, wenn es auf der Seite **Eigentümer** des Plans eingetragen ist. Pläne ohne besitzendes Team werden unter **Kein Eigentümer-Team** zusammengefasst. Schalten Sie **Nach Team gruppieren** aus, um alle Pläne in einer Liste zu sehen, nach Namen sortiert.
 
 ## Das Raster lesen
 
@@ -34,16 +34,16 @@ Ein Team besitzt einen Plan, wenn es auf der Seite **Eigentümer** des Plans ein
 | Ein mit **⇄** markierter Balken | Eine Vertretung: Jemand übernimmt eine Schicht. Die schmale Spur darunter nennt die Person, deren Schicht übernommen wird, durchgestrichen. |
 | Ein schraffierter gelber Block | Eine Abdeckungslücke: Niemand hat Bereitschaft. Ein Alarm, der an diesen Plan eskaliert, erreicht dann niemanden. |
 | Die rote Linie | Jetzt. |
-| Die Zeile unter dem Namen eines Plans | Wer gerade Bereitschaft hat, oder **No one on call now**. |
+| Die Zeile unter dem Namen eines Plans | Wer gerade Bereitschaft hat, oder **Gerade niemand in Bereitschaft**. |
 
 Fahren Sie mit der Maus über einen Balken oder eine Lücke, oder steuern Sie sie mit der Tastatur an, um die Details zu sehen.
 
-Unter dem Raster listet **On call this week** (**On call this month** in der Monatsansicht) alle auf, die im gewählten Zeitraum Bereitschaft haben. Fahren Sie mit der Maus über einen Namen, um zu sehen, wie lange die Person Bereitschaft hat und in wie vielen Plänen.
+Unter dem Raster listet **In Bereitschaft diese Woche** (**In Bereitschaft diesen Monat** in der Monatsansicht) alle auf, die im gewählten Zeitraum Bereitschaft haben. Fahren Sie mit der Maus über einen Namen, um zu sehen, wie lange die Person Bereitschaft hat und in wie vielen Plänen.
 
 ## Zeitraum und Zeitzone ändern
 
 - Wechseln Sie zwischen **Woche** und **Monat**, blättern Sie mit den Pfeilen und kehren Sie mit **Heute** zurück.
-- Zeiten werden in Ihrer eigenen Zeitzone angezeigt. Die Zeitzonen-Schaltfläche öffnet **View timeline in timezone**, das die Zeitachse in jeder anderen Zone zeigt, ohne dass sich ändert, wann jemand Bereitschaft hat: Jeder Plan übergibt weiterhin in seiner eigenen Zeitzone.
+- Zeiten werden in Ihrer eigenen Zeitzone angezeigt. Die Zeitzonen-Schaltfläche öffnet **Zeitachse in Zeitzone anzeigen**, das die Zeitachse in jeder anderen Zone zeigt, ohne dass sich ändert, wann jemand Bereitschaft hat: Jeder Plan übergibt weiterhin in seiner eigenen Zeitzone.
 - Die Zeitachse reicht 180 Tage zurück und 365 Tage voraus.
 
 > [!NOTE]
@@ -52,8 +52,8 @@ Unter dem Raster listet **On call this week** (**On call this month** in der Mon
 ## Einen Plan oder eine Person finden
 
 - **Suchen** findet Plannamen, Teamnamen und die Personen in Bereitschaft.
-- Der Teamfilter beschränkt die Ansicht auf ein Team oder auf **Meine Teams**; **Schedules I'm on** zeigt nur die Pläne, in denen Sie eingeteilt sind.
-- Klicken Sie über dem Raster auf **with no one on call now** oder **with coverage gaps this week** (**with coverage gaps this month** in der Monatsansicht), um nur diese Pläne zu sehen. Ein erneuter Klick zeigt wieder alle.
+- Der Teamfilter beschränkt die Ansicht auf ein Team oder auf **Meine Teams**; **Zeitpläne, in denen ich bin** zeigt nur die Pläne, in denen Sie eingeteilt sind.
+- Klicken Sie über dem Raster auf **ohne Bereitschaft jetzt** oder **mit Abdeckungslücken diese Woche** (**mit Abdeckungslücken diesen Monat** in der Monatsansicht), um nur diese Pläne zu sehen. Ein erneuter Klick zeigt wieder alle.
 - Klicken Sie unter dem Raster auf eine Person oder auf einen ihrer Balken, um alle ihre Schichten hervorzuheben. **Hervorhebung entfernen** macht das rückgängig, und **Filter löschen** setzt die Suche und die Filter zurück.
 
 ## Wer was sieht

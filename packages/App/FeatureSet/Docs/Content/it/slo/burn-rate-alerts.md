@@ -75,19 +75,19 @@ Ti serve il permesso di creare regole del tasso di consumo degli SLO.
 :::steps
 ### Aprire Burn Rate Rules
 
-Apri lo SLO, vai a **Burn Rate Rules** nella sezione **Regole** del suo menu laterale e fai clic su **Crea: SLO Burn Rate Rule**, oppure modifica una delle regole predefinite.
+Apri lo SLO, vai a **Regole di tasso di consumo** nella sezione **Regole** del suo menu laterale e fai clic su **Crea: SLO Burn Rate Rule**, oppure modifica una delle regole predefinite.
 
 ### Dare un nome alla regola
 
-In **Rule**, inserisci un **Nome**, come «Fast burn». Una nuova regola è attiva; per non farla più scattare in seguito, disattiva **Abilitato** nel suo modulo di modifica.
+In **Regola**, inserisci un **Nome**, come «Fast burn». Una nuova regola è attiva; per non farla più scattare in seguito, disattiva **Abilitato** nel suo modulo di modifica.
 
 ### Impostare la finestra di consumo
 
-In **Burn Window**, imposta la **Burn Rate Threshold** (per esempio `14.4`), la **Long Window (Minutes)** e la **Short Window (Minutes)**, e se vuoi la **Re-fire Suppression (Minutes)**.
+In **Finestra di consumo**, imposta la **Soglia del tasso di consumo** (per esempio `14.4`), la **Finestra lunga (minuti)** e la **Finestra breve (minuti)**, e se vuoi la **Soppressione della riattivazione (minuti)**.
 
 ### Scegliere cosa dichiara
 
-In **What It Declares**, rispondi a **Quando scatta**: **Crea un avviso**, la scelta predefinita, **Dichiara un incidente** o **Entrambi**. **Add SLO Owners as Owners** rende anche i proprietari dello SLO proprietari di tutto ciò che la regola crea.
+In **Cosa dichiara**, rispondi a **Quando scatta**: **Crea un avviso**, la scelta predefinita, **Dichiara un incidente** o **Entrambi**. **Aggiungi i proprietari dello SLO come proprietari** rende anche i proprietari dello SLO proprietari di tutto ciò che la regola crea.
 
 ### Descrivere l'avviso e l'incidente
 
@@ -98,10 +98,10 @@ OneUptime controlla i numeri di una regola quando la salvi:
 
 | Impostazione | Deve essere |
 | --- | --- |
-| **Burn Rate Threshold** | Maggiore di 0. |
-| **Short Window (Minutes)** | Maggiore di 0. |
-| **Long Window (Minutes)** | Più lunga della finestra breve. |
-| **Re-fire Suppression (Minutes)** | 0 o più. Vuoto significa la durata della finestra lunga. |
+| **Soglia del tasso di consumo** | Maggiore di 0. |
+| **Finestra breve (minuti)** | Maggiore di 0. |
+| **Finestra lunga (minuti)** | Più lunga della finestra breve. |
+| **Soppressione della riattivazione (minuti)** | 0 o più. Vuoto significa la durata della finestra lunga. |
 
 Ogni risposta a **Quando scatta** apre qualcosa. L'API rifiuta una regola che non creerebbe alcun avviso né dichiarerebbe alcun incidente, perché verrebbe controllata a ogni valutazione senza dichiarare mai nulla.
 
@@ -118,7 +118,7 @@ La tabella delle regole mostra per ogni regola la soglia, le finestre e la soppr
 | Cos'è | Il segnale leggero: finisce nell'elenco degli avvisi. | Il segnale pesante: prende un numero di incidente e avvia tutto il flusso di risposta. |
 | Titolo e descrizione | I propri, o il testo predefinito | I propri, o il testo predefinito |
 | Gravità | **Gravità avviso**: la più alta del progetto se vuota | **Gravità incidente**: la più alta del progetto se vuota |
-| Escalation | **Alert On-Call Duty Policies** | **Incident On-Call Duty Policies** |
+| Escalation | **Policy di reperibilità dell'avviso** | **Policy di reperibilità dell'incidente** |
 | Proprietari ed etichette | **Proprietari dell'avviso** e **Etichette dell'avviso** | **Proprietari dell'incidente** e **Etichette dell'incidente** |
 | Privato | Disattivato | Disattivato |
 | Risoluzione automatica | Attiva | Attiva |
@@ -180,7 +180,7 @@ Per esempio, il titolo `{{ruleName}}: {{sloName}} is burning {{longWindowBurnRat
 ## Proprietari, etichette e privacy
 
 - **Proprietari dell'avviso** e **Proprietari dell'incidente** sono persone e team, scelti da un solo elenco con **Aggiungi proprietario**. Vengono aggiunti all'avviso o all'incidente appena viene creato, e ricevono una notifica. Le persone devono essere membri del progetto.
-- **Add SLO Owners as Owners** aggiunge anche i proprietari dello SLO, i suoi utenti proprietari e i membri dei suoi team proprietari, a tutto ciò che la regola crea. I proprietari dello SLO sanno già dei cambi di stato dello SLO stesso, quindi questo può avvisarli due volte. È disattivato per impostazione predefinita.
+- **Aggiungi i proprietari dello SLO come proprietari** aggiunge anche i proprietari dello SLO, i suoi utenti proprietari e i membri dei suoi team proprietari, a tutto ciò che la regola crea. I proprietari dello SLO sanno già dei cambi di stato dello SLO stesso, quindi questo può avvisarli due volte. È disattivato per impostazione predefinita.
 - Ogni proprietario viene aggiunto una volta: un utente che è già proprietario dell'avviso o dell'incidente, per esempio tramite le regole del proprietario del progetto, o che è in un team proprietario aggiunto, non viene aggiunto di nuovo.
 - **Etichette dell'avviso** e **Etichette dell'incidente** vengono aggiunte all'avviso o all'incidente, così filtri, regole del proprietario e regole di notifica dell'area di lavoro possono corrispondere.
 - Un avviso o un incidente privato è visibile solo ai suoi proprietari, agli amministratori del progetto e ai proprietari del progetto.
@@ -198,7 +198,7 @@ Alcune modifiche risolvono sempre ciò che una regola ha aperto, qualunque cosa 
 - cambiare **Quando scatta** per togliere l'avviso o l'incidente chiude ciò che quell'uscita aveva aperto;
 - disattivare la regola o eliminarla;
 - disattivare la valutazione dello SLO, archiviare lo SLO o eliminarlo;
-- il passaggio dello SLO a **In pausa** o **Misconfigured**, perché allora non misura nulla;
+- il passaggio dello SLO a **In pausa** o **Configurato male**, perché allora non misura nulla;
 - la perdita della soglia o delle finestre della regola, o il fatto che lo SLO non abbia più una finestra lunga completa di cronologia.
 
 ## Manutenzione pianificata

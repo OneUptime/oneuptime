@@ -5,6 +5,8 @@ import {
   WORKFLOW_RUN_PERMISSIONS,
 } from "Common/Types/Workflow/WorkflowRunPermissions";
 import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
+import { writtenPermissionTitle } from "./DocsRoleNames";
+import { escapeRegExp } from "./DocsTranslationChecks";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -19,9 +21,10 @@ import path from "path";
  *   - Workflow Viewer reads them.
  *
  * Every docs language says it, on the workflow Configuration page's
- * permissions section and on Users, Teams & Permissions. The role and
- * permission names stay in English there, as the permission picker shows
- * them, so the sections are found and held to the model by those names.
+ * permissions section and on Users, Teams & Permissions. A permission's
+ * name stays in English there, as the permission picker shows it; a role's
+ * name reads as that language's Dashboard draws it (writtenPermissionTitle),
+ * and the sections are found and held to the model by those names.
  */
 
 const CONTENT_ROOT: string = path.join(
@@ -57,13 +60,18 @@ function sectionHolding(page: string, needle: RegExp): string {
  * dash each language writes (Chinese sets "——" with no space before it).
  */
 const ROLE_BULLET: (title: string) => RegExp = (title: string): RegExp => {
-  return new RegExp(`^- \\*\\*${title}\\*\\*\\s*[—–-]`, "m");
+  return new RegExp(`^- \\*\\*${escapeRegExp(title)}\\*\\*\\s*[—–-]`, "m");
 };
+
+// A role, bold, as a language's Dashboard names it.
+function boldRole(lang: string, title: string): string {
+  return `**${writtenPermissionTitle(lang, title)}**`;
+}
 
 function permissionsSection(lang: string): string {
   return sectionHolding(
     readDoc(lang, "workflows/configuration.md"),
-    ROLE_BULLET("Workflow Member"),
+    ROLE_BULLET(writtenPermissionTitle(lang, "Workflow Member")),
   );
 }
 
@@ -148,11 +156,11 @@ describe.each(LANGUAGES)("the %s docs", (lang: string) => {
       "Workflow Member",
       "Workflow Viewer",
     ]) {
-      expect([lang, title, ROLE_BULLET(title).test(section)]).toEqual([
+      expect([
         lang,
         title,
-        true,
-      ]);
+        ROLE_BULLET(writtenPermissionTitle(lang, title)).test(section),
+      ]).toEqual([lang, title, true]);
     }
   });
 
@@ -162,8 +170,8 @@ describe.each(LANGUAGES)("the %s docs", (lang: string) => {
       .filter((line: string): boolean => {
         return (
           line.includes("**Edit Workflow**") &&
-          line.includes("**Workflow Admin**") &&
-          line.includes("**Workflow Member**")
+          line.includes(boldRole(lang, "Workflow Admin")) &&
+          line.includes(boldRole(lang, "Workflow Member"))
         );
       });
 
@@ -173,8 +181,8 @@ describe.each(LANGUAGES)("the %s docs", (lang: string) => {
   test("they say Project Owner and Project Admin may do everything a Workflow Admin may", () => {
     const section: string = permissionsSection(lang);
 
-    expect(section).toContain("**Project Owner**");
-    expect(section).toContain("**Project Admin**");
+    expect(section).toContain(boldRole(lang, "Project Owner"));
+    expect(section).toContain(boldRole(lang, "Project Admin"));
   });
 
   test("Users, Teams & Permissions says the Workflow Member runs and the Workflow Admin builds, and links there", () => {

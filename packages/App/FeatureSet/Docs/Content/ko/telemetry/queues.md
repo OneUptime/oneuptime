@@ -104,7 +104,7 @@ OpenTelemetry의 모든 메시징 속성은 아직 개발 중으로 표시되어
 
 계측된 클라이언트도 메트릭을 보고할 수 있습니다: OpenTelemetry의 메시징 클라이언트 메트릭 `messaging.client.sent.messages`, `messaging.client.consumed.messages`, `messaging.client.operation.duration`, `messaging.process.duration`, 그 이전 이름인 `messaging.publish.duration`, `messaging.receive.duration`, `messaging.publish.messages`, `messaging.receive.messages`, `messaging.process.messages`, `messaging.client.published.messages`, 그리고 Azure SDK for Java의 `messaging.servicebus.messages.sent`, `messaging.servicebus.receiver.lag`, `messaging.servicebus.settlement.request.duration`, `messaging.servicebus.settlement.sequence_number`입니다. 각 데이터 포인트는 스팬과 같은 방식으로 시스템과 대상을 지정하며(Azure SDK의 Service Bus 메트릭은 시스템을 지정하지 않으므로 메트릭 이름이 대신합니다), 수집될 때 그 큐와 연결되므로 큐의 **메트릭** 탭에 표시됩니다. 각 데이터 포인트에 `messaging.system`과 `messaging.destination.name`을 가진 직접 만든 메트릭도 마찬가지입니다(리소스에 있는 값은 읽지 않습니다). 큐 깊이 게이지가 그 예입니다([BullMQ](#bullmq) 참조).
 
-메시징 클라이언트 메트릭은 큐를 생성하지 않습니다. 큐를 생성하는 것은 트레이스, 브로커 메트릭, 또는 사람입니다. 기존 큐를 지정하는 클라이언트 메트릭은 스팬과 마찬가지로 그 큐의 **Last seen**을 최신 상태로 유지합니다. 직접 만든 메트릭은 둘 다 하지 않고 큐의 **메트릭** 탭에 표시될 뿐입니다.
+메시징 클라이언트 메트릭은 큐를 생성하지 않습니다. 큐를 생성하는 것은 트레이스, 브로커 메트릭, 또는 사람입니다. 기존 큐를 지정하는 클라이언트 메트릭은 스팬과 마찬가지로 그 큐의 **마지막 확인**을 최신 상태로 유지합니다. 직접 만든 메트릭은 둘 다 하지 않고 큐의 **메트릭** 탭에 표시될 뿐입니다.
 
 ### 두 관측이 하나의 큐가 되는 기준
 
@@ -158,7 +158,7 @@ OneUptime은 확실하지 않으면 큐를 만들지 않는 쪽을 택합니다.
 
 ### 수명 주기와 보관
 
-- **Last seen**은 감지가 트레이스, 메시징 클라이언트 메트릭, 브로커 메트릭 중 하나에서 큐를 마지막으로 확인한 시각입니다.
+- **마지막 확인**은 감지가 트레이스, 메시징 클라이언트 메트릭, 브로커 메트릭 중 하나에서 큐를 마지막으로 확인한 시각입니다.
 - **정리하려면 보관하세요.** 감지된 큐를 삭제해도 다시 확인될 때까지만 사라집니다. 다음에 확인되면 새 큐로 돌아옵니다. 영구적으로 정리하려면 **보관**하세요. 보관된 큐는 식별 기준을 유지하므로, 그 큐를 지정하는 것은 새 큐를 만들지 않고 보관된 큐에 계속 연결됩니다.
 - **자동 보관.** 7일 동안(`MESSAGE_QUEUE_AUTO_ARCHIVE_DAYS`) 확인되지 않은 감지된 큐는 사람이 이름을 바꾸거나, 설명을 붙이거나, 레이블을 달거나, 소유자를 지정하지 않았다면 자동으로 보관됩니다. 레이블 규칙이나 소유자 규칙이 스스로 붙인 레이블과 소유자는 집계하지 않습니다.
 - **복원.** 자동으로 보관된 큐는 다시 확인되면 자동으로 복원됩니다. 직접 만든 큐와 사람이 보관한 큐는 감지가 보관하거나 복원하지 않습니다. 사람이 복원한 큐는 아무것도 그 큐를 확인하지 않아도 30일 동안(또는 보관 기간이 더 길면 그 기간 동안) 복원된 상태로 유지됩니다. 다음에 확인될 때부터 다시 7일 규칙이 적용됩니다.

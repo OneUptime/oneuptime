@@ -60,23 +60,23 @@ Open in de [IAM-console](https://console.aws.amazon.com/iam/) **Policies → Cre
 
 ### De verbinding toevoegen in OneUptime
 
-Open **Producten → Security Events → Connections** (`/dashboard/{projectId}/security-events/connections`), klik op **Verbinding toevoegen**, kies **AWS Security Hub** en klik op **Volgende**. Vul de instellingen uit de tabel hieronder in, klik op **Volgende** en plak het geheim in **Geheime toegangssleutel**.
+Open **Producten → Security Events → Verbindingen** (`/dashboard/{projectId}/security-events/connections`), klik op **Verbinding toevoegen**, kies **AWS Security Hub** en klik op **Volgende**. Vul de instellingen uit de tabel hieronder in, klik op **Volgende** en plak het geheim in **Geheime toegangssleutel**.
 
 ### Testen voordat je opslaat
 
-Klik op **Test these settings** onder **Testen voor het opslaan**. De test ondertekent een verzoek met de waarden in het formulier, en slaat niets op, dus een verkeerde sleutel of een ontbrekende machtiging komt aan het licht voordat de verbinding bestaat. Klik daarna op **Volgende**, geef de verbinding een **Naam** en maak haar aan.
+Klik op **Deze instellingen testen** onder **Testen voor het opslaan**. De test ondertekent een verzoek met de waarden in het formulier, en slaat niets op, dus een verkeerde sleutel of een ontbrekende machtiging komt aan het licht voordat de verbinding bestaat. Klik daarna op **Volgende**, geef de verbinding een **Naam** en maak haar aan.
 :::
 
 | Instelling | Wat je invult |
 | --- | --- |
 | **Regio** | De code van de regio, zoals `us-east-1`, `eu-central-1` of `us-gov-west-1`: voor de bevindingen van andere accounts de thuisregio van het beheerdersaccount. |
 | **Toegangssleutel-ID** | De ID van de sleutel: 16 tot 128 letters of cijfers, meestal 20 die beginnen met `AKIA`, of `ASIA` voor tijdelijke referenties. |
-| **Geheime toegangssleutel** | Het geheim van de sleutel. Het wordt versleuteld, nooit door de API teruggegeven en nooit opnieuw getoond. Vervang het met **Update credentials** bij de verbinding. |
+| **Geheime toegangssleutel** | Het geheim van de sleutel. Het wordt versleuteld, nooit door de API teruggegeven en nooit opnieuw getoond. Vervang het met **Inloggegevens bijwerken** bij de verbinding. |
 | **Session token** | Alleen voor tijdelijke referenties, die het nodig hebben: een sleutel `ASIA` wordt zonder geweigerd, en een sleutel `AKIA` wordt met een token geweigerd. |
 
-Tijdelijke referenties van `aws sts assume-role` of `aws sts get-session-token` verlopen, voor een aangenomen rol na hooguit 12 uur, en het pollen stopt tot je nieuwe plakt met **Update credentials**. Een langlevende sleutel met dit smalle beleid, geroteerd volgens je eigen schema, blijft zonder toezicht pollen. Om van tijdelijke referenties over te stappen op een langlevende sleutel, vul je de nieuwe sleutel in bij **Update credentials** en zet je **Remove the stored Session token** aan.
+Tijdelijke referenties van `aws sts assume-role` of `aws sts get-session-token` verlopen, voor een aangenomen rol na hooguit 12 uur, en het pollen stopt tot je nieuwe plakt met **Inloggegevens bijwerken**. Een langlevende sleutel met dit smalle beleid, geroteerd volgens je eigen schema, blijft zonder toezicht pollen. Om van tijdelijke referenties over te stappen op een langlevende sleutel, vul je de nieuwe sleutel in bij **Inloggegevens bijwerken** en zet je **Remove the stored Session token** aan.
 
-De stap **Polling** heeft ook een optionele **Beschrijving**, het **Poll Interval (Minutes)**, een geheel getal van `1` tot `1440` dat begint op `5`, en **Ingeschakeld**, dat aan begint.
+De stap **Opvragen** heeft ook een optionele **Beschrijving**, het **Opvraaginterval (minuten)**, een geheel getal van `1` tot `1440` dat begint op `5`, en **Ingeschakeld**, dat aan begint.
 
 ## Wat er wordt geïmporteerd
 
@@ -113,12 +113,12 @@ POST https://securityhub.{region}.amazonaws.com/findings
 - **De aanmaaktijd is de cursor.** Bevindingen worden getoond op `CreatedAt`, nooit op `FirstObservedAt`. GuardDuty maakt een bevinding zodra het genoeg activiteit heeft gezien, en een controlecontrole wanneer Security Hub de resource voor het eerst controleert, uren of dagen nadat de activiteit begon. Een cursor op observatietijd zou ze overslaan.
 - **De eerste poll kijkt 24 uur terug**, zodat een nieuwe verbinding meteen haar recente bevindingen toont.
 - **Elke volgende poll begint 30 minuten voor de opgeslagen cursor.** `CreatedAt` wordt gezet door de dienst die het probleem vond, en de bevinding bereikt Security Hub later: GuardDuty stuurt nieuwe bevindingen binnen vijf minuten, en een mislukte levering via EventBridge wordt tot 24 uur lang opnieuw geprobeerd. De overlap leest zulke bevindingen bij de volgende poll. Een bevinding die meer dan 30 minuten na haar `CreatedAt` aankomt, kan achter de cursor vallen: importeer haar tijdsbereik om haar terug te halen.
-- **Een poll leest hooguit 24 uur voorbij de cursor.** Een verbinding waarvan de cursor achterliep, haalt de achterstand in met een reeks vensters van 24 uur, en haar **Health** toont **Catching up**.
+- **Een poll leest hooguit 24 uur voorbij de cursor.** Een verbinding waarvan de cursor achterliep, haalt de achterstand in met een reeks vensters van 24 uur, en haar **Gezondheid** toont **Catching up**.
 - **Duplicaten worden verwijderd op de `Id` van de bevinding** binnen het project, zodat de overlap, een herhaald venster en een import een bevinding nooit twee keer opslaan.
 
 ### Wanneer een venster meer bevat dan één poll kan lezen
 
-Een poll stuurt hooguit 20 verzoeken van 100 bevindingen: 2.000 bevindingen. Wanneer een venster er meer bevat, is de run **Partial**, met een waarschuwing zoals:
+Een poll stuurt hooguit 20 verzoeken van 100 bevindingen: 2.000 bevindingen. Wanneer een venster er meer bevat, is de run **Gedeeltelijk**, met een waarschuwing zoals:
 
 ```text
 Stopped after 20 findings requests (the per-run request limit) before the window was fully read. The last finding read was created at 2026-09-14T08:12:44.000Z.
@@ -130,22 +130,22 @@ Wanneer een run helemaal niet voorbij de opgeslagen cursor komt, bijvoorbeeld om
 
 1. **Verkleinen.** De volgende poll leest een venster dat half zo lang is, vanaf hetzelfde beginpunt, en blijft halveren tot een venster volledig wordt gelezen, tot één minuut. De waarschuwing van de run zegt het: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **Weer groeien.** Nadat een venster volledig is gelezen, is het volgende weer twee keer zo lang, tot 24 uur.
-3. **Voorbij één minuut gaan.** Als zelfs één minuut meer bevat dan een poll kan lezen, gaat het pollen eraan voorbij, zodat nieuwere bevindingen blijven binnenkomen, en de overlap van latere polls reikt er niet meer in terug. De run blijft **Partial**, en **Laatste fout** luidt `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importeer die minuut met **Import this time range** om terug te halen wat één run kan lezen.
+3. **Voorbij één minuut gaan.** Als zelfs één minuut meer bevat dan een poll kan lezen, gaat het pollen eraan voorbij, zodat nieuwere bevindingen blijven binnenkomen, en de overlap van latere polls reikt er niet meer in terug. De run blijft **Gedeeltelijk**, en **Laatste fout** luidt `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importeer die minuut met **Import this time range** om terug te halen wat één run kan lezen.
 
-Een run die volledig mislukt, met een fout van AWS, behoudt de cursor en de vensterlengte, en de volgende poll leest hetzelfde venster opnieuw. De enige uitzondering is een verzoek dat een time-out kreeg: de cursor blijft staan, maar het volgende venster is half zo lang, omdat een venster dat te zwaar is om op tijd te beantwoorden bij elke poging een time-out zou krijgen. Het **Poll Interval (Minutes)** wijzigen verandert hier niets aan: het bepaalt hoe vaak een poll begint, niet waar zijn venster begint.
+Een run die volledig mislukt, met een fout van AWS, behoudt de cursor en de vensterlengte, en de volgende poll leest hetzelfde venster opnieuw. De enige uitzondering is een verzoek dat een time-out kreeg: de cursor blijft staan, maar het volgende venster is half zo lang, omdat een venster dat te zwaar is om op tijd te beantwoorden bij elke poging een time-out zou krijgen. Het **Opvraaginterval (minuten)** wijzigen verandert hier niets aan: het bepaalt hoe vaak een poll begint, niet waar zijn venster begint.
 
 ### Uitvoeren, bekijken en importeren op verzoek
 
-Klik op **Diagnostics** bij een verbinding om haar recente runs te zien en er met de hand mee te werken. Iedereen die de verbinding kan wijzigen, kan deze acties starten; iedereen die haar kan zien, kan de historie lezen.
+Klik op **Diagnose** bij een verbinding om haar recente runs te zien en er met de hand mee te werken. Iedereen die de verbinding kan wijzigen, kan deze acties starten; iedereen die haar kan zien, kan de historie lezen.
 
-- **Run now** start meteen een poll, met de gewone cursor, ook als de verbinding niet **Ingeschakeld** is.
+- **Nu uitvoeren** start meteen een poll, met de gewone cursor, ook als de verbinding niet **Ingeschakeld** is.
 - **Preview findings** leest een tijdsbereik van maximaal 7 dagen en importeert niets.
 - **Import this time range** importeert een bereik van maximaal 7 dagen, nadat je bevestigt, zonder de cursor te verplaatsen. Al geïmporteerde bevindingen worden overgeslagen.
 - **Copy diagnostics** bij een run kopieert het rapport ervan voor support. Het bevat nooit referenties.
 
 ## Verbinding testen
 
-**Verbinding testen** op de rij van een verbinding, en **Test these settings** in het formulier, draaien in het API-proces, niet in een achtergrondworker, zodat een test ook antwoordt wanneer de workers het probleem zijn. Hij voert deze controles uit, in volgorde:
+**Verbinding testen** op de rij van een verbinding, en **Deze instellingen testen** in het formulier, draaien in het API-proces, niet in een achtergrondworker, zodat een test ook antwoordt wanneer de workers het probleem zijn. Hij voert deze controles uit, in volgorde:
 
 | Controle | Wat ze controleert |
 | --- | --- |
@@ -167,7 +167,7 @@ AWS weigerde het verzoek. De melding citeert de foutcode van AWS, of de eigen wo
 
 - `AccessDeniedException`, of `is not authorized to perform`: de sleutel klopt, maar zijn identiteit mag `securityhub:GetFindings` niet aanroepen. Koppel het beleid uit [De verbinding instellen](#de-verbinding-instellen). Een permissions boundary of een service control policy kan het ook weigeren.
 - `InvalidAccessException`, of `is not subscribed to AWS Security Hub`: Security Hub is voor dit account niet ingeschakeld in deze **Regio**, of het account is daar niet de beheerder ervan.
-- `InvalidSignatureException` of `SignatureDoesNotMatch`, of `The request signature we calculated does not match`: de **Geheime toegangssleutel** hoort niet bij de **Toegangssleutel-ID**. Maak een nieuwe toegangssleutel en sla hem op met **Update credentials**.
+- `InvalidSignatureException` of `SignatureDoesNotMatch`, of `The request signature we calculated does not match`: de **Geheime toegangssleutel** hoort niet bij de **Toegangssleutel-ID**. Maak een nieuwe toegangssleutel en sla hem op met **Inloggegevens bijwerken**.
 - `UnrecognizedClientException` of `InvalidClientTokenId`, of `The security token included in the request is invalid`: AWS kent de **Toegangssleutel-ID** niet. Hij is verkeerd getypt, verwijderd, gedeactiveerd of uit een andere partitie, of het is een tijdelijke sleutel zonder zijn **Session token**.
 - `ExpiredTokenException`, of `The security token included in the request is expired`: de tijdelijke referenties zijn verlopen. Geef nieuwe uit, of stap over op een langlevende sleutel.
 - `RequestTimeTooSkewed` of `RequestExpired`, of `Signature expired`: de klok van de OneUptime-hosts loopt meer dan 5 minuten af. Herstel NTP op de app- en workerhosts.
@@ -191,8 +191,8 @@ Er is voor deze verbinding nog geen poll voltooid. Voer **Verbinding testen** ui
 :::
 
 :::details Een run is Partial
-- `Stopped after 20 findings requests`: het venster bevatte meer dan de 2.000 bevindingen die één run leest. Er gaat niets verloren: de volgende poll begint na de laatst gelezen bevinding. Een verbinding die poll na poll **Partial** blijft, haalt een achterstand in, en haar **Last Polled** en **Last Event Imported** blijven vooruitgaan. Haalt ze die nooit in, dan maakt het account meer dan 2.000 bevindingen per pollinterval: maak het **Poll Interval (Minutes)** korter.
-- `More records were created in the one minute from ... than one poll can read`: het pollen ging voorbij die minuut. Importeer haar met **Import this time range** in **Diagnostics**. Een import leest net zoveel als een poll.
+- `Stopped after 20 findings requests`: het venster bevatte meer dan de 2.000 bevindingen die één run leest. Er gaat niets verloren: de volgende poll begint na de laatst gelezen bevinding. Een verbinding die poll na poll **Gedeeltelijk** blijft, haalt een achterstand in, en haar **Laatst opgevraagd** en **Laatst geïmporteerde gebeurtenis** blijven vooruitgaan. Haalt ze die nooit in, dan maakt het account meer dan 2.000 bevindingen per pollinterval: maak het **Opvraaginterval (minuten)** korter.
+- `More records were created in the one minute from ... than one poll can read`: het pollen ging voorbij die minuut. Importeer haar met **Import this time range** in **Diagnose**. Een import leest net zoveel als een poll.
 :::
 
 :::details De test slaagt, maar er wordt niets geïmporteerd

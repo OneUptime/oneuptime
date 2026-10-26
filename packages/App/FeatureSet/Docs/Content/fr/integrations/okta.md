@@ -46,16 +46,16 @@ Ouvrez **Produits → Événements de sécurité → Connexions** (`/dashboard/{
 
 ### La tester avant d'enregistrer
 
-Cliquez sur **Test these settings** sous **Tester avant d'enregistrer**. Le test se connecte et lit les événements avec les valeurs du formulaire, sans rien stocker : une mauvaise URL ou un filtre invalide apparaît donc avant que la connexion n'existe. Cliquez ensuite sur **Suivant**, donnez un **Nom** à la connexion et créez-la.
+Cliquez sur **Tester ces paramètres** sous **Tester avant d'enregistrer**. Le test se connecte et lit les événements avec les valeurs du formulaire, sans rien stocker : une mauvaise URL ou un filtre invalide apparaît donc avant que la connexion n'existe. Cliquez ensuite sur **Suivant**, donnez un **Nom** à la connexion et créez-la.
 :::
 
 | Réglage | Ce qu'il faut saisir |
 | --- | --- |
 | **Okta organization URL** | L'adresse à laquelle vos utilisateurs se connectent, par exemple `https://acme.okta.com`, `https://acme.oktapreview.com` ou `https://login.example.com`. Elle doit utiliser `https`, sans chemin. Pas l'adresse `-admin` de l'Admin Console, qui ne sert pas l'API. |
 | **Event filter** | Facultatif. Un [filtre du System Log](https://developer.okta.com/docs/reference/core-okta-api/#filter) qui choisit les événements à importer, par exemple `eventType sw "user.session" or eventType sw "security"`. Vide, il importe les familles ci-dessous. 2 000 caractères au plus, sur une seule ligne, et pas sur `published` : OneUptime fixe lui-même la plage de temps. |
-| **API token** | La valeur du jeton, seule : OneUptime ajoute lui-même le schéma `SSWS`. Elle est chiffrée, jamais renvoyée par l'API et jamais réaffichée. Remplacez-la avec **Update credentials** sur la connexion. |
+| **API token** | La valeur du jeton, seule : OneUptime ajoute lui-même le schéma `SSWS`. Elle est chiffrée, jamais renvoyée par l'API et jamais réaffichée. Remplacez-la avec **Mettre à jour les identifiants** sur la connexion. |
 
-L'étape **Polling** contient aussi une **Description** facultative, le **Poll Interval (Minutes)**, un nombre entier de `1` à `1440` qui vaut `5` au départ, et **Activé**, qui est activé au départ.
+L'étape **Interrogation** contient aussi une **Description** facultative, le **Intervalle d'interrogation (minutes)**, un nombre entier de `1` à `1440` qui vaut `5` au départ, et **Activé**, qui est activé au départ.
 
 ## Ce qui est importé
 
@@ -123,7 +123,7 @@ Un lien `next` qui pointe ailleurs que vers votre **Okta organization URL** n'es
 
 ### Quand une fenêtre contient plus qu'une interrogation ne peut lire
 
-Une interrogation lit au plus 10 000 événements, en 20 requêtes au plus. Quand une fenêtre en contient davantage, l'exécution est **Partial**, avec un avertissement comme celui-ci :
+Une interrogation lit au plus 10 000 événements, en 20 requêtes au plus. Quand une fenêtre en contient davantage, l'exécution est **Partiel**, avec un avertissement comme celui-ci :
 
 ```text
 Stopped after collecting 10000 events; the window holds more. The last event read was published at 2026-09-14T08:12:44.000Z.
@@ -135,22 +135,22 @@ Quand une exécution ne parvient pas du tout à dépasser le curseur enregistré
 
 1. **Réduire.** L'interrogation suivante lit une fenêtre deux fois plus courte, depuis le même point de départ, et continue de la diviser par deux jusqu'à ce qu'une fenêtre soit lue entièrement, jusqu'à une minute. L'avertissement de l'exécution le dit : `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **Revenir à la taille normale.** Une fois une fenêtre lue entièrement, la suivante est de nouveau deux fois plus longue, jusqu'à 24 heures.
-3. **Passer au-delà d'une seule minute.** Si même une minute contient plus qu'une interrogation ne peut lire, l'interrogation passe au-delà, pour que les événements plus récents continuent d'arriver, et le chevauchement des interrogations suivantes ne remonte plus jusqu'à elle. L'exécution reste **Partial**, et **Dernière erreur** indique `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importez cette minute avec **Importer cette plage de temps** pour récupérer ce qu'une exécution peut lire, ou restreignez l'**Event filter**.
+3. **Passer au-delà d'une seule minute.** Si même une minute contient plus qu'une interrogation ne peut lire, l'interrogation passe au-delà, pour que les événements plus récents continuent d'arriver, et le chevauchement des interrogations suivantes ne remonte plus jusqu'à elle. L'exécution reste **Partiel**, et **Dernière erreur** indique `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importez cette minute avec **Importer cette plage de temps** pour récupérer ce qu'une exécution peut lire, ou restreignez l'**Event filter**.
 
-Une exécution qui échoue complètement, avec une erreur d'Okta, garde le curseur et la longueur de fenêtre, et l'interrogation suivante relit la même fenêtre. La seule exception est une requête qui a expiré : le curseur reste, mais la fenêtre suivante est deux fois plus courte, car une fenêtre trop lourde pour recevoir une réponse à temps expirerait à chaque essai. Changer le **Poll Interval (Minutes)** n'y change rien : il décide à quelle fréquence une interrogation commence, pas où commence sa fenêtre.
+Une exécution qui échoue complètement, avec une erreur d'Okta, garde le curseur et la longueur de fenêtre, et l'interrogation suivante relit la même fenêtre. La seule exception est une requête qui a expiré : le curseur reste, mais la fenêtre suivante est deux fois plus courte, car une fenêtre trop lourde pour recevoir une réponse à temps expirerait à chaque essai. Changer le **Intervalle d'interrogation (minutes)** n'y change rien : il décide à quelle fréquence une interrogation commence, pas où commence sa fenêtre.
 
 ### Exécuter, prévisualiser et importer à la demande
 
 Cliquez sur **Diagnostics** sur une connexion pour voir ses exécutions récentes et travailler avec elle à la main. Quiconque peut modifier la connexion peut les lancer ; quiconque peut la voir peut lire l'historique.
 
-- **Run now** lance tout de suite une interrogation, avec le curseur habituel, même quand la connexion n'est pas **Activé**.
+- **Exécuter maintenant** lance tout de suite une interrogation, avec le curseur habituel, même quand la connexion n'est pas **Activé**.
 - **Preview log events** lit une plage de temps de 7 jours au plus et n'importe rien.
 - **Importer cette plage de temps** importe une plage de 7 jours au plus, après votre confirmation, sans déplacer le curseur. Les événements déjà importés sont sautés. Okta conserve 90 jours de System Log.
 - **Copier les diagnostics** sur une exécution copie son rapport pour le support. Il ne contient jamais d'identifiants.
 
 ## Tester la connexion
 
-**Tester la connexion** sur la ligne d'une connexion, et **Test these settings** dans le formulaire, s'exécutent dans le processus de l'API, pas dans un worker d'arrière-plan, pour qu'un test réponde même quand les workers sont le problème. Il effectue ces vérifications, dans l'ordre :
+**Tester la connexion** sur la ligne d'une connexion, et **Tester ces paramètres** dans le formulaire, s'exécutent dans le processus de l'API, pas dans un worker d'arrière-plan, pour qu'un test réponde même quand les workers sont le problème. Il effectue ces vérifications, dans l'ordre :
 
 | Vérification | Ce qu'elle vérifie |
 | --- | --- |
@@ -172,7 +172,7 @@ Okta a refusé les paramètres de la requête, `E0000053`. Quand le jeton a fonc
 :::
 
 :::details Dernière erreur indique `failed (HTTP 401)` ou `failed (HTTP 403)`
-- `HTTP 401` : Okta n'a pas accepté le jeton, `E0000011`. Il a été révoqué, est resté 30 jours inutilisé, ou a été désactivé avec son administrateur ; ou il a été collé avec `SSWS` ou un caractère en trop. Créez un nouveau jeton en tant qu'administrateur en lecture seule, et enregistrez-le avec **Update credentials**.
+- `HTTP 401` : Okta n'a pas accepté le jeton, `E0000011`. Il a été révoqué, est resté 30 jours inutilisé, ou a été désactivé avec son administrateur ; ou il a été collé avec `SSWS` ou un caractère en trop. Créez un nouveau jeton en tant qu'administrateur en lecture seule, et enregistrez-le avec **Mettre à jour les identifiants**.
 - `HTTP 403` : le jeton se connecte, mais son administrateur ne peut pas lire le System Log, `E0000006`. Créez-le en tant que Read-only Administrator ou Super Administrator, et vérifiez que sa zone réseau autorise les adresses depuis lesquelles OneUptime appelle.
 :::
 
@@ -194,7 +194,7 @@ Aucune interrogation ne s'est terminée pour cette connexion. Lancez **Tester la
 :::
 
 :::details Une exécution est Partial
-- `Stopped after collecting 10000 events` : la fenêtre contenait plus que les 10 000 événements qu'une exécution lit. Rien n'est perdu : l'interrogation suivante commence après le dernier événement lu. Une connexion qui reste **Partial** d'interrogation en interrogation rattrape un retard, et ses valeurs **Dernière interrogation** et **Dernier événement importé** continuent d'avancer. Si elle ne rattrape jamais, l'organisation publie plus d'événements correspondants qu'un intervalle d'interrogation ne peut en contenir : restreignez l'**Event filter**, ou raccourcissez le **Poll Interval (Minutes)**.
+- `Stopped after collecting 10000 events` : la fenêtre contenait plus que les 10 000 événements qu'une exécution lit. Rien n'est perdu : l'interrogation suivante commence après le dernier événement lu. Une connexion qui reste **Partiel** d'interrogation en interrogation rattrape un retard, et ses valeurs **Dernière interrogation** et **Dernier événement importé** continuent d'avancer. Si elle ne rattrape jamais, l'organisation publie plus d'événements correspondants qu'un intervalle d'interrogation ne peut en contenir : restreignez l'**Event filter**, ou raccourcissez le **Intervalle d'interrogation (minutes)**.
 - `More records were created in the one minute from ... than one poll can read` : l'interrogation est passée au-delà de cette minute. Importez-la avec **Importer cette plage de temps** dans **Diagnostics**. Une importation lit autant qu'une interrogation.
 :::
 

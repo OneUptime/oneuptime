@@ -75,19 +75,19 @@ U hebt toestemming nodig om SLO-regels voor verbruikssnelheid aan te maken.
 :::steps
 ### Burn Rate Rules openen
 
-Open de SLO, ga naar **Burn Rate Rules** in de sectie **Regels** van het zijmenu en klik op **SLO Burn Rate Rule aanmaken**, of bewerk een van de standaardregels.
+Open de SLO, ga naar **Verbruikssnelheidsregels** in de sectie **Regels** van het zijmenu en klik op **SLO Burn Rate Rule aanmaken**, of bewerk een van de standaardregels.
 
 ### De regel een naam geven
 
-Vul onder **Rule** een **Naam** in, zoals "Fast burn". Een nieuwe regel staat aan; zet later **Ingeschakeld** uit op het bewerkformulier als hij niet meer mag afgaan.
+Vul onder **Regel** een **Naam** in, zoals "Fast burn". Een nieuwe regel staat aan; zet later **Ingeschakeld** uit op het bewerkformulier als hij niet meer mag afgaan.
 
 ### Het verbruiksvenster instellen
 
-Stel onder **Burn Window** de **Burn Rate Threshold** in (bijvoorbeeld `14.4`), de **Long Window (Minutes)** en de **Short Window (Minutes)**, en eventueel de **Re-fire Suppression (Minutes)**.
+Stel onder **Verbruiksvenster** de **Drempel voor verbruikssnelheid** in (bijvoorbeeld `14.4`), de **Lang venster (minuten)** en de **Kort venster (minuten)**, en eventueel de **Onderdrukking van opnieuw afgaan (minuten)**.
 
 ### Kiezen wat hij meldt
 
-Beantwoord onder **What It Declares** de vraag **Wanneer hij afgaat**: **Een waarschuwing maken**, de standaard, **Een incident melden** of **Beide**. **Add SLO Owners as Owners** maakt de eigenaren van de SLO ook eigenaar van alles wat de regel aanmaakt.
+Beantwoord onder **Wat het meldt** de vraag **Wanneer hij afgaat**: **Een waarschuwing maken**, de standaard, **Een incident melden** of **Beide**. **SLO-eigenaren als eigenaren toevoegen** maakt de eigenaren van de SLO ook eigenaar van alles wat de regel aanmaakt.
 
 ### De waarschuwing en het incident beschrijven
 
@@ -98,10 +98,10 @@ OneUptime controleert de getallen van een regel als u hem opslaat:
 
 | Instelling | Moet zijn |
 | --- | --- |
-| **Burn Rate Threshold** | Groter dan 0. |
-| **Short Window (Minutes)** | Groter dan 0. |
-| **Long Window (Minutes)** | Langer dan het korte venster. |
-| **Re-fire Suppression (Minutes)** | 0 of meer. Leeg betekent de lengte van het lange venster. |
+| **Drempel voor verbruikssnelheid** | Groter dan 0. |
+| **Kort venster (minuten)** | Groter dan 0. |
+| **Lang venster (minuten)** | Langer dan het korte venster. |
+| **Onderdrukking van opnieuw afgaan (minuten)** | 0 of meer. Leeg betekent de lengte van het lange venster. |
 
 Elk antwoord op **Wanneer hij afgaat** opent iets. De API weigert een regel die geen waarschuwing zou maken en geen incident zou melden, omdat hij bij elke evaluatie zou worden gecontroleerd zonder ooit iets te melden.
 
@@ -118,7 +118,7 @@ De regeltabel toont voor elke regel de drempel, de vensters en de onderdrukking,
 | Wat het is | Het lichte signaal: komt in de lijst met waarschuwingen. | Het zware signaal: krijgt een incidentnummer en start het hele responsproces. |
 | Titel en beschrijving | Eigen, of de standaardtekst | Eigen, of de standaardtekst |
 | Ernst | **Ernst van waarschuwing**: de hoogste van het project als leeg | **Ernst van incident**: de hoogste van het project als leeg |
-| Escalatie | **Alert On-Call Duty Policies** | **Incident On-Call Duty Policies** |
+| Escalatie | **Bereikbaarheidsbeleid voor waarschuwingen** | **Bereikbaarheidsbeleid voor incidenten** |
 | Eigenaren en labels | **Eigenaren van de waarschuwing** en **Waarschuwingslabels** | **Eigenaren van het incident** en **Incident-labels** |
 | Privé | Uit | Uit |
 | Automatisch oplossen | Aan | Aan |
@@ -180,7 +180,7 @@ Zo wordt de titel `{{ruleName}}: {{sloName}} is burning {{longWindowBurnRate}}x`
 ## Eigenaren, labels en privacy
 
 - **Eigenaren van de waarschuwing** en **Eigenaren van het incident** zijn mensen en teams, gekozen uit één lijst met **Eigenaar toevoegen**. Ze worden toegevoegd aan de waarschuwing of het incident zodra die wordt aangemaakt, en krijgen een melding. Mensen moeten lid van het project zijn.
-- **Add SLO Owners as Owners** voegt ook de eigenaren van de SLO, zijn eigenaarsgebruikers en de leden van zijn eigenaarsteams, toe aan alles wat de regel aanmaakt. De eigenaren van de SLO horen al over de statuswijzigingen van de SLO zelf, dus dit kan ze twee keer informeren. Het staat standaard uit.
+- **SLO-eigenaren als eigenaren toevoegen** voegt ook de eigenaren van de SLO, zijn eigenaarsgebruikers en de leden van zijn eigenaarsteams, toe aan alles wat de regel aanmaakt. De eigenaren van de SLO horen al over de statuswijzigingen van de SLO zelf, dus dit kan ze twee keer informeren. Het staat standaard uit.
 - Elke eigenaar wordt één keer toegevoegd: een gebruiker die al eigenaar van de waarschuwing of het incident is, bijvoorbeeld via de eigenaarsregels van het project, of die in een toegevoegd eigenaarsteam zit, wordt niet nog eens toegevoegd.
 - **Waarschuwingslabels** en **Incident-labels** worden aan de waarschuwing of het incident toegevoegd, zodat filters, eigenaarsregels en meldingsregels voor de werkruimte erop kunnen letten.
 - Een privé-waarschuwing of -incident is alleen zichtbaar voor de eigenaren, projectbeheerders en projecteigenaren.
@@ -198,7 +198,7 @@ Sommige wijzigingen lossen altijd op wat een regel heeft geopend, wat de instell
 - **Wanneer hij afgaat** zo wijzigen dat de waarschuwing of het incident wegvalt, sluit wat die uitvoer had geopend;
 - de regel uitzetten of verwijderen;
 - de evaluatie van de SLO uitzetten, de SLO archiveren of verwijderen;
-- de SLO die naar **Gepauzeerd** of **Misconfigured** gaat, omdat hij dan niets meet;
+- de SLO die naar **Gepauzeerd** of **Verkeerd geconfigureerd** gaat, omdat hij dan niets meet;
 - de regel die zijn drempel of vensters kwijtraakt, of de SLO die geen volledig lang venster aan geschiedenis meer heeft.
 
 ## Gepland onderhoud

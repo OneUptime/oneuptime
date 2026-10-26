@@ -104,7 +104,7 @@ As APIs de monitoramento de nuvem (CloudWatch, Azure Monitor e Cloud Monitoring)
 
 Os clientes instrumentados também podem informar métricas: as métricas de clientes de mensageria do OpenTelemetry `messaging.client.sent.messages`, `messaging.client.consumed.messages`, `messaging.client.operation.duration` e `messaging.process.duration`, seus nomes antigos `messaging.publish.duration`, `messaging.receive.duration`, `messaging.publish.messages`, `messaging.receive.messages`, `messaging.process.messages` e `messaging.client.published.messages`, e as do SDK do Azure para Java `messaging.servicebus.messages.sent`, `messaging.servicebus.receiver.lag`, `messaging.servicebus.settlement.request.duration` e `messaging.servicebus.settlement.sequence_number`. Cada ponto de dados nomeia seu sistema e seu destino como um span faz (as métricas do Service Bus do SDK do Azure não nomeiam nenhum sistema, então o nome delas faz esse papel) e é associado a essa fila ao ser ingerido, de modo que aparece na guia **Métricas** da fila. O mesmo vale para qualquer métrica sua que carregue `messaging.system` e `messaging.destination.name` em cada ponto de dados (não no recurso, onde eles não são lidos), como um medidor de profundidade da fila (veja [BullMQ](#bullmq)).
 
-As métricas dos clientes de mensageria nunca criam uma fila: quem faz isso são os traces, as métricas do broker ou uma pessoa. Uma métrica de cliente que nomeia uma fila existente mantém atualizado o **Last seen** dela, como fazem seus spans. Uma métrica sua não faz nenhuma das duas coisas: só aparece na guia **Métricas** da fila.
+As métricas dos clientes de mensageria nunca criam uma fila: quem faz isso são os traces, as métricas do broker ou uma pessoa. Uma métrica de cliente que nomeia uma fila existente mantém atualizado o **Visto pela última vez** dela, como fazem seus spans. Uma métrica sua não faz nenhuma das duas coisas: só aparece na guia **Métricas** da fila.
 
 ### O que faz de duas observações uma só fila
 
@@ -158,7 +158,7 @@ Os traces e as métricas do broker só criam filas sozinhos enquanto o projeto t
 
 ### Ciclo de vida e arquivamento
 
-- **Last seen** é quando a descoberta viu a fila pela última vez, em traces, métricas de clientes de mensageria ou métricas do broker.
+- **Visto pela última vez** é quando a descoberta viu a fila pela última vez, em traces, métricas de clientes de mensageria ou métricas do broker.
 - **Arquivar para descartar.** Excluir uma fila descoberta só a remove até ela ser vista de novo: a próxima observação a traz de volta como uma fila nova. Para descartar uma de vez, **arquive-a**. Uma fila arquivada mantém sua identidade, então tudo o que a nomeia continua associado à fila arquivada em vez de criar uma nova.
 - **Arquivamento automático.** Uma fila descoberta que não foi vista por 7 dias (`MESSAGE_QUEUE_AUTO_ARCHIVE_DAYS`) é arquivada automaticamente, a menos que uma pessoa a tenha renomeado, descrito, rotulado ou lhe dado proprietários. Os rótulos e proprietários que as regras de rótulos ou de proprietários adicionaram sozinhas não contam.
 - **Restauração.** Uma fila arquivada automaticamente é restaurada automaticamente quando é vista de novo. As filas que você criou manualmente, e as filas que uma pessoa arquivou, nunca são arquivadas nem restauradas pela descoberta. Uma fila que uma pessoa restaura continua restaurada por 30 dias (ou pela janela de arquivamento, se for maior) mesmo que nada a veja; a partir da próxima observação, a regra dos 7 dias volta a valer.

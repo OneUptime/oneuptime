@@ -60,7 +60,7 @@ Elle peut aussi lire le reste de OneUptime comme le fait l'investigation d'un in
 | Probablement un faux positif | La détection semble avoir mal interprété une activité normale | False Positive |
 | Non concluant | Les preuves ne suffisaient pas pour trancher, et une personne doit regarder | Rien |
 
-La lecture est celle de OneUptime AI, jamais le verdict du dossier : **Close Case** part du verdict qu'elle propose, et une personne choisit. Sous la lecture, la carte affiche :
+La lecture est celle de OneUptime AI, jamais le verdict du dossier : **Fermer le dossier** part du verdict qu'elle propose, et une personne choisit. Sous la lecture, la carte affiche :
 
 - **Priorité suggérée**, avec **Définir la priorité** quand le dossier a une autre priorité.
 - **Playbook suggéré**, avec **Exécuter le playbook**, qui le lance en votre nom, avec chaque approbation dont il a besoin.
@@ -86,7 +86,7 @@ Les nouveaux projets démarrent avec l'option activée ; un projet créé avant 
 
 ## Lancer un playbook après une qualification
 
-Un playbook dont le **Déclencheur** est **Qualifié probablement malveillant** s'exécute une fois sur un dossier, quand une qualification le lit comme Probablement malveillant. **For Cases At Least**, **Only For Detections From** et **Only For These Detection Rules** le restreignent comme pour tout déclencheur, et ses étapes de confinement attendent une approbation comme toujours. Il ne s'exécute pas :
+Un playbook dont le **Déclencheur** est **Qualifié probablement malveillant** s'exécute une fois sur un dossier, quand une qualification le lit comme Probablement malveillant. **Pour les dossiers d'au moins**, **Seulement pour les détections de** et **Seulement pour ces règles de détection** le restreignent comme pour tout déclencheur, et ses étapes de confinement attendent une approbation comme toujours. Il ne s'exécute pas :
 
 - après une qualification qui a trouvé du texte écrit pour manipuler une IA ;
 - une deuxième fois sur le même dossier, quel que soit le nombre de qualifications du dossier ;
@@ -96,7 +96,7 @@ Ce déclencheur n'est proposé à un nouveau playbook que tant que l'IA du proje
 
 ## Rédiger une règle de détection
 
-Sur **Règles de détection**, sous le champ **Sigma Rule (YAML)**, cliquez sur **Rédiger avec l'IA** et dites ce que la règle doit détecter, par exemple dix échecs de connexion depuis une même adresse IP en cinq minutes. **Rédiger la règle** place une règle Sigma dans le champ, vérifiée comme une règle enregistrée. Lisez-la, modifiez-la au besoin et enregistrez-la comme d'habitude : rien n'est enregistré tant que vous ne le faites pas. Si le champ contient déjà une règle, le bouton devient **Rédiger à nouveau avec l'IA**, et le brouillon remplace cette règle.
+Sur **Règles de détection**, sous le champ **Règle Sigma (YAML)**, cliquez sur **Rédiger avec l'IA** et dites ce que la règle doit détecter, par exemple dix échecs de connexion depuis une même adresse IP en cinq minutes. **Rédiger la règle** place une règle Sigma dans le champ, vérifiée comme une règle enregistrée. Lisez-la, modifiez-la au besoin et enregistrez-la comme d'habitude : rien n'est enregistré tant que vous ne le faites pas. Si le champ contient déjà une règle, le bouton devient **Rédiger à nouveau avec l'IA**, et le brouillon remplace cette règle.
 
 La rédaction demande un rôle qui peut créer des règles de détection.
 
@@ -129,7 +129,7 @@ Une partie des données du dossier, comme le message d'un événement ou un nom 
 :::
 
 :::details Un playbook au déclencheur IA ne s'est pas exécuté
-Vérifiez que le playbook est activé, que la qualification a lu le dossier comme Probablement malveillant, et que ses réglages **For Cases At Least**, **Only For Detections From** et **Only For These Detection Rules** correspondent au dossier. Il s'exécute une fois par dossier, et pas après une qualification qui a trouvé du texte écrit pour manipuler une IA.
+Vérifiez que le playbook est activé, que la qualification a lu le dossier comme Probablement malveillant, et que ses réglages **Pour les dossiers d'au moins**, **Seulement pour les détections de** et **Seulement pour ces règles de détection** correspondent au dossier. Il s'exécute une fois par dossier, et pas après une qualification qui a trouvé du texte écrit pour manipuler une IA.
 :::
 
 ## Étapes suivantes

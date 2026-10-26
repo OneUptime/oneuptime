@@ -49,20 +49,20 @@ Falcon 显示的基础 URL 会告诉你 CID 所在的云。**API clients and key
 
 ### 在 OneUptime 中添加连接
 
-打开 **产品 → Security Events → Connections**（`/dashboard/{projectId}/security-events/connections`），点击 **添加连接**，选择 **CrowdStrike Falcon**，然后点击 **下一步**。填写下表中的设置，点击 **下一步**，并把密钥粘贴到 **Client secret** 中。
+打开 **产品 → Security Events → 连接**（`/dashboard/{projectId}/security-events/connections`），点击 **添加连接**，选择 **CrowdStrike Falcon**，然后点击 **下一步**。填写下表中的设置，点击 **下一步**，并把密钥粘贴到 **客户端密钥** 中。
 
 ### 保存之前先测试
 
-点击 **保存前测试** 下的 **Test these settings**。测试会用表单中的值登录并读取警报，但不会存储任何内容，因此选错的云或缺失的范围会在连接存在之前暴露出来。然后点击 **下一步**，为连接填写 **名称** 并创建它。
+点击 **保存前测试** 下的 **测试这些设置**。测试会用表单中的值登录并读取警报，但不会存储任何内容，因此选错的云或缺失的范围会在连接存在之前暴露出来。然后点击 **下一步**，为连接填写 **名称** 并创建它。
 :::
 
 | 设置 | 填写什么 |
 | --- | --- |
 | **客户端 ID** | API 客户端的 ID，即你创建客户端时 Falcon 显示的那个。 |
 | **Falcon cloud** | CID 所在的云：**US-1 (api.crowdstrike.com)**、**US-2 (api.us-2.crowdstrike.com)**、**EU-1 (api.eu-1.crowdstrike.com)** 或 **US-GOV-1 (api.laggar.gcw.crowdstrike.com)**。每个请求都会发往该云的 API 主机。 |
-| **Client secret** | API 客户端的密钥。它会被加密，API 从不返回，也不会再次显示。在连接上用 **Update credentials** 替换它。 |
+| **客户端密钥** | API 客户端的密钥。它会被加密，API 从不返回，也不会再次显示。在连接上用 **更新凭据** 替换它。 |
 
-**Polling** 步骤还有可选的 **描述**、**Poll Interval (Minutes)**（`1` 到 `1440` 之间的整数，初始为 `5`），以及初始为开启的 **已启用**。未启用的连接仍然可以被测试，也可以手动轮询。
+**轮询** 步骤还有可选的 **描述**、**轮询间隔（分钟）**（`1` 到 `1440` 之间的整数，初始为 `5`），以及初始为开启的 **已启用**。未启用的连接仍然可以被测试，也可以手动轮询。
 
 ## 导入的内容
 
@@ -95,7 +95,7 @@ Falcon 显示的基础 URL 会告诉你 CID 所在的云。**API clients and key
 
 ### 当一个窗口包含的内容超过一次轮询能读取的量时
 
-一次轮询最多发送 20 个请求。由于需要一个令牌请求，并且每 1,000 个警报需要两个请求，它最多读取 9,000 个警报。当窗口中的警报更多时，这次运行为 **Partial**，并带有类似这样的警告：
+一次轮询最多发送 20 个请求。由于需要一个令牌请求，并且每 1,000 个警报需要两个请求，它最多读取 9,000 个警报。当窗口中的警报更多时，这次运行为 **部分**，并带有类似这样的警告：
 
 ```text
 Stopped after 19 requests before reading the whole window. Alerts are read oldest first; every alert created before 2026-09-14T08:12:44.995Z was read.
@@ -103,46 +103,46 @@ Stopped after 19 requests before reading the whole window. Alerts are read oldes
 
 警报查询按 `created_timestamp` 从早到晚排序，所以 OneUptime 会把游标移到它读取的最后一个警报的创建时间，下一次轮询就从那里开始，窗口长度不变，偏移量从 `0` 开始。繁忙的 CID 每次轮询大约追赶 9,000 个警报，而不是重复读取相同的警报。在同一时刻创建的警报会被读取两次，而去重检查会丢弃第二份。
 
-Falcon 的警报查询无法翻页超过 10,000 个结果（`limit` 加 `offset`）。请求上限会让一次运行在 9,000 个警报时停下，早于这个上限。如果这个上限真的让读取停下，处理方式也相同：这次运行为 **Partial**，游标移到读取的最后一个警报，下一次查询再次从偏移量 `0` 开始。
+Falcon 的警报查询无法翻页超过 10,000 个结果（`limit` 加 `offset`）。请求上限会让一次运行在 9,000 个警报时停下，早于这个上限。如果这个上限真的让读取停下，处理方式也相同：这次运行为 **部分**，游标移到读取的最后一个警报，下一次查询再次从偏移量 `0` 开始。
 
 当一次运行完全无法越过保存的游标时，例如超过 9,000 个警报都落在重叠的那一分钟里，OneUptime 会改为缩短窗口：
 
 1. **缩小。** 下一次轮询从同一个起点读取长度减半的窗口，并不断减半，直到某个窗口能被完整读取，最短为一分钟。运行的警告会说明这一点：`This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **恢复。** 一个窗口被完整读取后，下一个窗口的长度会再次加倍，最长为 24 小时。
-3. **越过单独的一分钟。** 如果连一分钟内的内容都超过一次轮询能读取的量，轮询会越过这一分钟，让更新的警报继续到达。这次运行仍为 **Partial**，**最近错误** 显示 `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` 用 **Import this time range** 导入这一分钟，即可找回一次运行能读取的内容。
+3. **越过单独的一分钟。** 如果连一分钟内的内容都超过一次轮询能读取的量，轮询会越过这一分钟，让更新的警报继续到达。这次运行仍为 **部分**，**最近错误** 显示 `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` 用 **Import this time range** 导入这一分钟，即可找回一次运行能读取的内容。
 
-因 Falcon 的错误而彻底失败的运行，会保留游标和窗口长度，下一次轮询会再次读取同一个窗口。唯一的例外是请求超时：游标保持不变，但下一个窗口的长度减半，因为太重而无法及时响应的窗口每次重试都会超时。更改 **Poll Interval (Minutes)** 不会改变以上任何一点：它决定轮询多久开始一次，而不是窗口从哪里开始。
+因 Falcon 的错误而彻底失败的运行，会保留游标和窗口长度，下一次轮询会再次读取同一个窗口。唯一的例外是请求超时：游标保持不变，但下一个窗口的长度减半，因为太重而无法及时响应的窗口每次重试都会超时。更改 **轮询间隔（分钟）** 不会改变以上任何一点：它决定轮询多久开始一次，而不是窗口从哪里开始。
 
 ### 按需运行、预览和导入
 
-在连接上点击 **Diagnostics**，可以查看它最近的运行，并手动操作它。能更改该连接的人都可以启动这些操作；能查看它的人都可以阅读历史记录。
+在连接上点击 **诊断**，可以查看它最近的运行，并手动操作它。能更改该连接的人都可以启动这些操作；能查看它的人都可以阅读历史记录。
 
-- **Run now** 会立即开始一次轮询，使用通常的游标，即使连接未处于 **已启用** 状态也可以。
+- **立即运行** 会立即开始一次轮询，使用通常的游标，即使连接未处于 **已启用** 状态也可以。
 - **Preview alerts** 读取最长 7 天的时间范围，不导入任何内容。
 - **Import this time range** 在你确认后导入最长 7 天的范围，不会移动游标。已导入的警报会被跳过。
 - 运行上的 **Copy diagnostics** 会复制它的报告以便提供给支持人员。报告从不包含凭据。
 
 ## 测试连接
 
-连接所在行中的 **测试连接** 和表单中的 **Test these settings** 在 API 进程中运行，而不是在后台工作进程中运行，所以即使工作进程出了问题，测试仍然会给出结果。它按顺序运行以下检查：
+连接所在行中的 **测试连接** 和表单中的 **测试这些设置** 在 API 进程中运行，而不是在后台工作进程中运行，所以即使工作进程出了问题，测试仍然会给出结果。它按顺序运行以下检查：
 
 | 检查 | 检查的内容 |
 | --- | --- |
-| **配置** | **客户端 ID**、**Falcon cloud** 和 **Client secret** 都存在且格式正确。此项失败时不会连接任何地方。 |
+| **配置** | **客户端 ID**、**Falcon cloud** 和 **客户端密钥** 都存在且格式正确。此项失败时不会连接任何地方。 |
 | **Authenticate with CrowdStrike Falcon** | 在你所在云的主机上，用 API 客户端的 ID 和密钥调用 `POST /oauth2/token` 能返回令牌。 |
 | **Read alerts from the Falcon Alerts API** | 针对过去 24 小时、只取一个警报（`limit=1`）的警报查询被接受，这证明了 **Alerts → Read** 范围。 |
 | **Alerts available to import** | 过去 24 小时和过去 7 天内创建了多少警报。7 天内一个都没有是警告，而不是失败：轮询会在 Falcon 创建新警报时导入它们。 |
 | **Background workers**、**Poll scheduler**、**Security event storage** | OneUptime 自身的一侧：有进程在处理 Worker 队列的作业，轮询作业每分钟运行一次，安全事件存储能够响应。 |
 | **Scheduled polling** | 针对已保存的连接：轮询已开启，没有运行卡在等待工作进程的状态，并且轮询按时运行。 |
 
-测试中的每个请求都有 20 秒的期限。测试从不导入任何内容，也不移动游标，每个失败的检查都会说明需要更改什么。**Copy report** 会把检查清单复制为 JSON，不包含凭据或令牌。
+测试中的每个请求都有 20 秒的期限。测试从不导入任何内容，也不移动游标，每个失败的检查都会说明需要更改什么。**复制报告** 会把检查清单复制为 JSON，不包含凭据或令牌。
 
 ## 故障排除
 
 连接的 **最近错误** 和每个失败的检查都会保留完整的错误消息（凭据已隐去），前面带有一个指明失败步骤的前缀。连接出错时，在它的 **操作** 列中选择 **查看错误** 来阅读，并在对话框中用 **复制错误** 复制。请先阅读前缀。
 
 :::details Last Error 以 `CrowdStrike Falcon token request` 开头
-- `CrowdStrike Falcon token request failed (HTTP 401)` 或 `(HTTP 403)`：在联系 Alerts API 之前，Falcon 就拒绝了 API 客户端的 ID 和密钥。请检查 **Falcon cloud** 是否为你的 CID 所在的云（来自其他云的客户端会在这里被拒绝），**客户端 ID** 是否属于该客户端，以及 **Client secret** 是否为随它一起颁发的密钥。如果密钥丢失，请在 Falcon 控制台中重置它，并用 **Update credentials** 保存。
+- `CrowdStrike Falcon token request failed (HTTP 401)` 或 `(HTTP 403)`：在联系 Alerts API 之前，Falcon 就拒绝了 API 客户端的 ID 和密钥。请检查 **Falcon cloud** 是否为你的 CID 所在的云（来自其他云的客户端会在这里被拒绝），**客户端 ID** 是否属于该客户端，以及 **客户端密钥** 是否为随它一起颁发的密钥。如果密钥丢失，请在 Falcon 控制台中重置它，并用 **更新凭据** 保存。
 - `CrowdStrike Falcon token request returned ...`：Falcon 返回了无法使用的内容，即不是 JSON 或没有 `access_token` 的主体。这通常是中间的代理或网关造成的，而不是凭据的问题。
 :::
 
@@ -164,9 +164,9 @@ Falcon 的警报查询无法翻页超过 10,000 个结果（`limit` 加 `offset`
 :::
 
 :::details 运行为 Partial
-- `Stopped after 19 requests before reading the whole window`：窗口中的警报超过了一次运行能读取的 9,000 个。不会丢失任何内容：下一次轮询会从读取的最后一个警报之后开始。一次又一次轮询都保持 **Partial** 的连接正在追赶积压，它的 **Last Polled** 和 **Last Event Imported** 会持续前进。如果运行期间续订了令牌，这个计数可能略大于 19。
+- `Stopped after 19 requests before reading the whole window`：窗口中的警报超过了一次运行能读取的 9,000 个。不会丢失任何内容：下一次轮询会从读取的最后一个警报之后开始。一次又一次轮询都保持 **部分** 的连接正在追赶积压，它的 **最近轮询** 和 **最近导入的事件** 会持续前进。如果运行期间续订了令牌，这个计数可能略大于 19。
 - `Falcon returned alerts out of created_timestamp order, so this run cannot name a point to resume from.`：查询忽略了从早到晚的顺序，所以这次运行无法把游标移到它的最后一个警报，下一次轮询会改为读取更短的窗口。如果反复出现，请把这次运行的报告发送给 OneUptime 支持人员。
-- `More records were created in the one minute from ... than one poll can read`：轮询越过了这一分钟。请在 **Diagnostics** 中用 **Import this time range** 导入它。一次导入读取的量与一次轮询相同。
+- `More records were created in the one minute from ... than one poll can read`：轮询越过了这一分钟。请在 **诊断** 中用 **Import this time range** 导入它。一次导入读取的量与一次轮询相同。
 :::
 
 :::details Last Polled 为 Never 且 Last Error 为空
@@ -174,7 +174,7 @@ Falcon 的警报查询无法翻页超过 10,000 个结果（`limit` 加 `offset`
 :::
 
 :::details 测试通过，但没有出现任何事件
-阅读 **Alerts available to import**：那里的警告表示 Falcon 在过去 7 天内没有创建任何警报，所以暂时没有可导入的内容。否则，请打开 **Diagnostics**，检查上一次轮询的窗口和计数，并在某次运行上使用 **View events in this time range**，打开它所导入警报的时间范围。
+阅读 **Alerts available to import**：那里的警告表示 Falcon 在过去 7 天内没有创建任何警报，所以暂时没有可导入的内容。否则，请打开 **诊断**，检查上一次轮询的窗口和计数，并在某次运行上使用 **View events in this time range**，打开它所导入警报的时间范围。
 :::
 
 ## 你会得到什么

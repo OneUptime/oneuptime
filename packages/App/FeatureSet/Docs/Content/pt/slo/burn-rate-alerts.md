@@ -75,19 +75,19 @@ Você precisa de permissão para criar regras de taxa de consumo de SLO.
 :::steps
 ### Abrir Burn Rate Rules
 
-Abra o SLO, vá para **Burn Rate Rules** na seção **Regras** do menu lateral e clique em **Criar: SLO Burn Rate Rule**, ou edite uma das regras padrão.
+Abra o SLO, vá para **Regras de taxa de consumo** na seção **Regras** do menu lateral e clique em **Criar: SLO Burn Rate Rule**, ou edite uma das regras padrão.
 
 ### Dar um nome à regra
 
-Em **Rule**, informe um **Nome**, como "Fast burn". Uma regra nova fica ligada; para que ela pare de disparar depois, desligue **Habilitado** no formulário de edição dela.
+Em **Regra**, informe um **Nome**, como "Fast burn". Uma regra nova fica ligada; para que ela pare de disparar depois, desligue **Habilitado** no formulário de edição dela.
 
 ### Definir a janela de consumo
 
-Em **Burn Window**, defina o **Burn Rate Threshold** (por exemplo `14.4`), a **Long Window (Minutes)** e a **Short Window (Minutes)**, e se quiser a **Re-fire Suppression (Minutes)**.
+Em **Janela de consumo**, defina o **Limite da taxa de consumo** (por exemplo `14.4`), a **Janela longa (minutos)** e a **Janela curta (minutos)**, e se quiser a **Supressão de novo disparo (minutos)**.
 
 ### Escolher o que ela declara
 
-Em **What It Declares**, responda **Quando dispara**: **Criar um alerta**, o padrão, **Declarar um incidente** ou **Ambos**. **Add SLO Owners as Owners** também torna os proprietários do SLO proprietários de tudo o que a regra cria.
+Em **O que declara**, responda **Quando dispara**: **Criar um alerta**, o padrão, **Declarar um incidente** ou **Ambos**. **Adicionar proprietários do SLO como proprietários** também torna os proprietários do SLO proprietários de tudo o que a regra cria.
 
 ### Descrever o alerta e o incidente
 
@@ -98,10 +98,10 @@ O OneUptime confere os números de uma regra quando você a salva:
 
 | Configuração | Precisa ser |
 | --- | --- |
-| **Burn Rate Threshold** | Maior que 0. |
-| **Short Window (Minutes)** | Maior que 0. |
-| **Long Window (Minutes)** | Mais longa que a janela curta. |
-| **Re-fire Suppression (Minutes)** | 0 ou mais. Vazio significa a duração da janela longa. |
+| **Limite da taxa de consumo** | Maior que 0. |
+| **Janela curta (minutos)** | Maior que 0. |
+| **Janela longa (minutos)** | Mais longa que a janela curta. |
+| **Supressão de novo disparo (minutos)** | 0 ou mais. Vazio significa a duração da janela longa. |
 
 Toda resposta a **Quando dispara** abre algo. A API recusa uma regra que não criaria nenhum alerta nem declararia nenhum incidente, porque seria verificada a cada avaliação sem nunca declarar nada.
 
@@ -118,7 +118,7 @@ A tabela de regras mostra, para cada regra, o limite, as janelas e a supressão,
 | O que é | O sinal leve: vai para a lista de alertas. | O sinal pesado: recebe um número de incidente e inicia todo o fluxo de resposta. |
 | Título e descrição | Os próprios, ou o texto padrão | Os próprios, ou o texto padrão |
 | Severidade | **Severidade do alerta**: a mais alta do projeto, se vazia | **Severidade do incidente**: a mais alta do projeto, se vazia |
-| Escalonamento | **Alert On-Call Duty Policies** | **Incident On-Call Duty Policies** |
+| Escalonamento | **Políticas de plantão do alerta** | **Políticas de plantão do incidente** |
 | Proprietários e rótulos | **Proprietários do alerta** e **Rótulos de alerta** | **Proprietários do incidente** e **Rótulos de incidentes** |
 | Privado | Desligado | Desligado |
 | Resolução automática | Ligada | Ligada |
@@ -180,7 +180,7 @@ Por exemplo, o título `{{ruleName}}: {{sloName}} is burning {{longWindowBurnRat
 ## Proprietários, rótulos e privacidade
 
 - **Proprietários do alerta** e **Proprietários do incidente** são pessoas e equipes, escolhidas em uma única lista com **Adicionar proprietário**. Eles são adicionados ao alerta ou ao incidente assim que ele é criado, e são notificados. As pessoas precisam ser membros do projeto.
-- **Add SLO Owners as Owners** também adiciona os proprietários do SLO, seus usuários proprietários e os membros das equipes proprietárias, a tudo o que a regra cria. Os proprietários do SLO já ficam sabendo das mudanças de status do próprio SLO, então isso pode avisá-los duas vezes. Fica desligado por padrão.
+- **Adicionar proprietários do SLO como proprietários** também adiciona os proprietários do SLO, seus usuários proprietários e os membros das equipes proprietárias, a tudo o que a regra cria. Os proprietários do SLO já ficam sabendo das mudanças de status do próprio SLO, então isso pode avisá-los duas vezes. Fica desligado por padrão.
 - Cada proprietário é adicionado uma vez: um usuário que já é proprietário do alerta ou do incidente, por exemplo pelas regras de proprietários do projeto, ou que está em uma equipe proprietária adicionada, não é adicionado de novo.
 - **Rótulos de alerta** e **Rótulos de incidentes** são adicionados ao alerta ou ao incidente, para que filtros, regras de proprietários e regras de notificação do workspace possam corresponder a eles.
 - Um alerta ou incidente privado só é visível para seus proprietários, para os administradores do projeto e para os proprietários do projeto.
@@ -198,7 +198,7 @@ Algumas mudanças sempre resolvem o que uma regra abriu, não importa o que diga
 - mudar **Quando dispara** para tirar o alerta ou o incidente fecha o que essa saída tinha aberto;
 - desligar a regra ou excluí-la;
 - desligar a avaliação do SLO, arquivar o SLO ou excluí-lo;
-- o SLO passar para **Pausado** ou **Misconfigured**, porque então ele não mede nada;
+- o SLO passar para **Pausado** ou **Mal configurado**, porque então ele não mede nada;
 - a regra perder o limite ou as janelas, ou o SLO deixar de ter uma janela longa completa de histórico.
 
 ## Manutenção programada

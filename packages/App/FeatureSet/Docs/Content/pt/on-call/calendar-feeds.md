@@ -24,7 +24,7 @@ flowchart TB
 - As substituições são respeitadas. Quando alguém cobre você, o evento passa para essa pessoa (`(covering for <Name>)` é acrescentado) e continua sendo o mesmo evento no seu app de calendário, então é atualizado no lugar em vez de duplicado. Uma substituição parcial divide o turno em eventos contíguos.
 - Dois dias de histórico e 90 dias à frente por padrão. Você pode ampliar para 60 dias para trás e 180 para frente; um feed que passaria de 5.000 eventos é encurtado e avisa isso na descrição do calendário.
 - Os eventos são marcados como livres (`TRANSP:TRANSPARENT`), então um feed assinado nunca bloqueia sua disponibilidade, e nada é marcado como privado, então um calendário de equipe compartilhado mostra os títulos para todos que podem vê-lo.
-- Os horários são enviados em UTC e convertidos pelo seu app de calendário; a descrição traz o horário local no fuso do agendamento e no seu. Defina o seu fuso como **Fuso horário** no seu **Perfil** (sua foto no canto superior direito do painel), e o do agendamento no cartão **Schedule timezone** da página **Camadas** dele. Um agendamento sem fuso horário é calculado no fuso do servidor, como nos acionamentos, e o evento avisa isso.
+- Os horários são enviados em UTC e convertidos pelo seu app de calendário; a descrição traz o horário local no fuso do agendamento e no seu. Defina o seu fuso como **Fuso horário** no seu **Perfil** (sua foto no canto superior direito do painel), e o do agendamento no cartão **Fuso horário do agendamento** da página **Camadas** dele. Um agendamento sem fuso horário é calculado no fuso do servidor, como nos acionamentos, e o evento avisa isso.
 
 Atribuições fixas — um usuário ou uma equipe citado diretamente em uma regra de política de escalonamento — não têm início nem fim e não aparecem em nenhum feed. No OneUptime Cloud, os feeds seguem o mesmo plano dos agendamentos de plantão (Growth); um projeto abaixo desse plano recebe um calendário vazio em vez de um erro.
 
@@ -327,7 +327,7 @@ Esses apps validam o TLS no dispositivo. Importe a sua CA interna para o reposit
 :::
 
 :::details Os horários estão errados
-Todos os horários do arquivo estão em UTC; o app de calendário os converte para o próprio fuso. Se os turnos parecerem deslocados por um valor fixo, confira o fuso do agendamento (**Schedule timezone** na página **Camadas** dele) e o seu (**Fuso horário** no seu **Perfil**). Um agendamento sem fuso horário é calculado no fuso do servidor, e o evento avisa isso.
+Todos os horários do arquivo estão em UTC; o app de calendário os converte para o próprio fuso. Se os turnos parecerem deslocados por um valor fixo, confira o fuso do agendamento (**Fuso horário do agendamento** na página **Camadas** dele) e o seu (**Fuso horário** no seu **Perfil**). Um agendamento sem fuso horário é calculado no fuso do servidor, e o evento avisa isso.
 :::
 
 :::details O feed diz que foi encurtado

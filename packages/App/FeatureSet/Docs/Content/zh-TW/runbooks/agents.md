@@ -147,7 +147,7 @@ docker rm -f oneuptime-runner
 
 ### 儲存步驟
 
-點選 **Save Steps** 。執行到達該步驟時，Worker 會為該 Runner 的 ID 放入一項工作，只有該 Runner 能認領它。 選擇 **全域 Runner** 的步驟會等待任何一個空閒的全域 Runner。
+點選 **儲存步驟** 。執行到達該步驟時，Worker 會為該 Runner 的 ID 放入一項工作，只有該 Runner 能認領它。 選擇 **全域 Runner** 的步驟會等待任何一個空閒的全域 Runner。
 :::
 
 Bash 以 `bash -c` 執行。JavaScript 在 Runner 上的 `isolated-vm` 沙箱中執行，無法存取檔案系統或處理程序；它可以用 `axios` 呼叫公開的 HTTP API，但無法呼叫私人網路上的位址。SSH 和 kubectl 步驟使用機密 [Runbook 變數](/docs/runbooks/variables) 登入，該變數必須在 **可以使用它的 Runner** 中列出步驟的 Runner。

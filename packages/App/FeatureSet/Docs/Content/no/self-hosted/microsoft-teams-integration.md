@@ -42,7 +42,7 @@ Videosamtaler (et Teams-møte for en hendelse) bruker ikke denne boten: de treng
 - En konto som kan opprette app-registreringer i Microsoft Entra ID, og en Microsoft 365-administrator som kan gi administratorsamtykke.
 - Et offentlig HTTPS-vertsnavn for OneUptime som Azure Bot Service kan nå. Se [Nettverkstilgang](#nettverkstilgang).
 - Tilgang til serverkonfigurasjonen: `config.env` med Docker Compose, eller Helm-values på Kubernetes.
-- For å koble til et prosjekt: rollen **Project Owner**, **Project Admin** eller **Project Member** i prosjektet.
+- For å koble til et prosjekt: rollen **Prosjekteier**, **Prosjektadministrator** eller **Prosjektmedlem** i prosjektet.
 
 ## Sett opp integrasjonen
 
@@ -382,7 +382,7 @@ Når Microsoft sender deg tilbake og tilkoblingen ikke ble opprettet (da du ga a
 | Siden sier | Hva du gjør |
 | --- | --- |
 | **"Denne tilkoblingslenken er ugyldig, har utløpt eller er allerede brukt. Start på nytt."** | Lenken virker én gang, i 15 minutter, i nettleseren som startet den. Start på nytt fra Microsoft Teams-siden, og fullfør innen 15 minutter i samme nettleser. |
-| **"Du har ikke tillatelse til å koble dette prosjektet til Microsoft Teams."** | Å gi administratorsamtykke for prosjektet krever **Project Owner**, **Project Admin** eller **Project Member**. Det kontrolleres på nytt når Microsoft sender deg tilbake. |
+| **"Du har ikke tillatelse til å koble dette prosjektet til Microsoft Teams."** | Å gi administratorsamtykke for prosjektet krever **Prosjekteier**, **Prosjektadministrator** eller **Prosjektmedlem**. Det kontrolleres på nytt når Microsoft sender deg tilbake. |
 | **"Du er ikke lenger medlem av dette prosjektet."** | For å koble til din egen Microsoft-konto må du være medlem av prosjektet når Microsoft sender deg tilbake. |
 | **"Du logget på en annen Microsoft 365-organisasjon enn den denne tilkoblingen gjelder."** | Logg på med en konto fra Microsoft 365-organisasjonen som ga administratorsamtykke, eller som prosjektet er koblet til. |
 | **"Microsoft 365-organisasjonen din har ingen team ennå."** | Opprett et team i Microsoft Teams, og gi deretter administratorsamtykke på nytt. |

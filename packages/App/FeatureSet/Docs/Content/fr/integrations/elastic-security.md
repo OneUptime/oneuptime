@@ -48,16 +48,16 @@ Ouvrez **Produits → Événements de sécurité → Connexions** (`/dashboard/{
 
 ### La tester avant d'enregistrer
 
-Cliquez sur **Test these settings** sous **Tester avant d'enregistrer**. Le test s'authentifie et lit les alertes avec les valeurs du formulaire, sans rien stocker : un mauvais espace ou un privilège manquant apparaît donc avant que la connexion n'existe. Cliquez ensuite sur **Suivant**, donnez un **Nom** à la connexion et créez-la.
+Cliquez sur **Tester ces paramètres** sous **Tester avant d'enregistrer**. Le test s'authentifie et lit les alertes avec les valeurs du formulaire, sans rien stocker : un mauvais espace ou un privilège manquant apparaît donc avant que la connexion n'existe. Cliquez ensuite sur **Suivant**, donnez un **Nom** à la connexion et créez-la.
 :::
 
 | Réglage | Ce qu'il faut saisir |
 | --- | --- |
 | **Kibana URL** | L'adresse depuis laquelle Kibana est servi, par exemple `https://kibana.example.com` ou `https://<deployment>.kb.<region>.cloud.es.io`. Sans chemin : ni `/app/security`, ni `/api`, ni la partie `/s/<space>`. |
 | **Kibana space** | L'ID de l'espace, pas son nom : lettres, chiffres, tirets et traits de soulignement. Laissez-le vide pour l'espace par défaut. |
-| **Clé API** | La valeur **Base64** de la clé, seule : OneUptime ajoute lui-même le schéma `ApiKey`. Elle est chiffrée, jamais renvoyée par l'API et jamais réaffichée. Remplacez-la avec **Update credentials** sur la connexion. |
+| **Clé API** | La valeur **Base64** de la clé, seule : OneUptime ajoute lui-même le schéma `ApiKey`. Elle est chiffrée, jamais renvoyée par l'API et jamais réaffichée. Remplacez-la avec **Mettre à jour les identifiants** sur la connexion. |
 
-L'étape **Polling** contient aussi une **Description** facultative, le **Poll Interval (Minutes)**, un nombre entier de `1` à `1440` qui vaut `5` au départ, et **Activé**, qui est activé au départ.
+L'étape **Interrogation** contient aussi une **Description** facultative, le **Intervalle d'interrogation (minutes)**, un nombre entier de `1` à `1440` qui vaut `5` au départ, et **Activé**, qui est activé au départ.
 
 ## Ce qui est importé
 
@@ -100,7 +100,7 @@ La recherche d'alertes de Kibana accepte une taille et un tri, mais pas de jeton
 
 ### Quand une fenêtre contient plus qu'une interrogation ne peut lire
 
-Une interrogation lit au plus 10 000 alertes, en 20 requêtes au plus. Quand une fenêtre en contient davantage, l'exécution est **Partial**, avec un avertissement comme celui-ci :
+Une interrogation lit au plus 10 000 alertes, en 20 requêtes au plus. Quand une fenêtre en contient davantage, l'exécution est **Partiel**, avec un avertissement comme celui-ci :
 
 ```text
 Stopped after collecting 10000 alerts; the window holds more.
@@ -108,28 +108,28 @@ Stopped after collecting 10000 alerts; the window holds more.
 
 Les alertes sont lues les plus anciennes d'abord, OneUptime déplace donc le curseur à l'heure de création de la dernière alerte lue, et l'interrogation suivante commence là, avec la même longueur de fenêtre. Un espace chargé rattrape 10 000 alertes par interrogation, au lieu de relire les mêmes. Les alertes créées à ce même instant sont lues deux fois, et la vérification des doublons écarte la seconde copie.
 
-Les ID laissés de côté voyagent dans chaque requête, et Kibana limite la taille d'une requête. Quand plus d'alertes partagent un même instant qu'une requête ne peut en laisser de côté, environ 7 800, l'exécution s'arrête là comme **Partial**, avec un avertissement qui nomme l'instant.
+Les ID laissés de côté voyagent dans chaque requête, et Kibana limite la taille d'une requête. Quand plus d'alertes partagent un même instant qu'une requête ne peut en laisser de côté, environ 7 800, l'exécution s'arrête là comme **Partiel**, avec un avertissement qui nomme l'instant.
 
 Quand une exécution ne parvient pas du tout à dépasser le curseur enregistré, OneUptime raccourcit plutôt la fenêtre :
 
 1. **Réduire.** L'interrogation suivante lit une fenêtre deux fois plus courte, depuis le même point de départ, et continue de la diviser par deux jusqu'à ce qu'une fenêtre soit lue entièrement, jusqu'à une minute. L'avertissement de l'exécution le dit : `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **Revenir à la taille normale.** Une fois une fenêtre lue entièrement, la suivante est de nouveau deux fois plus longue, jusqu'à 24 heures.
-3. **Passer au-delà d'une seule minute.** Si même une minute contient plus qu'une interrogation ne peut lire, l'interrogation passe au-delà, pour que les alertes plus récentes continuent d'arriver. L'exécution reste **Partial**, et **Dernière erreur** indique `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importez cette minute avec **Importer cette plage de temps** pour récupérer ce qu'une exécution peut lire.
+3. **Passer au-delà d'une seule minute.** Si même une minute contient plus qu'une interrogation ne peut lire, l'interrogation passe au-delà, pour que les alertes plus récentes continuent d'arriver. L'exécution reste **Partiel**, et **Dernière erreur** indique `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importez cette minute avec **Importer cette plage de temps** pour récupérer ce qu'une exécution peut lire.
 
-Une exécution qui échoue complètement, avec une erreur de Kibana, garde le curseur et la longueur de fenêtre, et l'interrogation suivante relit la même fenêtre. La seule exception est une requête qui a expiré : le curseur reste, mais la fenêtre suivante est deux fois plus courte, car une fenêtre trop lourde pour recevoir une réponse à temps expirerait à chaque essai. Changer le **Poll Interval (Minutes)** n'y change rien : il décide à quelle fréquence une interrogation commence, pas où commence sa fenêtre.
+Une exécution qui échoue complètement, avec une erreur de Kibana, garde le curseur et la longueur de fenêtre, et l'interrogation suivante relit la même fenêtre. La seule exception est une requête qui a expiré : le curseur reste, mais la fenêtre suivante est deux fois plus courte, car une fenêtre trop lourde pour recevoir une réponse à temps expirerait à chaque essai. Changer le **Intervalle d'interrogation (minutes)** n'y change rien : il décide à quelle fréquence une interrogation commence, pas où commence sa fenêtre.
 
 ### Exécuter, prévisualiser et importer à la demande
 
 Cliquez sur **Diagnostics** sur une connexion pour voir ses exécutions récentes et travailler avec elle à la main. Quiconque peut modifier la connexion peut les lancer ; quiconque peut la voir peut lire l'historique.
 
-- **Run now** lance tout de suite une interrogation, avec le curseur habituel, même quand la connexion n'est pas **Activé**.
+- **Exécuter maintenant** lance tout de suite une interrogation, avec le curseur habituel, même quand la connexion n'est pas **Activé**.
 - **Preview alerts** lit une plage de temps de 7 jours au plus et n'importe rien.
 - **Importer cette plage de temps** importe une plage de 7 jours au plus, après votre confirmation, sans déplacer le curseur. Les alertes déjà importées sont sautées.
 - **Copier les diagnostics** sur une exécution copie son rapport pour le support. Il ne contient jamais d'identifiants.
 
 ## Tester la connexion
 
-**Tester la connexion** sur la ligne d'une connexion, et **Test these settings** dans le formulaire, s'exécutent dans le processus de l'API, pas dans un worker d'arrière-plan, pour qu'un test réponde même quand les workers sont le problème. Il effectue ces vérifications, dans l'ordre :
+**Tester la connexion** sur la ligne d'une connexion, et **Tester ces paramètres** dans le formulaire, s'exécutent dans le processus de l'API, pas dans un worker d'arrière-plan, pour qu'un test réponde même quand les workers sont le problème. Il effectue ces vérifications, dans l'ordre :
 
 | Vérification | Ce qu'elle vérifie |
 | --- | --- |
@@ -190,7 +190,7 @@ La **Dernière erreur** de la connexion conserve le message d'erreur complet, id
 
 :::details Dernière erreur commence par `Elastic Security status request`
 - `Elastic Security status request failed (HTTP ...)` : Kibana a refusé la requête de statut.
-  - `HTTP 401` : Kibana n'a pas accepté la clé d'API. Ce n'est pas la valeur **Base64**, ou elle a expiré ou a été invalidée. Créez une nouvelle clé, et enregistrez-la avec **Update credentials**.
+  - `HTTP 401` : Kibana n'a pas accepté la clé d'API. Ce n'est pas la valeur **Base64**, ou elle a expiré ou a été invalidée. Créez une nouvelle clé, et enregistrez-la avec **Mettre à jour les identifiants**.
   - `HTTP 404` : la **Kibana URL** a un chemin, ou n'est pas Kibana.
   - `HTTP 503` : Kibana se déclare indisponible, en général parce qu'il ne peut pas joindre Elasticsearch.
   - `HTTP 3xx` : Kibana a redirigé la requête, et les redirections sont refusées. Utilisez l'adresse depuis laquelle Kibana est servi.
@@ -215,7 +215,7 @@ Aucune interrogation ne s'est terminée pour cette connexion. Lancez **Tester la
 :::
 
 :::details Une exécution est Partial
-- `Stopped after collecting 10000 alerts; the window holds more` : la fenêtre contenait plus que les 10 000 alertes qu'une exécution lit. Rien n'est perdu : l'interrogation suivante commence après la dernière alerte lue. Une connexion qui reste **Partial** d'interrogation en interrogation rattrape un retard, et ses valeurs **Dernière interrogation** et **Dernier événement importé** continuent d'avancer. Si elle ne rattrape jamais, l'espace crée plus de 10 000 alertes par intervalle d'interrogation : raccourcissez le **Poll Interval (Minutes)**.
+- `Stopped after collecting 10000 alerts; the window holds more` : la fenêtre contenait plus que les 10 000 alertes qu'une exécution lit. Rien n'est perdu : l'interrogation suivante commence après la dernière alerte lue. Une connexion qui reste **Partiel** d'interrogation en interrogation rattrape un retard, et ses valeurs **Dernière interrogation** et **Dernier événement importé** continuent d'avancer. Si elle ne rattrape jamais, l'espace crée plus de 10 000 alertes par intervalle d'interrogation : raccourcissez le **Intervalle d'interrogation (minutes)**.
 - `More records were created in the one minute from ... than one poll can read` : l'interrogation est passée au-delà de cette minute. Importez-la avec **Importer cette plage de temps** dans **Diagnostics**. Une importation lit autant qu'une interrogation.
 :::
 

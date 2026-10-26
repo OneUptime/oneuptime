@@ -48,15 +48,15 @@ OneUptime 每分钟轮询一次已过轮询间隔的每个已启用连接。一�
 
 前往 **Certificates & secrets → Client secrets → New client secret**，选择过期时间，然后选择 **Add**。离开页面之前，复制密码的 **Value**，而不是它的 **Secret ID**：它不会再次显示。
 
-记下密码何时过期。到了那一天，轮询会以 `Microsoft Defender XDR token request failed (HTTP 401)` 停止，直到你用 **Update credentials** 替换它。
+记下密码何时过期。到了那一天，轮询会以 `Microsoft Defender XDR token request failed (HTTP 401)` 停止，直到你用 **更新凭据** 替换它。
 
 ### 在 OneUptime 中添加连接
 
-打开 **产品 → Security Events → Connections**（`/dashboard/{projectId}/security-events/connections`），点击 **添加连接**，在 **EDR / XDR** 下选择 **Microsoft Defender XDR**，然后点击 **下一步**。填写下表中的设置，点击 **下一步**，并把密码的值粘贴到 **Client secret** 中。
+打开 **产品 → Security Events → 连接**（`/dashboard/{projectId}/security-events/connections`），点击 **添加连接**，在 **EDR / XDR** 下选择 **Microsoft Defender XDR**，然后点击 **下一步**。填写下表中的设置，点击 **下一步**，并把密码的值粘贴到 **客户端密钥** 中。
 
 ### 保存之前先测试
 
-点击 **保存前测试** 下的 **Test these settings**。测试会用表单中的值登录并读取警报，但不会存储任何内容，因此错误的密码或缺失的同意会在连接存在之前暴露出来。然后点击 **下一步**，为连接填写 **名称** 并创建它。
+点击 **保存前测试** 下的 **测试这些设置**。测试会用表单中的值登录并读取警报，但不会存储任何内容，因此错误的密码或缺失的同意会在连接存在之前暴露出来。然后点击 **下一步**，为连接填写 **名称** 并创建它。
 :::
 
 | 设置 | 在哪里找到 |
@@ -64,9 +64,9 @@ OneUptime 每分钟轮询一次已过轮询间隔的每个已启用连接。一�
 | **目录（租户）ID** | 应用的 **Overview** 页面。租户的 GUID，或已验证的域名，例如 `contoso.onmicrosoft.com`。 |
 | **应用程序（客户端）ID** | 应用的 **Overview** 页面。拥有 `SecurityAlert.Read.All` 的应用的 GUID。 |
 | **云** | **Azure 公有云**（也服务于 Microsoft 365 GCC），或用于 GCC High 的 **Azure Government（美国）** （`login.microsoftonline.us` 和 `graph.microsoft.us`）。不支持 Microsoft 365 DoD 和中国的 21Vianet 云。 |
-| **Client secret** | 密码的 **Value**。它会被加密，API 从不返回，也不会再次显示。在连接上用 **Update credentials** 替换它。 |
+| **客户端密钥** | 密码的 **Value**。它会被加密，API 从不返回，也不会再次显示。在连接上用 **更新凭据** 替换它。 |
 
-**Polling** 步骤还有可选的 **描述**、**Poll Interval (Minutes)**（`1` 到 `1440` 之间的整数，初始为 `5`），以及初始为开启的 **已启用**。
+**轮询** 步骤还有可选的 **描述**、**轮询间隔（分钟）**（`1` 到 `1440` 之间的整数，初始为 `5`），以及初始为开启的 **已启用**。
 
 ## 导入的内容
 
@@ -106,7 +106,7 @@ GET https://graph.microsoft.com/v1.0/security/alerts_v2?$filter=createdDateTime 
 
 ### 当一个窗口包含的内容超过一次轮询能读取的量时
 
-一次轮询最多读取 20 页、每页 100 个警报：共 2,000 个警报。当这个上限让它在窗口结束之前停下时，这次运行为 **Partial**，并带有以下警告：
+一次轮询最多读取 20 页、每页 100 个警报：共 2,000 个警报。当这个上限让它在窗口结束之前停下时，这次运行为 **部分**，并带有以下警告：
 
 ```text
 Stopped after 20 alerts requests (the per-run request limit) before reading the whole window. Microsoft Graph lists alerts newest first and documents no way to sort them oldest first, so this run cannot name a point to resume from.
@@ -116,22 +116,22 @@ Stopped after 20 alerts requests (the per-run request limit) before reading the 
 
 1. **缩小。** 下一次轮询从同一个起点读取长度减半的窗口，并不断减半，直到某个窗口能被完整读取，最短为一分钟。运行的警告会说明这一点：`This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.` 已从较长窗口导入的警报会作为重复项被跳过。
 2. **恢复。** 一个窗口被完整读取后，游标会移到它的末尾，下一个窗口的长度会再次加倍，最长为 24 小时。
-3. **越过单独的一分钟。** 如果连一分钟内都有超过 2,000 个警报，轮询会越过这一分钟，让更新的警报继续到达。这次运行仍为 **Partial**，**最近错误** 显示 `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` 用 **Import this time range** 导入这一分钟，即可找回一次运行能读取的内容。
+3. **越过单独的一分钟。** 如果连一分钟内都有超过 2,000 个警报，轮询会越过这一分钟，让更新的警报继续到达。这次运行仍为 **部分**，**最近错误** 显示 `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` 用 **Import this time range** 导入这一分钟，即可找回一次运行能读取的内容。
 
-因其他原因而为 **Partial** 的运行，例如某个警报无法被读取为安全事件，也会以同样的方式从同一个起点重试。更改 **Poll Interval (Minutes)** 不会改变以上任何一点：它决定轮询多久开始一次，而不是窗口从哪里开始。
+因其他原因而为 **部分** 的运行，例如某个警报无法被读取为安全事件，也会以同样的方式从同一个起点重试。更改 **轮询间隔（分钟）** 不会改变以上任何一点：它决定轮询多久开始一次，而不是窗口从哪里开始。
 
 ### 按需运行、预览和导入
 
-在连接上点击 **Diagnostics**，可以查看它最近的运行，并手动操作它。能更改该连接的人都可以启动这些操作；能查看它的人都可以阅读历史记录。
+在连接上点击 **诊断**，可以查看它最近的运行，并手动操作它。能更改该连接的人都可以启动这些操作；能查看它的人都可以阅读历史记录。
 
-- **Run now** 会立即开始一次轮询，使用通常的游标，即使连接未处于 **已启用** 状态也可以。
+- **立即运行** 会立即开始一次轮询，使用通常的游标，即使连接未处于 **已启用** 状态也可以。
 - **Preview alerts** 读取最长 7 天的时间范围，不导入任何内容。
 - **Import this time range** 在你确认后导入最长 7 天的范围，不会移动游标。已导入的警报会被跳过。
 - 运行上的 **Copy diagnostics** 会复制它的报告以便提供给支持人员。报告从不包含凭据。
 
 ## 测试连接
 
-连接所在行中的 **测试连接** 和表单中的 **Test these settings** 在 API 进程中运行，而不是在后台工作进程中运行，所以即使工作进程出了问题，测试仍然会给出结果。它按顺序运行以下检查：
+连接所在行中的 **测试连接** 和表单中的 **测试这些设置** 在 API 进程中运行，而不是在后台工作进程中运行，所以即使工作进程出了问题，测试仍然会给出结果。它按顺序运行以下检查：
 
 | 检查 | 检查的内容 |
 | --- | --- |
@@ -150,7 +150,7 @@ Stopped after 20 alerts requests (the per-run request limit) before reading the 
 
 :::details Last Error 以 `Microsoft Defender XDR token request` 开头
 - `Microsoft Defender XDR token request failed (HTTP ...)`：Microsoft Entra ID 拒绝颁发令牌，所以根本没有连接 Graph。消息末尾会有一条根据 Entra 的 `error` 代码给出的提示：
-  - `invalid_client` (`AADSTS7000215`)：密码错误、已过期，或属于另一个应用。在 **Certificates & secrets** 下创建一个新密码，并用 **Update credentials** 保存。
+  - `invalid_client` (`AADSTS7000215`)：密码错误、已过期，或属于另一个应用。在 **Certificates & secrets** 下创建一个新密码，并用 **更新凭据** 保存。
   - `unauthorized_client` (`AADSTS700016`)：**应用程序（客户端）ID** 不在该 **目录（租户）ID** 中，或者 **云** 选错了。
   - `AADSTS90002`：没有这样的租户。
   - `invalid_scope`：你选择的云中不存在该 Graph 范围。请检查 **云**。
@@ -162,7 +162,7 @@ Stopped after 20 alerts requests (the per-run request limit) before reading the 
 - `Microsoft Defender XDR alerts request failed (HTTP ...)`：Graph 拒绝列出警报。消息会指出 Graph 的错误代码，并给出一条提示：
   - `403` (`Authorization_RequestDenied`)：缺少 `SecurityAlert.Read.All` 或它的管理员同意，或者租户没有 Defender XDR 许可证。同意需要几分钟才能生效。
   - 令牌颁发后出现 `401` (`InvalidAuthenticationToken`)：通常是 **云** 与租户不匹配。
-  - `429` (`TooManyRequests`)：Graph 正在对应用限流，下一次轮询会再次读取同一个窗口。消息无法引用 Graph 的 `Retry-After`，因为 OneUptime 的 HTTP 客户端在出错时不保留响应头。如果反复出现，请调大 **Poll Interval (Minutes)**。
+  - `429` (`TooManyRequests`)：Graph 正在对应用限流，下一次轮询会再次读取同一个窗口。消息无法引用 Graph 的 `Retry-After`，因为 OneUptime 的 HTTP 客户端在出错时不保留响应头。如果反复出现，请调大 **轮询间隔（分钟）**。
   - `5xx`：Graph 一侧的问题。下一次轮询会重试。
   - `400`：Graph 不肯运行查询，而查询是由 OneUptime 构建的，与你的设置无关。请复制消息提供给 OneUptime 支持人员。
 - `Microsoft Defender XDR alerts request returned ...`：Graph 返回了 `200`，但连接器无法使用其内容：主体不是 JSON、没有 `value` 列表，或者 `@odata.nextLink` 不是指向你所在云的 Graph 主机的 `https://` 链接。这样的链接会被拒绝，所以令牌永远不会被发送到其他地方。这种情况会被报告出来，而不是被当作空窗口，所以游标永远不会越过没人读过的警报。
@@ -174,10 +174,10 @@ Stopped after 20 alerts requests (the per-run request limit) before reading the 
 :::
 
 :::details 轮询成功，但你知道的某个警报不见了
-在 Defender 门户中把该警报的 `createdDateTime` 与 **Diagnostics** 中运行的窗口进行比较：窗口基于创建时间，而不是活动时间。
+在 Defender 门户中把该警报的 `createdDateTime` 与 **诊断** 中运行的窗口进行比较：窗口基于创建时间，而不是活动时间。
 
 - 在连接存在之前创建的警报早于第一次 24 小时回溯。请用 **Import this time range** 导入它。
-- **Partial** 运行是被 2,000 个警报的上限停下的。下一次轮询会从同一个起点读取更短的窗口，所以一旦包含该警报的窗口被完整读取，它就会被导入。
+- **部分** 运行是被 2,000 个警报的上限停下的。下一次轮询会从同一个起点读取更短的窗口，所以一旦包含该警报的窗口被完整读取，它就会被导入。
 - 如果 **最近错误** 指出了轮询越过的某一分钟，请用 **Import this time range** 导入那一分钟。
 :::
 

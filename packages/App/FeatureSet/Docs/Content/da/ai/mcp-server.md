@@ -113,7 +113,7 @@ Hvad en forbundet klient kan:
 
 Hver klient, der er forbundet ved login, står under **Projektindstillinger → AI → MCP-server** under **Forbundne MCP-klienter**, med hvem der forbandt den, hvad den må, og hvornår den sidst blev brugt. Du ser de klienter, du har forbundet; projektets ejere og administratorer ser alles.
 
-Klik på **Disconnect** for at logge en klient ud. Den holder op med at virke med det samme.
+Klik på **Afbryd forbindelse** for at logge en klient ud. Den holder op med at virke med det samme.
 
 En klient forbliver forbundet, så længe den bruges. En klient, der ikke er brugt i 30 dage, skal logge ind igen.
 
@@ -138,7 +138,7 @@ Gå til **Projektindstillinger → Avanceret → API-nøgler**, og klik på **Op
 
 ### Vælg, hvad den må
 
-Under **Adgang** vælger du **Viewer** til en agent, der kun læser, eller **Project Admin** til en, der også opretter, opdaterer og sletter (se [Tilladelser for API-nøgler](#tilladelser-for-api-nøgler)).
+Under **Adgang** vælger du **Seer** til en agent, der kun læser, eller **Projektadministrator** til en, der også opretter, opdaterer og sletter (se [Tilladelser for API-nøgler](#tilladelser-for-api-nøgler)).
 
 ### Kopier nøglen
 
@@ -420,8 +420,8 @@ Disse virker uden legitimationsoplysninger, alene med værktøjerne til offentli
 
 | Hvad agenten gør | Vælg under **Adgang** |
 | --- | --- |
-| Læser kun | **Viewer**, eller tilføj læsetilladelser på nøglens side |
-| Opretter, opdaterer og sletter også | **Project Admin**, eller tilføj rollen Project Admin på nøglens side |
+| Læser kun | **Seer**, eller tilføj læsetilladelser på nøglens side |
+| Opretter, opdaterer og sletter også | **Projektadministrator**, eller tilføj rollen Project Admin på nøglens side |
 
 Giv hver nøgle det mindste, den har brug for, roter nøgler jævnligt, hav en separat nøgle til hvert miljø, og hold øje med, hvad hver nøgle gør i OneUptime.
 

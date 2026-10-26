@@ -39,7 +39,7 @@ Reglerna skiljer sig åt i hur flera träffar avgörs:
 - **Ägarregler**, **Etikettregler** och **Runbook-regler** verkar alla när de matchar. Ägare och etiketter som flera regler lägger till läggs till en gång.
 - **Reminder Rules** kontrolleras uppifrån och ned i sin lista, och den första träffen vinner. Dra en regel för att ändra dess plats; en ny regel hamnar sist.
 
-En ny regel börjar aktiverad; stäng av **Aktiverad** i dess redigeringsformulär för att pausa den, och listan visar en grön **Aktiverad** eller en röd **Inaktiverad** för varje regel. Ägar-, etikett- och runbook-regler verkar på händelser som skapas efter att du har sparat dem. För att tillämpa en ägar- eller etikettregel på de händelser du redan har använder du **Run Now**: se [Köra regler på befintliga resurser](/docs/configuration/run-rules-now).
+En ny regel börjar aktiverad; stäng av **Aktiverad** i dess redigeringsformulär för att pausa den, och listan visar en grön **Aktiverad** eller en röd **Inaktiverad** för varje regel. Ägar-, etikett- och runbook-regler verkar på händelser som skapas efter att du har sparat dem. För att tillämpa en ägar- eller etikettregel på de händelser du redan har använder du **Kör nu**: se [Köra regler på befintliga resurser](/docs/configuration/run-rules-now).
 
 ## Ägar- och etikettregler
 
@@ -119,16 +119,16 @@ Varje underhållsmodell har arbetsflödesutlösare och åtgärder som är namngi
 
 | Roll                              | Vad den kan göra                                                                                     |
 | --------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| **Scheduled Maintenance Viewer**  | Läser händelser, och ändrar ingenting.                                                               |
-| **Scheduled Maintenance Member**  | Skapar, ändrar och tar bort händelser med deras anteckningar, tillståndstidslinjer och ägare, och båda slagen av mallar. |
-| **Scheduled Maintenance Admin**   | Allt en medlem gör, och skapar, ändrar och tar dessutom bort underhållstillstånd.                    |
+| **Underhållstittare**  | Läser händelser, och ändrar ingenting.                                                               |
+| **Underhållsmedlem**  | Skapar, ändrar och tar bort händelser med deras anteckningar, tillståndstidslinjer och ägare, och båda slagen av mallar. |
+| **Underhållsadministratör**   | Allt en medlem gör, och skapar, ändrar och tar dessutom bort underhållstillstånd.                    |
 
-Regler, anpassade fält och mätningar kräver **Project Owner** eller **Project Admin**, eller en anpassad roll med den sidans egen behörighet, till exempel **Create Scheduled Maintenance Owner Rule**. Runbook-regler godtar även **Runbook Admin**. **Project Member** arbetar med händelser och mallar, som **Scheduled Maintenance Member**. Se [Användare, team och behörigheter](/docs/permissions/index).
+Regler, anpassade fält och mätningar kräver **Projektägare** eller **Projektadministratör**, eller en anpassad roll med den sidans egen behörighet, till exempel **Create Scheduled Maintenance Owner Rule**. Runbook-regler godtar även **Runbook-administratör**. **Projektmedlem** arbetar med händelser och mallar, som **Underhållsmedlem**. Se [Användare, team och behörigheter](/docs/permissions/index).
 
 ## Felsökning
 
 :::details En ägarregel lade inte till någon på en ny händelse
-Öppna regeln och kontrollera dess villkor: varje villkor du har fyllt i måste stämma. Ett titelmönster är ett reguljärt uttryck, så `db upgrade` matchar inte "DB-Upgrade"; skriv `db.upgrade`. En regel verkar också bara på händelser som skapats efter att den sparades: använd **Run Now** för dem du redan har.
+Öppna regeln och kontrollera dess villkor: varje villkor du har fyllt i måste stämma. Ett titelmönster är ett reguljärt uttryck, så `db upgrade` matchar inte "DB-Upgrade"; skriv `db.upgrade`. En regel verkar också bara på händelser som skapats efter att den sparades: använd **Kör nu** för dem du redan har.
 :::
 
 :::details Ägarna fick ingen påminnelse

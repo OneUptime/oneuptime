@@ -3,7 +3,7 @@
 Runbook-regler startar runbooks automatiskt när en **incident**, ett **larm** eller en **schemalagd underhållshändelse** skapas, så att ingen behöver komma ihåg att köra dem mitt i ett avbrott. Varje produkt har sin egen regelsida i sin meny **Regler**:
 
 - Incidenter → Regler → **Runbook-regler**
-- Varningar → Regler → **Runbook-regler**
+- Larm → Regler → **Runbook-regler**
 - Schemalagt underhåll → Regler → **Runbook-regler**
 
 Alla tre sidorna redigerar samma sorts regel, filtrerad till den produktens regler.
@@ -49,7 +49,7 @@ Du ser alla körningar, startade av en regel eller inte, under **Runbooks → K�
 :::steps
 ### Öppna Runbook-regler
 
-I **Incidenter**, **Varningar** eller **Schemalagt underhåll** öppnar du **Regler → Runbook-regler** och klickar på **Skapa Runbook Rule**.
+I **Incidenter**, **Larm** eller **Schemalagt underhåll** öppnar du **Regler → Runbook-regler** och klickar på **Skapa Runbook Rule**.
 
 ### Lägg till villkor
 

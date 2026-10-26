@@ -57,8 +57,8 @@ Os dois registram um problema, e os dois podem acionar quem está de plantão. O
 | --- | --- | --- |
 | **O que é** | Um problema que afeta seus usuários, como uma queda ou uma lentidão | Um problema que sua equipe deve investigar antes que os usuários sejam afetados |
 | **Nas páginas de status** | Pode aparecer, e avisa os assinantes | Nunca |
-| **Estados iniciais** | **Identified**, **Confirmado**, **Resolvido** | **Identified**, **Confirmado**, **Resolvido** |
-| **Severidades iniciais** | Critical Incident, Major Incident, Minor Incident | **High**, **Low** |
+| **Estados iniciais** | **Identificadas**, **Confirmado**, **Resolvido** | **Identificadas**, **Confirmado**, **Resolvido** |
+| **Severidades iniciais** | Critical Incident, Major Incident, Minor Incident | **Alto**, **Baixo** |
 
 Confirmar indica que alguém está cuidando, e impede que as políticas de plantão acionem o próximo nível. Resolver encerra. Você pode adicionar seus próprios estados e severidades, e vincular alertas ao incidente do qual eles acabaram fazendo parte.
 

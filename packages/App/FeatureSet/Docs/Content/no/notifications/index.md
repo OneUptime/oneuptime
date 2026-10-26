@@ -66,7 +66,7 @@ Hver metode du verifiserer senere, får de samme reglene: en regel for hver alvo
 
 ## Oppsettsjekklisten
 
-**Brukerinnstillinger → Oppsettsjekkliste** åpner **Your setup checklist**: alt OneUptime trenger for å nå deg, i den rekkefølgen som teller. Et steg lenker til siden der det gjøres, og **Recheck** leser alt på nytt.
+**Brukerinnstillinger → Oppsettsjekkliste** åpner **Your setup checklist**: alt OneUptime trenger for å nå deg, i den rekkefølgen som teller. Et steg lenker til siden der det gjøres, og **Kontroller på nytt** leser alt på nytt.
 
 | Seksjon | Hva den sjekker |
 | --- | --- |

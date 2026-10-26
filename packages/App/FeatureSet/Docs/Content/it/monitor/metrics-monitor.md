@@ -26,7 +26,7 @@ Ogni minuto, OneUptime esegue ogni query di metriche del monitor sul suo interva
 ## Prima di iniziare
 
 - Le vostre applicazioni o la vostra infrastruttura inviano metriche a OneUptime tramite OpenTelemetry. Vedete [OpenTelemetry](/docs/telemetry/open-telemetry).
-- Conoscete il nome della metrica e gli attributi su cui volete filtrare o raggruppare. Gli elenchi **Metrica** e **Group by** offrono solo nomi e attributi che OneUptime ha ricevuto.
+- Conoscete il nome della metrica e gli attributi su cui volete filtrare o raggruppare. Gli elenchi **Metrica** e **Raggruppa per** offrono solo nomi e attributi che OneUptime ha ricevuto.
 
 ## Creare un monitor metriche
 
@@ -45,11 +45,11 @@ In **Configurazione monitor metriche**, scegliete un **Intervallo di tempo**: qu
 
 ### Aggiungere le query delle metriche
 
-In **Seleziona metriche**, scegliete una **Metrica** e come aggregarla con **Aggregate by**. Aprite **Filters & grouping** per filtrare per attributi o per raggruppare con **Group by**. Fate clic su **Aggiungi metrica** per un'altra query, o su **Aggiungi formula** per combinarle. Il grafico sotto le query mostra un'anteprima dell'intervallo di tempo, così vedete i valori che i criteri controlleranno.
+In **Seleziona metriche**, scegliete una **Metrica** e come aggregarla con **Aggregate by**. Aprite **Filters & grouping** per filtrare per attributi o per raggruppare con **Raggruppa per**. Fate clic su **Aggiungi metrica** per un'altra query, o su **Aggiungi formula** per combinarle. Il grafico sotto le query mostra un'anteprima dell'intervallo di tempo, così vedete i valori che i criteri controlleranno.
 
 ### Impostare i criteri
 
-In **Criteri del monitor**, ogni criterio sceglie la **Metrica** da controllare (una query o una formula), la sua **Aggregazione**, una **Condizione** e un **Threshold**. Vedete [Criteri](#criteri) per i criteri con cui parte un nuovo monitor.
+In **Criteri del monitor**, ogni criterio sceglie la **Metrica** da controllare (una query o una formula), la sua **Aggregazione**, una **Condizione** e un **Soglia**. Vedete [Criteri](#criteri) per i criteri con cui parte un nuovo monitor.
 
 ### Creare il monitor
 
@@ -65,7 +65,7 @@ Fate clic su **Crea monitor**. Il monitor si apre sulla sua pagina **Panoramica*
 | **Metrica** | La metrica da interrogare. | Obbligatorio |
 | **Aggregate by** | Come i valori di ogni intervallo di tempo vengono combinati in un punto dati: Media, Somma, Min, Max, Conteggio, oppure un percentile (P50, P75, P90, P95 o P99). | Media |
 | **Filter by attributes** (in **Filters & grouping**) | Solo le serie i cui attributi soddisfano queste condizioni. | Nessun filtro |
-| **Group by** (in **Filters & grouping**) | Una serie per ogni valore unico di questi attributi (vedete [Avvisi per serie](#avvisi-per-serie-group-by)). | Una sola serie |
+| **Raggruppa per** (in **Filters & grouping**) | Una serie per ogni valore unico di questi attributi (vedete [Avvisi per serie](#avvisi-per-serie-group-by)). | Una sola serie |
 
 Ogni query e ogni formula riceve una variabile (`a`, `b`, `c` e così via) nell'ordine in cui le aggiungete.
 
@@ -79,7 +79,7 @@ Una formula combina variabili di query con `+`, `-`, `*`, `/`, `%`, `^` e parent
 
 ### Finestra di tempo mobile
 
-**Intervallo di tempo** stabilisce quanto indietro guarda ogni valutazione: **Past 1 Minute**, **Past 5 Minutes**, **Past 10 Minutes**, **Past 15 Minutes**, **Past 30 Minutes**, **Past 1 Hour**, **Past 2 Hours**, **Past 3 Hours**, **Past 6 Hours**, **Past 12 Hours**, **Past 1 Day**, **Past 2 Days**, **Past 3 Days**, **Past 7 Days**, **Past 14 Days**, **Past 30 Days**, **Past 60 Days**, **Past 90 Days**, **Past 180 Days** o **Past 365 Days**.
+**Intervallo di tempo** stabilisce quanto indietro guarda ogni valutazione: **Past 1 Minute**, **Ultimi 5 minuti**, **Past 10 Minutes**, **Ultimi 15 minuti**, **Ultimi 30 minuti**, **Ultima ora**, **Ultime 2 ore**, **Ultime 3 ore**, **Past 6 Hours**, **Past 12 Hours**, **Ultimo giorno**, **Ultimi 2 giorni**, **Past 3 Days**, **Past 7 Days**, **Past 14 Days**, **Past 30 Days**, **Past 60 Days**, **Past 90 Days**, **Past 180 Days** o **Past 365 Days**.
 
 Più lungo è l'intervallo, più largo è ogni intervallo di raggruppamento, quindi un punto dati rappresenta più tempo:
 
@@ -116,7 +116,7 @@ Più lungo è l'intervallo, più largo è ogni intervallo di raggruppamento, qui
 
 ## Criteri
 
-Questi monitor valutano sempre il **Metric Value**: il valore aggregato della query di metriche o della formula configurata. Il modulo dei criteri non ha un selettore del tipo di filtro; mostra **Metrica**, **Aggregazione**, **Condizione** e **Threshold**. Quando la metrica ha un'unità, scegliete l'unità della soglia accanto.
+Questi monitor valutano sempre il **Metric Value**: il valore aggregato della query di metriche o della formula configurata. Il modulo dei criteri non ha un selettore del tipo di filtro; mostra **Metrica**, **Aggregazione**, **Condizione** e **Soglia**. Quando la metrica ha un'unità, scegliete l'unità della soglia accanto.
 
 | Condizione | Corrisponde quando il valore è… |
 | --- | --- |
@@ -143,13 +143,13 @@ Un nuovo monitor metriche parte con due criteri sulla sua prima query, entrambi 
 
 ## Esempio pratico: una coda che cresce
 
-Volete un incidente quando la coda di checkout resta profonda. La query `a` è il gauge `checkout.queue.depth`, con **Aggregate by** Max, e l'**Intervallo di tempo** è **Past 5 Minutes**. Una valutazione vede questi cinque punti dati di un minuto:
+Volete un incidente quando la coda di checkout resta profonda. La query `a` è il gauge `checkout.queue.depth`, con **Aggregate by** Max, e l'**Intervallo di tempo** è **Ultimi 5 minuti**. Una valutazione vede questi cinque punti dati di un minuto:
 
 | Minuto | 10:01 | 10:02 | 10:03 | 10:04 | 10:05 |
 | --- | --- | --- | --- | --- | --- |
 | `a` | 640 | 980 | 1.500 | 1.620 | 1.100 |
 
-Un criterio con **Metrica** `a`, **Condizione** **Maggiore di** e **Threshold** `1000` dà una risposta diversa per ogni **Aggregazione**:
+Un criterio con **Metrica** `a`, **Condizione** **Maggiore di** e **Soglia** `1000` dà una risposta diversa per ogni **Aggregazione**:
 
 | Aggregazione | Confrontato con 1.000 | Corrisponde? |
 | --- | --- | --- |
@@ -164,7 +164,7 @@ Un criterio con **Metrica** `a`, **Condizione** **Maggiore di** e **Threshold** 
 
 ## Avvisi per serie (Group By)
 
-**Group by** su una query di metriche divide quella query in una serie per ogni valore unico dell'attributo (una per host, una per container, una per punto di montaggio), e un monitor con Group By impostato valuta ogni serie in modo indipendente. Quest'unica impostazione fa la differenza tra «la flotta non sta bene» e «`prod-db-01` non sta bene».
+**Raggruppa per** su una query di metriche divide quella query in una serie per ogni valore unico dell'attributo (una per host, una per container, una per punto di montaggio), e un monitor con Group By impostato valuta ogni serie in modo indipendente. Quest'unica impostazione fa la differenza tra «la flotta non sta bene» e «`prod-db-01` non sta bene».
 
 ### Un avviso per gruppo
 
@@ -189,7 +189,7 @@ Ogni avviso per gruppo segue il proprio gruppo. Quando l'host A torna sotto la s
 
 ### Scegliere un attributo per raggruppare
 
-Raggruppate per un attributo che identifichi davvero una cosa distinta per cui avvisereste qualcuno: l'attributo dell'host per una metrica di host su tutta la flotta, l'attributo del container o del pod per una metrica di container, l'attributo del punto di montaggio o del dispositivo per una metrica di file system o di I/O del disco, l'attributo dell'interfaccia per una metrica di rete. L'elenco **Group by** viene riempito con gli attributi che il vostro collector invia davvero, quindi scegliete dall'elenco invece di digitare una chiave a mano.
+Raggruppate per un attributo che identifichi davvero una cosa distinta per cui avvisereste qualcuno: l'attributo dell'host per una metrica di host su tutta la flotta, l'attributo del container o del pod per una metrica di container, l'attributo del punto di montaggio o del dispositivo per una metrica di file system o di I/O del disco, l'attributo dell'interfaccia per una metrica di rete. L'elenco **Raggruppa per** viene riempito con gli attributi che il vostro collector invia davvero, quindi scegliete dall'elenco invece di digitare una chiave a mano.
 
 Non raggruppate una metrica che è già un singolo scalare per l'intero sistema (un flag di leader dell'intero cluster, un arretrato dello scheduler o la CPU di un singolo host in un monitor per un solo host). Raggrupparla produce esattamente una serie e non cambia nulla tranne i titoli degli avvisi.
 
@@ -206,7 +206,7 @@ Un intervallo senza punti dati non è un valore pari a 0. Con **Se nessun dato**
 :::
 
 :::details Ricevo un solo avviso per tutta la flotta
-La query non ha **Group by**, quindi tutti gli host vengono ridotti a un solo numero. Raggruppate la query per l'attributo dell'host, del container o del punto di montaggio (vedete [Avvisi per serie](#avvisi-per-serie-group-by)).
+La query non ha **Raggruppa per**, quindi tutti gli host vengono ridotti a un solo numero. Raggruppate la query per l'attributo dell'host, del container o del punto di montaggio (vedete [Avvisi per serie](#avvisi-per-serie-group-by)).
 :::
 
 :::details Un criterio di anomalia non scatta mai

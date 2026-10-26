@@ -75,19 +75,19 @@ Du skal have tilladelse til at oprette SLO-forbrugsrateregler.
 :::steps
 ### Åbn Burn Rate Rules
 
-Åbn SLO'et, gå til **Burn Rate Rules** i sektionen **Regler** i dets sidemenu, og klik på **Opret SLO Burn Rate Rule**, eller redigér en af standardreglerne.
+Åbn SLO'et, gå til **Forbrugsrateregler** i sektionen **Regler** i dets sidemenu, og klik på **Opret SLO Burn Rate Rule**, eller redigér en af standardreglerne.
 
 ### Giv reglen et navn
 
-Under **Rule** angiver du et **Navn**, som "Fast burn". En ny regel er slået til; vil du senere stoppe den i at udløses, slår du **Aktiveret** fra på dens redigeringsformular.
+Under **Regel** angiver du et **Navn**, som "Fast burn". En ny regel er slået til; vil du senere stoppe den i at udløses, slår du **Aktiveret** fra på dens redigeringsformular.
 
 ### Angiv forbrugsvinduet
 
-Under **Burn Window** angiver du **Burn Rate Threshold** (for eksempel `14.4`), **Long Window (Minutes)** og **Short Window (Minutes)** og eventuelt **Re-fire Suppression (Minutes)**.
+Under **Forbrugsvindue** angiver du **Tærskel for forbrugsrate** (for eksempel `14.4`), **Langt vindue (minutter)** og **Kort vindue (minutter)** og eventuelt **Undertrykkelse af genudløsning (minutter)**.
 
 ### Vælg, hvad den erklærer
 
-Under **What It Declares** svarer du på **Når den udløses**: **Opret en advarsel**, standardvalget, **Erklær en hændelse** eller **Begge**. **Add SLO Owners as Owners** gør også SLO'ets ejere til ejere af alt, hvad reglen opretter.
+Under **Hvad den erklærer** svarer du på **Når den udløses**: **Opret en advarsel**, standardvalget, **Erklær en hændelse** eller **Begge**. **Tilføj SLO-ejere som ejere** gør også SLO'ets ejere til ejere af alt, hvad reglen opretter.
 
 ### Beskriv advarslen og hændelsen
 
@@ -98,10 +98,10 @@ OneUptime tjekker en regels tal, når du gemmer den:
 
 | Indstilling | Skal være |
 | --- | --- |
-| **Burn Rate Threshold** | Større end 0. |
-| **Short Window (Minutes)** | Større end 0. |
-| **Long Window (Minutes)** | Længere end det korte vindue. |
-| **Re-fire Suppression (Minutes)** | 0 eller mere. Tom betyder det lange vindues længde. |
+| **Tærskel for forbrugsrate** | Større end 0. |
+| **Kort vindue (minutter)** | Større end 0. |
+| **Langt vindue (minutter)** | Længere end det korte vindue. |
+| **Undertrykkelse af genudløsning (minutter)** | 0 eller mere. Tom betyder det lange vindues længde. |
 
 Hvert svar på **Når den udløses** åbner noget. API'et afviser en regel, der hverken ville oprette en advarsel eller erklære en hændelse, fordi den ville blive tjekket ved hver evaluering uden nogensinde at erklære noget.
 
@@ -118,7 +118,7 @@ Regeltabellen viser for hver regel tærsklen, vinduerne og undertrykkelsen, hvad
 | Hvad det er | Det lette signal: havner på advarselslisten. | Det tunge signal: får et hændelsesnummer og starter hele responsforløbet. |
 | Titel og beskrivelse | Egne, eller standardteksten | Egne, eller standardteksten |
 | Alvor | **Advarselsalvor**: projektets højeste, hvis tom | **Hændelsesalvor**: projektets højeste, hvis tom |
-| Eskalering | **Alert On-Call Duty Policies** | **Incident On-Call Duty Policies** |
+| Eskalering | **Vagtpolitikker for advarslen** | **Vagtpolitikker for hændelsen** |
 | Ejere og etiketter | **Ejere af advarslen** og **Advarselsmærkater** | **Ejere af hændelsen** og **Hændelsesetiketter** |
 | Privat | Fra | Fra |
 | Automatisk løsning | Til | Til |
@@ -180,7 +180,7 @@ For eksempel bliver titlen `{{ruleName}}: {{sloName}} is burning {{longWindowBur
 ## Ejere, etiketter og privatliv
 
 - **Ejere af advarslen** og **Ejere af hændelsen** er personer og teams, valgt fra én liste med **Tilføj ejer**. De tilføjes til advarslen eller hændelsen, så snart den oprettes, og får besked. Personer skal være medlemmer af projektet.
-- **Add SLO Owners as Owners** tilføjer også SLO'ets ejere, dets ejerbrugere og medlemmerne af dets ejerteams, til alt, hvad reglen opretter. SLO'ets ejere hører allerede om selve SLO'ets statusændringer, så det kan give dem besked to gange. Det er slået fra som standard.
+- **Tilføj SLO-ejere som ejere** tilføjer også SLO'ets ejere, dets ejerbrugere og medlemmerne af dets ejerteams, til alt, hvad reglen opretter. SLO'ets ejere hører allerede om selve SLO'ets statusændringer, så det kan give dem besked to gange. Det er slået fra som standard.
 - Hver ejer tilføjes én gang: en bruger, der allerede er ejer af advarslen eller hændelsen, for eksempel via projektets ejerregler, eller som er med i et tilføjet ejerteam, tilføjes ikke igen.
 - **Advarselsmærkater** og **Hændelsesetiketter** tilføjes til advarslen eller hændelsen, så filtre, ejerregler og beskedregler for arbejdsområdet kan matche dem.
 - En privat advarsel eller hændelse er kun synlig for sine ejere, projektets administratorer og projektets ejere.
@@ -198,7 +198,7 @@ Nogle ændringer løser altid det, en regel har åbnet, uanset hvad dens indstil
 - at ændre **Når den udløses**, så advarslen eller hændelsen udelades, lukker det, det output havde åbnet;
 - at slå reglen fra eller slette den;
 - at slå SLO'ets evaluering fra, arkivere SLO'et eller slette det;
-- at SLO'et skifter til **Sat på pause** eller **Misconfigured**, fordi det så ikke måler noget;
+- at SLO'et skifter til **Sat på pause** eller **Forkert konfigureret**, fordi det så ikke måler noget;
 - at reglen mister sin tærskel eller sine vinduer, eller at SLO'et ikke længere har et helt langt vindue af historik.
 
 ## Planlagt vedligeholdelse

@@ -225,7 +225,7 @@ Fra **Hendelser**-fanen til en enhet overvåker monitorene bare den enheten. For
 
 Syslog kan komme før enheten som sender det, er lagt til i OneUptime. På din egen sonde tas det vare på, hendelsene står på nettverkets Hendelser-side med navnet enheten gir seg selv, og adressen står under **Sender syslog, ennå ikke en enhet**:
 
-- **Legg til som enhet** åpner **Add Device** med adressen og sonden fylt ut. Meldingene som allerede har kommet, blir på nettverkets side; nye går til enheten.
+- **Legg til som enhet** åpner **Legg til enhet** med adressen og sonden fylt ut. Meldingene som allerede har kommet, blir på nettverkets side; nye går til enheten.
 - **Det er en av enhetene mine** legger adressen til **Andre adresser** på en enhet: bruk den når en enhet du allerede har lagt til, sender fra en annen adresse, for eksempel en loopback. Meldingene går til den enheten fra neste minutt.
 
 Flere enheter bak én NAT-adresse deler den adressen, så meldingene deres går til den ene enheten som har den, med mindre en melding nevner sin egen enhet.

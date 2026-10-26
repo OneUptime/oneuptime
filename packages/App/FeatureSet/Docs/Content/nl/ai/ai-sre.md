@@ -101,7 +101,7 @@ Standaard kan een onderzoek alleen de telemetrie gebruiken die je agents verstur
 De pagina van elk cluster heeft een sectie **AI** in het zijmenu:
 
 - **Agent**: de pagina **AI-agent** van het cluster: of de agent verbonden is, wat AI op het cluster mag doen en alles wat aandacht nodig heeft, elk met de stap die het oplost. Dezelfde uitleg verschijnt in het onderzoekspaneel van het incident wanneer AI alleen met gegevens van OneUptime moest onderzoeken.
-- **Inzichten**: de pagina **AI Insights** van het cluster: wat OneUptime AI over het cluster te weten kwam, wat steeds misgaat en waarom, en wat je eraan kunt doen (zie [Wat AI op een cluster heeft geleerd](#wat-ai-op-een-cluster-heeft-geleerd)).
+- **Inzichten**: de pagina **AI-inzichten** van het cluster: wat OneUptime AI over het cluster te weten kwam, wat steeds misgaat en waarom, en wat je eraan kunt doen (zie [Wat AI op een cluster heeft geleerd](#wat-ai-op-een-cluster-heeft-geleerd)).
 - **Logboeken**: de pagina **AI-logboeken** van het cluster: alles wat OneUptime AI op het cluster deed, het nieuwste eerst (zie [Alles wat AI op een cluster deed](#alles-wat-ai-op-een-cluster-deed)).
 
 Het **Overzicht** van het cluster eindigt met een kaart **AI-agent** die de pagina van de AI-agent samenvat: of de agent verbonden is, of **Onderzoeken met kubectl** aan staat, hoe fixes worden uitgevoerd (**Uit**, **Om goedkeuring vragen**, **Automatisch** of **Goedkeuring overslaan**) en wat aandacht nodig heeft, met een link naar de pagina van de AI-agent, waar ze worden gewijzigd.
@@ -121,7 +121,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 `kubernetes-agent` in `oneuptime-agent` zijn de releasenaam en de namespace die de installatie-instructies van het dashboard gebruiken; heb je de agent met andere namen geïnstalleerd, gebruik dan de jouwe (`helm list -A | grep kubernetes-agent` toont ze). Zonder `helm repo update` kan Helm de chart gebruiken waarmee je hebt geïnstalleerd, die `aiAgent` niet kent en faalt met `Additional property aiAgent is not allowed`. Upgrade bij een zelf gehoste OneUptime eerst OneUptime en dan de chart: zie [De agent upgraden](/docs/telemetry/kubernetes-agent#de-agent-upgraden). Om de chart zonder de AI-agent te draaien, geef je `--set aiAgent.enabled=false` mee.
 
-**Verbinding testen**, in het menu **⋯** naast de status van de agent op de pagina van de AI-agent, voert `kubectl version` en `kubectl auth can-i --list` via de agent uit en toont de resultaten: wat hij kan bereiken en wat hij mag doen. Zegt de pagina dat de agent niet verbonden is, lees dan zijn log met `kubectl logs -n oneuptime-agent -l component=ai-agent --tail=100`. Een sleutel met een **Pinned Service Name** kan de agent niet registreren: geef de chart een sleutel zonder. Weigert de server een registratie, dan zegt het log of de weigering vanzelf verdwijnt (een eerdere agent-pod die zich nog meldt, of de oude Runner in het cluster die tijdens een upgrade nog aan het afsluiten is) of wat je moet wijzigen. **Agent resetten**, in hetzelfde menu, laat de server de sleutel van de agent vergeten zodra je bevestigt; de pod maakt binnen enkele minuten vanzelf weer verbinding.
+**Verbinding testen**, in het menu **⋯** naast de status van de agent op de pagina van de AI-agent, voert `kubectl version` en `kubectl auth can-i --list` via de agent uit en toont de resultaten: wat hij kan bereiken en wat hij mag doen. Zegt de pagina dat de agent niet verbonden is, lees dan zijn log met `kubectl logs -n oneuptime-agent -l component=ai-agent --tail=100`. Een sleutel met een **Vastgezette servicenaam** kan de agent niet registreren: geef de chart een sleutel zonder. Weigert de server een registratie, dan zegt het log of de weigering vanzelf verdwijnt (een eerdere agent-pod die zich nog meldt, of de oude Runner in het cluster die tijdens een upgrade nog aan het afsluiten is) of wat je moet wijzigen. **Agent resetten**, in hetzelfde menu, laat de server de sleutel van de agent vergeten zodra je bevestigt; de pod maakt binnen enkele minuten vanzelf weer verbinding.
 
 De Kubernetes-AI-agent is geen Runner en verschijnt nooit onder Runbooks → Runbook-agenten. Hij gebruikt alleen zijn eigen ServiceAccount, dus OneUptime geeft hem nooit inloggegevens, hij wordt nooit gebruikt als Bash/SSH-host voor runbooks en hij wordt nooit geaccepteerd als opdracht-Runner van een AI-regel.
 
@@ -241,7 +241,7 @@ Wees je er wel van bewust wat die schrijftoegang betekent: **patch/update op wor
 
 ### Wat AI op een cluster heeft geleerd
 
-De pagina **AI Insights** van het cluster (AI → Inzichten) vertelt je wat er over het cluster de moeite waard is om te weten uit de laatste 30 dagen: geen overzicht van wat AI deed, maar wat het ontdekte:
+De pagina **AI-inzichten** van het cluster (AI → Inzichten) vertelt je wat er over het cluster de moeite waard is om te weten uit de laatste 30 dagen: geen overzicht van wat AI deed, maar wat het ontdekte:
 
 - **Wat OneUptime AI vond**: de paar dingen die het meest tellen, het belangrijkste eerst, elk met de incidenten en waarschuwingen erachter en één volgende stap:
   - een probleem dat steeds terugkomt: hoe vaak (elk incident en elke waarschuwing die het veroorzaakte telt mee, onderzocht of niet) en welk deel van het geheel dat is, of het deze week nieuw is of erger wordt, het tijdstip waarop het meestal begint (in je eigen tijdzone), de delen van het cluster die het raakt, wat het laatste onderzoek vond en de eerste stap die het rapport daarvan voorstelt;
@@ -427,7 +427,7 @@ Ze zijn onderaan de AI-instellingenpagina van elk signaaltype ingeklapt onder **
 | Dagelijkse tokenlimiet | Optioneel maximum aan tokens per UTC-dag voor autonoom AI-werk dat aan dit signaaltype is gekoppeld, inclusief onderzoeken, herstel en vervolgfix-taken. Gebruik door incidenten en door waarschuwingen wordt apart geteld. Wordt een limiet bereikt, dan wordt alleen het AI-werk van dat signaaltype gepauzeerd tot de volgende dag: interactieve AI-chat wordt nooit geblokkeerd. Niet ingesteld (de standaard) betekent **geen limiet**; stel **0** in om die baan te pauzeren. |
 | Dagelijkse limiet voor fix-taken | Maximaal aantal aan incidenten of waarschuwingen gekoppelde fix-taken dat per UTC-dag wordt aangemaakt. Elk signaaltype heeft een eigen limiet. Niet ingesteld (de standaard) betekent **geen limiet**; stel 0 in om de fix-taken van die baan te pauzeren. |
 
-AI-werk buiten incidenten en waarschuwingen (de triage van inzichten, en fix-taken voor exceptions, inzichten en prestatieregressies) heeft geen eigen instelling en geen van de limieten uit de tabel; alleen de eigen daglimieten van het project (hieronder) gelden ervoor. De pull requests ervan tellen mee voor **Max Open Fix Pull Requests** van een repository (op de pagina **Instellingen** van de repository) zodra je die instelt; niet ingesteld betekent geen plafond, en 0 blokkeert AI-pull-requests met een fix voor die repository.
+AI-werk buiten incidenten en waarschuwingen (de triage van inzichten, en fix-taken voor exceptions, inzichten en prestatieregressies) heeft geen eigen instelling en geen van de limieten uit de tabel; alleen de eigen daglimieten van het project (hieronder) gelden ervoor. De pull requests ervan tellen mee voor **Max. open fix-pull-requests** van een repository (op de pagina **Instellingen** van de repository) zodra je die instelt; niet ingesteld betekent geen plafond, en 0 blokkeert AI-pull-requests met een fix voor die repository.
 
 ### Hoe tokens worden geteld
 
@@ -480,7 +480,7 @@ Los van onderzoeken kan OneUptime AI automatisch een postmortem opstellen wannee
 
 ## Inzichten: proactieve detectie
 
-Onderzoeken reageren op incidenten en waarschuwingen. **AI Insights** letten op problemen voordat er iemand wordt opgeroepen: elke 15 minuten doorzoeken deterministische detectoren je telemetrie op problemen die (nog) geen monitor hebben laten afgaan. Er zit **geen AI in de bewakingslus**: de detectoren zijn statistische controles met vaste drempels, dus het altijd actieve deel van de functie gebruikt geen tokens en kan geen bevinding verzinnen. De drempels zijn bewust voorzichtig: een inzicht betekent dat er echt iets is verschoven, niet dat een getal wiebelde.
+Onderzoeken reageren op incidenten en waarschuwingen. **AI-inzichten** letten op problemen voordat er iemand wordt opgeroepen: elke 15 minuten doorzoeken deterministische detectoren je telemetrie op problemen die (nog) geen monitor hebben laten afgaan. Er zit **geen AI in de bewakingslus**: de detectoren zijn statistische controles met vaste drempels, dus het altijd actieve deel van de functie gebruikt geen tokens en kan geen bevinding verzinnen. De drempels zijn bewust voorzichtig: een inzicht betekent dat er echt iets is verschoven, niet dat een getal wiebelde.
 
 Waar de detectoren op letten:
 

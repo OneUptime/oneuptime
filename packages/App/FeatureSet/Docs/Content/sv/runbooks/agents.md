@@ -147,7 +147,7 @@ Lägg till ett JavaScript-, Bash-, SSH- eller kubectl-steg i ditt runbooks **Ste
 
 ### Spara stegen
 
-Klicka på **Save Steps**. När en körning når steget köar Workern ett jobb till den Runnerns ID, och bara den Runnern kan ta det. Ett steg på **Global Runner** väntar på den globala Runner som är ledig.
+Klicka på **Spara steg**. När en körning når steget köar Workern ett jobb till den Runnerns ID, och bara den Runnern kan ta det. Ett steg på **Global Runner** väntar på den globala Runner som är ledig.
 :::
 
 Bash körs med `bash -c`. JavaScript körs i en `isolated-vm`-sandlåda på Runnern utan åtkomst till filsystemet eller processer; det kan anropa publika HTTP-API:er med `axios`, men inte adresser på ett privat nätverk. Ett SSH- eller kubectl-steg loggar in med en hemlig [runbook-variabel](/docs/runbooks/variables), som måste lista stegets Runner under **Dina Runners som får använda den**.

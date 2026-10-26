@@ -60,7 +60,7 @@ Den Rest von OneUptime kann sie ebenfalls lesen, so wie es die Untersuchung eine
 | Wahrscheinlich Fehlalarm | Die Erkennung scheint normale Aktivität falsch gedeutet zu haben | False Positive |
 | Nicht eindeutig | Die Beweise reichten nicht für ein Urteil, eine Person muss es sich ansehen | Nichts |
 
-Die Einschätzung gehört OneUptime AI, sie ist nie die Bewertung des Falls: **Close Case** beginnt mit der Bewertung, die sie vorschlägt, und eine Person wählt. Unter der Einschätzung zeigt die Karte:
+Die Einschätzung gehört OneUptime AI, sie ist nie die Bewertung des Falls: **Fall schließen** beginnt mit der Bewertung, die sie vorschlägt, und eine Person wählt. Unter der Einschätzung zeigt die Karte:
 
 - **Vorgeschlagene Priorität**, mit **Priorität setzen**, wenn der Fall eine andere Priorität hat.
 - **Vorgeschlagenes Playbook**, mit **Playbook ausführen**, das es in Ihrem Namen ausführt, mit jeder Genehmigung, die es braucht.
@@ -86,7 +86,7 @@ Neue Projekte starten mit ihm eingeschaltet; ein vorher angelegtes Projekt behä
 
 ## Ein Playbook nach einer Triage ausführen
 
-Ein Playbook, dessen **Auslöser** **Als wahrscheinlich bösartig triagiert** ist, läuft einmal auf einem Fall, wenn eine Triage ihn als Wahrscheinlich bösartig liest. **For Cases At Least**, **Only For Detections From** und **Only For These Detection Rules** grenzen es ein wie bei jedem Auslöser, und seine Eindämmungsschritte warten wie immer auf Genehmigung. Es läuft nicht:
+Ein Playbook, dessen **Auslöser** **Als wahrscheinlich bösartig triagiert** ist, läuft einmal auf einem Fall, wenn eine Triage ihn als Wahrscheinlich bösartig liest. **Für Fälle mindestens**, **Nur für Erkennungen aus** und **Nur für diese Erkennungsregeln** grenzen es ein wie bei jedem Auslöser, und seine Eindämmungsschritte warten wie immer auf Genehmigung. Es läuft nicht:
 
 - nach einer Triage, die Text gefunden hat, der eine KI steuern soll;
 - ein zweites Mal auf demselben Fall, wie oft der Fall auch triagiert wird;
@@ -129,7 +129,7 @@ Ein Teil der Daten des Falls, etwa eine Ereignismeldung oder ein Benutzername, w
 :::
 
 :::details Ein Playbook mit dem KI-Auslöser ist nicht gelaufen
-Prüfen Sie, ob das Playbook aktiviert ist, ob die Triage den Fall als Wahrscheinlich bösartig gelesen hat und ob seine Einstellungen **For Cases At Least**, **Only For Detections From** und **Only For These Detection Rules** zum Fall passen. Es läuft einmal pro Fall und nicht nach einer Triage, die Text gefunden hat, der eine KI steuern soll.
+Prüfen Sie, ob das Playbook aktiviert ist, ob die Triage den Fall als Wahrscheinlich bösartig gelesen hat und ob seine Einstellungen **Für Fälle mindestens**, **Nur für Erkennungen aus** und **Nur für diese Erkennungsregeln** zum Fall passen. Es läuft einmal pro Fall und nicht nach einer Triage, die Text gefunden hat, der eine KI steuern soll.
 :::
 
 ## Nächste Schritte

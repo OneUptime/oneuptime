@@ -54,7 +54,7 @@ Table API 使用 Basic 身份验证：把用户名和密码编码在一起。
 
 ### 添加触发器
 
-点击虚线的 **Choose what starts this workflow** 块，选择 **On Create Incident**。点击该触发器：它的 **Fields to pass on** 已经包含 **标题**，所以点击 **添加字段** 并选择 **描述**。
+点击虚线的 **选择启动此工作流的方式** 块，选择 **On Create Incident**。点击该触发器：它的 **Fields to pass on** 已经包含 **标题**，所以点击 **添加字段** 并选择 **描述**。
 
 ### 创建记录
 

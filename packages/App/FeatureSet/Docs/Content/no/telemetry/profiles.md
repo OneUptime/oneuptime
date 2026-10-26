@@ -309,13 +309,13 @@ Når en funksjon i din egen kode tar minst 5 % av profilens tid eller minne, ell
 | --- | --- |
 | **Flammegraf** | Hver stolpe er en funksjon i kallstakken, og bredden er proporsjonal med tiden eller ressursene den brukte. Klikk på en funksjon for å zoome inn og se hvem som kaller den, og hvem den kaller. |
 | **Top functions** | Profilens funksjoner, sortert etter egen eller total tid. **Bare koden min** skjuler biblioteksrammer. |
-| **Diff vs. baseline** | Profilen sammenlignet med en tidligere periode (**vs. for 1 time siden**, **vs. i går** eller **vs. forrige uke**), med funksjonene under **Most regressed** og **Most improved**. |
+| **Diff vs. baseline** | Profilen sammenlignet med en tidligere periode (**vs. for 1 time siden**, **vs. i går** eller **vs. forrige uke**), med funksjonene under **Størst forverring** og **Størst forbedring**. |
 
-**Download pprof** lagrer profilen for lokale verktøy som `go tool pprof`.
+**Last ned pprof** lagrer profilen for lokale verktøy som `go tool pprof`.
 
 ### Sammenkobling med spor
 
-Når en profil har trace- og span-ID-er (for eksempel som sample-etiketter `trace_id` / `span_id`), kan du gå rett fra et tregt span i et spor til den tilsvarende CPU- eller minneprofilen for å forstå nøyaktig hvilken kode som kjørte, og **Open linked trace** går den andre veien.
+Når en profil har trace- og span-ID-er (for eksempel som sample-etiketter `trace_id` / `span_id`), kan du gå rett fra et tregt span i et spor til den tilsvarende CPU- eller minneprofilen for å forstå nøyaktig hvilken kode som kjørte, og **Åpne tilknyttet spor** går den andre veien.
 
 Fanen **Profil** for et span inneholder også samplene som er knyttet til spans som ligger under det, fordi profilere ofte tilskriver en forespørsels CPU-tid et underordnet span i stedet for selve forespørselsspanet.
 

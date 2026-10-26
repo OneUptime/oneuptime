@@ -50,7 +50,7 @@ flowchart TB
 
 :::steps
 1. 在防火牆上，在 **Administration → SNMP** 下開啟 SNMP：新增一個 SNMPv3 使用者或 v2c 社群字串，並允許探測器的位址查詢它。
-2. 在 OneUptime 中，前往**網路 → Devices**，按一下 **Add Device**。輸入防火牆的管理位址，選擇一個能到達它的探測器，並在 **SNMP** 下新增 SNMP 憑證。
+2. 在 OneUptime 中，前往**網路 → Devices**，按一下 **新增裝置**。輸入防火牆的管理位址，選擇一個能到達它的探測器，並在 **SNMP** 下新增 SNMP 憑證。
 3. 在裝置的**設定**頁面上，在 **Polling & Data Collection** 下，從 **Vendor Health Template** 套用 **Sophos Firewall (SFOS / XGS)** 範本，並從 **Add a Vendor's Tables** 新增其表格。或者開啟 **Auto-Apply Vendor Health Template**，首次輪詢會同時完成這兩項。
 :::
 

@@ -92,7 +92,7 @@ Um monitor de certificado SSL novo começa com três critérios, então ele avis
 2. **O certificado vence em breve** — o certificado é válido, mas vence em 14 dias ou menos. Um **alerta** chamado "_monitor name_ certificate expires soon" é criado.
 3. **O certificado é válido** — o monitor é marcado como **Operacional**.
 
-O aviso de "vence em breve" é um alerta, não um incidente: ele não aparece nas suas páginas de status, não aciona ninguém a menos que você adicione uma política de plantão a ele, e não muda o status do monitor. Ele usa a segunda severidade de alerta do seu projeto, **Low** em um projeto novo. Quando o certificado renovado é detectado, o monitor volta para "O certificado é válido" e o alerta se resolve sozinho.
+O aviso de "vence em breve" é um alerta, não um incidente: ele não aparece nas suas páginas de status, não aciona ninguém a menos que você adicione uma política de plantão a ele, e não muda o status do monitor. Ele usa a segunda severidade de alerta do seu projeto, **Baixo** em um projeto novo. Quando o certificado renovado é detectado, o monitor volta para "O certificado é válido" e o alerta se resolve sozinho.
 
 Os critérios são verificados de cima para baixo, e o primeiro que corresponde decide o que acontece. Por isso "vence em breve" fica acima de "é válido": um certificado prestes a vencer ainda é válido, então corresponderia aos dois.
 

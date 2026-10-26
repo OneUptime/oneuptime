@@ -309,13 +309,13 @@ Når en funktion i din egen kode tager mindst 5 % af profilens tid eller hukomme
 | --- | --- |
 | **Flammegraf** | Hver bjælke er en funktion i kaldstakken, og dens bredde er proportional med den tid eller de ressourcer, den brugte. Klik på en funktion for at zoome ind og se dens kaldere og kaldte funktioner. |
 | **Top functions** | Profilens funktioner, sorteret efter egen eller samlet tid. **Kun min kode** skjuler biblioteksframes. |
-| **Diff vs. baseline** | Profilen sammenlignet med en tidligere periode (**vs. for 1 time siden**, **vs. i går** eller **vs. sidste uge**), med funktionerne under **Most regressed** og **Most improved**. |
+| **Diff vs. baseline** | Profilen sammenlignet med en tidligere periode (**vs. for 1 time siden**, **vs. i går** eller **vs. sidste uge**), med funktionerne under **Størst forværring** og **Størst forbedring**. |
 
 **Download pprof** gemmer profilen til lokale værktøjer som `go tool pprof`.
 
 ### Sammenkædning med spor
 
-Når en profil bærer trace- og span-ID'er (for eksempel som sample-labels `trace_id` / `span_id`), kan du gå direkte fra et langsomt span i et spor til den tilsvarende CPU- eller hukommelsesprofil for at forstå præcis, hvilken kode der kørte, og **Open linked trace** går den anden vej.
+Når en profil bærer trace- og span-ID'er (for eksempel som sample-labels `trace_id` / `span_id`), kan du gå direkte fra et langsomt span i et spor til den tilsvarende CPU- eller hukommelsesprofil for at forstå præcis, hvilken kode der kørte, og **Åbn tilknyttet spor** går den anden vej.
 
 Et spans fane **Profil** indeholder også de samples, der er knyttet til de spans, der ligger under det, fordi profilere ofte tilskriver en anmodnings CPU-tid et underordnet span frem for selve anmodningens span.
 

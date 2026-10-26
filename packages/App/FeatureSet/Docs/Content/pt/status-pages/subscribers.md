@@ -34,7 +34,7 @@ Uma página de status oferece cinco canais. Eles, e a página em que os visitant
 
 - **Mostrar página de assinantes** (`showSubscriberPageOnStatusPage`) — ligado por padrão. Coloca o item **Inscrever-se** na barra de navegação da página de status, onde os visitantes se inscrevem pelos canais abaixo.
 - **E-mail** (`enableEmailSubscribers`) — ligado por padrão. Todo o resto fica desligado até você ligá-lo.
-- **SMS** (`enableSmsSubscribers`) — desligado por padrão. No OneUptime Cloud, cada SMS é pago com o saldo de SMS e chamadas do projeto, a menos que a página tenha sua própria **Configuração do Twilio** (veja [abaixo](#rodapé-de-e-mail-smtp-próprio-e-twilio)). Ligá-lo também exige **SMS** ligado para o projeto, no cartão **Canais de notificação** em **Configurações do projeto > Notificações > Configurações de notificação**, o que pode ser feito por um proprietário do projeto, um **Billing Admin** ou alguém com **Manage Billing**.
+- **SMS** (`enableSmsSubscribers`) — desligado por padrão. No OneUptime Cloud, cada SMS é pago com o saldo de SMS e chamadas do projeto, a menos que a página tenha sua própria **Configuração do Twilio** (veja [abaixo](#rodapé-de-e-mail-smtp-próprio-e-twilio)). Ligá-lo também exige **SMS** ligado para o projeto, no cartão **Canais de notificação** em **Configurações do projeto > Notificações > Configurações de notificação**, o que pode ser feito por um proprietário do projeto, um **Administrador de cobrança** ou alguém com **Manage Billing**.
 - **Slack** (`enableSlackSubscribers`) — desligado por padrão.
 - **Microsoft Teams** (`enableMicrosoftTeamsSubscribers`) — desligado por padrão.
 - **Webhook** (`enableWebhookSubscribers`) — desligado por padrão.
@@ -275,7 +275,7 @@ Os campos personalizados de incidentes com **Incluir nas notificações aos assi
 - **Slack** e **Microsoft Teams** os listam da mesma forma, um por linha.
 - Os payloads de **Webhook** os trazem em `data.customFields`, com a **Variável de modelo** de cada campo como chave: `{ "name": ..., "type": ..., "value": ... }`, com o valor como está armazenado (`null` quando o incidente não tem nenhum). As chaves não mudam quando um campo é renomeado.
 - **SMS** os deixa de fora. Uma mensagem de texto é cobrada por segmento e a padrão já está perto de um; um modelo de SMS personalizado pode colocar qualquer campo com `{{incident.customFields.<key>}}`.
-- As notificações de **Incident episode** não trazem campos personalizados: um episódio agrupa incidentes que têm cada um seus próprios valores. As notificações de cada incidente membro trazem os campos dele.
+- As notificações de **Episódio de incidente** não trazem campos personalizados: um episódio agrupa incidentes que têm cada um seus próprios valores. As notificações de cada incidente membro trazem os campos dele.
 
 A entrada **Notificação de assinante enviada** no feed do incidente lista, em **Custom fields sent**, os valores que cada envio colocou em uma mensagem. Os assinantes geralmente são de fora da sua equipe, então ligue a configuração apenas para campos que podem ser compartilhados com eles com segurança.
 
@@ -415,7 +415,7 @@ A chave é a **Variável de modelo** do campo, que não muda quando o campo é r
 
 **Duas delas são dados internos.** `{{affectedStatusPages}}` nomeia todo público que o incidente alcança: com [uma página de status por público](/docs/status-pages/one-status-page-per-audience), os assinantes de um local ficam sabendo quais outros locais foram afetados, e um cliente fica sabendo os nomes de outros. Um campo personalizado pode conter notas destinadas à sua equipe. Coloque-os apenas em modelos cujos assinantes possam vê-los.
 
-**Colocar rótulos e campos personalizados exige acesso aos incidentes.** `{{incidentLabels}}` e `{{incident.customFields.<key>}}` leem os registros de incidentes da sua equipe, que a página de status não mostra. Por isso, um modelo que os coloca só pode ser salvo por quem pode ler todo incidente e os campos personalizados dele — **Project Owner**, **Project Admin**, **Project Member** ou **Viewer**, ou **Incident Admin**, **Incident Member** ou **Incident Viewer**, sem um limite a alguns rótulos ou aos incidentes de que é proprietário. **Status Page Admin** e **Status Page Member** sozinhos podem escrever modelos, mas não adicionar esses espaços reservados; eles ainda podem editar o resto de um modelo que já os tem. `{{affectedStatusPages}}` não exige mais do que o próprio modelo.
+**Colocar rótulos e campos personalizados exige acesso aos incidentes.** `{{incidentLabels}}` e `{{incident.customFields.<key>}}` leem os registros de incidentes da sua equipe, que a página de status não mostra. Por isso, um modelo que os coloca só pode ser salvo por quem pode ler todo incidente e os campos personalizados dele — **Proprietário do projeto**, **Administrador do projeto**, **Membro do projeto** ou **Visualizador**, ou **Administrador de incidentes**, **Membro de incidentes** ou **Visualizador de incidentes**, sem um limite a alguns rótulos ou aos incidentes de que é proprietário. **Administrador de páginas de status** e **Membro de páginas de status** sozinhos podem escrever modelos, mas não adicionar esses espaços reservados; eles ainda podem editar o resto de um modelo que já os tem. `{{affectedStatusPages}}` não exige mais do que o próprio modelo.
 
 ### O estado nos modelos de nota
 

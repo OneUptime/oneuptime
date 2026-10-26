@@ -126,7 +126,7 @@ Hver kommando som starter arbeid, er en full agentkjøring: en klon, opptil 40 L
 
 GitHub-kommandoer er AI-arbeid utenfor hendelser og varsler, så ingen daglig grense for rettingsoppgaver gjelder for dem; prosjektets egne daglige AI-grenser gjør det, når prosjektet setter dem. Den eneste andre grensen er den som allerede gjelder for oppgavene i [Kode](/docs/ai/ai-agent):
 
-- **Taket på åpne pull requests** (**Max Open Fix Pull Requests**, under **Flere innstillinger** på repositoriets side **Innstillinger**). **AI-rettings-pull requests** står på **Ingen grense** til du velger **En grense**, eller **Ingen**, som blokkerer AI-rettings-pull-requests i det repositoriet. Gjennomganger og revisjoner er unntatt: ingen av dem legger en pull request i gjennomgangskøen din.
+- **Taket på åpne pull requests** (**Maks. åpne pull-forespørsler med rettelser**, under **Flere innstillinger** på repositoriets side **Innstillinger**). **AI-rettings-pull requests** står på **Ingen grense** til du velger **En grense**, eller **Ingen**, som blokkerer AI-rettings-pull-requests i det repositoriet. Gjennomganger og revisjoner er unntatt: ingen av dem legger en pull request i gjennomgangskøen din.
 
 Bare én kjøring av en type er aktiv om gangen per issue eller pull request. Spør du to ganger, får du vite at den allerede jobber; ber du om en gjennomgang mens en revisjon kjører, starter begge, siden det er forskjellige forespørsler.
 
@@ -134,9 +134,9 @@ Hvis en kjøring ikke kan starte, sier appen hvorfor i tråden: den feiler aldri
 
 ## Slå den av
 
-Hvert repositorium har en bryter: **Respond to GitHub Commands**, under **Flere innstillinger** på repositoriets side **Innstillinger**. Den er på for alle repositorier og lagres i det øyeblikket du slår den om. Når den er av, ignorerer appen omtaler, tildelinger og utløseretiketten i det repositoriet, og forteller alle som spør, hvor bryteren er.
+Hvert repositorium har en bryter: **Svar på GitHub-kommandoer**, under **Flere innstillinger** på repositoriets side **Innstillinger**. Den er på for alle repositorier og lagres i det øyeblikket du slår den om. Når den er av, ignorerer appen omtaler, tildelinger og utløseretiketten i det repositoriet, og forteller alle som spør, hvor bryteren er.
 
-Den samme siden har **GitHub Trigger Label** under **Flere innstillinger**, hvis du vil ha en annen etikett enn `oneuptime`.
+Den samme siden har **GitHub-utløseretikett** under **Flere innstillinger**, hvis du vil ha en annen etikett enn `oneuptime`.
 
 ## Hva du skal abonnere på
 
@@ -166,7 +166,7 @@ Behandle en pull request som AI-en skrev, slik du ville behandlet en fra en ny b
 ## Feilsøking
 
 :::details Ingenting skjer når jeg nevner den
-Sjekk handlen først: det er appens slug, ikke visningsnavnet. Sjekk deretter at repositoriet er koblet til et prosjekt (i **Produkter → Kode**), at **Respond to GitHub Commands** er på, og at GitHub App-en din abonnerer på hendelsene over.
+Sjekk handlen først: det er appens slug, ikke visningsnavnet. Sjekk deretter at repositoriet er koblet til et prosjekt (i **Produkter → Kode**), at **Svar på GitHub-kommandoer** er på, og at GitHub App-en din abonnerer på hendelsene over.
 :::
 
 :::details Den reagerer med 😕 og sier ingenting

@@ -101,7 +101,7 @@ Fra start kan en undersøgelse kun bruge den telemetri, dine agenter sender. For
 Hvert clusters side har et afsnit **AI** i sidemenuen:
 
 - **Agent**: clusterets side **AI-agent**: om agenten er forbundet, hvad AI må gøre på clusteret, og alt, der kræver opmærksomhed, hver med det trin, der løser det. Samme forklaring vises i hændelsens undersøgelsespanel, når AI måtte undersøge med OneUptimes data alene.
-- **Indsigter**: clusterets side **AI Insights**: hvad OneUptime AI har fundet ud af om clusteret, hvad der bliver ved med at gå galt og hvorfor, og hvad der kan gøres ved det (se [Hvad AI har lært på et cluster](#hvad-ai-har-lært-på-et-cluster)).
+- **Indsigter**: clusterets side **AI-indsigter**: hvad OneUptime AI har fundet ud af om clusteret, hvad der bliver ved med at gå galt og hvorfor, og hvad der kan gøres ved det (se [Hvad AI har lært på et cluster](#hvad-ai-har-lært-på-et-cluster)).
 - **Protokoller**: clusterets side **AI-logs**: alt, hvad OneUptime AI har gjort på clusteret, nyeste først (se [Alt, hvad AI har gjort på et cluster](#alt-hvad-ai-har-gjort-på-et-cluster)).
 
 Clusterets **Oversigt** slutter med et kort **AI-agent**, der opsummerer AI-agentens side: om agenten er forbundet, om **Undersøg med kubectl** er slået til, hvordan rettelser køres (**Fra**, **Bed om godkendelse**, **Automatisk** eller **Spring godkendelse over**), og hvad der kræver opmærksomhed, med et link til AI-agentens side, hvor de ændres.
@@ -121,7 +121,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 `kubernetes-agent` i `oneuptime-agent` er det releasenavn og det namespace, som dashboardets installationsvejledning bruger; installerede du agenten med andre navne, så brug dine (`helm list -A | grep kubernetes-agent` viser dem). Uden `helm repo update` kan Helm bruge det chart, du installerede fra, som ikke kender `aiAgent` og fejler med `Additional property aiAgent is not allowed`. På en selvhostet OneUptime opgraderer du OneUptime før chartet: se [Opgrader agenten](/docs/telemetry/kubernetes-agent#opgradering-af-agenten). For at køre chartet uden AI-agenten angiver du `--set aiAgent.enabled=false`.
 
-**Test forbindelse** i menuen **⋯** ved siden af agentens status på AI-agentens side kører `kubectl version` og `kubectl auth can-i --list` gennem agenten og viser resultaterne: hvad den kan nå, og hvad den må gøre. Siger siden, at agenten ikke er forbundet, så læs dens log med `kubectl logs -n oneuptime-agent -l component=ai-agent --tail=100`. En nøgle med et **Pinned Service Name** kan ikke registrere agenten: giv chartet en nøgle uden. Når serveren afviser en registrering, siger loggen, om afvisningen forsvinder af sig selv (en tidligere agent-pod, der stadig melder sig, eller den gamle Runner i clusteret, der stadig er ved at lukke ned under en opgradering), eller hvad der skal ændres. **Nulstil agent** i samme menu får serveren til at glemme agentens nøgle, når du bekræfter; poden forbinder af sig selv igen inden for få minutter.
+**Test forbindelse** i menuen **⋯** ved siden af agentens status på AI-agentens side kører `kubectl version` og `kubectl auth can-i --list` gennem agenten og viser resultaterne: hvad den kan nå, og hvad den må gøre. Siger siden, at agenten ikke er forbundet, så læs dens log med `kubectl logs -n oneuptime-agent -l component=ai-agent --tail=100`. En nøgle med et **Fastgjort tjenestenavn** kan ikke registrere agenten: giv chartet en nøgle uden. Når serveren afviser en registrering, siger loggen, om afvisningen forsvinder af sig selv (en tidligere agent-pod, der stadig melder sig, eller den gamle Runner i clusteret, der stadig er ved at lukke ned under en opgradering), eller hvad der skal ændres. **Nulstil agent** i samme menu får serveren til at glemme agentens nøgle, når du bekræfter; poden forbinder af sig selv igen inden for få minutter.
 
 Kubernetes-AI-agenten er ikke en Runner og vises aldrig under Runbooks → Runbook-agenter. Den bruger kun sin egen ServiceAccount, så OneUptime giver den aldrig loginoplysninger, den bruges aldrig som Bash/SSH-vært for runbooks, og den accepteres aldrig som kommando-Runner for en AI-regel.
 
@@ -241,7 +241,7 @@ Vær dog klar over, hvad den skriveadgang betyder: **patch/update på workloads,
 
 ### Hvad AI har lært på et cluster
 
-Clusterets side **AI Insights** (AI → Indsigter) fortæller dig, hvad der er værd at vide om clusteret ud fra de seneste 30 dage: ikke en oversigt over, hvad AI har gjort, men hvad den har fundet ud af:
+Clusterets side **AI-indsigter** (AI → Indsigter) fortæller dig, hvad der er værd at vide om clusteret ud fra de seneste 30 dage: ikke en oversigt over, hvad AI har gjort, men hvad den har fundet ud af:
 
 - **Hvad OneUptime AI fandt**: de få ting, der betyder mest, det vigtigste først, hver med de hændelser og advarsler, der ligger bag, og ét næste skridt:
   - et problem, der bliver ved med at vende tilbage: hvor ofte (hver hændelse og advarsel, det har udløst, tæller med, undersøgt eller ej), og hvor stor en del af det hele det er, om det er nyt i denne uge eller bliver værre, det tidspunkt på dagen, hvor det plejer at begynde (i din egen tidszone), de dele af clusteret, det rammer, hvad den seneste undersøgelse fandt, og det første skridt, dens rapport foreslår;
@@ -427,7 +427,7 @@ De er foldet sammen under **Yderligere indstillinger** nederst på hver signalty
 | Daglig tokengrænse | Valgfrit maksimum af tokens pr. UTC-døgn for autonomt AI-arbejde knyttet til denne signaltype, inklusive undersøgelser, afhjælpning og opfølgende rettelsesopgaver. Forbrug for hændelser og for advarsler tælles hver for sig. Når en grænse er nået, sættes kun den signaltypes AI-arbejde på pause til næste dag: interaktiv AI-chat blokeres aldrig. Ikke sat (standarden) betyder **ingen grænse**; sæt **0** for at sætte det spor på pause. |
 | Daglig grænse for rettelsesopgaver | Højeste antal rettelsesopgaver knyttet til hændelser eller advarsler, der oprettes pr. UTC-døgn. Hver signaltype har sin egen grænse. Ikke sat (standarden) betyder **ingen grænse**; sæt 0 for at sætte det spors rettelsesopgaver på pause. |
 
-AI-arbejde uden for hændelser og advarsler (triage af indsigter og rettelsesopgaver for undtagelser, indsigter og ydelsesregressioner) har ingen egen indstilling og ingen af grænserne i tabellen; kun projektets egne daglige grænser (nedenfor) gælder for det. Dets pull requests tæller med i et repositorys **Max Open Fix Pull Requests** (på repositoryets side **Indstillinger**), så snart du sætter en; ikke sat betyder intet loft, og 0 blokerer AI-pull requests med rettelser for det repository.
+AI-arbejde uden for hændelser og advarsler (triage af indsigter og rettelsesopgaver for undtagelser, indsigter og ydelsesregressioner) har ingen egen indstilling og ingen af grænserne i tabellen; kun projektets egne daglige grænser (nedenfor) gælder for det. Dets pull requests tæller med i et repositorys **Maks. åbne pull requests med rettelser** (på repositoryets side **Indstillinger**), så snart du sætter en; ikke sat betyder intet loft, og 0 blokerer AI-pull requests med rettelser for det repository.
 
 ### Sådan tælles tokens
 
@@ -480,7 +480,7 @@ Uafhængigt af undersøgelser kan OneUptime AI automatisk skrive et udkast til e
 
 ## Indsigter: proaktiv detektion
 
-Undersøgelser reagerer på hændelser og advarsler. **AI Insights** holder øje med problemer, før nogen bliver tilkaldt: hvert 15. minut gennemsøger deterministiske detektorer din telemetri efter problemer, der (endnu) ikke har udløst en monitor. Der er **ingen AI i overvågningsløkken**: detektorerne er statistiske kontroller med faste tærskler, så den del af funktionen, der altid kører, bruger ingen tokens og kan ikke hallucinere et fund. Tærsklerne er bevidst forsigtige: en indsigt betyder, at noget virkelig har flyttet sig, ikke at et tal har vippet.
+Undersøgelser reagerer på hændelser og advarsler. **AI-indsigter** holder øje med problemer, før nogen bliver tilkaldt: hvert 15. minut gennemsøger deterministiske detektorer din telemetri efter problemer, der (endnu) ikke har udløst en monitor. Der er **ingen AI i overvågningsløkken**: detektorerne er statistiske kontroller med faste tærskler, så den del af funktionen, der altid kører, bruger ingen tokens og kan ikke hallucinere et fund. Tærsklerne er bevidst forsigtige: en indsigt betyder, at noget virkelig har flyttet sig, ikke at et tal har vippet.
 
 Hvad detektorerne holder øje med:
 

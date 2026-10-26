@@ -126,7 +126,7 @@ Todo comando que inicia trabalho é uma execução completa do agente: um clone,
 
 Comandos do GitHub são trabalho de IA fora de incidentes e alertas, então nenhum limite diário de tarefas de correção se aplica a eles; os limites diários de IA do próprio projeto se aplicam, quando o projeto os define. O único outro limite é o que já rege as tarefas de [Código](/docs/ai/ai-agent):
 
-- **O teto de pull requests abertos** (**Max Open Fix Pull Requests**, em **Mais configurações** na página **Configurações** do repositório). **Pull requests de correção de IA** fica em **Sem limite** até você escolher **Um limite**, ou **Nenhum**, que bloqueia os pull requests de correção de IA nesse repositório. Avaliações e revisões ficam isentas: nenhuma delas adiciona um pull request à sua fila de revisão.
+- **O teto de pull requests abertos** (**Máximo de pull requests de correção abertas**, em **Mais configurações** na página **Configurações** do repositório). **Pull requests de correção de IA** fica em **Sem limite** até você escolher **Um limite**, ou **Nenhum**, que bloqueia os pull requests de correção de IA nesse repositório. Avaliações e revisões ficam isentas: nenhuma delas adiciona um pull request à sua fila de revisão.
 
 Só uma execução de cada tipo fica ativa por vez em cada issue ou pull request. Pedir duas vezes informa que ela já está trabalhando; pedir uma avaliação enquanto uma revisão roda inicia as duas, já que são pedidos diferentes.
 
@@ -134,9 +134,9 @@ Se uma execução não puder começar, a app diz por quê na conversa: ela nunca
 
 ## Desligando
 
-Cada repositório tem uma chave: **Respond to GitHub Commands**, em **Mais configurações** na página **Configurações** do repositório. Ela vem ligada em todos os repositórios e salva assim que você a muda. Com ela desligada, a app ignora menções, atribuições e o rótulo de gatilho nesse repositório, e diz a quem perguntar onde fica a chave.
+Cada repositório tem uma chave: **Responder a comandos do GitHub**, em **Mais configurações** na página **Configurações** do repositório. Ela vem ligada em todos os repositórios e salva assim que você a muda. Com ela desligada, a app ignora menções, atribuições e o rótulo de gatilho nesse repositório, e diz a quem perguntar onde fica a chave.
 
-A mesma página tem o **GitHub Trigger Label**, em **Mais configurações**, se você quiser um rótulo diferente de `oneuptime`.
+A mesma página tem o **Rótulo de acionamento do GitHub**, em **Mais configurações**, se você quiser um rótulo diferente de `oneuptime`.
 
 ## Em que se inscrever
 
@@ -166,7 +166,7 @@ Trate um pull request que a IA escreveu como você trataria um de um novo colabo
 ## Solução de problemas
 
 :::details Nada acontece quando eu a menciono
-Verifique primeiro o identificador: é o slug da app, não o nome de exibição. Depois verifique se o repositório está conectado a um projeto (em **Produtos → Código**), se **Respond to GitHub Commands** está ligado e se a sua GitHub App está inscrita nos eventos acima.
+Verifique primeiro o identificador: é o slug da app, não o nome de exibição. Depois verifique se o repositório está conectado a um projeto (em **Produtos → Código**), se **Responder a comandos do GitHub** está ligado e se a sua GitHub App está inscrita nos eventos acima.
 :::
 
 :::details Ela reage com 😕 e não diz nada

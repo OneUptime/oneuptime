@@ -46,7 +46,7 @@ flowchart TB
 :::steps
 1. **제품 → AI / LLM → 예산** 을 열고 **LLM Cost Budget 만들기** 를 클릭합니다. **일일 예산(USD)** 을 설정하고, 예산이 그 에이전트만 지켜보도록 **서비스(선택 사항)** 에서 에이전트의 서비스를 고릅니다.
 2. 새 예산의 행 메뉴에서 **ID 표시** 를 골라 ID를 복사합니다.
-3. `oneuptime.llm.budget.percent.used` 에 대한 [메트릭 모니터](/docs/monitor/metrics-monitor) 를 만들고, 속성 `oneuptime.llm.budget.id` 를 복사한 ID로 필터링한 뒤, **시간 범위** 를 **Past 30 Minutes** 로 설정합니다.
+3. `oneuptime.llm.budget.percent.used` 에 대한 [메트릭 모니터](/docs/monitor/metrics-monitor) 를 만들고, 속성 `oneuptime.llm.budget.id` 를 복사한 ID로 필터링한 뒤, **시간 범위** 를 **지난 30분** 로 설정합니다.
 4. 알림을 만드는 조건 **이상** `100` 을 추가하고, 에이전트 이름이 들어간 **경고 제목** 을 붙입니다. 예를 들면 `LLM budget exceeded: support-bot` 입니다. 워크플로와 엔드포인트 모두 이 제목을 읽습니다.
 :::
 
@@ -125,7 +125,7 @@ app.post("/circuit-breaker", (req, res) => {
 
 ### 트리거 추가하기
 
-점선 블록 **Choose what starts this workflow** 를 클릭하고 **트리거 추가** 패널에서 **On Create Alert** 를 고릅니다. 트리거를 클릭합니다. **Fields to pass on** 에는 처음부터 제목이 들어 있으므로, **필드 추가** 를 클릭해 설명을 체크한 뒤 **저장** 을 클릭합니다. 블록에 표시된 ID `alert-on-create-1` 은 이후 블록이 이 블록을 참조할 때 쓰입니다.
+점선 블록 **이 워크플로를 시작할 항목 선택** 을 클릭하고 **트리거 추가** 패널에서 **On Create Alert** 를 고릅니다. 트리거를 클릭합니다. **Fields to pass on** 에는 처음부터 제목이 들어 있으므로, **필드 추가** 를 클릭해 설명을 체크한 뒤 **저장** 을 클릭합니다. 블록에 표시된 ID `alert-on-create-1` 은 이후 블록이 이 블록을 참조할 때 쓰입니다.
 
 ### 제목 확인하기
 
@@ -197,7 +197,7 @@ API 블록의 **Request Headers**:
 :::
 
 :::details 예산 알림이 열렸다 해결되기를 반복함
-모니터의 **시간 범위** 가 예산의 점 사이 간격인 15분보다 짧습니다. **Past 30 Minutes** 로 설정하세요.
+모니터의 **시간 범위** 가 예산의 점 사이 간격인 15분보다 짧습니다. **지난 30분** 로 설정하세요.
 :::
 
 :::details 요청이 엔드포인트에 도달하지 않음

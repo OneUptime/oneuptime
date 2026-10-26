@@ -144,10 +144,10 @@ Wenn ein Guthaben nicht ausreicht, wird die Nachricht nicht gesendet oder OneUpt
 
 | Um | Es braucht |
 | --- | --- |
-| Die Abrechnungsseiten lesen: Tarif, Rechnungen, Nutzung, Guthaben und Zahlungsmethoden | Project Owner, **Manage Billing**, **Billing Admin**, **Billing Member** oder **Billing Viewer** |
-| Eine Rechnung herunterladen | Project Owner, Project Admin, **Manage Billing**, **Read Invoices**, **Billing Admin** oder **Billing Member** |
-| Rechnungsadresse und Rechnungs-E-Mail ändern | Project Owner, **Manage Billing**, **Billing Admin** oder **Billing Member** |
-| SMS, Anrufe, WhatsApp oder Telegram ein- oder ausschalten | Project Owner, **Manage Billing** oder **Billing Admin** |
+| Die Abrechnungsseiten lesen: Tarif, Rechnungen, Nutzung, Guthaben und Zahlungsmethoden | Project Owner, **Manage Billing**, **Abrechnungs-Administrator**, **Abrechnungs-Mitglied** oder **Abrechnungs-Betrachter** |
+| Eine Rechnung herunterladen | Project Owner, Project Admin, **Manage Billing**, **Read Invoices**, **Abrechnungs-Administrator** oder **Abrechnungs-Mitglied** |
+| Rechnungsadresse und Rechnungs-E-Mail ändern | Project Owner, **Manage Billing**, **Abrechnungs-Administrator** oder **Abrechnungs-Mitglied** |
+| SMS, Anrufe, WhatsApp oder Telegram ein- oder ausschalten | Project Owner, **Manage Billing** oder **Abrechnungs-Administrator** |
 | Eine Zahlungsmethode hinzufügen | Project Owner, **Manage Billing** oder **Create Payment Method** |
 | Eine Rechnung bezahlen | Project Owner, **Manage Billing** oder **Edit Invoices** |
 | Den Tarif ändern, ein Guthaben aufladen oder das automatische Aufladen ändern | Project Owner oder **Manage Billing** |

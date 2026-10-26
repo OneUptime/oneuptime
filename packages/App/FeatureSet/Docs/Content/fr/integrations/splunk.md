@@ -48,7 +48,7 @@ Ouvrez **Produits → Événements de sécurité → Connexions** (`/dashboard/{
 
 ### La tester avant d'enregistrer
 
-Cliquez sur **Test these settings** sous **Tester avant d'enregistrer**. Le test s'authentifie et exécute votre recherche avec les valeurs du formulaire, sans rien stocker : un mauvais port ou un rôle manquant apparaît donc avant que la connexion n'existe. Cliquez ensuite sur **Suivant**, donnez un **Nom** à la connexion et créez-la.
+Cliquez sur **Tester ces paramètres** sous **Tester avant d'enregistrer**. Le test s'authentifie et exécute votre recherche avec les valeurs du formulaire, sans rien stocker : un mauvais port ou un rôle manquant apparaît donc avant que la connexion n'existe. Cliquez ensuite sur **Suivant**, donnez un **Nom** à la connexion et créez-la.
 :::
 
 | Réglage | Ce qu'il faut saisir |
@@ -59,9 +59,9 @@ Cliquez sur **Test these settings** sous **Tester avant d'enregistrer**. Le test
 | **Authentication token** | Le jeton de la première étape. Quand un jeton est enregistré, c'est lui qui est utilisé, et pas le nom d'utilisateur ni le mot de passe. |
 | **Mot de passe** | Le mot de passe de l'utilisateur Splunk, seulement quand aucun jeton n'est utilisé. |
 
-**Authentication token** et **Mot de passe** sont chiffrés, jamais renvoyés par l'API et jamais réaffichés. Remplacez-en un avec **Update credentials** sur la connexion. Pour passer d'une authentification à l'autre, saisissez-y la nouvelle et activez **Remove the stored Authentication token** ou **Remove the stored Password**.
+**Authentication token** et **Mot de passe** sont chiffrés, jamais renvoyés par l'API et jamais réaffichés. Remplacez-en un avec **Mettre à jour les identifiants** sur la connexion. Pour passer d'une authentification à l'autre, saisissez-y la nouvelle et activez **Remove the stored Authentication token** ou **Remove the stored Password**.
 
-L'étape **Polling** contient aussi une **Description** facultative, le **Poll Interval (Minutes)**, un nombre entier de `1` à `1440` qui vaut `5` au départ, et **Activé**, qui est activé au départ.
+L'étape **Interrogation** contient aussi une **Description** facultative, le **Intervalle d'interrogation (minutes)**, un nombre entier de `1` à `1440` qui vaut `5` au départ, et **Activé**, qui est activé au départ.
 
 ## Ce qui est importé
 
@@ -107,7 +107,7 @@ Un search head antérieur à 9.0.1 répond `404` à la requête vers `search/v2/
 
 ### Quand une fenêtre contient plus qu'une interrogation ne peut lire
 
-Une interrogation lit au plus 10 000 lignes. Quand une fenêtre en contient davantage, l'exécution est **Partial**, avec un avertissement comme celui-ci :
+Une interrogation lit au plus 10 000 lignes. Quand une fenêtre en contient davantage, l'exécution est **Partiel**, avec un avertissement comme celui-ci :
 
 ```text
 Stopped after collecting 10000 records; the window holds more. Records are read oldest first, and the last one read was created at 2026-09-14T08:12:44.000Z, where the next poll can resume.
@@ -119,22 +119,22 @@ Quand une exécution ne parvient pas du tout à dépasser le curseur enregistré
 
 1. **Réduire.** L'interrogation suivante lit une fenêtre deux fois plus courte, depuis le même point de départ, et continue de la diviser par deux jusqu'à ce qu'une fenêtre soit lue entièrement, jusqu'à une minute. L'avertissement de l'exécution le dit : `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **Revenir à la taille normale.** Une fois une fenêtre lue entièrement, la suivante est de nouveau deux fois plus longue, jusqu'à 24 heures.
-3. **Passer au-delà d'une seule minute.** Si même une minute contient plus qu'une interrogation ne peut lire, l'interrogation passe au-delà, pour que les notable events plus récents continuent d'arriver. L'exécution reste **Partial**, et **Dernière erreur** indique `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importez cette minute avec **Importer cette plage de temps** pour récupérer ce qu'une exécution peut lire.
+3. **Passer au-delà d'une seule minute.** Si même une minute contient plus qu'une interrogation ne peut lire, l'interrogation passe au-delà, pour que les notable events plus récents continuent d'arriver. L'exécution reste **Partiel**, et **Dernière erreur** indique `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importez cette minute avec **Importer cette plage de temps** pour récupérer ce qu'une exécution peut lire.
 
-Une exécution qui échoue complètement, avec une erreur de Splunk, garde le curseur et la longueur de fenêtre, et l'interrogation suivante relit la même fenêtre. La seule exception est une requête qui a expiré : le curseur reste, mais la fenêtre suivante est deux fois plus courte, car une fenêtre trop lourde pour recevoir une réponse à temps expirerait à chaque essai. Changer le **Poll Interval (Minutes)** n'y change rien : il décide à quelle fréquence une interrogation commence, pas où commence sa fenêtre.
+Une exécution qui échoue complètement, avec une erreur de Splunk, garde le curseur et la longueur de fenêtre, et l'interrogation suivante relit la même fenêtre. La seule exception est une requête qui a expiré : le curseur reste, mais la fenêtre suivante est deux fois plus courte, car une fenêtre trop lourde pour recevoir une réponse à temps expirerait à chaque essai. Changer le **Intervalle d'interrogation (minutes)** n'y change rien : il décide à quelle fréquence une interrogation commence, pas où commence sa fenêtre.
 
 ### Exécuter, prévisualiser et importer à la demande
 
 Cliquez sur **Diagnostics** sur une connexion pour voir ses exécutions récentes et travailler avec elle à la main. Quiconque peut modifier la connexion peut les lancer ; quiconque peut la voir peut lire l'historique.
 
-- **Run now** lance tout de suite une interrogation, avec le curseur habituel, même quand la connexion n'est pas **Activé**.
+- **Exécuter maintenant** lance tout de suite une interrogation, avec le curseur habituel, même quand la connexion n'est pas **Activé**.
 - **Preview notable events** lit une plage de temps de 7 jours au plus et n'importe rien.
 - **Importer cette plage de temps** importe une plage de 7 jours au plus, après votre confirmation, sans déplacer le curseur. Les lignes déjà importées sont sautées.
 - **Copier les diagnostics** sur une exécution copie son rapport pour le support. Il ne contient jamais d'identifiants.
 
 ## Tester la connexion
 
-**Tester la connexion** sur la ligne d'une connexion, et **Test these settings** dans le formulaire, s'exécutent dans le processus de l'API, pas dans un worker d'arrière-plan, pour qu'un test réponde même quand les workers sont le problème. Il effectue ces vérifications, dans l'ordre :
+**Tester la connexion** sur la ligne d'une connexion, et **Tester ces paramètres** dans le formulaire, s'exécutent dans le processus de l'API, pas dans un worker d'arrière-plan, pour qu'un test réponde même quand les workers sont le problème. Il effectue ces vérifications, dans l'ordre :
 
 | Vérification | Ce qu'elle vérifie |
 | --- | --- |
@@ -175,7 +175,7 @@ La **Dernière erreur** de la connexion conserve le message d'erreur complet, id
 
 :::details Dernière erreur commence par `Splunk Enterprise Security authentication request`
 - `Splunk Enterprise Security authentication request failed (HTTP ...)` : Splunk a refusé de dire qui est l'appelant.
-  - `HTTP 401` : Splunk n'a pas accepté les identifiants. Le jeton est faux, expiré ou supprimé, l'authentification par jeton est désactivée sur le search head, ou le nom d'utilisateur ou le mot de passe est faux. Créez un nouveau jeton et enregistrez-le avec **Update credentials**.
+  - `HTTP 401` : Splunk n'a pas accepté les identifiants. Le jeton est faux, expiré ou supprimé, l'authentification par jeton est désactivée sur le search head, ou le nom d'utilisateur ou le mot de passe est faux. Créez un nouveau jeton et enregistrez-le avec **Mettre à jour les identifiants**.
   - `HTTP 404` : la **Splunk management URL** n'est pas l'API REST. Elle pointe vers Splunk Web sur le port `8000`, ou elle a un chemin que le search head ne sert pas.
 - `Splunk Enterprise Security authentication request returned ...` : autre chose que l'API REST du search head a répondu, par exemple le HTML de Splunk Web sur le port `8000` ou la page d'un proxy. Faites pointer l'URL vers le port de gestion.
 :::
@@ -200,7 +200,7 @@ Aucune interrogation ne s'est terminée pour cette connexion. Lancez **Tester la
 :::
 
 :::details Une exécution est Partial
-- `Stopped after collecting 10000 records; the window holds more` : la fenêtre contenait plus que les 10 000 lignes qu'une exécution lit. Rien n'est perdu : l'interrogation suivante commence après la dernière ligne lue. Une connexion qui reste **Partial** d'interrogation en interrogation rattrape un retard, et ses valeurs **Dernière interrogation** et **Dernier événement importé** continuent d'avancer. Si elle ne rattrape jamais, la recherche de **Rechercher** trouve plus de 10 000 lignes par intervalle d'interrogation : restreignez-la, ou raccourcissez le **Poll Interval (Minutes)**.
+- `Stopped after collecting 10000 records; the window holds more` : la fenêtre contenait plus que les 10 000 lignes qu'une exécution lit. Rien n'est perdu : l'interrogation suivante commence après la dernière ligne lue. Une connexion qui reste **Partiel** d'interrogation en interrogation rattrape un retard, et ses valeurs **Dernière interrogation** et **Dernier événement importé** continuent d'avancer. Si elle ne rattrape jamais, la recherche de **Rechercher** trouve plus de 10 000 lignes par intervalle d'interrogation : restreignez-la, ou raccourcissez le **Intervalle d'interrogation (minutes)**.
 - `More records were created in the one minute from ... than one poll can read` : l'interrogation est passée au-delà de cette minute. Importez-la avec **Importer cette plage de temps** dans **Diagnostics**. Une importation lit autant qu'une interrogation.
 :::
 

@@ -100,9 +100,9 @@ Todo proyecto nuevo empieza con dos gravedades de alerta, de la más grave a la 
 | Gravedad | `order` | Color     | Descripción predefinida                                                           |
 | -------- | ------- | --------- | --------------------------------------------------------------------------------- |
 | **Alta** | `1`     | `#b70400` | Issues causing very high impact to customers. Immediate attention is required.    |
-| **Low**  | `2`     | `#ffbf53` | Issues causing low impact to customers.                                           |
+| **Baja**  | `2`     | `#ffbf53` | Issues causing low impact to customers.                                           |
 
-Los incidentes empiezan con tres gravedades y las alertas con dos. Cuando la plantilla de una recomendación de monitor dice **Crítico** o **Advertencia**, OneUptime la asigna a tu primera y segunda gravedad de alerta, que en un proyecto nuevo son **Alta** y **Low**.
+Los incidentes empiezan con tres gravedades y las alertas con dos. Cuando la plantilla de una recomendación de monitor dice **Crítico** o **Advertencia**, OneUptime la asigna a tu primera y segunda gravedad de alerta, que en un proyecto nuevo son **Alta** y **Baja**.
 
 ## Editar las gravedades
 

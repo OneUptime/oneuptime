@@ -20,7 +20,7 @@ Ogni grafico di serie temporali di OneUptime funziona anche da selettore dell'in
 
 I pannelli che mostrano lo stato attuale restano sul momento presente, come quando scegliete voi un intervallo: conteggi dell'inventario, stato di salute, principali consumatori di risorse, avvisi recenti, incidenti e allarmi aperti e gli elenchi in tempo reale di una dashboard.
 
-Mentre è attivo uno zoom, accanto al selettore dell'intervallo di tempo della pagina compare un pulsante **Reset zoom**. Fa la stessa cosa di un doppio clic ed è il modo per tornare indietro da tastiera e sugli schermi touch.
+Mentre è attivo uno zoom, accanto al selettore dell'intervallo di tempo della pagina compare un pulsante **Reimposta lo zoom**. Fa la stessa cosa di un doppio clic ed è il modo per tornare indietro da tastiera e sugli schermi touch.
 
 ```mermaid title="Cosa fanno un trascinamento, un doppio clic e il selettore all'intervallo della pagina"
 stateDiagram-v2
@@ -35,9 +35,9 @@ stateDiagram-v2
 
 ## Come si comporta lo zoom
 
-- **Ingrandite quanto volete; un solo ripristino risale fino in cima.** Dopo essere passati da «Past 1 Hour» a dieci minuti e poi a uno, un solo doppio clic (o **Reset zoom**) restituisce l'ora intera invece di risalire un livello alla volta.
+- **Ingrandite quanto volete; un solo ripristino risale fino in cima.** Dopo essere passati da «Past 1 Hour» a dieci minuti e poi a uno, un solo doppio clic (o **Reimposta lo zoom**) restituisce l'ora intera invece di risalire un livello alla volta.
 - **Qualsiasi grafico può ripristinare qualsiasi zoom.** Trascinate sul grafico della CPU e fate doppio clic su quello della memoria: è la pagina a essere ingrandita, non il grafico.
-- **Scegliere voi un intervallo ricomincia da capo.** Un intervallo predefinito o personalizzato nel selettore è un nuovo punto di partenza: lo zoom finisce e **Reset zoom** scompare.
+- **Scegliere voi un intervallo ricomincia da capo.** Un intervallo predefinito o personalizzato nel selettore è un nuovo punto di partenza: lo zoom finisce e **Reimposta lo zoom** scompare.
 - **Una finestra ingrandita è fissa.** «Past 30 Minutes» avanza con l'orologio; uno zoom è una finestra fissa, quindi smette di avanzare mentre l'aggiornamento automatico è attivo. Ripristinate lo zoom perché torni ad avanzare.
 - **Uno zoom non va mai oltre il momento attuale.** Il bucket più recente di un grafico di solito si sta ancora riempiendo; un trascinamento che termina su di esso viene tagliato all'ora attuale.
 - **Potete rilasciare il mouse fuori dal grafico**: il trascinamento conta comunque.
@@ -47,11 +47,11 @@ stateDiagram-v2
 ### Clic e trascinamenti
 
 - **Nei grafici a linee, ad aree e a barre, un semplice clic non è uno zoom.** Ciò riguarda la maggior parte dei grafici: schede delle metriche ed explorer delle metriche, panoramiche delle risorse, SLO, monitor e ogni grafico di una dashboard. Solo un trascinamento su più bucket ingrandisce, quindi fare clic su un punto, una barra o una voce della legenda continua a fare quello che faceva prima. Mentre è attivo uno zoom, un clic sull'area del grafico ha effetto un istante dopo, così da distinguerlo dal doppio clic che ripristina. Anche la sequenza temporale dei modelli di errore negli Insights dei log e l'Occurrence Trend di un'eccezione ingrandiscono solo con un trascinamento.
-- **Nei grafici di volume degli explorer, un clic su una barra ingrandisce quella barra.** I grafici di volume degli explorer di log, tracce, eccezioni ed eventi di sicurezza, e i grafici di analisi di log e tracce, ingrandiscono le barre su cui trascinate, o la singola barra su cui fate clic. Questi grafici mostrano **Click or drag to zoom**.
+- **Nei grafici di volume degli explorer, un clic su una barra ingrandisce quella barra.** I grafici di volume degli explorer di log, tracce, eccezioni ed eventi di sicurezza, e i grafici di analisi di log e tracce, ingrandiscono le barre su cui trascinate, o la singola barra su cui fate clic. Questi grafici mostrano **Fai clic o trascina per ingrandire**.
 
 ### Suggerimenti sui grafici
 
-La maggior parte dei grafici che ingrandiscono indica il gesto sopra l'area del grafico, **Drag to zoom** oppure **Click or drag to zoom**, e, mentre è attivo uno zoom, aggiunge il promemoria **double-click to reset**. Le schede delle metriche, l'explorer delle metriche e i grafici di volume degli explorer mostrano sempre il suggerimento. Sulle schede dei grafici delle panoramiche delle risorse e degli SLO, e su alcuni widget delle dashboard, compare solo mentre puntate sulla scheda o ci entrate con il tasto Tab.
+La maggior parte dei grafici che ingrandiscono indica il gesto sopra l'area del grafico, **Trascina per ingrandire** oppure **Fai clic o trascina per ingrandire**, e, mentre è attivo uno zoom, aggiunge il promemoria **double-click to reset**. Le schede delle metriche, l'explorer delle metriche e i grafici di volume degli explorer mostrano sempre il suggerimento. Sulle schede dei grafici delle panoramiche delle risorse e degli SLO, e su alcuni widget delle dashboard, compare solo mentre puntate sulla scheda o ci entrate con il tasto Tab.
 
 ## Dove funziona
 
@@ -63,13 +63,13 @@ Lo zoom cambia l'intervallo dell'intera pagina in:
 - schede delle metriche, compresa la scheda Metriche di una risorsa e le metriche di un monitor;
 - l'explorer delle metriche;
 - grafici della cronologia degli SLO;
-- Insights dei log, compresa la sequenza temporale «Quando è successo» di un modello di errore, il cui pannello ha un proprio **Reset zoom** perché copre il selettore della pagina;
+- Insights dei log, compresa la sequenza temporale «Quando è successo» di un modello di errore, il cui pannello ha un proprio **Reimposta lo zoom** perché copre il selettore della pagina;
 - grafici di volume di log, tracce, eccezioni ed eventi di sicurezza, e i grafici di analisi di log e tracce, che cambiano l'intervallo dell'explorer a cui appartengono;
 - [dashboard](/docs/dashboards/authoring), dove un trascinamento cambia l'intervallo dell'intera dashboard.
 
-I grafici con una finestra propria ingrandiscono solo quella finestra, quindi non cambiano mai nient'altro nella pagina. Ciò riguarda l'anteprima di una metrica nel modulo di un monitor (il monitor continua a valutare la propria finestra mobile), l'Occurrence Trend di un'eccezione, un grafico aperto in un popup o nel pannello di indagine e i grafici nelle risposte della chat IA. Un doppio clic su uno di essi, o il suo pulsante **Reset zoom**, ripristina la sua finestra.
+I grafici con una finestra propria ingrandiscono solo quella finestra, quindi non cambiano mai nient'altro nella pagina. Ciò riguarda l'anteprima di una metrica nel modulo di un monitor (il monitor continua a valutare la propria finestra mobile), l'Occurrence Trend di un'eccezione, un grafico aperto in un popup o nel pannello di indagine e i grafici nelle risposte della chat IA. Un doppio clic su uno di essi, o il suo pulsante **Reimposta lo zoom**, ripristina la sua finestra.
 
-Anche l'istantanea della telemetria nella pagina di un incidente, di un allarme o di un episodio ha una finestra propria. Un trascinamento sul suo grafico (il grafico della metrica, o il grafico di volume di log, tracce o eccezioni quando è questo che l'istantanea mostra) ingrandisce l'intera istantanea, così che le sue schede Metriche, Log, Tracce ed Eccezioni mostrino tutte la porzione tracciata. **Reset zoom** accanto al badge dell'istantanea, o un doppio clic su quel grafico, ripristina la finestra dell'istantanea.
+Anche l'istantanea della telemetria nella pagina di un incidente, di un allarme o di un episodio ha una finestra propria. Un trascinamento sul suo grafico (il grafico della metrica, o il grafico di volume di log, tracce o eccezioni quando è questo che l'istantanea mostra) ingrandisce l'intera istantanea, così che le sue schede Metriche, Log, Tracce ed Eccezioni mostrino tutte la porzione tracciata. **Reimposta lo zoom** accanto al badge dell'istantanea, o un doppio clic su quel grafico, ripristina la finestra dell'istantanea.
 
 ## Grafici senza zoom
 
@@ -79,7 +79,7 @@ Alcune visualizzazioni non hanno un asse temporale su cui trascinare, sono tropp
 - barre di ripartizione e proporzione, indicatori e barre di avanzamento;
 - flame graph, mappe dei servizi e diagrammi di flusso;
 - le piccole sparkline di tendenza negli elenchi delle metriche, dove un clic apre la metrica: apritela per avere un grafico ingrandibile;
-- piccole sparkline con una finestra fissa propria, come il tempo di andata e ritorno di un dispositivo di rete nell'ultima ora: il loro link **Open metrics** porta a grafici che potete ingrandire.
+- piccole sparkline con una finestra fissa propria, come il tempo di andata e ritorno di un dispositivo di rete nell'ultima ora: il loro link **Apri le metriche** porta a grafici che potete ingrandire.
 
 ## Passaggi successivi
 

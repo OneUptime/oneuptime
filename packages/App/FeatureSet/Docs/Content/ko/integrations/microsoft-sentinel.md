@@ -60,11 +60,11 @@ Azure portal에서 Log Analytics 워크스페이스를 엽니다. 그 **Overview
 
 ### OneUptime에서 연결 추가
 
-**제품 → Security Events → Connections**(`/dashboard/{projectId}/security-events/connections`)를 열고 **연결 추가**를 클릭한 다음, **Microsoft Sentinel**을 고르고 **다음**을 클릭합니다. 아래 표의 설정을 채우고 **다음**을 클릭한 뒤, 시크릿 값을 **Client secret**에 붙여 넣습니다.
+**제품 → Security Events → 연결**(`/dashboard/{projectId}/security-events/connections`)를 열고 **연결 추가**를 클릭한 다음, **Microsoft Sentinel**을 고르고 **다음**을 클릭합니다. 아래 표의 설정을 채우고 **다음**을 클릭한 뒤, 시크릿 값을 **클라이언트 시크릿**에 붙여 넣습니다.
 
 ### 저장하기 전에 테스트
 
-**저장하기 전에 테스트** 아래의 **Test these settings**를 클릭합니다. 테스트는 양식의 값으로 로그인해 인시던트를 읽지만 아무것도 저장하지 않으므로, 잘못된 시크릿이나 빠진 역할을 연결이 생기기 전에 알 수 있습니다. 그런 다음 **다음**을 클릭하고 연결에 **이름**을 지정해 만듭니다.
+**저장하기 전에 테스트** 아래의 **이 설정 테스트**를 클릭합니다. 테스트는 양식의 값으로 로그인해 인시던트를 읽지만 아무것도 저장하지 않으므로, 잘못된 시크릿이나 빠진 역할을 연결이 생기기 전에 알 수 있습니다. 그런 다음 **다음**을 클릭하고 연결에 **이름**을 지정해 만듭니다.
 :::
 
 | 설정 | 찾는 위치 |
@@ -75,9 +75,9 @@ Azure portal에서 Log Analytics 워크스페이스를 엽니다. 그 **Overview
 | **Resource group** | 워크스페이스의 **Overview** 페이지. 영문자, 숫자, 밑줄, 하이픈, 마침표, 괄호로 된 1~90자이며, 마침표로 끝나지 않습니다. |
 | **Workspace name** | 워크스페이스의 **Overview** 페이지. 영문자, 숫자, 하이픈으로 된 3~90자이며, 영문자나 숫자로 시작하고 끝납니다. |
 | **클라우드** | **Azure 퍼블릭 클라우드** (`login.microsoftonline.com`, `management.azure.com`) 또는 **Azure Government(미국)** (`login.microsoftonline.us`, `management.usgovcloudapi.net`). |
-| **Client secret** | 시크릿의 **Value**. 암호화되며, API가 반환하지 않고 다시는 표시되지 않습니다. 연결의 **Update credentials**로 교체합니다. |
+| **클라이언트 시크릿** | 시크릿의 **Value**. 암호화되며, API가 반환하지 않고 다시는 표시되지 않습니다. 연결의 **자격 증명 업데이트**로 교체합니다. |
 
-**Polling** 단계에는 선택 사항인 **설명**, `1`부터 `1440`까지의 정수이며 처음 값이 `5`인 **Poll Interval (Minutes)**, 그리고 처음에 켜져 있는 **활성화됨**도 있습니다.
+**폴링** 단계에는 선택 사항인 **설명**, `1`부터 `1440`까지의 정수이며 처음 값이 `5`인 **폴링 간격(분)**, 그리고 처음에 켜져 있는 **활성화됨**도 있습니다.
 
 ## 가져오는 내용
 
@@ -114,12 +114,12 @@ GET https://management.azure.com/subscriptions/{sub}/resourceGroups/{rg}/provide
 - **생성 시각이 커서입니다.** 매시간 실행되는 예약된 분석 규칙은 일치한 활동보다 한참 뒤에 인시던트를 열며, 인시던트의 `firstActivityTimeUtc`는 몇 시간이나 며칠 더 이전일 수 있습니다. 활동 시각을 기준으로 하는 커서라면 그런 인시던트를 모두 건너뛸 것입니다. 활동 시각은 `attributes`에 남아 있고, Diagnostics의 샘플은 두 시각을 모두 보여 줍니다.
 - **첫 폴링은 24시간 전까지 거슬러 올라가므로**, 새 연결에서 최근 인시던트가 바로 보입니다.
 - **이후의 모든 폴링은 저장된 커서보다 1분 앞에서 시작하므로**, 두 구간의 경계에서 생성된 인시던트도 건너뛰지 않습니다.
-- **한 번의 폴링은 커서 이후 최대 24시간까지 읽습니다.** 커서가 뒤처진 연결은 24시간 구간을 연달아 읽으며 따라잡고, 그동안 **Health**는 **Catching up**으로 표시됩니다.
+- **한 번의 폴링은 커서 이후 최대 24시간까지 읽습니다.** 커서가 뒤처진 연결은 24시간 구간을 연달아 읽으며 따라잡고, 그동안 **상태**는 **Catching up**으로 표시됩니다.
 - **중복은 인시던트의 GUID로 걸러집니다**(`name`). 프로젝트 안에서 걸러지므로, 겹치는 부분, 다시 시도한 구간, 가져오기 중 어느 것도 인시던트를 두 번 저장하지 않습니다.
 
 ### 한 번의 폴링으로 다 읽을 수 없는 구간
 
-한 번의 폴링은 인시던트 50개짜리 페이지를 최대 20개, 즉 인시던트 1,000개까지 읽습니다. 이 한도 때문에 구간 끝에 이르기 전에 멈추면, 실행은 **Partial**이 되고 다음과 같은 경고가 붙습니다:
+한 번의 폴링은 인시던트 50개짜리 페이지를 최대 20개, 즉 인시던트 1,000개까지 읽습니다. 이 한도 때문에 구간 끝에 이르기 전에 멈추면, 실행은 **부분**이 되고 다음과 같은 경고가 붙습니다:
 
 ```text
 Stopped after 20 incidents requests (the per-run request limit) before reading the whole window. Incidents are read oldest first; every incident created before 2026-09-14T08:12:44.000Z was read.
@@ -131,22 +131,22 @@ Stopped after 20 incidents requests (the per-run request limit) before reading t
 
 1. **좁히기.** 다음 폴링은 같은 시작점에서 절반 길이의 구간을 읽으며, 구간을 끝까지 읽을 수 있게 될 때까지 계속 절반으로 줄이고, 가장 짧게는 1분까지 줄입니다. 실행의 경고에 그렇게 적힙니다: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **다시 늘리기.** 구간을 끝까지 읽은 뒤에는 다음 구간이 다시 두 배가 되며, 최대 24시간까지 늘어납니다.
-3. **1분 넘어가기.** 1분 안에조차 한 번의 폴링으로 읽을 수 있는 것보다 많은 레코드가 있으면, 더 새로운 인시던트가 계속 도착하도록 폴링이 그 1분을 넘어갑니다. 실행은 **Partial**로 남고, **마지막 오류**에는 `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.`가 표시됩니다. 그 1분을 **Import this time range**로 가져오면 한 번의 실행으로 읽을 수 있는 만큼 되찾을 수 있습니다.
+3. **1분 넘어가기.** 1분 안에조차 한 번의 폴링으로 읽을 수 있는 것보다 많은 레코드가 있으면, 더 새로운 인시던트가 계속 도착하도록 폴링이 그 1분을 넘어갑니다. 실행은 **부분**로 남고, **마지막 오류**에는 `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.`가 표시됩니다. 그 1분을 **Import this time range**로 가져오면 한 번의 실행으로 읽을 수 있는 만큼 되찾을 수 있습니다.
 
-Microsoft Entra ID나 Azure Resource Manager의 오류로 실행이 완전히 실패하면, 커서와 구간 길이는 그대로 유지되고 다음 폴링이 같은 구간을 다시 읽습니다. 단 하나의 예외는 요청 시간이 초과된 경우입니다. 커서는 그대로지만 다음 구간은 절반 길이가 됩니다. 제시간에 응답할 수 없을 만큼 무거운 구간은 매번 시간 초과될 것이기 때문입니다. **Poll Interval (Minutes)** 값을 바꿔도 이 중 어느 것도 바뀌지 않습니다. 이 값은 폴링이 얼마나 자주 시작되는지를 정할 뿐, 구간이 어디서 시작되는지는 정하지 않습니다.
+Microsoft Entra ID나 Azure Resource Manager의 오류로 실행이 완전히 실패하면, 커서와 구간 길이는 그대로 유지되고 다음 폴링이 같은 구간을 다시 읽습니다. 단 하나의 예외는 요청 시간이 초과된 경우입니다. 커서는 그대로지만 다음 구간은 절반 길이가 됩니다. 제시간에 응답할 수 없을 만큼 무거운 구간은 매번 시간 초과될 것이기 때문입니다. **폴링 간격(분)** 값을 바꿔도 이 중 어느 것도 바뀌지 않습니다. 이 값은 폴링이 얼마나 자주 시작되는지를 정할 뿐, 구간이 어디서 시작되는지는 정하지 않습니다.
 
 ### 필요할 때 실행, 미리 보기, 가져오기
 
-연결에서 **Diagnostics**를 클릭하면 최근 실행을 보고 연결을 직접 다룰 수 있습니다. 연결을 변경할 수 있는 사람은 누구나 이를 시작할 수 있고, 연결을 볼 수 있는 사람은 누구나 기록을 읽을 수 있습니다.
+연결에서 **진단**을 클릭하면 최근 실행을 보고 연결을 직접 다룰 수 있습니다. 연결을 변경할 수 있는 사람은 누구나 이를 시작할 수 있고, 연결을 볼 수 있는 사람은 누구나 기록을 읽을 수 있습니다.
 
-- **Run now**는 연결이 **활성화됨** 상태가 아닐 때에도 평소의 커서로 즉시 폴링을 시작합니다.
+- **지금 실행**은 연결이 **활성화됨** 상태가 아닐 때에도 평소의 커서로 즉시 폴링을 시작합니다.
 - **Preview incidents**는 최대 7일의 시간 범위를 읽으며 아무것도 가져오지 않습니다.
 - **Import this time range**는 확인을 거친 뒤 최대 7일의 범위를 가져오며, 커서는 옮기지 않습니다. 이미 가져온 인시던트는 건너뜁니다.
 - 실행의 **Copy diagnostics**는 지원팀에 보낼 보고서를 복사합니다. 자격 증명은 절대 포함되지 않습니다.
 
 ## 연결 테스트
 
-연결 행의 **연결 테스트**와 양식의 **Test these settings**는 백그라운드 워커가 아니라 API 프로세스에서 실행되므로, 워커가 문제일 때에도 테스트는 응답합니다. 다음 검사를 순서대로 실행합니다:
+연결 행의 **연결 테스트**와 양식의 **이 설정 테스트**는 백그라운드 워커가 아니라 API 프로세스에서 실행되므로, 워커가 문제일 때에도 테스트는 응답합니다. 다음 검사를 순서대로 실행합니다:
 
 | 검사 | 확인하는 내용 |
 | --- | --- |
@@ -174,7 +174,7 @@ Azure Portal에서 작업 영역의 **Tables → Create → New custom log (DCR-
 
 ### 대상 추가하기
 
-**제품 → Security Events → Connections**를 엽니다. **SIEM으로 보내기**에서 **대상 추가**를 클릭하고, **SIEM** 에서 Microsoft Sentinel을 고른 뒤 **다음** 을 클릭합니다. **디렉터리(테넌트) ID**, **애플리케이션(클라이언트) ID**, **Client secret**, 데이터 수집 엔드포인트(또는 규칙)의 **Overview** 에 있는 **로그 수집 엔드포인트**, 규칙의 **JSON View** 에 있는 **데이터 수집 규칙 변경 불가 ID** 를 입력합니다. **스트림** 은 선택 사항이며, 비워 두면 `Custom-OneUptimeSecurityEvents_CL` 입니다.
+**제품 → Security Events → 연결**를 엽니다. **SIEM으로 보내기**에서 **대상 추가**를 클릭하고, **SIEM** 에서 Microsoft Sentinel을 고른 뒤 **다음** 을 클릭합니다. **디렉터리(테넌트) ID**, **애플리케이션(클라이언트) ID**, **클라이언트 시크릿**, 데이터 수집 엔드포인트(또는 규칙)의 **Overview** 에 있는 **로그 수집 엔드포인트**, 규칙의 **JSON View** 에 있는 **데이터 수집 규칙 변경 불가 ID** 를 입력합니다. **스트림** 은 선택 사항이며, 비워 두면 `Custom-OneUptimeSecurityEvents_CL` 입니다.
 
 ### 테스트 이벤트를 보내고 전송 시작하기
 
@@ -234,7 +234,7 @@ Azure Portal에서 작업 영역의 **Tables → Create → New custom log (DCR-
 
 :::details Last Error가 `Microsoft Sentinel token request`로 시작함
 - `Microsoft Sentinel token request failed (HTTP ...)`: Microsoft Entra ID가 토큰 발급을 거부했으므로 Azure에는 연결하지 않았습니다. 메시지에 Entra의 코드가 인용됩니다:
-  - `AADSTS7000215` 또는 `invalid_client`: **Client secret**이 틀렸거나 만료되었거나, 시크릿의 값이 아니라 ID입니다. 새 시크릿을 만들고 **Update credentials**로 저장합니다.
+  - `AADSTS7000215` 또는 `invalid_client`: **클라이언트 시크릿**이 틀렸거나 만료되었거나, 시크릿의 값이 아니라 ID입니다. 새 시크릿을 만들고 **자격 증명 업데이트**로 저장합니다.
   - `AADSTS700016` 또는 `unauthorized_client`: **애플리케이션(클라이언트) ID**가 지정한 **디렉터리(테넌트) ID**에 없습니다. 둘 다 앱의 **Overview** 페이지와 비교합니다.
   - `AADSTS90002` 또는 `HTTP 404`: 그런 테넌트가 없습니다. **디렉터리(테넌트) ID**가 틀렸거나 다른 클라우드에 있습니다. **클라우드**를 확인합니다.
   - `HTTP 429` 또는 `HTTP 5xx`: Microsoft Entra ID가 요청을 제한하고 있거나 사용할 수 없습니다. 다음 폴링이 다시 시도합니다.
@@ -258,9 +258,9 @@ Azure Portal에서 작업 영역의 **Tables → Create → New custom log (DCR-
 :::
 
 :::details 실행이 Partial임
-- `Stopped after 20 incidents requests (the per-run request limit) before reading the whole window`: 구간에 한 번의 실행이 읽는 인시던트 1,000개보다 많은 인시던트가 있었습니다. 잃는 것은 없습니다. 다음 폴링은 마지막으로 읽은 인시던트 다음부터 시작합니다. 폴링할 때마다 계속 **Partial**인 연결은 밀린 인시던트를 따라잡는 중이며, 그 **Last Polled**와 **Last Event Imported**는 계속 움직입니다.
+- `Stopped after 20 incidents requests (the per-run request limit) before reading the whole window`: 구간에 한 번의 실행이 읽는 인시던트 1,000개보다 많은 인시던트가 있었습니다. 잃는 것은 없습니다. 다음 폴링은 마지막으로 읽은 인시던트 다음부터 시작합니다. 폴링할 때마다 계속 **부분**인 연결은 밀린 인시던트를 따라잡는 중이며, 그 **마지막 폴링**과 **마지막으로 가져온 이벤트**는 계속 움직입니다.
 - `Microsoft Sentinel returned incidents out of creation-time order, so this run cannot name a point to resume from.`: API가 오래된 것부터라는 순서를 무시했으므로 실행이 커서를 마지막 인시던트로 옮길 수 없고, 다음 폴링은 대신 더 짧은 구간을 읽습니다. 계속 발생하면 실행 보고서를 OneUptime 지원팀에 보내세요.
-- `More records were created in the one minute from ... than one poll can read`: 폴링이 그 1분을 넘어갔습니다. **Diagnostics**에서 **Import this time range**로 그 1분을 가져오세요. 가져오기는 한 번의 폴링만큼 읽습니다.
+- `More records were created in the one minute from ... than one poll can read`: 폴링이 그 1분을 넘어갔습니다. **진단**에서 **Import this time range**로 그 1분을 가져오세요. 가져오기는 한 번의 폴링만큼 읽습니다.
 :::
 
 :::details 테스트는 통과하지만 아무것도 가져오지 않음

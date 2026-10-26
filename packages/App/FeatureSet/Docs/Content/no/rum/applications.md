@@ -66,7 +66,7 @@ Etiketter grupperer applikasjoner i lister og filtre. De bestemmer også hva et 
 
 | Hvordan | Hvor |
 | --- | --- |
-| Manuelt | I opprettelsesskjemaet under **Flere felt**, eller senere med **Rediger detaljer** på kortet **Applikasjonsdetaljer** på applikasjonens side **Innstillinger**. For flere om gangen merker du dem i listen og velger **Add Labels** under **Massehandlinger**. |
+| Manuelt | I opprettelsesskjemaet under **Flere felt**, eller senere med **Rediger detaljer** på kortet **Applikasjonsdetaljer** på applikasjonens side **Innstillinger**. For flere om gangen merker du dem i listen og velger **Legg til etiketter** under **Massehandlinger**. |
 | Fra telemetri | Et ressursattributt med navnet `oneuptime.label.<name>` legger til etiketten `<name>:<value>`, som vist nedenfor. |
 | Fra en etikettregel | En regel legger til etiketter på hver nye applikasjon som treffer den. Se [Etikettregler og eierregler](#etikettregler-og-eierregler). |
 
@@ -91,11 +91,11 @@ En regel legger til etiketter eller eiere på hver nye applikasjon som treffer d
 1. Under **Treff** treffer **Alle RUM-applikasjoner**, som en ny regel starter på, alle applikasjoner. For å snevre inn regelen velger du **Bare RUM-applikasjoner som oppfyller betingelsene** og legger til betingelser på **Applikasjonsetiketter** (har en, alle eller ingen av etikettene du velger), **Applikasjonsnavn** eller **Applikasjonsbeskrivelse** (er lik, inneholder, starter med, slutter med eller samsvarer med et mønster).
 2. Under **Etiketter**, eller **Eiere** for en eierregel, velger du hva regelen legger til. En ny regel må legge til minst én etikett eller eier. **Navn** fylles ut fra det du velger, som _Add team:payments_ eller _Add Payments as owners_, til du skriver ditt eget. **Beskrivelse**, og **Varsle eiere** for en eierregel, venter under **Flere felt**.
 
-Regler kjører når en applikasjon opprettes, også når den er oppdaget. For å bruke en regel på applikasjoner du allerede har, åpner du radens meny **⋯** og velger **Run Now**: se [Kjøre regler på eksisterende ressurser](/docs/configuration/run-rules-now). En regel som en redigering har latt stå uten noe å legge til, er merket med **Legger ikke til noe** i listen. [Etikett- og eierregler](/docs/configuration/label-and-owner-rules) dekker de fullstendige skjemaene.
+Regler kjører når en applikasjon opprettes, også når den er oppdaget. For å bruke en regel på applikasjoner du allerede har, åpner du radens meny **⋯** og velger **Kjør nå**: se [Kjøre regler på eksisterende ressurser](/docs/configuration/run-rules-now). En regel som en redigering har latt stå uten noe å legge til, er merket med **Legger ikke til noe** i listen. [Etikett- og eierregler](/docs/configuration/label-and-owner-rules) dekker de fullstendige skjemaene.
 
 ### Eiere
 
-Eiere er personene og teamene som har ansvaret for en applikasjon. Eierregler legger dem til nye applikasjoner. For å legge dem til eller fjerne dem manuelt merker du applikasjoner i listen og velger **Add Owner** eller **Remove Owner** under **Massehandlinger**; API-et legger dem til via `/rum-application-owner-user` og `/rum-application-owner-team`. Med **Varsle eiere** slått på, som er standard, blir hver eier som en regel legger til, varslet. Slå det av før du kjører en regel på mange applikasjoner hvis ingen skal varsles.
+Eiere er personene og teamene som har ansvaret for en applikasjon. Eierregler legger dem til nye applikasjoner. For å legge dem til eller fjerne dem manuelt merker du applikasjoner i listen og velger **Legg til eier** eller **Fjern eier** under **Massehandlinger**; API-et legger dem til via `/rum-application-owner-user` og `/rum-application-owner-team`. Med **Varsle eiere** slått på, som er standard, blir hver eier som en regel legger til, varslet. Slå det av før du kjører en regel på mange applikasjoner hvis ingen skal varsles.
 
 ## Oppbevaring
 
@@ -104,7 +104,7 @@ En applikasjons telemetri og opptakene dens oppbevares i ulik tid:
 | Data | Oppbevares | Stilles inn på |
 | --- | --- | --- |
 | Logger, målinger, spor og profiler | Prosjektets oppbevaring, med mindre applikasjonen overstyrer den | Applikasjonens side **Innstillinger** |
-| Opptak fra øktavspilling | 7 dager som standard, eller 1, 14, 30 eller 90 dager | **Replay Policy**, med **Edit Policy → Limits** |
+| Opptak fra øktavspilling | 7 dager som standard, eller 1, 14, 30 eller 90 dager | **Replay Policy**, med **Rediger policy → Grenser** |
 
 ### Oppbevaring av telemetri
 
@@ -119,7 +119,7 @@ På et lavere Cloud-abonnement fortsetter en overstyring som er igjen etter en p
 
 ### Oppbevaring av øktavspillinger
 
-Opptak har sin egen oppbevaring, som stilles inn på applikasjonens side **Replay Policy** med **Edit Policy → Limits**: 7 dager som standard, eller 1, 14, 30 eller 90 dager. Den er kort med vilje, fordi et opptak er langt mer følsomt, og langt større, enn et spenn. Kortet **Session Replay Retention** på siden **Innstillinger** viser den (_Session replays are kept for 7 days._), og knappen **Rediger i Replay Policy** åpner retningslinjen.
+Opptak har sin egen oppbevaring, som stilles inn på applikasjonens side **Replay Policy** med **Rediger policy → Grenser**: 7 dager som standard, eller 1, 14, 30 eller 90 dager. Den er kort med vilje, fordi et opptak er langt mer følsomt, og langt større, enn et spenn. Kortet **Oppbevaring av øktavspilling** på siden **Innstillinger** viser den (_Session replays are kept for 7 days._), og knappen **Rediger i Replay Policy** åpner retningslinjen.
 
 En lengre oppbevaring av telemetri beholder ikke opptak lenger. En økts tellinger, signaler og enhet utløper sammen med opptaket; bare øktens logger, spenn og unntak følger telemetriens oppbevaring. Se [Oppbevaring og sletting](/docs/telemetry/session-replay#oppbevaring-og-sletting).
 
@@ -147,17 +147,17 @@ Alle med prosjektets Viewer-rolle kan se RUM-applikasjoner og telemetrien deres.
 | `CreateRumApplication`, `EditRumApplication`, `DeleteRumApplication` | Legge til, redigere og slette applikasjoner. |
 | `ReadRumSessionReplay` (_List Session Replays_) | Liste opp innspilte økter og detaljene deres uten å spille dem av eller vite hvem brukeren var. |
 | `ReadRumSessionReplayPayload` (_Watch Session Replays_) | Spille av opptak og lese den identifiserte brukerens referanse og egenskaper. |
-| `ReadRumSessionReplayAudit` (_Read Session Replay Audit_) | Lese **Replay Access Log**: hvem som så hvilket opptak. |
+| `ReadRumSessionReplayAudit` (_Read Session Replay Audit_) | Lese **Tilgangslogg for avspillinger**: hvem som så hvilket opptak. |
 | `DeleteRumSessionReplay` (_Delete Session Replays_) | Slette opptak. |
 | `CreateRumSessionErasureRequest`, `ReadRumSessionErasureRequest` | Sende inn sletteforespørsler og følge dem opp. |
 | `ReadRumApplicationLabelRule`, `ReadRumApplicationOwnerRule` (og deres Create, Edit og Delete) | Administrere etikettregler og eierregler. |
 | `ReadRumApplicationOwnerUser`, `ReadRumApplicationOwnerTeam` (og deres Create, Edit og Delete) | Legge til og fjerne eiere via API-et. |
 
-En nyttig fordeling: gi en supportmedarbeider `ReadRumApplication` og `ReadRumSessionReplay`. Vedkommende kan da se hvilke økter som hadde feil, uten å se noens skjerm eller vite hvem brukeren var. Gi `ReadRumSessionReplayPayload` bare til dem som trenger det; medlemmer med `ReadRumSessionReplayAudit` ser da hver visning på applikasjonens side **Replay Access Log**. [Hvem kan se et opptak](/docs/telemetry/session-replay#hvem-kan-se-et-opptak) viser hva hver tillatelse låser opp i øktlisten og avspilleren.
+En nyttig fordeling: gi en supportmedarbeider `ReadRumApplication` og `ReadRumSessionReplay`. Vedkommende kan da se hvilke økter som hadde feil, uten å se noens skjerm eller vite hvem brukeren var. Gi `ReadRumSessionReplayPayload` bare til dem som trenger det; medlemmer med `ReadRumSessionReplayAudit` ser da hver visning på applikasjonens side **Tilgangslogg for avspillinger**. [Hvem kan se et opptak](/docs/telemetry/session-replay#hvem-kan-se-et-opptak) viser hva hver tillatelse låser opp i øktlisten og avspilleren.
 
 ## Varsler på RUM-data
 
-RUM-telemetri er vanlige logger, målinger og spor, så det finnes ingen egen RUM-overvåking: de vanlige overvåkingene virker med den. Den raskeste starten er applikasjonens side **Recommendations**, som tilbyr overvåkinger som allerede er avgrenset til applikasjonen:
+RUM-telemetri er vanlige logger, målinger og spor, så det finnes ingen egen RUM-overvåking: de vanlige overvåkingene virker med den. Den raskeste starten er applikasjonens side **Anbefalinger**, som tilbyr overvåkinger som allerede er avgrenset til applikasjonen:
 
 | Gruppe | Anbefalinger |
 | --- | --- |

@@ -57,8 +57,8 @@ Beide leggen een probleem vast, en beide kunnen degene oproepen die dienst heeft
 | --- | --- | --- |
 | **Wat het is** | Een probleem dat uw gebruikers raakt, zoals een storing of een vertraging | Een probleem waar uw team naar moet kijken voordat gebruikers er last van hebben |
 | **Op statuspagina's** | Kan verschijnen, en informeert abonnees | Nooit |
-| **Beginstatussen** | **Identified**, **Bevestigd**, **Opgelost** | **Identified**, **Bevestigd**, **Opgelost** |
-| **Begin-ernstniveaus** | Critical Incident, Major Incident, Minor Incident | **High**, **Low** |
+| **Beginstatussen** | **Geïdentificeerd**, **Bevestigd**, **Opgelost** | **Geïdentificeerd**, **Bevestigd**, **Opgelost** |
+| **Begin-ernstniveaus** | Critical Incident, Major Incident, Minor Incident | **Hoog**, **Laag** |
 
 Bevestigen zegt dat iemand ermee bezig is, en houdt het bereikbaarheidsbeleid tegen om het volgende niveau op te roepen. Oplossen sluit het af. U kunt eigen statussen en ernstniveaus toevoegen, en waarschuwingen koppelen aan het incident waar ze bij bleken te horen.
 

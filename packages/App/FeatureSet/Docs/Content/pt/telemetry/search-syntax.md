@@ -160,7 +160,7 @@ Os campos de trace aceitam um valor simples ou uma lista como `status:(ok OR uns
 
 Palavras soltas pesquisam a mensagem da exceção.
 
-O explorador **Security Events** usa a mesma linguagem com campos próprios, como `severity`, `tactic` e `user`: consulte [Security Events](/docs/telemetry/security-events).
+O explorador **Eventos de segurança** usa a mesma linguagem com campos próprios, como `severity`, `tactic` e `user`: consulte [Security Events](/docs/telemetry/security-events).
 
 ## Combinar filtros
 

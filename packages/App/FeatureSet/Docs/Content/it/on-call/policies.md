@@ -20,7 +20,7 @@ Una policy di reperibilità decide chi viene avvisato per un incidente o un avvi
 
 **Chi viene avvisato per primo?** è facoltativo, e viene chiesto solo a chi può aggiungere regole di escalation: se resta vuoto, la policy non avvisa nessuno finché non ha una regola. **Descrizione** ed **Etichette** si trovano in **Altri campi**. Per aggiungere i livelli successivi, vedi [Regole di escalation](/docs/on-call/escalation-rules).
 
-L'elenco **Policy di reperibilità** mostra per ogni policy **Nome**, **Descrizione**, **Etichette** e **Proprietari**. Selezionate delle policy per **Add Labels**, **Remove Labels**, **Add Owner**, **Remove Owner**, **Archivia**, **Esporta: JSON** o per eliminarle. **Import JSON** crea policy da un'esportazione: un'esportazione contiene le impostazioni proprie di una policy, non le sue regole di escalation né i suoi proprietari.
+L'elenco **Policy di reperibilità** mostra per ogni policy **Nome**, **Descrizione**, **Etichette** e **Proprietari**. Selezionate delle policy per **Aggiungi etichette**, **Rimuovi etichette**, **Aggiungi proprietario**, **Rimuovi proprietario**, **Archivia**, **Esporta: JSON** o per eliminarle. **Import JSON** crea policy da un'esportazione: un'esportazione contiene le impostazioni proprie di una policy, non le sue regole di escalation né i suoi proprietari.
 
 ## Che cosa esegue una policy
 
@@ -49,7 +49,7 @@ Aprite una policy dall'elenco. Il suo menu laterale contiene tutto ciò che la r
 
 **Base** è aperta; le altre sezioni partono chiuse finché non ci fate clic.
 
-- **Panoramica** mostra i **Dettagli del criterio di reperibilità**, poi **Policy at a glance**: quanti livelli e destinatari ha la policy, quanto manca al suo ultimo livello e quante volte si ripete. **Responder readiness** dice se ogni persona che può avvisare è raggiungibile adesso, e **Feed della policy di reperibilità** elenca che cosa è cambiato: persone, team e pianificazioni aggiunti o rimossi, sostituzioni e passaggi di consegne.
+- **Panoramica** mostra i **Dettagli del criterio di reperibilità**, poi **La policy in breve**: quanti livelli e destinatari ha la policy, quanto manca al suo ultimo livello e quante volte si ripete. **Prontezza dei destinatari** dice se ogni persona che può avvisare è raggiungibile adesso, e **Feed della policy di reperibilità** elenca che cosa è cambiato: persone, team e pianificazioni aggiunti o rimossi, sostituzioni e passaggi di consegne.
 - I **Proprietari** sono le persone e i team responsabili della policy. Quando un avviso che invia non trova una regola per qualcuno, o non può essere consegnato, ricevono un'e-mail; una policy senza proprietari scrive invece ai proprietari del progetto.
 - **Registri di notifica** elenca ogni messaggio che la policy ha inviato, con una scheda per canale.
 - **Sostituzioni utente** sostituisce persone solo in questa policy. Vedi [Sostituzioni utente](/docs/on-call/user-overrides).
@@ -64,7 +64,7 @@ Quando l'attesa dell'ultimo livello scade senza che nessuno riconosca, una polic
 | **Interrompi gli avvisi** | Nessuno viene avvisato di nuovo, quindi la policy viene eseguita una sola volta. Una nuova policy parte con questa risposta. |
 | **Ricomincia da Level 1** | Ogni livello viene avvisato di nuovo, in ordine. **Quante volte ancora?** dice quante volte: 1 o più. |
 
-Una policy che ricomincia altre tre volte percorre i suoi livelli quattro volte in tutto. La riga **Dopo l'ultimo livello** della scheda dice che cosa fa la policy, e **Policy at a glance** nella **Panoramica** dice la stessa cosa a parole.
+Una policy che ricomincia altre tre volte percorre i suoi livelli quattro volte in tutto. La riga **Dopo l'ultimo livello** della scheda dice che cosa fa la policy, e **La policy in breve** nella **Panoramica** dice la stessa cosa a parole.
 
 ## Avvisare di nuovo se non è risolto
 
@@ -77,7 +77,7 @@ Il riconoscimento interrompe definitivamente gli avvisi di una policy, anche se 
 
 I minuti si contano da ogni riconoscimento, e una policy avvisa di nuovo al massimo 5 volte per uno stesso incidente, avviso o episodio. Un nuovo avviso parte dal livello che stava avvisando al momento del riconoscimento, avvisa chi è reperibile ora a quel livello e prosegue per i livelli come la prima esecuzione. L'incidente o l'avviso resta riconosciuto: il nuovo avviso è un'esecuzione a sé, nel suo feed e nei registri di esecuzione della policy, dove il suo **Stato** dice «Avvisato di nuovo (1 di 5)».
 
-Chi viene avvisato di nuovo lo riconosce dal suo messaggio, o con **Riconosci di nuovo** nella pagina dell'incidente o dell'avviso, e i minuti ripartono; **Escala** lo passa al livello successivo. Risolvere o eliminare l'incidente o l'avviso, archiviare o eliminare la policy, o scegliere **Non avvisare di nuovo** lo ferma. La riga **Dopo un riconoscimento** della scheda dice che cosa fa la policy, e **Altre impostazioni** mostra i minuti mentre è chiusa. **Policy at a glance** nella **Panoramica** ed **Escalation summary** dicono la stessa cosa a parole.
+Chi viene avvisato di nuovo lo riconosce dal suo messaggio, o con **Riconosci di nuovo** nella pagina dell'incidente o dell'avviso, e i minuti ripartono; **Escala** lo passa al livello successivo. Risolvere o eliminare l'incidente o l'avviso, archiviare o eliminare la policy, o scegliere **Non avvisare di nuovo** lo ferma. La riga **Dopo un riconoscimento** della scheda dice che cosa fa la policy, e **Altre impostazioni** mostra i minuti mentre è chiusa. **La policy in breve** nella **Panoramica** ed **Riepilogo dell'escalation** dicono la stessa cosa a parole.
 
 ## Registri di esecuzione
 
@@ -110,7 +110,7 @@ Trovate i registri di esecuzione in tre posti:
 - in **Reperibilità → Avanzato → Registri di esecuzione**, per tutte le policy, dove le chiamate dirette da workflow e chat compaiono come **Chiamata diretta**;
 - nella pagina **Esecuzioni di reperibilità** di un incidente o di un avviso.
 
-Ogni riga mostra che cosa ha avviato l'esecuzione, quando, il suo **Stato** e chi l'ha riconosciuta. **View Timeline** apre la sua **Cronologia di esecuzione**: ogni regola di escalation, chi ha avvisato, tramite quale pianificazione e come è finito ogni avviso. Una pianificazione in cui nessuno è reperibile mostra **No one was on call** al posto di una persona. Su OneUptime Cloud, i registri di esecuzione richiedono il piano **Growth**.
+Ogni riga mostra che cosa ha avviato l'esecuzione, quando, il suo **Stato** e chi l'ha riconosciuta. **Visualizza cronologia** apre la sua **Cronologia di esecuzione**: ogni regola di escalation, chi ha avvisato, tramite quale pianificazione e come è finito ogni avviso. Una pianificazione in cui nessuno è reperibile mostra **Nessuno era di turno** al posto di una persona. Su OneUptime Cloud, i registri di esecuzione richiedono il piano **Growth**.
 
 ## Archiviare o eliminare una policy
 
@@ -123,7 +123,7 @@ Archiviare toglie una policy dal servizio e conserva tutto: aprite le **Impostaz
 
 ## Chi può modificare una policy
 
-**Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** e **On-Call Member** possono creare, modificare ed eliminare le policy; **Viewer** e **On-Call Viewer** possono leggerle. In un ruolo personalizzato, i permessi sono **Create On-Call Duty Policy**, **Edit On-Call Duty Policy**, **Delete On-Call Duty Policy** e **Read On-Call Duty Policy**, e un ruolo limitato ad alcune etichette raggiunge solo le policy che le portano. Aggiungere proprietari e campi personalizzati richiede il piano **Growth** su OneUptime Cloud.
+**Proprietario del progetto**, **Amministratore del progetto**, **Membro del progetto**, **Amministratore della reperibilità** e **Membro della reperibilità** possono creare, modificare ed eliminare le policy; **Visualizzatore** e **Visualizzatore della reperibilità** possono leggerle. In un ruolo personalizzato, i permessi sono **Create On-Call Duty Policy**, **Edit On-Call Duty Policy**, **Delete On-Call Duty Policy** e **Read On-Call Duty Policy**, e un ruolo limitato ad alcune etichette raggiunge solo le policy che le portano. Aggiungere proprietari e campi personalizzati richiede il piano **Growth** su OneUptime Cloud.
 
 ## API e Terraform
 
@@ -147,7 +147,7 @@ Per creare una policy con il suo primo livello in una sola richiesta, vedi [Crea
 ## Risoluzione dei problemi
 
 :::details Una policy è stata eseguita, ma nessuno è stato avvisato
-La sua esecuzione indica **Execution Completed - No One Notified**. Aprite **View Timeline**: una riga con **No one was on call** indica una pianificazione con un buco, e il messaggio di stato di una riga **Saltato** dice perché, per esempio qualcuno assente senza nessuno che lo sostituisca. **Reperibilità → Prontezza** mostra chi non è stato possibile raggiungere.
+La sua esecuzione indica **Execution Completed - No One Notified**. Aprite **Visualizza cronologia**: una riga con **Nessuno era di turno** indica una pianificazione con un buco, e il messaggio di stato di una riga **Saltato** dice perché, per esempio qualcuno assente senza nessuno che lo sostituisca. **Reperibilità → Prontezza** mostra chi non è stato possibile raggiungere.
 :::
 
 :::details Il livello successivo è stato avvisato un minuto dopo la sua attesa

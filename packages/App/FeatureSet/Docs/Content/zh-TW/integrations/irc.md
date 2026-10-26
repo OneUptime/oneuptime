@@ -46,7 +46,7 @@ sequenceDiagram
 ## 開始之前
 
 - 在 OneUptime Cloud 上，需要 **Growth** 或更高的方案：工作流程及其變數都包含在內。沒有計費的自架安裝沒有方案限制。
-- 能建立工作流程的角色：**Project Owner**、**Project Admin** 或 **Workflow Admin**。
+- 能建立工作流程的角色：**專案擁有者**、**專案管理員** 或 **工作流程管理員**。
 - 如果 IRC 網路要求登入，還需要該網路上的帳號。Libera.Chat 對來自部分雲端與 VPN 位址的連線要求登入。
 
 ## 設定整合
@@ -87,7 +87,7 @@ sequenceDiagram
 工作流程會在 **建構器** 中開啟，包含三個步驟：**On Create Incident**；**Send Message to IRC**，以兩行張貼事件的編號、標題、嚴重程度與狀態；以及接在其 **錯誤** 輸出上的 **日誌** 步驟，用來記錄訊息為何沒有送達。伺服器與頻道會存成工作流程變數 `ircServer` 和 `ircChannel`。如果你在上一步存了密碼，點選 **Send Message to IRC**，開啟 **更多欄位**，再用各設定的 **{ }** 按鈕選擇對應的變數。
 @tab 從零開始
 1. 開啟 **工作流程**，點選 **建立工作流程**，選擇 **從零開始**，替工作流程命名，然後點選 **建立工作流程**。
-2. 在 **建構器** 中點選 **Choose what starts this workflow**，在 **Popular** 下選擇 **On Create Incident**。點選該觸發器，在 **Fields to pass on** 中選擇訊息要顯示的事件欄位，例如標題。
+2. 在 **建構器** 中點選 **選擇啟動此工作流程的方式**，在 **熱門** 下選擇 **On Create Incident**。點選該觸發器，在 **Fields to pass on** 中選擇訊息要顯示的事件欄位，例如標題。
 3. 點選 **新增元件**，搜尋 `irc`，點選 **Send Message to IRC**。把觸發器的 **成功** 輸出連到這個步驟。
 4. 點選新步驟，填寫 **IRC Server**、**Channel** 和 **Message Text**。**Message Text** 中的 **{ }** 按鈕可以插入事件的欄位，例如標題。
 5. 如果你在上一步存了密碼，開啟 **更多欄位**。在 **Server Password**、**SASL Password** 或 **Channel Key** 點選 **{ }**，在 **Global variables** 下選擇變數。在 **SASL Username** 填入你的帳號名稱。

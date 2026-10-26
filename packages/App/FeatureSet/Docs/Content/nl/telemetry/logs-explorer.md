@@ -71,7 +71,7 @@ Het detailpaneel heeft twee tabbladen:
 
 | Tabblad | Wat het toont |
 | --- | --- |
-| **Details** | De **Logtekst**, de **Trace-ID**, **Span-ID** en **Session** als het logboek die heeft, en de **Attributen**, als lijst of als JSON. |
+| **Details** | De **Logtekst**, de **Trace-ID**, **Span-ID** en **Sessie** als het logboek die heeft, en de **Attributen**, als lijst of als JSON. |
 | **Context** | Het logboek tussen zijn buren. **Nearby (service + time)** toont de vijf regels ervoor en erna van dezelfde service, en **This trace** toont tot 100 logboeken van de trace. |
 
 - Klik op de trace-ID om het hele verzoek te openen in de [Traceverkenner](/docs/telemetry/traces-explorer).
@@ -100,11 +100,11 @@ Zoek, filter en kies de kolommen die u wilt bewaren.
 
 ### Opslaan
 
-Open **Saved Views** en klik op **+ Save Current View**. Vul een **Naam** in, vink **Instellen als standaard** aan als deze weergave moet openen wanneer iemand de logboeken opent, en klik op **Weergave opslaan**.
+Open **Opgeslagen weergaven** en klik op **+ Huidige weergave opslaan**. Vul een **Naam** in, vink **Instellen als standaard** aan als deze weergave moet openen wanneer iemand de logboeken opent, en klik op **Weergave opslaan**.
 
 ### Gebruiken
 
-Kies de weergave in **Saved Views** om hem toe te passen, en **Clear view** om terug te gaan naar het afgelopen uur zonder filters. Wijs een weergave in de lijst aan om te **Bewerken** of te **Verwijderen**, of, zolang hij is toegepast, om hem met uw wijzigingen te **Bijwerken**.
+Kies de weergave in **Opgeslagen weergaven** om hem toe te passen, en **Weergave wissen** om terug te gaan naar het afgelopen uur zonder filters. Wijs een weergave in de lijst aan om te **Bewerken** of te **Verwijderen**, of, zolang hij is toegepast, om hem met uw wijzigingen te **Bijwerken**.
 :::
 
 Opgeslagen weergaven horen bij het project, dus iedereen erin ziet dezelfde lijst. Een doorlopend bereik zoals het afgelopen uur blijft doorlopend: de weergave toont het uur voordat u hem opent, niet het uur waarin u hem opsloeg. Zolang het project geen standaardweergave heeft, wordt de volgende opgeslagen weergave de standaard, en een project heeft telkens maar één standaard.
@@ -117,7 +117,7 @@ Klik op **Lijst** om terug te gaan naar de regels zelf.
 
 ## Bijbehorende traces en metrieken openen
 
-De knoppen **Traces** en **Metrieken** naast **Saved Views** openen de [Traceverkenner](/docs/telemetry/traces-explorer) of de [Metriekverkenner](/docs/telemetry/metrics-explorer) voor hetzelfde tijdvenster, met zoveel van uw filtering als die verkenner kan gebruiken. Wijs een knop aan om te zien wat hij niet kan meenemen.
+De knoppen **Traces** en **Metrieken** naast **Opgeslagen weergaven** openen de [Traceverkenner](/docs/telemetry/traces-explorer) of de [Metriekverkenner](/docs/telemetry/metrics-explorer) voor hetzelfde tijdvenster, met zoveel van uw filtering als die verkenner kan gebruiken. Wijs een knop aan om te zien wat hij niet kan meenemen.
 
 ## Inzichten in logboeken
 

@@ -126,7 +126,7 @@ Hver kommando, der starter arbejde, er en fuld agentkørsel: en klon, op til 40 
 
 GitHub-kommandoer er AI-arbejde uden for hændelser og advarsler, så ingen daglig grænse for rettelsesopgaver gælder for dem; projektets egne daglige AI-grænser gør, når projektet sætter dem. Den eneste anden grænse er den, der allerede gælder for opgaverne i [Kode](/docs/ai/ai-agent):
 
-- **Loftet over åbne pull requests** (**Max Open Fix Pull Requests** under **Yderligere indstillinger** på repositoriets side **Indstillinger**). **AI-rettelses-pull requests** står på **Ingen grænse**, indtil du vælger **En grænse**, eller **Ingen**, som blokerer AI-rettelses-pull-requests i det repositorie. Gennemgange og revisioner er undtaget: ingen af dem føjer en pull request til din gennemgangskø.
+- **Loftet over åbne pull requests** (**Maks. åbne pull requests med rettelser** under **Yderligere indstillinger** på repositoriets side **Indstillinger**). **AI-rettelses-pull requests** står på **Ingen grænse**, indtil du vælger **En grænse**, eller **Ingen**, som blokerer AI-rettelses-pull-requests i det repositorie. Gennemgange og revisioner er undtaget: ingen af dem føjer en pull request til din gennemgangskø.
 
 Kun én kørsel af en slags er aktiv pr. issue eller pull request ad gangen. Spørger du to gange, får du at vide, at den allerede arbejder; beder du om en gennemgang, mens en revision kører, starter begge, da det er forskellige anmodninger.
 
@@ -134,9 +134,9 @@ Hvis en kørsel ikke kan starte, siger appen hvorfor i tråden: den fejler aldri
 
 ## Slå den fra
 
-Hvert repositorie har en kontakt: **Respond to GitHub Commands** under **Yderligere indstillinger** på repositoriets side **Indstillinger**. Den er slået til for alle repositorier og gemmes, i det øjeblik du slår den om. Når den er slået fra, ignorerer appen omtaler, tildelinger og udløseretiketten i det repositorie og fortæller alle, der spørger, hvor kontakten er.
+Hvert repositorie har en kontakt: **Svar på GitHub-kommandoer** under **Yderligere indstillinger** på repositoriets side **Indstillinger**. Den er slået til for alle repositorier og gemmes, i det øjeblik du slår den om. Når den er slået fra, ignorerer appen omtaler, tildelinger og udløseretiketten i det repositorie og fortæller alle, der spørger, hvor kontakten er.
 
-Den samme side har **GitHub Trigger Label** under **Yderligere indstillinger**, hvis du vil have en anden etiket end `oneuptime`.
+Den samme side har **GitHub-udløseretiket** under **Yderligere indstillinger**, hvis du vil have en anden etiket end `oneuptime`.
 
 ## Hvad der skal abonneres på
 
@@ -166,7 +166,7 @@ Behandl en pull request, som AI'en skrev, som du ville behandle en fra en ny bid
 ## Fejlfinding
 
 :::details Der sker intet, når jeg nævner den
-Kontrollér først handlet: det er appens slug, ikke dens visningsnavn. Kontrollér derefter, at repositoriet er forbundet til et projekt (i **Produkter → Kode**), at **Respond to GitHub Commands** er slået til, og at din GitHub App abonnerer på hændelserne ovenfor.
+Kontrollér først handlet: det er appens slug, ikke dens visningsnavn. Kontrollér derefter, at repositoriet er forbundet til et projekt (i **Produkter → Kode**), at **Svar på GitHub-kommandoer** er slået til, og at din GitHub App abonnerer på hændelserne ovenfor.
 :::
 
 :::details Den reagerer med 😕 og siger intet

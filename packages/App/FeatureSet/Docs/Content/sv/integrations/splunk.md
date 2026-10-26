@@ -44,11 +44,11 @@ Vill du hellre autentisera med ett lösenord hoppar du över det här steget och
 
 ### Lägg till anslutningen i OneUptime
 
-Öppna **Produkter → Security Events → Connections** (`/dashboard/{projectId}/security-events/connections`), klicka på **Lägg till anslutning**, välj **Splunk Enterprise Security** och klicka på **Nästa**. Fyll i inställningarna i tabellen nedan, klicka på **Nästa** och klistra in token i **Authentication token**, eller lösenordet i **Lösenord**.
+Öppna **Produkter → Security Events → Anslutningar** (`/dashboard/{projectId}/security-events/connections`), klicka på **Lägg till anslutning**, välj **Splunk Enterprise Security** och klicka på **Nästa**. Fyll i inställningarna i tabellen nedan, klicka på **Nästa** och klistra in token i **Authentication token**, eller lösenordet i **Lösenord**.
 
 ### Testa den innan du sparar
 
-Klicka på **Test these settings** under **Testa innan du sparar**. Testet autentiserar och kör din sökning med värdena i formuläret och sparar ingenting, så en fel port eller en saknad roll syns innan anslutningen finns. Klicka sedan på **Nästa**, ge anslutningen ett **Namn** och skapa den.
+Klicka på **Testa de här inställningarna** under **Testa innan du sparar**. Testet autentiserar och kör din sökning med värdena i formuläret och sparar ingenting, så en fel port eller en saknad roll syns innan anslutningen finns. Klicka sedan på **Nästa**, ge anslutningen ett **Namn** och skapa den.
 :::
 
 | Inställning | Vad du anger |
@@ -59,9 +59,9 @@ Klicka på **Test these settings** under **Testa innan du sparar**. Testet auten
 | **Authentication token** | Token från det första steget. När en token är sparad är det den som används, och inte användarnamnet eller lösenordet. |
 | **Lösenord** | Splunk-användarens lösenord, bara när ingen token används. |
 
-**Authentication token** och **Lösenord** krypteras, returneras aldrig av API:t och visas aldrig igen. Ersätt dem med **Update credentials** på anslutningen. För att byta från den ena autentiseringen till den andra anger du den nya där och slår på **Remove the stored Authentication token** eller **Remove the stored Password**.
+**Authentication token** och **Lösenord** krypteras, returneras aldrig av API:t och visas aldrig igen. Ersätt dem med **Uppdatera inloggningsuppgifter** på anslutningen. För att byta från den ena autentiseringen till den andra anger du den nya där och slår på **Remove the stored Authentication token** eller **Remove the stored Password**.
 
-Steget **Polling** har också en valfri **Beskrivning**, **Poll Interval (Minutes)**, ett heltal från `1` till `1440` som börjar på `5`, och **Aktiverad**, som börjar påslagen.
+Steget **Hämtning** har också en valfri **Beskrivning**, **Hämtningsintervall (minuter)**, ett heltal från `1` till `1440` som börjar på `5`, och **Aktiverad**, som börjar påslagen.
 
 ## Vad som importeras
 
@@ -100,14 +100,14 @@ POST {Splunk management URL}/services/search/v2/jobs/export
 - **Skapandetiden är markören.** Fönstret gäller `_time`, som för ett notable event är när korrelationssökningen skapade det, inte när den hittade aktiviteten inträffade. En sökning som körs varje timme daterar sina notable events till tiden för sin körning, så inget hamnar bakom markören.
 - **Den första avsökningen ser 24 timmar bakåt**, så att en ny anslutning direkt visar sina senaste notable events.
 - **Varje senare avsökning börjar 1 minut före den sparade markören**, så att en rad som har skapats på gränsen mellan två fönster aldrig missas.
-- **En avsökning läser högst 24 timmar förbi markören.** En anslutning vars markör har hamnat efter kommer ikapp i en serie fönster på 24 timmar, och dess **Health** visar **Catching up**.
+- **En avsökning läser högst 24 timmar förbi markören.** En anslutning vars markör har hamnat efter kommer ikapp i en serie fönster på 24 timmar, och dess **Hälsa** visar **Catching up**.
 - **Dubbletter tas bort efter `event_id`**, eller Splunks egna `_bkt` och `_cd`, inom projektet, så att överlappningen, ett upprepat fönster och en import aldrig sparar en rad två gånger.
 
 Ett search head som är äldre än 9.0.1 svarar `404` på begäran till `search/v2/jobs/export`. OneUptime skickar den då till det föråldrade `search/jobs/export`, och körningen säger det i en varning. Uppgradera search headen: aktuella versioner stänger av den slutpunkten.
 
 ### När ett fönster innehåller mer än en avsökning kan läsa
 
-En avsökning läser högst 10 000 rader. När ett fönster innehåller fler blir körningen **Partial**, med en varning som:
+En avsökning läser högst 10 000 rader. När ett fönster innehåller fler blir körningen **Delvis**, med en varning som:
 
 ```text
 Stopped after collecting 10000 records; the window holds more. Records are read oldest first, and the last one read was created at 2026-09-14T08:12:44.000Z, where the next poll can resume.
@@ -119,22 +119,22 @@ När en körning inte alls kommer förbi den sparade markören gör OneUptime i 
 
 1. **Smalna av.** Nästa avsökning läser ett fönster som är hälften så långt, från samma startpunkt, och fortsätter att halvera tills ett fönster läses helt, ner till en minut. Körningens varning säger det: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **Växa igen.** När ett fönster har lästs helt är nästa dubbelt så långt igen, upp till 24 timmar.
-3. **Gå förbi en enda minut.** Om till och med en minut innehåller mer än en avsökning kan läsa går avsökningen förbi den, så att nyare notable events fortsätter att komma. Körningen förblir **Partial**, och **Senaste fel** lyder `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importera den minuten med **Import this time range** för att hämta det som en körning kan läsa.
+3. **Gå förbi en enda minut.** Om till och med en minut innehåller mer än en avsökning kan läsa går avsökningen förbi den, så att nyare notable events fortsätter att komma. Körningen förblir **Delvis**, och **Senaste fel** lyder `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importera den minuten med **Import this time range** för att hämta det som en körning kan läsa.
 
-En körning som misslyckas helt, med ett fel från Splunk, behåller markören och fönsterlängden, och nästa avsökning läser samma fönster igen. Det enda undantaget är en begäran som fick tidsgräns: markören stannar, men nästa fönster är hälften så långt, eftersom ett fönster som är för tungt för att besvaras i tid skulle få tidsgräns vid varje försök. Att ändra **Poll Interval (Minutes)** ändrar inget av detta: det avgör hur ofta en avsökning startar, inte var dess fönster börjar.
+En körning som misslyckas helt, med ett fel från Splunk, behåller markören och fönsterlängden, och nästa avsökning läser samma fönster igen. Det enda undantaget är en begäran som fick tidsgräns: markören stannar, men nästa fönster är hälften så långt, eftersom ett fönster som är för tungt för att besvaras i tid skulle få tidsgräns vid varje försök. Att ändra **Hämtningsintervall (minuter)** ändrar inget av detta: det avgör hur ofta en avsökning startar, inte var dess fönster börjar.
 
 ### Kör, förhandsgranska och importera vid behov
 
-Klicka på **Diagnostics** på en anslutning för att se dess senaste körningar och arbeta med den manuellt. Alla som kan ändra anslutningen kan starta de här åtgärderna; alla som kan se den kan läsa historiken.
+Klicka på **Diagnostik** på en anslutning för att se dess senaste körningar och arbeta med den manuellt. Alla som kan ändra anslutningen kan starta de här åtgärderna; alla som kan se den kan läsa historiken.
 
-- **Run now** startar en avsökning direkt, med den vanliga markören, även när anslutningen inte är **Aktiverad**.
+- **Kör nu** startar en avsökning direkt, med den vanliga markören, även när anslutningen inte är **Aktiverad**.
 - **Preview notable events** läser ett tidsintervall på upp till 7 dagar och importerar ingenting.
 - **Import this time range** importerar ett intervall på upp till 7 dagar, efter att du har bekräftat, utan att flytta markören. Rader som redan har importerats hoppas över.
 - **Copy diagnostics** på en körning kopierar dess rapport till supporten. Den innehåller aldrig autentiseringsuppgifter.
 
 ## Testa anslutningen
 
-**Testa anslutningen** på en anslutnings rad och **Test these settings** i formuläret körs i API-processen, inte i en bakgrundsworker, så att ett test svarar även när det är workerna som är problemet. Det kör de här kontrollerna i ordning:
+**Testa anslutningen** på en anslutnings rad och **Testa de här inställningarna** i formuläret körs i API-processen, inte i en bakgrundsworker, så att ett test svarar även när det är workerna som är problemet. Det kör de här kontrollerna i ordning:
 
 | Kontroll | Vad den kontrollerar |
 | --- | --- |
@@ -158,7 +158,7 @@ OneUptime kan också skicka det den hittar till Splunk, via dess HTTP Event Coll
 
 ### Lägg till målet
 
-Öppna **Produkter → Security Events → Connections**. Klicka på **Lägg till mål** under **Skicka till ditt SIEM**, välj Splunk under **SIEM** och klicka på **Nästa**. Fyll i **HEC-URL** och klistra in token i **HEC-token**. **Index** och **Källtyp** är valfria: lämnas de tomma går händelserna till tokenens standardindex med sourcetypen `oneuptime:security`.
+Öppna **Produkter → Security Events → Anslutningar**. Klicka på **Lägg till mål** under **Skicka till ditt SIEM**, välj Splunk under **SIEM** och klicka på **Nästa**. Fyll i **HEC-URL** och klistra in token i **HEC-token**. **Index** och **Källtyp** är valfria: lämnas de tomma går händelserna till tokenens standardindex med sourcetypen `oneuptime:security`.
 
 ### Skicka en testhändelse och börja skicka
 
@@ -175,7 +175,7 @@ Anslutningens **Senaste fel** sparar hela felmeddelandet, med autentiseringsuppg
 
 :::details Last Error börjar med `Splunk Enterprise Security authentication request`
 - `Splunk Enterprise Security authentication request failed (HTTP ...)`: Splunk vägrade säga vem anroparen är.
-  - `HTTP 401`: Splunk godtog inte autentiseringsuppgifterna. Token är fel, har gått ut eller har tagits bort, tokenautentisering är avstängd på search headen, eller användarnamnet eller lösenordet är fel. Skapa en ny token och spara den med **Update credentials**.
+  - `HTTP 401`: Splunk godtog inte autentiseringsuppgifterna. Token är fel, har gått ut eller har tagits bort, tokenautentisering är avstängd på search headen, eller användarnamnet eller lösenordet är fel. Skapa en ny token och spara den med **Uppdatera inloggningsuppgifter**.
   - `HTTP 404`: **Splunk management URL** är inte REST API:t. Den pekar på Splunk Web på port `8000`, eller har en sökväg som search headen inte erbjuder.
 - `Splunk Enterprise Security authentication request returned ...`: något annat än search headens REST API svarade, till exempel HTML:en från Splunk Web på port `8000` eller en proxys sida. Peka URL:en mot hanteringsporten.
 :::
@@ -200,8 +200,8 @@ Ingen avsökning har slutförts för den här anslutningen. Kör **Testa anslutn
 :::
 
 :::details En körning är Partial
-- `Stopped after collecting 10000 records; the window holds more`: fönstret innehöll mer än de 10 000 rader som en körning läser. Ingenting går förlorat: nästa avsökning börjar efter den senast lästa raden. En anslutning som förblir **Partial** avsökning efter avsökning håller på att komma ikapp en eftersläpning, och dess **Last Polled** och **Last Event Imported** fortsätter att flytta fram. Om den aldrig kommer ikapp hittar sökningen i **Sök** mer än 10 000 rader per avsökningsintervall: begränsa den, eller gör **Poll Interval (Minutes)** kortare.
-- `More records were created in the one minute from ... than one poll can read`: avsökningen gick förbi den minuten. Importera den med **Import this time range** i **Diagnostics**. En import läser lika mycket som en avsökning.
+- `Stopped after collecting 10000 records; the window holds more`: fönstret innehöll mer än de 10 000 rader som en körning läser. Ingenting går förlorat: nästa avsökning börjar efter den senast lästa raden. En anslutning som förblir **Delvis** avsökning efter avsökning håller på att komma ikapp en eftersläpning, och dess **Senast hämtad** och **Senast importerade händelse** fortsätter att flytta fram. Om den aldrig kommer ikapp hittar sökningen i **Sök** mer än 10 000 rader per avsökningsintervall: begränsa den, eller gör **Hämtningsintervall (minuter)** kortare.
+- `More records were created in the one minute from ... than one poll can read`: avsökningen gick förbi den minuten. Importera den med **Import this time range** i **Diagnostik**. En import läser lika mycket som en avsökning.
 :::
 
 :::details Testet lyckas, men ingenting importeras

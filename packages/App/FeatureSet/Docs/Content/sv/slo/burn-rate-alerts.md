@@ -75,19 +75,19 @@ Du behöver behörighet att skapa SLO-regler för förbrukningstakt.
 :::steps
 ### Öppna Burn Rate Rules
 
-Öppna SLO:et, gå till **Burn Rate Rules** i sektionen **Regler** i dess sidomeny och klicka på **Skapa SLO Burn Rate Rule**, eller redigera en av standardreglerna.
+Öppna SLO:et, gå till **Förbrukningstaktsregler** i sektionen **Regler** i dess sidomeny och klicka på **Skapa SLO Burn Rate Rule**, eller redigera en av standardreglerna.
 
 ### Ge regeln ett namn
 
-Under **Rule** anger du ett **Namn**, som ”Fast burn”. En ny regel är påslagen; vill du senare hindra den från att utlösas stänger du av **Aktiverad** i dess redigeringsformulär.
+Under **Regel** anger du ett **Namn**, som ”Fast burn”. En ny regel är påslagen; vill du senare hindra den från att utlösas stänger du av **Aktiverad** i dess redigeringsformulär.
 
 ### Ange förbrukningsfönstret
 
-Under **Burn Window** anger du **Burn Rate Threshold** (till exempel `14.4`), **Long Window (Minutes)** och **Short Window (Minutes)**, och om du vill **Re-fire Suppression (Minutes)**.
+Under **Förbrukningsfönster** anger du **Tröskel för förbrukningstakt** (till exempel `14.4`), **Långt fönster (minuter)** och **Kort fönster (minuter)**, och om du vill **Undertryckning av ny utlösning (minuter)**.
 
 ### Välj vad den deklarerar
 
-Under **What It Declares** svarar du på **När den utlöses**: **Skapa ett larm**, standardvalet, **Deklarera en incident** eller **Båda**. **Add SLO Owners as Owners** gör också SLO:ets ägare till ägare av allt som regeln skapar.
+Under **Vad den deklarerar** svarar du på **När den utlöses**: **Skapa ett larm**, standardvalet, **Deklarera en incident** eller **Båda**. **Lägg till SLO-ägare som ägare** gör också SLO:ets ägare till ägare av allt som regeln skapar.
 
 ### Beskriv larmet och incidenten
 
@@ -98,10 +98,10 @@ OneUptime kontrollerar en regels siffror när du sparar den:
 
 | Inställning | Måste vara |
 | --- | --- |
-| **Burn Rate Threshold** | Större än 0. |
-| **Short Window (Minutes)** | Större än 0. |
-| **Long Window (Minutes)** | Längre än det korta fönstret. |
-| **Re-fire Suppression (Minutes)** | 0 eller mer. Tomt betyder det långa fönstrets längd. |
+| **Tröskel för förbrukningstakt** | Större än 0. |
+| **Kort fönster (minuter)** | Större än 0. |
+| **Långt fönster (minuter)** | Längre än det korta fönstret. |
+| **Undertryckning av ny utlösning (minuter)** | 0 eller mer. Tomt betyder det långa fönstrets längd. |
 
 Varje svar på **När den utlöses** öppnar något. API:et avvisar en regel som varken skulle skapa ett larm eller deklarera en incident, eftersom den skulle kontrolleras vid varje utvärdering utan att någonsin deklarera något.
 
@@ -117,8 +117,8 @@ Regeltabellen visar för varje regel tröskeln, fönstren och undertryckningen, 
 | Öppnas av | **Skapa ett larm**, standardvalet, eller **Båda** | **Deklarera en incident** eller **Båda** |
 | Vad det är | Den lätta signalen: hamnar i listan över larm. | Den tunga signalen: får ett incidentnummer och startar hela insatsflödet. |
 | Rubrik och beskrivning | Egna, eller standardtexten | Egna, eller standardtexten |
-| Allvarlighetsgrad | **Varningsallvar**: projektets högsta om tomt | **Incidentallvar**: projektets högsta om tomt |
-| Eskalering | **Alert On-Call Duty Policies** | **Incident On-Call Duty Policies** |
+| Allvarlighetsgrad | **Larmallvar**: projektets högsta om tomt | **Incidentallvar**: projektets högsta om tomt |
+| Eskalering | **Jourpolicyer för larmet** | **Jourpolicyer för incidenten** |
 | Ägare och etiketter | **Ägare av larmet** och **Larmetiketter** | **Ägare av incidenten** och **Incidentetiketter** |
 | Privat | Av | Av |
 | Automatisk lösning | På | På |
@@ -128,7 +128,7 @@ Eftersom var och en ställs in för sig kan du skicka ett kort larm till det ans
 
 ### SLO:et är en berörd resurs
 
-Varje larm och incident som en regel för förbrukningstakt skapar visar sitt SLO under **Berörda resurser** och länkar till det. Filtret **Berörda resurser** i listorna över larm och incidenter begränsar dem till ett SLO, och SLO:ets sidor **Varningar** och **Incidenter** visar dem, med märken i sidomenyn som räknar de öppna. OneUptime skapar den här kopplingen själv, och att redigera larmet eller incidenten tar aldrig bort den.
+Varje larm och incident som en regel för förbrukningstakt skapar visar sitt SLO under **Berörda resurser** och länkar till det. Filtret **Berörda resurser** i listorna över larm och incidenter begränsar dem till ett SLO, och SLO:ets sidor **Larm** och **Incidenter** visar dem, med märken i sidomenyn som räknar de öppna. OneUptime skapar den här kopplingen själv, och att redigera larmet eller incidenten tar aldrig bort den.
 
 ### Incidenter för förbrukningstakt förblir interna
 
@@ -180,7 +180,7 @@ Till exempel blir rubriken `{{ruleName}}: {{sloName}} is burning {{longWindowBur
 ## Ägare, etiketter och sekretess
 
 - **Ägare av larmet** och **Ägare av incidenten** är personer och team, valda från en enda lista med **Lägg till ägare**. De läggs till på larmet eller incidenten så snart det skapas, och aviseras. Personer måste vara medlemmar i projektet.
-- **Add SLO Owners as Owners** lägger också till SLO:ets ägare, dess ägaranvändare och medlemmarna i dess ägarteam, på allt som regeln skapar. SLO:ets ägare får redan höra om själva SLO:ets statusändringar, så det kan avisera dem två gånger. Det är avstängt som standard.
+- **Lägg till SLO-ägare som ägare** lägger också till SLO:ets ägare, dess ägaranvändare och medlemmarna i dess ägarteam, på allt som regeln skapar. SLO:ets ägare får redan höra om själva SLO:ets statusändringar, så det kan avisera dem två gånger. Det är avstängt som standard.
 - Varje ägare läggs till en gång: en användare som redan är ägare av larmet eller incidenten, till exempel via projektets ägarregler, eller som ingår i ett tillagt ägarteam, läggs inte till igen.
 - **Larmetiketter** och **Incidentetiketter** läggs till på larmet eller incidenten, så att filter, ägarregler och aviseringsregler för arbetsytan kan matcha dem.
 - Ett privat larm eller en privat incident syns bara för sina ägare, projektets administratörer och projektets ägare.
@@ -198,7 +198,7 @@ Vissa ändringar löser alltid det som en regel har öppnat, oavsett vad dess in
 - att ändra **När den utlöses** så att larmet eller incidenten utelämnas stänger det som den utdatan hade öppnat;
 - att stänga av regeln eller radera den;
 - att stänga av SLO:ets utvärdering, arkivera SLO:et eller radera det;
-- att SLO:et går över till **Pausad** eller **Misconfigured**, eftersom det då inte mäter något;
+- att SLO:et går över till **Pausad** eller **Felkonfigurerad**, eftersom det då inte mäter något;
 - att regeln förlorar sin tröskel eller sina fönster, eller att SLO:et inte längre har ett helt långt fönster med historik.
 
 ## Planerat underhåll

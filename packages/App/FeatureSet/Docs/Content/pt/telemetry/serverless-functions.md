@@ -197,7 +197,7 @@ Um atributo de recurso que começa com `oneuptime.label.` se torna um rótulo do
 OTEL_RESOURCE_ATTRIBUTES="faas.name=checkout-handler,oneuptime.label.team=payments,oneuptime.label.env=production"
 ```
 
-Para rotular funções ou atribuir proprietários pelos nomes delas, abra **Produtos → Infraestrutura → Serverless** e use **Regras de Rótulos** e **Regras de proprietário** no menu lateral. As regras são executadas quando uma função é criada, inclusive as descobertas automaticamente. Para aplicar uma regra às funções que você já tem, use o **Run Now** dela (veja [Executar regras em recursos existentes](/docs/configuration/run-rules-now)).
+Para rotular funções ou atribuir proprietários pelos nomes delas, abra **Produtos → Infraestrutura → Serverless** e use **Regras de Rótulos** e **Regras de proprietário** no menu lateral. As regras são executadas quando uma função é criada, inclusive as descobertas automaticamente. Para aplicar uma regra às funções que você já tem, use o **Executar agora** dela (veja [Executar regras em recursos existentes](/docs/configuration/run-rules-now)).
 
 ## Solução de problemas
 

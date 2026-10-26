@@ -99,7 +99,7 @@ Webhook-triggere giver dig en unik URL. Alle, der kender URL'en, kan kalde den. 
 - For følsomme workflows: bed det kaldende system sende et delt token som header (som `X-Webhook-Token`), og tjek det med en **If / Else**-blok, før der sker noget vigtigt. Gem det forventede token som en hemmelig variabel.
 - For meget følsomme workflows: foretræk en OneUptime-begivenhedstrigger og et manuelt importtrin frem for en offentlig webhook.
 
-Kun folk, der kan redigere workflowet — **Project Owner**, **Project Admin**, **Workflow Admin** eller **Edit Workflow** — kan se eller nulstille dets webhook-URL. Alle med URL'en kan starte workflowet hvorfra som helst uden at logge ind, så alle andre ser en note om, hvem de kan spørge i stedet. Det gælder også en **Workflow Member**, der kører workflowet manuelt fra **Bygger**.
+Kun folk, der kan redigere workflowet — **Projektejer**, **Projektadministrator**, **Arbejdsgangsadministrator** eller **Edit Workflow** — kan se eller nulstille dets webhook-URL. Alle med URL'en kan starte workflowet hvorfra som helst uden at logge ind, så alle andre ser en note om, hvem de kan spørge i stedet. Det gælder også en **Arbejdsgangsmedlem**, der kører workflowet manuelt fra **Bygger**.
 
 ## Sikkerhed for indgående e-mail
 
@@ -110,7 +110,7 @@ Incoming Email-triggeren giver workflowet sin egen adresse, og alle, der kender 
 - Alle kan sætte en hvilken som helst afsender på en e-mail, så **From** beviser ikke, hvem der sendte den. Før et workflow gør noget vigtigt, så tjek noget, kun den rigtige afsender kender — et token i emnet eller i en header — med en **If / Else**-blok. Gem det forventede token som en hemmelig variabel.
 - Nøglen skjules i alt, hvad kørslen modtager — **To**, **CC**, headerne og brødteksterne — fordi kørslens log er synlig for alle, der kan læse workflowets kørsler.
 
-Kun folk, der kan redigere workflowet — **Project Owner**, **Project Admin**, **Workflow Admin** eller **Edit Workflow** — kan se eller nulstille dets adresse. Alle andre ser en note om, hvem de kan spørge.
+Kun folk, der kan redigere workflowet — **Projektejer**, **Projektadministrator**, **Arbejdsgangsadministrator** eller **Edit Workflow** — kan se eller nulstille dets adresse. Alle andre ser en note om, hvem de kan spørge.
 
 ## Udgående netværksadgang
 
@@ -166,30 +166,30 @@ Fejl i validering, konfiguration, adgang, grænser, kredit, samtidighed, udbyder
 
 Workflows respekterer dit projekts rollebaserede adgangskontrol. De tre workflow-roller:
 
-- **Workflow Admin** — bygger workflows: opretter, ændrer, kører og sletter dem og administrerer de variabler, de bruger.
-- **Workflow Member** — bruger dem: åbner workflows og deres kørsler og kører et workflow manuelt med **Kør arbejdsgang**. Et medlem kan ikke oprette, ændre eller slette et workflow eller køre et af dets trin for sig selv.
-- **Workflow Viewer** — læser workflows og deres kørsler.
+- **Arbejdsgangsadministrator** — bygger workflows: opretter, ændrer, kører og sletter dem og administrerer de variabler, de bruger.
+- **Arbejdsgangsmedlem** — bruger dem: åbner workflows og deres kørsler og kører et workflow manuelt med **Kør arbejdsgang**. Et medlem kan ikke oprette, ændre eller slette et workflow eller køre et af dets trin for sig selv.
+- **Arbejdsgangsseer** — læser workflows og deres kørsler.
 
-**Project Owner** og **Project Admin** kan alt, hvad en Workflow Admin kan. **Project Member** kan oprette og slette workflows, men ikke ændre eller køre dem.
+**Projektejer** og **Projektadministrator** kan alt, hvad en Workflow Admin kan. **Projektmedlem** kan oprette og slette workflows, men ikke ændre eller køre dem.
 
 De enkelte tilladelser, til et team eller en API-nøgle, der har brug for præcis én ting:
 
 - **Create / Read / Edit / Delete Workflow** — de grundlæggende tilladelser på selve workflowet. At ændre et workflow, herunder at slå det til eller fra og arkivere det, kræver **Edit Workflow**; **Delete Workflow** sletter kun.
-- **Edit Workflow** — er også det, der skal til for at køre ét trin for sig selv med **Run just this step** og for at se eller nulstille et workflows webhook-URL og adresse til indgående e-mail. At køre et helt workflow manuelt kræver **Edit Workflow**, **Workflow Admin** eller **Workflow Member**.
+- **Edit Workflow** — er også det, der skal til for at køre ét trin for sig selv med **Run just this step** og for at se eller nulstille et workflows webhook-URL og adresse til indgående e-mail. At køre et helt workflow manuelt kræver **Edit Workflow**, **Arbejdsgangsadministrator** eller **Arbejdsgangsmedlem**.
 - **Read Workflow Log** — nødvendig for at se kørsler.
 - **Create / Read / Edit / Delete Workflow Variables** — administration af globale variabler og workflowvariabler.
 
 En manuel kørsel når kun de workflows, du kan åbne: en rolle, der er begrænset til bestemte etiketter eller til de workflows, dit team ejer, kører kun dem. Den, der ikke kan køre et workflow, ser **Kør arbejdsgang** nedtonet med årsagen i værktøjstippet.
 
-Giv dem, der bygger automatisering, **Workflow Admin**, og dem, der kun starter den, **Workflow Member**. Gem redigeringsadgangen til variabler til de folk, der administrerer projektets hemmeligheder. Se [Brugere, teams og tilladelser](/docs/permissions/index) for, hvordan roller tildeles.
+Giv dem, der bygger automatisering, **Arbejdsgangsadministrator**, og dem, der kun starter den, **Arbejdsgangsmedlem**. Gem redigeringsadgangen til variabler til de folk, der administrerer projektets hemmeligheder. Se [Brugere, teams og tilladelser](/docs/permissions/index) for, hvordan roller tildeles.
 
 ## Hvad workflow-trin må gøre
 
-De trin, der læser og ændrer OneUptime-poster — komponenterne Find, Create, Update og Delete og triggerne On Create, On Update, On Create or Update og On Delete — handler som en **Project Admin** i workflowets projekt. Uanset hvem der byggede workflowet, møder et trin de samme kontroller, som en Project Admin møder i dashboardet og API'et:
+De trin, der læser og ændrer OneUptime-poster — komponenterne Find, Create, Update og Delete og triggerne On Create, On Update, On Create or Update og On Delete — handler som en **Projektadministrator** i workflowets projekt. Uanset hvem der byggede workflowet, møder et trin de samme kontroller, som en Project Admin møder i dashboardet og API'et:
 
 - **Kun workflowets eget projekt.** Et trin læser og skriver posterne i det projekt, workflowet hører til, og intet andet, og en Update flytter aldrig en post til et andet projekt.
-- **Kun det, en Project Admin må.** Et trin kan ikke gøre det, som kun **Project Owner** og tilladelser til fakturering eller sletning af projektet giver lov til, og det kan ikke læse, hvem der oprettede en probe eller en AI-agent, hvilket kun projektejere ser.
-- **Ikke hvem der har adgang.** Et trin opretter, ændrer og sletter ikke teams, teammedlemmer, teamtilladelser, brugerdefinerede roller eller API-nøgletilladelser, selvom en Project Admin må. Den, der bygger et workflow, bestemmer, hvad dets trin gør, og det kan være en **Project Member**, så et trin, der kunne, ville give den, der byggede det, adgang, vedkommende ikke har fået, som **Project Admin**. Trinnet afvises, og kørslens log siger, at en person, der administrerer projektets teams og API-nøgler, skal foretage ændringen. Triggere og Find-trin på disse poster virker stadig.
+- **Kun det, en Project Admin må.** Et trin kan ikke gøre det, som kun **Projektejer** og tilladelser til fakturering eller sletning af projektet giver lov til, og det kan ikke læse, hvem der oprettede en probe eller en AI-agent, hvilket kun projektejere ser.
+- **Ikke hvem der har adgang.** Et trin opretter, ændrer og sletter ikke teams, teammedlemmer, teamtilladelser, brugerdefinerede roller eller API-nøgletilladelser, selvom en Project Admin må. Den, der bygger et workflow, bestemmer, hvad dets trin gør, og det kan være en **Projektmedlem**, så et trin, der kunne, ville give den, der byggede det, adgang, vedkommende ikke har fået, som **Projektadministrator**. Trinnet afvises, og kørslens log siger, at en person, der administrerer projektets teams og API-nøgler, skal foretage ændringen. Triggere og Find-trin på disse poster virker stadig.
 - **Ikke læsning af indstillinger, der indeholder loginoplysninger.** En Project Admin må læse SMTP-servere, opkalds- og SMS-udbydere, SNMP-loginoplysninger, videoopkaldsforbindelser og API-nøgler, men det lånes aldrig ud til et trin, uanset hvem der byggede eller gemte workflowet. Et trin kan ikke angive en af disse indstillinger, som den SMTP-server, en statusside sender e-mail med, eller den API-nøgle, en tilladelse gives til. Trinnet afvises, og dets kørselslog siger, at en person, der må læse dem (læsetilladelsen til den slags indstilling, eller en Project Owner eller Project Admin), skal foretage ændringen. Et trin, der beholder den indstilling, en post allerede angiver, eller rydder den, afvises ikke.
 - **Kun det, jeres plan indeholder.** I OneUptime Cloud afvises et trin, der opretter eller ændrer noget, jeres plan ikke indeholder, med den plan, det kræver, præcis som dashboardet gør. Selvhostede installationer uden fakturering har ingen plangrænser.
 - **Intet af det, OneUptime holder for sig selv.** Dette afvises for alle, workflows inklusive:

@@ -113,7 +113,7 @@ Wat een gekoppelde client kan:
 
 Elke client die door aanmelden is gekoppeld, staat op **Projectinstellingen → AI → MCP-server**, onder **Verbonden MCP-clients**, met wie hem heeft gekoppeld, wat hij mag en wanneer hij voor het laatst is gebruikt. Je ziet de clients die je zelf hebt gekoppeld; eigenaren en beheerders van het project zien die van iedereen.
 
-Klik op **Disconnect** om een client af te melden. Hij werkt meteen niet meer.
+Klik op **Verbinding verbreken** om een client af te melden. Hij werkt meteen niet meer.
 
 Een client blijft gekoppeld zolang hij wordt gebruikt. Een client die 30 dagen niet is gebruikt, moet zich opnieuw aanmelden.
 
@@ -138,7 +138,7 @@ Ga naar **Projectinstellingen → Geavanceerd → API-sleutels** en klik op **AP
 
 ### Kies wat hij mag
 
-Kies onder **Toegang** **Viewer** voor een agent die alleen leest, of **Project Admin** voor een agent die ook aanmaakt, bijwerkt en verwijdert (zie [Machtigingen van API-sleutels](#machtigingen-van-api-sleutels)).
+Kies onder **Toegang** **Kijker** voor een agent die alleen leest, of **Projectbeheerder** voor een agent die ook aanmaakt, bijwerkt en verwijdert (zie [Machtigingen van API-sleutels](#machtigingen-van-api-sleutels)).
 
 ### Kopieer de sleutel
 
@@ -420,8 +420,8 @@ Deze werken zonder inloggegevens, met alleen de tools voor openbare statuspagina
 
 | Wat de agent doet | Kies onder **Toegang** |
 | --- | --- |
-| Leest alleen | **Viewer**, of voeg leesmachtigingen toe op de pagina van de sleutel |
-| Maakt ook aan, werkt bij en verwijdert | **Project Admin**, of voeg de rol Project Admin toe op de pagina van de sleutel |
+| Leest alleen | **Kijker**, of voeg leesmachtigingen toe op de pagina van de sleutel |
+| Maakt ook aan, werkt bij en verwijdert | **Projectbeheerder**, of voeg de rol Project Admin toe op de pagina van de sleutel |
 
 Geef elke sleutel het minimum dat hij nodig heeft, roteer sleutels regelmatig, gebruik een aparte sleutel voor elke omgeving en houd in OneUptime in de gaten wat elke sleutel doet.
 

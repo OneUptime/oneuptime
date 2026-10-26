@@ -20,7 +20,7 @@ flowchart TB
     union --> sli["SLI und Fehlerbudget"]
 ```
 
-Ein neues SLO hat keine Monitore, denn das Erstellungsformular fragt nicht danach. Bis es einen hat, kann es nicht ausgewertet werden: Seine Seiten zeigen **No monitors attached**, und seine **Übersicht** bietet beide Wege an, Monitore zuzuordnen.
+Ein neues SLO hat keine Monitore, denn das Erstellungsformular fragt nicht danach. Bis es einen hat, kann es nicht ausgewertet werden: Seine Seiten zeigen **Keine Monitore verbunden**, und seine **Übersicht** bietet beide Wege an, Monitore zuzuordnen.
 
 ## Monitore von Hand zuordnen
 

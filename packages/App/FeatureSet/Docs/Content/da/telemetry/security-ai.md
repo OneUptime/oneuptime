@@ -60,7 +60,7 @@ Den kan også læse resten af OneUptime, som undersøgelsen af en hændelse gør
 | Sandsynligvis falsk positiv | Detektionen ser ud til at have fejltolket normal aktivitet | False Positive |
 | Uafklaret | Der var ikke nok beviser til at afgøre det, og en person skal se på det | Intet |
 
-Vurderingen er OneUptime AI's, aldrig sagens konklusion: **Close Case** starter på den konklusion, den foreslår, og en person vælger. Under vurderingen viser kortet:
+Vurderingen er OneUptime AI's, aldrig sagens konklusion: **Luk sag** starter på den konklusion, den foreslår, og en person vælger. Under vurderingen viser kortet:
 
 - **Foreslået prioritet** med **Angiv prioritet**, når sagen har en anden prioritet.
 - **Foreslået playbook** med **Kør playbook**, som kører den i dit navn med hver godkendelse, den kræver.
@@ -86,7 +86,7 @@ Nye projekter starter med den slået til; et projekt, der blev oprettet før, ha
 
 ## Kør en playbook efter en vurdering
 
-En playbook, hvis **Trigger** er **Vurderet som sandsynligvis ondsindet**, kører én gang på en sag, når en vurdering læser den som Sandsynligvis ondsindet. **For Cases At Least**, **Only For Detections From** og **Only For These Detection Rules** afgrænser den som for enhver udløser, og dens inddæmningstrin venter som altid på godkendelse. Den kører ikke:
+En playbook, hvis **Trigger** er **Vurderet som sandsynligvis ondsindet**, kører én gang på en sag, når en vurdering læser den som Sandsynligvis ondsindet. **For sager af mindst**, **Kun for detektioner fra** og **Kun for disse detektionsregler** afgrænser den som for enhver udløser, og dens inddæmningstrin venter som altid på godkendelse. Den kører ikke:
 
 - efter en vurdering, der fandt tekst skrevet for at styre en AI;
 - en anden gang på den samme sag, uanset hvor ofte sagen bliver vurderet;
@@ -96,7 +96,7 @@ En ny playbook får kun tilbudt denne udløser, mens projektets AI er slået til
 
 ## Skriv et udkast til en detektionsregel
 
-Klik på siden **Detection Rules** under feltet **Sigma Rule (YAML)** på **Draft with AI**, og sig, hvad reglen skal fange, for eksempel ti mislykkede logins fra én IP-adresse inden for fem minutter. **Skriv regel** sætter en Sigma-regel ind i feltet, kontrolleret på samme måde som en gemt regel. Læs den, ret den efter behov, og gem den som sædvanlig: intet bliver gemt, før du gør det. Står der allerede en regel i feltet, hedder knappen **Skriv igen med AI**, og udkastet erstatter den regel.
+Klik på siden **Detektionsregler** under feltet **Sigma-regel (YAML)** på **Udkast med AI**, og sig, hvad reglen skal fange, for eksempel ti mislykkede logins fra én IP-adresse inden for fem minutter. **Skriv regel** sætter en Sigma-regel ind i feltet, kontrolleret på samme måde som en gemt regel. Læs den, ret den efter behov, og gem den som sædvanlig: intet bliver gemt, før du gør det. Står der allerede en regel i feltet, hedder knappen **Skriv igen med AI**, og udkastet erstatter den regel.
 
 Et udkast kræver en rolle, der må oprette detektionsregler.
 
@@ -129,7 +129,7 @@ Noget af sagens data, som en begivenhedsmeddelelse eller et brugernavn, blev skr
 :::
 
 :::details En playbook med AI-udløseren kørte ikke
-Tjek, at playbooken er slået til, at vurderingen læste sagen som Sandsynligvis ondsindet, og at dens indstillinger **For Cases At Least**, **Only For Detections From** og **Only For These Detection Rules** passer til sagen. Den kører én gang pr. sag og ikke efter en vurdering, der fandt tekst skrevet for at styre en AI.
+Tjek, at playbooken er slået til, at vurderingen læste sagen som Sandsynligvis ondsindet, og at dens indstillinger **For sager af mindst**, **Kun for detektioner fra** og **Kun for disse detektionsregler** passer til sagen. Den kører én gang pr. sag og ikke efter en vurdering, der fandt tekst skrevet for at styre en AI.
 :::
 
 ## Næste skridt

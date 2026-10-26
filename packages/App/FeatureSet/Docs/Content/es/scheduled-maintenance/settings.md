@@ -119,11 +119,11 @@ Cada modelo de mantenimiento tiene disparadores y acciones de flujo de trabajo c
 
 | Rol                               | Qué puede hacer                                                                                      |
 | --------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| **Scheduled Maintenance Viewer**  | Lee eventos y no cambia nada.                                                                        |
-| **Scheduled Maintenance Member**  | Crea, cambia y elimina eventos con sus notas, cronologías de estados y propietarios, y ambos tipos de plantillas. |
-| **Scheduled Maintenance Admin**   | Todo lo que hace un miembro, y además crea, cambia y elimina estados de mantenimiento.               |
+| **Visor de mantenimiento programado**  | Lee eventos y no cambia nada.                                                                        |
+| **Miembro de mantenimiento programado**  | Crea, cambia y elimina eventos con sus notas, cronologías de estados y propietarios, y ambos tipos de plantillas. |
+| **Administrador de mantenimiento programado**   | Todo lo que hace un miembro, y además crea, cambia y elimina estados de mantenimiento.               |
 
-Las reglas, los campos personalizados y las mediciones requieren **Project Owner** o **Project Admin**, o un rol personalizado con el permiso propio de esa página, como **Create Scheduled Maintenance Owner Rule**. Las reglas de runbook también aceptan **Runbook Admin**. **Project Member** trabaja con eventos y plantillas, como **Scheduled Maintenance Member**. Consulta [Usuarios, equipos y permisos](/docs/permissions/index).
+Las reglas, los campos personalizados y las mediciones requieren **Propietario del proyecto** o **Administrador del proyecto**, o un rol personalizado con el permiso propio de esa página, como **Create Scheduled Maintenance Owner Rule**. Las reglas de runbook también aceptan **Administrador de runbooks**. **Miembro del proyecto** trabaja con eventos y plantillas, como **Miembro de mantenimiento programado**. Consulta [Usuarios, equipos y permisos](/docs/permissions/index).
 
 ## Solución de problemas
 

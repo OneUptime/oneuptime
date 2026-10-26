@@ -77,7 +77,7 @@ Sidans sidomeny samlar det du gör med ett undantag:
 | **Context** | Den senaste förekomstens attribut, dess sessionsinspelning när en spelades in, och stegen som ledde fram till den. |
 | **Loggar** | Loggarna som skrevs runt den senaste förekomsten. |
 | **AI Assistance** | AI-uppgifter som rättar undantaget eller testar det. |
-| **Inställningar** | Lös eller arkivera undantaget. Sidan ligger under **Manage**, som är hopfällt från början. |
+| **Inställningar** | Lös eller arkivera undantaget. Sidan ligger under **Hantera**, som är hopfällt från början. |
 
 ## Lös, öppna igen och arkivera
 
@@ -86,7 +86,7 @@ Knapparna högst upp på undantagets sida, och dess sida **Inställningar**, än
 | Åtgärd | När du använder den | Vad som händer sedan |
 | --- | --- | --- |
 | **Lös** | Du har driftsatt rättelsen. | Det lämnar listan **Olöst**. En ny förekomst öppnar det igen. |
-| **Reopen** | Rättelsen fungerade inte. | Det är olöst igen. |
+| **Öppna igen** | Rättelsen fungerade inte. | Det är olöst igen. |
 | **Arkivera** | Det är brus som du inte tänker rätta. | Det lämnar listan. Nya förekomster räknas men skickar inte längre aviseringar. |
 | **Avarkivera** | Du vill höra om det igen. | Det är tillbaka i den lista där det hör hemma. |
 
@@ -124,8 +124,8 @@ Var 15:e minut går OneUptime igenom dina undantag efter nya, efter dem som plö
 
 | Fynd | När OneUptime registrerar det | Pull requesten |
 | --- | --- | --- |
-| **New Exception** | Ett undantag som sågs första gången under de senaste 24 timmarna och som redan har inträffat 3 gånger eller fler. | Rättar undantaget, eller hanterar det bättre. |
-| **Exception Spike** | Ett undantag som har inträffat 10 gånger eller fler under den senaste timmen, med 5 gånger eller mer sin timtakt under de 24 timmarna innan. | Rättar undantaget, eller hanterar det bättre. |
+| **Nytt undantag** | Ett undantag som sågs första gången under de senaste 24 timmarna och som redan har inträffat 3 gånger eller fler. | Rättar undantaget, eller hanterar det bättre. |
+| **Topp i undantag** | Ett undantag som har inträffat 10 gånger eller fler under den senaste timmen, med 5 gånger eller mer sin timtakt under de 24 timmarna innan. | Rättar undantaget, eller hanterar det bättre. |
 | **Saknad stack trace** | De undantag som en tjänst registrerade under det senaste dygnet saknar stack trace och har tillsammans inträffat 20 gånger eller fler. | Får tjänsten att registrera en stack trace med varje undantag. |
 
 Pull requesten för ett nytt eller ökande undantag är undantagets egen AI-uppgift, den som undantagets sida **AI Assistance** startar, och den väntar tills OneUptime AI har undersökt fyndet. Hittar den den skyldiga koden (`code-fault`), rättar pull requesten den, som **Fix this exception with AI** gör. Hittar den ett förväntat fel (`user-error` eller `expected-denial`), hanterar pull requesten felet bättre, som **Förbättra felhantering** gör. Varje annan slutsats öppnar ingen pull request av sig själv. Med **Arkivera förväntade undantag** påslaget arkiveras ett förväntat nekande i stället och får ingen pull request.
@@ -177,7 +177,7 @@ En ny förekomst öppnar ett löst undantag igen med avsikt: felet inträffar fo
 ## Nästa steg
 
 :::cards
-- [Undantagsövervakning](/docs/monitor/exceptions-monitor): Få en varning när undantagen ökar kraftigt.
+- [Undantagsövervakning](/docs/monitor/exceptions-monitor): Få ett larm när undantagen ökar kraftigt.
 - [Source maps](/docs/telemetry/source-maps): Läsbara stack traces för webbläsarkod.
 - [Kod](/docs/ai/ai-agent): Hur AI rättar kod och öppnar pull requests.
 - [Spårutforskare](/docs/telemetry/traces-explorer): Se förfrågan där ett undantag inträffade.

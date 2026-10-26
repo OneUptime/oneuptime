@@ -161,7 +161,7 @@ Die Position eines Status bestimmt, als was er zählt, angezeigt unter **Zählt 
 
 ## Alle Postmortems sehen
 
-**Vorfälle → Postmortem-Analysen** listet das Postmortem jedes Vorfalls im Projekt auf, das neueste zuerst, mit den Spalten **Vorfall**, **Titel**, **Postmortem-Status**, **Schweregrad**, **Eigentümer** und **Erklärt**. **Ansehen** in einer Zeile öffnet die Seite **Postmortem** des Vorfalls.
+**Vorfälle → Postmortem-Analysen** listet das Postmortem jedes Vorfalls im Projekt auf, das neueste zuerst, mit den Spalten **Vorfall**, **Titel**, **Postmortem-Status**, **Schweregrad**, **Eigentümer** und **Gemeldet**. **Ansehen** in einer Zeile öffnet die Seite **Postmortem** des Vorfalls.
 
 Über der Liste zählt eine Kachel pro Status die Postmortems darin. Klicken Sie auf eine Kachel, um nur diese aufzulisten, und erneut, um wieder alle aufzulisten.
 

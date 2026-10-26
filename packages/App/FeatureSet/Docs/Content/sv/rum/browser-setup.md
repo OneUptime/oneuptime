@@ -11,7 +11,7 @@ Instrumentera en webbapp med OpenTelemetry-SDK:t för webbläsare så att den ra
 
 ## Så fungerar det
 
-SDK:t körs i dina besökares webbläsare. Det registrerar ett span för varje sidladdning och varje förfrågan och exporterar dem direkt till OneUptime med en **Browser**-intagningsnyckel, utan egen collector eller proxy emellan.
+SDK:t körs i dina besökares webbläsare. Det registrerar ett span för varje sidladdning och varje förfrågan och exporterar dem direkt till OneUptime med en **Webbläsare**-intagningsnyckel, utan egen collector eller proxy emellan.
 
 ```mermaid title="Vart webbläsarens telemetri tar vägen"
 flowchart TB
@@ -35,8 +35,8 @@ flowchart TB
 
 1. Gå till **Produkter → Projektinställningar**.
 2. Fäll ut **Telemetri och APM** i sidomenyn och välj **Intagningsnycklar**.
-3. Klicka på **Skapa ingestion-nyckel** och välj **Browser** som **Nyckeltyp**.
-4. Ange dina ursprung under **Allowed Origins** i steget **Webbläsarinställningar** som en JSON-array, till exempel `["https://app.example.com"]`, och skapa sedan nyckeln. På OneUptime Clouds gratisplan visar ett sista steg **Fakturering** först priset för telemetri.
+3. Klicka på **Skapa ingestion-nyckel** och välj **Webbläsare** som **Nyckeltyp**.
+4. Ange dina ursprung under **Tillåtna ursprung** i steget **Webbläsarinställningar** som en JSON-array, till exempel `["https://app.example.com"]`, och skapa sedan nyckeln. På OneUptime Clouds gratisplan visar ett sista steg **Fakturering** först priset för telemetri.
 
 ![Sidan med intagningsnycklar för telemetri i projektinställningarna](/docs/static/images/TelemetryIngestionKeys.png)
 
@@ -164,9 +164,9 @@ Allt i snippetet skickas till dina besökare, så vem som helst kan kopiera toke
 
 | Inställning | Vad den gör |
 | --- | --- |
-| **Allowed Origins** | Förfrågningar tas bara emot från dessa ursprung, vart och ett med sitt schema och eventuell port. En värd får börja med ett enda jokertecken `*.`: `https://*.example.com` täcker alla underdomäner till `example.com`, men inte `example.com` självt. |
+| **Tillåtna ursprung** | Förfrågningar tas bara emot från dessa ursprung, vart och ett med sitt schema och eventuell port. En värd får börja med ett enda jokertecken `*.`: `https://*.example.com` täcker alla underdomäner till `example.com`, men inte `example.com` självt. |
 | **Requests Per Minute Limit** | Ett tak för alla besökare som använder nyckeln: 6000 förfrågningar per minut, om du inte sätter ett eget. |
-| **Pinned Service Name** | Tvingar fram `service.name` på allt som nyckeln skriver, så att en kopia inte kan låta sin telemetri se ut att komma från en av dina backend-tjänster. |
+| **Fäst tjänstnamn** | Tvingar fram `service.name` på allt som nyckeln skriver, så att en kopia inte kan låta sin telemetri se ut att komma från en av dina backend-tjänster. |
 | **Upphör** | Efter det här datumet godtas nyckeln inte längre. |
 | **Aktiverad** | Stäng av den för att genast stoppa en läckt nyckel. |
 
@@ -245,7 +245,7 @@ Med [Sessionsuppspelning](/docs/telemetry/session-replay) installerat bär förf
 
 Om du också kör [Sessionsuppspelning](/docs/telemetry/session-replay) ansluter telemetrin från din **backend** till inspelningen utan kod här. Medan en session laddas upp lägger inspelaren till en `tracestate`-medlem med sessions-id:t på de förfrågningar som din sida gör till sitt eget ursprung, och lämnar `traceparent` till din `FetchInstrumentation` / `XMLHttpRequestInstrumentation`. Din backends spans får sessions-id:t vid intaget, i varje tjänst som för W3C-spårkontexten vidare, och dess loggar och undantag ansluter till inspelningen via spår-id:t. Se [Korrelera med resten av din telemetri](/docs/telemetry/session-replay#korrelera-med-resten-av-din-telemetri) för hur det fungerar, vad det inte täcker och reglaget som stänger av det.
 
-Inspelaren läser också tillbaka den `traceparent` som dina instrumenteringar sätter, oavsett om anropet skickar en URL (med eller utan init-objekt) eller ett `Request`-objekt, så att varje förfrågningsrad i uppspelningen länkar till sitt backend-spår. Ett API på ett annat ursprung anger du i `propagateTraceHeaderCorsUrls` ovan; dess förfrågningar bär inget sessions-id och ansluter till inspelningen via spår-id:t. **Trace propagation origins** i applikationens uppspelningspolicy gör samma sak för sidor *utan* detta SDK.
+Inspelaren läser också tillbaka den `traceparent` som dina instrumenteringar sätter, oavsett om anropet skickar en URL (med eller utan init-objekt) eller ett `Request`-objekt, så att varje förfrågningsrad i uppspelningen länkar till sitt backend-spår. Ett API på ett annat ursprung anger du i `propagateTraceHeaderCorsUrls` ovan; dess förfrågningar bär inget sessions-id och ansluter till inspelningen via spår-id:t. **Ursprung för spårvidarebefordran** i applikationens uppspelningspolicy gör samma sak för sidor *utan* detta SDK.
 
 Det som headrarna inte når är detta SDK:s egna webbläsar-spans: dokumentladdningar, routebyten och de fel du rapporterar. För att även arkivera dem under inspelningen sätter du `session.id` på varje span när det startar. Inspelaren ger dig id:t via `onSessionChange`, som utlöses direkt om en session redan finns och igen varje gång id:t ändras: när besökaren kommer tillbaka efter 30 minuters inaktivitet, vid taket på 4 timmar, när `identify()` anger en annan användare, eller när en annan flik hos samma besökare ändrade det först.
 
@@ -430,7 +430,7 @@ Bygg dem med samma `resource`-objekt. En pipeline för loggar eller mätvärden 
 :::
 
 :::details OneUptime avvisar förfrågan
-- `422` med `Origin https://app.example.com is not allowed for this browser ingestion key.` betyder att sidans exakta ursprung (schema, värd och port) saknas i nyckelns **Allowed Origins**.
+- `422` med `Origin https://app.example.com is not allowed for this browser ingestion key.` betyder att sidans exakta ursprung (schema, värd och port) saknas i nyckelns **Tillåtna ursprung**.
 - `422` med `This telemetry ingestion key has been disabled.` betyder att någon har stängt av nyckeln. Slå på den igen, eller använd en annan nyckel.
 - `401` betyder att nyckeln är okänd, återkallad eller har gått ut. Kör nyckelkontrollen i [Konfigurera](#konfigurera) och skapa sedan en giltig Browser-nyckel.
 - `404` betyder att URL:en är fel. Spårexportören behöver hela sökvägen, `/otlp/v1/traces`.

@@ -60,7 +60,7 @@ También puede leer el resto de OneUptime como lo hace la investigación de un i
 | Probablemente falso positivo | La detección parece haber malinterpretado una actividad normal | False Positive |
 | No concluyente | No había evidencia suficiente para decidir, y una persona tiene que revisarlo | Nada |
 
-La lectura es de OneUptime AI, nunca el veredicto del caso: **Close Case** empieza con el veredicto que sugiere, y una persona elige. Bajo la lectura, la tarjeta muestra:
+La lectura es de OneUptime AI, nunca el veredicto del caso: **Cerrar caso** empieza con el veredicto que sugiere, y una persona elige. Bajo la lectura, la tarjeta muestra:
 
 - **Prioridad sugerida**, con **Establecer prioridad** cuando el caso tiene otra prioridad.
 - **Playbook sugerido**, con **Ejecutar playbook**, que lo ejecuta en tu nombre, con cada aprobación que necesite.
@@ -86,7 +86,7 @@ Los proyectos nuevos empiezan con la opción activada; un proyecto creado antes 
 
 ## Ejecutar un playbook tras una clasificación
 
-Un playbook cuyo **Disparador** es **Clasificado como probablemente malicioso** se ejecuta una vez en un caso, cuando una clasificación lo lee como Probablemente malicioso. **For Cases At Least**, **Only For Detections From** y **Only For These Detection Rules** lo acotan como con cualquier disparador, y sus pasos de contención esperan una aprobación como siempre. No se ejecuta:
+Un playbook cuyo **Disparador** es **Clasificado como probablemente malicioso** se ejecuta una vez en un caso, cuando una clasificación lo lee como Probablemente malicioso. **Para casos de al menos**, **Solo para detecciones de** y **Solo para estas reglas de detección** lo acotan como con cualquier disparador, y sus pasos de contención esperan una aprobación como siempre. No se ejecuta:
 
 - después de una clasificación que encontró texto escrito para manipular a una IA;
 - una segunda vez en el mismo caso, por muchas veces que se clasifique el caso;
@@ -129,7 +129,7 @@ Parte de los datos del caso, como el mensaje de un evento o un nombre de usuario
 :::
 
 :::details Un playbook con el disparador de IA no se ejecutó
-Comprueba que el playbook está habilitado, que la clasificación leyó el caso como Probablemente malicioso, y que sus ajustes **For Cases At Least**, **Only For Detections From** y **Only For These Detection Rules** encajan con el caso. Se ejecuta una vez por caso, y no después de una clasificación que encontró texto escrito para manipular a una IA.
+Comprueba que el playbook está habilitado, que la clasificación leyó el caso como Probablemente malicioso, y que sus ajustes **Para casos de al menos**, **Solo para detecciones de** y **Solo para estas reglas de detección** encajan con el caso. Se ejecuta una vez por caso, y no después de una clasificación que encontró texto escrito para manipular a una IA.
 :::
 
 ## Siguientes pasos

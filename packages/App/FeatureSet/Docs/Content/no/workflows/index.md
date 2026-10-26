@@ -51,7 +51,7 @@ Du bygger alt dette visuelt på et lerret. De fleste arbeidsflyter trenger ingen
 | Begrep              | Hva det betyr                                                                                                  |
 | ------------------- | -------------------------------------------------------------------------------------------------------------- |
 | **Arbeidsflyt**     | Hele automatiseringen: et navn, et lerret med blokker og en bryter for å slå den på eller av.                  |
-| **Trigger**         | Den første blokken. Den avgjør når arbeidsflyten kjører. Hver arbeidsflyt har nøyaktig én.                    |
+| **Utløser**         | Den første blokken. Den avgjør når arbeidsflyten kjører. Hver arbeidsflyt har nøyaktig én.                    |
 | **Komponent**       | Enhver annen blokk: den sender en melding, gjør en forespørsel, sjekker en betingelse eller endrer en post.    |
 | **Utgang**          | Et punkt nederst på en blokk, som **Success** eller **Error**. Linjer derfra fører til de neste blokkene.       |
 | **Kjøring**         | Én utførelse av arbeidsflyten, lagret med status, tidsstempler og det hver blokk gjorde.                       |
@@ -60,7 +60,7 @@ Du bygger alt dette visuelt på et lerret. De fleste arbeidsflyter trenger ingen
 ## Før du begynner
 
 - **En plan som inkluderer arbeidsflyter.** I OneUptime Cloud krever arbeidsflyter planen **Growth** eller høyere, og hver plan tillater et antall kjøringer hver 30. dag — se [Plangrenser](/docs/workflows/configuration#plangrenser). Selvhostede installasjoner uten fakturering har ingen av grensene.
-- **Tillatelse til å bygge.** Å opprette og endre arbeidsflyter krever **Workflow Admin**, **Project Admin** eller **Project Owner**, eller en egendefinert rolle med de tilsvarende tillatelsene. En **Workflow Member** kan åpne arbeidsflyter og kjøre dem manuelt, men ikke endre dem. Se [Tillatelser](/docs/workflows/configuration#tillatelser).
+- **Tillatelse til å bygge.** Å opprette og endre arbeidsflyter krever **Arbeidsflytadministrator**, **Prosjektadministrator** eller **Prosjekteier**, eller en egendefinert rolle med de tilsvarende tillatelsene. En **Arbeidsflytmedlem** kan åpne arbeidsflyter og kjøre dem manuelt, men ikke endre dem. Se [Tillatelser](/docs/workflows/configuration#tillatelser).
 
 ## Hvor du finner arbeidsflyter i OneUptime
 
@@ -122,7 +122,7 @@ Den nye arbeidsflyten åpnes i **Bygger**, slått av.
 
 ### Legg til triggeren
 
-Klikk på den stiplede blokken **Choose what starts this workflow**, og klikk deretter på **On Create Incident** under **Popular** i panelet **Legg til trigger**.
+Klikk på den stiplede blokken **Velg hva som starter denne arbeidsflyten**, og klikk deretter på **On Create Incident** under **Populære** i panelet **Legg til trigger**.
 
 Triggeren tar plassen til den stiplede blokken. ID-en på den, `incident-on-create-1`, er det senere blokker viser til den med.
 
@@ -134,7 +134,7 @@ Triggeren sender den nye hendelsen videre med disse feltene. Et felt du ikke vel
 
 ### Legg til API-blokken
 
-Klikk på **Legg til komponent**, og klikk deretter på **API Post (JSON)** under **Popular**. Dra fra triggerens punkt **Success** ned til det øverste punktet på den nye blokken.
+Klikk på **Legg til komponent**, og klikk deretter på **API Post (JSON)** under **Populære**. Dra fra triggerens punkt **Success** ned til det øverste punktet på den nye blokken.
 
 ### Fyll ut forespørselen
 

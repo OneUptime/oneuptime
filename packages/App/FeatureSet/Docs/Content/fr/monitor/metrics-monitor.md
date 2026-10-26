@@ -49,7 +49,7 @@ Sous **Sélectionner les métriques**, choisissez une **Métrique** et la façon
 
 ### Définir les critères
 
-Dans **Critères du moniteur**, chaque critère choisit la **Métrique** à vérifier (une requête ou une formule), son **Agrégation**, une **Condition** et un **Threshold**. Voir [Critères](#critères) pour ce avec quoi un nouveau moniteur commence.
+Dans **Critères du moniteur**, chaque critère choisit la **Métrique** à vérifier (une requête ou une formule), son **Agrégation**, une **Condition** et un **Seuil**. Voir [Critères](#critères) pour ce avec quoi un nouveau moniteur commence.
 
 ### Créer le moniteur
 
@@ -79,7 +79,7 @@ Une formule combine des variables de requête avec `+`, `-`, `*`, `/`, `%`, `^` 
 
 ### Fenêtre de temps glissante
 
-**Plage temporelle** fixe la profondeur à laquelle chaque évaluation remonte : **Past 1 Minute**, **Past 5 Minutes**, **Past 10 Minutes**, **Past 15 Minutes**, **Past 30 Minutes**, **Past 1 Hour**, **Past 2 Hours**, **Past 3 Hours**, **Past 6 Hours**, **Past 12 Hours**, **Past 1 Day**, **Past 2 Days**, **Past 3 Days**, **Past 7 Days**, **Past 14 Days**, **Past 30 Days**, **Past 60 Days**, **Past 90 Days**, **Past 180 Days** ou **Past 365 Days**.
+**Plage temporelle** fixe la profondeur à laquelle chaque évaluation remonte : **Past 1 Minute**, **5 dernières minutes**, **Past 10 Minutes**, **15 dernières minutes**, **30 dernières minutes**, **Dernière heure**, **2 dernières heures**, **3 dernières heures**, **Past 6 Hours**, **Past 12 Hours**, **Dernier jour**, **2 derniers jours**, **Past 3 Days**, **Past 7 Days**, **Past 14 Days**, **Past 30 Days**, **Past 60 Days**, **Past 90 Days**, **Past 180 Days** ou **Past 365 Days**.
 
 Plus la plage est longue, plus chaque intervalle de temps est large, si bien qu'un point de données représente plus de temps :
 
@@ -116,7 +116,7 @@ Plus la plage est longue, plus chaque intervalle de temps est large, si bien qu'
 
 ## Critères
 
-Ces moniteurs évaluent toujours la **Metric Value** – la valeur agrégée de la requête de métriques ou de la formule configurée. Le formulaire des critères n'a pas de sélecteur de type de filtre ; il affiche **Métrique**, **Agrégation**, **Condition** et **Threshold**. Quand la métrique a une unité, choisissez l'unité du seuil à côté.
+Ces moniteurs évaluent toujours la **Metric Value** – la valeur agrégée de la requête de métriques ou de la formule configurée. Le formulaire des critères n'a pas de sélecteur de type de filtre ; il affiche **Métrique**, **Agrégation**, **Condition** et **Seuil**. Quand la métrique a une unité, choisissez l'unité du seuil à côté.
 
 | Condition | Correspond quand la valeur est… |
 | --- | --- |
@@ -143,13 +143,13 @@ Un nouveau moniteur de métriques commence avec deux critères sur sa première 
 
 ## Exemple : une file qui grossit
 
-Vous voulez un incident quand la file de checkout reste profonde. La requête `a` est la jauge `checkout.queue.depth`, avec **Agréger par** Max, et la **Plage temporelle** est **Past 5 Minutes**. Une évaluation voit ces cinq points de données d'une minute :
+Vous voulez un incident quand la file de checkout reste profonde. La requête `a` est la jauge `checkout.queue.depth`, avec **Agréger par** Max, et la **Plage temporelle** est **5 dernières minutes**. Une évaluation voit ces cinq points de données d'une minute :
 
 | Minute | 10:01 | 10:02 | 10:03 | 10:04 | 10:05 |
 | --- | --- | --- | --- | --- | --- |
 | `a` | 640 | 980 | 1 500 | 1 620 | 1 100 |
 
-Un critère avec **Métrique** `a`, **Condition** **Supérieur à** et **Threshold** `1000` donne une réponse différente pour chaque **Agrégation** :
+Un critère avec **Métrique** `a`, **Condition** **Supérieur à** et **Seuil** `1000` donne une réponse différente pour chaque **Agrégation** :
 
 | Agrégation | Comparé à 1 000 | Correspond ? |
 | --- | --- | --- |

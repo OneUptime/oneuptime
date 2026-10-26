@@ -1,6 +1,6 @@
 # Monitor e regole dei monitor
 
-Uno SLO misura la disponibilità dei monitor collegati. Collegali a mano, lascia che le regole dei monitor colleghino ogni monitor che corrisponde, oppure fai entrambe le cose. Questa pagina tratta la pagina **Monitor** di uno SLO, in **Configurazione** nel suo menu laterale, e la sua pagina **Monitor Rules**, in **Regole**.
+Uno SLO misura la disponibilità dei monitor collegati. Collegali a mano, lascia che le regole dei monitor colleghino ogni monitor che corrisponde, oppure fai entrambe le cose. Questa pagina tratta la pagina **Monitor** di uno SLO, in **Configurazione** nel suo menu laterale, e la sua pagina **Regole dei monitor**, in **Regole**.
 
 :::cards
 - [Scegliere i monitor a mano](#collegare-i-monitor-a-mano): Ideale per un insieme piccolo e fisso.
@@ -20,7 +20,7 @@ flowchart TB
     union --> sli["SLI e budget di errore"]
 ```
 
-Un nuovo SLO non ha monitor, perché il modulo di creazione non li chiede. Finché non ne ha uno non può essere valutato: le sue pagine mostrano **No monitors attached**, e la sua **Panoramica** offre entrambi i modi per collegare i monitor.
+Un nuovo SLO non ha monitor, perché il modulo di creazione non li chiede. Finché non ne ha uno non può essere valutato: le sue pagine mostrano **Nessun monitor collegato**, e la sua **Panoramica** offre entrambi i modi per collegare i monitor.
 
 ## Collegare i monitor a mano
 
@@ -37,7 +37,7 @@ Fai clic su **Aggiungi monitor** e scegli i monitor del progetto. Sono elencati 
 
 ### Salvare l'elenco
 
-Fai clic su **Aggiungi monitor**. I monitor compaiono nell'elenco con l'origine **Manual** e contano per lo SLI dalla valutazione successiva.
+Fai clic su **Aggiungi monitor**. I monitor compaiono nell'elenco con l'origine **Manuale** e contano per lo SLI dalla valutazione successiva.
 :::
 
 Per togliere un monitor dallo SLO, fai clic su **Rimuovi** nella sua riga. Il monitor in sé non cambia; smette solo di contare per lo SLI e il budget di errore dello SLO.
@@ -47,7 +47,7 @@ La pagina **Monitor** mostra, per ogni monitor:
 | Colonna | Cosa mostra |
 | --- | --- |
 | **Stato attuale** | Lo stato attuale del monitor, oppure **Archiviato**, **Disabilitato**, **Sonde non abilitate**, **Sonde disconnesse** o **Sconosciuto** quando non viene controllato o non ha ancora segnalato nulla. |
-| **Origine** | **Rule** se l'ha collegato una delle regole dei monitor dello SLO, **Manual** se qualcuno l'ha collegato a mano. |
+| **Origine** | **Regola** se l'ha collegato una delle regole dei monitor dello SLO, **Manuale** se qualcuno l'ha collegato a mano. |
 | **Etichette** | Le etichette del monitor. |
 
 ## Collegare i monitor con una regola
@@ -57,7 +57,7 @@ Una regola dei monitor descrive i monitor che uno SLO deve misurare, come «ogni
 :::steps
 ### Aprire Monitor Rules
 
-Apri lo SLO, vai a **Monitor Rules** e fai clic su **Crea: SLO Monitor Rule**.
+Apri lo SLO, vai a **Regole dei monitor** e fai clic su **Crea: SLO Monitor Rule**.
 
 ### Dare un nome alla regola
 
@@ -69,10 +69,10 @@ In **Criteri di corrispondenza**, fai clic su **Aggiungi condizione**, scegli un
 
 ### Salvare la regola
 
-Fai clic su **Crea: SLO Monitor Rule**. La regola parte abilitata e i monitor dello SLO vengono rivalutati subito: ogni monitor che corrisponde viene collegato con l'origine **Rule**.
+Fai clic su **Crea: SLO Monitor Rule**. La regola parte abilitata e i monitor dello SLO vengono rivalutati subito: ogni monitor che corrisponde viene collegato con l'origine **Regola**.
 :::
 
-La tabella delle regole mostra per ogni regola il nome, i criteri di corrispondenza a parole e se è abilitata. Per mettere in pausa una regola, disattiva **Abilitato** nel suo modulo di modifica. **View Monitors** apre la pagina **Monitor** dello SLO.
+La tabella delle regole mostra per ogni regola il nome, i criteri di corrispondenza a parole e se è abilitata. Per mettere in pausa una regola, disattiva **Abilitato** nel suo modulo di modifica. **Visualizza i monitor** apre la pagina **Monitor** dello SLO.
 
 ### Criteri di corrispondenza
 
@@ -102,19 +102,19 @@ Un pattern è un'espressione regolare, come `^api-.*`, oppure un carattere jolly
 - Quando si elimina un'etichetta, gli SLO le cui regole la usavano vengono rivalutati.
 - Le regole tengono aggiornato l'elenco dei monitor di uno SLO anche mentre lo SLO è disattivato o archiviato, così riprende con i monitor giusti.
 
-Le regole si risincronizzano a ogni salvataggio, quindi **Run Now** serve a recuperare ciò che è sfuggito allo SLO. Si trova in ogni riga, nella pagina della regola (**Visualizza**) e nelle azioni di massa della tabella. Eseguire una regola rivaluta insieme tutte le regole dei monitor abilitate dello SLO, e poi la finestra di dialogo dice quanti monitor sono stati collegati e scollegati. Eseguire una regola richiede il permesso di modificare le regole dei monitor degli SLO. Vedi [Eseguire le regole sulle risorse esistenti](/docs/configuration/run-rules-now).
+Le regole si risincronizzano a ogni salvataggio, quindi **Esegui ora** serve a recuperare ciò che è sfuggito allo SLO. Si trova in ogni riga, nella pagina della regola (**Visualizza**) e nelle azioni di massa della tabella. Eseguire una regola rivaluta insieme tutte le regole dei monitor abilitate dello SLO, e poi la finestra di dialogo dice quanti monitor sono stati collegati e scollegati. Eseguire una regola richiede il permesso di modificare le regole dei monitor degli SLO. Vedi [Eseguire le regole sulle risorse esistenti](/docs/configuration/run-rules-now).
 
 ### Quali monitor appartengono a una regola
 
 - Un monitor resta collegato finché una regola abilitata gli corrisponde, e viene scollegato appena nessuna lo fa più.
 - Disattivare o eliminare una regola scollega solo i monitor a cui nessun'altra regola abilitata corrisponde ancora.
-- Le regole scollegano solo i monitor collegati da una regola. Un monitor collegato a mano non viene mai preso da una regola che gli corrisponde per caso, né scollegato quando smette di corrispondere. La sua origine resta **Manual**.
+- Le regole scollegano solo i monitor collegati da una regola. Un monitor collegato a mano non viene mai preso da una regola che gli corrisponde per caso, né scollegato quando smette di corrispondere. La sua origine resta **Manuale**.
 
 ## Scegliere a mano mentre le regole sono attive
 
 Finché almeno una regola è abilitata, sono le regole a gestire i monitor dello SLO:
 
-- non si possono aggiungere monitor a mano: **Aggiungi monitor** è disattivato, e un banner dice **This SLO's monitors are managed by its monitor rules**, con un link **Manage Monitor Rules**;
+- non si possono aggiungere monitor a mano: **Aggiungi monitor** è disattivato, e un banner dice **I monitor di questo SLO sono gestiti dalle sue regole dei monitor**, con un link **Gestisci le regole dei monitor**;
 - i monitor collegati da una regola non si possono togliere a mano, perché la regola li ricollegherebbe: il loro pulsante **Rimuovi** è bloccato e il suo suggerimento spiega perché;
 - i monitor collegati a mano prima che le regole fossero attivate si possono ancora togliere.
 
@@ -153,7 +153,7 @@ Una regola dei monitor ha collegato quel monitor e lo ricollegherebbe. Cambia o 
 :::
 
 :::details Un monitor a cui una regola dovrebbe corrispondere non è collegato
-Controlla che la regola sia abilitata e che ogni condizione sia soddisfatta con **Soddisfa tutte**. Contano anche le etichette che aggiunge una regola delle etichette dei monitor. Fai clic su **Run Now** sulla regola per risincronizzare lo SLO.
+Controlla che la regola sia abilitata e che ogni condizione sia soddisfatta con **Soddisfa tutte**. Contano anche le etichette che aggiunge una regola delle etichette dei monitor. Fai clic su **Esegui ora** sulla regola per risincronizzare lo SLO.
 :::
 
 :::details Il salvataggio di una regola fallisce con un errore di pattern

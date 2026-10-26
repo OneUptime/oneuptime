@@ -100,7 +100,7 @@ Die Karte **Videoanruf** auf der Seite eines Vorfalls oder einer Warnung hat **A
 
 **Entfernen** auf der Karte nimmt einen Anruf von der Seite des Vorfalls. Das Meeting selbst wird nicht gelöscht, und alle mit dem Link können ihm weiterhin beitreten.
 
-Anrufe zu starten und zu entfernen braucht die Berechtigung, an Vorfällen (oder Warnungen) zu arbeiten: **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin** oder **Incident Member**, oder **Create Incident Video Call** und **Delete Incident Video Call** in einer benutzerdefinierten Rolle. Alle, die den Vorfall lesen können, sehen seine Anrufe.
+Anrufe zu starten und zu entfernen braucht die Berechtigung, an Vorfällen (oder Warnungen) zu arbeiten: **Projektinhaber**, **Projektadministrator**, **Projektmitglied**, **Vorfall-Administrator** oder **Vorfall-Mitglied**, oder **Create Incident Video Call** und **Delete Incident Video Call** in einer benutzerdefinierten Rolle. Alle, die den Vorfall lesen können, sehen seine Anrufe.
 
 ## Anruf-Transkripte
 
@@ -146,7 +146,7 @@ Microsoft lässt Apps nur die Transkripte von Teams-Meetings lesen, die in einem
 
 ### Wer was darf
 
-Ein Transkript holen, hinzufügen, ersetzen und entfernen, es erneut lesen lassen und einen Vorschlag ausblenden braucht die Berechtigung, die Anrufe des Vorfalls zu starten: **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin** oder **Incident Member**, oder **Create Incident Video Call** in einer benutzerdefinierten Rolle. **Als Grundursache verwenden** braucht die Berechtigung, die Grundursache des Vorfalls zu bearbeiten. Alle, die den Vorfall lesen können, sehen die Transkripte seiner Anrufe und was OneUptime AI darin gelesen hat.
+Ein Transkript holen, hinzufügen, ersetzen und entfernen, es erneut lesen lassen und einen Vorschlag ausblenden braucht die Berechtigung, die Anrufe des Vorfalls zu starten: **Projektinhaber**, **Projektadministrator**, **Projektmitglied**, **Vorfall-Administrator** oder **Vorfall-Mitglied**, oder **Create Incident Video Call** in einer benutzerdefinierten Rolle. **Als Grundursache verwenden** braucht die Berechtigung, die Grundursache des Vorfalls zu bearbeiten. Alle, die den Vorfall lesen können, sehen die Transkripte seiner Anrufe und was OneUptime AI darin gelesen hat.
 
 ### Was OneUptime AI liest
 
@@ -160,7 +160,7 @@ Zugangsdaten werden verschlüsselt gespeichert und nie von der API zurückgegebe
 
 **Testmeeting starten** im Verbindungsformular und **Testen** in der Zeile einer Verbindung legen mit den Einstellungen der Verbindung ein echtes Meeting an und zeigen dessen Link. Das ist die eine Prüfung, die zeigt, dass Zugangsdaten, Berechtigung beim Anbieter und Host zusammen funktionieren. Gepostet wird nichts.
 
-Einen Anbieter zu verbinden braucht **Project Owner**, **Project Admin** oder **Settings Admin**, oder **Create Video Call Connection** und **Edit Video Call Connection** in einer benutzerdefinierten Rolle.
+Einen Anbieter zu verbinden braucht **Projektinhaber**, **Projektadministrator** oder **Einstellungs-Administrator**, oder **Create Video Call Connection** und **Edit Video Call Connection** in einer benutzerdefinierten Rolle.
 
 ### Zoom
 

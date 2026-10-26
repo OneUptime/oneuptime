@@ -225,7 +225,7 @@ Vanaf het tabblad **Gebeurtenissen** van een apparaat bewaken de monitors alleen
 
 Syslog kan binnenkomen voordat het apparaat dat het stuurt aan OneUptime is toegevoegd. Op je eigen probe wordt het bewaard, de gebeurtenissen ervan staan op de Gebeurtenissen-pagina van het netwerk met de naam die het apparaat zichzelf geeft, en het adres staat onder **Stuurt syslog, nog geen apparaat**:
 
-- **Toevoegen als apparaat** opent **Add Device** met het adres en de probe al ingevuld. De berichten die al binnenkwamen blijven op de pagina van het netwerk; nieuwe gaan naar het apparaat.
+- **Toevoegen als apparaat** opent **Apparaat toevoegen** met het adres en de probe al ingevuld. De berichten die al binnenkwamen blijven op de pagina van het netwerk; nieuwe gaan naar het apparaat.
 - **Het is een van mijn apparaten** voegt het adres toe aan de **Overige adressen** van een apparaat: gebruik dit als een apparaat dat je al toevoegde vanaf een ander adres verstuurt, zoals een loopback. Zijn berichten gaan vanaf de volgende minuut naar dat apparaat.
 
 Meerdere apparaten achter één NAT-adres delen dat adres, dus hun berichten gaan naar het ene apparaat dat het heeft, tenzij een bericht zijn eigen apparaat noemt.

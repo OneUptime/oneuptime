@@ -90,7 +90,7 @@ Geef de app de toepassingsmachtigingen `AiEnterpriseInteraction.Read.All` en `Us
 
 ### Koppel Copilot
 
-Vul **Directory-ID (tenant)**, **Applicatie-ID (client)** en **Client secret** in. Om maar een deel van de mensen te lezen, zet je de object-ID van een groep in **Alleen mensen in deze groep** onder **Meer velden**, en geef je de app ook `GroupMember.Read.All`. Wijzig voor Azure Government daar **Cloud**.
+Vul **Directory-ID (tenant)**, **Applicatie-ID (client)** en **Clientgeheim** in. Om maar een deel van de mensen te lezen, zet je de object-ID van een groep in **Alleen mensen in deze groep** onder **Meer velden**, en geef je de app ook `GroupMember.Read.All`. Wijzig voor Azure Government daar **Cloud**.
 :::
 
 ## Privacy

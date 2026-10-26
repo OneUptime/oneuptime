@@ -31,12 +31,12 @@ flowchart TB
 
 Aggregeringen er hvordan diagrammene til SLO-et og malen SLO Dashboard kombinerer punktene som faller i ett diagramintervall. Prosenter og varigheter tas som gjennomsnitt. Forbruksrate og status tar maksimum, så en kort forbrukstopp eller en kort tur innom Budget Exhausted ikke forsvinner i gjennomsnittet.
 
-For et SLO i modusen **Monitor Seconds Average** teller `oneuptime.slo.error.budget.remaining.seconds` monitorsekunder, summert på tvers av monitorene, slik feilbudsjettet gjør: se [Feilbudsjetter](/docs/slo/error-budget).
+For et SLO i modusen **Gjennomsnitt av monitorsekunder** teller `oneuptime.slo.error.budget.remaining.seconds` monitorsekunder, summert på tvers av monitorene, slik feilbudsjettet gjør: se [Feilbudsjetter](/docs/slo/error-budget).
 
 ### Når ingen punkter skrives
 
 - Et deaktivert eller arkivert SLO evalueres ikke, så det sender ingenting.
-- Et SLO som er **Pauset** eller **Misconfigured**, måler ingenting, så det sender bare `oneuptime.slo.target.percent`, som er konfigurasjon og ikke en måling. Diagrammene for SLI, budsjett, forbruksrate og status viser et hull.
+- Et SLO som er **Pauset** eller **Feilkonfigurert**, måler ingenting, så det sender bare `oneuptime.slo.target.percent`, som er konfigurasjon og ikke en måling. Diagrammene for SLI, budsjett, forbruksrate og status viser et hull.
 - En verdi som ikke er et reelt tall, som en forbruksrate over et vindu uten data, hoppes over og skrives aldri som 0.
 
 ### Attributter
@@ -66,7 +66,7 @@ Siden **Målinger** til et SLO har fire faner:
 
 | Fane | Hva den viser |
 | --- | --- |
-| **SLO Metrics** | `oneuptime.slo.*`-seriene i tre kort som deler ett tidsrom, som standard det siste døgnet: **Objective** (SLI-en med målet over, og gjenværende budsjett), **Burn** (forbruksrate og gjenværende budsjettid) og **Status**. |
+| **SLO Metrics** | `oneuptime.slo.*`-seriene i tre kort som deler ett tidsrom, som standard det siste døgnet: **Mål** (SLI-en med målet over, og gjenværende budsjett), **Forbruk** (forbruksrate og gjenværende budsjettid) og **Status**. |
 | **Error Budget History** | SLI-en, gjenværende budsjett og forbruksraten over den langsiktige historikken, med linjer ved målet, ved grensene for risiko og oppbrukt budsjett og ved terskelen til hver aktivert forbruksrateregel. |
 | **Hendelsesmetrikker** | Antallet, tiden til kvittering, tiden til løsning og varigheten til hendelsene som påvirker dette SLO-et, som standard den siste uken. Hendelser som forbruksratereglene har erklært, er med. |
 | **Varselmetrikker** | Det samme for varsler. Varsler som forbruksratereglene har utløst, er med. |
@@ -98,7 +98,7 @@ Bruk aggregeringen fra tabellen over: Avg for prosentene og varighetene, Max for
 | Innstilling | Hvordan den oppfører seg |
 | --- | --- |
 | **Service Level Objective** | Fester widgeten til ett SLO. Velgeren viser SLO-er som ikke er arkivert. |
-| **Follow SLO Variable** | Viser SLO-et som er valgt i en dashbordvariabel: en variabel av typen **Telemetry Attribute** på nøkkelen `sloName`. Ignoreres så lenge et SLO er festet. |
+| **Follow SLO Variable** | Viser SLO-et som er valgt i en dashbordvariabel: en variabel av typen **Telemetriattributt** på nøkkelen `sloName`. Ignoreres så lenge et SLO er festet. |
 
 På et [offentlig dashbord](/docs/dashboards/sharing) lar en widget som følger en variabel, seerne velge et hvilket som helst ikke-arkivert SLO i prosjektet etter navn. En festet widget viser bare sitt eget SLO, og fortsetter å vise de siste tallene til et SLO som arkiveres senere.
 
@@ -115,7 +115,7 @@ Når du oppretter et dashbord, velger du malen **SLO Dashboard** for å få en f
 ## Feilsøking
 
 :::details Et SLO mangler i SLO-velgeren i verktøylinjen
-Velgeren viser SLO-navnene som er sendt det siste døgnet. Et nytt SLO dukker opp etter den første evalueringen; et SLO som er **Pauset** eller **Misconfigured**, kan fortsatt velges fordi det fortsatt sender målet sitt; et deaktivert eller arkivert SLO forsvinner omtrent et døgn etter det siste punktet.
+Velgeren viser SLO-navnene som er sendt det siste døgnet. Et nytt SLO dukker opp etter den første evalueringen; et SLO som er **Pauset** eller **Feilkonfigurert**, kan fortsatt velges fordi det fortsatt sender målet sitt; et deaktivert eller arkivert SLO forsvinner omtrent et døgn etter det siste punktet.
 :::
 
 :::details Å velge et navn viser to SLO-er

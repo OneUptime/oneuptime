@@ -66,7 +66,7 @@ Cada método que você verificar depois recebe as mesmas regras: uma regra para 
 
 ## A lista de configuração
 
-**Configurações do usuário → Lista de configuração** abre **Your setup checklist**: tudo de que o OneUptime precisa para chegar até você, na ordem que importa. Um passo leva à página que o resolve, e **Recheck** lê tudo de novo.
+**Configurações do usuário → Lista de configuração** abre **Your setup checklist**: tudo de que o OneUptime precisa para chegar até você, na ordem que importa. Um passo leva à página que o resolve, e **Verificar de novo** lê tudo de novo.
 
 | Seção | O que ela verifica |
 | --- | --- |

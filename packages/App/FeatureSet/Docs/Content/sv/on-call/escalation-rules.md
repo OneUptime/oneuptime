@@ -70,7 +70,7 @@ Hopfälld nämner rubriken för **Fler fält** de två och visar dem som regeln 
 
 ### Skapa regeln
 
-Klicka på **Create Rule**. Regeln läggs till under de andra, som policyns nästa nivå.
+Klicka på **Skapa regel**. Regeln läggs till under de andra, som policyns nästa nivå.
 :::
 
 ## Så larmar nivåerna personer
@@ -154,7 +154,7 @@ På OneUptime Cloud betalas varje SMS, samtal, WhatsApp- och Telegram-meddelande
 - Larmen fortsätter att gå ut på det saldo som finns kvar medan automatisk påfyllning inte kan debitera kortet.
 
 > [!IMPORTANT]
-> SMS, telefonsamtal, WhatsApp och Telegram är avstängda i ett nytt projekt: på OneUptime Cloud betalas varje meddelande från projektets saldo, och en egen installation behöver först ett Twilio-konto eller en Telegram-bot. Så länge en kanal är avstängd kan ingen i projektet lägga till en metod på den. Bara en projektägare, en **Billing Admin** eller någon med behörigheten **Manage Billing** kan slå på en, i kortet **Aviseringskanaler** på **Projektinställningar > Aviseringar > Aviseringsinställningar** — en projektadministratör kan inte. Alla andra får veta exakt vem som kan, överallt där en kanal är avstängd: ovanför sin egen lista med metoder på den, i sin checklista för att komma igång och i meddelandet de får när något behöver den.
+> SMS, telefonsamtal, WhatsApp och Telegram är avstängda i ett nytt projekt: på OneUptime Cloud betalas varje meddelande från projektets saldo, och en egen installation behöver först ett Twilio-konto eller en Telegram-bot. Så länge en kanal är avstängd kan ingen i projektet lägga till en metod på den. Bara en projektägare, en **Faktureringsadministratör** eller någon med behörigheten **Manage Billing** kan slå på en, i kortet **Aviseringskanaler** på **Projektinställningar > Aviseringar > Aviseringsinställningar** — en projektadministratör kan inte. Alla andra får veta exakt vem som kan, överallt där en kanal är avstängd: ovanför sin egen lista med metoder på den, i sin checklista för att komma igång och i meddelandet de får när något behöver den.
 
 ## Eskalera till nästa person i rotationen
 
@@ -168,7 +168,7 @@ En nivå kan larma nästa person i ett jourschemas rotation: personen efter den 
 
 :::steps
 1. Se till att policyns första nivå, **Level 1**, aviserar jourschemat.
-2. Klicka på **Lägg till eskaleringsregel**, sedan på **Lägg till mottagare**, och välj samma schema under **Nästa i rotationen**. Ange **Eskalera efter (i minuter)** och klicka på **Create Rule**.
+2. Klicka på **Lägg till eskaleringsregel**, sedan på **Lägg till mottagare**, och välj samma schema under **Nästa i rotationen**. Ange **Eskalera efter (i minuter)** och klicka på **Skapa regel**.
 3. Lägg till ytterligare en nivå för teamet eller chefen som ska få veta härnäst.
 :::
 
@@ -225,11 +225,11 @@ Varje gång ett larm eskaleras registreras det. Körningens **Tidslinje för kö
 
 ## Redigera, ändra ordning på och ta bort regler
 
-Varje regels kort har **Edit rule** och en **⋯**-meny med de andra åtgärderna:
+Varje regels kort har **Redigera regel** och en **⋯**-meny med de andra åtgärderna:
 
-- **Edit rule** öppnar samma dialog på en sida, ifylld med regeln som den är: dess mottagare, dess väntetid och dess namn och beskrivning under **Fler fält**. Lägg till eller ta bort mottagare och klicka på **Spara ändringar**. Rensar du namnet får regeln sitt nivås namn igen.
+- **Redigera regel** öppnar samma dialog på en sida, ifylld med regeln som den är: dess mottagare, dess väntetid och dess namn och beskrivning under **Fler fält**. Lägg till eller ta bort mottagare och klicka på **Spara ändringar**. Rensar du namnet får regeln sitt nivås namn igen.
 - **Flytta upp** och **Flytta ned** i en regels **⋯**-meny ändrar dess nivå. En regel som har sitt nivås namn behåller ett namn som stämmer med dess plats: när **Level 3** flyttas upp förbi **Level 2** byter de två namn. Ett namn du själv har valt, till exempel **Chefer**, förblir detsamma var regeln än hamnar.
-- **Delete rule** frågar först och säger vem nivån larmar. Tar du bort en nivå flyttas nivåerna under den upp, och regler som har sitt nivås namn byter namn så att de stämmer.
+- **Ta bort regel** frågar först och säger vem nivån larmar. Tar du bort en nivå flyttas nivåerna under den upp, och regler som har sitt nivås namn byter namn så att de stämmer.
 
 ## Skapa regler med API:et eller Terraform
 

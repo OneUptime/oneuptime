@@ -56,11 +56,11 @@ flowchart TB
 
 - **Quick Setup**: [템플릿](#미리-만든-알림-템플릿)을 클릭합니다. 템플릿은 메트릭, 속성 필터, 집계, 시간 범위, 그룹화, 임계값을 설정하고 아래의 기준을 자신의 기준으로 바꿉니다. **시간 범위** 는 나중에도 바꿀 수 있습니다.
 - **Custom Metric**: **VMware Metric** 에서 메트릭 하나를 고른 다음 **집계** 와 **시간 범위** 를 설정합니다. 양식은 메트릭이 설명하는 개체로 그룹화하므로 각 호스트, VM, 데이터스토어가 따로 판단되며, [필터](#모니터-설정)로 데이터센터, 클러스터, 호스트, VM, 데이터스토어, 리소스 풀 하나로 좁힙니다.
-- **고급**: **메트릭 선택** 에서 쿼리와 수식을 직접 만들고, `disk_state`, `power_state`, `status` 같은 속성으로 필터링합니다. [식별 속성](#식별-속성)으로 **Group by** 하면 각 개체를 따로 판단합니다.
+- **고급**: **메트릭 선택** 에서 쿼리와 수식을 직접 만들고, `disk_state`, `power_state`, `status` 같은 속성으로 필터링합니다. [식별 속성](#식별-속성)으로 **그룹화 기준** 하면 각 개체를 따로 판단합니다.
 
 ### 기준 확인
 
-**모니터 기준** 의 각 기준을 열고 **메트릭**, **집계**, **조건**, **Threshold** 를 확인합니다. 템플릿을 쓰면 이 값들이 채워집니다. **Custom Metric** 이나 **고급** 에서는 모니터가 [기본 기준](#기본-기준)으로 시작하는데, 이 기준은 메트릭이 0으로 떨어지는 것만 알아차리므로 직접 임계값을 설정하세요.
+**모니터 기준** 의 각 기준을 열고 **메트릭**, **집계**, **조건**, **임계값** 을 확인합니다. 템플릿을 쓰면 이 값들이 채워집니다. **Custom Metric** 이나 **고급** 에서는 모니터가 [기본 기준](#기본-기준)으로 시작하는데, 이 기준은 메트릭이 0으로 떨어지는 것만 알아차리므로 직접 임계값을 설정하세요.
 
 ### 모니터 만들기
 
@@ -68,7 +68,7 @@ flowchart TB
 :::
 
 > [!TIP]
-> 템플릿 여러 개를 한 번에 설정하려면 **제품 → 인프라 → VMware** 에서 vCenter를 열고 **Recommendations** 로 이동하세요. 원하는 템플릿을 고르고 호출할 사람을 정하면, OneUptime이 템플릿마다 모니터를 하나씩 만듭니다.
+> 템플릿 여러 개를 한 번에 설정하려면 **제품 → 인프라 → VMware** 에서 vCenter를 열고 **권장 사항** 로 이동하세요. 원하는 템플릿을 고르고 호출할 사람을 정하면, OneUptime이 템플릿마다 모니터를 하나씩 만듭니다.
 
 ## 모니터 설정
 
@@ -77,14 +77,14 @@ flowchart TB
 | **vCenter** | 모두 | 필수. 모든 쿼리를 `resource.vmware.vcenter.name` 으로 한정합니다. |
 | **데이터센터** | Custom Metric, 고급 | 선택 사항. 데이터센터 하나: `resource.vcenter.datacenter.name`. 모든 시리즈가 이 속성을 가집니다. |
 | **클러스터** | Custom Metric, 고급 | 선택 사항. 클러스터 하나: `resource.vcenter.cluster.name`. 클러스터 자체의 시리즈와 그 안의 호스트, VM, 리소스 풀의 시리즈와 일치합니다. 독립형 ESXi 호스트에는 클러스터가 없습니다. |
-| **ESXi Host** | Custom Metric, 고급 | 선택 사항. ESXi 호스트 하나: `resource.vcenter.host.name`. 호스트 자체의 시리즈 **와** 그 호스트가 실행하는 모든 VM의 시리즈와 일치합니다. VM이 호스트의 이름을 가지기 때문입니다. |
-| **Virtual Machine** | Custom Metric, 고급 | 선택 사항. VM 하나: `resource.vcenter.vm.name`. VM 이름은 고유하지 않을 수 있으니, 두 VM이 같은 이름을 쓰면 호스트나 클러스터를 더하세요. |
-| **Datastore** | Custom Metric, 고급 | 선택 사항. 데이터스토어 하나: `resource.vcenter.datastore.name`. |
+| **ESXi 호스트** | Custom Metric, 고급 | 선택 사항. ESXi 호스트 하나: `resource.vcenter.host.name`. 호스트 자체의 시리즈 **와** 그 호스트가 실행하는 모든 VM의 시리즈와 일치합니다. VM이 호스트의 이름을 가지기 때문입니다. |
+| **가상 머신** | Custom Metric, 고급 | 선택 사항. VM 하나: `resource.vcenter.vm.name`. VM 이름은 고유하지 않을 수 있으니, 두 VM이 같은 이름을 쓰면 호스트나 클러스터를 더하세요. |
+| **데이터스토어** | Custom Metric, 고급 | 선택 사항. 데이터스토어 하나: `resource.vcenter.datastore.name`. |
 | **Resource Pool Path** | Custom Metric, 고급 | 선택 사항. 인벤토리 경로(`/DC/host/Cluster/Resources/pool`)로 리소스 풀 하나: `resource.vcenter.resource_pool.inventory_path`. 풀 이름은 부모 안에서만 고유하므로 경로를 씁니다. |
 | **VMware Metric** | Custom Metric | [카탈로그](#수집되는-메트릭)의 메트릭 하나. |
 | **집계** | Custom Metric | 샘플을 합치는 방법: **평균**, **최대**, **최소**, **합계**, **개수**. 메트릭의 일반적인 집계로 시작합니다. |
-| **시간 범위** | 모두 | 쿼리가 읽는 이동 기간으로, **Past 1 Minute** 부터 **Past 365 Days** 까지입니다. 새 모니터는 **Past 5 Minutes** 로 시작하며, 템플릿은 자체 값을 설정합니다. |
-| **메트릭 선택** | 고급 | 쿼리 빌더: **메트릭**, **Aggregate by**, **Filter by attributes**, **Group by**, 그리고 쿼리를 합치는 **메트릭 추가** 와 **수식 추가**. |
+| **시간 범위** | 모두 | 쿼리가 읽는 이동 기간으로, **Past 1 Minute** 부터 **Past 365 Days** 까지입니다. 새 모니터는 **지난 5분** 로 시작하며, 템플릿은 자체 값을 설정합니다. |
+| **메트릭 선택** | 고급 | 쿼리 빌더: **메트릭**, **Aggregate by**, **Filter by attributes**, **그룹화 기준**, 그리고 쿼리를 합치는 **메트릭 추가** 와 **수식 추가**. |
 
 vCenter는 수집 간격(기본 2분)마다 한 번 읽히므로, 1분 기간에는 샘플이 전혀 없을 수 있습니다. 기간을 5분 이상으로 두고, 큰 인벤토리 때문에 수집 간격을 늘렸다면 더 길게 두세요.
 
@@ -117,15 +117,15 @@ OneUptime은 흔한 VMware 문제를 위한 템플릿 23개를 제공하며, **Q
 | Host Disk Latency High | 호스트 | Warning | `vcenter.host.disk.latency.max`, 호스트별 Max | 50 ms 초과: 그 경로에 디스크가 있는 모든 VM이 스토리지를 기다림. 성능 카운터 수준 3 필요 | 45 ms 이하 |
 | Host Network Packet Errors | 호스트 | Warning | `vcenter.host.network.packet.error.rate`, 호스트별 Max | 0 초과: 거의 항상 케이블, SFP, 스위치 포트 결함 | 다시 0 |
 | Host Network Packet Drops | 호스트 | Warning | `vcenter.host.network.packet.drop.rate`, 호스트별 Max | 0 초과: 과부하된 업링크, 또는 넘치는 NIC 링 버퍼 | 다시 0 |
-| VM CPU Saturation | Virtual Machine | Warning | `vcenter.vm.cpu.utilization`, `resource.vcenter.vm.name` 별 Avg, **최근 15분** | 15분 내내 VM vCPU의 90% 초과: VM은 할당받은 만큼 쓸 수 있으므로, 전혀 내려오지 않는 VM만 호출함 | 81% 이하 |
-| VM CPU Ready Contention | Virtual Machine | Warning | `vcenter.vm.cpu.readiness`, VM별 Avg | 10% 초과: VM은 실행할 준비가 되었지만 호스트에 내줄 물리 코어가 없었음. 게스트 안에서는 보이지 않음 | 9% 이하 |
-| VM Memory Saturation | Virtual Machine | Warning | `vcenter.vm.memory.utilization`, VM별 Avg | 메모리의 90% 초과: 게스트가 곧 페이징을 시작함 | 81% 이하 |
-| VM Memory Ballooning | Virtual Machine | Warning | `vcenter.vm.memory.ballooned`, VM별 Max | 0 초과: 호스트의 메모리가 부족해 이 게스트에서 회수하고 있음 | 다시 0 |
-| VM Memory Swapping | Virtual Machine | 심각 | `vcenter.vm.memory.swapped`, VM별 Max | 0 초과: 호스트가 VM의 메모리를 스왑하고 있음. 벌루닝과 압축 다음의 마지막 수단 | 다시 0 |
-| VM Disk Latency High | Virtual Machine | Warning | `vcenter.vm.disk.latency.max`, VM별 Max | 50 ms 초과: 게스트의 애플리케이션에서 I/O 시간 초과가 남 | 45 ms 이하 |
-| VM Disk Usage High | Virtual Machine | Warning | `vcenter.vm.disk.utilization`, VM별 Avg | 프로비저닝된 스토리지의 90% 초과 사용: 씬 프로비저닝 VM이 곧 전체 크기를 차지함 | 81% 이하 |
-| Datastore Capacity Warning | Datastore | Warning | `vcenter.datastore.disk.utilization`, `resource.vcenter.datastore.name` 별 Avg | 80% 초과: 씬 디스크와 스냅샷이 나머지를 빠르게 쓰므로 미리 보내는 경고 | 72% 이하 |
-| Datastore Capacity Critical | Datastore | 심각 | `vcenter.datastore.disk.utilization`, 데이터스토어별 Avg | 90% 초과: 가득 찬 데이터스토어는 거기에 디스크가 있는 모든 VM을 일시 중지시킴 | 81% 이하 |
+| VM CPU Saturation | 가상 머신 | Warning | `vcenter.vm.cpu.utilization`, `resource.vcenter.vm.name` 별 Avg, **최근 15분** | 15분 내내 VM vCPU의 90% 초과: VM은 할당받은 만큼 쓸 수 있으므로, 전혀 내려오지 않는 VM만 호출함 | 81% 이하 |
+| VM CPU Ready Contention | 가상 머신 | Warning | `vcenter.vm.cpu.readiness`, VM별 Avg | 10% 초과: VM은 실행할 준비가 되었지만 호스트에 내줄 물리 코어가 없었음. 게스트 안에서는 보이지 않음 | 9% 이하 |
+| VM Memory Saturation | 가상 머신 | Warning | `vcenter.vm.memory.utilization`, VM별 Avg | 메모리의 90% 초과: 게스트가 곧 페이징을 시작함 | 81% 이하 |
+| VM Memory Ballooning | 가상 머신 | Warning | `vcenter.vm.memory.ballooned`, VM별 Max | 0 초과: 호스트의 메모리가 부족해 이 게스트에서 회수하고 있음 | 다시 0 |
+| VM Memory Swapping | 가상 머신 | 심각 | `vcenter.vm.memory.swapped`, VM별 Max | 0 초과: 호스트가 VM의 메모리를 스왑하고 있음. 벌루닝과 압축 다음의 마지막 수단 | 다시 0 |
+| VM Disk Latency High | 가상 머신 | Warning | `vcenter.vm.disk.latency.max`, VM별 Max | 50 ms 초과: 게스트의 애플리케이션에서 I/O 시간 초과가 남 | 45 ms 이하 |
+| VM Disk Usage High | 가상 머신 | Warning | `vcenter.vm.disk.utilization`, VM별 Avg | 프로비저닝된 스토리지의 90% 초과 사용: 씬 프로비저닝 VM이 곧 전체 크기를 차지함 | 81% 이하 |
+| Datastore Capacity Warning | 데이터스토어 | Warning | `vcenter.datastore.disk.utilization`, `resource.vcenter.datastore.name` 별 Avg | 80% 초과: 씬 디스크와 스냅샷이 나머지를 빠르게 쓰므로 미리 보내는 경고 | 72% 이하 |
+| Datastore Capacity Critical | 데이터스토어 | 심각 | `vcenter.datastore.disk.utilization`, 데이터스토어별 Avg | 90% 초과: 가득 찬 데이터스토어는 거기에 디스크가 있는 모든 VM을 일시 중지시킴 | 81% 이하 |
 | Cluster Host Not Effective | 클러스터 | 심각 | `vcenter.cluster.host.count` 를 `effective = false` 로 필터링, `resource.vcenter.cluster.name` 별 Max | 0 초과: 호스트가 유지 관리 모드이거나, 연결이 끊겼거나, 응답하지 않아 클러스터가 설계보다 적은 용량으로 동작함 | 다시 0 |
 | Datacenter Hosts Unhealthy | 데이터센터 | 심각 | `vcenter.datacenter.host.count` 를 `status = red` 로 필터링, `resource.vcenter.datacenter.name` 별 Max | 0 초과: 호스트에 심각 경보가 있음(하드웨어 센서, 끊긴 스토리지 경로, HA 에이전트 오류 등) | 다시 0 |
 | Datacenter Hosts Degraded | 데이터센터 | Warning | `vcenter.datacenter.host.count` 를 `status = yellow` 로 필터링, 데이터센터별 Max | 0 초과: 호스트에 경고 경보가 있음 | 다시 0 |
@@ -260,7 +260,7 @@ vSAN이 있는 클러스터, 그 안의 호스트, vSAN 데이터스토어의 VM
 | `vcenter.vm.vsan.throughput` | `By/s` | VM의 vSAN 처리량. `direction` 별입니다 |
 
 > [!NOTE]
-> VM의 전원 상태는 메트릭이 아닙니다. 리시버는 전원이 켜진 VM에 대해서만 `vcenter.vm.cpu.*` 를 보내므로, OneUptime은 VM의 메모리 및 디스크 데이터와 같은 수집에서 CPU 데이터가 왔는지로 **Powered on** 과 **Powered off** 를 구분합니다. 결과는 vCenter의 **가상 머신** 페이지에 표시됩니다. 전원이 꺼진 호스트나 실행 중인 VM 수에 대해 알림을 보내려면 `power_state` 속성을 쓰세요. 대상은 `vcenter.datacenter.host.count`, `vcenter.datacenter.vm.count`, `vcenter.cluster.vm.count` 입니다.
+> VM의 전원 상태는 메트릭이 아닙니다. 리시버는 전원이 켜진 VM에 대해서만 `vcenter.vm.cpu.*` 를 보내므로, OneUptime은 VM의 메모리 및 디스크 데이터와 같은 수집에서 CPU 데이터가 왔는지로 **Powered on** 과 **전원 꺼짐** 을 구분합니다. 결과는 vCenter의 **가상 머신** 페이지에 표시됩니다. 전원이 꺼진 호스트나 실행 중인 VM 수에 대해 알림을 보내려면 `power_state` 속성을 쓰세요. 대상은 `vcenter.datacenter.host.count`, `vcenter.datacenter.vm.count`, `vcenter.cluster.vm.count` 입니다.
 
 ## 모니터링 기준
 
@@ -271,7 +271,7 @@ vSAN이 있는 클러스터, 그 안의 호스트, vSAN 데이터스토어의 VM
 | **메트릭** | 확인할 쿼리나 수식(변수 이름으로). |
 | **집계** | 기간 안의 값을 답 하나로 만드는 방법: **평균**, **합계**, **Maximum Value**, **Minimum Value**, **All Values**(기간 전체에서 모든 값이 일치해야 함), **Any Value**(하나면 충분). |
 | **조건** | **보다 큼**, **보다 작음**, **이상**, **이하**, **같음**, 또는 이상 조건: **Anomalously High**, **Anomalously Low**, **Anomalous**. |
-| **Threshold** | 비교할 값. 메트릭에 단위가 있으면 옆에 단위 목록이 있습니다. 이상 조건에서는 표시되지 않습니다. |
+| **임계값** | 비교할 값. 메트릭에 단위가 있으면 옆에 단위 목록이 있습니다. 이상 조건에서는 표시되지 않습니다. |
 | **민감도** | 이상 조건만. **낮음**(4σ), **중간**(3σ, 기본값), **높음**(2σ). |
 | **기준선 기간** | 이상 조건만. 14일(기본값), 28일, 60일, 90일의 기록. |
 | **데이터가 없는 경우** | **추가 필드** 아래에 있습니다. 기간에 샘플이 없을 때의 동작: **Ignore**(기본값), **Treat As Zero**, **트리거**. |

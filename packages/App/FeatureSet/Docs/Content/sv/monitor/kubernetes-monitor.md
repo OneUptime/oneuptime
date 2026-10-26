@@ -1,11 +1,11 @@
 # Kubernetes-övervakning
 
-En Kubernetes-monitor varnar på de mätvärden som OneUptimes Kubernetes-agent skickar från ett kluster: noder, poddar, containrar, arbetsbelastningar, autoskalare och kontrollplanet. Utgå från en färdig varningsmall, välj ett enskilt mätvärde eller skriv din egen fråga, och ange sedan den tröskel som öppnar en varning eller en incident.
+En Kubernetes-monitor varnar på de mätvärden som OneUptimes Kubernetes-agent skickar från ett kluster: noder, poddar, containrar, arbetsbelastningar, autoskalare och kontrollplanet. Utgå från en färdig larmmall, välj ett enskilt mätvärde eller skriv din egen fråga, och ange sedan den tröskel som öppnar ett larm eller en incident.
 
 :::cards
 - [Installera agenten](/docs/monitor/kubernetes-agent): Ett Helm-kommando tar in klustret i OneUptime.
 - [Skapa monitorn](#skapa-en-kubernetes-monitor): Välj klustret, sedan en mall, ett mätvärde eller en fråga.
-- [Varningsmallar](#färdiga-varningsmallar): Sjutton färdiga varningar, från CrashLoopBackOff till etcd.
+- [Larmmallar](#färdiga-larmmallar): Sjutton färdiga larm, från CrashLoopBackOff till etcd.
 - [Kriterier](#övervakningskriterier): Statiska trösklar och avvikelseidentifiering.
 :::
 
@@ -42,13 +42,13 @@ Använd en av de tre flikarna:
 
 | Flik | Vad du väljer |
 | --- | --- |
-| **Quick Setup** | En [färdig varningsmall](#färdiga-varningsmallar). Den fyller i mätvärdet, omfattningen, tidsintervallet och kriterierna; du kan fortfarande ändra **Tidsintervall**. |
+| **Quick Setup** | En [färdig larmmall](#färdiga-larmmallar). Den fyller i mätvärdet, omfattningen, tidsintervallet och kriterierna; du kan fortfarande ändra **Tidsintervall**. |
 | **Custom Metric** | Ett mätvärde från [måttkatalogen](#måttkatalog), sedan dess **Resursomfattning**, filter, **Aggregering** (Genomsnitt, Maximum, Minimum, Summa eller Antal) och **Tidsintervall**. |
 | **Avancerad** | **Resursomfattning**, filter och **Tidsintervall**, samt dina egna måttfrågor och formler under **Välj mått**, med ett livediagram över resultatet. |
 
 ### Ange kriterierna
 
-Ange när monitorn byter status och när den öppnar en varning eller en incident – se [Övervakningskriterier](#övervakningskriterier). En mall har redan fyllt i dem: gå igenom trösklarna, allvarlighetsgraderna och jourpolicyerna.
+Ange när monitorn byter status och när den öppnar ett larm eller en incident – se [Övervakningskriterier](#övervakningskriterier). En mall har redan fyllt i dem: gå igenom trösklarna, allvarlighetsgraderna och jourpolicyerna.
 
 ### Spara monitorn
 
@@ -71,7 +71,7 @@ Slutför formuläret och spara. Monitorn visas under **Monitorer**, och dess sta
 
 ### Tidsintervall
 
-**Tidsintervall** är det fönster som måttfrågan täcker varje gång monitorn utvärderas, från **Past 1 Minute** upp till **Past 365 Days**. Korta fönster (1 till 15 minuter) passar för varningar; längre fönster jämnar ut brusiga mätvärden.
+**Tidsintervall** är det fönster som måttfrågan täcker varje gång monitorn utvärderas, från **Past 1 Minute** upp till **Past 365 Days**. Korta fönster (1 till 15 minuter) passar för larm; längre fönster jämnar ut brusiga mätvärden.
 
 ### Måttfrågor och formler
 
@@ -97,7 +97,7 @@ Fliken **Custom Metric** erbjuder de här mätvärdena, grupperade efter resurst
 
 ### Vad som utvärderas
 
-De här monitorerna utvärderar alltid **Metric Value** – värdet av den konfigurerade måttfrågan eller formeln. Kriterieformuläret har ingen väljare för filtertyp; det visar **Mätvärde**, **Aggregering**, **Villkor** och **Threshold**.
+De här monitorerna utvärderar alltid **Metric Value** – värdet av den konfigurerade måttfrågan eller formeln. Kriterieformuläret har ingen väljare för filtertyp; det visar **Mätvärde**, **Aggregering**, **Villkor** och **Tröskel**.
 
 ### Aggregeringstyper
 
@@ -112,7 +112,7 @@ De här monitorerna utvärderar alltid **Metric Value** – värdet av den konfi
 
 ### Villkor
 
-Statiska trösklar jämförs med det **Threshold** du anger: **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med** och **Lika med**.
+Statiska trösklar jämförs med det **Tröskel** du anger: **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med** och **Lika med**.
 
 Avvikelseidentifiering mot en baslinje behöver ingen tröskel. Välj ett av de här villkoren så visar formuläret i stället **Känslighet** och **Baslinjefönster**:
 
@@ -122,13 +122,13 @@ Avvikelseidentifiering mot en baslinje behöver ingen tröskel. Välj ett av de 
 | **Anomalously Low** | Sjunker under det förväntade intervallet |
 | **Anomalous** | Lämnar det förväntade intervallet åt något håll |
 
-Varje mätning jämförs med en baslinje för samma timme i veckan, byggd från **Baslinjefönster** (14 dagar som standard; 28, 60 eller 90 dagar). **Känslighet** anger hur brett det förväntade intervallet är: **Låg (4σ — endast grova avvikelser)**, **Medel (3σ — rekommenderas)**, som är standard, eller **Hög (2σ — brusigare, mycket stabila tjänster)**. Avvikelsevillkor stannar i ett "Learning"-läge och ger inga varningar förrän det finns minst det valda baslinjefönstret av måtthistorik.
+Varje mätning jämförs med en baslinje för samma timme i veckan, byggd från **Baslinjefönster** (14 dagar som standard; 28, 60 eller 90 dagar). **Känslighet** anger hur brett det förväntade intervallet är: **Låg (4σ — endast grova avvikelser)**, **Medel (3σ — rekommenderas)**, som är standard, eller **Hög (2σ — brusigare, mycket stabila tjänster)**. Avvikelsevillkor stannar i ett "Learning"-läge och ger inga larm förrän det finns minst det valda baslinjefönstret av måtthistorik.
 
 **Om ingen data**, under **Fler fält**, avgör vad som händer när frågan inte returnerar något i fönstret: **Ignore** (standard) matchar inte, **Utlösare** behandlar tystnaden som problemet och **Treat As Zero** jämför en nolla. Tid då OneUptime själv inte tog emot data är aldrig saknade data: en kontroll vars fönster innehåller sådan tid väntar i stället, som [När OneUptime inte tar emot data](/docs/monitor/when-oneuptime-is-not-receiving) förklarar.
 
-## Färdiga varningsmallar
+## Färdiga larmmallar
 
-Fliken **Quick Setup** listar de här mallarna, grupperade efter kategori. Varje mall fyller i två kriterier: ett som markerar monitorn som offline och öppnar en incident och en varning medan villkoret gäller, och ett som tar den online igen när villkoret upphör.
+Fliken **Quick Setup** listar de här mallarna, grupperade efter kategori. Varje mall fyller i två kriterier: ett som markerar monitorn som offline och öppnar en incident och ett larm medan villkoret gäller, och ett som tar den online igen när villkoret upphör.
 
 | Mall | Kategori | Utlöses när | Allvarlighetsgrad |
 | --- | --- | --- | --- |
@@ -153,7 +153,7 @@ Fliken **Quick Setup** listar de här mallarna, grupperade efter kategori. Varje
 Mallar på mätvärden per objekt utvärderar varje nod, podd, deployment, job, DaemonSet eller HPA för sig, så att ett kluster med flera ohälsosamma poddar får en incident per podd i stället för en för hela klustret.
 
 > [!NOTE]
-> **CrashLoopBackOff Detection** läser containerns totala antal omstarter för dess nuvarande podd, inte en takt. En container som har fastnat i en kraschloop och sedan återhämtat sig håller varningen öppen tills dess podd ersätts.
+> **CrashLoopBackOff Detection** läser containerns totala antal omstarter för dess nuvarande podd, inte en takt. En container som har fastnat i en kraschloop och sedan återhämtat sig håller larmet öppen tills dess podd ersätts.
 
 ### Fånga orsaker, inte bara symtom
 
@@ -182,7 +182,7 @@ Kluster registrerar sig själva utifrån agentens data, under det `clusterName` 
 :::
 
 :::details CrashLoopBackOff Detection förblir öppen efter att podden återhämtat sig
-Mallen läser containerns totala antal omstarter för dess nuvarande podd, så antalet går inte tillbaka när det väl har passerat 5. Varningen löses när podden ersätts, till exempel genom en ny driftsättning, en vräkning eller en tömning av noden.
+Mallen läser containerns totala antal omstarter för dess nuvarande podd, så antalet går inte tillbaka när det väl har passerat 5. Larmet löses när podden ersätts, till exempel genom en ny driftsättning, en vräkning eller en tömning av noden.
 :::
 
 ## Nästa steg
@@ -191,5 +191,5 @@ Mallen läser containerns totala antal omstarter för dess nuvarande podd, så a
 - [Kubernetes-agent (Helm-installation)](/docs/monitor/kubernetes-agent): Installera, uppgradera och finjustera agenten med Helm.
 - [Kubernetes-agent](/docs/telemetry/kubernetes-agent): Namnrymdsfilter, kontrollplansmått, filter för loggallvarlighet och AI-agenten.
 - [Metrikövervakning](/docs/monitor/metrics-monitor): Varna på vilket mätvärde som helst, även agentens anpassade mått och eBPF-mått.
-- [Incident- och varningsmallar](/docs/monitor/incident-alert-templating): Lägg in podden eller noden som passerar gränsen i incidenttitlar.
+- [Incident- och larmmallar](/docs/monitor/incident-alert-templating): Lägg in podden eller noden som passerar gränsen i incidenttitlar.
 :::

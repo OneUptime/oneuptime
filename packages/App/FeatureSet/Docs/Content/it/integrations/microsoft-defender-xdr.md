@@ -48,15 +48,15 @@ La connessione accede con il [flusso delle credenziali client di OAuth 2.0](http
 
 Vai su **Certificates & secrets → Client secrets → New client secret**, scegli quando scade e seleziona **Add**. Copia il **Value** del segreto, non il suo **Secret ID**, prima di lasciare la pagina: non viene più mostrato.
 
-Annota quando scade il segreto. Quel giorno il polling si ferma con `Microsoft Defender XDR token request failed (HTTP 401)` finché non lo sostituisci con **Update credentials**.
+Annota quando scade il segreto. Quel giorno il polling si ferma con `Microsoft Defender XDR token request failed (HTTP 401)` finché non lo sostituisci con **Aggiorna le credenziali**.
 
 ### Aggiungere la connessione in OneUptime
 
-Apri **Prodotti → Security Events → Connections** (`/dashboard/{projectId}/security-events/connections`), fai clic su **Aggiungi connessione**, scegli **Microsoft Defender XDR** in **EDR / XDR** e fai clic su **Avanti**. Compila le impostazioni della tabella qui sotto, fai clic su **Avanti** e incolla il valore del segreto in **Client secret**.
+Apri **Prodotti → Security Events → Connessioni** (`/dashboard/{projectId}/security-events/connections`), fai clic su **Aggiungi connessione**, scegli **Microsoft Defender XDR** in **EDR / XDR** e fai clic su **Avanti**. Compila le impostazioni della tabella qui sotto, fai clic su **Avanti** e incolla il valore del segreto in **Segreto client**.
 
 ### Provarla prima di salvare
 
-Fai clic su **Test these settings** in **Testa prima di salvare**. Il test accede e legge gli avvisi con i valori del modulo, e non salva nulla, quindi un segreto errato o un consenso mancante emergono prima che la connessione esista. Poi fai clic su **Avanti**, dai alla connessione un **Nome** e creala.
+Fai clic su **Prova queste impostazioni** in **Testa prima di salvare**. Il test accede e legge gli avvisi con i valori del modulo, e non salva nulla, quindi un segreto errato o un consenso mancante emergono prima che la connessione esista. Poi fai clic su **Avanti**, dai alla connessione un **Nome** e creala.
 :::
 
 | Impostazione | Dove trovarla |
@@ -64,9 +64,9 @@ Fai clic su **Test these settings** in **Testa prima di salvare**. Il test acced
 | **ID directory (tenant)** | La pagina **Overview** dell'app. Il GUID del tenant, o un dominio verificato come `contoso.onmicrosoft.com`. |
 | **ID applicazione (client)** | La pagina **Overview** dell'app. Il GUID dell'app che ha `SecurityAlert.Read.All`. |
 | **Cloud** | **Cloud pubblico di Azure**, che serve anche Microsoft 365 GCC, o **Azure Government (USA)** per GCC High (`login.microsoftonline.us` e `graph.microsoft.us`). Microsoft 365 DoD e il cloud 21Vianet in Cina non sono supportati. |
-| **Client secret** | Il **Value** del segreto. È cifrato, mai restituito dall'API e mai più mostrato. Sostituiscilo con **Update credentials** sulla connessione. |
+| **Segreto client** | Il **Value** del segreto. È cifrato, mai restituito dall'API e mai più mostrato. Sostituiscilo con **Aggiorna le credenziali** sulla connessione. |
 
-Il passaggio **Polling** ha anche una **Descrizione** facoltativa, il **Poll Interval (Minutes)**, un numero intero da `1` a `1440` che parte da `5`, e **Abilitato**, che parte attivo.
+Il passaggio **Interrogazione** ha anche una **Descrizione** facoltativa, il **Intervallo di interrogazione (minuti)**, un numero intero da `1` a `1440` che parte da `5`, e **Abilitato**, che parte attivo.
 
 ## Cosa viene importato
 
@@ -106,7 +106,7 @@ GET https://graph.microsoft.com/v1.0/security/alerts_v2?$filter=createdDateTime 
 
 ### Quando una finestra contiene più di quanto un'interrogazione possa leggere
 
-Un'interrogazione legge al massimo 20 pagine da 100 avvisi: 2.000 avvisi. Quando questo limite la ferma prima della fine della sua finestra, l'esecuzione è **Partial**, con questo avviso:
+Un'interrogazione legge al massimo 20 pagine da 100 avvisi: 2.000 avvisi. Quando questo limite la ferma prima della fine della sua finestra, l'esecuzione è **Parziale**, con questo avviso:
 
 ```text
 Stopped after 20 alerts requests (the per-run request limit) before reading the whole window. Microsoft Graph lists alerts newest first and documents no way to sort them oldest first, so this run cannot name a point to resume from.
@@ -116,22 +116,22 @@ Stopped after 20 alerts requests (the per-run request limit) before reading the 
 
 1. **Restringere.** L'interrogazione successiva legge una finestra lunga la metà, dallo stesso punto di partenza, e continua a dimezzarla finché una finestra non viene letta per intero, fino a un minuto. L'avviso dell'esecuzione lo dice: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.` Gli avvisi già importati dalla finestra più lunga vengono saltati come duplicati.
 2. **Tornare a crescere.** Dopo che una finestra è stata letta per intero, il cursore passa alla sua fine, e la finestra successiva è di nuovo lunga il doppio, fino a 24 ore.
-3. **Superare un singolo minuto.** Se anche un solo minuto contiene più di 2.000 avvisi, il polling lo supera, così gli avvisi più recenti continuano ad arrivare. L'esecuzione resta **Partial**, e **Ultimo errore** riporta `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importa quel minuto con **Import this time range** per recuperare ciò che un'esecuzione può leggere.
+3. **Superare un singolo minuto.** Se anche un solo minuto contiene più di 2.000 avvisi, il polling lo supera, così gli avvisi più recenti continuano ad arrivare. L'esecuzione resta **Parziale**, e **Ultimo errore** riporta `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importa quel minuto con **Import this time range** per recuperare ciò che un'esecuzione può leggere.
 
-Un'esecuzione **Partial** per un altro motivo, come un avviso che non è stato possibile leggere come evento di sicurezza, viene riprovata allo stesso modo, dallo stesso punto di partenza. Cambiare il **Poll Interval (Minutes)** non cambia nulla di tutto questo: decide quanto spesso parte un'interrogazione, non dove inizia la sua finestra.
+Un'esecuzione **Parziale** per un altro motivo, come un avviso che non è stato possibile leggere come evento di sicurezza, viene riprovata allo stesso modo, dallo stesso punto di partenza. Cambiare il **Intervallo di interrogazione (minuti)** non cambia nulla di tutto questo: decide quanto spesso parte un'interrogazione, non dove inizia la sua finestra.
 
 ### Eseguire, visualizzare in anteprima e importare su richiesta
 
-Fai clic su **Diagnostics** su una connessione per vederne le esecuzioni recenti e lavorarci a mano. Chi può modificare la connessione può avviare queste azioni; chi può vederla può leggerne la cronologia.
+Fai clic su **Diagnostica** su una connessione per vederne le esecuzioni recenti e lavorarci a mano. Chi può modificare la connessione può avviare queste azioni; chi può vederla può leggerne la cronologia.
 
-- **Run now** avvia subito un'interrogazione, con il cursore abituale, anche quando la connessione non è **Abilitato**.
+- **Esegui ora** avvia subito un'interrogazione, con il cursore abituale, anche quando la connessione non è **Abilitato**.
 - **Preview alerts** legge un intervallo di tempo fino a 7 giorni e non importa nulla.
 - **Import this time range** importa un intervallo fino a 7 giorni, dopo la tua conferma, senza spostare il cursore. Gli avvisi già importati vengono saltati.
 - **Copy diagnostics** su un'esecuzione copia il suo rapporto per il supporto. Non contiene mai credenziali.
 
 ## Testare la connessione
 
-**Testa la connessione** sulla riga di una connessione, e **Test these settings** nel modulo, vengono eseguiti nel processo dell'API, non in un worker in background, così un test risponde anche quando il problema sono i worker. Esegue questi controlli, in ordine:
+**Testa la connessione** sulla riga di una connessione, e **Prova queste impostazioni** nel modulo, vengono eseguiti nel processo dell'API, non in un worker in background, così un test risponde anche quando il problema sono i worker. Esegue questi controlli, in ordine:
 
 | Controllo | Cosa verifica |
 | --- | --- |
@@ -150,7 +150,7 @@ Il **Ultimo errore** della connessione conserva il messaggio di errore completo,
 
 :::details Last Error inizia con `Microsoft Defender XDR token request`
 - `Microsoft Defender XDR token request failed (HTTP ...)`: Microsoft Entra ID si è rifiutato di rilasciare un token, quindi Graph non è mai stato contattato. Il messaggio termina con un suggerimento, in base al codice `error` di Entra:
-  - `invalid_client` (`AADSTS7000215`): il segreto è errato, scaduto o appartiene a un'altra app. Creane uno nuovo in **Certificates & secrets** e salvalo con **Update credentials**.
+  - `invalid_client` (`AADSTS7000215`): il segreto è errato, scaduto o appartiene a un'altra app. Creane uno nuovo in **Certificates & secrets** e salvalo con **Aggiorna le credenziali**.
   - `unauthorized_client` (`AADSTS700016`): l'**ID applicazione (client)** non si trova in quel **ID directory (tenant)**, oppure **Cloud** è errato.
   - `AADSTS90002`: quel tenant non esiste.
   - `invalid_scope`: l'ambito di Graph non esiste nel cloud che hai scelto. Controlla **Cloud**.
@@ -162,7 +162,7 @@ Il **Ultimo errore** della connessione conserva il messaggio di errore completo,
 - `Microsoft Defender XDR alerts request failed (HTTP ...)`: Graph si è rifiutato di elencare gli avvisi. Il messaggio nomina il codice di errore di Graph, e un suggerimento:
   - `403` (`Authorization_RequestDenied`): mancano `SecurityAlert.Read.All` o il suo consenso dell'amministratore, oppure il tenant non ha una licenza Defender XDR. Il consenso richiede qualche minuto per applicarsi.
   - `401` (`InvalidAuthenticationToken`) dopo il rilascio di un token: di solito **Cloud** non corrisponde al tenant.
-  - `429` (`TooManyRequests`): Graph sta limitando l'app, e l'interrogazione successiva rilegge la stessa finestra. Il messaggio non può citare il `Retry-After` di Graph, perché il client HTTP di OneUptime non conserva le intestazioni di risposta in caso di errore. Se continua a succedere, aumenta il **Poll Interval (Minutes)**.
+  - `429` (`TooManyRequests`): Graph sta limitando l'app, e l'interrogazione successiva rilegge la stessa finestra. Il messaggio non può citare il `Retry-After` di Graph, perché il client HTTP di OneUptime non conserva le intestazioni di risposta in caso di errore. Se continua a succedere, aumenta il **Intervallo di interrogazione (minuti)**.
   - `5xx`: un problema dal lato di Graph. L'interrogazione successiva riprova.
   - `400`: Graph non ha voluto eseguire la query, che costruisce OneUptime e non le tue impostazioni. Copia il messaggio per il supporto di OneUptime.
 - `Microsoft Defender XDR alerts request returned ...`: Graph ha risposto `200`, ma con qualcosa che il connettore non poteva usare: un corpo che non è JSON, nessun elenco `value`, o un `@odata.nextLink` che non è un link `https://` sull'host Graph del tuo cloud. Un link così viene rifiutato, così il token non viene mai inviato altrove. Viene segnalato invece di essere preso per una finestra vuota, così il cursore non supera mai avvisi che nessuno ha letto.
@@ -174,10 +174,10 @@ Il job di polling non è mai stato eseguito. Leggi i controlli **Background work
 :::
 
 :::details Le interrogazioni riescono, ma manca un avviso che conosci
-Confronta il `createdDateTime` dell'avviso nel portale di Defender con la finestra dell'esecuzione in **Diagnostics**: le finestre si basano sull'ora di creazione, non sull'ora di attività.
+Confronta il `createdDateTime` dell'avviso nel portale di Defender con la finestra dell'esecuzione in **Diagnostica**: le finestre si basano sull'ora di creazione, non sull'ora di attività.
 
 - Un avviso creato prima che la connessione esistesse è più vecchio del primo sguardo indietro di 24 ore. Importalo con **Import this time range**.
-- Un'esecuzione **Partial** è stata fermata dal limite di 2.000 avvisi. L'interrogazione successiva legge una finestra più corta dallo stesso inizio, quindi l'avviso viene importato non appena una finestra che lo contiene viene letta per intero.
+- Un'esecuzione **Parziale** è stata fermata dal limite di 2.000 avvisi. L'interrogazione successiva legge una finestra più corta dallo stesso inizio, quindi l'avviso viene importato non appena una finestra che lo contiene viene letta per intero.
 - Se **Ultimo errore** nomina un minuto che il polling ha superato, importa quel minuto con **Import this time range**.
 :::
 

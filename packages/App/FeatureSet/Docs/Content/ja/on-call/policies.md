@@ -123,7 +123,7 @@ flowchart TB
 
 ## ポリシーを変更できる人
 
-**Project Owner**、 **Project Admin**、 **Project Member**、 **On-Call Admin**、 **On-Call Member** はポリシーを作成、変更、削除でき、 **Viewer** と **On-Call Viewer** は閲覧できます。カスタムロールでの権限は **Create On-Call Duty Policy**、 **Edit On-Call Duty Policy**、 **Delete On-Call Duty Policy**、 **Read On-Call Duty Policy** で、一部のラベルに限定されたロールは、そのラベルが付いたポリシーにだけアクセスできます。OneUptime Cloud で所有者やカスタムフィールドを追加するには **Growth** プランが必要です。
+**プロジェクト所有者**、 **プロジェクト管理者**、 **プロジェクトメンバー**、 **オンコール管理者**、 **オンコールメンバー** はポリシーを作成、変更、削除でき、 **閲覧者** と **オンコール閲覧者** は閲覧できます。カスタムロールでの権限は **Create On-Call Duty Policy**、 **Edit On-Call Duty Policy**、 **Delete On-Call Duty Policy**、 **Read On-Call Duty Policy** で、一部のラベルに限定されたロールは、そのラベルが付いたポリシーにだけアクセスできます。OneUptime Cloud で所有者やカスタムフィールドを追加するには **Growth** プランが必要です。
 
 ## API と Terraform
 

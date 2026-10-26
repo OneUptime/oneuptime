@@ -42,20 +42,20 @@ OneUptime은 1분마다, 폴링 간격이 지난 활성화된 연결을 각각 �
 
 ### OneUptime에서 연결 추가
 
-**제품 → Security Events → Connections**(`/dashboard/{projectId}/security-events/connections`)를 열고 **연결 추가**를 클릭한 뒤 **Okta System Log**를 고르고 **다음**을 클릭합니다. 아래 표의 설정을 채우고 **다음**을 클릭한 뒤, 토큰을 **API token**에 붙여 넣습니다.
+**제품 → Security Events → 연결**(`/dashboard/{projectId}/security-events/connections`)를 열고 **연결 추가**를 클릭한 뒤 **Okta System Log**를 고르고 **다음**을 클릭합니다. 아래 표의 설정을 채우고 **다음**을 클릭한 뒤, 토큰을 **API token**에 붙여 넣습니다.
 
 ### 저장하기 전에 테스트
 
-**저장하기 전에 테스트** 아래의 **Test these settings**를 클릭합니다. 테스트는 양식의 값으로 로그인하고 이벤트를 읽으며 아무것도 저장하지 않으므로, 잘못된 URL이나 잘못된 필터가 연결을 만들기 전에 드러납니다. 그런 다음 **다음**을 클릭하고 연결에 **이름**을 지정해 만듭니다.
+**저장하기 전에 테스트** 아래의 **이 설정 테스트**를 클릭합니다. 테스트는 양식의 값으로 로그인하고 이벤트를 읽으며 아무것도 저장하지 않으므로, 잘못된 URL이나 잘못된 필터가 연결을 만들기 전에 드러납니다. 그런 다음 **다음**을 클릭하고 연결에 **이름**을 지정해 만듭니다.
 :::
 
 | 설정 | 입력할 값 |
 | --- | --- |
 | **Okta organization URL** | 사용자가 로그인하는 주소. 예: `https://acme.okta.com`, `https://acme.oktapreview.com`, `https://login.example.com`. `https`를 사용해야 하며 경로는 붙이지 않습니다. API를 제공하지 않는 Admin Console의 `-admin` 주소는 안 됩니다. |
 | **Event filter** | 선택 사항. 가져올 이벤트를 고르는 [System Log 필터](https://developer.okta.com/docs/reference/core-okta-api/#filter). 예: `eventType sw "user.session" or eventType sw "security"`. 비워 두면 아래의 계열을 가져옵니다. 최대 2,000자, 한 줄로 쓰며, `published`를 조건으로 쓸 수 없습니다. 시간 범위는 OneUptime이 직접 정합니다. |
-| **API token** | 토큰 값 그대로. `SSWS` 스킴은 OneUptime이 직접 붙입니다. 암호화되며, API가 반환하지 않고 다시 표시되지도 않습니다. 교체하려면 연결의 **Update credentials**를 사용합니다. |
+| **API token** | 토큰 값 그대로. `SSWS` 스킴은 OneUptime이 직접 붙입니다. 암호화되며, API가 반환하지 않고 다시 표시되지도 않습니다. 교체하려면 연결의 **자격 증명 업데이트**를 사용합니다. |
 
-**Polling** 단계에는 선택 사항인 **설명**, `1`부터 `1440`까지의 정수이며 처음 값이 `5`인 **Poll Interval (Minutes)**, 그리고 처음에 켜져 있는 **활성화됨**도 있습니다.
+**폴링** 단계에는 선택 사항인 **설명**, `1`부터 `1440`까지의 정수이며 처음 값이 `5`인 **폴링 간격(분)**, 그리고 처음에 켜져 있는 **활성화됨**도 있습니다.
 
 ## 가져오는 내용
 
@@ -116,14 +116,14 @@ GET {Okta organization URL}/api/v1/logs?since={window start}&until={window end}&
 - **게시 시각이 커서입니다.** System Log 이벤트는 활동 그 자체이므로, `published`는 활동이 일어난 시각이자 폴링이 읽는 값입니다.
 - **첫 폴링은 24시간 전까지 거슬러 올라가므로**, 새 연결에서 최근 이벤트가 바로 보입니다.
 - **이후의 모든 폴링은 저장된 커서보다 15분 앞에서 시작합니다.** Okta는 종료 시각이 있는 요청이 지연된 이벤트를 빠뜨릴 수 있으며, 이는 드문 일이라고 안내합니다. 겹치는 부분 덕분에 그런 이벤트는 다음 폴링에서 읽힙니다. 15분 넘게 지연된 이벤트는 커서 뒤로 떨어질 수 있으니, 그 시간 범위를 가져와 되찾으세요.
-- **한 번의 폴링은 커서 이후 최대 24시간까지 읽습니다.** 커서가 뒤처진 연결은 24시간 구간을 연달아 읽으며 따라잡고, 그동안 **Health**는 **Catching up**으로 표시됩니다.
+- **한 번의 폴링은 커서 이후 최대 24시간까지 읽습니다.** 커서가 뒤처진 연결은 24시간 구간을 연달아 읽으며 따라잡고, 그동안 **상태**는 **Catching up**으로 표시됩니다.
 - **중복은 `uuid`로 걸러집니다.** 프로젝트 안에서 걸러지므로, 겹치는 부분, 다시 시도한 구간, 가져오기가 이벤트를 두 번 저장하는 일은 없습니다.
 
 토큰이 모든 요청에 함께 가므로, **Okta organization URL**이 아닌 곳을 가리키는 `next` 링크는 절대 따라가지 않습니다.
 
 ### 한 번의 폴링으로 다 읽을 수 없는 구간
 
-한 번의 폴링은 최대 20개의 요청으로 최대 10,000개의 이벤트를 읽습니다. 구간에 그보다 많은 이벤트가 있으면 실행은 **Partial**이 되며, 다음과 같은 경고가 나옵니다:
+한 번의 폴링은 최대 20개의 요청으로 최대 10,000개의 이벤트를 읽습니다. 구간에 그보다 많은 이벤트가 있으면 실행은 **부분**이 되며, 다음과 같은 경고가 나옵니다:
 
 ```text
 Stopped after collecting 10000 events; the window holds more. The last event read was published at 2026-09-14T08:12:44.000Z.
@@ -135,22 +135,22 @@ Stopped after collecting 10000 events; the window holds more. The last event rea
 
 1. **좁히기.** 다음 폴링은 같은 시작점에서 절반 길이의 구간을 읽으며, 구간을 끝까지 읽을 수 있게 될 때까지 계속 절반으로 줄이고, 가장 짧게는 1분까지 줄입니다. 실행의 경고에 그렇게 적힙니다: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **다시 늘리기.** 구간을 끝까지 읽은 뒤에는 다음 구간이 다시 두 배가 되며, 최대 24시간까지 늘어납니다.
-3. **1분 넘어가기.** 1분 안에조차 한 번의 폴링으로 읽을 수 있는 것보다 많은 레코드가 있으면, 더 새로운 이벤트가 계속 도착하도록 폴링이 그 1분을 넘어가며, 이후 폴링의 겹치는 부분도 더 이상 그 1분까지 거슬러 가지 않습니다. 실행은 **Partial**로 남고, **마지막 오류**에는 `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.`라고 나옵니다. 한 번의 실행이 읽을 수 있는 만큼 되찾으려면 **Import this time range**로 그 1분을 가져오거나, **Event filter**를 좁히세요.
+3. **1분 넘어가기.** 1분 안에조차 한 번의 폴링으로 읽을 수 있는 것보다 많은 레코드가 있으면, 더 새로운 이벤트가 계속 도착하도록 폴링이 그 1분을 넘어가며, 이후 폴링의 겹치는 부분도 더 이상 그 1분까지 거슬러 가지 않습니다. 실행은 **부분**로 남고, **마지막 오류**에는 `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.`라고 나옵니다. 한 번의 실행이 읽을 수 있는 만큼 되찾으려면 **Import this time range**로 그 1분을 가져오거나, **Event filter**를 좁히세요.
 
-Okta의 오류로 실행이 완전히 실패하면, 커서와 구간 길이는 그대로 유지되고 다음 폴링이 같은 구간을 다시 읽습니다. 단 하나의 예외는 요청 시간이 초과된 경우입니다. 커서는 그대로지만 다음 구간은 절반 길이가 됩니다. 제시간에 응답하기에는 너무 무거운 구간은 시도할 때마다 시간이 초과되기 때문입니다. **Poll Interval (Minutes)** 값을 바꿔도 이 중 어느 것도 달라지지 않습니다. 이 설정은 폴링이 얼마나 자주 시작하는지를 정할 뿐, 구간이 어디서 시작하는지는 정하지 않습니다.
+Okta의 오류로 실행이 완전히 실패하면, 커서와 구간 길이는 그대로 유지되고 다음 폴링이 같은 구간을 다시 읽습니다. 단 하나의 예외는 요청 시간이 초과된 경우입니다. 커서는 그대로지만 다음 구간은 절반 길이가 됩니다. 제시간에 응답하기에는 너무 무거운 구간은 시도할 때마다 시간이 초과되기 때문입니다. **폴링 간격(분)** 값을 바꿔도 이 중 어느 것도 달라지지 않습니다. 이 설정은 폴링이 얼마나 자주 시작하는지를 정할 뿐, 구간이 어디서 시작하는지는 정하지 않습니다.
 
 ### 필요할 때 실행, 미리 보기, 가져오기
 
-연결에서 **Diagnostics**를 클릭하면 최근 실행을 보고 연결을 직접 다룰 수 있습니다. 연결을 변경할 수 있는 사람은 누구나 이를 시작할 수 있고, 연결을 볼 수 있는 사람은 누구나 기록을 읽을 수 있습니다.
+연결에서 **진단**을 클릭하면 최근 실행을 보고 연결을 직접 다룰 수 있습니다. 연결을 변경할 수 있는 사람은 누구나 이를 시작할 수 있고, 연결을 볼 수 있는 사람은 누구나 기록을 읽을 수 있습니다.
 
-- **Run now**는 연결이 **활성화됨** 상태가 아닐 때에도 평소의 커서로 즉시 폴링을 시작합니다.
+- **지금 실행**은 연결이 **활성화됨** 상태가 아닐 때에도 평소의 커서로 즉시 폴링을 시작합니다.
 - **Preview log events**는 최대 7일의 시간 범위를 읽으며 아무것도 가져오지 않습니다.
 - **Import this time range**는 확인을 거친 뒤 최대 7일의 범위를 가져오며, 커서는 옮기지 않습니다. 이미 가져온 이벤트는 건너뜁니다. Okta는 System Log를 90일 동안 보관합니다.
 - 실행의 **Copy diagnostics**는 지원팀에 보낼 보고서를 복사합니다. 자격 증명은 절대 포함되지 않습니다.
 
 ## 연결 테스트
 
-연결 행의 **연결 테스트**와 양식의 **Test these settings**는 백그라운드 워커가 아니라 API 프로세스에서 실행되므로, 워커가 문제일 때에도 테스트는 응답합니다. 다음 검사를 순서대로 실행합니다:
+연결 행의 **연결 테스트**와 양식의 **이 설정 테스트**는 백그라운드 워커가 아니라 API 프로세스에서 실행되므로, 워커가 문제일 때에도 테스트는 응답합니다. 다음 검사를 순서대로 실행합니다:
 
 | 검사 | 확인하는 내용 |
 | --- | --- |
@@ -172,7 +172,7 @@ Okta가 요청의 매개변수를 거부했습니다(`E0000053`). 토큰이 작�
 :::
 
 :::details Last Error에 `failed (HTTP 401)` 또는 `failed (HTTP 403)`이 나옴
-- `HTTP 401`: Okta가 토큰을 받아들이지 않았습니다(`E0000011`). 취소되었거나, 30일 동안 쓰이지 않았거나, 관리자와 함께 비활성화되었거나, `SSWS`나 불필요한 문자와 함께 붙여 넣어졌습니다. 읽기 전용 관리자로 새 토큰을 만들어 **Update credentials**로 저장하세요.
+- `HTTP 401`: Okta가 토큰을 받아들이지 않았습니다(`E0000011`). 취소되었거나, 30일 동안 쓰이지 않았거나, 관리자와 함께 비활성화되었거나, `SSWS`나 불필요한 문자와 함께 붙여 넣어졌습니다. 읽기 전용 관리자로 새 토큰을 만들어 **자격 증명 업데이트**로 저장하세요.
 - `HTTP 403`: 토큰으로 로그인은 되지만 그 관리자가 System Log를 읽을 수 없습니다(`E0000006`). Read-only Administrator나 Super Administrator로 토큰을 만들고, 그 네트워크 영역이 OneUptime이 호출하는 주소를 허용하는지 확인하세요.
 :::
 
@@ -194,8 +194,8 @@ Okta가 요청의 매개변수를 거부했습니다(`E0000053`). 토큰이 작�
 :::
 
 :::details 실행이 Partial임
-- `Stopped after collecting 10000 events`: 구간에 한 번의 실행이 읽는 10,000개보다 많은 이벤트가 있었습니다. 잃는 것은 없습니다. 다음 폴링은 마지막으로 읽은 이벤트 다음부터 시작합니다. 폴링할 때마다 **Partial**로 남는 연결은 밀린 분량을 따라잡는 중이며, **Last Polled**와 **Last Event Imported**는 계속 앞으로 나아갑니다. 끝내 따라잡지 못한다면 조직이 폴링 간격에 담을 수 있는 것보다 많은 일치 이벤트를 게시하고 있는 것입니다. **Event filter**를 좁히거나 **Poll Interval (Minutes)** 값을 줄이세요.
-- `More records were created in the one minute from ... than one poll can read`: 폴링이 그 1분을 넘어갔습니다. **Diagnostics**에서 **Import this time range**로 그 1분을 가져오세요. 가져오기는 한 번의 폴링만큼 읽습니다.
+- `Stopped after collecting 10000 events`: 구간에 한 번의 실행이 읽는 10,000개보다 많은 이벤트가 있었습니다. 잃는 것은 없습니다. 다음 폴링은 마지막으로 읽은 이벤트 다음부터 시작합니다. 폴링할 때마다 **부분**로 남는 연결은 밀린 분량을 따라잡는 중이며, **마지막 폴링**과 **마지막으로 가져온 이벤트**는 계속 앞으로 나아갑니다. 끝내 따라잡지 못한다면 조직이 폴링 간격에 담을 수 있는 것보다 많은 일치 이벤트를 게시하고 있는 것입니다. **Event filter**를 좁히거나 **폴링 간격(분)** 값을 줄이세요.
+- `More records were created in the one minute from ... than one poll can read`: 폴링이 그 1분을 넘어갔습니다. **진단**에서 **Import this time range**로 그 1분을 가져오세요. 가져오기는 한 번의 폴링만큼 읽습니다.
 :::
 
 :::details 테스트는 통과하지만 아무것도 가져오지 않음

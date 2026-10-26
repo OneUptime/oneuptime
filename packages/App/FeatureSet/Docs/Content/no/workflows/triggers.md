@@ -11,20 +11,20 @@ En trigger er den første blokken i en arbeidsflyt — den avgjør når arbeidsf
 - [OneUptime-begivenhetstriggere](#oneuptime-begivenhetstriggere): Reager når en post opprettes, oppdateres eller slettes.
 :::
 
-For å legge til triggeren klikker du på den stiplede blokken **Choose what starts this workflow** på lerretet til en ny arbeidsflyt. For å endre den sletter du triggerblokken, og den stiplede blokken kommer tilbake. Se [Opprette en arbeidsflyt](/docs/workflows/authoring#legg-til-blokker).
+For å legge til triggeren klikker du på den stiplede blokken **Velg hva som starter denne arbeidsflyten** på lerretet til en ny arbeidsflyt. For å endre den sletter du triggerblokken, og den stiplede blokken kommer tilbake. Se [Opprette en arbeidsflyt](/docs/workflows/authoring#legg-til-blokker).
 
 ## Hvilken trigger bør jeg bruke?
 
 | Hvis du vil …                                  | Velg                        |
 | ---------------------------------------------- | --------------------------- |
-| Klikke på en knapp for å kjøre arbeidsflyten   | **Manual**                  |
+| Klikke på en knapp for å kjøre arbeidsflyten   | **Manuell**                  |
 | Kjøre etter en gjentakende tidsplan            | **Tidsplan**                |
 | La et annet system sende inn data              | **Webhook**                 |
 | Starte ut fra en e-post                        | **Incoming Email**          |
 | Handle på hendelsesrapporter fra Huntress      | **Huntress Incident Report** |
 | Reagere på noe i OneUptime                     | **OneUptime-begivenhet**    |
 
-En arbeidsflyt kan bare ha én trigger. Trenger du to måter å starte den samme automatiseringen på, bygger du den felles logikken i en arbeidsflyt med en **Manual**-trigger og starter den fra to tynne «innpaknings»-arbeidsflyter med en **Execute Workflow**-blokk.
+En arbeidsflyt kan bare ha én trigger. Trenger du to måter å starte den samme automatiseringen på, bygger du den felles logikken i en arbeidsflyt med en **Manuell**-trigger og starter den fra to tynne «innpaknings»-arbeidsflyter med en **Execute Workflow**-blokk.
 
 ## Manual
 
@@ -39,7 +39,7 @@ Bra for: automatisering med ett klikk som du vil ha en knapp for, som «roter de
 
 ## Schedule
 
-Kjør arbeidsflyten etter en gjentakende tidsplan. Angi hvor ofte i **Schedule at**: velg en av **Common schedules**, skriv et **Custom cron**-uttrykk, eller velg en **Variabel** som inneholder et. Under feltet beskrives tidsplanen med ord, sammen med **Next runs**.
+Kjør arbeidsflyten etter en gjentakende tidsplan. Angi hvor ofte i **Schedule at**: velg en av **Common schedules**, skriv et **Custom cron**-uttrykk, eller velg en **Variabel** som inneholder et. Under feltet beskrives tidsplanen med ord, sammen med **Neste kjøringer**.
 
 Bra for: opprydding om natten, synkronisering hver time, ukentlige rapporter.
 
@@ -206,7 +206,7 @@ For å teste en begivenhetstrigger uten å vente på begivenheten klikker du på
 | **Statusside Abonnent**                   | Ønske velkommen en person som abonnerer på en statusside.                                 |
 | **Vaktpolicy**                            | Synkronisere endringer i policyen med et annet vaktsystem.                                |
 
-I panelet **Legg til trigger** ligger de under **OneUptime resources**: klikk på ressursen og deretter på triggeren. **Browse all resources** har dem alle, og søkefeltet finner en trigger ut fra noen få ord, som `incident created`.
+I panelet **Legg til trigger** ligger de under **OneUptime-ressurser**: klikk på ressursen og deretter på triggeren. **Bla gjennom alle ressurser** har dem alle, og søkefeltet finner en trigger ut fra noen få ord, som `incident created`.
 
 ## Neste trinn
 

@@ -55,7 +55,7 @@ Hver bruker, vert og adresse en sak eller en hendelse nevner, slås opp blant pr
 
 ## Hva hver oppføring viser
 
-- Signalene, hvert åpnet på oppføringen og sakens periode: **Logger**, **Spor** og **Målinger**, en tjenestes **Unntak**, en klynges **Kubernetes-hendelser**, oppføringens **Topologi** og elementet i **Inventory** når inventaret har et.
+- Signalene, hvert åpnet på oppføringen og sakens periode: **Logger**, **Spor** og **Målinger**, en tjenestes **Unntak**, en klynges **Kubernetes-hendelser**, oppføringens **Topologi** og elementet i **Inventar** når inventaret har et.
 - Hendelsene og varslene som er åpne på den nå, og monitorene som overvåker den, hver med sin egen side.
 - Hva som endret seg på den i perioden: en tjenestes utrullinger, en klynges rollouts og en verts rettinger.
 

@@ -297,7 +297,7 @@ För .NET-profileraren sätter du `DD_TRACE_DEBUG=1` på applikationen i en minu
 
 ### En funktion
 
-Klicka på en funktion för att öppna dess panel: dess andel som **Egen**, **Totalt** och **Din kod**, **Vem anropar den** och **Vad den anropar**, en länk till dess fil och rad i ditt repository när ett är anslutet, och **Markera i flamdiagrammet**. För en funktion från ett bibliotek eller körtiden nämner panelen den funktion i din egen kod som anropar den, där en ändring kan göra den billigare. En länk under andelarna skapar en varning för funktionens andel, över det den tar i dag: se [Profilövervakning](/docs/monitor/profiles-monitor).
+Klicka på en funktion för att öppna dess panel: dess andel som **Egen**, **Totalt** och **Din kod**, **Vem anropar den** och **Vad den anropar**, en länk till dess fil och rad i ditt repository när ett är anslutet, och **Markera i flamdiagrammet**. För en funktion från ett bibliotek eller körtiden nämner panelen den funktion i din egen kod som anropar den, där en ändring kan göra den billigare. En länk under andelarna skapar ett larm för funktionens andel, över det den tar i dag: se [Profilövervakning](/docs/monitor/profiles-monitor).
 
 När en funktion i din egen kod tar minst 5 % av profilens tid eller minne, eller dess andel har vuxit med 3 enheter eller mer sedan tidsfönstret den jämförs med, erbjuder panelen **Åtgärda med AI**: OneUptime AI startar en uppgift i det repository som innehåller funktionen, med profilen som underlag, och öppnar en pull request som du granskar (se [Code](/docs/ai/ai-agent)). OneUptime AI läser också profiler i sina svar och undersökningar, så du kan fråga vilka funktioner som använder mest CPU-tid.
 
@@ -309,13 +309,13 @@ När en funktion i din egen kod tar minst 5 % av profilens tid eller minne, elle
 | --- | --- |
 | **Flamdiagram** | Varje stapel är en funktion i anropsstacken, och dess bredd är proportionell mot tiden eller resurserna den förbrukade. Klicka på en funktion för att zooma in och se vilka som anropar den och vilka den anropar. |
 | **Top functions** | Profilens funktioner, sorterade efter egen eller total tid. **Bara min kod** döljer biblioteksramar. |
-| **Diff vs. baseline** | Profilen jämförd med en tidigare period (**jämfört med för 1 timme sedan**, **jämfört med igår** eller **jämfört med förra veckan**), med funktionerna under **Most regressed** och **Most improved**. |
+| **Diff vs. baseline** | Profilen jämförd med en tidigare period (**jämfört med för 1 timme sedan**, **jämfört med igår** eller **jämfört med förra veckan**), med funktionerna under **Störst försämring** och **Störst förbättring**. |
 
-**Download pprof** sparar profilen för lokala verktyg som `go tool pprof`.
+**Ladda ned pprof** sparar profilen för lokala verktyg som `go tool pprof`.
 
 ### Koppling till spår
 
-När en profil bär trace- och span-ID:n (till exempel som sampeletiketter `trace_id` / `span_id`) kan du gå direkt från ett långsamt span i ett spår till motsvarande CPU- eller minnesprofil för att förstå exakt vilken kod som kördes, och **Open linked trace** går åt andra hållet.
+När en profil bär trace- och span-ID:n (till exempel som sampeletiketter `trace_id` / `span_id`) kan du gå direkt från ett långsamt span i ett spår till motsvarande CPU- eller minnesprofil för att förstå exakt vilken kod som kördes, och **Öppna länkat spår** går åt andra hållet.
 
 Ett spans flik **Profil** innehåller även de sampel som är kopplade till spans som ligger under det, eftersom profilerare ofta tillskriver en begärans CPU-tid ett underordnat span i stället för själva begärans span.
 

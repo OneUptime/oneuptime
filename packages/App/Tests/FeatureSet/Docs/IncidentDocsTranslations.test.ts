@@ -82,6 +82,8 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
     // Custom states a project might add: names people give.
     "Investigating",
     "Closed",
+    // The metric's name, as the metrics explorer lists it.
+    "Time to Acknowledge",
     // Permission names, as a custom role lists them.
     "Create Incident State Timeline",
     "Create Alert Internal Note",
@@ -101,10 +103,12 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
     "Create Incident Alert",
   ],
   "incidents/settings": [
-    // The workflow builder's trigger panel, which is not translated.
-    "OneUptime resources",
+    /*
+     * The workflow builder's trigger names and ports, which are not
+     * translated. (The panel's own sections, Popular and OneUptime
+     * resources, are drawn in the reader's language.)
+     */
     "Incident",
-    "Popular",
     "Add Trigger",
     "Success",
     // The workflow step's setting.
@@ -361,9 +365,21 @@ describe.each(LANGUAGES)("%s incident pages", (language: string) => {
         filled(language, "Mark Incident as {{state}}", "`<state name>`"),
         filled(language, "Mark as {{state}}", "`<state name>`"),
         filled(language, "Mark Incident as {{state}}", "…"),
-        // The tiles name the state as the project stored it.
-        filled(language, "{{stateName}} in", "Acknowledged"),
-        filled(language, "{{stateName}} in", "Resolved"),
+        /*
+         * The tiles name the seeded states in the reader's words, as the
+         * Dashboard draws OneUptime's own state names; a renamed state as the
+         * project stored it.
+         */
+        filled(
+          language,
+          "{{stateName}} in",
+          dashboardLabel(language, "Acknowledged"),
+        ),
+        filled(
+          language,
+          "{{stateName}} in",
+          dashboardLabel(language, "Resolved"),
+        ),
       ]) {
         expect({ label: label, named: page.includes(`**${label}**`) }).toEqual({
           label: label,

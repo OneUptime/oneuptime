@@ -36,7 +36,7 @@ flowchart TB
 Modellen `AlertState` har `name`, `description`, `color` och `order`, plus tre flaggor: `isCreatedState`, `isAcknowledgedState` och `isResolvedState`. OneUptime läser flaggorna och ordningen, aldrig namnet, så du kan byta namn på **Löst** till "Stängd" utan att något går sönder. Modellen `AlertSeverity` har `name`, `description`, `color` och `order`, och inga flaggor.
 
 > [!TIP]
-> Båda listorna finns under **Varningar → Inställningar**, som börjar hopfällt i sidomenyn: Fäll ut **Inställningar** för att hitta **Varningsstatus** och **Varningsallvar**.
+> Båda listorna finns under **Larm → Inställningar**, som börjar hopfällt i sidomenyn: Fäll ut **Inställningar** för att hitta **Larmstatus** och **Larmallvar**.
 
 ## Standardtillstånden
 
@@ -44,7 +44,7 @@ Varje nytt projekt börjar med tre larmtillstånd, i den här ordningen:
 
 | Tillstånd        | `order` | Flagga                | Färg      | Vad det betyder                                 |
 | ---------------- | ------- | --------------------- | --------- | ----------------------------------------------- |
-| **Identified**   | `1`     | `isCreatedState`      | `#fd625e` | Tillståndet som nya larm börjar i.              |
+| **Identifierade**   | `1`     | `isCreatedState`      | `#fd625e` | Tillståndet som nya larm börjar i.              |
 | **Bekräftad**    | `2`     | `isAcknowledgedState` | `#ffbf53` | Någon tar hand om det, och larmningen upphör.   |
 | **Löst**         | `3`     | `isResolvedState`     | `#2ab57d` | Larmet är över och räknas inte längre som aktivt. |
 
@@ -56,7 +56,7 @@ De tre flaggade tillstånden har taggen **Inbyggd** på inställningssidan. Du k
 | --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `isCreatedState`      | Nya larm börjar här när ingen väljer ett annat tillstånd: varje larm som en monitor utlöser, och varje larm som skapas med **Inledande tillstånd** tomt.                           |
 | `isAcknowledgedState` | **Bekräfta** flyttar ett larm hit. I det här tillståndet eller ett tillstånd efter det räknas larmet som bekräftat: Dess jourpolicyer slutar larma, och **Bekräfta** erbjuds inte längre. |
-| `isResolvedState`     | **Lös** flyttar ett larm hit. I det här tillståndet eller ett tillstånd efter det räknas larmet som löst: Det lämnar **Aktiva varningar**, dess påminnelser upphör, och dess episod kan lösas. |
+| `isResolvedState`     | **Lös** flyttar ett larm hit. I det här tillståndet eller ett tillstånd efter det räknas larmet som löst: Det lämnar **Aktiva larm**, dess påminnelser upphör, och dess episod kan lösas. |
 
 ## Lägga till egna tillstånd
 
@@ -65,11 +65,11 @@ Ett tillstånd som du lägger till är ett steg som ditt team går igenom och so
 :::steps
 ### Öppna listan över tillstånd
 
-Gå till **Varningar → Inställningar → Varningsstatus**. Kortet **Larm Tillstånd** listar dina tillstånd i deras ordning. Varje rad visar färg och namn, vad ett larm i det **Räknas som**, och beskrivningen.
+Gå till **Larm → Inställningar → Larmstatus**. Kortet **Larm Tillstånd** listar dina tillstånd i deras ordning. Varje rad visar färg och namn, vad ett larm i det **Räknas som**, och beskrivningen.
 
 ### Skapa tillståndet
 
-Klicka på **Skapa Varningsstatus** och fyll i **Namn**, **Beskrivning** och **Färg**. Färgen är redan vald: en som inget annat tillstånd använder ännu. Det nya tillståndet läggs till precis ovanför det lösta tillståndet, så det håller larm aktiva.
+Klicka på **Skapa Larmstatus** och fyll i **Namn**, **Beskrivning** och **Färg**. Färgen är redan vald: en som inget annat tillstånd använder ännu. Det nya tillståndet läggs till precis ovanför det lösta tillståndet, så det håller larm aktiva.
 
 ### Dra det på plats
 
@@ -99,14 +99,14 @@ Varje nytt projekt börjar med två allvarlighetsgrader för larm, den allvarlig
 
 | Allvarlighetsgrad | `order` | Färg      | Förifylld beskrivning                                                             |
 | ----------------- | ------- | --------- | --------------------------------------------------------------------------------- |
-| **High**          | `1`     | `#b70400` | Issues causing very high impact to customers. Immediate attention is required.    |
-| **Low**           | `2`     | `#ffbf53` | Issues causing low impact to customers.                                           |
+| **Hög**          | `1`     | `#b70400` | Issues causing very high impact to customers. Immediate attention is required.    |
+| **Låg**           | `2`     | `#ffbf53` | Issues causing low impact to customers.                                           |
 
-Incidenter börjar med tre allvarlighetsgrader och larm med två. När mallen i en monitorrekommendation säger **Kritisk** eller **Warning** mappar OneUptime den till din första och andra allvarlighetsgrad för larm, som i ett nytt projekt är **High** och **Low**.
+Incidenter börjar med tre allvarlighetsgrader och larm med två. När mallen i en monitorrekommendation säger **Kritisk** eller **Warning** mappar OneUptime den till din första och andra allvarlighetsgrad för larm, som i ett nytt projekt är **Hög** och **Låg**.
 
 ## Redigera allvarlighetsgrader
 
-Gå till **Varningar → Inställningar → Varningsallvar**. Kortet **Larm Allvarligheter** listar dem med den allvarligaste först; dra en rad för att ändra dess rang. **Skapa Varningsallvar** lägger till en sist i listan, som den minst allvarliga, med samma **Namn**, **Beskrivning** och **Färg** som ett tillstånd.
+Gå till **Larm → Inställningar → Larmallvar**. Kortet **Larm Allvarligheter** listar dem med den allvarligaste först; dra en rad för att ändra dess rang. **Skapa Larmallvar** lägger till en sist i listan, som den minst allvarliga, med samma **Namn**, **Beskrivning** och **Färg** som ett tillstånd.
 
 Rangen avgör vilken allvarlighetsgrad som vinner där OneUptime jämför dem: En episods allvarlighetsgrad stiger till den hos det allvarligaste larmet som ansluter till den. Allvarlighetsgrader har inga flaggor och inget borttagningslås: Vilken allvarlighetsgrad som helst kan tas bort, även de två förifyllda.
 
@@ -114,15 +114,15 @@ En allvarlighetsgrad larmar ingen på egen hand. För att larma efter allvarligh
 
 ## Arkivera en status eller allvarlighetsgrad
 
-Arkivera en status eller allvarlighetsgrad som ditt team inte längre ska använda, i stället för att ta bort den. Arkivering ändrar ingen varning. Att ta bort en status tar bort dess rader ur varje varnings historik, och en allvarlighetsgrad kan inte tas bort så länge varningar har den.
+Arkivera en status eller allvarlighetsgrad som ditt team inte längre ska använda, i stället för att ta bort den. Arkivering ändrar inget larm. Att ta bort en status tar bort dess rader ur varje varnings historik, och en allvarlighetsgrad kan inte tas bort så länge larm har den.
 
 - **Arkivera** finns i radens meny **⋯**. Den frågar först och listar de regler, mätningar, monitorkriterier och arbetsflöden som är inställda på att använda värdet: De fortsätter att använda det tills du ändrar dem.
-- **Ingen kan välja den igen.** **Ändra tillstånd**, varningens sidhuvud, Slack, Microsoft Teams, regler och monitorkriterier utelämnar den. API:et, Terraform och MCP avvisar den och anger värdet och var den kan avarkiveras.
-- **Varningar behåller den.** En varning som har den behåller den vid varje senare redigering, dess statustidslinje visar den fortfarande, och du kan fortfarande filtrera på den.
-- **Arkiverade värden listas för sig**, i det hopfällda avsnittet **Arkiverade varningsstatusar** eller **Arkiverade allvarlighetsgrader för varningar** under tabellen, med vem som arkiverade varje värde och när. **Avarkivera** återställer ett som det var.
+- **Ingen kan välja den igen.** **Ändra tillstånd**, larmets sidhuvud, Slack, Microsoft Teams, regler och monitorkriterier utelämnar den. API:et, Terraform och MCP avvisar den och anger värdet och var den kan avarkiveras.
+- **Larm behåller den.** Ett larm som har den behåller den vid varje senare redigering, dess statustidslinje visar den fortfarande, och du kan fortfarande filtrera på den.
+- **Arkiverade värden listas för sig**, i det hopfällda avsnittet **Arkiverade larmstatusar** eller **Arkiverade allvarlighetsgrader för larm** under tabellen, med vem som arkiverade varje värde och när. **Avarkivera** återställer ett som det var.
 - **Vissa kan inte arkiveras.** Den skapade, den kvitterade och den lösta statusen, och projektets sista allvarlighetsgrad som inte är arkiverad. Deras **Arkivera** är låst, med skälet.
 
-**Ta bort** talar först om vad den skulle göra. Så länge varningar eller episoder har värdet nekas borttagningen, och dialogen listar dem. Annars listar den vad borttagningen skulle ändra och erbjuder **Arkivera i stället**.
+**Ta bort** talar först om vad den skulle göra. Så länge larm eller episoder har värdet nekas borttagningen, och dialogen listar dem. Annars listar den vad borttagningen skulle ändra och erbjuder **Arkivera i stället**.
 
 ## Flytta ett larm genom dess tillstånd
 
@@ -148,7 +148,7 @@ Ett larm är bekräftat från det ögonblick det flyttas till ditt bekräftade t
 
 Ett larm är löst när det flyttas till ditt lösta tillstånd, eller till ett tillstånd efter det. Därefter:
 
-- **Det lämnar Aktiva varningar**, och antalet i sidomenyn.
+- **Det lämnar Aktiva larm**, och antalet i sidomenyn.
 - **Dess påminnelser upphör**, vad dess påminnelseregel än säger.
 - **Dess episod kan lösas.** En episod löses av sig själv när varje larm i den är löst. Se [Larmepisoder och grupperingsregler](/docs/alerts/episodes).
 - **Dess monitor kan utlösa ett nytt larm.** Ett kriterium håller ett öppet larm åt gången; när det är löst öppnar nästa matchning ett nytt.
@@ -167,9 +167,9 @@ Rader kan läggas till och tas bort, men inte redigeras, och ett larm behåller 
 > [!WARNING]
 > Att ta bort en rad skriver om larmets historik och varje mätning som beräknats från den. Använd det för att rätta ett misstag, inte för att städa.
 
-## Listan Aktiva varningar
+## Listan Aktiva larm
 
-**Varningar → Aktiva varningar** innehåller varje larm vars tillstånd står ovanför ditt lösta tillstånd, och inget annat avgör det: inte allvarlighetsgrad, inte ålder, inte om någon har bekräftat det. Det röda märket bredvid i sidomenyn räknar samma larm.
+**Larm → Aktiva larm** innehåller varje larm vars tillstånd står ovanför ditt lösta tillstånd, och inget annat avgör det: inte allvarlighetsgrad, inte ålder, inte om någon har bekräftat det. Det röda märket bredvid i sidomenyn räknar samma larm.
 
 Ett eget tillstånd ovanför **Löst** håller alltså larm kvar i listan, och ett under det tar bort dem, som lösning gör. **Aktiva episoder** fungerar på samma sätt för episoder.
 
