@@ -528,12 +528,23 @@ const IncidentView: FunctionComponent<
     recordStartedAt: incidentStartedAt,
   });
 
+  // Bumped to make the header read the incident's state again.
+  const [headerRefreshToken, setHeaderRefreshToken] = useState<number>(0);
+
   // "Escalate", for somebody an on-call policy is paging about it.
   const passOn: PassOnPageControls = usePassOnPage({
     recordType: OnCallPageRecordType.Incident,
     recordId: modelId,
     // Escalating is a new feed entry.
     onPassedOn: refreshFeed,
+    // Somebody took it while the dialog asked: the page reads it again.
+    onRecordChanged: () => {
+      setHeaderRefreshToken((token: number): number => {
+        return token + 1;
+      });
+      refreshData();
+      refreshFeed();
+    },
   });
 
   const fetchData: (options: FetchDataOptions) => Promise<void> = async (
@@ -1164,6 +1175,7 @@ const IncidentView: FunctionComponent<
           aiInvestigationStatus={currentAIInvestigationStatus}
           aiInvestigationSummary={currentAIInvestigationSummary}
           aiInvestigationVerdict={currentAIInvestigationVerdict}
+          refreshToken={headerRefreshToken}
           onActionComplete={() => {
             refreshData();
             // The state change is a new feed entry.

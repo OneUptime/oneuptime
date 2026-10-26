@@ -1,9 +1,13 @@
 import {
+  RULE_RUN_TYPE_METADATA,
+  RuleRunAction,
   RuleRunResult,
   RuleRunResultUtil,
   RuleRunType,
 } from "../../../Types/Rules/RuleRun";
-import RuleRunSummary from "../../../Utils/Rules/RuleRunSummary";
+import RuleRunSummary, {
+  withIndefiniteArticle,
+} from "../../../Utils/Rules/RuleRunSummary";
 import { describe, expect, it } from "@jest/globals";
 
 /*
@@ -313,6 +317,60 @@ describe("RuleRunSummary.describeRunNowCard", () => {
     );
   });
 
+  /*
+   * It said "This rule runs only when a incident is created" on every
+   * incident, alert and episode rule's page (#5209).
+   */
+  it.each([
+    [RuleRunType.IncidentOwnerRule, "an incident"],
+    [RuleRunType.AlertLabelRule, "an alert"],
+    [RuleRunType.AlertEpisodeOwnerRule, "an alert episode"],
+    [RuleRunType.IncidentEpisodePrivacyRule, "an incident episode"],
+    [RuleRunType.IncomingCallPolicyOwnerRule, "an incoming call policy"],
+    [RuleRunType.IoTFleetLabelRule, "an IoT fleet"],
+    [RuleRunType.OnCallDutyPolicyOwnerRule, "an on-call policy"],
+    [RuleRunType.ServiceLevelObjectiveLabelRule, "an SLO"],
+    [RuleRunType.RumApplicationLabelRule, "a RUM application"],
+    [
+      RuleRunType.ScheduledMaintenanceOwnerRule,
+      "a scheduled maintenance event",
+    ],
+    [RuleRunType.MonitorLabelRule, "a monitor"],
+  ])(
+    "%s's Run Now card says when %s is created",
+    (ruleType: RuleRunType, subject: string) => {
+      expect(RuleRunSummary.describeRunNowCard(ruleType)).toContain(
+        `This rule runs only when ${subject} is created.`,
+      );
+    },
+  );
+
+  it("never says 'a' before a vowel, on any rule's Run Now card", () => {
+    const aBeforeAVowel: RegExp = /^a [aeiouAEIOU]/;
+    const anArticle: RegExp = /^an? /;
+    const wrong: Array<string> = [];
+
+    for (const ruleType of Object.values(RuleRunType)) {
+      const meta: { action: RuleRunAction } = RULE_RUN_TYPE_METADATA[ruleType];
+
+      if (
+        meta.action === RuleRunAction.SyncStatusPageMonitors ||
+        meta.action === RuleRunAction.SyncSloMonitors
+      ) {
+        continue;
+      }
+
+      const text: string = RuleRunSummary.describeRunNowCard(ruleType);
+      const after: string = text.split("runs only when ")[1] || "";
+
+      if (aBeforeAVowel.test(after) || !anArticle.test(after)) {
+        wrong.push(`${ruleType}: ${text}`);
+      }
+    }
+
+    expect(wrong).toEqual([]);
+  });
+
   it("describes a status page re-sync", () => {
     expect(
       RuleRunSummary.describeRunNowCard(RuleRunType.StatusPageMonitorRule),
@@ -330,6 +388,26 @@ describe("RuleRunSummary.describeRunNowCard", () => {
       "Re-sync this SLO's monitors now with its enabled rules. Monitors attached by hand are left alone.",
     );
     expect(text).not.toContain("is created");
+  });
+});
+
+describe("withIndefiniteArticle", () => {
+  it.each([
+    ["incident", "an incident"],
+    ["alert episode", "an alert episode"],
+    ["IoT fleet", "an IoT fleet"],
+    ["on-call schedule", "an on-call schedule"],
+    ["SLO", "an SLO"],
+    ["host", "a host"],
+    ["RUM application", "a RUM application"],
+    ["VMware vCenter", "a VMware vCenter"],
+    ["Ceph cluster", "a Ceph cluster"],
+  ])("%s reads %s", (noun: string, read: string) => {
+    expect(withIndefiniteArticle(noun)).toBe(read);
+  });
+
+  it("an empty noun takes 'a', never throws", () => {
+    expect(withIndefiniteArticle("")).toBe("a ");
   });
 });
 

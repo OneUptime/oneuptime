@@ -1,4 +1,5 @@
 import ScheduledMaintenanceReminderStopState from "Common/Types/Reminder/ScheduledMaintenanceReminderStopState";
+import { doesScheduledMaintenanceReminderRuleNeverRemind } from "Common/Types/Reminder/ScheduledMaintenanceReminderNeverReminds";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
@@ -18,8 +19,11 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  * Each answer is written into the rule's two columns, which are unchanged:
  * the API, Terraform and every stored rule keep what they mean. A new rule
  * starts on "While it is in progress", which is what the columns' defaults
- * (switch off, Completed) always did. A rule stored with the combination
- * that never reminds shows no answer picked, and says so, until one is.
+ * (switch off, Completed) always did. The server refuses the combination
+ * that never reminds however a rule is saved - the API, Terraform, MCP
+ * (Common/Types/Reminder/ScheduledMaintenanceReminderNeverReminds) - and a
+ * rule stored that way before it did shows no answer picked, and says so,
+ * until one is.
  *
  * Kept free of React, so App/Tests can read it.
  */
@@ -154,8 +158,16 @@ export const getMaintenanceReminderTiming: (values: {
     values.stopRemindersOnState ===
       ScheduledMaintenanceReminderStopState.Ongoing;
 
+  /*
+   * The pair that never reminds, read by the rule the server refuses it
+   * with (ScheduledMaintenanceReminderNeverReminds).
+   */
+  if (doesScheduledMaintenanceReminderRuleNeverRemind(values)) {
+    return null;
+  }
+
   if (!remindsWhileScheduled) {
-    return stopsAtTheStart ? null : MaintenanceReminderTiming.WhileInProgress;
+    return MaintenanceReminderTiming.WhileInProgress;
   }
 
   return stopsAtTheStart

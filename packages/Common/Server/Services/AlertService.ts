@@ -19,7 +19,6 @@ import AlertStateService from "./AlertStateService";
 import AlertStateTimelineService from "./AlertStateTimelineService";
 import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
 import TeamMemberService from "./TeamMemberService";
-import UserService from "./UserService";
 import URL from "../../Types/API/URL";
 import LinkedAffectedResources, {
   LinkedAffectedResource,
@@ -57,7 +56,6 @@ import EventFieldChange, {
   EventFieldSet,
   EventValuesBeforeUpdate,
 } from "../Utils/EventFieldChange";
-import CreatedByUser from "../Utils/Database/CreatedByUser";
 import EpisodeMembershipReference, {
   ALERT_EPISODE_REFERENCE,
 } from "../Utils/Episode/EpisodeMembershipReference";
@@ -1065,19 +1063,14 @@ export class Service extends ProjectReferencesService<Model> {
       alertCounterResult.counter,
     );
 
-    // Who raised it, under either name of it: see CreatedByUser.
-    const raisedByUserId: ObjectID | null = CreatedByUser.getId(
-      createBy.data,
-      createBy.props,
-    );
-
-    if (raisedByUserId && !createBy.data.rootCause) {
-      createBy.data.rootCause =
-        mdText`Alert created by ${await UserService.getUserMarkdownString({
-          userId: raisedByUserId,
-          projectId: projectId,
-        })}`.toString();
-    }
+    /*
+     * The root cause is left as it was sent - none, until somebody writes
+     * one. It used to default to "Alert created by <who raised it>", which
+     * said who, not why: the alert names whoever raised it itself
+     * (createdByUser, the Created tile, the feed's first entry)
+     * (Utils/Incident/WhoOpenedItRootCause reads the ones written before
+     * as none).
+     */
 
     const carryForward: StartingStageCarryForward = {
       startingStage: startingStage,

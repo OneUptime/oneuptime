@@ -26,6 +26,7 @@ import {
   MIN_TITLE_CHARACTERS,
   ON_CALL_PAGE_SMS_ACTION,
   ON_CALL_PAGE_SMS_CUT_MARK,
+  ON_CALL_PAGE_SMS_STILL_NOT_RESOLVED,
   OnCallPageSms,
   OnCallPageSmsKind,
 } from "Common/Utils/Sms/OnCallPageSms";
@@ -903,6 +904,50 @@ describe("the Escalation Rules page's text message section", () => {
     expect(example.sent.encoding).toBe(SmsEncoding.Gsm7);
     expect(example.sent.segments).toBe(1);
     expect(example.text).toContain(ON_CALL_PAGE_SMS_ACTION);
+  });
+
+  /*
+   * A page again (a policy paging again because an acknowledged record is
+   * still not resolved) says so, where its first page read as a new one.
+   */
+  it("quotes a page again's text exactly as OneUptime writes it, and it is one part", () => {
+    const pageAgain: OnCallPageSms = buildOnCallPageSms({
+      kind: OnCallPageSmsKind.Incident,
+      productName: NOTIFICATION_SMS_SENDER,
+      severityName: "Critical Incident",
+      number: "INC-42",
+      projectName: "Acme Prod",
+      title: "Checkout API is down",
+      link: "https://oneuptime.com/l/XJlaZRsd",
+      isPageAgain: true,
+    });
+    const intro: string =
+      "When a policy pages again because an acknowledged incident or alert is still not resolved, the text says so after the number and the project, and those words are never cut either:\n\n```text\n";
+    const at: number = section.indexOf(intro);
+    const block: string = section.slice(
+      at + intro.length,
+      section.indexOf("\n```", at + intro.length),
+    );
+    const lines: Array<string> = block.split("\n");
+    const why: string = `${ON_CALL_PAGE_SMS_STILL_NOT_RESOLVED}:`;
+
+    expect(at).toBeGreaterThan(section.indexOf("are never cut."));
+    // Shown as a phone wraps it, after the words that say why: one line when sent.
+    expect(lines).toEqual([
+      pageAgain.text.slice(0, pageAgain.text.indexOf(why) + why.length),
+      pageAgain.text.slice(pageAgain.text.indexOf(why) + why.length + 1),
+    ]);
+    expect(lines.join(" ")).toBe(pageAgain.text);
+    for (const line of lines) {
+      expect(line.length).toBeLessThanOrEqual(71);
+    }
+    expect(pageAgain.sent.encoding).toBe(SmsEncoding.Gsm7);
+    expect(pageAgain.sent.segments).toBe(1);
+
+    // The same page's first text, without those words.
+    expect(
+      pageAgain.text.replace(` ${ON_CALL_PAGE_SMS_STILL_NOT_RESOLVED}`, ""),
+    ).toBe(example.text);
   });
 
   it("gives the part sizes the counter bills by", () => {

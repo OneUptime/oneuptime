@@ -138,7 +138,7 @@ Bereitschaftsrichtlinien sind die Ressource `/api/on-call-duty-policy` und in Te
 | **Nach wie vielen Minuten?** | `acknowledgementTimeoutInMinutes` |
 | Archiviert | `isArchived` |
 
-`repeatPolicyIfNoOneAcknowledges` ist `false` für **Alarmierung beenden** und `true` für **Erneut bei Level 1 beginnen**. Steht es auf `true` und `repeatPolicyIfNoOneAcknowledgesNoOfTimes` auf `0`, wiederholt sich die Richtlinie nie, und das Dashboard zeigt sie als **Alarmierung beenden**.
+`repeatPolicyIfNoOneAcknowledges` ist `false` für **Alarmierung beenden** und `true` für **Erneut bei Level 1 beginnen**. Steht es auf `true`, muss `repeatPolicyIfNoOneAcknowledgesNoOfTimes` eine ganze Zahl ab 1 sein: OneUptime lehnt `0` ab. Eine ältere, mit `0` gespeicherte Richtlinie wiederholt sich nie, und das Dashboard zeigt sie als **Alarmierung beenden**.
 
 `acknowledgementTimeoutInMinutes` ist `null` für **Nicht erneut alarmieren** und eine ganze Zahl von Minuten zwischen 5 und 1440 für **Erneut alarmieren**. Alles andere lehnt OneUptime ab.
 

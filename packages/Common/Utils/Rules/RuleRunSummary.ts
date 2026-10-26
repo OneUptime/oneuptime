@@ -33,6 +33,27 @@ function capitalize(text: string): string {
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
+/*
+ * Initialisms said letter by letter whose first letter sounds like a vowel:
+ * "an SLO". Every other noun takes "an" before a vowel letter ("an
+ * incident", "an IoT fleet", "an on-call policy") and "a" otherwise ("a
+ * host", "a RUM application").
+ */
+const INITIALISMS_SAID_WITH_A_VOWEL: ReadonlyArray<string> = ["SLO"];
+
+/*
+ * The singular with its indefinite article, as it reads mid-sentence: "an
+ * incident", "a host". The Run Now card said "when a incident is created".
+ */
+export function withIndefiniteArticle(noun: string): string {
+  const firstWord: string = noun.split(" ")[0] || "";
+  const isAn: boolean =
+    INITIALISMS_SAID_WITH_A_VOWEL.includes(firstWord) ||
+    "aeiouAEIOU".includes(noun.charAt(0) || "-");
+
+  return `${isAn ? "an" : "a"} ${noun}`;
+}
+
 export default class RuleRunSummary {
   // What the confirmation modal says the run is about to do.
   public static describeConfirmation(ruleType: RuleRunType): string {
@@ -69,7 +90,7 @@ export default class RuleRunSummary {
       return "Re-sync this SLO's monitors now with its enabled rules. Monitors attached by hand are left alone.";
     }
 
-    return `This rule runs only when a ${meta.resourceSingular} is created. Run it now for the ${meta.resourcePlural} that already exist.`;
+    return `This rule runs only when ${withIndefiniteArticle(meta.resourceSingular)} is created. Run it now for the ${meta.resourcePlural} that already exist.`;
   }
 
   /*

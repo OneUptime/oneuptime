@@ -328,7 +328,7 @@ describe("an incident in its Microsoft Teams channel", () => {
     expect(posts.map(headline)).toEqual([
       expect.stringContaining("Incident INC-8 Created"),
       expect.stringContaining("PolicyX"),
-      expect.stringContaining("paged nobody at escalation rule 3 of 3"),
+      expect.stringContaining("paged nobody at third (Level 3 of 3)"),
       expect.stringContaining("State"),
       expect.stringContaining("State"),
     ]);
@@ -346,7 +346,7 @@ describe("an incident in its Microsoft Teams channel", () => {
     ).toEqual([
       "🚨 Incident INC-8 Created: testslack",
       "PolicyX is paging for Incident INC-8",
-      "PolicyX paged nobody at escalation rule 3 of 3 (third) for Incident INC-8",
+      "PolicyX paged nobody at third (Level 3 of 3) for Incident INC-8",
       "Nitin 👀 Changed Incident INC-8 State to Acknowledged",
       "Nitin ✅ Changed Incident INC-8 State to Resolved",
     ]);
@@ -357,7 +357,7 @@ describe("an incident in its Microsoft Teams channel", () => {
      * 5:15 PM UTC and waiting 6 minutes.
      */
     expect(posts[1]!.text).toContain(
-      "**Escalation rule 1 of 3 (fhirst)**: if nobody acknowledges by {{TIME(2026-10-08T17:21:00Z)}}, escalation rule 2 (second) is next.",
+      "**fhirst (Level 1 of 3)**: if nobody acknowledges by {{TIME(2026-10-08T17:21:00Z)}}, second (Level 2 of 3) is next.",
     );
 
     for (const post of posts) {
