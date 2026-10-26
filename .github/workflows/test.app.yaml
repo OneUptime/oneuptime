@@ -113,7 +113,9 @@ jobs:
   session-replay-ui:
     name: Session Replay UI
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # Holds the Chromium install's own limit, each suite's, and about 7
+    # minutes for checkout and the npm installs (Tests/Ops/BrowserInstallLimits).
+    timeout-minutes: 57
     permissions:
       contents: read
     steps:
@@ -143,16 +145,21 @@ jobs:
           working-directory: packages/E2E
           # Skip the preinstall hook that downloads every browser; this suite uses Chromium.
           args: --ignore-scripts
+      # A slow Ubuntu mirror can stretch this install from seconds to 20
+      # minutes (see dashboard-offline-ui below), so it has a limit of its own.
       - name: Install Chromium
         working-directory: packages/E2E
+        timeout-minutes: 25
         run: npx playwright install --with-deps chromium
       - name: Run Session Replay UI regressions
         working-directory: packages/E2E
+        timeout-minutes: 15
         run: npm run test-session-replay-ui
       # Runs even if the replay suite failed, so one run reports both.
       - name: Run User Flows UI regressions
         if: ${{ !cancelled() }}
         working-directory: packages/E2E
+        timeout-minutes: 10
         run: npm run test-user-flows-ui
       - name: Upload browser screenshots and failure traces
         if: always()
