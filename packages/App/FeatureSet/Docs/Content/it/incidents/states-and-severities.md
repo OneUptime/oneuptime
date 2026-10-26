@@ -204,7 +204,7 @@ Passare da **Risolto** a uno stato successivo — **Closed**, ad esempio — non
 
 ## La cronologia degli stati
 
-La pagina **Cronologia stato** nel menu laterale dell'incidente è la traccia di audit di ogni stato in cui è stato l'incidente. La scheda di quella pagina si intitola **Cronologia di stato**, e disegna l'intera vita dell'incidente come una cronologia:
+La pagina **Cronologia stato** nel menu laterale dell'incidente è la traccia di audit di ogni stato in cui è stato l'incidente. La scheda di quella pagina disegna l'intera vita dell'incidente come una cronologia:
 
 - **La banda** mostra ogni stato come un tratto del suo colore, lungo quanto l'incidente vi è rimasto, così l'andamento dell'incidente si legge a colpo d'occhio. Finché l'incidente è aperto, la banda arriva fino a **Ora**; una volta risolto, termina poco dopo il suo ultimo cambio. Puntate un tratto per vedere quando è iniziato e quanto è durato, e fateci clic per trovarne il cambio nell'elenco. I cambi troppo vicini per distinguerli sono disegnati come un unico tratto a righe: fateci clic, o trascinate sulla banda, per ingrandire, e **Reimposta lo zoom** torna indietro.
 - **Sopra la banda**, ogni stato è elencato con il tempo che l'incidente vi ha trascorso.

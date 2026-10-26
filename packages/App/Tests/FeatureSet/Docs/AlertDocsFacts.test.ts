@@ -1806,7 +1806,9 @@ describe("alert states and severities", () => {
      * the card's header, one click away.
      */
     expect(timeline).toContain("<ModelStatusTimeline<AlertStateTimeline>");
-    expect(timeline).toContain('title="Status Timeline"');
+    // The card is named like the page and its menu entry: State Timeline.
+    expect(timeline).toContain('title="State Timeline"');
+    expect(timeline).not.toContain('"Status Timeline"');
     expect(timeline).toContain("rightElement: viewSwitch,");
     expect(
       readCommonSource("UI/Components/StatusTimeline/StatusTimelineView.tsx"),
@@ -1815,9 +1817,9 @@ describe("alert states and severities", () => {
       readCommonSource("UI/Components/StatusTimeline/ModelStatusTimeline.tsx"),
     ).toContain("startsAt: SortOrder.Descending,");
     expect(text).toContain(
-      "Its card, **Status Timeline**, draws them as a timeline: a band with each state as long as it lasted, and under it every change, newest first.",
+      "Its card draws them as a timeline: a band with each state as long as it lasted, and under it every change, newest first.",
     );
-    expect(timeline).toContain('title: "Status Timeline",');
+    expect(timeline).toContain('title: "State Timeline",');
     expect(timeline).toContain('title: "Alert Status",');
     expect(timeline).toContain('title: "View Cause",');
     expect(timeline).toContain('title: "View Logs",');

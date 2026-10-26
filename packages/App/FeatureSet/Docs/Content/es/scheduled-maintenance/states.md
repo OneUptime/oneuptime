@@ -142,7 +142,7 @@ Archive un estado propio que su equipo ya no deba usar, en lugar de eliminarlo. 
 
 ## La cronología de estados
 
-La página **Cronología de estados** del evento es el registro de cada estado en el que ha estado. Su tarjeta, **Cronología de estados**, los dibuja como una cronología: una banda con cada estado tan largo como duró y, debajo, cada cambio, el más reciente primero. **Tabla**, en la cabecera de la tarjeta, los lista como filas, con **Estado del mantenimiento programado**, **Comienza en**, **Termina en**, **Duración**, si se debía avisar a los suscriptores y cómo fue su notificación.
+La página **Cronología de estados** del evento es el registro de cada estado en el que ha estado. Su tarjeta los dibuja como una cronología: una banda con cada estado tan largo como duró y, debajo, cada cambio, el más reciente primero. **Tabla**, en la cabecera de la tarjeta, los lista como filas, con **Estado del mantenimiento programado**, **Comienza en**, **Termina en**, **Duración**, si se debía avisar a los suscriptores y cómo fue su notificación.
 
 En el panel, las filas se pueden añadir y eliminar, pero no editar, y un evento conserva siempre al menos una. A través de la API se puede corregir el `startsAt` de una fila, y cada medición calculada a partir de la cronología lo sigue. Eliminar la fila más reciente devuelve el evento al estado de la fila anterior.
 

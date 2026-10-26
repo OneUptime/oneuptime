@@ -38,8 +38,14 @@ const selectProduct: (
       .click();
   }
 
+  /*
+   * A product visited before - by the menu, a link or its address - is in
+   * the menu's Recently visited row as well as in its section, the row
+   * first: either opens it.
+   */
   await page
     .getByRole("link", { name: new RegExp(`^${title}(?:\\s|$)`) })
+    .first()
     .click();
 };
 
@@ -89,6 +95,44 @@ for (const example of [
     await expectActiveProduct(page, onCallTitle);
   });
 }
+
+/*
+ * #4922: a product counts as visited however it was reached - its address,
+ * a link, the back button - not only when it was picked from the menu.
+ * On-Call Duty, opened by its address, is offered in the Recently visited
+ * row on the next product's page. A phone's menu has no such row.
+ */
+test("a product reached by its address is in the Recently visited row on the next product's page", async ({
+  page,
+  isMobile,
+}: {
+  page: Page;
+  isMobile: boolean;
+}) => {
+  test.skip(isMobile, "a phone's menu lists no Recently visited row");
+
+  await page.goto(`${onCallPath}/schedules?navbar=true`);
+  await expectActiveProduct(page, onCallTitle);
+  await page.goto(`${projectPath}/monitors?navbar=true`);
+  await expectActiveProduct(page, "Monitors");
+
+  await page
+    .getByTestId("dashboard-navbar")
+    .getByRole("button", { name: "Monitors", exact: true })
+    .click();
+  const recent: Locator = page
+    .getByRole("dialog", { name: "Products menu" })
+    .getByRole("group", { name: "Recently visited", exact: true })
+    .getByRole("option");
+
+  // On-Call Duty only: Monitors is the page the menu is opened on.
+  await expect(recent).toHaveCount(1);
+  await expect(recent).toContainText(onCallTitle);
+
+  await recent.click();
+  await expect(page).toHaveURL(`${onCallPath}/policies`);
+  await expectActiveProduct(page, onCallTitle);
+});
 
 test("updates the selected product through switching, browser history and Home", async ({
   page,

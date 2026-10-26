@@ -160,13 +160,15 @@ describe("Pages", () => {
       "OnCallDutySchedules.tsx",
     );
 
-    expect(page).toContain(compact('title: "Timeline View"'));
+    // Named as the page it opens, not "Timeline View".
+    expect(page).toContain(compact('title: "Schedule Timeline"'));
+    expect(page).not.toContain(compact('title: "Timeline View"'));
     expect(page).toContain(
       compact("RouteMap[PageMap.ON_CALL_DUTY_SCHEDULE_TIMELINE] as Route"),
     );
     // The timeline's own icon, as every way into a timeline shows it.
     expect(page).toContain(
-      compact('title: "Timeline View", icon: IconProp.Timeline,'),
+      compact('title: "Schedule Timeline", icon: IconProp.Timeline,'),
     );
   });
 });
@@ -325,7 +327,6 @@ describe("Locales", () => {
   // Strings rendered through translateString (menus, card and empty-state copy).
   const KEYS: Array<string> = [
     "Schedule Timeline",
-    "Timeline View",
     "Every on-call schedule in this project side by side: who is on call, who is covering for whom, and where nobody is.",
     "Who is on call on every schedule this team owns, week by week or month by month.",
     "No on-call schedules yet",

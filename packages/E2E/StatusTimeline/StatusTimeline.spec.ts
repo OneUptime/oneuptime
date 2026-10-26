@@ -3,8 +3,10 @@ import fs from "fs/promises";
 import path from "path";
 
 /*
- * A monitor's and an incident's Status Timeline, in a browser, against the
- * offline fixture (StatusTimeline/Fixture).
+ * A monitor's Status Timeline and an incident's State Timeline (the name of
+ * its side-menu entry and its card, as for an alert, a maintenance event and
+ * an episode), in a browser, against the offline fixture
+ * (StatusTimeline/Fixture).
  *
  * The maintainer's ask: "improve the UI for this and make it actually look
  * like timeline view" - the screenshot was a monitor's 63 status events as
@@ -1353,7 +1355,7 @@ test.describe("the Timeline | Table switch's icons", () => {
   }
 });
 
-test.describe("an incident's Status Timeline", () => {
+test.describe("an incident's State Timeline", () => {
   /*
    * "There are buttons which do not match the sizes" - the switch stood
    * 32px beside the 38px Create State Change and ⋯ in the card's header,
