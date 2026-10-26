@@ -46,7 +46,6 @@
     "globalProbes": "글로벌 프로브",
     "globalRunners": "글로벌 Runner",
     "dataRetention": "데이터 보존",
-    "globalAiAgents": "글로벌 AI 에이전트",
     "globalLlmProviders": "글로벌 LLM 공급자",
     "apiKey": "API 키",
     "more": "더 보기",
@@ -116,7 +115,6 @@
     "settingsGlobalRunners": "글로벌 Runner",
     "settingsDataRetention": "데이터 보존",
     "settingsAi": "AI",
-    "settingsGlobalAiAgents": "글로벌 AI 에이전트",
     "settingsGlobalLlmProviders": "글로벌 LLM 공급자",
     "settingsApiIntegrations": "API 및 통합",
     "settingsApiKey": "API 키",
@@ -543,18 +541,6 @@
         "commandLabel": "Docker 호스트에서 실행",
         "neverConnected": "연결된 적 없음"
       },
-      "aiAgents": {
-        "bannerTitle": "글로벌 AI 에이전트 설정에 도움이 필요하신가요?",
-        "bannerDescription": "설정하는 데 도움이 될 가이드가 있습니다",
-        "cardTitle": "글로벌 AI 에이전트",
-        "cardDescription": "글로벌 AI 에이전트는 전 세계의 다양한 위치에서 AI 기반 응답으로 인시던트 관리를 자동화하는 데 도움이 됩니다.",
-        "noItems": "AI 에이전트를 찾을 수 없습니다.",
-        "showIdKey": "ID 및 키 표시",
-        "keyModalTitle": "AI 에이전트 키",
-        "keyModalDescription": "다음은 AI 에이전트 키입니다. 비밀로 유지하세요.",
-        "agentIdLabel": "AI 에이전트 ID:",
-        "agentKeyLabel": "AI 에이전트 키:"
-      },
       "dataRetention": {
         "logCardTitle": "모니터 로그 보존",
         "logCardDescription": "모니터 로그가 자동으로 삭제되기 전에 보존되는 기간을 구성합니다.",
@@ -606,7 +592,6 @@
   "Global Probes": "글로벌 프로브",
   "Data Retention": "데이터 보존",
   "AI": "AI",
-  "Global AI Agents": "글로벌 AI 에이전트",
   "Global LLM Providers": "글로벌 LLM 공급자",
   "API and Integrations": "API 및 통합",
   "API Key": "API 키",

@@ -12,6 +12,7 @@ import {
 import AIAgentService from "../../../../../Server/Services/AIAgentService";
 import RunnerService from "../../../../../Server/Services/RunnerService";
 import CodeRepositoryRunnerChoice from "../../../../../Server/Utils/AI/CodeFix/CodeRepositoryRunnerChoice";
+import { CodeWorkerKind } from "../../../../../Types/Runner/CodeRepositoryRunner";
 import { ExpressRequest } from "../../../../../Server/Utils/Express";
 import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
@@ -21,8 +22,9 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  * THE CODE-FIX PROTOCOL COUNTS THE WRONG KEYS A CLIENT PRESENTS FOR AN AGENT.
  *
  * Every code-fix route authenticates through CodeFixAgentAuth.authenticate:
- * the aiAgentId/aiAgentKey pair of its body, against the AI agents (the
- * shared Runner's global agent among them) and the Runners. A client may
+ * the aiAgentId/aiAgentKey pair of its body, against the AI agents a project
+ * created before Runners and the Runners (a global Runner among them). A
+ * client may
  * present only so many different wrong keys for one agent or Runner
  * (WrongComponentKeyLimit): after that, every code-fix request it sends for
  * that one is refused until the window ends, its right key too, before
@@ -65,17 +67,27 @@ interface RegistryRow {
   table: "AIAgent" | "Runner";
   key: string;
   projectId?: string | undefined;
+  // A Runner OneUptime runs for every project.
+  isGlobalRunner?: boolean | undefined;
   // Whether a code repository of its project picks the Runner.
   isPickedByARepository?: boolean | undefined;
 }
 
 /*
- * The shared Runner's global agent, a project Runner a code repository
- * picks, and one no repository picks (it runs runbooks only).
+ * A global Runner, a project Runner a code repository picks, one no
+ * repository picks (it runs runbooks only), an AI agent a project created
+ * before Runners, and the agent the shared Runner registered as before
+ * global Runners took its work.
  */
-const GLOBAL_AGENT_ID: string = "11111111-2222-4333-8444-555555555555";
-const GLOBAL_AGENT_KEY: string =
-  "global-agent-key-5e8b1d4f7a0c3e6b9d2f5a8c1e4b7d0a";
+const GLOBAL_RUNNER_ID: string = "11111111-2222-4333-8444-555555555555";
+const GLOBAL_RUNNER_KEY: string =
+  "global-runner-key-5e8b1d4f7a0c3e6b9d2f5a8c1e4b7d0a";
+const PROJECT_AGENT_ID: string = "21212121-3232-4343-8545-656565656565";
+const PROJECT_AGENT_KEY: string =
+  "project-agent-key-7d6c5b4a39281706f5e4d3c2b1a09f8e";
+const FORMER_SHARED_AGENT_ID: string = "31313131-4242-4353-8464-757575757575";
+const FORMER_SHARED_AGENT_KEY: string =
+  "former-shared-agent-key-a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5";
 const PROJECT_RUNNER_ID: string = "66666666-7777-4888-9999-aaaaaaaaaaaa";
 const PROJECT_RUNNER_KEY: string =
   "project-runner-key-0f9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c";
@@ -137,6 +149,7 @@ function standInFor(table: "AIAgent" | "Runner") {
       id: new ObjectID(id!),
       _id: id,
       projectId: row.projectId ? new ObjectID(row.projectId) : undefined,
+      isGlobalRunner: row.isGlobalRunner === true,
       name: "a Runner",
     };
   };
@@ -200,7 +213,18 @@ beforeEach(() => {
   mockRedisState.connected = true;
   lookups = [];
   registry = new Map<string, RegistryRow>([
-    [GLOBAL_AGENT_ID, { table: "AIAgent", key: GLOBAL_AGENT_KEY }],
+    [
+      GLOBAL_RUNNER_ID,
+      { table: "Runner", key: GLOBAL_RUNNER_KEY, isGlobalRunner: true },
+    ],
+    [
+      PROJECT_AGENT_ID,
+      { table: "AIAgent", key: PROJECT_AGENT_KEY, projectId: PROJECT_ID },
+    ],
+    [
+      FORMER_SHARED_AGENT_ID,
+      { table: "AIAgent", key: FORMER_SHARED_AGENT_KEY },
+    ],
     [
       PROJECT_RUNNER_ID,
       {
@@ -244,19 +268,61 @@ afterEach(() => {
 });
 
 describe("the right key", () => {
-  test("the global agent's: let through, again and again, never counted", async () => {
+  test("a global Runner's: let through as a global Runner, with no project, again and again, never counted", async () => {
     for (let call: number = 0; call < 300; call++) {
       const answered: Answered = await authenticate(
         CLIENT,
-        pair(GLOBAL_AGENT_ID, GLOBAL_AGENT_KEY),
+        pair(GLOBAL_RUNNER_ID, GLOBAL_RUNNER_KEY),
       );
 
-      expect(answered.identity?.source).toBe(CodeFixAgentSource.AIAgent);
+      expect(answered.identity?.source).toBe(CodeFixAgentSource.Runner);
       expect(answered.identity?.projectId).toBeUndefined();
+      expect(CodeFixAgentAuth.getCodeWorker(answered.identity!).kind).toBe(
+        CodeWorkerKind.GlobalRunner,
+      );
       expect(answered.status).toBeNull();
     }
 
     expect(redis.sets.size).toBe(0);
+  });
+
+  test("an AI agent a project created before Runners: let through with its project, as that project's own", async () => {
+    const answered: Answered = await authenticate(
+      CLIENT,
+      pair(PROJECT_AGENT_ID, PROJECT_AGENT_KEY),
+    );
+
+    expect(answered.identity?.source).toBe(CodeFixAgentSource.AIAgent);
+    expect(answered.identity?.projectId?.toString()).toBe(PROJECT_ID);
+    expect(CodeFixAgentAuth.getCodeWorker(answered.identity!).kind).toBe(
+      CodeWorkerKind.ProjectAgent,
+    );
+  });
+
+  test("the agent the shared Runner registered as: its key is right, but it proves nothing any more - refused, and never counted against it", async () => {
+    for (let call: number = 0; call < 40; call++) {
+      expect(
+        await authenticate(
+          CLIENT,
+          pair(FORMER_SHARED_AGENT_ID, FORMER_SHARED_AGENT_KEY),
+        ),
+      ).toStrictEqual({
+        identity: null,
+        status: 400,
+        message: INVALID_CODE_FIX_AGENT_MESSAGE,
+        retryAfter: null,
+      });
+    }
+
+    expect(redis.sets.size).toBe(0);
+
+    const check: CodeFixCredentialCheck =
+      await CodeFixAgentAuth.checkCredential(
+        pair(FORMER_SHARED_AGENT_ID, FORMER_SHARED_AGENT_KEY),
+      );
+
+    expect(check.identity).toBeNull();
+    expect(check.isKeyRight).toBe(true);
   });
 
   test("a project Runner's: let through with its project", async () => {
@@ -294,7 +360,7 @@ describe("the right key", () => {
 });
 
 describe.each([
-  ["the shared Runner's global agent", GLOBAL_AGENT_ID, GLOBAL_AGENT_KEY],
+  ["a global Runner", GLOBAL_RUNNER_ID, GLOBAL_RUNNER_KEY],
   ["a project Runner", PROJECT_RUNNER_ID, PROJECT_RUNNER_KEY],
 ])("wrong keys for %s", (_label: string, agentId: string, rightKey: string) => {
   test("ten different ones from a client are answered as wrong; then every request it sends for that agent is refused, the right key too", async () => {
@@ -328,9 +394,9 @@ describe.each([
     ).not.toBeNull();
 
     const otherAgent: [string, string] =
-      agentId === GLOBAL_AGENT_ID
+      agentId === GLOBAL_RUNNER_ID
         ? [PROJECT_RUNNER_ID, PROJECT_RUNNER_KEY]
-        : [GLOBAL_AGENT_ID, GLOBAL_AGENT_KEY];
+        : [GLOBAL_RUNNER_ID, GLOBAL_RUNNER_KEY];
 
     expect(
       (await authenticate(CLIENT, pair(otherAgent[0], otherAgent[1]))).identity,
@@ -441,7 +507,7 @@ describe("what is never counted", () => {
       "  please-change-this-to-random-value  ",
     ]) {
       expect(
-        (await authenticate(CLIENT, pair(GLOBAL_AGENT_ID, shipped))).status,
+        (await authenticate(CLIENT, pair(GLOBAL_RUNNER_ID, shipped))).status,
       ).toBe(400);
     }
 
@@ -455,8 +521,8 @@ describe("what is never counted", () => {
       [],
       "aiAgentId",
       null,
-      { aiAgentId: GLOBAL_AGENT_ID },
-      { aiAgentKey: GLOBAL_AGENT_KEY },
+      { aiAgentId: GLOBAL_RUNNER_ID },
+      { aiAgentKey: GLOBAL_RUNNER_KEY },
       pair("not-an-id", "guess"),
     ] as Array<unknown>) {
       expect((await authenticate(CLIENT, body)).status).toBe(400);
@@ -470,13 +536,13 @@ describe("what is never counted", () => {
 
     for (let index: number = 0; index < 60; index++) {
       expect(
-        (await authenticate(CLIENT, pair(GLOBAL_AGENT_ID, `guess-${index}`)))
+        (await authenticate(CLIENT, pair(GLOBAL_RUNNER_ID, `guess-${index}`)))
           .status,
       ).toBe(400);
     }
 
     expect(
-      (await authenticate(CLIENT, pair(GLOBAL_AGENT_ID, GLOBAL_AGENT_KEY)))
+      (await authenticate(CLIENT, pair(GLOBAL_RUNNER_ID, GLOBAL_RUNNER_KEY)))
         .identity,
     ).not.toBeNull();
   });
@@ -485,16 +551,16 @@ describe("what is never counted", () => {
 describe("checkCredential and resolveAgentIdentity", () => {
   test("say what a pair proves, and resolveAgentIdentity answers the identity alone", async () => {
     expect(
-      await CodeFixAgentAuth.checkCredential(pair(GLOBAL_AGENT_ID, "wrong")),
+      await CodeFixAgentAuth.checkCredential(pair(GLOBAL_RUNNER_ID, "wrong")),
     ).toStrictEqual({
       identity: null,
-      agentId: new ObjectID(GLOBAL_AGENT_ID),
+      agentId: new ObjectID(GLOBAL_RUNNER_ID),
       isKeyRight: false,
     });
     expect(
       (
         await CodeFixAgentAuth.checkCredential(
-          pair(GLOBAL_AGENT_ID, GLOBAL_AGENT_KEY),
+          pair(GLOBAL_RUNNER_ID, GLOBAL_RUNNER_KEY),
         )
       ).isKeyRight,
     ).toBe(true);
@@ -514,7 +580,7 @@ describe("checkCredential and resolveAgentIdentity", () => {
 
   test("an agent or a Runner is looked up by id only for a key that matched neither", async () => {
     await CodeFixAgentAuth.checkCredential(
-      pair(GLOBAL_AGENT_ID, GLOBAL_AGENT_KEY),
+      pair(PROJECT_AGENT_ID, PROJECT_AGENT_KEY),
     );
 
     expect(
@@ -524,7 +590,7 @@ describe("checkCredential and resolveAgentIdentity", () => {
     ).toBe(true);
 
     lookups.length = 0;
-    await authenticate(CLIENT, pair(GLOBAL_AGENT_ID, "wrong"));
+    await authenticate(CLIENT, pair(PROJECT_AGENT_ID, "wrong"));
 
     expect(
       lookups.filter((lookup: Lookup): boolean => {

@@ -46,7 +46,6 @@
     "globalProbes": "Sondes globales",
     "globalRunners": "Agents Runbook globaux",
     "dataRetention": "Rétention des données",
-    "globalAiAgents": "Agents IA globaux",
     "globalLlmProviders": "Fournisseurs LLM globaux",
     "apiKey": "Clé API",
     "more": "Plus",
@@ -116,7 +115,6 @@
     "settingsGlobalRunners": "Agents Runbook globaux",
     "settingsDataRetention": "Rétention des données",
     "settingsAi": "IA",
-    "settingsGlobalAiAgents": "Agents IA globaux",
     "settingsGlobalLlmProviders": "Fournisseurs LLM globaux",
     "settingsApiIntegrations": "API et intégrations",
     "settingsApiKey": "Clé API",
@@ -543,18 +541,6 @@
         "commandLabel": "À exécuter sur votre hôte Docker",
         "neverConnected": "Jamais connecté"
       },
-      "aiAgents": {
-        "bannerTitle": "Besoin d'aide pour configurer les agents IA globaux ?",
-        "bannerDescription": "Voici un guide qui vous aidera à la configuration",
-        "cardTitle": "Agents IA globaux",
-        "cardDescription": "Les agents IA globaux vous aident à automatiser la gestion des incidents avec des réponses alimentées par l'IA depuis différents endroits dans le monde.",
-        "noItems": "Aucun agent IA trouvé.",
-        "showIdKey": "Afficher l'ID et la clé",
-        "keyModalTitle": "Clé de l'agent IA",
-        "keyModalDescription": "Voici votre clé d'agent IA. Veuillez la garder secrète.",
-        "agentIdLabel": "ID de l'agent IA :",
-        "agentKeyLabel": "Clé de l'agent IA :"
-      },
       "dataRetention": {
         "logCardTitle": "Rétention des journaux de surveillance",
         "logCardDescription": "Configurez la durée de conservation des journaux de surveillance avant leur suppression automatique.",
@@ -606,7 +592,6 @@
   "Global Probes": "Sondes globales",
   "Data Retention": "Rétention des données",
   "AI": "IA",
-  "Global AI Agents": "Agents IA globaux",
   "Global LLM Providers": "Fournisseurs LLM globaux",
   "API and Integrations": "API et intégrations",
   "API Key": "Clé API",

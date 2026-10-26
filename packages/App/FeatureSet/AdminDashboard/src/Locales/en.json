@@ -46,7 +46,6 @@
     "globalProbes": "Global Probes",
     "globalRunners": "Global Runners",
     "dataRetention": "Data Retention",
-    "globalAiAgents": "Global AI Agents",
     "globalLlmProviders": "Global LLM Providers",
     "apiKey": "API Key",
     "more": "More",
@@ -116,7 +115,6 @@
     "settingsGlobalRunners": "Global Runners",
     "settingsDataRetention": "Data Retention",
     "settingsAi": "AI",
-    "settingsGlobalAiAgents": "Global AI Agents",
     "settingsGlobalLlmProviders": "Global LLM Providers",
     "settingsApiIntegrations": "API and Integrations",
     "settingsApiKey": "API Key",
@@ -543,18 +541,6 @@
         "commandLabel": "Run on your Docker host",
         "neverConnected": "Never connected"
       },
-      "aiAgents": {
-        "bannerTitle": "Need help with setting up Global AI Agents?",
-        "bannerDescription": "Here is a guide which will help you get set up",
-        "cardTitle": "Global AI Agents",
-        "cardDescription": "Global AI Agents help you automate incident management with AI-powered responses from different locations around the world.",
-        "noItems": "No AI agents found.",
-        "showIdKey": "Show ID and Key",
-        "keyModalTitle": "AI Agent Key",
-        "keyModalDescription": "Here is your AI agent key. Please keep this a secret.",
-        "agentIdLabel": "AI Agent ID:",
-        "agentKeyLabel": "AI Agent Key:"
-      },
       "dataRetention": {
         "logCardTitle": "Monitor Log Retention",
         "logCardDescription": "Configure how long monitor logs are retained before being automatically deleted.",
@@ -606,7 +592,6 @@
   "Global Probes": "Global Probes",
   "Data Retention": "Data Retention",
   "AI": "AI",
-  "Global AI Agents": "Global AI Agents",
   "Global LLM Providers": "Global LLM Providers",
   "API and Integrations": "API and Integrations",
   "API Key": "API Key",

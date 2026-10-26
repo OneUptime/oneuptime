@@ -46,7 +46,6 @@
     "globalProbes": "वैश्विक प्रोब",
     "globalRunners": "ग्लोबल Runner",
     "dataRetention": "डेटा प्रतिधारण",
-    "globalAiAgents": "वैश्विक AI एजेंट",
     "globalLlmProviders": "वैश्विक LLM प्रदाता",
     "apiKey": "API कुंजी",
     "more": "अधिक",
@@ -116,7 +115,6 @@
     "settingsGlobalRunners": "ग्लोबल Runner",
     "settingsDataRetention": "डेटा प्रतिधारण",
     "settingsAi": "एआई",
-    "settingsGlobalAiAgents": "वैश्विक AI एजेंट",
     "settingsGlobalLlmProviders": "वैश्विक LLM प्रदाता",
     "settingsApiIntegrations": "API और एकीकरण",
     "settingsApiKey": "API कुंजी",
@@ -543,18 +541,6 @@
         "commandLabel": "अपने Docker होस्ट पर चलाएँ",
         "neverConnected": "कभी कनेक्ट नहीं हुआ"
       },
-      "aiAgents": {
-        "bannerTitle": "वैश्विक AI एजेंट सेटअप करने में मदद चाहिए?",
-        "bannerDescription": "यहाँ एक गाइड है जो आपको सेटअप करने में मदद करेगी",
-        "cardTitle": "वैश्विक AI एजेंट",
-        "cardDescription": "वैश्विक AI एजेंट आपको दुनिया भर के विभिन्न स्थानों से AI-संचालित प्रतिक्रियाओं के साथ घटना प्रबंधन को स्वचालित करने में मदद करते हैं।",
-        "noItems": "कोई AI एजेंट नहीं मिला।",
-        "showIdKey": "आईडी और कुंजी दिखाएँ",
-        "keyModalTitle": "AI एजेंट कुंजी",
-        "keyModalDescription": "यह आपकी AI एजेंट कुंजी है। कृपया इसे गुप्त रखें।",
-        "agentIdLabel": "AI एजेंट आईडी:",
-        "agentKeyLabel": "AI एजेंट कुंजी:"
-      },
       "dataRetention": {
         "logCardTitle": "मॉनिटर लॉग प्रतिधारण",
         "logCardDescription": "कॉन्फ़िगर करें कि मॉनिटर लॉग स्वचालित रूप से हटाए जाने से पहले कितने समय तक रखे जाते हैं।",
@@ -606,7 +592,6 @@
   "Global Probes": "ग्लोबल प्रोब",
   "Data Retention": "डेटा प्रतिधारण",
   "AI": "एआई",
-  "Global AI Agents": "ग्लोबल AI एजेंट",
   "Global LLM Providers": "ग्लोबल LLM प्रदाता",
   "API and Integrations": "API और एकीकरण",
   "API Key": "API कुंजी",

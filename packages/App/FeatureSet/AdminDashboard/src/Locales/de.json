@@ -46,7 +46,6 @@
     "globalProbes": "Globale Probes",
     "globalRunners": "Globale Runner",
     "dataRetention": "Datenaufbewahrung",
-    "globalAiAgents": "Globale KI-Agenten",
     "globalLlmProviders": "Globale LLM-Anbieter",
     "apiKey": "API-Schlüssel",
     "more": "Mehr",
@@ -116,7 +115,6 @@
     "settingsGlobalRunners": "Globale Runner",
     "settingsDataRetention": "Datenaufbewahrung",
     "settingsAi": "KI",
-    "settingsGlobalAiAgents": "Globale KI-Agenten",
     "settingsGlobalLlmProviders": "Globale LLM-Anbieter",
     "settingsApiIntegrations": "API und Integrationen",
     "settingsApiKey": "API-Schlüssel",
@@ -543,18 +541,6 @@
         "commandLabel": "Auf deinem Docker-Host ausführen",
         "neverConnected": "Nie verbunden"
       },
-      "aiAgents": {
-        "bannerTitle": "Benötigen Sie Hilfe bei der Einrichtung von Globalen KI-Agenten?",
-        "bannerDescription": "Hier ist eine Anleitung, die Ihnen bei der Einrichtung helfen wird",
-        "cardTitle": "Globale KI-Agenten",
-        "cardDescription": "Globale KI-Agenten helfen Ihnen, das Incident-Management mit KI-gestützten Antworten von verschiedenen Standorten auf der ganzen Welt zu automatisieren.",
-        "noItems": "Keine KI-Agenten gefunden.",
-        "showIdKey": "ID und Schlüssel anzeigen",
-        "keyModalTitle": "KI-Agenten-Schlüssel",
-        "keyModalDescription": "Hier ist Ihr KI-Agenten-Schlüssel. Bitte halten Sie ihn geheim.",
-        "agentIdLabel": "KI-Agenten-ID:",
-        "agentKeyLabel": "KI-Agenten-Schlüssel:"
-      },
       "dataRetention": {
         "logCardTitle": "Monitor-Log-Aufbewahrung",
         "logCardDescription": "Konfigurieren Sie, wie lange Monitor-Logs aufbewahrt werden, bevor sie automatisch gelöscht werden.",
@@ -606,7 +592,6 @@
   "Global Probes": "Globale Sonden",
   "Data Retention": "Datenaufbewahrung",
   "AI": "KI",
-  "Global AI Agents": "Globale KI-Agenten",
   "Global LLM Providers": "Globale LLM-Anbieter",
   "API and Integrations": "API und Integrationen",
   "API Key": "API-Schlüssel",

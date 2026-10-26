@@ -46,7 +46,6 @@
     "globalProbes": "Globale prober",
     "globalRunners": "Globale Runnere",
     "dataRetention": "Dataoppbevaring",
-    "globalAiAgents": "Globale AI-agenter",
     "globalLlmProviders": "Globale LLM-leverandører",
     "apiKey": "API-nøkkel",
     "more": "Mer",
@@ -116,7 +115,6 @@
     "settingsGlobalRunners": "Globale Runnere",
     "settingsDataRetention": "Dataoppbevaring",
     "settingsAi": "KI",
-    "settingsGlobalAiAgents": "Globale AI-agenter",
     "settingsGlobalLlmProviders": "Globale LLM-leverandører",
     "settingsApiIntegrations": "API og integrasjoner",
     "settingsApiKey": "API-nøkkel",
@@ -543,18 +541,6 @@
         "commandLabel": "Kjør på Docker-verten din",
         "neverConnected": "Aldri tilkoblet"
       },
-      "aiAgents": {
-        "bannerTitle": "Trenger du hjelp med å sette opp globale AI-agenter?",
-        "bannerDescription": "Her er en veiledning som hjelper deg med å komme i gang",
-        "cardTitle": "Globale AI-agenter",
-        "cardDescription": "Globale AI-agenter hjelper deg med å automatisere hendelseshåndtering med AI-drevne svar fra forskjellige steder rundt om i verden.",
-        "noItems": "Ingen AI-agenter funnet.",
-        "showIdKey": "Vis ID og nøkkel",
-        "keyModalTitle": "AI-agent-nøkkel",
-        "keyModalDescription": "Her er AI-agent-nøkkelen din. Hold den hemmelig.",
-        "agentIdLabel": "AI-agent-ID:",
-        "agentKeyLabel": "AI-agent-nøkkel:"
-      },
       "dataRetention": {
         "logCardTitle": "Monitor-logg-oppbevaring",
         "logCardDescription": "Konfigurer hvor lenge monitor-logger oppbevares før de automatisk slettes.",
@@ -606,7 +592,6 @@
   "Global Probes": "Globale sonder",
   "Data Retention": "Dataoppbevaring",
   "AI": "KI",
-  "Global AI Agents": "Globale AI-agenter",
   "Global LLM Providers": "Globale LLM-leverandører",
   "API and Integrations": "API og integrasjoner",
   "API Key": "API-nøkkel",

@@ -46,7 +46,6 @@
     "globalProbes": "全域探針",
     "globalRunners": "全域 Runner",
     "dataRetention": "資料保留",
-    "globalAiAgents": "全域 AI 代理",
     "globalLlmProviders": "全域 LLM 供應商",
     "apiKey": "API 金鑰",
     "more": "更多",
@@ -116,7 +115,6 @@
     "settingsGlobalRunners": "全域 Runner",
     "settingsDataRetention": "資料保留",
     "settingsAi": "人工智慧",
-    "settingsGlobalAiAgents": "全域 AI 代理",
     "settingsGlobalLlmProviders": "全域 LLM 供應商",
     "settingsApiIntegrations": "API 與整合",
     "settingsApiKey": "API 金鑰",
@@ -543,18 +541,6 @@
         "commandLabel": "在你的 Docker 主機上執行",
         "neverConnected": "從未連線"
       },
-      "aiAgents": {
-        "bannerTitle": "需要協助設定全域 AI 代理嗎?",
-        "bannerDescription": "這裡有一個指南可以協助您設定",
-        "cardTitle": "全域 AI 代理",
-        "cardDescription": "全域 AI 代理可協助您從世界各地的不同位置使用 AI 驅動的回應自動化事件管理。",
-        "noItems": "找不到 AI 代理。",
-        "showIdKey": "顯示 ID 和金鑰",
-        "keyModalTitle": "AI 代理金鑰",
-        "keyModalDescription": "這是您的 AI 代理金鑰。請保密。",
-        "agentIdLabel": "AI 代理 ID:",
-        "agentKeyLabel": "AI 代理金鑰:"
-      },
       "dataRetention": {
         "logCardTitle": "監視器日誌保留",
         "logCardDescription": "設定監視器日誌在自動刪除之前保留的時間。",
@@ -606,7 +592,6 @@
   "Global Probes": "全域探測器",
   "Data Retention": "資料保留",
   "AI": "人工智慧",
-  "Global AI Agents": "全域 AI 代理",
   "Global LLM Providers": "全域 LLM 供應商",
   "API and Integrations": "API 與整合",
   "API Key": "API 金鑰",

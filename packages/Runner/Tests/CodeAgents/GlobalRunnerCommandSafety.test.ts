@@ -1,20 +1,21 @@
 /*
  * ---------------------------------------------------------------------------
- * The shared in-cluster Runner must never execute a project's configured
- * commands or a model-composed shell command.
+ * A global Runner must never execute a project's configured commands or a
+ * model-composed shell command.
  *
- * It serves AI code fixes for EVERY project that has no Runner of its own, so
- * nothing one project configures (its Setup/Build/Test command) and nothing a
- * model composes runs on it.
+ * It serves AI code fixes for EVERY project that uses global Runners, beside
+ * every project's JavaScript steps, so nothing one project configures (its
+ * Setup/Build/Test command) and nothing a model composes runs on it.
  *
  * These tests drive the REAL code against a REAL git repository on disk and
  * assert on what ended up in the working tree: a command that WOULD run
  * writes a sentinel file, so "the file is absent" proves the command never
- * ran. Cluster scope is decided by ONEUPTIME_SECRET at import time
- * (Config.IS_CLUSTER_SCOPED), so each scope reloads the modules with
- * jest.resetModules, the pattern Tests/Utils/AiCommandCapability.test.ts uses.
+ * ran. Only the server says a Runner is global (GlobalRunnerMode), and the
+ * rule is asked when a fix runs (Config.runsProjectAuthoredCommands), so each
+ * case reloads the modules with jest.resetModules and sets what the server
+ * said on the fresh GlobalRunnerMode.
  *
- * A project-scoped Runner is the counterpart: it DOES run both, exactly as
+ * A project's own Runner is the counterpart: it DOES run both, exactly as
  * before, because it is the operator's own host with only that project's
  * credentials — the same trust model as a runbook Bash step. Breaking that
  * would be a regression, so both halves are pinned here.
@@ -69,7 +70,7 @@ const temporaryPaths: Array<string> = [];
 
 function makeWorkspace(): string {
   const dir: string = fs.mkdtempSync(
-    path.join(os.tmpdir(), "shared-runner-safety-"),
+    path.join(os.tmpdir(), "global-runner-safety-"),
   );
   temporaryPaths.push(dir);
 
@@ -135,11 +136,19 @@ function scriptToolsThenSummary(calls: Array<LLMToolCall>): void {
 interface LoadedModules {
   InHouseCodeAgent: typeof InHouseCodeAgentType;
   BuildVerification: typeof BuildVerificationType;
-  isClusterScoped: boolean;
-  runsProjectAuthoredCommands: boolean;
+  runsProjectAuthoredCommands: () => boolean;
+  // What the server says, on this copy of the modules.
+  setGlobalByServer: (isGlobalRunner: boolean) => void;
 }
 
-function loadForScope(clusterKey: string | null): LoadedModules {
+/*
+ * A fresh copy of the Runner's modules, with what the server said about the
+ * Runner (isGlobalRunner on registration and every heartbeat) set on it.
+ */
+function loadForScope(
+  isGlobalRunner: boolean,
+  clusterKey: string | null = null,
+): LoadedModules {
   jest.resetModules();
 
   if (clusterKey === null) {
@@ -150,9 +159,13 @@ function loadForScope(clusterKey: string | null): LoadedModules {
 
   /* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
   const Config: {
-    IS_CLUSTER_SCOPED: boolean;
-    RUNS_PROJECT_AUTHORED_COMMANDS: boolean;
+    runsProjectAuthoredCommands: () => boolean;
   } = require("../../Config");
+  const GlobalRunnerMode: {
+    default: { setFromServer: (isGlobalRunner: boolean) => void };
+  } = require("../../Utils/GlobalRunnerMode");
+
+  GlobalRunnerMode.default.setFromServer(isGlobalRunner);
 
   return {
     InHouseCodeAgent: (
@@ -165,8 +178,10 @@ function loadForScope(clusterKey: string | null): LoadedModules {
         default: typeof BuildVerificationType;
       }
     ).default,
-    isClusterScoped: Config.IS_CLUSTER_SCOPED,
-    runsProjectAuthoredCommands: Config.RUNS_PROJECT_AUTHORED_COMMANDS,
+    runsProjectAuthoredCommands: Config.runsProjectAuthoredCommands,
+    setGlobalByServer: (value: boolean): void => {
+      GlobalRunnerMode.default.setFromServer(value);
+    },
   };
   /* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
 }
@@ -220,15 +235,14 @@ afterAll(() => {
 
 const CLUSTER_KEY: string = "a-long-random-cluster-key-for-the-test";
 
-describe("the shared (cluster-scoped) Runner does not run shell commands", () => {
-  test("Config: cluster scope means project-authored commands are off", () => {
-    const mods: LoadedModules = loadForScope(CLUSTER_KEY);
-    expect(mods.isClusterScoped).toBe(true);
-    expect(mods.runsProjectAuthoredCommands).toBe(false);
+describe("a global Runner does not run shell commands", () => {
+  test("Config: a global Runner runs no project-authored command", () => {
+    const mods: LoadedModules = loadForScope(true);
+    expect(mods.runsProjectAuthoredCommands()).toBe(false);
   });
 
   test("the code agent does not advertise run_command, and a model-sent run_command never spawns", async () => {
-    const mods: LoadedModules = loadForScope(CLUSTER_KEY);
+    const mods: LoadedModules = loadForScope(true);
     const workspace: string = makeWorkspace();
 
     scriptToolsThenSummary([
@@ -259,7 +273,7 @@ describe("the shared (cluster-scoped) Runner does not run shell commands", () =>
   });
 
   test("verification is skipped without running the repository's setup command", async () => {
-    const mods: LoadedModules = loadForScope(CLUSTER_KEY);
+    const mods: LoadedModules = loadForScope(true);
     const workspace: string = makeWorkspace();
 
     const outcome: Awaited<
@@ -291,13 +305,16 @@ describe("the shared (cluster-scoped) Runner does not run shell commands", () =>
 
     // Reported honestly as skipped — never implying a green build.
     expect(outcome.status).toBe("Skipped");
+    expect(outcome.summary).toContain(
+      "a global Runner does not build or test the change",
+    );
     expect(outcome.repairAttemptsUsed).toBe(0);
     // The configured command never ran: its sentinel file does not exist.
     expect(fs.existsSync(path.join(workspace, "SETUP_RAN.txt"))).toBe(false);
   });
 
   test("the command runner itself refuses, whoever calls it (the spawn point, not only verification)", async () => {
-    const mods: LoadedModules = loadForScope(CLUSTER_KEY);
+    const mods: LoadedModules = loadForScope(true);
     const workspace: string = makeWorkspace();
 
     const single: Awaited<ReturnType<typeof BuildVerificationType.runCommand>> =
@@ -326,17 +343,50 @@ describe("the shared (cluster-scoped) Runner does not run shell commands", () =>
       expect(fs.existsSync(path.join(workspace, sentinel))).toBe(false);
     }
   });
+
+  test("the rule is asked when a fix runs: a Runner the server calls global stops running commands at once", async () => {
+    const mods: LoadedModules = loadForScope(false);
+    const workspace: string = makeWorkspace();
+
+    const before: Awaited<ReturnType<typeof BuildVerificationType.runCommand>> =
+      await mods.BuildVerification.runCommand({
+        command: { label: "build", command: "echo ran > BEFORE.txt" },
+        repositoryPath: workspace,
+      });
+
+    expect(before.passed).toBe(true);
+    expect(fs.existsSync(path.join(workspace, "BEFORE.txt"))).toBe(true);
+
+    // The next heartbeat says the Runner is global.
+    mods.setGlobalByServer(true);
+
+    const after: Awaited<ReturnType<typeof BuildVerificationType.runCommand>> =
+      await mods.BuildVerification.runCommand({
+        command: { label: "build", command: "echo ran > AFTER.txt" },
+        repositoryPath: workspace,
+      });
+
+    expect(after.passed).toBe(false);
+    expect(after.outputTail).toContain(
+      "a global Runner does not run a repository's commands",
+    );
+    expect(fs.existsSync(path.join(workspace, "AFTER.txt"))).toBe(false);
+  });
 });
 
-describe("a project-scoped Runner keeps running commands (no regression)", () => {
-  test("Config: project scope runs project-authored commands", () => {
-    const mods: LoadedModules = loadForScope(null);
-    expect(mods.isClusterScoped).toBe(false);
-    expect(mods.runsProjectAuthoredCommands).toBe(true);
+describe("a project's own Runner keeps running commands (no regression)", () => {
+  test("Config: a project's own Runner runs project-authored commands", () => {
+    const mods: LoadedModules = loadForScope(false);
+    expect(mods.runsProjectAuthoredCommands()).toBe(true);
+  });
+
+  test("a cluster key in its environment changes nothing: there is no shared Runner to be any more", () => {
+    const mods: LoadedModules = loadForScope(false, CLUSTER_KEY);
+    expect(mods.runsProjectAuthoredCommands()).toBe(true);
   });
 
   test("the code agent advertises run_command and a model-sent run_command runs", async () => {
-    const mods: LoadedModules = loadForScope(null);
+    const mods: LoadedModules = loadForScope(false);
     const workspace: string = makeWorkspace();
 
     scriptToolsThenSummary([
@@ -353,7 +403,7 @@ describe("a project-scoped Runner keeps running commands (no regression)", () =>
   });
 
   test("verification runs the repository's setup command", async () => {
-    const mods: LoadedModules = loadForScope(null);
+    const mods: LoadedModules = loadForScope(false);
     const workspace: string = makeWorkspace();
 
     const outcome: Awaited<
@@ -389,7 +439,7 @@ describe("a project-scoped Runner keeps running commands (no regression)", () =>
   });
 
   test("the command runner runs a repository's command", async () => {
-    const mods: LoadedModules = loadForScope(null);
+    const mods: LoadedModules = loadForScope(false);
     const workspace: string = makeWorkspace();
 
     const result: Awaited<ReturnType<typeof BuildVerificationType.runCommand>> =

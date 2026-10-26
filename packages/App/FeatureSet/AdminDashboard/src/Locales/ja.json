@@ -46,7 +46,6 @@
     "globalProbes": "グローバルプローブ",
     "globalRunners": "グローバル Runner",
     "dataRetention": "データ保持",
-    "globalAiAgents": "グローバルAIエージェント",
     "globalLlmProviders": "グローバルLLMプロバイダー",
     "apiKey": "APIキー",
     "more": "その他",
@@ -116,7 +115,6 @@
     "settingsGlobalRunners": "グローバル Runner",
     "settingsDataRetention": "データ保持",
     "settingsAi": "AI",
-    "settingsGlobalAiAgents": "グローバルAIエージェント",
     "settingsGlobalLlmProviders": "グローバルLLMプロバイダー",
     "settingsApiIntegrations": "APIと統合",
     "settingsApiKey": "APIキー",
@@ -543,18 +541,6 @@
         "commandLabel": "Docker ホストで実行",
         "neverConnected": "未接続"
       },
-      "aiAgents": {
-        "bannerTitle": "グローバルAIエージェントの設定にサポートが必要ですか？",
-        "bannerDescription": "セットアップに役立つガイドがあります",
-        "cardTitle": "グローバルAIエージェント",
-        "cardDescription": "グローバルAIエージェントは世界中のさまざまな場所からAI駆動の応答でインシデント管理を自動化するのに役立ちます。",
-        "noItems": "AIエージェントが見つかりません。",
-        "showIdKey": "IDとキーを表示",
-        "keyModalTitle": "AIエージェントキー",
-        "keyModalDescription": "こちらがあなたのAIエージェントキーです。秘密にしておいてください。",
-        "agentIdLabel": "AIエージェントID：",
-        "agentKeyLabel": "AIエージェントキー："
-      },
       "dataRetention": {
         "logCardTitle": "モニターログ保持",
         "logCardDescription": "モニターログが自動的に削除される前に保持される期間を設定します。",
@@ -606,7 +592,6 @@
   "Global Probes": "グローバルプローブ",
   "Data Retention": "データ保持",
   "AI": "AI",
-  "Global AI Agents": "グローバル AI エージェント",
   "Global LLM Providers": "グローバル LLM プロバイダ",
   "API and Integrations": "API と統合",
   "API Key": "API キー",

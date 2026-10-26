@@ -46,7 +46,6 @@
     "globalProbes": "پراب‌های سراسری",
     "globalRunners": "Runnerهای سراسری",
     "dataRetention": "نگهداری داده",
-    "globalAiAgents": "عامل‌های هوش مصنوعی سراسری",
     "globalLlmProviders": "ارائه‌دهندگان LLM سراسری",
     "apiKey": "کلید API",
     "more": "بیشتر",
@@ -116,7 +115,6 @@
     "settingsGlobalRunners": "Runnerهای سراسری",
     "settingsDataRetention": "نگهداری داده",
     "settingsAi": "هوش مصنوعی",
-    "settingsGlobalAiAgents": "عامل‌های هوش مصنوعی سراسری",
     "settingsGlobalLlmProviders": "ارائه‌دهندگان LLM سراسری",
     "settingsApiIntegrations": "API و یکپارچه‌سازی‌ها",
     "settingsApiKey": "کلید API",
@@ -543,18 +541,6 @@
         "commandLabel": "روی میزبان Docker خود اجرا کنید",
         "neverConnected": "هرگز متصل نشده"
       },
-      "aiAgents": {
-        "bannerTitle": "برای راه‌اندازی عامل‌های هوش مصنوعی سراسری کمک می‌خواهید؟",
-        "bannerDescription": "این راهنما به شما در راه‌اندازی کمک می‌کند",
-        "cardTitle": "عامل‌های هوش مصنوعی سراسری",
-        "cardDescription": "عامل‌های هوش مصنوعی سراسری به شما کمک می‌کنند مدیریت حادثه را با پاسخ‌های مبتنی بر هوش مصنوعی از نقاط مختلف دنیا خودکار کنید.",
-        "noItems": "هیچ عامل هوش مصنوعی‌ای یافت نشد.",
-        "showIdKey": "نمایش شناسه و کلید",
-        "keyModalTitle": "کلید عامل هوش مصنوعی",
-        "keyModalDescription": "این کلید عامل هوش مصنوعی شماست. لطفاً آن را محرمانه نگه دارید.",
-        "agentIdLabel": "شناسه عامل هوش مصنوعی:",
-        "agentKeyLabel": "کلید عامل هوش مصنوعی:"
-      },
       "dataRetention": {
         "logCardTitle": "نگهداری لاگ مانیتور",
         "logCardDescription": "تعیین کنید لاگ‌های مانیتور پیش از حذف خودکار چه مدت نگهداری شوند.",
@@ -606,7 +592,6 @@
   "Global Probes": "پراب‌های سراسری",
   "Data Retention": "نگهداری داده",
   "AI": "هوش مصنوعی",
-  "Global AI Agents": "عامل‌های هوش مصنوعی سراسری",
   "Global LLM Providers": "ارائه‌دهندگان LLM سراسری",
   "API and Integrations": "API و یکپارچه‌سازی‌ها",
   "API Key": "کلید API",

@@ -2682,8 +2682,6 @@
   "Getting Started with Serverless Functions": "شروع کار با توابع بدون سرور",
   "Give this device a name to identify it in your notification settings.": "به این دستگاه نامی بدهید تا در تنظیمات اعلان خود آن را بشناسید.",
   "Give your security key a name (e.g., YubiKey, Titan Key)": "به کلید امنیتی خود نامی بدهید (برای نمونه YubiKey، Titan Key)",
-  "Global AI Agents": "عامل‌های هوش مصنوعی سراسری",
-  "Global AI Agents help you automate incident management with AI-powered responses from OneUptime's infrastructure.": "عامل‌های هوش مصنوعی سراسری کمک می‌کنند مدیریت حادثه را با پاسخ‌های مبتنی بر هوش مصنوعی از زیرساخت OneUptime خودکار کنید.",
   "Global LLM Providers": "ارائه‌دهندگان LLM سراسری",
   "Global LLM Providers are pre-configured. These will be used automatically for AI features when you haven't set up your own custom LLM provider below.": "ارائه‌دهندگان LLM سراسری از پیش پیکربندی شده‌اند. وقتی ارائه‌دهنده LLM سفارشی خود را در پایین تنظیم نکرده باشید، از این‌ها به‌صورت خودکار برای قابلیت‌های هوش مصنوعی استفاده می‌شود.",
   "Global Probe Settings": "تنظیمات پراب سراسری",

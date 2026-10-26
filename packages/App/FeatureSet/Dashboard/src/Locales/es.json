@@ -2682,8 +2682,6 @@
   "Getting Started with Serverless Functions": "Primeros pasos con funciones sin servidor",
   "Give this device a name to identify it in your notification settings.": "Ponle un nombre a este dispositivo para identificarlo en tus ajustes de notificaciones.",
   "Give your security key a name (e.g., YubiKey, Titan Key)": "Ponle un nombre a tu llave de seguridad (p. ej., YubiKey, Titan Key)",
-  "Global AI Agents": "Agentes de IA globales",
-  "Global AI Agents help you automate incident management with AI-powered responses from OneUptime's infrastructure.": "Los agentes de IA globales le ayudan a automatizar la gestión de incidentes con respuestas impulsadas por IA desde la infraestructura de OneUptime.",
   "Global LLM Providers": "Proveedores LLM globales",
   "Global LLM Providers are pre-configured. These will be used automatically for AI features when you haven't set up your own custom LLM provider below.": "Los proveedores de LLM globales están preconfigurados. Estos se utilizarán automáticamente para las funciones de IA cuando no haya configurado su propio proveedor de LLM personalizado a continuación.",
   "Global Probe Settings": "Ajustes de sondas globales",

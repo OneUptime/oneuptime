@@ -46,7 +46,6 @@
     "globalProbes": "Sondas globais",
     "globalRunners": "Runners globais",
     "dataRetention": "Retenção de dados",
-    "globalAiAgents": "Agentes de IA globais",
     "globalLlmProviders": "Provedores de LLM globais",
     "apiKey": "Chave API",
     "more": "Mais",
@@ -116,7 +115,6 @@
     "settingsGlobalRunners": "Runners globais",
     "settingsDataRetention": "Retenção de dados",
     "settingsAi": "IA",
-    "settingsGlobalAiAgents": "Agentes de IA globais",
     "settingsGlobalLlmProviders": "Provedores de LLM globais",
     "settingsApiIntegrations": "API e integrações",
     "settingsApiKey": "Chave API",
@@ -543,18 +541,6 @@
         "commandLabel": "Execute no seu host Docker",
         "neverConnected": "Nunca conectado"
       },
-      "aiAgents": {
-        "bannerTitle": "Precisa de ajuda para configurar agentes de IA globais?",
-        "bannerDescription": "Aqui está um guia que ajudará você a configurar",
-        "cardTitle": "Agentes de IA globais",
-        "cardDescription": "Os agentes de IA globais ajudam você a automatizar o gerenciamento de incidentes com respostas alimentadas por IA de diferentes locais ao redor do mundo.",
-        "noItems": "Nenhum agente de IA encontrado.",
-        "showIdKey": "Mostrar ID e chave",
-        "keyModalTitle": "Chave do agente de IA",
-        "keyModalDescription": "Aqui está sua chave de agente de IA. Por favor, mantenha em segredo.",
-        "agentIdLabel": "ID do agente de IA:",
-        "agentKeyLabel": "Chave do agente de IA:"
-      },
       "dataRetention": {
         "logCardTitle": "Retenção de logs de monitor",
         "logCardDescription": "Configure por quanto tempo os logs de monitor são retidos antes de serem excluídos automaticamente.",
@@ -606,7 +592,6 @@
   "Global Probes": "Sondas globais",
   "Data Retention": "Retenção de dados",
   "AI": "IA",
-  "Global AI Agents": "Agentes de IA globais",
   "Global LLM Providers": "Provedores LLM globais",
   "API and Integrations": "API e integrações",
   "API Key": "Chave de API",

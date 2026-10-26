@@ -46,7 +46,6 @@
     "globalProbes": "Globale probes",
     "globalRunners": "Globale Runners",
     "dataRetention": "Gegevensbewaring",
-    "globalAiAgents": "Globale AI-agenten",
     "globalLlmProviders": "Globale LLM-providers",
     "apiKey": "API-sleutel",
     "more": "Meer",
@@ -116,7 +115,6 @@
     "settingsGlobalRunners": "Globale Runners",
     "settingsDataRetention": "Gegevensbewaring",
     "settingsAi": "AI",
-    "settingsGlobalAiAgents": "Globale AI-agenten",
     "settingsGlobalLlmProviders": "Globale LLM-providers",
     "settingsApiIntegrations": "API en integraties",
     "settingsApiKey": "API-sleutel",
@@ -543,18 +541,6 @@
         "commandLabel": "Uitvoeren op je Docker-host",
         "neverConnected": "Nooit verbonden"
       },
-      "aiAgents": {
-        "bannerTitle": "Hulp nodig bij het instellen van globale AI-agenten?",
-        "bannerDescription": "Hier is een handleiding die u helpt bij het instellen",
-        "cardTitle": "Globale AI-agenten",
-        "cardDescription": "Globale AI-agenten helpen u incidentbeheer te automatiseren met AI-aangedreven reacties vanuit verschillende locaties over de hele wereld.",
-        "noItems": "Geen AI-agenten gevonden.",
-        "showIdKey": "ID en sleutel tonen",
-        "keyModalTitle": "AI-agent-sleutel",
-        "keyModalDescription": "Hier is uw AI-agent-sleutel. Houd deze geheim.",
-        "agentIdLabel": "AI-agent-ID:",
-        "agentKeyLabel": "AI-agent-sleutel:"
-      },
       "dataRetention": {
         "logCardTitle": "Monitor-log-bewaring",
         "logCardDescription": "Configureer hoe lang monitor-logs worden bewaard voordat ze automatisch worden verwijderd.",
@@ -606,7 +592,6 @@
   "Global Probes": "Globale sondes",
   "Data Retention": "Gegevensbewaring",
   "AI": "AI",
-  "Global AI Agents": "Globale AI-agenten",
   "Global LLM Providers": "Globale LLM-providers",
   "API and Integrations": "API en integraties",
   "API Key": "API-sleutel",

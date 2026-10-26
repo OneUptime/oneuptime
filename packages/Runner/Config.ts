@@ -8,8 +8,8 @@ import {
   KUBECTL_WRITE_NAMESPACES_ENV,
   RUNNER_POD_NAMESPACE_ENV,
 } from "Common/Types/Kubernetes/KubernetesClusterAiAccess";
-import { HasClusterKey } from "Common/Server/EnvironmentConfig";
 import logger from "Common/Server/Utils/Logger";
+import GlobalRunnerMode from "./Utils/GlobalRunnerMode";
 
 /*
  * OneUptime Runner — the single agent a customer installs.
@@ -22,16 +22,16 @@ import logger from "Common/Server/Utils/Logger";
  *     repository and opens pull requests for review (default OFF — it needs
  *     a connected code repository).
  *
- * Credentials come in two shapes:
- *   - PROJECT-SCOPED (what customers install): ONEUPTIME_RUNNER_ID +
- *     ONEUPTIME_RUNNER_KEY, created in the dashboard. The Runner only ever
- *     sees work belonging to that one project.
- *   - CLUSTER-SCOPED (OneUptime's own deployment): the installation's
- *     shared Runner auto-registers to serve every project, with its
- *     ONEUPTIME_RUNNER_KEY, which the OneUptime app holds too. This mode is
- *     for the in-cluster `runner` service only, and works only where the
- *     app was given the Runner's key: it is never handed to a customer
- *     install.
+ * Every Runner starts with its id and key, ONEUPTIME_RUNNER_ID +
+ * ONEUPTIME_RUNNER_KEY:
+ *   - A PROJECT'S RUNNER (what customers install), created in the
+ *     dashboard, only ever sees work belonging to that one project.
+ *   - A GLOBAL RUNNER, one OneUptime runs for every project - the bundled
+ *     one (global-runner in Docker Compose, globalRunner in the Helm chart)
+ *     or one a master admin adds - is told so by the server
+ *     (GlobalRunnerMode). It takes every project's JavaScript steps and the
+ *     AI code fixes of every repository on the Global Runner, and runs none
+ *     of a repository's own commands (runsProjectAuthoredCommands).
  */
 
 if (!process.env["ONEUPTIME_URL"]) {
@@ -44,31 +44,25 @@ export const ONEUPTIME_BASE_URL: URL = URL.fromString(
 );
 
 /*
- * THE SHARED RUNNER
+ * THE SHARED RUNNER IS GONE
  *
- * The runner service of Docker Compose and the Helm chart is the
- * installation's shared Runner: it serves AI code fixes for every project
- * that has no Runner of its own, as the installation's global AI agent. It
- * registers itself with its ONEUPTIME_RUNNER_KEY, which its deployment gives
- * the OneUptime app as well, so it needs no id from the dashboard and no
- * cluster key. Its deployment says so with ONEUPTIME_RUNNER_SHARED=true:
- * only "true" (any case) turns it on, so a typo leaves a Runner that needs
- * an id, and says so, rather than one that tries to be the shared Runner.
- *
- * A deployment of an earlier release said so by giving the Runner the
- * cluster key (ONEUPTIME_SECRET) instead, and such a Runner still is the
- * shared Runner (HasClusterKey).
+ * Earlier releases ran a shared Runner (the runner service of Docker
+ * Compose and the Helm chart, ONEUPTIME_RUNNER_SHARED=true) that registered
+ * itself to serve AI code fixes for every project. Global Runners take that
+ * work now, so a Runner still started that way says what to do instead of
+ * trying to register as something the server no longer knows.
  */
-export function parseSharedRunnerSwitch(value: string | undefined): boolean {
+export const SHARED_RUNNER_REMOVED_MESSAGE: string =
+  "ONEUPTIME_RUNNER_SHARED is set, but OneUptime no longer runs a shared Runner: its global Runners take AI code fixes now (the global-runner service of Docker Compose, the globalRunner deployment of the Helm chart). Remove this Runner from your deployment - with Docker Compose, npm run update (or docker compose up -d --remove-orphans) removes the old runner service.";
+
+export function isSharedRunnerSwitchOn(value: string | undefined): boolean {
   return (value || "").trim().toLowerCase() === "true";
 }
 
-export const IS_SHARED_RUNNER: boolean = parseSharedRunnerSwitch(
-  process.env["ONEUPTIME_RUNNER_SHARED"],
-);
-
-// Cluster scope auto-registers and is given its id; project mode is not.
-export const IS_CLUSTER_SCOPED: boolean = IS_SHARED_RUNNER || HasClusterKey;
+if (isSharedRunnerSwitchOn(process.env["ONEUPTIME_RUNNER_SHARED"])) {
+  logger.error(SHARED_RUNNER_REMOVED_MESSAGE);
+  process.exit(1);
+}
 
 /*
  * KUBERNETES-AGENT MODE (deprecated): the Runner that kubernetes-agent Helm
@@ -91,16 +85,11 @@ export const KUBERNETES_AGENT_CHART_VERSION: string | null =
   process.env["ONEUPTIME_KUBERNETES_AGENT_CHART_VERSION"] || null;
 
 export const IS_KUBERNETES_AGENT_MODE: boolean =
-  !IS_CLUSTER_SCOPED &&
   !process.env["ONEUPTIME_RUNNER_ID"] &&
   Boolean(KUBERNETES_AGENT_CLUSTER_NAME) &&
   Boolean(KUBERNETES_AGENT_INGESTION_KEY);
 
-if (
-  !IS_CLUSTER_SCOPED &&
-  !IS_KUBERNETES_AGENT_MODE &&
-  !process.env["ONEUPTIME_RUNNER_ID"]
-) {
+if (!IS_KUBERNETES_AGENT_MODE && !process.env["ONEUPTIME_RUNNER_ID"]) {
   logger.error(
     "ONEUPTIME_RUNNER_ID is not set. Create a Runner in your OneUptime dashboard (Runbooks > Runners) and copy its id and key into this container. (The Kubernetes agent's in-cluster Runner instead sets ONEUPTIME_INGESTION_KEY and ONEUPTIME_KUBERNETES_CLUSTER_NAME.)",
   );
@@ -115,8 +104,8 @@ if (!IS_KUBERNETES_AGENT_MODE && !process.env["ONEUPTIME_RUNNER_KEY"]) {
 }
 
 /*
- * In cluster mode the id is assigned by the server at registration time,
- * so it starts null and is filled in by RegisterRunner.
+ * In kubernetes-agent mode the id is issued by the server at registration
+ * time, so it starts null and is filled in by RegisterRunner.
  */
 export const RUNNER_ID: ObjectID | null = process.env["ONEUPTIME_RUNNER_ID"]
   ? new ObjectID(process.env["ONEUPTIME_RUNNER_ID"]!)
@@ -140,14 +129,10 @@ export const RUNNER_VERSION: string = process.env["APP_VERSION"] || "1.0.0";
 /*
  * Capabilities.
  *
- * For a project-scoped Runner the dashboard is the control plane — the
- * capabilities come back from registration — and these env vars are a local
- * override that can only ever turn a capability OFF. Left unset they say
- * nothing, which is why they are tri-state rather than boolean.
- *
- * A cluster-scoped Runner has no dashboard row, so for it these are the whole
- * answer: runbooks off (it can never be targeted by a step), code fixes
- * opt-in because they clone repositories and open pull requests.
+ * The server is the control plane — the capabilities come back from
+ * registration and every heartbeat — and these env vars are a local override
+ * that can only ever turn a capability OFF. Left unset they say nothing,
+ * which is why they are tri-state rather than boolean.
  */
 const FALSE_SPELLINGS: Array<string> = ["false", "0", "no", "off"];
 
@@ -307,36 +292,31 @@ export const RUNNER_POD_NAMESPACE: string | null =
   (process.env[RUNNER_POD_NAMESPACE_ENV] || "").trim().toLowerCase() || null;
 
 /*
- * What a cluster-scoped Runner runs, where no dashboard row exists to consult.
- * Code fixes are the only work it can do — runbook steps target a Runner a
- * human picked in a project — so they are ON unless explicitly turned off.
- * Defaulting them off would leave the in-cluster Runner with no capability at
- * all, which is a boot failure, not a safe default.
- */
-export const CLUSTER_ENABLE_CODE_FIXES: boolean =
-  ENABLE_CODE_FIXES_OVERRIDE !== false;
-
-/*
  * Whether this Runner may execute project-authored or model-composed shell
  * commands as part of a code fix: the repository's Setup/Build/Test
  * verification commands (BuildVerification), and the code agent's
  * `run_command` tool (InHouseCodeAgent).
  *
- * A PROJECT-SCOPED Runner runs them. It is a host the operator installed in
+ * A PROJECT'S Runner runs them. It is a host the operator installed in
  * their own network, holds only that one project's credentials, and runs
  * that project's own repository commands — the same trust model as a runbook
  * Bash step, which this Runner already executes.
  *
- * The SHARED in-cluster Runner does NOT. It serves AI code fixes for every
- * project that has no Runner of its own, so nothing one project configures,
- * and nothing a model composes, runs on it. It writes the fix with its file
- * tools (which stay inside the repository's working tree, see
- * WorkspaceFileAccess) and opens it for review; the repository's own CI and
- * the human reviewer run the tests. The kubernetes-agent Runner never runs
- * the code-fix loop at all (its filesystem is read-only), so cluster scope is
- * the whole condition.
+ * A GLOBAL Runner does NOT. It serves AI code fixes for every project that
+ * uses global Runners, beside every project's JavaScript steps, so nothing
+ * one project configures, and nothing a model composes, runs on it. It
+ * writes the fix with its file tools (which stay inside the repository's
+ * working tree, see WorkspaceFileAccess) and opens it for review; the
+ * repository's own CI and the human reviewer run the tests. The
+ * kubernetes-agent Runner never runs the code-fix loop at all (its
+ * filesystem is read-only), so being global is the whole condition.
+ *
+ * Asked when a fix runs, never at import: only the server says a Runner is
+ * global (GlobalRunnerMode), at registration and on every heartbeat.
  */
-export const RUNS_PROJECT_AUTHORED_COMMANDS: boolean = !IS_CLUSTER_SCOPED;
+export function runsProjectAuthoredCommands(): boolean {
+  return !GlobalRunnerMode.isActive();
+}
 
 /*
  * The runbook work mount on the OneUptime app:

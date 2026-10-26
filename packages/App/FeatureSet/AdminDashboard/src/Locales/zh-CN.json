@@ -46,7 +46,6 @@
     "globalProbes": "全局探针",
     "globalRunners": "全局 Runner",
     "dataRetention": "数据保留",
-    "globalAiAgents": "全局 AI 代理",
     "globalLlmProviders": "全局 LLM 提供商",
     "apiKey": "API 密钥",
     "more": "更多",
@@ -116,7 +115,6 @@
     "settingsGlobalRunners": "全局 Runner",
     "settingsDataRetention": "数据保留",
     "settingsAi": "人工智能",
-    "settingsGlobalAiAgents": "全局 AI 代理",
     "settingsGlobalLlmProviders": "全局 LLM 提供商",
     "settingsApiIntegrations": "API 和集成",
     "settingsApiKey": "API 密钥",
@@ -543,18 +541,6 @@
         "commandLabel": "在你的 Docker 主机上运行",
         "neverConnected": "从未连接"
       },
-      "aiAgents": {
-        "bannerTitle": "需要帮助设置全局 AI 代理吗?",
-        "bannerDescription": "这里有一个指南可以帮助您设置",
-        "cardTitle": "全局 AI 代理",
-        "cardDescription": "全局 AI 代理可帮助您从世界各地的不同位置使用 AI 驱动的响应自动化事件管理。",
-        "noItems": "未找到 AI 代理。",
-        "showIdKey": "显示 ID 和密钥",
-        "keyModalTitle": "AI 代理密钥",
-        "keyModalDescription": "这是您的 AI 代理密钥。请保密。",
-        "agentIdLabel": "AI 代理 ID:",
-        "agentKeyLabel": "AI 代理密钥:"
-      },
       "dataRetention": {
         "logCardTitle": "监视器日志保留",
         "logCardDescription": "配置监视器日志在自动删除之前保留的时间。",
@@ -606,7 +592,6 @@
   "Global Probes": "全局探测器",
   "Data Retention": "数据保留",
   "AI": "人工智能",
-  "Global AI Agents": "全局 AI 代理",
   "Global LLM Providers": "全局 LLM 提供商",
   "API and Integrations": "API 和集成",
   "API Key": "API 密钥",

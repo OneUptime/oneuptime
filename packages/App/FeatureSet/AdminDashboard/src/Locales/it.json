@@ -46,7 +46,6 @@
     "globalProbes": "Sonde globali",
     "globalRunners": "Runner globali",
     "dataRetention": "Conservazione dati",
-    "globalAiAgents": "Agenti IA globali",
     "globalLlmProviders": "Fornitori LLM globali",
     "apiKey": "Chiave API",
     "more": "Altro",
@@ -116,7 +115,6 @@
     "settingsGlobalRunners": "Runner globali",
     "settingsDataRetention": "Conservazione dati",
     "settingsAi": "IA",
-    "settingsGlobalAiAgents": "Agenti IA globali",
     "settingsGlobalLlmProviders": "Fornitori LLM globali",
     "settingsApiIntegrations": "API e integrazioni",
     "settingsApiKey": "Chiave API",
@@ -543,18 +541,6 @@
         "commandLabel": "Da eseguire sul tuo host Docker",
         "neverConnected": "Mai connesso"
       },
-      "aiAgents": {
-        "bannerTitle": "Hai bisogno di aiuto per configurare gli agenti IA globali?",
-        "bannerDescription": "Ecco una guida che ti aiuterà con la configurazione",
-        "cardTitle": "Agenti IA globali",
-        "cardDescription": "Gli agenti IA globali ti aiutano ad automatizzare la gestione degli incidenti con risposte basate sull'IA da diverse posizioni nel mondo.",
-        "noItems": "Nessun agente IA trovato.",
-        "showIdKey": "Mostra ID e chiave",
-        "keyModalTitle": "Chiave dell'agente IA",
-        "keyModalDescription": "Ecco la tua chiave dell'agente IA. Tienila segreta.",
-        "agentIdLabel": "ID agente IA:",
-        "agentKeyLabel": "Chiave agente IA:"
-      },
       "dataRetention": {
         "logCardTitle": "Conservazione dei log di monitoraggio",
         "logCardDescription": "Configura per quanto tempo i log di monitoraggio vengono conservati prima di essere eliminati automaticamente.",
@@ -606,7 +592,6 @@
   "Global Probes": "Sonde globali",
   "Data Retention": "Conservazione dei dati",
   "AI": "IA",
-  "Global AI Agents": "Agenti IA globali",
   "Global LLM Providers": "Provider LLM globali",
   "API and Integrations": "API e integrazioni",
   "API Key": "Chiave API",

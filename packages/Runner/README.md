@@ -66,12 +66,11 @@ step. It starts claiming that repository's work on its next heartbeat.
 | Variable | Default | Notes |
 | --- | --- | --- |
 | `ONEUPTIME_URL` | — | Required. Your OneUptime server. |
-| `ONEUPTIME_RUNNER_ID` | — | Required for project-scoped Runners (the normal case). |
+| `ONEUPTIME_RUNNER_ID` | — | Required. Shown at creation, with the key. |
 | `ONEUPTIME_RUNNER_KEY` | — | Required. Shown once at creation; rotate by resetting it in the dashboard. |
 | `ONEUPTIME_RUNNER_NAME` | — | Optional friendly name. |
-| `ONEUPTIME_RUNNER_SHARED` | unset | Set only on the installation's shared Runner (the `runner` service that OneUptime's Docker Compose file and Helm chart start), which needs no `ONEUPTIME_RUNNER_ID`. Only `true` (any case) turns it on. Never set it on a Runner of your own. |
 | `ONEUPTIME_RUNNER_ENABLE_RUNBOOKS` | unset | Local override. Only `false` has an effect: it refuses runbook work on this host even when the dashboard grants it. |
-| `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES` | unset | Local override, same rule: `false` refuses code-fix work even for a code repository that picks this Runner. Required (`true`) only for the in-cluster Runner, which has no dashboard row. |
+| `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES` | unset | Local override, same rule: `false` refuses code-fix work even for a code repository that picks this Runner, or, on a global Runner, for the repositories on the Global Runner. |
 | `ONEUPTIME_RUNNER_ENABLE_AI_COMMANDS` | unset | Local override. Only `false` has an effect: it refuses AI remediation command work on this host even when the dashboard grants it. |
 | `ONEUPTIME_KUBECTL_ALLOW_WRITES` | unset | Whether OneUptime AI may run kubectl **writes** (remediations) from this host. When set it fails closed: only `true` (any case) allows them; `false` and any other value refuse every non-read kubectl before it starts. Unset allows writes on an ordinary Runner, which OneUptime no longer sends kubectl, and refuses them on the legacy in-cluster Runner, whose chart always sets it from `aiAccess.remediation.enabled`. Reads are unaffected. |
 | `ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS` | unset | Whether OneUptime AI may run kubectl **node operations** from this host: cordon, uncordon, drain, taint, and label, annotate or patch on a Node. Parsed like `ONEUPTIME_KUBECTL_ALLOW_WRITES`: when set, only `true` (any case) allows them and any other value refuses them before kubectl starts; unset allows them on an ordinary Runner and refuses them on the legacy in-cluster Runner, whose chart sets it from `aiAccess.remediation.nodeOperations`. Nodes are cluster-scoped, so this switch — not the namespace list below — is what bounds them. Needs writes allowed; reads are unaffected. |
@@ -91,14 +90,29 @@ the Runner host and are never sent to OneUptime — runbook secrets are
 injected into scripts at claim time and the stored script never holds
 plaintext values.
 
-OneUptime's own deployment runs one in-cluster Runner in *cluster scope* to
-serve the AI code-fix capability for every project. That mode is for the
-platform's own `runner` service and is not available to a customer install:
-the shared Runner registers with its `ONEUPTIME_RUNNER_KEY`, which the
-deployment gives the OneUptime app as well, and holds no `ONEUPTIME_SECRET`.
-A shared Runner of an earlier release, or one whose deployment still gives it
-`ONEUPTIME_SECRET`, registers with that instead, and the app logs that it
-should be updated.
+A **global Runner** is one OneUptime runs for every project: the bundled one
+(the `global-runner` service of Docker Compose, the `globalRunner` deployment
+of the Helm chart, started with a fixed id and `GLOBAL_RUNNER_KEY`) and any a
+master admin adds in **Admin Dashboard → Settings → Global Runners**. The
+server tells a Runner it is global; nothing on the host can make it one. A
+global Runner takes two kinds of work from every project that uses global
+Runners, and nothing else:
+
+- runbook JavaScript steps, each in a sandbox of its own that reaches the
+  internet only;
+- the AI code fixes of every code repository on the Global Runner (one that
+  picks no Runner of its own in Code), written with the code agent's file
+  tools alone. None of the repository's setup, build or test commands, and no
+  command a model composes, ever runs on a global Runner: the pull request
+  opens with verification shown as skipped, and the repository's own CI
+  checks the change. It reaches Git servers on the internet only, over
+  HTTPS, unless the server allows its private network (a self-hosted
+  OneUptime).
+
+It never runs Bash, SSH or kubectl steps, OneUptime AI's commands, or a step
+that needs a credential. Earlier releases ran a separate shared Runner for
+the code fixes (`ONEUPTIME_RUNNER_SHARED=true`); a Runner still started that
+way says so and stops.
 
 ### AI remediation commands
 

@@ -2682,8 +2682,6 @@
   "Getting Started with Serverless Functions": "Aan de slag met serverless functies",
   "Give this device a name to identify it in your notification settings.": "Geef dit apparaat een naam om het te identificeren in uw meldingsinstellingen.",
   "Give your security key a name (e.g., YubiKey, Titan Key)": "Geef uw beveiligingssleutel een naam (bijv. YubiKey, Titan Key)",
-  "Global AI Agents": "Globale AI-agenten",
-  "Global AI Agents help you automate incident management with AI-powered responses from OneUptime's infrastructure.": "Globale AI-agenten helpen u incidentbeheer te automatiseren met AI-gestuurde reacties vanuit de infrastructuur van OneUptime.",
   "Global LLM Providers": "Globale LLM-providers",
   "Global LLM Providers are pre-configured. These will be used automatically for AI features when you haven't set up your own custom LLM provider below.": "Globale LLM-providers zijn vooraf geconfigureerd. Deze worden automatisch gebruikt voor AI-functies wanneer u hieronder geen eigen aangepaste LLM-provider hebt ingesteld.",
   "Global Probe Settings": "Globale sonde-instellingen",
