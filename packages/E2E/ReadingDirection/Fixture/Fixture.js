@@ -10,11 +10,13 @@
  *   - lang=en|de|fa      the language (and so the direction) of the page
  *   - theme=dark         (read by server.js) the Dashboard's dark mode
  *   - dialog=open        a dialog over the page
+ *   - drawer=open        a side panel (SideOver) over the page
  *   - width=<px>         how wide the overflowing table's card is (560)
  *
  * The components are the production ones: the switch (Toggle), the status
  * dot (StatusBubble), a table whose Actions column sticks at its end
- * (Table), a dialog (Modal), notes in the Markdown viewer and editor, a
+ * (Table), a dialog (Modal), a side panel (SideOver), notes in the
+ * Markdown viewer and editor, a
  * folded More fields line (FoldedSection), a side menu section, the
  * breadcrumbs, pagination, a keyboard shortcut, code, and dates.
  */
@@ -48,6 +50,7 @@ import Pagination from "Common/UI/Components/Pagination/Pagination";
 import SideMenu from "Common/UI/Components/SideMenu/SideMenu";
 import SideMenuItem from "Common/UI/Components/SideMenu/SideMenuItem";
 import SideMenuSection from "Common/UI/Components/SideMenu/SideMenuSection";
+import SideOver from "Common/UI/Components/SideOver/SideOver";
 import StatusBubble from "Common/UI/Components/StatusBubble/StatusBubble";
 import Table from "Common/UI/Components/Table/Table";
 import Toggle from "Common/UI/Components/Toggle/Toggle";
@@ -66,6 +69,7 @@ const language = ["de", "fa"].includes(params.get("lang"))
   ? params.get("lang")
   : "en";
 const isDialogOpen = params.get("dialog") === "open";
+const isDrawerOpen = params.get("drawer") === "open";
 const tableWidth = Number(params.get("width") || 560);
 
 // The production helpers, handed the page's i18next instance before it starts.
@@ -145,6 +149,7 @@ function Page() {
 
   const [isOn, setIsOn] = useState(true);
   const [dialog, setDialog] = useState(isDialogOpen);
+  const [drawer, setDrawer] = useState(isDrawerOpen);
 
   return (
     <main className="mx-auto max-w-5xl p-6">
@@ -168,7 +173,9 @@ function Page() {
             className="ml-6 mr-2 pl-4 pr-1 text-left"
             data-testid="spacing-box"
           >
-            <span data-testid="spacing-text">{language === "fa" ? "متن" : "Text"}</span>
+            <span data-testid="spacing-text">
+              {language === "fa" ? "متن" : "Text"}
+            </span>
           </div>
           <span
             className="absolute right-0 top-0 h-2 w-2 bg-indigo-600"
@@ -374,6 +381,26 @@ function Page() {
               : "Give the label a name and a colour."}
           </p>
         </Modal>
+      )}
+
+      {drawer && (
+        <SideOver
+          title="Edit Monitor"
+          description="Change what this monitor watches."
+          submitButtonText="Save"
+          onSubmit={() => {
+            setDrawer(false);
+          }}
+          onClose={() => {
+            setDrawer(false);
+          }}
+        >
+          <p data-testid="drawer-text">
+            {language === "fa"
+              ? "این مانیتور را ویرایش کنید."
+              : "Change the monitor's name."}
+          </p>
+        </SideOver>
       )}
     </main>
   );

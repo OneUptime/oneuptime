@@ -39,12 +39,14 @@ const boxOf: (locator: Locator) => Promise<Box> = async (
   });
 };
 
-const styleOf: (locator: Locator, property: string) => Promise<string> =
-  async (locator: Locator, property: string): Promise<string> => {
-    return locator.evaluate((element: Element, name: string): string => {
-      return window.getComputedStyle(element).getPropertyValue(name);
-    }, property);
-  };
+const styleOf: (locator: Locator, property: string) => Promise<string> = async (
+  locator: Locator,
+  property: string,
+): Promise<string> => {
+  return locator.evaluate((element: Element, name: string): string => {
+    return window.getComputedStyle(element).getPropertyValue(name);
+  }, property);
+};
 
 const open: (
   page: Page,
@@ -364,14 +366,54 @@ test.describe("a dialog", () => {
 
       if (language === "en") {
         expect(Math.round(textBox.left - panelBox.left)).toBeLessThan(30);
-        expect(close.left - panelBox.left).toBeGreaterThan(
-          panelBox.width / 2,
-        );
+        expect(close.left - panelBox.left).toBeGreaterThan(panelBox.width / 2);
       } else {
         expect(Math.round(panelBox.right - textBox.right)).toBeLessThan(30);
         expect(panelBox.right - close.right).toBeGreaterThan(
           panelBox.width / 2,
         );
+      }
+    });
+  }
+});
+
+test.describe("a side panel", () => {
+  for (const language of ["en", "fa"]) {
+    test(`${language}: it stands at the end of the page, its words at its start and its close button at its end`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await open(page, `lang=${language}&drawer=open`);
+
+      const layer: Locator = page.getByTestId("side-over-layer");
+      const text: Locator = page.getByTestId("drawer-text");
+      const close: Locator = page.getByTestId("close-button");
+
+      await expect(text).toBeVisible();
+
+      // Settled: no transform left once it has slid in.
+      await expect
+        .poll(async () => {
+          return styleOf(layer.locator(":scope > div").first(), "transform");
+        })
+        .toBe("none");
+
+      const layerBox: Box = await boxOf(layer);
+      const panelBox: Box = await boxOf(layer.locator(":scope > div").first());
+      const textBox: Box = await boxOf(text);
+      const closeBox: Box = await boxOf(close);
+
+      if (language === "en") {
+        // At the right edge, its words from its left, the close at its right.
+        expect(Math.round(layerBox.right - panelBox.right)).toBe(0);
+        expect(textBox.left - panelBox.left).toBeLessThan(40);
+        expect(panelBox.right - closeBox.right).toBeLessThan(40);
+      } else {
+        // Mirrored: at the left edge, its words from its right, the close at its left.
+        expect(Math.round(panelBox.left - layerBox.left)).toBe(0);
+        expect(panelBox.right - textBox.right).toBeLessThan(40);
+        expect(closeBox.left - panelBox.left).toBeLessThan(40);
       }
     });
   }

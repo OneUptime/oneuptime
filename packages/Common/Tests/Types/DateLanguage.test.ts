@@ -12,6 +12,7 @@ import {
   formatRelativeDate,
   getDateDisplayLanguage,
   getDateLocale,
+  getDigitsOf,
   getEnglishOf,
   getRelativeDistance,
   inEnglishDates,
@@ -19,6 +20,7 @@ import {
   rememberEnglishOf,
   setDateDisplayLanguage,
   withDateDisplayLanguage,
+  writeDigitsInLocale,
   writeInDateDisplayLanguage,
 } from "../../Types/DateLanguage";
 import { SeededRandom, seededRandom } from "../Helpers/SeededRandom";
@@ -497,5 +499,75 @@ describe("durations and figures", () => {
         maximumFractionDigits: 2,
       }),
     ).toBe(text);
+  });
+});
+
+describe("the digits a language writes", () => {
+  test("Persian writes its own, 0 to 9", () => {
+    expect(getDigitsOf(getDateLocale("fa"))).toEqual([
+      "۰",
+      "۱",
+      "۲",
+      "۳",
+      "۴",
+      "۵",
+      "۶",
+      "۷",
+      "۸",
+      "۹",
+    ]);
+  });
+
+  test("every other language OneUptime is translated into writes Latin ones", () => {
+    for (const language of ["en", "de", "fr", "ja", "zh-CN", "hi", "ru"]) {
+      expect({
+        language,
+        digits: getDigitsOf(getDateLocale(language)),
+      }).toEqual({
+        language,
+        digits: ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"],
+      });
+    }
+  });
+
+  test("a locale Intl cannot read writes Latin ones", () => {
+    expect(getDigitsOf("not a locale!")).toEqual([
+      "0",
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9",
+    ]);
+  });
+
+  test("a figure OneUptime wrote is written in the reader's digits", () => {
+    const persian: string = getDateLocale("fa");
+
+    expect(writeDigitsInLocale("09:00", persian)).toBe("۰۹:۰۰");
+    expect(writeDigitsInLocale("every 15 minutes", persian)).toBe(
+      "every ۱۵ minutes",
+    );
+    expect(writeDigitsInLocale("2026-10-26", persian)).toBe("۲۰۲۶-۱۰-۲۶");
+  });
+
+  test("a language that writes Latin digits gets the text back as it was", () => {
+    for (const language of ["en", "de", "ja"]) {
+      expect(writeDigitsInLocale("09:05", getDateLocale(language))).toBe(
+        "09:05",
+      );
+    }
+  });
+
+  test("text with no figures, or in Persian digits already, is unchanged", () => {
+    const persian: string = getDateLocale("fa");
+
+    expect(writeDigitsInLocale("", persian)).toBe("");
+    expect(writeDigitsInLocale("ساعت", persian)).toBe("ساعت");
+    expect(writeDigitsInLocale("۰۹:۰۰", persian)).toBe("۰۹:۰۰");
   });
 });

@@ -155,7 +155,7 @@ const UptimeBarTooltip: FunctionComponent<ComponentProps> = (
                       : undefined
                   }
                   style={{
-                    borderLeft: `3px solid ${incident.incidentSeverity ? incident.incidentSeverity.color.toString() : "#dc2626"}`,
+                    borderInlineStart: `3px solid ${incident.incidentSeverity ? incident.incidentSeverity.color.toString() : "#dc2626"}`,
                     padding: "6px 10px",
                     marginBottom: "6px",
                     cursor: isClickable ? "pointer" : "default",
