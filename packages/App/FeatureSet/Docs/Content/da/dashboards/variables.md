@@ -27,7 +27,7 @@ flowchart TB
 :::steps
 ### Åbn variabeldialogen
 
-Åbn dashboardet, vælg **⋯ → Edit Dashboard**, og klik på **Variabler** i værktøjslinjen. Dialogen **Dashboard-variabler** viser dashboardets variabler; knappen i værktøjslinjen tæller dem.
+Åbn dashboardet, vælg **⋯ → Rediger dashboard**, og klik på **Variabler** i værktøjslinjen. Dialogen **Dashboard-variabler** viser dashboardets variabler; knappen i værktøjslinjen tæller dem.
 
 ### Tilføj en
 
@@ -35,7 +35,7 @@ Klik på **Tilføj variabel**. En ny variabel læser en telemetriattribut; vælg
 
 ### Udfyld den
 
-Giv den et **Navn**, som widgets og links bruger, for eksempel `service`: bogstaver, cifre og understreger, der starter med et bogstav eller en understreg og adskiller sig fra dashboardets andre navne. Tilføj en **Mærkat** til værktøjslinjen, hvis du vil, en **Standard** at starte på, og sæt flueben ved **Allow multi-select** for at lade seerne vælge flere værdier.
+Giv den et **Navn**, som widgets og links bruger, for eksempel `service`: bogstaver, cifre og understreger, der starter med et bogstav eller en understreg og adskiller sig fra dashboardets andre navne. Tilføj en **Mærkat** til værktøjslinjen, hvis du vil, en **Standard** at starte på, og sæt flueben ved **Tillad flere valg** for at lade seerne vælge flere værdier.
 
 ### Gem den
 
@@ -63,11 +63,11 @@ Det er den mest brugte kilde, fordi den ikke behøver sin egen liste: værdierne
 
 ### Project Labels
 
-Vælg eksisterende projektetiketter, der skal tilbydes som en rulleliste på dashboardet. Opret for eksempel en variabel med navnet `UNIT`, sæt dens kilde til **Project Labels**, og vælg etiketterne `0660` og `0661`.
+Vælg eksisterende projektetiketter, der skal tilbydes som en rulleliste på dashboardet. Opret for eksempel en variabel med navnet `UNIT`, sæt dens kilde til **Projektetiketter**, og vælg etiketterne `0660` og `0661`.
 
 Dashboardet gemmer de valgte etiketters id'er og visningsnavne. Filtreringen bruger id'erne, så omdøbning af en projektetiket ødelægger ikke dens binding. Visningsnavnene gemmes sammen med dashboardet; vælg en omdøbt etiket igen i variabeleditoren for at opdatere dens viste navn. Offentlige dashboards viser de samme gemte valg.
 
-I en widget **Overvågningsliste** åbner du **Filtre → Label Variable** og vælger `UNIT`. Når du vælger `0660`, vises nu de overvågninger, der har den etiket. Andre widgets påvirkes ikke, medmindre de udtrykkeligt understøtter og binder variablen: **SLO List** har den samme indstilling **Label Variable**.
+I en widget **Overvågningsliste** åbner du **Filtre → Etiketvariabel** og vælger `UNIT`. Når du vælger `0660`, vises nu de overvågninger, der har den etiket. Andre widgets påvirkes ikke, medmindre de udtrykkeligt understøtter og binder variablen: **SLO-liste** har den samme indstilling **Etiketvariabel**.
 
 Faste widgetfiltre gælder fortsat. Med en fast etiket `network` og `UNIT` sat til `0660` skal en overvågning for eksempel have begge etiketter. Flere valgte enheder matcher enhver af de valgte enheder. Når du vælger **Alle**, fjernes kun variablens betingelse, og de faste filtre for etiket, status og overvågningstype bevares.
 
@@ -81,7 +81,7 @@ En Query-variabel fra et ældre dashboard bevares og viser et tekstfelt i værkt
 
 ## Flervalg og standardværdier
 
-Med flueben ved **Allow multi-select** vælger seerne en eller flere værdier, og widgets viser enhver af dem. Et tomt valg betyder **Alle**, og en flervalgsvariabel starter altid på **Alle**, så dens **Standard** er nedtonet.
+Med flueben ved **Tillad flere valg** vælger seerne en eller flere værdier, og widgets viser enhver af dem. Et tomt valg betyder **Alle**, og en flervalgsvariabel starter altid på **Alle**, så dens **Standard** er nedtonet.
 
 En enkeltvalgsvariabel starter på sin **Standard**, eller på **Alle**, når den ikke har nogen. **Alle** fjerner variablens filter, så widgets viser alt.
 
@@ -91,9 +91,9 @@ Brug flervalg til at sammenligne "checkout og payments sammen" uden at forlade d
 
 Hver kilde når widgets på sin egen måde:
 
-- Variabler af typen **Telemetry Attribute** filtrerer widgets, uden at du skal indstille noget på dem: alle metrikdiagrammer, værdier, målere og tabeller; **Log Chart**, **Logstrøm**, **Trace Chart** og **Trace Table**; og de infrastrukturlister, hvis ressourcer har attributten, for eksempel `host.name` på værtslister og `k8s.namespace.name` på Kubernetes-lister. Et diagram over en metrik uden attributten viser ingen data, så længe en værdi er valgt: vælg **Alle** for at se det igen. **Sporliste** og hændelses- og advarselslisterne følger dem ikke.
-- Variabler af typen **Project Labels** filtrerer en **Overvågningsliste** eller en **SLO List**, hvis **Label Variable** nævner dem.
-- **Enhver variabel** kan skrives ind i tekst som `{{name}}`: i en [HTML-widget](/docs/dashboards/widgets#html), i forespørgslen til en [ekstern datakilde](/docs/dashboards/data-sources), og i titlen på en **Overvågningsliste** eller en **SLO List**. En titel som `{{UNIT}} NETWORK` viser `0660 NETWORK`, `0660, 0661 NETWORK` eller `All NETWORK`. En titel styrer kun den viste tekst; konfigurér **Label Variable** for at filtrere overvågningsforespørgslen.
+- Variabler af typen **Telemetriattribut** filtrerer widgets, uden at du skal indstille noget på dem: alle metrikdiagrammer, værdier, målere og tabeller; **Logdiagram**, **Logstrøm**, **Spordiagram** og **Sportabel**; og de infrastrukturlister, hvis ressourcer har attributten, for eksempel `host.name` på værtslister og `k8s.namespace.name` på Kubernetes-lister. Et diagram over en metrik uden attributten viser ingen data, så længe en værdi er valgt: vælg **Alle** for at se det igen. **Sporliste** og hændelses- og advarselslisterne følger dem ikke.
+- Variabler af typen **Projektetiketter** filtrerer en **Overvågningsliste** eller en **SLO-liste**, hvis **Etiketvariabel** nævner dem.
+- **Enhver variabel** kan skrives ind i tekst som `{{name}}`: i en [HTML-widget](/docs/dashboards/widgets#html), i forespørgslen til en [ekstern datakilde](/docs/dashboards/data-sources), og i titlen på en **Overvågningsliste** eller en **SLO-liste**. En titel som `{{UNIT}} NETWORK` viser `0660 NETWORK`, `0660, 0661 NETWORK` eller `All NETWORK`. En titel styrer kun den viste tekst; konfigurér **Etiketvariabel** for at filtrere overvågningsforespørgslen.
 
 [SLO-widgetten](/docs/dashboards/widgets#slo) kan følge en Telemetry Attribute-variabel på nøglen `sloName`, så seerne vælger, hvilket SLO den viser.
 

@@ -22,7 +22,7 @@ flowchart TB
 
 ## Prima di iniziare
 
-- **Il vostro ruolo.** Creare un evento richiede **Project Owner**, **Project Admin**, **Project Member**, **Scheduled Maintenance Admin** o **Scheduled Maintenance Member**, oppure un ruolo personalizzato con **Create Scheduled Maintenance**.
+- **Il vostro ruolo.** Creare un evento richiede **Proprietario del progetto**, **Amministratore del progetto**, **Membro del progetto**, **Amministratore della manutenzione programmata** o **Membro della manutenzione programmata**, oppure un ruolo personalizzato con **Create Scheduled Maintenance**.
 - **Le vostre pagine di stato.** Per avvisare i clienti vi serve una pagina di stato che mostri gli eventi di manutenzione programmata. Vedere [Panoramica delle pagine di stato](/docs/status-pages/index).
 
 ## Creare un evento

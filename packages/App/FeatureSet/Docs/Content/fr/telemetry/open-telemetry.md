@@ -371,7 +371,7 @@ OneUptime sert OTLP/gRPC sur le même hôte que l'application web, sur le port 4
 
 Sur une installation auto-hébergée, gRPC n'atteint OneUptime qu'en HTTPS : une connexion HTTP en clair (h2c) est refusée. Si votre instance est servie en HTTP simple, utilisez OTLP/HTTP.
 
-Deux réglages d'une clé ne s'appliquent qu'à OTLP/HTTP : sa **Requests Per Minute Limit** et son **Pinned Service Name**. Les données envoyées en gRPC gardent le `service.name` avec lequel elles ont été envoyées et ne sont pas comptées dans la limite.
+Deux réglages d'une clé ne s'appliquent qu'à OTLP/HTTP : sa **Requests Per Minute Limit** et son **Nom du service épinglé**. Les données envoyées en gRPC gardent le `service.name` avec lequel elles ont été envoyées et ne sont pas comptées dans la limite.
 
 ### Réponses
 
@@ -402,7 +402,7 @@ La page de chaque clé, sous **Paramètres du projet → Télémétrie & APM →
 | --- | --- |
 | **Type de clé** | **Serveur** (par défaut) pour les applications, les collectors et les agents. **Navigateur** pour les clés livrées dans une page web : en écriture seule, et acceptées uniquement depuis leurs **Origines autorisées**. Il ne peut pas être modifié après la création de la clé. |
 | **Origines autorisées** | Les origines web depuis lesquelles une clé Navigateur fonctionne, par exemple `https://app.example.com`. Ignoré sur une clé Serveur. |
-| **Pinned Service Name** | Lorsqu'il est défini, remplace `service.name` sur tout ce qui est envoyé avec cette clé en OTLP/HTTP. |
+| **Nom du service épinglé** | Lorsqu'il est défini, remplace `service.name` sur tout ce qui est envoyé avec cette clé en OTLP/HTTP. |
 | **Activé** | Désactivez-le pour cesser immédiatement d'accepter les données envoyées avec la clé, sans la supprimer. |
 | **Expire le** | Après cette date, la clé est refusée. Vide signifie qu'elle n'expire jamais. |
 | **Requests Per Minute Limit** | Le nombre maximal de requêtes OTLP/HTTP par minute acceptées avec la clé, pour l'ensemble des clients qui l'utilisent. Vide signifie aucune limite sur une clé Serveur, et 6 000 sur une clé Navigateur. |
@@ -420,7 +420,7 @@ Tout ce qui est sur cette page fonctionne de la même façon avec votre propre i
 
 ## Exceptions issues des logs
 
-OneUptime trouve les exceptions dans vos **logs** et les regroupe dans la même vue **Exceptions** qu'alimentent les erreurs des traces. Chaque log appartient déjà à un service ou à un hôte, donc l'exception lui est attribuée. Les exceptions des logs et des traces partagent le même regroupement par empreinte, si bien qu'une erreur signalée à la fois par une trace et par un log devient un seul problème.
+OneUptime trouve les exceptions dans vos **journaux** et les regroupe dans la même vue **Exceptions** qu'alimentent les erreurs des traces. Chaque log appartient déjà à un service ou à un hôte, donc l'exception lui est attribuée. Les exceptions des logs et des traces partagent le même regroupement par empreinte, si bien qu'une erreur signalée à la fois par une trace et par un log devient un seul problème.
 
 Un log devient une exception de deux façons :
 
@@ -460,7 +460,7 @@ Un lot dépasse la limite de taille. Réduisez la taille des lots, par exemple a
 :::
 
 :::details Les données arrivent sous le mauvais service, ou sous Unknown Service
-Le service vient de l'attribut de ressource `service.name`. Définissez `OTEL_SERVICE_NAME` dans chaque application. Si la clé a un **Pinned Service Name**, chaque export OTLP/HTTP avec cette clé est classé sous ce nom à la place.
+Le service vient de l'attribut de ressource `service.name`. Définissez `OTEL_SERVICE_NAME` dans chaque application. Si la clé a un **Nom du service épinglé**, chaque export OTLP/HTTP avec cette clé est classé sous ce nom à la place.
 :::
 
 ## Étapes suivantes

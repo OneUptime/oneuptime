@@ -29,9 +29,9 @@ La page **Paramètres** du SLO affiche le budget que son objectif autorise à c�
 
 ### Le budget d'un SLO à plusieurs moniteurs
 
-En mode **Any Monitor Down**, le budget est `(100% − target) × window`, quel que soit le nombre de moniteurs que le SLO mesure : la fenêtre est une seule chronologie.
+En mode **Un moniteur hors service**, le budget est `(100% − target) × window`, quel que soit le nombre de moniteurs que le SLO mesure : la fenêtre est une seule chronologie.
 
-En mode **Monitor Seconds Average**, le budget est compté en secondes-moniteur, additionnées sur tous les moniteurs, et grandit donc avec leur nombre : un SLO à trois moniteurs à 99,9 % sur 30 jours a environ 129 minutes de budget au lieu de 43. Les pourcentages (SLI, budget restant, taux de consommation) gardent le même sens ; seules les durées changent.
+En mode **Moyenne des secondes des moniteurs**, le budget est compté en secondes-moniteur, additionnées sur tous les moniteurs, et grandit donc avec leur nombre : un SLO à trois moniteurs à 99,9 % sur 30 jours a environ 129 minutes de budget au lieu de 43. Les pourcentages (SLI, budget restant, taux de consommation) gardent le même sens ; seules les durées changent.
 
 ### Le budget d'un mois calendaire
 
@@ -68,7 +68,7 @@ runway = budget left ÷ (burn rate × (100% − target))
 
 Pour les SLO par mois calendaire, la tuile indique aussi quand le budget est remis à zéro.
 
-L'autonomie est une projection en ligne droite. Sur une fenêtre glissante, l'ancienne indisponibilité qui sort de la fenêtre rend du budget, ce que la projection ignore : lisez-la comme le temps minimal qu'il vous reste. Elle n'est pas affichée avant la première évaluation, ni pour les SLO en mode **Monitor Seconds Average**, dont le budget est compté en secondes-moniteur et non en temps d'horloge.
+L'autonomie est une projection en ligne droite. Sur une fenêtre glissante, l'ancienne indisponibilité qui sort de la fenêtre rend du budget, ce que la projection ignore : lisez-la comme le temps minimal qu'il vous reste. Elle n'est pas affichée avant la première évaluation, ni pour les SLO en mode **Moyenne des secondes des moniteurs**, dont le budget est compté en secondes-moniteur et non en temps d'horloge.
 
 ## Consommation du budget d'erreur
 
@@ -77,7 +77,7 @@ Le graphique **Consommation du budget d'erreur** de la **Vue d'ensemble** trace 
 - Une ligne à 0 % marque l'endroit où le budget est épuisé, et une ligne en pointillés marque le seuil à risque du SLO.
 - Pour les SLO par mois calendaire, une ligne pâle descend régulièrement d'un budget plein au début du mois à un budget vide à la remise à zéro. En dessous, le mois consomme son budget trop vite.
 - Un point est enregistré à chaque évaluation, toutes les 5 minutes, le graphique d'un nouveau SLO reste donc vide jusqu'à sa première évaluation.
-- Faites glisser sur le graphique pour zoomer sur une partie de la fenêtre. Double-cliquez, ou cliquez sur **Reset zoom**, pour revoir toute la fenêtre.
+- Faites glisser sur le graphique pour zoomer sur une partie de la fenêtre. Double-cliquez, ou cliquez sur **Réinitialiser le zoom**, pour revoir toute la fenêtre.
 
 **Ouvrir les métriques** ouvre la page **Métriques** du SLO, dont l'onglet **Error Budget History** remonte jusqu'à 400 jours. Voir [Métriques et tableaux de bord des SLO](/docs/slo/metrics).
 

@@ -66,7 +66,7 @@ Le etichette raggruppano le applicazioni in elenchi e filtri. Decidono anche a c
 
 | Come | Dove |
 | --- | --- |
-| A mano | Nel modulo di creazione, sotto **Altri campi**, o in seguito con **Modifica dettagli** nella scheda **Dettagli dell'applicazione** della pagina **Impostazioni** dell'applicazione. Per più applicazioni insieme, selezionale nell'elenco e scegli **Add Labels** in **Azioni di massa**. |
+| A mano | Nel modulo di creazione, sotto **Altri campi**, o in seguito con **Modifica dettagli** nella scheda **Dettagli dell'applicazione** della pagina **Impostazioni** dell'applicazione. Per più applicazioni insieme, selezionale nell'elenco e scegli **Aggiungi etichette** in **Azioni di massa**. |
 | Dalla telemetria | Un attributo di risorsa chiamato `oneuptime.label.<name>` aggiunge l'etichetta `<name>:<value>`, come mostrato sotto. |
 | Da una regola per le etichette | Una regola aggiunge etichette a ogni nuova applicazione che corrisponde. Vedi [Regole per le etichette e regole per i proprietari](#regole-per-le-etichette-e-regole-per-i-proprietari). |
 
@@ -91,11 +91,11 @@ Una regola aggiunge etichette o proprietari a ogni nuova applicazione che corris
 1. In **Corrispondenza**, **Tutte le applicazioni RUM**, da cui parte una nuova regola, corrisponde a tutte le applicazioni. Per restringerla, scegli **Solo le applicazioni RUM che soddisfano le condizioni** e aggiungi condizioni su **Etichette dell'applicazione** (ha almeno una, tutte o nessuna delle etichette che scegli), **Nome dell'applicazione** o **Descrizione dell'applicazione** (è uguale a, contiene, inizia con, termina con o corrisponde a un pattern).
 2. In **Etichette**, o **Proprietari** per una regola per i proprietari, scegli cosa aggiunge la regola. Una nuova regola deve aggiungere almeno un'etichetta o un proprietario. Il **Nome** si compila a partire da ciò che scegli, come _Add team:payments_ o _Add Payments as owners_, finché non ne scrivi uno tuo. La **Descrizione**, e **Notifica ai proprietari** in una regola per i proprietari, si trovano sotto **Altri campi**.
 
-Le regole vengono eseguite quando viene creata un'applicazione, comprese quelle scoperte. Per applicare una regola alle applicazioni che hai già, apri il menu **⋯** della sua riga e scegli **Run Now**: vedi [Eseguire le regole sulle risorse esistenti](/docs/configuration/run-rules-now). Una regola a cui una modifica ha lasciato niente da aggiungere è contrassegnata da **Non aggiunge nulla** nell'elenco. [Regole per etichette e proprietari](/docs/configuration/label-and-owner-rules) copre i moduli completi.
+Le regole vengono eseguite quando viene creata un'applicazione, comprese quelle scoperte. Per applicare una regola alle applicazioni che hai già, apri il menu **⋯** della sua riga e scegli **Esegui ora**: vedi [Eseguire le regole sulle risorse esistenti](/docs/configuration/run-rules-now). Una regola a cui una modifica ha lasciato niente da aggiungere è contrassegnata da **Non aggiunge nulla** nell'elenco. [Regole per etichette e proprietari](/docs/configuration/label-and-owner-rules) copre i moduli completi.
 
 ### Proprietari
 
-I proprietari sono le persone e i team responsabili di un'applicazione. Le regole per i proprietari li aggiungono alle nuove applicazioni. Per aggiungerli o rimuoverli a mano, seleziona le applicazioni nell'elenco e scegli **Add Owner** o **Remove Owner** in **Azioni di massa**; l'API li aggiunge tramite `/rum-application-owner-user` e `/rum-application-owner-team`. Con **Notifica ai proprietari** attivo, che è il valore predefinito, ogni proprietario aggiunto da una regola viene avvisato. Disattivalo prima di eseguire una regola su molte applicazioni se nessuno deve essere avvisato.
+I proprietari sono le persone e i team responsabili di un'applicazione. Le regole per i proprietari li aggiungono alle nuove applicazioni. Per aggiungerli o rimuoverli a mano, seleziona le applicazioni nell'elenco e scegli **Aggiungi proprietario** o **Rimuovi proprietario** in **Azioni di massa**; l'API li aggiunge tramite `/rum-application-owner-user` e `/rum-application-owner-team`. Con **Notifica ai proprietari** attivo, che è il valore predefinito, ogni proprietario aggiunto da una regola viene avvisato. Disattivalo prima di eseguire una regola su molte applicazioni se nessuno deve essere avvisato.
 
 ## Conservazione
 
@@ -104,7 +104,7 @@ La telemetria di un'applicazione e le sue registrazioni vengono conservate per t
 | Dati | Conservati per | Si imposta in |
 | --- | --- | --- |
 | Log, metriche, tracce e profili | La conservazione del progetto, a meno che l'applicazione non la sostituisca | La pagina **Impostazioni** dell'applicazione |
-| Registrazioni della riproduzione delle sessioni | 7 giorni per impostazione predefinita, oppure 1, 14, 30 o 90 giorni | **Replay Policy**, con **Edit Policy → Limits** |
+| Registrazioni della riproduzione delle sessioni | 7 giorni per impostazione predefinita, oppure 1, 14, 30 o 90 giorni | **Replay Policy**, con **Modifica policy → Limiti** |
 
 ### Conservazione della telemetria
 
@@ -119,7 +119,7 @@ Su un piano Cloud inferiore, una sostituzione lasciata da una prova continua ad 
 
 ### Conservazione della riproduzione delle sessioni
 
-Le registrazioni hanno una conservazione propria, impostata nella pagina **Replay Policy** dell'applicazione con **Edit Policy → Limits**: 7 giorni per impostazione predefinita, oppure 1, 14, 30 o 90 giorni. È breve di proposito, perché una registrazione è molto più sensibile, e molto più grande, di uno span. La scheda **Session Replay Retention** della pagina **Impostazioni** la mostra (_Session replays are kept for 7 days._), e il suo pulsante **Modifica in Replay Policy** apre la policy.
+Le registrazioni hanno una conservazione propria, impostata nella pagina **Replay Policy** dell'applicazione con **Modifica policy → Limiti**: 7 giorni per impostazione predefinita, oppure 1, 14, 30 o 90 giorni. È breve di proposito, perché una registrazione è molto più sensibile, e molto più grande, di uno span. La scheda **Conservazione della riproduzione delle sessioni** della pagina **Impostazioni** la mostra (_Session replays are kept for 7 days._), e il suo pulsante **Modifica in Replay Policy** apre la policy.
 
 Una conservazione della telemetria più lunga non conserva le registrazioni più a lungo. I conteggi, i segnali e il dispositivo di una sessione scadono con le sue immagini; solo i log, gli span e le eccezioni della sessione seguono la conservazione della telemetria. Vedi [Conservazione ed eliminazione](/docs/telemetry/session-replay#conservazione-ed-eliminazione).
 
@@ -147,17 +147,17 @@ Chiunque abbia il ruolo Viewer del progetto può vedere le applicazioni RUM e la
 | `CreateRumApplication`, `EditRumApplication`, `DeleteRumApplication` | Aggiungere, modificare ed eliminare applicazioni. |
 | `ReadRumSessionReplay` (_List Session Replays_) | Elencare le sessioni registrate e i loro dettagli, senza riprodurle né sapere chi era l'utente. |
 | `ReadRumSessionReplayPayload` (_Watch Session Replays_) | Riprodurre le registrazioni e leggere il riferimento e gli attributi dell'utente identificato. |
-| `ReadRumSessionReplayAudit` (_Read Session Replay Audit_) | Leggere il **Replay Access Log**: chi ha guardato quale registrazione. |
+| `ReadRumSessionReplayAudit` (_Read Session Replay Audit_) | Leggere il **Registro degli accessi alle riproduzioni**: chi ha guardato quale registrazione. |
 | `DeleteRumSessionReplay` (_Delete Session Replays_) | Eliminare le registrazioni. |
 | `CreateRumSessionErasureRequest`, `ReadRumSessionErasureRequest` | Presentare richieste di cancellazione e seguirle. |
 | `ReadRumApplicationLabelRule`, `ReadRumApplicationOwnerRule` (e i loro Create, Edit e Delete) | Gestire le regole per le etichette e le regole per i proprietari. |
 | `ReadRumApplicationOwnerUser`, `ReadRumApplicationOwnerTeam` (e i loro Create, Edit e Delete) | Aggiungere e rimuovere proprietari tramite l'API. |
 
-Una suddivisione utile: dai a un tecnico del supporto `ReadRumApplication` e `ReadRumSessionReplay`. Potrà vedere quali sessioni hanno avuto errori senza guardare lo schermo di nessuno né sapere chi era l'utente. Dai `ReadRumSessionReplayPayload` solo alle persone che ne hanno bisogno; i membri con `ReadRumSessionReplayAudit` vedranno allora ogni riproduzione nella pagina **Replay Access Log** dell'applicazione. [Chi può guardare una registrazione](/docs/telemetry/session-replay#chi-può-guardare-una-registrazione) mostra cosa sblocca ogni autorizzazione nell'elenco delle sessioni e nel lettore.
+Una suddivisione utile: dai a un tecnico del supporto `ReadRumApplication` e `ReadRumSessionReplay`. Potrà vedere quali sessioni hanno avuto errori senza guardare lo schermo di nessuno né sapere chi era l'utente. Dai `ReadRumSessionReplayPayload` solo alle persone che ne hanno bisogno; i membri con `ReadRumSessionReplayAudit` vedranno allora ogni riproduzione nella pagina **Registro degli accessi alle riproduzioni** dell'applicazione. [Chi può guardare una registrazione](/docs/telemetry/session-replay#chi-può-guardare-una-registrazione) mostra cosa sblocca ogni autorizzazione nell'elenco delle sessioni e nel lettore.
 
 ## Avvisi sui dati RUM
 
-La telemetria RUM è fatta di normali log, metriche e tracce, quindi non esiste un monitor RUM separato: i monitor abituali funzionano con essa. Il modo più rapido per iniziare è la pagina **Recommendations** dell'applicazione, che offre monitor già limitati all'applicazione:
+La telemetria RUM è fatta di normali log, metriche e tracce, quindi non esiste un monitor RUM separato: i monitor abituali funzionano con essa. Il modo più rapido per iniziare è la pagina **Raccomandazioni** dell'applicazione, che offre monitor già limitati all'applicazione:
 
 | Gruppo | Raccomandazioni |
 | --- | --- |

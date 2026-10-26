@@ -1,6 +1,6 @@
 # Undantagsövervakning
 
-En undantagsmonitor räknar inom ett tidsfönster de undantag som dina tjänster rapporterar till OneUptime och som matchar dina filter (meddelande, undantagstyp, miljö, tjänst). När antalet uppfyller dina kriterier ändrar den monitorns status, skapar en varning eller deklarerar en incident. Använd den för att varnas om varje ny krasch i produktion, om en enda undantagstyp eller om en plötslig ökning av fel.
+En undantagsmonitor räknar inom ett tidsfönster de undantag som dina tjänster rapporterar till OneUptime och som matchar dina filter (meddelande, undantagstyp, miljö, tjänst). När antalet uppfyller dina kriterier ändrar den monitorns status, skapar ett larm eller deklarerar en incident. Använd den för att varnas om varje ny krasch i produktion, om en enda undantagstyp eller om en plötslig ökning av fel.
 
 :::cards
 - [Skapa monitorn](#skapa-en-undantagsmonitor): Välj vilka undantag som räknas och när du ska varnas.
@@ -17,7 +17,7 @@ flowchart TB
     Store --> Skip["Utelämna lösta och<br/>arkiverade undantag"]
     Skip --> Count["Räkna matchande undantag<br/>i tidsfönstret"]
     Count --> Check{"Kriterier uppfyllda?"}
-    Check -->|"Första träff"| Act["Ändra status,<br/>varning eller incident"]
+    Check -->|"Första träff"| Act["Ändra status,<br/>larm eller incident"]
     Check -->|Inget| Default["Standardstatus"]
 ```
 
@@ -101,7 +101,7 @@ När du skapar monitorn via API:et anger du `environments` på stegets `exceptio
 - **Förekomster, inte undantagstyper.** Monitorn räknar varje gång ett matchande undantag inträffade inom **Övervaka undantag för (tid)**. Ett undantag som kastas 40 gånger räknas som 40.
 - **Lösta och arkiverade undantag utelämnas.** Om du inte aktiverar **Inkludera lösta undantag** eller **Inkludera arkiverade undantag** räknas inte förekomsterna av ett undantag som du har markerat som löst eller arkiverat. Att markera ett undantag som löst kan därför stänga den incident som det öppnade. När ett löst undantag inträffar igen blir det automatiskt olöst och räknas igen.
 - **Inga undantag är ett antal på 0.**
-- **OneUptimes eget avbrott är inte tystnad.** Så länge tidsfönstret innehåller tid då OneUptime självt inte tog emot data (det startade om, uppgraderades eller arbetade ikapp en eftersläpning) väntar kontrollen: statusen ändras inte, och ingen incident eller varning öppnas eller löses. Se [När OneUptime inte tar emot data](/docs/monitor/when-oneuptime-is-not-receiving).
+- **OneUptimes eget avbrott är inte tystnad.** Så länge tidsfönstret innehåller tid då OneUptime självt inte tog emot data (det startade om, uppgraderades eller arbetade ikapp en eftersläpning) väntar kontrollen: statusen ändras inte, och ingen incident eller larm öppnas eller löses. Se [När OneUptime inte tar emot data](/docs/monitor/when-oneuptime-is-not-receiving).
 - **Kriterier uppifrån och ned.** Det första kriteriet som matchar avgör, så lägg det allvarligaste överst.
 
 Varje statusändring registreras med sin orsak på monitorns **Statustidslinje**.
@@ -160,6 +160,6 @@ Det är förväntat. Lösta undantag räknas inte, så antalet sjönk och kriter
 :::cards
 - [Spårningsövervakning](/docs/monitor/traces-monitor): Varnas om misslyckade spans och slutpunkter.
 - [Loggövervakning](/docs/monitor/logs-monitor): Varnas om loggvolym och logginnehåll.
-- [Incident- och varningsmallar](/docs/monitor/incident-alert-templating): Skriv användbara titlar och beskrivningar för varningar.
+- [Incident- och larmmallar](/docs/monitor/incident-alert-templating): Skriv användbara titlar och beskrivningar för larm.
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Skicka undantag till OneUptime.
 :::

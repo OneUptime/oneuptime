@@ -45,7 +45,7 @@ Aprite un criterio: ha un nome e tre sezioni, ognuna delle quali si chiude in un
 
 ### Filtri
 
-Un filtro legge un dato dal controllo e lo confronta: un **Tipo di filtro** (cosa leggere, come **Codice di stato della risposta**), una **Condizione del filtro** (come confrontare, come **Maggiore di**) e un **Valore**. I monitor che confrontano metriche, come i monitor Kubernetes e di metriche, chiedono invece una **Condizione** e un **Threshold**. Ogni tipo di monitor offre i propri tipi di filtro, elencati nella sua pagina, per esempio [Monitor sito web](/docs/monitor/website-monitor#criteri-di-monitoraggio).
+Un filtro legge un dato dal controllo e lo confronta: un **Tipo di filtro** (cosa leggere, come **Codice di stato della risposta**), una **Condizione del filtro** (come confrontare, come **Maggiore di**) e un **Valore**. I monitor che confrontano metriche, come i monitor Kubernetes e di metriche, chiedono invece una **Condizione** e un **Soglia**. Ogni tipo di monitor offre i propri tipi di filtro, elencati nella sua pagina, per esempio [Monitor sito web](/docs/monitor/website-monitor#criteri-di-monitoraggio).
 
 Con due o più filtri, sotto di essi compare la **Condizione di corrispondenza**: **Tutti** significa che ogni filtro deve corrispondere, **Qualsiasi** che ne basta uno. Un nuovo criterio parte da **Tutti**.
 

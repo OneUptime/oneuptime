@@ -46,7 +46,7 @@ Trinnet tager sin udgang **Succes**, så snart serveren har taget imod hver linj
 ## Før du begynder
 
 - På OneUptime Cloud planen **Growth** eller en højere: workflows og deres variabler er en del af den. Selvhostede installationer uden fakturering har ingen plangrænser.
-- En rolle, der bygger workflows: **Project Owner**, **Project Admin** eller **Workflow Admin**.
+- En rolle, der bygger workflows: **Projektejer**, **Projektadministrator** eller **Arbejdsgangsadministrator**.
 - En konto på IRC-netværket, hvis det vil have dig logget ind. Det vil Libera.Chat for forbindelser fra nogle cloud- og VPN-adresser.
 
 ## Opsæt integrationen
@@ -87,7 +87,7 @@ Start fra skabelonen, som bygger hele workflowet for dig, eller fra bunden.
 Workflowet åbner i **Bygger** med tre trin: **On Create Incident**; **Send Message to IRC**, som poster hændelsens nummer, titel, alvorlighed og tilstand på to linjer; og et **Log**-trin på dens udgang **Fejl**, som noterer, hvorfor en besked ikke blev leveret. Serveren og kanalen gemmes som workflowets variabler `ircServer` og `ircChannel`. Har du gemt adgangskoder i det forrige trin, så klik på **Send Message to IRC**, åbn **Flere felter**, og vælg hver variabel med knappen **{ }** i dens indstilling.
 @tab Fra bunden
 1. Åbn **Arbejdsgange**, klik på **Opret arbejdsgang**, vælg **Start fra bunden**, giv workflowet et navn, og klik på **Opret arbejdsgang**.
-2. Klik i **Bygger** på **Choose what starts this workflow**, og vælg **On Create Incident** under **Popular**. Klik på triggeren, og vælg i **Fields to pass on** de felter fra hændelsen, som din besked viser, for eksempel dens titel.
+2. Klik i **Bygger** på **Vælg, hvad der starter denne arbejdsgang**, og vælg **On Create Incident** under **Populære**. Klik på triggeren, og vælg i **Fields to pass on** de felter fra hændelsen, som din besked viser, for eksempel dens titel.
 3. Klik på **Tilføj komponent**, søg efter `irc`, og klik på **Send Message to IRC**. Forbind triggerens udgang **Succes** med trinnet.
 4. Klik på det nye trin, og udfyld **IRC Server**, **Channel** og **Message Text**. Knappen **{ }** i **Message Text** indsætter felter fra hændelsen, for eksempel dens titel.
 5. Har du gemt adgangskoder i det forrige trin, så åbn **Flere felter**. Klik i **Server Password**, **SASL Password** eller **Channel Key** på **{ }**, og vælg variablen under **Global variables**. Skriv din kontos navn i **SASL Username**.

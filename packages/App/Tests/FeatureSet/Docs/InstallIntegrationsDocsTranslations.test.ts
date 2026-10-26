@@ -31,7 +31,6 @@ import {
   tableShape,
   toLatinDigits,
 } from "./DocsTranslationChecks";
-import { PermissionHelper } from "Common/Types/Permission";
 import {
   ConnectCallbackError,
   ConnectProvider,
@@ -39,6 +38,7 @@ import {
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { isPermissionTitleKeptInEnglish } from "./DocsRoleNames";
 
 /*
  * Docs overhaul task 15: Local Development, Docker Compose, Sizing &
@@ -119,24 +119,10 @@ const PAGE_NAMES: Array<string> = PAGES.map((entry: TranslatedPage): string => {
 
 // Roles and permissions, as the role pickers and the API name them.
 const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
-  [SLACK]: ["Project Owner", "Project Admin", "Project Member"],
-  [TEAMS]: ["Project Owner", "Project Admin", "Project Member"],
-  [TWILIO]: [
-    "Project Owner",
-    "Project Admin",
-    "Create Call and SMS",
-    "Read Call and SMS",
-    "Billing Admin",
-    "Manage Billing",
-  ],
-  [GITHUB]: [
-    "Project Owner",
-    "Project Admin",
-    "Project Member",
-    "Settings Admin",
-    "Settings Member",
-    "Create Code Repository",
-  ],
+  [SLACK]: [],
+  [TEAMS]: [],
+  [TWILIO]: ["Create Call and SMS", "Read Call and SMS", "Manage Billing"],
+  [GITHUB]: ["Create Code Repository"],
 };
 
 /*
@@ -739,14 +725,6 @@ function occurrences(text: string, needle: string): number {
   return needle ? text.split(needle).length - 1 : 0;
 }
 
-function isPermissionOrRole(name: string): boolean {
-  return PermissionHelper.getAllPermissionProps().some(
-    (props: { title: string }): boolean => {
-      return props.title === name;
-    },
-  );
-}
-
 function listed(
   lists: Record<string, Array<string>>,
   page: string,
@@ -1105,7 +1083,7 @@ describe("the lists this test keeps", () => {
         expect({ page, name, permission: true }).toEqual({
           page,
           name,
-          permission: isPermissionOrRole(name),
+          permission: isPermissionTitleKeptInEnglish(name),
         });
       }
     }

@@ -46,41 +46,41 @@ Il riquadro di un elenco rimanda ai suoi termini: Feodo Tracker è libero per qu
 :::steps
 ### Apri Threat Intel
 
-Apri **Prodotti → Security Events → Detections → Threat Intel**.
+Apri **Prodotti → Security Events → Rilevamenti → Threat Intel**.
 
 ### Crea il feed
 
-Fai clic su **Crea: Threat Intel Feed** e scegli la sua **Origine**: **Elenco di indicatori**, **Raccolta TAXII** o **Google SecOps**. Il passo successivo chiede solo quella origine: l'**URL dell'elenco** per un elenco, il **Server TAXII** e l'**Accesso** per una raccolta, oppure la **Connessione Google SecOps**. **In caso di corrispondenza** viene per ultimo. I campi sono nella tabella qui sotto.
+Fai clic su **Crea: Feed di threat intel** e scegli la sua **Origine**: **Elenco di indicatori**, **Raccolta TAXII** o **Google SecOps**. Il passo successivo chiede solo quella origine: l'**URL dell'elenco** per un elenco, il **Server TAXII** e l'**Accesso** per una raccolta, oppure la **Connessione Google SecOps**. **In caso di corrispondenza** viene per ultimo. I campi sono nella tabella qui sotto.
 
 ### Controlla la prima interrogazione
 
-Entro un paio di minuti la riga del feed mostra **Last Polled**, e **Last Poll Summary** dice cosa ha recuperato l'interrogazione. Gli indicatori compaiono nella tabella **Indicatori**, sotto i feed.
+Entro un paio di minuti la riga del feed mostra **Ultima interrogazione**, e **Riepilogo dell'ultima interrogazione** dice cosa ha recuperato l'interrogazione. Gli indicatori compaiono nella tabella **Indicatori**, sotto i feed.
 :::
 
 | Campo | Cosa inserire |
 | --- | --- |
 | **Origine** | Da dove arrivano gli indicatori. Si imposta quando il feed viene creato: un feed di un'altra origine è un nuovo feed. |
 | **URL dell'elenco** | Per un elenco: l'indirizzo `https` di un file di testo con un indirizzo IP, un dominio, un URL o un hash di file per riga. |
-| **Confidence** | Per un elenco: quanto è sicuro l'elenco, da 1 a 100. Ogni indicatore dell'elenco lo riceve, e stabilisce il [livello di minaccia](#livelli-di-minaccia); vuoto vale Medium. |
-| **Connessione Google SecOps** | Per Google SecOps: la connessione la cui chiave legge gli indicatori che Google SecOps ha trovato. **Connetti Google SecOps** apre **Connections** quando non ce n'è nessuna. |
-| **TAXII API Root URL** | La radice dell'API TAXII 2.1 del server, come `https://taxii.example.com/api1/`. Le raccolte si indirizzano sotto di essa. |
-| **Collection ID** | La raccolta che pubblica gli indicatori. |
-| **Poll Interval (Minutes)** | Ogni quanto leggere l'origine: da 1 a 1440 minuti, 60 per impostazione predefinita. Un elenco si legge al massimo ogni 15 minuti. |
-| **Minimum Confidence** | Per una raccolta TAXII o Google SecOps: gli indicatori con una confidenza più bassa vengono saltati, da 0 a 100, e 0 tiene tutto. Gli indicatori senza confidenza passano sempre. |
+| **Confidenza** | Per un elenco: quanto è sicuro l'elenco, da 1 a 100. Ogni indicatore dell'elenco lo riceve, e stabilisce il [livello di minaccia](#livelli-di-minaccia); vuoto vale Medium. |
+| **Connessione Google SecOps** | Per Google SecOps: la connessione la cui chiave legge gli indicatori che Google SecOps ha trovato. **Connetti Google SecOps** apre **Connessioni** quando non ce n'è nessuna. |
+| **URL radice dell'API TAXII** | La radice dell'API TAXII 2.1 del server, come `https://taxii.example.com/api1/`. Le raccolte si indirizzano sotto di essa. |
+| **ID della raccolta** | La raccolta che pubblica gli indicatori. |
+| **Intervallo di interrogazione (minuti)** | Ogni quanto leggere l'origine: da 1 a 1440 minuti, 60 per impostazione predefinita. Un elenco si legge al massimo ogni 15 minuti. |
+| **Confidenza minima** | Per una raccolta TAXII o Google SecOps: gli indicatori con una confidenza più bassa vengono saltati, da 0 a 100, e 0 tiene tutto. Gli indicatori senza confidenza passano sempre. |
 | **Accesso** | Come accede OneUptime: **Nessun accesso** per una raccolta pubblica, **Token bearer** per un token fornito dall'operatore del server, o **Nome utente e password** per l'autenticazione HTTP basic. |
-| **API Token**, **Basic Auth Username** e **Basic Auth Password** | Richiesti solo per l'accesso scelto. |
-| **Open a Case on Match** | Attivo per impostazione predefinita: ogni evento che nomina un indicatore apre un [caso](/docs/telemetry/security-cases) su di esso, o si aggiunge al caso aperto che già lo riguarda. |
+| **Token API**, **Nome utente Basic Auth** e **Password Basic Auth** | Richiesti solo per l'accesso scelto. |
+| **Apri un caso in caso di corrispondenza** | Attivo per impostazione predefinita: ogni evento che nomina un indicatore apre un [caso](/docs/telemetry/security-cases) su di esso, o si aggiunge al caso aperto che già lo riguarda. |
 | **Avvisi e incidenti** | **Crea un avviso** per impostazione predefinita: ogni indicatore corrispondente apre un avviso. |
 | **Gravità avviso** | La gravità di ogni avviso aperto da questo feed. Lasciala vuota per prendere il livello di minaccia di ogni indicatore. |
 | **Dichiara un incidente** o **Entrambi** | In **Avvisi e incidenti**. Gli incidenti guidano l'escalation della reperibilità, gli SLA e le pagine di stato, e per le corrispondenze di indicatori di solito bastano gli avvisi. |
 | **Gravità incidente** | Come **Gravità avviso**, per gli incidenti. |
-| **Write Detection Finding on Match** | Attivo per impostazione predefinita: ogni corrispondenza scrive una risultanza nel flusso di eventi. |
+| **Scrivi un Detection Finding in caso di corrispondenza** | Attivo per impostazione predefinita: ogni corrispondenza scrive una risultanza nel flusso di eventi. |
 
-Token e password di un feed TAXII vengono cifrati e non sono più mostrati dopo il salvataggio. Per cambiarli, scegli **Update Credentials** nella riga del feed e poi **Token bearer**, **Nome utente e password** o **Nessun accesso**, che cancella quanto salvato: la tua scelta sostituisce l'accesso del feed, quindi salvare un token cancella una password salvata, e viceversa.
+Token e password di un feed TAXII vengono cifrati e non sono più mostrati dopo il salvataggio. Per cambiarli, scegli **Aggiorna le credenziali** nella riga del feed e poi **Token bearer**, **Nome utente e password** o **Nessun accesso**, che cancella quanto salvato: la tua scelta sostituisce l'accesso del feed, quindi salvare un token cancella una password salvata, e viceversa.
 
 ### Come viene interrogato un feed
 
-Ogni interrogazione chiede gli oggetti aggiunti dalla precedente, tramite il cursore TAXII `added_after`, e legge fino a 10 pagine da 500 oggetti. Una raccolta grande si sincronizza quindi in più interrogazioni: **Last Poll Summary** dice quando restano pagine. Per finire prima una grande prima sincronizzazione, abbassa il **Poll Interval (Minutes)**, fino a 1, finché non si mette in pari.
+Ogni interrogazione chiede gli oggetti aggiunti dalla precedente, tramite il cursore TAXII `added_after`, e legge fino a 10 pagine da 500 oggetti. Una raccolta grande si sincronizza quindi in più interrogazioni: **Riepilogo dell'ultima interrogazione** dice quando restano pagine. Per finire prima una grande prima sincronizzazione, abbassa il **Intervallo di interrogazione (minuti)**, fino a 1, finché non si mette in pari.
 
 Le interrogazioni si identificano con lo user agent `OneUptime/<version> (+https://oneuptime.com)`. Se il firewall del fornitore risponde `403`, chiedigli di consentirlo: molti firewall bloccano le richieste che sembrano uno script senza nome.
 
@@ -90,7 +90,7 @@ Un feed disattivato non viene né interrogato né confrontato. Gli indicatori ch
 
 - Ogni interrogazione scarica l'intero elenco e lo legge una riga alla volta: il primo valore di una riga, fino a uno spazio, una tabulazione, una virgola o un punto e virgola. Le righe che iniziano con `#`, `;` o `//` sono commenti, la porta dopo un indirizzo o un dominio viene tolta, e un intervallo di indirizzi come `198.51.100.0/24` viene saltato.
 - Un valore resta un indicatore attivo per 2 giorni dopo l'interrogazione che l'ha letto per ultima, e un valore che l'elenco toglie smette di corrispondere all'interrogazione successiva. Un elenco che non è cambiato viene riscritto una volta al giorno.
-- Un elenco contiene al massimo 50.000 indicatori. **Last Poll Summary** dice quanti ne sono stati letti, quante righe sono state saltate e quanti sono stati lasciati fuori.
+- Un elenco contiene al massimo 50.000 indicatori. **Riepilogo dell'ultima interrogazione** dice quanti ne sono stati letti, quante righe sono state saltate e quanti sono stati lasciati fuori.
 - L'indirizzo deve usare `https` e segue le stesse regole in uscita di una connessione: su OneUptime Cloud un indirizzo privato viene rifiutato.
 
 ### Come viene letto Google SecOps
@@ -121,7 +121,7 @@ I confronti uniti con `OR`, dentro un `[...]` o tra più di essi, vanno bene, e 
 [ipv4-addr:value = '198.51.100.7'] OR [url:value = 'http://evil.example/x']
 ```
 
-Qualsiasi altro pattern, con `AND`, `FOLLOWEDBY`, `NOT`, `LIKE`, `MATCHES`, un qualificatore temporale come `WITHIN` o un altro tipo di oggetto, viene saltato per intero e contato come non supportato in **Last Poll Summary**. Tradurre solo una parte di un pattern `AND` corrisponderebbe a molto più di quanto intendesse l'autore del feed.
+Qualsiasi altro pattern, con `AND`, `FOLLOWEDBY`, `NOT`, `LIKE`, `MATCHES`, un qualificatore temporale come `WITHIN` o un altro tipo di oggetto, viene saltato per intero e contato come non supportato in **Riepilogo dell'ultima interrogazione**. Tradurre solo una parte di un pattern `AND` corrisponderebbe a molto più di quanto intendesse l'autore del feed.
 
 ### Per quanto tempo un indicatore resta attivo
 
@@ -129,7 +129,7 @@ Qualsiasi altro pattern, con `AND`, `FOLLOWEDBY`, `NOT`, `LIKE`, `MATCHES`, un q
 - Un indicatore revocato, o aggiornato con un `valid_until` nel passato, smette di corrispondere appena l'aggiornamento viene interrogato. Lo stesso vale per un valore che il fornitore toglie da un pattern aggiornato.
 - I valori vengono salvati in minuscolo e confrontati senza badare a maiuscole e minuscole.
 
-La tabella **Indicatori** elenca gli indicatori come sono salvati, con uno **Stato** **Attivo**, **Scaduto** o **Revoked**. Un indicatore interrogato di nuovo può comparire due volte per un po', e una riga scaduta o revocata resta in elenco finché la pulizia dello spazio di archiviazione non la rimuove, fino a circa un mese dopo la scadenza. Il confronto controlla sempre validità e revoca, quindi una riga così non corrisponde mai.
+La tabella **Indicatori** elenca gli indicatori come sono salvati, con uno **Stato** **Attivo**, **Scaduto** o **Revocato**. Un indicatore interrogato di nuovo può comparire due volte per un po', e una riga scaduta o revocata resta in elenco finché la pulizia dello spazio di archiviazione non la rimuove, fino a circa un mese dopo la scadenza. Il confronto controlla sempre validità e revoca, quindi una riga così non corrisponde mai.
 
 ## Come si trovano le corrispondenze
 
@@ -170,13 +170,13 @@ Ogni minuto, gli indicatori attivi di ogni feed abilitato vengono confrontati co
 - Il primo controllo copre gli ultimi 15 minuti. Dopo un'interruzione, il controllo successivo recupera al massimo le ultime 24 ore.
 - Ogni finestra viene controllata una volta. La threat intelligence che arriva dopo il controllo della sua finestra vale solo per gli eventi successivi.
 - Un evento che arriva in ritardo, con un orario precedente al controllo precedente, viene comunque marcato all'arrivo, ma non confrontato.
-- Ogni controllo registra ogni valore di indicatore corrispondente come Detection Finding, fino a 10.000 per feed. Avvisi, incidenti e casi si aprono per i 100 valori visti nel maggior numero di eventi; gli altri condividono un caso sul feed, e il **Last Match Error** del feed dice quanti hanno corrisposto.
+- Ogni controllo registra ogni valore di indicatore corrispondente come Detection Finding, fino a 10.000 per feed. Avvisi, incidenti e casi si aprono per i 100 valori visti nel maggior numero di eventi; gli altri condividono un caso sul feed, e il **Ultimo errore di corrispondenza** del feed dice quanti hanno corrisposto.
 
 ### Cosa fa una corrispondenza
 
 - Un avviso, intitolato `[Threat Intel] <feed name> — <indicator value>`, uno per feed e valore finché resta aperto. Una volta risolto, la corrispondenza successiva ne apre uno nuovo. Gli avvisi non si risolvono automaticamente.
 - Un incidente, solo con **Dichiara un incidente** o **Entrambi** in **Avvisi e incidenti**, deduplicato allo stesso modo.
-- Una risultanza di threat intelligence, con **Write Detection Finding on Match**: un evento `Detection Finding` (classe OCSF 2004) del prodotto `OneUptime Threat Intel`, con il livello di minaccia dell'indicatore come gravità e questi attributi:
+- Una risultanza di threat intelligence, con **Scrivi un Detection Finding in caso di corrispondenza**: un evento `Detection Finding` (classe OCSF 2004) del prodotto `OneUptime Threat Intel`, con il livello di minaccia dell'indicatore come gravità e questi attributi:
 
 | Attributo | Valore |
 | --- | --- |
@@ -206,7 +206,7 @@ Un indicatore non valutato conta come Medium: qualcuno ha comunque scelto di met
 2. La tua gravità che prende il nome dal livello di minaccia, come High, a prescindere da maiuscole e minuscole.
 3. Per rango: Critical e High prendono la tua gravità più alta, Medium e Low la più bassa.
 
-Il livello di minaccia appartiene a ogni indicatore, non al feed, quindi uno stesso feed può aprire un avviso Critical e uno Low nello stesso minuto. **Minimum Confidence** filtra sullo stesso numero: un minimo di 70 tiene solo gli indicatori High e Critical, più quelli non valutati, che passano sempre.
+Il livello di minaccia appartiene a ogni indicatore, non al feed, quindi uno stesso feed può aprire un avviso Critical e uno Low nello stesso minuto. **Confidenza minima** filtra sullo stesso numero: un minimo di 70 tiene solo gli indicatori High e Critical, più quelli non valutati, che passano sempre.
 
 ## Sorveglia le corrispondenze di un feed
 
@@ -219,11 +219,11 @@ Gli indicatori sono configurazione, non telemetria, e non vengono fatturati come
 ## Risoluzione dei problemi
 
 :::details Dopo un'interrogazione è impostato Last Error
-`401` o `403`: le credenziali sono sbagliate o mancano; sostituiscile con **Update Credentials**. Un `403` può anche essere il firewall del fornitore che blocca lo user agent. `404`: controlla la **TAXII API Root URL**, che di solito termina con un percorso come `/api1/`, e il **Collection ID**. L'errore sparisce alla successiva interrogazione riuscita.
+`401` o `403`: le credenziali sono sbagliate o mancano; sostituiscile con **Aggiorna le credenziali**. Un `403` può anche essere il firewall del fornitore che blocca lo user agent. `404`: controlla la **URL radice dell'API TAXII**, che di solito termina con un percorso come `/api1/`, e il **ID della raccolta**. L'errore sparisce alla successiva interrogazione riuscita.
 :::
 
 :::details Il feed viene interrogato, ma non compaiono indicatori
-Leggi **Last Poll Summary**. Nessun oggetto recuperato: la raccolta è vuota o non pubblica indicatori. Pattern non supportati: il fornitore usa funzioni di pattern che questa pagina elenca come saltate. Sotto la confidenza minima: abbassa la **Minimum Confidence**. Già inattivi: il fornitore ha inviato indicatori già revocati o scaduti.
+Leggi **Riepilogo dell'ultima interrogazione**. Nessun oggetto recuperato: la raccolta è vuota o non pubblica indicatori. Pattern non supportati: il fornitore usa funzioni di pattern che questa pagina elenca come saltate. Sotto la confidenza minima: abbassa la **Confidenza minima**. Già inattivi: il fornitore ha inviato indicatori già revocati o scaduti.
 :::
 
 :::details Gli indicatori ci sono, ma non corrisponde nulla

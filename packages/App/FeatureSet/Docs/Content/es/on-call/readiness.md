@@ -59,7 +59,7 @@ Solo la propia persona puede añadir y verificar sus métodos de notificación y
 3. Confirma. Cada persona recibe un correo que nombra lo que falta en su propia configuración, con un enlace a la página que lo arregla.
 :::
 
-Después, un aviso indica cuántos recordatorios se enviaron, se omitieron o fallaron, y por qué en cada uno que no se envió. A nadie se le recuerda más de una vez cada 24 horas, y un envío llega como máximo a 250 personas. Enviar recordatorios requiere **Project Owner**, **Project Admin** u **On-Call Admin**, o **Edit On-Call Duty Policy** en un rol personalizado.
+Después, un aviso indica cuántos recordatorios se enviaron, se omitieron o fallaron, y por qué en cada uno que no se envió. A nadie se le recuerda más de una vez cada 24 horas, y un envío llega como máximo a 250 personas. Enviar recordatorios requiere **Propietario del proyecto**, **Administrador del proyecto** u **Administrador de guardias**, o **Edit On-Call Duty Policy** en un rol personalizado.
 
 ## La preparación en otras páginas
 

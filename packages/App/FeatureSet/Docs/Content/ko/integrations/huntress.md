@@ -40,7 +40,7 @@ sequenceDiagram
 
 ## 시작하기 전에
 
-- OneUptime에서 워크플로를 만들고 편집할 수 있는 역할(예: **Project Owner**, **Project Admin**, **Workflow Admin**).
+- OneUptime에서 워크플로를 만들고 편집할 수 있는 역할(예: **프로젝트 소유자**, **프로젝트 관리자**, **워크플로 관리자**).
 - Huntress의 **Account Admin** 역할. 웹훅은 계정 관리자만 추가할 수 있습니다.
 - 호출할 온콜 정책.
 - OneUptime Cloud에서는 워크플로가 포함된 요금제(Growth 이상). Huntress가 보내는 이벤트 하나가 워크플로 실행 한 번입니다.

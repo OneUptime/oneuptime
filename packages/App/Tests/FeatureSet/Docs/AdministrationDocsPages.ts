@@ -111,12 +111,9 @@ export const PERMISSION_TITLES: Readonly<
   Record<string, ReadonlyArray<string>>
 > = {
   [INVITING_PEOPLE]: ["Invite New Members"],
-  [PROJECT_SETTINGS]: ["Billing Admin", "Manage Billing"],
+  [PROJECT_SETTINGS]: ["Manage Billing"],
   [BILLING]: [
     "Manage Billing",
-    "Billing Admin",
-    "Billing Member",
-    "Billing Viewer",
     "Read Invoices",
     "Create Payment Method",
     "Edit Invoices",
@@ -255,9 +252,6 @@ export const PRODUCT_NAMES: ReadonlyArray<string> = [
   "Scale",
   "Enterprise",
   "Free",
-  "Project Owner",
-  "Project Admin",
-  "Settings Admin",
 ];
 
 /*

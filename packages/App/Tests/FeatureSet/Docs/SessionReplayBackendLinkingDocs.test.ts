@@ -4,6 +4,7 @@ import {
   buildSessionTraceStateMember,
 } from "Common/Utils/Rum/SessionTraceState";
 import { escapeRegExp } from "./DocsTranslationChecks";
+import { drawnDashboardLabel } from "./DocsDashboardLabels";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -1052,9 +1053,9 @@ describe("the Persian mirrors carry the same change", (): void => {
       )}`,
     );
     // The default, "On", unbolded as the English privacy table writes it.
-    expect(tableRow(sessionReplay, `**${SWITCH_TITLE}**`)).toContain(
-      "| روشن |",
-    );
+    expect(
+      tableRow(sessionReplay, `**${drawnDashboardLabel("fa", SWITCH_TITLE)}**`),
+    ).toContain("| روشن |");
 
     for (const snippet of [
       "remoteParentSampled: new TraceIdRatioBasedSampler(0.1)",

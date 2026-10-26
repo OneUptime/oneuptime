@@ -160,7 +160,7 @@ Spårfält tar ett vanligt värde eller en lista som `status:(ok OR unset)`, och
 
 Lösa ord söker i undantagsmeddelandet.
 
-Utforskaren **Security Events** använder samma språk med egna fält, som `severity`, `tactic` och `user`: se [Security Events](/docs/telemetry/security-events).
+Utforskaren **Säkerhetshändelser** använder samma språk med egna fält, som `severity`, `tactic` och `user`: se [Security Events](/docs/telemetry/security-events).
 
 ## Kombinera filter
 

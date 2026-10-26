@@ -11,6 +11,7 @@ import {
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { writtenPermissionTitle } from "./DocsRoleNames";
 
 /*
  * Connecting a GitHub App installation, as the self-hosted GitHub guide
@@ -98,7 +99,10 @@ describe("the self-hosted GitHub guide, in every language", () => {
       const guide: string = readGuide(language);
 
       for (const title of titles) {
-        expect([language, title, guide.includes(`**${title}**`)]).toEqual([
+        // A role reads as the language's Dashboard names it.
+        const written: string = writtenPermissionTitle(language, title);
+
+        expect([language, title, guide.includes(`**${written}**`)]).toEqual([
           language,
           title,
           true,

@@ -205,9 +205,8 @@ export const PRODUCTION_REVIEW_COPY: {
   ),
   /*
    * When an exception was last thrown. {{time}} is "5 minutes ago" in the
-   * reader's words - its own sentence, not the shared "Last seen {{time}}",
-   * which other pages fill with an English time and most languages keep
-   * English for it.
+   * reader's words - its own sentence, not the shared "Last seen {{time}}":
+   * an exception is thrown, not seen.
    */
   lastThrown: translationKey("Last thrown {{time}}"),
   declared: translationKey("Declared {{time}}"),

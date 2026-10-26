@@ -173,17 +173,14 @@ describe("tables under a facet bar tell their empty state about the chips", () =
     };
 
     for (const count of [0, 1, null]) {
-      for (const isAddedByHand of [false, true]) {
-        const options: ReturnType<typeof getFirstRunEmptyState> =
-          getFirstRunEmptyState({ emptyState: chips, count, isAddedByHand });
+      const options: ReturnType<typeof getFirstRunEmptyState> =
+        getFirstRunEmptyState({ emptyState: chips, count });
 
-        expect({
-          count,
-          isAddedByHand,
-          isFiltered: options.isFiltered,
-        }).toEqual({ count, isAddedByHand, isFiltered: true });
-        expect(options.onClearFilters).toBe(onClearFilters);
-      }
+      expect({
+        count,
+        isFiltered: options.isFiltered,
+      }).toEqual({ count, isFiltered: true });
+      expect(options.onClearFilters).toBe(onClearFilters);
     }
   });
 

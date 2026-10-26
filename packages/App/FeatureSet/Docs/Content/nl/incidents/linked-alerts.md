@@ -121,7 +121,7 @@ Welke je ook gebruikt, je komt op het gebruikelijke formulier **Nieuw incident m
 | **Labels**             | Elk label van elke geselecteerde waarschuwing.                                                                                                                                                                                                                                         |
 | **Privé-incident**     | Aan als een van de waarschuwingen privé is. Het formulier zegt dat, en de eigenaren van de waarschuwingen worden eigenaar van het incident — zie hieronder.                                                                                                                             |
 
-"Ernstigste" volgt de volgorde van je waarschuwingsernstniveaus: het eerste ernstniveau voor waarschuwingen in de lijst is het ernstigste. Met de ernstniveaus waarmee elk project begint, wordt een waarschuwing **High** een **Critical Incident** en een waarschuwing **Low** een **Major Incident**.
+"Ernstigste" volgt de volgorde van je waarschuwingsernstniveaus: het eerste ernstniveau voor waarschuwingen in de lijst is het ernstigste. Met de ernstniveaus waarmee elk project begint, wordt een waarschuwing **Hoog** een **Critical Incident** en een waarschuwing **Laag** een **Major Incident**.
 
 Alles is bewerkbaar voordat je verstuurt. **Labels** en **Privé-incident** staan onder **Meer velden** op de eerste stap van het formulier, waarvan de ingeklapte kop elk van beide toont zolang het is ingesteld.
 

@@ -54,7 +54,7 @@ OneUptime Cloud에서는 SSO로 프로젝트에 참여한 사람도 초대한 �
 
 ## SSO 설정
 
-SSO 공급자를 추가할 권한(**Project Owner**, **Project Admin** 또는 **Create Project SSO**)이 필요하며, OneUptime Cloud에서는 **Scale** 플랜도 필요합니다. ID 공급자 쪽 설정은 [ID 공급자별 가이드](#id-공급자별-가이드)를 참고하세요.
+SSO 공급자를 추가할 권한(**프로젝트 소유자**, **프로젝트 관리자** 또는 **Create Project SSO**)이 필요하며, OneUptime Cloud에서는 **Scale** 플랜도 필요합니다. ID 공급자 쪽 설정은 [ID 공급자별 가이드](#id-공급자별-가이드)를 참고하세요.
 
 :::steps
 1. **프로젝트 설정으로 이동**
@@ -248,7 +248,7 @@ OneUptime의 SSO는 SAML 2.0을 사용하며 규격을 준수하는 모든 ID �
 
 ## OpenID Connect (OIDC)
 
-프로젝트는 Google Workspace, Okta, Microsoft Entra ID, Auth0, Keycloak 같은 OpenID Connect 공급자로도 로그인할 수 있습니다. OIDC 공급자를 추가할 권한(**Project Owner**, **Project Admin** 또는 **Create Project OIDC**)이 필요하며, OneUptime Cloud에서는 **Scale** 플랜도 필요합니다.
+프로젝트는 Google Workspace, Okta, Microsoft Entra ID, Auth0, Keycloak 같은 OpenID Connect 공급자로도 로그인할 수 있습니다. OIDC 공급자를 추가할 권한(**프로젝트 소유자**, **프로젝트 관리자** 또는 **Create Project OIDC**)이 필요하며, OneUptime Cloud에서는 **Scale** 플랜도 필요합니다.
 
 :::steps
 1. ID 공급자에 PKCE를 사용하는 인증 코드 흐름을 쓸 수 있는 앱(OIDC 클라이언트)을 등록하고, 그 앱의 **발급자 URL**, **클라이언트 ID**, **클라이언트 시크릿**을 복사합니다.

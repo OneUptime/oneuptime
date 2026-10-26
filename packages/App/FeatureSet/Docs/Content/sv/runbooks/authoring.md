@@ -29,7 +29,7 @@ Klicka på **Skapa Runbook**, ange ett **Namn** och eventuellt en **Beskrivning*
 
 ### Lägg till steg
 
-Under **Start your runbook** väljer du typen för det första steget; under det sista steget erbjuder **Add another step** samma sju typer. Varje steg öppnas med sin **Titel** och det som dess typ behöver; resten, till exempel dess **Beskrivning** och tidsgränser, är hopfällt under **Fler fält**. När runbooket har ett steg lägger **Lägg till steg** högst upp på kortet till ett Manual-steg.
+Under **Kom igång med din runbook** väljer du typen för det första steget; under det sista steget erbjuder **Lägg till ett steg till** samma sju typer. Varje steg öppnas med sin **Titel** och det som dess typ behöver; resten, till exempel dess **Beskrivning** och tidsgränser, är hopfällt under **Fler fält**. När runbooket har ett steg lägger **Lägg till steg** högst upp på kortet till ett Manual-steg.
 
 ### Ordna stegen
 
@@ -37,7 +37,7 @@ Steg körs **i ordning**. Du ändrar ordningen genom att dra ett steg i handtage
 
 ### Spara stegen
 
-Klicka på **Save Steps**. Tills du gör det visar redigeraren **Osparade ändringar**. När de är sparade ser du **Sparad**, och runbooket är redo att [köras](/docs/runbooks/running).
+Klicka på **Spara steg**. Tills du gör det visar redigeraren **Osparade ändringar**. När de är sparade ser du **Sparad**, och runbooket är redo att [köras](/docs/runbooks/running).
 :::
 
 ## Hur ett steg är uppbyggt
@@ -79,7 +79,7 @@ Ett stycke JavaScript som körs i en `isolated-vm`-sandlåda på en [runbook-age
 | Fält | Vad det gör | Standard |
 | --- | --- | --- |
 | **Runner** | Under **Fler fält**. Den Runner som kör steget: **Global Runner** eller en av dina egna. Bara den Runner du väljer får ta jobbet; vilken global Runner som helst får ta ett steg på **Global Runner**. | [Projektets standard-Runner](/docs/runbooks/agents#projektets-standard-runner), om du har angett en; annars **Global Runner**, när det finns en |
-| **Script** | Den JavaScript-kod som ska köras. Returnera ett värde med `return` för att registrera det; varje rad från `console.log` registreras också. Ett kastat fel får steget att misslyckas. | — |
+| **Skript** | Den JavaScript-kod som ska köras. Returnera ett värde med `return` för att registrera det; varje rad från `console.log` registreras också. Ett kastat fel får steget att misslyckas. | — |
 | **Tidsgräns för körning** | Hur länge Runnern låter koden köra innan den river sandlådan. En global Runner låter den köra i högst 5 minuter. | 30 sekunder |
 | **Tidsgräns för övertagande** | Hur länge Workern väntar på att Runnern tar jobbet. | 2 minuter |
 
@@ -98,11 +98,11 @@ Ett utgående HTTP-anrop som görs av OneUptime Worker. Ingen Runner behövs.
 
 | Fält | Vad det gör | Standard |
 | --- | --- | --- |
-| **Method** | `GET`, `POST`, `PUT`, `PATCH`, `DELETE` eller `HEAD`. | `GET` |
+| **Metod** | `GET`, `POST`, `PUT`, `PATCH`, `DELETE` eller `HEAD`. | `GET` |
 | **URL** | Slutpunkten som ska anropas. | Tom |
-| **Headers (JSON)** | Under **Fler fält**. Ett JSON-objekt, till exempel `{ "Authorization": "Bearer ..." }`. Headers som inte är giltig JSON får steget att misslyckas. | Inga |
-| **Body** | Visas för `POST`, `PUT`, `PATCH` och `DELETE`. Skickas som JSON när den kan tolkas som JSON, annars som text. | Ingen |
-| **Request timeout** | Hur länge det väntas på slutpunktens svar innan steget misslyckas. | 30 sekunder |
+| **Rubriker (JSON)** | Under **Fler fält**. Ett JSON-objekt, till exempel `{ "Authorization": "Bearer ..." }`. Headers som inte är giltig JSON får steget att misslyckas. | Inga |
+| **Brödtext** | Visas för `POST`, `PUT`, `PATCH` och `DELETE`. Skickas som JSON när den kan tolkas som JSON, annars som text. | Ingen |
+| **Tidsgräns för begäran** | Hur länge det väntas på slutpunktens svar innan steget misslyckas. | 30 sekunder |
 
 Steget lyckas vid ett `2xx`- eller `3xx`-svar och misslyckas vid allt annat, med `HTTP <status>` som fel. Omdirigeringar följs inte. Svarets status, headers och body registreras, upp till 50 KB.
 
@@ -170,7 +170,7 @@ Kör kubectl-kommandon mot ett kluster. Skriptet körs med bash på Runnern, som
 | --- | --- |
 | **Runner** | Under **Fler fält**. Den Runner som kör kubectl. Den måste kunna nå klustrets API-server. Ett steg som inte väljer någon körs på projektets standard-Runner. |
 | **Kubeconfig** | Den hemliga variabel som innehåller klustrets kubeconfig, eller **Runnerns egen åtkomst**: Runnerns egen kubeconfig, eller dess tjänstkonto när den körs i klustret. Runnern skriver en kubeconfig till en fil som bara den kan läsa, och tar bort den när skriptet slutar. |
-| **Script** | kubectl-kommandona. Utdata fångas upp till 50 KB, och en slutkod som inte är noll gör att steget misslyckas. |
+| **Skript** | kubectl-kommandona. Utdata fångas upp till 50 KB, och en slutkod som inte är noll gör att steget misslyckas. |
 | **Tidsgräns för körning** | Hur länge Runnern låter skriptet köras innan den stoppar det med `SIGKILL`. Standard 30 sekunder. |
 | **Tidsgräns för övertagande** | Hur länge Workern väntar på att Runnern tar jobbet. Standard 2 minuter. |
 
@@ -190,9 +190,9 @@ Be AI att analysera, sammanfatta eller besluta något mitt i körningen. Svaret 
 | Fält | Vad det gör |
 | --- | --- |
 | **Prompt** | Vad AI:n ska göra. Till exempel: "Gå igenom outputen från de föregående stegen och säg om det är säkert att fortsätta med åtgärden." |
-| **LLM provider** | Valfritt. **Projektstandard** använder projektets standardleverantör. Lås en leverantör när steget behöver en viss modell, till exempel en självhostad modell för data som inte får lämna ditt nätverk. Se [LLM-leverantörer](/docs/ai/llm-provider). |
-| **Include previous step context** | När den är påslagen ser AI:n allt om de steg som kördes före det här: titel, typ, status, output och felmeddelanden. Den får upp till 4 000 tecken av varje stegs output. |
-| **Include trigger context** | När den är påslagen ser AI:n vad som startade körningen: den kopplade incidenten, larmet eller den schemalagda underhållshändelsen (beskrivning, allvarlighetsgrad, aktuellt tillstånd, berörda monitorer, grundorsak, tillståndstidslinje och publika anteckningar), eller vem som körde runbooket manuellt. |
+| **LLM-leverantör** | Valfritt. **Projektstandard** använder projektets standardleverantör. Lås en leverantör när steget behöver en viss modell, till exempel en självhostad modell för data som inte får lämna ditt nätverk. Se [LLM-leverantörer](/docs/ai/llm-provider). |
+| **Ta med kontext från föregående steg** | När den är påslagen ser AI:n allt om de steg som kördes före det här: titel, typ, status, output och felmeddelanden. Den får upp till 4 000 tecken av varje stegs output. |
+| **Ta med utlösarkontext** | När den är påslagen ser AI:n vad som startade körningen: den kopplade incidenten, larmet eller den schemalagda underhållshändelsen (beskrivning, allvarlighetsgrad, aktuellt tillstånd, berörda monitorer, grundorsak, tillståndstidslinje och publika anteckningar), eller vem som körde runbooket manuellt. |
 
 För att hålla en människa i loopen slår du på **Kräv godkännande** på steget efter ett AI-steg: AI:n analyserar, en person läser svaret, och det åtgärdande steget körs först när personen godkänner det.
 
@@ -226,7 +226,7 @@ Via API:t och Terraform är brytaren ett stegs fält `requireApprovalBeforeRunni
 
 ## Spara och redigera
 
-Ändringar av stegen träder i kraft när du klickar på **Save Steps**. Varje körning arbetar utifrån den ögonblicksbild som togs när den startade, så pågående körningar behåller de steg de startade med, och redigering skriver aldrig om historiken för tidigare körningar.
+Ändringar av stegen träder i kraft när du klickar på **Spara steg**. Varje körning arbetar utifrån den ögonblicksbild som togs när den startade, så pågående körningar behåller de steg de startade med, och redigering skriver aldrig om historiken för tidigare körningar.
 
 ## Ett genomgånget exempel
 

@@ -146,7 +146,7 @@ Elk team waarvan je lid bent, is onder **Eigenaren** één klik verwijderd, en d
 Open de pagina **Lidwaarschuwingen** van de episode, klik op **Waarschuwingen toevoegen** en vink de waarschuwingen aan die erbij horen, zoveel als u tegelijk nodig hebt. Wilt u liever bij de waarschuwingen beginnen, selecteer ze dan in de lijst **Waarschuwingen** en kies **Aan nieuwe episode toevoegen** onder **Bulkacties** (zie [Episodes](/docs/incidents/episodes)).
 :::
 
-Een episode die je zelf aanmaakt, heeft geen groeperingsregel, dus toont de lijst haar **Groeperingsregel** als **Manual**, en geen levenscyclusinstelling is erop van toepassing. Ze lost zichzelf nog steeds op zodra elke waarschuwing erin is opgelost.
+Een episode die je zelf aanmaakt, heeft geen groeperingsregel, dus toont de lijst haar **Groeperingsregel** als **Handmatig**, en geen levenscyclusinstelling is erop van toepassing. Ze lost zichzelf nog steeds op zodra elke waarschuwing erin is opgelost.
 
 ## Wat elke pagina van een episode toont
 

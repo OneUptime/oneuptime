@@ -27,6 +27,7 @@ import TimeRange from "Common/Types/Time/TimeRange";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import ValueFormatter from "Common/Utils/ValueFormatter";
 import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
+import { translateText } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Curated MetricView presets sharing one time-range state — explicitly
@@ -66,12 +67,16 @@ function buildQuery(
     "resource.vmware.vcenter.name": vcenterName,
     ...(spec.attributes || {}),
   };
+  /*
+   * The charts draw their titles, descriptions and legends as given, so the
+   * queries are built in the reader's words, each a key of its own.
+   */
   return {
     metricAliasData: {
       metricVariable: spec.variable,
-      title: spec.title,
-      description: spec.description,
-      legend: spec.legend,
+      title: translateText(spec.title) || spec.title,
+      description: translateText(spec.description) || spec.description,
+      legend: translateText(spec.legend) || spec.legend,
       legendUnit: spec.legendUnit,
     },
     metricQueryData: {
@@ -94,7 +99,7 @@ function getSectionTitle(icon: IconProp, title: string): ReactElement {
   return (
     <div className="flex items-center gap-2">
       <Icon icon={icon} className="h-5 w-5 text-gray-500" />
-      <span>{title}</span>
+      <span>{translateText(title) || title}</span>
     </div>
   );
 }
@@ -122,7 +127,7 @@ function getHostQueries(vcenter: string): Array<MetricQueryConfigData> {
         variable: "host_cpu_utilization",
         title: "Host CPU Utilization",
         description:
-          "vcenter.host.cpu.utilization, one line per ESXi host — already a percentage.",
+          "CPU in use on each ESXi host, as a percentage of its capacity, one line per host.",
         legend: "CPU",
         legendUnit: "%",
         metricName: "vcenter.host.cpu.utilization",
@@ -135,7 +140,7 @@ function getHostQueries(vcenter: string): Array<MetricQueryConfigData> {
         variable: "host_memory_utilization",
         title: "Host Memory Utilization",
         description:
-          "vcenter.host.memory.utilization, one line per ESXi host — already a percentage.",
+          "Memory in use on each ESXi host, as a percentage, one line per host.",
         legend: "Memory",
         legendUnit: "%",
         metricName: "vcenter.host.memory.utilization",
@@ -147,8 +152,7 @@ function getHostQueries(vcenter: string): Array<MetricQueryConfigData> {
       {
         variable: "host_memory_usage",
         title: "Host Memory Usage",
-        description:
-          "vcenter.host.memory.usage per ESXi host (reported in MiB, shown in bytes).",
+        description: "Memory in use on each ESXi host, one line per host.",
         legend: "Memory",
         legendUnit: "",
         metricName: "vcenter.host.memory.usage",
@@ -163,7 +167,7 @@ function getHostQueries(vcenter: string): Array<MetricQueryConfigData> {
         variable: "host_disk_latency_max",
         title: "Host Disk Latency (max)",
         description:
-          "vcenter.host.disk.latency.max per ESXi host and disk. Sustained values above ~20-50 ms indicate storage contention.",
+          "The slowest request on each host's storage devices. Latency that stays above 20 to 50 ms points at storage contention.",
         legend: "Latency",
         legendUnit: "ms",
         metricName: "vcenter.host.disk.latency.max",
@@ -183,7 +187,7 @@ function getVirtualMachineQueries(
         variable: "vm_cpu_utilization",
         title: "VM CPU Utilization",
         description:
-          "vcenter.vm.cpu.utilization, one line per powered-on VM — already a percentage of the VM's configured vCPUs.",
+          "CPU in use by each powered-on virtual machine, as a percentage of its configured vCPUs.",
         legend: "VM CPU",
         legendUnit: "%",
         metricName: "vcenter.vm.cpu.utilization",
@@ -196,7 +200,7 @@ function getVirtualMachineQueries(
         variable: "vm_cpu_readiness",
         title: "VM CPU Ready",
         description:
-          "vcenter.vm.cpu.readiness per powered-on VM — time spent waiting for a physical CPU. Above ~10% the host is contended.",
+          "How long each powered-on virtual machine waited for a physical CPU, as a share of its time. Above about 10%, its host is short of CPU.",
         legend: "CPU Ready",
         legendUnit: "%",
         metricName: "vcenter.vm.cpu.readiness",
@@ -209,7 +213,7 @@ function getVirtualMachineQueries(
         variable: "vm_memory_utilization",
         title: "VM Memory Utilization",
         description:
-          "vcenter.vm.memory.utilization per VM — already a percentage of configured memory.",
+          "Memory in use by each virtual machine, as a percentage of its configured memory.",
         legend: "VM Memory",
         legendUnit: "%",
         metricName: "vcenter.vm.memory.utilization",
@@ -222,7 +226,7 @@ function getVirtualMachineQueries(
         variable: "vm_memory_ballooned",
         title: "VM Memory Ballooned",
         description:
-          "vcenter.vm.memory.ballooned per VM (MiB → bytes). Anything above zero means the host is reclaiming guest memory.",
+          "Memory the host took back from each virtual machine through its balloon driver. Anything above zero means the host is short of memory.",
         legend: "Ballooned",
         legendUnit: "",
         metricName: "vcenter.vm.memory.ballooned",
@@ -237,7 +241,7 @@ function getVirtualMachineQueries(
         variable: "vm_memory_swapped",
         title: "VM Memory Swapped",
         description:
-          "vcenter.vm.memory.swapped per VM (MiB → bytes). Any hypervisor swapping is a serious performance problem.",
+          "Memory of each virtual machine that the host swapped to disk. Any swapping slows a virtual machine down badly.",
         legend: "Swapped",
         legendUnit: "",
         metricName: "vcenter.vm.memory.swapped",
@@ -257,7 +261,7 @@ function getDatastoreQueries(vcenter: string): Array<MetricQueryConfigData> {
         variable: "datastore_utilization",
         title: "Datastore Utilization",
         description:
-          "vcenter.datastore.disk.utilization, one line per datastore — already a percentage.",
+          "How full each datastore is, as a percentage, one line per datastore.",
         legend: "Used",
         legendUnit: "%",
         metricName: "vcenter.datastore.disk.utilization",
@@ -269,8 +273,7 @@ function getDatastoreQueries(vcenter: string): Array<MetricQueryConfigData> {
       {
         variable: "datastore_used",
         title: "Datastore Used Space",
-        description:
-          "vcenter.datastore.disk.usage{disk_state=used}, one line per datastore.",
+        description: "Space used on each datastore, one line per datastore.",
         legend: "Used",
         legendUnit: "",
         metricName: "vcenter.datastore.disk.usage",
@@ -290,7 +293,7 @@ function getNetworkQueries(vcenter: string): Array<MetricQueryConfigData> {
         variable: "host_network_throughput",
         title: "Host Network Throughput",
         description:
-          "vcenter.host.network.throughput per ESXi host, direction and NIC (KiB/s → B/s). A gauge from the receiver — no counter-rate math.",
+          "Data received and sent per second on each ESXi host, one line per network adapter and direction.",
         legend: "Network",
         legendUnit: "",
         metricName: "vcenter.host.network.throughput",
@@ -305,7 +308,7 @@ function getNetworkQueries(vcenter: string): Array<MetricQueryConfigData> {
         variable: "host_network_packet_errors",
         title: "Host NIC Packet Errors",
         description:
-          "vcenter.host.network.packet.error.rate per ESXi host — anything above zero points at a bad NIC, cable or switch port.",
+          "Packets with errors per second on each ESXi host. Anything above zero points at a bad network adapter, cable or switch port.",
         legend: "Errors",
         legendUnit: "/s",
         metricName: "vcenter.host.network.packet.error.rate",
@@ -317,7 +320,7 @@ function getNetworkQueries(vcenter: string): Array<MetricQueryConfigData> {
       {
         variable: "host_network_packet_drops",
         title: "Host NIC Packet Drops",
-        description: "vcenter.host.network.packet.drop.rate per ESXi host.",
+        description: "Packets dropped per second on each ESXi host.",
         legend: "Drops",
         legendUnit: "/s",
         metricName: "vcenter.host.network.packet.drop.rate",
@@ -335,7 +338,7 @@ function getClusterQueries(vcenter: string): Array<MetricQueryConfigData> {
         variable: "cluster_host_count",
         title: "Cluster Hosts by Effectiveness",
         description:
-          "vcenter.cluster.host.count per cluster, split by the effective attribute — a host in maintenance mode or disconnected is not effective.",
+          "Hosts in each cluster, split into effective and not effective. A host in maintenance mode or disconnected is not effective.",
         legend: "Hosts",
         legendUnit: "",
         metricName: "vcenter.cluster.host.count",
@@ -347,8 +350,7 @@ function getClusterQueries(vcenter: string): Array<MetricQueryConfigData> {
       {
         variable: "cluster_vm_count",
         title: "Cluster VMs by Power State",
-        description:
-          "vcenter.cluster.vm.count per cluster, split by power_state.",
+        description: "Virtual machines in each cluster, split by power state.",
         legend: "VMs",
         legendUnit: "",
         metricName: "vcenter.cluster.vm.count",
@@ -361,7 +363,7 @@ function getClusterQueries(vcenter: string): Array<MetricQueryConfigData> {
         variable: "cluster_cpu_effective",
         title: "Cluster Effective CPU",
         description:
-          "vcenter.cluster.cpu.effective per cluster — capacity DRS/HA can actually schedule.",
+          "The CPU capacity each cluster can run virtual machines on.",
         legend: "Effective CPU",
         legendUnit: "MHz",
         metricName: "vcenter.cluster.cpu.effective",
@@ -379,8 +381,7 @@ function getResourcePoolQueries(vcenter: string): Array<MetricQueryConfigData> {
       {
         variable: "resource_pool_cpu",
         title: "Resource Pool CPU Usage",
-        description:
-          "vcenter.resource_pool.cpu.usage, one line per resource pool.",
+        description: "CPU used by each resource pool, one line per pool.",
         legend: "CPU",
         legendUnit: "MHz",
         metricName: "vcenter.resource_pool.cpu.usage",
@@ -394,7 +395,7 @@ function getResourcePoolQueries(vcenter: string): Array<MetricQueryConfigData> {
         variable: "resource_pool_memory",
         title: "Resource Pool Memory Usage",
         description:
-          "vcenter.resource_pool.memory.usage per resource pool and memory type (MiB → bytes).",
+          "Memory used by each resource pool, split by the kind of memory.",
         legend: "Memory",
         legendUnit: "",
         metricName: "vcenter.resource_pool.memory.usage",
@@ -414,7 +415,7 @@ function getVsanQueries(vcenter: string): Array<MetricQueryConfigData> {
         variable: "vsan_latency",
         title: "vSAN Latency (avg)",
         description:
-          "vcenter.cluster.vsan.latency.avg per cluster and operation type. Empty unless a cluster has vSAN enabled.",
+          "Average vSAN latency in each cluster, for each kind of operation. Empty unless a cluster has vSAN turned on.",
         legend: "Latency",
         legendUnit: "µs",
         metricName: "vcenter.cluster.vsan.latency.avg",
@@ -427,7 +428,7 @@ function getVsanQueries(vcenter: string): Array<MetricQueryConfigData> {
         variable: "vsan_throughput",
         title: "vSAN Throughput",
         description:
-          "vcenter.cluster.vsan.throughput per cluster and operation type (B/s).",
+          "How much data vSAN moves per second in each cluster, for each kind of operation.",
         legend: "Throughput",
         legendUnit: "",
         metricName: "vcenter.cluster.vsan.throughput",
@@ -441,7 +442,7 @@ function getVsanQueries(vcenter: string): Array<MetricQueryConfigData> {
         variable: "vsan_congestions",
         title: "vSAN Congestions",
         description:
-          "vcenter.cluster.vsan.congestions per cluster — anything above zero means vSAN is throttling I/O.",
+          "vSAN congestion in each cluster. Anything above zero means vSAN is slowing down reads and writes.",
         legend: "Congestions",
         legendUnit: "/s",
         metricName: "vcenter.cluster.vsan.congestions",

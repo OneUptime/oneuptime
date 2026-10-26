@@ -46,7 +46,7 @@ flowchart TB
 :::steps
 ### Aprire le fonti di dati
 
-Apri **Prodotti → Dashboard**, espandi **Impostazioni** nel menu laterale e fai clic su **Data Sources**.
+Apri **Prodotti → Dashboard**, espandi **Impostazioni** nel menu laterale e fai clic su **Origini dati**.
 
 ### Scegliere il tipo
 
@@ -62,14 +62,14 @@ In **Connessione**, una fonte HTTP riceve l'**URL** a cui risponde. Un database 
 
 ### Indicare come accedere
 
-In **Autenticazione**, inserisci un **Nome utente** e una **Password** oppure, per una fonte HTTP, un **API Token**, inviato come token bearer. **Altri campi** contiene **Custom HTTP Headers**, come `{ "X-Scope-OrgID": "tenant-1" }`, e **Additional Options**: `sslEnabled` e `sslRejectUnauthorized` per i database, `elasticsearchIndex` per Elasticsearch, che senza di esso legge tutti gli indici (`*`).
+In **Autenticazione**, inserisci un **Nome utente** e una **Password** oppure, per una fonte HTTP, un **Token API**, inviato come token bearer. **Altri campi** contiene **Custom HTTP Headers**, come `{ "X-Scope-OrgID": "tenant-1" }`, e **Additional Options**: `sslEnabled` e `sslRejectUnauthorized` per i database, `elasticsearchIndex` per Elasticsearch, che senza di esso legge tutti gli indici (`*`).
 
 ### Provarla
 
 Fai clic su **Crea: Data Source**, poi su **Test** nella sua riga. OneUptime si collega con i dati che hai fornito, e dice se ha funzionato o che cosa è andato storto.
 :::
 
-Per cambiare una fonte di dati in seguito, aprila dall'elenco. **Modifica** in **Data Source Details** cambia tutto tranne i suoi segreti; **Update Credentials** sostituisce la password, il token o le intestazioni, e lascia com'erano i campi che lasci vuoti; **Test** la verifica di nuovo.
+Per cambiare una fonte di dati in seguito, aprila dall'elenco. **Modifica** in **Data Source Details** cambia tutto tranne i suoi segreti; **Aggiorna le credenziali** sostituisce la password, il token o le intestazioni, e lascia com'erano i campi che lasci vuoti; **Test** la verifica di nuovo.
 
 ## Usarla in un widget
 
@@ -162,7 +162,7 @@ Le query di intervallo di Prometheus e Loki chiedono circa 250 punti sull'interv
 ## Sicurezza
 
 - **SQL resta in sola lettura.** Una query deve essere un'unica istruzione che inizi con `SELECT`, `WITH`, `SHOW`, `EXPLAIN`, `DESCRIBE` o `DESC`. Le parole che scrivono o modificano una sessione, come `INSERT`, `UPDATE`, `DELETE`, `DROP`, `INTO` o `SET`, vengono rifiutate ovunque fuori dalle stringhe e dai nomi tra virgolette, quindi metti tra virgolette una colonna che porta il nome di una di esse. Scrivi un apice dentro una stringa come due apici (`''`): una barra rovesciata prima di un apice viene rifiutata. Anche le sessioni di PostgreSQL, MySQL e ClickHouse sono di sola lettura. SQL Server non ha sessioni di sola lettura, quindi collegalo con un login di sola lettura.
-- **Le credenziali sono di sola scrittura.** **Password**, **API Token** e **Custom HTTP Headers** sono cifrati a riposo, e l'API non li restituisce mai, nemmeno a te.
+- **Le credenziali sono di sola scrittura.** **Password**, **Token API** e **Custom HTTP Headers** sono cifrati a riposo, e l'API non li restituisce mai, nemmeno a te.
 - **Gli indirizzi vengono verificati.** Gli indirizzi di loopback, link-local (dove si trovano i metadati del cloud) e gli altri indirizzi riservati vengono rifiutati ovunque. Gli indirizzi privati vengono rifiutati su OneUptime Cloud, e consentiti su un'installazione self-hosted a meno che `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` sia `true`: vedi [Accesso alla rete privata](/docs/self-hosted/private-network-access).
 - **Le dashboard pubbliche non le eseguono mai.** I widget di Fonti di dati esterne vengono esclusi da una [dashboard pubblica](/docs/dashboards/sharing), query comprese.
 

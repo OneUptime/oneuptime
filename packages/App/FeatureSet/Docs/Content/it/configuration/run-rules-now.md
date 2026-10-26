@@ -1,6 +1,6 @@
 # Eseguire le regole sulle risorse esistenti
 
-Le regole per etichette, per proprietari e di privacy vengono eseguite automaticamente quando una risorsa viene **creata**. Una regola scritta oggi, quindi, non cambia nulla nei monitor, negli incidenti o negli host che hai già. **Run Now** colma questa lacuna: applica una regola a ogni risorsa che esiste già nel progetto.
+Le regole per etichette, per proprietari e di privacy vengono eseguite automaticamente quando una risorsa viene **creata**. Una regola scritta oggi, quindi, non cambia nulla nei monitor, negli incidenti o negli host che hai già. **Esegui ora** colma questa lacuna: applica una regola a ogni risorsa che esiste già nel progetto.
 
 ```mermaid title="Cosa fa un'esecuzione"
 flowchart TB
@@ -16,8 +16,8 @@ flowchart TB
 
 - **Regole etichette** e **Regole del proprietario**, per ogni risorsa che le ha: monitor, incidenti, episodi di incidente, avvisi, episodi di avviso, eventi di manutenzione programmata, pagine di stato, servizi, host, cluster Kubernetes, host Docker, cluster Docker Swarm, host Podman, cluster Proxmox, vCenter VMware, cluster Ceph, storage array, database, code, flotte IoT, funzioni serverless, risorse cloud, applicazioni RUM, dashboard, policy di reperibilità, turni di reperibilità, policy per le chiamate in arrivo, workflow, runbook, dispositivi di rete e SLO.
 - **Regole di privacy**, per incidenti, avvisi, episodi di incidente ed episodi di avviso.
-- **Monitor Rules** su una pagina di stato. Risincronizzano già la pagina ogni volta che si salva una regola; eseguirne una la risincronizza subito.
-- **Monitor Rules** su uno SLO. Risincronizzano già lo SLO ogni volta che si salva una regola; eseguirne una risincronizza subito i monitor dello SLO. Vedi [Monitor e regole dei monitor](/docs/slo/monitor-rules).
+- **Regole dei monitor** su una pagina di stato. Risincronizzano già la pagina ogni volta che si salva una regola; eseguirne una la risincronizza subito.
+- **Regole dei monitor** su uno SLO. Risincronizzano già lo SLO ogni volta che si salva una regola; eseguirne una risincronizza subito i monitor dello SLO. Vedi [Monitor e regole dei monitor](/docs/slo/monitor-rules).
 
 Le regole che compiono un'azione invece di descrivere una risorsa (**Regole di reperibilità**, **Regole di runbook**, **Regole IA** e **Regole di raggruppamento**) non si possono eseguire sui record esistenti. Eseguirle chiamerebbe persone, avvierebbe runbook, lancerebbe correzioni o riorganizzerebbe episodi per incidenti già conclusi.
 
@@ -28,7 +28,7 @@ Per eseguire una regola ti serve l'autorizzazione a modificare la regola **e** a
 > [!IMPORTANT]
 > Un'autorizzazione limitata a determinate etichette, o alle risorse di cui sei proprietario, non basta: un'esecuzione può cambiare tutte le risorse del progetto. Le block list dei team si applicano come ovunque, e anche un blocco limitato ad alcune etichette conta: un'esecuzione cambierebbe le risorse che portano quelle etichette, quindi un blocco con etichette sulla modifica delle risorse che una regola cambia rifiuta l'esecuzione.
 
-Le regole di una rete chiedono lo stesso quando le esegui sui dispositivi che hai già. **Run Now** di una regola di assegnazione del sito o di etichette dei dispositivi richiede l'autorizzazione a modificare la regola e **Edit Network Device**. **Dry Run** e **Run Rule** di una regola di importazione automatica richiedono l'autorizzazione a modificare la regola, **Create Network Device** e, quando la regola ha un modello di monitor, **Create Monitor**. Ognuna deve coprire l'intero progetto. Vedi [Importare automaticamente con le regole di importazione automatica](/docs/monitor/network-device-monitor#importare-automaticamente-con-le-regole-di-importazione-automatica).
+Le regole di una rete chiedono lo stesso quando le esegui sui dispositivi che hai già. **Esegui ora** di una regola di assegnazione del sito o di etichette dei dispositivi richiede l'autorizzazione a modificare la regola e **Edit Network Device**. **Dry Run** e **Run Rule** di una regola di importazione automatica richiedono l'autorizzazione a modificare la regola, **Create Network Device** e, quando la regola ha un modello di monitor, **Create Monitor**. Ognuna deve coprire l'intero progetto. Vedi [Importare automaticamente con le regole di importazione automatica](/docs/monitor/network-device-monitor#importare-automaticamente-con-le-regole-di-importazione-automatica).
 
 ## Eseguire una regola
 
@@ -39,7 +39,7 @@ Apri la pagina delle regole, per esempio **Monitor → Impostazioni → Regole e
 
 ### Selezionare Run Now
 
-Apri il menu **⋯** alla fine della riga della regola e seleziona **Run Now**, oppure seleziona **Visualizza** e poi **Run Now** nella pagina della regola. Una finestra di dialogo dice cosa farà l'esecuzione.
+Apri il menu **⋯** alla fine della riga della regola e seleziona **Esegui ora**, oppure seleziona **Visualizza** e poi **Esegui ora** nella pagina della regola. Una finestra di dialogo dice cosa farà l'esecuzione.
 
 ### Decidere se avvisare i nuovi proprietari
 
@@ -56,7 +56,7 @@ Al termine dell'esecuzione, la finestra indica a quante risorse corrispondeva la
 
 ## Eseguire più regole
 
-Seleziona le regole nella tabella, apri il menu delle azioni di gruppo e scegli **Run Now**. Le regole selezionate vengono eseguite una dopo l'altra.
+Seleziona le regole nella tabella, apri il menu delle azioni di gruppo e scegli **Esegui ora**. Le regole selezionate vengono eseguite una dopo l'altra.
 
 - I proprietari aggiunti da un'esecuzione di gruppo non vengono mai avvisati. Per avvisarli, esegui invece una regola singola.
 - Una regola che non può essere eseguita (per esempio perché è disabilitata) viene elencata con il motivo, e le altre regole vengono eseguite comunque.

@@ -40,9 +40,9 @@ Le menu latéral d'une application regroupe ses pages ainsi ; **Paramètres**, *
 
 | Section | Pages |
 | --- | --- |
-| **Basique** | **Vue d'ensemble**, **Recommendations**, **Documentation** |
+| **Basique** | **Vue d'ensemble**, **Recommandations**, **Documentation** |
 | **Observabilité** | **Métriques**, **Journaux**, **Traces**, **Clients** |
-| **Relecture de session** | **Relecture de session**, **User Flows**, **Replay Users**, **Santé**, **Replay Policy**, **Replay Access Log**, **Documentation** |
+| **Relecture de session** | **Relecture de session**, **User Flows**, **Replay Users**, **Santé**, **Replay Policy**, **Journal d'accès aux relectures**, **Documentation** |
 | **Paramètres** | **Paramètres** |
 | **Développeurs** | **Terraform**, **API**, **Assistants IA** |
 | **Avancé** | **Supprimer l'application** |
@@ -82,7 +82,7 @@ OneUptime retrouve l'application par son `service.name`, sans tenir compte de la
 | **Métriques**, **Journaux**, **Traces** | Les explorateurs de télémétrie, limités à cette application. |
 | **Clients** | Les plateformes de navigateur et les modèles d'appareil sur lesquels l'application a été utilisée : une courte liste par plateforme, jamais une ligne par utilisateur. |
 | **Relecture de session** | Des enregistrements de vraies sessions, à côté de leurs erreurs, traces et journaux : voir [Relecture de session](/docs/telemetry/session-replay). |
-| **Recommendations** | Des moniteurs prêts à l'emploi pour l'application : Core Web Vitals dégradés, requêtes en échec, exceptions du navigateur et, dès qu'elle enregistre, budgets de relecture de session. |
+| **Recommandations** | Des moniteurs prêts à l'emploi pour l'application : Core Web Vitals dégradés, requêtes en échec, exceptions du navigateur et, dès qu'elle enregistre, budgets de relecture de session. |
 
 Les chiffres viennent des spans que votre instrumentation envoie. **Page loads** compte le span `documentLoad` que l'instrumentation de chargement de page enregistre à chaque chargement complet : un changement de route dans une application monopage n'est donc pas un chargement de page.
 

@@ -23,7 +23,7 @@ flowchart LR
 
 ## Le fil d'activité du SLO
 
-Le fil d'activité se trouve sur la page **Fil d'activité** du SLO, et ses derniers éléments sous **Recent activity** dans la **Vue d'ensemble** du SLO. Les éléments renvoient vers le SLO, les moniteurs, les alertes et les incidents qu'ils mentionnent, et la plupart ont des détails avec les chiffres ou l'ancienne et la nouvelle valeur, que **Afficher les détails** déplie sous l'élément.
+Le fil d'activité se trouve sur la page **Fil d'activité** du SLO, et ses derniers éléments sous **Activité récente** dans la **Vue d'ensemble** du SLO. Les éléments renvoient vers le SLO, les moniteurs, les alertes et les incidents qu'ils mentionnent, et la plupart ont des détails avec les chiffres ou l'ancienne et la nouvelle valeur, que **Afficher les détails** déplie sous l'élément.
 
 | Événement | Publié quand |
 | --- | --- |

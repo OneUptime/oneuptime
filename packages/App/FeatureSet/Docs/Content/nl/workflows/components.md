@@ -285,7 +285,7 @@ Zet tekst om naar JSON en terug, of combineer twee JSON-objecten.
 
 ## Conditions
 
-Vertak op basis van een vergelijking. In het paneel **Component toevoegen** heet dit blok **If / Else**, onder **Popular**. Om tussen meer dan twee paden te kiezen, gebruik je [Switch / Case](#switch-case).
+Vertak op basis van een vergelijking. In het paneel **Component toevoegen** heet dit blok **If / Else**, onder **Populair**. Om tussen meer dan twee paden te kiezen, gebruik je [Switch / Case](#switch-case).
 
 De instellingen lezen als een zin: **Als** *waarde om te controleren* *vergelijking* *waarde om mee te vergelijken*, ga verder op **Yes**, anders op **No**. Onder de instellingen wordt de voorwaarde in woorden teruggelezen, zodat je ziet dat ze zegt wat je bedoelt. Op het canvas toont het blok de voorwaarde ook, bijvoorbeeld *Als environment is equal to “production”*.
 
@@ -315,7 +315,7 @@ De getalvergelijkingen vergelijken getallen en de tekstvergelijkingen vergelijke
 
 ## Switch / Case
 
-Neem afhankelijk van een waarde een van meerdere paden. In het paneel **Component toevoegen** heet dit blok **Switch / Case**, onder **Popular**.
+Neem afhankelijk van een waarde een van meerdere paden. In het paneel **Component toevoegen** heet dit blok **Switch / Case**, onder **Populair**.
 
 Het vergelijkt één waarde om de beurt met elk van zijn gevallen, van boven af, en gaat verder via het eerste geval dat overeenkomt, of via **Default** als geen enkel geval overeenkomt. Er draait maar één pad: een waarde die met twee gevallen overeenkomt, neemt het eerste daarvan.
 
@@ -361,7 +361,7 @@ Gebruik het om gemeenschappelijke logica te delen: bouw één keer een workflow 
 
 ## OneUptime-datacomponenten
 
-Voor elk soort record in OneUptime (monitoren, incidenten, waarschuwingen, statuspagina's, bereikbaarheidsbeleid en nog veel meer) heeft het paneel **Component toevoegen** deze componenten: klik onder **OneUptime resources** op het recordtype (**Browse all resources** bevat de niet-getoonde), of zoek op de naam van het type. Elke titel wordt uit het recordtype gegenereerd, dus de set voor Monitor luidt:
+Voor elk soort record in OneUptime (monitoren, incidenten, waarschuwingen, statuspagina's, bereikbaarheidsbeleid en nog veel meer) heeft het paneel **Component toevoegen** deze componenten: klik onder **OneUptime-resources** op het recordtype (**Door alle resources bladeren** bevat de niet-getoonde), of zoek op de naam van het type. Elke titel wordt uit het recordtype gegenereerd, dus de set voor Monitor luidt:
 
 | Component                | Wat het doet                                                                   |
 | ------------------------ | ------------------------------------------------------------------------------ |
@@ -422,7 +422,7 @@ stelt **Notification Count** in en laat de andere aangepaste velden van het reco
 
 Je typt deze sleutels zelden zelf. In de instellingen van het component toont **Add a field** (of **Add a condition** bij een query) de kolommen van het model op naam, met het soort waarde dat elke kolom aanneemt. Zoek op naam, op kolomsleutel of op wat het veld doet, en druk op **Enter** om de beste overeenkomst toe te voegen. Bij het aanmaken komen eerst de velden zonder welke het record niet kan worden aangemaakt, dan de hoofdvelden van het model (die het voor je invult als je ze weglaat) en dan de rest.
 
-Velden die OneUptime zelf invult, worden niet aangeboden als je een record schrijft: de `_id` van het record, **Aangemaakt op**, **Bijgewerkt op**, **Created by User**, slugs, recordnummers en meldingsstatussen. Wie een record aanmaakte, archiveerde of oploste, en wanneer, is nooit aan een workflow om in te stellen: een record dat een workflow aanmaakt, heeft geen maker, een waarde die een workflow voor een van die velden naast andere velden meestuurt, wordt genegeerd, en een Update die verder niets meestuurt, mislukt met een melding die ze noemt. Een update biedt alleen velden die na het aanmaken van een record kunnen veranderen. Een query biedt wel de ID, de tijdstempels en **Created by User** aan, omdat die nuttig zijn om op te filteren. **Deleted At** wordt nergens aangeboden: records worden echt verwijderd, dus het is altijd leeg.
+Velden die OneUptime zelf invult, worden niet aangeboden als je een record schrijft: de `_id` van het record, **Aangemaakt op**, **Bijgewerkt op**, **Aangemaakt door gebruiker**, slugs, recordnummers en meldingsstatussen. Wie een record aanmaakte, archiveerde of oploste, en wanneer, is nooit aan een workflow om in te stellen: een record dat een workflow aanmaakt, heeft geen maker, een waarde die een workflow voor een van die velden naast andere velden meestuurt, wordt genegeerd, en een Update die verder niets meestuurt, mislukt met een melding die ze noemt. Een update biedt alleen velden die na het aanmaken van een record kunnen veranderen. Een query biedt wel de ID, de tijdstempels en **Aangemaakt door gebruiker** aan, omdat die nuttig zijn om op te filteren. **Deleted At** wordt nergens aangeboden: records worden echt verwijderd, dus het is altijd leeg.
 
 **Skip** en **Limit** zijn twee getalvelden bij Find Many, Update Many en Delete Many, onder **Meer velden** — `Skip: 0` met `Limit: 100` neemt de eerste honderd overeenkomsten. **Limit** is standaard `10`, en bij Update Many en Delete Many beperkt het hoeveel records er echt worden geschreven, niet alleen hoeveel er terugkomen. Dus `Items Deleted: 10` betekent dat er tien records zijn verwijderd, niet dat er tien overeenkwamen. Verhoog **Limit** als je er meer dan tien wilt wijzigen.
 

@@ -150,7 +150,7 @@ Alerts for payments:
 
 ### 分组监视器的值
 
-带有 **Group by** 属性的基于指标的监视器会为每个序列打开一个事件，每个属性的值都是以该属性名称命名的变量。按 `host.name` 分组会得到 `{{host.name}}`，按 `resource.k8s.pod.name` 分组会得到 `{{resource.k8s.pod.name}}`。`{{seriesLabels}}` 以对象形式包含它们全部。
+带有 **分组依据** 属性的基于指标的监视器会为每个序列打开一个事件，每个属性的值都是以该属性名称命名的变量。按 `host.name` 分组会得到 `{{host.name}}`，按 `resource.k8s.pod.name` 分组会得到 `{{resource.k8s.pod.name}}`。`{{seriesLabels}}` 以对象形式包含它们全部。
 
 分组的 [日志监视器](/docs/monitor/logs-monitor) 也是如此：每个分组属性的值都是以其键命名的变量。
 
@@ -457,7 +457,7 @@ Metrics、Kubernetes、Docker、Host、Podman、Docker Swarm、Proxmox、VMware�
 | --- | --- | --- |
 | `metricName` | 监视器的第一个查询所读取的指标的名称，例如 `container.cpu.time`。 | `string` |
 
-分组时，它们还有每个 **Group by** 属性的值以及 `seriesLabels`：请参阅 [分组监视器的值](#分组监视器的值)。IoT Device 监视器的模板按设备分组，因此用模板创建的监视器还有 `{{device.id}}`。
+分组时，它们还有每个 **分组依据** 属性的值以及 `seriesLabels`：请参阅 [分组监视器的值](#分组监视器的值)。IoT Device 监视器的模板按设备分组，因此用模板创建的监视器还有 `{{device.id}}`。
 
 ### 其他监视器类型
 

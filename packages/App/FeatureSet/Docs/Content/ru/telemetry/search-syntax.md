@@ -160,7 +160,7 @@ name:"SELECT wp_options"
 
 Отдельные слова ищут в сообщении исключения.
 
-Обозреватель **Security Events** использует тот же язык со своими полями, например `severity`, `tactic` и `user`: см. [Security Events](/docs/telemetry/security-events).
+Обозреватель **События безопасности** использует тот же язык со своими полями, например `severity`, `tactic` и `user`: см. [Security Events](/docs/telemetry/security-events).
 
 ## Объединение фильтров
 

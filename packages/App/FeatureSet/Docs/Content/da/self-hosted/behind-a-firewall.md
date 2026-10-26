@@ -68,7 +68,7 @@ Når en vagthavende har kvitteret, åbner siden advarslen i dashboardet, som kun
 
 At sende alarmer kræver kun udgående HTTPS til `api.telegram.org`. At forbinde en konto kræver, at din server modtager den `/start`-besked, som en person sender til din bot, og det kan ske på to måder:
 
-- **Polling**: Slå **Poll Telegram for Messages** til under **Admin Dashboard > Indstillinger > Telegram**. OneUptime henter bottens beskeder fra Telegram med få sekunders mellemrum over udgående HTTPS, så intet behøver at nå din server.
+- **Hentning**: Slå **Poll Telegram for Messages** til under **Admin Dashboard > Indstillinger > Telegram**. OneUptime henter bottens beskeder fra Telegram med få sekunders mellemrum over udgående HTTPS, så intet behøver at nå din server.
 - **Webhook**: Telegram sender hver besked til `POST /api/notification/telegram/webhook`. Telegram [sender webhooks](https://core.telegram.org/bots/webhooks) fra `149.154.160.0/20` og `91.108.4.0/22`, så du kan nøjes med at tillade de adresser.
 
 ### Twilio

@@ -24,7 +24,7 @@ flowchart TB
     execution --> worker["OneUptime Worker<br/>kör stegen"]
 ```
 
-En utlösare startar en körning så som **Run Now** gör: körningen går igenom runbookets nuvarande steg och är inte kopplad till någon incident, något larm eller någon planerad underhållshändelse. Varje körning registrerar vad som startade den. Runbookets **Körningar** och **Runbooks → Körningar** visar det under **Utlöst av**, med när en schemalagd körning skulle ske eller adressen som anropade webhooken, och båda listorna kan filtreras på det.
+En utlösare startar en körning så som **Kör nu** gör: körningen går igenom runbookets nuvarande steg och är inte kopplad till någon incident, något larm eller någon planerad underhållshändelse. Varje körning registrerar vad som startade den. Runbookets **Körningar** och **Runbooks → Körningar** visar det under **Utlöst av**, med när en schemalagd körning skulle ske eller adressen som anropade webhooken, och båda listorna kan filtreras på det.
 
 ## Innan du börjar
 
@@ -44,7 +44,7 @@ Klicka på **Konfigurera schema**. Under **När den körs** väljer du ett alter
 **Tidszon** börjar med din egen. Schemats tider läses på den här zonens klocka.
 
 ### Spara det
-Klicka på **Spara schema**. Schemat slås på, och kortet visar det i en mening med dess **Next runs**.
+Klicka på **Spara schema**. Schemat slås på, och kortet visar det i en mening med dess **Nästa körningar**.
 :::
 
 | **Upprepa** | Vad du väljer | Till exempel |
@@ -102,7 +102,7 @@ curl -X POST "https://oneuptime.com/runbook/webhook/RUNBOOK_ID/SECRET_KEY" \
 ```
 
 ### Kontrollera körningen
-Svaret namnger den körning det startade: `{"runbookExecutionId": "...", "status": "Scheduled"}`. Körningen finns under runbookets **Körningar**, där **Utlöst av** säger **Webhook**, och dess sida visar under **Inputs** vad anropet skickade.
+Svaret namnger den körning det startade: `{"runbookExecutionId": "...", "status": "Scheduled"}`. Körningen finns under runbookets **Körningar**, där **Utlöst av** säger **Webhook**, och dess sida visar under **Indata** vad anropet skickade.
 :::
 
 **Skicka testförfrågan** skickar en `POST` med ett innehåll som du skriver till URL:en, som ett annat verktyg skulle göra, och länkar till körningen den startade. Det är en riktig körning av runbooket.
@@ -136,7 +136,7 @@ Innehållets värden på översta nivån blir körningens indata. De når stegen
 | --- | --- |
 | Bash och kubectl | Miljövariabler: en `ONEUPTIME_INPUT_<NAME>` för varje värde på översta nivån, `ONEUPTIME_INPUTS` med hela objektet som JSON och `ONEUPTIME_TRIGGER` med det som startade körningen, som `Webhook` eller `Schedule`. |
 | JavaScript | `args.inputs`, objektet som det skickades, och `args.trigger`. |
-| AI | I sin prompt, märkt som data utifrån OneUptime, när **Include trigger context** är påslaget. |
+| AI | I sin prompt, märkt som data utifrån OneUptime, när **Ta med utlösarkontext** är påslaget. |
 | HTTP request och SSH | Inte alls. Deras URL, skript och mål är det som står i runbooket, och ingenting som en anropare skickar ändrar dem. |
 
 En variabels namn är värdets namn med versaler, där varje tecken som inte är en bokstav eller en siffra skrivs som `_`: `host-name` blir `ONEUPTIME_INPUT_HOST_NAME`. Text skickas som den är, tal och `true` eller `false` som de är skrivna, och objekt och listor som JSON. Ett steg får högst 100 sådana variabler, och ett namn på fler än 100 tecken blir ingen; varje värde finns ändå i `ONEUPTIME_INPUTS`. Varje namn börjar med `ONEUPTIME_`, så en anropare kan inte sätta `PATH` eller någon annan variabel som Runnern läser.
@@ -163,7 +163,7 @@ return { host };
 
 ## Vem får konfigurera utlösare
 
-Ett schema eller en webhook startar körningar utan att någon är där, så att konfigurera en kräver behörighet att redigera runbooket och att köra den: Project Owner, Project Admin eller Runbook Admin, eller **Edit Runbook** tillsammans med Project Member, Runbook Member eller **Create Runbook Execution**. De etiketter som en roll är begränsad till räknas, som för **Run Now**. Att se eller återställa webhook-URL:en kräver detsamma.
+Ett schema eller en webhook startar körningar utan att någon är där, så att konfigurera en kräver behörighet att redigera runbooket och att köra den: Project Owner, Project Admin eller Runbook Admin, eller **Edit Runbook** tillsammans med Project Member, Runbook Member eller **Create Runbook Execution**. De etiketter som en roll är begränsad till räknas, som för **Kör nu**. Att se eller återställa webhook-URL:en kräver detsamma.
 
 Att stänga av ett schema eller en webhook startar ingenting, så det kräver bara behörighet att redigera runbooket. Den som får redigera runbooket men inte köra den ser sidan **Utlösare** med **Konfigurera schema** låst, och får veta vem som kan se webhook-URL:en.
 

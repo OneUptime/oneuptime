@@ -78,7 +78,7 @@ De teams **Owners** en **Admin** zijn bewust vergrendeld: hun machtigingen zijn 
 
 `ProjectOwner` is het hoogste toegangsniveau: facturatie, het project verwijderen en alles wat een beheerder kan. `ProjectAdmin` dekt alles behalve facturatie en het verwijderen van het project.
 
-SMS, telefoonoproepen, WhatsApp of Telegram voor het project aan- of uitzetten valt onder facturatie, omdat elk bericht geld kost. Alleen `ProjectOwner`, de rol `BillingAdmin` (**Billing Admin**) en de machtiging `ManageProjectBilling` (**Manage Billing**) kunnen die schakelaars wijzigen, onder **Projectinstellingen > Meldingen > Meldingsinstellingen** — niet `ProjectAdmin`.
+SMS, telefoonoproepen, WhatsApp of Telegram voor het project aan- of uitzetten valt onder facturatie, omdat elk bericht geld kost. Alleen `ProjectOwner`, de rol `BillingAdmin` (**Factureringsbeheerder**) en de machtiging `ManageProjectBilling` (**Manage Billing**) kunnen die schakelaars wijzigen, onder **Projectinstellingen > Meldingen > Meldingsinstellingen** — niet `ProjectAdmin`.
 
 Het bijvullen van de vooruitbetaalde saldi van het project valt ook onder facturatie. Op OneUptime Cloud worden SMS, telefoonoproepen, WhatsApp en Telegram betaald uit het saldo onder **Projectinstellingen > Meldingen > Meldingsinstellingen**, en AI uit de AI-tegoeden onder **Projectinstellingen > AI > AI-tegoeden**. Alleen een projecteigenaar of iemand met **Manage Billing** kan ze bijvullen of hun **Automatisch bijvullen** wijzigen — een projectbeheerder niet. Een melding over een saldo dat opraakt, noemt wie het kan bijvullen, en alleen die mensen krijgen een werkende knop **Saldo bijvullen** of een link naar de pagina.
 
@@ -202,7 +202,7 @@ Elke toegestane machtiging wordt toegekend met een bereik: wanneer u haar toevoe
 
 **Labels** is de handmatigere versie van hetzelfde idee: tag resources en ken dan machtigingen toe die tot die tags zijn beperkt.
 
-**Handelen op het hele project vraagt een machtiging die het bereikt.** **Run Now** van een regel past de regel toe op elke resource van het project, en de regels voor sitetoewijzing, apparaatlabels en automatische import van een netwerk op elk netwerkapparaat of elke scan, dus dat vraagt machtigingen met een bereik over alle resources in het project: een machtiging die tot labels of eigen resources is beperkt, is niet genoeg, en een blokkade met labels op de resources die een run wijzigt, weigert de run, omdat die ook de resources met die labels zou wijzigen.
+**Handelen op het hele project vraagt een machtiging die het bereikt.** **Nu uitvoeren** van een regel past de regel toe op elke resource van het project, en de regels voor sitetoewijzing, apparaatlabels en automatische import van een netwerk op elk netwerkapparaat of elke scan, dus dat vraagt machtigingen met een bereik over alle resources in het project: een machtiging die tot labels of eigen resources is beperkt, is niet genoeg, en een blokkade met labels op de resources die een run wijzigt, weigert de run, omdat die ook de resources met die labels zou wijzigen.
 
 Sommige rollen zijn per definitie projectbreed en bieden helemaal geen bereik, omdat beperken zinloos zou zijn — "Billing Admin, maar alleen voor de facturatie die van mij is" beschrijft niets:
 

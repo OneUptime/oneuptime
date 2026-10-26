@@ -36,7 +36,7 @@ Um item descoberto tem pulsação. Cada vez que chega telemetria para ele, o hor
 
 | Status | O que significa |
 | --- | --- |
-| **Live** | Visto nos últimos 30 minutos. |
+| **Ao vivo** | Visto nos últimos 30 minutos. |
 | **Recent** | Visto no último dia. |
 | **Stale** | Não visto há mais de um dia. A página **Gone Quiet** lista esses itens. |
 
@@ -65,7 +65,7 @@ Abra **Produtos → Recursos → Inventário**. O menu lateral tem estas página
 | **Ajuda → Documentação** | Um guia curto do inventário, com os tipos de item que ele reconhece. |
 | **Avançado → Arquivado** | Os itens que você arquivou. Desarquive-os aqui. |
 
-Abra um item, e o menu lateral dele tem a sua **Visão geral** (o tipo, a origem e o status, e cada atributo observado nele), as suas **Connections** e os seus **Campos personalizados**; os seus **Registros**, **Traços**, **Métricas**, **Perfis de desempenho** e **Exceções**; e os seus **Incidentes**, **Alertas** e **Manutenção programada**. Em **Avançado** ficam as suas **Configurações**, os seus **Registros de auditoria** e **Delete Item**. As páginas de telemetria mostram o que o próprio item enviou. Os incidentes, alertas e eventos de manutenção são os do serviço, host ou cluster do Kubernetes que o item representa; em qualquer outro item, essas páginas dizem qual recurso consultar em vez disso.
+Abra um item, e o menu lateral dele tem a sua **Visão geral** (o tipo, a origem e o status, e cada atributo observado nele), as suas **Conexões** e os seus **Campos personalizados**; os seus **Registros**, **Traços**, **Métricas**, **Perfis de desempenho** e **Exceções**; e os seus **Incidentes**, **Alertas** e **Manutenção programada**. Em **Avançado** ficam as suas **Configurações**, os seus **Registros de auditoria** e **Delete Item**. As páginas de telemetria mostram o que o próprio item enviou. Os incidentes, alertas e eventos de manutenção são os do serviço, host ou cluster do Kubernetes que o item representa; em qualquer outro item, essas páginas dizem qual recurso consultar em vez disso.
 
 ### Detalhes do ativo
 
@@ -80,7 +80,7 @@ Os mesmos dados são colunas da lista **All Items**, ocultas até você ativá-l
 
 ### Conexões
 
-A página **Connections** de um item lista os seus vizinhos nas duas direções, agrupados em **Chamadas**, **Called by**, **Runs on** e **Related**. Cada grupo mostra o seu total (um grupo com mais de 100.000 conexões mostra "100.000+"), e **Mostrar mais** percorre o restante, então um cluster, namespace ou nó movimentado mostra todas as conexões, e não só as primeiras. A página não se limita a um intervalo de tempo: inclui relações adicionadas manualmente pela API e vizinhos arquivados. Um vizinho que não está mais no inventário aparece pela sua chave.
+A página **Conexões** de um item lista os seus vizinhos nas duas direções, agrupados em **Chamadas**, **Chamado por**, **Executado em** e **Relacionados**. Cada grupo mostra o seu total (um grupo com mais de 100.000 conexões mostra "100.000+"), e **Mostrar mais** percorre o restante, então um cluster, namespace ou nó movimentado mostra todas as conexões, e não só as primeiras. A página não se limita a um intervalo de tempo: inclui relações adicionadas manualmente pela API e vizinhos arquivados. Um vizinho que não está mais no inventário aparece pela sua chave.
 
 ## Adicionar algo manualmente
 
@@ -102,8 +102,8 @@ Abra o novo item. A origem dele indica **Added by you**, e a página **Campos pe
 
 Você pode adicionar três tipos manualmente:
 
-- `external.service` (**External Service**): uma API de terceiros ou uma dependência de software como serviço.
-- `external.database` (**External Database**): um banco de dados que não é um servidor que o OneUptime consiga modelar. Um servidor de banco de dados, auto-hospedado ou gerenciado, do PostgreSQL ao Snowflake, fica em **Databases → Criar: Banco de dados** em vez disso ([Bancos de dados](/docs/telemetry/databases)): esse registro se liga aos traces, contêineres e métricas do mecanismo que citam o mesmo endereço, o que um item do inventário nunca faz, e adicionar o mesmo servidor das duas formas deixa dois registros sem ligação.
+- `external.service` (**Serviço externo**): uma API de terceiros ou uma dependência de software como serviço.
+- `external.database` (**Banco de dados externo**): um banco de dados que não é um servidor que o OneUptime consiga modelar. Um servidor de banco de dados, auto-hospedado ou gerenciado, do PostgreSQL ao Snowflake, fica em **Databases → Criar: Banco de dados** em vez disso ([Bancos de dados](/docs/telemetry/databases)): esse registro se liga aos traces, contêineres e métricas do mecanismo que citam o mesmo endereço, o que um item do inventário nunca faz, e adicionar o mesmo servidor das duas formas deixa dois registros sem ligação.
 - `appliance` (**Appliance**): hardware ou software sem agente.
 
 A restrição evita duplicatas. Um item feito à mão de um tipo que o OneUptime consegue observar, como um host, seria identificado pelo nome que você digitou, enquanto o item descoberto da mesma máquina é identificado pelos atributos que ela informa. Os dois nunca se juntariam, então o mesmo host ficaria na sua lista duas vezes, para sempre.
@@ -125,7 +125,7 @@ Para arquivar itens, selecione-os em **All Items** e arquive-os de uma vez, ou a
 
 ## Relações e topologia
 
-O OneUptime liga os itens com relações direcionadas à medida que as observa. **Inventário → Topology Map** as desenha, e a página **Connections** de um item lista as dele. Veja [Topologia](/docs/telemetry/topology).
+O OneUptime liga os itens com relações direcionadas à medida que as observa. **Inventário → Topology Map** as desenha, e a página **Conexões** de um item lista as dele. Veja [Topologia](/docs/telemetry/topology).
 
 | Relação | Por exemplo |
 | --- | --- |

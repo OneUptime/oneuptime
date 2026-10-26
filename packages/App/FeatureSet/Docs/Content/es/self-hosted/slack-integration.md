@@ -39,7 +39,7 @@ sequenceDiagram
 - Un espacio de trabajo de Slack donde puedas crear e instalar apps.
 - Un nombre de host HTTPS público para OneUptime al que Slack pueda llegar. Consulta [Acceso de red](#acceso-de-red-para-despliegues-autoalojados).
 - Acceso a la configuración del servidor: `config.env` en Docker Compose, o tus values de Helm en Kubernetes.
-- Para conectar un proyecto, el rol **Project Owner**, **Project Admin** o **Project Member** en él.
+- Para conectar un proyecto, el rol **Propietario del proyecto**, **Administrador del proyecto** o **Miembro del proyecto** en él.
 
 ## Configurar la app de Slack
 
@@ -239,7 +239,7 @@ Cuando Slack te devuelve y la conexión no se hizo, la página de Slack desde la
 | La página dice | Qué hacer |
 | --- | --- |
 | **"Este enlace de conexión no es válido, ha caducado o ya se ha usado. Vuelve a empezar."** | El enlace funciona una vez, durante 15 minutos, en el navegador que lo inició. Empieza de nuevo desde la página de Slack y termina en Slack en menos de 15 minutos, en el mismo navegador. |
-| **"No tienes permiso para conectar este proyecto a Slack."** | Instalar OneUptime en Slack requiere **Project Owner**, **Project Admin** o **Project Member**. Se vuelve a comprobar cuando Slack te devuelve, así que un rol retirado mientras tanto también termina aquí la conexión. |
+| **"No tienes permiso para conectar este proyecto a Slack."** | Instalar OneUptime en Slack requiere **Propietario del proyecto**, **Administrador del proyecto** o **Miembro del proyecto**. Se vuelve a comprobar cuando Slack te devuelve, así que un rol retirado mientras tanto también termina aquí la conexión. |
 | **"Ya no eres miembro de este proyecto."** | Para conectar tu propia cuenta de Slack tienes que ser miembro del proyecto cuando Slack te devuelve. |
 | **"Este proyecto todavía no está conectado a ningún espacio de trabajo de Slack."** | Instala primero OneUptime en Slack desde **Ajustes del proyecto > Espacio de trabajo > Slack** y después conecta tu propia cuenta. |
 | **"Iniciaste sesión en un espacio de trabajo de Slack distinto del que está conectado a este proyecto."** | Conecta tu cuenta con la sesión iniciada en el espacio de trabajo de Slack en el que está instalado el proyecto. |

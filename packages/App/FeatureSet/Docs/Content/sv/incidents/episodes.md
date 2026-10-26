@@ -1,8 +1,8 @@
 # Episoder
 
-En episod samlar relaterade incidenter, eller relaterade varningar, så att ditt team hanterar dem som en: ett ställe att se dem, en uppsättning ägare, en status att bekräfta och lösa. Grupperingsregler öppnar episoder och lägger till incidenter och varningar i dem allt eftersom de kommer in (se [Grupperingsregler för incidenter](/docs/incidents/settings#grupperingsregler-för-incidenter)). Du kan också själv lägga incidenter i en episod, flera åt gången: från episoden eller från incidentlistorna.
+En episod samlar relaterade incidenter, eller relaterade larm, så att ditt team hanterar dem som en: ett ställe att se dem, en uppsättning ägare, en status att bekräfta och lösa. Grupperingsregler öppnar episoder och lägger till incidenter och larm i dem allt eftersom de kommer in (se [Grupperingsregler för incidenter](/docs/incidents/settings#grupperingsregler-för-incidenter)). Du kan också själv lägga incidenter i en episod, flera åt gången: från episoden eller från incidentlistorna.
 
-Allt på den här sidan fungerar likadant för varningsepisoder: läs ”varning” där det står ”incident”. Incidentepisoder finns under **Incidenter → Episoder**, varningsepisoder under **Varningar → Episoder**.
+Allt på den här sidan fungerar likadant för larmepisoder: läs ”larm” där det står ”incident”. Incidentepisoder finns under **Incidenter → Episoder**, larmepisoder under **Larm → Episoder**.
 
 ## Lägga till incidenter från en episod
 
@@ -37,7 +37,7 @@ Under **Medlemsincidenter** tar **Ta bort** på en rad, eller på de markerade r
 
 ## En episod per incident
 
-En incident kan finnas i flera episoder samtidigt. För att hålla varje incident i högst en episod slår du på **En incident kan bara ingå i en episod** under **Incidenter → Inställningar → Medlemskap i episoder**. För larm heter reglaget **Ett larm kan bara ingå i en episod**, under **Varningar → Inställningar → Medlemskap i episoder**. Båda är avslagna tills du slår på dem, och bara Project Owners och Project Admins kan ändra dem.
+En incident kan finnas i flera episoder samtidigt. För att hålla varje incident i högst en episod slår du på **En incident kan bara ingå i en episod** under **Incidenter → Inställningar → Medlemskap i episoder**. För larm heter reglaget **Ett larm kan bara ingå i en episod**, under **Larm → Inställningar → Medlemskap i episoder**. Båda är avslagna tills du slår på dem, och bara Project Owners och Project Admins kan ändra dem.
 
 Så länge det är påslaget läggs en incident som finns i en episod inte till i någon annan:
 
@@ -84,4 +84,4 @@ Svaret nämner varje skickad incident exakt en gång: tillagd, redan i episoden,
 
 I ett projekt där en incident bara kan ingå i en episod kommer en incident som finns i en annan episod tillbaka under `notAdded` med `Already in another episode. An incident can be in only one episode in this project.` som skäl.
 
-För varningar skickar du `alertEpisodeId` och `alertIds` till `/api/alert-episode-member/add-alerts`. För att skapa en episod med incidenter i skickar du deras id:n med förfrågan som skapar episoden, `POST /api/incident-episode`, som `{ "data": { "title": "Checkout outage" }, "miscDataProps": { "incidentIdsToAdd": ["<incident id>"] } }`; för en varningsepisod `POST /api/alert-episode` med `alertIdsToAdd`. Om någon av dem inte kan läggas till skapas ingen episod.
+För larm skickar du `alertEpisodeId` och `alertIds` till `/api/alert-episode-member/add-alerts`. För att skapa en episod med incidenter i skickar du deras id:n med förfrågan som skapar episoden, `POST /api/incident-episode`, som `{ "data": { "title": "Checkout outage" }, "miscDataProps": { "incidentIdsToAdd": ["<incident id>"] } }`; för en larmepisod `POST /api/alert-episode` med `alertIdsToAdd`. Om någon av dem inte kan läggas till skapas ingen episod.

@@ -32,7 +32,7 @@ flowchart TB
 
 Välj typ efter var nyckeln ska finnas. Typen kan inte ändras efter att nyckeln har skapats.
 
-| | **Server** | **Browser** |
+| | **Server** | **Webbläsare** |
 | --- | --- | --- |
 | För | Applikationer, collectors och agenter på maskiner du driver | Webbsidor, och React Native Session Replay |
 | Skickar | All sorts telemetri, till alla endpoints | Spår, loggar, mätvärden och Session Replays |
@@ -60,7 +60,7 @@ Klicka på **Skapa ingestion-nyckel**. Dialogrutan börjar med namnet **Serverny
 
 ### Lägg till en webbläsarnyckels ursprung
 
-En **Browser**-nyckel ber om sina **Allowed Origins** i nästa steg, **Webbläsarinställningar**, med sitt **Pinned Service Name** under **Avancerad**. Se [Lås ned en webbläsarnyckel](#lås-ned-en-webbläsarnyckel).
+En **Webbläsare**-nyckel ber om sina **Tillåtna ursprung** i nästa steg, **Webbläsarinställningar**, med sitt **Fäst tjänstnamn** under **Avancerad**. Se [Lås ned en webbläsarnyckel](#lås-ned-en-webbläsarnyckel).
 
 ### Skapa nyckeln och kopiera dess hemlighet
 
@@ -88,8 +88,8 @@ En webbläsarnyckel finns i din sida, där vem som helst kan kopiera den. De hä
 
 | Inställning | Vad den gör |
 | --- | --- |
-| **Allowed Origins** | De enda ursprung som nyckeln godkänns från. En begäran från något annat ursprung, eller helt utan `Origin`-header, avvisas. En webbläsarnyckel måste behålla minst ett. |
-| **Pinned Service Name** | Lägger allt som nyckeln skickar över OTLP/HTTP under den här enda tjänsten, oavsett vilket `service.name` avsändaren har satt. En kopia av nyckeln kan då bara skriva till den tjänsten. |
+| **Tillåtna ursprung** | De enda ursprung som nyckeln godkänns från. En begäran från något annat ursprung, eller helt utan `Origin`-header, avvisas. En webbläsarnyckel måste behålla minst ett. |
+| **Fäst tjänstnamn** | Lägger allt som nyckeln skickar över OTLP/HTTP under den här enda tjänsten, oavsett vilket `service.name` avsändaren har satt. En kopia av nyckeln kan då bara skriva till den tjänsten. |
 | **Requests Per Minute Limit** | Det största antalet begäranden som nyckeln godkänns för varje minut, delat av alla besökare. En webbläsarnyckel får 6 000 när du lämnar fältet tomt. |
 | **Upphör** | Datumet då nyckeln börjar avvisas, så att en publicerad kopia slutar fungera. |
 
@@ -130,8 +130,8 @@ En avvisad begäran får en status och en mening som säger varför.
 | `422` med `This telemetry ingestion key has been disabled.` | Någon har stängt av **Aktiverad**. |
 | `422` med `A browser ingestion key cannot be used for` | En webbläsarnyckel nådde en endpoint som bara tar servernycklar. |
 | `422` med `did not send an Origin header` | En webbläsarnyckel skickades utanför en webbläsare. Använd en servernyckel där. |
-| `422` med `is not allowed for this browser ingestion key` | Sidans ursprung finns inte i **Allowed Origins**. |
-| `422` med `is pinned to a single service` | En nyckel med ett **Pinned Service Name** användes för att registrera en agent. Använd en servernyckel utan fastlåst namn. |
+| `422` med `is not allowed for this browser ingestion key` | Sidans ursprung finns inte i **Tillåtna ursprung**. |
+| `422` med `is pinned to a single service` | En nyckel med ett **Fäst tjänstnamn** användes för att registrera en agent. Använd en servernyckel utan fastlåst namn. |
 | `429` med `Too many telemetry requests for this ingestion key` | Nyckeln nådde sin **Requests Per Minute Limit**. Exportörer försöker igen efter `Retry-After`-tiden. |
 
 För de andra svar som en OTLP-exportör kan få, se [Svar](/docs/telemetry/open-telemetry#svar).

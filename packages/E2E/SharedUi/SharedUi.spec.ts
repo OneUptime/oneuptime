@@ -1223,3 +1223,261 @@ test.describe("a team's avatar on a dark card", () => {
     await screenshot(page, "avatars-1280");
   });
 });
+
+/*
+ * Radios and checkboxes. In the dark scheme the browser drew its own: flat
+ * neutral-grey discs and squares on the slate card, the choice cards' radios
+ * (ChoiceRows) reading as holes in it. The dark theme draws them in its own
+ * colours (Theme.css): an unchecked one is the card with the strong border,
+ * a checked one is filled with the brand indigo and carries a white dot or
+ * tick. The light theme keeps the browser's own.
+ */
+test.describe("radios and checkboxes in the dark theme are the theme's own", () => {
+  const CHOICES: Array<string> = [
+    "choice-light",
+    "choice-dark",
+    "choice-system",
+  ];
+
+  // What a control sits on: its nearest ancestor that paints a background.
+  async function surfaceBehind(inside: Locator): Promise<Rgba> {
+    return colourOf(
+      await inside.evaluate((element: Element): string => {
+        let ancestor: Element | null = element.parentElement;
+
+        while (ancestor) {
+          const colour: string =
+            window.getComputedStyle(ancestor).backgroundColor;
+
+          if (colour !== "rgba(0, 0, 0, 0)" && colour !== "transparent") {
+            return colour;
+          }
+
+          ancestor = ancestor.parentElement;
+        }
+
+        return window.getComputedStyle(document.body).backgroundColor;
+      }),
+    );
+  }
+
+  // Indigo-500, the filled state, and slate-500, the theme's strong border.
+  const INDIGO_500: string = "rgb(99, 102, 241)";
+  const SLATE_500: string = "rgb(100, 116, 139)";
+
+  test("an unchecked radio is the card with a border, a checked one indigo with a white dot", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "section=choices&theme=dark");
+
+    for (const id of CHOICES) {
+      const radio: Locator = page.getByTestId(id);
+      const isChecked: boolean = await radio.isChecked();
+
+      expect([id, await styleOf(radio, "appearance")]).toEqual([id, "none"]);
+      expect([id, await styleOf(radio, "border-radius")]).toEqual([
+        id,
+        "9999px",
+      ]);
+
+      const box: { width: number; height: number } | null =
+        await radio.boundingBox();
+      expect([id, box?.width, box?.height]).toEqual([id, 16, 16]);
+
+      if (isChecked) {
+        expect([id, await styleOf(radio, "background-color")]).toEqual([
+          id,
+          INDIGO_500,
+        ]);
+        expect(await styleOf(radio, "background-image")).toContain("svg");
+        // The fill stands out from the card at 3:1, as a control must.
+        expect(
+          contrast(
+            colourOf(await styleOf(radio, "background-color")),
+            await surfaceBehind(radio),
+          ),
+        ).toBeGreaterThanOrEqual(3);
+      } else {
+        expect(colourOf(await styleOf(radio, "background-color"))).toEqual(
+          await surfaceBehind(radio),
+        );
+        expect([id, await styleOf(radio, "border-top-color")]).toEqual([
+          id,
+          SLATE_500,
+        ]);
+        expect(
+          contrast(
+            colourOf(await styleOf(radio, "border-top-color")),
+            await surfaceBehind(radio),
+          ),
+        ).toBeGreaterThanOrEqual(3);
+      }
+    }
+
+    expect(await page.getByTestId("choice-dark").isChecked()).toBe(true);
+    await screenshot(page, "choices-dark-1280");
+  });
+
+  test("a radio keeps its place beside its title: margins and sizes stay the component's", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const offsets: Record<string, number> = {};
+
+    for (const theme of ["light", "dark"]) {
+      await open(
+        page,
+        theme === "dark" ? "section=choices&theme=dark" : "section=choices",
+      );
+
+      const radio: Locator = page.getByTestId("choice-light");
+      const title: Locator = page
+        .getByTestId("choice-light-row")
+        .getByText("Light", { exact: true });
+
+      const radioBox: { y: number; height: number } | null =
+        await radio.boundingBox();
+      const titleBox: { y: number; height: number } | null =
+        await title.boundingBox();
+
+      offsets[theme] =
+        radioBox!.y +
+        radioBox!.height / 2 -
+        (titleBox!.y + titleBox!.height / 2);
+    }
+
+    // The dot sits on the title's line in both themes, not a pixel apart.
+    expect(Math.abs(offsets["dark"]! - offsets["light"]!)).toBeLessThan(0.5);
+    expect(Math.abs(offsets["dark"]!)).toBeLessThan(3);
+  });
+
+  test("picking another choice moves the indigo fill to it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "section=choices&theme=dark");
+
+    await page.getByTestId("choice-system").check();
+
+    expect(await page.getByTestId("choice-system").isChecked()).toBe(true);
+    expect(
+      await styleOf(page.getByTestId("choice-system"), "background-color"),
+    ).toBe(INDIGO_500);
+    expect(
+      colourOf(
+        await styleOf(page.getByTestId("choice-dark"), "background-color"),
+      ),
+    ).toEqual(await surfaceBehind(page.getByTestId("choice-dark")));
+  });
+
+  test("the keyboard's focus is an indigo ring, not the browser's white box", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "section=choices&theme=dark");
+
+    await page.getByTestId("choice-dark").focus();
+    await page.keyboard.press("ArrowDown");
+
+    const focused: Locator = page.getByTestId("choice-system");
+
+    await expect(focused).toBeFocused();
+    expect(await styleOf(focused, "outline-style")).toBe("solid");
+    expect(await styleOf(focused, "outline-color")).toBe("rgb(129, 140, 248)");
+    await screenshot(page, "choices-dark-focus-1280");
+  });
+
+  test("a locked choice fades, picked or not", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "section=choices&theme=dark");
+
+    for (const id of CHOICES) {
+      const radio: Locator = page.getByTestId(`locked-${id}`);
+
+      await expect(radio).toBeDisabled();
+      expect([id, await styleOf(radio, "opacity")]).toEqual([id, "0.5"]);
+    }
+
+    expect(
+      await styleOf(page.getByTestId("locked-choice-dark"), "background-color"),
+    ).toBe(INDIGO_500);
+  });
+
+  test("checkboxes: the card with a border, indigo with a white tick, a dash when partly ticked", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "section=choices&theme=dark");
+
+    // Checkbox puts its test id on the box itself.
+    const ticked: Locator = page.getByTestId("checkbox-ticked");
+    const unticked: Locator = page.getByTestId("checkbox-unticked");
+    const partly: Locator = page.getByTestId("checkbox-partly");
+
+    for (const box of [ticked, unticked, partly]) {
+      expect(await styleOf(box, "appearance")).toBe("none");
+      expect(await styleOf(box, "border-radius")).toBe("4px");
+    }
+
+    expect(await styleOf(ticked, "background-color")).toBe(INDIGO_500);
+    expect(await styleOf(ticked, "background-image")).toContain("svg");
+    expect(colourOf(await styleOf(unticked, "background-color"))).toEqual(
+      await surfaceBehind(unticked),
+    );
+    expect(await styleOf(unticked, "border-top-color")).toBe(SLATE_500);
+    expect(await styleOf(partly, "background-color")).toBe(INDIGO_500);
+    expect(await styleOf(partly, "background-image")).toContain("svg");
+
+    // Ticking and unticking moves the fill with it.
+    await ticked.click();
+    expect(colourOf(await styleOf(ticked, "background-color"))).toEqual(
+      await surfaceBehind(ticked),
+    );
+    await ticked.click();
+    expect(await styleOf(ticked, "background-color")).toBe(INDIGO_500);
+
+    await screenshot(page, "checkboxes-dark-1280");
+  });
+
+  test("the light theme keeps the browser's own radios and checkboxes", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "section=choices");
+
+    expect(await styleOf(page.getByTestId("choice-dark"), "appearance")).toBe(
+      "auto",
+    );
+    expect(
+      await styleOf(page.getByTestId("checkbox-ticked"), "appearance"),
+    ).toBe("auto");
+    await screenshot(page, "choices-1280");
+  });
+
+  test("a phone draws them the same, with nothing past the screen", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await open(page, "section=choices&theme=dark");
+
+    const box: { width: number; height: number } | null = await page
+      .getByTestId("choice-dark")
+      .boundingBox();
+
+    expect([box?.width, box?.height]).toEqual([16, 16]);
+    expect(await horizontalOverflow(page)).toBe(0);
+    await screenshot(page, "choices-dark-390");
+  });
+});

@@ -92,7 +92,7 @@ En ny SSL-certifikat-monitor starter med tre kriterier, så den advarer dig, fø
 2. **Certifikatet udløber snart** — certifikatet er gyldigt, men udløber om 14 dage eller mindre. Der oprettes en **advarsel** med navnet "_monitor name_ certificate expires soon".
 3. **Certifikatet er gyldigt** — monitoren markeres som **I drift**.
 
-Advarslen "udløber snart" er en advarsel, ikke en hændelse: den vises ikke på dine statussider, den tilkalder ingen, medmindre du føjer en vagtpolitik til den, og den ændrer ikke monitorens status. Den bruger dit projekts anden advarselsalvorlighed, **Low** i et nyt projekt. Når det fornyede certifikat bliver opfanget, er monitoren tilbage på "Certifikatet er gyldigt", og advarslen løser sig selv.
+Advarslen "udløber snart" er en advarsel, ikke en hændelse: den vises ikke på dine statussider, den tilkalder ingen, medmindre du føjer en vagtpolitik til den, og den ændrer ikke monitorens status. Den bruger dit projekts anden advarselsalvorlighed, **Lav** i et nyt projekt. Når det fornyede certifikat bliver opfanget, er monitoren tilbage på "Certifikatet er gyldigt", og advarslen løser sig selv.
 
 Kriterier kontrolleres fra top til bund, og det første, der matcher, afgør, hvad der sker. Derfor står "udløber snart" over "er gyldigt": et certifikat, der er ved at udløbe, er stadig gyldigt, så det ville matche begge.
 

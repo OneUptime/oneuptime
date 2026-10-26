@@ -1,7 +1,9 @@
 {
   "a11y": {
     "skipToMainContent": "Skip to main content",
-    "loading": "Loading..."
+    "loading": "Loading...",
+    "moreLinks": "More links",
+    "navigation": "Navigation"
   },
   "common": {
     "save": "Save",
@@ -303,7 +305,8 @@
       "loginPrompt": "Please login to view {{statusPageName}}",
       "noProviders": "No SSO Providers Configured or Enabled",
       "notAvailable": "Single sign-on is not available for this status page. Sign in with your email and password instead.",
-      "backToLogin": "Back to sign in"
+      "backToLogin": "Back to sign in",
+      "logInWithPassword": "Log in with password"
     },
     "forgotPassword": {
       "title": "Forgot Password",
@@ -320,13 +323,9 @@
       "knowPassword": "Know your password?"
     },
     "masterPassword": {
-      "enterWithName": "Enter {{statusPageName}} Password",
-      "enterGeneric": "Enter Password",
-      "prompt": "Please enter the password to continue.",
+      "prompt": "Enter the password to view this status page.",
       "passwordRequired": "password is required.",
       "passwordLabel": "Password",
-      "passwordDescription": "Enter the password to unlock this page.",
-      "passwordPlaceholder": "Enter password",
       "submit": "Unlock Status Page"
     },
     "signingOut": "Signing you out..."

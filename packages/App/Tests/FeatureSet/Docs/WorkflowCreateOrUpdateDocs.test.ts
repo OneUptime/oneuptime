@@ -20,6 +20,7 @@ import { DATABASE_OPERATION_ORDER } from "Common/UI/Components/Workflow/Componen
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { writtenPermissionTitle } from "./DocsRoleNames";
 
 /*
  * The docs on On Create or Update - one trigger for a new record and a
@@ -244,7 +245,10 @@ describe.each(DOCS_LANGUAGES)("the other pages in %s", (language: string) => {
   it("configuration: the triggers that act as a Project Admin include it", () => {
     const lines: Array<string> = linesWith(
       readPage(language, "workflows/configuration"),
-      ["On Create or Update", "**Project Admin**"],
+      [
+        "On Create or Update",
+        `**${writtenPermissionTitle(language, "Project Admin")}**`,
+      ],
     );
 
     expect(lines).toHaveLength(1);

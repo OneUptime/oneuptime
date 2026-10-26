@@ -29,7 +29,7 @@ Klik op **Runbook aanmaken**, voer een **Naam** in en eventueel een **Beschrijvi
 
 ### Stappen toevoegen
 
-Kies onder **Start your runbook** het type van de eerste stap; onder de laatste stap biedt **Add another step** dezelfde zeven typen. Elke stap opent met zijn **Titel** en wat zijn type nodig heeft; de rest, zoals zijn **Beschrijving** en de time-outs, is ingeklapt onder **Meer velden**. Zodra het runbook een stap heeft, voegt **Stap toevoegen** bovenaan de kaart een Manual-stap toe.
+Kies onder **Begin met uw runbook** het type van de eerste stap; onder de laatste stap biedt **Nog een stap toevoegen** dezelfde zeven typen. Elke stap opent met zijn **Titel** en wat zijn type nodig heeft; de rest, zoals zijn **Beschrijving** en de time-outs, is ingeklapt onder **Meer velden**. Zodra het runbook een stap heeft, voegt **Stap toevoegen** bovenaan de kaart een Manual-stap toe.
 
 ### De stappen ordenen
 
@@ -37,7 +37,7 @@ Stappen lopen **op volgorde**. Sleep een stap aan de greep links in de kop om de
 
 ### De stappen opslaan
 
-Klik op **Save Steps**. Tot u dat doet, toont de editor **Niet-opgeslagen wijzigingen**. Na het opslaan ziet u **Opgeslagen**, en is het runbook klaar om te [uitvoeren](/docs/runbooks/running).
+Klik op **Stappen opslaan**. Tot u dat doet, toont de editor **Niet-opgeslagen wijzigingen**. Na het opslaan ziet u **Opgeslagen**, en is het runbook klaar om te [uitvoeren](/docs/runbooks/running).
 :::
 
 ## Opbouw van een stap
@@ -98,11 +98,11 @@ Een uitgaande HTTP-aanroep, gedaan door de OneUptime Worker. Er is geen Runner n
 
 | Veld | Wat het doet | Standaard |
 | --- | --- | --- |
-| **Method** | `GET`, `POST`, `PUT`, `PATCH`, `DELETE` of `HEAD`. | `GET` |
+| **Methode** | `GET`, `POST`, `PUT`, `PATCH`, `DELETE` of `HEAD`. | `GET` |
 | **URL** | Het endpoint dat wordt aangeroepen. | Leeg |
 | **Headers (JSON)** | Onder **Meer velden**. Een JSON-object, zoals `{ "Authorization": "Bearer ..." }`. Headers die geen geldige JSON zijn, laten de stap mislukken. | Geen |
 | **Body** | Getoond voor `POST`, `PUT`, `PATCH` en `DELETE`. Verzonden als JSON wanneer het als JSON te lezen is, anders als tekst. | Geen |
-| **Request timeout** | Hoe lang op het antwoord van het endpoint wordt gewacht voordat de stap mislukt. | 30 seconden |
+| **Time-out van verzoek** | Hoe lang op het antwoord van het endpoint wordt gewacht voordat de stap mislukt. | 30 seconden |
 
 De stap slaagt bij een `2xx`- of `3xx`-antwoord en mislukt bij al het andere, met `HTTP <status>` als fout. Doorverwijzingen worden niet gevolgd. De status, headers en body van het antwoord worden vastgelegd, tot 50 KB.
 
@@ -190,9 +190,9 @@ Laat AI halverwege de uitvoering iets analyseren, samenvatten of beslissen. Het 
 | Veld | Wat het doet |
 | --- | --- |
 | **Prompt** | Wat de AI moet doen. Bijvoorbeeld: "Bekijk de uitvoer van de vorige stappen en zeg of het veilig is om met het herstel door te gaan." |
-| **LLM provider** | Optioneel. **Projectstandaard** gebruikt de standaardprovider van het project. Leg een provider vast wanneer de stap een bepaald model nodig heeft, zoals een zelf gehost model voor gegevens die uw netwerk niet mogen verlaten. Zie [LLM-providers](/docs/ai/llm-provider). |
-| **Include previous step context** | Als dit aan staat, ziet de AI alles over de stappen die vóór deze stap liepen: titel, type, status, uitvoer en foutmeldingen. Hij krijgt tot 4.000 tekens van de uitvoer van elke stap. |
-| **Include trigger context** | Als dit aan staat, ziet de AI wat de uitvoering startte: het gekoppelde incident, de waarschuwing of het geplande onderhoudsevenement (beschrijving, ernst, huidige status, getroffen monitoren, grondoorzaak, statustijdlijn en openbare notities), of wie het runbook met de hand startte. |
+| **LLM-provider** | Optioneel. **Projectstandaard** gebruikt de standaardprovider van het project. Leg een provider vast wanneer de stap een bepaald model nodig heeft, zoals een zelf gehost model voor gegevens die uw netwerk niet mogen verlaten. Zie [LLM-providers](/docs/ai/llm-provider). |
+| **Context van vorige stap opnemen** | Als dit aan staat, ziet de AI alles over de stappen die vóór deze stap liepen: titel, type, status, uitvoer en foutmeldingen. Hij krijgt tot 4.000 tekens van de uitvoer van elke stap. |
+| **Triggercontext opnemen** | Als dit aan staat, ziet de AI wat de uitvoering startte: het gekoppelde incident, de waarschuwing of het geplande onderhoudsevenement (beschrijving, ernst, huidige status, getroffen monitoren, grondoorzaak, statustijdlijn en openbare notities), of wie het runbook met de hand startte. |
 
 Om een mens erbij te houden, zet u **Goedkeuring vereisen** aan op de stap na een AI-stap: de AI analyseert, iemand leest het antwoord, en de herstelstap loopt pas zodra die persoon hem goedkeurt.
 
@@ -226,7 +226,7 @@ Via de API en Terraform is de schakelaar het veld `requireApprovalBeforeRunning`
 
 ## Opslaan en bewerken
 
-Wijzigingen in de stappen gaan in wanneer u op **Save Steps** klikt. Elke uitvoering werkt met de momentopname van het moment waarop ze startte, dus lopende uitvoeringen houden de stappen waarmee ze begonnen, en bewerken herschrijft nooit de geschiedenis van eerdere uitvoeringen.
+Wijzigingen in de stappen gaan in wanneer u op **Stappen opslaan** klikt. Elke uitvoering werkt met de momentopname van het moment waarop ze startte, dus lopende uitvoeringen houden de stappen waarmee ze begonnen, en bewerken herschrijft nooit de geschiedenis van eerdere uitvoeringen.
 
 ## Een uitgewerkt voorbeeld
 

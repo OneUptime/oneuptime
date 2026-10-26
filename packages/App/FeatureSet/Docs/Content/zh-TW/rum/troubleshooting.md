@@ -39,7 +39,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 | `200` 且 `"valid": true` | OneUptime 接受該金鑰。回應也會提供它的 `keyType` 與 `projectId` 。繼續下一項檢查。 |
 | `401` 且 `"valid": false` | 金鑰遺失、未知、已撤銷、已關閉或已到期， `message` 會說明是哪一種。在 **專案設定 → 遙測與 APM → 擷取金鑰** 下建立一個有效的金鑰。 |
 
-Web 應用程式需要 **Browser** 金鑰，行動應用程式需要 **伺服器** 金鑰：請參閱 [瀏覽器端設定](/docs/rum/browser-setup) 與 [行動端設定](/docs/rum/mobile-setup) 。匯出端點也會依 OTLP 規格的要求，以 `401` 拒絕錯誤的金鑰，因此行為良好的 SDK 會記錄這次拒絕，而不是重試。這一行在瀏覽器主控台中很容易被忽略，而這項檢查會直接告訴你答案。
+Web 應用程式需要 **瀏覽器** 金鑰，行動應用程式需要 **伺服器** 金鑰：請參閱 [瀏覽器端設定](/docs/rum/browser-setup) 與 [行動端設定](/docs/rum/mobile-setup) 。匯出端點也會依 OTLP 規格的要求，以 `401` 拒絕錯誤的金鑰，因此行為良好的 SDK 會記錄這次拒絕，而不是重試。這一行在瀏覽器主控台中很容易被忽略，而這項檢查會直接告訴你答案。
 
 ## 檢查離開瀏覽器的內容
 
@@ -77,7 +77,7 @@ new BatchSpanProcessor(exporter, { maxExportBatchSize: 100 });
 
 除非 span 帶有很大的屬性，例如整段堆疊追蹤或回應本文，瀏覽器很少傳送這麼大的批次。精簡這些屬性是更好的解決方式。
 
-**`422`.** OneUptime 在這裡拒絕了該金鑰，訊息會說明原因。 `Origin https://app.example.com is not allowed for this browser ingestion key.` 表示頁面的確切來源（包括配置與連接埠，如果有）不在該金鑰的 **Allowed Origins** 中。 `This telemetry ingestion key has been disabled.` 表示有人關閉了該金鑰。
+**`422`.** OneUptime 在這裡拒絕了該金鑰，訊息會說明原因。 `Origin https://app.example.com is not allowed for this browser ingestion key.` 表示頁面的確切來源（包括配置與連接埠，如果有）不在該金鑰的 **允許的來源** 中。 `This telemetry ingestion key has been disabled.` 表示有人關閉了該金鑰。
 
 **`429`.** 該金鑰的 **Requests Per Minute Limit** 已用完： `Too many telemetry requests for this ingestion key. Please retry later.` 除非你在金鑰上設定了自己的上限，否則 Browser 金鑰對你所有訪客合計每分鐘允許 6000 個請求。
 
@@ -139,7 +139,7 @@ localStorage.setItem("oneuptime.sessionReplay.debug", "true");
 // then reload the page
 ```
 
-應用程式 **Session Replay** 區段中的 **Health** 頁面，以及 **Replay Policy** 上的 **Test your installation** 面板，會從伺服器端檢查金鑰、允許清單與策略，並說明為什麼沒有資料抵達。瀏覽器的主控台則告訴你伺服器看不到的那一半。
+應用程式 **工作階段重播** 區段中的 **健康狀況** 頁面，以及 **Replay Policy** 上的 **Test your installation** 面板，會從伺服器端檢查金鑰、允許清單與策略，並說明為什麼沒有資料抵達。瀏覽器的主控台則告訴你伺服器看不到的那一半。
 
 在預設策略下，使用者與頁面互動時，錄製器大約每 15 秒傳送一個區塊。閒置的分頁沒有東西可傳送，所以請先按一下或移動滑鼠；如果之後仍然完全沒有區塊請求，就是出了問題。如果應用程式只在 _On error or frustration_ 時上傳，那麼在出問題之前保持靜默是正常的。呼叫 `OneUptimeReplay.captureSession()` 強制上傳，無論哪種情況都能驗證這條路徑。
 

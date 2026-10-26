@@ -68,7 +68,7 @@ flowchart TB
 
 ## 谁可以添加覆盖
 
-**Project Owner** 、 **Project Admin** 、 **Project Member** 、 **On-Call Admin** 和 **On-Call Member** 可以添加和删除覆盖； **Viewer** 和 **On-Call Viewer** 可以查看。在自定义角色中，权限名为 **Create On-Call Duty Policy User Override** 、 **Delete On-Call Duty Policy User Override** 和 **Read On-Call Duty Policy User Override** 。在 **值班时间线** 上，只有可以读取覆盖的人才能看到谁的班次正在被代。
+**项目所有者** 、 **项目管理员** 、 **项目成员** 、 **值班管理员** 和 **值班成员** 可以添加和删除覆盖； **查看者** 和 **值班查看者** 可以查看。在自定义角色中，权限名为 **Create On-Call Duty Policy User Override** 、 **Delete On-Call Duty Policy User Override** 和 **Read On-Call Duty Policy User Override** 。在 **值班时间线** 上，只有可以读取覆盖的人才能看到谁的班次正在被代。
 
 在 OneUptime Cloud 上，用户覆盖需要 **Growth** 套餐。
 

@@ -69,7 +69,7 @@ Innerhalb von ein, zwei Minuten zeigt die Zeile des Feeds **Zuletzt abgefragt**,
 | **Mindestkonfidenz** | Für eine TAXII-Sammlung oder Google SecOps: Indikatoren mit niedrigerer Konfidenz werden übersprungen, 0 bis 100, 0 behält alles. Indikatoren ohne Konfidenz kommen immer durch. |
 | **Anmeldung** | Wie sich OneUptime anmeldet: **Keine Anmeldung** für eine öffentliche Sammlung, **Bearer-Token** für ein Token vom Betreiber des Servers oder **Benutzername und Passwort** für HTTP-Basic-Auth. |
 | **API-Token**, **Basic-Auth-Benutzername** und **Basic-Auth-Passwort** | Nur für die gewählte Anmeldung abgefragt. |
-| **Open a Case on Match** | Standardmäßig an: Jedes Ereignis, das einen Indikator nennt, eröffnet einen [Fall](/docs/telemetry/security-cases) zu diesem Indikator oder wird dem offenen Fall zugeordnet, der ihn bereits betrifft. |
+| **Bei Treffer einen Fall eröffnen** | Standardmäßig an: Jedes Ereignis, das einen Indikator nennt, eröffnet einen [Fall](/docs/telemetry/security-cases) zu diesem Indikator oder wird dem offenen Fall zugeordnet, der ihn bereits betrifft. |
 | **Warnungen und Vorfälle** | Standardmäßig **Warnung erstellen**: Jeder getroffene Indikator öffnet eine Warnung. |
 | **Warnungsschweregrad** | Der Schweregrad jeder Warnung, die dieser Feed öffnet. Lassen Sie ihn leer, um die Bedrohungsstufe jedes Indikators zu nehmen. |
 | **Vorfall melden** oder **Beide** | Unter **Warnungen und Vorfälle**. Vorfälle steuern Bereitschaftseskalation, SLAs und Statusseiten, und für Indikatortreffer reichen meist Warnungen. |

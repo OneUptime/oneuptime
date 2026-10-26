@@ -100,7 +100,7 @@ Kortet **Video Call** på siden til en hendelse eller et varsel har **Start call
 
 **Fjern** på kortet tar en samtale av hendelsens side. Selve møtet slettes ikke, og alle med lenken kan fortsatt bli med.
 
-Å starte og fjerne samtaler krever tillatelse til å jobbe med hendelser (eller varsler): **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin** eller **Incident Member**, eller **Create Incident Video Call** og **Delete Incident Video Call** i en egendefinert rolle. Alle som kan lese hendelsen, ser samtalene.
+Å starte og fjerne samtaler krever tillatelse til å jobbe med hendelser (eller varsler): **Prosjekteier**, **Prosjektadministrator**, **Prosjektmedlem**, **Hendelsesadministrator** eller **Hendelsesmedlem**, eller **Create Incident Video Call** og **Delete Incident Video Call** i en egendefinert rolle. Alle som kan lese hendelsen, ser samtalene.
 
 ## Transkripsjoner av samtaler
 
@@ -146,7 +146,7 @@ Microsoft lar apper lese transkripsjoner bare fra Teams-møter som står i en ka
 
 ### Hvem kan gjøre hva
 
-Å hente, legge til, erstatte og fjerne en transkripsjon, få den lest på nytt og avvise et forslag krever tillatelse til å starte hendelsens samtaler: **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin** eller **Incident Member**, eller **Create Incident Video Call** i en egendefinert rolle. **Bruk som rotårsak** krever tillatelse til å redigere hendelsens rotårsak. Alle som kan lese hendelsen, ser transkripsjonene av samtalene dens og hva OneUptime AI leste i dem.
+Å hente, legge til, erstatte og fjerne en transkripsjon, få den lest på nytt og avvise et forslag krever tillatelse til å starte hendelsens samtaler: **Prosjekteier**, **Prosjektadministrator**, **Prosjektmedlem**, **Hendelsesadministrator** eller **Hendelsesmedlem**, eller **Create Incident Video Call** i en egendefinert rolle. **Bruk som rotårsak** krever tillatelse til å redigere hendelsens rotårsak. Alle som kan lese hendelsen, ser transkripsjonene av samtalene dens og hva OneUptime AI leste i dem.
 
 ### Hva OneUptime AI leser
 
@@ -160,7 +160,7 @@ Påloggingsinformasjon krypteres ved lagring og returneres aldri av API-et. Når
 
 **Start test meeting** i tilkoblingsskjemaet, og **Test** i en tilkoblings rad, oppretter et ekte møte med tilkoblingens innstillinger og viser lenken. Det er den ene sjekken som beviser at påloggingsinformasjonen, tillatelsen hos leverandøren og verten fungerer sammen. Ingenting publiseres noe sted.
 
-Å koble til en leverandør krever **Project Owner**, **Project Admin** eller **Settings Admin**, eller **Create Video Call Connection** og **Edit Video Call Connection** i en egendefinert rolle.
+Å koble til en leverandør krever **Prosjekteier**, **Prosjektadministrator** eller **Innstillingsadministrator**, eller **Create Video Call Connection** og **Edit Video Call Connection** i en egendefinert rolle.
 
 ### Zoom
 
@@ -169,7 +169,7 @@ OneUptime oppretter et Zoom-møte for hver hendelse via en Zoom-app av typen **S
 :::steps
 1. I [Zoom App Marketplace](https://marketplace.zoom.us/) velger du **Develop** > **Build App** og oppretter en app av typen **Server-to-Server OAuth**. Å opprette en krever en administrator av Zoom-kontoen, eller en rolle som tillater Server-to-Server OAuth-apper.
 2. På appens side **Scopes** legger du til **meeting:write:meeting:admin** (opprette et møte for en bruker). En app som ble opprettet før de detaljerte scopene, kan bruke **meeting:write:admin** i stedet. For å la OneUptime lese [transkripsjoner av samtaler](#transkripsjoner-av-samtaler) også legger du til **cloud_recording:read:list_recording_files:admin** og **cloud_recording:read:meeting_transcript:admin** (eller **recording:read:admin** i en app som ble opprettet før de detaljerte scopene).
-3. Klikk på **Activate** for å aktivere appen, og kopier deretter **Account ID**, **Client ID** og **Client secret** fra appens side **App Credentials** inn i tilkoblingsskjemaet.
+3. Klikk på **Activate** for å aktivere appen, og kopier deretter **Account ID**, **Client ID** og **Klienthemmelighet** fra appens side **App Credentials** inn i tilkoblingsskjemaet.
 4. Angi **Meeting host**: e-postadressen til en lisensiert Zoom-bruker, helst en tjenestekonto som incidents@example.com, så møter fortsetter å fungere når folk slutter. Møter med en Basic-bruker (gratis) som vert avsluttes etter 40 minutter.
 5. Responders blir med uten å vente på verten, fordi verten er en tjenestekonto som aldri blir med. Sørg for at innstillingen **Waiting room** på Zoom-kontoen din ikke er låst til på, ellers kommer ingen inn.
 :::
@@ -203,7 +203,7 @@ OneUptime oppretter et Microsoft Teams-møte for hver hendelse med Microsoft Gra
 :::steps
 1. I [Microsoft Entra-administrasjonssenteret](https://entra.microsoft.com/) åpner du **App registrations** > **New registration** og registrerer en app med én leier. Kopier **Directory (tenant) ID** og **Application (client) ID**.
 2. Under **API permissions** legger du til Microsoft Graph-tillatelsen av typen **application** **OnlineMeetings.ReadWrite.All** (og, for også å [ta opp og transkribere hendelsessamtaler](#ta-opp-og-transkribere-hver-samtale), **Calendars.ReadWrite** og **OnlineMeetingTranscript.Read.All**), og klikker deretter på **Grant admin consent**.
-3. Under **Certificates & secrets** oppretter du en klienthemmelighet og limer inn **Value**, ikke Secret ID, i tilkoblingsskjemaet som **Client secret**.
+3. Under **Certificates & secrets** oppretter du en klienthemmelighet og limer inn **Value**, ikke Secret ID, i tilkoblingsskjemaet som **Klienthemmelighet**.
 4. Velg organisatoren: en lisensiert Teams-bruker, helst en tjenestekonto. Kopier brukerens **Object ID** fra **Users** i Entra-administrasjonssenteret inn i **Organizer object ID**.
 5. Gi appen tillatelse til å opprette møter for organisatoren med en tilgangspolicy for programmer. I Teams PowerShell kjører du, etter `Connect-MicrosoftTeams`, de to kommandoene nedenfor.
 :::

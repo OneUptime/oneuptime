@@ -57,7 +57,7 @@ Klik på **Flere monitortyper** under **Monitortype**, og vælg **Ceph** under *
 
 ### Vælg klyngen
 
-Vælg klyngen i **Ceph Cluster** under **Ceph Monitor Configuration**. Alle klynger, der har sendt data, står på listen.
+Vælg klyngen i **Ceph-klynge** under **Ceph Monitor Configuration**. Alle klynger, der har sendt data, står på listen.
 
 ### Vælg, hvad der skal overvåges
 
@@ -65,11 +65,11 @@ Vælg en af de tre faner:
 
 - **Quick Setup** — klik på en [skabelon](#færdige-alarmskabeloner). Den indstiller metrikker, filtre, aggregering, tidsinterval og tærskler og erstatter kriterierne nedenfor med sine egne. Du kan stadig ændre **Tidsinterval**.
 - **Custom Metric** — vælg én metrik i **Ceph Metric**, og indstil derefter **Aggregering** og **Tidsinterval**. **OSD** og **Pool ID** indsnævrer den til én dæmon eller pool.
-- **Avanceret** — byg selv forespørgsler og formler under **Vælg målinger**, for eksempel et forhold for brugt kapacitet ud fra `ceph_cluster_total_used_bytes / ceph_cluster_total_bytes`. Brug **Group by** `ceph_daemon` eller `pool_id` for at vurdere hver dæmon eller pool for sig.
+- **Avanceret** — byg selv forespørgsler og formler under **Vælg målinger**, for eksempel et forhold for brugt kapacitet ud fra `ceph_cluster_total_used_bytes / ceph_cluster_total_bytes`. Brug **Gruppér efter** `ceph_daemon` eller `pool_id` for at vurdere hver dæmon eller pool for sig.
 
 ### Tjek kriterierne
 
-Åbn hvert kriterium under **Monitorkriterier**, og tjek **Metrik**, **Aggregering**, **Betingelse** og **Threshold**. En skabelon udfylder dem. Med **Custom Metric** eller **Avanceret** starter monitoren med [standardkriterierne](#standardkriterier), der kun opdager, at en metrik falder til nul, så sæt din egen tærskel.
+Åbn hvert kriterium under **Monitorkriterier**, og tjek **Metrik**, **Aggregering**, **Betingelse** og **Tærskel**. En skabelon udfylder dem. Med **Custom Metric** eller **Avanceret** starter monitoren med [standardkriterierne](#standardkriterier), der kun opdager, at en metrik falder til nul, så sæt din egen tærskel.
 
 ### Opret monitoren
 
@@ -77,19 +77,19 @@ Klik på **Opret monitor**. OneUptime åbner monitorens side og evaluerer den hv
 :::
 
 > [!TIP]
-> For at oprette flere skabeloner på én gang skal du åbne klyngen fra **Produkter → Infrastruktur → Ceph** og gå til **Recommendations**. Vælg de skabeloner, du vil have, og hvem der kaldes, så opretter OneUptime én monitor pr. skabelon.
+> For at oprette flere skabeloner på én gang skal du åbne klyngen fra **Produkter → Infrastruktur → Ceph** og gå til **Anbefalinger**. Vælg de skabeloner, du vil have, og hvem der kaldes, så opretter OneUptime én monitor pr. skabelon.
 
 ## Monitorindstillinger
 
 | Felt | Fane | Hvad det gør |
 | --- | --- | --- |
-| **Ceph Cluster** | Alle | Påkrævet. Begrænser hver forespørgsel til `resource.ceph.cluster.name`. |
+| **Ceph-klynge** | Alle | Påkrævet. Begrænser hver forespørgsel til `resource.ceph.cluster.name`. |
 | **OSD** | Custom Metric, Avanceret | Valgfri. Eksakt match på labelen `ceph_daemon`, for eksempel `osd.3`. |
 | **Pool ID** | Custom Metric, Avanceret | Valgfri. Eksakt match på labelen `pool_id`, for eksempel `2`. |
 | **Ceph Metric** | Custom Metric | Én metrik fra [kataloget](#indsamlede-metrikker). |
 | **Aggregering** | Custom Metric | Hvordan målinger kombineres: **Gennemsnit**, **Maksimum**, **Minimum**, **Sum** eller **Antal**. Starter med metrikkens sædvanlige aggregering. |
 | **Tidsinterval** | Alle | Det glidende vindue, forespørgslen læser, fra **Past 1 Minute** til **Past 365 Days**. En ny monitor starter på **Past 1 Minute**; skabeloner sætter deres eget. |
-| **Vælg målinger** | Avanceret | Forespørgselsbyggeren: **Metrik**, **Aggregate by**, **Filter by attributes**, **Group by**, plus **Tilføj metrik** og **Tilføj formel** til at kombinere forespørgsler. |
+| **Vælg målinger** | Avanceret | Forespørgselsbyggeren: **Metrik**, **Aggregate by**, **Filter by attributes**, **Gruppér efter**, plus **Tilføj metrik** og **Tilføj formel** til at kombinere forespørgsler. |
 
 Pools dataserier har kun labelen `pool_id`: Poolens navn findes kun på `ceph_pool_metadata`. Filtrér og gruppér poolserier efter `pool_id`, og slå navnet op i `ceph_pool_metadata`, når du har brug for det.
 
@@ -220,8 +220,8 @@ Et kriterium sammenligner en af monitorens forespørgsler eller formler med en t
 | **Metrik** | Forespørgslen eller formlen, der tjekkes, efter dens variabelnavn. |
 | **Aggregering** | Hvordan værdierne i vinduet bliver til ét svar: **Gennemsnit**, **Sum**, **Maximum Value**, **Minimum Value**, **All Values** (hver værdi skal matche, i hele vinduet) eller **Any Value** (én er nok). |
 | **Betingelse** | **Større end**, **Mindre end**, **Større end eller lig med**, **Mindre end eller lig med** eller **Lig med** — eller en anomalibetingelse: **Anomalously High**, **Anomalously Low** eller **Anomalous**. |
-| **Threshold** | Værdien, der sammenlignes med. Ved siden af står en enhedsliste, når metrikken har en enhed. Vises ikke ved anomalibetingelser. |
-| **Følsomhed** | Kun anomalibetingelser. **Low** (4σ), **Medium** (3σ, standard) eller **High** (2σ). |
+| **Tærskel** | Værdien, der sammenlignes med. Ved siden af står en enhedsliste, når metrikken har en enhed. Vises ikke ved anomalibetingelser. |
+| **Følsomhed** | Kun anomalibetingelser. **Lav** (4σ), **Middel** (3σ, standard) eller **Høj** (2σ). |
 | **Baseline-vindue** | Kun anomalibetingelser. 14 dage (standard), 28, 60 eller 90 dages historik. |
 | **Hvis ingen data** | Under **Flere felter**. Hvad der sker, når vinduet ikke har nogen målinger: **Ignore** (standard), **Treat As Zero** eller **Trigger**. |
 

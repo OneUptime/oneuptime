@@ -104,7 +104,7 @@ OpenTelemetry 中的所有訊息屬性仍標示為開發中，因此同一專案
 
 已檢測的用戶端也可以回報指標：OpenTelemetry 的訊息用戶端指標 `messaging.client.sent.messages`、`messaging.client.consumed.messages`、`messaging.client.operation.duration` 和 `messaging.process.duration`，它們的舊名稱 `messaging.publish.duration`、`messaging.receive.duration`、`messaging.publish.messages`、`messaging.receive.messages`、`messaging.process.messages` 和 `messaging.client.published.messages`，以及 Azure SDK for Java 的 `messaging.servicebus.messages.sent`、`messaging.servicebus.receiver.lag`、`messaging.servicebus.settlement.request.duration` 和 `messaging.servicebus.settlement.sequence_number`。每個資料點都像 span 一樣指明它的系統和目的地（Azure SDK 的 Service Bus 指標不指明系統，因此由其名稱代替），並在擷取時與該佇列比對，因此會顯示在佇列的 **指標** 分頁上。你自己的、在每個資料點上（而不是在資源上，那裡的值不會被讀取）帶有 `messaging.system` 和 `messaging.destination.name` 的指標也一樣，例如佇列深度量測值（請參閱 [BullMQ](#bullmq)）。
 
-訊息用戶端指標從不建立佇列：建立佇列的是追蹤、broker 指標或人員。指明某個已存在佇列的用戶端指標會像它的 span 一樣讓該佇列的 **Last seen** 保持最新。你自己的指標兩者都不做：它只顯示在佇列的 **指標** 分頁上。
+訊息用戶端指標從不建立佇列：建立佇列的是追蹤、broker 指標或人員。指明某個已存在佇列的用戶端指標會像它的 span 一樣讓該佇列的 **最近出現** 保持最新。你自己的指標兩者都不做：它只顯示在佇列的 **指標** 分頁上。
 
 ### 兩次觀測何時算同一個佇列
 
@@ -158,7 +158,7 @@ OneUptime 寧可不建立佇列：否則，依請求或依消費者臨時產生�
 
 ### 生命週期和封存
 
-- **Last seen** 是探索最後一次在追蹤、訊息用戶端指標或 broker 指標中看到該佇列的時間。
+- **最近出現** 是探索最後一次在追蹤、訊息用戶端指標或 broker 指標中看到該佇列的時間。
 - **封存以移除。** 刪除已探索的佇列只能讓它消失到再次被看到為止：下一次被看到時，它會以新佇列的身分回來。要永久移除，請 **封存** 它。已封存的佇列保留其身分，因此任何指明它的內容都會繼續附加在已封存的佇列上，而不會建立新佇列。
 - **自動封存。** 已探索的佇列如果 7 天（`MESSAGE_QUEUE_AUTO_ARCHIVE_DAYS`）未被看到，就會被自動封存，除非有人重新命名過它、為它寫過描述、為它加過標籤或指派過擁有者。由標籤或擁有者規則自行附加的標籤和擁有者不算。
 - **還原。** 自動封存的佇列在再次被看到時會自動還原。你手動建立的佇列，以及由人員封存的佇列，永遠不會被探索封存或還原。由人員還原的佇列即使沒有任何內容看到它，也會保持還原狀態 30 天（如果封存期間更長，則為封存期間），從下一次被看到起，7 天規則再次生效。

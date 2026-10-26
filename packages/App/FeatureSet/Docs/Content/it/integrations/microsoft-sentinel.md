@@ -60,11 +60,11 @@ Apri l'area di lavoro Log Analytics nel portale di Azure. La sua pagina **Overvi
 
 ### Aggiungere la connessione in OneUptime
 
-Apri **Prodotti → Security Events → Connections** (`/dashboard/{projectId}/security-events/connections`), fai clic su **Aggiungi connessione**, scegli **Microsoft Sentinel** e fai clic su **Avanti**. Compila le impostazioni della tabella qui sotto, fai clic su **Avanti** e incolla il valore del segreto in **Client secret**.
+Apri **Prodotti → Security Events → Connessioni** (`/dashboard/{projectId}/security-events/connections`), fai clic su **Aggiungi connessione**, scegli **Microsoft Sentinel** e fai clic su **Avanti**. Compila le impostazioni della tabella qui sotto, fai clic su **Avanti** e incolla il valore del segreto in **Segreto client**.
 
 ### Provarla prima di salvare
 
-Fai clic su **Test these settings** in **Testa prima di salvare**. Il test accede e legge gli incidenti con i valori del modulo, e non salva nulla, quindi un segreto errato o un ruolo mancante emergono prima che la connessione esista. Poi fai clic su **Avanti**, dai alla connessione un **Nome** e creala.
+Fai clic su **Prova queste impostazioni** in **Testa prima di salvare**. Il test accede e legge gli incidenti con i valori del modulo, e non salva nulla, quindi un segreto errato o un ruolo mancante emergono prima che la connessione esista. Poi fai clic su **Avanti**, dai alla connessione un **Nome** e creala.
 :::
 
 | Impostazione | Dove trovarla |
@@ -75,9 +75,9 @@ Fai clic su **Test these settings** in **Testa prima di salvare**. Il test acced
 | **Resource group** | La pagina **Overview** dell'area di lavoro. Da 1 a 90 lettere, cifre, trattini bassi, trattini, punti o parentesi, senza un punto finale. |
 | **Workspace name** | La pagina **Overview** dell'area di lavoro. Da 3 a 90 lettere, cifre o trattini, che iniziano e finiscono con una lettera o una cifra. |
 | **Cloud** | **Cloud pubblico di Azure** (`login.microsoftonline.com`, `management.azure.com`) o **Azure Government (USA)** (`login.microsoftonline.us`, `management.usgovcloudapi.net`). |
-| **Client secret** | Il **Value** del segreto. È cifrato, mai restituito dall'API e mai più mostrato. Sostituiscilo con **Update credentials** sulla connessione. |
+| **Segreto client** | Il **Value** del segreto. È cifrato, mai restituito dall'API e mai più mostrato. Sostituiscilo con **Aggiorna le credenziali** sulla connessione. |
 
-Il passaggio **Polling** ha anche una **Descrizione** facoltativa, il **Poll Interval (Minutes)**, un numero intero da `1` a `1440` che parte da `5`, e **Abilitato**, che parte attivo.
+Il passaggio **Interrogazione** ha anche una **Descrizione** facoltativa, il **Intervallo di interrogazione (minuti)**, un numero intero da `1` a `1440` che parte da `5`, e **Abilitato**, che parte attivo.
 
 ## Cosa viene importato
 
@@ -114,12 +114,12 @@ GET https://management.azure.com/subscriptions/{sub}/resourceGroups/{rg}/provide
 - **L'ora di creazione è il cursore.** Una regola di analisi pianificata che gira ogni ora apre il suo incidente molto dopo l'attività che ha individuato, e il `firstActivityTimeUtc` dell'incidente può essere precedente di ore o giorni. Un cursore sull'ora di attività salterebbe ognuno di questi incidenti. Le ore di attività restano in `attributes`, e i campioni della diagnostica le mostrano entrambe.
 - **La prima interrogazione guarda indietro di 24 ore**, così una nuova connessione mostra subito i suoi incidenti recenti.
 - **Ogni interrogazione successiva parte 1 minuto prima del cursore salvato**, così un incidente creato al confine tra due finestre non viene mai saltato.
-- **Un'interrogazione legge al massimo 24 ore oltre il cursore.** Una connessione il cui cursore è rimasto indietro recupera in una serie di finestre di 24 ore, e la sua **Health** indica **Catching up**.
+- **Un'interrogazione legge al massimo 24 ore oltre il cursore.** Una connessione il cui cursore è rimasto indietro recupera in una serie di finestre di 24 ore, e la sua **Integrità** indica **Catching up**.
 - **I duplicati vengono scartati in base al GUID dell'incidente** (`name`) all'interno del progetto, così la sovrapposizione, una finestra ripetuta e un'importazione non salvano mai un incidente due volte.
 
 ### Quando una finestra contiene più di quanto un'interrogazione possa leggere
 
-Un'interrogazione legge al massimo 20 pagine da 50 incidenti: 1.000 incidenti. Quando questo limite la ferma prima della fine della sua finestra, l'esecuzione è **Partial**, con un avviso come questo:
+Un'interrogazione legge al massimo 20 pagine da 50 incidenti: 1.000 incidenti. Quando questo limite la ferma prima della fine della sua finestra, l'esecuzione è **Parziale**, con un avviso come questo:
 
 ```text
 Stopped after 20 incidents requests (the per-run request limit) before reading the whole window. Incidents are read oldest first; every incident created before 2026-09-14T08:12:44.000Z was read.
@@ -131,22 +131,22 @@ Quando un'esecuzione non riesce affatto a superare il cursore salvato, OneUptime
 
 1. **Restringere.** L'interrogazione successiva legge una finestra lunga la metà, dallo stesso punto di partenza, e continua a dimezzarla finché una finestra non viene letta per intero, fino a un minuto. L'avviso dell'esecuzione lo dice: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **Tornare a crescere.** Dopo che una finestra è stata letta per intero, la successiva è di nuovo lunga il doppio, fino a 24 ore.
-3. **Superare un singolo minuto.** Se anche un solo minuto contiene più di quanto un'interrogazione possa leggere, il polling lo supera, così gli incidenti più recenti continuano ad arrivare. L'esecuzione resta **Partial**, e **Ultimo errore** riporta `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importa quel minuto con **Import this time range** per recuperare ciò che un'esecuzione può leggere.
+3. **Superare un singolo minuto.** Se anche un solo minuto contiene più di quanto un'interrogazione possa leggere, il polling lo supera, così gli incidenti più recenti continuano ad arrivare. L'esecuzione resta **Parziale**, e **Ultimo errore** riporta `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importa quel minuto con **Import this time range** per recuperare ciò che un'esecuzione può leggere.
 
-Un'esecuzione che fallisce del tutto, con un errore di Microsoft Entra ID o di Azure Resource Manager, mantiene il cursore e la lunghezza della finestra, e l'interrogazione successiva rilegge la stessa finestra. L'unica eccezione è una richiesta scaduta: il cursore resta, ma la finestra successiva è lunga la metà, perché una finestra troppo pesante per ricevere risposta in tempo scadrebbe a ogni tentativo. Cambiare il **Poll Interval (Minutes)** non cambia nulla di tutto questo: decide quanto spesso parte un'interrogazione, non dove inizia la sua finestra.
+Un'esecuzione che fallisce del tutto, con un errore di Microsoft Entra ID o di Azure Resource Manager, mantiene il cursore e la lunghezza della finestra, e l'interrogazione successiva rilegge la stessa finestra. L'unica eccezione è una richiesta scaduta: il cursore resta, ma la finestra successiva è lunga la metà, perché una finestra troppo pesante per ricevere risposta in tempo scadrebbe a ogni tentativo. Cambiare il **Intervallo di interrogazione (minuti)** non cambia nulla di tutto questo: decide quanto spesso parte un'interrogazione, non dove inizia la sua finestra.
 
 ### Eseguire, visualizzare in anteprima e importare su richiesta
 
-Fai clic su **Diagnostics** su una connessione per vederne le esecuzioni recenti e lavorarci a mano. Chi può modificare la connessione può avviare queste azioni; chi può vederla può leggerne la cronologia.
+Fai clic su **Diagnostica** su una connessione per vederne le esecuzioni recenti e lavorarci a mano. Chi può modificare la connessione può avviare queste azioni; chi può vederla può leggerne la cronologia.
 
-- **Run now** avvia subito un'interrogazione, con il cursore abituale, anche quando la connessione non è **Abilitato**.
+- **Esegui ora** avvia subito un'interrogazione, con il cursore abituale, anche quando la connessione non è **Abilitato**.
 - **Preview incidents** legge un intervallo di tempo fino a 7 giorni e non importa nulla.
 - **Import this time range** importa un intervallo fino a 7 giorni, dopo la tua conferma, senza spostare il cursore. Gli incidenti già importati vengono saltati.
 - **Copy diagnostics** su un'esecuzione copia il suo rapporto per il supporto. Non contiene mai credenziali.
 
 ## Testare la connessione
 
-**Testa la connessione** sulla riga di una connessione, e **Test these settings** nel modulo, vengono eseguiti nel processo dell'API, non in un worker in background, così un test risponde anche quando il problema sono i worker. Esegue questi controlli, in ordine:
+**Testa la connessione** sulla riga di una connessione, e **Prova queste impostazioni** nel modulo, vengono eseguiti nel processo dell'API, non in un worker in background, così un test risponde anche quando il problema sono i worker. Esegue questi controlli, in ordine:
 
 | Controllo | Cosa verifica |
 | --- | --- |
@@ -174,7 +174,7 @@ Registra un'applicazione e dalle un client secret, come in [Registrare un'applic
 
 ### Aggiungere la destinazione
 
-Apri **Prodotti → Security Events → Connections**. In **Invia al tuo SIEM**, fai clic su **Aggiungi destinazione**, scegli Microsoft Sentinel in **SIEM** e fai clic su **Avanti**. Inserisci l'**ID directory (tenant)**, l'**ID applicazione (client)** e il **Client secret**, l'**Endpoint di inserimento dei log** dalla pagina **Overview** dell'endpoint di raccolta dati (o della regola), e l'**ID non modificabile della regola di raccolta dati** dalla **JSON View** della regola. **Flusso** è facoltativo: se resta vuoto, è `Custom-OneUptimeSecurityEvents_CL`.
+Apri **Prodotti → Security Events → Connessioni**. In **Invia al tuo SIEM**, fai clic su **Aggiungi destinazione**, scegli Microsoft Sentinel in **SIEM** e fai clic su **Avanti**. Inserisci l'**ID directory (tenant)**, l'**ID applicazione (client)** e il **Segreto client**, l'**Endpoint di inserimento dei log** dalla pagina **Overview** dell'endpoint di raccolta dati (o della regola), e l'**ID non modificabile della regola di raccolta dati** dalla **JSON View** della regola. **Flusso** è facoltativo: se resta vuoto, è `Custom-OneUptimeSecurityEvents_CL`.
 
 ### Inviare un evento di prova e iniziare a inviare
 
@@ -234,7 +234,7 @@ Il **Ultimo errore** della connessione conserva il messaggio di errore completo,
 
 :::details Last Error inizia con `Microsoft Sentinel token request`
 - `Microsoft Sentinel token request failed (HTTP ...)`: Microsoft Entra ID si è rifiutato di rilasciare un token, quindi Azure non è mai stato contattato. Il messaggio cita il codice di Entra:
-  - `AADSTS7000215` o `invalid_client`: il **Client secret** è errato o scaduto, oppure è l'ID del segreto invece del suo valore. Crea un nuovo segreto e salvalo con **Update credentials**.
+  - `AADSTS7000215` o `invalid_client`: il **Segreto client** è errato o scaduto, oppure è l'ID del segreto invece del suo valore. Crea un nuovo segreto e salvalo con **Aggiorna le credenziali**.
   - `AADSTS700016` o `unauthorized_client`: l'**ID applicazione (client)** non si trova nel **ID directory (tenant)** indicato. Confronta entrambi con la pagina **Overview** dell'app.
   - `AADSTS90002` o `HTTP 404`: quel tenant non esiste. Il **ID directory (tenant)** è errato, oppure si trova nell'altro cloud: controlla **Cloud**.
   - `HTTP 429` o `HTTP 5xx`: Microsoft Entra ID sta limitando le richieste o non è disponibile. L'interrogazione successiva riprova.
@@ -258,9 +258,9 @@ Nessuna interrogazione è terminata per questa connessione. Esegui **Testa la co
 :::
 
 :::details Un'esecuzione è Partial
-- `Stopped after 20 incidents requests (the per-run request limit) before reading the whole window`: la finestra conteneva più dei 1.000 incidenti che legge un'esecuzione. Non si perde nulla: l'interrogazione successiva parte dopo l'ultimo incidente letto. Una connessione che resta **Partial** un'interrogazione dopo l'altra sta recuperando un arretrato, e il suo **Last Polled** e il suo **Last Event Imported** continuano ad avanzare.
+- `Stopped after 20 incidents requests (the per-run request limit) before reading the whole window`: la finestra conteneva più dei 1.000 incidenti che legge un'esecuzione. Non si perde nulla: l'interrogazione successiva parte dopo l'ultimo incidente letto. Una connessione che resta **Parziale** un'interrogazione dopo l'altra sta recuperando un arretrato, e il suo **Ultima interrogazione** e il suo **Ultimo evento importato** continuano ad avanzare.
 - `Microsoft Sentinel returned incidents out of creation-time order, so this run cannot name a point to resume from.`: l'API ha ignorato l'ordine dal più vecchio al più recente, quindi l'esecuzione non può spostare il cursore sul suo ultimo incidente, e l'interrogazione successiva legge invece una finestra più corta. Se si ripete, invia il rapporto dell'esecuzione al supporto di OneUptime.
-- `More records were created in the one minute from ... than one poll can read`: il polling ha superato quel minuto. Importalo con **Import this time range** in **Diagnostics**. Un'importazione legge quanto un'interrogazione.
+- `More records were created in the one minute from ... than one poll can read`: il polling ha superato quel minuto. Importalo con **Import this time range** in **Diagnostica**. Un'importazione legge quanto un'interrogazione.
 :::
 
 :::details Il test riesce, ma non viene importato nulla

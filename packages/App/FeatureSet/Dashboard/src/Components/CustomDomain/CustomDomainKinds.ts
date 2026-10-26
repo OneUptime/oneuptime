@@ -1,11 +1,17 @@
 import {
+  CustomDomainInstallation,
   CustomDomainKindCopy,
   DASHBOARD_CUSTOM_DOMAIN_COPY,
   STATUS_PAGE_CUSTOM_DOMAIN_COPY,
 } from "./CustomDomainCopy";
 import DashboardDomain from "Common/Models/DatabaseModels/DashboardDomain";
 import StatusPageDomain from "Common/Models/DatabaseModels/StatusPageDomain";
-import { DashboardCNameRecord, StatusPageCNameRecord } from "Common/UI/Config";
+import {
+  CUSTOM_DOMAIN_FREE_CERTIFICATES,
+  DashboardCNameRecord,
+  HTTP_PROTOCOL,
+  StatusPageCNameRecord,
+} from "Common/UI/Config";
 
 /*
  * The kinds of custom domain the Dashboard manages: a status page's and a
@@ -65,3 +71,16 @@ export const DASHBOARD_CUSTOM_DOMAINS: CustomDomainKind = {
   cnameRecordVariable: "DASHBOARD_CNAME_RECORD",
   copy: DASHBOARD_CUSTOM_DOMAIN_COPY,
 };
+
+/*
+ * What this installation does for every custom domain, read when it is
+ * needed: whether it issues free certificates (only with a Let's Encrypt
+ * account key) and the protocol it is reached over.
+ */
+export const getCustomDomainInstallation: () => CustomDomainInstallation =
+  (): CustomDomainInstallation => {
+    return {
+      issuesFreeCertificates: CUSTOM_DOMAIN_FREE_CERTIFICATES,
+      protocol: HTTP_PROTOCOL,
+    };
+  };

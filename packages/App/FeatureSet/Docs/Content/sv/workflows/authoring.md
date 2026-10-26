@@ -15,7 +15,7 @@ Arbetsflöden skapas avstängda, så deras utlösare startar dem inte förrän d
 
 ## Arbetsytan
 
-Ett arbetsflöde från grunden öppnas med ett enda streckat block med texten **Choose what starts this workflow**. Det blocket är utgångspunkten — klicka på det för att välja en utlösare. Ett arbetsflöde som skapats från en mall öppnas med sina block redan på plats.
+Ett arbetsflöde från grunden öppnas med ett enda streckat block med texten **Välj vad som startar det här arbetsflödet**. Det blocket är utgångspunkten — klicka på det för att välja en utlösare. Ett arbetsflöde som skapats från en mall öppnas med sina block redan på plats.
 
 Varje arbetsflöde har exakt en **utlösare** högst upp. Allt annat är en **komponent** som gör något. För att byta utlösare tar du bort den: den streckade platshållaren kommer tillbaka på dess plats, och ett klick på den låter dig välja en annan. När du tar bort ett block tas dess linjer bort också, så koppla den nya utlösaren till det första blocket igen.
 
@@ -30,7 +30,7 @@ Varje arbetsflöde har exakt en **utlösare** högst upp. Allt annat är en **ko
 
 Knappen i verktygsfältet heter **Lägg till utlösare** så länge arbetsflödet saknar en utlösare, och **Lägg till komponent** så snart det har en.
 
-Båda panelerna öppnas på de block som de flesta arbetsflöden använder, under **Popular**, följt av resten av de inbyggda blocken. Under **OneUptime resources** klickar du på en resurs som **Incident** för att se vad du kan göra med den; **Browse all resources** visar alla. Eller sök: skriv några ord, som `create incident`, så kommer den bästa träffen först. Tryck på `/` för att hoppa till sökfältet, på piltangenterna för att gå igenom resultaten och på **Enter** för att lägga till det markerade blocket. Ett klick på ett block lägger till det.
+Båda panelerna öppnas på de block som de flesta arbetsflöden använder, under **Populära**, följt av resten av de inbyggda blocken. Under **OneUptime-resurser** klickar du på en resurs som **Incident** för att se vad du kan göra med den; **Bläddra bland alla resurser** visar alla. Eller sök: skriv några ord, som `create incident`, så kommer den bästa träffen först. Tryck på `/` för att hoppa till sökfältet, på piltangenterna för att gå igenom resultaten och på **Enter** för att lägga till det markerade blocket. Ett klick på ett block lägger till det.
 
 Ett nytt block hamnar under det nedersta blocket på arbetsytan, och en ny utlösare tar det streckade blockets plats högst upp. Det nya blocket är markerat, och om det hamnar utanför synfältet rullar arbetsytan precis så mycket att det syns. Dess inställningar öppnas inte av sig själva: klicka på blocket när du är redo att konfigurera det. Tills de obligatoriska inställningarna är ifyllda står det **Click to set up** på det.
 
@@ -80,11 +80,11 @@ Varje inställning har det inmatningsfält dess värde kräver:
 | JSON                                             | En JSON-redigerare.                                                            |
 | På eller av                                      | En brytare med sitt namn bredvid. Klicka på brytaren eller namnet för att växla den. |
 
-Dialogrutan öppnas vid det du troligen kom för. För en **Webhook**-utlösare är det dess URL, med en knapp **Kopiera URL**, metoderna den accepterar och en exempelförfrågan. För en **Manual**-utlösare är det hur arbetsflödet startas. Alla andra block öppnas vid sina inställningar. Ett block utan inställningar har inget avsnitt **Inställningar** alls.
+Dialogrutan öppnas vid det du troligen kom för. För en **Webhook**-utlösare är det dess URL, med en knapp **Kopiera URL**, metoderna den accepterar och en exempelförfrågan. För en **Manuell**-utlösare är det hur arbetsflödet startas. Alla andra block öppnas vid sina inställningar. Ett block utan inställningar har inget avsnitt **Inställningar** alls.
 
 Under det, uppifrån och ned:
 
-- **ID**, **Inputs** och **Outputs**, sida vid sida — blockets identifierare, varifrån det nås och vad som körs efter det.
+- **ID**, **Indata** och **Outputs**, sida vid sida — blockets identifierare, varifrån det nås och vad som körs efter det.
 - **Returns** — data som det här blocket lämnar vidare till senare steg. Varje värde visar den exakta referens som läser det, med en knapp för att kopiera den.
 - **How to use** — vad blocket gör i en mening, stegen för att konfigurera det, ett exempel att kopiera och de misstag folk ofta gör. Exemplet är byggt utifrån ditt arbetsflöde: det använder det här blockets ID och utlösarens värden där det infogar data i ett meddelande. **Learn more** öppnar den längre förklaringen, och länkarna går till den fullständiga guiden. Varje block har en, och knappen **How to use** högst upp i dialogrutan hoppar direkt dit.
 
@@ -129,9 +129,9 @@ En sak kan den inte kontrollera: om ett variabelnamn finns. Ett blocks inställn
 Det snabbaste sättet att lära känna arbetsytan är ett arbetsflöde med två block som du startar manuellt:
 
 :::steps
-1. Klicka på det streckade platshållarblocket och klicka sedan på **Manual** i panelen **Lägg till utlösare**.
-2. Klicka på **Lägg till komponent** och klicka sedan på **Logg** under **Popular**. Det nya blocket hamnar under utlösaren. Koppla utlösarens punkt **Execute** ned till Log-blockets ingångspunkt.
-3. Klicka på Log-blocket, där det står **Click to set up**, och skriv `Hello from ` i dess **Value**. Klicka på **{ }** och klicka sedan på **JSON** under **Manual**. Inställningen visar **Manual › JSON** och sparar `{{local.components.manual-1.returnValues.value}}`. `manual-1` är utlösarens **Identifier**, som visas på utlösarblocket. Klicka på **Spara**.
+1. Klicka på det streckade platshållarblocket och klicka sedan på **Manuell** i panelen **Lägg till utlösare**.
+2. Klicka på **Lägg till komponent** och klicka sedan på **Logg** under **Populära**. Det nya blocket hamnar under utlösaren. Koppla utlösarens punkt **Execute** ned till Log-blockets ingångspunkt.
+3. Klicka på Log-blocket, där det står **Click to set up**, och skriv `Hello from ` i dess **Value**. Klicka på **{ }** och klicka sedan på **JSON** under **Manuell**. Inställningen visar **Manual › JSON** och sparar `{{local.components.manual-1.returnValues.value}}`. `manual-1` är utlösarens **Identifier**, som visas på utlösarblocket. Klicka på **Spara**.
 4. Tillbaka i **Byggare** klickar du på **Kör arbetsflöde**, skriver `{ "name": "Ada" }` i fältet **JSON**, klickar på **Kör arbetsflödet manuellt** och bekräftar med **Kör**. Arbetsflödet är fortfarande avstängt, och det behöver inte vara påslaget: en körning som du startar själv är en **Testkörning**.
 5. En panel **Arbetsflödeskörning** öppnas av sig själv och följer körningen. Högst upp står **Testkörning**, och loggen visar `Value:` följt av `Hello from` och JSON:en du skrev.
 :::
@@ -139,7 +139,7 @@ Det snabbaste sättet att lära känna arbetsytan är ett arbetsflöde med två 
 Den cykeln — lägg till, koppla, konfigurera, kör, läs loggen — är hur du bygger varje arbetsflöde.
 
 > [!TIP]
-> JSON som skrivs i **Kör arbetsflöde** når Manual-utlösaren som JSON. För att läsa ett fält i den, som `name`, lägger du till fältets namn i referensen: `{{local.components.manual-1.returnValues.value.name}}`. När arbetsflödet har körts visar värdeväljaren också fälten: öppna **JSON** under **Manual**.
+> JSON som skrivs i **Kör arbetsflöde** når Manual-utlösaren som JSON. För att läsa ett fält i den, som `name`, lägger du till fältets namn i referensen: `{{local.components.manual-1.returnValues.value.name}}`. När arbetsflödet har körts visar värdeväljaren också fälten: öppna **JSON** under **Manuell**.
 
 ## Slå på det
 

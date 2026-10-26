@@ -48,7 +48,7 @@ Klik onder **Monitortype** op **Meer monitortypen** en kies **Proxmox** onder **
 
 ### Het cluster kiezen
 
-Kies onder **Proxmox Monitor Configuration** het cluster in **Proxmox Cluster**. Elk cluster dat gegevens heeft verstuurd, staat in de lijst.
+Kies onder **Proxmox Monitor Configuration** het cluster in **Proxmox-cluster**. Elk cluster dat gegevens heeft verstuurd, staat in de lijst.
 
 ### Kiezen wat u bewaakt
 
@@ -56,11 +56,11 @@ Kies een van de drie tabbladen:
 
 - **Quick Setup** – klik op een [sjabloon](#kant-en-klare-waarschuwingssjablonen). Het stelt de metrieken, filters, de aggregatie, het tijdsbereik en de drempels in, en vervangt de criteria hieronder door die van het sjabloon. Het **Tijdsbereik** kunt u nog wijzigen.
 - **Custom Metric** – kies één metriek in **Proxmox Metric** en stel dan **Aggregatie** en **Tijdsbereik** in. De [filters](#monitorinstellingen) beperken hem tot een soort resource of tot één resource.
-- **Geavanceerd** – bouw zelf query's en formules onder **Selecteer metrieken**, bijvoorbeeld een geheugenpercentage uit `pve_memory_usage_bytes / pve_memory_size_bytes`. Gebruik **Group by** `id` om elke resource afzonderlijk te beoordelen.
+- **Geavanceerd** – bouw zelf query's en formules onder **Selecteer metrieken**, bijvoorbeeld een geheugenpercentage uit `pve_memory_usage_bytes / pve_memory_size_bytes`. Gebruik **Groeperen op** `id` om elke resource afzonderlijk te beoordelen.
 
 ### De criteria controleren
 
-Open elk criterium onder **Monitorcriteria** en controleer de **Metriek**, **Aggregatie**, **Voorwaarde** en **Threshold**. Een sjabloon vult deze in. Met **Custom Metric** of **Geavanceerd** begint de monitor met de [standaardcriteria](#standaardcriteria), die alleen opmerken dat een metriek naar nul zakt; stel daarom uw eigen drempel in.
+Open elk criterium onder **Monitorcriteria** en controleer de **Metriek**, **Aggregatie**, **Voorwaarde** en **Drempel**. Een sjabloon vult deze in. Met **Custom Metric** of **Geavanceerd** begint de monitor met de [standaardcriteria](#standaardcriteria), die alleen opmerken dat een metriek naar nul zakt; stel daarom uw eigen drempel in.
 
 ### De monitor maken
 
@@ -68,13 +68,13 @@ Klik op **Monitor maken**. OneUptime opent de pagina van de monitor en evalueert
 :::
 
 > [!TIP]
-> Om meerdere sjablonen tegelijk in te stellen, opent u het cluster via **Producten → Infrastructuur → Proxmox** en gaat u naar **Recommendations**. Kies de sjablonen die u wilt en wie wordt opgeroepen, en OneUptime maakt één monitor per sjabloon.
+> Om meerdere sjablonen tegelijk in te stellen, opent u het cluster via **Producten → Infrastructuur → Proxmox** en gaat u naar **Aanbevelingen**. Kies de sjablonen die u wilt en wie wordt opgeroepen, en OneUptime maakt één monitor per sjabloon.
 
 ## Monitorinstellingen
 
 | Veld | Tabblad | Wat het doet |
 | --- | --- | --- |
-| **Proxmox Cluster** | Alle | Verplicht. Beperkt elke query tot `resource.proxmox.cluster.name`. |
+| **Proxmox-cluster** | Alle | Verplicht. Beperkt elke query tot `resource.proxmox.cluster.name`. |
 | **Resourcebereik** | Custom Metric, Geavanceerd | Optioneel. **Node**, **Guest (VM / container)**, **Opslag** of **Cluster** – een exacte overeenkomst met `pve.scope`. |
 | **PVE ID** | Custom Metric, Geavanceerd | Optioneel. Exacte overeenkomst met `pve.id`: een nodenaam (`pve1`), een VMID (`100`) of `<node>/<storage>` (`pve1/local`). Combineer het met een bereik om één resource te targeten. |
 | **Nodenaam** | Custom Metric, Geavanceerd | Optioneel. Alleen de eigen reeksen van een node (`pve.scope = node` en `pve.id`). Het kan niet de gasten of de opslag op die node selecteren. |
@@ -82,7 +82,7 @@ Klik op **Monitor maken**. OneUptime opent de pagina van de monitor en evalueert
 | **Proxmox Metric** | Custom Metric | Eén metriek uit de [catalogus](#verzamelde-metrieken). |
 | **Aggregatie** | Custom Metric | Hoe metingen worden gecombineerd: **Gemiddelde**, **Maximum**, **Minimum**, **Som** of **Aantal**. Begint bij de gebruikelijke aggregatie van de metriek. |
 | **Tijdsbereik** | Alle | Het schuivende venster dat de query leest, van **Past 1 Minute** tot **Past 365 Days**. Een nieuwe monitor begint bij **Past 1 Minute**; sjablonen stellen hun eigen in. |
-| **Selecteer metrieken** | Geavanceerd | De querybouwer: **Metriek**, **Aggregate by**, **Filter by attributes**, **Group by**, plus **Metriek toevoegen** en **Formule toevoegen** om query's te combineren. |
+| **Selecteer metrieken** | Geavanceerd | De querybouwer: **Metriek**, **Aggregate by**, **Filter by attributes**, **Groeperen op**, plus **Metriek toevoegen** en **Formule toevoegen** om query's te combineren. |
 
 ## Resource-identiteit
 
@@ -224,7 +224,7 @@ Een criterium vergelijkt een van de query's of formules van de monitor met een d
 | **Metriek** | De query of formule die wordt gecontroleerd, op naam van de variabele. |
 | **Aggregatie** | Hoe de waarden in het venster één antwoord worden: **Gemiddelde**, **Som**, **Maximum Value**, **Minimum Value**, **All Values** (elke waarde moet overeenkomen, over het hele venster) of **Any Value** (één is genoeg). |
 | **Voorwaarde** | **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** of **Gelijk aan** – of een anomalievoorwaarde: **Anomalously High**, **Anomalously Low** of **Anomalous**. |
-| **Threshold** | De waarde waarmee wordt vergeleken. Ernaast staat een lijst met eenheden als de metriek een eenheid heeft. Niet getoond bij anomalievoorwaarden. |
+| **Drempel** | De waarde waarmee wordt vergeleken. Ernaast staat een lijst met eenheden als de metriek een eenheid heeft. Niet getoond bij anomalievoorwaarden. |
 | **Gevoeligheid** | Alleen bij anomalievoorwaarden. **Laag** (4σ), **Gemiddeld** (3σ, de standaard) of **Hoog** (2σ). |
 | **Baseline-venster** | Alleen bij anomalievoorwaarden. 14 dagen (de standaard), 28, 60 of 90 dagen geschiedenis. |
 | **Als geen gegevens** | Onder **Meer velden**. Wat er gebeurt als het venster geen metingen bevat: **Ignore** (de standaard), **Treat As Zero** of **Trigger**. |

@@ -968,6 +968,106 @@ export default class StatusPage extends BaseModel {
   })
   public logoFileId?: ObjectID = undefined;
 
+  /*
+   * A logo made for a dark background - light lettering - shown instead of
+   * the logo wherever the page is dark: on a Dark page, and on one that
+   * follows each visitor's device while it is dark. Without one, the logo
+   * (made for the light page, and for the emails the page sends, which stay
+   * light) sits on a small light backdrop there. Optional, on every plan,
+   * with the same access as the logo; the emails always use the logo.
+   *
+   * Removing the file it points at leaves the page without it (SET NULL),
+   * never takes the status page with it.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.CreateProjectStatusPage,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.StatusPageViewer,
+      Permission.ReadProjectStatusPage,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.EditProjectStatusPage,
+    ],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "darkThemeLogoFileId",
+    type: TableColumnType.Entity,
+    modelType: File,
+    title: "Dark Theme Logo",
+    description:
+      "The logo shown where the status page is dark. Without one, the logo is shown on a light backdrop there.",
+  })
+  @ManyToOne(
+    () => {
+      return File;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+    },
+  )
+  @JoinColumn({ name: "darkThemeLogoFileId" })
+  public darkThemeLogoFile?: File = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.CreateProjectStatusPage,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.StatusPageViewer,
+      Permission.ReadProjectStatusPage,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.EditProjectStatusPage,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    title: "Dark Theme Logo",
+    description: "Status Page Dark Theme Logo File ID",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public darkThemeLogoFileId?: ObjectID = undefined;
+
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,

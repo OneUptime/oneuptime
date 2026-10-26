@@ -113,7 +113,7 @@ flowchart TB
 
 :::steps
 1. 打开 **工作流**，点击 **创建工作流**，然后点击 **从零开始**。为工作流命名，然后点击 **创建工作流**。
-2. 点击虚线的 **Choose what starts this workflow** 块，选择 **Webhook**。点击该触发器，然后点击 **复制 URL**。
+2. 点击虚线的 **选择启动此工作流的方式** 块，选择 **Webhook**。点击该触发器，然后点击 **复制 URL**。
 3. 在另一个工具中，把它的 Webhook 以 `POST` 请求发送到该 URL，并带上 `Content-Type: application/json`。
 4. 添加处理它的块。这些块通过 `{{local.components.webhook-1.returnValues.request-body.status}}` 这样的引用读取请求：用 **If / Else** 块检查某个字段，再用 **Create One Incident** 声明事件。
 5. 在 **生成器** 顶部打开 **已启用**，从另一个工具发送一次测试，然后打开 **日志 → 运行记录** 查看收到了什么。

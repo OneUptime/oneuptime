@@ -87,7 +87,7 @@ Når du har åbnet en statusside, er dens egen venstremenu delt op i ti sektione
 | --- | --- |
 | **Grundlæggende** | **Oversigt**, **Meddelelser**, **Ejere**. |
 | **Ressourcer** | Én skærm **Ressourcer** (grupperne til venstre, den valgte gruppes monitorer til højre). |
-| **Regler** | **Monitor Rules**: regler, der tilføjer hver monitor, der matcher, til siden, nu og senere. |
+| **Regler** | **Monitorregler**: regler, der tilføjer hver monitor, der matcher, til siden, nu og senere. |
 | **Abonnenter** | **E-mail-abonnenter**, **SMS-abonnenter**, **Slack-abonnenter**, **Microsoft Teams-abonnenter**, **Webhook-abonnenter**, **Abonnementsindstillinger**. |
 | **Notifikationslogs** | **Notifikationslogs**: hvad der er sendt til abonnenterne. |
 | **Branding** | **Branding** (logo, titel, favicon, links, sidefod, farver og sprog, på én side), **Brugerdefinerede domæner**, **HTML, CSS og JavaScript**. |
@@ -217,7 +217,7 @@ Under **Yderligere indstillinger** på **Adgang** begrænser sektionen **IP-till
 
 Tre måder at vise status andre steder end på selve siden.
 
-**Indlejret statusmærke.** Under **Statussider → din side → Avanceret → Indlejret status** slår du **Aktivér indlejret statusmærke** til (`enableEmbeddedOverallStatus`, slået fra som standard). Første gang du slår det til, får mærket sit token (`embeddedOverallStatusToken`), og kortet **Indlejr mærket** viser mærket, leveret fra `/api/status-page/badge/<status-page-id>?token=<token>`, med dets **HTML** og dets **Markdown, med link til statussiden** at kopiere, så du kan sætte den aktuelle samlede status ind i din dokumentation, din apps sidefod eller en markedsføringsside. Tokenet ligger på kortet **Sikkerhedstoken** under **Yderligere indstillinger**, med **Regenerer token** til når linket er blevet delt for bredt.
+**Indlejret statusmærke.** Under **Statussider → din side → Avanceret → Indlejret status** slår du **Aktivér indlejret statusmærke** til (`enableEmbeddedOverallStatus`, slået fra som standard). Første gang du slår det til, får mærket sit token (`embeddedOverallStatusToken`), og kortet **Indlejr mærket** viser mærket, leveret fra `/api/status-page/badge/<status-page-id>?token=<token>`, med dets **HTML** og dets **Markdown, med link til statussiden** at kopiere, så du kan sætte den aktuelle samlede status ind i din dokumentation, din apps sidefod eller en markedsføringsside. Markdown-koden linker til sidens første aktive brugerdefinerede domæne, også et med et certifikat, du har uploadet, eller til dens adresse på OneUptime, så længe intet er aktivt. Tokenet ligger på kortet **Sikkerhedstoken** under **Yderligere indstillinger**, med **Regenerer token** til når linket er blevet delt for bredt.
 
 **RSS-feed.** Hver statusside leverer `/rss`: et feed med titlen "{sidetitel} Updates", med den **Sidetitel**, der er angivet under **Branding**, eller sidens navn, hvis den ikke har nogen, og hvis elementer begynder med `Incident: `, `Announcement: ` og `Scheduled Maintenance: `. Hvert element er dateret, som siden daterer det: en hændelse efter, hvornår den blev erklæret, en meddelelse efter, hvornår den kom op, og en planlagt vedligeholdelsesbegivenhed efter, hvornår den begynder, og dens beskrivelse starter med dens tidsvindue. Nyttigt for dem, der hellere vil trække dine opdateringer ind i en feedlæser eller en chatbot end abonnere via e-mail.
 

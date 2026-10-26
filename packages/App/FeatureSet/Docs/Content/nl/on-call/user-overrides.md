@@ -68,7 +68,7 @@ Verlaat iemand het project, dan wordt elke overschrijving die die persoon noemt 
 
 ## Wie overschrijvingen mag toevoegen
 
-**Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** en **On-Call Member** mogen overschrijvingen toevoegen en verwijderen; **Viewer** en **On-Call Viewer** mogen ze zien. In een aangepaste rol heten de rechten **Create On-Call Duty Policy User Override**, **Delete On-Call Duty Policy User Override** en **Read On-Call Duty Policy User Override**. Op de **Tijdlijn van bereikbaarheidsschema's** zien alleen mensen die overschrijvingen mogen lezen wiens dienst wordt vervangen.
+**Projecteigenaar**, **Projectbeheerder**, **Projectlid**, **Bereikbaarheidsbeheerder** en **Bereikbaarheidslid** mogen overschrijvingen toevoegen en verwijderen; **Kijker** en **Bereikbaarheidskijker** mogen ze zien. In een aangepaste rol heten de rechten **Create On-Call Duty Policy User Override**, **Delete On-Call Duty Policy User Override** en **Read On-Call Duty Policy User Override**. Op de **Tijdlijn van bereikbaarheidsschema's** zien alleen mensen die overschrijvingen mogen lezen wiens dienst wordt vervangen.
 
 In OneUptime Cloud hebben gebruikersoverschrijvingen het abonnement **Growth** nodig.
 

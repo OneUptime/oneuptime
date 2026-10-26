@@ -20,7 +20,6 @@ const PODMAN_HOST_ONBOARDING: ResourceOnboarding = {
   addDescription: translationKey(
     "Run the OneUptime Podman agent on the host. The host shows up here as soon as the agent connects.",
   ),
-  firstRunTitle: translationKey("Getting Started with Podman Monitoring"),
   viewText: translationKey("View host"),
   viewPage: PageMap.PODMAN_HOST_VIEW,
   name: {

@@ -30,12 +30,12 @@ import {
   toLatinDigits,
 } from "./DocsTranslationChecks";
 import { otherChangesItems } from "./UpgradingDocsNotes";
-import { PermissionHelper } from "Common/Types/Permission";
 import { APPROVAL_AFTER_LAST_STEP_TITLE } from "Common/Types/Runbook/RunbookStepApproval";
 import { slugifyMarkdownHeading } from "Common/Server/Types/MarkdownSlugify";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { isPermissionTitleKeptInEnglish } from "./DocsRoleNames";
 
 /*
  * Docs overhaul task 16: the upgrade guide (installation/upgrading) in every
@@ -83,12 +83,6 @@ const NAV_TITLE: string = "Upgrading";
 
 // Roles and permissions, as the role pickers and the API name them.
 const ROLES_AND_PERMISSIONS: Array<string> = [
-  "Project Admin",
-  "Project Owner",
-  "Viewer",
-  "Settings Admin",
-  "Settings Member",
-  "Settings Viewer",
   "Read Probe",
   "Read AI Agent",
   "Read Incoming Call Policy",
@@ -585,14 +579,6 @@ function boldCount(markdown: string, label: string): number {
   return occurrences(unwrapped(markdown), `**${label}**`);
 }
 
-function isPermissionOrRole(name: string): boolean {
-  return PermissionHelper.getAllPermissionProps().some(
-    (props: { title: string }): boolean => {
-      return props.title === name;
-    },
-  );
-}
-
 function readLocale(file: string): Record<string, unknown> {
   return JSON.parse(fs.readFileSync(file, "utf8")) as Record<string, unknown>;
 }
@@ -915,7 +901,7 @@ describe("the lists this test keeps", () => {
     for (const name of ROLES_AND_PERMISSIONS) {
       expect({ name, permission: true }).toEqual({
         name,
-        permission: isPermissionOrRole(name),
+        permission: isPermissionTitleKeptInEnglish(name),
       });
     }
 
@@ -924,7 +910,7 @@ describe("the lists this test keeps", () => {
         expect({ family, verb, permission: true }).toEqual({
           family,
           verb,
-          permission: isPermissionOrRole(`${verb} ${family}`),
+          permission: isPermissionTitleKeptInEnglish(`${verb} ${family}`),
         });
       }
     }
@@ -933,7 +919,7 @@ describe("the lists this test keeps", () => {
     for (const name of [...EXAMPLE_STATES, ...METRIC_NAMES]) {
       expect({ name, permission: false }).toEqual({
         name,
-        permission: isPermissionOrRole(name),
+        permission: isPermissionTitleKeptInEnglish(name),
       });
     }
   });

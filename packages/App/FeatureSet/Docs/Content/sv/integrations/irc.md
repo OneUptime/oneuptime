@@ -46,7 +46,7 @@ Steget tar utgången **Framgång** så snart servern har tagit emot varje rad. D
 ## Innan du börjar
 
 - På OneUptime Cloud planen **Growth** eller en högre: arbetsflöden och deras variabler ingår i den. Egenvärdade installationer utan fakturering har inga plangränser.
-- En roll som bygger arbetsflöden: **Project Owner**, **Project Admin** eller **Workflow Admin**.
+- En roll som bygger arbetsflöden: **Projektägare**, **Projektadministratör** eller **Arbetsflödesadministratör**.
 - Ett konto i IRC-nätverket, om det vill att du loggar in. Det vill Libera.Chat för anslutningar från vissa moln- och VPN-adresser.
 
 ## Konfigurera integrationen
@@ -87,7 +87,7 @@ Börja från mallen, som bygger hela arbetsflödet åt dig, eller från grunden.
 Arbetsflödet öppnas i **Byggare** med tre steg: **On Create Incident**; **Send Message to IRC**, som postar incidentens nummer, titel, allvarlighetsgrad och tillstånd på två rader; och ett **Logg**-steg på dess utgång **Fel**, som noterar varför ett meddelande inte levererades. Servern och kanalen sparas som arbetsflödets variabler `ircServer` och `ircChannel`. Om du sparade lösenord i föregående steg klickar du på **Send Message to IRC**, öppnar **Fler fält** och väljer varje variabel med knappen **{ }** i dess inställning.
 @tab Från grunden
 1. Öppna **Arbetsflöden**, klicka på **Skapa arbetsflöde**, välj **Börja från grunden**, ge arbetsflödet ett namn och klicka på **Skapa arbetsflöde**.
-2. Klicka i **Byggare** på **Choose what starts this workflow** och välj **On Create Incident** under **Popular**. Klicka på utlösaren och välj i **Fields to pass on** de fält från incidenten som ditt meddelande visar, till exempel dess titel.
+2. Klicka i **Byggare** på **Välj vad som startar det här arbetsflödet** och välj **On Create Incident** under **Populära**. Klicka på utlösaren och välj i **Fields to pass on** de fält från incidenten som ditt meddelande visar, till exempel dess titel.
 3. Klicka på **Lägg till komponent**, sök efter `irc` och klicka på **Send Message to IRC**. Koppla utlösarens utgång **Framgång** till steget.
 4. Klicka på det nya steget och fyll i **IRC Server**, **Channel** och **Message Text**. Knappen **{ }** i **Message Text** infogar fält från incidenten, till exempel dess titel.
 5. Om du sparade lösenord i föregående steg öppnar du **Fler fält**. Klicka på **{ }** i **Server Password**, **SASL Password** eller **Channel Key** och välj variabeln under **Global variables**. Skriv ditt kontos namn i **SASL Username**.

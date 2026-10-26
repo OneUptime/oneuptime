@@ -64,7 +64,7 @@ De to slags noter ligner hinanden i dashboardet og opfører sig meget forskellig
 
 ### Skriv opdateringen
 
-Skriv noten i Markdown, eller start fra en af dine **Skabeloner** eller fra **Draft with AI**. Tilføj filer med **Attach**, hvis abonnenterne skal se dem.
+Skriv noten i Markdown, eller start fra en af dine **Skabeloner** eller fra **Udkast med AI**. Tilføj filer med **Attach**, hvis abonnenterne skal se dem.
 
 ### Bestem, hvem der får besked
 
@@ -81,7 +81,7 @@ Den samme editor åbner i en dialog fra **Add Public Note** i menuen **Handlinge
 | ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
 | Noten                              | Teksten, i Markdown. Påkrævet.                                                                                                                |
 | **Skabeloner**                     | Sætter en af dine noteskabeloner ind i noten, efter det, du allerede har skrevet. Se [Noteskabeloner](#noteskabeloner).                       |
-| **Draft with AI**                  | Skriver et udkast til noten ud fra hændelsen, som du redigerer. Se [Generér en note med AI](#generér-en-note-med-ai).                       |
+| **Udkast med AI**                  | Skriver et udkast til noten ud fra hændelsen, som du redigerer. Se [Generér en note med AI](#generér-en-note-med-ai).                       |
 | **Attach**                         | Filer, der deles med abonnenterne på statussiden. Valgfrit.                                                                                   |
 | **Posted now**                     | Hvornår noten siger, den blev slået op: det øjeblik, du slår den op, medmindre du vælger et tidligere tidspunkt her, i din aktuelle tidszone. |
 | **Notify status page subscribers** | Afkrydsningsfelt. Slået til som standard, medmindre hændelsen blev erklæret uden at give abonnenterne besked — så starter det slået fra. Slå det fra for at offentliggøre i stilhed. |
@@ -99,7 +99,7 @@ Hver note viser, hvem der skrev den, tidspunktet for opslaget, den viste Markdow
 
 ## Slå en privat note op
 
-**Noter → Private noter** er bevidst enklere. Det er den samme editor, der siger **Private · Only your team can see this**, med noten, **Skabeloner**, **Draft with AI** og **Attach** til filer, der er beregnet til det team, der reagerer på hændelsen. **Tilføj privat note** i menuen **Handlinger** i hændelsens feed åbner den i en dialog. Via API'et er private noter `/api/incident-internal-note`.
+**Noter → Private noter** er bevidst enklere. Det er den samme editor, der siger **Private · Only your team can see this**, med noten, **Skabeloner**, **Udkast med AI** og **Attach** til filer, der er beregnet til det team, der reagerer på hændelsen. **Tilføj privat note** i menuen **Handlinger** i hændelsens feed åbner den i en dialog. Via API'et er private noter `/api/incident-internal-note`.
 
 Intet tidspunkt for opslag, intet afkrydsningsfelt for abonnenter — noten stemples, når den oprettes.
 
@@ -138,7 +138,7 @@ At læse en note via API'et, Terraform eller et workflow viser kun de vedhæftni
 
 ## Generér en note med AI
 
-Editoren har en knap **Draft with AI** på begge notesider og i feedets dialoger **Add Public Note** og **Tilføj privat note**. Den sender hændelsen til dit projekts AI-udbyder og sætter den genererede Markdown ind i noten, hvor du redigerer den, før du slår den op — intet offentliggøres automatisk.
+Editoren har en knap **Udkast med AI** på begge notesider og i feedets dialoger **Add Public Note** og **Tilføj privat note**. Den sender hændelsen til dit projekts AI-udbyder og sætter den genererede Markdown ind i noten, hvor du redigerer den, før du slår den op — intet offentliggøres automatisk.
 
 | Dialog                             | Hvad den skriver                                                     | Skabeloner                                                        |
 | ---------------------------------- | -------------------------------------------------------------------- | ----------------------------------------------------------------- |
@@ -250,7 +250,7 @@ Kortets hoved har også en menu **Handlinger**, så du kan handle uden at forlad
 
 - **Execute Runbook** — start et [runbook](/docs/runbooks/index) for denne hændelse.
 - **Udfør vagtpolitik** — tilkald en politik efter behov. En arkiveret politik tilkalder ingen: dens udførelseslog på hændelsen siger, at den ikke blev udført, fordi politikken er arkiveret.
-- **Add Public Note** — siden **Offentlige noter**'s editor, i en dialog: skriv noten, og derefter **Post update**. Skabeloner, **Draft with AI**, vedhæftninger, **Notify status page subscribers** med hvem den når, og **Forhåndsvisning** er der alle. Noten slås op nu; for at tilbagedatere den vælger du **Posted now**.
+- **Add Public Note** — siden **Offentlige noter**'s editor, i en dialog: skriv noten, og derefter **Post update**. Skabeloner, **Udkast med AI**, vedhæftninger, **Notify status page subscribers** med hvem den når, og **Forhåndsvisning** er der alle. Noten slås op nu; for at tilbagedatere den vælger du **Posted now**.
 - **Tilføj privat note** — siden **Private noter**'s editor, i en dialog: skriv noten, og derefter **Add note**.
 
 Begge notehandlinger er låst, med navnet på den manglende tilladelse, for en, der ikke må skrive noter. Når en note er slået op, lukker dialogen, og feedet viser den.

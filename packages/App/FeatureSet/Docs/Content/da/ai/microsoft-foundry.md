@@ -53,7 +53,7 @@ Du skal bruge et Azure-abonnement, en rolle, der lader dig oprette og læse ress
 
 OneUptime selv har ikke brug for nogen Azure-rolle. En nøgle giver alene adgang til alle udrulninger på ressourcen uden rolletjek, så behandl den som en adgangskode.
 
-I OneUptime kræver det **Project Owner**, **Project Admin**, **Project Member**, **Settings Admin**, **Settings Member** eller **Create LLM** at tilføje en udbyder til et projekt. En selvhostet instans kan i stedet registrere én udbyder til alle projekter fra miljøvariabler, hvilket kræver adgang til serveren.
+I OneUptime kræver det **Projektejer**, **Projektadministrator**, **Projektmedlem**, **Indstillingsadministrator**, **Indstillingsmedlem** eller **Create LLM** at tilføje en udbyder til et projekt. En selvhostet instans kan i stedet registrere én udbyder til alle projekter fra miljøvariabler, hvilket kræver adgang til serveren.
 
 ## Opsæt Microsoft Foundry
 

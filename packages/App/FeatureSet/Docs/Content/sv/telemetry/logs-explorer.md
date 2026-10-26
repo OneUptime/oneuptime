@@ -100,11 +100,11 @@ Sök, filtrera och välj de kolumner du vill behålla.
 
 ### Spara den
 
-Öppna **Saved Views** och klicka på **+ Save Current View**. Ange ett **Namn**, markera **Ange som standard** om vyn ska öppnas varje gång någon öppnar loggarna, och klicka på **Spara vy**.
+Öppna **Sparade vyer** och klicka på **+ Spara aktuell vy**. Ange ett **Namn**, markera **Ange som standard** om vyn ska öppnas varje gång någon öppnar loggarna, och klicka på **Spara vy**.
 
 ### Använd den
 
-Välj vyn i **Saved Views** för att använda den, och **Clear view** för att gå tillbaka till den senaste timmen utan filter. Peka på en vy i listan för att **Redigera** eller **Ta bort** den, eller, medan den används, för att **Uppdatera** den med dina ändringar.
+Välj vyn i **Sparade vyer** för att använda den, och **Rensa vy** för att gå tillbaka till den senaste timmen utan filter. Peka på en vy i listan för att **Redigera** eller **Ta bort** den, eller, medan den används, för att **Uppdatera** den med dina ändringar.
 :::
 
 Sparade vyer hör till projektet, så alla i det ser samma lista. Ett rullande intervall som den senaste timmen fortsätter att rulla: vyn visar timmen innan du öppnar den, inte timmen då du sparade den. Så länge projektet saknar en standardvy blir nästa sparade vy standard, och ett projekt har en standard i taget.
@@ -117,7 +117,7 @@ Klicka på **Lista** för att gå tillbaka till själva raderna.
 
 ## Öppna tillhörande spår och mätvärden
 
-Knapparna **Spår** och **Mätvärden** bredvid **Saved Views** öppnar [Spårutforskare](/docs/telemetry/traces-explorer) eller [Måttutforskare](/docs/telemetry/metrics-explorer) för samma tidsfönster, med så mycket av din filtrering som den utforskaren kan använda. Peka på en knapp för att se vad den inte kan ta med sig.
+Knapparna **Spår** och **Mätvärden** bredvid **Sparade vyer** öppnar [Spårutforskare](/docs/telemetry/traces-explorer) eller [Måttutforskare](/docs/telemetry/metrics-explorer) för samma tidsfönster, med så mycket av din filtrering som den utforskaren kan använda. Peka på en knapp för att se vad den inte kan ta med sig.
 
 ## Insikter i loggar
 

@@ -70,7 +70,7 @@ Klicka på **Registrera enhet**, behåll det föreslagna **Enhetsnamn**, till ex
 Klicka på **Send Test Notification** i dialogrutan **Browser Registered**. Visas ingenting, titta på datorns notisinställningar: se [Felsökning](#felsökning).
 :::
 
-En webbläsare kan inte ringa igenom ett Fokus som Stör ej. Använd mobilappen med kritiska varningar för larm som måste väcka dig: se [iOS-installation](/docs/mobile-desktop-apps/ios-installation#ring-igenom-tyst-läge).
+En webbläsare kan inte ringa igenom ett Fokus som Stör ej. Använd mobilappen med kritiska larm för larm som måste väcka dig: se [iOS-installation](/docs/mobile-desktop-apps/ios-installation#ring-igenom-tyst-läge).
 
 På ett OneUptime i egen drift behöver webbläsaraviseringar serverns VAPID-nycklar: se [Push-aviseringar](/docs/self-hosted/push-notifications#egeninstallerad-konfiguration).
 
@@ -111,7 +111,7 @@ En Safari-webbapp har sin egen inloggning: logga in i appen. En app som installe
 ## Nästa steg
 
 :::cards
-- [iOS-installation](/docs/mobile-desktop-apps/ios-installation): Bli larmad på din iPhone, med kritiska varningar.
+- [iOS-installation](/docs/mobile-desktop-apps/ios-installation): Bli larmad på din iPhone, med kritiska larm.
 - [Windows-installation](/docs/mobile-desktop-apps/windows-installation): Samma app på Windows.
 - [Vanliga frågor och felsökning](/docs/mobile-desktop-apps/faq-troubleshooting): Svar om båda apparna.
 - [Ditt konto](/docs/introduction/your-account): Så når OneUptime dig i varje projekt.

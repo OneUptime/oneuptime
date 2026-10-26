@@ -1054,7 +1054,8 @@ describe("the helpers, on these pages' shapes", () => {
 
   it("name a sensitivity by the start of its drawn option, not the bare word's key", () => {
     expect(drawnSensitivity("de", "Low")).toBe("Niedrig");
-    expect(drawnActionLabel("de", "Low")).toBe("Low");
+    // The bare word has its own key too, which reads the same.
+    expect(drawnActionLabel("de", "Low")).toBe("Niedrig");
     expect(drawnSensitivity("ja", "High")).toBe("高");
     expect(drawnSensitivity("en", "Medium")).toBe("Medium");
   });

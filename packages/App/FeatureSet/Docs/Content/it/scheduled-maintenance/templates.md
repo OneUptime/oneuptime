@@ -24,7 +24,7 @@ flowchart TB
 ## Prima di iniziare
 
 - **Il vostro piano.** Su OneUptime Cloud, i modelli richiedono il piano **Growth** o superiore.
-- **Il vostro ruolo.** Creare un modello richiede **Project Owner**, **Project Admin**, **Project Member**, **Scheduled Maintenance Admin** o **Scheduled Maintenance Member**, oppure un ruolo personalizzato che possa creare modelli di manutenzione programmata.
+- **Il vostro ruolo.** Creare un modello richiede **Proprietario del progetto**, **Amministratore del progetto**, **Membro del progetto**, **Amministratore della manutenzione programmata** o **Membro della manutenzione programmata**, oppure un ruolo personalizzato che possa creare modelli di manutenzione programmata.
 
 ## Creare un modello
 

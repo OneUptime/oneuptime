@@ -167,7 +167,7 @@ Over listen tæller en flise pr. status de postmortems, der er i den. Klik på e
 
 Filtrér listen med chippene over den: **Ejer**, en person eller et team; **Alvorlighed**; **Postmortem-status**; **Hændelsesstatus**; **Etiketter**; og **Berørte ressourcer**. For at se, hvilke postmortems et team stadig skylder for dine alvorligste hændelser, vælger du teamet under **Ejer**, alvorligheden under **Alvorlighed**, og **Ikke startet** og **Kladde** under **Postmortem-status**. Filtrene står i sidens adresse, så du kan gemme listen som bogmærke eller dele den.
 
-For at ændre mange på én gang skal du vælge dem og åbne **Massehandlinger**: **Skift postmortem-status** flytter dem alle til én status, for eksempel **Ikke nødvendig** for hændelser, der ikke har brug for en, og **Add Owner** og **Remove Owner** ændrer, hvem der ejer dem.
+For at ændre mange på én gang skal du vælge dem og åbne **Massehandlinger**: **Skift postmortem-status** flytter dem alle til én status, for eksempel **Ikke nødvendig** for hændelser, der ikke har brug for en, og **Tilføj ejer** og **Fjern ejer** ændrer, hvem der ejer dem.
 
 ## Postmortems for episoder
 

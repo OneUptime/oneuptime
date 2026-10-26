@@ -92,7 +92,7 @@ Un nuovo monitor del certificato SSL parte con tre criteri, così vi avvisa prim
 2. **Il certificato scade presto** — il certificato è valido ma scade entro 14 giorni. Viene creato un **avviso** chiamato «_monitor name_ certificate expires soon».
 3. **Il certificato è valido** — il monitor viene segnato **Operativo**.
 
-L'avviso «scade presto» è un avviso, non un incidente: non compare sulle vostre pagine di stato, non chiama nessuno a meno che non gli aggiungiate una policy di reperibilità, e non cambia lo stato del monitor. Usa la seconda gravità di avviso del vostro progetto, **Low** in un nuovo progetto. Quando viene rilevato il certificato rinnovato, il monitor torna su «Il certificato è valido» e l'avviso si risolve da solo.
+L'avviso «scade presto» è un avviso, non un incidente: non compare sulle vostre pagine di stato, non chiama nessuno a meno che non gli aggiungiate una policy di reperibilità, e non cambia lo stato del monitor. Usa la seconda gravità di avviso del vostro progetto, **Basso** in un nuovo progetto. Quando viene rilevato il certificato rinnovato, il monitor torna su «Il certificato è valido» e l'avviso si risolve da solo.
 
 I criteri vengono controllati dall'alto verso il basso, e il primo che corrisponde decide cosa succede. Per questo «scade presto» sta sopra «è valido»: un certificato in scadenza è ancora valido, quindi corrisponderebbe a entrambi.
 

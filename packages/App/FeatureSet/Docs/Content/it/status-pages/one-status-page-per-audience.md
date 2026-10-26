@@ -70,7 +70,7 @@ Create una pagina per pubblico, per esempio da `Site 01` a `Site 10`. Rendetele 
 
 ### Mettere il monitor condiviso su ogni pagina
 
-Aggiungete il monitor condiviso a ogni pagina come risorsa (vedete [Risorse e gruppi della pagina di stato](/docs/status-pages/resources-and-groups)). Una regola in **Regole → Monitor Rules** può farlo per voi a partire dalle etichette del monitor.
+Aggiungete il monitor condiviso a ogni pagina come risorsa (vedete [Risorse e gruppi della pagina di stato](/docs/status-pages/resources-and-groups)). Una regola in **Regole → Regole dei monitor** può farlo per voi a partire dalle etichette del monitor.
 
 ### Attivare Mostra solo gli incidenti limitati a questa pagina
 
@@ -82,7 +82,7 @@ Per il personale, usate **Aggiungi in blocco** in **Iscritti email**, e preferit
 
 ### Lasciare che i soccorritori leggano le pagine di stato
 
-Il selettore elenca solo le pagine di stato che la persona può leggere, e i ruoli degli incidenti non possono leggere le pagine di stato. Date ai soccorritori il ruolo **Status Page Viewer** accanto al loro ruolo per gli incidenti; si può limitare alle pagine con determinate etichette. Senza di esso il selettore è vuoto.
+Il selettore elenca solo le pagine di stato che la persona può leggere, e i ruoli degli incidenti non possono leggere le pagine di stato. Date ai soccorritori il ruolo **Visualizzatore delle pagine di stato** accanto al loro ruolo per gli incidenti; si può limitare alle pagine con determinate etichette. Senza di esso il selettore è vuoto.
 
 ### Decidere che cosa dice ogni messaggio
 
@@ -251,7 +251,7 @@ Vedete [Note, proprietari e feed degli incidenti](/docs/incidents/notes-owners-a
 
 ## Permessi
 
-- **Scegliere una pagina di stato richiede l'accesso in lettura a essa.** Le pagine di stato si leggono con i ruoli delle pagine di stato, non con i ruoli degli incidenti, e una pagina di stato può essere limitata per etichetta. Date ai soccorritori **Status Page Viewer**, limitato a delle etichette se volete. Senza di esso il selettore è vuoto, e l'API rifiuta una pagina che il chiamante non può leggere, sugli incidenti come sui modelli di incidente.
+- **Scegliere una pagina di stato richiede l'accesso in lettura a essa.** Le pagine di stato si leggono con i ruoli delle pagine di stato, non con i ruoli degli incidenti, e una pagina di stato può essere limitata per etichetta. Date ai soccorritori **Visualizzatore delle pagine di stato**, limitato a delle etichette se volete. Senza di esso il selettore è vuoto, e l'API rifiuta una pagina che il chiamante non può leggere, sugli incidenti come sui modelli di incidente.
 - **Le pagine che chi modifica non può vedere vengono mantenute.** Chi modifica e può leggere solo alcune delle pagine di un incidente vede solo quelle nel selettore, e il salvataggio mantiene le pagine che non può vedere.
 - **Le pagine a cui è limitato un incidente fanno parte dell'incidente.** Come i suoi monitor, chiunque possa leggere l'incidente ne vede i nomi, nella scheda **Ambito delle pagine di stato**, nella panoramica e nel feed dell'incidente, che possa leggere o no quelle pagine di stato.
 - **Anche ciò che un invio ha raggiunto fa parte dell'incidente.** Una volta partita una notifica, il suo messaggio di stato e la sua voce nel feed nominano ogni pagina di stato a cui è andata, con ciò che è stato inviato e ciò che non è riuscito su ciascuna, e chiunque possa leggere l'incidente li vede, che possa leggere o no quelle pagine di stato. Solo il riepilogo e l'anteprima qui sotto, che guardano avanti, si limitano alle pagine che la persona può leggere.

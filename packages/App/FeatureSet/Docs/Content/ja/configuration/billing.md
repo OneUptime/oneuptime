@@ -144,10 +144,10 @@ SMS、電話、WhatsApp と Telegram のメッセージはプロジェクトの�
 
 | 操作 | 必要なもの |
 | --- | --- |
-| 請求ページを読む: プラン、請求書、使用量、残高、支払い方法 | Project Owner、**Manage Billing**、**Billing Admin**、**Billing Member**、または **Billing Viewer** |
-| 請求書をダウンロードする | Project Owner、Project Admin、**Manage Billing**、**Read Invoices**、**Billing Admin**、または **Billing Member** |
-| 請求先住所と請求書の送付先メールを変更する | Project Owner、**Manage Billing**、**Billing Admin**、または **Billing Member** |
-| SMS、電話、WhatsApp、Telegram をオンまたはオフにする | Project Owner、**Manage Billing**、または **Billing Admin** |
+| 請求ページを読む: プラン、請求書、使用量、残高、支払い方法 | Project Owner、**Manage Billing**、**請求管理者**、**請求メンバー**、または **請求閲覧者** |
+| 請求書をダウンロードする | Project Owner、Project Admin、**Manage Billing**、**Read Invoices**、**請求管理者**、または **請求メンバー** |
+| 請求先住所と請求書の送付先メールを変更する | Project Owner、**Manage Billing**、**請求管理者**、または **請求メンバー** |
+| SMS、電話、WhatsApp、Telegram をオンまたはオフにする | Project Owner、**Manage Billing**、または **請求管理者** |
 | 支払い方法を追加する | Project Owner、**Manage Billing**、または **Create Payment Method** |
 | 請求書を支払う | Project Owner、**Manage Billing**、または **Edit Invoices** |
 | プランの変更、残高のチャージ、自動チャージの変更 | Project Owner または **Manage Billing** |

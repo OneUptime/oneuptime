@@ -197,7 +197,7 @@ az functionapp config appsettings set \
 OTEL_RESOURCE_ATTRIBUTES="faas.name=checkout-handler,oneuptime.label.team=payments,oneuptime.label.env=production"
 ```
 
-如果要改为按函数名称添加标签或分配所有者，请打开 **产品 → 基础设施 → 无服务器**，并使用侧边菜单中的 **标签规则** 和 **所有者规则**。规则在创建函数时运行，包括自动发现的函数。要把规则应用到已有的函数，请使用该规则的 **Run Now**（参见 [对现有资源运行规则](/docs/configuration/run-rules-now)）。
+如果要改为按函数名称添加标签或分配所有者，请打开 **产品 → 基础设施 → 无服务器**，并使用侧边菜单中的 **标签规则** 和 **所有者规则**。规则在创建函数时运行，包括自动发现的函数。要把规则应用到已有的函数，请使用该规则的 **立即运行**（参见 [对现有资源运行规则](/docs/configuration/run-rules-now)）。
 
 ## 故障排查
 

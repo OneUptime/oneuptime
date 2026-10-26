@@ -49,20 +49,20 @@ Den basis-URL, Falcon viste, fortæller dig, hvilken sky dit CID ligger i. Siden
 
 ### Tilføj forbindelsen i OneUptime
 
-Åbn **Produkter → Security Events → Connections** (`/dashboard/{projectId}/security-events/connections`), klik på **Tilføj forbindelse**, vælg **CrowdStrike Falcon**, og klik på **Næste**. Udfyld indstillingerne i tabellen nedenfor, klik på **Næste**, og indsæt hemmeligheden i **Client secret**.
+Åbn **Produkter → Security Events → Forbindelser** (`/dashboard/{projectId}/security-events/connections`), klik på **Tilføj forbindelse**, vælg **CrowdStrike Falcon**, og klik på **Næste**. Udfyld indstillingerne i tabellen nedenfor, klik på **Næste**, og indsæt hemmeligheden i **Klienthemmelighed**.
 
 ### Test den, før du gemmer
 
-Klik på **Test these settings** under **Test, før du gemmer**. Testen logger på og læser advarsler med værdierne i formularen og gemmer intet, så den forkerte sky eller et manglende omfang viser sig, før forbindelsen findes. Klik derefter på **Næste**, giv forbindelsen et **Navn**, og opret den.
+Klik på **Test disse indstillinger** under **Test, før du gemmer**. Testen logger på og læser advarsler med værdierne i formularen og gemmer intet, så den forkerte sky eller et manglende omfang viser sig, før forbindelsen findes. Klik derefter på **Næste**, giv forbindelsen et **Navn**, og opret den.
 :::
 
 | Indstilling | Hvad du skal angive |
 | --- | --- |
 | **Klient-ID** | API-klientens ID, sådan som Falcon viste det, da du oprettede klienten. |
 | **Falcon cloud** | Den sky, dit CID ligger i: **US-1 (api.crowdstrike.com)**, **US-2 (api.us-2.crowdstrike.com)**, **EU-1 (api.eu-1.crowdstrike.com)** eller **US-GOV-1 (api.laggar.gcw.crowdstrike.com)**. Hver anmodning går til den skys API-vært. |
-| **Client secret** | API-klientens hemmelighed. Den krypteres, returneres aldrig af API'et og vises aldrig igen. Erstat den med **Update credentials** på forbindelsen. |
+| **Klienthemmelighed** | API-klientens hemmelighed. Den krypteres, returneres aldrig af API'et og vises aldrig igen. Erstat den med **Opdater legitimationsoplysninger** på forbindelsen. |
 
-Trinnet **Polling** har også en valgfri **Beskrivelse**, **Poll Interval (Minutes)**, et heltal fra `1` til `1440`, der starter på `5`, og **Aktiveret**, som starter slået til. En forbindelse, der ikke er aktiveret, kan stadig testes og polles manuelt.
+Trinnet **Hentning** har også en valgfri **Beskrivelse**, **Hentningsinterval (minutter)**, et heltal fra `1` til `1440`, der starter på `5`, og **Aktiveret**, som starter slået til. En forbindelse, der ikke er aktiveret, kan stadig testes og polles manuelt.
 
 ## Hvad der importeres
 
@@ -96,7 +96,7 @@ Begivenhedens tidspunkt er med vilje det tidspunkt, hvor Falcon oprettede advars
 
 ### Når et vindue indeholder mere, end én poll kan læse
 
-En poll sender højst 20 anmodninger. Med én tokenanmodning og to anmodninger for hver 1.000 advarsler læser den højst 9.000 advarsler. Når et vindue indeholder flere, er kørslen **Partial** med en advarsel som:
+En poll sender højst 20 anmodninger. Med én tokenanmodning og to anmodninger for hver 1.000 advarsler læser den højst 9.000 advarsler. Når et vindue indeholder flere, er kørslen **Delvis** med en advarsel som:
 
 ```text
 Stopped after 19 requests before reading the whole window. Alerts are read oldest first; every alert created before 2026-09-14T08:12:44.995Z was read.
@@ -104,46 +104,46 @@ Stopped after 19 requests before reading the whole window. Alerts are read oldes
 
 Advarselsforespørgslen er sorteret efter `created_timestamp`, de ældste først, så OneUptime flytter markøren til oprettelsestidspunktet for den sidst læste advarsel, og den næste poll starter der med samme vindueslængde, fra offset `0`. Et travlt CID indhenter således omkring 9.000 advarsler pr. poll i stedet for at læse de samme igen. Advarsler, der er oprettet på det samme tidspunkt, læses to gange, og dubletkontrollen fjerner den anden kopi.
 
-Falcons advarselsforespørgsel kan ikke bladre forbi 10.000 resultater (`limit` plus `offset`). Anmodningsgrænsen stopper en kørsel ved 9.000 advarsler, før det loft. Hvis loftet nogensinde stopper en læsning, håndteres det på samme måde: kørslen er **Partial**, markøren flyttes til den sidst læste advarsel, og den næste forespørgsel starter igen fra offset `0`.
+Falcons advarselsforespørgsel kan ikke bladre forbi 10.000 resultater (`limit` plus `offset`). Anmodningsgrænsen stopper en kørsel ved 9.000 advarsler, før det loft. Hvis loftet nogensinde stopper en læsning, håndteres det på samme måde: kørslen er **Delvis**, markøren flyttes til den sidst læste advarsel, og den næste forespørgsel starter igen fra offset `0`.
 
 Når en kørsel slet ikke kan komme forbi den gemte markør, for eksempel fordi mere end 9.000 advarsler deler overlapsminuttet, gør OneUptime i stedet vinduet kortere:
 
 1. **Indsnævr.** Den næste poll læser et vindue, der er halvt så langt, fra det samme startpunkt, og bliver ved med at halvere, indtil et vindue læses helt, ned til ét minut. Kørslens advarsel siger det: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **Voks igen.** Når et vindue er læst helt, er det næste igen dobbelt så langt, op til 24 timer.
-3. **Gå forbi et enkelt minut.** Hvis selv ét minut indeholder mere, end en poll kan læse, går pollingen forbi det, så nyere advarsler bliver ved med at komme. Kørslen forbliver **Partial**, og **Seneste fejl** lyder `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importér det minut med **Import this time range** for at hente det, én kørsel kan læse.
+3. **Gå forbi et enkelt minut.** Hvis selv ét minut indeholder mere, end en poll kan læse, går pollingen forbi det, så nyere advarsler bliver ved med at komme. Kørslen forbliver **Delvis**, og **Seneste fejl** lyder `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importér det minut med **Import this time range** for at hente det, én kørsel kan læse.
 
-En kørsel, der mislykkes helt, med en fejl fra Falcon, beholder markøren og vindueslængden, og den næste poll læser det samme vindue igen. Den eneste undtagelse er en anmodning, der fik timeout: markøren bliver, men det næste vindue er halvt så langt, fordi et vindue, der er for tungt til at blive besvaret i tide, ville få timeout ved hvert forsøg. At ændre **Poll Interval (Minutes)** ændrer intet af dette: det afgør, hvor ofte en poll starter, ikke hvor dens vindue begynder.
+En kørsel, der mislykkes helt, med en fejl fra Falcon, beholder markøren og vindueslængden, og den næste poll læser det samme vindue igen. Den eneste undtagelse er en anmodning, der fik timeout: markøren bliver, men det næste vindue er halvt så langt, fordi et vindue, der er for tungt til at blive besvaret i tide, ville få timeout ved hvert forsøg. At ændre **Hentningsinterval (minutter)** ændrer intet af dette: det afgør, hvor ofte en poll starter, ikke hvor dens vindue begynder.
 
 ### Kør, se forhåndsvisning og importér efter behov
 
-Klik på **Diagnostics** på en forbindelse for at se dens seneste kørsler og arbejde med den manuelt. Alle, der kan ændre forbindelsen, kan starte disse handlinger; alle, der kan se den, kan læse historikken.
+Klik på **Diagnosticering** på en forbindelse for at se dens seneste kørsler og arbejde med den manuelt. Alle, der kan ændre forbindelsen, kan starte disse handlinger; alle, der kan se den, kan læse historikken.
 
-- **Run now** starter straks en poll med den sædvanlige markør, også når forbindelsen ikke er **Aktiveret**.
+- **Kør nu** starter straks en poll med den sædvanlige markør, også når forbindelsen ikke er **Aktiveret**.
 - **Preview alerts** læser et tidsinterval på op til 7 dage og importerer intet.
 - **Import this time range** importerer et interval på op til 7 dage, efter at du har bekræftet, uden at flytte markøren. Advarsler, der allerede er importeret, springes over.
 - **Copy diagnostics** på en kørsel kopierer dens rapport til support. Den indeholder aldrig legitimationsoplysninger.
 
 ## Test forbindelse
 
-**Test forbindelse** på en forbindelses række og **Test these settings** i formularen kører i API-processen, ikke i en baggrundsworker, så en test også svarer, når det er workerne, der er problemet. Den kører disse kontroller i rækkefølge:
+**Test forbindelse** på en forbindelses række og **Test disse indstillinger** i formularen kører i API-processen, ikke i en baggrundsworker, så en test også svarer, når det er workerne, der er problemet. Den kører disse kontroller i rækkefølge:
 
 | Kontrol | Hvad den kontrollerer |
 | --- | --- |
-| **Konfiguration** | **Klient-ID**, **Falcon cloud** og **Client secret** er til stede og velformede. Der kontaktes intet, når dette mislykkes. |
+| **Konfiguration** | **Klient-ID**, **Falcon cloud** og **Klienthemmelighed** er til stede og velformede. Der kontaktes intet, når dette mislykkes. |
 | **Authenticate with CrowdStrike Falcon** | `POST /oauth2/token` med API-klientens ID og hemmelighed, på din skys vært, returnerer et token. |
 | **Read alerts from the Falcon Alerts API** | En advarselsforespørgsel efter én advarsel (`limit=1`) over de seneste 24 timer accepteres, hvilket beviser omfanget **Alerts → Read**. |
 | **Alerts available to import** | Hvor mange advarsler der er oprettet inden for de seneste 24 timer og de seneste 7 dage. Ingen inden for 7 dage er en advarsel, ikke en fejl: polling importerer nye advarsler, efterhånden som Falcon opretter dem. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | OneUptimes egen side: en proces tager jobbene fra Worker-køen, poll-jobbet kører hvert minut, og lageret for sikkerhedsbegivenheder svarer. |
 | **Scheduled polling** | For en gemt forbindelse: polling er slået til, ingen kørsel sidder fast og venter på en worker, og polls kører til tiden. |
 
-Hver anmodning i en test har en frist på 20 sekunder. En test importerer aldrig noget og flytter aldrig markøren, og hver mislykket kontrol siger, hvad du skal ændre. **Copy report** kopierer tjeklisten som JSON, uden legitimationsoplysninger eller tokens.
+Hver anmodning i en test har en frist på 20 sekunder. En test importerer aldrig noget og flytter aldrig markøren, og hver mislykket kontrol siger, hvad du skal ændre. **Kopiér rapport** kopierer tjeklisten som JSON, uden legitimationsoplysninger eller tokens.
 
 ## Fejlfinding
 
 Forbindelsens **Seneste fejl** og hver mislykket kontrol gemmer hele fejlmeddelelsen, med legitimationsoplysninger maskeret, bag et præfiks, der navngiver det trin, der mislykkedes. Når en forbindelse har en fejl, vælger du **Vis fejl** i dens kolonne **Handlinger** for at læse den og **Kopiér fejl** i dialogboksen for at kopiere den. Læs præfikset først.
 
 :::details Last Error starter med `CrowdStrike Falcon token request`
-- `CrowdStrike Falcon token request failed (HTTP 401)` eller `(HTTP 403)`: Falcon afviste API-klientens ID og hemmelighed, før Alerts API blev kontaktet. Kontrollér, at **Falcon cloud** er dit CID's sky, da en klient fra en anden sky afvises her, at **Klient-ID** er klientens, og at **Client secret** er den hemmelighed, der blev udstedt med den. Hvis hemmeligheden er gået tabt, så nulstil den i Falcon-konsollen, og gem den med **Update credentials**.
+- `CrowdStrike Falcon token request failed (HTTP 401)` eller `(HTTP 403)`: Falcon afviste API-klientens ID og hemmelighed, før Alerts API blev kontaktet. Kontrollér, at **Falcon cloud** er dit CID's sky, da en klient fra en anden sky afvises her, at **Klient-ID** er klientens, og at **Klienthemmelighed** er den hemmelighed, der blev udstedt med den. Hvis hemmeligheden er gået tabt, så nulstil den i Falcon-konsollen, og gem den med **Opdater legitimationsoplysninger**.
 - `CrowdStrike Falcon token request returned ...`: Falcon svarede med noget ubrugeligt, en brødtekst, der ikke er JSON, eller uden `access_token`. Det er som regel en proxy eller gateway imellem, ikke legitimationsoplysningerne.
 :::
 
@@ -165,9 +165,9 @@ Forbindelsens **Seneste fejl** og hver mislykket kontrol gemmer hele fejlmeddele
 :::
 
 :::details En kørsel er Partial
-- `Stopped after 19 requests before reading the whole window`: vinduet indeholdt mere end de 9.000 advarsler, én kørsel læser. Intet går tabt: den næste poll starter efter den sidst læste advarsel. En forbindelse, der forbliver **Partial** poll efter poll, indhenter et efterslæb, og dens **Last Polled** og **Last Event Imported** bliver ved med at rykke frem. Tallet kan ligge lidt over 19, når tokenet blev fornyet under kørslen.
+- `Stopped after 19 requests before reading the whole window`: vinduet indeholdt mere end de 9.000 advarsler, én kørsel læser. Intet går tabt: den næste poll starter efter den sidst læste advarsel. En forbindelse, der forbliver **Delvis** poll efter poll, indhenter et efterslæb, og dens **Senest hentet** og **Seneste importerede hændelse** bliver ved med at rykke frem. Tallet kan ligge lidt over 19, når tokenet blev fornyet under kørslen.
 - `Falcon returned alerts out of created_timestamp order, so this run cannot name a point to resume from.`: forespørgslen ignorerede rækkefølgen fra ældst til nyest, så kørslen kan ikke flytte markøren til sin sidste advarsel, og den næste poll læser i stedet et kortere vindue. Hvis det bliver ved, så send kørslens rapport til OneUptimes support.
-- `More records were created in the one minute from ... than one poll can read`: pollingen gik forbi det minut. Importér det med **Import this time range** i **Diagnostics**. En import læser lige så meget som en poll.
+- `More records were created in the one minute from ... than one poll can read`: pollingen gik forbi det minut. Importér det med **Import this time range** i **Diagnosticering**. En import læser lige så meget som en poll.
 :::
 
 :::details Last Polled er Never, og Last Error er tom
@@ -175,7 +175,7 @@ Ingen poll har kørt, så intet har nået Falcon. **Test forbindelse** viser det
 :::
 
 :::details Testen lykkes, men ingen begivenheder vises
-Læs **Alerts available to import**: en advarsel dér betyder, at Falcon ikke har oprettet nogen advarsler inden for de seneste 7 dage, så der er intet at importere endnu. Ellers åbner du **Diagnostics**, tjekker den seneste polls vindue og tal og bruger **View events in this time range** på en kørsel for at åbne tidsintervallet for de advarsler, den importerede.
+Læs **Alerts available to import**: en advarsel dér betyder, at Falcon ikke har oprettet nogen advarsler inden for de seneste 7 dage, så der er intet at importere endnu. Ellers åbner du **Diagnosticering**, tjekker den seneste polls vindue og tal og bruger **View events in this time range** på en kørsel for at åbne tidsintervallet for de advarsler, den importerede.
 :::
 
 ## Hvad du får

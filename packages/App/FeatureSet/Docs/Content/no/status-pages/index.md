@@ -87,7 +87,7 @@ Når du har åpnet en statusside, er den egne venstremenyen delt inn i ti seksjo
 | --- | --- |
 | **Grunnleggende** | **Oversikt**, **Kunngjøringer**, **Eiere**. |
 | **Ressurser** | Én skjerm **Ressurser** (gruppene til venstre, monitorene i den valgte gruppen til høyre). |
-| **Regler** | **Monitor Rules**: regler som legger til hver monitor som samsvarer på siden, nå og senere. |
+| **Regler** | **Monitorregler**: regler som legger til hver monitor som samsvarer på siden, nå og senere. |
 | **Abonnenter** | **E-postabonnenter**, **SMS-abonnenter**, **Slack-abonnenter**, **Microsoft Teams-abonnenter**, **Webhook-abonnenter**, **Abonnentsinnstillinger**. |
 | **Varsellogger** | **Varsellogger**: hva som er sendt til abonnentene. |
 | **Merkevare** | **Merkevare** (logo, tittel, favicon, lenker, bunntekst, farger og språk, på én side), **Egendefinerte domener**, **HTML, CSS og JavaScript**. |
@@ -217,7 +217,7 @@ Under **Flere innstillinger** på **Tilgang** begrenser seksjonen **IP-tillatels
 
 Tre måter å vise status andre steder enn på selve siden.
 
-**Innebygd statusmerke.** Under **Statussider → siden din → Avansert → Innebygd status** slår du på **Aktiver innebygd statusmerke** (`enableEmbeddedOverallStatus`, av som standard). Første gang du slår det på, får merket sitt token (`embeddedOverallStatusToken`), og kortet **Bygg inn merket** viser merket, levert fra `/api/status-page/badge/<status-page-id>?token=<token>`, med **HTML** og **Markdown, med lenke til statussiden** å kopiere, slik at du kan sette den gjeldende samlede statusen inn i dokumentasjonen din, bunnteksten i appen din eller en markedsføringsside. Tokenet ligger på kortet **Sikkerhetstoken** under **Flere innstillinger**, med **Regenerer token** for når lenken er delt for bredt.
+**Innebygd statusmerke.** Under **Statussider → siden din → Avansert → Innebygd status** slår du på **Aktiver innebygd statusmerke** (`enableEmbeddedOverallStatus`, av som standard). Første gang du slår det på, får merket sitt token (`embeddedOverallStatusToken`), og kortet **Bygg inn merket** viser merket, levert fra `/api/status-page/badge/<status-page-id>?token=<token>`, med **HTML** og **Markdown, med lenke til statussiden** å kopiere, slik at du kan sette den gjeldende samlede statusen inn i dokumentasjonen din, bunnteksten i appen din eller en markedsføringsside. Markdown-koden lenker til sidens første aktive egendefinerte domene, også et med et sertifikat du har lastet opp, eller til adressen hos OneUptime så lenge ingen er aktive. Tokenet ligger på kortet **Sikkerhetstoken** under **Flere innstillinger**, med **Regenerer token** for når lenken er delt for bredt.
 
 **RSS-strøm.** Hver statusside leverer `/rss`: en strøm med tittelen "{sidetittel} Updates", med **Sidetittel** angitt under **Merkevare**, eller sidens navn hvis den ikke har noen, og der elementene begynner med `Incident: `, `Announcement: ` og `Scheduled Maintenance: `. Hvert element er datert slik siden daterer det: en hendelse etter når den ble erklært, en kunngjøring etter når den ble publisert, og en planlagt vedlikeholdshendelse etter når den begynner, med beskrivelsen innledet av tidsvinduet. Nyttig for dem som heller vil hente oppdateringene dine inn i en strømleser eller en chatbot enn å abonnere via e-post.
 

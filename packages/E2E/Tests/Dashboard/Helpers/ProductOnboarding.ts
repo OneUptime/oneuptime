@@ -264,8 +264,9 @@ export const gotoProjectPage: GotoProjectPageFunction = async (data: {
 };
 
 /*
- * Fills and submits the inline "Create Ingestion Key" ModelFormModal used
- * by the Proxmox/VMware/Ceph DocumentationCard (form id "create-ingestion-key").
+ * Fills and submits the inline "Create Ingestion Key" ModelFormModal of a
+ * setup guide's key step (form id "create-ingestion-key"): a product's
+ * Documentation page, or a list's Add dialog, which it opens inside.
  * The caller clicks the trigger button first — either the empty-state
  * "Create Ingestion Key" CTA or the "New Key" button next to the dropdown.
  *
@@ -283,13 +284,19 @@ type SubmitIngestionKeyModalFunction = (data: {
 
 export const submitIngestionKeyModal: SubmitIngestionKeyModalFunction =
   async (data: { page: Page; keyName: string }): Promise<void> => {
-    await data.page.getByTestId("modal").waitFor({ state: "visible" });
-    await data.page
+    /*
+     * The key's own dialog, by its title: in an Add dialog the guide opens
+     * it inside that one, so "modal" alone matches both.
+     */
+    const modal: Locator = data.page.getByRole("dialog", {
+      name: /^Create (Browser )?Ingestion Key$/,
+    });
+    await modal.waitFor({ state: "visible" });
+    await modal
       .locator("#create-ingestion-key input[type='text']")
       .first()
       .fill(data.keyName);
 
-    const modal: Locator = data.page.getByTestId("modal");
     const submit: Locator = modal.getByTestId("modal-footer-submit-button");
     const next: Locator = modal.getByTestId("modal-footer-next-button");
     const activeStep: Locator = modal.locator('[aria-current="step"]').first();

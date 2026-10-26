@@ -1,6 +1,6 @@
 # Exécuter des règles sur les ressources existantes
 
-Les règles d'étiquettes, de propriétaires et de confidentialité s'exécutent automatiquement quand une ressource est **créée**. Une règle écrite aujourd'hui ne change donc rien aux moniteurs, incidents ou hôtes que vous avez déjà. **Run Now** comble cet écart : il applique une règle à chaque ressource qui existe déjà dans le projet.
+Les règles d'étiquettes, de propriétaires et de confidentialité s'exécutent automatiquement quand une ressource est **créée**. Une règle écrite aujourd'hui ne change donc rien aux moniteurs, incidents ou hôtes que vous avez déjà. **Exécuter maintenant** comble cet écart : il applique une règle à chaque ressource qui existe déjà dans le projet.
 
 ```mermaid title="Ce que fait une exécution"
 flowchart TB
@@ -28,7 +28,7 @@ Pour exécuter une règle, il vous faut l'autorisation de modifier la règle **e
 > [!IMPORTANT]
 > Une autorisation limitée à certaines étiquettes, ou aux ressources dont vous êtes propriétaire, ne suffit pas : une exécution peut changer toutes les ressources du projet. Les listes de blocage des équipes s'appliquent comme partout ailleurs, et un blocage limité à certaines étiquettes compte aussi : une exécution changerait les ressources qui portent ces étiquettes, donc un blocage avec étiquettes sur la modification des ressources qu'une règle change refuse l'exécution.
 
-Les règles d'un réseau demandent la même chose quand vous les exécutez sur les équipements que vous avez déjà. **Run Now** d'une règle d'affectation de site ou d'étiquettes d'équipement demande l'autorisation de modifier la règle et **Edit Network Device**. **Simulation** et **Run Rule** d'une règle d'importation automatique demandent l'autorisation de modifier la règle, **Create Network Device** et, quand la règle a un modèle de moniteur, **Create Monitor**. Chacune doit couvrir tout le projet. Voir [Importer automatiquement avec des règles d'importation automatique](/docs/monitor/network-device-monitor#importer-automatiquement-avec-les-règles-dimport-automatique).
+Les règles d'un réseau demandent la même chose quand vous les exécutez sur les équipements que vous avez déjà. **Exécuter maintenant** d'une règle d'affectation de site ou d'étiquettes d'équipement demande l'autorisation de modifier la règle et **Edit Network Device**. **Simulation** et **Run Rule** d'une règle d'importation automatique demandent l'autorisation de modifier la règle, **Create Network Device** et, quand la règle a un modèle de moniteur, **Create Monitor**. Chacune doit couvrir tout le projet. Voir [Importer automatiquement avec des règles d'importation automatique](/docs/monitor/network-device-monitor#importer-automatiquement-avec-les-règles-dimport-automatique).
 
 ## Exécuter une règle
 
@@ -39,7 +39,7 @@ Ouvrez la page des règles, par exemple **Moniteurs → Paramètres → Règles 
 
 ### Sélectionner Run Now
 
-Ouvrez le menu **⋯** au bout de la ligne de la règle et sélectionnez **Run Now**, ou sélectionnez **Voir** puis **Run Now** sur la page de la règle. Une boîte de dialogue indique ce que fera l'exécution.
+Ouvrez le menu **⋯** au bout de la ligne de la règle et sélectionnez **Exécuter maintenant**, ou sélectionnez **Voir** puis **Exécuter maintenant** sur la page de la règle. Une boîte de dialogue indique ce que fera l'exécution.
 
 ### Choisir de notifier ou non les nouveaux propriétaires
 
@@ -56,7 +56,7 @@ Quand l'exécution est terminée, la boîte de dialogue indique à combien de re
 
 ## Exécuter plusieurs règles
 
-Sélectionnez des règles dans le tableau, ouvrez le menu des actions groupées et choisissez **Run Now**. Les règles sélectionnées s'exécutent l'une après l'autre.
+Sélectionnez des règles dans le tableau, ouvrez le menu des actions groupées et choisissez **Exécuter maintenant**. Les règles sélectionnées s'exécutent l'une après l'autre.
 
 - Les propriétaires ajoutés par une exécution groupée ne sont jamais notifiés. Pour les notifier, exécutez plutôt une seule règle.
 - Une règle qui ne peut pas s'exécuter (par exemple parce qu'elle est désactivée) est listée avec la raison, et les autres règles s'exécutent quand même.

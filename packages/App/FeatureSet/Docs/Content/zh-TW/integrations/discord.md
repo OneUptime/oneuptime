@@ -52,7 +52,7 @@ flowchart TB
 @tab 從零開始
 1. 把 URL 儲存為機密的全域變數：前往 **工作流程 → 全域變數**，點選 **建立工作流程 變數**，將其命名為 `DISCORD_WEBHOOK_URL`，然後點選 **下一步**。把 URL 貼上到 **內容** 中，開啟 **密鑰**，然後點選 **建立工作流程 變數**。
 2. 前往 **工作流程**，點選 **建立工作流程**，選擇 **從零開始**，為工作流程命名，然後點選 **建立工作流程**。
-3. 在 **建構器** 中，點選 **Choose what starts this workflow**，然後在 **Popular** 下選擇 **On Create Incident**。點選觸發器：它的 **Fields to pass on** 已經包含 **標題**，所以點選 **新增欄位**，再選擇訊息要顯示的其他欄位，例如 **Incident Number With Prefix**。
+3. 在 **建構器** 中，點選 **選擇啟動此工作流程的方式**，然後在 **熱門** 下選擇 **On Create Incident**。點選觸發器：它的 **Fields to pass on** 已經包含 **標題**，所以點選 **新增欄位**，再選擇訊息要顯示的其他欄位，例如 **Incident Number With Prefix**。
 4. 點選 **新增元件**，搜尋 `discord`，然後點選 **Send Message to Discord**。把觸發器的 **Success** 輸出連接到它。
 5. 點選新步驟。在 **Discord Incoming Webhook URL** 中點選 **{ }**，然後在 **Global variables** 下選擇 `DISCORD_WEBHOOK_URL`。在 **Message Text** 中寫下訊息，並用 **{ }** 插入事件的欄位。
 :::

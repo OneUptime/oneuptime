@@ -46,7 +46,7 @@ Vai su **Monitor** e fai clic su **Crea monitor**.
 
 ### Scegliere IoT Device
 
-In **Tipo di monitor**, fai clic su **Altri tipi di monitor** e scegli **IoT Device** sotto **Infrastruttura**, oppure digita `iot` nella casella di ricerca. Inserisci un **Nome** - viene usato nei titoli di incidenti e avvisi - e fai clic su **Avanti**.
+In **Tipo di monitor**, fai clic su **Altri tipi di monitor** e scegli **Dispositivo IoT** sotto **Infrastruttura**, oppure digita `iot` nella casella di ricerca. Inserisci un **Nome** - viene usato nei titoli di incidenti e avvisi - e fai clic su **Avanti**.
 
 ### Scegliere la flotta
 
@@ -58,11 +58,11 @@ Scegli una delle tre schede:
 
 - **Quick Setup** - fai clic su un [modello](#modelli-di-avviso-predefiniti). Imposta la metrica, l'aggregazione, l'intervallo di tempo, un raggruppamento su `device.id` e le soglie, e sostituisce i criteri qui sotto con i propri. Puoi comunque cambiare l'**Intervallo di tempo**.
 - **Custom Metric** - scegli una metrica da **IoT Metric**, poi imposta **Aggregazione** e **Intervallo di tempo**. I [filtri](#impostazioni-del-monitor) la restringono a un dispositivo o a un tipo di dispositivo. Una metrica personalizzata non è raggruppata: valuta la flotta nel suo insieme.
-- **Avanzato** - costruisci tu query e formule in **Seleziona metriche**, anche su nomi di metriche tuoi, per esempio la memoria in uso come percentuale della memoria di un dispositivo. Usa **Group by** `device.id` per valutare ogni dispositivo separatamente.
+- **Avanzato** - costruisci tu query e formule in **Seleziona metriche**, anche su nomi di metriche tuoi, per esempio la memoria in uso come percentuale della memoria di un dispositivo. Usa **Raggruppa per** `device.id` per valutare ogni dispositivo separatamente.
 
 ### Controllare i criteri
 
-Apri ogni criterio in **Criteri del monitor** e controlla **Select Metric Variable**, **Aggregazione**, **Condizione** e **Threshold**. Un modello li compila. Con **Custom Metric** o **Avanzato**, il monitor parte con i [criteri predefiniti](#criteri-predefiniti), che notano solo una metrica che scende a zero, quindi imposta la tua soglia.
+Apri ogni criterio in **Criteri del monitor** e controlla **Select Metric Variable**, **Aggregazione**, **Condizione** e **Soglia**. Un modello li compila. Con **Custom Metric** o **Avanzato**, il monitor parte con i [criteri predefiniti](#criteri-predefiniti), che notano solo una metrica che scende a zero, quindi imposta la tua soglia.
 
 ### Creare il monitor
 
@@ -70,7 +70,7 @@ Fai clic su **Crea monitor**. OneUptime apre la pagina del monitor e lo valuta o
 :::
 
 > [!TIP]
-> Per impostare più modelli in una volta, apri la flotta da **Prodotti → Infrastruttura → IoT** e vai su **Recommendations**. Scegli i modelli che vuoi, decidi chi viene avvisato, e OneUptime crea un monitor per ogni modello.
+> Per impostare più modelli in una volta, apri la flotta da **Prodotti → Infrastruttura → IoT** e vai su **Raccomandazioni**. Scegli i modelli che vuoi, decidi chi viene avvisato, e OneUptime crea un monitor per ogni modello.
 
 ## Impostazioni del monitor
 
@@ -83,7 +83,7 @@ Fai clic su **Crea monitor**. OneUptime apre la pagina del monitor e lo valuta o
 | **IoT Metric** | Custom Metric | Una metrica del [catalogo](#metriche-raccolte). |
 | **Aggregazione** | Custom Metric | Come vengono combinati i campioni: **Media**, **Massimo**, **Minimo**, **Somma** o **Conteggio**. Parte dall'aggregazione abituale della metrica. |
 | **Intervallo di tempo** | Tutte | La finestra mobile che la query legge, da **Past 1 Minute** a **Past 365 Days**. Un nuovo monitor parte da **Past 1 Minute**; i modelli impostano la propria. |
-| **Seleziona metriche** | Avanzato | Il generatore di query: **Metrica**, **Aggregate by**, **Filter by attributes**, **Group by**, più **Aggiungi metrica** e **Aggiungi formula** per combinare le query. |
+| **Seleziona metriche** | Avanzato | Il generatore di query: **Metrica**, **Aggregate by**, **Filter by attributes**, **Raggruppa per**, più **Aggiungi metrica** e **Aggiungi formula** per combinare le query. |
 
 I filtri agiscono insieme: con un **Device ID** e un **Device Type**, un dispositivo di un altro tipo non corrisponde a nulla.
 
@@ -97,7 +97,7 @@ Un criterio scatta solo quando la condizione vale per ogni minuto della sua fine
 | --- | --- | --- | --- | --- | --- |
 | Device Offline | Disponibilità | Critico | `iot_device_up`, Min per `device.id`, ultimi 30 minuti | Una lettura è sotto 1, oppure un dispositivo registrato non invia nulla per tutta la finestra | Di nuovo a 1 |
 | Low Battery | Power | Warning | `iot_battery_percent`, Avg per `device.id`, ultimi 5 minuti | Sotto il 20 % | Al 22 % o più |
-| Weak Signal | Connectivity | Warning | `iot_signal_strength_dbm`, Avg per `device.id`, ultimi 5 minuti | Sotto -100 dBm | A -90 dBm o più |
+| Weak Signal | Connettività | Warning | `iot_signal_strength_dbm`, Avg per `device.id`, ultimi 5 minuti | Sotto -100 dBm | A -90 dBm o più |
 | High Temperature | Ambiente | Critico | `iot_temperature_celsius`, Max per `device.id`, ultimi 5 minuti | Sopra 70 °C | A 63 °C o meno |
 | High CPU Usage | Sistema | Warning | `iot_cpu_usage_ratio`, Avg per `device.id`, ultimi 5 minuti | Sopra 0.9 (il 90 % della sua CPU) | A 0.81 o meno |
 
@@ -146,7 +146,7 @@ Un criterio confronta una delle query o formule del monitor con una soglia. I cr
 | **Select Metric Variable** | La query o la formula da controllare, tramite il nome della sua variabile. |
 | **Aggregazione** | Come i valori della finestra diventano un'unica risposta: **Media**, **Somma**, **Maximum Value**, **Minimum Value**, **All Values** (ogni valore deve corrispondere, su tutta la finestra) o **Any Value** (ne basta uno). |
 | **Condizione** | **Maggiore di**, **Minore di**, **Maggiore o uguale a**, **Minore o uguale a** o **Uguale a** — oppure una condizione di anomalia: **Anomalously High**, **Anomalously Low** o **Anomalous**. |
-| **Threshold** | Il valore con cui confrontare. Accanto c'è un elenco di unità quando la metrica ha un'unità. Non mostrato per le condizioni di anomalia. |
+| **Soglia** | Il valore con cui confrontare. Accanto c'è un elenco di unità quando la metrica ha un'unità. Non mostrato per le condizioni di anomalia. |
 | **Sensibilità** | Solo condizioni di anomalia. **Bassa** (4σ), **Media** (3σ, il predefinito) o **Alta** (2σ). |
 | **Finestra di riferimento** | Solo condizioni di anomalia. 14 giorni (il predefinito), 28, 60 o 90 giorni di storico. |
 | **Se nessun dato** | In **Altri campi**. Cosa succede quando una serie non ha campioni nella finestra: **Ignore** (il predefinito) la salta, **Treat As Zero** la legge come `0`, e **Trigger** fa corrispondere il criterio. |
@@ -204,7 +204,7 @@ Le flotte si registrano da sole a partire dai dati dei dispositivi. Verifica che
 :::
 
 :::details Scatta un incidente per l'intera flotta invece di uno per dispositivo
-La query non è raggruppata. I monitor **Custom Metric** valutano la flotta nel suo insieme; usa un modello, oppure **Avanzato** con **Group by** `device.id`.
+La query non è raggruppata. I monitor **Custom Metric** valutano la flotta nel suo insieme; usa un modello, oppure **Avanzato** con **Raggruppa per** `device.id`.
 :::
 
 :::details Un dispositivo si è spento ma Device Offline non è scattato

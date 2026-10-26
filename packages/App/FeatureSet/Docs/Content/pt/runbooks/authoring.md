@@ -29,7 +29,7 @@ Clique em **Criar: Runbook**, informe um **Nome** e, se quiser, uma **Descriçã
 
 ### Adicionar etapas
 
-Em **Start your runbook**, escolha o tipo da primeira etapa; abaixo da última etapa, **Add another step** oferece os mesmos sete tipos. Cada etapa abre com seu **Título** e o que o seu tipo precisa; o resto, como sua **Descrição** e os tempos limite, fica recolhido em **Mais campos**. Assim que o runbook tiver uma etapa, **Adicionar etapa**, no topo do cartão, adiciona uma etapa Manual.
+Em **Comece seu runbook**, escolha o tipo da primeira etapa; abaixo da última etapa, **Adicionar outra etapa** oferece os mesmos sete tipos. Cada etapa abre com seu **Título** e o que o seu tipo precisa; o resto, como sua **Descrição** e os tempos limite, fica recolhido em **Mais campos**. Assim que o runbook tiver uma etapa, **Adicionar etapa**, no topo do cartão, adiciona uma etapa Manual.
 
 ### Ordenar as etapas
 
@@ -37,7 +37,7 @@ As etapas são executadas **em ordem**. Para mudar a ordem, arraste uma etapa pe
 
 ### Salvar as etapas
 
-Clique em **Save Steps**. Até fazer isso, o editor mostra **Alterações não guardadas**. Depois de salvar, você vê **Salvo**, e o runbook está pronto para [ser executado](/docs/runbooks/running).
+Clique em **Salvar etapas**. Até fazer isso, o editor mostra **Alterações não guardadas**. Depois de salvar, você vê **Salvo**, e o runbook está pronto para [ser executado](/docs/runbooks/running).
 :::
 
 ## Anatomia de uma etapa
@@ -98,11 +98,11 @@ Uma chamada HTTP de saída, feita pelo Worker do OneUptime. Nenhum Runner é nec
 
 | Campo | O que faz | Padrão |
 | --- | --- | --- |
-| **Method** | `GET`, `POST`, `PUT`, `PATCH`, `DELETE` ou `HEAD`. | `GET` |
+| **Método** | `GET`, `POST`, `PUT`, `PATCH`, `DELETE` ou `HEAD`. | `GET` |
 | **URL** | O endpoint a chamar. | Vazio |
-| **Headers (JSON)** | Em **Mais campos**. Um objeto JSON, como `{ "Authorization": "Bearer ..." }`. Headers que não são JSON válido fazem a etapa falhar. | Nenhum |
-| **Body** | Mostrado para `POST`, `PUT`, `PATCH` e `DELETE`. Enviado como JSON quando puder ser interpretado como JSON, e como texto caso contrário. | Nenhum |
-| **Request timeout** | Por quanto tempo esperar a resposta do endpoint antes de fazer a etapa falhar. | 30 segundos |
+| **Cabeçalhos (JSON)** | Em **Mais campos**. Um objeto JSON, como `{ "Authorization": "Bearer ..." }`. Headers que não são JSON válido fazem a etapa falhar. | Nenhum |
+| **Corpo** | Mostrado para `POST`, `PUT`, `PATCH` e `DELETE`. Enviado como JSON quando puder ser interpretado como JSON, e como texto caso contrário. | Nenhum |
+| **Tempo limite da solicitação** | Por quanto tempo esperar a resposta do endpoint antes de fazer a etapa falhar. | 30 segundos |
 
 A etapa dá certo com uma resposta `2xx` ou `3xx` e falha com qualquer outra, com `HTTP <status>` como erro. Redirecionamentos não são seguidos. O status, os headers e o corpo da resposta são capturados, até 50 KB.
 
@@ -190,9 +190,9 @@ Peça à IA para analisar, resumir ou decidir algo no meio da execução. A resp
 | Campo | O que faz |
 | --- | --- |
 | **Prompt** | O que a IA deve fazer. Por exemplo: "Revise a saída das etapas anteriores e diga se é seguro prosseguir com a remediação." |
-| **LLM provider** | Opcional. **Padrão do projeto** usa o provedor padrão do projeto. Fixe um provedor quando a etapa precisar de um modelo específico, como um auto-hospedado para dados que não podem sair da sua rede. Consulte [Provedores de LLM](/docs/ai/llm-provider). |
-| **Include previous step context** | Se ligado, a IA vê tudo sobre as etapas que rodaram antes desta: título, tipo, status, saída e mensagens de erro. Ela recebe até 4.000 caracteres da saída de cada etapa. |
-| **Include trigger context** | Se ligado, a IA vê o que iniciou a execução: o incidente, alerta ou evento de manutenção programada vinculado (descrição, severidade, estado atual, monitores afetados, causa raiz, histórico de estados e notas públicas), ou quem executou o runbook manualmente. |
+| **Provedor de LLM** | Opcional. **Padrão do projeto** usa o provedor padrão do projeto. Fixe um provedor quando a etapa precisar de um modelo específico, como um auto-hospedado para dados que não podem sair da sua rede. Consulte [Provedores de LLM](/docs/ai/llm-provider). |
+| **Incluir o contexto da etapa anterior** | Se ligado, a IA vê tudo sobre as etapas que rodaram antes desta: título, tipo, status, saída e mensagens de erro. Ela recebe até 4.000 caracteres da saída de cada etapa. |
+| **Incluir o contexto do gatilho** | Se ligado, a IA vê o que iniciou a execução: o incidente, alerta ou evento de manutenção programada vinculado (descrição, severidade, estado atual, monitores afetados, causa raiz, histórico de estados e notas públicas), ou quem executou o runbook manualmente. |
 
 Para manter uma pessoa no circuito, ligue **Exigir aprovação** na etapa que vem depois de uma etapa de IA: a IA analisa, alguém lê a resposta, e a etapa de remediação só roda depois que essa pessoa a aprova.
 
@@ -226,7 +226,7 @@ Pela API e pelo Terraform, o interruptor é o campo `requireApprovalBeforeRunnin
 
 ## Salvar e editar
 
-As alterações nas etapas valem quando você clica em **Save Steps**. Cada execução trabalha com o instantâneo tirado quando começou, então as execuções em andamento mantêm as etapas com que começaram, e editar nunca reescreve o histórico das execuções anteriores.
+As alterações nas etapas valem quando você clica em **Salvar etapas**. Cada execução trabalha com o instantâneo tirado quando começou, então as execuções em andamento mantêm as etapas com que começaram, e editar nunca reescreve o histórico das execuções anteriores.
 
 ## Um exemplo completo
 

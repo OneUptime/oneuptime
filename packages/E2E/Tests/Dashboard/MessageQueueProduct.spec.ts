@@ -25,11 +25,13 @@ import {
  * Queues product: the path a person takes through it, in serial steps that
  * share one project (and one page).
  *
- *   1. Products → Resources → Queues opens the empty list, followed by the
- *      setup guide and its messaging-system picker.
- *   2. Create Queue adds an Apache Kafka queue for the topic `orders` by hand;
- *      its name opens the queue's page, where Broker health says where the
- *      broker's metrics come from.
+ *   1. Products → Resources → Queues opens the empty list, followed by its
+ *      showcase; the setup guide and its messaging-system picker are on
+ *      Queues > Documentation.
+ *   2. Create Queue (the showcase's, which opens the table's own form) adds
+ *      an Apache Kafka queue for the topic `orders` by hand; its name opens
+ *      the queue's page, where Broker health says where the broker's
+ *      metrics come from.
  *   3. A fresh ingestion key sends, through the real /otlp endpoints, the
  *      PRODUCER and CONSUMER spans of a Kafka client for `orders` (one of them
  *      failed) and a kafka_metrics-shaped consumer-lag datapoint (topic=orders,
@@ -509,8 +511,8 @@ const postServiceBusActiveMessages: PostBrokerMetricFunction = async (data: {
 // ---- page locators ------------------------------------------------------------
 
 /*
- * The list card's own "Create Queue" button. An empty list offers the same
- * action again as its call to action (empty-table-create-button), so the
+ * The list card's own "Create Queue" button. An empty list's showcase
+ * offers the same action again (resource-showcase-add-button), so the
  * button's name alone matches two buttons there.
  */
 const createQueueButton: (page: Page) => Locator = (page: Page): Locator => {
@@ -676,7 +678,7 @@ test.describe.skip("Queues Product", () => {
     await ctx.page.close();
   });
 
-  test("Products → Resources → Queues opens the empty list with its setup guide and messaging-system picker", async () => {
+  test("Products → Resources → Queues opens the empty list with its showcase, and Documentation has the setup guide and messaging-system picker", async () => {
     test.setTimeout(240000);
     const page: Page = ctx.page;
 
@@ -716,16 +718,36 @@ test.describe.skip("Queues Product", () => {
       timeout: 30000,
     });
 
-    // A project without queues: the list, then the setup guide.
-    await expect(page.getByText("Getting Started with Queues")).toBeVisible({
-      timeout: 60000,
-    });
-    // The card's own button, and the empty table's call to action.
-    await expect(createQueueButton(page)).toBeVisible({ timeout: 30000 });
-    await expect(page.getByTestId("empty-table-create-button")).toHaveText(
-      "Create Queue",
-      { timeout: 30000 },
+    /*
+     * A project without queues: the list, then what Queues gives (its
+     * showcase) instead of the setup guide.
+     */
+    const showcase: Locator = page.getByTestId("resource-showcase");
+    await expect(showcase).toBeVisible({ timeout: 60000 });
+    await expect(showcase.getByRole("heading", { level: 2 })).toHaveText(
+      "Know when a queue backs up, and why",
     );
+    await expect(page.getByTestId("setup-guide")).toHaveCount(0);
+    // The card's own button, and the showcase's: the empty table has none.
+    await expect(createQueueButton(page)).toBeVisible({ timeout: 30000 });
+    await expect(
+      showcase.getByTestId("resource-showcase-add-button"),
+    ).toHaveText("Create Queue");
+    await expect(page.getByTestId("empty-table-create-button")).toHaveCount(0);
+
+    /*
+     * The product's setup guide, with its messaging-system picker, is on
+     * Queues > Documentation. The guide Create Queue opens is the new
+     * queue's own, for the system its form picked.
+     */
+    await gotoProjectPage({
+      page,
+      projectId: ctx.projectId,
+      url: urlFor(`${queuesPath(ctx.projectId)}/documentation`),
+      ready: page.getByRole("radiogroup", {
+        name: "Which messaging system?",
+      }),
+    });
     await expect(page.getByText("No ingestion keys yet")).toBeVisible({
       timeout: 30000,
     });
@@ -788,7 +810,17 @@ test.describe.skip("Queues Product", () => {
     test.setTimeout(240000);
     const page: Page = ctx.page;
 
-    await createQueueButton(page).click();
+    // The empty list's showcase has Create Queue: the table's own form.
+    const showcaseCreate: Locator = page.getByTestId(
+      "resource-showcase-add-button",
+    );
+    await gotoProjectPage({
+      page,
+      projectId: ctx.projectId,
+      url: urlFor(queuesPath(ctx.projectId)),
+      ready: showcaseCreate,
+    });
+    await showcaseCreate.click();
     const modal: Locator = page.getByTestId("modal");
     await expect(modal).toBeVisible({ timeout: 30000 });
     await expect(page.getByTestId("modal-title")).toContainText(
@@ -837,13 +869,13 @@ test.describe.skip("Queues Product", () => {
     await submit.click();
     await closeAddedQueueGuide({ page, queueName: DESTINATION });
 
-    // The queue is listed, and the setup guide of the empty list is gone.
+    // The queue is listed, and the showcase of the empty list is gone.
     const queueLink: Locator = page.getByRole("link", {
       name: DESTINATION,
       exact: true,
     });
     await expect(queueLink).toBeVisible({ timeout: 30000 });
-    await expect(page.getByText("Getting Started with Queues")).toHaveCount(0);
+    await expect(page.getByTestId("resource-showcase")).toHaveCount(0);
 
     await queueLink.click();
     await page.waitForURL(

@@ -151,9 +151,9 @@ const shoot: (
 /*
  * A press on a control of the dashboard, as the viewer makes it.
  *
- * Dashboards are 1000px wide (DashboardView, DashboardViewPage: minWidth),
- * so on a phone part of the board sits past the screen's edge and the
- * viewer scrolls to it. Playwright's own click cannot reach a control
+ * A dashboard's board is 1000px wide (DashboardView's page, and the public
+ * page's board in its own frame, DashboardViewLayout), so on a phone part
+ * of the board sits past the screen's edge and the viewer scrolls to it. Playwright's own click cannot reach a control
  * there - the phone emulation scrolls the visual viewport, and the check
  * of what is under the pointer looks at the wrong place - so on the phone
  * the control is scrolled to, must be visible and enabled, and gets the

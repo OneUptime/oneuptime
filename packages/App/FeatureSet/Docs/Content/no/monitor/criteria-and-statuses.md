@@ -45,7 +45,7 @@ Et kriterium som samsvarer, men ikke endrer noen status, avgjør likevel kontrol
 
 ### Filtre
 
-Et filter leser én ting fra kontrollen og sammenligner den: en **Filtertype** (hva som leses, som **Statuskode for svar**), et **Filtervilkår** (hvordan det sammenlignes, som **Større enn**) og en **Verdi**. Monitorer som sammenligner metrikker, som Kubernetes- og metrikkmonitorer, ber i stedet om en **Betingelse** og en **Threshold**. Hver monitortype tilbyr sine egne filtertyper, som står på siden for typen, for eksempel [Nettsted-overvåking](/docs/monitor/website-monitor#overvåkingskriterier).
+Et filter leser én ting fra kontrollen og sammenligner den: en **Filtertype** (hva som leses, som **Statuskode for svar**), et **Filtervilkår** (hvordan det sammenlignes, som **Større enn**) og en **Verdi**. Monitorer som sammenligner metrikker, som Kubernetes- og metrikkmonitorer, ber i stedet om en **Betingelse** og en **Terskel**. Hver monitortype tilbyr sine egne filtertyper, som står på siden for typen, for eksempel [Nettsted-overvåking](/docs/monitor/website-monitor#overvåkingskriterier).
 
 Fra to filtre og oppover vises **Samsvarsbetingelse** under dem: **Alle** betyr at hvert filter må samsvare, **Hvilken som helst** at ett er nok. Et nytt kriterium starter på **Alle**.
 

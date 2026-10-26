@@ -48,7 +48,7 @@ Listens sidemeny har sidene som tar seg av alle dashbordene dine:
 | **Dashbord** | Prosjektets dashbord. Opprett et, eller hent inn dashbord med **Import JSON**. |
 | **Innstillinger → Eierregler** | Legg til eiere automatisk på nye dashbord. |
 | **Innstillinger → Etikettregler** | Legg til etiketter automatisk på nye dashbord. |
-| **Innstillinger → Data Sources** | Koble til Prometheus, SQL-databaser, ClickHouse, Loki, Elasticsearch eller et REST-API. |
+| **Innstillinger → Datakilder** | Koble til Prometheus, SQL-databaser, ClickHouse, Loki, Elasticsearch eller et REST-API. |
 | **Avansert → Arkivert** | Dashbord du har arkivert. Fjern dem fra arkivet her. |
 
 Åpne et dashbord, og dets egen sidemeny har disse sidene. Alle seksjoner unntatt **Grunnleggende** starter sammenslått: klikk på tittelen for å åpne den.

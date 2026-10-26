@@ -40,7 +40,7 @@ O incidente guarda o número do relatório nos seus campos personalizados, como 
 
 ## Antes de começar
 
-- No OneUptime, uma função que possa criar e editar workflows, como **Project Owner**, **Project Admin** ou **Workflow Admin**.
+- No OneUptime, uma função que possa criar e editar workflows, como **Proprietário do projeto**, **Administrador do projeto** ou **Administrador de fluxos de trabalho**.
 - No Huntress, a função **Account Admin**: só administradores da conta podem adicionar webhooks.
 - Uma política de plantão para acionar.
 - No OneUptime Cloud, um plano com workflows: Growth ou superior. Cada evento que o Huntress envia é uma execução de workflow.

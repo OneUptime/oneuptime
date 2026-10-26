@@ -39,22 +39,22 @@ flowchart TB
 | **实体** | 事件 | 你的检测结果中最常提及的用户、主机和地址 |
 | **实体风险** | 事件 | 按本周发现评分的每个用户、主机和地址，风险最高的在前 |
 | **关联分析** | 事件 | 共享同一主机、用户或 IP 地址的事件构成的图 |
-| **Detection Rules** | Detections | 按计划运行并打开案例的 Sigma 规则 |
-| **Rule Library** | Detections | 可直接添加的现成检测规则，每条都显示它读取的事件以及这些事件是否到达，推荐的规则带有标记 |
-| **Threat Intel** | Detections | 已知恶意指标的 STIX/TAXII 源 |
-| **ATT&CK Coverage** | Detections | 你的规则覆盖的 MITRE ATT&CK 技术 |
-| **Playbooks** | Playbooks | 在案例上自动或手动运行的步骤 |
+| **检测规则** | Detections | 按计划运行并打开案例的 Sigma 规则 |
+| **规则库** | Detections | 可直接添加的现成检测规则，每条都显示它读取的事件以及这些事件是否到达，推荐的规则带有标记 |
+| **威胁情报** | Detections | 已知恶意指标的 STIX/TAXII 源 |
+| **ATT&CK 覆盖范围** | Detections | 你的规则覆盖的 MITRE ATT&CK 技术 |
+| **剧本** | Playbooks | 在案例上自动或手动运行的步骤 |
 | **待审批** | Playbooks | 等待有人批准或拒绝的剧本步骤 |
 | **剧本运行记录** | Playbooks | 每个剧本逐步做了什么 |
-| **Protected Entities** | Playbooks | 任何剧本都不会遏制的用户和主机 |
+| **受保护的实体** | Playbooks | 任何剧本都不会遏制的用户和主机 |
 | **设置** | 人工智能 | OneUptime AI 是否研判每个新案例 |
-| **Connections** | Connections | 您的日志、OneUptime 轮询的安全产品，以及它发送到的 SIEM |
+| **连接** | Connections | 您的日志、OneUptime 轮询的安全产品，以及它发送到的 SIEM |
 | **设置指南** | Connections | 发送事件的代码片段，已填好你的摄取密钥 |
 | **案例优先级** | 设置 | 案例有多紧急：项目自己的优先级，最紧急的在前 |
 | **案例状态** | 设置 | 案例经历的各个步骤，以及每个步骤中的案例被视为什么 |
 | **风险评分** | 设置 | 实体风险是否打开案例、在多高风险时打开，以及每个实体的重要程度 |
 
-只需设置一次的 **Detections**、**人工智能**、**Connections** 和 **设置** 会保持折叠，直到你打开它们。刚开始使用安全功能？[安全入门](/docs/telemetry/security-getting-started) 两次点击即可完成设置。
+只需设置一次的 **检测**、**人工智能**、**连接** 和 **设置** 会保持折叠，直到你打开它们。刚开始使用安全功能？[安全入门](/docs/telemetry/security-getting-started) 两次点击即可完成设置。
 
 ## 开始之前
 
@@ -169,15 +169,15 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
     Retry_Limit      5
 ```
 
-**Connections** 下的 **设置指南** 页面提供这些代码片段，并已填好你自己的主机和密钥。
+**连接** 下的 **设置指南** 页面提供这些代码片段，并已填好你自己的主机和密钥。
 
 ### 在日志中查找安全事件
 
-**Connections** 顶部的 **你的日志** 会把您已经发送到 OneUptime 的日志变成一个来源。开启 **在日志中查找安全事件** 后，项目的新日志每分钟都会被读取，其中的每次 SSH 登录、sudo 命令、Kubernetes 审计记录、AWS CloudTrail 更改和 Web 攻击都会存储为安全事件。各类内容的范围请参阅 [安全入门](/docs/telemetry/security-getting-started#在日志中查找安全事件)。
+**连接** 顶部的 **你的日志** 会把您已经发送到 OneUptime 的日志变成一个来源。开启 **在日志中查找安全事件** 后，项目的新日志每分钟都会被读取，其中的每次 SSH 登录、sudo 命令、Kubernetes 审计记录、AWS CloudTrail 更改和 Web 攻击都会存储为安全事件。各类内容的范围请参阅 [安全入门](/docs/telemetry/security-getting-started#在日志中查找安全事件)。
 
 ### 连接安全产品
 
-**Connections** 会替你轮询安全产品，并把它的新记录作为安全事件导入。连接保存产品的设置和加密的凭据；工作进程按你设置的间隔轮询它，并跳过已经导入过的记录。
+**连接** 会替你轮询安全产品，并把它的新记录作为安全事件导入。连接保存产品的设置和加密的凭据；工作进程按你设置的间隔轮询它，并跳过已经导入过的记录。
 
 | 产品 | 导入内容 | 设置指南 |
 | --- | --- | --- |
@@ -193,7 +193,7 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 - 产品自身的警报，只要级别达到或高于 **Open Cases From**（默认为 **高及以上**，你也可以选择其他级别或 **从未**），就会打开 [案例](/docs/telemetry/security-cases)，并按它们涉及的用户、主机或地址分组。
 - 连接按产品创建记录的时间读取记录，而不是按记录所描述活动的时间。每小时运行一次的 SIEM 规则会在它匹配的事件之后很久才创建检测，这些检测仍然会被导入。
 - 第一次轮询会回溯 24 小时，所以新连接会立刻显示最近的记录。
-- 连接所在行中的 **测试连接** 会检查对产品的访问以及 OneUptime 自身的工作进程是否在运行，不会导入任何内容。**Run now** 会立即轮询。
+- 连接所在行中的 **测试连接** 会检查对产品的访问以及 OneUptime 自身的工作进程是否在运行，不会导入任何内容。**立即运行** 会立即轮询。
 
 ## 事件包含什么
 
@@ -236,7 +236,7 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 
 ### 分面
 
-侧栏按 **来源**、**严重程度**、**事件类别**、**Category**、**活动**、**状态**、**供应商**、**产品**、**Detection Rule**、**源用户**、**源主机**、**进程** 和 **父进程** 统计时间窗口内的事件。点击某个值只保留它的事件，点击旁边的减号则排除它们。再次点击即可撤销。图表和每个计数描述的正是列表中的事件。
+侧栏按 **来源**、**严重程度**、**事件类别**、**类别**、**活动**、**状态**、**供应商**、**产品**、**检测规则**、**源用户**、**源主机**、**进程** 和 **父进程** 统计时间窗口内的事件。点击某个值只保留它的事件，点击旁边的减号则排除它们。再次点击即可撤销。图表和每个计数描述的正是列表中的事件。
 
 ### 关联分析
 
@@ -244,7 +244,7 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 
 ## 检测规则
 
-检测规则是一条 [Sigma](https://sigmahq.io/) 规则，一种描述可疑活动的开放 YAML 格式，OneUptime 会按计划对你的事件运行它。匹配时，它会打开或并入一个 [案例](/docs/telemetry/security-cases)，打开一个警报，可选地打开一个事件（incident），并把一个 Detection Finding 写回安全事件中。**Rule Library** 提供了可作为起点的现成规则。
+检测规则是一条 [Sigma](https://sigmahq.io/) 规则，一种描述可疑活动的开放 YAML 格式，OneUptime 会按计划对你的事件运行它。匹配时，它会打开或并入一个 [案例](/docs/telemetry/security-cases)，打开一个警报，可选地打开一个事件（incident），并把一个 Detection Finding 写回安全事件中。**规则库** 提供了可作为起点的现成规则。
 
 ```mermaid title="检测规则如何触发"
 flowchart TB
@@ -258,12 +258,12 @@ flowchart TB
 ### 创建规则
 
 :::steps
-1. 打开 **产品 → Security Events → Detections → Detection Rules** ，点击 **创建Detection Rule** 。
-2. 在 **Sigma Rule** 中，把规则的 YAML 粘贴到 **Sigma Rule (YAML)** 中。保存时会解析它，所以错误会显示在表单中。
+1. 打开 **产品 → Security Events → 检测 → 检测规则** ，点击 **创建检测规则** 。
+2. 在 **Sigma 规则** 中，把规则的 YAML 粘贴到 **Sigma 规则（YAML）** 中。保存时会解析它，所以错误会显示在表单中。
 3. **名称** 会用规则的 `title` 填好：改写它即可给规则起别的名字。新规则会直接运行；**已启用** 在它的编辑表单中。
-4. 在 **匹配时** 中保持 **Open a Case on Match** 打开，按规则的分组值把它的匹配归入案例。
+4. 在 **匹配时** 中保持 **匹配时打开案例** 打开，按规则的分组值把它的匹配归入案例。
 5. 在 **警报和事件** 下选择匹配还会引发什么：**创建警报**（默认）、**声明事件**、**两者** 或 **都不**，以及可选的 **警报严重性** 或 **事件严重性**。
-6. **更多字段** 中有 **描述**、**Write Detection Finding on Match**（打开）以及匹配的计数方式；参见 [评估设置](#评估设置)。
+6. **更多字段** 中有 **描述**、**匹配时写入 Detection Finding**（打开）以及匹配的计数方式；参见 [评估设置](#评估设置)。
 :::
 
 第一条规则，匹配来自 `10.x.x.x` 之外的登录失败：
@@ -295,11 +295,11 @@ OneUptime 运行 Sigma 的布尔核心：
 - `Image` 和 `CommandLine` 读取事件所涉及的进程，在进程启动事件中即被启动的进程（`processPath`、`processCommandLine`），`ParentImage` 和 `ParentCommandLine` 读取启动它的进程（`parentProcessPath`、`parentProcessCommandLine`）。`principalProcess` 是执行操作的进程，在进程启动中即父进程。
 - `level` 设置严重程度：`informational`、`low`、`medium`、`high` 或 `critical`，缺省时为 `medium`。`tags` 中的 ATT&CK ID（`attack.t1110`、`attack.ta0006`）会填入检测结果的 MITRE 字段。
 
-像 `| count() by principalIp > 5` 这样的聚合会在保存时被拒绝：请改用 [关联规则](#关联规则)，或 **Group By Field** 和 **Match Count Threshold** 。`logsource` 只起说明作用，不会缩小任何范围：请把这种过滤放进选择项，例如 `className: Authentication`。`timeframe` 会被忽略，因为规则的间隔决定了它的时间窗口。
+像 `| count() by principalIp > 5` 这样的聚合会在保存时被拒绝：请改用 [关联规则](#关联规则)，或 **分组字段** 和 **匹配次数阈值** 。`logsource` 只起说明作用，不会缩小任何范围：请把这种过滤放进选择项，例如 `className: Authentication`。`timeframe` 会被忽略，因为规则的间隔决定了它的时间窗口。
 
 ### 关联规则
 
-[Sigma 关联](https://sigmahq.io/docs/meta/correlations.html) 在多个事件一起出现时触发，而不是在单个事件上。把它和它读取的规则一起粘贴到 **Sigma Rule (YAML)** 中，作为用 `---` 分隔的 YAML 文档，或者按 Sigma 的 `name` 或 `id` 指定项目中已有的规则。**Rule Library** 中有现成的规则，例如登录失败后紧跟一次成功登录。
+[Sigma 关联](https://sigmahq.io/docs/meta/correlations.html) 在多个事件一起出现时触发，而不是在单个事件上。把它和它读取的规则一起粘贴到 **Sigma 规则（YAML）** 中，作为用 `---` 分隔的 YAML 文档，或者按 Sigma 的 `name` 或 `id` 指定项目中已有的规则。**规则库** 中有现成的规则，例如登录失败后紧跟一次成功登录。
 
 | 类型 | 触发条件 | 显示为 |
 | --- | --- | --- |
@@ -352,16 +352,16 @@ detection:
 
 - 分组是 `group-by` 字段的值，例如一个地址。计数是滚动的：被两次运行分开的一阵突发，在其 `timespan` 内仍会被完整计数，该时间跨度最长 24 小时。
 - `new_value` 是 OneUptime 自有的类型，因为 Sigma 没有“首次出现”关联：它会与最多 30 天的历史比较。`value_sum`、`value_avg`、`value_percentile` 和 `value_median` 会在保存时被拒绝。
-- **Detection Rules** 的 **类型** 列会写出每条规则的种类，表单会用一句话说明规则在找什么。
+- **检测规则** 的 **类型** 列会写出每条规则的种类，表单会用一句话说明规则在找什么。
 
 ### 评估设置
 
 | 字段 | 作用 |
 | --- | --- |
-| **Evaluation Interval (Minutes)** | 规则运行的频率：整数分钟，1 到 1440。新规则的表单从 5 开始。 |
-| **Group By Field** | 可选。该字段值相同的匹配，例如 `principalHost`，会一起计数、一起告警、一起去重：每台主机一个警报，而不是成百上千个。 |
-| **Distinct Count Field** | 可选。统计该字段的不同值的数量，而不是匹配的事件数。空值不计入。 |
-| **Match Count Threshold** | 只有当一个分组在一次运行中的计数达到这个数时才会触发：1 到 1000000，设为 1 时任何匹配都会触发。 |
+| **评估间隔（分钟）** | 规则运行的频率：整数分钟，1 到 1440。新规则的表单从 5 开始。 |
+| **分组字段** | 可选。该字段值相同的匹配，例如 `principalHost`，会一起计数、一起告警、一起去重：每台主机一个警报，而不是成百上千个。 |
+| **去重计数字段** | 可选。统计该字段的不同值的数量，而不是匹配的事件数。空值不计入。 |
+| **匹配次数阈值** | 只有当一个分组在一次运行中的计数达到这个数时才会触发：1 到 1000000，设为 1 时任何匹配都会触发。 |
 
 Group By 和 Distinct Count 使用与规则相同的字段名。有了它们，阈值的意思就是“同一个对象、在一次运行中、达到这么多”，无需再在上面叠加监视器：
 
@@ -412,7 +412,7 @@ Detection Finding 是来自产品 `OneUptime Detections`、类别为 `Detection 
 
 ## 安全事件监视器
 
-安全事件监视器在滚动时间窗口内统计与其过滤器匹配的事件，并对计数运行常规的监视器条件：它会改变监视器的状态、打开警报或事件，并呼叫值班人员。请在 **监控 → 创建监视器** 下创建，类型选择 **Security Events** ；它会和您的其他监视器一起列在那里。
+安全事件监视器在滚动时间窗口内统计与其过滤器匹配的事件，并对计数运行常规的监视器条件：它会改变监视器的状态、打开警报或事件，并呼叫值班人员。请在 **监控 → 创建监视器** 下创建，类型选择 **安全事件** ；它会和您的其他监视器一起列在那里。
 
 它的表单显示 **Monitor events that include this text**、**Monitor Security Events for (time)**、**Event Severity** 和 **事件类别** 。**按遥测服务过滤** 和 **按属性过滤** 位于 **更多字段** 下，其标题会显示监视器正在使用哪些。它的条件检查 **Security Event Count** 。
 
@@ -420,7 +420,7 @@ Detection Finding 是来自产品 `OneUptime Detections`、类别为 `Detection 
 | --- | --- | --- |
 | 匹配依据 | 一条 Sigma 规则 | 针对严重程度、类别、消息、服务和属性的过滤器 |
 | 时间窗口 | 首尾相接，每次运行一个 | 滚动：最近 5 秒到 24 小时 |
-| 按分组计数 | 是，通过 **Group By Field** | 否：所有匹配合计一个计数 |
+| 按分组计数 | 是，通过 **分组字段** | 否：所有匹配合计一个计数 |
 | 打开的内容 | 警报、事件和检测结果 | 状态、警报和事件 |
 | 会恢复 | 否：警报保持打开直到被解决 | 是：计数恢复时状态也随之恢复 |
 
@@ -434,11 +434,11 @@ Detection Finding 是来自产品 `OneUptime Detections`、类别为 `Detection 
 - 频率变化：按某条规则的 `oneuptime.detection.rule_id` 过滤。一条每周触发一次的规则突然每小时触发五十次，需要不同的应对。
 - 沉默：平时总能看到几个的检测结果降到零，通常意味着某个来源停止发送了。请使用检查计数是否低于某个数的条件。
 
-规则所在行中的 **创建监视器** 操作会打开一个已经这样设置好的新监视器：`Detection Finding` 类别、规则的 ID（绝不用名称，因为重命名会改变名称），以及最近一小时。这样的监视器统计的是检测结果，每次运行每个分组一个，而不是它们背后的事件。若要在任何东西触发之前要求一定数量的事件，请使用规则的 **Match Count Threshold** 。
+规则所在行中的 **创建监视器** 操作会打开一个已经这样设置好的新监视器：`Detection Finding` 类别、规则的 ID（绝不用名称，因为重命名会改变名称），以及最近一小时。这样的监视器统计的是检测结果，每次运行每个分组一个，而不是它们背后的事件。若要在任何东西触发之前要求一定数量的事件，请使用规则的 **匹配次数阈值** 。
 
 ## 威胁情报
 
-**Threat Intel** 订阅已知恶意 IP 地址、域名、URL、电子邮件地址和文件哈希的 STIX/TAXII 源。提到其中之一的事件会在到达时被打上 `threat.*` 属性，规则和监视器可以按这些属性过滤；此外每分钟都会把最近的事件与情报源进行比对，像规则一样打开警报和检测结果。请参阅 [威胁情报](/docs/telemetry/threat-intelligence)。
+**威胁情报** 订阅已知恶意 IP 地址、域名、URL、电子邮件地址和文件哈希的 STIX/TAXII 源。提到其中之一的事件会在到达时被打上 `threat.*` 属性，规则和监视器可以按这些属性过滤；此外每分钟都会把最近的事件与情报源进行比对，像规则一样打开警报和检测结果。请参阅 [威胁情报](/docs/telemetry/threat-intelligence)。
 
 ## 保留和计费
 
@@ -459,7 +459,7 @@ Detection Finding 是来自产品 `OneUptime Detections`、类别为 `Detection 
 :::
 
 :::details 规则打开的警报太多
-**Group By Field** 的每个值都会得到自己的警报：请按更粗的粒度分组、提高阈值，或者添加一个 Distinct Count Field。如果你关心的是频率而不是每一次匹配，请把 **警报和事件** 设为 **都不** ，并在规则的检测结果上设置一个监视器。
+**分组字段** 的每个值都会得到自己的警报：请按更粗的粒度分组、提高阈值，或者添加一个 Distinct Count Field。如果你关心的是频率而不是每一次匹配，请把 **警报和事件** 设为 **都不** ，并在规则的检测结果上设置一个监视器。
 :::
 
 ## 后续步骤

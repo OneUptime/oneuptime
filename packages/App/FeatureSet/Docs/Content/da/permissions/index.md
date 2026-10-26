@@ -78,7 +78,7 @@ Teamsene **Owners** og **Admin** er bevidst låst: deres tilladelser kan ikke re
 
 `ProjectOwner` er det højeste adgangsniveau: fakturering, sletning af projektet og alt, hvad en administrator kan. `ProjectAdmin` dækker alt undtagen fakturering og sletning af projektet.
 
-At slå SMS, telefonopkald, WhatsApp eller Telegram til eller fra for projektet hører under fakturering, fordi hver besked koster penge. Kun `ProjectOwner`, rollen `BillingAdmin` (**Billing Admin**) og tilladelsen `ManageProjectBilling` (**Manage Billing**) kan slå dem til eller fra, under **Projektindstillinger > Notifikationer > Notifikationsindstillinger** — ikke `ProjectAdmin`.
+At slå SMS, telefonopkald, WhatsApp eller Telegram til eller fra for projektet hører under fakturering, fordi hver besked koster penge. Kun `ProjectOwner`, rollen `BillingAdmin` (**Faktureringsadministrator**) og tilladelsen `ManageProjectBilling` (**Manage Billing**) kan slå dem til eller fra, under **Projektindstillinger > Notifikationer > Notifikationsindstillinger** — ikke `ProjectAdmin`.
 
 At genoplade projektets forudbetalte saldi hører også under fakturering. På OneUptime Cloud betales SMS, telefonopkald, WhatsApp og Telegram fra saldoen under **Projektindstillinger > Notifikationer > Notifikationsindstillinger**, og AI fra AI-kreditterne under **Projektindstillinger > AI > AI-kreditter**. Kun en projektejer eller nogen med **Manage Billing** kan genoplade dem eller ændre deres **Automatisk genopfyldning** — en projektadministrator kan ikke. En besked om en saldo, der er ved at løbe tør, nævner, hvem der kan fylde den op, og kun de personer får en knap **Genoplad saldo**, der virker, eller et link til siden.
 
@@ -202,7 +202,7 @@ Hver tilladt rettighed gives med et omfang: når du tilføjer den, ligger **Omfa
 
 **Labels** er den mere manuelle udgave af samme idé: mærk ressourcer, og giv så tilladelser begrænset til de mærker.
 
-**At handle på hele projektet kræver en tilladelse, der når det.** En regels **Run Now** anvender reglen på alle projektets ressourcer, og et netværks regler for site-tildeling, enhedslabels og automatisk import på alle netværksenheder eller scanninger, så det kræver tilladelser med omfang over alle ressourcer i projektet: en tilladelse begrænset til labels eller til ejede ressourcer er ikke nok, og en blokering med labels på de ressourcer, en kørsel ændrer, afviser kørslen, fordi den også ville ændre ressourcerne med de labels.
+**At handle på hele projektet kræver en tilladelse, der når det.** En regels **Kør nu** anvender reglen på alle projektets ressourcer, og et netværks regler for site-tildeling, enhedslabels og automatisk import på alle netværksenheder eller scanninger, så det kræver tilladelser med omfang over alle ressourcer i projektet: en tilladelse begrænset til labels eller til ejede ressourcer er ikke nok, og en blokering med labels på de ressourcer, en kørsel ændrer, afviser kørslen, fordi den også ville ændre ressourcerne med de labels.
 
 Nogle roller gælder per definition hele projektet og tilbyder slet ikke noget omfang, fordi en indsnævring ville være meningsløs — "Billing Admin, men kun for den fakturering, jeg ejer" beskriver ingenting:
 

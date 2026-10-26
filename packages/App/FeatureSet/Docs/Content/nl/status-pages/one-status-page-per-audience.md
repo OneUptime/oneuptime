@@ -70,7 +70,7 @@ Maak één pagina per doelgroep, bijvoorbeeld `Site 01` tot en met `Site 10`. Ma
 
 ### De gedeelde monitor op elke pagina zetten
 
-Voeg de gedeelde monitor als resource aan elke pagina toe (zie [Statuspagina – bronnen en groepen](/docs/status-pages/resources-and-groups)). Een regel onder **Regels → Monitor Rules** kan dat voor u doen op basis van de labels van de monitor.
+Voeg de gedeelde monitor als resource aan elke pagina toe (zie [Statuspagina – bronnen en groepen](/docs/status-pages/resources-and-groups)). Een regel onder **Regels → Monitorregels** kan dat voor u doen op basis van de labels van de monitor.
 
 ### Alleen incidenten tonen die tot deze pagina zijn beperkt aanzetten
 
@@ -82,7 +82,7 @@ Gebruik voor personeel **In bulk toevoegen** onder **E-mail-abonnees**, en geef 
 
 ### Responders statuspagina's laten lezen
 
-De kiezer toont alleen de statuspagina's die de persoon kan lezen, en de incidentrollen kunnen geen statuspagina's lezen. Geef responders de rol **Status Page Viewer** naast hun incidentrol; die kan worden beperkt tot pagina's met bepaalde labels. Zonder die rol is de kiezer leeg.
+De kiezer toont alleen de statuspagina's die de persoon kan lezen, en de incidentrollen kunnen geen statuspagina's lezen. Geef responders de rol **Statuspaginakijker** naast hun incidentrol; die kan worden beperkt tot pagina's met bepaalde labels. Zonder die rol is de kiezer leeg.
 
 ### Bepalen wat elk bericht zegt
 
@@ -251,7 +251,7 @@ Zie [Incidentnotities, eigenaren en feed](/docs/incidents/notes-owners-and-feed)
 
 ## Machtigingen
 
-- **Een statuspagina kiezen vereist leestoegang tot die pagina.** Statuspagina's worden gelezen onder de statuspaginarollen, niet onder de incidentrollen, en een statuspagina kan per label worden afgeschermd. Geef responders **Status Page Viewer**, desgewenst beperkt tot labels. Zonder die rol is de kiezer leeg, en weigert de API een pagina die de aanroeper niet kan lezen, bij incidenten en bij incident-sjablonen.
+- **Een statuspagina kiezen vereist leestoegang tot die pagina.** Statuspagina's worden gelezen onder de statuspaginarollen, niet onder de incidentrollen, en een statuspagina kan per label worden afgeschermd. Geef responders **Statuspaginakijker**, desgewenst beperkt tot labels. Zonder die rol is de kiezer leeg, en weigert de API een pagina die de aanroeper niet kan lezen, bij incidenten en bij incident-sjablonen.
 - **Pagina's die de bewerker niet kan zien, blijven behouden.** Een bewerker die slechts enkele pagina's van een incident kan lezen, ziet alleen die in de kiezer, en opslaan behoudt de pagina's die hij niet kan zien.
 - **De pagina's waartoe een incident is beperkt, horen bij het incident.** Net als de monitoren ervan ziet iedereen die het incident kan lezen hun namen, op de kaart **Bereik van statuspagina's**, op het overzicht en in de incidentfeed, of hij die statuspagina's nu kan lezen of niet.
 - **Wat een verzending bereikte, hoort ook bij het incident.** Zodra een melding is verzonden, noemen het statusbericht en de feedvermelding ervan elke statuspagina waarnaar ze ging, met wat er op elke pagina is verzonden en wat er is mislukt, en iedereen die het incident kan lezen, ziet ze, of hij die statuspagina's nu kan lezen of niet. Alleen de samenvatting en het voorbeeld hieronder, die vooruitkijken, blijven bij de pagina's die de persoon kan lezen.

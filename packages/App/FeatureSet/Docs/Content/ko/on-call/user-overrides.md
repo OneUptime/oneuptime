@@ -68,7 +68,7 @@ flowchart TB
 
 ## 재정의를 추가할 수 있는 사람
 
-**Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin**, **On-Call Member** 는 재정의를 추가하고 삭제할 수 있으며, **Viewer** 와 **On-Call Viewer** 는 볼 수 있습니다. 사용자 정의 역할에서 권한 이름은 **Create On-Call Duty Policy User Override**, **Delete On-Call Duty Policy User Override**, **Read On-Call Duty Policy User Override** 입니다. **스케줄 타임라인** 에서는 재정의를 읽을 수 있는 사람만 누구의 근무를 대신하는지 볼 수 있습니다.
+**프로젝트 소유자**, **프로젝트 관리자**, **프로젝트 구성원**, **온콜 관리자**, **온콜 구성원** 은 재정의를 추가하고 삭제할 수 있으며, **뷰어** 와 **온콜 뷰어** 는 볼 수 있습니다. 사용자 정의 역할에서 권한 이름은 **Create On-Call Duty Policy User Override**, **Delete On-Call Duty Policy User Override**, **Read On-Call Duty Policy User Override** 입니다. **스케줄 타임라인** 에서는 재정의를 읽을 수 있는 사람만 누구의 근무를 대신하는지 볼 수 있습니다.
 
 OneUptime Cloud에서 사용자 재정의에는 **Growth** 요금제가 필요합니다.
 

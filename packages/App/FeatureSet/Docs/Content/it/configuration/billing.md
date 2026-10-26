@@ -144,10 +144,10 @@ Quando un saldo non basta, il messaggio non viene inviato oppure OneUptime AI si
 
 | Per | Serve |
 | --- | --- |
-| Leggere le pagine di fatturazione: il piano, le fatture, l'utilizzo, i saldi e i metodi di pagamento | Project Owner, **Manage Billing**, **Billing Admin**, **Billing Member** o **Billing Viewer** |
-| Scaricare una fattura | Project Owner, Project Admin, **Manage Billing**, **Read Invoices**, **Billing Admin** o **Billing Member** |
-| Cambiare l'indirizzo di fatturazione e l'email delle fatture | Project Owner, **Manage Billing**, **Billing Admin** o **Billing Member** |
-| Attivare o disattivare SMS, chiamate, WhatsApp o Telegram | Project Owner, **Manage Billing** o **Billing Admin** |
+| Leggere le pagine di fatturazione: il piano, le fatture, l'utilizzo, i saldi e i metodi di pagamento | Project Owner, **Manage Billing**, **Amministratore della fatturazione**, **Membro della fatturazione** o **Visualizzatore della fatturazione** |
+| Scaricare una fattura | Project Owner, Project Admin, **Manage Billing**, **Read Invoices**, **Amministratore della fatturazione** o **Membro della fatturazione** |
+| Cambiare l'indirizzo di fatturazione e l'email delle fatture | Project Owner, **Manage Billing**, **Amministratore della fatturazione** o **Membro della fatturazione** |
+| Attivare o disattivare SMS, chiamate, WhatsApp o Telegram | Project Owner, **Manage Billing** o **Amministratore della fatturazione** |
 | Aggiungere un metodo di pagamento | Project Owner, **Manage Billing** o **Create Payment Method** |
 | Pagare una fattura | Project Owner, **Manage Billing** o **Edit Invoices** |
 | Cambiare il piano, ricaricare un saldo o cambiare la ricarica automatica | Project Owner o **Manage Billing** |

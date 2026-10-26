@@ -46,7 +46,7 @@ Em **Credenciais**, preencha o que a ferramenta pede. Os segredos são guardados
 
 ### Escolha quem pode ler
 
-Em **Privacy**, defina **Quem pode ler as conversas** e **Manter o que foi escrito**, como explica [Privacidade](#privacidade).
+Em **Privacidade**, defina **Quem pode ler as conversas** e **Manter o que foi escrito**, como explica [Privacidade](#privacidade).
 
 ### Teste
 
@@ -90,7 +90,7 @@ Dê ao app as permissões de aplicativo `AiEnterpriseInteraction.Read.All` e `Us
 
 ### Conecte o Copilot
 
-Preencha **ID do diretório (tenant)**, **ID do aplicativo (cliente)** e **Client secret**. Para ler só algumas pessoas, coloque o ID de objeto de um grupo em **Somente pessoas deste grupo**, em **Mais campos**, e dê ao app também `GroupMember.Read.All`. Para o Azure Government, altere **Nuvem** ali.
+Preencha **ID do diretório (tenant)**, **ID do aplicativo (cliente)** e **Segredo do cliente**. Para ler só algumas pessoas, coloque o ID de objeto de um grupo em **Somente pessoas deste grupo**, em **Mais campos**, e dê ao app também `GroupMember.Read.All`. Para o Azure Government, altere **Nuvem** ali.
 :::
 
 ## Privacidade

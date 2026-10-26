@@ -63,13 +63,13 @@ flowchart TB
 
 | Campo | O que define |
 | --- | --- |
-| **Layer name** | O que a camada cobre, por exemplo "Principal em dias úteis". |
-| **Rotation starts at** | A data e a hora em que a rotação da camada começa. |
-| **Rotate every** | Com que frequência o plantão passa para a próxima pessoa da camada. |
-| **First hand-off time** | A primeira passagem para a próxima pessoa, no início ou depois. As passagens seguintes acompanham cada intervalo de rotação. |
-| **Restrictions** | Os horários em que a camada fica de plantão: **Sem Restrições**, **Horários específicos do dia** ou **Horários específicos da semana**, no fuso horário do agendamento. Fora deles, as camadas inferiores assumem. |
+| **Nome da camada** | O que a camada cobre, por exemplo "Principal em dias úteis". |
+| **A rotação começa em** | A data e a hora em que a rotação da camada começa. |
+| **Alternar a cada** | Com que frequência o plantão passa para a próxima pessoa da camada. |
+| **Horário da primeira passagem** | A primeira passagem para a próxima pessoa, no início ou depois. As passagens seguintes acompanham cada intervalo de rotação. |
+| **Restrições** | Os horários em que a camada fica de plantão: **Sem Restrições**, **Horários específicos do dia** ou **Horários específicos da semana**, no fuso horário do agendamento. Fora deles, as camadas inferiores assumem. |
 
-Para mudar qual camada vem primeiro, use **Move layer up (higher priority)** ou **Move layer down (lower priority)** no menu de uma camada.
+Para mudar qual camada vem primeiro, use **Mover camada para cima (maior prioridade)** ou **Mover camada para baixo (menor prioridade)** no menu de uma camada.
 
 Cada pessoa mantém uma única cor em todo lugar, para você acompanhá-la num relance: em cada camada, no agendamento final e nas substituições dele, e na **Linha do tempo de plantões**.
 

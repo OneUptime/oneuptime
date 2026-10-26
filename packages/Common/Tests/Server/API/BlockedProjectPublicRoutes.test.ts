@@ -575,6 +575,7 @@ describe("a status page of a blocked project", () => {
       "/status-page/seo/:statusPageIdOrDomain",
       "/status-page/favicon/:statusPageIdOrDomain",
       "/status-page/logo/:statusPageIdOrDomain",
+      "/status-page/dark-theme-logo/:statusPageIdOrDomain",
       "/status-page/cover-image/:statusPageIdOrDomain",
       "/status-page/master-page/:statusPageId",
       "/status-page/master-password/:statusPageId",

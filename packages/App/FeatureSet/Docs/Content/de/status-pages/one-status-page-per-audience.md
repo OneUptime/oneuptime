@@ -82,7 +82,7 @@ Nutzen Sie für Personal **In großen Mengen hinzufügen** auf **E-Mail-Abonnent
 
 ### Einsatzkräften das Lesen von Statusseiten erlauben
 
-Die Auswahl listet nur die Statusseiten, die die Person lesen darf, und die Vorfallrollen dürfen keine Statusseiten lesen. Geben Sie Einsatzkräften neben ihrer Vorfallrolle die Rolle **Status Page Viewer**; sie lässt sich auf Seiten mit bestimmten Beschriftungen beschränken. Ohne sie ist die Auswahl leer.
+Die Auswahl listet nur die Statusseiten, die die Person lesen darf, und die Vorfallrollen dürfen keine Statusseiten lesen. Geben Sie Einsatzkräften neben ihrer Vorfallrolle die Rolle **Statusseiten-Betrachter**; sie lässt sich auf Seiten mit bestimmten Beschriftungen beschränken. Ohne sie ist die Auswahl leer.
 
 ### Festlegen, was jede Nachricht sagt
 
@@ -251,7 +251,7 @@ Zum Feed selbst siehe [Vorfallnotizen, Eigentümer & Feed](/docs/incidents/notes
 
 ## Berechtigungen
 
-- **Eine Statusseite zu wählen braucht Lesezugriff darauf.** Statusseiten werden unter den Statusseitenrollen gelesen, nicht unter den Vorfallrollen, und eine Statusseite lässt sich nach Beschriftung einschränken. Geben Sie Einsatzkräften **Status Page Viewer**, wenn Sie möchten, auf Beschriftungen beschränkt. Ohne sie ist die Auswahl leer, und die API lehnt eine Seite ab, die der Aufrufer nicht lesen darf, bei Vorfällen wie bei Vorfallvorlagen.
+- **Eine Statusseite zu wählen braucht Lesezugriff darauf.** Statusseiten werden unter den Statusseitenrollen gelesen, nicht unter den Vorfallrollen, und eine Statusseite lässt sich nach Beschriftung einschränken. Geben Sie Einsatzkräften **Statusseiten-Betrachter**, wenn Sie möchten, auf Beschriftungen beschränkt. Ohne sie ist die Auswahl leer, und die API lehnt eine Seite ab, die der Aufrufer nicht lesen darf, bei Vorfällen wie bei Vorfallvorlagen.
 - **Seiten, die der Bearbeiter nicht sieht, bleiben erhalten.** Ein Bearbeiter, der nur einige Seiten eines Vorfalls lesen darf, sieht nur diese in der Auswahl, und das Speichern behält die Seiten, die er nicht sieht.
 - **Die Seiten, auf die ein Vorfall beschränkt ist, gehören zum Vorfall.** Wie seine Monitore sieht jeder, der den Vorfall lesen darf, ihre Namen, auf der Karte **Statusseiten-Umfang**, in der Übersicht und im Vorfall-Feed, ob er diese Statusseiten lesen darf oder nicht.
 - **Was ein Versand erreicht hat, gehört auch zum Vorfall.** Sobald eine Benachrichtigung rausgegangen ist, nennen ihre Statusmeldung und ihr Feed-Eintrag jede Statusseite, an die sie ging, mit dem, was jeweils gesendet wurde und was fehlschlug, und jeder, der den Vorfall lesen darf, sieht sie, ob er diese Statusseiten lesen darf oder nicht. Nur die Zusammenfassung und die Vorschau unten, die vorausschauen, bleiben bei den Seiten, die die Person lesen darf.

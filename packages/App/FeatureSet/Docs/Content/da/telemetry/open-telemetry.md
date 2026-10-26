@@ -371,7 +371,7 @@ OneUptime leverer OTLP/gRPC på samme vært som webappen, på port 443 over TLS.
 
 På en selvhostet installation når gRPC kun OneUptime over HTTPS: En ukrypteret HTTP-forbindelse (h2c) afvises. Hvis din instans leveres over almindelig HTTP, så brug OTLP/HTTP.
 
-To af en nøgles indstillinger gælder kun for OTLP/HTTP: dens **Requests Per Minute Limit** og dens **Pinned Service Name**. Data sendt over gRPC beholder den `service.name`, de blev sendt med, og tælles ikke med i grænsen.
+To af en nøgles indstillinger gælder kun for OTLP/HTTP: dens **Requests Per Minute Limit** og dens **Fastgjort tjenestenavn**. Data sendt over gRPC beholder den `service.name`, de blev sendt med, og tælles ikke med i grænsen.
 
 ### Svar
 
@@ -400,9 +400,9 @@ Hver nøgles side under **Projektindstillinger → Telemetri og APM → Indtagel
 
 | Indstilling | Hvad den gør |
 | --- | --- |
-| **Nøgletype** | **Server** (standard) til applikationer, collectors og agenter. **Browser** til nøgler, der leveres i en webside: kun skrivning, og accepteres kun fra dens **Allowed Origins**. Den kan ikke ændres, efter nøglen er oprettet. |
-| **Allowed Origins** | De web-origins, en browsernøgle virker fra, for eksempel `https://app.example.com`. Ignoreres på en servernøgle. |
-| **Pinned Service Name** | Når den er sat, erstatter den `service.name` på alt, der sendes med denne nøgle over OTLP/HTTP. |
+| **Nøgletype** | **Server** (standard) til applikationer, collectors og agenter. **Browser** til nøgler, der leveres i en webside: kun skrivning, og accepteres kun fra dens **Tilladte oprindelser**. Den kan ikke ændres, efter nøglen er oprettet. |
+| **Tilladte oprindelser** | De web-origins, en browsernøgle virker fra, for eksempel `https://app.example.com`. Ignoreres på en servernøgle. |
+| **Fastgjort tjenestenavn** | Når den er sat, erstatter den `service.name` på alt, der sendes med denne nøgle over OTLP/HTTP. |
 | **Aktiveret** | Slå den fra for straks at holde op med at acceptere data, der sendes med nøglen, uden at slette den. |
 | **Udløber den** | Efter denne dato afvises nøglen. Tom betyder, at den aldrig udløber. |
 | **Requests Per Minute Limit** | Det højeste antal OTLP/HTTP-forespørgsler pr. minut, nøglen accepteres for, på tværs af alle klienter, der bruger den. Tom betyder ingen grænse på en servernøgle og 6.000 på en browsernøgle. |
@@ -420,7 +420,7 @@ Alt på denne side virker på samme måde med din egen installation. Brug din On
 
 ## Undtagelser fra logs
 
-OneUptime finder undtagelser i dine **logs** og samler dem i den samme visning **Undtagelser**, som fejl fra traces fodrer. Hver log hører allerede til en tjeneste eller vært, så undtagelsen henføres dertil. Undtagelser fra logs og traces deler gruppering efter fingeraftryk, så en fejl, der rapporteres af både en trace og en log, bliver til ét issue.
+OneUptime finder undtagelser i dine **protokoller** og samler dem i den samme visning **Undtagelser**, som fejl fra traces fodrer. Hver log hører allerede til en tjeneste eller vært, så undtagelsen henføres dertil. Undtagelser fra logs og traces deler gruppering efter fingeraftryk, så en fejl, der rapporteres af både en trace og en log, bliver til ét issue.
 
 En log kan blive til en undtagelse på to måder:
 
@@ -460,7 +460,7 @@ En batch er større end størrelsesgrænsen. Gør batches mindre, for eksempel m
 :::
 
 :::details Data lander under den forkerte tjeneste eller under Unknown Service
-Tjenesten kommer fra ressourceattributten `service.name`. Sæt `OTEL_SERVICE_NAME` i hver applikation. Hvis nøglen har en **Pinned Service Name**, arkiveres hver OTLP/HTTP-eksport med den nøgle i stedet under det navn.
+Tjenesten kommer fra ressourceattributten `service.name`. Sæt `OTEL_SERVICE_NAME` i hver applikation. Hvis nøglen har en **Fastgjort tjenestenavn**, arkiveres hver OTLP/HTTP-eksport med den nøgle i stedet under det navn.
 :::
 
 ## Næste trin

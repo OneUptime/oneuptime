@@ -160,7 +160,7 @@ name:"SELECT wp_options"
 
 واژه‌های تنها پیام استثنا را جستجو می‌کنند.
 
-کاوشگر **Security Events** همین زبان را با فیلدهای خودش به کار می‌برد، مانند `severity`، `tactic` و `user` — [رویدادهای امنیتی](/docs/telemetry/security-events) را ببینید.
+کاوشگر **رویدادهای امنیتی** همین زبان را با فیلدهای خودش به کار می‌برد، مانند `severity`، `tactic` و `user` — [رویدادهای امنیتی](/docs/telemetry/security-events) را ببینید.
 
 ## ترکیب فیلترها
 
