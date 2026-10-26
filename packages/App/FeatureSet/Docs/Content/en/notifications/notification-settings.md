@@ -47,7 +47,7 @@ When you join a project, these events start on, by email. Everything else starts
 
 | Tab | On by email | Off until you turn them on |
 | --- | --- | --- |
-| **Incidents** | **Incident created**, **Incident state changed**, **Incident reminder**, **Incident episode created**, **Incident episode state changed**, **Incident added to incident episode** | **Incident note posted**, **Added as incident owner**, **Assigned to an incident**, **Incident episode note posted**, **Added as incident episode owner** |
+| **Incidents** | **Incident created**, **Incident state changed**, **Incident reminder**, **Incident SLA breached**, **Incident episode created**, **Incident episode state changed**, **Incident added to incident episode** | **Incident note posted**, **Added as incident owner**, **Assigned to an incident**, **Incident episode note posted**, **Added as incident episode owner** |
 | **Alerts** | **Alert created**, **Alert state changed**, **Alert reminder**, **Alert episode created**, **Alert episode state changed**, **Alert added to alert episode** | **Alert note posted**, **Added as alert owner**, **Alert episode note posted**, **Added as alert episode owner** |
 | **Monitoring** | **Probe status changed for your monitor**, **Monitor has no active probes**, **SLO status changed**, **Added as SLO owner**, **Probe status changed**, **Added as probe owner** | **Monitor created**, **Monitor status changed**, **Added as monitor owner**, **AI agent status changed**, **Added as AI agent owner** |
 | **Status Pages** | None | **Status page created**, **Status page announcement posted**, **Added as status page owner** |

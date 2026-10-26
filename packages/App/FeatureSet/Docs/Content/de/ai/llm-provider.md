@@ -53,7 +53,7 @@ Auf einer selbst gehosteten Instanz schalten Sie KI am schnellsten **für alle P
 | `GLOBAL_LLM_PROVIDER_TYPE` | Nötig, um ihn einzuschalten. Einer von `OpenAI`, `AzureOpenAI`, `Anthropic`, `Groq`, `Mistral`, `Ollama`, `OpenAICompatible` |
 | `GLOBAL_LLM_PROVIDER_API_KEY` | Der API-Schlüssel: nötig für OpenAI, Azure OpenAI, Anthropic, Groq und Mistral; nicht nötig für Ollama oder einen OpenAI-kompatiblen Server ohne Schlüssel |
 | `GLOBAL_LLM_PROVIDER_BASE_URL` | Der Endpunkt: nötig für Azure OpenAI, Ollama und OpenAI-kompatible Server |
-| `GLOBAL_LLM_PROVIDER_MODEL_NAME` | Das zu verwendende Modell: nötig für OpenAI-kompatible Server, empfohlen für die anderen |
+| `GLOBAL_LLM_PROVIDER_MODEL_NAME` | Das zu verwendende Modell. Optional: Nicht gesetzt verwendet OneUptime das Standardmodell des Anbieters und bei einem OpenAI-kompatiblen Server das erste Modell, das der Server auflistet |
 | `GLOBAL_LLM_PROVIDER_NAME` | Ein optionaler Anzeigename, der im Dashboard erscheint |
 
 :::tabs
@@ -105,7 +105,7 @@ Unter **Verbindung** fragt das Formular nur nach dem, was dieser Anbieter verwen
 
 - **API-Schlüssel**: Ihr API-Schlüssel, nötig für OpenAI, Azure OpenAI, Anthropic, Groq und Mistral und optional für einen OpenAI-kompatiblen Server; für Ollama wird keiner abgefragt
 - **Basis-URL**: der Endpunkt, nötig für Azure OpenAI, Ollama und OpenAI Compatible; bei den anderen nur, um über einen Proxy oder ein Gateway zu gehen
-- **Modellname**: das zu verwendende Modell, etwa `gpt-5.1`, `claude-sonnet-5-5` oder `llama3.1`. Leer gelassen verwendet OneUptime das Standardmodell des Anbieters, außer bei einem OpenAI-kompatiblen Server, der eines braucht
+- **Modellname**: das zu verwendende Modell, etwa `gpt-5.1`, `claude-sonnet-5-5` oder `llama3.1`. Leer gelassen verwendet OneUptime das Standardmodell des Anbieters; ein OpenAI-kompatibler Server hat keines, also fragt OneUptime ihn, welche Modelle er bereitstellt, und verwendet das erste, das er auflistet
 - **Name**: der Name des Anbieters, bis Sie einen eigenen eingeben, etwa "Production OpenAI" oder "Local Ollama"
 - **Weitere Felder**, unter den Feldern oben zugeklappt: eine **Beschreibung**, **Als Standard festlegen**, das bei einem neuen Anbieter eingeschaltet ist, weil KI-Funktionen nur den Standardanbieter des Projekts verwenden, und **Zusätzliche Parameter**, ein optionales JSON-Objekt mit zusätzlichen Parametern, das bei jeder Anfrage an den Anbieter gesendet wird (zum Beispiel `{"temperature": 0.2}`)
 
@@ -225,7 +225,7 @@ Verwenden Sie den Anbieter **OpenAI Compatible** für jeden Server, der die Open
 1. Starten Sie Ihren OpenAI-kompatiblen Server und notieren Sie seine Basis-URL (sie endet meist auf `/v1`)
 2. Wählen Sie **OpenAI Compatible** als LLM-Anbieter
 3. Geben Sie die **Basis-URL** ein (Pflicht), z. B. `http://your-server:8000/v1`. Der OneUptime-Server muss sie erreichen, also nicht `localhost`: siehe [Eine Basis-URL für ein selbst gehostetes Modell wählen](#eine-basis-url-für-ein-selbst-gehostetes-modell-wählen)
-4. Füllen Sie **Modellname** aus (Pflicht): Er muss einem Modell entsprechen, das Ihr Server bereitstellt
+4. Füllen Sie **Modellname** aus oder lassen Sie es leer: Dann fragt OneUptime Ihren Server, welche Modelle er bereitstellt, und verwendet das erste, das er auflistet, bei vLLM also das Modell, das er bereitstellt. Ein eingegebener Name muss einem Modell entsprechen, das Ihr Server bereitstellt
 5. Geben Sie den **API-Schlüssel** nur ein, wenn Ihr Server einen verlangt; lassen Sie ihn bei einem Server ohne Schlüssel leer
 
 ```text title="A keyless vLLM"
@@ -258,7 +258,7 @@ Wenn Sie die automatische Registrierung ausgeschaltet haben (`vllm.globalProvide
 
 1. Wählen Sie **OpenAI Compatible** als LLM-Anbieter (vLLM spricht die OpenAI-API)
 2. Geben Sie die clusterinterne Basis-URL ein: `http://<release>-vllm.<namespace>.svc.cluster.local:8000/v1` (ersetzen Sie `cluster.local`, wenn Sie `global.clusterDomain` geändert haben)
-3. Geben Sie den Modellnamen ein: die vollständige Hugging-Face-Modell-ID (oder `vllm.servedModelName`, wenn Sie einen gesetzt haben)
+3. Geben Sie den Modellnamen ein: die vollständige Hugging-Face-Modell-ID (oder `vllm.servedModelName`, wenn Sie einen gesetzt haben), oder lassen Sie ihn leer, um das Modell zu verwenden, das vLLM bereitstellt
 4. Geben Sie den API-Schlüssel nur ein, wenn Sie `vllm.apiKey` gesetzt haben; lassen Sie ihn bei einem vLLM ohne Schlüssel leer
 
 ```text title="The in-cluster vLLM"
@@ -286,7 +286,7 @@ Siehe die [vLLM-Anleitung des Helm-Charts](https://github.com/OneUptime/oneuptim
 - **OpenAI oder Anthropic**: Prüfen Sie, ob Ihr API-Schlüssel gültig ist und Guthaben hat
 - **Azure OpenAI / Microsoft Foundry**: Der Fehler beginnt damit, was zu ändern ist. [Microsoft Foundry und Azure OpenAI](/docs/ai/microsoft-foundry) erklärt jeden Fehler, mit dem Azure antwortet
 - **Ollama**: Prüfen Sie, ob der Ollama-Server läuft, auf einer Adresse lauscht, die der OneUptime-Server erreicht (`OLLAMA_HOST=0.0.0.0:11434` bei einer nativen Installation), und ob die Basis-URL auf diese Adresse zeigt
-- **OpenAI Compatible**: Prüfen Sie, ob die Basis-URL auf `/v1` endet (oder zu Ihrem Server passt), ob der Modellname einem Modell entspricht, das Ihr Server bereitstellt, und ob Sie einen API-Schlüssel nur gesetzt haben, wenn Ihr Server einen verlangt
+- **OpenAI Compatible**: Prüfen Sie, ob die Basis-URL auf `/v1` endet (oder zu Ihrem Server passt), ob der Modellname, falls Sie einen eingegeben haben, einem Modell entspricht, das Ihr Server bereitstellt, und ob Sie einen API-Schlüssel nur gesetzt haben, wenn Ihr Server einen verlangt. Bleibt der Modellname leer und listet der Server unter seinem Endpunkt `/models` keine Modelle auf, geben Sie einen ein
 - **"…points to an address OneUptime is not allowed to connect to"**: Die Basis-URL wird in eine abgelehnte Adresse aufgelöst: `localhost` oder eine andere Loopback-Adresse oder, in OneUptime Cloud, eine private Netzwerkadresse. (OneUptime Cloud meldet einen abgelehnten Hostnamen stattdessen als "…could not be reached".) Siehe [Eine Basis-URL für ein selbst gehostetes Modell wählen](#eine-basis-url-für-ein-selbst-gehostetes-modell-wählen)
 - **Eine Firewall**: Prüfen Sie, ob Ihr Netzwerk ausgehende Verbindungen zur API des Anbieters erlaubt
 :::

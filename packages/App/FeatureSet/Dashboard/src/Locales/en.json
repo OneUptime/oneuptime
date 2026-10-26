@@ -35558,6 +35558,8 @@
   "{{count}} more status pages_one": "{{count}} more status page",
   "{{count}} more technologies": "{{count}} more technologies",
   "{{count}} more technologies_one": "{{count}} more technology",
+  "First model the server lists": "First model the server lists",
+  "Leave empty for the first model your server lists. To use another, type its name exactly as your server lists it.": "Leave empty for the first model your server lists. To use another, type its name exactly as your server lists it.",
   "Served with your own proxy's HTTPS, unless you upload a certificate.": "Served with your own proxy's HTTPS, unless you upload a certificate.",
   "We check for this record every 15 minutes. Added it already? Click Check now.": "We check for this record every 15 minutes. Added it already? Click Check now.",
   "Serve this status page on your own domain. Point each domain's CNAME record to {{cnameRecord}}.": "Serve this status page on your own domain. Point each domain's CNAME record to {{cnameRecord}}.",
@@ -35574,5 +35576,7 @@
   "Project Labels": "Project Labels",
   "Telemetry Attribute": "Telemetry Attribute",
   "Text Input": "Text Input",
-  "Is First Membership": "Is First Membership"
+  "Is First Membership": "Is First Membership",
+  "Incident SLA breached": "Incident SLA breached",
+  "An incident you own misses its SLA response or resolution deadline.": "An incident you own misses its SLA response or resolution deadline."
 }

@@ -72,6 +72,7 @@ import FeedMarkdown, {
   MarkdownText,
   mdText,
 } from "Common/Utils/Markdown/FeedMarkdown";
+import { writeDefaultSubscriberSms } from "Common/Utils/Sms/SubscriberSms";
 
 RunCron(
   "IncidentStateTimeline:SendNotificationToSubscribers",
@@ -651,7 +652,9 @@ RunCron(
                       ]);
                     } else {
                       // Use default hard-coded template
-                      smsMessage = `Incident ${incident.title || ""} on ${statusPageName} is ${Text.uppercaseFirstLetter(incidentStateName)}. Details: ${incidentDetailsUrl}. Unsub: ${unsubscribeUrl}`;
+                      smsMessage = writeDefaultSubscriberSms(
+                        `Incident ${incident.title || ""} on ${statusPageName} is ${Text.uppercaseFirstLetter(incidentStateName)}. Details: ${incidentDetailsUrl}. Unsub: ${unsubscribeUrl}`,
+                      );
                     }
 
                     const sms: SMS = {

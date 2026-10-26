@@ -68,7 +68,7 @@ Nie verzögert und nie mitgezählt:
 | Abrechnung und Guthaben | Rechnungen, überfälliges Abonnement, „wir konnten niemanden alarmieren, weil die Karte abgelehnt wurde“ |
 | Zustand der Instanz | Warnungen zu Postgres, Valkey und ClickHouse an Instanz-Administratoren |
 | Abonnenten von Statusseiten | Jede E-Mail, die Ihre Statusseite an Ihre eigenen Abonnenten sendet |
-| SLA-Verletzungen | Werden sofort gesendet, obwohl sie den Benachrichtigungstyp für erstellte Vorfälle wiederverwenden |
+| SLA-Verletzungen | Ein Vorfall, dessen Eigentümer Sie sind, verpasst seine SLA-Frist für Reaktion oder Lösung |
 
 Betroffen sind nur E-Mails. SMS, Anrufe, Push-Benachrichtigungen, WhatsApp, Telegram, Slack, Microsoft Teams und Webhooks werden sofort zugestellt, genau wie vorher — auch für die Benachrichtigungen, deren E-Mail zurückgehalten wurde.
 

@@ -446,6 +446,8 @@ Fyra avsnitt till, under **Fler inställningar** längst ned i **Prenumerantinst
 
 Anpassad SMTP är värt att sätta upp tidigt om du har e-postprenumeranter: e-post som kommer från din egen domän filtreras bort betydligt mer sällan och får betydligt oftare förtroende av kunden som läser den klockan 2 på natten.
 
+Standard-sms:en skrivs med de tecken som ett sms bär billigast: typografiska citattecken, tankstreck och liknande skickas som sina enkla motsvarigheter och en emoji utelämnas, så att ett enda tecken i en rubrik aldrig får ett sms att kosta två eller tre delar. Länkar skickas exakt som de är skrivna. En egen sms-mall skickas som du skrev den, med värdena den sätter in.
+
 ## Meddelanden
 
 Ett meddelande är en post på projektnivå (modellen `StatusPageAnnouncement`) som du sprider till en eller flera statussidor, eventuellt begränsad till vissa monitorer, med ett fönster under vilket det visas.

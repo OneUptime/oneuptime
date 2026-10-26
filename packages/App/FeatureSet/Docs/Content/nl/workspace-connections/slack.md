@@ -29,7 +29,7 @@ Twee koppelingen maken dit mogelijk:
 - **De koppeling van het project**, één keer gemaakt: de app van OneUptime geïnstalleerd in je Slack-workspace. Die plaatst de berichten, maakt de kanalen aan en nodigt mensen uit.
 - **De eigen koppeling van elke persoon**: hun Slack-account gekoppeld aan hun OneUptime-account. Knoppen, commando's en emoji-reacties handelen als die persoon, met diens rechten in het project.
 
-Eén Slack-workspace kan aan meer dan één project gekoppeld zijn, zoals productie en staging. Een knop of een formulier handelt in het project van het record waar het over gaat. Een commando of een bericht aan OneUptime handelt in het project van het kanaal waarin het staat, zoals het kanaal van een incident, of anders in het enige project waarin je Slack-account gekoppeld is. Als niets dat aangeeft, noemt OneUptime de projecten waarin je zit en vraagt het je het opnieuw te proberen vanuit een kanaal van het project dat je bedoelt.
+Eén Slack-workspace kan aan meer dan één project gekoppeld zijn, zoals productie en staging. Een knop of een formulier handelt in het project van het record waar het over gaat. Een commando of een bericht aan OneUptime handelt in het project van het kanaal waarin het staat, zoals het kanaal van een incident, of anders in het enige project waarin je Slack-account gekoppeld is. Als niets dat aangeeft, vraagt OneUptime welk project je bedoelt, met een knop voor elk project waarin je zit, en gaat het daar verder zodra je kiest. In een gesprek met OneUptime AI geldt je keuze voor de rest van de thread.
 
 ## Voordat je begint
 

@@ -68,7 +68,7 @@ Nunca se retrasa ni se cuenta:
 | Facturación y saldo | Facturas, suscripción vencida, «no pudimos avisar a nadie porque la tarjeta fue rechazada» |
 | Estado de la instancia | Advertencias de Postgres, Valkey y ClickHouse para los administradores de la instancia |
 | Suscriptores de páginas de estado | Cada correo que tu página de estado envía a tus propios suscriptores |
-| Incumplimientos de SLA | Se envían de inmediato aunque reutilicen el tipo de notificación de incidente creado |
+| Incumplimientos de SLA | Un incidente del que eres propietario que no cumple su plazo SLA de respuesta o de resolución |
 
 Solo afecta al correo. SMS, llamadas, notificaciones push, WhatsApp, Telegram, Slack, Microsoft Teams y webhooks se entregan de inmediato, exactamente como antes, también para las notificaciones cuyo correo se retuvo.
 

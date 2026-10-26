@@ -68,7 +68,7 @@ Aldrig forsinket og aldrig talt med:
 | Fakturering og saldo | Fakturaer, forfaldent abonnement, "vi kunne ikke kalde nogen, fordi kortet blev afvist" |
 | Instansens tilstand | Advarsler om Postgres, Valkey og ClickHouse til instansens administratorer |
 | Abonnenter på statussider | Hver e-mail, din statusside sender til dine egne abonnenter |
-| SLA-brud | Sendes med det samme, selv om de genbruger notifikationstypen for oprettede hændelser |
+| SLA-brud | En hændelse, du ejer, der overskrider sin SLA-frist for svar eller løsning |
 
 Kun e-mail er berørt. SMS, opkald, pushnotifikationer, WhatsApp, Telegram, Slack, Microsoft Teams og webhooks leveres med det samme, præcis som før — også for de notifikationer, hvis e-mail blev holdt tilbage.
 

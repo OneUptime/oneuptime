@@ -71,6 +71,7 @@ import QueryDeepPartialEntity from "Common/Types/Database/PartialEntity";
 import StatusPageEmailLogo from "Common/Server/Utils/StatusPage/StatusPageEmailLogo";
 import SubscriberMarkdownTemplateValues from "Common/Server/Utils/StatusPage/SubscriberMarkdownTemplateValues";
 import FeedMarkdown, { mdText } from "Common/Utils/Markdown/FeedMarkdown";
+import { writeDefaultSubscriberSms } from "Common/Utils/Sms/SubscriberSms";
 
 /*
  * Two jobs share this send path: one tells subscribers about a new public
@@ -764,7 +765,9 @@ const notifySubscribersOfEpisodePublicNote: (data: {
                   );
               } else {
                 // Use default hard-coded template
-                smsMessage = `Incident update: ${episode.title || "-"} on ${statusPageName}. ${copy.smsNoteSentence} Details: ${episodeDetailsUrl}. Unsub: ${unsubscribeUrl}`;
+                smsMessage = writeDefaultSubscriberSms(
+                  `Incident update: ${episode.title || "-"} on ${statusPageName}. ${copy.smsNoteSentence} Details: ${episodeDetailsUrl}. Unsub: ${unsubscribeUrl}`,
+                );
               }
 
               const sms: SMS = {

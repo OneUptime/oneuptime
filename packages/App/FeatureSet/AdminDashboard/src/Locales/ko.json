@@ -978,6 +978,8 @@
   "Never put keys here.": "여기에 키를 넣지 마세요.",
   "Your deployment's name, exactly as Foundry shows it.": "Foundry에 표시된 그대로의 배포 이름입니다.",
   "{{name}} (default)": "{{name}} (기본값)",
+  "Leave empty for the first model your server lists. To use another, type its name exactly as your server lists it.": "비워 두면 서버 목록의 첫 번째 모델을 사용합니다. 다른 모델을 쓰려면 서버 목록에 나온 이름 그대로 입력합니다.",
+  "First model the server lists": "서버 목록의 첫 번째 모델",
   "Visitors share an address": "방문자들이 하나의 주소를 공유하고 있습니다",
   "Several people signed in from one private network address in the last 30 days. OneUptime counts them as one visitor, so one person's failed sign-ins can lock the others out.": "지난 30일 동안 여러 사람이 같은 사설 네트워크 주소에서 로그인했습니다. OneUptime은 이들을 한 명의 방문자로 계산하므로, 한 사람의 로그인 실패로 다른 사람들이 잠길 수 있습니다.",
   "Usually something in front of OneUptime hands it every visitor from an address of its own:": "보통 OneUptime 앞에 있는 무언가가 모든 방문자를 자기 주소에서 넘겨줍니다:",

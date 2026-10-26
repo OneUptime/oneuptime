@@ -53,7 +53,7 @@ OneUptime Cloud는 공용 인터넷에 있는 LLM 엔드포인트에만 도달�
 | `GLOBAL_LLM_PROVIDER_TYPE` | 켜려면 필요합니다. `OpenAI`, `AzureOpenAI`, `Anthropic`, `Groq`, `Mistral`, `Ollama`, `OpenAICompatible` 중 하나 |
 | `GLOBAL_LLM_PROVIDER_API_KEY` | API 키: OpenAI, Azure OpenAI, Anthropic, Groq, Mistral에는 필요하고, Ollama나 키 없는 OpenAI 호환 서버에는 필요 없음 |
 | `GLOBAL_LLM_PROVIDER_BASE_URL` | 엔드포인트: Azure OpenAI, Ollama, OpenAI 호환 서버에 필요 |
-| `GLOBAL_LLM_PROVIDER_MODEL_NAME` | 사용할 모델: OpenAI 호환 서버에는 필요하고, 그 밖에는 권장 |
+| `GLOBAL_LLM_PROVIDER_MODEL_NAME` | 사용할 모델. 선택 사항: 설정하지 않으면 OneUptime은 공급자의 기본 모델을 사용하고, OpenAI 호환 서버에서는 서버 목록의 첫 번째 모델을 사용 |
 | `GLOBAL_LLM_PROVIDER_NAME` | 대시보드에 표시되는 선택적 표시 이름 |
 
 :::tabs
@@ -105,7 +105,7 @@ GLOBAL_LLM_PROVIDER_MODEL_NAME=gpt-5.1
 
 - **API 키**: API 키. OpenAI, Azure OpenAI, Anthropic, Groq, Mistral에는 필요하고, OpenAI 호환 서버에는 선택이며, Ollama에는 묻지 않습니다
 - **기본 URL**: 엔드포인트. Azure OpenAI, Ollama, OpenAI Compatible에는 필요하고, 그 밖에는 프록시나 게이트웨이를 거칠 때만 입력합니다
-- **모델 이름**: 사용할 모델. 예: `gpt-5.1`, `claude-sonnet-5-5`, `llama3.1`. 비워 두면 OneUptime은 공급자의 기본 모델을 사용합니다. 단, OpenAI 호환 서버에는 모델이 꼭 필요합니다
+- **모델 이름**: 사용할 모델. 예: `gpt-5.1`, `claude-sonnet-5-5`, `llama3.1`. 비워 두면 OneUptime은 공급자의 기본 모델을 사용합니다. OpenAI 호환 서버에는 기본 모델이 없으므로, OneUptime이 서버에 제공하는 모델을 물어보고 목록의 첫 번째 모델을 사용합니다
 - **이름**: 직접 이름을 입력하기 전까지는 공급자 이름입니다. 예: "Production OpenAI", "Local Ollama"
 - **추가 필드**: 위 필드 아래에 접혀 있습니다. **설명**, AI 기능이 프로젝트의 기본 공급자만 사용하기 때문에 새 공급자에서 켜져 있는 **기본값으로 설정**, 모든 요청과 함께 공급자에게 보내는 추가 매개변수를 담은 선택적 JSON 객체인 **추가 매개변수** 가 있습니다(예: `{"temperature": 0.2}`)
 
@@ -225,7 +225,7 @@ OpenAI의 `/chat/completions` API를 구현하지만 OpenAI 자체는 아닌 서
 1. OpenAI 호환 서버를 시작하고 기본 URL을 적어 둡니다(보통 `/v1` 로 끝납니다)
 2. LLM 공급자로 **OpenAI Compatible** 을 선택합니다
 3. **기본 URL** 을 입력합니다(필수). 예: `http://your-server:8000/v1`. OneUptime 서버가 도달할 수 있어야 하므로 `localhost` 는 안 됩니다. [자체 호스팅 모델의 기본 URL 선택하기](#자체-호스팅-모델의-기본-url-선택하기)를 참조하세요
-4. **모델 이름** 을 입력합니다(필수). 서버가 제공하는 모델과 일치해야 합니다
+4. **모델 이름** 을 입력하거나 비워 둡니다. 비워 두면 OneUptime이 서버에 제공하는 모델을 물어보고 목록의 첫 번째 모델을 사용합니다(vLLM에서는 서버가 제공하는 모델). 입력하는 이름은 서버가 제공하는 모델과 일치해야 합니다
 5. **API 키** 는 서버가 요구할 때만 입력하고, 키 없는 서버에서는 비워 둡니다
 
 ```text title="A keyless vLLM"
@@ -258,7 +258,7 @@ Helm 차트로 OneUptime을 자체 호스팅한다면, OpenAI 호환 추론 서�
 
 1. LLM 공급자로 **OpenAI Compatible** 을 선택합니다(vLLM은 OpenAI API를 사용합니다)
 2. 클러스터 내부 기본 URL을 입력합니다: `http://<release>-vllm.<namespace>.svc.cluster.local:8000/v1`(`global.clusterDomain` 을 바꿨다면 `cluster.local` 을 바꾸세요)
-3. 모델 이름을 입력합니다: Hugging Face 모델 ID 전체(또는 설정했다면 `vllm.servedModelName`)
+3. 모델 이름을 입력합니다: Hugging Face 모델 ID 전체(또는 설정했다면 `vllm.servedModelName`). 비워 두면 vLLM이 제공하는 모델을 사용합니다
 4. API 키는 `vllm.apiKey` 를 설정한 경우에만 입력하고, 키 없는 vLLM에서는 비워 둡니다
 
 ```text title="The in-cluster vLLM"
@@ -286,7 +286,7 @@ GPU 스케줄링, 접근이 제한된 모델, 튜닝 옵션은 [Helm 차트의 v
 - **OpenAI 또는 Anthropic**: API 키가 유효하고 크레딧이 남아 있는지 확인하세요
 - **Azure OpenAI / Microsoft Foundry**: 오류는 바꿔야 할 것부터 알려 줍니다. [Microsoft Foundry와 Azure OpenAI](/docs/ai/microsoft-foundry)에서 Azure가 응답하는 각 오류를 설명합니다
 - **Ollama**: Ollama 서버가 실행 중이고, OneUptime 서버가 도달할 수 있는 주소에서 수신하며(네이티브 설치에서는 `OLLAMA_HOST=0.0.0.0:11434`), 기본 URL이 그 주소를 가리키는지 확인하세요
-- **OpenAI Compatible**: 기본 URL이 `/v1` 로 끝나는지(또는 서버에 맞는지), 모델 이름이 서버가 제공하는 모델과 일치하는지, 서버가 요구할 때만 API 키를 설정했는지 확인하세요
+- **OpenAI Compatible**: 기본 URL이 `/v1` 로 끝나는지(또는 서버에 맞는지), 모델 이름을 입력했다면 서버가 제공하는 모델과 일치하는지, 서버가 요구할 때만 API 키를 설정했는지 확인하세요. 모델 이름이 비어 있는데 서버의 `/models` 엔드포인트에 모델이 하나도 없다면 모델 이름을 입력하세요
 - **"…points to an address OneUptime is not allowed to connect to"**: 기본 URL이 거부되는 주소로 확인됩니다. `localhost` 나 다른 루프백 주소, 또는 OneUptime Cloud에서는 사설 네트워크 주소입니다. (OneUptime Cloud는 거부된 호스트 이름을 대신 "…could not be reached"로 보고합니다.) [자체 호스팅 모델의 기본 URL 선택하기](#자체-호스팅-모델의-기본-url-선택하기)를 참조하세요
 - **방화벽**: 네트워크가 공급자 API로 나가는 연결을 허용하는지 확인하세요
 :::

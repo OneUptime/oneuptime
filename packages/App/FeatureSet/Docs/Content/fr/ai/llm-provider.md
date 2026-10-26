@@ -53,7 +53,7 @@ Sur une instance auto-hébergée, le moyen le plus rapide d'activer l'IA pour **
 | `GLOBAL_LLM_PROVIDER_TYPE` | Requise pour l'activer. L'une de `OpenAI`, `AzureOpenAI`, `Anthropic`, `Groq`, `Mistral`, `Ollama`, `OpenAICompatible` |
 | `GLOBAL_LLM_PROVIDER_API_KEY` | La clé API : requise pour OpenAI, Azure OpenAI, Anthropic, Groq et Mistral ; inutile pour Ollama ou pour un serveur compatible OpenAI sans clé |
 | `GLOBAL_LLM_PROVIDER_BASE_URL` | Le point de terminaison : requis pour Azure OpenAI, Ollama et les serveurs compatibles OpenAI |
-| `GLOBAL_LLM_PROVIDER_MODEL_NAME` | Le modèle à utiliser : requis pour les serveurs compatibles OpenAI, recommandé pour les autres |
+| `GLOBAL_LLM_PROVIDER_MODEL_NAME` | Le modèle à utiliser. Facultatif : s'il n'est pas défini, OneUptime utilise le modèle par défaut du fournisseur et, sur un serveur compatible OpenAI, le premier modèle que liste le serveur |
 | `GLOBAL_LLM_PROVIDER_NAME` | Un nom convivial facultatif, affiché dans le tableau de bord |
 
 :::tabs
@@ -105,7 +105,7 @@ Dans **Connexion**, le formulaire ne demande que ce que ce fournisseur utilise, 
 
 - **Clé API** : votre clé API, requise pour OpenAI, Azure OpenAI, Anthropic, Groq et Mistral et facultative pour un serveur compatible OpenAI ; elle n'est pas demandée pour Ollama
 - **URL de base** : le point de terminaison, requis pour Azure OpenAI, Ollama et OpenAI Compatible ; pour les autres, seulement pour passer par un proxy ou une passerelle
-- **Nom du modèle** : le modèle à utiliser, comme `gpt-5.1`, `claude-sonnet-5-5` ou `llama3.1`. Laissé vide, OneUptime utilise le modèle par défaut du fournisseur, sauf sur un serveur compatible OpenAI, qui en exige un
+- **Nom du modèle** : le modèle à utiliser, comme `gpt-5.1`, `claude-sonnet-5-5` ou `llama3.1`. Laissé vide, OneUptime utilise le modèle par défaut du fournisseur ; un serveur compatible OpenAI n'en a pas, alors OneUptime lui demande quels modèles il sert et utilise le premier qu'il liste
 - **Nom** : le nom du fournisseur, jusqu'à ce que vous saisissiez le vôtre, comme "Production OpenAI" ou "Local Ollama"
 - **Plus de champs**, replié sous les champs ci-dessus : une **Description**, **Définir par défaut**, activé pour un nouveau fournisseur parce que les fonctionnalités d'IA n'utilisent que le fournisseur par défaut du projet, et **Paramètres supplémentaires**, un objet JSON facultatif de paramètres en plus envoyés au fournisseur avec chaque requête (par exemple `{"temperature": 0.2}`)
 
@@ -225,7 +225,7 @@ Utilisez le fournisseur **OpenAI Compatible** pour tout serveur qui implémente 
 1. Démarrez votre serveur compatible OpenAI et notez son URL de base (elle se termine généralement par `/v1`)
 2. Sélectionnez **OpenAI Compatible** comme fournisseur LLM
 3. Saisissez l'**URL de base** (requise), par ex. `http://your-server:8000/v1`. Le serveur OneUptime doit la joindre, donc pas `localhost` : voir [Choisir une URL de base pour un modèle auto-hébergé](#choisir-une-url-de-base-pour-un-modèle-auto-hébergé)
-4. Saisissez le **Nom du modèle** (requis) : il doit correspondre à un modèle que votre serveur sert
+4. Saisissez le **Nom du modèle**, ou laissez-le vide : OneUptime demande alors à votre serveur quels modèles il sert et utilise le premier qu'il liste, c'est-à-dire, sur vLLM, le modèle qu'il sert. Un nom saisi doit correspondre à un modèle que votre serveur sert
 5. Saisissez la **Clé API** seulement si votre serveur en demande une ; laissez-la vide pour un serveur sans clé
 
 ```text title="A keyless vLLM"
@@ -258,7 +258,7 @@ Si vous avez désactivé l'enregistrement automatique (`vllm.globalProvider.enab
 
 1. Sélectionnez **OpenAI Compatible** comme fournisseur LLM (vLLM parle l'API OpenAI)
 2. Saisissez l'URL de base interne au cluster : `http://<release>-vllm.<namespace>.svc.cluster.local:8000/v1` (remplacez `cluster.local` si vous avez changé `global.clusterDomain`)
-3. Saisissez le nom du modèle : l'identifiant complet du modèle Hugging Face (ou `vllm.servedModelName` si vous en avez défini un)
+3. Saisissez le nom du modèle : l'identifiant complet du modèle Hugging Face (ou `vllm.servedModelName` si vous en avez défini un), ou laissez-le vide pour utiliser le modèle que sert vLLM
 4. Saisissez la clé API seulement si vous avez défini `vllm.apiKey` ; laissez-la vide pour un vLLM sans clé
 
 ```text title="The in-cluster vLLM"
@@ -286,7 +286,7 @@ Voir le [guide vLLM du chart Helm](https://github.com/OneUptime/oneuptime/blob/m
 - **OpenAI ou Anthropic** : vérifiez que votre clé API est valide et dispose de crédits
 - **Azure OpenAI / Microsoft Foundry** : l'erreur commence par ce qu'il faut changer. [Microsoft Foundry et Azure OpenAI](/docs/ai/microsoft-foundry) explique chaque erreur que renvoie Azure
 - **Ollama** : vérifiez que le serveur Ollama tourne, écoute sur une adresse que le serveur OneUptime peut joindre (`OLLAMA_HOST=0.0.0.0:11434` pour une installation native) et que l'URL de base pointe vers cette adresse
-- **OpenAI Compatible** : vérifiez que l'URL de base se termine par `/v1` (ou correspond à votre serveur), que le nom du modèle correspond à un modèle que votre serveur sert, et que vous n'avez défini une clé API que si votre serveur en demande une
+- **OpenAI Compatible** : vérifiez que l'URL de base se termine par `/v1` (ou correspond à votre serveur), que le nom du modèle, si vous en avez saisi un, correspond à un modèle que votre serveur sert, et que vous n'avez défini une clé API que si votre serveur en demande une. Si le nom du modèle est vide et que le serveur ne liste aucun modèle sur son point de terminaison `/models`, saisissez-en un
 - **"…points to an address OneUptime is not allowed to connect to"** : l'URL de base se résout en une adresse refusée : `localhost` ou une autre adresse de bouclage, ou, sur OneUptime Cloud, une adresse de réseau privé. (OneUptime Cloud signale plutôt un nom d'hôte refusé comme "…could not be reached".) Voir [Choisir une URL de base pour un modèle auto-hébergé](#choisir-une-url-de-base-pour-un-modèle-auto-hébergé)
 - **Un pare-feu** : vérifiez que votre réseau autorise les connexions sortantes vers l'API du fournisseur
 :::

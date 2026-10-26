@@ -365,20 +365,34 @@ const dataScenario = DATA_SCENARIOS.includes(params.get("data"))
  * JSON, which every page the suite opens would parse if it were bundled
  * into the entry.
  */
-// A Map, so ?lang= picks one of these loaders and nothing an object inherits.
-const LOCALE_LOADERS = new Map(
-  Object.entries({
-    de: () => import("../../../App/FeatureSet/Dashboard/src/Locales/de.json"),
-    es: () => import("../../../App/FeatureSet/Dashboard/src/Locales/es.json"),
-    fa: () => import("../../../App/FeatureSet/Dashboard/src/Locales/fa.json"),
-    fr: () => import("../../../App/FeatureSet/Dashboard/src/Locales/fr.json"),
-    it: () => import("../../../App/FeatureSet/Dashboard/src/Locales/it.json"),
-    ja: () => import("../../../App/FeatureSet/Dashboard/src/Locales/ja.json"),
-    nl: () => import("../../../App/FeatureSet/Dashboard/src/Locales/nl.json"),
-    pt: () => import("../../../App/FeatureSet/Dashboard/src/Locales/pt.json"),
-  }),
-);
-const language = LOCALE_LOADERS.has(params.get("lang"))
+/*
+ * One static import per language, so the ?lang= value only ever chooses
+ * among these - it never names the function that runs.
+ */
+function loadLocale(language) {
+  switch (language) {
+    case "de":
+      return import("../../../App/FeatureSet/Dashboard/src/Locales/de.json");
+    case "es":
+      return import("../../../App/FeatureSet/Dashboard/src/Locales/es.json");
+    case "fa":
+      return import("../../../App/FeatureSet/Dashboard/src/Locales/fa.json");
+    case "fr":
+      return import("../../../App/FeatureSet/Dashboard/src/Locales/fr.json");
+    case "it":
+      return import("../../../App/FeatureSet/Dashboard/src/Locales/it.json");
+    case "ja":
+      return import("../../../App/FeatureSet/Dashboard/src/Locales/ja.json");
+    case "nl":
+      return import("../../../App/FeatureSet/Dashboard/src/Locales/nl.json");
+    case "pt":
+      return import("../../../App/FeatureSet/Dashboard/src/Locales/pt.json");
+    default:
+      return null;
+  }
+}
+const LANGUAGES = ["de", "es", "fa", "fr", "it", "ja", "nl", "pt"];
+const language = LANGUAGES.includes(params.get("lang"))
   ? params.get("lang")
   : "en";
 /*
@@ -3438,7 +3452,7 @@ const resources = { en: { translation: {} } };
 
 if (language !== "en") {
   resources[language] = {
-    translation: (await LOCALE_LOADERS.get(language)()).default,
+    translation: (await loadLocale(language)).default,
   };
 }
 

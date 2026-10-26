@@ -29,7 +29,7 @@ Two connections make this work:
 - **The project's connection**, made once: OneUptime's app installed in your Slack workspace. It posts the messages, creates the channels and invites people.
 - **Each person's own connection**: their Slack account linked to their OneUptime account. Buttons, commands and emoji reactions act as that person, with their permissions in the project.
 
-One Slack workspace can be connected to more than one project, such as production and staging. A button or a form acts in the project of the record it is about. A command or a message to OneUptime acts in the project of the channel it is in, such as an incident's channel, or else in the one project your Slack account is connected in. When nothing tells which, OneUptime names the projects you're in and asks you to try again from a channel of the one you mean.
+One Slack workspace can be connected to more than one project, such as production and staging. A button or a form acts in the project of the record it is about. A command or a message to OneUptime acts in the project of the channel it is in, such as an incident's channel, or else in the one project your Slack account is connected in. When nothing tells which, OneUptime asks which project you mean, with a button for each one you're in, and goes ahead there once you choose. In a conversation with OneUptime AI, your choice holds for the rest of the thread.
 
 ## Before you begin
 

@@ -116,6 +116,39 @@ async function checkMinimumSecurityCasePriority(data: {
   }
 }
 
+/*
+ * The channels an SLA breach (SEND_INCIDENT_SLA_BREACHED_OWNER_NOTIFICATION)
+ * starts on for a person who has no setting for it yet: email, as every
+ * member starts, and every other channel they have on for "Incident
+ * created" - the setting an SLA breach was sent through until it had one of
+ * its own, so nobody stops hearing of breaches where they heard of them.
+ * Email even when "Incident created" is off: switching that off was never
+ * meant to silence SLA breaches, which is why they are apart now
+ * (addIncidentSlaBreachedNotificationSettings).
+ */
+export type NotificationSettingChannel =
+  | "alertByEmail"
+  | "alertBySMS"
+  | "alertByCall"
+  | "alertByPush"
+  | "alertByWhatsApp"
+  | "alertByTelegram"
+  | "alertBySlack"
+  | "alertByMicrosoftTeams"
+  | "alertByWebhook";
+
+export const SLA_BREACH_CHANNELS: ReadonlyArray<NotificationSettingChannel> = [
+  "alertByEmail",
+  "alertBySMS",
+  "alertByCall",
+  "alertByPush",
+  "alertByWhatsApp",
+  "alertByTelegram",
+  "alertBySlack",
+  "alertByMicrosoftTeams",
+  "alertByWebhook",
+];
+
 export class Service extends DatabaseService<UserNotificationSetting> {
   public constructor() {
     super(UserNotificationSetting);
@@ -140,12 +173,11 @@ export class Service extends DatabaseService<UserNotificationSetting> {
     telegramMessage?: TelegramMessagePayload | undefined;
     /*
      * Bypasses burst coalescing for this send, before any rollup bookkeeping
-     * runs. Some producers reuse another family's event type: the SLA-breach
-     * job at App/FeatureSet/Workers/Jobs/IncidentSla/CheckSlaBreaches.ts sends
-     * under EmailTemplateType.IncidentOwnerResourceCreated at :265 and reuses
-     * SEND_INCIDENT_CREATED_OWNER_NOTIFICATION at :286, so the event type
-     * alone cannot express that this particular message is urgent. Only a
-     * caller knows that, so only a caller can say so.
+     * runs: for a message that is urgent although its event type can be
+     * rolled up - a critical security case's (SecurityCaseNotifications), for
+     * one. Only a caller knows that, so only a caller can say so. An event
+     * that is never urgent enough to wait has no need of it: it is one of
+     * NEVER_ROLLED_UP_EVENT_TYPES, as an SLA breach is.
      */
     forceImmediate?: boolean | undefined;
     incidentId?: ObjectID | undefined;
@@ -1012,6 +1044,93 @@ export class Service extends DatabaseService<UserNotificationSetting> {
       projectId,
       NotificationSettingEventType.SEND_INCIDENT_REMINDER_OWNER_NOTIFICATION,
     );
+
+    /*
+     * By email, as a new member starts "Incident created" too: what
+     * addIncidentSlaBreachedNotificationSettings would give them.
+     */
+    await this.addNotificationSettingIfNotExists(
+      userId,
+      projectId,
+      NotificationSettingEventType.SEND_INCIDENT_SLA_BREACHED_OWNER_NOTIFICATION,
+    );
+  }
+
+  /*
+   * Gives a person their SLA breach setting when they have none (see
+   * SLA_BREACH_CHANNELS for what it starts with); one they have is never
+   * touched. Idempotent. A new member gets it by email with the other
+   * incident events (addIncidentNotificationSettings); every existing
+   * member gets it from the AddIncidentSlaBreachedNotificationSettingsForUsers
+   * data migration, and CheckSlaBreaches makes sure of it before it sends -
+   * sendUserNotification sends nothing for an event a person has no setting
+   * for.
+   */
+  @CaptureSpan()
+  public async addIncidentSlaBreachedNotificationSettings(
+    userId: ObjectID,
+    projectId: ObjectID,
+  ): Promise<void> {
+    const existing: PositiveNumber = await this.countBy({
+      query: {
+        userId,
+        projectId,
+        eventType:
+          NotificationSettingEventType.SEND_INCIDENT_SLA_BREACHED_OWNER_NOTIFICATION,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (existing.toNumber() > 0) {
+      return;
+    }
+
+    const incidentCreated: UserNotificationSetting | null =
+      await this.findOneBy({
+        query: {
+          userId,
+          projectId,
+          eventType:
+            NotificationSettingEventType.SEND_INCIDENT_CREATED_OWNER_NOTIFICATION,
+        },
+        select: {
+          alertByEmail: true,
+          alertBySMS: true,
+          alertByCall: true,
+          alertByPush: true,
+          alertByWhatsApp: true,
+          alertByTelegram: true,
+          alertBySlack: true,
+          alertByMicrosoftTeams: true,
+          alertByWebhook: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    const item: UserNotificationSetting = new UserNotificationSetting();
+    item.userId = userId;
+    item.projectId = projectId;
+    item.eventType =
+      NotificationSettingEventType.SEND_INCIDENT_SLA_BREACHED_OWNER_NOTIFICATION;
+
+    for (const channel of SLA_BREACH_CHANNELS) {
+      if (incidentCreated?.[channel] === true) {
+        item[channel] = true;
+      }
+    }
+
+    item.alertByEmail = true;
+
+    await this.create({
+      data: item,
+      props: {
+        isRoot: true,
+      },
+    });
   }
 
   private async addMonitorNotificationSettings(

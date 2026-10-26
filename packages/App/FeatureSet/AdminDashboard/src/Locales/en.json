@@ -978,6 +978,8 @@
   "Never put keys here.": "Never put keys here.",
   "Your deployment's name, exactly as Foundry shows it.": "Your deployment's name, exactly as Foundry shows it.",
   "{{name}} (default)": "{{name}} (default)",
+  "Leave empty for the first model your server lists. To use another, type its name exactly as your server lists it.": "Leave empty for the first model your server lists. To use another, type its name exactly as your server lists it.",
+  "First model the server lists": "First model the server lists",
   "Visitors share an address": "Visitors share an address",
   "Several people signed in from one private network address in the last 30 days. OneUptime counts them as one visitor, so one person's failed sign-ins can lock the others out.": "Several people signed in from one private network address in the last 30 days. OneUptime counts them as one visitor, so one person's failed sign-ins can lock the others out.",
   "Usually something in front of OneUptime hands it every visitor from an address of its own:": "Usually something in front of OneUptime hands it every visitor from an address of its own:",

@@ -154,6 +154,10 @@ test.describe("Project Settings > AI > LLM Providers: adding a provider", () => 
     await expect(
       page.getByText("claude-sonnet-5-5", { exact: true }).first(),
     ).toBeVisible();
+    // An OpenAI-compatible server has no default: it says what happens.
+    await expect(
+      page.getByText("First model the server lists", { exact: true }),
+    ).toBeVisible();
     await shoot(page, "form-list-page");
   });
 
@@ -186,6 +190,77 @@ test.describe("Project Settings > AI > LLM Providers: adding a provider", () => 
     // Nothing else is asked before a provider is picked.
     await expect(nameInput(page)).toHaveCount(0);
     await shoot(page, "form-provider-step");
+  });
+
+  /*
+   * "The UI looks very ugly." - two cards to a row in the dialog's column
+   * squeezed every line to a few words, Azure's long name left the card
+   * beside it half empty, and the seventh card stood alone. One panel of
+   * ruled rows now: each as wide as the panel, one under the other, the
+   * whole step in sight without scrolling.
+   */
+  test("the providers are one panel of rows, each as wide as the panel, all in sight", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openCreate(page);
+
+    const panel: Locator = card(page, "OpenAI").locator("..");
+    const panelBox: { x: number; width: number } | null =
+      await panel.boundingBox();
+    const boxes: Array<{
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+    }> = [];
+
+    for (const type of CARDS_IN_ORDER) {
+      // Every row is a child of the one panel.
+      await expect(card(page, type).locator("..")).toHaveClass(/divide-y/);
+
+      const box: {
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+      } | null = await card(page, type).boundingBox();
+
+      boxes.push(box!);
+    }
+
+    for (const [index, box] of boxes.entries()) {
+      // As wide as the panel (its 1px border aside), one under the other.
+      expect(Math.abs(box.x - panelBox!.x)).toBeLessThan(2);
+      expect(Math.abs(box.width - panelBox!.width)).toBeLessThan(3);
+
+      if (index > 0) {
+        expect(box.y).toBeGreaterThan(boxes[index - 1]!.y);
+      }
+    }
+
+    // The last row is in sight with the dialog's buttons: no scrolling.
+    await expect(card(page, "OpenAICompatible")).toBeInViewport({ ratio: 1 });
+    await expect(next(page)).toBeInViewport();
+
+    // A pick fills its radio and tints its row; the others stay plain.
+    await card(page, "OpenAICompatible").click();
+    await expect(card(page, "OpenAICompatible")).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+    await expect(
+      dialog(page)
+        .getByTestId("card-select-option-OpenAICompatible-radio")
+        .locator("span"),
+    ).toHaveCount(1);
+    await expect(
+      dialog(page)
+        .getByTestId("card-select-option-OpenAI-radio")
+        .locator("span"),
+    ).toHaveCount(0);
+    await shoot(page, "form-provider-step-picked");
   });
 
   test("Ollama: no API key, an address it can reach, and the model a blank name gets", async ({
@@ -277,7 +352,7 @@ test.describe("Project Settings > AI > LLM Providers: adding a provider", () => 
     expect(saved[0]!.modelName || "").toBe("");
   });
 
-  test("an OpenAI-compatible server is not saved without its address and model", async ({
+  test("an OpenAI-compatible server is not saved without its address", async ({
     page,
   }: {
     page: Page;
@@ -287,13 +362,53 @@ test.describe("Project Settings > AI > LLM Providers: adding a provider", () => 
     await create(page).click();
 
     await expect(dialog(page)).toContainText("Base URL is required.");
-    await expect(dialog(page)).toContainText("Model Name is required.");
+    // Its model is left to the server when blank: never required.
+    await expect(dialog(page)).not.toContainText("Model Name is required.");
     // Its key is optional, and said so.
     await expect(hint(page, "api-key")).toHaveText(
       "Only if your server asks for one.",
     );
     expect(await saves(page)).toEqual([]);
     await shoot(page, "form-connection-compatible-errors");
+  });
+
+  test("an OpenAI-compatible server is saved with only its address: a blank Model Name is the first model it lists", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openCreate(page);
+    await pick(page, "OpenAICompatible");
+
+    // Model Name says it is optional, and what a blank one gets.
+    await expect(
+      dialog(page)
+        .locator("label")
+        .filter({ hasText: "Model Name" })
+        .filter({ hasText: "Optional" }),
+    ).toHaveCount(1);
+    await expect(hint(page, "model-name")).toHaveText(
+      "Leave empty for the first model your server lists. To use another, type its name exactly as your server lists it.",
+    );
+
+    await dialog(page)
+      .getByTestId("llm-provider-base-url")
+      .fill("http://vllm:8000/v1");
+    await shoot(page, "form-connection-compatible-blank-model");
+    await create(page).click();
+    await expect(dialog(page)).toHaveCount(0);
+
+    const saved: Array<SavedProvider> = await saves(page);
+
+    expect(saved).toHaveLength(1);
+    expect(saved[0]).toMatchObject({
+      name: "OpenAI-compatible",
+      llmType: "OpenAICompatible",
+      baseUrl: "http://vllm:8000/v1",
+      isDefault: true,
+    });
+    expect(saved[0]!.modelName || "").toBe("");
+    expect(saved[0]!.apiKey || "").toBe("");
   });
 
   test("the description, the default switch and the parameters wait under More fields", async ({
@@ -672,6 +787,41 @@ test.describe("Admin Dashboard > Settings > Global LLM Providers: adding one", (
 
     await expect(page.getByText("llama3.1 (default)")).toBeVisible();
     await expect(page.getByText("claude-sonnet-5-5")).toBeVisible();
+    // The in-cluster vLLM, its model left to the server.
+    await expect(
+      page.getByText("First model the server lists", { exact: true }),
+    ).toBeVisible();
     await shoot(page, "admin-list-default-model");
+  });
+
+  test("an OpenAI-compatible global provider is saved with only its address", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "page=admin");
+    await page
+      .getByRole("button", { name: /Create/ })
+      .first()
+      .click();
+    await expect(card(page, "OpenAICompatible")).toBeVisible();
+    await pick(page, "OpenAICompatible");
+    await expect(hint(page, "model-name")).toHaveText(
+      "Leave empty for the first model your server lists. To use another, type its name exactly as your server lists it.",
+    );
+    await dialog(page)
+      .getByTestId("llm-provider-base-url")
+      .fill("http://oneuptime-vllm.default.svc.cluster.local:8000/v1");
+    await create(page).click();
+    await expect(dialog(page)).toHaveCount(0);
+
+    const saved: SavedProvider = (await saves(page))[0]!;
+
+    expect(saved).toMatchObject({
+      llmType: "OpenAICompatible",
+      baseUrl: "http://oneuptime-vllm.default.svc.cluster.local:8000/v1",
+      isGlobalLlm: true,
+    });
+    expect(saved.modelName || "").toBe("");
   });
 });

@@ -2,11 +2,17 @@ import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
 import { Linking, Platform } from "react-native";
 import {
+  ANDROID_CRITICAL_ALERTS_OFF_IN_SETTINGS,
   CriticalAlertAvailability,
+  CriticalAlertSettingsPlace,
   CriticalAlertStatus,
+  IOS_CRITICAL_ALERTS_NOT_OFFERED,
+  IOS_CRITICAL_ALERTS_OFF_IN_SETTINGS,
+  IOS_NOTIFICATIONS_OFF_IN_SETTINGS,
   getCriticalAlertStatus,
   isCriticalChannelBypassingDnd,
   openAndroidDoNotDisturbAccessSettings,
+  openCriticalAlertSettings,
   requestCriticalAlertPermission,
 } from "./criticalAlerts";
 import { CRITICAL_CHANNEL } from "./channels";
@@ -961,5 +967,200 @@ describe("openAndroidDoNotDisturbAccessSettings", () => {
     await openAndroidDoNotDisturbAccessSettings();
 
     expect(intentSpy).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * What the Settings screen says when the responder has Critical On-Call
+ * Alerts on and the phone's own settings turn them off since: the switch
+ * reads off, the server sends pages as ordinary notifications, and the
+ * responder is told why and where to turn them back on (#4908's follow-up:
+ * the switch used to read off with no reason).
+ */
+describe("why the phone's settings turn critical alerts off", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("iOS with Critical Alerts switched off: sent to this app's page in iOS Settings", async () => {
+    setPlatform("ios");
+    setIsDevice(true);
+    jest
+      .spyOn(Notifications, "getPermissionsAsync")
+      .mockResolvedValue(iosPermissions("granted", false));
+
+    const status: CriticalAlertStatus = await getCriticalAlertStatus();
+
+    expect(status.offInPhoneSettings).toEqual(
+      IOS_CRITICAL_ALERTS_OFF_IN_SETTINGS,
+    );
+    expect(status.offInPhoneSettings).toEqual({
+      title: "Off in iOS Settings.",
+      message:
+        "On-call pages will not ring through silent mode or Do Not Disturb. Turn on Critical Alerts under Notifications.",
+      place: CriticalAlertSettingsPlace.IosAppSettings,
+      tone: "warning",
+    });
+  });
+
+  test("iOS with notifications off: says pages do not reach the phone at all", async () => {
+    setPlatform("ios");
+    setIsDevice(true);
+    jest
+      .spyOn(Notifications, "getPermissionsAsync")
+      .mockResolvedValue(iosPermissions("denied", false));
+
+    const status: CriticalAlertStatus = await getCriticalAlertStatus();
+
+    expect(status.offInPhoneSettings).toEqual(
+      IOS_NOTIFICATIONS_OFF_IN_SETTINGS,
+    );
+    expect(status.offInPhoneSettings?.title).toBe(
+      "Notifications are off in iOS Settings.",
+    );
+    expect(status.offInPhoneSettings?.message).toBe(
+      "On-call pages do not reach this phone at all. Turn on Allow Notifications.",
+    );
+    expect(status.offInPhoneSettings?.place).toBe(
+      CriticalAlertSettingsPlace.IosAppSettings,
+    );
+    // Nothing reaches the phone at all: said in red, not amber.
+    expect(status.offInPhoneSettings?.tone).toBe("danger");
+  });
+
+  test("iOS that does not offer critical alerts to this version: the App Store, which the app does not open", async () => {
+    setPlatform("ios");
+    setIsDevice(true);
+    jest
+      .spyOn(Notifications, "getPermissionsAsync")
+      .mockResolvedValue(iosPermissions("granted", null));
+
+    const status: CriticalAlertStatus = await getCriticalAlertStatus();
+
+    expect(status.offInPhoneSettings).toEqual(IOS_CRITICAL_ALERTS_NOT_OFFERED);
+    expect(status.offInPhoneSettings?.title).toBe(
+      "This version of the app cannot receive critical alerts.",
+    );
+    expect(status.offInPhoneSettings?.message).toContain(
+      "Update OneUptime On-Call from the App Store.",
+    );
+    expect(status.offInPhoneSettings?.place).toBe(
+      CriticalAlertSettingsPlace.AppStore,
+    );
+    expect(status.offInPhoneSettings?.tone).toBe("warning");
+  });
+
+  test("Android whose alarm cannot ring through Do Not Disturb: sent to Do Not Disturb access", async () => {
+    setPlatform("android");
+    setIsDevice(true);
+    jest
+      .spyOn(Notifications, "setNotificationChannelAsync")
+      .mockResolvedValue({ bypassDnd: false } as never);
+
+    const status: CriticalAlertStatus = await getCriticalAlertStatus();
+
+    expect(status.offInPhoneSettings).toEqual(
+      ANDROID_CRITICAL_ALERTS_OFF_IN_SETTINGS,
+    );
+    expect(status.offInPhoneSettings).toEqual({
+      title: "Off in Android settings.",
+      message:
+        "On-call pages will not ring through Do Not Disturb. Allow OneUptime On-Call in Do Not Disturb access.",
+      place: CriticalAlertSettingsPlace.AndroidDoNotDisturbAccess,
+      tone: "warning",
+    });
+  });
+
+  /*
+   * A footnote under a switch on a phone: a short bold lead, then a line or
+   * two - never the paragraph that once named a whole settings path the
+   * button beside it already opens.
+   */
+  test("each explanation is short: a lead of a few words, two sentences after it", () => {
+    for (const off of [
+      IOS_CRITICAL_ALERTS_OFF_IN_SETTINGS,
+      IOS_NOTIFICATIONS_OFF_IN_SETTINGS,
+      IOS_CRITICAL_ALERTS_NOT_OFFERED,
+      ANDROID_CRITICAL_ALERTS_OFF_IN_SETTINGS,
+    ]) {
+      expect(off.title.endsWith(".")).toBe(true);
+      expect(off.title.length).toBeLessThanOrEqual(60);
+      expect(off.message.length).toBeLessThanOrEqual(120);
+      expect(off.message.split(". ").length).toBe(2);
+      // The button opens the place: no "Settings > A > B" path to follow.
+      expect(off.message).not.toContain(" > ");
+      expect(`${off.title} ${off.message}`).not.toContain("Off:");
+    }
+  });
+
+  test("a granted phone has nothing to explain", async () => {
+    setPlatform("ios");
+    setIsDevice(true);
+    jest
+      .spyOn(Notifications, "getPermissionsAsync")
+      .mockResolvedValue(iosPermissions("granted", true));
+
+    expect((await getCriticalAlertStatus()).offInPhoneSettings).toBeUndefined();
+  });
+
+  test("a read that failed explains nothing: the phone was never asked", async () => {
+    setPlatform("ios");
+    setIsDevice(true);
+    jest
+      .spyOn(Notifications, "getPermissionsAsync")
+      .mockRejectedValue(new Error("unavailable") as never);
+
+    const status: CriticalAlertStatus = await getCriticalAlertStatus();
+
+    expect(status.isUncertain).toBe(true);
+    expect(status.offInPhoneSettings).toBeUndefined();
+  });
+});
+
+describe("openCriticalAlertSettings", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("this app's page in iOS Settings", async () => {
+    setPlatform("ios");
+    const openSettings: jest.SpyInstance = jest
+      .spyOn(Linking, "openSettings")
+      .mockResolvedValue(undefined as never);
+
+    await openCriticalAlertSettings(CriticalAlertSettingsPlace.IosAppSettings);
+
+    expect(openSettings).toHaveBeenCalledTimes(1);
+  });
+
+  test("Android's Do Not Disturb access list", async () => {
+    setPlatform("android");
+    const intent: jest.SpyInstance = jest
+      .spyOn(Linking, "sendIntent")
+      .mockResolvedValue(undefined as never);
+
+    await openCriticalAlertSettings(
+      CriticalAlertSettingsPlace.AndroidDoNotDisturbAccess,
+    );
+
+    expect(intent).toHaveBeenCalledWith(
+      "android.settings.NOTIFICATION_POLICY_ACCESS_SETTINGS",
+    );
+  });
+
+  test("never the App Store, and never throws", async () => {
+    setPlatform("ios");
+    const openSettings: jest.SpyInstance = jest
+      .spyOn(Linking, "openSettings")
+      .mockRejectedValue(new Error("no settings") as never);
+    const openUrl: jest.SpyInstance = jest.spyOn(Linking, "openURL");
+
+    await openCriticalAlertSettings(CriticalAlertSettingsPlace.AppStore);
+    await expect(
+      openCriticalAlertSettings(CriticalAlertSettingsPlace.IosAppSettings),
+    ).resolves.toBeUndefined();
+
+    expect(openUrl).not.toHaveBeenCalled();
+    expect(openSettings).toHaveBeenCalledTimes(1);
   });
 });

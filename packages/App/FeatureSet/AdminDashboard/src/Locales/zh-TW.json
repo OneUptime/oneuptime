@@ -978,6 +978,8 @@
   "Never put keys here.": "切勿在此填寫金鑰。",
   "Your deployment's name, exactly as Foundry shows it.": "你的部署名稱，須與 Foundry 中顯示的完全一致。",
   "{{name}} (default)": "{{name}}（預設）",
+  "Leave empty for the first model your server lists. To use another, type its name exactly as your server lists it.": "留空則使用你的伺服器列出的第一個模型。如需使用其他模型，請輸入與伺服器清單中完全一致的名稱。",
+  "First model the server lists": "伺服器列出的第一個模型",
   "Visitors share an address": "訪客共用一個位址",
   "Several people signed in from one private network address in the last 30 days. OneUptime counts them as one visitor, so one person's failed sign-ins can lock the others out.": "在過去 30 天內，有多人從同一個私人網路位址登入。OneUptime 會把他們算作同一個訪客，因此一個人的登入失敗可能會把其他人鎖在外面。",
   "Usually something in front of OneUptime hands it every visitor from an address of its own:": "通常是 OneUptime 前面的某個元件用它自己的位址把每個訪客轉交過來：",
