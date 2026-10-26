@@ -29,6 +29,7 @@ import { ProductBranding } from "Common/Types/Branding/ProductBranding";
 import Dictionary from "Common/Types/Dictionary";
 import {
   BRAND_VARIABLE_NAMES,
+  ONEUPTIME_LOGO_VARIABLE_NAME,
   getCurrentEmailBrandingVariables,
   getEmailBrandingVariables,
   toAbsoluteUrl,
@@ -185,6 +186,23 @@ describe("getEmailBrandingVariables", () => {
     }
 
     expect([...named].sort()).toEqual([...BRAND_VARIABLE_NAMES].sort());
+  });
+
+  /*
+   * An email a mail service would not take with its images is rendered
+   * again without this variable (MailService.sendEvenWithoutImages), so its
+   * header shows the name alone: it must be the one that carries the logo.
+   */
+  test("the logo's variable is the one OneUptime's logo is carried in", () => {
+    expect(BRAND_VARIABLE_NAMES).toContain(ONEUPTIME_LOGO_VARIABLE_NAME);
+    expect(getEmailBrandingVariables(null)[ONEUPTIME_LOGO_VARIABLE_NAME]).toBe(
+      ONEUPTIME_LOGO,
+    );
+    expect(
+      Object.keys(getEmailBrandingVariables(null)).filter((name: string) => {
+        return getEmailBrandingVariables(null)[name] === ONEUPTIME_LOGO;
+      }),
+    ).toEqual([ONEUPTIME_LOGO_VARIABLE_NAME]);
   });
 });
 

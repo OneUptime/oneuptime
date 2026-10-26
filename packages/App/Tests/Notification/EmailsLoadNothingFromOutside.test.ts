@@ -771,6 +771,7 @@ describe("OneUptime's logo goes out on every way the installation sends email", 
     ]);
   });
 
+  // In SendGrid's own word for it, content_id (issue #5308).
   test("SendGrid: an inline attachment with its Content-ID", async () => {
     jest.mocked(getEmailServerType).mockResolvedValue("Sendgrid" as never);
     jest.mocked(getSendgridConfig).mockResolvedValue({
@@ -800,7 +801,7 @@ describe("OneUptime's logo goes out on every way the installation sends email", 
         filename: LOGO_FILE_NAME,
         type: "image/png",
         disposition: "inline",
-        contentId: contentIdsIn(message.html)[0],
+        content_id: contentIdsIn(message.html)[0],
       },
     ]);
   });

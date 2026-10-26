@@ -147,14 +147,16 @@ describe("email subjects", () => {
       Path.join(PACKAGES_DIR, "App", "FeatureSet", "Notification", "Config.ts"),
       "utf8",
     );
-    const mailService: string = fs.readFileSync(
+    // The SendGrid send, which MailService hands to its provider.
+    const sendGridMailProvider: string = fs.readFileSync(
       Path.join(
         PACKAGES_DIR,
         "App",
         "FeatureSet",
         "Notification",
         "Services",
-        "MailService.ts",
+        "MailProviders",
+        "SendGridMailProvider.ts",
       ),
       "utf8",
     );
@@ -164,9 +166,9 @@ describe("email subjects", () => {
       "fromName: globalConfig.smtpFromName || ProductBrandingText.getProductName()",
     );
     expect(config).not.toContain('|| "OneUptime"');
-    expect(mailService.replace(WHITESPACE_RUN, " ")).toContain(
-      "sendgridConfig.fromName || ProductBrandingText.getProductName()",
+    expect(sendGridMailProvider.replace(WHITESPACE_RUN, " ")).toContain(
+      "config.fromName || ProductBrandingText.getProductName()",
     );
-    expect(mailService).not.toContain('fromName || "OneUptime"');
+    expect(sendGridMailProvider).not.toContain('fromName || "OneUptime"');
   });
 });
