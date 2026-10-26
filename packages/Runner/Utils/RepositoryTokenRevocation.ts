@@ -54,6 +54,8 @@ const revokeWithGitHub: RevokeTokenFunction = async (
     options: {
       timeout: REVOKE_TIMEOUT_IN_MS,
       retries: 0,
+      // The token rides in the request: never followed off GitHub's API.
+      sameServerRedirectsOnly: true,
     },
   });
 };

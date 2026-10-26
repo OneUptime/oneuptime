@@ -50,7 +50,11 @@ jest.mock("Common/Server/Utils/Logger", () => {
 interface DeleteCall {
   url: { toString: () => string };
   headers: Record<string, string>;
-  options: { timeout?: number; retries?: number };
+  options: {
+    timeout?: number;
+    retries?: number;
+    sameServerRedirectsOnly?: boolean;
+  };
 }
 
 function revoked(): HTTPResponse<JSONObject> {
@@ -113,6 +117,8 @@ describe("revokeAll", () => {
       // Quick, and once: the run's final report waits on it.
       expect(call.options.timeout).toBe(REVOKE_TIMEOUT_IN_MS);
       expect(call.options.retries).toBe(0);
+      // The token rides in the request, so a redirect off GitHub's API is never followed.
+      expect(call.options.sameServerRedirectsOnly).toBe(true);
     }
   });
 
