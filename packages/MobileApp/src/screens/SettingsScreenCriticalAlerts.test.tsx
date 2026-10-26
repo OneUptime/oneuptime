@@ -1,5 +1,4 @@
 import React from "react";
-import type { ReactTestInstance } from "react-test-renderer";
 import {
   render,
   screen,
@@ -254,6 +253,8 @@ describe("What the responder is told", () => {
  * reason anywhere. A footnote under the switch says why, what pages do
  * meanwhile, and opens the place to turn them back on.
  */
+type HostElement = ReturnType<typeof screen.getByTestId>;
+
 describe("Turned off in the phone's settings", () => {
   test("the footnote says why the switch reads off, under it", async () => {
     mockCriticalAlertsState.current = stateWith({
@@ -266,7 +267,7 @@ describe("Turned off in the phone's settings", () => {
 
     await render(<SettingsScreen />);
 
-    const footnote: ReactTestInstance = await screen.findByTestId(
+    const footnote: HostElement = await screen.findByTestId(
       "settings-critical-alerts-off-in-phone-settings",
     );
 
@@ -327,7 +328,7 @@ describe("Turned off in the phone's settings", () => {
 
     await render(<SettingsScreen />);
 
-    const footnote: ReactTestInstance = await screen.findByTestId(
+    const footnote: HostElement = await screen.findByTestId(
       "settings-critical-alerts-off-in-phone-settings",
     );
 
