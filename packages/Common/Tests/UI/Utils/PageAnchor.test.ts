@@ -593,6 +593,47 @@ describe("marking the place a link landed on", () => {
     expect(runner.getAttribute(PAGE_ANCHOR_LANDED_ATTRIBUTE)).toBe("true");
   });
 
+  /*
+   * Issue #5293: a Remediation card's "Go to Affected Resources" is a
+   * button on the same page. Clicking or pressing it focuses it, and the
+   * landing must take that focus on to the card - or Tab goes on from a
+   * button scrolled out of sight, and a screen reader hears nothing.
+   */
+  test("the control that took the person there hands its focus on to the place", () => {
+    const runner: HTMLElement = place();
+    const go: HTMLButtonElement = document.createElement("button");
+    document.body.appendChild(go);
+    go.focus();
+    expect(document.activeElement).toBe(go);
+
+    markPageAnchorLanded(runner, { takesFocusFrom: go });
+
+    expect(document.activeElement).toBe(runner);
+    expect(runner.getAttribute("tabindex")).toBe("-1");
+    expect(runner.getAttribute(PAGE_ANCHOR_FOCUSED_ATTRIBUTE)).toBe("true");
+    expect(runner.getAttribute(PAGE_ANCHOR_LANDED_ATTRIBUTE)).toBe("true");
+  });
+
+  test("naming the control that took the person there never takes focus held anywhere else", () => {
+    const runner: HTMLElement = place();
+    const go: HTMLButtonElement = document.createElement("button");
+    const field: HTMLInputElement = document.createElement("input");
+    document.body.appendChild(go);
+    document.body.appendChild(field);
+    field.focus();
+
+    markPageAnchorLanded(runner, { takesFocusFrom: go });
+
+    expect(document.activeElement).toBe(field);
+    expect(runner.hasAttribute("tabindex")).toBe(false);
+    expect(runner.hasAttribute(PAGE_ANCHOR_FOCUSED_ATTRIBUTE)).toBe(false);
+
+    // With no control named, a focused button keeps its focus too.
+    go.focus();
+    markPageAnchorLanded(runner, { takesFocusFrom: null });
+    expect(document.activeElement).toBe(go);
+  });
+
   test("a place that cannot take the focus - out of sight - keeps none of what it was given to take it", () => {
     const runner: HTMLElement = place();
     runner.focus = (): void => {

@@ -442,14 +442,20 @@ test.describe("public status page", () => {
 
     await waitForStatusPageToRender({ page, statusPageId });
 
-    const storedStatusPageIdBeforeSubscribe: string | null =
+    /*
+     * The page a tab shows is the one its address names, kept for that tab
+     * alone: never under one name in the host's localStorage, which every tab
+     * shares - a second status page opened in another tab used to become
+     * this tab's page too (#5277).
+     */
+    const sharedStatusPageIdBeforeSubscribe: string | null =
       await page.evaluate(() => {
         return window.localStorage.getItem("statusPageId");
       });
     expect(
-      storedStatusPageIdBeforeSubscribe || "",
-      "the rendered status page should persist its ID before navigation",
-    ).toContain(statusPageId);
+      sharedStatusPageIdBeforeSubscribe,
+      "the rendered status page keeps its ID to its own tab, out of shared storage",
+    ).toBeNull();
 
     const resourcesResponsePromise: Promise<Response> = page.waitForResponse(
       (response: Response) => {
@@ -510,8 +516,8 @@ test.describe("public status page", () => {
     ).toBe(dashboardUserEmailBefore);
     expect(
       browserStateAfterSubscribe.statusPageId,
-      "opening Subscribe must not clear or replace the status page ID",
-    ).toBe(storedStatusPageIdBeforeSubscribe);
+      "opening Subscribe keeps the status page's ID out of shared storage",
+    ).toBeNull();
   });
 
   /*

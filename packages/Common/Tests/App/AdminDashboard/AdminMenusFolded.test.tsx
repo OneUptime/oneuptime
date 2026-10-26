@@ -204,7 +204,7 @@ describe("Admin Settings: only Basic starts open", () => {
 
   test.each([
     [PageMap.SETTINGS_SMTP, "Notifications", "Emails"],
-    [PageMap.SETTINGS_AI_AGENTS, "AI", "Global AI Agents"],
+    [PageMap.SETTINGS_LLM_PROVIDERS, "AI", "Global LLM Providers"],
     [PageMap.SETTINGS_GLOBAL_RUNNERS, "Runbooks", "Global Runners"],
     [PageMap.SETTINGS_GLOBAL_SSO, "Authentication", "Global SSO"],
     [PageMap.SETTINGS_API_KEY, "API and Integrations", "API Key"],

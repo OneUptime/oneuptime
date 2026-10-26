@@ -204,7 +204,7 @@ Att gå vidare från **Löst** till ett senare tillstånd — **Closed** till ex
 
 ## Tillståndstidslinjen
 
-Incidentens sida **Tillståndstidslinje** i incidentens sidomeny är granskningsspåret för varje tillstånd som incidenten har varit i. Kortet på den sidan heter **Statustidslinje**, och det ritar incidentens hela förlopp som en tidslinje:
+Incidentens sida **Tillståndstidslinje** i incidentens sidomeny är granskningsspåret för varje tillstånd som incidenten har varit i. Kortet på den sidan ritar incidentens hela förlopp som en tidslinje:
 
 - **Bandet** visar varje tillstånd som ett stycke i sin färg, lika långt som incidenten var i det, så att förloppet går att läsa av med en blick. Så länge incidenten är öppen går bandet fram till **Nu**; när den är löst slutar bandet strax efter den senaste ändringen. Peka på ett stycke för att se när det började och hur länge det varade, och klicka på det för att hitta ändringen i listan. Ändringar som ligger för tätt för att skiljas åt ritas som ett randigt stycke: klicka på det, eller dra över bandet, för att zooma in, och **Återställ zoom** går tillbaka.
 - **Ovanför bandet** står varje tillstånd med den tid incidenten var i det.

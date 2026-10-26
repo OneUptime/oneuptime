@@ -7,9 +7,8 @@ import path from "path";
  * Where the code agent's file tools may read and write: inside the
  * workspace, judged by where a path really leads (every link resolved), not
  * by its text alone (CodeAgentWorkspaceGuard.resolveWorkspacePath checks the
- * text first). The file tools are the agent's whole surface on the shared
- * in-cluster Runner (it runs no shell there), so they hold this boundary
- * themselves:
+ * text first). The file tools are the agent's whole surface on a global
+ * Runner (it runs no shell there), so they hold this boundary themselves:
  *
  *   - Reads (read_file, list_directory) follow links only while they stay
  *     inside the workspace. A link that leads out of it, or to nothing, is

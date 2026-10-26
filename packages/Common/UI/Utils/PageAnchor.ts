@@ -287,6 +287,14 @@ export const PAGE_ANCHOR_LANDED_IN_MS: number = 2400;
 export interface PageAnchorLandedOptions {
   // How long it stays marked; PAGE_ANCHOR_LANDED_IN_MS when left out.
   landedInMs?: number | undefined;
+  /*
+   * The control on the same page that took the person there - a "Go to
+   * Affected Resources" button. Clicking or pressing it gave it the focus,
+   * and it hands that focus on to the place, as following a link does:
+   * otherwise Tab would go on from a button scrolled out of sight, and a
+   * screen reader would never hear where the page went.
+   */
+  takesFocusFrom?: Element | null | undefined;
 }
 
 /*
@@ -296,12 +304,13 @@ export interface PageAnchorLandedOptions {
  * cannot scroll a setting near its end to the top, and the one the link was
  * for is not the first one in sight.
  *
- * And, when nothing else holds the keyboard's focus - a page just opened -
- * gives it to the place, so Tab goes on from the setting the link was for
- * (its Edit, its switch) rather than from the top of the page, and a screen
- * reader reads where it landed. A place that cannot take focus takes it
- * for as long as it holds it (tabindex -1). Focus somewhere already - a
- * field the person is typing in - is never taken.
+ * And, when nothing else holds the keyboard's focus - a page just opened,
+ * or the control that took the person there (takesFocusFrom) - gives it to
+ * the place, so Tab goes on from the setting the link was for (its Edit,
+ * its switch) rather than from the top of the page, and a screen reader
+ * reads where it landed. A place that cannot take focus takes it for as
+ * long as it holds it (tabindex -1). Focus anywhere else - a field the
+ * person is typing in - is never taken.
  *
  * Returns what unmarks it at once: a page that goes away, or a link that
  * lands somewhere else.
@@ -324,10 +333,12 @@ export function markPageAnchorLanded(
   element.setAttribute(PAGE_ANCHOR_LANDED_ATTRIBUTE, "true");
 
   const focused: Element | null = document.activeElement;
+  const takesFocusFrom: Element | null = options?.takesFocusFrom || null;
   const isFocusFree: boolean =
     !focused ||
     focused === document.body ||
-    focused === document.documentElement;
+    focused === document.documentElement ||
+    (takesFocusFrom !== null && focused === takesFocusFrom);
 
   if (isFocusFree && typeof element.focus === "function") {
     const hadTabIndex: boolean = element.hasAttribute("tabindex");

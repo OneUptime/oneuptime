@@ -327,6 +327,12 @@ interface PageProps {
 
 interface PageCase {
   name: string;
+  /*
+   * The card's title, as the page's menu entry and trail name it: a
+   * record with states (an incident, an alert, a maintenance event, an
+   * episode) has a State Timeline, one with statuses a Status Timeline.
+   */
+  cardTitle: string;
   page: (props: PageProps) => ReactElement;
   modelType: { name: string };
   recordColumn: string;
@@ -413,6 +419,7 @@ const SCHEDULED_MAINTENANCE_STATES: Array<ProjectState> = [
 const PAGES: Array<PageCase> = [
   {
     name: "a monitor's Status Timeline",
+    cardTitle: "Status Timeline",
     page: MonitorStatusTimelinePage as unknown as PageCase["page"],
     modelType: MonitorStatusTimeline,
     recordColumn: "monitorId",
@@ -428,7 +435,8 @@ const PAGES: Array<PageCase> = [
     finalStates: undefined,
   },
   {
-    name: "an incident's Status Timeline",
+    name: "an incident's State Timeline",
+    cardTitle: "State Timeline",
     page: IncidentStateTimelinePage as unknown as PageCase["page"],
     modelType: IncidentStateTimeline,
     recordColumn: "incidentId",
@@ -448,7 +456,8 @@ const PAGES: Array<PageCase> = [
     },
   },
   {
-    name: "an alert's Status Timeline",
+    name: "an alert's State Timeline",
+    cardTitle: "State Timeline",
     page: AlertStateTimelinePage as unknown as PageCase["page"],
     modelType: AlertStateTimeline,
     recordColumn: "alertId",
@@ -468,7 +477,8 @@ const PAGES: Array<PageCase> = [
     },
   },
   {
-    name: "a scheduled maintenance event's Status Timeline",
+    name: "a scheduled maintenance event's State Timeline",
+    cardTitle: "State Timeline",
     page: ScheduledMaintenanceStateTimelinePage as unknown as PageCase["page"],
     modelType: ScheduledMaintenanceStateTimeline,
     recordColumn: "scheduledMaintenanceId",
@@ -495,7 +505,8 @@ const PAGES: Array<PageCase> = [
     },
   },
   {
-    name: "an incident episode's Status Timeline",
+    name: "an incident episode's State Timeline",
+    cardTitle: "State Timeline",
     page: IncidentEpisodeStateTimelinePage as unknown as PageCase["page"],
     modelType: IncidentEpisodeStateTimeline,
     recordColumn: "incidentEpisodeId",
@@ -516,7 +527,8 @@ const PAGES: Array<PageCase> = [
     },
   },
   {
-    name: "an alert episode's Status Timeline",
+    name: "an alert episode's State Timeline",
+    cardTitle: "State Timeline",
     page: AlertEpisodeStateTimelinePage as unknown as PageCase["page"],
     modelType: AlertEpisodeStateTimeline,
     recordColumn: "alertEpisodeId",
@@ -538,6 +550,7 @@ const PAGES: Array<PageCase> = [
   },
   {
     name: "a network site's Status Timeline",
+    cardTitle: "Status Timeline",
     page: NetworkSiteStatusTimelinePage as unknown as PageCase["page"],
     modelType: NetworkSiteStatusTimeline,
     recordColumn: "siteId",
@@ -777,7 +790,7 @@ describe.each(PAGES)("$name", (pageCase: PageCase) => {
 
     expect(screen.queryByTestId("model-status-timeline")).toBeNull();
     expect(recordedTableProps!.modelType).toBe(pageCase.modelType);
-    expect(recordedTableProps!.cardProps?.title).toBe("Status Timeline");
+    expect(recordedTableProps!.cardProps?.title).toBe(pageCase.cardTitle);
 
     const table: HTMLElement = screen.getByTestId("model-table");
 

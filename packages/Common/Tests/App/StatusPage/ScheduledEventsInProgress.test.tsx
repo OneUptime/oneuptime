@@ -23,8 +23,8 @@ import IconProp from "../../../Types/Icon/IconProp";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import { ComponentProps as EventItemComponentProps } from "../../../UI/Components/EventItem/EventItem";
-import LocalStorage from "../../../UI/Utils/LocalStorage";
 import Navigation from "../../../UI/Utils/Navigation";
+import StatusPageUtil from "../../../../App/FeatureSet/StatusPage/src/Utils/StatusPage";
 
 /*
  * THE STATUS PAGE LISTS AN EVENT BY ITS STATE'S PLACE.
@@ -158,7 +158,7 @@ describe("the scheduled events page lists each event under its state's phase", (
 
   beforeEach(() => {
     localStorage.clear();
-    LocalStorage.setItem("statusPageId", new ObjectID(STATUS_PAGE_ID));
+    StatusPageUtil.setStatusPageId(new ObjectID(STATUS_PAGE_ID));
     window.history.replaceState({}, "", "/scheduled-events");
     Navigation.navigate = (): void => {};
 

@@ -73,12 +73,11 @@ export const PROJECT_DEFAULT_CHOICE_VALUE: string = GLOBAL_RUNNER_CHOICE_VALUE;
 export const GLOBAL_RUNNER_PICK_VALUE: string = GLOBAL_RUNNER_CHOICE_ID;
 
 /*
- * What a Runner is picked for. The global choice means the same to people
- * either way - a Runner OneUptime runs for every project - but different
- * global Runners stand behind it: a step's JavaScript runs on the global
- * Runners' sandbox; a repository's AI work runs on the global Runner for
- * code (the installation's bundled Runner, OneUptime Cloud's fleet), which
- * runs no command - it does not build or test AI's change
+ * What a Runner is picked for. The global choice means the same either
+ * way - a Runner OneUptime runs for every project - and the same global
+ * Runners stand behind it, doing different work: a step's JavaScript runs in
+ * their sandbox; a repository's AI work runs on them without any command -
+ * they do not build or test AI's change
  * (Common/Types/Runner/CodeRepositoryRunner).
  */
 export enum RunnerPickerWork {
@@ -423,7 +422,7 @@ export interface RunnerPickerFacts {
    * The global Runners that run this work, with how each is doing (and
    * their ids: a step that names one picked the Global Runner, as the
    * server reads it): the ones that run runbook steps, or - for a code
-   * repository - the global Runners for code.
+   * repository - every global Runner.
    */
   globalRunners: Array<{
     id?: string | undefined;

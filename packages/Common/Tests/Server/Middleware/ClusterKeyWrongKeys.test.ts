@@ -30,11 +30,11 @@ import crypto from "crypto";
 /*
  * THE ROUTES THAT TAKE THE CLUSTER KEY LIMIT THE WRONG KEYS ONE CLIENT TRIES.
  *
- * Every route that takes OneUptime's cluster key goes through one of
- * ClusterKeyAuthorization's two checks, and both go through one place. The
- * rule, driven here through the real checks with requests as they arrive
- * through the bundled Nginx (X-Forwarded-For ending with the address it saw)
- * and a Redis that runs the counter's script as Valkey does:
+ * Every route that takes OneUptime's cluster key goes through
+ * ClusterKeyAuthorization's one check. The rule, driven here through the
+ * real check with requests as they arrive through the bundled Nginx
+ * (X-Forwarded-For ending with the address it saw) and a Redis that runs the
+ * counter's script as Valkey does:
  *
  *   - a client may present ten different wrong keys in a quarter of an hour,
  *     each answered as wrong (400); the next different wrong key is refused
@@ -102,10 +102,6 @@ jest.mock("../../../Server/Utils/Logger", () => {
 
 type ClusterKeyAuthorizationClass = typeof ClusterKeyAuthorizationType;
 
-type Check =
-  | "isAuthorizedServiceMiddleware"
-  | "isAuthorizedRunnerRegistrationMiddleware";
-
 const OPERATOR_KEY: string = OPERATOR_CLUSTER_KEYS[0]!.value!;
 
 const INVALID_KEY_MESSAGE: string = "Invalid cluster key provided";
@@ -154,7 +150,6 @@ function requestFrom(
   address: string,
   carries: {
     header?: unknown;
-    body?: unknown;
     query?: JSONObject;
     params?: JSONObject;
   },
@@ -170,14 +165,11 @@ function requestFrom(
     socket: { remoteAddress: "10.0.0.2" } as unknown as JSONObject,
     query: carries.query || {},
     params: carries.params || {},
-    body: (carries.body as JSONObject) || {},
+    body: {},
   };
 }
 
-async function send(
-  request: JSONObject,
-  check: Check = "isAuthorizedServiceMiddleware",
-): Promise<Outcome> {
+async function send(request: JSONObject): Promise<Outcome> {
   let passed: boolean = false;
   let status: number | null = null;
   let body: JSONObject | null = null;
@@ -197,7 +189,7 @@ async function send(
     },
   } as unknown as JSONObject;
 
-  await ClusterKeyAuthorization[check](
+  await ClusterKeyAuthorization.isAuthorizedServiceMiddleware(
     request as never,
     res as never,
     (): void => {
@@ -214,12 +206,8 @@ async function send(
 }
 
 // A key in the clusterkey header, from `address`.
-async function present(
-  address: string,
-  key: unknown,
-  check: Check = "isAuthorizedServiceMiddleware",
-): Promise<Outcome> {
-  return await send(requestFrom(address, { header: key }), check);
+async function present(address: string, key: unknown): Promise<Outcome> {
+  return await send(requestFrom(address, { header: key }));
 }
 
 const WRONG: Outcome = {
@@ -437,66 +425,10 @@ describe("a client that sends wrong cluster keys", () => {
   });
 });
 
-describe("one count for every route", () => {
+describe("a key that is not text", () => {
   const address: string = "203.0.113.30";
 
-  test("wrong keys sent to every route and the Runner's registration, header or body, are one client's wrong keys", async () => {
-    for (
-      let guess: number = 1;
-      guess <= WRONG_CLUSTER_KEYS_PER_ADDRESS;
-      guess++
-    ) {
-      const outcome: Outcome =
-        guess % 3 === 0
-          ? await present(address, `guess-${guess}`)
-          : guess % 3 === 1
-            ? await present(
-                address,
-                `guess-${guess}`,
-                "isAuthorizedRunnerRegistrationMiddleware",
-              )
-            : await send(
-                requestFrom(address, {
-                  body: { clusterKey: `guess-${guess}` },
-                }),
-                "isAuthorizedRunnerRegistrationMiddleware",
-              );
-
-      expect(outcome).toEqual(WRONG);
-    }
-
-    expect(
-      await send(
-        requestFrom(address, {
-          body: { clusterKey: "guess-from-an-old-runner" },
-        }),
-        "isAuthorizedRunnerRegistrationMiddleware",
-      ),
-    ).toEqual(refusedFor(WRONG_CLUSTER_KEY_WINDOW_SECONDS));
-
-    expect(
-      await present(
-        address,
-        RIGHT_KEY,
-        "isAuthorizedRunnerRegistrationMiddleware",
-      ),
-    ).toEqual(refusedFor(WRONG_CLUSTER_KEY_WINDOW_SECONDS));
-    expect(await present(address, RIGHT_KEY)).toEqual(
-      refusedFor(WRONG_CLUSTER_KEY_WINDOW_SECONDS),
-    );
-  });
-
-  test("an older Runner's body key is let through as before, and counts nothing", async () => {
-    expect(
-      await send(
-        requestFrom(address, { body: { clusterKey: RIGHT_KEY } }),
-        "isAuthorizedRunnerRegistrationMiddleware",
-      ),
-    ).toEqual(LET_THROUGH);
-    expect(redis.keys()).toEqual([]);
-  });
-
-  test("a body key that is not text is one wrong key, whatever it holds", async () => {
+  test("is one wrong key, whatever it holds", async () => {
     for (const notText of [
       { the: "key" },
       ["a", "b"],
@@ -506,12 +438,7 @@ describe("one count for every route", () => {
       [RIGHT_KEY],
     ]) {
       for (let call: number = 1; call <= 20; call++) {
-        expect(
-          await send(
-            requestFrom(address, { body: { clusterKey: notText } }),
-            "isAuthorizedRunnerRegistrationMiddleware",
-          ),
-        ).toEqual(WRONG);
+        expect(await present(address, notText)).toEqual(WRONG);
       }
     }
 
@@ -685,21 +612,18 @@ describe("a forged X-Forwarded-For entry changes nothing", () => {
 /*
  * Every caller that holds the cluster key is one of OneUptime's own services,
  * and each calls from a private network address: the app and its workers
- * over the installation's own network, straight to the app, and a Runner of
- * an earlier release from the server itself, through the bundled Nginx, which
- * names the container network's gateway for it. Such an address is often not
- * one caller's alone, so a key from one is never counted: nothing sent from
- * beside those services can get their right key refused.
+ * over the installation's own network, straight to the app, or from the
+ * server itself, through the bundled Nginx, which names the container
+ * network's gateway for them. Such an address is often not one caller's
+ * alone, so a key from one is never counted: nothing sent from beside those
+ * services can get their right key refused.
  */
 describe("a cluster key from a private network address is never counted", () => {
   // The address the bundled Nginx names for a caller on the server itself.
   const GATEWAY: string = "172.18.0.1";
 
   // A request that reaches the app with no proxy in between.
-  function directFrom(
-    peer: string,
-    carries: { header?: unknown; body?: unknown },
-  ): JSONObject {
+  function directFrom(peer: string, carries: { header?: unknown }): JSONObject {
     const headers: JSONObject = {};
 
     if (carries.header !== undefined) {
@@ -711,7 +635,7 @@ describe("a cluster key from a private network address is never counted", () => 
       socket: { remoteAddress: peer } as unknown as JSONObject,
       query: {},
       params: {},
-      body: (carries.body as JSONObject) || {},
+      body: {},
     };
   }
 
@@ -729,45 +653,6 @@ describe("a cluster key from a private network address is never counted", () => 
     expect(redis.sent).toEqual([]);
     expect(redis.keys()).toEqual([]);
     expect(mockWarnings).toEqual([]);
-  });
-
-  test("a Runner of an earlier release registers from the server itself, header or body, whatever was sent from there before it", async () => {
-    for (
-      let guess: number = 1;
-      guess <= WRONG_CLUSTER_KEYS_PER_ADDRESS * 2;
-      guess++
-    ) {
-      expect(await present(GATEWAY, `guess-${guess}`)).toEqual(WRONG);
-      expect(
-        await present(
-          GATEWAY,
-          `runner-guess-${guess}`,
-          "isAuthorizedRunnerRegistrationMiddleware",
-        ),
-      ).toEqual(WRONG);
-      expect(
-        await send(
-          requestFrom(GATEWAY, { body: { clusterKey: `body-guess-${guess}` } }),
-          "isAuthorizedRunnerRegistrationMiddleware",
-        ),
-      ).toEqual(WRONG);
-    }
-
-    expect(
-      await present(
-        GATEWAY,
-        RIGHT_KEY,
-        "isAuthorizedRunnerRegistrationMiddleware",
-      ),
-    ).toEqual(LET_THROUGH);
-    expect(
-      await send(
-        requestFrom(GATEWAY, { body: { clusterKey: RIGHT_KEY } }),
-        "isAuthorizedRunnerRegistrationMiddleware",
-      ),
-    ).toEqual(LET_THROUGH);
-
-    expect(redis.sent).toEqual([]);
   });
 
   test.each([
@@ -791,12 +676,6 @@ describe("a cluster key from a private network address is never counted", () => 
       expect(await send(directFrom(peer, { header: RIGHT_KEY }))).toEqual(
         LET_THROUGH,
       );
-      expect(
-        await send(
-          directFrom(peer, { header: RIGHT_KEY }),
-          "isAuthorizedRunnerRegistrationMiddleware",
-        ),
-      ).toEqual(LET_THROUGH);
       expect(redis.sent).toEqual([]);
     },
   );

@@ -339,7 +339,7 @@ export const CREATE_FROM_RECORD_KINDS: ReadonlyArray<CreateFromRecordKindDefinit
     {
       kind: CreateFromRecordKind.DockerSwarmCluster,
       queryParam: "dockerSwarmClusterId",
-      listTitle: "DockerSwarm",
+      listTitle: "Docker Swarm",
       listPage: PageMap.DOCKER_SWARM_CLUSTERS,
       viewTitle: "View Cluster",
       viewPage: PageMap.DOCKER_SWARM_CLUSTER_VIEW,

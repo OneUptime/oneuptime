@@ -79,6 +79,7 @@ Chaque conversation a un mode d'autorisation, que vous choisissez dans la zone d
 Ce que Demander à l'IA peut faire quand un mode le permet :
 
 - Créer un incident, acquitter ou résoudre des incidents et des alertes, et changer la gravité d'un incident.
+- Lier un incident ou une alerte à l'infrastructure et aux services qu'il concerne. Un incident qu'il crée sur la page d'une ressource, comme celle d'un hôte, est lié à cette ressource, et la carte d'approbation indique ce que chaque action lie. OneUptime AI enquête sur ce à quoi un incident ou une alerte est lié, et le corrige.
 - Publier une note interne sur un incident ou une alerte. Les notes internes n'apparaissent jamais sur une page de statut.
 - Publier une mise à jour de statut publique sur un incident. C'est une action distincte, car elle prévient les abonnés de la page de statut.
 - Appeler une politique d'astreinte, exécuter un runbook ou lancer une investigation IA d'un incident ou d'une alerte.

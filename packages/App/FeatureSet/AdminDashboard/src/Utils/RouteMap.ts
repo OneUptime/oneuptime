@@ -75,7 +75,6 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SETTINGS_GLOBAL_RUNNERS]: new Route(
     `/admin/settings/global-runners`,
   ),
-  [PageMap.SETTINGS_AI_AGENTS]: new Route(`/admin/settings/ai-agents`),
   [PageMap.SETTINGS_LLM_PROVIDERS]: new Route(`/admin/settings/llm-providers`),
   [PageMap.SETTINGS_AUTHENTICATION]: new Route(
     `/admin/settings/authentication`,

@@ -334,7 +334,7 @@ export default class CodeRepositoryRunnerChoice {
     if (decision.kind === CodeRepositoryRunnerChoiceKind.Global) {
       return {
         decision,
-        isOnline: await AIAgentService.hasOnlineGlobalCodeRunner(),
+        isOnline: await RunnerService.hasOnlineGlobalRunner(),
       };
     }
 
@@ -358,7 +358,7 @@ export default class CodeRepositoryRunnerChoice {
 
     if (
       (await GlobalRunnerChoice.doesProjectUseGlobalRunners(projectId)) &&
-      (await AIAgentService.hasOnlineGlobalCodeRunner())
+      (await RunnerService.hasOnlineGlobalRunner())
     ) {
       return true;
     }

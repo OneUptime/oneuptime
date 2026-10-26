@@ -32,7 +32,9 @@ import { useTranslation } from "react-i18next";
  * and Key gives the whole command); the server tells it that it is global,
  * and from then on it runs the JavaScript steps of every project that uses
  * global Runners - each in a sandbox of its own that reaches the internet
- * only - and nothing else. Every project lists these on its own Runners page.
+ * only - and the AI code fixes of the repositories that work on a global
+ * Runner, never running a repository's own commands. Every project lists
+ * these on its own Runners page.
  */
 const Settings: FunctionComponent = (): ReactElement => {
   const { t } = useTranslation();
@@ -148,7 +150,8 @@ const Settings: FunctionComponent = (): ReactElement => {
             title: "Description",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
-            placeholder: "Runs JavaScript steps for every project.",
+            placeholder:
+              "Runs JavaScript steps and AI code fixes for every project.",
             // The column only said "Optional description for this agent".
             hideColumnDescription: true,
           },

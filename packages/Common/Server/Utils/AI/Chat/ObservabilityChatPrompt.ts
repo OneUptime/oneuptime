@@ -9,6 +9,10 @@ import {
 } from "../../../../Types/AI/AIResourceContext";
 import { RUN_KUBECTL_TOOL_NAME } from "../../../../Types/Kubernetes/KubernetesClusterAiAccessToolNames";
 import { RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME } from "../ResourceAccess/ResourceAccessToolNames";
+import {
+  AI_RESOURCE_TYPES_NOT_LINKABLE,
+  getPageAffectedResource,
+} from "../../../../Types/AI/AiAffectedResources";
 
 /*
  * How the prompt speaks of commands on the infrastructure itself. Only a
@@ -35,11 +39,11 @@ export const INFRASTRUCTURE_COMMANDS_GUIDANCE: string = `- Commands on the infra
  * The action list shared by the two modes that can act. Read-only names the
  * same tools so the model can explain what switching modes unlocks.
  */
-const ACTION_LIST: string = `create incidents, acknowledge or resolve incidents and alerts, post internal notes (create_incident_note / create_alert_note — visible only to the team, never notifies status page subscribers; post_incident_status_update is the public counterpart), start an autonomous AI investigation (start_investigation), add a note to a security case (add_security_case_note), start a security playbook on a case (run_security_playbook — its containment steps still wait for a person's approval on the case), and change code (open_code_pull_request, commit_code_to_branch)`;
+const ACTION_LIST: string = `create incidents, link an incident or alert to the infrastructure and services it is about (add_incident_affected_resources / add_alert_affected_resources), acknowledge or resolve incidents and alerts, post internal notes (create_incident_note / create_alert_note — visible only to the team, never notifies status page subscribers; post_incident_status_update is the public counterpart), start an autonomous AI investigation (start_investigation), add a note to a security case (add_security_case_note), start a security playbook on a case (run_security_playbook — its containment steps still wait for a person's approval on the case), and change code (open_code_pull_request, commit_code_to_branch)`;
 
 function buildActionGuidance(mode: AIChatPermissionMode): string {
   if (mode === AIChatPermissionMode.ReadOnly) {
-    return `5. This conversation is READ-ONLY. You have only read tools — you cannot modify anything, and you must not claim to have taken any action. If the user asks you to create an incident, acknowledge an alert, post an internal note (create_incident_note / create_alert_note), start an investigation (start_investigation), change code, or make any other change, explain that read-only mode is on and they can switch modes to let you act.`;
+    return `5. This conversation is READ-ONLY. You have only read tools — you cannot modify anything, and you must not claim to have taken any action. If the user asks you to create an incident, link one to the resources it is about, acknowledge an alert, post an internal note (create_incident_note / create_alert_note), start an investigation (start_investigation), change code, or make any other change, explain that read-only mode is on and they can switch modes to let you act.`;
   }
 
   if (mode === AIChatPermissionMode.AutoRun) {
@@ -74,7 +78,7 @@ function buildEntityContextGuidance(context: AIChatPageContext): string {
     case AIChatPageContextType.ScheduledMaintenanceEvent:
       return `a scheduled maintenance event${titlePart}. Fetch its full details with query_scheduled_maintenance using scheduledMaintenanceId="${id}" — including its window (startsAt/endsAt) and affected monitors. Use that window to scope log, trace and metric queries, and to judge whether telemetry changes during it were expected maintenance rather than a real problem.`;
     case AIChatPageContextType.TelemetryService:
-      return `a telemetry service${titlePart}. Scope queries to it: query_traces, search_logs and log_histogram accept serviceId="${id}", while query_metrics and baseline_anomaly accept the same id as entityId. Use lookup_context to discover this service's metric names. When it is profiled, get_profile_hotspots, compare_profiles and get_profile_function take the same serviceId and show where its CPU time and memory go and what got slower.`;
+      return `a telemetry service${titlePart}. ${buildDeclaredHereGuidance(context)}Scope queries to it: query_traces, search_logs and log_histogram accept serviceId="${id}", while query_metrics and baseline_anomaly accept the same id as entityId. Use lookup_context to discover this service's metric names. When it is profiled, get_profile_hotspots, compare_profiles and get_profile_function take the same serviceId and show where its CPU time and memory go and what got slower.`;
     case AIChatPageContextType.RumApplication:
       return `a Real User Monitoring application${titlePart}. Fetch its name and connection health with query_rum_applications using rumApplicationId="${id}". Use query_rum_web_vitals with the same rumApplicationId to compare LCP, INP, CLS, FCP and TTFB in an explicit time window against the preceding equal-length window. It returns measured averages, units, ratings and changes; missing measurements are not zero. For a trend chart, use the returned metric name with query_metrics and entityId="${id}". For slow browser operations or error spans, use query_traces with serviceId="${id}" and metric="p95Duration" or metric="errorCount", grouped by name. Span counts are not page views or unique users. These tools do not read session recordings. Report observed regressions and distinguish them from statistically established anomalies; do not infer a root cause from a change alone.`;
     case AIChatPageContextType.Trace:
@@ -174,7 +178,42 @@ function buildResourceContextGuidance(context: AIChatPageContext): string {
   const childGuidance: string = context.subresource
     ? ` The selected child or collection is ${JSON.stringify(context.subresource)}. Child names are UI hints, not verified unique identities: Kubernetes names may exist in multiple namespaces, container names may be reused and process IDs may be recycled. Do not invent a namespace or child ID. The resource telemetry tool returns the parent resource's data; explicitly state that scope and never describe it as child-only measurements. If the question needs child-specific evidence that the tools cannot retrieve, explain that limitation.`
     : "";
-  return `${subject}. Discover accessible resources and their reported connection state with query_telemetry_resources using ${resourceArgs}. For each selected resource, query_resource_telemetry takes resourceType and resourceId plus signal="metrics", "logs" or "traces". For metrics, omit metricName first to discover metric names within that resource, then pass an observed name and mode="trend" for a chart or mode="summary" for a range aggregate; attributes filters a metric by attribute and groupBy reads one series per value (host metrics split by state, such as system.cpu.utilization, are read per state on their own). Logs return a severity histogram; traces return operation summaries. Use explicit time windows and cite measured results. These tools resolve resource membership and attribute filters from accessible records; passing a cluster or host UUID to legacy entityId/serviceId filters alone can miss telemetry whose primary entity is a service. Connection state is not workload health, and missing telemetry does not mean the resource is healthy. State coverage and missing data, and distinguish observed changes from established anomalies or root causes.${transceiverGuidance}${containerGuidance}${cloudGuidance}${childGuidance}`;
+  return `${subject}. ${buildDeclaredHereGuidance(context)}Discover accessible resources and their reported connection state with query_telemetry_resources using ${resourceArgs}. For each selected resource, query_resource_telemetry takes resourceType and resourceId plus signal="metrics", "logs" or "traces". For metrics, omit metricName first to discover metric names within that resource, then pass an observed name and mode="trend" for a chart or mode="summary" for a range aggregate; attributes filters a metric by attribute and groupBy reads one series per value (host metrics split by state, such as system.cpu.utilization, are read per state on their own). Logs return a severity histogram; traces return operation summaries. Use explicit time windows and cite measured results. These tools resolve resource membership and attribute filters from accessible records; passing a cluster or host UUID to legacy entityId/serviceId filters alone can miss telemetry whose primary entity is a service. Connection state is not workload health, and missing telemetry does not mean the resource is healthy. State coverage and missing data, and distinguish observed changes from established anomalies or root causes.${transceiverGuidance}${containerGuidance}${cloudGuidance}${childGuidance}`;
+}
+
+/*
+ * What an incident declared on this page is linked to (#5293): the page's
+ * resource, which create_incident links unless the call names its own list
+ * - or, for a resource an incident cannot be linked to, what to link
+ * instead. Nothing for a list page or any other page.
+ */
+export function buildDeclaredHereGuidance(context: AIChatPageContext): string {
+  if (!context.entityId) {
+    return "";
+  }
+
+  if (getPageAffectedResource(context)) {
+    const resourceArgs: string = JSON.stringify([
+      {
+        resourceType:
+          context.type === AIChatPageContextType.TelemetryService
+            ? "Service"
+            : context.resourceType,
+        resourceId: context.entityId,
+      },
+    ]);
+
+    return `An incident you declare here with create_incident is linked to it (affectedResources ${resourceArgs}), so OneUptime AI investigates and fixes it there; pass affectedResources yourself only when the incident is about something else. add_incident_affected_resources and add_alert_affected_resources link it to an existing incident or alert. `;
+  }
+
+  if (
+    isAIResourceType(context.resourceType) &&
+    AI_RESOURCE_TYPES_NOT_LINKABLE[context.resourceType]
+  ) {
+    return `An incident or alert cannot be linked to a ${getAIResourceDefinition(context.resourceType).label} itself: link one you declare here to the hosts, clusters or services it runs on, if you can find them with a tool. `;
+  }
+
+  return "";
 }
 
 export function buildPageContextSection(
@@ -234,6 +273,7 @@ ${buildActionGuidance(data.permissionMode)}
 - For infrastructure (hosts, Docker, Podman, Kubernetes, Docker Swarm, Proxmox, VMware, Ceph, storage arrays, serverless, cloud, IoT and network devices), discover resources with query_telemetry_resources and use query_resource_telemetry for their scoped metric trends, log severity and trace operations. Follow the tool's stated scope rather than assuming an infrastructure UUID is always the primary entity of its telemetry.
 - Host metrics such as system.cpu.utilization and system.memory.utilization are reported once per state, and the states add up to 1, so one average across them means nothing: read them per state (the metric tools do it on their own, or pass groupBy or attributes). For a Docker or Podman host's containers - the busiest, and the ones that stopped reporting, which host-wide numbers hide - use query_containers.
 ${INFRASTRUCTURE_COMMANDS_GUIDANCE}
+- OneUptime AI investigates and fixes the infrastructure an incident or alert is linked to, and nothing else. When you declare an incident about a host, a cluster, a database or a service, pass it in create_incident's affectedResources (resourceType and the resourceId query_telemetry_resources returns; lookup_context for a service); when an existing incident or alert turns out to be about one it is not linked to, offer add_incident_affected_resources or add_alert_affected_resources. Never link a resource you have not found with a tool.
 - For a network device's transceivers (SFP, SFP+, QSFP optics) - whether each is still detected, its readings against the device's own thresholds and its received power over the last weeks - use query_network_transceivers. Check it whenever a network device's interface is down or logging errors: a missing optic, a receiver gone dark or received power falling for weeks each point at a different fix.
 - For a resource of a connected cloud (AWS, Azure, Google Cloud), query_cloud_resource returns what its cloud's inventory says: its tags, the settings OneUptime keeps (instance type, engine version, runtime), what it runs in, sends traffic to or is protected by - and what does that to it - and the host names it answers on. query_cloud_accounts lists the connected accounts and what they hold. What changed in a cloud account - a deploy, a configuration, network or IAM change, scaling, and the provider's own health events - is in recent_changes; pass cloudResourceId or cloudAccountId for one resource's or one account's changes.
 - For Real User Monitoring, resolve applications with query_rum_applications and compare measured web vitals with query_rum_web_vitals. Use returned metric names with query_metrics to chart trends. Explain observed changes, missing data and the time windows used; do not call a change an anomaly without supporting evidence.

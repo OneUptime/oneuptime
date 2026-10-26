@@ -222,6 +222,15 @@ describe.each([
 
       renderMenu();
 
+      /*
+       * A menu that shows every category has no Recently visited row (only
+       * a menu that folds draws one), so it opens on the page's own card:
+       * there the pointer takes the cursor to Logs.
+       */
+      if (!categoriesOpenByDefault) {
+        fireEvent.mouseMove(optionTitled("Logs"));
+      }
+
       // One card is the current page, for screen readers too.
       const current: Array<HTMLElement> = screen
         .getAllByRole("option")
@@ -230,7 +239,7 @@ describe.each([
         });
       expect(current).toEqual([optionTitled("Monitors")]);
 
-      // The cursor is on the Recently visited row's first card.
+      // The cursor is on Logs: the Recently visited row's first card.
       const cursor: HTMLElement = screen.getByRole("option", {
         selected: true,
       });

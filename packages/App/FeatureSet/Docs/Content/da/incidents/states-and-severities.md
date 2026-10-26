@@ -204,7 +204,7 @@ At gå videre fra **Løst** til en senere tilstand — **Closed** for eksempel �
 
 ## Tilstandstidslinjen
 
-Hændelsens side **Tilstandstidslinje** i hændelsens sidemenu er revisionssporet for hver tilstand, hændelsen har været i. Kortet på den side hedder **Statustidslinje**, og det tegner hele hændelsens forløb som en tidslinje:
+Hændelsens side **Tilstandstidslinje** i hændelsens sidemenu er revisionssporet for hver tilstand, hændelsen har været i. Kortet på den side tegner hele hændelsens forløb som en tidslinje:
 
 - **Båndet** viser hver tilstand som et stykke i sin farve, så langt som hændelsen var i den, så hændelsens forløb kan aflæses med det samme. Så længe hændelsen er åben, går båndet frem til **Nu**; når den er løst, slutter båndet kort efter dens sidste ændring. Peg på et stykke for at se, hvornår det begyndte, og hvor længe det varede, og klik på det for at finde ændringen i listen. Ændringer, der ligger for tæt til at skelne, tegnes som ét stribet stykke: klik på det, eller træk hen over båndet, for at zoome ind, og **Nulstil zoom** går tilbage.
 - **Over båndet** står hver tilstand med den tid, hændelsen tilbragte i den.

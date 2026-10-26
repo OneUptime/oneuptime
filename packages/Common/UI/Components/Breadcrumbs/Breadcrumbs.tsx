@@ -64,12 +64,18 @@ const Breadcrumbs: FunctionComponent<ComponentProps> = ({
                       className="h-5 w-5 flex-shrink-0 text-gray-400"
                       icon={IconProp.ChevronRight}
                     />
+                    {/*
+                     * The page you are on is text, not a link to itself,
+                     * and says so to a screen reader (aria-current), as
+                     * the side menu's entry for it does.
+                     */}
                     <UILink
                       to={
                         isCurrentPage(link.to)
                           ? null // Avoid linking to current page
                           : link.to
                       }
+                      ariaCurrent={isCurrentPage(link.to) ? "page" : undefined}
                       className="ml-1 text-sm font-medium text-gray-500 hover:text-gray-700 -mt-1"
                     >
                       {shownTitle}

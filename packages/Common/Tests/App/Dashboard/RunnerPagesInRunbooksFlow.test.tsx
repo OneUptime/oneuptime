@@ -268,7 +268,10 @@ function highlightedMenuEntries(): Array<string> {
       return anchor.className.includes("bg-indigo-50");
     })
     .map((anchor: Element): string => {
-      return (anchor.querySelector("span.truncate")?.textContent ?? "").trim();
+      return (
+        anchor.querySelector('[data-testid="side-menu-item-title"]')
+          ?.textContent ?? ""
+      ).trim();
     });
 }
 

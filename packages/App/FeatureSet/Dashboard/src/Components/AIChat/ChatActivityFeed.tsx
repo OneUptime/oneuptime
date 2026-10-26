@@ -308,6 +308,9 @@ const friendlyToolNames: { [key: string]: string } = {
   resolve_incident: translationKey("Resolving incident"),
   acknowledge_alert: translationKey("Acknowledging alert"),
   resolve_alert: translationKey("Resolving alert"),
+  // What an incident or alert is about (#5293), never the tool's own name.
+  add_incident_affected_resources: translationKey("Linking affected resources"),
+  add_alert_affected_resources: translationKey("Linking affected resources"),
   run_kubectl: translationKey("Running kubectl on the cluster"),
   list_cluster_access: translationKey("Checking cluster access"),
   run_infrastructure_command: translationKey(

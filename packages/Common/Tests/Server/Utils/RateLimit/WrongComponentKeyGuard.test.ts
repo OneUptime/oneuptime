@@ -12,13 +12,13 @@ import ts from "typescript";
  * EVERY KEY A PROBE, A RUNNER OR AN AI AGENT PROVES WHO IT IS WITH IS
  * COUNTED WHEN IT IS WRONG.
  *
- * A probe's key, a Runner's or an AI agent's key, REGISTER_PROBE_KEY and the
- * shared Runner's key can each be set by a person, so each is held to the
- * rule every credential keeps: a client may present only so many different
- * wrong ones (WrongComponentKeyLimit, on the core the cluster key's limit
- * shares, WrongKeyLimit). That holds only while every place that checks one
- * asks the limit, in the right order. So, across all product code (ee/ too,
- * when it is checked out), comments removed:
+ * A probe's key, a Runner's or an AI agent's key and REGISTER_PROBE_KEY can
+ * each be set by a person, so each is held to the rule every credential
+ * keeps: a client may present only so many different wrong ones
+ * (WrongComponentKeyLimit, on the core the cluster key's limit shares,
+ * WrongKeyLimit). That holds only while every place that checks one asks the
+ * limit, in the right order. So, across all product code (ee/ too, when it
+ * is checked out), comments removed:
  *
  *   - each check is listed, and does what the rule needs in this order: a
  *     check of a probe's, a Runner's or an agent's key first asks whether its
@@ -33,8 +33,8 @@ import ts from "typescript";
  *     CodeFixAgentAuth.authenticate;
  *   - only the limits' own modules build a WrongKeyLimit, each in Valkey
  *     under a prefix of its own;
- *   - only SharedRunnerKeyAuthorization reads the shared Runner's key the
- *     app holds;
+ *   - the app holds no shared Runner's key, and counts none: only the
+ *     Runner reads ONEUPTIME_RUNNER_KEY, its own key;
  *   - the agents whose keys are left out are listed with why: their keys are
  *     made by the server, 256 random bits nobody chooses, kept only as a
  *     hash nobody may write or read.
@@ -56,8 +56,6 @@ const RUNNER_AUTHORIZATION: string =
 const AI_AGENT_API: string = "packages/Common/Server/API/AIAgentAPI.ts";
 const CODE_FIX_AGENT_AUTH: string =
   "packages/Common/Server/Utils/AI/CodeFix/CodeFixAgentAuth.ts";
-const SHARED_RUNNER_KEY_AUTHORIZATION: string =
-  "packages/Common/Server/Middleware/SharedRunnerKeyAuthorization.ts";
 const WRONG_COMPONENT_KEY_LIMIT: string =
   "packages/Common/Server/Utils/RateLimit/WrongComponentKeyLimit.ts";
 const WRONG_CLUSTER_KEY_LIMIT: string =
@@ -112,7 +110,7 @@ const KEY_CHECKS: Array<KeyCheck> = [
   {
     file: AI_AGENT_API,
     from: "/alive`",
-    to: "global-ai-agents`",
+    to: "next(err);",
     compared:
       "await AIAgentService.findOneBy({ query: { _id: aiAgentId.toString(), key: aiAgentKey,",
     inOrder: [
@@ -156,22 +154,6 @@ const KEY_CHECKS: Array<KeyCheck> = [
       "if (!isRegisterProbeKeyRight) { return Response.sendErrorResponse(req, res, new BadDataException(INVALID_REGISTER_PROBE_KEY_MESSAGE)); }",
     ],
   },
-  {
-    file: SHARED_RUNNER_KEY_AUTHORIZATION,
-    from: "public static async authorizeRegistration(",
-    to: "private static getPresentedRunnerKey(",
-    compared:
-      "SecretKeyComparison.timingSafeEqual(presented, SharedRunnerKey);",
-    inOrder: [
-      "if (IsSharedRunnerKeyShipped) {",
-      "if (isShippedSecretValue(presented)) {",
-      "const isKeyRight: boolean = SecretKeyComparison.timingSafeEqual(presented, SharedRunnerKey);",
-      "await WrongComponentKeyLimit.checkRegistrationKey({ req: req, kind: ComponentKeyKind.SharedRunner, presentedKey: presented, isKeyRight: isKeyRight, });",
-      "if (refusal) { return WrongComponentKeyLimit.answerRefusal(req, res, ComponentKeyKind.SharedRunner, refusal); }",
-      "if (!isKeyRight) { return Response.sendErrorResponse(req, res, new BadDataException(WRONG_SHARED_RUNNER_KEY_MESSAGE)); }",
-      "return next();",
-    ],
-  },
 ];
 
 /*
@@ -202,7 +184,7 @@ const LOOKUP_CALLERS: Array<{ call: RegExp; callers: Array<string> }> = [
   },
   {
     call: /\bWrongComponentKeyLimit\.checkRegistrationKey\(/,
-    callers: [PROBE_REGISTRATION, SHARED_RUNNER_KEY_AUTHORIZATION],
+    callers: [PROBE_REGISTRATION],
   },
   {
     call: /\bWrongComponentKeyLimit\.checkBeforeLookup\(/,
@@ -521,17 +503,24 @@ describe("nothing else checks a component's key, or asks the limit", () => {
         "cluster-key:wrong-keys:",
         "probe-key:wrong-keys:",
         "probe-registration-key:wrong-keys:",
-        "shared-runner-key:wrong-keys:",
       ].sort(),
     );
   });
 
-  test("only SharedRunnerKeyAuthorization reads the shared Runner's key the app holds", () => {
+  test("the app holds no shared Runner's key, and counts none: only the Runner reads ONEUPTIME_RUNNER_KEY", () => {
+    // The key EnvironmentConfig held, its kind of wrong key, and its refusal: gone.
     expect(
       productFilesWhoseCodeMatches(
-        /import\s*\{[^}]*\b(?:SharedRunnerKey|IsSharedRunnerKeyShipped)\b[^}]*\}\s*from\s*["'][^"']*EnvironmentConfig["']/,
+        /\b(?:SharedRunnerKey|IsSharedRunnerKeyShipped|WRONG_SHARED_RUNNER_KEYS_MESSAGE)\b|\bComponentKeyKind\.SharedRunner\b/,
       ),
-    ).toEqual([SHARED_RUNNER_KEY_AUTHORIZATION]);
+    ).toEqual([]);
+    expect(
+      productFilesWhoseCodeMatches(
+        /process\.env(?:\[\s*["'`]ONEUPTIME_RUNNER_KEY["'`]\s*\]|\.ONEUPTIME_RUNNER_KEY\b)/,
+      ).filter((relativePath: string): boolean => {
+        return !relativePath.startsWith("packages/Runner/");
+      }),
+    ).toEqual([]);
   });
 });
 

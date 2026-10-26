@@ -577,9 +577,25 @@ const TOOL_DESCRIPTIONS: Map<string, EvidenceToolDescription> = new Map<
     },
   ],
   [
+    "add_incident_affected_resources",
+    {
+      description: "Linked an incident to affected resources",
+      icon: IconProp.Alert,
+      category: "Incidents",
+    },
+  ],
+  [
     "acknowledge_alert",
     {
       description: "Acknowledged an alert",
+      icon: IconProp.Bell,
+      category: "Alerts",
+    },
+  ],
+  [
+    "add_alert_affected_resources",
+    {
+      description: "Linked an alert to affected resources",
       icon: IconProp.Bell,
       category: "Alerts",
     },

@@ -148,11 +148,6 @@ function renderedConfig(changes) {
         environment: { PORT: given.probe || "3874" },
         depends_on: { postgres: {} },
       },
-      runner: {
-        network_mode: "host",
-        environment: { PORT: "3876" },
-        depends_on: { postgres: {} },
-      },
       "global-runner": {
         environment: { PORT: "3877" },
         depends_on: { postgres: {} },
@@ -819,7 +814,6 @@ describe("the ports the stack publishes", () => {
       "ingress *:80 ONEUPTIME_HTTP_PORT",
       "ingress *:443 STATUS_PAGE_HTTPS_PORT",
       "probe-1 *:3874 GLOBAL_PROBE_1_PORT",
-      "runner *:3876 ONEUPTIME_RUNNER_PORT",
     ]);
   });
 
@@ -891,7 +885,7 @@ describe("the ports the stack publishes", () => {
 
   test("all free: one line naming them", async () => {
     expect(await portsWith(healthyDocker(), [])).toEqual([
-      { level: "ok", message: "Ports 80, 443, 3874, 3876 and 5400 are free." },
+      { level: "ok", message: "Ports 80, 443, 3874 and 5400 are free." },
     ]);
   });
 
@@ -928,11 +922,10 @@ describe("the ports the stack publishes", () => {
     ]);
   });
 
-  test("PostgreSQL's port and the probe's and the Runner's say what each is for", async () => {
+  test("PostgreSQL's port and the probe's say what each is for", async () => {
     const findings = await portsWith(healthyDocker(), [
       "127.0.0.1:5400",
       "127.0.0.1:3874",
-      "::1:3876",
     ]);
 
     expect(findings).toEqual([
@@ -945,11 +938,6 @@ describe("the ports the stack publishes", () => {
         level: "stop",
         message:
           "Port 3874 is already in use by another program, and the bundled probe listens on it. Stop that program, or set GLOBAL_PROBE_1_PORT in config.env to a free port, such as GLOBAL_PROBE_1_PORT=3884.",
-      },
-      {
-        level: "stop",
-        message:
-          "Port 3876 is already in use by another program, and the bundled Runner listens on it. Stop that program, or set ONEUPTIME_RUNNER_PORT in config.env to a free port, such as ONEUPTIME_RUNNER_PORT=3886.",
       },
     ]);
   });
@@ -987,14 +975,12 @@ describe("the ports the stack publishes", () => {
         ],
       }),
       JSON.stringify({ Service: "probe-1", State: "running", Publishers: [] }),
-      JSON.stringify({ Service: "runner", State: "running", Publishers: [] }),
     ].join("\n");
     const probes = portsInUse([
       "127.0.0.1:80",
       "127.0.0.1:443",
       "127.0.0.1:5400",
       "127.0.0.1:3874",
-      "127.0.0.1:3876",
     ]);
     const findings = await portFindings({
       runCommand: commands(healthyDocker({ "docker compose ps": answered(ps) }))
@@ -1007,7 +993,7 @@ describe("the ports the stack publishes", () => {
       {
         level: "ok",
         message:
-          "Ports 80, 443, 3874, 3876 and 5400 are free or used by this OneUptime.",
+          "Ports 80, 443, 3874 and 5400 are free or used by this OneUptime.",
       },
     ]);
     // Its own ports are not even tried.
@@ -1086,19 +1072,16 @@ describe("the ports the stack publishes", () => {
     ).toEqual([]);
   });
 
-  test("the published ports it knows are every port the ingress, PostgreSQL, the probes and the Runner publish", () => {
+  /*
+   * The bundled global Runner publishes no port: unlike the shared Runner it
+   * replaced, it is on OneUptime's own network, not the host's.
+   */
+  test("the published ports it knows are every port the ingress, PostgreSQL and the probes publish", () => {
     expect(
       PUBLISHED_PORTS.map((entry) => {
         return entry.service;
       }),
-    ).toEqual([
-      "ingress",
-      "ingress",
-      "postgres",
-      "probe-1",
-      "probe-2",
-      "runner",
-    ]);
+    ).toEqual(["ingress", "ingress", "postgres", "probe-1", "probe-2"]);
   });
 
   test("whether a port is in use, asked of a real socket", async () => {
@@ -1137,7 +1120,6 @@ describeWithCompose("the ports as Compose renders the shipped files", () => {
         .sort(),
     ).toEqual([
       "3874 GLOBAL_PROBE_1_PORT",
-      "3876 ONEUPTIME_RUNNER_PORT",
       "443 STATUS_PAGE_HTTPS_PORT",
       "5400 null",
       "80 ONEUPTIME_HTTP_PORT",
@@ -1159,7 +1141,7 @@ describeWithCompose("the ports as Compose renders the shipped files", () => {
         .map((port) => {
           return `${port.address || "*"}:${port.port}`;
         }),
-    ).toEqual(["127.0.0.1:8080", "*:443", "*:3884", "*:3876"]);
+    ).toEqual(["127.0.0.1:8080", "*:443", "*:3884"]);
   });
 });
 
@@ -1297,7 +1279,7 @@ describe("a start, from the first line to the last", () => {
       "  ✓ Docker 29.8.1 with Docker Compose 5.5.1.",
       "  ✓ 16 GB of memory.",
       "  ✓ 120 GB free for Docker's images and data.",
-      "  ✓ Ports 80, 443, 3874, 3876 and 5400 are free.",
+      "  ✓ Ports 80, 443, 3874 and 5400 are free.",
       "  ! HOST is localhost, so only this computer can open OneUptime. To open it from other computers, set HOST in config.env to this server's domain name or IP address, such as HOST=203.0.113.5, then run npm start again.",
     ]);
     expect(result.config).toBe(TEMPLATE);
@@ -1431,11 +1413,10 @@ async function freePorts(count) {
 
 // The stack's rendered config, every published port moved to a free one.
 async function renderedOnFreePorts() {
-  const [http, https, postgres, probe, runner] = await freePorts(5);
+  const [http, https, postgres, probe] = await freePorts(4);
   const config = renderedConfig({ http: http, https: https, probe: probe });
 
   config.services.postgres.ports[0].published = postgres;
-  config.services.runner.environment.PORT = runner;
 
   return config;
 }

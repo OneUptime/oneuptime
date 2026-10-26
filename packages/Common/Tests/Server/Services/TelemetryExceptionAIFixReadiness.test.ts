@@ -30,6 +30,9 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import OneUptimeDate from "../../../Types/Date";
+import RunnerLiveStatus, {
+  getRunnerLiveStatus,
+} from "../../../Types/Runner/RunnerLiveStatus";
 import AIService from "../../../Server/Services/AIService";
 import { describe, expect, test, afterEach, beforeEach } from "@jest/globals";
 
@@ -82,12 +85,22 @@ function fakeAgent(data: {
   } as unknown as AIAgent;
 }
 
+// A global Runner: a Runner OneUptime runs for every project.
+function fakeGlobalRunner(data: { lastAlive?: Date | undefined }): Runner {
+  return {
+    id: ObjectID.generate(),
+    name: "Global Runner",
+    isGlobalRunner: true,
+    lastAlive: data.lastAlive,
+  } as unknown as Runner;
+}
+
 interface ReadinessMocks {
   provider?: LlmProvider | null;
   resolution?: RepoResolution | null;
   resolutionThrows?: Error;
-  // The global Runner for code (a global AI agent); one alive by default.
-  agent?: AIAgent | null;
+  // The global Runner; one heard from a moment ago by default.
+  globalRunner?: Runner | null;
   // The Runner the resolved repository picks, if it picks one.
   repositoryRunner?: Runner | null;
   // Whether the project uses global Runners (on by default).
@@ -122,17 +135,16 @@ function mockReadiness(data: ReadinessMocks): void {
     );
   }
 
-  const agent: AIAgent | null =
-    data.agent === undefined
-      ? fakeAgent({ connectionStatus: AIAgentConnectionStatus.Connected })
-      : data.agent;
+  const globalRunner: Runner | null =
+    data.globalRunner === undefined
+      ? fakeGlobalRunner({ lastAlive: OneUptimeDate.getCurrentDate() })
+      : data.globalRunner;
 
   /*
    * The agent check asks whether what the resolved repository works on is
    * online: the Runner it picks, or - for one that picks none - a global
-   * Runner for code. Liveness runs through the real isAgentAlive and
-   * getRunnerLiveStatus, so a stale heartbeat behaves here exactly as it
-   * does in production.
+   * Runner. Liveness runs through the real getRunnerLiveStatus, so a stale
+   * heartbeat behaves here exactly as it does in production.
    */
   jest.spyOn(CodeRepositoryService, "findOneBy").mockResolvedValue({
     id: repositoryId,
@@ -151,8 +163,12 @@ function mockReadiness(data: ReadinessMocks): void {
     .mockResolvedValue(data.projectUsesGlobalRunners !== false);
   jest.spyOn(AIAgentService, "getOnlineProjectAIAgent").mockResolvedValue(null);
   jest
-    .spyOn(AIAgentService, "findGlobalCodeRunners")
-    .mockResolvedValue(agent ? [agent] : []);
+    .spyOn(RunnerService, "hasOnlineGlobalRunner")
+    .mockResolvedValue(
+      Boolean(globalRunner) &&
+        getRunnerLiveStatus(globalRunner!.lastAlive) ===
+          RunnerLiveStatus.Connected,
+    );
 }
 
 function fakeRunner(data: { lastAlive?: Date | undefined }): Runner {
@@ -280,8 +296,7 @@ describe("TelemetryExceptionService.getAIFixReadiness", () => {
 
   test("fails agent check when the only global Runner has a stale heartbeat", async () => {
     mockReadiness({
-      agent: fakeAgent({
-        connectionStatus: AIAgentConnectionStatus.Disconnected,
+      globalRunner: fakeGlobalRunner({
         lastAlive: OneUptimeDate.getSomeMinutesAgo(10),
       }),
     });
@@ -315,7 +330,7 @@ describe("TelemetryExceptionService.getAIFixReadiness", () => {
   test("asks about the Runner the resolved repository picks: online, it is named", async () => {
     mockReadiness({
       // No global Runner at all: it is not what this repository runs on.
-      agent: null,
+      globalRunner: null,
       repositoryRunner: fakeRunner({
         lastAlive: OneUptimeDate.getSomeMinutesAgo(1),
       }),
@@ -379,7 +394,7 @@ describe("TelemetryExceptionService.getAIFixReadiness", () => {
   });
 
   test("with no repository resolved, asks whether anything is online for the project's repositories", async () => {
-    mockReadiness({ resolution: null, agent: null });
+    mockReadiness({ resolution: null, globalRunner: null });
 
     const readiness: AIFixReadiness =
       await TelemetryExceptionService.getAIFixReadiness({
@@ -526,7 +541,7 @@ describe("TelemetryExceptionService.createCodeFixRunForException fail-early", ()
   });
 
   test("rejects with every missing prerequisite named, before any run is created", async () => {
-    mockReadiness({ provider: null, agent: null });
+    mockReadiness({ provider: null, globalRunner: null });
 
     // The daily fix-run budget has its own suite (FixRunBudget.test.ts).
     jest.spyOn(FixRunBudget, "assertWithinBudget").mockResolvedValue();

@@ -81,10 +81,15 @@ import {
 } from "./CodeWriteTools";
 import {
   AcknowledgeIncidentTool,
+  AddIncidentAffectedResourcesTool,
   CreateIncidentTool,
   ResolveIncidentTool,
 } from "./IncidentWriteTools";
-import { AcknowledgeAlertTool, ResolveAlertTool } from "./AlertWriteTools";
+import {
+  AcknowledgeAlertTool,
+  AddAlertAffectedResourcesTool,
+  ResolveAlertTool,
+} from "./AlertWriteTools";
 import {
   PageOnCallPolicyTool,
   RunRunbookTool,
@@ -201,6 +206,13 @@ export default class AIToolbox {
     ResolveIncidentTool,
     AcknowledgeAlertTool,
     ResolveAlertTool,
+    /*
+     * What an incident or alert is about (#5293): the infrastructure and
+     * services OneUptime AI investigates and fixes, added as its Affected
+     * Resources Edit adds them.
+     */
+    AddIncidentAffectedResourcesTool,
+    AddAlertAffectedResourcesTool,
     // AI action belt (Phase 0) — operate the platform, not just answer.
     PageOnCallPolicyTool,
     RunRunbookTool,

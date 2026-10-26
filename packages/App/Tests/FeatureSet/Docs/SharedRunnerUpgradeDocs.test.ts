@@ -18,8 +18,9 @@ import path from "path";
  *     agent page;
  *   - the AI agent page (ai/ai-agent) says the shared Runners never run the
  *     verification commands, and links to the same section;
- *   - what both say is what the Runner does: the shared (cluster-scoped)
- *     Runner runs no repository command and offers no command tool, and the
+ *   - what both say is what the Runner does: a global Runner - which took the
+ *     shared Runner's code fixes, as the later note on global Runners says -
+ *     runs no repository command and offers no command tool, and its
  *     deployment gives it its own minimal environment;
  *   - every translation carries the note in the English note's place, with
  *     the English note's code, and both links at its own language's heading.
@@ -37,6 +38,9 @@ const NOTE_LEAD: string =
 // The note before it (DatabasePortDocs).
 const PREVIOUS_LEAD: string =
   "**PostgreSQL answers only on the server itself, and a new install starts with a database password of its own.**";
+// The later note that retires the shared Runner this note is about.
+const RETIRING_LEAD: string =
+  "**Global Runners take OneUptime AI's code fixes, and the shared Runner is gone.**";
 // The note after it (TwoFactorWrongCodesDocs).
 const NEXT_LEAD: string =
   "**Wrong two-factor codes are counted for the account, wherever they come from.**";
@@ -212,16 +216,22 @@ describe("the English upgrade note on the bundled Runner", () => {
     ).toBe(true);
   });
 
-  it("names the Compose service and the chart values it means", () => {
+  it("names the Compose service and the chart values it meant, which the note on global Runners retires", () => {
     expect(inlineCode(ENGLISH_NOTE)).toEqual([
       "runner",
       "runner.enabled",
       "runner.extraEnv",
     ]);
-    expect(composeServices()).toContain("runner");
-    expect(runnerValueKeys()).toEqual(
-      expect.arrayContaining(["enabled", "extraEnv"]),
-    );
+
+    // That Runner is gone: neither Compose nor the chart runs it any more.
+    expect(composeServices()).not.toContain("runner");
+    expect(composeServices()).toContain("global-runner");
+    expect(runnerValueKeys()).toEqual([]);
+    expect(
+      ENGLISH_ITEMS.some((item: string): boolean => {
+        return flattened(item).startsWith(`- ${RETIRING_LEAD}`);
+      }),
+    ).toBe(true);
   });
 
   it("says the bundled Runner runs no repository command and offers no command tool, as the Runner decides", () => {
@@ -232,45 +242,48 @@ describe("the English upgrade note on the bundled Runner", () => {
       "the pull request opens with its verification shown as skipped",
     );
 
-    // The bundled Runner is the cluster-scoped one, and that scope decides.
+    // The global Runner that took its work runs none either: being global decides.
     expect(source("packages/Runner/Config.ts")).toContain(
-      "export const RUNS_PROJECT_AUTHORED_COMMANDS: boolean = !IS_CLUSTER_SCOPED;",
+      "export function runsProjectAuthoredCommands(): boolean {\n  return !GlobalRunnerMode.isActive();\n}",
     );
 
     const verification: string = source(
       "packages/Runner/Utils/BuildVerification.ts",
     );
-    expect(verification).toContain("if (!RUNS_PROJECT_AUTHORED_COMMANDS) {");
+    expect(verification).toContain("if (!runsProjectAuthoredCommands()) {");
     expect(verification).toContain("status: FixVerificationStatus.Skipped,");
 
     const agent: string = source(
       "packages/Runner/CodeAgents/InHouseCodeAgent.ts",
     );
     expect(agent).toContain(
-      "...(RUNS_PROJECT_AUTHORED_COMMANDS ? [runCommandTool] : []),",
+      "...(runsProjectAuthoredCommands() ? [runCommandTool] : []),",
     );
   });
 
-  it("says what the bundled Runner starts with, as the chart and Compose start it", () => {
+  it("says what the bundled Runner started with, which the global Runner that does its work keeps to", () => {
     expect(ENGLISH_NOTE).toContain(
       "It also starts with only its OneUptime URL, its key and its telemetry settings instead of the app's whole environment",
     );
 
     // Its own key, and neither the app's environment nor the cluster key.
     const chart: string = source(
-      "HelmChart/Public/oneuptime/templates/runner.yaml",
+      "HelmChart/Public/oneuptime/templates/global-runner.yaml",
     );
-    expect(chart).toContain('include "oneuptime.env.runnerKey"');
+    expect(chart).toContain('include "oneuptime.globalRunnerKeyValue"');
     expect(chart).not.toContain('include "oneuptime.env.oneuptimeSecret"');
     expect(chart).not.toContain('include "oneuptime.env.runtime"');
 
     const compose: string = source("docker-compose.base.yml");
-    const runnerService: string = compose.slice(
-      compose.indexOf("\n  runner:\n"),
+    const globalRunnerService: string = compose.slice(
+      compose.indexOf("\n  global-runner:\n"),
       compose.indexOf("\n  fluentd:\n"),
     );
-    expect(runnerService).toContain("<<: *common-runner-variables");
-    expect(runnerService).not.toContain("*common-runtime-variables");
+    expect(globalRunnerService).toContain(
+      "ONEUPTIME_RUNNER_KEY: ${GLOBAL_RUNNER_KEY}",
+    );
+    expect(globalRunnerService).not.toContain("*common-runtime-variables");
+    expect(globalRunnerService).not.toContain("ONEUPTIME_SECRET:");
   });
 
   it("links to Run a Runner of your own, and says Runners installed by the operator see no change", () => {

@@ -11,7 +11,7 @@ flowchart TB
         direction TB
         Ingress["Ingress<br/>(Nginx, TLS)"]
         App["App<br/>dashboards,<br/>statuspagina's,<br/>API, ingest,<br/>achtergrondtaken"]
-        Runner["Runner"]
+        Runner["Globale Runner"]
         Probe["Probes"]
         subgraph Data["Gegevensopslagen"]
             direction LR
@@ -54,8 +54,7 @@ flowchart TB
 | Worker | Onderdeel van `app` | `worker` (standaard uit) | De achtergrondtaken, in eigen pods, zodat zware wachtrijverwerking nooit concurreert met API-verzoeken. |
 | Telemetry writer | Onderdeel van `app` | `telemetryWriter` (standaard uit) | Een laag van vaste grootte die elke ClickHouse-insert uitvoert, zodat de inserts begrensd blijven hoe ver de workers ook schalen. |
 | Probe | `probe-1` | `probes` | Voert monitorcontroles uit en stuurt de resultaten terug. Elke meegeleverde probe is een globale probe die alle projecten kunnen gebruiken. |
-| Runner | `runner` | `runner` | De eigen Runner van de instantie, die AI-codecorrecties voor elk project kan uitvoeren. Runbook-stappen draaien op [Runners](/docs/runbooks/agents) die u installeert waar ze moeten draaien. |
-| Globale Runner | `global-runner` | `globalRunner` | Een [globale Runner](/docs/runbooks/agents#globale-runners): hij voert de JavaScript-stappen uit van elk project dat geen eigen Runner kiest, elk in een sandbox die alleen het internet bereikt. Hij heeft een eigen sleutel en verder niets van de server. |
+| Globale Runner | `global-runner` | `globalRunner` | Een [globale Runner](/docs/runbooks/agents#globale-runners): hij voert de JavaScript-stappen uit van elk project dat geen eigen Runner kiest, elk in een sandbox die alleen het internet bereikt, en de codecorrecties van OneUptime AI in elke coderepository die er geen kiest. Hij heeft een eigen sleutel en verder niets van de server. Bash-, SSH- en kubectl-stappen draaien op [Runners](/docs/runbooks/agents) die u installeert waar ze moeten draaien. |
 | PostgreSQL | `postgres` | `postgresql`, of `postgresOperator.cnpg` | Projecten, monitors, incidenten, gebruikers en elke andere instelling en status. |
 | ClickHouse | `clickhouse` | `clickhouse`, of `clickhouseOperator.altinity` | Logs, metrics, traces, exceptions, profielen en monitorlogs. |
 | Valkey | `valkey` | `valkey` | De cache, de takenwachtrijen en kortlevende status zoals openstaande push-ontvangstbewijzen. |

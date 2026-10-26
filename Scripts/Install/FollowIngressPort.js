@@ -1,5 +1,5 @@
-// Points the bundled probes and Runner at the port the ingress is published
-// on, when config.env moves the ingress off port 80.
+// Points the bundled probes at the port the ingress is published on, when
+// config.env moves the ingress off port 80.
 
 const fs = require("fs");
 const { readSettings } = require("./ReplacePlaceholderSecrets");
@@ -8,18 +8,20 @@ const { ok, listed } = require("./StartOutput");
 /*
  * WHY
  *
- * The bundled probes and the shared Runner use the host's network, so they
- * reach OneUptime the way anything on the server does: through the ingress,
- * at GLOBAL_PROBE_1_ONEUPTIME_URL, GLOBAL_PROBE_2_ONEUPTIME_URL and
- * ONEUPTIME_RUNNER_ONEUPTIME_URL, which config.example.env ships as
- * http://localhost - port 80. Moving the ingress (ONEUPTIME_HTTP_PORT=8080,
- * because port 80 was taken, or 127.0.0.1:8080 behind a proxy of one's own)
- * left them calling port 80: the probe registered nowhere and showed
- * Disconnected, and monitors never ran (issues #1834, #2035, and the Docker
- * Compose guide's troubleshooting said to set the three by hand).
+ * The bundled probes use the host's network, so they reach OneUptime the way
+ * anything on the server does: through the ingress, at
+ * GLOBAL_PROBE_1_ONEUPTIME_URL and GLOBAL_PROBE_2_ONEUPTIME_URL, which
+ * config.example.env ships as http://localhost - port 80. Moving the ingress
+ * (ONEUPTIME_HTTP_PORT=8080, because port 80 was taken, or 127.0.0.1:8080
+ * behind a proxy of one's own) left them calling port 80: the probe
+ * registered nowhere and showed Disconnected, and monitors never ran (issues
+ * #1834, #2035, and the Docker Compose guide's troubleshooting said to set
+ * them by hand). The bundled global Runner reaches the app on OneUptime's own
+ * network (http://app:APP_PORT), so where the ingress listens is nothing to
+ * it.
  *
- * So `npm start`, before Compose starts anything, moves each of the three
- * that calls this server over plain HTTP (localhost, 127.0.0.1 or [::1]) on
+ * So `npm start`, before Compose starts anything, moves each of them that
+ * calls this server over plain HTTP (localhost, 127.0.0.1 or [::1]) on
  * another port than the ingress's to the ingress's address, and says so. A
  * URL for anything else - a domain name, https, another server, a path - is
  * the operator's own choice and is left exactly as it is, as is every other
@@ -34,7 +36,6 @@ const { ok, listed } = require("./StartOutput");
 const BUNDLED_URL_SETTINGS = [
   "GLOBAL_PROBE_1_ONEUPTIME_URL",
   "GLOBAL_PROBE_2_ONEUPTIME_URL",
-  "ONEUPTIME_RUNNER_ONEUPTIME_URL",
 ];
 
 const INGRESS_PORT_SETTING = "ONEUPTIME_HTTP_PORT";
@@ -170,27 +171,10 @@ const followIngressPort = (contents) => {
 
 /*
  * What the moved settings belong to, as the line names it: "the bundled
- * probe", "the bundled probes", "the bundled Runner", "the bundled probe and
- * Runner"...
+ * probe" or "the bundled probes".
  */
 const movedServicesOf = (moved) => {
-  const probes = moved.filter((key) => {
-    return key.indexOf("_PROBE_") !== -1;
-  }).length;
-  const hasRunner = moved.some((key) => {
-    return key.indexOf("_RUNNER_") !== -1;
-  });
-  const names = [];
-
-  if (probes > 0) {
-    names.push(probes === 1 ? "probe" : "probes");
-  }
-
-  if (hasRunner) {
-    names.push("Runner");
-  }
-
-  return `the bundled ${listed(names)}`;
+  return `the bundled ${moved.length === 1 ? "probe" : "probes"}`;
 };
 
 // The line printed when followIngressPort moved something.

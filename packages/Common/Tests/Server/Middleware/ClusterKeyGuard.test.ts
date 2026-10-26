@@ -3,11 +3,11 @@ import { REPOSITORY_DIRECTORY } from "../../Helpers/TagStripScan";
 import escapeRegExp from "../../../Utils/RegExpEscape";
 import { INSTALLATION_CLUSTER_KEY_LABEL } from "../../../Server/Middleware/ClusterKeyAuthorization";
 import {
+  CLUSTER_KEY_MIDDLEWARES,
   CLUSTER_KEY_ROUTE_CALLERS,
   ClusterKeyMiddlewareUse,
   ClusterKeyRoute,
   ClusterKeyRouteCaller,
-  RUNNER_REGISTRATION_MIDDLEWARE,
   SERVICE_MIDDLEWARE,
   findClusterKeyMiddlewareUses,
   findClusterKeyRoutes,
@@ -33,33 +33,26 @@ import ts from "typescript";
  *
  *   - only EnvironmentConfig reads ONEUPTIME_SECRET, and it has no fallback;
  *   - only ClusterKeyAuthorization reads the configured key
- *     (EnvironmentConfig.ClusterKey, IsClusterKeyShipped), and only the
- *     Runner reads whether one is set at all (HasClusterKey);
+ *     (EnvironmentConfig.ClusterKey, IsClusterKeyShipped), and nothing says
+ *     whether one is set at all, as HasClusterKey did for the Runner;
  *   - only ClusterKeyAuthorization reads a key a request carries - the
- *     clusterkey and x-clusterkey headers, and, for the Runner's
- *     registration alone, the clusterKey field Runners of earlier releases
- *     send - and nothing writes one into a body or a URL (LogRedaction names
- *     it only to keep it out of logs);
- *   - a route takes the cluster key only by handing a router one of
- *     ClusterKeyAuthorization's checks, never by wrapping or storing it, and
- *     only the Runner's registration is handed the one that also reads a
- *     body;
+ *     clusterkey and x-clusterkey headers - and nothing writes one into a
+ *     body or a URL (LogRedaction names it only to keep it out of logs);
+ *   - a route takes the cluster key only by handing a router
+ *     ClusterKeyAuthorization's one check, never by wrapping or storing it;
+ *   - what let the shared Runner register with the cluster key, or with a
+ *     key of its own, is gone, and no product code names it;
  *   - every route that takes it is called by OneUptime's own code, and every
  *     file that presents it presents it to such a route, in the header, in a
  *     request that follows a redirect only on the server it was sent to
  *     (sameServerRedirectsOnly - an HTTP client hands a redirected request's
  *     headers to wherever the redirect points);
- *   - only the app's own code (App, Common) and the Runner present the key,
- *     because only processes that load the installation's token signing key
- *     at boot (App/Index.ts) know the key an installation that kept a shipped
- *     value derives; and the Runner presents one only when its deployment
- *     gives it a key it may send - it registers with its own key, and sends
- *     the cluster key only for an app that does not hold the Runner's key
- *     yet;
- *   - the Runner's registration hands a request that carries no cluster key
- *     anywhere to the shared Runner's own key (SharedRunnerKeyAuthorization),
- *     and nothing else;
- *   - both checks count the different wrong keys a client sends
+ *   - only the app's own code (App, Common) presents the key, because only
+ *     processes that load the installation's token signing key at boot
+ *     (App/Index.ts) know the key an installation that kept a shipped value
+ *     derives; no Runner presents it - every Runner proves who it is with its
+ *     own id and key;
+ *   - the check counts the different wrong keys a client sends
  *     (WrongClusterKeyLimit) in one place, after the key is compared and
  *     before the request is answered as right or wrong, and nothing else
  *     counts them; a key from a private network address, where every one of
@@ -77,7 +70,6 @@ const ENVIRONMENT_CONFIG: string =
   "packages/Common/Server/EnvironmentConfig.ts";
 const CLUSTER_KEY_AUTHORIZATION: string =
   "packages/Common/Server/Middleware/ClusterKeyAuthorization.ts";
-const RUNNER_CONFIG: string = "packages/Runner/Config.ts";
 const RUNNER_REGISTRATION: string =
   "packages/Runner/Services/RegisterRunner.ts";
 const LOG_REDACTION: string = "packages/Common/Server/Utils/LogRedaction.ts";
@@ -85,13 +77,10 @@ const WEBHOOK_TRIGGER: string =
   "packages/Common/Server/Types/Workflow/Components/Webhook.ts";
 const INCOMING_REQUEST_INGEST: string =
   "packages/App/FeatureSet/Telemetry/API/IncomingRequestIngest/IncomingRequest.ts";
-const AI_AGENT_API: string = "packages/Common/Server/API/AIAgentAPI.ts";
 const WRONG_CLUSTER_KEY_LIMIT: string =
   "packages/Common/Server/Utils/RateLimit/WrongClusterKeyLimit.ts";
 const WRONG_KEY_LIMIT: string =
   "packages/Common/Server/Utils/RateLimit/WrongKeyLimit.ts";
-const SHARED_RUNNER_KEY_AUTHORIZATION: string =
-  "packages/Common/Server/Middleware/SharedRunnerKeyAuthorization.ts";
 
 const ONEUPTIME_SECRET_READ: RegExp =
   /process\.env(?:\[\s*["'`]ONEUPTIME_SECRET["'`]\s*\]|\.ONEUPTIME_SECRET\b)/;
@@ -100,10 +89,19 @@ const ONEUPTIME_SECRET_READ: RegExp =
 const CLUSTER_KEY_WORD: RegExp = /\bclusterkey\b/i;
 
 /*
+ * What the shared Runner registered through, as the installation's global AI
+ * agent: a check of its own, the clusterKey field Runners of earlier releases
+ * sent, what the app told such a Runner, and the check of the shared
+ * Runner's own key. All of it is gone with that Runner.
+ */
+const SHARED_RUNNER_REGISTRATION: RegExp =
+  /\b(?:isAuthorizedRunnerRegistrationMiddleware|getOlderRunnerClusterKey|OLDER_RUNNER_CLUSTER_KEY_MESSAGE|RUNNER_CLUSTER_KEY_MESSAGE|SharedRunnerKeyAuthorization)\b/;
+
+/*
  * Every file that presents the key, with the address it sends it to: one of
  * the installation's own, read from its configuration (the app's API, the
- * workflow service, the telemetry writer, the OneUptime URL the in-cluster
- * Runner is given), never an address a project or a request supplies.
+ * workflow service, the telemetry writer), never an address a project or a
+ * request supplies.
  */
 const PRESENTERS: Record<string, string> = {
   "packages/App/FeatureSet/Telemetry/Services/IncomingEmailWorkflowDelivery.ts":
@@ -119,7 +117,6 @@ const PRESENTERS: Record<string, string> = {
   "packages/Common/Server/Utils/IncomingCallPhoneNumber.ts": "AppApiHostname",
   "packages/Common/Server/Utils/Telemetry/TelemetryWriterClient.ts":
     "TELEMETRY_WRITER_URL",
-  "packages/Runner/Services/RegisterRunner.ts": "ONEUPTIME_BASE_URL",
 };
 
 /*
@@ -202,15 +199,13 @@ function placeOf(
 
 /*
  * All that code outside ClusterKeyAuthorization uses of it: present the key
- * in a header, hand a router one of its checks, take the key's headers out
- * of headers it hands on, and - the Runner - ask whether it was given a key
- * it may send. Nothing else reads, compares or holds the key, or the class.
+ * in a header, hand a router its check, and take the key's headers out of
+ * headers it hands on. Nothing else reads, compares or holds the key, or the
+ * class.
  */
 const MEMBERS_USED_OUTSIDE: Array<string> = [
   "getClusterKeyHeaders",
-  "isAuthorizedRunnerRegistrationMiddleware",
   "isAuthorizedServiceMiddleware",
-  "isConfiguredClusterKeyShipped",
   "withoutClusterKeyHeaders",
 ];
 
@@ -314,17 +309,15 @@ describe("ONEUPTIME_SECRET is read in one place, with no fallback", () => {
     expect(declaration).toContain('process.env["ONEUPTIME_SECRET"] || ""');
   });
 
-  test("only ClusterKeyAuthorization reads the configured key, and only the Runner whether one is set", () => {
+  test("only ClusterKeyAuthorization reads the configured key, and nothing whether one is set", () => {
     expect(
       filesImportingFromEnvironmentConfig([
         "ClusterKey",
         "IsClusterKeyShipped",
       ]),
     ).toEqual([CLUSTER_KEY_AUTHORIZATION]);
-    expect(filesImportingFromEnvironmentConfig(["HasClusterKey"])).toEqual([
-      RUNNER_CONFIG,
-      RUNNER_REGISTRATION,
-    ]);
+    // HasClusterKey told the shared Runner it was one; it went with it.
+    expect(codeOf(ENVIRONMENT_CONFIG)).not.toContain("HasClusterKey");
   });
 });
 
@@ -356,11 +349,15 @@ describe("a presented cluster key is read in one place", () => {
     expect(fragments).toContain('"clusterkey",');
   });
 
-  test("nothing writes the key into a request body: the Runner sends it in the header", () => {
+  test("nothing writes the key into a request body, and no Runner sends it at all", () => {
     expect(codeOf(RUNNER_REGISTRATION)).not.toMatch(/\bclusterKey\s*:/);
-    expect(codeOf(RUNNER_REGISTRATION)).toContain(
-      "...ClusterKeyAuthorization.getClusterKeyHeaders(),",
-    );
+    expect(
+      productFilesWhoseCodeMatches(/\bClusterKeyAuthorization\b/).filter(
+        (relativePath: string): boolean => {
+          return relativePath.startsWith("packages/Runner/");
+        },
+      ),
+    ).toEqual([]);
   });
 
   test("every use of the check is a router handed it for a route", () => {
@@ -374,9 +371,10 @@ describe("a presented cluster key is read in one place", () => {
     ).toEqual([]);
   });
 
-  test("only the Runner's registration is handed the check that also reads a body", () => {
+  test("every route is handed the one check, which reads the key from the headers", () => {
     const routes: Array<ClusterKeyRoute> = findClusterKeyRoutes();
 
+    expect(routes.length).toBeGreaterThan(0);
     expect(
       routes
         .filter((route: ClusterKeyRoute): boolean => {
@@ -385,12 +383,16 @@ describe("a presented cluster key is read in one place", () => {
         .map((route: ClusterKeyRoute): string => {
           return `${route.middleware} ${route.method} ${route.file} ${route.path}`;
         }),
-    ).toEqual([
-      `${RUNNER_REGISTRATION_MIDDLEWARE} POST ${AI_AGENT_API} \`\${new this.entityType().getCrudApiPath()?.toString()}/register\``,
-    ]);
+    ).toEqual([]);
   });
 
-  test("ClusterKeyAuthorization reads the key from the headers, a URL only to refuse it, and a body only for the Runner's registration", () => {
+  test("what let the shared Runner register is gone: no product code names it", () => {
+    expect(productFilesWhoseCodeMatches(SHARED_RUNNER_REGISTRATION)).toEqual(
+      [],
+    );
+  });
+
+  test("ClusterKeyAuthorization reads the key from the headers, a URL only to refuse it, and never a body", () => {
     const sourceFile: ts.SourceFile = ts.createSourceFile(
       "ClusterKeyAuthorization.ts",
       codeOf(CLUSTER_KEY_AUTHORIZATION),
@@ -418,21 +420,12 @@ describe("a presented cluster key is read in one place", () => {
     expect(methods["getPresentedClusterKey"]).toContain("req.headers");
     expect(methods["getPresentedClusterKey"]).not.toMatch(REQUEST_PARTS);
 
-    // A body is read in one method, which one middleware alone calls.
-    const readsABody: Array<string> = Object.keys(methods).filter(
-      (name: string): boolean => {
-        return REQUEST_BODY.test(methods[name]!);
-      },
-    );
-
-    expect(readsABody).toEqual(["getOlderRunnerClusterKey"]);
+    // No method reads a body.
     expect(
       Object.keys(methods).filter((name: string): boolean => {
-        return methods[name]!.includes(
-          "ClusterKeyAuthorization.getOlderRunnerClusterKey(",
-        );
+        return REQUEST_BODY.test(methods[name]!);
       }),
-    ).toEqual(["isAuthorizedRunnerRegistrationMiddleware"]);
+    ).toEqual([]);
 
     // The URL is read only to refuse the request, before anything else.
     const authorize: string = methods["authorize"] || "";
@@ -455,7 +448,7 @@ describe("a presented cluster key is read in one place", () => {
   test("nothing outside ClusterKeyAuthorization reads the key from a request", () => {
     expect(
       productFilesWhoseCodeMatches(
-        /\bClusterKeyAuthorization\.(?:getPresentedClusterKey|getOlderRunnerClusterKey|carriesClusterKeyInUrl|authorize)\(/,
+        /\bClusterKeyAuthorization\.(?:getPresentedClusterKey|carriesClusterKeyInUrl|authorize)\(/,
       ).filter((relativePath: string): boolean => {
         return relativePath !== CLUSTER_KEY_AUTHORIZATION;
       }),
@@ -571,14 +564,13 @@ describe("only processes that can know the installation's key present it", () =>
   const presenters: Array<string> =
     productFilesWhoseCodeMatches(PRESENTING_CALL);
 
-  test("the app's own code and the Runner, nothing else", () => {
+  test("the app's own code, nothing else: no Runner", () => {
     expect(presenters.length).toBeGreaterThan(0);
     expect(
       presenters.filter((relativePath: string): boolean => {
         return (
           !relativePath.startsWith("packages/App/") &&
-          !relativePath.startsWith("packages/Common/") &&
-          relativePath !== RUNNER_REGISTRATION
+          !relativePath.startsWith("packages/Common/")
         );
       }),
     ).toEqual([]);
@@ -615,62 +607,6 @@ describe("only processes that can know the installation's key present it", () =>
         );
       }),
     ).toEqual([]);
-  });
-
-  test("the Runner presents it only when its deployment gave it a key it may send", () => {
-    const code: string = codeOf(RUNNER_REGISTRATION);
-    const sourceFile: ts.SourceFile = parse(RUNNER_REGISTRATION);
-
-    // What holdsClusterKey says: a key is set, and is not a shipped value.
-    const holds: string =
-      code.split("public static holdsClusterKey(): boolean {")[1] || "";
-
-    // Read as one line, however the condition is wrapped.
-    const condition: string = holds
-      .split("}")[0]!
-      .split(/\s+/)
-      .join(" ")
-      .replace(/\( /g, "(")
-      .replace(/ \)/g, ")");
-
-    expect(condition).toContain(
-      "if (!HasClusterKey || ClusterKeyAuthorization.isConfiguredClusterKeyShipped()) { return false;",
-    );
-
-    // The one presentation sits in the branch holdsClusterKey() decides.
-    const presentations: Array<string> = [];
-
-    const visit: (node: ts.Node) => void = (node: ts.Node): void => {
-      if (
-        ts.isCallExpression(node) &&
-        node.expression.getText(sourceFile) ===
-          "ClusterKeyAuthorization.getClusterKeyHeaders"
-      ) {
-        let branch: ts.Node = node;
-
-        while (
-          branch.parent &&
-          !(
-            ts.isConditionalExpression(branch.parent) &&
-            branch.parent.whenTrue === branch
-          )
-        ) {
-          branch = branch.parent;
-        }
-
-        presentations.push(
-          branch.parent && ts.isConditionalExpression(branch.parent)
-            ? branch.parent.condition.getText(sourceFile)
-            : "outside a branch",
-        );
-      }
-
-      ts.forEachChild(node, visit);
-    };
-
-    visit(sourceFile);
-
-    expect(presentations).toEqual(["Register.holdsClusterKey()"]);
   });
 });
 
@@ -924,13 +860,17 @@ describe("every check counts the different wrong keys a client sends, in one pla
     return bodies;
   }
 
-  test("both checks hand the request to authorize, and nothing else answers it", () => {
+  test("its one check hands the request to authorize, and nothing else answers it", () => {
     const bodies: Record<string, string> = methodBodies();
 
-    for (const check of [
-      "isAuthorizedServiceMiddleware",
-      "isAuthorizedRunnerRegistrationMiddleware",
-    ]) {
+    // No check but the one ClusterKeyRoutes finds routes handed.
+    expect(
+      Object.keys(bodies).filter((name: string): boolean => {
+        return name.startsWith("isAuthorized");
+      }),
+    ).toEqual(CLUSTER_KEY_MIDDLEWARES);
+
+    for (const check of CLUSTER_KEY_MIDDLEWARES) {
       expect({ check, body: bodies[check] }).toEqual({
         check,
         body: expect.stringContaining(
@@ -1069,44 +1009,6 @@ describe("every check counts the different wrong keys a client sends, in one pla
     expect(codeOf(WRONG_KEY_LIMIT)).toContain(
       'import { isPrivateNetworkAddress } from "../PrivateNetworkAddress";',
     );
-  });
-
-  test("the Runner's registration hands a request that carries no cluster key anywhere to the Runner's own key, and nothing else", () => {
-    const bodies: Record<string, string> = methodBodies();
-    const registration: string =
-      bodies["isAuthorizedRunnerRegistrationMiddleware"] || "";
-
-    const noKeyAnywhere: number = registration.indexOf(
-      "if (inHeader === undefined && inOlderBody === undefined && !ClusterKeyAuthorization.carriesClusterKeyInUrl(req)) { return await SharedRunnerKeyAuthorization.authorizeRegistration(req, res, next); }",
-    );
-    const withAKey: number = registration.indexOf(
-      "return await ClusterKeyAuthorization.authorize({",
-    );
-
-    expect(noKeyAnywhere).toBeGreaterThan(-1);
-    expect(withAKey).toBeGreaterThan(noKeyAnywhere);
-    expect(
-      registration.split("SharedRunnerKeyAuthorization.authorizeRegistration("),
-    ).toHaveLength(2);
-
-    // No other check, and no other file, hands a request there.
-    expect(
-      Object.keys(bodies).filter((name: string): boolean => {
-        return bodies[name]!.includes("SharedRunnerKeyAuthorization");
-      }),
-    ).toEqual(["isAuthorizedRunnerRegistrationMiddleware"]);
-    expect(
-      productFilesWhoseCodeMatches(
-        /\bSharedRunnerKeyAuthorization\.authorizeRegistration\(/,
-      ),
-    ).toEqual([CLUSTER_KEY_AUTHORIZATION]);
-    expect(
-      productFilesWhoseCodeMatches(/\bSharedRunnerKeyAuthorization\b/).filter(
-        (relativePath: string): boolean => {
-          return relativePath !== SHARED_RUNNER_KEY_AUTHORIZATION;
-        },
-      ),
-    ).toEqual([CLUSTER_KEY_AUTHORIZATION]);
   });
 });
 

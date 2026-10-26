@@ -464,7 +464,8 @@ async function litEntries(page: Page): Promise<Array<string>> {
     .evaluateAll((anchors: Array<Element>): Array<string> => {
       return anchors.map((anchor: Element): string => {
         return (
-          anchor.querySelector("span.truncate")?.textContent ||
+          anchor.querySelector('[data-testid="side-menu-item-title"]')
+            ?.textContent ||
           anchor.textContent ||
           ""
         ).trim();
@@ -5640,7 +5641,9 @@ test.describe("detections", () => {
           );
           await expect(entry).toContainText(count!, { timeout: 30000 });
 
-          const title: Locator = entry.locator("span.truncate").first();
+          const title: Locator = entry
+            .getByTestId("side-menu-item-title")
+            .first();
           const cutBy: number = await title.evaluate(
             (element: Element): number => {
               return element.scrollWidth - element.clientWidth;
@@ -5656,7 +5659,7 @@ test.describe("detections", () => {
 
         // Every entry in sight: a folded section's are hidden.
         const cutInSight: Array<string> = await sideMenu(page)
-          .locator("a span.truncate")
+          .locator('a [data-testid="side-menu-item-title"]')
           .evaluateAll((titles: Array<Element>): Array<string> => {
             return titles
               .filter((title: Element): boolean => {

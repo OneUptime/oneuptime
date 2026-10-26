@@ -1931,7 +1931,7 @@ describe("an event's state timeline", () => {
     "## The state timeline",
   );
 
-  it("draws the Status Timeline card, and its Table view with the columns the page names", () => {
+  it("draws the State Timeline card, and its Table view with the columns the page names", () => {
     const viewSwitch: string = readCommonSource(
       "UI/Components/StatusTimeline/StatusTimelineView.tsx",
     );
@@ -1942,7 +1942,9 @@ describe("an event's state timeline", () => {
     );
     const columns: string = table.slice(table.indexOf("columns={["));
 
-    expect(STATE_TIMELINE_PAGE).toContain('title="Status Timeline"');
+    // The card is named like the page and its menu entry: State Timeline.
+    expect(STATE_TIMELINE_PAGE).toContain('title="State Timeline"');
+    expect(STATE_TIMELINE_PAGE).not.toContain('"Status Timeline"');
     expect(viewSwitch).toContain('label: translationKey("Table"),');
     expect(quotedTitles(columns)).toEqual([
       "Scheduled Maintenance Status",
@@ -1953,9 +1955,7 @@ describe("an event's state timeline", () => {
     expect(columns).toContain(
       "getStateTimelineEndsAtColumn<ScheduledMaintenanceStateTimeline>(),\n          getStateTimelineDurationColumn<ScheduledMaintenanceStateTimeline>(),",
     );
-    expect(timeline).toContain(
-      "Its card, **Status Timeline**, draws them as a timeline",
-    );
+    expect(timeline).toContain("Its card draws them as a timeline");
     expect(timeline).toContain(
       "**Table**, in the card's header, lists them as rows instead, with **Scheduled Maintenance Status**, **Starts At**, **Ends At**, **Duration**, whether subscribers were to be notified, and how their notification went.",
     );

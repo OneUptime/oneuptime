@@ -22,12 +22,12 @@ import {
   UptimeDayBucket,
   UptimeStatusDuration,
 } from "../../../Types/StatusPage/UptimeDailyAggregate";
-import LocalStorage from "../../../UI/Utils/LocalStorage";
 import Navigation from "../../../UI/Utils/Navigation";
 import { NO_DATA_BAR_COLOR } from "../../../UI/Components/Graphs/DayUptimeGraph";
 import UptimeDailyAggregateUtil from "../../../Utils/StatusPage/UptimeDailyAggregateUtil";
 import DayUptimeGraphUtil from "../../../Utils/Uptime/DayUptimeGraphUtil";
 import Overview from "../../../../App/FeatureSet/StatusPage/src/Pages/Overview/Overview";
+import StatusPageUtil from "../../../../App/FeatureSet/StatusPage/src/Utils/StatusPage";
 
 /*
  * Contract under test - the time zone half of the status.chainflip.io grey
@@ -690,7 +690,7 @@ function serveTheOverviewAt(scenario: Scenario): void {
 
   beforeEach(() => {
     localStorage.clear();
-    LocalStorage.setItem("statusPageId", new ObjectID(STATUS_PAGE_ID));
+    StatusPageUtil.setStatusPageId(new ObjectID(STATUS_PAGE_ID));
     window.history.replaceState({}, "", "/");
     Navigation.navigate = (): void => {};
     jest.useFakeTimers();
@@ -959,7 +959,7 @@ describe("Status page overview in New York - the strip is drawn over the server'
 
     beforeEach(() => {
       localStorage.clear();
-      LocalStorage.setItem("statusPageId", new ObjectID(STATUS_PAGE_ID));
+      StatusPageUtil.setStatusPageId(new ObjectID(STATUS_PAGE_ID));
       window.history.replaceState({}, "", "/");
       Navigation.navigate = (): void => {};
       jest.useFakeTimers();

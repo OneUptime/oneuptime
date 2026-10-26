@@ -20,7 +20,7 @@ flowchart TB
 
 ## Abre la línea de tiempo
 
-- **Guardia** > **Cronología de la programación** muestra todas las programaciones que puedes ver, agrupadas por equipo propietario. El botón **Vista de cronología** de **Programaciones de guardia** abre la misma página.
+- **Guardia** > **Cronología de la programación** muestra todas las programaciones que puedes ver, agrupadas por equipo propietario. En **Programaciones de guardia**, **Cronología de la programación** del menú **⋯** abre la misma página.
 - **Equipos** > un equipo > **Programaciones de guardia** muestra solo las programaciones de las que ese equipo es propietario.
 
 Un equipo es propietario de una programación cuando figura en la página **Propietarios** de la programación. Las programaciones sin equipo propietario se agrupan en **Sin equipo propietario**. Desactiva **Agrupar por equipo** para ver todas las programaciones en una sola lista, ordenada por nombre.

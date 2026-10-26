@@ -112,6 +112,7 @@ import {
 } from "Common/Types/Workspace/WorkspaceChannelLink";
 import EntityRunbooks from "../../../Components/Runbook/EntityRunbooks";
 import RemediationSuggestionCard from "../../../Components/AutoRemediation/RemediationSuggestionCard";
+import { AFFECTED_RESOURCES_PLACE_ID } from "../../../Components/AutoRemediation/RemediationDecisionLines";
 import useAiCardFold, {
   AiCardFoldWiring,
 } from "../../../Components/AI/useAiCardFold";
@@ -1320,6 +1321,8 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               description:
                 "Monitors, services, infrastructure and SLOs this alert affects.",
               headerLayout: "stacked",
+              // Where the Remediation card's "Go to Affected Resources" lands.
+              id: AFFECTED_RESOURCES_PLACE_ID,
             }}
             createEditModalWidth={ModalWidth.Medium}
             isEditable={true}

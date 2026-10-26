@@ -53,7 +53,7 @@ export function getScheduleMaintenanceBreadcrumbs(
         "Project",
         "Scheduled Maintenance Events",
         "View Scheduled Maintenance Event",
-        "Status Timeline",
+        "State Timeline",
       ],
     ),
     ...BuildBreadcrumbLinksByTitles(

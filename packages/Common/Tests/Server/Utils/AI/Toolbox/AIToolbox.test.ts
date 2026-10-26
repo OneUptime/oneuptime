@@ -237,6 +237,12 @@ describe("AIToolbox contract", () => {
       [
         "acknowledge_alert",
         "acknowledge_incident",
+        /*
+         * What an incident or alert is about, linked as its Affected
+         * Resources Edit links it (#5293).
+         */
+        "add_alert_affected_resources",
+        "add_incident_affected_resources",
         // A security case: a note on it, a playbook started on it.
         "add_security_case_note",
         "change_incident_severity",

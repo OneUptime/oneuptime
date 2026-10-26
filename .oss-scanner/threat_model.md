@@ -39,8 +39,7 @@ and several agents are collector configuration plus shell installers.
 | `app` | `packages/App`, `packages/Common`, `ee/` | The API (`/api`), sign-in and SSO (`/identity`), MCP (`/mcp`), workflows, notifications, telemetry ingestion (OTLP over HTTP and gRPC, Fluent, syslog, MQTT, Pyroscope, session replay), background workers, the docs, and every UI: Dashboard, Accounts, Admin Dashboard, Status Page, Public Dashboard. In Kubernetes the same image also runs as the `worker` and `telemetry-writer` roles. | Internet, through `ingress` |
 | `ingress` | `packages/Nginx` | nginx in front of everything: TLS, routing, custom domains for status pages and dashboards, and the ACME certificates for them. | Internet |
 | `probe-1` | `packages/Probe` | A global probe: runs monitors (HTTP, ping, port, DNS, SSL, SNMP, SQL, custom JavaScript, synthetic browser checks, ...) and reports results to `app` with a probe key. | Outbound to monitored targets |
-| `runner` | `packages/Runner` | Runs runbook steps (Bash, JavaScript, SSH, kubectl) and AI code fixes (clones a project's repository and opens pull requests), claimed from `app` with a runner key. Customers run their own Runner inside their network. | Outbound only |
-| `global-runner` | `packages/Runner` | The bundled global Runner: the Runner image started with a fixed id and its own key (`GLOBAL_RUNNER_KEY`), and nothing else (no cluster key, none of the server's settings). It runs the runbook JavaScript steps of every project that uses global Runners, each in its own isolated-vm sandbox that reaches public addresses only; never Bash, SSH or Kubernetes steps, a credential, an AI command or a code fix. | Outbound only, to public addresses |
+| `global-runner` | `packages/Runner` | The bundled global Runner: the Runner image started with a fixed id and its own key (`GLOBAL_RUNNER_KEY`), and nothing else (no cluster key, none of the server's settings). It runs the runbook JavaScript steps of every project that uses global Runners, each in its own isolated-vm sandbox that reaches public addresses only, and the AI code fixes of every repository on the Global Runner, each in its own workspace, written with the code agent's file tools alone: no repository command and no model-composed command ever runs on it. Never Bash, SSH or Kubernetes steps, a credential or an AI command. Any global Runner a master admin adds is held to the same. | Outbound only; Git servers on public addresses unless the installation is self-hosted |
 | `postgres` | schema in `packages/Common/Server/Infrastructure/Postgres` | Projects, users, configuration, incidents: everything but telemetry. | Internal only |
 | `clickhouse` | `Clickhouse/`, `packages/Common/Server/Utils/AnalyticsDatabase` | Telemetry: logs, traces, metrics, profiles, monitor results. | Internal only |
 | `valkey` | `packages/Common/Server/Infrastructure` | Cache, queues (BullMQ), locks and rate limits. | Internal only |
@@ -54,6 +53,12 @@ fixtures; `fluentd` and `fluent-bit` are example log shippers
 
 ### Outside the compose stack
 
+- **Runners** (`packages/Runner`) a project installs in its own network:
+  they run that project's runbook steps (Bash, JavaScript, SSH, kubectl) and
+  the AI code fixes of the repositories that pick them (clone the repository
+  and open pull requests), claimed from `app` with the Runner's own id and
+  key, outbound only. The `global-runner` service above is the same image,
+  which the server tells it is global.
 - **Agents** (`agents/`), installed in customers' infrastructure, each sending
   telemetry with a project's ingestion key: the Kubernetes agent (the
   `HelmChart/Public/kubernetes-agent` chart with `KubernetesLogTailer`,
@@ -158,7 +163,19 @@ transport (REST, MCP, realtime sockets, workers, AI tools, workflows):
    process, its environment, its files or credentials, other checks, other
    steps, or other projects. A global Runner is handed a step's script with
    only the runbook secrets that step's own project let global Runners use,
-   and never a credential.
+   and never a credential. The same process works on code fixes for every
+   project on the Global Runner and, for each, holds a token that can push
+   branches to that repository: the isolated-vm boundary around every
+   project's JavaScript steps is what keeps a step from reaching it, and a
+   fix runs none of the repository's commands beside them (the server never
+   hands a global Runner those commands, nor offers its model a command
+   tool). What a global Runner's key reaches is held to the run it claimed
+   (`CodeFixAgentAuth.deniesAccessToRun`): that run's details, exception,
+   repositories and repository token, only while it holds the run - never
+   another project's runs. A GitHub repository's token is minted for that
+   one repository, not the whole GitHub App installation, and the Runner
+   revokes it when the fix ends; a GitLab, Forgejo, Gitea or Git
+   repository's is its connection's own token.
 6. **Network egress from shared infrastructure.** Requests to URLs a user
    chooses (webhooks, workflow HTTP calls, sandboxed HTTP, data sources, SSO
    metadata, external status pages, monitors) go through
@@ -167,9 +184,12 @@ transport (REST, MCP, realtime sockets, workers, AI tools, workflows):
    `packages/Probe/Utils/PrivateNetworkMonitorPolicy.ts`. Loopback,
    link-local and cloud metadata addresses are refused in every deployment;
    private ranges are refused unless the operator allows them; global probes
-   on OneUptime Cloud are public-only, and global Runners are public-only in
-   every deployment. A custom probe or Runner reaching its own network is its
-   purpose.
+   on OneUptime Cloud are public-only, and global Runners' JavaScript steps
+   are public-only in every deployment. A global Runner's code fix reaches a
+   Git server on a public address over https, or, on a self-hosted
+   installation, the private ones the server itself may reach
+   (`packages/Runner/Utils/GitHostGuard.ts`). A custom probe or Runner
+   reaching its own network is its purpose.
 7. **Credentials and secrets.** Session tokens, API, ingestion, probe and
    runner keys, OAuth tokens for Slack, Microsoft Teams and GitHub, LLM keys,
    SMTP and Twilio credentials, monitor secrets and data-source passwords are
@@ -181,7 +201,9 @@ transport (REST, MCP, realtime sockets, workers, AI tools, workflows):
    the Kubernetes AI agent's access level, or a runbook's execute
    permission). The server cannot make them do more. A global Runner, which
    no project owns, is served only JavaScript steps of projects that use
-   global Runners, and refuses anything else it is handed.
+   global Runners and the AI code fixes of their repositories on the Global
+   Runner, runs no repository command or model-composed command for those,
+   and refuses anything else it is handed.
 9. **AI.** Investigations and chats read telemetry, notes and monitored
    content that attackers can write. Whatever that text says, the AI acts
    only inside the invoking project, with the permissions its user and the

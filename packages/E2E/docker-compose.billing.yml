@@ -4,7 +4,7 @@
 #
 #   docker compose -f docker-compose.yml -f packages/E2E/docker-compose.billing.yml up -d
 #
-# It adds the home container and leaves the runner and the global Runner out.
+# It adds the home container and leaves the global Runner out.
 
 services:
   home:
@@ -21,12 +21,6 @@ services:
         condition: service_healthy
 
   # Only started when this profile is active, which nothing ever does.
-  runner:
-    profiles:
-      - billing-disabled
-
-  # The bundled global Runner runs the same image as the runner, so it is left
-  # out with it.
   global-runner:
     profiles:
       - billing-disabled

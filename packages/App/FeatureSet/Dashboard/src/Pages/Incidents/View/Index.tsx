@@ -70,6 +70,7 @@ import InvestigationPanel, {
 import InvestigationConversation from "../../../Components/AI/InvestigationConversation/InvestigationConversation";
 import EntityRunbooks from "../../../Components/Runbook/EntityRunbooks";
 import RemediationSuggestionCard from "../../../Components/AutoRemediation/RemediationSuggestionCard";
+import { AFFECTED_RESOURCES_PLACE_ID } from "../../../Components/AutoRemediation/RemediationDecisionLines";
 import useAiCardFold, {
   AiCardFoldWiring,
 } from "../../../Components/AI/useAiCardFold";
@@ -1507,6 +1508,8 @@ const IncidentView: FunctionComponent<
               description:
                 "Monitors, services, infrastructure and SLOs this incident affects.",
               headerLayout: "stacked",
+              // Where the Remediation card's "Go to Affected Resources" lands.
+              id: AFFECTED_RESOURCES_PLACE_ID,
             }}
             createEditModalWidth={ModalWidth.Medium}
             isEditable={true}

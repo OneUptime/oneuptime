@@ -9,27 +9,27 @@ export function getDockerSwarmBreadcrumbs(
   const breadcrumpLinksMap: Dictionary<Link[]> = {
     ...BuildBreadcrumbLinksByTitles(PageMap.DOCKER_SWARM_CLUSTERS, [
       "Project",
-      "DockerSwarm",
+      "Docker Swarm",
       "Clusters",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.DOCKER_SWARM_CLUSTER_VIEW, [
       "Project",
-      "DockerSwarm",
+      "Docker Swarm",
       "View Cluster",
     ]),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.DOCKER_SWARM_CLUSTER_VIEW_TOPOLOGY,
-      ["Project", "DockerSwarm", "View Cluster", "Topology"],
+      ["Project", "Docker Swarm", "View Cluster", "Topology"],
     ),
     ...BuildBreadcrumbLinksByTitles(PageMap.DOCKER_SWARM_CLUSTER_VIEW_NODES, [
       "Project",
-      "DockerSwarm",
+      "Docker Swarm",
       "View Cluster",
       "Nodes",
     ]),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.DOCKER_SWARM_CLUSTER_VIEW_NODE_DETAIL,
-      ["Project", "DockerSwarm", "View Cluster", "Nodes", "Node Detail"],
+      ["Project", "Docker Swarm", "View Cluster", "Nodes", "Node Detail"],
     ),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.DOCKER_SWARM_CLUSTER_VIEW_SERVICES,
@@ -79,103 +79,103 @@ export function getDockerSwarmBreadcrumbs(
     ]),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.DOCKER_SWARM_CLUSTER_VIEW_INSIGHTS,
-      ["Project", "DockerSwarm", "View Cluster", "Resource Usage"],
+      ["Project", "Docker Swarm", "View Cluster", "Resource Usage"],
     ),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.DOCKER_SWARM_CLUSTER_VIEW_RECOMMENDATIONS,
-      ["Project", "DockerSwarm", "View Cluster", "Recommendations"],
+      ["Project", "Docker Swarm", "View Cluster", "Recommendations"],
     ),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.DOCKER_SWARM_CLUSTER_VIEW_AI_INSIGHTS,
-      ["Project", "DockerSwarm", "View Cluster", "AI", "Insights"],
+      ["Project", "Docker Swarm", "View Cluster", "AI", "Insights"],
     ),
     ...BuildBreadcrumbLinksByTitles(PageMap.DOCKER_SWARM_CLUSTER_VIEW_AI_LOGS, [
       "Project",
-      "DockerSwarm",
+      "Docker Swarm",
       "View Cluster",
       "AI",
       "Logs",
     ]),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.DOCKER_SWARM_CLUSTER_VIEW_AI_AGENT,
-      ["Project", "DockerSwarm", "View Cluster", "AI", "AI agent"],
+      ["Project", "Docker Swarm", "View Cluster", "AI", "AI agent"],
     ),
     ...BuildBreadcrumbLinksByTitles(PageMap.DOCKER_SWARM_CLUSTER_VIEW_METRICS, [
       "Project",
-      "DockerSwarm",
+      "Docker Swarm",
       "View Cluster",
       "Metrics",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.DOCKER_SWARM_CLUSTER_VIEW_LOGS, [
       "Project",
-      "DockerSwarm",
+      "Docker Swarm",
       "View Cluster",
       "Logs",
     ]),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.DOCKER_SWARM_CLUSTER_VIEW_INCIDENTS,
-      ["Project", "DockerSwarm", "View Cluster", "Incidents"],
+      ["Project", "Docker Swarm", "View Cluster", "Incidents"],
     ),
     ...BuildBreadcrumbLinksByTitles(PageMap.DOCKER_SWARM_CLUSTER_VIEW_ALERTS, [
       "Project",
-      "DockerSwarm",
+      "Docker Swarm",
       "View Cluster",
       "Alerts",
     ]),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.DOCKER_SWARM_CLUSTER_VIEW_SCHEDULED_MAINTENANCE,
-      ["Project", "DockerSwarm", "View Cluster", "Scheduled Maintenance"],
+      ["Project", "Docker Swarm", "View Cluster", "Scheduled Maintenance"],
     ),
     ...BuildBreadcrumbLinksByTitles(PageMap.DOCKER_SWARM_CLUSTER_VIEW_OWNERS, [
       "Project",
-      "DockerSwarm",
+      "Docker Swarm",
       "View Cluster",
       "Owners",
     ]),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.DOCKER_SWARM_CLUSTER_VIEW_AUDIT_LOGS,
-      ["Project", "DockerSwarm", "View Cluster", "Audit Logs"],
+      ["Project", "Docker Swarm", "View Cluster", "Audit Logs"],
     ),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.DOCKER_SWARM_CLUSTER_VIEW_SETTINGS,
-      ["Project", "DockerSwarm", "View Cluster", "Settings"],
+      ["Project", "Docker Swarm", "View Cluster", "Settings"],
     ),
     ...BuildBreadcrumbLinksByTitles(PageMap.DOCKER_SWARM_CLUSTER_VIEW_DELETE, [
       "Project",
-      "DockerSwarm",
+      "Docker Swarm",
       "View Cluster",
       "Delete Cluster",
     ]),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.DOCKER_SWARM_CLUSTER_VIEW_DOCUMENTATION,
-      ["Project", "DockerSwarm", "View Cluster", "Documentation"],
+      ["Project", "Docker Swarm", "View Cluster", "Documentation"],
     ),
     ...BuildBreadcrumbLinksByTitles(PageMap.DOCKER_SWARM_DOCUMENTATION, [
       "Project",
-      "DockerSwarm",
+      "Docker Swarm",
       "Documentation",
     ]),
 
     // DockerSwarm Settings (Product-level)
     ...BuildBreadcrumbLinksByTitles(PageMap.DOCKER_SWARM_SETTINGS_OWNER_RULES, [
       "Project",
-      "DockerSwarm",
+      "Docker Swarm",
       "Settings",
       "Owner Rules",
     ]),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.DOCKER_SWARM_SETTINGS_OWNER_RULE_VIEW,
-      ["Project", "DockerSwarm", "Settings", "Owner Rules", "View Rule"],
+      ["Project", "Docker Swarm", "Settings", "Owner Rules", "View Rule"],
     ),
     ...BuildBreadcrumbLinksByTitles(PageMap.DOCKER_SWARM_SETTINGS_LABEL_RULES, [
       "Project",
-      "DockerSwarm",
+      "Docker Swarm",
       "Settings",
       "Label Rules",
     ]),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.DOCKER_SWARM_SETTINGS_LABEL_RULE_VIEW,
-      ["Project", "DockerSwarm", "Settings", "Label Rules", "View Rule"],
+      ["Project", "Docker Swarm", "Settings", "Label Rules", "View Rule"],
     ),
   };
   return breadcrumpLinksMap[path];

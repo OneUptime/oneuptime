@@ -556,6 +556,65 @@ describe("message setters", () => {
   });
 });
 
+/*
+ * A page's breadcrumbs are a list of titles that Breadcrumbs translates when
+ * it draws them. They were not keys, so every title no other place happened
+ * to use - "View Runbook", "Pod Detail", "View MCP Server" - read in English
+ * in every language (#5042, #5112, #5150).
+ */
+describe("titles a call draws from a list (a page's breadcrumbs)", () => {
+  test("takes every title of a page's trail, and nothing else of the call", () => {
+    const result: SourceScanResult = scan(`
+      const links = {
+        ...BuildBreadcrumbLinksByTitles(PageMap.RUNBOOK_VIEW, [
+          "Project",
+          "Runbooks",
+          "View Runbook",
+        ]),
+        ...BuildBreadcrumbLinksByTitles(PageMap.KUBERNETES_POD, [
+          "Project",
+          "Kubernetes",
+          "Pod Detail",
+        ]),
+      };
+    `);
+
+    expect(textsOf(result)).toEqual([
+      "Project",
+      "Runbooks",
+      "View Runbook",
+      "Project",
+      "Kubernetes",
+      "Pod Detail",
+    ]);
+    expect(kindOf(result, "View Runbook")).toBe("prop");
+    expect(kindOf(result, "Pod Detail")).toBe("prop");
+  });
+
+  test("takes the titles written out beside a spread, and skips what is not a literal", () => {
+    const result: SourceScanResult = scan(`
+      BuildBreadcrumbLinksByTitles(PageMap.X, [...parentTitles, "Node Detail"]);
+      BuildBreadcrumbLinksByTitles(PageMap.Y, titles);
+      BuildBreadcrumbLinksByTitles(PageMap.Z, [childTitle, ("Wrapped Title")]);
+      BuildBreadcrumbLinksByTitles(PageMap.W);
+    `);
+
+    expect(textsOf(result)).toEqual(["Node Detail", "Wrapped Title"]);
+  });
+
+  test("reads only the call it knows, and only its list of titles", () => {
+    const result: SourceScanResult = scan(`
+      BuildBreadcrumbLinksByTitles("PAGE_KEY", ["Shown Title"]);
+      buildSomethingElse(PageMap.X, ["Not a title"]);
+      const keys = ["NOT_SHOWN", "ALSO_NOT_SHOWN"];
+      toString(PageMap.X, ["Neither"]);
+    `);
+
+    expect(textsOf(result)).toEqual(["Shown Title"]);
+    expect(textsOf(result)).not.toContain("PAGE_KEY");
+  });
+});
+
 describe("model metadata", () => {
   const MODEL_FILE: string = "packages/Common/Models/DatabaseModels/Example.ts";
 

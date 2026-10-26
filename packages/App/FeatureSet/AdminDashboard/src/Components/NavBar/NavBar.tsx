@@ -125,7 +125,10 @@ const DashboardNavbar: FunctionComponent = (): ReactElement => {
       moreMenuSearchPlaceholder="Search admin…"
       moreMenuNoResultsText="No results found."
       moreMenuKeyboardHint="↑↓ navigate · ↵ open · esc close"
-      moreMenuRecentLabel="Recently visited"
+      /*
+       * No Recently visited row here: the menu shows all of its products at
+       * once, and the row only drew them twice (NavBarMenuModal).
+       */
     />
   );
 };

@@ -124,8 +124,8 @@ const EpisodeViewStateTimeline: FunctionComponent<PageComponentProps> = (
         modelType={IncidentEpisodeStateTimeline}
         id="incident-episode-status-timeline"
         name="Episode > State Timeline"
-        title="Status Timeline"
-        description="Each status this episode has been in, when it began and how long it lasted."
+        title="State Timeline"
+        description="Each state this episode has been in, when it began and how long it lasted."
         headerElement={viewSwitch}
         query={{
           incidentEpisodeId: modelId,
@@ -134,8 +134,8 @@ const EpisodeViewStateTimeline: FunctionComponent<PageComponentProps> = (
         stateColumn="incidentState"
         stateSelect={INCIDENT_FINAL_STATE.stateSelect}
         getFinalStateRule={INCIDENT_FINAL_STATE.getFinalStateRule}
-        ariaLabel="Status timeline of this episode"
-        emptyMessage="No status recorded for this episode yet."
+        ariaLabel="State timeline of this episode"
+        emptyMessage="No state recorded for this episode yet."
         isCreateable={true}
         formFields={INCIDENT_EPISODE_STATE_TIMELINE_FORM_FIELDS}
         onBeforeCreate={onBeforeCreate}
@@ -179,12 +179,12 @@ const EpisodeViewStateTimeline: FunctionComponent<PageComponentProps> = (
         }}
         onBeforeCreate={onBeforeCreate}
         cardProps={{
-          title: "Status Timeline",
+          title: "State Timeline",
           description:
-            "Each status this episode has been in, when it began and how long it lasted.",
+            "Each state this episode has been in, when it began and how long it lasted.",
           rightElement: viewSwitch,
         }}
-        noItemsMessage={"No status timeline created for this episode so far."}
+        noItemsMessage={"No state recorded for this episode yet."}
         sortBy="startsAt"
         sortOrder={SortOrder.Descending}
         formFields={INCIDENT_EPISODE_STATE_TIMELINE_FORM_FIELDS}

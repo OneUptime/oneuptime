@@ -20,7 +20,7 @@ flowchart TB
 
 ## Ouvrir la chronologie
 
-- **Astreinte** > **Chronologie des astreintes** affiche tous les plannings que vous pouvez voir, regroupés par équipe propriétaire. Le bouton **Vue chronologique** de **Plannings d'astreinte** ouvre la même page.
+- **Astreinte** > **Chronologie des astreintes** affiche tous les plannings que vous pouvez voir, regroupés par équipe propriétaire. Dans **Plannings d'astreinte**, **Chronologie des astreintes** du menu **⋯** ouvre la même page.
 - **Équipes** > une équipe > **Plannings d'astreinte** n'affiche que les plannings dont cette équipe est propriétaire.
 
 Une équipe est propriétaire d'un planning lorsqu'elle figure sur la page **Propriétaires** du planning. Les plannings sans équipe propriétaire sont regroupés sous **Aucune équipe propriétaire**. Désactivez **Grouper par équipe** pour voir tous les plannings dans une seule liste, triée par nom.

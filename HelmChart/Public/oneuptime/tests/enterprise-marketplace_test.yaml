@@ -7,7 +7,7 @@
 # and the worker run the usage job, so only they get what reporting needs:
 # Microsoft's extension identity, plan and resource from global.azure, and
 # Google's reporting secret. A wrong secret name can then stop only those
-# two pods, never nginx, the probes or the runner.
+# two pods, never nginx, the probes or the global Runner.
 suite: enterprise marketplace billing
 release:
   name: oneuptime
@@ -350,7 +350,7 @@ tests:
             name: ENTERPRISE_MARKETPLACE
             value: google-cloud
 
-  - it: never gives the reporting secret to nginx, the probes or the runner (nginx)
+  - it: never gives the reporting secret to nginx, the probes or the global Runner (nginx)
     templates:
       - templates/nginx.yaml
     documentSelector:
@@ -371,7 +371,7 @@ tests:
             name: ENTERPRISE_MARKETPLACE
           any: true
 
-  - it: never gives the reporting secret to nginx, the probes or the runner (probe)
+  - it: never gives the reporting secret to nginx, the probes or the global Runner (probe)
     templates:
       - templates/probe.yaml
     documentSelector:
@@ -392,9 +392,9 @@ tests:
             name: ENTERPRISE_MARKETPLACE
           any: true
 
-  - it: never gives the reporting secret to nginx, the probes or the runner (runner)
+  - it: never gives the reporting secret to nginx, the probes or the global Runner (global Runner)
     templates:
-      - templates/runner.yaml
+      - templates/global-runner.yaml
     documentSelector:
       path: kind
       value: Deployment

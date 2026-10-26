@@ -22,6 +22,7 @@ import {
   useCategoryFolds,
 } from "./NavBarMenuCatalog";
 import {
+  doesMenuShowRecentProducts,
   pickRecentProducts,
   readRecentProductRoutes,
   rememberRecentProductRoute,
@@ -258,12 +259,19 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
   /*
    * The "Recent" row: the remembered products of this menu, without the
    * page we're already on, six at most (two full rows of three cards).
-   * Only shown while idle (no query).
+   * Only shown while idle (no query), and only in a menu that folds its
+   * categories, as the Dashboard's does (doesMenuShowRecentProducts): a
+   * menu that shows every product at once, as the Admin Dashboard's six,
+   * only drew them a second time above themselves.
    */
+  const hasRecentRow: boolean = doesMenuShowRecentProducts(
+    props.categoriesOpenByDefault,
+  );
   const recentItems: Array<MoreMenuItem> = useMemo(() => {
     return pickRecentProducts(recentRoutes, props.items, isMoreMenuItemActive);
   }, [recentRoutes, props.items]);
-  const showsRecentRow: boolean = !isSearching && recentItems.length > 0;
+  const showsRecentRow: boolean =
+    hasRecentRow && !isSearching && recentItems.length > 0;
 
   // Group filtered items by category, preserving first-seen order.
   const categoryGroups: Array<MenuCategory> = useMemo(() => {
@@ -436,11 +444,13 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
     setActiveKey(undefined);
   };
 
-  // Record a selection and close the modal.
+  // Record a selection, in a menu with a Recent row, and close the modal.
   const selectItem: (item: MoreMenuItem) => void = (
     item: MoreMenuItem,
   ): void => {
-    rememberRecentProductRoute(item.route.toString());
+    if (hasRecentRow) {
+      rememberRecentProductRoute(item.route.toString());
+    }
     props.onClose();
   };
 

@@ -20,7 +20,7 @@ flowchart TB
 
 ## Åbn tidslinjen
 
-- **Vagtordning** > **Tidslinje for vagtplaner** viser alle de vagtplaner, du kan se, grupperet efter det team, der ejer dem. Knappen **Tidslinjevisning** på **Vagtplaner** åbner samme side.
+- **Vagtordning** > **Tidslinje for vagtplaner** viser alle de vagtplaner, du kan se, grupperet efter det team, der ejer dem. På **Vagtplaner** åbner **Tidslinje for vagtplaner** i menuen **⋯** samme side.
 - **Teams** > et team > **Vagtplaner** viser kun de vagtplaner, teamet ejer.
 
 Et team ejer en vagtplan, når det står på vagtplanens side **Ejere**. Vagtplaner uden et ejerteam grupperes under **Intet ejerteam**. Slå **Gruppér efter team** fra for at se alle vagtplaner i én liste, sorteret efter navn.
