@@ -237,11 +237,15 @@ describe("Level 2 pages the next person in the Primary cover rotation", () => {
 
     const feed: Array<string> = onCallFeed();
 
+    /*
+     * Each level as the Escalate dialog names it: a level named after its
+     * place ("Level 2") is named by its place alone, with the count.
+     */
     expect(
       feed.some((markdown: string): boolean => {
         return (
           markdown.includes(
-            "at escalation rule **Level 2** (next in the **Primary cover** rotation).",
+            "at **Level 2 of 3** (next in the **Primary cover** rotation).",
           ) && markdown.includes("NB User 3")
         );
       }),
@@ -249,10 +253,11 @@ describe("Level 2 pages the next person in the Primary cover rotation", () => {
     expect(
       feed.some((markdown: string): boolean => {
         return markdown.includes(
-          "at escalation rule **Level 1** (schedule **Primary cover**).",
+          "at **Level 1 of 3** (schedule **Primary cover**).",
         );
       }),
     ).toBe(true);
+    expect(feed.join("\n")).not.toContain("escalation rule");
   });
 
   test("no alarm is raised: every level so far reached somebody", async () => {
@@ -307,7 +312,7 @@ describe("nobody is next in the Primary cover rotation", () => {
     expect(
       onCallFeed().some((markdown: string): boolean => {
         return markdown.includes(
-          "paged nobody at escalation rule **Level 2**: nobody was next in the **Primary cover** rotation.",
+          "paged nobody at **Level 2 of 3**: nobody was next in the **Primary cover** rotation.",
         );
       }),
     ).toBe(true);
