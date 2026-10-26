@@ -2296,6 +2296,94 @@ describe("performance fix with AI", () => {
     expect(within(strip).queryByTestId("trace-fix-performance")).toBeNull();
   });
 
+  test("refused because a fix for the trace finished meanwhile: says how it came out, with a link to it - no error", async () => {
+    answerSuggestion(
+      { offer: "Act", finding: nPlusOneFinding() },
+      async () => {
+        throw new HTTPErrorResponse(
+          400,
+          {
+            message:
+              "OneUptime AI already worked on a fix for this trace. Open its task in Code to see how it came out, or to take it further.",
+          },
+          {},
+        );
+      },
+      {
+        offer: "Done",
+        finding: nPlusOneFinding(),
+        fixOutcome: "Fixed",
+        aiRunId: RUN_ID,
+      },
+    );
+    await renderTrace();
+    const strip: HTMLElement = await suggestionStrip();
+
+    fireEvent.click(within(strip).getByTestId("trace-fix-performance"));
+
+    expect(
+      await within(strip).findByTestId("trace-fix-performance-done"),
+    ).toHaveTextContent(
+      "OneUptime AI already opened a pull request that fixes this. View the task",
+    );
+    expect(strip).toHaveAttribute("data-offer", "Done");
+    expect(
+      within(strip)
+        .getByTestId("trace-fix-performance-done-link")
+        .closest("a")!
+        .getAttribute("href"),
+    ).toContain(RUN_ID);
+    expect(
+      within(strip).queryByTestId("trace-fix-performance-error"),
+    ).toBeNull();
+    expect(within(strip).queryByTestId("trace-fix-performance")).toBeNull();
+  });
+
+  test("refused because Code's gate now says no Runner is online: Code's words take the button's place - no error", async () => {
+    answerSuggestion(
+      { offer: "Act", finding: nPlusOneFinding() },
+      async () => {
+        throw new HTTPErrorResponse(
+          400,
+          {
+            message:
+              "No global Runner is online to work in this repository. Pick one of your Runners for it in the repository's settings in Code, or try again once the global Runner is back.",
+          },
+          {},
+        );
+      },
+      {
+        offer: "SetUp",
+        finding: nPlusOneFinding(),
+        blocker: {
+          type: "NoAgent",
+          message:
+            "No global Runner is online to work in this repository. Pick one of your Runners for it in the repository's settings in Code, or try again once the global Runner is back.",
+          repositoryId: "50000000-0000-4000-8000-000000000005",
+        },
+      },
+    );
+    await renderTrace();
+    const strip: HTMLElement = await suggestionStrip();
+
+    fireEvent.click(within(strip).getByTestId("trace-fix-performance"));
+
+    const notice: HTMLElement =
+      await within(strip).findByTestId("code-blocker");
+    expect(notice).toHaveAttribute("data-blocker", "NoAgent");
+    expect(notice).toHaveTextContent(
+      "No global Runner is online to work in this repository.",
+    );
+    expect(strip).toHaveAttribute("data-offer", "SetUp");
+    expect(
+      within(strip).queryByTestId("trace-fix-performance-connect"),
+    ).toBeNull();
+    expect(
+      within(strip).queryByTestId("trace-fix-performance-error"),
+    ).toBeNull();
+    expect(within(strip).queryByTestId("trace-fix-performance")).toBeNull();
+  });
+
   test("refused because the repository was disconnected: the quiet link to connect a repository takes the button's place", async () => {
     answerSuggestion(
       { offer: "Act", finding: nPlusOneFinding() },
@@ -2409,6 +2497,60 @@ describe("performance fix with AI", () => {
     expect(within(strip).queryByTestId("trace-fix-performance")).toBeNull();
   });
 
+  test("a fix already done: says how it came out and links to its task, instead of offering another", async () => {
+    answerSuggestion({
+      offer: "Done",
+      finding: nPlusOneFinding(),
+      fixOutcome: "NothingToChange",
+      aiRunId: RUN_ID,
+    });
+    await renderTrace();
+    const strip: HTMLElement = await suggestionStrip();
+
+    expect(strip).toHaveAttribute("data-offer", "Done");
+    // What was found is still said: it is what the fix was about.
+    expect(
+      within(strip).getByTestId("trace-performance-finding"),
+    ).toHaveTextContent("The same database query ran 12 times");
+    expect(
+      within(strip).getByTestId("trace-fix-performance-done"),
+    ).toHaveTextContent(
+      "OneUptime AI already looked at this and found nothing to change.",
+    );
+    expect(
+      within(strip)
+        .getByText("View the task")
+        .closest("a")!
+        .getAttribute("href"),
+    ).toContain(RUN_ID);
+    expect(within(strip).queryByTestId("trace-fix-performance")).toBeNull();
+    expect(
+      within(strip).queryByTestId("trace-fix-performance-progress"),
+    ).toBeNull();
+  });
+
+  test("Code's gate says the plan does not include AI in Code: its sentence instead of the fix", async () => {
+    answerSuggestion({
+      offer: "SetUp",
+      finding: nPlusOneFinding(),
+      blocker: {
+        type: "PlanRequired",
+        message:
+          "AI in Code needs the Growth plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing.",
+      },
+    });
+    await renderTrace();
+    const strip: HTMLElement = await suggestionStrip();
+
+    expect(within(strip).getByTestId("code-blocker")).toHaveTextContent(
+      "AI in Code needs the Growth plan or above.",
+    );
+    expect(within(strip).queryByTestId("trace-fix-performance")).toBeNull();
+    expect(
+      within(strip).queryByTestId("trace-fix-performance-connect"),
+    ).toBeNull();
+  });
+
   test("AI switched off for the project: the server is not even asked, and nothing is drawn", async () => {
     mockCurrentProject = { enableAi: false };
     answerSuggestion({ offer: "Act", finding: nPlusOneFinding() });
@@ -2449,6 +2591,22 @@ describe("performance fix with AI", () => {
     [
       "in progress with no run",
       { offer: "InProgress", finding: nPlusOneFinding() },
+    ],
+    [
+      "done with no run",
+      { offer: "Done", finding: nPlusOneFinding(), fixOutcome: "Fixed" },
+    ],
+    [
+      "done that does not say how it came out",
+      { offer: "Done", finding: nPlusOneFinding(), aiRunId: "run-9" },
+    ],
+    [
+      "a set-up step whose blocker this build cannot draw",
+      {
+        offer: "SetUp",
+        finding: nPlusOneFinding(),
+        blocker: { type: "Eclipse", message: "Dark." },
+      },
     ],
     [
       "an offer this build does not know",

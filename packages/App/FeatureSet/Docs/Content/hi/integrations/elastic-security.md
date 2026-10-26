@@ -74,6 +74,7 @@ flowchart TB
 | `kibana.alert.workflow_status`: `open`, `acknowledged` या `closed` | स्थिति |
 | `kibana.alert.rule.threat`, सब-तकनीकों समेत | MITRE ATT&CK टैक्टिक और तकनीकें |
 | `user.name`, `host.name`, `source.ip` या `host.ip`, `process.name` या `process.executable` | प्रिंसिपल यूज़र, होस्ट, IP और प्रोसेस |
+| `process.name`, `process.executable` और `process.command_line`; `process.parent.name`, `process.parent.executable` और `process.parent.command_line` | प्रोसेस का नाम, पाथ और कमांड लाइन; पैरेंट प्रोसेस का नाम, पाथ और कमांड लाइन |
 | `user.target.name`, `destination.domain`, `destination.ip`, `destination.port`, `file.path` | टारगेट यूज़र, होस्ट, IP, पोर्ट और रिसोर्स |
 | ये सब, और `related.*`, `dns.question.name`, `url.domain` और फ़ाइल हैश | Observable |
 | पूरा अलर्ट, डॉट वाली कुंजियों में फैलाया हुआ, `_index` और `_id` के साथ | `attributes` |

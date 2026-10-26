@@ -8,6 +8,7 @@ import {
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
+import ArrowGluedText from "./ArrowGluedText";
 import PermissionGate from "Common/UI/Utils/PermissionGate";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -27,25 +28,29 @@ export interface ComponentProps {
 export const AI_OFF_SUMMARY_TEST_ID: string = "ai-off-summary";
 
 /*
- * Where the line's parts go, by the width of the line itself, not the
- * window's (the AI card is two thirds of a page from xl up, and all of it
- * below). What is off takes the first row, and the fold's chevron its right
- * end, always - where a card that opens has it. Why runs under them. Ask
- * OneUptime AI joins the first row, before the chevron, from 28rem - room
- * for it beside the title in every language the Dashboard speaks - and in
- * a narrower card it follows the reason, at its start, so the two sentences
- * are read together.
+ * Where the line's parts go: in the order they are read, tabbed to and
+ * heard, on every width - what is off, with the fold's chevron at its end
+ * where a card that opens has it; then why; then Ask OneUptime AI under
+ * it, at its start, so the two sentences are read together before the
+ * offer. The parts used to be reordered by CSS (Ask between the title and
+ * the chevron from 28rem, after why below it), which put Ask before the
+ * chevron in tab order while a phone drew it last - the order a keyboard
+ * and a screen reader met them was not the one the eye did.
  */
 export const AI_OFF_SUMMARY_LAYOUT_CLASS_NAMES: {
+  titleRow: string;
   title: string;
-  ask: string;
   toggle: string;
+  reasonRow: string;
   reason: string;
+  ask: string;
 } = {
-  title: "order-1 min-w-0 grow basis-0",
-  ask: "order-4 -ml-2 [@container(min-width:28rem)]:order-2 [@container(min-width:28rem)]:ml-0",
-  toggle: "order-2 -mr-1.5 [@container(min-width:28rem)]:order-3",
-  reason: "order-3 basis-full [@container(min-width:28rem)]:order-4",
+  titleRow: "flex items-start gap-x-1",
+  title: "min-w-0 grow basis-0",
+  toggle: "-me-1.5 flex-none",
+  reasonRow: "flex flex-wrap items-start gap-y-0.5",
+  reason: "min-w-0 basis-full",
+  ask: "-ms-2",
 };
 
 /*
@@ -210,65 +215,69 @@ const AiOffSummary: FunctionComponent<ComponentProps> = (
           <div
             data-testid="ai-off-summary-header"
             onClick={onLineClick}
-            className="group flex cursor-pointer flex-wrap items-start gap-x-1 gap-y-0.5"
+            className="group cursor-pointer"
           >
             {/*
-              One line of it is as tall as the mark, Ask and the chevron
-              beside it (28px), so the four line up; a title that wraps (a
-              long language on a phone) keeps its lines close and its
-              controls level with its first line.
+              One line of it is as tall as the mark and the chevron beside
+              it (28px), so the three line up; a title that wraps (a long
+              language on a phone) keeps its lines close and its chevron
+              level with its first line.
             */}
-            <h2
-              data-testid="ai-off-summary-title"
-              className={`${AI_OFF_SUMMARY_LAYOUT_CLASS_NAMES.title} me-2 break-words py-0.5 text-sm font-semibold leading-6 text-gray-900`}
-            >
-              {summary.title}
-            </h2>
+            <div className={AI_OFF_SUMMARY_LAYOUT_CLASS_NAMES.titleRow}>
+              <h2
+                data-testid="ai-off-summary-title"
+                className={`${AI_OFF_SUMMARY_LAYOUT_CLASS_NAMES.title} me-2 break-words py-0.5 text-sm font-semibold leading-6 text-gray-900`}
+              >
+                {summary.title}
+              </h2>
 
-            {props.onAskAi ? (
+              {/*
+                The fold's control, where a card that opens has it: its name
+                says what opens - what you can do to turn AI on - and it
+                brightens while the pointer is anywhere on the line, which
+                opens it too. The line's first control, as it is its own.
+              */}
               <button
                 type="button"
-                data-testid="ai-off-summary-ask"
-                onClick={props.onAskAi}
-                className={`${AI_OFF_SUMMARY_LAYOUT_CLASS_NAMES.ask} inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-sm font-medium text-indigo-600 transition-colors hover:bg-indigo-50 hover:text-indigo-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500`}
+                data-testid="ai-off-summary-toggle"
+                aria-expanded={props.isOpen}
+                aria-controls={stepsId}
+                aria-label={whatYouCanDo}
+                title={whatYouCanDo}
+                onClick={props.onToggle}
+                className={`${AI_OFF_SUMMARY_LAYOUT_CLASS_NAMES.toggle} flex h-7 w-7 items-center justify-center rounded-md text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 group-hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500`}
               >
-                <Icon icon={IconProp.Sparkles} className="h-4 w-4" />
-                <span>{translator.translateText(AI_OFF_ASK_AI)}</span>
+                <Icon
+                  icon={IconProp.ChevronDown}
+                  className={`h-5 w-5 transition-transform duration-200 motion-reduce:transition-none ${
+                    props.isOpen ? "-rotate-180" : ""
+                  }`}
+                />
               </button>
-            ) : (
-              <></>
-            )}
+            </div>
 
-            {/*
-              The fold's control, where a card that opens has it: its name
-              says what opens - what you can do to turn AI on - and it
-              brightens while the pointer is anywhere on the line, which
-              opens it too.
-            */}
-            <button
-              type="button"
-              data-testid="ai-off-summary-toggle"
-              aria-expanded={props.isOpen}
-              aria-controls={stepsId}
-              aria-label={whatYouCanDo}
-              title={whatYouCanDo}
-              onClick={props.onToggle}
-              className={`${AI_OFF_SUMMARY_LAYOUT_CLASS_NAMES.toggle} flex h-7 w-7 flex-none items-center justify-center rounded-md text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 group-hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500`}
-            >
-              <Icon
-                icon={IconProp.ChevronDown}
-                className={`h-5 w-5 transition-transform duration-200 motion-reduce:transition-none ${
-                  props.isOpen ? "-rotate-180" : ""
-                }`}
-              />
-            </button>
+            <div className={AI_OFF_SUMMARY_LAYOUT_CLASS_NAMES.reasonRow}>
+              <p
+                data-testid="ai-off-summary-reason"
+                className={`${AI_OFF_SUMMARY_LAYOUT_CLASS_NAMES.reason} break-words text-sm leading-6 text-gray-500`}
+              >
+                {summary.reason}
+              </p>
 
-            <p
-              data-testid="ai-off-summary-reason"
-              className={`${AI_OFF_SUMMARY_LAYOUT_CLASS_NAMES.reason} break-words text-sm leading-6 text-gray-500`}
-            >
-              {summary.reason}
-            </p>
+              {props.onAskAi ? (
+                <button
+                  type="button"
+                  data-testid="ai-off-summary-ask"
+                  onClick={props.onAskAi}
+                  className={`${AI_OFF_SUMMARY_LAYOUT_CLASS_NAMES.ask} inline-flex flex-none items-center gap-1.5 rounded-md px-2 py-0.5 text-sm font-medium leading-5 text-indigo-600 transition-colors hover:bg-indigo-50 hover:text-indigo-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500`}
+                >
+                  <Icon icon={IconProp.Sparkles} className="h-4 w-4" />
+                  <span>{translator.translateText(AI_OFF_ASK_AI)}</span>
+                </button>
+              ) : (
+                <></>
+              )}
+            </div>
           </div>
 
           {/*
@@ -350,20 +359,10 @@ const AiOffSummary: FunctionComponent<ComponentProps> = (
                               to={group.link.route}
                               className="min-w-0 break-words rounded text-sm font-medium leading-6 text-indigo-600 hover:text-indigo-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
                             >
-                              {group.link.text}
-                              <span className="whitespace-nowrap">
-                                {"\u00a0"}
-                                <span
-                                  aria-hidden="true"
-                                  data-testid="ai-off-summary-link-arrow"
-                                  className="inline-block align-middle"
-                                >
-                                  <Icon
-                                    icon={IconProp.ArrowRight}
-                                    className="h-4 w-4"
-                                  />
-                                </span>
-                              </span>
+                              <ArrowGluedText
+                                text={group.link.text}
+                                arrowTestId="ai-off-summary-link-arrow"
+                              />
                             </Link>
                           </div>
                         ) : (

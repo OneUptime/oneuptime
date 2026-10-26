@@ -134,6 +134,13 @@ Den oppgir alvorlighetsgraden og hva som har skjedd (en hendelse, et varsel elle
 
 Alvorlighetsgraden, nummeret og lenken kortes aldri ned. En tittel beholder minst 20 tegn: får ikke engang det plass, for eksempel med en svært lang adresse eller et svært langt produktnavn, tar SMS-en en del til og sier alt.
 
+Når en retningslinje varsler igjen fordi en bekreftet hendelse eller et bekreftet varsel fortsatt ikke er løst, sier SMS-en det etter nummeret og prosjektet, og heller ikke de ordene kortes noen gang ned:
+
+```text
+OneUptime: Critical Incident INC-42 in Acme Prod is still not resolved:
+Checkout API is down. Ack or escalate: https://oneuptime.com/l/XJlaZRsd
+```
+
 Ett tegn utenfor det enkle SMS-alfabetet gjør at hele meldingen går ut i deler på 70 tegn. Derfor skrives typografiske anførselstegn og tankestreker som `"`, `'` og `-`, `…` som `...`, og bokstaver som `ç` og `ł` mister aksentene sine; emojier utelates. En tittel i en annen skrift, som japansk eller russisk, sendes slik den er skrevet, og tar to deler eller flere.
 
 De andre SMS-ene OneUptime sender deg, for eksempel om en endring i en hendelse du eier eller starten på vakten din, begynner også med `OneUptime:` og slutter med `Turn off in User Settings > Notification Settings.`, en setning som utelates når det er det som får SMS-en til å passe i én del.
@@ -221,7 +228,7 @@ Hva som skjer videre, avhenger av hvem andre som blir varslet:
 
 En varsling som en arbeidsflyt sender direkte til personer, har ingen nivåer: eskalerer du den, blir du ikke varslet mer, og når alle den varslet har eskalert den, stopper varslingen.
 
-Hver gang en varsling eskaleres, blir det registrert. Kjøringens **Tidslinje for utførelsen** merker personens linje **Eskalert**, hendelsens feed sier "Alex Kim escalated the page from on-call policy Payments at escalation rule Level 1.", kjøringens melding i Slack og Microsoft Teams sier at vedkommende eskalerte den, og vedkommendes **Vaktlogger** viser varslingen som **Eskalert**.
+Hver gang en varsling eskaleres, blir det registrert. Kjøringens **Tidslinje for utførelsen** merker personens linje **Eskalert**, hendelsens feed sier "Alex Kim escalated the page from on-call policy Payments at Level 1 of 3.", kjøringens melding i Slack og Microsoft Teams sier at vedkommende eskalerte den, og vedkommendes **Vaktlogger** viser varslingen som **Eskalert**.
 
 ## Rediger, endre rekkefølge på og slett regler
 

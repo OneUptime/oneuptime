@@ -10,6 +10,11 @@ export interface ComponentProps {
   // Shown under the pointer: a link with no words of its own (an icon) says what it does.
   title?: string | undefined;
   dataTestId?: string | undefined;
+  /*
+   * The link is to the page the reader is on, as a lit tab is: announced
+   * as the current page (aria-current).
+   */
+  isCurrentPage?: boolean | undefined;
 }
 
 const ReactDomLink: FunctionComponent<ComponentProps> = (
@@ -34,6 +39,7 @@ const ReactDomLink: FunctionComponent<ComponentProps> = (
       onClick={props.onNavigateComplete}
       title={props.title}
       data-testid={props.dataTestId}
+      aria-current={props.isCurrentPage ? "page" : undefined}
     >
       {children}
     </Link>

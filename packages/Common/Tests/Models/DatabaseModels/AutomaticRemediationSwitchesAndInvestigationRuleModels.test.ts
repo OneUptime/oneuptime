@@ -11,6 +11,11 @@ import TableColumnType from "../../../Types/Database/TableColumnType";
 import AutoRemediationAction from "../../../Types/AutoRemediation/AutoRemediationAction";
 import AutoRemediationTriggerEntity from "../../../Types/AutoRemediation/AutoRemediationTriggerEntity";
 import Permission from "../../../Types/Permission";
+import {
+  TELEMETRY_AI_LANES,
+  TELEMETRY_AI_LANE_LIST,
+  TelemetryAiLane,
+} from "../../../Types/AI/TelemetryAi";
 import { describe, expect, it } from "@jest/globals";
 import { getMetadataArgsStorage } from "typeorm";
 import type { JoinTableMetadataArgs } from "typeorm/metadata-args/JoinTableMetadataArgs";
@@ -424,5 +429,44 @@ describe("the AI rule", () => {
     expect(
       model.getTableColumnMetadata("triggerEntityType")?.description,
     ).toContain("Profile");
+  });
+
+  /*
+   * What the table says it holds names every kind of signal a rule decides
+   * about: each telemetry lane added its trigger, and the description named
+   * only Profile and Trace rules (Metric's lane added its own), so a reader
+   * of the workflow component picker or the API reference never learned an
+   * Exception or a Log rule exists.
+   */
+  it("its description names every telemetry lane's rules, and the trigger's names them as their values", () => {
+    const tableDescription: string = model.tableDescription || "";
+    const triggerDescription: string =
+      model.getTableColumnMetadata("triggerEntityType")?.description || "";
+
+    for (const lane of TELEMETRY_AI_LANE_LIST) {
+      const trigger: string = TELEMETRY_AI_LANES[lane].triggerEntityType;
+
+      expect(tableDescription).toContain(trigger);
+      expect(triggerDescription).toContain(`or ${trigger}, `);
+    }
+
+    // In the order the lanes are listed, as the trigger's own description.
+    const sentence: string = tableDescription.slice(
+      tableDescription.indexOf("A rule whose Trigger Entity Type is"),
+    );
+
+    expect(sentence).toContain(
+      `A rule whose Trigger Entity Type is ${TELEMETRY_AI_LANE_LIST.map(
+        (lane: TelemetryAiLane): string => {
+          return TELEMETRY_AI_LANES[lane].triggerEntityType;
+        },
+      )
+        .slice(0, -1)
+        .join(", ")} or ${
+        TELEMETRY_AI_LANES[
+          TELEMETRY_AI_LANE_LIST[TELEMETRY_AI_LANE_LIST.length - 1]!
+        ].triggerEntityType
+      } decides`,
+    );
   });
 });

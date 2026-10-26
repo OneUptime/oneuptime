@@ -93,6 +93,7 @@ Chaque constat devient un événement, avec le fournisseur `Amazon Web Services`
 | `Workflow.Status` : `NEW`, `NOTIFIED`, `RESOLVED` ou `SUPPRESSED`, sinon l'ancien `WorkflowState` | Statut |
 | `Types` sous `TTPs/` : `TTPs/Initial Access/...` devient `TA0001` | Tactiques et techniques MITRE ATT&CK |
 | L'utilisateur IAM d'une ressource clé d'accès ou utilisateur, `Network.SourceIpV4` ou `SourceIpV6`, `Process.Name` ou `Process.Path` | Utilisateur, IP et processus de l'acteur |
+| `Process.Name` et `Process.Path` | Nom et chemin du processus. Un constat ne donne ni ligne de commande ni processus parent. |
 | L'ID d'instance d'une ressource `AwsEc2Instance`, `Network.DestinationIpV4` ou `DestinationIpV6`, `Network.DestinationPort`, le premier `Resources[].Id` | Hôte, IP, port et ressource de la cible |
 | Ceux-ci, chaque `Resources[].Id`, `AwsAccountId`, les domaines du réseau, les noms de logiciels malveillants et les valeurs de renseignement sur les menaces | Observables |
 | Le constat entier, aplati en clés à points, comme `Compliance.Status` et `Remediation.Recommendation.Url` | `attributes` |

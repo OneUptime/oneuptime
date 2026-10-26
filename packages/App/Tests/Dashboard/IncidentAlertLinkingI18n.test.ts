@@ -714,9 +714,10 @@ describe("Linking alerts to incidents: Dashboard translations", () => {
         ["UI", "Components", "Modal", "Modal.tsx"],
         "translateString(props.title)",
       ],
+      // A dialog's description may be an element (a link in its sentence).
       [
         ["UI", "Components", "Modal", "Modal.tsx"],
-        "translateString( props.description, )",
+        "translateValue(props.description)",
       ],
       [
         ["UI", "Components", "Modal", "Modal.tsx"],

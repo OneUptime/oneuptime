@@ -138,7 +138,7 @@ Bereikbaarheidsbeleid is de resource `/api/on-call-duty-policy`, en in Terraform
 | **Na hoeveel minuten?** | `acknowledgementTimeoutInMinutes` |
 | Gearchiveerd | `isArchived` |
 
-`repeatPolicyIfNoOneAcknowledges` is `false` voor **Stoppen met oproepen** en `true` voor **Opnieuw beginnen bij Level 1**. Met `true` en `repeatPolicyIfNoOneAcknowledgesNoOfTimes` op `0` herhaalt een beleid zich nooit, en het dashboard toont het als **Stoppen met oproepen**.
+`repeatPolicyIfNoOneAcknowledges` is `false` voor **Stoppen met oproepen** en `true` voor **Opnieuw beginnen bij Level 1**. Met `true` moet `repeatPolicyIfNoOneAcknowledgesNoOfTimes` een geheel getal van 1 of meer zijn: OneUptime weigert `0`. Een ouder beleid dat met `0` is opgeslagen, herhaalt zich nooit, en het dashboard toont het als **Stoppen met oproepen**.
 
 `acknowledgementTimeoutInMinutes` is `null` voor **Niet opnieuw oproepen**, en een heel aantal minuten van 5 tot 1440 voor **Opnieuw oproepen**. OneUptime weigert elke andere waarde.
 

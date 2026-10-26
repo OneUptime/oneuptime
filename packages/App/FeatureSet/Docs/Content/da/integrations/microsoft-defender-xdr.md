@@ -83,6 +83,7 @@ Hver [advarsel](https://learn.microsoft.com/en-us/graph/api/resources/security-a
 | `mitreTechniques` | `mitreTechniques` |
 | `mitreTactics` | `categories` eller `category`, når det er en ATT&CK-taktik: `CredentialAccess` bliver `TA0006`. Andre kategorier bliver i `attributes`. |
 | `principalHost`, `principalUser`, `principalIp`, `principalProcess` | Den `evidence` med rollen `source`, `attacker` eller `compromised`, ellers den første af hver slags |
+| `processName`, `processPath`, `processCommandLine`, `parentProcessName`, `parentProcessPath` | Det procesbevis, `principalProcess` kommer fra: dets `imageFile`, `processCommandLine` og `parentProcessImageFile`. Graph giver ingen kommandolinje for den overordnede proces. |
 | `targetHost`, `targetUser`, `targetIp`, `targetResource` | Den `evidence` med en målrolle, som `destination` eller `attacked`. URL'er, postkasser og cloudressourcer udfylder `targetResource`. |
 | `observables` | Hvert værtsnavn, IP, bruger, filnavn, SHA-1 og SHA-256, URL, domæne, postkasse og ressource-ID i `evidence` |
 | `attributes` | Hele advarslen, fladet ud til nøgler med punktummer som `evidence.0.hostName`, `serviceSource` og `incidentId` |

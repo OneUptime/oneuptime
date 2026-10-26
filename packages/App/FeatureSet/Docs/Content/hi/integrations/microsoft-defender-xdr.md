@@ -83,6 +83,7 @@ flowchart TB
 | `mitreTechniques` | `mitreTechniques` |
 | `mitreTactics` | `categories` या `category`, जब वह ATT&CK टैक्टिक हो: `CredentialAccess` बनता है `TA0006`। बाकी कैटेगरी `attributes` में रहती हैं। |
 | `principalHost`, `principalUser`, `principalIp`, `principalProcess` | `source`, `attacker` या `compromised` रोल वाला `evidence`, वरना हर प्रकार का पहला |
+| `processName`, `processPath`, `processCommandLine`, `parentProcessName`, `parentProcessPath` | वह प्रोसेस एविडेंस जिससे `principalProcess` आता है: उसका `imageFile`, `processCommandLine` और `parentProcessImageFile`। Graph पैरेंट प्रोसेस की कमांड लाइन नहीं देता। |
 | `targetHost`, `targetUser`, `targetIp`, `targetResource` | किसी टारगेट रोल वाला `evidence`, जैसे `destination` या `attacked`। URL, मेलबॉक्स और क्लाउड रिसोर्स `targetResource` भरते हैं। |
 | `observables` | `evidence` में हर होस्ट नाम, IP, यूज़र, फ़ाइल नाम, SHA-1 और SHA-256, URL, डोमेन, मेलबॉक्स और रिसोर्स ID |
 | `attributes` | पूरा अलर्ट, `evidence.0.hostName`, `serviceSource` और `incidentId` जैसी डॉट वाली कुंजियों में फैलाया हुआ |

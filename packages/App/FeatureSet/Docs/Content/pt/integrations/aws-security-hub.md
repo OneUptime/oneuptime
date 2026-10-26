@@ -93,6 +93,7 @@ Cada descoberta vira um evento, com o fornecedor `Amazon Web Services` e o produ
 | `Workflow.Status`: `NEW`, `NOTIFIED`, `RESOLVED` ou `SUPPRESSED`, senão o antigo `WorkflowState` | Status |
 | `Types` sob `TTPs/`: `TTPs/Initial Access/...` vira `TA0001` | Táticas e técnicas do MITRE ATT&CK |
 | O usuário do IAM de um recurso de chave de acesso ou de usuário, `Network.SourceIpV4` ou `SourceIpV6`, `Process.Name` ou `Process.Path` | Usuário, IP e processo do ator |
+| `Process.Name` e `Process.Path` | Nome e caminho do processo. Uma descoberta não informa nem a linha de comando nem o processo pai. |
 | O ID da instância de um recurso `AwsEc2Instance`, `Network.DestinationIpV4` ou `DestinationIpV6`, `Network.DestinationPort`, o primeiro `Resources[].Id` | Host, IP, porta e recurso do alvo |
 | Esses, cada `Resources[].Id`, `AwsAccountId`, os domínios da rede, os nomes de malware e os valores de inteligência de ameaças | Observáveis |
 | A descoberta inteira, achatada em chaves com pontos, como `Compliance.Status` e `Remediation.Recommendation.Url` | `attributes` |

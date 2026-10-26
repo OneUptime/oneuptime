@@ -44,8 +44,8 @@ flowchart TB
 | **Threat Intel** | Erkennungen | STIX/TAXII-Feeds bekannter bösartiger Indikatoren |
 | **ATT&CK-Abdeckung** | Erkennungen | Die Techniken von MITRE ATT&CK, die Ihre Regeln abdecken |
 | **Playbooks** | Playbooks | Schritte, die auf Fällen laufen, von selbst oder per Hand |
-| **Wartet auf Genehmigung** | Playbooks | Die Playbook-Schritte, die darauf warten, dass jemand sie genehmigt oder ablehnt |
-| **Playbook-Ausführungen** | Playbooks | Was jedes Playbook getan hat, Schritt für Schritt |
+| **Genehmigungen** | Playbooks | Die Playbook-Schritte, die darauf warten, dass jemand sie genehmigt oder ablehnt |
+| **Ausführungen** | Playbooks | Was jedes Playbook getan hat, Schritt für Schritt |
 | **Geschützte Entitäten** | Playbooks | Die Benutzer und Hosts, die kein Playbook eindämmt |
 | **Einstellungen** | KI | Ob OneUptime AI jeden neuen Fall triagiert |
 | **Verbindungen** | Verbindungen | Ihre Logs, die Sicherheitsprodukte, die OneUptime abfragt, und die SIEMs, an die es sendet |
@@ -205,10 +205,12 @@ Jedes Ereignis wird mit typisierten Feldern und seinem Quell-Payload gespeichert
 | Schweregrad | `severityName`, einer von Unknown, Informational, Low, Medium, High, Critical, Fatal oder Other, und `severityId` |
 | Wer es tat | `principalUser`, `principalHost`, `principalIp`, `principalProcess` |
 | Was es berührte | `targetUser`, `targetHost`, `targetIp`, `targetPort`, `targetResource` |
-| Der Prozess | `processName`, `processPath` und `processCommandLine`: beim Start eines Prozesses der gestartete Prozess, sonst der handelnde Prozess. `parentProcessName`, `parentProcessPath` und `parentProcessCommandLine`: der Prozess, der ihn gestartet hat |
+| Der Prozess | `processName`, `processPath` und `processCommandLine`: bei Prozessaktivität der gestartete, geöffnete, injizierte oder beendete Prozess, sonst der handelnde Prozess. `parentProcessName`, `parentProcessPath` und `parentProcessCommandLine`: der Prozess, der ihn gestartet hat |
 | Quelle | `productName`, `vendorName`, `ruleId`, `ruleName`, `eventUid` |
 | Inhalt | `message`, `mitreTactics`, `mitreTechniques` und `observables`: jeder Benutzer, Host, jede IP-Adresse, Domain und jeder Hash aus dem Ereignis |
 | Attribute | Der ganze Quell-Payload, auf Schlüssel mit Punkten abgeflacht |
+
+Ereignisse, die vor OneUptime 14.0.84 gespeichert wurden, lassen die Prozessfelder leer und nennen ihren Prozess nur als `principalProcess`, den handelnden Prozess. Sie werden nicht nachträglich ergänzt: Sie behalten, womit sie gespeichert wurden, bis ihre Aufbewahrung endet.
 
 ## Sicherheitsereignisse erkunden
 

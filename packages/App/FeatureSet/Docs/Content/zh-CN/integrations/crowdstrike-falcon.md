@@ -79,6 +79,7 @@ Falcon 显示的基础 URL 会告诉你 CID 所在的云。**API clients and key
 | `status`，例如 `new`、`in_progress` 或 `closed` | 状态 |
 | `tactic_id`, `technique_id` | MITRE ATT&CK 战术和技术 |
 | `device.hostname`、`device.local_ip`、`user_name`、`filename` 或 `cmdline` | 主体的主机、IP、用户和进程 |
+| `filename`、`filepath` 和 `cmdline`；`parent_details.filename`、`parent_details.filepath` 和 `parent_details.cmdline` | 进程名称、路径和命令行；父进程名称、路径和命令行 |
 | `device.hostname`、`device.local_ip`、`device.external_ip`、`user_name`、`sha256` | Observable |
 | 其他所有内容，例如 `device.platform_name`、`falcon_host_link`、`product` 和 `timestamp` | `attributes`，展平为点分隔的键 |
 

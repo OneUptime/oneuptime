@@ -121,17 +121,6 @@ const ACTION_ROUTES: Record<InsightAction, string> = {
 };
 
 /*
- * Button paints its own disabled state as `disabled ? "hover:bg-green-50"
- * : ""` — i.e. a disabled OUTLINE/SUCCESS_OUTLINE button is pixel-identical
- * to an enabled one, and the browser silently swallows the click. That is
- * indistinguishable from a broken button, which is exactly how a disabled
- * Confirm reads. These four carry the dashboard's usual disabled styling so
- * a button that cannot act says so before it is pressed.
- */
-const DISABLED_ACTION_CLASS: string =
-  "disabled:cursor-not-allowed disabled:opacity-50";
-
-/*
  * The insight detail: the deterministic evidence (detail markdown written
  * by the detector), the live AI triage panel (same glass-box ChatActivityFeed
  * the AI investigations use), a link to the fix task when one was
@@ -911,7 +900,6 @@ const AIInsightViewPage: FunctionComponent<
                   icon={IconProp.Bell}
                   buttonStyle={ButtonStyleType.OUTLINE}
                   buttonSize={ButtonSize.Small}
-                  className={DISABLED_ACTION_CLASS}
                   disabled={Boolean(createMonitorDisabledReason)}
                   tooltip={
                     createMonitorDisabledReason ||
@@ -934,7 +922,6 @@ const AIInsightViewPage: FunctionComponent<
                 icon={IconProp.Check}
                 buttonStyle={ButtonStyleType.SUCCESS_OUTLINE}
                 buttonSize={ButtonSize.Small}
-                className={DISABLED_ACTION_CLASS}
                 disabled={isSavingAction || isConfirmNoOp}
                 tooltip={
                   isDismissed
@@ -952,7 +939,6 @@ const AIInsightViewPage: FunctionComponent<
                 icon={IconProp.Close}
                 buttonStyle={ButtonStyleType.HOVER_DANGER_OUTLINE}
                 buttonSize={ButtonSize.Small}
-                className={DISABLED_ACTION_CLASS}
                 disabled={isSavingAction || isDismissNoOp}
                 tooltip="Records a Dismissed verdict and closes the insight as noise."
                 onClick={() => {
@@ -967,7 +953,6 @@ const AIInsightViewPage: FunctionComponent<
                   icon={IconProp.Refresh}
                   buttonStyle={ButtonStyleType.OUTLINE}
                   buttonSize={ButtonSize.Small}
-                  className={DISABLED_ACTION_CLASS}
                   disabled={isSavingAction}
                   tooltip="Undo: puts the insight back in the queue and clears the verdict."
                   onClick={() => {
@@ -982,7 +967,6 @@ const AIInsightViewPage: FunctionComponent<
                   icon={IconProp.CheckCircle}
                   buttonStyle={ButtonStyleType.OUTLINE}
                   buttonSize={ButtonSize.Small}
-                  className={DISABLED_ACTION_CLASS}
                   disabled={isSavingAction}
                   tooltip="Closes the insight as handled."
                   onClick={() => {
@@ -1015,13 +999,13 @@ const AIInsightViewPage: FunctionComponent<
         <p className="border-t border-gray-100 bg-gray-50 px-5 py-3 text-xs text-gray-500 md:px-6">
           {isTerminal
             ? translator.translateTemplate(
-                "This insight is closed as {{status}}. No detector will reopen it — a new occurrence files a new insight — but you can reopen it here, or change the verdict, at any time.",
+                "This insight is closed as {{status}}. OneUptime does not reopen it, and files a new one if this happens again, but you can reopen it here, or change your answer, at any time.",
                 {
                   status: translatableTerm(getStatusLabel(status || undefined)),
                 },
               )
             : translator.translateText(
-                "Confirm or dismiss to record whether this insight was worth surfacing — verdicts measure each detector's precision. Resolve it once it has been handled.",
+                "Confirm it if it was worth raising, or dismiss it if not: your answer tells OneUptime which of its findings help. Resolve it once it has been handled.",
               )}
         </p>
       </section>
@@ -1033,10 +1017,17 @@ const AIInsightViewPage: FunctionComponent<
        */}
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
         <div className="min-w-0 space-y-5 xl:col-span-2">
+          {/*
+           * What the finding rests on, in a reader's words: the numbers
+           * OneUptime counted in the telemetry when it filed it (the
+           * detector's own, deterministic - no AI wrote them). It said
+           * "deterministic evidence ... baselines and multipliers written by
+           * the detector at detect time".
+           */}
           <InsightPanel
             title="Evidence"
             icon={IconProp.ClipboardDocumentCheck}
-            description="The deterministic evidence behind this insight — real counts, baselines and multipliers written by the detector at detect time. Not AI output."
+            description="What OneUptime measured in your telemetry when it found this. Not written by AI."
           >
             {insight.detailMarkdown ? (
               /*
@@ -1065,7 +1056,7 @@ const AIInsightViewPage: FunctionComponent<
             <InsightPanel
               title="AI Triage"
               icon={IconProp.Sparkles}
-              description="A budgeted, read-only AI analysis of this insight — probable root cause, blast radius and suggested action, with citations."
+              description="OneUptime AI looked into this without changing anything: the likely cause, what it affects and what to do first, with the evidence for each."
             >
               <div className="space-y-3">
                 {insight.triageSummaryMarkdown ? (

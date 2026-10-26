@@ -396,7 +396,7 @@ describe("AI command capability gating on the agent ingress", () => {
      * unless a test says one does.
      */
     jest
-      .spyOn(CodeRepositoryRunnerChoice, "isRunnerPickedByARepository")
+      .spyOn(CodeRepositoryRunnerChoice, "doesRunnerWorkInARepository")
       .mockResolvedValue(false);
 
     stubVariableReads(agentId);
@@ -448,7 +448,7 @@ describe("AI command capability gating on the agent ingress", () => {
     test("reports canRunAiCommands false when the row explicitly revokes it", async () => {
       // A code repository picks this Runner: its code work is separate.
       jest
-        .spyOn(CodeRepositoryRunnerChoice, "isRunnerPickedByARepository")
+        .spyOn(CodeRepositoryRunnerChoice, "doesRunnerWorkInARepository")
         .mockResolvedValue(true);
 
       await callRoute({

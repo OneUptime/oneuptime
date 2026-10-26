@@ -93,6 +93,7 @@ Hvert fund bliver én begivenhed med leverandøren `Amazon Web Services` og prod
 | `Workflow.Status`: `NEW`, `NOTIFIED`, `RESOLVED` eller `SUPPRESSED`, ellers det ældre `WorkflowState` | Status |
 | `Types` under `TTPs/`: `TTPs/Initial Access/...` bliver `TA0001` | MITRE ATT&CK-taktikker og -teknikker |
 | IAM-brugeren for en adgangsnøgle- eller brugerressource, `Network.SourceIpV4` eller `SourceIpV6`, `Process.Name` eller `Process.Path` | Aktørens bruger, IP og proces |
+| `Process.Name` og `Process.Path` | Processens navn og sti. Et fund nævner hverken en kommandolinje eller en overordnet proces. |
 | Instans-ID'et for en `AwsEc2Instance`-ressource, `Network.DestinationIpV4` eller `DestinationIpV6`, `Network.DestinationPort`, det første `Resources[].Id` | Målets vært, IP, port og ressource |
 | Disse, hvert `Resources[].Id`, `AwsAccountId`, netværkets domæner, malwarenavne og trusselsefterretningsværdier | Observables |
 | Hele fundet, fladet ud til nøgler med punktummer, som `Compliance.Status` og `Remediation.Recommendation.Url` | `attributes` |

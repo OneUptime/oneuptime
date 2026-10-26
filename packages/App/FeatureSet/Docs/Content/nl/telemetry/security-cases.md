@@ -28,7 +28,7 @@ flowchart TB
     work --> close["Gesloten met<br/>een oordeel"]
 ```
 
-Open **Producten → Security Events → Beveiligingszaken → Open zaken** voor de wachtrij. **Aan mij toegewezen**, **Niet toegewezen**, **Gesloten zaken** en **Alle zaken** zijn eigen pagina's ernaast, die elk de zaken tonen die hun naam zegt.
+Open **Producten → Security Events → Beveiligingszaken → Open zaken** voor de wachtrij. **Mijn zaken**, **Niet toegewezen**, **Gesloten zaken** en **Alle zaken** zijn eigen pagina's ernaast, die elk de zaken tonen die hun naam zegt.
 
 ## Voordat je begint
 
@@ -88,7 +88,7 @@ Een zaak heeft een eigen zijmenu, zoals een incident, en elk deel van de zaak is
 | Sectie van het zijmenu | Pagina's |
 | --- | --- |
 | **Overzicht** | **Overzicht**, **Tijdlijn** |
-| **Onderzoek** | **Detecties**, **Entiteiten**, **Verbonden signalen**, **Playbook-uitvoeringen** |
+| **Onderzoek** | **Detecties**, **Entiteiten**, **Verbonden signalen**, **Playbooks** |
 | **Notities** | **Privénotities** |
 | **Geavanceerd** | **Auditlogboeken**, **Zaak verwijderen**, ingeklapt tot je op **Geavanceerd** klikt |
 
@@ -101,7 +101,7 @@ Elke pagina houdt bovenaan de kop van de zaak: nummer, prioriteit, status en tit
 - **Detecties**: wat afging en zo de zaak opende of eraan werd toegevoegd, hoe vaak, en de laatste overeenkomende gebeurtenis.
 - **Entiteiten**: de gebruikers, hosts en adressen waar de zaak over gaat, met hun activiteit in al je beveiligingsgebeurtenissen van de afgelopen 7 dagen. Elk ervan opent in **Correleren**.
 - **Verbonden signalen**: de hosts, clusters, services en leden die de zaak noemt, zoals OneUptime ze kent, en wat er op elk ervan gebeurde rond de detecties: hun logboeken, traces en metrieken, wat erop openstaat en wat er is veranderd. Zie [Verbonden signalen](/docs/telemetry/security-connected-signals).
-- **Playbook-uitvoeringen**: wat elk playbook met de zaak deed, stap voor stap, en de stappen die op goedkeuring wachten. Zolang er uitvoeringen wachten, toont het menu hoeveel naast **Playbook-uitvoeringen**.
+- **Playbooks**: wat elk playbook met de zaak deed, stap voor stap, en de stappen die op goedkeuring wachten. Zolang er uitvoeringen wachten, toont het menu hoeveel naast **Playbooks**.
 - **Privénotities**: wat het team over de zaak schreef.
 - **Auditlogboeken**: elke wijziging aan de zaak, en wie die maakte. Zie [Auditlogboeken](/docs/configuration/audit-logs).
 - **Zaak verwijderen**: verwijdert de zaak voorgoed, met haar detecties, notities, tijdlijn en playbook-uitvoeringen. Wil je haar als verslag bewaren, sluit haar dan met een oordeel.
@@ -300,7 +300,7 @@ Een e-mail of bericht zonder eigen tekst stuurt een samenvatting van de zaak.
 
 ### Uitvoeringen en goedkeuringen
 
-Elke uitvoering staat stap voor stap vermeld bij haar zaak en onder **Producten → Security Events → Playbooks → Playbook-uitvoeringen**:
+Elke uitvoering staat stap voor stap vermeld bij haar zaak en onder **Producten → Security Events → Playbooks → Uitvoeringen**:
 
 | Status van de uitvoering | Betekenis |
 | --- | --- |
@@ -311,7 +311,7 @@ Elke uitvoering staat stap voor stap vermeld bij haar zaak en onder **Producten 
 | Mislukt | Een stap mislukte en de uitvoering stopte |
 | Geannuleerd | Iemand heeft haar geannuleerd, of een stap afgewezen |
 
-Een stap die op goedkeuring wacht, toont **Goedkeuren** en **Afwijzen** op de uitvoering, met een optionele opmerking. Goedkeuren zet de uitvoering voort vanaf die stap; afwijzen beëindigt haar. De beslissing, wie haar nam en de opmerking worden bewaard bij de stap, op de tijdlijn van de zaak en in het auditlogboek van het project. **Wacht op goedkeuring**, onder **Playbooks** in het menu, toont de uitvoeringen die op een beslissing wachten en telt ze; **Playbook-uitvoeringen** toont elke uitvoering. Op **Playbook-uitvoeringen** en op de pagina van een playbook is elke uitvoering één regel die zegt hoe ver ze kwam, of bij welke stap ze stopte; **Stappen tonen** opent haar stappen. Een uitvoering die op goedkeuring wacht, gaat vanzelf open.
+Een stap die op goedkeuring wacht, toont **Goedkeuren** en **Afwijzen** op de uitvoering, met een optionele opmerking. Goedkeuren zet de uitvoering voort vanaf die stap; afwijzen beëindigt haar. De beslissing, wie haar nam en de opmerking worden bewaard bij de stap, op de tijdlijn van de zaak en in het auditlogboek van het project. De pagina **Goedkeuringen**, onder **Playbooks** in het menu, toont de uitvoeringen die op een beslissing wachten en telt ze; **Uitvoeringen** toont elke uitvoering. Op **Uitvoeringen** en op de pagina van een playbook is elke uitvoering één regel die zegt hoe ver ze kwam, of bij welke stap ze stopte; **Stappen tonen** opent haar stappen. Een uitvoering die op goedkeuring wacht, gaat vanzelf open.
 
 Een uitvoering die niets meer van haar worker hoort, bijvoorbeeld na een herstart, wordt weer opgepakt: een uitvoering in de wachtrij wordt na 2 minuten opnieuw in de wachtrij gezet, en een uitvoering die 30 minuten niets heeft gemeld, wordt als mislukt gemarkeerd.
 

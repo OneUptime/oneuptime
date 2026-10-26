@@ -74,6 +74,7 @@ Hvert deteksjonsvarsel blir en Detection Finding-hendelse (OCSF-klasse `2004`) m
 | `kibana.alert.workflow_status`: `open`, `acknowledged` eller `closed` | Status |
 | `kibana.alert.rule.threat`, inkludert underteknikker | MITRE ATT&CK-taktikker og -teknikker |
 | `user.name`, `host.name`, `source.ip` eller `host.ip`, `process.name` eller `process.executable` | Aktørens bruker, vert, IP og prosess |
+| `process.name`, `process.executable` og `process.command_line`; `process.parent.name`, `process.parent.executable` og `process.parent.command_line` | Prosessens navn, bane og kommandolinje; navn, bane og kommandolinje for den overordnede prosessen |
 | `user.target.name`, `destination.domain`, `destination.ip`, `destination.port`, `file.path` | Målets bruker, vert, IP, port og ressurs |
 | Disse, pluss `related.*`, `dns.question.name`, `url.domain` og filhasher | Observables |
 | Hele varselet, flatet ut til nøkler med punktum, med `_index` og `_id` | `attributes` |

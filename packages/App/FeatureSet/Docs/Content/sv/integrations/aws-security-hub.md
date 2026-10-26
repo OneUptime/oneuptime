@@ -93,6 +93,7 @@ Varje fynd blir en händelse, med leverantören `Amazon Web Services` och produk
 | `Workflow.Status`: `NEW`, `NOTIFIED`, `RESOLVED` eller `SUPPRESSED`, annars det äldre `WorkflowState` | Status |
 | `Types` under `TTPs/`: `TTPs/Initial Access/...` blir `TA0001` | MITRE ATT&CK-taktiker och -tekniker |
 | IAM-användaren för en åtkomstnyckel- eller användarresurs, `Network.SourceIpV4` eller `SourceIpV6`, `Process.Name` eller `Process.Path` | Aktörens användare, IP och process |
+| `Process.Name` och `Process.Path` | Processens namn och sökväg. Ett fynd anger varken en kommandorad eller en överordnad process. |
 | Instans-ID:t för en `AwsEc2Instance`-resurs, `Network.DestinationIpV4` eller `DestinationIpV6`, `Network.DestinationPort`, det första `Resources[].Id` | Målets värd, IP, port och resurs |
 | Dessa, varje `Resources[].Id`, `AwsAccountId`, nätverkets domäner, namn på skadlig kod och värden från hotinformation | Observables |
 | Hela fyndet, utplattat till nycklar med punkter, till exempel `Compliance.Status` och `Remediation.Recommendation.Url` | `attributes` |

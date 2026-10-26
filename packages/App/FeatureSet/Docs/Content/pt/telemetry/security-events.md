@@ -44,8 +44,8 @@ Abra **Produtos → Security Events**, em **Observabilidade**. O menu dele tem u
 | **Inteligência de ameaças** | Detections | Feeds STIX/TAXII de indicadores maliciosos conhecidos |
 | **Cobertura ATT&CK** | Detections | As técnicas MITRE ATT&CK que as suas regras cobrem |
 | **Playbooks** | Playbooks | Etapas que rodam nos casos, sozinhas ou manualmente |
-| **Aguardando aprovação** | Playbooks | As etapas de playbook aguardando alguém aprovar ou rejeitar |
-| **Execuções de playbooks** | Playbooks | O que cada playbook fez, etapa por etapa |
+| **Aprovações** | Playbooks | As etapas de playbook aguardando alguém aprovar ou rejeitar |
+| **Execuções** | Playbooks | O que cada playbook fez, etapa por etapa |
 | **Entidades protegidas** | Playbooks | Os usuários e hosts aos quais nenhum playbook aplica contenção |
 | **Configurações** | IA | Se o OneUptime AI classifica cada caso novo |
 | **Conexões** | Connections | Seus logs, os produtos de segurança que o OneUptime consulta e os SIEMs para os quais ele envia |
@@ -205,10 +205,12 @@ Cada evento é salvo com campos tipados e o payload de origem:
 | Gravidade | `severityName`, um de Unknown, Informational, Low, Medium, High, Critical, Fatal ou Other, e `severityId` |
 | Quem fez | `principalUser`, `principalHost`, `principalIp`, `principalProcess` |
 | O que foi afetado | `targetUser`, `targetHost`, `targetIp`, `targetPort`, `targetResource` |
-| O processo | `processName`, `processPath` e `processCommandLine`: na inicialização de um processo, o processo que iniciou; nos demais casos, o processo que agiu. `parentProcessName`, `parentProcessPath` e `parentProcessCommandLine`: o processo que o iniciou |
+| O processo | `processName`, `processPath` e `processCommandLine`: em uma atividade de processo, o processo iniciado, aberto, injetado ou encerrado; nos demais casos, o processo que agiu. `parentProcessName`, `parentProcessPath` e `parentProcessCommandLine`: o processo que o iniciou |
 | Origem | `productName`, `vendorName`, `ruleId`, `ruleName`, `eventUid` |
 | Conteúdo | `message`, `mitreTactics`, `mitreTechniques` e `observables`: cada usuário, host, endereço IP, domínio e hash extraído do evento |
 | Atributos | O payload de origem inteiro, achatado em chaves com pontos |
+
+Os eventos armazenados antes do OneUptime 14.0.84 deixam vazios os campos de processo e nomeiam seu processo apenas como `principalProcess`, o processo que agiu. Eles não são preenchidos depois: mantêm o que tinham ao serem armazenados até o fim da retenção.
 
 ## Explorar os eventos de segurança
 

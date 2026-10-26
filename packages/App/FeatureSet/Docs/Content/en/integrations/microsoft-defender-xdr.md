@@ -83,6 +83,7 @@ Each Defender XDR [alert](https://learn.microsoft.com/en-us/graph/api/resources/
 | `mitreTechniques` | `mitreTechniques` |
 | `mitreTactics` | `categories` or `category`, when it is an ATT&CK tactic: `CredentialAccess` becomes `TA0006`. Other categories stay in `attributes`. |
 | `principalHost`, `principalUser`, `principalIp`, `principalProcess` | The `evidence` with the `source`, `attacker` or `compromised` role, or else the first of each kind |
+| `processName`, `processPath`, `processCommandLine`, `parentProcessName`, `parentProcessPath` | The process evidence `principalProcess` comes from: its `imageFile`, `processCommandLine` and `parentProcessImageFile`. Graph gives no parent command line. |
 | `targetHost`, `targetUser`, `targetIp`, `targetResource` | The `evidence` with a target role, such as `destination` or `attacked`. URLs, mailboxes and cloud resources fill `targetResource`. |
 | `observables` | Every host name, IP, user, file name, SHA-1 and SHA-256, URL, domain, mailbox and resource ID in `evidence` |
 | `attributes` | The whole alert, flattened to dotted keys such as `evidence.0.hostName`, `serviceSource` and `incidentId` |

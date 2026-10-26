@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/e2e",
-  "version": "14.0.90",
+  "version": "14.0.91",
   "description": "",
   "repository": {
     "type": "git",
@@ -95,6 +95,7 @@
     "test-dashboard-value-widget-ui": "playwright test --config playwright.dashboard-value-widget-ui.config.ts",
     "test-vmware-host-page-ui": "playwright test --config playwright.vmware-host-page-ui.config.ts",
     "test-acknowledgement-timeout-ui": "playwright test --config playwright.acknowledgement-timeout-ui.config.ts",
+    "test-shared-ui-ui": "playwright test --config playwright.shared-ui-ui.config.ts",
     "test-owners-on-create-ui": "playwright test --config playwright.owners-on-create-ui.config.ts",
     "test-owner-filters-ui": "playwright test --config playwright.owner-filters-ui.config.ts",
     "test-kubernetes-events-ui": "playwright test --config playwright.kubernetes-events-ui.config.ts",

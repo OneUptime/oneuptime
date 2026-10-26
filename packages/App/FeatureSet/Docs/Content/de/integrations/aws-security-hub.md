@@ -93,6 +93,7 @@ Jedes Finding wird zu einem Ereignis, mit dem Anbieter `Amazon Web Services` und
 | `Workflow.Status`: `NEW`, `NOTIFIED`, `RESOLVED` oder `SUPPRESSED`, sonst das ältere `WorkflowState` | Status |
 | `Types` unter `TTPs/`: Aus `TTPs/Initial Access/...` wird `TA0001` | MITRE-ATT&CK-Taktiken und -Techniken |
 | Der IAM-Benutzer einer Ressource vom Typ Zugriffsschlüssel oder Benutzer, `Network.SourceIpV4` oder `SourceIpV6`, `Process.Name` oder `Process.Path` | Benutzer, IP und Prozess des Akteurs |
+| `Process.Name` und `Process.Path` | Prozessname und -pfad. Ein Finding nennt weder eine Befehlszeile noch einen übergeordneten Prozess. |
 | Die Instanz-ID einer Ressource `AwsEc2Instance`, `Network.DestinationIpV4` oder `DestinationIpV6`, `Network.DestinationPort`, die erste `Resources[].Id` | Host, IP, Port und Ressource des Ziels |
 | Diese, jede `Resources[].Id`, `AwsAccountId`, die Domänen des Netzwerks, Malware-Namen und Werte der Bedrohungsdaten | Observables |
 | Das ganze Finding, flach gemacht zu Schlüsseln mit Punkten wie `Compliance.Status` und `Remediation.Recommendation.Url` | `attributes` |

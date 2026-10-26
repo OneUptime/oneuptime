@@ -6,7 +6,11 @@ import {
   ON_CALL_POLICY_RUN_WENT_THROUGH_EVERY_RULE_MESSAGE,
   isOnCallPolicyRunEverybodyPassedOnMessage,
 } from "../../../Types/OnCallDutyPolicy/OnCallDutyPolicyRunEnding";
-import { isOnCallPagePassedOnStatusMessage } from "../../../Types/OnCallDutyPolicy/OnCallPagePassOn";
+import {
+  getOnCallPassOnLevelCount,
+  getOnCallPassOnLevelName,
+  isOnCallPagePassedOnStatusMessage,
+} from "../../../Types/OnCallDutyPolicy/OnCallPagePassOn";
 import {
   ON_CALL_POLICY_RUN_ENDED_WHILE_WAITING_MESSAGE_START,
   isOnCallPolicyRunEndedWhileWaiting,
@@ -37,20 +41,28 @@ import ProductBrandingText from "../ProductBrandingText";
  * (FeedBurstKind.OnCall):
  *
  *   On-call policy PolicyX started paging.
- *   On-call policy PolicyX paged Nitin Kumar at escalation rule first.
- *     Notification sent by SMS.
- *   On-call policy PolicyX paged nobody at escalation rule third: this
+ *   On-call policy PolicyX paged Nitin Kumar at First line (Level 1 of 3,
+ *     schedule Primary). Notification sent by SMS.
+ *   On-call policy PolicyX paged nobody at Night shift (Level 3 of 3): this
  *     escalation rule has no responders.
  *   On-call policy PolicyX stopped paging because the incident is
  *     acknowledged or resolved.
  *
+ * A level is named as the Escalate dialog and the run's Slack and Teams
+ * message name it (OnCallPagePassOn): its name, then its place - or its
+ * place alone, "Level 2 of 3", when it has no name of its own. The
+ * schedule the person was paged from shares the place's brackets, so a
+ * line never reads "(Level 1 of 3) (schedule Primary)". A step whose
+ * level's place is not known is named as before: "escalation rule first
+ * (schedule Primary)".
+ *
  * A rule that pages the next person in a schedule's rotation - the backup
  * after whoever is on call - says that is why:
  *
- *   On-call policy PolicyX paged Sam Lee at escalation rule Level 2 (next
- *     in the Primary rotation).
- *   On-call policy PolicyX paged nobody at escalation rule Level 2: nobody
- *     was next in the Primary rotation.
+ *   On-call policy PolicyX paged Sam Lee at Level 2 of 3 (next in the
+ *     Primary rotation).
+ *   On-call policy PolicyX paged nobody at Level 2 of 3: nobody was next in
+ *     the Primary rotation.
  *
  * The record the run is for is not named: the entries are only ever written
  * to that record's own feed, where a link to it is a link to the page it is
@@ -80,9 +92,9 @@ import ProductBrandingText from "../ProductBrandingText";
  * is one entry, in their name, and the entries after it say what the run
  * did next - paged the next level, or stopped:
  *
- *   Ana Lopez escalated the page from on-call policy PolicyX at escalation
- *     rule Level 1.
- *   On-call policy PolicyX paged Sam Lee at escalation rule Level 2.
+ *   Ana Lopez escalated the page from on-call policy PolicyX at Level 1
+ *     of 3.
+ *   On-call policy PolicyX paged Sam Lee at Level 2 of 3.
  *   On-call policy PolicyX stopped paging: everybody it paged escalated it,
  *     and nobody was left to page.
  *
@@ -95,6 +107,12 @@ export interface OnCallStepFeedTextInput {
   policyLink: MarkdownText;
   // The escalation rule that ran, as typed. "Unnamed Rule" when it has none.
   ruleName?: string | undefined;
+  /*
+   * Its place in the policy, and how many levels the policy has: "Level 2
+   * of 3". Unknown, the rule is named by its name alone.
+   */
+  ruleOrder?: number | undefined;
+  ruleCount?: number | undefined;
   // The schedule the person was on call in, as typed.
   scheduleName?: string | undefined;
   /*
@@ -186,23 +204,91 @@ const getRuleName: (ruleName: string | undefined) => string = (
 };
 
 /*
- * Where the rule sits: "escalation rule **first** (schedule **Primary**)",
- * or "(next in the **Primary** rotation)" for the backup after whoever is on
- * call, with the team the person was paged as a member of.
+ * A level, as the Escalate dialog names it, in two parts: what is said in
+ * bold - its name, "**First line**", or its place when it has no name of
+ * its own, "**Level 1 of 3**" - and the place to say in brackets after a
+ * name ("Level 1 of 3"). The place reads "Level 1" when the policy's
+ * levels could not be counted. A step whose level's place is not known is
+ * named as it always was: "escalation rule **first**", with no place.
+ */
+interface LevelParts {
+  lead: MarkdownText;
+  place?: string | undefined;
+}
+
+const getLevelParts: (input: OnCallStepFeedTextInput) => LevelParts = (
+  input: OnCallStepFeedTextInput,
+): LevelParts => {
+  const order: number = Number(input.ruleOrder);
+
+  if (!Number.isInteger(order) || order < 1) {
+    return {
+      lead: mdText`escalation rule **${getRuleName(input.ruleName)}**`,
+    };
+  }
+
+  const rule: { order: number; name?: string | undefined } = {
+    order: order,
+    name: input.ruleName,
+  };
+  const count: number = Number(input.ruleCount);
+  const place: string =
+    Number.isInteger(count) && count > 0
+      ? `Level ${order} of ${getOnCallPassOnLevelCount(rule, count)}`
+      : `Level ${order}`;
+  const name: string | undefined = getOnCallPassOnLevelName(rule);
+
+  return name
+    ? { lead: mdText`**${name}**`, place: place }
+    : { lead: mdText`**${place}**` };
+};
+
+/*
+ * The level on its own: "**First line** (Level 1 of 3)", or "**Level 1 of
+ * 3**" when it has no name of its own.
+ */
+const getLevel: (input: OnCallStepFeedTextInput) => MarkdownText = (
+  input: OnCallStepFeedTextInput,
+): MarkdownText => {
+  const level: LevelParts = getLevelParts(input);
+
+  return level.place ? mdText`${level.lead} (${level.place})` : level.lead;
+};
+
+/*
+ * Where the rule sits, with the schedule the person was paged from in the
+ * same brackets as the level's place - "**First line** (Level 1 of 3,
+ * schedule **Primary**)", "**Level 2 of 3** (next in the **Primary**
+ * rotation)" for the backup after whoever is on call - then the team the
+ * person was paged as a member of.
  */
 const getRuleClause: (input: OnCallStepFeedTextInput) => MarkdownText = (
   input: OnCallStepFeedTextInput,
 ): MarkdownText => {
   const scheduleName: string = (input.scheduleName || "").trim();
   const teamName: string = (input.teamName || "").trim();
+  const level: LevelParts = getLevelParts(input);
 
-  const schedule: MarkdownText = !scheduleName
-    ? FeedMarkdown.empty()
-    : input.isNextInRotation
-      ? mdText` (next in the **${scheduleName}** rotation)`
-      : mdText` (schedule **${scheduleName}**)`;
+  const inBrackets: Array<MarkdownText> = [];
 
-  return mdText`escalation rule **${getRuleName(input.ruleName)}**${schedule}${teamName ? mdText`, as a member of **${teamName}**` : FeedMarkdown.empty()}`;
+  if (level.place) {
+    inBrackets.push(mdText`${level.place}`);
+  }
+
+  if (scheduleName) {
+    inBrackets.push(
+      input.isNextInRotation
+        ? mdText`next in the **${scheduleName}** rotation`
+        : mdText`schedule **${scheduleName}**`,
+    );
+  }
+
+  const brackets: MarkdownText =
+    inBrackets.length > 0
+      ? mdText` (${FeedMarkdown.join(inBrackets, ", ")})`
+      : FeedMarkdown.empty();
+
+  return mdText`${level.lead}${brackets}${teamName ? mdText`, as a member of **${teamName}**` : FeedMarkdown.empty()}`;
 };
 
 // A message as a sentence of its own, ending once.
@@ -252,7 +338,7 @@ const getStepHeadline: (input: OnCallStepFeedTextInput) => MarkdownText = (
         ? mdText`nobody was next in the **${scheduleName}** rotation`
         : mdText`nobody was on call in schedule **${scheduleName}**`;
 
-    return mdText`${policy} paged nobody at escalation rule **${getRuleName(input.ruleName)}**: ${reason}.`;
+    return mdText`${policy} paged nobody at ${getLevel(input)}: ${reason}.`;
   }
 
   const recipient: MarkdownText = mdText`**${input.recipient!}**`;

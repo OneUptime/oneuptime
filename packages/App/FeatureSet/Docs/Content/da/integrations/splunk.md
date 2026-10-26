@@ -78,6 +78,7 @@ Hver række, søgningen returnerer, bliver en Detection Finding-begivenhed (OCSF
 | `status_label`, ellers `status_description`, ellers navnet på den gennemgangsstatus, `status` indeholder | Status |
 | `annotations.mitre_attack` og felter som `mitre_technique_id` og `mitre_tactic` | MITRE ATT&CK-taktikker og -teknikker |
 | `user` eller `src_user`; `src`, `src_ip` eller `src_host`; `process`, `process_name` eller `parent_process` | Aktørens bruger, IP, vært og proces |
+| `process_name` eller `process_exec`, `process_path` og `process`; `parent_process_name` eller `parent_process_exec`, `parent_process_path` og `parent_process` | Processens navn, sti og kommandolinje; navn, sti og kommandolinje for den overordnede proces |
 | `dest_user`; `dest`, `dest_ip` eller `dest_host`; `dest_port` | Målets bruger, IP, vært og port |
 | `file_path`, `url` eller `risk_object` | Målressource |
 | Hver bruger, vært og IP samt `dvc`, `host`, `file_hash`, `file_name`, `url`, `domain`, `query` og `risk_object` | Observables |

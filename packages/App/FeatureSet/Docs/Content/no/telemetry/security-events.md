@@ -44,7 +44,7 @@ flowchart TB
 | **Trusselsinformasjon** | Detections | STIX/TAXII-feeder med kjente ondsinnede indikatorer |
 | **ATT&CK-dekning** | Detections | MITRE ATT&CK-teknikkene som reglene dine dekker |
 | **Playbooks** | Playbooks | Steg som kjører på saker, av seg selv eller manuelt |
-| **Venter på godkjenning** | Playbooks | Playbook-stegene som venter på at noen godkjenner eller avviser dem |
+| **Godkjenninger** | Playbooks | Playbook-stegene som venter på at noen godkjenner eller avviser dem |
 | **Playbook-kjøringer** | Playbooks | Hva hver playbook gjorde, steg for steg |
 | **Beskyttede entiteter** | Playbooks | Brukerne og vertene som ingen playbook demmer inn |
 | **Innstillinger** | KI | Om OneUptime AI vurderer hver nye sak |
@@ -205,10 +205,12 @@ Hver hendelse lagres med typede felt og kildens nyttelast:
 | Alvorlighetsgrad | `severityName`, en av Unknown, Informational, Low, Medium, High, Critical, Fatal eller Other, og `severityId` |
 | Hvem som gjorde det | `principalUser`, `principalHost`, `principalIp`, `principalProcess` |
 | Hva det berørte | `targetUser`, `targetHost`, `targetIp`, `targetPort`, `targetResource` |
-| Prosessen | `processName`, `processPath` og `processCommandLine`: ved en prosessoppstart prosessen som startet, ellers prosessen som handlet. `parentProcessName`, `parentProcessPath` og `parentProcessCommandLine`: prosessen som startet den |
+| Prosessen | `processName`, `processPath` og `processCommandLine`: ved prosessaktivitet prosessen som ble startet, åpnet, injisert i eller avsluttet, ellers prosessen som handlet. `parentProcessName`, `parentProcessPath` og `parentProcessCommandLine`: prosessen som startet den |
 | Kilde | `productName`, `vendorName`, `ruleId`, `ruleName`, `eventUid` |
 | Innhold | `message`, `mitreTactics`, `mitreTechniques` og `observables`: hver bruker, vert, IP-adresse, domene og hash hentet fra hendelsen |
 | Attributter | Hele kildens nyttelast, flatet ut til nøkler med punktum |
+
+Hendelser som ble lagret før OneUptime 14.0.84, lar prosessfeltene stå tomme og nevner bare prosessen sin som `principalProcess`, prosessen som handlet. De fylles ikke ut i etterkant: de beholder det de ble lagret med, til oppbevaringen deres går ut.
 
 ## Utforsk sikkerhetshendelser
 

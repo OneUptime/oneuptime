@@ -82,7 +82,7 @@ En **Recordatorios**, fija el **Intervalo de recordatorio (minutos)**, cada cuá
 | **Antes de que empiece** | Desde que se programa el evento hasta que empieza. |
 | **Antes de que empiece y mientras esté en curso** | Desde que se programa el evento hasta que termina. |
 
-Una regla guardada mediante la API o Terraform que espera a que empiece el evento y se detiene cuando empieza nunca envía un recordatorio: la lista la marca con **Nunca envía recordatorios** y su formulario te pide que elijas una respuesta.
+La API y Terraform rechazan una regla que esperaría a que empiece el evento y se detendría cuando empieza: nunca enviaría un recordatorio. Una regla antigua guardada así aparece en la lista con **Nunca envía recordatorios**, y su formulario te pide que elijas cuándo recordar.
 
 Los propietarios reciben cada recordatorio como **Recordatorio de mantenimiento**, activado por correo electrónico para cada miembro nuevo. Guardar, cambiar o eliminar una regla de recordatorio vuelve a asignar regla a cada evento que no está completado. Para detener los recordatorios de un evento, desactiva **Enviar recordatorios** en su página **Ajustes**; se guarda en cuanto lo cambias.
 

@@ -5,7 +5,7 @@ Um **agente de runbook**, chamado de **Runner** no painel, é um pequeno process
 :::cards
 - [Instalar um Runner](#instalar-um-runner): Do painel a um contêiner conectado, em cinco etapas.
 - [Apontar uma etapa para um Runner](#apontar-uma-etapa-para-um-runner): Ligar uma etapa ao Runner que deve executá-la.
-- [O Runner padrão do projeto](#o-runner-padrão-do-projeto): O Runner em que roda uma etapa que não escolhe nenhum.
+- [O Runner padrão do projeto](#o-runner-padrão-do-projeto): O Runner em que roda uma etapa ou um repositório de código que não escolhe nenhum.
 - [Runners globais](#runners-globais): Os Runners que o OneUptime executa para todos os projetos, e o que eles executam.
 - [Timeouts](#timeouts): Os timeouts de assunção e de execução, e como interagem.
 - [Variáveis de ambiente](#variáveis-de-ambiente): O que o contêiner lê ao iniciar.
@@ -70,7 +70,7 @@ Um Runner global executa as etapas de muitos projetos, então cada etapa fica se
 - Ele só recebe uma variável secreta quando o interruptor **Runners globais podem usá-lo** dela está ligado, e só para uma etapa do próprio projeto da variável.
 - Um projeto roda no máximo três etapas por vez nos Runners globais, então nenhum projeto fica com eles só para si.
 
-Escolha um dos seus próprios Runners para uma etapa que precisa alcançar a sua rede, ou para manter a etapa em hosts que você controla. Para manter todas as etapas nos seus próprios Runners, desligue **Usar Runners globais** no fim de **Runbooks → Agentes de runbook**. Uma etapa JavaScript que não escolhe nenhum Runner passa então a rodar no Runner padrão do projeto ou, se não houver um, a falhar, dizendo isso, até escolher um dos seus; uma etapa que escolhe um dos seus Runners o mantém de qualquer forma. Um repositório de código que não escolhe nenhum Runner nas configurações dele em Código também trabalha em um Runner global, e precisa de um dos seus enquanto a opção estiver desligada; consulte [Código](/docs/ai/ai-agent#escolha-o-runner-do-repositório).
+Escolha um dos seus próprios Runners para uma etapa que precisa alcançar a sua rede, ou para manter a etapa em hosts que você controla. Para manter todas as etapas nos seus próprios Runners, desligue **Usar Runners globais** no fim de **Runbooks → Agentes de runbook**. Uma etapa JavaScript que não escolhe nenhum Runner passa então a rodar no Runner padrão do projeto ou, se não houver um, a falhar, dizendo isso, até escolher um dos seus; uma etapa que escolhe um dos seus Runners o mantém de qualquer forma. Um repositório de código que não escolhe nenhum Runner nas configurações dele em Código também trabalha no Runner padrão do projeto ou, se não houver um, em um Runner global, e precisa de um dos seus enquanto a opção estiver desligada; consulte [Código](/docs/ai/ai-agent#escolha-o-runner-do-repositório).
 
 ### De onde vêm os Runners globais
 
@@ -156,7 +156,7 @@ Precisa de mais de um Runner? Crie-os e aponte cada etapa para o adequado. Para 
 
 ## O Runner padrão do projeto
 
-Um projeto pode tornar um dos seus próprios Runners o padrão, assim como torna uma configuração do Twilio a padrão. Toda etapa de runbook que não escolhe nenhum Runner passa então a rodar nele: as etapas Bash, SSH e kubectl, e as etapas JavaScript, que de outra forma rodariam em um Runner global.
+Um projeto pode tornar um dos seus próprios Runners o padrão, assim como torna uma configuração do Twilio a padrão. Toda etapa de runbook que não escolhe nenhum Runner passa então a rodar nele: as etapas Bash, SSH e kubectl, e as etapas JavaScript, que de outra forma rodariam em um Runner global. O mesmo vale para a IA em todo repositório de código que não escolhe nenhum Runner nas configurações dele em Código.
 
 Para tornar um Runner o padrão, vá a **Runbooks → Agentes de runbook**, abra o menu **⋯** na linha do Runner, clique em **Definir como padrão do projeto** e confirme com **Tornar padrão do projeto**. Ou abra o Runner e, no cartão **Padrão do projeto** dele, ligue **Usar como padrão do projeto**. A lista marca o padrão como **Padrão do projeto**, ao lado do nome, e a lista suspensa **Runner** de uma etapa faz o mesmo, na primeira opção. Um projeto tem um só Runner padrão: tornar outro Runner o padrão o substitui. **Deixar de usar como padrão do projeto**, no mesmo menu, ou o interruptor na página do Runner, deixa de usá-lo.
 
@@ -172,7 +172,7 @@ Uma etapa que escolheu um Runner o mantém, seja qual for o padrão, e uma etapa
 
 O padrão é um dos Runners próprios do projeto que roda etapas de runbook: não um Runner global, não o Runner dentro do cluster que o agente do Kubernetes instalou, e não um com **Executa runbooks** desligado. Enquanto um Runner é o padrão, o **Executa runbooks** dele continua ligado. Quando o padrão não está conectado, a lista suspensa de uma etapa avisa, e uma etapa nele espera por ele, como por qualquer Runner, até o claim timeout dela acabar.
 
-Só as etapas de runbook usam o padrão. Um repositório de código escolhe o Runner dele nas configurações dele em Código, e uma regra de IA escolhe o seu.
+As etapas de runbook e os repositórios de código que não escolhem nenhum Runner usam o padrão, e acompanham a mudança quando outro Runner se torna o padrão. Uma regra de IA escolhe o próprio Runner, e uma regra nova começa no padrão.
 
 ## Notas de operação
 

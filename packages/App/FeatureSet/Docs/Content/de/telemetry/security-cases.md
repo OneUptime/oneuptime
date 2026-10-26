@@ -88,7 +88,7 @@ Ein Fall hat ein eigenes Seitenmenü, wie ein Vorfall, und jeder Teil des Falls 
 | Abschnitt im Seitenmenü | Seiten |
 | --- | --- |
 | **Übersicht** | **Übersicht**, **Zeitachse** |
-| **Untersuchung** | **Erkennungen**, **Entitäten**, **Verbundene Signale**, **Playbook-Ausführungen** |
+| **Untersuchung** | **Erkennungen**, **Entitäten**, **Verbundene Signale**, **Playbooks** |
 | **Notizen** | **Private Notizen** |
 | **Erweitert** | **Audit-Protokolle**, **Fall löschen**, eingeklappt, bis Sie auf **Erweitert** klicken |
 
@@ -101,7 +101,7 @@ Jede Seite behält oben den Kopf des Falls: Nummer, Priorität, Status und Titel
 - **Erkennungen**: was ausgelöst hat, um den Fall zu eröffnen oder ihn zu ergänzen, wie oft, und das neueste passende Ereignis.
 - **Entitäten**: die Benutzer, Hosts und Adressen, um die es im Fall geht, mit ihrer Aktivität in allen Ihren Sicherheitsereignissen der letzten 7 Tage. Jede öffnet sich in **Korrelieren**.
 - **Verbundene Signale**: die Hosts, Cluster, Dienste und Mitglieder, die der Fall nennt, wie OneUptime sie kennt, und was auf jedem davon rund um seine Erkennungen geschah: ihre Protokolle, Traces und Metriken, was darauf offen ist und was sich geändert hat. Siehe [Verbundene Signale](/docs/telemetry/security-connected-signals).
-- **Playbook-Ausführungen**: was jedes Playbook am Fall getan hat, Schritt für Schritt, und die Schritte, die auf Genehmigung warten. Solange Ausführungen warten, zeigt das Menü neben **Playbook-Ausführungen**, wie viele es sind.
+- **Playbooks**: was jedes Playbook am Fall getan hat, Schritt für Schritt, und die Schritte, die auf Genehmigung warten. Solange Ausführungen warten, zeigt das Menü neben **Playbooks**, wie viele es sind.
 - **Private Notizen**: was das Team zum Fall geschrieben hat.
 - **Audit-Protokolle**: jede Änderung am Fall und wer sie vorgenommen hat. Siehe [Audit-Protokolle](/docs/configuration/audit-logs).
 - **Fall löschen**: löscht den Fall mit seinen Erkennungen, Notizen, seiner Zeitachse und seinen Playbook-Ausführungen endgültig. Um ihn als Nachweis zu behalten, schließen Sie ihn stattdessen mit einer Bewertung.
@@ -300,7 +300,7 @@ Eine E-Mail oder ein Beitrag ohne eigene Nachricht sendet eine Zusammenfassung d
 
 ### Ausführungen und Genehmigungen
 
-Jede Ausführung wird an ihrem Fall und unter **Produkte → Sicherheitsereignisse → Playbooks → Playbook-Ausführungen** aufgelistet, Schritt für Schritt:
+Jede Ausführung wird an ihrem Fall und unter **Produkte → Sicherheitsereignisse → Playbooks → Ausführungen** aufgelistet, Schritt für Schritt:
 
 | Status der Ausführung | Bedeutung |
 | --- | --- |
@@ -311,7 +311,7 @@ Jede Ausführung wird an ihrem Fall und unter **Produkte → Sicherheitsereignis
 | Fehlgeschlagen | Ein Schritt ist fehlgeschlagen, und die Ausführung wurde beendet |
 | Abgebrochen | Jemand hat sie abgebrochen oder einen Schritt abgelehnt |
 
-Ein Schritt, der auf Genehmigung wartet, zeigt an der Ausführung **Genehmigen** und **Ablehnen**, mit einem optionalen Kommentar. Eine Genehmigung setzt die Ausführung ab diesem Schritt fort; eine Ablehnung beendet sie. Die Entscheidung, wer sie getroffen hat, und der Kommentar werden am Schritt, in der Zeitachse des Falls und im Audit-Protokoll des Projekts festgehalten. **Wartet auf Genehmigung**, im Menü unter **Playbooks**, listet die Ausführungen, die auf eine Entscheidung warten, und zählt sie; **Playbook-Ausführungen** listet jede Ausführung. Auf **Playbook-Ausführungen** und auf der Seite eines Playbooks ist jede Ausführung eine Zeile, die sagt, wie weit sie gekommen ist oder bei welchem Schritt sie angehalten hat; **Schritte anzeigen** öffnet ihre Schritte. Eine Ausführung, die auf Genehmigung wartet, öffnet sich von selbst.
+Ein Schritt, der auf Genehmigung wartet, zeigt an der Ausführung **Genehmigen** und **Ablehnen**, mit einem optionalen Kommentar. Eine Genehmigung setzt die Ausführung ab diesem Schritt fort; eine Ablehnung beendet sie. Die Entscheidung, wer sie getroffen hat, und der Kommentar werden am Schritt, in der Zeitachse des Falls und im Audit-Protokoll des Projekts festgehalten. Die Seite **Genehmigungen**, im Menü unter **Playbooks**, listet die Ausführungen, die auf eine Entscheidung warten, und zählt sie; **Ausführungen** listet jede Ausführung. Auf **Ausführungen** und auf der Seite eines Playbooks ist jede Ausführung eine Zeile, die sagt, wie weit sie gekommen ist oder bei welchem Schritt sie angehalten hat; **Schritte anzeigen** öffnet ihre Schritte. Eine Ausführung, die auf Genehmigung wartet, öffnet sich von selbst.
 
 Eine Ausführung, von deren Worker nichts mehr kommt, etwa nach einem Neustart, wird wieder aufgegriffen: Eine Ausführung in der Warteschlange wird nach 2 Minuten erneut eingereiht, und eine Ausführung, die sich 30 Minuten lang nicht gemeldet hat, gilt als fehlgeschlagen.
 

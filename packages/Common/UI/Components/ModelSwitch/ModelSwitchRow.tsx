@@ -199,7 +199,23 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
    * saved or refused (false).
    */
   onSavingChange?: ((isSaving: boolean) => void) | undefined;
+  /*
+   * What the switch's setting comes to right now, when that is not what its
+   * name promises, for the way it is set: "Every enabled AI rule is set to
+   * “Don't fix”, so nothing is fixed" under Fix new incidents
+   * automatically, while it is on. A line of its own under the switch's
+   * sentences, marked and in the warning colour, and read out with them;
+   * nothing when it gives nothing.
+   */
+  getWarning?: ((isOn: boolean) => ReactNode) | undefined;
 }
+
+// The data-testid of a switch's warning line, under its sentences.
+export const getModelSwitchWarningTestId: (
+  switchTestId: string | undefined,
+) => string = (switchTestId: string | undefined): string => {
+  return `${switchTestId || "model-switch"}-warning`;
+};
 
 /*
  * Whether the switch may be flipped, and if not, why: the first of the
@@ -508,14 +524,33 @@ const ModelSwitchRow: <TBaseModel extends BaseModel>(
     </span>
   ) : undefined;
 
+  /*
+   * What the setting comes to right now (getWarning): its own line under
+   * the sentences, so it reads apart from what the switch always does.
+   */
+  const warningContent: ReactNode = props.getWarning?.(isOn);
+  const warningLine: ReactElement | undefined = warningContent ? (
+    <div
+      className="mt-1.5 flex items-start gap-1.5 text-amber-800"
+      data-testid={getModelSwitchWarningTestId(props.dataTestId)}
+    >
+      <Icon
+        icon={IconProp.Alert}
+        className="mt-0.5 h-4 w-4 flex-none text-amber-600"
+      />
+      <div className="min-w-0">{warningContent}</div>
+    </div>
+  ) : undefined;
+
   // Translated here, as one element: the Toggle would look a string up again.
   const description: ReactElement | undefined =
-    descriptionText || props.note || leftoverNote ? (
+    descriptionText || props.note || leftoverNote || warningLine ? (
       <>
         {descriptionText ? translator.translateText(descriptionText) : ""}
         {descriptionText && props.note ? " " : ""}
         {props.note ? translator.translateText(props.note) : ""}
         {leftoverNote || ""}
+        {warningLine || ""}
       </>
     ) : undefined;
 

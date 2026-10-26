@@ -351,7 +351,7 @@ In **Altri campi** una regola sceglie i repository di codice, i server MCP e il 
 ### Vedere cosa ha fatto
 
 - **Prodotti → Profili di performance → IA → Informazioni** elenca il codice lento trovato, ogni rilevamento con le sue prove e **Apri nel Profiler**.
-- **Prodotti → Profili di performance → IA → Registri** elenca ogni indagine e ogni pull request, dalla più recente, con lo stato di ciascuna.
+- **Prodotti → Profili di performance → IA → Registri** elenca ogni indagine e ogni pull request, dalla più recente, con lo stato di ciascuna e ciò che ogni indagine ha trovato.
 - In Codice, l'attività indica che l'ha avviata OneUptime, con un link al suo rilevamento, e la pull request spiega perché è stata aperta.
 
 ## Conservazione dei dati

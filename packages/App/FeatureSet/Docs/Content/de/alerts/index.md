@@ -77,7 +77,7 @@ Gehen Sie zu **Warnungen → Alle Warnungen** und klicken Sie auf **Warnung erst
 
 ### Die Warnung beschreiben
 
-Füllen Sie den **Titel** aus und wählen Sie einen **Warnungsschweregrad**; beides ist Pflicht. Fügen Sie eine **Beschreibung** hinzu, wenn sie hilft. Unter **Weitere Felder**, eingeklappt, können Sie einen **Anfangsstatus** wählen, **Beschriftungen** hinzufügen oder **Private Warnung** einschalten. Dort wartet auch **Eigentümer**: Sie werden ohnehin Eigentümer der Warnung, die Sie erstellen, und jedes Team, in dem Sie Mitglied sind, ist unter der Auswahl nur einen Klick entfernt.
+Füllen Sie den **Titel** aus und wählen Sie einen **Warnungsschweregrad**; beides ist Pflicht. Fügen Sie eine **Beschreibung** hinzu, wenn sie hilft. Unter **Weitere Felder**, eingeklappt, können Sie einen **Anfangsstatus** wählen, **Beschriftungen** hinzufügen oder **Private Warnung** einschalten. Dort wartet auch **Eigentümer**: Sie werden ohnehin Eigentümer der Warnung, die Sie erstellen, und jedes Team, in dem Sie Mitglied sind, ist unter der Auswahl nur einen Klick entfernt. Ein Master-Admin, der die ganze Installation verwaltet, ist die einzige Ausnahme: Er wird nicht Eigentümer dessen, was er erstellt.
 
 ### Wählen, was sie betrifft und wer alarmiert wird
 

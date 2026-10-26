@@ -7,6 +7,10 @@ import {
 import ProjectAiNotice from "../../../Components/AISettings/ProjectAiNotice";
 import AiRulesTable from "../../../Components/AISettings/AiRulesTable";
 import ProjectAiSwitchesCard from "../../../Components/AISettings/ProjectAiSwitchesCard";
+import { useAiRulesFixNothingSwitchWarning } from "../../../Components/AISettings/AiRulesFixNothingWarning";
+import { AiRulesFixNothingLaneKind } from "../../../Components/AISettings/AiRulesFixNothing";
+import { AUTOMATIC_FIX_SWITCH_COLUMNS } from "Common/Types/AI/AutomaticFixPullRequests";
+import AutoRemediationTriggerEntity from "Common/Types/AutoRemediation/AutoRemediationTriggerEntity";
 import {
   AI_LANE_ADVANCED_SECTION_TEST_ID,
   AI_LANE_PAGE_COPY,
@@ -27,7 +31,7 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import Project from "Common/Models/DatabaseModels/Project";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import ProjectUtil from "Common/UI/Utils/Project";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, ReactNode } from "react";
 
 export type ComponentProps = PageComponentProps;
 
@@ -51,6 +55,25 @@ const AlertAISettings: FunctionComponent<ComponentProps> = (
   _props: ComponentProps,
 ): ReactElement => {
   const advanced: AiLaneAdvanced = useAiLaneAdvancedState(AiLane.Alert);
+
+  /*
+   * With rules that all say Don't fix, nothing is fixed while "Fix new
+   * alerts automatically" still says it fixes each one: the switch says
+   * so, with the way to the rules (AiRulesFixNothing).
+   */
+  const fixNothing: {
+    getWarning: (column: string, isOn: boolean) => ReactNode;
+    refresh: () => void;
+  } = useAiRulesFixNothingSwitchWarning({
+    triggerEntityType: AutoRemediationTriggerEntity.Alert,
+    switchColumn:
+      AUTOMATIC_FIX_SWITCH_COLUMNS[AutoRemediationTriggerEntity.Alert],
+    kind: AiRulesFixNothingLaneKind.Signal,
+    rulesAnchor: AiLaneAdvancedCard.AiRules,
+  });
+  const onAiRulesLoaded: (count: number) => void = advanced.onRulesLoaded(
+    AiLaneAdvancedCard.AiRules,
+  );
 
   /*
    * The limits take Project Owner or Project Admin; the Project table's
@@ -86,6 +109,7 @@ const AlertAISettings: FunctionComponent<ComponentProps> = (
           AI_LANE_PAGE_COPY[AiLane.Alert].switchesCardDescription
         }
         switches={AI_LANE_SWITCHES[AiLane.Alert]}
+        getWarning={fixNothing.getWarning}
         dataTestId={AI_LANE_SWITCHES_TEST_ID[AiLane.Alert]}
       />
 
@@ -97,7 +121,11 @@ const AlertAISettings: FunctionComponent<ComponentProps> = (
       >
         <AiRulesTable
           lane={AiLane.Alert}
-          onRulesLoaded={advanced.onRulesLoaded(AiLaneAdvancedCard.AiRules)}
+          onRulesLoaded={(count: number): void => {
+            onAiRulesLoaded(count);
+            // A rule added, changed or turned off: read what they fix again.
+            fixNothing.refresh();
+          }}
         />
 
         <CardModelDetail<Project>

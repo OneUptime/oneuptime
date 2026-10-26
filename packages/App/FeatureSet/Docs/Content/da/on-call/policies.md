@@ -138,7 +138,7 @@ Vagtpolitikker er ressourcen `/api/on-call-duty-policy`, og ressourcen `oneuptim
 | **Efter hvor mange minutter?** | `acknowledgementTimeoutInMinutes` |
 | Arkiveret | `isArchived` |
 
-`repeatPolicyIfNoOneAcknowledges` er `false` for **Stop tilkald** og `true` for **Start forfra fra Level 1**. Med `true` og `repeatPolicyIfNoOneAcknowledgesNoOfTimes` på `0` gentages en politik aldrig, og dashboardet viser den som **Stop tilkald**.
+`repeatPolicyIfNoOneAcknowledges` er `false` for **Stop tilkald** og `true` for **Start forfra fra Level 1**. Med `true` skal `repeatPolicyIfNoOneAcknowledgesNoOfTimes` være et helt tal på 1 eller mere: OneUptime afviser `0`. En ældre politik, der er gemt med `0`, gentages aldrig, og dashboardet viser den som **Stop tilkald**.
 
 `acknowledgementTimeoutInMinutes` er `null` for **Tilkald ikke igen** og et helt antal minutter fra 5 til 1440 for **Tilkald igen**. OneUptime afviser alt andet.
 

@@ -348,7 +348,7 @@ describe("a case's own runs", () => {
  * The header of a run: its words take the row and wrap inside it, and its
  * buttons keep the row's top right. A long case title used to push Approve
  * and Reject onto a row of their own under an empty band (Playbook Runs,
- * Waiting for Approval at 1280), and in German Cancel Run fell to the
+ * Approvals at 1280), and in German Cancel Run fell to the
  * left. jsdom lays nothing out, so these hold the classes that do it; the
  * offline browser suite measures the real page.
  */

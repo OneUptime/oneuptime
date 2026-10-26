@@ -74,6 +74,7 @@ OneUptime は 1 分ごとに、ポーリング間隔が経過した有効な接�
 | `kibana.alert.workflow_status`: `open`、`acknowledged`、`closed` | ステータス |
 | `kibana.alert.rule.threat`（サブテクニックを含む） | MITRE ATT&CK の戦術と手法 |
 | `user.name`、`host.name`、`source.ip` または `host.ip`、`process.name` または `process.executable` | 主体のユーザー、ホスト、IP、プロセス |
+| `process.name`、`process.executable`、`process.command_line`、`process.parent.name`、`process.parent.executable`、`process.parent.command_line` | プロセスの名前、パス、コマンドライン。親プロセスの名前、パス、コマンドライン |
 | `user.target.name`、`destination.domain`、`destination.ip`、`destination.port`、`file.path` | ターゲットのユーザー、ホスト、IP、ポート、リソース |
 | それらに加え、`related.*`、`dns.question.name`、`url.domain`、ファイルハッシュ | オブザーバブル |
 | アラート全体。`_index` と `_id` とともに、ドット区切りのキーに展開されます | `attributes` |

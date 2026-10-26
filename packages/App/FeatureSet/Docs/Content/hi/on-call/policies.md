@@ -138,7 +138,7 @@ flowchart TB
 | **कितने मिनट बाद?** | `acknowledgementTimeoutInMinutes` |
 | संग्रहित | `isArchived` |
 
-`repeatPolicyIfNoOneAcknowledges` **सूचित करना बंद करें** के लिए `false` और **Level 1 से फिर शुरू करें** के लिए `true` है। `true` और `repeatPolicyIfNoOneAcknowledgesNoOfTimes` के `0` होने पर नीति कभी नहीं दोहराई जाती, और डैशबोर्ड उसे **सूचित करना बंद करें** दिखाता है।
+`repeatPolicyIfNoOneAcknowledges` **सूचित करना बंद करें** के लिए `false` और **Level 1 से फिर शुरू करें** के लिए `true` है। `true` होने पर `repeatPolicyIfNoOneAcknowledgesNoOfTimes` 1 या उससे बड़ी पूर्ण संख्या होनी चाहिए: OneUptime `0` को अस्वीकार करता है। `0` के साथ सहेजी गई कोई पुरानी नीति कभी नहीं दोहराई जाती, और डैशबोर्ड उसे **सूचित करना बंद करें** दिखाता है।
 
 `acknowledgementTimeoutInMinutes` **फिर से सूचित न करें** के लिए `null` है, और **फिर से सूचित करें** के लिए 5 से 1440 तक मिनटों की पूरी संख्या। OneUptime इसके अलावा कुछ भी अस्वीकार करता है।
 

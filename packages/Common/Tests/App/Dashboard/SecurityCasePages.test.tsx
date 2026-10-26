@@ -30,7 +30,7 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * the layout hands it, and what it hands the cards it is made of. The
  * Overview leads with the case's figures, OneUptime AI's read and the
  * ATT&CK tactics; each other page is one part of the case on a page of its
- * own - the Timeline, the Detections, the Entities, the Playbook Runs, the
+ * own - the Timeline, the Detections, the Entities, the Playbooks, the
  * Private Notes, the Audit Logs and Delete Case. The cards themselves are
  * tested on their own; here they are stubs that say what they were given.
  */
@@ -511,7 +511,7 @@ describe("each other page of a case", () => {
     expect(lastProps("SecurityCaseEntitiesCard")["entities"]).toEqual([]);
   });
 
-  test("the Playbook Runs page is the case's runs; a decision reads the case again, and Run Playbook is the header's", () => {
+  test("the Playbooks page is the case's runs; a decision reads the case again, and Run Playbook is the header's", () => {
     drawPage(
       <SecurityCasePlaybookRunsPage {...PAGE_PROPS} />,
       contextFor(buildCase(), { refreshToggle: "bumped" }),

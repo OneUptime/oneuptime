@@ -685,7 +685,8 @@ export default class IncomingCallPolicy extends BaseModel {
     isDefaultValueColumn: true,
     type: TableColumnType.Number,
     title: "Repeat Policy Times",
-    description: "Maximum repeat attempts if no one answers",
+    description:
+      "How many more times the escalation rules ring again from the first when nobody answers: a whole number of 1 or more while Repeat Policy If No One Answers is on.",
     defaultValue: 1,
   })
   @Column({

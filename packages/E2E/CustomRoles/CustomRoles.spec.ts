@@ -1290,6 +1290,17 @@ test.describe("a team's Permissions page", () => {
 
     const form: Locator = dialog(page);
     await expect(form).toContainText("Add a Custom Role");
+    /*
+     * The dialog says where roles are made with a link there, as the card
+     * does: "the Roles page" was plain text in it.
+     */
+    const description: Locator = form.getByTestId("modal-description");
+    await expect(description).toHaveText(
+      "The team's members get everything the role allows. Make or change roles on the Roles page.",
+    );
+    await expect(
+      description.getByRole("link", { name: "Roles", exact: true }),
+    ).toHaveAttribute("href", ROLES_ROUTE);
     await expect(
       form.getByTestId(`card-select-option-${ROLE_IDS["responder"]}`),
     ).toHaveCount(0);
@@ -1301,6 +1312,13 @@ test.describe("a team's Permissions page", () => {
       "3 permissions · Runs a team: its incidents, its on-call and who is on it.",
     );
     await screenshot(page, "team-add-custom-role");
+    // The first focus is on the form's first card, not on its footer.
+    await expect(
+      form.getByTestId("modal-content").locator(":focus"),
+    ).toHaveCount(1);
+    await expect(
+      form.getByTestId("modal-footer-submit-button"),
+    ).not.toBeFocused();
     await lead.click();
     await submitDialog(page);
 

@@ -9,6 +9,8 @@ OneUptime MCP 서버를 사용하면 AI 어시스턴트가 OneUptime 프로젝�
 - [문제 해결](#문제-해결): 로그인, 권한, 연결 문제입니다.
 :::
 
+이 페이지는 OneUptime에 연결하는 AI 어시스턴트에 관한 내용입니다. 반대로 AWS나 GitHub 같은 다른 MCP 서버의 도구를 OneUptime AI가 쓰게 하려면 [외부 MCP 서버](/docs/ai/external-mcp-servers)를 참조하세요.
+
 ## 작동 방식
 
 MCP 서버는 모든 OneUptime 인스턴스에 포함되어 있으며, 대시보드와 같은 주소의 `/mcp` 에 있고 streamable HTTP 전송을 사용합니다. 설치할 것은 없습니다.

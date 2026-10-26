@@ -134,6 +134,13 @@ Ele informa a severidade e o que aconteceu (um incidente, um alerta ou um episó
 
 A severidade, o número e o link nunca são cortados. Um título mantém pelo menos 20 caracteres: se nem isso couber, por exemplo com um endereço ou um nome de produto muito longo, o SMS ocupa uma segunda parte e diz tudo.
 
+Quando uma política aciona de novo porque um incidente ou alerta confirmado ainda não foi resolvido, o SMS diz isso depois do número e do projeto, e essas palavras também nunca são cortadas:
+
+```text
+OneUptime: Critical Incident INC-42 in Acme Prod is still not resolved:
+Checkout API is down. Ack or escalate: https://oneuptime.com/l/XJlaZRsd
+```
+
 Um único caractere fora do alfabeto simples do SMS faz a mensagem inteira sair em partes de 70 caracteres. Por isso aspas e travessões tipográficos são escritos como `"`, `'` e `-`, `…` como `...`, e letras como `ç` e `ł` perdem seus diacríticos; emojis são omitidos. Um título em outra escrita, como japonês ou russo, é enviado como foi escrito e ocupa duas partes ou mais.
 
 Os outros SMS que o OneUptime envia para você, por exemplo sobre uma mudança em um incidente do qual você é dono ou o início do seu turno de plantão, também começam com `OneUptime:` e terminam com `Turn off in User Settings > Notification Settings.`, uma frase que é omitida quando é isso que faz o SMS caber em uma parte.
@@ -221,7 +228,7 @@ Escalonar um acionamento não o confirma: o incidente ou alerta continua esperan
 
 Um acionamento que um workflow envia diretamente a pessoas não tem níveis: escaloná-lo faz você deixar de ser acionado, e quando todos que ele acionou já escalonaram, os acionamentos param.
 
-Cada escalonamento fica registrado. A **Linha do tempo de execução** da execução marca a linha da pessoa como **Escalonado**, o feed do incidente diz "Alex Kim escalated the page from on-call policy Payments at escalation rule Level 1.", a mensagem da execução no Slack e no Microsoft Teams diz que ela escalonou, e os **Registros de plantão** dela mostram o acionamento como **Escalonado**.
+Cada escalonamento fica registrado. A **Linha do tempo de execução** da execução marca a linha da pessoa como **Escalonado**, o feed do incidente diz "Alex Kim escalated the page from on-call policy Payments at Level 1 of 3.", a mensagem da execução no Slack e no Microsoft Teams diz que ela escalonou, e os **Registros de plantão** dela mostram o acionamento como **Escalonado**.
 
 ## Editar, reordenar e excluir regras
 

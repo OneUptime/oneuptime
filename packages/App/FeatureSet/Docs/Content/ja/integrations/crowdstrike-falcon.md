@@ -79,6 +79,7 @@ Falcon が表示したベース URL から、CID がどのクラウドにある�
 | `status`（`new`、`in_progress`、`closed` など） | ステータス |
 | `tactic_id`, `technique_id` | MITRE ATT&CK の戦術と手法 |
 | `device.hostname`, `device.local_ip`, `user_name`, `filename` または `cmdline` | 主体のホスト、IP、ユーザー、プロセス |
+| `filename`、`filepath`、`cmdline`、`parent_details.filename`、`parent_details.filepath`、`parent_details.cmdline` | プロセスの名前、パス、コマンドライン。親プロセスの名前、パス、コマンドライン |
 | `device.hostname`, `device.local_ip`, `device.external_ip`, `user_name`, `sha256` | オブザーバブル |
 | `device.platform_name`、`falcon_host_link`、`product`、`timestamp` など、その他すべて | `attributes`。ドット区切りのキーに展開されます |
 

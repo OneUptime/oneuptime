@@ -42,6 +42,8 @@ const RUNNER_PAGE: string = `${RUNNERS_PAGE}/${PROD_RUNNER_ID}`;
 // office-runner's own page (the fixture's runner=2).
 const OFFICE_RUNNER_PAGE: string = `${RUNNERS_PAGE}/${OFFICE_RUNNER_ID}`;
 const CHECKOUT_REPOSITORY_ID: string = "90000000-0000-4000-8000-000000000c01";
+// web-app picks no Runner: it follows the project's default Runner.
+const WEB_APP_REPOSITORY_ID: string = "90000000-0000-4000-8000-000000000c02";
 const STEPS_PAGE: string = `/dashboard/${PROJECT_ID}/runbooks/${RUNBOOK_ID}/steps`;
 const VARIABLES_PAGE: string = `/dashboard/${PROJECT_ID}/runbooks/settings/variables`;
 
@@ -929,7 +931,7 @@ test.describe("a project with a default Runner", () => {
       "Make office-runner the project default?",
     );
     await expect(dialog.getByTestId("confirm-modal-description")).toHaveText(
-      "Runbook steps that pick no Runner will run on it instead of prod-eu-west-1.",
+      "Runbook steps and code repositories that pick no Runner will run on it instead of prod-eu-west-1.",
     );
     // Not connected: a warning of its own, under what moves.
     await expect(
@@ -1017,7 +1019,7 @@ test.describe("a project with a default Runner", () => {
     const control: Locator = page.getByTestId("runner-project-default-switch");
     await expect(control).toHaveAttribute("aria-checked", "false");
     await expect(card(page, "Project Default")).toContainText(
-      "The project's default Runner runs the runbook steps that pick no Runner of their own, in place of the Global Runner.",
+      "The project's default Runner runs the runbook steps and the code repositories that pick no Runner of their own, in place of the Global Runner.",
     );
     // After what the Runner is and how it is doing, before its setup command.
     const titles: Array<string> = await headings(page).allInnerTexts();
@@ -1062,13 +1064,13 @@ test.describe("a project with a default Runner", () => {
     const control: Locator = page.getByTestId("runner-project-default-switch");
     await expect(control).toHaveAttribute("aria-checked", "false");
     await expect(projectDefault).toContainText(
-      "Runbook steps that pick no Runner run on prod-eu-west-1, the project default.",
+      "Runbook steps and code repositories that pick no Runner run on prod-eu-west-1, the project default.",
     );
 
     await control.click();
     const dialog: Locator = page.getByTestId("modal");
     await expect(dialog.getByTestId("confirm-modal-description")).toHaveText(
-      "Runbook steps that pick no Runner will run on it instead of prod-eu-west-1.",
+      "Runbook steps and code repositories that pick no Runner will run on it instead of prod-eu-west-1.",
     );
     await expect(
       dialog.getByTestId("runner-project-default-switch-confirm-warning"),
@@ -1427,8 +1429,12 @@ test.describe("a Runner and AI code fixes", () => {
       "href",
       `/dashboard/${PROJECT_ID}/code/repositories/${CHECKOUT_REPOSITORY_ID}/settings#runner`,
     );
-    // A repository that picks no Runner works on a global Runner: not listed.
+    /*
+     * A repository that picks no Runner follows the project's default
+     * Runner, and this one is not the default: not listed.
+     */
     await expect(repositories).not.toContainText("web-app");
+    await expect(repositories).not.toContainText("docs-site");
 
     // The row comes after what the Runner may run, and before its labels.
     const text: string = (await details.innerText()).replace(
@@ -1450,6 +1456,45 @@ test.describe("a Runner and AI code fixes", () => {
     await expect(details).toContainText("Runs Runbooks");
     await expect(details).not.toContainText("Runs AI Code Fixes");
     await screenshot(page, "runner-code-repositories");
+  });
+
+  /*
+   * The project's default Runner also works in every code repository that
+   * picks none (Common/Types/Runner/CodeRepositoryRunner), so its details
+   * list those too - but not one that picked the Global Runner itself.
+   */
+  test("the project's default Runner lists the repositories that pick it and the ones that follow the default, not one that picked Global Runner", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(`${RUNNER_PAGE}?page=runner&custom=1&default=1`);
+
+    const repositories: Locator = card(page, "Runner Details").getByTestId(
+      "runner-code-repositories",
+    );
+    await expect(repositories).toBeVisible();
+
+    for (const [name, id] of [
+      ["checkout-service", CHECKOUT_REPOSITORY_ID],
+      ["web-app", WEB_APP_REPOSITORY_ID],
+    ] as Array<[string, string]>) {
+      await expect(repositories.getByRole("link", { name })).toHaveAttribute(
+        "href",
+        `/dashboard/${PROJECT_ID}/code/repositories/${id}/settings#runner`,
+      );
+    }
+
+    await expect(repositories).not.toContainText("docs-site");
+    // By name, as a Runner's page lists them.
+    expect(
+      (await repositories.getByRole("link").allInnerTexts()).map(
+        (text: string): string => {
+          return text.trim();
+        },
+      ),
+    ).toEqual(["checkout-service", "web-app"]);
+    await screenshot(page, "runner-code-repositories-default");
   });
 
   test("no repository picks it: one short line says so, and where a repository picks its Runner", async ({

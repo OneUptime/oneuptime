@@ -138,7 +138,7 @@ flowchart TB
 | **何分後？** | `acknowledgementTimeoutInMinutes` |
 | アーカイブ済み | `isArchived` |
 
-`repeatPolicyIfNoOneAcknowledges` は **通知を停止** なら `false`、 **Level 1 からやり直す** なら `true` です。 `true` で `repeatPolicyIfNoOneAcknowledgesNoOfTimes` が `0` のポリシーは繰り返されず、ダッシュボードには **通知を停止** と表示されます。
+`repeatPolicyIfNoOneAcknowledges` は **通知を停止** なら `false`、 **Level 1 からやり直す** なら `true` です。 `true` のときは `repeatPolicyIfNoOneAcknowledgesNoOfTimes` を 1 以上の整数にする必要があり、OneUptime は `0` を拒否します。以前に `0` で保存されたポリシーは繰り返されず、ダッシュボードには **通知を停止** と表示されます。
 
 `acknowledgementTimeoutInMinutes` は **再通知しない** なら `null`、 **再通知する** なら 5〜1440 の整数の分数です。それ以外の値は OneUptime が拒否します。
 

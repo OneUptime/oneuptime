@@ -93,6 +93,7 @@ OneUptime은 1분마다, 폴링 간격이 지난 활성화된 연결을 각각 �
 | `Workflow.Status`: `NEW`, `NOTIFIED`, `RESOLVED` 또는 `SUPPRESSED`, 없으면 예전의 `WorkflowState` | 상태 |
 | `TTPs/` 아래의 `Types`: `TTPs/Initial Access/...`는 `TA0001`이 됩니다 | MITRE ATT&CK 전술과 기법 |
 | 액세스 키나 사용자 리소스의 IAM 사용자, `Network.SourceIpV4` 또는 `SourceIpV6`, `Process.Name` 또는 `Process.Path` | 주체 사용자, IP, 프로세스 |
+| `Process.Name` 및 `Process.Path` | 프로세스 이름과 경로. 검색 결과에는 명령줄도 부모 프로세스도 없습니다. |
 | `AwsEc2Instance` 리소스의 인스턴스 ID, `Network.DestinationIpV4` 또는 `DestinationIpV6`, `Network.DestinationPort`, 첫 번째 `Resources[].Id` | 대상 호스트, IP, 포트, 리소스 |
 | 그것들과 함께 모든 `Resources[].Id`, `AwsAccountId`, 네트워크의 도메인, 맬웨어 이름, 위협 인텔리전스 값 | Observable |
 | 검색 결과 전체. `Compliance.Status`, `Remediation.Recommendation.Url` 같은 점 구분 키로 펼침 | `attributes` |

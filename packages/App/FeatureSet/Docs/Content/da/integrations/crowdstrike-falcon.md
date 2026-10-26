@@ -79,6 +79,7 @@ Forbindelsen læser Falcons advarsler: det, Falcon-konsollen viser under **Endpo
 | `status`, som `new`, `in_progress` eller `closed` | Status |
 | `tactic_id`, `technique_id` | MITRE ATT&CK-taktikker og -teknikker |
 | `device.hostname`, `device.local_ip`, `user_name`, `filename` eller `cmdline` | Aktørens vært, IP, bruger og proces |
+| `filename`, `filepath` og `cmdline`; `parent_details.filename`, `parent_details.filepath` og `parent_details.cmdline` | Processens navn, sti og kommandolinje; navn, sti og kommandolinje for den overordnede proces |
 | `device.hostname`, `device.local_ip`, `device.external_ip`, `user_name`, `sha256` | Observables |
 | Alt andet, som `device.platform_name`, `falcon_host_link`, `product` og `timestamp` | `attributes`, fladet ud til nøgler med punktummer |
 

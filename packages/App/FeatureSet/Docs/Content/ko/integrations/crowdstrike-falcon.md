@@ -79,6 +79,7 @@ Falcon이 보여 준 기본 URL로 CID가 속한 클라우드를 알 수 있습�
 | `new`, `in_progress`, `closed` 같은 `status` | 상태 |
 | `tactic_id`, `technique_id` | MITRE ATT&CK 전술과 기법 |
 | `device.hostname`, `device.local_ip`, `user_name`, `filename` 또는 `cmdline` | 주체 호스트, IP, 사용자, 프로세스 |
+| `filename`, `filepath` 및 `cmdline`; `parent_details.filename`, `parent_details.filepath` 및 `parent_details.cmdline` | 프로세스 이름, 경로, 명령줄; 부모 프로세스 이름, 경로, 명령줄 |
 | `device.hostname`, `device.local_ip`, `device.external_ip`, `user_name`, `sha256` | Observable |
 | `device.platform_name`, `falcon_host_link`, `product`, `timestamp` 같은 그 밖의 모든 것 | `attributes`. 점 구분 키로 펼침 |
 

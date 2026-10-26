@@ -216,6 +216,11 @@ export default class GitHubCommandAuthorizer {
       return {
         outcome: GitHubAuthorizationOutcome.CommandsDisabled,
         codeRepository: codeRepository,
+        /*
+         * What the outcome is, in words. The answer posted in the thread
+         * (GitHubReplyComposer.commandsSwitchedOff) says it with a link
+         * straight to the repository's switch.
+         */
         reason:
           "GitHub commands are switched off for this repository. A project admin can turn them back on in OneUptime under Code → this repository → Settings → More settings.",
       };

@@ -40,6 +40,8 @@ Eine Triage liest nur. Sie läuft mit der eigenen KI des Projekts: **KI aktivier
 | Eine Einschätzung wie **Wahrscheinlich bösartig** | Die Triage ist fertig. **Erneut triagieren** liest den Fall neu. |
 | **Die Triage wurde nicht abgeschlossen** | Der Lauf wurde abgebrochen. **Erneut versuchen** startet einen neuen. |
 
+Ein Security Viewer liest dieselbe Karte: **Mit KI triagieren** und **Erneut versuchen** bleiben ausgegraut, und daneben steht, wer eine Triage starten kann; **Erneut triagieren** und **Priorität setzen** werden nicht angeboten.
+
 Eine Triage liest:
 
 - den Fall: Titel, Priorität, Status, Entitäten und ATT&CK-Zuordnung;
@@ -63,7 +65,7 @@ Den Rest von OneUptime kann sie ebenfalls lesen, so wie es die Untersuchung eine
 Die Einschätzung gehört OneUptime AI, sie ist nie die Bewertung des Falls: **Fall schließen** beginnt mit der Bewertung, die sie vorschlägt, und eine Person wählt. Unter der Einschätzung zeigt die Karte:
 
 - **Vorgeschlagene Priorität**, mit **Priorität setzen**, wenn der Fall eine andere Priorität hat.
-- **Vorgeschlagenes Playbook**, mit **Playbook ausführen**, das es in Ihrem Namen ausführt, mit jeder Genehmigung, die es braucht.
+- **Vorgeschlagenes Playbook**, mit **Playbook ausführen**, das es in Ihrem Namen ausführt, mit jeder Genehmigung, die es braucht. Läuft dieses Playbook auf dem Fall bereits, steht statt **Playbook ausführen** der Status seiner Ausführung, etwa **Wartet auf Genehmigung**: Die Ausführung ist unter **Playbooks** des Falls, und eine zweite würde dieselbe Genehmigung noch einmal anfordern.
 - Den Bericht: was passiert ist, wie sicher sie ist und was als Nächstes zu tun ist, jede Aussage gefolgt von einem Verweis wie C1.
 - **Geprüfte Belege**: jede Abfrage, die die Triage ausgeführt hat. Ein Verweis öffnet seine Abfrage, und wenn Sie eine aufklappen, läuft sie erneut mit Ihren Berechtigungen, über den Zeitraum, den die Triage gelesen hat.
 - **Zu diesem Fall fragen**, das KI fragen zu diesem Fall öffnet.

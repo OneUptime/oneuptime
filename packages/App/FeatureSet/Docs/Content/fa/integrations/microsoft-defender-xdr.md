@@ -83,6 +83,7 @@ OneUptime هر دقیقه از هر اتصال فعالی که بازهٔ نظر
 | `mitreTechniques` | `mitreTechniques` |
 | `mitreTactics` | `categories` یا `category`، وقتی یک تاکتیک ATT&CK باشد: `CredentialAccess` به `TA0006` تبدیل می‌شود. دسته‌های دیگر در `attributes` می‌مانند. |
 | `principalHost`, `principalUser`, `principalIp`, `principalProcess` | `evidence` با نقش `source`، `attacker` یا `compromised`، وگرنه نخستین مورد از هر نوع |
+| `processName`, `processPath`, `processCommandLine`, `parentProcessName`, `parentProcessPath` | شواهد فرایندی که `principalProcess` از آن می‌آید: `imageFile`، `processCommandLine` و `parentProcessImageFile` آن. Graph خط فرمان فرایند والد را نمی‌دهد. |
 | `targetHost`, `targetUser`, `targetIp`, `targetResource` | `evidence` با نقشی از جنس هدف، مانند `destination` یا `attacked`. نشانی‌ها، صندوق‌های پستی و منابع ابری `targetResource` را پر می‌کنند. |
 | `observables` | هر نام میزبان، IP، کاربر، نام پرونده، SHA-1 و SHA-256، نشانی، دامنه، صندوق پستی و شناسهٔ منبع در `evidence` |
 | `attributes` | کل هشدار، تخت‌شده به کلیدهای نقطه‌دار مانند `evidence.0.hostName`، `serviceSource` و `incidentId` |

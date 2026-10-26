@@ -86,7 +86,7 @@ function route(page: PageMap): Route {
 /*
  * One thing that waits for a person: its count and what it counts, as a
  * link to the page that lists exactly those - Assigned to Me, Unassigned,
- * Waiting for Approval. The words agree with the number ("1 open case").
+ * Approvals. The words agree with the number ("1 open case").
  * A short list, one line each, read like a to-do list under its heading.
  */
 const AttentionLink: FunctionComponent<{

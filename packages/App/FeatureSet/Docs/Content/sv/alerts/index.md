@@ -77,7 +77,7 @@ Gå till **Larm → Alla larm** och klicka på **Skapa larm**. Formuläret **Ska
 
 ### Beskriv larmet
 
-Fyll i **Titel** och välj en **Larmallvar**; båda krävs. Lägg till en **Beskrivning** om det hjälper. Under **Fler fält**, hopfällt, kan du välja ett **Inledande tillstånd**, lägga till **Etiketter** eller slå på **Privat larm**. Där väntar även **Ägare**: du blir ändå ägare till larmet du skapar, och varje team du är medlem i är ett klick bort under väljaren.
+Fyll i **Titel** och välj en **Larmallvar**; båda krävs. Lägg till en **Beskrivning** om det hjälper. Under **Fler fält**, hopfällt, kan du välja ett **Inledande tillstånd**, lägga till **Etiketter** eller slå på **Privat larm**. Där väntar även **Ägare**: du blir ändå ägare till larmet du skapar, och varje team du är medlem i är ett klick bort under väljaren. En master admin, som sköter hela installationen, är det enda undantaget: den blir inte ägare till det den skapar.
 
 ### Välj vad det påverkar och vem som larmas
 

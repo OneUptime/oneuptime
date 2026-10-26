@@ -326,6 +326,16 @@ const AlertEpisodeView: FunctionComponent<
         return token + 1;
       });
     },
+    // Somebody took it while the dialog asked: the page reads it again.
+    onRecordChanged: () => {
+      setHeaderRefreshToken((token: number): number => {
+        return token + 1;
+      });
+      setContentRefreshToken((token: number): number => {
+        return token + 1;
+      });
+      refreshInPlace();
+    },
   });
 
   if (loadedModelId !== modelIdString) {

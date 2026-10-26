@@ -74,6 +74,7 @@ flowchart TB
 | `kibana.alert.workflow_status`: `open`, `acknowledged` или `closed` | Статус |
 | `kibana.alert.rule.threat`, включая подтехники | Тактики и техники MITRE ATT&CK |
 | `user.name`, `host.name`, `source.ip` или `host.ip`, `process.name` или `process.executable` | Пользователь, хост, IP и процесс субъекта |
+| `process.name`, `process.executable` и `process.command_line`; `process.parent.name`, `process.parent.executable` и `process.parent.command_line` | Имя, путь и командная строка процесса; имя, путь и командная строка родительского процесса |
 | `user.target.name`, `destination.domain`, `destination.ip`, `destination.port`, `file.path` | Пользователь, хост, IP, порт и ресурс цели |
 | Они, а также `related.*`, `dns.question.name`, `url.domain` и хеши файлов | Наблюдаемые объекты |
 | Всё оповещение, развёрнутое в ключи с точками, с `_index` и `_id` | `attributes` |

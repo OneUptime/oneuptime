@@ -44,7 +44,7 @@ flowchart TB
 | **Trusselsinformation** | Detections | STIX/TAXII-feeds med kendte ondsindede indikatorer |
 | **ATT&CK-dækning** | Detections | De MITRE ATT&CK-teknikker, dine regler dækker |
 | **Playbooks** | Playbooks | Trin, der kører på sager, af sig selv eller manuelt |
-| **Venter på godkendelse** | Playbooks | De playbook-trin, der venter på, at nogen godkender eller afviser dem |
+| **Godkendelser** | Playbooks | De playbook-trin, der venter på, at nogen godkender eller afviser dem |
 | **Playbook-kørsler** | Playbooks | Hvad hver playbook gjorde, trin for trin |
 | **Beskyttede entiteter** | Playbooks | De brugere og værter, som ingen playbook inddæmmer |
 | **Indstillinger** | AI | Om OneUptime AI vurderer hver ny sag |
@@ -205,10 +205,12 @@ Hver begivenhed gemmes med typede felter og kildens payload:
 | Alvorlighed | `severityName`, en af Unknown, Informational, Low, Medium, High, Critical, Fatal eller Other, og `severityId` |
 | Hvem gjorde det | `principalUser`, `principalHost`, `principalIp`, `principalProcess` |
 | Hvad det ramte | `targetUser`, `targetHost`, `targetIp`, `targetPort`, `targetResource` |
-| Processen | `processName`, `processPath` og `processCommandLine`: ved en processtart den proces, der startede, ellers den proces, der handlede. `parentProcessName`, `parentProcessPath` og `parentProcessCommandLine`: den proces, der startede den |
+| Processen | `processName`, `processPath` og `processCommandLine`: ved procesaktivitet den proces, der blev startet, åbnet, injiceret i eller afsluttet, ellers den proces, der handlede. `parentProcessName`, `parentProcessPath` og `parentProcessCommandLine`: den proces, der startede den |
 | Kilde | `productName`, `vendorName`, `ruleId`, `ruleName`, `eventUid` |
 | Indhold | `message`, `mitreTactics`, `mitreTechniques` og `observables`: hver bruger, vært, IP-adresse, domæne og hash fra begivenheden |
 | Attributter | Hele kildens payload, fladet ud til nøgler med punktummer |
+
+Hændelser, der blev gemt før OneUptime 14.0.84, lader procesfelterne stå tomme og nævner kun deres proces som `principalProcess`, den proces, der handlede. De udfyldes ikke bagefter: de beholder det, de blev gemt med, indtil deres opbevaring udløber.
 
 ## Udforsk sikkerhedsbegivenheder
 

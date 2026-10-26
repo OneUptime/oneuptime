@@ -32,6 +32,17 @@ metadata:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/component: migrate
     appname: oneuptime
+  {{- /*
+    migrate.annotations go beside the hook's own, and no key is written twice: a
+    helm.sh/hook-weight or helm.sh/hook-delete-policy there replaces the chart's.
+    Not helm.sh/hook: whether the runtime pods wait for this Job (_helpers.tpl,
+    NOTES.txt) is worked out from migrate.hook, and a hook it does not know of
+    can leave them waiting for a Job that only runs after them.
+  */ -}}
+  {{- $annotations := .Values.migrate.annotations | default dict }}
+  {{- if hasKey $annotations "helm.sh/hook" }}
+  {{- fail "migrate.annotations sets helm.sh/hook. The chart makes the migrate Job a Helm hook itself, from migrate.hook: with migrate.hook: true it is a post-install hook on an install and a pre-upgrade hook on an upgrade, and whether the new pods wait for the Job is worked out from that. Set migrate.hook: true instead, and take helm.sh/hook out of migrate.annotations; helm.sh/hook-weight and helm.sh/hook-delete-policy can stay." }}
+  {{- end }}
   {{- if $useHook }}
   # Blocking: a Helm hook — the deploy waits for migrations before rolling the
   # new pods (new code never runs against an un-migrated schema). post-install on
@@ -39,10 +50,21 @@ metadata:
   # A post-install hook runs only after the release's pods exist (once they are
   # ready, under `helm install --wait` and Argo CD), so on an install those pods
   # do not wait for it (DATABASE_MIGRATION_WAIT_TIMEOUT_MS=0, see _helpers.tpl).
+  {{- end }}
+  {{- if or $useHook $annotations }}
   annotations:
+    {{- if $useHook }}
     "helm.sh/hook": {{ ternary "post-install" "pre-upgrade" .Release.IsInstall }}
+    {{- if not (hasKey $annotations "helm.sh/hook-weight") }}
     "helm.sh/hook-weight": "-5"
+    {{- end }}
+    {{- if not (hasKey $annotations "helm.sh/hook-delete-policy") }}
     "helm.sh/hook-delete-policy": before-hook-creation
+    {{- end }}
+    {{- end }}
+    {{- with $annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
   {{- end }}
 spec:
   backoffLimit: {{ .Values.migrate.backoffLimit | default 6 }}
@@ -62,6 +84,10 @@ spec:
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/component: migrate
         appname: oneuptime
+      {{- with .Values.migrate.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
     spec:
       restartPolicy: Never
       {{- if .Values.imagePullSecrets }}

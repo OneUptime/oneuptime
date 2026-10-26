@@ -78,6 +78,7 @@ Cada linha que a pesquisa devolve vira um evento Detection Finding (classe OCSF 
 | `status_label`, senão `status_description`, senão o nome do status de revisão que `status` contém | Status |
 | `annotations.mitre_attack`, e campos como `mitre_technique_id` e `mitre_tactic` | Táticas e técnicas do MITRE ATT&CK |
 | `user` ou `src_user`; `src`, `src_ip` ou `src_host`; `process`, `process_name` ou `parent_process` | Usuário, IP, host e processo do ator |
+| `process_name` ou `process_exec`, `process_path` e `process`; `parent_process_name` ou `parent_process_exec`, `parent_process_path` e `parent_process` | Nome, caminho e linha de comando do processo; nome, caminho e linha de comando do processo pai |
 | `dest_user`; `dest`, `dest_ip` ou `dest_host`; `dest_port` | Usuário, IP, host e porta do alvo |
 | `file_path`, `url` ou `risk_object` | Recurso alvo |
 | Cada usuário, host e IP, além de `dvc`, `host`, `file_hash`, `file_name`, `url`, `domain`, `query` e `risk_object` | Observáveis |

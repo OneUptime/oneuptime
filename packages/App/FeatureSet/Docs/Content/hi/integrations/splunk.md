@@ -78,6 +78,7 @@ flowchart TB
 | `status_label`, नहीं तो `status_description`, नहीं तो `status` में रखी समीक्षा स्थिति का नाम | स्थिति |
 | `annotations.mitre_attack`, और `mitre_technique_id` और `mitre_tactic` जैसे फ़ील्ड | MITRE ATT&CK टैक्टिक और तकनीकें |
 | `user` या `src_user`; `src`, `src_ip` या `src_host`; `process`, `process_name` या `parent_process` | प्रिंसिपल यूज़र, IP, होस्ट और प्रोसेस |
+| `process_name` या `process_exec`, `process_path` और `process`; `parent_process_name` या `parent_process_exec`, `parent_process_path` और `parent_process` | प्रोसेस का नाम, पाथ और कमांड लाइन; पैरेंट प्रोसेस का नाम, पाथ और कमांड लाइन |
 | `dest_user`; `dest`, `dest_ip` या `dest_host`; `dest_port` | टारगेट यूज़र, IP, होस्ट और पोर्ट |
 | `file_path`, `url` या `risk_object` | टारगेट रिसोर्स |
 | हर यूज़र, होस्ट और IP, साथ में `dvc`, `host`, `file_hash`, `file_name`, `url`, `domain`, `query` और `risk_object` | Observable |

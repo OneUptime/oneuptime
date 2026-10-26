@@ -93,6 +93,7 @@ Elke bevinding wordt één gebeurtenis, met leverancier `Amazon Web Services` en
 | `Workflow.Status`: `NEW`, `NOTIFIED`, `RESOLVED` of `SUPPRESSED`, anders het oudere `WorkflowState` | Status |
 | `Types` onder `TTPs/`: `TTPs/Initial Access/...` wordt `TA0001` | MITRE ATT&CK-tactieken en -technieken |
 | De IAM-gebruiker van een resource van het type toegangssleutel of gebruiker, `Network.SourceIpV4` of `SourceIpV6`, `Process.Name` of `Process.Path` | Gebruiker, IP en proces van de actor |
+| `Process.Name` en `Process.Path` | Naam en pad van het proces. Een bevinding noemt geen opdrachtregel en geen bovenliggend proces. |
 | De instance-ID van een resource `AwsEc2Instance`, `Network.DestinationIpV4` of `DestinationIpV6`, `Network.DestinationPort`, de eerste `Resources[].Id` | Host, IP, poort en resource van het doel |
 | Die, elke `Resources[].Id`, `AwsAccountId`, de domeinen van het netwerk, malwarenamen en threat-intelligencewaarden | Observables |
 | De hele bevinding, plat gemaakt tot sleutels met punten, zoals `Compliance.Status` en `Remediation.Recommendation.Url` | `attributes` |

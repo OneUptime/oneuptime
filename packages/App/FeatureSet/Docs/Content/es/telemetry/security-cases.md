@@ -88,7 +88,7 @@ Un caso tiene su propio menú lateral, como un incidente, y cada parte del caso 
 | Sección del menú lateral | Páginas |
 | --- | --- |
 | **Vista general** | **Vista general**, **Cronología** |
-| **Investigación** | **Detecciones**, **Entidades**, **Señales conectadas**, **Ejecuciones de playbooks** |
+| **Investigación** | **Detecciones**, **Entidades**, **Señales conectadas**, **Playbooks** |
 | **Notas** | **Notas privadas** |
 | **Avanzado** | **Registros de auditoría**, **Eliminar caso**, plegados hasta que haces clic en **Avanzado** |
 
@@ -101,7 +101,7 @@ Cada página mantiene arriba la cabecera del caso: su número, prioridad, estado
 - **Detecciones**: lo que se disparó para abrir el caso o sumarse a él, cuántas veces y el último evento coincidente.
 - **Entidades**: los usuarios, hosts y direcciones de los que trata el caso, con su actividad en todos tus eventos de seguridad de los últimos 7 días. Cada una se abre en **Correlacionar**.
 - **Señales conectadas**: los hosts, clústeres, servicios y miembros que nombra el caso, tal como OneUptime los conoce, y lo que ocurría en cada uno en torno a sus detecciones: sus registros, trazas y métricas, lo que está abierto en ellos y lo que cambió. Consulta [Señales conectadas](/docs/telemetry/security-connected-signals).
-- **Ejecuciones de playbooks**: lo que hizo cada playbook en el caso, paso a paso, y los pasos que esperan aprobación. Mientras haya ejecuciones esperando, el menú muestra cuántas junto a **Ejecuciones de playbooks**.
+- **Playbooks**: lo que hizo cada playbook en el caso, paso a paso, y los pasos que esperan aprobación. Mientras haya ejecuciones esperando, el menú muestra cuántas junto a **Playbooks**.
 - **Notas privadas**: lo que el equipo escribió sobre el caso.
 - **Registros de auditoría**: cada cambio hecho en el caso y quién lo hizo. Consulta [Registros de auditoría](/docs/configuration/audit-logs).
 - **Eliminar caso**: elimina para siempre el caso, con sus detecciones, notas, cronología y ejecuciones de playbooks. Para conservar el registro, ciérralo con un veredicto.
@@ -300,7 +300,7 @@ Un email o una publicación sin mensaje propio envía un resumen del caso.
 
 ### Ejecuciones y aprobaciones
 
-Cada ejecución aparece, paso a paso, en su caso y en **Productos → Eventos de seguridad → Playbooks → Ejecuciones de playbooks**:
+Cada ejecución aparece, paso a paso, en su caso y en **Productos → Eventos de seguridad → Playbooks → Ejecuciones**:
 
 | Estado de la ejecución | Significado |
 | --- | --- |
@@ -311,7 +311,7 @@ Cada ejecución aparece, paso a paso, en su caso y en **Productos → Eventos de
 | Fallido | Un paso falló y la ejecución se detuvo |
 | Cancelado | Alguien la canceló o rechazó un paso |
 
-Un paso que espera aprobación muestra **Aprobar** y **Rechazar** en la ejecución, con un comentario opcional. Aprobar hace que la ejecución continúe desde ese paso; rechazar la termina. La decisión, quién la tomó y su comentario se guardan en el paso, en la cronología del caso y en el registro de auditoría del proyecto. **Esperando aprobación**, en **Playbooks** en el menú, lista las ejecuciones que esperan una decisión y las cuenta; **Ejecuciones de playbooks** lista todas las ejecuciones. En **Ejecuciones de playbooks** y en la página de un playbook, cada ejecución es una línea que dice hasta dónde llegó, o el paso en el que se detuvo; **Mostrar pasos** abre sus pasos. Una ejecución que espera aprobación se abre sola.
+Un paso que espera aprobación muestra **Aprobar** y **Rechazar** en la ejecución, con un comentario opcional. Aprobar hace que la ejecución continúe desde ese paso; rechazar la termina. La decisión, quién la tomó y su comentario se guardan en el paso, en la cronología del caso y en el registro de auditoría del proyecto. La página **Aprobaciones**, en **Playbooks** en el menú, lista las ejecuciones que esperan una decisión y las cuenta; **Ejecuciones** lista todas las ejecuciones. En **Ejecuciones** y en la página de un playbook, cada ejecución es una línea que dice hasta dónde llegó, o el paso en el que se detuvo; **Mostrar pasos** abre sus pasos. Una ejecución que espera aprobación se abre sola.
 
 Una ejecución que deja de recibir noticias de su worker, por ejemplo tras un reinicio, se retoma: una ejecución en cola vuelve a ponerse en cola a los 2 minutos, y una ejecución que lleva 30 minutos sin dar señales se marca como fallida.
 

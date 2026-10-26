@@ -91,7 +91,7 @@ Klikk på et span i en hvilken som helst visning for å åpne panelet, med faner
 Et stort spor laster 500 spans om gangen. Klikk på knappen nederst i sporet for å laste flere, eller alle.
 
 > [!TIP]
-> **Fiks ytelsen med AI** vises bare på et spor som er verdt å rette: et med en N+1-spørring, kall etter hverandre som kunne kjørt parallelt, eller ett kall som tar mesteparten av forespørselen, når det koster reell tid (100 ms eller mer for kallene til sammen, 500 ms eller mer for ett enkelt kall og minst en tidel av forespørselen). Den sier hva den fant, for eksempel "Den samme databasespørringen kjørte 40 ganger i ReportService.build", og starter en AI-oppgave som åpner en pull request som retter det. Se [Kode](/docs/ai/ai-agent).
+> **Fiks ytelsen med AI** vises bare på et spor som er verdt å rette: et med en N+1-spørring, kall etter hverandre som kunne kjørt parallelt, eller ett kall som tar mesteparten av forespørselen, når det koster reell tid (100 ms eller mer for kallene til sammen, 500 ms eller mer for ett enkelt kall og minst en tidel av forespørselen). Den sier hva den fant, for eksempel "Den samme databasespørringen kjørte 40 ganger i ReportService.build", og starter en AI-oppgave som åpner en pull request som retter det. Når en rettelse av sporet allerede har gjort jobben sin, lenker sporet til oppgaven i stedet for å tilby en til. Når noe annet hindrer AI i å jobbe, som abonnementet, oppbrukte AI-kreditter eller ingen Runner på nett, sier sporet hva, med lenken som løser det. Se [Kode](/docs/ai/ai-agent).
 
 ## Vis spannene dine i diagrammer
 
@@ -150,7 +150,7 @@ Under **Flere felt** velger en regel kodelagrene, MCP-serverne og LLM-leverandø
 ### Se hva den gjorde
 
 - **Spor → KI → Innsikt** viser hva OneUptime fant, hvert funn med bevisene og **Åpne i Spor**, som åpner spansene det gjelder, fra timen det ble funnet i, i **Leser**. For en feilende operasjon setter **Opprett monitor** opp en spormonitor på de feilede spansene.
-- **Spor → KI → Logger** viser hver undersøkelse og hver pull-forespørsel, nyeste først, med status for hver.
+- **Spor → KI → Logger** viser hver undersøkelse og hver pull-forespørsel, nyeste først, med status for hver og hva hver undersøkelse fant.
 - I Kode sier oppgaven at OneUptime startet den, med en lenke til funnet, og pull-forespørselen sier hvorfor den ble åpnet.
 
 ## Hva som skjer med spans når de kommer inn

@@ -44,7 +44,7 @@ flowchart TB
 | **Hotinformation** | Detections | STIX/TAXII-flöden med kända skadliga indikatorer |
 | **ATT&CK-täckning** | Detections | MITRE ATT&CK-teknikerna som dina regler täcker |
 | **Playbooks** | Playbooks | Steg som körs på ärenden, av sig själva eller manuellt |
-| **Väntar på godkännande** | Playbooks | Playbook-stegen som väntar på att någon godkänner eller avvisar dem |
+| **Godkännanden** | Playbooks | Playbook-stegen som väntar på att någon godkänner eller avvisar dem |
 | **Playbook-körningar** | Playbooks | Vad varje playbook gjorde, steg för steg |
 | **Skyddade entiteter** | Playbooks | De användare och värdar som ingen playbook begränsar |
 | **Inställningar** | AI | Om OneUptime AI bedömer varje nytt ärende |
@@ -205,10 +205,12 @@ Varje händelse lagras med typade fält och källans nyttolast:
 | Allvarlighetsgrad | `severityName`, en av Unknown, Informational, Low, Medium, High, Critical, Fatal eller Other, och `severityId` |
 | Vem som gjorde det | `principalUser`, `principalHost`, `principalIp`, `principalProcess` |
 | Vad det berörde | `targetUser`, `targetHost`, `targetIp`, `targetPort`, `targetResource` |
-| Processen | `processName`, `processPath` och `processCommandLine`: vid en processtart den process som startade, annars den process som agerade. `parentProcessName`, `parentProcessPath` och `parentProcessCommandLine`: den process som startade den |
+| Processen | `processName`, `processPath` och `processCommandLine`: vid processaktivitet den process som startades, öppnades, injicerades i eller avslutades, annars den process som agerade. `parentProcessName`, `parentProcessPath` och `parentProcessCommandLine`: den process som startade den |
 | Källa | `productName`, `vendorName`, `ruleId`, `ruleName`, `eventUid` |
 | Innehåll | `message`, `mitreTactics`, `mitreTechniques` och `observables`: varje användare, värd, IP-adress, domän och hash som hämtats från händelsen |
 | Attribut | Hela källans nyttolast, utplattad till nycklar med punkter |
+
+Händelser som lagrades före OneUptime 14.0.84 lämnar processfälten tomma och anger sin process bara som `principalProcess`, den process som agerade. De fylls inte i efteråt: de behåller det de lagrades med tills deras lagringstid tar slut.
 
 ## Utforska säkerhetshändelser
 

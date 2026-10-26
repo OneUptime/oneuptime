@@ -74,6 +74,7 @@ Varje detektionslarm blir en Detection Finding-händelse (OCSF-klass `2004`), me
 | `kibana.alert.workflow_status`: `open`, `acknowledged` eller `closed` | Status |
 | `kibana.alert.rule.threat`, inklusive undertekniker | MITRE ATT&CK-taktiker och -tekniker |
 | `user.name`, `host.name`, `source.ip` eller `host.ip`, `process.name` eller `process.executable` | Aktörens användare, värd, IP och process |
+| `process.name`, `process.executable` och `process.command_line`; `process.parent.name`, `process.parent.executable` och `process.parent.command_line` | Processens namn, sökväg och kommandorad; den överordnade processens namn, sökväg och kommandorad |
 | `user.target.name`, `destination.domain`, `destination.ip`, `destination.port`, `file.path` | Målets användare, värd, IP, port och resurs |
 | Dessa, plus `related.*`, `dns.question.name`, `url.domain` och filhashar | Observables |
 | Hela larmet, utplattat till nycklar med punkter, med `_index` och `_id` | `attributes` |

@@ -9,6 +9,8 @@ OneUptime の MCP サーバーを使うと、AI アシスタントが OneUptime 
 - [トラブルシューティング](#トラブルシューティング): サインイン、権限、接続の問題です。
 :::
 
+このページは、OneUptime に接続する AI アシスタントについて説明します。逆に AWS や GitHub など、ほかの MCP サーバーのツールを OneUptime AI に使わせるには、[外部 MCP サーバー](/docs/ai/external-mcp-servers) を参照してください。
+
 ## 仕組み
 
 MCP サーバーはすべての OneUptime インスタンスに含まれており、ダッシュボードと同じアドレスの `/mcp` にあり、streamable HTTP トランスポートを使います。インストールするものはありません。

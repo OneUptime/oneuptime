@@ -82,7 +82,7 @@ In **Promemoria**, impostate **Intervallo del promemoria (minuti)**, ogni quanto
 | **Prima che inizi** | Da quando l'evento viene programmato fino al suo inizio. |
 | **Prima che inizi e mentre è in corso** | Da quando l'evento viene programmato fino alla sua fine. |
 
-Una regola salvata tramite l'API o Terraform che attende l'inizio dell'evento e si ferma quando inizia non invia mai un promemoria: l'elenco la contrassegna con **Non invia mai promemoria**, e il suo modulo vi chiede di scegliere una risposta.
+L'API e Terraform rifiutano una regola che attenderebbe l'inizio dell'evento e si fermerebbe quando inizia: non invierebbe mai un promemoria. Una regola più vecchia salvata così è contrassegnata nell'elenco con **Non invia mai promemoria**, e il suo modulo vi chiede di scegliere quando ricordare.
 
 I proprietari ricevono ogni promemoria come **Maintenance reminder**, attivo via e-mail per ogni nuovo membro. Salvare, modificare o eliminare una regola di promemoria riassegna la regola a ogni evento non ancora completato. Per fermare i promemoria di un evento, disattivate **Invia promemoria** nella sua pagina **Impostazioni**; salva nel momento in cui lo spostate.
 

@@ -1180,6 +1180,7 @@ describe("in a record's header", () => {
     recordType?: OnCallPageRecordType;
     recordId?: ObjectID;
     onPassedOn?: () => void;
+    onRecordChanged?: () => void;
     onControls?: (controls: PassOnPageControls) => void;
   }
 
@@ -1189,6 +1190,7 @@ describe("in a record's header", () => {
       recordType: props.recordType || OnCallPageRecordType.Incident,
       recordId: props.recordId || RECORD_ID,
       onPassedOn: props.onPassedOn,
+      onRecordChanged: props.onRecordChanged,
     });
 
     props.onControls?.(passOn);
@@ -1567,6 +1569,123 @@ describe("in a record's header", () => {
       "Ana Lopez acknowledged it already, so there is nothing to escalate.",
     ]);
     expect(onPassedOn).not.toHaveBeenCalled();
+  });
+
+  /*
+   * The header still offered Acknowledge for a record somebody else had
+   * taken while the dialog asked (#4914): the page is told, and reads the
+   * record again.
+   */
+  test("somebody acknowledged it meanwhile: the page is told the record changed, once", async () => {
+    const onRecordChanged: Mock<() => void> = jest.fn<() => void>();
+    const onPassedOn: Mock<() => void> = jest.fn<() => void>();
+
+    getAnswers.push(pagedAbout());
+    postAnswers.push({
+      answers: [
+        {
+          passedOn: false,
+          refusal: OnCallPassOnRefusal.RecordAcknowledged,
+          acknowledgedByName: "Ana Lopez",
+        },
+      ] as unknown as JSONObject["answers"],
+    });
+
+    render(
+      <Header onPassedOn={onPassedOn} onRecordChanged={onRecordChanged} />,
+    );
+    await flush();
+
+    fireEvent.click(escalateButton()!);
+    expect(onRecordChanged).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
+    await flush();
+
+    expect(screen.getByTestId("modal-title")).toHaveTextContent(
+      "Already acknowledged",
+    );
+    expect(onRecordChanged).toHaveBeenCalledTimes(1);
+    expect(onPassedOn).not.toHaveBeenCalled();
+
+    // Closing the answer tells it nothing more.
+    fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
+    expect(onRecordChanged).toHaveBeenCalledTimes(1);
+  });
+
+  test("one of two pages taken meanwhile tells the page too, beside the one escalated", async () => {
+    const onRecordChanged: Mock<() => void> = jest.fn<() => void>();
+    const onPassedOn: Mock<() => void> = jest.fn<() => void>();
+
+    getAnswers.push(pagedAbout());
+    postAnswers.push({
+      answers: [
+        ...(passed()["answers"] as Array<JSONObject>),
+        {
+          passedOn: false,
+          refusal: OnCallPassOnRefusal.RecordAcknowledged,
+        },
+      ] as unknown as JSONObject["answers"],
+    });
+
+    render(
+      <Header onPassedOn={onPassedOn} onRecordChanged={onRecordChanged} />,
+    );
+    await flush();
+
+    fireEvent.click(escalateButton()!);
+    fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
+    await flush();
+
+    expect(onPassedOn).toHaveBeenCalledTimes(1);
+    expect(onRecordChanged).toHaveBeenCalledTimes(1);
+  });
+
+  test.each([
+    ["escalated", "passed"],
+    ["escalated already", OnCallPassOnRefusal.AlreadyPassedOn],
+    ["the page is over", OnCallPassOnRefusal.PageOver],
+    ["not paged", OnCallPassOnRefusal.NotPaged],
+  ])(
+    "%s: the record is as the page read it, so it is not told it changed",
+    async (_name: string, answer: string) => {
+      const onRecordChanged: Mock<() => void> = jest.fn<() => void>();
+
+      getAnswers.push(pagedAbout());
+      postAnswers.push(
+        answer === "passed"
+          ? passed()
+          : ({
+              answers: [{ passedOn: false, refusal: answer }],
+            } as unknown as JSONObject),
+      );
+
+      render(<Header onRecordChanged={onRecordChanged} />);
+      await flush();
+
+      fireEvent.click(escalateButton()!);
+      fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
+      await flush();
+
+      expect(screen.getByTestId("modal-title")).toBeInTheDocument();
+      expect(onRecordChanged).not.toHaveBeenCalled();
+    },
+  );
+
+  test("a failed request tells the page nothing", async () => {
+    const onRecordChanged: Mock<() => void> = jest.fn<() => void>();
+
+    getAnswers.push(pagedAbout());
+    postAnswers.push("fail");
+
+    render(<Header onRecordChanged={onRecordChanged} />);
+    await flush();
+
+    fireEvent.click(escalateButton()!);
+    fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
+    await flush();
+
+    expect(onRecordChanged).not.toHaveBeenCalled();
   });
 
   test("escalated already, from another tab or the phone: says so", async () => {

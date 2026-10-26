@@ -19,6 +19,16 @@ import { countSmsSegments, SmsSegmentCount } from "./SmsSegments";
  * project, the title and the link. A severity named after what it rates
  * ("Critical Incident") is not followed by the word again.
  *
+ * A PAGE AGAIN - a policy paging again because a record acknowledged a while
+ * ago is still not resolved (OnCallAcknowledgementTimeout) - says so after
+ * the project, where a first page goes straight on to the title:
+ *
+ *   OneUptime: Critical Incident INC-42 in Acme Prod is still not resolved:
+ *   Checkout API is down. Ack or escalate: https://oneuptime.com/l/XJlaZRsd
+ *
+ * The person paged acknowledged it once already; worded as a first page,
+ * the text read like a second alarm about something new.
+ *
  * THE FITTING RULE. The text takes the fewest parts it can, trying for one
  * part, then two, and so on. For each number of parts:
  *
@@ -30,7 +40,8 @@ import { countSmsSegments, SmsSegmentCount } from "./SmsSegments";
  *      happened, so then the text takes one more part instead.
  *
  * The product name, the severity, the number and the link are never cut:
- * they say who sends it, how bad it is, which one it is and where to act.
+ * they say who sends it, how bad it is, which one it is and where to act -
+ * and nor is a page again's "is still not resolved", which says why.
  *
  * Every value is written in the characters an SMS carries cheaply
  * (Gsm7Text): a curly quote or an emoji in a title no longer makes the page
@@ -67,6 +78,10 @@ export const ON_CALL_PAGE_SMS_KIND_WORDS: Readonly<
  * it: the same word as every other place says (OnCallPagePassOn).
  */
 export const ON_CALL_PAGE_SMS_ACTION: string = "Ack or escalate:";
+
+// What a page again says after the project: the record is still open.
+export const ON_CALL_PAGE_SMS_STILL_NOT_RESOLVED: string =
+  "is still not resolved";
 
 // What a cut title ends with: three full stops, which GSM-7 has (… it has not).
 export const ON_CALL_PAGE_SMS_CUT_MARK: string = "...";
@@ -144,6 +159,11 @@ export interface OnCallPageSmsInput {
   title?: string | null | undefined;
   // The page that acknowledges it or escalates it. Never cut.
   link: string;
+  /*
+   * A page again (OnCallAcknowledgementTimeout): the text says the record is
+   * still not resolved. Never cut.
+   */
+  isPageAgain?: boolean | undefined;
   // What the send path does to the text before the provider gets it.
   sentAs?: ((text: string) => string) | undefined;
 }
@@ -166,6 +186,7 @@ interface PageParts {
   // The title's characters (code points), as written for an SMS.
   title: Array<string>;
   link: string;
+  isPageAgain: boolean;
 }
 
 // A value on one line, in the characters an SMS carries cheaply.
@@ -235,6 +256,10 @@ const compose: (
 
   if (options.withProject && parts.projectName) {
     head += ` in ${parts.projectName}`;
+  }
+
+  if (parts.isPageAgain) {
+    head += ` ${ON_CALL_PAGE_SMS_STILL_NOT_RESOLVED}`;
   }
 
   let sentence: string = head;
@@ -336,6 +361,7 @@ export const buildOnCallPageSms: (
     projectName: toSmsValue(input.projectName),
     title: Array.from(toSmsValue(input.title)),
     link: input.link.trim(),
+    isPageAgain: input.isPageAgain === true,
   };
 
   const wholeTitle: string = parts.title.join("");

@@ -227,7 +227,18 @@ Google SecOps 会根据规则的编写者，把检测的严重程度存储在不
 
 ## 将安全事件发送到 Google SecOps
 
-OneUptime 也可以把发现的内容发送到 Google SecOps，让您的团队所用的 SIEM 在自身检测结果旁边看到 OneUptime 的检测结果。每个安全事件都会作为 UDM 事件导入：登录为 `USER_LOGIN`，进程启动为 `PROCESS_LAUNCH`，网络连接为 `NETWORK_CONNECTION`，其他一切为 `GENERIC_EVENT`，并带有其严重级别、MITRE ATT&CK 标签以及发现它的规则。
+OneUptime 也可以把发现的内容发送到 Google SecOps，让您的团队所用的 SIEM 在自身检测结果旁边看到 OneUptime 的检测结果。每个安全事件都会作为 UDM 事件导入，并带有其严重级别、MITRE ATT&CK 标签以及发现它的规则：
+
+| 安全事件 | UDM 事件类型 |
+| --- | --- |
+| 登录 | `USER_LOGIN` |
+| 进程启动、打开、注入或结束 | `PROCESS_LAUNCH`, `PROCESS_OPEN`, `PROCESS_INJECTION`, `PROCESS_TERMINATION` |
+| 提升了自身权限的进程 | `PROCESS_PRIVILEGE_ESCALATION` |
+| 其他任何进程活动 | `PROCESS_UNCATEGORIZED` |
+| 网络连接 | `NETWORK_CONNECTION` |
+| 其他一切，或缺少其类型所需字段的事件 | `GENERIC_EVENT` |
+
+在进程事件中，`principal` 是执行操作的进程，`target` 是被操作的进程：在启动事件中，分别是父进程和它启动的进程。
 
 :::steps
 ### 创建可以导入事件的密钥

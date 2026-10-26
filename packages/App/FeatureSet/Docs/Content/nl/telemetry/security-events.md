@@ -31,7 +31,7 @@ Open **Producten → Security Events**, onder **Observability**. Het menu heeft 
 | --- | --- | --- |
 | **Overzicht** | Overzicht | Hoe beveiliging is ingericht, wat er nu iemand nodig heeft en hoe snel zaken worden afgehandeld |
 | **Open zaken** | Beveiligingszaken | De wachtrij: elke zaak die nog niet gesloten is, gegroepeerd naar waar het over gaat |
-| **Aan mij toegewezen** | Beveiligingszaken | De open zaken die aan jou zijn toegewezen |
+| **Mijn zaken** | Beveiligingszaken | De open zaken die aan jou zijn toegewezen |
 | **Niet toegewezen** | Beveiligingszaken | De open zaken die nog niemand heeft opgepakt |
 | **Gesloten zaken** | Beveiligingszaken | De zaken die met een oordeel zijn gesloten, de nieuwste eerst |
 | **Alle zaken** | Beveiligingszaken | Elke zaak, open of gesloten |
@@ -44,8 +44,8 @@ Open **Producten → Security Events**, onder **Observability**. Het menu heeft 
 | **Dreigingsinformatie** | Detections | STIX/TAXII-feeds van bekende kwaadaardige indicatoren |
 | **ATT&CK-dekking** | Detections | De technieken van MITRE ATT&CK die je regels dekken |
 | **Playbooks** | Playbooks | Stappen die op zaken draaien, vanzelf of met de hand |
-| **Wacht op goedkeuring** | Playbooks | De playbookstappen die wachten tot iemand ze goedkeurt of afwijst |
-| **Playbook-uitvoeringen** | Playbooks | Wat elk playbook deed, stap voor stap |
+| **Goedkeuringen** | Playbooks | De playbookstappen die wachten tot iemand ze goedkeurt of afwijst |
+| **Uitvoeringen** | Playbooks | Wat elk playbook deed, stap voor stap |
 | **Beschermde entiteiten** | Playbooks | De gebruikers en hosts die geen enkel playbook inperkt |
 | **Instellingen** | AI | Of OneUptime AI elke nieuwe zaak beoordeelt |
 | **Verbindingen** | Connections | Uw logs, de beveiligingsproducten die OneUptime opvraagt en de SIEM's waarnaar het verstuurt |
@@ -205,10 +205,12 @@ Elke gebeurtenis wordt opgeslagen met getypeerde velden en de payload van de bro
 | Ernst | `severityName`, een van Unknown, Informational, Low, Medium, High, Critical, Fatal of Other, en `severityId` |
 | Wie het deed | `principalUser`, `principalHost`, `principalIp`, `principalProcess` |
 | Wat het raakte | `targetUser`, `targetHost`, `targetIp`, `targetPort`, `targetResource` |
-| Het proces | `processName`, `processPath` en `processCommandLine`: bij het starten van een proces het proces dat startte, anders het proces dat handelde. `parentProcessName`, `parentProcessPath` en `parentProcessCommandLine`: het proces dat het startte |
+| Het proces | `processName`, `processPath` en `processCommandLine`: bij procesactiviteit het proces dat werd gestart, geopend, geïnjecteerd of beëindigd, anders het proces dat handelde. `parentProcessName`, `parentProcessPath` en `parentProcessCommandLine`: het proces dat het startte |
 | Bron | `productName`, `vendorName`, `ruleId`, `ruleName`, `eventUid` |
 | Inhoud | `message`, `mitreTactics`, `mitreTechniques` en `observables`: elke gebruiker, host, elk IP-adres, domein en elke hash uit de gebeurtenis |
 | Attributen | De hele payload van de bron, afgevlakt tot sleutels met punten |
+
+Gebeurtenissen die vóór OneUptime 14.0.84 zijn opgeslagen, laten de procesvelden leeg en noemen hun proces alleen als `principalProcess`, het proces dat handelde. Ze worden achteraf niet aangevuld: ze houden waarmee ze zijn opgeslagen tot hun bewaartermijn afloopt.
 
 ## Beveiligingsgebeurtenissen verkennen
 

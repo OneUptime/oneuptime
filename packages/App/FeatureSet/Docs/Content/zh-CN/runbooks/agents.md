@@ -5,7 +5,7 @@
 :::cards
 - [安装 Runner](#安装-runner): 五步完成，从仪表板到已连接的容器。
 - [为步骤指定 Runner](#为步骤指定-runner): 把步骤绑定到应运行它的 Runner。
-- [项目默认 Runner](#项目默认-runner): 未选择 Runner 的步骤运行所在的 Runner。
+- [项目默认 Runner](#项目默认-runner): 未选择 Runner 的步骤和代码存储库运行所在的 Runner。
 - [全局 Runner](#全局-runner): OneUptime 为所有项目运行的 Runner，以及它们运行什么。
 - [超时](#超时): 领取超时和执行超时，以及两者如何配合。
 - [环境变量](#环境变量): 容器启动时读取的内容。
@@ -70,7 +70,7 @@ Runner 只保存自己的 ID 和密钥。其余一切都随它领取的任务一
 - 只有当机密变量的 **全局 Runner 可以使用** 开关开启时，它才会收到该变量，而且只用于该变量所属项目的步骤。
 - 一个项目在全局 Runner 上同时最多运行三个步骤，因此没有项目能独占它们。
 
-对于需要访问你的网络的步骤，或者要让步骤留在你掌控的主机上，请为它选择你自己的 Runner。要让每个步骤都在你自己的 Runner 上运行，请在 **运行手册 → Runbook 代理** 底部关闭 **使用全局 Runner** 。之后，未选择 Runner 的 JavaScript 步骤会在项目默认 Runner 上运行；如果没有设置默认 Runner，它会失败并说明原因，直到它选择你的某个 Runner；选择了你的某个 Runner 的步骤无论如何都会保留它。在代码的设置中没有选择 Runner 的代码存储库同样在全局 Runner 上工作，而在关闭该开关时需要你的某个 Runner；参见 [代码](/docs/ai/ai-agent#选择存储库的-runner)。
+对于需要访问你的网络的步骤，或者要让步骤留在你掌控的主机上，请为它选择你自己的 Runner。要让每个步骤都在你自己的 Runner 上运行，请在 **运行手册 → Runbook 代理** 底部关闭 **使用全局 Runner** 。之后，未选择 Runner 的 JavaScript 步骤会在项目默认 Runner 上运行；如果没有设置默认 Runner，它会失败并说明原因，直到它选择你的某个 Runner；选择了你的某个 Runner 的步骤无论如何都会保留它。在代码的设置中没有选择 Runner 的代码存储库同样在项目默认 Runner 上工作，没有设置默认 Runner 时在全局 Runner 上工作，而在关闭该开关时需要你的某个 Runner；参见 [代码](/docs/ai/ai-agent#选择存储库的-runner)。
 
 ### 全局 Runner 从哪里来
 
@@ -156,7 +156,7 @@ Bash 通过 `bash -c` 运行。JavaScript 在 Runner 上的 `isolated-vm` 沙箱
 
 ## 项目默认 Runner
 
-项目可以把自己的某个 Runner 设为默认，就像把某个 Twilio 配置设为默认一样。之后，所有未选择 Runner 的运行手册步骤都会在它上面运行：Bash、SSH 和 kubectl 步骤，以及原本会在全局 Runner 上运行的 JavaScript 步骤。
+项目可以把自己的某个 Runner 设为默认，就像把某个 Twilio 配置设为默认一样。之后，所有未选择 Runner 的运行手册步骤都会在它上面运行：Bash、SSH 和 kubectl 步骤，以及原本会在全局 Runner 上运行的 JavaScript 步骤。在代码的设置中没有选择 Runner 的代码存储库，其中的 AI 也在它上面工作。
 
 要把某个 Runner 设为默认，请前往 **运行手册 → Runbook 代理** ，打开该 Runner 所在行的 **⋯** 菜单，点击 **设为项目默认** ，然后在对话框中确认。也可以打开该 Runner，在它的 **项目默认值** 卡片上打开 **用作项目默认** 。列表会在默认 Runner 的名称旁标出 **项目默认** ，步骤的 **Runner** 下拉列表也会在第一个选项上这样标出。一个项目只有一个默认 Runner：把另一个 Runner 设为默认会替换它。同一菜单中的 **不再用作项目默认** ，或 Runner 页面上的开关，可以停止使用它。
 
@@ -172,7 +172,7 @@ Bash 通过 `bash -c` 运行。JavaScript 在 Runner 上的 `isolated-vm` 沙箱
 
 默认 Runner 必须是项目自己的、运行运行手册步骤的 Runner：不能是全局 Runner，不能是 Kubernetes 代理安装的集群内 Runner，也不能是关闭了 **执行运行手册** 的 Runner。只要某个 Runner 是默认 Runner，它的 **执行运行手册** 就保持开启。默认 Runner 未连接时，步骤的下拉列表会提示这一点，在它上面的步骤会像对待任何 Runner 一样等待它，直到 claim timeout 结束。
 
-只有运行手册步骤使用默认 Runner。代码存储库在代码的设置中选择自己的 Runner，AI 规则也选择自己的 Runner。
+未选择 Runner 的运行手册步骤和代码存储库使用默认 Runner，并在另一个 Runner 成为默认时随之转移。AI 规则选择自己的 Runner，新规则从默认 Runner 开始。
 
 ## 运维说明
 

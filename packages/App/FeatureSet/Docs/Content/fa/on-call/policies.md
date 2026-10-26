@@ -138,7 +138,7 @@ flowchart TB
 | **پس از چند دقیقه؟** | `acknowledgementTimeoutInMinutes` |
 | بایگانی‌شده | `isArchived` |
 
-`repeatPolicyIfNoOneAcknowledges` برای **توقف خبر دادن** برابر `false` و برای **دوباره از Level 1 شروع کن** برابر `true` است. با `true` و `repeatPolicyIfNoOneAcknowledgesNoOfTimes` برابر `0`، سیاست هرگز تکرار نمی‌شود و داشبورد آن را **توقف خبر دادن** نشان می‌دهد.
+`repeatPolicyIfNoOneAcknowledges` برای **توقف خبر دادن** برابر `false` و برای **دوباره از Level 1 شروع کن** برابر `true` است. با `true`، مقدار `repeatPolicyIfNoOneAcknowledgesNoOfTimes` باید عددی صحیح و دست‌کم ۱ باشد: OneUptime مقدار `0` را رد می‌کند. سیاستی قدیمی که با `0` ذخیره شده هرگز تکرار نمی‌شود و داشبورد آن را **توقف خبر دادن** نشان می‌دهد.
 
 `acknowledgementTimeoutInMinutes` برای **بدون خبر دادن دوباره** برابر `null` و برای **خبر دادن دوباره** عددی صحیح از ۵ تا ۱۴۴۰ دقیقه است. OneUptime هر مقدار دیگری را رد می‌کند.
 

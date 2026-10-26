@@ -295,7 +295,14 @@ describe("Card header layout", () => {
       '<div data-testid="card" class="mb-5 extra"><div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-visible"><div class="py-6 px-5 md:px-6"><div data-testid="card-header" data-header-layout="default" class="flex flex-wrap items-center gap-x-4 gap-y-2 md:flex-nowrap md:items-start"><div data-testid="card-header-title-block" class="min-w-0 md:flex-1"><h2 data-testid="card-details-heading" id="card-details-heading" class="text-lg font-semibold leading-6 text-gray-900 text-balance break-words">Title</h2><p data-testid="card-description" class="mt-1.5 text-sm text-gray-500 w-full max-md:hidden md:block leading-relaxed">Desc</p></div><div data-testid="card-header-actions" class="ml-auto flex max-w-full flex-wrap items-center justify-end gap-x-3 gap-y-2 md:flex-shrink-0"><div class="flex items-center"><span>right</span></div><div class="flex items-center [&amp;>button]:ml-0 [&amp;>button]:md:ml-0 [&amp;>*>button]:ml-0 [&amp;>*>button]:md:ml-0"><a href="/docs">Docs</a></div></div></div><div class="mt-0"><div>body</div></div></div></div></div>';
 
     const GOLDEN_WITHOUT_ACTIONS: string =
-      '<div data-testid="card" class="mb-5 "><div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-visible"><div class="py-6 px-5 md:px-6"><div data-testid="card-header" data-header-layout="default" class="flex flex-wrap items-center gap-x-4 gap-y-2 md:flex-nowrap md:items-start"><div data-testid="card-header-title-block" class="w-full min-w-0"><h2 data-testid="card-details-heading" id="card-details-heading" class="text-lg font-semibold leading-6 text-gray-900 text-balance break-words">Title</h2><p data-testid="card-description" class="mt-1.5 text-sm text-gray-500 w-full max-md:hidden md:block leading-relaxed">Desc</p></div></div></div></div></div>';
+      '<div data-testid="card" class="mb-5 "><div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-visible"><div class="py-6 px-5 md:px-6"><div data-testid="card-header" data-header-layout="default" class="flex flex-wrap items-center gap-x-4 gap-y-2 md:flex-nowrap md:items-start"><div data-testid="card-header-title-block" class="w-full min-w-0"><h2 data-testid="card-details-heading" id="card-details-heading" class="text-lg font-semibold leading-6 text-gray-900 text-balance break-words">Title</h2><p data-testid="card-description" class="mt-1.5 text-sm text-gray-500 w-full max-md:hidden md:block leading-relaxed">Desc</p></div></div><div class="mt-4"><div>body</div></div></div></div></div>';
+
+    /*
+     * A card with no body: its description is all it says, so it is drawn
+     * at every width (CARD_DESCRIPTION_KEPT_ON_PHONES_CLASS_NAME).
+     */
+    const GOLDEN_WITHOUT_A_BODY: string =
+      '<div data-testid="card" class="mb-5 "><div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-visible"><div class="py-6 px-5 md:px-6"><div data-testid="card-header" data-header-layout="default" class="flex flex-wrap items-center gap-x-4 gap-y-2 md:flex-nowrap md:items-start"><div data-testid="card-header-title-block" class="w-full min-w-0"><h2 data-testid="card-details-heading" id="card-details-heading" class="text-lg font-semibold leading-6 text-gray-900 text-balance break-words">Title</h2><p data-testid="card-description" class="mt-1.5 text-sm text-gray-500 w-full block leading-relaxed">Desc</p></div></div></div></div></div>';
 
     test.each([
       ["left out", undefined],
@@ -324,9 +331,18 @@ describe("Card header layout", () => {
           renderMarkup({
             title: "Title",
             description: "Desc",
+            children: <div>body</div>,
             headerLayout: headerLayout,
           }),
         ).toBe(GOLDEN_WITHOUT_ACTIONS);
+
+        expect(
+          renderMarkup({
+            title: "Title",
+            description: "Desc",
+            headerLayout: headerLayout,
+          }),
+        ).toBe(GOLDEN_WITHOUT_A_BODY);
       },
     );
 
@@ -659,11 +675,14 @@ describe("Card header layout", () => {
           );
         }
 
-        // Normal buttons carry md:ml-3, outline ones ml-1: both are cleared.
+        /*
+         * Normal buttons carry a dialog footer's md:ml-3, which the box
+         * clears; an outline button carries no margin of its own.
+         */
         expect(screen.getByText("Edit").closest("button")).toHaveClass(
           "md:ml-3",
         );
-        expect(screen.getByText("Refresh").closest("button")).toHaveClass(
+        expect(screen.getByText("Refresh").closest("button")).not.toHaveClass(
           "ml-1",
         );
         expect(classOf(actions())).toContain("gap-x-3");
@@ -791,7 +810,9 @@ describe("Card description", () => {
     "the %s layout holds it back on a phone and shows it from md up",
     (_label: string, headerLayout: "default" | "stacked") => {
       render(
-        <Card title="Title" description="Desc" headerLayout={headerLayout} />,
+        <Card title="Title" description="Desc" headerLayout={headerLayout}>
+          <div>body</div>
+        </Card>,
       );
 
       const description: HTMLElement = screen.getByTestId("card-description");
@@ -811,7 +832,11 @@ describe("Card description", () => {
   );
 
   test("a foreign .hidden rule cannot take it off a tablet or a desktop", () => {
-    render(<Card title="Title" description="Desc" />);
+    render(
+      <Card title="Title" description="Desc">
+        <div>body</div>
+      </Card>,
+    );
 
     const description: HTMLElement = screen.getByTestId("card-description");
 

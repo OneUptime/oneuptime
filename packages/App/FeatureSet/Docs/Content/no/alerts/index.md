@@ -77,7 +77,7 @@ Gå til **Varsler → Alle varsler**, og klikk på **Opprett varsel**. Skjemaet 
 
 ### Beskriv varselet
 
-Fyll ut **Tittel**, og velg en **Varselsalvor**; begge er påkrevd. Legg til en **Beskrivelse** hvis det hjelper. Under **Flere felt**, sammenfoldet, kan du velge en **Innledende tilstand**, legge til **Etiketter** eller slå på **Privat varsel**. Der venter også **Eiere**: du blir uansett eier av varselet du oppretter, og hvert team du er medlem av, er bare ett klikk unna under velgeren.
+Fyll ut **Tittel**, og velg en **Varselsalvor**; begge er påkrevd. Legg til en **Beskrivelse** hvis det hjelper. Under **Flere felt**, sammenfoldet, kan du velge en **Innledende tilstand**, legge til **Etiketter** eller slå på **Privat varsel**. Der venter også **Eiere**: du blir uansett eier av varselet du oppretter, og hvert team du er medlem av, er bare ett klikk unna under velgeren. En master-admin, som driver hele installasjonen, er det eneste unntaket: vedkommende blir ikke eier av det vedkommende oppretter.
 
 ### Velg hva det berører, og hvem som tilkalles
 

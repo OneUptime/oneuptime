@@ -64,6 +64,10 @@ import PermissionGate from "../../../UI/Utils/PermissionGate";
 import User from "../../../UI/Utils/User";
 import { PROJECT_ID, goTo } from "./SideMenuHarness";
 import { listedNames } from "../../UI/Components/FoldedSection/FoldedSectionQueries";
+import {
+  getPageAnchorNameForTitle,
+  isPageAnchorName,
+} from "../../../UI/Utils/PageAnchor";
 
 jest.mock("react-i18next", () => {
   return {
@@ -476,6 +480,45 @@ describe.each(PAGES)("$name: More settings", (page: MoreSettingsPage) => {
           return item.title;
         }),
       );
+    }
+  });
+
+  /*
+   * Every card in a page's More settings has a place a link can land on:
+   * the id its page gives it, or one after its title (Utils/PageAnchor) -
+   * each its own on the page. A link that names one opens More settings
+   * there (AdvancedPageSection), whichever page it is.
+   */
+  test("every card in it has a place of its own a link can land on", async () => {
+    await openPageAndLoad(page);
+
+    const ids: Array<string> = sectionsIn(page).map(
+      (section: HTMLElement): string => {
+        return section.id;
+      },
+    );
+
+    for (const [index, id] of ids.entries()) {
+      expect({
+        title: page.sectionTitles[index],
+        hasPlace: isPageAnchorName(id),
+      }).toEqual({ title: page.sectionTitles[index], hasPlace: true });
+      // Its own on the page.
+      expect(document.querySelectorAll(`[id="${id}"]`)).toHaveLength(1);
+    }
+
+    /*
+     * A card the page names by nothing else is landed on by its title: the
+     * name its item in the fold goes by too.
+     */
+    if (page.namesSectionsByTitle) {
+      for (const [index, title] of page.sectionTitles.entries()) {
+        const fromTitle: string = getPageAnchorNameForTitle(title);
+
+        if (fromTitle && ids[index] === fromTitle) {
+          expect(foldedSectionItem(title).key).toBe(ids[index]);
+        }
+      }
     }
   });
 

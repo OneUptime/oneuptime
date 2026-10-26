@@ -12,6 +12,7 @@ import CodeTaskOrigin from "../../../../../Server/Utils/AI/CodeTask/CodeTaskOrig
 import CodeTaskPresenter from "../../../../../Server/Utils/AI/CodeTask/CodeTaskPresenter";
 import AIAgentTaskPullRequest from "../../../../../Models/DatabaseModels/AIAgentTaskPullRequest";
 import AIInsight from "../../../../../Models/DatabaseModels/AIInsight";
+import AIInsightType from "../../../../../Types/AI/AIInsightType";
 import AIRun from "../../../../../Models/DatabaseModels/AIRun";
 import AIRunEvent from "../../../../../Models/DatabaseModels/AIRunEvent";
 import Incident from "../../../../../Models/DatabaseModels/Incident";
@@ -1129,6 +1130,35 @@ describe("a task OneUptime started from an insight", () => {
       type: CodeTaskOriginType.Insight,
       label: "OrderParser.parse takes 18% of the CPU time in checkout",
       recordId: INSIGHT_ID.toString(),
+    });
+  });
+
+  /*
+   * Where the origin opens: a finding a telemetry product's AI section
+   * filed opens on that section's page of it, so the origin names its
+   * kind (the insight is read for it already).
+   */
+  test("names its insight's kind, so it opens where its product files it", () => {
+    const slowCode: AIInsight = insightNamed(
+      "OrderParser.parse takes 18% of the CPU time in checkout",
+    );
+    slowCode.insightType = AIInsightType.ProfileHotspot;
+
+    expect(
+      CodeTaskOrigin.describe({
+        run: oneUptimeRequest(),
+        subjects: {
+          exceptions: new Map(),
+          incidents: new Map(),
+          alerts: new Map(),
+          insights: new Map([[INSIGHT_ID.toString(), slowCode]]),
+        },
+      }),
+    ).toEqual({
+      type: CodeTaskOriginType.Insight,
+      label: "OrderParser.parse takes 18% of the CPU time in checkout",
+      recordId: INSIGHT_ID.toString(),
+      insightType: AIInsightType.ProfileHotspot,
     });
   });
 

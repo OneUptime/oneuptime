@@ -78,6 +78,7 @@ OneUptime은 1분마다, 폴링 간격이 지난 활성화된 연결을 각각 �
 | `status_label`, 없으면 `status_description`, 없으면 `status`가 담은 검토 상태의 이름 | 상태 |
 | `annotations.mitre_attack`, 그리고 `mitre_technique_id`, `mitre_tactic` 같은 필드 | MITRE ATT&CK 전술과 기법 |
 | `user` 또는 `src_user`; `src`, `src_ip` 또는 `src_host`; `process`, `process_name` 또는 `parent_process` | 주체 사용자, IP, 호스트, 프로세스 |
+| `process_name` 또는 `process_exec`, `process_path` 및 `process`; `parent_process_name` 또는 `parent_process_exec`, `parent_process_path` 및 `parent_process` | 프로세스 이름, 경로, 명령줄; 부모 프로세스 이름, 경로, 명령줄 |
 | `dest_user`; `dest`, `dest_ip` 또는 `dest_host`; `dest_port` | 대상 사용자, IP, 호스트, 포트 |
 | `file_path`, `url` 또는 `risk_object` | 대상 리소스 |
 | 모든 사용자, 호스트, IP와 함께 `dvc`, `host`, `file_hash`, `file_name`, `url`, `domain`, `query`, `risk_object` | Observable |

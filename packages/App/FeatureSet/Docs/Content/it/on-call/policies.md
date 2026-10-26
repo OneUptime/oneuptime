@@ -138,7 +138,7 @@ Le policy di reperibilità sono la risorsa `/api/on-call-duty-policy`, e la riso
 | **Dopo quanti minuti?** | `acknowledgementTimeoutInMinutes` |
 | Archiviata | `isArchived` |
 
-`repeatPolicyIfNoOneAcknowledges` è `false` per **Interrompi gli avvisi** e `true` per **Ricomincia da Level 1**. Con `true` e `repeatPolicyIfNoOneAcknowledgesNoOfTimes` a `0`, una policy non si ripete mai, e la dashboard la mostra come **Interrompi gli avvisi**.
+`repeatPolicyIfNoOneAcknowledges` è `false` per **Interrompi gli avvisi** e `true` per **Ricomincia da Level 1**. Con `true`, `repeatPolicyIfNoOneAcknowledgesNoOfTimes` deve essere un numero intero pari ad almeno 1: OneUptime rifiuta `0`. Una policy più vecchia salvata con `0` non si ripete mai, e la dashboard la mostra come **Interrompi gli avvisi**.
 
 `acknowledgementTimeoutInMinutes` è `null` per **Non avvisare di nuovo**, e un numero intero di minuti da 5 a 1440 per **Avvisa di nuovo**. OneUptime rifiuta qualsiasi altro valore.
 

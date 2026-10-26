@@ -351,7 +351,7 @@ Unter **Weitere Felder** wählt eine Regel die Code-Repositories, die MCP-Server
 ### Sehen, was es getan hat
 
 - **Produkte → Performance-Profile → KI → Einblicke** listet den gefundenen langsamen Code, jeden Befund mit seinen Belegen und **Im Profiler öffnen**.
-- **Produkte → Performance-Profile → KI → Protokolle** listet jede Untersuchung und jeden Pull Request, das Neueste zuerst, jeweils mit ihrem Stand.
+- **Produkte → Performance-Profile → KI → Protokolle** listet jede Untersuchung und jeden Pull Request, das Neueste zuerst, jeweils mit ihrem Stand und dem, was jede Untersuchung gefunden hat.
 - In Code sagt die Aufgabe, dass OneUptime sie gestartet hat, mit einem Link zu ihrem Befund, und der Pull Request sagt, warum er geöffnet wurde.
 
 ## Datenaufbewahrung

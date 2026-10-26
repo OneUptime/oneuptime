@@ -190,6 +190,7 @@ export default class CodeFixRunQueue {
           select: {
             _id: true,
             runnerId: true,
+            isGlobalRunnerPicked: true,
           },
           props: { isRoot: true },
         })
@@ -207,6 +208,7 @@ export default class CodeFixRunQueue {
       await CodeRepositoryRunnerChoice.getStatusForRepository({
         projectId: data.projectId,
         runnerId: repository.runnerId,
+        isGlobalRunnerPicked: repository.isGlobalRunnerPicked,
       }),
     );
   }

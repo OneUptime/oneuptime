@@ -492,12 +492,22 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
     // A rule's channel arrives a moment after a new alert is created.
     recordStartedAt: alertStartedAt,
   });
+  // Bumped to make the header read the alert's state again.
+  const [headerRefreshToken, setHeaderRefreshToken] = useState<number>(0);
   // "Escalate", for somebody an on-call policy is paging about it.
   const passOn: PassOnPageControls = usePassOnPage({
     recordType: OnCallPageRecordType.Alert,
     recordId: modelId,
     // Escalating is a new feed entry.
     onPassedOn: refreshFeed,
+    // Somebody took it while the dialog asked: the page reads it again.
+    onRecordChanged: () => {
+      setHeaderRefreshToken((token: number): number => {
+        return token + 1;
+      });
+      refreshData();
+      refreshFeed();
+    },
   });
   const joinVideoCallAction: EventPanelAction | null = getJoinVideoCallAction(
     videoCalls.calls,
@@ -1003,6 +1013,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           aiInvestigationStatus={currentAIInvestigationStatus}
           aiInvestigationSummary={currentAIInvestigationSummary}
           aiInvestigationVerdict={currentAIInvestigationVerdict}
+          refreshToken={headerRefreshToken}
           onActionComplete={() => {
             refreshData();
             // The state change is a new feed entry.

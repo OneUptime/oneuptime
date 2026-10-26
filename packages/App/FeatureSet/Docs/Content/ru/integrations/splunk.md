@@ -78,6 +78,7 @@ flowchart TB
 | `status_label`, иначе `status_description`, иначе имя статуса проверки, который содержит `status` | Статус |
 | `annotations.mitre_attack` и поля вроде `mitre_technique_id` и `mitre_tactic` | Тактики и техники MITRE ATT&CK |
 | `user` или `src_user`; `src`, `src_ip` или `src_host`; `process`, `process_name` или `parent_process` | Пользователь, IP, хост и процесс субъекта |
+| `process_name` или `process_exec`, `process_path` и `process`; `parent_process_name` или `parent_process_exec`, `parent_process_path` и `parent_process` | Имя, путь и командная строка процесса; имя, путь и командная строка родительского процесса |
 | `dest_user`; `dest`, `dest_ip` или `dest_host`; `dest_port` | Пользователь, IP, хост и порт цели |
 | `file_path`, `url` или `risk_object` | Целевой ресурс |
 | Каждый пользователь, хост и IP, а также `dvc`, `host`, `file_hash`, `file_name`, `url`, `domain`, `query` и `risk_object` | Наблюдаемые объекты |

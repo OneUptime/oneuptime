@@ -160,10 +160,9 @@ describe("Modal secondaryButton", () => {
 
   test("a Next that cannot be pressed yet looks it: dimmed, with the not-allowed cursor", async () => {
     /*
-     * A plain button has no disabled look of its own, so a Next held back
-     * until something is chosen looked exactly like one that goes on. The
-     * footer gives the secondary button the disabled look itself - only when
-     * disabled, and still plain.
+     * A Next held back until something is chosen used to look exactly like
+     * one that goes on. It is dimmed with the not-allowed cursor - Button's
+     * disabled look - only when disabled, and still plain.
      */
     const onNext: MockFunction = getJestMockFunction();
 
@@ -185,10 +184,8 @@ describe("Modal secondaryButton", () => {
     const next: HTMLElement = screen.getByTestId("modal-footer-next-button");
 
     expect(next).toBeDisabled();
-    expect(next).toHaveClass(
-      "disabled:opacity-50",
-      "disabled:cursor-not-allowed",
-    );
+    // Button's own disabled look: faded, with the not-allowed cursor.
+    expect(next).toHaveClass("opacity-50", "cursor-not-allowed");
     expect(next.className).toContain(PLAIN_CLASS);
     expect(next.className).not.toContain(PRIMARY_CLASS);
 

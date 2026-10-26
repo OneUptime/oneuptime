@@ -227,7 +227,18 @@ Ein [Threat-Intel-Feed](/docs/telemetry/threat-intelligence#wie-google-secops-ge
 
 ## Sicherheitsereignisse an Google SecOps senden
 
-OneUptime kann seine Funde auch an Google SecOps senden, damit das SIEM, in dem Ihr Team arbeitet, die Erkennungen von OneUptime neben den eigenen sieht. Jedes Sicherheitsereignis wird als UDM-Ereignis importiert: eine Anmeldung als `USER_LOGIN`, ein Prozessstart als `PROCESS_LAUNCH`, eine Netzwerkverbindung als `NETWORK_CONNECTION` und alles andere als `GENERIC_EVENT`, mit seinem Schweregrad, seinen MITRE-ATT&CK-Tags und der Regel, die es gefunden hat.
+OneUptime kann seine Funde auch an Google SecOps senden, damit das SIEM, in dem Ihr Team arbeitet, die Erkennungen von OneUptime neben den eigenen sieht. Jedes Sicherheitsereignis wird als UDM-Ereignis importiert, mit seinem Schweregrad, seinen MITRE-ATT&CK-Tags und der Regel, die es gefunden hat:
+
+| Sicherheitsereignis | UDM-Ereignistyp |
+| --- | --- |
+| Eine Anmeldung | `USER_LOGIN` |
+| Ein Prozess wird gestartet, geöffnet, injiziert oder beendet | `PROCESS_LAUNCH`, `PROCESS_OPEN`, `PROCESS_INJECTION`, `PROCESS_TERMINATION` |
+| Ein Prozess erhöht seine Berechtigungen | `PROCESS_PRIVILEGE_ESCALATION` |
+| Jede andere Prozessaktivität | `PROCESS_UNCATEGORIZED` |
+| Eine Netzwerkverbindung | `NETWORK_CONNECTION` |
+| Alles andere, oder ein Ereignis ohne die Felder, die sein Typ braucht | `GENERIC_EVENT` |
+
+In einem Prozessereignis ist `principal` der Prozess, der gehandelt hat, und `target` der Prozess, auf den er eingewirkt hat: bei einem Start der übergeordnete Prozess und der Prozess, den er gestartet hat.
 
 :::steps
 ### Einen Schlüssel erstellen, der Ereignisse importieren darf

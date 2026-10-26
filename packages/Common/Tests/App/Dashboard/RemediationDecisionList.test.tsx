@@ -336,12 +336,16 @@ describe("RemediationDecisionList", () => {
 
     expect(
       links.map((link: HTMLElement) => {
-        return [link.textContent, link.getAttribute("href")];
+        return [link.textContent?.trim(), link.getAttribute("href")];
       }),
     ).toEqual([
       ["Link Checkout website", `/dashboard/${PROJECT_ID}/monitors/1`],
       ["Link the monitor", `/dashboard/${PROJECT_ID}/monitors/2`],
     ]);
+    // Named by their words alone: the arrow is not read out.
+    expect(
+      screen.getByRole("link", { name: "Link the monitor" }),
+    ).toHaveAttribute("href", `/dashboard/${PROJECT_ID}/monitors/2`);
 
     for (const link of links) {
       // The arrow says "go there" to the eye; the words say it to the ear.
@@ -360,6 +364,51 @@ describe("RemediationDecisionList", () => {
     // Side by side while they fit, one under another when they do not.
     expect(links[0]!.parentElement).toHaveClass("flex", "flex-wrap");
     expect(links[0]!.parentElement).toBe(links[1]!.parentElement);
+  });
+
+  /*
+   * A long setting's name wraps on a phone: its arrow is part of the
+   * words' line, glued to the last one by a no-break space that cannot
+   * wrap away from it (ArrowGluedText), so it ends the name rather than
+   * sitting alone at the card's far edge - an inline-flex link put it
+   * there, as the AI card's line did before (#5226).
+   */
+  test("a link's arrow follows its last word, glued by a no-break space, and is not read out", () => {
+    render(
+      <RemediationDecisionList
+        lines={[
+          line({
+            key: "a",
+            links: [
+              {
+                text: "Which incidents are investigated",
+                route: new Route(`/dashboard/${PROJECT_ID}/ai/settings`),
+              },
+            ],
+          }),
+        ]}
+      />,
+    );
+
+    const link: HTMLElement = screen.getByRole("link", {
+      name: "Which incidents are investigated",
+    });
+    const arrow: HTMLElement = within(link).getByTestId(
+      "remediation-decision-link-arrow",
+    );
+    const glue: HTMLElement = arrow.parentElement!;
+
+    // The words, then - in one piece that never wraps - the glue and the arrow.
+    expect(link.firstChild?.textContent).toBe(
+      "Which incidents are investigated",
+    );
+    expect(glue).toHaveClass("whitespace-nowrap");
+    expect(glue.firstChild?.textContent).toBe("\u00a0");
+    expect(arrow).toHaveAttribute("aria-hidden", "true");
+    expect(arrow).toHaveClass("inline-block");
+    // On a page that reads right to left it points the way the words run.
+    expect(arrow).toHaveClass("rtl:rotate-180");
+    expect(link).not.toHaveClass("inline-flex");
   });
 
   test("draws no link row for a line without links", () => {
@@ -398,9 +447,12 @@ describe("RemediationDecisionList", () => {
     expect(
       screen.getByTestId("remediation-decision-why").querySelector("dd"),
     ).toHaveClass("break-words");
-    expect(
-      screen.getByRole("link").querySelector("span.break-words"),
-    ).toHaveTextContent(`Link ${longName}`);
+    // The link's words break, as text: no flex item of its own to squeeze.
+    expect(screen.getByRole("link")).toHaveClass("break-words", "min-w-0");
+    expect(screen.getByRole("link")).not.toHaveClass("inline-flex");
+    expect(screen.getByRole("link").textContent?.trim()).toBe(
+      `Link ${longName}`,
+    );
     // The words may shrink beside the mark; the mark never does.
     expect(
       screen.getByTestId("remediation-decision-text").parentElement,
@@ -445,7 +497,7 @@ describe("RemediationDecisionList", () => {
       within(unlinked)
         .getAllByRole("link")
         .map((link: HTMLElement) => {
-          return [link.textContent, link.getAttribute("href")];
+          return [link.textContent?.trim(), link.getAttribute("href")];
         }),
     ).toEqual([
       [

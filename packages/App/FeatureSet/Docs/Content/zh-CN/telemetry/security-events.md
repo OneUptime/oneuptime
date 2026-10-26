@@ -44,7 +44,7 @@ flowchart TB
 | **威胁情报** | Detections | 已知恶意指标的 STIX/TAXII 源 |
 | **ATT&CK 覆盖范围** | Detections | 你的规则覆盖的 MITRE ATT&CK 技术 |
 | **剧本** | Playbooks | 在案例上自动或手动运行的步骤 |
-| **等待审批** | Playbooks | 等待有人批准或拒绝的剧本步骤 |
+| **待审批** | Playbooks | 等待有人批准或拒绝的剧本步骤 |
 | **剧本运行记录** | Playbooks | 每个剧本逐步做了什么 |
 | **受保护的实体** | Playbooks | 任何剧本都不会遏制的用户和主机 |
 | **设置** | 人工智能 | OneUptime AI 是否研判每个新案例 |
@@ -205,10 +205,12 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 | 严重程度 | `severityName`，取值为 Unknown、Informational、Low、Medium、High、Critical、Fatal 或 Other 之一，以及 `severityId` |
 | 谁做的 | `principalUser`、`principalHost`、`principalIp`、`principalProcess` |
 | 涉及了什么 | `targetUser`、`targetHost`、`targetIp`、`targetPort`、`targetResource` |
-| 进程 | `processName`、`processPath` 和 `processCommandLine`：在进程启动事件中是被启动的进程，其他事件中是执行操作的进程。`parentProcessName`、`parentProcessPath` 和 `parentProcessCommandLine`：启动它的进程 |
+| 进程 | `processName`、`processPath` 和 `processCommandLine`：在进程活动事件中是被启动、打开、注入或结束的进程，其他事件中是执行操作的进程。`parentProcessName`、`parentProcessPath` 和 `parentProcessCommandLine`：启动它的进程 |
 | 来源 | `productName`、`vendorName`、`ruleId`、`ruleName`、`eventUid` |
 | 内容 | `message`、`mitreTactics`、`mitreTechniques` 和 `observables`：从事件中提取的每个用户、主机、IP 地址、域名和哈希 |
 | 属性 | 完整的来源负载，展平为以点分隔的键 |
+
+在 OneUptime 14.0.84 之前存储的事件，进程字段为空，只以 `principalProcess`（执行操作的进程）记录其进程。它们之后不会被补全：在保留期结束之前，它们保持存储时的内容。
 
 ## 浏览安全事件
 

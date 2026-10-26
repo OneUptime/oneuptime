@@ -88,7 +88,7 @@ En sag har sin egen sidemenu, ligesom en hændelse, og hver del af sagen er en s
 | Afsnit i sidemenuen | Sider |
 | --- | --- |
 | **Oversigt** | **Oversigt**, **Tidslinje** |
-| **Undersøgelse** | **Detektioner**, **Entiteter**, **Forbundne signaler**, **Playbook-kørsler** |
+| **Undersøgelse** | **Detektioner**, **Entiteter**, **Forbundne signaler**, **Playbooks** |
 | **Noter** | **Private noter** |
 | **Avanceret** | **Auditlogs**, **Slet sag**, foldet sammen, indtil du klikker på **Avanceret** |
 
@@ -101,7 +101,7 @@ Hver side beholder sagens sidehoved øverst: nummer, prioritet, status og titel,
 - **Detektioner**: det, der blev udløst og åbnede sagen eller blev føjet til den, hvor ofte, og den seneste matchende begivenhed.
 - **Entiteter**: de brugere, værter og adresser, sagen handler om, med deres aktivitet på tværs af alle dine sikkerhedsbegivenheder de seneste 7 dage. Hver af dem åbnes i **Korrelér**.
 - **Forbundne signaler**: de værter, klynger, tjenester og medlemmer, sagen nævner, som OneUptime kender dem, og hvad der skete på hver af dem omkring sagens detektioner: deres protokoller, spor og metrikker, hvad der er åbent på dem, og hvad der ændrede sig. Se [Forbundne signaler](/docs/telemetry/security-connected-signals).
-- **Playbook-kørsler**: hvad hver playbook gjorde på sagen, trin for trin, og de trin, der venter på godkendelse. Mens kørsler venter, viser menuen, hvor mange de er, ved siden af **Playbook-kørsler**.
+- **Playbooks**: hvad hver playbook gjorde på sagen, trin for trin, og de trin, der venter på godkendelse. Mens kørsler venter, viser menuen, hvor mange de er, ved siden af **Playbooks**.
 - **Private noter**: hvad teamet skrev om sagen.
 - **Auditlogs**: hver ændring af sagen, og hvem der lavede den. Se [Auditlogs](/docs/configuration/audit-logs).
 - **Slet sag**: sletter sagen for altid, med dens detektioner, noter, tidslinje og playbook-kørsler. Vil du beholde den som dokumentation, så luk den i stedet med en konklusion.
@@ -311,7 +311,7 @@ Hver kørsel vises på sin sag og under **Produkter → Security Events → Play
 | Mislykkedes | Et trin mislykkedes, og kørslen stoppede |
 | Annulleret | Nogen annullerede den eller afviste et trin |
 
-Et trin, der venter på godkendelse, viser **Godkend** og **Afvis** på kørslen med en valgfri kommentar. En godkendelse fører kørslen videre fra det trin; en afvisning afslutter den. Beslutningen, hvem der traf den, og deres kommentar gemmes på trinnet, på sagens tidslinje og i projektets auditlog. **Venter på godkendelse**, under **Playbooks** i menuen, viser de kørsler, der venter på en beslutning, og tæller dem; **Playbook-kørsler** viser hver kørsel. På **Playbook-kørsler** og på en playbooks side er hver kørsel én linje, der siger, hvor langt den nåede, eller hvilket trin den stoppede ved; **Vis trin** åbner dens trin. En kørsel, der venter på godkendelse, åbner af sig selv.
+Et trin, der venter på godkendelse, viser **Godkend** og **Afvis** på kørslen med en valgfri kommentar. En godkendelse fører kørslen videre fra det trin; en afvisning afslutter den. Beslutningen, hvem der traf den, og deres kommentar gemmes på trinnet, på sagens tidslinje og i projektets auditlog. Siden **Godkendelser**, under **Playbooks** i menuen, viser de kørsler, der venter på en beslutning, og tæller dem; **Playbook-kørsler** viser hver kørsel. På **Playbook-kørsler** og på en playbooks side er hver kørsel én linje, der siger, hvor langt den nåede, eller hvilket trin den stoppede ved; **Vis trin** åbner dens trin. En kørsel, der venter på godkendelse, åbner af sig selv.
 
 En kørsel, der holder op med at høre fra sin worker, f.eks. efter en genstart, bliver samlet op igen: en kørsel i kø sættes i kø igen efter 2 minutter, og en kørsel, der ikke har meldt noget i 30 minutter, markeres som mislykket.
 

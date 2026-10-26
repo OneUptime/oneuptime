@@ -165,6 +165,8 @@ describe("the area's imports", () => {
         "Plugins.ts",
         "RoleViewPage.tsx",
         "RolesPage.tsx",
+        // The Roles page's name as a link, for the cards' and dialogs' words.
+        "RolesPageLink.tsx",
         "TeamCustomRoleTable.tsx",
       ].sort(),
     );

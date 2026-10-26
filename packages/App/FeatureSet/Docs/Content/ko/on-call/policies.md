@@ -138,7 +138,7 @@ flowchart TB
 | **몇 분 후에?** | `acknowledgementTimeoutInMinutes` |
 | 보관됨 | `isArchived` |
 
-`repeatPolicyIfNoOneAcknowledges` 는 **알림 중지** 이면 `false`, **Level 1부터 다시 시작** 이면 `true` 입니다. `true` 이고 `repeatPolicyIfNoOneAcknowledgesNoOfTimes` 가 `0` 인 정책은 반복되지 않으며, 대시보드에는 **알림 중지** 로 표시됩니다.
+`repeatPolicyIfNoOneAcknowledges` 는 **알림 중지** 이면 `false`, **Level 1부터 다시 시작** 이면 `true` 입니다. `true` 이면 `repeatPolicyIfNoOneAcknowledgesNoOfTimes` 는 1 이상의 정수여야 하며, OneUptime은 `0` 을 거부합니다. 예전에 `0` 으로 저장된 정책은 반복되지 않으며, 대시보드에는 **알림 중지** 로 표시됩니다.
 
 `acknowledgementTimeoutInMinutes` 는 **다시 알리지 않음** 이면 `null`, **다시 알림** 이면 5~1440 사이의 정수 분입니다. 그 밖의 값은 OneUptime이 거부합니다.
 

@@ -9,6 +9,8 @@ Mit dem OneUptime MCP-Server kann ein KI-Assistent direkt mit Ihrem OneUptime-Pr
 - [Fehlerbehebung](#fehlerbehebung): Probleme mit Anmeldung, Berechtigungen und Verbindung.
 :::
 
+Diese Seite handelt von KI-Assistenten, die sich mit OneUptime verbinden. Damit stattdessen OneUptime AI die Werkzeuge anderer MCP-Server nutzt, etwa die von AWS oder GitHub, siehe [Externe MCP-Server](/docs/ai/external-mcp-servers).
+
 ## So funktioniert es
 
 Der MCP-Server ist Teil jeder OneUptime-Instanz, unter `/mcp` auf derselben Adresse wie das Dashboard, und spricht den Streamable-HTTP-Transport. Es gibt nichts zu installieren.

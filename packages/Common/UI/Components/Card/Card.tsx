@@ -1,11 +1,12 @@
 import Button, { ButtonSize, ButtonStyleType } from "../Button/Button";
 import ShortcutKey from "../ShortcutKey/ShortcutKey";
 import { CardGridCellContext, useIsCardGridCell } from "./CardGridCell";
-import { useIsCardSection } from "./CardSurface";
+import { useCardPlaceFromTitle, useIsCardSection } from "./CardSurface";
 import IconProp from "../../../Types/Icon/IconProp";
 import {
   PAGE_ANCHOR_SCROLL_MARGIN_TOP,
   PAGE_ANCHOR_SECTION_SCROLL_MARGIN_TOP,
+  getPageAnchorNameForTitle,
 } from "../../Utils/PageAnchor";
 import useTranslateValue from "../../Utils/Translation";
 import React, {
@@ -47,8 +48,9 @@ export interface CardButtonSchema {
  *
  * "default" is for a card as wide as the page's content: the title and the
  * description on the left, the actions beside them on the right, their top
- * level with the title's. Below md the description is hidden, and the title
- * and the actions share a line the way the stacked header's do.
+ * level with the title's. Below md the description is hidden - unless it is
+ * all the card says (CARD_DESCRIPTION_KEPT_ON_PHONES_CLASS_NAME) - and the
+ * title and the actions share a line the way the stacked header's do.
  *
  * "stacked" is for a narrow column (the one-third sidebar of an overview
  * page, or a card whose header holds a row of controls). Beside the actions
@@ -121,6 +123,13 @@ export interface ComponentProps {
    * name, unique on the page ("runner").
    */
   id?: string | undefined;
+  /*
+   * Its title in words, for a card whose title is drawn as more than words
+   * (a table's, with its plan's badge beside it): what its place in a
+   * page's More settings is named after when its page gives it no `id`.
+   * The title as written, in English, as `title` is.
+   */
+  titleText?: string | undefined;
 }
 
 /*
@@ -362,13 +371,37 @@ export const cardHeaderActionsAreUnderTitle: (
  * description) puts it 6px under the title; the stacked and toolbar headers
  * with actions beside the title put it 9px under it - the controls'
  * overhang and the clearance - out of their way (see
- * CARD_HEADER_TITLE_LINE_CLASS_NAMES). Hidden on a phone.
+ * CARD_HEADER_TITLE_LINE_CLASS_NAMES). Hidden on a phone, where the card's
+ * body - its table, its fields, its form - says what the card holds.
  */
 export const CARD_DESCRIPTION_CLASS_NAME: string =
   "mt-1.5 text-sm text-gray-500 w-full max-md:hidden md:block leading-relaxed";
 
 export const CARD_DESCRIPTION_UNDER_ACTIONS_CLASS_NAME: string =
   "mt-[9px] text-sm text-gray-500 w-full max-md:hidden md:block leading-relaxed";
+
+/*
+ * The description of a card that has no body: a Delete page's "Permanently
+ * delete Production. This action cannot be undone.", Duplicate's and a
+ * key's Reset - a title, a sentence and a button. There the description is
+ * everything the card says, and a phone showed only a title and a red
+ * button, so it is drawn at every width.
+ */
+export const CARD_DESCRIPTION_KEPT_ON_PHONES_CLASS_NAME: string =
+  "mt-1.5 text-sm text-gray-500 w-full block leading-relaxed";
+
+export const CARD_DESCRIPTION_UNDER_ACTIONS_KEPT_ON_PHONES_CLASS_NAME: string =
+  "mt-[9px] text-sm text-gray-500 w-full block leading-relaxed";
+
+/*
+ * Whether a card's description is all it says: it has no body, or one that
+ * draws nothing (no children, or only empty ones).
+ */
+export const isCardDescriptionAllItSays: (
+  children: ComponentProps["children"],
+) => boolean = (children: ComponentProps["children"]): boolean => {
+  return React.Children.toArray(children).length === 0;
+};
 
 /*
  * A card's frame on a page: a white box with a border, rounded corners and a
@@ -420,6 +453,17 @@ const Card: FunctionComponent<ComponentProps> = (
   const { translateValue } = useTranslateValue();
   const isSection: boolean = useIsCardSection();
   const isGridCell: boolean = useIsCardGridCell();
+  /*
+   * Its place on the page: the id its page gives it - or, in a page's More
+   * settings, one after its title (CardPlaceFromTitleContext), so a link
+   * can land on any card there.
+   */
+  const isPlacedFromTitle: boolean = useCardPlaceFromTitle();
+  const placeId: string | undefined =
+    props.id ||
+    (isPlacedFromTitle && isSection
+      ? getPageAnchorNameForTitle(props.titleText || props.title) || undefined
+      : undefined);
   const hasButtons: boolean = Boolean(
     props.buttons && props.buttons.length > 0,
   );
@@ -431,6 +475,19 @@ const Card: FunctionComponent<ComponentProps> = (
   );
   const translatedDescription: string | ReactElement | undefined =
     translateValue(props.description);
+
+  /*
+   * A card with no body - a Delete page's, Duplicate's, a key's Reset: a
+   * title, a sentence and a button - keeps its description on a phone,
+   * where every other card hides it: it is all the card says, and a phone
+   * showed only a title and a red button. In the default header it stays in
+   * the title's block, so the card reads in order - what it is, what it
+   * does, then its button, which a phone puts on the next line at the right
+   * edge (the one exception to rule 4 of CardHeaderActionsGuard).
+   */
+  const isDescriptionKeptOnPhones: boolean =
+    Boolean(translatedDescription) &&
+    isCardDescriptionAllItSays(props.children);
 
   const renderButtons: () => Array<ReactElement> = (): Array<ReactElement> => {
     return (props.buttons || []).map(
@@ -572,18 +629,20 @@ const Card: FunctionComponent<ComponentProps> = (
    * In the stacked and toolbar headers the description follows the line the
    * title shares with the actions; there it keeps clear of the controls'
    * foot. Over actions on a line of their own, and in the default header, it
-   * is in the title's block, 6px under the title.
+   * is in the title's block, 6px under the title. A card with no body keeps
+   * it on a phone: it is all the card says (isDescriptionKeptOnPhones).
    */
+  const descriptionClassName: string = centresActionsOnTitle
+    ? isDescriptionKeptOnPhones
+      ? CARD_DESCRIPTION_UNDER_ACTIONS_KEPT_ON_PHONES_CLASS_NAME
+      : CARD_DESCRIPTION_UNDER_ACTIONS_CLASS_NAME
+    : isDescriptionKeptOnPhones
+      ? CARD_DESCRIPTION_KEPT_ON_PHONES_CLASS_NAME
+      : CARD_DESCRIPTION_CLASS_NAME;
+
   const descriptionElement: ReactElement | false | "" | undefined =
     translatedDescription && (
-      <p
-        data-testid="card-description"
-        className={
-          centresActionsOnTitle
-            ? CARD_DESCRIPTION_UNDER_ACTIONS_CLASS_NAME
-            : CARD_DESCRIPTION_CLASS_NAME
-        }
-      >
+      <p data-testid="card-description" className={descriptionClassName}>
         {translatedDescription}
       </p>
     );
@@ -746,8 +805,8 @@ const Card: FunctionComponent<ComponentProps> = (
   if (isSection) {
     return (
       <div
-        id={props.id}
-        style={getCardAnchorStyle(props.id, true)}
+        id={placeId}
+        style={getCardAnchorStyle(placeId, true)}
         data-testid="card"
         data-card-surface="section"
         className={`${CARD_SECTION_CLASS_NAME} ${props.className || ""}`}

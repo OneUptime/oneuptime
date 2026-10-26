@@ -79,6 +79,7 @@ Tilkoblingen leser Falcons varsler: det Falcon-konsollen viser under **Endpoint 
 | `status`, for eksempel `new`, `in_progress` eller `closed` | Status |
 | `tactic_id`, `technique_id` | MITRE ATT&CK-taktikker og -teknikker |
 | `device.hostname`, `device.local_ip`, `user_name`, `filename` eller `cmdline` | Aktørens vert, IP, bruker og prosess |
+| `filename`, `filepath` og `cmdline`; `parent_details.filename`, `parent_details.filepath` og `parent_details.cmdline` | Prosessens navn, bane og kommandolinje; navn, bane og kommandolinje for den overordnede prosessen |
 | `device.hostname`, `device.local_ip`, `device.external_ip`, `user_name`, `sha256` | Observables |
 | Alt annet, for eksempel `device.platform_name`, `falcon_host_link`, `product` og `timestamp` | `attributes`, flatet ut til nøkler med punktum |
 

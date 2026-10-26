@@ -74,6 +74,7 @@ OneUptime 每分钟轮询一次已过轮询间隔的每个已启用连接。一�
 | `kibana.alert.workflow_status`：`open`、`acknowledged` 或 `closed` | 状态 |
 | `kibana.alert.rule.threat`，包括子技术 | MITRE ATT&CK 战术和技术 |
 | `user.name`、`host.name`、`source.ip` 或 `host.ip`、`process.name` 或 `process.executable` | 主体的用户、主机、IP 和进程 |
+| `process.name`、`process.executable` 和 `process.command_line`；`process.parent.name`、`process.parent.executable` 和 `process.parent.command_line` | 进程名称、路径和命令行；父进程名称、路径和命令行 |
 | `user.target.name`、`destination.domain`、`destination.ip`、`destination.port`、`file.path` | 目标的用户、主机、IP、端口和资源 |
 | 以上这些，以及 `related.*`、`dns.question.name`、`url.domain` 和文件哈希 | Observable |
 | 整个警报，展平为点分隔的键，并带有 `_index` 和 `_id` | `attributes` |

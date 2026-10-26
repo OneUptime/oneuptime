@@ -5,7 +5,7 @@ Un **agente di runbook**, chiamato **Runner** nella dashboard, è un piccolo pro
 :::cards
 - [Installare un Runner](#installare-un-runner): Dalla dashboard a un container connesso, in cinque passaggi.
 - [Indirizzare un passaggio a un Runner](#indirizzare-un-passaggio-a-un-runner): Collegare un passaggio al Runner che deve eseguirlo.
-- [Il Runner predefinito del progetto](#il-runner-predefinito-del-progetto): Il Runner su cui viene eseguito un passaggio che non ne sceglie nessuno.
+- [Il Runner predefinito del progetto](#il-runner-predefinito-del-progetto): Il Runner su cui viene eseguito un passaggio o un repository di codice che non ne sceglie nessuno.
 - [Runner globali](#runner-globali): I Runner che OneUptime esegue per ogni progetto, e cosa eseguono.
 - [Timeout](#timeout): I timeout di presa in carico e di esecuzione, e come interagiscono.
 - [Variabili d'ambiente](#variabili-dambiente): Cosa legge il container all'avvio.
@@ -70,7 +70,7 @@ Un Runner globale esegue i passaggi di molti progetti, quindi ogni passaggio è 
 - Riceve una variabile segreta solo quando il suo interruttore **I Runner globali possono usarlo** è attivo, e solo per un passaggio del progetto della variabile.
 - Un progetto esegue al massimo tre passaggi alla volta sui Runner globali, così nessun progetto li tiene per sé.
 
-Scegli uno dei tuoi Runner per un passaggio che deve raggiungere la tua rete, o per tenere il passaggio su host che controlli. Per tenere ogni passaggio sui tuoi Runner, disattiva **Usa i Runner globali** in fondo a **Runbook → Agenti di runbook**. Un passaggio JavaScript che non sceglie alcun Runner viene allora eseguito sul Runner predefinito del progetto oppure, se non ce n'è uno, fallisce, dicendolo, finché non sceglie uno dei tuoi; un passaggio che sceglie uno dei tuoi Runner lo mantiene in ogni caso. Un repository di codice che non sceglie alcun Runner nelle sue impostazioni in Codice lavora anch'esso su un Runner globale, e ha bisogno di uno dei tuoi finché l'interruttore è disattivato; vedi [Codice](/docs/ai/ai-agent#scegli-il-runner-del-repository).
+Scegli uno dei tuoi Runner per un passaggio che deve raggiungere la tua rete, o per tenere il passaggio su host che controlli. Per tenere ogni passaggio sui tuoi Runner, disattiva **Usa i Runner globali** in fondo a **Runbook → Agenti di runbook**. Un passaggio JavaScript che non sceglie alcun Runner viene allora eseguito sul Runner predefinito del progetto oppure, se non ce n'è uno, fallisce, dicendolo, finché non sceglie uno dei tuoi; un passaggio che sceglie uno dei tuoi Runner lo mantiene in ogni caso. Un repository di codice che non sceglie alcun Runner nelle sue impostazioni in Codice lavora anch'esso sul Runner predefinito del progetto oppure, se non ce n'è uno, su un Runner globale, e ha bisogno di uno dei tuoi finché l'interruttore è disattivato; vedi [Codice](/docs/ai/ai-agent#scegli-il-runner-del-repository).
 
 ### Da dove vengono i Runner globali
 
@@ -156,7 +156,7 @@ Ti serve più di un Runner? Creali, poi indirizza ogni passaggio a quello adatto
 
 ## Il Runner predefinito del progetto
 
-Un progetto può rendere uno dei propri Runner il suo predefinito, come rende predefinita una configurazione Twilio. Ogni passaggio di runbook che non sceglie alcun Runner viene allora eseguito su di esso: i passaggi Bash, SSH e kubectl, e i passaggi JavaScript, che altrimenti verrebbero eseguiti su un Runner globale.
+Un progetto può rendere uno dei propri Runner il suo predefinito, come rende predefinita una configurazione Twilio. Ogni passaggio di runbook che non sceglie alcun Runner viene allora eseguito su di esso: i passaggi Bash, SSH e kubectl, e i passaggi JavaScript, che altrimenti verrebbero eseguiti su un Runner globale. Lo stesso vale per l'IA in ogni repository di codice che non sceglie alcun Runner nelle sue impostazioni in Codice.
 
 Per rendere un Runner il predefinito, vai su **Runbook → Agenti di runbook**, apri il menu **⋯** nella riga del Runner, fai clic su **Imposta come predefinito del progetto** e conferma con **Rendi predefinito del progetto**. Oppure apri il Runner e, nella sua scheda **Impostazione predefinita del progetto**, attiva **Usa come predefinito del progetto**. L'elenco contrassegna il predefinito con **Predefinito del progetto**, accanto al suo nome, e così fa il menu a discesa **Runner** di un passaggio, sulla sua prima scelta. Un progetto ha un solo Runner predefinito: rendere predefinito un altro Runner lo sostituisce. **Non usare più come predefinito del progetto**, nello stesso menu, o l'interruttore nella pagina del Runner, smette di usarlo.
 
@@ -172,7 +172,7 @@ Un passaggio che ha scelto un Runner lo mantiene, qualunque sia il predefinito, 
 
 Il predefinito è uno dei Runner propri del progetto che esegue i passaggi di runbook: non un Runner globale, non il Runner nel cluster installato dall'agente Kubernetes, e non uno con **Esegue i runbook** disattivato. Finché un Runner è il predefinito, il suo **Esegue i runbook** resta attivo. Quando il predefinito non è connesso, il menu a discesa di un passaggio lo dice, e un passaggio su di esso lo attende, come per qualsiasi Runner, finché non scade il suo claim timeout.
 
-Solo i passaggi di runbook usano il predefinito. Un repository di codice sceglie il suo Runner nelle sue impostazioni in Codice, e una regola IA sceglie il proprio.
+I passaggi di runbook e i repository di codice che non scelgono alcun Runner usano il predefinito, e lo seguono quando un altro Runner diventa il predefinito. Una regola IA sceglie il proprio Runner, e una regola nuova parte sul predefinito.
 
 ## Note operative
 

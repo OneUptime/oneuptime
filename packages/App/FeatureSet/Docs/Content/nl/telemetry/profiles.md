@@ -351,7 +351,7 @@ Onder **Meer velden** kiest een regel de coderepositories, de MCP-servers en de 
 ### Zien wat het deed
 
 - **Producten → Prestatieprofielen → AI → Inzichten** toont de gevonden trage code, elke bevinding met haar bewijs en **Openen in Profiler**.
-- **Producten → Prestatieprofielen → AI → Logboeken** toont elk onderzoek en elke pull request, nieuwste eerst, met hoe elk ervoor staat.
+- **Producten → Prestatieprofielen → AI → Logboeken** toont elk onderzoek en elke pull request, nieuwste eerst, met hoe elk ervoor staat en wat elk onderzoek vond.
 - In Code zegt de taak dat OneUptime haar startte, met een link naar haar bevinding, en de pull request zegt waarom hij werd geopend.
 
 ## Gegevensbewaring

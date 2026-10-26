@@ -160,7 +160,10 @@ export const CreateIncidentTool: ObservabilityTool = {
     incident.description = FeedMarkdown.aiWritten(description).toString();
     incident.incidentSeverityId = severity.id!;
     incident.createdByUserId = userId;
-    incident.rootCause = "Incident created via the OneUptime AI copilot.";
+    /*
+     * No root cause until somebody knows one: the incident names the person
+     * whose copilot opened it as its creator (WhoOpenedItRootCause).
+     */
 
     // Created under the user's props so the model-layer RBAC applies too.
     const created: Incident = await IncidentService.create({

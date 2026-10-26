@@ -78,6 +78,7 @@ OneUptime 每分钟轮询一次已过轮询间隔的每个已启用连接。一�
 | `status_label`，否则 `status_description`，否则 `status` 中保存的审查状态的名称 | 状态 |
 | `annotations.mitre_attack`，以及 `mitre_technique_id` 和 `mitre_tactic` 等字段 | MITRE ATT&CK 战术和技术 |
 | `user` 或 `src_user`；`src`、`src_ip` 或 `src_host`；`process`、`process_name` 或 `parent_process` | 主体的用户、IP、主机和进程 |
+| `process_name` 或 `process_exec`、`process_path` 和 `process`；`parent_process_name` 或 `parent_process_exec`、`parent_process_path` 和 `parent_process` | 进程名称、路径和命令行；父进程名称、路径和命令行 |
 | `dest_user`；`dest`、`dest_ip` 或 `dest_host`；`dest_port` | 目标的用户、IP、主机和端口 |
 | `file_path`、`url` 或 `risk_object` | 目标资源 |
 | 每个用户、主机和 IP，以及 `dvc`、`host`、`file_hash`、`file_name`、`url`、`domain`、`query` 和 `risk_object` | Observable |

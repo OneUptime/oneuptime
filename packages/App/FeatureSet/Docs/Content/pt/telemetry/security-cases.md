@@ -88,7 +88,7 @@ Um caso tem um menu lateral próprio, como um incidente, e cada parte do caso é
 | Seção do menu lateral | Páginas |
 | --- | --- |
 | **Visão geral** | **Visão geral**, **Linha do tempo** |
-| **Investigação** | **Detecções**, **Entidades**, **Sinais conectados**, **Execuções de playbooks** |
+| **Investigação** | **Detecções**, **Entidades**, **Sinais conectados**, **Playbooks** |
 | **Notas** | **Notas privadas** |
 | **Avançado** | **Registros de auditoria**, **Excluir caso**, recolhidos até você clicar em **Avançado** |
 
@@ -101,7 +101,7 @@ Cada página mantém no topo o cabeçalho do caso: número, prioridade, status e
 - **Detecções**: o que disparou para abrir o caso ou entrar nele, com que frequência, e o último evento correspondente.
 - **Entidades**: os usuários, hosts e endereços de que o caso trata, com a atividade deles em todos os seus eventos de segurança dos últimos 7 dias. Cada um abre em **Correlacionar**.
 - **Sinais conectados**: os hosts, clusters, serviços e membros que o caso nomeia, como o OneUptime os conhece, e o que acontecia em cada um em torno das detecções dele: os seus registros, traços e métricas, o que está aberto neles e o que mudou. Veja [Sinais conectados](/docs/telemetry/security-connected-signals).
-- **Execuções de playbooks**: o que cada playbook fez no caso, etapa por etapa, e as etapas aguardando aprovação. Enquanto houver execuções aguardando, o menu mostra quantas ao lado de **Execuções de playbooks**.
+- **Playbooks**: o que cada playbook fez no caso, etapa por etapa, e as etapas aguardando aprovação. Enquanto houver execuções aguardando, o menu mostra quantas ao lado de **Playbooks**.
 - **Notas privadas**: o que a equipe escreveu sobre o caso.
 - **Registros de auditoria**: cada alteração feita no caso, e quem a fez. Veja [Registros de auditoria](/docs/configuration/audit-logs).
 - **Excluir caso**: exclui o caso para sempre, com as detecções, notas, linha do tempo e execuções de playbooks dele. Para manter o registro, feche-o com um veredito.
@@ -300,7 +300,7 @@ Um e-mail ou uma publicação sem mensagem própria envia um resumo do caso.
 
 ### Execuções e aprovações
 
-Cada execução aparece no caso dela e em **Produtos → Security Events → Playbooks → Execuções de playbooks**, etapa por etapa:
+Cada execução aparece no caso dela e em **Produtos → Security Events → Playbooks → Execuções**, etapa por etapa:
 
 | Status da execução | Significado |
 | --- | --- |
@@ -311,7 +311,7 @@ Cada execução aparece no caso dela e em **Produtos → Security Events → Pla
 | Falhou | Uma etapa falhou e a execução parou |
 | Cancelado | Alguém a cancelou, ou rejeitou uma etapa |
 
-Uma etapa aguardando aprovação mostra **Aprovar** e **Rejeitar** na execução, com um comentário opcional. Aprovar faz a execução seguir a partir dessa etapa; rejeitar a encerra. A decisão, quem a tomou e o comentário que deixou ficam guardados na etapa, na linha do tempo do caso e no registro de auditoria do projeto. **Aguardando aprovação**, em **Playbooks** no menu, lista as execuções que aguardam uma decisão e as conta; **Execuções de playbooks** lista todas as execuções. Em **Execuções de playbooks** e na página de um playbook, cada execução é uma linha que diz até onde chegou, ou a etapa em que parou; **Mostrar etapas** abre as etapas dela. Uma execução aguardando aprovação se abre sozinha.
+Uma etapa aguardando aprovação mostra **Aprovar** e **Rejeitar** na execução, com um comentário opcional. Aprovar faz a execução seguir a partir dessa etapa; rejeitar a encerra. A decisão, quem a tomou e o comentário que deixou ficam guardados na etapa, na linha do tempo do caso e no registro de auditoria do projeto. A página **Aprovações**, em **Playbooks** no menu, lista as execuções que aguardam uma decisão e as conta; **Execuções** lista todas as execuções. Em **Execuções** e na página de um playbook, cada execução é uma linha que diz até onde chegou, ou a etapa em que parou; **Mostrar etapas** abre as etapas dela. Uma execução aguardando aprovação se abre sozinha.
 
 Uma execução que deixa de receber sinais do worker dela, depois de uma reinicialização, por exemplo, é retomada: uma execução na fila volta para a fila depois de 2 minutos, e uma execução que não dá sinal por 30 minutos é marcada como falha.
 

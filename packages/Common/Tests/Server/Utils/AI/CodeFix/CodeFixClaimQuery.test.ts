@@ -1,6 +1,7 @@
 import CodeFixClaimQuery, {
   CodeFixClaimCondition,
   CodeFixClaimStatement,
+  KUBERNETES_AGENT_RUNNER_NAME_PATTERN,
 } from "../../../../../Server/Utils/AI/CodeFix/CodeFixClaimQuery";
 import AIRunStatus from "../../../../../Types/AI/AIRunStatus";
 import AIRunType from "../../../../../Types/AI/AIRunType";
@@ -22,6 +23,14 @@ const AGENT_ID: ObjectID = new ObjectID("0a1b2c3d-2222-4222-8333-944455556666");
 const PROJECT_ID: ObjectID = new ObjectID(
   "0a1b2c3d-4444-4222-8333-944455556666",
 );
+
+// A repository that follows its project's default Runner, in the SQL.
+const FOLLOWS_PROJECT_DEFAULT: string = `"repository"."_id" IS NOT NULL AND "repository"."runnerId" IS NULL AND "repository"."isGlobalRunnerPicked" IS NOT TRUE`;
+
+// The project's default Runner, by the rule a default must meet.
+function projectDefaultIs(namePattern: string): string {
+  return `"defaultRunner"."isProjectDefault" = true AND "defaultRunner"."deletedAt" IS NULL AND "defaultRunner"."isGlobalRunner" IS NOT TRUE AND "defaultRunner"."canRunRunbooks" IS NOT FALSE AND COALESCE(lower(btrim("defaultRunner"."name")), '') NOT LIKE ${namePattern}`;
+}
 
 const TASK_TYPES: Array<CodeFixTaskType> = [
   CodeFixTaskType.FixException,
@@ -100,12 +109,34 @@ describe("CodeFixClaimQuery.getCondition", () => {
 
     expect(condition.condition).toContain(`"run"."projectId" = $4::uuid`);
     expect(condition.condition).toContain(
-      `("repository"."runnerId" = $5::uuid OR "repository"."_id" IS NULL)`,
+      `("repository"."runnerId" = $5::uuid OR "repository"."_id" IS NULL OR (`,
     );
     expect(condition.parameters[3]).toBe(PROJECT_ID.toString());
     expect(condition.parameters[4]).toBe(RUNNER_ID.toString());
-    // Never a repository that picks none: those go to a global Runner.
-    expect(condition.condition).not.toContain(`"runnerId" IS NULL`);
+  });
+
+  /*
+   * A repository that picks no Runner follows the project's default Runner
+   * (Types/Runner/CodeRepositoryRunner): the default takes its runs - read
+   * as the default is now, so making another Runner the default moves them
+   * - and no other Runner of the project does.
+   */
+  test("a project's Runner takes the runs of the repositories that follow it while it is the project's default Runner", () => {
+    const condition: CodeFixClaimCondition = conditionFor(
+      CodeWorkerKind.ProjectRunner,
+      PROJECT_ID,
+    );
+
+    expect(condition.condition).toContain(
+      `("repository"."runnerId" = $5::uuid OR "repository"."_id" IS NULL OR (${FOLLOWS_PROJECT_DEFAULT} AND EXISTS (SELECT 1 FROM "Runner" AS "defaultRunner" WHERE "defaultRunner"."_id" = $5::uuid AND "defaultRunner"."projectId" = "run"."projectId" AND ${projectDefaultIs("$6")})))`,
+    );
+    expect(condition.parameters[5]).toBe(KUBERNETES_AGENT_RUNNER_NAME_PATTERN);
+    expect(KUBERNETES_AGENT_RUNNER_NAME_PATTERN).toBe("kubernetes-agent/%");
+    expect(condition.parameters).toHaveLength(6);
+    // A repository that picked the Global Runner is never one of them.
+    expect(condition.condition).toContain(
+      `"repository"."isGlobalRunnerPicked" IS NOT TRUE`,
+    );
   });
 
   test("an AI agent of the project's own takes its project's runs of repositories that pick no Runner", () => {
@@ -131,7 +162,28 @@ describe("CodeFixClaimQuery.getCondition", () => {
     expect(condition.condition).toContain(
       `EXISTS (SELECT 1 FROM "Project" AS "project" WHERE "project"."_id" = "run"."projectId" AND "project"."useGlobalRunners" = true AND "project"."deletedAt" IS NULL)`,
     );
-    expect(condition.parameters).toHaveLength(3);
+    expect(condition.parameters).toHaveLength(4);
+  });
+
+  test("a global Runner never takes a run of a repository that follows a default Runner its project has", () => {
+    const condition: CodeFixClaimCondition = conditionFor(
+      CodeWorkerKind.GlobalRunner,
+    );
+
+    expect(condition.condition).toContain(
+      `NOT (${FOLLOWS_PROJECT_DEFAULT} AND EXISTS (SELECT 1 FROM "Runner" AS "defaultRunner" WHERE "defaultRunner"."projectId" = "run"."projectId" AND ${projectDefaultIs("$4")}))`,
+    );
+    expect(condition.parameters[3]).toBe(KUBERNETES_AGENT_RUNNER_NAME_PATTERN);
+  });
+
+  test("a legacy AI agent of the project's own is not held to the default: it serves every repository that picks no Runner", () => {
+    const condition: CodeFixClaimCondition = conditionFor(
+      CodeWorkerKind.ProjectAgent,
+      PROJECT_ID,
+    );
+
+    expect(condition.condition).not.toContain(`"defaultRunner"`);
+    expect(condition.condition).not.toContain(`"isGlobalRunnerPicked"`);
   });
 
   test("a project's Runner or agent with no project takes nothing", () => {

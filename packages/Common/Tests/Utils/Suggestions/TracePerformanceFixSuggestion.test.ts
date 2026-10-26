@@ -3,7 +3,10 @@ import {
   PerformanceFinding,
   PerformanceFindingType,
 } from "../../../Types/AI/CodeFixTaskContext";
+import { CodeTaskBlockerType } from "../../../Types/AI/CodeTask";
 import { JSONObject } from "../../../Types/JSON";
+import { FinishedFixOutcome } from "../../../Utils/Suggestions/CodeFixSuggestion";
+import { SuggestionBlocker } from "../../../Utils/Suggestions/SuggestionBlocker";
 import SuggestionOffer from "../../../Utils/Suggestions/SuggestionOffer";
 import {
   NO_TRACE_PERFORMANCE_FIX_SUGGESTION,
@@ -44,9 +47,23 @@ import {
  * time. These tests run the real analysis on realistic span trees (a slow
  * checkout with an N+1, a fast request with the same loop, a health check,
  * a slow request with no pattern, ...) and hold the rule, its thresholds,
- * the offer that follows from AI, a repository and a fix in flight, and the
- * wire format the trace page reads.
+ * the offer that follows from AI, a repository, a fix in flight or done,
+ * and what Code's gate says, and the wire format the trace page reads.
  */
+
+// What Code's gate says when the project's AI credits are used up.
+const NO_CREDITS: SuggestionBlocker = {
+  type: CodeTaskBlockerType.NoAiCredits,
+  message: "This project's AI credits are used up.",
+};
+
+// The Runner the repository picks is not online, by name.
+const RUNNER_OFFLINE: SuggestionBlocker = {
+  type: CodeTaskBlockerType.RunnerNotOnline,
+  message: 'The Runner "build-box" this repository picks is not online.',
+  runnerName: "build-box",
+  repositoryId: "50000000-0000-4000-8000-000000000005",
+};
 
 function analyze(trace: TraceFixture): Array<PerformanceFinding> {
   return SpanTreeAnalyzer.analyzeTrace(trace.spans);
@@ -341,9 +358,144 @@ describe("what the trace page offers", () => {
         findings: slowFindings,
         isAiEnabled: false,
         hasActiveFix: true,
+        finishedFix: FinishedFixOutcome.Fixed,
         hasConnectedRepository: true,
+        blocker: NO_CREDITS,
       }),
-    ).toEqual({ offer: SuggestionOffer.None, finding: null, findingCount: 0 });
+    ).toEqual({
+      offer: SuggestionOffer.None,
+      finding: null,
+      findingCount: 0,
+      fixOutcome: null,
+      blocker: null,
+    });
+  });
+
+  test.each([
+    FinishedFixOutcome.Fixed,
+    FinishedFixOutcome.NothingToChange,
+    FinishedFixOutcome.WaitingForYou,
+  ])(
+    "a fix that already did its work (%s): how it came out, not a second fix",
+    (outcome: FinishedFixOutcome) => {
+      const offer: TracePerformanceFixOffer = getTracePerformanceFixOffer({
+        findings: slowFindings,
+        isAiEnabled: true,
+        hasActiveFix: false,
+        finishedFix: outcome,
+        hasConnectedRepository: true,
+      });
+
+      expect(offer.offer).toBe(SuggestionOffer.Done);
+      expect(offer.fixOutcome).toBe(outcome);
+      // The finding is still named: it is what the fix was about.
+      expect(offer.finding?.spanCount).toBe(14);
+      expect(offer.blocker).toBeNull();
+    },
+  );
+
+  test("a fix in flight comes before one that is done: a reply under way is work in progress", () => {
+    const offer: TracePerformanceFixOffer = getTracePerformanceFixOffer({
+      findings: slowFindings,
+      isAiEnabled: true,
+      hasActiveFix: true,
+      finishedFix: FinishedFixOutcome.Fixed,
+      hasConnectedRepository: true,
+    });
+
+    expect(offer.offer).toBe(SuggestionOffer.InProgress);
+    expect(offer.fixOutcome).toBeNull();
+  });
+
+  test("a finished fix is said even when the repository is gone or Code's gate says something now", () => {
+    expect(
+      getTracePerformanceFixOffer({
+        findings: slowFindings,
+        isAiEnabled: true,
+        hasActiveFix: false,
+        finishedFix: FinishedFixOutcome.NothingToChange,
+        hasConnectedRepository: false,
+        blocker: NO_CREDITS,
+      }),
+    ).toMatchObject({
+      offer: SuggestionOffer.Done,
+      fixOutcome: FinishedFixOutcome.NothingToChange,
+      blocker: null,
+    });
+  });
+
+  test("a finished fix on a trace that is not worth fixing is nothing: the rule comes first", () => {
+    expect(
+      getTracePerformanceFixOffer({
+        findings: analyze(HEALTH_CHECK),
+        isAiEnabled: true,
+        hasActiveFix: false,
+        finishedFix: FinishedFixOutcome.Fixed,
+        hasConnectedRepository: true,
+      }).offer,
+    ).toBe(SuggestionOffer.None);
+  });
+
+  test.each([
+    ["the AI credits are used up", NO_CREDITS],
+    ["the repository's Runner is not online", RUNNER_OFFLINE],
+  ])(
+    "Code's gate says %s: the step that clears it, in Code's words, and no button",
+    (_label: string, blocker: SuggestionBlocker) => {
+      const offer: TracePerformanceFixOffer = getTracePerformanceFixOffer({
+        findings: slowFindings,
+        isAiEnabled: true,
+        hasActiveFix: false,
+        hasConnectedRepository: true,
+        blocker,
+      });
+
+      expect(offer.offer).toBe(SuggestionOffer.SetUp);
+      expect(offer.blocker).toEqual(blocker);
+      expect(offer.finding?.spanCount).toBe(14);
+    },
+  );
+
+  test("no repository and a blocker: the repository first - Code's gate needs one to ask about", () => {
+    const offer: TracePerformanceFixOffer = getTracePerformanceFixOffer({
+      findings: slowFindings,
+      isAiEnabled: true,
+      hasActiveFix: false,
+      hasConnectedRepository: false,
+      blocker: NO_CREDITS,
+    });
+
+    expect(offer.offer).toBe(SuggestionOffer.SetUp);
+    expect(offer.blocker).toBeNull();
+  });
+
+  test("a fix in flight is linked whatever Code's gate says now", () => {
+    expect(
+      getTracePerformanceFixOffer({
+        findings: slowFindings,
+        isAiEnabled: true,
+        hasActiveFix: true,
+        hasConnectedRepository: true,
+        blocker: RUNNER_OFFLINE,
+      }),
+    ).toMatchObject({ offer: SuggestionOffer.InProgress, blocker: null });
+  });
+
+  test("the fix itself carries neither an outcome nor a blocker", () => {
+    expect(
+      getTracePerformanceFixOffer({
+        findings: slowFindings,
+        isAiEnabled: true,
+        hasActiveFix: false,
+        finishedFix: null,
+        hasConnectedRepository: true,
+        blocker: null,
+      }),
+    ).toMatchObject({
+      offer: SuggestionOffer.Act,
+      fixOutcome: null,
+      blocker: null,
+    });
   });
 
   test.each(
@@ -366,6 +518,8 @@ describe("what the trace page offers", () => {
         offer: SuggestionOffer.None,
         finding: null,
         findingCount: 0,
+        fixOutcome: null,
+        blocker: null,
       });
     },
   );
@@ -446,6 +600,8 @@ describe("the wire format the trace page reads", () => {
     offer: SuggestionOffer.Act,
     finding: finding(),
     findingCount: 2,
+    fixOutcome: null,
+    blocker: null,
     aiRunId: null,
   };
 
@@ -472,6 +628,81 @@ describe("the wire format the trace page reads", () => {
   });
 
   test.each([
+    FinishedFixOutcome.Fixed,
+    FinishedFixOutcome.NothingToChange,
+    FinishedFixOutcome.WaitingForYou,
+  ])(
+    "a done offer carries its run and how it came out (%s), through JSON",
+    (outcome: FinishedFixOutcome) => {
+      const done: TracePerformanceFixSuggestion = {
+        ...suggestion,
+        offer: SuggestionOffer.Done,
+        fixOutcome: outcome,
+        aiRunId: "70000000-0000-4000-8000-000000000010",
+      };
+
+      expect(
+        parseTracePerformanceFixSuggestion(
+          JSON.parse(
+            JSON.stringify(tracePerformanceFixSuggestionToJSON(done)),
+          ) as JSONObject,
+        ),
+      ).toEqual(done);
+    },
+  );
+
+  test.each([
+    ["the AI credits are used up", NO_CREDITS],
+    ["a named Runner of one repository is not online", RUNNER_OFFLINE],
+  ])(
+    "a set-up step carries Code's blocker (%s), through JSON",
+    (_label: string, blocker: SuggestionBlocker) => {
+      const setUp: TracePerformanceFixSuggestion = {
+        ...suggestion,
+        offer: SuggestionOffer.SetUp,
+        blocker,
+      };
+
+      expect(
+        parseTracePerformanceFixSuggestion(
+          JSON.parse(
+            JSON.stringify(tracePerformanceFixSuggestionToJSON(setUp)),
+          ) as JSONObject,
+        ),
+      ).toEqual(setUp);
+    },
+  );
+
+  test("a set-up step with no blocker is a repository to connect, as servers before blockers answered", () => {
+    const parsed: TracePerformanceFixSuggestion =
+      parseTracePerformanceFixSuggestion({
+        offer: "SetUp",
+        finding: finding(),
+        findingCount: 1,
+        aiRunId: null,
+      });
+
+    expect(parsed.offer).toBe(SuggestionOffer.SetUp);
+    expect(parsed.blocker).toBeNull();
+  });
+
+  test("an outcome or a blocker on an offer that does not carry one is dropped", () => {
+    const parsed: TracePerformanceFixSuggestion =
+      parseTracePerformanceFixSuggestion({
+        offer: "Act",
+        finding: finding(),
+        findingCount: 1,
+        fixOutcome: FinishedFixOutcome.Fixed,
+        blocker: { type: CodeTaskBlockerType.NoAiCredits, message: "Out." },
+        aiRunId: null,
+      });
+
+    expect(parsed.offer).toBe(SuggestionOffer.Act);
+    expect(parsed.fixOutcome).toBeNull();
+    expect(parsed.blocker).toBeNull();
+  });
+
+  test.each([
     ["nothing", undefined],
     ["null", null],
     ["a list", []],
@@ -495,6 +726,47 @@ describe("the wire format the trace page reads", () => {
     [
       "in progress with no run",
       { offer: "InProgress", finding: finding(), aiRunId: "" },
+    ],
+    [
+      "done with no run",
+      { offer: "Done", finding: finding(), fixOutcome: "Fixed" },
+    ],
+    [
+      "done that does not say how it came out",
+      {
+        offer: "Done",
+        finding: finding(),
+        aiRunId: "70000000-0000-4000-8000-000000000010",
+      },
+    ],
+    [
+      "done with an outcome this build does not know",
+      {
+        offer: "Done",
+        finding: finding(),
+        fixOutcome: "Merged",
+        aiRunId: "70000000-0000-4000-8000-000000000010",
+      },
+    ],
+    [
+      "a set-up step whose blocker is of a kind this build does not know",
+      {
+        offer: "SetUp",
+        finding: finding(),
+        blocker: { type: "MoonPhase", message: "Not tonight." },
+      },
+    ],
+    [
+      "a set-up step whose blocker says nothing",
+      {
+        offer: "SetUp",
+        finding: finding(),
+        blocker: { type: CodeTaskBlockerType.NoAiCredits, message: "  " },
+      },
+    ],
+    [
+      "a set-up step whose blocker is not an object",
+      { offer: "SetUp", finding: finding(), blocker: "NoAiCredits" },
     ],
   ])("%s reads as no suggestion", (_label: string, value: unknown) => {
     expect(parseTracePerformanceFixSuggestion(value)).toEqual(

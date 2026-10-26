@@ -134,7 +134,7 @@ Se uma execução não puder começar, a app diz por quê na conversa: ela nunca
 
 ## Desligando
 
-Cada repositório tem uma chave: **Responder a comandos do GitHub**, em **Mais configurações** na página **Configurações** do repositório. Ela vem ligada em todos os repositórios e salva assim que você a muda. Com ela desligada, a app ignora menções, atribuições e o rótulo de gatilho nesse repositório, e diz a quem perguntar onde fica a chave.
+Cada repositório tem uma chave: **Responder a comandos do GitHub**, em **Mais configurações** na página **Configurações** do repositório. Ela vem ligada em todos os repositórios e salva assim que você a muda. Com ela desligada, a app ignora menções, atribuições e o rótulo de gatilho nesse repositório, e responde a quem perguntar com um link para a chave.
 
 A mesma página tem o **Rótulo de acionamento do GitHub**, em **Mais configurações**, se você quiser um rótulo diferente de `oneuptime`.
 

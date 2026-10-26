@@ -68,7 +68,16 @@ jest.mock("../../../UI/Components/Markdown.tsx/LazyMarkdownViewer", () => {
   };
 });
 
-import CodeTaskTurn from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeTaskTurn";
+import CodeTaskTurn, {
+  getCodeTaskOriginRecordPage,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeTaskTurn";
+import { TELEMETRY_AI_PAGES } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryAi/TelemetryAiCopy";
+import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
+import AIInsightType from "../../../Types/AI/AIInsightType";
+import {
+  getTelemetryAiLaneOfInsightType,
+  TelemetryAiLane,
+} from "../../../Types/AI/TelemetryAi";
 import CodeTaskSteps, {
   LIVE_STEPS_SHOWN,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeTaskSteps";
@@ -368,6 +377,87 @@ describe("a turn: what was asked", () => {
     expect(screen.queryByTestId("code-turn-request")).toBeNull();
     expect(document.body).not.toHaveTextContent("Someone");
     expect(within(origin).getAllByText("OneUptime")).toHaveLength(1);
+  });
+
+  /*
+   * A finding a telemetry product's AI section filed opens there - the
+   * Profiler's slow code in the Profiler's AI section, an error log in
+   * Logs' - where its side menu, Fix with AI and Activity are, as its pull
+   * request links it. It opened in AI Insights' view of it. Any other kind,
+   * or an origin that does not say its kind, still opens in AI Insights.
+   */
+  test.each([
+    [AIInsightType.ProfileHotspot, "profiles/ai/insights"],
+    [AIInsightType.TraceSlowOperation, "traces/ai/insights"],
+    [AIInsightType.TraceFailingOperation, "traces/ai/insights"],
+    [AIInsightType.ExceptionMissingStackTrace, "exceptions/ai/insights"],
+    [AIInsightType.NewException, "exceptions/ai/insights"],
+    [AIInsightType.LogErrorPattern, "logs/ai/insights"],
+    [AIInsightType.MetricMissingMetrics, "metrics/ai/insights"],
+    [AIInsightType.MetricDrift, "ai/insights"],
+    [AIInsightType.DeployRegression, "ai/insights"],
+    [undefined, "ai/insights"],
+  ])(
+    "a request OneUptime wrote from a %s opens its finding at %s",
+    (insightType: AIInsightType | undefined, place: string) => {
+      draw(
+        <ol>
+          <CodeTaskTurn
+            isLatest={true}
+            origin={{
+              type: CodeTaskOriginType.Insight,
+              label: "OrderParser.parse takes 18% of the CPU time in checkout",
+              recordId: INSIGHT_ID,
+              ...(insightType ? { insightType } : {}),
+            }}
+            turn={turn({
+              requestedBy: undefined,
+              request: {
+                message:
+                  "Make OrderParser.parse in src/orders/parser.ts faster",
+                context: [],
+              },
+            })}
+          />
+        </ol>,
+      );
+
+      expect(
+        hrefOf(
+          within(screen.getByTestId("code-turn-origin")).getByRole("link", {
+            name: "OrderParser.parse takes 18% of the CPU time in checkout",
+          }),
+        ),
+      ).toBe(`/dashboard/${PROJECT_ID}/${place}/${INSIGHT_ID}`);
+    },
+  );
+
+  test("the origin's page is its lane's own view for every kind a lane files, and AI Insights' for the rest", () => {
+    for (const insightType of Object.values(AIInsightType)) {
+      const lane: TelemetryAiLane | null =
+        getTelemetryAiLaneOfInsightType(insightType);
+
+      expect(
+        getCodeTaskOriginRecordPage({
+          type: CodeTaskOriginType.Insight,
+          label: "x",
+          recordId: INSIGHT_ID,
+          insightType,
+        }),
+      ).toBe(
+        lane ? TELEMETRY_AI_PAGES[lane].insightView : PageMap.AI_INSIGHT_VIEW,
+      );
+    }
+
+    // Records of other kinds open where they always did.
+    expect(
+      getCodeTaskOriginRecordPage({
+        type: CodeTaskOriginType.Exception,
+        label: "x",
+        recordId: INSIGHT_ID,
+        insightType: AIInsightType.ProfileHotspot,
+      }),
+    ).toBe(PageMap.EXCEPTIONS_VIEW);
   });
 
   test("a request OneUptime wrote itself keeps the context it attached, under what it asked", () => {

@@ -326,4 +326,46 @@ describe("SubjectCodeFixRun queues a run on its repository", () => {
 
     expect(run.codeRepositoryId).toBeUndefined();
   });
+
+  /*
+   * A person's click asks Code's gate about the repository first
+   * (CodeFixStartGate), from the same facts: the run is queued on that very
+   * repository, and the facts are not read a second time.
+   */
+  test("a repository the caller already decided is the run's, and it is not decided again", async () => {
+    const resolver: jest.SpyInstance = resolvesTo(
+      "6b1c2d3e-3333-4222-8333-944455556666",
+    );
+    stubWrite();
+
+    const run: AIRun = await SubjectCodeFixRun.enqueueSubjectCodeFixRun({
+      projectId: PROJECT_ID,
+      taskType: CodeFixTaskType.FixPerformance,
+      taskContext: {
+        traceId: "trace-1",
+      } as unknown as CodeFixTaskContext,
+      codeRepositoryId: new ObjectID(REPOSITORY_ID),
+    });
+
+    expect(run.codeRepositoryId?.toString()).toBe(REPOSITORY_ID);
+    expect(resolver).not.toHaveBeenCalled();
+  });
+
+  test("the caller decided none resolves: queued without one, and not decided again", async () => {
+    const resolver: jest.SpyInstance = resolvesTo(REPOSITORY_ID);
+    stubWrite();
+
+    const run: AIRun = await SubjectCodeFixRun.enqueueSubjectCodeFixRun({
+      projectId: PROJECT_ID,
+      taskType: CodeFixTaskType.ImproveTracing,
+      taskContext: {
+        serviceName: "checkout-api",
+        telemetryServiceId: ObjectID.generate().toString(),
+      } as unknown as CodeFixTaskContext,
+      codeRepositoryId: null,
+    });
+
+    expect(run.codeRepositoryId).toBeUndefined();
+    expect(resolver).not.toHaveBeenCalled();
+  });
 });

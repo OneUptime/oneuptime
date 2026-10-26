@@ -91,7 +91,7 @@ Cliquez sur un span dans n'importe quelle vue pour ouvrir son panneau, avec des 
 Une grande trace charge 500 spans à la fois. Cliquez sur le bouton en bas de la trace pour en charger davantage, ou tous.
 
 > [!TIP]
-> **Accélérer avec l'IA** n'apparaît que sur une trace qui vaut d'être corrigée : une trace avec une requête N+1, des appels faits les uns après les autres qui pourraient s'exécuter en parallèle, ou un appel qui prend l'essentiel de la requête, quand cela coûte un temps réel (100 ms ou plus pour les appels ensemble, 500 ms ou plus pour un seul appel, et au moins un dixième de la requête). Il indique ce qu'il a trouvé, par exemple « La même requête de base de données s'est exécutée 40 fois dans ReportService.build », et lance une tâche IA qui ouvre une pull request pour le corriger. Voir [Code](/docs/ai/ai-agent).
+> **Accélérer avec l'IA** n'apparaît que sur une trace qui vaut d'être corrigée : une trace avec une requête N+1, des appels faits les uns après les autres qui pourraient s'exécuter en parallèle, ou un appel qui prend l'essentiel de la requête, quand cela coûte un temps réel (100 ms ou plus pour les appels ensemble, 500 ms ou plus pour un seul appel, et au moins un dixième de la requête). Il indique ce qu'il a trouvé, par exemple « La même requête de base de données s'est exécutée 40 fois dans ReportService.build », et lance une tâche IA qui ouvre une pull request pour le corriger. Une fois qu'une correction de la trace a fait son travail, la trace renvoie vers sa tâche au lieu d'en proposer une seconde. Quand autre chose empêche l'IA de travailler, comme le forfait, des crédits IA épuisés ou aucun Runner en ligne, la trace indique quoi, avec le lien qui le règle. Voir [Code](/docs/ai/ai-agent).
 
 ## Représenter vos spans en graphiques
 
@@ -150,7 +150,7 @@ Sous **Plus de champs**, une règle choisit les dépôts de code, les serveurs M
 ### Voir ce qu'il a fait
 
 - **Traces → IA → Analyses** liste ce qu'OneUptime a trouvé, chaque constat avec ses preuves et **Ouvrir dans Traces**, qui ouvre les spans concernés, de l'heure où il a été trouvé, dans le **Lecteur**. Sur une opération en échec, **Créer un moniteur** configure un moniteur de traces sur ses spans en échec.
-- **Traces → IA → Journaux** liste chaque investigation et chaque pull request, de la plus récente à la plus ancienne, avec l'état de chacune.
+- **Traces → IA → Journaux** liste chaque investigation et chaque pull request, de la plus récente à la plus ancienne, avec l'état de chacune et ce que chaque investigation a trouvé.
 - Dans Code, la tâche indique qu'OneUptime l'a lancée, avec un lien vers son constat, et la pull request explique pourquoi elle a été ouverte.
 
 ## Ce qui arrive aux spans à leur arrivée

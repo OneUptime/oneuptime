@@ -83,6 +83,7 @@ Varje [larm](https://learn.microsoft.com/en-us/graph/api/resources/security-aler
 | `mitreTechniques` | `mitreTechniques` |
 | `mitreTactics` | `categories` eller `category`, när det är en ATT&CK-taktik: `CredentialAccess` blir `TA0006`. Andra kategorier stannar i `attributes`. |
 | `principalHost`, `principalUser`, `principalIp`, `principalProcess` | Den `evidence` som har rollen `source`, `attacker` eller `compromised`, annars den första av varje slag |
+| `processName`, `processPath`, `processCommandLine`, `parentProcessName`, `parentProcessPath` | Det processbevis som `principalProcess` kommer från: dess `imageFile`, `processCommandLine` och `parentProcessImageFile`. Graph ger ingen kommandorad för den överordnade processen. |
 | `targetHost`, `targetUser`, `targetIp`, `targetResource` | Den `evidence` som har en målroll, till exempel `destination` eller `attacked`. URL:er, postlådor och molnresurser fyller `targetResource`. |
 | `observables` | Varje värdnamn, IP, användare, filnamn, SHA-1 och SHA-256, URL, domän, postlåda och resurs-ID i `evidence` |
 | `attributes` | Hela larmet, utplattat till nycklar med punkter som `evidence.0.hostName`, `serviceSource` och `incidentId` |

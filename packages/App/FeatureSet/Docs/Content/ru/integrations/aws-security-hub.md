@@ -93,6 +93,7 @@ flowchart TB
 | `Workflow.Status`: `NEW`, `NOTIFIED`, `RESOLVED` или `SUPPRESSED`, иначе более старое `WorkflowState` | Статус |
 | `Types` в `TTPs/`: `TTPs/Initial Access/...` становится `TA0001` | Тактики и техники MITRE ATT&CK |
 | Пользователь IAM ресурса ключа доступа или пользователя, `Network.SourceIpV4` или `SourceIpV6`, `Process.Name` или `Process.Path` | Пользователь, IP и процесс субъекта |
+| `Process.Name` и `Process.Path` | Имя и путь процесса. Находка не называет ни командную строку, ни родительский процесс. |
 | Идентификатор экземпляра ресурса `AwsEc2Instance`, `Network.DestinationIpV4` или `DestinationIpV6`, `Network.DestinationPort`, первый `Resources[].Id` | Хост, IP, порт и ресурс цели |
 | Они, каждый `Resources[].Id`, `AwsAccountId`, домены сети, имена вредоносного ПО и значения аналитики угроз | Наблюдаемые объекты |
 | Вся находка, развёрнутая в ключи с точками, например `Compliance.Status` и `Remediation.Recommendation.Url` | `attributes` |

@@ -6227,9 +6227,15 @@ test.describe("the AI card as one line when AI was off for the record (?ai=off-*
     await expect(aiOffStepsPanel(page)).toBeHidden();
     await expect(aiOffToggle(page)).toHaveAttribute("aria-expanded", "false");
 
-    // Tab from the line's Ask OneUptime AI reaches the chevron next.
-    await aiOffAsk(page).focus();
+    /*
+     * The chevron is the line's first control and Ask OneUptime AI its
+     * next, in the order the eye meets them on every width: Tab goes from
+     * the chevron to Ask, and Shift+Tab back.
+     */
+    await aiOffToggle(page).focus();
     await page.keyboard.press("Tab");
+    await expect(aiOffAsk(page)).toBeFocused();
+    await page.keyboard.press("Shift+Tab");
     await expect(aiOffToggle(page)).toBeFocused();
   });
 
@@ -6648,7 +6654,13 @@ test.describe("the AI card as one line when AI was off for the record (?ai=off-*
     await expect(investigationCard(page)).toHaveCount(0);
   });
 
-  test("at 1280px the line is one row - what is off, Ask OneUptime AI, the chevron at its end - with why under it", async ({
+  /*
+   * The same order on every width, the order Tab meets them: what is off
+   * with the chevron at its end, why under it, and Ask OneUptime AI under
+   * why - Ask no longer sits between the title and the chevron on a wide
+   * card, before the chevron in tab order while a phone drew it last.
+   */
+  test("at 1280px what is off and the chevron share the first row, why runs under them, and Ask OneUptime AI under why", async ({
     page,
   }: {
     page: Page;
@@ -6662,10 +6674,8 @@ test.describe("the AI card as one line when AI was off for the record (?ai=off-*
     const reason: Box = await documentBox(aiOffReason(page));
     const line: Box = await documentBox(aiOffLine(page));
 
-    expect(Math.abs(centreOf(ask) - centreOf(title))).toBeLessThanOrEqual(2);
     expect(Math.abs(centreOf(toggle) - centreOf(title))).toBeLessThanOrEqual(2);
-    expect(ask.x).toBeGreaterThan(title.x);
-    expect(toggle.x).toBeGreaterThanOrEqual(ask.x + ask.width - 1);
+    expect(toggle.x).toBeGreaterThan(title.x);
     // The chevron ends where the line does, as a card that opens has it.
     expect(line.x + line.width - (toggle.x + toggle.width)).toBeLessThanOrEqual(
       8,
@@ -6673,6 +6683,13 @@ test.describe("the AI card as one line when AI was off for the record (?ai=off-*
     // Why runs under them, from where the title starts.
     expect(reason.y).toBeGreaterThanOrEqual(title.y + title.height - 1);
     expect(Math.abs(reason.x - title.x)).toBeLessThanOrEqual(1);
+    // Ask follows why, its words lined up with why's.
+    expect(ask.y).toBeGreaterThanOrEqual(reason.y + reason.height - 1);
+    expect(
+      Math.abs(
+        (await documentBox(aiOffAsk(page).locator("svg").first())).x - reason.x,
+      ),
+    ).toBeLessThanOrEqual(1);
   });
 
   test("on a 390px phone the chevron keeps the title's row and Ask OneUptime AI follows why, nothing past the card", async ({
@@ -12222,8 +12239,12 @@ test.describe("the feed, as a timeline", () => {
     }
     expect(run.length).toBe(4);
     expect(run[0]).toContain("Sam Rivera acknowledged the page");
-    expect(run[1]).toContain("paged nobody at escalation rule Backup");
-    expect(run[2]).toContain("paged Sam Rivera at escalation rule");
+    expect(run[1]).toContain(
+      "paged nobody at Platform leads (Level 2 of 3): nobody was on call",
+    );
+    expect(run[2]).toContain(
+      "paged Sam Rivera at First responders (Level 1 of 3, schedule EU days).",
+    );
     expect(run[3]).toContain("Started Executing");
 
     // Show fewer ends the group, under its last entry, not after its first.
@@ -12240,7 +12261,7 @@ test.describe("the feed, as a timeline", () => {
     const focused: string = await page.evaluate((): string => {
       return document.activeElement?.textContent || "";
     });
-    expect(focused).toContain("paged nobody at escalation rule");
+    expect(focused).toContain("paged nobody at Platform leads");
 
     // Folding it again hands focus back to the button that unfolds it.
     await showFewer.focus();
@@ -13068,7 +13089,7 @@ test.describe("Escalate", () => {
     ]);
   });
 
-  test("somebody acknowledged it meanwhile: it says so, and nothing is escalated", async ({
+  test("somebody acknowledged it meanwhile: it says so, nothing is escalated, and the header reads the incident again", async ({
     page,
   }: {
     page: Page;
@@ -13078,6 +13099,12 @@ test.describe("Escalate", () => {
       INCIDENT_PAGE,
       "paged=incident&state=created&passOn=acknowledged",
     );
+
+    await expect(heroActions(page).getByRole("button")).toHaveText([
+      "Acknowledge",
+      "Resolve",
+      "Escalate",
+    ]);
 
     await escalateButton(page).click();
     await escalateDialog(page)
@@ -13089,12 +13116,24 @@ test.describe("Escalate", () => {
       "Already acknowledged",
     );
     expect(await dialogLines(page, "pass-on-answer")).toEqual([
-      "Sam Lee acknowledged it already, so there is nothing to escalate.",
+      "Sam Rivera acknowledged it already, so there is nothing to escalate.",
     ]);
     await screenshotElement(
       escalateDialog(page),
       "escalate-dialog-acknowledged",
     );
+
+    /*
+     * Behind the dialog the page read the incident again (#4914): the
+     * header no longer offers Acknowledge for an incident Sam took, nor
+     * Escalate for a page that is over.
+     */
+    await escalateDialog(page)
+      .getByTestId("modal-footer-submit-button")
+      .click();
+    await expect(escalateDialog(page)).toHaveCount(0);
+    await expect(heroActions(page).getByRole("button")).toHaveText(["Resolve"]);
+    await expectRenderedText(heroChips(page), "Acknowledged SEV-2");
   });
 
   test("a failed request keeps the question open, with an error", async ({

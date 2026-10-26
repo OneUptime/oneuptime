@@ -759,6 +759,18 @@ test.describe("Profiler → AI → Logs", () => {
         await expect(entries.nth(2)).toContainText("Asked by Ada Lovelace");
         await expect(entries.nth(2)).toContainText("Nothing to change");
 
+        /*
+         * A done investigation says what OneUptime AI found, in slow code's
+         * own words - work the code could avoid, which is why the pull
+         * request above followed; a pull request says no verdict.
+         */
+        await expect(
+          entries.nth(1).getByTestId("telemetry-ai-log-verdict"),
+        ).toHaveText("Found avoidable work in the code");
+        await expect(
+          automatic.getByTestId("telemetry-ai-log-verdict"),
+        ).toHaveCount(0);
+
         await expectAiSection(page, testInfo, "Profiler — AI logs");
 
         if (isPhone(testInfo)) {

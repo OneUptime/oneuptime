@@ -88,7 +88,7 @@ Un caso ha un proprio menu laterale, come un incidente, e ogni parte del caso è
 | Sezione del menu laterale | Pagine |
 | --- | --- |
 | **Panoramica** | **Panoramica**, **Cronologia** |
-| **Indagine** | **Rilevamenti**, **Entità**, **Segnali collegati**, **Esecuzioni dei playbook** |
+| **Indagine** | **Rilevamenti**, **Entità**, **Segnali collegati**, **Playbook** |
 | **Note** | **Note private** |
 | **Avanzato** | **Registri di audit**, **Elimina caso**, chiuse finché non clicchi su **Avanzato** |
 
@@ -101,7 +101,7 @@ Ogni pagina tiene in alto l'intestazione del caso: numero, priorità, stato e ti
 - **Rilevamenti**: cosa è scattato per aprire il caso o aggiungersi a esso, quante volte, e l'ultimo evento corrispondente.
 - **Entità**: gli utenti, gli host e gli indirizzi di cui tratta il caso, con la loro attività in tutti i tuoi eventi di sicurezza degli ultimi 7 giorni. Ognuno si apre in **Correla**.
 - **Segnali collegati**: gli host, i cluster, i servizi e i membri che il caso nomina, come OneUptime li conosce, e cosa succedeva su ciascuno attorno ai suoi rilevamenti: i loro registri, tracce e metriche, ciò che è aperto su di essi e cosa è cambiato. Vedi [Segnali collegati](/docs/telemetry/security-connected-signals).
-- **Esecuzioni dei playbook**: cosa ha fatto ogni playbook sul caso, passo per passo, e i passi in attesa di approvazione. Finché ci sono esecuzioni in attesa, il menu ne mostra il numero accanto a **Esecuzioni dei playbook**.
+- **Playbook**: cosa ha fatto ogni playbook sul caso, passo per passo, e i passi in attesa di approvazione. Finché ci sono esecuzioni in attesa, il menu ne mostra il numero accanto a **Playbook**.
 - **Note private**: cosa ha scritto il team sul caso.
 - **Registri di audit**: ogni modifica fatta al caso, e chi l'ha fatta. Vedi [Registri di audit](/docs/configuration/audit-logs).
 - **Elimina caso**: elimina per sempre il caso, con i suoi rilevamenti, le note, la cronologia e le esecuzioni dei playbook. Per conservarne la traccia, chiudilo invece con un verdetto.
@@ -300,7 +300,7 @@ Un'email o un post senza un messaggio proprio invia un riepilogo del caso.
 
 ### Esecuzioni e approvazioni
 
-Ogni esecuzione è elencata sul suo caso e in **Prodotti → Security Events → Playbook → Esecuzioni dei playbook**, passo per passo:
+Ogni esecuzione è elencata sul suo caso e in **Prodotti → Security Events → Playbook → Esecuzioni**, passo per passo:
 
 | Stato dell'esecuzione | Significa |
 | --- | --- |
@@ -311,7 +311,7 @@ Ogni esecuzione è elencata sul suo caso e in **Prodotti → Security Events →
 | Non riuscito | Un passo non è riuscito e l'esecuzione si è fermata |
 | Annullato | Qualcuno l'ha annullata, o ha rifiutato un passo |
 
-Un passo in attesa di approvazione mostra **Approva** e **Rifiuta** sull'esecuzione, con un commento facoltativo. Approvare fa proseguire l'esecuzione da quel passo; rifiutare la termina. La decisione, chi l'ha presa e il suo commento restano sul passo, nella cronologia del caso e nel registro di audit del progetto. **In attesa di approvazione**, sotto **Playbook** nel menu, elenca le esecuzioni in attesa di una decisione e le conta; **Esecuzioni dei playbook** elenca ogni esecuzione. In **Esecuzioni dei playbook** e nella pagina di un playbook, ogni esecuzione è una riga che dice fin dove è arrivata, o il passo in cui si è fermata; **Mostra passaggi** ne apre i passi. Un'esecuzione in attesa di approvazione si apre da sola.
+Un passo in attesa di approvazione mostra **Approva** e **Rifiuta** sull'esecuzione, con un commento facoltativo. Approvare fa proseguire l'esecuzione da quel passo; rifiutare la termina. La decisione, chi l'ha presa e il suo commento restano sul passo, nella cronologia del caso e nel registro di audit del progetto. La pagina **Approvazioni**, sotto **Playbook** nel menu, elenca le esecuzioni in attesa di una decisione e le conta; **Esecuzioni** elenca ogni esecuzione. In **Esecuzioni** e nella pagina di un playbook, ogni esecuzione è una riga che dice fin dove è arrivata, o il passo in cui si è fermata; **Mostra passaggi** ne apre i passi. Un'esecuzione in attesa di approvazione si apre da sola.
 
 Un'esecuzione che smette di ricevere segnali dal suo worker, per esempio dopo un riavvio, viene ripresa: un'esecuzione in coda viene rimessa in coda dopo 2 minuti, e un'esecuzione che tace da 30 minuti viene segnata come non riuscita.
 

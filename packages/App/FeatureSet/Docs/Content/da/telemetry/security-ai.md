@@ -40,6 +40,8 @@ En vurdering læser kun. Den kører på projektets egen AI: **Aktivér AI**, pro
 | En vurdering som **Sandsynligvis ondsindet** | Vurderingen er færdig. **Vurder igen** læser sagen forfra. |
 | **Vurderingen blev ikke færdig** | Kørslen stoppede. **Prøv igen** starter en ny. |
 
+En Security Viewer ser det samme kort: **Vurder med AI** og **Prøv igen** forbliver nedtonede ved siden af en linje, der siger, hvem der kan starte en vurdering, og **Vurder igen** og **Angiv prioritet** tilbydes ikke.
+
 En vurdering læser:
 
 - sagen: titel, prioritet, status, entiteter og ATT&CK-tilknytning;
@@ -63,7 +65,7 @@ Den kan også læse resten af OneUptime, som undersøgelsen af en hændelse gør
 Vurderingen er OneUptime AI's, aldrig sagens konklusion: **Luk sag** starter på den konklusion, den foreslår, og en person vælger. Under vurderingen viser kortet:
 
 - **Foreslået prioritet** med **Angiv prioritet**, når sagen har en anden prioritet.
-- **Foreslået playbook** med **Kør playbook**, som kører den i dit navn med hver godkendelse, den kræver.
+- **Foreslået playbook** med **Kør playbook**, som kører den i dit navn med hver godkendelse, den kræver. Mens den playbook allerede kører på sagen, står dens kørsels status, fx **Venter på godkendelse**, i stedet for **Kør playbook**: kørslen er under sagens **Playbooks**, og en ny ville bede om den samme godkendelse igen.
 - Rapporten: hvad der skete, hvor sikker vurderingen er, og hvad der skal ske nu, hver påstand efterfulgt af en henvisning som C1.
 - **Evidence checked**: hver forespørgsel, vurderingen kørte. En henvisning åbner sin forespørgsel, og når du folder en ud, kører den igen med dine tilladelser over det tidsrum, vurderingen læste.
 - **Spørg om denne sag**, som åbner Ask AI på sagen.

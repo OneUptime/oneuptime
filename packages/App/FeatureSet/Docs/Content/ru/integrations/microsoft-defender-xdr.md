@@ -83,6 +83,7 @@ flowchart TB
 | `mitreTechniques` | `mitreTechniques` |
 | `mitreTactics` | `categories` или `category`, если это тактика ATT&CK: `CredentialAccess` становится `TA0006`. Остальные категории остаются в `attributes`. |
 | `principalHost`, `principalUser`, `principalIp`, `principalProcess` | `evidence` с ролью `source`, `attacker` или `compromised`, иначе первое свидетельство каждого вида |
+| `processName`, `processPath`, `processCommandLine`, `parentProcessName`, `parentProcessPath` | Свидетельство процесса, из которого взят `principalProcess`: его `imageFile`, `processCommandLine` и `parentProcessImageFile`. Командной строки родительского процесса Graph не даёт. |
 | `targetHost`, `targetUser`, `targetIp`, `targetResource` | `evidence` с ролью цели, например `destination` или `attacked`. URL, почтовые ящики и облачные ресурсы заполняют `targetResource`. |
 | `observables` | Каждое имя хоста, IP, пользователь, имя файла, SHA-1 и SHA-256, URL, домен, почтовый ящик и идентификатор ресурса в `evidence` |
 | `attributes` | Всё оповещение, развёрнутое в ключи с точками, например `evidence.0.hostName`, `serviceSource` и `incidentId` |

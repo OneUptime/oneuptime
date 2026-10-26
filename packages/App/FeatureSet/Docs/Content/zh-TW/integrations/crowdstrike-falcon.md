@@ -79,6 +79,7 @@ Falcon 顯示的基礎 URL 會告訴你 CID 所在的雲端。**API clients and 
 | `status`，例如 `new`、`in_progress` 或 `closed` | 狀態 |
 | `tactic_id`, `technique_id` | MITRE ATT&CK 戰術和技術 |
 | `device.hostname`、`device.local_ip`、`user_name`、`filename` 或 `cmdline` | 主體的主機、IP、使用者和程序 |
+| `filename`、`filepath` 和 `cmdline`；`parent_details.filename`、`parent_details.filepath` 和 `parent_details.cmdline` | 程序名稱、路徑和命令列；父程序名稱、路徑和命令列 |
 | `device.hostname`、`device.local_ip`、`device.external_ip`、`user_name`、`sha256` | Observable |
 | 其他所有內容，例如 `device.platform_name`、`falcon_host_link`、`product` 和 `timestamp` | `attributes`，展平為點分隔的鍵 |
 

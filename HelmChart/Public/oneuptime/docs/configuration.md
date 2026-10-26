@@ -475,6 +475,59 @@ Confirm what an upgrade would actually change before you run it:
 helm template my-oneuptime oneuptime/oneuptime -f values.yaml | grep -c NODE_EXTRA_CA_CERTS
 ```
 
+## Migration Job annotations
+
+The Job that runs the database migrations takes annotations of its own, for the
+Job and for its pod. Both are empty by default and render nothing.
+
+| Parameter                | Description                           | Default |
+|--------------------------|---------------------------------------|---------|
+| `migrate.annotations`    | Annotations on the migrate Job.       | `{}`    |
+| `migrate.podAnnotations` | Annotations on the migrate Job's pod. | `{}`    |
+
+Annotation values are strings: quote `"false"`, `"true"` and numbers, or
+`helm install` refuses the value and names the key.
+
+With `migrate.hook: true` the chart makes the Job a Helm hook and writes its
+`helm.sh/hook`, `helm.sh/hook-weight` (`"-5"`) and `helm.sh/hook-delete-policy`
+(`before-hook-creation`) annotations. A `helm.sh/hook-weight` or
+`helm.sh/hook-delete-policy` in `migrate.annotations` replaces the chart's.
+`helm.sh/hook` itself is refused there: set `migrate.hook` instead, which also
+decides whether the new pods wait for the Job (see
+[New pods and pending schema migrations](../../../Docs/Postgres.md#new-pods-and-pending-schema-migrations)).
+
+**A service mesh.** A sidecar injected into the Job's pod, such as Istio's or
+Linkerd's, can keep the pod running after the migrations finish, so the Job
+never completes, and its traffic redirection can keep the Job's init container
+from reaching Postgres. Keep the mesh out of the Job's pod:
+
+```yaml
+migrate:
+  podAnnotations:
+    sidecar.istio.io/inject: "false" # Linkerd: linkerd.io/inject: disabled
+```
+
+**Argo CD.** Argo CD renders the chart with `helm template`, so the Job is
+named `<release>-migrate-1` on every sync, and Kubernetes does not let the pod
+template of an existing Job change: a sync of a new version fails until the
+Job is deleted, `migrate.ttlSecondsAfterFinished` after it finished, and from
+then on the application shows OutOfSync until a sync creates the Job again.
+Make the Job an Argo CD `Sync` hook instead, which Argo CD deletes and creates
+again on each sync:
+
+```yaml
+migrate:
+  annotations:
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+```
+
+Use `Sync` with `migrate.hook: false` (the default), so the Job runs while the
+new pods start and wait for it. A `PreSync` hook runs before anything else is
+applied, so on a first sync it starts before the Secrets and the database it
+needs exist; a `PostSync` hook runs only once every pod is Healthy, which the
+waiting pods are not until the migrations are in.
+
 ## Local AI (vLLM)
 
 Run a local, OpenAI-compatible LLM server in-cluster for OneUptime's AI

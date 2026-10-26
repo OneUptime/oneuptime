@@ -1593,6 +1593,18 @@ API, SSO, or the Slack and Microsoft Teams apps.
   `steps` after the upgrade, and applying it changes nothing about how the
   runbook runs. See
   [Failure handling and approvals](/docs/runbooks/authoring#failure-handling-and-approvals).
+- **A code repository that picks no Runner follows the project's default
+  Runner.** It used to work on a global Runner even in a project with a
+  default Runner, and a repository the GitHub App imported started on a copy
+  of the default, which a later default did not move. Now a repository that
+  picks none works on the project's default Runner and moves with it, as a
+  runbook step does; in a project with no default, it works on a global
+  Runner as before. The upgrade keeps every repository where it works: one
+  that picks none in a project that already has a default Runner picks
+  **Global Runner** instead, and a repository that picked a Runner keeps it.
+  In the API and Terraform, `isGlobalRunnerPicked` says a repository picked
+  **Global Runner**. See
+  [Pick the repository's Runner](/docs/ai/ai-agent#pick-the-repositorys-runner).
 - See [API and endpoint changes](#api-and-endpoint-changes) above for the
   endpoints that moved or tightened, including
   `GET /api/global-config/license` and the license-server endpoints that

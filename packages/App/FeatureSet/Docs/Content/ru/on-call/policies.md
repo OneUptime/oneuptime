@@ -138,7 +138,7 @@ flowchart TB
 | **Через сколько минут?** | `acknowledgementTimeoutInMinutes` |
 | Архивирована | `isArchived` |
 
-`repeatPolicyIfNoOneAcknowledges` равно `false` для **Прекратить оповещения** и `true` для **Начать заново с Level 1**. При `true` и `repeatPolicyIfNoOneAcknowledgesNoOfTimes`, равном `0`, политика никогда не повторяется, и панель показывает её как **Прекратить оповещения**.
+`repeatPolicyIfNoOneAcknowledges` равно `false` для **Прекратить оповещения** и `true` для **Начать заново с Level 1**. При `true` значение `repeatPolicyIfNoOneAcknowledgesNoOfTimes` должно быть целым числом от 1: OneUptime отклоняет `0`. Старая политика, сохранённая с `0`, никогда не повторяется, и панель показывает её как **Прекратить оповещения**.
 
 `acknowledgementTimeoutInMinutes` равно `null` для **Не оповещать повторно** и целому числу минут от 5 до 1440 для **Оповестить повторно**. Любое другое значение OneUptime отклоняет.
 

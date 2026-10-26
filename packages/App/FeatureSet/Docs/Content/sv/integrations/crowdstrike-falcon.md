@@ -79,6 +79,7 @@ Anslutningen läser Falcons larm: det som Falcon-konsolen listar under **Endpoin
 | `status`, till exempel `new`, `in_progress` eller `closed` | Status |
 | `tactic_id`, `technique_id` | MITRE ATT&CK-taktiker och -tekniker |
 | `device.hostname`, `device.local_ip`, `user_name`, `filename` eller `cmdline` | Aktörens värd, IP, användare och process |
+| `filename`, `filepath` och `cmdline`; `parent_details.filename`, `parent_details.filepath` och `parent_details.cmdline` | Processens namn, sökväg och kommandorad; den överordnade processens namn, sökväg och kommandorad |
 | `device.hostname`, `device.local_ip`, `device.external_ip`, `user_name`, `sha256` | Observables |
 | Allt annat, till exempel `device.platform_name`, `falcon_host_link`, `product` och `timestamp` | `attributes`, utplattat till nycklar med punkter |
 
