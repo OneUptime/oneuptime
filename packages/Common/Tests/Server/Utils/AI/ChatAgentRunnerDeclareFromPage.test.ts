@@ -514,9 +514,7 @@ describe("linking an existing incident from a host's page: the card names it by 
 
   test("an incident the person may not read keeps buildActionTitle's title", async () => {
     const spies: Spies = installSpies();
-    jest
-      .spyOn(IncidentService, "findOneById")
-      .mockResolvedValue(null as never);
+    jest.spyOn(IncidentService, "findOneById").mockResolvedValue(null as never);
     spies.executeWithLogging.mockResolvedValueOnce(
       response({ stopReason: "tool_use", toolCalls: [LINK_CALL] }) as never,
     );

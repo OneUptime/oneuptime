@@ -372,27 +372,27 @@ describe("ChatActivityFeed hideChrome (investigation panel)", () => {
  * own name ("Running add_incident_affected_resources").
  */
 describe("linking what an incident or alert is about", () => {
-  test.each(["add_incident_affected_resources", "add_alert_affected_resources"])(
-    "%s reads as linking affected resources",
-    (toolName: string) => {
-      const { container } = render(
-        <ChatActivityFeed
-          events={events([
-            { eventType: AIRunEventType.RunStarted },
-            { eventType: AIRunEventType.ToolCallStarted, toolName },
-            {
-              eventType: AIRunEventType.ToolCallCompleted,
-              toolName,
-              resultSummary: { rowCount: 1 },
-            },
-          ])}
-          hideChrome={true}
-        />,
-      );
+  test.each([
+    "add_incident_affected_resources",
+    "add_alert_affected_resources",
+  ])("%s reads as linking affected resources", (toolName: string) => {
+    const { container } = render(
+      <ChatActivityFeed
+        events={events([
+          { eventType: AIRunEventType.RunStarted },
+          { eventType: AIRunEventType.ToolCallStarted, toolName },
+          {
+            eventType: AIRunEventType.ToolCallCompleted,
+            toolName,
+            resultSummary: { rowCount: 1 },
+          },
+        ])}
+        hideChrome={true}
+      />,
+    );
 
-      expect(screen.getByText("Linking affected resources")).toBeVisible();
-      expect(container.textContent).not.toContain(toolName);
-      expect(container.textContent).not.toContain("Running");
-    },
-  );
+    expect(screen.getByText("Linking affected resources")).toBeVisible();
+    expect(container.textContent).not.toContain(toolName);
+    expect(container.textContent).not.toContain("Running");
+  });
 });
