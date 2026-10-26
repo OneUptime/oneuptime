@@ -180,7 +180,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 
 환경의 **개요**에는 다음이 표시됩니다:
 
-- 트레이스에서 계산한 **요청**, **오류율**, **p95 latency**와, 선택한 기간의 요청, 오류, 메모리 차트.
+- 트레이스에서 계산한 **요청**, **오류율**, **p95 지연 시간**과, 선택한 기간의 요청, 오류, 메모리 차트.
 - 실행 중인 인스턴스 전체의 **CPU**와 **메모리**, 그리고 **CPU 기준 상위 인스턴스** 목록. 이 값들은 인스턴스 식별자를 가진 `container.cpu.utilization`과 `container.memory.usage` 메트릭에서 나옵니다. ECS에서는 `awsecscontainermetrics` 수신기의 `ecs.task.cpu.utilized`와 `ecs.task.memory.utilized`에서 나옵니다.
 - **인스턴스**: 지난 15분 동안 보고한 인스턴스 수. **인스턴스** 탭에는 인스턴스마다 한 행이 있습니다.
 - 환경으로 필터링된 **로그**, **트레이스**, **메트릭** 탭.

@@ -62,7 +62,7 @@ Abaixo dela, uma linha diz se alguma coisa abre um incidente quando um dispositi
 
 Antes de qualquer coisa ser adicionada, a visão geral guia você por três etapas. **Coloque uma sonda na sua rede**: uma sonda faz ping e walk nos seus dispositivos de dentro da rede deles, então **Adicionar uma sonda** dá nome a uma, mostra o comando que a executa e acompanha a conexão dela. **Traga seus dispositivos**: **Descobrir dispositivos** varre uma faixa de endereços para você escolher o que adicionar, o melhor para uma rede inteira ou um site novo, e **Adicionar um único dispositivo** adiciona um pelo endereço IP ou nome do host. **Seja avisado quando um dispositivo cair**: **Configurar alertas** abre as [políticas de alertas](#políticas-de-alertas), onde a política recomendada está a um clique. No OneUptime Cloud, [adicionar uma sonda](/docs/probe/custom-probe) exige o plano Growth: abaixo dele, a etapa avisa e leva às suas configurações de cobrança, e as sondas da própria OneUptime na internet ainda podem verificar dispositivos com um endereço público.
 
-O menu Rede mantém à vista o que você abre todos os dias: **Visão geral**, **Devices**, **Sites**, **Mapa**, **Traffic**, **Eventos** e **Discovery**. O resto fica recolhido em seções, e uma seção se abre sozinha em qualquer uma das suas páginas:
+O menu Rede mantém à vista o que você abre todos os dias: **Visão geral**, **Dispositivos**, **Sites**, **Mapa**, **Traffic**, **Eventos** e **Discovery**. O resto fica recolhido em seções, e uma seção se abre sozinha em qualquer uma das suas páginas:
 
 | Seção | Páginas |
 | --- | --- |
@@ -75,7 +75,7 @@ O menu Rede mantém à vista o que você abre todos os dias: **Visão geral**, *
 
 :::steps
 ### Abrir a lista de dispositivos
-Acesse **Rede → Devices** e clique em **Adicionar dispositivo**. **Adicionar dispositivo** na **Visão geral** da Rede abre o mesmo formulário.
+Acesse **Rede → Dispositivos** e clique em **Adicionar dispositivo**. **Adicionar dispositivo** na **Visão geral** da Rede abre o mesmo formulário.
 
 ### Digitar o endereço do dispositivo
 Em **Nome do host**, digite o endereço IP ou o nome do host. Deixe **Nome** vazio para que o dispositivo receba o nome do seu host.
@@ -140,7 +140,7 @@ As credenciais digitadas no dispositivo prevalecem sobre um perfil de credenciai
 
 ## Alterar muitos dispositivos de uma vez
 
-Uma varredura de descoberta da rede de um cliente traz dezenas de dispositivos que pertencem a um só site, compartilham uma função e vêm de um só fabricante. Você não abre um por um: selecione-os na lista **Devices**, marcando linhas ou selecionando todos os dispositivos que os filtros encontram, e abra **Ações em massa**.
+Uma varredura de descoberta da rede de um cliente traz dezenas de dispositivos que pertencem a um só site, compartilham uma função e vêm de um só fabricante. Você não abre um por um: selecione-os na lista **Dispositivos**, marcando linhas ou selecionando todos os dispositivos que os filtros encontram, e abra **Ações em massa**.
 
 | Ação | O que faz |
 | --- | --- |
@@ -184,7 +184,7 @@ Um dispositivo cujo ping e cujo walk falham é simplesmente **Inoperante**, ent�
 
 ### Lendo o status de um dispositivo
 
-Todo lugar que mostra um dispositivo — a lista Devices, a página Devices de um site, a visão geral, o mapa — usa os mesmos três veredictos e os mesmos qualificadores ao lado deles.
+Todo lugar que mostra um dispositivo — a lista Dispositivos, a página Dispositivos de um site, a visão geral, o mapa — usa os mesmos três veredictos e os mesmos qualificadores ao lado deles.
 
 | Veredicto | Significa |
 | --- | --- |
@@ -194,12 +194,12 @@ Todo lugar que mostra um dispositivo — a lista Devices, a página Devices de u
 
 | Qualificador | Aparece quando | O que fazer |
 | --- | --- | --- |
-| **Stale** | Nenhuma sondagem foi tentada há bem mais tempo que o intervalo do dispositivo. | Confira se a sonda do dispositivo está online e dando conta da sua frota. |
+| **Desatualizado** | Nenhuma sondagem foi tentada há bem mais tempo que o intervalo do dispositivo. | Confira se a sonda do dispositivo está online e dando conta da sua frota. |
 | **No probe** | O dispositivo é consultado pela sonda, mas não tem uma, ou a sondagem dele está desativada. | Atribua uma sonda que consiga alcançá-lo; até lá nada o consulta. |
 | **Sem monitor** | O dispositivo usa a [substituição por monitor vinculado](#a-substituição-por-monitor-vinculado) e nada está vinculado. | Vincule um monitor, ou volte a sondagem pela sonda. |
 | **SNMP failing** | Ativo no ping, mas o último walk SNMP falhou. | Confira as credenciais, o agente SNMP ou uma ACL. |
 
-A lista **Devices** tem um filtro **SNMP** com três valores: **OK** (o último walk deu certo), **Com falha** (o último walk falhou) e **Not configured** (só ping, sem credenciais, ou nunca consultado). "Quais dispositivos têm credenciais que pararam de funcionar" está a um clique. A coluna **Interfaces (Up / Down)** da lista mostra **Sem SNMP** em vez de `0 / 0` para um dispositivo que recebe ping e nunca passa por walk: zero portas funcionando seria outra afirmação, e errada.
+A lista **Dispositivos** tem um filtro **SNMP** com três valores: **OK** (o último walk deu certo), **Com falha** (o último walk falhou) e **Not configured** (só ping, sem credenciais, ou nunca consultado). "Quais dispositivos têm credenciais que pararam de funcionar" está a um clique. A coluna **Interfaces (Up / Down)** da lista mostra **Sem SNMP** em vez de `0 / 0` para um dispositivo que recebe ping e nunca passa por walk: zero portas funcionando seria outra afirmação, e errada.
 
 ## Credenciais SNMP e perfis de credenciais
 
@@ -240,13 +240,13 @@ Apagar as credenciais próprias do dispositivo não apaga um perfil. Se o dispos
 
 ### Em massa
 
-Selecione dispositivos na lista **Devices** e use:
+Selecione dispositivos na lista **Dispositivos** e use:
 
 - **Set SNMP Credential Profile** / **Clear SNMP Credential Profile**: vincular um perfil a uma seleção, ou retirá-lo.
 - **Switch to Probe Polling**: para dispositivos com a substituição por monitor vinculado. Escolha uma sonda, e cada dispositivo selecionado passa a receber ping no seu agendamento a partir daí, e walk quando tiver credenciais. Um monitor já vinculado continua vinculado; o status do dispositivo passa a vir da sonda.
 - **Create Ping Monitors**: para dispositivos com a substituição por monitor vinculado, cria um monitor Ping no nome do host de cada dispositivo e o vincula, para que o dispositivo apareça como Up ou Down.
 
-A página **Devices** mostra um banner quando o projeto tem dispositivos com a substituição por monitor vinculado sem nada vinculado — dispositivos que nada consulta e sobre os quais nada informa — e leva à seleção que os corrige.
+A página **Dispositivos** mostra um banner quando o projeto tem dispositivos com a substituição por monitor vinculado sem nada vinculado — dispositivos que nada consulta e sobre os quais nada informa — e leva à seleção que os corrige.
 
 ## Padrões de monitoramento do site
 
@@ -322,7 +322,7 @@ No editor **Health OIDs**, **Vendor Health Template** aplica um conjunto pronto 
 
 Os OIDs do modelo são copiados para a lista própria do dispositivo, onde você pode podá-los ou ampliá-los. Depois que o primeiro walk identifica o fabricante, a visão geral do dispositivo oferece o modelo correspondente enquanto ele acrescentar algo, e **Adicionar verificações de saúde** o adiciona com um clique. A correspondência lê o `sysObjectID` do dispositivo, e o `sysDescr` dele quando um mesmo número enterprise abriga dois sistemas operacionais: o Extreme Fabric Engine em hardware universal informa o mesmo enterprise (1916) que o EXOS, e só a descrição dele (`…-FabricEngine (9.0.4.0)`) os diferencia. Os access points UniFi são diferenciados dos roteadores da Ubiquiti da mesma forma (`U6-Pro 6.6.50.15098`), também quando um firmware mais antigo responde com o ramo do Net-SNMP, e os access points IQ Engine dos switches Aerohive que compartilham o ramo deles (`AP230, HiveOS 8.2r1`).
 
-Os dispositivos com **Auto-Apply Vendor Health Template** ativado recebem os OIDs e as tabelas do modelo na primeira sondagem: os dispositivos que uma regra de importação automática traz, e os importados de **Revisar resultados** com o interruptor do modelo do fabricante ativado, como ele fica a menos que você o desative. Para dar a muitos dispositivos o modelo deles de uma vez, como uma frota descoberta antes de o interruptor existir, selecione-os na lista **Devices** e use **Aplicar modelo do fabricante** (veja [Alterar muitos dispositivos de uma vez](#alterar-muitos-dispositivos-de-uma-vez)).
+Os dispositivos com **Auto-Apply Vendor Health Template** ativado recebem os OIDs e as tabelas do modelo na primeira sondagem: os dispositivos que uma regra de importação automática traz, e os importados de **Revisar resultados** com o interruptor do modelo do fabricante ativado, como ele fica a menos que você o desative. Para dar a muitos dispositivos o modelo deles de uma vez, como uma frota descoberta antes de o interruptor existir, selecione-os na lista **Dispositivos** e use **Aplicar modelo do fabricante** (veja [Alterar muitos dispositivos de uma vez](#alterar-muitos-dispositivos-de-uma-vez)).
 
 Aplicar um modelo do fabricante é uma cópia única, então nada se propaga quando o modelo muda. Para qualquer coisa além de um único dispositivo, use um **OID Collection Template**; os modelos dos fabricantes são oferecidos como ponto de partida quando você cria um.
 
@@ -352,7 +352,7 @@ Um OID em um modelo é coletado como está escrito, então um OID que aponta par
 Há três formas de vincular dispositivos, e em uma frota que a descoberta continua encontrando, a terceira é a que mais importa:
 
 - Um dispositivo de cada vez, no cartão **Polling & Data Collection** do dispositivo.
-- Em massa, selecionando dispositivos na lista **Devices** e usando **Set OID Collection Template**. A coluna **Modelo** da lista mostra quais dispositivos estão vinculados a quê.
+- Em massa, selecionando dispositivos na lista **Dispositivos** e usando **Set OID Collection Template**. A coluna **Modelo** da lista mostra quais dispositivos estão vinculados a quê.
 - Automaticamente, definindo um OID Collection Template em uma regra de importação automática, para que cada dispositivo importado por uma varredura seja vinculado no momento em que é criado.
 
 Um dispositivo coleta primeiro os OIDs do seu modelo e depois os seus próprios **Device-Specific Health OIDs**. Quando os dois apontam para o mesmo OID, ele é coletado uma vez, prevalecem o nome e a descrição do dispositivo, e as entradas do modelo mantêm o seu lugar, então os acréscimos específicos do dispositivo nunca conseguem empurrá-las para fora.
@@ -638,12 +638,12 @@ Os nomes do próprio dispositivo vêm primeiro porque são os nomes que os respo
 
 **Nomear dispositivos pelo nome curto do host** corta um nome totalmente qualificado no primeiro rótulo: `core-sw-01.corp.example.com` é importado como `core-sw-01`. Vale para um nome de DNS reverso e para um `sysName` que seja um nome de host totalmente qualificado; todo o resto (`Core Switch`, `ubuntu-22.04`, um endereço IP) fica como está. Muda só como os dispositivos se chamam, então nenhuma nova varredura é necessária: **Revisar resultados** e as regras de importação automática o usam na próxima vez que dão nome a um host, e os dispositivos já importados mantêm os seus nomes.
 
-Um dispositivo importado de um host com nome de DNS reverso guarda o nome completo como seu **DNS Name**, use a varredura nomes curtos ou não. Ele aparece na visão geral do dispositivo, a busca da lista **Devices** o encontra, e as regras de atribuição de site comparam padrões de nome de host com ele, então uma regra `*.store-0660.corp.example.com` continua posicionando um dispositivo cujo nome perdeu o domínio. Um nome NetBIOS nunca é guardado como DNS Name: o host o informa sobre si mesmo, e ele não é um registro DNS.
+Um dispositivo importado de um host com nome de DNS reverso guarda o nome completo como seu **DNS Name**, use a varredura nomes curtos ou não. Ele aparece na visão geral do dispositivo, a busca da lista **Dispositivos** o encontra, e as regras de atribuição de site comparam padrões de nome de host com ele, então uma regra `*.store-0660.corp.example.com` continua posicionando um dispositivo cujo nome perdeu o domínio. Um nome NetBIOS nunca é guardado como DNS Name: o host o informa sobre si mesmo, e ele não é um registro DNS.
 
 > [!WARNING]
 > As regras de rótulos e de proprietários comparam o nome do dispositivo. Um padrão escrito para nomes DNS (`*.wbhq.com`) ou nomes completos (`*.corp.example.com`) não corresponde a um dispositivo com o próprio nome ou com o nome curto. As regras de atribuição de site também tentam o DNS Name, então continuam correspondendo.
 
-Para encurtar dispositivos que você já importou, selecione-os na lista **Devices** e use **Shorten Names to Hostname**. A confirmação mostra quantos dispositivos serão renomeados, com exemplos. Um dispositivo sem DNS Name guarda o nome completo como DNS Name, a menos que esse nome também seja o nome de sistema SNMP dele ou seja longo o bastante para ter sido cortado na importação. Um dispositivo é ignorado quando outro dispositivo já tem o nome curto dele, quando dois dispositivos selecionados receberiam o mesmo nome curto, ou quando o nome dele mudou depois que você o selecionou. As regras de atribuição de site são executadas de novo para cada dispositivo renomeado; as de rótulos e de proprietários não, então use [Run Now](/docs/configuration/run-rules-now) em uma regra que compare nomes de dispositivos. Os monitores Ping existentes mantêm os seus nomes, e as séries de métricas rotuladas com o nome do dispositivo começam uma nova série com o novo nome.
+Para encurtar dispositivos que você já importou, selecione-os na lista **Dispositivos** e use **Shorten Names to Hostname**. A confirmação mostra quantos dispositivos serão renomeados, com exemplos. Um dispositivo sem DNS Name guarda o nome completo como DNS Name, a menos que esse nome também seja o nome de sistema SNMP dele ou seja longo o bastante para ter sido cortado na importação. Um dispositivo é ignorado quando outro dispositivo já tem o nome curto dele, quando dois dispositivos selecionados receberiam o mesmo nome curto, ou quando o nome dele mudou depois que você o selecionou. As regras de atribuição de site são executadas de novo para cada dispositivo renomeado; as de rótulos e de proprietários não, então use [Run Now](/docs/configuration/run-rules-now) em uma regra que compare nomes de dispositivos. Os monitores Ping existentes mantêm os seus nomes, e as séries de métricas rotuladas com o nome do dispositivo começam uma nova série com o novo nome.
 
 :::details Nomes NetBIOS: como a consulta funciona
 Hosts Windows e Samba muitas vezes não têm agente SNMP, então, sem isto, eles apareceriam com um nome de DNS reverso que os responsáveis talvez não usem, ou pelo endereço. Com **Consultar nomes do Windows (NetBIOS)** ativado, a sonda pergunta a cada host sem nome de sistema SNMP o nome NetBIOS dele depois da varredura, com uma consulta NBSTAT para UDP 137, primeiro os hosts sem nome de DNS reverso. A opção vem ativada nas varreduras novas e desativada nas criadas antes de ela existir; ativá-la ou desativá-la mantém os resultados da varredura e passa a valer na próxima execução da varredura. Ela funciona na base do melhor esforço:

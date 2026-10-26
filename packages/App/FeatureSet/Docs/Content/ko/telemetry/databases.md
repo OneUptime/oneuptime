@@ -147,10 +147,10 @@ OneUptime은 10분마다 애플리케이션이 지난 15분 동안 보낸 CLIENT
 - 주소가 프로젝트 전체에서 하나의 서버를 가리킵니다. 즉 DNS 이름이어야 하며, IP 리터럴이나 한 머신 또는 한 네트워크 안에서만 확인되는 이름이 아니어야 합니다. 단, 호출자의 Kubernetes 클러스터가 이를 한정하는 경우는 예외입니다([엔드포인트](#엔드포인트와-단일-소유자-규칙) 참조).
 - 포트가 서버가 수신 대기하는 포트입니다. 운영 체제는 연결의 클라이언트 쪽에 32768 이상의 포트를 할당합니다(Linux의 기본 임시 포트 범위가 여기서 시작하며, Windows와 macOS는 49152–65535를 사용합니다). 따라서 32768 이상의 포트는 엔진 자체의 기본 포트(IBM Db2의 50000)가 아닌 한 데이터베이스를 만들지 않습니다. Kubernetes 에이전트를 포함한 eBPF 계측은 오래 유지되는 연결에 중간부터 붙어 양쪽 끝을 뒤바꿀 수 있습니다. 그러면 스팬이 클라이언트 자신의 포트를 서버로 보고하므로, 이 규칙이 없다면 연결마다 별도의 데이터베이스가 생깁니다.
 - 엔진이 OneUptime이 아는 엔진이며 자체 주소를 가집니다. [지원되는 데이터베이스](#지원되는-데이터베이스)의 **트레이스에서 생성** 열을 참조하세요. 모든 고객이 호스트를 공유하는 클라우드 API(DynamoDB, BigQuery, Spanner, Firestore, Bigtable, Cosmos DB, Pinecone), 애플리케이션 안에서 실행되는 엔진(SQLite, DuckDB, H2, HyperSQL, Derby), OneUptime이 모르는 엔진은 트레이스에서 생성되지 않으니 직접 추가하세요.
-- 한 번의 실행이 살펴보는 15분 창 안에서 엔드포인트가 쿼리를 10개 이상 받았습니다. 그래서 일회성 스크립트는 데이터베이스를 만들지 않습니다. 클라이언트 라이브러리의 연결 관리 스팬(node-postgres의 `pg.connect`와 `pg-pool.connect`, `redis-connect`, `connect`, …)은 쿼리가 아니며, 여기에서도 데이터베이스의 **Queries**에서도 세지 않습니다.
+- 한 번의 실행이 살펴보는 15분 창 안에서 엔드포인트가 쿼리를 10개 이상 받았습니다. 그래서 일회성 스크립트는 데이터베이스를 만들지 않습니다. 클라이언트 라이브러리의 연결 관리 스팬(node-postgres의 `pg.connect`와 `pg-pool.connect`, `redis-connect`, `connect`, …)은 쿼리가 아니며, 여기에서도 데이터베이스의 **쿼리**에서도 세지 않습니다.
 - 프로젝트가 [자동 생성 한도](#자동-생성-한도) 미만입니다.
 
-데이터베이스로 가는 모든 CLIENT 스팬은 수집될 때 엔드포인트로도 태그가 지정됩니다. 따라서 데이터베이스가 엔드포인트를 소유하게 되면 **Queries from applications** 섹션과 **트레이스** 탭에 데이터베이스가 생성되기 전의 호출까지 포함해 그 엔드포인트로 가는 모든 호출이 표시됩니다. `server.address`가 있는 `db.client.*` 메트릭(예: `db.client.operation.duration`)도 같은 방식으로 태그가 지정됩니다.
+데이터베이스로 가는 모든 CLIENT 스팬은 수집될 때 엔드포인트로도 태그가 지정됩니다. 따라서 데이터베이스가 엔드포인트를 소유하게 되면 **애플리케이션에서 보낸 쿼리** 섹션과 **트레이스** 탭에 데이터베이스가 생성되기 전의 호출까지 포함해 그 엔드포인트로 가는 모든 호출이 표시됩니다. `server.address`가 있는 `db.client.*` 메트릭(예: `db.client.operation.duration`)도 같은 방식으로 태그가 지정됩니다.
 
 **클러스터와 호스트 목록.** 여러 호스트를 나열한 연결 문자열(`m1:27017,m2:27017,m3:27017`)은 클라이언트가 어떤 순서로 나열하든 하나의 데이터베이스입니다. MongoDB Atlas 멤버(`cluster0-shard-00-01.ab1cd.mongodb.net`)는 클러스터 이름을 딴 하나의 데이터베이스(`cluster0.ab1cd.mongodb.net`)가 되며, 관측된 각 멤버는 그 엔드포인트 중 하나가 됩니다. Cassandra 링, Redis Cluster, Elasticsearch 클러스터의 각 멤버나 ElastiCache 노드를 따로 보고하는 드라이버는 여전히 멤버마다 데이터베이스를 하나씩 만듭니다. 그 호스트 이름에는 어느 클러스터에 속하는지 알려 주는 정보가 없기 때문입니다. 하나를 남기고 나머지를 그 데이터베이스에 [병합](#엔드포인트와-단일-소유자-규칙)하세요.
 
@@ -713,13 +713,13 @@ OneUptime은 배치가 데이터베이스의 서버를 지정하거나 그 `oneu
 
 ### 애플리케이션이 사용하는 데이터베이스가 생성되지 않음
 
-아마 [생성 정책](#애플리케이션-트레이스에서)에 해당하지 않았을 것입니다. IP 주소, 로컬 전용 이름이나 단일 레이블 이름, Kubernetes 밖에서 호출한 한 네트워크 안에서만 확인되는 이름(`.internal`이나 `.local` 이름, 클러스터 로컬 이름), 엔진의 기본 포트가 아닌 32768 이상의 포트(예: 무작위로 게시된 Docker 포트), 지난 15분 동안 10개 미만의 쿼리(`pg.connect`와 `pg-pool.connect` 같은 연결 스팬은 세지 않음), 트레이스에서 생성되지 않는 엔진(공유 클라우드 API, 프로세스 내 엔진, OneUptime이 모르는 엔진), 또는 프로젝트의 [자동 생성 한도](#자동-생성-한도)입니다. 애플리케이션이 사용하는 주소로 직접 만드세요. 그 **Queries from applications** 섹션은 이미 저장된 스팬으로 채워집니다.
+아마 [생성 정책](#애플리케이션-트레이스에서)에 해당하지 않았을 것입니다. IP 주소, 로컬 전용 이름이나 단일 레이블 이름, Kubernetes 밖에서 호출한 한 네트워크 안에서만 확인되는 이름(`.internal`이나 `.local` 이름, 클러스터 로컬 이름), 엔진의 기본 포트가 아닌 32768 이상의 포트(예: 무작위로 게시된 Docker 포트), 지난 15분 동안 10개 미만의 쿼리(`pg.connect`와 `pg-pool.connect` 같은 연결 스팬은 세지 않음), 트레이스에서 생성되지 않는 엔진(공유 클라우드 API, 프로세스 내 엔진, OneUptime이 모르는 엔진), 또는 프로젝트의 [자동 생성 한도](#자동-생성-한도)입니다. 애플리케이션이 사용하는 주소로 직접 만드세요. 그 **애플리케이션에서 보낸 쿼리** 섹션은 이미 저장된 스팬으로 채워집니다.
 
 ### Kubernetes 데이터베이스가 감지되지 않음
 
 클러스터가 연결되어 있어야 하며(Kubernetes 에이전트 실행 중), 데이터베이스의 Pod 중 하나가 약 10분 동안 Ready 상태여야 합니다. `CrashLoopBackOff`의 Pod는 재시작할 때마다 새로 Ready가 됩니다. 애플리케이션 컨테이너도 실행하는 Pod, 데이터베이스 이미지의 클라이언트나 디버그 실행(직접, `sh -c`를 통해, 또는 `env`, `nohup`, `tini`, `dumb-init`, `docker-entrypoint.sh` 뒤에서), 포트를 선언하지 않은 `kubectl run` Pod, OneUptime이 인식하지 못하는 이미지, 연결 풀러는 데이터베이스가 아닙니다. 직접 만들고 그 Service 이름을 클러스터를 붙인 엔드포인트(`postgres.prod.svc.cluster.local:5432@my-cluster`)로 추가하세요. 그러면 클러스터 안의 애플리케이션에서 오는 호출이 일치합니다.
 
-### Queries from applications 섹션이 비어 있음
+### 애플리케이션에서 보낸 쿼리 섹션이 비어 있음
 
 스팬에 `db.system.name` / `db.system`이나 `server.address`가 없거나, 데이터베이스의 엔드포인트가 아닌 주소를 사용합니다. **엔드포인트** 탭과 **트레이스** 탐색기에 있는 스팬의 `server.address`를 비교하고, 없는 별칭을 추가하세요.
 
@@ -736,6 +736,6 @@ _연결 안 됨_: 이 데이터베이스에 대해 Database Agent나 Collector�
 :::cards
 - [메트릭 모니터](/docs/monitor/metrics-monitor): 데이터베이스의 `oneuptime.database.server.id`로 필터링해 그 엔진 메트릭에 알림을 겁니다.
 - [데이터베이스 상태 모니터](/docs/monitor/database-health-monitor): 에이전트 없이 프로브에서 PostgreSQL, MySQL, SQL Server를 검사합니다.
-- [OpenTelemetry](/docs/telemetry/open-telemetry): 애플리케이션을 계측해 데이터베이스 호출이 **Queries from applications**를 채우게 하세요.
+- [OpenTelemetry](/docs/telemetry/open-telemetry): 애플리케이션을 계측해 데이터베이스 호출이 **애플리케이션에서 보낸 쿼리**를 채우게 하세요.
 - [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents): 데이터베이스 AI 에이전트가 실행할 수 있는 작업과 수정이 작동하는 방식.
 :::

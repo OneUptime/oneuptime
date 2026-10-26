@@ -16,7 +16,7 @@
 | 來源 | 需要你提供什麼 | 為佇列頁面新增什麼 |
 | --- | --- | --- |
 | **應用程式追蹤** | 已檢測的應用程式（OpenTelemetry），請參閱 [為應用程式進行檢測](#為應用程式進行檢測) | 發布和取用的訊息、錯誤和處理時間、兩側的服務，以及追蹤本身 |
-| **Broker 指標**（一個 OpenTelemetry Collector） | 針對你的 broker 的 Collector 接收器或抓取設定，請參閱 [Broker 健康指標](#broker-健康指標) | **Broker health**：積壓、消費者落後、無效信件、最舊訊息的存在時間、節流以及 broker 本身的訊息速率 |
+| **Broker 指標**（一個 OpenTelemetry Collector） | 針對你的 broker 的 Collector 接收器或抓取設定，請參閱 [Broker 健康指標](#broker-健康指標) | **Broker 健康狀態**：積壓、消費者落後、無效信件、最舊訊息的存在時間、節流以及 broker 本身的訊息速率 |
 
 ```mermaid title="兩個來源，一個佇列頁面"
 flowchart TB
@@ -212,7 +212,7 @@ builder.Services.AddOpenTelemetry()
 
 broker 知道任何應用程式都看不到的事：有多少訊息在等待、每個消費者群組落後多少、什麼進入了無效信件佇列。下面的每一節都有一個系統的 Collector 設定：一份完整的 OpenTelemetry Collector 設定，以傳送到 OneUptime 的 OTLP 匯出器結尾。把遙測擷取金鑰（**專案設定 → 遙測與 APM → 擷取金鑰**）填入 `x-oneuptime-token`，如果你自行託管，把 `https://oneuptime.com` 取代為你自己的主機，並以 `otel/opentelemetry-collector-contrib` 0.161.0 或更新版本執行它（這裡的每份設定都已在 0.161.0 上驗證）。較新的 Collector 會在日誌中提示 `otlphttp` 已淘汰、應改用 `otlp_http`；這兩個名稱是同一個匯出器。要收集多個系統，請把它們的接收器合併到一個 Collector 中。
 
-每個佇列的 **Broker health** 區段會繪製其系統所列出的指標（量測值繪製其值，每期計數依間隔加總，計數器繪製為每秒速率），並依每個指標的需要合併佇列的序列（RabbitMQ 佇列的就緒訊息和未確認訊息相加；落後最多的消費者群組即為落後量）。Collector 傳送的所有內容也都在 **指標** 瀏覽器中。在佇列還沒有收到任何列出的指標時，該區段會顯示該系統的指標來自哪裡，並連結到本頁的對應小節。
+每個佇列的 **Broker 健康狀態** 區段會繪製其系統所列出的指標（量測值繪製其值，每期計數依間隔加總，計數器繪製為每秒速率），並依每個指標的需要合併佇列的序列（RabbitMQ 佇列的就緒訊息和未確認訊息相加；落後最多的消費者群組即為落後量）。Collector 傳送的所有內容也都在 **指標** 瀏覽器中。在佇列還沒有收到任何列出的指標時，該區段會顯示該系統的指標來自哪裡，並連結到本頁的對應小節。
 
 ### Amazon SNS
 
@@ -791,7 +791,7 @@ metrics
   });
 ```
 
-它會顯示在佇列的 **指標** 分頁上。OneUptime 沒有自己的 BullMQ 指標可以在 **Broker health** 下繪製。
+它會顯示在佇列的 **指標** 分頁上。OneUptime 沒有自己的 BullMQ 指標可以在 **Broker 健康狀態** 下繪製。
 
 ### Google Cloud Pub/Sub
 
@@ -945,9 +945,9 @@ service:
 
 佇列以基於其 broker 指標的 **指標** 監測器監看（請參閱 [指標監控](/docs/monitor/metrics-monitor)）。
 
-**從佇列頁面。** **Broker health** 中的每個量測值和每個每期計數都有 **Create monitor**：它會開啟一個基於該指標的新指標監測器，篩選條件為在該指標中指明此佇列的確切屬性值，並在指標所測量的內容有明顯不良方向時（積壓、無效信件、消費者落後、最舊訊息的存在時間、節流或錯誤）帶有起始閾值。其中四個起始時不帶閾值，因為固定閾值對它們會產生誤導：Kafka 的分割區落後量（`kafka.consumer_group.lag`），其消費者群組的落後量已經涵蓋它；ActiveMQ 的平均佇列時間（`activemq.message.enqueue.average_duration`、`activemq.message.wait_time.avg`），這是自 broker 啟動以來的平均值，在停滯之後很長時間仍保持偏高；以及 Pulsar 的積壓時間（`pulsar_storage_backlog_age_seconds`），在 broker 無法判斷時其值為 `-1`。計數器沒有監測器：它們的圖表顯示的是速率，而監測器沒有速率函式。
+**從佇列頁面。** **Broker 健康狀態** 中的每個量測值和每個每期計數都有 **Create monitor**：它會開啟一個基於該指標的新指標監測器，篩選條件為在該指標中指明此佇列的確切屬性值，並在指標所測量的內容有明顯不良方向時（積壓、無效信件、消費者落後、最舊訊息的存在時間、節流或錯誤）帶有起始閾值。其中四個起始時不帶閾值，因為固定閾值對它們會產生誤導：Kafka 的分割區落後量（`kafka.consumer_group.lag`），其消費者群組的落後量已經涵蓋它；ActiveMQ 的平均佇列時間（`activemq.message.enqueue.average_duration`、`activemq.message.wait_time.avg`），這是自 broker 啟動以來的平均值，在停滯之後很長時間仍保持偏高；以及 Pulsar 的積壓時間（`pulsar_storage_backlog_age_seconds`），在 broker 無法判斷時其值為 `-1`。計數器沒有監測器：它們的圖表顯示的是速率，而監測器沒有速率函式。
 
-**計數器。** RabbitMQ、Apache ActiveMQ 和 Apache RocketMQ 的計數器以累計總和送達 Collector，`cumulative_to_delta` 處理器（較舊的 Collector 中為 `cumulativetodelta`）會把它們轉換為監測器可以據以發出警示的差值。請在專屬的名稱下轉換一份複本，絕不要轉換計數器本身：佇列頁面把這些計數器都當作累計總數讀取，並繪製其成長速度，因此被轉換為差值的計數器在 **Broker health** 下和 **指標** 分頁上繪製出的會是無意義的內容：穩定的流量會顯示為每秒 0 則訊息。Apache Kafka 的位移（`kafka.consumer_group.offset_sum`、`kafka.partition.current_offset`）以及 Apache Pulsar 的 `pulsar_in_messages_total` 和 `pulsar_out_messages_total` 以量測值送達，`cumulative_to_delta` 不會處理它們：請改為針對這些系統的落後量和積壓量測值設定警示。
+**計數器。** RabbitMQ、Apache ActiveMQ 和 Apache RocketMQ 的計數器以累計總和送達 Collector，`cumulative_to_delta` 處理器（較舊的 Collector 中為 `cumulativetodelta`）會把它們轉換為監測器可以據以發出警示的差值。請在專屬的名稱下轉換一份複本，絕不要轉換計數器本身：佇列頁面把這些計數器都當作累計總數讀取，並繪製其成長速度，因此被轉換為差值的計數器在 **Broker 健康狀態** 下和 **指標** 分頁上繪製出的會是無意義的內容：穩定的流量會顯示為每秒 0 則訊息。Apache Kafka 的位移（`kafka.consumer_group.offset_sum`、`kafka.partition.current_offset`）以及 Apache Pulsar 的 `pulsar_in_messages_total` 和 `pulsar_out_messages_total` 以量測值送達，`cumulative_to_delta` 不會處理它們：請改為針對這些系統的落後量和積壓量測值設定警示。
 
 附帶一份 `rabbitmq.message.published` 複本以供警示的 [RabbitMQ](#rabbitmq) 設定：
 

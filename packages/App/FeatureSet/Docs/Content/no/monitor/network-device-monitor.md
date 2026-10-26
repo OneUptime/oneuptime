@@ -62,7 +62,7 @@ Under den sier én linje om noe oppretter en hendelse når en enhet går ned: hv
 
 Før noe er lagt til, leder oversikten deg i stedet gjennom tre trinn. **Sett en sonde på nettverket ditt**: en sonde pinger og går gjennom enhetene dine fra innsiden av nettverket deres, så **Legg til en sonde** gir en sonde navn, viser kommandoen som starter den, og følger med når den kobler til. **Legg til enhetene dine**: **Finn enheter** skanner et adresseområde slik at du kan velge hva du vil legge til, best for et helt nettverk eller en ny lokasjon, og **Legg til én enhet** legger til én etter IP-adresse eller vertsnavn. **Få beskjed når en enhet går ned**: **Sett opp varsler** åpner [varslingspolicyene](#varslingspolicyer), der den anbefalte policyen er ett klikk unna. På OneUptime Cloud krever det Growth-abonnementet å [legge til en sonde](/docs/probe/custom-probe): under det sier trinnet fra og lenker i stedet til faktureringsinnstillingene dine, og OneUptimes egne sonder på internett kan fortsatt sjekke enheter med en offentlig adresse.
 
-Nettverk-menyen holder det du åpner hver dag synlig: **Oversikt**, **Devices**, **Lokasjoner**, **Kart**, **Traffic**, **Hendelser** og **Discovery**. Resten er foldet inn i seksjoner, og en seksjon folder seg ut av seg selv på hver av sidene sine:
+Nettverk-menyen holder det du åpner hver dag synlig: **Oversikt**, **Enheter**, **Lokasjoner**, **Kart**, **Traffic**, **Hendelser** og **Discovery**. Resten er foldet inn i seksjoner, og en seksjon folder seg ut av seg selv på hver av sidene sine:
 
 | Seksjon | Sider |
 | --- | --- |
@@ -75,7 +75,7 @@ Nettverk-menyen holder det du åpner hver dag synlig: **Oversikt**, **Devices**,
 
 :::steps
 ### Åpne listen over enheter
-Gå til **Nettverk → Devices** og klikk på **Legg til enhet**. **Legg til enhet** på Nettverk-**Oversikt** åpner det samme skjemaet.
+Gå til **Nettverk → Enheter** og klikk på **Legg til enhet**. **Legg til enhet** på Nettverk-**Oversikt** åpner det samme skjemaet.
 
 ### Skriv enhetens adresse
 Skriv IP-adressen eller vertsnavnet i **Vertsnavn**. La **Navn** stå tomt for å gi enheten navn etter vertsnavnet.
@@ -140,7 +140,7 @@ Påloggingsinformasjon som er skrevet på enheten, vinner over en påloggingspro
 
 ## Endre mange enheter samtidig
 
-En discovery-skanning av en kundes nettverk henter inn dusinvis av enheter som hører til én lokasjon, deler én rolle og kommer fra én produsent. Du åpner dem ikke én om gangen: merk dem i listen **Devices**, ved å krysse av rader eller merke alle enhetene filtrene treffer, og åpne **Massehandlinger**.
+En discovery-skanning av en kundes nettverk henter inn dusinvis av enheter som hører til én lokasjon, deler én rolle og kommer fra én produsent. Du åpner dem ikke én om gangen: merk dem i listen **Enheter**, ved å krysse av rader eller merke alle enhetene filtrene treffer, og åpne **Massehandlinger**.
 
 | Handling | Hva den gjør |
 | --- | --- |
@@ -184,7 +184,7 @@ En enhet der både ping og walk feiler, er rett og slett **Nede**, så merkingen
 
 ### Slik leser du en enhets status
 
-Hvert sted som viser en enhet — listen Devices, en lokasjons Devices-side, oversikten, kartet — bruker de samme tre avgjørelsene og de samme tilleggene ved siden av.
+Hvert sted som viser en enhet — listen Enheter, en lokasjons Enheter-side, oversikten, kartet — bruker de samme tre avgjørelsene og de samme tilleggene ved siden av.
 
 | Avgjørelse | Betyr |
 | --- | --- |
@@ -194,12 +194,12 @@ Hvert sted som viser en enhet — listen Devices, en lokasjons Devices-side, ove
 
 | Tillegg | Vises når | Hva du gjør |
 | --- | --- | --- |
-| **Stale** | Ingen polling er forsøkt på godt over enhetens intervall. | Kontroller at enhetens sonde er online og henger med flåten sin. |
+| **Foreldet** | Ingen polling er forsøkt på godt over enhetens intervall. | Kontroller at enhetens sonde er online og henger med flåten sin. |
 | **No probe** | Enheten polles av en sonde, men har ingen, eller pollingen er slått av. | Tildel en sonde som kan nå den; ingenting poller den før det. |
 | **Ingen overvåking** | Enheten bruker [overstyringen med bundet monitor](#overstyringen-med-bundet-monitor), og ingenting er bundet. | Bind en monitor, eller bytt den tilbake til polling med sonde. |
 | **SNMP failing** | Oppe på ping, men det siste SNMP-walket feilet. | Kontroller påloggingsinformasjonen, SNMP-agenten eller en ACL. |
 
-Listen **Devices** har et filter **SNMP** med tre verdier: **OK** (det siste walket lyktes), **Feiler** (det siste walket feilet) og **Not configured** (bare ping, ingen påloggingsinformasjon eller aldri pollet). "Hvilke enheter har påloggingsinformasjon som har sluttet å virke" er ett klikk unna. Listens kolonne **Interfaces (Up / Down)** viser **Ingen SNMP** i stedet for `0 / 0` for en enhet som pinges og aldri walkes: null fungerende porter ville vært en annen påstand, og en feil påstand.
+Listen **Enheter** har et filter **SNMP** med tre verdier: **OK** (det siste walket lyktes), **Feiler** (det siste walket feilet) og **Not configured** (bare ping, ingen påloggingsinformasjon eller aldri pollet). "Hvilke enheter har påloggingsinformasjon som har sluttet å virke" er ett klikk unna. Listens kolonne **Interfaces (Up / Down)** viser **Ingen SNMP** i stedet for `0 / 0` for en enhet som pinges og aldri walkes: null fungerende porter ville vært en annen påstand, og en feil påstand.
 
 ## SNMP-påloggingsinformasjon og påloggingsprofiler
 
@@ -240,13 +240,13 @@ På enhetens side **Innstillinger** har **Rediger innstillinger** en avkrysnings
 
 ### Samlet
 
-Merk enheter i listen **Devices** og bruk:
+Merk enheter i listen **Enheter** og bruk:
 
 - **Set SNMP Credential Profile** / **Clear SNMP Credential Profile**: knytt en profil til et utvalg, eller ta den av.
 - **Switch to Probe Polling**: for enheter med overstyringen med bundet monitor. Velg en sonde, så pinges hver merkede enhet etter tidsplanen sin fra da av, og walkes når den har påloggingsinformasjon. En monitor som allerede er bundet, forblir bundet; enhetens status kommer nå fra sonden.
 - **Create Ping Monitors**: for enheter med overstyringen med bundet monitor; oppretter en Ping-monitor på hver enhets vertsnavn og binder den, slik at enheten viser Up eller Down.
 
-Siden **Devices** viser et banner når prosjektet har enheter med overstyringen med bundet monitor uten noe bundet — enheter som ingenting poller og ingenting rapporterer om — og lenker til utvalget som retter dem.
+Siden **Enheter** viser et banner når prosjektet har enheter med overstyringen med bundet monitor uten noe bundet — enheter som ingenting poller og ingenting rapporterer om — og lenker til utvalget som retter dem.
 
 ## Lokasjonens standardverdier for overvåking
 
@@ -322,7 +322,7 @@ I redigeringsverktøyet **Health OIDs** bruker **Vendor Health Template** et fer
 
 Malens OID-er kopieres til enhetens egen liste, der du kan beskjære eller utvide dem. Etter at det første walket har identifisert produsenten, tilbyr enhetens oversikt den tilsvarende malen så lenge den vil legge til noe, og **Legg til tilstandssjekker** legger den til med ett klikk. Matchingen leser enhetens `sysObjectID`, og dens `sysDescr` der ett enterprisenummer rommer to operativsystemer: Extreme Fabric Engine på universell maskinvare rapporterer det samme enterprisenummeret (1916) som EXOS, og bare beskrivelsen (`…-FabricEngine (9.0.4.0)`) skiller dem. UniFi-tilgangspunkter skilles fra Ubiquitis rutere på samme måte (`U6-Pro 6.6.50.15098`), også når eldre fastvare svarer med Net-SNMP-grenen, og IQ Engine-tilgangspunkter fra Aerohive-svitsjene som deler grenen deres (`AP230, HiveOS 8.2r1`).
 
-Enheter med **Auto-Apply Vendor Health Template** slått på får malens OID-er og tabeller ved første polling: enheter som en automatisk importregel henter inn, og enheter som importeres fra **Se gjennom resultater** med bryteren for produsentmal slått på, slik den er med mindre du slår den av. For å gi mange enheter malen sin samtidig, som en oppdaget flåte fra før bryteren fantes, merker du dem i listen **Devices** og bruker **Bruk produsentmal** (se [Endre mange enheter samtidig](#endre-mange-enheter-samtidig)).
+Enheter med **Auto-Apply Vendor Health Template** slått på får malens OID-er og tabeller ved første polling: enheter som en automatisk importregel henter inn, og enheter som importeres fra **Se gjennom resultater** med bryteren for produsentmal slått på, slik den er med mindre du slår den av. For å gi mange enheter malen sin samtidig, som en oppdaget flåte fra før bryteren fantes, merker du dem i listen **Enheter** og bruker **Bruk produsentmal** (se [Endre mange enheter samtidig](#endre-mange-enheter-samtidig)).
 
 Å bruke en produsentmal er en engangskopi, så ingenting spres når malen endres. For alt utover én enkelt enhet bruker du heller en **OID Collection Template**; produsentmalene tilbys som utgangspunkt når du oppretter en.
 
@@ -352,7 +352,7 @@ En OID i en mal samles inn slik den er skrevet, så en OID som peker på én rad
 Det finnes tre måter å knytte enheter på, og i en flåte som discovery fortsetter å finne, er den tredje viktigst:
 
 - Én enhet om gangen, på enhetens kort **Polling & Data Collection**.
-- Samlet, ved å merke enheter i listen **Devices** og bruke **Set OID Collection Template**. Listens kolonne **Mal** viser hvilke enheter som er knyttet til hva.
+- Samlet, ved å merke enheter i listen **Enheter** og bruke **Set OID Collection Template**. Listens kolonne **Mal** viser hvilke enheter som er knyttet til hva.
 - Automatisk, ved å sette en OID Collection Template på en automatisk importregel, slik at hver enhet en skanning importerer, knyttes til i samme øyeblikk som den opprettes.
 
 En enhet samler først inn malens OID-er og deretter sine egne **Device-Specific Health OIDs**. Når begge angir samme OID, samles den inn én gang, med enhetens navn og beskrivelse som vinner, og malens oppføringer beholder plassen sin, så enhetsspesifikke tillegg kan aldri skyve dem ut.
@@ -638,12 +638,12 @@ Enhetens egne navn kommer først fordi det er navnene eierne bruker: en Windows-
 
 **Gi enheter navn etter det korte vertsnavnet** kutter et fullt kvalifisert navn til den første etiketten: `core-sw-01.corp.example.com` importeres som `core-sw-01`. Det gjelder et omvendt DNS-navn og et `sysName` som er et fullt kvalifisert vertsnavn; alt annet (`Core Switch`, `ubuntu-22.04`, en IP-adresse) blir stående som det er. Det endrer bare hva enhetene heter, så det trengs ingen ny skanning: **Se gjennom resultater** og automatiske importregler bruker det neste gang de gir en vert navn, og enheter som allerede er importert, beholder navnene sine.
 
-En enhet som er importert fra en vert med et omvendt DNS-navn, beholder hele navnet som sitt **DNS Name**, enten skanningen bruker korte navn eller ikke. Det vises på enhetens oversikt, søket i listen **Devices** finner det, og lokasjonstildelingsregler matcher vertsnavnmønstre mot det, så en regel `*.store-0660.corp.example.com` fortsetter å plassere en enhet som har mistet domenet i navnet. Et NetBIOS-navn lagres aldri som DNS Name: verten rapporterer det om seg selv, og det er ikke en DNS-oppføring.
+En enhet som er importert fra en vert med et omvendt DNS-navn, beholder hele navnet som sitt **DNS Name**, enten skanningen bruker korte navn eller ikke. Det vises på enhetens oversikt, søket i listen **Enheter** finner det, og lokasjonstildelingsregler matcher vertsnavnmønstre mot det, så en regel `*.store-0660.corp.example.com` fortsetter å plassere en enhet som har mistet domenet i navnet. Et NetBIOS-navn lagres aldri som DNS Name: verten rapporterer det om seg selv, og det er ikke en DNS-oppføring.
 
 > [!WARNING]
 > Etikett- og eierregler matcher på enhetens navn. Et mønster som er skrevet for DNS-navn (`*.wbhq.com`) eller fulle navn (`*.corp.example.com`), treffer ikke en enhet som har sitt eget navn eller det korte navnet. Lokasjonstildelingsregler prøver også DNS Name, så de fortsetter å treffe.
 
-For å korte ned enheter du allerede har importert, merker du dem i listen **Devices** og bruker **Shorten Names to Hostname**. Bekreftelsen viser hvor mange enheter som får nytt navn, med eksempler. En enhet uten DNS Name beholder det fulle navnet som DNS Name, med mindre det navnet også er SNMP-systemnavnet eller er langt nok til å ha blitt kuttet ved import. En enhet hoppes over når en annen enhet allerede har det korte navnet, når to merkede enheter ville fått det samme korte navnet, eller når navnet er endret etter at du merket den. Lokasjonstildelingsregler kjøres på nytt for hver enhet som får nytt navn; etikett- og eierregler gjør ikke det, så bruk [Run Now](/docs/configuration/run-rules-now) på en regel som matcher enhetsnavn. Eksisterende Ping-monitorer beholder navnene sine, og målingsserier merket med enhetsnavnet starter en ny serie under det nye navnet.
+For å korte ned enheter du allerede har importert, merker du dem i listen **Enheter** og bruker **Shorten Names to Hostname**. Bekreftelsen viser hvor mange enheter som får nytt navn, med eksempler. En enhet uten DNS Name beholder det fulle navnet som DNS Name, med mindre det navnet også er SNMP-systemnavnet eller er langt nok til å ha blitt kuttet ved import. En enhet hoppes over når en annen enhet allerede har det korte navnet, når to merkede enheter ville fått det samme korte navnet, eller når navnet er endret etter at du merket den. Lokasjonstildelingsregler kjøres på nytt for hver enhet som får nytt navn; etikett- og eierregler gjør ikke det, så bruk [Run Now](/docs/configuration/run-rules-now) på en regel som matcher enhetsnavn. Eksisterende Ping-monitorer beholder navnene sine, og målingsserier merket med enhetsnavnet starter en ny serie under det nye navnet.
 
 :::details NetBIOS-navn: slik fungerer oppslaget
 Windows- og Samba-verter har ofte ingen SNMP-agent, så uten dette vises de med et omvendt DNS-navn som eierne kanskje ikke bruker, eller med adressen. Med **Slå opp Windows-navn (NetBIOS)** slått på spør sonden etter skanningen hver vert som mangler SNMP-systemnavn, om NetBIOS-navnet, med en NBSTAT-forespørsel til UDP 137, verter uten omvendt DNS-navn først. Alternativet er slått på for nye skanninger og av for skanninger som ble opprettet før det fantes; å slå det på eller av beholder skanningens resultater og trer i kraft neste gang skanningen kjører. Det gjøres etter beste evne:

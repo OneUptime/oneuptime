@@ -77,14 +77,14 @@ OneUptime finder applikationen ud fra `service.name` uden hensyn til store og sm
 
 | Hvor | Hvad det viser |
 | --- | --- |
-| **Oversigt** | Felter for **Page loads**, **Page load time (p95)**, **Begivenheder**, **Fejlrate**, **Event duration (p95)**, **Undtagelser**, **Klienter** og **Sessions recorded**, og trendgrafer over det tidsrum, du vælger. |
+| **Oversigt** | Felter for **Sideindlæsninger**, **Sideindlæsningstid (p95)**, **Begivenheder**, **Fejlrate**, **Event duration (p95)**, **Undtagelser**, **Klienter** og **Sessions recorded**, og trendgrafer over det tidsrum, du vælger. |
 | **Core Web Vitals** | Et kort i oversigten med LCP, INP, CLS, FCP og TTFB, hver vurderet efter Googles grænser, og INP for hver rute i en single-page-app. Se [Core Web Vitals](/docs/rum/web-vitals) og [Single-page-apps](/docs/rum/web-vitals#single-page-apps). |
 | **Metrikker**, **Protokoller**, **Spor** | Telemetri-explorerne, begrænset til denne applikation. |
 | **Klienter** | De browserplatforme og enhedsmodeller, applikationen er blevet brugt på: en kort liste pr. platform, aldrig en række pr. bruger. |
 | **Sessionsafspilning** | Optagelser af rigtige sessioner ved siden af deres fejl, spor og logs: se [Sessionsafspilning](/docs/telemetry/session-replay). |
 | **Anbefalinger** | Færdige monitorer til applikationen: dårlige Core Web Vitals, mislykkede forespørgsler, browserundtagelser og, så snart den optager, budgetter for Session Replay. |
 
-Tallene kommer fra de spans, din instrumentering sender. **Page loads** tæller det `documentLoad`-span, som sideindlæsningsinstrumenteringen registrerer ved hver fuld indlæsning, så et ruteskift i en single-page-app er ikke en sideindlæsning.
+Tallene kommer fra de spans, din instrumentering sender. **Sideindlæsninger** tæller det `documentLoad`-span, som sideindlæsningsinstrumenteringen registrerer ved hver fuld indlæsning, så et ruteskift i en single-page-app er ikke en sideindlæsning.
 
 En applikation viser **Forbundet**, så længe der kommer telemetri, og **Afbrudt** efter 15 minutter uden. Tid, hvor OneUptime selv var nede eller var ved at indhente sin indtagelseskø, tæller ikke med i de 15 minutter.
 
