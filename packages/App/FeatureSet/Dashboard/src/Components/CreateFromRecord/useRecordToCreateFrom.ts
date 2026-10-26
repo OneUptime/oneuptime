@@ -2,6 +2,7 @@ import CephCluster from "Common/Models/DatabaseModels/CephCluster";
 import StorageArray from "Common/Models/DatabaseModels/StorageArray";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
+import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
 import Host from "Common/Models/DatabaseModels/Host";
@@ -52,6 +53,7 @@ const MODEL_TYPES: Record<CreateFromRecordKind, { new (): BaseModel }> = {
   [CreateFromRecordKind.DockerSwarmCluster]: DockerSwarmCluster,
   [CreateFromRecordKind.IoTFleet]: IoTFleet,
   [CreateFromRecordKind.DatabaseServer]: DatabaseServer,
+  [CreateFromRecordKind.CloudResource]: CloudResource,
   [CreateFromRecordKind.NetworkSite]: NetworkSite,
   [CreateFromRecordKind.Service]: Service,
   [CreateFromRecordKind.StatusPage]: StatusPage,

@@ -38,6 +38,8 @@ import {
   getCloudMonitoredResourceNameCandidates,
 } from "../../Types/Cloud/CloudMonitoredResource";
 import { mdText, MarkdownText } from "../../Utils/Markdown/FeedMarkdown";
+import { CloudResourceRelationship } from "../../Types/Cloud/CloudInventory";
+import Dictionary from "../../Types/Dictionary";
 
 const LAST_SEEN_CACHE_NAMESPACE: string = "cloud-resource-last-seen";
 const LAST_SEEN_THROTTLE_SECONDS: number = 60;
@@ -103,6 +105,23 @@ interface MonitoredResourceCount {
   count: number;
   readAtMs: number;
 }
+
+/*
+ * What a cloud connection's inventory knows of a resource beyond its
+ * metrics (CloudInventory): written when the row is created, and by every
+ * listing after that.
+ */
+export interface CloudResourceInventoryColumns {
+  cloudTags: Dictionary<string>;
+  cloudProperties: JSONObject;
+  cloudRelationships: Array<CloudResourceRelationship>;
+  cloudEndpoints: Array<string>;
+  // A hash of all of it (CloudConnectionResourceSync.getInventoryFingerprint).
+  cloudInventoryFingerprint?: string | undefined;
+}
+
+// Rows marked listed in one statement at most.
+const INVENTORY_TOUCH_BATCH_SIZE: number = 1000;
 
 export interface CloudMonitoredResourceFindOrCreateResult {
   // The row, or null when it does not exist and may not be created now.
@@ -535,6 +554,8 @@ export class Service extends ProjectReferencesService<Model> {
   public async findOrCreateMonitoredResource(data: {
     projectId: ObjectID;
     resource: CloudMonitoredResource;
+    // A resource an inventory listed: what it knows, set on the new row.
+    inventory?: CloudResourceInventoryColumns | undefined;
   }): Promise<CloudMonitoredResourceFindOrCreateResult> {
     const resourceIdentifier: string = buildCloudMonitoredResourceIdentifier(
       data.resource,
@@ -573,6 +594,7 @@ export class Service extends ProjectReferencesService<Model> {
         resource: data.resource,
         resourceIdentifier: resourceIdentifier,
         name: name,
+        inventory: data.inventory,
       });
     } catch (error) {
       const winner: Model | null = await this.findMonitoredResourceRow(
@@ -601,6 +623,7 @@ export class Service extends ProjectReferencesService<Model> {
         resource: data.resource,
         resourceIdentifier: resourceIdentifier,
         name: uniqueName,
+        inventory: data.inventory,
       });
     }
 
@@ -644,6 +667,146 @@ export class Service extends ProjectReferencesService<Model> {
         .digest("hex"),
       describe: `cloud resource ${data.cloudResourceId.toString()} (${data.resource.provider} ${data.resource.resourceType})`,
     });
+  }
+
+  /**
+   * A resource an inventory listed: it is alive (listed is alive, so a
+   * resource with no metrics OneUptime reads never goes "not reporting"),
+   * and what the inventory knows of it replaces what the last listing did.
+   * The name is never touched: a person may have renamed it. Ignores hooks:
+   * a listing is a reading, not an edit, and writes no feed item.
+   */
+  @CaptureSpan()
+  public async recordInventoryListing(data: {
+    cloudResourceId: ObjectID;
+    resource: CloudMonitoredResource;
+    inventory: CloudResourceInventoryColumns;
+    listedAt: Date;
+  }): Promise<void> {
+    /*
+     * The attributes that select the resource's metrics are left as they
+     * are: metrics that arrive in another shape (a JSON metric stream) wrote
+     * theirs, and a listing must not point the resource's charts elsewhere.
+     */
+    const columns: PartialEntity<Model> = this.getMonitoredResourceColumns(
+      data.resource,
+    );
+    delete columns.telemetryAttributes;
+
+    await this.updateOneById({
+      id: data.cloudResourceId,
+      data: {
+        ...columns,
+        ...data.inventory,
+        inventoriedAt: data.listedAt,
+        lastSeenAt: data.listedAt,
+        otelCollectorStatus: "connected",
+      } as never,
+      props: { isRoot: true, ignoreHooks: true },
+    });
+  }
+
+  /**
+   * Resources a listing said the same of as the last one did: only marked
+   * listed - when, and alive (lastSeenAt never moves back) - in one
+   * statement per thousand rows, pinned to the project. Raw SQL on purpose:
+   * a listing is a reading, not an edit, and writes no feed item. Returns
+   * how many rows were marked.
+   */
+  @CaptureSpan()
+  public async markListedUnchanged(data: {
+    projectId: ObjectID;
+    cloudResourceIds: Array<ObjectID>;
+    listedAt: Date;
+  }): Promise<number> {
+    let marked: number = 0;
+
+    for (
+      let start: number = 0;
+      start < data.cloudResourceIds.length;
+      start += INVENTORY_TOUCH_BATCH_SIZE
+    ) {
+      const ids: Array<string> = data.cloudResourceIds
+        .slice(start, start + INVENTORY_TOUCH_BATCH_SIZE)
+        .map((id: ObjectID): string => {
+          return id.toString();
+        });
+
+      const rows: unknown = await this.getRepository().manager.query(
+        `UPDATE "CloudResource"
+          SET "inventoriedAt" = $3,
+            "lastSeenAt" = GREATEST(COALESCE("lastSeenAt", $3), $3),
+            "otelCollectorStatus" = 'connected'
+          WHERE "projectId" = $1
+            AND "_id" = ANY($2::uuid[])
+            AND "deletedAt" IS NULL
+          RETURNING "_id"`,
+        [data.projectId.toString(), ids, data.listedAt],
+      );
+
+      marked += countReturnedRows(rows);
+    }
+
+    return marked;
+  }
+
+  /**
+   * The live resources of a project that answer on any of the host names
+   * or addresses given (CloudResource.cloudEndpoints), at most `limit`, by
+   * id. Raw SQL on purpose: "the endpoint list holds one of these" is a
+   * jsonb containment the query builder cannot say. Pinned to the project;
+   * callers read the rows themselves, with the caller's own rights.
+   */
+  @CaptureSpan()
+  public async findIdsByEndpoints(data: {
+    projectId: ObjectID;
+    endpoints: Array<string>;
+    limit: number;
+  }): Promise<Array<ObjectID>> {
+    const endpoints: Array<string> = Array.from(
+      new Set<string>(
+        data.endpoints
+          .map((endpoint: string): string => {
+            return endpoint.trim().toLowerCase();
+          })
+          .filter((endpoint: string): boolean => {
+            return endpoint.length > 0;
+          }),
+      ),
+    );
+
+    if (endpoints.length === 0 || data.limit <= 0) {
+      return [];
+    }
+
+    const rows: unknown = await this.getRepository().manager.query(
+      `SELECT "_id"
+        FROM "CloudResource"
+        WHERE "projectId" = $1
+          AND "deletedAt" IS NULL
+          AND "isArchived" = false
+          AND jsonb_typeof("cloudEndpoints") = 'array'
+          AND "cloudEndpoints" ?| $2::text[]
+        ORDER BY "_id"
+        LIMIT $3`,
+      [data.projectId.toString(), endpoints, data.limit],
+    );
+
+    return (Array.isArray(rows) ? rows : [])
+      .map((row: unknown): string => {
+        const record: Record<string, unknown> =
+          row && typeof row === "object"
+            ? (row as Record<string, unknown>)
+            : {};
+
+        return String(record["_id"] || "");
+      })
+      .filter((id: string): boolean => {
+        return ObjectID.isValidUUID(id);
+      })
+      .map((id: string): ObjectID => {
+        return new ObjectID(id);
+      });
   }
 
   /**
@@ -895,6 +1058,7 @@ export class Service extends ProjectReferencesService<Model> {
     resource: CloudMonitoredResource;
     resourceIdentifier: string;
     name: string;
+    inventory?: CloudResourceInventoryColumns | undefined;
   }): Promise<Model> {
     const row: Model = new Model();
     row.projectId = data.projectId;
@@ -908,6 +1072,15 @@ export class Service extends ProjectReferencesService<Model> {
       data.resource,
     );
     Object.assign(row, columns);
+
+    /*
+     * Set before the create, so the label and owner rules - which run on
+     * create - can match the resource's tags.
+     */
+    if (data.inventory) {
+      Object.assign(row, data.inventory);
+      row.inventoriedAt = OneUptimeDate.getCurrentDate();
+    }
 
     return await this.create({
       data: row,

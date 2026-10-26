@@ -69,7 +69,7 @@ Intet sendes, før du vælger en statusside: en begivenhed, der ikke vises på n
 
 To ting udfylder formularen for dig undervejs:
 
-- **Tilknyttede ressourcer.** Når du vælger en monitor, tilføjes de værter, klynger, tjenester og andre ressourcer, den er knyttet til, under **Andre berørte ressourcer**, og en linje under feltet nævner dem. Fjern dem, du ikke vil have.
+- **Tilknyttede ressourcer.** Når du vælger en monitor, tilføjes de værter, klynger, tjenester og andre ressourcer, den er knyttet til, under **Andre berørte ressourcer**, og en linje under feltet nævner dem. Fjern dem, du ikke vil have. Cloudressourcer tilføjes ikke: En vedligeholdelsesbegivenhed indeholder dem ikke.
 - **Foreslåede statussider.** Under **Vis begivenhed på disse statussider** foreslås de sider, der viser dine monitorer: klik på en sides navn for at tilføje den, eller på **Tilføj alle**. Intet vælges for dig. Se [Planlagte vedligeholdelsesbegivenheder](/docs/status-pages/subscribers#planlagte-vedligeholdelsesbegivenheder).
 
 ## Start fra en ressource eller en skabelon

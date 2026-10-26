@@ -35,6 +35,10 @@ import React, {
  * activity tables by populating one of these keys with an `Includes`
  * over the current resource id — this component does the same for the
  * count cards so the numbers match what the filtered pages show.
+ *
+ * `cloudResources` is on Incident and Alert only - a maintenance window
+ * does not hold cloud resources - so a cloud resource's page passes no
+ * scheduledMaintenanceRoute, and draws no maintenance card.
  */
 export type ResourceQueryKey =
   | "hosts"
@@ -46,6 +50,7 @@ export type ResourceQueryKey =
   | "cephClusters"
   | "storageArrays"
   | "databaseServers"
+  | "cloudResources"
   | "services";
 
 export interface ComponentProps {
@@ -53,7 +58,8 @@ export interface ComponentProps {
   resourceQueryKey: ResourceQueryKey;
   incidentsRoute: Route;
   alertsRoute: Route;
-  scheduledMaintenanceRoute: Route;
+  // Absent: the resource has no maintenance, and no card counts it.
+  scheduledMaintenanceRoute?: Route | undefined;
   /*
    * Change this value (e.g. a last-refreshed timestamp) to make the cards
    * re-fetch their counts — pages pass their auto-refresh signal here so
@@ -158,6 +164,11 @@ const ResourceActivityCards: FunctionComponent<ComponentProps> = (
     })();
 
     const maintenancePromise: Promise<void> = (async (): Promise<void> => {
+      if (!props.scheduledMaintenanceRoute) {
+        setIsMaintenanceLoading(false);
+        return;
+      }
+
       try {
         const states: Array<ScheduledMaintenanceState> =
           await ScheduledMaintenanceStateUtil.getActiveScheduledMaintenanceStates(
@@ -207,6 +218,8 @@ const ResourceActivityCards: FunctionComponent<ComponentProps> = (
     return count.toString();
   };
 
+  const showsMaintenance: boolean = Boolean(props.scheduledMaintenanceRoute);
+
   const cards: Array<CardData> = [
     {
       title: "Active Incidents",
@@ -240,22 +253,26 @@ const ResourceActivityCards: FunctionComponent<ComponentProps> = (
           : "text-gray-900",
       to: props.alertsRoute,
     },
-    {
-      title: "Scheduled Maintenance",
-      description: "Ongoing or upcoming maintenance for this resource.",
-      count: maintenanceCount,
-      isLoading: isMaintenanceLoading,
-      hasError: hasMaintenanceError,
-      icon: IconProp.Clock,
-      iconBg: "bg-indigo-50",
-      iconText: "text-indigo-600",
-      iconRing: "ring-indigo-200",
-      countText:
-        maintenanceCount !== null && maintenanceCount > 0
-          ? "text-indigo-600"
-          : "text-gray-900",
-      to: props.scheduledMaintenanceRoute,
-    },
+    ...(props.scheduledMaintenanceRoute
+      ? [
+          {
+            title: "Scheduled Maintenance",
+            description: "Ongoing or upcoming maintenance for this resource.",
+            count: maintenanceCount,
+            isLoading: isMaintenanceLoading,
+            hasError: hasMaintenanceError,
+            icon: IconProp.Clock,
+            iconBg: "bg-indigo-50",
+            iconText: "text-indigo-600",
+            iconRing: "ring-indigo-200",
+            countText:
+              maintenanceCount !== null && maintenanceCount > 0
+                ? "text-indigo-600"
+                : "text-gray-900",
+            to: props.scheduledMaintenanceRoute,
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -265,12 +282,20 @@ const ResourceActivityCards: FunctionComponent<ComponentProps> = (
           {translator.translateText("Activity")}
         </h2>
         <p className="text-xs text-gray-500">
-          {translator.translateText(
-            "Current incidents, alerts, and scheduled maintenance impacting this resource. Click a card to see the full list.",
-          )}
+          {showsMaintenance
+            ? translator.translateText(
+                "Current incidents, alerts, and scheduled maintenance impacting this resource. Click a card to see the full list.",
+              )
+            : translator.translateText(
+                "Current incidents and alerts impacting this resource. Click a card to see the full list.",
+              )}
         </p>
       </div>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div
+        className={`grid grid-cols-1 gap-4 ${
+          showsMaintenance ? "sm:grid-cols-3" : "sm:grid-cols-2"
+        }`}
+      >
         {cards.map((card: CardData, idx: number): ReactElement => {
           return (
             <Link

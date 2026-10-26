@@ -9,6 +9,7 @@ import FixProductionCheck, {
 import FixProductionStatus from "../../../../Types/AI/FixProductionStatus";
 import HTTPErrorResponse from "../../../../Types/API/HTTPErrorResponse";
 import InBetween from "../../../../Types/BaseDatabase/InBetween";
+import Includes from "../../../../Types/BaseDatabase/Includes";
 import IsNull from "../../../../Types/BaseDatabase/IsNull";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import PullRequestState from "../../../../Types/CodeRepository/PullRequestState";
@@ -20,6 +21,7 @@ import Dictionary from "../../../../Types/Dictionary";
 import ObjectID from "../../../../Types/ObjectID";
 import PositiveNumber from "../../../../Types/PositiveNumber";
 import {
+  CHANGE_EVENT_FIELD_KEYS,
   ChangeEventFields,
   ChangeEventSource,
   readChangeEventFields,
@@ -715,7 +717,9 @@ export default class FixProductionVerifier {
    * The changes recorded since the merge, oldest first: the fix's service's
    * and the whole project's, read apart so that a busy project's other
    * services cannot crowd the fix's deploy out of the read. A fix with no
-   * service reads every change of the project.
+   * service reads every change of the project. Only changes that name a
+   * commit are read - the only ones a deploy of the fix can be - so a
+   * cloud account's activity, project-wide and many, crowds nothing out.
    */
   private static async readChangesSinceMerge(data: {
     projectId: ObjectID;
@@ -734,6 +738,9 @@ export default class FixProductionVerifier {
             query: {
               projectId: data.projectId,
               time: new InBetween(data.mergedAt, data.now),
+              attributeKeys: new Includes([
+                ...CHANGE_EVENT_FIELD_KEYS.commitSha,
+              ]),
               ...scope,
             } as never,
             select: {

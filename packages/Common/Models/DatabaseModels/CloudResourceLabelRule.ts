@@ -318,6 +318,45 @@ export default class CloudResourceLabelRule extends RuleBaseModel {
   })
   public nameRegexPattern?: string = undefined;
 
+  /*
+   * Cloud tags are what a cloud account's people already sort resources by
+   * (team, env, service), so this is how a rule says "every resource tagged
+   * team=payments". Matched against each tag of the resource written as
+   * key=value (both rule engines).
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateCloudResourceLabelRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadCloudResourceLabelRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditCloudResourceLabelRule,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.LongText,
+    title: "Cloud Tag Pattern",
+    description:
+      "Regex (case-insensitive) matched against each of the resource's cloud tags, written key=value: ^team=payments$ matches every resource tagged team=payments, ^env= every resource with an env tag. Leave empty to match any tags.",
+  })
+  @Column({
+    type: ColumnType.LongText,
+    nullable: true,
+    length: ColumnLength.LongText,
+  })
+  public cloudTagPattern?: string = undefined;
+
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,

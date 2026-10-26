@@ -7,6 +7,7 @@ import CloudResourceOwnerRuleService from "./CloudResourceOwnerRuleService";
 import CloudResourceOwnerUserService from "./CloudResourceOwnerUserService";
 import CloudResourceOwnerTeamService from "./CloudResourceOwnerTeamService";
 import CloudResourceService from "./CloudResourceService";
+import { getCloudTagRuleMatchValues } from "../../Types/Cloud/CloudInventory";
 import CloudResourceFeedService from "./CloudResourceFeedService";
 import { CloudResourceFeedEventType } from "../../Models/DatabaseModels/CloudResourceFeed";
 import { Purple500 } from "../../Types/BrandColors";
@@ -42,6 +43,7 @@ class CloudResourceOwnerRuleEngineServiceClass
     matchLabels: { _id: true },
     nameRegexPattern: true,
     descriptionRegexPattern: true,
+    cloudTagPattern: true,
     ownerUsers: { _id: true },
     ownerTeams: { _id: true },
   };
@@ -147,6 +149,7 @@ class CloudResourceOwnerRuleEngineServiceClass
           name: true,
           description: true,
           labels: { _id: true },
+          cloudTags: true,
         },
         props: { isRoot: true },
       });
@@ -323,6 +326,7 @@ class CloudResourceOwnerRuleEngineServiceClass
         "matchLabels",
         "nameRegexPattern",
         "descriptionRegexPattern",
+        "cloudTagPattern",
       ],
       emptyResult: true,
       matchesLegacyRule: (legacyRule: CloudResourceOwnerRule): boolean => {
@@ -371,6 +375,21 @@ class CloudResourceOwnerRuleEngineServiceClass
         ))
     ) {
       return false;
+    }
+
+    // Any one of the resource's tags, written key=value, matching is enough.
+    if (rule.cloudTagPattern) {
+      const tagPattern: string = rule.cloudTagPattern;
+
+      if (
+        !getCloudTagRuleMatchValues(cloudResource.cloudTags).some(
+          (value: string): boolean => {
+            return this.testRegex(tagPattern, value);
+          },
+        )
+      ) {
+        return false;
+      }
     }
 
     return true;

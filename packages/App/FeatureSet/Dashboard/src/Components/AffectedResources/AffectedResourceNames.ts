@@ -3,7 +3,7 @@
  * (AffectedResourcesCell): the monitors first, then hosts, Kubernetes
  * clusters, Docker and Podman hosts, Proxmox clusters, vCenters, Ceph
  * clusters, storage arrays, Docker Swarm clusters, IoT fleets, databases,
- * network sites, services and SLOs.
+ * cloud resources, network sites, services and SLOs.
  *
  * A list's CSV export writes these for its Affected Resources column, so the
  * file names a row's resources the way the row draws them. The alerts list
@@ -33,6 +33,7 @@ export interface AffectedResourceLists {
   dockerSwarmClusters?: Array<NamedResource> | undefined;
   iotFleets?: Array<NamedResource> | undefined;
   databaseServers?: Array<NamedResource> | undefined;
+  cloudResources?: Array<NamedResource> | undefined;
   networkSites?: Array<NamedResource> | undefined;
   services?: Array<NamedResource> | undefined;
   serviceLevelObjectives?: Array<NamedResource> | undefined;
@@ -54,6 +55,7 @@ export const AFFECTED_RESOURCE_LIST_ORDER: ReadonlyArray<
   "dockerSwarmClusters",
   "iotFleets",
   "databaseServers",
+  "cloudResources",
   "networkSites",
   "services",
   "serviceLevelObjectives",

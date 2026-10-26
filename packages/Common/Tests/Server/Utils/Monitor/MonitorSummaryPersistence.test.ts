@@ -152,6 +152,7 @@ describe("The monitor summary is stored on the incident / alert it created", () 
         iotFleetIds: [],
         databaseServerIds: [],
         storageArrayIds: [],
+        cloudResourceIds: [],
       });
 
     // Linked by hand (Monitor > Overview > Linked Resources): nothing here.

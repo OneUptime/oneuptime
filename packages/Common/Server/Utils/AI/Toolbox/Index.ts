@@ -23,6 +23,7 @@ import {
 } from "./ResourceTools";
 import { QueryContainersTool } from "./ContainerTools";
 import { QueryNetworkTransceiversTool } from "./TransceiverTools";
+import { QueryCloudAccountsTool, QueryCloudResourceTool } from "./CloudTools";
 import { QueryScheduledMaintenanceTool } from "./ScheduledMaintenanceTools";
 import {
   GetOnCallStatusTool,
@@ -138,6 +139,9 @@ export default class AIToolbox {
     QueryContainersTool,
     // A network device's optics, port by port, with their trend.
     QueryNetworkTransceiversTool,
+    // What a connected cloud's inventory says: one resource, every account.
+    QueryCloudResourceTool,
+    QueryCloudAccountsTool,
     QueryScheduledMaintenanceTool,
     /*
      * Platform reads: the operational surface an on-call product exists to

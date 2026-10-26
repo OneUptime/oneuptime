@@ -79,6 +79,8 @@ export interface CloudConnectionReadSummary {
   archivedResources: number;
   // Metric datapoints this read wrote.
   pointsWritten: number;
+  // Change and health events this read kept.
+  changesRecorded: number;
   // Calls this read made to the cloud's APIs.
   requestCount: number;
   // Things the person should know that did not stop the read.
@@ -170,6 +172,7 @@ export function readCloudConnectionReadSummary(
     newResources: readNumber(value["newResources"]),
     archivedResources: readNumber(value["archivedResources"]),
     pointsWritten: readNumber(value["pointsWritten"]),
+    changesRecorded: readNumber(value["changesRecorded"]),
     requestCount: readNumber(value["requestCount"]),
     warnings: readStrings(value["warnings"]),
     failureKind:

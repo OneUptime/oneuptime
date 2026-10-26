@@ -92,6 +92,8 @@ interface Row {
   cloudAccountId: string;
   cloudResourceGroup: string;
   isArchived: boolean;
+  cloudTags: Record<string, string>;
+  cloudInventoryFingerprint: string;
 }
 
 function rowOf(
@@ -108,6 +110,8 @@ function rowOf(
     cloudAccountId: resource.accountId,
     cloudResourceGroup: resource.resourceGroup,
     isArchived,
+    cloudTags: {},
+    cloudInventoryFingerprint: "",
   };
 }
 

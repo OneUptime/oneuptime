@@ -24,7 +24,9 @@ import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import TelemetryRetentionConfig from "../../Types/Telemetry/TelemetryRetentionConfig";
 import { CloudResourceKind } from "../../Types/Cloud/CloudResourceKind";
+import { CloudResourceRelationship } from "../../Types/Cloud/CloudInventory";
 import Dictionary from "../../Types/Dictionary";
+import { JSONObject } from "../../Types/JSON";
 import {
   Column,
   Entity,
@@ -644,6 +646,169 @@ export default class CloudResource extends BaseModel {
     type: ColumnType.JSON,
   })
   public telemetryAttributes?: Dictionary<string> = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadCloudResource,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Cloud Tags",
+    description:
+      "For a resource a cloud connection's inventory lists: its tags in the cloud (AWS tags, Azure tags, Google Cloud labels), at most 50. Label and owner rules can match them.",
+    example: '{"team": "payments", "env": "production"}',
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.JSON,
+  })
+  public cloudTags?: Dictionary<string> = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadCloudResource,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Cloud Properties",
+    description:
+      "For a resource a cloud connection's inventory lists: the properties a person reads first, such as an instance's type or a database's engine and version, keyed by their path in the cloud's description. Never anything that can hold a secret.",
+    example: '{"InstanceType": "m5.large", "State.Name": "running"}',
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.JSON,
+  })
+  public cloudProperties?: JSONObject = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadCloudResource,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Cloud Relationships",
+    description:
+      "For a resource a cloud connection's inventory lists: what it runs in, is part of, sends traffic to or is protected by, each as the other resource's id in the cloud. The edges of the account's topology.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.JSON,
+  })
+  public cloudRelationships?: Array<CloudResourceRelationship> = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadCloudResource,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Cloud Endpoints",
+    description:
+      "For a resource a cloud connection's inventory lists: the host names and addresses it answers on, such as a load balancer's DNS name. Monitors of those hosts are linked to it.",
+    example: '["checkout-1234.us-east-1.elb.amazonaws.com"]',
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.JSON,
+  })
+  public cloudEndpoints?: Array<string> = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadCloudResource,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "Listed At",
+    description:
+      "When a cloud connection's inventory last listed this resource. Empty for a resource only its metrics or telemetry have found.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public inventoriedAt?: Date = undefined;
+
+  /*
+   * What the last listing said of the resource, as one hash: a listing
+   * that says the same again only marks the row listed, in one statement
+   * for every such row, instead of writing each one (an account of
+   * thousands of resources is listed every half hour). Server only.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Cloud Inventory Fingerprint",
+    description:
+      "A hash of what the last listing of the resource's cloud account said of it. Used by OneUptime only.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public cloudInventoryFingerprint?: string = undefined;
 
   /*
    * The cloud connection (Cloud > Connect) that found this resource, when

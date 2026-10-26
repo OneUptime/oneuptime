@@ -43,6 +43,7 @@ export const MONITOR_LINKED_RESOURCE_TYPES: Array<AffectedResourceType> = [
   "DockerSwarmCluster",
   "IoTFleet",
   "DatabaseServer",
+  "CloudResource",
   "Service",
 ];
 
@@ -58,6 +59,7 @@ export type MonitorLinkedResourceKey =
   | "dockerSwarmClusters"
   | "iotFleets"
   | "databaseServers"
+  | "cloudResources"
   | "services";
 
 // The relation each linked resource type is held in, on a monitor and a form.
@@ -73,6 +75,7 @@ export const MONITOR_LINKED_RESOURCE_KEYS: Array<MonitorLinkedResourceKey> = [
   "dockerSwarmClusters",
   "iotFleets",
   "databaseServers",
+  "cloudResources",
   "services",
 ];
 
@@ -87,8 +90,20 @@ export const INCIDENT_PREFILL_PAYLOAD_KEYS: Array<AffectedResourcesPayloadKey> =
 export const ALERT_PREFILL_PAYLOAD_KEYS: Array<AffectedResourcesPayloadKey> = [
   ...MONITOR_LINKED_RESOURCE_KEYS,
 ];
+/*
+ * Scheduled maintenance holds no cloud resources: a maintenance window does
+ * not silence a cloud resource's monitors (they are silenced by their own
+ * monitors), so a picked monitor's cloud resources are not added there.
+ */
 export const SCHEDULED_MAINTENANCE_PREFILL_PAYLOAD_KEYS: Array<AffectedResourcesPayloadKey> =
-  [...MONITOR_LINKED_RESOURCE_KEYS, "networkSites"];
+  [
+    ...MONITOR_LINKED_RESOURCE_KEYS.filter(
+      (key: MonitorLinkedResourceKey): boolean => {
+        return key !== "cloudResources";
+      },
+    ),
+    "networkSites",
+  ];
 
 // Read for each picked monitor: its linked resources, named.
 export const MONITOR_LINKED_RESOURCES_SELECT: Record<
@@ -107,6 +122,7 @@ export const MONITOR_LINKED_RESOURCES_SELECT: Record<
   dockerSwarmClusters: { _id: true, name: true },
   iotFleets: { _id: true, name: true },
   databaseServers: { _id: true, name: true },
+  cloudResources: { _id: true, name: true },
   services: { _id: true, name: true },
 };
 
@@ -243,6 +259,7 @@ export function buildPrefillPayload(data: {
     dockerSwarmClusters: undefined,
     iotFleets: undefined,
     databaseServers: undefined,
+    cloudResources: undefined,
     networkSites: undefined,
     services: undefined,
   };

@@ -9,12 +9,16 @@ import {
   AIChatCitationTargetType,
 } from "../../../../Types/AI/AIChatTypes";
 import InBetween from "../../../../Types/BaseDatabase/InBetween";
+import Includes from "../../../../Types/BaseDatabase/Includes";
+import IncludesNone from "../../../../Types/BaseDatabase/IncludesNone";
 import Dictionary from "../../../../Types/Dictionary";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import Permission from "../../../../Types/Permission";
+import { AIResourceType } from "../../../../Types/AI/AIResourceContext";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import {
+  ChangeEventAttribute,
   ChangeEventFields,
   describeChangeEventFields,
   readChangeEventFields,
@@ -66,7 +70,7 @@ const MAX_CHANGE_TITLE_LENGTH: number = 300;
 export const RecentChangesTool: ObservabilityTool = {
   name: "recent_changes",
   description:
-    "Get a single chronological feed of what changed in a time window: deploys and Kubernetes rollouts (with the version before and after and the commit, when known), config changes, rollbacks, fixes OneUptime AI ran and runbooks OneUptime ran, newly-seen exceptions (with the release they were first seen in), monitor status changes (up/down), and scheduled maintenance overlapping the window. This is the highest-yield way to answer 'what changed right before this started?' during root-cause analysis — call it with the window around when a problem began. Pass serviceId to see only one service's deploys and new exceptions. Each change event carries a changeId: call get_change_details with it for the commits and pull requests a deploy shipped.",
+    "Get a single chronological feed of what changed in a time window: deploys and Kubernetes rollouts (with the version before and after and the commit, when known), config changes, rollbacks, fixes OneUptime AI ran and runbooks OneUptime ran, what changed in connected cloud accounts (their activity logs: a deploy, a configuration, network or IAM change, scaling - with who did it and whether it failed) and the cloud providers' own health events, newly-seen exceptions (with the release they were first seen in), monitor status changes (up/down), and scheduled maintenance overlapping the window. This is the highest-yield way to answer 'what changed right before this started?' during root-cause analysis — call it with the window around when a problem began. Pass serviceId to see only one service's deploys and new exceptions, cloudResourceId for only one cloud resource's changes, or cloudAccountId for only one cloud account's. Each change event carries a changeId: call get_change_details with it for the commits and pull requests a deploy shipped.",
   inputSchema: {
     type: "object",
     properties: {
@@ -75,6 +79,16 @@ export const RecentChangesTool: ObservabilityTool = {
         type: "string",
         description:
           "Optional service ID: only that service's deploys, changes and new exceptions. Monitor status changes and maintenance are listed either way.",
+      },
+      cloudResourceId: {
+        type: "string",
+        description:
+          "Optional OneUptime CloudResource UUID (from query_telemetry_resources): only the changes its cloud recorded to that resource. Exceptions, monitor status changes and maintenance are listed either way.",
+      },
+      cloudAccountId: {
+        type: "string",
+        description:
+          "Optional cloud account id as its cloud names it - an AWS account id, an Azure subscription id, a Google Cloud project id (from query_cloud_accounts): only that account's changes and health events.",
       },
       limitPerSource: {
         type: "number",
@@ -107,36 +121,33 @@ export const RecentChangesTool: ObservabilityTool = {
       args,
       "serviceId",
     );
+    const cloudResourceId: ObjectID | undefined = ToolArgs.getObjectID(
+      args,
+      "cloudResourceId",
+    );
+    const cloudAccountId: string | undefined = ToolArgs.getString(
+      args,
+      "cloudAccountId",
+    );
 
     const events: Array<FeedEntry> = [];
 
     /*
      * 1) Change events: deploys and rollouts, config changes, rollbacks, the
-     *    fixes OneUptime AI ran and the runbooks OneUptime ran.
+     *    fixes OneUptime AI ran, the runbooks OneUptime ran, and what the
+     *    connected clouds recorded.
      */
     try {
-      const changeQuery: JSONObject = {
-        time: new InBetween(startTime, endTime),
-      };
-
-      if (serviceId) {
-        changeQuery["primaryEntityId"] = serviceId;
-      }
-
-      const changes: Array<ChangeEvent> = await ChangeEventService.findBy({
-        query: changeQuery as never,
-        select: {
-          _id: true,
-          time: true,
-          eventType: true,
-          title: true,
-          primaryEntityId: true,
-          attributes: true,
-        } as never,
-        sort: { time: SortOrder.Descending } as never,
+      const changes: Array<ChangeEvent> = await readChangeEvents({
+        scopes: getChangeEventScopes({
+          serviceId,
+          cloudResourceId,
+          cloudAccountId,
+        }),
+        startTime,
+        endTime,
         limit: limitPerSource,
-        skip: 0,
-        props: ctx.props,
+        ctx,
       });
 
       const serviceNames: Dictionary<string> = await getServiceNames(
@@ -303,7 +314,15 @@ export const RecentChangesTool: ObservabilityTool = {
           type: AIChatCitationTargetType.ServiceView,
           params: { serviceId: serviceId.toString() },
         }
-      : undefined;
+      : cloudResourceId
+        ? {
+            type: AIChatCitationTargetType.TelemetryResourceView,
+            params: {
+              resourceType: AIResourceType.CloudResource,
+              resourceId: cloudResourceId.toString(),
+            },
+          }
+        : undefined;
 
     return {
       dataForLlm: serialized.text,
@@ -315,6 +334,99 @@ export const RecentChangesTool: ObservabilityTool = {
     };
   },
 };
+
+/*
+ * The change event reads a feed makes, each its own query with its own
+ * limit: one service's, one cloud resource's or account's - or, for the
+ * whole project, the cloud's changes apart from the rest, so that a busy
+ * cloud account cannot crowd a deploy out of the feed.
+ */
+export function getChangeEventScopes(data: {
+  serviceId?: ObjectID | undefined;
+  cloudResourceId?: ObjectID | undefined;
+  cloudAccountId?: string | undefined;
+}): Array<JSONObject> {
+  if (data.cloudResourceId || data.cloudAccountId) {
+    const attributes: JSONObject = {};
+
+    if (data.cloudResourceId) {
+      attributes[ChangeEventAttribute.ResourceId] =
+        data.cloudResourceId.toString();
+    }
+
+    if (data.cloudAccountId) {
+      attributes[ChangeEventAttribute.CloudAccountId] = data.cloudAccountId;
+    }
+
+    return [
+      {
+        ...(data.serviceId ? { primaryEntityId: data.serviceId } : {}),
+        attributes,
+      },
+    ];
+  }
+
+  if (data.serviceId) {
+    return [{ primaryEntityId: data.serviceId }];
+  }
+
+  return [
+    {
+      attributeKeys: new IncludesNone([ChangeEventAttribute.CloudProvider]),
+    },
+    { attributeKeys: new Includes([ChangeEventAttribute.CloudProvider]) },
+  ];
+}
+
+// Each scope's newest changes in the window, together, newest first.
+async function readChangeEvents(data: {
+  scopes: Array<JSONObject>;
+  startTime: Date;
+  endTime: Date;
+  limit: number;
+  ctx: ToolContext;
+}): Promise<Array<ChangeEvent>> {
+  const reads: Array<Array<ChangeEvent>> = await Promise.all(
+    data.scopes.map((scope: JSONObject): Promise<Array<ChangeEvent>> => {
+      return ChangeEventService.findBy({
+        query: {
+          ...scope,
+          time: new InBetween(data.startTime, data.endTime),
+        } as never,
+        select: {
+          _id: true,
+          time: true,
+          eventType: true,
+          title: true,
+          primaryEntityId: true,
+          attributes: true,
+        } as never,
+        sort: { time: SortOrder.Descending } as never,
+        limit: data.limit,
+        skip: 0,
+        props: data.ctx.props,
+      });
+    }),
+  );
+
+  const seen: Set<string> = new Set<string>();
+
+  return reads
+    .flat()
+    .filter((change: ChangeEvent): boolean => {
+      const id: string = change._id?.toString() || "";
+
+      if (id && seen.has(id)) {
+        return false;
+      }
+
+      seen.add(id);
+      return true;
+    })
+    .sort((a: ChangeEvent, b: ChangeEvent): number => {
+      return new Date(b.time || 0).getTime() - new Date(a.time || 0).getTime();
+    });
+}
 
 /*
  * The names of the services the change events belong to, read with the

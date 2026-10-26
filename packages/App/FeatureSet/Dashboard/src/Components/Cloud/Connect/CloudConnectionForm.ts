@@ -5,9 +5,11 @@ import {
   CloudConnectionAuthMethod,
   CloudConnectionDefinition,
   CloudConnectionField,
+  READ_SCOPE_FIELD_KEY,
   getCloudConnectionAuthMethod,
   getCloudConnectionFieldsForMethod,
 } from "Common/Types/CloudConnection/CloudConnectionCatalog";
+import { CloudConnectionSetupScope } from "Common/Types/CloudConnection/CloudConnectionSetupCommands";
 import {
   CloudConnectionPasteResult,
   readCloudConnectionPaste,
@@ -67,6 +69,62 @@ export function readFormAuthMethod(
   );
 
   return getCloudConnectionAuthMethod(definition, value || fallback);
+}
+
+/*
+ * The "What to read" setting of a sign-in method: undefined for a method
+ * that reads one account only (an AWS access key: its user cannot sign in
+ * to the other accounts' roles).
+ */
+export function getReadScopeField(
+  definition: CloudConnectionDefinition,
+  method: CloudConnectionAuthMethod,
+): CloudConnectionField | undefined {
+  return getCloudConnectionFieldsForMethod(
+    definition.configFields,
+    method,
+  ).find((field: CloudConnectionField): boolean => {
+    return field.key === READ_SCOPE_FIELD_KEY;
+  });
+}
+
+/*
+ * What the form says to read, which decides the command it shows: every
+ * account of the organization only when that is picked and the method
+ * can; otherwise the one account.
+ */
+export function readFormScope(
+  definition: CloudConnectionDefinition,
+  values: JSONObject,
+  fallbackMethod?: CloudConnectionAuthMethod | undefined,
+): CloudConnectionSetupScope {
+  const method: CloudConnectionAuthMethod = readFormAuthMethod(
+    definition,
+    values,
+    fallbackMethod,
+  );
+
+  if (!getReadScopeField(definition, method)) {
+    return CloudConnectionSetupScope.Account;
+  }
+
+  return readFormText(
+    values[configFieldName(READ_SCOPE_FIELD_KEY)] as JSONValue | undefined,
+  ) === CloudConnectionSetupScope.Organization
+    ? CloudConnectionSetupScope.Organization
+    : CloudConnectionSetupScope.Account;
+}
+
+/*
+ * Whether a setting is one of the values the Credentials step asks for -
+ * pasted, or typed in the fold under the paste. Not the scope (chosen on
+ * the first step), not a value only a paste fills in (an Azure secret's
+ * expiry, kept with the rest), not one of the settings under More fields.
+ */
+export function isCredentialValueField(field: CloudConnectionField): boolean {
+  return (
+    field.key !== READ_SCOPE_FIELD_KEY && !field.isHidden && !field.isAdvanced
+  );
 }
 
 export interface CloudConnectionFormSubmission {

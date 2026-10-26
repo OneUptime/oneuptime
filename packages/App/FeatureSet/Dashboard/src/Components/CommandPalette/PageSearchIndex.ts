@@ -2453,6 +2453,21 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "cloud monitoring",
             ],
           },
+          {
+            page: PageMap.CLOUD_ACCOUNTS,
+            title: "Accounts",
+            icon: IconProp.Cloud,
+            keywords: [
+              "cloud accounts",
+              "aws accounts",
+              "azure subscriptions",
+              "google cloud projects",
+              "gcp projects",
+              "cloud inventory",
+              "cloudtrail",
+              "activity log",
+            ],
+          },
           allListPage(PageMap.CLOUD_RESOURCES, "All Environments"),
           {
             ...allListPage(PageMap.CLOUD_MONITORED_RESOURCES, "All Resources"),

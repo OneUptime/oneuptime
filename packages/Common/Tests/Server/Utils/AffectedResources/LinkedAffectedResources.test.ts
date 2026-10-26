@@ -1,6 +1,7 @@
 import DatabaseConfig from "../../../../Server/DatabaseConfig";
 import AlertService from "../../../../Server/Services/AlertService";
 import CephClusterService from "../../../../Server/Services/CephClusterService";
+import CloudResourceService from "../../../../Server/Services/CloudResourceService";
 import DatabaseServerService from "../../../../Server/Services/DatabaseServerService";
 import DockerHostService from "../../../../Server/Services/DockerHostService";
 import DockerSwarmClusterService from "../../../../Server/Services/DockerSwarmClusterService";
@@ -160,6 +161,7 @@ describe("the relation table", () => {
       "dockerSwarmClusters",
       "iotFleets",
       "databaseServers",
+      "cloudResources",
       "services",
       "serviceLevelObjectives",
     ]);
@@ -275,6 +277,15 @@ describe("dashboard links match each resource's own link", () => {
       LinkedAffectedResourceType.DatabaseServer,
       (): Promise<URL> => {
         return DatabaseServerService.getDatabaseServerLinkInDashboard(
+          PROJECT,
+          ID,
+        );
+      },
+    ],
+    [
+      LinkedAffectedResourceType.CloudResource,
+      (): Promise<URL> => {
+        return CloudResourceService.getCloudResourceLinkInDashboard(
           PROJECT,
           ID,
         );

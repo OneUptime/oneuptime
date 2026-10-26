@@ -55,6 +55,7 @@ export enum LinkedAffectedResourceType {
   DockerSwarmCluster = "DockerSwarmCluster",
   IoTFleet = "IoTFleet",
   DatabaseServer = "DatabaseServer",
+  CloudResource = "CloudResource",
   NetworkSite = "NetworkSite",
   Service = "Service",
   ServiceLevelObjective = "ServiceLevelObjective",
@@ -165,6 +166,12 @@ export const LINKED_AFFECTED_RESOURCE_RELATIONS: ReadonlyArray<LinkedAffectedRes
       type: LinkedAffectedResourceType.DatabaseServer,
       label: "Database",
       dashboardRoute: "databases",
+    },
+    {
+      column: "cloudResources",
+      type: LinkedAffectedResourceType.CloudResource,
+      label: "Cloud Resource",
+      dashboardRoute: "cloud",
     },
     {
       column: "networkSites",

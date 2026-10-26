@@ -473,6 +473,139 @@ const KINDS: Record<string, ResourceTopologyKindInfo> = {
     color: "#a8a29e",
     order: 43,
   },
+
+  /*
+   * A cloud account: its regions, and its resources by the catalog's
+   * category (CloudResourceCategory) - the networks first, since the rest
+   * runs in them. Each card names its own type (an EC2 instance, an App
+   * Service plan) under its name.
+   */
+  "cloud.account": {
+    label: translationKey("Cloud Account"),
+    plural: translationKey("Cloud Accounts"),
+    icon: IconProp.Cloud,
+    color: "#0284c7",
+    order: 0,
+  },
+  "cloud.region": {
+    label: translationKey("Region"),
+    plural: translationKey("Regions"),
+    icon: IconProp.Globe,
+    color: "#0ea5e9",
+    order: 5,
+  },
+  "cloud.networking": {
+    label: translationKey("Network Resource"),
+    plural: translationKey("Network Resources"),
+    icon: IconProp.Link,
+    color: "#0891b2",
+    order: 10,
+  },
+  "cloud.compute": {
+    label: translationKey("Compute Resource"),
+    plural: translationKey("Compute Resources"),
+    icon: IconProp.Server,
+    color: "#2563eb",
+    order: 20,
+  },
+  "cloud.containers": {
+    label: translationKey("Container Resource"),
+    plural: translationKey("Container Resources"),
+    icon: IconProp.Cube,
+    color: "#1d4ed8",
+    order: 25,
+  },
+  "cloud.serverless": {
+    label: translationKey("Serverless Resource"),
+    plural: translationKey("Serverless Resources"),
+    icon: IconProp.Bolt,
+    color: "#7c3aed",
+    order: 30,
+  },
+  "cloud.web": {
+    label: translationKey("Web App"),
+    plural: translationKey("Web Apps"),
+    icon: IconProp.GlobeAlt,
+    color: "#4f46e5",
+    order: 35,
+  },
+  "cloud.database": {
+    label: translationKey("Database"),
+    plural: translationKey("Databases"),
+    icon: IconProp.Database,
+    color: "#0f766e",
+    order: 40,
+  },
+  "cloud.storage": {
+    label: translationKey("Storage Resource"),
+    plural: translationKey("Storage Resources"),
+    icon: IconProp.Archive,
+    color: "#a16207",
+    order: 45,
+  },
+  "cloud.messaging": {
+    label: translationKey("Messaging Resource"),
+    plural: translationKey("Messaging Resources"),
+    icon: IconProp.InboxStack,
+    color: "#c2410c",
+    order: 50,
+  },
+  "cloud.integration": {
+    label: translationKey("Integration Resource"),
+    plural: translationKey("Integration Resources"),
+    icon: IconProp.Squares,
+    color: "#9333ea",
+    order: 55,
+  },
+  "cloud.analytics": {
+    label: translationKey("Analytics Resource"),
+    plural: translationKey("Analytics Resources"),
+    icon: IconProp.ChartBar,
+    color: "#db2777",
+    order: 60,
+  },
+  "cloud.ai": {
+    label: translationKey("AI Resource"),
+    plural: translationKey("AI Resources"),
+    icon: IconProp.Sparkles,
+    color: "#c026d3",
+    order: 65,
+  },
+  "cloud.security": {
+    label: translationKey("Security Resource"),
+    plural: translationKey("Security Resources"),
+    icon: IconProp.ShieldCheck,
+    color: "#be123c",
+    order: 70,
+  },
+  "cloud.monitoring": {
+    label: translationKey("Monitoring Resource"),
+    plural: translationKey("Monitoring Resources"),
+    icon: IconProp.Eye,
+    color: "#4d7c0f",
+    order: 75,
+  },
+  "cloud.management": {
+    label: translationKey("Management Resource"),
+    plural: translationKey("Management Resources"),
+    icon: IconProp.Cog,
+    color: "#475569",
+    order: 80,
+  },
+  "cloud.iot": {
+    label: translationKey("IoT Resource"),
+    plural: translationKey("IoT Resources"),
+    icon: IconProp.Signal,
+    color: "#15803d",
+    order: 85,
+  },
+  "cloud.resource": {
+    label: translationKey("Cloud Resource"),
+    plural: translationKey("Cloud Resources"),
+    icon: IconProp.SquareStack,
+    color: "#64748b",
+    order: 90,
+  },
 };
 
 const UNKNOWN_KIND: ResourceTopologyKindInfo = {

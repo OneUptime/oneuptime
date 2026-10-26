@@ -55,6 +55,7 @@ import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster"
 import Host from "Common/Models/DatabaseModels/Host";
 import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
 import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
+import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
 import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
@@ -1415,6 +1416,9 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                       databaseServers={
                         values.databaseServers as Array<DatabaseServer>
                       }
+                      cloudResources={
+                        values.cloudResources as Array<CloudResource>
+                      }
                       services={values.services as Array<Service>}
                       resourceTypes={[
                         "Host",
@@ -1428,6 +1432,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                         "DockerSwarmCluster",
                         "IoTFleet",
                         "DatabaseServer",
+                        "CloudResource",
                         "Service",
                       ]}
                       onChange={(payload: unknown) => {
@@ -1457,6 +1462,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                         dockerSwarmClusters: payload.dockerSwarmClusters,
                         iotFleets: payload.iotFleets,
                         databaseServers: payload.databaseServers,
+                        cloudResources: payload.cloudResources,
                         services: payload.services,
                       } as FormValues<Alert>);
                     });
@@ -1558,6 +1564,15 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 },
               },
               {
+                field: { cloudResources: true },
+                title: "",
+                fieldType: FormFieldSchemaType.Text,
+                required: false,
+                showIf: () => {
+                  return false;
+                },
+              },
+              {
                 field: { services: true },
                 title: "",
                 fieldType: FormFieldSchemaType.Text,
@@ -1629,6 +1644,10 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                       name: true,
                       _id: true,
                     },
+                    cloudResources: {
+                      name: true,
+                      _id: true,
+                    },
                     services: {
                       name: true,
                       _id: true,
@@ -1662,6 +1681,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                         dockerSwarmClusters={item.dockerSwarmClusters || []}
                         iotFleets={item.iotFleets || []}
                         databaseServers={item.databaseServers || []}
+                        cloudResources={item.cloudResources || []}
                         services={item.services || []}
                         serviceLevelObjectives={
                           item.serviceLevelObjectives || []

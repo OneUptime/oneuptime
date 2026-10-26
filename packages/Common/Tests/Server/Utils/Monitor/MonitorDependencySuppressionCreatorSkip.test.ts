@@ -232,6 +232,7 @@ describe("Dependency-suppression skip block in the alert / incident creators", (
         iotFleetIds: [],
         databaseServerIds: [],
         storageArrayIds: [],
+        cloudResourceIds: [],
       }) as unknown as SpyLike;
 
     // Linked by hand (Monitor > Overview > Linked Resources): nothing here.
