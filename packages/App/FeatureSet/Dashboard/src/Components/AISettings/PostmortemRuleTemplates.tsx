@@ -18,10 +18,24 @@ import {
  * Status needed: the rows scrolled sideways, and whether a rule was
  * enabled was out of sight. Capped here, a long name is cut short with its
  * whole name under the pointer, and every column fits; from 1536px on
- * there is room for more of it.
+ * there is room for more of it. 10rem, not 11rem: in German
+ * ("Deaktiviert", "Bearbeiten") the rows still ran past the card.
  */
 export const POSTMORTEM_RULE_TEMPLATES_COLUMN_CLASS_NAME: string =
-  "max-w-[11rem] 2xl:max-w-[18rem]";
+  "max-w-[10rem] 2xl:max-w-[18rem]";
+
+/*
+ * The least the Name and Templates columns narrow to: 8rem, as the AI rules
+ * table's Name does (INVESTIGATION_RULE_NAME_COLUMN_CLASS_NAME), not the
+ * 10rem a column of prose has. Beside the grip, the select box, Match
+ * Criteria, Status and the row's Edit, the table ran past its card at
+ * 1280px beside the side menu in German ("Deaktiviert", "Bearbeiten") by
+ * 20px, and in Russian by 62px - Status under the row's buttons. A name
+ * still runs onto as many lines as it needs, and a template ends in "..."
+ * with its whole name under the pointer.
+ */
+export const POSTMORTEM_RULE_TEXT_COLUMN_FLOOR_CLASS_NAME: string =
+  "min-w-[8rem]";
 
 // Each template's name, as the table and its tests find it.
 export const POSTMORTEM_RULE_TEMPLATE_TEST_ID: string =

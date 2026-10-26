@@ -121,7 +121,7 @@ describe("the classes a table gives way with", () => {
     expect(8 * 16).toBe(TABLE_VALUE_GIVE_FLOOR_IN_PX);
   });
 
-  test("a line of text breaks anywhere for the measuring and shows its first line, keeping the table's cap", () => {
+  test("a line of text breaks anywhere for the measuring and shows its first line to the column's end, keeping the table's cap", () => {
     const line: Array<string> = tokens(TABLE_VALUE_GIVE_CLASS_NAME)
       .filter((token: string): boolean => {
         return token.startsWith("data-[give=line]:");
@@ -130,12 +130,19 @@ describe("the classes a table gives way with", () => {
         return token.slice("data-[give=line]:".length);
       });
 
+    /*
+     * Between any two letters (break-all), not only between words: the
+     * first line runs to the column's end, and the "..." comes where the
+     * room does - "grace@acme-commerce.examp...", never "grace@acme-..." in
+     * a column with room for twice the letters.
+     */
     expect(line).toEqual([
       "min-w-[8rem]",
       "whitespace-normal",
-      "[overflow-wrap:anywhere]",
+      "break-all",
       "line-clamp-1",
     ]);
+    expect(line).not.toContain("[overflow-wrap:anywhere]");
     // Unlike a row's name, it does not lift the 20rem cap.
     expect(line).not.toContain("max-w-none");
   });
@@ -354,6 +361,8 @@ interface ProbeProps {
   values: Array<{ markup: string; width: number }>;
   readings: Array<Giving>;
   onState: (state: TableScrollState) => void;
+  // How wide the row's name is as its words: 216px unless a test says.
+  nameWidth?: number | undefined;
 }
 
 const rect: (width: number) => DOMRect = (width: number): DOMRect => {
@@ -424,7 +433,18 @@ function Probe(props: ProbeProps): ReactElement {
         <tbody>
           <tr>
             <td>
-              <div data-testid="name" {...{ [TABLE_NAME_ATTRIBUTE]: "true" }}>
+              <div
+                data-testid="name"
+                {...{ [TABLE_NAME_ATTRIBUTE]: "true" }}
+                ref={(element: HTMLDivElement | null) => {
+                  if (element) {
+                    Object.defineProperty(element, "scrollWidth", {
+                      configurable: true,
+                      value: props.nameWidth ?? 216,
+                    });
+                  }
+                }}
+              >
                 Customer-Facing Status Page
               </div>
             </td>
@@ -485,9 +505,11 @@ const VALUES: Array<{ markup: string; width: number }> = [
 const renderProbe: (
   boxWidth: number,
   widthFor: (giving: Giving) => number,
+  nameWidth?: number,
 ) => ProbeResult = (
   boxWidth: number,
   widthFor: (giving: Giving) => number,
+  nameWidth?: number,
 ): ProbeResult => {
   const result: ProbeResult = { states: [], readings: [] };
 
@@ -495,6 +517,7 @@ const renderProbe: (
     <Probe
       boxWidth={boxWidth}
       widthFor={widthFor}
+      nameWidth={nameWidth}
       values={VALUES}
       readings={result.readings}
       onState={(state: TableScrollState) => {
@@ -642,12 +665,17 @@ describe("useTableScrollState gives way before the rows scroll", () => {
   });
 
   test("a table of short names, which the fill's floor only widens, fits with nothing given way, as it always did", () => {
-    const result: ProbeResult = renderProbe(938, (giving: Giving) => {
-      if (giving.fill) {
-        return 1000;
-      }
-      return giving.give ? 820 : 930;
-    });
+    const result: ProbeResult = renderProbe(
+      938,
+      (giving: Giving) => {
+        if (giving.fill) {
+          return 1000;
+        }
+        return giving.give ? 820 : 930;
+      },
+      // "Checkout API": narrower than the 10rem a name set free gives to.
+      120,
+    );
 
     expect(wrapOf()).toBeNull();
     expect(giveOf(0)).toBeNull();
@@ -655,6 +683,50 @@ describe("useTableScrollState gives way before the rows scroll", () => {
       TABLE_FILL_ATTRIBUTE,
       "false",
     );
+    expect(lastState(result)).toEqual({
+      isOverflowing: false,
+      canStickHeader: true,
+    });
+    // Read once, as it is drawn: there was nothing to set free.
+    expect(result.readings).toEqual([
+      { fill: false, wrap: false, give: false },
+    ]);
+  });
+
+  /*
+   * The postmortem rules in German ran 20px past their card while "Checkout
+   * API" stood in a 10rem column: the fill's floor widened short names in
+   * every reading that gives way. A name no wider than the floor is never
+   * set free now, so the header's names and the long values give way
+   * beside it at its own width.
+   */
+  test("a table of short names gives way as any other, its names at their own width", () => {
+    const result: ProbeResult = renderProbe(
+      938,
+      (giving: Giving) => {
+        // As the browser would: a short name set free stands 10rem wide.
+        const widened: number = giving.fill ? 40 : 0;
+
+        if (giving.give) {
+          return 930 + widened;
+        }
+        return (giving.wrap ? 950 : 990) + widened;
+      },
+      120,
+    );
+
+    expect(screen.getByTestId("name")).toHaveAttribute(
+      TABLE_FILL_ATTRIBUTE,
+      "false",
+    );
+    expect(wrapOf()).toBe("true");
+    expect(giveOf(0)).toBe("line");
+    expect(giveOf(2)).toBe("box");
+    expect(result.readings).toEqual([
+      { fill: false, wrap: false, give: false },
+      { fill: false, wrap: true, give: false },
+      { fill: false, wrap: true, give: true },
+    ]);
     expect(lastState(result)).toEqual({
       isOverflowing: false,
       canStickHeader: true,

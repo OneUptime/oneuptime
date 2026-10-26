@@ -323,9 +323,27 @@ export const TABLE_CELL_CONTENT_ALIGN_CLASS_NAME: string = "[&>*]:align-top";
  * scrolls sideways - down to 10rem, the floor a column of prose has; when
  * even that does not fit, the rows scroll and the name keeps its 20rem cap,
  * since the table is wider than the card anyway.
+ *
+ * Its line breaks between any two letters (break-all), not only between
+ * words: the first line runs to the column's end and the ellipsis comes
+ * where the room does, as on any value cut short with one. Breaking between
+ * words only ended "grace@acme-commerce.example" as "grace@acme-..." and
+ * "Customer-Facing Checkout API" as "Customer-Facing..." in a column with
+ * room for twice the words, each row cut at a different width.
  */
 export const TABLE_PRIMARY_FILL_CONTENT_CLASS_NAME: string =
-  "data-[fill=true]:max-w-none data-[fill=true]:min-w-[10rem] data-[fill=true]:whitespace-normal data-[fill=true]:[overflow-wrap:anywhere] data-[fill=true]:line-clamp-1";
+  "data-[fill=true]:max-w-none data-[fill=true]:min-w-[10rem] data-[fill=true]:whitespace-normal data-[fill=true]:break-all data-[fill=true]:line-clamp-1";
+
+/*
+ * The least a name set free is cut short to: 10rem
+ * (TABLE_PRIMARY_FILL_CONTENT_CLASS_NAME's min-w-[10rem]). A name no wider
+ * than that is never set free (useTableScrollState): it has nothing to
+ * give, and the floor would only widen its column - "Checkout API" stood
+ * in a 10rem column while the person on call beside it was cut short to
+ * "ada@acme-co...", and the postmortem rules ran 20px past their card in
+ * German.
+ */
+export const TABLE_NAME_FILL_FLOOR_IN_PX: number = 160;
 
 /*
  * A value that may be cut short a little more when its table would
@@ -335,10 +353,12 @@ export const TABLE_PRIMARY_FILL_CONTENT_CLASS_NAME: string =
  * each value keeps as much of itself as the others leave it, and shows the
  * rest under the pointer (FullValueTitle). A value of a line of text ("line")
  * wraps anywhere for the table's measuring and shows only its first line,
- * as a row's name does; a list or a pill ("box" - TableColumnListComponent,
- * Pill, each of whose items ends in "..." of its own) is laid out in a grid
- * of one column that it shrinks in. Dates, numbers, ticks and colours are
- * never cut short, and a column a page sized itself keeps its size.
+ * which runs to the column's end, as a row's name does (break-all, see
+ * TABLE_PRIMARY_FILL_CONTENT_CLASS_NAME); a list or a pill ("box" -
+ * TableColumnListComponent, Pill, each of whose items ends in "..." of its
+ * own) is laid out in a grid of one column that it shrinks in. Dates,
+ * numbers, ticks and colours are never cut short, and a column a page sized
+ * itself keeps its size.
  */
 export const TABLE_VALUE_ATTRIBUTE: string = "data-table-value";
 
@@ -348,7 +368,7 @@ export const TABLE_VALUE_GIVE_ATTRIBUTE: string = "data-give";
 export const TABLE_VALUE_GIVE_FLOOR_IN_PX: number = 128;
 
 export const TABLE_VALUE_GIVE_CLASS_NAME: string = [
-  "data-[give=line]:min-w-[8rem] data-[give=line]:whitespace-normal data-[give=line]:[overflow-wrap:anywhere] data-[give=line]:line-clamp-1",
+  "data-[give=line]:min-w-[8rem] data-[give=line]:whitespace-normal data-[give=line]:break-all data-[give=line]:line-clamp-1",
   "data-[give=box]:grid data-[give=box]:min-w-[8rem] data-[give=box]:grid-cols-1 data-[give=box]:justify-items-start [&[data-give=box]>*]:min-w-0 [&[data-give=box]>*]:max-w-full",
 ].join(" ");
 

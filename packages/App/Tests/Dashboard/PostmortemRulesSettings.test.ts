@@ -291,21 +291,36 @@ describe("Postmortem rules under More settings", () => {
     const table: string = readSource(TABLE);
 
     expect(table).toContain(
-      'columns={[ { field: { name: true }, title: "Name", type: FieldType.Text, wrapContent: true, },',
+      'columns={[ { field: { name: true }, title: "Name", type: FieldType.Text, wrapContent: true, contentClassName: POSTMORTEM_RULE_TEXT_COLUMN_FLOOR_CLASS_NAME, },',
     );
     expect(table).toContain(
-      "wrapContent: true, wrapMaxWidthClassName: POSTMORTEM_RULE_TEMPLATES_COLUMN_CLASS_NAME,",
+      "wrapContent: true, wrapMaxWidthClassName: POSTMORTEM_RULE_TEMPLATES_COLUMN_CLASS_NAME, contentClassName: POSTMORTEM_RULE_TEXT_COLUMN_FLOOR_CLASS_NAME,",
     );
     expect(table).toContain(
       "<PostmortemRuleTemplates templates={item.postmortemTemplates} />",
     );
-    // No width cap through contentClassName (TableWrapContentInvariants).
-    expect(table).not.toContain("contentClassName");
+    /*
+     * No width cap through contentClassName (TableWrapContentInvariants):
+     * the only one the table names is the two text columns' floor.
+     */
+    expect(table.split("contentClassName:").length - 1).toBe(2);
+    expect(
+      table.split(
+        "contentClassName: POSTMORTEM_RULE_TEXT_COLUMN_FLOOR_CLASS_NAME,",
+      ).length - 1,
+    ).toBe(2);
 
     const cell: string = readSource(TEMPLATES_CELL);
 
     expect(cell).toContain(
-      'POSTMORTEM_RULE_TEMPLATES_COLUMN_CLASS_NAME: string = "max-w-[11rem] 2xl:max-w-[18rem]";',
+      'POSTMORTEM_RULE_TEMPLATES_COLUMN_CLASS_NAME: string = "max-w-[10rem] 2xl:max-w-[18rem]";',
+    );
+    /*
+     * 8rem, as the AI rules table's Name: at the table's 10rem the rules
+     * ran past their card at 1280px in German and Russian.
+     */
+    expect(cell).toContain(
+      'POSTMORTEM_RULE_TEXT_COLUMN_FLOOR_CLASS_NAME: string = "min-w-[8rem]";',
     );
     /*
      * The list every table draws records with: three, then how many more,

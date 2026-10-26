@@ -1,5 +1,6 @@
 import {
   TABLE_HEADER_WRAP_ATTRIBUTE,
+  TABLE_NAME_FILL_FLOOR_IN_PX,
   TABLE_SHRINKABLE_ATTRIBUTE,
   TABLE_VALUE_ATTRIBUTE,
   TABLE_VALUE_GIVE_ATTRIBUTE,
@@ -39,7 +40,9 @@ import React, { useLayoutEffect, useState } from "react";
  * Only a name drawn as a line of text is set free: a person's picture
  * beside their name, or a name over its address, keeps its cap - it would
  * wrap inside itself, and its row grow, where a line is cut short after its
- * first line (isLineOfText).
+ * first line (isLineOfText). Nor is a name no wider than the 10rem floor
+ * (getNamesWiderThanFloor): it has nothing to give, and the floor would
+ * only widen its column.
  *
  * A table that does not fit with its names given way gives way more before
  * its rows scroll: first its header's names break between their words
@@ -151,6 +154,35 @@ export const isLineOfText: (element: Element) => boolean = (
 
     return !(part.textContent || "").trim();
   });
+};
+
+/*
+ * Which of the rows' names are wider than the 10rem a name set free gives
+ * way to (TABLE_NAME_FILL_FLOOR_IN_PX). Only those are set free: "Checkout
+ * API" has nothing to give, and the floor would only widen its column.
+ *
+ * Each is read as wide as its words (width: max-content, up to its 20rem
+ * cap), not as wide as its column is now: a table that fits shares its
+ * spare room out among its columns, and a short name in a column made wide
+ * that way is still short. Read so, a measurement never depends on the one
+ * before it, and the two cannot chase each other. Exported for its tests.
+ */
+export const getNamesWiderThanFloor: (
+  names: Array<HTMLElement>,
+) => Array<boolean> = (names: Array<HTMLElement>): Array<boolean> => {
+  names.forEach((name: HTMLElement) => {
+    name.style.width = "max-content";
+  });
+
+  const isWide: Array<boolean> = names.map((name: HTMLElement): boolean => {
+    return name.scrollWidth > TABLE_NAME_FILL_FLOOR_IN_PX;
+  });
+
+  names.forEach((name: HTMLElement) => {
+    name.style.removeProperty("width");
+  });
+
+  return isWide;
 };
 
 /*
@@ -270,6 +302,19 @@ const useTableScrollState: (data: {
       );
       const isLine: Array<boolean> = names.map(isLineOfText);
 
+      /*
+       * Which names are wider than the floor they would give way to, read
+       * at their cap - whole, on one line (getNamesWiderThanFloor). Only
+       * those are set free: a shorter one has nothing to give, and the
+       * floor would only widen its column, taking the room a long value
+       * beside it could have kept.
+       */
+      names.forEach((name: HTMLElement) => {
+        name.setAttribute(TABLE_FILL_ATTRIBUTE, "false");
+      });
+
+      const isWide: Array<boolean> = getNamesWiderThanFloor(names);
+
       // The other values that may be cut short a little more.
       const values: Array<HTMLElement> = Array.from(
         table.querySelectorAll<HTMLElement>(`[${TABLE_VALUE_ATTRIBUTE}]`),
@@ -281,7 +326,7 @@ const useTableScrollState: (data: {
         names.forEach((name: HTMLElement, index: number) => {
           name.setAttribute(
             TABLE_FILL_ATTRIBUTE,
-            isFilling && isLine[index] ? "true" : "false",
+            isFilling && isLine[index] && isWide[index] ? "true" : "false",
           );
         });
       };

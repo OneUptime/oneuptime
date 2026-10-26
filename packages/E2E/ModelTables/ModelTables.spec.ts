@@ -2221,6 +2221,121 @@ test.describe("a table gives way before its rows scroll", () => {
     await screenshot(page, "gallery-give-1002");
   });
 
+  /*
+   * A value cut short shows its first line to its column's end, the "..."
+   * where the room runs out, as a value cut with an ellipsis does. Broken
+   * only between words, "web-prod-03.eu-west-1.acme-commerce.internal"
+   * ended at "web-prod-03.eu-west-..." with a third of its column empty,
+   * and each host was cut at a different width.
+   */
+  test("a value cut short runs to its column's end: never short at a hyphen or a space", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, GIVE, 1002);
+    await expect(giveRows(page)).toHaveCount(4);
+
+    const lines: Array<{ give: string | null; box: number; gap: number }> =
+      await page.evaluate(
+        (): Array<{ give: string | null; box: number; gap: number }> => {
+          return Array.from(
+            document.querySelectorAll<HTMLElement>(
+              "#gallery-give-body > tr > td:nth-child(3) > div",
+            ),
+          ).map((host: HTMLElement) => {
+            const range: Range = document.createRange();
+            range.selectNodeContents(host);
+            const parts: Array<DOMRect> = Array.from(
+              range.getClientRects(),
+            ).filter((rect: DOMRect): boolean => {
+              return rect.width > 0;
+            });
+            // The first line: the parts that sit highest.
+            const top: number = Math.min(
+              ...parts.map((rect: DOMRect): number => {
+                return Math.round(rect.top);
+              }),
+            );
+            const right: number = Math.max(
+              ...parts
+                .filter((rect: DOMRect): boolean => {
+                  return Math.round(rect.top) === top;
+                })
+                .map((rect: DOMRect): number => {
+                  return rect.right;
+                }),
+            );
+            const box: DOMRect = host.getBoundingClientRect();
+
+            return {
+              give: host.getAttribute("data-give"),
+              box: Math.round(box.width),
+              gap: Math.round(box.right - right),
+            };
+          });
+        },
+      );
+
+    expect(lines).toHaveLength(4);
+    for (const line of lines) {
+      expect(line.give).toBe("line");
+      // No more empty than an ellipsis is wide.
+      expect(line.gap).toBeLessThanOrEqual(16);
+    }
+  });
+
+  /*
+   * A name no wider than the 10rem a name set free gives way to has
+   * nothing to give: it is not set free, and its column is as wide as its
+   * longest name - the room goes to the hosts beside it. "Checkout API"
+   * stood in a 10rem column while the person on call beside it was cut
+   * short to "ada@acme-co...".
+   */
+  test("short names keep their own width: not set free, their column no wider than the longest of them", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, GIVE, 1002);
+    await expect(giveRows(page)).toHaveCount(4);
+
+    const names: Array<{ fill: string | null; box: number; words: number }> =
+      await page.evaluate(
+        (): Array<{ fill: string | null; box: number; words: number }> => {
+          return Array.from(
+            document.querySelectorAll<HTMLElement>(
+              "#gallery-give-body > tr > td:nth-child(2) > div",
+            ),
+          ).map((name: HTMLElement) => {
+            const range: Range = document.createRange();
+            range.selectNodeContents(name);
+
+            return {
+              fill: name.getAttribute("data-fill"),
+              box: Math.round(name.getBoundingClientRect().width),
+              words: Math.round(range.getBoundingClientRect().width),
+            };
+          });
+        },
+      );
+
+    expect(names).toHaveLength(4);
+
+    const longest: number = Math.max(
+      ...names.map((name: { words: number }): number => {
+        return name.words;
+      }),
+    );
+    // "Billing Reconciler", the longest, is under the 10rem floor.
+    expect(longest).toBeLessThan(160);
+
+    for (const name of names) {
+      expect(name.fill).toBe("false");
+      expect(name.box).toBeLessThanOrEqual(longest + 1);
+    }
+  });
+
   test("too wide even so, it scrolls as it did: its header on one line, every value whole, its Actions in sight", async ({
     page,
   }: {

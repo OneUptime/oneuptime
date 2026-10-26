@@ -13,6 +13,7 @@ import Columns from "../../../../UI/Components/Table/Types/Columns";
 import FieldType from "../../../../UI/Components/Types/FieldType";
 import {
   TABLE_CELL_MAX_WIDTH_CLASS_NAME,
+  TABLE_NAME_FILL_FLOOR_IN_PX,
   TABLE_PRIMARY_FILL_CONTENT_CLASS_NAME,
   TABLE_WRAP_CELL_MIN_WIDTH_CLASS_NAME,
 } from "../../../../UI/Components/Table/TableLayout";
@@ -20,6 +21,7 @@ import useTableScrollState, {
   TABLE_FILL_ATTRIBUTE,
   TABLE_NAME_ATTRIBUTE,
   TableScrollState,
+  getNamesWiderThanFloor,
   isLineOfText,
 } from "../../../../UI/Components/Table/useTableScrollState";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
@@ -34,7 +36,8 @@ import { ButtonStyleType } from "../../../../UI/Components/Button/Button";
  * to 10rem before the table scrolls; a table too wide even so scrolls, and
  * its names keep their cap. Only a name drawn as a line of text is set
  * free: a person's picture beside a name over an email would wrap inside
- * itself, and its row grow.
+ * itself, and its row grow. Nor is a name no wider than the 10rem floor:
+ * it has nothing to give, and the floor would only widen its column.
  *
  * jsdom lays nothing out, so the widths are handed to the elements here and
  * the classes and attributes are what is asserted; what they draw is
@@ -82,7 +85,13 @@ describe("the classes a row's name fills with", () => {
     }
   });
 
-  test("the cap lifted, a line that may break anywhere for the measuring, and only its first line shown", () => {
+  test("the cap lifted, a line that may break anywhere for the measuring, and only its first line shown, to the column's end", () => {
+    /*
+     * Between any two letters (break-all), not only between words: a
+     * name's first line runs to its column's end and its "..." comes where
+     * the room does. Breaking between words only ended "Customer-Facing
+     * Checkout API" as "Customer-Facing..." with room for twice the words.
+     */
     expect(
       tokens(TABLE_PRIMARY_FILL_CONTENT_CLASS_NAME).map((token: string) => {
         return token.slice(FILL_VARIANT.length);
@@ -91,9 +100,16 @@ describe("the classes a row's name fills with", () => {
       "max-w-none",
       "min-w-[10rem]",
       "whitespace-normal",
-      "[overflow-wrap:anywhere]",
+      "break-all",
       "line-clamp-1",
     ]);
+  });
+
+  test("its floor is the one a name has to be wider than to be set free", () => {
+    expect(TABLE_NAME_FILL_FLOOR_IN_PX).toBe(10 * 16);
+    expect(TABLE_PRIMARY_FILL_CONTENT_CLASS_NAME).toContain(
+      `${FILL_VARIANT}min-w-[10rem]`,
+    );
   });
 
   test("it never narrows below the floor a column of prose has, nor lifts a cap it does not override", () => {
@@ -197,6 +213,8 @@ interface ProbeProps {
   fillWidth: number;
   capWidth: number;
   names: Array<string>;
+  // Each name's width as its words: 240px - wider than the floor - unless given.
+  nameWidths?: Array<number> | undefined;
   readings: Array<Array<string | null>>;
   onState: (state: TableScrollState) => void;
 }
@@ -271,6 +289,14 @@ function Probe(props: ProbeProps): ReactElement {
                   <div
                     data-testid={`name-${index}`}
                     {...{ [TABLE_NAME_ATTRIBUTE]: "true" }}
+                    ref={(element: HTMLDivElement | null) => {
+                      if (element) {
+                        Object.defineProperty(element, "scrollWidth", {
+                          configurable: true,
+                          value: props.nameWidths?.[index] ?? 240,
+                        });
+                      }
+                    }}
                     dangerouslySetInnerHTML={{ __html: markup }}
                   />
                 </td>
@@ -291,17 +317,20 @@ interface ProbeResult {
 type RenderProbeFunction = (
   widths: { boxWidth: number; fillWidth: number; capWidth: number },
   names?: Array<string>,
+  nameWidths?: Array<number>,
 ) => ProbeResult;
 
 const renderProbe: RenderProbeFunction = (
   widths: { boxWidth: number; fillWidth: number; capWidth: number },
   names?: Array<string>,
+  nameWidths?: Array<number>,
 ): ProbeResult => {
   const result: ProbeResult = { states: [], readings: [] };
 
   render(
     <Probe
       {...widths}
+      nameWidths={nameWidths}
       names={names ?? ["Customer-Facing Status Page", "Internal Platform"]}
       readings={result.readings}
       onState={(state: TableScrollState) => {
@@ -442,6 +471,40 @@ describe("useTableScrollState sets a row's name free while the table fits", () =
     expect(fillOf(1)).toBe("true");
   });
 
+  test("a name no wider than the 10rem floor is never set free, beside one that is: it has nothing to give", () => {
+    renderProbe(
+      { boxWidth: 1200, fillWidth: 1000, capWidth: 1100 },
+      ["Customer-Facing Status Page", "Internal"],
+      [240, TABLE_NAME_FILL_FLOOR_IN_PX],
+    );
+
+    expect(fillOf(0)).toBe("true");
+    // Exactly the floor: setting it free would give nothing.
+    expect(fillOf(1)).toBe("false");
+  });
+
+  /*
+   * "Checkout API" stood in a 10rem column while the person on call beside
+   * it was cut short to "ada@acme-co..." - the floor only widened a column
+   * of short names. Not one is set free now: the table is read as it is
+   * drawn, once, and fits as it always did.
+   */
+  test("a table whose names are all short is read as it is drawn: not one is set free", () => {
+    const result: ProbeResult = renderProbe(
+      { boxWidth: 1200, fillWidth: 1250, capWidth: 1150 },
+      ["Checkout API", "Edge LB"],
+      [96, 52],
+    );
+
+    expect(fillOf(0)).toBe("false");
+    expect(fillOf(1)).toBe("false");
+    expect(result.readings).toEqual([["false", "false"]]);
+    expect(result.states[result.states.length - 1]).toEqual({
+      isOverflowing: false,
+      canStickHeader: true,
+    });
+  });
+
   test("a table with no names to set free is measured as it was", () => {
     const result: ProbeResult = renderProbe(
       { boxWidth: 1200, fillWidth: 1500, capWidth: 1500 },
@@ -535,21 +598,92 @@ const nameValues: NameValuesFunction = (): Array<HTMLElement> => {
   );
 };
 
+describe("getNamesWiderThanFloor", () => {
+  /*
+   * A name in a column a table that fits made wide - its spare room shared
+   * out - reports the column's width, not its own: read so, a short name
+   * would be set free on one measurement and not the next, and the two
+   * would chase each other.
+   */
+  test("each name is read as wide as its words, whatever its column is now, and left as it was", () => {
+    /*
+     * jsdom's styles take no max-content, so each name here is a stand-in
+     * with a style of its own: as wide as its words while its width is
+     * max-content, and as wide as its 300px column otherwise.
+     */
+    interface StandIn {
+      style: { width: string; removeProperty: (name: string) => string };
+      scrollWidth: number;
+      widthsSeen: Array<string>;
+    }
+
+    const standIn: (ownWidth: number) => StandIn = (
+      ownWidth: number,
+    ): StandIn => {
+      const name: StandIn = {
+        style: {
+          width: "",
+          removeProperty: (property: string): string => {
+            expect(property).toBe("width");
+            name.style.width = "";
+            return "";
+          },
+        },
+        widthsSeen: [],
+        get scrollWidth(): number {
+          name.widthsSeen.push(name.style.width);
+          return name.style.width === "max-content" ? ownWidth : 300;
+        },
+      };
+
+      return name;
+    };
+
+    const names: Array<StandIn> = [standIn(120), standIn(240)];
+
+    expect(
+      getNamesWiderThanFloor(names as unknown as Array<HTMLElement>),
+    ).toEqual([false, true]);
+
+    for (const name of names) {
+      // Read once, as wide as its words...
+      expect(name.widthsSeen).toEqual(["max-content"]);
+      // ...and left as it was.
+      expect(name.style.width).toBe("");
+    }
+  });
+});
+
+/*
+ * jsdom lays nothing out: here a value is as wide as its words, 8px a
+ * letter, so a long name is wider than the 10rem floor and a short one is
+ * not.
+ */
+const giveTextTheirWidths: () => void = (): void => {
+  jest
+    .spyOn(Element.prototype, "scrollWidth", "get")
+    .mockImplementation(function (this: Element): number {
+      return (this.textContent || "").length * 8;
+    });
+};
+
 describe("the table's rows", () => {
-  test("the row's name is marked, and uses the room while the table fits; no other value is", () => {
+  test("the row's name is marked, and a long one uses the room while the table fits; a short one, and no other value, is not set free", () => {
+    giveTextTheirWidths();
     renderTable();
 
     const names: Array<HTMLElement> = nameValues();
 
     expect(names).toHaveLength(2);
 
-    for (const row of bodyRows()) {
+    const [longRow, shortRow] = bodyRows();
+
+    for (const row of [longRow!, shortRow!]) {
       const [name, note] = Array.from(row.children).map((cell: Element) => {
         return cell.firstElementChild as HTMLElement;
       });
 
       expect(name).toHaveAttribute(TABLE_NAME_ATTRIBUTE, "true");
-      expect(name).toHaveAttribute(TABLE_FILL_ATTRIBUTE, "true");
       expect(name).toHaveClass(
         TABLE_CELL_MAX_WIDTH_CLASS_NAME,
         ...tokens(TABLE_PRIMARY_FILL_CONTENT_CLASS_NAME),
@@ -558,6 +692,17 @@ describe("the table's rows", () => {
       expect(note).not.toHaveAttribute(TABLE_NAME_ATTRIBUTE);
       expect(note).not.toHaveAttribute(TABLE_FILL_ATTRIBUTE);
     }
+
+    // "Customer-Facing Status Page for EU-West Enterprise Customers"...
+    expect(longRow!.firstElementChild!.firstElementChild).toHaveAttribute(
+      TABLE_FILL_ATTRIBUTE,
+      "true",
+    );
+    // ...and "Internal Platform", narrower than the floor.
+    expect(shortRow!.firstElementChild!.firstElementChild).toHaveAttribute(
+      TABLE_FILL_ATTRIBUTE,
+      "false",
+    );
   });
 
   test("with a select box first, the name is still the first column of values", () => {
@@ -633,7 +778,8 @@ describe("the table's rows", () => {
     }
   });
 
-  test("a name drawn as a link is a line of text: it uses the room", () => {
+  test("a name drawn as a link is a line of text: a long one uses the room", () => {
+    giveTextTheirWidths();
     renderTable({
       columns: [
         {
@@ -652,9 +798,11 @@ describe("the table's rows", () => {
       ],
     });
 
-    for (const name of nameValues()) {
-      expect(name).toHaveAttribute(TABLE_FILL_ATTRIBUTE, "true");
-    }
+    expect(
+      nameValues().map((name: HTMLElement): string | null => {
+        return name.getAttribute(TABLE_FILL_ATTRIBUTE);
+      }),
+    ).toEqual(["true", "false"]);
   });
 
   test("a first column of prose, or one a page measured, is not marked", () => {

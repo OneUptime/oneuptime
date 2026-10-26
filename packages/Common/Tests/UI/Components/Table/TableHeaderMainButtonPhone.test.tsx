@@ -16,7 +16,10 @@ import {
   PHONE_CREATE_VERBS,
   getCreateButtonPhoneVerb,
 } from "../../../../UI/Components/ModelTable/CreateButtonPhoneVerb";
-import { PHONE_BELOW_WIDTH_IN_PX } from "../../../../UI/Utils/UseIsBelowWidth";
+import useIsBelowWidth, {
+  PHONE_BELOW_WIDTH_IN_PX,
+  isWindowBelowWidth,
+} from "../../../../UI/Utils/UseIsBelowWidth";
 import IconProp from "../../../../Types/Icon/IconProp";
 
 /*
@@ -203,6 +206,42 @@ describe("a table header's main button on a phone", () => {
     expect(
       screen.getByTestId("card-button-disabled-wrapper"),
     ).toBeInTheDocument();
+  });
+
+  /*
+   * Read from the window as it is first drawn: a phone never paints a
+   * frame of the whole title, broken onto two lines beside the ⋯, before
+   * its short words.
+   */
+  test("on a phone its very first frame says its short words", () => {
+    const seen: Array<boolean> = [];
+
+    function Reader(): null {
+      seen.push(useIsBelowWidth(PHONE_BELOW_WIDTH_IN_PX));
+      return null;
+    }
+
+    setViewportWidth(390);
+    render(<Reader />);
+
+    // Drawn the first time already as a phone, and never as anything else.
+    expect(seen[0]).toBe(true);
+    expect(new Set(seen)).toEqual(new Set([true]));
+
+    cleanup();
+    seen.length = 0;
+    setViewportWidth(1280);
+    render(<Reader />);
+
+    expect(new Set(seen)).toEqual(new Set([false]));
+  });
+
+  test("a window's width is read against the breakpoint, below it only", () => {
+    setViewportWidth(PHONE_BELOW_WIDTH_IN_PX - 1);
+    expect(isWindowBelowWidth(PHONE_BELOW_WIDTH_IN_PX)).toBe(true);
+
+    setViewportWidth(PHONE_BELOW_WIDTH_IN_PX);
+    expect(isWindowBelowWidth(PHONE_BELOW_WIDTH_IN_PX)).toBe(false);
   });
 
   test("drawn alone, with no ⋯, the same", async () => {
