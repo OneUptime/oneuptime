@@ -64,7 +64,7 @@ flowchart TB
 | Create a Jira issue when an alert is created | モニターが発生させるアラートを含め、新しいアラートごとに課題を作成し、アラートの ID をラベルとして付けます。Jira から作成されたアラートとプライベートアラートはスキップされます。 | API URL, API token, project key, issue type, OneUptime URL |
 | Move the Jira issue when the alert is acknowledged or resolved | リンクされた課題を進めます。アラートが確認されると In Progress のステータスへ、解決されると Done のステータスへ移します。後ろに戻すことはありません。 | API URL, API token |
 | Copy alert private notes to the Jira issue | 新しい非公開メモをそれぞれ、リンクされた課題にコメントとして投稿します。Jira Service Management では内部コメントになります。 | API URL, API token |
-| Comment on the Jira issue when the alert is edited | アラートのタイトル、重大度、説明、修復メモが変わると、アラートの現在の内容を Jira Service Management の内部コメントとして投稿します。 | API URL, API token |
+| Comment on the Jira issue when the alert is edited | アラートのタイトル、重大度、説明、根本原因、修復メモが変わると、アラートの現在の内容を Jira Service Management の内部コメントとして投稿します。 | API URL, API token |
 | **Jira → OneUptime** | | |
 | Create an alert when a Jira issue is created | 新しい課題ごとに、課題の優先度に応じた重大度でアラートを作成し、課題にラベルを付けて両者をリンクします。 | Site URL、API URL、API token と **Issue created** 用の Jira の Webhook |
 | Acknowledge or resolve the alert when its Jira issue moves | リンクされた課題が In Progress のステータスに移るとアラートを確認し、Done のステータスに移ると解決します。 | **Issue updated** 用の Jira の Webhook |
@@ -80,7 +80,6 @@ OneUptime → Jira のテンプレートは、[**プライベートインシデ�
 - **公開メモはありません。** アラートには非公開メモしかないため、アラート用テンプレートが投稿するコメントはすべて Jira Service Management の内部コメントになります。
 - **ステータスページはありません。** アラートがステータスページに載ることはないため、**Create an alert when a Jira issue is created** が書き込むのは重大度、タイトル、説明、`customFields.jiraIssueKey` だけです。
 - **重大度は 2 つなので、Medium は Low になります。** 新しいプロジェクトには、インシデントの重大度が 3 つあるのに対し、アラートの重大度は High と Low の 2 つです。作成テンプレートは、Jira の優先度をプロジェクトにある重大度に割り振ります。既定の 2 つの場合、Highest、High、Critical、Blocker は High になり、Medium と Major を含むそれ以外の優先度はすべて Low になります。Medium を High に送るには、`prepare-alert-1` スクリプトの `PRIORITY_RANK` にある `medium: 1` を `medium: 0` に変更します。
-- **根本原因の編集は監視されません。** アラートの根本原因はアラートの作成時に書き込まれ、編集できないため、編集テンプレートはタイトル、説明、重大度、修復メモに反応します。そのコメントには根本原因も表示されます。
 - **アラートのリンクとラベル。** 課題は `/dashboard/<project id>/alerts/<alert id>` にリンクし、`oneuptime-alert-<alert id>` のラベルが付きます。
 - **番号は何の番号かを示します。** 既定の接頭辞 `#` では、アラートとインシデントのどちらも `#12` になりうるため、テンプレートは `Alert #12` や `Incident #12` と書きます。`ALT-12` のように独自の接頭辞を持つ番号はそのまま書かれます。
 - **プライベートアラート。** 手動またはアラートのプライバシールールで **プライベートアラート** が付いたアラートは、`SYNC_PRIVATE_ALERTS` を `true` にしない限り Jira に送られません。

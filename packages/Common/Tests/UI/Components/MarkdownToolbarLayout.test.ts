@@ -162,6 +162,7 @@ describe("fitting the toolbar", () => {
       visibleButtonCount: 19,
       isModeToggleInBar: true,
       hasMoreMenu: false,
+      isVariableButtonCompact: false,
     });
     expect(fit(2000)).toEqual(getFullToolbarLayout(GROUPS));
   });
@@ -212,7 +213,8 @@ describe("fitting the toolbar", () => {
    * As the line gets wider the switch comes back onto it and stays, and
    * while it stays where it is the buttons only ever get more. (When the
    * switch comes back it takes the room of two buttons, so the count of
-   * buttons alone may drop at that one width.)
+   * buttons alone may drop at that one width - and so may it when Insert
+   * variable's words come back in place of its { }.)
    */
   test("gives back the switch, then buttons, as the line gets wider", () => {
     for (const variables of [false, true]) {
@@ -226,7 +228,16 @@ describe("fitting the toolbar", () => {
             expect(layout.isModeToggleInBar).toBe(true);
           }
 
-          if (previous.isModeToggleInBar === layout.isModeToggleInBar) {
+          if (!previous.isVariableButtonCompact) {
+            expect(layout.isVariableButtonCompact).toBe(false);
+          }
+
+          if (
+            previous.isVariableButtonCompact !== layout.isVariableButtonCompact
+          ) {
+            // Its words are back, beside the menu's button at least.
+            expect(layout.hasMoreMenu).toBe(true);
+          } else if (previous.isModeToggleInBar === layout.isModeToggleInBar) {
             expect(layout.visibleButtonCount).toBeGreaterThanOrEqual(
               previous.visibleButtonCount,
             );
@@ -249,6 +260,7 @@ describe("fitting the toolbar", () => {
         visibleButtonCount: 19,
         isModeToggleInBar: true,
         hasMoreMenu: false,
+        isVariableButtonCompact: false,
       });
     }
   });
@@ -269,6 +281,7 @@ describe("fitting the toolbar", () => {
       visibleButtonCount: 19,
       isModeToggleInBar: true,
       hasMoreMenu: false,
+      isVariableButtonCompact: false,
     });
   });
 
@@ -279,6 +292,8 @@ describe("fitting the toolbar", () => {
     expect(layout.isModeToggleInBar).toBe(false);
     expect(layout.hasMoreMenu).toBe(true);
     expect(layout.visibleButtonCount).toBe(4);
+    // With its words.
+    expect(layout.isVariableButtonCompact).toBe(false);
   });
 
   test("on a phone without variables, the switch stays beside the first groups", () => {
@@ -299,6 +314,7 @@ describe("fitting the toolbar", () => {
       visibleButtonCount: 4,
       isModeToggleInBar: true,
       hasMoreMenu: true,
+      isVariableButtonCompact: false,
     });
 
     const layout: MarkdownToolbarLayout = fit(tight - 1);
@@ -320,15 +336,88 @@ describe("fitting the toolbar", () => {
       visibleButtonCount: 4,
       isModeToggleInBar: false,
       hasMoreMenu: true,
+      isVariableButtonCompact: false,
     });
   });
 
-  test("gives as many buttons as fit where even the narrowest line is too short", () => {
-    const layout: MarkdownToolbarLayout = fit(110, { variables: true });
+  test("puts the switch away and keeps as many buttons as fit where even the first group does not fit", () => {
+    const layout: MarkdownToolbarLayout = fit(80);
 
     expect(layout.isModeToggleInBar).toBe(false);
     expect(layout.hasMoreMenu).toBe(true);
-    expect(layout.visibleButtonCount).toBe(0);
+    expect(layout.visibleButtonCount).toBe(1);
+    expect(layout.isVariableButtonCompact).toBe(false);
+  });
+
+  /*
+   * A monitor criteria's alert form on a 390px phone gave its description's
+   * editor some 165px: the menu's button and Insert variable's words did
+   * not fit, and the words were cut to "Insert variab".
+   */
+  test("where even Insert variable's words do not fit beside the menu's button, keeps its { } alone", () => {
+    // The menu's button and Insert variable with its words, by one pixel.
+    const words: number = line([B, INSERT_VARIABLE]) + TOOLBAR_SLACK_PX;
+
+    expect(fit(words, { variables: true })).toEqual({
+      visibleButtonCount: 0,
+      isModeToggleInBar: false,
+      hasMoreMenu: true,
+      isVariableButtonCompact: false,
+    });
+
+    const layout: MarkdownToolbarLayout = fit(words - 1, { variables: true });
+
+    expect(layout.isVariableButtonCompact).toBe(true);
+    expect(layout.isModeToggleInBar).toBe(false);
+    expect(layout.hasMoreMenu).toBe(true);
+  });
+
+  test("its { } alone takes a formatting button's square: as many buttons fit beside it as there is room for", () => {
+    // About 165px of editor, less the toolbar's padding and border.
+    const narrow: MarkdownToolbarLayout = fit(147, { variables: true });
+
+    expect(narrow.isVariableButtonCompact).toBe(true);
+    // Bold and Italic beside the menu's button and the { }.
+    expect(narrow.visibleButtonCount).toBe(2);
+    expect(
+      getToolbarLineWidth({
+        groupSizes: GROUPS,
+        visibleButtonCount: narrow.visibleButtonCount,
+        hasMoreMenu: true,
+        modeToggleWidth: 0,
+        variableButtonWidth: B,
+      }),
+    ).toBeLessThanOrEqual(147 - TOOLBAR_SLACK_PX);
+
+    // Even the tightest line keeps the menu's button and the { }.
+    expect(fit(70, { variables: true })).toEqual({
+      visibleButtonCount: 0,
+      isModeToggleInBar: false,
+      hasMoreMenu: true,
+      isVariableButtonCompact: true,
+    });
+  });
+
+  test("its words come back as soon as they fit again, and stay as the line widens", () => {
+    let wasCompact: boolean = true;
+
+    for (let width: number = 60; width <= 1200; width += 3) {
+      const layout: MarkdownToolbarLayout = fit(width, { variables: true });
+
+      if (!wasCompact) {
+        expect(layout.isVariableButtonCompact).toBe(false);
+      }
+
+      wasCompact = layout.isVariableButtonCompact;
+    }
+
+    expect(wasCompact).toBe(false);
+  });
+
+  test("a toolbar without variables has no { } to keep: never compact", () => {
+    for (const width of [40, 80, 147, 328, 1200]) {
+      expect(fit(width).isVariableButtonCompact).toBe(false);
+    }
   });
 
   test("puts nothing away where there is nothing to measure", () => {
@@ -362,5 +451,8 @@ describe("comparing layouts", () => {
     expect(isSameToolbarLayout(layout, { ...layout, hasMoreMenu: true })).toBe(
       false,
     );
+    expect(
+      isSameToolbarLayout(layout, { ...layout, isVariableButtonCompact: true }),
+    ).toBe(false);
   });
 });

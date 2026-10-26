@@ -1319,15 +1319,18 @@ describe("Name the channel a rule creates", () => {
     expect(await prefixField()).toHaveAttribute("placeholder", "e.g. prod-");
     expect(await prefixField()).toHaveValue("");
 
-    // The preview describes the field, and follows what is typed.
+    /*
+     * The field's help describes it first, then the preview, which follows
+     * what is typed.
+     */
     expect(await prefixField()).toHaveAccessibleDescription(
-      "Preview: #inc-42 For incident INC-42. If Slack already has a channel with this name, OneUptime adds -2 to the end.",
+      "Each new channel is named after its incident. Anything you write here goes in front of that name. Preview: #inc-42 For incident INC-42. If Slack already has a channel with this name, OneUptime adds -2 to the end.",
     );
 
     await typePrefix("prod-");
 
     expect(await prefixField()).toHaveAccessibleDescription(
-      /^Preview: #prod-inc-42 /,
+      /that name\. Preview: #prod-inc-42 /,
     );
   });
 

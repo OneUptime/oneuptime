@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import ts from "typescript";
+import { isRestatingColumnDescription } from "Common/UI/Components/Forms/Utils/ColumnDescriptionOnForm";
 
 /*
  * THE DESCRIPTIONS A PERSON READS WHILE SETTING SOMETHING UP.
@@ -557,7 +558,9 @@ export class DescriptionScanner {
      * A form field with no description of its own shows its column's
      * (BasicModelForm), which was written for the API reference - unless it
      * says it shows none (Field.hideColumnDescription: true), which
-     * BasicModelForm honours too.
+     * BasicModelForm honours too, or the column's only restates the field
+     * ("Any friendly name of this object"), which BasicModelForm leaves off
+     * (ColumnDescriptionOnForm).
      */
     const hidesColumnDescription: boolean =
       properties.get("hideColumnDescription")?.kind ===
@@ -589,7 +592,11 @@ export class DescriptionScanner {
             ? this.columnDescription(modelFile, column)
             : null;
 
-        if (modelFile && description) {
+        if (
+          modelFile &&
+          description &&
+          !isRestatingColumnDescription(description.text)
+        ) {
           add("column", `${model}.${column}`, node, [
             {
               text: description.text,

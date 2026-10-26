@@ -70,6 +70,8 @@ import {
   SESSION_SIGNAL_OPTIONS,
   SESSION_SORT_OPTIONS,
   WEB_VITALS,
+  WEB_VITAL_RATING_LABELS,
+  WEB_VITAL_RECOMMENDATION_NAMES,
 } from "./RumDocsPages";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
@@ -583,8 +585,20 @@ describe("the lists this test keeps", () => {
       for (const name of listed(KEPT_AS_WRITTEN, page)) {
         // A permission's title reads as a create button would; it is not one.
         const permission: boolean = name === "Create Telemetry Ingestion Key";
+        /*
+         * The Web Vitals card's rating chips and the web vital
+         * recommendations are drawn with no lookup, so they stay English
+         * whatever another screen translates (RumDocsPages says why).
+         */
+        const drawnInEnglish: boolean =
+          WEB_VITAL_RATING_LABELS.includes(name) ||
+          WEB_VITAL_RECOMMENDATION_NAMES.includes(name);
 
-        expect({ page, name, label: isActionLabel(name) }).toEqual({
+        expect({
+          page,
+          name,
+          label: isActionLabel(name) && !drawnInEnglish,
+        }).toEqual({
           page,
           name,
           label: permission,

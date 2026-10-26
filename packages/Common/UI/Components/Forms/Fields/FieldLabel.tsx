@@ -1,6 +1,10 @@
 import Link from "../../Link/Link";
 import InfoTooltip from "../../Tooltip/InfoTooltip";
 import { FormFieldSideLink } from "../Types/Field";
+import {
+  splitTitleOptionalMark,
+  TitleOptionalMark,
+} from "../Utils/OptionalMark";
 import useTranslateValue from "../../../Utils/Translation";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -11,6 +15,12 @@ export interface ComponentProps {
   required?: boolean | undefined;
   sideLink?: FormFieldSideLink | undefined;
   description?: string | ReactElement | undefined;
+  /*
+   * The id the description is drawn with, for the field's control to be
+   * described by it (aria-describedby): a screen reader reads the help as
+   * the reader reaches the field, not only when reading the page through.
+   */
+  descriptionId?: string | undefined;
   /*
    * More about the field than its one-line description should hold - the
    * exact rule a probe follows, say. Shown in an (i) beside the title, on
@@ -39,6 +49,27 @@ const FieldLabelElement: FunctionComponent<ComponentProps> = (
   const translatedDescription: string | ReactElement | undefined =
     translateValue(props.description);
 
+  /*
+   * A title that says "(Optional)" itself - "DNS Server (Optional)", the
+   * LLM budgets' "Service (optional)" - is drawn without those words and
+   * with the label's own mark: one mark, worded as every other field's on
+   * the form ("Service (optional)" beside "Daily Budget (USD) (Optional)",
+   * or a French "(facultatif)" beside "(Optionnel)", read as two different
+   * marks). Its mark shows even on a field marked required or told to hide
+   * it, as its title asks (Utils/OptionalMark).
+   */
+  const titleMark: TitleOptionalMark = splitTitleOptionalMark({
+    englishTitle: props.title,
+    drawnTitle: translatedTitle,
+  });
+
+  const drawnTitle: string = titleMark.mark
+    ? titleMark.title.trimEnd()
+    : translatedTitle;
+
+  const showsOptionalMark: boolean =
+    Boolean(titleMark.mark) || !(props.required || props.hideOptionalLabel);
+
   const label: ReactElement = (
     <label
       id={props.id}
@@ -51,11 +82,11 @@ const FieldLabelElement: FunctionComponent<ComponentProps> = (
       }
     >
       <span>
-        {translatedTitle}{" "}
+        {drawnTitle}{" "}
         <span className="text-gray-400 text-xs">
-          {props.required || props.hideOptionalLabel
-            ? ""
-            : translateString("(Optional)") ?? "(Optional)"}
+          {showsOptionalMark
+            ? translateString("(Optional)") ?? "(Optional)"
+            : ""}
         </span>
       </span>
       {props.sideLink && translatedSideLinkText && props.sideLink?.url && (
@@ -92,7 +123,7 @@ const FieldLabelElement: FunctionComponent<ComponentProps> = (
       )}
 
       {translatedDescription && (
-        <div className="mt-1 text-sm text-gray-500">
+        <div id={props.descriptionId} className="mt-1 text-sm text-gray-500">
           {translatedDescription}
         </div>
       )}

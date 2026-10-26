@@ -64,7 +64,7 @@ flowchart TB
 | Create a Jira issue when an alert is created | 為每個新警示建立一個問題，包括監測器產生的每一條警示，並用警示的 ID 為它加標籤。從 Jira 建立的警示和私人警示會被跳過。 | API URL、API 權杖、專案鍵、問題類型、OneUptime URL |
 | Move the Jira issue when the alert is acknowledged or resolved | 把關聯的問題向前推進：警示被確認時移到 In Progress 狀態，被解決時移到 Done 狀態。從不向後移動。 | API URL、API 權杖 |
 | Copy alert private notes to the Jira issue | 把每條新的私人備註作為留言發布到關聯的問題上——在 Jira Service Management 中是內部留言。 | API URL、API 權杖 |
-| Comment on the Jira issue when the alert is edited | 當警示的標題、嚴重程度、描述或修復說明發生變化時，發布警示的當前情況——在 Jira Service Management 中是內部留言。 | API URL、API 權杖 |
+| Comment on the Jira issue when the alert is edited | 當警示的標題、嚴重程度、描述、根本原因或修復說明發生變化時，發布警示的當前情況——在 Jira Service Management 中是內部留言。 | API URL、API 權杖 |
 | **Jira → OneUptime** | | |
 | Create an alert when a Jira issue is created | 為每個新問題建立一個警示，嚴重程度根據問題的優先順序選擇，然後為問題加標籤，把兩者關聯起來。 | 網站 URL、API URL、API 權杖，以及用於 **Issue created** 的 Jira Webhook |
 | Acknowledge or resolve the alert when its Jira issue moves | 關聯的問題移到 In Progress 狀態時確認警示，移到 Done 狀態時解決警示。 | 用於 **Issue updated** 的 Jira Webhook |
@@ -80,7 +80,6 @@ flowchart TB
 - **沒有公開備註。** 警示只有私人備註，因此警示範本發布的每條留言在 Jira Service Management 中都是內部留言。
 - **沒有狀態頁。** 警示永遠不會出現在狀態頁上，因此 **Create an alert when a Jira issue is created** 只寫入嚴重程度、標題、描述和 `customFields.jiraIssueKey`，不寫入其他內容。
 - **只有兩種嚴重程度，所以 Medium 會變成 Low。** 新專案有三種事件嚴重程度，但只有 High 和 Low 兩種警示嚴重程度。建立範本把 Jira 的優先順序分配到專案已有的嚴重程度上。在預設的兩種嚴重程度下，Highest、High、Critical 和 Blocker 會變成 High，其他所有優先順序（包括 Medium 和 Major）都會變成 Low。要把 Medium 傳送為 High，請在 `prepare-alert-1` 指令碼的 `PRIORITY_RANK` 中把 `medium: 1` 改為 `medium: 0`。
-- **不監視根本原因的編輯。** 警示的根本原因在建立警示時寫入，之後無法編輯，因此編輯範本只在標題、描述、嚴重程度和修復說明變化時觸發。它的留言仍會顯示根本原因。
 - **警示的連結和標籤。** 問題連結到 `/dashboard/<project id>/alerts/<alert id>`，並帶有標籤 `oneuptime-alert-<alert id>`。
 - **編號會說明它是什麼的編號。** 在預設的 `#` 字首下，警示和事件可能都是 `#12`，因此範本會寫成 `Alert #12` 或 `Incident #12`。帶有自己字首的編號（例如 `ALT-12`）按原樣寫入。
 - **私人警示。** 被手動或被警示隱私規則標記為 **私人警示** 的警示不會進入 Jira，除非你把 `SYNC_PRIVATE_ALERTS` 設為 `true`。

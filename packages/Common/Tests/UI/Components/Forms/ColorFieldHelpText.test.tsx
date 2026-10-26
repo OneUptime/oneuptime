@@ -66,10 +66,13 @@ describe("a color field's help text", () => {
     expect(screen.queryByText(COLUMN_DESCRIPTION)).toBeNull();
     expect(document.body.textContent).not.toContain("#32a852");
 
-    // Other fields still take their column's description, as before.
-    expect(
-      screen.getByText("Any friendly name of this object"),
-    ).toBeInTheDocument();
+    /*
+     * The name's column description only restates the field ("Any
+     * friendly name of this object"), so it is left off too
+     * (Forms/Utils/ColumnDescriptionOnForm); a column description that
+     * says more is still shown (BasicModelFormRestatingDescriptions).
+     */
+    expect(screen.queryByText("Any friendly name of this object")).toBeNull();
   });
 
   test("a color field's own description is kept", async () => {

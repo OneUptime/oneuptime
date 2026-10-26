@@ -31,7 +31,6 @@ import {
   CAPTURE_TRIGGER_CHOICES,
   CONSENT_MODE_CHOICES,
   EDIT_SESSION_REPLAY_POLICY_TITLE,
-  fillEmptiedPolicyNumbers,
   MASKING_MODE_CHOICES,
 } from "../../../Components/SessionReplay/SessionReplayPolicyChoices";
 import {
@@ -294,11 +293,12 @@ const RumApplicationSessionReplaySettings: FunctionComponent<
           onSaveSuccess={(item: RumApplication): void => {
             setApplication(item);
           }}
-          onBeforeUpdate={async (
-            item: RumApplication,
-          ): Promise<RumApplication> => {
-            return fillEmptiedPolicyNumbers(item);
-          }}
+          /*
+           * An emptied number box is saved as its column's default - the
+           * sample percentage's 100, a budget's 0 - or, for the monthly
+           * budget, as no ceiling, as every form's is (ModelForm,
+           * BlankColumnValue).
+           */
           /*
            * Privacy was one step of seven settings. Masking asks what a
            * recording hides; Consent & Identity asks whether it may be

@@ -73,6 +73,7 @@ import {
   Translator,
 } from "../../../Utils/TranslateTemplate";
 import useTranslator from "../../../Utils/UseTranslator";
+import joinAriaIds from "../../../Utils/AriaIds";
 
 /*
  * Shown under every DateTime and Time field. It is one sentence with
@@ -135,6 +136,15 @@ const FormField: <T extends GenericObject>(
    * this via aria-labelledby so the control still has an accessible name.
    */
   const fieldLabelId: string = `${fieldId}-label`;
+
+  /*
+   * Id of the field's help under its label. The control is described by it
+   * (aria-describedby), so a screen reader reads the help when the reader
+   * reaches the field - "Such as your company or team name." - not only
+   * when reading the page through. A switch and a checkbox draw and link
+   * their own.
+   */
+  const fieldDescriptionId: string = `${fieldId}-description`;
 
   type onChangeFunction = (
     value: JSONValue,
@@ -547,6 +557,19 @@ const FormField: <T extends GenericObject>(
       props.field.fieldType === FormFieldSchemaType.Toggle ||
       customElementDrawsOwnLabel;
 
+    // Whether help is drawn under the label, for the control to point at.
+    const hasDescription: boolean =
+      !drawsOwnLabel &&
+      (Boolean(fieldDescription) ||
+        Boolean(
+          props.field.fieldType === FormFieldSchemaType.MultiSelectDropdown &&
+            props.field.selectByAccessControlProps,
+        ));
+
+    const describedBy: string | undefined = hasDescription
+      ? fieldDescriptionId
+      : undefined;
+
     return (
       <div className="sm:col-span-4 mt-0 mb-2" key={props.fieldName}>
         {props.field.showHorizontalRuleAbove && <HorizontalRule />}
@@ -557,6 +580,7 @@ const FormField: <T extends GenericObject>(
             id={fieldLabelId}
             htmlFor={fieldRendersLabelableInput ? fieldId : undefined}
             description={getFieldDescription()}
+            descriptionId={describedBy}
             sideLink={props.field.sideLink}
             required={required}
             hideOptionalLabel={props.field.hideOptionalLabel}
@@ -581,6 +605,7 @@ const FormField: <T extends GenericObject>(
           {props.field.fieldType === FormFieldSchemaType.Time && (
             <TimePicker
               ariaLabelledby={fieldLabelId}
+              ariaDescribedby={describedBy}
               autoFocus={!props.disableAutofocus && index === 1}
               tabIndex={0}
               disabled={props.isDisabled || props.field.disabled}
@@ -606,6 +631,7 @@ const FormField: <T extends GenericObject>(
           {props.field.fieldType === FormFieldSchemaType.Color && (
             <ColorPicker
               ariaLabelledby={fieldLabelId}
+              ariaDescribedby={describedBy}
               error={props.touched && props.error ? props.error : undefined}
               dataTestId={props.field.dataTestId}
               onChange={async (value: Color | null) => {
@@ -632,6 +658,7 @@ const FormField: <T extends GenericObject>(
           {props.field.fieldType === FormFieldSchemaType.Icon && (
             <IconPicker
               ariaLabelledby={fieldLabelId}
+              ariaDescribedby={describedBy}
               error={props.touched && props.error ? props.error : undefined}
               dataTestId={props.field.dataTestId}
               onChange={async (value: IconProp | null) => {
@@ -663,6 +690,7 @@ const FormField: <T extends GenericObject>(
             (props.field.dropdownModal && props.field.dropdownModal.type ? (
               <EntityDropdown
                 ariaLabelledby={fieldLabelId}
+                ariaDescribedby={describedBy}
                 error={props.touched && props.error ? props.error : undefined}
                 id={props.field.id}
                 tabIndex={0}
@@ -708,6 +736,7 @@ const FormField: <T extends GenericObject>(
             ) : (
               <Dropdown
                 ariaLabelledby={fieldLabelId}
+                ariaDescribedby={describedBy}
                 error={props.touched && props.error ? props.error : undefined}
                 id={props.field.id}
                 tabIndex={0}
@@ -762,6 +791,7 @@ const FormField: <T extends GenericObject>(
           {props.field.fieldType === FormFieldSchemaType.CardSelect && (
             <CardSelect
               ariaLabelledby={fieldLabelId}
+              ariaDescribedby={describedBy}
               error={props.touched && props.error ? props.error : undefined}
               tabIndex={0}
               dataTestId={props.field.dataTestId}
@@ -855,6 +885,7 @@ const FormField: <T extends GenericObject>(
             FormFieldSchemaType.OptionChooserButton && (
             <RadioButtons
               ariaLabelledby={fieldLabelId}
+              ariaDescribedby={describedBy}
               error={props.touched && props.error ? props.error : undefined}
               dataTestId={props.field.dataTestId}
               onChange={async (value: string) => {
@@ -874,6 +905,7 @@ const FormField: <T extends GenericObject>(
           {props.field.fieldType === FormFieldSchemaType.RadioButton && (
             <Radio
               ariaLabelledby={fieldLabelId}
+              ariaDescribedby={describedBy}
               error={props.touched && props.error ? props.error : undefined}
               dataTestId={props.field.dataTestId}
               onChange={async (value: RadioValue | null) => {
@@ -916,6 +948,7 @@ const FormField: <T extends GenericObject>(
               <TextArea
                 autoFocus={!props.disableAutofocus && index === 1}
                 id={fieldId}
+                ariaDescribedby={describedBy}
                 error={props.touched && props.error ? props.error : undefined}
                 tabIndex={0}
                 dataTestId={props.field.dataTestId}
@@ -942,6 +975,7 @@ const FormField: <T extends GenericObject>(
             withTemplateVariables(
               <CodeEditor
                 ariaLabelledby={fieldLabelId}
+                ariaDescribedby={describedBy}
                 error={props.touched && props.error ? props.error : undefined}
                 ariaInvalid={Boolean(props.touched && props.error)}
                 type={CodeType.JSON}
@@ -979,6 +1013,7 @@ const FormField: <T extends GenericObject>(
           {props.field.fieldType === FormFieldSchemaType.YAML && (
             <YamlEditor
               ariaLabelledby={fieldLabelId}
+              ariaDescribedby={describedBy}
               error={props.touched && props.error ? props.error : undefined}
               tabIndex={0}
               dataTestId={props.field.dataTestId}
@@ -1008,6 +1043,7 @@ const FormField: <T extends GenericObject>(
           {props.field.fieldType === FormFieldSchemaType.Markdown && (
             <MarkdownEditor
               ariaLabelledby={fieldLabelId}
+              ariaDescribedby={describedBy}
               error={props.touched && props.error ? props.error : undefined}
               dataTestId={props.field.dataTestId}
               tabIndex={0}
@@ -1059,6 +1095,8 @@ const FormField: <T extends GenericObject>(
               ariaLabelledby: customElementDrawsOwnLabel
                 ? undefined
                 : fieldLabelId,
+
+              ariaDescribedby: describedBy,
             })}
 
           {/*
@@ -1115,6 +1153,7 @@ const FormField: <T extends GenericObject>(
                 disabled={props.field.disabled}
                 error={props.touched && props.error ? props.error : undefined}
                 ariaLabelledby={fieldLabelId}
+                ariaDescribedby={describedBy}
                 dataTestId={props.field.dataTestId}
               />
             )}
@@ -1125,6 +1164,7 @@ const FormField: <T extends GenericObject>(
             withTemplateVariables(
               <CodeEditor
                 ariaLabelledby={fieldLabelId}
+                ariaDescribedby={describedBy}
                 error={props.touched && props.error ? props.error : undefined}
                 ariaInvalid={Boolean(props.touched && props.error)}
                 tabIndex={0}
@@ -1151,6 +1191,7 @@ const FormField: <T extends GenericObject>(
           {isFileField && (
             <FilePicker
               ariaLabelledby={fieldLabelId}
+              ariaDescribedby={describedBy}
               error={props.touched && props.error ? props.error : undefined}
               tabIndex={0}
               onChange={async (files: Array<FileModel>) => {
@@ -1263,6 +1304,7 @@ const FormField: <T extends GenericObject>(
           {props.field.fieldType === FormFieldSchemaType.CategoryCheckbox && (
             <CategoryCheckbox
               ariaLabelledby={fieldLabelId}
+              ariaDescribedby={describedBy}
               categories={props.field.categoryCheckboxProps?.categories || []}
               options={props.field.categoryCheckboxProps?.options || []}
               error={props.touched && props.error ? props.error : undefined}
@@ -1316,7 +1358,10 @@ const FormField: <T extends GenericObject>(
                 )}
                 dataTestId={props.field.dataTestId}
                 type={fieldType as InputType}
-                ariaDescribedby={props.field.ariaDescribedby}
+                ariaDescribedby={joinAriaIds(
+                  describedBy,
+                  props.field.ariaDescribedby,
+                )}
                 autoComplete={
                   props.field.autoComplete ||
                   (props.field.fieldType
