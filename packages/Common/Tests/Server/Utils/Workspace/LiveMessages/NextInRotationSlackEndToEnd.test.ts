@@ -227,7 +227,7 @@ describe("Level 2 pages the next person in the Primary cover rotation", () => {
     );
     // Nitin was paged as on call, not as anybody's backup.
     expect(message).not.toContain("Nitin* (next in");
-    expect(message).toContain("Escalation rule 2 of 3 (Level 2)");
+    expect(message).toContain("Level 2 of 3");
   });
 
   test("the incident's feed says the same: next in the Primary cover rotation", async () => {
@@ -292,7 +292,7 @@ describe("nobody is next in the Primary cover rotation", () => {
 
     expect(alarms).toHaveLength(1);
     expect(alarms[0]!.notification).toBe(
-      "PolicyX paged nobody at escalation rule 2 of 3 (Level 2) for Incident INC-8",
+      "PolicyX paged nobody at Level 2 of 3 for Incident INC-8",
     );
     expect(alarms[0]!.text).toContain(
       "(nobody was next in the Primary cover rotation)",

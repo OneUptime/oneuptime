@@ -221,7 +221,7 @@ Hva som skjer videre, avhenger av hvem andre som blir varslet:
 
 En varsling som en arbeidsflyt sender direkte til personer, har ingen nivåer: eskalerer du den, blir du ikke varslet mer, og når alle den varslet har eskalert den, stopper varslingen.
 
-Hver gang en varsling eskaleres, blir det registrert. Kjøringens **Tidslinje for utførelsen** merker personens linje **Eskalert**, hendelsens feed sier "Alex Kim escalated the page from on-call policy Payments at escalation rule Level 1.", kjøringens melding i Slack og Microsoft Teams sier at vedkommende eskalerte den, og vedkommendes **Vaktlogger** viser varslingen som **Eskalert**.
+Hver gang en varsling eskaleres, blir det registrert. Kjøringens **Tidslinje for utførelsen** merker personens linje **Eskalert**, hendelsens feed sier "Alex Kim escalated the page from on-call policy Payments at Level 1 of 3.", kjøringens melding i Slack og Microsoft Teams sier at vedkommende eskalerte den, og vedkommendes **Vaktlogger** viser varslingen som **Eskalert**.
 
 ## Rediger, endre rekkefølge på og slett regler
 

@@ -221,7 +221,7 @@ flowchart TB
 
 워크플로우가 사람들에게 직접 보내는 호출에는 단계가 없습니다. 에스컬레이션하면 더 이상 호출되지 않으며, 호출받은 모든 사람이 에스컬레이션하면 호출이 중지됩니다.
 
-에스컬레이션한 내역은 모두 기록됩니다. 실행의 **실행 타임라인** 은 그 사람의 줄을 **에스컬레이션됨** 으로 표시하고, 인시던트의 피드에는 "Alex Kim escalated the page from on-call policy Payments at escalation rule Level 1." 라고 표시되며, Slack과 Microsoft Teams의 실행 메시지는 그 사람이 에스컬레이션했다고 알리고, 그 사람의 **온콜 로그** 는 그 호출을 **에스컬레이션됨** 으로 보여 줍니다.
+에스컬레이션한 내역은 모두 기록됩니다. 실행의 **실행 타임라인** 은 그 사람의 줄을 **에스컬레이션됨** 으로 표시하고, 인시던트의 피드에는 "Alex Kim escalated the page from on-call policy Payments at Level 1 of 3." 라고 표시되며, Slack과 Microsoft Teams의 실행 메시지는 그 사람이 에스컬레이션했다고 알리고, 그 사람의 **온콜 로그** 는 그 호출을 **에스컬레이션됨** 으로 보여 줍니다.
 
 ## 규칙 편집, 순서 변경, 삭제
 

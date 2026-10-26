@@ -221,7 +221,7 @@ Escalonar um acionamento não o confirma: o incidente ou alerta continua esperan
 
 Um acionamento que um workflow envia diretamente a pessoas não tem níveis: escaloná-lo faz você deixar de ser acionado, e quando todos que ele acionou já escalonaram, os acionamentos param.
 
-Cada escalonamento fica registrado. A **Linha do tempo de execução** da execução marca a linha da pessoa como **Escalonado**, o feed do incidente diz "Alex Kim escalated the page from on-call policy Payments at escalation rule Level 1.", a mensagem da execução no Slack e no Microsoft Teams diz que ela escalonou, e os **Registros de plantão** dela mostram o acionamento como **Escalonado**.
+Cada escalonamento fica registrado. A **Linha do tempo de execução** da execução marca a linha da pessoa como **Escalonado**, o feed do incidente diz "Alex Kim escalated the page from on-call policy Payments at Level 1 of 3.", a mensagem da execução no Slack e no Microsoft Teams diz que ela escalonou, e os **Registros de plantão** dela mostram o acionamento como **Escalonado**.
 
 ## Editar, reordenar e excluir regras
 

@@ -221,7 +221,7 @@ flowchart TB
 
 工作流直接发给相关人员的呼叫没有级别：升级后你不会再被呼叫，当它呼叫的所有人都已升级时，呼叫停止。
 
-每次升级都会被记录。执行的 **执行时间线** 会把此人的那一行标为 **已升级** ，事件的 Feed 会写 "Alex Kim escalated the page from on-call policy Payments at escalation rule Level 1."，策略执行在 Slack 和 Microsoft Teams 中的消息会注明此人已升级，此人的 **值班日志** 也会把这次呼叫显示为 **已升级** 。
+每次升级都会被记录。执行的 **执行时间线** 会把此人的那一行标为 **已升级** ，事件的 Feed 会写 "Alex Kim escalated the page from on-call policy Payments at Level 1 of 3."，策略执行在 Slack 和 Microsoft Teams 中的消息会注明此人已升级，此人的 **值班日志** 也会把这次呼叫显示为 **已升级** 。
 
 ## 编辑、重新排序和删除规则
 

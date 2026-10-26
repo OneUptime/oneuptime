@@ -221,7 +221,7 @@ Escalating a page does not acknowledge it: the incident or alert still waits for
 
 A page a workflow sends to people directly has no levels: escalating it stops paging you, and once everybody it paged has escalated it, paging stops.
 
-Escalating is recorded. The run's **Execution Timeline** marks the person's line **Escalated**, the incident's feed says "Alex Kim escalated the page from on-call policy Payments at escalation rule Level 1.", the run's message in Slack and Microsoft Teams says they escalated it, and their **On-Call Logs** show the page as **Escalated**.
+Escalating is recorded. The run's **Execution Timeline** marks the person's line **Escalated**, the incident's feed says "Alex Kim escalated the page from on-call policy Payments at Level 1 of 3.", the run's message in Slack and Microsoft Teams says they escalated it, and their **On-Call Logs** show the page as **Escalated**.
 
 ## Editing, reordering and deleting rules
 

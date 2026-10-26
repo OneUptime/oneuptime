@@ -221,7 +221,7 @@ At eskalere et tilkald kvitterer ikke for det: hændelsen eller advarslen venter
 
 Et tilkald, som et workflow sender direkte til personer, har ingen niveauer: eskalerer du det, bliver du ikke tilkaldt mere, og når alle, det tilkaldte, har eskaleret det, stopper tilkaldet.
 
-Hver gang et tilkald eskaleres, bliver det registreret. Kørslens **Tidslinje for udførelsen** markerer personens linje **Eskaleret**, hændelsens feed siger "Alex Kim escalated the page from on-call policy Payments at escalation rule Level 1.", kørslens besked i Slack og Microsoft Teams siger, at vedkommende eskalerede det, og vedkommendes **Vagtlogs** viser tilkaldet som **Eskaleret**.
+Hver gang et tilkald eskaleres, bliver det registreret. Kørslens **Tidslinje for udførelsen** markerer personens linje **Eskaleret**, hændelsens feed siger "Alex Kim escalated the page from on-call policy Payments at Level 1 of 3.", kørslens besked i Slack og Microsoft Teams siger, at vedkommende eskalerede det, og vedkommendes **Vagtlogs** viser tilkaldet som **Eskaleret**.
 
 ## Rediger, omarranger og slet regler
 

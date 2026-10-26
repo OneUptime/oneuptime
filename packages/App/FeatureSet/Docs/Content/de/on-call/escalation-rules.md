@@ -221,7 +221,7 @@ Eine Alarmierung zu eskalieren bestätigt sie nicht: Der Vorfall oder die Warnun
 
 Eine Alarmierung, die ein Workflow direkt an Personen sendet, hat keine Stufen: Wenn Sie sie eskalieren, werden Sie nicht mehr alarmiert, und sobald alle, die sie alarmiert hat, sie eskaliert haben, endet die Alarmierung.
 
-Jedes Eskalieren wird festgehalten. Die **Zeitachse der Ausführung** des Laufs markiert die Zeile der Person mit **Eskaliert**, der Feed des Vorfalls sagt „Alex Kim escalated the page from on-call policy Payments at escalation rule Level 1.“, die Nachricht des Laufs in Slack und Microsoft Teams sagt, dass die Person sie eskaliert hat, und ihre **Bereitschaftsprotokolle** zeigen die Alarmierung als **Eskaliert**.
+Jedes Eskalieren wird festgehalten. Die **Zeitachse der Ausführung** des Laufs markiert die Zeile der Person mit **Eskaliert**, der Feed des Vorfalls sagt „Alex Kim escalated the page from on-call policy Payments at Level 1 of 3.“, die Nachricht des Laufs in Slack und Microsoft Teams sagt, dass die Person sie eskaliert hat, und ihre **Bereitschaftsprotokolle** zeigen die Alarmierung als **Eskaliert**.
 
 ## Regeln bearbeiten, umsortieren und löschen
 

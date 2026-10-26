@@ -221,7 +221,7 @@ Att eskalera ett larm bekräftar det inte: incidenten eller larmet väntar fortf
 
 Ett larm som ett arbetsflöde skickar direkt till personer har inga nivåer: eskalerar du det larmas du inte mer, och när alla som det larmade har eskalerat det stoppar larmandet.
 
-Varje gång ett larm eskaleras registreras det. Körningens **Tidslinje för körningen** markerar personens rad **Eskalerad**, incidentens feed säger "Alex Kim escalated the page from on-call policy Payments at escalation rule Level 1.", körningens meddelande i Slack och Microsoft Teams säger att hen eskalerade det, och hens **Jourloggar** visar larmet som **Eskalerad**.
+Varje gång ett larm eskaleras registreras det. Körningens **Tidslinje för körningen** markerar personens rad **Eskalerad**, incidentens feed säger "Alex Kim escalated the page from on-call policy Payments at Level 1 of 3.", körningens meddelande i Slack och Microsoft Teams säger att hen eskalerade det, och hens **Jourloggar** visar larmet som **Eskalerad**.
 
 ## Redigera, ändra ordning på och ta bort regler
 

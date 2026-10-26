@@ -221,7 +221,7 @@ Escalare un avviso non lo conferma: l'incidente o l'avviso continua ad attendere
 
 Un avviso che un workflow invia direttamente alle persone non ha livelli: escalarlo smette di avvisarti, e quando tutti quelli che ha avvisato l'hanno escalato, gli avvisi si fermano.
 
-Ogni escalation viene registrata. La **Cronologia di esecuzione** dell'esecuzione segna la riga della persona come **Escalato**, il feed dell'incidente dice «Alex Kim escalated the page from on-call policy Payments at escalation rule Level 1.», il messaggio dell'esecuzione in Slack e Microsoft Teams dice che l'ha escalato, e i suoi **Registri di reperibilità** mostrano l'avviso come **Escalato**.
+Ogni escalation viene registrata. La **Cronologia di esecuzione** dell'esecuzione segna la riga della persona come **Escalato**, il feed dell'incidente dice «Alex Kim escalated the page from on-call policy Payments at Level 1 of 3.», il messaggio dell'esecuzione in Slack e Microsoft Teams dice che l'ha escalato, e i suoi **Registri di reperibilità** mostrano l'avviso come **Escalato**.
 
 ## Modificare, riordinare ed eliminare le regole
 

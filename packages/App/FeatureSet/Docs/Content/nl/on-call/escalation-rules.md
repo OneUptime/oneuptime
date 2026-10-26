@@ -221,7 +221,7 @@ Een oproep escaleren bevestigt hem niet: het incident of de waarschuwing wacht n
 
 Een oproep die een workflow rechtstreeks naar mensen stuurt, heeft geen niveaus: als u hem escaleert, wordt u niet meer opgeroepen, en zodra iedereen die hij opriep hem heeft geëscaleerd, stopt het oproepen.
 
-Elke keer dat een oproep wordt geëscaleerd, wordt dat vastgelegd. De **Tijdlijn van de uitvoering** markeert de regel van de persoon als **Geëscaleerd**, de feed van het incident zegt "Alex Kim escalated the page from on-call policy Payments at escalation rule Level 1.", het bericht van de uitvoering in Slack en Microsoft Teams vermeldt dat diegene hem heeft geëscaleerd, en de **Bereikbaarheidslogboeken** van diegene tonen de oproep als **Geëscaleerd**.
+Elke keer dat een oproep wordt geëscaleerd, wordt dat vastgelegd. De **Tijdlijn van de uitvoering** markeert de regel van de persoon als **Geëscaleerd**, de feed van het incident zegt "Alex Kim escalated the page from on-call policy Payments at Level 1 of 3.", het bericht van de uitvoering in Slack en Microsoft Teams vermeldt dat diegene hem heeft geëscaleerd, en de **Bereikbaarheidslogboeken** van diegene tonen de oproep als **Geëscaleerd**.
 
 ## Regels bewerken, herordenen en verwijderen
 

@@ -221,7 +221,7 @@ Escalader une alerte n'en accuse pas réception : l'incident ou l'alerte attend 
 
 Une alerte qu'un workflow envoie directement à des personnes n'a pas de niveaux : l'escalader arrête de vous alerter, et une fois que tous ceux qu'elle a alertés l'ont escaladée, les alertes s'arrêtent.
 
-Chaque escalade est enregistrée. La **Chronologie d'exécution** de l'exécution marque la ligne de la personne **Escaladé**, le fil d'activité de l'incident indique « Alex Kim escalated the page from on-call policy Payments at escalation rule Level 1. », le message de l'exécution dans Slack et Microsoft Teams indique qu'elle l'a escaladée, et ses **Journaux d'astreinte** montrent l'alerte comme **Escaladé**.
+Chaque escalade est enregistrée. La **Chronologie d'exécution** de l'exécution marque la ligne de la personne **Escaladé**, le fil d'activité de l'incident indique « Alex Kim escalated the page from on-call policy Payments at Level 1 of 3. », le message de l'exécution dans Slack et Microsoft Teams indique qu'elle l'a escaladée, et ses **Journaux d'astreinte** montrent l'alerte comme **Escaladé**.
 
 ## Modifier, réordonner et supprimer des règles
 
