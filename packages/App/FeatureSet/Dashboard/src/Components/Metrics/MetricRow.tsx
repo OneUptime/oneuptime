@@ -18,8 +18,11 @@ import {
   METRIC_ROW_INFO_CLASS_NAME,
   METRIC_ROW_LAYOUT_CLASS_NAME,
   METRIC_ROW_NAME_CLASS_NAME,
+  METRIC_ROW_SPARKLINE_CLASS_NAME,
   METRIC_ROW_VALUE_CLASS_NAME,
+  METRIC_ROW_VALUE_TEXT_CLASS_NAME,
 } from "./MetricRowLayout";
+import BreakableName from "Common/UI/Components/BreakableName/BreakableName";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -108,8 +111,9 @@ const MetricRow: FunctionComponent<MetricRowProps> = (
    * right - only while the row is wide enough for both: the right side
    * takes about 15rem, which on a phone, or in a card beside a resource's
    * side menu, left the metric's name a few letters (follow-up of #5076).
-   * Narrower, the name and description take the whole row and the value
-   * and sparkline sit under them. Keyed to the row's own width
+   * Narrower, the name and description take the whole row and the
+   * sparkline and value sit under them, the sparkline first (MetricRowLayout
+   * says why). Keyed to the row's own width
    * (METRIC_ROW_CONTAINER_CLASS_NAME), not the window's.
    */
   const content: ReactElement = (
@@ -125,7 +129,7 @@ const MetricRow: FunctionComponent<MetricRowProps> = (
             data-testid="metric-row-name"
             className={METRIC_ROW_NAME_CLASS_NAME}
           >
-            {metric.name || "(unnamed)"}
+            <BreakableName text={metric.name || "(unnamed)"} />
           </span>
           {readableUnit && (
             <span className="flex-shrink-0 rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-indigo-600">
@@ -169,13 +173,16 @@ const MetricRow: FunctionComponent<MetricRowProps> = (
         )}
       </div>
 
-      {/* Right: sparkline + last value */}
+      {/* Right: last value + sparkline (stacked: sparkline, then value) */}
       <div
         data-testid="metric-row-value"
         className={METRIC_ROW_VALUE_CLASS_NAME}
       >
         {displayedValue !== undefined && (
-          <div className="text-right">
+          <div
+            data-testid="metric-row-value-text"
+            className={METRIC_ROW_VALUE_TEXT_CLASS_NAME}
+          >
             <div className="font-mono text-sm font-semibold tabular-nums text-gray-900">
               {ValueFormatter.formatValue(
                 displayedValue,
@@ -199,13 +206,18 @@ const MetricRow: FunctionComponent<MetricRowProps> = (
             )}
           </div>
         )}
-        <MetricSparkline
-          points={props.sparklinePoints || []}
-          isLoading={props.sparklineLoading}
-          widthClassName="w-40"
-          heightClassName="h-10"
-          onHoverPoint={handleHoverPoint}
-        />
+        <div
+          data-testid="metric-row-sparkline"
+          className={METRIC_ROW_SPARKLINE_CLASS_NAME}
+        >
+          <MetricSparkline
+            points={props.sparklinePoints || []}
+            isLoading={props.sparklineLoading}
+            widthClassName="w-40"
+            heightClassName="h-10"
+            onHoverPoint={handleHoverPoint}
+          />
+        </div>
         {/* Deep-link affordance — visible on hover/focus */}
         {isInteractive && (
           <span

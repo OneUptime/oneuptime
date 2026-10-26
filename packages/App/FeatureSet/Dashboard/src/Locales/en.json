@@ -35703,6 +35703,7 @@
   "Keep this page open until this finishes. You can stop at any time: what is already done stays done.": "Keep this page open until this finishes. You can stop at any time: what is already done stays done.",
   "Less than a minute left": "Less than a minute left",
   "Stopping. The ones already started are finishing.": "Stopping. The ones already started are finishing.",
+  "Unhealthy": "Unhealthy",
   "{{count}} {{itemsName}} not started: you stopped the action": "{{count}} {{itemsName}} not started: you stopped the action",
   "{{count}} {{itemsName}} not started: you stopped the action_one": "{{count}} {{itemName}} not started: you stopped the action"
 }

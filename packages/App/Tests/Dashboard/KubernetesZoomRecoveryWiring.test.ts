@@ -269,8 +269,9 @@ describe("the cluster Overview's header", () => {
       header,
       "<div data-testid={RESOURCE_HERO_CONTROLS_TEST_ID} className={RESOURCE_HERO_CONTROLS_CLASS_NAME} > {renderRefreshControl()} </div>",
     );
+    // At the row's end, on a right-to-left page too (ms-auto, not ml-auto).
     expect(RESOURCE_HERO_CONTROLS_CLASS_NAME).toBe(
-      "md:ml-auto md:min-w-[min(100%,24rem)] md:max-w-max md:flex-[1000_1_0%] md:self-start md:[&>div]:justify-end",
+      "md:ms-auto md:min-w-[min(100%,24rem)] md:max-w-max md:flex-[1000_1_0%] md:self-start md:[&>div]:justify-end",
     );
     expectNoCode(header, '<div className="flex-shrink-0 md:self-start">');
   });

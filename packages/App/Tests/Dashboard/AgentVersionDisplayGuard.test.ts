@@ -746,7 +746,13 @@ describe("the details row draws the element it is given", () => {
     expect(source).toContain(
       "getReportedResourceOverviewDetailRows(props.detailRows)",
     );
-    expect(source).toContain("{row.element || row.value}");
+    /*
+     * A plain value is drawn through BreakableName, so a long one wraps after
+     * its own dots and slashes (#5298's UI review); an element as it is.
+     */
+    expect(source).toContain(
+      '{row.element || ( <BreakableName text={row.value || ""} /> )}',
+    );
     expect(source).not.toContain(': "—"}');
   });
 });

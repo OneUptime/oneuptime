@@ -51,7 +51,9 @@ jest.mock("../../../UI/Utils/Project", () => {
   };
 });
 
+import { CARD_RULED_BODY_CLASS_NAME } from "../../../UI/Components/Card/CardSurface";
 import KubernetesWarningEventsAlertLine, {
+  KUBERNETES_WARNING_ALERTS_LINE_CLASS_NAME,
   KUBERNETES_WARNING_ALERTS_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Kubernetes/KubernetesWarningEventsAlertLine";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
@@ -286,5 +288,89 @@ describe("what it reads, and when it says nothing", () => {
     expect(
       screen.queryByTestId(KUBERNETES_WARNING_ALERTS_TEST_ID),
     ).not.toBeInTheDocument();
+  });
+});
+
+/*
+ * #5298's UI review: the line sat 6px under the events list's pager, in the
+ * pager's grey, and read as part of it. It is the card's footer now, under
+ * the pager, in either state: a rule across the card as the pager's own,
+ * the card's padding, ending the card as the pager did.
+ */
+describe("the Events card's footer, under the pager", () => {
+  function classesOf(element: HTMLElement): Array<string> {
+    return element.className.split(" ").filter(Boolean);
+  }
+
+  // The card's ruled body (CardSurface) and the line's own classes.
+  const DRAWN: Array<string> = [
+    ...CARD_RULED_BODY_CLASS_NAME.split(" "),
+    ...KUBERNETES_WARNING_ALERTS_LINE_CLASS_NAME.split(" "),
+  ];
+
+  test("its edges are the card's ruled body: a rule across the card in the pager's grey, the card's end", () => {
+    const ruled: Array<string> = CARD_RULED_BODY_CLASS_NAME.split(" ");
+
+    expect(ruled).toEqual(
+      expect.arrayContaining([
+        "-mx-5",
+        "md:-mx-6",
+        "-mb-6",
+        "border-t",
+        "border-gray-200",
+      ]),
+    );
+  });
+
+  test("its own classes: right under the pager, the card's padding, no box", () => {
+    const classes: Array<string> =
+      KUBERNETES_WARNING_ALERTS_LINE_CLASS_NAME.split(" ");
+
+    // Right under the pager (which ends its card, -mb-6).
+    expect(classes).toEqual(expect.arrayContaining(["mt-6", "py-3"]));
+    // Its words where the pager's start: the card's padding.
+    expect(classes).toEqual(expect.arrayContaining(["px-5", "md:px-6"]));
+    // Its words and icon side by side, the icon on the first line.
+    expect(classes).toEqual(
+      expect.arrayContaining(["flex", "items-start", "gap-2"]),
+    );
+    /*
+     * A line, not a box: no background, no rounded border of its own, and
+     * no edges of its own - CardSurface gives them.
+     */
+    for (const className of classes) {
+      expect(className).not.toMatch(
+        /^(bg-|rounded|shadow|border|-mx-|md:-mx-|-mb-)/,
+      );
+    }
+  });
+
+  test("offering to turn the alerts on, it is drawn that way", async () => {
+    arrange([]);
+    renderLine();
+
+    const line: HTMLElement = await screen.findByTestId(
+      KUBERNETES_WARNING_ALERTS_TEST_ID,
+    );
+    expect(classesOf(line)).toEqual(DRAWN);
+  });
+
+  test("naming the monitor that alerts, it is drawn the same way", async () => {
+    arrange([
+      logsMonitor({
+        id: "dddddddd-0000-4000-8000-000000000011",
+        name: "AKS Production - Warning Events",
+        logMonitor: buildKubernetesWarningEventsLogMonitor(CLUSTER),
+      }),
+    ]);
+    renderLine();
+
+    const monitorLink: HTMLElement = await screen.findByTestId(
+      KUBERNETES_WARNING_ALERTS_TEST_ID + "-monitor",
+    );
+    expect(monitorLink).toHaveTextContent("AKS Production - Warning Events");
+    expect(
+      classesOf(screen.getByTestId(KUBERNETES_WARNING_ALERTS_TEST_ID)),
+    ).toEqual(DRAWN);
   });
 });

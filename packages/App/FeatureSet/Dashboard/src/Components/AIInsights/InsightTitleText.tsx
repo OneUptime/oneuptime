@@ -1,4 +1,4 @@
-import { splitAtNameBreaks } from "Common/Utils/NameBreaks";
+import BreakableName from "Common/UI/Components/BreakableName/BreakableName";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
@@ -7,7 +7,8 @@ import React, { FunctionComponent, ReactElement } from "react";
  * and on a phone "http.server.request.count" broke as "request.coun" / "t".
  * It now breaks after its dots and slashes first (Common/Utils/NameBreaks),
  * and anywhere only when a part is still too long for its line. The text
- * is unchanged: <wbr> adds no character.
+ * is unchanged: <wbr> adds no character. The breaks are the shared
+ * BreakableName's, as an InfoCard's value and a metric's name in a list.
  */
 
 export interface ComponentProps {
@@ -17,20 +18,7 @@ export interface ComponentProps {
 const InsightTitleText: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const parts: Array<string> = splitAtNameBreaks(props.text);
-
-  return (
-    <>
-      {parts.map((part: string, index: number): ReactElement => {
-        return (
-          <React.Fragment key={index}>
-            {part}
-            {index < parts.length - 1 ? <wbr /> : <></>}
-          </React.Fragment>
-        );
-      })}
-    </>
-  );
+  return <BreakableName text={props.text} />;
 };
 
 export default InsightTitleText;
