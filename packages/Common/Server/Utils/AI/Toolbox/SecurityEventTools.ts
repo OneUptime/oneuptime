@@ -241,12 +241,13 @@ function whatHappened(row: JSONObject): string {
   return `${said} (${status})`;
 }
 
+// A lower-case letter, a digit or an underscore: the text it reads is lower-cased.
 function isWordCharacter(character: string | undefined): boolean {
   if (!character) {
     return false;
   }
 
-  const code: number = character.toLowerCase().charCodeAt(0);
+  const code: number = character.charCodeAt(0);
 
   return (
     (code >= 97 && code <= 122) || (code >= 48 && code <= 57) || code === 95
