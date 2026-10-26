@@ -397,11 +397,18 @@ translated the same locale. Take either side, then run
   (UTC)") read in English in every language (`Common/Utils/CronScheduleText`).
 - The monitor metric charts' own titles, units and descriptions
   (`MonitorMetricTypeUtil.getTitleByMonitorMetricType` and its siblings) are
-  not keys yet; the metric groups' titles and descriptions are.
+  not keys yet; the metric groups' titles and descriptions are. Nor are the
+  database monitor's metric names
+  (`Common/Types/Monitor/DatabaseMetricCatalog`), which its criteria draw as
+  written, so the docs' metric table keeps them in English.
 - "Up", "Down", "Manual", "Not evaluated yet", "Interfaces" and "Security
   Events" are still English in some languages, the monitor overview's
   verdicts among them. The translated docs quote each label as that
   language's Dashboard draws it, and the `*DocsTranslations` suites in
   `App/Tests/FeatureSet/Docs` hold the two together, so a label is translated
-  in the same change as the docs pages that quote it.
+  in the same change as the docs pages that quote it. The labels the
+  resource showcases draw (Stale, Devices, Broker health, Queries, Page loads
+  and the rest) were translated that way: `DocsQuotedLabelsTranslated` holds
+  each of them translated in every language, or kept as written for the
+  reason it gives, and every page that quotes it in the same words.
 - `ee/Dashboard` and documentation markdown are not scanned.
