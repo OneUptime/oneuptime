@@ -1,4 +1,6 @@
 import { expect, Locator, Page, test } from "@playwright/test";
+import fs from "fs/promises";
+import path from "path";
 
 /*
  * The reading direction, in real Chromium. A Persian page sets <html
@@ -76,6 +78,12 @@ const open: (
     ).toBeVisible();
   }
 };
+
+// Where the screens for review are kept (CI uploads them).
+const SCREENSHOTS: string = path.resolve(
+  __dirname,
+  "../../../output/playwright/reading-direction",
+);
 
 const LANGUAGES: Array<{ lang: string; dir: "ltr" | "rtl" }> = [
   { lang: "en", dir: "ltr" },
@@ -712,4 +720,47 @@ test.describe("a phone", () => {
     expect(knob.left).toBeGreaterThanOrEqual(track.left);
     expect(knob.right).toBeLessThanOrEqual(track.right);
   });
+});
+
+/*
+ * The whole fixture, for a person to look at: Persian beside English and
+ * German, light and dark, a laptop and a phone, and the dialog and the side
+ * panel over it.
+ */
+test.describe("screens for review", () => {
+  const SCREENS: Array<{ name: string; query: string; width: number }> = [
+    { name: "en", query: "lang=en", width: 1280 },
+    { name: "de", query: "lang=de", width: 1280 },
+    { name: "fa", query: "lang=fa", width: 1280 },
+    { name: "fa-dark", query: "lang=fa&theme=dark", width: 1280 },
+    { name: "fa-dialog", query: "lang=fa&dialog=open", width: 1280 },
+    { name: "fa-drawer", query: "lang=fa&drawer=open", width: 1280 },
+    { name: "fa-phone", query: "lang=fa&width=340", width: 390 },
+    {
+      name: "fa-phone-dark",
+      query: "lang=fa&width=340&theme=dark",
+      width: 390,
+    },
+  ];
+
+  for (const screen of SCREENS) {
+    test(`${screen.name} at ${screen.width} pixels`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize({ width: screen.width, height: 900 });
+      await open(page, screen.query, screen.width > 640);
+      await page.evaluate(async () => {
+        await document.fonts.ready;
+      });
+
+      await fs.mkdir(SCREENSHOTS, { recursive: true });
+      await page.screenshot({
+        path: path.join(SCREENSHOTS, `${screen.name}-${screen.width}.png`),
+        fullPage: true,
+        animations: "disabled",
+      });
+    });
+  }
 });

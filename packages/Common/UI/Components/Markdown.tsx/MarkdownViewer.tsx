@@ -1156,10 +1156,7 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
   }
 
   return (
-    <MarkdownViewerFrame
-      inlineReferences={inlineReferences}
-      text={props.text}
-    >
+    <MarkdownViewerFrame inlineReferences={inlineReferences} text={props.text}>
       <ReactMarkdown
         components={components}
         urlTransform={markdownUrlTransform}

@@ -21,6 +21,9 @@ import { listScanRoots, listSourceFiles } from "../ForeignHiddenRuleGuard";
  * - An <Icon> that points along the line turns round by itself (Icon's
  *   ICONS_POINTING_ALONG_THE_LINE): turning it by hand as well turns it
  *   back.
+ * - A browser suite's offline fixture that can lay a page out right to left
+ *   loads the reading-direction script after the Tailwind runtime, as every
+ *   index.ejs does, or it measures a page production never draws.
  */
 
 const REPOSITORY_ROOT: string = path.resolve(__dirname, "..", "..", "..", "..");
@@ -324,5 +327,115 @@ describe("icons turn round by themselves", () => {
 
     // Icon mirrors arrows and chevrons (isMirroredRightToLeft to opt out).
     expect(handTurned).toEqual([]);
+  });
+});
+
+const E2E_DIRECTORY: string = path.join(REPOSITORY_ROOT, "packages", "E2E");
+
+// Every offline fixture server in packages/E2E, as repository paths.
+const fixtureServers: () => Array<string> = (): Array<string> => {
+  const found: Array<string> = [];
+
+  const walk: (directory: string) => void = (directory: string): void => {
+    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+      if (entry.isDirectory()) {
+        if (entry.name !== "node_modules" && !entry.name.startsWith(".")) {
+          walk(path.join(directory, entry.name));
+        }
+      } else if (entry.name === "server.js") {
+        found.push(relative(path.join(directory, entry.name)));
+      }
+    }
+  };
+
+  walk(E2E_DIRECTORY);
+
+  return found.sort();
+};
+
+/*
+ * What a fixture draws its page with: the scripts beside its server, and
+ * the page the server writes - not a spec.
+ */
+const fixtureSourcesOf: (server: string) => Array<string> = (
+  server: string,
+): Array<string> => {
+  const directory: string = path.dirname(path.join(REPOSITORY_ROOT, server));
+
+  return fs
+    .readdirSync(directory)
+    .filter((name: string): boolean => {
+      return /\.(js|jsx|ts|tsx)$/.test(name) && !/\.spec\.ts$/.test(name);
+    })
+    .map((name: string): string => {
+      return relative(path.join(directory, name));
+    });
+};
+
+/*
+ * A page laid out right to left: a frontend's own i18n set-up (it sets
+ * <html dir> from the language, Common/UI/Utils/PageLanguage), that helper
+ * itself, or a dir set by hand.
+ */
+const LAYS_OUT_RIGHT_TO_LEFT_REGEX: RegExp =
+  /src\/Utils\/i18n["']|UI\/Utils\/PageLanguage["']|documentElement\.dir\s*=|documentElement\.setAttribute\(\s*["']dir["']/;
+
+describe("offline fixtures draw a right-to-left page as production does", () => {
+  test("LAYS_OUT_RIGHT_TO_LEFT_REGEX knows each way a fixture does it", () => {
+    for (const source of [
+      'import "../../App/FeatureSet/StatusPage/src/Utils/i18n";',
+      'import i18n from "../../../App/FeatureSet/Accounts/src/Utils/i18n";',
+      'import { followLanguageForPage } from "Common/UI/Utils/PageLanguage";',
+      'document.documentElement.dir = language === "fa" ? "rtl" : "ltr";',
+      'document.documentElement.setAttribute("dir", "rtl");',
+    ]) {
+      expect(source).toMatch(LAYS_OUT_RIGHT_TO_LEFT_REGEX);
+    }
+
+    expect('import i18next from "i18next";').not.toMatch(
+      LAYS_OUT_RIGHT_TO_LEFT_REGEX,
+    );
+  });
+
+  test("every fixture that can lay a page out right to left loads the reading-direction script after the runtime", () => {
+    const servers: Array<string> = fixtureServers();
+    const rightToLeft: Array<string> = servers.filter((server: string) => {
+      return fixtureSourcesOf(server).some((source: string): boolean => {
+        return LAYS_OUT_RIGHT_TO_LEFT_REGEX.test(read(source));
+      });
+    });
+
+    // The reading direction's own suite, and the suites of the pages above.
+    expect(rightToLeft).toEqual(
+      expect.arrayContaining([
+        "packages/E2E/ReadingDirection/Fixture/server.js",
+        "packages/E2E/SignInOptions/Fixture/server.js",
+      ]),
+    );
+
+    /*
+     * The page loads the runtime (/tailwind.js, or a build's
+     * tailwind-3.4.5.js), then the reading direction's script, and the
+     * server serves it: from Common's source, or from the build that copied
+     * it beside the runtime (Common/UI/esbuild-config.js).
+     */
+    const missing: Array<string> = rightToLeft.filter(
+      (server: string): boolean => {
+        const source: string = read(server);
+        const runtime: number = source.search(
+          /<script src="[^"]*(?:\/tailwind\.js|tailwind-3\.4\.5\.js)">/,
+        );
+        const readingDirection: number = source.search(
+          /<script src="[^"]*\/tailwind-reading-direction\.js">/,
+        );
+        const isServed: boolean =
+          source.includes("UI/Styles/TailwindReadingDirection.js") ||
+          source.includes('"assets/js/tailwind-reading-direction.js"');
+
+        return runtime === -1 || readingDirection < runtime || !isServed;
+      },
+    );
+
+    expect(missing).toEqual([]);
   });
 });

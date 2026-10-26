@@ -213,7 +213,10 @@ describe("every frontend loads it right after Tailwind's runtime", () => {
       expect(
         view
           .slice(runtimeAt + runtime.length, directionAt)
-          .replace("<%# Left and right follow the reading direction (Common/UI/Styles/TailwindReadingDirection.js) -%>", "")
+          .replace(
+            "<%# Left and right follow the reading direction (Common/UI/Styles/TailwindReadingDirection.js) -%>",
+            "",
+          )
           .trim(),
       ).toBe("");
       // ...and before the page sets its config.
@@ -404,7 +407,8 @@ describe("the CSS Tailwind's runtime writes with it", () => {
     expect(css(`.space-x-2${between}`)).toEqual({
       "--tw-space-x-reverse": "0",
       "margin-inline-end": "calc(0.5rem * var(--tw-space-x-reverse))",
-      "margin-inline-start": "calc(0.5rem * calc(1 - var(--tw-space-x-reverse)))",
+      "margin-inline-start":
+        "calc(0.5rem * calc(1 - var(--tw-space-x-reverse)))",
     });
     expect(css(`.-space-x-1${between}`)).toEqual(
       expect.objectContaining({

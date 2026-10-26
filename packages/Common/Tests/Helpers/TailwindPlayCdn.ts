@@ -241,39 +241,40 @@ export interface LoadPlayCdnOptions {
 }
 
 // Runs the runtime (and the reading-direction config) and sets the page's config.
-export const loadPlayCdn: (options: LoadPlayCdnOptions) => Promise<void> =
-  async (options: LoadPlayCdnOptions): Promise<void> => {
-    window.MutationObserver = RecordingMutationObserver;
+export const loadPlayCdn: (
+  options: LoadPlayCdnOptions,
+) => Promise<void> = async (options: LoadPlayCdnOptions): Promise<void> => {
+  window.MutationObserver = RecordingMutationObserver;
 
-    // The runtime announces itself on console.warn; that is noise here.
-    const warn: ReturnType<typeof jest.spyOn> = jest
-      .spyOn(console, "warn")
-      .mockImplementation(() => {});
+  // The runtime announces itself on console.warn; that is noise here.
+  const warn: ReturnType<typeof jest.spyOn> = jest
+    .spyOn(console, "warn")
+    .mockImplementation(() => {});
 
-    try {
-      runScript(fs.readFileSync(PLAY_CDN_PATH, "utf-8"));
+  try {
+    runScript(fs.readFileSync(PLAY_CDN_PATH, "utf-8"));
 
-      if (options.withReadingDirection) {
-        runScript(fs.readFileSync(READING_DIRECTION_SCRIPT_PATH, "utf-8"));
-      }
-    } finally {
-      warn.mockRestore();
+    if (options.withReadingDirection) {
+      runScript(fs.readFileSync(READING_DIRECTION_SCRIPT_PATH, "utf-8"));
     }
+  } finally {
+    warn.mockRestore();
+  }
 
-    const cdn: PlayCdnGlobal | undefined = playCdn();
+  const cdn: PlayCdnGlobal | undefined = playCdn();
 
-    if (!cdn) {
-      throw new Error(
-        "the vendored Play CDN did not run: jest-environment-jsdom must execute <script> elements",
-      );
-    }
+  if (!cdn) {
+    throw new Error(
+      "the vendored Play CDN did not run: jest-environment-jsdom must execute <script> elements",
+    );
+  }
 
-    cdn.config = options.config;
+  cdn.config = options.config;
 
-    await waitUntil((): boolean => {
-      return playCdnCss() !== "";
-    }, 30000);
-  };
+  await waitUntil((): boolean => {
+    return playCdnCss() !== "";
+  }, 30000);
+};
 
 /*
  * Puts one element per class string on the page and resolves once the

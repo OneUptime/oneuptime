@@ -202,9 +202,7 @@ describe("which way a text someone wrote is read", () => {
     expect(getTextReadingDirection(`${punctuation}فارسی`)).toBeNull();
     // The last character read is still read.
     expect(
-      getTextReadingDirection(
-        `${"-".repeat(TEXT_DIRECTION_SCAN_LENGTH - 1)}ف`,
-      ),
+      getTextReadingDirection(`${"-".repeat(TEXT_DIRECTION_SCAN_LENGTH - 1)}ف`),
     ).toBe(RIGHT_TO_LEFT);
   });
 

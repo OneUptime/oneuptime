@@ -63,13 +63,15 @@ const startI18n: (language: string) => Promise<i18n> = async (
   return instance;
 };
 
-const htmlLanguage: () => { lang: string | null; dir: string | null } =
-  (): { lang: string | null; dir: string | null } => {
-    return {
-      lang: document.documentElement.getAttribute("lang"),
-      dir: document.documentElement.getAttribute("dir"),
-    };
+const htmlLanguage: () => { lang: string | null; dir: string | null } = (): {
+  lang: string | null;
+  dir: string | null;
+} => {
+  return {
+    lang: document.documentElement.getAttribute("lang"),
+    dir: document.documentElement.getAttribute("dir"),
   };
+};
 
 describe("setPageLanguage", () => {
   test("writes the language and the way it is read on <html>", () => {

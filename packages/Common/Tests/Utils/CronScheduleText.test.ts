@@ -339,9 +339,7 @@ describe("in every language", () => {
 
   test("the same schedules in English and German keep their Latin figures", () => {
     for (const translator of [ENGLISH, translatorFor("de")]) {
-      expect(describeCronSchedule("30 9 * * *", translator)).toContain(
-        "09:30",
-      );
+      expect(describeCronSchedule("30 9 * * *", translator)).toContain("09:30");
       expect(describeCronSchedule("5 */6 * * *", translator)).toContain("05");
     }
   });

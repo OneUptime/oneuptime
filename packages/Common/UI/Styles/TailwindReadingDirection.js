@@ -314,8 +314,7 @@
 
     Object.keys(colors || {}).forEach(function (key) {
       var value = colors[key];
-      var name =
-        key === "DEFAULT" ? prefix : prefix ? prefix + "-" + key : key;
+      var name = key === "DEFAULT" ? prefix : prefix ? prefix + "-" + key : key;
 
       if (value && typeof value === "object") {
         Object.assign(flat, flattenColors(value, name));

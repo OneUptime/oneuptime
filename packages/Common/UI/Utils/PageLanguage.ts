@@ -53,8 +53,7 @@ export const setPageLanguage: (
   language: string | null | undefined,
   element?: HTMLElement | null | undefined,
 ): PageLanguage => {
-  const pageLanguage: string =
-    (language || "").trim() || DEFAULT_PAGE_LANGUAGE;
+  const pageLanguage: string = (language || "").trim() || DEFAULT_PAGE_LANGUAGE;
   const direction: ReadingDirection = getReadingDirection(pageLanguage);
   const root: HTMLElement | null = element || getRootElement();
 
