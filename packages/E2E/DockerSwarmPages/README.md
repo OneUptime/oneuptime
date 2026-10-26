@@ -34,11 +34,13 @@ stub (`data-testid="stub-page"`).
 
 Query parameters on any page:
 
-| Parameter | Values                                                                                                                    |
-| --------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `agent`   | `old` (default: `0.161.0`, the files before #5076's CPU fix), `current` (`0.161.1`, the files this release ships), `none` |
-| `lang`    | `de` reads the German locale file                                                                                         |
-| `theme`   | `dark` adds `html.dark` (server.js)                                                                                       |
+| Parameter     | Values                                                                                                                    |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `agent`       | `old` (default: `0.161.0`, the files before #5076's CPU fix), `current` (`0.161.1`, the files this release ships), `none` |
+| `lang`        | `de` reads the German locale file                                                                                         |
+| `theme`       | `dark` adds `html.dark` (server.js)                                                                                       |
+| `description` | `long` gives the cluster a description longer than two lines of its hero at a laptop's width                              |
+| `dir`         | `rtl` lays the page out right to left, as a Persian page is                                                               |
 
 ## What the fixture records
 

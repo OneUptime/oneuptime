@@ -16,6 +16,9 @@
  *             agent that reports no version)
  *   ?lang=    de reads the German locale file
  *   ?theme=   dark adds html.dark (handled by server.js)
+ *   ?description=  long gives the cluster a description of two lines'
+ *             length, which the hero must wrap beside its controls
+ *   ?dir=     rtl lays the page out right to left, as a Persian page is
  *
  * Every read is recorded on window.__dockerSwarmPagesFixture: listRequests,
  * itemRequests, aggregateRequests, apiRequests and unhandled - anything the
@@ -69,6 +72,11 @@ const AGENT = ["current", "none"].includes(params.get("agent"))
   ? params.get("agent")
   : "old";
 const LANGUAGE = params.get("lang") === "de" ? "de" : "en";
+const LONG_DESCRIPTION = params.get("description") === "long";
+
+if (params.get("dir") === "rtl") {
+  document.documentElement.dir = "rtl";
+}
 
 const GLOBAL_PERMISSIONS = [
   Permission.Public,
@@ -105,7 +113,9 @@ const project = Object.assign(new Project(), {
 const cluster = {
   _id: CLUSTER_ID,
   name: CLUSTER_NAME,
-  description: "The production swarm in Frankfurt.",
+  description: LONG_DESCRIPTION
+    ? "The production swarm in Frankfurt: the shop's checkout, web and search services, with their Redis caches and the nightly batch jobs."
+    : "The production swarm in Frankfurt.",
   clusterIdentifier: CLUSTER_NAME,
   otelCollectorStatus: "connected",
   lastSeenAt: new Date(LOADED_AT - MINUTE),
