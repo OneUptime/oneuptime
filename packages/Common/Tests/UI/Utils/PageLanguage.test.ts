@@ -54,9 +54,11 @@ const startI18n: (language: string) => Promise<i18n> = async (
     supportedLngs: LANGUAGES,
     load: "currentOnly",
     resources: Object.fromEntries(
-      LANGUAGES.map((code: string): [string, { translation: object }] => {
-        return [code, { translation: {} }];
-      }),
+      LANGUAGES.map(
+        (code: string): [string, { translation: Record<string, unknown> }] => {
+          return [code, { translation: {} }];
+        },
+      ),
     ),
   });
 

@@ -149,7 +149,7 @@ describe("the Intl locale a language writes dates in", () => {
         timeZone: "UTC",
       }).format(NOW);
 
-      expect({ language, hasLatinDigits: /2026/.test(text) }).toEqual({
+      expect({ language, hasLatinDigits: text.includes("2026") }).toEqual({
         language,
         hasLatinDigits: true,
       });

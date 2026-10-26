@@ -34,7 +34,11 @@ interface ReadingDirectionModule {
   REPLACED_CORE_PLUGINS: Array<string>;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+/*
+ * The script is plain JavaScript the browser loads as it is (a UMD module,
+ * no build step), so it is required rather than imported.
+ */
+// eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
 const readingDirection: ReadingDirectionModule = require(
   READING_DIRECTION_SCRIPT_PATH,
 ) as ReadingDirectionModule;
@@ -129,9 +133,9 @@ describe("a frontend's config, taken with the reading direction", () => {
       readingDirection.withReadingDirection(undefined);
 
     expect(taken["plugins"]).toEqual([readingDirection.readingDirectionPlugin]);
-    expect(Object.keys(taken["corePlugins"] as object).sort()).toEqual(
-      [...readingDirection.REPLACED_CORE_PLUGINS].sort(),
-    );
+    expect(
+      Object.keys(taken["corePlugins"] as Record<string, unknown>).sort(),
+    ).toEqual([...readingDirection.REPLACED_CORE_PLUGINS].sort());
   });
 });
 
@@ -253,6 +257,7 @@ const CLASS_NAMES: Array<string> = [
   "divide-x divide-y-2 divide-x-reverse",
   "md:pr-6 hover:ml-1 !ml-0 sm:text-left",
   "dark:bg-gray-900 translate-x-5 float-left",
+  "[text-align:left] rtl:[text-align:right] [margin-left:2px]",
 ];
 
 let rules: Array<EmittedRule> = [];
@@ -514,5 +519,24 @@ describe("the CSS Tailwind's runtime writes with it", () => {
       expect.objectContaining({ "--tw-translate-x": "1.25rem" }),
     );
     expect(css(".float-left")).toEqual({ float: "left" });
+  });
+
+  test("an arbitrary property is the physical side it names, the page's side whatever a box reads", () => {
+    expect(css(".\\[text-align\\:left\\]")).toEqual({
+      "text-align": "left",
+    });
+    expect(css(".\\[margin-left\\:2px\\]")).toEqual({
+      "margin-left": "2px",
+    });
+
+    const rightToLeft: Array<EmittedRule> = rules.filter(
+      (rule: EmittedRule): boolean => {
+        return rule.selector.startsWith(".rtl\\:\\[text-align\\:right\\]");
+      },
+    );
+
+    expect(rightToLeft).toHaveLength(1);
+    expect(rightToLeft[0]!.selector).toContain('[dir="rtl"]');
+    expect(css(rightToLeft[0]!.selector)).toEqual({ "text-align": "right" });
   });
 });

@@ -593,12 +593,12 @@ describe("rule 5: every hero draws its description one way", () => {
   test("the description's class: words that wrap, 20rem from md, aligned as the page", () => {
     expect(RESOURCE_HERO_DESCRIPTION_CLASS_NAME.split(" ")).toEqual([
       "mt-1",
-      "text-left",
+      "[text-align:left]",
       "text-sm",
       "text-gray-500",
       "[overflow-wrap:anywhere]",
       "md:min-w-[20rem]",
-      "rtl:text-right",
+      "rtl:[text-align:right]",
     ]);
     expect(RESOURCE_HERO_DESCRIPTION_CLASS_NAME).not.toContain("truncate");
     expect(RESOURCE_HERO_DESCRIPTION_TEST_ID).toBe("resource-hero-description");

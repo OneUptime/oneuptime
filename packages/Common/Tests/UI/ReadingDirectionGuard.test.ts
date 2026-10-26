@@ -353,6 +353,10 @@ const fixtureServers: () => Array<string> = (): Array<string> => {
   return found.sort();
 };
 
+// A script a fixture is made of, and a spec, which is not one.
+const SCRIPT_FILE_REGEX: RegExp = /\.(js|jsx|ts|tsx)$/;
+const SPEC_FILE_REGEX: RegExp = /\.spec\.ts$/;
+
 /*
  * What a fixture draws its page with: the scripts beside its server, and
  * the page the server writes - not a spec.
@@ -365,7 +369,7 @@ const fixtureSourcesOf: (server: string) => Array<string> = (
   return fs
     .readdirSync(directory)
     .filter((name: string): boolean => {
-      return /\.(js|jsx|ts|tsx)$/.test(name) && !/\.spec\.ts$/.test(name);
+      return SCRIPT_FILE_REGEX.test(name) && !SPEC_FILE_REGEX.test(name);
     })
     .map((name: string): string => {
       return relative(path.join(directory, name));
