@@ -99,6 +99,7 @@ const statusPageFetchArguments: () => FetchArguments = (): FetchArguments => {
 beforeEach(() => {
   window.localStorage.clear();
   window.sessionStorage.clear();
+  // The tab's status page: the one its address names (#5277).
   window.history.replaceState(
     window.history.state,
     "",
@@ -110,7 +111,6 @@ beforeEach(() => {
    * state from the reported bug and proves that the explicit blank tenant
    * wins over any dashboard context that ModelAPI could otherwise discover.
    */
-  window.localStorage.setItem("statusPageId", STATUS_PAGE_ID.toString());
   window.sessionStorage.setItem("current_project_id", DASHBOARD_PROJECT_ID);
 
   /*

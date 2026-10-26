@@ -28,7 +28,6 @@ import EventItem, {
 } from "Common/UI/Components/EventItem/EventItem";
 import { StatusPageApiRoute } from "Common/ServiceRoute";
 import { EventDetailSkeleton } from "../../Components/Skeleton/PageSkeletons";
-import LocalStorage from "Common/UI/Utils/LocalStorage";
 import Navigation from "Common/UI/Utils/Navigation";
 import StatusPageAnnouncement from "Common/Models/DatabaseModels/StatusPageAnnouncement";
 import FileModel from "Common/Models/DatabaseModels/File";
@@ -220,7 +219,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
       setIsLoading(true);
 
-      const id: ObjectID = LocalStorage.getItem("statusPageId") as ObjectID;
+      const id: ObjectID | null = StatusPageUtil.getStatusPageId();
       if (!id) {
         throw new BadDataException("Status Page ID is required");
       }

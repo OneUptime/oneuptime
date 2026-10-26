@@ -24,7 +24,6 @@ import { JSONObject } from "../../../Types/JSON";
 import StatusPageSubscriber from "../../../Models/DatabaseModels/StatusPageSubscriber";
 import Phone from "../../../Types/Phone";
 import { StatusPageSubscriberUnsubscribeState } from "../../../Types/StatusPage/StatusPageSubscriberUnsubscribe";
-import LocalStorage from "../../../UI/Utils/LocalStorage";
 import Navigation from "../../../UI/Utils/Navigation";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import { getJestSpyOn } from "../../Spy";
@@ -98,6 +97,10 @@ jest.mock("../../../../App/FeatureSet/StatusPage/src/Utils/StatusPage", () => {
   return {
     __esModule: true,
     default: {
+      // The page this tab shows, from where RouteMap reads it too.
+      getStatusPageId: (): ObjectID | null => {
+        return StatusPageInTab.get();
+      },
       checkIfUserHasLoggedIn: (): void => {
         checkIfUserHasLoggedIn();
       },
@@ -152,6 +155,8 @@ jest.mock("../../../../App/FeatureSet/StatusPage/src/Utils/ModelAPI", () => {
 
 import UpdateSubscription from "../../../../App/FeatureSet/StatusPage/src/Pages/Subscribe/UpdateSubscription";
 import English from "../../../../App/FeatureSet/StatusPage/src/Locales/en.json";
+import ObjectID from "../../../Types/ObjectID";
+import StatusPageInTab from "../../../../App/FeatureSet/StatusPage/src/Utils/StatusPageInTab";
 
 const STORAGE_KEY: string = "oneuptime-sensitive-url-token";
 
@@ -229,7 +234,7 @@ function linkNotValidShown(): boolean {
 }
 
 beforeEach(() => {
-  LocalStorage.setItem("statusPageId", STATUS_PAGE_ID);
+  StatusPageInTab.set(STATUS_PAGE_ID);
   stash(`${SUBSCRIBER_ID}-${TOKEN}`);
   linkState = StatusPageSubscriberUnsubscribeState.Subscribed;
 
@@ -261,7 +266,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   window.sessionStorage.clear();
-  LocalStorage.removeItem("statusPageId");
+  StatusPageInTab.set(null);
   jest.restoreAllMocks();
 });
 

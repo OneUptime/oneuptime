@@ -21,12 +21,12 @@ import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
-import LocalStorage from "../../../UI/Utils/LocalStorage";
 import Navigation from "../../../UI/Utils/Navigation";
 import MonitorStatusTimeline from "../../../Models/DatabaseModels/MonitorStatusTimeline";
 import StatusPageResourceUptimeUtil from "../../../Utils/StatusPage/ResourceUptime";
 import UptimeUtil from "../../../Utils/Uptime/UptimeUtil";
 import Overview from "../../../../App/FeatureSet/StatusPage/src/Pages/Overview/Overview";
+import StatusPageUtil from "../../../../App/FeatureSet/StatusPage/src/Utils/StatusPage";
 
 /*
  * Contract under test - the two things the status page overview gained: it
@@ -494,7 +494,7 @@ describe("Status page overview - searching for a resource", () => {
   beforeEach(() => {
     postCallCount = 0;
     localStorage.clear();
-    LocalStorage.setItem("statusPageId", new ObjectID(STATUS_PAGE_ID));
+    StatusPageUtil.setStatusPageId(new ObjectID(STATUS_PAGE_ID));
     window.history.replaceState({}, "", "/");
     Navigation.navigate = (): void => {};
     setDocumentVisibility("visible");
@@ -729,7 +729,7 @@ describe("Status page overview - searching a large page with uptime history", ()
   beforeEach(() => {
     postCallCount = 0;
     localStorage.clear();
-    LocalStorage.setItem("statusPageId", new ObjectID(STATUS_PAGE_ID));
+    StatusPageUtil.setStatusPageId(new ObjectID(STATUS_PAGE_ID));
     window.history.replaceState({}, "", "/");
     Navigation.navigate = (): void => {};
     setDocumentVisibility("visible");
@@ -988,7 +988,7 @@ describe("Status page overview - keeping itself current", () => {
   beforeEach(() => {
     postCallCount = 0;
     localStorage.clear();
-    LocalStorage.setItem("statusPageId", new ObjectID(STATUS_PAGE_ID));
+    StatusPageUtil.setStatusPageId(new ObjectID(STATUS_PAGE_ID));
     window.history.replaceState({}, "", "/");
     Navigation.navigate = (): void => {};
     setDocumentVisibility("visible");
@@ -1241,5 +1241,147 @@ describe("Status page overview - keeping itself current", () => {
     });
 
     expect(postCallCount).toBe(callsAfterUnmount);
+  });
+});
+
+/*
+ * Two status pages open side by side in one browser (issue #5277). Every tab
+ * on OneUptime's host shares its localStorage, and the page id the app kept
+ * there was the one a tab had opened last: a minute after page B was opened
+ * in a second tab, page A's tab refreshed itself into page B's content, under
+ * page A's address. Each refresh here fetches the page this tab shows, while
+ * localStorage holds another page's id, as such a tab leaves it.
+ */
+describe("Status page overview - beside another status page in another tab", () => {
+  const OTHER_STATUS_PAGE_ID: string = "66666666-6666-4666-8666-666666666666";
+  const navigate: typeof Navigation.navigate = Navigation.navigate;
+  let postedTo: Array<string> = [];
+
+  const overviewsFetched: () => Array<string> = (): Array<string> => {
+    return postedTo
+      .map((url: string): string => {
+        return new globalThis.URL(url).pathname;
+      })
+      .filter((path: string): boolean => {
+        return path.startsWith("/status-page-api/overview/");
+      });
+  };
+
+  const anotherTabOpens: () => void = (): void => {
+    localStorage.setItem("statusPageId", OTHER_STATUS_PAGE_ID);
+    window.dispatchEvent(
+      new StorageEvent("storage", {
+        key: "statusPageId",
+        newValue: OTHER_STATUS_PAGE_ID,
+      }),
+    );
+  };
+
+  beforeEach(() => {
+    postCallCount = 0;
+    postedTo = [];
+    localStorage.clear();
+    StatusPageUtil.setStatusPageId(null);
+    window.history.replaceState({}, "", "/");
+    Navigation.navigate = (): void => {};
+    setDocumentVisibility("visible");
+    mockRespondToPost = (url: string): PostResponse => {
+      postedTo.push(url);
+      return successResponse(overviewPayload());
+    };
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+    Navigation.navigate = navigate;
+    StatusPageUtil.setStatusPageId(null);
+    window.history.replaceState({}, "", "/");
+    localStorage.clear();
+    jest.clearAllMocks();
+  });
+
+  test("on its OneUptime address, every background refresh is of the page the address names", async () => {
+    window.history.replaceState({}, "", `/status-page/${STATUS_PAGE_ID}`);
+    StatusPageUtil.setStatusPageId(new ObjectID(STATUS_PAGE_ID));
+
+    await renderOverview();
+    anotherTabOpens();
+
+    for (let minute: number = 0; minute < 3; minute++) {
+      await act(async () => {
+        jest.advanceTimersByTime(61 * 1000);
+      });
+    }
+
+    await waitFor(() => {
+      expect(overviewsFetched().length).toBeGreaterThanOrEqual(4);
+    });
+
+    expect(new Set(overviewsFetched())).toEqual(
+      new Set([`/status-page-api/overview/${STATUS_PAGE_ID}`]),
+    );
+    expect(screen.getByText("Marketing Site")).toBeInTheDocument();
+  });
+
+  test("on a custom domain, every background refresh is of the page the domain shows", async () => {
+    window.history.replaceState({}, "", "/");
+    StatusPageUtil.setStatusPageId(new ObjectID(STATUS_PAGE_ID));
+
+    await renderOverview();
+    anotherTabOpens();
+
+    await act(async () => {
+      jest.advanceTimersByTime(61 * 1000);
+    });
+
+    await waitFor(() => {
+      expect(overviewsFetched().length).toBeGreaterThanOrEqual(2);
+    });
+
+    expect(new Set(overviewsFetched())).toEqual(
+      new Set([`/status-page-api/overview/${STATUS_PAGE_ID}`]),
+    );
+  });
+
+  test("the refresh control fetches the page this tab shows too", async () => {
+    window.history.replaceState({}, "", `/status-page/${STATUS_PAGE_ID}`);
+    StatusPageUtil.setStatusPageId(new ObjectID(STATUS_PAGE_ID));
+
+    await renderOverview();
+    anotherTabOpens();
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("status-page-refresh-button"));
+    });
+
+    expect(overviewsFetched()).toEqual([
+      `/status-page-api/overview/${STATUS_PAGE_ID}`,
+      `/status-page-api/overview/${STATUS_PAGE_ID}`,
+    ]);
+  });
+
+  test("after a refresh, nothing on it links to the page another tab opened", async () => {
+    window.history.replaceState({}, "", `/status-page/${STATUS_PAGE_ID}`);
+    StatusPageUtil.setStatusPageId(new ObjectID(STATUS_PAGE_ID));
+
+    const rendered: RenderResult = await renderOverview();
+    anotherTabOpens();
+
+    await act(async () => {
+      jest.advanceTimersByTime(61 * 1000);
+    });
+
+    await waitFor(() => {
+      expect(overviewsFetched().length).toBeGreaterThanOrEqual(2);
+    });
+
+    expect(rendered.onLoadCompleteCount()).toBe(1);
+
+    for (const link of Array.from(document.querySelectorAll("a[href]"))) {
+      expect(link.getAttribute("href") || "").not.toContain(
+        OTHER_STATUS_PAGE_ID,
+      );
+    }
   });
 });

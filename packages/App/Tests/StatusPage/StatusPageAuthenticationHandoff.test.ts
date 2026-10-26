@@ -69,6 +69,12 @@ describe("Status Page authentication handoff", () => {
     "Overview",
     "Overview.tsx",
   );
+  const statusPageUtil: string = readCode(
+    "StatusPage",
+    "src",
+    "Utils",
+    "StatusPage.ts",
+  );
   const callbacks: Array<[string, string]> = [
     ["SAML", readCode("Identity", "API", "StatusPageSSO.ts")],
     ["OIDC", readCode("Identity", "API", "StatusPageOIDC.ts")],
@@ -168,16 +174,41 @@ describe("Status Page authentication handoff", () => {
     },
   );
 
+  /*
+   * Single sign-on keeps where the visitor was going for the round trip to
+   * their identity provider; the overview takes it on the way back in. What
+   * comes out of storage is checked again as it is taken - storage is
+   * something another script on the origin could have written - and it is
+   * kept for this tab and this page only (#5277), never under one name in
+   * localStorage that any tab's overview, on any status page, took.
+   */
   it("revalidates the stored post-login redirect at its final consumer", () => {
-    const validation: number = overview.indexOf(
-      "StatusPageUtil.getSafeRedirectPath(redirectUrl)",
+    const take: number = statusPageUtil.indexOf(
+      "public static takeSignInRedirect(): string | null {",
     );
-    const navigation: number = overview.indexOf(
-      "Navigation.navigate(new Route(safeRedirectPath))",
+    const read: number = statusPageUtil.indexOf(
+      "window.sessionStorage.getItem(storageKey)",
+      take,
+    );
+    const validation: number = statusPageUtil.indexOf(
+      "return StatusPageUtil.getSafeRedirectPath(redirectPath);",
+      read,
     );
 
-    expect(validation).toBeGreaterThan(-1);
-    expect(navigation).toBeGreaterThan(validation);
+    expect(take).toBeGreaterThan(-1);
+    expect(read).toBeGreaterThan(take);
+    expect(validation).toBeGreaterThan(read);
+
+    const taken: number = overview.indexOf(
+      "const signInRedirectPath: string | null = StatusPageUtil.takeSignInRedirect();",
+    );
+    const navigation: number = overview.indexOf(
+      "Navigation.navigate(new Route(signInRedirectPath))",
+    );
+
+    expect(taken).toBeGreaterThan(-1);
+    expect(navigation).toBeGreaterThan(taken);
+    expect(overview).not.toContain('LocalStorage.getItem("redirectUrl")');
     expect(overview).not.toContain(
       "Navigation.navigate(new Route(redirectUrl))",
     );

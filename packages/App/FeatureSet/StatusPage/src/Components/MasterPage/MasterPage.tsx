@@ -105,6 +105,21 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
   });
 
   /*
+   * The address now names another status page than the one this tab loaded
+   * - a move inside the app to another page's address. That page is opened
+   * in full, with its own name, theme, navigation and sign-in, rather than
+   * drawn inside this page's (#5277).
+   */
+  const isAddressOfAnotherStatusPage: boolean =
+    !isLoading && StatusPageUtil.isAddressOfAnotherStatusPage();
+
+  useEffect(() => {
+    if (isAddressOfAnotherStatusPage) {
+      Navigation.reload();
+    }
+  }, [isAddressOfAnotherStatusPage]);
+
+  /*
    * Pages shown on their own, without the page's header, navigation and
    * footer: the sign-in pages, and the unsubscribe page, which a subscriber
    * of a private status page reaches without signing in and which must show
@@ -370,7 +385,7 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
     }
   }, []);
 
-  if (isLoading) {
+  if (isLoading || isAddressOfAnotherStatusPage) {
     return <ShellSkeleton />;
   }
 
@@ -459,10 +474,13 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
                 }
                 links={links}
                 onLogoClicked={() => {
+                  // This page's overview, its id filled in on the preview.
                   Navigation.navigate(
-                    props.isPreview
-                      ? RouteMap[PageMap.PREVIEW_OVERVIEW]!
-                      : RouteMap[PageMap.OVERVIEW]!,
+                    RouteUtil.populateRouteParams(
+                      props.isPreview
+                        ? RouteMap[PageMap.PREVIEW_OVERVIEW]!
+                        : RouteMap[PageMap.OVERVIEW]!,
+                    ),
                   );
                 }}
               />

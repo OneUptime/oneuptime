@@ -27,7 +27,6 @@ import EventHistoryList, {
 } from "Common/UI/Components/EventHistoryList/EventHistoryList";
 import { ComponentProps as EventItemComponentProps } from "Common/UI/Components/EventItem/EventItem";
 import { EventListSkeleton } from "../../Components/Skeleton/PageSkeletons";
-import LocalStorage from "Common/UI/Utils/LocalStorage";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentPublicNote from "Common/Models/DatabaseModels/IncidentPublicNote";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
@@ -105,7 +104,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
       }
       setIsLoading(true);
 
-      const id: ObjectID = LocalStorage.getItem("statusPageId") as ObjectID;
+      const id: ObjectID | null = StatusPageUtil.getStatusPageId();
       if (!id) {
         throw new BadDataException("Status Page ID is required");
       }

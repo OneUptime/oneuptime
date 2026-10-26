@@ -17,8 +17,8 @@ import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
-import LocalStorage from "../../../UI/Utils/LocalStorage";
 import Navigation from "../../../UI/Utils/Navigation";
+import StatusPageUtil from "../../../../App/FeatureSet/StatusPage/src/Utils/StatusPage";
 
 const STATUS_PAGE_ID: string = "33333333-3333-4333-8333-333333333333";
 const ITEM_ID: string = "44444444-4444-4444-8444-444444444444";
@@ -141,7 +141,7 @@ describe("Status page detail pages when the item is not available", () => {
   beforeEach(() => {
     mockLogoutCallCount = 0;
     localStorage.clear();
-    LocalStorage.setItem("statusPageId", new ObjectID(STATUS_PAGE_ID));
+    StatusPageUtil.setStatusPageId(new ObjectID(STATUS_PAGE_ID));
     window.history.replaceState({}, "", `/incidents/${ITEM_ID}`);
 
     // jsdom cannot leave the page, and it logs a noisy error when asked to.

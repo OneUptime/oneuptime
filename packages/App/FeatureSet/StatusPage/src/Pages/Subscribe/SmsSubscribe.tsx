@@ -26,7 +26,6 @@ import ModelForm, {
 } from "Common/UI/Components/Forms/ModelForm";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import { FormSkeleton } from "../../Components/Skeleton/PageSkeletons";
-import LocalStorage from "Common/UI/Utils/LocalStorage";
 import SubscriberUtil from "Common/UI/Utils/StatusPage";
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
 import React, {
@@ -51,7 +50,12 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
   const [isManageLinkRequested, setIsManageLinkRequested] =
     useState<boolean>(false);
 
-  const id: ObjectID = LocalStorage.getItem("statusPageId") as ObjectID;
+  /*
+   * The status page this tab shows: the page this form subscribes to, in
+   * the address it posts to and in what it sends - never a page another tab
+   * opened since (#5277). Checked below, before anything is drawn.
+   */
+  const id: ObjectID = StatusPageUtil.getStatusPageId() as ObjectID;
 
   const [
     categoryCheckboxOptionsAndCategories,
@@ -154,13 +158,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
           formType={FormType.Create}
           submitButtonText={t("subscribe.submit")}
           onBeforeCreate={async (item: StatusPageSubscriber) => {
-            const id: ObjectID = LocalStorage.getItem(
-              "statusPageId",
-            ) as ObjectID;
-            if (!id) {
-              throw new BadDataException("Status Page ID is required");
-            }
-
+            // The page the request goes to: the one this form was drawn for.
             item.statusPageId = id;
             return item;
           }}
@@ -200,13 +198,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
           formType={FormType.Create}
           submitButtonText={t("subscribe.sendManagementLink")}
           onBeforeCreate={async (item: StatusPageSubscriber) => {
-            const id: ObjectID = LocalStorage.getItem(
-              "statusPageId",
-            ) as ObjectID;
-            if (!id) {
-              throw new BadDataException("Status Page ID is required");
-            }
-
+            // The page the request goes to: the one this form was drawn for.
             item.statusPageId = id;
             return item;
           }}
