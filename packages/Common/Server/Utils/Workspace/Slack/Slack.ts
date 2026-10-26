@@ -447,13 +447,35 @@ export default class SlackUtil extends WorkspaceBase {
     logger.debug("Modal shown to user successfully.", modalLogAttributes);
   }
 
+  /*
+   * A form shown in place of the modal `viewId` is open in: the form a
+   * request opens once its person has chosen its project in that modal
+   * (SlackProjectChoice), which views.open could not open over it.
+   */
+  @CaptureSpan()
+  public static async replaceModal(data: {
+    authToken: string;
+    viewId: string;
+    modalBlock: WorkspaceModalBlock;
+  }): Promise<void> {
+    await SlackUtil.updateView({
+      authToken: data.authToken,
+      viewId: data.viewId,
+      view: this.getModalBlock({
+        payloadModalBlock: data.modalBlock,
+      }),
+    });
+  }
+
   // The most a modal's title holds.
   public static readonly MODAL_TITLE_MAX_LENGTH: number = 24;
 
   /*
    * A message shown in a modal that only closes: the answer to a press that
    * has no channel to answer in - a global shortcut - opened where the
-   * person is. `triggerId` is the press's, good for three seconds.
+   * person is. `triggerId` is the press's, good for three seconds. With
+   * `viewId`, the message takes the place of the modal of that id instead:
+   * one a project was chosen in (SlackProjectChoice).
    */
   @CaptureSpan()
   public static async showMessageInModal(data: {
@@ -461,32 +483,82 @@ export default class SlackUtil extends WorkspaceBase {
     triggerId: string;
     title: string;
     messageBlocks: Array<WorkspaceMessageBlock>;
+    viewId?: string | undefined;
   }): Promise<void> {
     const title: string =
       data.title.length > SlackUtil.MODAL_TITLE_MAX_LENGTH
         ? data.title.substring(0, SlackUtil.MODAL_TITLE_MAX_LENGTH - 1) + "…"
         : data.title;
 
+    const view: JSONObject = {
+      type: "modal",
+      title: {
+        type: "plain_text",
+        text: title,
+      },
+      close: {
+        type: "plain_text",
+        text: "Close",
+      },
+      blocks: this.getBlocksFromWorkspaceMessagePayload({
+        messageBlocks: data.messageBlocks,
+        maxBlocks: SlackUtil.MAX_BLOCKS_PER_MODAL,
+      }),
+    };
+
+    if (data.viewId) {
+      return await SlackUtil.updateView({
+        authToken: data.authToken,
+        viewId: data.viewId,
+        view: view,
+      });
+    }
+
     const result: HTTPErrorResponse | HTTPResponse<JSONObject> = await API.post(
       {
         url: URL.fromString("https://slack.com/api/views.open"),
         data: {
           trigger_id: data.triggerId,
-          view: {
-            type: "modal",
-            title: {
-              type: "plain_text",
-              text: title,
-            },
-            close: {
-              type: "plain_text",
-              text: "Close",
-            },
-            blocks: this.getBlocksFromWorkspaceMessagePayload({
-              messageBlocks: data.messageBlocks,
-              maxBlocks: SlackUtil.MAX_BLOCKS_PER_MODAL,
-            }),
-          },
+          view: view,
+        },
+        headers: {
+          Authorization: `Bearer ${data.authToken}`,
+          ["Content-Type"]: "application/json",
+        },
+        options: {
+          retries: 1,
+          retryOnlyOnRetryableErrors: true,
+        },
+      },
+    );
+
+    if (result instanceof HTTPErrorResponse) {
+      throw result;
+    }
+
+    if ((result.jsonData as JSONObject)?.["ok"] !== true) {
+      throw new BadRequestException(
+        "Error from Slack " +
+          String((result.jsonData as JSONObject)?.["error"] || ""),
+      );
+    }
+  }
+
+  /*
+   * views.update: `view` in place of the open view `viewId`. Throws when
+   * Slack refuses it - a view that has been closed since, say.
+   */
+  private static async updateView(data: {
+    authToken: string;
+    viewId: string;
+    view: JSONObject;
+  }): Promise<void> {
+    const result: HTTPErrorResponse | HTTPResponse<JSONObject> = await API.post(
+      {
+        url: URL.fromString("https://slack.com/api/views.update"),
+        data: {
+          view_id: data.viewId,
+          view: data.view,
         },
         headers: {
           Authorization: `Bearer ${data.authToken}`,
@@ -646,6 +718,64 @@ export default class SlackUtil extends WorkspaceBase {
     }
 
     // Slack answers {"ok": false, "error": "expired_url"} for an address it no longer takes.
+    const body: unknown = response.jsonData;
+
+    if (
+      body &&
+      typeof body === "object" &&
+      (body as JSONObject)["ok"] === false
+    ) {
+      throw new BadRequestException(
+        "Error from Slack " + String((body as JSONObject)["error"] || ""),
+      );
+    }
+  }
+
+  /*
+   * Puts `messageBlocks` in place of the message a button was pressed on,
+   * through the press's response_url: a message only the person sees, or
+   * one the app posted in their direct messages - the question of which
+   * project, once a project is chosen (SlackProjectChoice). Throws when
+   * Slack refuses it.
+   */
+  @CaptureSpan()
+  public static async replaceMessageAtResponseUrl(data: {
+    responseUrl: string;
+    messageBlocks: Array<WorkspaceMessageBlock>;
+    text?: string | undefined;
+  }): Promise<void> {
+    if (!this.isSlackResponseUrl(data.responseUrl)) {
+      throw new BadDataException("Not a Slack response URL.");
+    }
+
+    const requestData: JSONObject = {
+      replace_original: true,
+      blocks: this.getBlocksFromWorkspaceMessagePayload({
+        messageBlocks: data.messageBlocks,
+      }),
+    };
+
+    if (data.text) {
+      requestData["text"] = this.getNotificationText(data.text);
+    }
+
+    const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
+      await API.post({
+        url: URL.fromString(data.responseUrl),
+        data: requestData,
+        headers: {
+          ["Content-Type"]: "application/json",
+        },
+        options: {
+          retries: 1,
+          retryOnlyOnRetryableErrors: true,
+        },
+      });
+
+    if (response instanceof HTTPErrorResponse) {
+      throw response;
+    }
+
     const body: unknown = response.jsonData;
 
     if (

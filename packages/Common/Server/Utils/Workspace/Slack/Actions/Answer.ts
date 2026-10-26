@@ -55,6 +55,11 @@ export interface SlackAnswerPlace {
   // A shortcut's: opens a modal, for three seconds.
   triggerId?: string | undefined;
   /*
+   * The modal the person chose the press's project in (SlackProjectChoice):
+   * an answer in a modal takes its place, where none could open over it.
+   */
+  viewId?: string | undefined;
+  /*
    * The person's direct messages with the app, when they wrote to it there.
    * Not a channel to answer in with a message only they see: they are
    * answered by the app's own message there, the last of the ways above.
@@ -93,6 +98,12 @@ export interface SlackAnswerPlaceSource {
    * form's submission is read in the same project.
    */
   projectId?: ObjectID | undefined;
+  /*
+   * A press made again in the project its person chose in a modal
+   * (SlackProjectChoice): what it opens, or answers in a modal, takes that
+   * modal's place.
+   */
+  replaceViewId?: string | undefined;
 }
 
 export default class SlackActionAnswer {
@@ -134,6 +145,10 @@ export default class SlackActionAnswer {
       (source.payloadType === "shortcut" || source.slackViewType === "home")
     ) {
       place.triggerId = source.triggerId;
+
+      if (source.replaceViewId) {
+        place.viewId = source.replaceViewId;
+      }
     }
 
     return place;
@@ -216,6 +231,7 @@ export default class SlackActionAnswer {
           triggerId: place.triggerId,
           title: ProductBrandingText.getProductName(),
           messageBlocks: messageBlocks,
+          viewId: place.viewId,
         });
 
         return SlackAnswerDelivery.Modal;
@@ -292,25 +308,37 @@ export default class SlackActionAnswer {
   /*
    * Opens a form for a press, carrying where the press was made, and the
    * project it was read in (SlackModalMetadata), so the form's submission is
-   * answered there too, and read in the same project.
+   * answered there too, and read in the same project. A press made again
+   * once its project was chosen in a modal opens the form in that modal's
+   * place (SlackProjectChoice).
    */
   @CaptureSpan()
   public static async showModal(data: {
     source: SlackAnswerPlaceSource & { triggerId?: string | undefined };
     modalBlock: WorkspaceModalBlock;
   }): Promise<void> {
+    const modalBlock: WorkspaceModalBlock = {
+      ...data.modalBlock,
+      actionValue: SlackModalMetadata.write(data.modalBlock.actionValue, {
+        channelId: data.source.slackChannelId,
+        threadTs: data.source.slackThreadTs,
+        isFromPrivateMessage: data.source.isFromPrivateMessage,
+        projectId: data.source.projectId?.toString(),
+      }),
+    };
+
+    if (data.source.replaceViewId) {
+      return await SlackUtil.replaceModal({
+        authToken: data.source.projectAuthToken!,
+        viewId: data.source.replaceViewId,
+        modalBlock: modalBlock,
+      });
+    }
+
     await SlackUtil.showModalToUser({
       authToken: data.source.projectAuthToken!,
       triggerId: data.source.triggerId!,
-      modalBlock: {
-        ...data.modalBlock,
-        actionValue: SlackModalMetadata.write(data.modalBlock.actionValue, {
-          channelId: data.source.slackChannelId,
-          threadTs: data.source.slackThreadTs,
-          isFromPrivateMessage: data.source.isFromPrivateMessage,
-          projectId: data.source.projectId?.toString(),
-        }),
-      },
+      modalBlock: modalBlock,
     });
   }
 

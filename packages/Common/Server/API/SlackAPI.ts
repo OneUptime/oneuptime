@@ -26,6 +26,7 @@ import ObjectID from "../../Types/ObjectID";
 import WorkspaceUserAuthTokenService from "../Services/WorkspaceUserAuthTokenService";
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import SlackAuthAction, {
+  SlackAction,
   SlackRequest,
 } from "../Utils/Workspace/Slack/Actions/Auth";
 import SlackIncidentActions from "../Utils/Workspace/Slack/Actions/Incident";
@@ -98,8 +99,16 @@ import SlackActionAnswer, {
 import SlackConnectPrompt from "../Utils/Workspace/Slack/Actions/ConnectPrompt";
 import WorkspaceProjectResolver, {
   WorkspaceAmbiguousRetryKind,
+  WorkspaceProjectChoice,
   WorkspaceProjectResolution,
 } from "../Utils/Workspace/WorkspaceProjectResolution";
+import SlackProjectChoice, {
+  SlackConversationOfPerson,
+  SlackProjectChoiceKind,
+  SlackProjectChoicePress,
+  SlackProjectChoiceRecord,
+  SlackQuestionCommand,
+} from "../Utils/Workspace/Slack/SlackProjectChoice";
 import { WorkspaceAnswer } from "../Utils/Workspace/WorkspaceActionAnswers";
 import SlackCommandActions from "../Utils/Workspace/Slack/Actions/Command";
 import SlackPageActions from "../Utils/Workspace/Slack/Actions/Page";
@@ -151,9 +160,12 @@ interface SlackAiOpsContext {
   /*
    * The workspace is connected to more than one project, and neither the
    * channel nor the asker tells which: what the asker is told instead of an
-   * answer (WorkspaceProjectResolution.getAmbiguousAnswer).
+   * answer (WorkspaceProjectResolution.getAmbiguousAnswer), when they cannot
+   * be asked which with a button for each (SlackProjectChoice), and the
+   * resolution that asks it.
    */
   ambiguousAnswer?: WorkspaceAnswer | undefined;
+  ambiguousResolution?: WorkspaceProjectResolution | undefined;
 }
 
 export default class SlackAPI {
@@ -1134,6 +1146,19 @@ export default class SlackAPI {
           }
 
           /*
+           * A project chosen for a request that could be about more than
+           * one: the request made again there (SlackProjectChoice).
+           */
+          if (action.actionType === SlackActionType.ChooseProject) {
+            return await SlackAPI.handleProjectChoice({
+              slackRequest: authResult,
+              action: action,
+              req: req,
+              res: res,
+            });
+          }
+
+          /*
            * Join call and Connect are link buttons: Slack opens the link,
            * and the click it reports needs nothing but an acknowledgement.
            */
@@ -1795,9 +1820,129 @@ export default class SlackAPI {
   }
 
   /*
+   * A press of one of the buttons that ask which project a request is for
+   * (SlackProjectChoice): the request recorded behind it spent - only by
+   * the person who made it, for a project it offered - and made again in
+   * the project chosen. A command, a shortcut or a Home button is read
+   * again as a press is (SlackCommandActions.runInChosenProject), with this
+   * press's trigger_id to open a form, in place of the modal it was chosen
+   * in when it was; a question is answered there, and a conversation with
+   * OneUptime AI keeps the project for its follow-ups. The question becomes
+   * what was chosen. A press whose request is gone - expired, chosen
+   * already, not the presser's - is told so in its place, and makes
+   * nothing again.
+   */
+  private static async handleProjectChoice(data: {
+    slackRequest: SlackRequest;
+    action: SlackAction;
+    req: ExpressRequest;
+    res: ExpressResponse;
+  }): Promise<void> {
+    const { slackRequest, req, res } = data;
+
+    // Asked in a modal - a shortcut's, a Home button's: what follows takes its place.
+    const viewId: string | undefined =
+      slackRequest.slackViewType === "modal" &&
+      typeof slackRequest.view?.["id"] === "string"
+        ? (slackRequest.view["id"] as string)
+        : undefined;
+
+    const press: SlackProjectChoicePress | null = SlackProjectChoice.readChoice(
+      data.action.actionValue,
+    );
+
+    const record: SlackProjectChoiceRecord | null = press
+      ? await SlackProjectChoice.take({
+          press: press,
+          teamId: slackRequest.slackTeamId,
+          slackUserId: slackRequest.slackUserId,
+        })
+      : null;
+
+    const choice: WorkspaceProjectChoice | undefined =
+      press && record
+        ? SlackProjectChoice.getChoice(record, press.projectId)
+        : undefined;
+
+    if (!press || !record || !choice) {
+      Response.sendTextResponse(req, res, "");
+
+      await SlackProjectChoice.answerGone({
+        responseUrl: slackRequest.responseUrl,
+        projectAuthToken: slackRequest.projectAuthToken,
+        triggerId: slackRequest.triggerId,
+        viewId: viewId,
+      });
+      return;
+    }
+
+    /*
+     * The question becomes what was chosen, while the request is made
+     * again: Slack is answered within its three seconds, and a form opens
+     * on this press's trigger_id within them.
+     */
+    const chosen: Promise<void> = viewId
+      ? Promise.resolve()
+      : SlackProjectChoice.answerChosen({
+          responseUrl: slackRequest.responseUrl,
+          projectName: choice.name,
+        });
+
+    try {
+      switch (record.request.kind) {
+        case SlackProjectChoiceKind.Press: {
+          const payload: JSONObject = { ...record.request.payload };
+
+          if (slackRequest.triggerId) {
+            payload["trigger_id"] = slackRequest.triggerId;
+          }
+
+          await SlackCommandActions.runInChosenProject({
+            req: req,
+            res: res,
+            payload: payload,
+            chosenProjectId: press.projectId,
+            replaceViewId: viewId,
+          });
+          break;
+        }
+        case SlackProjectChoiceKind.Question:
+          Response.sendTextResponse(req, res, "");
+
+          await SlackAPI.answerQuestion({
+            req: req,
+            question: record.request.question!,
+            chosenProjectId: press.projectId,
+          });
+          break;
+        case SlackProjectChoiceKind.Message:
+          Response.sendTextResponse(req, res, "");
+
+          // Its follow-ups in the thread are answered there too.
+          await SlackProjectChoice.rememberConversationProject({
+            conversation: SlackProjectChoice.getConversationOf(
+              record.request.message!,
+            ),
+            projectId: press.projectId,
+          });
+
+          await SlackAPI.answerMessage({
+            req: req,
+            message: record.request.message!,
+            chosenProjectId: press.projectId,
+          });
+          break;
+      }
+    } finally {
+      await chosen;
+    }
+  }
+
+  /*
    * `/oneuptime ask <question>`, or `/oneuptime <question>`: acknowledged at
    * once with a message only the asker sees, then answered by the
-   * assistant, detached, at the command's response_url - in the channel.
+   * assistant, detached, at the command's response_url - in the channel
+   * (answerQuestion).
    */
   private static async answerQuestionCommand(data: {
     req: ExpressRequest;
@@ -1806,16 +1951,6 @@ export default class SlackAPI {
   }): Promise<void> {
     const { req, res } = data;
     const body: JSONObject = req.body;
-
-    const slackTeamId: string = (body["team_id"] as string) || "";
-    const slackUserId: string = (body["user_id"] as string) || "";
-    const responseUrl: string = (body["response_url"] as string) || "";
-    const questionText: string = data.question;
-
-    // The command as this workspace runs it, for "run /oneuptime help".
-    const helpCommand: string = `${WorkspaceCommands.getSlackCommand(
-      body["command"] as string | undefined,
-    )} help`;
 
     /*
      * Acknowledge instantly so Slack does not time out. The real answer is
@@ -1827,156 +1962,216 @@ export default class SlackAPI {
     });
 
     // Detached work (fire-and-forget). Ack has already been sent.
-    (async (): Promise<void> => {
-      const context: SlackAiOpsContext | undefined =
-        await SlackAPI.resolveSlackAiOpsContext({
-          slackTeamId: slackTeamId,
-          slackUserId: slackUserId,
-          slackChannelId: (body["channel_id"] as string) || undefined,
-        });
-
-      if (!context) {
-        // Workspace not connected — tell the user ephemerally.
-        await API.post({
-          url: URL.fromString(responseUrl),
-          data: {
-            response_type: "ephemeral",
-            text: SlackUtil.getNotificationText(
-              SlackCommandActions.getNotConnectedAnswer().text,
-            ),
-          },
-          headers: {
-            ["Content-Type"]: "application/json",
-          },
-        });
-        return;
-      }
-
-      /*
-       * The workspace is connected to more than one project, and neither
-       * the channel nor the asker tells which: said, only to them.
-       */
-      if (context.ambiguousAnswer) {
-        await API.post({
-          url: URL.fromString(responseUrl),
-          data: {
-            response_type: "ephemeral",
-            text: SlackUtil.convertMarkdownToSlackRichText(
-              context.ambiguousAnswer.markdown,
-            ),
-          },
-          headers: {
-            ["Content-Type"]: "application/json",
-          },
-        });
-        return;
-      }
-
-      if (!context.userId) {
-        /*
-         * A Slack account not connected to OneUptime: asked to connect
-         * it where the command was run, with the Connect button, and to
-         * ask again once it is.
-         */
-        await SlackConnectPrompt.prompt({
-          projectId: context.projectId,
-          slackTeamId: slackTeamId,
-          place: {
-            projectAuthToken: context.projectAuthToken,
-            slackUserId: slackUserId,
-            slackChannelId: (body["channel_id"] as string) || undefined,
-            responseUrl: responseUrl,
-          },
-          description: SlackConnectPrompt.describeQuestion(),
-        });
-        return;
-      }
-
-      /*
-       * The project's AI kill switch. Ephemeral, like every other refusal
-       * on this slash-command path — the person who typed the command is
-       * the only one who needs to know the switch is off. /oneuptime does
-       * more than ask AI, so the refusal says where the rest is.
-       */
-      if (!(await AIService.isProjectAIEnabled(context.projectId))) {
-        await API.post({
-          url: URL.fromString(responseUrl),
-          data: {
-            response_type: "ephemeral",
-            text: SlackAPI.withHelpPointer(
-              SlackAPI.getAiDisabledMessage(),
-              helpCommand,
-            ),
-          },
-          headers: {
-            ["Content-Type"]: "application/json",
-          },
-        });
-        return;
-      }
-
-      // The project's own daily AI limits: refused the same way.
-      const dailyLimitRefusal: string | null =
-        await SlackAPI.getDailyLimitRefusal(context.projectId);
-
-      if (dailyLimitRefusal) {
-        await API.post({
-          url: URL.fromString(responseUrl),
-          data: {
-            response_type: "ephemeral",
-            text: SlackAPI.withHelpPointer(dailyLimitRefusal, helpCommand),
-          },
-          headers: {
-            ["Content-Type"]: "application/json",
-          },
-        });
-        return;
-      }
-
-      /*
-       * The project's AI credits: refused the same way, saying who can add
-       * them and where (WorkspaceAiRefusal) - a project whose credits are
-       * used up, every new one, got no answer at all here.
-       */
-      const creditsRefusal: string | null =
-        await WorkspaceAiRefusal.getCreditsRefusal(context.projectId);
-
-      if (creditsRefusal) {
-        await API.post({
-          url: URL.fromString(responseUrl),
-          data: {
-            response_type: "ephemeral",
-            text: SlackAPI.withHelpPointer(creditsRefusal, helpCommand),
-          },
-          headers: {
-            ["Content-Type"]: "application/json",
-          },
-        });
-        return;
-      }
-
-      const answerMarkdown: string = await SlackAPI.getAiOpsAnswerMarkdown({
-        projectId: context.projectId,
-        userId: context.userId,
-        question: questionText,
-      });
-
-      await API.post({
-        url: URL.fromString(responseUrl),
-        data: {
-          response_type: "in_channel",
-          text: SlackUtil.convertMarkdownToSlackRichText(answerMarkdown),
-        },
-        headers: {
-          ["Content-Type"]: "application/json",
-        },
-      });
-    })().catch((err: Error) => {
+    SlackAPI.answerQuestion({
+      req: req,
+      question: {
+        question: data.question,
+        teamId: (body["team_id"] as string) || "",
+        slackUserId: (body["user_id"] as string) || "",
+        channelId: (body["channel_id"] as string) || undefined,
+        responseUrl: (body["response_url"] as string) || "",
+        command: (body["command"] as string) || undefined,
+      },
+    }).catch((err: Error) => {
       logger.error(
         "Error handling Slack slash command:",
         getLogAttributesFromRequest(req as any),
       );
       logger.error(err, getLogAttributesFromRequest(req as any));
+    });
+  }
+
+  /*
+   * A question of `/oneuptime ask`, answered by OneUptime AI at the
+   * command's response_url, in the channel - or refused there, only to its
+   * asker. In a workspace connected to more than one project, a question
+   * nothing ties to one of them asks its asker which, with a button for
+   * each project they are in (SlackProjectChoice), and is answered here
+   * again, in `chosenProjectId`, once they choose.
+   */
+  private static async answerQuestion(data: {
+    req: ExpressRequest;
+    question: SlackQuestionCommand;
+    chosenProjectId?: ObjectID | undefined;
+  }): Promise<void> {
+    const slackTeamId: string = data.question.teamId;
+    const slackUserId: string = data.question.slackUserId;
+    const slackChannelId: string | undefined = data.question.channelId;
+    const responseUrl: string = data.question.responseUrl;
+    const questionText: string = data.question.question;
+
+    // The command as this workspace runs it, for "run /oneuptime help".
+    const helpCommand: string = `${WorkspaceCommands.getSlackCommand(
+      data.question.command,
+    )} help`;
+
+    const context: SlackAiOpsContext | undefined =
+      await SlackAPI.resolveSlackAiOpsContext({
+        slackTeamId: slackTeamId,
+        slackUserId: slackUserId,
+        slackChannelId: slackChannelId,
+        chosenProjectId: data.chosenProjectId,
+      });
+
+    if (!context) {
+      // Workspace not connected — tell the user ephemerally.
+      await API.post({
+        url: URL.fromString(responseUrl),
+        data: {
+          response_type: "ephemeral",
+          text: SlackUtil.getNotificationText(
+            SlackCommandActions.getNotConnectedAnswer().text,
+          ),
+        },
+        headers: {
+          ["Content-Type"]: "application/json",
+        },
+      });
+      return;
+    }
+
+    /*
+     * The workspace is connected to more than one project, and neither
+     * the channel nor the asker tells which: asked which, only to them,
+     * with a button for each project they are in, and answered in the
+     * one they choose (SlackProjectChoice) - or, when that cannot be
+     * asked, told how to say which.
+     */
+    if (context.ambiguousAnswer) {
+      if (
+        context.ambiguousResolution &&
+        (await SlackProjectChoice.offer({
+          place: {
+            projectAuthToken: context.projectAuthToken,
+            slackUserId: slackUserId,
+            slackChannelId: slackChannelId,
+            responseUrl: responseUrl,
+          },
+          teamId: slackTeamId,
+          slackUserId: slackUserId,
+          resolution: context.ambiguousResolution,
+          request: {
+            kind: SlackProjectChoiceKind.Question,
+            question: data.question,
+          },
+        })) !== null
+      ) {
+        return;
+      }
+
+      await API.post({
+        url: URL.fromString(responseUrl),
+        data: {
+          response_type: "ephemeral",
+          text: SlackUtil.convertMarkdownToSlackRichText(
+            context.ambiguousAnswer.markdown,
+          ),
+        },
+        headers: {
+          ["Content-Type"]: "application/json",
+        },
+      });
+      return;
+    }
+
+    if (!context.userId) {
+      /*
+       * A Slack account not connected to OneUptime: asked to connect
+       * it where the command was run, with the Connect button, and to
+       * ask again once it is.
+       */
+      await SlackConnectPrompt.prompt({
+        projectId: context.projectId,
+        slackTeamId: slackTeamId,
+        place: {
+          projectAuthToken: context.projectAuthToken,
+          slackUserId: slackUserId,
+          slackChannelId: slackChannelId,
+          responseUrl: responseUrl,
+        },
+        description: SlackConnectPrompt.describeQuestion(),
+      });
+      return;
+    }
+
+    /*
+     * The project's AI kill switch. Ephemeral, like every other refusal
+     * on this slash-command path — the person who typed the command is
+     * the only one who needs to know the switch is off. /oneuptime does
+     * more than ask AI, so the refusal says where the rest is.
+     */
+    if (!(await AIService.isProjectAIEnabled(context.projectId))) {
+      await API.post({
+        url: URL.fromString(responseUrl),
+        data: {
+          response_type: "ephemeral",
+          text: SlackAPI.withHelpPointer(
+            SlackAPI.getAiDisabledMessage(),
+            helpCommand,
+          ),
+        },
+        headers: {
+          ["Content-Type"]: "application/json",
+        },
+      });
+      return;
+    }
+
+    // The project's own daily AI limits: refused the same way.
+    const dailyLimitRefusal: string | null =
+      await SlackAPI.getDailyLimitRefusal(context.projectId);
+
+    if (dailyLimitRefusal) {
+      await API.post({
+        url: URL.fromString(responseUrl),
+        data: {
+          response_type: "ephemeral",
+          text: SlackAPI.withHelpPointer(dailyLimitRefusal, helpCommand),
+        },
+        headers: {
+          ["Content-Type"]: "application/json",
+        },
+      });
+      return;
+    }
+
+    /*
+     * The project's AI credits: refused the same way, saying who can add
+     * them and where (WorkspaceAiRefusal) - a project whose credits are
+     * used up, every new one, got no answer at all here.
+     */
+    const creditsRefusal: string | null =
+      await WorkspaceAiRefusal.getCreditsRefusal(context.projectId);
+
+    if (creditsRefusal) {
+      await API.post({
+        url: URL.fromString(responseUrl),
+        data: {
+          response_type: "ephemeral",
+          text: SlackAPI.withHelpPointer(creditsRefusal, helpCommand),
+        },
+        headers: {
+          ["Content-Type"]: "application/json",
+        },
+      });
+      return;
+    }
+
+    const answerMarkdown: string = await SlackAPI.getAiOpsAnswerMarkdown({
+      projectId: context.projectId,
+      userId: context.userId,
+      question: questionText,
+    });
+
+    await API.post({
+      url: URL.fromString(responseUrl),
+      data: {
+        response_type: "in_channel",
+        text: SlackUtil.convertMarkdownToSlackRichText(answerMarkdown),
+      },
+      headers: {
+        ["Content-Type"]: "application/json",
+      },
     });
   }
 
@@ -2017,6 +2212,11 @@ export default class SlackAPI {
   private static async answerMessage(data: {
     req: ExpressRequest;
     message: SlackMessage;
+    /*
+     * The project its author chose for it, asked which once nothing else
+     * told (SlackProjectChoice).
+     */
+    chosenProjectId?: ObjectID | undefined;
   }): Promise<void> {
     const { req, message } = data;
 
@@ -2025,6 +2225,8 @@ export default class SlackAPI {
         slackTeamId: message.teamId,
         slackUserId: message.userId,
         slackChannelId: message.channelId,
+        chosenProjectId: data.chosenProjectId,
+        conversation: SlackProjectChoice.getConversationOf(message),
       });
 
     // Workspace not connected to any project — nothing we can do.
@@ -2076,16 +2278,38 @@ export default class SlackAPI {
 
     /*
      * The workspace is connected to more than one project, and neither the
-     * channel nor the asker tells which: said where they see it, only to
-     * them, as the Connect prompt is - instead of an answer about a project
-     * they may not have meant.
+     * channel nor the asker - nor a choice made earlier in this
+     * conversation - tells which: asked which where they see it, only to
+     * them, as the Connect prompt is, with a button for each project they
+     * are in, and answered in the one they choose (SlackProjectChoice);
+     * when that cannot be asked, told how to say which - instead of an
+     * answer about a project they may not have meant.
      */
     if (context.ambiguousAnswer) {
-      await SlackActionAnswer.answer({
-        place: SlackAiConversations.getConnectPromptPlace({
+      const place: SlackAnswerPlace =
+        SlackAiConversations.getConnectPromptPlace({
           message: message,
           projectAuthToken: context.projectAuthToken,
-        }),
+        });
+
+      if (
+        context.ambiguousResolution &&
+        (await SlackProjectChoice.offer({
+          place: place,
+          teamId: message.teamId,
+          slackUserId: message.userId,
+          resolution: context.ambiguousResolution,
+          request: {
+            kind: SlackProjectChoiceKind.Message,
+            message: message,
+          },
+        })) !== null
+      ) {
+        return;
+      }
+
+      await SlackActionAnswer.answer({
+        place: place,
         answer: context.ambiguousAnswer,
       });
       return;
@@ -2395,11 +2619,18 @@ export default class SlackAPI {
    * Returns undefined when the workspace is not connected to any OneUptime
    * project at all; ambiguousAnswer when it is connected to several and
    * nothing tells which.
+   *
+   * `chosenProjectId` is the project the asker chose for the question
+   * (SlackProjectChoice); `conversation`, the conversation it is part of,
+   * which keeps a project chosen in it for its follow-ups when nothing
+   * else tells which.
    */
   private static async resolveSlackAiOpsContext(data: {
     slackTeamId: string;
     slackUserId: string;
     slackChannelId?: string | undefined;
+    chosenProjectId?: ObjectID | undefined;
+    conversation?: SlackConversationOfPerson | undefined;
   }): Promise<SlackAiOpsContext | undefined> {
     const { slackTeamId, slackUserId } = data;
 
@@ -2407,15 +2638,41 @@ export default class SlackAPI {
       return undefined;
     }
 
-    const resolution: WorkspaceProjectResolution =
+    let resolution: WorkspaceProjectResolution =
       await WorkspaceProjectResolver.resolve({
         workspaceType: WorkspaceType.Slack,
         workspaceId: slackTeamId,
         clues: {
           channelId: data.slackChannelId,
           workspaceUserId: slackUserId,
+          drawnForProjectId: data.chosenProjectId,
         },
       });
+
+    /*
+     * Nothing tells which, but the asker chose a project earlier in this
+     * conversation: a follow-up is answered there too, among the
+     * connections already read.
+     */
+    if (resolution.isAmbiguous && data.conversation) {
+      const rememberedProjectId: ObjectID | null =
+        await SlackProjectChoice.getConversationProject(data.conversation);
+
+      if (rememberedProjectId) {
+        const inRemembered: WorkspaceProjectResolution =
+          await WorkspaceProjectResolver.resolveAmong({
+            workspaceType: WorkspaceType.Slack,
+            connections: resolution.connections,
+            clues: {
+              drawnForProjectId: rememberedProjectId,
+            },
+          });
+
+        if (!inRemembered.isAmbiguous && inRemembered.projectAuth) {
+          resolution = inRemembered;
+        }
+      }
+    }
 
     const projectAuth: WorkspaceProjectAuthToken | null =
       resolution.projectAuth || resolution.connections[0] || null;
@@ -2436,6 +2693,7 @@ export default class SlackAPI {
           resolution: resolution,
           retry: { kind: WorkspaceAmbiguousRetryKind.Question },
         }),
+        ambiguousResolution: resolution,
       };
     }
 
