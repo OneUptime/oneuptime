@@ -137,8 +137,11 @@ describe("a sentence that names a state, a field or a time range", () => {
     "is worded apart from the English in %s, so its names are translated",
     (code: string) => {
       for (const template of TEMPLATES) {
-        expect({ code, template, sameAsEnglish: valueOf(code, template) }).not
-          .toEqual({ code, template, sameAsEnglish: template });
+        expect({
+          code,
+          template,
+          sameAsEnglish: valueOf(code, template),
+        }).not.toEqual({ code, template, sameAsEnglish: template });
         expect(sameAsEnglishIn(code)).not.toContain(template);
       }
     },
@@ -173,10 +176,9 @@ describe("a sentence that names a state, a field or a time range", () => {
       const translator: Translator = shippedTranslatorFor(code);
 
       for (const state of ["Acknowledged", "Resolved"]) {
-        const label: string = translator.translateTemplate(
-          "{{stateName}} in",
-          { stateName: translatableTerm(state) },
-        );
+        const label: string = translator.translateTemplate("{{stateName}} in", {
+          stateName: translatableTerm(state),
+        });
 
         expect({ code, label, english: label.includes(state) }).toEqual({
           code,
@@ -261,9 +263,11 @@ describe("a network chart's In and Out", () => {
       const outbound: string = valueOf(code, "Out");
 
       expect(inbound).not.toBe(outbound);
-      expect({ code, inbound, isOn: inbound === valueOf(code, "On") }).toEqual(
-        { code, inbound, isOn: false },
-      );
+      expect({ code, inbound, isOn: inbound === valueOf(code, "On") }).toEqual({
+        code,
+        inbound,
+        isOn: false,
+      });
       expect({
         code,
         outbound,
@@ -307,13 +311,16 @@ describe("the seeded alert and incident states", () => {
     hi: ["पहचाना गया", "स्वीकार किया गया", "सुलझाया गया"],
   };
 
-  test.each(Object.keys(FAMILIES))("read as one family in %s", (code: string) => {
-    expect([
-      valueOf(code, "Identified"),
-      valueOf(code, "Acknowledged"),
-      valueOf(code, "Resolved"),
-    ]).toEqual(FAMILIES[code]);
-  });
+  test.each(Object.keys(FAMILIES))(
+    "read as one family in %s",
+    (code: string) => {
+      expect([
+        valueOf(code, "Identified"),
+        valueOf(code, "Acknowledged"),
+        valueOf(code, "Resolved"),
+      ]).toEqual(FAMILIES[code]);
+    },
+  );
 });
 
 describe("the gauge widget's setup prompt", () => {
@@ -329,8 +336,12 @@ describe("the gauge widget's setup prompt", () => {
       for (const title of ["Gauge Widget", "Data Source Gauge"]) {
         const words: string = valueOf(code, title);
 
-        expect({ code, title, words, named: folded(words).includes(stem) })
-          .toEqual({ code, title, words, named: true });
+        expect({
+          code,
+          title,
+          words,
+          named: folded(words).includes(stem),
+        }).toEqual({ code, title, words, named: true });
       }
     },
   );
@@ -381,28 +392,28 @@ describe("the Add Trigger panel", () => {
     for (const key of PANEL) {
       const words: string = valueOf(code, key);
 
-      expect({ code, key, words, says: folded(words).includes(word) }).toEqual(
-        { code, key, words, says: true },
-      );
+      expect({ code, key, words, says: folded(words).includes(word) }).toEqual({
+        code,
+        key,
+        words,
+        says: true,
+      });
     }
   });
 
-  test.each(LANGUAGES)(
-    "counts triggers and actions in %s",
-    (code: string) => {
-      const same: Array<string> = sameAsEnglishIn(code);
+  test.each(LANGUAGES)("counts triggers and actions in %s", (code: string) => {
+    const same: Array<string> = sameAsEnglishIn(code);
 
-      for (const key of ["{{count}} triggers", "{{count}} actions"]) {
-        const words: string = valueOf(code, key);
+    for (const key of ["{{count}} triggers", "{{count}} actions"]) {
+      const words: string = valueOf(code, key);
 
-        expect(words).toContain("{{count}}");
+      expect(words).toContain("{{count}}");
 
-        if (words === key) {
-          expect(same).toContain(key);
-        }
+      if (words === key) {
+        expect(same).toContain(key);
       }
-    },
-  );
+    }
+  });
 });
 
 describe("the SLO rule tables' Create buttons", () => {
