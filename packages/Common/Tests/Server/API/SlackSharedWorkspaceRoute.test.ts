@@ -3182,6 +3182,66 @@ describe("one Slack workspace connected to two OneUptime projects", () => {
       expect(priya.text).not.toContain("static_select");
     });
 
+    test("never offered a project he was removed from: connected in both, a member of IRM Platform only - its Home, and no menu", async () => {
+      // Removed from IRM Non-Prod; his account is still connected there.
+      links.push(linkOf("U0FORMER", PLATFORM));
+      memberships.push({
+        userId: FORMER,
+        projectId: PLATFORM,
+        permissions: [Permission.ProjectMember],
+      });
+
+      const home: Home = await homeOf("U0FORMER");
+
+      expect(home.projectId).toBe(PLATFORM.toString());
+      expect(home.menu).toBeNull();
+      expect(home.text).not.toContain("IRM Non-Prod");
+      expect(home.text).not.toContain("INC-12");
+
+      // A press for it, all the same: refused, and nothing of it read.
+      incidentListReads = [];
+
+      const pressed: Home = await switchedTo({
+        slackUserId: "U0FORMER",
+        shown: PLATFORM,
+        value: NONPRD.toString(),
+      });
+
+      expect(pressed.projectId).toBe(PLATFORM.toString());
+      expect(pressed.text).toContain(REFUSED);
+      for (const read of incidentListReads) {
+        expect(read.projectId).toEqual([PLATFORM.toString()]);
+      }
+    });
+
+    test("a press whose value names no project - forged, or garbled - switches nothing: told he can't switch, his Home stays on the project it showed", async () => {
+      await homeOf("U0DEANE");
+      await switchedTo({
+        slackUserId: "U0DEANE",
+        shown: PLATFORM,
+        value: NONPRD.toString(),
+      });
+
+      for (const value of [
+        "not-a-project",
+        `${NONPRD.toString()}:extra`,
+        ObjectID.generate().toString(),
+      ]) {
+        const home: Home = await switchedTo({
+          slackUserId: "U0DEANE",
+          shown: NONPRD,
+          value: value,
+        });
+
+        expect({ value, projectId: home.projectId }).toEqual({
+          value,
+          projectId: NONPRD.toString(),
+        });
+        expect(home.text).toContain(REFUSED);
+        expect(home.menu).toEqual([["IRM Platform", PLATFORM.toString()]]);
+      }
+    });
+
     test("Priya's press for IRM Non-Prod, where she is no member: her IRM Platform Home, told she can't switch - nothing of IRM Non-Prod read for her, nothing remembered", async () => {
       const home: Home = await switchedTo({
         slackUserId: "U0PRIYA",
