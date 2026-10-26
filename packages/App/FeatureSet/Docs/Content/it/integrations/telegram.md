@@ -57,7 +57,7 @@ Il workflow si apre nel **Costruttore** con tre passi: **On Create Alert**; **Se
 @tab Da zero
 1. Salva il token come variabile globale segreta: vai su **Flussi di lavoro → Variabili globali**, fai clic su **Crea: Flusso di lavoro Variabile**, chiamala `TELEGRAM_BOT_TOKEN` e fai clic su **Avanti**. Incolla il token in **Contenuto**, attiva **Segreto** e fai clic su **Crea: Flusso di lavoro Variabile**.
 2. Vai su **Flussi di lavoro**, fai clic su **Crea flusso di lavoro**, scegli **Parti da zero**, dai un nome al workflow e fai clic su **Crea flusso di lavoro**.
-3. Nel **Costruttore**, fai clic su **Choose what starts this workflow** e scegli **On Create Alert** sotto **Popular**. Fai clic sul trigger: i suoi **Fields to pass on** iniziano con **Titolo**, quindi fai clic su **Aggiungi campo** e scegli gli altri campi che mostra il tuo messaggio, per esempio **Alert Number With Prefix**.
+3. Nel **Costruttore**, fai clic su **Scegli cosa avvia questo flusso di lavoro** e scegli **On Create Alert** sotto **Popolari**. Fai clic sul trigger: i suoi **Fields to pass on** iniziano con **Titolo**, quindi fai clic su **Aggiungi campo** e scegli gli altri campi che mostra il tuo messaggio, per esempio **Alert Number With Prefix**.
 4. Fai clic su **Aggiungi componente**, cerca `telegram` e fai clic su **Send Message to Telegram**. Collega l'uscita **Success** del trigger a questo passo.
 5. Fai clic sul nuovo passo. In **Telegram Bot Token**, fai clic su **{ }** e scegli `TELEGRAM_BOT_TOKEN` sotto **Global variables**. Inserisci l'ID della chat in **Chat ID**, scrivi il messaggio in **Message Text** e inserisci i campi dell'avviso con **{ }**.
 :::

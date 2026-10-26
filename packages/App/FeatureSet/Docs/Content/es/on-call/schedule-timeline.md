@@ -23,7 +23,7 @@ flowchart TB
 - **Guardia** > **Cronología de la programación** muestra todas las programaciones que puedes ver, agrupadas por equipo propietario. El botón **Vista de cronología** de **Programaciones de guardia** abre la misma página.
 - **Equipos** > un equipo > **Programaciones de guardia** muestra solo las programaciones de las que ese equipo es propietario.
 
-Un equipo es propietario de una programación cuando figura en la página **Propietarios** de la programación. Las programaciones sin equipo propietario se agrupan en **Sin equipo propietario**. Desactiva **Group by team** para ver todas las programaciones en una sola lista, ordenada por nombre.
+Un equipo es propietario de una programación cuando figura en la página **Propietarios** de la programación. Las programaciones sin equipo propietario se agrupan en **Sin equipo propietario**. Desactiva **Agrupar por equipo** para ver todas las programaciones en una sola lista, ordenada por nombre.
 
 ## Lee la cuadrícula
 
@@ -34,16 +34,16 @@ Un equipo es propietario de una programación cuando figura en la página **Prop
 | Una barra marcada con **⇄** | Una sustitución: alguien cubre un turno. El carril fino de debajo nombra a la persona cuyo turno se cubre, tachada. |
 | Un bloque ámbar rayado | Un hueco de cobertura: nadie está de guardia. Una alerta que escala a esa programación no avisa entonces a nadie. |
 | La línea roja | Ahora. |
-| La línea bajo el nombre de una programación | Quién está de guardia ahora, o **No one on call now**. |
+| La línea bajo el nombre de una programación | Quién está de guardia ahora, o **Nadie de guardia ahora**. |
 
 Pasa el puntero por encima de una barra o un hueco, o llega a ellos con el teclado, para ver sus detalles.
 
-Debajo de la cuadrícula, **On call this week** (**On call this month** en la vista mensual) lista a todas las personas de guardia en el periodo. Pasa el puntero por un nombre para ver cuánto tiempo está de guardia esa persona y en cuántas programaciones.
+Debajo de la cuadrícula, **De guardia esta semana** (**De guardia este mes** en la vista mensual) lista a todas las personas de guardia en el periodo. Pasa el puntero por un nombre para ver cuánto tiempo está de guardia esa persona y en cuántas programaciones.
 
 ## Cambia el periodo y la zona horaria
 
 - Cambia entre **Semana** y **Mes**, muévete con las flechas y vuelve con **Hoy**.
-- Las horas se muestran en tu propia zona horaria. El botón de zona horaria abre **View timeline in timezone**, que muestra la línea de tiempo en cualquier otra zona sin cambiar quién está de guardia: cada programación sigue haciendo sus relevos en su propia zona horaria.
+- Las horas se muestran en tu propia zona horaria. El botón de zona horaria abre **Ver la cronología en una zona horaria**, que muestra la línea de tiempo en cualquier otra zona sin cambiar quién está de guardia: cada programación sigue haciendo sus relevos en su propia zona horaria.
 - La línea de tiempo abarca 180 días hacia atrás y 365 días hacia adelante.
 
 > [!NOTE]
@@ -52,8 +52,8 @@ Debajo de la cuadrícula, **On call this week** (**On call this month** en la vi
 ## Encuentra una programación o una persona
 
 - **Buscar** encuentra nombres de programaciones, nombres de equipos y a las personas de guardia.
-- El filtro de equipo limita la vista a un equipo o a **Mis equipos**; **Schedules I'm on** deja solo las programaciones en las que participas.
-- Encima de la cuadrícula, haz clic en **with no one on call now** o **with coverage gaps this week** (**with coverage gaps this month** en la vista mensual) para ver solo esas programaciones. Haz clic de nuevo para verlas todas.
+- El filtro de equipo limita la vista a un equipo o a **Mis equipos**; **Programaciones en las que estoy** deja solo las programaciones en las que participas.
+- Encima de la cuadrícula, haz clic en **sin nadie de guardia ahora** o **con huecos de cobertura esta semana** (**con huecos de cobertura este mes** en la vista mensual) para ver solo esas programaciones. Haz clic de nuevo para verlas todas.
 - Haz clic en una persona debajo de la cuadrícula, o en una de sus barras, para resaltar todos sus turnos. **Quitar resaltado** lo deshace, y **Borrar filtros** restablece la búsqueda y los filtros.
 
 ## Quién ve qué

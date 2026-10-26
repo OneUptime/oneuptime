@@ -64,7 +64,7 @@ De två sorternas anteckningar ser likadana ut i instrumentpanelen och beter sig
 
 ### Skriv uppdateringen
 
-Skriv anteckningen i Markdown, eller börja från en av dina **Mallar** eller från **Draft with AI**. Lägg till filer med **Attach** om prenumeranterna ska se dem.
+Skriv anteckningen i Markdown, eller börja från en av dina **Mallar** eller från **Utkast med AI**. Lägg till filer med **Attach** om prenumeranterna ska se dem.
 
 ### Bestäm vem som får besked
 
@@ -81,7 +81,7 @@ Samma redigerare öppnas i en dialog från **Add Public Note** i menyn **Åtgär
 | ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
 | Anteckningen                       | Texten, i Markdown. Obligatoriskt.                                                                                                            |
 | **Mallar**                         | Infogar en av dina anteckningsmallar i anteckningen, efter det du redan har skrivit. Se [Anteckningsmallar](#anteckningsmallar).                 |
-| **Draft with AI**                  | Skriver ett utkast till anteckningen utifrån incidenten, som du redigerar. Se [Generera en anteckning med AI](#generera-en-anteckning-med-ai).     |
+| **Utkast med AI**                  | Skriver ett utkast till anteckningen utifrån incidenten, som du redigerar. Se [Generera en anteckning med AI](#generera-en-anteckning-med-ai).     |
 | **Attach**                         | Filer som delas med prenumeranterna på statussidan. Valfritt.                                                                                 |
 | **Posted now**                     | När anteckningen säger att den publicerades: ögonblicket då du publicerar den, om du inte väljer en tidigare tidpunkt här, i din aktuella tidszon. |
 | **Notify status page subscribers** | Kryssruta. Påslagen som standard, om inte incidenten deklarerades utan att meddela prenumeranterna — då börjar den avstängd. Stäng av den för att publicera tyst. |
@@ -99,7 +99,7 @@ Varje anteckning visar vem som skrev den, dess publiceringstid, den återgivna M
 
 ## Publicera en privat anteckning
 
-**Anteckningar → Privata anteckningar** är medvetet enklare. Det är samma redigerare, som säger **Private · Only your team can see this**, med anteckningen, **Mallar**, **Draft with AI** och **Attach** för filer som är avsedda för teamet som ingriper i incidenten. **Lägg till privat anteckning** i menyn **Åtgärder** i incidentens flöde öppnar den i en dialog. Via API:t är privata anteckningar `/api/incident-internal-note`.
+**Anteckningar → Privata anteckningar** är medvetet enklare. Det är samma redigerare, som säger **Private · Only your team can see this**, med anteckningen, **Mallar**, **Utkast med AI** och **Attach** för filer som är avsedda för teamet som ingriper i incidenten. **Lägg till privat anteckning** i menyn **Åtgärder** i incidentens flöde öppnar den i en dialog. Via API:t är privata anteckningar `/api/incident-internal-note`.
 
 Ingen publiceringstid, ingen kryssruta för prenumeranter — anteckningen stämplas när den skapas.
 
@@ -138,7 +138,7 @@ Att läsa en anteckning via API:t, Terraform eller ett arbetsflöde visar bara b
 
 ## Generera en anteckning med AI
 
-Redigeraren har en knapp **Draft with AI**, på båda anteckningssidorna och i flödets dialoger **Add Public Note** och **Lägg till privat anteckning**. Den skickar incidenten till ditt projekts AI-leverantör och lägger in den genererade Markdown-texten i anteckningen, där du redigerar den innan du publicerar — inget publiceras automatiskt.
+Redigeraren har en knapp **Utkast med AI**, på båda anteckningssidorna och i flödets dialoger **Add Public Note** och **Lägg till privat anteckning**. Den skickar incidenten till ditt projekts AI-leverantör och lägger in den genererade Markdown-texten i anteckningen, där du redigerar den innan du publicerar — inget publiceras automatiskt.
 
 | Dialog                             | Vad den skriver                                                      | Mallar                                                            |
 | ---------------------------------- | -------------------------------------------------------------------- | ----------------------------------------------------------------- |
@@ -250,7 +250,7 @@ Kortets rubrik har också en meny **Åtgärder**, så att du kan agera utan att 
 
 - **Execute Runbook** — starta ett [runbook](/docs/runbooks/index) för den här incidenten.
 - **Kör jourpolicy** — larma en policy på begäran. En arkiverad policy larmar ingen: dess körningslogg på incidenten säger att den inte kördes eftersom policyn är arkiverad.
-- **Add Public Note** — redigeraren från sidan **Offentliga anteckningar**, i en dialog: skriv anteckningen, och sedan **Post update**. Mallar, **Draft with AI**, bilagor, **Notify status page subscribers** med vem den når, och **Förhandsgranskning** finns alla där. Anteckningen publiceras nu; för att bakåtdatera den väljer du **Posted now**.
+- **Add Public Note** — redigeraren från sidan **Offentliga anteckningar**, i en dialog: skriv anteckningen, och sedan **Post update**. Mallar, **Utkast med AI**, bilagor, **Notify status page subscribers** med vem den når, och **Förhandsgranskning** finns alla där. Anteckningen publiceras nu; för att bakåtdatera den väljer du **Posted now**.
 - **Lägg till privat anteckning** — redigeraren från sidan **Privata anteckningar**, i en dialog: skriv anteckningen, och sedan **Add note**.
 
 Båda anteckningsåtgärderna är låsta, med namnet på den saknade behörigheten, för någon som inte får skriva anteckningar. När en anteckning har publicerats stängs dialogen och flödet visar den.

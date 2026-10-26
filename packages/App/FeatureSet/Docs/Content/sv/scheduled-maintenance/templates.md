@@ -24,7 +24,7 @@ flowchart TB
 ## Innan du börjar
 
 - **Ditt abonnemang.** På OneUptime Cloud kräver mallar abonnemanget **Growth** eller högre.
-- **Din roll.** För att skapa en mall krävs **Project Owner**, **Project Admin**, **Project Member**, **Scheduled Maintenance Admin** eller **Scheduled Maintenance Member**, eller en anpassad roll som får skapa mallar för schemalagt underhåll.
+- **Din roll.** För att skapa en mall krävs **Projektägare**, **Projektadministratör**, **Projektmedlem**, **Underhållsadministratör** eller **Underhållsmedlem**, eller en anpassad roll som får skapa mallar för schemalagt underhåll.
 
 ## Skapa en mall
 

@@ -98,7 +98,7 @@ El [widget de SLO](/docs/dashboards/widgets#slo) muestra el SLI, el presupuesto 
 | Ajuste | Cómo se comporta |
 | --- | --- |
 | **Objetivo de nivel de servicio** | Fija el widget a un SLO. El selector muestra los SLO que no están archivados. |
-| **Follow SLO Variable** | Muestra el SLO elegido en una variable del panel: una variable **Telemetry Attribute** sobre la clave `sloName`. Se ignora mientras haya un SLO fijado. |
+| **Follow SLO Variable** | Muestra el SLO elegido en una variable del panel: una variable **Atributo de telemetría** sobre la clave `sloName`. Se ignora mientras haya un SLO fijado. |
 
 En un [panel público](/docs/dashboards/sharing), un widget que sigue una variable permite a los visitantes elegir por su nombre cualquier SLO no archivado del proyecto. Un widget fijado solo muestra su propio SLO, y sigue mostrando las últimas cifras de un SLO archivado después.
 

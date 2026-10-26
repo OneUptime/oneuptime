@@ -371,7 +371,7 @@ OneUptime 在与 Web 应用相同的主机上、通过 TLS 在端口 443 提供 
 
 在自托管安装中，gRPC 只能通过 HTTPS 到达 OneUptime：明文 HTTP（h2c）连接会被拒绝。如果你的实例通过普通 HTTP 提供服务，请使用 OTLP/HTTP。
 
-密钥的两项设置只对 OTLP/HTTP 生效：**Requests Per Minute Limit** 和 **Pinned Service Name**。通过 gRPC 发送的数据保留发送时的 `service.name`，也不计入限额。
+密钥的两项设置只对 OTLP/HTTP 生效：**Requests Per Minute Limit** 和 **固定的服务名称**。通过 gRPC 发送的数据保留发送时的 `service.name`，也不计入限额。
 
 ### 响应
 
@@ -400,9 +400,9 @@ OneUptime 重启或升级期间，会以 `503` 和 `Retry-After: 5` 响应导出
 
 | 设置 | 作用 |
 | --- | --- |
-| **密钥类型** | **服务器**（默认）用于应用、Collector 和代理。**Browser** 用于随网页分发的密钥：只能写入，且只接受来自其 **Allowed Origins** 的请求。密钥创建后无法更改。 |
-| **Allowed Origins** | 浏览器密钥可使用的网页来源，例如 `https://app.example.com`。对服务器密钥无效。 |
-| **Pinned Service Name** | 设置后，会替换通过 OTLP/HTTP 用此密钥发送的所有数据的 `service.name`。 |
+| **密钥类型** | **服务器**（默认）用于应用、Collector 和代理。**浏览器** 用于随网页分发的密钥：只能写入，且只接受来自其 **允许的来源** 的请求。密钥创建后无法更改。 |
+| **允许的来源** | 浏览器密钥可使用的网页来源，例如 `https://app.example.com`。对服务器密钥无效。 |
+| **固定的服务名称** | 设置后，会替换通过 OTLP/HTTP 用此密钥发送的所有数据的 `service.name`。 |
 | **已启用** | 关闭后会立即停止接受用此密钥发送的数据，而无需删除密钥。 |
 | **过期时间** | 超过此日期后密钥会被拒绝。留空表示永不过期。 |
 | **Requests Per Minute Limit** | 使用此密钥的所有客户端合计，每分钟可被接受的 OTLP/HTTP 请求数上限。留空时，服务器密钥不限，浏览器密钥为 6,000。 |
@@ -420,7 +420,7 @@ OneUptime 重启或升级期间，会以 `503` 和 `Retry-After: 5` 响应导出
 
 ## 来自日志的异常
 
-OneUptime 会在你的 **logs** 中查找异常，并把它们汇入追踪错误所进入的同一个 **异常** 视图。每条日志本来就属于某个服务或主机，因此异常会归到它名下。日志异常和追踪异常共用指纹分组，所以同一个错误同时由追踪和日志上报时，会合并为一个问题。
+OneUptime 会在你的 **日志** 中查找异常，并把它们汇入追踪错误所进入的同一个 **异常** 视图。每条日志本来就属于某个服务或主机，因此异常会归到它名下。日志异常和追踪异常共用指纹分组，所以同一个错误同时由追踪和日志上报时，会合并为一个问题。
 
 日志变成异常有两种方式：
 
@@ -460,7 +460,7 @@ SDK 很可能在通过 gRPC 向 HTTP 端点或 `localhost` 导出。设置 `OTEL
 :::
 
 :::details 数据进入了错误的服务，或进入了 Unknown Service
-服务来自资源属性 `service.name`。请在每个应用中设置 `OTEL_SERVICE_NAME`。如果密钥设置了 **Pinned Service Name**，用该密钥进行的每次 OTLP/HTTP 导出都会改为归入这个名称。
+服务来自资源属性 `service.name`。请在每个应用中设置 `OTEL_SERVICE_NAME`。如果密钥设置了 **固定的服务名称**，用该密钥进行的每次 OTLP/HTTP 导出都会改为归入这个名称。
 :::
 
 ## 后续步骤

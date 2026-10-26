@@ -40,7 +40,7 @@ El incidente guarda el número del informe en sus campos personalizados, como `h
 
 ## Antes de empezar
 
-- En OneUptime, un rol que pueda crear y editar flujos de trabajo, como **Project Owner**, **Project Admin** o **Workflow Admin**.
+- En OneUptime, un rol que pueda crear y editar flujos de trabajo, como **Propietario del proyecto**, **Administrador del proyecto** o **Administrador de flujos de trabajo**.
 - En Huntress, el rol **Account Admin**: solo los administradores de cuenta pueden añadir webhooks.
 - Una política de guardia a la que avisar.
 - En OneUptime Cloud, un plan con flujos de trabajo: Growth o superior. Cada evento que envía Huntress es una ejecución de flujo de trabajo.

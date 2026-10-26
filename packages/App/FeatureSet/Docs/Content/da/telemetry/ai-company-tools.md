@@ -46,7 +46,7 @@ Under **Loginoplysninger** udfylder du det, værktøjet beder om. Hemmeligheder 
 
 ### Vælg, hvem der må læse
 
-Under **Privacy** indstiller du **Hvem der kan læse samtaler** og **Behold det skrevne**, som [Privatliv](#privatliv) forklarer.
+Under **Privatliv** indstiller du **Hvem der kan læse samtaler** og **Behold det skrevne**, som [Privatliv](#privatliv) forklarer.
 
 ### Test det
 
@@ -90,7 +90,7 @@ Giv appen applikationstilladelserne `AiEnterpriseInteraction.Read.All` og `User.
 
 ### Forbind Copilot
 
-Udfyld **Mappe-id (tenant)**, **Program-id (klient)** og **Client secret**. Vil du kun læse nogle personer, så sæt en gruppes objekt-id i **Kun personer i denne gruppe** under **Flere felter**, og giv også appen `GroupMember.Read.All`. For Azure Government ændrer du **Cloud** samme sted.
+Udfyld **Mappe-id (tenant)**, **Program-id (klient)** og **Klienthemmelighed**. Vil du kun læse nogle personer, så sæt en gruppes objekt-id i **Kun personer i denne gruppe** under **Flere felter**, og giv også appen `GroupMember.Read.All`. For Azure Government ændrer du **Cloud** samme sted.
 :::
 
 ## Privatliv

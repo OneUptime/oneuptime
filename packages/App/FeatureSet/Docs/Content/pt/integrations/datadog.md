@@ -157,7 +157,7 @@ Vá em **Fluxos de trabalho**, clique em **Criar fluxo de trabalho** e depois em
 
 ### Adicionar o gatilho Webhook
 
-Clique no bloco tracejado **Choose what starts this workflow** e escolha **Webhook**. Clique no gatilho, depois em **Copiar URL**, e use essa URL no webhook do Datadog.
+Clique no bloco tracejado **Escolha o que inicia este fluxo de trabalho** e escolha **Webhook**. Clique no gatilho, depois em **Copiar URL**, e use essa URL no webhook do Datadog.
 
 ### Verificar que o monitor disparou
 

@@ -2,7 +2,7 @@
 
 Un sito di rete è un luogo: una regione, un mercato, un affiliato, un centro di distribuzione, un negozio. I siti si annidano l'uno nell'altro, i dispositivi di rete vi si collegano, e OneUptime riepiloga la salute dei dispositivi lungo l'albero, così un solo stato su una regione risponde a «c'è qualcosa che non va là fuori?».
 
-Li trovi in **Rete → Siti**, e su una mappa in **Rete → Map**. Questa pagina precisa come si ricava lo stato di un sito da ciò che ha sotto, cosa significa il suo uptime e come la manutenzione programmata cambia entrambi.
+Li trovi in **Rete → Siti**, e su una mappa in **Rete → Mappa**. Questa pagina precisa come si ricava lo stato di un sito da ciò che ha sotto, cosa significa il suo uptime e come la manutenzione programmata cambia entrambi.
 
 :::cards
 - [Aggiungere un sito](#aggiungere-un-sito): Tre passaggi, o un file CSV per un intero parco.
@@ -51,7 +51,7 @@ Ogni dispositivo è collegato a un sito. Il sottoalbero di un sito è il sito st
 
 :::steps
 ### Iniziare un nuovo sito
-Vai su **Rete → Siti** e fai clic su **Aggiungi: Site**.
+Vai su **Rete → Siti** e fai clic su **Aggiungi: Sito**.
 
 ### Dire cos'è il sito
 Nel passaggio **Site Details**, scegli il **Site Type** (che tipo di luogo è: una regione, un negozio, un data center) e digita un **Nome**. La descrizione, l'indirizzo e la latitudine e la longitudine che collocano il sito sulla mappa sono chiusi sotto **Altri campi**: compilali ora o più tardi.
@@ -60,7 +60,7 @@ Nel passaggio **Site Details**, scegli il **Site Type** (che tipo di luogo è: u
 Nel passaggio **Hierarchy**, scegli il **Parent Site** se il sito si trova sotto un altro. Lascialo vuoto per tenere il sito al livello più alto.
 
 ### Impostarne i valori predefiniti
-Nel passaggio **Monitoring Defaults**, scegli la [sonda e il profilo di credenziali predefiniti](#valori-predefiniti-di-monitoraggio) per i dispositivi aggiunti al sito, e fai clic su **Aggiungi: Site**.
+Nel passaggio **Monitoring Defaults**, scegli la [sonda e il profilo di credenziali predefiniti](#valori-predefiniti-di-monitoraggio) per i dispositivi aggiunti al sito, e fai clic su **Aggiungi: Sito**.
 :::
 
 Nella pagina **Child Sites** di un sito, **Aggiungi: Sito figlio** chiede solo il tipo e il nome, in una sola pagina con la posizione chiusa, e colloca il nuovo sito sotto quello.
@@ -82,7 +82,7 @@ Store 0660,Unit,Leeds,"1 High Street, Leeds",53.7997,-1.5492
 
 ## La mappa
 
-**Rete → Map** mostra i tuoi siti su una mappa, inquadrata ovunque si trovino; fai clic su un sito per entrarci. Un sito con dei siti sotto li mostra, sulla mappa e come grafo dei collegamenti tra di essi. Un sito senza siti sotto ma con dispositivi propri, o un sito il cui tipo è di livello unità, apre la topologia in tempo reale di quei dispositivi.
+**Rete → Mappa** mostra i tuoi siti su una mappa, inquadrata ovunque si trovino; fai clic su un sito per entrarci. Un sito con dei siti sotto li mostra, sulla mappa e come grafo dei collegamenti tra di essi. Un sito senza siti sotto ma con dispositivi propri, o un sito il cui tipo è di livello unità, apre la topologia in tempo reale di quei dispositivi.
 
 Un progetto ancora senza siti ha comunque una mappa: la Map mostra invece la topologia dei suoi dispositivi, e raggruppare i dispositivi in siti li colloca sulla mappa in base alla posizione.
 

@@ -61,7 +61,7 @@ export const NOTIFICATIONS_GROUP_TITLE_OVERRIDES: Readonly<
  */
 export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
   {
-    [NOTIFICATION_METHODS]: ["Billing Admin", "Manage Billing"],
+    [NOTIFICATION_METHODS]: ["Manage Billing"],
     [PERSONAL_ON_CALL_RULES]: ["Manage Billing"],
   };
 

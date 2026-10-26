@@ -19,6 +19,7 @@ import {
   getSloPeriodSettingsFormFields,
   orderDowntimeMonitorStatuses,
   SLO_MULTI_MONITOR_MODE_DESCRIPTIONS,
+  SLO_MULTI_MONITOR_MODE_NAMES,
 } from "../SloSettingsFormFields";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
@@ -61,14 +62,6 @@ const SLO_SETTINGS_DIALOG_TITLES: {
   objective: translationKey("Edit Objective"),
   period: translationKey("Edit Period"),
   downtime: translationKey("Edit Downtime Calculation"),
-};
-
-// Each mode's name (the enum value is its English name).
-const MULTI_MONITOR_MODE_NAMES: Record<SloMultiMonitorMode, string> = {
-  [SloMultiMonitorMode.AnyDown]: translationKey("Any Monitor Down"),
-  [SloMultiMonitorMode.MonitorSecondsAverage]: translationKey(
-    "Monitor Seconds Average",
-  ),
 };
 
 /*
@@ -387,7 +380,7 @@ const SloSettings: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   item.multiMonitorMode || SloMultiMonitorMode.AnyDown;
 
                 return getValueElement(
-                  translator.translateTerm(MULTI_MONITOR_MODE_NAMES[mode]),
+                  translator.translateTerm(SLO_MULTI_MONITOR_MODE_NAMES[mode]),
                   translator.translateText(
                     SLO_MULTI_MONITOR_MODE_DESCRIPTIONS[mode],
                   ),

@@ -45,7 +45,7 @@ Abra um critério: ele tem um nome e três seções, cada uma das quais se recol
 
 ### Filtros
 
-Um filtro lê um dado da verificação e o compara: um **Tipo de filtro** (o que ler, como **Código de status da resposta**), uma **Condição do filtro** (como comparar, como **Maior que**) e um **Valor**. Monitores que comparam métricas, como os de Kubernetes e de métricas, pedem em vez disso uma **Condição** e um **Threshold**. Cada tipo de monitor oferece seus próprios tipos de filtro, listados em sua página, por exemplo [Monitor de site](/docs/monitor/website-monitor#critérios-de-monitoramento).
+Um filtro lê um dado da verificação e o compara: um **Tipo de filtro** (o que ler, como **Código de status da resposta**), uma **Condição do filtro** (como comparar, como **Maior que**) e um **Valor**. Monitores que comparam métricas, como os de Kubernetes e de métricas, pedem em vez disso uma **Condição** e um **Limite**. Cada tipo de monitor oferece seus próprios tipos de filtro, listados em sua página, por exemplo [Monitor de site](/docs/monitor/website-monitor#critérios-de-monitoramento).
 
 Com dois filtros ou mais, a **Condição de correspondência** aparece abaixo deles: **Todos** significa que todo filtro precisa corresponder, **Qualquer** que um basta. Um novo critério começa em **Todos**.
 

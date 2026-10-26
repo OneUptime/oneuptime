@@ -157,7 +157,7 @@ Cada modelo de alerta tiene disparadores y acciones de flujo de trabajo con su n
 
 ## Quién puede cambiarlos
 
-Las reglas, los campos personalizados y las mediciones requieren un Project Owner o un Project Admin, o un rol personalizado con el permiso propio de esa regla. **Alert Member** trabaja con alertas y episodios, sus notas, propietarios y cronologías de estados, y con las plantillas de notas, y **Alert Admin** además gestiona los estados y las gravedades de alerta. Consulta [Usuarios, equipos y permisos](/docs/permissions/index).
+Las reglas, los campos personalizados y las mediciones requieren un Project Owner o un Project Admin, o un rol personalizado con el permiso propio de esa regla. **Miembro de alertas** trabaja con alertas y episodios, sus notas, propietarios y cronologías de estados, y con las plantillas de notas, y **Administrador de alertas** además gestiona los estados y las gravedades de alerta. Consulta [Usuarios, equipos y permisos](/docs/permissions/index).
 
 ## Próximos pasos
 

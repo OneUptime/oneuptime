@@ -40,7 +40,7 @@ sequenceDiagram
 
 ## 開始之前
 
-- 在 OneUptime 中具有能建立和編輯工作流程的角色，例如 **Project Owner**、**Project Admin** 或 **Workflow Admin**。
+- 在 OneUptime 中具有能建立和編輯工作流程的角色，例如 **專案擁有者**、**專案管理員** 或 **工作流程管理員**。
 - 在 Huntress 中具有 **Account Admin** 角色：只有帳戶管理員可以新增 Webhook。
 - 一個要呼叫的待命策略。
 - 在 OneUptime Cloud 上，需要包含工作流程的方案：Growth 或更高。Huntress 傳送的每個事件是一次工作流程執行。

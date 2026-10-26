@@ -70,6 +70,7 @@ import AggregateBy from "Common/Types/BaseDatabase/AggregateBy";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import LineChartElement from "Common/UI/Components/Charts/Line/LineChart";
+import { withTranslatedSeriesNames } from "Common/UI/Components/Charts/Utils/SeriesNames";
 import ChartCurve from "Common/UI/Components/Charts/Types/ChartCurve";
 import XAxisType from "Common/UI/Components/Charts/Types/XAxis/XAxisType";
 import YAxisType from "Common/UI/Components/Charts/Types/YAxis/YAxisType";
@@ -236,6 +237,7 @@ export interface ClusterChartCardProps {
 export const ClusterChartCard: FunctionComponent<ClusterChartCardProps> = (
   props: ClusterChartCardProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const colors: { bg: string; ring: string; text: string } =
     tileColorClasses[props.iconColor];
 
@@ -244,7 +246,7 @@ export const ClusterChartCard: FunctionComponent<ClusterChartCardProps> = (
       <div className="flex min-w-0 items-center gap-2">
         <div className="flex min-w-0 items-center gap-1">
           <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-            {props.title}
+            {translator.translateText(props.title) || props.title}
           </span>
           <InfoTooltip label={props.title} text={props.description} />
         </div>
@@ -303,7 +305,7 @@ export const ClusterChartCard: FunctionComponent<ClusterChartCardProps> = (
     <div className="group/zoomhint rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
       {header}
       <LineChartElement
-        data={props.data}
+        data={withTranslatedSeriesNames(props.data, translator)}
         xAxis={xAxis}
         yAxis={yAxis}
         curve={props.curve ?? ChartCurve.MONOTONE}
@@ -1877,9 +1879,15 @@ const KubernetesClusterOverview: FunctionComponent<
 
     const status: string = (cluster.otelCollectorStatus as string) || "";
     const lastSeenAt: Date | undefined = cluster.lastSeenAt;
+    /*
+     * One whole sentence either way: an English "never" in a translated
+     * "Last seen {{time}}" would read in two languages at once.
+     */
     const lastSeenText: string = lastSeenAt
-      ? OneUptimeDate.fromNow(lastSeenAt)
-      : "never";
+      ? translator.translateTemplate("Last seen {{time}}", {
+          time: OneUptimeDate.fromNow(lastSeenAt),
+        })
+      : translator.translateText("Never seen") || "Never seen";
 
     const isConnected: boolean =
       status.toLowerCase() === "connected" || status.toLowerCase() === "active";
@@ -2091,9 +2099,7 @@ const KubernetesClusterOverview: FunctionComponent<
                     </div>
                   )}
                   <div className="mt-1 text-xs text-gray-400">
-                    {translator.translateTemplate("Last seen {{time}}", {
-                      time: lastSeenText,
-                    })}
+                    {lastSeenText}
                   </div>
                 </div>
               </div>

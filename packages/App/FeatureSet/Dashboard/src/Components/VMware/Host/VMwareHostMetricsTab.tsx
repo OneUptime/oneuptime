@@ -49,8 +49,7 @@ const VMwareHostMetricsTab: FunctionComponent<ComponentProps> = (
       metricVariable: "host_cpu",
       title: tx("CPU Utilization"),
       description: translator.translateTemplate(
-        "vcenter.host.cpu.utilization for ESXi host {{hostName}} — already a percentage, no transform applied.",
-        { hostName: hostName },
+        "How much of this host's CPU was in use, as a percentage of its capacity.",
       ),
       legend: tx("CPU"),
       legendUnit: "%",
@@ -73,8 +72,7 @@ const VMwareHostMetricsTab: FunctionComponent<ComponentProps> = (
       metricVariable: "host_memory",
       title: tx("Memory Usage"),
       description: translator.translateTemplate(
-        "vcenter.host.memory.usage for ESXi host {{hostName}} (reported in MiB, shown in bytes).",
-        { hostName: hostName },
+        "How much of this host's memory was in use.",
       ),
       legend: tx("Memory"),
       legendUnit: "",
@@ -107,8 +105,7 @@ const VMwareHostMetricsTab: FunctionComponent<ComponentProps> = (
       metricVariable: "host_network",
       title: tx("Network Throughput"),
       description: translator.translateTemplate(
-        "vcenter.host.network.throughput per direction and NIC for ESXi host {{hostName}}.",
-        { hostName: hostName },
+        "Data received and sent per second, one line per network adapter and direction.",
       ),
       legend: tx("Network"),
       legendUnit: "",
@@ -137,8 +134,7 @@ const VMwareHostMetricsTab: FunctionComponent<ComponentProps> = (
       metricVariable: "host_disk_throughput",
       title: tx("Disk Throughput"),
       description: translator.translateTemplate(
-        "vcenter.host.disk.throughput per direction and disk for ESXi host {{hostName}}.",
-        { hostName: hostName },
+        "Data read and written per second, one line per storage device and direction.",
       ),
       legend: tx("Disk"),
       legendUnit: "",
@@ -167,8 +163,7 @@ const VMwareHostMetricsTab: FunctionComponent<ComponentProps> = (
       metricVariable: "host_disk_latency",
       title: tx("Disk Latency (max)"),
       description: translator.translateTemplate(
-        "vcenter.host.disk.latency.max per disk for ESXi host {{hostName}}. Sustained values above ~20-50 ms point at storage contention.",
-        { hostName: hostName },
+        "The slowest request on each storage device. Latency that stays above 20 to 50 ms points at storage contention.",
       ),
       legend: tx("Latency"),
       legendUnit: "ms",
@@ -191,8 +186,7 @@ const VMwareHostMetricsTab: FunctionComponent<ComponentProps> = (
       metricVariable: "host_packet_errors",
       title: tx("Network Packet Errors"),
       description: translator.translateTemplate(
-        "vcenter.host.network.packet.error.rate for ESXi host {{hostName}} — anything above zero deserves a look at the physical NIC / switch port.",
-        { hostName: hostName },
+        "Packets with errors per second. Anything above zero is worth a look at the physical network adapter and its switch port.",
       ),
       legend: tx("Errors"),
       legendUnit: "/s",
@@ -215,8 +209,7 @@ const VMwareHostMetricsTab: FunctionComponent<ComponentProps> = (
       metricVariable: "host_packet_drops",
       title: tx("Network Packet Drops"),
       description: translator.translateTemplate(
-        "vcenter.host.network.packet.drop.rate for ESXi host {{hostName}}.",
-        { hostName: hostName },
+        "Packets dropped per second by this host's network adapters.",
       ),
       legend: tx("Drops"),
       legendUnit: "/s",

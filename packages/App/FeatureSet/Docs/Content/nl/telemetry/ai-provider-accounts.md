@@ -108,7 +108,7 @@ Geef de app op het abonnement de rol Monitoring Reader.
 
 ### Koppel Azure
 
-Vul **Directory-ID (tenant)**, **Applicatie-ID (client)**, **Abonnements-ID** en **Client secret** in. Wijzig voor Azure Government **Cloud** onder **Meer velden**.
+Vul **Directory-ID (tenant)**, **Applicatie-ID (client)**, **Abonnements-ID** en **Clientgeheim** in. Wijzig voor Azure Government **Cloud** onder **Meer velden**.
 :::
 
 ## Amazon Bedrock
@@ -141,7 +141,7 @@ Vul **Project-ID** in en plak het hele sleutelbestand als **Serviceaccountsleute
 
 ## Het gebruik bekijken
 
-Open **Gebruik** en kies **Provideraccounts**. Je ziet er de kosten, tokens en verzoeken die je accounts voor de periode rapporteerden, gerangschikt per **Model**, **Person**, **Provider**, **Project of resource**, **API-sleutel** of **Verbinding**. De periode begint om middernacht UTC van de eerste dag, omdat providers hele dagen rapporteren.
+Open **Gebruik** en kies **Provideraccounts**. Je ziet er de kosten, tokens en verzoeken die je accounts voor de periode rapporteerden, gerangschikt per **Model**, **Persoon**, **Provider**, **Project of resource**, **API-sleutel** of **Verbinding**. De periode begint om middernacht UTC van de eerste dag, omdat providers hele dagen rapporteren.
 
 **Provideraccounts** en **Je AI-aanroepen** worden nooit opgeteld. Een aanroep die je app doet met een sleutel van een gekoppeld account zit in beide, dus optellen zou hem dubbel tellen.
 

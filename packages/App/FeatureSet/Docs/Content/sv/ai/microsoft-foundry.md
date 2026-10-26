@@ -53,7 +53,7 @@ Du behöver en Azure-prenumeration, en roll som låter dig skapa och läsa resur
 
 OneUptime självt behöver ingen Azure-roll. En nyckel ger ensam åtkomst till alla distributioner i resursen utan rollkontroll, så behandla den som ett lösenord.
 
-I OneUptime krävs **Project Owner**, **Project Admin**, **Project Member**, **Settings Admin**, **Settings Member** eller **Create LLM** för att lägga till en leverantör i ett projekt. En instans i egen drift kan i stället registrera en leverantör för alla projekt från miljövariabler, vilket kräver åtkomst till servern.
+I OneUptime krävs **Projektägare**, **Projektadministratör**, **Projektmedlem**, **Inställningsadministratör**, **Inställningsmedlem** eller **Create LLM** för att lägga till en leverantör i ett projekt. En instans i egen drift kan i stället registrera en leverantör för alla projekt från miljövariabler, vilket kräver åtkomst till servern.
 
 ## Konfigurera Microsoft Foundry
 

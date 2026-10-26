@@ -29,6 +29,7 @@ import Dropdown, {
 } from "Common/UI/Components/Dropdown/Dropdown";
 import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { getDashboardVariableTypeName } from "./DashboardVariableTypeNames";
 
 export interface ComponentProps {
   variables: Array<DashboardVariable>;
@@ -336,11 +337,14 @@ const VariableRow: FunctionComponent<VariableRowProps> = (
                 : []),
             ].map((type: DashboardVariableType): DropdownOption => {
               return {
-                label: type,
+                label: getDashboardVariableTypeName(type),
                 value: type,
               };
             })}
-            value={{ label: variable.type, value: variable.type }}
+            value={{
+              label: getDashboardVariableTypeName(variable.type),
+              value: variable.type,
+            }}
             onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
               if (typeof value === "string" && value !== variable.type) {
                 props.onChange({

@@ -68,7 +68,7 @@ flowchart TB
 
 ## Кто может добавлять переопределения
 
-**Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** и **On-Call Member** могут добавлять и удалять переопределения; **Viewer** и **On-Call Viewer** могут их просматривать. В пользовательской роли разрешения называются **Create On-Call Duty Policy User Override**, **Delete On-Call Duty Policy User Override** и **Read On-Call Duty Policy User Override**. На странице **Хронология дежурств** только те, кто может читать переопределения, видят, чью смену замещают.
+**Владелец проекта**, **Администратор проекта**, **Участник проекта**, **Администратор дежурств** и **Участник дежурств** могут добавлять и удалять переопределения; **Зритель** и **Зритель дежурств** могут их просматривать. В пользовательской роли разрешения называются **Create On-Call Duty Policy User Override**, **Delete On-Call Duty Policy User Override** и **Read On-Call Duty Policy User Override**. На странице **Хронология дежурств** только те, кто может читать переопределения, видят, чью смену замещают.
 
 В OneUptime Cloud пользовательские переопределения требуют тарифа **Growth**.
 

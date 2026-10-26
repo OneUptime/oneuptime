@@ -59,7 +59,7 @@ Under **Aggregate by** vælger du, hvordan værdierne i hvert punkt i diagrammet
 
 ### Filtrér og gruppér den
 
-Åbn **Filters & grouping**. **Filter by attributes** beholder de datapunkter, hvis attributter passer, såsom én bestemt `http.route`, og **Group by** tegner én linje pr. værdi af de attributter, du vælger, såsom én linje pr. vært.
+Åbn **Filters & grouping**. **Filter by attributes** beholder de datapunkter, hvis attributter passer, såsom én bestemt `http.route`, og **Gruppér efter** tegner én linje pr. værdi af de attributter, du vælger, såsom én linje pr. vært.
 
 ### Tilpas diagrammet
 
@@ -104,7 +104,7 @@ Træk hen over et diagram for at zoome ind på et øjeblik, og dobbeltklik for a
 - **Handlinger → Opret monitor fra denne visning** åbner en ny metrik-monitor, hvor disse forespørgsler og formler allerede er udfyldt. Se [Metrik-monitor](/docs/monitor/metrics-monitor).
 - **Handlinger → Add to dashboard** tilføjer diagrammet til et dashboard, du vælger. Du skal have tilladelse til at redigere det dashboard.
 - **Kopiér link** kopierer et link til præcis denne visning: forespørgsler, formler og tidsinterval.
-- **Saved Views** gemmer visningen under et navn til alle i projektet. **Seer** har sine egne gemte visninger til sin søgning og sine filtre. Gemte visninger fungerer som i [Protokoludforsker](/docs/telemetry/logs-explorer#gem-en-visning).
+- **Gemte visninger** gemmer visningen under et navn til alle i projektet. **Seer** har sine egne gemte visninger til sin søgning og sine filtre. Gemte visninger fungerer som i [Protokoludforsker](/docs/telemetry/logs-explorer#gem-en-visning).
 
 ## Indsigter i metrikker
 

@@ -44,7 +44,7 @@ Andate in **Monitor** e fate clic su **Crea monitor**.
 
 ### Scegliere Manual
 
-In **Tipo di monitor**, fate clic su **Altri tipi di monitor** e scegliete **Manual** sotto **Altro**.
+In **Tipo di monitor**, fate clic su **Altri tipi di monitor** e scegliete **Manuale** sotto **Altro**.
 
 ### Dargli un nome e crearlo
 

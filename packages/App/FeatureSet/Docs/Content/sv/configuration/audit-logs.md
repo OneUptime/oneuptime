@@ -71,7 +71,7 @@ En ändring av de här inställningarna träder i kraft inom en minut.
 
 Filtrera efter **Resurstyp**, **Resursnamn**, **Åtgärd**, **Användares e-post** eller **Tid**. En ändring visar bara de fält som ändrades, före och efter, och en sparning som inte ändrar något lägger inte till någon post.
 
-Monitorer, incidenter, varningar, statussidor, SLO:er och många andra resurser har också en egen sida **Granskningsloggar** i ett hopfällt avsnitt av sin sidomeny, som **Avancerad**. Den visar bara den resursens poster, tillsammans med posterna för det som hör till den: ett SLO:s sida visar också dess regler och ägare.
+Monitorer, incidenter, larm, statussidor, SLO:er och många andra resurser har också en egen sida **Granskningsloggar** i ett hopfällt avsnitt av sin sidomeny, som **Avancerad**. Den visar bara den resursens poster, tillsammans med posterna för det som hör till den: ett SLO:s sida visar också dess regler och ägare.
 
 ## Vad som registreras
 
@@ -79,7 +79,7 @@ Monitorer, incidenter, varningar, statussidor, SLO:er och många andra resurser 
 | --- | --- |
 | Monitorer | `Monitor` |
 | Incidenter | `Incident` |
-| Varningar | `Alert` |
+| Larm | `Alert` |
 | Statussidor | `Status Page` |
 | Schemalagda underhållshändelser | `Scheduled Maintenance Event` |
 | Jourpolicyer | `On-Call Policy` |
@@ -89,7 +89,7 @@ Monitorer, incidenter, varningar, statussidor, SLO:er och många andra resurser 
 | Anpassade roller, och de team och API-nycklar som får en | `Custom Role`, `Team Custom Role`, `API Key Custom Role` |
 | Etiketter | `Label` |
 | Incidentstatusar och allvarlighetsgrader | `Incident State`, `Incident Severity` |
-| Varningsstatusar och allvarlighetsgrader | `Alert State`, `Alert Severity` |
+| Larmstatusar och allvarlighetsgrader | `Alert State`, `Alert Severity` |
 | Monitorstatusar | `Monitor Status` |
 | Statusar för schemalagt underhåll | `Scheduled Maintenance State` |
 | Incidentroller | `Incident Role` |

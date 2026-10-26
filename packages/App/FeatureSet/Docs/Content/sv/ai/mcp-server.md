@@ -115,7 +115,7 @@ Vad en ansluten klient kan göra:
 
 Varje klient som anslutits genom inloggning listas på **Projektinställningar → AI → MCP-server**, under **Anslutna MCP-klienter**, med vem som anslöt den, vad den får göra och när den senast användes. Du ser de klienter du har anslutit; projektets ägare och administratörer ser allas.
 
-Klicka på **Disconnect** för att logga ut en klient. Den slutar fungera direkt.
+Klicka på **Koppla från** för att logga ut en klient. Den slutar fungera direkt.
 
 En klient förblir ansluten så länge den används. En klient som inte har använts på 30 dagar måste logga in igen.
 
@@ -140,7 +140,7 @@ Gå till **Projektinställningar → Avancerad → API-nycklar** och klicka på 
 
 ### Välj vad den får göra
 
-Under **Åtkomst** väljer du **Viewer** för en agent som bara läser, eller **Project Admin** för en som också skapar, uppdaterar och tar bort (se [Behörigheter för API-nycklar](#behörigheter-för-api-nycklar)).
+Under **Åtkomst** väljer du **Tittare** för en agent som bara läser, eller **Projektadministratör** för en som också skapar, uppdaterar och tar bort (se [Behörigheter för API-nycklar](#behörigheter-för-api-nycklar)).
 
 ### Kopiera nyckeln
 
@@ -422,8 +422,8 @@ De här fungerar utan inloggningsuppgifter, med enbart verktygen för publika st
 
 | Vad agenten gör | Välj under **Åtkomst** |
 | --- | --- |
-| Läser bara | **Viewer**, eller lägg till läsbehörigheter på nyckelns sida |
-| Skapar, uppdaterar och tar också bort | **Project Admin**, eller lägg till rollen Project Admin på nyckelns sida |
+| Läser bara | **Tittare**, eller lägg till läsbehörigheter på nyckelns sida |
+| Skapar, uppdaterar och tar också bort | **Projektadministratör**, eller lägg till rollen Project Admin på nyckelns sida |
 
 Ge varje nyckel det minsta den behöver, rotera nycklar regelbundet, ha en separat nyckel för varje miljö och håll koll på vad varje nyckel gör i OneUptime.
 

@@ -66,7 +66,7 @@ Hver metode, du bekræfter senere, får de samme regler: en regel for hver alvor
 
 ## Opsætningstjeklisten
 
-**Brugerindstillinger → Opsætningstjekliste** åbner **Your setup checklist**: alt, hvad OneUptime har brug for for at nå dig, i den rækkefølge, der tæller. Et trin linker til den side, hvor det klares, og **Recheck** læser det hele igen.
+**Brugerindstillinger → Opsætningstjekliste** åbner **Your setup checklist**: alt, hvad OneUptime har brug for for at nå dig, i den rækkefølge, der tæller. Et trin linker til den side, hvor det klares, og **Kontrollér igen** læser det hele igen.
 
 | Sektion | Hvad den tjekker |
 | --- | --- |

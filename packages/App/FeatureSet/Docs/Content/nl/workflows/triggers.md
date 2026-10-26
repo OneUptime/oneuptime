@@ -11,20 +11,20 @@ Een trigger is het eerste blok van een workflow: hij bepaalt wanneer de workflow
 - [OneUptime-gebeurtenistriggers](#oneuptime-gebeurtenistriggers): Reageer als een record wordt aangemaakt, bijgewerkt of verwijderd.
 :::
 
-Om de trigger toe te voegen klik je op het gestippelde blok **Choose what starts this workflow** op het canvas van een nieuwe workflow. Om hem te wijzigen verwijder je het triggerblok, en het gestippelde blok komt terug. Zie [Een workflow maken](/docs/workflows/authoring#blokken-toevoegen).
+Om de trigger toe te voegen klik je op het gestippelde blok **Kies wat deze workflow start** op het canvas van een nieuwe workflow. Om hem te wijzigen verwijder je het triggerblok, en het gestippelde blok komt terug. Zie [Een workflow maken](/docs/workflows/authoring#blokken-toevoegen).
 
 ## Welke trigger moet ik gebruiken?
 
 | Als je wilt…                                   | Kies                        |
 | ---------------------------------------------- | --------------------------- |
-| Op een knop klikken om de workflow uit te voeren | **Manual**                |
+| Op een knop klikken om de workflow uit te voeren | **Handmatig**                |
 | Volgens een terugkerend schema draaien         | **Schema**                  |
 | Een ander systeem gegevens laten aanleveren    | **Webhook**                 |
 | Starten vanuit een e-mail                      | **Incoming Email**          |
 | Handelen op incidentrapporten van Huntress     | **Huntress Incident Report** |
 | Reageren op iets binnen OneUptime              | **OneUptime-gebeurtenis**   |
 
-Een workflow kan maar één trigger hebben. Heb je twee manieren nodig om dezelfde automatisering te starten, bouw de gedeelde logica dan in een workflow met een **Manual**-trigger en start die vanuit twee lichte «omhulsel»-workflows met een **Execute Workflow**-blok.
+Een workflow kan maar één trigger hebben. Heb je twee manieren nodig om dezelfde automatisering te starten, bouw de gedeelde logica dan in een workflow met een **Handmatig**-trigger en start die vanuit twee lichte «omhulsel»-workflows met een **Execute Workflow**-blok.
 
 ## Manual
 
@@ -39,7 +39,7 @@ Handig voor: automatiseringen met één klik waarvoor je een knop wilt, zoals «
 
 ## Schedule
 
-Laat de workflow draaien volgens een terugkerend schema. Stel in **Schedule at** in hoe vaak: kies een van de **Common schedules**, schrijf een **Custom cron**-expressie of kies een **Variabele** die er een bevat. Onder het veld wordt het schema in woorden uitgelegd, met de **Next runs**.
+Laat de workflow draaien volgens een terugkerend schema. Stel in **Schedule at** in hoe vaak: kies een van de **Common schedules**, schrijf een **Custom cron**-expressie of kies een **Variabele** die er een bevat. Onder het veld wordt het schema in woorden uitgelegd, met de **Volgende uitvoeringen**.
 
 Handig voor: nachtelijke opschoning, synchronisatie per uur, wekelijkse rapporten.
 
@@ -206,7 +206,7 @@ Om een gebeurtenistrigger te testen zonder op de gebeurtenis te wachten, klik je
 | **Statuspagina Abonnee**                  | Iemand verwelkomen die zich abonneert op een statuspagina.                                |
 | **Bereikbaarheidsbeleid**                 | Beleidswijzigingen synchroniseren met een ander roostersysteem.                           |
 
-In het paneel **Trigger toevoegen** staan ze onder **OneUptime resources**: klik op de resource en daarna op de trigger. **Browse all resources** bevat ze allemaal, en het zoekveld vindt een trigger aan de hand van een paar woorden, zoals `incident created`.
+In het paneel **Trigger toevoegen** staan ze onder **OneUptime-resources**: klik op de resource en daarna op de trigger. **Door alle resources bladeren** bevat ze allemaal, en het zoekveld vindt een trigger aan de hand van een paar woorden, zoals `incident created`.
 
 ## Volgende stappen
 

@@ -64,19 +64,19 @@ Ouvrez **Produits → Événements de sécurité → Connexions** (`/dashboard/{
 
 ### La tester avant d'enregistrer
 
-Cliquez sur **Test these settings** sous **Tester avant d'enregistrer**. Le test signe une requête avec les valeurs du formulaire, sans rien stocker : une mauvaise clé ou une autorisation manquante apparaît donc avant que la connexion n'existe. Cliquez ensuite sur **Suivant**, donnez un **Nom** à la connexion et créez-la.
+Cliquez sur **Tester ces paramètres** sous **Tester avant d'enregistrer**. Le test signe une requête avec les valeurs du formulaire, sans rien stocker : une mauvaise clé ou une autorisation manquante apparaît donc avant que la connexion n'existe. Cliquez ensuite sur **Suivant**, donnez un **Nom** à la connexion et créez-la.
 :::
 
 | Réglage | Ce qu'il faut saisir |
 | --- | --- |
 | **Région** | Le code de la région, par exemple `us-east-1`, `eu-central-1` ou `us-gov-west-1` : pour les constats d'autres comptes, la région d'origine du compte administrateur. |
 | **ID de clé d'accès** | L'ID de la clé : 16 à 128 lettres ou chiffres, en général 20, commençant par `AKIA`, ou par `ASIA` pour des identifiants temporaires. |
-| **Clé d'accès secrète** | Le secret de la clé. Il est chiffré, jamais renvoyé par l'API et jamais réaffiché. Remplacez-le avec **Update credentials** sur la connexion. |
+| **Clé d'accès secrète** | Le secret de la clé. Il est chiffré, jamais renvoyé par l'API et jamais réaffiché. Remplacez-le avec **Mettre à jour les identifiants** sur la connexion. |
 | **Session token** | Seulement pour des identifiants temporaires, qui en ont besoin : une clé `ASIA` est refusée sans lui, et une clé `AKIA` est refusée avec lui. |
 
-Les identifiants temporaires de `aws sts assume-role` ou `aws sts get-session-token` expirent, au bout de 12 heures au plus pour un rôle assumé, et l'interrogation s'arrête jusqu'à ce que vous en colliez de nouveaux avec **Update credentials**. Une clé de longue durée avec cette politique étroite, renouvelée selon votre propre calendrier, continue d'interroger sans intervention. Pour passer d'identifiants temporaires à une clé de longue durée, saisissez la nouvelle clé dans **Update credentials** et activez **Remove the stored Session token**.
+Les identifiants temporaires de `aws sts assume-role` ou `aws sts get-session-token` expirent, au bout de 12 heures au plus pour un rôle assumé, et l'interrogation s'arrête jusqu'à ce que vous en colliez de nouveaux avec **Mettre à jour les identifiants**. Une clé de longue durée avec cette politique étroite, renouvelée selon votre propre calendrier, continue d'interroger sans intervention. Pour passer d'identifiants temporaires à une clé de longue durée, saisissez la nouvelle clé dans **Mettre à jour les identifiants** et activez **Remove the stored Session token**.
 
-L'étape **Polling** contient aussi une **Description** facultative, le **Poll Interval (Minutes)**, un nombre entier de `1` à `1440` qui vaut `5` au départ, et **Activé**, qui est activé au départ.
+L'étape **Interrogation** contient aussi une **Description** facultative, le **Intervalle d'interrogation (minutes)**, un nombre entier de `1` à `1440` qui vaut `5` au départ, et **Activé**, qui est activé au départ.
 
 ## Ce qui est importé
 
@@ -119,7 +119,7 @@ POST https://securityhub.{region}.amazonaws.com/findings
 
 ### Quand une fenêtre contient plus qu'une interrogation ne peut lire
 
-Une interrogation envoie au plus 20 requêtes de 100 constats : 2 000 constats. Quand une fenêtre en contient davantage, l'exécution est **Partial**, avec un avertissement comme celui-ci :
+Une interrogation envoie au plus 20 requêtes de 100 constats : 2 000 constats. Quand une fenêtre en contient davantage, l'exécution est **Partiel**, avec un avertissement comme celui-ci :
 
 ```text
 Stopped after 20 findings requests (the per-run request limit) before the window was fully read. The last finding read was created at 2026-09-14T08:12:44.000Z.
@@ -131,22 +131,22 @@ Quand une exécution ne parvient pas du tout à dépasser le curseur enregistré
 
 1. **Réduire.** L'interrogation suivante lit une fenêtre deux fois plus courte, depuis le même point de départ, et continue de la diviser par deux jusqu'à ce qu'une fenêtre soit lue entièrement, jusqu'à une minute. L'avertissement de l'exécution le dit : `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **Revenir à la taille normale.** Une fois une fenêtre lue entièrement, la suivante est de nouveau deux fois plus longue, jusqu'à 24 heures.
-3. **Passer au-delà d'une seule minute.** Si même une minute contient plus qu'une interrogation ne peut lire, l'interrogation passe au-delà, pour que les constats plus récents continuent d'arriver, et le chevauchement des interrogations suivantes ne remonte plus jusqu'à elle. L'exécution reste **Partial**, et **Dernière erreur** indique `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importez cette minute avec **Importer cette plage de temps** pour récupérer ce qu'une exécution peut lire.
+3. **Passer au-delà d'une seule minute.** Si même une minute contient plus qu'une interrogation ne peut lire, l'interrogation passe au-delà, pour que les constats plus récents continuent d'arriver, et le chevauchement des interrogations suivantes ne remonte plus jusqu'à elle. L'exécution reste **Partiel**, et **Dernière erreur** indique `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importez cette minute avec **Importer cette plage de temps** pour récupérer ce qu'une exécution peut lire.
 
-Une exécution qui échoue complètement, avec une erreur d'AWS, garde le curseur et la longueur de fenêtre, et l'interrogation suivante relit la même fenêtre. La seule exception est une requête qui a expiré : le curseur reste, mais la fenêtre suivante est deux fois plus courte, car une fenêtre trop lourde pour recevoir une réponse à temps expirerait à chaque essai. Changer le **Poll Interval (Minutes)** n'y change rien : il décide à quelle fréquence une interrogation commence, pas où commence sa fenêtre.
+Une exécution qui échoue complètement, avec une erreur d'AWS, garde le curseur et la longueur de fenêtre, et l'interrogation suivante relit la même fenêtre. La seule exception est une requête qui a expiré : le curseur reste, mais la fenêtre suivante est deux fois plus courte, car une fenêtre trop lourde pour recevoir une réponse à temps expirerait à chaque essai. Changer le **Intervalle d'interrogation (minutes)** n'y change rien : il décide à quelle fréquence une interrogation commence, pas où commence sa fenêtre.
 
 ### Exécuter, prévisualiser et importer à la demande
 
 Cliquez sur **Diagnostics** sur une connexion pour voir ses exécutions récentes et travailler avec elle à la main. Quiconque peut modifier la connexion peut les lancer ; quiconque peut la voir peut lire l'historique.
 
-- **Run now** lance tout de suite une interrogation, avec le curseur habituel, même quand la connexion n'est pas **Activé**.
+- **Exécuter maintenant** lance tout de suite une interrogation, avec le curseur habituel, même quand la connexion n'est pas **Activé**.
 - **Preview findings** lit une plage de temps de 7 jours au plus et n'importe rien.
 - **Importer cette plage de temps** importe une plage de 7 jours au plus, après votre confirmation, sans déplacer le curseur. Les constats déjà importés sont sautés.
 - **Copier les diagnostics** sur une exécution copie son rapport pour le support. Il ne contient jamais d'identifiants.
 
 ## Tester la connexion
 
-**Tester la connexion** sur la ligne d'une connexion, et **Test these settings** dans le formulaire, s'exécutent dans le processus de l'API, pas dans un worker d'arrière-plan, pour qu'un test réponde même quand les workers sont le problème. Il effectue ces vérifications, dans l'ordre :
+**Tester la connexion** sur la ligne d'une connexion, et **Tester ces paramètres** dans le formulaire, s'exécutent dans le processus de l'API, pas dans un worker d'arrière-plan, pour qu'un test réponde même quand les workers sont le problème. Il effectue ces vérifications, dans l'ordre :
 
 | Vérification | Ce qu'elle vérifie |
 | --- | --- |
@@ -168,7 +168,7 @@ AWS a refusé la requête. Le message cite le code d'erreur d'AWS, ou les propre
 
 - `AccessDeniedException`, ou `is not authorized to perform` : la clé est bonne, mais son identité n'a pas le droit d'appeler `securityhub:GetFindings`. Attachez la politique de [Configurer la connexion](#configurer-la-connexion). Une limite d'autorisations ou une politique de contrôle des services peut aussi la refuser.
 - `InvalidAccessException`, ou `is not subscribed to AWS Security Hub` : Security Hub n'est pas activé pour ce compte dans cette **Région**, ou le compte n'y est pas son administrateur.
-- `InvalidSignatureException` ou `SignatureDoesNotMatch`, ou `The request signature we calculated does not match` : la **Clé d'accès secrète** n'appartient pas à l'**ID de clé d'accès**. Créez une nouvelle clé d'accès, et enregistrez-la avec **Update credentials**.
+- `InvalidSignatureException` ou `SignatureDoesNotMatch`, ou `The request signature we calculated does not match` : la **Clé d'accès secrète** n'appartient pas à l'**ID de clé d'accès**. Créez une nouvelle clé d'accès, et enregistrez-la avec **Mettre à jour les identifiants**.
 - `UnrecognizedClientException` ou `InvalidClientTokenId`, ou `The security token included in the request is invalid` : AWS ne connaît pas l'**ID de clé d'accès**. Il est mal saisi, supprimé, désactivé ou d'une autre partition, ou c'est une clé temporaire sans son **Session token**.
 - `ExpiredTokenException`, ou `The security token included in the request is expired` : les identifiants temporaires ont expiré. Émettez-en de nouveaux, ou passez à une clé de longue durée.
 - `RequestTimeTooSkewed` ou `RequestExpired`, ou `Signature expired` : l'horloge des hôtes OneUptime a plus de 5 minutes d'écart. Corrigez NTP sur les hôtes de l'application et des workers.
@@ -192,7 +192,7 @@ Aucune interrogation ne s'est terminée pour cette connexion. Lancez **Tester la
 :::
 
 :::details Une exécution est Partial
-- `Stopped after 20 findings requests` : la fenêtre contenait plus que les 2 000 constats qu'une exécution lit. Rien n'est perdu : l'interrogation suivante commence après le dernier constat lu. Une connexion qui reste **Partial** d'interrogation en interrogation rattrape un retard, et ses valeurs **Dernière interrogation** et **Dernier événement importé** continuent d'avancer. Si elle ne rattrape jamais, le compte crée plus de 2 000 constats par intervalle d'interrogation : raccourcissez le **Poll Interval (Minutes)**.
+- `Stopped after 20 findings requests` : la fenêtre contenait plus que les 2 000 constats qu'une exécution lit. Rien n'est perdu : l'interrogation suivante commence après le dernier constat lu. Une connexion qui reste **Partiel** d'interrogation en interrogation rattrape un retard, et ses valeurs **Dernière interrogation** et **Dernier événement importé** continuent d'avancer. Si elle ne rattrape jamais, le compte crée plus de 2 000 constats par intervalle d'interrogation : raccourcissez le **Intervalle d'interrogation (minutes)**.
 - `More records were created in the one minute from ... than one poll can read` : l'interrogation est passée au-delà de cette minute. Importez-la avec **Importer cette plage de temps** dans **Diagnostics**. Une importation lit autant qu'une interrogation.
 :::
 

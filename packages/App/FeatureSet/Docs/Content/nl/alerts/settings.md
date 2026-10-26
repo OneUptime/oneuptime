@@ -25,7 +25,7 @@ Open **Waarschuwingen** via het menu **Producten** in de bovenste balk. De secti
 
 De sectie **Instellingen** bevat **Status waarschuwing** en **Ernst van waarschuwing**, beschreven op [Waarschuwingsstatussen en ernstniveaus](/docs/alerts/states-and-severities), en daarna **Notitie-sjablonen**, **Aangepaste velden**, **Metingen**, **Lidmaatschap van episodes** en **Nummering**, hieronder beschreven.
 
-Nog twee secties werken op waarschuwingen. **Waarschuwingen → AI → Instellingen** bepaalt wat OneUptime AI zelf doet: **Nieuwe waarschuwingen onderzoeken**, aan voor nieuwe projecten, en **Nieuwe waarschuwingen automatisch herstellen**, uit tot je het aanzet. Zie [AI SRE](/docs/ai/ai-sre). **Waarschuwingen → Werkruimte** bevat de Slack- en Microsoft Teams-regels die waarschuwingen en episodes in kanalen plaatsen, en het tabblad **Summary**. Zie [Slack](/docs/workspace-connections/slack).
+Nog twee secties werken op waarschuwingen. **Waarschuwingen → AI → Instellingen** bepaalt wat OneUptime AI zelf doet: **Nieuwe waarschuwingen onderzoeken**, aan voor nieuwe projecten, en **Nieuwe waarschuwingen automatisch herstellen**, uit tot je het aanzet. Zie [AI SRE](/docs/ai/ai-sre). **Waarschuwingen → Werkruimte** bevat de Slack- en Microsoft Teams-regels die waarschuwingen en episodes in kanalen plaatsen, en het tabblad **Samenvatting**. Zie [Slack](/docs/workspace-connections/slack).
 
 ## De regels die een nieuwe waarschuwing doorloopt
 
@@ -59,7 +59,7 @@ De regels verschillen in hoe meerdere overeenkomsten worden afgehandeld:
 
 **Bereikbaarheidsregels**, **Eigenaarsregels**, **Labelregels** en **Privacyregels** hebben twee tabbladen: **Alert Rules**, voor waarschuwingen, en **Episode Rules**, die op dezelfde manier op elke nieuwe waarschuwingsepisode werken. Een nieuwe regel begint ingeschakeld; zet **Ingeschakeld** uit in haar bewerkformulier om haar te pauzeren, en de lijst toont per regel een groen **Ingeschakeld** of een rood **Uitgeschakeld**.
 
-De meeste regels werken op waarschuwingen en episodes die na het opslaan worden aangemaakt. Om een eigenaars-, label- of privacyregel toe te passen op wat je al hebt, gebruik je **Run Now**: zie [Regels uitvoeren op bestaande resources](/docs/configuration/run-rules-now). Herinneringsregels zijn de uitzondering: als je er een opslaat, wordt elke open waarschuwing opnieuw gematcht.
+De meeste regels werken op waarschuwingen en episodes die na het opslaan worden aangemaakt. Om een eigenaars-, label- of privacyregel toe te passen op wat je al hebt, gebruik je **Nu uitvoeren**: zie [Regels uitvoeren op bestaande resources](/docs/configuration/run-rules-now). Herinneringsregels zijn de uitzondering: als je er een opslaat, wordt elke open waarschuwing opnieuw gematcht.
 
 ### Voorwaarden
 
@@ -157,7 +157,7 @@ Elk waarschuwingsmodel heeft workflowtriggers en -acties die naar het model zijn
 
 ## Wie dit kan wijzigen
 
-Regels, aangepaste velden en metingen vragen een Project Owner of Project Admin, of een aangepaste rol met de eigen machtiging van die regel. **Alert Member** werkt met waarschuwingen en episodes, hun notities, eigenaren en statustijdlijnen, en notitie-sjablonen, en **Alert Admin** beheert daarnaast waarschuwingsstatussen en ernstniveaus. Zie [Gebruikers, teams en machtigingen](/docs/permissions/index).
+Regels, aangepaste velden en metingen vragen een Project Owner of Project Admin, of een aangepaste rol met de eigen machtiging van die regel. **Waarschuwingslid** werkt met waarschuwingen en episodes, hun notities, eigenaren en statustijdlijnen, en notitie-sjablonen, en **Waarschuwingsbeheerder** beheert daarnaast waarschuwingsstatussen en ernstniveaus. Zie [Gebruikers, teams en machtigingen](/docs/permissions/index).
 
 ## Volgende stappen
 

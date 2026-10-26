@@ -66,7 +66,7 @@ Os rótulos agrupam as aplicações em listas e filtros. Eles também decidem o 
 
 | Como | Onde |
 | --- | --- |
-| Manualmente | No formulário de criação, em **Mais campos**, ou depois com **Editar detalhes** no cartão **Detalhes do aplicativo** da página **Configurações** da aplicação. Para várias de uma vez, selecione-as na lista e escolha **Add Labels** em **Ações em massa**. |
+| Manualmente | No formulário de criação, em **Mais campos**, ou depois com **Editar detalhes** no cartão **Detalhes do aplicativo** da página **Configurações** da aplicação. Para várias de uma vez, selecione-as na lista e escolha **Adicionar rótulos** em **Ações em massa**. |
 | Pela telemetria | Um atributo de recurso chamado `oneuptime.label.<name>` adiciona o rótulo `<name>:<value>`, como mostrado abaixo. |
 | Por uma regra de rótulos | Uma regra adiciona rótulos a cada nova aplicação que corresponde a ela. Consulte [Regras de rótulos e regras de proprietários](#regras-de-rótulos-e-regras-de-proprietários). |
 
@@ -91,11 +91,11 @@ Uma regra adiciona rótulos ou proprietários a cada nova aplicação que corres
 1. Em **Corresponder**, **Todas as aplicações RUM**, onde uma regra nova começa, corresponde a todas as aplicações. Para restringi-la, escolha **Somente as aplicações RUM que atendem às condições** e adicione condições sobre **Rótulos do Aplicativo** (tem algum, todos ou nenhum dos rótulos que você escolher), **Nome do Aplicativo** ou **Descrição do Aplicativo** (é igual a, contém, começa com, termina com ou corresponde a um padrão).
 2. Em **Rótulos**, ou **Proprietários** para uma regra de proprietários, escolha o que a regra adiciona. Uma nova regra precisa adicionar pelo menos um rótulo ou um proprietário. O **Nome** é preenchido a partir do que você escolhe, como _Add team:payments_ ou _Add Payments as owners_, até você digitar um nome próprio. A **Descrição**, e **Notificar proprietários** em uma regra de proprietários, ficam em **Mais campos**.
 
-As regras rodam quando uma aplicação é criada, incluindo as descobertas. Para aplicar uma regra às aplicações que você já tem, abra o menu **⋯** da linha dela e escolha **Run Now**: consulte [Executar regras em recursos existentes](/docs/configuration/run-rules-now). Uma regra que uma edição deixou sem nada para adicionar aparece marcada com **Não adiciona nada** na lista. [Regras de rótulos e proprietários](/docs/configuration/label-and-owner-rules) cobre os formulários completos.
+As regras rodam quando uma aplicação é criada, incluindo as descobertas. Para aplicar uma regra às aplicações que você já tem, abra o menu **⋯** da linha dela e escolha **Executar agora**: consulte [Executar regras em recursos existentes](/docs/configuration/run-rules-now). Uma regra que uma edição deixou sem nada para adicionar aparece marcada com **Não adiciona nada** na lista. [Regras de rótulos e proprietários](/docs/configuration/label-and-owner-rules) cobre os formulários completos.
 
 ### Proprietários
 
-Os proprietários são as pessoas e as equipes responsáveis por uma aplicação. As regras de proprietários os adicionam às novas aplicações. Para adicioná-los ou removê-los manualmente, selecione aplicações na lista e escolha **Add Owner** ou **Remove Owner** em **Ações em massa**; a API os adiciona por `/rum-application-owner-user` e `/rum-application-owner-team`. Com **Notificar proprietários** ativado, que é o padrão, cada proprietário que uma regra adiciona é avisado. Desative-o antes de rodar uma regra em muitas aplicações se ninguém precisar ser notificado.
+Os proprietários são as pessoas e as equipes responsáveis por uma aplicação. As regras de proprietários os adicionam às novas aplicações. Para adicioná-los ou removê-los manualmente, selecione aplicações na lista e escolha **Adicionar proprietário** ou **Remover proprietário** em **Ações em massa**; a API os adiciona por `/rum-application-owner-user` e `/rum-application-owner-team`. Com **Notificar proprietários** ativado, que é o padrão, cada proprietário que uma regra adiciona é avisado. Desative-o antes de rodar uma regra em muitas aplicações se ninguém precisar ser notificado.
 
 ## Retenção
 
@@ -104,7 +104,7 @@ A telemetria de uma aplicação e as gravações dela são mantidas por tempos d
 | Dados | Mantidos por | Definido em |
 | --- | --- | --- |
 | Registros, métricas, traços e perfis | A retenção do projeto, a menos que a aplicação a substitua | A página **Configurações** da aplicação |
-| Gravações da reprodução de sessões | 7 dias por padrão, ou 1, 14, 30 ou 90 dias | **Replay Policy**, com **Edit Policy → Limits** |
+| Gravações da reprodução de sessões | 7 dias por padrão, ou 1, 14, 30 ou 90 dias | **Replay Policy**, com **Editar política → Limites** |
 
 ### Retenção da telemetria
 
@@ -119,7 +119,7 @@ Em um plano Cloud inferior, uma substituição que sobrou de um teste continua v
 
 ### Retenção da reprodução de sessões
 
-As gravações têm a sua própria retenção, definida na página **Replay Policy** da aplicação com **Edit Policy → Limits**: 7 dias por padrão, ou 1, 14, 30 ou 90 dias. Ela é curta de propósito, porque uma gravação é muito mais sensível, e muito maior, do que um span. O cartão **Session Replay Retention** da página **Configurações** a mostra (_Session replays are kept for 7 days._), e o botão **Editar em Replay Policy** dele abre a política.
+As gravações têm a sua própria retenção, definida na página **Replay Policy** da aplicação com **Editar política → Limites**: 7 dias por padrão, ou 1, 14, 30 ou 90 dias. Ela é curta de propósito, porque uma gravação é muito mais sensível, e muito maior, do que um span. O cartão **Retenção da reprodução de sessões** da página **Configurações** a mostra (_Session replays are kept for 7 days._), e o botão **Editar em Replay Policy** dele abre a política.
 
 Uma retenção de telemetria mais longa não mantém as gravações por mais tempo. As contagens, os sinais e o dispositivo de uma sessão expiram com as imagens dela; só os registros, os spans e as exceções da sessão seguem a retenção da telemetria. Consulte [Retenção e exclusão](/docs/telemetry/session-replay#retenção-e-exclusão).
 
@@ -147,17 +147,17 @@ Qualquer pessoa com a função Viewer do projeto pode ver as aplicações RUM e 
 | `CreateRumApplication`, `EditRumApplication`, `DeleteRumApplication` | Adicione, edite e exclua aplicações. |
 | `ReadRumSessionReplay` (_List Session Replays_) | Liste as sessões gravadas e os detalhes delas, sem reproduzi-las nem saber quem era o usuário. |
 | `ReadRumSessionReplayPayload` (_Watch Session Replays_) | Reproduza gravações e leia a referência e os atributos do usuário identificado. |
-| `ReadRumSessionReplayAudit` (_Read Session Replay Audit_) | Leia o **Replay Access Log**: quem assistiu a qual gravação. |
+| `ReadRumSessionReplayAudit` (_Read Session Replay Audit_) | Leia o **Registro de acesso aos replays**: quem assistiu a qual gravação. |
 | `DeleteRumSessionReplay` (_Delete Session Replays_) | Exclua gravações. |
 | `CreateRumSessionErasureRequest`, `ReadRumSessionErasureRequest` | Registre solicitações de apagamento e acompanhe-as. |
 | `ReadRumApplicationLabelRule`, `ReadRumApplicationOwnerRule` (e os seus Create, Edit e Delete) | Gerencie as regras de rótulos e as regras de proprietários. |
 | `ReadRumApplicationOwnerUser`, `ReadRumApplicationOwnerTeam` (e os seus Create, Edit e Delete) | Adicione e remova proprietários pela API. |
 
-Uma divisão útil: dê a um engenheiro de suporte `ReadRumApplication` e `ReadRumSessionReplay`. Ele consegue ver quais sessões tiveram erros sem assistir à tela de ninguém nem saber quem era o usuário. Dê `ReadRumSessionReplayPayload` só para as pessoas que precisam; os membros com `ReadRumSessionReplayAudit` passam a ver cada reprodução na página **Replay Access Log** da aplicação. [Quem pode assistir a uma gravação](/docs/telemetry/session-replay#quem-pode-assistir-a-uma-gravação) mostra o que cada permissão libera na lista de sessões e no reprodutor.
+Uma divisão útil: dê a um engenheiro de suporte `ReadRumApplication` e `ReadRumSessionReplay`. Ele consegue ver quais sessões tiveram erros sem assistir à tela de ninguém nem saber quem era o usuário. Dê `ReadRumSessionReplayPayload` só para as pessoas que precisam; os membros com `ReadRumSessionReplayAudit` passam a ver cada reprodução na página **Registro de acesso aos replays** da aplicação. [Quem pode assistir a uma gravação](/docs/telemetry/session-replay#quem-pode-assistir-a-uma-gravação) mostra o que cada permissão libera na lista de sessões e no reprodutor.
 
 ## Alertas sobre dados RUM
 
-A telemetria RUM é feita de registros, métricas e traços comuns, então não existe um monitor RUM separado: os monitores de sempre funcionam com ela. A forma mais rápida de começar é a página **Recommendations** da aplicação, que oferece monitores já limitados à aplicação:
+A telemetria RUM é feita de registros, métricas e traços comuns, então não existe um monitor RUM separado: os monitores de sempre funcionam com ela. A forma mais rápida de começar é a página **Recomendações** da aplicação, que oferece monitores já limitados à aplicação:
 
 | Grupo | Recomendações |
 | --- | --- |

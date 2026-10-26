@@ -49,20 +49,20 @@ Falcon이 보여 준 기본 URL로 CID가 속한 클라우드를 알 수 있습�
 
 ### OneUptime에서 연결 추가
 
-**제품 → Security Events → Connections**(`/dashboard/{projectId}/security-events/connections`)를 열고 **연결 추가**를 클릭한 다음, **CrowdStrike Falcon**을 고르고 **다음**을 클릭합니다. 아래 표의 설정을 채우고 **다음**을 클릭한 뒤, 시크릿을 **Client secret**에 붙여 넣습니다.
+**제품 → Security Events → 연결**(`/dashboard/{projectId}/security-events/connections`)를 열고 **연결 추가**를 클릭한 다음, **CrowdStrike Falcon**을 고르고 **다음**을 클릭합니다. 아래 표의 설정을 채우고 **다음**을 클릭한 뒤, 시크릿을 **클라이언트 시크릿**에 붙여 넣습니다.
 
 ### 저장하기 전에 테스트
 
-**저장하기 전에 테스트** 아래의 **Test these settings**를 클릭합니다. 테스트는 양식의 값으로 로그인해 알림을 읽지만 아무것도 저장하지 않으므로, 잘못된 클라우드나 빠진 범위를 연결이 생기기 전에 알 수 있습니다. 그런 다음 **다음**을 클릭하고 연결에 **이름**을 지정해 만듭니다.
+**저장하기 전에 테스트** 아래의 **이 설정 테스트**를 클릭합니다. 테스트는 양식의 값으로 로그인해 알림을 읽지만 아무것도 저장하지 않으므로, 잘못된 클라우드나 빠진 범위를 연결이 생기기 전에 알 수 있습니다. 그런 다음 **다음**을 클릭하고 연결에 **이름**을 지정해 만듭니다.
 :::
 
 | 설정 | 입력할 값 |
 | --- | --- |
 | **클라이언트 ID** | 클라이언트를 만들 때 Falcon이 보여 준 API 클라이언트의 ID. |
 | **Falcon cloud** | CID가 속한 클라우드: **US-1 (api.crowdstrike.com)**, **US-2 (api.us-2.crowdstrike.com)**, **EU-1 (api.eu-1.crowdstrike.com)** 또는 **US-GOV-1 (api.laggar.gcw.crowdstrike.com)**. 모든 요청은 그 클라우드의 API 호스트로 갑니다. |
-| **Client secret** | API 클라이언트의 시크릿. 암호화되며, API가 반환하지 않고 다시는 표시되지 않습니다. 연결의 **Update credentials**로 교체합니다. |
+| **클라이언트 시크릿** | API 클라이언트의 시크릿. 암호화되며, API가 반환하지 않고 다시는 표시되지 않습니다. 연결의 **자격 증명 업데이트**로 교체합니다. |
 
-**Polling** 단계에는 선택 사항인 **설명**, `1`부터 `1440`까지의 정수이며 처음 값이 `5`인 **Poll Interval (Minutes)**, 그리고 처음에 켜져 있는 **활성화됨**도 있습니다. 활성화되지 않은 연결도 테스트할 수 있고, 직접 폴링할 수 있습니다.
+**폴링** 단계에는 선택 사항인 **설명**, `1`부터 `1440`까지의 정수이며 처음 값이 `5`인 **폴링 간격(분)**, 그리고 처음에 켜져 있는 **활성화됨**도 있습니다. 활성화되지 않은 연결도 테스트할 수 있고, 직접 폴링할 수 있습니다.
 
 ## 가져오는 내용
 
@@ -96,7 +96,7 @@ Falcon이 보여 준 기본 URL로 CID가 속한 클라우드를 알 수 있습�
 
 ### 한 번의 폴링으로 다 읽을 수 없는 구간
 
-한 번의 폴링은 최대 20개의 요청을 보냅니다. 토큰 요청 하나와 알림 1,000개마다 요청 두 개가 필요하므로, 최대 9,000개의 알림을 읽습니다. 구간에 그보다 많은 알림이 있으면 실행은 **Partial**이 되고 다음과 같은 경고가 붙습니다:
+한 번의 폴링은 최대 20개의 요청을 보냅니다. 토큰 요청 하나와 알림 1,000개마다 요청 두 개가 필요하므로, 최대 9,000개의 알림을 읽습니다. 구간에 그보다 많은 알림이 있으면 실행은 **부분**이 되고 다음과 같은 경고가 붙습니다:
 
 ```text
 Stopped after 19 requests before reading the whole window. Alerts are read oldest first; every alert created before 2026-09-14T08:12:44.995Z was read.
@@ -104,46 +104,46 @@ Stopped after 19 requests before reading the whole window. Alerts are read oldes
 
 알림 쿼리는 `created_timestamp` 기준으로 오래된 것부터 정렬되므로, OneUptime은 커서를 마지막으로 읽은 알림의 생성 시각으로 옮기고, 다음 폴링은 같은 구간 길이로 거기서, 오프셋 `0`부터 시작합니다. 바쁜 CID는 같은 알림을 다시 읽는 대신 폴링마다 약 9,000개씩 따라잡습니다. 바로 그 시각에 생성된 알림은 두 번 읽히지만, 중복 검사가 두 번째 사본을 걸러 냅니다.
 
-Falcon의 알림 쿼리는 결과 10,000개(`limit` 더하기 `offset`)를 넘어 페이지를 넘길 수 없습니다. 요청 한도가 그 상한에 이르기 전, 알림 9,000개에서 실행을 멈춥니다. 그 상한 때문에 읽기가 멈추더라도 같은 방식으로 처리됩니다. 실행은 **Partial**이 되고, 커서는 마지막으로 읽은 알림으로 옮겨지며, 다음 쿼리는 다시 오프셋 `0`부터 시작합니다.
+Falcon의 알림 쿼리는 결과 10,000개(`limit` 더하기 `offset`)를 넘어 페이지를 넘길 수 없습니다. 요청 한도가 그 상한에 이르기 전, 알림 9,000개에서 실행을 멈춥니다. 그 상한 때문에 읽기가 멈추더라도 같은 방식으로 처리됩니다. 실행은 **부분**이 되고, 커서는 마지막으로 읽은 알림으로 옮겨지며, 다음 쿼리는 다시 오프셋 `0`부터 시작합니다.
 
 예를 들어 9,000개가 넘는 알림이 겹치는 1분에 몰려 있어서 실행이 저장된 커서를 전혀 넘어서지 못하면, OneUptime은 대신 구간을 줄입니다:
 
 1. **좁히기.** 다음 폴링은 같은 시작점에서 절반 길이의 구간을 읽으며, 구간을 끝까지 읽을 수 있게 될 때까지 계속 절반으로 줄이고, 가장 짧게는 1분까지 줄입니다. 실행의 경고에 그렇게 적힙니다: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **다시 늘리기.** 구간을 끝까지 읽은 뒤에는 다음 구간이 다시 두 배가 되며, 최대 24시간까지 늘어납니다.
-3. **1분 넘어가기.** 1분 안에조차 한 번의 폴링으로 읽을 수 있는 것보다 많은 레코드가 있으면, 더 새로운 알림이 계속 도착하도록 폴링이 그 1분을 넘어갑니다. 실행은 **Partial**로 남고, **마지막 오류**에는 `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.`가 표시됩니다. 그 1분을 **Import this time range**로 가져오면 한 번의 실행으로 읽을 수 있는 만큼 되찾을 수 있습니다.
+3. **1분 넘어가기.** 1분 안에조차 한 번의 폴링으로 읽을 수 있는 것보다 많은 레코드가 있으면, 더 새로운 알림이 계속 도착하도록 폴링이 그 1분을 넘어갑니다. 실행은 **부분**으로 남고, **마지막 오류**에는 `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.`가 표시됩니다. 그 1분을 **Import this time range**로 가져오면 한 번의 실행으로 읽을 수 있는 만큼 되찾을 수 있습니다.
 
-Falcon의 오류로 실행이 완전히 실패하면, 커서와 구간 길이는 그대로 유지되고 다음 폴링이 같은 구간을 다시 읽습니다. 단 하나의 예외는 요청 시간이 초과된 경우입니다. 커서는 그대로지만 다음 구간은 절반 길이가 됩니다. 제시간에 응답할 수 없을 만큼 무거운 구간은 매번 시간 초과될 것이기 때문입니다. **Poll Interval (Minutes)** 값을 바꿔도 이 중 어느 것도 바뀌지 않습니다. 이 값은 폴링이 얼마나 자주 시작되는지를 정할 뿐, 구간이 어디서 시작되는지는 정하지 않습니다.
+Falcon의 오류로 실행이 완전히 실패하면, 커서와 구간 길이는 그대로 유지되고 다음 폴링이 같은 구간을 다시 읽습니다. 단 하나의 예외는 요청 시간이 초과된 경우입니다. 커서는 그대로지만 다음 구간은 절반 길이가 됩니다. 제시간에 응답할 수 없을 만큼 무거운 구간은 매번 시간 초과될 것이기 때문입니다. **폴링 간격(분)** 값을 바꿔도 이 중 어느 것도 바뀌지 않습니다. 이 값은 폴링이 얼마나 자주 시작되는지를 정할 뿐, 구간이 어디서 시작되는지는 정하지 않습니다.
 
 ### 필요할 때 실행, 미리 보기, 가져오기
 
-연결에서 **Diagnostics**를 클릭하면 최근 실행을 보고 연결을 직접 다룰 수 있습니다. 연결을 변경할 수 있는 사람은 누구나 이를 시작할 수 있고, 연결을 볼 수 있는 사람은 누구나 기록을 읽을 수 있습니다.
+연결에서 **진단**을 클릭하면 최근 실행을 보고 연결을 직접 다룰 수 있습니다. 연결을 변경할 수 있는 사람은 누구나 이를 시작할 수 있고, 연결을 볼 수 있는 사람은 누구나 기록을 읽을 수 있습니다.
 
-- **Run now**는 연결이 **활성화됨** 상태가 아닐 때에도 평소의 커서로 즉시 폴링을 시작합니다.
+- **지금 실행**은 연결이 **활성화됨** 상태가 아닐 때에도 평소의 커서로 즉시 폴링을 시작합니다.
 - **Preview alerts**는 최대 7일의 시간 범위를 읽으며 아무것도 가져오지 않습니다.
 - **Import this time range**는 확인을 거친 뒤 최대 7일의 범위를 가져오며, 커서는 옮기지 않습니다. 이미 가져온 알림은 건너뜁니다.
 - 실행의 **Copy diagnostics**는 지원팀에 보낼 보고서를 복사합니다. 자격 증명은 절대 포함되지 않습니다.
 
 ## 연결 테스트
 
-연결 행의 **연결 테스트**와 양식의 **Test these settings**는 백그라운드 워커가 아니라 API 프로세스에서 실행되므로, 워커가 문제일 때에도 테스트는 응답합니다. 다음 검사를 순서대로 실행합니다:
+연결 행의 **연결 테스트**와 양식의 **이 설정 테스트**는 백그라운드 워커가 아니라 API 프로세스에서 실행되므로, 워커가 문제일 때에도 테스트는 응답합니다. 다음 검사를 순서대로 실행합니다:
 
 | 검사 | 확인하는 내용 |
 | --- | --- |
-| **구성** | **클라이언트 ID**, **Falcon cloud**, **Client secret**이 있고 올바른 형식인지. 이 검사가 실패하면 아무 곳에도 연결하지 않습니다. |
+| **구성** | **클라이언트 ID**, **Falcon cloud**, **클라이언트 시크릿**이 있고 올바른 형식인지. 이 검사가 실패하면 아무 곳에도 연결하지 않습니다. |
 | **Authenticate with CrowdStrike Falcon** | 클라우드의 호스트에서 API 클라이언트의 ID와 시크릿으로 보낸 `POST /oauth2/token`이 토큰을 반환하는지. |
 | **Read alerts from the Falcon Alerts API** | 지난 24시간에 대해 알림 하나(`limit=1`)를 요청하는 알림 쿼리가 받아들여지는지. 이로써 **Alerts → Read** 범위가 확인됩니다. |
 | **Alerts available to import** | 지난 24시간과 지난 7일 동안 생성된 알림 수. 7일 동안 하나도 없으면 실패가 아니라 경고입니다. 폴링은 Falcon이 새 알림을 만드는 대로 가져옵니다. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | OneUptime 쪽: Worker 큐의 작업을 가져가는 프로세스가 있고, 폴링 작업이 매분 실행되고, 보안 이벤트 저장소가 응답하는지. |
 | **Scheduled polling** | 저장된 연결의 경우: 폴링이 켜져 있고, 워커를 기다리며 멈춘 실행이 없고, 폴링이 제때 실행되는지. |
 
-테스트의 모든 요청에는 20초 기한이 있습니다. 테스트는 아무것도 가져오지 않고 커서를 옮기지도 않으며, 실패한 각 검사는 무엇을 바꿔야 하는지 알려 줍니다. **Copy report**는 자격 증명이나 토큰 없이 체크리스트를 JSON으로 복사합니다.
+테스트의 모든 요청에는 20초 기한이 있습니다. 테스트는 아무것도 가져오지 않고 커서를 옮기지도 않으며, 실패한 각 검사는 무엇을 바꿔야 하는지 알려 줍니다. **보고서 복사**는 자격 증명이나 토큰 없이 체크리스트를 JSON으로 복사합니다.
 
 ## 문제 해결
 
 연결의 **마지막 오류**와 실패한 모든 검사는 실패한 단계를 나타내는 접두사 뒤에, 자격 증명을 가린 전체 오류 메시지를 보관합니다. 연결에 오류가 있으면 **작업** 열에서 **오류 보기**를 선택해 읽고, 대화 상자의 **오류 복사**로 복사합니다. 먼저 접두사를 읽으세요.
 
 :::details Last Error가 `CrowdStrike Falcon token request`로 시작함
-- `CrowdStrike Falcon token request failed (HTTP 401)` 또는 `(HTTP 403)`: Alerts API에 연결하기 전에 Falcon이 API 클라이언트의 ID와 시크릿을 거부했습니다. **Falcon cloud**가 CID의 클라우드인지(다른 클라우드의 클라이언트는 여기서 거부됩니다), **클라이언트 ID**가 그 클라이언트의 것인지, **Client secret**이 그 클라이언트와 함께 발급된 시크릿인지 확인합니다. 시크릿을 잃어버렸다면 Falcon 콘솔에서 재설정하고 **Update credentials**로 저장합니다.
+- `CrowdStrike Falcon token request failed (HTTP 401)` 또는 `(HTTP 403)`: Alerts API에 연결하기 전에 Falcon이 API 클라이언트의 ID와 시크릿을 거부했습니다. **Falcon cloud**가 CID의 클라우드인지(다른 클라우드의 클라이언트는 여기서 거부됩니다), **클라이언트 ID**가 그 클라이언트의 것인지, **클라이언트 시크릿**이 그 클라이언트와 함께 발급된 시크릿인지 확인합니다. 시크릿을 잃어버렸다면 Falcon 콘솔에서 재설정하고 **자격 증명 업데이트**로 저장합니다.
 - `CrowdStrike Falcon token request returned ...`: Falcon이 JSON이 아니거나 `access_token`이 없는 본문처럼 쓸 수 없는 응답을 보냈습니다. 대개 자격 증명이 아니라 중간에 있는 프록시나 게이트웨이 때문입니다.
 :::
 
@@ -165,9 +165,9 @@ Falcon의 오류로 실행이 완전히 실패하면, 커서와 구간 길이는
 :::
 
 :::details 실행이 Partial임
-- `Stopped after 19 requests before reading the whole window`: 구간에 한 번의 실행이 읽는 알림 9,000개보다 많은 알림이 있었습니다. 잃는 것은 없습니다. 다음 폴링은 마지막으로 읽은 알림 다음부터 시작합니다. 폴링할 때마다 계속 **Partial**인 연결은 밀린 알림을 따라잡는 중이며, 그 **Last Polled**와 **Last Event Imported**는 계속 움직입니다. 실행 중에 토큰이 갱신되면 횟수가 19보다 조금 클 수 있습니다.
+- `Stopped after 19 requests before reading the whole window`: 구간에 한 번의 실행이 읽는 알림 9,000개보다 많은 알림이 있었습니다. 잃는 것은 없습니다. 다음 폴링은 마지막으로 읽은 알림 다음부터 시작합니다. 폴링할 때마다 계속 **부분**인 연결은 밀린 알림을 따라잡는 중이며, 그 **마지막 폴링**과 **마지막으로 가져온 이벤트**는 계속 움직입니다. 실행 중에 토큰이 갱신되면 횟수가 19보다 조금 클 수 있습니다.
 - `Falcon returned alerts out of created_timestamp order, so this run cannot name a point to resume from.`: 쿼리가 오래된 것부터라는 순서를 무시했으므로 실행이 커서를 마지막 알림으로 옮길 수 없고, 다음 폴링은 대신 더 짧은 구간을 읽습니다. 계속 발생하면 실행 보고서를 OneUptime 지원팀에 보내세요.
-- `More records were created in the one minute from ... than one poll can read`: 폴링이 그 1분을 넘어갔습니다. **Diagnostics**에서 **Import this time range**로 그 1분을 가져오세요. 가져오기는 한 번의 폴링만큼 읽습니다.
+- `More records were created in the one minute from ... than one poll can read`: 폴링이 그 1분을 넘어갔습니다. **진단**에서 **Import this time range**로 그 1분을 가져오세요. 가져오기는 한 번의 폴링만큼 읽습니다.
 :::
 
 :::details Last Polled가 Never이고 Last Error가 비어 있음
@@ -175,7 +175,7 @@ Falcon의 오류로 실행이 완전히 실패하면, 커서와 구간 길이는
 :::
 
 :::details 테스트는 통과하지만 이벤트가 나타나지 않음
-**Alerts available to import**를 읽으세요. 거기에 경고가 있으면 Falcon이 지난 7일 동안 알림을 만들지 않았다는 뜻이므로 아직 가져올 것이 없습니다. 그렇지 않다면 **Diagnostics**를 열어 마지막 폴링의 구간과 개수를 확인하고, 실행에서 **View events in this time range**를 사용해 그 실행이 가져온 알림의 시간 범위를 엽니다.
+**Alerts available to import**를 읽으세요. 거기에 경고가 있으면 Falcon이 지난 7일 동안 알림을 만들지 않았다는 뜻이므로 아직 가져올 것이 없습니다. 그렇지 않다면 **진단**을 열어 마지막 폴링의 구간과 개수를 확인하고, 실행에서 **View events in this time range**를 사용해 그 실행이 가져온 알림의 시간 범위를 엽니다.
 :::
 
 ## 얻을 수 있는 것

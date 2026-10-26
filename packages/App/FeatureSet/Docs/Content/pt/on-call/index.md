@@ -69,7 +69,7 @@ Vá para **Incidentes → Regras → Regras de Plantão** ou **Alertas → Regra
 
 ### Conferir se todos podem ser contatados
 
-Abra **Plantão → Prontidão**. Cada pessoa que suas políticas podem acionar aparece como **Pronto**, **Needs setup** ou **Unreachable**, com o que está faltando. Veja [Prontidão e relatórios](/docs/on-call/readiness).
+Abra **Plantão → Prontidão**. Cada pessoa que suas políticas podem acionar aparece como **Pronto**, **Precisa de configuração** ou **Inacessível**, com o que está faltando. Veja [Prontidão e relatórios](/docs/on-call/readiness).
 :::
 
 > [!NOTE]

@@ -21,7 +21,7 @@ flowchart LR
     neighbours["Voisins que les<br/>équipements signalent<br/>via LLDP"] --> network["Réseau"]
 ```
 
-- **Seul ce qui était actif est dessiné.** Une vue montre les services et les ressources qui ont remonté des données dans la période, et les connexions observées pendant celle-ci. Activez **Show inactive** pour dessiner aussi ceux qui sont restés silencieux.
+- **Seul ce qui était actif est dessiné.** Une vue montre les services et les ressources qui ont remonté des données dans la période, et les connexions observées pendant celle-ci. Activez **Afficher les inactifs** pour dessiner aussi ceux qui sont restés silencieux.
 - **Les appels sont comptés sur une fenêtre récente.** OneUptime cherche les appels entre services toutes les 10 minutes, et les chiffres de trafic couvrent les 15 dernières minutes, pas toute la période.
 - **La vue réseau est en direct.** Elle montre vos équipements tels qu'ils sont connectés maintenant, elle n'a donc pas de période.
 
@@ -32,7 +32,7 @@ flowchart LR
 
 ## Ouvrir la topologie
 
-Allez dans **Produits → Observabilité → Topologie**. **Inventaire → Topology Map** ouvre la même page. Elle s'ouvre sur la **Service Map**, pour la période **Past 1 Day**.
+Allez dans **Produits → Observabilité → Topologie**. **Inventaire → Topology Map** ouvre la même page. Elle s'ouvre sur la **Service Map**, pour la période **Dernier jour**.
 
 | Vue | La question à laquelle elle répond |
 | --- | --- |
@@ -40,7 +40,7 @@ Allez dans **Produits → Observabilité → Topologie**. **Inventaire → Topol
 | **Infrastructure** | Qu'est-ce qui tourne où dans votre infrastructure ? |
 | **Réseau** | Comment vos équipements réseau sont-ils connectés ? |
 
-À côté du sélecteur de période, **Show inactive** ajoute ce qui n'a rien remonté dans la période, et le bouton d'actualisation recharge la vue. **What is shown · About this data** explique ce que la vue dessine et à quelle fréquence elle est calculée. La barre d'adresse garde la vue où vous êtes, donc un lien partagé ouvre la même vue.
+À côté du sélecteur de période, **Afficher les inactifs** ajoute ce qui n'a rien remonté dans la période, et le bouton d'actualisation recharge la vue. **Ce qui est affiché · À propos de ces données** explique ce que la vue dessine et à quelle fréquence elle est calculée. La barre d'adresse garde la vue où vous êtes, donc un lien partagé ouvre la même vue.
 
 ## Lire la carte des services
 
@@ -65,21 +65,21 @@ Cliquez sur **Attention requise** pour ne garder que ces services et leurs conne
 
 ### Ouvrir un service
 
-Cliquez sur un service pour voir ses requêtes, ses erreurs et sa latence moyenne des 15 dernières minutes, ses **Incidents actifs** et ses **Alertes actives**, et des liens vers **Traces for this service** et ses **Détails de l'inventaire**.
+Cliquez sur un service pour voir ses requêtes, ses erreurs et sa latence moyenne des 15 dernières minutes, ses **Incidents actifs** et ses **Alertes actives**, et des liens vers **Traces de ce service** et ses **Détails de l'inventaire**.
 
 ### Ouvrir une connexion
 
 Cliquez sur une flèche pour voir son débit de requêtes, son taux d'erreur et sa latence moyenne. Entre deux services que vous instrumentez, elle a aussi un **Historique** des appels, des erreurs et de la latence.
 :::
 
-**Étiquettes de connexion** écrit un chiffre sur chaque flèche : **Request rate**, **Taux d'erreur** ou **Latence moyenne**, ou rien tant que vous ne survolez pas. **Tableau** liste les mêmes services avec leurs **Requêtes**, **Taux d'erreur**, **Latence moy.** et **Connexions**, et **Show on map** dessine l'un d'eux.
+**Étiquettes de connexion** écrit un chiffre sur chaque flèche : **Taux de requêtes**, **Taux d'erreur** ou **Latence moyenne**, ou rien tant que vous ne survolez pas. **Tableau** liste les mêmes services avec leurs **Requêtes**, **Taux d'erreur**, **Latence moy.** et **Connexions**, et **Afficher sur la carte** dessine l'un d'eux.
 
 ## Explorer votre infrastructure
 
 **Infrastructure** montre où tournent vos services : clusters, hôtes, pods, conteneurs et les autres ressources qui remontent des données. Les réplicas d'une même charge de travail sont regroupés en une seule entrée, et vous pouvez ouvrir n'importe quoi pour regarder dedans.
 
 - **Parcourez-la à votre façon.** Affichez-la en **Liste** ou en **Carte**, de toute votre infrastructure jusqu'à un seul pod. Les chiffres au-dessus indiquent combien de ressources et de charges de travail elle dessine, combien de services elle peut placer, et combien de ressources silencieuses elle laisse de côté.
-- **Trouvez une ressource.** Cherchez-la par son nom, et cliquez sur **View details** pour ouvrir sa page.
+- **Trouvez une ressource.** Cherchez-la par son nom, et cliquez sur **Voir les détails** pour ouvrir sa page.
 - **Passez d'une vue à l'autre.** Un service listé sur une ressource s'ouvre sur la **Service Map**, et les ressources sur lesquelles tourne un service s'ouvrent dans **Infrastructure**.
 
 ## Ouvrir la carte propre à une ressource
@@ -103,11 +103,11 @@ OneUptime cherche les appels entre services dans vos traces toutes les 10 minute
 :::
 
 :::details Un service que j'ai retiré est toujours sur la carte
-Il a remonté des données pendant la période. Choisissez une période plus courte, ou attendez que sa dernière télémétrie sorte de la période. Avec **Show inactive**, la carte dessine aussi ce qui a cessé de remonter des données.
+Il a remonté des données pendant la période. Choisissez une période plus courte, ou attendez que sa dernière télémétrie sorte de la période. Avec **Afficher les inactifs**, la carte dessine aussi ce qui a cessé de remonter des données.
 :::
 
 :::details La carte indique qu'une partie seulement est affichée
-Un très gros projet atteint les limites de la carte, et un avis indique combien de ressources ou de connexions elle affiche. Cherchez un service, ou utilisez **Show on map** dans le tableau, pour en dessiner une partie lisible.
+Un très gros projet atteint les limites de la carte, et un avis indique combien de ressources ou de connexions elle affiche. Cherchez un service, ou utilisez **Afficher sur la carte** dans le tableau, pour en dessiner une partie lisible.
 :::
 
 ## Étapes suivantes

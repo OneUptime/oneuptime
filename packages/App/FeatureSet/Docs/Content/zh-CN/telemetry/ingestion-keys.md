@@ -32,7 +32,7 @@ flowchart TB
 
 根据密钥将要存放的位置选择类型。密钥创建后无法更改类型。
 
-| | **服务器** | **Browser** |
+| | **服务器** | **浏览器** |
 | --- | --- | --- |
 | 用途 | 在你运营的机器上运行的应用、collector 和代理 | 网页，以及 React Native Session Replay |
 | 发送内容 | 所有类型的遥测，发往所有端点 | 追踪、日志、指标和 Session Replay |
@@ -60,7 +60,7 @@ flowchart TB
 
 ### 添加浏览器密钥的来源
 
-**Browser** 类型的密钥会在下一步 **浏览器设置** 中要求填写 **Allowed Origins**，并在 **高级** 下提供 **Pinned Service Name**。请参阅 [锁定浏览器密钥](#锁定浏览器密钥)。
+**浏览器** 类型的密钥会在下一步 **浏览器设置** 中要求填写 **允许的来源**，并在 **高级** 下提供 **固定的服务名称**。请参阅 [锁定浏览器密钥](#锁定浏览器密钥)。
 
 ### 创建密钥并复制密钥值
 
@@ -88,8 +88,8 @@ x-oneuptime-token: YOUR_ONEUPTIME_INGESTION_KEY
 
 | 设置 | 作用 |
 | --- | --- |
-| **Allowed Origins** | 接受该密钥的唯一来源。来自其他任何来源的请求，或完全没有 `Origin` 请求头的请求，都会被拒绝。浏览器密钥必须至少保留一个来源。 |
-| **Pinned Service Name** | 把密钥通过 OTLP/HTTP 发送的所有内容都归入这一个服务，无论发送方设置了什么 `service.name`。这样，密钥的副本只能写入该服务。 |
+| **允许的来源** | 接受该密钥的唯一来源。来自其他任何来源的请求，或完全没有 `Origin` 请求头的请求，都会被拒绝。浏览器密钥必须至少保留一个来源。 |
+| **固定的服务名称** | 把密钥通过 OTLP/HTTP 发送的所有内容都归入这一个服务，无论发送方设置了什么 `service.name`。这样，密钥的副本只能写入该服务。 |
 | **Requests Per Minute Limit** | 该密钥每分钟可被接受的最大请求数，由所有访问者共享。留空时，浏览器密钥的限额为 6,000。 |
 | **过期时间** | 过了这个日期，密钥就会被拒绝，已公开的副本也随之失效。 |
 
@@ -130,8 +130,8 @@ x-oneuptime-token: YOUR_ONEUPTIME_INGESTION_KEY
 | `422` 加 `This telemetry ingestion key has been disabled.` | 有人关闭了 **已启用**。 |
 | `422` 加 `A browser ingestion key cannot be used for` | 浏览器密钥到达了只接受服务器密钥的端点。 |
 | `422` 加 `did not send an Origin header` | 浏览器密钥是从浏览器之外发送的。请在那里使用服务器密钥。 |
-| `422` 加 `is not allowed for this browser ingestion key` | 页面的来源不在 **Allowed Origins** 中。 |
-| `422` 加 `is pinned to a single service` | 有人用设置了 **Pinned Service Name** 的密钥注册代理。请使用没有固定名称的服务器密钥。 |
+| `422` 加 `is not allowed for this browser ingestion key` | 页面的来源不在 **允许的来源** 中。 |
+| `422` 加 `is pinned to a single service` | 有人用设置了 **固定的服务名称** 的密钥注册代理。请使用没有固定名称的服务器密钥。 |
 | `429` 加 `Too many telemetry requests for this ingestion key` | 密钥达到了它的 **Requests Per Minute Limit**。导出器会在 `Retry-After` 的时间之后重试。 |
 
 关于 OTLP 导出器可能收到的其他应答，请参阅 [应答](/docs/telemetry/open-telemetry#响应)。

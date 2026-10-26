@@ -20,7 +20,7 @@ En vagtpolitik afgør, hvem der tilkaldes om en hændelse eller advarsel, og hve
 
 **Hvem tilkaldes først?** er valgfrit og vises kun for folk, der må tilføje eskaleringsregler: står det tomt, tilkalder politikken ingen, før den har en regel. **Beskrivelse** og **Etiketter** venter under **Flere felter**. Se [Eskaleringsregler](/docs/on-call/escalation-rules) for at tilføje de næste niveauer.
 
-Listen **Vagtpolitikker** viser hver politiks **Navn**, **Beskrivelse**, **Etiketter** og **Ejere**. Vælg politikker for at bruge **Add Labels**, **Remove Labels**, **Add Owner**, **Remove Owner**, **Arkiver** eller **Eksportér JSON**, eller for at slette dem. **Import JSON** opretter politikker fra en eksport: en eksport rummer en politiks egne indstillinger, ikke dens eskaleringsregler eller ejere.
+Listen **Vagtpolitikker** viser hver politiks **Navn**, **Beskrivelse**, **Etiketter** og **Ejere**. Vælg politikker for at bruge **Tilføj etiketter**, **Fjern etiketter**, **Tilføj ejer**, **Fjern ejer**, **Arkiver** eller **Eksportér JSON**, eller for at slette dem. **Import JSON** opretter politikker fra en eksport: en eksport rummer en politiks egne indstillinger, ikke dens eskaleringsregler eller ejere.
 
 ## Hvad der kører en politik
 
@@ -49,7 +49,7 @@ En politik, som flere regler tilføjer, kører én gang. En alvorlighed kører a
 
 **Grundlæggende** er åben; de andre sektioner starter foldet sammen, indtil du klikker på dem.
 
-- **Oversigt** viser **Detaljer om vagtpolitik** og derefter **Policy at a glance**: hvor mange niveauer og modtagere politikken har, hvor lang tid der går til dens sidste niveau, og hvor ofte den gentages. **Responder readiness** siger, om alle, den kan tilkalde, kan nås nu, og **Vagtpolitikkens feed** viser, hvad der er ændret: personer, teams og vagtplaner, der er tilføjet eller fjernet, tilsidesættelser og overdragelser.
+- **Oversigt** viser **Detaljer om vagtpolitik** og derefter **Politikken i overblik**: hvor mange niveauer og modtagere politikken har, hvor lang tid der går til dens sidste niveau, og hvor ofte den gentages. **Modtagernes parathed** siger, om alle, den kan tilkalde, kan nås nu, og **Vagtpolitikkens feed** viser, hvad der er ændret: personer, teams og vagtplaner, der er tilføjet eller fjernet, tilsidesættelser og overdragelser.
 - **Ejere** er de personer og teams, der er ansvarlige for politikken. Når et tilkald fra den ikke finder en regel for nogen eller ikke kan leveres, får de en e-mail; en politik uden ejere sender i stedet en e-mail til projektets ejere.
 - **Notifikationslogs** viser hver besked, politikken har sendt, med en fane pr. kanal.
 - **Brugertilsidesættelser** dækker kun for folk i denne politik. Se [Brugertilsidesættelser](/docs/on-call/user-overrides).
@@ -64,7 +64,7 @@ Når det sidste niveaus ventetid er gået, uden at nogen har kvitteret, stopper 
 | **Stop tilkald** | Ingen tilkaldes igen, så politikken kører én gang. En ny politik starter med dette svar. |
 | **Start forfra fra Level 1** | Hvert niveau tilkaldes igen, i rækkefølge. **Hvor mange gange mere?** siger hvor mange: 1 eller flere. |
 
-En politik, der starter forfra tre gange mere, går gennem sine niveauer fire gange i alt. Kortets række **Efter det sidste niveau** siger, hvad politikken gør, og **Policy at a glance** på **Oversigt** siger det samme med ord.
+En politik, der starter forfra tre gange mere, går gennem sine niveauer fire gange i alt. Kortets række **Efter det sidste niveau** siger, hvad politikken gør, og **Politikken i overblik** på **Oversigt** siger det samme med ord.
 
 ## Tilkald igen, hvis den ikke bliver løst
 
@@ -77,7 +77,7 @@ En bekræftelse stopper en politiks tilkald for altid, også selv om ingen løse
 
 Minutterne tælles fra hver bekræftelse, og en politik tilkalder højst 5 gange igen om den samme hændelse, advarsel eller episode. Et nyt tilkald starter på det niveau, der tilkaldte, da der blev bekræftet, tilkalder den, der har vagt der nu, og fortsætter gennem niveauerne som den første kørsel. Hændelsen eller advarslen forbliver bekræftet: det nye tilkald er en kørsel for sig, i dens feed og i politikkens udførelseslogs, hvor dens **Status** siger "Tilkaldt igen (1 af 5)".
 
-Den, der tilkaldes igen, bekræfter fra beskeden eller med **Bekræft igen** på hændelsens eller advarslens side, og minutterne starter forfra; **Eskalér** sender tilkaldet videre til næste niveau. Hvis hændelsen eller advarslen løses eller slettes, politikken arkiveres eller slettes, eller nogen vælger **Tilkald ikke igen**, stopper det. Kortets række **Efter en bekræftelse** siger, hvad politikken gør, og **Yderligere indstillinger** viser minutterne, mens det er foldet sammen. **Policy at a glance** på **Oversigt** og **Escalation summary** siger det samme med ord.
+Den, der tilkaldes igen, bekræfter fra beskeden eller med **Bekræft igen** på hændelsens eller advarslens side, og minutterne starter forfra; **Eskalér** sender tilkaldet videre til næste niveau. Hvis hændelsen eller advarslen løses eller slettes, politikken arkiveres eller slettes, eller nogen vælger **Tilkald ikke igen**, stopper det. Kortets række **Efter en bekræftelse** siger, hvad politikken gør, og **Yderligere indstillinger** viser minutterne, mens det er foldet sammen. **Politikken i overblik** på **Oversigt** og **Oversigt over eskalering** siger det samme med ord.
 
 ## Udførelseslogs
 
@@ -110,7 +110,7 @@ Du finder udførelseslogs tre steder:
 - under **Vagtordning → Avanceret → Udførelseslogs**, for alle politikker, hvor direkte tilkald fra workflows og chat står som **Direkte tilkald**;
 - på en hændelses eller en advarsels side **Vagtudførelser**.
 
-Hver række viser, hvad der startede kørslen, hvornår, dens **Status** og hvem der kvitterede. **View Timeline** åbner dens **Tidslinje for udførelsen**: hver eskaleringsregel, hvem den tilkaldte, via hvilken vagtplan, og hvordan hvert tilkald endte. En vagtplan, hvor ingen har vagt, viser **No one was on call** i stedet for en person. I OneUptime Cloud kræver udførelseslogs abonnementet **Growth**.
+Hver række viser, hvad der startede kørslen, hvornår, dens **Status** og hvem der kvitterede. **Vis tidslinje** åbner dens **Tidslinje for udførelsen**: hver eskaleringsregel, hvem den tilkaldte, via hvilken vagtplan, og hvordan hvert tilkald endte. En vagtplan, hvor ingen har vagt, viser **Ingen havde vagt** i stedet for en person. I OneUptime Cloud kræver udførelseslogs abonnementet **Growth**.
 
 ## Arkivér eller slet en politik
 
@@ -123,7 +123,7 @@ Arkivering tager en politik ud af drift og beholder alt: åbn politikkens **Inds
 
 ## Hvem der må ændre en politik
 
-**Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** og **On-Call Member** må oprette, ændre og slette politikker; **Viewer** og **On-Call Viewer** må læse dem. I en brugerdefineret rolle hedder tilladelserne **Create On-Call Duty Policy**, **Edit On-Call Duty Policy**, **Delete On-Call Duty Policy** og **Read On-Call Duty Policy**, og en rolle, der er begrænset til bestemte etiketter, når kun de politikker, der har dem. At tilføje ejere og brugerdefinerede felter kræver abonnementet **Growth** i OneUptime Cloud.
+**Projektejer**, **Projektadministrator**, **Projektmedlem**, **Vagtadministrator** og **Vagtmedlem** må oprette, ændre og slette politikker; **Seer** og **Vagtseer** må læse dem. I en brugerdefineret rolle hedder tilladelserne **Create On-Call Duty Policy**, **Edit On-Call Duty Policy**, **Delete On-Call Duty Policy** og **Read On-Call Duty Policy**, og en rolle, der er begrænset til bestemte etiketter, når kun de politikker, der har dem. At tilføje ejere og brugerdefinerede felter kræver abonnementet **Growth** i OneUptime Cloud.
 
 ## API og Terraform
 
@@ -147,7 +147,7 @@ Se [Opret regler med API'et eller Terraform](/docs/on-call/escalation-rules#opre
 ## Fejlfinding
 
 :::details En politik kørte, men ingen blev tilkaldt
-Dens kørsel viser **Execution Completed - No One Notified**. Åbn **View Timeline**: en række med **No one was on call** peger på en vagtplan med et hul, og statusbeskeden i en række med **Sprunget over** siger hvorfor, fx nogen, der var fraværende uden nogen til at dække. **Vagtordning → Parathed** viser, hvem der ikke kunne nås.
+Dens kørsel viser **Execution Completed - No One Notified**. Åbn **Vis tidslinje**: en række med **Ingen havde vagt** peger på en vagtplan med et hul, og statusbeskeden i en række med **Sprunget over** siger hvorfor, fx nogen, der var fraværende uden nogen til at dække. **Vagtordning → Parathed** viser, hvem der ikke kunne nås.
 :::
 
 :::details Det næste niveau blev tilkaldt et minut efter sin ventetid

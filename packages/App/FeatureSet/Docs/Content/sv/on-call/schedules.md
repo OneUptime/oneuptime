@@ -63,13 +63,13 @@ flowchart TB
 
 | Fält | Vad det anger |
 | --- | --- |
-| **Layer name** | Vad lagret täcker, till exempel "Primär vardagar". |
-| **Rotation starts at** | Det datum och den tid då lagrets rotation börjar. |
-| **Rotate every** | Hur ofta jouren går över till nästa person i lagret. |
-| **First hand-off time** | Den första överlämningen till nästa person, vid eller efter starten. Senare överlämningar följer varje rotationsintervall. |
-| **Restrictions** | De tider lagret har jour: **Inga begränsningar**, **Specifika tider på dygnet** eller **Specifika tider i veckan**, i schemats tidszon. Utanför dem tar lägre lager över. |
+| **Lagernamn** | Vad lagret täcker, till exempel "Primär vardagar". |
+| **Rotationen börjar** | Det datum och den tid då lagrets rotation börjar. |
+| **Rotera varje** | Hur ofta jouren går över till nästa person i lagret. |
+| **Tid för första överlämning** | Den första överlämningen till nästa person, vid eller efter starten. Senare överlämningar följer varje rotationsintervall. |
+| **Begränsningar** | De tider lagret har jour: **Inga begränsningar**, **Specifika tider på dygnet** eller **Specifika tider i veckan**, i schemats tidszon. Utanför dem tar lägre lager över. |
 
-För att ändra vilket lager som kommer först använder du **Move layer up (higher priority)** eller **Move layer down (lower priority)** i ett lagers meny.
+För att ändra vilket lager som kommer först använder du **Flytta lager uppåt (högre prioritet)** eller **Flytta lager nedåt (lägre prioritet)** i ett lagers meny.
 
 Varje person behåller en färg överallt, så att du kan följa personen med en blick: i varje lager, i det slutliga schemat och dess åsidosättningar och på **Tidslinje för jourscheman**.
 

@@ -1,6 +1,6 @@
 # Fråga AI
 
-Fråga AI är OneUptimes chatt över ditt projekts data. Fråga om loggar, spår, mätvärden, undantag, incidenter, varningar, monitorer, jour, statussidor, SLO:er, runbooks eller arbetsflöden: chatten frågar ditt projekt live, stöder varje påstående med en källa och agerar åt dig när du tillåter det.
+Fråga AI är OneUptimes chatt över ditt projekts data. Fråga om loggar, spår, mätvärden, undantag, incidenter, larm, monitorer, jour, statussidor, SLO:er, runbooks eller arbetsflöden: chatten frågar ditt projekt live, stöder varje påstående med en källa och agerar åt dig när du tillåter det.
 
 :::cards
 - [Öppna Fråga AI](#öppna-fråga-ai): Från sidhuvudet, tangentbordet, ett diagram eller en egen sida.
@@ -35,7 +35,7 @@ I läget **Skrivskyddad** erbjuds modellen aldrig åtgärderna, så samtalet bar
 | Ett felmönster i loggarna, eller ett diagrams fynd | Klicka på **Explain with AI**: Fråga AI öppnas med bevisen som en fråga du kan redigera innan du skickar den. |
 | En egen sida | Öppna **Produkter → AI → Chat** för en arbetsyta över hela sidan. Varje samtal där har en egen adress, så du kan bokmärka en tråd eller klistra in den i en incidentkanal. |
 
-På en incident eller en varning har kortet **AI Investigation** ett eget samtal, **Ask OneUptime AI**, som delas av alla som kan se incidenten eller varningen: se [Prata med OneUptime AI om incidenten](/docs/ai/ai-sre#prata-med-oneuptime-ai-om-incidenten).
+På en incident eller ett larm har kortet **AI Investigation** ett eget samtal, **Ask OneUptime AI**, som delas av alla som kan se incidenten eller larmet: se [Prata med OneUptime AI om incidenten](/docs/ai/ai-sre#prata-med-oneuptime-ai-om-incidenten).
 
 ## Vad den kan se
 
@@ -45,7 +45,7 @@ Fråga AI läser ditt projekt med dina egna behörigheter, så den ser det du f�
 | --- | --- |
 | Telemetri | Loggsökning och histogram, spåraggregeringar och span-träd, mätvärden, undantag, säkerhetshändelser, real user monitoring och Web Vitals, nyliga ändringar och avvikelsekontroller mot inlärda baslinjer. |
 | Infrastruktur | Värdar, Docker, Podman, Kubernetes, Docker Swarm, Proxmox, VMware vCenter, Ceph, lagringsmatriser, serverlösa funktioner, molnmiljöer, IoT-flottor och nätverksenheter: vad som finns i inventariet, deras rapporterade anslutningstillstånd, trender i mätvärden, antal loggar per allvarlighetsgrad och sammanfattningar av spåroperationer. En fråga täcker både telemetri som nämner en tjänst och telemetri som nämner en infrastrukturresurs. |
-| Incidenthantering | Incidenter och varningar, med tillståndsfilter ("vad är aktivt just nu?"), deras aktivitetstidslinjer (tillståndsändringar, interna och offentliga anteckningar, flödet) och ägare, och en sökning i tidigare incidenter för att återanvända hur de löstes. |
+| Incidenthantering | Incidenter och larm, med tillståndsfilter ("vad är aktivt just nu?"), deras aktivitetstidslinjer (tillståndsändringar, interna och offentliga anteckningar, flödet) och ägare, och en sökning i tidigare incidenter för att återanvända hur de löstes. |
 | Jour | Vem som har jour nu, policyer och eskaleringskedjor, och om de senaste utlarmningarna levererades och kvitterades. |
 | AI:ns eget arbete | Resultaten av AI SRE-undersökningar och AI Insights, så att "vad hittade AI:n?" besvaras utifrån den publicerade analysen i stället för att tas fram på nytt. |
 | Plattform | Monitorer (med statusfilter), schemalagt underhåll, statussidor och deras meddelanden, SLO:er, runbooks, körningar av arbetsflöden, sondernas hälsa, team och koden i anslutna repositorier. |
@@ -78,17 +78,17 @@ Varje samtal har ett behörighetsläge, som du väljer i inmatningsfältet bredv
 
 Vad Fråga AI kan göra när ett läge tillåter det:
 
-- Skapa en incident, kvittera eller lösa incidenter och varningar, och ändra en incidents allvarlighetsgrad.
-- Lägga en intern anteckning på en incident eller en varning. Interna anteckningar visas aldrig på en statussida.
+- Skapa en incident, kvittera eller lösa incidenter och larm, och ändra en incidents allvarlighetsgrad.
+- Lägga en intern anteckning på en incident eller ett larm. Interna anteckningar visas aldrig på en statussida.
 - Publicera en offentlig statusuppdatering på en incident. Det är en separat åtgärd, eftersom den meddelar statussidans prenumeranter.
-- Larma en jourpolicy, köra en runbook eller starta en AI-undersökning av en incident eller varning.
+- Larma en jourpolicy, köra en runbook eller starta en AI-undersökning av en incident eller larm.
 - Föreslå en kodändring: committa till en ny gren i ett anslutet repositorium och öppna en pull request. Den skriver aldrig till standardgrenen eller en skyddad gren, så en människa slår fortfarande ihop ändringen.
 
 ## Åtgärder görs som du
 
 Varje åtgärd Fråga AI utför görs som du: den gör samma ändring som instrumentpanelen gör för samma åtgärd, med dina egna behörigheter i projektet, och ändringen tillskrivs dig. Kvitteras en incident från chatten uppstår samma tillståndsändring som från incidentens tillståndspanel, så incidentens tidslinje och flöde visar att du ändrade dess tillstånd. Ett utlarm som skickas från chatten visar dig som den som utlöste det.
 
-- **Vad varje åtgärd kräver.** Den behörighet som instrumentpanelen kräver för samma ändring. Att kvittera eller lösa en incident kräver behörighet att ändra dess tillstånd: **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin** och **Incident Member**, eller **Create Incident State Timeline** i en anpassad roll; en varning kräver samma behörighet för varningar (**Create Alert State Timeline**). Att larma en jourpolicy kräver behörighet att köra den (**Create On-Call Duty Policy Execution Log**), och att köra en runbook kräver behörighet att starta runbook-körningar: en roll som kör runbooks, för de runbooks dess etiketter når, eller **Create Runbook Execution** i en anpassad roll, som når varje runbook i projektet. Att ändra en incidents allvarlighetsgrad, starta en AI-undersökning av en incident eller varning och skriva kod till ett anslutet repositorium kräver behörighet att ändra den incidenten, varningen eller det repositoriet. En åtgärd du inte får utföra avvisas, och AI:n berättar vilken behörighet som krävs. Har du behörigheten men ett team du tillhör blockerar den, säger AI:n det i stället: en blockering på vissa etiketter avvisar åtgärden i Fråga AI för alla poster, inte bara för poster med de etiketterna.
+- **Vad varje åtgärd kräver.** Den behörighet som instrumentpanelen kräver för samma ändring. Att kvittera eller lösa en incident kräver behörighet att ändra dess tillstånd: **Projektägare**, **Projektadministratör**, **Projektmedlem**, **Incidentadministratör** och **Incidentmedlem**, eller **Create Incident State Timeline** i en anpassad roll; ett larm kräver samma behörighet för larm (**Create Alert State Timeline**). Att larma en jourpolicy kräver behörighet att köra den (**Create On-Call Duty Policy Execution Log**), och att köra en runbook kräver behörighet att starta runbook-körningar: en roll som kör runbooks, för de runbooks dess etiketter når, eller **Create Runbook Execution** i en anpassad roll, som når varje runbook i projektet. Att ändra en incidents allvarlighetsgrad, starta en AI-undersökning av en incident eller larm och skriva kod till ett anslutet repositorium kräver behörighet att ändra den incidenten, larmet eller det repositoriet. En åtgärd du inte får utföra avvisas, och AI:n berättar vilken behörighet som krävs. Har du behörigheten men ett team du tillhör blockerar den, säger AI:n det i stället: en blockering på vissa etiketter avvisar åtgärden i Fråga AI för alla poster, inte bara för poster med de etiketterna.
 - **Vilka poster.** De du får ändra, som överallt i OneUptime: med en roll som är begränsad till vissa etiketter, eller till de poster du äger, ändrar en åtgärd på någon annan post ingenting. En runbook körs bara när din behörighet att starta runbook-körningar når den. I OneUptime Cloud avvisas en åtgärd som projektets plan inte omfattar, med den plan som krävs.
 - **När en åtgärd avvisas.** Inget ändras, och AI:n säger tydligt att åtgärden inte utfördes, och varför, i stället för att försöka igen.
 - **Slack, Microsoft Teams och AI-undersökningar.** AI:ns svar i Slack och Microsoft Teams, och autonoma AI-undersökningar, bara läser: de utför ingen av dessa åtgärder. För att agera från Slack eller Microsoft Teams använder du knapparna på OneUptimes meddelanden, som också agerar som du (se [Slack](/docs/workspace-connections/slack#agera-på-incidenter-larm-och-händelser-från-slack) och [Microsoft Teams](/docs/workspace-connections/microsoft-teams#agera-på-incidenter-larm-och-händelser-från-microsoft-teams)).
@@ -107,7 +107,7 @@ Varje åtgärd Fråga AI utför görs som du: den gör samma ändring som instru
 - **Growth-planen, i OneUptime Cloud.** Ett projekt på en lägre plan ser att AI inte ingår i planen, med en länk till **Projektinställningar → Fakturering och fakturor → Fakturering**.
 - **AI påslaget för projektet.** **Aktivera AI**, på **Projektinställningar → AI → AI Features**, stänger av alla projektets AI-funktioner, Fråga AI inräknat. Det är på om inte någon har stängt av det.
 
-Fråga AI räknas in i projektets egna dagliga AI-gränser när projektet sätter dem (Projektinställningar → AI → AI Features → Fler inställningar): när en nås visar Fråga AI en mening som säger vilken gräns som nåtts, att OneUptime AI börjar igen vid midnatt UTC och vem som kan höja eller ta bort gränsen. Projektets ägare får ett e-postmeddelande första gången en gräns nås varje dag. De dagliga gränserna för incidenter och varningar stoppar aldrig Fråga AI. Se [projektets egna dagliga gränser](/docs/ai/ai-sre#projektets-egna-dagliga-gränser).
+Fråga AI räknas in i projektets egna dagliga AI-gränser när projektet sätter dem (Projektinställningar → AI → AI Features → Fler inställningar): när en nås visar Fråga AI en mening som säger vilken gräns som nåtts, att OneUptime AI börjar igen vid midnatt UTC och vem som kan höja eller ta bort gränsen. Projektets ägare får ett e-postmeddelande första gången en gräns nås varje dag. De dagliga gränserna för incidenter och larm stoppar aldrig Fråga AI. Se [projektets egna dagliga gränser](/docs/ai/ai-sre#projektets-egna-dagliga-gränser).
 
 ## Felsökning
 
@@ -126,7 +126,7 @@ Kontrollera modellen bakom leverantören. Fråga AI behöver en modell som anrop
 ## Nästa steg
 
 :::cards
-- [AI SRE](/docs/ai/ai-sre): Låt OneUptime AI undersöka varje ny incident och varning.
+- [AI SRE](/docs/ai/ai-sre): Låt OneUptime AI undersöka varje ny incident och larm.
 - [LLM-leverantörer](/docs/ai/llm-provider): Välj modellen som Fråga AI och de andra AI-funktionerna använder.
 - [MCP-server](/docs/ai/mcp-server): Fråga om OneUptime från Claude, Cursor eller VS Code i stället.
 :::

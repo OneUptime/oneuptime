@@ -42,20 +42,20 @@ Varje token får använda en andel av organisationens API-hastighetsgräns, som 
 
 ### Lägg till anslutningen i OneUptime
 
-Öppna **Produkter → Security Events → Connections** (`/dashboard/{projectId}/security-events/connections`), klicka på **Lägg till anslutning**, välj **Okta System Log** och klicka på **Nästa**. Fyll i inställningarna i tabellen nedan, klicka på **Nästa** och klistra in token i **API token**.
+Öppna **Produkter → Security Events → Anslutningar** (`/dashboard/{projectId}/security-events/connections`), klicka på **Lägg till anslutning**, välj **Okta System Log** och klicka på **Nästa**. Fyll i inställningarna i tabellen nedan, klicka på **Nästa** och klistra in token i **API token**.
 
 ### Testa den innan du sparar
 
-Klicka på **Test these settings** under **Testa innan du sparar**. Testet loggar in och läser händelser med värdena i formuläret och sparar ingenting, så en fel URL eller ett ogiltigt filter syns innan anslutningen finns. Klicka sedan på **Nästa**, ge anslutningen ett **Namn** och skapa den.
+Klicka på **Testa de här inställningarna** under **Testa innan du sparar**. Testet loggar in och läser händelser med värdena i formuläret och sparar ingenting, så en fel URL eller ett ogiltigt filter syns innan anslutningen finns. Klicka sedan på **Nästa**, ge anslutningen ett **Namn** och skapa den.
 :::
 
 | Inställning | Vad du anger |
 | --- | --- |
 | **Okta organization URL** | Adressen som dina användare loggar in på, till exempel `https://acme.okta.com`, `https://acme.oktapreview.com` eller `https://login.example.com`. Den måste använda `https`, utan sökväg. Inte Admin Consoles `-admin`-adress, som inte erbjuder API:t. |
 | **Event filter** | Valfritt. Ett [System Log-filter](https://developer.okta.com/docs/reference/core-okta-api/#filter) som väljer vilka händelser som importeras, till exempel `eventType sw "user.session" or eventType sw "security"`. Tomt importerar familjerna nedan. Högst 2 000 tecken, på en rad, och inte på `published`: OneUptime anger själv tidsintervallet. |
-| **API token** | Tokens värde, ensamt: OneUptime lägger själv till schemat `SSWS`. Det krypteras, returneras aldrig av API:t och visas aldrig igen. Ersätt det med **Update credentials** på anslutningen. |
+| **API token** | Tokens värde, ensamt: OneUptime lägger själv till schemat `SSWS`. Det krypteras, returneras aldrig av API:t och visas aldrig igen. Ersätt det med **Uppdatera inloggningsuppgifter** på anslutningen. |
 
-Steget **Polling** har också en valfri **Beskrivning**, **Poll Interval (Minutes)**, ett heltal från `1` till `1440` som börjar på `5`, och **Aktiverad**, som börjar påslagen.
+Steget **Hämtning** har också en valfri **Beskrivning**, **Hämtningsintervall (minuter)**, ett heltal från `1` till `1440` som börjar på `5`, och **Aktiverad**, som börjar påslagen.
 
 ## Vad som importeras
 
@@ -116,14 +116,14 @@ GET {Okta organization URL}/api/v1/logs?since={window start}&until={window end}&
 - **Publiceringstiden är markören.** En System Log-händelse är själva aktiviteten, så `published` är både när den inträffade och det som avsökningen läser.
 - **Den första avsökningen ser 24 timmar bakåt**, så att en ny anslutning direkt visar sina senaste händelser.
 - **Varje senare avsökning börjar 15 minuter före den sparade markören.** Okta varnar för att en begäran med en sluttid kan utelämna fördröjda händelser, vilket Okta kallar ovanligt. Överlappningen läser dem vid nästa avsökning. En händelse som är fördröjd mer än 15 minuter kan hamna bakom markören: importera dess tidsintervall för att hämta den.
-- **En avsökning läser högst 24 timmar förbi markören.** En anslutning vars markör har hamnat efter kommer ikapp i en serie fönster på 24 timmar, och dess **Health** visar **Catching up**.
+- **En avsökning läser högst 24 timmar förbi markören.** En anslutning vars markör har hamnat efter kommer ikapp i en serie fönster på 24 timmar, och dess **Hälsa** visar **Catching up**.
 - **Dubbletter tas bort efter `uuid`** inom projektet, så att överlappningen, ett upprepat fönster och en import aldrig sparar en händelse två gånger.
 
 En `next`-länk som pekar någon annanstans än din **Okta organization URL** följs aldrig, eftersom token skickas med varje begäran.
 
 ### När ett fönster innehåller mer än en avsökning kan läsa
 
-En avsökning läser högst 10 000 händelser, i högst 20 begäranden. När ett fönster innehåller fler blir körningen **Partial**, med en varning som:
+En avsökning läser högst 10 000 händelser, i högst 20 begäranden. När ett fönster innehåller fler blir körningen **Delvis**, med en varning som:
 
 ```text
 Stopped after collecting 10000 events; the window holds more. The last event read was published at 2026-09-14T08:12:44.000Z.
@@ -135,22 +135,22 @@ När en körning inte alls kommer förbi den sparade markören, till exempel fö
 
 1. **Smalna av.** Nästa avsökning läser ett fönster som är hälften så långt, från samma startpunkt, och fortsätter att halvera tills ett fönster läses helt, ner till en minut. Körningens varning säger det: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **Växa igen.** När ett fönster har lästs helt är nästa dubbelt så långt igen, upp till 24 timmar.
-3. **Gå förbi en enda minut.** Om till och med en minut innehåller mer än en avsökning kan läsa går avsökningen förbi den, så att nyare händelser fortsätter att komma, och senare avsökningars överlappning når inte längre tillbaka till den. Körningen förblir **Partial**, och **Senaste fel** lyder `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importera den minuten med **Import this time range** för att hämta det som en körning kan läsa, eller begränsa **Event filter**.
+3. **Gå förbi en enda minut.** Om till och med en minut innehåller mer än en avsökning kan läsa går avsökningen förbi den, så att nyare händelser fortsätter att komma, och senare avsökningars överlappning når inte längre tillbaka till den. Körningen förblir **Delvis**, och **Senaste fel** lyder `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importera den minuten med **Import this time range** för att hämta det som en körning kan läsa, eller begränsa **Event filter**.
 
-En körning som misslyckas helt, med ett fel från Okta, behåller markören och fönsterlängden, och nästa avsökning läser samma fönster igen. Det enda undantaget är en begäran som fick tidsgräns: markören stannar, men nästa fönster är hälften så långt, eftersom ett fönster som är för tungt för att besvaras i tid skulle få tidsgräns vid varje försök. Att ändra **Poll Interval (Minutes)** ändrar inget av detta: det avgör hur ofta en avsökning startar, inte var dess fönster börjar.
+En körning som misslyckas helt, med ett fel från Okta, behåller markören och fönsterlängden, och nästa avsökning läser samma fönster igen. Det enda undantaget är en begäran som fick tidsgräns: markören stannar, men nästa fönster är hälften så långt, eftersom ett fönster som är för tungt för att besvaras i tid skulle få tidsgräns vid varje försök. Att ändra **Hämtningsintervall (minuter)** ändrar inget av detta: det avgör hur ofta en avsökning startar, inte var dess fönster börjar.
 
 ### Kör, förhandsgranska och importera vid behov
 
-Klicka på **Diagnostics** på en anslutning för att se dess senaste körningar och arbeta med den manuellt. Alla som kan ändra anslutningen kan starta de här åtgärderna; alla som kan se den kan läsa historiken.
+Klicka på **Diagnostik** på en anslutning för att se dess senaste körningar och arbeta med den manuellt. Alla som kan ändra anslutningen kan starta de här åtgärderna; alla som kan se den kan läsa historiken.
 
-- **Run now** startar en avsökning direkt, med den vanliga markören, även när anslutningen inte är **Aktiverad**.
+- **Kör nu** startar en avsökning direkt, med den vanliga markören, även när anslutningen inte är **Aktiverad**.
 - **Preview log events** läser ett tidsintervall på upp till 7 dagar och importerar ingenting.
 - **Import this time range** importerar ett intervall på upp till 7 dagar, efter att du har bekräftat, utan att flytta markören. Händelser som redan har importerats hoppas över. Okta sparar 90 dagars System Log.
 - **Copy diagnostics** på en körning kopierar dess rapport till supporten. Den innehåller aldrig autentiseringsuppgifter.
 
 ## Testa anslutningen
 
-**Testa anslutningen** på en anslutnings rad och **Test these settings** i formuläret körs i API-processen, inte i en bakgrundsworker, så att ett test svarar även när det är workerna som är problemet. Det kör de här kontrollerna i ordning:
+**Testa anslutningen** på en anslutnings rad och **Testa de här inställningarna** i formuläret körs i API-processen, inte i en bakgrundsworker, så att ett test svarar även när det är workerna som är problemet. Det kör de här kontrollerna i ordning:
 
 | Kontroll | Vad den kontrollerar |
 | --- | --- |
@@ -172,7 +172,7 @@ Okta avvisade begärans parametrar, `E0000053`. När token fungerade är det nä
 :::
 
 :::details Last Error säger `failed (HTTP 401)` eller `failed (HTTP 403)`
-- `HTTP 401`: Okta godtog inte token, `E0000011`. Den har återkallats, varit oanvänd i 30 dagar, eller inaktiverats tillsammans med sin administratör; eller så klistrades den in med `SSWS` eller ett extra tecken. Skapa en ny token som skrivskyddad administratör och spara den med **Update credentials**.
+- `HTTP 401`: Okta godtog inte token, `E0000011`. Den har återkallats, varit oanvänd i 30 dagar, eller inaktiverats tillsammans med sin administratör; eller så klistrades den in med `SSWS` eller ett extra tecken. Skapa en ny token som skrivskyddad administratör och spara den med **Uppdatera inloggningsuppgifter**.
 - `HTTP 403`: token loggar in, men dess administratör kan inte läsa System Log, `E0000006`. Skapa den som Read-only Administrator eller Super Administrator, och kontrollera att dess nätverkszon tillåter de adresser som OneUptime anropar från.
 :::
 
@@ -194,8 +194,8 @@ Ingen avsökning har slutförts för den här anslutningen. Kör **Testa anslutn
 :::
 
 :::details En körning är Partial
-- `Stopped after collecting 10000 events`: fönstret innehöll mer än de 10 000 händelser som en körning läser. Ingenting går förlorat: nästa avsökning börjar efter den senast lästa händelsen. En anslutning som förblir **Partial** avsökning efter avsökning håller på att komma ikapp en eftersläpning, och dess **Last Polled** och **Last Event Imported** fortsätter att flytta fram. Om den aldrig kommer ikapp publicerar organisationen fler matchande händelser än ett avsökningsintervall rymmer: begränsa **Event filter**, eller gör **Poll Interval (Minutes)** kortare.
-- `More records were created in the one minute from ... than one poll can read`: avsökningen gick förbi den minuten. Importera den med **Import this time range** i **Diagnostics**. En import läser lika mycket som en avsökning.
+- `Stopped after collecting 10000 events`: fönstret innehöll mer än de 10 000 händelser som en körning läser. Ingenting går förlorat: nästa avsökning börjar efter den senast lästa händelsen. En anslutning som förblir **Delvis** avsökning efter avsökning håller på att komma ikapp en eftersläpning, och dess **Senast hämtad** och **Senast importerade händelse** fortsätter att flytta fram. Om den aldrig kommer ikapp publicerar organisationen fler matchande händelser än ett avsökningsintervall rymmer: begränsa **Event filter**, eller gör **Hämtningsintervall (minuter)** kortare.
+- `More records were created in the one minute from ... than one poll can read`: avsökningen gick förbi den minuten. Importera den med **Import this time range** i **Diagnostik**. En import läser lika mycket som en avsökning.
 :::
 
 :::details Testet lyckas, men ingenting importeras

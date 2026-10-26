@@ -55,7 +55,7 @@ Elke gebruiker, host en elk adres dat een zaak of een gebeurtenis noemt, wordt o
 
 ## Wat elk record toont
 
-- De signalen, elk geopend op het record en de periode van de zaak: **Logboeken**, **Traces** en **Metrieken**, de **Uitzonderingen** van een service, de **Kubernetes-gebeurtenissen** van een cluster, de **Topologie** van het record en het item in **Inventory** als de inventaris er een heeft.
+- De signalen, elk geopend op het record en de periode van de zaak: **Logboeken**, **Traces** en **Metrieken**, de **Uitzonderingen** van een service, de **Kubernetes-gebeurtenissen** van een cluster, de **Topologie** van het record en het item in **Inventaris** als de inventaris er een heeft.
 - De incidenten en waarschuwingen die er nu openstaan, en de monitoren die het bewaken, elk met een eigen pagina.
 - Wat er in de periode is veranderd: de deploys van een service, de rollouts van een cluster en de oplossingen van een host.
 

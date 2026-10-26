@@ -82,7 +82,7 @@ Pour le personnel, utilisez **Ajouter en masse** sur **Abonnés e-mail**, et pr�
 
 ### Laisser les intervenants lire les pages de statut
 
-Le sélecteur ne liste que les pages de statut que la personne peut lire, et les rôles d'incident ne peuvent pas lire les pages de statut. Donnez aux intervenants le rôle **Status Page Viewer** en plus de leur rôle d'incident ; il peut être limité aux pages qui portent certaines étiquettes. Sans lui, le sélecteur est vide.
+Le sélecteur ne liste que les pages de statut que la personne peut lire, et les rôles d'incident ne peuvent pas lire les pages de statut. Donnez aux intervenants le rôle **Lecteur des pages de statut** en plus de leur rôle d'incident ; il peut être limité aux pages qui portent certaines étiquettes. Sans lui, le sélecteur est vide.
 
 ### Décider de ce que dit chaque message
 
@@ -251,7 +251,7 @@ Voir [Notes, propriétaires et fil d'incident](/docs/incidents/notes-owners-and-
 
 ## Autorisations
 
-- **Choisir une page de statut nécessite un accès en lecture à celle-ci.** Les pages de statut se lisent selon les rôles de page de statut, pas selon les rôles d'incident, et une page de statut peut être restreinte par étiquette. Donnez aux intervenants **Status Page Viewer**, limité à des étiquettes si vous le souhaitez. Sans lui, le sélecteur est vide, et l'API refuse une page que l'appelant ne peut pas lire, sur les incidents comme sur les modèles d'incident.
+- **Choisir une page de statut nécessite un accès en lecture à celle-ci.** Les pages de statut se lisent selon les rôles de page de statut, pas selon les rôles d'incident, et une page de statut peut être restreinte par étiquette. Donnez aux intervenants **Lecteur des pages de statut**, limité à des étiquettes si vous le souhaitez. Sans lui, le sélecteur est vide, et l'API refuse une page que l'appelant ne peut pas lire, sur les incidents comme sur les modèles d'incident.
 - **Les pages que le rédacteur ne voit pas sont conservées.** Un rédacteur qui ne peut lire que certaines des pages d'un incident ne voit que celles-là dans le sélecteur, et l'enregistrement conserve les pages qu'il ne voit pas.
 - **Les pages auxquelles un incident est limité font partie de l'incident.** Comme ses moniteurs, toute personne qui peut lire l'incident voit leurs noms, sur la carte **Portée des pages de statut**, la vue d'ensemble et dans le fil de l'incident, qu'elle puisse lire ces pages de statut ou non.
 - **Ce qu'un envoi a atteint fait aussi partie de l'incident.** Une fois une notification partie, son message de statut et son élément de fil nomment chaque page de statut vers laquelle elle est partie, avec ce qui a été envoyé et ce qui a échoué sur chacune, et toute personne qui peut lire l'incident les voit, qu'elle puisse lire ces pages de statut ou non. Seuls le résumé et l'aperçu ci-dessous, qui regardent vers l'avant, s'en tiennent aux pages que la personne peut lire.

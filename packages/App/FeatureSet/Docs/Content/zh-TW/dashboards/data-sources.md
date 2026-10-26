@@ -46,7 +46,7 @@ flowchart TB
 :::steps
 ### 開啟資料來源
 
-開啟 **產品 → 儀表板** ，在側邊選單中展開 **設定** ，然後點選 **Data Sources** 。
+開啟 **產品 → 儀表板** ，在側邊選單中展開 **設定** ，然後點選 **資料來源** 。
 
 ### 選擇類型
 
@@ -62,20 +62,20 @@ flowchart TB
 
 ### 說明如何登入
 
-在 **驗證** 底下，輸入 **使用者名稱** 和 **密碼** ；若是 HTTP 來源，則輸入以 Bearer 權杖傳送的 **API Token** 。 **更多欄位** 中包含 **Custom HTTP Headers** （例如 `{ "X-Scope-OrgID": "tenant-1" }` ）和 **Additional Options** ：資料庫使用 `sslEnabled` 和 `sslRejectUnauthorized` ，Elasticsearch 使用 `elasticsearchIndex` ，未設定時 Elasticsearch 會讀取所有索引（ `*` ）。
+在 **驗證** 底下，輸入 **使用者名稱** 和 **密碼** ；若是 HTTP 來源，則輸入以 Bearer 權杖傳送的 **API 權杖** 。 **更多欄位** 中包含 **Custom HTTP Headers** （例如 `{ "X-Scope-OrgID": "tenant-1" }` ）和 **Additional Options** ：資料庫使用 `sslEnabled` 和 `sslRejectUnauthorized` ，Elasticsearch 使用 `elasticsearchIndex` ，未設定時 Elasticsearch 會讀取所有索引（ `*` ）。
 
 ### 測試
 
 點選 **建立Data Source** ，然後點選它所在列的 **測試** 。OneUptime 會用你提供的資訊連線，並告訴你是否成功或哪裡出了問題。
 :::
 
-之後要修改資料來源，請從清單中開啟它。 **Data Source Details** 上的 **編輯** 可以修改機密資訊以外的所有內容； **Update Credentials** 會取代密碼、權杖或標頭，留空的欄位則維持不變； **測試** 會再次檢查它。
+之後要修改資料來源，請從清單中開啟它。 **Data Source Details** 上的 **編輯** 可以修改機密資訊以外的所有內容； **更新憑證** 會取代密碼、權杖或標頭，留空的欄位則維持不變； **測試** 會再次檢查它。
 
 ## 在小工具中使用
 
 編輯儀表板，點選 **新增小工具** ，然後選擇外部資料來源分組中的小工具： **圖表** 、 **值** 、 **量測值** 或 **表格** 。在它的設定中：
 
-- 選擇 **Data Source** 並撰寫 **Query** 。編輯器會顯示查詢語言的名稱，並提供該類型的範例。
+- 選擇 **Data Source** 並撰寫 **查詢** 。編輯器會顯示查詢語言的名稱，並提供該類型的範例。
 - 在圖表上， **新增查詢** 會在同一座標軸上疊加更多查詢，而 **Legend (optional)** 設定會依標籤為每條序列命名： `{{instance}} — errors` 會把序列的 `instance` 標籤寫在最前面。
 - 在值或量測值上， **Reduce** 會把資料點歸約為一個數字：最新值（預設）、第一個值、平均值、總和、最小值或最大值。 **Unit** 會加上後綴，並換算已知單位： `Bytes` 顯示為 1.5 MB， `ms` 顯示為 2.4 s。
 - 在表格上，任何唯讀查詢都可以使用，列會依傳回的樣子顯示。
@@ -162,7 +162,7 @@ Prometheus 和 Loki 的範圍查詢會在整個時間範圍內要求大約 250 �
 ## 安全防護
 
 - **SQL 保持唯讀。** 查詢必須是一條以 `SELECT` 、 `WITH` 、 `SHOW` 、 `EXPLAIN` 、 `DESCRIBE` 或 `DESC` 開頭的陳述式。會寫入或變更工作階段的字詞，例如 `INSERT` 、 `UPDATE` 、 `DELETE` 、 `DROP` 、 `INTO` 或 `SET` ，在字串和加上引號的名稱以外的任何位置都會被拒絕，因此請為與它們同名的欄加上引號。在字串中以兩個引號（ `''` ）表示一個引號：引號前的反斜線會被拒絕。PostgreSQL、MySQL 和 ClickHouse 的工作階段也是唯讀的。SQL Server 沒有唯讀工作階段，因此請用唯讀登入帳號連線它。
-- **認證資訊唯寫。** **密碼** 、 **API Token** 和 **Custom HTTP Headers** 會加密儲存，API 永遠不會傳回它們，即使是傳回給你本人。
+- **認證資訊唯寫。** **密碼** 、 **API 權杖** 和 **Custom HTTP Headers** 會加密儲存，API 永遠不會傳回它們，即使是傳回給你本人。
 - **位址會被檢查。** 迴路位址、連結本機位址（雲端中繼資料所在之處）和其他保留位址在任何地方都會被拒絕。私人位址在 OneUptime Cloud 上會被拒絕，在自行託管的安裝中則會被允許，除非 `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` 為 `true` ：請參閱 [私有網路存取](/docs/self-hosted/private-network-access) 。
 - **公開儀表板永遠不會執行它們。** 外部資料來源小工具連同查詢一起，都會被排除在 [公開儀表板](/docs/dashboards/sharing) 之外。
 

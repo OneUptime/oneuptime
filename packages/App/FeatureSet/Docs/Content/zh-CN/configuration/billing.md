@@ -144,10 +144,10 @@ API 密钥需要 Growth 或更高的套餐，而在 Scale 套餐以下，SCIM �
 
 | 要做的事 | 需要 |
 | --- | --- |
-| 读取账单页面：套餐、发票、用量、余额和支付方式 | Project Owner、**Manage Billing**、**Billing Admin**、**Billing Member** 或 **Billing Viewer** |
-| 下载发票 | Project Owner、Project Admin、**Manage Billing**、**Read Invoices**、**Billing Admin** 或 **Billing Member** |
-| 更改账单地址和发票邮箱 | Project Owner、**Manage Billing**、**Billing Admin** 或 **Billing Member** |
-| 打开或关闭短信、电话、WhatsApp 或 Telegram | Project Owner、**Manage Billing** 或 **Billing Admin** |
+| 读取账单页面：套餐、发票、用量、余额和支付方式 | Project Owner、**Manage Billing**、**账单管理员**、**账单成员** 或 **账单查看者** |
+| 下载发票 | Project Owner、Project Admin、**Manage Billing**、**Read Invoices**、**账单管理员** 或 **账单成员** |
+| 更改账单地址和发票邮箱 | Project Owner、**Manage Billing**、**账单管理员** 或 **账单成员** |
+| 打开或关闭短信、电话、WhatsApp 或 Telegram | Project Owner、**Manage Billing** 或 **账单管理员** |
 | 添加支付方式 | Project Owner、**Manage Billing** 或 **Create Payment Method** |
 | 支付发票 | Project Owner、**Manage Billing** 或 **Edit Invoices** |
 | 更改套餐、为余额充值或更改自动充值 | Project Owner 或 **Manage Billing** |

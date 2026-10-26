@@ -24,7 +24,7 @@ flowchart TB
     execution --> worker["O Worker do OneUptime<br/>executa as etapas"]
 ```
 
-Um gatilho inicia uma execução como **Run Now** faz: a execução percorre as etapas atuais do runbook e não fica vinculada a nenhum incidente, alerta ou evento de manutenção programada. Cada execução registra o que a iniciou. As **Execuções** do runbook e **Runbooks → Execuções** mostram isso em **Acionado por**, com o horário previsto de uma execução agendada ou o endereço que chamou o webhook, e as duas listas podem ser filtradas por isso.
+Um gatilho inicia uma execução como **Executar agora** faz: a execução percorre as etapas atuais do runbook e não fica vinculada a nenhum incidente, alerta ou evento de manutenção programada. Cada execução registra o que a iniciou. As **Execuções** do runbook e **Runbooks → Execuções** mostram isso em **Acionado por**, com o horário previsto de uma execução agendada ou o endereço que chamou o webhook, e as duas listas podem ser filtradas por isso.
 
 ## Antes de começar
 
@@ -44,7 +44,7 @@ Clique em **Configurar agendamento**. Em **Quando é executado**, escolha uma op
 **Fuso horário** começa com o seu. Os horários do agendamento são lidos no relógio desse fuso.
 
 ### Salvar
-Clique em **Salvar agendamento**. O agendamento é ativado, e o cartão o mostra em uma frase com as **Next runs**.
+Clique em **Salvar agendamento**. O agendamento é ativado, e o cartão o mostra em uma frase com as **Próximas execuções**.
 :::
 
 | **Repetir** | O que você escolhe | Por exemplo |
@@ -102,7 +102,7 @@ curl -X POST "https://oneuptime.com/runbook/webhook/RUNBOOK_ID/SECRET_KEY" \
 ```
 
 ### Conferir a execução
-A resposta indica a execução iniciada: `{"runbookExecutionId": "...", "status": "Scheduled"}`. A execução aparece nas **Execuções** do runbook, onde **Acionado por** diz **Webhook**, e a página dela mostra o que a chamada enviou em **Inputs**.
+A resposta indica a execução iniciada: `{"runbookExecutionId": "...", "status": "Scheduled"}`. A execução aparece nas **Execuções** do runbook, onde **Acionado por** diz **Webhook**, e a página dela mostra o que a chamada enviou em **Entradas**.
 :::
 
 **Enviar solicitação de teste** envia para a URL um `POST` com um corpo que você escreve, como outra ferramenta faria, e vincula a execução iniciada. É uma execução real do runbook.
@@ -136,7 +136,7 @@ Os valores de nível superior do corpo viram as entradas da execução. Eles che
 | --- | --- |
 | Bash e kubectl | Variáveis de ambiente: uma `ONEUPTIME_INPUT_<NAME>` para cada valor de nível superior, `ONEUPTIME_INPUTS` com o objeto inteiro em JSON e `ONEUPTIME_TRIGGER` com o que iniciou a execução, como `Webhook` ou `Schedule`. |
 | JavaScript | `args.inputs`, o objeto como foi enviado, e `args.trigger`. |
-| AI | No prompt, marcadas como dados de fora do OneUptime, quando **Include trigger context** está ativado. |
+| AI | No prompt, marcadas como dados de fora do OneUptime, quando **Incluir o contexto do gatilho** está ativado. |
 | HTTP request e SSH | De forma alguma. A URL, o script e o destino deles são o que está escrito no runbook, e nada que quem chama envia os altera. |
 
 O nome de uma variável é o nome do valor em maiúsculas, com cada caractere que não seja letra ou dígito escrito como `_`: `host-name` vira `ONEUPTIME_INPUT_HOST_NAME`. Texto é passado como está, números e `true` ou `false` como escritos, e objetos e listas como JSON. Uma etapa recebe no máximo 100 dessas variáveis, e um nome com mais de 100 caracteres não vira nenhuma; todo valor continua em `ONEUPTIME_INPUTS`. Todo nome começa com `ONEUPTIME_`, então quem chama não consegue definir `PATH` nem nenhuma outra variável que o Runner lê.
@@ -163,7 +163,7 @@ return { host };
 
 ## Quem pode configurar gatilhos
 
-Um agendamento ou um webhook inicia execuções sem ninguém presente, então configurar um exige permissão para editar o runbook e para executá-lo: Project Owner, Project Admin ou Runbook Admin, ou **Edit Runbook** junto com Project Member, Runbook Member ou **Create Runbook Execution**. Os rótulos aos quais uma função está limitada contam, como em **Run Now**. Ver ou redefinir a URL do webhook exige o mesmo.
+Um agendamento ou um webhook inicia execuções sem ninguém presente, então configurar um exige permissão para editar o runbook e para executá-lo: Project Owner, Project Admin ou Runbook Admin, ou **Edit Runbook** junto com Project Member, Runbook Member ou **Create Runbook Execution**. Os rótulos aos quais uma função está limitada contam, como em **Executar agora**. Ver ou redefinir a URL do webhook exige o mesmo.
 
 Desativar um agendamento ou um webhook não inicia nada, então exige apenas permissão para editar o runbook. Quem pode editar o runbook mas não executá-lo vê a página **Gatilhos** com **Configurar agendamento** bloqueado, e fica sabendo quem pode ver a URL do webhook.
 

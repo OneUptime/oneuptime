@@ -160,7 +160,7 @@ Sporfelter tager en almindelig værdi eller en liste som `status:(ok OR unset)`,
 
 Løse ord søger i undtagelsesbeskeden.
 
-Udforskeren **Security Events** bruger samme sprog med sine egne felter, såsom `severity`, `tactic` og `user`: se [Security Events](/docs/telemetry/security-events).
+Udforskeren **Sikkerhedshændelser** bruger samme sprog med sine egne felter, såsom `severity`, `tactic` og `user`: se [Security Events](/docs/telemetry/security-events).
 
 ## Kombination af filtre
 

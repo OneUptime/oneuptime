@@ -24,7 +24,7 @@ flowchart TB
     execution --> worker["OneUptime Worker<br/>kører trinnene"]
 ```
 
-En udløser starter en kørsel, som **Run Now** gør: kørslen gennemgår runbookets nuværende trin og er ikke knyttet til nogen hændelse, nogen advarsel eller noget planlagt vedligeholdelsesarrangement. Hver kørsel registrerer, hvad der startede den. Runbookets **Udførelser** og **Runbooks → Udførelser** viser det under **Udløst af**, med hvornår en planlagt kørsel skulle ske, eller den adresse, der kaldte webhooken, og begge lister kan filtreres efter det.
+En udløser starter en kørsel, som **Kør nu** gør: kørslen gennemgår runbookets nuværende trin og er ikke knyttet til nogen hændelse, nogen advarsel eller noget planlagt vedligeholdelsesarrangement. Hver kørsel registrerer, hvad der startede den. Runbookets **Udførelser** og **Runbooks → Udførelser** viser det under **Udløst af**, med hvornår en planlagt kørsel skulle ske, eller den adresse, der kaldte webhooken, og begge lister kan filtreres efter det.
 
 ## Før du begynder
 
@@ -44,7 +44,7 @@ Klik på **Opret tidsplan**. Under **Hvornår den kører** vælger du en mulighe
 **Tidszone** starter med din egen. Tidsplanens tidspunkter læses på denne zones ur.
 
 ### Gem den
-Klik på **Gem tidsplan**. Tidsplanen slås til, og kortet viser den i én sætning med dens **Next runs**.
+Klik på **Gem tidsplan**. Tidsplanen slås til, og kortet viser den i én sætning med dens **Næste kørsler**.
 :::
 
 | **Gentag** | Hvad du vælger | For eksempel |
@@ -102,7 +102,7 @@ curl -X POST "https://oneuptime.com/runbook/webhook/RUNBOOK_ID/SECRET_KEY" \
 ```
 
 ### Tjek kørslen
-Svaret navngiver den kørsel, det startede: `{"runbookExecutionId": "...", "status": "Scheduled"}`. Kørslen står under runbookets **Udførelser**, hvor **Udløst af** siger **Webhook**, og dens side viser under **Inputs**, hvad kaldet sendte.
+Svaret navngiver den kørsel, det startede: `{"runbookExecutionId": "...", "status": "Scheduled"}`. Kørslen står under runbookets **Udførelser**, hvor **Udløst af** siger **Webhook**, og dens side viser under **Input**, hvad kaldet sendte.
 :::
 
 **Send testanmodning** sender en `POST` med en brødtekst, du skriver, til URL'en, som et andet værktøj ville, og linker til den kørsel, den startede. Det er en rigtig kørsel af runbooket.
@@ -136,7 +136,7 @@ Brødtekstens værdier på øverste niveau bliver kørslens input. De når trinn
 | --- | --- |
 | Bash og kubectl | Miljøvariabler: én `ONEUPTIME_INPUT_<NAME>` for hver værdi på øverste niveau, `ONEUPTIME_INPUTS` med hele objektet som JSON og `ONEUPTIME_TRIGGER` med det, der startede kørslen, som `Webhook` eller `Schedule`. |
 | JavaScript | `args.inputs`, objektet som sendt, og `args.trigger`. |
-| AI | I sin prompt, markeret som data udefra OneUptime, når **Include trigger context** er slået til. |
+| AI | I sin prompt, markeret som data udefra OneUptime, når **Medtag udløserkontekst** er slået til. |
 | HTTP request og SSH | Slet ikke. Deres URL, script og mål er det, runbooket siger, og intet, en kalder sender, ændrer dem. |
 
 En variabels navn er værdiens navn med store bogstaver, hvor hvert tegn, der ikke er et bogstav eller et ciffer, skrives som `_`: `host-name` bliver til `ONEUPTIME_INPUT_HOST_NAME`. Tekst sendes, som den er, tal og `true` eller `false` som skrevet, og objekter og lister som JSON. Et trin får højst 100 af disse variabler, og et navn på mere end 100 tegn bliver til ingen; hver værdi står stadig i `ONEUPTIME_INPUTS`. Hvert navn begynder med `ONEUPTIME_`, så en kalder ikke kan sætte `PATH` eller nogen anden variabel, som Runneren læser.
@@ -163,7 +163,7 @@ return { host };
 
 ## Hvem må sætte udløsere op
 
-En tidsplan eller en webhook starter kørsler, uden at nogen er til stede, så det kræver tilladelse til at redigere runbooket og til at køre det at sætte en op: Project Owner, Project Admin eller Runbook Admin, eller **Edit Runbook** sammen med Project Member, Runbook Member eller **Create Runbook Execution**. De etiketter, en rolle er begrænset til, tæller med, som de gør for **Run Now**. At se eller nulstille webhook-URL'en kræver det samme.
+En tidsplan eller en webhook starter kørsler, uden at nogen er til stede, så det kræver tilladelse til at redigere runbooket og til at køre det at sætte en op: Project Owner, Project Admin eller Runbook Admin, eller **Edit Runbook** sammen med Project Member, Runbook Member eller **Create Runbook Execution**. De etiketter, en rolle er begrænset til, tæller med, som de gør for **Kør nu**. At se eller nulstille webhook-URL'en kræver det samme.
 
 At slå en tidsplan eller en webhook fra starter intet, så det kræver kun tilladelse til at redigere runbooket. Den, der må redigere runbooket, men ikke køre det, ser siden **Udløsere** med **Opret tidsplan** låst og får at vide, hvem der kan se webhook-URL'en.
 

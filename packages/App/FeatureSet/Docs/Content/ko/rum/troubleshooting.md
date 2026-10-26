@@ -39,7 +39,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 | `200`과 `"valid": true` | OneUptime이 키를 받아들입니다. 응답에는 키의 `keyType`과 `projectId`도 들어 있습니다. 다음 확인으로 넘어가세요. |
 | `401`과 `"valid": false` | 키가 없거나, 알 수 없거나, 취소되었거나, 꺼졌거나, 만료되었으며, `message`가 어느 쪽인지 알려 줍니다. **프로젝트 설정 → 텔레메트리 및 APM → 수집 키**에서 유효한 키를 만드세요. |
 
-웹 앱에는 **Browser** 키가, 모바일 앱에는 **서버** 키가 필요합니다. [브라우저 설정](/docs/rum/browser-setup)과 [모바일 설정](/docs/rum/mobile-setup)을 참고하세요. 내보내기 엔드포인트도 OTLP 사양에 따라 잘못된 키를 `401`로 거부하므로, 잘 동작하는 SDK는 재시도하지 않고 거부를 로그에 남깁니다. 그 줄은 브라우저 콘솔에서 놓치기 쉽지만, 이 확인은 바로 답을 줍니다.
+웹 앱에는 **브라우저** 키가, 모바일 앱에는 **서버** 키가 필요합니다. [브라우저 설정](/docs/rum/browser-setup)과 [모바일 설정](/docs/rum/mobile-setup)을 참고하세요. 내보내기 엔드포인트도 OTLP 사양에 따라 잘못된 키를 `401`로 거부하므로, 잘 동작하는 SDK는 재시도하지 않고 거부를 로그에 남깁니다. 그 줄은 브라우저 콘솔에서 놓치기 쉽지만, 이 확인은 바로 답을 줍니다.
 
 ## 브라우저에서 나가는 것 확인하기
 
@@ -77,7 +77,7 @@ new BatchSpanProcessor(exporter, { maxExportBatchSize: 100 });
 
 스팬이 전체 스택 트레이스나 응답 본문 같은 큰 속성을 담지 않는 한, 브라우저가 이렇게 큰 배치를 보내는 일은 드뭅니다. 그런 속성을 줄이는 편이 더 나은 해결책입니다.
 
-**`422`.** OneUptime이 여기서 키를 거부했으며, 메시지가 이유를 알려 줍니다. `Origin https://app.example.com is not allowed for this browser ingestion key.`는 스킴과 포트(있는 경우)를 포함한 페이지의 정확한 출처가 키의 **Allowed Origins**에 없다는 뜻입니다. `This telemetry ingestion key has been disabled.`는 누군가 키를 껐다는 뜻입니다.
+**`422`.** OneUptime이 여기서 키를 거부했으며, 메시지가 이유를 알려 줍니다. `Origin https://app.example.com is not allowed for this browser ingestion key.`는 스킴과 포트(있는 경우)를 포함한 페이지의 정확한 출처가 키의 **허용된 출처**에 없다는 뜻입니다. `This telemetry ingestion key has been disabled.`는 누군가 키를 껐다는 뜻입니다.
 
 **`429`.** 키의 **Requests Per Minute Limit**을 다 썼습니다: `Too many telemetry requests for this ingestion key. Please retry later.` Browser 키는 키에 직접 한도를 설정하지 않는 한, 모든 방문자를 합쳐 분당 6000개의 요청을 허용합니다.
 
@@ -139,7 +139,7 @@ localStorage.setItem("oneuptime.sessionReplay.debug", "true");
 // then reload the page
 ```
 
-애플리케이션의 **Session Replay** 섹션에 있는 **Health** 페이지와 **Replay Policy**의 **Test your installation** 패널은 서버 측에서 키, 허용 목록, 정책을 확인하고 아무것도 도착하지 않는 이유를 알려 줍니다. 브라우저 콘솔은 서버가 볼 수 없는 나머지 절반을 알려 줍니다.
+애플리케이션의 **세션 리플레이** 섹션에 있는 **상태** 페이지와 **Replay Policy**의 **Test your installation** 패널은 서버 측에서 키, 허용 목록, 정책을 확인하고 아무것도 도착하지 않는 이유를 알려 줍니다. 브라우저 콘솔은 서버가 볼 수 없는 나머지 절반을 알려 줍니다.
 
 기본 정책에서는 사용자가 페이지와 상호 작용하는 동안 레코더가 약 15초마다 청크를 보냅니다. 유휴 상태의 탭에는 보낼 것이 없으므로 먼저 클릭하거나 마우스를 움직이세요. 그 뒤에도 청크 요청이 전혀 없다면 무언가 잘못된 것입니다. 애플리케이션이 _On error or frustration_ 설정에서만 업로드한다면, 무언가 잘못될 때까지 조용한 것이 정상입니다. `OneUptimeReplay.captureSession()`을 호출해 업로드를 강제하고, 어느 쪽이든 경로를 확인하세요.
 

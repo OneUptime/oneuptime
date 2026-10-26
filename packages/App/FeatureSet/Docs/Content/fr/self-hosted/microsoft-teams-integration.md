@@ -42,7 +42,7 @@ Les appels vidéo (une réunion Teams pour un incident) n'utilisent pas ce bot :
 - Un compte qui peut créer des inscriptions d'application dans Microsoft Entra ID, et un administrateur Microsoft 365 pour accorder le consentement administrateur.
 - Un nom d'hôte HTTPS public pour OneUptime que Azure Bot Service peut joindre. Voir [Accès réseau](#accès-réseau).
 - Un accès à la configuration du serveur : `config.env` pour Docker Compose, ou vos values Helm pour Kubernetes.
-- Pour connecter un projet, le rôle **Project Owner**, **Project Admin** ou **Project Member** dans ce projet.
+- Pour connecter un projet, le rôle **Propriétaire du projet**, **Administrateur du projet** ou **Membre du projet** dans ce projet.
 
 ## Configurer l'intégration
 
@@ -382,7 +382,7 @@ Quand Microsoft vous renvoie et que la connexion n'a pas été établie (en acco
 | La page indique | Que faire |
 | --- | --- |
 | **"Ce lien de connexion n'est pas valide, a expiré ou a déjà été utilisé. Veuillez recommencer."** | Le lien fonctionne une fois, pendant 15 minutes, dans le navigateur qui l'a lancé. Recommencez depuis la page Microsoft Teams et terminez en moins de 15 minutes, dans le même navigateur. |
-| **"Vous n'avez pas l'autorisation de connecter ce projet à Microsoft Teams."** | Accorder le consentement administrateur pour le projet exige **Project Owner**, **Project Admin** ou **Project Member**. C'est vérifié de nouveau quand Microsoft vous renvoie. |
+| **"Vous n'avez pas l'autorisation de connecter ce projet à Microsoft Teams."** | Accorder le consentement administrateur pour le projet exige **Propriétaire du projet**, **Administrateur du projet** ou **Membre du projet**. C'est vérifié de nouveau quand Microsoft vous renvoie. |
 | **"Vous n'êtes plus membre de ce projet."** | Pour connecter votre propre compte Microsoft, vous devez être membre du projet au moment où Microsoft vous renvoie. |
 | **"Vous vous êtes connecté à une autre organisation Microsoft 365 que celle à laquelle cette connexion est destinée."** | Connectez-vous avec un compte de l'organisation Microsoft 365 qui a accordé le consentement administrateur, ou à laquelle le projet est connecté. |
 | **"Votre organisation Microsoft 365 n'a encore aucune équipe."** | Créez une équipe dans Microsoft Teams, puis accordez de nouveau le consentement administrateur. |

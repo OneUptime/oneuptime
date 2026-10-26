@@ -35,8 +35,8 @@ Speichern Sie die Zugangsdaten für ein Projekt oder einmal für die ganze Insta
 | | Projektkonfiguration | Installationsweite Konfiguration |
 | --- | --- | --- |
 | Wo | Die Karte **Twilio-Konfiguration** unter **Projekteinstellungen > Benachrichtigungen > Benachrichtigungseinstellungen** | **Admin Dashboard > Einstellungen > Anrufe und SMS** |
-| Wer sie festlegen kann | **Project Owner**, **Project Admin** oder **Create Call and SMS** in einer benutzerdefinierten Rolle | Ein Master-Admin |
-| Wer ihr Auth Token lesen kann | **Project Owner**, **Project Admin** oder **Read Call and SMS** in einer benutzerdefinierten Rolle. Andere, die die Konfiguration sehen können, sehen den Rest davon; das Token wird verschlüsselt gespeichert | Ein Master-Admin |
+| Wer sie festlegen kann | **Projektinhaber**, **Projektadministrator** oder **Create Call and SMS** in einer benutzerdefinierten Rolle | Ein Master-Admin |
+| Wer ihr Auth Token lesen kann | **Projektinhaber**, **Projektadministrator** oder **Read Call and SMS** in einer benutzerdefinierten Rolle. Andere, die die Konfiguration sehen können, sehen den Rest davon; das Token wird verschlüsselt gespeichert | Ein Master-Admin |
 | Verwendet für | SMS und Anrufe an die Mitglieder des Projekts, solange sie der Projektstandard ist, die Statusseiten, denen sie zugewiesen ist, und die Richtlinien für eingehende Anrufe, die sie verwenden | SMS und Anrufe an die Mitglieder jedes Projekts, das keine Standardkonfiguration hat |
 
 So fügen Sie eine Projektkonfiguration hinzu:
@@ -49,7 +49,7 @@ So fügen Sie eine Projektkonfiguration hinzu:
 5. Speichern Sie. Nur eine Konfiguration kann der Projektstandard sein. Statusseiten verwenden die Konfiguration, die jeder Statusseite ausdrücklich zugewiesen ist.
 
 > [!IMPORTANT]
-> **SMS** und **Telefonanrufe** sind in jedem Projekt zunächst ausgeschaltet, und solange sie aus sind, kann niemand im Projekt eine Telefonnummer dafür hinzufügen. Ein Projekteigentümer, ein **Billing Admin** oder jemand mit **Manage Billing** schaltet sie in der Karte **Benachrichtigungskanäle** auf derselben Seite ein.
+> **SMS** und **Telefonanrufe** sind in jedem Projekt zunächst ausgeschaltet, und solange sie aus sind, kann niemand im Projekt eine Telefonnummer dafür hinzufügen. Ein Projekteigentümer, ein **Abrechnungs-Administrator** oder jemand mit **Manage Billing** schaltet sie in der Karte **Benachrichtigungskanäle** auf derselben Seite ein.
 :::
 
 Für einen installationsweiten Standard kann ein Administrator stattdessen **Admin Dashboard > Einstellungen > Anrufe und SMS** öffnen, wählen, was das Konto sendet, die Twilio-Zugangsdaten und Telefonnummern bearbeiten und speichern. Die Benachrichtigungen der Mitglieder verwenden diese globale Konfiguration, wenn ihr Projekt keinen Standard hat. Halten Sie das Auth Token vertraulich.
@@ -150,7 +150,7 @@ Für die Entwicklung beschreibt Twilios [Anleitung zum Testen von Webhooks](http
 
 :::steps
 1. Prüfen Sie von außerhalb Ihres Firmennetzes und VPN, dass der Callback-Hostname zum öffentlichen Gateway auflöst und ein gültiges TLS-Zertifikat bereitstellt. Ein GET im Browser testet diese POST-Callbacks nicht.
-2. Verwenden Sie **Test-SMS senden** und **Testanruf senden** an der Twilio-Konfiguration des Projekts. Bestätigen Sie den Empfang auf dem Zieltelefon. Beides erfordert die Berechtigung, Twilio-Konfigurationen hinzuzufügen: **Project Owner**, **Project Admin** oder **Create Call and SMS** und **Read Call and SMS** in einer benutzerdefinierten Rolle.
+2. Verwenden Sie **Test-SMS senden** und **Testanruf senden** an der Twilio-Konfiguration des Projekts. Bestätigen Sie den Empfang auf dem Zieltelefon. Beides erfordert die Berechtigung, Twilio-Konfigurationen hinzuzufügen: **Projektinhaber**, **Projektadministrator** oder **Create Call and SMS** und **Read Call and SMS** in einer benutzerdefinierten Rolle.
 3. Richten Sie für den Benutzer einen verifizierten SMS- bzw. Anrufkontakt und Benachrichtigungsregeln ein und lösen Sie dann einen kontrollierten Bereitschaftsalarm aus. Drücken Sie 1 und prüfen Sie die Bestätigung in OneUptime. Wenn Sie Richtlinien für eingehende Anrufe nutzen, rufen Sie die konfigurierte Nummer an und prüfen Sie deren Weiterleitung und Anrufprotokoll.
 4. Prüfen Sie den Zustellungsstatus der SMS in OneUptime und in den Nachrichtenprotokollen von Twilio. Ein angenommener Versand ist kein Beweis für die Zustellung; [Twilio meldet spätere Statusänderungen über Callbacks](https://www.twilio.com/docs/messaging/guides/track-outbound-message-status).
 :::

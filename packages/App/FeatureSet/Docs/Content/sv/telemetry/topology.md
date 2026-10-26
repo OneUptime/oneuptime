@@ -21,7 +21,7 @@ flowchart LR
     neighbours["Grannar som dina<br/>enheter rapporterar<br/>via LLDP"] --> network["Nätverk"]
 ```
 
-- **Bara det som var aktivt ritas.** En vy visar de tjänster och resurser som skickade data under tidsintervallet, och de anslutningar som sågs under det. Slå på **Show inactive** för att också rita de tysta.
+- **Bara det som var aktivt ritas.** En vy visar de tjänster och resurser som skickade data under tidsintervallet, och de anslutningar som sågs under det. Slå på **Visa inaktiva** för att också rita de tysta.
 - **Anrop räknas över ett nyligt fönster.** OneUptime letar efter anrop mellan tjänster var 10:e minut, och trafiksiffrorna täcker de senaste 15 minuterna, inte hela tidsintervallet.
 - **Nätverksvyn är live.** Den visar dina enheter som de är anslutna nu, så den har inget tidsintervall.
 
@@ -32,7 +32,7 @@ flowchart LR
 
 ## Öppna Topologi
 
-Gå till **Produkter → Observerbarhet → Topologi**. **Inventarie → Topology Map** öppnar samma sida. Den öppnas på **Service Map**, för **Past 1 Day**.
+Gå till **Produkter → Observerbarhet → Topologi**. **Inventarie → Topology Map** öppnar samma sida. Den öppnas på **Service Map**, för **Senaste dygnet**.
 
 | Vy | Frågan den besvarar |
 | --- | --- |
@@ -40,7 +40,7 @@ Gå till **Produkter → Observerbarhet → Topologi**. **Inventarie → Topolog
 | **Infrastruktur** | Vad körs var i din infrastruktur? |
 | **Nätverk** | Hur är dina nätverksenheter anslutna? |
 
-Bredvid tidsväljaren lägger **Show inactive** till det som inte skickade data under intervallet, och uppdateringsknappen läser in vyn igen. **What is shown · About this data** berättar vad vyn ritar och hur ofta den räknas fram. Adressfältet minns vyn du är i, så en länk du delar öppnar samma vy.
+Bredvid tidsväljaren lägger **Visa inaktiva** till det som inte skickade data under intervallet, och uppdateringsknappen läser in vyn igen. **Vad som visas · Om dessa data** berättar vad vyn ritar och hur ofta den räknas fram. Adressfältet minns vyn du är i, så en länk du delar öppnar samma vy.
 
 ## Läs tjänstekartan
 
@@ -56,7 +56,7 @@ Varje tjänst visar sin status, beräknad från de anrop den tog emot under de s
 | **Entry point** | Den tog inte emot några anrop, men gjorde några: en webbfrontend eller ett schemalagt jobb. |
 | **No calls observed** | Den varken gjorde eller tog emot något anrop. |
 
-En tjänst med en aktiv incident eller varning visar i stället hur många, och precis som en tjänst med **Some errors** eller en **High error rate** räknas den som en som kräver uppmärksamhet.
+En tjänst med en aktiv incident eller larm visar i stället hur många, och precis som en tjänst med **Some errors** eller en **High error rate** räknas den som en som kräver uppmärksamhet.
 
 :::steps
 ### Hitta tjänsterna som kräver uppmärksamhet
@@ -65,21 +65,21 @@ Klicka på **Kräver uppmärksamhet** för att bara behålla de tjänsterna och 
 
 ### Öppna en tjänst
 
-Klicka på en tjänst för att se dess begäranden, fel och genomsnittliga latens under de senaste 15 minuterna, dess **Aktiva incidenter** och **Aktiva varningar**, och länkar till **Traces for this service** och dess **Inventory details**.
+Klicka på en tjänst för att se dess begäranden, fel och genomsnittliga latens under de senaste 15 minuterna, dess **Aktiva incidenter** och **Aktiva larm**, och länkar till **Spår för den här tjänsten** och dess **Inventariedetaljer**.
 
 ### Öppna en anslutning
 
 Klicka på en pil för att se dess begärandefrekvens, felfrekvens och genomsnittliga latens. Mellan två tjänster som du instrumenterar har den också en **History** över anrop, fel och latens.
 :::
 
-**Connection labels** skriver en siffra på varje pil: **Request rate**, **Felfrekvens** eller **Average latency**, eller ingen förrän du håller muspekaren över. **Tabell** listar samma tjänster med deras **Begäranden**, **Felfrekvens**, **Avg latency** och **Connections**, och **Show on map** ritar en av dem.
+**Anslutningsetiketter** skriver en siffra på varje pil: **Begärandefrekvens**, **Felfrekvens** eller **Genomsnittlig latens**, eller ingen förrän du håller muspekaren över. **Tabell** listar samma tjänster med deras **Begäranden**, **Felfrekvens**, **Snittlatens** och **Anslutningar**, och **Visa på kartan** ritar en av dem.
 
 ## Utforska din infrastruktur
 
 **Infrastruktur** visar var dina tjänster körs: kluster, värdar, poddar, containrar och de andra resurser som skickar data. Repliker av samma arbetsbelastning grupperas i en post, och du kan öppna vad som helst för att se inuti.
 
-- **Bläddra på ditt sätt.** Visa den som **Lista** eller **Map**, från hela din infrastruktur ned till en enda podd. Siffrorna ovanför säger hur många resurser och arbetsbelastningar den ritar, hur många tjänster den kan placera och hur många tysta resurser den utelämnar.
-- **Hitta en resurs.** Sök efter den med namn och klicka på **View details** för att öppna dess sida.
+- **Bläddra på ditt sätt.** Visa den som **Lista** eller **Karta**, från hela din infrastruktur ned till en enda podd. Siffrorna ovanför säger hur många resurser och arbetsbelastningar den ritar, hur många tjänster den kan placera och hur många tysta resurser den utelämnar.
+- **Hitta en resurs.** Sök efter den med namn och klicka på **Visa detaljer** för att öppna dess sida.
 - **Växla mellan vyer.** En tjänst som listas på en resurs öppnas på **Service Map**, och de resurser som en tjänst körs på öppnas på **Infrastruktur**.
 
 ## Öppna en resurs egen karta
@@ -103,11 +103,11 @@ OneUptime hittar anrop mellan tjänster i dina spår var 10:e minut. Den ser ett
 :::
 
 :::details En tjänst som jag har tagit bort finns kvar på kartan
-Den skickade data inom tidsintervallet. Välj ett kortare intervall, eller vänta tills dess senaste telemetri hamnar utanför intervallet. Med **Show inactive** påslaget ritar kartan också det som har slutat skicka data.
+Den skickade data inom tidsintervallet. Välj ett kortare intervall, eller vänta tills dess senaste telemetri hamnar utanför intervallet. Med **Visa inaktiva** påslaget ritar kartan också det som har slutat skicka data.
 :::
 
 :::details Kartan säger att bara en del av den visas
-Ett mycket stort projekt når kartans gränser, och ett meddelande säger hur många resurser eller anslutningar den visar. Sök efter en tjänst, eller använd **Show on map** i tabellen, för att rita en läsbar del av den.
+Ett mycket stort projekt når kartans gränser, och ett meddelande säger hur många resurser eller anslutningar den visar. Sök efter en tjänst, eller använd **Visa på kartan** i tabellen, för att rita en läsbar del av den.
 :::
 
 ## Nästa steg

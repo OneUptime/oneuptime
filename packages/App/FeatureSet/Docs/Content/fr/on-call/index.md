@@ -69,7 +69,7 @@ Allez dans **Incidents → Règles → Règles d'astreinte** ou **Alertes → R�
 
 ### Vérifier que tout le monde est joignable
 
-Ouvrez **Astreinte → Disponibilité**. Chaque personne que vos politiques peuvent alerter y figure comme **Prêt**, **À configurer** ou **Unreachable**, avec ce qui manque. Voir [Disponibilité et rapports](/docs/on-call/readiness).
+Ouvrez **Astreinte → Disponibilité**. Chaque personne que vos politiques peuvent alerter y figure comme **Prêt**, **À configurer** ou **Injoignable**, avec ce qui manque. Voir [Disponibilité et rapports](/docs/on-call/readiness).
 :::
 
 > [!NOTE]

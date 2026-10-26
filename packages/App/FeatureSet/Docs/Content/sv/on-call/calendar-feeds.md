@@ -24,7 +24,7 @@ flowchart TB
 - Åsidosättningar respekteras. När någon täcker upp för dig flyttas händelsen till den personen (`(covering for <Name>)` läggs till) och förblir samma händelse i din kalenderapp, så den uppdateras på plats i stället för att dupliceras. En partiell åsidosättning delar passet i händelser som ligger kant i kant.
 - Två dagars historik och 90 dagar framåt som standard. Du kan utöka det till 60 dagar bakåt och 180 dagar framåt; ett flöde som skulle överstiga 5 000 händelser kortas och säger det i kalenderns beskrivning.
 - Händelser markeras som lediga (`TRANSP:TRANSPARENT`), så ett prenumererat flöde blockerar aldrig din tillgänglighet, och inget markeras som privat, så en delad teamkalender visar titlarna för alla som kan se den.
-- Tider skickas i UTC och räknas om av din kalenderapp; beskrivningen skriver ut klockslaget i schemats zon och i din. Ange din egen tidszon som **Tidszon** på din **Profil** (din bild uppe till höger i instrumentpanelen), och schemats i dess kort **Schedule timezone** på dess sida **Lager**. Ett schema utan tidszon räknas ut i serverns zon, som vid larm, och händelsen säger det.
+- Tider skickas i UTC och räknas om av din kalenderapp; beskrivningen skriver ut klockslaget i schemats zon och i din. Ange din egen tidszon som **Tidszon** på din **Profil** (din bild uppe till höger i instrumentpanelen), och schemats i dess kort **Schemats tidszon** på dess sida **Lager**. Ett schema utan tidszon räknas ut i serverns zon, som vid larm, och händelsen säger det.
 
 Fasta tilldelningar — en användare eller ett team som nämns direkt i en regel i en eskaleringspolicy — har ingen start eller slut och visas inte i något flöde. På OneUptime Cloud följer flöden samma plan som jourscheman (Growth); ett projekt under den planen får en tom kalender i stället för ett fel.
 
@@ -327,7 +327,7 @@ De här apparna validerar TLS på enheten. Importera din interna CA i enhetens f
 :::
 
 :::details Tiderna är fel
-Alla tider i filen är UTC; kalenderappen räknar om till sin egen zon. Om passen ser förskjutna ut med en fast skillnad kontrollerar du schemats tidszon (**Schedule timezone** på dess sida **Lager**) och din egen (**Tidszon** på din **Profil**). Ett schema utan tidszon räknas ut i serverns zon, och händelsen säger det.
+Alla tider i filen är UTC; kalenderappen räknar om till sin egen zon. Om passen ser förskjutna ut med en fast skillnad kontrollerar du schemats tidszon (**Schemats tidszon** på dess sida **Lager**) och din egen (**Tidszon** på din **Profil**). Ett schema utan tidszon räknas ut i serverns zon, och händelsen säger det.
 :::
 
 :::details Flödet säger att det har kortats

@@ -11,7 +11,7 @@ Para criar um painel, abra **Produtos → Painéis** e clique em **Criar painel*
 
 ## Antes de começar
 
-Os proprietários e administradores do projeto podem criar e editar todos os painéis. Os demais precisam de uma permissão de equipe: `CreateDashboard` para criar painéis e `EditDashboard` para alterá-los. Membros e visualizadores do projeto podem ler os painéis sem nenhuma das duas. Quem não pode editar um painel ainda abre o menu **⋯** dele, onde **Edit Dashboard** fica bloqueado e informa qual permissão é necessária.
+Os proprietários e administradores do projeto podem criar e editar todos os painéis. Os demais precisam de uma permissão de equipe: `CreateDashboard` para criar painéis e `EditDashboard` para alterá-los. Membros e visualizadores do projeto podem ler os painéis sem nenhuma das duas. Quem não pode editar um painel ainda abre o menu **⋯** dele, onde **Editar painel** fica bloqueado e informa qual permissão é necessária.
 
 ## Criar o painel
 
@@ -45,7 +45,7 @@ Os modelos, pela categoria em que o seletor os lista:
 
 ## Editar e salvar
 
-Um painel abre no modo de leitura. Para alterá-lo, abra o menu **⋯** da barra de ferramentas dele e escolha **Edit Dashboard**. A barra de ferramentas mostra **Editing** ao lado do nome e troca o intervalo de tempo e os outros controles por **Adicionar widget**, **Variáveis**, **Cancelar** e **Salvar alterações**, com uma linha abaixo para o **Período padrão** e a **Atualização automática padrão** do painel.
+Um painel abre no modo de leitura. Para alterá-lo, abra o menu **⋯** da barra de ferramentas dele e escolha **Editar painel**. A barra de ferramentas mostra **Editando** ao lado do nome e troca o intervalo de tempo e os outros controles por **Adicionar widget**, **Variáveis**, **Cancelar** e **Salvar alterações**, com uma linha abaixo para o **Período padrão** e a **Atualização automática padrão** do painel.
 
 ```mermaid title="Da leitura de um painel à edição dele, e de volta"
 flowchart TB
@@ -122,7 +122,7 @@ A primeira opção de cada seletor mostra o padrão do painel, como em Padrão (
 
 Você não precisa recorrer ao seletor de intervalo de tempo para examinar um pico. Arraste sobre o trecho interessante de qualquer gráfico de linhas ou de áreas e **o painel inteiro** passa para essa janela, exatamente como se você a tivesse escolhido no seletor de intervalo de tempo: todo widget que usa o intervalo de tempo refaz a consulta junto, então você lê um mesmo momento no painel todo, em vez de um gráfico numa escala diferente da dos vizinhos. As listas ao vivo continuam mostrando o que está acontecendo agora, como sempre.
 
-**Clique duas vezes em qualquer gráfico** para desfazer: o painel volta ao intervalo que tinha antes de você começar o zoom, não importa quantas vezes você tenha aprofundado. Um botão **Reset zoom** aparece ao lado do seletor de intervalo de tempo enquanto um zoom está ativo, e clicar duas vezes num painel sem zoom não faz nada.
+**Clique duas vezes em qualquer gráfico** para desfazer: o painel volta ao intervalo que tinha antes de você começar o zoom, não importa quantas vezes você tenha aprofundado. Um botão **Redefinir zoom** aparece ao lado do seletor de intervalo de tempo enquanto um zoom está ativo, e clicar duas vezes num painel sem zoom não faz nada.
 
 Uma janela com zoom é fixa, então ela para de avançar enquanto a atualização automática está ligada; isso é proposital, porque uma janela que escapasse no meio de uma investigação seria pior. Redefina o zoom para que ela volte a avançar.
 
@@ -130,7 +130,7 @@ O zoom só funciona no modo de leitura; no modo de edição, arrastar move e red
 
 ## Tela cheia
 
-**⋯ → Full Screen** mostra os widgets do painel na tela inteira, para um monitor na parede ou uma reunião. Pressione Esc para sair.
+**⋯ → Tela cheia** mostra os widgets do painel na tela inteira, para um monitor na parede ou uma reunião. Pressione Esc para sair.
 
 ## Dicas para painéis que envelhecem bem
 

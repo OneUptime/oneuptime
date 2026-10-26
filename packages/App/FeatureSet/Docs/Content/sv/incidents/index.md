@@ -15,7 +15,7 @@ En incident är posten ditt team arbetar utifrån när något går sönder: vad 
 ## I korthet
 
 - **En egen produkt** — öppna **Incidenter** från menyn **Produkter** i toppfältet; listan finns på `/dashboard/{projectId}/incidents`.
-- **Tre förskapade tillstånd** — **Identified**, **Bekräftad** och **Löst** skapas för varje nytt projekt. Du kan lägga till egna; de tre förskapade kan byta namn och färg men aldrig tas bort.
+- **Tre förskapade tillstånd** — **Identifierad**, **Bekräftad** och **Löst** skapas för varje nytt projekt. Du kan lägga till egna; de tre förskapade kan byta namn och färg men aldrig tas bort.
 - **Tre förskapade allvarlighetsgrader** — **Critical Incident**, **Major Incident** och **Minor Incident**. En allvarlighetsgrad är en etikett med en färg och en ordning — den har inget eget beteende.
 - **Fem vägar in** — guiden **Deklarera incident**, **Skapa från mall**, en kriterieregel på en monitor, `POST /api/incident` eller ett [formulär](/docs/forms/index) som alla med länken kan fylla i.
 - **Numrerade per projekt** — varje incident får ett incidentnummer från en räknare per projekt, som visas med projektets prefix: `INC-42` i ett nytt projekt, eller `#42` utan prefix.
@@ -117,7 +117,7 @@ stateDiagram-v2
 
 | Tillstånd        | Ordning | Färg               | Vad det betyder                                                           |
 | ---------------- | ------- | ------------------ | ------------------------------------------------------------------------- |
-| **Identified**   | 1       | Röd (`#fd625e`)    | Tillståndet en helt ny incident hamnar i. Det här är skapandetillståndet. |
+| **Identifierad**   | 1       | Röd (`#fd625e`)    | Tillståndet en helt ny incident hamnar i. Det här är skapandetillståndet. |
 | **Bekräftad**    | 2       | Gul (`#ffbf53`)    | Någon har tagit incidenten och arbetar med den.                           |
 | **Löst**         | 3       | Grön (`#2ab57d`)   | Incidenten är över. Det är lösningen som tar bort den från din statussida. |
 
@@ -130,7 +130,7 @@ Den skillnaden betyder mer än det låter:
 - **Aktiva incidenter** definieras enbart som "det aktuella tillståndet står ovanför det lösta tillståndet". Ett eget tillstånd som du lägger till ovanför det lösta tillståndet är därför aktivt; ett som du placerar efter det räknas som löst, precis som det lösta tillståndet självt.
 
 > [!NOTE]
-> Det första förskapade tillståndet heter **Identified**, även om flera beskrivningar i produkten fortfarande kallar det skapandetillståndet ("created"). Letar du efter "Created" i projektets lista över tillstånd är det raden som heter **Identified**.
+> Det första förskapade tillståndet heter **Identifierad**, även om flera beskrivningar i produkten fortfarande kallar det skapandetillståndet ("created"). Letar du efter "Created" i projektets lista över tillstånd är det raden som heter **Identifierad**.
 
 Du kan lägga till egna tillstånd under **Incidenter → Inställningar → Incidentstatus**. Ett nytt tillstånd läggs till precis ovanför det lösta tillståndet, och du drar raderna för att ändra ordningen; kolumnen **Räknas som** visar vad en incident i varje tillstånd räknas som — inte bekräftad, bekräftad eller löst. De tre tillstånden med flaggor har märket **Inbyggd**: de behåller sin ordning och kan inte tas bort, men du kan byta namn och färg på dem och flytta dem, och därför läser gränssnittet tillståndsnamn dynamiskt.
 
@@ -165,7 +165,7 @@ Redigera eller lägg till allvarlighetsgrader under **Incidenter → Inställnin
 
 **Översikt** och **Episoder** är öppna; **AI**, **Arbetsyta**, **Regler**, **Inställningar** och **Utvecklare** är hopfällda som standard, så att menyn öppnas på listorna du använder varje dag. Klicka på ett avsnitts titel för att fälla ut det och hitta sidorna som resten av den här dokumentationen hänvisar till; ett avsnitt öppnas också av sig självt när du är på någon av dess sidor. Konfigurationen av incidenter finns inte under projektinställningarna; den finns helt här.
 
-Själva listan över incidenter visar **Incidentnummer**, **Titel**, **Tillstånd**, **Allvarlighetsgrad**, **Berörda resurser**, **Deklarerad**, **Varaktighet**, **Etiketter** och **Ägare**. Menyn **⋯** i slutet av varje incidents rad erbjuder **Bekräfta** och **Lös** så länge incidenten kan ta det steget, **Ändra tillstånd**, **Ändra allvarlighetsgrad**, **Tilldela mig** tills du äger den, och **Add Owner** för att lämna över den till någon annan. Markera flera incidenter för att göra samma sak med alla på en gång.
+Själva listan över incidenter visar **Incidentnummer**, **Titel**, **Tillstånd**, **Allvarlighetsgrad**, **Berörda resurser**, **Deklarerad**, **Varaktighet**, **Etiketter** och **Ägare**. Menyn **⋯** i slutet av varje incidents rad erbjuder **Bekräfta** och **Lös** så länge incidenten kan ta det steget, **Ändra tillstånd**, **Ändra allvarlighetsgrad**, **Tilldela mig** tills du äger den, och **Lägg till ägare** för att lämna över den till någon annan. Markera flera incidenter för att göra samma sak med alla på en gång.
 
 ## Vad varje sida på en incident visar
 
@@ -197,7 +197,7 @@ Vad varje sida innehåller:
 
 ## Så passar incidenter in i resten av OneUptime
 
-- **Monitorer upptäcker problemet; incidenter registrerar det.** En kriterieregel på en monitor kan deklarera en incident automatiskt och förifylla titel, allvarlighetsgrad, jourpolicyer, ägare, etiketter och åtgärdsanteckningar. Se [Incident- och varningsmallar](/docs/monitor/incident-alert-templating) för variablerna som finns där.
+- **Monitorer upptäcker problemet; incidenter registrerar det.** En kriterieregel på en monitor kan deklarera en incident automatiskt och förifylla titel, allvarlighetsgrad, jourpolicyer, ägare, etiketter och åtgärdsanteckningar. Se [Incident- och larmmallar](/docs/monitor/incident-alert-templating) för variablerna som finns där.
 - **Larm är signalerna; incidenter är insatsen.** Länka larmen som en incident förklarar till den, från vilket håll som helst, och två projektreglage, påslagna i nya projekt, bekräftar och löser de larmen tillsammans med incidenten. Se [Länkade larm](/docs/incidents/linked-alerts).
 - **Jourpolicyer står för larmningen.** Koppla policyer i steget **Jour och roller** i guiden för att deklarera, på en mall eller via **Incidenter → Regler → Jourregler**. Varje regel som matchar utlöses — det som körs är unionen av alla träffar plus allt som är kopplat direkt, utan dubbletter.
 - **Runbooks talar om för folk vad de ska göra.** Runbook-regler kopplar automatiskt en procedur när en matchande incident skapas, och de som ingriper kan starta en för hand från incidenten. Se [Runbooks – Översikt](/docs/runbooks/index).

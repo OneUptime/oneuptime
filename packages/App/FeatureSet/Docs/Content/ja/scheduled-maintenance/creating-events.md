@@ -22,7 +22,7 @@ flowchart TB
 
 ## 始める前に
 
-- **ロール。** イベントの作成には **Project Owner**、 **Project Admin**、 **Project Member**、 **Scheduled Maintenance Admin**、 **Scheduled Maintenance Member** のいずれか、または **Create Scheduled Maintenance** を持つカスタムロールが必要です。
+- **ロール。** イベントの作成には **プロジェクト所有者**、 **プロジェクト管理者**、 **プロジェクトメンバー**、 **定期メンテナンス管理者**、 **定期メンテナンスメンバー** のいずれか、または **Create Scheduled Maintenance** を持つカスタムロールが必要です。
 - **ステータスページ。** 顧客に知らせるには、定期メンテナンスイベントを表示するステータスページが必要です。 [ステータス ページ 概要](/docs/status-pages/index) を参照してください。
 
 ## イベントを作成する

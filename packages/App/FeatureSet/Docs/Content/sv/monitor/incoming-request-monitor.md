@@ -334,7 +334,7 @@ Grupperingsnyckeln görs tillgänglig för incident- och larmmallar som en varia
 | `requestBody.alerts[*].fingerprint`      | `{{fingerprint}}` |
 | `requestBody.commonLabels.severity`      | `{{severity}}`    |
 
-Hela nyttolasten finns tillgänglig vid sidan av, så både en incidenttitel `{{alertname}}` och en beskrivning som hänvisar till `{{requestBody.commonAnnotations.summary}}` fungerar. Se [Incident- och varningsmallar](/docs/monitor/incident-alert-templating).
+Hela nyttolasten finns tillgänglig vid sidan av, så både en incidenttitel `{{alertname}}` och en beskrivning som hänvisar till `{{requestBody.commonAnnotations.summary}}` fungerar. Se [Incident- och larmmallar](/docs/monitor/incident-alert-templating).
 
 > [!WARNING]
 > Variabelns namn är en del av den identitet som OneUptime använder för att koppla ett meddelande om att problemet är över till en öppen incident. Om du ändrar grupperingssökvägen till en med ett annat sista segment blir alla incidenter som är öppna under den gamla sökvägen föräldralösa — de kan inte längre lösas automatiskt utan måste stängas för hand.
@@ -380,6 +380,6 @@ Förfrågan säger `Content-Type: application/json`, men kroppen är inte ett JS
 :::cards
 - [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager): En komplett konfiguration för inkommande larm.
 - [Grafana](/docs/integrations/grafana): Samma sak, för larm från Grafana.
-- [Incident- och varningsmallar](/docs/monitor/incident-alert-templating): Alla variabler som finns i titlar och beskrivningar.
+- [Incident- och larmmallar](/docs/monitor/incident-alert-templating): Alla variabler som finns i titlar och beskrivningar.
 - [JavaScript-uttryck](/docs/monitor/javascript-expression): Syntax för uttryck och regler för citattecken.
 :::

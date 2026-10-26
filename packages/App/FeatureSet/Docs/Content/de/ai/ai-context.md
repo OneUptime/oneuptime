@@ -87,7 +87,7 @@ Jeder Lauf hält die Notizen, die er gelesen hat, Wort für Wort fest. Seine Akt
 
 ## Wer ihn ändern kann
 
-- **Project Owner** und **Project Admin** können den KI-Kontext des Projekts ändern. **Project Member**, **Viewer** und **Read Project** können ihn lesen.
+- **Projektinhaber** und **Projektadministrator** können den KI-Kontext des Projekts ändern. **Projektmitglied**, **Betrachter** und **Read Project** können ihn lesen.
 - Die Notizen einer KI-Regel gehören zur Regel: Wer die Regel ändern kann, kann auch sie ändern.
 - Die Notizen werden immer nur für ihr eigenes Projekt gelesen: Kein Lauf liest den KI-Kontext eines anderen Projekts.
 

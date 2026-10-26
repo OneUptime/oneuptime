@@ -38,8 +38,9 @@ import {
 /*
  * The Dashboard's dates in the reader's language, read from the real locale
  * files: a German page reads "vor 5 Stunden" and "06. Okt. 2026, 10:05 BST",
- * and a sentence German has not worded yet ("Last seen {{time}}") reads
- * wholly in English, its time too.
+ * "Last seen {{time}}" reads "Zuletzt gesehen vor 5 Stunden", and a sentence
+ * German has not worded (UNWORDED, which no locale has) reads wholly in
+ * English, its time too.
  *
  * Each time component a sentence draws in a slot - RelativeTime,
  * LiveDuration, LoadedAtTime, CodeTimeAgo - follows the sentence's language.
@@ -51,6 +52,9 @@ const INSTANT: Date = new Date("2026-10-06T09:05:07Z");
 
 const DAY: number = 24 * 3600 * 1000;
 const HOUR: number = 3600 * 1000;
+
+// A time sentence no locale has: it reads in English in every language.
+const UNWORDED: string = "Last heard from {{time}}";
 
 const instances: Record<string, i18n> = {};
 
@@ -127,8 +131,12 @@ describe("the locale files these cases read", () => {
 
     expect(german["Added {{time}}"]).toBe("Hinzugefügt {{time}}");
     expect(german["Checked {{time}}"]).toBe("Geprüft {{time}}");
-    // Not worded in German yet: these read in English.
-    expect(german["Last seen {{time}}"]).toBe("Last seen {{time}}");
+    expect(german["Last seen {{time}}"]).toBe("Zuletzt gesehen {{time}}");
+    // Not worded in German: these read in English.
+    expect(german[UNWORDED]).toBeUndefined();
+    expect(
+      (englishLocale as Record<string, unknown>)[UNWORDED],
+    ).toBeUndefined();
     expect(german["for {{duration}} · started {{time}}"]).toBe(
       "for {{duration}} · started {{time}}",
     );
@@ -166,12 +174,26 @@ describe("RelativeTime", () => {
         inLanguage(
           "de",
           <TranslatedSentence
+            template={UNWORDED}
+            slots={{ time: <RelativeTime date={FIVE_HOURS_AGO} /> }}
+          />,
+        ),
+      ),
+    ).toBe("Last heard from 5 hours ago");
+  });
+
+  test("in the heroes' Last seen, wholly German", () => {
+    expect(
+      text(
+        inLanguage(
+          "de",
+          <TranslatedSentence
             template="Last seen {{time}}"
             slots={{ time: <RelativeTime date={FIVE_HOURS_AGO} /> }}
           />,
         ),
       ),
-    ).toBe("Last seen 5 hours ago");
+    ).toBe("Zuletzt gesehen vor 5 Stunden");
   });
 
   test("its hover is the whole date, in the reader's language", () => {
@@ -313,6 +335,20 @@ describe("CodeTimeAgo", () => {
         inLanguage(
           "de",
           <TranslatedSentence
+            template={UNWORDED}
+            slots={{
+              time: <CodeTimeAgo date={FIVE_HOURS_AGO.toISOString()} />,
+            }}
+          />,
+        ),
+      ),
+    ).toBe("Last heard from 5 hours ago");
+    cleanup();
+    expect(
+      text(
+        inLanguage(
+          "de",
+          <TranslatedSentence
             template="Last seen {{time}}"
             slots={{
               time: <CodeTimeAgo date={FIVE_HOURS_AGO.toISOString()} />,
@@ -320,7 +356,7 @@ describe("CodeTimeAgo", () => {
           />,
         ),
       ),
-    ).toBe("Last seen 5 hours ago");
+    ).toBe("Zuletzt gesehen vor 5 Stunden");
   });
 });
 
@@ -343,10 +379,20 @@ describe("a date a sentence is filled with", () => {
     setDateDisplayLanguage("de");
 
     expect(
+      germanTranslator().translateTemplate(UNWORDED, {
+        time: OneUptimeDate.fromNow(FIVE_HOURS_AGO),
+      }),
+    ).toBe("Last heard from 5 hours ago");
+  });
+
+  test("the heroes' Last seen reads German, its date too", () => {
+    setDateDisplayLanguage("de");
+
+    expect(
       germanTranslator().translateTemplate("Last seen {{time}}", {
         time: OneUptimeDate.fromNow(FIVE_HOURS_AGO),
       }),
-    ).toBe("Last seen 5 hours ago");
+    ).toBe("Zuletzt gesehen vor 5 Stunden");
   });
 
   test("an event's duration in German, and 'less than a minute' as German words it", async () => {

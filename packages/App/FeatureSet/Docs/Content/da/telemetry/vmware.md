@@ -228,7 +228,7 @@ Enhederne er receiverens egne OTLP-enheder, som OneUptime skalerer til visning: 
 
 ### VM'ers strømtilstand
 
-Receiveren sender ingen metrik for en VM's strømtilstand. Den sender `vcenter.vm.cpu.*` **kun for tændte VM'er**, så OneUptime udleder tilstanden af det, der ankom i hver indsamling: En VM, der rapporterede CPU-metrikker, er **Powered on**; en, der kun rapporterede hukommelses- og diskforbrug, er **Powered off** (eller suspenderet: vSphere skelner ikke mellem de to her). VM-skabeloner har ingen strømtilstand. Dette læser **en hel indsamling ad gangen**, og derfor har den medfølgende processor `batch` en stor `send_batch_size` og med vilje ingen `send_batch_max_size`: En indsamling, der er delt over to eksporter, ville nulstille inventarets tællinger og "slukke" VM'er. Behold batch-indstillingerne, som de leveres.
+Receiveren sender ingen metrik for en VM's strømtilstand. Den sender `vcenter.vm.cpu.*` **kun for tændte VM'er**, så OneUptime udleder tilstanden af det, der ankom i hver indsamling: En VM, der rapporterede CPU-metrikker, er **Powered on**; en, der kun rapporterede hukommelses- og diskforbrug, er **Slukket** (eller suspenderet: vSphere skelner ikke mellem de to her). VM-skabeloner har ingen strømtilstand. Dette læser **en hel indsamling ad gangen**, og derfor har den medfølgende processor `batch` en stor `send_batch_size` og med vilje ingen `send_batch_max_size`: En indsamling, der er delt over to eksporter, ville nulstille inventarets tællinger og "slukke" VM'er. Behold batch-indstillingerne, som de leveres.
 
 ## vCenter i OneUptime
 
@@ -249,7 +249,7 @@ Vælg en vært for at åbne dens side. Den svarer på det, siden for en vært ud
 
 Når vCenter holder op med at rapportere en vært, siger siden det over sine faner, med hvornår vCenter sidst rapporterede den. Efter 15 minutter uden rapport forlader værten inventaret: dens side siger det så og viser stadig dens tidligere metrikker.
 
-De fem værtsadvarsler (CPU- og hukommelsesmætning, høj disklatens, netværkspakkefejl og droppede pakker) overvåger hver især alle værter i vCenter og udløses for hver vært, der overskrider dem. Kortet **Værtsadvarsler** på en værts side viser, hvilke der er slået til, og dets knap åbner vCenters **Recommendations** med de manglende allerede valgt: Opret dem der, én gang, for alle værter.
+De fem værtsadvarsler (CPU- og hukommelsesmætning, høj disklatens, netværkspakkefejl og droppede pakker) overvåger hver især alle værter i vCenter og udløses for hver vært, der overskrider dem. Kortet **Værtsadvarsler** på en værts side viser, hvilke der er slået til, og dets knap åbner vCenters **Anbefalinger** med de manglende allerede valgt: Opret dem der, én gang, for alle værter.
 
 ### Virtuelle maskiner
 

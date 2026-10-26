@@ -146,7 +146,7 @@ Hvert team du er medlem av, er bare ett klikk unna under **Eiere**, og sammendra
 Åpne episodens side **Medlemsvarsler**, klikk **Legg til varsler**, og huk av varslene som hører til den, så mange du trenger på én gang. Vil du heller starte fra varslene, velger du dem i listen **Varsler** og velger **Legg til i ny episode** under **Massehandlinger** (se [Episoder](/docs/incidents/episodes)).
 :::
 
-En episode du oppretter, har ingen grupperingsregel, så listen viser **Grupperingsregel** som **Manual**, og ingen livssyklusinnstilling gjelder for den. Den løser seg likevel selv når hvert varsel i den er løst.
+En episode du oppretter, har ingen grupperingsregel, så listen viser **Grupperingsregel** som **Manuell**, og ingen livssyklusinnstilling gjelder for den. Den løser seg likevel selv når hvert varsel i den er løst.
 
 ## Hva hver side av en episode viser
 

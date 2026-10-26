@@ -100,7 +100,7 @@ De kaart **Video Call** op de pagina van een incident of waarschuwing heeft **St
 
 **Verwijderen** op de kaart haalt een gesprek van de pagina van het incident. De vergadering zelf wordt niet verwijderd, en iedereen met de link kan er nog steeds aan meedoen.
 
-Gesprekken starten en verwijderen vereist rechten om aan incidenten (of waarschuwingen) te werken: **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin** of **Incident Member**, of **Create Incident Video Call** en **Delete Incident Video Call** in een aangepaste rol. Iedereen die het incident mag lezen, ziet de gesprekken ervan.
+Gesprekken starten en verwijderen vereist rechten om aan incidenten (of waarschuwingen) te werken: **Projecteigenaar**, **Projectbeheerder**, **Projectlid**, **Incidentbeheerder** of **Incidentlid**, of **Create Incident Video Call** en **Delete Incident Video Call** in een aangepaste rol. Iedereen die het incident mag lezen, ziet de gesprekken ervan.
 
 ## Transcripties van gesprekken
 
@@ -146,7 +146,7 @@ Microsoft laat apps alleen de transcripties lezen van Teams-vergaderingen die in
 
 ### Wie wat mag
 
-Een transcriptie ophalen, toevoegen, vervangen en verwijderen, haar opnieuw laten lezen en een voorstel afwijzen vereisen het recht om de gesprekken van het incident te starten: **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin** of **Incident Member**, of **Create Incident Video Call** in een aangepaste rol. **Gebruiken als hoofdoorzaak** vereist het recht om de hoofdoorzaak van het incident te bewerken. Iedereen die het incident kan lezen, ziet de transcripties van de gesprekken en wat OneUptime AI erin heeft gelezen.
+Een transcriptie ophalen, toevoegen, vervangen en verwijderen, haar opnieuw laten lezen en een voorstel afwijzen vereisen het recht om de gesprekken van het incident te starten: **Projecteigenaar**, **Projectbeheerder**, **Projectlid**, **Incidentbeheerder** of **Incidentlid**, of **Create Incident Video Call** in een aangepaste rol. **Gebruiken als hoofdoorzaak** vereist het recht om de hoofdoorzaak van het incident te bewerken. Iedereen die het incident kan lezen, ziet de transcripties van de gesprekken en wat OneUptime AI erin heeft gelezen.
 
 ### Wat OneUptime AI leest
 
@@ -160,7 +160,7 @@ Inloggegevens worden versleuteld opgeslagen en worden nooit door de API teruggeg
 
 **Start test meeting** in het koppelingsformulier, en **Testen** in de rij van een koppeling, maken een echte vergadering aan met de instellingen van de koppeling en tonen de link ervan. Het is de enige controle die bewijst dat de inloggegevens, het recht aan de kant van de provider en de host samen werken. Er wordt nergens iets geplaatst.
 
-Een provider koppelen vereist **Project Owner**, **Project Admin** of **Settings Admin**, of **Create Video Call Connection** en **Edit Video Call Connection** in een aangepaste rol.
+Een provider koppelen vereist **Projecteigenaar**, **Projectbeheerder** of **Instellingenbeheerder**, of **Create Video Call Connection** en **Edit Video Call Connection** in een aangepaste rol.
 
 ### Zoom
 
@@ -169,7 +169,7 @@ OneUptime maakt voor elk incident een Zoom-vergadering aan via een Zoom-app van 
 :::steps
 1. Kies in de [Zoom App Marketplace](https://marketplace.zoom.us/) **Develop** > **Build App** en maak een app van het type **Server-to-Server OAuth** aan. Daarvoor is een beheerder van het Zoom-account nodig, of een rol die Server-to-Server OAuth-apps toestaat.
 2. Voeg op de pagina **Scopes** van de app **meeting:write:meeting:admin** toe (een vergadering aanmaken voor een gebruiker). Een app die vóór de gedetailleerde scopes is gemaakt, kan in plaats daarvan **meeting:write:admin** gebruiken. Om OneUptime ook [transcripties van gesprekken](#transcripties-van-gesprekken) te laten lezen, voegt u **cloud_recording:read:list_recording_files:admin** en **cloud_recording:read:meeting_transcript:admin** toe (of **recording:read:admin** bij een app die vóór de gedetailleerde scopes is gemaakt).
-3. Klik op **Activate** om de app te activeren en kopieer daarna de **Account ID**, de **Client ID** en het **Client secret** van de pagina **App Credentials** naar het koppelingsformulier.
+3. Klik op **Activate** om de app te activeren en kopieer daarna de **Account ID**, de **Client ID** en het **Clientgeheim** van de pagina **App Credentials** naar het koppelingsformulier.
 4. Vul de **Meeting host** in: het e-mailadres van een Zoom-gebruiker met licentie, bij voorkeur een serviceaccount zoals incidents@example.com, zodat vergaderingen blijven werken als mensen vertrekken. Vergaderingen met een Basic-gebruiker (gratis) als host eindigen na 40 minuten.
 5. Responders doen mee zonder op de host te wachten, omdat de host een serviceaccount is dat nooit meedoet. Zorg dat de instelling **Waiting room** van je Zoom-account niet vergrendeld aan staat, anders komt niemand binnen.
 :::
@@ -203,7 +203,7 @@ OneUptime maakt voor elk incident een Microsoft Teams-vergadering aan met Micros
 :::steps
 1. Open in het [Microsoft Entra-beheercentrum](https://entra.microsoft.com/) **App registrations** > **New registration** en registreer een app voor één tenant. Kopieer de **Directory (tenant) ID** en de **Application (client) ID**.
 2. Voeg onder **API permissions** het Microsoft Graph-recht van het type **application** **OnlineMeetings.ReadWrite.All** toe (en, om ook [incidentgesprekken op te nemen en te transcriberen](#elk-gesprek-opnemen-en-transcriberen), **Calendars.ReadWrite** en **OnlineMeetingTranscript.Read.All**) en klik daarna op **Grant admin consent**.
-3. Maak onder **Certificates & secrets** een clientgeheim aan en plak de **Value** ervan, niet de Secret ID, in het koppelingsformulier als het **Client secret**.
+3. Maak onder **Certificates & secrets** een clientgeheim aan en plak de **Value** ervan, niet de Secret ID, in het koppelingsformulier als het **Clientgeheim**.
 4. Kies de organisator: een Teams-gebruiker met licentie, bij voorkeur een serviceaccount. Kopieer de **Object ID** ervan uit **Users** in het Entra-beheercentrum naar **Organizer object ID**.
 5. Sta de app toe vergaderingen aan te maken voor de organisator met een toegangsbeleid voor toepassingen. Voer in Teams PowerShell, na `Connect-MicrosoftTeams`, de twee onderstaande commando's uit.
 :::

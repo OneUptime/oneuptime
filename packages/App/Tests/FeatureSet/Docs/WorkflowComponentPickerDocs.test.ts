@@ -1,5 +1,5 @@
 import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
-import { drawnDashboardLabel } from "./DocsDashboardLabels";
+import { dashboardLabel, drawnDashboardLabel } from "./DocsDashboardLabels";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -182,9 +182,13 @@ describe("docs for the Add Component and Add Trigger panels", () => {
       );
 
       expect(line).toContain("**Add Trigger**");
-      expect(line).toContain("OneUptime resources");
+      /*
+       * The panel's own sections, as an incident page names its language's
+       * Dashboard (Persian incident pages keep its English names).
+       */
+      expect(line).toContain(dashboardLabel(language, "OneUptime resources"));
       expect(line).toContain("Incident**");
-      expect(line).toContain("**Popular**");
+      expect(line).toContain(`**${dashboardLabel(language, "Popular")}**`);
       expect(line).not.toContain("**Add Component**");
     },
   );

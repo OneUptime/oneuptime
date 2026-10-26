@@ -5,7 +5,7 @@
 :::cards
 - [Instrumentera applikationer](#instrumentera-applikationer): De meddelandespan som din OpenTelemetry-instrumentering redan skickar.
 - [Brokerns hälsomätvärden](#brokerns-hälsomätvärden): Eftersläpning, lagg och dead letters från din broker, system för system.
-- [Varningar](#varningar): Färdiga mallar, och fördröjda eller räknade mätvärden.
+- [Larm](#larm): Färdiga mallar, och fördröjda eller räknade mätvärden.
 - [Felsökning](#felsökning): En kö som inte skapades, eller en brokerhälsa som förblir tom.
 :::
 
@@ -104,7 +104,7 @@ Molnövervaknings-API:er (CloudWatch, Azure Monitor och Cloud Monitoring) public
 
 Instrumenterade klienter kan också rapportera mätvärden: OpenTelemetrys mätvärden för meddelandeklienter `messaging.client.sent.messages`, `messaging.client.consumed.messages`, `messaging.client.operation.duration` och `messaging.process.duration`, deras äldre namn `messaging.publish.duration`, `messaging.receive.duration`, `messaging.publish.messages`, `messaging.receive.messages`, `messaging.process.messages` och `messaging.client.published.messages`, samt Azure SDK för Javas `messaging.servicebus.messages.sent`, `messaging.servicebus.receiver.lag`, `messaging.servicebus.settlement.request.duration` och `messaging.servicebus.settlement.sequence_number`. Varje datapunkt namnger sitt system och sin destination på samma sätt som ett span (Azure SDK:ts Service Bus-mätvärden namnger inget system, så deras namn står i stället) och kopplas till den kön när den tas in, så att den visas på köns flik **Mätvärden**. Detsamma gäller alla egna mätvärden som bär `messaging.system` och `messaging.destination.name` på varje datapunkt (inte på resursen, där de inte läses), till exempel en gauge för ködjupet (se [BullMQ](#bullmq)).
 
-Mätvärden från meddelandeklienter skapar aldrig en kö: det gör spår, brokermätvärden eller en person. Ett klientmätvärde som namnger en befintlig kö håller dess **Last seen** aktuellt, som dess span gör. Ett eget mätvärde gör ingetdera: det visas bara på köns flik **Mätvärden**.
+Mätvärden från meddelandeklienter skapar aldrig en kö: det gör spår, brokermätvärden eller en person. Ett klientmätvärde som namnger en befintlig kö håller dess **Senast sedd** aktuellt, som dess span gör. Ett eget mätvärde gör ingetdera: det visas bara på köns flik **Mätvärden**.
 
 ### Vad som gör två observationer till en kö
 
@@ -158,7 +158,7 @@ Spår och brokermätvärden skapar bara köer av sig själva så länge projekte
 
 ### Livscykel och arkivering
 
-- **Last seen** är när upptäckten senast såg kön, i spår, meddelandeklienters mätvärden eller brokermätvärden.
+- **Senast sedd** är när upptäckten senast såg kön, i spår, meddelandeklienters mätvärden eller brokermätvärden.
 - **Arkivera för att avfärda.** Att ta bort en upptäckt kö tar bara bort den tills den ses igen: dess nästa observation tar tillbaka den som en ny kö. För att avfärda en för gott **arkiverar** du den. En arkiverad kö behåller sin identitet, så att allt som namnger den förblir kopplat till den arkiverade kön i stället för att skapa en ny.
 - **Automatisk arkivering.** En upptäckt kö som inte har setts på 7 dagar (`MESSAGE_QUEUE_AUTO_ARCHIVE_DAYS`) arkiveras automatiskt, om inte en person har döpt om den, beskrivit den, gett den etiketter eller gett den ägare. Etiketter och ägare som etikett- eller ägarregler har kopplat på av sig själva räknas inte.
 - **Återställning.** En automatiskt arkiverad kö återställs automatiskt när den ses igen. Köer som du har skapat manuellt, och köer som en person har arkiverat, arkiveras eller återställs aldrig av upptäckten. En kö som en person återställer förblir återställd i 30 dagar (eller arkivfönstret, om det är längre) även om ingenting ser den; från dess nästa observation gäller 7-dagarsregeln igen.
@@ -300,7 +300,7 @@ service:
 
 - **Lämna `stats` oangivet.** Utan den nyckeln kommer varje mätvärde som en sammanfattning per period, vilket är det OneUptime läser; med den blir varje statistik en egen serie och diagrammen blandar dem.
 - `discovery.limit` måste anges och begränsar de mätvärden som läses per skrapning: ungefär nio per kö. Varje mätvärde kostar fyra delfrågor mot `GetMetricData` per skrapning, som AWS debiterar.
-- `delay` väntar på att CloudWatch publicerar en period (det tar några minuter), så med den här konfigurationen kommer en kös brokermätvärden 11 till 17 minuter sent: en monitor över dem behöver ett längre fönster (se **Fördröjda mätvärden** under [Varningar](#varningar)).
+- `delay` väntar på att CloudWatch publicerar en period (det tar några minuter), så med den här konfigurationen kommer en kös brokermätvärden 11 till 17 minuter sent: en monitor över dem behöver ett längre fönster (se **Fördröjda mätvärden** under [Larm](#larm)).
 - En receiver läser en region och ett namespace: lägg till en instans per region.
 
 **Strömning** skickar mätvärdena allteftersom CloudWatch publicerar dem. Skapa en CloudWatch Metric Stream för namespacen `AWS/SQS` (och `AWS/SNS`) med utdataformatet **OpenTelemetry 1.0**, som levererar till en Amazon Data Firehose-ström vars destination är en HTTP-slutpunkt: din collector, med en åtkomstnyckel. Firehose levererar bara till `https://` på port 443, så collectorn behöver ett certifikat och en offentlig port 443 (till exempel bakom en lastbalanserare):
@@ -941,7 +941,7 @@ service:
 | `rabbitmq.message.dropped` | Dropped | Räknare, visad per sekund |
 | `rabbitmq.consumer.count` | Consumers | Gauge |
 
-## Varningar
+## Larm
 
 Köer bevakas med **Mätvärden**-monitorer över sina brokermätvärden (se [Metrikövervakning](/docs/monitor/metrics-monitor)).
 
@@ -1002,7 +1002,7 @@ Varje punkt i `rabbitmq.message.published.delta` är antalet meddelanden som pub
 | Eftersläpningen för en Pub/Sub-prenumeration växer | `pubsub.googleapis.com/subscription/num_undelivered_messages` | `resource.subscription_id` = `orders-billing` | Max |
 | Ingen konsumerar en RabbitMQ-kö | `rabbitmq.consumer.count` | `resource.rabbitmq.queue.name` = `orders` | Min |
 
-För att bevaka varje kö i ett system med en monitor grupperar du efter det attributet i stället för att filtrera på det: varje kö varnar då för sig (se [Varningar per serie](/docs/monitor/metrics-monitor#varningar-per-serie-group-by)). En RabbitMQ-kös djup (`rabbitmq.message.current`) kommer som två serier, `state` = `ready` och `state` = `unacknowledged`. Den monitor som **Create monitor** bygger lägger ihop dem så som kösidan gör: en fråga per tillstånd, `a_ready` och `a_unacknowledged`, och formeln `a_ready + a_unacknowledged`, vars alias `a` dess starttröskelvärde gäller för. En monitor som byggs manuellt bör göra detsamma, med sina kriterier på formeln.
+För att bevaka varje kö i ett system med en monitor grupperar du efter det attributet i stället för att filtrera på det: varje kö varnar då för sig (se [Larm per serie](/docs/monitor/metrics-monitor#larm-per-serie-group-by)). En RabbitMQ-kös djup (`rabbitmq.message.current`) kommer som två serier, `state` = `ready` och `state` = `unacknowledged`. Den monitor som **Create monitor** bygger lägger ihop dem så som kösidan gör: en fråga per tillstånd, `a_ready` och `a_unacknowledged`, och formeln `a_ready + a_unacknowledged`, vars alias `a` dess starttröskelvärde gäller för. En monitor som byggs manuellt bör göra detsamma, med sina kriterier på formeln.
 
 **Fördröjda mätvärden.** Molnövervaknings-API:er publicerar sina värden minuter i efterhand: `aws_cloudwatch`-receiverns nyaste punkt är 11 till 17 minuter gammal med konfigurationen på den här sidan, och upp till 25 med receiverns standard-`period` på fem minuter; `googlecloudmonitoring`-receiverns är upp till 9. En monitor över mätvärden från SQS, SNS eller Pub/Sub behöver därför ett längre fönster än så, annars ser den inga data och utlöses aldrig; **Create monitor** startar de monitorerna med 30 och 15 minuter.
 

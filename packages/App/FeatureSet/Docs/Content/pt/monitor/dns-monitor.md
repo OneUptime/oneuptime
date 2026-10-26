@@ -133,7 +133,7 @@ Os critérios são verificados de cima para baixo, e o primeiro que corresponde 
 | Opção | O que acontece | Use para |
 | --- | --- | --- |
 | **Ignore** (padrão) | O critério não corresponde. | Alertas de limite comuns. |
-| **Trigger** | A falta de dados conta como o problema. | Verificações em que o silêncio é, por si só, uma falha. |
+| **Gatilho** | A falta de dados conta como o problema. | Verificações em que o silêncio é, por si só, uma falha. |
 | **Treat As Zero** | A janela é comparada como um único zero. | Contadores em que nenhum evento significa de fato zero. |
 
 ### Exemplos de critérios

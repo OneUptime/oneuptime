@@ -104,7 +104,7 @@ OpenTelemetry 中的所有消息属性仍标记为开发中，因此同一项目
 
 已插桩的客户端也可以报告指标：OpenTelemetry 的消息客户端指标 `messaging.client.sent.messages`、`messaging.client.consumed.messages`、`messaging.client.operation.duration` 和 `messaging.process.duration`，它们的旧名称 `messaging.publish.duration`、`messaging.receive.duration`、`messaging.publish.messages`、`messaging.receive.messages`、`messaging.process.messages` 和 `messaging.client.published.messages`，以及 Azure SDK for Java 的 `messaging.servicebus.messages.sent`、`messaging.servicebus.receiver.lag`、`messaging.servicebus.settlement.request.duration` 和 `messaging.servicebus.settlement.sequence_number`。每个数据点都像 span 一样指明它的系统和目标（Azure SDK 的 Service Bus 指标不指明系统，因此由其名称代替），并在摄取时与该队列匹配，因此会显示在队列的 **指标** 选项卡上。你自己的、在每个数据点上（而不是在资源上，那里的值不会被读取）带有 `messaging.system` 和 `messaging.destination.name` 的指标也一样，例如队列深度仪表（见 [BullMQ](#bullmq)）。
 
-消息客户端指标从不创建队列：创建队列的是追踪、broker 指标或人。指明某个已存在队列的客户端指标会像它的 span 一样让该队列的 **Last seen** 保持最新。你自己的指标两者都不做：它只显示在队列的 **指标** 选项卡上。
+消息客户端指标从不创建队列：创建队列的是追踪、broker 指标或人。指明某个已存在队列的客户端指标会像它的 span 一样让该队列的 **最近出现** 保持最新。你自己的指标两者都不做：它只显示在队列的 **指标** 选项卡上。
 
 ### 两次观测何时算同一个队列
 
@@ -158,7 +158,7 @@ OneUptime 宁可不创建队列：否则，按请求或按消费者临时生成�
 
 ### 生命周期和归档
 
-- **Last seen** 是发现最后一次在追踪、消息客户端指标或 broker 指标中看到该队列的时间。
+- **最近出现** 是发现最后一次在追踪、消息客户端指标或 broker 指标中看到该队列的时间。
 - **归档以移除。** 删除已发现的队列只能让它消失到再次被看到为止：下一次被看到时，它会作为新队列回来。要永久移除，请 **归档** 它。已归档的队列保留其身份，因此任何指明它的内容都会继续挂在已归档的队列上，而不会创建新队列。
 - **自动归档。** 已发现的队列如果 7 天（`MESSAGE_QUEUE_AUTO_ARCHIVE_DAYS`）未被看到，就会被自动归档，除非有人重命名过它、为它写过描述、为它加过标签或指定过所有者。由标签或所有者规则自行附加的标签和所有者不算。
 - **恢复。** 自动归档的队列在再次被看到时会自动恢复。你手动创建的队列，以及由人归档的队列，永远不会被发现归档或恢复。由人恢复的队列即使没有任何内容看到它，也会保持恢复状态 30 天（如果归档窗口更长，则为归档窗口），从下一次被看到起，7 天规则再次生效。

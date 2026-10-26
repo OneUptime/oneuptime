@@ -55,7 +55,7 @@ En synkronisering trenger en API-nøkkel som har lov til å lese inventaret. I O
 :::steps
 ### Opprett en API-nøkkel
 
-Åpne **Prosjektinnstillinger → Avansert → API-nøkler**, og klikk på **Opprett API-nøkkel**. Gi den et **Navn**, og velg under **Tilgang** **Viser** for å lese alt i prosjektet, eller **Velg tillatelser senere** for å gi den bare det en synkronisering trenger.
+Åpne **Prosjektinnstillinger → Avansert → API-nøkler**, og klikk på **Opprett API-nøkkel**. Gi den et **Navn**, og velg under **Tilgang** **Leser** for å lese alt i prosjektet, eller **Velg tillatelser senere** for å gi den bare det en synkronisering trenger.
 
 ### Gi den bare det den trenger
 
@@ -142,13 +142,13 @@ Verter og nettverksenheter beskrives med de samme opplysningene, lagret under de
 | IP-adresse | `host.ip` | Hver adresse collectoren rapporterer | Adressen OneUptime poller, når den er en IP-adresse, ellers adressen sonden slo opp DNS-navnet til |
 | MAC-adresse | `host.mac` | Oppdaget | Skrevet inn på enheten, eller lært fra ARP-tabellen i en gjennomgått ruter |
 | Serienummer | `host.serial_number` | Stemplet | ENTITY-MIB |
-| Manufacturer | `device.manufacturer` | Stemplet | ENTITY-MIB, ellers det `sysDescr` eller `sysObjectID` nevner |
+| Produsent | `device.manufacturer` | Stemplet | ENTITY-MIB, ellers det `sysDescr` eller `sysObjectID` nevner |
 | Modell | `device.model.name` | Stemplet | ENTITY-MIB, ellers det `sysDescr` nevner |
 | Fastvareversjon | `device.firmware.version` | Stemplet | ENTITY-MIB, ellers det `sysDescr` nevner |
 | Operativsystem | `os.name` | `os.description` (eller `os.type`) | Det `sysDescr` nevner: Cisco IOS, Junos OS, Arista EOS, Linux |
 | OS-versjon | `os.version` | Oppdaget | ENTITY-MIB, ellers det `sysDescr` nevner |
 | Device Type | `device.type` | Stemplet. Ellers klassifiserer kortet den ut fra operativsystem og navn (Server, Brannmur, ...) | Rollen: den du tildelte, ellers den topologikartet tegner den som |
-| Location | `device.location` | Stemplet. Ellers viser kortet skysonen | `sysLocation`. Kortet viser stedet først |
+| Plassering | `device.location` | Stemplet. Ellers viser kortet skysonen | `sysLocation`. Kortet viser stedet først |
 
 [Verttabellen](#eiendelsattributter-for-verter) og [tabellen over nettverksenheter](#eiendelsattributter-for-nettverksenheter) nedenfor forteller i detalj hvor hver verdi kommer fra.
 

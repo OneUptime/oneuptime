@@ -40,7 +40,7 @@ Hendelsen lagrer rapportens nummer i de egendefinerte feltene sine, som `huntres
 
 ## Før du begynner
 
-- I OneUptime en rolle som kan opprette og redigere arbeidsflyter, for eksempel **Project Owner**, **Project Admin** eller **Workflow Admin**.
+- I OneUptime en rolle som kan opprette og redigere arbeidsflyter, for eksempel **Prosjekteier**, **Prosjektadministrator** eller **Arbeidsflytadministrator**.
 - I Huntress rollen **Account Admin**: Bare kontoadministratorer kan legge til webhooks.
 - En vaktretningslinje å varsle.
 - På OneUptime Cloud et abonnement med arbeidsflyter: Growth eller høyere. Hver begivenhet Huntress sender, er én kjøring av arbeidsflyten.

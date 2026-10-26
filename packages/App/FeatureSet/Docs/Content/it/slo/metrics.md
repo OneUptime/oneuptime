@@ -31,12 +31,12 @@ flowchart TB
 
 L'aggregazione è il modo in cui i grafici dello SLO e il modello SLO Dashboard combinano i punti che cadono in uno stesso intervallo del grafico. Percentuali e durate vengono mediate. Tasso di consumo e stato prendono il massimo, così un breve picco di consumo o un passaggio rapido in Budget Exhausted non si perde nella media.
 
-Per uno SLO in modalità **Monitor Seconds Average**, `oneuptime.slo.error.budget.remaining.seconds` conta secondi-monitor sommati su tutti i suoi monitor, come il suo budget di errore: vedi [Budget di errore](/docs/slo/error-budget).
+Per uno SLO in modalità **Media dei secondi dei monitor**, `oneuptime.slo.error.budget.remaining.seconds` conta secondi-monitor sommati su tutti i suoi monitor, come il suo budget di errore: vedi [Budget di errore](/docs/slo/error-budget).
 
 ### Quando non viene scritto nessun punto
 
 - Uno SLO disattivato o archiviato non viene valutato, quindi non pubblica nulla.
-- Uno SLO **In pausa** o **Misconfigured** non misura nulla, quindi pubblica solo `oneuptime.slo.target.percent`, che è configurazione e non una misura. I suoi grafici di SLI, budget, tasso di consumo e stato mostrano un vuoto.
+- Uno SLO **In pausa** o **Configurato male** non misura nulla, quindi pubblica solo `oneuptime.slo.target.percent`, che è configurazione e non una misura. I suoi grafici di SLI, budget, tasso di consumo e stato mostrano un vuoto.
 - Un valore che non è un numero reale, come un tasso di consumo su una finestra senza dati, viene saltato, mai scritto come 0.
 
 ### Attributi
@@ -66,7 +66,7 @@ La pagina **Metriche** di uno SLO ha quattro schede:
 
 | Scheda | Cosa mostra |
 | --- | --- |
-| **SLO Metrics** | Le serie `oneuptime.slo.*` in tre riquadri che condividono un intervallo di tempo, l'ultimo giorno per impostazione predefinita: **Objective** (lo SLI con l'obiettivo sopra, e il budget rimanente), **Burn** (tasso di consumo e tempo di budget rimanente) e **Stato**. |
+| **SLO Metrics** | Le serie `oneuptime.slo.*` in tre riquadri che condividono un intervallo di tempo, l'ultimo giorno per impostazione predefinita: **Obiettivo** (lo SLI con l'obiettivo sopra, e il budget rimanente), **Consumo** (tasso di consumo e tempo di budget rimanente) e **Stato**. |
 | **Error Budget History** | SLI, budget rimanente e tasso di consumo sulla cronologia di lungo periodo, con linee all'obiettivo, ai limiti di rischio e di esaurimento, e alla soglia di ogni regola del tasso di consumo abilitata. |
 | **Metriche di incidente** | Il numero, il tempo di presa in carico, il tempo di risoluzione e la durata degli incidenti che riguardano questo SLO, l'ultima settimana per impostazione predefinita. Sono inclusi gli incidenti dichiarati dalle sue regole del tasso di consumo. |
 | **Metriche di avviso** | Lo stesso per gli avvisi. Sono inclusi gli avvisi generati dalle sue regole del tasso di consumo. |
@@ -98,7 +98,7 @@ Il [widget SLO](/docs/dashboards/widgets#slo) mostra lo SLI, il budget rimanente
 | Impostazione | Come si comporta |
 | --- | --- |
 | **Service Level Objective** | Fissa il widget a uno SLO. Il selettore elenca gli SLO non archiviati. |
-| **Follow SLO Variable** | Mostra lo SLO scelto in una variabile della dashboard: una variabile **Telemetry Attribute** sulla chiave `sloName`. Ignorato finché uno SLO è fissato. |
+| **Follow SLO Variable** | Mostra lo SLO scelto in una variabile della dashboard: una variabile **Attributo di telemetria** sulla chiave `sloName`. Ignorato finché uno SLO è fissato. |
 
 In una [dashboard pubblica](/docs/dashboards/sharing), un widget che segue una variabile permette ai visitatori di scegliere per nome qualsiasi SLO non archiviato del progetto. Un widget fissato mostra sempre e solo il suo SLO, e continua a mostrare gli ultimi numeri di uno SLO archiviato in seguito.
 
@@ -115,7 +115,7 @@ Una variabile SLO nella barra degli strumenti delimita l'intera dashboard. È un
 ## Risoluzione dei problemi
 
 :::details Uno SLO manca dal selettore SLO della barra degli strumenti
-Il selettore elenca i nomi degli SLO pubblicati nell'ultimo giorno. Un nuovo SLO compare dopo la sua prima valutazione; uno SLO **In pausa** o **Misconfigured** resta selezionabile perché pubblica ancora il suo obiettivo; uno SLO disattivato o archiviato sparisce circa un giorno dopo il suo ultimo punto.
+Il selettore elenca i nomi degli SLO pubblicati nell'ultimo giorno. Un nuovo SLO compare dopo la sua prima valutazione; uno SLO **In pausa** o **Configurato male** resta selezionabile perché pubblica ancora il suo obiettivo; uno SLO disattivato o archiviato sparisce circa un giorno dopo il suo ultimo punto.
 :::
 
 :::details Scegliendo un nome compaiono due SLO

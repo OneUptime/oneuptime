@@ -46,7 +46,7 @@ flowchart TB
 :::steps
 ### Öppna datakällorna
 
-Öppna **Produkter → Instrumentpaneler**, fäll ut **Inställningar** i sidomenyn och klicka på **Data Sources**.
+Öppna **Produkter → Instrumentpaneler**, fäll ut **Inställningar** i sidomenyn och klicka på **Datakällor**.
 
 ### Välj typen
 
@@ -62,20 +62,20 @@ Under **Anslutning** får en HTTP-källa den **URL** som den svarar på. En data
 
 ### Ange hur man loggar in
 
-Under **Autentisering** anger du ett **Användarnamn** och ett **Lösenord** eller, för en HTTP-källa, en **API Token**, som skickas som bearer-token. **Fler fält** innehåller **Custom HTTP Headers**, till exempel `{ "X-Scope-OrgID": "tenant-1" }`, och **Additional Options**: `sslEnabled` och `sslRejectUnauthorized` för databaser, och `elasticsearchIndex` för Elasticsearch, som utan den läser alla index (`*`).
+Under **Autentisering** anger du ett **Användarnamn** och ett **Lösenord** eller, för en HTTP-källa, en **API-token**, som skickas som bearer-token. **Fler fält** innehåller **Custom HTTP Headers**, till exempel `{ "X-Scope-OrgID": "tenant-1" }`, och **Additional Options**: `sslEnabled` och `sslRejectUnauthorized` för databaser, och `elasticsearchIndex` för Elasticsearch, som utan den läser alla index (`*`).
 
 ### Testa den
 
 Klicka på **Skapa Data Source** och sedan på **Testa** på dess rad. OneUptime ansluter med uppgifterna som du angav, och talar om ifall det fungerade eller vad som gick fel.
 :::
 
-För att ändra en datakälla senare öppnar du den från listan. **Redigera** på **Data Source Details** ändrar allt utom dess hemligheter; **Update Credentials** ersätter lösenordet, token eller rubrikerna, och lämnar fälten som du lämnar tomma som de var; **Testa** kontrollerar den igen.
+För att ändra en datakälla senare öppnar du den från listan. **Redigera** på **Data Source Details** ändrar allt utom dess hemligheter; **Uppdatera inloggningsuppgifter** ersätter lösenordet, token eller rubrikerna, och lämnar fälten som du lämnar tomma som de var; **Testa** kontrollerar den igen.
 
 ## Använd den i en widget
 
 Redigera en instrumentpanel, klicka på **Lägg till widget** och välj en widget i gruppen Externa datakällor: ett **Diagram**, ett **Värde**, en **Mätare** eller en **Tabell**. I dess inställningar:
 
-- Välj **Data Source** och skriv **Query**. Redigeraren namnger frågespråket och visar ett exempel för typen.
+- Välj **Data Source** och skriv **Fråga**. Redigeraren namnger frågespråket och visar ett exempel för typen.
 - På ett diagram lägger **Lägg till fråga** fler frågor på samma axlar, och **Legend (optional)** namnger varje serie utifrån dess etiketter: `{{instance}} — errors` skriver seriens etikett `instance` först.
 - På ett värde eller en mätare gör **Reduce** om punkterna till ett enda tal: det senaste värdet (standard), det första, medelvärdet, summan, minimum eller maximum. **Unit** lägger till ett suffix och skalar de kända enheterna: `Bytes` läses som 1.5 MB, `ms` som 2.4 s.
 - På en tabell fungerar vilken skrivskyddad fråga som helst, och dess rader visas som de kommer tillbaka.
@@ -162,7 +162,7 @@ Intervallfrågor till Prometheus och Loki ber om ungefär 250 punkter över tids
 ## Säkerhet
 
 - **SQL förblir skrivskyddad.** En fråga måste vara en enda sats som börjar med `SELECT`, `WITH`, `SHOW`, `EXPLAIN`, `DESCRIBE` eller `DESC`. Ord som skriver eller ändrar en session, till exempel `INSERT`, `UPDATE`, `DELETE`, `DROP`, `INTO` eller `SET`, avvisas överallt utanför strängar och citerade namn, så citera en kolumn som heter som något av dem. Skriv ett citattecken i en sträng som två citattecken (`''`): ett omvänt snedstreck före ett citattecken avvisas. Sessioner i PostgreSQL, MySQL och ClickHouse är också skrivskyddade. SQL Server har ingen skrivskyddad session, så anslut den med en skrivskyddad inloggning.
-- **Inloggningsuppgifter kan bara skrivas.** **Lösenord**, **API Token** och **Custom HTTP Headers** krypteras när de lagras, och API:et returnerar dem aldrig, inte ens till dig.
+- **Inloggningsuppgifter kan bara skrivas.** **Lösenord**, **API-token** och **Custom HTTP Headers** krypteras när de lagras, och API:et returnerar dem aldrig, inte ens till dig.
 - **Adresser kontrolleras.** Loopback-, link-local- (där molnmetadata finns) och andra reserverade adresser avvisas överallt. Privata adresser avvisas på OneUptime Cloud, och tillåts på en egeninstallation om inte `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` är `true`: se [Åtkomst till privat nätverk](/docs/self-hosted/private-network-access).
 - **Offentliga instrumentpaneler kör dem aldrig.** Widgetarna i Externa datakällor utelämnas från en [offentlig instrumentpanel](/docs/dashboards/sharing), frågor och allt.
 

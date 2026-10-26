@@ -49,20 +49,20 @@ L'URL di base mostrato da Falcon ti dice in quale cloud si trova il tuo CID. Anc
 
 ### Aggiungere la connessione in OneUptime
 
-Apri **Prodotti → Security Events → Connections** (`/dashboard/{projectId}/security-events/connections`), fai clic su **Aggiungi connessione**, scegli **CrowdStrike Falcon** e fai clic su **Avanti**. Compila le impostazioni della tabella qui sotto, fai clic su **Avanti** e incolla il segreto in **Client secret**.
+Apri **Prodotti → Security Events → Connessioni** (`/dashboard/{projectId}/security-events/connections`), fai clic su **Aggiungi connessione**, scegli **CrowdStrike Falcon** e fai clic su **Avanti**. Compila le impostazioni della tabella qui sotto, fai clic su **Avanti** e incolla il segreto in **Segreto client**.
 
 ### Provarla prima di salvare
 
-Fai clic su **Test these settings** in **Testa prima di salvare**. Il test accede e legge gli avvisi con i valori del modulo, e non salva nulla, quindi un cloud sbagliato o un ambito mancante emergono prima che la connessione esista. Poi fai clic su **Avanti**, dai alla connessione un **Nome** e creala.
+Fai clic su **Prova queste impostazioni** in **Testa prima di salvare**. Il test accede e legge gli avvisi con i valori del modulo, e non salva nulla, quindi un cloud sbagliato o un ambito mancante emergono prima che la connessione esista. Poi fai clic su **Avanti**, dai alla connessione un **Nome** e creala.
 :::
 
 | Impostazione | Cosa inserire |
 | --- | --- |
 | **Client ID** | L'ID del client API, come lo ha mostrato Falcon quando hai creato il client. |
 | **Falcon cloud** | Il cloud del tuo CID: **US-1 (api.crowdstrike.com)**, **US-2 (api.us-2.crowdstrike.com)**, **EU-1 (api.eu-1.crowdstrike.com)** o **US-GOV-1 (api.laggar.gcw.crowdstrike.com)**. Ogni richiesta va all'host API di quel cloud. |
-| **Client secret** | Il segreto del client API. È cifrato, mai restituito dall'API e mai più mostrato. Sostituiscilo con **Update credentials** sulla connessione. |
+| **Segreto client** | Il segreto del client API. È cifrato, mai restituito dall'API e mai più mostrato. Sostituiscilo con **Aggiorna le credenziali** sulla connessione. |
 
-Il passaggio **Polling** ha anche una **Descrizione** facoltativa, il **Poll Interval (Minutes)**, un numero intero da `1` a `1440` che parte da `5`, e **Abilitato**, che parte attivo. Una connessione non abilitata si può comunque testare e interrogare a mano.
+Il passaggio **Interrogazione** ha anche una **Descrizione** facoltativa, il **Intervallo di interrogazione (minuti)**, un numero intero da `1` a `1440` che parte da `5`, e **Abilitato**, che parte attivo. Una connessione non abilitata si può comunque testare e interrogare a mano.
 
 ## Cosa viene importato
 
@@ -96,7 +96,7 @@ L'ora dell'evento è, di proposito, quella in cui Falcon ha creato l'avviso: l'o
 
 ### Quando una finestra contiene più di quanto un'interrogazione possa leggere
 
-Un'interrogazione invia al massimo 20 richieste. Con una richiesta di token e due richieste ogni 1.000 avvisi, legge al massimo 9.000 avvisi. Quando una finestra ne contiene di più, l'esecuzione è **Partial**, con un avviso come questo:
+Un'interrogazione invia al massimo 20 richieste. Con una richiesta di token e due richieste ogni 1.000 avvisi, legge al massimo 9.000 avvisi. Quando una finestra ne contiene di più, l'esecuzione è **Parziale**, con un avviso come questo:
 
 ```text
 Stopped after 19 requests before reading the whole window. Alerts are read oldest first; every alert created before 2026-09-14T08:12:44.995Z was read.
@@ -104,46 +104,46 @@ Stopped after 19 requests before reading the whole window. Alerts are read oldes
 
 La query degli avvisi è ordinata per `created_timestamp`, dal più vecchio, quindi OneUptime sposta il cursore all'ora di creazione dell'ultimo avviso letto, e l'interrogazione successiva parte da lì con la stessa lunghezza di finestra, dall'offset `0`. Un CID molto attivo recupera circa 9.000 avvisi per interrogazione, invece di rileggere gli stessi. Gli avvisi creati in quello stesso istante vengono letti due volte, e il controllo dei duplicati scarta la seconda copia.
 
-La query degli avvisi di Falcon non può paginare oltre 10.000 risultati (`limit` più `offset`). Il limite di richieste ferma un'esecuzione a 9.000 avvisi, prima di quel tetto. Se il tetto dovesse mai fermare una lettura, viene gestito allo stesso modo: l'esecuzione è **Partial**, il cursore passa all'ultimo avviso letto e la query successiva riparte dall'offset `0`.
+La query degli avvisi di Falcon non può paginare oltre 10.000 risultati (`limit` più `offset`). Il limite di richieste ferma un'esecuzione a 9.000 avvisi, prima di quel tetto. Se il tetto dovesse mai fermare una lettura, viene gestito allo stesso modo: l'esecuzione è **Parziale**, il cursore passa all'ultimo avviso letto e la query successiva riparte dall'offset `0`.
 
 Quando un'esecuzione non riesce affatto a superare il cursore salvato, per esempio perché più di 9.000 avvisi condividono il minuto di sovrapposizione, OneUptime accorcia invece la finestra:
 
 1. **Restringere.** L'interrogazione successiva legge una finestra lunga la metà, dallo stesso punto di partenza, e continua a dimezzarla finché una finestra non viene letta per intero, fino a un minuto. L'avviso dell'esecuzione lo dice: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **Tornare a crescere.** Dopo che una finestra è stata letta per intero, la successiva è di nuovo lunga il doppio, fino a 24 ore.
-3. **Superare un singolo minuto.** Se anche un solo minuto contiene più di quanto un'interrogazione possa leggere, il polling lo supera, così gli avvisi più recenti continuano ad arrivare. L'esecuzione resta **Partial**, e **Ultimo errore** riporta `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importa quel minuto con **Import this time range** per recuperare ciò che un'esecuzione può leggere.
+3. **Superare un singolo minuto.** Se anche un solo minuto contiene più di quanto un'interrogazione possa leggere, il polling lo supera, così gli avvisi più recenti continuano ad arrivare. L'esecuzione resta **Parziale**, e **Ultimo errore** riporta `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importa quel minuto con **Import this time range** per recuperare ciò che un'esecuzione può leggere.
 
-Un'esecuzione che fallisce del tutto, con un errore di Falcon, mantiene il cursore e la lunghezza della finestra, e l'interrogazione successiva rilegge la stessa finestra. L'unica eccezione è una richiesta scaduta: il cursore resta, ma la finestra successiva è lunga la metà, perché una finestra troppo pesante per ricevere risposta in tempo scadrebbe a ogni tentativo. Cambiare il **Poll Interval (Minutes)** non cambia nulla di tutto questo: decide quanto spesso parte un'interrogazione, non dove inizia la sua finestra.
+Un'esecuzione che fallisce del tutto, con un errore di Falcon, mantiene il cursore e la lunghezza della finestra, e l'interrogazione successiva rilegge la stessa finestra. L'unica eccezione è una richiesta scaduta: il cursore resta, ma la finestra successiva è lunga la metà, perché una finestra troppo pesante per ricevere risposta in tempo scadrebbe a ogni tentativo. Cambiare il **Intervallo di interrogazione (minuti)** non cambia nulla di tutto questo: decide quanto spesso parte un'interrogazione, non dove inizia la sua finestra.
 
 ### Eseguire, visualizzare in anteprima e importare su richiesta
 
-Fai clic su **Diagnostics** su una connessione per vederne le esecuzioni recenti e lavorarci a mano. Chi può modificare la connessione può avviare queste azioni; chi può vederla può leggerne la cronologia.
+Fai clic su **Diagnostica** su una connessione per vederne le esecuzioni recenti e lavorarci a mano. Chi può modificare la connessione può avviare queste azioni; chi può vederla può leggerne la cronologia.
 
-- **Run now** avvia subito un'interrogazione, con il cursore abituale, anche quando la connessione non è **Abilitato**.
+- **Esegui ora** avvia subito un'interrogazione, con il cursore abituale, anche quando la connessione non è **Abilitato**.
 - **Preview alerts** legge un intervallo di tempo fino a 7 giorni e non importa nulla.
 - **Import this time range** importa un intervallo fino a 7 giorni, dopo la tua conferma, senza spostare il cursore. Gli avvisi già importati vengono saltati.
 - **Copy diagnostics** su un'esecuzione copia il suo rapporto per il supporto. Non contiene mai credenziali.
 
 ## Testare la connessione
 
-**Testa la connessione** sulla riga di una connessione, e **Test these settings** nel modulo, vengono eseguiti nel processo dell'API, non in un worker in background, così un test risponde anche quando il problema sono i worker. Esegue questi controlli, in ordine:
+**Testa la connessione** sulla riga di una connessione, e **Prova queste impostazioni** nel modulo, vengono eseguiti nel processo dell'API, non in un worker in background, così un test risponde anche quando il problema sono i worker. Esegue questi controlli, in ordine:
 
 | Controllo | Cosa verifica |
 | --- | --- |
-| **Configurazione** | **Client ID**, **Falcon cloud** e **Client secret** sono presenti e ben formati. Non viene contattato nulla quando questo fallisce. |
+| **Configurazione** | **Client ID**, **Falcon cloud** e **Segreto client** sono presenti e ben formati. Non viene contattato nulla quando questo fallisce. |
 | **Authenticate with CrowdStrike Falcon** | `POST /oauth2/token` con l'ID e il segreto del client API, sull'host del tuo cloud, restituisce un token. |
 | **Read alerts from the Falcon Alerts API** | Una query di avvisi per un solo avviso (`limit=1`) sulle ultime 24 ore viene accettata, il che dimostra l'ambito **Alerts → Read**. |
 | **Alerts available to import** | Quanti avvisi sono stati creati nelle ultime 24 ore e negli ultimi 7 giorni. Nessuno in 7 giorni è un avviso, non un errore: il polling importa i nuovi avvisi man mano che Falcon li crea. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | Il lato di OneUptime stesso: un processo prende i job della coda Worker, il job di polling gira ogni minuto e l'archivio degli eventi di sicurezza risponde. |
 | **Scheduled polling** | Per una connessione salvata: il polling è attivo, nessuna esecuzione è bloccata in attesa di un worker e le interrogazioni girano in orario. |
 
-Ogni richiesta di un test ha una scadenza di 20 secondi. Un test non importa mai nulla e non sposta mai il cursore, e ogni controllo fallito dice cosa cambiare. **Copy report** copia l'elenco dei controlli come JSON, senza credenziali né token.
+Ogni richiesta di un test ha una scadenza di 20 secondi. Un test non importa mai nulla e non sposta mai il cursore, e ogni controllo fallito dice cosa cambiare. **Copia il rapporto** copia l'elenco dei controlli come JSON, senza credenziali né token.
 
 ## Risoluzione dei problemi
 
 Il **Ultimo errore** della connessione, e ogni controllo fallito, conservano il messaggio di errore completo, con le credenziali oscurate, dietro un prefisso che nomina il passaggio fallito. Quando una connessione ha un errore, seleziona **Visualizza errore** nella sua colonna **Azioni** per leggerlo, e **Copia errore** nella finestra di dialogo per copiarlo. Leggi prima il prefisso.
 
 :::details Last Error inizia con `CrowdStrike Falcon token request`
-- `CrowdStrike Falcon token request failed (HTTP 401)` o `(HTTP 403)`: Falcon ha rifiutato l'ID e il segreto del client API, prima che la Alerts API venisse contattata. Verifica che **Falcon cloud** sia il cloud del tuo CID, perché un client di un altro cloud viene rifiutato qui, che **Client ID** sia quello del client e che **Client secret** sia il segreto rilasciato con esso. Se il segreto è andato perso, reimpostalo nella console Falcon e salvalo con **Update credentials**.
+- `CrowdStrike Falcon token request failed (HTTP 401)` o `(HTTP 403)`: Falcon ha rifiutato l'ID e il segreto del client API, prima che la Alerts API venisse contattata. Verifica che **Falcon cloud** sia il cloud del tuo CID, perché un client di un altro cloud viene rifiutato qui, che **Client ID** sia quello del client e che **Segreto client** sia il segreto rilasciato con esso. Se il segreto è andato perso, reimpostalo nella console Falcon e salvalo con **Aggiorna le credenziali**.
 - `CrowdStrike Falcon token request returned ...`: Falcon ha risposto con qualcosa di inutilizzabile, un corpo che non è JSON o senza `access_token`. Di solito è un proxy o un gateway nel mezzo, non le credenziali.
 :::
 
@@ -165,9 +165,9 @@ Il **Ultimo errore** della connessione, e ogni controllo fallito, conservano il 
 :::
 
 :::details Un'esecuzione è Partial
-- `Stopped after 19 requests before reading the whole window`: la finestra conteneva più dei 9.000 avvisi che legge un'esecuzione. Non si perde nulla: l'interrogazione successiva parte dopo l'ultimo avviso letto. Una connessione che resta **Partial** un'interrogazione dopo l'altra sta recuperando un arretrato, e il suo **Last Polled** e il suo **Last Event Imported** continuano ad avanzare. Il conteggio può superare di poco 19 quando il token è stato rinnovato durante l'esecuzione.
+- `Stopped after 19 requests before reading the whole window`: la finestra conteneva più dei 9.000 avvisi che legge un'esecuzione. Non si perde nulla: l'interrogazione successiva parte dopo l'ultimo avviso letto. Una connessione che resta **Parziale** un'interrogazione dopo l'altra sta recuperando un arretrato, e il suo **Ultima interrogazione** e il suo **Ultimo evento importato** continuano ad avanzare. Il conteggio può superare di poco 19 quando il token è stato rinnovato durante l'esecuzione.
 - `Falcon returned alerts out of created_timestamp order, so this run cannot name a point to resume from.`: la query ha ignorato l'ordine dal più vecchio al più recente, quindi l'esecuzione non può spostare il cursore sul suo ultimo avviso, e l'interrogazione successiva legge invece una finestra più corta. Se si ripete, invia il rapporto dell'esecuzione al supporto di OneUptime.
-- `More records were created in the one minute from ... than one poll can read`: il polling ha superato quel minuto. Importalo con **Import this time range** in **Diagnostics**. Un'importazione legge quanto un'interrogazione.
+- `More records were created in the one minute from ... than one poll can read`: il polling ha superato quel minuto. Importalo con **Import this time range** in **Diagnostica**. Un'importazione legge quanto un'interrogazione.
 :::
 
 :::details Last Polled è Never e Last Error è vuoto
@@ -175,7 +175,7 @@ Non è stata eseguita nessuna interrogazione, quindi nulla ha raggiunto Falcon. 
 :::
 
 :::details Il test riesce, ma non compare nessun evento
-Leggi **Alerts available to import**: un avviso lì significa che Falcon non ha creato avvisi negli ultimi 7 giorni, quindi non c'è ancora nulla da importare. Altrimenti apri **Diagnostics**, controlla la finestra e i conteggi dell'ultima interrogazione e usa **View events in this time range** su un'esecuzione per aprire l'intervallo di tempo degli avvisi che ha importato.
+Leggi **Alerts available to import**: un avviso lì significa che Falcon non ha creato avvisi negli ultimi 7 giorni, quindi non c'è ancora nulla da importare. Altrimenti apri **Diagnostica**, controlla la finestra e i conteggi dell'ultima interrogazione e usa **View events in this time range** su un'esecuzione per aprire l'intervallo di tempo degli avvisi che ha importato.
 :::
 
 ## Cosa ottieni

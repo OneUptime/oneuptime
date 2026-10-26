@@ -1,6 +1,6 @@
 # Köra regler på befintliga resurser
 
-Etikettregler, ägarregler och sekretessregler körs automatiskt när en resurs **skapas**. En regel som du skriver i dag gör därför ingenting med de monitorer, incidenter eller värdar som du redan har. **Run Now** täpper till den luckan: den tillämpar en regel på varje resurs som redan finns i projektet.
+Etikettregler, ägarregler och sekretessregler körs automatiskt när en resurs **skapas**. En regel som du skriver i dag gör därför ingenting med de monitorer, incidenter eller värdar som du redan har. **Kör nu** täpper till den luckan: den tillämpar en regel på varje resurs som redan finns i projektet.
 
 ```mermaid title="Vad en körning gör"
 flowchart TB
@@ -16,8 +16,8 @@ flowchart TB
 
 - **Etikettregler** och **Ägarregler**, för varje resurs som har dem: monitorer, incidenter, incidentepisoder, larm, larmepisoder, planerade underhållshändelser, statussidor, tjänster, värdar, Kubernetes-kluster, Docker-värdar, Docker Swarm-kluster, Podman-värdar, Proxmox-kluster, VMware vCenter, Ceph-kluster, lagringsmatriser, databaser, köer, IoT-flottor, serverlösa funktioner, molnresurser, RUM-applikationer, instrumentpaneler, jourpolicyer, jourscheman, policyer för inkommande samtal, arbetsflöden, runbooks, nätverksenheter och SLO:er.
 - **Sekretessregler**, för incidenter, larm, incidentepisoder och larmepisoder.
-- **Monitor Rules** på en statussida. De synkroniserar redan om sidan varje gång en regel sparas; att köra en synkroniserar den direkt.
-- **Monitor Rules** på en SLO. De synkroniserar redan om SLO:n varje gång en regel sparas; att köra en synkroniserar SLO:ns monitorer direkt. Se [Monitorer och monitorregler](/docs/slo/monitor-rules).
+- **Monitorregler** på en statussida. De synkroniserar redan om sidan varje gång en regel sparas; att köra en synkroniserar den direkt.
+- **Monitorregler** på en SLO. De synkroniserar redan om SLO:n varje gång en regel sparas; att köra en synkroniserar SLO:ns monitorer direkt. Se [Monitorer och monitorregler](/docs/slo/monitor-rules).
 
 Regler som utför en åtgärd i stället för att beskriva en resurs (**Jourregler**, **Runbook-regler**, **AI-regler** och **Grupperingsregler**) kan inte köras på befintliga poster. Att köra dem skulle larma personer, köra runbooks, starta åtgärder eller organisera om episoder för incidenter som redan är över.
 
@@ -28,7 +28,7 @@ För att köra en regel behöver du behörighet att redigera regeln **och** att 
 > [!IMPORTANT]
 > En behörighet som är begränsad till vissa etiketter, eller till resurser som du äger, räcker inte: en körning kan ändra alla resurser i projektet. Teamens blocklistor gäller som överallt annars, och en blockering som är begränsad till vissa etiketter räknas också: en körning skulle ändra resurserna med de etiketterna, så en blockering med etiketter på redigering av de resurser som en regel ändrar avvisar körningen.
 
-Ett nätverks regler kräver detsamma när du kör dem på de enheter du redan har. **Run Now** för en regel för platstilldelning eller enhetsetiketter kräver behörighet att redigera regeln och **Edit Network Device**. **Dry Run** och **Run Rule** för en regel för automatisk import kräver behörighet att redigera regeln, **Create Network Device** och, när regeln har en monitormall, **Create Monitor**. Var och en måste nå hela projektet. Se [Automatisk import med regler för automatisk import](/docs/monitor/network-device-monitor#importera-automatiskt-med-regler-för-automatisk-import).
+Ett nätverks regler kräver detsamma när du kör dem på de enheter du redan har. **Kör nu** för en regel för platstilldelning eller enhetsetiketter kräver behörighet att redigera regeln och **Edit Network Device**. **Dry Run** och **Run Rule** för en regel för automatisk import kräver behörighet att redigera regeln, **Create Network Device** och, när regeln har en monitormall, **Create Monitor**. Var och en måste nå hela projektet. Se [Automatisk import med regler för automatisk import](/docs/monitor/network-device-monitor#importera-automatiskt-med-regler-för-automatisk-import).
 
 ## Köra en regel
 
@@ -39,7 +39,7 @@ Ett nätverks regler kräver detsamma när du kör dem på de enheter du redan h
 
 ### Välj Run Now
 
-Öppna menyn **⋯** i slutet av regelns rad och välj **Run Now**, eller välj **Visa** och sedan **Run Now** på regelns egen sida. En dialogruta berättar vad körningen kommer att göra.
+Öppna menyn **⋯** i slutet av regelns rad och välj **Kör nu**, eller välj **Visa** och sedan **Kör nu** på regelns egen sida. En dialogruta berättar vad körningen kommer att göra.
 
 ### Välj om nya ägare ska aviseras
 
@@ -56,7 +56,7 @@ När körningen är klar berättar dialogrutan hur många resurser regeln matcha
 
 ## Köra flera regler
 
-Markera regler i tabellen, öppna menyn för massåtgärder och välj **Run Now**. De markerade reglerna körs efter varandra.
+Markera regler i tabellen, öppna menyn för massåtgärder och välj **Kör nu**. De markerade reglerna körs efter varandra.
 
 - Ägare som läggs till av en masskörning aviseras aldrig. Kör i stället en enskild regel för att avisera dem.
 - En regel som inte kan köras (till exempel för att den är inaktiverad) listas med orsaken, och de andra reglerna körs ändå.

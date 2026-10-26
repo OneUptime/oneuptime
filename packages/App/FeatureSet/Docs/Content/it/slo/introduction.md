@@ -46,7 +46,7 @@ Apri **SLOs** dal menu **Prodotti** nella barra in alto. Si trova nel primo grup
 
 ### Dargli un nome e fissare un obiettivo
 
-Inserisci un **Nome**, per esempio «API Availability», e un **Target (%)**: la quota di tempo in cui i suoi monitor devono essere disponibili. L'obiettivo parte da `99.9`. Deve essere maggiore di 0 e al massimo 99,999, perché un obiettivo del 100% non lascia alcun budget di errore da seguire.
+Inserisci un **Nome**, per esempio «API Availability», e un **Obiettivo (%)**: la quota di tempo in cui i suoi monitor devono essere disponibili. L'obiettivo parte da `99.9`. Deve essere maggiore di 0 e al massimo 99,999, perché un obiettivo del 100% non lascia alcun budget di errore da seguire.
 
 ### Controllare i valori predefiniti in Altri campi
 
@@ -58,7 +58,7 @@ Fai clic su **Crea: Service Level Objective**. OneUptime apre il nuovo SLO. La s
 
 ### Collegare i monitor
 
-Fai clic su **Create a monitor rule** per collegare ogni monitor che corrisponde, ora e in futuro, oppure su **Add monitors** per sceglierli a mano. Vedi [Monitor e regole dei monitor](/docs/slo/monitor-rules).
+Fai clic su **Crea una regola dei monitor** per collegare ogni monitor che corrisponde, ora e in futuro, oppure su **Aggiungi monitor** per sceglierli a mano. Vedi [Monitor e regole dei monitor](/docs/slo/monitor-rules).
 
 ### Vedere arrivare i primi numeri
 
@@ -71,8 +71,8 @@ I campi in **Altri campi**:
 | --- | --- | --- |
 | **Descrizione** | A cosa serve lo SLO. | Vuoto |
 | **Soglia a rischio (%)** | La quota del budget di errore rimanente alla quale lo SLO passa a **A rischio**. Un numero intero da 0 a 100. | 20 |
-| **Window Type** | **Rolling**: gli ultimi N giorni, che si recuperano man mano che la vecchia inattività esce dalla finestra. **Calendar Month**: ogni mese a sé, azzerato il giorno 1. | **Rolling** |
-| **Window (Days)** | Solo finestre mobili: quanti giorni guardare indietro, da 1 a 366. Di solito 28 o 30. | 30 |
+| **Tipo di finestra** | **Mobile**: gli ultimi N giorni, che si recuperano man mano che la vecchia inattività esce dalla finestra. **Mese di calendario**: ogni mese a sé, azzerato il giorno 1. | **Mobile** |
+| **Finestra (giorni)** | Solo finestre mobili: quanti giorni guardare indietro, da 1 a 366. Di solito 28 o 30. | 30 |
 | **Fuso orario** | Solo mesi di calendario: il fuso orario in cui ogni mese inizia e finisce. | UTC |
 | **Etichette** | Etichette per organizzare e filtrare gli SLO. | Nessuna |
 
@@ -80,11 +80,11 @@ Tutto ciò che decide come misura lo SLO parte da un valore predefinito che camb
 
 | Impostazione | Un nuovo SLO parte con | Dove cambiarla |
 | --- | --- | --- |
-| Monitor | Nessuno | **Monitor** o **Monitor Rules** |
-| Stati di inattività | Tutti gli stati non operativi del progetto | **Impostazioni** → **Downtime Calculation** |
-| Modalità multi-monitor | **Any Monitor Down** | **Impostazioni** → **Downtime Calculation** |
+| Monitor | Nessuno | **Monitor** o **Regole dei monitor** |
+| Stati di inattività | Tutti gli stati non operativi del progetto | **Impostazioni** → **Calcolo del downtime** |
+| Modalità multi-monitor | **Qualsiasi monitor inattivo** | **Impostazioni** → **Calcolo del downtime** |
 | Valutazione | Attiva | **Impostazioni** → **Valutazione** |
-| Regole del tasso di consumo | Una regola **Fast burn** e una regola **Slow burn**, adattate alla finestra | **Burn Rate Rules** |
+| Regole del tasso di consumo | Una regola **Fast burn** e una regola **Slow burn**, adattate alla finestra | **Regole di tasso di consumo** |
 
 ## Di cosa è fatto uno SLO
 
@@ -99,7 +99,7 @@ Tutto ciò che decide come misura lo SLO parte da un valore predefinito che camb
 
 ### Quali stati contano come inattività
 
-Ogni SLO ha il suo elenco di stati dei monitor che contano come inattività. Un nuovo SLO parte con tutti gli stati del progetto che non sono contrassegnati come operativi, come Degraded e Offline, come fanno le tue pagine di stato. Cambia l'elenco in **Impostazioni** → **Downtime Calculation**. Lascialo vuoto per contare tutti gli stati non operativi, compresi quelli aggiunti al progetto in seguito.
+Ogni SLO ha il suo elenco di stati dei monitor che contano come inattività. Un nuovo SLO parte con tutti gli stati del progetto che non sono contrassegnati come operativi, come Degraded e Offline, come fanno le tue pagine di stato. Cambia l'elenco in **Impostazioni** → **Calcolo del downtime**. Lascialo vuoto per contare tutti gli stati non operativi, compresi quelli aggiunti al progetto in seguito.
 
 > [!TIP]
 > Misura gli stessi monitor in due modi con due SLO: uno SLO di disponibilità rigoroso in cui contano sia Degraded sia Offline, e uno SLO di interruzione totale più permissivo in cui conta solo Offline.
@@ -108,19 +108,19 @@ Ogni SLO ha il suo elenco di stati dei monitor che contano come inattività. Un 
 
 | Tipo di finestra | Come si comporta |
 | --- | --- |
-| **Rolling** | Guarda indietro di un numero fisso di giorni a partire da adesso. La vecchia inattività esce dalla finestra, quindi il budget torna poco a poco. |
-| **Calendar Month** | Misura dal primo del mese, nel fuso orario dello SLO (UTC per impostazione predefinita). Tutto il budget torna all'inizio di ogni mese. |
+| **Mobile** | Guarda indietro di un numero fisso di giorni a partire da adesso. La vecchia inattività esce dalla finestra, quindi il budget torna poco a poco. |
+| **Mese di calendario** | Misura dal primo del mese, nel fuso orario dello SLO (UTC per impostazione predefinita). Tutto il budget torna all'inizio di ogni mese. |
 
 ### Più monitor su uno SLO
 
-Quando uno SLO misura più di un monitor, la sua **Multi Monitor Mode** decide come si combina la loro inattività. Un nuovo SLO usa **Any Monitor Down**.
+Quando uno SLO misura più di un monitor, la sua **Modalità multi-monitor** decide come si combina la loro inattività. Un nuovo SLO usa **Qualsiasi monitor inattivo**.
 
 | Modalità | Come conta l'inattività | Usala quando |
 | --- | --- | --- |
-| **Any Monitor Down** | Ogni momento in cui almeno un monitor è fuori servizio conta come inattività per tutto lo SLO. Le interruzioni sovrapposte contano una volta sola. | I monitor insieme sono un solo servizio: se uno qualsiasi cade, gli utenti se ne accorgono. |
-| **Monitor Seconds Average** | L'inattività di ogni monitor conta per conto suo, in media su tutto il tempo monitorato: SLI = 1 − (secondi di inattività di tutti i monitor ÷ secondi monitorati di tutti i monitor). | I monitor sono una flotta di risorse simili e un impatto parziale deve contare parzialmente. |
+| **Qualsiasi monitor inattivo** | Ogni momento in cui almeno un monitor è fuori servizio conta come inattività per tutto lo SLO. Le interruzioni sovrapposte contano una volta sola. | I monitor insieme sono un solo servizio: se uno qualsiasi cade, gli utenti se ne accorgono. |
+| **Media dei secondi dei monitor** | L'inattività di ogni monitor conta per conto suo, in media su tutto il tempo monitorato: SLI = 1 − (secondi di inattività di tutti i monitor ÷ secondi monitorati di tutti i monitor). | I monitor sono una flotta di risorse simili e un impatto parziale deve contare parzialmente. |
 
-Per esempio, il monitor A è fuori servizio dalle 10:00 alle 11:00 mentre il monitor B resta disponibile. **Any Monitor Down** registra 60 minuti di inattività; **Monitor Seconds Average** registra l'equivalente di 30 minuti, perché uno dei due monitor è stato fuori servizio per un'ora. In quella modalità anche il budget si conta in secondi-monitor: vedi [Budget di errore](/docs/slo/error-budget).
+Per esempio, il monitor A è fuori servizio dalle 10:00 alle 11:00 mentre il monitor B resta disponibile. **Qualsiasi monitor inattivo** registra 60 minuti di inattività; **Media dei secondi dei monitor** registra l'equivalente di 30 minuti, perché uno dei due monitor è stato fuori servizio per un'ora. In quella modalità anche il budget si conta in secondi-monitor: vedi [Budget di errore](/docs/slo/error-budget).
 
 ## Stato dello SLO
 
@@ -131,7 +131,7 @@ OneUptime assegna uno stato a ogni SLO valutato:
 | **Integro** | Resta più budget della soglia a rischio. |
 | **A rischio** | Il budget rimanente è sceso alla soglia a rischio o sotto: il 20% per impostazione predefinita. |
 | **Budget esaurito** | Il budget è stato speso tutto, o superato. |
-| **Misconfigured** | Lo SLO non si può misurare: non ha monitor, i suoi monitor non esistono più o non hanno ancora registrato uno stato nella sua finestra, oppure il suo obiettivo è fuori intervallo. |
+| **Configurato male** | Lo SLO non si può misurare: non ha monitor, i suoi monitor non esistono più o non hanno ancora registrato uno stato nella sua finestra, oppure il suo obiettivo è fuori intervallo. |
 | **In pausa** | Ogni monitor che misura è archiviato o ha il monitoraggio attivo disattivato, a mano, da un incidente manuale o da una manutenzione pianificata. Riprende da solo appena uno di essi torna a essere monitorato. |
 
 Uno SLO disattivato o archiviato non viene valutato, quindi il suo stato resta com'era; l'elenco degli SLO mostra invece un'etichetta **Disabilitato** o **Archiviato**. I proprietari di uno SLO ricevono una notifica quando lo stato passa a **A rischio** o **Budget esaurito**: vedi [Budget di errore](/docs/slo/error-budget).
@@ -140,7 +140,7 @@ Uno SLO disattivato o archiviato non viene valutato, quindi il suo stato resta c
 
 La pagina **SLOs** elenca ogni SLO non archiviato, con stato, SLI, budget rimanente, tasso di consumo, obiettivo, finestra, monitor, etichette e proprietari.
 
-- I riquadri sopra l'elenco contano gli SLO per stato: **Integro**, **A rischio**, **Budget esaurito**, **Misconfigured**, **In pausa** e **Disabilitato**. Compaiono non appena c'è uno SLO non archiviato. Fai clic su un riquadro per vedere solo quegli SLO, e di nuovo per vederli tutti.
+- I riquadri sopra l'elenco contano gli SLO per stato: **Integro**, **A rischio**, **Budget esaurito**, **Configurato male**, **In pausa** e **Disabilitato**. Compaiono non appena c'è uno SLO non archiviato. Fai clic su un riquadro per vedere solo quegli SLO, e di nuovo per vederli tutti.
 - Seleziona degli SLO per aggiungere o togliere etichette e proprietari, attivarli o disattivarli, archiviarli o eliminarli, tutti insieme.
 - La sezione **Impostazioni** del menu laterale contiene **Regole etichette** e **Regole del proprietario**, che etichettano i nuovi SLO e assegnano loro dei proprietari: vedi [Regole per etichette e proprietari](/docs/slo/label-and-owner-rules).
 - La sezione **Avanzato** del menu laterale contiene **Archiviato**, l'elenco degli SLO archiviati.
@@ -157,14 +157,14 @@ Apri uno SLO per vedere le sue pagine nel menu laterale:
 | **Avvisi** | Gli avvisi generati dalle sue regole del tasso di consumo. Il badge conta quelli aperti. |
 | **Feed** | Cosa è successo allo SLO, come cronologia. Vedi [Feed e registri di audit degli SLO](/docs/slo/feed-and-audit-logs). |
 | **Monitor** | I monitor che misura, e se ognuno è stato collegato da una persona o da una regola. |
-| **Monitor Rules** | Le regole che collegano i monitor corrispondenti. |
-| **Burn Rate Rules** | Le regole che generano avvisi e dichiarano incidenti quando il budget si consuma troppo in fretta. |
+| **Regole dei monitor** | Le regole che collegano i monitor corrispondenti. |
+| **Regole di tasso di consumo** | Le regole che generano avvisi e dichiarano incidenti quando il budget si consuma troppo in fretta. |
 | **Proprietari** | Gli utenti e i team che vengono a sapere dei suoi cambi di stato. |
 | **Impostazioni** | L'obiettivo, il periodo di conformità, il calcolo dell'inattività, l'interruttore di valutazione e la scheda di archiviazione. |
 | **Registri di audit** | Chi ha cambiato lo SLO, le sue regole e i suoi proprietari, e quando. |
-| **Delete SLO** | Elimina lo SLO definitivamente e risolve gli avvisi e gli incidenti di tasso di consumo che aveva aperti. |
+| **Elimina SLO** | Elimina lo SLO definitivamente e risolve gli avvisi e gli incidenti di tasso di consumo che aveva aperti. |
 
-**Monitor** si trova in una sezione **Configurazione**, **Monitor Rules** e **Burn Rate Rules** in una sezione **Regole**, e **Proprietari**, **Impostazioni**, **Registri di audit** e **Delete SLO** in una sezione **Management**. Tutte e tre partono chiuse, come una sezione **Sviluppatori** per gestire lo SLO dal codice: fai clic sul titolo di una sezione per aprirla.
+**Monitor** si trova in una sezione **Configurazione**, **Regole dei monitor** e **Regole di tasso di consumo** in una sezione **Regole**, e **Proprietari**, **Impostazioni**, **Registri di audit** e **Elimina SLO** in una sezione **Gestione**. Tutte e tre partono chiuse, come una sezione **Sviluppatori** per gestire lo SLO dal codice: fai clic sul titolo di una sezione per aprirla.
 
 Quando qualcosa impedisce a uno SLO di misurare, un banner in cima a ciascuna delle sue pagine dice cosa non va e rimanda alla pagina che lo risolve: vedi [Risoluzione dei problemi](#risoluzione-dei-problemi).
 
@@ -172,16 +172,16 @@ Quando qualcosa impedisce a uno SLO di misurare, un banner in cima a ciascuna de
 
 La **Panoramica** risponde a «siamo dentro il budget?», dall'alto in basso:
 
-- **Il riepilogo**: lo stato, una frase su cosa significa e la descrizione. Accanto ci sono **Aggiorna** e quando lo SLO è stato valutato l'ultima volta. Sotto ci sono l'obiettivo, la **Compliance window** (con un indicatore di riempimento mentre una giovane finestra mobile si riempie: vedi [SLO giovani e l'indicatore di riempimento della finestra](#slo-giovani-e-lindicatore-di-riempimento-della-finestra)), il numero di monitor e i proprietari, con **Aggiungi proprietari** per aggiungerne uno direttamente lì.
+- **Il riepilogo**: lo stato, una frase su cosa significa e la descrizione. Accanto ci sono **Aggiorna** e quando lo SLO è stato valutato l'ultima volta. Sotto ci sono l'obiettivo, la **Finestra di conformità** (con un indicatore di riempimento mentre una giovane finestra mobile si riempie: vedi [SLO giovani e l'indicatore di riempimento della finestra](#slo-giovani-e-lindicatore-di-riempimento-della-finestra)), il numero di monitor e i proprietari, con **Aggiungi proprietari** per aggiungerne uno direttamente lì.
 - **I numeri principali**:
   - **SLI**: la quota di tempo buono nella finestra, e quanto è sopra o sotto l'obiettivo.
-  - **Error budget left**: una percentuale, una durata come "12m 30s left of 43m 12s" e una barra con un segno alla soglia a rischio. Quando il budget è superato mostra **Budget exceeded** e di quanto.
-  - **Burn rate**: con che velocità si spende il budget negli ultimi 60 minuti, il periodo usato dalla regola di consumo rapido predefinita. Diventa ambra sopra 1× e rossa, con **Rule threshold reached**, alla soglia più bassa delle regole del tasso di consumo abilitate dello SLO.
-  - **Budget runway**: quanto dura il budget a questo ritmo. Vedi [Budget di errore](/docs/slo/error-budget#autonomia-del-budget).
-- **Error budget burn-down**: il budget rimanente lungo la finestra attuale. Vedi [Budget di errore](/docs/slo/error-budget#consumo-del-budget-di-errore).
-- **Recent activity**: gli ultimi elementi del feed dello SLO.
-- **SLO Details**: nome, descrizione ed etichette, le sole impostazioni modificate nella panoramica.
-- **Open alerts & incidents**: cosa hanno aperto adesso le regole del tasso di consumo.
+  - **Budget di errore rimasto**: una percentuale, una durata come "12m 30s left of 43m 12s" e una barra con un segno alla soglia a rischio. Quando il budget è superato mostra **Budget exceeded** e di quanto.
+  - **Tasso di consumo**: con che velocità si spende il budget negli ultimi 60 minuti, il periodo usato dalla regola di consumo rapido predefinita. Diventa ambra sopra 1× e rossa, con **Soglia della regola raggiunta**, alla soglia più bassa delle regole del tasso di consumo abilitate dello SLO.
+  - **Autonomia del budget**: quanto dura il budget a questo ritmo. Vedi [Budget di errore](/docs/slo/error-budget#autonomia-del-budget).
+- **Burn-down del budget di errore**: il budget rimanente lungo la finestra attuale. Vedi [Budget di errore](/docs/slo/error-budget#consumo-del-budget-di-errore).
+- **Attività recente**: gli ultimi elementi del feed dello SLO.
+- **Dettagli dello SLO**: nome, descrizione ed etichette, le sole impostazioni modificate nella panoramica.
+- **Avvisi e incidenti aperti**: cosa hanno aperto adesso le regole del tasso di consumo.
 - **Burn rate rules**: la soglia di ogni regola abilitata accanto al tasso di consumo attuale, e cosa dichiara la regola.
 
 ### Impostazioni
@@ -190,9 +190,9 @@ La pagina **Impostazioni** raccoglie come misura uno SLO, una scheda per ciascun
 
 | Scheda | Cosa cambi | Da sapere |
 | --- | --- | --- |
-| **Objective** | **Target (%)** e **Soglia a rischio (%)**, con **Edit Objective**. | Mostra l'inattività che l'obiettivo consente, per esempio «43m 12s di inattività per finestra di 30 giorni». |
-| **Compliance Period** | **Window Type**, **Window (Days)** e **Fuso orario**, con **Edit Period**. | Le regole del tasso di consumo mantengono le loro soglie quando cambia la finestra, quindi rivedile dopo. |
-| **Downtime Calculation** | **Multi Monitor Mode** e **Stati del monitor per i tempi di inattività**, con **Edit Downtime Calculation**. | Senza stati si contano tutti gli stati non operativi, compresi quelli aggiunti dopo. |
+| **Obiettivo** | **Obiettivo (%)** e **Soglia a rischio (%)**, con **Modifica l'obiettivo**. | Mostra l'inattività che l'obiettivo consente, per esempio «43m 12s di inattività per finestra di 30 giorni». |
+| **Periodo di conformità** | **Tipo di finestra**, **Finestra (giorni)** e **Fuso orario**, con **Modifica il periodo**. | Le regole del tasso di consumo mantengono le loro soglie quando cambia la finestra, quindi rivedile dopo. |
+| **Calcolo del downtime** | **Modalità multi-monitor** e **Stati del monitor per i tempi di inattività**, con **Modifica il calcolo del downtime**. | Senza stati si contano tutti gli stati non operativi, compresi quelli aggiunti dopo. |
 | **Valutazione** | L'interruttore **Valuta questo SLO**, che salva appena lo sposti. | Disattivarlo chiede conferma, perché risolve anche gli avvisi e gli incidenti di tasso di consumo aperti dello SLO. |
 | **Archive SLO** | **Archivia** o **Annulla archiviazione**. | Vedi [Archiviare uno SLO](#archiviare-uno-slo). |
 
@@ -235,7 +235,7 @@ Anche il menu laterale di un monitor ha una pagina **SLOs**: gli SLO che misuran
 
 Uno SLO con finestra mobile più giovane della sua finestra si misura sui dati che esistono finora: uno SLO di 30 giorni creato ieri ha un giorno di dati. Il suo budget di errore parte piccolo e cresce man mano che la finestra si riempie, quindi i suoi primi numeri si muovono più di quanto faranno dopo.
 
-Finché è così, la **Panoramica** lo dice: il riepilogo mostra un indicatore **Window 23% full** (**Window under 1% full** il primo giorno), e il riquadro **Error budget left** lo ripete sotto il suo numero. Entrambi spariscono quando la finestra è piena. Gli SLO a mese di calendario non li mostrano mai, perché il loro budget copre tutto il mese fin dal primo giorno, e nemmeno gli SLO in modalità **Monitor Seconds Average**, il cui budget si conta su tutti i monitor.
+Finché è così, la **Panoramica** lo dice: il riepilogo mostra un indicatore **Window 23% full** (**Window under 1% full** il primo giorno), e il riquadro **Budget di errore rimasto** lo ripete sotto il suo numero. Entrambi spariscono quando la finestra è piena. Gli SLO a mese di calendario non li mostrano mai, perché il loro budget copre tutto il mese fin dal primo giorno, e nemmeno gli SLO in modalità **Media dei secondi dei monitor**, il cui budget si conta su tutti i monitor.
 
 ## Risoluzione dei problemi
 
@@ -243,13 +243,13 @@ Un banner in cima alle pagine dello SLO dice cosa gli impedisce di misurare:
 
 | Banner | Cosa significa | Cosa fare |
 | --- | --- | --- |
-| **No monitors attached** | Lo SLO non ha monitor, quindi non c'è niente da misurare. | Collega dei monitor o crea una regola dei monitor. |
+| **Nessun monitor collegato** | Lo SLO non ha monitor, quindi non c'è niente da misurare. | Collega dei monitor o crea una regola dei monitor. |
 | **Waiting for SLO evaluation** | Ci sono monitor collegati, ma l'ultima valutazione non aveva dati di stato da loro. | Controlla che i monitor vengano verificati. I numeri compaiono dopo la prossima valutazione con dati. |
 | **Measurement is paused** | Ogni monitor che misura è archiviato o ha il monitoraggio attivo disattivato. | Riattiva il monitoraggio di almeno un monitor, oppure aspetta la fine della manutenzione. |
-| **The target is out of range** | L'obiettivo non è maggiore di 0 e minore di 100. | Imposta un obiettivo come 99,9 in **Impostazioni** → **Objective**. |
+| **The target is out of range** | L'obiettivo non è maggiore di 0 e minore di 100. | Imposta un obiettivo come 99,9 in **Impostazioni** → **Obiettivo**. |
 | **This SLO is disabled** | La valutazione è disattivata. | Fai clic su **Attiva la valutazione**. |
 | **This SLO is archived** | Lo SLO è archiviato. | Annulla l'archiviazione in **Impostazioni**. |
-| **Not evaluated yet** | Lo SLO è appena stato creato. | Aspetta la prima valutazione, al massimo qualche minuto. |
+| **Non ancora valutato** | Lo SLO è appena stato creato. | Aspetta la prima valutazione, al massimo qualche minuto. |
 
 ## Passi successivi
 

@@ -44,20 +44,20 @@ OneUptime 每分钟轮询一次已过轮询间隔的每个已启用连接。一�
 
 ### 在 OneUptime 中添加连接
 
-打开 **产品 → Security Events → Connections**（`/dashboard/{projectId}/security-events/connections`），点击 **添加连接**，选择 **Elastic Security**，然后点击 **下一步**。填写下表中的设置，点击 **下一步**，然后把密钥粘贴到 **API 密钥** 中。
+打开 **产品 → Security Events → 连接**（`/dashboard/{projectId}/security-events/connections`），点击 **添加连接**，选择 **Elastic Security**，然后点击 **下一步**。填写下表中的设置，点击 **下一步**，然后把密钥粘贴到 **API 密钥** 中。
 
 ### 保存之前先测试
 
-点击 **保存前测试** 下的 **Test these settings**。测试会用表单中的值进行身份验证并读取警报，不保存任何内容，所以错误的空间或缺少的权限会在连接创建之前就暴露出来。然后点击 **下一步**，为连接设置一个 **名称** 并创建它。
+点击 **保存前测试** 下的 **测试这些设置**。测试会用表单中的值进行身份验证并读取警报，不保存任何内容，所以错误的空间或缺少的权限会在连接创建之前就暴露出来。然后点击 **下一步**，为连接设置一个 **名称** 并创建它。
 :::
 
 | 设置 | 填写什么 |
 | --- | --- |
 | **Kibana URL** | 提供 Kibana 的地址，例如 `https://kibana.example.com` 或 `https://<deployment>.kb.<region>.cloud.es.io`。不带路径：没有 `/app/security`，没有 `/api`，也没有 `/s/<space>` 部分。 |
 | **Kibana space** | 空间的 ID，而不是它的名称：字母、数字、连字符和下划线。默认空间请留空。 |
-| **API 密钥** | 密钥的 **Base64** 值本身：OneUptime 会自己加上 `ApiKey` 方案。它会被加密，API 从不返回它，也不会再次显示。要替换它，请在连接上使用 **Update credentials**。 |
+| **API 密钥** | 密钥的 **Base64** 值本身：OneUptime 会自己加上 `ApiKey` 方案。它会被加密，API 从不返回它，也不会再次显示。要替换它，请在连接上使用 **更新凭据**。 |
 
-**Polling** 步骤还有可选的 **描述**、**Poll Interval (Minutes)**（`1` 到 `1440` 之间的整数，初始为 `5`），以及初始为开启的 **已启用**。
+**轮询** 步骤还有可选的 **描述**、**轮询间隔（分钟）**（`1` 到 `1440` 之间的整数，初始为 `5`），以及初始为开启的 **已启用**。
 
 ## 导入的内容
 
@@ -94,14 +94,14 @@ POST {Kibana URL}/api/detection_engine/signals/search
 - **创建时间就是游标。** 警报按它们自己的 `@timestamp`（即规则运行创建它们的时间）列出，从不按它们所涉及的活动的时间列出。每小时运行一次的规则会为最多一小时前的活动创建警报，基于活动时间的游标会把它们全部跳过。
 - **第一次轮询会回溯 24 小时**，所以新连接会立刻显示最近的警报。
 - **之后的每次轮询都从保存的游标之前 1 分钟开始**，所以在两个窗口边界上创建的警报永远不会被漏掉。
-- **一次轮询最多读取游标之后 24 小时。** 游标落后的连接会通过一连串 24 小时的窗口追赶，此时它的 **Health** 显示为 **Catching up**。
+- **一次轮询最多读取游标之后 24 小时。** 游标落后的连接会通过一连串 24 小时的窗口追赶，此时它的 **健康状况** 显示为 **Catching up**。
 - **重复项按警报的 `_id` 去重**，范围是整个项目，所以重叠部分、重试的窗口和导入都不会把同一个警报存储两次。
 
 Kibana 的警报搜索接受大小和排序，但不接受页面令牌。所以 OneUptime 通过把范围的起点移到每一页的最后一个警报来翻页，并按 `_id` 排除在那一刻已经读取过的警报。一次规则运行常常给许多警报打上相同的时间，这样的一组警报会一页一页地读取，既不会读两次，也不会被跳过。
 
 ### 当一个窗口包含的内容超过一次轮询能读取的量时
 
-一次轮询最多用 20 个请求读取最多 10,000 个警报。当窗口中的警报更多时，这次运行为 **Partial**，并带有如下警告：
+一次轮询最多用 20 个请求读取最多 10,000 个警报。当窗口中的警报更多时，这次运行为 **部分**，并带有如下警告：
 
 ```text
 Stopped after collecting 10000 alerts; the window holds more.
@@ -109,28 +109,28 @@ Stopped after collecting 10000 alerts; the window holds more.
 
 警报从最早的开始读取，所以 OneUptime 会把游标移到它读取的最后一个警报的创建时间，下一次轮询就从那里开始，窗口长度不变。繁忙的空间每次轮询追赶 10,000 个警报，而不是重复读取同样的警报。在完全相同的时刻创建的警报会被读取两次，去重检查会丢弃第二份副本。
 
-被排除的 ID 会随每个请求一起发送，而 Kibana 会限制请求的大小。当共享同一时刻的警报多到一个请求无法全部排除（大约 7,800 个）时，这次运行会在那里以 **Partial** 停止，并带有指明该时刻的警告。
+被排除的 ID 会随每个请求一起发送，而 Kibana 会限制请求的大小。当共享同一时刻的警报多到一个请求无法全部排除（大约 7,800 个）时，这次运行会在那里以 **部分** 停止，并带有指明该时刻的警告。
 
 当一次运行完全无法越过保存的游标时，OneUptime 会改为缩短窗口：
 
 1. **缩小。** 下一次轮询从同一个起点读取长度减半的窗口，并不断减半，直到某个窗口能被完整读取，最短为一分钟。运行的警告会说明这一点：`This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **恢复。** 一个窗口被完整读取后，下一个窗口的长度会再次加倍，最长为 24 小时。
-3. **越过单独的一分钟。** 如果连一分钟内的内容都超过一次轮询能读取的量，轮询会越过这一分钟，让更新的警报继续到达。这次运行仍为 **Partial**，**最近错误** 显示 `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` 用 **Import this time range** 导入这一分钟，即可找回一次运行能读取的内容。
+3. **越过单独的一分钟。** 如果连一分钟内的内容都超过一次轮询能读取的量，轮询会越过这一分钟，让更新的警报继续到达。这次运行仍为 **部分**，**最近错误** 显示 `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` 用 **Import this time range** 导入这一分钟，即可找回一次运行能读取的内容。
 
-因 Kibana 的错误而彻底失败的运行，会保留游标和窗口长度，下一次轮询会再次读取同一个窗口。唯一的例外是请求超时：游标保持不变，但下一个窗口的长度减半，因为重到无法及时得到响应的窗口每次尝试都会超时。更改 **Poll Interval (Minutes)** 不会改变这些：它决定的是轮询多久开始一次，而不是窗口从哪里开始。
+因 Kibana 的错误而彻底失败的运行，会保留游标和窗口长度，下一次轮询会再次读取同一个窗口。唯一的例外是请求超时：游标保持不变，但下一个窗口的长度减半，因为重到无法及时得到响应的窗口每次尝试都会超时。更改 **轮询间隔（分钟）** 不会改变这些：它决定的是轮询多久开始一次，而不是窗口从哪里开始。
 
 ### 按需运行、预览和导入
 
-在连接上点击 **Diagnostics**，可以查看它最近的运行，并手动操作它。能更改该连接的人都可以启动这些操作；能查看它的人都可以阅读历史记录。
+在连接上点击 **诊断**，可以查看它最近的运行，并手动操作它。能更改该连接的人都可以启动这些操作；能查看它的人都可以阅读历史记录。
 
-- **Run now** 会立即开始一次轮询，使用通常的游标，即使连接未处于 **已启用** 状态也可以。
+- **立即运行** 会立即开始一次轮询，使用通常的游标，即使连接未处于 **已启用** 状态也可以。
 - **Preview alerts** 读取最长 7 天的时间范围，不导入任何内容。
 - **Import this time range** 在你确认后导入最长 7 天的范围，不会移动游标。已导入的警报会被跳过。
 - 运行上的 **Copy diagnostics** 会复制它的报告以便提供给支持人员。报告从不包含凭据。
 
 ## 测试连接
 
-连接所在行中的 **测试连接** 和表单中的 **Test these settings** 在 API 进程中运行，而不是在后台工作进程中运行，所以即使工作进程出了问题，测试仍然会给出结果。它按顺序运行以下检查：
+连接所在行中的 **测试连接** 和表单中的 **测试这些设置** 在 API 进程中运行，而不是在后台工作进程中运行，所以即使工作进程出了问题，测试仍然会给出结果。它按顺序运行以下检查：
 
 | 检查 | 检查的内容 |
 | --- | --- |
@@ -154,7 +154,7 @@ OneUptime 也可以把它发现的内容作为数据流中的 Elastic Common Sch
 
 ### 添加目标
 
-打开 **产品 → Security Events → Connections**。在 **发送到你的 SIEM** 下点击 **添加目标**，在 **SIEM** 下选择 Elastic Security，然后点击 **下一步**。在 **Elasticsearch URL** 中填写部署的 Elasticsearch 端点，而不是 Kibana 的端点，并把密钥粘贴到 **API 密钥** 中。**数据流** 是可选的：留空时，文档会进入 `logs-oneuptime.security-default`，Elasticsearch 会在第一次写入时创建它。
+打开 **产品 → Security Events → 连接**。在 **发送到你的 SIEM** 下点击 **添加目标**，在 **SIEM** 下选择 Elastic Security，然后点击 **下一步**。在 **Elasticsearch URL** 中填写部署的 Elasticsearch 端点，而不是 Kibana 的端点，并把密钥粘贴到 **API 密钥** 中。**数据流** 是可选的：留空时，文档会进入 `logs-oneuptime.security-default`，Elasticsearch 会在第一次写入时创建它。
 
 ### 发送测试事件并开始发送
 
@@ -191,7 +191,7 @@ OneUptime 也可以把它发现的内容作为数据流中的 Elastic Common Sch
 
 :::details Last Error 以 `Elastic Security status request` 开头
 - `Elastic Security status request failed (HTTP ...)`：Kibana 拒绝了状态请求。
-  - `HTTP 401`：Kibana 没有接受 API 密钥。它不是 **Base64** 值，或者已过期或已失效。请创建一个新密钥，并用 **Update credentials** 保存。
+  - `HTTP 401`：Kibana 没有接受 API 密钥。它不是 **Base64** 值，或者已过期或已失效。请创建一个新密钥，并用 **更新凭据** 保存。
   - `HTTP 404`：**Kibana URL** 带有路径，或者不是 Kibana。
   - `HTTP 503`：Kibana 报告自己不可用，通常是因为它无法访问 Elasticsearch。
   - `HTTP 3xx`：Kibana 重定向了请求，而重定向会被拒绝。请使用提供 Kibana 的地址。
@@ -216,8 +216,8 @@ OneUptime 也可以把它发现的内容作为数据流中的 Elastic Common Sch
 :::
 
 :::details 运行为 Partial
-- `Stopped after collecting 10000 alerts; the window holds more`：窗口中的警报超过了一次运行能读取的 10,000 个。不会丢失任何内容：下一次轮询会从读取的最后一个警报之后开始。一次又一次轮询都保持 **Partial** 的连接正在追赶积压的内容，它的 **Last Polled** 和 **Last Event Imported** 会不断前进。如果它始终追不上，说明该空间在每个轮询间隔内创建的警报超过 10,000 个：请缩短 **Poll Interval (Minutes)**。
-- `More records were created in the one minute from ... than one poll can read`：轮询越过了这一分钟。请在 **Diagnostics** 中用 **Import this time range** 导入它。一次导入读取的量与一次轮询相同。
+- `Stopped after collecting 10000 alerts; the window holds more`：窗口中的警报超过了一次运行能读取的 10,000 个。不会丢失任何内容：下一次轮询会从读取的最后一个警报之后开始。一次又一次轮询都保持 **部分** 的连接正在追赶积压的内容，它的 **最近轮询** 和 **最近导入的事件** 会不断前进。如果它始终追不上，说明该空间在每个轮询间隔内创建的警报超过 10,000 个：请缩短 **轮询间隔（分钟）**。
+- `More records were created in the one minute from ... than one poll can read`：轮询越过了这一分钟。请在 **诊断** 中用 **Import this time range** 导入它。一次导入读取的量与一次轮询相同。
 :::
 
 :::details 测试通过，但没有导入任何内容

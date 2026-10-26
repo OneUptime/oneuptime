@@ -40,7 +40,7 @@ L'incidente conserva il numero del report nei suoi campi personalizzati, come `h
 
 ## Prima di iniziare
 
-- In OneUptime, un ruolo che possa creare e modificare workflow, come **Project Owner**, **Project Admin** o **Workflow Admin**.
+- In OneUptime, un ruolo che possa creare e modificare workflow, come **Proprietario del progetto**, **Amministratore del progetto** o **Amministratore dei flussi di lavoro**.
 - In Huntress, il ruolo **Account Admin**: solo gli amministratori dell'account possono aggiungere webhook.
 - Una policy di reperibilità da avvisare.
 - Su OneUptime Cloud, un piano con i workflow: Growth o superiore. Ogni evento inviato da Huntress è un'esecuzione del workflow.

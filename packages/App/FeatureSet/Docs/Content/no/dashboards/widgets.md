@@ -17,15 +17,15 @@ Start med spørsmålet flisen skal svare på:
 | Spørsmålet | Widgeten |
 | --- | --- |
 | Hvordan har en metrikk endret seg over tid? | **Diagram** |
-| Hvor mange logger, av hvilken alvorlighet, over tid? | **Log Chart** |
-| Hvor raske er forespørslene, og hvor mange feiler, over tid? | **Trace Chart** |
+| Hvor mange logger, av hvilken alvorlighet, over tid? | **Loggdiagram** |
+| Hvor raske er forespørslene, og hvor mange feiler, over tid? | **Spordiagram** |
 | Hva er ett bestemt tall akkurat nå? | **Verdi**, eller **Måler** når det har et kjent område |
-| Hvilke verter, tjenester eller endepunkter skiller seg ut? | **Tabell** eller **Trace Table** |
+| Hvilke verter, tjenester eller endepunkter skiller seg ut? | **Tabell** eller **Sportabell** |
 | Hva skjer akkurat nå? | **Loggstrøm**, **Sporliste**, **Hendelsesliste** eller **Varselliste** |
 | Er alle nettstedene våre oppe? | **Overvåkingsliste** |
-| Holder vi påliteligheten vi har lovet? | **SLO** eller **SLO List** |
+| Holder vi påliteligheten vi har lovet? | **SLO** eller **SLO-liste** |
 | Hvilken tilstand er klyngene og vertene våre i? | En widget fra gruppen Infrastruktur |
-| Hvor i verden er nettverket vårt, og hva er nede? | **Network Map** |
+| Hvor i verden er nettverket vårt, og hva er nede? | **Nettverkskart** |
 | En overskrift, et notat, klokka på et annet kontor? | **Tekst** eller **Klokke** |
 | Data som ligger utenfor OneUptime? | En widget fra gruppen Eksterne datakilder |
 | Noe ingen widget dekker? | **HTML**, når du er sikker på at ingen annen widget gjør det |
@@ -127,13 +127,13 @@ Den som kan redigere dashbordet, bestemmer hva denne widgeten kjører, og alle s
 
 | Widget | Hva den viser | Innstillinger som betyr noe |
 | --- | --- | --- |
-| **Log Chart** | Loggvolum over tid, én serie per alvorlighet, som stolper, linjer eller arealer. | Alvorligheter, tekst innholdet inneholder, attributtfiltre. |
+| **Loggdiagram** | Loggvolum over tid, én serie per alvorlighet, som stolper, linjer eller arealer. | Alvorligheter, tekst innholdet inneholder, attributtfiltre. |
 | **Loggstrøm** | De nyeste logglinjene som samsvarer med et filter. | Alvorlighet, tekst innholdet inneholder, attributtfiltre som `@service.name:checkout`, hvor mange rader. |
-| **Trace Chart** | Antall forespørsler, antall feil eller responstid (gjennomsnitt, minimum, maksimum, P50 til P99) over tid. | Metrikken, hvilke spenn som telles, og et attributt seriene deles opp etter. |
+| **Spordiagram** | Antall forespørsler, antall feil eller responstid (gjennomsnitt, minimum, maksimum, P50 til P99) over tid. | Metrikken, hvilke spenn som telles, og et attributt seriene deles opp etter. |
 | **Sporliste** | De nyeste sporene, med varighet og status. | Status, hvor mange rader. |
-| **Trace Table** | De største spennavnene, statusene eller attributtverdiene etter antall forespørsler, med median, gjennomsnittlig, minste og største responstid. | Hva radene grupperes etter, og hvilke spenn som telles. |
-| **Security Events** | De nyeste sikkerhetshendelsene, med alvorlighet, hendelsesklasse og vert. | Alvorligheter, hendelsesklasser, tekst meldingen inneholder. |
-| **Security Events Flow** | En flyt av sikkerhetshendelser fra kilden, gjennom hendelsesklassen, til alvorligheten. | Alvorligheter, hvor mange hendelser. |
+| **Sportabell** | De største spennavnene, statusene eller attributtverdiene etter antall forespørsler, med median, gjennomsnittlig, minste og største responstid. | Hva radene grupperes etter, og hvilke spenn som telles. |
+| **Sikkerhetshendelser** | De nyeste sikkerhetshendelsene, med alvorlighet, hendelsesklasse og vert. | Alvorligheter, hendelsesklasser, tekst meldingen inneholder. |
+| **Flyt av sikkerhetshendelser** | En flyt av sikkerhetshendelser fra kilden, gjennom hendelsesklassen, til alvorligheten. | Alvorligheter, hvor mange hendelser. |
 
 Sporwidgetene teller bare rotspenn, slik sporutforskeren gjør, med mindre du tar med underordnede spenn i innstillingene deres. Et vanlig mønster er et ventetidsdiagram øverst med en liste over trege spor under.
 
@@ -143,7 +143,7 @@ Sporwidgetene teller bare rotspenn, slik sporutforskeren gjør, med mindre du ta
 | --- | --- | --- |
 | **Hendelsesliste** | Hendelser med tilstand og alvorlighet. | Uløste, bekreftede eller løste; alvorlighet, tilstand, overvåkinger og etiketter. |
 | **Varselliste** | Varsler med tilstand og alvorlighet. | Uløste, bekreftede eller løste; alvorlighet, tilstand, overvåkinger og etiketter. |
-| **Overvåkingsliste** | Overvåkinger med nåværende status. | I drift eller ikke, status, overvåkingstype og etiketter, eller en **Label Variable** som seerne velger i verktøylinjen. |
+| **Overvåkingsliste** | Overvåkinger med nåværende status. | I drift eller ikke, status, overvåkingstype og etiketter, eller en **Etikettvariabel** som seerne velger i verktøylinjen. |
 
 Som de fleste listewidgets kan disse tre tegne en bikube av celler farget etter status i stedet for en tabell: velg det under **Visningsmodus**. De viser den nåværende tilstanden, uansett dashbordets tidsintervall.
 
@@ -164,7 +164,7 @@ SLO-widgeten fungerer på [offentlige dashbord](/docs/dashboards/sharing). Det s
 
 ### SLO List
 
-Hvert SLO med status, SLI, feilbudsjett og burn rate, med minst gjenstående budsjett først. Filtrer den etter status eller etiketter, eller med en **Label Variable** som seerne velger i verktøylinjen. [SLO-metrikker og -dashbord](/docs/slo/metrics) viser begge SLO-widgetene i bruk.
+Hvert SLO med status, SLI, feilbudsjett og burn rate, med minst gjenstående budsjett først. Filtrer den etter status eller etiketter, eller med en **Etikettvariabel** som seerne velger i verktøylinjen. [SLO-metrikker og -dashbord](/docs/slo/metrics) viser begge SLO-widgetene i bruk.
 
 ## Infrastruktur
 
@@ -177,10 +177,10 @@ Hver av disse widgetene viser ressursene som en agent eller en collector rapport
 | **Docker** | **Verter**, **Containere**, **Bilder**, **Nettverk**, **Volumer** | Docker-agenten |
 | **Docker Swarm** | **Noder**, **Tjenester** | Docker Swarm-agenten |
 | **Podman** | **Verter**, **Containere**, **Bilder**, **Nettverk**, **Volumer** | Podman-agenten |
-| **Proxmox** | **Noder**, **Guests** | Proxmox-agenten |
+| **Proxmox** | **Noder**, **Gjester** | Proxmox-agenten |
 | **VMware** | **Verter**, **Virtuelle maskiner** | VMware-agenten, eller et vCenter du kobler til |
-| **Ceph** | **OSDs**, som en vegg farget etter tilstand, og **Pools** | Ceph-agenten |
-| **Lagringsarrayer** | **Volumer**, og **Hardware** som en vegg farget etter status | Storage Array-agenten |
+| **Ceph** | **OSD-er**, som en vegg farget etter tilstand, og **Pools** | Ceph-agenten |
+| **Lagringsarrayer** | **Volumer**, og **Maskinvare** som en vegg farget etter status | Storage Array-agenten |
 
 Bruk dem til én side som blander tilstanden til infrastrukturen din med telemetrien fra arbeidslastene som kjører på den.
 
@@ -231,7 +231,7 @@ Gjennom API-et og Terraform er rekkefølgen widgetens `arguments.sort`: en kolon
 
 Et [offentlig dashbord](/docs/dashboards/sharing) tegner de fleste widgets for de besøkende, og hver viser bare det den er satt opp til å vise. Noen få kan ikke vises uten en pålogget økt:
 
-- **Log Chart**, **Trace Chart**, **Trace Table**, **Security Events** og **Security Events Flow** sier på sin plass at de ikke er tilgjengelige på offentlige dashbord.
+- **Loggdiagram**, **Spordiagram**, **Sportabell**, **Sikkerhetshendelser** og **Flyt av sikkerhetshendelser** sier på sin plass at de ikke er tilgjengelige på offentlige dashbord.
 - Widgetene fra Eksterne datakilder utelates helt fra et offentlig dashbord, fordi innstillingene deres er selve spørringen.
 
 ## Når en widget ikke kan vises
