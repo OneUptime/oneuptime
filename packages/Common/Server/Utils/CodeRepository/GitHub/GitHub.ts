@@ -437,6 +437,13 @@ export default class GitHubUtil extends HostedCodeRepository {
         checks?: "read";
         metadata?: "read";
       };
+      /*
+       * The repositories the token reaches, by name or by id. Left out,
+       * the token reaches every repository the installation does - an
+       * organization's whole GitHub on an "All repositories" install.
+       */
+      repositories?: Array<string> | undefined;
+      repositoryIds?: Array<number> | undefined;
     },
   ): Promise<GitHubInstallationToken> {
     const jwt: string = GitHubUtil.generateAppJWT();
@@ -450,6 +457,14 @@ export default class GitHubUtil extends HostedCodeRepository {
 
     if (options?.permissions) {
       requestData["permissions"] = options.permissions;
+    }
+
+    if (options?.repositories && options.repositories.length > 0) {
+      requestData["repositories"] = options.repositories;
+    }
+
+    if (options?.repositoryIds && options.repositoryIds.length > 0) {
+      requestData["repository_ids"] = options.repositoryIds;
     }
 
     const result: HTTPErrorResponse | HTTPResponse<JSONObject> = await API.post(
@@ -497,6 +512,99 @@ export default class GitHubUtil extends HostedCodeRepository {
       token: result.data["token"] as string,
       expiresAt: OneUptimeDate.fromString(result.data["expires_at"] as string),
     };
+  }
+
+  /*
+   * A token for ONE repository of an installation, with these permissions:
+   * what a Runner is handed to clone a repository, push a fix to a branch
+   * and open its pull request. A token minted without naming the repository
+   * would reach every repository the installation does (an organization's
+   * whole GitHub, on an "All repositories" install), the ones that pick
+   * another Runner and the ones never connected to OneUptime included.
+   *
+   * The repository is named first. A repository renamed on GitHub after it
+   * was connected keeps its old name in OneUptime, and GitHub refuses a
+   * token for a name the installation no longer has (422): the repository's
+   * id is then read under the old name (GitHub answers it with the
+   * repository it now names), with a token that can read metadata alone,
+   * which never leaves the server, and the token is minted for that id.
+   * Either way the token reaches that one repository, or none is minted.
+   */
+  @CaptureSpan()
+  public static async getRepositoryAccessToken(data: {
+    installationId: string;
+    organizationName: string;
+    repositoryName: string;
+    permissions: {
+      contents?: "read" | "write";
+      pull_requests?: "read" | "write";
+      issues?: "read" | "write";
+      checks?: "read";
+      metadata?: "read";
+    };
+  }): Promise<GitHubInstallationToken> {
+    try {
+      return await GitHubUtil.getInstallationAccessToken(data.installationId, {
+        permissions: data.permissions,
+        repositories: [data.repositoryName],
+      });
+    } catch (error) {
+      if (!(error instanceof HTTPErrorResponse) || error.statusCode !== 422) {
+        throw error;
+      }
+
+      const repositoryId: number | null =
+        await GitHubUtil.findInstallationRepositoryId({
+          installationId: data.installationId,
+          organizationName: data.organizationName,
+          repositoryName: data.repositoryName,
+        });
+
+      if (repositoryId === null) {
+        throw error;
+      }
+
+      return await GitHubUtil.getInstallationAccessToken(data.installationId, {
+        permissions: data.permissions,
+        repositoryIds: [repositoryId],
+      });
+    }
+  }
+
+  /*
+   * The id of the repository GitHub answers for this name, as the
+   * installation reads it - following a rename, as GitHub does - or null
+   * when the installation cannot read it.
+   */
+  @CaptureSpan()
+  public static async findInstallationRepositoryId(data: {
+    installationId: string;
+    organizationName: string;
+    repositoryName: string;
+  }): Promise<number | null> {
+    const metadataToken: GitHubInstallationToken =
+      await GitHubUtil.getInstallationAccessToken(data.installationId, {
+        permissions: { metadata: "read" },
+      });
+
+    const result: HTTPErrorResponse | HTTPResponse<JSONObject> = await API.get({
+      url: URL.fromString(
+        `https://api.github.com/repos/${encodeURIComponent(
+          data.organizationName,
+        )}/${encodeURIComponent(data.repositoryName)}`,
+      ),
+      headers: GitHubUtil.buildApiHeaders(metadataToken.token),
+    });
+
+    if (result instanceof HTTPErrorResponse) {
+      return null;
+    }
+
+    const id: unknown = result.data["id"];
+
+    return typeof id === "number" && Number.isInteger(id) && id > 0
+      ? id
+      : null;
   }
 
   /*

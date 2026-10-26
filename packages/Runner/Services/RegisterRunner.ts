@@ -23,6 +23,7 @@ import { JSONObject } from "Common/Types/JSON";
 import Sleep from "Common/Types/Sleep";
 import API from "Common/Utils/API";
 import { isShippedSecretValue } from "Common/Server/EnvironmentConfig";
+import { GLOBAL_AI_AGENT_GONE_MESSAGE } from "Common/Types/Runner/GlobalAIAgentsGone";
 import LocalCache from "Common/Server/Infrastructure/LocalCache";
 import logger, { LogAttributes } from "Common/Server/Utils/Logger";
 
@@ -33,6 +34,13 @@ import logger, { LogAttributes } from "Common/Server/Utils/Logger";
  * says what to do.
  */
 const SERVER_REASON_MAX_CHARS: number = 1000;
+
+/*
+ * What a global Runner says once it learns it is one (GlobalRunnerMode):
+ * what it takes, and what it never runs.
+ */
+export const GLOBAL_RUNNER_STARTED_MESSAGE: string =
+  "This is a global Runner: it runs the JavaScript steps of every project that uses global Runners, each in a sandbox of its own that reaches the internet only, and the AI code fixes of every repository on the Global Runner, which run none of a repository's commands. It runs nothing else.";
 
 /*
  * A registration the server answered and refused, with the status it
@@ -832,7 +840,7 @@ export default class Register {
 
       if (GlobalRunnerMode.isActive()) {
         logger.info(
-          "This is a global Runner: it runs JavaScript steps for every project that uses global Runners, each in a sandbox of its own that reaches the internet only, and nothing else.",
+          GLOBAL_RUNNER_STARTED_MESSAGE,
           {
             runnerId: RUNNER_ID?.toString(),
             runnerName: RUNNER_NAME,
@@ -864,6 +872,20 @@ export default class Register {
         },
         options: RunnerAPIRequest.getDefaultRequestOptions(),
       });
+
+      /*
+       * The id and key of a global AI agent - the shared Runner's
+       * registration, or one added on the removed Global AI Agents page -
+       * which global Runners replaced: said as the server says it, with what
+       * to start instead (GlobalAIAgentsGone).
+       */
+      if (
+        !legacyResult.isSuccess() &&
+        (legacyResult.data as JSONObject | undefined)?.["message"] ===
+          GLOBAL_AI_AGENT_GONE_MESSAGE
+      ) {
+        throw new Error(GLOBAL_AI_AGENT_GONE_MESSAGE);
+      }
 
       if (!legacyResult.isSuccess()) {
         throw new Error(

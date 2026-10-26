@@ -18,6 +18,9 @@ import {
   CodeWorker,
   CodeWorkerKind,
 } from "../../../../Types/Runner/CodeRepositoryRunner";
+import AIRunStatus from "../../../../Types/AI/AIRunStatus";
+import { CODE_AGENT_COMMAND_TOOL_NAME } from "../../../../Types/Runner/GlobalRunnerWork";
+import { LLMToolDefinition } from "../../LLM/LLMService";
 import CodeRepositoryRunnerChoice from "./CodeRepositoryRunnerChoice";
 
 // What every code-fix route answers a pair that proves no code-fix identity.
@@ -59,6 +62,48 @@ export interface CodeFixCredentialCheck {
 }
 
 /*
+ * What a route asks of a run for the identity (deniesAccessToRun): to hand
+ * it something for the work, or to take its report about the work.
+ */
+export enum CodeFixRunAccess {
+  /*
+   * The run's details, its exception, its repositories, a repository token,
+   * a completion, a review posted for it: only while the worker holds the
+   * run.
+   */
+  Work = "work",
+  // Progress, a pull request opened, how the run ended.
+  Report = "report",
+}
+
+// What deniesAccessToRun reads of a run.
+export interface CodeFixRunHoldFacts {
+  projectId?: ObjectID | undefined;
+  aiAgentId?: ObjectID | undefined;
+  status?: AIRunStatus | string | undefined;
+}
+
+// The columns a run is read with for deniesAccessToRun.
+export const CODE_FIX_RUN_HOLD_SELECT: {
+  _id: true;
+  projectId: true;
+  aiAgentId: true;
+  status: true;
+} = {
+  _id: true,
+  projectId: true,
+  aiAgentId: true,
+  status: true,
+};
+
+// A repository's own commands, as a worker is handed them.
+export interface CodeRepositoryCommands {
+  setupCommand: string | null;
+  buildCommand: string | null;
+  testCommand: string | null;
+}
+
+/*
  * Resolves the aiAgentId/aiAgentKey pair every code-fix protocol request
  * carries. Two registries can hold the identity:
  *
@@ -68,8 +113,15 @@ export interface CodeFixCredentialCheck {
  *     protocol too — so the protocol must accept them.
  *   - AIAgent: the AI agents a project created before Runners replaced the
  *     agent container, which still take its repositories' work. An AI agent
- *     with no project - the shared Runner's registration, before global
- *     Runners took its work - proves nothing here.
+ *     with no project - a global AI agent, from before global Runners took
+ *     its work - proves nothing here.
+ *
+ * What an identity may then do is held to its project, and a global
+ * Runner's - it serves every project - to the run it claimed
+ * (deniesAccessToRun): the details, the exception, the repositories and the
+ * repository token of that run, never another's. Nor is it ever handed a
+ * repository's own commands or the code agent's command tool
+ * (getRepositoryCommands, getOfferedTools): it runs no command.
  *
  * The Runner path is also where a Runner's code-fix capability is
  * enforced. A global Runner takes the code-fix work of every repository
@@ -232,10 +284,12 @@ export default class CodeFixAgentAuth {
 
     if (aiAgent && aiAgent.id) {
       /*
-       * An AI agent with no project is the shared Runner's registration,
-       * from before global Runners took the work it did: its key is right,
-       * but it proves nothing, so it can never claim every project's runs
-       * or mint their repositories' tokens again.
+       * An AI agent with no project is a global AI agent - the shared
+       * Runner's registration, or one a master admin added on the removed
+       * Global AI Agents page - from before global Runners took the work it
+       * did (GlobalAIAgentsGone): its key is right, but it proves nothing,
+       * so it can never claim every project's runs or mint their
+       * repositories' tokens again.
        */
       if (!aiAgent.projectId) {
         return { identity: null, agentId: agentId, isKeyRight: true };
@@ -394,5 +448,113 @@ export default class CodeFixAgentAuth {
     }
 
     return identity.projectId.toString() !== resourceProjectId.toString();
+  }
+
+  /*
+   * Whether the identity serves every project: a global Runner. Every other
+   * identity has its project.
+   */
+  public static isGlobalIdentity(identity: CodeFixAgentIdentity): boolean {
+    return !identity.projectId;
+  }
+
+  /*
+   * Whether the identity may act for this run - or, true, it may not.
+   *
+   * A project's Runner, or an AI agent of a project's own, may act for any
+   * code-fix run of its own project (deniesAccessToProject), as it always
+   * could: every one of them is its project's.
+   *
+   * A global Runner serves every project, so it acts only for the run it
+   * claimed (the claim writes its id on the run as aiAgentId) - never for
+   * one another worker holds, one still waiting, or one of a project it
+   * took nothing from. What it is handed for the work (the run's details,
+   * its exception, its repositories and their tokens, a review posted for
+   * it) is handed only while it still holds the run (CodeFixRunAccess.Work:
+   * the run is Running); what it reports about the work it did (progress, a
+   * pull request it opened, how the run ended) only needs the run to be one
+   * it claimed (CodeFixRunAccess.Report), so a report it retries after the
+   * run ended is answered as before rather than refused. A global Runner's
+   * key - held on a host that runs every project's JavaScript steps, or on
+   * one a master admin started - therefore reaches only the work it was
+   * handed, never every project's runs, exceptions and repositories.
+   *
+   * Answered exactly like a missing run, so a probing key cannot tell
+   * another worker's run from no run.
+   */
+  public static deniesAccessToRun(
+    identity: CodeFixAgentIdentity,
+    run: CodeFixRunHoldFacts,
+    access: CodeFixRunAccess,
+  ): boolean {
+    if (CodeFixAgentAuth.deniesAccessToProject(identity, run.projectId)) {
+      return true;
+    }
+
+    if (!CodeFixAgentAuth.isGlobalIdentity(identity)) {
+      return false;
+    }
+
+    if (
+      !run.projectId ||
+      !run.aiAgentId ||
+      run.aiAgentId.toString() !== identity.id.toString()
+    ) {
+      return true;
+    }
+
+    if (access === CodeFixRunAccess.Work) {
+      return run.status !== AIRunStatus.Running;
+    }
+
+    return false;
+  }
+
+  /*
+   * The repository's own setup, build and test commands, as a worker is
+   * handed them with a repository - or none, for a global Runner. A global
+   * Runner runs none of a repository's commands (the Runner's
+   * Config.runsProjectAuthoredCommands), so it is never handed them either:
+   * the rule holds on the server, whatever a Runner does with what it is
+   * sent, as a global Runner is served JavaScript steps alone
+   * (GlobalRunnerWork).
+   */
+  public static getRepositoryCommands(
+    identity: CodeFixAgentIdentity,
+    repository: {
+      setupCommand?: string | undefined | null;
+      buildCommand?: string | undefined | null;
+      testCommand?: string | undefined | null;
+    },
+  ): CodeRepositoryCommands {
+    if (CodeFixAgentAuth.isGlobalIdentity(identity)) {
+      return { setupCommand: null, buildCommand: null, testCommand: null };
+    }
+
+    return {
+      setupCommand: repository.setupCommand || null,
+      buildCommand: repository.buildCommand || null,
+      testCommand: repository.testCommand || null,
+    };
+  }
+
+  /*
+   * The tools the model is offered for the identity's code-fix run: those
+   * the worker sent, less the code agent's command tool for a global
+   * Runner, which runs no command a model composes. The Runner already
+   * leaves the tool out there and refuses the call (InHouseCodeAgent); this
+   * is the same rule on the server, so the model is never offered it.
+   */
+  public static getOfferedTools(
+    identity: CodeFixAgentIdentity,
+    tools: Array<LLMToolDefinition> | undefined,
+  ): Array<LLMToolDefinition> | undefined {
+    if (!tools || !CodeFixAgentAuth.isGlobalIdentity(identity)) {
+      return tools;
+    }
+
+    return tools.filter((tool: LLMToolDefinition): boolean => {
+      return tool.name !== CODE_AGENT_COMMAND_TOOL_NAME;
+    });
   }
 }

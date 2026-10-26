@@ -13,6 +13,7 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import { isShippedSecretValue } from "../EnvironmentConfig";
+import { GLOBAL_AI_AGENT_GONE_MESSAGE } from "../../Types/Runner/GlobalAIAgentsGone";
 import WrongComponentKeyLimit, {
   ComponentKeyKind,
 } from "../Utils/RateLimit/WrongComponentKeyLimit";
@@ -92,6 +93,7 @@ export default class AIAgentAPI extends BaseAPI<AIAgent, AIAgentServiceType> {
             },
             select: {
               _id: true,
+              projectId: true,
             },
             props: {
               isRoot: true,
@@ -129,6 +131,23 @@ export default class AIAgentAPI extends BaseAPI<AIAgent, AIAgentServiceType> {
               req,
               res,
               new BadDataException("Invalid AI Agent ID or AI Agent Key"),
+            );
+          }
+
+          /*
+           * An AI agent with no project is a global AI agent - the shared
+           * Runner's registration, or one a master admin added on the
+           * removed Global AI Agents page - which global Runners replaced:
+           * it proves nothing on the code-fix routes (CodeFixAgentAuth).
+           * Its key is right, so it is never counted as a wrong one, but a
+           * Runner started with it is told what to start instead, rather
+           * than coming up to fail every request (GlobalAIAgentsGone).
+           */
+          if (!aiAgent.projectId) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException(GLOBAL_AI_AGENT_GONE_MESSAGE),
             );
           }
 

@@ -7,6 +7,7 @@ import {
   CodeAgentProgressEvent,
 } from "./CodeAgentInterface";
 import { runsProjectAuthoredCommands } from "../Config";
+import { CODE_AGENT_COMMAND_TOOL_NAME } from "Common/Types/Runner/GlobalRunnerWork";
 import TaskLogger from "../Utils/TaskLogger";
 import BackendAPI, {
   LlmCompletionResult,
@@ -73,7 +74,7 @@ const WORKSPACE_TOOL_NAMES: ReadonlyArray<string> = [
   "write_file",
   "list_directory",
   "search_files",
-  "run_command",
+  CODE_AGENT_COMMAND_TOOL_NAME,
   ASK_QUESTION_TOOL_NAME,
 ];
 
@@ -666,7 +667,7 @@ export default class InHouseCodeAgent implements CodeAgent {
      * call never spawns a process.
      */
     const runCommandTool: LLMToolDefinition = {
-      name: "run_command",
+      name: CODE_AGENT_COMMAND_TOOL_NAME,
       description: `Run a shell command in the repository root. It stops after ${DEFAULT_AGENT_COMMAND_TIMEOUT_SECONDS} seconds unless ${AGENT_COMMAND_TIMEOUT_ARGUMENT} gives it longer. Returns the exit code and combined output (truncated).`,
       inputSchema: {
         type: "object",
@@ -863,7 +864,7 @@ export default class InHouseCodeAgent implements CodeAgent {
           return await this.toolListDirectory(workspaceRoot, args);
         case "search_files":
           return await this.toolSearchFiles(workspaceRoot, args);
-        case "run_command":
+        case CODE_AGENT_COMMAND_TOOL_NAME:
           return await this.toolRunCommand(workspaceRoot, args);
         default:
           if (this.productionTelemetry?.names.has(toolCall.name)) {

@@ -17,7 +17,9 @@ import Express, {
 } from "../Utils/Express";
 import Response from "../Utils/Response";
 import CodeFixAgentAuth, {
+  CODE_FIX_RUN_HOLD_SELECT,
   CodeFixAgentIdentity,
+  CodeFixRunAccess,
 } from "../Utils/AI/CodeFix/CodeFixAgentAuth";
 import CodeFixPullRequestRecord, {
   OpenedPullRequestFields,
@@ -100,12 +102,16 @@ export default class AIAgentDataAPI {
 
   /*
    * The run a repository-token request names, when it is a code-fix run of
-   * the repository's project the agent may act on - otherwise null.
+   * the repository's project the agent may act on - otherwise null. A
+   * global Runner may act only for the run it claimed and still holds
+   * (CodeFixAgentAuth.deniesAccessToRun), so for it this is the run it is
+   * working on, or null.
    *
    * `taskId` names a task; it does not assert anything about it, and a task
    * in another project answers null exactly as a missing one does. An absent
    * taskId also answers null, so an older worker that does not send one keeps
-   * the cap in full.
+   * the cap in full - and a global Runner, which always sends it, is refused
+   * the token (the route asks for its run).
    */
   private static async findTokenRun(data: {
     aiAgent: CodeFixAgentIdentity;
@@ -127,8 +133,7 @@ export default class AIAgentDataAPI {
     const run: AIRun | null = await AIRunService.findOneById({
       id: taskId,
       select: {
-        _id: true,
-        projectId: true,
+        ...CODE_FIX_RUN_HOLD_SELECT,
         runType: true,
         codeFixTaskType: true,
         codeRepositoryId: true,
@@ -142,12 +147,64 @@ export default class AIAgentDataAPI {
       !run.projectId ||
       run.runType !== AIRunType.CodeFix ||
       run.projectId.toString() !== data.projectId.toString() ||
-      CodeFixAgentAuth.deniesAccessToProject(data.aiAgent, run.projectId)
+      CodeFixAgentAuth.deniesAccessToRun(
+        data.aiAgent,
+        run,
+        CodeFixRunAccess.Work,
+      )
     ) {
       return null;
     }
 
     return run;
+  }
+
+  /*
+   * Whether a global Runner is refused a route that names an exception
+   * (its details, the repository its code lives in): it reads only the
+   * exception of the run it holds (CodeFixAgentAuth.deniesAccessToRun), so
+   * the request must name that run (taskId) and the run must be about this
+   * exception. A project's own worker reads its project's exceptions as
+   * before (the route's project check), whether or not it names a run.
+   */
+  private static async deniesGlobalRunnerAccessToException(data: {
+    aiAgent: CodeFixAgentIdentity;
+    taskId: unknown;
+    exceptionId: ObjectID;
+  }): Promise<boolean> {
+    if (!CodeFixAgentAuth.isGlobalIdentity(data.aiAgent)) {
+      return false;
+    }
+
+    if (
+      typeof data.taskId !== "string" ||
+      !ObjectID.isValidUUID(data.taskId)
+    ) {
+      return true;
+    }
+
+    const run: AIRun | null = await AIRunService.findOneById({
+      id: new ObjectID(data.taskId),
+      select: {
+        ...CODE_FIX_RUN_HOLD_SELECT,
+        runType: true,
+        triggeredByTelemetryExceptionId: true,
+      },
+      props: { isRoot: true },
+    });
+
+    return (
+      !run ||
+      run.runType !== AIRunType.CodeFix ||
+      !run.triggeredByTelemetryExceptionId ||
+      run.triggeredByTelemetryExceptionId.toString() !==
+        data.exceptionId.toString() ||
+      CodeFixAgentAuth.deniesAccessToRun(
+        data.aiAgent,
+        run,
+        CodeFixRunAccess.Work,
+      )
+    );
   }
 
   /*
@@ -282,16 +339,15 @@ export default class AIAgentDataAPI {
           const taskId: ObjectID = new ObjectID(data["taskId"] as string);
 
           /*
-           * A project-scoped Runner may only spend a run of its own project.
-           * Without this, one tenant's Runner key could burn another
+           * A project-scoped Runner may only spend a run of its own project,
+           * and a global Runner only the run it holds (deniesAccessToRun;
+           * CodeFixAgentCompletion holds every worker to the run it claimed
+           * too). Without this, one tenant's Runner key could burn another
            * tenant's LLM budget and read back the completions.
            */
           const completionRun: AIRun | null = await AIRunService.findOneById({
             id: taskId,
-            select: {
-              _id: true,
-              projectId: true,
-            },
+            select: CODE_FIX_RUN_HOLD_SELECT,
             props: {
               isRoot: true,
             },
@@ -299,9 +355,10 @@ export default class AIAgentDataAPI {
 
           if (
             !completionRun ||
-            CodeFixAgentAuth.deniesAccessToProject(
+            CodeFixAgentAuth.deniesAccessToRun(
               aiAgent,
-              completionRun.projectId,
+              completionRun,
+              CodeFixRunAccess.Work,
             )
           ) {
             return Response.sendErrorResponse(
@@ -314,8 +371,16 @@ export default class AIAgentDataAPI {
           const messages: Array<LLMMessage> = this.parseCompletionMessages(
             data["messages"],
           );
+          /*
+           * The tools the model is offered: what the worker sent, never the
+           * code agent's command tool on a global Runner, which runs no
+           * command a model composes (CodeFixAgentAuth.getOfferedTools).
+           */
           const tools: Array<LLMToolDefinition> | undefined =
-            this.parseCompletionTools(data["tools"]);
+            CodeFixAgentAuth.getOfferedTools(
+              aiAgent,
+              this.parseCompletionTools(data["tools"]),
+            );
           const maxTokens: number | undefined =
             typeof data["maxTokens"] === "number" && data["maxTokens"] > 0
               ? data["maxTokens"]
@@ -402,12 +467,21 @@ export default class AIAgentDataAPI {
             });
 
           /*
-           * A project-scoped Runner only sees its own project's exceptions —
+           * A project-scoped Runner only sees its own project's exceptions,
+           * and a global Runner only the exception of the run it holds —
            * this response carries stack traces and messages.
            */
           if (
             !exception ||
-            CodeFixAgentAuth.deniesAccessToProject(aiAgent, exception.projectId)
+            CodeFixAgentAuth.deniesAccessToProject(
+              aiAgent,
+              exception.projectId,
+            ) ||
+            (await AIAgentDataAPI.deniesGlobalRunnerAccessToException({
+              aiAgent,
+              taskId: data["taskId"],
+              exceptionId,
+            }))
           ) {
             return Response.sendErrorResponse(
               req,
@@ -559,10 +633,23 @@ export default class AIAgentDataAPI {
               },
             });
 
+          /*
+           * A project-scoped Runner resolves only its own project's
+           * exceptions, and a global Runner only the exception of the run it
+           * holds (it names the run, taskId).
+           */
           if (
             !exception ||
             !exception.projectId ||
-            CodeFixAgentAuth.deniesAccessToProject(aiAgent, exception.projectId)
+            CodeFixAgentAuth.deniesAccessToProject(
+              aiAgent,
+              exception.projectId,
+            ) ||
+            (await AIAgentDataAPI.deniesGlobalRunnerAccessToException({
+              aiAgent,
+              taskId: data["taskId"],
+              exceptionId,
+            }))
           ) {
             return Response.sendErrorResponse(
               req,
@@ -646,9 +733,8 @@ export default class AIAgentDataAPI {
                 organizationName: repository.organizationName || "",
                 repositoryName: repository.repositoryName || "",
                 mainBranchName: repository.mainBranchName || "main",
-                setupCommand: repository.setupCommand || null,
-                buildCommand: repository.buildCommand || null,
-                testCommand: repository.testCommand || null,
+                // None for a global Runner, which runs no repository command.
+                ...CodeFixAgentAuth.getRepositoryCommands(aiAgent, repository),
                 servicePathInRepository: resolution.servicePathInRepository,
                 gitHubAppInstallationId:
                   repository.gitHubAppInstallationId || null,
@@ -720,8 +806,7 @@ export default class AIAgentDataAPI {
           const run: AIRun | null = await AIRunService.findOneById({
             id: taskId,
             select: {
-              _id: true,
-              projectId: true,
+              ...CODE_FIX_RUN_HOLD_SELECT,
               runType: true,
               codeFixTaskType: true,
               triggeredByIncidentId: true,
@@ -733,10 +818,15 @@ export default class AIAgentDataAPI {
             },
           });
 
+          // A global Runner is served only the run it holds (deniesAccessToRun).
           if (
             !run ||
             !run.projectId ||
-            CodeFixAgentAuth.deniesAccessToProject(aiAgent, run.projectId)
+            CodeFixAgentAuth.deniesAccessToRun(
+              aiAgent,
+              run,
+              CodeFixRunAccess.Work,
+            )
           ) {
             return Response.sendErrorResponse(
               req,
@@ -880,9 +970,8 @@ export default class AIAgentDataAPI {
                   organizationName: repository.organizationName || "",
                   repositoryName: repository.repositoryName || "",
                   mainBranchName: repository.mainBranchName || "main",
-                  setupCommand: repository.setupCommand || null,
-                  buildCommand: repository.buildCommand || null,
-                  testCommand: repository.testCommand || null,
+                  // None for a global Runner, which runs no repository command.
+                  ...CodeFixAgentAuth.getRepositoryCommands(aiAgent, repository),
                   servicePathInRepository: resolution.servicePathInRepository,
                   gitHubAppInstallationId:
                     repository.gitHubAppInstallationId || null,
@@ -1018,9 +1107,8 @@ export default class AIAgentDataAPI {
                   organizationName: repository.organizationName || "",
                   repositoryName: repository.repositoryName || "",
                   mainBranchName: repository.mainBranchName || "main",
-                  setupCommand: repository.setupCommand || null,
-                  buildCommand: repository.buildCommand || null,
-                  testCommand: repository.testCommand || null,
+                  // None for a global Runner, which runs no repository command.
+                  ...CodeFixAgentAuth.getRepositoryCommands(aiAgent, repository),
                   servicePathInRepository: resolution.servicePathInRepository,
                   gitHubAppInstallationId:
                     repository.gitHubAppInstallationId || null,
@@ -1218,9 +1306,8 @@ export default class AIAgentDataAPI {
                 organizationName: repository.organizationName || "",
                 repositoryName: repository.repositoryName || "",
                 mainBranchName: repository.mainBranchName || "main",
-                setupCommand: repository.setupCommand || null,
-                buildCommand: repository.buildCommand || null,
-                testCommand: repository.testCommand || null,
+                // None for a global Runner, which runs no repository command.
+                ...CodeFixAgentAuth.getRepositoryCommands(aiAgent, repository),
                 servicePathInRepository: resolution.servicePathInRepository,
                 gitHubAppInstallationId:
                   repository.gitHubAppInstallationId || null,
@@ -1306,6 +1393,29 @@ export default class AIAgentDataAPI {
               codeRepository.projectId,
             )
           ) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("Code repository not found"),
+            );
+          }
+
+          /*
+           * The run the token is for, when the request names one the agent
+           * may act for (findTokenRun). A global Runner serves every project,
+           * so it is handed a token only for a repository of the run it holds
+           * (CodeFixAgentAuth.deniesAccessToRun): its key never opens every
+           * repository on the Global Runner at will, only the one its work is
+           * in. Without such a run the repository reads as missing, as it
+           * does for another project's repository.
+           */
+          const tokenRun: AIRun | null = await AIAgentDataAPI.findTokenRun({
+            aiAgent,
+            taskId: data["taskId"] as string | undefined,
+            projectId: codeRepository.projectId,
+          });
+
+          if (CodeFixAgentAuth.isGlobalIdentity(aiAgent) && !tokenRun) {
             return Response.sendErrorResponse(
               req,
               res,
@@ -1428,13 +1538,9 @@ export default class AIAgentDataAPI {
            * caller cannot ask to skip the cap, it can only name a task, and
            * the task must be in the agent's own project. A request from Code
            * whose task already has an open pull request here pushes to it,
-           * so it is exempt too (isCapExempt).
+           * so it is exempt too (isCapExempt). The task is tokenRun, read
+           * above.
            */
-          const tokenRun: AIRun | null = await AIAgentDataAPI.findTokenRun({
-            aiAgent,
-            taskId: data["taskId"] as string | undefined,
-            projectId: codeRepository.projectId,
-          });
 
           /*
            * A request from Code was asked in one repository, and works in
@@ -1519,20 +1625,24 @@ export default class AIAgentDataAPI {
           }
 
           /*
-           * Generate GitHub installation access token with write permissions
-           * Required for AI Agent to push branches and create pull requests
+           * A GitHub installation token with write permissions, for this one
+           * repository: the Runner pushes the fix's branch and opens its pull
+           * request with it, and it reaches no other repository the
+           * installation covers (GitHubUtil.getRepositoryAccessToken). It
+           * lasts an hour at most, and the Runner revokes it when the fix
+           * ends.
            */
           const tokenData: GitHubInstallationToken =
-            await GitHubUtil.getInstallationAccessToken(
-              codeRepository.gitHubAppInstallationId!,
-              {
-                permissions: {
-                  contents: "write", // Required for pushing branches
-                  pull_requests: "write", // Required for creating PRs
-                  metadata: "read", // Required for reading repository metadata
-                },
+            await GitHubUtil.getRepositoryAccessToken({
+              installationId: codeRepository.gitHubAppInstallationId!,
+              organizationName: codeRepository.organizationName || "",
+              repositoryName: codeRepository.repositoryName || "",
+              permissions: {
+                contents: "write", // Required for pushing branches
+                pull_requests: "write", // Required for creating PRs
+                metadata: "read", // Required for reading repository metadata
               },
-            );
+            });
 
           const repositoryUrl: string = `https://github.com/${codeRepository.organizationName}/${codeRepository.repositoryName}.git`;
 
@@ -1611,19 +1721,21 @@ export default class AIAgentDataAPI {
            */
           const run: AIRun | null = await AIRunService.findOneById({
             id: taskId,
-            select: {
-              _id: true,
-              projectId: true,
-            },
+            select: CODE_FIX_RUN_HOLD_SELECT,
             props: {
               isRoot: true,
             },
           });
 
+          // A global Runner records only for a run it claimed (deniesAccessToRun).
           if (
             !run ||
             !run.projectId ||
-            CodeFixAgentAuth.deniesAccessToProject(aiAgent, run.projectId)
+            CodeFixAgentAuth.deniesAccessToRun(
+              aiAgent,
+              run,
+              CodeFixRunAccess.Report,
+            )
           ) {
             return Response.sendErrorResponse(
               req,
