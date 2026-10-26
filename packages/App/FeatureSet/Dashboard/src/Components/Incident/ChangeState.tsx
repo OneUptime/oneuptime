@@ -11,8 +11,10 @@ import IncidentPublicNote from "Common/Models/DatabaseModels/IncidentPublicNote"
 import IncidentInternalNote from "Common/Models/DatabaseModels/IncidentInternalNote";
 import React, {
   FunctionComponent,
+  MutableRefObject,
   ReactElement,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
@@ -96,6 +98,13 @@ export interface ComponentProps {
    * the incident has a video call.
    */
   secondaryActions?: Array<EventPanelAction> | undefined;
+  /*
+   * Bump to read the incident's state again after it changed somewhere other
+   * than this header - acknowledged by somebody else while the reader's
+   * Escalate dialog asked (the dialog's onRecordChanged). The header stays
+   * on screen while it reads.
+   */
+  refreshToken?: number | undefined;
 }
 
 /*
@@ -267,6 +276,28 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
       setError(API.getFriendlyMessage(err as Exception));
     });
   }, [props.incidentId.toString()]);
+
+  const lastRefreshTokenRef: MutableRefObject<number | undefined> = useRef<
+    number | undefined
+  >(props.refreshToken);
+
+  /*
+   * Read the state again, quietly, when the page says it changed. A read
+   * that fails keeps the header as it was - its buttons still work, and
+   * the server refuses what the record no longer allows - rather than
+   * taking it down for an error in place of a header that was fine.
+   */
+  useEffect(() => {
+    if (lastRefreshTokenRef.current === props.refreshToken) {
+      return;
+    }
+
+    lastRefreshTokenRef.current = props.refreshToken;
+
+    fetchIncidentStateTimelines().catch(() => {
+      // Kept as it was: see above.
+    });
+  }, [props.refreshToken]);
 
   /*
    * The live region is mounted in every branch, so a status change that lands

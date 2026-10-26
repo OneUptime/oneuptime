@@ -46,6 +46,7 @@ describe("what a Network Device monitor can be built from", () => {
     expect(NETWORK_DEVICE_CHECK_ONS).toEqual([
       CheckOn.SnmpOidValue,
       CheckOn.SnmpOidExists,
+      CheckOn.SnmpOidRatePerSecond,
       CheckOn.SnmpResponseTime,
       CheckOn.SnmpIsOnline,
       CheckOn.SnmpWalkIsSucceeding,

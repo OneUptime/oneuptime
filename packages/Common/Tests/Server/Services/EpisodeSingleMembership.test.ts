@@ -785,6 +785,124 @@ describe.each(KINDS)("one $name added on its own", (kind: Kind) => {
   });
 });
 
+/*
+ * ITS FIRST MEMBERSHIP (isFirstMembership).
+ *
+ * Every member says whether its record was in no episode when it was added:
+ * at most one membership of a record may be its first (a partial unique
+ * index), so of two adds of one record racing each other, the database
+ * refuses the second, which is checked again (EpisodeFirstMembershipRace).
+ * Decided on every add by the same read of the member rows the check makes -
+ * the project is still read only for a record in an episode - and never
+ * taken from what a write sent.
+ */
+describe.each(KINDS)("an $name's first membership", (kind: Kind) => {
+  beforeEach(() => {
+    stubWorld(kind);
+  });
+
+  function memberData(record: string, sent?: boolean): DatabaseBaseModel {
+    const data: DatabaseBaseModel = new kind.memberModel();
+    const values: Record<string, unknown> = data as unknown as Record<
+      string,
+      unknown
+    >;
+    values["projectId"] = PROJECT_ID;
+    values[kind.episodeIdColumn] = new ObjectID(TARGET_EPISODE_ID);
+    values[kind.recordIdColumn] = new ObjectID(record);
+    values["addedBy"] = kind.addedByApi;
+
+    if (sent !== undefined) {
+      values["isFirstMembership"] = sent;
+    }
+
+    return data;
+  }
+
+  async function marked(
+    data: DatabaseBaseModel,
+    props: DatabaseCommonInteractionProps = userProps(),
+  ): Promise<unknown> {
+    await (
+      kind.memberService as unknown as {
+        onBeforeCreate: OnBeforeCreateFunction;
+      }
+    ).onBeforeCreate({ data: data, props: props });
+
+    return (data as unknown as Record<string, unknown>)["isFirstMembership"];
+  }
+
+  test.each([true, false])(
+    "in no episode (switch on: %p): its first - and the project's switch is still never read",
+    async (isOn: boolean) => {
+      if (isOn) {
+        switchOn(kind);
+      } else {
+        switchOff();
+      }
+
+      await expect(marked(memberData(recordId(1)))).resolves.toBe(true);
+      expect(projectReads).toEqual([]);
+    },
+  );
+
+  test("switch off, in another episode: added, and not its first", async () => {
+    switchOff();
+    world.memberships[recordId(1)] = [OTHER_EPISODE_ID];
+
+    await expect(marked(memberData(recordId(1)))).resolves.toBe(false);
+  });
+
+  test("whatever the write sent, OneUptime decides it", async () => {
+    switchOff();
+
+    // Sent as a second membership, while it is in no episode: its first.
+    await expect(marked(memberData(recordId(1), false))).resolves.toBe(true);
+
+    // Sent as a first, while it is in another episode: not its first.
+    world.memberships[recordId(2)] = [OTHER_EPISODE_ID];
+    await expect(marked(memberData(recordId(2), true))).resolves.toBe(false);
+  });
+
+  test("OneUptime's own write - the grouping engine's - is decided the same way", async () => {
+    switchOn(kind);
+
+    await expect(
+      marked(memberData(recordId(1)), { isRoot: true }),
+    ).resolves.toBe(true);
+
+    switchOff();
+    world.memberships[recordId(2)] = [OTHER_EPISODE_ID];
+
+    await expect(
+      marked(memberData(recordId(2)), { isRoot: true }),
+    ).resolves.toBe(false);
+  });
+
+  test("switch on, in another episode: refused before anything is decided", async () => {
+    switchOn(kind);
+    world.memberships[recordId(1)] = [OTHER_EPISODE_ID];
+
+    const data: DatabaseBaseModel = memberData(recordId(1));
+    const error: Error = await refusalOf(marked(data));
+
+    expect(error).toBeInstanceOf(RecordInAnotherEpisodeException);
+    expect(
+      (data as unknown as Record<string, unknown>)["isFirstMembership"],
+    ).toBeUndefined();
+  });
+
+  test("the member rows are read once to decide both", async () => {
+    switchOff();
+
+    await marked(memberData(recordId(1)));
+
+    // The duplicate check (this episode), then the latest membership.
+    expect(memberReads).toHaveLength(2);
+    expect(memberReads[1]!.sort).toEqual({ createdAt: SortOrder.Descending });
+  });
+});
+
 describe.each(KINDS)("the episode that holds an $name", (kind: Kind) => {
   type FindHoldingFunction = (
     data: Record<string, unknown>,

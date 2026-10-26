@@ -4,7 +4,6 @@ import ServerMonitorResponse from "Common/Types/Monitor/ServerMonitor/ServerMoni
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Detail from "Common/UI/Components/Detail/Detail";
 import Field from "Common/UI/Components/Detail/Field";
-import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -12,6 +11,7 @@ import MemoryUtil from "Common/Utils/Memory";
 import NumberUtil from "Common/Utils/Number";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { SummaryFact, SummaryFacts, SummaryView } from "./SummaryFacts";
 
 export interface ComponentProps {
   serverMonitorResponse: ServerMonitorResponse;
@@ -39,9 +39,8 @@ const ServerMonitorSummaryView: FunctionComponent<ComponentProps> = (
 
   const getCpuMetrics: GetReactElementFunction = (): ReactElement => {
     return (
-      <div className="flex space-x-3">
-        <InfoCard
-          className="w-1/2 shadow-none border-2 border-gray-100 "
+      <SummaryFacts dataTestId="server-monitor-cpu-facts">
+        <SummaryFact
           title="CPU % Used"
           value={
             props.serverMonitorResponse?.basicInfrastructureMetrics?.cpuMetrics?.percentUsed?.toString()
@@ -52,20 +51,18 @@ const ServerMonitorSummaryView: FunctionComponent<ComponentProps> = (
               : "-"
           }
         />
-        <InfoCard
-          className="w-1/2 shadow-none border-2 border-gray-100 "
+        <SummaryFact
           title="CPU Cores"
           value={cpuCores !== undefined ? cpuCores.toString() : "-"}
         />
-      </div>
+      </SummaryFacts>
     );
   };
 
   const getMemoryMetrics: GetReactElementFunction = (): ReactElement => {
     return (
-      <div className="flex space-x-3 mt-3">
-        <InfoCard
-          className="w-1/3 shadow-none border-2 border-gray-100 "
+      <SummaryFacts isInThrees={true} dataTestId="server-monitor-memory-facts">
+        <SummaryFact
           title="Total Memory (GB)"
           value={
             props.serverMonitorResponse?.basicInfrastructureMetrics?.memoryMetrics?.total?.toString()
@@ -76,8 +73,7 @@ const ServerMonitorSummaryView: FunctionComponent<ComponentProps> = (
               : "-"
           }
         />
-        <InfoCard
-          className="w-1/3 shadow-none border-2 border-gray-100 "
+        <SummaryFact
           title="Memory % Used"
           value={
             props.serverMonitorResponse?.basicInfrastructureMetrics?.memoryMetrics?.percentUsed?.toString()
@@ -88,8 +84,7 @@ const ServerMonitorSummaryView: FunctionComponent<ComponentProps> = (
               : "-"
           }
         />
-        <InfoCard
-          className="w-1/3 shadow-none border-2 border-gray-100 "
+        <SummaryFact
           title="Memory % Free"
           value={
             props.serverMonitorResponse?.basicInfrastructureMetrics?.memoryMetrics?.percentFree?.toString()
@@ -100,7 +95,7 @@ const ServerMonitorSummaryView: FunctionComponent<ComponentProps> = (
               : "-"
           }
         />
-      </div>
+      </SummaryFacts>
     );
   };
 
@@ -109,69 +104,83 @@ const ServerMonitorSummaryView: FunctionComponent<ComponentProps> = (
       props.serverMonitorResponse?.basicInfrastructureMetrics?.diskMetrics;
 
     if (!diskMetrics) {
-      return <div></div>;
+      return <></>;
     }
 
-    const diskMetricsElements: Array<ReactElement> = diskMetrics.map(
-      (diskMetric: BasicDiskMetrics, index: number) => {
-        return (
-          <div className="mt-3">
-            <div className="mb-1">
-              {translator.translateTemplate("Disk {{path}}", {
-                path: diskMetric.diskPath,
-              })}
+    return (
+      <>
+        {diskMetrics.map((diskMetric: BasicDiskMetrics, index: number) => {
+          return (
+            <div
+              key={index}
+              className="space-y-2"
+              data-testid="server-monitor-disk"
+            >
+              <div className="text-sm font-medium text-gray-700 [overflow-wrap:anywhere]">
+                {translator.translateTemplate("Disk {{path}}", {
+                  path: diskMetric.diskPath,
+                })}
+              </div>
+              <SummaryFacts isInThrees={true}>
+                <SummaryFact
+                  title="Total Size (GB)"
+                  value={
+                    diskMetric.total.toString()
+                      ? MemoryUtil.convertToGb(diskMetric.total).toString()
+                      : "-"
+                  }
+                />
+                <SummaryFact
+                  title="% Used"
+                  value={
+                    diskMetric.percentUsed.toString()
+                      ? NumberUtil.convertToTwoDecimalPlaces(
+                          diskMetric.percentUsed,
+                        ).toString()
+                      : "-"
+                  }
+                />
+                <SummaryFact
+                  title="% Free"
+                  value={
+                    diskMetric.percentFree.toString()
+                      ? NumberUtil.convertToTwoDecimalPlaces(
+                          diskMetric.percentFree,
+                        ).toString()
+                      : "-"
+                  }
+                />
+              </SummaryFacts>
             </div>
-            <div key={index} className="flex space-x-3">
-              <InfoCard
-                className="w-1/3 shadow-none border-2 border-gray-100 "
-                title="Total Size (GB)"
-                value={
-                  diskMetric.total.toString()
-                    ? MemoryUtil.convertToGb(diskMetric.total).toString()
-                    : "-"
-                }
-              />
-              <InfoCard
-                className="w-1/3 shadow-none border-2 border-gray-100 "
-                title="% Used"
-                value={
-                  diskMetric.percentUsed.toString()
-                    ? NumberUtil.convertToTwoDecimalPlaces(
-                        diskMetric.percentUsed,
-                      ).toString()
-                    : "-"
-                }
-              />
-              <InfoCard
-                className="w-1/3 shadow-none border-2 border-gray-100 "
-                title="% Free"
-                value={
-                  diskMetric.percentFree.toString()
-                    ? NumberUtil.convertToTwoDecimalPlaces(
-                        diskMetric.percentFree,
-                      ).toString()
-                    : "-"
-                }
-              />
-            </div>
-          </div>
-        );
-      },
+          );
+        })}
+      </>
     );
-
-    return <div className="mb-3">{diskMetricsElements}</div>;
   };
 
+  /*
+   * What Show More Details opens: the machine's CPU, memory and disks, and
+   * the processes it reported. It used to open only for an agent that
+   * reported processes, so a report of CPU, memory and disks alone could
+   * not be read at all.
+   */
+  const hasMoreDetails: boolean =
+    fields.length > 0 ||
+    Boolean(
+      props.serverMonitorResponse?.basicInfrastructureMetrics?.cpuMetrics ||
+        props.serverMonitorResponse?.basicInfrastructureMetrics
+          ?.memoryMetrics ||
+        props.serverMonitorResponse?.basicInfrastructureMetrics?.diskMetrics,
+    );
+
   return (
-    <div className="space-y-5">
-      <div className="flex space-x-3">
-        <InfoCard
-          className="w-1/2 shadow-none border-2 border-gray-100 "
+    <SummaryView dataTestId="server-monitor-summary">
+      <SummaryFacts>
+        <SummaryFact
           title="Hostname"
           value={props.serverMonitorResponse?.hostname || "-"}
         />
-        <InfoCard
-          className="w-1/2 shadow-none border-2 border-gray-100 "
+        <SummaryFact
           title="Last Ping At"
           value={
             props.serverMonitorResponse?.requestReceivedAt
@@ -181,20 +190,19 @@ const ServerMonitorSummaryView: FunctionComponent<ComponentProps> = (
               : "-"
           }
         />
-      </div>
-
-      {props.serverMonitorResponse.failureCause && (
-        <div className="flex space-x-3">
-          <InfoCard
-            className="w-full shadow-none border-2 border-gray-100 "
+        {props.serverMonitorResponse.failureCause ? (
+          <SummaryFact
+            isWide={true}
             title="Error"
-            value={props.serverMonitorResponse.failureCause?.toString() || "-"}
+            value={props.serverMonitorResponse.failureCause.toString()}
           />
-        </div>
-      )}
+        ) : (
+          <></>
+        )}
+      </SummaryFacts>
 
-      {showMoreDetails && fields.length > 0 && (
-        <div>
+      {showMoreDetails && hasMoreDetails && (
+        <div className="space-y-5">
           {props.serverMonitorResponse?.basicInfrastructureMetrics
             ?.cpuMetrics && getCpuMetrics()}
 
@@ -204,17 +212,19 @@ const ServerMonitorSummaryView: FunctionComponent<ComponentProps> = (
           {props.serverMonitorResponse?.basicInfrastructureMetrics
             ?.diskMetrics && getDiskMetrics()}
 
-          <Detail<ServerMonitorResponse>
-            id={"website-monitor-summary-detail"}
-            item={props.serverMonitorResponse}
-            fields={fields}
-            showDetailsInNumberOfColumns={1}
-          />
+          {fields.length > 0 && (
+            <Detail<ServerMonitorResponse>
+              id={"website-monitor-summary-detail"}
+              item={props.serverMonitorResponse}
+              fields={fields}
+              showDetailsInNumberOfColumns={1}
+            />
+          )}
         </div>
       )}
 
-      {!showMoreDetails && fields.length > 0 && (
-        <div className="-ml-2">
+      {!showMoreDetails && hasMoreDetails && (
+        <div className="-ml-3">
           <Button
             buttonStyle={ButtonStyleType.SECONDARY_LINK}
             title="Show More Details"
@@ -225,9 +235,7 @@ const ServerMonitorSummaryView: FunctionComponent<ComponentProps> = (
         </div>
       )}
 
-      {/* Hide details button */}
-
-      {showMoreDetails && fields.length > 0 && (
+      {showMoreDetails && hasMoreDetails && (
         <div className="-ml-3">
           <Button
             buttonStyle={ButtonStyleType.SECONDARY_LINK}
@@ -238,7 +246,7 @@ const ServerMonitorSummaryView: FunctionComponent<ComponentProps> = (
           />
         </div>
       )}
-    </div>
+    </SummaryView>
   );
 };
 

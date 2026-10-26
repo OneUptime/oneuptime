@@ -19,6 +19,14 @@ export interface SnmpOidResponse {
   name?: string | undefined;
   value: string | number | null;
   type: SnmpDataType;
+  /*
+   * For a counter (Counter32, Counter64): how fast it grew, per second,
+   * since the device's previous poll that read it. Never sent by a probe:
+   * the server fills it in on ingest (SnmpOidRateUtil), before metrics and
+   * criteria read the response. Absent on a device's first poll, and on a
+   * poll whose counter went backwards (it wrapped or the device restarted).
+   */
+  ratePerSecond?: number | undefined;
 }
 
 export default interface SnmpMonitorResponse {

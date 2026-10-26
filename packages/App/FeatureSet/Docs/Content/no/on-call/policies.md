@@ -138,7 +138,7 @@ Vaktretningslinjer er ressursen `/api/on-call-duty-policy`, og ressursen `oneupt
 | **Etter hvor mange minutter?** | `acknowledgementTimeoutInMinutes` |
 | Arkivert | `isArchived` |
 
-`repeatPolicyIfNoOneAcknowledges` er `false` for **Stopp varslingen** og `true` for **Start på nytt fra Level 1**. Med `true` og `repeatPolicyIfNoOneAcknowledgesNoOfTimes` på `0` gjentas en retningslinje aldri, og dashbordet viser den som **Stopp varslingen**.
+`repeatPolicyIfNoOneAcknowledges` er `false` for **Stopp varslingen** og `true` for **Start på nytt fra Level 1**. Med `true` må `repeatPolicyIfNoOneAcknowledgesNoOfTimes` være et heltall på 1 eller mer: OneUptime avviser `0`. En eldre retningslinje som er lagret med `0`, gjentas aldri, og dashbordet viser den som **Stopp varslingen**.
 
 `acknowledgementTimeoutInMinutes` er `null` for **Ikke varsle igjen** og et helt antall minutter fra 5 til 1440 for **Varsle igjen**. OneUptime avviser alt annet.
 

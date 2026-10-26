@@ -39,7 +39,7 @@ Vaya a **Monitores → Ajustes → Plantillas** y haga clic en **Crear Plantilla
 
 ### Poner nombre a la plantilla
 
-En **Información de la plantilla**, introduzca un **Nombre de la plantilla**, como `Production API Health`, y una **Descripción de la plantilla**, y luego haga clic en **Siguiente**.
+En **Información de la plantilla**, introduzca un **Nombre de la plantilla**, como `Production API Health`. La **Descripción de la plantilla** es opcional. Luego haga clic en **Siguiente**.
 
 ### Definir los valores predeterminados del monitor
 

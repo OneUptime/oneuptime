@@ -138,7 +138,7 @@ flowchart TB
 | **多少分钟后？** | `acknowledgementTimeoutInMinutes` |
 | 已归档 | `isArchived` |
 
-`repeatPolicyIfNoOneAcknowledges` 为 `false` 表示 **停止通知** ，为 `true` 表示 **从 Level 1 重新开始** 。为 `true` 且 `repeatPolicyIfNoOneAcknowledgesNoOfTimes` 为 `0` 的策略永远不会重复，仪表板会将其显示为 **停止通知** 。
+`repeatPolicyIfNoOneAcknowledges` 为 `false` 表示 **停止通知** ，为 `true` 表示 **从 Level 1 重新开始** 。为 `true` 时， `repeatPolicyIfNoOneAcknowledgesNoOfTimes` 必须是 1 或更大的整数：OneUptime 会拒绝 `0` 。以前以 `0` 保存的策略永远不会重复，仪表板会将其显示为 **停止通知** 。
 
 `acknowledgementTimeoutInMinutes` 为 `null` 表示 **不再通知** ，为 5 到 1440 之间的整数分钟表示 **再次通知** 。OneUptime 会拒绝其他任何值。
 

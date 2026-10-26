@@ -26,6 +26,7 @@ import Protocol from "../../../Types/API/Protocol";
 import URL from "../../../Types/API/URL";
 import { ProductBranding } from "../../../Types/Branding/ProductBranding";
 import ObjectID from "../../../Types/ObjectID";
+import { OnCallPageAgainNotice } from "../../../Types/OnCallDutyPolicy/OnCallAcknowledgementTimeout";
 import Phone from "../../../Types/Phone";
 import SMS from "../../../Types/SMS/SMS";
 import {
@@ -162,8 +163,14 @@ interface Kind {
   name: string;
   what: string;
   number: string;
-  sms: (title?: string) => Promise<SMS>;
+  sms: (
+    title?: string | undefined,
+    pageAgain?: OnCallPageAgainNotice | undefined,
+  ) => Promise<SMS>;
 }
+
+// The second page again of a policy whose timeout is 30 minutes.
+const PAGE_AGAIN: OnCallPageAgainNotice = { pageAgainNumber: 2, minutes: 30 };
 
 const service: typeof UserNotificationRuleService = UserNotificationRuleService;
 
@@ -172,11 +179,15 @@ const KINDS: Array<Kind> = [
     name: "an incident",
     what: "Critical Incident",
     number: "INC-21033",
-    sms: (title?: string) => {
+    sms: (
+      title?: string | undefined,
+      pageAgain?: OnCallPageAgainNotice | undefined,
+    ) => {
       return service.generateSmsTemplateForIncidentCreated(
         TO_PHONE,
         incident(title),
         NOTIFICATION,
+        pageAgain,
       );
     },
   },
@@ -184,11 +195,15 @@ const KINDS: Array<Kind> = [
     name: "an alert",
     what: "High alert",
     number: "ALT-512",
-    sms: (title?: string) => {
+    sms: (
+      title?: string | undefined,
+      pageAgain?: OnCallPageAgainNotice | undefined,
+    ) => {
       return service.generateSmsTemplateForAlertCreated(
         TO_PHONE,
         alert(title),
         NOTIFICATION,
+        pageAgain,
       );
     },
   },
@@ -196,11 +211,15 @@ const KINDS: Array<Kind> = [
     name: "an incident episode",
     what: "Critical Incident episode",
     number: "IE-7",
-    sms: (title?: string) => {
+    sms: (
+      title?: string | undefined,
+      pageAgain?: OnCallPageAgainNotice | undefined,
+    ) => {
       return service.generateSmsTemplateForIncidentEpisodeCreated(
         TO_PHONE,
         incidentEpisode(title),
         NOTIFICATION,
+        pageAgain,
       );
     },
   },
@@ -208,11 +227,15 @@ const KINDS: Array<Kind> = [
     name: "an alert episode",
     what: "High alert episode",
     number: "AE-3",
-    sms: (title?: string) => {
+    sms: (
+      title?: string | undefined,
+      pageAgain?: OnCallPageAgainNotice | undefined,
+    ) => {
       return service.generateSmsTemplateForAlertEpisodeCreated(
         TO_PHONE,
         alertEpisode(title),
         NOTIFICATION,
+        pageAgain,
       );
     },
   },
@@ -311,6 +334,59 @@ describe.each(KINDS)("the SMS a page about $name sends", (kind: Kind) => {
     expect(sms.message.startsWith("OneUptime: ")).toBe(true);
     expect(sent.startsWith("Acme Corporation Monitoring: ")).toBe(true);
     expect(countSmsSegments(sent).segments).toBe(1);
+  });
+
+  /*
+   * A page again (OnCallAcknowledgementTimeout) says the record is still not
+   * resolved, where its first page went straight on to the title (#5173).
+   */
+  test("a page again says it is still not resolved, after the project, in one part", async () => {
+    const sms: SMS = await kind.sms(undefined, PAGE_AGAIN);
+
+    expect(sms.message).toBe(
+      `OneUptime: ${kind.what} ${kind.number} in Acme Prod is still not resolved: Checkout API is down. Ack or escalate: https://${CLOUD_HOST}/l/${SHORT_ID}`,
+    );
+    expect(countSmsSegments(sms.message)).toEqual({
+      encoding: SmsEncoding.Gsm7,
+      length: sms.message.length,
+      segments: 1,
+    });
+  });
+
+  test("a page again's link is its own page's short link too", async () => {
+    await kind.sms(undefined, PAGE_AGAIN);
+
+    expect(shortened.length).toBe(1);
+    expect(new globalThis.URL(shortened[0]!).pathname).toBe(ACKNOWLEDGE_PAGE);
+  });
+
+  test("a page again on a self-hosted address cuts the title, the project first, and keeps its words", async () => {
+    pin(SELF_HOSTED_HOST);
+
+    const sms: SMS = await kind.sms(
+      "Database replication lag on db-primary-01 is above 30 seconds and still growing in eu-west-1",
+      PAGE_AGAIN,
+    );
+
+    expect(countSmsSegments(sms.message).segments).toBe(1);
+    expect(
+      sms.message.startsWith(
+        `OneUptime: ${kind.what} ${kind.number} is still not resolved: Database replication`,
+      ),
+    ).toBe(true);
+    expect(sms.message).not.toContain("Acme Prod");
+    expect(
+      sms.message.endsWith(
+        `... Ack or escalate: https://${SELF_HOSTED_HOST}/l/${SHORT_ID}`,
+      ),
+    ).toBe(true);
+  });
+
+  test("a first page never says it", async () => {
+    expect((await kind.sms()).message).not.toContain("still not resolved");
+    expect((await kind.sms(undefined, undefined)).message).not.toContain(
+      "still not resolved",
+    );
   });
 });
 

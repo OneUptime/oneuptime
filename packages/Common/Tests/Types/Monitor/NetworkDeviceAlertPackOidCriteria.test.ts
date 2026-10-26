@@ -7,6 +7,7 @@ import {
 import FilterCondition from "../../../Types/Filter/FilterCondition";
 import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInstance";
 import NetworkDeviceAlertPackUtil from "../../../Types/Monitor/SnmpMonitor/NetworkDeviceAlertPack";
+import MonitorType from "../../../Types/Monitor/MonitorType";
 
 /*
  * "Alert on it" on a device's SNMP Walk page (issue #5184) opens a Network
@@ -22,6 +23,8 @@ function build(
     name: string;
     filterType: FilterType;
     value: string | number | undefined;
+    checkOn: CheckOn.SnmpOidValue | CheckOn.SnmpOidRatePerSecond | undefined;
+    description: string | undefined;
   }> = {},
 ): MonitorCriteriaInstance {
   return NetworkDeviceAlertPackUtil.buildOidValueCriteriaInstance({
@@ -90,5 +93,79 @@ describe("the criteria Alert on it starts a monitor with", () => {
 
   test("every criteria it builds has an id of its own", () => {
     expect(build().data!.id).not.toBe(build().data!.id);
+  });
+
+  /*
+   * Issue #5215: a counter only grows, so a threshold on its raw value
+   * stays crossed until the device restarts. Alert on it starts a counter
+   * on its rate instead, and says so in the criteria's description.
+   */
+  test("a counter is checked by how fast it grows, with the words that say so", () => {
+    const data: NonNullable<MonitorCriteriaInstance["data"]> = build({
+      oid: "1.3.6.1.2.1.2.2.1.14.3",
+      name: "ifInErrors.3",
+      checkOn: CheckOn.SnmpOidRatePerSecond,
+      value: undefined,
+      description:
+        "How fast the counter ifInErrors.3 (1.3.6.1.2.1.2.2.1.14.3) grows, per second, between polls.",
+    }).data!;
+
+    expect(data.filters).toEqual([
+      {
+        checkOn: CheckOn.SnmpOidRatePerSecond,
+        filterType: FilterType.GreaterThan,
+        value: undefined,
+        snmpMonitorOptions: { oid: "1.3.6.1.2.1.2.2.1.14.3" },
+      },
+    ]);
+    expect(data.description).toBe(
+      "How fast the counter ifInErrors.3 (1.3.6.1.2.1.2.2.1.14.3) grows, per second, between polls.",
+    );
+    // Still an alert that leaves the monitor's status alone.
+    expect(data.createAlerts).toBe(true);
+    expect(data.changeMonitorStatus).toBe(false);
+  });
+
+  /*
+   * A threshold left blank is the person's to choose: the monitor cannot be
+   * saved until there is one, so nothing fires on a guess.
+   */
+  test("a threshold left blank stops the save until one is set", () => {
+    const blank: MonitorCriteriaInstance = build({
+      oid: "1.3.6.1.2.1.2.2.1.14.3",
+      name: "ifInErrors.3",
+      checkOn: CheckOn.SnmpOidRatePerSecond,
+      value: undefined,
+    });
+
+    expect(
+      MonitorCriteriaInstance.getValidationError(
+        blank,
+        MonitorType.NetworkDevice,
+      ),
+    ).toBe(
+      'Value is required for criteria "ifInErrors.3" on filter type: SNMP OID Rate (per second)',
+    );
+
+    blank.data!.filters[0]!.value = "0.5";
+
+    expect(
+      MonitorCriteriaInstance.getValidationError(
+        blank,
+        MonitorType.NetworkDevice,
+      ),
+    ).toBeNull();
+  });
+
+  test("left out, the check is the OID's value and the description says so", () => {
+    const data: NonNullable<MonitorCriteriaInstance["data"]> = build({
+      checkOn: undefined,
+      description: undefined,
+    }).data!;
+
+    expect(data.filters[0]!.checkOn).toBe(CheckOn.SnmpOidValue);
+    expect(data.description).toBe(
+      "The value the device reports for CPU 5-min % (1.3.6.1.4.1.9.9.109.1.1.1.1.8.1).",
+    );
   });
 });

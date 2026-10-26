@@ -27,6 +27,8 @@ import { ALREADY_PAGED_TIMELINE_MESSAGE } from "../../Types/OnCallDutyPolicy/Alr
 import { isOnCallDirectPage } from "../../Types/OnCallDutyPolicy/OnCallDirectPage";
 import { isOnCallPagePassedOnSkipTimelineMessage } from "../../Types/OnCallDutyPolicy/OnCallPagePassOn";
 import FirstPagedAt from "../Utils/OnCall/FirstPagedAt";
+import OnCallDutyPolicyEscalationRuleService from "./OnCallDutyPolicyEscalationRuleService";
+import PositiveNumber from "../../Types/PositiveNumber";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -54,6 +56,37 @@ export class Service extends DatabaseService<Model> {
         return Yellow500;
       default:
         return Blue500;
+    }
+  }
+
+  /*
+   * How many levels (escalation rules) a policy has, for "Level 2 of 3" in
+   * a feed entry - or nothing when they cannot be counted: the entry then
+   * says "Level 2", and is still written.
+   */
+  private async countPolicyLevels(
+    policyId: ObjectID | undefined | null,
+  ): Promise<number | undefined> {
+    if (!policyId) {
+      return undefined;
+    }
+
+    try {
+      const count: PositiveNumber =
+        await OnCallDutyPolicyEscalationRuleService.countBy({
+          query: {
+            onCallDutyPolicyId: policyId,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+      return count.toNumber() || undefined;
+    } catch (error) {
+      logger.debug(`Could not count the levels of policy ${policyId}`);
+      logger.debug(error);
+      return undefined;
     }
   }
 
@@ -99,6 +132,7 @@ export class Service extends DatabaseService<Model> {
           },
           onCallDutyPolicyEscalationRule: {
             name: true,
+            order: true,
             _id: true,
           },
           onCallDutySchedule: {
@@ -253,6 +287,14 @@ export class Service extends DatabaseService<Model> {
               })
             : undefined;
 
+        /*
+         * The level by its place, as the Escalate dialog names it: "Level 2
+         * of 3" (OnCallFeedText).
+         */
+        const ruleOrder: number | undefined =
+          onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicyEscalationRule
+            ?.order || undefined;
+
         const feedInfoInMarkdown: string = policyLink
           ? OnCallFeedText.getStepMarkdown({
               status: status,
@@ -260,6 +302,12 @@ export class Service extends DatabaseService<Model> {
               ruleName:
                 onCallDutyPolicyExecutionLogTimeline
                   .onCallDutyPolicyEscalationRule?.name,
+              ruleOrder: ruleOrder,
+              ruleCount: ruleOrder
+                ? await this.countPolicyLevels(
+                    onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicyId,
+                  )
+                : undefined,
               scheduleName:
                 onCallDutyPolicyExecutionLogTimeline.onCallDutySchedule?.name,
               isNextInRotation: Boolean(

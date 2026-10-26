@@ -7,6 +7,7 @@ import { FormType } from "Common/UI/Components/Forms/ModelForm";
 import Fields from "Common/UI/Components/Forms/Types/Fields";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import Icon from "Common/UI/Components/Icon/Icon";
+import { isWhoOpenedItRootCause } from "Common/Utils/Incident/WhoOpenedItRootCause";
 import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
@@ -81,20 +82,18 @@ export const getStatusPageDescriptionHelp: (
 };
 
 /*
- * The root cause the server writes into an incident or an alert that
- * somebody opened by hand without one (IncidentService, AlertService):
- * "Incident created by [Maya Chen](<their page>)", and nothing else. It says
- * who opened it - which the stat bar's Declared / Created tile already says
- * - not why it happened, so the card reads it as no root cause yet. The Root
- * Cause page still shows it as stored.
+ * The root cause OneUptime used to write into an incident or an alert that
+ * somebody opened without one - "Incident created by [Maya Chen](<their
+ * page>)", "Incident created by @maya on Slack.", and nothing else
+ * (Common/Utils/Incident/WhoOpenedItRootCause). It says who opened it -
+ * which the stat bar's Declared / Created tile already says - not why it
+ * happened, so the card reads it as no root cause yet. The Root Cause page
+ * still shows it as stored. New records are not given one.
  */
-const OPENED_BY_ROOT_CAUSE: RegExp =
-  /^(?:Incident|Alert) created by \[[^\]\n]*\]\([^)\s]*\)$/;
-
 export const isOpenedByRootCause: (rootCause: string) => boolean = (
   rootCause: string,
 ): boolean => {
-  return OPENED_BY_ROOT_CAUSE.test(rootCause.trim());
+  return isWhoOpenedItRootCause(rootCause);
 };
 
 export interface ComponentProps<TBaseModel extends BaseModel> {

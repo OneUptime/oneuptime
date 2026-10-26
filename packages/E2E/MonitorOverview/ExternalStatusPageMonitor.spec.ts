@@ -720,11 +720,12 @@ test.describe("an External Status Page monitor's Summary", () => {
     await noSidewaysScroll(page);
     await expectFactsFit(summary);
 
+    // One fact a row on a phone, every value whole (SummaryFacts).
     expect(
       await factsInFirstRow(
         summary.getByTestId("external-status-page-page-facts"),
       ),
-    ).toBe(2);
+    ).toBe(1);
 
     for (let index: number = 0; index < 2; index++) {
       const row: Box = await boxOf(components(summary).nth(index));

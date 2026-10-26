@@ -33,6 +33,8 @@ interface PostgresDriverError {
   message?: string | undefined;
   table?: string | undefined;
   detail?: string | undefined;
+  // The constraint or index that refused the write, by its name.
+  constraint?: string | undefined;
 }
 
 /*
@@ -51,6 +53,12 @@ export interface TranslatedPostgresException extends Exception {
    * id it named ("DockerHost"). See isMissingRowOf.
    */
   postgresMissingRowTable?: string | undefined;
+  /*
+   * The constraint or unique index that refused the write, by name, when
+   * Postgres said which: a caller that recovers from one particular unique
+   * index tells it from any other (isUniqueViolationOf).
+   */
+  postgresConstraintName?: string | undefined;
 }
 
 export default class PostgresErrorTranslator {
@@ -150,6 +158,30 @@ export default class PostgresErrorTranslator {
       this.getPostgresDriverError(error);
 
     return driverError?.code === UNIQUE_VIOLATION;
+  }
+
+  /*
+   * True for a unique violation of the one unique index (or constraint)
+   * named, whether or not it has been through translate(): the episode
+   * member services retry a create that lost a race to their own index, and
+   * no other refusal. False when Postgres named no constraint.
+   */
+  public static isUniqueViolationOf(
+    error: unknown,
+    constraintName: string,
+  ): boolean {
+    if (!this.isUniqueViolation(error)) {
+      return false;
+    }
+
+    const translated: TranslatedPostgresException =
+      error as TranslatedPostgresException;
+
+    if (translated.postgresConstraintName) {
+      return translated.postgresConstraintName === constraintName;
+    }
+
+    return this.getPostgresDriverError(error)?.constraint === constraintName;
   }
 
   private static translateForeignKeyViolation(
@@ -280,13 +312,21 @@ export default class PostgresErrorTranslator {
     );
   }
 
-  /* Records the SQLSTATE on the translated exception. See the interface above. */
+  /*
+   * Records the SQLSTATE, and the constraint Postgres named, on the
+   * translated exception. See the interface above.
+   */
   private static tag(
     exception: BadDataException,
     driverError: PostgresDriverError,
   ): BadDataException {
     (exception as TranslatedPostgresException).postgresErrorCode =
       driverError.code;
+
+    if (typeof driverError.constraint === "string" && driverError.constraint) {
+      (exception as TranslatedPostgresException).postgresConstraintName =
+        driverError.constraint;
+    }
 
     return exception;
   }

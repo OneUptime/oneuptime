@@ -3,12 +3,12 @@ import IncomingEmailMonitorRequest from "Common/Types/Monitor/IncomingEmailMonit
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Detail from "Common/UI/Components/Detail/Detail";
 import Field from "Common/UI/Components/Detail/Field";
-import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import IncomingEmailMonitorRequestUtil from "Common/Utils/Monitor/IncomingEmailMonitorRequestUtil";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
+import { SummaryFact, SummaryFacts, SummaryView } from "./SummaryFacts";
 
 export interface ComponentProps {
   incomingEmailMonitorRequest: IncomingEmailMonitorRequest;
@@ -70,42 +70,35 @@ const IncomingEmailMonitorSummaryView: FunctionComponent<ComponentProps> = (
   }
 
   return (
-    <div className="space-y-5">
+    <SummaryView dataTestId="incoming-email-monitor-summary">
       {/*
-       * A gap, not space-x: a card that wraps onto a line of its own keeps
-       * no margin from the card before it, so on a phone the cards stack
-       * flush instead of each one after the first stepping in.
+       * A grid's gap, never space-x: a card on a line of its own keeps no
+       * margin from the card before it, so on a phone no card steps in.
        */}
-      <div className="flex flex-wrap justify-between gap-x-3">
-        <InfoCard
-          className="w-full sm:w-auto flex-1 shadow-none border-2 border-gray-100 mb-3"
+      <SummaryFacts>
+        <SummaryFact
           title="Last Email Received At"
           value={lastEmailReceivedAt}
         />
-        <InfoCard
-          className="w-full sm:w-auto flex-1 shadow-none border-2 border-gray-100 mb-3"
+        <SummaryFact
           title="From"
           value={props.incomingEmailMonitorRequest?.emailFrom || "-"}
         />
-        <InfoCard
-          className="w-full sm:w-auto flex-1 shadow-none border-2 border-gray-100 mb-3"
+        <SummaryFact
           title="Subject"
           value={props.incomingEmailMonitorRequest?.emailSubject || "-"}
         />
-        {props.incomingEmailMonitorHeartbeatCheckedAt && (
-          <InfoCard
-            className="w-full sm:w-auto flex-1 shadow-none border-2 border-gray-100 mb-3"
+        {props.incomingEmailMonitorHeartbeatCheckedAt ? (
+          <SummaryFact
             title="Monitor Status Check At"
-            value={
-              props.incomingEmailMonitorHeartbeatCheckedAt
-                ? OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-                    props.incomingEmailMonitorHeartbeatCheckedAt,
-                  )
-                : "-"
-            }
+            value={OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+              props.incomingEmailMonitorHeartbeatCheckedAt,
+            )}
           />
+        ) : (
+          <></>
         )}
-      </div>
+      </SummaryFacts>
 
       {showMoreDetails && fields.length > 0 && (
         <div>
@@ -119,7 +112,7 @@ const IncomingEmailMonitorSummaryView: FunctionComponent<ComponentProps> = (
       )}
 
       {!showMoreDetails && fields.length > 0 && (
-        <div className="-ml-2">
+        <div className="-ml-3">
           <Button
             buttonStyle={ButtonStyleType.SECONDARY_LINK}
             title="Show More Details"
@@ -141,7 +134,7 @@ const IncomingEmailMonitorSummaryView: FunctionComponent<ComponentProps> = (
           />
         </div>
       )}
-    </div>
+    </SummaryView>
   );
 };
 

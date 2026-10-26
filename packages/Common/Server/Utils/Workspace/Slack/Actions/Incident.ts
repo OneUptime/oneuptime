@@ -223,10 +223,10 @@ export default class SlackIncidentActions {
       incident.description = description;
       incident.projectId = slackRequest.projectId!;
       incident.incidentSeverityId = incidentSeverityId;
-      const rootCauseInMarkdown: string =
-        mdText`Incident created by @${slackRequest.slackUsername} on Slack.`.toString();
-
-      incident.rootCause = rootCauseInMarkdown;
+      /*
+       * No root cause until somebody knows one: the incident names the
+       * member who declared it already (WhoOpenedItRootCause).
+       */
 
       if (incidentOnCallPolicies.length > 0) {
         incident.onCallDutyPolicies = incidentOnCallPolicies.map(

@@ -3,7 +3,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 
 /*
  * Generated with npm run generate-postgres-migration alongside
- * AddStatusPageDarkThemeLogo1807800000000, and moved into a migration of its
+ * AddStatusPageDarkThemeLogo1807830000000, and moved into a migration of its
  * own: "StatusPage" already exists and is written to all day, so the foreign
  * key from its new "darkThemeLogoFileId" column to "File" is added NOT VALID
  * and then validated, without blocking either table's writes. Every page's
@@ -12,10 +12,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * never takes the page with it. Safe to run again after a stop part way: a
  * key that is already there is left as it is.
  */
-export class AddStatusPageDarkThemeLogoKey1807810000000
+export class AddStatusPageDarkThemeLogoKey1807840000000
   implements MigrationInterface
 {
-  public name: string = "AddStatusPageDarkThemeLogoKey1807810000000";
+  public name: string = "AddStatusPageDarkThemeLogoKey1807840000000";
 
   // The validation runs outside a transaction.
   public transaction: boolean = false;

@@ -293,7 +293,7 @@ Gør et interface lydløst på enhedens side **Interfaces**, til en laboratoriep
 
 ### Producenternes tilstandsskabeloner
 
-I editoren **Health OIDs** anvender **Vendor Health Template** et færdigt sæt OID'er til enhedens producent. Mange skabeloner leverer også [SNMP-tabeller](#snmp-tabeller), der tilføjes med **Add a Vendor's Tables** i editoren **SNMP Tables**.
+I editoren **Health OIDs** anvender **Vendor Health Template** et færdigt sæt OID'er til enhedens producent. Mange skabeloner leverer også [SNMP-tabeller](#snmp-tabeller), der tilføjes med **Add a Vendor's Tables** i editoren **SNMP-tabeller**.
 
 | Producentskabelon | Tilstands-OID'er | SNMP-tabeller |
 | --- | --- | --- |
@@ -378,7 +378,7 @@ Tilføj de OID'er, du vil have indsamlet ved hver polling, på en skabelon eller
 | Navn | Et genkendeligt navn til OID'en, såsom sysDescr. | Nej |
 | Beskrivelse | Hvad OID'en repræsenterer. | Nej |
 
-Indsamlede værdier vises i grafer på enhedens side **Metrikker**, og kriterierne **SNMP OID Value** og **SNMP OID Exists** advarer om dem. OID-vælgeren på de kriterier viser de OID'er, den valgte enhed indsamler, dens skabelons og dens egne, så der er intet at skrive.
+Indsamlede værdier vises i grafer på enhedens side **Metrikker**, og kriterierne **SNMP OID Value**, **SNMP OID Exists** og **SNMP OID Rate (per second)** advarer om dem. En tæller (Counter32 eller Counter64) vokser kun, så advar på, hvor hurtigt den er vokset siden den forrige polling. OID-vælgeren på de kriterier viser de OID'er, den valgte enhed indsamler, dens skabelons og dens egne, så der er intet at skrive.
 
 Lange OID-lister deles over flere SNMP GET-forespørgsler, så hver passer i ét UDP-datagram. Hvis du holdt dine OID-lister korte, fordi en ældre version rapporterede en enhed, der svarede `tooBig`, som offline, behøver du ikke længere.
 
@@ -386,12 +386,12 @@ Lange OID-lister deles over flere SNMP GET-forespørgsler, så hver passer i ét
 
 En enheds side **SNMP-walk**, under **Mere** i dens menu, viser hvert OID, enheden svarer på, med type, værdi og, hvor OneUptime kender MIB'en, navn. Det er den `snmpwalk`, du ellers ville køre fra sondens netværk, kørt af enhedens egen sonde med de loginoplysninger, OneUptime har gemt til den, og som aldrig når din browser.
 
-Skriv et numerisk OID under **Start-OID**, eller vælg et af **Almindelige startpunkter**: **Alt**, **System**, **Interfaces**, **Værtsressourcer** eller **Leverandørspecifik**. Tryk derefter på **Start walk**. Sonden henter walk inden for ti sekunder og sender én forespørgsel ad gangen, højst 1.000 OID'er på højst 45 sekunder, så en walk aldrig oversvømmer enheden. Er der mere at læse, læser **Fortsæt walk** de næste 1.000 fra det sted, hvor den stoppede. En enhed har én walk ad gangen, og dens walks gemmes i to dage.
+Skriv et numerisk OID under **Start-OID**, eller tryk på et af startpunkterne under det: **Alt**, **System**, **Interfaces**, **Værtsressourcer** eller **Leverandørspecifik**. Tryk derefter på **Start walk**. Sonden henter walk inden for ti sekunder og sender én forespørgsel ad gangen, højst 1.000 OID'er på højst 45 sekunder, så en walk aldrig oversvømmer enheden. Er der mere at læse, læser **Fortsæt walk** de næste 1.000 fra det sted, hvor den stoppede. En enhed har én walk ad gangen, og dens walks gemmes i to dage.
 
 Hver række fortæller, hvor dens OID er kendt: en værdi, som en leverandørs sundhedsskabelon indsamler, en kolonne i en leverandørskabelons SNMP-tabel, en tæller, som interface-walk allerede viser i diagrammer for hver port, eller et OID under leverandørens MIB. Fra en række:
 
 - **Indsaml** føjer OID'et til enhedens **Device-Specific Health OIDs**: hver polling indsamler det fra den næste, og enhedens side **Metrikker** viser det i et diagram. På en enhed, der er knyttet til en OID Collection Template, kan rækkens menu i stedet føje det til skabelonen, for hver enhed, der bruger den.
-- **Opret advarsel** vises, når OID'et indsamles, og åbner en ny netværksenheds-monitor for enheden med ét kriterium **SNMP OID Value** på OID'et, ud fra den læste værdi: en tæller eller måler advarer over den, en oppetid under den (enheden er genstartet), alt andet når det ændrer sig.
+- **Opret advarsel** vises, når OID'et indsamles, og åbner en ny netværksenheds-monitor for enheden med ét kriterium på OID'et. En tæller starter på **SNMP OID Rate (per second)** og en måler på **SNMP OID Value**, begge over en grænse, du selv sætter; en oppetid advarer under ti minutter (enheden er genstartet), alt andet når det ændrer sig fra den læste værdi.
 - **Kopiér OID**, i rækkens menu, kopierer OID'et.
 
 En walk, der fejler, siger hvorfor, og hvad du skal kontrollere: en enhed, der ikke svarer (SNMP slået fra, UDP 161 blokeret eller, ved v1 og v2c, en forkert community-streng, som en agent ignorerer uden et ord), en SNMPv3-bruger, -adgangskode eller -protokol, som enheden afviste, eller en del af træet, som loginoplysningernes SNMP-visning udelader. En walk, der stopper undervejs, beholder det, den har læst. En walk kræver tilladelsen **Create Network Device Diagnostic** og en sonde, der er ny nok til SNMP-walks: med en ældre beder siden dig om at opdatere den.
@@ -408,13 +408,13 @@ Noget af det, en enhed ved, er en liste: én række pr. IPsec-tunnel, Wi-Fi-radi
 | Rækkenavne | Valgfrie kolonner, hvis værdier navngiver hver række, såsom en tunnels forbindelsesnavn. Uden dem navngives rækker efter deres indeks. Et navn kan komme fra en søstertabel, der deler indekset (Fabric Engine navngiver IS-IS-adjacencies ud fra `rcIsisAdjHostName`), eller fra en overordnet tabel, hvis indeks indleder denne tabels (Aruba Instant navngiver hver radio efter dens access point). En tabel, der er indekseret efter et navn (ArubaOS indekserer sine SSID'er efter SSID'en), navngives efter sit afkodede indeks. |
 | Rækkegrænse | Hvor mange rækker der gemmes: 100 som standard, højst 250. |
 
-Tal læses som tal, og tekst, der starter med et tal, læses som det tal (`"36"`, `"-95 dBm"`, `"80MHz"`), fordi mange producenter lægger tal i strenge. Sæt en kolonnes værditype til **Text only** for værdier, der kun ser numeriske ud. **Value labels** gør koder til ord (`0=inactive, 1=active`): den rå værdi er stadig det, der vises i grafer og sammenlignes, etiketten er det, der vises. **Healthy values** (`1`) siger, hvilke værdier der betyder, at alt er godt: de farver rækken på enhedens side **SNMP Tables** og driver kriteriet **SNMP Table Row Is Unhealthy**.
+Tal læses som tal, og tekst, der starter med et tal, læses som det tal (`"36"`, `"-95 dBm"`, `"80MHz"`), fordi mange producenter lægger tal i strenge. Sæt en kolonnes værditype til **Text only** for værdier, der kun ser numeriske ud. **Value labels** gør koder til ord (`0=inactive, 1=active`): den rå værdi er stadig det, der vises i grafer og sammenlignes, etiketten er det, der vises. **Healthy values** (`1`) siger, hvilke værdier der betyder, at alt er godt: de farver rækken på enhedens side **SNMP-tabeller** og driver kriteriet **SNMP Table Row Is Unhealthy**.
 
 Nogle kolonner i producentskabeloner **justerer** også det tal, de læser, til MIB'er, der gemmer en værdi i en enhed for sig: ArubaOS rapporterer sendestyrken fordoblet (læst × 0.5), Aruba Instant støjgulvet uden fortegn (× −1), Aerohive støjgulvet plus 256 (− 256) og Extremes controller kanalbredden i trin på 20 MHz (× 20). Det justerede tal er det, der vises, sættes i grafer og sammenlignes, så **Noise Floor Større end -80** betyder det samme hos hver producent, og tabeleditoren viser regnestykket under kolonnen.
 
 Tabeller kommer fra en [OID Collection Template](#oid-collection-templates), delt af hver tilknyttet enhed (op til 10 tabeller), eller fra enheden selv under **Device-Specific SNMP Tables** (op til 10 mere). De flettes efter nøgle ved hver polling, skabelonen først, og en enhedstabel med samme nøgle erstatter skabelonens. Begge editorer tilbyder **Add a Vendor's Tables**.
 
-Sonden walker hver kolonne som et undertræ inden for et budget på 30 sekunder, som alle tabeller på enheden deler. En tabel, der ikke kan walkes, siger hvorfor og får aldrig pollingen til at fejle: enhedens side **SNMP Tables** beholder dens seneste gode rækker og siger, at det seneste walk fejlede, mens kriterier kun vurderer, hvad dette walk producerede, så en timeout aldrig læses som en tom tabel. Hver numerisk celle registreres som metrikken `oneuptime.monitor.snmp.table.value` med attributterne `snmpTableKey`, `snmpTableName`, `snmpTableColumn`, `snmpTableColumnOid`, `snmpTableRow` og `snmpTableRowIndex`, så et dashboard kan vise hver tunnels status eller hver radios sendestyrke i en graf, og en metrik-monitor kan gruppere efter `snmpTableRow`.
+Sonden walker hver kolonne som et undertræ inden for et budget på 30 sekunder, som alle tabeller på enheden deler. En tabel, der ikke kan walkes, siger hvorfor og får aldrig pollingen til at fejle: enhedens side **SNMP-tabeller** beholder dens seneste gode rækker og siger, at det seneste walk fejlede, mens kriterier kun vurderer, hvad dette walk producerede, så en timeout aldrig læses som en tom tabel. Hver numerisk celle registreres som metrikken `oneuptime.monitor.snmp.table.value` med attributterne `snmpTableKey`, `snmpTableName`, `snmpTableColumn`, `snmpTableColumnOid`, `snmpTableRow` og `snmpTableRowIndex`, så et dashboard kan vise hver tunnels status eller hver radios sendestyrke i en graf, og en metrik-monitor kan gruppere efter `snmpTableRow`.
 
 ### Fanen Wi-Fi
 
@@ -781,6 +781,7 @@ Kriterier tjekker hvert pollingresultat og hver trap og opretter hændelser elle
 | SNMP Response Time (in ms) | Walkets svartid i millisekunder, aldrig pingets. | Vurderes ikke |
 | SNMP OID Value | Den værdi, én OID returnerede. | Vurderes ikke |
 | SNMP OID Exists | Om en OID returnerer en værdi. | Vurderes ikke |
+| SNMP OID Rate (per second) | Hvor hurtigt en tæller-OID er vokset pr. sekund siden den forrige polling: en tæller vokser kun, så advar på dette, ikke på dens værdi. Ingen vurdering, før den er læst to gange. | Vurderes ikke |
 | SNMP Interface Is Down | Sand, når et administrativt aktiveret interface er driftsmæssigt nede. | Vurderes ikke |
 | SNMP Interface Utilization (in %) | Linkudnyttelsen på det travleste interface. | Vurderes ikke |
 | SNMP Interface Errors (per second) | Fejlraten på det værste interface. | Vurderes ikke |

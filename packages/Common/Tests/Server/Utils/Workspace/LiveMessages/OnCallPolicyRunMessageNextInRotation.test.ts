@@ -236,10 +236,8 @@ describe("the backup paged at Level 2", () => {
       "**Sam Lee** (next in the Payments primary rotation): paged once · by SMS and email",
     );
     // Where the run is, and what comes next.
-    expect(markdown).toContain(
-      "**Escalation rule 2 of 3 (Level 2)**: if nobody acknowledges",
-    );
-    expect(markdown).toContain("escalation rule 3 (Platform) is next.");
+    expect(markdown).toContain("**Level 2 of 3**: if nobody acknowledges");
+    expect(markdown).toContain("Platform (Level 3 of 3) is next.");
   });
 
   test("its one-line notification is unchanged", () => {
@@ -348,10 +346,10 @@ describe("Level 2 found nobody next in the rotation", () => {
 
     expect(alarms).toHaveLength(1);
     expect(alarms[0]!.markdown).toBe(
-      "⚠️ **[Payments](https://oneuptime.test/policy)** paged nobody at escalation rule 2 of 3 (Level 2) for **[Incident INC-8](https://oneuptime.test/incident)** (nobody was next in the Payments primary rotation). If nobody is on it yet, page someone or fix the policy.",
+      "⚠️ **[Payments](https://oneuptime.test/policy)** paged nobody at Level 2 of 3 for **[Incident INC-8](https://oneuptime.test/incident)** (nobody was next in the Payments primary rotation). If nobody is on it yet, page someone or fix the policy.",
     );
     expect(alarms[0]!.text).toBe(
-      "Payments paged nobody at escalation rule 2 of 3 (Level 2) for Incident INC-8",
+      "Payments paged nobody at Level 2 of 3 for Incident INC-8",
     );
   });
 

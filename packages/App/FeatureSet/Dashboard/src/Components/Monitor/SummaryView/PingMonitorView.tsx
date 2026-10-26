@@ -3,10 +3,13 @@ import PingMonitorResponse from "Common/Types/Monitor/PingMonitor/PingMonitorRes
 import ProbeAttempt from "Common/Types/Probe/ProbeAttempt";
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import HostAddressUtil from "Common/Utils/HostAddressUtil";
-import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 import NetworkPathView from "./NetworkPathView";
 import ProbeAttemptsView from "./ProbeAttemptsView";
+import SummaryErrorFacts from "./SummaryErrorFacts";
+import { SummaryFact, SummaryFacts, SummaryView } from "./SummaryFacts";
 
 export interface ComponentProps {
   probeMonitorResponse: ProbeMonitorResponse;
@@ -16,17 +19,13 @@ export interface ComponentProps {
 const PingMonitorView: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   let responseTimeInMs: number =
     props.probeMonitorResponse?.responseTimeInMs || 0;
 
   if (responseTimeInMs > 0) {
     responseTimeInMs = Math.round(responseTimeInMs);
   }
-
-  // Check if there are error details to show
-  const hasErrorDetails: boolean = Boolean(
-    props.probeMonitorResponse.requestFailedDetails,
-  );
 
   const pingResponse: PingMonitorResponse | undefined =
     props.probeMonitorResponse.pingResponse;
@@ -38,10 +37,10 @@ const PingMonitorView: FunctionComponent<ComponentProps> = (
   const hadRetries: boolean = totalAttempts > 1;
 
   return (
-    <div className="space-y-5">
-      <div className="flex space-x-3">
-        <InfoCard
-          className="w-full shadow-none border-2 border-gray-100 "
+    <SummaryView dataTestId="ping-monitor-summary">
+      <SummaryFacts>
+        <SummaryFact
+          isWide={true}
           title="Hostname or IP address"
           value={
             HostAddressUtil.formatHostAndPort({
@@ -51,26 +50,18 @@ const PingMonitorView: FunctionComponent<ComponentProps> = (
             }) || "-"
           }
         />
-      </div>
-      <div className="flex space-x-3">
-        <InfoCard
-          className="w-1/4 shadow-none border-2 border-gray-100 "
-          title="Probe"
-          value={props.probeName || "-"}
-        />
-        <InfoCard
-          className="w-1/4 shadow-none border-2 border-gray-100 "
+        <SummaryFact title="Probe" value={props.probeName || "-"} />
+        <SummaryFact
           title="Status"
-          value={props.probeMonitorResponse.isOnline ? "Online" : "Offline"}
+          value={translator.translateTemplate(
+            props.probeMonitorResponse.isOnline ? "Online" : "Offline",
+          )}
         />
-
-        <InfoCard
-          className="w-1/4 shadow-none border-2 border-gray-100 "
+        <SummaryFact
           title="Response Time (in ms)"
           value={responseTimeInMs ? responseTimeInMs + " ms" : "-"}
         />
-        <InfoCard
-          className="w-1/4 shadow-none border-2 border-gray-100 "
+        <SummaryFact
           title="Monitored At"
           value={
             props.probeMonitorResponse?.monitoredAt
@@ -80,17 +71,17 @@ const PingMonitorView: FunctionComponent<ComponentProps> = (
               : "-"
           }
         />
-      </div>
+      </SummaryFacts>
+
+      <SummaryErrorFacts probeMonitorResponse={props.probeMonitorResponse} />
 
       {pingResponse && (
-        <div className="flex space-x-3">
-          <InfoCard
-            className="w-1/4 shadow-none border-2 border-gray-100 "
+        <SummaryFacts dataTestId="ping-monitor-packet-facts">
+          <SummaryFact
             title="Packet Loss"
             value={`${pingResponse.packetLossPercent}% (${pingResponse.packetsReceived}/${pingResponse.packetsSent} received)`}
           />
-          <InfoCard
-            className="w-1/4 shadow-none border-2 border-gray-100 "
+          <SummaryFact
             title="Jitter"
             value={
               pingResponse.jitterInMs !== undefined
@@ -98,8 +89,7 @@ const PingMonitorView: FunctionComponent<ComponentProps> = (
                 : "-"
             }
           />
-          <InfoCard
-            className="w-1/4 shadow-none border-2 border-gray-100 "
+          <SummaryFact
             title="Min RTT"
             value={
               pingResponse.minRoundTripTimeInMs !== undefined
@@ -107,8 +97,7 @@ const PingMonitorView: FunctionComponent<ComponentProps> = (
                 : "-"
             }
           />
-          <InfoCard
-            className="w-1/4 shadow-none border-2 border-gray-100 "
+          <SummaryFact
             title="Max RTT"
             value={
               pingResponse.maxRoundTripTimeInMs !== undefined
@@ -116,51 +105,7 @@ const PingMonitorView: FunctionComponent<ComponentProps> = (
                 : "-"
             }
           />
-        </div>
-      )}
-
-      {props.probeMonitorResponse.failureCause && (
-        <div className="flex space-x-3">
-          <InfoCard
-            className="w-full shadow-none border-2 border-gray-100 "
-            title="Error"
-            value={props.probeMonitorResponse.failureCause?.toString() || "-"}
-          />
-        </div>
-      )}
-
-      {/* Error Details Section */}
-      {hasErrorDetails && (
-        <div className="space-y-3">
-          <div className="flex space-x-3">
-            <InfoCard
-              className="w-1/2 shadow-none border-2 border-gray-100 "
-              title="Failed At"
-              value={
-                props.probeMonitorResponse.requestFailedDetails?.failedPhase ||
-                "-"
-              }
-            />
-            <InfoCard
-              className="w-1/2 shadow-none border-2 border-gray-100 "
-              title="Error Code"
-              value={
-                props.probeMonitorResponse.requestFailedDetails?.errorCode ||
-                "-"
-              }
-            />
-          </div>
-          <div className="flex space-x-3">
-            <InfoCard
-              className="w-full shadow-none border-2 border-gray-100 "
-              title="Error Details"
-              value={
-                props.probeMonitorResponse.requestFailedDetails
-                  ?.errorDescription || "-"
-              }
-            />
-          </div>
-        </div>
+        </SummaryFacts>
       )}
 
       {props.probeMonitorResponse.networkPathTrace && (
@@ -175,7 +120,7 @@ const PingMonitorView: FunctionComponent<ComponentProps> = (
           totalAttempts={totalAttempts}
         />
       )}
-    </div>
+    </SummaryView>
   );
 };
 

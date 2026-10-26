@@ -65,12 +65,29 @@ import {
 import FeedMarkdown, { mdText } from "../../Utils/Markdown/FeedMarkdown";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { getOnCallAcknowledgementTimeoutRefusal } from "../../Types/OnCallDutyPolicy/OnCallAcknowledgementTimeout";
+import ColumnRuleCheck, { ColumnRule } from "../Utils/Database/ColumnRuleCheck";
+import {
+  ON_CALL_POLICY_REPEAT_COLUMNS,
+  getOnCallPolicyRepeatRefusal,
+} from "../../Types/OnCallDutyPolicy/OnCallDutyPolicyRepeat";
 
 // A join row of a new policy's first escalation rule, and its model.
 interface FirstResponderJoin {
   modelType: { new (): BaseModel };
   row: BaseModel;
 }
+
+/*
+ * A policy that says it repeats starts again at least once: the switch on
+ * with 0 times is refused however it is saved, as the Repeat Policy card
+ * never makes it (Types/OnCallDutyPolicy/OnCallDutyPolicyRepeat).
+ */
+export const ON_CALL_POLICY_REPEAT_RULE: ColumnRule = {
+  columns: ON_CALL_POLICY_REPEAT_COLUMNS,
+  getRefusal: (values: Record<string, unknown>): string | null => {
+    return getOnCallPolicyRepeatRefusal(values);
+  },
+};
 
 export class Service extends ProjectReferencesService<OnCallDutyPolicy> {
   public constructor() {
@@ -597,20 +614,28 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicy> {
 
   /*
    * The acknowledgement timeout is empty (off) or a whole number of minutes
-   * in its range (OnCallAcknowledgementTimeout) - from the Dashboard, the
-   * API, Terraform or a workflow alike. Checked before anything else is
-   * looked up: the value alone decides.
+   * in its range (OnCallAcknowledgementTimeout), and a policy that repeats
+   * starts again at least once (ON_CALL_POLICY_REPEAT_RULE) - from the
+   * Dashboard, the API, Terraform or a workflow alike. Checked before
+   * anything else is looked up: the values alone decide (with, for an
+   * update of the repeat, the policy's own stored values).
    */
   protected override async checkCreateBeforeReferences(
     createBy: CreateBy<OnCallDutyPolicy>,
   ): Promise<void> {
     Service.assertAcknowledgementTimeout(createBy.data);
+    ColumnRuleCheck.checkCreate(createBy.data, ON_CALL_POLICY_REPEAT_RULE);
   }
 
   protected override async checkUpdateBeforeReferences(
     updateBy: UpdateBy<OnCallDutyPolicy>,
   ): Promise<void> {
     Service.assertAcknowledgementTimeout(updateBy.data);
+    await ColumnRuleCheck.checkUpdate({
+      service: this,
+      updateBy: updateBy,
+      rule: ON_CALL_POLICY_REPEAT_RULE,
+    });
   }
 
   // Refuses a write whose acknowledgement timeout cannot be one.

@@ -261,11 +261,11 @@ describe("the message says it in each reader's own time", () => {
     );
 
     expect(alarm?.markdown).toContain(
-      `paged nobody at escalation rule 1 of 2 for **[Incident INC-8](https://oneuptime.test/incident)** (Alex Kim: away until ${DATE_AND_TIME})`,
+      `paged nobody at Level 1 of 2 for **[Incident INC-8](https://oneuptime.test/incident)** (Alex Kim: away until ${DATE_AND_TIME})`,
     );
     // The notification's one line names no moment it could not show.
     expect(alarm?.text).toBe(
-      "Payments paged nobody at escalation rule 1 of 2 for Incident INC-8",
+      "Payments paged nobody at Level 1 of 2 for Incident INC-8",
     );
   });
 

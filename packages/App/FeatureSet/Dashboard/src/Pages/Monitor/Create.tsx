@@ -859,8 +859,10 @@ const MonitorCreate: FunctionComponent<
             NetworkDeviceAlertPackUtil.buildOidValueCriteriaInstance({
               oid: walkedOid.oid,
               name: walkedOid.oidName,
+              checkOn: walkedOid.checkOn,
               filterType: walkedOid.filterType,
               value: walkedOid.value,
+              description: walkedOid.description,
             }),
           ]
         : NetworkDeviceAlertPackUtil.buildCriteriaInstances({

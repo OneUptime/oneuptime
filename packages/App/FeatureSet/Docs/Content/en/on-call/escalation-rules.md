@@ -134,6 +134,13 @@ It names the severity and what happened (an incident, an alert or an episode of 
 
 The severity, the number and the link are never cut. A title keeps at least 20 characters: when even that does not fit, as with a very long address or product name, the text takes a second part and says it all.
 
+When a policy pages again because an acknowledged incident or alert is still not resolved, the text says so after the number and the project, and those words are never cut either:
+
+```text
+OneUptime: Critical Incident INC-42 in Acme Prod is still not resolved:
+Checkout API is down. Ack or escalate: https://oneuptime.com/l/XJlaZRsd
+```
+
 One character outside the plain alphabet of text messages makes the whole text go out in parts of 70 characters. So curly quotes and dashes are written as `"`, `'` and `-`, `…` as `...`, and letters such as `ç` and `ł` lose their accents; emoji are left out. A title in another script, such as Japanese or Russian, is sent as written, and takes two parts or more.
 
 The other text messages OneUptime sends you, such as a change to an incident you own or the start of your on-call shift, start with `OneUptime:` too and end with `Turn off in User Settings > Notification Settings.`, a sentence that is left out when that is what makes the text fit in one part.
@@ -221,7 +228,7 @@ Escalating a page does not acknowledge it: the incident or alert still waits for
 
 A page a workflow sends to people directly has no levels: escalating it stops paging you, and once everybody it paged has escalated it, paging stops.
 
-Escalating is recorded. The run's **Execution Timeline** marks the person's line **Escalated**, the incident's feed says "Alex Kim escalated the page from on-call policy Payments at escalation rule Level 1.", the run's message in Slack and Microsoft Teams says they escalated it, and their **On-Call Logs** show the page as **Escalated**.
+Escalating is recorded. The run's **Execution Timeline** marks the person's line **Escalated**, the incident's feed says "Alex Kim escalated the page from on-call policy Payments at Level 1 of 3.", the run's message in Slack and Microsoft Teams says they escalated it, and their **On-Call Logs** show the page as **Escalated**.
 
 ## Editing, reordering and deleting rules
 

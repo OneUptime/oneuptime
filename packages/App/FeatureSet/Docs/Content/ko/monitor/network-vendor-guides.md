@@ -54,7 +54,7 @@ Sophos는 어떤 SFOS 버전에서도 게이트웨이나 SD-WAN 상태를 SNMP�
 3. 디바이스의 **설정** 페이지에서 **Polling & Data Collection** 아래의 **Vendor Health Template**에서 **Sophos Firewall (SFOS / XGS)** 템플릿을 적용하고, **Add a Vendor's Tables**에서 그 테이블을 추가합니다. 또는 **Auto-Apply Vendor Health Template**을 켜면 첫 폴링이 둘 다 해 줍니다.
 :::
 
-다음 폴링 후 디바이스의 **SNMP Tables** 페이지에 모든 IPsec 연결이 상태(active, inactive, partially active)와 함께 나열되고, CPU 코어도 나열됩니다. SFOS는 코어 번호를 196608부터 매기므로, CPU는 단일 `hrProcessorLoad.1`이 아니라 테이블에서 가져옵니다.
+다음 폴링 후 디바이스의 **SNMP 테이블** 페이지에 모든 IPsec 연결이 상태(active, inactive, partially active)와 함께 나열되고, CPU 코어도 나열됩니다. SFOS는 코어 번호를 196608부터 매기므로, CPU는 단일 `hrProcessorLoad.1`이 아니라 테이블에서 가져옵니다.
 
 ### 모든 IPsec 터널에 알림 걸기
 
