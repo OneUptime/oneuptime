@@ -107,6 +107,20 @@ const CHART_TITLES: ReadonlyArray<string> = [
 // A name no locale words: a metric someone named.
 const NAMED_METRIC: string = "checkout-api p99 (custom)";
 
+/*
+ * Lines the database, service, cloud and queue overviews hand a tile under
+ * its value, in English.
+ */
+const TILE_SUBLABELS: ReadonlyArray<string> = [
+  "from applications, selected range",
+  "spans, selected range",
+  "selected range",
+  "could not load",
+];
+
+// A line a page worded itself: a value in it, as the RUM page's median.
+const WORDED_SUBLABEL: string = "median 0.9 s";
+
 const DESCRIPTION: string = "What the number means, in plain words.";
 
 const WINDOW_START: Date = new Date("2026-10-26T10:00:00.000Z");
@@ -397,6 +411,106 @@ describe("a golden-metric tile", () => {
     expect(screen.getByRole("status")).toHaveTextContent(
       "Loading p95 duration",
     );
+  });
+});
+
+/*
+ * The line under a tile's value is the page's English too ("from
+ * applications, selected range"), and German, Spanish and Japanese have
+ * words for it: a translated title over an English line read as two
+ * languages in one tile. The tile draws the line as the locale words it,
+ * saying its language; a line the page worded itself reads as given.
+ */
+describe("the line under a tile's value", () => {
+  // The line each rendered tile draws under its value, in the tiles' order.
+  function sublabels(): Array<HTMLElement> {
+    return Array.from(
+      document.querySelectorAll<HTMLElement>("[aria-busy] div.truncate"),
+    );
+  }
+
+  test("in English reads as written, and says no language", () => {
+    renderTiles(
+      "en",
+      [...TILE_SUBLABELS, WORDED_SUBLABEL].map(
+        (line: string): ResourceOverviewTile => {
+          return tile("Queries", { sublabel: line });
+        },
+      ),
+    );
+
+    expect(
+      sublabels().map((element: HTMLElement): string => {
+        return element.textContent || "";
+      }),
+    ).toEqual([...TILE_SUBLABELS, WORDED_SUBLABEL]);
+
+    for (const element of sublabels()) {
+      expect(element).not.toHaveAttribute("lang");
+    }
+  });
+
+  test.each(LANGUAGES)(
+    "%s: reads as the locale words it, a line the page worded as given",
+    (language: string) => {
+      renderTiles(
+        language,
+        [...TILE_SUBLABELS, WORDED_SUBLABEL].map(
+          (line: string): ResourceOverviewTile => {
+            return tile("Queries", { sublabel: line });
+          },
+        ),
+      );
+
+      const drawnLines: Array<{ text: string; lang: string | null }> =
+        sublabels().map(
+          (element: HTMLElement): { text: string; lang: string | null } => {
+            return {
+              text: element.textContent || "",
+              lang: element.getAttribute("lang"),
+            };
+          },
+        );
+
+      expect(drawnLines).toEqual(
+        [...TILE_SUBLABELS, WORDED_SUBLABEL].map(
+          (line: string): { text: string; lang: string | null } => {
+            const isWorded: boolean = drawn(language, line) !== line;
+
+            return {
+              text: drawn(language, line),
+              lang: isWorded ? language : null,
+            };
+          },
+        ),
+      );
+    },
+  );
+
+  test("German, Spanish and Japanese word the database tile's line under their own title", () => {
+    for (const [language, line] of [
+      ["de", "von Anwendungen, ausgewählter Zeitraum"],
+      ["es", "de las aplicaciones, intervalo seleccionado"],
+      ["ja", "アプリケーションから、選択した範囲"],
+    ] as Array<[string, string]>) {
+      renderTiles(language, [
+        tile("Queries", { sublabel: "from applications, selected range" }),
+      ]);
+
+      expect(sublabels()[0]).toHaveTextContent(line);
+      expect(sublabels()[0]).toHaveAttribute("lang", language);
+      expect(tileTitles()).toEqual([drawn(language, "Queries")]);
+      cleanup();
+    }
+  });
+
+  test("a tile without a line keeps an empty one, so tiles side by side line up", () => {
+    renderTiles("de", [tile("Queries")]);
+
+    expect(sublabels()).toEqual([]);
+    expect(
+      document.querySelectorAll("[aria-busy] div.text-gray-400"),
+    ).toHaveLength(1);
   });
 });
 

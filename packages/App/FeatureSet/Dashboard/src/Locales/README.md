@@ -108,8 +108,8 @@ case:
    button texts, Pill and StatusBadge `text`, Tooltip `text`, MoreMenuItem,
    Checkbox, CollapsibleSection, SideOver, Link, EmptyState, the "What AI may
    do" building blocks (`Components/AiAccess/AiAccessRow.tsx`), the telemetry
-   overviews' metric tiles (`ResourceOverview` `tiles[].title`) and
-   `ChartCard` `title`, and more. Do not
+   overviews' metric tiles (`ResourceOverview` `tiles[].title` and
+   `tiles[].sublabel`) and `ChartCard` `title`, and more. Do not
    translate a prop before you pass it. Write it as a literal, so the extractor
    sees it. `USER_FACING_PROPS` in `scripts/i18n/ExtractStrings.ts` lists the
    prop names the extractor reads.

@@ -62,6 +62,11 @@ export type ResourceOverviewTileColor =
   | "rose";
 
 export interface ResourceOverviewTile {
+  /*
+   * The metric's name, and the line under its value, as English literals:
+   * the tile draws both in the reader's language (a name or a line the
+   * locale has no words for, or one a page worded itself, reads as given).
+   */
   title: string;
   value: string;
   icon: IconProp;
@@ -222,6 +227,20 @@ const GoldenMetricTile: FunctionComponent<ResourceOverviewTile> = (
     drawn: title,
     language: translator.language,
   });
+  /*
+   * The line under the value, too: a page hands it in English ("selected
+   * range", "spans, selected range") or already worded ("median 0.9 s"), and
+   * the tile draws it as the locale words it, so a title in the reader's
+   * language never sits over an English line the locale has words for.
+   */
+  const sublabel: string | undefined = props.sublabel
+    ? translator.translateText(props.sublabel) || props.sublabel
+    : undefined;
+  const sublabelLanguage: string | undefined = getDrawnLanguage({
+    english: props.sublabel,
+    drawn: sublabel,
+    language: translator.language,
+  });
 
   const barColor: string = (() => {
     if (props.percent === null || props.percent === undefined) {
@@ -332,9 +351,12 @@ const GoldenMetricTile: FunctionComponent<ResourceOverviewTile> = (
           <div className="text-2xl font-semibold text-gray-900 leading-none">
             {props.value}
           </div>
-          {props.sublabel ? (
-            <div className="mt-1 text-xs text-gray-500 truncate">
-              {props.sublabel}
+          {sublabel ? (
+            <div
+              className="mt-1 text-xs text-gray-500 truncate"
+              lang={sublabelLanguage}
+            >
+              {sublabel}
             </div>
           ) : (
             <div className="mt-1 text-xs text-gray-400">&nbsp;</div>
