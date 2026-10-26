@@ -166,14 +166,21 @@ func TestAccOnCallPolicy_lifecycle(t *testing.T) {
 	const address = "oneuptime_on_call_policy.test"
 	name := testAccName("TF Acc On-Call Policy")
 
+	// A policy that repeats must start again at least once: twice, here.
 	config := func(description string, repeat bool) string {
+		times := 0
+		if repeat {
+			times = 2
+		}
+
 		return fmt.Sprintf(`
 resource "oneuptime_on_call_policy" "test" {
-  name                                 = %q
-  description                          = %q
-  repeat_policy_if_no_one_acknowledges = %t
+  name                                             = %q
+  description                                      = %q
+  repeat_policy_if_no_one_acknowledges             = %t
+  repeat_policy_if_no_one_acknowledges_no_of_times = %d
 }
-`, name, description, repeat)
+`, name, description, repeat, times)
 	}
 
 	resource.ParallelTest(t, resource.TestCase{
