@@ -29,7 +29,7 @@ Två anslutningar får det här att fungera:
 - **Projektets anslutning**, gjord en gång: OneUptimes app installerad i din Slack-arbetsyta. Den publicerar meddelandena, skapar kanalerna och bjuder in personer.
 - **Varje persons egen anslutning**: personens Slack-konto länkat till personens OneUptime-konto. Knappar, kommandon och emoji-reaktioner agerar som den personen, med personens behörigheter i projektet.
 
-En Slack-arbetsyta kan vara ansluten till mer än ett projekt, till exempel produktion och staging. En knapp eller ett formulär agerar i projektet för den post det gäller. Ett kommando eller ett meddelande till OneUptime agerar i projektet för den kanal det skrivs i, till exempel en incidents kanal, annars i det enda projekt där ditt Slack-konto är anslutet. När inget visar vilket nämner OneUptime de projekt du är med i och ber dig försöka igen från en kanal i det projekt du menar.
+En Slack-arbetsyta kan vara ansluten till mer än ett projekt, till exempel produktion och staging. En knapp eller ett formulär agerar i projektet för den post det gäller. Ett kommando eller ett meddelande till OneUptime agerar i projektet för den kanal det skrivs i, till exempel en incidents kanal, annars i det enda projekt där ditt Slack-konto är anslutet. När inget visar vilket frågar OneUptime vilket projekt du menar, med en knapp för varje projekt du är med i, och fortsätter där så snart du har valt. I en konversation med OneUptime AI gäller ditt val resten av tråden.
 
 ## Innan du börjar
 

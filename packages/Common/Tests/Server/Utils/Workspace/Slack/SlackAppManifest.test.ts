@@ -359,6 +359,8 @@ const METHOD_SCOPES: Record<string, Array<string>> = {
   "oauth.v2.access": [],
   "openid.connect.token": [],
   "views.open": [],
+  // A form in place of the modal its project was chosen in (SlackProjectChoice).
+  "views.update": [],
   "views.publish": [],
   "chat.postMessage": ["chat:write"],
   "chat.postEphemeral": ["chat:write"],

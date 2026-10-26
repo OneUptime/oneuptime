@@ -29,7 +29,7 @@ Due collegamenti rendono tutto possibile:
 - **Il collegamento del progetto**, fatto una volta: l'app di OneUptime installata nel tuo workspace Slack. Pubblica i messaggi, crea i canali e invita le persone.
 - **Il collegamento di ogni persona**: il suo account Slack collegato al suo account OneUptime. Pulsanti, comandi e reazioni con emoji agiscono a nome di quella persona, con i suoi permessi nel progetto.
 
-Un workspace Slack può essere collegato a più di un progetto, per esempio produzione e staging. Un pulsante o un modulo agisce nel progetto del record a cui si riferisce. Un comando o un messaggio a OneUptime agisce nel progetto del canale in cui è scritto, per esempio il canale di un incidente, altrimenti nell'unico progetto in cui è collegato il tuo account Slack. Quando niente lo indica, OneUptime elenca i progetti di cui fai parte e ti chiede di riprovare da un canale del progetto che intendi.
+Un workspace Slack può essere collegato a più di un progetto, per esempio produzione e staging. Un pulsante o un modulo agisce nel progetto del record a cui si riferisce. Un comando o un messaggio a OneUptime agisce nel progetto del canale in cui è scritto, per esempio il canale di un incidente, altrimenti nell'unico progetto in cui è collegato il tuo account Slack. Quando niente lo indica, OneUptime ti chiede quale progetto intendi, con un pulsante per ogni progetto di cui fai parte, e prosegue lì appena scegli. In una conversazione con OneUptime AI, la tua scelta vale per il resto del thread.
 
 ## Prima di iniziare
 

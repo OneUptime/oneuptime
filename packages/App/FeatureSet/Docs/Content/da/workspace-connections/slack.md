@@ -29,7 +29,7 @@ To forbindelser får det til at virke:
 - **Projektets forbindelse**, lavet én gang: OneUptimes app installeret i dit Slack-workspace. Den slår beskederne op, opretter kanalerne og inviterer folk.
 - **Hver persons egen forbindelse**: personens Slack-konto knyttet til personens OneUptime-konto. Knapper, kommandoer og emoji-reaktioner handler som den person, med personens rettigheder i projektet.
 
-Ét Slack-workspace kan være forbundet til mere end ét projekt, for eksempel produktion og staging. En knap eller en formular handler i projektet for den post, den handler om. En kommando eller en besked til OneUptime handler i projektet for den kanal, den skrives i, for eksempel en hændelses kanal, ellers i det ene projekt, din Slack-konto er forbundet i. Når intet viser hvilket, nævner OneUptime de projekter, du er med i, og beder dig prøve igen fra en kanal i det projekt, du mener.
+Ét Slack-workspace kan være forbundet til mere end ét projekt, for eksempel produktion og staging. En knap eller en formular handler i projektet for den post, den handler om. En kommando eller en besked til OneUptime handler i projektet for den kanal, den skrives i, for eksempel en hændelses kanal, ellers i det ene projekt, din Slack-konto er forbundet i. Når intet viser hvilket, spørger OneUptime, hvilket projekt du mener, med en knap for hvert projekt, du er med i, og fortsætter dér, når du har valgt. I en samtale med OneUptime AI gælder dit valg resten af tråden.
 
 ## Før du begynder
 

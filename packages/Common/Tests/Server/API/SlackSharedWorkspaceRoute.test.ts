@@ -72,6 +72,8 @@ import WorkspacePage, {
   WorkspacePageTargetKind,
 } from "../../../Server/Utils/Workspace/WorkspacePage";
 import { setTestBillingEnabled } from "../Enterprise/TestBillingFlag";
+import AIService from "../../../Server/Services/AIService";
+import ObservabilityAssistant from "../../../Server/Utils/AI/Chat/ObservabilityAssistant";
 
 jest.mock("../../../Server/Utils/Logger");
 
@@ -159,6 +161,19 @@ const PRESS_RESPONSE_URL: string =
 const COMMAND_RESPONSE_URL: string =
   "https://hooks.slack.com/commands/T0AVEPOINT/1760000000/cmdDef456";
 const ZERO_WIDTH_SPACE: string = String.fromCharCode(0x200b);
+
+/*
+ * A press of one of the buttons that ask which project a request is for
+ * (SlackProjectChoice): where Slack takes its answer, its trigger, and the
+ * modal a shortcut's project is chosen in.
+ */
+const CHOICE_RESPONSE_URL: string =
+  "https://hooks.slack.com/actions/T0AVEPOINT/1760000002/choiceGhi789";
+const CHOICE_TRIGGER_ID: string = "1760000002.choice-trigger";
+const CHOICE_VIEW_ID: string = "V0CHOICE";
+
+// Deane's direct messages with the app.
+const DM_CHANNEL_ID: string = "D0DEANE";
 
 // The channel a notification rule created for INC-12, and two of no record.
 const INCIDENT_CHANNEL_ID: string = "C0IRMINC12";
@@ -1181,6 +1196,216 @@ describe("one Slack workspace connected to two OneUptime projects", () => {
     });
   }
 
+  // Posts an event as Slack does: JSON, to the Events API endpoint.
+  function deliverEvent(payload: JSONObject): Promise<number> {
+    const body: string = JSON.stringify(payload);
+
+    return new Promise<number>(
+      (resolve: (status: number) => void, reject: (error: Error) => void) => {
+        const request: http.ClientRequest = http.request(
+          {
+            host: "127.0.0.1",
+            port: app.port,
+            path: "/api/slack/events",
+            method: "POST",
+            headers: {
+              "content-type": "application/json",
+              "content-length": Buffer.byteLength(body),
+            },
+          },
+          (response: http.IncomingMessage) => {
+            response.resume();
+            response.on("end", () => {
+              resolve(response.statusCode || 0);
+            });
+          },
+        );
+
+        request.setTimeout(20000, () => {
+          request.destroy(new Error("no answer"));
+        });
+        request.on("error", reject);
+        request.write(body);
+        request.end();
+      },
+    );
+  }
+
+  // Somebody writes to the app in its direct messages.
+  function directMessage(data: {
+    slackUserId: string;
+    text: string;
+    ts: string;
+    threadTs?: string | undefined;
+  }): Promise<number> {
+    const event: JSONObject = {
+      type: "message",
+      channel_type: "im",
+      user: data.slackUserId,
+      text: data.text,
+      ts: data.ts,
+      channel: DM_CHANNEL_ID,
+      team: SLACK_TEAM_ID,
+      event_ts: data.ts,
+    };
+
+    if (data.threadTs) {
+      event["thread_ts"] = data.threadTs;
+    }
+
+    return deliverEvent({
+      token: "verification-token",
+      team_id: SLACK_TEAM_ID,
+      api_app_id: "A0IRM",
+      type: "event_callback",
+      event_id: `Ev${data.ts.split(".").join("")}`,
+      event_time: 1760000000,
+      event: event,
+    });
+  }
+
+  interface OfferedButton {
+    title: string;
+    actionId: string;
+    value: string;
+  }
+
+  /*
+   * The buttons of the last question of which project a request is for, as
+   * Slack was sent them: in a message's blocks, or a modal's.
+   */
+  function offeredButtons(): Array<OfferedButton> {
+    for (const call of [...slackCalls].reverse()) {
+      const blocks: unknown =
+        call.data["blocks"] ||
+        (call.data["view"] as JSONObject | undefined)?.["blocks"];
+
+      if (!Array.isArray(blocks)) {
+        continue;
+      }
+
+      const buttons: Array<JSONObject> = (blocks as Array<JSONObject>)
+        .filter((block: JSONObject): boolean => {
+          return block["type"] === "actions";
+        })
+        .flatMap((block: JSONObject): Array<JSONObject> => {
+          return block["elements"] as Array<JSONObject>;
+        })
+        .filter((element: JSONObject): boolean => {
+          return String(element["action_id"] || "").startsWith("ChooseProject");
+        });
+
+      if (buttons.length > 0) {
+        return buttons.map((button: JSONObject): OfferedButton => {
+          return {
+            title: String((button["text"] as JSONObject)["text"]),
+            actionId: String(button["action_id"]),
+            value: String(button["value"]),
+          };
+        });
+      }
+    }
+
+    return [];
+  }
+
+  function offeredButton(title: string): OfferedButton {
+    const button: OfferedButton | undefined = offeredButtons().find(
+      (candidate: OfferedButton): boolean => {
+        return candidate.title === title;
+      },
+    );
+
+    expect(button).toBeDefined();
+    return button!;
+  }
+
+  /*
+   * What Slack posts when one of them is pressed: on the message only the
+   * person sees, in the channel they asked in, with its response_url - or
+   * in the modal a shortcut's project is asked in, with the view and no
+   * response_url.
+   */
+  function choicePress(data: {
+    slackUserId: string;
+    button: OfferedButton;
+    channelId?: string | undefined;
+    isInModal?: boolean | undefined;
+  }): Record<string, string> {
+    const payload: JSONObject = {
+      type: "block_actions",
+      user: {
+        id: data.slackUserId,
+        username: data.slackUserId.toLowerCase(),
+        name: data.slackUserId.toLowerCase(),
+        team_id: SLACK_TEAM_ID,
+      },
+      api_app_id: "A0IRM",
+      team: { id: SLACK_TEAM_ID, domain: "avepoint" },
+      trigger_id: CHOICE_TRIGGER_ID,
+      actions: [
+        {
+          type: "button",
+          action_id: data.button.actionId,
+          block_id: "choose-project",
+          text: { type: "plain_text", text: data.button.title, emoji: true },
+          value: data.button.value,
+          action_ts: "1760000002.000300",
+        },
+      ],
+    };
+
+    if (data.isInModal) {
+      payload["container"] = { type: "view", view_id: CHOICE_VIEW_ID };
+      payload["view"] = {
+        id: CHOICE_VIEW_ID,
+        type: "modal",
+        callback_id: "",
+        private_metadata: "",
+        state: { values: {} },
+      };
+    } else {
+      const channelId: string = data.channelId || GENERAL_CHANNEL_ID;
+
+      payload["channel"] = { id: channelId, name: "general" };
+      payload["container"] = {
+        type: "message",
+        channel_id: channelId,
+        message_ts: "1760000002.000100",
+        is_ephemeral: channelId !== DM_CHANNEL_ID,
+      };
+      payload["response_url"] = CHOICE_RESPONSE_URL;
+    }
+
+    return { payload: JSON.stringify(payload) };
+  }
+
+  // What the question of which project became, at its press's response_url.
+  function replacements(): Array<JSONObject> {
+    return slackCalls
+      .filter((call: SlackCall): boolean => {
+        return call.url === CHOICE_RESPONSE_URL;
+      })
+      .map((call: SlackCall): JSONObject => {
+        return call.data;
+      });
+  }
+
+  // What was sent to a method of Slack's Web API, in order.
+  function sentTo(method: string): Array<JSONObject> {
+    return slackCalls
+      .filter((call: SlackCall): boolean => {
+        return call.url === `https://slack.com/api/${method}`;
+      })
+      .map((call: SlackCall): JSONObject => {
+        return call.data;
+      });
+  }
+
+  // The question of which project, as its notification reads.
+  const WHICH_PROJECT: string =
+    "Which project is this for: IRM Platform or IRM Non-Prod? This Slack workspace is connected to more than one OneUptime project.";
+
   describe("the incident's channel, as the customer pressed in it", () => {
     test("Acknowledge acknowledges INC-12 in its own project, as Deane", async () => {
       expect(
@@ -1566,7 +1791,7 @@ describe("one Slack workspace connected to two OneUptime projects", () => {
       expect(onCallReads[0]!.projectId.toString()).toBe(PLATFORM.toString());
     });
 
-    test("Deane, in both, runs /oneuptime oncall in #general: told which projects he is in and how to say which - nothing is read in either", async () => {
+    test("Deane, in both, runs /oneuptime oncall in #general: asked which project, with a button for each he is in - nothing is read in either yet", async () => {
       await command(
         slashCommand({
           slackUserId: "U0DEANE",
@@ -1579,9 +1804,20 @@ describe("one Slack workspace connected to two OneUptime projects", () => {
       await settle();
 
       expect(onCallReads).toEqual([]);
-      expect(answers()).toEqual([
-        "This Slack workspace is connected to more than one OneUptime project, so OneUptime can't tell which one you mean here. You're in IRM Platform and IRM Non-Prod: try it again in a channel of the project you mean, such as one of its incident channels.",
-      ]);
+      expect(answers()).toEqual([WHICH_PROJECT]);
+      expect(answerBlocks().split(ZERO_WIDTH_SPACE).join("")).toContain(
+        "*Which project is this for?* This Slack workspace is connected to more than one OneUptime project, and OneUptime can't tell which one you mean here.",
+      );
+      expect(
+        offeredButtons().map((button: OfferedButton): string => {
+          return button.title;
+        }),
+      ).toEqual(["IRM Platform", "IRM Non-Prod"]);
+      expect(
+        offeredButtons().map((button: OfferedButton): string => {
+          return button.actionId;
+        }),
+      ).toEqual(["ChooseProject:0", "ChooseProject:1"]);
     });
 
     test("somebody connected in neither runs /oneuptime page: told where to connect, not which project", async () => {
@@ -1685,7 +1921,7 @@ describe("one Slack workspace connected to two OneUptime projects", () => {
         .join("");
     }
 
-    test("Deane uses the shortcut Create New Incident: pointed to /oneuptime incident in a channel of the project he means - no form opens", async () => {
+    test("Deane uses the shortcut Create New Incident: asked which project, in a modal where he is - no form opens yet", async () => {
       await press(globalShortcut("U0DEANE"));
 
       await slackCallsAfter(1);
@@ -1693,13 +1929,31 @@ describe("one Slack workspace connected to two OneUptime projects", () => {
 
       const views: string = openedViews();
 
-      expect(views).toContain(
+      expect(views).toContain("*Which project is this for?*");
+      expect(
+        offeredButtons().map((button: OfferedButton): string => {
+          return button.title;
+        }),
+      ).toEqual(["IRM Platform", "IRM Non-Prod"]);
+      expect(views).not.toContain("try it again");
+      // The question, not the New Incident form.
+      expect(views).not.toContain("SubmitNewIncident");
+    });
+
+    test("when the question cannot be asked - the projects cannot be named - a shortcut is still pointed to /oneuptime incident", async () => {
+      jest
+        .spyOn(ProjectService, "findBy")
+        .mockRejectedValue(new Error("connection refused"));
+
+      await press(globalShortcut("U0DEANE"));
+
+      await slackCallsAfter(1);
+      await settle();
+
+      expect(offeredButtons()).toEqual([]);
+      expect(openedViews()).toContain(
         "/oneuptime incident* in a channel of the project you mean instead.",
       );
-      expect(views).toContain("IRM Platform");
-      expect(views).not.toContain("try it again");
-      // The answer, not the New Incident form.
-      expect(views).not.toContain("SubmitNewIncident");
     });
 
     test("somebody connected in neither uses the shortcut: where to connect", async () => {
@@ -1713,7 +1967,12 @@ describe("one Slack workspace connected to two OneUptime projects", () => {
       );
     });
 
-    test("Deane asks OneUptime AI in #general (/oneuptime ask): told to ask again in a channel of the project he means - nothing is read in either", async () => {
+    test("Deane asks OneUptime AI in #general (/oneuptime ask): asked which project, with a button for each - nothing is read in either yet", async () => {
+      const asked: ReturnType<typeof jest.spyOn> = jest.spyOn(
+        ObservabilityAssistant,
+        "answerQuestion",
+      );
+
       await command(
         slashCommand({
           slackUserId: "U0DEANE",
@@ -1725,6 +1984,64 @@ describe("one Slack workspace connected to two OneUptime projects", () => {
       await slackCallsAfter(1);
       await settle();
 
+      expect(answers()).toEqual([WHICH_PROJECT]);
+      expect(
+        offeredButtons().map((button: OfferedButton): string => {
+          return button.title;
+        }),
+      ).toEqual(["IRM Platform", "IRM Non-Prod"]);
+      expect(asked).not.toHaveBeenCalled();
+    });
+
+    test("when the question cannot be asked - the cache is down - a question is told to ask again in a channel of the project he means", async () => {
+      // The in-memory cache's own setString, put back once this request is made.
+      const cache: {
+        setString: {
+          getMockImplementation: () => unknown;
+          mockImplementation: (implementation: never) => unknown;
+        };
+      } = (
+        jest.requireMock("../../../Server/Infrastructure/GlobalCache") as {
+          default: {
+            setString: {
+              getMockImplementation: () => unknown;
+              mockImplementation: (implementation: never) => unknown;
+            };
+          };
+        }
+      ).default;
+      const realSetString: (...args: Array<unknown>) => Promise<unknown> =
+        cache.setString.getMockImplementation() as (
+          ...args: Array<unknown>
+        ) => Promise<unknown>;
+
+      cache.setString.mockImplementation((async (
+        namespace: string,
+        ...rest: Array<unknown>
+      ) => {
+        if (namespace === "slack-project-choice") {
+          throw new Error("connection refused");
+        }
+
+        return await realSetString(namespace, ...rest);
+      }) as never);
+
+      try {
+        await command(
+          slashCommand({
+            slackUserId: "U0DEANE",
+            text: "ask which monitors are down?",
+            channelId: GENERAL_CHANNEL_ID,
+          }),
+        );
+
+        await slackCallsAfter(1);
+        await settle();
+      } finally {
+        cache.setString.mockImplementation(realSetString as never);
+      }
+
+      expect(offeredButtons()).toEqual([]);
       expect(answers()).toHaveLength(1);
       expect(answers()[0]).toContain(
         "ask again in a channel of the project you mean, such as one of its incident channels.",
@@ -1788,6 +2105,731 @@ describe("one Slack workspace connected to two OneUptime projects", () => {
       expect(answers()[0]).not.toContain("IRM Non-Prod");
     });
   });
+
+  /*
+   * ASKED WHICH PROJECT, WITH A BUTTON FOR EACH, AND MADE AGAIN THERE.
+   *
+   * Deane is in both projects. A command he runs in #general, a shortcut
+   * from Slack's menu, a question in the app's direct messages name no
+   * record, and no channel tells: he used to be told to try again from a
+   * channel of the project he meant - which a direct message or a shortcut
+   * does not have. Now he is asked which, and the request is made again in
+   * the project he chooses, as him, held to his permissions there.
+   */
+  describe("asked which project, with a button for each, and made again in the one chosen", () => {
+    let assistantCalls: Array<{
+      projectId: string;
+      userId: string;
+      question: string;
+    }>;
+    let readable: Array<{ projectId: string; userId: string }>;
+
+    beforeEach(() => {
+      assistantCalls = [];
+      readable = [];
+
+      jest.spyOn(AIService, "isProjectAIEnabled").mockResolvedValue(true);
+      jest
+        .spyOn(AIService, "getReachedProjectDailyLimit")
+        .mockResolvedValue(null);
+      jest.spyOn(AIService, "getAiBalanceBlocker").mockResolvedValue(null);
+      jest
+        .spyOn(ObservabilityAssistant, "answerQuestion")
+        .mockImplementation((async (data: {
+          projectId: ObjectID;
+          userId: ObjectID;
+          question: string;
+        }) => {
+          assistantCalls.push({
+            projectId: data.projectId.toString(),
+            userId: data.userId.toString(),
+            question: data.question,
+          });
+
+          return {
+            contentInMarkdown: `Nothing is down in ${PROJECT_NAMES[data.projectId.toString()]}.`,
+            citations: [],
+            totalTokens: 10,
+            llmCallCount: 1,
+            toolCallCount: 1,
+          };
+        }) as never);
+
+      // What a form offers, read as the member, in the project it is drawn for.
+      jest
+        .spyOn(WorkspaceActionAuthorization, "findReadable")
+        .mockImplementation((async (data: {
+          query: JSONObject;
+          props: DatabaseCommonInteractionProps;
+        }) => {
+          readable.push({
+            projectId: String(data.query["projectId"]),
+            userId: data.props.userId?.toString() || "",
+          });
+          return [];
+        }) as never);
+    });
+
+    // Deane runs `/oneuptime <text>` in #general, and is asked which project.
+    async function deaneRuns(text: string): Promise<void> {
+      await command(
+        slashCommand({
+          slackUserId: "U0DEANE",
+          text: text,
+          channelId: GENERAL_CHANNEL_ID,
+        }),
+      );
+
+      await slackCallsAfter(1);
+      await settle();
+
+      expect(offeredButtons()).toHaveLength(2);
+    }
+
+    // What happened once the question was asked.
+    function afterTheQuestion(): void {
+      slackCalls = [];
+    }
+
+    test("Deane chooses IRM Non-Prod: who is on call there, read as him, where he ran the command - and the question says so", async () => {
+      await deaneRuns("oncall");
+
+      const nonProd: OfferedButton = offeredButton("IRM Non-Prod");
+      afterTheQuestion();
+
+      expect(
+        await press(choicePress({ slackUserId: "U0DEANE", button: nonProd })),
+      ).toBe(200);
+
+      await slackCallsAfter(2);
+      await settle();
+
+      expect(onCallReads).toHaveLength(1);
+      expect(onCallReads[0]!.projectId.toString()).toBe(NONPRD.toString());
+      expect(onCallReads[0]!.props.userId!.toString()).toBe(DEANE.toString());
+      expect(onCallReads[0]!.props.tenantId!.toString()).toBe(
+        NONPRD.toString(),
+      );
+
+      // The answer goes where he ran the command, only to him.
+      expect(answers()).toEqual(["On call in IRM Non-Prod"]);
+      expect(
+        slackCalls.find((call: SlackCall): boolean => {
+          return call.url === COMMAND_RESPONSE_URL;
+        })!.data["response_type"],
+      ).toBe("ephemeral");
+
+      // The question, in its place: what he chose.
+      expect(replacements()).toHaveLength(1);
+      expect(replacements()[0]!["replace_original"]).toBe(true);
+      expect(replacements()[0]!["text"]).toBe("Going ahead in IRM Non-Prod.");
+      expect(
+        JSON.stringify(replacements()[0]!["blocks"])
+          .split(ZERO_WIDTH_SPACE)
+          .join(""),
+      ).toContain("Going ahead in *IRM Non-Prod*.");
+      expect(JSON.stringify(replacements()[0]!["blocks"])).not.toContain(
+        "ChooseProject",
+      );
+    });
+
+    test("Deane chooses IRM Platform: read there instead", async () => {
+      await deaneRuns("oncall");
+
+      const platform: OfferedButton = offeredButton("IRM Platform");
+      afterTheQuestion();
+
+      await press(choicePress({ slackUserId: "U0DEANE", button: platform }));
+
+      await slackCallsAfter(2);
+      await settle();
+
+      expect(onCallReads).toHaveLength(1);
+      expect(onCallReads[0]!.projectId.toString()).toBe(PLATFORM.toString());
+      expect(answers()).toEqual(["On call in IRM Platform"]);
+      expect(replacements()[0]!["text"]).toBe("Going ahead in IRM Platform.");
+    });
+
+    test("a second press - the other button, or the same again - makes nothing again: told the choice is gone", async () => {
+      await deaneRuns("oncall");
+
+      const nonProd: OfferedButton = offeredButton("IRM Non-Prod");
+      const platform: OfferedButton = offeredButton("IRM Platform");
+
+      await press(choicePress({ slackUserId: "U0DEANE", button: nonProd }));
+      await slackCallsAfter(3);
+      await settle();
+
+      afterTheQuestion();
+
+      for (const button of [platform, nonProd]) {
+        await press(choicePress({ slackUserId: "U0DEANE", button: button }));
+      }
+
+      await slackCallsAfter(2);
+      await settle();
+
+      expect(onCallReads).toHaveLength(1);
+      expect(answers()).toEqual([]);
+      expect(
+        replacements().map((replacement: JSONObject): unknown => {
+          return replacement["text"];
+        }),
+      ).toEqual([
+        "This choice has expired, or was already made. Please try again.",
+        "This choice has expired, or was already made. Please try again.",
+      ]);
+    });
+
+    test("somebody else pressing Deane's button makes nothing, and Deane can still choose", async () => {
+      await deaneRuns("oncall");
+
+      const nonProd: OfferedButton = offeredButton("IRM Non-Prod");
+      afterTheQuestion();
+
+      await press(choicePress({ slackUserId: "U0NITIN", button: nonProd }));
+      await slackCallsAfter(1);
+      await settle();
+
+      expect(onCallReads).toEqual([]);
+      expect(replacements()[0]!["text"]).toBe(
+        "This choice has expired, or was already made. Please try again.",
+      );
+
+      afterTheQuestion();
+
+      await press(choicePress({ slackUserId: "U0DEANE", button: nonProd }));
+      await slackCallsAfter(2);
+      await settle();
+
+      expect(onCallReads).toHaveLength(1);
+      expect(onCallReads[0]!.props.userId!.toString()).toBe(DEANE.toString());
+    });
+
+    test("a press naming a project that was not offered, or no request at all, makes nothing", async () => {
+      await deaneRuns("oncall");
+
+      const nonProd: OfferedButton = offeredButton("IRM Non-Prod");
+      const token: string = nonProd.value.split(":")[1]!;
+      afterTheQuestion();
+
+      for (const value of [
+        `${ObjectID.generate().toString()}:${token}`,
+        `${NONPRD.toString()}:${"x".repeat(43)}`,
+        "not a choice",
+      ]) {
+        await press(
+          choicePress({
+            slackUserId: "U0DEANE",
+            button: { ...nonProd, value: value },
+          }),
+        );
+      }
+
+      await slackCallsAfter(3);
+      await settle();
+
+      expect(onCallReads).toEqual([]);
+      expect(replacements()).toHaveLength(3);
+
+      // The real one still works.
+      afterTheQuestion();
+      await press(choicePress({ slackUserId: "U0DEANE", button: nonProd }));
+      await slackCallsAfter(2);
+      await settle();
+
+      expect(onCallReads).toHaveLength(1);
+    });
+
+    test("/oneuptime page in #general: the Page someone form opens in the chosen project, on the choice's own trigger", async () => {
+      jest.spyOn(WorkspacePage, "getChoices").mockResolvedValue([
+        {
+          kind: WorkspacePageTargetKind.Person,
+          label: "People",
+          choices: [
+            {
+              label: "Nitin Bharathy",
+              name: "Nitin Bharathy",
+              value: `${WorkspacePageTargetKind.Person}:${NITIN.toString()}`,
+            },
+          ],
+        },
+      ]);
+
+      await deaneRuns("page");
+
+      const nonProd: OfferedButton = offeredButton("IRM Non-Prod");
+      afterTheQuestion();
+
+      await press(choicePress({ slackUserId: "U0DEANE", button: nonProd }));
+      await slackCallsAfter(2);
+      await settle();
+
+      const opened: Array<JSONObject> = sentTo("views.open");
+
+      expect(opened).toHaveLength(1);
+      // Slack's trigger of the command expired seconds after it was run.
+      expect(opened[0]!["trigger_id"]).toBe(CHOICE_TRIGGER_ID);
+      expect(JSON.stringify(opened[0]!["view"])).toContain("Nitin Bharathy");
+      expect(
+        JSON.parse(
+          (opened[0]!["view"] as JSONObject)["private_metadata"] as string,
+        ),
+      ).toMatchObject({
+        projectId: NONPRD.toString(),
+        channelId: GENERAL_CHANNEL_ID,
+      });
+      expect(answers()).toEqual([]);
+    });
+
+    test("/oneuptime incident with a title, in #general: the New Incident form opens in the chosen project, with the title, its lists read there as Deane", async () => {
+      await deaneRuns("incident Checkout is down");
+
+      const nonProd: OfferedButton = offeredButton("IRM Non-Prod");
+      afterTheQuestion();
+
+      await press(choicePress({ slackUserId: "U0DEANE", button: nonProd }));
+      await slackCallsAfter(2);
+      await settle();
+
+      const opened: Array<JSONObject> = sentTo("views.open");
+
+      expect(opened).toHaveLength(1);
+      expect(opened[0]!["trigger_id"]).toBe(CHOICE_TRIGGER_ID);
+
+      const view: JSONObject = opened[0]!["view"] as JSONObject;
+
+      expect(view["callback_id"]).toBe("SubmitNewIncident");
+      expect(JSON.stringify(view)).toContain("Checkout is down");
+      expect(JSON.parse(view["private_metadata"] as string)).toMatchObject({
+        projectId: NONPRD.toString(),
+        channelId: GENERAL_CHANNEL_ID,
+      });
+
+      expect(readable.length).toBeGreaterThan(0);
+      for (const read of readable) {
+        expect(read.projectId).toBe(NONPRD.toString());
+        expect(read.userId).toBe(DEANE.toString());
+      }
+    });
+
+    test("the shortcut Create New Incident: the New Incident form takes the place of the modal he chose in", async () => {
+      await press(
+        globalShortcutOf({ slackUserId: "U0DEANE", callbackId: "/incident" }),
+      );
+      await slackCallsAfter(1);
+      await settle();
+
+      expect(sentTo("views.open")).toHaveLength(1);
+
+      const nonProd: OfferedButton = offeredButton("IRM Non-Prod");
+      afterTheQuestion();
+
+      expect(
+        await press(
+          choicePress({
+            slackUserId: "U0DEANE",
+            button: nonProd,
+            isInModal: true,
+          }),
+        ),
+      ).toBe(200);
+      await slackCallsAfter(1);
+      await settle();
+
+      // views.open cannot open a form over the modal: it is updated instead.
+      expect(sentTo("views.open")).toEqual([]);
+
+      const updated: Array<JSONObject> = sentTo("views.update");
+
+      expect(updated).toHaveLength(1);
+      expect(updated[0]!["view_id"]).toBe(CHOICE_VIEW_ID);
+
+      const view: JSONObject = updated[0]!["view"] as JSONObject;
+
+      expect(view["callback_id"]).toBe("SubmitNewIncident");
+      expect(JSON.parse(view["private_metadata"] as string)).toMatchObject({
+        projectId: NONPRD.toString(),
+      });
+      // No message to replace: a modal has no response_url.
+      expect(replacements()).toEqual([]);
+
+      for (const read of readable) {
+        expect(read.projectId).toBe(NONPRD.toString());
+      }
+    });
+
+    test("the shortcut Create Scheduled Event: its form takes the place of the modal, in the chosen project", async () => {
+      await press(
+        globalShortcutOf({
+          slackUserId: "U0DEANE",
+          callbackId: "/maintenance",
+        }),
+      );
+      await slackCallsAfter(1);
+      await settle();
+
+      const platform: OfferedButton = offeredButton("IRM Platform");
+      afterTheQuestion();
+
+      await press(
+        choicePress({
+          slackUserId: "U0DEANE",
+          button: platform,
+          isInModal: true,
+        }),
+      );
+      await slackCallsAfter(1);
+      await settle();
+
+      const updated: Array<JSONObject> = sentTo("views.update");
+
+      expect(updated).toHaveLength(1);
+      expect(updated[0]!["view_id"]).toBe(CHOICE_VIEW_ID);
+      expect(
+        JSON.parse(
+          (updated[0]!["view"] as JSONObject)["private_metadata"] as string,
+        ),
+      ).toMatchObject({ projectId: PLATFORM.toString() });
+    });
+
+    test("a Home drawn before Homes carried their project: Who's on call asks which, and answers in the modal he chose in", async () => {
+      await press(
+        homePress({
+          slackUserId: "U0DEANE",
+          actionId: "ShowOnCall",
+          privateMetadata: "",
+        }),
+      );
+      await slackCallsAfter(1);
+      await settle();
+
+      expect(onCallReads).toEqual([]);
+      expect(sentTo("views.open")).toHaveLength(1);
+
+      const nonProd: OfferedButton = offeredButton("IRM Non-Prod");
+      afterTheQuestion();
+
+      await press(
+        choicePress({
+          slackUserId: "U0DEANE",
+          button: nonProd,
+          isInModal: true,
+        }),
+      );
+      await slackCallsAfter(1);
+      await settle();
+
+      expect(onCallReads).toHaveLength(1);
+      expect(onCallReads[0]!.projectId.toString()).toBe(NONPRD.toString());
+
+      const updated: Array<JSONObject> = sentTo("views.update");
+
+      expect(updated).toHaveLength(1);
+      expect(updated[0]!["view_id"]).toBe(CHOICE_VIEW_ID);
+      expect(JSON.stringify(updated[0]!["view"])).toContain(
+        "On call in IRM Non-Prod",
+      );
+    });
+
+    test("/oneuptime ask in #general: the question is answered in the chosen project, as Deane, in the channel", async () => {
+      await deaneRuns("ask which monitors are down?");
+
+      const nonProd: OfferedButton = offeredButton("IRM Non-Prod");
+      afterTheQuestion();
+
+      await press(choicePress({ slackUserId: "U0DEANE", button: nonProd }));
+      await slackCallsAfter(2);
+      await settle();
+
+      expect(assistantCalls).toEqual([
+        {
+          projectId: NONPRD.toString(),
+          userId: DEANE.toString(),
+          question: "which monitors are down?",
+        },
+      ]);
+
+      const answered: Array<SlackCall> = slackCalls.filter(
+        (call: SlackCall): boolean => {
+          return call.url === COMMAND_RESPONSE_URL;
+        },
+      );
+
+      expect(answered).toHaveLength(1);
+      expect(answered[0]!.data["response_type"]).toBe("in_channel");
+      expect(String(answered[0]!.data["text"])).toContain(
+        "Nothing is down in IRM Non-Prod.",
+      );
+      expect(replacements()[0]!["text"]).toBe("Going ahead in IRM Non-Prod.");
+    });
+
+    test("a question in the app's direct messages: asked which there, answered in the chosen project in its thread - and its follow-ups there too, without asking again", async () => {
+      expect(
+        await directMessage({
+          slackUserId: "U0DEANE",
+          text: "is checkout healthy?",
+          ts: "1760000100.000100",
+        }),
+      ).toBe(200);
+      await slackCallsAfter(1);
+      await settle();
+
+      expect(assistantCalls).toEqual([]);
+
+      // The app's own message in his direct messages: it stays there.
+      const asked: Array<JSONObject> = sentTo("chat.postMessage");
+
+      expect(asked).toHaveLength(1);
+      expect(asked[0]!["channel"]).toBe("U0DEANE");
+      expect(String(asked[0]!["text"])).toContain(
+        "Which project is this for: IRM Platform or IRM Non-Prod?",
+      );
+
+      const nonProd: OfferedButton = offeredButton("IRM Non-Prod");
+      afterTheQuestion();
+
+      await press(
+        choicePress({
+          slackUserId: "U0DEANE",
+          button: nonProd,
+          channelId: DM_CHANNEL_ID,
+        }),
+      );
+      await slackCallsAfter(2);
+      await settle();
+
+      expect(assistantCalls).toEqual([
+        {
+          projectId: NONPRD.toString(),
+          userId: DEANE.toString(),
+          question: "is checkout healthy?",
+        },
+      ]);
+      expect(
+        sentTo("chat.postMessage").some((sent: JSONObject): boolean => {
+          return (
+            sent["channel"] === DM_CHANNEL_ID &&
+            sent["thread_ts"] === "1760000100.000100" &&
+            String(sent["text"]).includes("Nothing is down in IRM Non-Prod.")
+          );
+        }),
+      ).toBe(true);
+      expect(replacements()[0]!["text"]).toBe("Going ahead in IRM Non-Prod.");
+
+      // A follow-up in the thread: answered in IRM Non-Prod, not asked again.
+      afterTheQuestion();
+      await directMessage({
+        slackUserId: "U0DEANE",
+        text: "and payments?",
+        ts: "1760000100.000300",
+        threadTs: "1760000100.000100",
+      });
+      await slackCallsAfter(1);
+      await settle();
+
+      expect(offeredButtons()).toEqual([]);
+      expect(assistantCalls).toHaveLength(2);
+      expect(assistantCalls[1]).toEqual({
+        projectId: NONPRD.toString(),
+        userId: DEANE.toString(),
+        question: "and payments?",
+      });
+
+      // A new question, at the top: asked again.
+      afterTheQuestion();
+      await directMessage({
+        slackUserId: "U0DEANE",
+        text: "anything firing?",
+        ts: "1760000200.000100",
+      });
+      await slackCallsAfter(1);
+      await settle();
+
+      expect(offeredButtons()).toHaveLength(2);
+      expect(assistantCalls).toHaveLength(2);
+    });
+
+    test("the projects cannot be named: told how to say which, as before - no buttons without names", async () => {
+      jest
+        .spyOn(ProjectService, "findBy")
+        .mockRejectedValue(new Error("connection refused"));
+
+      await command(
+        slashCommand({
+          slackUserId: "U0DEANE",
+          text: "oncall",
+          channelId: GENERAL_CHANNEL_ID,
+        }),
+      );
+      await slackCallsAfter(1);
+      await settle();
+
+      expect(offeredButtons()).toEqual([]);
+      expect(answers()).toEqual([
+        "This Slack workspace is connected to more than one OneUptime project, so OneUptime can't tell which one you mean here. Try it again in a channel of the project you mean, such as one of its incident channels.",
+      ]);
+    });
+
+    test("removed from the chosen project between the question and the choice: told he is not a member - nothing is read", async () => {
+      await deaneRuns("oncall");
+
+      const nonProd: OfferedButton = offeredButton("IRM Non-Prod");
+      afterTheQuestion();
+
+      memberships = memberships.filter((membership: Membership): boolean => {
+        return !(
+          sameId(membership.userId, DEANE) &&
+          sameId(membership.projectId, NONPRD)
+        );
+      });
+
+      await press(choicePress({ slackUserId: "U0DEANE", button: nonProd }));
+      await slackCallsAfter(2);
+      await settle();
+
+      expect(onCallReads).toEqual([]);
+      expect(answers()).toEqual([
+        WorkspaceActionAuthorization.NOT_A_PROJECT_MEMBER_MESSAGE,
+      ]);
+    });
+
+    test("his account disconnected in the chosen project since: asked to connect it there, named", async () => {
+      await deaneRuns("oncall");
+
+      const nonProd: OfferedButton = offeredButton("IRM Non-Prod");
+      afterTheQuestion();
+
+      links = links.filter((link: WorkspaceUserAuthToken): boolean => {
+        return !(
+          link.workspaceUserId === "U0DEANE" && sameId(link.projectId, NONPRD)
+        );
+      });
+
+      await press(choicePress({ slackUserId: "U0DEANE", button: nonProd }));
+      await slackCallsAfter(2);
+      await settle();
+
+      expect(onCallReads).toEqual([]);
+      expect(answers()).toEqual([
+        expect.stringContaining("Connect your Slack account in IRM Non-Prod"),
+      ]);
+      expect(answerBlocks()).toContain(
+        `${DASHBOARD_URL}/${NONPRD.toString()}/`,
+      );
+    });
+
+    test("held to his permissions in the project he chose: a member who may only read incidents there may not page from it", async () => {
+      // The viewer of INC-12's project is a member of the platform one too.
+      links.push(linkOf("U0VIEWER", PLATFORM));
+      memberships.push({
+        userId: VIEWER,
+        projectId: PLATFORM,
+        permissions: [Permission.ProjectMember],
+      });
+
+      await command(
+        slashCommand({
+          slackUserId: "U0VIEWER",
+          text: "page",
+          channelId: GENERAL_CHANNEL_ID,
+        }),
+      );
+      await slackCallsAfter(1);
+      await settle();
+
+      const nonProd: OfferedButton = offeredButton("IRM Non-Prod");
+      afterTheQuestion();
+
+      await press(choicePress({ slackUserId: "U0VIEWER", button: nonProd }));
+      await slackCallsAfter(2);
+      await settle();
+
+      expect(sentTo("views.open")).toEqual([]);
+      expect(answers()).toEqual([
+        expect.stringContaining("You do not have permission to page"),
+      ]);
+    });
+
+    test("somebody in only one of the projects is never asked: his command runs there", async () => {
+      await command(
+        slashCommand({
+          slackUserId: "U0NITIN",
+          text: "oncall",
+          channelId: GENERAL_CHANNEL_ID,
+        }),
+      );
+      await slackCallsAfter(1);
+      await settle();
+
+      expect(offeredButtons()).toEqual([]);
+      expect(onCallReads).toHaveLength(1);
+      expect(onCallReads[0]!.projectId.toString()).toBe(NONPRD.toString());
+    });
+
+    test("somebody connected in neither is never asked: told where to connect", async () => {
+      await command(
+        slashCommand({
+          slackUserId: "U0NOBODY",
+          text: "oncall",
+          channelId: GENERAL_CHANNEL_ID,
+        }),
+      );
+      await slackCallsAfter(1);
+      await settle();
+
+      expect(offeredButtons()).toEqual([]);
+      expect(answers()[0]).toContain(
+        "your Slack account isn't connected in any of them yet",
+      );
+    });
+
+    test("a workspace connected to one project never asks", async () => {
+      connections = [connectionOf(NONPRD)];
+
+      await deaneRunsWithoutQuestion("oncall");
+
+      expect(offeredButtons()).toEqual([]);
+      expect(onCallReads).toHaveLength(1);
+      expect(onCallReads[0]!.projectId.toString()).toBe(NONPRD.toString());
+    });
+
+    async function deaneRunsWithoutQuestion(text: string): Promise<void> {
+      await command(
+        slashCommand({
+          slackUserId: "U0DEANE",
+          text: text,
+          channelId: GENERAL_CHANNEL_ID,
+        }),
+      );
+
+      await slackCallsAfter(1);
+      await settle();
+    }
+  });
+
+  // A shortcut from Slack's shortcuts menu, by its callback id.
+  function globalShortcutOf(data: {
+    slackUserId: string;
+    callbackId: string;
+  }): Record<string, string> {
+    return {
+      payload: JSON.stringify({
+        type: "shortcut",
+        token: "verification-token",
+        action_ts: "1760000001.000300",
+        team: { id: SLACK_TEAM_ID, domain: "avepoint" },
+        user: {
+          id: data.slackUserId,
+          username: data.slackUserId.toLowerCase(),
+          team_id: SLACK_TEAM_ID,
+        },
+        is_enterprise_install: false,
+        callback_id: data.callbackId,
+        trigger_id: TRIGGER_ID,
+      }),
+    };
+  }
 
   describe("OneUptime Cloud: /oneuptime page on the project's plan", () => {
     let pagedWith: Array<DatabaseCommonInteractionProps>;
