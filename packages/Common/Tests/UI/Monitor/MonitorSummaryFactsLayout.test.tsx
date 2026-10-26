@@ -10,23 +10,30 @@ import IncomingMonitorRequest from "../../../Types/Monitor/IncomingMonitor/Incom
 import IncomingEmailMonitorRequest from "../../../Types/Monitor/IncomingEmailMonitor/IncomingEmailMonitorRequest";
 import SummaryInfo from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/SummaryView/SummaryInfo";
 import {
+  getSummaryFactShareClassName,
   SUMMARY_FACTS_CLASS_NAME,
-  SUMMARY_FACTS_IN_THREES_CLASS_NAME,
   SUMMARY_FACT_CARD_CLASS_NAME,
+  SUMMARY_FACT_IN_THREES_SHARE_CLASS_NAME,
+  SUMMARY_FACT_SHARE_CLASS_NAME,
   SUMMARY_FACT_VALUE_CLASS_NAME,
   SUMMARY_TABLE_FRAME_CLASS_NAME,
+  SUMMARY_TABLE_TEXT_CLASS_NAME,
+  SUMMARY_TABLE_VALUE_CLASS_NAME,
   SUMMARY_VIEW_CLASS_NAME,
   SUMMARY_WIDE_FACT_CLASS_NAME,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/SummaryView/SummaryFacts";
 
 /*
  * Every monitor type's summary lays its facts out the one way (SummaryFacts):
- * a grid that follows the summary's own width - two to a row, four once the
- * summary is 64rem wide - not a flex row of quarter- and fifth-width cards
+ * rows that follow the summary's own width - one fact a row on a phone, two
+ * from 22rem, four once the summary is 64rem wide, a short last row shared
+ * by the facts on it - not a flex row of quarter- and fifth-width cards
  * that squeezed every value in the overview's two-thirds card at 1280 and
  * ran wider than a phone at 390, so the Monitor Summary card scrolled
  * sideways. Rendered here through SummaryInfo, as the overview, Test
  * Monitor, Monitoring Logs and the incident and alert pages render them.
+ * Where the rows break is the browser's to measure: the Monitor Overview
+ * fixture's MonitorSummaryFacts.spec.ts measures them.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -418,14 +425,43 @@ function classesOf(element: Element): Array<string> {
   return (element.getAttribute("class") || "").split(/\s+/).filter(Boolean);
 }
 
-const FACT_GRIDS: Array<string> = [
-  SUMMARY_FACTS_CLASS_NAME,
-  SUMMARY_FACTS_IN_THREES_CLASS_NAME,
+// The shares of a row a fact may take: the whole row, half, a third.
+const SHARES: Array<string> = [
+  SUMMARY_WIDE_FACT_CLASS_NAME,
+  SUMMARY_FACT_SHARE_CLASS_NAME,
+  SUMMARY_FACT_IN_THREES_SHARE_CLASS_NAME,
 ];
+
+// The share a card was drawn with, by its classes ("" for none).
+function shareOf(card: HTMLElement): string {
+  const classes: Array<string> = classesOf(card);
+  const containerShares: Array<string> = classes.filter(
+    (name: string): boolean => {
+      return name.startsWith("[@container(") && name.includes(":basis-");
+    },
+  );
+
+  return (
+    SHARES.find((share: string): boolean => {
+      const shareClasses: Array<string> = share.split(" ");
+
+      // Every class of the share, and no container share of another.
+      return (
+        shareClasses.every((name: string): boolean => {
+          return classes.includes(name);
+        }) &&
+        containerShares.every((name: string): boolean => {
+          return shareClasses.includes(name);
+        })
+      );
+    }) || ""
+  );
+}
 
 // The quarter- and fifth-width cards, and the flex rows that spaced them.
 const FRACTION_WIDTH: RegExp = /^w-\d\/\d$/;
-const VIEWPORT_GRID: RegExp = /^(sm|md|lg|xl|2xl):grid-cols-/;
+// Columns or shares counted by the screen ("lg:grid-cols-4", "md:basis-1/2").
+const VIEWPORT_GRID: RegExp = /^(sm|md|lg|xl|2xl):(grid-cols-|basis-)/;
 
 function expectLaidOutByItsOwnWidth(container: HTMLElement): void {
   const cards: Array<HTMLElement> = factCards(container);
@@ -433,19 +469,24 @@ function expectLaidOutByItsOwnWidth(container: HTMLElement): void {
   expect(cards.length).toBeGreaterThan(0);
 
   for (const card of cards) {
-    // Each card is a cell of a facts grid, never of a spaced flex row.
+    /*
+     * Each card is one of a facts group's wrapping rows, with its share of
+     * a row - never a cell of a spaced flex row.
+     */
     const row: HTMLElement | null = card.parentElement;
 
     expect({
       card: card.textContent,
-      inFactsGrid: FACT_GRIDS.includes(row?.className || ""),
+      inFacts: row?.className === SUMMARY_FACTS_CLASS_NAME,
       rowSpacedX: classesOf(row!).some((name: string): boolean => {
         return name.startsWith("space-x-");
       }),
+      hasShare: shareOf(card) !== "",
     }).toEqual({
       card: card.textContent,
-      inFactsGrid: true,
+      inFacts: true,
       rowSpacedX: false,
+      hasShare: true,
     });
 
     expect(card).toHaveClass(...SUMMARY_FACT_CARD_CLASS_NAME.split(" "));
@@ -579,9 +620,13 @@ describe("every monitor type's summary lays its facts out by its own width", () 
     const totalSize: HTMLElement = screen
       .getByText("Total Size (GB)")
       .closest("div.rounded-xl") as HTMLElement;
-    expect(totalSize.parentElement?.className).toBe(
-      SUMMARY_FACTS_IN_THREES_CLASS_NAME,
-    );
+    expect(shareOf(totalSize)).toBe(SUMMARY_FACT_IN_THREES_SHARE_CLASS_NAME);
+
+    // The CPU's two facts share rows as every other fact does.
+    const cpuCores: HTMLElement = screen
+      .getByText("CPU Cores")
+      .closest("div.rounded-xl") as HTMLElement;
+    expect(shareOf(cpuCores)).toBe(SUMMARY_FACT_SHARE_CLASS_NAME);
   });
 
   test("Server: an agent that reports CPU, memory and disks but no processes can still open them", () => {
@@ -629,16 +674,82 @@ describe("what a fact is drawn with", () => {
     renderScenario(SCENARIOS[0]!);
 
     for (const title of ["URL", "Error", "Error Details"]) {
-      expect(screen.getByText(title).closest("div.rounded-xl")).toHaveClass(
-        SUMMARY_WIDE_FACT_CLASS_NAME,
-      );
+      expect({
+        title,
+        share: shareOf(
+          screen.getByText(title).closest("div.rounded-xl") as HTMLElement,
+        ),
+      }).toEqual({ title, share: SUMMARY_WIDE_FACT_CLASS_NAME });
     }
 
     for (const title of ["Probe", "Response Status Code", "Failed At"]) {
-      expect(screen.getByText(title).closest("div.rounded-xl")).not.toHaveClass(
-        SUMMARY_WIDE_FACT_CLASS_NAME,
-      );
+      expect({
+        title,
+        share: shareOf(
+          screen.getByText(title).closest("div.rounded-xl") as HTMLElement,
+        ),
+      }).toEqual({ title, share: SUMMARY_FACT_SHARE_CLASS_NAME });
     }
+  });
+
+  /*
+   * One fact a row on a phone: two to a row left each value about 100px
+   * there, and broke hostnames, dates and error codes mid-word. Two to a row
+   * from 22rem (the Summary card beside a tablet's side menu is 366px),
+   * four from 64rem. Each share leaves out a whole gap, so the facts meant
+   * for a row always fit on it, and every fact grows into what its row
+   * leaves: a short last row is shared, never a row with a hole.
+   */
+  test("a fact takes the whole row on a phone, half from 22rem and a quarter from 64rem", () => {
+    expect(SUMMARY_FACTS_CLASS_NAME).toBe("flex flex-wrap gap-3");
+    expect(SUMMARY_FACT_CARD_CLASS_NAME.split(" ")).toEqual(
+      expect.arrayContaining(["min-w-0", "grow"]),
+    );
+    expect(SUMMARY_FACT_SHARE_CLASS_NAME.split(" ")).toEqual([
+      "basis-full",
+      "[@container(min-width:22rem)]:basis-[calc(50%-0.75rem)]",
+      "[@container(min-width:64rem)]:basis-[calc(25%-0.75rem)]",
+    ]);
+    expect(SUMMARY_FACT_IN_THREES_SHARE_CLASS_NAME.split(" ")).toEqual([
+      "basis-full",
+      "[@container(min-width:22rem)]:basis-[calc(33.333%-0.75rem)]",
+    ]);
+    expect(SUMMARY_WIDE_FACT_CLASS_NAME).toBe("basis-full");
+  });
+
+  test("a fact's share: the whole row when it reads as a sentence, else its group's", () => {
+    expect(
+      getSummaryFactShareClassName({ isWide: true, isInThrees: false }),
+    ).toBe(SUMMARY_WIDE_FACT_CLASS_NAME);
+    expect(
+      getSummaryFactShareClassName({ isWide: true, isInThrees: true }),
+    ).toBe(SUMMARY_WIDE_FACT_CLASS_NAME);
+    expect(
+      getSummaryFactShareClassName({ isWide: false, isInThrees: false }),
+    ).toBe(SUMMARY_FACT_SHARE_CLASS_NAME);
+    expect(
+      getSummaryFactShareClassName({ isWide: false, isInThrees: true }),
+    ).toBe(SUMMARY_FACT_IN_THREES_SHARE_CLASS_NAME);
+  });
+
+  /*
+   * A Synthetic monitor's probe is its summary's one fact before the runs:
+   * it takes the row, as it did before the facts shared one layout.
+   */
+  test("a lone fact takes the whole row: a Synthetic monitor's probe", () => {
+    const synthetic: Scenario = SCENARIOS.find(
+      (scenario: Scenario): boolean => {
+        return scenario.name === "Synthetic";
+      },
+    )!;
+    const container: HTMLElement = renderScenario(synthetic);
+    const probe: HTMLElement = screen
+      .getByText("Frankfurt")
+      .closest("div.rounded-xl") as HTMLElement;
+
+    expect(probe.parentElement?.children).toHaveLength(1);
+    expect(probe).toHaveClass("grow");
+    expectLaidOutByItsOwnWidth(container);
   });
 
   test("a value breaks rather than run out of its card, a size smaller in a narrow summary", () => {
@@ -757,6 +868,112 @@ describe("what a fact is drawn with", () => {
     }) as HTMLElement;
 
     expect(value).toHaveClass("[overflow-wrap:anywhere]");
+  });
+
+  /*
+   * A cell that may break anywhere can also be squeezed to one letter a
+   * line once its table runs out of room, as a DNSSEC check's errors were
+   * at 390. Only a table's one column of long values may; the others break
+   * between words, and an OID only after one of its dots.
+   */
+  test("only a table's column of long values breaks anywhere; an OID breaks only after a dot", () => {
+    const cellStartingWith: (
+      container: HTMLElement,
+      text: string,
+    ) => HTMLElement = (container: HTMLElement, text: string): HTMLElement => {
+      const cell: HTMLElement | undefined = Array.from(
+        container.querySelectorAll("td"),
+      ).find((candidate: HTMLTableCellElement): boolean => {
+        return (candidate.textContent || "").startsWith(text);
+      });
+
+      expect({ text, found: Boolean(cell) }).toEqual({ text, found: true });
+
+      return cell!;
+    };
+
+    const dnssec: HTMLElement = renderScenario(
+      SCENARIOS.find((scenario: Scenario): boolean => {
+        return scenario.name === "DNSSEC";
+      })!,
+    );
+
+    for (const text of [
+      "2001:4860:4860::8888",
+      "SERVFAIL while validating the DS record",
+    ]) {
+      const cell: HTMLElement = cellStartingWith(dnssec, text);
+
+      expect(cell).toHaveClass(SUMMARY_TABLE_TEXT_CLASS_NAME);
+      expect(cell).not.toHaveClass(SUMMARY_TABLE_VALUE_CLASS_NAME);
+    }
+
+    cleanup();
+
+    const snmp: HTMLElement = renderScenario(
+      SCENARIOS.find((scenario: Scenario): boolean => {
+        return scenario.name === "SNMP (Network Device)";
+      })!,
+    );
+    const oid: HTMLElement = cellStartingWith(snmp, "1.3.6.1.2.1.1.1.0");
+
+    // Whole when read or copied, with a place to wrap after each dot.
+    expect(oid.textContent).toBe("1.3.6.1.2.1.1.1.0");
+    expect(oid.querySelectorAll("wbr")).toHaveLength(8);
+    expect(oid).toHaveClass(SUMMARY_TABLE_TEXT_CLASS_NAME);
+    expect(oid).not.toHaveClass(SUMMARY_TABLE_VALUE_CLASS_NAME);
+    expect(cellStartingWith(snmp, "Cisco IOS Software")).toHaveClass(
+      SUMMARY_TABLE_VALUE_CLASS_NAME,
+    );
+  });
+
+  /*
+   * A script that failed says why in the summary's facts - a row of its own
+   * after when it ran - where it said "Yes" and kept the reason under Show
+   * More Details. A run that did not fail still says "No".
+   */
+  test("a custom script or Synthetic run that failed says why, not Yes", () => {
+    const failing: HTMLElement = renderScenario(
+      SCENARIOS.find((scenario: Scenario): boolean => {
+        return scenario.name === "Custom JavaScript Code";
+      })!,
+    );
+    const error: HTMLElement = screen
+      .getByText("TypeError: Cannot read properties of undefined")
+      .closest("div.rounded-xl") as HTMLElement;
+
+    expect(error).toHaveTextContent("Error");
+    expect(shareOf(error)).toBe(SUMMARY_WIDE_FACT_CLASS_NAME);
+    expect(screen.queryByText("Yes")).toBeNull();
+
+    const titles: Array<string> = Array.from(
+      failing.querySelectorAll("[data-testid='monitor-summary-fact'] label"),
+    ).map((label: Element): string => {
+      return (label.textContent || "").trim();
+    });
+
+    expect(titles.indexOf("Error")).toBe(titles.length - 1);
+    expect(titles.indexOf("Monitored At")).toBeLessThan(
+      titles.indexOf("Error"),
+    );
+
+    cleanup();
+
+    renderScenario(
+      SCENARIOS.find((scenario: Scenario): boolean => {
+        return scenario.name === "Synthetic";
+      })!,
+    );
+
+    const ok: HTMLElement = screen
+      .getByText("No")
+      .closest("div.rounded-xl") as HTMLElement;
+
+    expect(ok).toHaveTextContent("Error");
+    expect(shareOf(ok)).toBe(SUMMARY_FACT_IN_THREES_SHARE_CLASS_NAME);
+    expect(
+      screen.getByRole("heading", { name: "Chromium - Desktop" }),
+    ).toBeInTheDocument();
   });
 
   test("the status words are the reader's, not the code's", () => {

@@ -16,16 +16,17 @@ import path from "path";
  * and fifth-width cards: at 1280 every value was squeezed into a column a
  * word or two wide, and at 390 the row was wider than the phone, so the
  * card scrolled sideways under the reader's thumb (an Incoming Request
- * monitor's three half-width cards, #5101). They share SummaryFacts now - a
- * grid that follows the summary's own width (#5207's container query): two
- * to a row in the overview's card, four in Monitoring Logs' wide View
- * Summary dialog, at one screen width.
+ * monitor's three half-width cards, #5101). They share SummaryFacts now -
+ * rows that follow the summary's own width (#5207's container query): one
+ * fact a row on a phone, two to a row in the overview's card, four in
+ * Monitoring Logs' wide View Summary dialog, at one screen width - and a
+ * row the facts leave short is shared by the facts on it.
  *
  * What only a browser can tell is measured here: nothing in the card scrolls
- * sideways or runs past its card, how many facts share a row, and the same
- * at 390. The production overview (Pages/Monitor/View) against the offline
- * fixture (Fixture/Fixture.js), with its network fence and its record of
- * requests it does not model.
+ * sideways or runs past its card, how many facts share a row, that no row
+ * ends in a hole, and the same at 390. The production overview
+ * (Pages/Monitor/View) against the offline fixture (Fixture/Fixture.js),
+ * with its network fence and its record of requests it does not model.
  */
 
 const PORT: string = process.env["MONITOR_OVERVIEW_FIXTURE_PORT"] || "4223";
@@ -235,6 +236,52 @@ async function expectEverythingFits(body: Locator): Promise<void> {
   }
 }
 
+/*
+ * Every row of every group of facts ends at the group's right edge: a row
+ * the facts leave short - the third of three, two to a row - is shared by
+ * the facts on it, never a row that ends in a hole.
+ */
+async function expectNoRowEndsInAHole(scope: Locator): Promise<void> {
+  const holes: Array<string> = await scope
+    .getByTestId("monitor-summary-fact")
+    .evaluateAll((cards: Array<Element>): Array<string> => {
+      const groups: Array<Element> = Array.from(
+        new Set(
+          cards.map((card: Element): Element => {
+            return card.parentElement as Element;
+          }),
+        ),
+      );
+      const found: Array<string> = [];
+
+      for (const group of groups) {
+        const groupBox: DOMRect = group.getBoundingClientRect();
+        const rowEnds: Map<number, number> = new Map<number, number>();
+
+        for (const card of Array.from(group.children)) {
+          const box: DOMRect = card.getBoundingClientRect();
+          const top: number = Math.round(box.y);
+
+          rowEnds.set(top, Math.max(rowEnds.get(top) || 0, box.right));
+        }
+
+        for (const [top, right] of Array.from(rowEnds.entries())) {
+          if (groupBox.right - right > 1) {
+            found.push(
+              `${group.getAttribute("data-testid")} row at ${top}: ${Math.round(
+                groupBox.right - right,
+              )}px empty`,
+            );
+          }
+        }
+      }
+
+      return found;
+    });
+
+  expect(holes, "rows of facts that end in a hole").toEqual([]);
+}
+
 async function noSidewaysScroll(page: Page): Promise<void> {
   const overflow: number = await page.evaluate((): number => {
     return (
@@ -258,12 +305,18 @@ test.describe("the Monitor Summary card, for every monitor type the overview sho
       const body: Locator = await openSummary(page, type);
 
       await expectEverythingFits(body);
+      await expectNoRowEndsInAHole(body);
       expect(await mostFactsInARow(body)).toBe(2);
 
       await screenshot(page, `monitor-summary-facts-${type}-1280`);
     });
 
-    test(`${type}: fits a phone at 390, two facts to a row`, async ({
+    /*
+     * Two to a row on a phone left each value about 100px, and broke
+     * hostnames, dates and error codes mid-word: a phone gets one fact a
+     * row, the whole of every value on it.
+     */
+    test(`${type}: fits a phone at 390, one fact a row`, async ({
       page,
     }: {
       page: Page;
@@ -275,18 +328,40 @@ test.describe("the Monitor Summary card, for every monitor type the overview sho
 
       await noSidewaysScroll(page);
       await expectEverythingFits(body);
-      expect(await mostFactsInARow(body)).toBe(2);
+      await expectNoRowEndsInAHole(body);
+      expect(await mostFactsInARow(body)).toBe(1);
 
       await screenshot(page, `monitor-summary-facts-${type}-390`);
     });
   }
 
   /*
+   * Beside a tablet's side menu the Summary card is narrow (its summary
+   * 366px wide at 768), yet wide enough for two facts to a row.
+   */
+  test("api at 768, beside the side menu: two facts to a row", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.setTimeout(180000);
+    await page.setViewportSize({ width: 768, height: 900 });
+
+    const body: Locator = await openSummary(page, "api");
+
+    await noSidewaysScroll(page);
+    await expectEverythingFits(body);
+    await expectNoRowEndsInAHole(body);
+    expect(await mostFactsInARow(body)).toBe(2);
+  });
+
+  /*
    * The report behind #5101's note: an Incoming Request monitor's three
    * cards - when the last request came, its method, and the last check -
-   * were each half the row wide, so the row ran a card past the card.
+   * were each half the row wide, so the row ran a card past the card. On a
+   * phone they go one under another.
    */
-  test("incoming-request at 390: its three facts wrap inside the card instead of scrolling it", async ({
+  test("incoming-request at 390: its three facts go one under another inside the card", async ({
     page,
   }: {
     page: Page;
@@ -303,9 +378,38 @@ test.describe("the Monitor Summary card, for every monitor type the overview sho
     const second: Box = await boxOf(facts.nth(1));
     const third: Box = await boxOf(facts.nth(2));
 
+    expect(second.y).toBeGreaterThan(first.y + first.height - 1);
+    expect(third.y).toBeGreaterThan(second.y + second.height - 1);
+    expect(Math.abs(first.width - third.width)).toBeLessThan(1);
+    await expectEverythingFits(body);
+  });
+
+  /*
+   * Two to a row in the overview's card: the third of three takes the row
+   * the first two leave, rather than half of it beside a hole.
+   */
+  test("incoming-request at 1280: its third fact takes the row the first two leave", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.setTimeout(180000);
+    await page.setViewportSize({ width: 1280, height: 900 });
+
+    const body: Locator = await openSummary(page, "incoming-request");
+    const facts: Locator = body.getByTestId("monitor-summary-fact");
+
+    await expect(facts).toHaveCount(3);
+
+    const first: Box = await boxOf(facts.nth(0));
+    const second: Box = await boxOf(facts.nth(1));
+    const third: Box = await boxOf(facts.nth(2));
+
     expect(Math.abs(first.y - second.y)).toBeLessThan(1);
     expect(third.y).toBeGreaterThan(first.y + first.height);
-    await expectEverythingFits(body);
+    expect(third.x).toBeLessThan(first.x + 1);
+    expect(third.x + third.width).toBeGreaterThan(second.x + second.width - 1);
+    await expectNoRowEndsInAHole(body);
   });
 
   test("api, offline: why the check failed comes right after what it found", async ({
@@ -408,6 +512,7 @@ test.describe("the Monitor Summary card, for every monitor type the overview sho
     ).toBeVisible();
 
     expect(await mostFactsInARow(dialog)).toBe(4);
+    await expectNoRowEndsInAHole(dialog);
 
     await screenshot(page, "monitor-summary-facts-view-summary-1280");
   });

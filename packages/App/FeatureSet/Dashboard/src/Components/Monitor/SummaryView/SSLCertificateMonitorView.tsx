@@ -218,7 +218,7 @@ const CertificateSummary: FunctionComponent<CertificateSummaryProps> = (
       )}
 
       {!showMoreDetails && (
-        <div className="-ml-2">
+        <div className="-ml-3">
           <Button
             buttonStyle={ButtonStyleType.SECONDARY_LINK}
             title="Show More Details"
@@ -230,7 +230,7 @@ const CertificateSummary: FunctionComponent<CertificateSummaryProps> = (
       )}
 
       {showMoreDetails && (
-        <div className="-ml-2">
+        <div className="-ml-3">
           <Button
             buttonStyle={ButtonStyleType.SECONDARY_LINK}
             title="Hide Details"

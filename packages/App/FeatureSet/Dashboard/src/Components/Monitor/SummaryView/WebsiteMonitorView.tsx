@@ -111,7 +111,7 @@ const WebsiteMonitorSummaryView: FunctionComponent<ComponentProps> = (
       )}
 
       {!showMoreDetails && (fields.length > 0 || hadRetries) && (
-        <div className="-ml-2">
+        <div className="-ml-3">
           <Button
             buttonStyle={ButtonStyleType.SECONDARY_LINK}
             title="Show More Details"

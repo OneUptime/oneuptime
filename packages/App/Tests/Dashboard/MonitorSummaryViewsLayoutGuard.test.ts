@@ -12,9 +12,10 @@ import path from "path";
  * overview's Monitor Summary card - two thirds of the page - that squeezed
  * every value into a column a word or two wide at 1280, and at 390 the row
  * was wider than the phone, so the card scrolled sideways. Their tables sat
- * in frames that hid what did not fit. They share SummaryFacts now: a grid
- * that follows the summary's own width (a container query), and table
- * frames that scroll rather than clip.
+ * in frames that hid what did not fit. They share SummaryFacts now: rows
+ * that follow the summary's own width (a container query) - one fact a row
+ * on a phone, two from 22rem, four from 64rem, a short last row shared by
+ * the facts on it - and table frames that scroll rather than clip.
  *
  * This reads every view's source and keeps it so: a new view, or a new
  * row in an old one, uses SummaryFacts and SummaryFact.
@@ -39,8 +40,11 @@ const INFO_CARD_IMPORT: RegExp =
   /import\s+InfoCard\s+from\s+"Common\/UI\/Components\/InfoCard\/InfoCard"/;
 // "w-1/4", "w-1/5", "sm:w-1/2" - a fraction of a row.
 const FRACTION_WIDTH: RegExp = /(?:^|[\s"'`:])w-\d\/\d(?=[\s"'`]|$)/m;
-// A grid that counts its columns by the screen ("lg:grid-cols-4").
-const VIEWPORT_GRID: RegExp = /(?:sm|md|lg|xl|2xl):grid-cols-\d/;
+/*
+ * Columns or shares of a row counted by the screen ("lg:grid-cols-4",
+ * "md:basis-1/2").
+ */
+const VIEWPORT_GRID: RegExp = /(?:sm|md|lg|xl|2xl):(?:grid-cols-\d|basis-)/;
 // A frame that hides what does not fit.
 const CLIPPING_FRAME: RegExp = /overflow-hidden/;
 // A row of cards spaced with space-x.
@@ -101,6 +105,12 @@ describe("the monitor summary views lay their facts out by their own width", () 
     expect(FRACTION_WIDTH.test('className="w-1/4 shadow-none"')).toBe(true);
     expect(FRACTION_WIDTH.test('className="w-full shadow-none"')).toBe(false);
     expect(VIEWPORT_GRID.test("grid grid-cols-2 lg:grid-cols-4")).toBe(true);
+    expect(VIEWPORT_GRID.test("basis-full md:basis-1/2")).toBe(true);
+    expect(
+      VIEWPORT_GRID.test(
+        "basis-full [@container(min-width:22rem)]:basis-[calc(50%-0.75rem)]",
+      ),
+    ).toBe(false);
     expect(
       VIEWPORT_GRID.test(
         "grid grid-cols-2 [@container(min-width:64rem)]:grid-cols-4",
@@ -112,13 +122,35 @@ describe("the monitor summary views lay their facts out by their own width", () 
     expect(SPACED_ROW.test('<div className="flex space-x-3">')).toBe(true);
   });
 
-  test("the shared grid follows the summary's width, not the screen's", () => {
+  test("the shared rows follow the summary's width, not the screen's", () => {
     const shared: string = read(SHARED_MODULE);
 
     expect(shared).toContain('"space-y-5 [container-type:inline-size]"');
+    expect(shared).toContain('"flex flex-wrap gap-3"');
     expect(shared).toContain(
-      '"grid grid-cols-2 gap-3 [@container(min-width:64rem)]:grid-cols-4"',
+      '"basis-full [@container(min-width:22rem)]:basis-[calc(50%-0.75rem)] [@container(min-width:64rem)]:basis-[calc(25%-0.75rem)]"',
     );
     expect(shared).toContain('"overflow-x-auto rounded-md border"');
+  });
+
+  /*
+   * A table cell that may break anywhere ([overflow-wrap:anywhere]) can be
+   * squeezed to one letter a line once its table runs out of room. Each
+   * table keeps that to its one column of long values.
+   */
+  test("a table breaks anywhere in one column at most", () => {
+    for (const file of views()) {
+      for (const table of read(file).split("<table").slice(1)) {
+        const body: string = table.split("</table>")[0] || "";
+
+        const columnsBreakingAnywhere: number =
+          body.split("SUMMARY_TABLE_VALUE_CLASS_NAME").length - 1;
+
+        expect({ file, atMostOne: columnsBreakingAnywhere <= 1 }).toEqual({
+          file,
+          atMostOne: true,
+        });
+      }
+    }
   });
 });

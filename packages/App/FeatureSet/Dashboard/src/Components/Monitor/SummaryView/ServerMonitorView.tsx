@@ -224,7 +224,7 @@ const ServerMonitorSummaryView: FunctionComponent<ComponentProps> = (
       )}
 
       {!showMoreDetails && hasMoreDetails && (
-        <div className="-ml-2">
+        <div className="-ml-3">
           <Button
             buttonStyle={ButtonStyleType.SECONDARY_LINK}
             title="Show More Details"

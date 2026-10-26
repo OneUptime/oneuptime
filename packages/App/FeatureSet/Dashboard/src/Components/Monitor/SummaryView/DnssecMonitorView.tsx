@@ -9,7 +9,7 @@ import React, { FunctionComponent, ReactElement } from "react";
 import ProbeAttemptsView from "./ProbeAttemptsView";
 import {
   SUMMARY_TABLE_FRAME_CLASS_NAME,
-  SUMMARY_TABLE_VALUE_CLASS_NAME,
+  SUMMARY_TABLE_TEXT_CLASS_NAME,
   SummaryFact,
   SummaryFacts,
   SummaryView,
@@ -152,7 +152,7 @@ const DnssecMonitorView: FunctionComponent<ComponentProps> = (
                       return (
                         <tr key={index}>
                           <td
-                            className={`px-4 py-2 text-sm text-gray-900 font-mono ${SUMMARY_TABLE_VALUE_CLASS_NAME}`}
+                            className={`px-4 py-2 text-sm text-gray-900 font-mono ${SUMMARY_TABLE_TEXT_CLASS_NAME}`}
                           >
                             {check.resolver}
                           </td>
@@ -163,7 +163,7 @@ const DnssecMonitorView: FunctionComponent<ComponentProps> = (
                             {yesNo(check.servfailWhenValidating)}
                           </td>
                           <td
-                            className={`px-4 py-2 text-sm text-gray-900 ${SUMMARY_TABLE_VALUE_CLASS_NAME}`}
+                            className={`px-4 py-2 text-sm text-gray-900 ${SUMMARY_TABLE_TEXT_CLASS_NAME}`}
                           >
                             {check.error || "-"}
                           </td>
@@ -207,7 +207,7 @@ const DnssecMonitorView: FunctionComponent<ComponentProps> = (
                       return (
                         <tr key={index}>
                           <td
-                            className={`px-4 py-2 text-sm text-gray-900 font-mono ${SUMMARY_TABLE_VALUE_CLASS_NAME}`}
+                            className={`px-4 py-2 text-sm text-gray-900 font-mono ${SUMMARY_TABLE_TEXT_CLASS_NAME}`}
                           >
                             {check.nameServer}
                           </td>
@@ -218,7 +218,7 @@ const DnssecMonitorView: FunctionComponent<ComponentProps> = (
                             {formatDateText(check.rrsigExpiration)}
                           </td>
                           <td
-                            className={`px-4 py-2 text-sm text-gray-900 ${SUMMARY_TABLE_VALUE_CLASS_NAME}`}
+                            className={`px-4 py-2 text-sm text-gray-900 ${SUMMARY_TABLE_TEXT_CLASS_NAME}`}
                           >
                             {check.error || "-"}
                           </td>

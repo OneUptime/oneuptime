@@ -112,7 +112,7 @@ const IncomingEmailMonitorSummaryView: FunctionComponent<ComponentProps> = (
       )}
 
       {!showMoreDetails && fields.length > 0 && (
-        <div className="-ml-2">
+        <div className="-ml-3">
           <Button
             buttonStyle={ButtonStyleType.SECONDARY_LINK}
             title="Show More Details"

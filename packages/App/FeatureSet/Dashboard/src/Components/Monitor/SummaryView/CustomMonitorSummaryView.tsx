@@ -101,7 +101,9 @@ const CustomMonitorRunSummary: FunctionComponent<ComponentProps> = (
 
         {/*
          * With the probe, four facts; a Synthetic run, under the probe its
-         * summary names once, has three that belong together.
+         * summary names once, has three that belong together. A run that
+         * failed says why in its last fact, a row of its own, where it said
+         * "Yes" and kept the reason under Show More Details.
          */}
         <SummaryFacts isInThrees={!props.probeName}>
           {props.probeName ? (
@@ -114,14 +116,6 @@ const CustomMonitorRunSummary: FunctionComponent<ComponentProps> = (
             value={executionTimeInMS ? executionTimeInMS + " ms" : "-"}
           />
           <SummaryFact
-            title="Error"
-            value={
-              translator.translateText(
-                customCodeMonitorResponse.scriptError ? "Yes" : "No",
-              ) || ""
-            }
-          />
-          <SummaryFact
             title="Monitored At"
             value={
               props.monitoredAt
@@ -131,6 +125,18 @@ const CustomMonitorRunSummary: FunctionComponent<ComponentProps> = (
                 : "-"
             }
           />
+          {customCodeMonitorResponse.scriptError ? (
+            <SummaryFact
+              isWide={true}
+              title="Error"
+              value={customCodeMonitorResponse.scriptError}
+            />
+          ) : (
+            <SummaryFact
+              title="Error"
+              value={translator.translateText("No") || ""}
+            />
+          )}
         </SummaryFacts>
 
         {showMoreDetails && (
@@ -204,7 +210,7 @@ const CustomMonitorRunSummary: FunctionComponent<ComponentProps> = (
         )}
 
         {!showMoreDetails && (
-          <div className="-ml-2">
+          <div className="-ml-3">
             <Button
               buttonStyle={ButtonStyleType.SECONDARY_LINK}
               title="Show More Details"
@@ -218,7 +224,7 @@ const CustomMonitorRunSummary: FunctionComponent<ComponentProps> = (
         {/* Hide details button */}
 
         {showMoreDetails && (
-          <div className="-ml-2">
+          <div className="-ml-3">
             <Button
               buttonStyle={ButtonStyleType.SECONDARY_LINK}
               title="Hide Details"

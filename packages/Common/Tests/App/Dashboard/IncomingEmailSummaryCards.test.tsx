@@ -57,11 +57,11 @@ describe("An Incoming Email monitor's summary cards", () => {
   });
 
   /*
-   * Since every monitor summary's facts share one grid (SummaryFacts), the
-   * cards sit two to a row in a grid whose gap spaces only cards side by
+   * Since every monitor summary's facts share one layout (SummaryFacts), the
+   * cards sit in rows that wrap, with a gap that spaces only cards side by
    * side - and never with space-x.
    */
-  test("sit in a grid with a gap, so a card on a line of its own does not step in", () => {
+  test("sit in wrapping rows with a gap, so a card on a line of its own does not step in", () => {
     renderSummary();
 
     const fromCard: HTMLElement = screen
@@ -71,7 +71,7 @@ describe("An Incoming Email monitor's summary cards", () => {
     const classes: Array<string> = row.className.split(" ");
 
     expect(classes).toEqual(
-      expect.arrayContaining(["grid", "grid-cols-2", "gap-3"]),
+      expect.arrayContaining(["flex", "flex-wrap", "gap-3"]),
     );
     expect(
       classes.filter((name: string): boolean => {

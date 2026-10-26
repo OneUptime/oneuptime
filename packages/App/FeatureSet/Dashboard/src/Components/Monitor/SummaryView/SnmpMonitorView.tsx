@@ -4,11 +4,12 @@ import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import SnmpMonitorResponse, {
   SnmpOidResponse,
 } from "Common/Types/Monitor/SnmpMonitor/SnmpMonitorResponse";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import ProbeAttemptsView from "./ProbeAttemptsView";
 import SnmpInterfacesView from "./SnmpInterfacesView";
 import {
   SUMMARY_TABLE_FRAME_CLASS_NAME,
+  SUMMARY_TABLE_TEXT_CLASS_NAME,
   SUMMARY_TABLE_VALUE_CLASS_NAME,
   SummaryFact,
   SummaryFacts,
@@ -21,6 +22,36 @@ export interface ComponentProps {
   probeMonitorResponse: ProbeMonitorResponse;
   probeName?: string | undefined;
 }
+
+/*
+ * An OID that may wrap after any of its dots, and only there: a long one
+ * breaks at a dot rather than inside a number (or not at all, which left
+ * the value beside it a sliver of the table), and still copies whole.
+ */
+export const OidBreakingAtDots: FunctionComponent<{ oid: string }> = (props: {
+  oid: string;
+}): ReactElement => {
+  const parts: Array<string> = props.oid.split(".");
+
+  return (
+    <>
+      {parts.map((part: string, index: number): ReactElement => {
+        return (
+          <Fragment key={index}>
+            {part}
+            {index < parts.length - 1 ? (
+              <>
+                .<wbr />
+              </>
+            ) : (
+              <></>
+            )}
+          </Fragment>
+        );
+      })}
+    </>
+  );
+};
 
 const SnmpMonitorView: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -113,9 +144,9 @@ const SnmpMonitorView: FunctionComponent<ComponentProps> = (
                     return (
                       <tr key={index}>
                         <td
-                          className={`px-4 py-2 text-sm text-gray-900 font-mono ${SUMMARY_TABLE_VALUE_CLASS_NAME}`}
+                          className={`px-4 py-2 text-sm text-gray-900 font-mono ${SUMMARY_TABLE_TEXT_CLASS_NAME}`}
                         >
-                          {oidResponse.oid}
+                          <OidBreakingAtDots oid={oidResponse.oid} />
                         </td>
                         <td className="px-4 py-2 text-sm text-gray-500">
                           {oidResponse.name || "-"}
