@@ -48,11 +48,38 @@ const PROMPT_PAGE: string = path.join(
   "MasterPassword.tsx",
 );
 
+/*
+ * Each block comment, from its opener to the next closer, as one space -
+ * read with indexOf, one pass over the code, where a pattern looking for the
+ * end of every opener would take time growing with the square of the file.
+ */
+const withoutBlockComments: (code: string) => string = (
+  code: string,
+): string => {
+  const parts: Array<string> = [];
+  let at: number = 0;
+  let open: number = code.indexOf("/*");
+
+  while (open >= 0) {
+    const close: number = code.indexOf("*/", open + 2);
+
+    if (close < 0) {
+      break;
+    }
+
+    parts.push(code.slice(at, open));
+    at = close + 2;
+    open = code.indexOf("/*", at);
+  }
+
+  parts.push(code.slice(at));
+
+  return parts.join(" ");
+};
+
 // Without its comments, collapsed to one line.
 const readSource: (file: string) => string = (file: string): string => {
-  return fs
-    .readFileSync(file, "utf8")
-    .replace(/\/\*[\s\S]*?\*\//g, "")
+  return withoutBlockComments(fs.readFileSync(file, "utf8"))
     .replace(/(^|[^:])\/\/.*$/gm, "$1")
     .replace(/\s+/g, " ");
 };
