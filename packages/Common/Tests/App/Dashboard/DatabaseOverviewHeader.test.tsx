@@ -242,9 +242,12 @@ jest.mock(
 );
 
 import DatabaseServerOverview from "../../../../App/FeatureSet/Dashboard/src/Pages/Database/View/Overview";
-import ResourceOverview, {
-  RESOURCE_OVERVIEW_TITLE_BASIS_CLASS,
-} from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/ResourceOverview";
+import ResourceOverview from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/ResourceOverview";
+import {
+  RESOURCE_HERO_CONTROLS_CLASS_NAME,
+  RESOURCE_HERO_IDENTITY_CLASS_NAME,
+  RESOURCE_HERO_TOP_ROW_CLASS_NAME,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/ResourceHeroLayout";
 import IconProp from "../../../Types/Icon/IconProp";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import DatabaseServer from "../../../Models/DatabaseModels/DatabaseServer";
@@ -459,12 +462,17 @@ describe("ResourceOverview's status pill", () => {
   });
 
   /*
-   * md:flex-row put the controls beside the title from 768 px, where the
-   * side menu is also shown: the title was 0 px wide at 768, 109 px at 900
-   * and 181 px at 1024. The controls now wrap under the title whenever it
-   * would be narrower than its basis, at any width.
+   * md:flex-row with a squeezable title put the controls beside the title
+   * from 768 px, where the side menu is also shown: the title was 0 px wide
+   * at 768, 109 px at 900 and 181 px at 1024. A 24rem title basis fixed
+   * that, and kept the controls beside a long name at a laptop's width,
+   * which cut it short. The row is now every resource hero's
+   * (ResourceHeroLayout, measured in the browser by the ResourceOverviews
+   * suite): a column on a phone; from md the name never shrinks below its
+   * own content and the controls take the rest of the row, moving under
+   * the name when that rest is under 24rem.
    */
-  test("the controls wrap under the title instead of squeezing it, at any width", () => {
+  test("the controls give way to the title instead of squeezing it: every resource hero's row", () => {
     renderHeader({});
     const controls: HTMLElement = screen.getByTestId(
       "resource-overview-controls",
@@ -472,31 +480,37 @@ describe("ResourceOverview's status pill", () => {
     expect(controls).toContainElement(screen.getByTestId("controls"));
     const row: HTMLElement = screen.getByTestId("resource-overview-header-row");
     expect(controls.parentElement).toBe(row);
-    const rowClasses: Array<string> = row.className.split(/\s+/);
-    expect(rowClasses).toContain("flex");
-    expect(rowClasses).toContain("flex-wrap");
-    // No breakpoint decides it: not md, nor any other.
-    expect(row.className).not.toMatch(/(^|\s)(sm|md|lg|xl|2xl):flex-(row|col)/);
-    expect(rowClasses).not.toContain("flex-col");
+    expect(row.className.split(" ")).toEqual(
+      RESOURCE_HERO_TOP_ROW_CLASS_NAME.split(" "),
+    );
+    expect(row.className.split(" ")).toEqual(
+      expect.arrayContaining([
+        "flex",
+        "flex-col",
+        "md:flex-row",
+        "md:flex-wrap",
+      ]),
+    );
 
-    // The title asks for its basis and fills what is left beside the controls.
+    // The title keeps its own width - no min-w-0 for the controls to squeeze.
     const title: HTMLElement = screen.getByTestId(
       "resource-overview-title-block",
     );
     expect(title.parentElement).toBe(row);
-    const titleClasses: Array<string> = title.className.split(/\s+/);
-    expect(RESOURCE_OVERVIEW_TITLE_BASIS_CLASS).toBe("basis-96");
-    expect(titleClasses).toContain(RESOURCE_OVERVIEW_TITLE_BASIS_CLASS);
-    expect(titleClasses).toContain("grow");
-    expect(titleClasses).toContain("min-w-0");
+    expect(title.className.split(" ")).toEqual(
+      RESOURCE_HERO_IDENTITY_CLASS_NAME.split(" "),
+    );
+    expect(title.className.split(" ")).not.toContain("min-w-0");
     expect(
       within(title).getByText("checkout", { selector: "h1" }),
     ).toBeTruthy();
 
-    // The controls may shrink to the row and never hold it at their width.
-    const controlClasses: Array<string> = controls.className.split(/\s+/);
-    expect(controlClasses).toContain("max-w-full");
-    expect(controls.className).not.toMatch(/flex-shrink-0|shrink-0/);
+    // The controls never hold the row at their width.
+    expect(controls.className.split(" ")).toEqual(
+      RESOURCE_HERO_CONTROLS_CLASS_NAME.split(" "),
+    );
+    expect(controls.className.split(" ")).not.toContain("flex-shrink-0");
+    expect(controls.className.split(" ")).not.toContain("shrink-0");
   });
 
   test("without controls the title still fills the row", () => {
@@ -505,8 +519,8 @@ describe("ResourceOverview's status pill", () => {
       screen.queryByTestId("resource-overview-controls"),
     ).not.toBeInTheDocument();
     expect(
-      screen.getByTestId("resource-overview-title-block").className,
-    ).toContain("grow");
+      screen.getByTestId("resource-overview-title-block").className.split(" "),
+    ).toEqual(expect.arrayContaining(["md:w-full", "md:flex-1"]));
   });
 });
 

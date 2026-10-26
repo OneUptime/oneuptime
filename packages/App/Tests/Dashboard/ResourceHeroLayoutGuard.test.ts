@@ -5,6 +5,11 @@ import ts from "typescript";
 import {
   RESOURCE_HERO_CONTROLS_CLASS_NAME,
   RESOURCE_HERO_CONTROLS_TEST_ID,
+  RESOURCE_HERO_DESCRIPTION_CLASS_NAME,
+  RESOURCE_HERO_DESCRIPTION_COLLAPSED_CLASS_NAME,
+  RESOURCE_HERO_DESCRIPTION_TEST_ID,
+  RESOURCE_HERO_DESCRIPTION_TOGGLE_CLASS_NAME,
+  RESOURCE_HERO_DESCRIPTION_TOGGLE_TEST_ID,
   RESOURCE_HERO_IDENTITY_CLASS_NAME,
   RESOURCE_HERO_IDENTITY_TEST_ID,
   RESOURCE_HERO_TOP_ROW_CLASS_NAME,
@@ -43,10 +48,38 @@ import {
  *      page that is renamed or moved does not slip out of the guard.
  *
  * Services, RUM applications, databases, queues, serverless functions and
- * cloud resources draw their hero through ResourceOverview, which wraps its
- * own row (a title basis, the controls under it when they do not fit;
- * Common's DatabaseOverviewHeader suite): it has no <h1> beside an
- * AutoRefreshControl in one file, so rule 2 does not read it.
+ * cloud resources draw their hero through ResourceOverview: it has no <h1>
+ * beside an AutoRefreshControl in one file (its page hands it the
+ * controls), so rule 2 does not read it, and rule 6 holds it to the same
+ * three class names.
+ *
+ * #5298's UI review added:
+ *
+ *   5. Every hero draws the resource's description one way: under its
+ *      name, with ResourceHeroDescription - two lines that wrap between
+ *      words, 20rem from md, and "Show more" for the rest. A Docker Swarm,
+ *      a vCenter, a Proxmox cluster and an IoT fleet cut it to one line that
+ *      never wrapped: half a sentence on a phone, and at 1280 the line
+ *      claimed the identity's whole width and pushed Refresh under the
+ *      name. ResourceOverview draws it the same way, in its title.
+ *   6. ResourceOverview lays its hero's row out with the same three class
+ *      names: its own row wrapped its controls to the left, and its 24rem
+ *      title basis kept them beside a long name at a laptop's width and
+ *      cut the name short there, where every other hero shows it whole.
+ *   7. A hero with a health pill puts it after its connection pill, as the
+ *      Kubernetes, Docker Swarm, vCenter and Proxmox heroes do: a Ceph
+ *      cluster's and a storage array's put it first.
+ *   8. A hero page's Details card does not repeat the hero's connection
+ *      pill: a Docker or Podman host's, a Ceph cluster's and a storage
+ *      array's had a "Collector Status" row reading the stored lowercase
+ *      word ("connected").
+ *   9. A hero's pills are in the reader's language: every connection pill
+ *      takes its words from ResourceHeroStatus's
+ *      getResourceConnectionLabel, every health pill a cluster's hero
+ *      works out from getResourceHealthLabel ("Health Unknown" while the
+ *      agent is not connected), and a Ceph cluster's health pill is looked
+ *      up. Nine heroes wrote "Connected", "Disconnected", "Healthy" and
+ *      "Unknown" in English on every page, German and Persian included.
  */
 
 const DASHBOARD_SRC: string = path.resolve(
@@ -328,7 +361,12 @@ describe("ResourceHeroLayout", () => {
 
   test("the controls take the rest of the row, under the name below 24rem, kept on the right", () => {
     expect(RESOURCE_HERO_CONTROLS_CLASS_NAME.split(" ")).toEqual([
-      "md:ml-auto",
+      /*
+       * The inline start's margin: the row's end on a right-to-left page as
+       * on a left-to-right one. ml-auto pushed a Persian hero's wrapped
+       * controls to the name's side (#5298's UI review).
+       */
+      "md:ms-auto",
       "md:min-w-[min(100%,24rem)]",
       "md:max-w-max",
       "md:flex-[1000_1_0%]",
@@ -337,6 +375,7 @@ describe("ResourceHeroLayout", () => {
     ]);
     // Never the old unshrinkable controls.
     expect(RESOURCE_HERO_CONTROLS_CLASS_NAME).not.toContain("flex-shrink-0");
+    expect(RESOURCE_HERO_CONTROLS_CLASS_NAME).not.toContain("ml-auto");
   });
 
   test("no container query: a container would hold the fixed dialogs a hero opens", () => {
@@ -481,6 +520,586 @@ describe("no file that draws the refresh control keeps the old hero row", () => 
   });
 });
 
+/*
+ * ---------------------------------------------------------------------------
+ * Rule 5: the description, one way in every hero
+ * ---------------------------------------------------------------------------
+ */
+const DESCRIPTION_COMPONENT: string = "ResourceHeroDescription";
+
+// The heroes that show their resource's description.
+const DESCRIBED_HEROES: Array<string> = [
+  "Pages/DockerSwarm/View/Index.tsx",
+  "Pages/IoT/View/Index.tsx",
+  "Pages/Proxmox/View/Index.tsx",
+  "Pages/VMware/View/Index.tsx",
+];
+
+// The line those four drew before: one line, cut short.
+const OLD_DESCRIPTION_LINE: string = "mt-1 truncate text-sm text-gray-500";
+
+// The identity element of a hero's top row.
+function identityOf(hero: Hero): JsxTag {
+  const row: JsxTag | undefined = jsxTags(hero.source).find(
+    (tag: JsxTag): boolean => {
+      return (
+        attributeIdentifier(tag, "className") ===
+        "RESOURCE_HERO_TOP_ROW_CLASS_NAME"
+      );
+    },
+  );
+  const identity: JsxTag | undefined = row ? childElements(row)[0] : undefined;
+  if (!identity) {
+    throw new Error(`${relative(hero.file)} has no hero identity`);
+  }
+  return identity;
+}
+
+/*
+ * Every `<something>.description` read inside an element that is not the
+ * `text` of a ResourceHeroDescription: a description drawn some other way.
+ */
+function descriptionsDrawnOtherwise(element: JsxTag): Array<string> {
+  const found: Array<string> = [];
+  visit(element, (node: ts.Node): void => {
+    if (
+      !ts.isPropertyAccessExpression(node) ||
+      node.name.text !== "description"
+    ) {
+      return;
+    }
+    let ancestor: ts.Node | undefined = node.parent;
+    let isComponentText: boolean = false;
+    while (ancestor && ancestor !== element) {
+      if (
+        ts.isJsxAttribute(ancestor) &&
+        ancestor.name.getText() === "text" &&
+        ts.isJsxSelfClosingElement(ancestor.parent.parent) &&
+        tagName(ancestor.parent.parent) === DESCRIPTION_COMPONENT
+      ) {
+        isComponentText = true;
+        break;
+      }
+      ancestor = ancestor.parent;
+    }
+    if (!isComponentText) {
+      found.push(node.getText());
+    }
+  });
+  return found;
+}
+
+describe("rule 5: every hero draws its description one way", () => {
+  test("the description's class: words that wrap, 20rem from md, aligned as the page", () => {
+    expect(RESOURCE_HERO_DESCRIPTION_CLASS_NAME.split(" ")).toEqual([
+      "mt-1",
+      "text-left",
+      "text-sm",
+      "text-gray-500",
+      "[overflow-wrap:anywhere]",
+      "md:min-w-[20rem]",
+      "rtl:text-right",
+    ]);
+    expect(RESOURCE_HERO_DESCRIPTION_CLASS_NAME).not.toContain("truncate");
+    expect(RESOURCE_HERO_DESCRIPTION_TEST_ID).toBe("resource-hero-description");
+  });
+
+  test("two lines until the reader asks for the rest, with Show more under them", () => {
+    // Collapsed: two lines, never one cut line.
+    expect(RESOURCE_HERO_DESCRIPTION_COLLAPSED_CLASS_NAME).toBe("line-clamp-2");
+    expect(RESOURCE_HERO_DESCRIPTION_TOGGLE_TEST_ID).toBe(
+      "resource-hero-description-toggle",
+    );
+    // Its words start where the description's do, on either side of a page.
+    const toggle: Array<string> =
+      RESOURCE_HERO_DESCRIPTION_TOGGLE_CLASS_NAME.split(" ");
+    expect(toggle).toEqual(
+      expect.arrayContaining([
+        "-ms-1.5",
+        "px-1.5",
+        "text-xs",
+        "font-semibold",
+        "text-indigo-700",
+        "focus-visible:ring-2",
+      ]),
+    );
+    expect(RESOURCE_HERO_DESCRIPTION_TOGGLE_CLASS_NAME).not.toContain("-ml-");
+  });
+
+  test.each(
+    HEROES.map((hero: Hero): [string, Hero] => {
+      return [relative(hero.file), hero];
+    }),
+  )(
+    "%s draws a description only with ResourceHeroDescription",
+    (_name: string, hero: Hero) => {
+      expect(descriptionsDrawnOtherwise(identityOf(hero))).toEqual([]);
+      expect(classNameLiterals(hero.source)).not.toContain(
+        OLD_DESCRIPTION_LINE,
+      );
+    },
+  );
+
+  test.each(DESCRIBED_HEROES)(
+    "%s shows its description under its name",
+    (file: string) => {
+      const hero: Hero | undefined = HEROES.find((candidate: Hero): boolean => {
+        return relative(candidate.file) === file;
+      });
+      expect(hero).toBeDefined();
+      expect(containsTag(identityOf(hero!), DESCRIPTION_COMPONENT)).toBe(true);
+    },
+  );
+
+  test("the component draws the shared classes, its test ids, its own script's direction and a Show more that opens the rest", () => {
+    const component: string = fs
+      .readFileSync(
+        path.join(
+          DASHBOARD_SRC,
+          "Components",
+          "TelemetryResource",
+          "ResourceHeroDescription.tsx",
+        ),
+        "utf8",
+      )
+      .replace(/\s+/g, " ");
+
+    expect(component).toContain(
+      'data-testid={RESOURCE_HERO_DESCRIPTION_TEST_ID} dir="auto" className={textClassName}',
+    );
+    // Two lines while collapsed, all of it once opened.
+    expect(component).toContain(
+      "const textClassName: string = isExpanded ? RESOURCE_HERO_DESCRIPTION_CLASS_NAME : `${RESOURCE_HERO_DESCRIPTION_CLASS_NAME} ${RESOURCE_HERO_DESCRIPTION_COLLAPSED_CLASS_NAME}`;",
+    );
+    // A real button, saying what it opens and whether it is open.
+    expect(component).toContain(
+      'type="button" data-testid={RESOURCE_HERO_DESCRIPTION_TOGGLE_TEST_ID}',
+    );
+    expect(component).toContain("aria-expanded={isExpanded}");
+    expect(component).toContain("aria-controls={textId}");
+    expect(component).toContain('translator.translateText("Show less")');
+    expect(component).toContain('translator.translateText("Show more")');
+    /*
+     * The rest is never in a hover title only: a phone, a tablet and a
+     * keyboard never show one.
+     */
+    expect(component).not.toContain("title={");
+  });
+
+  test("ResourceOverview draws it in its title, never as the Details card's line", () => {
+    const component: string = fs
+      .readFileSync(
+        path.join(
+          DASHBOARD_SRC,
+          "Components",
+          "TelemetryResource",
+          "ResourceOverview.tsx",
+        ),
+        "utf8",
+      )
+      .replace(/\s+/g, " ");
+
+    expect(component).toContain(
+      "<ResourceHeroDescription text={props.description} />",
+    );
+    // The Details card's own line says what its rows are, at every width.
+    expect(component).not.toContain("description={ props.description ||");
+    expect(component).toContain(
+      '<Card title="Details" description="Metadata captured from OpenTelemetry resource attributes."',
+    );
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * Rule 6: ResourceOverview's wrapped controls keep to the row's end
+ * ---------------------------------------------------------------------------
+ */
+describe("rule 6: ResourceOverview's hero row is every hero's", () => {
+  const file: string = path.join(
+    DASHBOARD_SRC,
+    "Components",
+    "TelemetryResource",
+    "ResourceOverview.tsx",
+  );
+  const source: ts.SourceFile = parse(file);
+  const component: string = fs.readFileSync(file, "utf8").replace(/\s+/g, " ");
+
+  test("it imports the three class names from ResourceHeroLayout", () => {
+    const imported: Array<string> = importsOf(source)
+      .filter((entry: { from: string; names: Array<string> }): boolean => {
+        return entry.from === "./ResourceHeroLayout";
+      })
+      .flatMap((entry: { from: string; names: Array<string> }) => {
+        return entry.names;
+      });
+    for (const name of CLASS_CONSTANTS) {
+      expect(imported).toContain(name);
+    }
+  });
+
+  test("one top row: the title block with its <h1>, then the controls, each with its class name", () => {
+    const rows: Array<JsxTag> = jsxTags(source).filter(
+      (tag: JsxTag): boolean => {
+        return (
+          attributeIdentifier(tag, "className") ===
+          "RESOURCE_HERO_TOP_ROW_CLASS_NAME"
+        );
+      },
+    );
+    expect(rows).toHaveLength(1);
+    const row: JsxTag = rows[0]!;
+
+    const identity: JsxTag | undefined = childElements(row)[0];
+    expect(identity).toBeDefined();
+    expect(attributeIdentifier(identity!, "className")).toBe(
+      "RESOURCE_HERO_IDENTITY_CLASS_NAME",
+    );
+    expect(containsTag(identity!, "h1")).toBe(true);
+
+    // The controls are the page's, drawn only when it hands some in.
+    expect(component).toContain(
+      '<div data-testid="resource-overview-controls" className={RESOURCE_HERO_CONTROLS_CLASS_NAME} >',
+    );
+  });
+
+  test("none of its own row is left: no title basis, no left margin", () => {
+    const classes: Array<string> = classNameLiterals(source)
+      .join(" ")
+      .split(" ");
+    expect(classes).not.toContain("basis-96");
+    expect(component).not.toContain("RESOURCE_OVERVIEW_TITLE_BASIS_CLASS");
+    expect(component).not.toContain("ml-auto");
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * Rule 7: the connection pill, then the health pill
+ * ---------------------------------------------------------------------------
+ */
+// Each hero with a health pill: how its source writes the two pills.
+const HEALTH_HEROES: Array<[string, string, string]> = [
+  ["Pages/Ceph/View/Index.tsx", "{statusLabel}", "renderHealthPill("],
+  [
+    "Pages/StorageArray/View/Index.tsx",
+    "{statusLabel}",
+    "<StorageArrayHealthPill",
+  ],
+  ["Pages/DockerSwarm/View/Index.tsx", "{connectionLabel}", "{healthLabel}"],
+  ["Pages/Kubernetes/View/Index.tsx", "{connectionLabel}", "{healthLabel}"],
+  ["Pages/Proxmox/View/Index.tsx", "{connectionLabel}", "{healthLabel}"],
+  ["Pages/VMware/View/Index.tsx", "{connectionLabel}", "{healthLabel}"],
+];
+
+// What a health pill is written with, in any hero.
+const HEALTH_MARKERS: Array<string> = ["healthLabel", "HealthPill"];
+
+describe("rule 7: a hero's connection pill comes before its health pill", () => {
+  test.each(HEALTH_HEROES)(
+    "%s: whether OneUptime hears from it, then what it says",
+    (file: string, connection: string, health: string) => {
+      const hero: Hero | undefined = HEROES.find((candidate: Hero): boolean => {
+        return relative(candidate.file) === file;
+      });
+      expect(hero).toBeDefined();
+      const identity: string = identityOf(hero!).getText();
+
+      const connectionAt: number = identity.indexOf(connection);
+      const healthAt: number = identity.indexOf(health);
+      expect(connectionAt).toBeGreaterThan(-1);
+      expect(healthAt).toBeGreaterThan(-1);
+      expect(connectionAt).toBeLessThan(healthAt);
+    },
+  );
+
+  test("every hero that draws a health pill is one of them", () => {
+    const listed: Array<string> = HEALTH_HEROES.map(
+      (entry: [string, string, string]): string => {
+        return entry[0];
+      },
+    );
+    const withHealth: Array<string> = HEROES.filter((hero: Hero): boolean => {
+      const identity: string = identityOf(hero).getText();
+      return HEALTH_MARKERS.some((marker: string): boolean => {
+        return identity.includes(marker);
+      });
+    }).map((hero: Hero): string => {
+      return relative(hero.file);
+    });
+
+    expect(withHealth.sort()).toEqual([...listed].sort());
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * Rule 8: no Details card repeats the hero's connection pill, raw
+ * ---------------------------------------------------------------------------
+ */
+// The pages whose Details card had the row (#5298's UI review).
+const COLLECTOR_STATUS_PAGES: Array<string> = [
+  "Pages/Ceph/View/Index.tsx",
+  "Pages/Docker/View/Overview.tsx",
+  "Pages/Podman/View/Overview.tsx",
+  "Pages/StorageArray/View/Index.tsx",
+];
+
+describe("rule 8: a hero page's Details card does not repeat its connection pill", () => {
+  test.each(
+    HEROES.map((hero: Hero): [string, Hero] => {
+      return [relative(hero.file), hero];
+    }),
+  )(
+    "%s has no Collector Status row (the stored lowercase word the pill says in words)",
+    (_name: string, hero: Hero) => {
+      expect(hero.source.getFullText()).not.toContain(
+        'title: "Collector Status"',
+      );
+    },
+  );
+
+  test("the pages that had one are still read", () => {
+    const found: Array<string> = HEROES.map((hero: Hero): string => {
+      return relative(hero.file);
+    });
+    for (const page of COLLECTOR_STATUS_PAGES) {
+      expect(found).toContain(page);
+    }
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * Rule 9: a hero's pills, in the reader's language
+ * ---------------------------------------------------------------------------
+ */
+const STATUS_MODULE_SUFFIX: string = "TelemetryResource/ResourceHeroStatus";
+
+// The variable a hero's pill is drawn from, and where its words must come from.
+const PILL_LABELS: Record<string, string> = {
+  statusLabel: "getResourceConnectionLabel",
+  connectionLabel: "getResourceConnectionLabel",
+  healthLabel: "getResourceHealthLabel",
+};
+
+// The heroes that draw a connection pill (#5298's UI review moved them all).
+const CONNECTION_PILL_HEROES: Array<string> = [
+  "Pages/Ceph/View/Index.tsx",
+  "Pages/Docker/View/Overview.tsx",
+  "Pages/DockerSwarm/View/Index.tsx",
+  "Pages/Host/View/Overview.tsx",
+  "Pages/IoT/View/Index.tsx",
+  "Pages/Kubernetes/View/Index.tsx",
+  "Pages/Podman/View/Overview.tsx",
+  "Pages/Proxmox/View/Index.tsx",
+  "Pages/StorageArray/View/Index.tsx",
+  "Pages/VMware/View/Index.tsx",
+];
+
+// The pill variables a hero's identity draws as `{name}`.
+function pillVariablesDrawn(hero: Hero): Array<string> {
+  const drawn: Array<string> = [];
+  visit(identityOf(hero), (node: ts.Node): void => {
+    if (
+      ts.isJsxExpression(node) &&
+      node.expression &&
+      ts.isIdentifier(node.expression) &&
+      PILL_LABELS[node.expression.text] &&
+      !drawn.includes(node.expression.text)
+    ) {
+      drawn.push(node.expression.text);
+    }
+  });
+  return drawn;
+}
+
+// What each declaration of `name` in the hero's file is initialized with.
+function initializersOf(hero: Hero, name: string): Array<ts.Expression> {
+  const found: Array<ts.Expression> = [];
+  visit(hero.source, (node: ts.Node): void => {
+    if (
+      ts.isVariableDeclaration(node) &&
+      ts.isIdentifier(node.name) &&
+      node.name.text === name &&
+      node.initializer
+    ) {
+      found.push(node.initializer);
+    }
+  });
+  return found;
+}
+
+function calledFunction(expression: ts.Expression): string | undefined {
+  return ts.isCallExpression(expression) &&
+    ts.isIdentifier(expression.expression)
+    ? expression.expression.text
+    : undefined;
+}
+
+/*
+ * The variable a value is the initializer of, through the conditions,
+ * brackets and casts it sits in (`isConnected ? "Connected" : ...`).
+ */
+function declarationHolding(node: ts.Node): ts.VariableDeclaration | undefined {
+  let current: ts.Node | undefined = node.parent;
+  while (
+    current &&
+    (ts.isConditionalExpression(current) ||
+      ts.isParenthesizedExpression(current) ||
+      ts.isAsExpression(current) ||
+      ts.isBinaryExpression(current))
+  ) {
+    current = current.parent;
+  }
+  return current && ts.isVariableDeclaration(current) ? current : undefined;
+}
+
+// A pill word a hero puts in its pill as it is: English on every page.
+function untranslatedPillWords(hero: Hero): Array<string> {
+  const words: Array<string> = [];
+  const pillWords: Array<string> = [
+    "Connected",
+    "Disconnected",
+    "Healthy",
+    "Degraded",
+    "Unhealthy",
+    "Unknown",
+  ];
+  visit(hero.source, (node: ts.Node): void => {
+    if (!ts.isStringLiteral(node) || !pillWords.includes(node.text)) {
+      return;
+    }
+    const declaration: ts.VariableDeclaration | undefined =
+      declarationHolding(node);
+    if (
+      declaration &&
+      ts.isIdentifier(declaration.name) &&
+      PILL_LABELS[declaration.name.text]
+    ) {
+      words.push(`${declaration.name.text}: "${node.text}"`);
+    }
+  });
+  return words;
+}
+
+describe("rule 9: a hero's pills are in the reader's language", () => {
+  test.each(CONNECTION_PILL_HEROES)(
+    "%s draws its connection pill",
+    (file: string) => {
+      const hero: Hero | undefined = HEROES.find((candidate: Hero): boolean => {
+        return relative(candidate.file) === file;
+      });
+      expect(hero).toBeDefined();
+      const drawn: Array<string> = pillVariablesDrawn(hero!);
+      expect(
+        drawn.filter((name: string): boolean => {
+          return PILL_LABELS[name] === "getResourceConnectionLabel";
+        }),
+      ).toHaveLength(1);
+    },
+  );
+
+  test.each(
+    HEROES.map((hero: Hero): [string, Hero] => {
+      return [relative(hero.file), hero];
+    }),
+  )(
+    "%s: each pill it draws takes its words from ResourceHeroStatus",
+    (_name: string, hero: Hero) => {
+      const drawn: Array<string> = pillVariablesDrawn(hero);
+      if (drawn.length === 0) {
+        return;
+      }
+
+      const imported: Array<string> = importsOf(hero.source)
+        .filter((entry: { from: string; names: Array<string> }): boolean => {
+          return entry.from.endsWith(STATUS_MODULE_SUFFIX);
+        })
+        .flatMap((entry: { from: string; names: Array<string> }) => {
+          return entry.names;
+        });
+
+      for (const name of drawn) {
+        const helper: string = PILL_LABELS[name]!;
+        expect(imported).toContain(helper);
+
+        const initializers: Array<ts.Expression> = initializersOf(hero, name);
+        expect(initializers.length).toBeGreaterThan(0);
+        for (const initializer of initializers) {
+          expect({ name: name, calls: calledFunction(initializer) }).toEqual({
+            name: name,
+            calls: helper,
+          });
+        }
+      }
+    },
+  );
+
+  test.each(
+    HEROES.map((hero: Hero): [string, Hero] => {
+      return [relative(hero.file), hero];
+    }),
+  )(
+    "%s writes no pill word in English for every reader",
+    (_name: string, hero: Hero) => {
+      expect(untranslatedPillWords(hero)).toEqual([]);
+    },
+  );
+
+  test("every hero with a connection pill is listed, and only those", () => {
+    const withPill: Array<string> = HEROES.filter((hero: Hero): boolean => {
+      return pillVariablesDrawn(hero).some((name: string): boolean => {
+        return PILL_LABELS[name] === "getResourceConnectionLabel";
+      });
+    }).map((hero: Hero): string => {
+      return relative(hero.file);
+    });
+
+    expect(withPill.sort()).toEqual([...CONNECTION_PILL_HEROES].sort());
+  });
+
+  test("the four heroes that work out a health draw it from getResourceHealthLabel", () => {
+    const withHealth: Array<string> = HEROES.filter((hero: Hero): boolean => {
+      return pillVariablesDrawn(hero).includes("healthLabel");
+    }).map((hero: Hero): string => {
+      return relative(hero.file);
+    });
+
+    expect(withHealth.sort()).toEqual(
+      [
+        "Pages/DockerSwarm/View/Index.tsx",
+        "Pages/Kubernetes/View/Index.tsx",
+        "Pages/Proxmox/View/Index.tsx",
+        "Pages/VMware/View/Index.tsx",
+      ].sort(),
+    );
+  });
+
+  test("a Ceph cluster's health pill looks its words up", () => {
+    const hero: Hero | undefined = HEROES.find((candidate: Hero): boolean => {
+      return relative(candidate.file) === "Pages/Ceph/View/Index.tsx";
+    });
+    expect(hero).toBeDefined();
+    const text: string = hero!.source.getFullText();
+    const pill: string = text.slice(
+      text.indexOf("const renderHealthPill"),
+      text.indexOf("const renderHealthPill") + 2000,
+    );
+
+    expect(pill).toContain("{translator.translateText(pill.label)}");
+    expect(pill).not.toContain("{pill.label}");
+    for (const word of [
+      "Health OK",
+      "Health Warning",
+      "Health Error",
+      "Health Unknown",
+    ]) {
+      expect(pill).toContain(`label: translationKey("${word}")`);
+    }
+  });
+});
+
 describe("the guard reads what it means to", () => {
   test("it sees every hero this change moved, and only pages", () => {
     expect(HEROES.length).toBeGreaterThanOrEqual(KNOWN_HEROES.length);
@@ -489,7 +1108,7 @@ describe("the guard reads what it means to", () => {
     }
   });
 
-  test("ResourceOverview's hero is not one of them: its row is its own", () => {
+  test("ResourceOverview is not one of the pages rule 2 reads (its page hands it the controls); rule 6 holds it", () => {
     expect(
       HEROES.map((hero: Hero): string => {
         return relative(hero.file);

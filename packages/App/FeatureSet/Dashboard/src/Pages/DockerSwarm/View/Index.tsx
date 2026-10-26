@@ -35,6 +35,7 @@ import {
   displayNameForResource,
 } from "../Utils/DockerSwarmResourceUtils";
 import AutoRefreshControl from "../../../Components/TelemetryResource/AutoRefreshControl";
+import ResourceHeroDescription from "../../../Components/TelemetryResource/ResourceHeroDescription";
 import useAutoRefresh from "../../../Components/TelemetryResource/useAutoRefresh";
 import {
   RESOURCE_HERO_CONTROLS_CLASS_NAME,
@@ -44,6 +45,10 @@ import {
   RESOURCE_HERO_TOP_ROW_CLASS_NAME,
   RESOURCE_HERO_TOP_ROW_TEST_ID,
 } from "../../../Components/TelemetryResource/ResourceHeroLayout";
+import {
+  getResourceConnectionLabel,
+  getResourceHealthLabel,
+} from "../../../Components/TelemetryResource/ResourceHeroStatus";
 import { DOCKER_SWARM_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/DockerSwarmMetricDescriptions";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
@@ -444,20 +449,25 @@ const DockerSwarmClusterOverview: FunctionComponent<
     const connectionDotClass: string = isConnected
       ? "bg-emerald-500"
       : "bg-amber-500";
-    const connectionLabel: string = isConnected
-      ? "Connected"
-      : status
-        ? status.charAt(0).toUpperCase() + status.slice(1)
-        : "Disconnected";
+    const connectionLabel: string = getResourceConnectionLabel({
+      translator: translator,
+      isConnected: isConnected,
+      status: status,
+    });
 
     /*
      * Health is derived from the last inventory snapshot, which goes stale
      * once the collector disconnects. Reporting "Healthy" next to a
-     * "Disconnected" badge is contradictory and misleading, so when the
-     * cluster is not connected we surface health as "Unknown" (neutral grey)
-     * rather than the last-known live status.
+     * "Disconnected" badge is contradictory and misleading, so while the
+     * swarm is not connected the pill says "Health Unknown" (neutral grey),
+     * as a Ceph cluster's and a storage array's do, rather than the
+     * last-known live status.
      */
-    const healthLabel: string = isConnected ? clusterHealth : "Unknown";
+    const healthLabel: string = getResourceHealthLabel({
+      translator: translator,
+      health: clusterHealth,
+      isConnected: isConnected,
+    });
     const healthBadgeClass: string = !isConnected
       ? "bg-gray-50 text-gray-600 ring-gray-200"
       : clusterHealth === "Healthy"
@@ -587,11 +597,9 @@ const DockerSwarmClusterOverview: FunctionComponent<
                     </span>
                   )}
                 </div>
-                {cluster.description && (
-                  <div className="mt-1 truncate text-sm text-gray-500">
-                    {String(cluster.description)}
-                  </div>
-                )}
+                <ResourceHeroDescription
+                  text={cluster.description as string | undefined}
+                />
                 <div className="mt-1 text-xs text-gray-400">{lastSeenText}</div>
               </div>
             </div>

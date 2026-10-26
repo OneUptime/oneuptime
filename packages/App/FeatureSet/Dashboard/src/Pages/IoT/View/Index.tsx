@@ -42,6 +42,7 @@ import {
   getAutoRefreshIntervalInMs,
 } from "Common/Types/Dashboard/DashboardViewConfig";
 import AutoRefreshControl from "../../../Components/TelemetryResource/AutoRefreshControl";
+import ResourceHeroDescription from "../../../Components/TelemetryResource/ResourceHeroDescription";
 import {
   RESOURCE_HERO_CONTROLS_CLASS_NAME,
   RESOURCE_HERO_CONTROLS_TEST_ID,
@@ -50,6 +51,7 @@ import {
   RESOURCE_HERO_TOP_ROW_CLASS_NAME,
   RESOURCE_HERO_TOP_ROW_TEST_ID,
 } from "../../../Components/TelemetryResource/ResourceHeroLayout";
+import { getResourceConnectionLabel } from "../../../Components/TelemetryResource/ResourceHeroStatus";
 import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
 import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
@@ -588,11 +590,11 @@ const IoTFleetOverview: FunctionComponent<
     const connectionDotClass: string = isConnected
       ? "bg-emerald-500"
       : "bg-amber-500";
-    const connectionLabel: string = isConnected
-      ? "Connected"
-      : status
-        ? status.charAt(0).toUpperCase() + status.slice(1)
-        : "Disconnected";
+    const connectionLabel: string = getResourceConnectionLabel({
+      translator: translator,
+      isConnected: isConnected,
+      status: status,
+    });
 
     const specChips: Array<{
       icon: IconProp;
@@ -652,11 +654,9 @@ const IoTFleetOverview: FunctionComponent<
                       {connectionLabel}
                     </span>
                   </div>
-                  {fleet.description && (
-                    <div className="mt-1 truncate text-sm text-gray-500">
-                      {String(fleet.description)}
-                    </div>
-                  )}
+                  <ResourceHeroDescription
+                    text={fleet.description as string | undefined}
+                  />
                   <div className="mt-1 text-xs text-gray-400">
                     {lastSeenText}
                   </div>

@@ -76,6 +76,7 @@ import {
   RESOURCE_HERO_TOP_ROW_CLASS_NAME,
   RESOURCE_HERO_TOP_ROW_TEST_ID,
 } from "../../../Components/TelemetryResource/ResourceHeroLayout";
+import { getResourceConnectionLabel } from "../../../Components/TelemetryResource/ResourceHeroStatus";
 import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
 import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 import TimeRangeZoomHint from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomHint";
@@ -1005,11 +1006,11 @@ const PodmanHostOverview: FunctionComponent<
     const statusDotClass: string = isConnected
       ? "bg-emerald-500"
       : "bg-amber-500";
-    const statusLabel: string = isConnected
-      ? "Connected"
-      : status
-        ? status.charAt(0).toUpperCase() + status.slice(1)
-        : "Disconnected";
+    const statusLabel: string = getResourceConnectionLabel({
+      translator: translator,
+      isConnected: isConnected,
+      status: status,
+    });
 
     return (
       <div className="relative mb-6 rounded-xl border border-gray-200 bg-white shadow-sm">
@@ -1753,16 +1754,11 @@ const PodmanHostOverview: FunctionComponent<
                 return Boolean(item.hostIdentifier);
               },
             },
-            {
-              field: {
-                otelCollectorStatus: true,
-              },
-              title: "Collector Status",
-              fieldType: FieldType.Text,
-              showIf: (item: PodmanHost): boolean => {
-                return Boolean(item.otelCollectorStatus);
-              },
-            },
+            /*
+             * No "Collector Status" row: the hero's pill says whether the
+             * collector is connected, in words; the row repeated it as the
+             * stored lowercase value ("connected").
+             */
             {
               field: {
                 lastSeenAt: true,

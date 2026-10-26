@@ -578,6 +578,7 @@ const CloudEnvironmentOverview: FunctionComponent<
           />
         }
         detailRows={detailRows}
+        recordId={modelId.toString()}
         settingsRoute={populate(PageMap.CLOUD_RESOURCE_VIEW_SETTINGS)}
         labels={r.labels}
       />

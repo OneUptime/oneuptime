@@ -24788,7 +24788,7 @@
   "Hardware Components": "Hardware Components",
   "Hardware Needing Attention": "Hardware Needing Attention",
   "Hardware components, drives and controllers whose latest reported status is critical, failed, missing, unhealthy, degraded, unknown, unrecognized or not ready, out of all the components the array reports.": "Hardware components, drives and controllers whose latest reported status is critical, failed, missing, unhealthy, degraded, unknown, unrecognized or not ready, out of all the components the array reports.",
-  "Health Critical": "Health Critical",
+  "Health Critical": "ヘルス: 重大",
   "Health of each blade, fabric module, power supply and fan: 1 is healthy, 0 needs a person.": "Health of each blade, fabric module, power supply and fan: 1 is healthy, 0 needs a person.",
   "Host Group": "ホストグループ",
   "Host Metrics: {{name}}": "Host Metrics: {{name}}",
@@ -35703,6 +35703,7 @@
   "Keep this page open until this finishes. You can stop at any time: what is already done stays done.": "完了するまでこのページを開いたままにしてください。いつでも停止できます。すでに完了したものはそのまま残ります。",
   "Less than a minute left": "残り 1 分未満",
   "Stopping. The ones already started are finishing.": "停止しています。すでに開始したものは最後まで処理されます。",
+  "Unhealthy": "異常",
   "{{count}} {{itemsName}} not started: you stopped the action": "{{itemsName}}: {{count}} 件未開始（操作を停止しました）",
   "{{count}} {{itemsName}} not started: you stopped the action_one": "{{itemName}}: {{count}} 件未開始（操作を停止しました）"
 }
