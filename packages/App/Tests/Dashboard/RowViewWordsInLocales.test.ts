@@ -135,3 +135,132 @@ describe("a row's View in every language", () => {
     expect(portuguese["View {{itemName}}"]).toBe("Ver {{itemName}}");
   });
 });
+
+/*
+ * A list that draws its own View of a record - an incident's linked alerts,
+ * an episode's member incidents: the eye icon, "View <Kind>" - says View on
+ * the row as every model table's own View does (rowButtonTitle), named by
+ * its whole title. Its rows read "View Incident" beside lists that read
+ * "View".
+ */
+const DASHBOARD_SRC: string = path.join(
+  __dirname,
+  "..",
+  "..",
+  "FeatureSet",
+  "Dashboard",
+  "src",
+);
+
+function sourceFiles(directory: string): Array<string> {
+  const files: Array<string> = [];
+
+  for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+    const full: string = path.join(directory, entry.name);
+
+    if (entry.isDirectory()) {
+      files.push(...sourceFiles(full));
+    } else if (entry.name.endsWith(".tsx")) {
+      files.push(full);
+    }
+  }
+
+  return files;
+}
+
+// The object literal a `title:` is in: from its "{" to the matching "}".
+function enclosingObject(text: string, index: number): string {
+  let depth: number = 0;
+  let start: number = index;
+
+  for (; start >= 0; start--) {
+    const character: string = text[start]!;
+
+    if (character === "}") {
+      depth++;
+    } else if (character === "{") {
+      if (depth === 0) {
+        break;
+      }
+      depth--;
+    }
+  }
+
+  depth = 0;
+
+  for (let end: number = start; end < text.length; end++) {
+    const character: string = text[end]!;
+
+    if (character === "{") {
+      depth++;
+    } else if (character === "}") {
+      depth--;
+
+      if (depth === 0) {
+        return text.slice(start, end + 1);
+      }
+    }
+  }
+
+  return text.slice(start);
+}
+
+const VIEW_ACTION_TITLE: RegExp = /title: "(View [A-Z][^"]*)"/g;
+
+interface RecordViewAction {
+  place: string;
+  object: string;
+}
+
+function recordViewActions(): Array<RecordViewAction> {
+  const found: Array<RecordViewAction> = [];
+
+  for (const file of sourceFiles(DASHBOARD_SRC)) {
+    const text: string = fs.readFileSync(file, "utf8");
+
+    for (const match of text.matchAll(VIEW_ACTION_TITLE)) {
+      const object: string = enclosingObject(text, match.index!);
+
+      // A row's action that opens a record: the eye, and an onClick.
+      if (object.includes("icon: IconProp.Eye") && object.includes("onClick")) {
+        found.push({
+          place: `${path.relative(DASHBOARD_SRC, file)}: ${match[1]!}`,
+          object: object,
+        });
+      }
+    }
+  }
+
+  return found;
+}
+
+describe("a list's own View of a record", () => {
+  const actions: Array<RecordViewAction> = recordViewActions();
+
+  test("there are such lists: an incident's alerts, an alert's incidents and each episode's members", () => {
+    expect(
+      actions.map((action: RecordViewAction): string => {
+        return action.place;
+      }),
+    ).toEqual(
+      expect.arrayContaining([
+        "Pages/Incidents/View/Alerts.tsx: View Alert",
+        "Pages/Alerts/View/Incidents.tsx: View Incident",
+        "Pages/Incidents/EpisodeView/Incidents.tsx: View Incident",
+        "Pages/Alerts/EpisodeView/Alerts.tsx: View Alert",
+      ]),
+    );
+  });
+
+  test("each says View on the row, as a model table's own View does", () => {
+    const without: Array<string> = actions
+      .filter((action: RecordViewAction): boolean => {
+        return !action.object.includes('rowButtonTitle: "View"');
+      })
+      .map((action: RecordViewAction): string => {
+        return action.place;
+      });
+
+    expect(without).toEqual([]);
+  });
+});

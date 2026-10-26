@@ -181,6 +181,11 @@ const IncidentViewAlerts: FunctionComponent<
         actionButtons={[
           {
             title: "View Alert",
+            /*
+             * On the row, View alone, as every list's own View: the row names
+             * the record, the card's title its kind (rowButtonTitle).
+             */
+            rowButtonTitle: "View",
             icon: IconProp.Eye,
             buttonStyleType: ButtonStyleType.OUTLINE,
             onClick: (item: IncidentAlert, onCompleteAction: () => void) => {
