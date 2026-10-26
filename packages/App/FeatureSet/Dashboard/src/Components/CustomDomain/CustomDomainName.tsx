@@ -1,7 +1,10 @@
 import {
+  CustomDomainInstallation,
+  CustomDomainState,
   CustomDomainStateInput,
   getCustomDomainState,
 } from "./CustomDomainCopy";
+import { getCustomDomainInstallation } from "./CustomDomainKinds";
 import PublicAddressCopy, {
   getCustomDomainUrl,
   isCustomDomainLive,
@@ -38,9 +41,15 @@ const CustomDomainName: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
   const fullDomain: string = (props.domain.fullDomain || "").trim();
 
-  const isLive: boolean =
-    Boolean(fullDomain) &&
-    isCustomDomainLive(getCustomDomainState(props.domain, props.certificate));
+  const installation: CustomDomainInstallation = getCustomDomainInstallation();
+  const state: CustomDomainState = getCustomDomainState(
+    props.domain,
+    props.certificate,
+    undefined,
+    installation,
+  );
+
+  const isLive: boolean = Boolean(fullDomain) && isCustomDomainLive(state);
 
   if (!isLive) {
     return (
@@ -63,7 +72,7 @@ const CustomDomainName: FunctionComponent<ComponentProps> = (
    */
   return (
     <a
-      href={getCustomDomainUrl(fullDomain)}
+      href={getCustomDomainUrl(fullDomain, state, installation)}
       target="_blank"
       rel="noopener noreferrer"
       className="group inline-flex max-w-full items-center gap-1 break-all text-gray-900 hover:text-indigo-600 hover:underline focus:outline-none focus-visible:underline focus-visible:decoration-2 focus-visible:underline-offset-4"

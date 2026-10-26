@@ -8,6 +8,8 @@ interface EnvironmentConfigShape {
 
 const MANAGED_KEYS: Array<string> = [
   "HOST",
+  "LETS_ENCRYPT_ACCOUNT_KEY",
+  "CUSTOM_DOMAIN_FREE_CERTIFICATES",
   "PUBLIC_TEST_SETTING",
   "PRIVATE_TEST_SECRET",
   "OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT",
@@ -217,6 +219,52 @@ describe("frontend environment security boundary", () => {
     });
     expect(process.env["OPENTELEMETRY_EXPORTER_OTLP_HEADERS"]).toBe(
       serverHeaders,
+    );
+  });
+
+  /*
+   * Whether the installation issues free certificates for custom domains:
+   * the Dashboard must not say "Issuing a free certificate" for ever on an
+   * installation without a Let's Encrypt account key. The browser is told
+   * whether there is a key - never the key.
+   */
+  test("says the installation issues free certificates when it has a Let's Encrypt account key, never the key", async () => {
+    const accountKey: string =
+      "LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCm5ldmVyLXRoaXM=";
+    const config: EnvironmentConfigShape = await load({
+      LETS_ENCRYPT_ACCOUNT_KEY: accountKey,
+    });
+    const frontend: JSONObject = config.getFrontendEnvVars();
+
+    expect(frontend["CUSTOM_DOMAIN_FREE_CERTIFICATES"]).toBe("true");
+    expect(frontend).not.toHaveProperty("LETS_ENCRYPT_ACCOUNT_KEY");
+    expect(JSON.stringify(frontend)).not.toContain(accountKey);
+  });
+
+  test.each([
+    ["no key", undefined],
+    ["an empty key, as Compose passes an unset one", ""],
+    ["a key of spaces", "   "],
+  ])(
+    "says it issues none with %s",
+    async (_name: string, accountKey: string | undefined) => {
+      const config: EnvironmentConfigShape = await load({
+        LETS_ENCRYPT_ACCOUNT_KEY: accountKey,
+      });
+
+      expect(
+        config.getFrontendEnvVars()["CUSTOM_DOMAIN_FREE_CERTIFICATES"],
+      ).toBe("false");
+    },
+  );
+
+  test("the answer is derived, so a variable of that name cannot set it", async () => {
+    const config: EnvironmentConfigShape = await load({
+      CUSTOM_DOMAIN_FREE_CERTIFICATES: "true",
+    });
+
+    expect(config.getFrontendEnvVars()["CUSTOM_DOMAIN_FREE_CERTIFICATES"]).toBe(
+      "false",
     );
   });
 

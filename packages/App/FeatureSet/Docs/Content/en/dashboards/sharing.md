@@ -115,7 +115,7 @@ Until a domain is verified and its certificate is in place, its row has a **DNS 
 
 ### Reading the Status column
 
-The **Status** column says where each domain is on its way to HTTPS, in one of seven states, the same as on status pages. When an order failed, the reason is on the line below.
+The **Status** column says where each domain is on its way to HTTPS, in one of eight states, the same as on status pages. When an order failed, the reason is on the line below.
 
 | What the Status column says | What it means |
 | --- | --- |
@@ -126,6 +126,7 @@ The **Status** column says where each domain is on its way to HTTPS, in one of s
 | Certificate issued, renews automatically. | Done. The domain serves its certificate over HTTPS, and OneUptime renews it. |
 | Certificate issued, but renewing it failed. We keep trying. | The domain still serves a valid certificate, but its last renewal failed, for the reason on the line below. OneUptime tries again well before the certificate expires. |
 | Uses your uploaded certificate. | The record is verified, and the domain is served with the certificate you uploaded. |
+| Verified. Uses your own proxy's HTTPS. | On a self-hosted installation without a Let's Encrypt account key, the record is verified and the domain is live. Its HTTPS is up to your own proxy, unless you upload a certificate. |
 
 If an order fails, the usual causes are a CAA record on your domain that does not allow `letsencrypt.org` and, on a self-hosted install, a server that Let's Encrypt cannot reach on port 80.
 
@@ -135,7 +136,7 @@ To use your own certificate instead, open **More fields** when you add the domai
 
 Once a free certificate has been ordered for a domain, the row shows **Reissue SSL**, which asks Let's Encrypt for a brand new certificate when you want one before the automatic renewal. Each domain can be reissued once every 24 hours.
 
-On a self-hosted installation, dashboard custom domains are switched on by the `DASHBOARD_CNAME_RECORD` environment variable (`dashboard.cnameRecord` in the Helm chart), which is the target your CNAME records point to. Without it, the card and the **DNS Setup** dialog say "Custom Domains not enabled for this OneUptime installation" instead of showing a record, and OneUptime does not verify domains or order certificates for dashboards.
+On a self-hosted installation, dashboard custom domains are switched on by the `DASHBOARD_CNAME_RECORD` environment variable (`dashboard.cnameRecord` in the Helm chart), which is the target your CNAME records point to. Without it, the card and the **DNS Setup** dialog say "Custom Domains not enabled for this OneUptime installation" instead of showing a record, and OneUptime does not verify domains or order certificates for dashboards. An installation without a Let's Encrypt account key (`LETS_ENCRYPT_ACCOUNT_KEY`, `letsEncrypt.accountKey` in the Helm chart) orders no certificates: a dashboard domain is live as soon as its record is verified, served with your own proxy's HTTPS or a certificate you upload.
 
 ### Who can check and reissue
 

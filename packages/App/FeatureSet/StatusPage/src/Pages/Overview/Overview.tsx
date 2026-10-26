@@ -1941,7 +1941,12 @@ const Overview: FunctionComponent<PageComponentProps> = (
                       t("overview.uptimeSuffix")
                     : undefined
                 }
-                textClassName="text-white text-lg flex justify-between w-full"
+                /*
+                 * The words' colour is the Alert's: whichever reads on the
+                 * owner's status colour (FilledAlertLook), never white
+                 * regardless.
+                 */
+                textClassName="text-lg flex justify-between w-full"
                 id="overview-alert"
               />
             )}
