@@ -1,5 +1,8 @@
 import { CloudProvider } from "../Cloud/CloudPlatform";
-import { CloudConnectionAuthMethod } from "./CloudConnectionCatalog";
+import {
+  AZURE_SECRET_EXPIRES_AT_KEY,
+  CloudConnectionAuthMethod,
+} from "./CloudConnectionCatalog";
 
 /*
  * WHAT THE SETUP COMMAND PRINTED, READ INTO THE FORM'S FIELDS.
@@ -12,7 +15,8 @@ import { CloudConnectionAuthMethod } from "./CloudConnectionCatalog";
  *   - AWS, IAM role: the role's ARN;
  *   - AWS, access key: the AccessKey JSON create-access-key prints, or the
  *     two values on their own;
- *   - Azure: the appId, password and tenant JSON create-for-rbac prints;
+ *   - Azure: the appId, password and tenant JSON create-for-rbac prints,
+ *     and the endDateTime the setup command adds to it;
  *   - Google Cloud: the service account key JSON.
  *
  * Every reader runs in time linear in the text, which is held to
@@ -286,6 +290,13 @@ function readAzure(text: string): CloudConnectionPasteResult {
 
       if (clientId) {
         config["clientId"] = clientId;
+      }
+
+      // When the password stops working, as the setup command adds it.
+      const expiresAt: number = Date.parse(readString(object["endDateTime"]));
+
+      if (Number.isFinite(expiresAt)) {
+        config[AZURE_SECRET_EXPIRES_AT_KEY] = new Date(expiresAt).toISOString();
       }
 
       return {

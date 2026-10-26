@@ -206,6 +206,12 @@ export interface AwsRequest {
   credentials: AwsCredentials;
   service: string;
   region: string;
+  /*
+   * The host, for a service with one global endpoint that is not
+   * service.region.amazonaws.com (IAM: iam.amazonaws.com, signed for
+   * us-east-1). Every other call is sent to its Region's own host.
+   */
+  host?: string | undefined;
   // JSON protocol: the X-Amz-Target; query protocol: absent.
   target?: string | undefined;
   // "1.0" (CloudWatch) or "1.1" (Tagging API); JSON protocol only.
@@ -238,7 +244,8 @@ export async function sendAwsRequest(
   request: AwsRequest,
 ): Promise<{ json: JSONObject; text: string }> {
   const isJson: boolean = Boolean(request.target);
-  const host: string = getAwsHost(request.service, request.region);
+  const host: string =
+    request.host || getAwsHost(request.service, request.region);
   const body: string = isJson
     ? JSON.stringify(request.body)
     : formEncode(request.body as Dictionary<string>);

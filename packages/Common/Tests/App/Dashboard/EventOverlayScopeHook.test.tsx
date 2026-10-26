@@ -12,6 +12,7 @@ import * as React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
 import Includes from "../../../Types/BaseDatabase/Includes";
+import IncludesNone from "../../../Types/BaseDatabase/IncludesNone";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import MetricQueryConfigData from "../../../Types/Metrics/MetricQueryConfigData";
 import ObjectID from "../../../Types/ObjectID";
@@ -20,6 +21,7 @@ import ProjectUtil from "../../../UI/Utils/Project";
 import useEventTimeReferenceLines, {
   EVENT_OVERLAY_FETCH_LIMIT,
   EventTimeReferenceLines,
+  getChangeEventFetchQuery,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Metrics/Utils/UseEventTimeReferenceLines";
 
 const getListMock: MockFunction = getJestMockFunction();
@@ -380,7 +382,7 @@ describe("resource-scoped event overlay requests", (): void => {
     },
   );
 
-  test.each(["networkDeviceId", "cloudResourceId", "rumApplicationId"])(
+  test.each(["networkDeviceId", "rumApplicationId"])(
     "does not fetch project-wide incidents or alerts for unlinked %s resources",
     async (attribute: string): Promise<void> => {
       analyticsGetListMock.mockResolvedValue({
@@ -434,9 +436,63 @@ describe("resource-scoped event overlay requests", (): void => {
         createdAt: WINDOW,
       });
     }
+    // The project's changes - but not a busy cloud account's every operation.
     expect(analyticsGetListMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        query: { projectId: PROJECT_ID, time: WINDOW },
+        query: {
+          projectId: PROJECT_ID,
+          time: WINDOW,
+          attributes: {
+            "oneuptime.change.source": new IncludesNone(["cloud"]),
+          },
+        },
+      }),
+    );
+  });
+
+  test("a cloud resource's chart reads its own incidents, alerts and changes", async (): Promise<void> => {
+    getListMock.mockImplementation((request: EventRequest) => {
+      return Promise.resolve({ data: [event(request.modelType.name)] });
+    });
+    analyticsGetListMock.mockResolvedValue({ data: [event("RunInstances")] });
+
+    render(
+      <Probe
+        queryConfigs={[
+          {
+            metricQueryData: {
+              filterData: {
+                metricName: "aws.ec2.cpuutilization",
+                attributes: {
+                  Namespace: "AWS/EC2",
+                  "resource.cloud.account.id": "123456789012",
+                },
+              },
+            },
+            eventScope: { cloudResourceId: MONITOR_A },
+          } as MetricQueryConfigData,
+        ]}
+      />,
+    );
+
+    await expectMarkerCount(3);
+    for (const request of [
+      ...requestsFor("Incident"),
+      ...requestsFor("Alert"),
+    ]) {
+      expect(request.query).toEqual({
+        projectId: PROJECT_ID,
+        createdAt: WINDOW,
+        cloudResources: { _id: MONITOR_A },
+      });
+    }
+    expect(analyticsGetListMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: {
+          projectId: PROJECT_ID,
+          time: WINDOW,
+          attributes: { "oneuptime.resource.id": MONITOR_A },
+        },
       }),
     );
   });
@@ -1030,11 +1086,17 @@ describe("event overlay for a chart filtered to no resource", (): void => {
       });
       expect(requestsFor(modelName)[0]!.limit).toBe(EVENT_OVERLAY_FETCH_LIMIT);
     }
-    // Change events keep the project's timeline.
+    // Change events keep the project's timeline, a cloud's activity log aside.
     expect(analyticsGetListMock).toHaveBeenCalledTimes(1);
     expect(analyticsGetListMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        query: { projectId: PROJECT_ID, time: WINDOW },
+        query: {
+          projectId: PROJECT_ID,
+          time: WINDOW,
+          attributes: {
+            "oneuptime.change.source": new IncludesNone(["cloud"]),
+          },
+        },
       }),
     );
   });
@@ -1155,5 +1217,23 @@ describe("event overlay for a chart filtered to no resource", (): void => {
     expect(getListMock.mock.calls.length).toBe(calls);
     expect(analyticsGetListMock.mock.calls.length).toBe(analyticsCalls);
     expect(screen.getByTestId("marker-count").textContent).toBe("2");
+  });
+});
+
+describe("the change events a marker fetch reads", () => {
+  test("a project-wide chart leaves a cloud account's activity log out, and keeps its health events", () => {
+    expect(getChangeEventFetchQuery({})).toEqual({
+      attributes: {
+        "oneuptime.change.source": new IncludesNone(["cloud"]),
+      },
+    });
+  });
+
+  test("a scoped chart reads what its scope says, a cloud resource's changes included", () => {
+    const scoped: Record<string, unknown> = {
+      attributes: { "oneuptime.resource.id": MONITOR_A },
+    };
+
+    expect(getChangeEventFetchQuery(scoped)).toBe(scoped);
   });
 });

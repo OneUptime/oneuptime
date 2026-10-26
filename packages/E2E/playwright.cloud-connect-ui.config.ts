@@ -7,8 +7,10 @@ import path from "path";
  * Tailwind, theme and font. What only a browser can show is checked here:
  * the three clouds' tiles, a cloud connected from its tile - the command in
  * its own shell, one paste, a test with what it found and what it costs -
- * an AWS role or an access key, the list's status and actions, and all of
- * it at desktop and phone width, in the dark theme and in Japanese.
+ * an AWS role or an access key, one account or its whole organization, the
+ * list's status and actions, Cloud > Accounts with an account's Overview
+ * and Resources, and all of it at desktop and phone width, in the dark
+ * theme, in German and in Japanese.
  *
  * CLOUD_CONNECT_FIXTURE_PORT moves the fixture off 4399, so a second
  * checkout can run the suite beside this one.

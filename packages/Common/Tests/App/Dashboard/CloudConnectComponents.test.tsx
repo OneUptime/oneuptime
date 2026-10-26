@@ -27,7 +27,10 @@ import {
   CloudConnectionDefinition,
   getCloudConnectionDefinition,
 } from "../../../Types/CloudConnection/CloudConnectionCatalog";
-import { getAwsExternalIdForProject } from "../../../Types/CloudConnection/CloudConnectionSetupCommands";
+import {
+  CloudConnectionSetupScope,
+  getAwsExternalIdForProject,
+} from "../../../Types/CloudConnection/CloudConnectionSetupCommands";
 import {
   CloudConnectionFailureKind,
   CloudConnectionTestResult,
@@ -45,7 +48,9 @@ import CloudConnectionTestDialog from "../../../../App/FeatureSet/Dashboard/src/
 import CloudConnectionTestPanel from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/Connect/CloudConnectionTestPanel";
 import CloudConnectionTiles from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/Connect/CloudConnectionTiles";
 import CloudResourceGroups from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/Connect/CloudResourceGroups";
-import CloudSetupCommand from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/Connect/CloudSetupCommand";
+import CloudSetupCommand, {
+  ORGANIZATION_SETUP_HINTS,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/Connect/CloudSetupCommand";
 
 /*
  * The pieces of Cloud > Connect, drawn:
@@ -218,8 +223,74 @@ describe("the setup step", () => {
     expect(
       screen.getByTestId("cloud-setup-guide-link").getAttribute("href"),
     ).toMatch(/\/telemetry\/cloud-accounts#microsoft-azure$/);
+    // What OneUptime may do with the access, in the catalog's words.
     expect(screen.getByTestId("cloud-setup-read-only")).toHaveTextContent(
-      "OneUptime can only read resources and metrics.",
+      AZURE.explanation,
+    );
+    expect(screen.getByTestId("cloud-setup-read-only")).toHaveTextContent(
+      "Never data or secrets.",
+    );
+  });
+
+  test("Azure for every subscription of the tenant: the role on the tenant's root management group", () => {
+    render(
+      <CloudSetupCommand
+        definition={AZURE}
+        method={CloudConnectionAuthMethod.AzureClientSecret}
+        scope={CloudConnectionSetupScope.Organization}
+      />,
+    );
+
+    expect(screen.getByTestId("cloud-setup-command-code")).toHaveTextContent(
+      "Microsoft.Management/managementGroups",
+    );
+    // Said above it: who may run it, since it assigns a role on the tenant.
+    expect(screen.getByTestId("cloud-setup-hint")).toHaveTextContent(
+      ORGANIZATION_SETUP_HINTS[CloudProvider.Azure],
+    );
+  });
+
+  test("Google Cloud for every project of the organization: the roles on the organization", () => {
+    render(
+      <CloudSetupCommand
+        definition={getCloudConnectionDefinition(CloudProvider.GCP)!}
+        method={CloudConnectionAuthMethod.GcpServiceAccountKey}
+        scope={CloudConnectionSetupScope.Organization}
+      />,
+    );
+
+    expect(screen.getByTestId("cloud-setup-command-code")).toHaveTextContent(
+      "gcloud organizations add-iam-policy-binding",
+    );
+    expect(screen.getByTestId("cloud-setup-hint")).toHaveTextContent(
+      "as someone who may grant roles on it",
+    );
+  });
+
+  test("each cloud's organization command says where it is run; one account's says what the method's does", () => {
+    for (const definition of CloudConnectionCatalog) {
+      const hint: string = ORGANIZATION_SETUP_HINTS[definition.provider];
+
+      // Run anywhere else it fails part way: each names where it may run.
+      expect(hint).toMatch(/^Run this in /);
+      expect(hint).toContain("can only read");
+      expect(hint).not.toBe(definition.authMethods[0]!.hint);
+    }
+
+    expect(ORGANIZATION_SETUP_HINTS[CloudProvider.AWS]).toContain(
+      "management account",
+    );
+
+    render(
+      <CloudSetupCommand
+        definition={AZURE}
+        method={CloudConnectionAuthMethod.AzureClientSecret}
+        scope={CloudConnectionSetupScope.Account}
+      />,
+    );
+
+    expect(screen.getByTestId("cloud-setup-hint")).toHaveTextContent(
+      AZURE.authMethods[0]!.hint,
     );
   });
 
@@ -243,9 +314,33 @@ describe("the setup step", () => {
     expect(code).toHaveTextContent("arn:aws:iam::999988887777:root");
     expect(code).toHaveTextContent(externalId);
     expect(code).toHaveTextContent("aws iam create-role");
+    expect(code).not.toHaveTextContent("create-stack-set");
     expect(screen.getByTestId("cloud-setup-read-only")).toHaveTextContent(
-      "OneUptime can only read metrics and tags.",
+      AWS.explanation,
     );
+  });
+
+  test("an AWS role for every account of the organization: a StackSet, then the management account's role", () => {
+    const externalId: string = getAwsExternalIdForProject(PROJECT_ID);
+
+    render(
+      <CloudSetupCommand
+        definition={AWS}
+        method={CloudConnectionAuthMethod.AwsRole}
+        scope={CloudConnectionSetupScope.Organization}
+        roleSetup={{
+          isAvailable: true,
+          trustedPrincipalArn: "arn:aws:iam::999988887777:root",
+          externalId,
+        }}
+      />,
+    );
+
+    const code: HTMLElement = screen.getByTestId("cloud-setup-command-code");
+
+    expect(code).toHaveTextContent("aws cloudformation create-stack-set");
+    expect(code).toHaveTextContent("aws iam create-role");
+    expect(code).toHaveTextContent(externalId);
   });
 
   test("an AWS role's command waits until what it trusts is known", () => {

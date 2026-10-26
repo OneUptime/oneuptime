@@ -135,6 +135,15 @@ export interface ResourceOverviewProps {
    */
   detailRows: Array<ResourceOverviewDetailRow>;
   /*
+   * What the Details card's rows are, under its title. Left out, they are
+   * the resource attributes its telemetry reported
+   * (RESOURCE_OVERVIEW_DETAILS_DESCRIPTION); a page whose rows come from
+   * somewhere else - a cloud account, a resource its cloud's inventory
+   * lists - says where. Never the resource's own description: that is in
+   * the hero, under its name.
+   */
+  detailsDescription?: string | undefined;
+  /*
    * The resource's own record id: the small ID line every details card ends
    * with (DetailRecordLine - "ID", its first characters, a copy button), in
    * place of a row that spelled all 36 characters out first.
@@ -152,6 +161,10 @@ export interface ResourceOverviewProps {
    */
   settingsRoute?: Route | undefined;
 }
+
+// What a Details card's rows are when its page says nothing else (English).
+export const RESOURCE_OVERVIEW_DETAILS_DESCRIPTION: string =
+  "Metadata captured from OpenTelemetry resource attributes.";
 
 const tileColorClasses: Record<
   ResourceOverviewTileColor,
@@ -533,7 +546,10 @@ const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
         </div>
       ) : (
         props.tiles.length > 0 && (
-          <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <div
+            data-testid="resource-overview-tiles"
+            className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4"
+          >
             {props.tiles.map(
               (tile: ResourceOverviewTile, idx: number): ReactElement => {
                 return (
@@ -555,7 +571,9 @@ const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
       {/* Details */}
       <Card
         title="Details"
-        description="Metadata captured from OpenTelemetry resource attributes."
+        description={
+          props.detailsDescription || RESOURCE_OVERVIEW_DETAILS_DESCRIPTION
+        }
         buttons={
           props.settingsRoute
             ? [

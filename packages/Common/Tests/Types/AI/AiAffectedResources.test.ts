@@ -69,6 +69,7 @@ const KIND_MODELS: Record<AiAffectedResourceKind, { new (): BaseModel }> = {
   [AiAffectedResourceKind.StorageArray]: StorageArray,
   [AiAffectedResourceKind.IoTFleet]: IoTFleet,
   [AiAffectedResourceKind.DatabaseServer]: DatabaseServer,
+  [AiAffectedResourceKind.CloudResource]: CloudResource,
   [AiAffectedResourceKind.Service]: Service,
 };
 
@@ -77,7 +78,6 @@ const NOT_LINKABLE_MODELS: Partial<
   Record<AIResourceType, { new (): BaseModel }>
 > = {
   [AIResourceType.ServerlessFunction]: ServerlessFunction,
-  [AIResourceType.CloudResource]: CloudResource,
   [AIResourceType.NetworkDevice]: NetworkDevice,
 };
 
@@ -242,13 +242,15 @@ describe("readAiAffectedResourceKind - a kind as a model spells it", () => {
     ["TelemetryService", AiAffectedResourceKind.Service],
     ["telemetry service", AiAffectedResourceKind.Service],
     ["DatabaseServer", AiAffectedResourceKind.DatabaseServer],
+    ["CloudResource", AiAffectedResourceKind.CloudResource],
+    ["cloud_resource", AiAffectedResourceKind.CloudResource],
   ])("reads %j", (value: string, kind: AiAffectedResourceKind) => {
     expect(readAiAffectedResourceKind(value)).toBe(kind);
   });
 
   test.each([
     ["Monitor"],
-    ["CloudResource"],
+    ["CloudResources"],
     ["ServerlessFunction"],
     ["NetworkDevice"],
     ["Hosts"],
@@ -320,8 +322,24 @@ describe("getPageAffectedResource - what an incident declared on a page is about
     ).toEqual({ kind: AiAffectedResourceKind.Host, id: HOST_ID });
   });
 
+  test("a cloud resource's page is about the cloud resource: incidents and alerts hold them now", () => {
+    expect(
+      getPageAffectedResource(
+        resourcePage(AIResourceType.CloudResource, CLUSTER_ID),
+      ),
+    ).toEqual({ kind: AiAffectedResourceKind.CloudResource, id: CLUSTER_ID });
+    // Linked for its changes and its page, never fixed: no agent acts on a cloud.
+    expect(
+      getAiAffectedResourceKindInfo(AiAffectedResourceKind.CloudResource),
+    ).toEqual({
+      kind: AiAffectedResourceKind.CloudResource,
+      relation: "cloudResources",
+      noun: "cloud resource",
+      isFixedByOneUptimeAi: false,
+    });
+  });
+
   test.each([
-    ["a cloud resource's page", resourcePage(AIResourceType.CloudResource)],
     [
       "a serverless function's page",
       resourcePage(AIResourceType.ServerlessFunction),

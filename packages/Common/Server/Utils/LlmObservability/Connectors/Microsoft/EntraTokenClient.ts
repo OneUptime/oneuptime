@@ -177,6 +177,7 @@ export default class EntraTokenClient {
           message: failure.message,
           kind: LlmConnectionFailureKind.Authentication,
           statusCode: failure.statusCode,
+          responseBody: failure.responseBody,
         });
       }
 

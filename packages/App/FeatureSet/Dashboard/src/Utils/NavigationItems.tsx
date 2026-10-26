@@ -618,6 +618,8 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
         "gcp",
         "google cloud",
         "cloud resources",
+        "cloud accounts",
+        "azure subscriptions",
         "iaas",
         "paas",
         "cloudwatch",

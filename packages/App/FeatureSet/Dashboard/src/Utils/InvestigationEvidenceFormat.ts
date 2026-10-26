@@ -323,6 +323,23 @@ const TOOL_DESCRIPTIONS: Map<string, EvidenceToolDescription> = new Map<
       category: "Infrastructure",
     },
   ],
+  // What a connected cloud's inventory says.
+  [
+    "query_cloud_resource",
+    {
+      description: "Read a cloud resource's inventory",
+      icon: IconProp.Cloud,
+      category: "Infrastructure",
+    },
+  ],
+  [
+    "query_cloud_accounts",
+    {
+      description: "Listed the connected cloud accounts",
+      icon: IconProp.Cloud,
+      category: "Infrastructure",
+    },
+  ],
   [
     "query_traces",
     {

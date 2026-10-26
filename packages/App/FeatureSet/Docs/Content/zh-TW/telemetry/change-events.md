@@ -1,9 +1,9 @@
 # 部署與變更
 
-OneUptime 會記錄你專案中發生的變更：部署、Kubernetes 滾動更新、設定變更，以及它自己執行的修正。每個變更都會以標記的形式繪製在其所屬服務的圖表上，OneUptime AI 調查事件時也會讀取這些變更，因此「問題恰好在 10:02 那次部署之後開始」會是你最先得知的事，而不是最後才知道。
+OneUptime 會記錄你專案中發生的變更：部署、Kubernetes 滾動更新、設定變更、你已連線的雲端帳戶中的變更，以及它自己執行的修正。每個變更都會以標記的形式繪製在其所屬服務或雲端資源的圖表上，OneUptime AI 調查事件時也會讀取這些變更，因此「問題恰好在 10:02 那次部署之後開始」會是你最先得知的事，而不是最後才知道。
 
 :::cards
-- [OneUptime 自行記錄的內容](#oneuptime-自行記錄的內容): 來自遙測資料的部署和滾動更新，以及它自己的修正。
+- [OneUptime 自行記錄的內容](#oneuptime-自行記錄的內容): 來自遙測資料的部署和滾動更新、雲端帳戶中的變更，以及它自己的修正。
 - [從管線記錄部署](#從管線記錄部署): CLI、GitHub Actions 和 API。
 - [OneUptime AI 如何使用變更](#oneuptime-ai-如何使用變更): 每次調查中的可疑變更。
 - [參考](#參考): 欄位、屬性和限制。
@@ -17,6 +17,7 @@ flowchart LR
     K["新的 Kubernetes<br/>ReplicaSet"] --> E
     P["管線：<br/>CLI 或 API"] --> E
     A["OneUptime AI 執行的修正，<br/>OneUptime 執行的運行手冊"] --> E
+    D["雲端帳戶的<br/>活動記錄"] --> E
     E --> C["服務圖表<br/>上的標記"]
     E --> I["OneUptime AI<br/>的調查"]
 ```
@@ -31,6 +32,8 @@ flowchart LR
 | 滾動更新 | Kubernetes Deployment 的 Pod 開始執行一個它們先前從未執行過的 ReplicaSet：新的映像檔、變更過的環境變數或設定參照，或是一次重新啟動 | `kubernetes` |
 | OneUptime AI 執行的修正 | AI 代理程式回報了一條會變更某些內容的指令的結果，例如 `kubectl rollout restart` | `oneuptime-ai` |
 | 運行手冊 | OneUptime 執行的運行手冊在開始後完成、失敗或被取消 | `runbook` |
+| 雲端變更 | 已連線雲端帳戶的活動記錄記下了一項變更：AWS CloudTrail、Azure 活動記錄或 Google Cloud 的 Admin Activity 稽核記錄 | `cloud` |
+| 供應商事件 | 雲端供應商發布了關於該帳戶的健康事件：AWS Health、Azure Service Health 或 Resource Health，或 Google Cloud Service Health | `cloud-health` |
 
 - **服務回報的第一個版本是它的基準，而不是一次部署。** 一個已經執行了好幾個月的服務，並不是在 OneUptime 開始接收其遙測資料的那一刻才部署的。
 - **回復到過去 30 天內出現過的版本不會被記錄，** 因為那個版本並不新。OneUptime AI 執行的回復會作為修正被記錄。
@@ -43,6 +46,8 @@ OTEL_RESOURCE_ATTRIBUTES="service.version=2.3.1,deployment.environment.name=prod
 ```
 
 滾動更新需要 [Kubernetes 代理程式](/docs/telemetry/kubernetes-agent)，它會為每個 Pod 的遙測資料標上其所屬的 Deployment 和 ReplicaSet。
+
+雲端變更和供應商事件需要一個[已連線的雲端帳戶](/docs/telemetry/cloud-accounts)。當 OneUptime 列出了相應資源時，每一項都會連結到它所指的雲端資源，並繪製在該資源的圖表上。其類型取決於操作：操作名稱表明時為 `deployment`、`scaling` 或 `rollback`，否則為 `config-change`，健康事件則為 `provider-event`。未篩選到任何資源的圖表不會顯示雲端帳戶的活動記錄，這樣忙碌的帳戶就不會擠掉你的部署；供應商的健康事件仍會保留在這些圖表上。
 
 ## 從管線記錄部署
 
@@ -94,7 +99,7 @@ CLI 的每個選項請參閱 [`oneuptime deploy`](/docs/cli/command-reference#on
 
 ## OneUptime AI 如何使用變更
 
-事件或警示的每次 [AI 調查](/docs/ai/ai-sre) 都從它之前 2 小時內以及之後 10 分鐘內記錄的變更開始，之後的 10 分鐘是為那些在滾動更新完成後才記錄部署的管線準備的。與該事件連結的服務、叢集和主機上的變更排在最前面。
+事件或警示的每次 [AI 調查](/docs/ai/ai-sre) 都從它之前 2 小時內以及之後 10 分鐘內記錄的變更開始，之後的 10 分鐘是為那些在滾動更新完成後才記錄部署的管線準備的。與該事件連結的服務、叢集、主機和雲端資源上的變更排在最前面。
 
 對於其中最多 4 個指明了服務的變更，OneUptime 會讀取該服務在變更前後各 30 分鐘內的遙測資料，如果服務在變更之後立即明顯變差，就將該變更標記為 **可疑變更**：
 
@@ -139,6 +144,8 @@ OneUptime AI 開啟的修正拉取請求也會以同樣的方式檢查：一旦�
 
 名稱以 `oneuptime.` 開頭的屬性是 OneUptime 自己的屬性，會從管線傳送的內容中捨棄。管線記錄的每個變更都會在 `oneuptime.change.source` 中註明這一點，其值為 `api`。
 
+從雲端帳戶讀取的變更會用 OpenTelemetry 的名稱 `cloud.provider`、`cloud.account.id`、`cloud.region` 和 `cloud.resource_id` 標明帳戶和資源，並把操作記在 `oneuptime.cloud.operation`，執行者記在 `oneuptime.cloud.actor`，是否失敗記在 `oneuptime.change.status`，所屬雲端帳戶記在 `oneuptime.cloud_account.id`。
+
 ### 限制
 
 | 限制 | 值 |
@@ -155,4 +162,5 @@ OneUptime AI 開啟的修正拉取請求也會以同樣的方式檢查：一旦�
 - [AI SRE](/docs/ai/ai-sre): 調查會讀取什麼，以及它如何修正發現的問題。
 - [命令參考](/docs/cli/command-reference): CLI 的每個命令。
 - [OpenTelemetry](/docs/telemetry/open-telemetry): 傳送你的服務的遙測資料，並附上它們的版本。
+- [連線雲端帳戶](/docs/telemetry/cloud-accounts): 你的 AWS、Azure 和 Google Cloud 帳戶的變更和健康事件。
 :::

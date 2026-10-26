@@ -1,9 +1,9 @@
 # Utrullinger og endringer
 
-OneUptime fører en oversikt over hva som er endret i prosjektet ditt: utrullinger, Kubernetes-rollouts, konfigurasjonsendringer og rettelsene den har kjørt selv. Hver endring tegnes som en markør på diagrammene til tjenesten sin, og OneUptime AI leser dem når den undersøker en hendelse, så "det startet rett etter utrullingen kl. 10:02" er det første du får vite, ikke det siste.
+OneUptime fører en oversikt over hva som er endret i prosjektet ditt: utrullinger, Kubernetes-rollouts, konfigurasjonsendringer, endringene i de tilkoblede skykontoene dine og rettelsene den har kjørt selv. Hver endring tegnes som en markør på diagrammene til tjenesten eller skyressursen sin, og OneUptime AI leser dem når den undersøker en hendelse, så "det startet rett etter utrullingen kl. 10:02" er det første du får vite, ikke det siste.
 
 :::cards
-- [Hva OneUptime registrerer på egen hånd](#hva-oneuptime-registrerer-på-egen-hånd): Utrullinger og rollouts fra telemetri, og sine egne rettelser.
+- [Hva OneUptime registrerer på egen hånd](#hva-oneuptime-registrerer-på-egen-hånd): Utrullinger og rollouts fra telemetri, endringene i skykontoene dine, og sine egne rettelser.
 - [Registrer en utrulling fra en pipeline](#registrer-en-utrulling-fra-en-pipeline): CLI-en, GitHub Actions og API-et.
 - [Slik bruker OneUptime AI endringer](#slik-bruker-oneuptime-ai-endringer): De mistenkte endringene i hver undersøkelse.
 - [Referanse](#referanse): Felt, attributter og grenser.
@@ -17,6 +17,7 @@ flowchart LR
     K["Et nytt ReplicaSet<br/>i Kubernetes"] --> E
     P["En pipeline:<br/>CLI-en eller API-et"] --> E
     A["En rettelse fra<br/>OneUptime AI, en<br/>runbook fra OneUptime"] --> E
+    D["Aktivitetsloggen<br/>til en skykonto"] --> E
     E --> C["Markører på<br/>tjenestens<br/>diagrammer"]
     E --> I["Undersøkelsene til<br/>OneUptime AI"]
 ```
@@ -31,6 +32,8 @@ Disse krever ikke at du sender noe. OneUptime registrerer dem ut fra telemetrien
 | En rollout | Podene i en Kubernetes-Deployment begynner å kjøre et ReplicaSet de ikke har kjørt før: et nytt image, en endret miljøvariabel eller konfigurasjonsreferanse, eller en omstart | `kubernetes` |
 | En rettelse OneUptime AI kjørte | En AI-agent rapporterer resultatet av en kommando som endrer noe, for eksempel `kubectl rollout restart` | `oneuptime-ai` |
 | En runbook | En runbook OneUptime kjørte, fullføres, mislykkes eller avbrytes etter at den har startet | `runbook` |
+| En skyendring | Aktivitetsloggen til en tilkoblet skykonto registrerer en endring: AWS CloudTrail, aktivitetsloggen i Azure eller revisjonsloggen Admin Activity i Google Cloud | `cloud` |
+| En leverandørhendelse | Skyleverandøren publiserer en helsehendelse om kontoen: AWS Health, Azure Service Health eller Resource Health, eller Google Cloud Service Health | `cloud-health` |
 
 - **Den første versjonen en tjeneste rapporterer, er utgangspunktet dens, ikke en utrulling.** En tjeneste som har kjørt i måneder, blir ikke rullet ut i det øyeblikket OneUptime begynner å motta telemetrien dens.
 - **En rollback til en versjon som er sett de siste 30 dagene, registreres ikke,** fordi den versjonen ikke er ny. En rollback som OneUptime AI kjører, registreres som en rettelse.
@@ -43,6 +46,8 @@ OTEL_RESOURCE_ATTRIBUTES="service.version=2.3.1,deployment.environment.name=prod
 ```
 
 En rollout krever [Kubernetes-agenten](/docs/telemetry/kubernetes-agent), som merker telemetrien fra hver pod med podens Deployment og ReplicaSet.
+
+En skyendring eller en leverandørhendelse krever en [tilkoblet skykonto](/docs/telemetry/cloud-accounts). Hver av dem knyttes til skyressursen den nevner, når OneUptime lister den ressursen, og tegnes på ressursens diagrammer. Typen kommer fra operasjonen: `deployment`, `scaling` eller `rollback` når navnet på operasjonen sier det, ellers `config-change`, og `provider-event` for en helsehendelse. Diagrammer som ikke er filtrert til noen ressurs, utelater aktivitetsloggen til en skykonto, så en travel konto ikke fortrenger utrullingene dine; leverandørens helsehendelser blir værende.
 
 ## Registrer en utrulling fra en pipeline
 
@@ -94,7 +99,7 @@ Se [`oneuptime deploy`](/docs/cli/command-reference#oneuptime-deploy) for alle a
 
 ## Slik bruker OneUptime AI endringer
 
-Hver [AI-undersøkelse](/docs/ai/ai-sre) av en hendelse eller et varsel starter fra endringene som er registrert i de 2 timene før den, og i de 10 minuttene etter, for en pipeline som registrerer utrullingen sin først når rollouten er ferdig. Endringene på tjenestene, klyngene og vertene hendelsen er koblet til, kommer først.
+Hver [AI-undersøkelse](/docs/ai/ai-sre) av en hendelse eller et varsel starter fra endringene som er registrert i de 2 timene før den, og i de 10 minuttene etter, for en pipeline som registrerer utrullingen sin først når rollouten er ferdig. Endringene på tjenestene, klyngene, vertene og skyressursene hendelsen er koblet til, kommer først.
 
 For opptil 4 av dem som nevner en tjeneste, leser OneUptime tjenestens telemetri i de 30 minuttene før og etter endringen, og markerer endringen som **mistenkt** når tjenesten ble målbart dårligere rett etter den:
 
@@ -139,6 +144,8 @@ Feltene på øverste nivå lagres som attributter under OpenTelemetry-navnene: `
 
 Attributter med navn som begynner med `oneuptime.`, er OneUptimes egne og fjernes fra det en pipeline sender. Hver endring en pipeline registrerer, oppgir det i `oneuptime.change.source`, som er `api`.
 
+En endring som er lest fra en skykonto, navngir kontoen og ressursen under OpenTelemetrys navn, `cloud.provider`, `cloud.account.id`, `cloud.region` og `cloud.resource_id`, og holder operasjonen i `oneuptime.cloud.operation`, hvem som kjørte den i `oneuptime.cloud.actor`, om den mislyktes i `oneuptime.change.status` og skykontoen i `oneuptime.cloud_account.id`.
+
 ### Grenser
 
 | Grense | Verdi |
@@ -155,4 +162,5 @@ Attributter med navn som begynner med `oneuptime.`, er OneUptimes egne og fjerne
 - [AI SRE](/docs/ai/ai-sre): Hva en undersøkelse leser, og hvordan den retter det den finner.
 - [Kommandoreferanse](/docs/cli/command-reference): Hver kommando i CLI-en.
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Send tjenestenes telemetri, med versjonene deres.
+- [Koble til en skykonto](/docs/telemetry/cloud-accounts): Endringene og helsehendelsene i AWS-, Azure- og Google Cloud-kontoene dine.
 :::

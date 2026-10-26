@@ -2207,7 +2207,12 @@ describe("the create form", () => {
     );
 
     expect(prefill).toContain(
-      'export const SCHEDULED_MAINTENANCE_PREFILL_PAYLOAD_KEYS: Array<AffectedResourcesPayloadKey> =\n  [...MONITOR_LINKED_RESOURCE_KEYS, "networkSites"];',
+      'export const SCHEDULED_MAINTENANCE_PREFILL_PAYLOAD_KEYS: Array<AffectedResourcesPayloadKey> =\n  [\n    ...MONITOR_LINKED_RESOURCE_KEYS.filter(\n      (key: MonitorLinkedResourceKey): boolean => {\n        return key !== "cloudResources";\n      },\n    ),\n    "networkSites",\n  ];',
+    );
+    // A maintenance event holds no cloud resources, and the page says so.
+    expect(prefill).toContain('"cloudResources",\n  "services",\n];');
+    expect(creating).toContain(
+      "Remove any you do not want. Cloud resources are not added: a maintenance event does not hold them.",
     );
     expect(suggestions).toContain(
       'export const ADD_ALL_SUGGESTED_STATUS_PAGES: string = translationKey("Add all");',

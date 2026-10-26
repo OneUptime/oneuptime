@@ -171,7 +171,7 @@ describe("which resources a call asks to link", () => {
       { type: AIChatPageContextType.Incident, entityId: HOST_ID },
       {
         type: AIChatPageContextType.Resource,
-        resourceType: AIResourceType.CloudResource,
+        resourceType: AIResourceType.ServerlessFunction,
         entityId: HOST_ID,
       },
     ] as Array<AIChatPageContext | undefined>) {

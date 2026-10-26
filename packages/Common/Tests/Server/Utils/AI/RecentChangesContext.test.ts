@@ -24,12 +24,16 @@ import {
   assessChangeImpact,
 } from "../../../../Server/Utils/AI/SRE/ChangeImpact";
 import { LinkedInfrastructure } from "../../../../Server/Utils/AI/SRE/LinkedInfrastructureContext";
+import CloudChangeLookBack from "../../../../Server/Utils/CloudConnection/CloudChangeLookBack";
 import RecentChangesContext, {
   CHANGE_LOOKBACK_MINUTES,
   ChangeRelation,
   ChangeRelevance,
   IMPACT_CHECK_BUDGET_IN_MS,
+  MAX_CHANGES_READ,
   MAX_CHECKED_CHANGES,
+  MAX_CLOUD_CHANGES_READ,
+  MAX_LINKED_CLOUD_CHANGES_READ,
   MAX_LISTED_CHANGES,
   NEW_EXCEPTION_LEAD_MINUTES,
   RecentChange,
@@ -39,9 +43,13 @@ import RecentChangesContext, {
   classifyChangeRelation,
   groupRecordedChanges,
   orderChangesForSubject,
+  getRecentChangeScopes,
   suspectsFirst,
   toRecordedChange,
 } from "../../../../Server/Utils/AI/SRE/RecentChangesContext";
+import Includes from "../../../../Types/BaseDatabase/Includes";
+import IncludesNone from "../../../../Types/BaseDatabase/IncludesNone";
+import { ChangeEventAttribute } from "../../../../Utils/Telemetry/ChangeEventFields";
 import { AIRunEventResultSummary } from "../../../../Types/AI/AIChatTypes";
 import InBetween from "../../../../Types/BaseDatabase/InBetween";
 import OneUptimeDate from "../../../../Types/Date";
@@ -659,6 +667,39 @@ describe("the starting context", () => {
   });
 });
 
+describe("the reads of a window's changes", () => {
+  test("everything but the clouds', the clouds' apart, each with its own limit", () => {
+    const scopes: Array<{ query: JSONObject; limit: number }> =
+      getRecentChangeScopes({ linkedCloudResourceIds: [] });
+
+    expect(scopes).toHaveLength(2);
+    expect(scopes[0]!.query["attributeKeys"]).toBeInstanceOf(IncludesNone);
+    expect(scopes[0]!.limit).toBe(MAX_CHANGES_READ);
+    expect(scopes[1]!.query["attributeKeys"]).toBeInstanceOf(Includes);
+    expect(scopes[1]!.limit).toBe(MAX_CLOUD_CHANGES_READ);
+  });
+
+  test("and each linked cloud resource's own changes apart again, ten resources at most", () => {
+    const ids: Array<string> = [];
+
+    for (let index: number = 0; index < 12; index++) {
+      ids.push(
+        `8b2c0d10-0000-4000-8000-0000000001${String(index).padStart(2, "0")}`,
+      );
+    }
+
+    const scopes: Array<{ query: JSONObject; limit: number }> =
+      getRecentChangeScopes({ linkedCloudResourceIds: ids });
+
+    expect(scopes).toHaveLength(12);
+    expect(scopes[2]).toEqual({
+      query: { attributes: { [ChangeEventAttribute.ResourceId]: ids[0] } },
+      limit: MAX_LINKED_CLOUD_CHANGES_READ,
+    });
+    expect(MAX_LINKED_CLOUD_CHANGES_READ).toBe(50);
+  });
+});
+
 describe("RecentChangesContext.read", () => {
   let rows: Array<JSONObject>;
   let findChanges: SpyInstance<typeof ChangeEventService.findBy>;
@@ -746,6 +787,125 @@ describe("RecentChangesContext.read", () => {
     expect(window.endValue).toEqual(minutesFromDeclared(10));
     expect(call["props"]).toEqual({ isRoot: true });
     expect(call["limit"]).toBe(200);
+  });
+
+  describe("an incident linked to cloud resources", () => {
+    const CLOUD_RESOURCE_ID: string = "8b2c0d10-0000-4000-8000-000000000099";
+
+    function linkedToCloud(): LinkedInfrastructure {
+      return {
+        ...linked(),
+        resources: [
+          ...linked().resources,
+          {
+            type: LinkedAffectedResourceType.CloudResource,
+            id: CLOUD_RESOURCE_ID,
+            name: "checkout-alb",
+          },
+        ],
+      };
+    }
+
+    test("reads its clouds' activity logs back first, from the window's start", async () => {
+      const order: Array<string> = [];
+      const lookBack: SpyInstance<typeof CloudChangeLookBack.readForSubject> =
+        jest
+          .spyOn(CloudChangeLookBack, "readForSubject")
+          .mockImplementation(async () => {
+            order.push("look back");
+            return { connections: 1, recorded: 1 };
+          });
+      findChanges.mockImplementation((async () => {
+        order.push("read");
+        return rows;
+      }) as never);
+
+      await read(linkedToCloud());
+
+      expect(lookBack).toHaveBeenCalledWith({
+        projectId: PROJECT_ID,
+        subjectId: INCIDENT_ID,
+        cloudResourceIds: [CLOUD_RESOURCE_ID],
+        since: minutesFromDeclared(-CHANGE_LOOKBACK_MINUTES),
+      });
+      expect(order[0]).toBe("look back");
+    });
+
+    test("reads the resource's own changes apart: a busy account cannot crowd them out", async () => {
+      jest
+        .spyOn(CloudChangeLookBack, "readForSubject")
+        .mockResolvedValue({ connections: 1, recorded: 1 });
+      const own: JSONObject = changeRow({
+        title: "ec2:AuthorizeSecurityGroupIngress on checkout-alb",
+        eventType: "config-change",
+        primaryEntityId: undefined,
+        attributes: {
+          [ChangeEventAttribute.CloudProvider]: "aws",
+          [ChangeEventAttribute.ResourceId]: CLOUD_RESOURCE_ID,
+          [ChangeEventAttribute.ResourceType]: "CloudResource",
+        },
+      });
+      findChanges.mockImplementation((async (data: {
+        query: JSONObject;
+        limit: number;
+      }) => {
+        const attributes: JSONObject | undefined = data.query["attributes"] as
+          | JSONObject
+          | undefined;
+
+        // Only the resource's own read finds its change.
+        return attributes?.[ChangeEventAttribute.ResourceId] ===
+          CLOUD_RESOURCE_ID
+          ? [own]
+          : [];
+      }) as never);
+
+      const result: RecentChanges | null = await read(linkedToCloud());
+
+      expect(findChanges).toHaveBeenCalledTimes(3);
+      expect(
+        (
+          findChanges.mock.calls[2]![0] as unknown as {
+            query: JSONObject;
+            limit: number;
+          }
+        ).limit,
+      ).toBe(MAX_LINKED_CLOUD_CHANGES_READ);
+      expect(
+        result?.changes.map((change: RecentChange): string => {
+          return change.titles[0] || "";
+        }),
+      ).toEqual(["ec2:AuthorizeSecurityGroupIngress on checkout-alb"]);
+    });
+
+    test("a change read twice - by the account's read and the resource's - is listed once", async () => {
+      jest
+        .spyOn(CloudChangeLookBack, "readForSubject")
+        .mockResolvedValue({ connections: 0, recorded: 0 });
+      const own: JSONObject = changeRow({
+        attributes: {
+          [ChangeEventAttribute.CloudProvider]: "aws",
+          [ChangeEventAttribute.ResourceId]: CLOUD_RESOURCE_ID,
+        },
+      });
+      findChanges.mockImplementation((async () => {
+        return [own];
+      }) as never);
+
+      const result: RecentChanges | null = await read(linkedToCloud());
+
+      expect(result?.changes).toHaveLength(1);
+    });
+
+    test("an incident linked to no cloud resource reads nothing back", async () => {
+      const lookBack: SpyInstance<typeof CloudChangeLookBack.readForSubject> =
+        jest.spyOn(CloudChangeLookBack, "readForSubject");
+
+      await read();
+
+      expect(lookBack).not.toHaveBeenCalled();
+      expect(findChanges).toHaveBeenCalledTimes(2);
+    });
   });
 
   test("the window ends now when the subject is younger than the lookahead", async () => {

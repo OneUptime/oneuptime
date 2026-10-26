@@ -69,7 +69,7 @@ Ingenting sendes før du velger en statusside: en hendelse som ikke vises på no
 
 To ting fyller ut skjemaet for deg underveis:
 
-- **Tilknyttede ressurser.** Når du velger en monitor, legges vertene, klyngene, tjenestene og andre ressurser den er knyttet til, under **Andre berørte ressurser**, og en linje under feltet nevner dem. Fjern dem du ikke vil ha.
+- **Tilknyttede ressurser.** Når du velger en monitor, legges vertene, klyngene, tjenestene og andre ressurser den er knyttet til, under **Andre berørte ressurser**, og en linje under feltet nevner dem. Fjern dem du ikke vil ha. Skyressurser legges ikke til: En vedlikeholdshendelse inneholder dem ikke.
 - **Foreslåtte statussider.** Under **Vis hendelse på disse statussidene** foreslås sidene som viser monitorene dine: klikk på navnet til en side for å legge den til, eller på **Legg til alle**. Ingenting velges for deg. Se [Planlagte vedlikeholdshendelser](/docs/status-pages/subscribers#planlagte-vedlikeholdshendelser).
 
 ## Start fra en ressurs eller en mal

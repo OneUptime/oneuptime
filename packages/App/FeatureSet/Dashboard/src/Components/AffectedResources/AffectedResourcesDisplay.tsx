@@ -1,6 +1,7 @@
 import CephCluster from "Common/Models/DatabaseModels/CephCluster";
 import StorageArray from "Common/Models/DatabaseModels/StorageArray";
 import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
+import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
 import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
@@ -22,6 +23,7 @@ import React, { FunctionComponent, ReactElement, useId, useState } from "react";
 import CephClusterElement from "../Ceph/CephClusterElement";
 import StorageArrayElement from "../StorageArray/StorageArrayElement";
 import DatabaseServerElement from "../DatabaseServer/DatabaseServerElement";
+import CloudResourceElement from "../Cloud/CloudResourceElement";
 import DockerHostElement from "../DockerHost/DockerHost";
 import DockerSwarmClusterElement from "../DockerSwarm/DockerSwarmClusterElement";
 import IoTFleetElement from "../IoT/IoTFleetElement";
@@ -48,6 +50,7 @@ export interface ComponentProps {
   dockerSwarmClusters?: Array<DockerSwarmCluster> | undefined;
   iotFleets?: Array<IoTFleet> | undefined;
   databaseServers?: Array<DatabaseServer> | undefined;
+  cloudResources?: Array<CloudResource> | undefined;
   networkSites?: Array<NetworkSite> | undefined;
   services?: Array<Service> | undefined;
   /*
@@ -75,6 +78,7 @@ export interface ComponentProps {
   hideDockerSwarmClusters?: boolean | undefined;
   hideIoTFleets?: boolean | undefined;
   hideDatabaseServers?: boolean | undefined;
+  hideCloudResources?: boolean | undefined;
   hideNetworkSites?: boolean | undefined;
   hideServices?: boolean | undefined;
   hideServiceLevelObjectives?: boolean | undefined;
@@ -322,6 +326,7 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
     props.dockerSwarmClusters || [];
   const iotFleets: Array<IoTFleet> = props.iotFleets || [];
   const databaseServers: Array<DatabaseServer> = props.databaseServers || [];
+  const cloudResources: Array<CloudResource> = props.cloudResources || [];
   const networkSites: Array<NetworkSite> = props.networkSites || [];
   const services: Array<Service> = props.services || [];
   const serviceLevelObjectives: Array<ServiceLevelObjective> =
@@ -345,6 +350,8 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
   const showIoTFleets: boolean = !props.hideIoTFleets && iotFleets.length > 0;
   const showDatabases: boolean =
     !props.hideDatabaseServers && databaseServers.length > 0;
+  const showCloudResources: boolean =
+    !props.hideCloudResources && cloudResources.length > 0;
   const showNetworkSites: boolean =
     !props.hideNetworkSites && networkSites.length > 0;
   const showServices: boolean = !props.hideServices && services.length > 0;
@@ -364,6 +371,7 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
     !showSwarm &&
     !showIoTFleets &&
     !showDatabases &&
+    !showCloudResources &&
     !showNetworkSites &&
     !showServices &&
     !showSlos
@@ -423,6 +431,7 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
     (showSwarm ? dockerSwarmClusters.length : 0) +
     (showIoTFleets ? iotFleets.length : 0) +
     (showDatabases ? databaseServers.length : 0) +
+    (showCloudResources ? cloudResources.length : 0) +
     (showNetworkSites ? networkSites.length : 0) +
     (showServices ? services.length : 0) +
     (showSlos ? serviceLevelObjectives.length : 0);
@@ -439,6 +448,7 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
     (showSwarm ? 1 : 0) +
     (showIoTFleets ? 1 : 0) +
     (showDatabases ? 1 : 0) +
+    (showCloudResources ? 1 : 0) +
     (showNetworkSites ? 1 : 0) +
     (showServices ? 1 : 0) +
     (showSlos ? 1 : 0);
@@ -634,6 +644,19 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
             items={databaseServers}
             renderItem={(databaseServer: DatabaseServer) => {
               return <DatabaseServerElement databaseServer={databaseServer} />;
+            }}
+          />
+        )}
+        {showCloudResources && (
+          <CategorySection<CloudResource>
+            className={sectionClassName}
+            icon={IconProp.Cloud}
+            label="Cloud Resources"
+            iconBgClass="bg-sky-50"
+            iconColorClass="text-sky-600"
+            items={cloudResources}
+            renderItem={(cloudResource: CloudResource) => {
+              return <CloudResourceElement cloudResource={cloudResource} />;
             }}
           />
         )}

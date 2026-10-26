@@ -288,6 +288,7 @@ describe("Incidents and alerts inherit what their monitor is linked to", () => {
       dockerSwarmClusterIds: ["sw-1"],
       iotFleetIds: ["iot-1"],
       databaseServerIds: ["db-1"],
+      cloudResourceIds: ["cr-1"],
       serviceIds: ["svc-1"],
     });
 
@@ -305,6 +306,7 @@ describe("Incidents and alerts inherit what their monitor is linked to", () => {
     expect(idsOn(incident.dockerSwarmClusters)).toEqual(["sw-1"]);
     expect(idsOn(incident.iotFleets)).toEqual(["iot-1"]);
     expect(idsOn(incident.databaseServers)).toEqual(["db-1"]);
+    expect(idsOn(incident.cloudResources)).toEqual(["cr-1"]);
     expect(idsOn(incident.services)).toEqual(["svc-1"]);
   });
 
@@ -428,6 +430,7 @@ describe("MonitorResourceContextUtil.resolveLinkedResourcesForMonitor", () => {
           linked(LinkedAffectedResourceType.DockerSwarmCluster, "sw-1"),
           linked(LinkedAffectedResourceType.IoTFleet, "iot-1"),
           linked(LinkedAffectedResourceType.DatabaseServer, "db-1"),
+          linked(LinkedAffectedResourceType.CloudResource, "cr-1"),
           linked(LinkedAffectedResourceType.Service, "svc-1"),
         ]);
 
@@ -448,6 +451,7 @@ describe("MonitorResourceContextUtil.resolveLinkedResourcesForMonitor", () => {
       dockerSwarmClusterIds: ["sw-1"],
       iotFleetIds: ["iot-1"],
       databaseServerIds: ["db-1"],
+      cloudResourceIds: ["cr-1"],
       serviceIds: ["svc-1"],
     });
 
@@ -599,7 +603,7 @@ describe("LinkedAffectedResources.readForMonitors", () => {
       },
     ]);
 
-    // One query per relation a monitor has: the twelve linkable kinds.
+    // One query per relation a monitor has: the thirteen linkable kinds.
     const columns: Array<string> = calls.map((call: JSONObject): string => {
       return Object.keys(call["select"] as JSONObject).find((key: string) => {
         return key !== "_id" && key !== "projectId";
@@ -608,6 +612,7 @@ describe("LinkedAffectedResources.readForMonitors", () => {
     expect(columns.sort()).toEqual(
       [
         "cephClusters",
+        "cloudResources",
         "databaseServers",
         "dockerHosts",
         "dockerSwarmClusters",
