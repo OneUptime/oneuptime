@@ -413,21 +413,21 @@ describe("Ask AI's home says it can create alerts too", () => {
   });
 
   /*
-   * Where the home reads in the reader's language, the sentence does too;
-   * where its heading is still English, so is the sentence - never one
-   * translated line among English ones.
+   * The hero - its heading and the sentence under it - reads in the
+   * reader's language as one: never one translated line under an English
+   * heading, nor the other way round.
    */
   test.each(
     LANGUAGES.filter((language: string) => {
       return language !== "en";
     }),
-  )("in %s, in the language its heading reads in", async (language: string) => {
+  )("in %s, heading and sentence both", async (language: string) => {
     const locale: Record<string, string> = LOCALES[language]!;
-    const headingIsTranslated: boolean = locale[HOME_HEADING] !== HOME_HEADING;
     const sentence: string | undefined = locale[HOME_SENTENCE];
 
+    expect(locale[HOME_HEADING]).not.toBe(HOME_HEADING);
     expect(sentence).toBeDefined();
-    expect(sentence !== HOME_SENTENCE).toBe(headingIsTranslated);
+    expect(sentence).not.toBe(HOME_SENTENCE);
 
     await act(async () => {
       await i18next.changeLanguage(language);
