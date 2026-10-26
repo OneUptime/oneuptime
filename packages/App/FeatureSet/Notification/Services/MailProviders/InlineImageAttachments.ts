@@ -11,8 +11,8 @@ import type Mailer from "nodemailer/lib/mailer";
  * its own, and a service that does not find the name it reads the
  * Content-ID from refuses the whole email. SendGrid did, for every email
  * that carried an image (issue #5308): from 14.0.23 every email with a
- * screenshot in it, and from 14.0.82, when every email began to carry the
- * logo, every email at all - password resets and on-call pages too.
+ * screenshot in it, and from 14.0.82, when OneUptime's logo began to head
+ * its emails, nearly every email - password resets and on-call pages too.
  *
  * So each service's names are written here, once, as its API documents
  * them, and InlineImagesOnEveryMailTransport sends an email through each

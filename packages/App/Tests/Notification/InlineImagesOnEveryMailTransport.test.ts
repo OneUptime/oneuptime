@@ -69,13 +69,14 @@ import {
  * EVERY WAY ONEUPTIME SENDS EMAIL CARRIES ITS INLINE IMAGES AS ITS SERVICE
  * READS THEM.
  *
- * OneUptime's logo heads every email it sends, as an inline image: an
+ * OneUptime's logo heads the emails it sends, as an inline image: an
  * attachment the HTML points at by Content-ID (EmailLogo). Each mail service
  * names that attachment's Content-ID in a word of its own, and SendGrid
- * refused every email with an image - from 14.0.82, every email - because
- * MailService wrote the client library's typed name (contentId) where
- * SendGrid reads content_id (issue #5308). Every test of it mocked the
- * client and checked the name MailService handed it, so none could see it.
+ * refused every email with an image - from 14.0.82 nearly every email -
+ * because MailService wrote the client library's typed name (contentId)
+ * where SendGrid reads content_id (issue #5308). Every test of it mocked
+ * the client and checked the name MailService handed it, so none could see
+ * it.
  *
  * So these send real emails - a password reset, an on-call page with a
  * screenshot in it - through each transport's real client, to a stand-in for
