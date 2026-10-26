@@ -81,6 +81,16 @@ const HOST_PAGE: AIChatPageContext = {
   entityTitle: "test01",
 };
 
+/*
+ * create_incident with its prepareMutation typed as always there, so a test
+ * can spy on it (the field is optional on ObservabilityTool).
+ */
+type PreparingTool = {
+  prepareMutation: NonNullable<ObservabilityTool["prepareMutation"]>;
+};
+const PREPARING_CREATE_INCIDENT: PreparingTool =
+  CreateIncidentTool as unknown as PreparingTool;
+
 const DECLARE_CALL: { id: string; name: string; arguments: JSONObject } = {
   id: "call-declare",
   name: "create_incident",
@@ -376,10 +386,7 @@ describe("Ask AI on a host's page declares an incident linked to the host (issue
   test("a prepare that fails leaves the model's arguments, and the action is still asked about", async () => {
     const spies: Spies = installSpies();
     jest
-      .spyOn(
-        CreateIncidentTool as Required<ObservabilityTool>,
-        "prepareMutation",
-      )
+      .spyOn(PREPARING_CREATE_INCIDENT, "prepareMutation")
       .mockRejectedValue(new Error("lookup failed") as never);
     spies.executeWithLogging.mockResolvedValueOnce(
       response({ stopReason: "tool_use", toolCalls: [DECLARE_CALL] }) as never,
@@ -396,7 +403,7 @@ describe("Ask AI on a host's page declares an incident linked to the host (issue
   test("a read is never prepared, and every tool reads the conversation's subject", async () => {
     const spies: Spies = installSpies();
     const prepare: SpyInstance = jest.spyOn(
-      CreateIncidentTool as Required<ObservabilityTool>,
+      PREPARING_CREATE_INCIDENT,
       "prepareMutation",
     );
     const execute: SpyInstance = jest
