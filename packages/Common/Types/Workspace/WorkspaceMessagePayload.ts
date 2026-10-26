@@ -160,6 +160,36 @@ export interface WorkspaceModalBlock extends WorkspaceMessageBlock {
 export interface WorkspacePayloadMarkdown extends WorkspaceMessageBlock {
   _type: "WorkspacePayloadMarkdown";
   text: string;
+  /*
+   * A menu beside the text, that acts as soon as an option is chosen
+   * (WorkspacePayloadMenu): Slack draws it as the section's select. Only
+   * Slack draws one.
+   */
+  menu?: WorkspacePayloadMenu | undefined;
+}
+
+/*
+ * A menu beside a line of Markdown that acts the moment one of its options
+ * is chosen, with no button to press after: the Switch project menu of the
+ * Slack app's Home (SlackHome). Slack draws it as a static select beside
+ * the line; Microsoft Teams draws none, and nothing passes one there.
+ */
+export interface WorkspacePayloadMenu {
+  actionId: string;
+  // What the menu says while nothing is chosen.
+  placeholder: string;
+  options: Array<WorkspacePayloadMenuOption>;
+  /*
+   * Names the menu, so a chat that keeps what was chosen in a menu across a
+   * redraw of the view keeps it only where the same menu is drawn again.
+   */
+  blockId?: string | undefined;
+}
+
+export interface WorkspacePayloadMenuOption {
+  // Plain text, as the menu shows it: never Markdown.
+  label: string;
+  value: string;
 }
 
 /*

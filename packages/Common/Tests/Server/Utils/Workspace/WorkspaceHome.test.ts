@@ -42,7 +42,9 @@ import {
   WorkspacePayloadContext,
   WorkspacePayloadHeader,
   WorkspacePayloadMarkdown,
+  WorkspacePayloadMenu,
 } from "../../../../Types/Workspace/WorkspaceMessagePayload";
+import { mdText } from "../../../../Utils/Markdown/FeedMarkdown";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
 
 /*
@@ -528,6 +530,86 @@ describe("what the Home says", () => {
     expect(textOf(blocks[0]!)).toBe("👋 Hi there");
     expect(blocks[1]!._type).toBe("WorkspacePayloadButtons");
     expect(textOf(blocks[3]!)).toBe("📟 **Your on-call**");
+  });
+
+  /*
+   * Somebody in several of a Slack workspace's projects: the Switch project
+   * menu sits beside the line that names the project (SlackHome), and
+   * nothing else of the Home changes.
+   */
+  const MENU: WorkspacePayloadMenu = {
+    actionId: "SwitchHomeProject",
+    placeholder: "Switch project",
+    options: [{ label: "Acme Staging", value: ObjectID.generate().toString() }],
+    blockId: "SwitchHomeProject:p",
+  };
+
+  test("a project menu: beside the line that names the project, and on no other block", () => {
+    const withMenu: Array<WorkspaceMessageBlock> = WorkspaceHome.getBlocks({
+      workspaceType: WorkspaceType.Slack,
+      view: view(),
+      actions: ACTIONS,
+      projectMenu: MENU,
+    });
+    const without: Array<WorkspaceMessageBlock> = WorkspaceHome.getBlocks({
+      workspaceType: WorkspaceType.Slack,
+      view: view(),
+      actions: ACTIONS,
+    });
+
+    expect(textOf(withMenu[1]!)).toBe(
+      "Here's what is happening in **Acme Production**.",
+    );
+    expect((withMenu[1] as WorkspacePayloadMarkdown).menu).toEqual(MENU);
+
+    // Everything else, block for block, as without it.
+    expect(
+      withMenu.filter((_block: WorkspaceMessageBlock, index: number) => {
+        return index !== 1;
+      }),
+    ).toEqual(
+      without.filter((_block: WorkspaceMessageBlock, index: number) => {
+        return index !== 1;
+      }),
+    );
+    expect((without[1] as WorkspacePayloadMarkdown).menu).toBeUndefined();
+    expect(Object.keys(without[1]!).sort()).toEqual(["_type", "text"]);
+  });
+
+  test("no project name read: no line that names it, and so no menu", () => {
+    const blocks: Array<WorkspaceMessageBlock> = WorkspaceHome.getBlocks({
+      workspaceType: WorkspaceType.Slack,
+      view: view({ projectName: null }),
+      actions: ACTIONS,
+      projectMenu: MENU,
+    });
+
+    for (const block of blocks) {
+      expect((block as WorkspacePayloadMarkdown).menu).toBeUndefined();
+    }
+  });
+
+  test("a notice: the first line under the greeting, before the project's", () => {
+    const blocks: Array<WorkspaceMessageBlock> = WorkspaceHome.getBlocks({
+      workspaceType: WorkspaceType.Slack,
+      view: view(),
+      actions: ACTIONS,
+      notice: mdText`⚠️ You can't switch to that project.`,
+      projectMenu: MENU,
+    });
+
+    expect(typesOf(blocks).slice(0, 4)).toEqual([
+      "WorkspacePayloadHeader",
+      "WorkspacePayloadMarkdown",
+      "WorkspacePayloadMarkdown",
+      "WorkspacePayloadButtons",
+    ]);
+    expect(textOf(blocks[1]!)).toBe("⚠️ You can't switch to that project.");
+    expect((blocks[1] as WorkspacePayloadMarkdown).menu).toBeUndefined();
+    expect(textOf(blocks[2]!)).toBe(
+      "Here's what is happening in **Acme Production**.",
+    );
+    expect((blocks[2] as WorkspacePayloadMarkdown).menu).toEqual(MENU);
   });
 
   test("no dashboard address: the footer has no Open link", () => {
