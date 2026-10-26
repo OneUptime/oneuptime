@@ -1,14 +1,16 @@
 {
   "baseline": {
-    "keys": 35180,
-    "untranslated": 13482
+    "keys": 35538,
+    "untranslated": 13469
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
     "2xx",
     "3xx",
+    "412 GB",
     "4xx",
     "5xx",
+    "Apache Kafka · kafka-1:9092",
     "Brute force detected",
     "CPU Ready",
     "CPU Ready {{percent}}",
@@ -19,7 +21,12 @@
     "Google SecOps",
     "Hello world",
     "ICMP (ping)",
+    "INP 120 ms",
+    "INP 168 ms",
+    "INP 190 ms",
+    "INP 540 ms",
     "JavaScript API",
+    "LXC 201 · pve3",
     "MCP",
     "MITRE ATT&CK",
     "MITRE ATT&CK Enterprise v{{version}}",
@@ -28,6 +35,7 @@
     "PR #{{number}}",
     "PV",
     "PVC",
+    "PostgreSQL 16.4 · Kubernetes · prod-us-east",
     "Runner",
     "SLI %",
     "SLOs",
@@ -39,6 +47,7 @@
     "[\"ResizeObserver loop\", \"third-party-tag\\\\.js\"]",
     "[\"iframe.payment\", \".id-document\"]",
     "alice@example.com",
+    "aws_lambda · us-east-1 · nodejs 20",
     "build=1.4.2, plan=pro",
     "checkout-.*",
     "customer facing|tier-1",
