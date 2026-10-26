@@ -790,7 +790,7 @@ const BulkUpdateForm: <T extends GenericObject>(
             >
               <Icon
                 className="h-5 w-5 flex-shrink-0"
-                icon={IconProp.Stop}
+                icon={IconProp.StopCircle}
                 color={Gray500}
               />
               <div className="ml-2 text-sm font-medium text-gray-800">

@@ -35605,7 +35605,7 @@
   "Keep this page open until this finishes.": "Lassen Sie diese Seite geöffnet, bis der Vorgang abgeschlossen ist.",
   "Keep this page open until this finishes. You can stop at any time: what is already done stays done.": "Lassen Sie diese Seite geöffnet, bis der Vorgang abgeschlossen ist. Sie können jederzeit stoppen: Was bereits erledigt ist, bleibt erledigt.",
   "Less than a minute left": "Noch weniger als eine Minute",
-  "Stopping. The ones already started are finishing.": "Wird gestoppt. Bereits begonnene werden noch abgeschlossen.",
+  "Stopping. The ones already started are finishing.": "Wird gestoppt. Was bereits begonnen wurde, wird noch abgeschlossen.",
   "{{count}} {{itemsName}} not started: you stopped the action": "{{count}} {{itemsName}} nicht begonnen: Sie haben die Aktion gestoppt",
   "{{count}} {{itemsName}} not started: you stopped the action_one": "{{count}} {{itemName}} nicht begonnen: Sie haben die Aktion gestoppt"
 }

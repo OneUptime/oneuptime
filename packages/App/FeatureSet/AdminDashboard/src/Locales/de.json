@@ -1031,7 +1031,7 @@
   "Bulk Actions": "Massenaktionen",
   "Keep this page open until this finishes. You can stop at any time: what is already done stays done.": "Lassen Sie diese Seite geöffnet, bis der Vorgang abgeschlossen ist. Sie können jederzeit stoppen: Was bereits erledigt ist, bleibt erledigt.",
   "Keep this page open until this finishes.": "Lassen Sie diese Seite geöffnet, bis der Vorgang abgeschlossen ist.",
-  "Stopping. The ones already started are finishing.": "Wird gestoppt. Bereits begonnene werden noch abgeschlossen.",
+  "Stopping. The ones already started are finishing.": "Wird gestoppt. Was bereits begonnen wurde, wird noch abgeschlossen.",
   "Less than a minute left": "Noch weniger als eine Minute",
   "About {{count}} minutes left": "Noch etwa {{count}} Minuten",
   "About {{count}} minutes left_one": "Noch etwa {{count}} Minute",
