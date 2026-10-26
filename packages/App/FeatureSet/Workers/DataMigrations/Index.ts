@@ -150,6 +150,7 @@ import AddMissingIdsToMonitorSteps from "./AddMissingIdsToMonitorSteps";
 import MoveRunbookApprovalsBeforeTheirSteps from "./MoveRunbookApprovalsBeforeTheirSteps";
 import AddSecurityCaseNotificationSettingsForUsers from "./AddSecurityCaseNotificationSettingsForUsers";
 import AddIncidentSlaBreachedNotificationSettingsForUsers from "./AddIncidentSlaBreachedNotificationSettingsForUsers";
+import RewriteFeedAttachmentLinks from "./RewriteFeedAttachmentLinks";
 import AddProcessColumnsToSecurityEvent from "./AddProcessColumnsToSecurityEvent";
 import AddDefaultPostmortemStatusesToExistingProjects from "./AddDefaultPostmortemStatusesToExistingProjects";
 
@@ -875,6 +876,14 @@ const DataMigrations: Array<DataMigrationBase> = [
    * Idempotent; no ordering requirement of its own.
    */
   new AddIncidentSlaBreachedNotificationSettingsForUsers(),
+  /*
+   * The attachment links of feed entries written before the download routes
+   * took the project id are 404s: each gets its entry's project id (an
+   * episode's private note, which has no route, the file's name). Only the
+   * entries that mention "/attachment/" are read; idempotent; no ordering
+   * requirement of its own.
+   */
+  new RewriteFeedAttachmentLinks(),
   /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one
