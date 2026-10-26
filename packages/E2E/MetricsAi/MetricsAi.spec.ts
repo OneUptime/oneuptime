@@ -333,10 +333,14 @@ test.describe("Metrics → AI → Settings", () => {
         "Every problem found in your metrics is looked into, and a pull request opened for each one OneUptime AI can fix.",
       ),
     ).toBeVisible();
-    // The card's own button (with no rule, the empty table offers it too).
+    /*
+     * The card's own button (with no rule, the empty table offers it too),
+     * by its name: on a phone it says only Create and keeps its whole
+     * title as its name.
+     */
     await page
       .getByTestId("card-button")
-      .filter({ hasText: "Create AI Rule" })
+      .and(page.getByRole("button", { name: "Create AI Rule" }))
       .click();
 
     const dialog: Locator = page.getByRole("dialog");
