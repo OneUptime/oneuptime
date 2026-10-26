@@ -35593,5 +35593,6 @@
   "Text Input": "टेक्स्ट इनपुट",
   "Is First Membership": "Is First Membership",
   "Incident SLA breached": "घटना का SLA उल्लंघन",
-  "An incident you own misses its SLA response or resolution deadline.": "आपके स्वामित्व वाली कोई घटना अपनी SLA प्रतिक्रिया या समाधान की समय-सीमा चूक जाती है।"
+  "An incident you own misses its SLA response or resolution deadline.": "आपके स्वामित्व वाली कोई घटना अपनी SLA प्रतिक्रिया या समाधान की समय-सीमा चूक जाती है।",
+  "Go to Affected Resources": "प्रभावित संसाधन पर जाएं"
 }

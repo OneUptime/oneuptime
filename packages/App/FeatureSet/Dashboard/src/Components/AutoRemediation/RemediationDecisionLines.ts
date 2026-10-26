@@ -59,6 +59,18 @@ export interface RemediationDecisionLink {
   route: Route;
 }
 
+/*
+ * A place on the record's own page a line sends the reader to: the
+ * Affected Resources card, where what the record is about is added. On a
+ * phone that card is far below the Remediation card.
+ */
+export interface RemediationDecisionPlace {
+  // Translated.
+  text: string;
+  // The id of the element the place is (a card's id).
+  placeId: string;
+}
+
 export interface RemediationDecisionLine {
   key: string;
   tone: RemediationDecisionTone;
@@ -67,8 +79,17 @@ export interface RemediationDecisionLine {
   // A cluster's or resource's readiness gap, as its AI agent page words it.
   why?: string | undefined;
   whatToDo?: string | undefined;
+  // A place on the same page the line sends the reader to, first.
+  place?: RemediationDecisionPlace | undefined;
   links: Array<RemediationDecisionLink>;
 }
+
+/*
+ * The incident's and the alert's Affected Resources card, by its id: the
+ * place the linked-to-nothing line sends the reader to (#5293). The two
+ * pages give their card this id.
+ */
+export const AFFECTED_RESOURCES_PLACE_ID: string = "affected-resources";
 
 export interface RemediationDecision {
   stage: AutoRemediationDecisionStage;
@@ -210,6 +231,9 @@ const LINK_INCIDENT_AI_SETTINGS: string = translationKey(
 const LINK_ALERT_AI_SETTINGS: string = translationKey("Alert AI settings");
 const LINK_LLM_PROVIDERS: string = translationKey("LLM providers");
 const LINK_MONITOR: string = translationKey("Link {{monitorName}}");
+const GO_TO_AFFECTED_RESOURCES: string = translationKey(
+  "Go to Affected Resources",
+);
 const UNNAMED_MONITOR: string = translationKey("the monitor");
 
 // The AI agent page of each kind of infrastructure resource.
@@ -654,6 +678,10 @@ export function getRemediationDecisionLines(input: {
                 : translator.translateTemplate(
                     "Add the one it is about under Affected Resources, and OneUptime AI tries again.",
                   ),
+            place: {
+              text: translateText(translator, GO_TO_AFFECTED_RESOURCES),
+              placeId: AFFECTED_RESOURCES_PLACE_ID,
+            },
             links: monitorLinks(translator, monitors),
           });
           return;

@@ -17638,3 +17638,188 @@ test.describe("at a glance: layout", () => {
     });
   }
 });
+
+/*
+ * Issue #5293: an incident Ask AI declared on a host's page was linked to
+ * nothing, and its Remediation card said only that it was "not linked to a
+ * Kubernetes cluster or an infrastructure resource". The card now says, in
+ * plain words, what OneUptime AI fixes and what to do: add what the
+ * incident is about under Affected Resources, and OneUptime AI tries
+ * again. "Go to Affected Resources" takes the reader to that card - on a
+ * phone far below - and marks where it landed. ?fixing=nothing-linked is
+ * such a record with no monitor (an incident Ask AI declared);
+ * ?fixing=nothing-linked-monitor names its monitor too.
+ */
+test.describe("the Remediation card of a record linked to nothing (issue #5293)", () => {
+  const NOTHING_LINKED_INCIDENT: string =
+    "This incident is not linked to a host, cluster or database, so OneUptime AI had nothing to fix.";
+  const WHAT_TO_DO: string =
+    "Add the one it is about under Affected Resources, and OneUptime AI tries again.";
+  const GO_TO_AFFECTED_RESOURCES: string = "Go to Affected Resources";
+
+  function decisionLine(page: Page): Locator {
+    return remediationCard(page).getByTestId("remediation-decision-line");
+  }
+
+  test("says what OneUptime AI fixes, and what to do, with no monitor to link", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PATH, "fixing=nothing-linked");
+
+    const line: Locator = decisionLine(page);
+    await expect(line).toHaveCount(1, { timeout: 30000 });
+    await expect(line).toHaveAttribute("data-tone", "attention");
+    await expect(line.getByTestId("remediation-decision-text")).toHaveText(
+      NOTHING_LINKED_INCIDENT,
+    );
+    await expect(
+      line.getByTestId("remediation-decision-what-to-do"),
+    ).toHaveText(`What to do: ${WHAT_TO_DO}`);
+    // The sentence is the why: never the engine's words.
+    await expect(remediationCard(page)).not.toContainText(
+      "infrastructure resource",
+    );
+    await expect(remediationCard(page)).toContainText("Needs attention");
+
+    // The one step, and nothing else to follow: no monitor, no link.
+    await expect(
+      line.getByRole("button", { name: GO_TO_AFFECTED_RESOURCES, exact: true }),
+    ).toBeVisible();
+    await expect(line.getByRole("link")).toHaveCount(0);
+  });
+
+  test("with a monitor, links it too, after the step that fixes this one", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PATH, "fixing=nothing-linked-monitor");
+
+    const line: Locator = decisionLine(page);
+    await expect(
+      line.getByTestId("remediation-decision-what-to-do"),
+    ).toHaveText(
+      `What to do: ${WHAT_TO_DO} Link its monitor to what it watches, and every incident it raises from then on is linked for you.`,
+      { timeout: 30000 },
+    );
+
+    const go: Locator = line.getByRole("button", {
+      name: GO_TO_AFFECTED_RESOURCES,
+      exact: true,
+    });
+    const monitorLink: Locator = line.getByRole("link", {
+      name: "Link Checkout API p95 latency",
+    });
+    await expect(monitorLink).toHaveAttribute(
+      "href",
+      `${DASHBOARD}/monitors/${uuid("70000000", 1)}`,
+    );
+
+    // Side by side in reading order: the button first.
+    const goBox: Box = await documentBox(go);
+    const linkBox: Box = await documentBox(monitorLink);
+    expect(goBox.y <= linkBox.y).toBe(true);
+    if (goBox.y === linkBox.y) {
+      expect(goBox.x).toBeLessThan(linkBox.x);
+    }
+  });
+
+  for (const width of [390, 1280]) {
+    test(`Go to Affected Resources lands on the card, under the header, at ${width}px`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize({ width, height: 844 });
+      await open(page, INCIDENT_PATH, "fixing=nothing-linked");
+      await expectWhatHappenedSettled(page);
+
+      const affectedResources: Locator = card(page, "Affected Resources");
+      await expect(affectedResources).toBeVisible({ timeout: 30000 });
+      await expect(affectedResources).toHaveAttribute(
+        "id",
+        "affected-resources",
+      );
+
+      const go: Locator = decisionLine(page).getByRole("button", {
+        name: GO_TO_AFFECTED_RESOURCES,
+        exact: true,
+      });
+      await go.scrollIntoViewIfNeeded();
+      await go.click();
+
+      // Marked where it landed, and in view under the sticky header.
+      await expect(affectedResources).toHaveAttribute(
+        "data-page-anchor-landed",
+        "true",
+      );
+      await expect
+        .poll(
+          async (): Promise<number> => {
+            const box: { y: number } | null =
+              await affectedResources.boundingBox();
+            return box ? Math.round(box.y) : -1;
+          },
+          { timeout: 10000 },
+        )
+        .toBeGreaterThanOrEqual(0);
+      const box: { y: number; height: number } | null =
+        await affectedResources.boundingBox();
+      expect(box).not.toBeNull();
+      expect(box!.y).toBeLessThan(844 / 2);
+      await expect(
+        affectedResources.getByRole("button", { name: "Edit" }),
+      ).toBeInViewport();
+
+      await expectNoHorizontalOverflow(page);
+      await screenshot(page, `remediation-linked-to-nothing-landed-${width}`, {
+        fullPage: false,
+      });
+    });
+  }
+
+  test("an alert linked to nothing says so in its own words, and lands on its own card", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await open(page, ALERT_PATH, "fixing=nothing-linked");
+
+    const line: Locator = decisionLine(page);
+    await expect(line.getByTestId("remediation-decision-text")).toHaveText(
+      "This alert is not linked to a host, cluster or database, so OneUptime AI had nothing to fix.",
+      { timeout: 30000 },
+    );
+
+    await line
+      .getByRole("button", { name: GO_TO_AFFECTED_RESOURCES, exact: true })
+      .click();
+
+    const affectedResources: Locator = card(page, "Affected Resources");
+    await expect(affectedResources).toHaveAttribute(
+      "data-page-anchor-landed",
+      "true",
+    );
+    await expect(affectedResources).toBeInViewport();
+  });
+
+  test("reads the same in dark mode, at a phone's width", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await open(page, INCIDENT_PATH, "fixing=nothing-linked-monitor&theme=dark");
+
+    const line: Locator = decisionLine(page);
+    await expect(line).toHaveCount(1, { timeout: 30000 });
+    await expectNoHorizontalOverflow(page);
+    await screenshotElement(
+      remediationCard(page),
+      "remediation-linked-to-nothing-390-dark",
+    );
+  });
+});

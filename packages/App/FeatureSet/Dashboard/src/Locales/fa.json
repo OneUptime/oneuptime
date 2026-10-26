@@ -35593,5 +35593,6 @@
   "Text Input": "ورودی متن",
   "Is First Membership": "Is First Membership",
   "Incident SLA breached": "نقض SLA حادثه",
-  "An incident you own misses its SLA response or resolution deadline.": "حادثه‌ای که مالکش هستید مهلت پاسخ یا رفع SLA خود را از دست می‌دهد."
+  "An incident you own misses its SLA response or resolution deadline.": "حادثه‌ای که مالکش هستید مهلت پاسخ یا رفع SLA خود را از دست می‌دهد.",
+  "Go to Affected Resources": "رفتن به منابع تحت تأثیر"
 }

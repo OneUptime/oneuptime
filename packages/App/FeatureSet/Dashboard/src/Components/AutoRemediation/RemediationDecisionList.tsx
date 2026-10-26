@@ -2,8 +2,13 @@ import {
   REMEDIATION_DECISION_HEADING,
   RemediationDecisionLine,
   RemediationDecisionLink,
+  RemediationDecisionPlace,
   RemediationDecisionTone,
 } from "./RemediationDecisionLines";
+import {
+  bringPageAnchorIntoView,
+  markPageAnchorLanded,
+} from "Common/UI/Utils/PageAnchor";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
@@ -46,6 +51,28 @@ export const REMEDIATION_DECISION_TONE_MARK: Record<
   info: { icon: IconProp.Info, className: "bg-gray-100 text-gray-500" },
   waiting: { icon: IconProp.Clock, className: "bg-indigo-50 text-indigo-600" },
 };
+
+// A line's links: each the same indigo text with its arrow glued to it.
+const DECISION_LINK_CLASS_NAME: string =
+  "min-w-0 break-words rounded text-sm font-medium leading-6 text-indigo-600 hover:text-indigo-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2";
+
+/*
+ * Takes the reader to a place on the page - the Affected Resources card -
+ * the way a link to a place on a page lands (Utils/PageAnchor): brought
+ * into view under the sticky header and tinted for a moment, so the eye
+ * finds it. A place that is not on the page leaves the page as it is.
+ */
+export function goToPagePlace(placeId: string): boolean {
+  const element: HTMLElement | null = document.getElementById(placeId);
+
+  if (!element) {
+    return false;
+  }
+
+  bringPageAnchorIntoView(element);
+  markPageAnchorLanded(element);
+  return true;
+}
 
 /*
  * What auto-remediation did with an incident or alert: one line per fix
@@ -136,8 +163,27 @@ const RemediationDecisionList: FunctionComponent<ComponentProps> = (
                 ) : (
                   <></>
                 )}
-                {line.links.length > 0 ? (
+                {line.links.length > 0 || line.place ? (
                   <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1">
+                    {line.place ? (
+                      <button
+                        type="button"
+                        data-testid="remediation-decision-place"
+                        onClick={() => {
+                          goToPagePlace(
+                            (line.place as RemediationDecisionPlace).placeId,
+                          );
+                        }}
+                        className={`text-start ${DECISION_LINK_CLASS_NAME}`}
+                      >
+                        <ArrowGluedText
+                          text={line.place.text}
+                          arrowTestId="remediation-decision-link-arrow"
+                        />
+                      </button>
+                    ) : (
+                      <></>
+                    )}
                     {line.links.map(
                       (
                         decisionLink: RemediationDecisionLink,
@@ -153,7 +199,7 @@ const RemediationDecisionList: FunctionComponent<ComponentProps> = (
                           <Link
                             key={`${line.key}-link-${index}`}
                             to={decisionLink.route}
-                            className="min-w-0 break-words rounded text-sm font-medium leading-6 text-indigo-600 hover:text-indigo-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+                            className={DECISION_LINK_CLASS_NAME}
                           >
                             <ArrowGluedText
                               text={decisionLink.text}

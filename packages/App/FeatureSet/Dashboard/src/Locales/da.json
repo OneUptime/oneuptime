@@ -35593,5 +35593,6 @@
   "Text Input": "Tekstinput",
   "Is First Membership": "Is First Membership",
   "Incident SLA breached": "Hændelsens SLA overskredet",
-  "An incident you own misses its SLA response or resolution deadline.": "En hændelse, du ejer, overskrider sin SLA-frist for svar eller løsning."
+  "An incident you own misses its SLA response or resolution deadline.": "En hændelse, du ejer, overskrider sin SLA-frist for svar eller løsning.",
+  "Go to Affected Resources": "Gå til Berørte ressourcer"
 }

@@ -206,8 +206,12 @@
  *            matched. Or off | ai-off | no-rule | rules-investigate (the one
  *            rule that matched, "Checkout investigations", only
  *            investigates) | acted (OneUptime AI started a fix on
- *            prod-eu-west-1: the cards stay whole) | none (nothing
- *            recorded, as for a record from before decisions were).
+ *            prod-eu-west-1: the cards stay whole) | nothing-linked
+ *            (linked to no cluster and no resource with an AI agent, and
+ *            no monitor either - an incident Ask AI declared, #5293) |
+ *            nothing-linked-monitor (the same, with its monitor named so
+ *            the card links it) | none (nothing recorded, as for a record
+ *            from before decisions were).
  *   ?switches= on: the project's "Investigate new ..." and "Fix new ...
  *            automatically" switches are on now (and Enable AI). By
  *            default they are off - and with ?ai=off-project so is Enable
@@ -466,6 +470,8 @@ const FIXING_MODES = [
   "no-rule",
   "rules-investigate",
   "acted",
+  "nothing-linked",
+  "nothing-linked-monitor",
   "none",
 ];
 const DEFAULT_FIXING_MODES = {
@@ -3871,6 +3877,33 @@ function remediationDecisionEntries() {
         remediationMode: "ApprovalRequired",
       },
       { lane: "Resource", reason: "ResourceSkippedForClusterRound" },
+    ];
+  }
+  /*
+   * Linked to nothing a fix acts on (#5293): no cluster, no resource with
+   * an AI agent. The engine names the signal's monitors on both entries,
+   * so the card can link them; one Ask AI declared has none.
+   */
+  if (
+    fixingMode === "nothing-linked" ||
+    fixingMode === "nothing-linked-monitor"
+  ) {
+    const named =
+      fixingMode === "nothing-linked-monitor"
+        ? [
+            {
+              id: monitors.checkoutLatency.id.toString(),
+              name: monitors.checkoutLatency.name,
+            },
+          ]
+        : [];
+    return [
+      {
+        lane: "KubernetesCluster",
+        reason: "ClusterNoneLinked",
+        monitors: named,
+      },
+      { lane: "Resource", reason: "ResourceNoneLinked", monitors: named },
     ];
   }
   return [];

@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import {
+  AFFECTED_RESOURCES_PLACE_ID,
   getRemediationDecisionLines,
   getRemediationDecisionStatus,
   pickRemediationDecision,
@@ -197,6 +198,12 @@ describe("getRemediationDecisionLines", () => {
       );
       // The sentence is the why: no "Why:" repeats it.
       expect(lines[0]!.why).toBeUndefined();
+      // And it takes the reader to the card it names, on the same page.
+      expect(lines[0]!.place).toEqual({
+        text: "Go to Affected Resources",
+        placeId: AFFECTED_RESOURCES_PLACE_ID,
+      });
+      expect(AFFECTED_RESOURCES_PLACE_ID).toBe("affected-resources");
       expect(
         lines[0]!.links.map((link: { text: string }) => {
           return link.text;
@@ -227,7 +234,9 @@ describe("getRemediationDecisionLines", () => {
       expect(line.whatToDo).toBe(
         "Add the one it is about under Affected Resources, and OneUptime AI tries again.",
       );
+      // No monitor to link: going to Affected Resources is the one step.
       expect(line.links).toEqual([]);
+      expect(line.place?.placeId).toBe(AFFECTED_RESOURCES_PLACE_ID);
     });
 
     test("never words it as the engine does", () => {

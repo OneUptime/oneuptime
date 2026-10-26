@@ -3,14 +3,17 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import { cleanup, render, screen, within } from "@testing-library/react";
 import * as React from "react";
 import RemediationDecisionList, {
+  goToPagePlace,
   REMEDIATION_DECISION_TONE_MARK,
   RemediationDecisionToneMark,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationDecisionList";
 import {
+  AFFECTED_RESOURCES_PLACE_ID,
   getRemediationDecisionLines,
   RemediationDecisionLine,
   RemediationDecisionTone,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationDecisionLines";
+import { PAGE_ANCHOR_LANDED_ATTRIBUTE } from "../../../UI/Utils/PageAnchor";
 import Route from "../../../Types/API/Route";
 import {
   AutoRemediationDecisionLane,
@@ -539,5 +542,110 @@ describe("RemediationDecisionList", () => {
       "text-indigo-600",
     );
     expect(screen.queryAllByRole("link")).toEqual([]);
+  });
+});
+
+/*
+ * Issue #5293: an incident linked to nothing says what to do - add what it
+ * is about under Affected Resources. The line takes the reader there: a
+ * button first in its row, "Go to Affected Resources", that brings the
+ * page's Affected Resources card into view and tints it a moment, the way a
+ * link to a place on a page lands. On a phone that card is far below.
+ */
+describe("RemediationDecisionList - the place a line sends the reader to", () => {
+  function nothingLinkedLines(): Array<RemediationDecisionLine> {
+    return getRemediationDecisionLines({
+      decision: {
+        stage: AutoRemediationDecisionStage.Evaluated,
+        entries: [
+          {
+            lane: AutoRemediationDecisionLane.KubernetesCluster,
+            reason: AutoRemediationDecisionReason.ClusterNoneLinked,
+            monitors: [{ id: MONITOR_ID, name: "Checkout website" }],
+          },
+          {
+            lane: AutoRemediationDecisionLane.Resource,
+            reason: AutoRemediationDecisionReason.ResourceNoneLinked,
+          },
+        ],
+      },
+      signal: "incident",
+      translator: getGlobalTranslator(),
+    });
+  }
+
+  function placeOnPage(): HTMLElement {
+    const place: HTMLElement = document.createElement("div");
+    place.id = AFFECTED_RESOURCES_PLACE_ID;
+    place.scrollIntoView = jest.fn();
+    document.body.appendChild(place);
+    return place;
+  }
+
+  afterEach(() => {
+    document.getElementById(AFFECTED_RESOURCES_PLACE_ID)?.remove();
+  });
+
+  test("a button first in the line's row, before the monitor links, named by its words", () => {
+    render(<RemediationDecisionList lines={nothingLinkedLines()} />);
+
+    const [unlinked] = lines() as [HTMLElement];
+    const go: HTMLElement = within(unlinked).getByRole("button", {
+      name: "Go to Affected Resources",
+    });
+
+    expect(go).toHaveAttribute("type", "button");
+    expect(go).toHaveAttribute("data-testid", "remediation-decision-place");
+    // The row's first item: what lets OneUptime AI fix this one comes first.
+    expect(go.parentElement?.firstElementChild).toBe(go);
+    expect(
+      within(unlinked).getByRole("link", { name: "Link Checkout website" }),
+    ).toBeInTheDocument();
+    // Drawn as the links beside it are, its arrow glued and not read out.
+    const link: HTMLElement = within(unlinked).getByRole("link", {
+      name: "Link Checkout website",
+    });
+    for (const className of [
+      "text-sm",
+      "font-medium",
+      "text-indigo-600",
+      "focus-visible:ring-2",
+    ]) {
+      expect(go.className).toContain(className);
+      expect(link.className).toContain(className);
+    }
+    expect(go.className).toContain("text-start");
+    expect(
+      within(go).getByTestId("remediation-decision-link-arrow"),
+    ).toHaveAttribute("aria-hidden", "true");
+  });
+
+  test("brings the Affected Resources card into view and marks where it landed", () => {
+    const place: HTMLElement = placeOnPage();
+
+    render(<RemediationDecisionList lines={nothingLinkedLines()} />);
+
+    within(lines()[0]!)
+      .getByRole("button", { name: "Go to Affected Resources" })
+      .click();
+
+    expect(place).toHaveAttribute(PAGE_ANCHOR_LANDED_ATTRIBUTE, "true");
+  });
+
+  test("goToPagePlace says whether the place was on the page, and changes nothing when it was not", () => {
+    expect(goToPagePlace(AFFECTED_RESOURCES_PLACE_ID)).toBe(false);
+
+    const place: HTMLElement = placeOnPage();
+
+    expect(goToPagePlace(AFFECTED_RESOURCES_PLACE_ID)).toBe(true);
+    expect(place).toHaveAttribute(PAGE_ANCHOR_LANDED_ATTRIBUTE, "true");
+  });
+
+  test("a line with no place draws no button", () => {
+    render(<RemediationDecisionList lines={[line({ key: "a", links: [] })]} />);
+
+    expect(
+      screen.queryByTestId("remediation-decision-place"),
+    ).not.toBeInTheDocument();
   });
 });

@@ -35593,5 +35593,6 @@
   "Text Input": "文本输入",
   "Is First Membership": "Is First Membership",
   "Incident SLA breached": "事件 SLA 违约",
-  "An incident you own misses its SLA response or resolution deadline.": "您拥有的事件错过了 SLA 响应或解决截止时间。"
+  "An incident you own misses its SLA response or resolution deadline.": "您拥有的事件错过了 SLA 响应或解决截止时间。",
+  "Go to Affected Resources": "转到受影响的资源"
 }

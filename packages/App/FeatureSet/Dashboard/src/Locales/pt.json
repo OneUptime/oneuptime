@@ -35593,5 +35593,6 @@
   "Text Input": "Entrada de texto",
   "Is First Membership": "Is First Membership",
   "Incident SLA breached": "SLA de incidente violado",
-  "An incident you own misses its SLA response or resolution deadline.": "Um incidente do qual você é proprietário perde o prazo de SLA de resposta ou de resolução."
+  "An incident you own misses its SLA response or resolution deadline.": "Um incidente do qual você é proprietário perde o prazo de SLA de resposta ou de resolução.",
+  "Go to Affected Resources": "Ir para Recursos afetados"
 }

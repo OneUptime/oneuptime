@@ -35593,5 +35593,6 @@
   "Text Input": "Ввод текста",
   "Is First Membership": "Is First Membership",
   "Incident SLA breached": "Нарушен SLA инцидента",
-  "An incident you own misses its SLA response or resolution deadline.": "Инцидент, которым вы владеете, не уложился в срок SLA на реакцию или решение."
+  "An incident you own misses its SLA response or resolution deadline.": "Инцидент, которым вы владеете, не уложился в срок SLA на реакцию или решение.",
+  "Go to Affected Resources": "Перейти к затронутым ресурсам"
 }
