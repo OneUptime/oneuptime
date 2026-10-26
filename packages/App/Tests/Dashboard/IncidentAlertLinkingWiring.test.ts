@@ -494,8 +494,15 @@ describe("the alerts table bulk actions", () => {
     expect(code).toContain(
       "awaitcreateIncidentAlertLink({incidentId:newObjectID(incidentId),alertId:newObjectID(alertId),});",
     );
+    /*
+     * Through the shared runner (issue #5299), one alert at a time: a link
+     * that is there already is not thrown, so the alert counts as done.
+     */
     expect(code).toContain(
-      "if(isAlreadyLinkedError(message)){successItems.push(alert);}",
+      "awaitrunBulkAction<Alert>({actionProps:bulkActionProps,concurrency:1,",
+    );
+    expect(code).toContain(
+      "catch(err){if(!isAlreadyLinkedError(API.getFriendlyMessage(err))){throwerr;}}",
     );
   });
 

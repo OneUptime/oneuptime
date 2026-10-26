@@ -300,6 +300,8 @@ function useBulkAddToEpisodeActions<T extends BaseModel>(
     await runBulkAction<T>({
       actionProps: props,
       concurrency: Math.max(1, props.items.length),
+      // One request for all of them: there is nothing left to stop.
+      isStoppable: false,
       step: async (item: T): Promise<BulkItemOutcome> => {
         if (!request) {
           request = addToEpisode({
@@ -370,6 +372,8 @@ function useBulkAddToEpisodeActions<T extends BaseModel>(
     await runBulkAction<T>({
       actionProps: props,
       concurrency: Math.max(1, props.items.length),
+      // One request for all of them: there is nothing left to stop.
+      isStoppable: false,
       step: async (item: T): Promise<BulkItemOutcome> => {
         const id: string = EpisodeMembersAdd.normalizeId(
           item._id?.toString() || "",

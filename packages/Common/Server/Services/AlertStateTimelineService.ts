@@ -325,7 +325,17 @@ export class Service extends ProjectReferencesService<AlertStateTimeline> {
     /*
      * now there are three cases.
      * 1. This is the first status OR there's no status after this.
+     *
+     * Moving a neighbour is an update of this table, and that update's own
+     * hook (onUpdateSuccess) refreshes the alert's metrics and measurements -
+     * once the new row and the neighbour are both saved, which is all they
+     * read of the change. A change that moved one does not refresh them a
+     * second time below.
      */
+    const movedANeighbour: boolean = Boolean(
+      onCreate.carryForward.statusTimelineBeforeThisStatus,
+    );
+
     if (!onCreate.carryForward.statusTimelineBeforeThisStatus) {
       // This is the first status, no need to update previous status.
       logger.debug("This is the first status.");
@@ -510,36 +520,40 @@ ${FeedMarkdown.asMarkdown(createdItem.rootCause)}`.toString()
       });
     }
 
-    AlertService.refreshAlertMetrics({
-      alertId: createdItem.alertId,
-    }).catch((error: Error) => {
-      logger.error(
-        "Error while refreshing alert metrics after alert state timeline creation",
-        {
-          projectId: createdItem.projectId?.toString(),
-          alertId: createdItem.alertId?.toString(),
-        } as LogAttributes,
-      );
-      logger.error(error, {
-        projectId: createdItem.projectId?.toString(),
-        alertId: createdItem.alertId?.toString(),
-      } as LogAttributes);
-    });
-
     /*
      * A new timeline row moves every anchor that resolves against it, so the
-     * derived measurements have to be recomputed. Fire-and-forget: the state
-     * change itself is the user-visible write and must not fail because a
-     * derived number could not be recalculated.
+     * metrics and the derived measurements have to be worked out again -
+     * here for an alert's first row, and by the neighbour's update above for
+     * every other (movedANeighbour). Fire-and-forget: the state change itself
+     * is the user-visible write and must not fail because a derived number
+     * could not be recalculated.
      */
-    AlertMeasurementValueService.recomputeForAlert({
-      alertId: createdItem.alertId!,
-    }).catch((error: Error) => {
-      logger.error(`Error while recomputing alert measurements:`, {
-        alertId: createdItem.alertId?.toString(),
-      } as LogAttributes);
-      logger.error(error);
-    });
+    if (!movedANeighbour) {
+      AlertService.refreshAlertMetrics({
+        alertId: createdItem.alertId,
+      }).catch((error: Error) => {
+        logger.error(
+          "Error while refreshing alert metrics after alert state timeline creation",
+          {
+            projectId: createdItem.projectId?.toString(),
+            alertId: createdItem.alertId?.toString(),
+          } as LogAttributes,
+        );
+        logger.error(error, {
+          projectId: createdItem.projectId?.toString(),
+          alertId: createdItem.alertId?.toString(),
+        } as LogAttributes);
+      });
+
+      AlertMeasurementValueService.recomputeForAlert({
+        alertId: createdItem.alertId!,
+      }).catch((error: Error) => {
+        logger.error(`Error while recomputing alert measurements:`, {
+          alertId: createdItem.alertId?.toString(),
+        } as LogAttributes);
+        logger.error(error);
+      });
+    }
 
     const isLastAlertState: boolean = await this.isLastAlertState({
       projectId: createdItem.projectId!,
@@ -696,6 +710,11 @@ ${FeedMarkdown.asMarkdown(createdItem.rootCause)}`.toString()
     }
   }
 
+  /*
+   * Refreshes the metrics of each affected alert once. Its measurements are
+   * recomputed beside it, by recomputeMeasurementsForAlertIds - this used to
+   * recompute them as well, so every update recomputed them twice.
+   */
   private refreshAlertMetricsForAlertIds(alertIds: Array<ObjectID>): void {
     const uniqueAlertIds: Map<string, ObjectID> = new Map<string, ObjectID>();
 
@@ -716,19 +735,6 @@ ${FeedMarkdown.asMarkdown(createdItem.rootCause)}`.toString()
         logger.error(error, {
           alertId: alertId.toString(),
         } as LogAttributes);
-      });
-
-      /*
-       * Deleting a timeline row can move an anchor or remove it entirely, so
-       * the derived measurements must be recomputed from what is left.
-       */
-      AlertMeasurementValueService.recomputeForAlert({
-        alertId: alertId,
-      }).catch((error: Error) => {
-        logger.error(`Error while recomputing alert measurements:`, {
-          alertId: alertId?.toString(),
-        } as LogAttributes);
-        logger.error(error);
       });
     }
   }

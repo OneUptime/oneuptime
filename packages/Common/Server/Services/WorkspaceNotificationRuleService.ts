@@ -1458,6 +1458,26 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     }
   }
 
+  /*
+   * Whether the project has a Slack or Microsoft Teams workspace connected
+   * that OneUptime can post as: one whose connection holds a token. Without
+   * one, every post, channel and send log of the project is skipped, so the
+   * work of finding what to post can be too.
+   */
+  @CaptureSpan()
+  public async hasConnectedWorkspace(projectId: ObjectID): Promise<boolean> {
+    const projectAuths: Array<WorkspaceProjectAuthToken> =
+      (await WorkspaceProjectAuthTokenService.getProjectAuths({
+        projectId: projectId,
+      })) || [];
+
+    return projectAuths.some(
+      (projectAuth: WorkspaceProjectAuthToken): boolean => {
+        return Boolean(projectAuth.authToken && projectAuth.workspaceType);
+      },
+    );
+  }
+
   @CaptureSpan()
   public async sendWorkspaceMarkdownNotification(data: {
     projectId: ObjectID;
@@ -1477,6 +1497,29 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       exceptChannel?: WorkspaceChannelToSkip | undefined;
     };
   }): Promise<void> {
+    /*
+     * A project with no Slack or Microsoft Teams connected has nowhere to
+     * post: nothing below could open a channel, send a message or log a
+     * send. Asked once, up front - every feed entry of every record comes
+     * here (a bulk Resolve of thousands of alerts, one each), and the rules,
+     * destinations and author names below took about fifteen reads every
+     * time to find there was nothing to do.
+     */
+    let isWorkspaceConnected: boolean = true;
+
+    try {
+      isWorkspaceConnected = await this.hasConnectedWorkspace(data.projectId);
+    } catch (err) {
+      // Not known: carry on as if one were, and let the steps below decide.
+      logger.error(err, {
+        projectId: data.projectId?.toString(),
+      } as LogAttributes);
+    }
+
+    if (!isWorkspaceConnected) {
+      return;
+    }
+
     let messageBlocksByWorkspaceTypes: Array<MessageBlocksByWorkspaceType> = [];
     const exceptChannel: WorkspaceChannelToSkip | undefined =
       data.workspaceNotification.exceptChannel;

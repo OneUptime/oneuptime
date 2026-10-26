@@ -16,6 +16,7 @@ import {
   SaveFilterProps,
 } from "Common/UI/Components/ModelTable/BaseModelTable";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import { BULK_ACTION_CONCURRENCY } from "Common/UI/Components/BulkUpdate/BulkActionRunner";
 import EmptyStateOptions from "Common/UI/Components/ModelTable/EmptyStateOptions";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import useCustomFieldFacets from "../CustomFields/useCustomFieldFacets";
@@ -637,6 +638,11 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
             ...episodeBulkActions,
             ModalTableBulkDefaultActions.Delete,
           ],
+          /*
+           * An alert's delete takes its own metrics with it and checks
+           * nothing across alerts: several are deleted at once.
+           */
+          deleteConcurrency: BULK_ACTION_CONCURRENCY,
         }}
         actionButtons={[
           ...stateRowActions,

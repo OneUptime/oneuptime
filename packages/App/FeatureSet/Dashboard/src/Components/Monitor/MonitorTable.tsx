@@ -6,17 +6,17 @@ import {
 import MonitorTypeUtil from "../../Utils/MonitorType";
 import ProjectUtil from "Common/UI/Utils/Project";
 
-import MonitorType, {
-  MonitorTypeHelper,
-} from "Common/Types/Monitor/MonitorType";
 import { Black, Gray500, Red500 } from "Common/Types/BrandColors";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import IconProp from "Common/Types/Icon/IconProp";
 import {
   BulkActionButtonSchema,
-  BulkActionFailed,
   BulkActionOnClickProps,
 } from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
+import {
+  BulkMonitorProbeChangeMode,
+  runBulkMonitorProbeChange,
+} from "./BulkMonitorProbeChange";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import {
@@ -45,7 +45,6 @@ import {
 import { getArchivedColumns } from "../Archive/ArchivedColumns";
 import Statusbubble from "Common/UI/Components/StatusBubble/StatusBubble";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import API from "Common/UI/Utils/API/API";
 import Query from "Common/Types/BaseDatabase/Query";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
@@ -55,7 +54,6 @@ import MonitorOwnerUser from "Common/Models/DatabaseModels/MonitorOwnerUser";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import MonitorTemplate from "Common/Models/DatabaseModels/MonitorTemplate";
 import Probe from "Common/Models/DatabaseModels/Probe";
-import MonitorProbe from "Common/Models/DatabaseModels/MonitorProbe";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -523,210 +521,52 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
     fetchProbes();
   }, []);
 
-  const handleBulkAddProbes: (probeId: ObjectID) => Promise<void> = async (
+  /*
+   * Add Probe and Remove Probe in Bulk Actions (BulkMonitorProbeChange):
+   * through the shared runner, several monitors at once, whether the probe
+   * is on them read a window of monitors at a time. The form closes first,
+   * as every bulk action's form does: the progress dialog, and its Stop, is
+   * what the person sees while the monitors change - the form left open
+   * over it hid both.
+   */
+  const runProbeChange: (
     probeId: ObjectID,
+    mode: BulkMonitorProbeChangeMode,
+  ) => Promise<void> = async (
+    probeId: ObjectID,
+    mode: BulkMonitorProbeChangeMode,
   ): Promise<void> => {
-    if (!bulkActionProps) {
+    const actionProps: BulkActionOnClickProps<Monitor> | null = bulkActionProps;
+
+    setShowAddProbesModal(false);
+    setShowRemoveProbesModal(false);
+    setBulkActionProps(null);
+
+    if (!actionProps) {
       return;
     }
 
-    const { items, onProgressInfo, onBulkActionStart, onBulkActionEnd } =
-      bulkActionProps;
+    await runBulkMonitorProbeChange({
+      actionProps: actionProps,
+      probeId: probeId,
+      projectId: ProjectUtil.getCurrentProjectId()!,
+      mode: mode,
+      translate: (reason: string): string => {
+        return translator.translateTemplate(reason);
+      },
+    });
+  };
 
-    onBulkActionStart();
-
-    const inProgressItems: Array<Monitor> = [...items];
-    const totalItems: Array<Monitor> = [...items];
-    const successItems: Array<Monitor> = [];
-    const failedItems: Array<BulkActionFailed<Monitor>> = [];
-
-    for (const monitor of totalItems) {
-      inProgressItems.splice(inProgressItems.indexOf(monitor), 1);
-
-      try {
-        if (!monitor.id) {
-          throw new BadDataException("Monitor ID not found");
-        }
-
-        if (
-          !monitor.monitorType ||
-          !MonitorTypeHelper.isProbableMonitor(
-            monitor.monitorType as MonitorType,
-          )
-        ) {
-          failedItems.push({
-            item: monitor,
-            failedMessage: translator.translateTemplate(
-              "This monitor type does not support probes",
-            ),
-          });
-
-          onProgressInfo({
-            totalItems: totalItems,
-            failed: failedItems,
-            successItems: successItems,
-            inProgressItems: inProgressItems,
-          });
-
-          continue;
-        }
-
-        // Check if this probe is already assigned to this monitor
-        const existingProbes: ListResult<MonitorProbe> =
-          await ModelAPI.getList<MonitorProbe>({
-            modelType: MonitorProbe,
-            query: {
-              monitorId: monitor.id,
-              probeId: probeId,
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            limit: 1,
-            skip: 0,
-            select: {
-              _id: true,
-            },
-            sort: {},
-          });
-
-        if (existingProbes.data.length > 0) {
-          failedItems.push({
-            item: monitor,
-            failedMessage: translator.translateTemplate(
-              "Probe is already assigned to this monitor",
-            ),
-          });
-        } else {
-          const monitorProbe: MonitorProbe = new MonitorProbe();
-          monitorProbe.monitorId = monitor.id;
-          monitorProbe.probeId = probeId;
-          monitorProbe.projectId = ProjectUtil.getCurrentProjectId()!;
-          monitorProbe.isEnabled = true;
-
-          await ModelAPI.create<MonitorProbe>({
-            model: monitorProbe,
-            modelType: MonitorProbe,
-          });
-
-          successItems.push(monitor);
-        }
-      } catch (err) {
-        failedItems.push({
-          item: monitor,
-          failedMessage: API.getFriendlyMessage(err),
-        });
-      }
-
-      onProgressInfo({
-        totalItems: totalItems,
-        failed: failedItems,
-        successItems: successItems,
-        inProgressItems: inProgressItems,
-      });
-    }
-
-    onBulkActionEnd();
-    setShowAddProbesModal(false);
-    setBulkActionProps(null);
+  const handleBulkAddProbes: (probeId: ObjectID) => Promise<void> = async (
+    probeId: ObjectID,
+  ): Promise<void> => {
+    await runProbeChange(probeId, "add");
   };
 
   const handleBulkRemoveProbes: (probeId: ObjectID) => Promise<void> = async (
     probeId: ObjectID,
   ): Promise<void> => {
-    if (!bulkActionProps) {
-      return;
-    }
-
-    const { items, onProgressInfo, onBulkActionStart, onBulkActionEnd } =
-      bulkActionProps;
-
-    onBulkActionStart();
-
-    const inProgressItems: Array<Monitor> = [...items];
-    const totalItems: Array<Monitor> = [...items];
-    const successItems: Array<Monitor> = [];
-    const failedItems: Array<BulkActionFailed<Monitor>> = [];
-
-    for (const monitor of totalItems) {
-      inProgressItems.splice(inProgressItems.indexOf(monitor), 1);
-
-      try {
-        if (!monitor.id) {
-          throw new BadDataException("Monitor ID not found");
-        }
-
-        if (
-          !monitor.monitorType ||
-          !MonitorTypeHelper.isProbableMonitor(
-            monitor.monitorType as MonitorType,
-          )
-        ) {
-          failedItems.push({
-            item: monitor,
-            failedMessage: translator.translateTemplate(
-              "This monitor type does not support probes",
-            ),
-          });
-
-          onProgressInfo({
-            totalItems: totalItems,
-            failed: failedItems,
-            successItems: successItems,
-            inProgressItems: inProgressItems,
-          });
-
-          continue;
-        }
-
-        // Find the MonitorProbe record to delete
-        const existingProbes: ListResult<MonitorProbe> =
-          await ModelAPI.getList<MonitorProbe>({
-            modelType: MonitorProbe,
-            query: {
-              monitorId: monitor.id,
-              probeId: probeId,
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            limit: 1,
-            skip: 0,
-            select: {
-              _id: true,
-            },
-            sort: {},
-          });
-
-        if (existingProbes.data.length === 0) {
-          failedItems.push({
-            item: monitor,
-            failedMessage: translator.translateTemplate(
-              "Probe is not assigned to this monitor",
-            ),
-          });
-        } else {
-          await ModelAPI.deleteItem<MonitorProbe>({
-            modelType: MonitorProbe,
-            id: existingProbes.data[0]!.id!,
-          });
-
-          successItems.push(monitor);
-        }
-      } catch (err) {
-        failedItems.push({
-          item: monitor,
-          failedMessage: API.getFriendlyMessage(err),
-        });
-      }
-
-      onProgressInfo({
-        totalItems: totalItems,
-        failed: failedItems,
-        successItems: successItems,
-        inProgressItems: inProgressItems,
-      });
-    }
-
-    onBulkActionEnd();
-    setShowRemoveProbesModal(false);
-    setBulkActionProps(null);
+    await runProbeChange(probeId, "remove");
   };
 
   // Add Probe and Remove Probe sit together in Bulk Actions (ActionMenuGroup).

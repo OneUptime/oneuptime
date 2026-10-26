@@ -1,5 +1,4 @@
 import ModelAPI, { RequestOptions } from "../../Utils/ModelAPI/ModelAPI";
-import API from "../../Utils/API/API";
 import ModelImportExportUtil, {
   ImportResult,
 } from "../../Utils/ModelImportExport";
@@ -22,9 +21,12 @@ import BaseModelTable, {
 } from "./BaseModelTable";
 import {
   BulkActionButtonSchema,
-  BulkActionFailed,
   BulkActionOnClickProps,
 } from "../BulkUpdate/BulkUpdateForm";
+import {
+  BULK_ACTION_CONCURRENCY,
+  runBulkAction,
+} from "../BulkUpdate/BulkActionRunner";
 import ImportModelsModal from "../ImportExport/ImportModelsModal";
 import ActionButtonSchema from "../ActionButton/ActionButtonSchema";
 import { ActionMenuGroup } from "../ActionButton/ActionMenuGroup";
@@ -127,23 +129,23 @@ const ModelTable: <TBaseModel extends BaseModel>(
         icon: IconProp.Download,
         // Beside Export CSV, in a run of its own (ActionMenuGroup).
         menuGroup: ActionMenuGroup.Export,
-        onClick: async ({
-          items,
-          onProgressInfo,
-          onBulkActionStart,
-          onBulkActionEnd,
-        }: BulkActionOnClickProps<TBaseModel>) => {
-          onBulkActionStart();
+        /*
+         * Each row read in full for the file, several at once (runBulkAction),
+         * and written in the order they were selected. Not stoppable: a read
+         * changes nothing, and a file of part of the selection would read as
+         * all of it.
+         */
+        onClick: async (actionProps: BulkActionOnClickProps<TBaseModel>) => {
+          const fetchedByItem: Map<TBaseModel, TBaseModel> = new Map<
+            TBaseModel,
+            TBaseModel
+          >();
 
-          const inProgressItems: Array<TBaseModel> = [...items];
-          const successItems: Array<TBaseModel> = [];
-          const failedItems: Array<BulkActionFailed<TBaseModel>> = [];
-          const itemsToExport: Array<TBaseModel> = [];
-
-          for (const item of items) {
-            inProgressItems.splice(inProgressItems.indexOf(item), 1);
-
-            try {
+          await runBulkAction<TBaseModel>({
+            actionProps: actionProps,
+            concurrency: BULK_ACTION_CONCURRENCY,
+            isStoppable: false,
+            step: async (item: TBaseModel): Promise<void> => {
               if (!item.id) {
                 throw new Error(
                   `${model.singularName || "Item"} id not found.`,
@@ -157,22 +159,17 @@ const ModelTable: <TBaseModel extends BaseModel>(
                   modelAPI: modelAPI,
                 });
 
-              itemsToExport.push(fetchedItem);
-              successItems.push(item);
-            } catch (err) {
-              failedItems.push({
-                item: item,
-                failedMessage: API.getFriendlyMessage(err),
-              });
-            }
+              fetchedByItem.set(item, fetchedItem);
+            },
+          });
 
-            onProgressInfo({
-              totalItems: items,
-              inProgressItems: [...inProgressItems],
-              successItems: [...successItems],
-              failed: [...failedItems],
+          const itemsToExport: Array<TBaseModel> = actionProps.items
+            .filter((item: TBaseModel) => {
+              return fetchedByItem.has(item);
+            })
+            .map((item: TBaseModel) => {
+              return fetchedByItem.get(item)!;
             });
-          }
 
           if (itemsToExport.length > 0) {
             ModelImportExportUtil.downloadExportFile({
@@ -180,8 +177,6 @@ const ModelTable: <TBaseModel extends BaseModel>(
               items: itemsToExport,
             });
           }
-
-          onBulkActionEnd();
         },
       };
     };

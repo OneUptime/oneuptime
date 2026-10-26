@@ -15,9 +15,9 @@ import Button, {
 } from "Common/UI/Components/Button/Button";
 import BulkUpdateForm, {
   BulkActionButtonSchema,
-  BulkActionFailed,
   BulkActionOnClickProps,
 } from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
+import { runBulkAction } from "Common/UI/Components/BulkUpdate/BulkActionRunner";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { FormType, ModelField } from "Common/UI/Components/Forms/ModelForm";
@@ -563,21 +563,18 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
         count: items.length,
       });
     },
+    /*
+     * Through the shared runner (progress, Stop, failures by resource), one
+     * at a time: the resources of a group keep their places in one order,
+     * which every removal closes up.
+     */
     onClick: async (
       onClickProps: BulkActionOnClickProps<StatusPageResource>,
     ): Promise<void> => {
-      const items: Array<StatusPageResource> = onClickProps.items;
-
-      onClickProps.onBulkActionStart();
-
-      const inProgressItems: Array<StatusPageResource> = [...items];
-      const successItems: Array<StatusPageResource> = [];
-      const failedItems: Array<BulkActionFailed<StatusPageResource>> = [];
-
-      for (const item of items) {
-        inProgressItems.splice(inProgressItems.indexOf(item), 1);
-
-        try {
+      await runBulkAction<StatusPageResource>({
+        actionProps: onClickProps,
+        concurrency: 1,
+        step: async (item: StatusPageResource): Promise<void> => {
           if (!item.id) {
             throw new BadDataException(
               "This resource has no id, so it cannot be removed.",
@@ -588,24 +585,8 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
             modelType: StatusPageResource,
             id: item.id,
           });
-
-          successItems.push(item);
-        } catch (err) {
-          failedItems.push({
-            item: item,
-            failedMessage: API.getFriendlyMessage(err),
-          });
-        }
-
-        onClickProps.onProgressInfo({
-          inProgressItems: inProgressItems,
-          successItems: successItems,
-          failed: failedItems,
-          totalItems: items,
-        });
-      }
-
-      onClickProps.onBulkActionEnd();
+        },
+      });
     },
   };
 

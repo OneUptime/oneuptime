@@ -28,6 +28,11 @@ import {
  * two said something, beside a second "Service Details" card (#4980). A row
  * is drawn only when it has a value now, and the Service Overview has one
  * Details card.
+ *
+ * #5298's UI review: every one of these Details cards ends with the record's
+ * ID line (no "Service ID" row of 36 characters first) and links to the
+ * resource's Settings page, where its name, description and labels are
+ * edited - a database's and a queue's had no link.
  */
 
 const DASHBOARD_SRC: string = path.join(
@@ -54,6 +59,8 @@ interface OverviewCase {
   sideMenu: string;
   // The pages the Explore telemetry card linked to.
   formerLinks: Array<string>;
+  // Its Settings page, where its name, description and labels are edited.
+  settingsPage: string;
 }
 
 const OVERVIEWS: Array<OverviewCase> = [
@@ -68,6 +75,7 @@ const OVERVIEWS: Array<OverviewCase> = [
       "DATABASE_SERVER_VIEW_ENDPOINTS",
       "DATABASE_SERVER_VIEW_OWNERS",
     ],
+    settingsPage: "DATABASE_SERVER_VIEW_SETTINGS",
   },
   {
     name: "Queue",
@@ -79,6 +87,7 @@ const OVERVIEWS: Array<OverviewCase> = [
       "MESSAGE_QUEUE_VIEW_OWNERS",
       "MESSAGE_QUEUE_VIEW_DOCUMENTATION",
     ],
+    settingsPage: "MESSAGE_QUEUE_VIEW_SETTINGS",
   },
   {
     name: "Serverless function",
@@ -89,6 +98,7 @@ const OVERVIEWS: Array<OverviewCase> = [
       "SERVERLESS_FUNCTION_VIEW_LOGS",
       "SERVERLESS_FUNCTION_VIEW_METRICS",
     ],
+    settingsPage: "SERVERLESS_FUNCTION_VIEW_SETTINGS",
   },
   {
     name: "Cloud environment",
@@ -101,6 +111,7 @@ const OVERVIEWS: Array<OverviewCase> = [
       "CLOUD_RESOURCE_VIEW_INSTANCES",
       "CLOUD_RESOURCE_VIEW_OWNERS",
     ],
+    settingsPage: "CLOUD_RESOURCE_VIEW_SETTINGS",
   },
   {
     name: "Cloud resource",
@@ -111,6 +122,7 @@ const OVERVIEWS: Array<OverviewCase> = [
       "CLOUD_RESOURCE_VIEW_OWNERS",
       "CLOUD_RESOURCE_VIEW_DOCUMENTATION",
     ],
+    settingsPage: "CLOUD_RESOURCE_VIEW_SETTINGS",
   },
   /*
    * A cloud account never had the card: its Overview links its Resources
@@ -137,6 +149,7 @@ const OVERVIEWS: Array<OverviewCase> = [
       "SERVICE_VIEW_EXCEPTIONS",
       "SERVICE_VIEW_PROFILES",
     ],
+    settingsPage: "SERVICE_VIEW_SETTINGS",
   },
   {
     name: "RUM application",
@@ -148,6 +161,7 @@ const OVERVIEWS: Array<OverviewCase> = [
       "RUM_APPLICATION_VIEW_LOGS",
       "RUM_APPLICATION_VIEW_METRICS",
     ],
+    settingsPage: "RUM_APPLICATION_VIEW_SETTINGS",
   },
 ];
 
@@ -167,6 +181,20 @@ describe.each(OVERVIEWS)("$name Overview", (overviewCase: OverviewCase) => {
       expect(sideMenu).toContain(`RouteMap[PageMap.${page}]`);
     },
   );
+
+  test("ends its Details card with the record's ID line, and spells the ID out in no row", () => {
+    expect(overview).toContain("recordId={modelId.toString()}");
+    expect(overview).not.toContain("value: modelId.toString()");
+  });
+
+  test("links its Details card to its Settings page, which the side menu lists too", () => {
+    expect(overview).toContain(
+      `settingsRoute={populate(PageMap.${overviewCase.settingsPage})}`,
+    );
+    expect(sideMenu).toContain(
+      `RouteMap[PageMap.${overviewCase.settingsPage}]`,
+    );
+  });
 });
 
 /*
@@ -269,14 +297,23 @@ test("the Details rows line up with the card's title at every width", () => {
   expect(component).toContain(
     "const ruledListClassName: string = useCardRuledListClassName();",
   );
-  // The Details rows, a description list, are the one ruled list.
+  /*
+   * The Details body - its rows, a description list, and the ID line under
+   * them - is the one ruled list; the rows rule each other in its grey.
+   */
   expect(component.split("className={ruledListClassName}").length).toBe(2);
   expect(component).toContain(
-    '<dl data-testid="resource-overview-details" className={ruledListClassName} >',
+    '<div data-testid="resource-overview-details-body" className={ruledListClassName} >',
   );
-  // And each row's words back in by the card's padding.
+  expect(component).toContain(
+    '<dl data-testid="resource-overview-details" className="divide-y divide-gray-200" >',
+  );
+  // And each row's words, and the ID line's, back in by the card's padding.
   expect(component).toContain(
     'className="px-5 py-3 sm:grid sm:grid-cols-3 sm:gap-4 md:px-6"',
+  );
+  expect(component).toContain(
+    '<div className="px-5 py-3 md:px-6"> <DetailRecordLine recordId={props.recordId} /> </div>',
   );
   expect(component).not.toContain("-m-6");
   expect(component).not.toMatch(/"px-4 py-3/);
@@ -366,12 +403,15 @@ describe("the Service Overview has one Details card", () => {
     expect(overview).not.toContain("model-detail-service");
   });
 
-  test("its ID and technology are Details rows, its labels the Labels card, its settings one link", () => {
-    expect(overview).toContain(
-      '{ label: "Service ID", value: modelId.toString() },',
-    );
+  test("its technology is a Details row in words, its ID the ID line, its labels the Labels card, its settings one link", () => {
+    expect(overview).not.toContain('label: "Service ID"');
+    expect(overview).toContain("recordId={modelId.toString()}");
     expect(overview).toContain('label: "Technology",');
-    expect(overview).toContain("<TechStackView techStack={techStack} />");
+    // One line, as the card's other values: "Java, Kotlin".
+    expect(overview).toContain(
+      'value: techStack.length > 0 ? techStack.join(", ") : languageDisplay, mono: false,',
+    );
+    expect(overview).not.toContain("TechStackView");
     expect(overview).toContain("labels={r.labels}");
     expect(overview).toContain(
       "settingsRoute={populate(PageMap.SERVICE_VIEW_SETTINGS)}",

@@ -102,7 +102,8 @@
     "test-snmp-walk-ui": "playwright test --config playwright.snmp-walk-ui.config.ts",
     "test-asset-details-ui": "playwright test --config playwright.asset-details-ui.config.ts",
     "test-docker-swarm-pages-ui": "playwright test --config playwright.docker-swarm-pages-ui.config.ts",
-    "test-side-by-side-pages-ui": "playwright test --config playwright.side-by-side-pages-ui.config.ts"
+    "test-side-by-side-pages-ui": "playwright test --config playwright.side-by-side-pages-ui.config.ts",
+    "test-resource-overviews-ui": "playwright test --config playwright.resource-overviews-ui.config.ts"
   },
   "keywords": [],
   "author": "OneUptime <hello@oneuptime.com> (https://oneuptime.com/)",

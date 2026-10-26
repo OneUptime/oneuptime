@@ -646,6 +646,99 @@ test.describe("the Swarm agent's version on the Overview", () => {
 
 /*
  * ---------------------------------------------------------------------------
+ * The Overview's pills, in the page's language (#5298's UI review: nine
+ * heroes wrote them in English on every page)
+ * ---------------------------------------------------------------------------
+ */
+test.describe("the Overview's pills", () => {
+  function identityOf(page: Page): Locator {
+    return page.getByTestId("resource-hero-identity");
+  }
+
+  async function openSwarm(page: Page, query: string): Promise<void> {
+    await page.goto(withQuery(CLUSTER_PATH, query));
+    await expect(page.getByTestId("resource-hero-top-row")).toBeVisible();
+  }
+
+  test("in German: Verbunden and Fehlerfrei, never the English words", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openOverview(page, "lang=de");
+    const identity: Locator = identityOf(page);
+
+    await expect(
+      identity.getByText(GERMAN["Connected"]!, { exact: true }),
+    ).toBeVisible();
+    await expect(
+      identity.getByText(GERMAN["Healthy"]!, { exact: true }),
+    ).toBeVisible();
+    expect(GERMAN["Connected"]).toBe("Verbunden");
+    expect(GERMAN["Healthy"]).toBe("Fehlerfrei");
+
+    for (const english of ["Connected", "Healthy"]) {
+      await expect(identity.getByText(english, { exact: true })).toHaveCount(0);
+    }
+  });
+
+  test("an agent that stopped reporting: Disconnected and Health Unknown - never the stale health, never a bare Unknown", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openSwarm(page, "collector=disconnected");
+    const identity: Locator = identityOf(page);
+
+    await expect(
+      identity.getByText("Disconnected", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      identity.getByText("Health Unknown", { exact: true }),
+    ).toBeVisible();
+    for (const word of ["Connected", "Healthy", "Unknown"]) {
+      await expect(identity.getByText(word, { exact: true })).toHaveCount(0);
+    }
+
+    // The connection pill first, then what it says about the health.
+    const connection: Box = await boxOf(
+      identity.getByText("Disconnected", { exact: true }),
+    );
+    const health: Box = await boxOf(
+      identity.getByText("Health Unknown", { exact: true }),
+    );
+    expect(connection.x).toBeLessThan(health.x);
+  });
+
+  test("the same, in German and dark, on a phone", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(PHONE);
+    await openSwarm(page, "collector=disconnected&lang=de&theme=dark");
+    const identity: Locator = identityOf(page);
+
+    await expect(
+      identity.getByText(GERMAN["Disconnected"]!, { exact: true }),
+    ).toBeVisible();
+    await expect(
+      identity.getByText(GERMAN["Health Unknown"]!, { exact: true }),
+    ).toBeVisible();
+    expect(GERMAN["Disconnected"]).toBe("Getrennt");
+    expect(GERMAN["Health Unknown"]).toBe("Integrität unbekannt");
+
+    for (const english of ["Disconnected", "Health Unknown", "Unknown"]) {
+      await expect(identity.getByText(english, { exact: true })).toHaveCount(0);
+    }
+
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "overview-pills-disconnected-de-dark-phone");
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
  * The Overview's hero on a phone
  * ---------------------------------------------------------------------------
  */
@@ -718,5 +811,462 @@ test.describe("the Overview's name on a phone", () => {
     expect(signBox.x + signBox.width).toBeLessThanOrEqual(PHONE.width);
     await expectNoSidewaysScroll(page);
     await screenshot(page, "docker-swarm-overview-phone-dark");
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * #5298's UI review: where names break, where sparklines start, the hero's
+ * description
+ * ---------------------------------------------------------------------------
+ */
+
+// A hovered point's time, as the row writes it: "Oct 26 2026, 14:37 GMT".
+const TIME_OF_DAY: RegExp = /\d{2}:\d{2}/;
+
+// A task's image, exactly.
+const TASK_IMAGE: RegExp =
+  /^registry\.acme-swarm\.example\/shop\/checkout:2\.7\.0$/;
+
+// A line that ends after one of a name's own separators.
+const ENDS_AT_A_NAME_BREAK: RegExp = /[./]$/;
+
+// The long description's last word, which Show more brings into view.
+const LONG_DESCRIPTION_END: RegExp = /jobs\.$/;
+
+// The text of each line an element's words are laid out on, in order.
+async function linesOf(locator: Locator): Promise<Array<string>> {
+  return await locator.evaluate((element: Element): Array<string> => {
+    const lines: Array<{ top: number; text: string }> = [];
+    const walker: TreeWalker = document.createTreeWalker(
+      element,
+      NodeFilter.SHOW_TEXT,
+    );
+    let node: Node | null = walker.nextNode();
+
+    while (node) {
+      const text: string = node.textContent || "";
+
+      for (let index: number = 0; index < text.length; index++) {
+        const range: Range = document.createRange();
+        range.setStart(node, index);
+        range.setEnd(node, index + 1);
+        const rect: DOMRect | undefined = range.getClientRects()[0];
+
+        if (!rect || rect.width === 0) {
+          continue;
+        }
+
+        const top: number = Math.round(rect.top);
+        const last: { top: number; text: string } | undefined =
+          lines[lines.length - 1];
+
+        if (last && Math.abs(last.top - top) < 4) {
+          last.text += text.charAt(index);
+        } else {
+          lines.push({ top, text: text.charAt(index) });
+        }
+      }
+
+      node = walker.nextNode();
+    }
+
+    return lines.map((line: { top: number; text: string }): string => {
+      return line.text.trim();
+    });
+  });
+}
+
+async function lineHeightOf(locator: Locator): Promise<number> {
+  return await locator.evaluate((element: Element): number => {
+    return parseFloat(getComputedStyle(element).lineHeight);
+  });
+}
+
+/*
+ * A description longer than its two lines ends in "Show more", under its
+ * words and starting where they do; it opens all of it, the last words in
+ * view, and "Show less" closes it again (#5298's UI review: the rest was in a
+ * hover title, which a phone, a tablet and a keyboard never show).
+ */
+async function expectShowMoreOpensAll(
+  page: Page,
+  description: Locator,
+): Promise<void> {
+  const toggle: Locator = page.getByTestId("resource-hero-description-toggle");
+  const lineHeight: number = await lineHeightOf(description);
+
+  await expect(toggle).toHaveText("Show more");
+  await expect(toggle).toHaveAttribute("aria-expanded", "false");
+  const closed: Box = await boxOf(description);
+  expect(closed.height).toBeLessThanOrEqual(2 * lineHeight + 1);
+  const toggleBox: Box = await boxOf(toggle);
+  expect(toggleBox.y).toBeGreaterThanOrEqual(closed.y + closed.height - 0.5);
+  // Its padding pulled back by as much: its words start where the text does.
+  expect(Math.abs(toggleBox.x + 6 - closed.x)).toBeLessThanOrEqual(1);
+
+  // The keyboard opens it as a click does.
+  await toggle.focus();
+  await page.keyboard.press("Enter");
+  await expect(toggle).toHaveText("Show less");
+  await expect(toggle).toHaveAttribute("aria-expanded", "true");
+  const opened: Box = await boxOf(description);
+  expect(opened.height).toBeGreaterThan(2 * lineHeight + 1);
+  const lines: Array<string> = await linesOf(description);
+  expect(lines[lines.length - 1]).toMatch(LONG_DESCRIPTION_END);
+  expect(
+    await description.evaluate((element: Element): boolean => {
+      return element.scrollHeight <= element.clientHeight + 1;
+    }),
+  ).toBe(true);
+
+  await toggle.click();
+  await expect(toggle).toHaveText("Show more");
+  expect((await boxOf(description)).height).toBeLessThanOrEqual(
+    2 * lineHeight + 1,
+  );
+}
+
+test.describe("the Metrics tab: names break after their dots, sparklines line up", () => {
+  test("on a phone, a long name breaks after its own dots, never inside a word", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(PHONE);
+    await openMetricsPage(page);
+
+    const name: Locator = page
+      .getByTestId("metric-row-name")
+      .filter({ hasText: "container.blockio.io_service_bytes_recursive" });
+
+    // Read and found as written: a <wbr> adds no character.
+    await expect(name).toHaveText(
+      "container.blockio.io_service_bytes_recursive",
+    );
+    expect(await linesOf(name)).toEqual([
+      "container.blockio.",
+      "io_service_bytes_recursive",
+    ]);
+
+    // Every name: a line that is not its last ends after a dot.
+    const names: Locator = page.getByTestId("metric-row-name");
+    for (let index: number = 0; index < METRIC_NAMES.length; index++) {
+      const lines: Array<string> = await linesOf(names.nth(index));
+      for (const line of lines.slice(0, -1)) {
+        expect({ line, endsAfterADot: line.endsWith(".") }).toEqual({
+          line,
+          endsAfterADot: true,
+        });
+      }
+    }
+  });
+
+  test("stacked, on a phone and beside the side menu: every sparkline starts at the row's start, every value at one place after it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const size of [PHONE, TABLET]) {
+      await page.setViewportSize(size);
+      await openMetricsPage(page);
+
+      const rows: Locator = page.getByTestId("metric-row");
+      const sparklineLefts: Array<number> = [];
+      const valueLefts: Array<number> = [];
+
+      for (let index: number = 0; index < METRIC_NAMES.length; index++) {
+        const row: Locator = rows.nth(index);
+        const name: Box = await boxOf(row.getByTestId("metric-row-name"));
+        const sparkline: Box = await boxOf(
+          row.getByTestId("metric-row-sparkline"),
+        );
+        const value: Box = await boxOf(
+          row.getByTestId("metric-row-value-text"),
+        );
+
+        // The sparkline first, where the name starts; the value after it.
+        expect(Math.abs(sparkline.x - name.x)).toBeLessThanOrEqual(1);
+        expect(value.x).toBeGreaterThanOrEqual(sparkline.x + sparkline.width);
+        // On the sparkline's line, under the name.
+        expect(sparkline.y).toBeGreaterThanOrEqual(name.y + name.height);
+        expect(value.y).toBeLessThan(sparkline.y + sparkline.height);
+
+        sparklineLefts.push(Math.round(sparkline.x));
+        valueLefts.push(Math.round(value.x));
+      }
+
+      // "3.40%" and "12.5 MB" move nothing: one place for all of them.
+      expect(new Set(sparklineLefts).size).toBe(1);
+      expect(new Set(valueLefts).size).toBe(1);
+      await expectNoSidewaysScroll(page);
+    }
+
+    await page.setViewportSize(PHONE);
+    await screenshot(page, "docker-swarm-metrics-sparklines-phone");
+  });
+
+  test("beside the side menu, hovering a point shows its value and time beside the sparkline, which stays under the pointer", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(TABLET);
+    await openMetricsPage(page);
+
+    const row: Locator = page.getByTestId("metric-row").first();
+    const sparkline: Locator = row.getByTestId("metric-row-sparkline");
+    const valueText: Locator = row.getByTestId("metric-row-value-text");
+    const before: Box = await boxOf(sparkline);
+    const newestValue: string = (await valueText.innerText()).trim();
+
+    /*
+     * Near its start too, where the old row's widened number pushed the
+     * sparkline out from under the pointer and it flickered.
+     */
+    for (const offset of [4, 40, before.width / 2, before.width - 4]) {
+      await page.mouse.move(before.x + offset, before.y + before.height / 2);
+      await expect(valueText).toContainText(TIME_OF_DAY);
+
+      const during: Box = await boxOf(sparkline);
+      expect(during.x).toBe(before.x);
+      expect(during.y).toBe(before.y);
+    }
+
+    // Still the point's, a moment later: nothing moved, nothing left.
+    await page.waitForTimeout(300);
+    await expect(valueText).toContainText(TIME_OF_DAY);
+    await screenshot(page, "docker-swarm-metrics-hover-768");
+
+    // Leaving it, the row's newest value again.
+    await page.mouse.move(0, 0);
+    await expect(valueText).toHaveText(newestValue);
+  });
+
+  test("at a laptop's width, side by side: the value before its sparkline, every sparkline at the row's end", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(LAPTOP);
+    await openMetricsPage(page);
+
+    const rows: Locator = page.getByTestId("metric-row");
+    const sparklineLefts: Array<number> = [];
+
+    for (let index: number = 0; index < METRIC_NAMES.length; index++) {
+      const row: Locator = rows.nth(index);
+      const sparkline: Box = await boxOf(
+        row.getByTestId("metric-row-sparkline"),
+      );
+      const value: Box = await boxOf(row.getByTestId("metric-row-value-text"));
+
+      expect(value.x + value.width).toBeLessThanOrEqual(sparkline.x + 0.5);
+      sparklineLefts.push(Math.round(sparkline.x));
+    }
+
+    expect(new Set(sparklineLefts).size).toBe(1);
+
+    // Hovering here widens the value to the left, away from the sparkline.
+    const first: Locator = rows.first().getByTestId("metric-row-sparkline");
+    const before: Box = await boxOf(first);
+    await page.mouse.move(before.x + 4, before.y + before.height / 2);
+    await expect(
+      rows.first().getByTestId("metric-row-value-text"),
+    ).toContainText(TIME_OF_DAY);
+    expect((await boxOf(first)).x).toBe(before.x);
+  });
+});
+
+test.describe("a task's image breaks after its own dots and slashes", () => {
+  test("on a phone: never inside its version, and read as written", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(PHONE);
+    await openTaskPage(page);
+
+    const image: Locator = page.getByTestId("info-card-value").filter({
+      hasText: TASK_IMAGE,
+    });
+    await expect(image).toHaveText(
+      "registry.acme-swarm.example/shop/checkout:2.7.0",
+    );
+
+    const lines: Array<string> = await linesOf(image);
+    expect(lines.length).toBeGreaterThan(1);
+    // Every line but the last ends after one of the name's own dots or slashes.
+    for (const line of lines.slice(0, -1)) {
+      expect({ line, endsAtABreak: ENDS_AT_A_NAME_BREAK.test(line) }).toEqual({
+        line,
+        endsAtABreak: true,
+      });
+    }
+    // The version whole, on the last line.
+    expect(lines[lines.length - 1]).toContain("checkout:2.7.0");
+
+    // The task's id after its kind.
+    const externalId: Locator = page
+      .getByTestId("info-card-value")
+      .filter({ hasText: "task/x7k2m9p4q1r8s5t3v6w0y2z4a" });
+    for (const line of (await linesOf(externalId)).slice(0, -1)) {
+      expect(line.endsWith("/")).toBe(true);
+    }
+
+    await screenshot(page, "docker-swarm-task-image-phone");
+  });
+});
+
+test.describe("the Overview hero's description", () => {
+  async function heroParts(page: Page): Promise<{
+    topRow: Locator;
+    name: Locator;
+    description: Locator;
+    controls: Locator;
+  }> {
+    const topRow: Locator = page.getByTestId("resource-hero-top-row");
+    return {
+      topRow,
+      name: topRow.getByRole("heading", { name: CLUSTER_NAME }),
+      description: topRow.getByTestId("resource-hero-description"),
+      controls: topRow.getByTestId("resource-hero-controls"),
+    };
+  }
+
+  test("a long one, at a laptop's width: two lines beside the refresh control, which stays beside the name", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(LAPTOP);
+    await openOverview(page, "description=long");
+
+    const { name, description, controls } = await heroParts(page);
+    await expect(description).toContainText(
+      "The production swarm in Frankfurt:",
+    );
+
+    const nameBox: Box = await boxOf(name);
+    const controlsBox: Box = await boxOf(controls);
+    const descriptionBox: Box = await boxOf(description);
+
+    // Beside the name, on its line - not pushed under it by the description.
+    expect(controlsBox.x).toBeGreaterThan(nameBox.x + nameBox.width);
+    expect(controlsBox.y).toBeLessThan(nameBox.y + nameBox.height);
+    // Two lines, and Show more for the rest.
+    expect(descriptionBox.height).toBeLessThanOrEqual(
+      2 * (await lineHeightOf(description)) + 1,
+    );
+    expect(descriptionBox.x + descriptionBox.width).toBeLessThanOrEqual(
+      controlsBox.x,
+    );
+    // Never in a hover title only, which a tablet or a keyboard never shows.
+    await expect(description).not.toHaveAttribute("title");
+    await screenshot(page, "docker-swarm-overview-long-description-laptop");
+
+    // Show more opens all of it, where the refresh control stays put.
+    await expectShowMoreOpensAll(page, description);
+    const openedControls: Box = await boxOf(controls);
+    expect(openedControls.x).toBe(controlsBox.x);
+    expect(openedControls.y).toBe(controlsBox.y);
+  });
+
+  test("beside the side menu, the controls under it at the row's end; on a phone, two lines under the name", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const width of [1024, TABLET.width]) {
+      await page.setViewportSize({ width, height: 900 });
+      await openOverview(page, "description=long");
+
+      const { topRow, name, description, controls } = await heroParts(page);
+      const rowBox: Box = await boxOf(topRow);
+      const controlsBox: Box = await boxOf(controls);
+      const descriptionBox: Box = await boxOf(description);
+
+      expect(controlsBox.y).toBeGreaterThanOrEqual(
+        descriptionBox.y + descriptionBox.height,
+      );
+      // At the row's end, as a card's header keeps its buttons.
+      const refresh: Box = await boxOf(
+        controls.getByRole("combobox", { name: "Auto-refresh" }),
+      );
+      expect(
+        rowBox.x + rowBox.width - (refresh.x + refresh.width),
+      ).toBeLessThanOrEqual(1);
+      expect(await isCut(name)).toBe(false);
+      await expectNoSidewaysScroll(page);
+    }
+
+    await page.setViewportSize(PHONE);
+    await openOverview(page, "description=long");
+    const { description } = await heroParts(page);
+    const box: Box = await boxOf(description);
+    expect(box.height).toBeLessThanOrEqual(
+      2 * (await lineHeightOf(description)) + 1,
+    );
+    expect(box.x + box.width).toBeLessThanOrEqual(PHONE.width);
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "docker-swarm-overview-long-description-phone");
+
+    // A phone has no hover: Show more is how the rest is read.
+    await expectShowMoreOpensAll(page, description);
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "docker-swarm-overview-long-description-phone-open");
+  });
+
+  test("a short one has no Show more, at a phone's width or a laptop's", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const size of [PHONE, LAPTOP]) {
+      await page.setViewportSize(size);
+      await openOverview(page);
+
+      const { topRow, description } = await heroParts(page);
+      await expect(description).toHaveText(
+        "The production swarm in Frankfurt.",
+      );
+      await expect(
+        topRow.getByTestId("resource-hero-description-toggle"),
+      ).toHaveCount(0);
+    }
+  });
+
+  test("right to left, beside the side menu: the controls at the row's other end, an English description in its own order, aligned as the page", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(TABLET);
+    await openOverview(page, "dir=rtl");
+
+    const { topRow, controls, description } = await heroParts(page);
+    const rowBox: Box = await boxOf(topRow);
+    const refresh: Box = await boxOf(
+      controls.getByRole("button", { name: "Refresh" }),
+    );
+    const select: Box = await boxOf(
+      controls.getByRole("combobox", { name: "Auto-refresh" }),
+    );
+
+    // The row's end is its left: the controls run to it, as they run right.
+    expect(Math.min(refresh.x, select.x) - rowBox.x).toBeLessThanOrEqual(1);
+
+    expect(
+      await description.evaluate((element: Element): string => {
+        return getComputedStyle(element).direction;
+      }),
+    ).toBe("ltr");
+    expect(
+      await description.evaluate((element: Element): string => {
+        return getComputedStyle(element).textAlign;
+      }),
+    ).toBe("right");
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "docker-swarm-overview-rtl-768");
   });
 });

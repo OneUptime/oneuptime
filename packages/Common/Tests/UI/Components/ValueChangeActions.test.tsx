@@ -92,6 +92,7 @@ import {
   BulkActionUnchanged,
   ProgressInfo,
 } from "../../../UI/Components/BulkUpdate/BulkUpdateForm";
+import { BULK_ACTION_CONCURRENCY } from "../../../UI/Components/BulkUpdate/BulkActionConcurrency";
 import RowActions from "../../../UI/Components/ActionButton/RowActions";
 import ActionButtonSchema, {
   ActionButtonPlacement,
@@ -743,5 +744,69 @@ describe("Change Severity in Bulk Actions", () => {
     ).toEqual([
       [INCIDENT_TWO_ID, VALUE_CHANGE_ALREADY.replace("{{value}}", "Critical")],
     ]);
+  });
+
+  test("writes several rows at once, starting them in selection order (issue #5299)", async () => {
+    /*
+     * Each row's value is its own: what it changes - the row's feed entry,
+     * its reminders - is the row's alone, so a selection is written
+     * BULK_ACTION_CONCURRENCY rows at a time, not one after another.
+     */
+    let inFlight: number = 0;
+    let mostAtOnce: number = 0;
+
+    updateByIdMock.mockImplementation(async (): Promise<any> => {
+      inFlight++;
+      mostAtOnce = Math.max(mostAtOnce, inFlight);
+
+      await new Promise((resolve: (value: unknown) => void) => {
+        setTimeout(resolve, 5);
+      });
+
+      inFlight--;
+      return {};
+    });
+
+    const ids: Array<string> = [];
+
+    for (let index: number = 0; index < 10; index++) {
+      ids.push(`66666666-6666-4666-8666-${String(index).padStart(12, "0")}`);
+    }
+
+    render(
+      <BulkHarness
+        items={ids.map((id: string, index: number) => {
+          return incident(id, `Incident ${index + 1}`, MAJOR_ID);
+        })}
+      />,
+    );
+
+    fireEvent.click(screen.getByText("Trigger Change Severity"));
+
+    const modal: HTMLElement = await screen.findByTestId(
+      "modal",
+      {},
+      { timeout: WAIT_TIMEOUT },
+    );
+
+    await pick(modal, "Critical");
+
+    await act(async () => {
+      fireEvent.click(within(modal).getByTestId("modal-footer-submit-button"));
+    });
+
+    await waitFor(
+      () => {
+        expect(progress[progress.length - 1]?.successItems.length).toBe(10);
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+
+    expect(mostAtOnce).toBe(BULK_ACTION_CONCURRENCY);
+    expect(
+      writes().map((write: { id: string }) => {
+        return write.id;
+      }),
+    ).toEqual(ids);
   });
 });

@@ -815,7 +815,7 @@ describe("useBulkCreatePingMonitors", () => {
       expect(snapshot.failedMessages[0]).toContain("device is read-only");
     });
 
-    test("reports progress after every device, and ends the action once", async () => {
+    test("reports progress as it goes, and ends the action once", async () => {
       await openModal([
         makeDevice(SNMP_DEVICE),
         makeDevice(BOUND_DEVICE),
@@ -824,18 +824,22 @@ describe("useBulkCreatePingMonitors", () => {
 
       await submitAndWaitForEnd();
 
-      expect(progressSnapshots).toHaveLength(3);
+      /*
+       * Through the shared runner, one device at a time: the first device
+       * done is reported at once, the rest at most ten times a second, the
+       * end always.
+       */
+      expect(progressSnapshots.length).toBeGreaterThanOrEqual(2);
       expect(progressSnapshots[0]!.inProgressIds).toEqual([
         DEVICE_TWO_ID,
         DEVICE_THREE_ID,
       ]);
-      expect(progressSnapshots[1]!.inProgressIds).toEqual([DEVICE_THREE_ID]);
-      expect(progressSnapshots[2]!.inProgressIds).toEqual([]);
-      expect(progressSnapshots[2]!.successIds).toEqual([DEVICE_THREE_ID]);
-      expect(progressSnapshots[2]!.failedIds).toEqual([
-        DEVICE_ONE_ID,
-        DEVICE_TWO_ID,
-      ]);
+
+      const last: ProgressSnapshot =
+        progressSnapshots[progressSnapshots.length - 1]!;
+      expect(last.inProgressIds).toEqual([]);
+      expect(last.successIds).toEqual([DEVICE_THREE_ID]);
+      expect(last.failedIds).toEqual([DEVICE_ONE_ID, DEVICE_TWO_ID]);
       expect(onBulkActionStartMock).toHaveBeenCalledTimes(1);
       expect(onBulkActionEndMock).toHaveBeenCalledTimes(1);
     });
