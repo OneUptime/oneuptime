@@ -180,7 +180,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 
 环境的 **概览** 显示：
 
-- 根据追踪计算的 **请求**、**错误率** 和 **p95 latency**，以及你所选时间范围内的请求、错误和内存图表。
+- 根据追踪计算的 **请求**、**错误率** 和 **p95 延迟**，以及你所选时间范围内的请求、错误和内存图表。
 - 所有在线实例的 **CPU** 和 **内存**，以及 **按 CPU 排名的实例** 列表。它们来自带有实例标识的 `container.cpu.utilization` 和 `container.memory.usage` 指标；在 ECS 上则来自 `awsecscontainermetrics` 接收器的 `ecs.task.cpu.utilized` 和 `ecs.task.memory.utilized`。
 - **实例**：最近 15 分钟内上报过的实例数量。**实例** 选项卡中每个实例一行。
 - 按环境过滤的 **日志**、**追踪** 和 **指标** 选项卡。

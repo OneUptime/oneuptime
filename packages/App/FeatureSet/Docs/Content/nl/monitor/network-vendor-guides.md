@@ -50,7 +50,7 @@ Sophos meldt de gezondheid van gateways of SD-WAN niet via SNMP, in geen enkele 
 
 :::steps
 1. Zet op de firewall SNMP aan onder **Administration → SNMP**: voeg een SNMPv3-gebruiker toe, of een v2c-community, en sta het adres van de sonde toe om hem te bevragen.
-2. Ga in OneUptime naar **Netwerk → Devices** en klik op **Apparaat toevoegen**. Typ het beheeradres van de firewall, kies een sonde die hem kan bereiken, en voeg de SNMP-inloggegevens toe onder **SNMP**.
+2. Ga in OneUptime naar **Netwerk → Apparaten** en klik op **Apparaat toevoegen**. Typ het beheeradres van de firewall, kies een sonde die hem kan bereiken, en voeg de SNMP-inloggegevens toe onder **SNMP**.
 3. Pas op de pagina **Instellingen** van het apparaat, onder **Polling & Data Collection**, het sjabloon **Sophos Firewall (SFOS / XGS)** toe vanuit **Vendor Health Template** en voeg de tabellen ervan toe vanuit **Add a Vendor's Tables**. Of zet **Auto-Apply Vendor Health Template** aan, en de eerste poll doet beide.
 :::
 

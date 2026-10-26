@@ -322,7 +322,7 @@ aws ecs update-service \
 ## Vad du får
 
 - **Översikt**: begäranden, felfrekvens och p95-latens från dina spår, rutorna **CPU** och **Minne** och **Främsta instanser efter CPU**. Rutorna fylls från `ecs.task.cpu.utilized` och `ecs.task.memory.utilized` från receivern `awsecscontainermetrics`, eller från valfritt mätvärde `container.cpu.utilization` och `container.memory.usage` som bär uppgiftens identitet. SDK direct skickar inget av dem.
-- **Instanser**: en rad per uppgift som körs, namngiven efter uppgifts-ID:t (slutet av `aws.ecs.task.arn`), med senaste CPU, minne och tidpunkt då den senast sågs. En uppgift som slutar rapportera blir **Stale**.
+- **Instanser**: en rad per uppgift som körs, namngiven efter uppgifts-ID:t (slutet av `aws.ecs.task.arn`), med senaste CPU, minne och tidpunkt då den senast sågs. En uppgift som slutar rapportera blir **Inaktuell**.
 - **Loggar**, **Spår** och **Mätvärden**: allt som bar `cloud.platform=aws_ecs` för det här kontot och den här regionen.
 - **Tjänster**: samma uppgifter, uppdelade efter `service.name`.
 

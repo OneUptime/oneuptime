@@ -77,14 +77,14 @@ OneUptime hittar applikationen utifrån `service.name`, utan hänsyn till skiftl
 
 | Var | Vad det visar |
 | --- | --- |
-| **Översikt** | Rutor för **Page loads**, **Page load time (p95)**, **Händelser**, **Felfrekvens**, **Event duration (p95)**, **Undantag**, **Klienter** och **Sessions recorded**, och trenddiagram över det tidsintervall du väljer. |
+| **Översikt** | Rutor för **Sidladdningar**, **Sidladdningstid (p95)**, **Händelser**, **Felfrekvens**, **Event duration (p95)**, **Undantag**, **Klienter** och **Sessions recorded**, och trenddiagram över det tidsintervall du väljer. |
 | **Core Web Vitals** | Ett kort i översikten med LCP, INP, CLS, FCP och TTFB, var och en bedömd mot Googles gränser, och INP för varje route i en ensidesapp. Se [Core Web Vitals](/docs/rum/web-vitals) och [Ensidesappar](/docs/rum/web-vitals#ensidesappar). |
 | **Mätvärden**, **Loggar**, **Spår** | Telemetriutforskarna, begränsade till den här applikationen. |
 | **Klienter** | De webbläsarplattformar och enhetsmodeller som applikationen har använts på: en kort lista per plattform, aldrig en rad per användare. |
 | **Sessionsuppspelning** | Inspelningar av riktiga sessioner, bredvid deras fel, spår och loggar: se [Sessionsuppspelning](/docs/telemetry/session-replay). |
 | **Rekommendationer** | Färdiga övervakare för applikationen: dåliga Core Web Vitals, misslyckade förfrågningar, webbläsarundantag och, så snart den spelar in, budgetar för Session Replay. |
 
-Siffrorna kommer från de spans som din instrumentering skickar. **Page loads** räknar det `documentLoad`-span som instrumenteringen för sidladdning registrerar vid varje fullständig laddning, så ett routebyte i en ensidesapp är ingen sidladdning.
+Siffrorna kommer från de spans som din instrumentering skickar. **Sidladdningar** räknar det `documentLoad`-span som instrumenteringen för sidladdning registrerar vid varje fullständig laddning, så ett routebyte i en ensidesapp är ingen sidladdning.
 
 En applikation visar **Ansluten** så länge telemetri kommer in och **Frånkopplad** efter 15 minuter utan. Tid då OneUptime självt var nere eller betade av sin intagningskö räknas inte in i de 15 minuterna.
 

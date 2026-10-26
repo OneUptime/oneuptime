@@ -180,7 +180,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 
 La **Panoramica** di un ambiente mostra:
 
-- **Richieste**, **Tasso di errore** e **p95 latency**, dalle tue tracce, con grafici di richieste, errori e memoria nell'intervallo di tempo che scegli.
+- **Richieste**, **Tasso di errore** e **Latenza p95**, dalle tue tracce, con grafici di richieste, errori e memoria nell'intervallo di tempo che scegli.
 - **CPU** e **Memoria** delle istanze attive, e un elenco **Istanze principali per CPU**. Provengono da metriche `container.cpu.utilization` e `container.memory.usage` che portano l'identità dell'istanza; su ECS, da `ecs.task.cpu.utilized` e `ecs.task.memory.utilized` del receiver `awsecscontainermetrics`.
 - **Istanze**: quante hanno segnalato negli ultimi 15 minuti. La scheda **Istanze** ha una riga per ciascuna.
 - Le schede **Registri**, **Tracce** e **Metriche**, filtrate sull'ambiente.

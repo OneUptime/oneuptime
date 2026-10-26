@@ -38,7 +38,7 @@ Un elemento scoperto ha un battito. Ogni volta che arriva telemetria per lui, la
 | --- | --- |
 | **In diretta** | Visto negli ultimi 30 minuti. |
 | **Recent** | Visto nell'ultimo giorno. |
-| **Stale** | Non visto da più di un giorno. La pagina **Gone Quiet** li elenca. |
+| **Non aggiornato** | Non visto da più di un giorno. La pagina **Gone Quiet** li elenca. |
 
 Ogni tre ore, OneUptime rimuove gli elementi scoperti rimasti in silenzio più a lungo della finestra del loro tipo, archiviati compresi, e i loro valori dei campi personalizzati se ne vanno con loro. Gli elementi replicati e quelli che hai aggiunto non vengono mai rimossi in questo modo.
 

@@ -290,7 +290,7 @@ O OneUptime reconhece estes nomes de métricas `iot_*`. Envie só os que fazem s
 
 1. Verifique se o dispositivo, o coletor do gateway ou o cliente MQTT envia sem erros: procure falhas de exportação e respostas HTTP `401` ou `422` nos logs dele, ou uma conexão recusada com o código de retorno 4.
 2. Abra **Produtos → Infraestrutura → IoT → All Fleets**. A frota aparece como `iot/<fleet>` em cerca de um minuto depois das primeiras leituras dela.
-3. Abra a página **Devices** da frota. Cada dispositivo que você enviou deve aparecer com os valores mais recentes de bateria, sinal, temperatura, CPU, memória e status no ar ou fora do ar.
+3. Abra a página **Dispositivos** da frota. Cada dispositivo que você enviou deve aparecer com os valores mais recentes de bateria, sinal, temperatura, CPU, memória e status no ar ou fora do ar.
 4. Abra a página **Métricas** da frota para mostrar em gráfico qualquer uma das séries `iot_*`.
 
 ## OneUptime auto-hospedado
