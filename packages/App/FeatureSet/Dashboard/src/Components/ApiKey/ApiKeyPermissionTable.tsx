@@ -130,7 +130,10 @@ const ApiKeyPermissionTable: FunctionComponent<ComponentProps> = (
   const allowButtons: Array<CardButtonSchema> = [
     ...gate({
       title: "Add Role",
-      phoneTitle: "Add",
+      /*
+       * Its whole title on a phone too: the ⋯ beside it offers Add
+       * Permission, and "Add" alone could be either.
+       */
       // NORMAL with the Add icon: the empty table repeats it as its way on.
       icon: IconProp.Add,
       buttonStyle: ButtonStyleType.NORMAL,

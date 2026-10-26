@@ -86,6 +86,16 @@ interface MainCreateButton {
 
 const CREATE_TITLE: RegExp = /title: "((Create|Add|Invite|Connect) [^"]+)"/g;
 
+/*
+ * A header whose ⋯ offers another thing to do with the same verb keeps its
+ * main button's whole title on a phone: "Add" alone could be either. An API
+ * key's Permissions card adds a role (Add Role) or one permission (Add
+ * Permission, in its ⋯).
+ */
+const KEEPS_ITS_WHOLE_TITLE: Array<string> = [
+  "Components/ApiKey/ApiKeyPermissionTable.tsx: Add Role",
+];
+
 function mainCreateButtons(): Array<MainCreateButton> {
   const found: Array<MainCreateButton> = [];
 
@@ -143,9 +153,31 @@ describe("a list's own create button on a phone", () => {
       })
       .map((button: MainCreateButton): string => {
         return `${button.file}: ${button.title}`;
+      })
+      .filter((button: string): boolean => {
+        return !KEEPS_ITS_WHOLE_TITLE.includes(button);
       });
 
     expect(without).toEqual([]);
+  });
+
+  test("one whose ⋯ offers another action with its verb keeps its whole title: Add Role beside Add Permission", () => {
+    for (const kept of KEEPS_ITS_WHOLE_TITLE) {
+      const button: MainCreateButton | undefined = buttons.find(
+        (candidate: MainCreateButton): boolean => {
+          return `${candidate.file}: ${candidate.title}` === kept;
+        },
+      );
+
+      expect([kept, Boolean(button)]).toEqual([kept, true]);
+      expect(button!.object).not.toContain("phoneTitle");
+    }
+
+    const permissions: string = fs.readFileSync(
+      path.join(DASHBOARD_SRC, "Components/ApiKey/ApiKeyPermissionTable.tsx"),
+      "utf8",
+    );
+    expect(permissions).toContain('title: "Add Permission"');
   });
 
   test("a model table's own create button: the verb, for the verbs that read alone as one", () => {
