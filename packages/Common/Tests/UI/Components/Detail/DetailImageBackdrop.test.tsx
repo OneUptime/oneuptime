@@ -84,9 +84,18 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
-  (
-    URL as unknown as { createObjectURL?: typeof URL.createObjectURL }
-  ).createObjectURL = originalCreateObjectURL;
+
+  const url: { createObjectURL?: typeof URL.createObjectURL | undefined } =
+    URL as unknown as {
+      createObjectURL?: typeof URL.createObjectURL | undefined;
+    };
+
+  if (originalCreateObjectURL) {
+    url.createObjectURL = originalCreateObjectURL;
+  } else {
+    delete url.createObjectURL;
+  }
+
   jest.restoreAllMocks();
 });
 
