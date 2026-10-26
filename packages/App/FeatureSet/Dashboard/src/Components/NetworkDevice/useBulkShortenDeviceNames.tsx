@@ -9,9 +9,9 @@ import ObjectID from "Common/Types/ObjectID";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import {
   BulkActionButtonSchema,
-  BulkActionFailed,
   BulkActionOnClickProps,
 } from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
+import { runBulkAction } from "Common/UI/Components/BulkUpdate/BulkActionRunner";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import PermissionGate, {
@@ -415,16 +415,6 @@ function useBulkShortenDeviceNames(): BulkShortenDeviceNamesResult {
   const shortenDevices: ShortenDevicesFunction = async (
     actionProps: BulkActionOnClickProps<NetworkDevice>,
   ): Promise<void> => {
-    const { items, onProgressInfo, onBulkActionStart, onBulkActionEnd } =
-      actionProps;
-
-    onBulkActionStart();
-
-    const totalItems: Array<NetworkDevice> = [...items];
-    const inProgressItems: Array<NetworkDevice> = [...items];
-    const successItems: Array<NetworkDevice> = [];
-    const failedItems: Array<BulkActionFailed<NetworkDevice>> = [];
-
     /*
      * Planned once over the rows, and paired with them by position — the
      * planner returns one plan per device, in order — so a selection holding
@@ -432,48 +422,37 @@ function useBulkShortenDeviceNames(): BulkShortenDeviceNamesResult {
      * device's plan.
      */
     const batchPlans: Array<ShortDeviceNamePlan> = planShortDeviceNames(
-      totalItems.map(toShortenableDevice),
+      actionProps.items.map(toShortenableDevice),
     );
 
-    for (let index: number = 0; index < totalItems.length; index++) {
-      const item: NetworkDevice = totalItems[index]!;
+    /*
+     * Through the shared runner (progress, Stop, failures by device), one
+     * device at a time: a name the plan frees on one device can be the one
+     * it gives the next.
+     */
+    await runBulkAction<NetworkDevice>({
+      actionProps: actionProps,
+      concurrency: 1,
+      step: async (item: NetworkDevice, index: number): Promise<void> => {
+        let skippedMessage: string | null = null;
 
-      inProgressItems.splice(inProgressItems.indexOf(item), 1);
+        try {
+          skippedMessage = await shortenOne(item, batchPlans[index]);
+        } catch (err) {
+          const message: string = API.getFriendlyMessage(err);
 
-      try {
-        const skippedMessage: string | null = await shortenOne(
-          item,
-          batchPlans[index],
-        );
-
-        if (skippedMessage) {
-          failedItems.push({
-            item: item,
-            // The progress list shows it as given: a fixed sentence is looked up.
-            failedMessage:
-              translator.translateText(skippedMessage) || skippedMessage,
-          });
-        } else {
-          successItems.push(item);
+          // The progress list shows it as given: a fixed sentence is looked up.
+          throw new Error(translator.translateText(message) || message);
         }
-      } catch (err) {
-        const message: string = API.getFriendlyMessage(err);
 
-        failedItems.push({
-          item: item,
-          failedMessage: translator.translateText(message) || message,
-        });
-      }
-
-      onProgressInfo({
-        totalItems: totalItems,
-        failed: failedItems,
-        successItems: successItems,
-        inProgressItems: inProgressItems,
-      });
-    }
-
-    onBulkActionEnd();
+        // Skipped, and listed with why among the devices not renamed.
+        if (skippedMessage) {
+          throw new Error(
+            translator.translateText(skippedMessage) || skippedMessage,
+          );
+        }
+      },
+    });
   };
 
   /*

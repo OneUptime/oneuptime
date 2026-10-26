@@ -7,9 +7,12 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import IconProp from "Common/Types/Icon/IconProp";
 import {
   BulkActionButtonSchema,
-  BulkActionFailed,
   BulkActionOnClickProps,
 } from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
+import {
+  BULK_ACTION_CONCURRENCY,
+  runBulkAction,
+} from "Common/UI/Components/BulkUpdate/BulkActionRunner";
 import DeleteItemNames from "Common/UI/Components/DeleteConfirmation/DeleteItemNames";
 import { getRecordDisplayName } from "Common/UI/Utils/ModelDisplayName";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -19,7 +22,6 @@ import Page from "Common/UI/Components/Page/Page";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import { getCreateProjectFormFields } from "Common/UI/Components/Project/CreateProjectFormFields";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import API from "Common/UI/Utils/API/API";
 import { BILLING_ENABLED, getAllEnvVars } from "Common/UI/Config";
 import Project from "Common/Models/DatabaseModels/Project";
 import React, { FunctionComponent, ReactElement, useMemo } from "react";
@@ -70,20 +72,11 @@ const Projects: FunctionComponent = (): ReactElement => {
       onClick: async (
         onClickProps: BulkActionOnClickProps<Project>,
       ): Promise<void> => {
-        const { items, onProgressInfo, onBulkActionStart, onBulkActionEnd } =
-          onClickProps;
-
-        onBulkActionStart();
-
-        const inProgressItems: Array<Project> = [...items];
-        const totalItems: Array<Project> = [...items];
-        const successItems: Array<Project> = [];
-        const failedItems: Array<BulkActionFailed<Project>> = [];
-
-        for (const project of totalItems) {
-          inProgressItems.splice(inProgressItems.indexOf(project), 1);
-
-          try {
+        // Each project its own update, several at once (runBulkAction).
+        await runBulkAction<Project>({
+          actionProps: onClickProps,
+          concurrency: BULK_ACTION_CONCURRENCY,
+          step: async (project: Project): Promise<void> => {
             if (!project.id) {
               throw new BadDataException("Project ID not found");
             }
@@ -95,24 +88,8 @@ const Projects: FunctionComponent = (): ReactElement => {
                 isBlocked: isBlocked,
               },
             });
-
-            successItems.push(project);
-          } catch (err) {
-            failedItems.push({
-              item: project,
-              failedMessage: API.getFriendlyMessage(err),
-            });
-          }
-
-          onProgressInfo({
-            totalItems: totalItems,
-            failed: failedItems,
-            successItems: successItems,
-            inProgressItems: inProgressItems,
-          });
-        }
-
-        onBulkActionEnd();
+          },
+        });
       },
     };
   };
@@ -144,20 +121,14 @@ const Projects: FunctionComponent = (): ReactElement => {
         onClick: async (
           onClickProps: BulkActionOnClickProps<Project>,
         ): Promise<void> => {
-          const { items, onProgressInfo, onBulkActionStart, onBulkActionEnd } =
-            onClickProps;
-
-          onBulkActionStart();
-
-          const inProgressItems: Array<Project> = [...items];
-          const totalItems: Array<Project> = [...items];
-          const successItems: Array<Project> = [];
-          const failedItems: Array<BulkActionFailed<Project>> = [];
-
-          for (const project of totalItems) {
-            inProgressItems.splice(inProgressItems.indexOf(project), 1);
-
-            try {
+          /*
+           * One project at a time (runBulkAction): a project's delete removes
+           * everything it holds, a long write of its own.
+           */
+          await runBulkAction<Project>({
+            actionProps: onClickProps,
+            concurrency: 1,
+            step: async (project: Project): Promise<void> => {
               if (!project.id) {
                 throw new BadDataException("Project ID not found");
               }
@@ -166,24 +137,8 @@ const Projects: FunctionComponent = (): ReactElement => {
                 modelType: Project,
                 id: project.id,
               });
-
-              successItems.push(project);
-            } catch (err) {
-              failedItems.push({
-                item: project,
-                failedMessage: API.getFriendlyMessage(err),
-              });
-            }
-
-            onProgressInfo({
-              totalItems: totalItems,
-              failed: failedItems,
-              successItems: successItems,
-              inProgressItems: inProgressItems,
-            });
-          }
-
-          onBulkActionEnd();
+            },
+          });
         },
       };
     };

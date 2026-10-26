@@ -1410,3 +1410,104 @@ describe("the words around it", () => {
     ).toBe("Dec 31, 2025, 3:25 PM");
   });
 });
+
+/*
+ * RUN PRESSED STRAIGHT AFTER TYPING, IN ONE CLICK.
+ *
+ * Pressing Run takes the focus from the box, and the form gives it straight
+ * back within the same click: it focuses its first field in error in a
+ * layout effect (BasicForm, since #5292). Closed before the pause was over,
+ * the list goes back to idle by an update that lands only after that - so
+ * the box opened again on a list still "loading" for words nobody had asked
+ * for, and said "Searching…" for good (14.0.93's gate, Workflow Builder).
+ * What is asked for is the field's to know (askingRef), not the list's
+ * "loading". The host here does what the form does; the press and the click
+ * are apart by microtasks only, as a quick click is in a browser.
+ */
+describe("Run pressed straight after typing", () => {
+  test("the box given straight back opens a list that is asked for, and answered", async () => {
+    const searches: Array<string> = [];
+    const load: LoadRunRecordsFunction = (data: {
+      workflowId: ObjectID;
+      search: string;
+    }): Promise<Array<RunRecordOption>> => {
+      searches.push(data.search);
+      return Promise.resolve(data.search === "" ? [EIGHT, SEVEN] : [EIGHT]);
+    };
+
+    const Host: () => ReactElement = (): ReactElement => {
+      const [attempt, setAttempt] = useState<number>(0);
+      const [value, setValue] = useState<string>("");
+
+      // What BasicForm does after a press that found a field in error.
+      React.useLayoutEffect(() => {
+        if (attempt > 0) {
+          searchBox().focus();
+        }
+      }, [attempt]);
+
+      return (
+        <div>
+          <RunRecordField
+            workflowId={WORKFLOW_ID}
+            info={INFO}
+            value={value}
+            onChange={setValue}
+            error={attempt > 0 ? "Pick one from the list." : undefined}
+            load={load}
+            now={NOW}
+          />
+          <button
+            type="button"
+            onClick={() => {
+              setAttempt((current: number) => {
+                return current + 1;
+              });
+            }}
+          >
+            Run
+          </button>
+        </div>
+      );
+    };
+
+    render(<Host />);
+    // Really in the box (fireEvent.focus would not move the focus there).
+    await act(async () => {
+      searchBox().focus();
+    });
+    await flush();
+    expect(document.activeElement).toBe(searchBox());
+    expect(searches).toEqual([""]);
+
+    fireEvent.change(searchBox(), { target: { value: "data" } });
+
+    const run: HTMLElement = screen.getByRole("button", { name: "Run" });
+    // Outside act, so React orders the updates as a browser's events would.
+    const actGlobal: { IS_REACT_ACT_ENVIRONMENT?: unknown } = globalThis as {
+      IS_REACT_ACT_ENVIRONMENT?: unknown;
+    };
+    const actEnvironment: unknown = actGlobal.IS_REACT_ACT_ENVIRONMENT;
+    actGlobal.IS_REACT_ACT_ENVIRONMENT = false;
+
+    try {
+      // The press takes the focus from the box, before the pause is over...
+      run.focus();
+      await Promise.resolve();
+      // ...and Run is pressed: the form puts the focus back in the box.
+      run.click();
+      await Promise.resolve();
+      await Promise.resolve();
+    } finally {
+      actGlobal.IS_REACT_ACT_ENVIRONMENT = actEnvironment;
+    }
+
+    expect(document.activeElement).toBe(searchBox());
+
+    await flush(RUN_RECORD_SEARCH_DELAY_MS + 10);
+
+    expect(searches).toEqual(["", "data"]);
+    expect(screen.queryByTestId("run-record-field-searching")).toBeNull();
+    expect(options()).toHaveLength(1);
+  });
+});

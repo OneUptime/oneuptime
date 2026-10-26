@@ -40,9 +40,9 @@ import ActionButtonSchema, {
 import { withRowActionContext } from "../ActionButton/RowActionContext";
 import {
   BulkActionButtonSchema,
-  BulkActionFailed,
   BulkActionOnClickProps,
 } from "../BulkUpdate/BulkUpdateForm";
+import { runBulkAction } from "../BulkUpdate/BulkActionRunner";
 import { ButtonSize, ButtonStyleType } from "../Button/Button";
 import Card, {
   CardButtonSchema,
@@ -353,6 +353,15 @@ export interface BulkActionProps<T extends BaseModel | AnalyticsBaseModel> {
   deleteVerb?: string | undefined;
   /* The menu icon to go with deleteVerb. Defaults to the trash can. */
   deleteIcon?: IconProp | undefined;
+  /*
+   * How many rows the bulk Delete deletes at once: one at a time unless the
+   * table says otherwise. A delete's hooks can check a rule over the rows
+   * that are left - a project keeps at least one owner, a list keeps its
+   * last state - and two deletes run at once would each see the other's row
+   * still there. A table whose deletes check nothing across rows (alerts,
+   * incidents) passes BULK_ACTION_CONCURRENCY.
+   */
+  deleteConcurrency?: number | undefined;
 }
 
 /**
@@ -3801,71 +3810,36 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
               succeeded: BULK_DELETED_COUNT,
               failed: BULK_NOT_DELETED_COUNT,
             },
-        onClick: async ({
-          items,
-          onProgressInfo,
-          onBulkActionStart,
-          onBulkActionEnd,
-        }: BulkActionOnClickProps<TBaseModel>) => {
-          onBulkActionStart();
+        /*
+         * Through the shared runner (runBulkAction): each row its own delete,
+         * reported after a failure as well as after a success - deleting
+         * hundreds of rows at once is exactly where partial failure is
+         * expected - and stoppable part-way. One row at a time unless the
+         * table says its deletes check nothing across rows
+         * (deleteConcurrency).
+         */
+        onClick: async (actionProps: BulkActionOnClickProps<TBaseModel>) => {
+          await runBulkAction<TBaseModel>({
+            actionProps: actionProps,
+            concurrency: props.bulkActions?.deleteConcurrency ?? 1,
+            step: async (item: TBaseModel): Promise<void> => {
+              /*
+               * A row the table says can never be deleted is not sent to the
+               * server at all: it is listed with the reason, like a row the
+               * server refused.
+               */
+              const deleteDisabledReason: string | undefined =
+                props.getDeleteDisabledReason
+                  ? props.getDeleteDisabledReason(item)
+                  : undefined;
 
-          const inProgressItems: Array<TBaseModel> = [...items];
-          const successItems: Array<TBaseModel> = [];
-          const failedItems: Array<BulkActionFailed<TBaseModel>> = [];
-
-          for (let i: number = 0; i < items.length; i++) {
-            const item: TBaseModel = items[i]!;
-
-            // remove items from inProgressItems
-            inProgressItems.splice(inProgressItems.indexOf(item), 1);
-
-            /*
-             * A row the table says can never be deleted is not sent to the
-             * server at all: it is listed with the reason, like a row the
-             * server refused.
-             */
-            const deleteDisabledReason: string | undefined =
-              props.getDeleteDisabledReason
-                ? props.getDeleteDisabledReason(item)
-                : undefined;
-
-            try {
               if (deleteDisabledReason) {
                 throw new BadDataException(deleteDisabledReason);
               }
 
               await props.callbacks.deleteItem(item);
-              successItems.push(item);
-            } catch (err) {
-              failedItems.push({
-                item: item,
-                failedMessage: API.getFriendlyMessage(err),
-              });
-            }
-
-            /*
-             * Reported after a failure as well as after a success. This used to
-             * sit inside the `try`, so a row that failed moved neither the
-             * progress bar nor the failure list until some later row succeeded
-             * - and a run whose trailing rows all failed (or one where every
-             * row failed, which is what a permission or constraint problem
-             * looks like) ended with the modal still showing the counts from
-             * before them. Deleting hundreds of rows at once is exactly where
-             * partial failure is expected, so it has to be visible.
-             *
-             * Copies, not the live arrays: the progress info goes into React
-             * state, and pushing into the same array reference leaves the
-             * previous render's snapshot mutated underneath it.
-             */
-            onProgressInfo({
-              inProgressItems: [...inProgressItems],
-              successItems: [...successItems],
-              failed: [...failedItems],
-              totalItems: items,
-            });
-          }
-
-          onBulkActionEnd();
+            },
+          });
         },
       };
     };

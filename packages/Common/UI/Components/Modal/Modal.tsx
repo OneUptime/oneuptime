@@ -74,6 +74,13 @@ export interface ComponentProps {
   leftFooterElement?: ReactElement | undefined;
   disableCloseOnBackdropClick?: boolean | undefined;
   secondaryButton?: ModalSecondaryButton | undefined;
+  /*
+   * Starts the focus on the dialog itself, not on its button: for a dialog
+   * whose one button stops something already running - a bulk action's
+   * Stop - so that a stray Enter (the one that confirmed the action, held a
+   * moment too long) never presses it. Tab still reaches the button.
+   */
+  isInitialFocusOnDialog?: boolean | undefined;
 }
 
 /*
@@ -183,6 +190,8 @@ const Modal: FunctionComponent<ComponentProps> = (
     props.submitButtonStyleType ?? ButtonStyleType.PRIMARY;
   const isSubmitDestructiveRef: React.MutableRefObject<boolean> =
     useRef<boolean>(false);
+  const isInitialFocusOnDialogRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(Boolean(props.isInitialFocusOnDialog));
   isSubmitDestructiveRef.current =
     submitButtonStyleType === ButtonStyleType.DANGER ||
     submitButtonStyleType === ButtonStyleType.DANGER_OUTLINE;
@@ -377,12 +386,14 @@ const Modal: FunctionComponent<ComponentProps> = (
       }) as HTMLElement | undefined) || null;
 
     const initialFocusElement: HTMLElement | undefined =
-      pickInitialFocusElement({
-        focusableElements: getFocusableElements(),
-        footer,
-        isSubmitDestructive: isSubmitDestructiveRef.current,
-        header,
-      });
+      isInitialFocusOnDialogRef.current
+        ? undefined
+        : pickInitialFocusElement({
+            focusableElements: getFocusableElements(),
+            footer,
+            isSubmitDestructive: isSubmitDestructiveRef.current,
+            header,
+          });
 
     const placedFocusElement: HTMLElement = initialFocusElement || modal;
 

@@ -8,12 +8,14 @@ import ObjectID from "Common/Types/ObjectID";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import {
   BulkActionButtonSchema,
-  BulkActionFailed,
   BulkActionOnClickProps,
 } from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
+import {
+  BULK_ACTION_CONCURRENCY,
+  runBulkAction,
+} from "Common/UI/Components/BulkUpdate/BulkActionRunner";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import PermissionGate, {
   ModelAction,
@@ -70,23 +72,17 @@ export default function useBulkPostmortemStatusAction(data: {
       return;
     }
 
-    const { items, onProgressInfo, onBulkActionStart, onBulkActionEnd } =
-      bulkActionProps;
-
     // Close the form first so the progress dialog is visible.
     setShowModal(false);
 
-    onBulkActionStart();
-
-    const totalItems: Array<Incident> = [...items];
-    const inProgressItems: Array<Incident> = [...items];
-    const successItems: Array<Incident> = [];
-    const failedItems: Array<BulkActionFailed<Incident>> = [];
-
-    for (const incident of totalItems) {
-      inProgressItems.splice(inProgressItems.indexOf(incident), 1);
-
-      try {
+    /*
+     * Each incident its own update, several at once (runBulkAction): what a
+     * postmortem status changes - the incident's feed entry - is its own.
+     */
+    await runBulkAction<Incident>({
+      actionProps: bulkActionProps,
+      concurrency: BULK_ACTION_CONCURRENCY,
+      step: async (incident: Incident): Promise<void> => {
         if (!incident.id) {
           throw new BadDataException("Incident ID not found");
         }
@@ -98,24 +94,9 @@ export default function useBulkPostmortemStatusAction(data: {
             postmortemStatusId: new ObjectID(statusId),
           },
         });
+      },
+    });
 
-        successItems.push(incident);
-      } catch (err) {
-        failedItems.push({
-          item: incident,
-          failedMessage: API.getFriendlyMessage(err),
-        });
-      }
-
-      onProgressInfo({
-        totalItems: totalItems,
-        failed: failedItems,
-        successItems: successItems,
-        inProgressItems: inProgressItems,
-      });
-    }
-
-    onBulkActionEnd();
     setBulkActionProps(null);
     data.onDone?.();
   };

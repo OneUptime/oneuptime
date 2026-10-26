@@ -25,9 +25,9 @@ import ActionButtonSchema, {
 } from "../ActionButton/ActionButtonSchema";
 import { ButtonStyleType } from "../Button/Button";
 import NamedSentence from "../DeleteConfirmation/NamedSentence";
+import { BULK_ACTION_CONCURRENCY, runBulkAction } from "./BulkActionRunner";
 import {
   BulkActionButtonSchema,
-  BulkActionFailed,
   BulkActionOnClickProps,
 } from "./BulkUpdateForm";
 
@@ -50,6 +50,13 @@ export interface BulkArchiveActionsConfig<T extends BaseModel> {
   unarchiveConfirmMessage?: string | undefined;
   // How a row's question names the row; its name column otherwise.
   getItemName?: ((item: T) => string) | undefined;
+  /*
+   * How many rows a bulk Archive or Unarchive writes at once:
+   * BULK_ACTION_CONCURRENCY unless the list says otherwise. 1 for a list
+   * whose rows' writes recompute something they share - network devices
+   * roll up into their site's health.
+   */
+  concurrency?: number | undefined;
 }
 
 export interface BulkArchiveActionsResult<T extends BaseModel> {
@@ -123,19 +130,11 @@ function useBulkArchiveActions<T extends BaseModel>(
     mode: ArchiveMode,
     props: BulkActionOnClickProps<T>,
   ): Promise<void> => {
-    const { items, onProgressInfo, onBulkActionStart, onBulkActionEnd } = props;
-
-    onBulkActionStart();
-
-    const totalItems: Array<T> = [...items];
-    const inProgressItems: Array<T> = [...items];
-    const successItems: Array<T> = [];
-    const failedItems: Array<BulkActionFailed<T>> = [];
-
-    for (const item of totalItems) {
-      inProgressItems.splice(inProgressItems.indexOf(item), 1);
-
-      try {
+    // Each row its own update, several at once (runBulkAction).
+    await runBulkAction<T>({
+      actionProps: props,
+      concurrency: config.concurrency ?? BULK_ACTION_CONCURRENCY,
+      step: async (item: T): Promise<void> => {
         if (!item.id) {
           throw new BadDataException("Item ID not found");
         }
@@ -147,24 +146,8 @@ function useBulkArchiveActions<T extends BaseModel>(
             isArchived: mode === "archive",
           } as any,
         });
-
-        successItems.push(item);
-      } catch (err) {
-        failedItems.push({
-          item: item,
-          failedMessage: API.getFriendlyMessage(err),
-        });
-      }
-
-      onProgressInfo({
-        totalItems: totalItems,
-        failed: failedItems,
-        successItems: successItems,
-        inProgressItems: inProgressItems,
-      });
-    }
-
-    onBulkActionEnd();
+      },
+    });
   };
 
   /*

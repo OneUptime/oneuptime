@@ -110,7 +110,9 @@ import WaitingRunsOnRecordChange from "../Utils/OnCall/WaitingRunsOnRecordChange
 import { OnCallRulePagingHold } from "../Utils/OnCall/OnCallRulePagingHold";
 import AlertOwnerRuleEngineService from "./AlertOwnerRuleEngineService";
 import RunbookRuleEngineService from "./RunbookRuleEngineService";
-import AutoRemediationRuleEngineService from "./AutoRemediationRuleEngineService";
+import AutoRemediationRuleEngineService, {
+  doesWriteRemediationLinks,
+} from "./AutoRemediationRuleEngineService";
 import AIAlertInvestigationRunner from "../Utils/AI/SRE/AlertInvestigationRunner";
 import InvestigationRuleWait from "../Utils/AI/SRE/InvestigationRuleWait";
 import IncidentFollowUpCheck from "../Utils/AI/SRE/IncidentFollowUpCheck";
@@ -2118,6 +2120,15 @@ ${FeedMarkdown.asMarkdown(alert.remediationNotes || "No remediation notes provid
       const monitorsById: Dictionary<Monitor> =
         await this.getMonitorsForFeed(monitorChanges);
 
+      /*
+       * Whether the update links the alerts to a cluster, a host or a
+       * monitor (REMEDIATION_LINK_COLUMNS): OneUptime AI may then try a fix
+       * again (onSubjectUpdated, below), even when nothing else changed.
+       */
+      const writesRemediationLinks: boolean = doesWriteRemediationLinks(
+        onUpdate.updateBy.data,
+      );
+
       for (const alertId of updatedItemIds) {
         let shouldAddAlertFeed: boolean = false;
 
@@ -2130,6 +2141,40 @@ ${FeedMarkdown.asMarkdown(alert.remediationNotes || "No remediation notes provid
           writtenId: writtenAlertSeverityId,
           idBeforeUpdate: severityIdsBeforeUpdate[alertId.toString()],
         });
+
+        /*
+         * What the update changed of the title, root cause, description,
+         * remediation notes, labels and Send reminders switch, against what
+         * the alert held before the write (recordStoredValuesBeforeUpdate).
+         * An alert the read did not see counts as changed.
+         */
+        const fieldChanges: EventFieldSet = EventFieldChange.getChanges({
+          written: onUpdate.updateBy.data as unknown as Record<string, unknown>,
+          valuesBeforeUpdate: valuesBeforeUpdate[alertId.toString()],
+        });
+
+        const monitorChange: AlertMonitorChange | undefined =
+          monitorChanges[alertId.toString()];
+
+        /*
+         * Nothing below follows from this update for this alert: it changed
+         * no text, label or reminders switch, no severity and no monitor,
+         * and linked it to nothing OneUptime AI can fix - it wrote the
+         * alert's state, say, which the alert's own timeline records. No
+         * feed entry, no reminder, investigation or on-call rule to match
+         * again and no fix to try again, so the alert is not read for one.
+         * Every state change comes here (StateChangeFollowOn), and a bulk
+         * Resolve of thousands of alerts used to read each one again for
+         * nothing.
+         */
+        if (
+          !isSeverityChanged &&
+          !monitorChange &&
+          !writesRemediationLinks &&
+          !EventFieldChange.isAnySet(fieldChanges)
+        ) {
+          continue;
+        }
 
         const alert: Model | null = await this.findOneById({
           id: alertId,
@@ -2176,17 +2221,6 @@ ${FeedMarkdown.asMarkdown(alert.remediationNotes || "No remediation notes provid
           onUpdate.updateBy.props.userId;
 
         /*
-         * What the update changed of the title, root cause, description,
-         * remediation notes, labels and Send reminders switch, against what
-         * the alert held before the write (recordStoredValuesBeforeUpdate).
-         * An alert the read did not see counts as changed.
-         */
-        const fieldChanges: EventFieldSet = EventFieldChange.getChanges({
-          written: onUpdate.updateBy.data as unknown as Record<string, unknown>,
-          valuesBeforeUpdate: valuesBeforeUpdate[alertId.toString()],
-        });
-
-        /*
          * A line for each of the title, root cause, description, remediation
          * notes and labels the update really changed: writing back what the
          * alert holds - every save of a card sends its fields - adds none.
@@ -2229,9 +2263,6 @@ ${alertSeverity.name}
             shouldAddAlertFeed = true;
           }
         }
-
-        const monitorChange: AlertMonitorChange | undefined =
-          monitorChanges[alertId.toString()];
 
         if (monitorChange) {
           feedInfoInMarkdown += await this.getMonitorChangeFeedMarkdown({

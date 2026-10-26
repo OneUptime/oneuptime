@@ -340,6 +340,19 @@ const RunRecordField: FunctionComponent<ComponentProps> = (
   // Only the newest request may fill the list: a slow answer is dropped.
   const requestRef: React.MutableRefObject<number> = useRef<number>(0);
   /*
+   * The request really sent and not answered yet, and for what words. The
+   * list's own "loading" cannot say so: closed before the pause was over,
+   * the list goes back to idle by an update that can land only after the
+   * box is opened again - Run pressed straight after typing puts the focus
+   * back in the box within the same click (the form focuses its first field
+   * in error) - and the box then waited on a request nobody had sent:
+   * "Searching…" for good.
+   */
+  const askingRef: React.MutableRefObject<{
+    request: number;
+    search: string;
+  } | null> = useRef<{ request: number; search: string } | null>(null);
+  /*
    * Where the focus goes after a pick or after Change. Kept as state, set
    * with the pick itself, so the move belongs to the render that swaps the
    * box for the record (or back): a ref read by an effect can be read by an
@@ -357,7 +370,16 @@ const RunRecordField: FunctionComponent<ComponentProps> = (
       return;
     }
 
-    if (list.search === trimmedQuery && list.status !== "idle") {
+    // The answer to these words is in the list already.
+    if (
+      list.search === trimmedQuery &&
+      (list.status === "loaded" || list.status === "failed")
+    ) {
+      return;
+    }
+
+    // Or on its way: asked for, and not answered yet (askingRef).
+    if (askingRef.current?.search === trimmedQuery) {
       return;
     }
 
@@ -377,6 +399,7 @@ const RunRecordField: FunctionComponent<ComponentProps> = (
     const timer: ReturnType<typeof setTimeout> = setTimeout(
       () => {
         wasAsked = true;
+        askingRef.current = { request: request, search: trimmedQuery };
 
         void (async (): Promise<void> => {
           try {
@@ -406,6 +429,11 @@ const RunRecordField: FunctionComponent<ComponentProps> = (
               records: [],
               error: API.getFriendlyMessage(error),
             });
+          } finally {
+            // Answered, or dropped for a newer one: no longer waited on.
+            if (askingRef.current?.request === request) {
+              askingRef.current = null;
+            }
           }
         })();
       },

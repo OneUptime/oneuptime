@@ -231,9 +231,25 @@ describe("bulk change-state modal offers a note on every event table", () => {
   });
 
   test("the engine reads each record's state fresh, and leaves alone the ones the state timeline's rule would refuse", () => {
+    // Each move reads the record's state now, as its caller reads it.
     expect(ENGINE).toContain(
-      "const fetched: BaseModel | null = await ModelAPI.getItem<BaseModel>({",
+      "const fetched: BaseModel | null = await data.readCurrent(data.item);",
     );
+    // A row alone, by its id.
+    expect(ENGINE).toContain("return await ModelAPI.getItem<BaseModel>({");
+    expect(ENGINE).toContain("readCurrent: readOne,");
+    /*
+     * A selection a window at a time, just before its moves (#5299): one
+     * list request per window, not one read per record, falling back to a
+     * read each when a window's request fails.
+     */
+    expect(ENGINE).toContain(
+      "const result: ListResult<BaseModel> = await ModelAPI.getList<BaseModel>({ modelType: definition.eventModelType, query: { _id: new Includes(ids), } as never,",
+    );
+    expect(ENGINE).toContain("readWindow: readWindow, readOne: readOne,");
+    expect(ENGINE).toContain("return reader.read(record);");
+    // Several records at once, as many as the kind allows.
+    expect(ENGINE).toContain("concurrency: definition.bulkConcurrency,");
     expect(ENGINE).toContain("const refusal: string | null = getMoveRefusal({");
     expect(ENGINE).toContain("return bulkItemUnchanged(");
     expect(ENGINE).not.toContain("currentOrder >= targetOrder");
