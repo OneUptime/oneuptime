@@ -143,9 +143,15 @@ const SENDER: Email = new Email("notifications@example.test");
 const SCREENSHOT_NOTE: string =
   "[Checkout page: image could not be included in this email]";
 
-// The header's name, standing alone, as Logo.hbs draws it without the logo.
-const NAME_ALONE_PATTERN: RegExp =
-  /<td style="font-family: [^"<>]*color: #0f172a;">OneUptime<\/td>/;
+/*
+ * The header's name, standing alone and read aloud, as Logo.hbs draws it
+ * without the logo - and the cell it is beside the logo, hidden from screen
+ * readers because the logo's alt text says the name already.
+ */
+const NAME_ALONE_CELL: string =
+  "<td style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-size: 18px; line-height: 24px; font-weight: 700; letter-spacing: -0.5px; color: #0f172a;\">OneUptime</td>";
+const NAME_BESIDE_LOGO_CELL_START: string =
+  '<td aria-hidden="true" style="padding-left: 10px; font-family:';
 
 // What SendGrid answered issue #5308's emails with, explained.
 const SENDGRID_CONTENT_ID_REFUSAL: string =
@@ -234,7 +240,8 @@ function expectSentWithoutImages(html: string): void {
   expect(html).not.toContain("data:image");
   // The header: the name, standing alone and read aloud, no broken image.
   expect(html).not.toContain('alt="OneUptime"');
-  expect(html).toMatch(NAME_ALONE_PATTERN);
+  expect(html).toContain(NAME_ALONE_CELL);
+  expect(html).not.toContain(NAME_BESIDE_LOGO_CELL_START);
   // The screenshot: a note with its alt text.
   expect(html).toContain(SCREENSHOT_NOTE);
   // The rest of the email, the Acknowledge button included.
@@ -378,6 +385,9 @@ describe("SendGrid refuses an email for its images", () => {
 
     expect(sendGrid.requests).toHaveLength(2);
     expect(sendGridJson(0).attachments).toHaveLength(2);
+    // The first, with its logo: the name beside it, hidden from screen readers.
+    expect(sendGridHtml(0)).toContain(NAME_BESIDE_LOGO_CELL_START);
+    expect(sendGridHtml(0)).not.toContain(NAME_ALONE_CELL);
     expect(Object.keys(sendGridJson(1))).not.toContain("attachments");
     expectSentWithoutImages(sendGridHtml(1));
 
@@ -459,7 +469,7 @@ describe("SendGrid refuses an email for its images", () => {
     const html: string = sendGridHtml(1);
 
     expect(html).not.toContain("cid:");
-    expect(html).toMatch(NAME_ALONE_PATTERN);
+    expect(html).toContain(NAME_ALONE_CELL);
     expect(html).toContain(
       "https://oneuptime.example.test/accounts/reset-password/token-123",
     );
