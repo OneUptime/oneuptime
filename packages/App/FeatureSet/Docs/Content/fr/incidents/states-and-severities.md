@@ -204,7 +204,7 @@ Passer de **Résolu** à un état qui le suit — **Closed**, par exemple — n'
 
 ## La chronologie d'état
 
-La page **Chronologie d'état** du menu latéral de l'incident est la piste d'audit de chaque état par lequel l'incident est passé. La carte de cette page s'intitule **Chronologie de statut**, et elle dessine toute la vie de l'incident sous forme de chronologie :
+La page **Chronologie d'état** du menu latéral de l'incident est la piste d'audit de chaque état par lequel l'incident est passé. La carte de cette page dessine toute la vie de l'incident sous forme de chronologie :
 
 - **La bande** montre chaque état comme une portion de sa couleur, aussi longue que l'incident y est resté, de sorte que le déroulement de l'incident se lit d'un coup d'œil. Tant que l'incident est ouvert, la bande va jusqu'à **Maintenant** ; une fois l'incident résolu, elle s'arrête peu après son dernier changement. Pointez une portion pour voir quand elle a commencé et combien de temps elle a duré, et cliquez dessus pour retrouver son changement dans la liste. Les changements trop rapprochés pour être distingués sont dessinés en une seule portion rayée : cliquez dessus, ou faites glisser le pointeur sur la bande, pour zoomer, et **Réinitialiser le zoom** revient en arrière.
 - **Au-dessus de la bande**, chaque état est indiqué avec le temps que l'incident y a passé.

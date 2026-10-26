@@ -142,7 +142,7 @@ Archivieren Sie einen eigenen Status, den Ihr Team nicht mehr verwenden soll, st
 
 ## Die Zustands-Zeitachse
 
-Die Seite **Zustands-Zeitachse** des Ereignisses verzeichnet jeden Status, in dem es war. Ihre Karte, **Status-Zeitachse**, zeichnet sie als Zeitachse: ein Band mit jedem Status so lang, wie er gedauert hat, und darunter jede Änderung, die neueste zuerst. **Tabelle**, in der Kopfzeile der Karte, listet sie stattdessen als Zeilen, mit **Status der geplanten Wartung**, **Beginnt am**, **Endet am**, **Dauer**, ob die Abonnenten informiert werden sollten und wie ihre Benachrichtigung verlief.
+Die Seite **Zustands-Zeitachse** des Ereignisses verzeichnet jeden Status, in dem es war. Ihre Karte zeichnet sie als Zeitachse: ein Band mit jedem Status so lang, wie er gedauert hat, und darunter jede Änderung, die neueste zuerst. **Tabelle**, in der Kopfzeile der Karte, listet sie stattdessen als Zeilen, mit **Status der geplanten Wartung**, **Beginnt am**, **Endet am**, **Dauer**, ob die Abonnenten informiert werden sollten und wie ihre Benachrichtigung verlief.
 
 Im Dashboard lassen sich Zeilen hinzufügen und löschen, aber nicht bearbeiten, und ein Ereignis behält immer mindestens eine. Über die API lässt sich der `startsAt` einer Zeile korrigieren, und jede aus der Zeitachse berechnete Messung folgt ihm. Wenn Sie die neueste Zeile löschen, kehrt das Ereignis in den Status der Zeile davor zurück.
 

@@ -204,7 +204,7 @@ En hendelse er løst når den går fra en tilstand over den løste tilstanden di
 
 ## Tilstandstidslinjen
 
-Hendelsens side **Tilstandstidslinje** i hendelsens sidemeny er revisjonssporet for hver tilstand hendelsen har vært i. Kortet på den siden heter **Statustidslinje**, og det tegner hele hendelsens forløp som en tidslinje:
+Hendelsens side **Tilstandstidslinje** i hendelsens sidemeny er revisjonssporet for hver tilstand hendelsen har vært i. Kortet på den siden tegner hele hendelsens forløp som en tidslinje:
 
 - **Båndet** viser hver tilstand som et stykke i sin farge, så langt som hendelsen var i den, slik at forløpet kan leses med ett blikk. Så lenge hendelsen er åpen, går båndet frem til **Nå**; når den er løst, slutter båndet like etter den siste endringen. Pek på et stykke for å se når det begynte og hvor lenge det varte, og klikk på det for å finne endringen i listen. Endringer som ligger for tett til å skilles, tegnes som ett stripete stykke: klikk på det, eller dra over båndet, for å zoome inn, og **Tilbakestill zoom** går tilbake.
 - **Over båndet** står hver tilstand med tiden hendelsen var i den.

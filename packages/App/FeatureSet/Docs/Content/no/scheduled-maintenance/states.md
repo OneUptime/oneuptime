@@ -142,7 +142,7 @@ Arkiver en status du selv har laget som teamet ditt ikke lenger skal bruke, i st
 
 ## Tilstandstidslinjen
 
-Siden **Tilstandstidslinje** for hendelsen er registeret over hver tilstand den har vært i. Kortet, **Statustidslinje**, tegner dem som en tidslinje: et bånd med hver tilstand så lang som den varte, og under det hver endring, den nyeste først. **Tabell**, i overskriften på kortet, viser dem som rader i stedet, med **Status for planlagt vedlikehold**, **Begynner den**, **Slutter den**, **Varighet**, om abonnentene skulle varsles, og hvordan varselet gikk.
+Siden **Tilstandstidslinje** for hendelsen er registeret over hver tilstand den har vært i. Kortet tegner dem som en tidslinje: et bånd med hver tilstand så lang som den varte, og under det hver endring, den nyeste først. **Tabell**, i overskriften på kortet, viser dem som rader i stedet, med **Status for planlagt vedlikehold**, **Begynner den**, **Slutter den**, **Varighet**, om abonnentene skulle varsles, og hvordan varselet gikk.
 
 I dashbordet kan rader legges til og slettes, men ikke redigeres, og en hendelse beholder alltid minst én. Gjennom API-et kan `startsAt` for en rad rettes, og hver måling som er beregnet ut fra tidslinjen, følger med. Sletter du den nyeste raden, går hendelsen tilbake til tilstanden i raden før.
 

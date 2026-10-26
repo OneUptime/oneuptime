@@ -142,7 +142,7 @@ Arkivér en status, du selv har oprettet, som dit team ikke længere skal bruge,
 
 ## Tilstandstidslinjen
 
-Begivenhedens side **Tilstandstidslinje** er registreringen af hver tilstand, den har været i. Dens kort, **Statustidslinje**, tegner dem som en tidslinje: et bånd med hver tilstand så lang, som den varede, og nedenunder hvert skift, det nyeste først. **Tabel**, i kortets header, viser dem i stedet som rækker, med **Status for planlagt vedligeholdelse**, **Begynder den**, **Slutter den**, **Varighed**, om abonnenterne skulle have besked, og hvordan deres notifikation gik.
+Begivenhedens side **Tilstandstidslinje** er registreringen af hver tilstand, den har været i. Dens kort tegner dem som en tidslinje: et bånd med hver tilstand så lang, som den varede, og nedenunder hvert skift, det nyeste først. **Tabel**, i kortets header, viser dem i stedet som rækker, med **Status for planlagt vedligeholdelse**, **Begynder den**, **Slutter den**, **Varighed**, om abonnenterne skulle have besked, og hvordan deres notifikation gik.
 
 I dashboardet kan rækker tilføjes og slettes, men ikke redigeres, og en begivenhed beholder altid mindst én. Via API'et kan en rækkes `startsAt` rettes, og hver måling, der er beregnet ud fra tidslinjen, følger med. Sletter du den nyeste række, går begivenheden tilbage til tilstanden i rækken før.
 
