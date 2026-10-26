@@ -118,6 +118,33 @@ describe("the approval card names what an action links", () => {
     expect(description.className).not.toContain("line-clamp");
   });
 
+  /*
+   * The title says what is being approved, and on a phone it shares its
+   * row with Allow and Skip: cut at one line, "Link incident #1042 to
+   * affected resources" lost the incident it acts on. It wraps instead, to
+   * three lines at most - all a linking action's title needs there.
+   */
+  test("the title wraps rather than being cut at one line", () => {
+    const title: string = "Link incident #1042 to affected resources";
+
+    render(
+      <ToolApprovalCard
+        toolActions={[
+          action({ title, toolName: "add_incident_affected_resources" }),
+        ]}
+        interactive={true}
+        isSubmitting={false}
+        onRespond={() => {}}
+      />,
+    );
+
+    const shown: HTMLElement = screen.getByTestId("tool-approval-title");
+    expect(shown).toHaveTextContent(title);
+    expect(shown.className).toContain("break-words");
+    expect(shown.className).toContain("line-clamp-3");
+    expect(shown.className).not.toContain("truncate");
+  });
+
   test("the description is shown while waiting, even before the buttons are live", () => {
     render(
       <ToolApprovalCard

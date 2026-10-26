@@ -17933,6 +17933,23 @@ test.describe("an action linking what a record is about waits for approval (issu
         promptBox!.x + promptBox!.width + 0.5,
       );
 
+      /*
+       * The title in full beside Allow and Skip - the incident it acts on
+       * included - wrapped rather than cut at one line.
+       */
+      const title: Locator = prompt.getByTestId("tool-approval-title");
+      await expect(title).toHaveText(
+        "Link incident #1042 to affected resources",
+      );
+      expect(
+        await title.evaluate((element: HTMLElement): boolean => {
+          return (
+            element.scrollHeight <= element.clientHeight + 1 &&
+            element.scrollWidth <= element.clientWidth + 1
+          );
+        }),
+      ).toBe(true);
+
       await screenshotElement(prompt, `tool-approval-linking-390-${theme}`);
     });
   }

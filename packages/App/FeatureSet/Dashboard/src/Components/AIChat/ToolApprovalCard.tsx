@@ -201,7 +201,16 @@ const ToolApprovalCard: FunctionComponent<ComponentProps> = (
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <div className="truncate text-xs font-semibold text-gray-900">
+                      {/*
+                       * The action being approved, wrapped: on a phone,
+                       * cut at one line beside Allow and Skip, it lost
+                       * what it acts on ("Link incident #1…"). Three lines
+                       * hold a linking action's title there in full.
+                       */}
+                      <div
+                        data-testid="tool-approval-title"
+                        className="line-clamp-3 break-words text-xs font-semibold text-gray-900"
+                      >
                         {action.title}
                       </div>
                       {/*
