@@ -137,6 +137,7 @@ const OVERVIEWS: Array<OverviewCase> = [
       "CLOUD_ACCOUNT_VIEW_TOPOLOGY",
       "CLOUD_ACCOUNT_VIEW_CHANGES",
     ],
+    settingsPage: "CLOUD_ACCOUNT_VIEW_SETTINGS",
   },
   {
     name: "Service",

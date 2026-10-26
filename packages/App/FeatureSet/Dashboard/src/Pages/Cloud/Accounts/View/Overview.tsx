@@ -266,6 +266,7 @@ const CloudAccountOverview: FunctionComponent<
         chips={chips}
         tiles={tiles}
         detailRows={detailRows}
+        recordId={modelId.toString()}
         settingsRoute={populate(PageMap.CLOUD_ACCOUNT_VIEW_SETTINGS)}
         labels={account.labels}
       />
