@@ -3,9 +3,28 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import Route from "Common/Types/API/Route";
 import { DASHBOARD_THEME_LINK_PARAMETER } from "Common/Types/Dashboard/DashboardTheme";
 import ObjectID from "Common/Types/ObjectID";
-import Typeof from "Common/Types/Typeof";
 import LocalStorage from "Common/UI/Utils/LocalStorage";
 import Navigation from "Common/UI/Utils/Navigation";
+import TabPageId from "Common/UI/Utils/TabPageId";
+
+/*
+ * The dashboard this tab shows (Common/UI/Utils/TabPageId): the one its
+ * address names on OneUptime's own host (/public-dashboard/<id>/...), and on
+ * a custom domain the one the app found for the domain as the tab started.
+ * Never an id kept in localStorage, which every tab on the address shares:
+ * the dashboard a second tab opened became every tab's (#5277).
+ */
+const dashboardInTab: TabPageId = new TabPageId("public-dashboard");
+
+/*
+ * What the browser keeps about one dashboard, under these names followed by
+ * the dashboard's id: shared by every tab showing that dashboard, and by no
+ * other.
+ */
+export const DASHBOARD_REQUIRES_MASTER_PASSWORD_STORAGE_KEY: string =
+  "dashboardRequiresMasterPassword";
+export const DASHBOARD_MASTER_PASSWORD_VALIDATED_STORAGE_KEY: string =
+  "dashboardMasterPasswordValidated";
 
 export default class PublicDashboardUtil {
   private static readonly AUTH_PATHS: Array<string> = [
@@ -21,6 +40,11 @@ export default class PublicDashboardUtil {
     });
   }
 
+  /*
+   * Where the password prompt sends the visitor once it opens: a place on
+   * this dashboard, never another site, never a prompt, and never another
+   * dashboard's address (/public-dashboard/<another id>/...).
+   */
   public static getSafeRedirectUrl(): string | null {
     const redirectUrl: string | null =
       Navigation.getQueryStringByName("redirectUrl");
@@ -29,7 +53,8 @@ export default class PublicDashboardUtil {
       !redirectUrl ||
       !redirectUrl.startsWith("/") ||
       redirectUrl.startsWith("//") ||
-      PublicDashboardUtil.isAuthPath(redirectUrl)
+      PublicDashboardUtil.isAuthPath(redirectUrl) ||
+      dashboardInTab.isAnotherPagesPath(redirectUrl)
     ) {
       return null;
     }
@@ -37,26 +62,25 @@ export default class PublicDashboardUtil {
     return redirectUrl;
   }
 
+  // The dashboard this tab shows (see dashboardInTab above).
   public static getDashboardId(): ObjectID | null {
-    const value: ObjectID | null = LocalStorage.getItem(
-      "dashboardId",
-    ) as ObjectID | null;
-
-    if (value && typeof value === Typeof.String) {
-      return new ObjectID(value.toString());
-    }
-
-    return value;
+    return dashboardInTab.get();
   }
 
+  /*
+   * The dashboard this tab loaded: the app sets it once it has found the
+   * dashboard - from the address, or from the domain on a custom domain -
+   * and nothing another tab does changes it.
+   */
   public static setDashboardId(id: ObjectID | null): void {
-    LocalStorage.setItem("dashboardId", id);
+    dashboardInTab.set(id);
   }
 
   public static setRequiresMasterPassword(value: boolean): void {
-    const storageKey: string =
-      PublicDashboardUtil.getRequiresMasterPasswordStorageKey();
-    LocalStorage.setItem(storageKey, value);
+    PublicDashboardUtil.setDashboardItem(
+      DASHBOARD_REQUIRES_MASTER_PASSWORD_STORAGE_KEY,
+      value,
+    );
 
     if (!value) {
       PublicDashboardUtil.setMasterPasswordValidated(false);
@@ -64,46 +88,59 @@ export default class PublicDashboardUtil {
   }
 
   public static requiresMasterPassword(): boolean {
-    const storageKey: string =
-      PublicDashboardUtil.getRequiresMasterPasswordStorageKey();
-    return Boolean(LocalStorage.getItem(storageKey));
+    return PublicDashboardUtil.getDashboardItem(
+      DASHBOARD_REQUIRES_MASTER_PASSWORD_STORAGE_KEY,
+    );
   }
 
-  private static getDashboardScopedStorageKey(baseKey: string): string {
+  public static setMasterPasswordValidated(value: boolean): void {
+    PublicDashboardUtil.setDashboardItem(
+      DASHBOARD_MASTER_PASSWORD_VALIDATED_STORAGE_KEY,
+      value,
+    );
+  }
+
+  public static isMasterPasswordValidated(): boolean {
+    return PublicDashboardUtil.getDashboardItem(
+      DASHBOARD_MASTER_PASSWORD_VALIDATED_STORAGE_KEY,
+    );
+  }
+
+  /*
+   * The name something about this tab's dashboard is kept under: the name,
+   * then the dashboard's id. Null while the tab does not know its dashboard
+   * - then nothing is read or kept, as a name without an id would be every
+   * dashboard's.
+   */
+  private static getDashboardStorageKey(baseKey: string): string | null {
     const dashboardId: ObjectID | null = PublicDashboardUtil.getDashboardId();
 
     if (!dashboardId) {
-      return baseKey;
+      return null;
     }
 
     return `${baseKey}-${dashboardId.toString()}`;
   }
 
-  private static getRequiresMasterPasswordStorageKey(): string {
-    return PublicDashboardUtil.getDashboardScopedStorageKey(
-      "dashboardRequiresMasterPassword",
-    );
-  }
+  private static setDashboardItem(baseKey: string, value: boolean): void {
+    const storageKey: string | null =
+      PublicDashboardUtil.getDashboardStorageKey(baseKey);
 
-  private static getMasterPasswordValidationStorageKey(): string {
-    const dashboardId: ObjectID | null = PublicDashboardUtil.getDashboardId();
-
-    if (!dashboardId) {
-      return "dashboardMasterPasswordValidated";
+    if (!storageKey) {
+      return;
     }
 
-    return `dashboardMasterPasswordValidated-${dashboardId.toString()}`;
-  }
-
-  public static setMasterPasswordValidated(value: boolean): void {
-    const storageKey: string =
-      PublicDashboardUtil.getMasterPasswordValidationStorageKey();
     LocalStorage.setItem(storageKey, value);
   }
 
-  public static isMasterPasswordValidated(): boolean {
-    const storageKey: string =
-      PublicDashboardUtil.getMasterPasswordValidationStorageKey();
+  private static getDashboardItem(baseKey: string): boolean {
+    const storageKey: string | null =
+      PublicDashboardUtil.getDashboardStorageKey(baseKey);
+
+    if (!storageKey) {
+      return false;
+    }
+
     return Boolean(LocalStorage.getItem(storageKey));
   }
 

@@ -1,9 +1,9 @@
 import PageMap from "./PageMap";
 import RouteParams from "./RouteParams";
+import StatusPageUtil from "./StatusPage";
 import Route from "Common/Types/API/Route";
 import Dictionary from "Common/Types/Dictionary";
 import ObjectID from "Common/Types/ObjectID";
-import LocalStorage from "Common/UI/Utils/LocalStorage";
 
 const RouteMap: Dictionary<Route> = {
   [PageMap.OVERVIEW]: new Route(`/`),
@@ -151,6 +151,10 @@ export class RouteUtil {
     return route.replace(TOKEN_PARAM_PATTERN, "");
   }
 
+  /*
+   * A route of this app with its ids filled in: the record's, and the status
+   * page's - the page this tab shows, never one another tab opened since.
+   */
   public static populateRouteParams(route: Route, modelId?: ObjectID): Route {
     const tempRoute: Route = new Route(route.toString());
 
@@ -158,7 +162,7 @@ export class RouteUtil {
       route = tempRoute.addRouteParam(RouteParams.ModelID, modelId.toString());
     }
 
-    const id: ObjectID = LocalStorage.getItem("statusPageId") as ObjectID;
+    const id: ObjectID | null = StatusPageUtil.getStatusPageId();
 
     if (id) {
       route = tempRoute.addRouteParam(RouteParams.StatusPageId, id.toString());

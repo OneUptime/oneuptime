@@ -42,8 +42,9 @@ const MasterPasswordPage: FunctionComponent<ComponentProps> = (
   };
 
   useEffect(() => {
+    // A page everyone may see asks for no password: on to its overview.
     if (!StatusPageUtil.isPrivateStatusPage()) {
-      Navigation.navigate(new Route("/"), { forceNavigate: true });
+      redirectToOverview();
       return;
     }
 
