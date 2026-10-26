@@ -73,6 +73,8 @@ const BULK_WITHOUT_DELETE: Record<string, string> = {
     "A monitor's SLOs: an SLO can measure several monitors, so it is deleted from the SLOs list, not from under one of its monitors.",
   "Dashboard/src/Pages/NetworkDevice/View/Interfaces.tsx":
     "Interfaces are discovered from the device on every SNMP poll, so a deleted one comes back; Mute is how one stops being monitored.",
+  "Dashboard/src/Pages/Cloud/Accounts/View/Resources.tsx":
+    "An account's resources come back on its connection's next listing: they are labelled and owned in bulk here, and archived or deleted from All Resources, which says why archiving is better.",
   "Dashboard/src/Components/TelemetryService/TelemetryServiceTable.tsx":
     "No page uses it; the Services list is Pages/Service/Services.tsx.",
   "Dashboard/src/Components/Postmortem/PostmortemsTable.tsx":

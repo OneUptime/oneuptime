@@ -51,6 +51,8 @@ export enum AiAffectedResourceKind {
   StorageArray = "StorageArray",
   IoTFleet = "IoTFleet",
   DatabaseServer = "DatabaseServer",
+  // A resource a cloud connection lists (an AWS, Azure or Google Cloud one).
+  CloudResource = "CloudResource",
   // A telemetry service (lookup_context's services).
   Service = "Service",
 }
@@ -68,6 +70,7 @@ export type AiAffectedResourceRelation =
   | "storageArrays"
   | "iotFleets"
   | "databaseServers"
+  | "cloudResources"
   | "services";
 
 export interface AiAffectedResourceKindInfo {
@@ -157,6 +160,16 @@ export const AI_AFFECTED_RESOURCE_KINDS: ReadonlyArray<AiAffectedResourceKindInf
       noun: "database server",
       isFixedByOneUptimeAi: true,
     },
+    /*
+     * Linked for its changes, its metrics and its page's Incidents tab: no
+     * AI agent acts on a cloud account yet.
+     */
+    {
+      kind: AiAffectedResourceKind.CloudResource,
+      relation: "cloudResources",
+      noun: "cloud resource",
+      isFixedByOneUptimeAi: false,
+    },
     {
       kind: AiAffectedResourceKind.Service,
       relation: "services",
@@ -178,8 +191,6 @@ export const AI_RESOURCE_TYPES_NOT_LINKABLE: Readonly<
 > = {
   [AIResourceType.ServerlessFunction]:
     "An incident or alert has no list of serverless functions.",
-  [AIResourceType.CloudResource]:
-    "An incident or alert has no list of cloud resources.",
   [AIResourceType.NetworkDevice]:
     "An incident or alert has no list of network devices.",
 };

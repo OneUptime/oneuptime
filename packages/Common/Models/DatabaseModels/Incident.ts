@@ -1,5 +1,6 @@
 import CephCluster from "./CephCluster";
 import StorageArray from "./StorageArray";
+import CloudResource from "./CloudResource";
 import DatabaseServer from "./DatabaseServer";
 import DockerHost from "./DockerHost";
 import DockerResource from "./DockerResource";
@@ -1287,6 +1288,60 @@ export default class Incident extends BaseModel {
     },
   })
   public storageArrays?: Array<StorageArray> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.CreateProjectIncident,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
+      Permission.ReadProjectIncident,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.EditProjectIncident,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: CloudResource,
+    title: "Cloud Resources",
+    description: "List of cloud resources affected by this incident.",
+  })
+  @ManyToMany(
+    () => {
+      return CloudResource;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "IncidentCloudResource",
+    inverseJoinColumn: {
+      name: "cloudResourceId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "incidentId",
+      referencedColumnName: "_id",
+    },
+  })
+  public cloudResources?: Array<CloudResource> = undefined;
 
   @ColumnAccessControl({
     create: [

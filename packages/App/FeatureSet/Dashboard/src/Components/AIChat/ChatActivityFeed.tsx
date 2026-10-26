@@ -431,9 +431,11 @@ export function describePromptOmissions(
 
 /*
  * What a kind of linked resource is called (LinkedAffectedResourceType, as
- * the server records it in an investigation's activity).
+ * the server records it in an investigation's activity): one noun for each
+ * kind the server names (LINKED_INFRASTRUCTURE_KINDS), or a linked cloud
+ * resource would read "Resource web-alb".
  */
-const LINKED_RESOURCE_KIND_NOUNS: { [kind: string]: string } = {
+export const LINKED_RESOURCE_KIND_NOUNS: { [kind: string]: string } = {
   Host: translationKey("Host"),
   DockerHost: translationKey("Docker host"),
   PodmanHost: translationKey("Podman host"),
@@ -445,6 +447,7 @@ const LINKED_RESOURCE_KIND_NOUNS: { [kind: string]: string } = {
   StorageArray: translationKey("Storage array"),
   IoTFleet: translationKey("IoT fleet"),
   DatabaseServer: translationKey("Database"),
+  CloudResource: translationKey("Cloud resource"),
   Service: translationKey("Service"),
 };
 

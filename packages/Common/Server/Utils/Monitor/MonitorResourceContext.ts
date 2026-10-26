@@ -159,6 +159,7 @@ export default class MonitorResourceContextUtil {
       iotFleetIds: [],
       databaseServerIds: [],
       storageArrayIds: [],
+      cloudResourceIds: [],
     };
   }
 }
@@ -178,5 +179,6 @@ const LINKED_RESOURCE_KEYS: Partial<
   [LinkedAffectedResourceType.DockerSwarmCluster]: "dockerSwarmClusterIds",
   [LinkedAffectedResourceType.IoTFleet]: "iotFleetIds",
   [LinkedAffectedResourceType.DatabaseServer]: "databaseServerIds",
+  [LinkedAffectedResourceType.CloudResource]: "cloudResourceIds",
   [LinkedAffectedResourceType.Service]: "serviceIds",
 };

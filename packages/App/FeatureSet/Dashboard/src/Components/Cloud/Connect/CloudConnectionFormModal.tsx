@@ -10,6 +10,7 @@ import {
   getCloudConnectionFieldsForMethod,
   getCloudConnectionReadIntervalInMinutes,
   READ_INTERVAL_FIELD_KEY,
+  READ_SCOPE_FIELD_KEY,
 } from "Common/Types/CloudConnection/CloudConnectionCatalog";
 import { CloudConnectionAwsRoleSetup } from "Common/Types/CloudConnection/CloudConnectionSetupCommands";
 import { CloudConnectionTestResult } from "Common/Types/CloudConnection/CloudConnectionTest";
@@ -55,8 +56,11 @@ import {
   configFieldName,
   getMissingCloudConnectionFields,
   getPastedFieldTitles,
+  getReadScopeField,
+  isCredentialValueField,
   readCloudConnectionForm,
   readFormAuthMethod,
+  readFormScope,
   readFormText,
   secretFieldName,
 } from "./CloudConnectionForm";
@@ -238,6 +242,40 @@ const CloudConnectionFormModal: FunctionComponent<ComponentProps> = (
     });
   }
 
+  /*
+   * Then what to read - the account the command is run in, or every
+   * account of its organization - for a method that can read more than
+   * one. The command below changes with it.
+   */
+  const scopeField: CloudConnectionField | undefined =
+    definition.configFields.find((field: CloudConnectionField): boolean => {
+      return field.key === READ_SCOPE_FIELD_KEY;
+    });
+
+  if (scopeField) {
+    fields.push({
+      field: { [configFieldName(READ_SCOPE_FIELD_KEY)]: true },
+      title: scopeField.title,
+      description: scopeField.description,
+      stepId: ACCESS_STEP_ID,
+      fieldType: FormFieldSchemaType.RadioButton,
+      required: false,
+      hideOptionalLabel: true,
+      defaultValue: scopeField.defaultValue,
+      dataTestId: "cloud-connection-scope",
+      radioButtonOptions: (scopeField.options || []).map(
+        (option: { label: string; value: string }) => {
+          return { title: option.label, value: option.value };
+        },
+      ),
+      showIf: (values: FormValues<JSONObject>): boolean => {
+        return Boolean(
+          getReadScopeField(definition, methodOf(values as JSONObject)),
+        );
+      },
+    });
+  }
+
   fields.push({
     field: { setupCommand: true },
     title: "",
@@ -250,6 +288,7 @@ const CloudConnectionFormModal: FunctionComponent<ComponentProps> = (
         <CloudSetupCommand
           definition={definition}
           method={methodOf(values as JSONObject)}
+          scope={readFormScope(definition, values as JSONObject, defaultMethod)}
           roleSetup={props.awsRoleSetup}
         />
       );
@@ -270,9 +309,7 @@ const CloudConnectionFormModal: FunctionComponent<ComponentProps> = (
     return [
       ...getCloudConnectionFieldsForMethod(definition.configFields, method),
       ...getCloudConnectionFieldsForMethod(definition.secretFields, method),
-    ].filter((field: CloudConnectionField): boolean => {
-      return !field.isAdvanced;
-    });
+    ].filter(isCredentialValueField);
   };
 
   const isSecret: (field: CloudConnectionField) => boolean = (

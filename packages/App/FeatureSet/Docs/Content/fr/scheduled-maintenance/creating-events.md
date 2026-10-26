@@ -69,7 +69,7 @@ Rien n'est envoyé tant que vous ne choisissez pas de page de statut : un évén
 
 Deux choses remplissent le formulaire pour vous en cours de route :
 
-- **Ressources liées.** Quand vous choisissez un moniteur, les hôtes, clusters, services et autres ressources auxquels il est lié sont ajoutés sous **Autres ressources affectées**, et une ligne sous le champ les nomme. Retirez ceux dont vous ne voulez pas.
+- **Ressources liées.** Quand vous choisissez un moniteur, les hôtes, clusters, services et autres ressources auxquels il est lié sont ajoutés sous **Autres ressources affectées**, et une ligne sous le champ les nomme. Retirez ceux dont vous ne voulez pas. Les ressources cloud ne sont pas ajoutées : un événement de maintenance n'en contient pas.
 - **Pages de statut suggérées.** Sous **Afficher l'événement sur ces pages de statut**, les pages qui affichent vos moniteurs sont suggérées : cliquez sur le nom d'une page pour l'ajouter, ou sur **Tout ajouter**. Rien n'est choisi pour vous. Voir [Événements de maintenance planifiée](/docs/status-pages/subscribers#événements-de-maintenance-planifiée).
 
 ## Partir d'une ressource ou d'un modèle

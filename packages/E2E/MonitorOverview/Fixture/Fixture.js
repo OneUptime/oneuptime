@@ -62,6 +62,13 @@
  *              (no custom probe, one global probe: an installation's
  *              bundled probe) | both (the three and the global one). The
  *              Probe Status monitor's picker starts from these.
+ *   ?cloud=    suggest: two cloud resources a cloud connection listed
+ *              answer on the subject monitor's host - a CDN on the host
+ *              itself, a load balancer the host's CNAME points to - so
+ *              GET /monitor/cloud-resource-suggestions/:monitorId offers
+ *              them on the Linked Resources card. Without it nothing is
+ *              suggested. ?fail=cloud-suggestions fails that read (the card
+ *              then offers nothing); ?fail=cloud-link refuses the link.
  *
  * Every read is recorded on window.__monitorOverviewFixture: getItemRequests,
  * listRequests (analytics lists carry analytics: true), aggregateRequests,
@@ -97,6 +104,7 @@ import ChangeEvent from "Common/Models/AnalyticsModels/ChangeEvent";
 import Metric from "Common/Models/AnalyticsModels/Metric";
 import MonitorLog from "Common/Models/AnalyticsModels/MonitorLog";
 import Alert from "Common/Models/DatabaseModels/Alert";
+import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import Incident from "Common/Models/DatabaseModels/Incident";
@@ -222,6 +230,7 @@ const planMode = params.get("plan") === "free" ? "free" : "none";
 const probesMode = ["self-hosted", "both"].includes(params.get("probes"))
   ? params.get("probes")
   : "custom";
+const cloudMode = params.get("cloud") === "suggest" ? "suggest" : "none";
 
 /*
  * The project's limit on active monitors (Types/Monitor/ActiveMonitorLimit),
@@ -301,6 +310,7 @@ const ID = {
   networkDevice: (number) => uuid("85000000", number),
   secret: (number) => uuid("86000000", number),
   kubernetesCluster: (number) => uuid("87000000", number),
+  cloudResource: (number) => uuid("88000000", number),
 };
 let rowCounter = 0;
 function rowId() {
@@ -326,6 +336,7 @@ const fixture = {
     monitorLimit: monitorLimitMode,
     plan: planMode,
     probes: probesMode,
+    cloud: cloudMode,
   },
   getItemRequests: [],
   listRequests: [],
@@ -704,6 +715,48 @@ insert(KubernetesCluster, {
   name: "Production cluster (eu-west-1)",
   clusterIdentifier: "prod-eu-west-1",
 });
+
+/*
+ * Cloud resources a cloud connection listed (the Linked Resources card
+ * names a linked one): the CDN that answers on the storefront's host, and
+ * the load balancer its CNAME points to. ?cloud=suggest offers both.
+ */
+const CLOUD_RESOURCES = {
+  cdn: insert(CloudResource, {
+    _id: ID.cloudResource(1),
+    name: "storefront-cdn",
+    cloudProvider: "aws",
+    cloudResourceType: "AWS::CloudFront::Distribution",
+    isArchived: false,
+  }),
+  loadBalancer: insert(CloudResource, {
+    _id: ID.cloudResource(2),
+    name: "storefront-alb",
+    cloudProvider: "aws",
+    cloudResourceType: "AWS::ElasticLoadBalancingV2::LoadBalancer",
+    isArchived: false,
+  }),
+};
+
+// What the suggestions read answers for the subject monitor, as MonitorAPI does.
+const CLOUD_SUGGESTIONS = [
+  {
+    cloudResourceId: ID.cloudResource(1),
+    name: "storefront-cdn",
+    type: "AWS::CloudFront::Distribution",
+    provider: "aws",
+    endpoint: "shop.acme-commerce.example",
+    via: "shop.acme-commerce.example",
+  },
+  {
+    cloudResourceId: ID.cloudResource(2),
+    name: "storefront-alb",
+    type: "AWS::ElasticLoadBalancingV2::LoadBalancer",
+    provider: "aws",
+    endpoint: "storefront-alb-1234567890.us-east-1.elb.amazonaws.com",
+    via: "shop.acme-commerce.example",
+  },
+];
 
 /*
  * The one global probe, served by GET /probe/global-probes with ?probes=
@@ -2613,8 +2666,30 @@ ModelAPI.updateById = async (options) => {
   const record = (tables.get(modelName)?.records || []).find((item) => {
     return String(item._id) === id;
   });
+  if (
+    modelName === tableName(Monitor) &&
+    Array.isArray(options.data?.cloudResources) &&
+    failures.has("cloud-link")
+  ) {
+    throw fail(422, "You do not have permission to link cloud resources.");
+  }
   if (record) {
-    Object.assign(record, options.data);
+    /*
+     * A relation is written as ids (linking a suggested cloud resource);
+     * the row keeps the records they name, as the API reads them back.
+     */
+    const data = { ...options.data };
+    if (Array.isArray(data.cloudResources)) {
+      data.cloudResources = data.cloudResources.map((cloudResourceId) => {
+        return make(
+          CloudResource,
+          table(CloudResource).find((item) => {
+            return String(item._id) === String(cloudResourceId);
+          }),
+        );
+      });
+    }
+    Object.assign(record, data);
   }
   return new HTTPResponse(200, {}, {});
 };
@@ -2757,6 +2832,38 @@ async function handleApi(method, options) {
     return ok(
       MonitorUptimeSummaryUtil.toJSON(buildUptimeSummary(monitorId, timezone)),
     );
+  }
+
+  /*
+   * GET /monitor/cloud-resource-suggestions/:monitorId: what the subject
+   * monitor's host leads to, less what it is already linked to.
+   */
+  if (
+    method === "GET" &&
+    parsed.pathname.includes("/monitor/cloud-resource-suggestions/")
+  ) {
+    if (failures.has("cloud-suggestions")) {
+      throw fail(500, "The cloud resources could not be read.");
+    }
+    const monitorId = parsed.pathname.split("/").pop();
+    const monitor = table(Monitor).find((item) => {
+      return String(item._id) === monitorId;
+    });
+    const linked = new Set(
+      (monitor?.cloudResources || []).map((item) => {
+        return String(item._id);
+      }),
+    );
+    const isSubject =
+      monitorId === ID.monitor(MONITOR_DEFINITIONS[subjectType].number);
+    return ok({
+      suggestions:
+        cloudMode === "suggest" && isSubject
+          ? CLOUD_SUGGESTIONS.filter((suggestion) => {
+              return !linked.has(suggestion.cloudResourceId);
+            })
+          : [],
+    });
   }
 
   fixture.unhandled.push({ kind: "api", method, url });

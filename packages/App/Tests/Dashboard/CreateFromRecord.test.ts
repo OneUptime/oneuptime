@@ -67,6 +67,7 @@ const INCIDENT_AND_ALERT_RESOURCES: Array<CreateFromRecordKind> = [
   CreateFromRecordKind.DockerSwarmCluster,
   CreateFromRecordKind.IoTFleet,
   CreateFromRecordKind.DatabaseServer,
+  CreateFromRecordKind.CloudResource,
   CreateFromRecordKind.Service,
 ];
 
@@ -163,6 +164,8 @@ describe("the records a create page can be opened from", () => {
     expect(kinds).toContain(CreateFromRecordKind.NetworkSite);
     expect(kinds).not.toContain(CreateFromRecordKind.Monitor);
     expect(kinds).not.toContain(CreateFromRecordKind.StatusPage);
+    // A maintenance event holds no cloud resources.
+    expect(kinds).not.toContain(CreateFromRecordKind.CloudResource);
     expect(kinds).toEqual([
       CreateFromRecordKind.Host,
       CreateFromRecordKind.KubernetesCluster,

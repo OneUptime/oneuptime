@@ -9,6 +9,8 @@ import ChangeEventService from "../../../../../Server/Services/ChangeEventServic
 import ServiceService from "../../../../../Server/Services/ServiceService";
 import ChangeEvent from "../../../../../Models/AnalyticsModels/ChangeEvent";
 import InBetween from "../../../../../Types/BaseDatabase/InBetween";
+import Includes from "../../../../../Types/BaseDatabase/Includes";
+import IncludesNone from "../../../../../Types/BaseDatabase/IncludesNone";
 import { AIChatCitationTargetType } from "../../../../../Types/AI/AIChatTypes";
 import logger from "../../../../../Server/Utils/Logger";
 import AIToolbox, {
@@ -94,6 +96,8 @@ function context(
 
 function mockSources(data?: {
   changes?: Array<JSONObject> | Error;
+  // What the cloud's own read of change events answers (none when left out).
+  cloudChanges?: Array<JSONObject> | Error;
   serviceNames?: Array<JSONObject> | Error;
   exceptions?: Array<JSONObject> | Error;
   statusChanges?: Array<JSONObject> | Error;
@@ -112,8 +116,27 @@ function mockSources(data?: {
     return spy.mockResolvedValue(value || []);
   };
 
+  /*
+   * A project-wide feed reads the cloud's changes apart (attributeKeys
+   * includes cloud.provider): each read gets its own answer.
+   */
+  const changes: jest.SpyInstance = jest
+    .spyOn(ChangeEventService, "findBy")
+    .mockImplementation((async (args: { query: JSONObject }) => {
+      const answer: Array<JSONObject> | Error | undefined =
+        args.query["attributeKeys"] instanceof Includes
+          ? data?.cloudChanges
+          : data?.changes;
+
+      if (answer instanceof Error) {
+        throw answer;
+      }
+
+      return answer || [];
+    }) as never);
+
   return {
-    changes: mock(jest.spyOn(ChangeEventService, "findBy"), data?.changes),
+    changes,
     serviceNames: mock(
       jest.spyOn(ServiceService, "findBy"),
       data?.serviceNames,
@@ -172,13 +195,17 @@ describe("recent_changes queries", () => {
     await RecentChangesTool.execute({}, ctx);
 
     const start: Date = new Date(NOW.getTime() - 24 * HOUR_MS);
+
+    // Change events are read twice: the cloud's apart from the rest.
+    expect(spies.changes).toHaveBeenCalledTimes(2);
+
     for (const spy of [
       spies.changes,
       spies.exceptions,
       spies.statusChanges,
       spies.maintenance,
     ]) {
-      expect(spy).toHaveBeenCalledTimes(1);
+      expect(spy.mock.calls.length).toBeGreaterThanOrEqual(1);
       const call: JSONObject = callArg(spy);
       expect(call["props"]).toBe(ctx.props);
       expect(call["limit"]).toBe(15);
@@ -625,11 +652,93 @@ describe("recent_changes change events", () => {
     });
 
     const query: JSONObject = call["query"] as JSONObject;
-    expect(Object.keys(query)).toEqual(["time"]);
+    expect(Object.keys(query)).toEqual(["attributeKeys", "time"]);
     const window: InBetween<Date> = query["time"] as unknown as InBetween<Date>;
     expect(window).toBeInstanceOf(InBetween);
     expect(window.startValue).toEqual(start);
     expect(window.endValue).toEqual(NOW);
+
+    // The rest, then the cloud's own: a busy account crowds nothing out.
+    expect(query["attributeKeys"]).toBeInstanceOf(IncludesNone);
+    expect((query["attributeKeys"] as unknown as IncludesNone).values).toEqual([
+      "cloud.provider",
+    ]);
+    const cloudQuery: JSONObject = (
+      spies.changes.mock.calls[1]![0] as JSONObject
+    )["query"] as JSONObject;
+    expect(cloudQuery["attributeKeys"]).toBeInstanceOf(Includes);
+    expect(cloudQuery["time"]).toBeInstanceOf(InBetween);
+    expect((spies.changes.mock.calls[1]![0] as JSONObject)["limit"]).toBe(15);
+  });
+
+  test("a cloud account's changes are listed beside the rest, each read with its own limit", async () => {
+    mockSources({
+      changes: [
+        asChange({
+          _id: CHANGE_ID.toString(),
+          time: new Date("2026-09-17T11:30:00.000Z"),
+          eventType: "deployment",
+          title: "Deploy 2.3.1",
+          attributes: {},
+        }),
+      ],
+      cloudChanges: [
+        asChange({
+          _id: "44444444-4444-4444-4444-444444444444",
+          time: new Date("2026-09-17T11:40:00.000Z"),
+          eventType: "config-change",
+          title: "ec2:AuthorizeSecurityGroupIngress on sg-0abc",
+          attributes: {
+            "cloud.provider": "aws",
+            "cloud.account.id": "123456789012",
+            "cloud.region": "eu-west-1",
+            "cloud.resource_id": "sg-0abc",
+            "oneuptime.cloud.operation": "ec2:AuthorizeSecurityGroupIngress",
+            "oneuptime.cloud.actor": "alice",
+            "oneuptime.change.status": "succeeded",
+            "oneuptime.change.source": "cloud",
+          },
+        }),
+      ],
+    });
+
+    const result: ToolExecutionResult = await RecentChangesTool.execute(
+      {},
+      context(),
+    );
+
+    expect(result.dataForLlm.split("\n")).toEqual([
+      "- at=2026-09-17T11:40:00.000Z | change=config-change | detail=ec2:AuthorizeSecurityGroupIngress on sg-0abc (ec2:AuthorizeSecurityGroupIngress by alice, on sg-0abc, account 123456789012, eu-west-1, succeeded, recorded from the cloud account's activity log) | changeId=44444444-4444-4444-4444-444444444444",
+      `- at=2026-09-17T11:30:00.000Z | change=deployment | detail=Deploy 2.3.1 | changeId=${CHANGE_ID.toString()}`,
+    ]);
+  });
+
+  test("cloudResourceId or cloudAccountId narrows the change events to that resource's or account's", async () => {
+    const spies: SourceSpies = mockSources();
+    const cloudResourceId: string = "55555555-5555-5555-5555-555555555555";
+
+    const result: ToolExecutionResult = await RecentChangesTool.execute(
+      { cloudResourceId, cloudAccountId: "123456789012" },
+      context(),
+    );
+
+    expect(spies.changes).toHaveBeenCalledTimes(1);
+    const query: JSONObject = callArg(spies.changes)["query"] as JSONObject;
+    expect(query["attributes"]).toEqual({
+      "oneuptime.resource.id": cloudResourceId,
+      "cloud.account.id": "123456789012",
+    });
+    expect(query["attributeKeys"]).toBeUndefined();
+
+    // Exceptions, monitors and maintenance are listed either way.
+    expect(spies.exceptions).toHaveBeenCalledTimes(1);
+    expect(spies.statusChanges).toHaveBeenCalledTimes(1);
+
+    // The feed of one cloud resource opens that resource.
+    expect(result.citationTarget).toEqual({
+      type: AIChatCitationTargetType.TelemetryResourceView,
+      params: { resourceType: "CloudResource", resourceId: cloudResourceId },
+    });
   });
 
   test("a deploy says what changed, on which service, with its id for get_change_details", async () => {

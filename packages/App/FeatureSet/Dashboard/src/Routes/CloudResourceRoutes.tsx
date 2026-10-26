@@ -18,11 +18,23 @@ import CloudResourceFeed from "../Pages/Cloud/View/Feed";
 import CloudResourceOwners from "../Pages/Cloud/View/Owners";
 import CloudResourceDocumentation from "../Pages/Cloud/View/Documentation";
 import CloudResourceDelete from "../Pages/Cloud/View/Delete";
+import CloudResourceIncidents from "../Pages/Cloud/View/Incidents";
+import CloudResourceAlerts from "../Pages/Cloud/View/Alerts";
+import CloudResourceChanges from "../Pages/Cloud/View/Changes";
 import CloudLabelRules from "../Pages/Cloud/Settings/LabelRules";
 import CloudOwnerRules from "../Pages/Cloud/Settings/OwnerRules";
 import CloudArchived from "../Pages/Cloud/Archived";
 import CloudMonitoredResources from "../Pages/Cloud/MonitoredResources";
 import CloudConnect from "../Pages/Cloud/Connect";
+import CloudAccounts from "../Pages/Cloud/Accounts/Accounts";
+import CloudAccountViewLayout from "../Pages/Cloud/Accounts/View/Layout";
+import CloudAccountOverview from "../Pages/Cloud/Accounts/View/Overview";
+import CloudAccountResources from "../Pages/Cloud/Accounts/View/Resources";
+import CloudAccountChanges from "../Pages/Cloud/Accounts/View/Changes";
+import CloudAccountTopology from "../Pages/Cloud/Accounts/View/Topology";
+import CloudAccountSettings from "../Pages/Cloud/Accounts/View/Settings";
+import CloudAccountDelete from "../Pages/Cloud/Accounts/View/Delete";
+import CloudAccount from "Common/Models/DatabaseModels/CloudAccount";
 import CloudResourceLabelRule from "Common/Models/DatabaseModels/CloudResourceLabelRule";
 import CloudResourceOwnerRule from "Common/Models/DatabaseModels/CloudResourceOwnerRule";
 import CloudResource from "Common/Models/DatabaseModels/CloudResource";
@@ -113,12 +125,99 @@ const CloudResourceRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+        <PageRoute
+          path={CloudRoutePath[PageMap.CLOUD_ACCOUNTS] || ""}
+          element={
+            <CloudAccounts
+              {...props}
+              pageRoute={RouteMap[PageMap.CLOUD_ACCOUNTS] as Route}
+            />
+          }
+        />
 
         {getDeveloperDocsRoutes({
           modelType: CloudResource,
           scope: DeveloperDocsScope.List,
           props,
           mountPageKey: PageMap.CLOUD_ROOT,
+        })}
+      </PageRoute>
+
+      {/*
+       * One cloud account's pages. "accounts/:id" is static then dynamic,
+       * so it wins over a resource's ":id" route below.
+       */}
+      <PageRoute
+        path={CloudRoutePath[PageMap.CLOUD_ACCOUNT_VIEW] || ""}
+        element={<CloudAccountViewLayout {...props} />}
+      >
+        <PageRoute
+          index
+          element={
+            <CloudAccountOverview
+              {...props}
+              pageRoute={RouteMap[PageMap.CLOUD_ACCOUNT_VIEW] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.CLOUD_ACCOUNT_VIEW_RESOURCES,
+          )}
+          element={
+            <CloudAccountResources
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.CLOUD_ACCOUNT_VIEW_RESOURCES] as Route
+              }
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.CLOUD_ACCOUNT_VIEW_CHANGES)}
+          element={
+            <CloudAccountChanges
+              {...props}
+              pageRoute={RouteMap[PageMap.CLOUD_ACCOUNT_VIEW_CHANGES] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.CLOUD_ACCOUNT_VIEW_TOPOLOGY,
+          )}
+          element={
+            <CloudAccountTopology
+              {...props}
+              pageRoute={RouteMap[PageMap.CLOUD_ACCOUNT_VIEW_TOPOLOGY] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.CLOUD_ACCOUNT_VIEW_SETTINGS,
+          )}
+          element={
+            <CloudAccountSettings
+              {...props}
+              pageRoute={RouteMap[PageMap.CLOUD_ACCOUNT_VIEW_SETTINGS] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.CLOUD_ACCOUNT_VIEW_DELETE)}
+          element={
+            <CloudAccountDelete
+              {...props}
+              pageRoute={RouteMap[PageMap.CLOUD_ACCOUNT_VIEW_DELETE] as Route}
+            />
+          }
+        />
+
+        {getDeveloperDocsRoutes({
+          modelType: CloudAccount,
+          scope: DeveloperDocsScope.View,
+          props,
         })}
       </PageRoute>
 
@@ -192,6 +291,42 @@ const CloudResourceRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[PageMap.CLOUD_RESOURCE_VIEW_INSTANCES] as Route
               }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.CLOUD_RESOURCE_VIEW_INCIDENTS,
+          )}
+          element={
+            <CloudResourceIncidents
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.CLOUD_RESOURCE_VIEW_INCIDENTS] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.CLOUD_RESOURCE_VIEW_ALERTS)}
+          element={
+            <CloudResourceAlerts
+              {...props}
+              pageRoute={RouteMap[PageMap.CLOUD_RESOURCE_VIEW_ALERTS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.CLOUD_RESOURCE_VIEW_CHANGES,
+          )}
+          element={
+            <CloudResourceChanges
+              {...props}
+              pageRoute={RouteMap[PageMap.CLOUD_RESOURCE_VIEW_CHANGES] as Route}
             />
           }
         />

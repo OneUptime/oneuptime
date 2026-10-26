@@ -5,9 +5,11 @@ import fs from "fs";
 import path from "path";
 import * as React from "react";
 import ChatActivityFeed, {
+  LINKED_RESOURCE_KIND_NOUNS,
   describeFollowUpCheck,
   describeLinkedInfrastructure,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/ChatActivityFeed";
+
 import { isFollowUpCheckRun } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/AIInvestigationStatus";
 import AIRunEvent from "../../../Models/DatabaseModels/AIRunEvent";
 import {
@@ -37,6 +39,34 @@ const LOCALES: string = path.resolve(
   __dirname,
   "../../../../App/FeatureSet/Dashboard/src/Locales",
 );
+
+/*
+ * The kinds the server records and the noun it gives each
+ * (LinkedInfrastructureContext's LINKED_INFRASTRUCTURE_KINDS), read from
+ * its source: the module itself loads the database services.
+ */
+const SERVER_KIND_ENTRY: RegExp =
+  /type: LinkedAffectedResourceType\.(\w+),[^{}]*?noun: "([^"]*)"/g;
+
+function serverKindNouns(): Array<{ kind: string; noun: string }> {
+  const source: string = fs.readFileSync(
+    path.resolve(
+      __dirname,
+      "../../../Server/Utils/AI/SRE/LinkedInfrastructureContext.ts",
+    ),
+    "utf8",
+  );
+  const start: number = source.indexOf(
+    "export const LINKED_INFRASTRUCTURE_KINDS",
+  );
+  const block: string = source.slice(start, source.indexOf("];", start));
+
+  return Array.from(block.matchAll(SERVER_KIND_ENTRY)).map(
+    (match: RegExpMatchArray): { kind: string; noun: string } => {
+      return { kind: match[1] || "", noun: match[2] || "" };
+    },
+  );
+}
 
 const LANGUAGES: Array<string> = [
   "de",
@@ -174,6 +204,57 @@ describe("describeLinkedInfrastructure", () => {
     ).toBe(
       "No open or recent alerts on Kubernetes cluster prod, Podman host build-1, Database orders and 2 more",
     );
+  });
+
+  /*
+   * Every kind the server writes into an investigation's activity has its
+   * own noun here, the server's own: a cloud resource linked to an
+   * incident read "Resource web-alb" before the card knew the kind.
+   */
+  test("every kind the server names has its own noun, the server's", () => {
+    const kinds: Array<{ kind: string; noun: string }> = serverKindNouns();
+
+    expect(kinds.length).toBeGreaterThanOrEqual(13);
+    expect(kinds).toContainEqual({
+      kind: "CloudResource",
+      noun: "Cloud resource",
+    });
+    for (const entry of kinds) {
+      expect({
+        kind: entry.kind,
+        noun: LINKED_RESOURCE_KIND_NOUNS[entry.kind],
+      }).toEqual(entry);
+    }
+
+    expect(
+      describeLinkedInfrastructure(
+        activity({
+          alertCount: 0,
+          resources: [{ kind: "CloudResource", name: "web-alb" }],
+        }),
+      ),
+    ).toBe("No open or recent alerts on Cloud resource web-alb");
+  });
+
+  test("a cloud resource is named in the reader's language", () => {
+    for (const language of LANGUAGES) {
+      const translator: Translator = translatorFor(language);
+      const noun: string = translator.translateText("Cloud resource") as string;
+
+      expect({ language, translated: noun !== "Cloud resource" }).toEqual({
+        language,
+        translated: true,
+      });
+      expect(
+        describeLinkedInfrastructure(
+          activity({
+            alertCount: 0,
+            resources: [{ kind: "CloudResource", name: "web-alb" }],
+          }),
+          translator,
+        ),
+      ).toContain(noun);
+    }
   });
 
   test("a kind it does not know is a resource, and a resource without a name is its kind", () => {

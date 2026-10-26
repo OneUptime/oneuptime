@@ -367,6 +367,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
       parentModelType: Incident,
       // Burn rate incidents are linked to the SLO that declared them.
       includeServiceLevelObjective: true,
+      includeCloudResource: true,
     }),
     // Incidents limited to some status pages (Incident.statusPages).
     buildStatusPageScopeFacet(),
@@ -697,6 +698,11 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
             _id: true,
             projectId: true,
           },
+          cloudResources: {
+            name: true,
+            _id: true,
+            projectId: true,
+          },
           services: {
             name: true,
             _id: true,
@@ -895,6 +901,11 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                 _id: true,
                 projectId: true,
               },
+              cloudResources: {
+                name: true,
+                _id: true,
+                projectId: true,
+              },
               services: {
                 name: true,
                 _id: true,
@@ -925,6 +936,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                   dockerSwarmClusters={item.dockerSwarmClusters || []}
                   iotFleets={item.iotFleets || []}
                   databaseServers={item.databaseServers || []}
+                  cloudResources={item.cloudResources || []}
                   services={item.services || []}
                   serviceLevelObjectives={item.serviceLevelObjectives || []}
                 />

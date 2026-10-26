@@ -585,6 +585,7 @@ import LogDropFilterService, {
 import DetectionRuleAPI from "Common/Server/API/DetectionRuleAPI";
 import SecurityEventConnectionAPI from "Common/Server/API/SecurityEventConnectionAPI";
 import LlmObservabilityConnectionAPI from "Common/Server/API/LlmObservabilityConnectionAPI";
+import CloudAccountAPI from "Common/Server/API/CloudAccountAPI";
 import CloudConnectionAPI from "Common/Server/API/CloudConnectionAPI";
 import NetworkControllerConnectionAPI from "Common/Server/API/NetworkControllerConnectionAPI";
 import ExternalMcpServerAPI from "Common/Server/API/ExternalMcpServerAPI";
@@ -3336,6 +3337,12 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new CloudConnectionAPI().getRouter(),
+    );
+
+    // Cloud accounts: AWS accounts, Azure subscriptions and Google Cloud projects.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new CloudAccountAPI().getRouter(),
     );
 
     // Network controller connections: Meraki organizations read on a schedule.

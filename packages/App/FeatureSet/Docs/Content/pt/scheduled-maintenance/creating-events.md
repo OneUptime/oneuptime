@@ -69,7 +69,7 @@ Nada é enviado até você escolher uma página de status: um evento que não ap
 
 Duas coisas preenchem o formulário para você no caminho:
 
-- **Recursos vinculados.** Quando você escolhe um monitor, os hosts, clusters, serviços e outros recursos aos quais ele está vinculado são adicionados em **Outros recursos afetados**, e uma linha abaixo do campo os nomeia. Remova os que você não quiser.
+- **Recursos vinculados.** Quando você escolhe um monitor, os hosts, clusters, serviços e outros recursos aos quais ele está vinculado são adicionados em **Outros recursos afetados**, e uma linha abaixo do campo os nomeia. Remova os que você não quiser. Recursos de nuvem não são adicionados: um evento de manutenção não os contém.
 - **Páginas de status sugeridas.** Em **Mostrar evento nestas páginas de status**, são sugeridas as páginas que mostram seus monitores: clique no nome de uma página para adicioná-la, ou em **Adicionar todas**. Nada é escolhido por você. Veja [Eventos de manutenção programada](/docs/status-pages/subscribers#eventos-de-manutenção-programada).
 
 ## Começar por um recurso ou um modelo
