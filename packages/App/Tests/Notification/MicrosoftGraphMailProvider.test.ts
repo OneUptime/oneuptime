@@ -6,8 +6,11 @@ import EmailServer from "Common/Types/Email/EmailServer";
 import MailTransportType from "Common/Types/Email/MailTransportType";
 import OAuthProviderType from "Common/Types/Email/OAuthProviderType";
 import SMTPAuthenticationType from "Common/Types/Email/SMTPAuthenticationType";
-import MicrosoftGraphMailProvider from "../../FeatureSet/Notification/Services/MailProviders/MicrosoftGraphMailProvider";
+import MicrosoftGraphMailProvider, {
+  GraphSendException,
+} from "../../FeatureSet/Notification/Services/MailProviders/MicrosoftGraphMailProvider";
 import SMTPOAuthService from "../../FeatureSet/Notification/Services/SMTPOAuthService";
+import { EmailInlineImage } from "Common/Server/Utils/Mail/EmailInlineImages";
 
 /*
  * These tests exercise the throttling defenses added to the Graph transport:
@@ -689,5 +692,114 @@ describe("MicrosoftGraphMailProvider", () => {
       expect(payload.message.attachments).toHaveLength(1);
       expect(payload.message.attachments[0]!.contentId).toBe("a@oneuptime");
     }
+  });
+
+  /*
+   * Whether Graph refused the email for its inline images
+   * (InlineImageRefusal): MailService then sends it once more without them.
+   * Never retried here with them - the same request would be refused again.
+   */
+  describe("a refusal of the inline images", () => {
+    const LOGO_IMAGE: EmailInlineImage = {
+      contentId: "logo@oneuptime",
+      fileName: "oneuptime-logo.png",
+      mimeType: "image/png",
+      base64:
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+      byteLength: 70,
+    };
+
+    const ATTACHMENT_REFUSAL: string = JSON.stringify({
+      error: {
+        code: "RequestBodyRead",
+        message:
+          "The property 'contentId' does not exist on type 'microsoft.graph.attachment'.",
+      },
+    });
+
+    async function thrownBySend(
+      inlineImages: Array<EmailInlineImage>,
+    ): Promise<GraphSendException> {
+      const provider: MicrosoftGraphMailProvider =
+        new MicrosoftGraphMailProvider();
+      let thrown: unknown = undefined;
+
+      try {
+        await provider.send(makeMail(), makeEmailServer(), {
+          inlineImages: inlineImages,
+        });
+      } catch (error) {
+        thrown = error;
+      }
+
+      expect(thrown).toBeInstanceOf(GraphSendException);
+
+      return thrown as GraphSendException;
+    }
+
+    test("a 400 naming an attachment, of an email with inline images: flagged, and sent once", async () => {
+      fetchMock.mockResolvedValue(
+        makeResponse(400, { body: ATTACHMENT_REFUSAL }),
+      );
+
+      const thrown: GraphSendException = await thrownBySend([LOGO_IMAGE]);
+
+      expect(thrown.refusedInlineImages).toBe(true);
+      expect(thrown.isRetryable).toBe(false);
+      expect(thrown.message).toBe(
+        "Microsoft Graph sendMail failed with HTTP 400. RequestBodyRead The property 'contentId' does not exist on type 'microsoft.graph.attachment'.",
+      );
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+
+    test("the same answer to an email with no inline images is not about them", async () => {
+      fetchMock.mockResolvedValue(
+        makeResponse(400, { body: ATTACHMENT_REFUSAL }),
+      );
+
+      expect((await thrownBySend([])).refusedInlineImages).toBe(false);
+    });
+
+    test("413, too large with them: flagged", async () => {
+      fetchMock.mockResolvedValue(
+        makeResponse(413, {
+          body: JSON.stringify({
+            error: { code: "RequestEntityTooLarge", message: "Too large." },
+          }),
+        }),
+      );
+
+      const thrown: GraphSendException = await thrownBySend([LOGO_IMAGE]);
+
+      expect(thrown.refusedInlineImages).toBe(true);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+
+    test("a 403 is about the app's permission, not the images", async () => {
+      fetchMock.mockResolvedValue(
+        makeResponse(403, {
+          body: JSON.stringify({
+            error: {
+              code: "ErrorAccessDenied",
+              message: "Access is denied.",
+            },
+          }),
+        }),
+      );
+
+      expect((await thrownBySend([LOGO_IMAGE])).refusedInlineImages).toBe(
+        false,
+      );
+    });
+
+    test("throttling, retried until Graph is given up on, is not about them", async () => {
+      installInstantTimersRecordingDelays();
+      fetchMock.mockResolvedValue(makeResponse(429, { retryAfter: "0" }));
+
+      const thrown: GraphSendException = await thrownBySend([LOGO_IMAGE]);
+
+      expect(thrown.refusedInlineImages).toBe(false);
+      expect(fetchMock).toHaveBeenCalledTimes(MAX_RETRIES);
+    });
   });
 });
