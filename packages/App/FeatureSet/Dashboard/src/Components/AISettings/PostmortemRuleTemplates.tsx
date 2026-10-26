@@ -63,12 +63,7 @@ const PostmortemRuleTemplates: FunctionComponent<ComponentProps> = (
       items={names.map((name: string): TemplateItem => {
         return { name: name };
       })}
-      getMoreText={(count: number): string => {
-        return translator.translatePlural(
-          POSTMORTEM_RULE_MORE_TEMPLATES,
-          count,
-        );
-      }}
+      moreTemplate={POSTMORTEM_RULE_MORE_TEMPLATES}
       noItemsMessage={POSTMORTEM_RULE_STANDARD_OUTLINE}
       getEachElement={(item: TemplateItem): ReactElement => {
         return (

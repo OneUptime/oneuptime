@@ -86,7 +86,7 @@ Ein Eintrag ist ein Wert oder ein `*`-Muster, unabhängig von Groß- und Kleinsc
 
 ## Die Seite einer Entität
 
-Klicken Sie in einer Zeile von **Entitätsrisiko** auf **Ansehen**, oder auf das Risiko neben einer Entität auf der Seite **Entitäten** eines Falls:
+Klicken Sie in einer Zeile von **Entitätsrisiko** auf **Anzeigen**, oder auf das Risiko neben einer Entität auf der Seite **Entitäten** eines Falls:
 
 | Teil | Was er zeigt |
 | --- | --- |

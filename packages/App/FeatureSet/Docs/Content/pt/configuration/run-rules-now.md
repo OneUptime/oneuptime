@@ -39,7 +39,7 @@ Abra a página de regras, por exemplo **Monitores → Configurações → Regras
 
 ### Selecionar Run Now
 
-Abra o menu **⋯** no fim da linha da regra e selecione **Run Now**, ou selecione **Visualizar** e depois **Run Now** na página da regra. Uma caixa de diálogo diz o que a execução vai fazer.
+Abra o menu **⋯** no fim da linha da regra e selecione **Run Now**, ou selecione **Ver** e depois **Run Now** na página da regra. Uma caixa de diálogo diz o que a execução vai fazer.
 
 ### Decidir se avisa os novos proprietários
 

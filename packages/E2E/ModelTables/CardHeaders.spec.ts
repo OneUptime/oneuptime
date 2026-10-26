@@ -498,6 +498,93 @@ test.describe("the Runbooks list of the maintainer's screenshot", () => {
     expectControlsUnderDescription("Runbooks at 1024px, searching", after);
   });
 
+  /*
+   * Between 768 and about 1100px beside a side menu the controls do not fit
+   * beside "Runbooks" and go to a line of their own. The search on that
+   * line was the 14rem pill hung at its right edge, the rest of the line
+   * empty: it fills what the buttons leave of the line now, as a phone's
+   * does, and is the pill again once the controls share the title's line.
+   */
+  for (const width of [768, 1024]) {
+    test(`at ${width}px, where the controls are on a line of their own, the search fills what the buttons leave of it`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await open(page, RUNBOOKS, width);
+
+      const card: Locator = page.getByTestId("card").first();
+      const boxes: HeaderBoxes = await headerBoxesOf(card);
+
+      expect(onTitleLine(boxes)).toBe(false);
+      await expect(card.getByTestId("card-header-title-row")).toHaveAttribute(
+        "data-actions-under-title",
+        "true",
+      );
+
+      const search: Box = (await card
+        .getByTestId("model-table-search-slot")
+        .boundingBox())!;
+      const create: Box = (await card
+        .getByRole("button", { name: "Create Runbook" })
+        .boundingBox())!;
+
+      // From the line's start - the title's - to 12px before Create Runbook.
+      expect(Math.abs(search.x - boxes.title.x)).toBeLessThanOrEqual(1);
+      expect(
+        Math.abs(create.x - (search.x + search.width) - 12),
+      ).toBeLessThanOrEqual(1);
+      /*
+       * Never under its 11rem floor; at 1024px the line leaves it more than
+       * the 14rem pill, at 768px (a 480px card) about 205px.
+       */
+      expect(search.width).toBeGreaterThanOrEqual(176);
+      if (width >= 1024) {
+        expect(search.width).toBeGreaterThan(224);
+      }
+      expect(Math.round(search.height)).toBe(CONTROL_HEIGHT);
+      // Still level with the buttons beside it, at the header's right edge.
+      expect(Math.abs(centreOf(search) - centreOf(create))).toBeLessThanOrEqual(
+        1,
+      );
+      expectControlsUnderDescription(`Runbooks at ${width}px`, boxes);
+
+      await expectNoSidewaysScroll(page);
+      await screenshot(page, `card-headers-runbooks-search-${width}`);
+    });
+  }
+
+  test("once the controls share the title's line again, the search is its 14rem pill: a window made wider and narrower again", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, RUNBOOKS, 1024);
+
+    const card: Locator = page.getByTestId("card").first();
+    const row: Locator = card.getByTestId("card-header-title-row");
+    const slot: Locator = card.getByTestId("model-table-search-slot");
+
+    await expect(row).toHaveAttribute("data-actions-under-title", "true");
+
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await expect(row).not.toHaveAttribute("data-actions-under-title", /.+/);
+    await expect
+      .poll(async (): Promise<number> => {
+        return Math.round((await slot.boundingBox())!.width);
+      })
+      .toBe(224);
+    expect(onTitleLine(await headerBoxesOf(card))).toBe(true);
+
+    await page.setViewportSize({ width: 1024, height: 1000 });
+    await expect(row).toHaveAttribute("data-actions-under-title", "true");
+    await expect
+      .poll(async (): Promise<number> => {
+        return Math.round((await slot.boundingBox())!.width);
+      })
+      .toBeGreaterThan(224);
+  });
+
   test("on a phone the description is not shown; the title, then the search filling the card, nothing past the screen's edge", async ({
     page,
   }: {

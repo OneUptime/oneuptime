@@ -4636,6 +4636,93 @@ test.describe("detections", () => {
     await screenshot(page, "rule-library-desktop", { fullPage: false });
   });
 
+  /*
+   * Beside the side menu at 768px the card is 478px wide, and Rule, Data,
+   * Severity and Add needed 566px: Add ran under the sticky last column
+   * until about 860px, and in German at 900px, where Data is as wide as
+   * Anmeldeereignisse. Below lg the severity and the events go under the
+   * rule's name, as on a phone's card: a row is the rule and its Add.
+   */
+  for (const [width, lang] of [
+    [768, ""],
+    [820, ""],
+    [900, "de"],
+    [1023, ""],
+  ] as Array<[number, "" | "de"]>) {
+    test(`at ${width}px${lang ? ` in German` : ""}, beside the side menu, the rows fit the card: the severity and the events under the rule's name, Add in sight`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await open(page, RULE_LIBRARY_PATH, {
+        width,
+        height: 900,
+        ...(lang ? { lang } : {}),
+      });
+      const brute: Locator = libraryRow(page, BRUTE_FORCE_RULE);
+      await expect(brute).toBeVisible({ timeout: 30000 });
+
+      // No Data or Severity column: both under the name.
+      await expect(
+        brute.getByTestId(`rule-library-severity-${BRUTE_FORCE_RULE.id}`),
+      ).toHaveCount(0);
+      await expect(
+        brute.getByTestId(`rule-library-data-${BRUTE_FORCE_RULE.id}`),
+      ).toHaveCount(0);
+      const facts: Locator = brute
+        .getByTestId(`rule-library-rule-${BRUTE_FORCE_RULE.id}`)
+        .getByTestId(`rule-library-card-facts-${BRUTE_FORCE_RULE.id}`);
+      await expect(facts).toContainText(lang === "de" ? "Hoch" : "High");
+      await expect(facts).toContainText(
+        lang === "de" ? "Anmeldeereignisse" : "Sign-in events",
+      );
+      await expect(
+        facts.getByTestId(`rule-library-data-status-${BRUTE_FORCE_RULE.id}`),
+      ).toHaveText(lang === "de" ? "Empfangen" : "Receiving");
+      await expect(page.locator("thead th")).toHaveCount(2);
+
+      // Add is on the row, in the card.
+      await expect(page.getByTestId("table-scroll").first()).toHaveAttribute(
+        "data-overflowing",
+        "false",
+      );
+      const card: Box = await boxOf(cardTitled(page, "Rule Library"));
+      const add: Box = await boxOf(
+        libraryRow(page, CLOUDTRAIL_RULE).getByTestId(
+          `rule-library-add-${CLOUDTRAIL_RULE.id}`,
+        ),
+      );
+      expect(add.x + add.width).toBeLessThanOrEqual(card.x + card.width);
+      expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+
+      await screenshot(page, `rule-library-${width}${lang ? `-${lang}` : ""}`, {
+        fullPage: false,
+      });
+    });
+  }
+
+  test("from 1024px the data and the severity are columns of their own again, and not under the name", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, RULE_LIBRARY_PATH, { width: 1024, height: 900 });
+    const brute: Locator = libraryRow(page, BRUTE_FORCE_RULE);
+    await expect(brute).toBeVisible({ timeout: 30000 });
+
+    await expect(
+      brute.getByTestId(`rule-library-severity-${BRUTE_FORCE_RULE.id}`),
+    ).toHaveText("High");
+    await expect(
+      brute.getByTestId(`rule-library-card-facts-${BRUTE_FORCE_RULE.id}`),
+    ).toHaveCount(0);
+    await expect(page.locator("thead th")).toHaveCount(4);
+    await expect(page.getByTestId("table-scroll").first()).toHaveAttribute(
+      "data-overflowing",
+      "false",
+    );
+  });
+
   test("the rule library narrows in the row of chips every list has - Rule category, Data and Status - with how many rules are in sight", async ({
     page,
   }: {

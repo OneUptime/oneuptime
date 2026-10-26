@@ -397,14 +397,22 @@ describe("useTableScrollState sets a row's name free while the table fits", () =
       window.dispatchEvent(new Event("resize"));
     });
 
-    // Two readings a measurement: set free first, then back at the cap.
+    /*
+     * Four readings a measurement (TABLE_GIVE_WAY_READINGS): set free first
+     * - alone, with the header's names wrapping, with the long values cut
+     * short too (TableGiveWay.test.tsx) - then back at the cap.
+     */
+    const MEASUREMENT: Array<Array<string>> = [
+      ["true", "true"],
+      ["true", "true"],
+      ["true", "true"],
+      ["false", "false"],
+    ];
+
     expect(result.readings).toEqual([
-      ["true", "true"],
-      ["false", "false"],
-      ["true", "true"],
-      ["false", "false"],
-      ["true", "true"],
-      ["false", "false"],
+      ...MEASUREMENT,
+      ...MEASUREMENT,
+      ...MEASUREMENT,
     ]);
     expect(fillOf(0)).toBe("false");
 

@@ -241,6 +241,8 @@ Agenten sender hver Kubernetes-hændelse i klyngen til OneUptime: fra hvert name
 | Antal | Hvor mange gange den skete: en gentagelse øger antallet i stedet for at tilføje en række |
 | Sidst set | Hvornår den sidst skete; hold markøren over for at se, hvornår den skete første gang |
 
+På en skærm, der er smallere end 1024 pixels, viser kolonnen **Begivenhed** også **Antal** og **Last seen**, som ikke har deres egne kolonner der.
+
 ### Søg i hændelser og få besked
 
 Hver hændelse er også en log. En advarsel gemmes med alvorligheden **Warning**, og det, hændelsen siger, står i dens attributter:

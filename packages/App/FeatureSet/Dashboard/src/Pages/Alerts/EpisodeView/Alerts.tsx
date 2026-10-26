@@ -119,6 +119,7 @@ const EpisodeAlerts: FunctionComponent<
     PermissionGate.gateCardButton(
       {
         title: "Add Alerts",
+        phoneTitle: "Add",
         buttonStyle: ButtonStyleType.NORMAL,
         icon: IconProp.Add,
         onClick: () => {

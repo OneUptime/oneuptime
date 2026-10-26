@@ -34,11 +34,19 @@
  *   - A value too long for its column is cut short with an ellipsis at
  *     20rem and shows in full under the pointer. A column of prose opts into
  *     wrapping instead (Column.wrapContent).
- *   - When the columns are wider than the card, the rows scroll sideways
- *     and the Actions column stays at the card's right edge, ruled off from
- *     the cells that pass under it - each row's View and ⋯ are never out of
- *     sight. When they fit, the header row stays under the page's top bar
- *     while a long page scrolls.
+ *   - A table wider than its card gives way before it scrolls
+ *     (useTableScrollState): its header's names may break between words
+ *     (TABLE_HEADER_WRAP_ATTRIBUTE), then its long values are cut short a
+ *     little more, never below 8rem (TABLE_VALUE_GIVE_ATTRIBUTE). Beside a
+ *     side menu at 1280px a card is about 940px wide, and table after
+ *     table - incidents, alerts, Runners, AI rules in German - ran under its
+ *     sticky Actions column for a header of two words or a name 30px too
+ *     long.
+ *   - When the columns are wider than the card even so, the rows scroll
+ *     sideways and the Actions column stays at the card's right edge, ruled
+ *     off from the cells that pass under it - each row's View and ⋯ are
+ *     never out of sight. When they fit, the header row stays under the
+ *     page's top bar while a long page scrolls.
  *
  * Separate borders (border-separate, border-spacing-0) rather than
  * collapsed ones: a collapsed border belongs to the table's grid, not to a
@@ -102,6 +110,20 @@ export const TABLE_HEADER_CELL_CLASS_NAME: string =
  */
 export const TABLE_HEADER_CONTENT_CLASS_NAME: string =
   "flex w-full items-center gap-1 whitespace-nowrap py-2.5";
+
+/*
+ * ...unless the table would otherwise run past its card: then the table
+ * carries TABLE_HEADER_WRAP_ATTRIBUTE (useTableScrollState) and a name
+ * breaks between its words, never inside one - "Project / Default" over a
+ * column of ticks rather than the rows scrolling sideways under the sticky
+ * Actions column. A header wider than every value under it was the column's
+ * width: "Poll Interval (Minutes)" over "5", "Übereinstimmungskriterien"
+ * beside it in German.
+ */
+export const TABLE_HEADER_WRAP_ATTRIBUTE: string = "data-wrap-headers";
+
+export const TABLE_HEADER_CONTENT_WRAP_CLASS_NAME: string =
+  "[[data-wrap-headers=true]_&]:whitespace-normal";
 
 /*
  * The header row stays under the page's top bar (MasterPage publishes its
@@ -304,6 +326,38 @@ export const TABLE_CELL_CONTENT_ALIGN_CLASS_NAME: string = "[&>*]:align-top";
  */
 export const TABLE_PRIMARY_FILL_CONTENT_CLASS_NAME: string =
   "data-[fill=true]:max-w-none data-[fill=true]:min-w-[10rem] data-[fill=true]:whitespace-normal data-[fill=true]:[overflow-wrap:anywhere] data-[fill=true]:line-clamp-1";
+
+/*
+ * A value that may be cut short a little more when its table would
+ * otherwise run past its card (useTableScrollState marks it with
+ * TABLE_VALUE_GIVE_ATTRIBUTE). Only a value wider than the floor is cut
+ * short, never below it, and the table then shares out the room it has:
+ * each value keeps as much of itself as the others leave it, and shows the
+ * rest under the pointer (FullValueTitle). A value of a line of text ("line")
+ * wraps anywhere for the table's measuring and shows only its first line,
+ * as a row's name does; a list or a pill ("box" - TableColumnListComponent,
+ * Pill, each of whose items ends in "..." of its own) is laid out in a grid
+ * of one column that it shrinks in. Dates, numbers, ticks and colours are
+ * never cut short, and a column a page sized itself keeps its size.
+ */
+export const TABLE_VALUE_ATTRIBUTE: string = "data-table-value";
+
+export const TABLE_VALUE_GIVE_ATTRIBUTE: string = "data-give";
+
+// The least a value is cut short to: 8rem.
+export const TABLE_VALUE_GIVE_FLOOR_IN_PX: number = 128;
+
+export const TABLE_VALUE_GIVE_CLASS_NAME: string = [
+  "data-[give=line]:min-w-[8rem] data-[give=line]:whitespace-normal data-[give=line]:[overflow-wrap:anywhere] data-[give=line]:line-clamp-1",
+  "data-[give=box]:grid data-[give=box]:min-w-[8rem] data-[give=box]:grid-cols-1 data-[give=box]:justify-items-start [&[data-give=box]>*]:min-w-0 [&[data-give=box]>*]:max-w-full",
+].join(" ");
+
+/*
+ * What a list or a pill carries to say its words end in "..." of their own
+ * where its box ends, so a value made only of such parts can be cut short
+ * as a box (TABLE_VALUE_GIVE_CLASS_NAME).
+ */
+export const TABLE_SHRINKABLE_ATTRIBUTE: string = "data-table-shrinks";
 
 /*
  * Whether a column's own content classes already name a width cap - a page

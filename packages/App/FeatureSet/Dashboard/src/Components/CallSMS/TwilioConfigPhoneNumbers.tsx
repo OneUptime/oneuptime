@@ -25,6 +25,11 @@ export interface ComponentProps {
  * A line with more numbers of its kind - secondary numbers after the
  * primary one, more SMS numbers after the first - says how many ("+2
  * more"), and lists them on hover: the config's Edit dialog has them all.
+ *
+ * The cell gives way before the table scrolls sideways (data-table-shrinks,
+ * the Table's give-way): a number ends in "...", its icon and its "+2
+ * more" kept whole. In German the Twilio Config table ran 51px past its
+ * card at 1280px beside the side menu.
  */
 const TwilioConfigPhoneNumbers: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -40,7 +45,11 @@ const TwilioConfigPhoneNumbers: FunctionComponent<ComponentProps> = (
   }
 
   return (
-    <div className="space-y-1" data-testid="twilio-config-phone-numbers">
+    <div
+      className="space-y-1"
+      data-testid="twilio-config-phone-numbers"
+      data-table-shrinks="true"
+    >
       {lines.map((line: TwilioConfigNumberLine): ReactElement => {
         const label: string | null = line.label
           ? translator.translateText(line.label) || line.label
@@ -49,7 +58,7 @@ const TwilioConfigPhoneNumbers: FunctionComponent<ComponentProps> = (
         return (
           <div
             key={`${line.label || "all"}-${line.phoneNumber}`}
-            className="flex items-center gap-1.5"
+            className="flex min-w-0 items-center gap-1.5"
             title={label || undefined}
           >
             {label ? (
@@ -66,10 +75,12 @@ const TwilioConfigPhoneNumbers: FunctionComponent<ComponentProps> = (
             ) : (
               <></>
             )}
-            <span className="text-gray-900">{line.phoneNumber}</span>
+            <span className="min-w-0 truncate text-gray-900">
+              {line.phoneNumber}
+            </span>
             {line.otherPhoneNumbers.length > 0 ? (
               <span
-                className="text-gray-500"
+                className="flex-none whitespace-nowrap text-gray-500"
                 title={line.otherPhoneNumbers.join(", ")}
                 data-testid="twilio-config-more-phone-numbers"
               >

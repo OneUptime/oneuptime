@@ -32,6 +32,16 @@ export interface CardButtonSchema {
   className?: string | undefined;
   shortcutKey?: undefined | ShortcutKey;
   buttonSize?: ButtonSize | undefined;
+  /*
+   * What a table header's main button says on a phone
+   * (renderTableHeaderMainButton), where it shares a line with the ⋯ and a
+   * long title broke onto two: "Create" for "Create Scheduled Maintenance
+   * Event" - the card's title right above names the kind. Its title still
+   * names it to a screen reader, and is what it says from md up. Said only
+   * while the title holds these words as the reader's language writes
+   * both (ShortButtonWords); else the phone shows the whole title.
+   */
+  phoneTitle?: string | undefined;
 }
 
 /*
@@ -205,8 +215,19 @@ export const CARD_HEADER_TOOLBAR_TITLE_BLOCK_CLASS_NAME: string =
  */
 export const CARD_HEADER_TOOLBAR_FILL_ATTRIBUTE: string = "data-toolbar-fill";
 
+/*
+ * The same from md up while a toolbar's controls are on a line of their
+ * own under the title (they do not fit beside it - a list beside a side
+ * menu between 768 and about 1100px): the header's title row then carries
+ * CARD_HEADER_ACTIONS_UNDER_TITLE_ATTRIBUTE, and the search fills what the
+ * buttons leave of that line. It was a 14rem pill hung at the right edge
+ * of an empty line.
+ */
+export const CARD_HEADER_ACTIONS_UNDER_TITLE_ATTRIBUTE: string =
+  "data-actions-under-title";
+
 export const CARD_HEADER_TOOLBAR_FILL_CLASS_NAME: string =
-  "max-md:has-[[data-toolbar-fill]]:w-full";
+  "max-md:has-[[data-toolbar-fill]]:w-full [[data-actions-under-title=true]_&]:has-[[data-toolbar-fill]]:w-full";
 
 /*
  * Each action's own box. Button carries a left margin meant for a dialog's
@@ -535,7 +556,10 @@ const Card: FunctionComponent<ComponentProps> = (
    * opening or a button coming in.
    */
   const readsActionsLine: boolean =
-    isStacked && hasActions && hasDescription && Boolean(translatedTitle);
+    isStacked &&
+    hasActions &&
+    Boolean(translatedTitle) &&
+    (hasDescription || isToolbar);
   const [actionsUnderTitle, setActionsUnderTitle] = useState<boolean>(false);
   const titleRowObserver: MutableRefObject<ResizeObserver | null> =
     useRef<ResizeObserver | null>(null);
@@ -568,10 +592,30 @@ const Card: FunctionComponent<ComponentProps> = (
           return;
         }
 
+        /*
+         * Read as the controls are drawn when they share the title's line:
+         * a toolbar under the title fills its line (its search grows), and
+         * read so it would never fit beside the title again.
+         */
+        const isFilling: boolean =
+          titleRow.getAttribute(CARD_HEADER_ACTIONS_UNDER_TITLE_ATTRIBUTE) ===
+          "true";
+
+        if (isFilling) {
+          titleRow.removeAttribute(CARD_HEADER_ACTIONS_UNDER_TITLE_ATTRIBUTE);
+        }
+
         const isUnderTitle: boolean | null = cardHeaderActionsAreUnderTitle(
           titleBlock,
           actions,
         );
+
+        if (isFilling) {
+          titleRow.setAttribute(
+            CARD_HEADER_ACTIONS_UNDER_TITLE_ATTRIBUTE,
+            "true",
+          );
+        }
 
         if (isUnderTitle !== null) {
           setActionsUnderTitle(isUnderTitle);
@@ -592,7 +636,11 @@ const Card: FunctionComponent<ComponentProps> = (
   );
 
   const isDescriptionInTitleBlock: boolean =
-    readsActionsLine && actionsUnderTitle;
+    readsActionsLine && hasDescription && actionsUnderTitle;
+
+  // A table's toolbar on a line of its own: its search fills the line.
+  const isToolbarUnderTitle: boolean =
+    isToolbar && readsActionsLine && actionsUnderTitle;
 
   /*
    * From md up, actions beside a stacked or toolbar header's title are
@@ -689,6 +737,7 @@ const Card: FunctionComponent<ComponentProps> = (
         <div
           data-testid="card-header-title-row"
           ref={watchTitleRow}
+          data-actions-under-title={isToolbarUnderTitle ? "true" : undefined}
           className={`${CARD_HEADER_TITLE_ROW_CLASS_NAME} ${titleLineClassName}`}
         >
           {titleElement && (

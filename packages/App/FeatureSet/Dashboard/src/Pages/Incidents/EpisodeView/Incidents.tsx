@@ -123,6 +123,7 @@ const EpisodeIncidents: FunctionComponent<
     PermissionGate.gateCardButton(
       {
         title: "Add Incidents",
+        phoneTitle: "Add",
         buttonStyle: ButtonStyleType.NORMAL,
         icon: IconProp.Add,
         onClick: () => {

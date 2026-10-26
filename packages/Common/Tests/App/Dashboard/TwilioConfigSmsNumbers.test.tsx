@@ -753,6 +753,39 @@ describe("a config's numbers in its row", () => {
     expect(within(sms).getByText("+1 more")).toHaveAttribute("title", UK);
   });
 
+  /*
+   * In German the Twilio Config table ran 51px past its card at 1280px
+   * beside the side menu. The cell gives way before the rows scroll
+   * sideways (the Table's give-way, data-table-shrinks): a number ends in
+   * "...", its icon and its "+1 more" kept whole.
+   */
+  test("gives way before the table scrolls: a number ends in ..., its icon and its count kept whole", () => {
+    render(
+      <TwilioConfigPhoneNumbers
+        config={{
+          twilioPrimaryPhoneNumber: new Phone(SG_NATIONAL),
+          twilioSmsPhoneNumbers: `${SG_MOBILE}, ${UK}`,
+        }}
+      />,
+    );
+
+    const cell: HTMLElement = screen.getByTestId("twilio-config-phone-numbers");
+
+    expect(cell).toHaveAttribute("data-table-shrinks", "true");
+
+    const sms: HTMLElement = within(cell).getByTitle("SMS");
+    expect(sms).toHaveClass("min-w-0");
+    expect(within(sms).getByText(SG_MOBILE)).toHaveClass("min-w-0", "truncate");
+    expect(within(sms).getByText("+1 more")).toHaveClass(
+      "flex-none",
+      "whitespace-nowrap",
+    );
+    // The icon keeps its 16px.
+    expect(
+      within(sms).getByRole("img", { name: "SMS" }).querySelector("svg"),
+    ).toHaveClass("h-4", "w-4", "flex-none");
+  });
+
   test("one with SMS numbers shows its primary and its first SMS number, calls first, each saying what it sends", () => {
     expect(
       getTwilioConfigNumberLines({

@@ -154,6 +154,7 @@ const VideoCallConnectionsTable: FunctionComponent<ComponentProps> = (
           buttons: [
             {
               title: "Add connection",
+              phoneTitle: "Add",
               icon: IconProp.Add,
               buttonStyle: ButtonStyleType.NORMAL,
               disabled: !props.createGate.isAllowed,

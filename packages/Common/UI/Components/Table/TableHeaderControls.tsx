@@ -1,4 +1,5 @@
 import Button, { ButtonStyleType } from "../Button/Button";
+import { isShortTitleInName } from "../Button/ShortButtonWords";
 import { CardButtonSchema } from "../Card/Card";
 import CardMoreMenu from "../Card/CardMoreMenu";
 import Icon from "../Icon/Icon";
@@ -6,6 +7,9 @@ import MoreMenuItem from "../MoreMenu/MoreMenuItem";
 import IconProp from "../../../Types/Icon/IconProp";
 import useTranslateValue from "../../Utils/Translation";
 import { translationKey } from "../../Utils/TranslateTemplate";
+import useIsBelowWidth, {
+  PHONE_BELOW_WIDTH_IN_PX,
+} from "../../Utils/UseIsBelowWidth";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -31,19 +35,26 @@ import React, {
  * card's width.
  */
 export const TABLE_HEADER_TOOLBAR_CLASS_NAME: string =
-  "flex flex-wrap items-center justify-end gap-3 max-md:w-full";
+  "flex flex-wrap items-center justify-end gap-3 max-md:w-full [[data-actions-under-title=true]_&]:w-full";
 
 /*
  * The search while it is folded to its "Search... /" pill: 14rem from md
  * up. On a phone it fills its line - beside the buttons where they fit, on
- * a line of its own where they do not - never narrower than 11rem.
+ * a line of its own where they do not - never narrower than 11rem; and so
+ * it does from md up while the header's controls are on a line of their
+ * own under the title (Card's CARD_HEADER_ACTIONS_UNDER_TITLE_ATTRIBUTE):
+ * between 768 and about 1100px beside a side menu it was a 14rem pill hung
+ * at the right edge of an empty line.
  */
 export const TABLE_HEADER_SEARCH_CLASS_NAME: string =
-  "max-md:min-w-[11rem] max-md:flex-1 md:w-56";
+  "max-md:min-w-[11rem] max-md:flex-1 md:w-56 [[data-actions-under-title=true]_&]:min-w-[11rem] [[data-actions-under-title=true]_&]:flex-1";
 
-// The search opened: the card's width on a phone, a wide bar from md up.
+/*
+ * The search opened: the card's width on a phone, a wide bar from md up -
+ * the line's width while the controls are under the title.
+ */
 export const TABLE_HEADER_OPEN_SEARCH_CLASS_NAME: string =
-  "w-full md:w-[26rem] lg:w-[32rem]";
+  "w-full md:w-[26rem] lg:w-[32rem] [[data-actions-under-title=true]_&]:flex-1";
 
 /*
  * The search opened in a header whose controls stay beside it (see
@@ -52,7 +63,7 @@ export const TABLE_HEADER_OPEN_SEARCH_CLASS_NAME: string =
  * on a laptop's card.
  */
 export const TABLE_HEADER_OPEN_SEARCH_BESIDE_BUTTONS_CLASS_NAME: string =
-  "w-full md:w-[20rem] lg:w-[24rem]";
+  "w-full md:w-[20rem] lg:w-[24rem] [[data-actions-under-title=true]_&]:flex-1";
 
 /*
  * The buttons beside an opened search, folded away to no width. They clip
@@ -83,11 +94,12 @@ export const TABLE_HEADER_BUTTONS_CLASS_NAME: string =
 /*
  * The main button and the ⋯, one item of that row
  * (renderTableHeaderMainAndMore): where the row wraps they move to the
- * next line together, and a main button too long to share its line with
- * the ⋯ - "Create Scheduled Maintenance Event" on a 390px phone - breaks
- * its words beside it, as All Events' Create does. As two items of the
- * row, the ⋯ wrapped onto a line of its own under a main button that
- * filled the line. Each as wide as its words, as in the row.
+ * next line together. A main button too long to share its line with the ⋯
+ * - "Create Scheduled Maintenance Event" on a 390px phone - says its short
+ * words there (CardButtonSchema.phoneTitle, "Create"); one without them
+ * breaks its words beside it. As two items of the row, the ⋯ wrapped onto
+ * a line of its own under a main button that filled the line. Each as
+ * wide as its words, as in the row.
  */
 export const TABLE_HEADER_MAIN_AND_MORE_CLASS_NAME: string =
   "flex items-center gap-3 max-md:[&>button]:w-auto max-md:[&>*>button]:w-auto";
@@ -223,14 +235,32 @@ export function splitTableHeaderButtons(
   };
 }
 
-// The main button, as the header draws it.
-export function renderTableHeaderMainButton(
-  button: CardButtonSchema,
-): ReactElement {
+/*
+ * The main button, as the header draws it. On a phone it says its short
+ * words, when
+ * it has them (CardButtonSchema.phoneTitle): beside the ⋯ there,
+ * "Create Scheduled Maintenance Event" broke onto two lines and stood
+ * twice as tall as the ⋯. Named by its whole title, which holds the short
+ * words (ShortButtonWords), so a voice command and a screen reader still
+ * find it by what it does; from md up it says the whole title.
+ */
+const TableHeaderMainButton: FunctionComponent<{
+  button: CardButtonSchema;
+}> = (props: { button: CardButtonSchema }): ReactElement => {
+  const { translateString } = useTranslateValue();
+  const isPhone: boolean = useIsBelowWidth(PHONE_BELOW_WIDTH_IN_PX);
+  const button: CardButtonSchema = props.button;
+  const isShortened: boolean =
+    isPhone &&
+    isShortTitleInName({
+      title: translateString(button.title),
+      shortTitle: translateString(button.phoneTitle),
+    });
+
   return (
     <Button
-      key="model-table-main-action"
-      title={button.title}
+      title={isShortened ? button.phoneTitle : button.title}
+      ariaLabel={isShortened ? button.title : undefined}
       buttonStyle={button.buttonStyle}
       buttonSize={button.buttonSize}
       className={button.className}
@@ -248,6 +278,14 @@ export function renderTableHeaderMainButton(
       dataTestId="card-button"
       isLoading={button.isLoading}
     />
+  );
+};
+
+export function renderTableHeaderMainButton(
+  button: CardButtonSchema,
+): ReactElement {
+  return (
+    <TableHeaderMainButton key="model-table-main-action" button={button} />
   );
 }
 

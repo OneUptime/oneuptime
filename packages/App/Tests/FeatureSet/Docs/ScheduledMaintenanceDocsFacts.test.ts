@@ -626,7 +626,7 @@ describe("the Scheduled Maintenance menu, as the overview draws it", () => {
       "Scheduled Maintenance Number",
       "Title",
       "Current State",
-      "Resources Affected",
+      "Affected Resources",
       "Shown on Status Page",
       "Starts At",
       "Duration",
