@@ -12,6 +12,9 @@ import CallerVisibleRead from "../Utils/Database/CallerVisibleRead";
 import { applyAlertRelatedRecordPrivacyFilter } from "../Utils/Alert/AlertPrivacyFilter";
 import { applyAlertEpisodeRelatedRecordPrivacyFilter } from "../Utils/AlertEpisode/AlertEpisodePrivacyFilter";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import { JSONObject } from "../../Types/JSON";
+import PostgresErrorTranslator from "../Utils/Database/PostgresErrorTranslator";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
@@ -64,6 +67,14 @@ import type { PendingRecord } from "./DatabaseService";
 import EpisodeMemberAddScope from "../Utils/Episode/EpisodeMemberAddScope";
 
 // What adding an alert to an episode it is in already is refused with.
+/*
+ * The unique index that lets at most one membership of an alert be its first
+ * (the AlertEpisodeMember model's isFirstMembership): a create that loses a race to it
+ * is checked again (Service.create).
+ */
+export const ALERT_FIRST_MEMBERSHIP_INDEX: string =
+  "IDX_AlertEpisodeMember_first_membership";
+
 export const ALERT_ALREADY_IN_EPISODE_MESSAGE: string =
   "Alert is already a member of this episode";
 
@@ -181,6 +192,52 @@ export class Service extends ProjectReferencesService<Model> {
     super(Model);
     if (IsBillingEnabled) {
       this.hardDeleteItemsOlderThanInDays("createdAt", 3 * 365); // 3 years
+    }
+  }
+
+  /*
+   * TWO ADDS OF ONE ALERT, AT ONE MOMENT.
+   *
+   * onBeforeCreate checks the alert's memberships before it adds one, and
+   * refuses an alert in another episode while the project allows one episode
+   * per alert (EpisodeSingleMembership). Two adds of an alert that is in no
+   * episode yet - to two episodes, by a person and the grouping engine, or
+   * from two tabs - both found none, and both were added. Each is now its
+   * alert's first membership, and the database takes one first membership
+   * per alert (ALERT_FIRST_MEMBERSHIP_INDEX): the one that loses is refused there.
+   *
+   * It is then made again, as sent, from the start: its own check now finds
+   * the membership that won, and so refuses it while the project allows one
+   * episode - in the words a later add would get - or adds it as a second
+   * membership while the project allows several. Once: a second attempt is
+   * never a first membership, so the index never refuses it.
+   */
+  @CaptureSpan()
+  public override async create(createBy: CreateBy<Model>): Promise<Model> {
+    const props: DatabaseCommonInteractionProps = createBy.props;
+    const sent: JSONObject = BaseModel.toJSON(createBy.data, Model);
+
+    try {
+      return await super.create(createBy);
+    } catch (error) {
+      if (
+        !PostgresErrorTranslator.isUniqueViolationOf(
+          error,
+          ALERT_FIRST_MEMBERSHIP_INDEX,
+        )
+      ) {
+        throw error;
+      }
+
+      logger.debug(
+        `Alert added to an episode at the moment another add of it was: checking it again.`,
+      );
+
+      return await super.create({
+        ...createBy,
+        props: props,
+        data: BaseModel.fromJSON<Model>(sent, Model) as Model,
+      });
     }
   }
 
@@ -347,10 +404,18 @@ export class Service extends ProjectReferencesService<Model> {
      * visibility check, as the duplicate check is: the refusal names only
      * what the caller can see.
      */
-    await this.refuseIfInAnotherEpisode({
+    const isFirstMembership: boolean = await this.refuseIfInAnotherEpisode({
       createBy: createBy,
       alertId: alertId,
     });
+
+    /*
+     * Its first membership when the alert is in no episode now: at most one
+     * membership of an alert is, so of two adds of it racing each other the
+     * database refuses the second, which is checked again (create, above).
+     * OneUptime decides it, whatever the write sent.
+     */
+    createBy.data.isFirstMembership = isFirstMembership;
 
     /*
      * Added by the person making the request. DatabaseService has already
@@ -466,7 +531,7 @@ export class Service extends ProjectReferencesService<Model> {
   private async refuseIfInAnotherEpisode(data: {
     createBy: CreateBy<Model>;
     alertId: ObjectID;
-  }): Promise<void> {
+  }): Promise<boolean> {
     const { createBy } = data;
 
     const projectId: ObjectID | null =
@@ -477,18 +542,32 @@ export class Service extends ProjectReferencesService<Model> {
         "project",
       );
 
+    // No project to read: not judged, and never a first membership.
     if (!projectId) {
-      return;
+      return false;
     }
 
-    const holdingEpisodeId: ObjectID | null = await this.findHoldingEpisodeId({
+    // The member rows first: adding an alert in no episode reads no project.
+    const latestEpisodeId: ObjectID | null = await this.findLatestEpisodeIdOf({
       projectId: projectId,
       alertId: data.alertId,
     });
 
-    if (!holdingEpisodeId) {
-      return;
+    if (!latestEpisodeId) {
+      return true;
     }
+
+    const isOnlyOneEpisodeAllowed: boolean =
+      await EpisodeSingleMembershipCheck.isOn({
+        projectId: projectId,
+        kind: ALERT_SINGLE_MEMBERSHIP,
+      });
+
+    if (!isOnlyOneEpisodeAllowed) {
+      return false;
+    }
+
+    const holdingEpisodeId: ObjectID = latestEpisodeId;
 
     const alert: Alert | null = await AlertService.findOneById({
       id: data.alertId,
@@ -553,6 +632,31 @@ export class Service extends ProjectReferencesService<Model> {
     projectId: ObjectID;
     alertId: ObjectID;
   }): Promise<ObjectID | null> {
+    const latestEpisodeId: ObjectID | null =
+      await this.findLatestEpisodeIdOf(data);
+
+    if (!latestEpisodeId) {
+      return null;
+    }
+
+    const isOnlyOneEpisodeAllowed: boolean =
+      await EpisodeSingleMembershipCheck.isOn({
+        projectId: data.projectId,
+        kind: ALERT_SINGLE_MEMBERSHIP,
+      });
+
+    return isOnlyOneEpisodeAllowed ? latestEpisodeId : null;
+  }
+
+  /*
+   * The latest episode an alert is in, by its member rows: null when it is in
+   * none. Read as OneUptime - it decides what a write may do.
+   */
+  @CaptureSpan()
+  private async findLatestEpisodeIdOf(data: {
+    projectId: ObjectID;
+    alertId: ObjectID;
+  }): Promise<ObjectID | null> {
     const membership: Model | null = await this.findOneBy({
       query: {
         projectId: data.projectId,
@@ -569,17 +673,7 @@ export class Service extends ProjectReferencesService<Model> {
       },
     });
 
-    if (!membership?.alertEpisodeId) {
-      return null;
-    }
-
-    const isOnlyOneEpisodeAllowed: boolean =
-      await EpisodeSingleMembershipCheck.isOn({
-        projectId: data.projectId,
-        kind: ALERT_SINGLE_MEMBERSHIP,
-      });
-
-    return isOnlyOneEpisodeAllowed ? membership.alertEpisodeId : null;
+    return membership?.alertEpisodeId || null;
   }
 
   /*

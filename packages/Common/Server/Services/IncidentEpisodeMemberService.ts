@@ -12,6 +12,9 @@ import CallerVisibleRead from "../Utils/Database/CallerVisibleRead";
 import { applyIncidentRelatedRecordPrivacyFilter } from "../Utils/Incident/IncidentPrivacyFilter";
 import { applyIncidentEpisodeRelatedRecordPrivacyFilter } from "../Utils/IncidentEpisode/IncidentEpisodePrivacyFilter";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import { JSONObject } from "../../Types/JSON";
+import PostgresErrorTranslator from "../Utils/Database/PostgresErrorTranslator";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
@@ -67,6 +70,14 @@ import type { PendingRecord } from "./DatabaseService";
 import EpisodeMemberAddScope from "../Utils/Episode/EpisodeMemberAddScope";
 
 // What adding an incident to an episode it is in already is refused with.
+/*
+ * The unique index that lets at most one membership of an incident be its first
+ * (the IncidentEpisodeMember model's isFirstMembership): a create that loses a race to it
+ * is checked again (Service.create).
+ */
+export const INCIDENT_FIRST_MEMBERSHIP_INDEX: string =
+  "IDX_IncidentEpisodeMember_first_membership";
+
 export const INCIDENT_ALREADY_IN_EPISODE_MESSAGE: string =
   "Incident is already a member of this episode";
 
@@ -183,6 +194,52 @@ export class Service extends ProjectReferencesService<Model> {
     super(Model);
     if (IsBillingEnabled) {
       this.hardDeleteItemsOlderThanInDays("createdAt", 3 * 365); // 3 years
+    }
+  }
+
+  /*
+   * TWO ADDS OF ONE INCIDENT, AT ONE MOMENT.
+   *
+   * onBeforeCreate checks the incident's memberships before it adds one, and
+   * refuses an incident in another episode while the project allows one episode
+   * per incident (EpisodeSingleMembership). Two adds of an incident that is in no
+   * episode yet - to two episodes, by a person and the grouping engine, or
+   * from two tabs - both found none, and both were added. Each is now its
+   * incident's first membership, and the database takes one first membership
+   * per incident (INCIDENT_FIRST_MEMBERSHIP_INDEX): the one that loses is refused there.
+   *
+   * It is then made again, as sent, from the start: its own check now finds
+   * the membership that won, and so refuses it while the project allows one
+   * episode - in the words a later add would get - or adds it as a second
+   * membership while the project allows several. Once: a second attempt is
+   * never a first membership, so the index never refuses it.
+   */
+  @CaptureSpan()
+  public override async create(createBy: CreateBy<Model>): Promise<Model> {
+    const props: DatabaseCommonInteractionProps = createBy.props;
+    const sent: JSONObject = BaseModel.toJSON(createBy.data, Model);
+
+    try {
+      return await super.create(createBy);
+    } catch (error) {
+      if (
+        !PostgresErrorTranslator.isUniqueViolationOf(
+          error,
+          INCIDENT_FIRST_MEMBERSHIP_INDEX,
+        )
+      ) {
+        throw error;
+      }
+
+      logger.debug(
+        `Incident added to an episode at the moment another add of it was: checking it again.`,
+      );
+
+      return await super.create({
+        ...createBy,
+        props: props,
+        data: BaseModel.fromJSON<Model>(sent, Model) as Model,
+      });
     }
   }
 
@@ -349,10 +406,18 @@ export class Service extends ProjectReferencesService<Model> {
      * the visibility check, as the duplicate check is: the refusal names
      * only what the caller can see.
      */
-    await this.refuseIfInAnotherEpisode({
+    const isFirstMembership: boolean = await this.refuseIfInAnotherEpisode({
       createBy: createBy,
       incidentId: incidentId,
     });
+
+    /*
+     * Its first membership when the incident is in no episode now: at most one
+     * membership of an incident is, so of two adds of it racing each other the
+     * database refuses the second, which is checked again (create, above).
+     * OneUptime decides it, whatever the write sent.
+     */
+    createBy.data.isFirstMembership = isFirstMembership;
 
     /*
      * Added by the person making the request. DatabaseService has already
@@ -468,7 +533,7 @@ export class Service extends ProjectReferencesService<Model> {
   private async refuseIfInAnotherEpisode(data: {
     createBy: CreateBy<Model>;
     incidentId: ObjectID;
-  }): Promise<void> {
+  }): Promise<boolean> {
     const { createBy } = data;
 
     const projectId: ObjectID | null =
@@ -479,18 +544,32 @@ export class Service extends ProjectReferencesService<Model> {
         "project",
       );
 
+    // No project to read: not judged, and never a first membership.
     if (!projectId) {
-      return;
+      return false;
     }
 
-    const holdingEpisodeId: ObjectID | null = await this.findHoldingEpisodeId({
+    // The member rows first: adding an incident in no episode reads no project.
+    const latestEpisodeId: ObjectID | null = await this.findLatestEpisodeIdOf({
       projectId: projectId,
       incidentId: data.incidentId,
     });
 
-    if (!holdingEpisodeId) {
-      return;
+    if (!latestEpisodeId) {
+      return true;
     }
+
+    const isOnlyOneEpisodeAllowed: boolean =
+      await EpisodeSingleMembershipCheck.isOn({
+        projectId: projectId,
+        kind: INCIDENT_SINGLE_MEMBERSHIP,
+      });
+
+    if (!isOnlyOneEpisodeAllowed) {
+      return false;
+    }
+
+    const holdingEpisodeId: ObjectID = latestEpisodeId;
 
     const incident: Incident | null = await IncidentService.findOneById({
       id: data.incidentId,
@@ -555,6 +634,31 @@ export class Service extends ProjectReferencesService<Model> {
     projectId: ObjectID;
     incidentId: ObjectID;
   }): Promise<ObjectID | null> {
+    const latestEpisodeId: ObjectID | null =
+      await this.findLatestEpisodeIdOf(data);
+
+    if (!latestEpisodeId) {
+      return null;
+    }
+
+    const isOnlyOneEpisodeAllowed: boolean =
+      await EpisodeSingleMembershipCheck.isOn({
+        projectId: data.projectId,
+        kind: INCIDENT_SINGLE_MEMBERSHIP,
+      });
+
+    return isOnlyOneEpisodeAllowed ? latestEpisodeId : null;
+  }
+
+  /*
+   * The latest episode an incident is in, by its member rows: null when it is in
+   * none. Read as OneUptime - it decides what a write may do.
+   */
+  @CaptureSpan()
+  private async findLatestEpisodeIdOf(data: {
+    projectId: ObjectID;
+    incidentId: ObjectID;
+  }): Promise<ObjectID | null> {
     const membership: Model | null = await this.findOneBy({
       query: {
         projectId: data.projectId,
@@ -571,17 +675,7 @@ export class Service extends ProjectReferencesService<Model> {
       },
     });
 
-    if (!membership?.incidentEpisodeId) {
-      return null;
-    }
-
-    const isOnlyOneEpisodeAllowed: boolean =
-      await EpisodeSingleMembershipCheck.isOn({
-        projectId: data.projectId,
-        kind: INCIDENT_SINGLE_MEMBERSHIP,
-      });
-
-    return isOnlyOneEpisodeAllowed ? membership.incidentEpisodeId : null;
+    return membership?.incidentEpisodeId || null;
   }
 
   /*
