@@ -28270,7 +28270,6 @@
   "No finding named an entity in this window.": "Intet fund nævnte en entitet i dette tidsrum.",
   "No open cases are assigned to you.": "No open cases are assigned to you.",
   "No open cases. New ones appear here as detections fire.": "Ingen åbne sager. Nye vises her, efterhånden som detektioner udløses.",
-  "No playbook has run on this case yet. Playbooks set to start when a case opens run here by themselves; you can run any playbook by hand.": "No playbook has run on this case yet. Playbooks set to start when a case opens run here by themselves; you can run any playbook by hand.",
   "No playbook has run yet.": "Ingen playbook har kørt endnu.",
   "No playbook is running right now.": "No playbook is running right now.",
   "No playbooks yet. Start from a template above, or create one.": "No playbooks yet. Start from a template above, or create one.",
@@ -35079,5 +35078,9 @@
   "Run by OneUptime for every project. It does not build or test AI's change before the branch is pushed.": "Køres af OneUptime for alle projekter. Den bygger og tester ikke AI's ændring, før grenen pushes.",
   "Run by OneUptime for every project. It does not build or test AI's change before the merge request opens.": "Køres af OneUptime for alle projekter. Den bygger og tester ikke AI's ændring, før merge requesten åbnes.",
   "This turn has not reported a step yet. This page updates on its own.": "Denne tur har ikke rapporteret et trin endnu. Siden opdateres af sig selv.",
-  "This turn recorded no steps. If it failed before starting, the reason is in the conversation.": "Denne tur registrerede ingen trin. Hvis den mislykkedes, før den startede, står årsagen i samtalen."
+  "This turn recorded no steps. If it failed before starting, the reason is in the conversation.": "Denne tur registrerede ingen trin. Hvis den mislykkedes, før den startede, står årsagen i samtalen.",
+  "Approvals": "Godkendelser",
+  "This playbook is already running on this case. Its run is under the case's Playbooks.": "Denne playbook kører allerede på sagen. Kørslen står under sagens Playbooks.",
+  "A playbook runs here when the case opens or grows, or when someone runs it on the case.": "En playbook kører her, når sagen åbnes eller vokser, eller når nogen kører den på sagen.",
+  "No playbook has run on this case yet.": "Ingen playbook har kørt på denne sag endnu."
 }

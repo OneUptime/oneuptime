@@ -21,7 +21,7 @@ export interface SecurityEventsBadgeCount {
  * The live counts beside a Security Events menu entry, each counting what
  * its own page lists, with the page's own query: the open cases beside
  * Open Cases, the open cases assigned to you beside Assigned to Me, and the
- * playbook runs held for an approval beside Waiting for Approval. They are
+ * playbook runs held for an approval beside Approvals. They are
  * read with the person's own permissions, so a role that cannot read cases
  * sees no number at all.
  *

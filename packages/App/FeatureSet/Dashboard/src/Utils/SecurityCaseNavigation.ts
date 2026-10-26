@@ -20,8 +20,9 @@ import IconProp from "Common/Types/Icon/IconProp";
  *                   rest of OneUptime knows them: the hosts, clusters,
  *                   services and users, their logs, traces and metrics
  *                   around the case, the incidents and alerts on them and
- *                   what changed - and the Playbook Runs on it, counted
- *                   beside their entry while one waits for an approval
+ *                   what changed - and the Playbooks that ran on it,
+ *                   counted beside their entry while a run waits for an
+ *                   approval
  *   Notes           what the team wrote (Private Notes, as an incident's
  *                   and an alert's are named: a case has no public side)
  *   Advanced        what most visits never need, folded: the case's Audit
@@ -95,8 +96,15 @@ export const SECURITY_CASE_MENU: Array<SecurityCaseMenuSection> = [
         icon: IconProp.Link,
       },
       {
+        /*
+         * "Playbooks": the playbooks that ran on the case, as Google SecOps
+         * SOAR names a case's tab of them. "Playbook Runs" with its count
+         * was cut short in German, French, Spanish, Italian, Portuguese and
+         * Dutch at every width, and in four more languages beside a tablet's
+         * menu; Security Events > Playbooks > Playbook Runs keeps its name.
+         */
         page: PageMap.SECURITY_CASE_VIEW_PLAYBOOK_RUNS,
-        title: "Playbook Runs",
+        title: "Playbooks",
         icon: IconProp.Play,
         badge: "runsWaitingForApproval",
       },

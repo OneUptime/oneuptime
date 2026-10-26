@@ -18,9 +18,10 @@ import IconProp from "Common/Types/Icon/IconProp";
  *                    Correlate
  *   Detections       what finds threats in them: Detection Rules, the Rule
  *                    Library, Threat Intel and ATT&CK Coverage
- *   Playbooks        what responds when a case opens: Playbooks, the runs
- *                    Waiting for Approval, every Playbook Run, and the
- *                    Protected Entities no playbook may contain
+ *   Playbooks        what responds when a case opens: Playbooks, the
+ *                    Approvals - the runs a step holds for one - every
+ *                    Playbook Run, and the Protected Entities no playbook
+ *                    may contain
  *   AI               whether OneUptime AI triages each new case (Settings),
  *                    as the Incidents' and Alerts' menus have it; the
  *                    triage itself is on each case's AI card
@@ -195,8 +196,14 @@ export const SECURITY_EVENTS_MENU: Array<SecurityEventsMenuSection> = [
         icon: IconProp.Bolt,
       },
       {
+        /*
+         * "Approvals", not "Waiting for Approval": beside its count, in the
+         * 224px the menu has from 768 to 1023px, the longer name was cut
+         * short in English - and at every width in German, French and
+         * Italian. The amber count says they are waiting.
+         */
         page: PageMap.SECURITY_PLAYBOOK_RUNS_WAITING_FOR_APPROVAL,
-        title: "Waiting for Approval",
+        title: "Approvals",
         icon: IconProp.PauseCircle,
         badge: "runsWaitingForApproval",
       },

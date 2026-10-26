@@ -15,8 +15,8 @@ export interface SecurityCaseMenuBadgeCount {
 
 /*
  * The live count beside an entry of a case's side menu: what on this case
- * waits for somebody. Beside Playbook Runs, the case's runs held for an
- * approval - the same runs Security Events > Waiting for Approval lists,
+ * waits for somebody. Beside Playbooks, the case's runs held for an
+ * approval - the same runs Security Events > Approvals lists,
  * on this case only - in the warning colour that list's own count has: a
  * held run does nothing until somebody decides. Read with the person's own
  * permissions, so a role that cannot read runs sees no number at all.

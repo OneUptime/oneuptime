@@ -105,7 +105,7 @@ interface LoadedCase {
 /*
  * One security case, worked on pages of its own under a side menu of its
  * own, as an incident is (SecurityCaseNavigation.ts): its Overview, its
- * Timeline, its Detections, Entities and Playbook Runs, its Private Notes,
+ * Timeline, its Detections, Entities and Playbooks, its Private Notes,
  * and under Advanced its Audit Logs and Delete Case.
  *
  * The layout reads the case once for all of them, keeps it fresh - a

@@ -74,6 +74,7 @@ Cada alerta de detecção vira um evento Detection Finding (classe OCSF `2004`),
 | `kibana.alert.workflow_status`: `open`, `acknowledged` ou `closed` | Status |
 | `kibana.alert.rule.threat`, subtécnicas incluídas | Táticas e técnicas do MITRE ATT&CK |
 | `user.name`, `host.name`, `source.ip` ou `host.ip`, `process.name` ou `process.executable` | Usuário, host, IP e processo do ator |
+| `process.name`, `process.executable` e `process.command_line`; `process.parent.name`, `process.parent.executable` e `process.parent.command_line` | Nome, caminho e linha de comando do processo; nome, caminho e linha de comando do processo pai |
 | `user.target.name`, `destination.domain`, `destination.ip`, `destination.port`, `file.path` | Usuário, host, IP, porta e recurso do alvo |
 | Esses, e `related.*`, `dns.question.name`, `url.domain` e os hashes de arquivos | Observáveis |
 | O alerta inteiro, achatado em chaves com pontos, com `_index` e `_id` | `attributes` |

@@ -227,7 +227,18 @@ A [threat intel feed](/docs/telemetry/threat-intelligence#how-google-secops-is-r
 
 ## Send security events to Google SecOps
 
-OneUptime can also send what it finds to Google SecOps, so the SIEM your team works in sees OneUptime's detections next to its own. Each security event is imported as a UDM event: a sign-in as `USER_LOGIN`, a process launch as `PROCESS_LAUNCH`, a network connection as `NETWORK_CONNECTION` and anything else as `GENERIC_EVENT`, with its severity, its MITRE ATT&CK tags and the rule that found it.
+OneUptime can also send what it finds to Google SecOps, so the SIEM your team works in sees OneUptime's detections next to its own. Each security event is imported as a UDM event, with its severity, its MITRE ATT&CK tags and the rule that found it:
+
+| Security event | UDM event type |
+| --- | --- |
+| A sign-in | `USER_LOGIN` |
+| A process launched, opened, injected into or ended | `PROCESS_LAUNCH`, `PROCESS_OPEN`, `PROCESS_INJECTION`, `PROCESS_TERMINATION` |
+| A process that raised its privileges | `PROCESS_PRIVILEGE_ESCALATION` |
+| Any other process activity | `PROCESS_UNCATEGORIZED` |
+| A network connection | `NETWORK_CONNECTION` |
+| Anything else, or an event without the fields its type needs | `GENERIC_EVENT` |
+
+In a process event the `principal` is the process that acted and the `target` the process it acted on: in a launch, the parent and the process it started.
 
 :::steps
 ### Create a key that can import events

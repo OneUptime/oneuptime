@@ -93,6 +93,7 @@ Each finding becomes one event, with vendor `Amazon Web Services` and product `A
 | `Workflow.Status`: `NEW`, `NOTIFIED`, `RESOLVED` or `SUPPRESSED`, else the older `WorkflowState` | Status |
 | `Types` under `TTPs/`: `TTPs/Initial Access/...` becomes `TA0001` | MITRE ATT&CK tactics and techniques |
 | The IAM user of an access key or user resource, `Network.SourceIpV4` or `SourceIpV6`, `Process.Name` or `Process.Path` | Principal user, IP and process |
+| `Process.Name` and `Process.Path` | Process name and path. A finding names neither a command line nor a parent. |
 | The instance ID of an `AwsEc2Instance` resource, `Network.DestinationIpV4` or `DestinationIpV6`, `Network.DestinationPort`, the first `Resources[].Id` | Target host, IP, port and resource |
 | Those, every `Resources[].Id`, `AwsAccountId`, the network's domains, malware names and threat intelligence values | Observables |
 | The whole finding, flattened to dotted keys, such as `Compliance.Status` and `Remediation.Recommendation.Url` | `attributes` |

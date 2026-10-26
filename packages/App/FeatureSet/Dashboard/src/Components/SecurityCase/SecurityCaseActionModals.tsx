@@ -247,7 +247,7 @@ export interface RunPlaybookModalProps extends CaseModalProps {
 
 /*
  * Runs a playbook against the case by hand - any enabled playbook, whatever
- * starts it on its own. The run appears under Playbook Runs and on the
+ * starts it on its own. The run appears under the case's Playbooks and on the
  * timeline, step by step.
  */
 export const RunSecurityPlaybookModal: FunctionComponent<

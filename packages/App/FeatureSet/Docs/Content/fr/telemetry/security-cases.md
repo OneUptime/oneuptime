@@ -88,7 +88,7 @@ Un dossier a son propre menu latéral, comme un incident, et chaque partie du do
 | Section du menu latéral | Pages |
 | --- | --- |
 | **Vue d'ensemble** | **Vue d'ensemble**, **Chronologie** |
-| **Investigation** | **Détections**, **Entités**, **Signaux connectés**, **Exécutions de playbooks** |
+| **Investigation** | **Détections**, **Entités**, **Signaux connectés**, **Playbooks** |
 | **Notes** | **Notes privées** |
 | **Avancé** | **Journaux d'audit**, **Supprimer le dossier**, repliés jusqu'à ce que vous cliquiez sur **Avancé** |
 
@@ -101,7 +101,7 @@ Chaque page garde en haut l'en-tête du dossier : son numéro, sa priorité, son
 - **Détections** : ce qui s'est déclenché pour ouvrir le dossier ou s'y ajouter, combien de fois, et le dernier événement correspondant.
 - **Entités** : les utilisateurs, hôtes et adresses sur lesquels porte le dossier, avec leur activité dans l'ensemble de vos événements de sécurité des 7 derniers jours. Chacun s'ouvre dans **Corréler**.
 - **Signaux connectés** : les hôtes, clusters, services et membres que le dossier nomme, tels que OneUptime les connaît, et ce qui se passait sur chacun autour de ses détections : leurs journaux, traces et métriques, ce qui est ouvert sur eux et ce qui a changé. Voir [Signaux connectés](/docs/telemetry/security-connected-signals).
-- **Exécutions de playbooks** : ce que chaque playbook a fait sur le dossier, étape par étape, et les étapes en attente d'approbation. Tant que des exécutions attendent, le menu indique combien à côté de **Exécutions de playbooks**.
+- **Playbooks** : ce que chaque playbook a fait sur le dossier, étape par étape, et les étapes en attente d'approbation. Tant que des exécutions attendent, le menu indique combien à côté de **Playbooks**.
 - **Notes privées** : ce que l'équipe a écrit sur le dossier.
 - **Journaux d'audit** : chaque modification apportée au dossier, et qui l'a faite. Voir [Journaux d'audit](/docs/configuration/audit-logs).
 - **Supprimer le dossier** : supprime définitivement le dossier, avec ses détections, ses notes, sa chronologie et ses exécutions de playbooks. Pour en garder la trace, clôturez-le plutôt avec un verdict.
@@ -300,7 +300,7 @@ Un e-mail ou une publication sans message propre envoie un résumé du dossier.
 
 ### Exécutions et approbations
 
-Chaque exécution est listée, étape par étape, sur son dossier et sous **Produits → Événements de sécurité → Playbooks → Exécutions de playbooks** :
+Chaque exécution est listée, étape par étape, sur son dossier et sous **Produits → Événements de sécurité → Playbooks → Exécutions** :
 
 | Statut de l'exécution | Signification |
 | --- | --- |
@@ -311,7 +311,7 @@ Chaque exécution est listée, étape par étape, sur son dossier et sous **Prod
 | Échec | Une étape a échoué et l'exécution s'est arrêtée |
 | Annulé | Quelqu'un l'a annulée, ou a rejeté une étape |
 
-Une étape en attente d'approbation affiche **Approve** et **Reject** sur l'exécution, avec un commentaire facultatif. Approuver poursuit l'exécution à partir de cette étape ; rejeter y met fin. La décision, son auteur et son commentaire sont conservés sur l'étape, dans la chronologie du dossier et dans le journal d'audit du projet. **En attente d'approbation**, sous **Playbooks** dans le menu, liste les exécutions qui attendent une décision et les compte ; **Exécutions de playbooks** liste toutes les exécutions. Sur **Exécutions de playbooks** et sur la page d'un playbook, chaque exécution tient sur une ligne qui dit jusqu'où elle est allée, ou l'étape où elle s'est arrêtée ; **Afficher les étapes** ouvre ses étapes. Une exécution en attente d'approbation s'ouvre d'elle-même.
+Une étape en attente d'approbation affiche **Approve** et **Reject** sur l'exécution, avec un commentaire facultatif. Approuver poursuit l'exécution à partir de cette étape ; rejeter y met fin. La décision, son auteur et son commentaire sont conservés sur l'étape, dans la chronologie du dossier et dans le journal d'audit du projet. La page **Approbations**, sous **Playbooks** dans le menu, liste les exécutions qui attendent une décision et les compte ; **Exécutions** liste toutes les exécutions. Sur **Exécutions** et sur la page d'un playbook, chaque exécution tient sur une ligne qui dit jusqu'où elle est allée, ou l'étape où elle s'est arrêtée ; **Afficher les étapes** ouvre ses étapes. Une exécution en attente d'approbation s'ouvre d'elle-même.
 
 Une exécution dont le worker ne donne plus signe de vie, après un redémarrage par exemple, est reprise : une exécution en file d'attente est remise en file au bout de 2 minutes, et une exécution restée muette pendant 30 minutes passe en échec.
 

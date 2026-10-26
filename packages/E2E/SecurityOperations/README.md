@@ -21,7 +21,7 @@ An offline harness for the Security Events SOC pages, on a month of synthetic se
 | ATT&CK Coverage      | `SECURITY_EVENTS_ATTACK_COVERAGE` `.../security-events/attack-coverage`                   | `Pages/SecurityEvents/AttackCoverage`, `AttackCoverageTactics`, `AttackCoverageMatrix`       |
 | Playbooks            | `SECURITY_PLAYBOOKS` `.../security-events/playbooks`                                      | `Pages/SecurityEvents/Playbooks`, `SecurityPlaybookTemplatePicker`                           |
 | A playbook           | `SECURITY_PLAYBOOK_VIEW` `.../security-events/playbooks/:id`                              | `Pages/SecurityEvents/PlaybookView`, `SecurityPlaybookStepsEditor`                           |
-| Waiting for Approval | `SECURITY_PLAYBOOK_RUNS_WAITING_FOR_APPROVAL` `.../security-events/playbook-runs`         | `Pages/SecurityEvents/PlaybookRuns`, with the runs `SecurityPlaybookRunViews` gives it       |
+| Approvals            | `SECURITY_PLAYBOOK_RUNS_WAITING_FOR_APPROVAL` `.../security-events/playbook-runs`         | `Pages/SecurityEvents/PlaybookRuns`, with the runs `SecurityPlaybookRunViews` gives it       |
 | Playbook Runs        | `SECURITY_PLAYBOOK_RUNS` `.../security-events/playbook-runs/all`                          | the same                                                                                     |
 | AI Settings          | `SECURITY_EVENTS_SETTINGS_AI` `.../security-events/ai/settings`                           | `Pages/SecurityEvents/AISettings`, `AISettings/ProjectAiSwitchesCard`, `ProjectAiNotice`     |
 | Case Priorities      | `SECURITY_EVENTS_SETTINGS_CASE_PRIORITIES` `.../security-events/settings/case-priorities` | `Pages/SecurityEvents/Settings/CasePriorities`, `StateSettings/*`, `ArchivableValue/*`       |
@@ -157,13 +157,13 @@ that list is not empty.
   case's own header hands it on and moves its status from any of its pages; the row's ⋯, the
   assign dialog and its picker, and the bulk bar at 1280 and 390, in both themes.
 - **A case**: a side menu of its own (Overview: Overview, Timeline; Investigation: Detections,
-  Entities, Connected Signals, Playbook Runs; Notes: Private Notes; Advanced, folded: Audit Logs,
+  Entities, Connected Signals, Playbooks; Notes: Private Notes; Advanced, folded: Audit Logs,
   Delete Case), each
   part of the case a page of its own at an address under the case's, its entry lit and its trail
   named for the case; the Overview has the header in full (status steps, who has it), the
   figures, the AI card and ATT&CK, and every other page the header compact, with every action,
   the case read once for them all; a link straight to any page opens it; the held run with
-  Approve and Reject, counted beside Playbook Runs until approving it runs the rest; Delete Case
+  Approve and Reject, counted beside Playbooks until approving it runs the rest; Delete Case
   asks first; a Security Viewer reads every page and is shown why it cannot change one; a case
   that is not there says so; the header at a laptop's width (actions on the title's line) and on
   a phone (buttons filling their rows, the ⋯ in the corner); every page at 1280 and 390, both
@@ -178,7 +178,7 @@ that list is not empty.
   in the trail and the tab, its settings read in full; its steps and latest runs, each run named by
   its case and folded to a line but the one waiting for approval; a run's Approve and Reject (or
   Cancel Run) keep its title's line at 1280, at the card's right, and drop under its words on a
-  phone; Waiting for Approval, at the runs page's old
+  phone; Approvals, at the runs page's old
   address, lists the run held for a decision, and Playbook Runs every run, each a line of how far
   it got - the failed one Stopped at step 2 in red, its reason under Show steps; an empty runs
   page says what it is for in its empty state only.
@@ -196,7 +196,10 @@ that list is not empty.
   adds only it; Detections is a section of
   pages, each its own address and entry; the side menu is nine sections of pages, the ones set up
   once folded (Settings among them), its Workspace section listing only the connected Slack, and on
-  a phone it names the section and the page; Entities ranks what the findings name in the
+  a phone it names the section and the page; every entry in sight, a counted one too, and a
+  case's, keeps its whole name beside a tablet's 224px menu in English, German, Spanish, French,
+  Italian, Portuguese, Dutch, Japanese and Persian (`?lang=`), and at 1440 in English, German and
+  French; Entities ranks what the findings name in the
   product's table over 1, 7 or 30 days, ten a page with the foot every list has, each row opening
   the entity in Correlate and, on a phone, a card of its figures, with the lookup under it, its box
   and Look Up one height on one line.

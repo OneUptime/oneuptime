@@ -386,7 +386,7 @@ export function canStartTriage(
  * case: its latest run there, while that run has not finished (queued,
  * running, or held for an approval). The card then shows that run's status
  * in place of Run playbook - a second run would ask for the same approval
- * again - and the run itself waits under Playbook Runs. A finished run, or
+ * again - and the run itself waits under the case's Playbooks. A finished run, or
  * none, leaves Run playbook one click away.
  */
 export function getSuggestedPlaybookRunInProgress(
@@ -625,7 +625,7 @@ export const SecurityCaseAiCopy: {
   runPlaybookButton: translationKey("Run playbook"),
   // On the status of the suggested playbook's run, in place of Run playbook.
   suggestedPlaybookRunning: translationKey(
-    "This playbook is already running on this case. Its run is under Playbook Runs.",
+    "This playbook is already running on this case. Its run is under the case's Playbooks.",
   ),
   askButton: translationKey("Ask about this case"),
   askPrompt: translationKey("What should I check next on this case, and why?"),

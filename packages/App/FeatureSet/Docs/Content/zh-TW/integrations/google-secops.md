@@ -227,7 +227,18 @@ Google SecOps 會根據規則的編寫者，把偵測的嚴重程度儲存在不
 
 ## 將安全性事件傳送到 Google SecOps
 
-OneUptime 也可以把找到的內容傳送到 Google SecOps，讓您的團隊所用的 SIEM 在自身偵測結果旁邊看到 OneUptime 的偵測結果。每個安全性事件都會以 UDM 事件匯入：登入為 `USER_LOGIN`，程序啟動為 `PROCESS_LAUNCH`，網路連線為 `NETWORK_CONNECTION`，其他一切為 `GENERIC_EVENT`，並附上其嚴重性、MITRE ATT&CK 標籤，以及找到它的規則。
+OneUptime 也可以把找到的內容傳送到 Google SecOps，讓您的團隊所用的 SIEM 在自身偵測結果旁邊看到 OneUptime 的偵測結果。每個安全性事件都會以 UDM 事件匯入，並附上其嚴重性、MITRE ATT&CK 標籤，以及找到它的規則：
+
+| 安全性事件 | UDM 事件類型 |
+| --- | --- |
+| 登入 | `USER_LOGIN` |
+| 程序啟動、開啟、注入或結束 | `PROCESS_LAUNCH`, `PROCESS_OPEN`, `PROCESS_INJECTION`, `PROCESS_TERMINATION` |
+| 提升了自身權限的程序 | `PROCESS_PRIVILEGE_ESCALATION` |
+| 其他任何程序活動 | `PROCESS_UNCATEGORIZED` |
+| 網路連線 | `NETWORK_CONNECTION` |
+| 其他一切，或缺少其類型所需欄位的事件 | `GENERIC_EVENT` |
+
+在程序事件中，`principal` 是執行動作的程序，`target` 是被執行動作的程序：在啟動事件中，分別是父程序和它啟動的程序。
 
 :::steps
 ### 建立可以匯入事件的金鑰

@@ -83,6 +83,7 @@ Chaque [alerte](https://learn.microsoft.com/en-us/graph/api/resources/security-a
 | `mitreTechniques` | `mitreTechniques` |
 | `mitreTactics` | `categories` ou `category`, quand c'est une tactique ATT&CK : `CredentialAccess` devient `TA0006`. Les autres catégories restent dans `attributes`. |
 | `principalHost`, `principalUser`, `principalIp`, `principalProcess` | L'`evidence` avec le rôle `source`, `attacker` ou `compromised`, sinon la première de chaque type |
+| `processName`, `processPath`, `processCommandLine`, `parentProcessName`, `parentProcessPath` | La preuve de processus d'où vient `principalProcess` : son `imageFile`, `processCommandLine` et `parentProcessImageFile`. Graph ne donne pas la ligne de commande du processus parent. |
 | `targetHost`, `targetUser`, `targetIp`, `targetResource` | L'`evidence` avec un rôle de cible, comme `destination` ou `attacked`. Les URL, les boîtes aux lettres et les ressources cloud remplissent `targetResource`. |
 | `observables` | Chaque nom d'hôte, IP, utilisateur, nom de fichier, SHA-1 et SHA-256, URL, domaine, boîte aux lettres et ID de ressource de `evidence` |
 | `attributes` | L'alerte entière, aplatie en clés pointées comme `evidence.0.hostName`, `serviceSource` et `incidentId` |

@@ -83,6 +83,7 @@ Defender XDR の各 [アラート](https://learn.microsoft.com/en-us/graph/api/r
 | `mitreTechniques` | `mitreTechniques` |
 | `mitreTactics` | `categories` または `category` が ATT&CK の戦術である場合。`CredentialAccess` は `TA0006` になります。その他のカテゴリは `attributes` に残ります。 |
 | `principalHost`, `principalUser`, `principalIp`, `principalProcess` | `source`、`attacker`、`compromised` のロールを持つ `evidence`、それがない場合は種類ごとの最初のもの |
+| `processName`, `processPath`, `processCommandLine`, `parentProcessName`, `parentProcessPath` | `principalProcess` の取得元のプロセスのエビデンスの `imageFile`、`processCommandLine`、`parentProcessImageFile`。Graph は親プロセスのコマンドラインを返しません。 |
 | `targetHost`, `targetUser`, `targetIp`, `targetResource` | `destination` や `attacked` など、ターゲットのロールを持つ `evidence`。URL、メールボックス、クラウドリソースは `targetResource` に入ります。 |
 | `observables` | `evidence` に含まれるすべてのホスト名、IP、ユーザー、ファイル名、SHA-1 と SHA-256、URL、ドメイン、メールボックス、リソース ID |
 | `attributes` | アラート全体を、`evidence.0.hostName`、`serviceSource`、`incidentId` のようなドット区切りのキーに展開したもの |

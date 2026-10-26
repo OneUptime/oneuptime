@@ -11,7 +11,7 @@ import path from "path";
  * So these read the sources of what this overhaul added to Security - the
  * Overview's top card (its band and the pipeline), Get started and the test
  * attack; the
- * runs pages (Waiting for Approval, Playbook Runs), which took the place of
+ * runs pages (Approvals, Playbook Runs), which took the place of
  * the tabs and views along the tops of pages; "Your logs" and "Send to your
  * SIEM" on Connections; the Rule Library - its list, filters, a rule's
  * details and the add dialog - and every

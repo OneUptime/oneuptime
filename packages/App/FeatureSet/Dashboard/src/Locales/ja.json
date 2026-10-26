@@ -28109,7 +28109,7 @@
   "Assign To": "Assign To",
   "Assign the case": "Assign the case",
   "Assign to Me": "自分に割り当て",
-  "Assigned to Me": "自分に割り当て済み",
+  "Assigned to Me": "自分の担当",
   "Assignee": "Assignee",
   "Automated responses to security cases: steps that assign, investigate, notify, escalate and contain, run when a matching case opens or by hand.": "Automated responses to security cases: steps that assign, investigate, notify, escalate and contain, run when a matching case opens or by hand.",
   "Available in the rule library": "Rule Library で利用可能",
@@ -28270,7 +28270,6 @@
   "No finding named an entity in this window.": "この期間にエンティティを示した検出結果はありません。",
   "No open cases are assigned to you.": "No open cases are assigned to you.",
   "No open cases. New ones appear here as detections fire.": "未解決のケースはありません。検出が発生すると、新しいケースがここに表示されます。",
-  "No playbook has run on this case yet. Playbooks set to start when a case opens run here by themselves; you can run any playbook by hand.": "No playbook has run on this case yet. Playbooks set to start when a case opens run here by themselves; you can run any playbook by hand.",
   "No playbook has run yet.": "まだ実行されたプレイブックはありません。",
   "No playbook is running right now.": "No playbook is running right now.",
   "No playbooks yet. Start from a template above, or create one.": "No playbooks yet. Start from a template above, or create one.",
@@ -35079,5 +35078,9 @@
   "Run by OneUptime for every project. It does not build or test AI's change before the branch is pushed.": "OneUptime がすべてのプロジェクトのために動かします。ブランチをプッシュする前に AI の変更をビルド・テストしません。",
   "Run by OneUptime for every project. It does not build or test AI's change before the merge request opens.": "OneUptime がすべてのプロジェクトのために動かします。マージリクエストを作成する前に AI の変更をビルド・テストしません。",
   "This turn has not reported a step yet. This page updates on its own.": "このターンはまだステップを報告していません。このページは自動的に更新されます。",
-  "This turn recorded no steps. If it failed before starting, the reason is in the conversation.": "このターンにはステップの記録がありません。開始前に失敗した場合、理由は会話に表示されています。"
+  "This turn recorded no steps. If it failed before starting, the reason is in the conversation.": "このターンにはステップの記録がありません。開始前に失敗した場合、理由は会話に表示されています。",
+  "Approvals": "承認待ち",
+  "This playbook is already running on this case. Its run is under the case's Playbooks.": "このプレイブックはこのケースですでに実行中です。実行はケースの「Playbooks」にあります。",
+  "A playbook runs here when the case opens or grows, or when someone runs it on the case.": "ケースが開かれたとき、ケースが拡大したとき、または誰かがこのケースに対して実行したときに、プレイブックがここで実行されます。",
+  "No playbook has run on this case yet.": "このケースではまだプレイブックが実行されていません。"
 }

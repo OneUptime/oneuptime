@@ -28270,7 +28270,6 @@
   "No finding named an entity in this window.": "За этот период ни одна находка не упомянула сущность.",
   "No open cases are assigned to you.": "No open cases are assigned to you.",
   "No open cases. New ones appear here as detections fire.": "Открытых кейсов нет. Новые появятся здесь по мере срабатываний.",
-  "No playbook has run on this case yet. Playbooks set to start when a case opens run here by themselves; you can run any playbook by hand.": "No playbook has run on this case yet. Playbooks set to start when a case opens run here by themselves; you can run any playbook by hand.",
   "No playbook has run yet.": "Плейбуки ещё не запускались.",
   "No playbook is running right now.": "No playbook is running right now.",
   "No playbooks yet. Start from a template above, or create one.": "No playbooks yet. Start from a template above, or create one.",
@@ -35079,5 +35078,9 @@
   "Run by OneUptime for every project. It does not build or test AI's change before the branch is pushed.": "Запускается OneUptime для всех проектов. Не собирает и не тестирует изменение ИИ до отправки ветки.",
   "Run by OneUptime for every project. It does not build or test AI's change before the merge request opens.": "Запускается OneUptime для всех проектов. Не собирает и не тестирует изменение ИИ до открытия запроса на слияние.",
   "This turn has not reported a step yet. This page updates on its own.": "Этот ход ещё не сообщил ни об одном шаге. Страница обновляется сама.",
-  "This turn recorded no steps. If it failed before starting, the reason is in the conversation.": "Этот ход не записал ни одного шага. Если он не удался до начала, причина указана в разговоре."
+  "This turn recorded no steps. If it failed before starting, the reason is in the conversation.": "Этот ход не записал ни одного шага. Если он не удался до начала, причина указана в разговоре.",
+  "Approvals": "Одобрения",
+  "This playbook is already running on this case. Its run is under the case's Playbooks.": "Этот плейбук уже запущен по этому кейсу. Запуск — в разделе «Playbooks» кейса.",
+  "A playbook runs here when the case opens or grows, or when someone runs it on the case.": "Плейбук запускается здесь, когда кейс открывается или пополняется, или когда кто-то запускает его для кейса.",
+  "No playbook has run on this case yet.": "Для этого кейса плейбуки ещё не запускались."
 }

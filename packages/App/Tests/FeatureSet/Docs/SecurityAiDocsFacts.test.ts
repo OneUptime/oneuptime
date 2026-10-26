@@ -11,6 +11,11 @@ import {
   SecurityEventsMenuItem,
   SecurityEventsMenuSection,
 } from "../../../FeatureSet/Dashboard/src/Utils/SecurityEventsNavigation";
+import {
+  SECURITY_CASE_MENU,
+  SecurityCaseMenuItem,
+  SecurityCaseMenuSection,
+} from "../../../FeatureSet/Dashboard/src/Utils/SecurityCaseNavigation";
 import Project from "Common/Models/DatabaseModels/Project";
 import SecurityCase from "Common/Models/DatabaseModels/SecurityCase";
 import Permission from "Common/Types/Permission";
@@ -19,6 +24,9 @@ import {
   SecurityCaseAiVerdictDescription,
 } from "Common/Types/SecurityCase/SecurityCaseAiVerdict";
 import SecurityPlaybookTrigger from "Common/Types/SecurityPlaybook/SecurityPlaybookTrigger";
+import SecurityPlaybookRunStatus, {
+  isFinishedSecurityPlaybookRunStatus,
+} from "Common/Types/SecurityPlaybook/SecurityPlaybookRunStatus";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -97,20 +105,30 @@ function boldSpans(text: string): Array<string> {
 
 /*
  * A string the card's model keys, read off its source: the value of
- * `name: translationKey("...")` in SecurityCaseAiCopy.
+ * `name: translationKey("...")` in SecurityCaseAiCopy, on one line or
+ * wrapped onto the next.
  */
 function cardWord(name: string): string {
   const model: string = flat(
     source(`${DASHBOARD}/Components/SecurityCase/SecurityCaseAiTriage.ts`),
   );
-  const marker: string = `${name}: translationKey("`;
+  const marker: string = `${name}: translationKey(`;
   const at: number = model.indexOf(marker);
 
   expect({ name, found: at >= 0 }).toEqual({ name, found: true });
 
-  const start: number = at + marker.length;
+  let start: number = at + marker.length;
 
-  return model.slice(start, model.indexOf('"', start));
+  while (model[start] === " ") {
+    start++;
+  }
+
+  expect({ name, quoted: model[start] === '"' }).toEqual({
+    name,
+    quoted: true,
+  });
+
+  return model.slice(start + 1, model.indexOf('"', start + 1));
 }
 
 function withoutFinalStop(text: string): string {
@@ -352,6 +370,86 @@ describe("OneUptime AI in Security docs", () => {
       flat(source(`${DASHBOARD}/Components/AIChat/PageContext.ts`)),
     ).toContain('title: "Is it real?",');
     expect(page).toContain("offers questions such as **Is it real?**.");
+  });
+
+  /*
+   * A Security Viewer reads every triage but cannot start one: the card
+   * greys the button that would start one, says who can beside it, and
+   * offers nothing it could not do (#5175's review).
+   */
+  it("says what a Security Viewer's card offers, as the card draws it", () => {
+    const card: string = flat(
+      source(`${DASHBOARD}/Components/SecurityCase/SecurityCaseAiCard.tsx`),
+    );
+
+    // The line beside the greyed button, only for who is known not to start one.
+    expect(cardWord("whoCanTriage")).toBe(
+      "Someone who can edit this case can start a triage.",
+    );
+    expect(card).toContain(
+      "if (triageAccess !== SecurityCaseAiTriageAccess.No) { return <></>; }",
+    );
+    expect(card).toContain("disabled={!canStart || isStarting}");
+    expect(card).toContain(
+      "{triageButton(SecurityCaseAiCopy.triageButton, true)} {renderWhoCanTriage()}",
+    );
+    expect(card).toContain(
+      "{triageButton(SecurityCaseAiCopy.tryAgainButton, true)} {renderWhoCanTriage()}",
+    );
+    // Triage again and Set priority are offered only to who may use them.
+    expect(card).toContain(
+      "{blockingReason || triageAccess !== SecurityCaseAiTriageAccess.Yes ? ( <></> ) : ( triageButton(SecurityCaseAiCopy.triageAgainButton, false) )}",
+    );
+    expect(card).toContain("{offerPriority && updateGate.isAllowed ? (");
+
+    expect(page).toContain(
+      `A Security Viewer reads the same card: **${cardWord("triageButton")}** and **${cardWord("tryAgainButton")}** stay greyed beside a line that says who can start a triage, and **${cardWord("triageAgainButton")}** and **${cardWord("setPriorityButton")}** are not offered.`,
+    );
+  });
+
+  /*
+   * While the playbook OneUptime AI suggests is already running on the case,
+   * the card shows that run's status where Run playbook would be: a second
+   * run would ask for the same approval again (#5175's review).
+   */
+  it("says the suggested playbook's run shows its status in place of Run playbook while it is running", () => {
+    const model: string = flat(
+      source(`${DASHBOARD}/Components/SecurityCase/SecurityCaseAiTriage.ts`),
+    );
+    const card: string = flat(
+      source(`${DASHBOARD}/Components/SecurityCase/SecurityCaseAiCard.tsx`),
+    );
+    const investigation: SecurityCaseMenuSection | undefined =
+      SECURITY_CASE_MENU.find((section: SecurityCaseMenuSection): boolean => {
+        return section.title === "Investigation";
+      });
+
+    // A run not yet finished takes Run playbook's place; a finished one, or none, leaves it.
+    expect(model).toContain(
+      "isFinishedSecurityPlaybookRunStatus(latestRunStatus) ) { return null; }",
+    );
+    expect(
+      isFinishedSecurityPlaybookRunStatus(
+        SecurityPlaybookRunStatus.WaitingForApproval,
+      ),
+    ).toBe(false);
+    expect(card).toContain("{suggestedPlaybookRun ? (");
+    expect(card).toContain(
+      "<SecurityPlaybookRunStatusPill value={suggestedPlaybookRun}",
+    );
+    // The run is on the case's own Playbooks page.
+    expect(
+      (investigation?.items || []).map((item: SecurityCaseMenuItem): string => {
+        return item.title;
+      }),
+    ).toContain("Playbooks");
+    expect(cardWord("suggestedPlaybookRunning")).toBe(
+      "This playbook is already running on this case. Its run is under the case's Playbooks.",
+    );
+
+    expect(page).toContain(
+      `While that playbook is already running on the case, its run's status, such as **${SecurityPlaybookRunStatus.WaitingForApproval}**, takes the place of **${cardWord("runPlaybookButton")}**: the run is on the case's **Playbooks**, and a second one would ask for the same approval again.`,
+    );
   });
 
   it("says one triage runs on a case at a time, as the start refuses a second", () => {

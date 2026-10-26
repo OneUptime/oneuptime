@@ -187,7 +187,7 @@ describe("each trail names the page as the menu does", () => {
     ],
     [
       PageMap.SECURITY_CASE_VIEW_PLAYBOOK_RUNS,
-      ["Security Events", "Security Cases", "View Case", "Playbook Runs"],
+      ["Security Events", "Security Cases", "View Case", "Playbooks"],
     ],
     [
       PageMap.SECURITY_CASE_VIEW_NOTES,
@@ -238,7 +238,7 @@ describe("each trail names the page as the menu does", () => {
     [PageMap.SECURITY_PLAYBOOKS, ["Security Events", "Playbooks"]],
     [
       PageMap.SECURITY_PLAYBOOK_RUNS_WAITING_FOR_APPROVAL,
-      ["Security Events", "Playbooks", "Waiting for Approval"],
+      ["Security Events", "Playbooks", "Approvals"],
     ],
     [
       PageMap.SECURITY_PLAYBOOK_RUNS,

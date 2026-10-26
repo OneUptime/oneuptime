@@ -79,6 +79,7 @@ De verbinding leest de waarschuwingen van Falcon: wat de Falcon-console toont on
 | `status`, zoals `new`, `in_progress` of `closed` | Status |
 | `tactic_id`, `technique_id` | MITRE ATT&CK-tactieken en -technieken |
 | `device.hostname`, `device.local_ip`, `user_name`, `filename` of `cmdline` | Host, IP, gebruiker en proces van de actor |
+| `filename`, `filepath` en `cmdline`; `parent_details.filename`, `parent_details.filepath` en `parent_details.cmdline` | Naam, pad en opdrachtregel van het proces; naam, pad en opdrachtregel van het bovenliggende proces |
 | `device.hostname`, `device.local_ip`, `device.external_ip`, `user_name`, `sha256` | Observables |
 | Al het andere, zoals `device.platform_name`, `falcon_host_link`, `product` en `timestamp` | `attributes`, plat gemaakt tot sleutels met punten |
 
