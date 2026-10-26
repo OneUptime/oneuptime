@@ -21,8 +21,9 @@ export interface ComponentProps {
  * AI fix can act - and the incident, alert and maintenance forms prefill
  * them when this monitor is picked.
  *
- * Under it, the cloud resources the monitor seems to check by its host
- * (MonitorCloudLinkSuggestions), one Link away.
+ * At its foot, under what it is linked to, the cloud resources the monitor
+ * seems to check by its host (MonitorCloudLinkSuggestions), each one
+ * Link resource away - in the card, where linking is what it is about.
  */
 const MonitorLinkedResourcesCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -30,86 +31,86 @@ const MonitorLinkedResourcesCard: FunctionComponent<ComponentProps> = (
   const [refresher, setRefresher] = useState<boolean>(false);
 
   return (
-    <>
-      <CardModelDetail<Monitor>
-        refresher={refresher}
-        name="Monitor Linked Resources"
-        cardProps={{
-          title: "Linked Resources",
-          description:
-            "What this monitor watches. Its incidents and alerts are linked to these, so OneUptime AI can investigate and fix them there.",
-          headerLayout: "stacked",
-        }}
-        createEditModalWidth={ModalWidth.Medium}
-        editButtonText="Edit"
-        isEditable={true}
-        formFields={getMonitorLinkedResourcesFormFields()}
-        modelDetailProps={{
-          showDetailsInNumberOfColumns: 1,
-          style: DetailStyle.Compact,
-          modelType: Monitor,
-          id: "model-detail-monitor-linked-resources",
-          fields: [
-            {
-              field: {
-                hosts: {
-                  name: true,
-                  _id: true,
-                },
-                kubernetesClusters: {
-                  name: true,
-                  _id: true,
-                },
-                dockerHosts: {
-                  name: true,
-                  _id: true,
-                },
-                podmanHosts: {
-                  name: true,
-                  _id: true,
-                },
-                proxmoxClusters: {
-                  name: true,
-                  _id: true,
-                },
-                vmwareVCenters: {
-                  name: true,
-                  _id: true,
-                },
-                cephClusters: {
-                  name: true,
-                  _id: true,
-                },
-                storageArrays: {
-                  name: true,
-                  _id: true,
-                },
-                dockerSwarmClusters: {
-                  name: true,
-                  _id: true,
-                },
-                iotFleets: {
-                  name: true,
-                  _id: true,
-                },
-                databaseServers: {
-                  name: true,
-                  _id: true,
-                },
-                cloudResources: {
-                  name: true,
-                  _id: true,
-                },
-                services: {
-                  name: true,
-                  _id: true,
-                  serviceColor: true,
-                },
+    <CardModelDetail<Monitor>
+      refresher={refresher}
+      name="Monitor Linked Resources"
+      cardProps={{
+        title: "Linked Resources",
+        description:
+          "What this monitor watches. Its incidents and alerts are linked to these, so OneUptime AI can investigate and fix them there.",
+        headerLayout: "stacked",
+      }}
+      createEditModalWidth={ModalWidth.Medium}
+      editButtonText="Edit"
+      isEditable={true}
+      formFields={getMonitorLinkedResourcesFormFields()}
+      modelDetailProps={{
+        showDetailsInNumberOfColumns: 1,
+        style: DetailStyle.Compact,
+        modelType: Monitor,
+        id: "model-detail-monitor-linked-resources",
+        fields: [
+          {
+            field: {
+              hosts: {
+                name: true,
+                _id: true,
               },
-              title: "",
-              fieldType: FieldType.Element,
-              getElement: (item: Monitor): ReactElement => {
-                return (
+              kubernetesClusters: {
+                name: true,
+                _id: true,
+              },
+              dockerHosts: {
+                name: true,
+                _id: true,
+              },
+              podmanHosts: {
+                name: true,
+                _id: true,
+              },
+              proxmoxClusters: {
+                name: true,
+                _id: true,
+              },
+              vmwareVCenters: {
+                name: true,
+                _id: true,
+              },
+              cephClusters: {
+                name: true,
+                _id: true,
+              },
+              storageArrays: {
+                name: true,
+                _id: true,
+              },
+              dockerSwarmClusters: {
+                name: true,
+                _id: true,
+              },
+              iotFleets: {
+                name: true,
+                _id: true,
+              },
+              databaseServers: {
+                name: true,
+                _id: true,
+              },
+              cloudResources: {
+                name: true,
+                _id: true,
+              },
+              services: {
+                name: true,
+                _id: true,
+                serviceColor: true,
+              },
+            },
+            title: "",
+            fieldType: FieldType.Element,
+            getElement: (item: Monitor): ReactElement => {
+              return (
+                <>
                   <AffectedResourcesDisplay
                     hosts={item.hosts || []}
                     kubernetesClusters={item.kubernetesClusters || []}
@@ -131,22 +132,22 @@ const MonitorLinkedResourcesCard: FunctionComponent<ComponentProps> = (
                     emptyDescription="Link the cluster, hosts, databases, cloud resources or services this monitor watches, so its incidents and alerts are linked to them too."
                     columns={1}
                   />
-                );
-              },
+                  <MonitorCloudLinkSuggestions
+                    monitorId={props.monitorId}
+                    onLinked={() => {
+                      setRefresher((value: boolean): boolean => {
+                        return !value;
+                      });
+                    }}
+                  />
+                </>
+              );
             },
-          ],
-          modelId: props.monitorId,
-        }}
-      />
-      <MonitorCloudLinkSuggestions
-        monitorId={props.monitorId}
-        onLinked={() => {
-          setRefresher((value: boolean): boolean => {
-            return !value;
-          });
-        }}
-      />
-    </>
+          },
+        ],
+        modelId: props.monitorId,
+      }}
+    />
   );
 };
 

@@ -8,6 +8,7 @@ import ObjectID from "Common/Types/ObjectID";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The cloud resources a monitor seems to check, as the server matches its
@@ -62,6 +63,31 @@ export function readCloudLinkSuggestions(
   }
 
   return suggestions;
+}
+
+/*
+ * Why a resource is suggested, in the reader's language: it answers on the
+ * monitor's host itself ("Answers on shop.example.com"), or the host
+ * points, through DNS, to a name it answers on ("shop.example.com points
+ * to my-lb-123.elb.amazonaws.com"). Names are compared in any case.
+ */
+export function getCloudLinkSuggestionReason(
+  translator: Translator,
+  suggestion: CloudEndpointSuggestion,
+): string {
+  const host: string = suggestion.via.trim();
+  const endpoint: string = suggestion.endpoint.trim();
+
+  if (host && endpoint && host.toLowerCase() !== endpoint.toLowerCase()) {
+    return translator.translateTemplate("{{host}} points to {{endpoint}}", {
+      host,
+      endpoint,
+    });
+  }
+
+  return translator.translateTemplate("Answers on {{host}}", {
+    host: endpoint || host,
+  });
 }
 
 export async function fetchCloudLinkSuggestions(
