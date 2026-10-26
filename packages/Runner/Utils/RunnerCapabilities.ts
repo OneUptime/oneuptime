@@ -1,9 +1,7 @@
 import {
-  CLUSTER_ENABLE_CODE_FIXES,
   ENABLE_AI_COMMANDS_OVERRIDE,
   ENABLE_CODE_FIXES_OVERRIDE,
   ENABLE_RUNBOOKS_OVERRIDE,
-  IS_CLUSTER_SCOPED,
 } from "../Config";
 import GlobalRunnerMode from "./GlobalRunnerMode";
 
@@ -14,16 +12,11 @@ export interface RunnerCapabilitySet {
 }
 
 /*
- * What this Runner is allowed to do, resolved once at registration.
- *
- * Project-scoped: the dashboard's toggles decide, and the local env vars can
- * only narrow them — so an operator can revoke a capability centrally, and a
- * host owner can refuse one locally, and neither can grant themselves what
- * the other withheld.
- *
- * Cluster-scoped: there is no dashboard row to consult, so the env vars are
- * the whole answer. Runbook steps target a Runner a human picked in a
- * project, so a cluster Runner can never be a target.
+ * What this Runner is allowed to do: what the server granted at
+ * registration and on every heartbeat, which the local env vars can only
+ * narrow — so an operator can revoke a capability centrally, and a host owner
+ * can refuse one locally, and neither can grant themselves what the other
+ * withheld.
  */
 export default class RunnerCapabilities {
   private static granted: RunnerCapabilitySet | null = null;
@@ -42,18 +35,6 @@ export default class RunnerCapabilities {
   }
 
   public static resolve(): RunnerCapabilitySet {
-    if (IS_CLUSTER_SCOPED) {
-      return {
-        canRunRunbooks: false,
-        canRunCodeFixTasks: CLUSTER_ENABLE_CODE_FIXES,
-        /*
-         * AI commands target a specific Runner a project opted in — a
-         * cluster Runner has no project row to opt in with, so never.
-         */
-        canRunAiCommands: false,
-      };
-    }
-
     /*
      * An older server does not report capabilities. Fall back to the
      * historical env-var defaults so upgrading the Runner first never
@@ -67,15 +48,18 @@ export default class RunnerCapabilities {
     };
 
     /*
-     * A global Runner runs runbook steps for every project and nothing else:
-     * code fixes and AI commands act in one project's repositories and
-     * systems, so they stay off here whatever was granted (GlobalRunnerMode).
+     * A global Runner runs every project's JavaScript steps and the AI code
+     * fixes of every repository on the Global Runner, and nothing else: AI
+     * commands act in one project's own systems, so they stay off here
+     * whatever was granted (GlobalRunnerMode). Its code fixes never run a
+     * repository's own commands (Config.runsProjectAuthoredCommands).
      */
     if (GlobalRunnerMode.isActive()) {
       return {
         canRunRunbooks:
           granted.canRunRunbooks && ENABLE_RUNBOOKS_OVERRIDE !== false,
-        canRunCodeFixTasks: false,
+        canRunCodeFixTasks:
+          granted.canRunCodeFixTasks && ENABLE_CODE_FIXES_OVERRIDE !== false,
         canRunAiCommands: false,
       };
     }

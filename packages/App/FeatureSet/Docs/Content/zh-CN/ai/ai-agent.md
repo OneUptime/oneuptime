@@ -234,7 +234,7 @@ OneUptime Cloud 只访问互联网上的 Git 服务器，绝不访问私有、�
 | LLM 提供商 | 无需设置：没有自己提供商的项目使用全局提供商，费用从项目的 AI 额度中支付。在 **项目设置 → 人工智能 → LLM 提供商** 下添加的自有提供商优先。 | 在服务器上一次性设置 `GLOBAL_LLM_PROVIDER_*` 环境变量，或者为项目添加一个提供商。 |
 | 通过 GitHub App 连接的存储库 | **产品 → 代码**，然后是 **连接 GitHub**。如果该应用已经安装在 GitHub 账号上，请改为点击 **连接现有安装**：再次安装并不会连接它。需要 Growth 套餐。 | 相同，只要你的实例有 GitHub App（请参阅 [GitHub 集成](/docs/self-hosted/github-integration)）。 |
 | 或者 GitLab、Forgejo、Gitea 或任意 Git 服务器上的存储库 | 代码中的 **存储库**，然后是 **连接存储库**（请参阅 [连接存储库](#连接存储库)）。需要 Growth 套餐。 | 相同，无需设置 GitHub App。 |
-| 执行 AI 代码修复的 Runner | 无需运行任何东西：没有选择 Runner 的存储库在项目的默认 Runner 上工作，没有默认 Runner 时在 OneUptime 的全局 Runner 上工作。 | Docker Compose 的 `runner` 服务，或 Helm chart 的 Runner（`runner.enabled`，默认开启），会自行注册，并在每个在全局 Runner 上工作的存储库中执行 AI 代码修复。 |
+| 执行 AI 代码修复的 Runner | 无需运行任何东西：没有选择 Runner 的存储库在项目的默认 Runner 上工作，没有默认 Runner 时在 OneUptime 的全局 Runner 上工作。 | 无需运行任何东西：内置的全局 Runner（Docker Compose 中的 `global-runner`，Helm chart 中的 `globalRunner`，默认开启），以及主管理员添加的每个全局 Runner，会在每个在全局 Runner 上工作的存储库中执行 AI 代码修复。 |
 
 在自托管实例上，全局提供商是 `config.env`（Docker Compose）或你的 Helm values 中的一个配置块。对于自托管的 Ollama：
 

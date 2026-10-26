@@ -62,6 +62,7 @@ Les agents Runbook globaux sont les agents qu'OneUptime fait tourner pour chaque
 | Durée maximale d'une étape | 5 minutes | 1 heure |
 | Variables secrètes | Celles que vous laissez utiliser aux agents globaux | Celles qui le listent |
 | Commandes Bash de OneUptime AI | Jamais | Pour les règles IA qui le choisissent |
+| Corrections de code de OneUptime AI | Ouvertes pour relecture sans être compilées ni testées | Compilées et testées avant l'ouverture de la pull request |
 
 Un agent Runbook global exécute les étapes de nombreux projets, c'est pourquoi chaque étape est tenue à l'écart de toutes les autres :
 
@@ -70,15 +71,17 @@ Un agent Runbook global exécute les étapes de nombreux projets, c'est pourquoi
 - Il ne reçoit une variable secrète que lorsque son réglage **Les agents Runbook globaux peuvent l'utiliser** est activé, et seulement pour une étape du propre projet de la variable.
 - Un projet exécute au plus trois étapes à la fois sur les agents globaux, si bien qu'aucun projet ne les garde pour lui seul.
 
+Un agent Runbook global prend aussi en charge les corrections de code de OneUptime AI, dans chaque dépôt de code qui travaille sur **Agent Runbook global**. Il écrit chaque correction et ouvre la pull request, mais n'exécute aucune commande, pas même les commandes de préparation, de compilation et de test du dépôt, si bien que la pull request indique que sa vérification a été ignorée. Il n'atteint que des serveurs Git sur Internet, en HTTPS, sauf sur un OneUptime auto-hébergé, où il peut aussi atteindre les serveurs Git privés que le serveur lui-même peut atteindre. Il n'agit que pour les corrections qu'il prend, et ne reçoit le jeton d'un dépôt que pendant qu'il y travaille sur une correction. Le jeton d'un dépôt GitHub n'atteint que ce seul dépôt et est révoqué à la fin de la correction.
+
 Choisissez l'un de vos propres agents pour une étape qui doit atteindre votre réseau, ou pour garder l'étape sur des hôtes que vous contrôlez. Pour garder chaque étape sur vos propres agents, désactivez **Utiliser les agents Runbook globaux** en bas de **Runbooks → Agents de runbook**. Une étape JavaScript qui ne choisit aucun agent s'exécute alors sur l'agent Runbook par défaut du projet ou, s'il n'y en a pas, échoue, en le disant, jusqu'à ce qu'elle choisisse l'un des vôtres ; une étape qui choisit l'un de vos agents le garde dans tous les cas. Un dépôt de code qui ne choisit aucun agent dans ses paramètres dans Code travaille lui aussi sur l'agent Runbook par défaut du projet ou, s'il n'y en a pas, sur un agent Runbook global, et a besoin de l'un des vôtres tant que l'option est désactivée ; voir [Code](/docs/ai/ai-agent#choisir-le-runner-du-dépôt).
 
 ### D'où viennent les agents Runbook globaux
 
 Sur OneUptime Cloud, c'est OneUptime qui les fait tourner. Une installation auto-hébergée en fait tourner un à elle par défaut, comme elle fait tourner ses propres sondes globales : le service `global-runner` dans Docker Compose et le déploiement `globalRunner` dans le chart Helm. Il détient sa propre clé, `GLOBAL_RUNNER_KEY`, et rien d'autre du serveur.
 
-Un administrateur principal peut en ajouter d'autres, pour exécuter des étapes depuis d'autres hôtes : dans le tableau de bord d'administration, ouvrez **Paramètres**, puis **Agents Runbook globaux**, créez-en un, puis exécutez la commande que donne son **Afficher l'ID et la clé** sur un hôte qui atteint Internet.
+Un administrateur principal peut en ajouter d'autres, pour exécuter des étapes et des corrections de code depuis d'autres hôtes : dans le tableau de bord d'administration, ouvrez **Paramètres**, puis **Agents Runbook globaux**, créez-en un, puis exécutez la commande que donne son **Afficher l'ID et la clé** sur un hôte qui atteint Internet.
 
-Pour désactiver celui qui est fourni, définissez `GLOBAL_RUNNER_REPLICAS=0` dans le `config.env` de Docker Compose, ou `globalRunner.enabled` à `false` dans le chart Helm. Sans aucun agent global, **Runbooks → Agents de runbook** ne liste que vos propres agents, et chaque étape JavaScript en choisit un.
+Pour désactiver celui qui est fourni, définissez `GLOBAL_RUNNER_REPLICAS=0` dans le `config.env` de Docker Compose, ou `globalRunner.enabled` à `false` dans le chart Helm. Sans aucun agent global, **Runbooks → Agents de runbook** ne liste que vos propres agents, et chaque étape JavaScript et chaque dépôt de code en choisit un.
 
 ## Avant de commencer
 
@@ -302,7 +305,7 @@ Pour les curieux : l'agent utilise ces points de terminaison, montés sous `/run
 | `POST /job/:jobId/result` | Soumettre le résultat final. Ignoré si le bail est déjà passé à autre chose. |
 | `POST /disconnect` | Se déconnecter lors d'un arrêt propre. |
 
-Vous ne devriez pas avoir à les appeler à la main : l'agent fourni le fait. Ils sont documentés ici pour que vous puissiez construire votre propre agent si vous avez une contrainte à laquelle le nôtre ne répond pas.
+Vous ne devriez pas avoir à les appeler à la main : le conteneur de l'agent le fait. Ils sont documentés ici pour que vous puissiez construire votre propre agent si vous avez une contrainte à laquelle le nôtre ne répond pas.
 
 ## Dépannage
 

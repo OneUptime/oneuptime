@@ -21,8 +21,11 @@
  *     it speaks: guessing on two routes buys no extra tries;
  *   - a Runner that keeps its old key, and ids nothing has, are never
  *     counted;
- *   - keys from a private network address, where the shared Runner and the
+ *   - keys from a private network address, where the global Runner and the
  *     agents beside OneUptime call from, are never counted;
+ *   - a global Runner takes code fixes with its own key, and the agent the
+ *     shared Runner registered as proves nothing on the code-fix protocol
+ *     any more, its right key never counted against it;
  *   - the right key is never counted.
  */
 import FakeCounterRedis from "Common/Tests/Server/TestingUtils/Redis/FakeCounterRedis";
@@ -86,6 +89,8 @@ type AnyModule = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 interface Row {
   key: string;
   projectId?: string;
+  // A Runner OneUptime runs for every project.
+  isGlobalRunner?: boolean;
   // Whether a code repository of its project picks the Runner (in Code).
   pickedByACodeRepository?: boolean;
 }
@@ -94,7 +99,7 @@ const PROJECT_ID: string = "12121212-3434-4565-8787-909090909090";
 
 /*
  * The Runner table: a project's Runner a code repository picks (so it takes
- * code-fix work), and one no repository picks.
+ * code-fix work), one no repository picks, and a global Runner.
  */
 const RUNNERS: Record<string, Row> = {
   "66666666-7777-4888-9999-aaaaaaaaaaaa": {
@@ -107,18 +112,32 @@ const RUNNERS: Record<string, Row> = {
     projectId: PROJECT_ID,
     pickedByACodeRepository: false,
   },
+  "00000000-0000-0000-0000-000000000002": {
+    key: "global-runner-key-7c6b5a4f3e2d1c0b9a8f",
+    isGlobalRunner: true,
+  },
 };
 
-// The AI agent table: the shared Runner's global agent.
+/*
+ * The AI agent table: an agent a project created before Runners, and the
+ * agent the shared Runner registered as (no project) before global Runners
+ * took its work.
+ */
 const AI_AGENTS: Record<string, Row> = {
   "11111111-2222-4333-8444-555555555555": {
-    key: "global-agent-key-5e8b1d4f7a0c3e6b9d2f",
+    key: "project-agent-key-5e8b1d4f7a0c3e6b9d2f",
+    projectId: PROJECT_ID,
+  },
+  "21212121-3232-4343-8545-656565656565": {
+    key: "former-shared-agent-key-0a1b2c3d4e5f",
   },
 };
 
 const RUNNER: string = Object.keys(RUNNERS)[0]!;
 const OTHER_RUNNER: string = Object.keys(RUNNERS)[1]!;
-const GLOBAL_AGENT: string = Object.keys(AI_AGENTS)[0]!;
+const GLOBAL_RUNNER: string = Object.keys(RUNNERS)[2]!;
+const PROJECT_AGENT: string = Object.keys(AI_AGENTS)[0]!;
+const FORMER_SHARED_AGENT: string = Object.keys(AI_AGENTS)[1]!;
 
 const CLIENT: string = "203.0.113.50";
 const OTHER_CLIENT: string = "198.51.100.51";
@@ -165,6 +184,7 @@ function tableLookup(
       _id: id,
       id: new ObjectIDClass(id),
       projectId: row.projectId ? new ObjectIDClass(row.projectId) : undefined,
+      isGlobalRunner: row.isGlobalRunner === true,
       canRunRunbooks: true,
       name: "a Runner",
     };
@@ -551,20 +571,20 @@ describe("a client over the limit is refused before any table is read", () => {
       index <= WRONG_COMPONENT_KEYS_PER_ADDRESS;
       index++
     ) {
-      await agentAlive(CLIENT, GLOBAL_AGENT, `guess-${index}`);
+      await agentAlive(CLIENT, PROJECT_AGENT, `guess-${index}`);
     }
 
     runnerLookups = 0;
     aiAgentLookups = 0;
 
     expectRefusedForTooMany(
-      await agentAlive(CLIENT, GLOBAL_AGENT, AI_AGENTS[GLOBAL_AGENT]!.key),
+      await agentAlive(CLIENT, PROJECT_AGENT, AI_AGENTS[PROJECT_AGENT]!.key),
     );
     expectRefusedForTooMany(
-      await agentAlive(CLIENT, GLOBAL_AGENT, "a-guess-not-sent-before"),
+      await agentAlive(CLIENT, PROJECT_AGENT, "a-guess-not-sent-before"),
     );
     expectRefusedForTooMany(
-      await codeFixCount(CLIENT, GLOBAL_AGENT, AI_AGENTS[GLOBAL_AGENT]!.key),
+      await codeFixCount(CLIENT, PROJECT_AGENT, AI_AGENTS[PROJECT_AGENT]!.key),
     );
 
     expect({ runnerLookups, aiAgentLookups }).toEqual({
@@ -577,8 +597,8 @@ describe("a client over the limit is refused before any table is read", () => {
       (
         await agentAlive(
           OTHER_CLIENT,
-          GLOBAL_AGENT,
-          AI_AGENTS[GLOBAL_AGENT]!.key,
+          PROJECT_AGENT,
+          AI_AGENTS[PROJECT_AGENT]!.key,
         )
       ).status,
     ).toBe(200);
@@ -636,7 +656,7 @@ describe("one Runner, two protocols: its wrong keys are counted together", () =>
   });
 });
 
-describe("the shared Runner's global agent, on the code-fix protocol and its heartbeat", () => {
+describe("an AI agent a project created before Runners, on the code-fix protocol and its heartbeat", () => {
   test("ten different wrong keys on its heartbeat, the next one refused, then that client is refused on the code-fix protocol too, its right key included", async () => {
     for (
       let index: number = 0;
@@ -645,7 +665,7 @@ describe("the shared Runner's global agent, on the code-fix protocol and its hea
     ) {
       const result: PostResult = await agentAlive(
         CLIENT,
-        GLOBAL_AGENT,
+        PROJECT_AGENT,
         `guess-${index}`,
       );
 
@@ -657,27 +677,27 @@ describe("the shared Runner's global agent, on the code-fix protocol and its hea
 
     // Ten wrong keys tried nothing past the limit: the right one still works.
     expect(
-      (await agentAlive(CLIENT, GLOBAL_AGENT, AI_AGENTS[GLOBAL_AGENT]!.key))
+      (await agentAlive(CLIENT, PROJECT_AGENT, AI_AGENTS[PROJECT_AGENT]!.key))
         .status,
     ).toBe(200);
 
     expectRefusedForTooMany(
-      await agentAlive(CLIENT, GLOBAL_AGENT, "guess-eleven"),
+      await agentAlive(CLIENT, PROJECT_AGENT, "guess-eleven"),
     );
     expectRefusedForTooMany(
-      await agentAlive(CLIENT, GLOBAL_AGENT, AI_AGENTS[GLOBAL_AGENT]!.key),
+      await agentAlive(CLIENT, PROJECT_AGENT, AI_AGENTS[PROJECT_AGENT]!.key),
     );
     expectRefusedForTooMany(
-      await codeFixCount(CLIENT, GLOBAL_AGENT, AI_AGENTS[GLOBAL_AGENT]!.key),
+      await codeFixCount(CLIENT, PROJECT_AGENT, AI_AGENTS[PROJECT_AGENT]!.key),
     );
 
-    // The shared Runner itself, from its own address.
+    // The Runner that holds the agent's id and key, from its own address.
     expect(
       (
         await agentAlive(
           OTHER_CLIENT,
-          GLOBAL_AGENT,
-          AI_AGENTS[GLOBAL_AGENT]!.key,
+          PROJECT_AGENT,
+          AI_AGENTS[PROJECT_AGENT]!.key,
         )
       ).status,
     ).toBe(200);
@@ -685,11 +705,77 @@ describe("the shared Runner's global agent, on the code-fix protocol and its hea
       (
         await codeFixCount(
           OTHER_CLIENT,
-          GLOBAL_AGENT,
-          AI_AGENTS[GLOBAL_AGENT]!.key,
+          PROJECT_AGENT,
+          AI_AGENTS[PROJECT_AGENT]!.key,
         )
       ).status,
     ).toBe(200);
+  });
+});
+
+describe("a global Runner, and the agent the shared Runner registered as", () => {
+  test("a global Runner's right key takes code-fix work, from any address, never counted", async () => {
+    for (const from of [CLIENT, OTHER_CLIENT]) {
+      for (let call: number = 0; call < 20; call++) {
+        expect(
+          (await codeFixCount(from, GLOBAL_RUNNER, RUNNERS[GLOBAL_RUNNER]!.key))
+            .status,
+        ).toBe(200);
+      }
+    }
+
+    expect(redis.sets.size).toBe(0);
+  });
+
+  test("ten different wrong keys for a global Runner, the next one refused, then that client is refused for it, its right key included", async () => {
+    for (
+      let index: number = 0;
+      index < WRONG_COMPONENT_KEYS_PER_ADDRESS;
+      index++
+    ) {
+      expect(
+        (await codeFixCount(CLIENT, GLOBAL_RUNNER, `guess-${index}`)).status,
+      ).toBe(400);
+    }
+
+    // Ten wrong keys tried nothing past the limit: the right one still works.
+    expect(
+      (await codeFixCount(CLIENT, GLOBAL_RUNNER, RUNNERS[GLOBAL_RUNNER]!.key))
+        .status,
+    ).toBe(200);
+
+    expectRefusedForTooMany(
+      await codeFixCount(CLIENT, GLOBAL_RUNNER, "guess-eleven"),
+    );
+    expectRefusedForTooMany(
+      await codeFixCount(CLIENT, GLOBAL_RUNNER, RUNNERS[GLOBAL_RUNNER]!.key),
+    );
+    expect(
+      (
+        await codeFixCount(
+          OTHER_CLIENT,
+          GLOBAL_RUNNER,
+          RUNNERS[GLOBAL_RUNNER]!.key,
+        )
+      ).status,
+    ).toBe(200);
+  });
+
+  test("the shared Runner's old agent: its right key is refused on the code-fix protocol, and never counted against it", async () => {
+    for (let call: number = 0; call < 20; call++) {
+      const answered: PostResult = await codeFixCount(
+        CLIENT,
+        FORMER_SHARED_AGENT,
+        AI_AGENTS[FORMER_SHARED_AGENT]!.key,
+      );
+
+      expect(answered.status).toBe(400);
+      expect(answered.body["message"]).toBe(
+        "Invalid AI Agent ID or AI Agent Key",
+      );
+    }
+
+    expect(redis.sets.size).toBe(0);
   });
 });
 
@@ -747,7 +833,7 @@ describe("what is never counted", () => {
   });
 
   /*
-   * The shared Runner and the agents beside OneUptime call from a private
+   * The global Runner and the agents beside OneUptime call from a private
    * network address, which a proxy, a load balancer or a container network
    * can show other callers as too: keys from it are never counted, so no
    * caller beside them can stop them.
@@ -757,7 +843,7 @@ describe("what is never counted", () => {
     ["a pod's address", "10.42.0.9"],
     ["the server itself", "127.0.0.1"],
   ])(
-    "keys from %s, on all three routes: answered as wrong, never counted, and the Runner's and the shared Runner's right keys keep working there",
+    "keys from %s, on all three routes: answered as wrong, never counted, and the Runners' and the agent's right keys keep working there",
     async (_label: string, address: string) => {
       for (
         let index: number = 0;
@@ -772,10 +858,10 @@ describe("what is never counted", () => {
             .status,
         ).toBe(400);
         expect(
-          (await agentAlive(address, GLOBAL_AGENT, `guess-${index}`)).status,
+          (await agentAlive(address, PROJECT_AGENT, `guess-${index}`)).status,
         ).toBe(400);
         expect(
-          (await codeFixCount(address, GLOBAL_AGENT, `guess-${index}`)).status,
+          (await codeFixCount(address, PROJECT_AGENT, `guess-${index}`)).status,
         ).toBe(400);
       }
 
@@ -786,15 +872,20 @@ describe("what is never counted", () => {
         (await codeFixCount(address, RUNNER, RUNNERS[RUNNER]!.key)).status,
       ).toBe(200);
       expect(
-        (await agentAlive(address, GLOBAL_AGENT, AI_AGENTS[GLOBAL_AGENT]!.key))
-          .status,
+        (
+          await agentAlive(
+            address,
+            PROJECT_AGENT,
+            AI_AGENTS[PROJECT_AGENT]!.key,
+          )
+        ).status,
       ).toBe(200);
       expect(
         (
           await codeFixCount(
             address,
-            GLOBAL_AGENT,
-            AI_AGENTS[GLOBAL_AGENT]!.key,
+            PROJECT_AGENT,
+            AI_AGENTS[PROJECT_AGENT]!.key,
           )
         ).status,
       ).toBe(200);

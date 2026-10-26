@@ -1,0 +1,259 @@
+# The shared Runner (the `runner:` values, templates/runner.yaml) is gone: the
+# bundled global Runner (templates/global-runner.yaml) does the AI code fixes
+# it did, for every project that uses global Runners. So:
+#
+#   - no values an old file still sets bring back a `<release>-runner`
+#     Deployment, or its Service, autoscaler or PodDisruptionBudget;
+#   - the app is given no ONEUPTIME_RUNNER_KEY, which only let the shared
+#     Runner register;
+#   - the release Secret keeps no runner-key, not even one the live Secret
+#     still holds from an earlier release (the lookup below fakes it);
+#   - values.schema.json still accepts any `runner:` block, so an old values
+#     file keeps passing `helm upgrade`, and NOTES.txt says it is ignored.
+suite: retired shared runner
+release:
+  name: oneuptime
+  namespace: oneuptime
+  upgrade: true
+templates:
+  - templates/*.yaml
+  - templates/NOTES.txt
+# The release Secret as an earlier release left it: the shared Runner's key
+# beside the global Runner's.
+kubernetesProvider:
+  scheme:
+    "v1/Secret":
+      gvr:
+        version: "v1"
+        resource: "secrets"
+      namespaced: true
+  objects:
+    - kind: Secret
+      apiVersion: v1
+      metadata:
+        name: oneuptime-secrets
+        namespace: oneuptime
+      data:
+        # "an-old-shared-runner-key"
+        runner-key: YW4tb2xkLXNoYXJlZC1ydW5uZXIta2V5
+        # "a-kept-global-runner-key"
+        global-runner-key: YS1rZXB0LWdsb2JhbC1ydW5uZXIta2V5
+tests:
+  # Everything the shared Runner was configured with, as a values file written
+  # for an earlier release sets it. The schema has to take it all.
+  - it: renders no shared Runner, whatever runner values an old values file sets
+    set: &oldRunnerValues
+      runner:
+        enabled: true
+        replicaCount: 2
+        key: an-old-shared-runner-key
+        disableAutoscaler: false
+        autoscaling:
+          enabled: true
+        podDisruptionBudget:
+          enabled: true
+        existingSecret:
+          name: runner-identity
+          passwordKey: runner-key
+        ports:
+          http: 3875
+        keda:
+          enabled: true
+          minReplicas: 1
+          maxReplicas: 100
+    asserts:
+      - containsDocument:
+          kind: Deployment
+          apiVersion: apps/v1
+          name: oneuptime-runner
+          any: true
+        not: true
+      - containsDocument:
+          kind: Service
+          apiVersion: v1
+          name: oneuptime-runner
+          any: true
+        not: true
+      - containsDocument:
+          kind: HorizontalPodAutoscaler
+          apiVersion: autoscaling/v2
+          name: oneuptime-runner
+          any: true
+        not: true
+      - containsDocument:
+          kind: PodDisruptionBudget
+          apiVersion: policy/v1
+          name: oneuptime-runner
+          any: true
+        not: true
+
+  - it: still runs the global Runner, which does the AI code fixes now
+    templates:
+      - templates/global-runner.yaml
+    set: *oldRunnerValues
+    asserts:
+      - containsDocument:
+          kind: Deployment
+          apiVersion: apps/v1
+          name: oneuptime-global-runner
+          any: true
+
+  - it: gives the app no ONEUPTIME_RUNNER_KEY, which only let the shared Runner register
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set: *oldRunnerValues
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          any: true
+          content:
+            name: ONEUPTIME_RUNNER_KEY
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          any: true
+          content:
+            name: ONEUPTIME_RUNNER_SHARED
+
+  - it: keeps no runner-key in the release Secret, not even the one the live Secret holds
+    templates:
+      - templates/secrets.yaml
+    documentSelector:
+      path: metadata.name
+      value: oneuptime-secrets
+    set: *oldRunnerValues
+    asserts:
+      - notExists:
+          path: stringData.runner-key
+      # The global Runner's key is carried over as before.
+      - equal:
+          path: stringData.global-runner-key
+          value: a-kept-global-runner-key
+
+  - it: says in NOTES.txt that nothing under runner is read
+    templates:
+      - templates/NOTES.txt
+    set: *oldRunnerValues
+    asserts:
+      - matchRegexRaw:
+          pattern: "\\nIGNORED VALUES: runner\\n"
+      - matchRegexRaw:
+          pattern: "`globalRunner\\.keda`"
+      # The shared Runner was on: nothing changes about where fixes run.
+      - notMatchRegexRaw:
+          pattern: "You had turned the shared Runner off"
+
+  # An install that turned the shared Runner off kept the repositories on the
+  # Global Runner from getting code fixes; the global Runner does them now,
+  # so NOTES.txt says so, and how to keep them off it.
+  - it: tells an install that had turned the shared Runner off that the global Runner now does its code fixes
+    templates:
+      - templates/NOTES.txt
+    set:
+      runner:
+        enabled: false
+    asserts:
+      - matchRegexRaw:
+          pattern: "\\nIGNORED VALUES: runner\\n"
+      - matchRegexRaw:
+          pattern: "You had turned the shared Runner off \\(`runner\\.enabled: false`\\)\\. The code\\nrepositories on the Global Runner now get their AI code fixes from the global\\nRunner, which runs none of a repository's commands\\."
+      - matchRegexRaw:
+          pattern: "`globalRunner\\.enabled: false` \\(that also stops its JavaScript steps\\)"
+
+  - it: says nothing of a turned-off shared Runner when runner sets no enabled
+    templates:
+      - templates/NOTES.txt
+    set:
+      runner:
+        replicaCount: 2
+    asserts:
+      - matchRegexRaw:
+          pattern: "\\nIGNORED VALUES: runner\\n"
+      - notMatchRegexRaw:
+          pattern: "You had turned the shared Runner off"
+
+  # `runner:` with everything under it commented out is null: still accepted,
+  # and nothing to say about it.
+  - it: takes an empty runner block, and says nothing about it
+    templates:
+      - templates/NOTES.txt
+    set:
+      runner: null
+    asserts:
+      - notMatchRegexRaw:
+          pattern: "IGNORED VALUES: runner"
+
+  - it: says nothing about runner in NOTES.txt when no values file sets it
+    templates:
+      - templates/NOTES.txt
+    asserts:
+      - notMatchRegexRaw:
+          pattern: "IGNORED VALUES: runner"
+
+  # An install that turned the global Runner off had its code fixes from the
+  # shared Runner (on by default) until now. With the shared Runner gone, the
+  # repositories on the Global Runner get none, so NOTES.txt says so, and what
+  # to do - whatever the values file says, or no longer says, about runner.
+  - it: tells an install that turned the global Runner off that the repositories on the Global Runner get no code fixes now
+    templates:
+      - templates/NOTES.txt
+    set:
+      globalRunner:
+        enabled: false
+    asserts:
+      - matchRegexRaw:
+          pattern: "\\nThe bundled global Runner is off \\(`globalRunner\\.enabled: false`\\)\\.\\nGlobal Runners also do the AI code fixes of the code repositories on the\\nGlobal Runner, which the shared Runner did before the chart stopped running\\nit, so those repositories get no AI code fixes from this chart now\\."
+      - matchRegexRaw:
+          pattern: "Turn it\\nback on, add a global Runner in the Admin Dashboard \\(Settings > Global\\nRunners\\), or pick a Runner of your own for those repositories in Code\\."
+      # Nothing under runner: is in this values file.
+      - notMatchRegexRaw:
+          pattern: "IGNORED VALUES: runner"
+
+  - it: says the same of a global Runner turned off with replicaCount 0, and names that setting
+    templates:
+      - templates/NOTES.txt
+    set:
+      globalRunner:
+        replicaCount: 0
+    asserts:
+      - matchRegexRaw:
+          pattern: "\\nThe bundled global Runner is off \\(`globalRunner\\.replicaCount: 0`\\)\\.\\n"
+      - notMatchRegexRaw:
+          pattern: "`globalRunner\\.enabled: false`\\)\\.\\nGlobal Runners also do"
+
+  - it: says it beside the ignored runner block of an old values file that kept the shared Runner on
+    templates:
+      - templates/NOTES.txt
+    set:
+      runner:
+        enabled: true
+      globalRunner:
+        enabled: false
+    asserts:
+      - matchRegexRaw:
+          pattern: "\\nIGNORED VALUES: runner\\n"
+      - matchRegexRaw:
+          pattern: "\\nThe bundled global Runner is off \\(`globalRunner\\.enabled: false`\\)\\."
+
+  - it: says nothing of a global Runner turned off while it runs, as it does by default
+    templates:
+      - templates/NOTES.txt
+    asserts:
+      - notMatchRegexRaw:
+          pattern: "The bundled global Runner is off"
+
+  - it: says nothing of it while KEDA scales a running global Runner
+    templates:
+      - templates/NOTES.txt
+    set:
+      keda:
+        enabled: true
+      globalRunner:
+        replicaCount: 2
+        keda:
+          enabled: true
+    asserts:
+      - notMatchRegexRaw:
+          pattern: "The bundled global Runner is off"

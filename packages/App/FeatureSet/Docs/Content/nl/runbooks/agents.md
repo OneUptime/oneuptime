@@ -62,6 +62,7 @@ Globale Runners zijn de Runners die OneUptime voor elk project draait. Een JavaS
 | Langste looptijd van een stap | 5 minuten | 1 uur |
 | Geheime variabelen | Die u globale Runners laat gebruiken | Die hem vermelden |
 | Bash-opdrachten van OneUptime AI | Nooit | Voor de AI-regels die hem kiezen |
+| Codecorrecties van OneUptime AI | Ter review geopend zonder ze te bouwen of te testen | Gebouwd en getest voordat de pull request opent |
 
 Een globale Runner voert de stappen van veel projecten uit, dus elke stap wordt gescheiden gehouden van alle andere:
 
@@ -70,15 +71,17 @@ Een globale Runner voert de stappen van veel projecten uit, dus elke stap wordt 
 - Hij krijgt een geheime variabele alleen als haar schakelaar **Globale Runners mogen het gebruiken** aan staat, en alleen voor een stap van het eigen project van de variabele.
 - Een project voert hooguit drie stappen tegelijk uit op globale Runners, zodat geen project ze voor zichzelf houdt.
 
+Een globale Runner neemt ook de codecorrecties van OneUptime AI op zich, in elke coderepository die op **Globale Runner** werkt. Hij schrijft elke correctie en opent de pull request, maar voert geen enkele opdracht uit, ook niet de setup-, build- en testopdrachten van de repository, dus de pull request meldt dat de controle is overgeslagen. Hij bereikt alleen Git-servers op het internet, via HTTPS, behalve bij een zelf gehoste OneUptime, waar hij ook de private Git-servers mag bereiken die de server zelf mag bereiken. Hij handelt alleen voor de correcties die hij oppakt, en krijgt het token van een repository alleen terwijl hij daar aan een correctie werkt. Het token van een GitHub-repository bereikt alleen die ene repository en wordt ingetrokken wanneer de correctie eindigt.
+
 Kies een van uw eigen Runners voor een stap die uw netwerk moet bereiken, of om de stap op hosts te houden die u beheert. Om elke stap op uw eigen Runners te houden, zet u **Globale Runners gebruiken** uit onderaan **Runbooks → Runbook-agenten**. Een JavaScript-stap die geen Runner kiest, loopt dan op de standaard-Runner van het project of mislukt, als er geen is ingesteld, met een melding, totdat hij een van uw Runners kiest; een stap die een van uw Runners kiest, houdt die in elk geval. Een code-repository die in zijn instellingen in Code geen Runner kiest, werkt ook op de standaard-Runner van het project of, als er geen is ingesteld, op een globale Runner, en heeft een van uw Runners nodig zolang de schakelaar uit staat; zie [Code](/docs/ai/ai-agent#de-runner-van-de-repository-kiezen).
 
 ### Waar globale Runners vandaan komen
 
 Op OneUptime Cloud draait OneUptime ze. Een zelf gehoste installatie draait standaard een eigen exemplaar, zoals ze haar eigen globale probes draait: de service `global-runner` in Docker Compose en de deployment `globalRunner` in de Helm-chart. Die heeft een eigen sleutel, `GLOBAL_RUNNER_KEY`, en verder niets van de server.
 
-Een hoofdbeheerder kan er meer toevoegen, om stappen vanaf andere hosts uit te voeren: open in het beheerdashboard **Instellingen** en daarna **Globale Runners**, maak er een aan en voer de opdracht die zijn **ID en sleutel tonen** geeft uit op een host die het internet bereikt.
+Een hoofdbeheerder kan er meer toevoegen, om stappen en codecorrecties vanaf andere hosts uit te voeren: open in het beheerdashboard **Instellingen** en daarna **Globale Runners**, maak er een aan en voer de opdracht die zijn **ID en sleutel tonen** geeft uit op een host die het internet bereikt.
 
-Om de meegeleverde uit te zetten, stelt u `GLOBAL_RUNNER_REPLICAS=0` in de `config.env` van Docker Compose in, of `globalRunner.enabled` op `false` in de Helm-chart. Zonder enige globale Runner toont **Runbooks → Runbook-agenten** alleen uw eigen Runners, en kiest elke JavaScript-stap een daarvan.
+Om de meegeleverde uit te zetten, stelt u `GLOBAL_RUNNER_REPLICAS=0` in de `config.env` van Docker Compose in, of `globalRunner.enabled` op `false` in de Helm-chart. Zonder enige globale Runner toont **Runbooks → Runbook-agenten** alleen uw eigen Runners, en kiezen elke JavaScript-stap en elke coderepository een daarvan.
 
 ## Voordat u begint
 
@@ -302,7 +305,7 @@ Voor wie het wil weten: de Runner gebruikt deze endpoints, gekoppeld onder `/run
 | `POST /job/:jobId/result` | Het eindresultaat indienen. Wordt genegeerd als de lease al is doorgegaan. |
 | `POST /disconnect` | Afmelden bij een nette afsluiting. |
 
-U zou ze niet met de hand hoeven aan te roepen: de meegeleverde Runner doet dat. Ze staan hier zodat u uw eigen agent kunt bouwen als u een beperking hebt waar de onze niet in past.
+U zou ze niet met de hand hoeven aan te roepen: de Runner-container doet dat. Ze staan hier zodat u uw eigen agent kunt bouwen als u een beperking hebt waar de onze niet in past.
 
 ## Problemen oplossen
 

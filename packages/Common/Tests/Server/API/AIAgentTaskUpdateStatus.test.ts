@@ -308,9 +308,11 @@ describe("POST /ai-agent-task/update-task-status", () => {
     await report({ status: AIAgentTaskStatus.Completed });
 
     expect(succeeded()).toBe(true);
+    // The run's project, state and who claimed it (deniesAccessToRun).
     expect(selectedColumns()).toEqual({
       _id: true,
       projectId: true,
+      aiAgentId: true,
       status: true,
     });
     expect(transition().set.status).toBe(AIRunStatus.Completed);

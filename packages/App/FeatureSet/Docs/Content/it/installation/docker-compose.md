@@ -22,7 +22,7 @@ flowchart TB
         Ingress["ingress"]
         App["app"]
         Probe["probe-1"]
-        Runner["runner"]
+        Runner["global-runner"]
         subgraph Data["Datastore"]
             direction LR
             PG[("postgres")]
@@ -38,7 +38,7 @@ flowchart TB
     App --> CH
     App --> VK
     Probe -->|risultati| Ingress
-    Runner -->|job| Ingress
+    Runner -->|job| App
     Probe -->|controlli| Targets
     Data ~~~ Probe
     Data ~~~ Runner
@@ -49,7 +49,7 @@ flowchart TB
 | `ingress` | `oneuptime/nginx` | Riceve tutto il traffico sulle porte 80 e 443 e lo instrada verso l'app. Serve HTTPS quando OneUptime gestisce il certificato. |
 | `app` | `oneuptime/app` | La dashboard, l'API, le pagine di stato, l'ingestione della telemetria e i worker in background. |
 | `probe-1` | `oneuptime/probe` | Una sonda globale che esegue i controlli dei tuoi monitor. Usa la rete dell'host. |
-| `runner` | `oneuptime/runner` | Il Runner dell'istanza, che esegue le correzioni del codice con l'IA. Usa la rete dell'host. |
+| `global-runner` | `oneuptime/runner` | Il Runner globale incluso, che esegue i passaggi JavaScript dei runbook e le correzioni del codice di OneUptime AI per ogni progetto. |
 | `postgres` | `postgres:15` | Configurazione e stato: monitor, incidenti, utenti. Conservati nel volume `postgres`. |
 | `clickhouse` | `clickhouse/clickhouse-server:26.7` | Telemetria: log, metriche, trace ed eccezioni. Conservata nel volume `clickhouse`. |
 | `valkey` | `valkey/valkey:9.1-alpine` | Cache e code. Non conserva nulla su disco. |
@@ -86,7 +86,6 @@ Ti servono anche:
 | 443 | `ingress` | `STATUS_PAGE_HTTPS_PORT` | HTTPS per la tua istanza quando OneUptime gestisce il certificato, e per le pagine di stato e le dashboard su domini personalizzati. |
 | 5400 | `postgres` | Impostata in `docker-compose.yml` | Permette a `npm run backup` e a `restore.sh` di raggiungere PostgreSQL dal server stesso. È pubblicata solo su `127.0.0.1`. |
 | 3874 | `probe-1` | `GLOBAL_PROBE_1_PORT` | Il server proprio della sonda. Niente fuori dal server ne ha bisogno. |
-| 3876 | `runner` | `ONEUPTIME_RUNNER_PORT` | Il server proprio del Runner. Niente fuori dal server ne ha bisogno. |
 
 C'è anche una [guida video](https://youtu.be/j1SWmMW2oL4) dell'installazione.
 
@@ -158,8 +157,7 @@ Chiunque possa raggiungere la pagina può registrarsi dopo di te. Per impedirlo,
 | `DATABASE_PASSWORD`, `CLICKHOUSE_PASSWORD`, `VALKEY_PASSWORD` | I tre datastore. |
 | `REGISTER_PROBE_KEY` | La registrazione delle sonde presso la tua istanza. |
 | `GLOBAL_PROBE_1_KEY`, `GLOBAL_PROBE_2_KEY` | Le sonde globali che Docker Compose può eseguire (`probe-1` è attiva per impostazione predefinita). |
-| `ONEUPTIME_RUNNER_KEY` | Il Runner incluso. |
-| `GLOBAL_RUNNER_KEY` | Il Runner globale incluso, che esegue i passaggi JavaScript di tutti i progetti. |
+| `GLOBAL_RUNNER_KEY` | Il Runner globale incluso, che esegue i passaggi JavaScript e le correzioni del codice con l'IA di tutti i progetti. |
 
 > [!IMPORTANT]
 > Non cambiare i secret una volta avviato OneUptime. PostgreSQL prende la sua password solo quando crea il database, e cambiare `ENCRYPTION_SECRET` in seguito rende illeggibile ogni valore cifrato con quello vecchio. Per questo `npm start` imposta `DATABASE_PASSWORD` ed `ENCRYPTION_SECRET` solo su una nuova installazione, prima che PostgreSQL crei il suo database.
@@ -234,7 +232,7 @@ ONEUPTIME_HTTP_PORT=127.0.0.1:8080
 STATUS_PAGE_HTTPS_PORT=127.0.0.1:8443
 ```
 
-La sonda e il Runner usano la rete dell'host e raggiungono OneUptime tramite `http://localhost`. `npm start` li sposta sulla nuova porta dell'ingress, `http://localhost:8080`, e lo dice.
+La sonda usa la rete dell'host e raggiunge OneUptime tramite `http://localhost`. `npm start` la sposta sulla nuova porta dell'ingress, `http://localhost:8080`, e lo dice.
 
 #### Indica a OneUptime che è dietro un proxy
 
@@ -541,7 +539,7 @@ Quando un ordine fallisce, l'app registra un errore che inizia con `CoreSSL:Ensu
 :::
 
 :::details La sonda inclusa risulta Disconnesso dopo che hai spostato la porta dell'ingress
-L'Admin Dashboard elenca la sonda in **Impostazioni > Monitoraggio > Sonde globali**. Raggiunge OneUptime su `GLOBAL_PROBE_1_ONEUPTIME_URL`, che per impostazione predefinita è `http://localhost` (porta 80). `npm start` lo sposta, insieme a `ONEUPTIME_RUNNER_ONEUPTIME_URL`, sulla porta dell'ingress finché puntano a `localhost`. Se li hai impostati su un altro indirizzo, o hai avviato OneUptime con la Docker CLI, imposta entrambi sulla nuova porta dell'ingress, per esempio `http://localhost:8080`, e riavvia OneUptime.
+L'Admin Dashboard elenca la sonda in **Impostazioni > Monitoraggio > Sonde globali**. Raggiunge OneUptime su `GLOBAL_PROBE_1_ONEUPTIME_URL`, che per impostazione predefinita è `http://localhost` (porta 80). `npm start` lo sposta sulla porta dell'ingress finché punta a `localhost`. Se lo hai impostato su un altro indirizzo, o hai avviato OneUptime con la Docker CLI, impostalo sulla nuova porta dell'ingress, per esempio `http://localhost:8080`, e riavvia OneUptime.
 :::
 
 ## Passi successivi

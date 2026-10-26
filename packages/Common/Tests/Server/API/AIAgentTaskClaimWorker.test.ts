@@ -36,9 +36,9 @@ import {
  * A repository picks the Runner AI works in it on, so the code-fix claim
  * and the queue depth a Runner autoscales on are read for WHO asks
  * (CodeFixAgentAuth.getCodeWorker): a project's Runner takes the runs of
- * the repositories that pick it, a global Runner for code (a global AI
- * agent) those of repositories that pick none in every project that uses
- * global Runners, and an AI agent of a project's own those of its project's
+ * the repositories that pick it, a global Runner (a Runner with no project)
+ * those of repositories that pick none in every project that uses global
+ * Runners, and an AI agent of a project's own those of its project's
  * repositories that pick none. Both routes hand the same facts on, so a
  * Runner never scales up for runs it would never be handed.
  */
@@ -86,7 +86,17 @@ const IDENTITIES: Array<Identity> = [
     worker: { kind: CodeWorkerKind.ProjectRunner, id: IDENTITY_ID },
   },
   {
-    label: "a global Runner for code",
+    label: "a global Runner",
+    source: CodeFixAgentSource.Runner,
+    worker: { kind: CodeWorkerKind.GlobalRunner, id: IDENTITY_ID },
+  },
+  /*
+   * CodeFixAgentAuth proves no AI agent without a project any more; were one
+   * ever let through, it is served as a global Runner, never as an agent of
+   * every project.
+   */
+  {
+    label: "an AI agent with no project, were one ever let through",
     source: CodeFixAgentSource.AIAgent,
     worker: { kind: CodeWorkerKind.GlobalRunner, id: IDENTITY_ID },
   },

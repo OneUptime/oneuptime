@@ -155,15 +155,6 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
       <SideMenuSection title={t("sideMenu.settingsAi")} defaultCollapsed={true}>
         <SideMenuItem
           link={{
-            title: t("sideMenu.settingsGlobalAiAgents"),
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SETTINGS_AI_AGENTS] as Route,
-            ),
-          }}
-          icon={IconProp.Automation}
-        />
-        <SideMenuItem
-          link={{
             title: t("sideMenu.settingsGlobalLlmProviders"),
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SETTINGS_LLM_PROVIDERS] as Route,

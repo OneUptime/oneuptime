@@ -129,36 +129,36 @@ tests:
 
   - it: takes a service's list with no chart-wide default set at all
     templates:
-      - templates/runner.yaml
+      - templates/nginx.yaml
     documentSelector:
       path: kind
       value: Deployment
     set:
-      runner:
+      nginx:
         extraEnv:
-          - name: RUNNER_ONLY
+          - name: NGINX_ONLY
             value: "1"
         extraVolumes:
-          - name: runner-scratch
+          - name: nginx-scratch
             emptyDir: {}
         extraVolumeMounts:
-          - name: runner-scratch
+          - name: nginx-scratch
             mountPath: /scratch
     asserts:
       - contains:
           path: spec.template.spec.containers[0].env
           content:
-            name: RUNNER_ONLY
+            name: NGINX_ONLY
             value: "1"
       - contains:
           path: spec.template.spec.volumes
           content:
-            name: runner-scratch
+            name: nginx-scratch
             emptyDir: {}
       - contains:
           path: spec.template.spec.containers[0].volumeMounts
           content:
-            name: runner-scratch
+            name: nginx-scratch
             mountPath: /scratch
 
   # Probes are a map, so the override is read off the individual probe rather
