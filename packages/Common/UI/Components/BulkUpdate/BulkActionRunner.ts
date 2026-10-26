@@ -1,5 +1,6 @@
 import GenericObject from "../../../Types/GenericObject";
 import API from "../../Utils/API/API";
+import { BULK_ACTION_CONCURRENCY } from "./BulkActionConcurrency";
 import {
   BulkActionFailed,
   BulkActionOnClickProps,
@@ -56,19 +57,8 @@ export function bulkItemUnchanged(reason: string): BulkItemOutcome {
   };
 }
 
-/*
- * How many items a bulk action works on at once unless it says otherwise.
- *
- * Four: while one item's request waits on the database or on Slack, the
- * server works on the next. And four leave room for the page itself - a
- * browser keeps six connections to one server over HTTP/1.1, and the side
- * menu's counts and the page's other reads go on through the other two.
- *
- * An action passes 1 when its items' writes read shared state on the server
- * (a plan's monitor count, a network site's health rollup): each write must
- * see the one before it finished.
- */
-export const BULK_ACTION_CONCURRENCY: number = 4;
+// How many items at once unless an action says otherwise (see its module).
+export { BULK_ACTION_CONCURRENCY };
 
 /*
  * How often, at most, a run tells the progress modal where it is. Ten times

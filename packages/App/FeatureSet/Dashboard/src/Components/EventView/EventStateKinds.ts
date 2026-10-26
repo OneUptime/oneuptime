@@ -18,7 +18,7 @@ import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintena
 import ScheduledMaintenanceNoteTemplate from "Common/Models/DatabaseModels/ScheduledMaintenanceNoteTemplate";
 import ScheduledMaintenancePublicNote from "Common/Models/DatabaseModels/ScheduledMaintenancePublicNote";
 import ScheduledMaintenanceStateTimeline from "Common/Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
-import { BULK_ACTION_CONCURRENCY } from "Common/UI/Components/BulkUpdate/BulkActionRunner";
+import { BULK_ACTION_CONCURRENCY } from "Common/UI/Components/BulkUpdate/BulkActionConcurrency";
 import {
   PluralTemplate,
   translationKey,
