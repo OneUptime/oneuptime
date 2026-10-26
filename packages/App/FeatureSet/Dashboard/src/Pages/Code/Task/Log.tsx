@@ -51,7 +51,9 @@ import CodeApi, { CodeTaskResponse } from "../../../Components/Code/CodeApi";
 import { getCodeTaskTrail } from "../../../Components/Code/CodeTaskTrail";
 import {
   CODE_TASK_LOG_TURN_COPY,
+  CodeTaskLogRecordCopy,
   CodeTaskLogTurn,
+  getCodeTaskLogRecordCopy,
   getCodeTaskLogTurnRoute,
   getCodeTaskLogTurns,
   getShownTurnRunId,
@@ -257,8 +259,14 @@ const LogEntryRow: FunctionComponent<{
         entry.contentPayload.responseToolCalls?.length),
   );
 
+  /*
+   * One line on a wide screen. On a phone the time and the tool's pill
+   * fill a line on their own, so the step's words take the next line -
+   * lined up with the time, as a pill that does not fit beside the time is
+   * - rather than being cut to nothing.
+   */
   const header: ReactElement = (
-    <div className="flex w-full items-center gap-3 text-left">
+    <div className="flex w-full items-center gap-3 text-left max-sm:items-start">
       <Icon
         icon={
           hasContent
@@ -267,32 +275,35 @@ const LogEntryRow: FunctionComponent<{
               : IconProp.ChevronRight
             : IconProp.Circle
         }
-        className={`h-3 w-3 shrink-0 ${
+        className={`h-3 w-3 shrink-0 max-sm:mt-1 ${
           hasContent ? "text-gray-500" : "text-gray-400"
         }`}
       />
-      <span className="shrink-0 font-mono text-xs text-gray-400">
-        {formatTimestamp(entry.createdAt)}
-      </span>
-      <Pill
-        text={getEntryLabel(entry)}
-        color={getEntryColor(entry)}
-        isMinimal={true}
-      />
-      <span
-        className={`truncate text-sm ${
-          isFailureEntry(entry) ? "text-red-600" : "text-gray-700"
-        }`}
-      >
-        {entry.message || translator.translateText("(no message)")}
-      </span>
-      {entry.durationInMs !== undefined ? (
-        <span className="ml-auto shrink-0 text-xs text-gray-400">
-          {entry.durationInMs} ms
+      <div className="flex min-w-0 flex-1 items-center gap-x-3 gap-y-0.5 max-sm:flex-wrap">
+        <span className="shrink-0 font-mono text-xs text-gray-400">
+          {formatTimestamp(entry.createdAt)}
         </span>
-      ) : (
-        <></>
-      )}
+        <Pill
+          text={getEntryLabel(entry)}
+          color={getEntryColor(entry)}
+          isMinimal={true}
+        />
+        <span
+          data-testid="code-task-log-entry-message"
+          className={`truncate text-sm max-sm:order-last max-sm:basis-full ${
+            isFailureEntry(entry) ? "text-red-600" : "text-gray-700"
+          }`}
+        >
+          {entry.message || translator.translateText("(no message)")}
+        </span>
+        {entry.durationInMs !== undefined ? (
+          <span className="ml-auto shrink-0 text-xs text-gray-400">
+            {entry.durationInMs} ms
+          </span>
+        ) : (
+          <></>
+        )}
+      </div>
     </div>
   );
 
@@ -464,7 +475,7 @@ const LlmCallRow: FunctionComponent<{ call: LlmCallLog }> = (props: {
   const isError: boolean = call.status.toLowerCase() === "error";
 
   return (
-    <div className="flex items-center gap-3 border-b border-gray-100 py-2">
+    <div className="flex items-center gap-x-3 gap-y-0.5 border-b border-gray-100 py-2 max-sm:flex-wrap">
       <span className="shrink-0 font-mono text-xs text-gray-400">
         {formatTimestamp(call.startedAt)}
       </span>
@@ -473,12 +484,14 @@ const LlmCallRow: FunctionComponent<{ call: LlmCallLog }> = (props: {
         color={isError ? Red : Green}
         isMinimal={true}
       />
-      <span className="text-sm text-gray-700">
+      <span className="min-w-0 break-words text-sm text-gray-700 max-sm:order-last max-sm:basis-full">
         {call.modelName}
         {call.providerName ? ` · ${call.providerName}` : ""}
       </span>
       {isError && call.statusMessage ? (
-        <span className="text-sm text-red-600">{call.statusMessage}</span>
+        <span className="min-w-0 break-words text-sm text-red-600 max-sm:order-last max-sm:basis-full">
+          {call.statusMessage}
+        </span>
       ) : (
         <></>
       )}
@@ -612,6 +625,11 @@ const CodeTaskLogPage: FunctionComponent<
   const turns: Array<CodeTaskLogTurn> = useMemo(() => {
     return getCodeTaskLogTurns(task?.turns || []);
   }, [task]);
+
+  // "this task", or "this turn" once the picker lists more than one.
+  const recordCopy: CodeTaskLogRecordCopy = getCodeTaskLogRecordCopy(
+    turns.length,
+  );
 
   /*
    * Another turn picked: its record starts from nothing, so nothing of the
@@ -802,11 +820,23 @@ const CodeTaskLogPage: FunctionComponent<
     );
   }
 
+  /*
+   * The turn's record could not be read: said under the way back and the
+   * picker, with a way to read it again - a finished turn's page does not
+   * poll, so nothing else would.
+   */
   if (error && entries.length === 0) {
     return (
       <div className="space-y-5">
         {header}
-        <ErrorMessage message={error} />
+        <ErrorMessage
+          message={error}
+          onRefreshClick={(): void => {
+            fetchData().catch(() => {
+              // handled inside fetchData
+            });
+          }}
+        />
       </div>
     );
   }
@@ -830,11 +860,7 @@ const CodeTaskLogPage: FunctionComponent<
 
         <Card
           title="Session Log"
-          description={
-            isActive
-              ? "Every step this task has taken so far. Updates every 5 seconds."
-              : "Every step this task took, in order. Expand a step to see what the model was sent and what it said."
-          }
+          description={isActive ? recordCopy.stepsSoFar : recordCopy.steps}
         >
           {entries.length === 0 ? (
             <EmptyState
@@ -842,9 +868,7 @@ const CodeTaskLogPage: FunctionComponent<
               icon={IconProp.List}
               title={isActive ? "Nothing logged yet" : "No logs"}
               description={
-                isActive
-                  ? "This task has not reported a step yet. This page updates on its own."
-                  : "This task recorded no steps. If it failed before starting, the reason is in the conversation."
+                isActive ? recordCopy.nothingYet : recordCopy.nothing
               }
             />
           ) : (
@@ -857,10 +881,7 @@ const CodeTaskLogPage: FunctionComponent<
         </Card>
 
         {llmCalls.length > 0 ? (
-          <Card
-            title="LLM Calls"
-            description="Each model call this task made, with its tokens and timing."
-          >
+          <Card title="LLM Calls" description={recordCopy.calls}>
             <div className="space-y-1">
               {llmCalls.map((call: LlmCallLog) => {
                 return <LlmCallRow key={call.key} call={call} />;

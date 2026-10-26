@@ -2367,7 +2367,7 @@ describe("GitHubWebhookHandler", () => {
       const settingsUrl: string = `${DashboardClientUrl.toString()}/${projectId.toString()}/code/repositories/${codeRepositoryId.toString()}/settings#github-commands`;
 
       expect(commentArguments(1).body).toContain(
-        `A project admin can turn them back on in OneUptime: [Respond to GitHub Commands](${settingsUrl}).`,
+        `A project admin can turn them back on in OneUptime, with this repository's [Respond to GitHub Commands](${settingsUrl}) switch.`,
       );
       expect(commentArguments(1).body).toContain(
         "> GitHub commands are switched off for this repository.",

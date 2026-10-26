@@ -1,5 +1,15 @@
 import { describe, expect, test } from "@jest/globals";
 import {
+  CODE_GLOBAL_RUNNER_CHOICE_DESCRIPTION,
+  CODE_GLOBAL_RUNNER_CHOICE_DESCRIPTION_BRANCH,
+  CODE_GLOBAL_RUNNER_CHOICE_DESCRIPTION_MERGE_REQUEST,
+  CODE_GLOBAL_RUNNER_HELPER_TEXT,
+  CODE_GLOBAL_RUNNER_HELPER_TEXT_BRANCH,
+  CODE_GLOBAL_RUNNER_HELPER_TEXT_MERGE_REQUEST,
+  CODE_OWN_RUNNER_HELPER_TEXT,
+  CODE_OWN_RUNNER_HELPER_TEXT_BRANCH,
+  CODE_OWN_RUNNER_HELPER_TEXT_MERGE_REQUEST,
+  CodeRepositoryRunnerWords,
   GLOBAL_RUNNER_CHOICE_LABEL,
   GLOBAL_RUNNER_CHOICE_VALUE,
   GLOBAL_RUNNER_PICK_VALUE,
@@ -17,6 +27,7 @@ import {
   RuleRunnerLine,
   buildRunnerPickerModel,
   canGlobalRunnersRunWork,
+  getCodeRepositoryRunnerWords,
   getGlobalRunnersLiveStatus,
   getNewRuleRunnerId,
   getProjectDefaultRunner,
@@ -29,6 +40,7 @@ import {
   offersGlobalRunner,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Runner/RunnerPickerModel";
 import RunbookStepType from "../../../Types/Runbook/RunbookStepType";
+import CodeRepositoryType from "../../../Types/CodeRepository/CodeRepositoryType";
 import {
   ChosenRunnerKind,
   GLOBAL_RUNNER_CHOICE_ID,
@@ -1763,5 +1775,98 @@ describe("where a record picked no Runner, every picker's default", () => {
         }).sort(),
       );
     }
+  });
+});
+
+/*
+ * A code repository's Runner lines say what AI's work becomes where the
+ * repository is hosted: a pull request on GitHub and Forgejo, a merge
+ * request on GitLab - as its Merge Requests card says - and, on a Git
+ * server, where AI opens no pull request at all, the branch it pushes.
+ */
+describe("a code repository's Runner lines, in its host's words", () => {
+  const PULL_REQUEST_WORDS: CodeRepositoryRunnerWords = {
+    globalRunnerDescription: CODE_GLOBAL_RUNNER_CHOICE_DESCRIPTION,
+    globalRunnerHelperText: CODE_GLOBAL_RUNNER_HELPER_TEXT,
+    ownRunnerHelperText: CODE_OWN_RUNNER_HELPER_TEXT,
+  };
+
+  test.each([
+    [CodeRepositoryType.GitHub, PULL_REQUEST_WORDS],
+    [CodeRepositoryType.Forgejo, PULL_REQUEST_WORDS],
+    [
+      CodeRepositoryType.GitLab,
+      {
+        globalRunnerDescription:
+          CODE_GLOBAL_RUNNER_CHOICE_DESCRIPTION_MERGE_REQUEST,
+        globalRunnerHelperText: CODE_GLOBAL_RUNNER_HELPER_TEXT_MERGE_REQUEST,
+        ownRunnerHelperText: CODE_OWN_RUNNER_HELPER_TEXT_MERGE_REQUEST,
+      },
+    ],
+    [
+      CodeRepositoryType.Git,
+      {
+        globalRunnerDescription: CODE_GLOBAL_RUNNER_CHOICE_DESCRIPTION_BRANCH,
+        globalRunnerHelperText: CODE_GLOBAL_RUNNER_HELPER_TEXT_BRANCH,
+        ownRunnerHelperText: CODE_OWN_RUNNER_HELPER_TEXT_BRANCH,
+      },
+    ],
+  ] as Array<[CodeRepositoryType, CodeRepositoryRunnerWords]>)(
+    "on %s",
+    (provider: CodeRepositoryType, words: CodeRepositoryRunnerWords) => {
+      expect(getCodeRepositoryRunnerWords(provider)).toEqual(words);
+    },
+  );
+
+  test("a repository whose host is not read yet, or unknown, reads as GitHub's", () => {
+    for (const provider of [undefined, null, "", "Bitbucket"]) {
+      expect(getCodeRepositoryRunnerWords(provider)).toEqual(
+        PULL_REQUEST_WORDS,
+      );
+    }
+  });
+
+  test("each host's lines say its own word, and no other host's", () => {
+    const wordsOf: (provider: CodeRepositoryType) => Array<string> = (
+      provider: CodeRepositoryType,
+    ): Array<string> => {
+      return Object.values(getCodeRepositoryRunnerWords(provider));
+    };
+
+    for (const line of wordsOf(CodeRepositoryType.GitHub)) {
+      expect(line).toContain("pull request");
+      expect(line).not.toContain("merge request");
+    }
+
+    for (const line of wordsOf(CodeRepositoryType.GitLab)) {
+      expect(line).toContain("merge request");
+      expect(line).not.toContain("pull request");
+    }
+
+    // A Git server's: the branch AI pushes, never a request it opens.
+    for (const line of wordsOf(CodeRepositoryType.Git)) {
+      expect(line).toContain("branch");
+      expect(line).not.toContain("pull request");
+      expect(line).not.toContain("merge request");
+    }
+  });
+
+  test("the three hosts' lines are the same sentences, but for that word", () => {
+    const github: CodeRepositoryRunnerWords = getCodeRepositoryRunnerWords(
+      CodeRepositoryType.GitHub,
+    );
+    const gitlab: CodeRepositoryRunnerWords = getCodeRepositoryRunnerWords(
+      CodeRepositoryType.GitLab,
+    );
+
+    expect(gitlab.globalRunnerDescription).toBe(
+      github.globalRunnerDescription.replace("pull request", "merge request"),
+    );
+    expect(gitlab.globalRunnerHelperText).toBe(
+      github.globalRunnerHelperText.replace("pull request", "merge request"),
+    );
+    expect(gitlab.ownRunnerHelperText).toBe(
+      github.ownRunnerHelperText.replace("pull request", "merge request"),
+    );
   });
 });

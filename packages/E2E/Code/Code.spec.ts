@@ -1690,6 +1690,67 @@ test.describe("repositories beyond GitHub: GitLab, Forgejo or Gitea, any Git ser
     await screenshot(page, testInfo, "code-repository-settings-git");
   });
 
+  /*
+   * The Runner card and its picker say what AI's work becomes on the
+   * repository's host, as its Merge Requests or Branches card does: the
+   * merge request on GitLab, the branch AI pushes to a Git server - never
+   * "before the pull request opens" beside a Merge Requests card.
+   */
+  test("a GitLab repository's Runner speaks of the merge request, and a Git server's of the branch AI pushes", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const cases: Array<{
+      path: string;
+      onGlobalRunner: string;
+      pickOne: string;
+      onOwnRunner: string;
+    }> = [
+      {
+        path: `${settingsPath(BILLING)}?hosts=1#runner`,
+        onGlobalRunner:
+          "Run by OneUptime for every project. It does not build or test AI's change before the merge request opens.",
+        pickOne:
+          "AI works on a Runner OneUptime runs for every project, which does not build or test its change. Pick one of your Runners to have AI build and test it before the merge request opens.",
+        onOwnRunner:
+          "AI clones the repository on this Runner, builds and tests its change there the way the repository's AGENTS.md says, and opens the merge request.",
+      },
+      {
+        path: `${settingsPath(INFRA)}?hosts=1&gitrunner=none#runner`,
+        onGlobalRunner:
+          "Run by OneUptime for every project. It does not build or test AI's change before the branch is pushed.",
+        pickOne:
+          "AI works on a Runner OneUptime runs for every project, which does not build or test its change. Pick one of your Runners to have AI build and test it before the branch is pushed.",
+        onOwnRunner:
+          "AI clones the repository on this Runner, builds and tests its change there the way the repository's AGENTS.md says, and pushes its branch.",
+      },
+    ];
+
+    for (const each of cases) {
+      await page.goto(each.path);
+
+      const runner: Locator = page.locator("#runner");
+      await expect(
+        runner.getByTestId("code-repository-runner-skips"),
+      ).toHaveText(each.onGlobalRunner);
+
+      await runner.getByRole("button", { name: "Edit" }).click();
+      const picker: Locator = page.getByTestId("code-repository-runner-picker");
+      const help: Locator = picker.getByTestId(
+        "code-repository-runner-picker-help",
+      );
+      await expect(help).toHaveText(each.pickOne);
+
+      await picker.getByRole("combobox").click();
+      const options: Locator = page.getByRole("option");
+      await expect(options.first()).toContainText(each.onGlobalRunner);
+      await options.filter({ hasText: "prod-eu-west-1" }).click();
+      await expect(help).toHaveText(each.onOwnRunner);
+      await expect(page.getByTestId("modal")).not.toContainText("pull request");
+    }
+  });
+
   test("a Git server only a Runner reaches, with none picked: AI says so, and Pick a Runner opens its Runner setting", async ({
     page,
   }: {
@@ -3076,6 +3137,12 @@ test.describe("a repository's Runner", () => {
     await expect(
       value.getByTestId("code-repository-runner-default-tag"),
     ).toHaveText("Project default");
+    // The pill Runbooks -> Runners draws beside the default's name.
+    await expect(
+      value
+        .getByTestId("code-repository-runner-default-tag")
+        .getByTestId("pill"),
+    ).toBeVisible();
     // One of the project's own: it builds and tests, nothing says otherwise.
     await expect(value.getByTestId("code-repository-runner-skips")).toHaveCount(
       0,
@@ -3684,6 +3751,141 @@ test.describe("a task's conversation", () => {
     // The way back is still there, and the record is the second turn's.
     await expect(page.getByTestId("code-task-log-back")).toBeVisible();
     await expect(page.getByText("Session Log")).toBeVisible();
+  });
+
+  /*
+   * Under a picker that names one turn, the record is that turn's, and the
+   * page says so: "this turn". A task of one turn's record is the task's.
+   */
+  test("the record under the turn picker is said to be the turn's; a task of one turn's, the task's", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(`${taskPath(TASK.retries)}/log?turn=${TASK.retries}`);
+    await expect(page.getByTestId("code-task-log-turn-picker")).toBeVisible();
+    await expect(
+      page.getByText(
+        "Every step this turn took, in order. Expand a step to see what the model was sent and what it said.",
+      ),
+    ).toBeVisible();
+
+    await page.goto(`${taskPath(TASK.failed)}/log`);
+    await expect(
+      page.getByText(
+        "Every step this task took, in order. Expand a step to see what the model was sent and what it said.",
+      ),
+    ).toBeVisible();
+    await expect(page.getByTestId("code-task-log-turn-picker")).toHaveCount(0);
+  });
+
+  /*
+   * A step's row: on a phone the time and the tool's pill fill a line, so
+   * the step's words take the next one, lined up with the time - the row
+   * used to keep one line there and cut the words to nothing. On a laptop
+   * they stay beside the time.
+   */
+  test("each step's words are read in full: under its time on a phone, beside it on a laptop", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await page.goto(`${taskPath(TASK.retries)}/log?turn=${TASK.retries}`);
+
+    const words: Locator = page.getByTestId("code-task-log-entry-message");
+    await expect(words).toHaveCount(7);
+    await expect(words.first()).toHaveText("src/payments/client.ts");
+
+    const rows: Array<{
+      text: string;
+      wordsLeft: number;
+      wordsTop: number;
+      wordsWidth: number;
+      isCut: boolean;
+      timeLeft: number;
+      timeBottom: number;
+    }> = await words.evaluateAll(
+      (
+        elements: Array<Element>,
+      ): Array<{
+        text: string;
+        wordsLeft: number;
+        wordsTop: number;
+        wordsWidth: number;
+        isCut: boolean;
+        timeLeft: number;
+        timeBottom: number;
+      }> => {
+        return elements.map((element: Element) => {
+          const own: DOMRect = element.getBoundingClientRect();
+          // The row's first part is the step's time.
+          const time: DOMRect =
+            element.parentElement!.firstElementChild!.getBoundingClientRect();
+
+          return {
+            text: element.textContent || "",
+            wordsLeft: own.left,
+            wordsTop: own.top,
+            wordsWidth: own.width,
+            isCut: element.scrollWidth > element.clientWidth,
+            timeLeft: time.left,
+            timeBottom: time.bottom,
+          };
+        });
+      },
+    );
+
+    const isPhone: boolean = testInfo.project.name === "phone";
+
+    for (const row of rows) {
+      expect(row.wordsWidth, row.text).toBeGreaterThan(0);
+      expect(row.isCut, row.text).toBe(false);
+
+      if (isPhone) {
+        expect(row.wordsTop, row.text).toBeGreaterThanOrEqual(
+          row.timeBottom - 1,
+        );
+        expect(Math.abs(row.wordsLeft - row.timeLeft), row.text).toBeLessThan(
+          1.5,
+        );
+      } else {
+        expect(row.wordsTop, row.text).toBeLessThan(row.timeBottom);
+        expect(row.wordsLeft, row.text).toBeGreaterThan(row.timeLeft);
+      }
+    }
+
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-task-log-steps");
+  });
+
+  /*
+   * A record that could not be read: said under the way back and the turn
+   * picker, which stay, with Refresh - a finished turn's page does not
+   * poll, so nothing else would read it again.
+   */
+  test("a turn's record that could not be read keeps the way back and the picker, and Refresh reads it again", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await page.goto(
+      `${taskPath(TASK.retries)}/log?turn=${TASK.retries}&fail=logonce`,
+    );
+
+    await expect(page.getByText("The log could not be read.")).toBeVisible();
+    await expect(page.getByTestId("code-task-log-back")).toBeVisible();
+    await expect(page.getByTestId("code-task-log-turn-picker")).toContainText(
+      "Turn 1",
+    );
+    await screenshot(page, testInfo, "code-task-log-unread");
+
+    await page.getByTestId("refresh-button").click();
+
+    await expect(page.getByText("Session Log")).toBeVisible();
+    await expect(
+      page.getByTestId("code-task-log-entry-message").first(),
+    ).toHaveText("src/payments/client.ts");
+    await expect(page.getByText("The log could not be read.")).toHaveCount(0);
   });
 
   test("its header says where it works - its repository, the branch it works from - how much it changed, and opens its pull request", async ({

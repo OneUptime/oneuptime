@@ -1,3 +1,7 @@
+import {
+  CodeHost,
+  CodeHostCapability,
+} from "Common/Types/CodeRepository/CodeHost";
 import RunnerLiveStatus from "Common/Types/Runner/RunnerLiveStatus";
 import { canGlobalRunnersRunStepType } from "Common/Types/Runner/GlobalRunnerWork";
 import {
@@ -210,6 +214,80 @@ export const CODE_GLOBAL_RUNNER_HELPER_TEXT: string = translationKey(
 export const CODE_OWN_RUNNER_HELPER_TEXT: string = translationKey(
   "AI clones the repository on this Runner, builds and tests its change there the way the repository's AGENTS.md says, and opens the pull request.",
 );
+
+/*
+ * The same three lines on a GitLab repository, in GitLab's word - a merge
+ * request (CodeHost's pullRequestTerm), as its Merge Requests card says -
+ * and on a Git server, where AI pushes a branch and opens no pull request
+ * (no CodeHostCapability.PullRequests), as its Branches card says.
+ */
+export const CODE_GLOBAL_RUNNER_CHOICE_DESCRIPTION_MERGE_REQUEST: string =
+  translationKey(
+    "Run by OneUptime for every project. It does not build or test AI's change before the merge request opens.",
+  );
+
+export const CODE_GLOBAL_RUNNER_HELPER_TEXT_MERGE_REQUEST: string =
+  translationKey(
+    "AI works on a Runner OneUptime runs for every project, which does not build or test its change. Pick one of your Runners to have AI build and test it before the merge request opens.",
+  );
+
+export const CODE_OWN_RUNNER_HELPER_TEXT_MERGE_REQUEST: string = translationKey(
+  "AI clones the repository on this Runner, builds and tests its change there the way the repository's AGENTS.md says, and opens the merge request.",
+);
+
+export const CODE_GLOBAL_RUNNER_CHOICE_DESCRIPTION_BRANCH: string =
+  translationKey(
+    "Run by OneUptime for every project. It does not build or test AI's change before the branch is pushed.",
+  );
+
+export const CODE_GLOBAL_RUNNER_HELPER_TEXT_BRANCH: string = translationKey(
+  "AI works on a Runner OneUptime runs for every project, which does not build or test its change. Pick one of your Runners to have AI build and test it before the branch is pushed.",
+);
+
+export const CODE_OWN_RUNNER_HELPER_TEXT_BRANCH: string = translationKey(
+  "AI clones the repository on this Runner, builds and tests its change there the way the repository's AGENTS.md says, and pushes its branch.",
+);
+
+/*
+ * A code repository's Runner lines in its host's words: what AI's work
+ * becomes there - a pull request, a merge request on GitLab, or a branch
+ * pushed to a Git server.
+ */
+export interface CodeRepositoryRunnerWords {
+  // Under "Global Runner" in the picker's menu and on the Runner card.
+  globalRunnerDescription: string;
+  // Under the picker while the repository works on the Global Runner.
+  globalRunnerHelperText: string;
+  // Under the picker on one of the project's own Runners.
+  ownRunnerHelperText: string;
+}
+
+export function getCodeRepositoryRunnerWords(
+  provider: string | null | undefined,
+): CodeRepositoryRunnerWords {
+  if (!CodeHost.can(provider, CodeHostCapability.PullRequests)) {
+    return {
+      globalRunnerDescription: CODE_GLOBAL_RUNNER_CHOICE_DESCRIPTION_BRANCH,
+      globalRunnerHelperText: CODE_GLOBAL_RUNNER_HELPER_TEXT_BRANCH,
+      ownRunnerHelperText: CODE_OWN_RUNNER_HELPER_TEXT_BRANCH,
+    };
+  }
+
+  if (CodeHost.getFacts(provider).pullRequestTerm === "merge request") {
+    return {
+      globalRunnerDescription:
+        CODE_GLOBAL_RUNNER_CHOICE_DESCRIPTION_MERGE_REQUEST,
+      globalRunnerHelperText: CODE_GLOBAL_RUNNER_HELPER_TEXT_MERGE_REQUEST,
+      ownRunnerHelperText: CODE_OWN_RUNNER_HELPER_TEXT_MERGE_REQUEST,
+    };
+  }
+
+  return {
+    globalRunnerDescription: CODE_GLOBAL_RUNNER_CHOICE_DESCRIPTION,
+    globalRunnerHelperText: CODE_GLOBAL_RUNNER_HELPER_TEXT,
+    ownRunnerHelperText: CODE_OWN_RUNNER_HELPER_TEXT,
+  };
+}
 
 // Under a code repository's picker in a project that turned global Runners off.
 export const CODE_GLOBAL_RUNNERS_OFF_HELPER_TEXT: string = translationKey(

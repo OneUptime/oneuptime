@@ -2267,6 +2267,42 @@ describe("a repository off GitHub: only what its host has", () => {
     ).toBeInTheDocument();
   });
 
+  /*
+   * The Runner card's value and its Edit's picker are handed where the
+   * repository is hosted, so their lines say what AI's work becomes there:
+   * the merge request on GitLab, the pushed branch on a Git server
+   * (getCodeRepositoryRunnerWords) - never "before the pull request opens"
+   * beside a Merge Requests card.
+   */
+  test("GitLab and a Git server: the Runner card and its picker are handed the host", async () => {
+    for (const provider of [
+      CodeRepositoryType.GitLab,
+      CodeRepositoryType.Git,
+    ]) {
+      hostedOn(provider);
+      draw();
+      await hostRead();
+
+      const runner: Record<string, unknown> = card("Repository > Runner");
+      const value: ReactElement = (
+        runner["modelDetailProps"] as { fields: Array<DetailField> }
+      ).fields[0]!.getElement!(new CodeRepository());
+
+      expect(value.type).toBe(CodeRepositoryRunnerValueView);
+      expect(value.props.provider).toBe(provider);
+
+      const picker: ReactElement = (
+        runner["formFields"] as Array<FormField>
+      )[0]!.getCustomElement!({}, { onChange: (): void => {} }) as ReactElement;
+
+      expect(picker.type).toBe(CodeRepositoryRunnerPicker);
+      expect(picker.props.provider).toBe(provider);
+
+      cleanup();
+      mockDetails.length = 0;
+    }
+  });
+
   test("GitLab: More settings, folded, says a blocked limit in GitLab's word", () => {
     const items: Array<FoldedSectionItem> = getRepositoryMoreSettingsItems(
       { maxOpenFixPullRequests: 0 },

@@ -483,6 +483,7 @@ const CodeRepositorySettings: FunctionComponent<
                         : getCodeRepositoryRunnerChoice(values)
                     }
                     ariaLabelledby={elementProps.ariaLabelledby}
+                    provider={provider}
                     onChange={(picked: string): void => {
                       elementProps.onChange?.(picked);
                     }}
@@ -546,6 +547,7 @@ const CodeRepositorySettings: FunctionComponent<
                     <CodeRepositoryRunnerValueView
                       runnerId={item.runnerId}
                       isGlobalRunnerPicked={item.isGlobalRunnerPicked}
+                      provider={provider}
                       choices={runnerChoices}
                     />
                   );

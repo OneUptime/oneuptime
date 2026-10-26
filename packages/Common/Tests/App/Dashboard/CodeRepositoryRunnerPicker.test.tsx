@@ -37,12 +37,18 @@ import RunnerChoicesLoader, {
 import {
   CODE_GLOBAL_RUNNERS_OFF_HELPER_TEXT,
   CODE_GLOBAL_RUNNER_CHOICE_DESCRIPTION,
+  CODE_GLOBAL_RUNNER_CHOICE_DESCRIPTION_BRANCH,
+  CODE_GLOBAL_RUNNER_CHOICE_DESCRIPTION_MERGE_REQUEST,
   CODE_GLOBAL_RUNNER_HELPER_TEXT,
+  CODE_GLOBAL_RUNNER_HELPER_TEXT_BRANCH,
+  CODE_GLOBAL_RUNNER_HELPER_TEXT_MERGE_REQUEST,
   CODE_GLOBAL_RUNNER_NOT_CONNECTED_TEXT,
   CODE_HIDDEN_RUNNER_HELPER_TEXT,
   CODE_HIDDEN_RUNNER_LABEL,
   CODE_NO_GLOBAL_RUNNER_HELPER_TEXT,
   CODE_OWN_RUNNER_HELPER_TEXT,
+  CODE_OWN_RUNNER_HELPER_TEXT_BRANCH,
+  CODE_OWN_RUNNER_HELPER_TEXT_MERGE_REQUEST,
   CODE_PROJECT_DEFAULT_RUNNER_HELPER_TEXT,
   GLOBAL_RUNNER_CHOICE_DESCRIPTION,
   GLOBAL_RUNNER_CHOICE_LABEL,
@@ -65,6 +71,8 @@ import {
   CodeRepositoryRunnerValue,
   CodeRepositoryRunnerValueView,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeRepositoryRunner";
+import CodeRepositoryType from "../../../Types/CodeRepository/CodeRepositoryType";
+import { PillSize } from "../../../UI/Components/Pill/Pill";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import { JSONObject } from "../../../Types/JSON";
@@ -869,6 +877,47 @@ describe("the Settings page's Runner field and value", () => {
     ).toBeNull();
   });
 
+  /*
+   * "Project default" is the tag Runbooks -> Runners draws beside the
+   * default's name - a small green pill - not loose grey words between the
+   * name and its status.
+   */
+  test("the default's tag is the pill the Runners list draws beside the default's name", async () => {
+    const shownValue: HTMLElement = await value(
+      null,
+      choices({
+        projectRunners: [
+          {
+            id: BASTION_ID,
+            name: "prod-bastion",
+            liveStatus: RunnerLiveStatus.Connected,
+            isProjectDefault: true,
+          },
+        ],
+      }),
+    );
+
+    const tag: HTMLElement = within(shownValue).getByTestId(
+      CODE_REPOSITORY_RUNNER_DEFAULT_TAG_TEST_ID,
+    );
+    const pill: HTMLElement = within(tag).getByTestId("pill");
+
+    expect(pill).toHaveTextContent("Project default");
+    // The Runners list's: Small, and toned (not the minimal outline).
+    expect(pill.style.fontSize).toBe(PillSize.Small.toString());
+    expect(pill).toHaveAttribute("data-ou-pill", "");
+    expect(tag.className).not.toContain("text-gray-500");
+    // Beside the name, before the status.
+    const link: HTMLElement = within(shownValue).getByRole("link");
+    expect(
+      link.compareDocumentPosition(tag) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      tag.compareDocumentPosition(within(shownValue).getByRole("status")) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
   test("a repository that picked the Global Runner beside a default shows Global Runner, not the default", async () => {
     loads(
       choices({
@@ -1016,6 +1065,132 @@ describe("the Settings page's Runner field and value", () => {
     cleanup();
     const selfRead: HTMLElement = await value(STAGING_ID, choices());
     expect(selfRead.textContent).toBe(drawnByView);
+  });
+
+  /*
+   * A GitLab repository's Merge Requests card says merge request, as GitLab
+   * does; its Runner lines say it too. On a Git server AI opens no request
+   * at all - it pushes a branch - and the lines say that.
+   */
+  test("on GitLab, the Global Runner's line says merge request; on a Git server, the pushed branch", async () => {
+    loads(choices());
+    render(
+      <CodeRepositoryRunnerValue
+        runnerId={null}
+        provider={CodeRepositoryType.GitLab}
+      />,
+    );
+    expect(
+      await screen.findByTestId(CODE_REPOSITORY_RUNNER_SKIPS_TEST_ID),
+    ).toHaveTextContent(CODE_GLOBAL_RUNNER_CHOICE_DESCRIPTION_MERGE_REQUEST);
+    expect(CODE_GLOBAL_RUNNER_CHOICE_DESCRIPTION_MERGE_REQUEST).toBe(
+      "Run by OneUptime for every project. It does not build or test AI's change before the merge request opens.",
+    );
+    cleanup();
+
+    loads(choices());
+    render(
+      <CodeRepositoryRunnerValue
+        runnerId={null}
+        provider={CodeRepositoryType.Git}
+      />,
+    );
+    expect(
+      await screen.findByTestId(CODE_REPOSITORY_RUNNER_SKIPS_TEST_ID),
+    ).toHaveTextContent(CODE_GLOBAL_RUNNER_CHOICE_DESCRIPTION_BRANCH);
+    expect(CODE_GLOBAL_RUNNER_CHOICE_DESCRIPTION_BRANCH).toBe(
+      "Run by OneUptime for every project. It does not build or test AI's change before the branch is pushed.",
+    );
+    cleanup();
+
+    // Negative control: GitHub, and a host not read yet, say pull request.
+    for (const provider of [CodeRepositoryType.GitHub, undefined]) {
+      loads(choices());
+      render(<CodeRepositoryRunnerValue runnerId={null} provider={provider} />);
+      expect(
+        await screen.findByTestId(CODE_REPOSITORY_RUNNER_SKIPS_TEST_ID),
+      ).toHaveTextContent(CODE_GLOBAL_RUNNER_CHOICE_DESCRIPTION);
+      cleanup();
+    }
+  });
+
+  test("the field's menu and lines speak the host's word: merge request on GitLab, the branch on a Git server", async () => {
+    function field(
+      provider: CodeRepositoryType | undefined,
+      initial: string,
+    ): void {
+      loads(choices());
+
+      function Field(): ReactElement {
+        const [current, setCurrent] = useState<string>(initial);
+
+        return (
+          <CodeRepositoryRunnerPicker
+            value={current}
+            provider={provider}
+            onChange={(choice: string): void => {
+              setCurrent(choice);
+            }}
+          />
+        );
+      }
+
+      render(<Field />);
+    }
+
+    const cases: Array<{
+      provider: CodeRepositoryType | undefined;
+      globalDescription: string;
+      globalHelp: string;
+      ownHelp: string;
+    }> = [
+      {
+        provider: CodeRepositoryType.GitLab,
+        globalDescription: CODE_GLOBAL_RUNNER_CHOICE_DESCRIPTION_MERGE_REQUEST,
+        globalHelp: CODE_GLOBAL_RUNNER_HELPER_TEXT_MERGE_REQUEST,
+        ownHelp: CODE_OWN_RUNNER_HELPER_TEXT_MERGE_REQUEST,
+      },
+      {
+        provider: CodeRepositoryType.Git,
+        globalDescription: CODE_GLOBAL_RUNNER_CHOICE_DESCRIPTION_BRANCH,
+        globalHelp: CODE_GLOBAL_RUNNER_HELPER_TEXT_BRANCH,
+        ownHelp: CODE_OWN_RUNNER_HELPER_TEXT_BRANCH,
+      },
+      {
+        provider: CodeRepositoryType.Forgejo,
+        globalDescription: CODE_GLOBAL_RUNNER_CHOICE_DESCRIPTION,
+        globalHelp: CODE_GLOBAL_RUNNER_HELPER_TEXT,
+        ownHelp: CODE_OWN_RUNNER_HELPER_TEXT,
+      },
+      {
+        provider: undefined,
+        globalDescription: CODE_GLOBAL_RUNNER_CHOICE_DESCRIPTION,
+        globalHelp: CODE_GLOBAL_RUNNER_HELPER_TEXT,
+        ownHelp: CODE_OWN_RUNNER_HELPER_TEXT,
+      },
+    ];
+
+    for (const each of cases) {
+      // On the Global Runner: its line under the picker and in the menu.
+      field(each.provider, "");
+      await screen.findByTestId(CODE_REPOSITORY_RUNNER_PICKER_TEST_ID);
+      expect(help(CODE_REPOSITORY_RUNNER_PICKER_TEST_ID).textContent).toBe(
+        each.globalHelp,
+      );
+      const options: Array<HTMLElement> = openMenu(
+        CODE_REPOSITORY_RUNNER_PICKER_TEST_ID,
+      );
+      expect(options[0]).toHaveTextContent(each.globalDescription);
+      cleanup();
+
+      // On one of the project's own Runners.
+      field(each.provider, BASTION_ID);
+      await screen.findByTestId(CODE_REPOSITORY_RUNNER_PICKER_TEST_ID);
+      expect(help(CODE_REPOSITORY_RUNNER_PICKER_TEST_ID).textContent).toBe(
+        each.ownHelp,
+      );
+      cleanup();
+    }
   });
 
   test("the field holds a menu's room while its choices are on their way", () => {

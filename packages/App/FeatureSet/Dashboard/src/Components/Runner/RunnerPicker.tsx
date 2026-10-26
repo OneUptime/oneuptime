@@ -25,6 +25,7 @@ import {
   CODE_HIDDEN_RUNNER_LABEL,
   CODE_NO_GLOBAL_RUNNER_HELPER_TEXT,
   CODE_PROJECT_DEFAULT_RUNNER_HELPER_TEXT,
+  CodeRepositoryRunnerWords,
   GLOBAL_RUNNERS_OFF_HELPER_TEXT,
   GLOBAL_RUNNER_CHOICE_DESCRIPTION,
   GLOBAL_RUNNER_CHOICE_LABEL,
@@ -111,6 +112,12 @@ export interface ComponentProps {
    * picked; nothing when the field's own line already says it.
    */
   ownRunnerHelperText?: ReactNode | undefined;
+  /*
+   * A code repository's Global Runner lines in its host's words
+   * (getCodeRepositoryRunnerWords): under its name in the menu, and under
+   * the picker while it is picked. Left out, a pull request's.
+   */
+  codeRepositoryWords?: CodeRepositoryRunnerWords | undefined;
   dataTestId?: string | undefined;
   /*
    * A field of a form (a code repository's settings): the form draws the
@@ -182,7 +189,8 @@ const RunnerPicker: FunctionComponent<ComponentProps> = (
         value: option.value,
         label: `${translator.translateText(GLOBAL_RUNNER_CHOICE_LABEL)} · ${getStatusText(option)}`,
         description: isForCodeRepository
-          ? CODE_GLOBAL_RUNNER_CHOICE_DESCRIPTION
+          ? props.codeRepositoryWords?.globalRunnerDescription ||
+            CODE_GLOBAL_RUNNER_CHOICE_DESCRIPTION
           : isForRemediation
             ? REMEDIATION_GLOBAL_RUNNER_CHOICE_DESCRIPTION
             : GLOBAL_RUNNER_CHOICE_DESCRIPTION,
@@ -428,7 +436,10 @@ const RunnerPicker: FunctionComponent<ComponentProps> = (
 
     if (model.outcome === RunnerPickerOutcome.GlobalRunner) {
       if (isForCodeRepository) {
-        return translator.translateText(CODE_GLOBAL_RUNNER_HELPER_TEXT);
+        return translator.translateText(
+          props.codeRepositoryWords?.globalRunnerHelperText ||
+            CODE_GLOBAL_RUNNER_HELPER_TEXT,
+        );
       }
 
       return translator.translateTemplate(

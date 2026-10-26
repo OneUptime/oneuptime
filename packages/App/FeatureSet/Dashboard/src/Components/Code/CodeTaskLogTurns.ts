@@ -42,6 +42,71 @@ export const CODE_TASK_LOG_TURN_COPY: {
 // The longest summary an option shows under its name.
 export const MAX_TURN_SUMMARY_LENGTH: number = 120;
 
+/*
+ * The page's own sentences about the record under the picker. A task of
+ * one turn's record is the task's, so they say "this task"; once the
+ * picker lists more than one turn, the record is the turn picked, so they
+ * say "this turn" - never "Every step this task took" over the record of
+ * its second turn alone.
+ */
+export interface CodeTaskLogRecordCopy {
+  // The Session Log card, while the turn is still working.
+  stepsSoFar: string;
+  // ... once it is done.
+  steps: string;
+  // The Session Log's empty state, while the turn is still working.
+  nothingYet: string;
+  // ... once it is done.
+  nothing: string;
+  // The LLM Calls card.
+  calls: string;
+}
+
+export const CODE_TASK_LOG_TASK_RECORD_COPY: CodeTaskLogRecordCopy = {
+  stepsSoFar: translationKey(
+    "Every step this task has taken so far. Updates every 5 seconds.",
+  ),
+  steps: translationKey(
+    "Every step this task took, in order. Expand a step to see what the model was sent and what it said.",
+  ),
+  nothingYet: translationKey(
+    "This task has not reported a step yet. This page updates on its own.",
+  ),
+  nothing: translationKey(
+    "This task recorded no steps. If it failed before starting, the reason is in the conversation.",
+  ),
+  calls: translationKey(
+    "Each model call this task made, with its tokens and timing.",
+  ),
+};
+
+export const CODE_TASK_LOG_TURN_RECORD_COPY: CodeTaskLogRecordCopy = {
+  stepsSoFar: translationKey(
+    "Every step this turn has taken so far. Updates every 5 seconds.",
+  ),
+  steps: translationKey(
+    "Every step this turn took, in order. Expand a step to see what the model was sent and what it said.",
+  ),
+  nothingYet: translationKey(
+    "This turn has not reported a step yet. This page updates on its own.",
+  ),
+  nothing: translationKey(
+    "This turn recorded no steps. If it failed before starting, the reason is in the conversation.",
+  ),
+  calls: translationKey(
+    "Each model call this turn made, with its tokens and timing.",
+  ),
+};
+
+// The record's sentences for a task of this many turns.
+export function getCodeTaskLogRecordCopy(
+  turnCount: number,
+): CodeTaskLogRecordCopy {
+  return turnCount > 1
+    ? CODE_TASK_LOG_TURN_RECORD_COPY
+    : CODE_TASK_LOG_TASK_RECORD_COPY;
+}
+
 export interface CodeTaskLogTurn {
   runId: string;
   // Its place in the conversation, from 1.

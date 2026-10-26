@@ -30,6 +30,7 @@ import {
   CodeTaskState,
   CodeTaskTurnJSON,
 } from "../../../Types/AI/CodeTask";
+import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import Route from "../../../Types/API/Route";
 import URL from "../../../Types/API/URL";
@@ -77,9 +78,13 @@ import CodeTaskLog, {
   CODE_TASK_LOG_TURN_PICKER_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Code/Task/Log";
 import {
+  CODE_TASK_LOG_TASK_RECORD_COPY,
   CODE_TASK_LOG_TURN_COPY,
+  CODE_TASK_LOG_TURN_RECORD_COPY,
+  CodeTaskLogRecordCopy,
   CodeTaskLogTurn,
   MAX_TURN_SUMMARY_LENGTH,
+  getCodeTaskLogRecordCopy,
   getCodeTaskLogTurnRoute,
   getCodeTaskLogTurns,
   getShownTurnRunId,
@@ -359,6 +364,154 @@ describe("a task's turns, as the Log page lists them", () => {
       label: "Turn",
       option: "Turn {{number}}",
     });
+  });
+});
+
+/*
+ * The page's own sentences about the record under the picker: "this task"
+ * on a task of one turn, whose record is the task's; "this turn" once the
+ * picker lists more than one, whose record is the turn picked - never
+ * "Every step this task took" over the record of its second turn alone.
+ */
+describe("the Log's own words, for the record it shows", () => {
+  test("a task of one turn speaks of the task; one of more, of the turn", () => {
+    expect(getCodeTaskLogRecordCopy(0)).toBe(CODE_TASK_LOG_TASK_RECORD_COPY);
+    expect(getCodeTaskLogRecordCopy(1)).toBe(CODE_TASK_LOG_TASK_RECORD_COPY);
+    expect(getCodeTaskLogRecordCopy(2)).toBe(CODE_TASK_LOG_TURN_RECORD_COPY);
+    expect(getCodeTaskLogRecordCopy(3)).toBe(CODE_TASK_LOG_TURN_RECORD_COPY);
+  });
+
+  test("the two say the same, but for the task or the turn", () => {
+    const keys: Array<keyof CodeTaskLogRecordCopy> = Object.keys(
+      CODE_TASK_LOG_TASK_RECORD_COPY,
+    ) as Array<keyof CodeTaskLogRecordCopy>;
+
+    expect(keys.sort()).toEqual(
+      ["calls", "nothing", "nothingYet", "steps", "stepsSoFar"].sort(),
+    );
+
+    for (const key of keys) {
+      const task: string = CODE_TASK_LOG_TASK_RECORD_COPY[key];
+      const each: string = CODE_TASK_LOG_TURN_RECORD_COPY[key];
+
+      expect(task.toLowerCase()).toContain("this task");
+      expect(each.toLowerCase()).not.toContain("task");
+      expect(each).toBe(
+        task
+          .replace("this task", "this turn")
+          .replace("This task", "This turn"),
+      );
+    }
+  });
+
+  test("the record of a turn of three says 'this turn'", async () => {
+    getTaskMock.mockResolvedValue(taskAnswer(THREE_TURNS) as never);
+    jest
+      .spyOn(API, "post")
+      .mockResolvedValue(logAnswer("read src/checkout.ts") as never);
+
+    drawLog(`?turn=${SECOND_RUN_ID}`);
+
+    await waitFor(() => {
+      expect(shownTurn()).toBe("Turn 2 · Failed");
+    });
+
+    expect(
+      screen.getByText(CODE_TASK_LOG_TURN_RECORD_COPY.steps),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(CODE_TASK_LOG_TASK_RECORD_COPY.steps)).toBeNull();
+  });
+
+  test("negative control: the record of a task of one turn says 'this task'", async () => {
+    getTaskMock.mockResolvedValue(taskAnswer([turn()]) as never);
+    jest
+      .spyOn(API, "post")
+      .mockResolvedValue(logAnswer("read src/checkout.ts") as never);
+
+    drawLog();
+
+    expect(await screen.findByText("read src/checkout.ts")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(getTaskMock).toHaveBeenCalled();
+    });
+
+    expect(
+      screen.getByText(CODE_TASK_LOG_TASK_RECORD_COPY.steps),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(CODE_TASK_LOG_TURN_RECORD_COPY.steps)).toBeNull();
+  });
+
+  /*
+   * A record that could not be read: said under the way back and the
+   * picker, which stay, with Refresh - a finished turn's page does not
+   * poll, so nothing else would read it again.
+   */
+  test("a record that could not be read keeps the way back and the picker, and reads again on Refresh", async () => {
+    getTaskMock.mockResolvedValue(taskAnswer(THREE_TURNS) as never);
+    const postSpy: SpyInstance<typeof API.post> = jest
+      .spyOn(API, "post")
+      .mockResolvedValueOnce(
+        new HTTPErrorResponse(
+          500,
+          { message: "The log could not be read." },
+          {},
+        ) as never,
+      )
+      .mockResolvedValue(
+        logAnswer("read src/checkout.ts") as never,
+      ) as unknown as SpyInstance<typeof API.post>;
+
+    drawLog(`?turn=${SECOND_RUN_ID}`);
+
+    expect(
+      await screen.findByText("The log could not be read."),
+    ).toBeInTheDocument();
+    await waitFor(() => {
+      expect(shownTurn()).toBe("Turn 2 · Failed");
+    });
+    expect(screen.getByTestId("code-task-log-back")).toBeInTheDocument();
+    expect(screen.queryByText("read src/checkout.ts")).toBeNull();
+
+    fireEvent.click(screen.getByTestId("refresh-button"));
+
+    expect(await screen.findByText("read src/checkout.ts")).toBeInTheDocument();
+    expect(screen.queryByText("The log could not be read.")).toBeNull();
+    // The same turn's record, read again.
+    expect(logReads(postSpy)).toEqual([SECOND_RUN_ID, SECOND_RUN_ID]);
+  });
+
+  /*
+   * On a phone the time and the tool's pill fill a line on their own, so a
+   * step's words go on the next line, lined up with the time - before, the
+   * row kept one line and cut the words to nothing. jsdom lays nothing out:
+   * the classes are what is checked here, the drawn row in the browser
+   * suite (packages/E2E/Code).
+   */
+  test("a step's words take a line of their own on a phone, and stay on the time's line on a wider screen", async () => {
+    getTaskMock.mockResolvedValue(taskAnswer([turn()]) as never);
+    jest
+      .spyOn(API, "post")
+      .mockResolvedValue(logAnswer("read src/checkout.ts") as never);
+
+    drawLog();
+
+    const message: HTMLElement = await screen.findByText(
+      "read src/checkout.ts",
+    );
+
+    expect(message).toHaveAttribute(
+      "data-testid",
+      "code-task-log-entry-message",
+    );
+    expect(message.className).toContain("max-sm:order-last");
+    expect(message.className).toContain("max-sm:basis-full");
+    expect(message.className).toContain("truncate");
+    // The time, the pill and the words wrap together, beside the marker.
+    const row: HTMLElement = message.parentElement!;
+    expect(row.className).toContain("max-sm:flex-wrap");
+    expect(row.className).toContain("min-w-0");
+    // ... only on a phone: one line on a wider screen.
+    expect(row.className.split(" ")).not.toContain("flex-wrap");
   });
 });
 

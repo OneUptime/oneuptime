@@ -71,7 +71,9 @@
  *                       next read moves it on (default 1000, so a task is
  *                       seen queued first and then moves one stage a poll)
  *   - refuse=create|reply  the server refuses that send (its sentence)
- *   - fail=repositories|repository|list|task|branches  that read fails
+ *   - fail=repositories|repository|list|task|branches|log  that read fails
+ *                       (log: a turn's Log, the page's record of it;
+ *                       logonce: only its first read)
  *   - commands=1        checkout-api has the build and test commands an
  *                       operator set before Code stopped asking for them
  *                       (npm ci, npm run build, npm test); by default none
@@ -291,7 +293,7 @@ window.__fixture = {
   connects: [],
   gitConnects: [],
   tokenReplacements: [],
-  reads: { task: 0, list: 0, repositories: 0, repository: 0 },
+  reads: { task: 0, list: 0, repositories: 0, repository: 0, log: 0 },
 };
 
 const now = Date.now();
@@ -2581,6 +2583,13 @@ async function answer(path, body) {
 
 // A turn's Log page: its recorded events, verbatim.
 function logOf(runId) {
+  window.__fixture.reads.log = (window.__fixture.reads.log || 0) + 1;
+  if (
+    failParam === "log" ||
+    (failParam === "logonce" && window.__fixture.reads.log === 1)
+  ) {
+    return refused(500, "The log could not be read.");
+  }
   const task = findTask(runId);
   const item = task
     ? task.turns.find((candidate) => {
@@ -2606,7 +2615,8 @@ function logOf(runId) {
         [CodeTaskStepKind.PullRequest]: "open_pull_request",
         [CodeTaskStepKind.Note]: "note",
       }[entry.kind],
-      message: entry.subject,
+      // Where the server keeps a step's words (AIAgentTaskLogAPI).
+      resultSummary: { message: entry.subject },
       createdAt: entry.createdAt,
     };
   });

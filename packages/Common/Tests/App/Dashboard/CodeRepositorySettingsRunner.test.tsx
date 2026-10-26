@@ -85,6 +85,7 @@ import RunnerChoicesLoader, {
 import { CODE_REPOSITORY_RUNNER_CHOICE_FIELD_KEY } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeRepositoryRunnerChoice";
 import { GLOBAL_RUNNER_PICK_VALUE } from "../../../../App/FeatureSet/Dashboard/src/Components/Runner/RunnerPickerModel";
 import CodeRepository from "../../../Models/DatabaseModels/CodeRepository";
+import CodeRepositoryType from "../../../Types/CodeRepository/CodeRepositoryType";
 import IsNull from "../../../Types/BaseDatabase/IsNull";
 import ListResult from "../../../Types/BaseDatabase/ListResult";
 import ObjectID from "../../../Types/ObjectID";
@@ -211,6 +212,11 @@ describe("a repository's settings: its Runner", () => {
     expect(String(element.props.value)).toBe(RUNNER_ID);
     // The menu is named by the label the form drew.
     expect(element.props.ariaLabelledby).toBe("field-label-runner");
+    /*
+     * Where the repository is hosted, for the lines under the picker: GitHub
+     * until the page has read it (CodeHost.readType).
+     */
+    expect(element.props.provider).toBe(CodeRepositoryType.GitHub);
 
     element.props.onChange("");
     element.props.onChange(GLOBAL_RUNNER_PICK_VALUE);
@@ -342,9 +348,12 @@ describe("a repository's settings: its Runner", () => {
     expect(Object.keys(element.props).sort()).toEqual([
       "choices",
       "isGlobalRunnerPicked",
+      "provider",
       "runnerId",
     ]);
     expect(element.props.choices).toBeNull();
+    // Where it is hosted, for the line under Global Runner.
+    expect(element.props.provider).toBe(CodeRepositoryType.GitHub);
 
     // Whether it picked the Global Runner itself reaches the value too.
     const global: CodeRepository = new CodeRepository();

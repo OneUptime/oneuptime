@@ -1215,7 +1215,7 @@ describe("commandsSwitchedOff", () => {
         settingsUrl: SETTINGS_URL,
       }),
     ).toBe(
-      `🚫 I cannot do that:\n\n> GitHub commands are switched off for this repository.\n\nA project admin can turn them back on in OneUptime: [Respond to GitHub Commands](${SETTINGS_URL}).\n\n${SIGNATURE}`,
+      `🚫 I cannot do that:\n\n> GitHub commands are switched off for this repository.\n\nA project admin can turn them back on in OneUptime, with this repository's [Respond to GitHub Commands](${SETTINGS_URL}) switch.\n\n${SIGNATURE}`,
     );
   });
 
@@ -1230,6 +1230,28 @@ describe("commandsSwitchedOff", () => {
     expect(body.split("](").length - 1).toBe(1);
   });
 
+  /*
+   * Read as a person in the thread reads it: one sentence that says who can
+   * turn the commands on, where, and what the link is - the repository's
+   * switch - not a colon before a label.
+   */
+  test("the link is the switch, said in a sentence", () => {
+    const body: string = GitHubReplyComposer.commandsSwitchedOff({
+      productName: "OneUptime",
+      settingsUrl: SETTINGS_URL,
+    });
+    const sentence: string | undefined = body
+      .split("\n")
+      .find((line: string): boolean => {
+        return line.startsWith("A project admin");
+      });
+
+    expect(sentence).toBe(
+      `A project admin can turn them back on in OneUptime, with this repository's [Respond to GitHub Commands](${SETTINGS_URL}) switch.`,
+    );
+    expect(sentence).not.toContain(": [");
+  });
+
   test("names the product as the installation does", () => {
     const body: string = GitHubReplyComposer.commandsSwitchedOff({
       productName: "Acme Reliability",
@@ -1237,7 +1259,7 @@ describe("commandsSwitchedOff", () => {
     });
 
     expect(body).toContain(
-      "A project admin can turn them back on in Acme Reliability: [Respond to GitHub Commands]",
+      "A project admin can turn them back on in Acme Reliability, with this repository's [Respond to GitHub Commands]",
     );
     expect(body).not.toContain("back on in OneUptime");
   });

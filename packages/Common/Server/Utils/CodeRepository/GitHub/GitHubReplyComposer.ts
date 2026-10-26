@@ -343,10 +343,11 @@ export default class GitHubReplyComposer {
   /*
    * The answer to a command in a repository whose GitHub commands are
    * switched off: that they are, and where a project admin turns them back
-   * on - a link that opens the repository's settings in the product at the
-   * switch itself (More settings opens there), or, when no link can be
-   * built, the way there in words. Only the project's members can open the
-   * page the link leads to.
+   * on - the switch, by the name the page gives it, linked: the link opens
+   * the repository's settings in the product at the switch itself (More
+   * settings opens there) - or, when no link can be built, the way there
+   * in words. Only the project's members can open the page the link leads
+   * to.
    *
    * The reason is ours, but it is quoted as every refusal's is; the link is
    * built by the server from the repository's own ids, never from anything
@@ -364,7 +365,7 @@ export default class GitHubReplyComposer {
       ),
       "",
       data.settingsUrl
-        ? `A project admin can turn them back on in ${data.productName}: [Respond to GitHub Commands](${data.settingsUrl}).`
+        ? `A project admin can turn them back on in ${data.productName}, with this repository's [Respond to GitHub Commands](${data.settingsUrl}) switch.`
         : `A project admin can turn them back on in ${data.productName} under Code → this repository → Settings → More settings.`,
       "",
       SIGNATURE,
