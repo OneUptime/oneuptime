@@ -58,15 +58,37 @@ test.describe.skip("VMware Product Onboarding", () => {
       timeout: 30000,
     });
 
-    // Empty state renders the setup guide (SetupGuideCard).
+    /*
+     * The empty list shows what VMware monitoring gives (its showcase).
+     * Its Connect vCenter opens the probe form, as the header's does, so
+     * the VMware Agent's install guide is read on VMware > Documentation.
+     */
+    const showcase: Locator = page.getByTestId("resource-showcase");
+    await expect(showcase).toBeVisible({ timeout: 60000 });
+    await expect(showcase.getByRole("heading", { level: 2 })).toHaveText(
+      "See every host, VM and datastore in vSphere",
+    );
     await expect(
-      page.getByText("Getting Started with VMware Monitoring"),
-    ).toBeVisible({ timeout: 60000 });
+      showcase.getByTestId("resource-showcase-add-button"),
+    ).toHaveText("Connect vCenter");
+
+    const documentationUrl: string = URL.fromString(BASE_URL.toString())
+      .addRoute(`/dashboard/${projectId}/vmware/documentation`)
+      .toString();
+    await gotoProjectPage({
+      page,
+      projectId,
+      url: documentationUrl,
+      ready: page.getByRole("heading", {
+        name: "Connect a vCenter",
+        exact: true,
+      }),
+    });
     await expect(page.getByText("No ingestion keys yet")).toBeVisible({
       timeout: 30000,
     });
 
-    // Create a telemetry ingestion key from the inline ModelFormModal.
+    // Create a telemetry ingestion key from the guide's ModelFormModal.
     const keyName: string = "E2E VMware Key " + Faker.generateName().toString();
     await page.getByRole("button", { name: "Create Ingestion Key" }).click();
     await submitIngestionKeyModal({ page, keyName });
@@ -203,7 +225,7 @@ test.describe.skip("VMware Product Onboarding", () => {
 
   /*
    * Post a minimal OTLP metrics fixture with the ingestion key minted above
-   * and assert the vCenters page flips from the install guide to a Connected
+   * and assert the vCenters page flips from the showcase to a Connected
    * vCenter row without a reload (exercises the first-data poll).
    */
   test("should flip the empty state to a Connected vCenter row when first OTLP metrics arrive", async ({
@@ -219,14 +241,24 @@ test.describe.skip("VMware Product Onboarding", () => {
     const vmwarePageUrl: string = URL.fromString(BASE_URL.toString())
       .addRoute(`/dashboard/${projectId}/vmware`)
       .toString();
+    const documentationUrl: string = URL.fromString(BASE_URL.toString())
+      .addRoute(`/dashboard/${projectId}/vmware/documentation`)
+      .toString();
+
+    /*
+     * The VMware Agent's guide is on VMware > Documentation (the list's
+     * Connect vCenter opens the probe form): mint a key there, then read
+     * the interpolated secret back out of the guide.
+     */
     await gotoProjectPage({
       page,
       projectId,
-      url: vmwarePageUrl,
-      ready: page.getByText("Getting Started with VMware Monitoring"),
+      url: documentationUrl,
+      ready: page.getByRole("heading", {
+        name: "Connect a vCenter",
+        exact: true,
+      }),
     });
-
-    // Mint a key, then read the interpolated secret back out of the guide.
     await page.getByRole("button", { name: "Create Ingestion Key" }).click();
     await submitIngestionKeyModal({
       page,
@@ -244,6 +276,14 @@ test.describe.skip("VMware Product Onboarding", () => {
 
     const bodyText: string = await page.locator("body").innerText();
     const ingestionKey: string = bodyText.match(ingestionKeyEnvLineRegex)![1]!;
+
+    // The list, still empty, waits for the first vCenter under its showcase.
+    await gotoProjectPage({
+      page,
+      projectId,
+      url: vmwarePageUrl,
+      ready: page.getByTestId("resource-showcase"),
+    });
 
     const vcenterName: string =
       "e2e-vcenter-" + Faker.generateName().toString().toLowerCase();
@@ -324,6 +364,8 @@ test.describe.skip("VMware Product Onboarding", () => {
     await expect(page.getByText(vcenterName, { exact: true })).toBeVisible({
       timeout: 120000,
     });
+    // The showcase, whose example says Connected too, gives way to the table.
+    await expect(page.getByTestId("resource-showcase")).toHaveCount(0);
     await expect(
       page.getByText("Connected", { exact: true }).first(),
     ).toBeVisible({ timeout: 30000 });

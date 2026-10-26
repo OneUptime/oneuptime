@@ -31,6 +31,7 @@ import {
   getSetupGuideCodeBlocks,
   getSetupGuideMarkdown,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/SetupGuide";
+import DOCKER_SWARM_CLUSTER_SHOWCASE from "../../../../App/FeatureSet/Dashboard/src/Components/DockerSwarm/DockerSwarmClusterShowcase";
 
 /*
  * The Docker Swarm agent guide asks how the agent is installed — the
@@ -680,19 +681,20 @@ describe("what the E2E spec reads off the page", () => {
     }
   });
 
-  test("the spec still looks for the list page's title and stays skipped", () => {
-    expect(spec).toContain("Getting Started with Docker Swarm Monitoring");
+  test("the spec opens the guide from the empty list's showcase, and stays skipped", () => {
     expect(spec).toContain(
       'test.describe.skip("Docker Swarm Product Onboarding"',
     );
-    const clusters: string = fs.readFileSync(
-      path.join(
-        REPO_ROOT,
-        "packages/App/FeatureSet/Dashboard/src/Pages/DockerSwarm/Clusters.tsx",
-      ),
-      "utf8",
-    );
-    // The empty list's card is its Add guide (Components/ResourceOnboarding).
+    // Whitespace squashed, so Prettier can reflow the page.
+    const clusters: string = fs
+      .readFileSync(
+        path.join(
+          REPO_ROOT,
+          "packages/App/FeatureSet/Dashboard/src/Pages/DockerSwarm/Clusters.tsx",
+        ),
+        "utf8",
+      )
+      .replace(/\s+/g, " ");
     const onboarding: string = fs.readFileSync(
       path.join(
         REPO_ROOT,
@@ -700,12 +702,34 @@ describe("what the E2E spec reads off the page", () => {
       ),
       "utf8",
     );
+
+    /*
+     * The empty list shows its showcase (Components/ResourceShowcase), not
+     * the guide. The showcase's button is the list's Add button: it opens
+     * the Add dialog, which holds the guide.
+     */
     expect(clusters).toContain(
-      "title={DOCKER_SWARM_CLUSTER_ONBOARDING.firstRunTitle}",
+      "<ResourceShowcaseCard showcase={DOCKER_SWARM_CLUSTER_SHOWCASE} addButton={{ title: DOCKER_SWARM_CLUSTER_ONBOARDING.addTitle, onClick: () => { setIsAddClusterOpen(true); }, }}",
     );
+    expect(clusters).toContain(
+      "{isAddClusterOpen && ( <AddResourceModal onboarding={DOCKER_SWARM_CLUSTER_ONBOARDING}",
+    );
+    expect(clusters).not.toContain("<AddResourceGuide");
     expect(onboarding).toContain(
-      '"Getting Started with Docker Swarm Monitoring"',
+      'addTitle: translationKey("Add Docker Swarm Cluster")',
     );
+    expect(onboarding).not.toContain("firstRunTitle");
+
+    /*
+     * The spec waits for the showcase and its title, clicks its button and
+     * reads the guide in the dialog it opens - not the title the empty
+     * list's guide had.
+     */
+    expect(spec).toContain('page.getByTestId("resource-showcase")');
+    expect(spec).toContain(`"${DOCKER_SWARM_CLUSTER_SHOWCASE.title}"`);
+    expect(spec.split('"resource-showcase-add-button"').length - 1).toBe(2);
+    expect(spec.split('name: "Add Docker Swarm Cluster"').length - 1).toBe(2);
+    expect(spec).not.toContain("Getting Started with Docker Swarm Monitoring");
   });
 });
 
