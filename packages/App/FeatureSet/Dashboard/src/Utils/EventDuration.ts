@@ -1,4 +1,11 @@
 import OneUptimeDate from "Common/Types/Date";
+import {
+  formatDurationText,
+  getDateLocale,
+  isEnglishDateLanguage,
+  writeInDateDisplayLanguage,
+} from "Common/Types/DateLanguage";
+import { getGlobalTranslator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface EventTimelineDate {
   eventId: string;
@@ -60,6 +67,10 @@ export interface EventDurationTextOptions {
  * With maxUnits, only the largest units are said, and a smaller one is
  * dropped rather than rounded ("1 day, 23 hours" for a day, 23 hours and 59
  * minutes): a duration is never said to be longer than it was.
+ *
+ * In the reader's language once the Dashboard set one ("2 Tage, 3
+ * Stunden"), and "less than a minute" as their language words it; English
+ * otherwise, and inside a sentence that is still English.
  */
 export function getEventDurationText(
   startDate: Date,
@@ -72,15 +83,29 @@ export function getEventDurationText(
     options,
   );
 
-  if (parts.length === 0) {
-    return LESS_THAN_A_MINUTE;
-  }
+  return writeInDateDisplayLanguage(
+    (): string => {
+      if (parts.length === 0) {
+        return LESS_THAN_A_MINUTE;
+      }
 
-  return parts
-    .map((part: EventDurationPart): string => {
-      return formatDurationUnit(part.count, part.unit);
-    })
-    .join(", ");
+      return parts
+        .map((part: EventDurationPart): string => {
+          return formatDurationUnit(part.count, part.unit);
+        })
+        .join(", ");
+    },
+    (language: string): string | null => {
+      if (parts.length === 0) {
+        // Only where the reader's language words it.
+        return getGlobalTranslator().hasTranslation(LESS_THAN_A_MINUTE)
+          ? getGlobalTranslator().translateText(LESS_THAN_A_MINUTE) || null
+          : null;
+      }
+
+      return formatEventDurationParts(parts, language);
+    },
+  );
 }
 
 /*
@@ -131,29 +156,13 @@ export function getEventDurationParts(
 }
 
 /*
- * Intl's unit style and list, typed by the parts used here: the Dashboard
- * compiles against an ES2017 library, which has neither.
- */
-interface DurationUnitFormatter {
-  format: (value: number) => string;
-}
-
-interface DurationListFormatter {
-  format: (items: Array<string>) => string;
-}
-
-type DurationListFormatConstructor = new (
-  locale: string,
-  options: { type: "unit"; style: "long" },
-) => DurationListFormatter;
-
-/*
  * A duration's units in the reader's language, with the language's own unit
  * names, plurals and list: "10 Tage, 23 Stunden", "10 jours et 23 heures",
- * "10 дней 23 часа", "10 日 23 時間". English, an empty list, or an engine
- * without Intl's unit style: the English text getEventDurationText writes,
- * word for word. Less than a minute (no parts) is the caller's to say: it is
- * a phrase to translate, not a unit.
+ * "10 дней 23 часа", "10 日 23 時間" - in Latin digits, as every other date
+ * on the page (Common/Types/DateLanguage). English, an empty list, or an
+ * engine without Intl's unit style: the English text getEventDurationText
+ * writes, word for word. Less than a minute (no parts) is the caller's to
+ * say: it is a phrase to translate, not a unit.
  */
 export function formatEventDurationParts(
   parts: Array<EventDurationPart>,
@@ -165,45 +174,18 @@ export function formatEventDurationParts(
     })
     .join(", ");
 
-  if (!language || language === "en" || language.startsWith("en-")) {
+  if (isEnglishDateLanguage(language) || parts.length === 0) {
     return english;
   }
 
-  try {
-    const words: Array<string> = [];
-
-    for (const part of parts) {
-      const formatter: DurationUnitFormatter = new Intl.NumberFormat(language, {
-        style: "unit",
-        unit: part.unit,
-        unitDisplay: "long",
-      } as Intl.NumberFormatOptions);
-      const word: string = formatter.format(part.count);
-
-      // An engine without the unit style writes the bare number.
-      if (word === part.count.toLocaleString(language)) {
-        return english;
-      }
-
-      words.push(word);
-    }
-
-    const ListFormat: DurationListFormatConstructor | undefined = (
-      Intl as unknown as {
-        ListFormat?: DurationListFormatConstructor | undefined;
-      }
-    ).ListFormat;
-
-    if (!ListFormat || words.length < 2) {
-      return words.join(", ");
-    }
-
-    return new ListFormat(language, { type: "unit", style: "long" }).format(
-      words,
-    );
-  } catch {
-    return english;
-  }
+  return (
+    formatDurationText({
+      parts,
+      locale: getDateLocale(language),
+      unitDisplay: "long",
+      listStyle: "long",
+    }) || english
+  );
 }
 
 /**

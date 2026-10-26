@@ -28,6 +28,7 @@ import { JSONObject } from "Common/Types/JSON";
 import Dictionary from "Common/Types/Dictionary";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
+import { inEnglishDates } from "Common/Types/DateLanguage";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import ChunkLoader, {
@@ -2857,10 +2858,13 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
             title: "Footage expired",
             description: `${manifestFailure.message}${
               manifestFailure.expiresAtIso
-                ? ` Expired on ${OneUptimeDate.getDateAsLocalFormattedString(
-                    manifestFailure.expiresAtIso,
-                    true,
-                  )}.`
+                ? ` Expired on ${inEnglishDates((): string => {
+                    // The server's English message leads this sentence.
+                    return OneUptimeDate.getDateAsLocalFormattedString(
+                      manifestFailure.expiresAtIso as string,
+                      true,
+                    );
+                  })}.`
                 : ""
             } Its logs, traces and exceptions can still be found by session id.`,
             icon: IconProp.VideoCameraSlash,

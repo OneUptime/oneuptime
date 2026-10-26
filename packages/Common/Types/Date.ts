@@ -8,11 +8,66 @@ import Timezone from "./Timezone";
 import TimezoneAlias from "./TimezoneAlias";
 import Zod, { ZodSchema } from "../Utils/Schema/Zod";
 import { refusedValue } from "../Utils/RefusedValue";
+import {
+  DateTextShape,
+  DurationTextPart,
+  formatDateText,
+  formatDecimal,
+  formatDurationText,
+  formatRelativeDate,
+  getDateDisplayLanguage,
+  getDateLocale,
+  getDateTimeFormat,
+  isEnglishDateLanguage,
+  writeInDateDisplayLanguage,
+} from "./DateLanguage";
 
 export const Moment: typeof moment = moment;
 
+/*
+ * The custom shapes (getDateAsCustomFormattedStringInTimezone) a date's words
+ * are written in the reader's language for, as Intl asks for them. A shape
+ * with no words in it ("YYYY", "HH:mm:ss.SSS") reads the same in every
+ * language; one that is not listed is written by moment, in English.
+ */
+const LOCALIZED_CUSTOM_DATE_FORMATS: Readonly<
+  Record<string, Intl.DateTimeFormatOptions>
+> = {
+  "MMM D": { month: "short", day: "numeric" },
+  "MMM DD": { month: "short", day: "2-digit" },
+  "MMM D, YYYY": { month: "short", day: "numeric", year: "numeric" },
+  "MMM DD, YYYY": { month: "short", day: "2-digit", year: "numeric" },
+  "MMM DD YYYY": { month: "short", day: "2-digit", year: "numeric" },
+  "MMM YYYY": { month: "short", year: "numeric" },
+  "MMMM YYYY": { month: "long", year: "numeric" },
+  "MMMM D, YYYY": { month: "long", day: "numeric", year: "numeric" },
+  "h:mm A": { hour: "numeric", minute: "2-digit", hour12: true },
+  "hh:mm A": { hour: "2-digit", minute: "2-digit", hour12: true },
+};
+
 // A whole number of nanoseconds, as fromUnixNano reads one exactly.
 const UNIX_NANO_INTEGER_PATTERN: RegExp = /^[+-]?\d+$/;
+
+/*
+ * The decimal point of a short duration's figure ("1.72 s", "2m 5.5s"): a
+ * digit either side of it. Read on a few characters, so linear.
+ */
+const DURATION_DECIMAL_POINT: RegExp = /(\d)\.(\d)/g;
+
+// Every digit, to find the separator a language writes between them.
+const DIGITS: RegExp = /\d/g;
+
+// secondsToFormattedFriendlyTimeString's English unit words: one, many.
+const FRIENDLY_TIME_ENGLISH_UNITS: Readonly<
+  Partial<Record<DurationTextPart["unit"], [string, string]>>
+> = {
+  year: ["year", "years"],
+  month: ["month", "months"],
+  day: ["day", "days"],
+  hour: ["hour", "hours"],
+  minute: ["min", "mins"],
+  second: ["sec", "secs"],
+};
 
 /*
  * BigInt(1000000), made the first time fromUnixNano reads an integer string
@@ -92,13 +147,22 @@ export default class OneUptimeDate {
      * finally moment, which carries its own zone data.
      */
     const timezone: Timezone = this.getCurrentTimezone();
+    const language: string = getDateDisplayLanguage();
+
+    /*
+     * In the reader's language once a frontend set one ("Okt."); until then
+     * in the browser's own, as it always was.
+     */
+    const locale: string = isEnglishDateLanguage(language)
+      ? "default"
+      : getDateLocale(language);
 
     for (const name of [
       timezone,
       ...TimezoneAlias.getLegacyNamesOf(timezone),
     ]) {
       try {
-        return date.toLocaleString("default", {
+        return date.toLocaleString(locale, {
           month: "short",
           timeZone: name.toString(),
         });
@@ -108,6 +172,48 @@ export default class OneUptimeDate {
     }
 
     return this.inCurrentTimezone(date).format("MMM");
+  }
+
+  /*
+   * The current timezone and its legacy spellings, for Intl: an engine with
+   * tzdata before 2022b throws a RangeError for "Europe/Kyiv", which is what
+   * getCurrentTimezone reports for a browser that says "Europe/Kiev", but
+   * knows the legacy name.
+   */
+  private static getCurrentTimezoneNames(): Array<string> {
+    return this.getTimezoneNames(this.getCurrentTimezone());
+  }
+
+  private static getTimezoneNames(timezone: Timezone | string): Array<string> {
+    return [
+      timezone.toString(),
+      ...TimezoneAlias.getLegacyNamesOf(timezone as Timezone).map(
+        (name: Timezone): string => {
+          return name.toString();
+        },
+      ),
+    ];
+  }
+
+  /*
+   * `date` in the reader's language, in the shape asked for, read in the
+   * current timezone (or the runtime's own zone with `timezones` empty).
+   * Null when the language is English or Intl cannot write it: the caller
+   * then writes moment's English.
+   */
+  private static getLocalizedDateText(data: {
+    date: Date;
+    language: string;
+    locale: string;
+    shape: DateTextShape;
+    timezones?: Array<string> | undefined;
+  }): string | null {
+    return formatDateText({
+      date: data.date,
+      locale: data.locale,
+      timezones: data.timezones ?? this.getCurrentTimezoneNames(),
+      shape: data.shape,
+    });
   }
 
   public static getSchema(): ZodSchema {
@@ -137,17 +243,54 @@ export default class OneUptimeDate {
     const hours: number = Math.floor(minutes / 60);
     const mins: number = minutes % 60;
 
-    let formattedString: string = "";
+    return writeInDateDisplayLanguage(
+      (): string => {
+        let formattedString: string = "";
 
-    if (hours > 0) {
-      formattedString += hours + " hours ";
-    }
+        if (hours > 0) {
+          formattedString += hours + " hours ";
+        }
 
-    if (mins > 0) {
-      formattedString += mins + " minutes";
-    }
+        if (mins > 0) {
+          formattedString += mins + " minutes";
+        }
 
-    return formattedString.trim() || "0 minutes";
+        return formattedString.trim() || "0 minutes";
+      },
+      (_language: string, locale: string): string | null => {
+        // "2 Stunden 5 Minuten", "0 Minuten".
+        const parts: Array<DurationTextPart> = [];
+
+        if (hours > 0) {
+          parts.push({ count: hours, unit: "hour" });
+        }
+
+        if (mins > 0) {
+          parts.push({ count: mins, unit: "minute" });
+        }
+
+        return this.formatLocalizedDuration(
+          parts.length > 0 ? parts : [{ count: 0, unit: "minute" }],
+          locale,
+          "long",
+          "narrow",
+        );
+      },
+    );
+  }
+
+  /*
+   * A duration's parts in `locale`: "2 Tage, 3 Stunden", or with `listStyle`
+   * "narrow" as a compact reading joins them ("2 Std. 5 Min."). Null when
+   * Intl cannot write one of the units, and the caller writes English.
+   */
+  private static formatLocalizedDuration(
+    parts: Array<DurationTextPart>,
+    locale: string,
+    unitDisplay: "long" | "short" | "narrow",
+    listStyle: "long" | "short" | "narrow",
+  ): string | null {
+    return formatDurationText({ parts, locale, unitDisplay, listStyle });
   }
 
   public static fromUnixTimestamp(timestamp: number): Date {
@@ -288,12 +431,27 @@ export default class OneUptimeDate {
   }
 
   public static getDateAsLocalDayMonthString(date: Date | string): string {
-    date = this.fromString(date);
+    const instant: Date = this.fromString(date);
 
-    const day: string = this.padDatePart(this.inCurrentTimezone(date).date());
-    const month: string = this.getLocalShortMonthName(date);
+    return writeInDateDisplayLanguage(
+      (): string => {
+        const day: string = this.padDatePart(
+          this.inCurrentTimezone(instant).date(),
+        );
+        const month: string = this.getLocalShortMonthName(instant);
 
-    return `${day} ${month}`;
+        return `${day} ${month}`;
+      },
+      (language: string, locale: string): string | null => {
+        // "02. Okt.", "02 oct.", "10月02日".
+        return this.getLocalizedDateText({
+          date: instant,
+          language,
+          locale,
+          shape: { onlyShowDate: true, hideYear: true, twoDigitDay: true },
+        });
+      },
+    );
   }
 
   public static getDateAsLocalDayMonthHourString(date: Date | string): string {
@@ -373,16 +531,49 @@ export default class OneUptimeDate {
       timeFormat += " A";
     }
 
-    return this.inCurrentTimezone(date).format(`MMM D, ${timeFormat}`);
+    const instant: Date = date;
+
+    return writeInDateDisplayLanguage(
+      (): string => {
+        return this.inCurrentTimezone(instant).format(`MMM D, ${timeFormat}`);
+      },
+      (language: string, locale: string): string | null => {
+        // "1. März, 14:30", "1 mars, 14:30", "3月1日 14:30".
+        return this.getLocalizedDateText({
+          date: instant,
+          language,
+          locale,
+          shape: {
+            hideYear: true,
+            use12HourFormat,
+            showSeconds: Boolean(options?.includeSeconds),
+          },
+        });
+      },
+    );
   }
 
   public static getDateAsLocalMonthYearString(date: Date | string): string {
-    date = this.fromString(date);
+    const instant: Date = this.fromString(date);
 
-    const month: string = this.getLocalShortMonthName(date);
-    const year: string = this.inCurrentTimezone(date).year().toString();
+    return writeInDateDisplayLanguage(
+      (): string => {
+        const month: string = this.getLocalShortMonthName(instant);
+        const year: string = this.inCurrentTimezone(instant).year().toString();
 
-    return `${month} ${year}`;
+        return `${month} ${year}`;
+      },
+      (_language: string, locale: string): string | null => {
+        // "Okt. 2026", "oct. 2026", "2026年10月".
+        const format: Intl.DateTimeFormat | null = getDateTimeFormat({
+          locale,
+          timezones: this.getCurrentTimezoneNames(),
+          options: { month: "short", year: "numeric" },
+        });
+
+        return format ? format.format(instant) : null;
+      },
+    );
   }
 
   public static getMillisecondsBetweenTwoUnixNanoDates(
@@ -480,6 +671,52 @@ export default class OneUptimeDate {
     const use12HourFormat: boolean =
       data.use12HourFormat ?? this.getUserPrefers12HourFormat();
 
+    return writeInDateDisplayLanguage(
+      (): string => {
+        return this.getEnglishDateInTimezone({
+          date,
+          timezone: data.timezone,
+          onlyShowDate: data.onlyShowDate,
+          showWeekday: data.showWeekday,
+          use12HourFormat,
+        });
+      },
+      (language: string, locale: string): string | null => {
+        // "Di., 6. Okt. 2026, 10:05 BST".
+        const timezone: Timezone = (data.timezone ||
+          this.getCurrentTimezone()) as Timezone;
+        const text: string | null = this.getLocalizedDateText({
+          date,
+          language,
+          locale,
+          shape: {
+            onlyShowDate: data.onlyShowDate,
+            showWeekday: data.showWeekday,
+            use12HourFormat,
+          },
+          timezones: this.getTimezoneNames(timezone),
+        });
+
+        if (!text || data.onlyShowDate) {
+          return text;
+        }
+
+        return `${text} ${this.getZoneAbbrByTimezone(timezone, date)}`.trim();
+      },
+    );
+  }
+
+  // getDateAsFormattedStringInTimezone's English, as moment writes it.
+  private static getEnglishDateInTimezone(data: {
+    date: Date;
+    timezone?: string | undefined;
+    onlyShowDate?: boolean | undefined;
+    showWeekday?: boolean | undefined;
+    use12HourFormat: boolean;
+  }): string {
+    const date: Date = data.date;
+    const use12HourFormat: boolean = data.use12HourFormat;
+
     const timePart: string = use12HourFormat ? "h:mm A" : "HH:mm";
     const datePart: string = data.showWeekday
       ? "ddd, MMM D, YYYY"
@@ -521,12 +758,34 @@ export default class OneUptimeDate {
     timezone?: string | undefined;
   }): string {
     const date: Date = this.fromString(data.date);
+    const english: () => string = (): string => {
+      if (!data.timezone) {
+        return this.inCurrentTimezone(date).format(data.format);
+      }
 
-    if (!data.timezone) {
-      return this.inCurrentTimezone(date).format(data.format);
+      return moment(date).tz(data.timezone).format(data.format);
+    };
+    const options: Intl.DateTimeFormatOptions | undefined =
+      LOCALIZED_CUSTOM_DATE_FORMATS[data.format];
+
+    if (!options) {
+      return english();
     }
 
-    return moment(date).tz(data.timezone).format(data.format);
+    return writeInDateDisplayLanguage(
+      english,
+      (_language: string, locale: string): string | null => {
+        const format: Intl.DateTimeFormat | null = getDateTimeFormat({
+          locale,
+          timezones: data.timezone
+            ? this.getTimezoneNames(data.timezone)
+            : this.getCurrentTimezoneNames(),
+          options,
+        });
+
+        return format ? format.format(date) : null;
+      },
+    );
   }
 
   /**
@@ -687,8 +946,23 @@ export default class OneUptimeDate {
     return new Date();
   }
 
+  /*
+   * "5 hours ago", "in 3 days" - in the reader's language when a frontend set
+   * one ("vor 5 Stunden"), rounded as moment rounds it.
+   */
   public static fromNow(date: Date): string {
-    return moment(date).fromNow();
+    return writeInDateDisplayLanguage(
+      (): string => {
+        return moment(date).fromNow();
+      },
+      (_language: string, locale: string): string | null => {
+        return formatRelativeDate({
+          date: this.fromString(date),
+          now: new Date(),
+          locale,
+        });
+      },
+    );
   }
 
   public static differenceBetweenTwoDatesAsFromattedString(
@@ -1322,105 +1596,64 @@ export default class OneUptimeDate {
     return Math.floor(date.getTime() / 1000);
   }
 
+  /*
+   * "1 year 2 months 3 days 4 hours 5 mins 6 secs", each unit that is not
+   * zero, counted on the calendar from the epoch - and in the reader's
+   * language when a frontend set one ("1 J. 2 Mon. 3 Tg.").
+   */
   public static secondsToFormattedFriendlyTimeString(seconds: number): string {
+    const parts: Array<DurationTextPart> = this.getFriendlyTimeParts(seconds);
+
+    return writeInDateDisplayLanguage(
+      (): string => {
+        return parts
+          .map((part: DurationTextPart): string => {
+            const names: [string, string] = FRIENDLY_TIME_ENGLISH_UNITS[
+              part.unit
+            ] || [part.unit, part.unit];
+
+            return `${part.count} ${part.count === 1 ? names[0] : names[1]}`;
+          })
+          .join(" ");
+      },
+      (_language: string, locale: string): string | null => {
+        return parts.length > 0
+          ? this.formatLocalizedDuration(parts, locale, "short", "narrow")
+          : null;
+      },
+    );
+  }
+
+  // The non-zero calendar units in `seconds` from the epoch, largest first.
+  private static getFriendlyTimeParts(
+    seconds: number,
+  ): Array<DurationTextPart> {
     const startDate: moment.Moment = moment.utc(0);
     const date: moment.Moment = moment.utc(seconds * 1000);
+    const parts: Array<DurationTextPart> = [];
 
-    // get the difference between the two dates as friendly formatted string
+    const units: Array<{
+      unit: DurationTextPart["unit"];
+      moment: moment.unitOfTime.Diff & moment.unitOfTime.DurationConstructor;
+    }> = [
+      { unit: "year", moment: "years" },
+      { unit: "month", moment: "months" },
+      { unit: "day", moment: "days" },
+      { unit: "hour", moment: "hours" },
+      { unit: "minute", moment: "minutes" },
+      { unit: "second", moment: "seconds" },
+    ];
 
-    let formattedString: string = "";
+    for (const unit of units) {
+      const count: number = date.diff(startDate, unit.moment);
 
-    // years between two dates
-    const years: number = date.diff(startDate, "years");
-
-    if (years > 0) {
-      let text: string = "years ";
-      if (years === 1) {
-        text = "year ";
+      if (count > 0) {
+        startDate.add(count, unit.moment);
+        parts.push({ count, unit: unit.unit });
       }
-
-      // add years to start date
-      startDate.add(years, "years");
-
-      formattedString += years + " " + text;
     }
 
-    const months: number = date.diff(startDate, "months");
-
-    if (months > 0) {
-      let text: string = "months ";
-
-      if (months === 1) {
-        text = "month ";
-      }
-
-      // add months to start date
-      startDate.add(months, "months");
-
-      formattedString += months + " " + text;
-    }
-
-    const days: number = date.diff(startDate, "days");
-
-    if (days > 0) {
-      let text: string = "days ";
-
-      if (days === 1) {
-        text = "day ";
-      }
-
-      // add days to start date
-      startDate.add(days, "days");
-
-      formattedString += days + " " + text;
-    }
-
-    const hours: number = date.diff(startDate, "hours");
-
-    if (hours > 0) {
-      let text: string = "hours ";
-
-      if (hours === 1) {
-        text = "hour ";
-      }
-
-      // add hours to start date
-      startDate.add(hours, "hours");
-
-      formattedString += hours + " " + text;
-    }
-
-    const minutes: number = date.diff(startDate, "minutes");
-
-    if (minutes > 0) {
-      let text: string = "mins ";
-
-      if (minutes === 1) {
-        text = "min ";
-      }
-
-      // add minutes to start date
-      startDate.add(minutes, "minutes");
-
-      formattedString += minutes + " " + text;
-    }
-
-    const secondsLeft: number = date.diff(startDate, "seconds");
-
-    if (secondsLeft > 0) {
-      let text: string = "secs ";
-
-      if (secondsLeft === 1) {
-        text = "sec ";
-      }
-
-      // add seconds to start date
-      startDate.add(secondsLeft, "seconds");
-
-      formattedString += secondsLeft + " " + text;
-    }
-
-    return formattedString.trim();
+    return parts;
   }
 
   public static getGreaterDate(a: Date, b: Date): Date {
@@ -1823,10 +2056,37 @@ export default class OneUptimeDate {
       formatstring = "MMM DD, YYYY";
     }
 
-    return (
-      moment(date).format(formatstring) +
-      " " +
-      (options?.onlyShowDate ? "" : this.getCurrentTimezoneString())
+    const instant: Date = date;
+
+    return writeInDateDisplayLanguage(
+      (): string => {
+        return (
+          moment(instant).format(formatstring) +
+          " " +
+          (options?.onlyShowDate ? "" : this.getCurrentTimezoneString())
+        );
+      },
+      (language: string, locale: string): string | null => {
+        // Read in the runtime's own zone, as moment(date) reads it.
+        const text: string | null = this.getLocalizedDateText({
+          date: instant,
+          language,
+          locale,
+          shape: {
+            onlyShowDate: options?.onlyShowDate,
+            showSeconds: options?.showSeconds,
+            use12HourFormat: options?.use12HourFormat,
+            twoDigitDay: true,
+          },
+          timezones: [],
+        });
+
+        if (!text || options?.onlyShowDate) {
+          return text;
+        }
+
+        return `${text} ${this.getCurrentTimezoneString()}`.trim();
+      },
     );
   }
 
@@ -1876,6 +2136,42 @@ export default class OneUptimeDate {
     const minutes: number = Math.floor((seconds % (60 * 60)) / 60);
     const secs: number = seconds % 60;
 
+    return writeInDateDisplayLanguage(
+      (): string => {
+        return this.getEnglishDaysHoursMinutesAndSeconds({
+          days,
+          hours,
+          minutes,
+          secs,
+        });
+      },
+      (_language: string, locale: string): string | null => {
+        // "2 Tage, 3 Stunden, 4 Minuten und 5 Sekunden".
+        const parts: Array<DurationTextPart> = [
+          { count: days, unit: "day" as const },
+          { count: hours, unit: "hour" as const },
+          { count: minutes, unit: "minute" as const },
+          { count: secs, unit: "second" as const },
+        ].filter((part: DurationTextPart): boolean => {
+          return part.count > 0;
+        });
+
+        return parts.length > 0
+          ? this.formatLocalizedDuration(parts, locale, "long", "long")
+          : null;
+      },
+    );
+  }
+
+  // convertSecondsToDaysHoursMinutesAndSeconds's English, word for word.
+  private static getEnglishDaysHoursMinutesAndSeconds(data: {
+    days: number;
+    hours: number;
+    minutes: number;
+    secs: number;
+  }): string {
+    const { days, hours, minutes, secs } = data;
+
     let formattedString: string = "";
 
     if (days > 0) {
@@ -1916,6 +2212,36 @@ export default class OneUptimeDate {
     const hours: number = Math.floor((minutes % (24 * 60)) / 60);
     const mins: number = minutes % 60;
 
+    return writeInDateDisplayLanguage(
+      (): string => {
+        return this.getEnglishDaysHoursAndMinutes({ days, hours, mins });
+      },
+      (_language: string, locale: string): string | null => {
+        // "2 Tage, 3 Stunden und 0 Minuten": the minutes are always said.
+        const parts: Array<DurationTextPart> = [
+          { count: days, unit: "day" as const },
+          { count: hours, unit: "hour" as const },
+        ].filter((part: DurationTextPart): boolean => {
+          return part.count > 0;
+        });
+
+        if (mins >= 0) {
+          parts.push({ count: mins, unit: "minute" });
+        }
+
+        return this.formatLocalizedDuration(parts, locale, "long", "long");
+      },
+    );
+  }
+
+  // convertMinutesToDaysHoursAndMinutes's English, word for word.
+  private static getEnglishDaysHoursAndMinutes(data: {
+    days: number;
+    hours: number;
+    mins: number;
+  }): string {
+    const { days, hours, mins } = data;
+
     let formattedString: string = "";
 
     if (days > 0) {
@@ -1941,7 +2267,42 @@ export default class OneUptimeDate {
     return formattedString;
   }
 
+  /*
+   * "1.72 s", "960 ms", "2h 5m". The unit symbols read the same in every
+   * language, as a unit symbol does; the figure is written the reader's
+   * way - "1,72 s" in German.
+   */
   public static getHumanizedDurationFromNanoseconds(data: {
+    nanoseconds: number;
+    maxParts?: number;
+  }): string {
+    const english: string = this.getEnglishHumanizedDuration(data);
+
+    return writeInDateDisplayLanguage(
+      (): string => {
+        return english;
+      },
+      (_language: string, locale: string): string | null => {
+        return this.withDecimalSeparatorOf(english, locale);
+      },
+    );
+  }
+
+  // `text`'s decimal points as `locale` writes them: "1.72 s" -> "1,72 s".
+  private static withDecimalSeparatorOf(text: string, locale: string): string {
+    const separator: string = (
+      formatDecimal({ value: 1.5, locale, maximumFractionDigits: 1 }) || "1.5"
+    ).replace(DIGITS, "");
+
+    if (!separator || separator === ".") {
+      return text;
+    }
+
+    return text.replace(DURATION_DECIMAL_POINT, `$1${separator}$2`);
+  }
+
+  // getHumanizedDurationFromNanoseconds's English, as it always read.
+  private static getEnglishHumanizedDuration(data: {
     nanoseconds: number;
     maxParts?: number;
   }): string {
@@ -2128,15 +2489,42 @@ export default class OneUptimeDate {
       ]; // default timezones.
     }
 
+    const instant: Date = date;
+
     for (let i: number = 0; i < timezones.length; i++) {
+      const timezone: Timezone = timezones[i] as Timezone;
+
       timezoneDates.push(
-        moment(date)
-          .tz(timezones[i] as string)
-          .format(formatstring) +
-          " " +
-          (onlyShowDate
-            ? ""
-            : this.getZoneAbbrByTimezone(timezones[i] as Timezone, date)),
+        writeInDateDisplayLanguage(
+          (): string => {
+            return (
+              moment(instant).tz(timezone.toString()).format(formatstring) +
+              " " +
+              (onlyShowDate
+                ? ""
+                : this.getZoneAbbrByTimezone(timezone, instant))
+            );
+          },
+          (language: string, locale: string): string | null => {
+            const text: string | null = this.getLocalizedDateText({
+              date: instant,
+              language,
+              locale,
+              shape: {
+                onlyShowDate,
+                use12HourFormat,
+                twoDigitDay: true,
+              },
+              timezones: this.getTimezoneNames(timezone),
+            });
+
+            if (!text || onlyShowDate) {
+              return text;
+            }
+
+            return `${text} ${this.getZoneAbbrByTimezone(timezone, instant)}`;
+          },
+        ),
       );
     }
 
@@ -2207,7 +2595,7 @@ export default class OneUptimeDate {
       formatstring = "MMM DD, YYYY";
     }
 
-    const momentDate: moment.Moment = this.inCurrentTimezone(date);
+    const instant: Date = date;
 
     /*
      * The abbreviation has to describe THIS date's offset, not today's. Asking
@@ -2217,9 +2605,31 @@ export default class OneUptimeDate {
      */
     const zoneAbbr: string = onlyShowDate
       ? ""
-      : this.getZoneAbbrByTimezone(this.getCurrentTimezone(), date);
+      : this.getZoneAbbrByTimezone(this.getCurrentTimezone(), instant);
 
-    return (momentDate.format(formatstring) + " " + zoneAbbr).trim();
+    return writeInDateDisplayLanguage(
+      (): string => {
+        const momentDate: moment.Moment = this.inCurrentTimezone(instant);
+
+        return (momentDate.format(formatstring) + " " + zoneAbbr).trim();
+      },
+      (language: string, locale: string): string | null => {
+        // "06. Okt. 2026, 10:05 BST", "2026年10月06日 10:05 BST".
+        const text: string | null = this.getLocalizedDateText({
+          date: instant,
+          language,
+          locale,
+          shape: {
+            onlyShowDate,
+            showSeconds,
+            use12HourFormat,
+            twoDigitDay: true,
+          },
+        });
+
+        return text ? `${text} ${zoneAbbr}`.trim() : null;
+      },
+    );
   }
 
   public static getDayInSeconds(days?: number | undefined): number {

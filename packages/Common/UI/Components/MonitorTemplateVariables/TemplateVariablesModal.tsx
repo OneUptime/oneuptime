@@ -193,9 +193,9 @@ const TemplateVariablesModal: FunctionComponent<ComponentProps> = (
       title="Dynamic Template Variables"
       description={translator.translatePlural(
         {
-          one: "Use these variables in incident and alert titles, descriptions, and remediation notes. Click any variable to copy it. {{count}} variable available for this monitor type.",
+          one: "Use these in incident and alert titles, descriptions and remediation notes. Click a variable to copy it. {{count}} variable for this monitor type.",
           other:
-            "Use these variables in incident and alert titles, descriptions, and remediation notes. Click any variable to copy it. {{count}} variables available for this monitor type.",
+            "Use these in incident and alert titles, descriptions and remediation notes. Click a variable to copy it. {{count}} variables for this monitor type.",
         },
         totalVariables,
       )}

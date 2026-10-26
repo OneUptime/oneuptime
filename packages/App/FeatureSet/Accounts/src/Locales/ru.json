@@ -376,11 +376,13 @@
   "Switch to markdown source": "Перейти к исходному коду Markdown",
   "Switch to visual editor": "Перейти к визуальному редактору",
   "Opens in a new tab": "Откроется в новой вкладке",
-  "Note": "Примечание",
-  "Tip": "Совет",
-  "Info": "Информация",
-  "Important": "Важно",
-  "Warning": "Предупреждение",
-  "Caution": "Осторожно",
-  "Danger": "Опасно"
+  "markdownCallouts": {
+    "caution": "Осторожно",
+    "danger": "Опасно",
+    "important": "Важно",
+    "info": "Информация",
+    "note": "Примечание",
+    "tip": "Совет",
+    "warning": "Предупреждение"
+  }
 }

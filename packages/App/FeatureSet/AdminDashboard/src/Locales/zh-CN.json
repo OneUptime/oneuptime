@@ -901,13 +901,6 @@
   "Test passed, with a warning": "测试通过，但有警告",
   "Test failed": "测试失败",
   "Opens in a new tab": "在新标签页中打开",
-  "Note": "注意",
-  "Tip": "提示",
-  "Info": "信息",
-  "Important": "重要",
-  "Warning": "警告",
-  "Caution": "小心",
-  "Danger": "危险",
   "Such as your company or team name. You can change it later.": "例如您的公司或团队名称。之后可以更改。",
   "If you have one, from an offer or a reseller.": "如有，可填写来自优惠活动或经销商的代码。",
   "Plan": "套餐",
@@ -1470,5 +1463,14 @@
   "This couldn't be loaded.": "无法加载此内容。",
   "Try again": "重试",
   "Dismiss": "关闭",
-  "Loading": "加载中"
+  "Loading": "加载中",
+  "markdownCallouts": {
+    "caution": "小心",
+    "danger": "危险",
+    "important": "重要",
+    "info": "信息",
+    "note": "注意",
+    "tip": "提示",
+    "warning": "警告"
+  }
 }

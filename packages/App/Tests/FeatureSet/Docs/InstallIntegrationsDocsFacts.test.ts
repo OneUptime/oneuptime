@@ -580,6 +580,72 @@ function valueAt(root: unknown, dottedPath: string): unknown {
   return node;
 }
 
+// A step of a GitHub Actions job, as far as the Node.js check reads it.
+interface WorkflowStep {
+  uses?: string;
+  run?: string;
+  with?: Record<string, unknown>;
+}
+
+// A step that runs the smoke test of a package npm publishes.
+const PACKAGE_SMOKE_TEST: RegExp = /\bSmokeTest\w*Package\.js\b/;
+
+function isNodeSetup(step: WorkflowStep): boolean {
+  return (
+    (step.uses || "").startsWith("actions/setup-node@") &&
+    step.with?.["node-version"] !== undefined
+  );
+}
+
+/*
+ * How many times a workflow sets up each Node.js line only to install a
+ * package npm publishes and use it, as a project on that line does: every
+ * step from that setup-node to the next one runs the package's smoke test
+ * (SmokeTestNpmPackage.js, for @oneuptime/common). Nothing of the repository
+ * runs on such a line.
+ */
+function packageSmokeTestLines(workflow: unknown): Map<string, number> {
+  const lines: Map<string, number> = new Map<string, number>();
+  const jobs: Record<string, { steps?: Array<WorkflowStep> } | null> =
+    (
+      workflow as {
+        jobs?: Record<string, { steps?: Array<WorkflowStep> } | null>;
+      } | null
+    )?.jobs || {};
+
+  for (const job of Object.values(jobs)) {
+    const steps: Array<WorkflowStep> = job?.steps || [];
+
+    steps.forEach((step: WorkflowStep, index: number): void => {
+      if (!isNodeSetup(step)) {
+        return;
+      }
+
+      const next: number = steps.findIndex(
+        (later: WorkflowStep, laterIndex: number): boolean => {
+          return laterIndex > index && isNodeSetup(later);
+        },
+      );
+      const onThisLine: Array<WorkflowStep> = steps.slice(
+        index + 1,
+        next === -1 ? steps.length : next,
+      );
+
+      if (
+        onThisLine.length > 0 &&
+        onThisLine.every((later: WorkflowStep): boolean => {
+          return PACKAGE_SMOKE_TEST.test(later.run || "");
+        })
+      ) {
+        const line: string = String(step.with?.["node-version"]);
+        lines.set(line, (lines.get(line) || 0) + 1);
+      }
+    });
+  }
+
+  return lines;
+}
+
 // Unset, or set to nothing: what a chart default that sets no resources looks like.
 function isEmptySetting(value: unknown): boolean {
   return (
@@ -896,6 +962,13 @@ describe("Local Development, against the scripts it runs", () => {
     ).engines;
     const workflows: string = path.join(REPO_DIR, ".github", "workflows");
     const versions: Set<string> = new Set<string>();
+    /*
+     * The older lines a package npm publishes is installed on and used, as a
+     * project on that line does (Common Test's npm package job, on every
+     * line @oneuptime/common supports - NpmPackageWiring holds which): no
+     * step of the repository runs there.
+     */
+    const packageLines: Set<string> = new Set<string>();
 
     for (const file of fs.readdirSync(workflows)) {
       if (!YAML_FILE.test(file)) {
@@ -906,14 +979,29 @@ describe("Local Development, against the scripts it runs", () => {
         path.join(workflows, file),
         "utf8",
       );
+      const smokeTestLines: Map<string, number> = packageSmokeTestLines(
+        jsYaml.load(workflow),
+      );
 
       for (const match of workflow.matchAll(/node-version:\s*'?(\d+)'?/g)) {
-        versions.add(match[1] as string);
+        const line: string = match[1] as string;
+        const smokeTests: number = smokeTestLines.get(line) || 0;
+
+        if (line !== "26" && smokeTests > 0) {
+          smokeTestLines.set(line, smokeTests - 1);
+          packageLines.add(line);
+          continue;
+        }
+
+        versions.add(line);
       }
     }
 
     expect(engines.node).toBe(">=26.0.0");
     expect([...versions]).toEqual(["26"]);
+    for (const line of packageLines) {
+      expect(Number(line)).toBeLessThan(26);
+    }
     expect(page).toContain("| **Node.js 26 or later, and npm** |");
   });
 

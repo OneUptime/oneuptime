@@ -396,13 +396,6 @@
   "Email is not valid.": "E-mailadres is ongeldig.",
   "Next": "Volgende",
   "Opens in a new tab": "Opent in een nieuw tabblad",
-  "Note": "Opmerking",
-  "Tip": "Tip",
-  "Info": "Info",
-  "Important": "Belangrijk",
-  "Warning": "Waarschuwing",
-  "Caution": "Let op",
-  "Danger": "Gevaar",
   "Loading the latest version": "De nieuwste versie wordt geladen",
   "A newer version of this page is available. It's loading now.": "Er is een nieuwere versie van deze pagina beschikbaar. Die wordt nu geladen.",
   "You're offline": "U bent offline",
@@ -422,5 +415,14 @@
   "This couldn't be loaded.": "Dit kon niet worden geladen.",
   "Try again": "Opnieuw proberen",
   "Loading...": "Laden...",
-  "Loading": "Laden"
+  "Loading": "Laden",
+  "markdownCallouts": {
+    "caution": "Let op",
+    "danger": "Gevaar",
+    "important": "Belangrijk",
+    "info": "Info",
+    "note": "Opmerking",
+    "tip": "Tip",
+    "warning": "Waarschuwing"
+  }
 }

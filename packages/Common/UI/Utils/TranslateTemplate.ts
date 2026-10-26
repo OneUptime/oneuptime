@@ -1,4 +1,5 @@
 import i18next from "i18next";
+import { getEnglishOf } from "../../Types/DateLanguage";
 
 /*
  * Translating a sentence that has a value in it.
@@ -38,6 +39,12 @@ import i18next from "i18next";
  *
  * Where i18next is not set up (a front end without locales, a unit test) the
  * English template is filled in directly, so a placeholder is never shown.
+ *
+ * A date, a time or a duration goes into a sentence as text written in the
+ * reader's language ("vor 5 Stunden", Common/Types/DateLanguage). When the
+ * sentence itself is read in English - the reader's language has no wording
+ * of it yet - the English of that text goes in instead, so "Checked
+ * {{time}}" never reads "Checked vor 5 Stunden".
  */
 
 /*
@@ -305,6 +312,25 @@ const englishValue: (value: TemplateValue) => string = (
 };
 
 /*
+ * The values as an English sentence takes them: a date, a time or a duration
+ * written in the reader's language goes back to its English.
+ */
+const englishDateValues: (values: TemplateValues) => TemplateValues = (
+  values: TemplateValues,
+): TemplateValues => {
+  const result: TemplateValues = {};
+
+  for (const key of Object.keys(values)) {
+    const value: TemplateValue = values[key] as TemplateValue;
+
+    result[key] =
+      typeof value === "string" ? getEnglishOf(value) ?? value : value;
+  }
+
+  return result;
+};
+
+/*
  * Fills {{key}} placeholders from values. A placeholder with no value is left
  * as it is, which a test notices and a reader at least recognises as a slot.
  * Each value goes in literally: braces or "$t(" inside a name are never
@@ -454,7 +480,7 @@ export const createTranslator: (
   ): string => {
     if (stored === undefined || stored === english) {
       return hasWords(english)
-        ? fillTemplate(english, values)
+        ? fillTemplate(english, englishDateValues(values))
         : fillTemplate(english, translatedValues(values));
     }
 
@@ -620,6 +646,29 @@ export const translatePlural: (
 };
 
 /*
+ * The language a sentence is drawn in: the reader's when their language has
+ * its own wording of it, or when it has no words of its own ("{{label}}
+ * {{time}}"), and English otherwise. A date drawn inside the sentence (a
+ * TranslatedSentence slot) is written in it.
+ */
+export const getSentenceLanguage: (
+  translator: Translator,
+  template: string | PluralTemplate,
+) => string = (
+  translator: Translator,
+  template: string | PluralTemplate,
+): string => {
+  const english: string =
+    typeof template === "string" ? template : template.other;
+
+  if (!hasWords(english) || translator.hasTranslation(english)) {
+    return translator.language;
+  }
+
+  return DEFAULT_LANGUAGE;
+};
+
+/*
  * An action on a named kind of thing - "Create Incident", "Edit Monitor",
  * "Delete Status Page" - from a template with an {{itemName}} slot. The whole
  * English phrase is looked up first, so a locale can word one model's button
@@ -662,6 +711,23 @@ export type SentencePart =
  */
 const SLOT_PATTERN: RegExp = /\uE000(\d+)\uE000/;
 
+export interface SentenceParts {
+  parts: Array<SentencePart>;
+  /*
+   * The language the sentence is drawn in (getSentenceLanguage): the slots'
+   * dates are written in it. English when the translation could not be used.
+   */
+  language: string;
+}
+
+export interface SentencePartsInput {
+  translator: Translator;
+  template: string | PluralTemplate;
+  slots: ReadonlyArray<string>;
+  values?: TemplateValues | undefined;
+  count?: number | undefined;
+}
+
 /*
  * A translated sentence in pieces, for a caller that draws some of its values
  * itself - a field name in bold, a link - between the pieces of text.
@@ -670,19 +736,16 @@ const SLOT_PATTERN: RegExp = /\uE000(\d+)\uE000/;
  * A translation that lost one of the slots or repeated it cannot be drawn
  * whole, so the English sentence is used instead.
  */
-export const getSentenceParts: (data: {
-  translator: Translator;
-  template: string | PluralTemplate;
-  slots: ReadonlyArray<string>;
-  values?: TemplateValues | undefined;
-  count?: number | undefined;
-}) => Array<SentencePart> = (data: {
-  translator: Translator;
-  template: string | PluralTemplate;
-  slots: ReadonlyArray<string>;
-  values?: TemplateValues | undefined;
-  count?: number | undefined;
-}): Array<SentencePart> => {
+export const getSentenceParts: (
+  data: SentencePartsInput,
+) => Array<SentencePart> = (data: SentencePartsInput): Array<SentencePart> => {
+  return getSentencePartsAndLanguage(data).parts;
+};
+
+// getSentenceParts, with the language the sentence came out in.
+export const getSentencePartsAndLanguage: (
+  data: SentencePartsInput,
+) => SentenceParts = (data: SentencePartsInput): SentenceParts => {
   const withMarkers: TemplateValues = { ...(data.values || {}) };
 
   data.slots.forEach((slot: string, index: number): void => {
@@ -734,18 +797,32 @@ export const getSentenceParts: (data: {
     ? { count: data.translator.formatNumber(count), ...withMarkers }
     : withMarkers;
 
-  return (
-    split(translated) ||
-    split(fillTemplate(englishTemplate, englishValues)) || [
+  const translatedParts: Array<SentencePart> | null = split(translated);
+
+  if (translatedParts) {
+    return {
+      parts: translatedParts,
+      language: getSentenceLanguage(data.translator, data.template),
+    };
+  }
+
+  return {
+    parts: split(
+      fillTemplate(englishTemplate, englishDateValues(englishValues)),
+    ) || [
       {
         kind: "text",
-        text: fillTemplate(englishTemplate, {
-          ...(isPlural ? { count: data.translator.formatNumber(count) } : {}),
-          ...(data.values || {}),
-        }),
+        text: fillTemplate(
+          englishTemplate,
+          englishDateValues({
+            ...(isPlural ? { count: data.translator.formatNumber(count) } : {}),
+            ...(data.values || {}),
+          }),
+        ),
       },
-    ]
-  );
+    ],
+    language: DEFAULT_LANGUAGE,
+  };
 };
 
 export interface TemplateAround {
@@ -795,8 +872,8 @@ export const translateTemplateAround: (
    */
   return (
     split(translateTemplate(template, withMarker)) ||
-    split(fillTemplate(template, withMarker)) || {
-      before: fillTemplate(template, values),
+    split(fillTemplate(template, englishDateValues(withMarker))) || {
+      before: fillTemplate(template, englishDateValues(values)),
       after: "",
     }
   );

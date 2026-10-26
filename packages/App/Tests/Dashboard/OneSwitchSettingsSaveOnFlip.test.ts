@@ -240,8 +240,9 @@ describe("the overview's hero", () => {
   );
 
   test("a turned-off monitor's call to action is the in-place action, not the settings link", () => {
+    // Each word in the reader's language (the hero's translator, t).
     expect(presentation).toContain(
-      'headline: { text: "Monitoring is turned off" }, explanation: PAUSED_EXPLANATION.disabled, lastKnownStatus: lastKnownStatus, callToAction: { text: "Turn monitoring on", actionKey: "turnMonitoringOn", },',
+      'headline: { text: t.translateTemplate("Monitoring is turned off") }, explanation: t.translateTemplate(PAUSED_EXPLANATION.disabled), lastKnownStatus: lastKnownStatus, callToAction: { text: t.translateTemplate("Turn monitoring on"), actionKey: "turnMonitoringOn", },',
     );
   });
 

@@ -14,6 +14,7 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
+import { inEnglishDates } from "Common/Types/DateLanguage";
 import ProjectUtil from "Common/UI/Utils/Project";
 import RumSessionPin from "Common/Models/DatabaseModels/RumSessionPin";
 import { ReplayToolButton } from "./ReplayUi";
@@ -405,9 +406,16 @@ const ReplayPinControl: FunctionComponent<ReplayPinControlProps> = (
   const expiresAt: Date | null =
     state.kind === "protected" ? state.expiresAt : null;
 
+  /*
+   * In English, as the pin's other states and the replay's other words
+   * still are, its date too: one German state among English ones would
+   * read as a mistake.
+   */
   const badgeTitle: string = isProtected
     ? expiresAt
-      ? `A copy of this recording is stored under pinned retention until ${OneUptimeDate.getDateAsFormattedString(expiresAt)}.`
+      ? inEnglishDates((): string => {
+          return `A copy of this recording is stored under pinned retention until ${OneUptimeDate.getDateAsFormattedString(expiresAt)}.`;
+        })
       : "A copy of this recording is stored under pinned retention."
     : "The pin is queued. Until the recording is finalized and the copy is written, this recording is NOT yet protected from retention.";
 

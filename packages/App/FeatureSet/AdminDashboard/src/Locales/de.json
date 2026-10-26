@@ -901,13 +901,6 @@
   "Test passed, with a warning": "Test bestanden, mit einer Warnung",
   "Test failed": "Test fehlgeschlagen",
   "Opens in a new tab": "Öffnet in einem neuen Tab",
-  "Note": "Hinweis",
-  "Tip": "Tipp",
-  "Info": "Info",
-  "Important": "Wichtig",
-  "Warning": "Warnung",
-  "Caution": "Vorsicht",
-  "Danger": "Gefahr",
   "Such as your company or team name. You can change it later.": "Zum Beispiel der Name Ihres Unternehmens oder Teams. Sie können ihn später ändern.",
   "If you have one, from an offer or a reseller.": "Falls Sie einen haben, aus einem Angebot oder von einem Wiederverkäufer.",
   "Plan": "Tarif",
@@ -1470,5 +1463,14 @@
   "This couldn't be loaded.": "Dies konnte nicht geladen werden.",
   "Try again": "Erneut versuchen",
   "Dismiss": "Ausblenden",
-  "Loading": "Wird geladen"
+  "Loading": "Wird geladen",
+  "markdownCallouts": {
+    "caution": "Vorsicht",
+    "danger": "Gefahr",
+    "important": "Wichtig",
+    "info": "Info",
+    "note": "Hinweis",
+    "tip": "Tipp",
+    "warning": "Warnung"
+  }
 }

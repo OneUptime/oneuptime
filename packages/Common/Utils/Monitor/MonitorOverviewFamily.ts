@@ -2,6 +2,7 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import MonitorMetricType from "../../Types/Monitor/MonitorMetricType";
 import MonitorType from "../../Types/Monitor/MonitorType";
 import MonitorMetricTypeUtil from "./MonitorMetricType";
+import { translationKey } from "../../UI/Utils/TranslateTemplate";
 
 /*
  * The monitor overview groups the 35 monitor types into eight families that
@@ -58,6 +59,11 @@ export interface MonitorOverviewLayout {
   evaluationPolicy: MonitorOverviewEvaluationPolicy;
   setupKind: MonitorOverviewSetupKind | null;
   sideCard: MonitorOverviewSideCard | null;
+  /*
+   * The summary card's description, in English: a key of the Dashboard's
+   * locales, translated where the overview is put together
+   * (MonitorOverviewPresentationUtil.getSections).
+   */
   summaryDescription: string | null;
 }
 
@@ -249,20 +255,28 @@ export default class MonitorOverviewFamilyUtil {
   ): string | null {
     switch (family) {
       case MonitorOverviewFamily.ProbeCheck:
-        return "What each probe saw on its most recent check.";
+        return translationKey("What each probe saw on its most recent check.");
       case MonitorOverviewFamily.Heartbeat:
         return monitorType === MonitorType.IncomingEmail
-          ? "The most recent email and how the criteria judged it."
-          : "The most recent request and how the criteria judged it.";
+          ? translationKey(
+              "The most recent email and how the criteria judged it.",
+            )
+          : translationKey(
+              "The most recent request and how the criteria judged it.",
+            );
       case MonitorOverviewFamily.Agent:
-        return "What the agent sent in its most recent report.";
+        return translationKey("What the agent sent in its most recent report.");
       case MonitorOverviewFamily.TelemetrySignal:
       case MonitorOverviewFamily.Infrastructure:
-        return "How the criteria judged the data on the most recent evaluation.";
+        return translationKey(
+          "How the criteria judged the data on the most recent evaluation.",
+        );
       case MonitorOverviewFamily.NetworkDevice:
-        return "How this monitor is evaluated.";
+        return translationKey("How this monitor is evaluated.");
       case MonitorOverviewFamily.ProbeStatus:
-        return "Each probe this monitor watches, as the latest evaluation found it.";
+        return translationKey(
+          "Each probe this monitor watches, as the latest evaluation found it.",
+        );
       case MonitorOverviewFamily.Manual:
         // Nothing is evaluated, so there is nothing to summarise.
         return null;

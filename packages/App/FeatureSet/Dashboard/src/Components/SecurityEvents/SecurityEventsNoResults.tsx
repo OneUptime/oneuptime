@@ -5,6 +5,7 @@ import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime
 import TimeRange from "Common/Types/Time/TimeRange";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
+import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
 import { getTimeRangeCovering } from "./SecurityEventsTimeRange";
 
 export const SECURITY_EVENTS_NO_RESULTS_ID: string =
@@ -33,10 +34,12 @@ export function getShowTimeRangeButtonTitle(
   timeRange: RangeStartAndEndDateTime,
 ): string {
   if (timeRange.range === TimeRange.CUSTOM && timeRange.startAndEndDate) {
-    return `Show events since ${OneUptimeDate.getDateAsLocalFormattedString(
-      new Date(timeRange.startAndEndDate.startValue),
-      true,
-    )}`;
+    return translateTemplate("Show events since {{date}}", {
+      date: OneUptimeDate.getDateAsLocalFormattedString(
+        new Date(timeRange.startAndEndDate.startValue),
+        true,
+      ),
+    });
   }
 
   return `Show ${timeRange.range.toLowerCase()}`;
@@ -90,9 +93,13 @@ const SecurityEventsNoResults: FunctionComponent<ComponentProps> = (
       icon={IconProp.Clock}
       paddingClassName={PADDING_CLASS_NAME}
       title="No security events in this time range"
-      description={`The most recent security event arrived ${OneUptimeDate.fromNow(
-        latest,
-      )} (${OneUptimeDate.getDateAsLocalFormattedString(latest)}).`}
+      description={translateTemplate(
+        "The most recent security event arrived {{time}} ({{date}}).",
+        {
+          time: OneUptimeDate.fromNow(latest),
+          date: OneUptimeDate.getDateAsLocalFormattedString(latest),
+        },
+      )}
       footer={
         props.onShowTimeRange ? (
           <div className="flex flex-wrap items-center justify-center gap-3">

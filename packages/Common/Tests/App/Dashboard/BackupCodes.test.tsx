@@ -13,6 +13,7 @@ import BackupCodes from "../../../../App/FeatureSet/Dashboard/src/Components/Two
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import { JSONObject } from "../../../Types/JSON";
 import API from "../../../UI/Utils/API/API";
+import { setDateDisplayLanguage } from "../../../Types/DateLanguage";
 
 const CODES: Array<string> = ["ABCD-EFGH-2345", "JKLM-NPQR-6789"];
 const clipboardDescriptor: PropertyDescriptor | undefined =
@@ -82,6 +83,28 @@ describe("backup code recovery experience", () => {
       "/user-two-factor-backup-code/status",
     );
     expect(generateCodes).not.toHaveBeenCalled();
+  });
+
+  /*
+   * Every other line of the card is still English, so its generated date is
+   * too on a German page: one German line in it would read as a mistake.
+   */
+  test("on a German page the generated line stays English, its date too", async () => {
+    setDateDisplayLanguage("de");
+
+    try {
+      render(<BackupCodes />);
+
+      const status: HTMLElement = await screen.findByRole("status", {
+        name: "Backup code status",
+      });
+
+      expect(status).toHaveTextContent("Generated Sep");
+      expect(status).not.toHaveTextContent("Erstellt");
+      expect(status).not.toHaveTextContent("Sept.");
+    } finally {
+      setDateDisplayLanguage(null);
+    }
   });
 
   test.each<[number, string, string]>([

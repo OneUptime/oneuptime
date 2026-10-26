@@ -13,7 +13,6 @@ import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import { getNameAfterPick } from "Common/UI/Components/Forms/Utils/FollowPickName";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
-import MarkdownUtil from "Common/UI/Utils/Markdown";
 import type { ReactElement } from "react";
 
 /*
@@ -274,9 +273,7 @@ export const getStatusPageResourceFormFields: (
       fieldType: FormFieldSchemaType.Markdown,
       required: false,
       placeholder: "",
-      description: MarkdownUtil.getMarkdownCheatsheet(
-        "Describe this resource here",
-      ),
+      description: "Describe this resource here.",
       collapsibleSection: advancedSection,
     },
     ...getStatusPageResourceAdvancedFields(advancedSection),

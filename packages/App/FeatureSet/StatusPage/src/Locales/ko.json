@@ -396,13 +396,6 @@
   "Email is not valid.": "이메일이 유효하지 않습니다.",
   "Next": "다음",
   "Opens in a new tab": "새 탭에서 열림",
-  "Note": "참고",
-  "Tip": "팁",
-  "Info": "정보",
-  "Important": "중요",
-  "Warning": "경고",
-  "Caution": "주의",
-  "Danger": "위험",
   "Loading the latest version": "최신 버전을 로드하는 중",
   "A newer version of this page is available. It's loading now.": "이 페이지의 최신 버전이 있습니다. 지금 로드하는 중입니다.",
   "You're offline": "오프라인 상태입니다",
@@ -422,5 +415,14 @@
   "This couldn't be loaded.": "로드할 수 없습니다.",
   "Try again": "다시 시도",
   "Loading...": "로드 중...",
-  "Loading": "로드 중"
+  "Loading": "로드 중",
+  "markdownCallouts": {
+    "caution": "주의",
+    "danger": "위험",
+    "important": "중요",
+    "info": "정보",
+    "note": "참고",
+    "tip": "팁",
+    "warning": "경고"
+  }
 }

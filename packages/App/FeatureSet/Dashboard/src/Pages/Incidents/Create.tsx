@@ -5,7 +5,6 @@ import PageComponentProps from "../PageComponentProps";
 import OneUptimeDate from "Common/Types/Date";
 import Route from "Common/Types/API/Route";
 import Incident from "Common/Models/DatabaseModels/Incident";
-import MarkdownUtil from "Common/UI/Utils/Markdown";
 import React, {
   Fragment,
   FunctionComponent,
@@ -1558,9 +1557,7 @@ const IncidentCreate: FunctionComponent<
                   stepId: "incident-details",
                   fieldType: FormFieldSchemaType.Markdown,
                   required: false,
-                  description: MarkdownUtil.getMarkdownCheatsheet(
-                    "Describe the incident details here",
-                  ),
+                  description: "Describe the incident details here.",
                 },
                 /*
                  * Advanced: what most declarations leave alone. Declared At
