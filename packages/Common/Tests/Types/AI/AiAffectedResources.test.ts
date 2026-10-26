@@ -104,7 +104,15 @@ function resourcePage(
 }
 
 describe("the kinds OneUptime AI links", () => {
-  test.each(AI_AFFECTED_RESOURCE_KINDS.map((info) => [info.kind, info]))(
+  test.each(
+    AI_AFFECTED_RESOURCE_KINDS.map(
+      (
+        info: AiAffectedResourceKindInfo,
+      ): [string, AiAffectedResourceKindInfo] => {
+        return [info.kind, info];
+      },
+    ),
+  )(
     "%s goes in a list of the same name on both incidents and alerts",
     (_kind: string, info: AiAffectedResourceKindInfo) => {
       for (const record of [new Incident(), new Alert()]) {

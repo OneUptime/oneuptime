@@ -37,6 +37,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * LINKING AN INCIDENT OR ALERT TO WHAT IT IS ABOUT MAKES ONEUPTIME AI TRY
@@ -88,25 +89,19 @@ function decision(
 }
 
 interface Spies {
-  latestDecision: jest.SpiedFunction<
-    typeof AutoRemediationDecisionService.findOneBy
-  >;
-  isIncidentResolved: jest.SpiedFunction<
-    typeof IncidentService.isIncidentResolved
-  >;
-  isAlertResolved: jest.SpiedFunction<typeof AlertService.isAlertResolved>;
-  clusters: jest.SpiedFunction<
+  latestDecision: SpyInstance<typeof AutoRemediationDecisionService.findOneBy>;
+  isIncidentResolved: SpyInstance<typeof IncidentService.isIncidentResolved>;
+  isAlertResolved: SpyInstance<typeof AlertService.isAlertResolved>;
+  clusters: SpyInstance<
     typeof KubernetesClusterAiAccessService.getClustersForSubject
   >;
-  resources: jest.SpiedFunction<
-    typeof ResourceAiAccessService.getResourcesForSubject
-  >;
-  lock: jest.SpiedFunction<typeof Semaphore.lock>;
-  release: jest.SpiedFunction<typeof Semaphore.release>;
-  applyToIncident: jest.SpiedFunction<
+  resources: SpyInstance<typeof ResourceAiAccessService.getResourcesForSubject>;
+  lock: SpyInstance<typeof Semaphore.lock>;
+  release: SpyInstance<typeof Semaphore.release>;
+  applyToIncident: SpyInstance<
     typeof AutoRemediationRuleEngineService.applyRulesToIncidentById
   >;
-  applyToAlert: jest.SpiedFunction<
+  applyToAlert: SpyInstance<
     typeof AutoRemediationRuleEngineService.applyRulesToAlertById
   >;
 }
@@ -489,8 +484,10 @@ describe("when OneUptime AI tries again (onSubjectLinksChanged)", () => {
 
   test("decided again inside the lock: an edit that waited behind one that tried evaluates nothing", async () => {
     const spies: Spies = installSpies();
-    // The first read says linked to nothing; by the time the lock is held,
-    // the other edit's evaluation found the host.
+    /*
+     * The first read says linked to nothing; by the time the lock is held,
+     * the other edit's evaluation found the host.
+     */
     spies.latestDecision
       .mockResolvedValueOnce(decision(LINKED_TO_NOTHING) as never)
       .mockResolvedValueOnce(

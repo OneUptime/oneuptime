@@ -195,9 +195,11 @@ describe("C: every AI tool that creates an incident or an alert links what it is
   });
 
   test.each(
-    creatingTools.map((tool: ObservabilityTool) => {
-      return [tool.name, tool];
-    }),
+    creatingTools.map(
+      (tool: ObservabilityTool): [string, ObservabilityTool] => {
+        return [tool.name, tool];
+      },
+    ),
   )(
     "%s takes affectedResources and writes the page's resource out before approval",
     (_name: string, tool: ObservabilityTool) => {

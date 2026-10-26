@@ -4,7 +4,10 @@ import ChatAgentRunner, {
 import ChatInfrastructureAccess from "../../../../Server/Utils/AI/Chat/ChatInfrastructureAccess";
 import { CreateIncidentTool } from "../../../../Server/Utils/AI/Toolbox/IncidentWriteTools";
 import AIToolbox from "../../../../Server/Utils/AI/Toolbox/Index";
-import { ToolContext } from "../../../../Server/Utils/AI/Toolbox/ToolTypes";
+import {
+  ObservabilityTool,
+  ToolContext,
+} from "../../../../Server/Utils/AI/Toolbox/ToolTypes";
 import AiContextReader from "../../../../Server/Utils/AI/AiContext/AiContextReader";
 import AIService, {
   AILogResponse,
@@ -373,7 +376,10 @@ describe("Ask AI on a host's page declares an incident linked to the host (issue
   test("a prepare that fails leaves the model's arguments, and the action is still asked about", async () => {
     const spies: Spies = installSpies();
     jest
-      .spyOn(CreateIncidentTool, "prepareMutation")
+      .spyOn(
+        CreateIncidentTool as Required<ObservabilityTool>,
+        "prepareMutation",
+      )
       .mockRejectedValue(new Error("lookup failed") as never);
     spies.executeWithLogging.mockResolvedValueOnce(
       response({ stopReason: "tool_use", toolCalls: [DECLARE_CALL] }) as never,
@@ -390,7 +396,7 @@ describe("Ask AI on a host's page declares an incident linked to the host (issue
   test("a read is never prepared, and every tool reads the conversation's subject", async () => {
     const spies: Spies = installSpies();
     const prepare: SpyInstance = jest.spyOn(
-      CreateIncidentTool,
+      CreateIncidentTool as Required<ObservabilityTool>,
       "prepareMutation",
     );
     const execute: SpyInstance = jest
