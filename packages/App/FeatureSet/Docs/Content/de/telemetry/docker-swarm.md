@@ -154,7 +154,7 @@ sudo systemctl enable --now oneuptime-docker-swarm-agent
 
 ## Agent aktualisieren
 
-Der Agent meldet die Collector-Version, die er ausführt. Ist sie älter als die Version, die dieses OneUptime-Release festlegt, erscheint in der **Übersicht** des Clusters ein Warnzeichen neben der Version des Agents. Wählen Sie es aus, um diese Befehle zu sehen.
+Der Agent meldet die Version seiner Dateien: das Collector-Release, das sie ausführen, dessen letzte Zahl steigt, wann immer OneUptime die Dateien ändert und nicht den Collector. Ist sie älter als die Version, die dieses OneUptime-Release ausliefert, erscheint in der **Übersicht** des Clusters ein Warnzeichen neben der Version des Agents. Wählen Sie es aus, um diese Befehle zu sehen.
 
 Führen Sie das Installationsskript erneut auf dem Manager-Knoten aus und beantworten Sie seine Fragen mit derselben URL, demselben Schlüssel und demselben Clusternamen. Es lädt die neuesten Dateien herunter, zieht die Images und startet den Agent neu:
 
@@ -239,7 +239,7 @@ Der Name des Clusters kommt aus `DOCKER_SWARM_CLUSTER_NAME`. Ändern Sie ihn in 
 :::
 
 :::details Task-CPU ist eine flache Linie
-Eine ältere `otel-collector-config.yaml` sendet den eigenen CPU-Wert des Receivers `docker_stats`. Seit Collector 0.150.0 berechnet der Receiver ihn aus einem einzigen Stats-Messwert: die gesamte CPU, die ein Container seit seinem Start verbraucht hat, geteilt durch die gesamte CPU, die der Knoten seit seinem Booten verbraucht hat. Die Linie bewegt sich kaum und folgt der Last nicht, `container.cpu.usage.total` dagegen schon. Die Collector-Version hat sich nicht geändert, daher erscheint kein Warnzeichen: Laden Sie die Dateien des Agenten erneut herunter, wie [Agent aktualisieren](#agent-aktualisieren) zeigt. Ab seinem zweiten Messwert sendet der Collector dann die CPU, die jeder Container in jedem 30-Sekunden-Intervall verbraucht hat. Bereits gespeicherte Messwerte bleiben, wie sie waren.
+Eine ältere `otel-collector-config.yaml` sendet den eigenen CPU-Wert des Receivers `docker_stats`. Seit Collector 0.150.0 berechnet der Receiver ihn aus einem einzigen Stats-Messwert: die gesamte CPU, die ein Container seit seinem Start verbraucht hat, geteilt durch die gesamte CPU, die der Knoten seit seinem Booten verbraucht hat. Die Linie bewegt sich kaum und folgt der Last nicht, `container.cpu.usage.total` dagegen schon. Ein solcher Agent meldet Version 0.161.0 oder älter, daher erscheint ein Warnzeichen neben seiner Version: Laden Sie die Dateien des Agenten erneut herunter, wie [Agent aktualisieren](#agent-aktualisieren) zeigt. Ab seinem zweiten Messwert sendet der Collector dann die CPU, die jeder Container in jedem 30-Sekunden-Intervall verbraucht hat. Bereits gespeicherte Messwerte bleiben, wie sie waren.
 :::
 
 ## Nächste Schritte

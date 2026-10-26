@@ -638,7 +638,7 @@ describe("Overview.tsx wiring: charts and the web-vitals card", () => {
   const charts: string = between(
     OVERVIEW,
     "const charts: ReactElement = (",
-    "const quickLinks:",
+    "const recordingHealthValue:",
   );
 
   const EXPECTED_CHARTS: Array<[string, RumMetric]> = [

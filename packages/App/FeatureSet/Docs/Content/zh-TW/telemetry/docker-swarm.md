@@ -154,7 +154,7 @@ sudo systemctl enable --now oneuptime-docker-swarm-agent
 
 ## 升級代理程式
 
-代理程式會回報它執行的 Collector 版本。當該版本早於此 OneUptime 版本固定的版本時，叢集的 **概覽** 頁面上代理程式版本旁會出現一個警告標誌。選取它即可查看這些命令。
+代理程式會回報其檔案的版本：即這些檔案執行的 Collector 版本，每當 OneUptime 只修改檔案而不更換 Collector 時，最後一位數字就會增加。當該版本早於此 OneUptime 版本提供的版本時，叢集的 **概覽** 頁面上代理程式版本旁會出現一個警告標誌。選取它即可查看這些命令。
 
 在管理節點上再次執行安裝指令碼，並用相同的 URL、金鑰和叢集名稱回答它的問題。它會下載最新的檔案、提取映像檔並重新啟動代理程式：
 
@@ -239,7 +239,7 @@ docker version --format '{{ .Server.APIVersion }}'
 :::
 
 :::details 任務 CPU 是一條平線
-舊版 `otel-collector-config.yaml` 傳送的是 `docker_stats` 接收器自己算出的 CPU 值。從 Collector 0.150.0 起，接收器只根據一次統計讀數來計算它：容器自啟動以來用掉的全部 CPU，除以節點自開機以來用掉的全部 CPU。這條線幾乎不動，也不隨負載變化，而 `container.cpu.usage.total` 會隨負載變化。Collector 版本沒有變更，所以不會出現警告標誌：請依照 [升級代理程式](#升級代理程式) 重新下載代理程式的檔案。從第二次讀數起，Collector 就會傳送每個容器在每個 30 秒間隔內用掉的 CPU。已儲存的讀數保持不變。
+舊版 `otel-collector-config.yaml` 傳送的是 `docker_stats` 接收器自己算出的 CPU 值。從 Collector 0.150.0 起，接收器只根據一次統計讀數來計算它：容器自啟動以來用掉的全部 CPU，除以節點自開機以來用掉的全部 CPU。這條線幾乎不動，也不隨負載變化，而 `container.cpu.usage.total` 會隨負載變化。這樣的代理程式回報的版本為 0.161.0 或更早，所以版本旁會出現警告標誌：請依照 [升級代理程式](#升級代理程式) 重新下載代理程式的檔案。從第二次讀數起，Collector 就會傳送每個容器在每個 30 秒間隔內用掉的 CPU。已儲存的讀數保持不變。
 :::
 
 ## 後續步驟
