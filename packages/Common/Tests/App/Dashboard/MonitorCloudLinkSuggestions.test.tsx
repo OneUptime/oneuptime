@@ -136,9 +136,10 @@ describe("suggested cloud resources", () => {
     );
     // Offered, not linked: a dashed box.
     expect(item.className).toContain("border-dashed");
-    expect(
-      within(item).getByRole("link", { name: "web-alb" }),
-    ).toHaveAttribute("href", `/dashboard/${PROJECT_ID}/cloud/${ALB_ID}`);
+    expect(within(item).getByRole("link", { name: "web-alb" })).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/cloud/${ALB_ID}`,
+    );
     expect(
       within(item).getByText("Elastic Load Balancer (ALB, NLB, GWLB)"),
     ).toBeInTheDocument();
@@ -192,9 +193,9 @@ describe("suggested cloud resources", () => {
   test("each Link resource names the resource it links, for a screen reader", async () => {
     await renderSuggestions();
 
-    expect(
-      await screen.findByRole("button", { name: "Link web-alb" }),
-    ).toBe(screen.getByTestId(`link-cloud-resource-${ALB_ID}`));
+    expect(await screen.findByRole("button", { name: "Link web-alb" })).toBe(
+      screen.getByTestId(`link-cloud-resource-${ALB_ID}`),
+    );
   });
 
   test("nothing to suggest, or no answer: nothing is drawn", async () => {

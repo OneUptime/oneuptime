@@ -369,8 +369,11 @@ describe("an account's status", () => {
     expect(CLOUD_ACCOUNT_STATUS_COLORS.neutral).toBe(Gray500);
     expect(
       CLOUD_ACCOUNT_STATUS_COLORS[
-        getCloudAccountStatus({ lastSeenAt: NOW, hasConnection: true, now: NOW })
-          .tone
+        getCloudAccountStatus({
+          lastSeenAt: NOW,
+          hasConnection: true,
+          now: NOW,
+        }).tone
       ],
     ).toBe(Green);
   });

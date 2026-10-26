@@ -33,6 +33,7 @@ import RouteMap, {
   RouteUtil,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import CloudAccount from "../../../Models/DatabaseModels/CloudAccount";
+import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
 import CloudResource from "../../../Models/DatabaseModels/CloudResource";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Host from "../../../Models/DatabaseModels/Host";
@@ -431,7 +432,7 @@ describe("a cloud account's details card", () => {
     const account: CloudAccount = new CloudAccount();
     account._id = MODEL_ID.toString();
     account.name = "Production";
-    account.provider = "aws";
+    account.provider = CloudProvider.AWS;
     account.accountId = "123456789012";
     account.providerAccountName = "acme-production";
     stored = account;
@@ -450,7 +451,7 @@ describe("a cloud account's details card", () => {
   });
 
   test("an Azure subscription and a Google Cloud project are named as their clouds", async () => {
-    (stored as CloudAccount).provider = "azure";
+    (stored as CloudAccount).provider = CloudProvider.Azure;
     openSettings(CloudAccountSettings, PageMap.CLOUD_ACCOUNT_VIEW_SETTINGS);
     await screen.findByText("Production", {}, { timeout: WAIT_TIMEOUT });
     expect(
@@ -458,7 +459,7 @@ describe("a cloud account's details card", () => {
     ).toBeInTheDocument();
 
     cleanup();
-    (stored as CloudAccount).provider = "gcp";
+    (stored as CloudAccount).provider = CloudProvider.GCP;
     openSettings(CloudAccountSettings, PageMap.CLOUD_ACCOUNT_VIEW_SETTINGS);
     await screen.findByText("Production", {}, { timeout: WAIT_TIMEOUT });
     expect(
