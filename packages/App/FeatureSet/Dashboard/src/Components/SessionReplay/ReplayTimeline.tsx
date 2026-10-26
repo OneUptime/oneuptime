@@ -964,8 +964,9 @@ const ReplayTimeline: FunctionComponent<ReplayTimelineProps> = (
       ? null
       : formatReplayWallClock(props.startTimeUnixMs, hoverMs);
 
+  // Left to right in every language, as time runs along every chart.
   return (
-    <div data-testid="replay-timeline">
+    <div data-testid="replay-timeline" dir="ltr">
       {isActivityMeasured && props.activity && (
         <ActivityStrip activity={props.activity} durationMs={durationMs} />
       )}

@@ -35,7 +35,10 @@ const ProjectPickerMenuItem: FunctionComponent<ComponentProps> = (
           icon={props.icon}
           className="h-5 w-5 flex-shrink-0 text-gray-400"
         />
-        <span className="text-sm font-medium text-gray-700 truncate">
+        <span
+          className="text-sm font-medium text-gray-700 truncate"
+          dir="auto"
+        >
           {title}
         </span>
         {/*

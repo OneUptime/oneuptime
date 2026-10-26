@@ -12,7 +12,8 @@ import {
  *
  * In the reader's zone (User Settings, else the browser's), language and
  * hour cycle - the clock the feeds read (FeedTime) - with the words from the
- * browser's Intl data, the Gregorian calendar and Latin digits. The card
+ * browser's Intl data, the Gregorian calendar and the language's own
+ * digits. The card
  * used to write the start with moment in the BROWSER's zone and the end in
  * the profile's, in English, with the year and the zone on every row:
  * "17:20 – Oct 15 2026, 17:20 BST".

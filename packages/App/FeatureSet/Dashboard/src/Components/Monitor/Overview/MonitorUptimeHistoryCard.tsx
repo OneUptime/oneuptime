@@ -383,10 +383,15 @@ const MonitorUptimeHistoryCard: FunctionComponent<ComponentProps> = (
       rightElement={rightElement}
     >
       <div>
+        {/*
+         * Left to right in every language, as every chart's time runs, and
+         * so the strip's scroll position keeps today in sight on a phone.
+         */}
         <div
           ref={stripRef}
           data-testid="monitor-uptime-strip"
           className="overflow-x-auto pb-1"
+          dir="ltr"
           onScroll={onStripScroll}
         >
           <div className="min-w-[36rem] sm:min-w-0">

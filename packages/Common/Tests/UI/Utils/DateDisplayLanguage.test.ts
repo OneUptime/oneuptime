@@ -88,9 +88,7 @@ describe("dates follow the page's language", () => {
   test("a language Intl does not know writes English dates", async () => {
     await startI18n("xx");
 
-    expect(getDateLocale(getDateDisplayLanguage())).toBe(
-      "en-u-ca-gregory-nu-latn",
-    );
+    expect(getDateLocale(getDateDisplayLanguage())).toBe("en-u-ca-gregory");
     expect(OneUptimeDate.fromNow(new Date(Date.now() - 5 * 3600000))).toBe(
       "5 hours ago",
     );

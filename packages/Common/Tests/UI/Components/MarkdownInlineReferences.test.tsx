@@ -60,6 +60,7 @@ import {
 } from "../../../UI/Components/Markdown.tsx/InlineReferences";
 import MarkdownViewer from "../../../UI/Components/Markdown.tsx/MarkdownViewer";
 import LazyMarkdownViewer from "../../../UI/Components/Markdown.tsx/LazyMarkdownViewer";
+import { MARKDOWN_BLOCKS_READ_THEIR_OWN_WAY_CLASS_NAME } from "../../../UI/Components/Markdown.tsx/MarkdownReadingDirection";
 
 /*
  * ---------------------------------------------------------------------------
@@ -1783,8 +1784,20 @@ describe("MarkdownViewer inlineReferences wiring", () => {
     expect(Object.keys(props.components || {}).sort()).toEqual(
       EXISTING_COMPONENT_KEYS,
     );
-    expect(container.innerHTML).toBe(
-      '<div class="max-w-none"><div data-testid="react-markdown">Same as #6954 [C1]</div></div>',
+    /*
+     * The frame alone around what react-markdown draws: laid out the way the
+     * note is written (MarkdownReadingDirection), nothing else added.
+     */
+    expect(container.childElementCount).toBe(1);
+
+    const frame: Element = container.firstElementChild!;
+
+    expect(frame.getAttribute("class")).toBe(
+      `max-w-none ${MARKDOWN_BLOCKS_READ_THEIR_OWN_WAY_CLASS_NAME}`,
+    );
+    expect(frame.getAttribute("dir")).toBe("ltr");
+    expect(frame.innerHTML).toBe(
+      '<div data-testid="react-markdown">Same as #6954 [C1]</div>',
     );
   });
 

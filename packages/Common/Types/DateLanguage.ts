@@ -120,7 +120,7 @@ export const getDateLocale: (language: string | null | undefined) => string = (
     return cached;
   }
 
-  let locale: string = `${ENGLISH_DATE_LANGUAGE}-u-ca-gregory-nu-latn`;
+  let locale: string = `${ENGLISH_DATE_LANGUAGE}-u-ca-gregory`;
 
   try {
     const supported: Array<string> = Intl.DateTimeFormat.supportedLocalesOf([
@@ -133,7 +133,7 @@ export const getDateLocale: (language: string | null | undefined) => string = (
       new Intl.DateTimeFormat(locale);
     }
   } catch {
-    locale = `${ENGLISH_DATE_LANGUAGE}-u-ca-gregory-nu-latn`;
+    locale = `${ENGLISH_DATE_LANGUAGE}-u-ca-gregory`;
   }
 
   localeCache.set(requested, locale);
@@ -784,4 +784,62 @@ export const formatDecimal: (data: {
   const format: Intl.NumberFormat | null = numberFormatCache.get(key) || null;
 
   return format ? format.format(data.value) : null;
+};
+
+const ASCII_DIGIT_REGEX: RegExp = /[0-9]/g;
+
+const digitsCache: Map<string, Array<string>> = new Map<
+  string,
+  Array<string>
+>();
+
+// The ten digits `locale` writes, 0 to 9: Persian's ۰ to ۹, Latin elsewhere.
+export const getDigitsOf: (locale: string) => Array<string> = (
+  locale: string,
+): Array<string> => {
+  const cached: Array<string> | undefined = digitsCache.get(locale);
+
+  if (cached) {
+    return cached;
+  }
+
+  let digits: Array<string> = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
+
+  try {
+    const format: Intl.NumberFormat = new Intl.NumberFormat(locale, {
+      useGrouping: false,
+    });
+
+    digits = digits.map((digit: string): string => {
+      return format.format(Number(digit));
+    });
+  } catch {
+    // Latin, as written.
+  }
+
+  digitsCache.set(locale, digits);
+
+  return digits;
+};
+
+/*
+ * A figure OneUptime wrote itself - a time of day "09:00", a minute "05" -
+ * in the digits `locale` writes: "۰۹:۰۰" in Persian, unchanged in every
+ * language that writes Latin digits. Only for text that is all figures and
+ * their marks; never for a name, an address or anything someone typed,
+ * whose digits are theirs.
+ */
+export const writeDigitsInLocale: (text: string, locale: string) => string = (
+  text: string,
+  locale: string,
+): string => {
+  const digits: Array<string> = getDigitsOf(locale);
+
+  if (digits[0] === "0") {
+    return text;
+  }
+
+  return text.replace(ASCII_DIGIT_REGEX, (digit: string): string => {
+    return digits[Number(digit)] || digit;
+  });
 };

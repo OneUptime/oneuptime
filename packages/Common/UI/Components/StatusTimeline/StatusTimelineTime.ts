@@ -19,8 +19,9 @@ import moment from "moment-timezone";
  * else the browser's) and language, the way the feeds write them
  * (Feed/FeedTime) - day headings with the full date, times of day on the
  * entries, the zone's name where it is needed. The words come from the
- * browser's Intl data, with the Gregorian calendar and Latin digits, so a
- * timeline lines up with every other date on the page.
+ * browser's Intl data, on the Gregorian calendar and in the language's own
+ * digits (Persian's ۰-۹), so a timeline lines up with every other date and
+ * count on the page.
  *
  * React-free.
  */

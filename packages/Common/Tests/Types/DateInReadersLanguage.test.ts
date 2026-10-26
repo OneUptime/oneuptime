@@ -312,17 +312,18 @@ describe("Japanese, Persian and the other languages", () => {
     expect(spaced(reading.read())).toBe(JAPANESE[name]);
   });
 
-  test("Persian writes the Gregorian calendar in Latin digits", () => {
+  test("Persian writes the Gregorian calendar in its own digits, as its counts", () => {
     setDateDisplayLanguage("fa");
 
     const text: string = OneUptimeDate.getDateAsLocalFormattedString(INSTANT);
 
     expect(text).toContain("اکتبر");
-    expect(text).toContain("2026");
-    expect(text).toContain("10:05");
+    expect(text).toContain("۲۰۲۶");
+    expect(text).toContain("۱۰:۰۵");
     expect(text).toContain("BST");
-    // No Persian or Arabic-Indic digits.
-    expect(NON_LATIN_DIGITS.test(text)).toBe(false);
+    // Persian digits only: no Latin ones beside them.
+    expect(NON_LATIN_DIGITS.test(text)).toBe(true);
+    expect(text).not.toMatch(/[0-9]/);
   });
 
   test.each([

@@ -1898,6 +1898,16 @@ pre:dir(rtl) {
   text-align: left;
 }
 
+/*
+ * Charts read left to right in every language too: time runs left to right
+ * along their axes, as along the status timeline and the uptime strips.
+ * recharts anchors its axis labels with text-anchor, which SVG reads in the
+ * text's direction, so a label anchored at its end grew into the plot.
+ */
+.recharts-surface:dir(rtl) {
+  direction: ltr;
+}
+
 :is(code, kbd, samp):dir(rtl) {
   direction: ltr;
   unicode-bidi: isolate;

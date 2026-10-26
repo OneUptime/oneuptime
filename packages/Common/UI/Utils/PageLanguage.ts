@@ -71,13 +71,18 @@ export const setPageLanguage: (
   return { language: pageLanguage, direction: direction };
 };
 
-// The language an i18next instance shows its words in right now.
+/*
+ * The language an i18next instance shows its words in right now: the one
+ * it resolved, else the first it looks words up in - English for a
+ * language it does not have, never the code it was asked for.
+ */
 export const getShownLanguage: (
   instance: I18nInstance,
   changedTo?: string | undefined,
 ) => string = (instance: I18nInstance, changedTo?: string): string => {
   return (
     instance.resolvedLanguage ||
+    instance.languages?.[0] ||
     changedTo ||
     instance.language ||
     DEFAULT_PAGE_LANGUAGE
