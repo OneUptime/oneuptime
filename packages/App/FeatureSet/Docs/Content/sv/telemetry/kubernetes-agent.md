@@ -241,7 +241,7 @@ Agenten skickar varje Kubernetes-händelse i klustret till OneUptime: från varj
 | Antal | Hur många gånger den hände: en upprepning höjer antalet i stället för att lägga till en rad |
 | Senast sedd | När den senast hände; håll pekaren över för att se när den hände första gången |
 
-På en skärm som är smalare än 1024 pixlar visar kolumnen **Händelse** även **Antal** och **Last seen**, som inte har egna kolumner där.
+På en skärm som är smalare än 1024 pixlar visar kolumnen **Händelse** även **Antal** och **Senast sedd**, som inte har egna kolumner där.
 
 ### Sök bland händelser och få larm
 

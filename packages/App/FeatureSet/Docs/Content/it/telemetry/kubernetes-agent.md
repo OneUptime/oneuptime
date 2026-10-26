@@ -241,7 +241,7 @@ L'agent invia a OneUptime ogni evento Kubernetes del cluster: da ogni namespace,
 | Conteggio | Quante volte è successo: una ripetizione aumenta il conteggio invece di aggiungere una riga |
 | Ultima volta visto | Quando è successo l'ultima volta; passa il puntatore sopra per vedere quando è successo la prima volta |
 
-Su uno schermo largo meno di 1024 pixel, la colonna **Evento** mostra anche **Conteggio** e **Last seen**, che lì non hanno una colonna propria.
+Su uno schermo largo meno di 1024 pixel, la colonna **Evento** mostra anche **Conteggio** e **Ultima volta visto**, che lì non hanno una colonna propria.
 
 ### Cercare gli eventi e ricevere avvisi
 

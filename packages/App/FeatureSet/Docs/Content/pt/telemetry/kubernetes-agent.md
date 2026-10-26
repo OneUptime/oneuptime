@@ -241,7 +241,7 @@ O agente envia ao OneUptime cada evento do Kubernetes do cluster: de cada namesp
 | Contagem | Quantas vezes aconteceu: uma repetição aumenta a contagem em vez de adicionar uma linha |
 | Visto pela última vez | Quando aconteceu pela última vez; passe o ponteiro por cima para ver quando aconteceu pela primeira vez |
 
-Em uma tela com menos de 1024 pixels de largura, a coluna **Evento** também mostra **Contagem** e **Last seen**, que ali não têm coluna própria.
+Em uma tela com menos de 1024 pixels de largura, a coluna **Evento** também mostra **Contagem** e **Visto pela última vez**, que ali não têm coluna própria.
 
 ### Pesquisar eventos e receber alertas
 
