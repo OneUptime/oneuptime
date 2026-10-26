@@ -424,5 +424,7 @@
     "note": "نکته",
     "tip": "نکته کاربردی",
     "warning": "هشدار"
-  }
+  },
+  "{{field}} is not valid JSON. {{parserMessage}}": "{{field}} یک JSON معتبر نیست. {{parserMessage}}",
+  "{{field}} is not valid YAML. {{parserMessage}}": "{{field}} یک YAML معتبر نیست. {{parserMessage}}"
 }

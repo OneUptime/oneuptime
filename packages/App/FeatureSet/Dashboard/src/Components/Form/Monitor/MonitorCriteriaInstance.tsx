@@ -90,6 +90,15 @@ export interface ComponentProps {
   onDelete?: undefined | (() => void);
 }
 
+/*
+ * The box that opens under an action's switch (the status to change to, the
+ * alert or incident to open): set in under the switch's words from sm up,
+ * and full width on a phone. Nested in two cards, the criteria's box and
+ * the Actions section, the indent left a phone's rule form about 150px wide.
+ */
+export const CRITERIA_ACTION_FORM_CLASS_NAME: string =
+  "mt-4 rounded-md border border-gray-100 bg-gray-50 p-3 sm:ml-6";
+
 const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -530,7 +539,7 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
           </div>
 
           {showMonitorStatusChangeControl && (
-            <div className="mt-4 ml-6 p-3 bg-gray-50 rounded-md border border-gray-100">
+            <div className={CRITERIA_ACTION_FORM_CLASS_NAME}>
               <FieldLabelElement
                 title="Change monitor status to"
                 description="What would you like the monitor status to be when the criteria have been met?"
@@ -602,8 +611,11 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
           </div>
 
           {showAlertControl && (
-            <div className="mt-4 ml-6 p-3 bg-gray-50 rounded-md border border-gray-100">
-              <FieldLabelElement title="Create Alert" />
+            <div className={CRITERIA_ACTION_FORM_CLASS_NAME}>
+              <FieldLabelElement
+                title="Create Alert"
+                hideOptionalLabel={true}
+              />
 
               <MonitorCriteriaAlertsForm
                 initialValue={monitorCriteriaInstance?.data?.alerts || []}
@@ -661,8 +673,11 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
           </div>
 
           {showIncidentControl && (
-            <div className="mt-4 ml-6 p-3 bg-gray-50 rounded-md border border-gray-100">
-              <FieldLabelElement title="Create Incident" />
+            <div className={CRITERIA_ACTION_FORM_CLASS_NAME}>
+              <FieldLabelElement
+                title="Create Incident"
+                hideOptionalLabel={true}
+              />
 
               <MonitorCriteriaIncidentsForm
                 initialValue={monitorCriteriaInstance?.data?.incidents || []}
@@ -834,7 +849,7 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
               />
 
               {showIncidentGrouping && (
-                <div className="mt-4 ml-6 space-y-3">
+                <div className="mt-4 space-y-3 sm:ml-6">
                   {/* Step 1 — what splits incidents apart */}
                   <div className="rounded-md border border-gray-200 bg-white p-3">
                     <div className="flex items-center gap-2">

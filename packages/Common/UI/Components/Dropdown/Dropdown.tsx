@@ -1,6 +1,7 @@
 import ObjectID from "../../../Types/ObjectID";
 import ArchivedTag from "../ArchivedTag/ArchivedTag";
 import DROPDOWN_MENU_Z_INDEX from "./DropdownMenuZIndex";
+import joinAriaIds from "../../Utils/AriaIds";
 import useTranslateValue from "../../Utils/Translation";
 import { createTranslator } from "../../Utils/TranslateTemplate";
 import React, {
@@ -130,6 +131,8 @@ export interface ComponentProps {
   dataTestId?: string | undefined;
   ariaLabel?: string | undefined;
   ariaLabelledby?: string | undefined;
+  // What describes the list besides its error, read first: its field's help.
+  ariaDescribedby?: string | undefined;
   disabled?: boolean | undefined;
   /*
    * Show the clear (×) control. Defaults to true; turn it off for a choice
@@ -822,7 +825,10 @@ const Dropdown: FunctionComponent<ComponentProps> = (
         aria-label={tx(props.ariaLabel)}
         aria-labelledby={props.ariaLabelledby}
         aria-invalid={props.error ? true : undefined}
-        aria-describedby={props.error ? errorId : undefined}
+        aria-describedby={joinAriaIds(
+          props.ariaDescribedby,
+          props.error ? errorId : undefined,
+        )}
         classNames={{
           control: (
             state: ControlProps<DropdownOption, boolean, GroupBase<any>>,

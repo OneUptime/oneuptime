@@ -384,5 +384,16 @@
     "note": "Obs",
     "tip": "Tips",
     "warning": "Varning"
-  }
+  },
+  "{{field}} cannot be less than {{minLength}} characters.": "{{field}} får inte vara kortare än {{minLength}} tecken.",
+  "{{field}} should not have spaces.": "{{field}} får inte innehålla blanksteg.",
+  "{{field}} can only contain letters, numbers, hyphens (-), and underscores (_).": "{{field}} får bara innehålla bokstäver, siffror, bindestreck (-) och understreck (_).",
+  "{{field}} should not have numbers.": "{{field}} får inte innehålla siffror.",
+  "{{field}} should be a future date.": "{{field}} måste vara ett framtida datum.",
+  "{{field}} should be a number.": "{{field}} måste vara ett tal.",
+  "{{field}} should not be more than {{maxValue}}.": "{{field}} får inte vara mer än {{maxValue}}.",
+  "{{field}} should not be less than {{minValue}}.": "{{field}} får inte vara mindre än {{minValue}}.",
+  "{{field}} should match {{matchField}}": "{{field}} måste matcha {{matchField}}",
+  "{{field}} is not valid JSON. {{parserMessage}}": "{{field}} är inte giltig JSON. {{parserMessage}}",
+  "{{field}} is not valid YAML. {{parserMessage}}": "{{field}} är inte giltig YAML. {{parserMessage}}"
 }

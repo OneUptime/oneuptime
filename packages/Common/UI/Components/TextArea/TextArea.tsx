@@ -1,5 +1,6 @@
 import Icon from "../Icon/Icon";
 import IconProp from "../../../Types/Icon/IconProp";
+import joinAriaIds from "../../Utils/AriaIds";
 import useTranslateValue from "../../Utils/Translation";
 import React, {
   FunctionComponent,
@@ -46,6 +47,8 @@ export interface ComponentProps {
   disableSpellCheck?: boolean | undefined;
   /** The id of the element that names this control, when it is labelled elsewhere. */
   ariaLabelledby?: string | undefined;
+  // What describes the box besides its error, read first: its field's help.
+  ariaDescribedby?: string | undefined;
   /*
    * Grow with the text instead of sitting at a fixed height: the box starts
    * `rows` lines tall, gets taller as lines are added, and from `maxRows`
@@ -253,7 +256,10 @@ const TextArea: FunctionComponent<ComponentProps> = (
           spellCheck={!props.disableSpellCheck}
           aria-labelledby={props.ariaLabelledby}
           aria-invalid={props.error ? "true" : undefined}
-          aria-describedby={props.error ? errorId : undefined}
+          aria-describedby={joinAriaIds(
+            props.ariaDescribedby,
+            props.error ? errorId : undefined,
+          )}
           onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
             const value: string = e.target.value;
 

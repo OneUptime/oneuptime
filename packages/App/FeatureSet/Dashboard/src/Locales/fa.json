@@ -35112,5 +35112,17 @@
   "{{count}} more status pages": "{{count}} صفحهٔ وضعیت دیگر",
   "{{count}} more status pages_one": "{{count}} صفحهٔ وضعیت دیگر",
   "{{count}} more technologies": "{{count}} فناوری دیگر",
-  "{{count}} more technologies_one": "{{count}} فناوری دیگر"
+  "{{count}} more technologies_one": "{{count}} فناوری دیگر",
+  "How a monitor in this status behaves, in a sentence.": "مانیتوری در این وضعیت چه رفتاری دارد، در یک جمله.",
+  "How far a postmortem in this status has come, in a sentence.": "گزارش پس از حادثه در این وضعیت تا کجا پیش رفته است، در یک جمله.",
+  "What an alert of this severity means, and how fast to respond.": "هشداری با این شدت چه معنایی دارد و چقدر سریع باید به آن پاسخ داد.",
+  "What an incident of this severity means, and how fast to respond.": "حادثه‌ای با این شدت چه معنایی دارد و چقدر سریع باید به آن پاسخ داد.",
+  "What is happening while an event is in this state, in a sentence.": "وقتی رویدادی در این وضعیت است، چه اتفاقی می‌افتد، در یک جمله.",
+  "What the severity is called, like Critical or SEV1.": "نام شدت، مانند «بحرانی» یا «SEV1».",
+  "What the state is called, like Investigating or Monitoring.": "نام وضعیت، مانند «در حال بررسی» یا «پایش».",
+  "What the state is called, like Verifying or Delayed.": "نام وضعیت، مانند «در حال بررسی نهایی» یا «با تأخیر».",
+  "What the status is called, like Degraded or Down.": "نام وضعیت، مانند «کاهش کارایی» یا «از کار افتاده».",
+  "What the status is called, like In Review or Approved.": "نام وضعیت، مانند «در حال بازبینی» یا «تأیید‌شده».",
+  "What the team is doing while an alert is in this state, in a sentence.": "وقتی هشداری در این وضعیت است، تیم چه می‌کند، در یک جمله.",
+  "What the team is doing while an incident is in this state, in a sentence.": "وقتی حادثه‌ای در این وضعیت است، تیم چه می‌کند، در یک جمله."
 }

@@ -35112,5 +35112,17 @@
   "{{count}} more status pages": "{{count}} more status pages",
   "{{count}} more status pages_one": "{{count}} more status page",
   "{{count}} more technologies": "{{count}} more technologies",
-  "{{count}} more technologies_one": "{{count}} more technology"
+  "{{count}} more technologies_one": "{{count}} more technology",
+  "How a monitor in this status behaves, in a sentence.": "How a monitor in this status behaves, in a sentence.",
+  "How far a postmortem in this status has come, in a sentence.": "How far a postmortem in this status has come, in a sentence.",
+  "What an alert of this severity means, and how fast to respond.": "What an alert of this severity means, and how fast to respond.",
+  "What an incident of this severity means, and how fast to respond.": "What an incident of this severity means, and how fast to respond.",
+  "What is happening while an event is in this state, in a sentence.": "What is happening while an event is in this state, in a sentence.",
+  "What the severity is called, like Critical or SEV1.": "What the severity is called, like Critical or SEV1.",
+  "What the state is called, like Investigating or Monitoring.": "What the state is called, like Investigating or Monitoring.",
+  "What the state is called, like Verifying or Delayed.": "What the state is called, like Verifying or Delayed.",
+  "What the status is called, like Degraded or Down.": "What the status is called, like Degraded or Down.",
+  "What the status is called, like In Review or Approved.": "What the status is called, like In Review or Approved.",
+  "What the team is doing while an alert is in this state, in a sentence.": "What the team is doing while an alert is in this state, in a sentence.",
+  "What the team is doing while an incident is in this state, in a sentence.": "What the team is doing while an incident is in this state, in a sentence."
 }

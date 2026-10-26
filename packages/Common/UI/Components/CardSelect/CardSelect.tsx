@@ -11,6 +11,7 @@ import React, {
 } from "react";
 import { PluralTemplate, Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
+import joinAriaIds from "../../Utils/AriaIds";
 
 export interface CardSelectOption {
   value: string;
@@ -71,6 +72,8 @@ export interface ComponentProps {
   tabIndex?: number | undefined;
   dataTestId?: string | undefined;
   ariaLabelledby?: string | undefined;
+  // What describes the choice besides its error, read first: its field's help.
+  ariaDescribedby?: string | undefined;
   // Force single-column (1 item per row). Default: responsive 1/2/3 grid.
   singleColumn?: boolean | undefined;
   /*
@@ -401,6 +404,12 @@ const CardSelect: FunctionComponent<ComponentProps> = (
     useRef<HTMLButtonElement>(null);
   const summaryTitleId: string = useId();
   const moreOptionsId: string = useId();
+  // The error under the cards, read with the choice.
+  const errorId: string = `card-select-error-${useId()}`;
+  const groupDescribedBy: string | undefined = joinAriaIds(
+    props.ariaDescribedby,
+    props.error ? errorId : undefined,
+  );
 
   // Catalog layout: whether More was pressed, and whether Change was.
   const [isShowingMoreOptions, setIsShowingMoreOptions] =
@@ -895,7 +904,7 @@ const CardSelect: FunctionComponent<ComponentProps> = (
     }
 
     return (
-      <p className="mt-2 text-sm text-red-600" role="alert">
+      <p id={errorId} className="mt-2 text-sm text-red-600" role="alert">
         {props.error}
       </p>
     );
@@ -912,6 +921,7 @@ const CardSelect: FunctionComponent<ComponentProps> = (
         <div
           role="group"
           aria-labelledby={props.ariaLabelledby}
+          aria-describedby={groupDescribedBy}
           data-testid="card-select-summary"
           data-card-select-value={selectedOption.value}
           className="flex items-center gap-3 rounded-lg border border-indigo-200 bg-indigo-50/50 px-3 py-2.5"
@@ -1082,6 +1092,7 @@ const CardSelect: FunctionComponent<ComponentProps> = (
         role="radiogroup"
         aria-label={translator.translateText("Select an option")}
         aria-labelledby={props.ariaLabelledby}
+        aria-describedby={groupDescribedBy}
       >
         {isSearching && isShowingClosestMatches && (
           <p

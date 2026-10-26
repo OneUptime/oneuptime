@@ -384,5 +384,16 @@
     "note": "참고",
     "tip": "팁",
     "warning": "경고"
-  }
+  },
+  "{{field}} cannot be less than {{minLength}} characters.": "{{field}}은(는) {{minLength}}자 이상이어야 합니다.",
+  "{{field}} should not have spaces.": "{{field}}에는 공백을 사용할 수 없습니다.",
+  "{{field}} can only contain letters, numbers, hyphens (-), and underscores (_).": "{{field}}에는 문자, 숫자, 하이픈(-), 밑줄(_)만 사용할 수 있습니다.",
+  "{{field}} should not have numbers.": "{{field}}에는 숫자를 사용할 수 없습니다.",
+  "{{field}} should be a future date.": "{{field}}은(는) 미래 날짜여야 합니다.",
+  "{{field}} should be a number.": "{{field}}은(는) 숫자여야 합니다.",
+  "{{field}} should not be more than {{maxValue}}.": "{{field}}은(는) {{maxValue}} 이하여야 합니다.",
+  "{{field}} should not be less than {{minValue}}.": "{{field}}은(는) {{minValue}} 이상이어야 합니다.",
+  "{{field}} should match {{matchField}}": "{{field}}은(는) {{matchField}}와(과) 일치해야 합니다",
+  "{{field}} is not valid JSON. {{parserMessage}}": "{{field}}은(는) 올바른 JSON이 아닙니다. {{parserMessage}}",
+  "{{field}} is not valid YAML. {{parserMessage}}": "{{field}}은(는) 올바른 YAML이 아닙니다. {{parserMessage}}"
 }

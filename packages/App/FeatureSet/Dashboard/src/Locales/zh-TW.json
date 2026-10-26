@@ -35112,5 +35112,17 @@
   "{{count}} more status pages": "另外 {{count}} 個狀態頁面",
   "{{count}} more status pages_one": "另外 {{count}} 個狀態頁面",
   "{{count}} more technologies": "另外 {{count}} 項技術",
-  "{{count}} more technologies_one": "另外 {{count}} 項技術"
+  "{{count}} more technologies_one": "另外 {{count}} 項技術",
+  "How a monitor in this status behaves, in a sentence.": "用一句話說明處於此狀態的監測器表現如何。",
+  "How far a postmortem in this status has come, in a sentence.": "用一句話說明處於此狀態的事後分析進展到哪一步。",
+  "What an alert of this severity means, and how fast to respond.": "此嚴重性的警示代表什麼，以及需要多快回應。",
+  "What an incident of this severity means, and how fast to respond.": "此嚴重性的事件代表什麼，以及需要多快回應。",
+  "What is happening while an event is in this state, in a sentence.": "用一句話說明維護事件處於此狀態時正在發生什麼。",
+  "What the severity is called, like Critical or SEV1.": "嚴重性的名稱，例如「嚴重」或「SEV1」。",
+  "What the state is called, like Investigating or Monitoring.": "狀態的名稱，例如「調查中」或「監控中」。",
+  "What the state is called, like Verifying or Delayed.": "狀態的名稱，例如「驗證中」或「已延遲」。",
+  "What the status is called, like Degraded or Down.": "狀態的名稱，例如「效能下降」或「停機」。",
+  "What the status is called, like In Review or Approved.": "狀態的名稱，例如「審核中」或「已核准」。",
+  "What the team is doing while an alert is in this state, in a sentence.": "用一句話說明警示處於此狀態時團隊在做什麼。",
+  "What the team is doing while an incident is in this state, in a sentence.": "用一句話說明事件處於此狀態時團隊在做什麼。"
 }

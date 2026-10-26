@@ -35112,5 +35112,17 @@
   "{{count}} more status pages": "ほか {{count}} 件のステータスページ",
   "{{count}} more status pages_one": "ほか {{count}} 件のステータスページ",
   "{{count}} more technologies": "ほか {{count}} 件の技術",
-  "{{count}} more technologies_one": "ほか {{count}} 件の技術"
+  "{{count}} more technologies_one": "ほか {{count}} 件の技術",
+  "How a monitor in this status behaves, in a sentence.": "このステータスのモニターがどう振る舞うかを一文で書きます。",
+  "How far a postmortem in this status has come, in a sentence.": "このステータスのポストモーテムがどこまで進んでいるかを一文で書きます。",
+  "What an alert of this severity means, and how fast to respond.": "この重大度のアラートが何を意味し、どれだけ早く対応するかを書きます。",
+  "What an incident of this severity means, and how fast to respond.": "この重大度のインシデントが何を意味し、どれだけ早く対応するかを書きます。",
+  "What is happening while an event is in this state, in a sentence.": "イベントがこの状態にある間に何が起きているかを一文で書きます。",
+  "What the severity is called, like Critical or SEV1.": "重大度の名前です（例: 重大、SEV1）。",
+  "What the state is called, like Investigating or Monitoring.": "状態の名前です（例: 調査中、監視中）。",
+  "What the state is called, like Verifying or Delayed.": "状態の名前です（例: 確認中、遅延）。",
+  "What the status is called, like Degraded or Down.": "ステータスの名前です（例: 機能低下、ダウン）。",
+  "What the status is called, like In Review or Approved.": "ステータスの名前です（例: レビュー中、承認済み）。",
+  "What the team is doing while an alert is in this state, in a sentence.": "アラートがこの状態にある間にチームが何をしているかを一文で書きます。",
+  "What the team is doing while an incident is in this state, in a sentence.": "インシデントがこの状態にある間にチームが何をしているかを一文で書きます。"
 }

@@ -424,5 +424,7 @@
     "note": "注記",
     "tip": "ヒント",
     "warning": "警告"
-  }
+  },
+  "{{field}} is not valid JSON. {{parserMessage}}": "{{field}} は有効な JSON ではありません。{{parserMessage}}",
+  "{{field}} is not valid YAML. {{parserMessage}}": "{{field}} は有効な YAML ではありません。{{parserMessage}}"
 }

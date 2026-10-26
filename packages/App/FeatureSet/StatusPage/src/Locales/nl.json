@@ -424,5 +424,7 @@
     "note": "Opmerking",
     "tip": "Tip",
     "warning": "Waarschuwing"
-  }
+  },
+  "{{field}} is not valid JSON. {{parserMessage}}": "{{field}} is geen geldige JSON. {{parserMessage}}",
+  "{{field}} is not valid YAML. {{parserMessage}}": "{{field}} is geen geldige YAML. {{parserMessage}}"
 }

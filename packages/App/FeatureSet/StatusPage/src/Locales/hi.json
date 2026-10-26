@@ -424,5 +424,7 @@
     "note": "नोट",
     "tip": "सुझाव",
     "warning": "चेतावनी"
-  }
+  },
+  "{{field}} is not valid JSON. {{parserMessage}}": "{{field}} मान्य JSON नहीं है। {{parserMessage}}",
+  "{{field}} is not valid YAML. {{parserMessage}}": "{{field}} मान्य YAML नहीं है। {{parserMessage}}"
 }

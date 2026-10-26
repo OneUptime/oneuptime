@@ -5,6 +5,7 @@ import DROPDOWN_MENU_Z_INDEX from "../../Dropdown/DropdownMenuZIndex";
 import Icon from "../../Icon/Icon";
 import Input, { InputType } from "../../Input/Input";
 import IconProp from "../../../../Types/Icon/IconProp";
+import joinAriaIds from "../../../Utils/AriaIds";
 import { Translator } from "../../../Utils/TranslateTemplate";
 import useTranslator from "../../../Utils/UseTranslator";
 import React, {
@@ -33,6 +34,8 @@ export interface ComponentProps {
   onEnterPress?: (() => void) | undefined;
   error?: string | undefined;
   ariaLabelledby?: string | undefined;
+  // What describes the icon besides its error, read first: its field's help.
+  ariaDescribedby?: string | undefined;
 }
 
 const IconPicker: FunctionComponent<ComponentProps> = (
@@ -120,7 +123,10 @@ const IconPicker: FunctionComponent<ComponentProps> = (
           ariaExpanded={isPopupOpen}
           ariaControls={isPopupOpen ? popupId : undefined}
           // The message below belongs to the control, not to this input.
-          ariaDescribedby={props.error ? errorId : undefined}
+          ariaDescribedby={joinAriaIds(
+            props.ariaDescribedby,
+            props.error ? errorId : undefined,
+          )}
           ariaInvalid={Boolean(props.error)}
           disabled={props.disabled}
           dataTestId={props.dataTestId}

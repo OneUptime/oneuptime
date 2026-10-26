@@ -424,5 +424,7 @@
     "note": "참고",
     "tip": "팁",
     "warning": "경고"
-  }
+  },
+  "{{field}} is not valid JSON. {{parserMessage}}": "{{field}}은(는) 올바른 JSON이 아닙니다. {{parserMessage}}",
+  "{{field}} is not valid YAML. {{parserMessage}}": "{{field}}은(는) 올바른 YAML이 아닙니다. {{parserMessage}}"
 }

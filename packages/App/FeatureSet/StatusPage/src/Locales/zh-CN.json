@@ -424,5 +424,7 @@
     "note": "注意",
     "tip": "提示",
     "warning": "警告"
-  }
+  },
+  "{{field}} is not valid JSON. {{parserMessage}}": "{{field}} 不是有效的 JSON。{{parserMessage}}",
+  "{{field}} is not valid YAML. {{parserMessage}}": "{{field}} 不是有效的 YAML。{{parserMessage}}"
 }

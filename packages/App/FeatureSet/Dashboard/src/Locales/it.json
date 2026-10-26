@@ -35112,5 +35112,17 @@
   "{{count}} more status pages": "{{count}} altre pagine di stato",
   "{{count}} more status pages_one": "{{count}} altra pagina di stato",
   "{{count}} more technologies": "{{count}} altre tecnologie",
-  "{{count}} more technologies_one": "{{count}} altra tecnologia"
+  "{{count}} more technologies_one": "{{count}} altra tecnologia",
+  "How a monitor in this status behaves, in a sentence.": "Come si comporta un monitor in questo stato, in una frase.",
+  "How far a postmortem in this status has come, in a sentence.": "A che punto è un post-mortem in questo stato, in una frase.",
+  "What an alert of this severity means, and how fast to respond.": "Cosa significa un avviso di questa gravità e quanto in fretta rispondere.",
+  "What an incident of this severity means, and how fast to respond.": "Cosa significa un incidente di questa gravità e quanto in fretta rispondere.",
+  "What is happening while an event is in this state, in a sentence.": "Cosa succede mentre un evento è in questo stato, in una frase.",
+  "What the severity is called, like Critical or SEV1.": "Come si chiama la gravità, ad esempio Critico o SEV1.",
+  "What the state is called, like Investigating or Monitoring.": "Come si chiama lo stato, ad esempio In esame o Monitoraggio.",
+  "What the state is called, like Verifying or Delayed.": "Come si chiama lo stato, ad esempio Verifica in corso o In ritardo.",
+  "What the status is called, like Degraded or Down.": "Come si chiama lo stato, ad esempio Degradato o Non disponibile.",
+  "What the status is called, like In Review or Approved.": "Come si chiama lo stato, ad esempio In revisione o Approvato.",
+  "What the team is doing while an alert is in this state, in a sentence.": "Cosa fa il team mentre un avviso è in questo stato, in una frase.",
+  "What the team is doing while an incident is in this state, in a sentence.": "Cosa fa il team mentre un incidente è in questo stato, in una frase."
 }

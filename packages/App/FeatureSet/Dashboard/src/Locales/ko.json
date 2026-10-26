@@ -35112,5 +35112,17 @@
   "{{count}} more status pages": "상태 페이지 {{count}}개 더",
   "{{count}} more status pages_one": "상태 페이지 {{count}}개 더",
   "{{count}} more technologies": "기술 {{count}}개 더",
-  "{{count}} more technologies_one": "기술 {{count}}개 더"
+  "{{count}} more technologies_one": "기술 {{count}}개 더",
+  "How a monitor in this status behaves, in a sentence.": "이 상태의 모니터가 어떻게 동작하는지 한 문장으로 적습니다.",
+  "How far a postmortem in this status has come, in a sentence.": "이 상태의 포스트모템이 어디까지 진행되었는지 한 문장으로 적습니다.",
+  "What an alert of this severity means, and how fast to respond.": "이 심각도의 알림이 무엇을 뜻하는지, 얼마나 빨리 대응해야 하는지 적습니다.",
+  "What an incident of this severity means, and how fast to respond.": "이 심각도의 인시던트가 무엇을 뜻하는지, 얼마나 빨리 대응해야 하는지 적습니다.",
+  "What is happening while an event is in this state, in a sentence.": "이벤트가 이 상태에 있는 동안 무슨 일이 일어나는지 한 문장으로 적습니다.",
+  "What the severity is called, like Critical or SEV1.": "심각도의 이름입니다(예: 심각, SEV1).",
+  "What the state is called, like Investigating or Monitoring.": "상태의 이름입니다(예: 조사 중, 모니터링).",
+  "What the state is called, like Verifying or Delayed.": "상태의 이름입니다(예: 확인 중, 지연됨).",
+  "What the status is called, like Degraded or Down.": "상태의 이름입니다(예: 저하됨, 다운).",
+  "What the status is called, like In Review or Approved.": "상태의 이름입니다(예: 검토 중, 승인됨).",
+  "What the team is doing while an alert is in this state, in a sentence.": "알림이 이 상태에 있는 동안 팀이 무엇을 하는지 한 문장으로 적습니다.",
+  "What the team is doing while an incident is in this state, in a sentence.": "인시던트가 이 상태에 있는 동안 팀이 무엇을 하는지 한 문장으로 적습니다."
 }

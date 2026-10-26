@@ -35112,5 +35112,17 @@
   "{{count}} more status pages": "Ещё страниц статуса: {{count}}",
   "{{count}} more status pages_one": "Ещё {{count}} страница статуса",
   "{{count}} more technologies": "Ещё технологий: {{count}}",
-  "{{count}} more technologies_one": "Ещё {{count}} технология"
+  "{{count}} more technologies_one": "Ещё {{count}} технология",
+  "How a monitor in this status behaves, in a sentence.": "Как ведёт себя монитор в этом статусе, одним предложением.",
+  "How far a postmortem in this status has come, in a sentence.": "Насколько продвинулся постмортем в этом статусе, одним предложением.",
+  "What an alert of this severity means, and how fast to respond.": "Что значит оповещение такой серьёзности и как быстро нужно реагировать.",
+  "What an incident of this severity means, and how fast to respond.": "Что значит инцидент такой серьёзности и как быстро нужно реагировать.",
+  "What is happening while an event is in this state, in a sentence.": "Что происходит, пока событие находится в этом состоянии, одним предложением.",
+  "What the severity is called, like Critical or SEV1.": "Как называется серьёзность, например «Критический» или «SEV1».",
+  "What the state is called, like Investigating or Monitoring.": "Как называется состояние, например «Расследование» или «Мониторинг».",
+  "What the state is called, like Verifying or Delayed.": "Как называется состояние, например «Проверка» или «Отложено».",
+  "What the status is called, like Degraded or Down.": "Как называется статус, например «Деградация» или «Недоступен».",
+  "What the status is called, like In Review or Approved.": "Как называется статус, например «На проверке» или «Утверждён».",
+  "What the team is doing while an alert is in this state, in a sentence.": "Что делает команда, пока оповещение находится в этом состоянии, одним предложением.",
+  "What the team is doing while an incident is in this state, in a sentence.": "Что делает команда, пока инцидент находится в этом состоянии, одним предложением."
 }

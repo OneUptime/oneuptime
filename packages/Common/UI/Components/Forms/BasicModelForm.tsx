@@ -10,6 +10,7 @@ import FormFieldSchemaType from "./Types/FormFieldSchemaType";
 import { FormStep } from "./Types/FormStep";
 import FormValues from "./Types/FormValues";
 import FormAnalyticsName from "./Utils/FormAnalyticsName";
+import { isRestatingColumnDescription } from "./Utils/ColumnDescriptionOnForm";
 import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import React, {
@@ -96,18 +97,25 @@ const BasicModelForm: <TBaseModel extends BaseModel>(
          * color ("in Hex (#32a852 for example)"). The form's swatches need no
          * such instructions, so FormField says something plainer instead.
          */
+        const columnDescription: string | null =
+          props.model.getDisplayColumnDescriptionAs(
+            Object.keys(field.field || {})[0] as string,
+          );
+
         if (
           field.fieldType !== FormFieldSchemaType.Color &&
           // The field says what it means another way (Field.hideColumnDescription).
           !field.hideColumnDescription &&
-          props.model.getDisplayColumnDescriptionAs(
-            Object.keys(field.field || {})[0] as string,
-          ) &&
+          columnDescription &&
+          /*
+           * "Any friendly name of this object" under Name says nothing the
+           * title does not, in English in every language
+           * (Utils/ColumnDescriptionOnForm).
+           */
+          !isRestatingColumnDescription(columnDescription) &&
           !field.description
         ) {
-          field.description = props.model.getDisplayColumnDescriptionAs(
-            Object.keys(field.field || {})[0] as string,
-          ) as string;
+          field.description = columnDescription;
         }
       }
 

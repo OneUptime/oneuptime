@@ -424,5 +424,7 @@
     "note": "Примечание",
     "tip": "Совет",
     "warning": "Предупреждение"
-  }
+  },
+  "{{field}} is not valid JSON. {{parserMessage}}": "{{field}}: недопустимый JSON. {{parserMessage}}",
+  "{{field}} is not valid YAML. {{parserMessage}}": "{{field}}: недопустимый YAML. {{parserMessage}}"
 }

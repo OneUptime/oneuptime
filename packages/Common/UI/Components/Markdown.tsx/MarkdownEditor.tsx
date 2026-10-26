@@ -5,6 +5,7 @@ import TinyFormDocumentation from "../TinyFormDocumentation/TinyFormDocumentatio
 import { FILE_URL } from "../../Config";
 import API from "../../Utils/API/API";
 import useTranslateValue from "../../Utils/Translation";
+import joinAriaIds from "../../Utils/AriaIds";
 import TranslatedSentence from "../TranslatedSentence/TranslatedSentence";
 import { translationKey } from "../../Utils/TranslateTemplate";
 import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
@@ -89,6 +90,8 @@ export interface ComponentProps {
   disableSpellCheck?: boolean | undefined;
   dataTestId?: string | undefined;
   ariaLabelledby?: string | undefined;
+  // What describes the editor besides its error, read first: its field's help.
+  ariaDescribedby?: string | undefined;
   /*
    * Default: true. Inline images upload to the File API, which needs a
    * signed-in user, so a form open to anyone (no OneUptime account) sets
@@ -2638,7 +2641,10 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
               aria-multiline="true"
               aria-labelledby={props.ariaLabelledby}
               aria-invalid={props.error ? "true" : undefined}
-              aria-describedby={props.error ? errorId : undefined}
+              aria-describedby={joinAriaIds(
+                props.ariaDescribedby,
+                props.error ? errorId : undefined,
+              )}
               aria-autocomplete={canPickVariables ? "list" : undefined}
               aria-controls={editableTrigger ? variableListboxId : undefined}
               aria-activedescendant={
@@ -2704,7 +2710,10 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
               autoFocus={false}
               aria-labelledby={props.ariaLabelledby}
               aria-invalid={props.error ? "true" : undefined}
-              aria-describedby={props.error ? errorId : undefined}
+              aria-describedby={joinAriaIds(
+                props.ariaDescribedby,
+                props.error ? errorId : undefined,
+              )}
               placeholder={sourcePlaceholder}
               className={`${className} rounded-t-none min-h-32 ${
                 isDraggingOver

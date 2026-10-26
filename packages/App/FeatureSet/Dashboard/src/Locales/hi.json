@@ -35112,5 +35112,17 @@
   "{{count}} more status pages": "{{count}} और स्थिति पृष्ठ",
   "{{count}} more status pages_one": "{{count}} और स्थिति पृष्ठ",
   "{{count}} more technologies": "{{count}} और तकनीकें",
-  "{{count}} more technologies_one": "{{count}} और तकनीक"
+  "{{count}} more technologies_one": "{{count}} और तकनीक",
+  "How a monitor in this status behaves, in a sentence.": "इस स्थिति में मॉनिटर कैसा व्यवहार करता है, एक वाक्य में।",
+  "How far a postmortem in this status has come, in a sentence.": "इस स्थिति में पोस्टमॉर्टम कहाँ तक पहुँचा है, एक वाक्य में।",
+  "What an alert of this severity means, and how fast to respond.": "इस गंभीरता वाले अलर्ट का क्या अर्थ है, और कितनी जल्दी प्रतिक्रिया देनी है।",
+  "What an incident of this severity means, and how fast to respond.": "इस गंभीरता वाली घटना का क्या अर्थ है, और कितनी जल्दी प्रतिक्रिया देनी है।",
+  "What is happening while an event is in this state, in a sentence.": "जब कोई इवेंट इस स्थिति में हो, तब क्या हो रहा है, एक वाक्य में।",
+  "What the severity is called, like Critical or SEV1.": "गंभीरता का नाम, जैसे गंभीर या SEV1।",
+  "What the state is called, like Investigating or Monitoring.": "स्थिति का नाम, जैसे जाँच की जा रही है या निगरानी।",
+  "What the state is called, like Verifying or Delayed.": "स्थिति का नाम, जैसे सत्यापित किया जा रहा है या विलंबित।",
+  "What the status is called, like Degraded or Down.": "स्थिति का नाम, जैसे प्रदर्शन में गिरावट या डाउन।",
+  "What the status is called, like In Review or Approved.": "स्थिति का नाम, जैसे समीक्षा में या स्वीकृत।",
+  "What the team is doing while an alert is in this state, in a sentence.": "जब कोई अलर्ट इस स्थिति में हो, तब टीम क्या कर रही है, एक वाक्य में।",
+  "What the team is doing while an incident is in this state, in a sentence.": "जब कोई घटना इस स्थिति में हो, तब टीम क्या कर रही है, एक वाक्य में।"
 }
