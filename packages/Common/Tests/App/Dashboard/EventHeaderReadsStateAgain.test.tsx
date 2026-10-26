@@ -158,6 +158,25 @@ let reads: Record<string, number> = {};
 // The record's path through its states, as the timeline answers now.
 let path: Array<string> = [CREATED];
 
+// The project's states, and the flag that marks each.
+interface StateSpec {
+  id: string;
+  name: string;
+  order: number;
+  flag: "isCreatedState" | "isAcknowledgedState" | "isResolvedState";
+}
+
+const STATE_SPECS: Array<StateSpec> = [
+  { id: CREATED, name: "Created", order: 1, flag: "isCreatedState" },
+  {
+    id: ACKNOWLEDGED,
+    name: "Acknowledged",
+    order: 2,
+    flag: "isAcknowledgedState",
+  },
+  { id: RESOLVED, name: "Resolved", order: 3, flag: "isResolvedState" },
+];
+
 function respond(kind: HeaderKind): void {
   getListMock.mockImplementation((...args: Array<unknown>) => {
     const request: { modelType: unknown } = args[0] as { modelType: unknown };
@@ -167,39 +186,15 @@ function respond(kind: HeaderKind): void {
 
       return Promise.resolve(
         listResult(
-          [
-            { id: CREATED, name: "Created", order: 1, flag: "isCreatedState" },
-            {
-              id: ACKNOWLEDGED,
-              name: "Acknowledged",
-              order: 2,
-              flag: "isAcknowledgedState",
-            },
-            {
-              id: RESOLVED,
-              name: "Resolved",
-              order: 3,
-              flag: "isResolvedState",
-            },
-          ].map(
-            (spec: {
-              id: string;
-              name: string;
-              order: number;
-              flag:
-                | "isCreatedState"
-                | "isAcknowledgedState"
-                | "isResolvedState";
-            }): IncidentState | AlertState => {
-              const state: IncidentState | AlertState = new kind.stateModel();
-              state.id = new ObjectID(spec.id);
-              state.name = spec.name;
-              state.color = new Color("#6366f1");
-              state.order = spec.order;
-              state[spec.flag] = true;
-              return state;
-            },
-          ),
+          STATE_SPECS.map((spec: StateSpec): IncidentState | AlertState => {
+            const state: IncidentState | AlertState = new kind.stateModel();
+            state.id = new ObjectID(spec.id);
+            state.name = spec.name;
+            state.color = new Color("#6366f1");
+            state.order = spec.order;
+            state[spec.flag] = true;
+            return state;
+          }),
         ),
       );
     }
