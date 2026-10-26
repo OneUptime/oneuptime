@@ -458,18 +458,39 @@ const HostSystemdUnits: FunctionComponent<
   ];
 
   const description: ReactElement = (() => {
+    // One paragraph, every sentence in the reader's language.
     const parts: Array<string> = [
-      `Systemd units on this host (last ${UNIT_LOOKBACK_MINUTES} minutes).`,
+      translator.translatePlural(
+        {
+          one: "Systemd units on this host (last {{count}} minute).",
+          other: "Systemd units on this host (last {{count}} minutes).",
+        },
+        UNIT_LOOKBACK_MINUTES,
+      ),
     ];
     if (latestSampleAt) {
-      parts.push(`Latest sample ${OneUptimeDate.fromNow(latestSampleAt)}.`);
+      parts.push(
+        translator.translateTemplate("Latest sample {{time}}.", {
+          time: OneUptimeDate.fromNow(latestSampleAt),
+        }),
+      );
     }
     if (refreshedAt) {
-      parts.push(`Refreshed ${OneUptimeDate.fromNow(refreshedAt)}.`);
+      parts.push(
+        translator.translateTemplate("Refreshed {{time}}.", {
+          time: OneUptimeDate.fromNow(refreshedAt),
+        }),
+      );
     }
     if (isSnapshotTruncated) {
       parts.push(
-        `This host reports more than ${UNIT_FETCH_LIMIT} units per scrape, so some are not listed — narrow the receiver's "units" patterns to see a complete list.`,
+        translator.translatePlural(
+          {
+            one: `This host reports more than {{count}} unit per scrape, so some are not listed — narrow the receiver's "units" patterns to see a complete list.`,
+            other: `This host reports more than {{count}} units per scrape, so some are not listed — narrow the receiver's "units" patterns to see a complete list.`,
+          },
+          UNIT_FETCH_LIMIT,
+        ),
       );
     }
     return <span>{parts.join(" ")}</span>;

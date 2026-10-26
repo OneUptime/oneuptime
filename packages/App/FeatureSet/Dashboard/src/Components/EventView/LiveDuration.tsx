@@ -1,4 +1,6 @@
 import OneUptimeDate from "Common/Types/Date";
+import { isEnglishDateLanguage } from "Common/Types/DateLanguage";
+import { useSentenceLanguage } from "Common/UI/Utils/SentenceLanguage";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
@@ -29,6 +31,11 @@ const LiveDuration: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  /*
+   * The reader's language; inside a sentence, the sentence's, so an
+   * English one ("for {{duration}}") never holds "10 Tage".
+   */
+  const language: string = useSentenceLanguage() ?? translator.language;
   const [now, setNow] = useState<Date>(OneUptimeDate.getCurrentDate());
 
   useEffect(() => {
@@ -61,10 +68,12 @@ const LiveDuration: FunctionComponent<ComponentProps> = (
     );
 
     if (parts.length === 0) {
-      return translator.translateText(LESS_THAN_A_MINUTE) || LESS_THAN_A_MINUTE;
+      return isEnglishDateLanguage(language)
+        ? LESS_THAN_A_MINUTE
+        : translator.translateText(LESS_THAN_A_MINUTE) || LESS_THAN_A_MINUTE;
     }
 
-    return formatEventDurationParts(parts, translator.language);
+    return formatEventDurationParts(parts, language);
   };
 
   const text: string = getText();

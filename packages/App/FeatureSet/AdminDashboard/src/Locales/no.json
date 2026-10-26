@@ -901,13 +901,6 @@
   "Test passed, with a warning": "Testen besto, med en advarsel",
   "Test failed": "Testen mislyktes",
   "Opens in a new tab": "Åpnes i en ny fane",
-  "Note": "Merk",
-  "Tip": "Tips",
-  "Info": "Info",
-  "Important": "Viktig",
-  "Warning": "Advarsel",
-  "Caution": "Forsiktig",
-  "Danger": "Fare",
   "Such as your company or team name. You can change it later.": "For eksempel navnet på bedriften eller teamet ditt. Du kan endre det senere.",
   "If you have one, from an offer or a reseller.": "Hvis du har en, fra et tilbud eller en forhandler.",
   "Plan": "Abonnement",
@@ -1470,5 +1463,14 @@
   "This couldn't be loaded.": "Dette kunne ikke lastes inn.",
   "Try again": "Prøv igjen",
   "Dismiss": "Lukk",
-  "Loading": "Laster"
+  "Loading": "Laster",
+  "markdownCallouts": {
+    "caution": "Forsiktig",
+    "danger": "Fare",
+    "important": "Viktig",
+    "info": "Info",
+    "note": "Merk",
+    "tip": "Tips",
+    "warning": "Advarsel"
+  }
 }

@@ -901,13 +901,6 @@
   "Test passed, with a warning": "آزمایش موفق بود، با یک هشدار",
   "Test failed": "آزمایش ناموفق بود",
   "Opens in a new tab": "در زبانه‌ای جدید باز می‌شود",
-  "Note": "نکته",
-  "Tip": "نکته کاربردی",
-  "Info": "اطلاعات",
-  "Important": "مهم",
-  "Warning": "هشدار",
-  "Caution": "احتیاط",
-  "Danger": "خطر",
   "Such as your company or team name. You can change it later.": "مثلاً نام شرکت یا تیم شما. بعداً می‌توانید آن را تغییر دهید.",
   "If you have one, from an offer or a reseller.": "اگر دارید، از یک پیشنهاد ویژه یا فروشنده واسط.",
   "Plan": "طرح",
@@ -1470,5 +1463,14 @@
   "This couldn't be loaded.": "بارگذاری این بخش ممکن نشد.",
   "Try again": "تلاش دوباره",
   "Dismiss": "بستن",
-  "Loading": "در حال بارگذاری"
+  "Loading": "در حال بارگذاری",
+  "markdownCallouts": {
+    "caution": "احتیاط",
+    "danger": "خطر",
+    "important": "مهم",
+    "info": "اطلاعات",
+    "note": "نکته",
+    "tip": "نکته کاربردی",
+    "warning": "هشدار"
+  }
 }

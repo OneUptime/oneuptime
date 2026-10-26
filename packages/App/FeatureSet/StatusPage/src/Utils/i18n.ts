@@ -5,6 +5,7 @@ import {
   getProductNamePostProcess,
   productNamePostProcessor,
 } from "Common/UI/Utils/ProductNameTranslation";
+import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
 
 import {
   DEFAULT_STATUS_PAGE_LANGUAGE,
@@ -152,6 +153,9 @@ const syncDocumentLanguage: (lng: string | undefined) => void = (
 i18n.on("languageChanged", (lng: string) => {
   syncDocumentLanguage(lng);
 });
+
+// Dates, times and durations in the reader's language too.
+followLanguageForDates(i18n);
 
 syncDocumentLanguage(
   i18n.resolvedLanguage || i18n.language || DEFAULT_LANGUAGE,

@@ -9,6 +9,7 @@ import {
   AIChatWidget,
 } from "Common/Types/AI/AIChatTypes";
 import OneUptimeDate from "Common/Types/Date";
+import { inEnglishDates } from "Common/Types/DateLanguage";
 import parseMarkdownBlocks, {
   MarkdownBlock,
 } from "Common/UI/Utils/AIChatExport/MarkdownBlocks";
@@ -88,9 +89,10 @@ class ConversationPdfBuilder {
     });
 
     this.pdf.paragraph(
-      `Exported from OneUptime on ${OneUptimeDate.getDateAsLocalFormattedString(
-        options.exportedAt,
-      )}`,
+      `Exported from OneUptime on ${inEnglishDates((): string => {
+        // The export is English throughout.
+        return OneUptimeDate.getDateAsLocalFormattedString(options.exportedAt);
+      })}`,
       { size: 8, color: PDF_COLORS.faint },
     );
 

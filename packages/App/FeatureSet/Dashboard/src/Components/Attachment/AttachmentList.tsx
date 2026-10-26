@@ -7,6 +7,8 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import OneUptimeDate from "Common/Types/Date";
 import ProjectUtil from "Common/UI/Utils/Project";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import { handleAuthenticatedLinkClick } from "Common/UI/Utils/OpenAuthenticatedUrl";
 
 export interface AttachmentListProps {
@@ -25,6 +27,7 @@ type GetAttachmentNameFunction = (file: FileModel) => string;
 const AttachmentList: FunctionComponent<AttachmentListProps> = (
   props: AttachmentListProps,
 ): ReactElement | null => {
+  const translator: Translator = useTranslator();
   const {
     modelId,
     attachments,
@@ -70,7 +73,9 @@ const AttachmentList: FunctionComponent<AttachmentListProps> = (
 
     if (file.createdAt) {
       metadataParts.push(
-        `Added ${OneUptimeDate.fromNow(OneUptimeDate.fromString(file.createdAt))}`,
+        translator.translateTemplate("Added {{time}}", {
+          time: OneUptimeDate.fromNow(OneUptimeDate.fromString(file.createdAt)),
+        }),
       );
     }
 

@@ -376,11 +376,13 @@
   "Switch to markdown source": "رفتن به منبع Markdown",
   "Switch to visual editor": "رفتن به ویرایشگر دیداری",
   "Opens in a new tab": "در زبانه‌ای جدید باز می‌شود",
-  "Note": "نکته",
-  "Tip": "نکته کاربردی",
-  "Info": "اطلاعات",
-  "Important": "مهم",
-  "Warning": "هشدار",
-  "Caution": "احتیاط",
-  "Danger": "خطر"
+  "markdownCallouts": {
+    "caution": "احتیاط",
+    "danger": "خطر",
+    "important": "مهم",
+    "info": "اطلاعات",
+    "note": "نکته",
+    "tip": "نکته کاربردی",
+    "warning": "هشدار"
+  }
 }

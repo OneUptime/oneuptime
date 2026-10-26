@@ -12,6 +12,7 @@ import Route from "Common/Types/API/Route";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
+import { inEnglishDates } from "Common/Types/DateLanguage";
 import IconProp from "Common/Types/Icon/IconProp";
 import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
@@ -334,7 +335,10 @@ function getUserRollupCells(
         {row.liveSessionCount > 0
           ? `${row.liveSessionCount} live`
           : firstSeen
-            ? `first seen ${OneUptimeDate.fromNow(firstSeen)}`
+            ? // In English, as this table's other words still are.
+              inEnglishDates((): string => {
+                return `first seen ${OneUptimeDate.fromNow(firstSeen)}`;
+              })
             : ""}
       </div>
     </div>,

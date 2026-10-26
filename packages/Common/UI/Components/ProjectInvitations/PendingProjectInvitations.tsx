@@ -441,9 +441,9 @@ const PendingProjectInvitations: FunctionComponent<ComponentProps> = (
           title={`Decline invitation`}
           description={translator.translatePlural(
             {
-              one: "Are you sure you want to decline the invitation to {{project}}? You will lose access to {{count}} team in this project, and will need a new invitation to join.",
+              one: "Decline the invitation to {{project}}? You lose access to {{count}} team there and need a new invitation to join.",
               other:
-                "Are you sure you want to decline the invitation to {{project}}? You will lose access to {{count}} teams in this project, and will need a new invitation to join.",
+                "Decline the invitation to {{project}}? You lose access to {{count}} teams there and need a new invitation to join.",
             },
             invitationToDecline.teamMemberIds.length,
             {

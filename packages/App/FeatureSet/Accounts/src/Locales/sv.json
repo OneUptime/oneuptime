@@ -376,11 +376,13 @@
   "Switch to markdown source": "Byt till Markdown-källa",
   "Switch to visual editor": "Byt till visuell redigerare",
   "Opens in a new tab": "Öppnas i en ny flik",
-  "Note": "Obs",
-  "Tip": "Tips",
-  "Info": "Info",
-  "Important": "Viktigt",
-  "Warning": "Varning",
-  "Caution": "Försiktighet",
-  "Danger": "Fara"
+  "markdownCallouts": {
+    "caution": "Försiktighet",
+    "danger": "Fara",
+    "important": "Viktigt",
+    "info": "Info",
+    "note": "Obs",
+    "tip": "Tips",
+    "warning": "Varning"
+  }
 }

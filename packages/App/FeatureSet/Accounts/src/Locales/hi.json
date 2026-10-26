@@ -376,11 +376,13 @@
   "Switch to markdown source": "Markdown स्रोत पर जाएँ",
   "Switch to visual editor": "विज़ुअल एडिटर पर जाएँ",
   "Opens in a new tab": "नए टैब में खुलता है",
-  "Note": "नोट",
-  "Tip": "सुझाव",
-  "Info": "जानकारी",
-  "Important": "महत्वपूर्ण",
-  "Warning": "चेतावनी",
-  "Caution": "सावधानी",
-  "Danger": "खतरा"
+  "markdownCallouts": {
+    "caution": "सावधानी",
+    "danger": "खतरा",
+    "important": "महत्वपूर्ण",
+    "info": "जानकारी",
+    "note": "नोट",
+    "tip": "सुझाव",
+    "warning": "चेतावनी"
+  }
 }

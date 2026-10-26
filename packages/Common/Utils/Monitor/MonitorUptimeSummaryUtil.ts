@@ -14,7 +14,12 @@ import {
 } from "../../Types/StatusPage/UptimeDailyAggregate";
 import UptimePrecision from "../../Types/StatusPage/UptimePrecision";
 import TimezoneAlias from "../../Types/TimezoneAlias";
-import { formatDurationCompact } from "../Slo/SloDuration";
+import { formatDurationCompactInLanguage } from "../Slo/SloDuration";
+import {
+  createTranslator,
+  translationKey,
+  Translator,
+} from "../../UI/Utils/TranslateTemplate";
 import UptimeUtil from "../Uptime/UptimeUtil";
 
 /*
@@ -38,11 +43,18 @@ export type UptimeWindowKind = "Measured" | "NoData";
  */
 export type MonitorUptimeCaveat = "paused" | "not-checking" | "no-results";
 
-const CAVEAT_SUFFIX: Record<MonitorUptimeCaveat, string> = {
-  paused: " · includes paused time",
-  "not-checking": " · includes time with no checks running",
-  "no-results": " · no check has completed yet",
+/*
+ * What each caveat adds to a window's description, as a phrase of its own
+ * after a " · ".
+ */
+const CAVEAT_TEXT: Record<MonitorUptimeCaveat, string> = {
+  paused: translationKey("includes paused time"),
+  "not-checking": translationKey("includes time with no checks running"),
+  "no-results": translationKey("no check has completed yet"),
 };
+
+// English, word for word as the windows always read: no lookup.
+const ENGLISH: Translator = createTranslator(undefined, "en");
 
 export interface UptimeWindowPresentation {
   key: MonitorUptimeWindowKey;
@@ -220,7 +232,10 @@ export default class MonitorUptimeSummaryUtil {
     downtimeStatusIds: Set<string>;
     caveat?: MonitorUptimeCaveat | null | undefined;
     isPausedNow?: boolean | undefined;
+    // The reader's language (useTranslator). English without one.
+    translator?: Translator | undefined;
   }): UptimeWindowPresentation | null {
+    const t: Translator = data.translator || ENGLISH;
     const window: MonitorUptimeWindowTotal | undefined = data.window;
     let caveat: MonitorUptimeCaveat | null = data.isPausedNow ? "paused" : null;
 
@@ -240,8 +255,8 @@ export default class MonitorUptimeSummaryUtil {
         key: window.key,
         kind: "NoData",
         uptimePercent: null,
-        valueText: "No data",
-        description: "Nothing recorded in this window",
+        valueText: t.translateTemplate("No data"),
+        description: t.translateTemplate("Nothing recorded in this window"),
         downtimeSeconds: 0,
         coveredSeconds: coveredSeconds,
         windowSeconds: windowSeconds,
@@ -272,18 +287,34 @@ export default class MonitorUptimeSummaryUtil {
       coveredSeconds <
       windowSeconds - MonitorUptimeSummaryUtil.COVERAGE_TOLERANCE_SECONDS;
 
-    let description: string =
+    /*
+     * Phrases joined with " · ", each looked up whole, with its duration
+     * written in the reader's language.
+     */
+    const phrases: Array<string> = [
       downtimeSeconds > 0
-        ? `Down ${formatDurationCompact(downtimeSeconds)}`
-        : "No downtime";
+        ? t.translateTemplate("Down {{duration}}", {
+            duration: formatDurationCompactInLanguage(
+              downtimeSeconds,
+              t.language,
+            ),
+          })
+        : t.translateTemplate("No downtime"),
+    ];
 
     if (isPartial) {
-      description += ` · measured over ${formatDurationCompact(coveredSeconds)}`;
+      phrases.push(
+        t.translateTemplate("measured over {{duration}}", {
+          duration: formatDurationCompactInLanguage(coveredSeconds, t.language),
+        }),
+      );
     }
 
     if (caveat) {
-      description += CAVEAT_SUFFIX[caveat];
+      phrases.push(t.translateTemplate(CAVEAT_TEXT[caveat]));
     }
+
+    const description: string = phrases.join(" · ");
 
     return {
       key: window.key,

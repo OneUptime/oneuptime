@@ -901,13 +901,6 @@
   "Test passed, with a warning": "Test passed, with a warning",
   "Test failed": "Test failed",
   "Opens in a new tab": "Opens in a new tab",
-  "Note": "Note",
-  "Tip": "Tip",
-  "Info": "Info",
-  "Important": "Important",
-  "Warning": "Warning",
-  "Caution": "Caution",
-  "Danger": "Danger",
   "Such as your company or team name. You can change it later.": "Such as your company or team name. You can change it later.",
   "If you have one, from an offer or a reseller.": "If you have one, from an offer or a reseller.",
   "Plan": "Plan",
@@ -1470,5 +1463,14 @@
   "This couldn't be loaded.": "This couldn't be loaded.",
   "Try again": "Try again",
   "Dismiss": "Dismiss",
-  "Loading": "Loading"
+  "Loading": "Loading",
+  "markdownCallouts": {
+    "caution": "Caution",
+    "danger": "Danger",
+    "important": "Important",
+    "info": "Info",
+    "note": "Note",
+    "tip": "Tip",
+    "warning": "Warning"
+  }
 }

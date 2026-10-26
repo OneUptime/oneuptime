@@ -277,6 +277,8 @@ describe("Monitor overview page", () => {
         // The details card's saves, and owners added from the hero.
         "useState",
         "useState",
+        // The overview is written in the reader's language.
+        "useTranslator",
       ].sort(),
     );
 
@@ -286,6 +288,22 @@ describe("Monitor overview page", () => {
         beforeFirstReturn: match.index! < firstReturn,
       }).toEqual({ hook: match[1], beforeFirstReturn: true });
     }
+  });
+
+  /*
+   * MonitorOverviewPresentationUtil writes the hero, its facts and its
+   * sections in English unless it is handed the reader's translator.
+   */
+  test("hands the presentation the reader's translator, so the overview is in the reader's language", () => {
+    expect(INDEX_CODE).toContain(
+      "const translator: Translator = useTranslator();",
+    );
+    expect(INDEX_CODE).toContain(
+      "MonitorOverviewPresentationUtil.build({ ...presentationInput, translator: translator, });",
+    );
+    expect(
+      countOccurrences(INDEX_CODE, "MonitorOverviewPresentationUtil.build("),
+    ).toBe(1);
   });
 
   test("makes no request of its own and keeps none of the old page's machinery", () => {
@@ -676,8 +694,9 @@ describe("Monitor overview data flow", () => {
   });
 
   test("the hero, the probes card and the response-time card share one probe summary", () => {
+    // The same input, with the reader's translator added.
     expect(INDEX_CODE).toContain(
-      "presentation = MonitorOverviewPresentationUtil.build(presentationInput);",
+      "presentation = MonitorOverviewPresentationUtil.build({ ...presentationInput, translator: translator, });",
     );
     expect(INDEX_CODE).toContain("summary={presentationInput.probes}");
     expect(INDEX_CODE).toContain(

@@ -23,6 +23,7 @@ import { JSONObject } from "../../../Types/JSON";
 import TimeRange from "../../../Types/Time/TimeRange";
 import RangeStartAndEndDateTime from "../../../Types/Time/RangeStartAndEndDateTime";
 import Navigation from "../../../UI/Utils/Navigation";
+import { setDateDisplayLanguage } from "../../../Types/DateLanguage";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
@@ -215,6 +216,30 @@ beforeEach(() => {
     .mockImplementation((...args: Array<unknown>): void => {
       navigateMock(...args);
     });
+});
+
+describe("SessionReplayUsersTable on a German page", () => {
+  afterEach(() => {
+    setDateDisplayLanguage(null);
+  });
+
+  /*
+   * The table's words are still English, so a German date in one of its
+   * lines would read as a mistake: the line stays English, its time too.
+   */
+  it("keeps the first-seen line in English, its time too", async () => {
+    setDateDisplayLanguage("de");
+    mockUsers(() => {
+      return usersResponse([wireRollup()]);
+    });
+
+    renderTable();
+
+    const rows: Array<HTMLElement> = await waitForUserRows(1);
+
+    expect(rows[0]).toHaveTextContent("first seen 2 days ago");
+    expect(rows[0]).not.toHaveTextContent("vor 2 Tagen");
+  });
 });
 
 describe("SessionReplayUsersTable rendering", () => {

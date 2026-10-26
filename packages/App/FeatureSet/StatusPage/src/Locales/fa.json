@@ -396,13 +396,6 @@
   "Email is not valid.": "ایمیل معتبر نیست.",
   "Next": "بعدی",
   "Opens in a new tab": "در زبانه‌ای جدید باز می‌شود",
-  "Note": "نکته",
-  "Tip": "نکته کاربردی",
-  "Info": "اطلاعات",
-  "Important": "مهم",
-  "Warning": "هشدار",
-  "Caution": "احتیاط",
-  "Danger": "خطر",
   "Loading the latest version": "در حال بارگذاری جدیدترین نسخه",
   "A newer version of this page is available. It's loading now.": "نسخه جدیدتری از این صفحه در دسترس است. اکنون در حال بارگذاری است.",
   "You're offline": "شما آفلاین هستید",
@@ -422,5 +415,14 @@
   "This couldn't be loaded.": "بارگذاری این بخش ممکن نشد.",
   "Try again": "تلاش دوباره",
   "Loading...": "در حال بارگذاری...",
-  "Loading": "در حال بارگذاری"
+  "Loading": "در حال بارگذاری",
+  "markdownCallouts": {
+    "caution": "احتیاط",
+    "danger": "خطر",
+    "important": "مهم",
+    "info": "اطلاعات",
+    "note": "نکته",
+    "tip": "نکته کاربردی",
+    "warning": "هشدار"
+  }
 }

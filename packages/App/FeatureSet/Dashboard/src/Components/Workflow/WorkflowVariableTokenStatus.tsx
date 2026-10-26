@@ -2,6 +2,7 @@ import React, { FunctionComponent, ReactElement } from "react";
 import { Amber500, Gray500, Green500, Red500 } from "Common/Types/BrandColors";
 import Color from "Common/Types/Color";
 import OneUptimeDate from "Common/Types/Date";
+import { inEnglishDates } from "Common/Types/DateLanguage";
 import IconProp from "Common/Types/Icon/IconProp";
 import {
   OAuth2TokenStatus,
@@ -49,8 +50,11 @@ export interface ComponentProps {
 
 type FormatDateFunction = (date: Date) => string;
 
+// In English, as the status sentences around it are.
 const formatDate: FormatDateFunction = (date: Date): string => {
-  return OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(date);
+  return inEnglishDates((): string => {
+    return OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(date);
+  });
 };
 
 const WorkflowVariableTokenStatus: FunctionComponent<ComponentProps> = (
