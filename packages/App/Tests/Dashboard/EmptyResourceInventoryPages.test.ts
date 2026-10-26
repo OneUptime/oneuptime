@@ -375,9 +375,10 @@ describe.each(RESOURCE_INVENTORY_PAGES)(
       const table: string = source.slice(tableStart, tableEnd);
       const button: RegExpMatchArray | null = table.match(
         new RegExp(
+          // On a phone the button says its verb alone (phoneTitle).
           `buttons: \\[ \\{ title: ${escapeRegExp(
             resourceCase.addButtonTitle as string,
-          )}, icon: IconProp\\.Add, buttonStyle: ButtonStyleType\\.NORMAL, onClick: \\(\\) => \\{ set([A-Z][A-Za-z]*)\\(true\\); \\}, \\}, \\],`,
+          )}, (?:phoneTitle: "[A-Za-z]+", )?icon: IconProp\\.Add, buttonStyle: ButtonStyleType\\.NORMAL, onClick: \\(\\) => \\{ set([A-Z][A-Za-z]*)\\(true\\); \\}, \\}, \\],`,
         ),
       );
 

@@ -22,6 +22,7 @@ import LabelsElement, {
 import TableColumnListComponent, {
   TABLE_COLUMN_LIST_VISIBLE_COUNT,
 } from "../../../../UI/Components/TableColumnList/TableColumnListComponent";
+import { PluralTemplate } from "../../../../UI/Utils/TranslateTemplate";
 import {
   TableCardContext,
   TableCellContext,
@@ -43,6 +44,12 @@ import SideOver from "../../../../UI/Components/SideOver/SideOver";
 import FieldType from "../../../../UI/Components/Types/FieldType";
 import Label from "../../../../Models/DatabaseModels/Label";
 import Color from "../../../../Types/Color";
+
+// What a list of resources says of the ones it leaves out.
+const MORE_RESOURCES: PluralTemplate = {
+  one: "{{count}} more resource",
+  other: "{{count}} more resources",
+};
 
 /*
  * A record's labels in a table's cell (Label/Labels.tsx), after OneUptime
@@ -546,6 +553,7 @@ describe("a list in a table's cell", () => {
         <TableColumnListComponent<{ name: string }>
           items={[{ name: "Checkout API" }, { name: "Redis cluster" }]}
           noItemsMessage="No resources."
+          moreTemplate={MORE_RESOURCES}
           getEachElement={(item: { name: string }): ReactElement => {
             return resource(item.name);
           }}
@@ -576,6 +584,7 @@ describe("a list in a table's cell", () => {
             },
           ]}
           noItemsMessage="No resources."
+          moreTemplate={MORE_RESOURCES}
           getEachElement={(item: { name: string }): ReactElement => {
             return resource(item.name);
           }}
@@ -602,6 +611,7 @@ describe("a list in a table's cell", () => {
         <TableColumnListComponent<{ name: string }>
           items={[]}
           noItemsMessage="No resources."
+          moreTemplate={MORE_RESOURCES}
           getEachElement={(item: { name: string }): ReactElement => {
             return resource(item.name);
           }}
@@ -619,6 +629,7 @@ describe("a list in a table's cell", () => {
       <TableColumnListComponent<{ name: string }>
         items={[]}
         noItemsMessage="No resources."
+        moreTemplate={MORE_RESOURCES}
         getEachElement={(item: { name: string }): ReactElement => {
           return resource(item.name);
         }}

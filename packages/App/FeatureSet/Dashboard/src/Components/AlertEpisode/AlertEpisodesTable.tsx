@@ -235,6 +235,7 @@ const AlertEpisodesTable: FunctionComponent<ComponentProps> = (
             PermissionGate.gateCardButton(
               {
                 title: "Create Episode",
+                phoneTitle: "Create",
                 onClick: () => {
                   Navigation.navigate(
                     RouteUtil.populateRouteParams(

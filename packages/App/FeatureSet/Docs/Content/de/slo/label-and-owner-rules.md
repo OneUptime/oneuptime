@@ -79,7 +79,7 @@ Das Bearbeiten eines SLO wendet die Regeln nicht erneut an, und eine Regel entfe
 
 ## Eine Regel auf vorhandene SLOs anwenden
 
-Eine Regel, die Sie heute schreiben, gilt für SLOs, die danach erstellt werden. Um sie auf die SLOs anzuwenden, die Sie schon haben, klicken Sie in der Zeile der Regel auf **Jetzt ausführen** oder auf **Ansehen** und dann auf der eigenen Seite der Regel auf **Jetzt ausführen**. Sie können auch mehrere Regeln auswählen und sie über die Massenaktionen der Tabelle ausführen.
+Eine Regel, die Sie heute schreiben, gilt für SLOs, die danach erstellt werden. Um sie auf die SLOs anzuwenden, die Sie schon haben, klicken Sie in der Zeile der Regel auf **Jetzt ausführen** oder auf **Anzeigen** und dann auf der eigenen Seite der Regel auf **Jetzt ausführen**. Sie können auch mehrere Regeln auswählen und sie über die Massenaktionen der Tabelle ausführen.
 
 Eine Ausführung prüft jedes SLO des Projekts, archivierte eingeschlossen, und meldet, auf wie viele sie gepasst hat und wie viele sie geändert hat. Eigentümer, die eine Ausführung hinzufügt, werden nur benachrichtigt, wenn Sie das im Ausführungsdialog wählen und **Eigentümer benachrichtigen** bei der Regel eingeschaltet ist. Siehe [Regeln für bestehende Ressourcen ausführen](/docs/configuration/run-rules-now).
 

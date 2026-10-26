@@ -1,5 +1,6 @@
 import IncidentSeverityElement from "./IncidentSeverityElement";
 import TableColumnListComponent from "Common/UI/Components/TableColumnList/TableColumnListComponent";
+import { MORE_SEVERITIES_TEMPLATE } from "../TableColumnList/MoreItemsTemplates";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -13,7 +14,7 @@ const IncidentSeveritiesElement: FunctionComponent<ComponentProps> = (
   return (
     <TableColumnListComponent
       items={props.incidentSeverities}
-      moreText="more Incident Severities"
+      moreTemplate={MORE_SEVERITIES_TEMPLATE}
       getEachElement={(incidentSeverity: IncidentSeverity) => {
         return <IncidentSeverityElement incidentSeverity={incidentSeverity} />;
       }}

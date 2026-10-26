@@ -1168,6 +1168,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                   addPaymentMethodLockedReason
                     ? {
                         title: "Add Payment Method",
+                        phoneTitle: "Add",
                         icon: IconProp.Add,
                         buttonStyle: ButtonStyleType.NORMAL,
                         disabled: true,
@@ -1178,6 +1179,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                       }
                     : {
                         title: "Add Payment Method",
+                        phoneTitle: "Add",
                         icon: IconProp.Add,
                         onClick: async () => {
                           setShowPaymentMethodModal(true);

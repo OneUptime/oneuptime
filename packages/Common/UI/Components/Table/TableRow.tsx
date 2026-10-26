@@ -11,6 +11,7 @@ import {
   getTableCellClassName,
   getTableCellContentClassName,
   isFillingNameColumn,
+  isGivingValueColumn,
 } from "./CellClassName";
 import {
   TABLE_ACTIONS_CONTENT_CLASS_NAME,
@@ -657,6 +658,16 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                          */
                         data-table-name={
                           isFillingNameColumn<T>(column, i === 0)
+                            ? "true"
+                            : undefined
+                        }
+                        /*
+                         * Any other value that may be cut short a little
+                         * more before the rows scroll sideways
+                         * (useTableScrollState's TABLE_VALUE_ATTRIBUTE).
+                         */
+                        data-table-value={
+                          isGivingValueColumn<T>(column, i === 0)
                             ? "true"
                             : undefined
                         }

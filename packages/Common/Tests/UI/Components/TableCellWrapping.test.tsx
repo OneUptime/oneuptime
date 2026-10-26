@@ -22,6 +22,7 @@ import {
   TABLE_PRIMARY_CELL_TEXT_CLASS_NAME,
   TABLE_PRIMARY_FILL_CONTENT_CLASS_NAME,
   TABLE_ROW_RULE_CLASS_NAME,
+  TABLE_VALUE_GIVE_CLASS_NAME,
   TABLE_WRAP_CELL_MIN_WIDTH_CLASS_NAME,
 } from "../../../UI/Components/Table/TableLayout";
 import { TABLE_NAME_ATTRIBUTE } from "../../../UI/Components/Table/useTableScrollState";
@@ -115,6 +116,20 @@ const LAST_CELL_CLASS_NAME: string =
 // A one-line value's wrapper: the cap, always with its clip and its ellipsis.
 const ONE_LINE_CONTENT_CLASS_NAME: string = [
   TABLE_CELL_MAX_WIDTH_CLASS_NAME,
+  TABLE_CELL_TRUNCATE_CLASS_NAMES,
+  TABLE_CELL_CONTENT_ALIGN_CLASS_NAME,
+].join(" ");
+
+/*
+ * A value of any other column but a date, a number, a tick or a colour has
+ * the same wrapper, and may be cut short a little more - never below 8rem,
+ * never above the cap - when its table would otherwise run past its card
+ * (TABLE_VALUE_GIVE_CLASS_NAME, written right after the cap it keeps). Its
+ * clip and ellipsis stay.
+ */
+const GIVING_ONE_LINE_CONTENT_CLASS_NAME: string = [
+  TABLE_CELL_MAX_WIDTH_CLASS_NAME,
+  TABLE_VALUE_GIVE_CLASS_NAME,
   TABLE_CELL_TRUNCATE_CLASS_NAMES,
   TABLE_CELL_CONTENT_ALIGN_CLASS_NAME,
 ].join(" ");
@@ -291,6 +306,14 @@ describe("CellClassName helpers", () => {
         title: "Name",
         type: FieldType.Text,
       }),
+    ).toBe(GIVING_ONE_LINE_CONTENT_CLASS_NAME);
+
+    // A date says what it says only whole: the plain one-line wrapper.
+    expect(
+      getTableCellContentClassName<Row>({
+        title: "Created",
+        type: FieldType.DateTime,
+      }),
     ).toBe(ONE_LINE_CONTENT_CLASS_NAME);
   });
 
@@ -338,7 +361,7 @@ describe("CellClassName helpers", () => {
 
     const contentClassName: string = getTableCellContentClassName<Row>(column);
 
-    expect(contentClassName).toBe(ONE_LINE_CONTENT_CLASS_NAME);
+    expect(contentClassName).toBe(GIVING_ONE_LINE_CONTENT_CLASS_NAME);
     expect(contentClassName).not.toContain("max-w-md");
     expect(writesUnclippedCap(contentClassName)).toBe(false);
     expect(
@@ -394,7 +417,7 @@ describe("CellClassName helpers", () => {
         type: FieldType.Text,
         contentClassName: "text-sm text-gray-900",
       }),
-    ).toBe(`${ONE_LINE_CONTENT_CLASS_NAME} text-sm text-gray-900`);
+    ).toBe(`${GIVING_ONE_LINE_CONTENT_CLASS_NAME} text-sm text-gray-900`);
 
     expect(
       getTableCellContentClassName<Row>({
@@ -426,13 +449,13 @@ describe("CellClassName helpers", () => {
     expect(contentClassName).toBe(NAME_ONE_LINE_CONTENT_CLASS_NAME);
     expect(writesUnclippedCap(contentClassName)).toBe(false);
 
-    // Any other column keeps the plain one-line wrapper.
+    // Any other column's value gives way by being cut short instead.
     expect(
       getTableCellContentClassName<Row>(
         { title: "Name", type: FieldType.Text },
         { isPrimaryColumn: false },
       ),
-    ).toBe(ONE_LINE_CONTENT_CLASS_NAME);
+    ).toBe(GIVING_ONE_LINE_CONTENT_CLASS_NAME);
   });
 
   test("a first column of prose, one with a page's own cap, or the Actions column never lifts a cap", () => {
@@ -587,7 +610,7 @@ describe("columns that declare no wrapping", () => {
       expect(wrapper.getAttribute("class")).toBe(
         index === 0
           ? NAME_ONE_LINE_CONTENT_CLASS_NAME
-          : ONE_LINE_CONTENT_CLASS_NAME,
+          : GIVING_ONE_LINE_CONTENT_CLASS_NAME,
       );
       expect(wrapper.hasAttribute(TABLE_NAME_ATTRIBUTE)).toBe(index === 0);
       expect(writesUnclippedCap(wrapper.getAttribute("class") || "")).toBe(
@@ -737,7 +760,7 @@ describe("columns that opt into wrapping", () => {
     expect(cell).toHaveClass("whitespace-nowrap");
     expect(cell.getAttribute("class")).toBe(LAST_CELL_CLASS_NAME);
     expect(getContentWrapper(cell).getAttribute("class")).toBe(
-      ONE_LINE_CONTENT_CLASS_NAME,
+      GIVING_ONE_LINE_CONTENT_CLASS_NAME,
     );
   });
 

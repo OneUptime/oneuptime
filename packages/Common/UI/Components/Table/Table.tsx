@@ -35,6 +35,11 @@ import {
   TABLE_SCROLL_BOX_CLASS_NAME,
 } from "./TableLayout";
 import useTableScrollState, { TableScrollState } from "./useTableScrollState";
+import {
+  DrawnTableColumns,
+  TABLE_FOLDED_COLUMNS_BELOW_WIDTH_IN_PX,
+  getDrawnTableColumns,
+} from "./FoldedColumns";
 import Columns from "./Types/Columns";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import GenericObject from "../../../Types/GenericObject";
@@ -254,10 +259,15 @@ const Table: TableFunction = <T extends GenericObject>(
     useState<Array<number> | null>(null);
   const [bulkSelectedItems, setBulkSelectedItems] = useState<Array<T>>([]);
   const [isMobile, setIsMobile] = useState<boolean>(false);
+  // Below lg: the columns marked hideBelowLargeScreen are left out.
+  const [isBelowLargeScreen, setIsBelowLargeScreen] = useState<boolean>(false);
 
   useEffect(() => {
     const checkMobile: () => void = (): void => {
       setIsMobile(window.innerWidth < 768); // md breakpoint
+      setIsBelowLargeScreen(
+        window.innerWidth < TABLE_FOLDED_COLUMNS_BELOW_WIDTH_IN_PX,
+      );
     };
 
     checkMobile();
@@ -287,6 +297,14 @@ const Table: TableFunction = <T extends GenericObject>(
   }, [props.bulkSelectedItems]);
 
   /*
+   * The columns drawn here: below lg, every one but those marked
+   * hideBelowLargeScreen, whose values the page's cells show in their own
+   * place then (useAreTableColumnsFolded). The CSV export keeps them all.
+   */
+  const { columns: drawnColumns, areColumnsFolded }: DrawnTableColumns<T> =
+    getDrawnTableColumns<T>(props.columns, isBelowLargeScreen);
+
+  /*
    * Whether the rows are wider than the card (they scroll sideways, and the
    * Actions column sticks at the right edge), and whether the header row
    * can stick under the page's top bar (TableLayout).
@@ -295,7 +313,7 @@ const Table: TableFunction = <T extends GenericObject>(
     scrollRef: scrollBoxRef,
     tableRef: tableElementRef,
     // A new page of rows can hold longer names in as many rows.
-    watch: [isMobile, props.data, props.columns.length],
+    watch: [isMobile, props.data, drawnColumns.length],
   });
 
   /*
@@ -453,7 +471,7 @@ const Table: TableFunction = <T extends GenericObject>(
     if (props.isLoading && props.data.length === 0) {
       return (
         <TableSkeletonRows
-          columns={props.columns}
+          columns={drawnColumns}
           enableDragAndDrop={props.enableDragAndDrop}
           isBulkActionsEnabled={isBulkActionsEnabled}
           itemsOnPage={props.itemsOnPage}
@@ -482,7 +500,8 @@ const Table: TableFunction = <T extends GenericObject>(
         id={`${props.id}-body`}
         data={props.data}
         getRowProps={props.getRowProps}
-        columns={props.columns}
+        columns={drawnColumns}
+        areColumnsFolded={areColumnsFolded}
         actionButtons={props.actionButtons}
         enableDragAndDrop={props.enableDragAndDrop}
         dragAndDropScope={`${props.id}-dnd`}
@@ -704,7 +723,7 @@ const Table: TableFunction = <T extends GenericObject>(
               <table ref={tableElementRef} className={TABLE_CLASS_NAME}>
                 <TableHeader
                   id={`${props.id}-header`}
-                  columns={props.columns}
+                  columns={drawnColumns}
                   onSortChanged={props.onSortChanged}
                   enableDragAndDrop={props.enableDragAndDrop}
                   sortBy={props.sortBy}
