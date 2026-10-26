@@ -2,6 +2,7 @@ import AlertFeedService from "../../../Server/Services/AlertFeedService";
 import AlertMeasurementValueService from "../../../Server/Services/AlertMeasurementValueService";
 import AlertService from "../../../Server/Services/AlertService";
 import AlertSeverityService from "../../../Server/Services/AlertSeverityService";
+import AutoRemediationRuleEngineService from "../../../Server/Services/AutoRemediationRuleEngineService";
 import CustomFieldMappingService from "../../../Server/Services/CustomFieldMappingService";
 import { OnUpdate } from "../../../Server/Types/Database/Hooks";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
@@ -58,6 +59,7 @@ let findOneById: ReturnType<typeof jest.spyOn>;
 let createFeedItem: ReturnType<typeof jest.spyOn>;
 let refreshReminders: ReturnType<typeof jest.spyOn>;
 let startWaitingRuns: ReturnType<typeof jest.spyOn>;
+let tryFixAgain: ReturnType<typeof jest.spyOn>;
 
 beforeEach(() => {
   jest
@@ -90,6 +92,10 @@ beforeEach(() => {
   startWaitingRuns = jest
     .spyOn(WaitingRunsOnRecordChange, "startForAlert")
     .mockResolvedValue(undefined as never);
+
+  tryFixAgain = jest
+    .spyOn(AutoRemediationRuleEngineService, "onSubjectUpdated")
+    .mockResolvedValue(false as never);
 
   jest
     .spyOn(InvestigationRuleWait, "onSubjectChanged")
@@ -152,6 +158,8 @@ describe("AlertService.onUpdateSuccess after a state change", () => {
     expect(createFeedItem).not.toHaveBeenCalled();
     expect(refreshReminders).not.toHaveBeenCalled();
     expect(startWaitingRuns).not.toHaveBeenCalled();
+    // A state links the alert to nothing: there is no fix to try again.
+    expect(tryFixAgain).not.toHaveBeenCalled();
   });
 
   test("writing back the title the alert holds changes nothing either", async () => {
@@ -227,5 +235,82 @@ describe("AlertService.onUpdateSuccess after a state change", () => {
     expect(findOneById).not.toHaveBeenCalled();
     expect(createFeedItem).not.toHaveBeenCalled();
     expect(refreshReminders).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * AN UPDATE THAT LINKS THE ALERT TO WHAT IT IS ABOUT STILL MAKES ONEUPTIME
+ * AI TRY A FIX AGAIN (#5293).
+ *
+ * Linking an alert to a host, a cluster or a monitor - its Affected
+ * Resources, Ask AI, the API - changes no text, label, severity or monitor
+ * column the feed records, but it is what the auto-remediation engine waits
+ * for after it found the alert linked to nothing (onSubjectUpdated). The
+ * skip above must not swallow it: the alert is read for its project and
+ * handed to the engine, as every update was before the skip.
+ */
+describe("AlertService.onUpdateSuccess after the alert is linked to what it is about", () => {
+  const HOST_ID: string = "0193c0de-aaaa-4aaa-8bbb-0000000000e1";
+  const CLUSTER_ID: string = "0193c0de-aaaa-4aaa-8bbb-0000000000e2";
+  const MONITOR_ID: string = "0193c0de-aaaa-4aaa-8bbb-0000000000e3";
+
+  test.each([
+    ["a host", { hosts: [{ _id: HOST_ID }] }],
+    ["a Kubernetes cluster", { kubernetesClusters: [{ _id: CLUSTER_ID }] }],
+    // Written back as it was: no monitor change, and still a link.
+    ["the monitor it has", { monitorId: MONITOR_ID }],
+  ])(
+    "linking it to %s hands it to OneUptime AI to try a fix again",
+    async (_name: string, payload: JSONObject) => {
+      await runUpdateSuccess({
+        payload: payload,
+        props: { tenantId: PROJECT_ID, userId: USER_ID },
+      });
+
+      expect(findOneById).toHaveBeenCalledTimes(1);
+      expect(tryFixAgain).toHaveBeenCalledTimes(1);
+
+      const handed: {
+        projectId: ObjectID;
+        alertId: ObjectID;
+        written: unknown;
+      } = tryFixAgain.mock.calls[0]![0] as {
+        projectId: ObjectID;
+        alertId: ObjectID;
+        written: unknown;
+      };
+
+      expect(handed.projectId.toString()).toBe(PROJECT_ID.toString());
+      expect(handed.alertId.toString()).toBe(ALERT_ID);
+      expect(handed.written).toEqual(payload);
+
+      // A link is no feed entry, and no rule the alert matches changed.
+      expect(createFeedItem).not.toHaveBeenCalled();
+      expect(refreshReminders).not.toHaveBeenCalled();
+      expect(startWaitingRuns).not.toHaveBeenCalled();
+    },
+  );
+
+  test("a state written together with a link still hands the alert over", async () => {
+    await runUpdateSuccess({
+      payload: {
+        currentAlertStateId: RESOLVED_STATE_ID,
+        hosts: [{ _id: HOST_ID }],
+      },
+    });
+
+    expect(tryFixAgain).toHaveBeenCalledTimes(1);
+  });
+
+  test("a link written as undefined is no link, and reads nothing more", async () => {
+    await runUpdateSuccess({
+      payload: {
+        currentAlertStateId: RESOLVED_STATE_ID,
+        hosts: undefined,
+      } as unknown as JSONObject,
+    });
+
+    expect(findOneById).not.toHaveBeenCalled();
+    expect(tryFixAgain).not.toHaveBeenCalled();
   });
 });
