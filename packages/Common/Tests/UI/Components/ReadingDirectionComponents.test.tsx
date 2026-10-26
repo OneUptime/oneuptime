@@ -40,6 +40,8 @@ import IsolatedText from "../../../UI/Components/IsolatedText/IsolatedText";
 import TableBody from "../../../UI/Components/Table/TableBody";
 import Detail from "../../../UI/Components/Detail/Detail";
 import LongTextViewer from "../../../UI/Components/LongText/LongTextViewer";
+import LogsTable from "../../../UI/Components/LogsViewer/components/LogsTable";
+import Log from "../../../Models/AnalyticsModels/Log";
 import FieldType from "../../../UI/Components/Types/FieldType";
 import { TEXT_DIRECTION_SCAN_LENGTH } from "../../../Types/ReadingDirection";
 import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
@@ -868,6 +870,37 @@ describe("a value someone wrote, in a line of the page", () => {
     expect(description.tagName).toBe("BDI");
     expect(description).toHaveAttribute("dir", "rtl");
     expect(screen.getByTestId("owner-element").closest("bdi")).toBeNull();
+  });
+
+  test("a log's message in the logs table reads its own way, under its column's name", () => {
+    const english: Log = new Log();
+    english.body = "Payment provider timed out after 30s.";
+    english.time = new Date("2026-10-26T10:15:00.000Z");
+
+    const persian: Log = new Log();
+    persian.body = "پرداخت با موفقیت انجام شد.";
+    persian.time = new Date("2026-10-26T10:16:00.000Z");
+
+    render(
+      <LogsTable
+        logs={[english, persian]}
+        serviceMap={{}}
+        isLoading={false}
+        onRowClick={() => {}}
+        selectedColumns={["time", "message"]}
+      />,
+    );
+
+    const englishMessage: HTMLElement = screen.getByText(
+      "Payment provider timed out after 30s.",
+    );
+
+    expect(englishMessage.tagName).toBe("BDI");
+    expect(englishMessage).toHaveAttribute("dir", "ltr");
+    expect(screen.getByText("پرداخت با موفقیت انجام شد.")).toHaveAttribute(
+      "dir",
+      "rtl",
+    );
   });
 
   test("a long text in a table reads its own way too", () => {
