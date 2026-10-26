@@ -26,6 +26,18 @@ point, "after" from this branch's. Captured at 1x.
 - `add-custom-role-dialog-after.png`: a team's Add a Custom Role, with "Roles" as a link (from
   the Custom Roles suite's fixture).
 
+From the UI review (before = this branch as the builder left it, after = the review's fix):
+
+- `icon-only-and-busy-1280` and `icon-only-and-busy-dark-1280`: a phone's menu toggle, a rule's
+  trash can (outline and danger outline), a busy Test and Save whose caller also locks them while
+  they work, and a locked Save. Before, an icon-only button kept the gap its icon keeps from words
+  that never came, so the icon sat off the middle of a wide box, and a busy button faded to 50% as
+  if it had been turned off.
+- `status-page-phone-390`: a public status page on a phone (the Status Page Theme suite's fixture).
+  Its header's ⋯ and its menu toggle are square buttons with their icons in the middle.
+- `reset-dialog-1280-after.png` was taken again for the review's wording: "The API Key gets a new
+  value."
+
 Made by:
 
 - `cd packages/E2E && node SharedUi/Fixture/server.js` (after), and the same `server.js` copied

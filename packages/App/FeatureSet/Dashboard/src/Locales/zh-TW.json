@@ -34825,5 +34825,5 @@
   "The team's members get everything the role allows. Make or change roles on the {{roles}} page.": "團隊成員可以做角色允許的一切。請在「{{roles}}」頁面建立或變更角色。",
   "This key has every custom role already.": "此金鑰已擁有所有自訂角色。",
   "This team has every custom role already.": "此團隊已擁有所有自訂角色。",
-  "{{columnName}} gets a new value. Anything that still uses the old value stops working until you give it the new one.": "{{columnName}}將取得一個新值。仍在使用舊值的任何項目都會停止運作，直到為其設定新值。"
+  "The {{columnName}} gets a new value. Anything that still uses the old value stops working until you give it the new one.": "{{columnName}}將取得一個新值。仍在使用舊值的任何項目都會停止運作，直到為其設定新值。"
 }

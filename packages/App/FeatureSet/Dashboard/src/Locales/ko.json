@@ -34825,5 +34825,5 @@
   "The team's members get everything the role allows. Make or change roles on the {{roles}} page.": "팀의 구성원은 역할이 허용하는 모든 것을 할 수 있게 됩니다. 역할은 {{roles}} 페이지에서 만들거나 바꿉니다.",
   "This key has every custom role already.": "이 키에는 이미 모든 사용자 정의 역할이 있습니다.",
   "This team has every custom role already.": "이 팀에는 이미 모든 사용자 정의 역할이 있습니다.",
-  "{{columnName}} gets a new value. Anything that still uses the old value stops working until you give it the new one.": "{{columnName}}에 새 값이 지정됩니다. 이전 값을 아직 사용하는 항목은 새 값을 넣을 때까지 작동하지 않습니다."
+  "The {{columnName}} gets a new value. Anything that still uses the old value stops working until you give it the new one.": "{{columnName}}에 새 값이 지정됩니다. 이전 값을 아직 사용하는 항목은 새 값을 넣을 때까지 작동하지 않습니다."
 }

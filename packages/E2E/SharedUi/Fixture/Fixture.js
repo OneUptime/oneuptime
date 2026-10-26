@@ -380,6 +380,62 @@ function Buttons() {
         </div>
       </Card>
 
+      {/*
+       * A button that is only its icon - a phone's menu toggle, a rule's
+       * trash can - and buttons whose caller locks them for as long as
+       * they work (disabled and isLoading on one flag).
+       */}
+      <Card
+        title="Icons alone, and busy buttons"
+        description="An icon in the middle of its button, and a button at work."
+      >
+        <div className="flex flex-wrap items-center gap-3">
+          <Button
+            icon={IconProp.Bars3}
+            buttonStyle={ButtonStyleType.OUTLINE}
+            className="p-2"
+            dataTestId="icon-only-toggle"
+            onClick={() => {}}
+          />
+          <Button
+            title=""
+            ariaLabel="Remove attribute filter 1"
+            icon={IconProp.Trash}
+            buttonStyle={ButtonStyleType.OUTLINE}
+            buttonSize={ButtonSize.Small}
+            dataTestId="icon-only-trash"
+            onClick={() => {}}
+          />
+          <Button
+            icon={IconProp.Trash}
+            buttonStyle={ButtonStyleType.DANGER_OUTLINE}
+            buttonSize={ButtonSize.Small}
+            dataTestId="icon-only-danger-trash"
+            onClick={() => {}}
+          />
+          <Button
+            title="Test connection"
+            buttonStyle={ButtonStyleType.NORMAL}
+            disabled={true}
+            isLoading={true}
+            dataTestId="busy-locked"
+          />
+          <Button
+            title="Save"
+            buttonStyle={ButtonStyleType.PRIMARY}
+            disabled={true}
+            isLoading={true}
+            dataTestId="busy-locked-primary"
+          />
+          <Button
+            title="Save"
+            buttonStyle={ButtonStyleType.PRIMARY}
+            disabled={true}
+            dataTestId="locked-primary"
+          />
+        </div>
+      </Card>
+
       <Card
         title="Connectivity tools"
         description="Ping or traceroute this device from its probe, and see its recent round-trip time."
@@ -460,9 +516,14 @@ function Dialogs() {
         <></>
       )}
 
+      {/*
+       * As a workflow's Settings page draws it: the copy opens in the
+       * workflows list's route once it is made (navigateToOnSuccess).
+       */}
       <DuplicateModel
         modelType={Workflow}
         modelId={new ObjectID(WORKFLOW_ID)}
+        navigateToOnSuccess={new Route(`/dashboard/${PROJECT_ID}/workflows`)}
         fieldsToDuplicate={{ name: true }}
         fieldsToChange={[
           {

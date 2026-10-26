@@ -336,9 +336,15 @@ const DuplicateModel: <TBaseModel extends BaseModel>(
 
       {showModal ? (
         <BasicFormModal<TBaseModel>
+          /*
+           * Said only when it is so: a card given nowhere to go
+           * (navigateToOnSuccess) makes the copy and stays where it is.
+           */
           description={
-            translator.translateText(DUPLICATE_DIALOG_DESCRIPTION) ||
-            DUPLICATE_DIALOG_DESCRIPTION
+            props.navigateToOnSuccess
+              ? translator.translateText(DUPLICATE_DIALOG_DESCRIPTION) ||
+                DUPLICATE_DIALOG_DESCRIPTION
+              : undefined
           }
           title={duplicateTitle}
           isLoading={isLoading}

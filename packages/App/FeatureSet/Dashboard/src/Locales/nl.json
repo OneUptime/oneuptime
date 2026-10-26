@@ -34825,5 +34825,5 @@
   "The team's members get everything the role allows. Make or change roles on the {{roles}} page.": "De leden van het team krijgen alles wat de rol toestaat. Maak of wijzig rollen op de pagina {{roles}}.",
   "This key has every custom role already.": "Deze sleutel heeft al elke aangepaste rol.",
   "This team has every custom role already.": "Dit team heeft al elke aangepaste rol.",
-  "{{columnName}} gets a new value. Anything that still uses the old value stops working until you give it the new one.": "{{columnName}} krijgt een nieuwe waarde. Alles wat de oude waarde nog gebruikt, werkt niet meer totdat u het de nieuwe geeft."
+  "The {{columnName}} gets a new value. Anything that still uses the old value stops working until you give it the new one.": "{{columnName}} krijgt een nieuwe waarde. Alles wat de oude waarde nog gebruikt, werkt niet meer totdat u het de nieuwe geeft."
 }

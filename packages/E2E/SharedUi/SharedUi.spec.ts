@@ -594,6 +594,133 @@ test.describe("a button that cannot be pressed looks it", () => {
   });
 });
 
+/*
+ * A Test or a Save whose caller locks it for as long as it works -
+ * disabled={isTesting} with isLoading={isTesting}, as some fifty callers
+ * do - is busy, not locked: it keeps its look beside its spinner.
+ */
+test.describe("a busy button looks busy, not locked", () => {
+  test("its caller's lock while it works neither fades it nor shows the not-allowed cursor", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const theme of ["light", "dark"]) {
+      await open(
+        page,
+        `section=buttons${theme === "dark" ? "&theme=dark" : ""}`,
+      );
+
+      for (const testId of ["busy-locked", "busy-locked-primary"]) {
+        const busy: Locator = button(page, testId);
+
+        await expect(busy).toBeDisabled();
+        await expect(busy.locator(".animate-spin")).toHaveCount(1);
+        expect(await styleOf(busy, "opacity")).toBe("1");
+        expect(await styleOf(busy, "cursor")).not.toBe("not-allowed");
+      }
+
+      // The same button locked and not at work fades, as every locked one.
+      const locked: Locator = button(page, "locked-primary");
+
+      expect(await styleOf(locked, "opacity")).toBe("0.5");
+      expect(
+        await styleOf(button(page, "busy-locked-primary"), "background-color"),
+      ).toBe(await styleOf(locked, "background-color"));
+    }
+  });
+
+  test("and gives no hover wash under the pointer", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "section=buttons");
+
+    // Busy alone, and busy while its caller also locks it.
+    for (const testId of [
+      "button-NORMAL-loading",
+      "button-OUTLINE-loading",
+      "busy-locked",
+    ]) {
+      const busy: Locator = button(page, testId);
+      const before: string = await styleOf(busy, "background-color");
+
+      await busy.hover({ force: true });
+      // Past the 150ms colour transition a hover wash would run.
+      await page.waitForTimeout(400);
+
+      expect(await styleOf(busy, "background-color"), testId).toBe(before);
+    }
+  });
+});
+
+/*
+ * A button that is only its icon: a phone's menu toggle (the Dashboard's
+ * and a status page's), a rule's trash can. Its icon kept the gap it keeps
+ * from words that never came, so it sat off the middle; an outline one,
+ * newly bordered, was a wide box round it.
+ */
+test.describe("a button that is only its icon has it in its middle", () => {
+  test("an outline one is a square, and every one centres its icon, in both directions", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const language of ["en", "fa"]) {
+      await open(page, `section=buttons${language === "fa" ? "&lang=fa" : ""}`);
+
+      for (const testId of [
+        "icon-only-toggle",
+        "icon-only-trash",
+        "icon-only-danger-trash",
+      ]) {
+        const control: Locator = button(page, testId);
+        const box: { x: number; y: number; width: number; height: number } =
+          (await control.boundingBox())!;
+        const glyph: {
+          x: number;
+          y: number;
+          width: number;
+          height: number;
+        } = (await control.locator("svg").first().boundingBox())!;
+
+        const offCentre: number = Math.abs(
+          glyph.x + glyph.width / 2 - (box.x + box.width / 2),
+        );
+
+        expect(offCentre, `${testId}'s icon, in ${language}`).toBeLessThan(1);
+
+        if (testId !== "icon-only-danger-trash") {
+          // A square round its icon.
+          expect(
+            Math.abs(box.width - box.height),
+            `${testId}'s sides, in ${language}`,
+          ).toBeLessThan(1);
+        }
+      }
+    }
+
+    // The phone's toggle: 8px round its 20px icon and its 1px border.
+    const toggle: { width: number; height: number } = (await button(
+      page,
+      "icon-only-toggle",
+    ).boundingBox())!;
+
+    expect(toggle.width).toBeCloseTo(38, 0);
+    expect(toggle.height).toBeCloseTo(38, 0);
+  });
+
+  test("and is named for a screen reader", async ({ page }: { page: Page }) => {
+    await open(page, "section=buttons");
+
+    await expect(
+      page.getByRole("button", { name: "Remove attribute filter 1" }),
+    ).toBeVisible();
+    await screenshot(page, "icon-only-and-busy-1280", { fullPage: false });
+  });
+});
+
 test.describe("a menu's own ⋯ is a bare icon button", () => {
   test("no box until the pointer is over it, then a grey wash; it opens its menu", async ({
     page,
@@ -713,7 +840,7 @@ test.describe("Duplicate and Reset say what happens", () => {
 
     await card(page, "Reset API Key").getByTestId("card-button").click();
     await expect(dialog(page)).toContainText(
-      "API Key gets a new value. Anything that still uses the old value stops working until you give it the new one.",
+      "The API Key gets a new value. Anything that still uses the old value stops working until you give it the new one.",
     );
     await expect(dialog(page)).not.toContainText("Are you sure");
     await screenshot(page, "reset-dialog-1280", { fullPage: false });
@@ -743,7 +870,7 @@ test.describe("Duplicate and Reset say what happens", () => {
       await page.getByTestId("card-button").nth(2).click();
       const reset: string =
         words[
-          "{{columnName}} gets a new value. Anything that still uses the old value stops working until you give it the new one."
+          "The {{columnName}} gets a new value. Anything that still uses the old value stops working until you give it the new one."
         ]!;
       expect(reset).toContain("{{columnName}}");
       // The template's words after the column's name, as translated.

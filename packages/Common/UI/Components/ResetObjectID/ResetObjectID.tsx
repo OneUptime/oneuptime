@@ -56,7 +56,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
  * API Key?" asked to confirm the click and said nothing of what breaks.
  */
 export const RESET_CONFIRM_DESCRIPTION_TEMPLATE: string = translationKey(
-  "{{columnName}} gets a new value. Anything that still uses the old value stops working until you give it the new one.",
+  "The {{columnName}} gets a new value. Anything that still uses the old value stops working until you give it the new one.",
 );
 
 const ResetObjectID: <TBaseModel extends BaseModel>(

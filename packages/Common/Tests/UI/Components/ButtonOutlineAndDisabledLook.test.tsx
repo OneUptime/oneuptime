@@ -10,6 +10,8 @@ import Button, {
   ButtonSize,
   ButtonStyleType,
   ComponentProps,
+  ICON_ONLY_OUTLINE_BUTTON_SIZE_CLASS_NAMES,
+  isOutlineButtonStyle,
   OUTLINE_BUTTON_CLASS_NAME,
   OUTLINE_BUTTON_HOVER_CLASS_NAMES,
 } from "../../../UI/Components/Button/Button";
@@ -431,14 +433,64 @@ describe("a disabled button looks it", () => {
     expect(spinner).not.toHaveClass("-ml-1");
   });
 
-  test("a locked button that is also loading fades as well", () => {
-    expect(
-      renderButton({
-        buttonStyle: ButtonStyleType.OUTLINE,
+  /*
+   * Callers lock a button for as long as it works - disabled={isSaving}
+   * with isLoading={isSaving}, some fifty of them - so a Test or a Save that
+   * had just been pressed faded as if it had been turned off. Busy wins: it
+   * keeps its look and its spinner, and still takes no second press.
+   */
+  test.each(ALL_STYLES)(
+    "a busy %s keeps its look even while its caller also locks it",
+    (_name: string, buttonStyle: ButtonStyleType) => {
+      const busy: HTMLElement = renderButton({
+        buttonStyle,
         disabled: true,
         isLoading: true,
-      }),
-    ).toHaveClass("opacity-50", "cursor-not-allowed");
+      });
+
+      expect(busy).toBeDisabled();
+      expect(busy).toHaveAttribute("aria-disabled", "true");
+      expect(busy).not.toHaveClass("opacity-50");
+      expect(busy).not.toHaveClass("cursor-not-allowed");
+
+      if (buttonStyle !== ButtonStyleType.ICON) {
+        expect(busy.querySelector(".animate-spin")).not.toBeNull();
+      }
+    },
+  );
+
+  test.each(ALL_STYLES)(
+    "a busy %s answers no hover, whether or not it is also locked",
+    (_name: string, buttonStyle: ButtonStyleType) => {
+      for (const disabled of [false, true]) {
+        const hovers: Array<string> = classesOf(
+          renderButton({ buttonStyle, disabled, isLoading: true }),
+        ).filter((token: string) => {
+          return token.startsWith("hover:");
+        });
+
+        expect({ disabled, hovers }).toEqual({ disabled, hovers: [] });
+      }
+    },
+  );
+
+  test("a busy button never fires its click either", () => {
+    const onClick: MockFunction = getJestMockFunction();
+
+    render(
+      <Button
+        dataTestId="busy"
+        title="Test connection"
+        buttonStyle={ButtonStyleType.NORMAL}
+        disabled={true}
+        isLoading={true}
+        onClick={onClick}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId("busy"));
+
+    expect(onClick).not.toHaveBeenCalled();
   });
 
   test("a disabled button never fires its click", () => {
@@ -496,6 +548,24 @@ describe("a locked button with a reason", () => {
     );
   });
 
+  test("so does a busy one its caller also locks while it works", () => {
+    render(
+      <Button
+        dataTestId="busy"
+        title="Reset API Key"
+        buttonStyle={ButtonStyleType.NORMAL}
+        disabled={true}
+        isLoading={true}
+        tooltip="Resetting the key."
+      />,
+    );
+
+    expect(screen.getByTestId("busy-disabled-wrapper")).not.toHaveClass(
+      "cursor-not-allowed",
+    );
+    expect(screen.getByTestId("busy")).not.toHaveClass("opacity-50");
+  });
+
   test("the reason is still read on hover", () => {
     render(
       <Button
@@ -512,6 +582,160 @@ describe("a locked button with a reason", () => {
     expect(screen.getByRole("tooltip")).toHaveTextContent(
       "Runs from this device's probe, which is offline.",
     );
+  });
+});
+
+/*
+ * A button with an icon and no words: a phone's menu toggle (the
+ * Dashboard's and a status page's), a recording rule's or a pipeline's
+ * trash can. Its icon kept the gap it keeps from words that never came, so
+ * it sat off the middle of the box; an outline one, newly bordered, was a
+ * wide box round it.
+ */
+type RenderIconOnlyFunction = (props: Partial<ComponentProps>) => HTMLElement;
+
+const renderIconOnly: RenderIconOnlyFunction = (
+  props: Partial<ComponentProps>,
+): HTMLElement => {
+  const { unmount } = render(
+    <Button dataTestId="icon-only" icon={IconProp.Trash} {...props} />,
+  );
+  const button: HTMLElement = screen.getByTestId("icon-only");
+  const clone: HTMLElement = button.cloneNode(true) as HTMLElement;
+  unmount();
+  return clone;
+};
+
+describe("a button that is only its icon", () => {
+  test.each(ALL_STYLES)(
+    "%s puts its icon in the middle: no gap on the words' side",
+    (_name: string, buttonStyle: ButtonStyleType) => {
+      const icon: Element | null = renderIconOnly({
+        buttonStyle,
+        title: "",
+      }).querySelector("svg");
+
+      expect(icon).not.toBeNull();
+      expect(icon).not.toHaveClass("me-1");
+      expect(icon).not.toHaveClass("mr-1");
+    },
+  );
+
+  test("its spinner too, while it works", () => {
+    const spinner: Element | null = renderIconOnly({
+      buttonStyle: ButtonStyleType.OUTLINE,
+      isLoading: true,
+    }).querySelector(".animate-spin");
+
+    expect(spinner).not.toBeNull();
+    expect(spinner).not.toHaveClass("me-3");
+    expect(spinner).not.toHaveClass("-ms-1");
+  });
+
+  test("with words it keeps the gap beside them", () => {
+    const icon: Element | null = renderIconOnly({
+      buttonStyle: ButtonStyleType.OUTLINE,
+      title: "Delete",
+    }).querySelector("svg");
+
+    expect(icon).toHaveClass("me-1");
+  });
+
+  test.each(OUTLINE_STYLES)(
+    "%s is a square round its icon, at every size",
+    (_name: string, buttonStyle: ButtonStyleType) => {
+      for (const buttonSize of Object.values(ButtonSize)) {
+        const button: HTMLElement = renderIconOnly({
+          buttonStyle,
+          buttonSize,
+        });
+        const square: string =
+          ICON_ONLY_OUTLINE_BUTTON_SIZE_CLASS_NAMES[buttonSize];
+
+        expect(square).toMatch(/^p-\d$/u);
+        expect(button).toHaveClass(square);
+        // Not the size's sideways padding, which made a wide box.
+        for (const token of buttonSize.split(" ")) {
+          expect(button).not.toHaveClass(token);
+        }
+      }
+    },
+  );
+
+  test("the phone's menu toggle is a 38px square: 8px round a 20px icon", () => {
+    const toggle: HTMLElement = renderIconOnly({
+      buttonStyle: ButtonStyleType.OUTLINE,
+      icon: IconProp.Bars3,
+    });
+
+    expect(toggle).toHaveClass("p-2", "border");
+    expect(toggle).not.toHaveClass("px-3");
+    expect(toggle.querySelector("svg")).toHaveClass("w-5", "h-5");
+  });
+
+  test("an outline button with words keeps its size's padding", () => {
+    const button: HTMLElement = renderButton({
+      buttonStyle: ButtonStyleType.OUTLINE,
+      icon: IconProp.Refresh,
+      buttonSize: ButtonSize.Small,
+    });
+
+    expect(button).toHaveClass("px-2", "py-1");
+    expect(button).not.toHaveClass("p-1");
+  });
+
+  test("a filled or plain one keeps its size's padding: only outline styles turn square", () => {
+    for (const buttonStyle of [
+      ButtonStyleType.NORMAL,
+      ButtonStyleType.DANGER_OUTLINE,
+    ]) {
+      expect(isOutlineButtonStyle(buttonStyle)).toBe(false);
+      expect(
+        renderIconOnly({ buttonStyle, buttonSize: ButtonSize.Small }),
+      ).toHaveClass("px-2", "py-1");
+    }
+  });
+
+  test("it is named by its tooltip when it has no name of its own", () => {
+    render(
+      <Button
+        dataTestId="named"
+        icon={IconProp.Trash}
+        buttonStyle={ButtonStyleType.OUTLINE}
+        tooltip="Remove this filter"
+      />,
+    );
+
+    expect(screen.getByTestId("named")).toHaveAccessibleName(
+      "Remove this filter",
+    );
+  });
+
+  test("an aria label wins, and a button with words is named by them", () => {
+    render(
+      <>
+        <Button
+          dataTestId="labelled"
+          icon={IconProp.Trash}
+          buttonStyle={ButtonStyleType.OUTLINE}
+          ariaLabel="Remove attribute filter 1"
+          tooltip="Remove"
+        />
+        <Button
+          dataTestId="worded"
+          title="Delete"
+          icon={IconProp.Trash}
+          buttonStyle={ButtonStyleType.OUTLINE}
+          tooltip="Deletes it for good."
+        />
+      </>,
+    );
+
+    expect(screen.getByTestId("labelled")).toHaveAccessibleName(
+      "Remove attribute filter 1",
+    );
+    expect(screen.getByTestId("worded")).toHaveAccessibleName("Delete");
+    expect(screen.getByTestId("worded")).not.toHaveAttribute("aria-label");
   });
 });
 

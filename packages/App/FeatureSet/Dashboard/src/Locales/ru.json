@@ -34825,5 +34825,5 @@
   "The team's members get everything the role allows. Make or change roles on the {{roles}} page.": "Участники команды получают всё, что разрешает роль. Создавайте и меняйте роли на странице «{{roles}}».",
   "This key has every custom role already.": "У этого ключа уже есть все пользовательские роли.",
   "This team has every custom role already.": "У этой команды уже есть все пользовательские роли.",
-  "{{columnName}} gets a new value. Anything that still uses the old value stops working until you give it the new one.": "{{columnName}} получит новое значение. Всё, что ещё использует старое значение, перестанет работать, пока вы не передадите ему новое."
+  "The {{columnName}} gets a new value. Anything that still uses the old value stops working until you give it the new one.": "{{columnName}} получит новое значение. Всё, что ещё использует старое значение, перестанет работать, пока вы не передадите ему новое."
 }

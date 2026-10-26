@@ -34825,5 +34825,5 @@
   "The team's members get everything the role allows. Make or change roles on the {{roles}} page.": "اعضای تیم هر کاری را که نقش اجازه می‌دهد انجام می‌دهند. نقش‌ها را در صفحه {{roles}} بسازید یا تغییر دهید.",
   "This key has every custom role already.": "این کلید همه نقش‌های سفارشی را از قبل دارد.",
   "This team has every custom role already.": "این تیم همه نقش‌های سفارشی را از قبل دارد.",
-  "{{columnName}} gets a new value. Anything that still uses the old value stops working until you give it the new one.": "{{columnName}} مقدار تازه‌ای می‌گیرد. هر چیزی که هنوز از مقدار قبلی استفاده می‌کند، تا وقتی مقدار تازه را به آن ندهید کار نمی‌کند."
+  "The {{columnName}} gets a new value. Anything that still uses the old value stops working until you give it the new one.": "{{columnName}} مقدار تازه‌ای می‌گیرد. هر چیزی که هنوز از مقدار قبلی استفاده می‌کند، تا وقتی مقدار تازه را به آن ندهید کار نمی‌کند."
 }

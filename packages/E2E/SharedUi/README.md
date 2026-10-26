@@ -22,6 +22,12 @@ The suite checks what jsdom cannot:
   cursor, keeps its own fill and keeps its look under the pointer; a busy
   button keeps its look, and a busy link keeps its spinner on its words'
   line; a locked button with a reason says why on hover;
+- a busy button keeps its look and its spinner also when its caller locks
+  it for as long as it works (`disabled` and `isLoading` on one flag), and
+  gives no hover wash;
+- a button that is only its icon (a phone's menu toggle, a rule's trash
+  can) has it in its middle, in English and Persian, an outline one in a
+  square (the toggle is 38 by 38), and is named for a screen reader;
 - a menu's own ⋯ is a bare icon button that washes grey under the pointer,
   and a menu with words shows them beside its icon;
 - an edit dialog that reads its record first (`?read=<ms>`) starts on its

@@ -69,11 +69,27 @@ export const BUTTON_DISABLED_CURSOR_CLASS_NAME: string = "cursor-not-allowed";
 export const OUTLINE_BUTTON_CLASS_NAME: string =
   "inline-flex justify-center rounded-md border border-gray-300 bg-white text-base font-medium text-gray-700 shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 md:text-sm";
 
-export const OUTLINE_BUTTON_HOVER_CLASS_NAMES: Record<
+export type OutlineButtonStyleType =
   | ButtonStyleType.OUTLINE
   | ButtonStyleType.HOVER_DANGER_OUTLINE
   | ButtonStyleType.HOVER_SUCCESS_OUTLINE
-  | ButtonStyleType.HOVER_PRIMARY_OUTLINE,
+  | ButtonStyleType.HOVER_PRIMARY_OUTLINE;
+
+export const isOutlineButtonStyle: (
+  style: ButtonStyleType,
+) => style is OutlineButtonStyleType = (
+  style: ButtonStyleType,
+): style is OutlineButtonStyleType => {
+  return (
+    style === ButtonStyleType.OUTLINE ||
+    style === ButtonStyleType.HOVER_DANGER_OUTLINE ||
+    style === ButtonStyleType.HOVER_SUCCESS_OUTLINE ||
+    style === ButtonStyleType.HOVER_PRIMARY_OUTLINE
+  );
+};
+
+export const OUTLINE_BUTTON_HOVER_CLASS_NAMES: Record<
+  OutlineButtonStyleType,
   string
 > = {
   [ButtonStyleType.OUTLINE]: "hover:bg-gray-50",
@@ -82,6 +98,22 @@ export const OUTLINE_BUTTON_HOVER_CLASS_NAMES: Record<
     "hover:bg-green-50 hover:text-green-700",
   [ButtonStyleType.HOVER_PRIMARY_OUTLINE]:
     "hover:bg-indigo-50 hover:text-indigo-700",
+};
+
+/*
+ * An outline button with an icon and no words - a phone's menu toggle, a
+ * row's trash can - is a square around its icon: the padding of the size's
+ * height on every side. With a label's sideways padding it was a wide box
+ * whose icon sat off its middle.
+ */
+export const ICON_ONLY_OUTLINE_BUTTON_SIZE_CLASS_NAMES: Record<
+  ButtonSize,
+  string
+> = {
+  [ButtonSize.Normal]: "p-2",
+  [ButtonSize.Small]: "p-1",
+  [ButtonSize.Large]: "p-2",
+  [ButtonSize.ExtraSmall]: "p-0",
 };
 /* Defining the props that the component will take. */
 
@@ -183,6 +215,17 @@ const Button: FunctionComponent<ComponentProps> = ({
   };
 
   /*
+   * Locked - it cannot be pressed - or busy, which cannot be pressed while
+   * it works: neither answers the pointer with a hover. Only a locked one
+   * fades (BUTTON_DISABLED_CLASS_NAME). A busy one keeps its look beside
+   * its spinner, also when its caller locks it for as long as it works
+   * (disabled={isSaving} with isLoading={isSaving}): faded, a Test or a
+   * Save that had just been pressed looked as if it had been turned off.
+   */
+  const isInert: boolean = Boolean(disabled || isLoading);
+  const isLocked: boolean = Boolean(disabled) && !isLoading;
+
+  /*
    * The focus ring is for keyboard focus only (focus-visible). Drawn on every
    * :focus it also ringed whatever a script focused: a dialog opened with a
    * click put its initial focus on Cancel, and the ring made Cancel the most
@@ -191,22 +234,32 @@ const Button: FunctionComponent<ComponentProps> = ({
    * the page with the keyboard, which is who it is for.
    */
   let buttonStyleCssClass: string = `inline-flex w-full justify-center rounded-md border border-gray-300 bg-white text-base font-medium text-gray-700 shadow-sm ${
-    disabled ? "" : "hover:bg-gray-50"
+    isInert ? "" : "hover:bg-gray-50"
   } focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 md:mt-0 md:ml-3 md:w-auto md:text-sm`;
+
+  // Words after the icon: the title, which an ICON button never draws.
+  const hasWords: boolean =
+    Boolean(translatedTitle) && buttonStyle !== ButtonStyleType.ICON;
+
   /*
    * The gap between an icon (or a spinner) and the words is on the words'
    * side in either direction: margin-inline-end, not margin-right. In
    * Persian a button's icon sits to the right of its words, and a right
-   * margin left it touching them, with the gap on the button's edge.
+   * margin left it touching them, with the gap on the button's edge. A
+   * button with no words has no gap to keep: its icon sits in its middle.
    */
-  let loadingIconClassName: string = `w-5 h-5 -ms-1 me-3 animate-spin`;
+  let loadingIconClassName: string = hasWords
+    ? `w-5 h-5 -ms-1 me-3 animate-spin`
+    : `w-5 h-5 animate-spin`;
   let iconClassName: string = `w-5 h-5`;
 
   if (
     buttonStyle !== ButtonStyleType.ICON &&
     buttonStyle !== ButtonStyleType.ICON_LIGHT
   ) {
-    iconClassName += ` me-1`;
+    if (hasWords) {
+      iconClassName += ` me-1`;
+    }
   } else {
     iconClassName += ` m-1`;
   }
@@ -218,7 +271,7 @@ const Button: FunctionComponent<ComponentProps> = ({
    */
   if (buttonStyle === ButtonStyleType.LINK) {
     buttonStyleCssClass = `text-indigo-600 ${
-      disabled ? "" : "hover:text-indigo-900"
+      isInert ? "" : "hover:text-indigo-900"
     } space-x-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2`;
 
     if (icon || isLoading) {
@@ -228,7 +281,7 @@ const Button: FunctionComponent<ComponentProps> = ({
 
   if (buttonStyle === ButtonStyleType.SECONDARY_LINK) {
     buttonStyleCssClass = `text-sm text-gray-400 ${
-      disabled ? "" : "hover:text-gray-500"
+      isInert ? "" : "hover:text-gray-500"
     } space-x-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2`;
 
     if (icon || isLoading) {
@@ -242,79 +295,74 @@ const Button: FunctionComponent<ComponentProps> = ({
    */
   if (buttonStyle === ButtonStyleType.DANGER) {
     buttonStyleCssClass = `inline-flex w-full justify-center rounded-md border border-transparent bg-red-600 ${
-      disabled ? "" : "hover:bg-red-700"
+      isInert ? "" : "hover:bg-red-700"
     } text-base font-medium text-white shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 md:ml-3 md:w-auto md:text-sm`;
   }
 
   if (buttonStyle === ButtonStyleType.DANGER_OUTLINE) {
     buttonStyleCssClass = `inline-flex w-full justify-center rounded-md border border-red-700 bg-white text-base font-medium text-red-700 shadow-sm ${
-      disabled ? "" : "hover:bg-red-50"
+      isInert ? "" : "hover:bg-red-50"
     } focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 md:mt-0 md:ml-3 md:w-auto md:text-sm`;
   }
 
   if (buttonStyle === ButtonStyleType.PRIMARY) {
     loadingIconClassName += ` text-indigo-100`;
     buttonStyleCssClass = `inline-flex w-full justify-center rounded-md border border-transparent bg-indigo-600 ${
-      disabled ? "" : "hover:bg-indigo-700"
+      isInert ? "" : "hover:bg-indigo-700"
     } text-base font-medium text-white shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 md:ml-3 md:w-auto md:text-sm`;
   }
 
   if (buttonStyle === ButtonStyleType.SECONDARY) {
     loadingIconClassName += ` text-indigo-500`;
     buttonStyleCssClass = `inline-flex rounded-md border border-transparent bg-indigo-100 ${
-      disabled ? "" : "hover:bg-indigo-200"
+      isInert ? "" : "hover:bg-indigo-200"
     } text-sm font-medium text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2`;
   }
 
   if (buttonStyle === ButtonStyleType.ICON_LIGHT) {
     buttonStyleCssClass = `rounded-md bg-white text-gray-400 ${
-      disabled ? "" : "hover:text-gray-500"
+      isInert ? "" : "hover:text-gray-500"
     }  focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2`;
   }
 
   if (buttonStyle === ButtonStyleType.ICON) {
     buttonStyleCssClass = `rounded-md bg-transparent text-gray-600 ${
-      disabled ? "" : "hover:text-gray-900"
+      isInert ? "" : "hover:text-gray-900"
     }  focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2`;
   }
 
-  if (
-    buttonStyle === ButtonStyleType.OUTLINE ||
-    buttonStyle === ButtonStyleType.HOVER_DANGER_OUTLINE ||
-    buttonStyle === ButtonStyleType.HOVER_SUCCESS_OUTLINE ||
-    buttonStyle === ButtonStyleType.HOVER_PRIMARY_OUTLINE
-  ) {
-    buttonStyleCssClass = disabled
+  if (isOutlineButtonStyle(buttonStyle)) {
+    buttonStyleCssClass = isInert
       ? OUTLINE_BUTTON_CLASS_NAME
       : `${OUTLINE_BUTTON_CLASS_NAME} ${OUTLINE_BUTTON_HOVER_CLASS_NAMES[buttonStyle]}`;
   }
 
   if (buttonStyle === ButtonStyleType.SUCCESS) {
     buttonStyleCssClass = `inline-flex w-full justify-center rounded-md border border-transparent bg-green-600 text-base font-medium text-white shadow-sm ${
-      disabled ? "" : "hover:bg-green-700"
+      isInert ? "" : "hover:bg-green-700"
     }  focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 md:ml-3 md:w-auto md:text-sm`;
   }
 
   if (buttonStyle === ButtonStyleType.SUCCESS_OUTLINE) {
     buttonStyleCssClass = `inline-flex w-full justify-center rounded-md border border-green-700 bg-white text-base font-medium text-green-700 shadow-sm ${
-      disabled ? "" : "hover:bg-green-50"
+      isInert ? "" : "hover:bg-green-50"
     }  focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 md:mt-0 md:ml-3 md:w-auto md:text-sm`;
   }
 
   if (buttonStyle === ButtonStyleType.WARNING) {
     buttonStyleCssClass = `inline-flex w-full justify-center rounded-md border border-transparent bg-yellow-600 text-base font-medium text-white shadow-sm  ${
-      disabled ? "" : "hover:bg-yellow-700"
+      isInert ? "" : "hover:bg-yellow-700"
     }  focus:outline-none focus-visible:ring-2 focus-visible:ring-yellow-500 focus-visible:ring-offset-2 md:ml-3 md:w-auto md:text-sm`;
   }
 
   if (buttonStyle === ButtonStyleType.WARNING_OUTLINE) {
     buttonStyleCssClass = `inline-flex w-full justify-center rounded-md border border-yellow-700 bg-white text-base font-medium text-yellow-700 shadow-sm ${
-      disabled ? "" : "hover:bg-yellow-50"
+      isInert ? "" : "hover:bg-yellow-50"
     }   focus:outline-none focus-visible:ring-2 focus-visible:ring-yellow-500 focus-visible:ring-offset-2 md:mt-0 md:ml-3 md:w-auto md:text-sm`;
   }
 
-  // Locked: faded as a whole, whatever the style.
-  if (disabled) {
+  // Locked: faded as a whole, whatever the style. Busy is not locked.
+  if (isLocked) {
     buttonStyleCssClass += ` ${BUTTON_DISABLED_CLASS_NAME}`;
   }
 
@@ -328,9 +376,18 @@ const Button: FunctionComponent<ComponentProps> = ({
    */
   buttonStyleCssClass += ` transition-colors duration-150 ease-out`;
 
-  buttonStyleCssClass += ` ` + buttonSize;
+  // An outline button that is only its icon is a square round it.
+  const isIconOnlyOutline: boolean =
+    isOutlineButtonStyle(buttonStyle) &&
+    !hasWords &&
+    !shortcutKey &&
+    Boolean(icon || isLoading);
 
-  const isDisabled: boolean = Boolean(disabled || isLoading);
+  buttonStyleCssClass +=
+    ` ` +
+    (isIconOnlyOutline
+      ? ICON_ONLY_OUTLINE_BUTTON_SIZE_CLASS_NAMES[buttonSize]
+      : buttonSize);
 
   /*
    * A disabled <button> swallows the pointer without dispatching anything, so
@@ -338,7 +395,7 @@ const Button: FunctionComponent<ComponentProps> = ({
    * button out of hit-testing hands the pointer to that wrapper instead. Only
    * applied when there is a tooltip to show, so nothing else changes.
    */
-  if (isDisabled && translatedTooltip) {
+  if (isInert && translatedTooltip) {
     buttonStyleCssClass += ` pointer-events-none`;
   }
 
@@ -346,11 +403,15 @@ const Button: FunctionComponent<ComponentProps> = ({
     buttonStyleCssClass += ` ` + className;
   }
 
-  // For icon-only buttons, use title as aria-label for accessibility
+  /*
+   * An icon button, or any button with no words (a phone's menu toggle, a
+   * row's trash can), is named by its title or else its tooltip.
+   */
   const computedAriaLabel: string | undefined =
     translateString(ariaLabel) ||
     (buttonStyle === ButtonStyleType.ICON ||
-    buttonStyle === ButtonStyleType.ICON_LIGHT
+    buttonStyle === ButtonStyleType.ICON_LIGHT ||
+    !hasWords
       ? translatedTitle || translatedTooltip
       : undefined);
 
@@ -366,10 +427,10 @@ const Button: FunctionComponent<ComponentProps> = ({
         }}
         data-testid={dataTestId}
         type={type}
-        disabled={isDisabled}
+        disabled={isInert}
         className={buttonStyleCssClass}
         aria-label={computedAriaLabel}
-        aria-disabled={isDisabled}
+        aria-disabled={isInert}
         aria-expanded={ariaExpanded}
         aria-haspopup={ariaHaspopup}
         aria-controls={ariaControls}
@@ -409,7 +470,7 @@ const Button: FunctionComponent<ComponentProps> = ({
      * disabled is exactly when the tooltip matters most, so wrap the disabled
      * button in an element that can still be hovered and tabbed to.
      */
-    if (isDisabled) {
+    if (isInert) {
       return (
         <Tooltip text={translatedTooltip}>
           <span
@@ -418,7 +479,7 @@ const Button: FunctionComponent<ComponentProps> = ({
              * not-allowed cursor of a locked one is this wrapper's.
              */
             className={
-              disabled
+              isLocked
                 ? `inline-flex ${BUTTON_DISABLED_CURSOR_CLASS_NAME}`
                 : "inline-flex"
             }

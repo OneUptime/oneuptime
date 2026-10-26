@@ -34825,5 +34825,5 @@
   "The team's members get everything the role allows. Make or change roles on the {{roles}} page.": "टीम के सदस्यों को वह सब मिलता है जिसकी भूमिका अनुमति देती है। {{roles}} पेज पर भूमिकाएं बनाएं या बदलें।",
   "This key has every custom role already.": "इस कुंजी के पास पहले से हर कस्टम भूमिका है।",
   "This team has every custom role already.": "इस टीम के पास पहले से हर कस्टम भूमिका है।",
-  "{{columnName}} gets a new value. Anything that still uses the old value stops working until you give it the new one.": "{{columnName}} को नया मान मिलता है। जो कुछ अब भी पुराने मान का उपयोग करता है, वह तब तक काम नहीं करता जब तक आप उसे नया मान नहीं देते।"
+  "The {{columnName}} gets a new value. Anything that still uses the old value stops working until you give it the new one.": "{{columnName}} को नया मान मिलता है। जो कुछ अब भी पुराने मान का उपयोग करता है, वह तब तक काम नहीं करता जब तक आप उसे नया मान नहीं देते।"
 }

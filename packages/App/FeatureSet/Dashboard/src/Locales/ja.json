@@ -34825,5 +34825,5 @@
   "The team's members get everything the role allows. Make or change roles on the {{roles}} page.": "チームのメンバーはロールで許可されるすべてを行えるようになります。ロールの作成や変更は「{{roles}}」ページで行います。",
   "This key has every custom role already.": "このキーはすでにすべてのカスタムロールを持っています。",
   "This team has every custom role already.": "このチームはすでにすべてのカスタムロールを持っています。",
-  "{{columnName}} gets a new value. Anything that still uses the old value stops working until you give it the new one.": "{{columnName}} に新しい値が設定されます。古い値を使っているものは、新しい値を設定するまで動作しなくなります。"
+  "The {{columnName}} gets a new value. Anything that still uses the old value stops working until you give it the new one.": "{{columnName}} に新しい値が設定されます。古い値を使っているものは、新しい値を設定するまで動作しなくなります。"
 }

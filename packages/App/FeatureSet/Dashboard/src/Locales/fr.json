@@ -34825,5 +34825,5 @@
   "The team's members get everything the role allows. Make or change roles on the {{roles}} page.": "Les membres de l'équipe obtiennent tout ce que le rôle permet. Créez ou modifiez les rôles sur la page {{roles}}.",
   "This key has every custom role already.": "Cette clé a déjà tous les rôles personnalisés.",
   "This team has every custom role already.": "Cette équipe a déjà tous les rôles personnalisés.",
-  "{{columnName}} gets a new value. Anything that still uses the old value stops working until you give it the new one.": "{{columnName}} reçoit une nouvelle valeur. Tout ce qui utilise encore l'ancienne valeur cesse de fonctionner jusqu'à ce que vous lui donniez la nouvelle."
+  "The {{columnName}} gets a new value. Anything that still uses the old value stops working until you give it the new one.": "{{columnName}} reçoit une nouvelle valeur. Tout ce qui utilise encore l'ancienne valeur cesse de fonctionner jusqu'à ce que vous lui donniez la nouvelle."
 }

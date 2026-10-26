@@ -34825,5 +34825,5 @@
   "The team's members get everything the role allows. Make or change roles on the {{roles}} page.": "Teamets medlemmar får allt som rollen tillåter. Skapa eller ändra roller på sidan {{roles}}.",
   "This key has every custom role already.": "Den här nyckeln har redan alla anpassade roller.",
   "This team has every custom role already.": "Det här teamet har redan alla anpassade roller.",
-  "{{columnName}} gets a new value. Anything that still uses the old value stops working until you give it the new one.": "{{columnName}} får ett nytt värde. Allt som fortfarande använder det gamla värdet slutar fungera tills du ger det det nya."
+  "The {{columnName}} gets a new value. Anything that still uses the old value stops working until you give it the new one.": "{{columnName}} får ett nytt värde. Allt som fortfarande använder det gamla värdet slutar fungera tills du ger det det nya."
 }

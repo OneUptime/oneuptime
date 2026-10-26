@@ -87,8 +87,9 @@ const DISABLED_CLASS: string = "cursor-not-allowed text-gray-300";
 /*
  * A square icon-only ghost, as ReplayToolButton draws one, for a control
  * that has to be a plain <button> of its own: the transport's ⋯, the
- * trigger a MoreMenu draws its menu from. MoreMenu's own trigger is an
- * outline button - bordered, white and taller than the chrome's 32px row.
+ * trigger a MoreMenu draws its menu from. MoreMenu's own trigger is a
+ * table row's bare ⋯ (MoreMenuTriggerStyle), with its own size and wash
+ * rather than the chrome's 32px ghost.
  */
 export const REPLAY_ICON_GHOST_BUTTON_CLASS: string = `${BUTTON_BASE_CLASS} w-8 ${GHOST_TONE_CLASS.neutral}`;
 
