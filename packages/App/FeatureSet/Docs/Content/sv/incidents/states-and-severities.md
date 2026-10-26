@@ -54,12 +54,12 @@ Tre tillstånd skapas med projektet, i den här ordningen. Skapandet är idempot
 
 | Tillstånd        | `order` | Flagga                | Färg      | Vad det betyder                                    |
 | ---------------- | ------- | --------------------- | --------- | -------------------------------------------------- |
-| **Identifierade**   | `1`     | `isCreatedState`      | `#fd625e` | Tillståndet som nya incidenter hamnar i.           |
+| **Identifierad**   | `1`     | `isCreatedState`      | `#fd625e` | Tillståndet som nya incidenter hamnar i.           |
 | **Bekräftad**    | `2`     | `isAcknowledgedState` | `#ffbf53` | Någon har tagit incidenten.                        |
 | **Löst**         | `3`     | `isResolvedState`     | `#2ab57d` | Incidenten är över och slutar räknas som aktiv.    |
 
 > [!NOTE]
-> Det första tillståndet heter **Identifierade**, även om flera beskrivningar i produkten fortfarande kallar det "created"-tillståndet. När ett dokument eller en verktygstips säger "skapandetillstånd" menas tillståndet som har `isCreatedState` — i ett nytt projekt är det **Identifierade**.
+> Det första tillståndet heter **Identifierad**, även om flera beskrivningar i produkten fortfarande kallar det "created"-tillståndet. När ett dokument eller en verktygstips säger "skapandetillstånd" menas tillståndet som har `isCreatedState` — i ett nytt projekt är det **Identifierad**.
 
 ## Vad varje tillståndsflagga faktiskt gör
 
@@ -188,7 +188,7 @@ En incident är bekräftad från det ögonblick den går in i ditt bekräftade t
 - **Bekräfta erbjuds inte längre.** Inte i incidentens rubrik, inte i mobilappen (dess knapp och dess svepning), inte i Slack eller Microsoft Teams och inte via `acknowledge_incident` på OneUptime MCP-servern. Att bekräfta den ändå — från en larmsida, Slack eller Teams — avvisas med "Incident is already acknowledged." (eller "Incident is already resolved."), i stället för att flytta den uppåt i listan igen.
 - **Jouren slutar larma för den.** En jourhavande som bekräftar sitt larm efter att en kollega har bekräftat incidenten, eller flyttat den vidare, får sitt larm bekräftat, och incidenten stannar där den är.
 - **SLA:n markeras som besvarad** vid den första sådana flytten; att gå vidare genom senare tillstånd behåller den tidpunkten.
-- **Tiden till bekräftelse löper till den första flytten** — nyckeltalsrutan på incidentens **Översikt**, måttet **Time to Acknowledge**, en mätning som slutar när **Incidenten bekräftas**, och MTTA i sammanfattningarna i Slack och Microsoft Teams. En incident som gick direkt från **Identifierade** till **Investigating** bekräftades då; en som löstes direkt bekräftades när den löstes.
+- **Tiden till bekräftelse löper till den första flytten** — nyckeltalsrutan på incidentens **Översikt**, måttet **Time to Acknowledge**, en mätning som slutar när **Incidenten bekräftas**, och MTTA i sammanfattningarna i Slack och Microsoft Teams. En incident som gick direkt från **Identifierad** till **Investigating** bekräftades då; en som löstes direkt bekräftades när den löstes.
 - **Ett filter Bekräftad** — på en instrumentpanels widget med en incidentlista till exempel — visar incidenterna i ditt bekräftade tillstånd och i varje senare tillstånd, fram till löst.
 
 Larm och episoder följer samma regel, med dina larmtillstånd.

@@ -75,7 +75,7 @@ Você precisa de permissão para criar regras de taxa de consumo de SLO.
 :::steps
 ### Abrir Burn Rate Rules
 
-Abra o SLO, vá para **Regras de taxa de consumo** na seção **Regras** do menu lateral e clique em **Criar: SLO Burn Rate Rule**, ou edite uma das regras padrão.
+Abra o SLO, vá para **Regras de taxa de consumo** na seção **Regras** do menu lateral e clique em **Criar: Regra de taxa de consumo do SLO**, ou edite uma das regras padrão.
 
 ### Dar um nome à regra
 
@@ -91,7 +91,7 @@ Em **O que declara**, responda **Quando dispara**: **Criar um alerta**, o padrã
 
 ### Descrever o alerta e o incidente
 
-As etapas **Alerta** e **Incidente** aparecem só para o que a regra declara. Cada uma tem um título e uma severidade, e seções recolhidas: **Descrição**, **Propriedade e rótulos**, **Plantão** e **Mais campos**, que guarda a resolução automática, a privacidade e as notas de correção. Regras novas começam com o título e a descrição padrão, prontos para editar. Clique em **Criar: SLO Burn Rate Rule** na última etapa.
+As etapas **Alerta** e **Incidente** aparecem só para o que a regra declara. Cada uma tem um título e uma severidade, e seções recolhidas: **Descrição**, **Propriedade e rótulos**, **Plantão** e **Mais campos**, que guarda a resolução automática, a privacidade e as notas de correção. Regras novas começam com o título e a descrição padrão, prontos para editar. Clique em **Criar: Regra de taxa de consumo do SLO** na última etapa.
 :::
 
 O OneUptime confere os números de uma regra quando você a salva:

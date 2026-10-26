@@ -44,7 +44,7 @@ Varje nytt projekt börjar med tre larmtillstånd, i den här ordningen:
 
 | Tillstånd        | `order` | Flagga                | Färg      | Vad det betyder                                 |
 | ---------------- | ------- | --------------------- | --------- | ----------------------------------------------- |
-| **Identifierade**   | `1`     | `isCreatedState`      | `#fd625e` | Tillståndet som nya larm börjar i.              |
+| **Identifierad**   | `1`     | `isCreatedState`      | `#fd625e` | Tillståndet som nya larm börjar i.              |
 | **Bekräftad**    | `2`     | `isAcknowledgedState` | `#ffbf53` | Någon tar hand om det, och larmningen upphör.   |
 | **Löst**         | `3`     | `isResolvedState`     | `#2ab57d` | Larmet är över och räknas inte längre som aktivt. |
 

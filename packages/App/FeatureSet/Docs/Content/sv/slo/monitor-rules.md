@@ -57,7 +57,7 @@ En monitorregel beskriver de monitorer som ett SLO ska mäta, som ”varje monit
 :::steps
 ### Öppna Monitor Rules
 
-Öppna SLO:et, gå till **Monitorregler** och klicka på **Skapa SLO Monitor Rule**.
+Öppna SLO:et, gå till **Monitorregler** och klicka på **Skapa SLO-monitorregel**.
 
 ### Ge regeln ett namn
 
@@ -69,7 +69,7 @@ Under **Matchningskriterier** klickar du på **Lägg till villkor**, väljer ett
 
 ### Spara regeln
 
-Klicka på **Skapa SLO Monitor Rule**. Regeln börjar aktiverad och SLO:ets monitorer bedöms om direkt: varje monitor som matchar kopplas med källan **Regel**.
+Klicka på **Skapa SLO-monitorregel**. Regeln börjar aktiverad och SLO:ets monitorer bedöms om direkt: varje monitor som matchar kopplas med källan **Regel**.
 :::
 
 Regeltabellen visar för varje regel namnet, matchningskriterierna i klartext och om den är aktiverad. För att pausa en regel stänger du av **Aktiverad** i dess redigeringsformulär. **Visa monitorer** öppnar SLO:ets sida **Monitorer**.

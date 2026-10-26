@@ -75,7 +75,7 @@ Ti serve il permesso di creare regole del tasso di consumo degli SLO.
 :::steps
 ### Aprire Burn Rate Rules
 
-Apri lo SLO, vai a **Regole di tasso di consumo** nella sezione **Regole** del suo menu laterale e fai clic su **Crea: SLO Burn Rate Rule**, oppure modifica una delle regole predefinite.
+Apri lo SLO, vai a **Regole di tasso di consumo** nella sezione **Regole** del suo menu laterale e fai clic su **Crea: Regola di tasso di consumo dello SLO**, oppure modifica una delle regole predefinite.
 
 ### Dare un nome alla regola
 
@@ -91,7 +91,7 @@ In **Cosa dichiara**, rispondi a **Quando scatta**: **Crea un avviso**, la scelt
 
 ### Descrivere l'avviso e l'incidente
 
-I passi **Avviso** e **Incidente** compaiono solo per ciò che la regola dichiara. Ognuno ha un titolo e una gravità, e sezioni chiuse: **Descrizione**, **Proprietà ed etichette**, **Reperibilità** e **Altri campi**, che contiene risoluzione automatica, privacy e note di correzione. Le nuove regole partono con il titolo e la descrizione predefiniti, pronti da modificare. Fai clic su **Crea: SLO Burn Rate Rule** nell'ultimo passo.
+I passi **Avviso** e **Incidente** compaiono solo per ciò che la regola dichiara. Ognuno ha un titolo e una gravità, e sezioni chiuse: **Descrizione**, **Proprietà ed etichette**, **Reperibilità** e **Altri campi**, che contiene risoluzione automatica, privacy e note di correzione. Le nuove regole partono con il titolo e la descrizione predefiniti, pronti da modificare. Fai clic su **Crea: Regola di tasso di consumo dello SLO** nell'ultimo passo.
 :::
 
 OneUptime controlla i numeri di una regola quando la salvi:

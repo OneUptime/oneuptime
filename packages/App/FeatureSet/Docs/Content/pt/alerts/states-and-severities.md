@@ -44,7 +44,7 @@ Todo projeto novo começa com três estados de alerta, nesta ordem:
 
 | Estado           | `order` | Sinalizador           | Cor       | O que significa                                   |
 | ---------------- | ------- | --------------------- | --------- | ------------------------------------------------- |
-| **Identificadas**   | `1`     | `isCreatedState`      | `#fd625e` | O estado em que os novos alertas começam.         |
+| **Identificado**   | `1`     | `isCreatedState`      | `#fd625e` | O estado em que os novos alertas começam.         |
 | **Confirmado**   | `2`     | `isAcknowledgedState` | `#ffbf53` | Alguém está cuidando, e os acionamentos param.    |
 | **Resolvido**    | `3`     | `isResolvedState`     | `#2ab57d` | O alerta terminou e não conta mais como ativo.    |
 

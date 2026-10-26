@@ -34,7 +34,7 @@ Båda registrerar ett problem, och båda kan larma den som har jour. Skillnaden 
 | **Vad det är**               | Ett problem som ditt team bör undersöka innan användarna drabbas | Ett problem som drabbar dina användare, till exempel ett avbrott |
 | **På statussidor**           | Aldrig                                                 | Kan visas och meddelar prenumeranter              |
 | **Anteckningar**             | Privata anteckningar, bara för ditt team               | Offentliga anteckningar för kunder och privata anteckningar |
-| **Starttillstånd**           | **Identifierade**, **Bekräftad**, **Löst**                | **Identifierade**, **Bekräftad**, **Löst**           |
+| **Starttillstånd**           | **Identifierad**, **Bekräftad**, **Löst**                | **Identifierad**, **Bekräftad**, **Löst**           |
 | **Startallvarlighetsgrader** | **Hög**, **Låg**                                      | Critical Incident, Major Incident, Minor Incident |
 | **Nummer i ett nytt projekt** | `ALT-42` och `AE-42` för episoder                     | `INC-42` och `IE-42` för episoder                 |
 
@@ -88,7 +88,7 @@ Klicka på **Nästa** för att komma till **Resurser och jour**. Välj den **Öv
 Klicka på **Nästa** för att granska sammanfattningen och sedan på **Skapa larm**. Larmets egen sida öppnas, och reglerna börjar köras. I sammanfattningen nämner raden **Ägare** varje ägarregel som kommer att lägga till någon, och vem: se [Vem som äger den](/docs/incidents/declaring-incidents#vem-som-äger-den).
 :::
 
-Lämnar du **Inledande tillstånd** tomt börjar larmet där alla nya larm börjar: i ditt skapandetillstånd, **Identifierade** i ett nytt projekt. Väljer du ett senare tillstånd registrerar du ett larm som någon redan hanterar, eller som redan är över; se [Skapat redan bekräftat eller löst](#skapat-redan-bekräftat-eller-löst).
+Lämnar du **Inledande tillstånd** tomt börjar larmet där alla nya larm börjar: i ditt skapandetillstånd, **Identifierad** i ett nytt projekt. Väljer du ett senare tillstånd registrerar du ett larm som någon redan hanterar, eller som redan är över; se [Skapat redan bekräftat eller löst](#skapat-redan-bekräftat-eller-löst).
 
 ## Vad som händer när ett larm skapas
 

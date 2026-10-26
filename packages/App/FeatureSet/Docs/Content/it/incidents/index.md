@@ -15,7 +15,7 @@ Un incidente è il documento su cui lavora il vostro team quando qualcosa si rom
 ## In breve
 
 - **Un prodotto a sé** — aprite **Incidenti** dal menu **Prodotti** nella barra superiore; l'elenco si trova in `/dashboard/{projectId}/incidents`.
-- **Tre stati predefiniti** — **Identificate**, **Riconosciuto** e **Risolto** vengono creati per ogni nuovo progetto. Potete aggiungere i vostri; i tre predefiniti si possono rinominare e ricolorare, ma mai eliminare.
+- **Tre stati predefiniti** — **Identificato**, **Riconosciuto** e **Risolto** vengono creati per ogni nuovo progetto. Potete aggiungere i vostri; i tre predefiniti si possono rinominare e ricolorare, ma mai eliminare.
 - **Tre gravità predefinite** — **Critical Incident**, **Major Incident** e **Minor Incident**. Una gravità è un'etichetta con un colore e un ordine: non ha alcun comportamento proprio.
 - **Cinque vie d'accesso** — la procedura guidata **Dichiara incidente**, **Crea da modello**, una regola dei criteri di un monitor, `POST /api/incident`, oppure un [modulo](/docs/forms/index) che chiunque abbia il link può compilare.
 - **Numerati per progetto** — ogni incidente riceve un numero di incidente da un contatore del progetto, mostrato con il prefisso del vostro progetto: `INC-42` in un nuovo progetto, oppure `#42` senza prefisso.
@@ -117,7 +117,7 @@ stateDiagram-v2
 
 | Stato              | Ordine | Colore              | Che cosa significa                                                        |
 | ------------------ | ------ | ------------------- | ------------------------------------------------------------------------- |
-| **Identificate**     | 1      | Rosso (`#fd625e`)   | Lo stato in cui finisce un incidente appena creato. È lo stato di creazione. |
+| **Identificato**     | 1      | Rosso (`#fd625e`)   | Lo stato in cui finisce un incidente appena creato. È lo stato di creazione. |
 | **Riconosciuto**   | 2      | Giallo (`#ffbf53`)  | Qualcuno ha preso in carico l'incidente e ci sta lavorando.              |
 | **Risolto**        | 3      | Verde (`#2ab57d`)   | L'incidente è finito. È la risoluzione a toglierlo dalla vostra pagina di stato. |
 
@@ -130,7 +130,7 @@ Questa distinzione conta più di quanto sembri:
 - **Incidenti attivi** è definito unicamente come «lo stato attuale si trova sopra lo stato risolto». Uno stato personalizzato che aggiungete sopra lo stato risolto è quindi attivo; uno che mettete dopo conta come risolto, come lo stato risolto stesso.
 
 > [!NOTE]
-> Il primo stato predefinito si chiama **Identificate**, anche se diverse descrizioni nel prodotto lo chiamano ancora stato di creazione («created»). Se cercate «Created» nell'elenco degli stati del vostro progetto, è la riga chiamata **Identificate**.
+> Il primo stato predefinito si chiama **Identificato**, anche se diverse descrizioni nel prodotto lo chiamano ancora stato di creazione («created»). Se cercate «Created» nell'elenco degli stati del vostro progetto, è la riga chiamata **Identificato**.
 
 Potete aggiungere i vostri stati in **Incidenti → Impostazioni → Stato incidente**. Un nuovo stato viene aggiunto appena sopra lo stato risolto, e riordinate le righe trascinandole; la colonna **Conta come** mostra come conta un incidente in ciascuno stato — non riconosciuto, riconosciuto o risolto. I tre stati contrassegnati portano l'etichetta **Integrato**: mantengono il loro ordine e non possono essere eliminati, ma potete rinominarli, ricolorarli e spostarli, ed è per questo che l'interfaccia legge i nomi degli stati in modo dinamico.
 

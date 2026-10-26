@@ -75,7 +75,7 @@ U hebt toestemming nodig om SLO-regels voor verbruikssnelheid aan te maken.
 :::steps
 ### Burn Rate Rules openen
 
-Open de SLO, ga naar **Verbruikssnelheidsregels** in de sectie **Regels** van het zijmenu en klik op **SLO Burn Rate Rule aanmaken**, of bewerk een van de standaardregels.
+Open de SLO, ga naar **Verbruikssnelheidsregels** in de sectie **Regels** van het zijmenu en klik op **SLO-verbruikssnelheidsregel aanmaken**, of bewerk een van de standaardregels.
 
 ### De regel een naam geven
 
@@ -91,7 +91,7 @@ Beantwoord onder **Wat het meldt** de vraag **Wanneer hij afgaat**: **Een waarsc
 
 ### De waarschuwing en het incident beschrijven
 
-De stappen **Waarschuwing** en **Incident** verschijnen alleen voor wat de regel meldt. Elk heeft een titel en een ernst, en ingeklapte secties: **Beschrijving**, **Eigendom & labels**, **Bereikbaarheid** en **Meer velden**, met automatisch oplossen, privacy en herstelnotities. Nieuwe regels beginnen met de standaardtitel en -beschrijving, klaar om te bewerken. Klik in de laatste stap op **SLO Burn Rate Rule aanmaken**.
+De stappen **Waarschuwing** en **Incident** verschijnen alleen voor wat de regel meldt. Elk heeft een titel en een ernst, en ingeklapte secties: **Beschrijving**, **Eigendom & labels**, **Bereikbaarheid** en **Meer velden**, met automatisch oplossen, privacy en herstelnotities. Nieuwe regels beginnen met de standaardtitel en -beschrijving, klaar om te bewerken. Klik in de laatste stap op **SLO-verbruikssnelheidsregel aanmaken**.
 :::
 
 OneUptime controleert de getallen van een regel als u hem opslaat:

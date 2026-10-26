@@ -1,7 +1,7 @@
 {
   "baseline": {
     "keys": 35139,
-    "untranslated": 13586
+    "untranslated": 13578
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -84,7 +84,6 @@
     "Hosts",
     "ICMP (ping)",
     "Images",
-    "In",
     "In quorum",
     "Incident",
     "Incident {{number}}",
@@ -285,6 +284,8 @@
     "{{count}} samples",
     "{{count}} team",
     "{{count}} teams",
+    "{{count}} trigger",
+    "{{count}} triggers",
     "{{count}} week",
     "{{delta}} pp",
     "{{field}} is {{value}}",

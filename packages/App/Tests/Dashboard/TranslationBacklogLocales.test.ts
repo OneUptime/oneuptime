@@ -39,7 +39,7 @@ import { SLO_MULTI_MONITOR_MODE_NAMES } from "../../FeatureSet/Dashboard/src/Pag
  *   - the built-in roles have names of their own in every language, one per
  *     role, and the word-for-word "Incidente Membro" kind is gone;
  *   - Swedish says larm for an alert everywhere, German Gemeldet for
- *     Declared, Japanese 却下 for Dismiss;
+ *     Declared, Japanese 非表示 (Hide) for Dismiss;
  *   - the variable sources and the permission sentences read in the
  *     reader's language;
  *   - the keys no code used any more are gone.
@@ -740,8 +740,12 @@ describe("German says Gemeldet for Declared", () => {
 });
 
 describe("Japanese Dismiss", () => {
-  test("reads 却下, to set something aside, never 閉じる (Close)", () => {
-    expect(valueOf("ja", "Dismiss")).toBe("却下");
+  /*
+   * 非表示 (Hide): it sets a suggestion aside and closes an error banner.
+   * 却下 (Reject) read wrong on the banners (TranslatedLabelsReadRight).
+   */
+  test("reads 非表示, to put something away, never 閉じる (Close)", () => {
+    expect(valueOf("ja", "Dismiss")).toBe("非表示");
     expect(valueOf("ja", "Dismiss")).not.toBe(valueOf("ja", "Close"));
   });
 });

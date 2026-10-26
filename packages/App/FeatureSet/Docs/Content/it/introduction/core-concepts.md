@@ -57,7 +57,7 @@ Entrambi registrano un problema, ed entrambi possono avvisare chi è reperibile.
 | --- | --- | --- |
 | **Cos'è** | Un problema che riguarda i tuoi utenti, come un'interruzione o un rallentamento | Un problema che il tuo team deve esaminare prima che gli utenti ne risentano |
 | **Sulle pagine di stato** | Può comparire, e avvisa gli iscritti | Mai |
-| **Stati iniziali** | **Identificate**, **Riconosciuto**, **Risolto** | **Identificate**, **Riconosciuto**, **Risolto** |
+| **Stati iniziali** | **Identificato**, **Riconosciuto**, **Risolto** | **Identificato**, **Riconosciuto**, **Risolto** |
 | **Gravità iniziali** | Critical Incident, Major Incident, Minor Incident | **Alto**, **Basso** |
 
 Riconoscerlo dice che qualcuno se ne sta occupando, e impedisce alle sue policy di reperibilità di avvisare il livello successivo. Risolverlo lo chiude. Puoi aggiungere stati e gravità tuoi, e collegare gli avvisi all'incidente di cui si sono rivelati parte.

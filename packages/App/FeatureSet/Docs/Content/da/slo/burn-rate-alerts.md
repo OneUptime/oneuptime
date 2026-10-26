@@ -75,7 +75,7 @@ Du skal have tilladelse til at oprette SLO-forbrugsrateregler.
 :::steps
 ### Åbn Burn Rate Rules
 
-Åbn SLO'et, gå til **Forbrugsrateregler** i sektionen **Regler** i dets sidemenu, og klik på **Opret SLO Burn Rate Rule**, eller redigér en af standardreglerne.
+Åbn SLO'et, gå til **Forbrugsrateregler** i sektionen **Regler** i dets sidemenu, og klik på **Opret SLO-forbrugsrateregel**, eller redigér en af standardreglerne.
 
 ### Giv reglen et navn
 
@@ -91,7 +91,7 @@ Under **Hvad den erklærer** svarer du på **Når den udløses**: **Opret en adv
 
 ### Beskriv advarslen og hændelsen
 
-Trinnene **Advarsel** og **Hændelse** vises kun for det, reglen erklærer. Hvert har en titel og en alvor og sammenfoldede sektioner: **Beskrivelse**, **Ejerskab og etiketter**, **Vagt** og **Flere felter**, der rummer automatisk løsning, privatliv og afhjælpningsnoter. Nye regler starter med standardtitlen og -beskrivelsen, klar til at blive redigeret. Klik på **Opret SLO Burn Rate Rule** i det sidste trin.
+Trinnene **Advarsel** og **Hændelse** vises kun for det, reglen erklærer. Hvert har en titel og en alvor og sammenfoldede sektioner: **Beskrivelse**, **Ejerskab og etiketter**, **Vagt** og **Flere felter**, der rummer automatisk løsning, privatliv og afhjælpningsnoter. Nye regler starter med standardtitlen og -beskrivelsen, klar til at blive redigeret. Klik på **Opret SLO-forbrugsrateregel** i det sidste trin.
 :::
 
 OneUptime tjekker en regels tal, når du gemmer den:

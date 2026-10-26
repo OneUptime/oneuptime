@@ -34,7 +34,7 @@ Entrambi registrano un problema, ed entrambi possono chiamare chi è reperibile.
 | **Che cos'è**                    | Un problema che il vostro team deve esaminare prima che gli utenti ne risentano | Un problema che colpisce i vostri utenti, come un disservizio |
 | **Sulle pagine di stato**        | Mai                                                    | Può comparire, e avvisa gli iscritti              |
 | **Note**                         | Note private, solo per il vostro team                  | Note pubbliche per i clienti, e note private      |
-| **Stati iniziali**               | **Identificate**, **Riconosciuto**, **Risolto**          | **Identificate**, **Riconosciuto**, **Risolto**     |
+| **Stati iniziali**               | **Identificato**, **Riconosciuto**, **Risolto**          | **Identificato**, **Riconosciuto**, **Risolto**     |
 | **Gravità iniziali**             | **Alto**, **Basso**                                      | Critical Incident, Major Incident, Minor Incident |
 | **Numeri in un nuovo progetto**  | `ALT-42`, e `AE-42` per gli episodi                    | `INC-42`, e `IE-42` per gli episodi               |
 
@@ -88,7 +88,7 @@ Fate clic su **Avanti** per arrivare a **Risorse e reperibilità**. Scegliete il
 Fate clic su **Avanti** per controllare il riepilogo, poi su **Crea avviso**. Si apre la pagina dell'avviso, e le regole iniziano a girare. Nel riepilogo, la riga **Proprietari** elenca ogni regola del proprietario che aggiungerà qualcuno, e chi: vedete [Chi ne sarà proprietario](/docs/incidents/declaring-incidents#chi-ne-sarà-proprietario).
 :::
 
-Lasciate vuoto **Stato iniziale** e l'avviso parte da dove parte ogni nuovo avviso: dal vostro stato di creazione, **Identificate** in un nuovo progetto. Scegliere uno stato successivo registra un avviso di cui qualcuno si sta già occupando, o che è già concluso; vedere [Creato già riconosciuto o risolto](#creato-già-riconosciuto-o-risolto).
+Lasciate vuoto **Stato iniziale** e l'avviso parte da dove parte ogni nuovo avviso: dal vostro stato di creazione, **Identificato** in un nuovo progetto. Scegliere uno stato successivo registra un avviso di cui qualcuno si sta già occupando, o che è già concluso; vedere [Creato già riconosciuto o risolto](#creato-già-riconosciuto-o-risolto).
 
 ## Che cosa succede quando viene creato un avviso
 

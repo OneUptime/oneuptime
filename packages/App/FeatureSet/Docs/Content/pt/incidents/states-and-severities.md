@@ -54,12 +54,12 @@ Três estados são criados com o projeto, nesta ordem. A criação é idempotent
 
 | Estado            | `order` | Indicador             | Cor       | O que significa                                    |
 | ----------------- | ------- | --------------------- | --------- | -------------------------------------------------- |
-| **Identificadas**    | `1`     | `isCreatedState`      | `#fd625e` | O estado em que os novos incidentes caem.          |
+| **Identificado**    | `1`     | `isCreatedState`      | `#fd625e` | O estado em que os novos incidentes caem.          |
 | **Confirmado**    | `2`     | `isAcknowledgedState` | `#ffbf53` | Alguém assumiu o incidente.                        |
 | **Resolvido**     | `3`     | `isResolvedState`     | `#2ab57d` | O incidente acabou e deixa de contar como ativo.   |
 
 > [!NOTE]
-> O primeiro estado se chama **Identificadas**, embora várias descrições dentro do produto ainda o chamem de estado «created». Quando uma documentação ou uma dica diz «estado de criação», ela se refere ao estado que tem `isCreatedState` — em um projeto novo, é **Identificadas**.
+> O primeiro estado se chama **Identificado**, embora várias descrições dentro do produto ainda o chamem de estado «created». Quando uma documentação ou uma dica diz «estado de criação», ela se refere ao estado que tem `isCreatedState` — em um projeto novo, é **Identificado**.
 
 ## O que cada indicador de estado realmente faz
 
@@ -188,7 +188,7 @@ Um incidente está confirmado a partir do momento em que passa para o seu estado
 - **Confirmar não é mais oferecido.** Nem no cabeçalho do incidente, nem no aplicativo móvel (o botão e o gesto de deslizar), nem no Slack ou no Microsoft Teams, nem pelo `acknowledge_incident` do servidor MCP do OneUptime. Confirmá-lo mesmo assim — a partir de um acionamento de plantão, do Slack ou do Teams — é recusado com «Incident is already acknowledged.» (ou «Incident is already resolved.»), em vez de fazê-lo voltar na lista.
 - **O plantão para de acionar por ele.** Um respondedor que confirma seu acionamento depois que um colega confirmou o incidente, ou o fez avançar, tem seu acionamento confirmado e o incidente fica onde está.
 - **O SLA é marcado como respondido**, no primeiro movimento desse tipo; avançar depois por estados posteriores mantém esse horário.
-- **O tempo até a confirmação corre até esse primeiro movimento** — o bloco de estatística da **Visão geral** do incidente, a métrica **Time to Acknowledge**, uma medição que termina quando **O incidente é confirmado**, e o MTTA nos resumos do Slack e do Microsoft Teams. Um incidente movido direto de **Identificadas** para **Investigating** foi confirmado naquele momento; um resolvido logo de cara foi confirmado quando foi resolvido.
+- **O tempo até a confirmação corre até esse primeiro movimento** — o bloco de estatística da **Visão geral** do incidente, a métrica **Time to Acknowledge**, uma medição que termina quando **O incidente é confirmado**, e o MTTA nos resumos do Slack e do Microsoft Teams. Um incidente movido direto de **Identificado** para **Investigating** foi confirmado naquele momento; um resolvido logo de cara foi confirmado quando foi resolvido.
 - **Um filtro Confirmado** — no widget de lista de incidentes de um painel, por exemplo — mostra os incidentes no seu estado confirmado e em qualquer estado posterior, antes da resolução.
 
 Alertas e episódios seguem a mesma regra, com seus estados de alerta.

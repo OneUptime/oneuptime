@@ -57,7 +57,7 @@ En monitorregel beskriver monitorene et SLO skal måle, som «hver monitor med e
 :::steps
 ### Åpne Monitor Rules
 
-Åpne SLO-et, gå til **Monitorregler** og klikk på **Opprett SLO Monitor Rule**.
+Åpne SLO-et, gå til **Monitorregler** og klikk på **Opprett SLO-monitorregel**.
 
 ### Gi regelen et navn
 
@@ -69,7 +69,7 @@ Under **Treffkriterier** klikker du på **Legg til betingelse**, velger et felt 
 
 ### Lagre regelen
 
-Klikk på **Opprett SLO Monitor Rule**. Regelen starter aktivert, og monitorene til SLO-et vurderes på nytt med en gang: hver monitor som samsvarer, knyttes til med kilden **Regel**.
+Klikk på **Opprett SLO-monitorregel**. Regelen starter aktivert, og monitorene til SLO-et vurderes på nytt med en gang: hver monitor som samsvarer, knyttes til med kilden **Regel**.
 :::
 
 Regeltabellen viser for hver regel navnet, treffkriteriene med vanlige ord og om den er aktivert. For å sette en regel på pause slår du av **Aktivert** i redigeringsskjemaet. **Vis monitorer** åpner siden **Monitorer** til SLO-et.

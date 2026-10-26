@@ -1,7 +1,7 @@
 {
   "baseline": {
     "keys": 35139,
-    "untranslated": 13539
+    "untranslated": 13531
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -176,7 +176,7 @@
     "{{count}} host",
     "{{count}} repository",
     "{{count}} team",
-    "{{minutes}} min",
-    "{{stateName}} in"
+    "{{count}} trigger",
+    "{{minutes}} min"
   ]
 }

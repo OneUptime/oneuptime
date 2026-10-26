@@ -57,7 +57,7 @@ Una regola dei monitor descrive i monitor che uno SLO deve misurare, come «ogni
 :::steps
 ### Aprire Monitor Rules
 
-Apri lo SLO, vai a **Regole dei monitor** e fai clic su **Crea: SLO Monitor Rule**.
+Apri lo SLO, vai a **Regole dei monitor** e fai clic su **Crea: Regola dei monitor dello SLO**.
 
 ### Dare un nome alla regola
 
@@ -69,7 +69,7 @@ In **Criteri di corrispondenza**, fai clic su **Aggiungi condizione**, scegli un
 
 ### Salvare la regola
 
-Fai clic su **Crea: SLO Monitor Rule**. La regola parte abilitata e i monitor dello SLO vengono rivalutati subito: ogni monitor che corrisponde viene collegato con l'origine **Regola**.
+Fai clic su **Crea: Regola dei monitor dello SLO**. La regola parte abilitata e i monitor dello SLO vengono rivalutati subito: ogni monitor che corrisponde viene collegato con l'origine **Regola**.
 :::
 
 La tabella delle regole mostra per ogni regola il nome, i criteri di corrispondenza a parole e se è abilitata. Per mettere in pausa una regola, disattiva **Abilitato** nel suo modulo di modifica. **Visualizza i monitor** apre la pagina **Monitor** dello SLO.

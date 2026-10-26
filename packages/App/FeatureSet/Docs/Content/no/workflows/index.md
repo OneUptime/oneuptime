@@ -122,7 +122,7 @@ Den nye arbeidsflyten åpnes i **Bygger**, slått av.
 
 ### Legg til triggeren
 
-Klikk på den stiplede blokken **Velg hva som starter denne arbeidsflyten**, og klikk deretter på **On Create Incident** under **Populære** i panelet **Legg til trigger**.
+Klikk på den stiplede blokken **Velg hva som starter denne arbeidsflyten**, og klikk deretter på **On Create Incident** under **Populære** i panelet **Legg til utløser**.
 
 Triggeren tar plassen til den stiplede blokken. ID-en på den, `incident-on-create-1`, er det senere blokker viser til den med.
 

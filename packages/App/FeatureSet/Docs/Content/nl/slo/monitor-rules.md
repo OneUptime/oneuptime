@@ -57,7 +57,7 @@ Een monitorregel beschrijft de monitoren die een SLO moet meten, zoals "elke mon
 :::steps
 ### Monitor Rules openen
 
-Open de SLO, ga naar **Monitorregels** en klik op **SLO Monitor Rule aanmaken**.
+Open de SLO, ga naar **Monitorregels** en klik op **SLO-monitorregel aanmaken**.
 
 ### De regel een naam geven
 
@@ -69,7 +69,7 @@ Klik onder **Overeenkomstcriteria** op **Voorwaarde toevoegen**, kies een veld e
 
 ### De regel opslaan
 
-Klik op **SLO Monitor Rule aanmaken**. De regel begint ingeschakeld en de monitoren van de SLO worden meteen opnieuw beoordeeld: elke overeenkomende monitor wordt gekoppeld met de bron **Regel**.
+Klik op **SLO-monitorregel aanmaken**. De regel begint ingeschakeld en de monitoren van de SLO worden meteen opnieuw beoordeeld: elke overeenkomende monitor wordt gekoppeld met de bron **Regel**.
 :::
 
 De regeltabel toont voor elke regel de naam, de overeenkomstcriteria in gewone taal en of hij is ingeschakeld. Om een regel te pauzeren, zet u **Ingeschakeld** uit in zijn bewerkformulier. **Monitoren bekijken** opent de pagina **Monitoren** van de SLO.

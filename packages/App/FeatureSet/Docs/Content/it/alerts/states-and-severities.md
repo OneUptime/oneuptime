@@ -44,7 +44,7 @@ Ogni nuovo progetto parte con tre stati di avviso, in quest'ordine:
 
 | Stato            | `order` | Flag                  | Colore    | Che cosa significa                                |
 | ---------------- | ------- | --------------------- | --------- | ------------------------------------------------- |
-| **Identificate**   | `1`     | `isCreatedState`      | `#fd625e` | Lo stato in cui partono i nuovi avvisi.           |
+| **Identificato**   | `1`     | `isCreatedState`      | `#fd625e` | Lo stato in cui partono i nuovi avvisi.           |
 | **Riconosciuto** | `2`     | `isAcknowledgedState` | `#ffbf53` | Qualcuno se ne sta occupando, e le chiamate si fermano. |
 | **Risolto**      | `3`     | `isResolvedState`     | `#2ab57d` | L'avviso è concluso e non conta più come attivo.  |
 

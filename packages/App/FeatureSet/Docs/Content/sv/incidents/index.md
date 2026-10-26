@@ -15,7 +15,7 @@ En incident är posten ditt team arbetar utifrån när något går sönder: vad 
 ## I korthet
 
 - **En egen produkt** — öppna **Incidenter** från menyn **Produkter** i toppfältet; listan finns på `/dashboard/{projectId}/incidents`.
-- **Tre förskapade tillstånd** — **Identifierade**, **Bekräftad** och **Löst** skapas för varje nytt projekt. Du kan lägga till egna; de tre förskapade kan byta namn och färg men aldrig tas bort.
+- **Tre förskapade tillstånd** — **Identifierad**, **Bekräftad** och **Löst** skapas för varje nytt projekt. Du kan lägga till egna; de tre förskapade kan byta namn och färg men aldrig tas bort.
 - **Tre förskapade allvarlighetsgrader** — **Critical Incident**, **Major Incident** och **Minor Incident**. En allvarlighetsgrad är en etikett med en färg och en ordning — den har inget eget beteende.
 - **Fem vägar in** — guiden **Deklarera incident**, **Skapa från mall**, en kriterieregel på en monitor, `POST /api/incident` eller ett [formulär](/docs/forms/index) som alla med länken kan fylla i.
 - **Numrerade per projekt** — varje incident får ett incidentnummer från en räknare per projekt, som visas med projektets prefix: `INC-42` i ett nytt projekt, eller `#42` utan prefix.
@@ -117,7 +117,7 @@ stateDiagram-v2
 
 | Tillstånd        | Ordning | Färg               | Vad det betyder                                                           |
 | ---------------- | ------- | ------------------ | ------------------------------------------------------------------------- |
-| **Identifierade**   | 1       | Röd (`#fd625e`)    | Tillståndet en helt ny incident hamnar i. Det här är skapandetillståndet. |
+| **Identifierad**   | 1       | Röd (`#fd625e`)    | Tillståndet en helt ny incident hamnar i. Det här är skapandetillståndet. |
 | **Bekräftad**    | 2       | Gul (`#ffbf53`)    | Någon har tagit incidenten och arbetar med den.                           |
 | **Löst**         | 3       | Grön (`#2ab57d`)   | Incidenten är över. Det är lösningen som tar bort den från din statussida. |
 
@@ -130,7 +130,7 @@ Den skillnaden betyder mer än det låter:
 - **Aktiva incidenter** definieras enbart som "det aktuella tillståndet står ovanför det lösta tillståndet". Ett eget tillstånd som du lägger till ovanför det lösta tillståndet är därför aktivt; ett som du placerar efter det räknas som löst, precis som det lösta tillståndet självt.
 
 > [!NOTE]
-> Det första förskapade tillståndet heter **Identifierade**, även om flera beskrivningar i produkten fortfarande kallar det skapandetillståndet ("created"). Letar du efter "Created" i projektets lista över tillstånd är det raden som heter **Identifierade**.
+> Det första förskapade tillståndet heter **Identifierad**, även om flera beskrivningar i produkten fortfarande kallar det skapandetillståndet ("created"). Letar du efter "Created" i projektets lista över tillstånd är det raden som heter **Identifierad**.
 
 Du kan lägga till egna tillstånd under **Incidenter → Inställningar → Incidentstatus**. Ett nytt tillstånd läggs till precis ovanför det lösta tillståndet, och du drar raderna för att ändra ordningen; kolumnen **Räknas som** visar vad en incident i varje tillstånd räknas som — inte bekräftad, bekräftad eller löst. De tre tillstånden med flaggor har märket **Inbyggd**: de behåller sin ordning och kan inte tas bort, men du kan byta namn och färg på dem och flytta dem, och därför läser gränssnittet tillståndsnamn dynamiskt.
 

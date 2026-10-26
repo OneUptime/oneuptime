@@ -57,7 +57,7 @@ Båda registrerar ett problem, och båda kan larma den som har jour. Skillnaden 
 | --- | --- | --- |
 | **Vad det är** | Ett problem som drabbar dina användare, till exempel ett avbrott eller en fördröjning | Ett problem som ditt team bör titta på innan användarna drabbas |
 | **På statussidor** | Kan visas, och meddelar prenumeranter | Aldrig |
-| **Startstatusar** | **Identifierade**, **Bekräftad**, **Löst** | **Identifierade**, **Bekräftad**, **Löst** |
+| **Startstatusar** | **Identifierad**, **Bekräftad**, **Löst** | **Identifierad**, **Bekräftad**, **Löst** |
 | **Startallvarlighetsgrader** | Critical Incident, Major Incident, Minor Incident | **Hög**, **Låg** |
 
 Att bekräfta en säger att någon tar hand om den, och hindrar dess jourpolicyer från att larma nästa nivå. Att lösa den stänger den. Du kan lägga till egna statusar och allvarlighetsgrader, och koppla larm till incidenten som de visade sig höra till.

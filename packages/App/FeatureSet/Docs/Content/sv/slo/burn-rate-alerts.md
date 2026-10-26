@@ -75,7 +75,7 @@ Du behöver behörighet att skapa SLO-regler för förbrukningstakt.
 :::steps
 ### Öppna Burn Rate Rules
 
-Öppna SLO:et, gå till **Förbrukningstaktsregler** i sektionen **Regler** i dess sidomeny och klicka på **Skapa SLO Burn Rate Rule**, eller redigera en av standardreglerna.
+Öppna SLO:et, gå till **Förbrukningstaktsregler** i sektionen **Regler** i dess sidomeny och klicka på **Skapa SLO-förbrukningstaktsregel**, eller redigera en av standardreglerna.
 
 ### Ge regeln ett namn
 
@@ -91,7 +91,7 @@ Under **Vad den deklarerar** svarar du på **När den utlöses**: **Skapa ett la
 
 ### Beskriv larmet och incidenten
 
-Stegen **Larm** och **Incident** visas bara för det som regeln deklarerar. Var och en har en rubrik och en allvarlighetsgrad, och hopfällda avsnitt: **Beskrivning**, **Ägarskap och etiketter**, **Jour** och **Fler fält**, som innehåller automatisk lösning, sekretess och åtgärdsanteckningar. Nya regler börjar med standardrubriken och -beskrivningen, redo att redigeras. Klicka på **Skapa SLO Burn Rate Rule** i det sista steget.
+Stegen **Larm** och **Incident** visas bara för det som regeln deklarerar. Var och en har en rubrik och en allvarlighetsgrad, och hopfällda avsnitt: **Beskrivning**, **Ägarskap och etiketter**, **Jour** och **Fler fält**, som innehåller automatisk lösning, sekretess och åtgärdsanteckningar. Nya regler börjar med standardrubriken och -beskrivningen, redo att redigeras. Klicka på **Skapa SLO-förbrukningstaktsregel** i det sista steget.
 :::
 
 OneUptime kontrollerar en regels siffror när du sparar den:

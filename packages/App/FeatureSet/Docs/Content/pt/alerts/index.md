@@ -34,7 +34,7 @@ Ambos registram um problema, e ambos podem acionar quem está de plantão. O que
 | **O que é**                      | Um problema que sua equipe deve examinar antes que os usuários sejam afetados | Um problema que afeta seus usuários, como uma queda |
 | **Em páginas de status**         | Nunca                                                  | Pode aparecer e avisa os assinantes               |
 | **Notas**                        | Notas privadas, só para sua equipe                     | Notas públicas para clientes e notas privadas     |
-| **Estados iniciais**             | **Identificadas**, **Confirmado**, **Resolvido**          | **Identificadas**, **Confirmado**, **Resolvido**     |
+| **Estados iniciais**             | **Identificado**, **Confirmado**, **Resolvido**          | **Identificado**, **Confirmado**, **Resolvido**     |
 | **Gravidades iniciais**          | **Alto**, **Baixo**                                      | Critical Incident, Major Incident, Minor Incident |
 | **Números em um projeto novo**   | `ALT-42`, e `AE-42` para episódios                     | `INC-42`, e `IE-42` para episódios                |
 
@@ -88,7 +88,7 @@ Clique em **Próximo** para chegar a **Recursos e plantão**. Escolha o **Monito
 Clique em **Próximo** para revisar o resumo e depois em **Criar alerta**. A página do alerta abre e as regras começam a ser executadas. No resumo, a linha **Proprietários** lista cada regra de proprietário que vai adicionar alguém, e quem: veja [Quem será o proprietário](/docs/incidents/declaring-incidents#quem-será-o-proprietário).
 :::
 
-Se você deixar **Estado Inicial** vazio, o alerta começa onde todo alerta novo começa: no seu estado de criação, **Identificadas** em um projeto novo. Escolher um estado posterior registra um alerta do qual alguém já está cuidando, ou que já terminou; veja [Criado já confirmado ou resolvido](#criado-já-confirmado-ou-resolvido).
+Se você deixar **Estado Inicial** vazio, o alerta começa onde todo alerta novo começa: no seu estado de criação, **Identificado** em um projeto novo. Escolher um estado posterior registra um alerta do qual alguém já está cuidando, ou que já terminou; veja [Criado já confirmado ou resolvido](#criado-já-confirmado-ou-resolvido).
 
 ## O que acontece quando um alerta é criado
 
