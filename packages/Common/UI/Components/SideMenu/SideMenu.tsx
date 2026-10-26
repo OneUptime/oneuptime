@@ -9,7 +9,8 @@ import React, {
   useEffect,
 } from "react";
 import PageTrailEndContext from "../Page/PageTrailEnd";
-import { revealCurrentSideMenuEntry } from "./SideMenuScroll";
+import { fitSideMenuCard, revealCurrentSideMenuEntry } from "./SideMenuScroll";
+import { getDrawnLanguage } from "./SideMenuEntryState";
 import Icon from "../Icon/Icon";
 import IconProp from "../../../Types/Icon/IconProp";
 import useComponentOutsideClick from "../../Types/UseComponentOutsideClick";
@@ -159,7 +160,7 @@ function withActiveSections(
 }
 
 const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
-  const { translateString } = useTranslateValue();
+  const { translateString, language } = useTranslateValue();
   // The Page's last breadcrumb, for a page none of the entries read here is for.
   const pageTrailEnd: Link | null = useContext(PageTrailEndContext);
   const [isMobile, setIsMobile] = useState<boolean>(false);
@@ -167,6 +168,9 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     useState<boolean>(false);
   // The lists that scroll: the desktop menu's, and the phone menu's when open.
   const desktopListRef: RefObject<HTMLElement> = useRef<HTMLElement>(null);
+  // The desktop menu's card, fitted to end above the window's bottom edge.
+  const desktopCardRef: RefObject<HTMLDivElement> =
+    useRef<HTMLDivElement>(null);
   const mobileListRef: RefObject<HTMLElement> = useRef<HTMLElement>(null);
   const mobileMenuId: string = `side-menu-${useId()}`;
   const currentPath: string = Navigation.getCurrentPath().toString();
@@ -419,6 +423,12 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     pageTrailEndTitle ||
     translateString("Navigation") ||
     "Navigation";
+  // The English the page's name was drawn from, to tell its language by.
+  const summaryPageEnglish: string | undefined = translatedItemTitle
+    ? activeItem.itemTitle
+    : pageTrailEnd
+      ? pageTrailEnd.recordName || pageTrailEnd.title
+      : "Navigation";
 
   /*
    * The lit entry, in sight inside the menu when a page opens (SideMenuScroll):
@@ -431,6 +441,8 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
 
     let frame: number = window.requestAnimationFrame(() => {
       frame = window.requestAnimationFrame(() => {
+        // The page above the menu may have changed: fit, then reveal.
+        fitSideMenuCard(desktopCardRef.current);
         revealCurrentSideMenuEntry(desktopListRef.current);
       });
     });
@@ -439,6 +451,37 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
       window.cancelAnimationFrame(frame);
     };
   }, [currentPath, isMobile]);
+
+  /*
+   * The desktop menu's card ends above the window's bottom edge wherever it
+   * is (SideMenuScroll.fitSideMenuCard): under the page's title on a page not
+   * yet scrolled, below the app's header once it sticks there. As the page
+   * scrolls, the card grows into the room it is given; nothing re-renders.
+   */
+  useEffect(() => {
+    if (isMobile) {
+      return;
+    }
+
+    let frame: number = 0;
+
+    const refit: () => void = (): void => {
+      window.cancelAnimationFrame(frame);
+      frame = window.requestAnimationFrame(() => {
+        fitSideMenuCard(desktopCardRef.current);
+      });
+    };
+
+    fitSideMenuCard(desktopCardRef.current);
+    window.addEventListener("scroll", refit, { passive: true });
+    window.addEventListener("resize", refit);
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", refit);
+      window.removeEventListener("resize", refit);
+    };
+  }, [isMobile]);
 
   // ...and in the phone's menu, each time it opens.
   useEffect(() => {
@@ -649,24 +692,47 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
              * German or French more. A second line takes the page's name
              * whole when the two do not fit together - the section and the
              * page each keep together while they fit a line - and a word
-             * longer than the line breaks at its edge.
+             * longer than the line is hyphenated in its language
+             * (getDrawnLanguage), or else breaks at its edge.
              */}
             <div className="min-w-0 text-start">
               <p className="text-xs text-gray-400 font-medium">
                 {translateString("Navigate to")}
               </p>
-              <h3 className="text-sm font-semibold text-gray-900 break-words">
+              <h3 className="text-sm font-semibold text-gray-900 break-words hyphens-auto">
                 {summarySection ? (
                   <>
-                    <span className="inline-block max-w-full">
+                    <span
+                      className="inline-block max-w-full"
+                      lang={getDrawnLanguage({
+                        english: activeItem.sectionTitle,
+                        drawn: summarySection,
+                        language: language,
+                      })}
+                    >
                       {`${summarySection} /`}
                     </span>{" "}
-                    <span className="inline-block max-w-full">
+                    <span
+                      className="inline-block max-w-full"
+                      lang={getDrawnLanguage({
+                        english: summaryPageEnglish,
+                        drawn: summaryPage,
+                        language: language,
+                      })}
+                    >
                       {summaryPage}
                     </span>
                   </>
                 ) : (
-                  summaryPage
+                  <span
+                    lang={getDrawnLanguage({
+                      english: summaryPageEnglish,
+                      drawn: summaryPage,
+                      language: language,
+                    })}
+                  >
+                    {summaryPage}
+                  </span>
                 )}
               </h3>
             </div>
@@ -789,8 +855,11 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
            * Menus longer than the viewport (the Kubernetes cluster menu, for
            * one) would otherwise get pushed back up behind the header near the
            * bottom of a long page. Cap the card to the space left under the
-           * header and let the item list scroll inside it instead.
+           * header and let the item list scroll inside it instead. That is
+           * its height once it sticks below the header; until then it is
+           * fitted to end above the window's bottom edge (fitSideMenuCard).
            */
+          ref={desktopCardRef}
           style={{
             maxHeight: "calc(100vh - var(--app-header-height, 0px) - 3rem)",
           }}

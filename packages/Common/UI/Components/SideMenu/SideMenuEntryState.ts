@@ -25,6 +25,31 @@ export const SIDE_MENU_ITEM_TITLE_TEST_ID: string = "side-menu-item-title";
 export type MenuEntryRoute = Link["to"];
 
 /*
+ * The language a menu's words are drawn in, for the element that holds them
+ * (its lang attribute): the reader's, where the words were translated, and
+ * none - the page's own, English - where they were not.
+ *
+ * A title or a section heading that does not fit on one line wraps onto a
+ * second (hyphens: auto). A word longer than the whole line, a German
+ * compound, then breaks where its language hyphenates it and shows a
+ * hyphen - "Benachrichtigungsproto-kolle" - where it broke at the edge
+ * before, mid-syllable and with nothing to say it goes on: the page itself
+ * says lang="en" whatever the reader's language is, and a browser only
+ * hyphenates a word in a language it is told.
+ */
+export function getDrawnLanguage(data: {
+  english: string | undefined;
+  drawn: string | undefined;
+  language: string | undefined;
+}): string | undefined {
+  if (!data.language || !data.drawn || data.drawn === data.english) {
+    return undefined;
+  }
+
+  return data.language;
+}
+
+/*
  * The page a link leads to, without the query or fragment it carries: an
  * entry whose link also resets a page's state - the network map's
  * "/network/map?site=" - still leads to that page.

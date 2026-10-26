@@ -2,6 +2,7 @@ import Icon from "../Icon/Icon";
 import useTranslateValue from "../../Utils/Translation";
 import IconProp from "../../../Types/Icon/IconProp";
 import { startsCollapsed } from "./SideMenuSectionState";
+import { getDrawnLanguage } from "./SideMenuEntryState";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -52,7 +53,7 @@ export interface ComponentProps {
 const SideMenuSection: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ) => {
-  const { translateString } = useTranslateValue();
+  const { translateString, language } = useTranslateValue();
   const [isCollapsed, setIsCollapsed] = useState<boolean>(
     startsCollapsed({
       title: props.title,
@@ -87,10 +88,11 @@ const SideMenuSection: FunctionComponent<ComponentProps> = (
    *
    * Drawn whole, on a second line when it needs one: cut to one line, the
    * German "Benachrichtigungsprotokolle" (Notification Logs) read
-   * "BENACHRICHTIGUNGSPROT…". A word longer than the line breaks at its
-   * edge. The lines start at the heading's start (a <button> centres its
-   * text), and the icon and the chevron stay level with the first line, so
-   * a heading of one line is drawn as before.
+   * "BENACHRICHTIGUNGSPROT…". A word longer than the line is hyphenated in
+   * its language (getDrawnLanguage), or else breaks at its edge. The lines
+   * start at the heading's start (a <button> centres its text), and the
+   * icon and the chevron stay level with the first line, so a heading of
+   * one line is drawn as before.
    */
   const heading: ReactElement = (
     <div className="flex items-start gap-2 min-w-0">
@@ -100,7 +102,14 @@ const SideMenuSection: FunctionComponent<ComponentProps> = (
           className="mt-px h-3.5 w-3.5 flex-shrink-0 text-gray-400"
         />
       )}
-      <h6 className="min-w-0 break-words text-start text-xs font-semibold uppercase tracking-wider text-gray-400">
+      <h6
+        className="min-w-0 break-words hyphens-auto text-start text-xs font-semibold uppercase tracking-wider text-gray-400"
+        lang={getDrawnLanguage({
+          english: props.title,
+          drawn: translatedTitle,
+          language: language,
+        })}
+      >
         {translatedTitle}
       </h6>
     </div>

@@ -10,13 +10,15 @@ import path from "path";
  * jsdom cannot show is checked here: a folded section out of sight and out
  * of the keyboard's way, opened by click and by keyboard, opening by itself
  * on its own pages and staying open while the pages change, the phone menu,
- * German and dark mode.
+ * German and dark mode. SideMenuNavigation.spec.ts measures the shared menu
+ * itself: the current entry, long titles in French, German and Persian, and
+ * the lit entry kept in sight in a menu taller than the window.
  */
 const port: string = process.env["RULES_MENU_SECTION_FIXTURE_PORT"] || "4385";
 
 export default defineConfig({
   testDir: "./RulesMenuSection",
-  testMatch: ["RulesMenuSection.spec.ts"],
+  testMatch: ["RulesMenuSection.spec.ts", "SideMenuNavigation.spec.ts"],
   fullyParallel: false,
   workers: 1,
   timeout: 90000,

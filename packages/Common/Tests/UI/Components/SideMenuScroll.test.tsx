@@ -24,8 +24,13 @@ import SideMenu from "../../../UI/Components/SideMenu/SideMenu";
 import SideMenuItem from "../../../UI/Components/SideMenu/SideMenuItem";
 import SideMenuSection from "../../../UI/Components/SideMenu/SideMenuSection";
 import {
+  fitSideMenuCard,
+  getFittedMenuHeight,
   getRevealScrollDelta,
+  getVisibleRoom,
   revealCurrentSideMenuEntry,
+  SIDE_MENU_BOTTOM_GAP_IN_PX,
+  SIDE_MENU_MIN_HEIGHT_IN_PX,
   SIDE_MENU_REVEAL_MARGIN_IN_PX,
 } from "../../../UI/Components/SideMenu/SideMenuScroll";
 import Navigation from "../../../UI/Utils/Navigation";
@@ -118,6 +123,95 @@ describe("how far the menu scrolls (getRevealScrollDelta)", () => {
 });
 
 /*
+ * The menu's card is as tall as the window under the header: sized for when
+ * it sticks below the header. On a page not yet scrolled it starts under the
+ * page's title and runs on below the window, so the room an entry is
+ * brought into is the list's box cut to the window.
+ */
+/*
+ * The card is capped in CSS to the window under the app's header: its
+ * height once it sticks there. On a page not yet scrolled it starts lower,
+ * under the trail and the title, and ran on below the window - the end of
+ * its list out of reach of its own scroll. It is fitted to end above the
+ * window's bottom edge wherever it is.
+ */
+describe("how tall the menu's card may be (getFittedMenuHeight)", () => {
+  test("the window under the card's top, less the gap at the bottom", () => {
+    expect(getFittedMenuHeight({ cardTop: 200, windowHeight: 900 })).toBe(
+      900 - 200 - SIDE_MENU_BOTTOM_GAP_IN_PX,
+    );
+  });
+
+  test("grows as the page scrolls the card up, to its height once it sticks", () => {
+    const unscrolled: number = getFittedMenuHeight({
+      cardTop: 220,
+      windowHeight: 800,
+    });
+    const stuck: number = getFittedMenuHeight({
+      cardTop: 88,
+      windowHeight: 800,
+    });
+
+    expect(stuck).toBeGreaterThan(unscrolled);
+    expect(stuck).toBe(800 - 88 - SIDE_MENU_BOTTOM_GAP_IN_PX);
+  });
+
+  test("a card scrolled past the window's top is measured from the top", () => {
+    expect(getFittedMenuHeight({ cardTop: -50, windowHeight: 700 })).toBe(
+      700 - SIDE_MENU_BOTTOM_GAP_IN_PX,
+    );
+  });
+
+  test("is never squeezed below the least height: it runs on below the window instead", () => {
+    expect(getFittedMenuHeight({ cardTop: 500, windowHeight: 560 })).toBe(
+      SIDE_MENU_MIN_HEIGHT_IN_PX,
+    );
+  });
+});
+
+describe("fitting the card (fitSideMenuCard)", () => {
+  test("sets the card's max height in pixels from where it is", () => {
+    const card: HTMLDivElement = document.createElement("div");
+    card.style.maxHeight = "calc(100vh - 3rem)";
+    card.getBoundingClientRect = (): DOMRect => {
+      return { top: 200 } as DOMRect;
+    };
+
+    fitSideMenuCard(card);
+
+    expect(card.style.maxHeight).toBe(
+      `${window.innerHeight - 200 - SIDE_MENU_BOTTOM_GAP_IN_PX}px`,
+    );
+  });
+
+  test("does nothing without a card", () => {
+    expect(() => {
+      fitSideMenuCard(null);
+    }).not.toThrow();
+  });
+});
+
+describe("the room the entry is brought into (getVisibleRoom)", () => {
+  test("is the list's box when the whole list is in the window", () => {
+    expect(
+      getVisibleRoom({ list: { top: 120, bottom: 600 }, windowHeight: 900 }),
+    ).toEqual({ top: 120, bottom: 600 });
+  });
+
+  test("ends at the window's bottom when the list runs on below it", () => {
+    expect(
+      getVisibleRoom({ list: { top: 200, bottom: 752 }, windowHeight: 560 }),
+    ).toEqual({ top: 200, bottom: 560 });
+  });
+
+  test("starts at the window's top when the list starts above it", () => {
+    expect(
+      getVisibleRoom({ list: { top: -80, bottom: 400 }, windowHeight: 560 }),
+    ).toEqual({ top: 0, bottom: 400 });
+  });
+});
+
+/*
  * The boxes a browser would give: the list, 400px tall, holding 1,000px of
  * entries; the entry wherever the list's scroll leaves it.
  */
@@ -184,6 +278,66 @@ describe("scrolling the menu's own list (revealCurrentSideMenuEntry)", () => {
     revealCurrentSideMenuEntry(list);
 
     expect(list.scrollTop).toBe(100 - MARGIN);
+  });
+
+  /*
+   * A page not yet scrolled: the list (100 to 500) runs on below a window
+   * 400 pixels tall, so the entry is brought above the window's bottom, not
+   * only above the list's.
+   */
+  test("brings the entry into the part of the list the window shows", () => {
+    const ownHeight: number = window.innerHeight;
+    Object.defineProperty(window, "innerHeight", {
+      configurable: true,
+      writable: true,
+      value: 400,
+    });
+
+    try {
+      layOut({ list, entry, entryTopInList: 900, scrollHeight: 2000 });
+
+      revealCurrentSideMenuEntry(list);
+
+      const box: DOMRect = entry.getBoundingClientRect();
+      expect(box.bottom).toBeLessThanOrEqual(400 - MARGIN);
+      expect(list.scrollTop).toBe(900 + 32 - (300 - MARGIN));
+    } finally {
+      Object.defineProperty(window, "innerHeight", {
+        configurable: true,
+        writable: true,
+        value: ownHeight,
+      });
+    }
+  });
+
+  test("never scrolls past the end of the list", () => {
+    // The entry is the list's last: the list scrolls as far as it goes.
+    layOut({ list, entry, entryTopInList: 990, scrollHeight: 1000 });
+
+    revealCurrentSideMenuEntry(list);
+
+    expect(list.scrollTop).toBe(1000 - 400);
+  });
+
+  test("does nothing when none of the list is in the window", () => {
+    const ownHeight: number = window.innerHeight;
+    Object.defineProperty(window, "innerHeight", {
+      configurable: true,
+      writable: true,
+      value: 80,
+    });
+
+    try {
+      layOut({ list, entry, entryTopInList: 900 });
+      revealCurrentSideMenuEntry(list);
+      expect(list.scrollTop).toBe(0);
+    } finally {
+      Object.defineProperty(window, "innerHeight", {
+        configurable: true,
+        writable: true,
+        value: ownHeight,
+      });
+    }
   });
 
   test("leaves the list where it is when the entry is in sight", () => {
