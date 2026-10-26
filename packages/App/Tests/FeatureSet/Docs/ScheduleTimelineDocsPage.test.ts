@@ -175,8 +175,13 @@ describe("Schedule Timeline docs page", () => {
       expect(english).toContain("**On-Call Duty** > **Schedule Timeline**");
       expect(onCallMenu).toContain('title: "Schedule Timeline"');
 
-      expect(english).toContain("**Timeline View**");
-      expect(schedulesPage).toContain('title: "Timeline View"');
+      // The schedules list's action, in its ⋯ menu, is named as the page.
+      expect(english).toContain(
+        "On **On-Call Schedules**, **Schedule Timeline** in the **⋯** menu opens the same page.",
+      );
+      expect(english).not.toContain("**Timeline View**");
+      expect(schedulesPage).toContain('title: "Schedule Timeline"');
+      expect(schedulesPage).not.toContain('title: "Timeline View"');
 
       expect(english).toContain("**Teams** > a team > **On-Call Schedules**");
       expect(teamMenu).toContain('title: "On-Call Schedules"');

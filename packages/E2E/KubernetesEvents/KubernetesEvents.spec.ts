@@ -1753,3 +1753,121 @@ test.describe("being told when Kubernetes warns", () => {
     );
   });
 });
+
+/*
+ * Follow-up of #5201: a cluster's own pages - a node's, an HPA's - had no
+ * entry in the cluster's side menu, so nothing in it was lit there, and on
+ * a phone the menu's button said "Navigate to / Navigation". Such a page is
+ * one of the rows its list shows: the list's entry stays lit there, says so
+ * to a screen reader (aria-current="true": it holds the page), opens its
+ * section if it is folded, and names the phone's button. The trail's last
+ * crumb reads in the reader's language ("Knotendetails"). In a menu taller
+ * than the window the lit entry comes into sight with the next one past
+ * it, and the list fades out over the entries it scrolled out of sight.
+ */
+test.describe("a cluster's own pages in its side menu", () => {
+  function clusterMenu(page: Page): Locator {
+    return page.locator("aside[role='navigation']");
+  }
+
+  test("on a node's page, Nodes is lit and holds the page; the trail ends on the node", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(`${CLUSTER_PATH}/nodes/${AGENT_POOL_NODE}`);
+    const menu: Locator = clusterMenu(page);
+    const nodes: Locator = menu.locator(`a[href='${CLUSTER_PATH}/nodes']`);
+
+    await expect(nodes).toHaveAttribute("aria-current", "true", {
+      timeout: 30000,
+    });
+    await expect(menu.locator("[aria-current]")).toHaveCount(1);
+    await expect(nodes).toHaveClass(/bg-indigo-50/);
+    await expect(
+      page
+        .getByRole("navigation", { name: "Breadcrumb" })
+        .locator("[aria-current='page']"),
+    ).toHaveText("Node Detail");
+  });
+
+  test("on an HPA's page in a short window, the folded Scaling opens and HPAs is lit, in sight inside the long menu with VPAs past it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 600 });
+    await page.goto(`${CLUSTER_PATH}/hpas/istiod`);
+    const menu: Locator = clusterMenu(page);
+    const hpas: Locator = menu.locator(`a[href='${CLUSTER_PATH}/hpas']`);
+
+    await expect(hpas).toHaveAttribute("aria-current", "true", {
+      timeout: 30000,
+    });
+    await expect(
+      menu.locator(
+        "xpath=.//h6[normalize-space(.)='Scaling']/ancestor::button[1]",
+      ),
+    ).toHaveAttribute("aria-expanded", "true");
+
+    const list: Locator = menu.locator("nav");
+    const isInSight: (href: string) => Promise<boolean> = async (
+      href: string,
+    ): Promise<boolean> => {
+      return await list.evaluate((element: Element, link: string): boolean => {
+        const target: Element | null = element.querySelector(
+          `a[href='${link}']`,
+        );
+        if (!target) {
+          return false;
+        }
+        const listBox: DOMRect = element.getBoundingClientRect();
+        const box: DOMRect = target.getBoundingClientRect();
+        return (
+          box.top >= Math.max(listBox.top, 0) &&
+          box.bottom <= Math.min(listBox.bottom, window.innerHeight)
+        );
+      }, href);
+    };
+
+    await expect
+      .poll(async (): Promise<boolean> => {
+        return await isInSight(`${CLUSTER_PATH}/hpas`);
+      })
+      .toBe(true);
+    // The next entry is in sight past it: the list goes on.
+    expect(await isInSight(`${CLUSTER_PATH}/vpas`)).toBe(true);
+    // The entries scrolled out of sight above fade out at the list's top.
+    await expect(list).toHaveAttribute("data-hidden-top", "true");
+    expect(
+      await page.evaluate((): number => {
+        return window.scrollY;
+      }),
+    ).toBe(0);
+    await screenshot(page, "hpa-page-short-window-menu");
+  });
+
+  test("on a phone, in German, the button names Infrastruktur / Knoten and the trail Knotendetails", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(
+      withQuery(`${CLUSTER_PATH}/nodes/${AGENT_POOL_NODE}`, "lang=de"),
+    );
+    const toggle: Locator = page.getByTestId("mobile-sidemenu-toggle");
+
+    await expect(toggle.locator("h3")).toHaveText(
+      `${GERMAN["Infrastructure"]} / ${GERMAN["Nodes"]}`,
+      { timeout: 30000 },
+    );
+    await expect(toggle).not.toContainText("Navigation");
+    expect(GERMAN["Node Detail"]).toBeTruthy();
+    expect(GERMAN["Node Detail"]).not.toBe("Node Detail");
+    await expect(
+      page.locator("nav[aria-label] [aria-current='page']"),
+    ).toHaveText(GERMAN["Node Detail"]!);
+    await screenshot(page, "node-page-phone-de");
+  });
+});

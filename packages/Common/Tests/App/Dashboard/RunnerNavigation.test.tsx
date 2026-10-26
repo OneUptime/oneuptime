@@ -231,7 +231,8 @@ describe("the Runbooks side menu lists the Runner pages", () => {
       })
       .map((anchor: Element): string => {
         return (
-          anchor.querySelector("span.truncate")?.textContent ?? ""
+          anchor.querySelector('[data-testid="side-menu-item-title"]')
+            ?.textContent ?? ""
         ).trim();
       });
 

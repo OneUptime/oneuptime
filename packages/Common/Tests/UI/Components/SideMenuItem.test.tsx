@@ -21,6 +21,7 @@ import URL from "../../../Types/API/URL";
 import IconProp from "../../../Types/Icon/IconProp";
 import React from "react";
 import getJestMockFunction from "../../../Tests/MockType";
+import { SIDE_MENU_ITEM_TITLE_TEST_ID } from "../../../UI/Components/SideMenu/SideMenuEntryState";
 
 /*
  * The active-row treatment, pinned here because it is the only thing that
@@ -241,13 +242,13 @@ describe("Side Menu Item", () => {
     };
 
     /*
-     * `span.truncate` is a read interface, not just an ellipsis.
-     * SideMenuHarness.linksIn() takes a row's title from `span.truncate` and
-     * falls back to the anchor's whole textContent when it is missing -- so
-     * dropping the class does not fail here, it makes five product menu suites
-     * expect "Scheduled Maintenance" and read "Scheduled Maintenance12".
+     * The title's own element is a read interface: SideMenuHarness.linksIn()
+     * and the browser suites take a row's title from it (its test id) and
+     * fall back to the anchor's whole textContent when it is missing -- so
+     * losing it does not fail here, it makes the product menu suites expect
+     * "Scheduled Maintenance" and read "Scheduled Maintenance12".
      */
-    it("Should keep the title in span.truncate with the badge digits outside it", () => {
+    it("Should keep the title in its own element, by its test id, with the badge digits outside it", () => {
       setActivePage(null);
 
       const badgeCount: number = 12;
@@ -264,8 +265,9 @@ describe("Side Menu Item", () => {
         .getByText(longLink.title)
         .closest("a") as HTMLAnchorElement;
 
-      const titleSpan: HTMLSpanElement | null =
-        mainLink.querySelector("span.truncate");
+      const titleSpan: HTMLElement | null = mainLink.querySelector(
+        `[data-testid="${SIDE_MENU_ITEM_TITLE_TEST_ID}"]`,
+      );
 
       expect(titleSpan).not.toBeNull();
       expect(titleSpan?.textContent).toBe(longLink.title);
@@ -423,45 +425,36 @@ describe("Side Menu Item", () => {
   });
 
   /*
-   * The menu draws a title on one line and ends what does not fit with an
-   * ellipsis: "Importer depuis un autre outil" in the 192px a desktop
-   * leaves it, or "Import from another tool" in a tablet's 160px. The
-   * pointer shows such a title whole; a title that fits gets no tooltip
-   * repeating it. jsdom lays nothing out, so each test says how wide the
-   * title is and how much room it has.
+   * A title is drawn whole, on a second line when it needs one. It used to
+   * be cut to one line with an ellipsis, which cut the words that say what a
+   * page is: French "Règles de taux de consommation" (Burn Rate Rules) read
+   * "Règles de taux de con…", German "Benachrichtigungsprotokolle" lost its
+   * end, and a tablet's menu cut English "Import from another tool". A
+   * tooltip on hover showed the rest, which a phone or a tablet never sees.
+   * jsdom lays nothing out, so these pin the classes that let a title wrap
+   * and keep the icon, the rail and the badge level with its first line;
+   * the browser suite (SideMenuLongTitles) measures it.
    */
-  describe("A title the menu cuts short", () => {
-    const LONG_TITLE: string = "Importer depuis un autre outil";
+  describe("A long title", () => {
+    const LONG_TITLE: string = "Règles de taux de consommation";
+    const LONG_WORD: string = "Benachrichtigungsprotokolle";
 
-    type SetWidthsFunction = (
-      element: HTMLElement,
-      widths: { scrollWidth: number; clientWidth: number },
-    ) => void;
+    type TitleOfFunction = (title: string) => HTMLElement;
 
-    const setWidths: SetWidthsFunction = (
-      element: HTMLElement,
-      widths: { scrollWidth: number; clientWidth: number },
-    ): void => {
-      Object.defineProperty(element, "scrollWidth", {
-        configurable: true,
-        value: widths.scrollWidth,
-      });
-      Object.defineProperty(element, "clientWidth", {
-        configurable: true,
-        value: widths.clientWidth,
-      });
-    };
-
-    type TitleSpanFunction = (title: string) => HTMLSpanElement;
-
-    // The span the title is drawn in, the one that ellipsizes.
-    const titleSpan: TitleSpanFunction = (title: string): HTMLSpanElement => {
+    // The element the title is drawn in.
+    const titleOf: TitleOfFunction = (title: string): HTMLElement => {
       const span: HTMLElement = screen.getByText(title);
 
-      expect(span.tagName).toBe("SPAN");
-      expect(span).toHaveClass("truncate");
+      expect(span).toHaveAttribute("data-testid", SIDE_MENU_ITEM_TITLE_TEST_ID);
 
-      return span as HTMLSpanElement;
+      return span;
+    };
+
+    const classesOf: (element: Element) => Array<string> = (
+      element: Element,
+    ): Array<string> => {
+      // getAttribute: an <svg>'s className is not a string.
+      return (element.getAttribute("class") || "").split(/\s+/).filter(Boolean);
     };
 
     // Each test says which page is open; none inherits the last one's.
@@ -470,113 +463,138 @@ describe("Side Menu Item", () => {
         getJestMockFunction().mockReturnValue(false);
     });
 
-    it("shows the whole title on hover when it is cut short", () => {
+    it("wraps onto another line instead of ending in an ellipsis", () => {
       render(
         <SideMenuItem
-          link={{ title: LONG_TITLE, to: new Route("/settings/import") }}
-          icon={IconProp.InboxArrowDown}
+          link={{ title: LONG_TITLE, to: new Route("/slo/burn-rate-rules") }}
+          icon={IconProp.Fire}
         />,
       );
-      setWidths(titleSpan(LONG_TITLE), { scrollWidth: 211, clientWidth: 192 });
+      const title: HTMLElement = titleOf(LONG_TITLE);
 
-      fireEvent.mouseEnter(titleSpan(LONG_TITLE));
-
-      expect(titleSpan(LONG_TITLE)).toHaveAttribute("title", LONG_TITLE);
+      // It may shrink below its words' width, and then it wraps.
+      expect(title).toHaveClass("min-w-0", "break-words");
+      for (const cut of ["truncate", "whitespace-nowrap", "text-ellipsis"]) {
+        expect(classesOf(title)).not.toContain(cut);
+        expect(classesOf(title.closest("a")!)).not.toContain(cut);
+      }
+      expect(title.textContent).toBe(LONG_TITLE);
     });
 
-    // The active row draws its title in semibold, wider than the rest.
-    it("shows it on the row of the page you are on too", () => {
-      const to: Route = new Route("/settings/import");
+    // A German compound longer than the whole line breaks at its edge.
+    it("breaks a word longer than the line at the line's edge, not past the menu", () => {
+      render(
+        <SideMenuItem
+          link={{ title: LONG_WORD, to: new Route("/notification-logs") }}
+        />,
+      );
+
+      expect(titleOf(LONG_WORD)).toHaveClass("break-words");
+    });
+
+    /*
+     * Nothing is cut short any more, so nothing is shown again on hover:
+     * a tooltip would only repeat what the row already says.
+     */
+    it("gets no hover text, cut short or not", () => {
+      render(
+        <SideMenuItem
+          link={{ title: LONG_TITLE, to: new Route("/slo/burn-rate-rules") }}
+          badge={12}
+          badgeType={BadgeType.DANGER}
+        />,
+      );
+      const title: HTMLElement = titleOf(LONG_TITLE);
+
+      Object.defineProperty(title, "scrollWidth", {
+        configurable: true,
+        value: 260,
+      });
+      Object.defineProperty(title, "clientWidth", {
+        configurable: true,
+        value: 150,
+      });
+      fireEvent.mouseEnter(title);
+
+      expect(title).not.toHaveAttribute("title");
+      expect(title.closest("a")).not.toHaveAttribute("title");
+    });
+
+    /*
+     * A row of two lines keeps its icon, rail and badge with the first line,
+     * so a row of one line is drawn exactly as before: the icon is nudged to
+     * the middle of the 20px line, the badge sits in a box one line tall.
+     */
+    it("keeps the icon and the badge level with the title's first line", () => {
+      render(
+        <SideMenuItem
+          link={{ title: LONG_TITLE, to: new Route("/slo/burn-rate-rules") }}
+          icon={IconProp.Fire}
+          badge={3}
+          badgeType={BadgeType.DANGER}
+        />,
+      );
+      const anchor: HTMLAnchorElement = titleOf(LONG_TITLE).closest("a")!;
+      const content: HTMLElement = titleOf(LONG_TITLE).parentElement!;
+      const icon: Element = content.querySelector("svg")!;
+      const badgeBox: HTMLElement = screen.getByText("3").closest("div")!;
+
+      expect(anchor).toHaveClass("items-start");
+      expect(classesOf(anchor)).not.toContain("items-center");
+      expect(content).toHaveClass("items-start", "min-w-0");
+      expect(classesOf(icon)).toEqual(
+        expect.arrayContaining(["mt-0.5", "h-4", "w-4", "flex-shrink-0"]),
+      );
+      expect(badgeBox).toHaveClass("h-5", "items-center", "flex-shrink-0");
+    });
+
+    // The rail beside the lit row runs the height of its title.
+    it("draws the rail down the whole title of the lit row, and none on another row", () => {
+      const to: Route = new Route("/slo/burn-rate-rules");
       Navigation.default.isOnThisPage =
         getJestMockFunction().mockImplementation((route: Route): boolean => {
           return route === to;
         });
 
-      render(
+      const { container } = render(
+        <SideMenuItem link={{ title: LONG_TITLE, to }} icon={IconProp.Fire} />,
+      );
+      const rail: Element = container.querySelector("a > div.absolute")!;
+
+      expect(classesOf(rail)).toEqual(
+        expect.arrayContaining(["top-2", "bottom-2", "bg-indigo-600"]),
+      );
+      expect(classesOf(rail)).not.toContain("h-4");
+
+      Navigation.default.isOnThisPage =
+        getJestMockFunction().mockReturnValue(false);
+      const { container: other } = render(
         <SideMenuItem
-          link={{ title: LONG_TITLE, to }}
-          icon={IconProp.InboxArrowDown}
+          link={{ title: "Monitors", to: new Route("/slo/monitors") }}
         />,
       );
-      const span: HTMLSpanElement = titleSpan(LONG_TITLE);
+      const idleRail: Element = other.querySelector("a > div.absolute")!;
 
-      expect(span.closest("a")).toHaveClass(highlightClassList);
-
-      setWidths(span, { scrollWidth: 214, clientWidth: 192 });
-      fireEvent.mouseEnter(span);
-
-      expect(span).toHaveAttribute("title", LONG_TITLE);
-    });
-
-    it("adds no hover text when the title fits", () => {
-      render(<SideMenuItem {...defaultProps} icon={IconProp.Home} />);
-      setWidths(titleSpan(defaultProps.link.title), {
-        scrollWidth: 40,
-        clientWidth: 192,
-      });
-
-      fireEvent.mouseEnter(titleSpan(defaultProps.link.title));
-
-      expect(titleSpan(defaultProps.link.title)).not.toHaveAttribute("title");
-    });
-
-    // A wider window (or a language switch) gives the title its room back.
-    it("drops the hover text once the title fits again", () => {
-      render(
-        <SideMenuItem
-          link={{ title: LONG_TITLE, to: new Route("/settings/import") }}
-        />,
+      expect(classesOf(idleRail)).toEqual(
+        expect.arrayContaining(["top-1/2", "bottom-1/2", "bg-transparent"]),
       );
-      const span: HTMLSpanElement = titleSpan(LONG_TITLE);
-
-      setWidths(span, { scrollWidth: 211, clientWidth: 160 });
-      fireEvent.mouseEnter(span);
-      expect(span).toHaveAttribute("title", LONG_TITLE);
-
-      setWidths(span, { scrollWidth: 211, clientWidth: 211 });
-      fireEvent.mouseEnter(span);
-      expect(span).not.toHaveAttribute("title");
     });
 
-    /*
-     * The badge is drawn in the same anchor. Hover text read off the whole
-     * row would say "Importer depuis un autre outil12" - so it is read off
-     * the title alone, and the anchor gets none.
-     */
-    it("never puts the badge's digits in the hover text", () => {
-      render(
-        <SideMenuItem
-          link={{ title: LONG_TITLE, to: new Route("/settings/import") }}
-          icon={IconProp.InboxArrowDown}
-          badge={12}
-          badgeType={BadgeType.DANGER}
-        />,
-      );
-      const span: HTMLSpanElement = titleSpan(LONG_TITLE);
-
-      setWidths(span, { scrollWidth: 211, clientWidth: 150 });
-      fireEvent.mouseEnter(span);
-
-      expect(span).toHaveAttribute("title", LONG_TITLE);
-      expect(span.closest("a")?.textContent).toContain("12");
-      expect(span.closest("a")).not.toHaveAttribute("title");
-    });
-
-    it("shows a cut-short sub item whole on hover as well", () => {
-      const subTitle: string = "Benachrichtigungsprotokolle";
-
+    it("wraps a sub item's title as well, under its own test id", () => {
       render(
         <SideMenuItem
           {...defaultProps}
-          subItemLink={{ title: subTitle, to: new Route("/notification-logs") }}
+          subItemLink={{
+            title: LONG_WORD,
+            to: new Route("/notification-logs"),
+          }}
         />,
       );
-      const span: HTMLSpanElement = titleSpan(subTitle);
+      const title: HTMLElement = titleOf(LONG_WORD);
 
-      setWidths(span, { scrollWidth: 203, clientWidth: 170 });
-      fireEvent.mouseEnter(span);
-
-      expect(span).toHaveAttribute("title", subTitle);
+      expect(title).toHaveClass("min-w-0", "break-words");
+      expect(classesOf(title)).not.toContain("truncate");
+      expect(title.closest("a")).toHaveClass("items-start");
     });
   });
 });

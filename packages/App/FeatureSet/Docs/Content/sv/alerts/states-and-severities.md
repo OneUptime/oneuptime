@@ -157,7 +157,7 @@ Att gå vidare från **Löst** till ett tillstånd efter det, till exempel "Stä
 
 ## Tillståndstidslinjen
 
-Larmets sida **Tillståndstidslinje** är en förteckning över varje tillstånd det har varit i. Dess kort, **Statustidslinje**, ritar dem som en tidslinje: ett band med varje tillstånd så långt som det varade, och under det varje ändring med den senaste först. **Tabell** i kortets rubrik listar dem i stället som rader, med **Larmstatus**, **Börjar den**, **Slutar den** och **Varaktighet**.
+Larmets sida **Tillståndstidslinje** är en förteckning över varje tillstånd det har varit i. Dess kort ritar dem som en tidslinje: ett band med varje tillstånd så långt som det varade, och under det varje ändring med den senaste först. **Tabell** i kortets rubrik listar dem i stället som rader, med **Larmstatus**, **Börjar den**, **Slutar den** och **Varaktighet**.
 
 - **Visa orsak** visar rotorsaken som registrerades med den ändringen.
 - **Visa loggar** visar vad OneUptime registrerade när larmet ändrades, till exempel monitorkontrollen som orsakade det.

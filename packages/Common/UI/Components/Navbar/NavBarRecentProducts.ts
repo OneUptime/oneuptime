@@ -2,8 +2,11 @@ import type { MoreMenuItem } from "./NavBar";
 
 /*
  * The products menu's "Recently visited" row (NavBarMenuModal): the products
- * someone opened from the menu, the most recent first, remembered on their
- * browser.
+ * someone visited, the most recent first, remembered on their browser. A
+ * product counts as visited however it was reached: from the menu, a Home
+ * tile, Search, a link in a notification or a typed address (NavBar
+ * remembers the product of every page it is drawn on). It used to count only
+ * the products opened from the menu itself.
  *
  * The row shows six. The menu draws its cards three to a row on a desktop
  * and two to a row on a narrower screen, so six is two full rows, or three.
@@ -17,14 +20,45 @@ import type { MoreMenuItem } from "./NavBar";
  * the product of the page the user is on (they are already there), products
  * of other projects (a product's address names its project, so each project
  * fills a row of its own from the same list), and the Admin Dashboard's
- * pages, which it keeps in the same browser storage. Twenty fills the row
- * for a few projects and keeps the stored list small.
+ * pages that browsers stored before its menu stopped remembering them.
+ * Twenty fills the row for a few projects and keeps the stored list small.
  */
 export const RECENT_PRODUCTS_STORAGE_KEY: string =
   "oneuptime-navbar-recent-products";
 
 // How many recent products the row shows: two rows of three cards.
 export const RECENT_PRODUCTS_SHOWN: number = 6;
+
+/*
+ * Whether a products menu has a Recently visited row at all: only a menu
+ * that folds its categories, as the Dashboard's does (it names the
+ * categories it opens on). There the row saves opening a category to reach
+ * a product used a moment ago. A menu that shows every product at once -
+ * the Admin Dashboard's six - has nothing to save: its row only drew the
+ * same cards a second time, above themselves. Such a menu remembers
+ * nothing either, so it never fills the list the Dashboard reads.
+ */
+export function doesMenuShowRecentProducts(
+  categoriesOpenByDefault: ReadonlyArray<string> | undefined,
+): boolean {
+  return Boolean(categoriesOpenByDefault);
+}
+
+/*
+ * The address of the product the page the user is on belongs to: the first
+ * product of the menu the page counts as, as the menu itself marks it.
+ * Undefined on a page of no product.
+ */
+export function getVisitedProductRoute(
+  items: ReadonlyArray<MoreMenuItem>,
+  isCurrentPage: (item: MoreMenuItem) => boolean,
+): string | undefined {
+  return items
+    .find((item: MoreMenuItem): boolean => {
+      return isCurrentPage(item);
+    })
+    ?.route.toString();
+}
 
 // How many product addresses the browser keeps, the most recent first.
 export const RECENT_PRODUCTS_REMEMBERED: number = 20;

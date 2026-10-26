@@ -157,7 +157,7 @@ Passer de **Résolu** à un état suivant, « Fermé » par exemple, ne change r
 
 ## La chronologie d'état
 
-La page **Chronologie d'état** de l'alerte est le registre de chaque état par lequel elle est passée. Sa carte, **Chronologie de statut**, les dessine en chronologie : une bande où chaque état occupe le temps qu'il a duré, et dessous chaque changement, du plus récent au plus ancien. **Tableau**, dans l'en-tête de la carte, les liste plutôt en lignes, avec **Statut de l'alerte**, **Commence le**, **Se termine le** et **Durée**.
+La page **Chronologie d'état** de l'alerte est le registre de chaque état par lequel elle est passée. Sa carte les dessine en chronologie : une bande où chaque état occupe le temps qu'il a duré, et dessous chaque changement, du plus récent au plus ancien. **Tableau**, dans l'en-tête de la carte, les liste plutôt en lignes, avec **Statut de l'alerte**, **Commence le**, **Se termine le** et **Durée**.
 
 - **Voir la cause** affiche la cause racine enregistrée avec ce changement.
 - **Voir les journaux** affiche ce que OneUptime a enregistré quand l'alerte a changé, comme la vérification du moniteur qui l'a provoqué.

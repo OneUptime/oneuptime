@@ -157,7 +157,7 @@ Passar de **Resolvido** para um estado posterior, "Fechado" por exemplo, não mu
 
 ## A linha do tempo de estados
 
-A página **Linha do tempo de estado** de um alerta é o registro de cada estado em que ele esteve. Seu cartão, **Linha do tempo de status**, os desenha como uma linha do tempo: uma faixa com cada estado do tamanho que durou e, abaixo, cada mudança, da mais recente para a mais antiga. **Tabela**, no cabeçalho do cartão, os lista em linhas, com **Status do alerta**, **Começa em**, **Termina em** e **Duração**.
+A página **Linha do tempo de estado** de um alerta é o registro de cada estado em que ele esteve. Seu cartão os desenha como uma linha do tempo: uma faixa com cada estado do tamanho que durou e, abaixo, cada mudança, da mais recente para a mais antiga. **Tabela**, no cabeçalho do cartão, os lista em linhas, com **Status do alerta**, **Começa em**, **Termina em** e **Duração**.
 
 - **Ver causa** mostra a causa raiz registrada com essa mudança.
 - **Ver registros** mostra o que o OneUptime registrou quando o alerta mudou, como a verificação do monitor que a causou.
