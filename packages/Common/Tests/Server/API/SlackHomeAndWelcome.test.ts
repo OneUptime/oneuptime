@@ -1279,6 +1279,11 @@ describe("a person in several of the workspace's projects: Switch project", () =
   let namesReadable: boolean;
   // Projects an administrator blocked: their members are refused there.
   let blocked: Set<string>;
+  /*
+   * Projects Alice left a moment ago: still in her projects as they were
+   * read for the menu, refused by the Home's own read of her membership.
+   */
+  let leftJustNow: Set<string>;
 
   function memberKey(userId: ObjectID, projectId: ObjectID | string): string {
     return `${userId.toString()} ${projectId.toString().toLowerCase()}`;
@@ -1377,6 +1382,7 @@ describe("a person in several of the workspace's projects: Switch project", () =
     memberPropsReads = [];
     namesReadable = true;
     blocked = new Set<string>();
+    leftJustNow = new Set<string>();
 
     // The workspaces' connections, oldest first, as the resolver reads them.
     jest
@@ -1437,7 +1443,10 @@ describe("a person in several of the workspace's projects: Switch project", () =
       }) => {
         memberPropsReads.push(data.projectId.toString());
 
-        if (!members.has(memberKey(data.userId, data.projectId))) {
+        if (
+          !members.has(memberKey(data.userId, data.projectId)) ||
+          leftJustNow.has(data.projectId.toString())
+        ) {
           throw new NotAuthorizedException(
             WorkspaceActionAuthorization.NOT_A_PROJECT_MEMBER_MESSAGE,
           );
@@ -1626,6 +1635,24 @@ describe("a person in several of the workspace's projects: Switch project", () =
     };
   }
 
+  /*
+   * The project a Home's menu is named for (its block id: the menu's action,
+   * the project shown, and a name for this drawing of it); null without one.
+   */
+  function menuProjectOf(home: DrawnHome): string | null {
+    if (!home.menuBlockId) {
+      return null;
+    }
+
+    const parts: Array<string> = home.menuBlockId.split(":");
+
+    expect(parts).toHaveLength(3);
+    expect(parts[0]).toBe("SwitchHomeProject");
+    expect(parts[2]).toHaveLength(8);
+
+    return parts[1]!;
+  }
+
   // The names a menu lists.
   function namesIn(home: DrawnHome): Array<string> | null {
     return home.menu
@@ -1701,7 +1728,7 @@ describe("a person in several of the workspace's projects: Switch project", () =
       { name: "Acme Staging", value: STAGING.toString() },
       { name: "Acme Sandbox", value: SANDBOX.toString() },
     ]);
-    expect(home.menuBlockId).toBe(`SwitchHomeProject:${PRODUCTION.toString()}`);
+    expect(menuProjectOf(home)).toBe(PRODUCTION.toString());
     expect(home.menuBeside).toBe(home.projectLine);
     expect(home.json).not.toContain("Acme Finance");
     expect(home.json).not.toContain(FINANCE.toString());
@@ -1806,7 +1833,7 @@ describe("a person in several of the workspace's projects: Switch project", () =
       "Here's what is happening in *Acme Staging*.\n",
     );
     expect(namesIn(home)).toEqual(["Acme Production", "Acme Sandbox"]);
-    expect(home.menuBlockId).toBe(`SwitchHomeProject:${STAGING.toString()}`);
+    expect(menuProjectOf(home)).toBe(STAGING.toString());
     // Switched as asked: nothing to explain.
     expect(home.texts).not.toContain(REFUSED);
 
@@ -1959,7 +1986,7 @@ describe("a person in several of the workspace's projects: Switch project", () =
   });
 
   test("removed from a project after the menu was drawn, then choosing it: told she can't switch, her Home stays where it was - nothing of it read, nothing remembered", async () => {
-    await opened();
+    const before: DrawnHome = await opened();
 
     members.delete(memberKey(ALICE_ID, STAGING));
     memberPropsReads = [];
@@ -1975,6 +2002,13 @@ describe("a person in several of the workspace's projects: Switch project", () =
     expect(namesIn(home)).toEqual(["Acme Sandbox"]);
     expect(memberPropsReads).toEqual([PRODUCTION.toString()]);
     expect(rememberedHomes()).toEqual([]);
+
+    /*
+     * The same project's Home, drawn again: its menu named afresh, so Slack
+     * shows "Switch project" on it, never the option she chose in vain.
+     */
+    expect(menuProjectOf(home)).toBe(PRODUCTION.toString());
+    expect(home.menuBlockId).not.toBe(before.menuBlockId);
   });
 
   test("a press she could not have made - a project she is not connected in, one of another workspace, none at all - draws nothing of it: her Home as it opens, saying she can't switch, and nothing remembered", async () => {
@@ -2065,12 +2099,23 @@ describe("a person in several of the workspace's projects: Switch project", () =
     const home: DrawnHome = await opened();
 
     expect(home.projectId).toBe(STAGING.toString());
-    expect(home.texts).toContain(`${ExceptionMessages.ProjectBlocked}\n`);
-    expect(home.menuBeside).toBe(`${ExceptionMessages.ProjectBlocked}\n`);
+    /*
+     * Which project is refused, on the line that names it on every Home,
+     * with the menu of her others beside it - then why. "This project" is
+     * never one of her three left unnamed.
+     */
+    expect(home.texts).toEqual([
+      "👋 Hi there",
+      "Here's what is happening in *Acme Staging*.\n",
+      `${ExceptionMessages.ProjectBlocked}\n`,
+    ]);
+    expect(home.menuBeside).toBe(home.projectLine);
+    expect(menuProjectOf(home)).toBe(STAGING.toString());
     expect(namesIn(home)).toEqual(["Acme Production", "Acme Sandbox"]);
-    // Nothing of the blocked project is shown.
-    expect(home.json).not.toContain("Here's what is happening");
+    // Nothing the blocked project holds is read or shown, nor its buttons.
     expect(onCallReads).toHaveLength(readsBefore);
+    expect(home.json).not.toContain("Your on-call");
+    expect(home.json).not.toContain('"type":"actions"');
 
     const away: DrawnHome = await switched({
       value: PRODUCTION.toString(),
@@ -2083,6 +2128,64 @@ describe("a person in several of the workspace's projects: Switch project", () =
 
     later();
     expect((await opened()).projectId).toBe(PRODUCTION.toString());
+  });
+
+  test("a switch she may not make, and the project her Home falls back to is blocked: why it did not switch, then which project is refused and why, with the menu of her others", async () => {
+    await opened();
+
+    members.delete(memberKey(ALICE_ID, STAGING));
+    blocked.add(PRODUCTION.toString());
+    const readsBefore: number = onCallReads.length;
+
+    const home: DrawnHome = await switched({
+      value: STAGING.toString(),
+      shown: PRODUCTION,
+    });
+
+    expect(home.projectId).toBe(PRODUCTION.toString());
+    // Never "this project has been blocked" left to read as the one she chose.
+    expect(home.texts).toEqual([
+      "👋 Hi there",
+      REFUSED,
+      "Here's what is happening in *Acme Production*.\n",
+      `${ExceptionMessages.ProjectBlocked}\n`,
+    ]);
+    expect(home.menuBeside).toBe(home.projectLine);
+    expect(namesIn(home)).toEqual(["Acme Sandbox"]);
+    expect(onCallReads).toHaveLength(readsBefore);
+    expect(rememberedHomes()).toEqual([]);
+  });
+
+  test("the project her Home opens on was left a moment ago - after her projects were read for the menu: told she is not a member there, which project, with the menu of her others", async () => {
+    await opened();
+    await switched({ value: SANDBOX.toString(), shown: PRODUCTION });
+
+    leftJustNow.add(SANDBOX.toString());
+    later();
+    const readsBefore: number = onCallReads.length;
+
+    const home: DrawnHome = await opened();
+
+    expect(home.projectId).toBe(SANDBOX.toString());
+    expect(home.texts).toEqual([
+      "👋 Hi there",
+      "Here's what is happening in *Acme Sandbox*.\n",
+      `${WorkspaceActionAuthorization.NOT_A_PROJECT_MEMBER_MESSAGE}\n`,
+    ]);
+    expect(home.menuBeside).toBe(home.projectLine);
+    expect(namesIn(home)).toEqual(["Acme Production", "Acme Staging"]);
+    expect(onCallReads).toHaveLength(readsBefore);
+
+    // She switches away from it, and stays away.
+    const away: DrawnHome = await switched({
+      value: STAGING.toString(),
+      shown: SANDBOX,
+    });
+
+    expect(away.projectId).toBe(STAGING.toString());
+    expect(away.texts).not.toContain(REFUSED);
+    later();
+    expect((await opened()).projectId).toBe(STAGING.toString());
   });
 
   test("the projects cannot be named: the Home of the first, with no menu - never a nameless option", async () => {

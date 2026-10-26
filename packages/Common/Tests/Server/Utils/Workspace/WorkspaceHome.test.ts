@@ -44,7 +44,7 @@ import {
   WorkspacePayloadMarkdown,
   WorkspacePayloadMenu,
 } from "../../../../Types/Workspace/WorkspaceMessagePayload";
-import { mdText } from "../../../../Utils/Markdown/FeedMarkdown";
+import { MarkdownText, mdText } from "../../../../Utils/Markdown/FeedMarkdown";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
 
 /*
@@ -911,6 +911,138 @@ describe("the Home of somebody not connected, or not a member", () => {
     expect(textOf(blocks[1]!)).toBe(
       "Your OneUptime account is not a member of this project. Ask a project admin to invite you, then try again.",
     );
+  });
+
+  /*
+   * Refused in the project it shows - blocked by an administrator, or left
+   * a moment ago. Somebody in several of a workspace's projects is told
+   * which one, on the line every Home names it on, with the Slack Home's
+   * Switch project menu beside it (SlackHome): "this project" is never one
+   * of several left unnamed, and they can always switch away from it.
+   */
+  const SWITCH_MENU: WorkspacePayloadMenu = {
+    actionId: "SwitchHomeProject",
+    placeholder: "Switch project",
+    options: [{ label: "Acme Staging", value: ObjectID.generate().toString() }],
+    blockId: "SwitchHomeProject:p:0a1b2c3d",
+  };
+  const BLOCKED: string =
+    "This project has been blocked. Please contact your administrator.";
+
+  test("refused, in one project: why, and nothing else - as not being a member is told", () => {
+    const blocks: Array<WorkspaceMessageBlock> = WorkspaceHome.getRefusedBlocks(
+      { message: BLOCKED },
+    );
+
+    expect(typesOf(blocks)).toEqual([
+      "WorkspacePayloadHeader",
+      "WorkspacePayloadMarkdown",
+    ]);
+    expect(textOf(blocks[0]!)).toBe("👋 Hi there");
+    expect(textOf(blocks[1]!)).toBe(BLOCKED);
+    expect(Object.keys(blocks[1]!).sort()).toEqual(["_type", "text"]);
+
+    // A name with no menu: nothing to switch to, so nothing new is said.
+    expect(
+      WorkspaceHome.getRefusedBlocks({
+        message: BLOCKED,
+        projectName: "Acme Production",
+      }),
+    ).toEqual(blocks);
+  });
+
+  test("refused, in several projects: which one, on the line that names it on every Home, the menu beside it - then why", () => {
+    const blocks: Array<WorkspaceMessageBlock> = WorkspaceHome.getRefusedBlocks(
+      {
+        message: BLOCKED,
+        projectName: "Acme Production",
+        projectMenu: SWITCH_MENU,
+      },
+    );
+
+    expect(typesOf(blocks)).toEqual([
+      "WorkspacePayloadHeader",
+      "WorkspacePayloadMarkdown",
+      "WorkspacePayloadMarkdown",
+    ]);
+    expect(textOf(blocks[0]!)).toBe("👋 Hi there");
+    expect(textOf(blocks[1]!)).toBe(
+      "Here's what is happening in **Acme Production**.",
+    );
+    expect((blocks[1] as WorkspacePayloadMarkdown).menu).toEqual(SWITCH_MENU);
+    expect(textOf(blocks[2]!)).toBe(BLOCKED);
+    expect((blocks[2] as WorkspacePayloadMarkdown).menu).toBeUndefined();
+
+    // The very line, and menu, the Home of a project that lets them in has.
+    expect(blocks[1]).toEqual(
+      WorkspaceHome.getBlocks({
+        workspaceType: WorkspaceType.Slack,
+        view: view(),
+        actions: ACTIONS,
+        projectMenu: SWITCH_MENU,
+      })[1],
+    );
+  });
+
+  test("refused with a notice: the notice first, under the greeting, as on any Home", () => {
+    const notice: MarkdownText = mdText`⚠️ You can't switch to that project.`;
+
+    expect(
+      WorkspaceHome.getRefusedBlocks({
+        message: BLOCKED,
+        projectName: "Acme Production",
+        projectMenu: SWITCH_MENU,
+        notice: notice,
+      }).map(textOf),
+    ).toEqual([
+      "👋 Hi there",
+      "⚠️ You can't switch to that project.",
+      "Here's what is happening in **Acme Production**.",
+      BLOCKED,
+    ]);
+
+    // In one project, too: why it did not switch, then why it is refused.
+    expect(
+      WorkspaceHome.getRefusedBlocks({ message: BLOCKED, notice: notice }).map(
+        textOf,
+      ),
+    ).toEqual(["👋 Hi there", "⚠️ You can't switch to that project.", BLOCKED]);
+  });
+
+  test("a menu with no name to put it beside: the menu beside why, never lost", () => {
+    for (const projectName of [undefined, null, ""]) {
+      const blocks: Array<WorkspaceMessageBlock> =
+        WorkspaceHome.getRefusedBlocks({
+          message: BLOCKED,
+          projectName: projectName,
+          projectMenu: SWITCH_MENU,
+        });
+
+      expect(blocks.map(textOf)).toEqual(["👋 Hi there", BLOCKED]);
+      expect((blocks[1] as WorkspacePayloadMarkdown).menu).toEqual(SWITCH_MENU);
+    }
+  });
+
+  test("a name that ends its own sentence takes no second full stop", () => {
+    expect(
+      textOf(
+        WorkspaceHome.getRefusedBlocks({
+          message: BLOCKED,
+          projectName: "Acme Inc.",
+          projectMenu: SWITCH_MENU,
+        })[1]!,
+      ),
+    ).toBe("Here's what is happening in **Acme Inc.**");
+  });
+
+  test("the refusal is said as it is written: Markdown in it is text, never formatting or a link", () => {
+    const written: string = "Ask *an admin* to [invite you](https://x.test).";
+    const said: string = textOf(
+      WorkspaceHome.getRefusedBlocks({ message: written })[1]!,
+    );
+
+    expect(said).toBe(mdText`${written}`.toString());
+    expect(said).not.toBe(written);
   });
 });
 

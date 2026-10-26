@@ -15,14 +15,12 @@ import {
 } from "../../../../Types/Workspace/ConnectCallback";
 import {
   WorkspaceMessageBlock,
-  WorkspacePayloadHeader,
-  WorkspacePayloadMarkdown,
   WorkspacePayloadMenu,
   WorkspacePayloadMenuOption,
 } from "../../../../Types/Workspace/WorkspaceMessagePayload";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
 import API from "../../../../Utils/API";
-import { mdText } from "../../../../Utils/Markdown/FeedMarkdown";
+import { MarkdownText, mdText } from "../../../../Utils/Markdown/FeedMarkdown";
 import DatabaseConfig from "../../../DatabaseConfig";
 import GlobalCache from "../../../Infrastructure/GlobalCache";
 import WorkspaceProjectAuthTokenService from "../../../Services/WorkspaceProjectAuthTokenService";
@@ -550,6 +548,16 @@ export default class SlackHome {
       choices: data.choices || [],
     });
 
+    // The shown project's name, as the menu of the person's projects has it.
+    const menuProjectName: string | null =
+      (data.choices || []).find((choice: WorkspaceProjectChoice): boolean => {
+        return SlackHome.isSameId(choice.projectId, data.projectId);
+      })?.name || null;
+
+    const notice: MarkdownText | undefined = data.isSwitchRefused
+      ? mdText`${SLACK_HOME_PROJECT_MENU.refused}`
+      : undefined;
+
     let props: DatabaseCommonInteractionProps;
 
     try {
@@ -560,11 +568,18 @@ export default class SlackHome {
     } catch (err) {
       /*
        * Refused here - the project blocked, or left a moment ago - the Home
-       * says why, and keeps the menu of the person's other projects: the
-       * project they chose, or the first, never keeps them from the rest.
+       * says why, and keeps the menu of the person's other projects beside
+       * the line that names this one: the project they chose, or the first,
+       * never keeps them from the rest, and "this project" is never one of
+       * several left unnamed.
        */
       if (err instanceof NotAuthorizedException) {
-        return SlackHome.getRefusedBlocks(err.message, projectMenu);
+        return WorkspaceHome.getRefusedBlocks({
+          message: err.message,
+          projectName: projectMenu ? menuProjectName : null,
+          projectMenu: projectMenu || undefined,
+          notice: notice,
+        });
       }
 
       throw err;
@@ -582,10 +597,7 @@ export default class SlackHome {
      * menu was, should the Home's own read of the name have failed.
      */
     if (projectMenu && !view.projectName) {
-      view.projectName =
-        (data.choices || []).find((choice: WorkspaceProjectChoice): boolean => {
-          return SlackHome.isSameId(choice.projectId, data.projectId);
-        })?.name || null;
+      view.projectName = menuProjectName;
     }
 
     return WorkspaceHome.getBlocks({
@@ -593,9 +605,7 @@ export default class SlackHome {
       view: view,
       actions: SLACK_HOME_ACTIONS,
       projectMenu: projectMenu || undefined,
-      notice: data.isSwitchRefused
-        ? mdText`${SLACK_HOME_PROJECT_MENU.refused}`
-        : undefined,
+      notice: notice,
     });
   }
 
@@ -636,8 +646,14 @@ export default class SlackHome {
           };
         },
       ),
-      // Each project's Home has a menu of its own: nothing chosen in another is kept.
-      blockId: `${SlackActionType.SwitchHomeProject}:${data.shownProjectId.toString()}`,
+      /*
+       * Named afresh each time the Home is drawn. Slack can keep the option
+       * chosen in a menu across a redraw while the menu's block keeps its
+       * id; a new id makes every Home drawn - for the project chosen, or for
+       * the same project when the switch was refused - open on "Switch
+       * project", never on an option that is not the project shown.
+       */
+      blockId: `${SlackActionType.SwitchHomeProject}:${data.shownProjectId.toString()}:${crypto.randomBytes(4).toString("hex")}`,
     };
   }
 
@@ -677,35 +693,6 @@ export default class SlackHome {
       ...(data.home.isConnectedInNone ? { connectUrl: null } : {}),
       choices: data.home.choices,
       isSwitchRefused: data.isSwitchRefused,
-    });
-  }
-
-  /*
-   * A member refused - not one any more, or the project blocked: why, with
-   * the menu of their other projects beside it when they have any.
-   */
-  private static getRefusedBlocks(
-    message: string,
-    projectMenu: WorkspacePayloadMenu | null,
-  ): Array<WorkspaceMessageBlock> {
-    const blocks: Array<WorkspaceMessageBlock> =
-      WorkspaceHome.getNotAMemberBlocks();
-
-    return blocks.map((block: WorkspaceMessageBlock): WorkspaceMessageBlock => {
-      if (block._type === "WorkspacePayloadMarkdown") {
-        const refusal: WorkspacePayloadMarkdown = {
-          _type: "WorkspacePayloadMarkdown",
-          text: mdText`${message}`.toString(),
-        };
-
-        if (projectMenu) {
-          refusal.menu = projectMenu;
-        }
-
-        return refusal;
-      }
-
-      return block as WorkspacePayloadHeader;
     });
   }
 

@@ -233,15 +233,12 @@ export default class WorkspaceHome {
     }
 
     if (view.projectName) {
-      const projectLine: WorkspacePayloadMarkdown = WorkspaceHome.markdown(
-        mdText`Here's what is happening in **${view.projectName}**${WorkspaceHome.fullStopAfter(view.projectName)}`,
+      blocks.push(
+        WorkspaceHome.getProjectLine({
+          projectName: view.projectName,
+          projectMenu: data.projectMenu,
+        }),
       );
-
-      if (data.projectMenu) {
-        projectLine.menu = data.projectMenu;
-      }
-
-      blocks.push(projectLine);
     }
 
     // What you can do, first (see the header).
@@ -321,12 +318,75 @@ export default class WorkspaceHome {
 
   // The Home of somebody whose account is not a member of the project.
   public static getNotAMemberBlocks(): Array<WorkspaceMessageBlock> {
-    return [
+    return WorkspaceHome.getRefusedBlocks({
+      message: WorkspaceActionAuthorization.NOT_A_PROJECT_MEMBER_MESSAGE,
+    });
+  }
+
+  /*
+   * The Home of somebody the project refuses - not a member any more, or
+   * the project blocked by an administrator: why, in the refusal's own
+   * words, and nothing the project holds. Somebody in several of a
+   * workspace's projects (the Slack Home's Switch project) is told which
+   * one, on the line that names it on every Home, with the menu of their
+   * others beside it - so "this project" is never one of several left
+   * unnamed, and they can always switch away from it. A notice comes first,
+   * as on any Home.
+   */
+  public static getRefusedBlocks(data: {
+    // Plain text, as NotAuthorizedException words it: never Markdown.
+    message: string;
+    projectName?: string | null | undefined;
+    projectMenu?: WorkspacePayloadMenu | undefined;
+    notice?: MarkdownText | undefined;
+  }): Array<WorkspaceMessageBlock> {
+    const blocks: Array<WorkspaceMessageBlock> = [
       WorkspaceHome.header("👋 Hi there"),
-      WorkspaceHome.markdown(
-        mdText`${WorkspaceActionAuthorization.NOT_A_PROJECT_MEMBER_MESSAGE}`,
-      ),
     ];
+
+    if (data.notice) {
+      blocks.push(WorkspaceHome.markdown(data.notice));
+    }
+
+    const refusal: WorkspacePayloadMarkdown = WorkspaceHome.markdown(
+      mdText`${data.message}`,
+    );
+
+    if (data.projectMenu && data.projectName) {
+      blocks.push(
+        WorkspaceHome.getProjectLine({
+          projectName: data.projectName,
+          projectMenu: data.projectMenu,
+        }),
+      );
+    } else if (data.projectMenu) {
+      // No name to put it beside: the menu goes beside why.
+      refusal.menu = data.projectMenu;
+    }
+
+    blocks.push(refusal);
+
+    return blocks;
+  }
+
+  /*
+   * "Here's what is happening in **Acme Production**." - the line under the
+   * greeting that says which project the Home is for, with the Slack Home's
+   * Switch project menu beside it when there is one.
+   */
+  public static getProjectLine(data: {
+    projectName: string;
+    projectMenu?: WorkspacePayloadMenu | undefined;
+  }): WorkspacePayloadMarkdown {
+    const projectLine: WorkspacePayloadMarkdown = WorkspaceHome.markdown(
+      mdText`Here's what is happening in **${data.projectName}**${WorkspaceHome.fullStopAfter(data.projectName)}`,
+    );
+
+    if (data.projectMenu) {
+      projectLine.menu = data.projectMenu;
+    }
+
+    return projectLine;
   }
 
   /*

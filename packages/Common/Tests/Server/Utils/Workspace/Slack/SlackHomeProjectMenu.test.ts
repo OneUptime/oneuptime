@@ -76,6 +76,30 @@ function sectionsOf(block: WorkspacePayloadMarkdown): Array<JSONObject> {
   });
 }
 
+/*
+ * What a menu's block id is made of: the menu's action, the project the
+ * Home shows, and a name for this drawing of it (eight hex digits).
+ */
+function blockIdParts(blockId: string | undefined): {
+  actionId: string;
+  projectId: string;
+  isDrawingNamed: boolean;
+} {
+  const parts: Array<string> = (blockId || "").split(":");
+  const drawing: string = parts[2] || "";
+
+  return {
+    actionId: parts[0] || "",
+    projectId: parts[1] || "",
+    isDrawingNamed:
+      parts.length === 3 &&
+      drawing.length === 8 &&
+      drawing.split("").every((character: string): boolean => {
+        return "0123456789abcdef".includes(character);
+      }),
+  };
+}
+
 function optionTexts(section: JSONObject): Array<string> {
   return (
     (section["accessory"] as JSONObject)["options"] as Array<JSONObject>
@@ -98,7 +122,13 @@ describe("the menu the Home builds", () => {
         { label: "Acme Production", value: PRODUCTION.toString() },
         { label: "Acme Sandbox", value: SANDBOX.toString() },
       ],
-      blockId: `SwitchHomeProject:${STAGING.toString()}`,
+      blockId: expect.any(String),
+    });
+    // The menu's block: named for the project shown, and for this drawing.
+    expect(blockIdParts(menu!.blockId)).toEqual({
+      actionId: "SwitchHomeProject",
+      projectId: STAGING.toString(),
+      isDrawingNamed: true,
     });
   });
 
@@ -153,6 +183,34 @@ describe("the menu the Home builds", () => {
       SlackHome.getProjectMenu({ shownProjectId: STAGING, choices: CHOICES })!
         .blockId,
     );
+  });
+
+  /*
+   * A switch the person may not make draws their Home again for the same
+   * project: a menu named as before could go on showing the option they
+   * chose, beside a line that names another project. Each drawing names
+   * the menu afresh, so it always opens on "Switch project".
+   */
+  test("each drawing of the same project's Home names its menu afresh, so it always opens on Switch project", () => {
+    const blockIds: Set<string> = new Set<string>();
+
+    for (let drawing: number = 0; drawing < 20; drawing++) {
+      const blockId: string = SlackHome.getProjectMenu({
+        shownProjectId: PRODUCTION,
+        choices: CHOICES,
+      })!.blockId!;
+
+      expect(blockIdParts(blockId)).toEqual({
+        actionId: "SwitchHomeProject",
+        projectId: PRODUCTION.toString(),
+        isDrawingNamed: true,
+      });
+      // Within what Slack takes for a block's id.
+      expect(blockId.length).toBeLessThanOrEqual(255);
+      blockIds.add(blockId);
+    }
+
+    expect(blockIds.size).toBe(20);
   });
 });
 

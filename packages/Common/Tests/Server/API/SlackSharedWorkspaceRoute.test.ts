@@ -18,6 +18,7 @@ import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import Name from "../../../Types/Name";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import ExceptionMessages from "../../../Types/Exception/ExceptionMessages";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Permission, {
   UserPermission,
@@ -3310,6 +3311,57 @@ describe("one Slack workspace connected to two OneUptime projects", () => {
       expect(home.text).toContain(REFUSED);
       expect(home.text).not.toContain("INC-12");
       expect(home.menu).toBeNull();
+    });
+
+    test("IRM Non-Prod blocked by an administrator after he chose it: his next opening names it and says why, reads nothing there, and keeps the menu - he switches to IRM Platform", async () => {
+      await homeOf("U0DEANE");
+      await switchedTo({
+        slackUserId: "U0DEANE",
+        shown: PLATFORM,
+        value: NONPRD.toString(),
+      });
+
+      jest.spyOn(ProjectService, "isProjectBlocked").mockImplementation((async (
+        projectId: ObjectID,
+      ) => {
+        return sameId(projectId, NONPRD);
+      }) as never);
+      scheduleReads = [];
+      incidentListReads = [];
+
+      tenSecondsLater();
+      const home: Home = await homeOf("U0DEANE");
+
+      // Which project, on the line that names it, then why - in that order.
+      expect(home.projectId).toBe(NONPRD.toString());
+      const named: number = home.text.indexOf(
+        "Here's what is happening in *IRM Non-Prod*.",
+      );
+      const why: number = home.text.indexOf(ExceptionMessages.ProjectBlocked);
+
+      expect(named).toBeGreaterThan(-1);
+      expect(why).toBeGreaterThan(named);
+      expect(home.menu).toEqual([["IRM Platform", PLATFORM.toString()]]);
+
+      // Nothing IRM Non-Prod holds: no shifts, no incidents, no buttons.
+      expect(scheduleReads).toEqual([]);
+      expect(incidentListReads).toEqual([]);
+      expect(home.text).not.toContain("INC-12");
+      expect(home.text).not.toContain("Declare incident");
+
+      const away: Home = await switchedTo({
+        slackUserId: "U0DEANE",
+        shown: NONPRD,
+        value: PLATFORM.toString(),
+      });
+
+      expect(away.projectId).toBe(PLATFORM.toString());
+      expect(away.text).toContain(
+        "Here's what is happening in *IRM Platform*.",
+      );
+      expect(away.text).not.toContain(REFUSED);
+      expect(away.text).not.toContain(ExceptionMessages.ProjectBlocked);
+      expect(away.menu).toEqual([["IRM Non-Prod", NONPRD.toString()]]);
     });
 
     test("his Slack account disconnected in IRM Non-Prod since he chose it: IRM Platform's Home, and no menu", async () => {
