@@ -1,10 +1,11 @@
 {{- if and .Values.globalRunner.enabled (not .Values.deployment.disableDeployments) }}
 {{- /*
 The bundled global Runner (Common/Types/Runner/BundledGlobalRunner.ts): it runs
-the runbook JavaScript steps of every project that uses global Runners, each in
-a sandbox of its own that reaches the internet only. It is the ordinary Runner
-image started with a fixed id and its own key, and it holds nothing else: no
-cluster key (oneuptime.env.oneuptimeSecret), none of the server's settings
+the runbook JavaScript steps, each in a sandbox of its own that reaches the
+internet only, and the AI code fixes of every project that uses global Runners.
+It never runs a repository's own commands. It is the ordinary Runner image
+started with a fixed id and its own key, and it holds nothing else: no cluster
+key (oneuptime.env.oneuptimeSecret), none of the server's settings
 (oneuptime.env.common / oneuptime.env.runtime), no ServiceAccount token. The
 server keeps its row from the same key (GLOBAL_RUNNER_KEY, which
 oneuptime.env.globalRunner hands the app, the worker and the migrate job). The
@@ -27,7 +28,13 @@ spec:
   selector:
     matchLabels:
       app: {{ printf "%s-%s" $.Release.Name "global-runner" }}
+  {{- /*
+  Left to KEDA while it scales the global Runner (keda-scaledobjects.yaml), so
+  an upgrade does not set the count back under it.
+  */}}
+  {{- if not (and $.Values.keda.enabled (($.Values.globalRunner.keda).enabled)) }}
   replicas: {{ $.Values.globalRunner.replicaCount }}
+  {{- end }}
   strategy: {{- toYaml $.Values.deployment.updateStrategy | nindent 4 }}
   template:
     metadata:
@@ -99,11 +106,10 @@ spec:
             - name: ONEUPTIME_RUNNER_CONCURRENCY
               value: {{ $.Values.globalRunner.concurrency | squote }}
             {{- /*
-            The server tells it it is global and serves it JavaScript steps only;
-            these say the same on the host, whatever the server says.
+            The server tells it it is global, and serves it JavaScript steps and
+            AI code fixes, never AI remediation commands; this says the same on
+            the host, whatever the server says.
             */}}
-            - name: ONEUPTIME_RUNNER_ENABLE_CODE_FIXES
-              value: "false"
             - name: ONEUPTIME_RUNNER_ENABLE_AI_COMMANDS
               value: "false"
             {{- if $.Values.globalRunner.disableTelemetryCollection }}
@@ -130,4 +136,14 @@ spec:
             {{- toYaml $.Values.globalRunner.resources | nindent 12 }}
           {{- end }}
       restartPolicy: {{ $.Values.image.restartPolicy }}
+{{- if and $.Values.keda.enabled (($.Values.globalRunner.keda).enabled) }}
+---
+{{- /*
+The address KEDA reads the global Runner's queue size at (/metrics/queue-size
+on its http port, keda-scaledobjects.yaml). Only while KEDA scales it: nothing
+else calls the global Runner.
+*/}}
+{{- $globalRunnerPorts := dict "http" $.Values.globalRunner.ports.http }}
+{{- include "oneuptime.service" (dict "ServiceName" "global-runner" "Ports" $globalRunnerPorts "Release" $.Release "Values" $.Values) }}
+{{- end }}
 {{- end }}

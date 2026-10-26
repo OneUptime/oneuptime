@@ -302,7 +302,7 @@ describe("running the quick start on config.example.env, up to npm start's secre
       values.push(after[index].slice(key.length + 1));
     }
 
-    expect(values.length).toBeGreaterThanOrEqual(10);
+    expect(values.length).toBeGreaterThanOrEqual(9);
     for (const value of values) {
       expect(value).toMatch(RANDOM_VALUE);
     }
@@ -329,7 +329,6 @@ describe("running the quick start on config.example.env, up to npm start's secre
         "VALKEY_PASSWORD",
         "GLOBAL_PROBE_1_KEY",
         "GLOBAL_PROBE_2_KEY",
-        "ONEUPTIME_RUNNER_KEY",
         "GLOBAL_RUNNER_KEY",
       ]),
     );

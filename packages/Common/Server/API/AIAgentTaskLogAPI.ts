@@ -1,7 +1,9 @@
 import AIRunService from "../Services/AIRunService";
 import AIRunEventService from "../Services/AIRunEventService";
 import CodeFixAgentAuth, {
+  CODE_FIX_RUN_HOLD_SELECT,
   CodeFixAgentIdentity,
+  CodeFixRunAccess,
 } from "../Utils/AI/CodeFix/CodeFixAgentAuth";
 import Express, {
   ExpressRequest,
@@ -105,26 +107,25 @@ export default class AIAgentTaskLogAPI {
           /* Check if the run exists and get its project ID */
           const existingRun: AIRun | null = await AIRunService.findOneById({
             id: runId,
-            select: {
-              _id: true,
-              projectId: true,
-            },
+            select: CODE_FIX_RUN_HOLD_SELECT,
             props: {
               isRoot: true,
             },
           });
 
           /*
-           * A project-scoped agent may only write to its own project's runs —
-           * this endpoint appends to a run's glass-box trail, so without the
-           * check one tenant's key could plant log lines in another's.
+           * A project-scoped agent may only write to its own project's runs,
+           * and a global Runner only to a run it claimed (deniesAccessToRun)
+           * — this endpoint appends to a run's glass-box trail, so without
+           * the check one tenant's key could plant log lines in another's.
            */
           if (
             !existingRun ||
             !existingRun.projectId ||
-            CodeFixAgentAuth.deniesAccessToProject(
+            CodeFixAgentAuth.deniesAccessToRun(
               aiAgent,
-              existingRun.projectId,
+              existingRun,
+              CodeFixRunAccess.Report,
             )
           ) {
             return Response.sendErrorResponse(

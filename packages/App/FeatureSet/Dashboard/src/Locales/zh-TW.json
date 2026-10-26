@@ -2680,8 +2680,6 @@
   "Getting Started with Serverless Functions": "無伺服器函式入門",
   "Give this device a name to identify it in your notification settings.": "為此裝置命名,以便在您的通知設定中識別它。",
   "Give your security key a name (e.g., YubiKey, Titan Key)": "為您的安全金鑰命名(例如 YubiKey、Titan Key)",
-  "Global AI Agents": "全域 AI 代理",
-  "Global AI Agents help you automate incident management with AI-powered responses from OneUptime's infrastructure.": "全域 AI Agent 透過 OneUptime 基礎設施的 AI 驅動回應,協助您自動化事件管理。",
   "Global LLM Providers": "全域 LLM 供應商",
   "Global LLM Providers are pre-configured. These will be used automatically for AI features when you haven't set up your own custom LLM provider below.": "全域 LLM 供應商已預先設定。當您未在下方設定自己的自訂 LLM 供應商時,這些將自動用於 AI 功能。",
   "Global Probe Settings": "全域探測器設定",

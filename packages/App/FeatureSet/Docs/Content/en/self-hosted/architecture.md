@@ -11,7 +11,7 @@ flowchart TB
         direction TB
         Ingress["Ingress<br/>(Nginx, TLS)"]
         App["App<br/>dashboards,<br/>status pages,<br/>API, ingest,<br/>background jobs"]
-        Runner["Runner"]
+        Runner["Global Runner"]
         Probe["Probes"]
         subgraph Data["Data stores"]
             direction LR
@@ -54,8 +54,7 @@ flowchart TB
 | Worker | Part of `app` | `worker` (off by default) | The background jobs, in pods of their own, so heavy queue processing never competes with API requests. |
 | Telemetry writer | Part of `app` | `telemetryWriter` (off by default) | A fixed-size tier that makes every ClickHouse insert, so inserts stay bounded however far the workers scale. |
 | Probe | `probe-1` | `probes` | Runs monitor checks and sends the results back. Every bundled probe is a global probe all projects can use. |
-| Runner | `runner` | `runner` | The instance's own Runner, which can run AI code fixes for every project. Runbook steps run on [Runners](/docs/runbooks/agents) you install where they should run. |
-| Global Runner | `global-runner` | `globalRunner` | A [global Runner](/docs/runbooks/agents#global-runners): it runs the JavaScript steps of every project that picks no Runner of its own, each in a sandbox that reaches the internet only. It holds its own key and nothing else of the server's. |
+| Global Runner | `global-runner` | `globalRunner` | A [global Runner](/docs/runbooks/agents#global-runners): it runs the JavaScript steps of every project that picks no Runner of its own, each in a sandbox that reaches the internet only, and OneUptime AI's code fixes in every code repository that picks none. It holds its own key and nothing else of the server's. Bash, SSH and kubectl steps run on [Runners](/docs/runbooks/agents) you install where they should run. |
 | PostgreSQL | `postgres` | `postgresql`, or `postgresOperator.cnpg` | Projects, monitors, incidents, users and every other setting and state. |
 | ClickHouse | `clickhouse` | `clickhouse`, or `clickhouseOperator.altinity` | Logs, metrics, traces, exceptions, profiles and monitor logs. |
 | Valkey | `valkey` | `valkey` | The cache, the job queues and short-lived state such as pending push receipts. |

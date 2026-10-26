@@ -64,7 +64,7 @@ describe("StartServer emits the ENCRYPTION_SECRET boot warning", () => {
 });
 
 /*
- * The Runner is never handed ENCRYPTION_SECRET (the shared Runner's deployment
+ * The Runner is never handed ENCRYPTION_SECRET (the global Runner's deployment
  * environment leaves the server's settings out), so the warning would be said
  * on every boot and setting the secret would not silence it there. A process
  * that holds no encrypted data opts out; the App, which does, never does.

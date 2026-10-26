@@ -1,21 +1,24 @@
 import AIAgentService from "../../../Server/Services/AIAgentService";
+import RunnerService from "../../../Server/Services/RunnerService";
 import QueryHelper from "../../../Server/Types/Database/QueryHelper";
 import AIAgent, {
   AIAgentConnectionStatus,
 } from "../../../Models/DatabaseModels/AIAgent";
 import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
+import PositiveNumber from "../../../Types/PositiveNumber";
+import { RUNNER_ALIVE_WINDOW_IN_MINUTES } from "../../../Types/Runner/RunnerLiveStatus";
 import { afterEach, describe, expect, test } from "@jest/globals";
 
 /*
  * WHAT WORKS IN A REPOSITORY THAT PICKS NO RUNNER.
  *
  * A code repository that picks none of its project's Runners works on a
- * global Runner for code - a global AI agent: the installation's bundled
- * Runner, OneUptime Cloud's fleet - while its project uses global Runners,
- * and on an AI agent of the project's own, from before Runners, either way.
- * These are what the server asks before handing such a repository's work
- * on: whether one is alive now.
+ * global Runner - a Runner OneUptime runs for every project (the bundled
+ * one, and any a master admin adds) - while its project uses global
+ * Runners, and on an AI agent of the project's own, from before Runners,
+ * either way. These are what the server asks before handing such a
+ * repository's work on: whether one is alive now.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -43,52 +46,63 @@ interface FindCall {
   props: Record<string, unknown>;
 }
 
-describe("AIAgentService and the Runners of repositories that pick none", () => {
+describe("the Runners of repositories that pick none", () => {
   afterEach(() => {
     jest.restoreAllMocks();
   });
 
-  test("the global Runners for code are the global agents, read with what tells whether each is alive and nothing else", async () => {
-    const isNull: unknown = QueryHelper.isNull();
-    jest.spyOn(QueryHelper, "isNull").mockReturnValue(isNull as never);
-    const find: jest.SpyInstance = jest
-      .spyOn(AIAgentService, "findBy")
-      .mockResolvedValue([]);
+  test("a global Runner is online while one has heartbeated within the Runner window, counted as OneUptime", async () => {
+    const since: Array<Date> = [];
+    jest
+      .spyOn(QueryHelper, "greaterThan")
+      .mockImplementation((value: unknown): never => {
+        since.push(value as Date);
+        return { greaterThan: value } as never;
+      });
+    const count: jest.SpyInstance = jest
+      .spyOn(RunnerService, "countBy")
+      .mockResolvedValue(new PositiveNumber(1) as never);
 
-    await AIAgentService.findGlobalCodeRunners();
+    const before: number = OneUptimeDate.getSomeMinutesAgo(
+      RUNNER_ALIVE_WINDOW_IN_MINUTES,
+    ).getTime();
 
-    const call: FindCall = find.mock.calls[0]![0] as FindCall;
+    expect(await RunnerService.hasOnlineGlobalRunner()).toBe(true);
 
-    expect(call.query).toEqual({ isGlobalAIAgent: true, projectId: isNull });
-    expect(call.select).toEqual({
-      _id: true,
-      name: true,
-      lastAlive: true,
-      connectionStatus: true,
+    const after: number = OneUptimeDate.getSomeMinutesAgo(
+      RUNNER_ALIVE_WINDOW_IN_MINUTES,
+    ).getTime();
+
+    const call: { query: Record<string, unknown>; props: unknown } = count.mock
+      .calls[0]![0] as { query: Record<string, unknown>; props: unknown };
+
+    expect(call.query).toEqual({
+      isGlobalRunner: true,
+      lastAlive: { greaterThan: since[0] },
     });
-    expect(Object.keys(call.select)).not.toContain("key");
     expect(call.props).toEqual({ isRoot: true });
+    expect(since).toHaveLength(1);
+    expect(since[0]!.getTime()).toBeGreaterThanOrEqual(before);
+    expect(since[0]!.getTime()).toBeLessThanOrEqual(after);
+
+    count.mockResolvedValue(new PositiveNumber(0) as never);
+
+    expect(await RunnerService.hasOnlineGlobalRunner()).toBe(false);
   });
 
-  test("a global Runner for code is online while one of them is alive", async () => {
-    const find: jest.SpyInstance = jest
-      .spyOn(AIAgentService, "findGlobalCodeRunners")
-      .mockResolvedValue([
-        agent({ lastAlive: OneUptimeDate.getSomeMinutesAgo(30) }),
-      ]);
+  test("a global AI agent is no Runner for code any more: the agent service offers none of those lookups", () => {
+    const service: Record<string, unknown> =
+      AIAgentService as unknown as Record<string, unknown>;
 
-    expect(await AIAgentService.hasOnlineGlobalCodeRunner()).toBe(false);
-
-    find.mockResolvedValue([
-      agent({ lastAlive: OneUptimeDate.getSomeMinutesAgo(30) }),
-      agent({ lastAlive: OneUptimeDate.getCurrentDate() }),
-    ]);
-
-    expect(await AIAgentService.hasOnlineGlobalCodeRunner()).toBe(true);
-
-    find.mockResolvedValue([]);
-
-    expect(await AIAgentService.hasOnlineGlobalCodeRunner()).toBe(false);
+    for (const removed of [
+      "findGlobalCodeRunners",
+      "hasOnlineGlobalCodeRunner",
+      "findGlobalAIAgentToTakeOver",
+      "getAIAgentForProject",
+      "getConnectedAIAgentForProject",
+    ]) {
+      expect(service[removed]).toBeUndefined();
+    }
   });
 
   test("an agent of the project's own is the first one alive among its project's agents", async () => {

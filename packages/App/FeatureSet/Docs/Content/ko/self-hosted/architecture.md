@@ -11,7 +11,7 @@ flowchart TB
         direction TB
         Ingress["Ingress<br/>(Nginx, TLS)"]
         App["앱<br/>대시보드, 상태 페이지,<br/>API, 수집,<br/>백그라운드 작업"]
-        Runner["Runner"]
+        Runner["글로벌 Runner"]
         Probe["프로브"]
         subgraph Data["데이터 저장소"]
             direction LR
@@ -54,8 +54,7 @@ flowchart TB
 | Worker | `app`의 일부 | `worker`(기본값은 꺼짐) | 백그라운드 작업을 별도의 파드에서 실행해, 무거운 큐 처리가 API 요청과 경쟁하지 않게 합니다. |
 | Telemetry writer | `app`의 일부 | `telemetryWriter`(기본값은 꺼짐) | 모든 ClickHouse 삽입을 수행하는 고정 크기 계층으로, 워커가 얼마나 확장되든 삽입이 일정한 한도에 머물게 합니다. |
 | 프로브 | `probe-1` | `probes` | 모니터 검사를 실행하고 결과를 돌려보냅니다. 기본 제공되는 프로브는 모두 모든 프로젝트가 쓸 수 있는 글로벌 프로브입니다. |
-| Runner | `runner` | `runner` | 인스턴스 자체의 Runner로, 모든 프로젝트의 AI 코드 수정을 실행할 수 있습니다. Runbook 단계는 실행되어야 할 곳에 설치한 [Runner](/docs/runbooks/agents)에서 실행됩니다. |
-| 글로벌 Runner | `global-runner` | `globalRunner` | [글로벌 Runner](/docs/runbooks/agents#글로벌-runner)입니다. 자체 Runner를 고르지 않은 모든 프로젝트의 JavaScript 단계를 각각 인터넷에만 접근할 수 있는 샌드박스에서 실행합니다. 자체 키를 가지며 서버의 다른 것은 아무것도 갖지 않습니다. |
+| 글로벌 Runner | `global-runner` | `globalRunner` | [글로벌 Runner](/docs/runbooks/agents#글로벌-runner)입니다. 자체 Runner를 고르지 않은 모든 프로젝트의 JavaScript 단계를 각각 인터넷에만 접근할 수 있는 샌드박스에서 실행하고, Runner를 고르지 않은 모든 코드 저장소에서 OneUptime AI의 코드 수정을 실행합니다. 자체 키를 가지며 서버의 다른 것은 아무것도 갖지 않습니다. Bash, SSH, kubectl 단계는 실행되어야 할 곳에 설치한 [Runner](/docs/runbooks/agents)에서 실행됩니다. |
 | PostgreSQL | `postgres` | `postgresql` 또는 `postgresOperator.cnpg` | 프로젝트, 모니터, 인시던트, 사용자와 그 밖의 모든 설정과 상태. |
 | ClickHouse | `clickhouse` | `clickhouse` 또는 `clickhouseOperator.altinity` | 로그, 메트릭, 트레이스, 예외, 프로파일, 모니터 로그. |
 | Valkey | `valkey` | `valkey` | 캐시, 작업 큐, 그리고 대기 중인 푸시 수신 확인 같은 수명이 짧은 상태. |

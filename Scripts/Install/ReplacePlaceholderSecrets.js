@@ -27,7 +27,7 @@ const { ok, warn: warnLine, listed } = require("./StartOutput");
  *
  *   - ONEUPTIME_SECRET: the cluster key OneUptime's own services present
  *     to each other (Common/Server/Middleware/ClusterKeyAuthorization). The
- *     bundled Runner of this release does not hold it.
+ *     bundled global Runner does not hold it.
  *   - REGISTER_PROBE_KEY: what a probe presents to register as a global probe
  *     (Telemetry/API/ProbeIngest/Register). The server refuses a shipped value.
  *   - GLOBAL_PROBE_1_KEY, GLOBAL_PROBE_2_KEY: the bundled global probes' own
@@ -35,11 +35,6 @@ const { ok, warn: warnLine, listed } = require("./StartOutput");
  *     is picked up with no monitoring gap (Register rekeys the same-named
  *     global probe in place). ProbeService.verifyProbeKey refuses a shipped
  *     value, so a probe left on a placeholder key cannot authenticate.
- *   - ONEUPTIME_RUNNER_KEY: the in-cluster Runner's agent key, which it
- *     presents to register and on every code-fix request, and which the app
- *     is given too, to let the Runner register with it. The server refuses a
- *     shipped value (SharedRunnerKeyAuthorization, CodeFixAgentAuth,
- *     AIAgentAPI).
  *   - GLOBAL_RUNNER_KEY: the bundled global Runner's key. The app keeps the
  *     global Runner's row from it on every boot and the global-runner service
  *     presents it on every request, so both pick up a fresh value together;
@@ -53,7 +48,6 @@ const GENERATED_SECRETS = [
   "REGISTER_PROBE_KEY",
   "GLOBAL_PROBE_1_KEY",
   "GLOBAL_PROBE_2_KEY",
-  "ONEUPTIME_RUNNER_KEY",
   "GLOBAL_RUNNER_KEY",
 ];
 
@@ -342,8 +336,8 @@ const describeUnchangedConfig = (action, error) => {
 
   return warnLine(
     `config.env could not be ${action} (${reason}), so its placeholder secrets were not given random values. ` +
-      "OneUptime starts anyway, but the bundled probes and Runners do not register while REGISTER_PROBE_KEY, " +
-      "GLOBAL_PROBE_1_KEY, GLOBAL_PROBE_2_KEY, ONEUPTIME_RUNNER_KEY or GLOBAL_RUNNER_KEY still holds the " +
+      "OneUptime starts anyway, but the bundled probes and global Runner do not register while REGISTER_PROBE_KEY, " +
+      "GLOBAL_PROBE_1_KEY, GLOBAL_PROBE_2_KEY or GLOBAL_RUNNER_KEY still holds the " +
       "placeholder from config.example.env: set each to a long random value (openssl rand -hex 32 makes one).",
   );
 };
@@ -353,9 +347,10 @@ const describeUnchangedConfig = (action, error) => {
  *
  * Never throws. A config.env it cannot read or write is left as it was and
  * reported: OneUptime's own services do not need the new value (they use a
- * key of the installation's own), only the bundled probes and Runner do, so
- * neither `npm start` nor `npm run update` stops over it. `options` replaces the
- * file system and the output for the tests. Returns the names it set.
+ * key of the installation's own), only the bundled probes and global Runner
+ * do, so neither `npm start` nor `npm run update` stops over it. `options`
+ * replaces the file system and the output for the tests. Returns the names it
+ * set.
  */
 const init = (options = {}) => {
   const path = options.path || "./config.env";

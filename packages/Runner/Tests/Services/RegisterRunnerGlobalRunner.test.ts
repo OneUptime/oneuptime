@@ -50,10 +50,15 @@ jest.mock("Common/Server/Utils/Logger", () => {
   };
 });
 
-import Register from "../../Services/RegisterRunner";
+import Register, {
+  GLOBAL_RUNNER_STARTED_MESSAGE,
+  RegistrationRefusedError,
+} from "../../Services/RegisterRunner";
 import GlobalRunnerMode from "../../Utils/GlobalRunnerMode";
 import RunnerCapabilities from "../../Utils/RunnerCapabilities";
 import LocalCache from "Common/Server/Infrastructure/LocalCache";
+import logger from "Common/Server/Utils/Logger";
+import { GLOBAL_AI_AGENT_GONE_MESSAGE } from "Common/Types/Runner/GlobalAIAgentsGone";
 
 function response(
   statusCode: number,
@@ -139,5 +144,112 @@ describe("registering", () => {
     await Register.registerRunner();
 
     expect(GlobalRunnerMode.isActive()).toBe(false);
+  });
+
+  test("a global Runner the server grants code fixes takes them, and its start line says what it runs and never runs", async () => {
+    postMock.mockResolvedValue(
+      response(200, {
+        status: "ok",
+        isGlobalRunner: true,
+        globalStepTypes: ["JavaScript"],
+        capabilities: {
+          canRunRunbooks: true,
+          canRunCodeFixTasks: true,
+          canRunAiCommands: true,
+        },
+      }) as never,
+    );
+
+    await Register.registerRunner();
+
+    expect(GlobalRunnerMode.isActive()).toBe(true);
+    // Code fixes as granted; AI commands never, whatever the server says.
+    expect(RunnerCapabilities.resolve()).toEqual({
+      canRunRunbooks: true,
+      canRunCodeFixTasks: true,
+      canRunAiCommands: false,
+    });
+
+    const startLines: Array<string> = infoLog.filter((line: string) => {
+      return line.startsWith("This is a global Runner");
+    });
+
+    expect(startLines).toEqual([GLOBAL_RUNNER_STARTED_MESSAGE]);
+    expect(GLOBAL_RUNNER_STARTED_MESSAGE).toContain("JavaScript steps");
+    expect(GLOBAL_RUNNER_STARTED_MESSAGE).toContain("AI code fixes");
+    expect(GLOBAL_RUNNER_STARTED_MESSAGE).toContain(
+      "none of a repository's commands",
+    );
+  });
+});
+
+describe("a Runner started with a global AI agent's id and key", () => {
+  test("is told, as the server says it, that global Runners replaced it and what to start instead", async () => {
+    // The ingest heartbeat knows no Runner of that id; the AI agent heartbeat knows the global agent.
+    postMock
+      .mockResolvedValueOnce(
+        response(400, { message: "Invalid Runner ID or Key" }) as never,
+      )
+      .mockResolvedValueOnce(
+        response(400, { message: GLOBAL_AI_AGENT_GONE_MESSAGE }) as never,
+      );
+
+    const errorLog: jest.Mock = logger.error as unknown as jest.Mock;
+    errorLog.mockClear();
+
+    RunnerCapabilities.setGrantedByServer({
+      canRunRunbooks: true,
+      canRunCodeFixTasks: false,
+      canRunAiCommands: false,
+    });
+
+    const registered: boolean = await Register.tryRegisterRunner({
+      maxAttempts: 1,
+    });
+
+    expect(registered).toBe(false);
+    // Nothing is granted: it takes no code-fix work it could only fail.
+    expect(RunnerCapabilities.resolve().canRunCodeFixTasks).toBe(false);
+
+    const loggedErrors: Array<unknown> = errorLog.mock.calls.map(
+      (call: Array<unknown>) => {
+        return call[0];
+      },
+    );
+    const refusal: unknown = loggedErrors.find((value: unknown) => {
+      return value instanceof Error;
+    });
+
+    expect(refusal).toBeInstanceOf(RegistrationRefusedError);
+    expect((refusal as Error).message).toBe(GLOBAL_AI_AGENT_GONE_MESSAGE);
+    expect((refusal as RegistrationRefusedError).statusCode).toBe(400);
+  });
+
+  test("another refusal of the AI agent heartbeat keeps its own words", async () => {
+    postMock
+      .mockResolvedValueOnce(
+        response(400, { message: "Invalid Runner ID or Key" }) as never,
+      )
+      .mockResolvedValueOnce(
+        response(400, {
+          message: "Invalid AI Agent ID or AI Agent Key",
+        }) as never,
+      );
+
+    const errorLog: jest.Mock = logger.error as unknown as jest.Mock;
+    errorLog.mockClear();
+
+    await Register.tryRegisterRunner({ maxAttempts: 1 });
+
+    const refusal: unknown = errorLog.mock.calls
+      .map((call: Array<unknown>) => {
+        return call[0];
+      })
+      .find((value: unknown) => {
+        return value instanceof Error;
+      });
+
+    expect((refusal as Error).message).not.toBe(GLOBAL_AI_AGENT_GONE_MESSAGE);
+    expect((refusal as Error).message).toContain("Failed to register Runner");
   });
 });

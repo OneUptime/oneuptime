@@ -52,9 +52,9 @@ tests:
       - notExists:
           path: spec.template.spec.containers[0].volumeMounts
 
-  - it: leaves runner untouched when nothing is set
+  - it: leaves global-runner untouched when nothing is set
     templates:
-      - templates/runner.yaml
+      - templates/global-runner.yaml
     documentSelector:
       path: kind
       value: Deployment
@@ -218,6 +218,8 @@ tests:
 
   # ---------------------------------------------------------------------------
   # One chart-wide setting has to reach every workload — the CA-bundle case.
+  # The bundled global Runner is the one exception: it takes only its own
+  # lists (tests/global-runner_test.yaml).
   # ---------------------------------------------------------------------------
   - it: mounts the chart-wide CA bundle on app
     templates:
@@ -271,15 +273,6 @@ tests:
   - it: mounts the chart-wide CA bundle on every probe
     templates:
       - templates/probe.yaml
-    documentSelector:
-      path: kind
-      value: Deployment
-    set: *ca
-    asserts: *caAsserts
-
-  - it: mounts the chart-wide CA bundle on runner
-    templates:
-      - templates/runner.yaml
     documentSelector:
       path: kind
       value: Deployment

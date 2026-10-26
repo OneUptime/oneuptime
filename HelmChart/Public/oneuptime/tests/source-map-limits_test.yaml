@@ -22,7 +22,7 @@
 # And they have to reach EVERY workload that boots the server, not just app:
 # the ingest route and the resolve route live in the same image, and the
 # shared `oneuptime.env.runtime` helper is what puts them there. worker,
-# telemetry-writer, runner and the workloads built from the shared
+# telemetry-writer and the workloads built from the shared
 # `oneuptime.deployment` helper all pull that same block in, so a refactor
 # that drops the include from one of them is a real and invisible regression.
 suite: source map limits
@@ -307,10 +307,10 @@ tests:
             name: SOURCE_MAP_MAX_FILES_PER_REQUEST
             value: "20"
 
-  # The shared Runner is deliberately NOT asserted here: it takes a minimal
+  # The global Runner is deliberately NOT asserted here: it takes a minimal
   # environment, not oneuptime.env.runtime, so it never gets the source-map
   # limits (it does not ingest or resolve source maps). See
-  # tests/runner-minimal-env_test.yaml.
+  # tests/global-runner_test.yaml.
   #
   # test-server does not include the env helper itself -- it is built from the
   # shared `oneuptime.deployment` helper, which is a second, independent path

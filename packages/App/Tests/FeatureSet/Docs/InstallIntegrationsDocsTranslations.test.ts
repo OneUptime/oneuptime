@@ -586,7 +586,6 @@ const NUMBERS: Record<string, Array<string>> = {
     "443",
     "5400",
     "3874",
-    "3876",
     "30",
     "1000",
     "13",

@@ -51,8 +51,8 @@ export const GlobalRunnersCopy: {
    * switch is about and the rule it never changes; the switch's own line
    * says what each position does - neither repeats the other. It covers
    * every Global Runner choice: a runbook step's, and a code repository's
-   * (whose AI work runs on the global Runner for code unless the
-   * repository picks one of the project's own Runners).
+   * (whose AI work runs on a global Runner unless the repository picks one
+   * of the project's own Runners).
    */
   switchCardTitle: string;
   switchCardDescription: string;

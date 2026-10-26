@@ -11,10 +11,6 @@ import {
   restoreEncryptionSecret,
   setEncryptionSecret,
 } from "../TestingUtils/ShippedEncryptionSecrets";
-import {
-  restoreSharedRunnerKey,
-  setSharedRunnerKey,
-} from "../TestingUtils/SharedRunnerKeys";
 import type ClusterKeyAuthorizationType from "../../../Server/Middleware/ClusterKeyAuthorization";
 import type TokenSigningKeyType from "../../../Server/Utils/TokenSigningKey";
 import { JSONObject } from "../../../Types/JSON";
@@ -27,20 +23,20 @@ import type { Mock } from "jest-mock";
  * which keys the routes that take one accept.
  *
  * Those routes send an email, an SMS, a call or a message with the
- * installation's own accounts, run workflows, write telemetry for any
- * project and register the Runner that fixes code for every project. Only
- * OneUptime's own services may ask for that, and a value this repository
- * ships is never their key.
+ * installation's own accounts, run workflows and write telemetry for any
+ * project. Only OneUptime's own services may ask for that, and a value this
+ * repository ships is never their key.
  *
  * Each installation below is a fresh module registry: EnvironmentConfig reads
  * the ONEUPTIME_SECRET it names, and the real middleware runs on requests
  * carrying a key in every place a request can carry one. The rule:
  *
+ *   - every route is handed the one check, isAuthorizedServiceMiddleware: no
+ *     Runner registers with the cluster key any more;
  *   - the key is taken from a request header (clusterkey, or x-clusterkey
  *     as KEDA sends it) and nowhere else: a request whose URL names the key
  *     is refused whatever else it carries, and a key in the body is not
- *     read - but by the in-cluster Runner's registration, where Runners of
- *     earlier releases put it;
+ *     read;
  *   - a value this repository ships is refused, from any caller, as it is
  *     or URI-encoded, whatever the installation's own key;
  *   - an installation that kept such a value presents a key of its own,
@@ -60,21 +56,15 @@ interface Installation {
   configured: string | undefined;
   ClusterKeyAuthorization: ClusterKeyAuthorizationClass;
   TokenSigningKey: TokenSigningKeyClass;
-  // The installation's logger, mocked: what it was asked to warn about.
-  warnings: Mock<(...args: Array<unknown>) => unknown>;
   label: string;
   messages: {
     notFound: string;
     invalid: string;
     shipped: string;
     inUrl: string;
-    olderRunner: string;
-    runnerClusterKey: string;
-    runnerKeyNotSet: string;
   };
   config: {
     IsClusterKeyShipped: boolean;
-    HasClusterKey: boolean;
     ClusterKeyWarning: string | null;
     isShippedSecretValue: (value: string | null | undefined) => boolean;
   };
@@ -100,8 +90,6 @@ function loadInstallation(
 ): Installation {
   setClusterKey(configured);
   setEncryptionSecret(options.encryptionSecret ?? "secret");
-  // The app holds no shared Runner key here, whatever the machine running this has.
-  setSharedRunnerKey(undefined);
 
   let loaded: Installation | null = null;
 
@@ -111,10 +99,7 @@ function loadInstallation(
       const TokenSigningKey: TokenSigningKeyClass =
         require("../../../Server/Utils/TokenSigningKey").default;
       const middlewareModule: JSONObject = require("../../../Server/Middleware/ClusterKeyAuthorization");
-      const runnerKeyModule: JSONObject = require("../../../Server/Middleware/SharedRunnerKeyAuthorization");
       const config: Installation["config"] = require("../../../Server/EnvironmentConfig");
-      const logger: JSONObject =
-        require("../../../Server/Utils/Logger").default;
       /* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
 
       if (options.installationKey) {
@@ -128,23 +113,11 @@ function loadInstallation(
           "default"
         ] as unknown as ClusterKeyAuthorizationClass,
         TokenSigningKey: TokenSigningKey,
-        warnings: logger["warn"] as unknown as Mock<
-          (...args: Array<unknown>) => unknown
-        >,
         messages: {
           notFound: middlewareModule["CLUSTER_KEY_NOT_FOUND_MESSAGE"] as string,
           invalid: middlewareModule["INVALID_CLUSTER_KEY_MESSAGE"] as string,
           shipped: middlewareModule["SHIPPED_CLUSTER_KEY_MESSAGE"] as string,
           inUrl: middlewareModule["CLUSTER_KEY_IN_URL_MESSAGE"] as string,
-          olderRunner: middlewareModule[
-            "OLDER_RUNNER_CLUSTER_KEY_MESSAGE"
-          ] as string,
-          runnerClusterKey: middlewareModule[
-            "RUNNER_CLUSTER_KEY_MESSAGE"
-          ] as string,
-          runnerKeyNotSet: runnerKeyModule[
-            "SHARED_RUNNER_KEY_NOT_SET_MESSAGE"
-          ] as string,
         },
         config: config,
       };
@@ -152,7 +125,6 @@ function loadInstallation(
   } finally {
     restoreClusterKey();
     restoreEncryptionSecret();
-    restoreSharedRunnerKey();
   }
 
   return loaded!;
@@ -161,7 +133,6 @@ function loadInstallation(
 afterAll(() => {
   restoreClusterKey();
   restoreEncryptionSecret();
-  restoreSharedRunnerKey();
 });
 
 // The places a request can carry the key.
@@ -181,15 +152,10 @@ const HEADER_CHANNELS: Array<Channel> = ["header", "prefixed header"];
 // Where a request's URL carries it: refused, whatever it is.
 const URL_CHANNELS: Array<Channel> = ["query", "params"];
 
-// The two checks: every route's, and the in-cluster Runner's registration's.
-type Check =
-  | "isAuthorizedServiceMiddleware"
-  | "isAuthorizedRunnerRegistrationMiddleware";
+// The checks: one, every route's. The Runner's registration has none of its own.
+type Check = "isAuthorizedServiceMiddleware";
 
-const CHECKS: Array<Check> = [
-  "isAuthorizedServiceMiddleware",
-  "isAuthorizedRunnerRegistrationMiddleware",
-];
+const CHECKS: Array<Check> = ["isAuthorizedServiceMiddleware"];
 
 // A request as the middleware reads it: any value in any place.
 type FakeRequest = Record<string, Record<string, unknown>>;
@@ -421,62 +387,6 @@ describe.each(SHIPPED_CLUSTER_KEYS)(
           });
         }
       });
-
-      test("lets an earlier release's Runner register with the installation's own key, and says to update it", async () => {
-        installation.warnings.mockClear();
-
-        const outcome: Outcome = await present(
-          installation,
-          requestWith(
-            "body",
-            installation.ClusterKeyAuthorization.getClusterKey(),
-          ),
-          "isAuthorizedRunnerRegistrationMiddleware",
-        );
-
-        expect(outcome).toStrictEqual({
-          passed: true,
-          status: null,
-          message: null,
-        });
-        expect(installation.warnings).toHaveBeenCalledTimes(1);
-        expect(installation.warnings.mock.calls[0]![0]).toBe(
-          installation.messages.olderRunner,
-        );
-      });
-
-      test("refuses an earlier release's Runner every shipped value, and another installation's key", async () => {
-        installation.warnings.mockClear();
-
-        for (const value of shippedValuesAStrangerWouldTry()) {
-          const outcome: Outcome = await present(
-            installation,
-            requestWith("body", value),
-            "isAuthorizedRunnerRegistrationMiddleware",
-          );
-
-          expect({ value, ...outcome }).toStrictEqual({
-            value,
-            passed: false,
-            status: 400,
-            message: installation.messages.shipped,
-          });
-        }
-
-        const other: Outcome = await present(
-          installation,
-          requestWith("body", derivedClusterKey(OTHER_INSTALLATION_KEY)),
-          "isAuthorizedRunnerRegistrationMiddleware",
-        );
-
-        expect(other).toStrictEqual({
-          passed: false,
-          status: 400,
-          message: installation.messages.invalid,
-        });
-        // Only a Runner let in is told to update.
-        expect(installation.warnings).not.toHaveBeenCalled();
-      });
     });
   },
 );
@@ -503,16 +413,7 @@ describe.each(OPERATOR_CLUSTER_KEYS)(
       ).toStrictEqual({ clusterkey: encodeURIComponent(operatorKey) });
     });
 
-    test("takes the operator's key from the body of an earlier release's Runner registration alone", async () => {
-      expect(
-        (
-          await present(
-            installation,
-            requestWith("body", encodeURIComponent(operatorKey)),
-            "isAuthorizedRunnerRegistrationMiddleware",
-          )
-        ).passed,
-      ).toBe(true);
+    test("does not take the operator's key from a body", async () => {
       expect(
         await present(
           installation,
@@ -738,39 +639,25 @@ describe("what a request can carry", () => {
   );
   const key: string = installation.ClusterKeyAuthorization.getClusterKey();
 
-  test("no key at all is answered as missing by every route's check, and handed to the Runner's own key by its registration", async () => {
-    for (const request of [
-      { headers: {} },
-      { params: {}, query: {}, headers: {}, body: {} },
-      { headers: { clusterkey: "" } },
-      { body: { clusterKey: "" }, headers: {} },
-      { body: "clusterKey", headers: {} },
-      { body: [key], headers: {} },
-    ] as Array<FakeRequest>) {
-      expect(
-        await present(installation, request, "isAuthorizedServiceMiddleware"),
-      ).toStrictEqual({
-        passed: false,
-        status: 400,
-        message: installation.messages.notFound,
-      });
+  test("no key at all is answered as missing", async () => {
+    for (const check of CHECKS) {
+      for (const request of [
+        { headers: {} },
+        { params: {}, query: {}, headers: {}, body: {} },
+        { headers: { clusterkey: "" } },
+        { body: { clusterKey: "" }, headers: {} },
+        { body: "clusterKey", headers: {} },
+        { body: [key], headers: {} },
+      ] as Array<FakeRequest>) {
+        const outcome: Outcome = await present(installation, request, check);
 
-      /*
-       * The shared Runner of this release carries no cluster key: its
-       * registration is decided by its own key, which this installation's
-       * app was not given.
-       */
-      expect(
-        await present(
-          installation,
-          request,
-          "isAuthorizedRunnerRegistrationMiddleware",
-        ),
-      ).toStrictEqual({
-        passed: false,
-        status: 400,
-        message: installation.messages.runnerKeyNotSet,
-      });
+        expect({ check, ...outcome }).toStrictEqual({
+          check,
+          passed: false,
+          status: 400,
+          message: installation.messages.notFound,
+        });
+      }
     }
   });
 
@@ -783,16 +670,12 @@ describe("what a request can carry", () => {
       true,
     ] as Array<unknown>) {
       for (const channel of CHANNELS) {
-        const check: Check =
-          channel === "body"
-            ? "isAuthorizedRunnerRegistrationMiddleware"
-            : "isAuthorizedServiceMiddleware";
         const outcome: Outcome = await present(
           installation,
           requestWith(channel, value),
-          check,
         );
 
+        // In a body it is no key at all: a body is not read.
         expect({ channel, value, ...outcome }).toStrictEqual({
           channel,
           value,
@@ -800,7 +683,9 @@ describe("what a request can carry", () => {
           status: 400,
           message: URL_CHANNELS.includes(channel)
             ? installation.messages.inUrl
-            : installation.messages.invalid,
+            : channel === "body"
+              ? installation.messages.notFound
+              : installation.messages.invalid,
         });
       }
     }
@@ -887,37 +772,21 @@ describe("what a request can carry", () => {
       ).message,
     ).toBe(installation.messages.notFound);
   });
+});
 
-  test("the Runner's registration reads the header first, and a body only when no header carries a key", async () => {
-    installation.warnings.mockClear();
+describe("ClusterKeyAuthorization's checks", () => {
+  const installation: Installation = loadInstallation(
+    OPERATOR_CLUSTER_KEYS[0]!.value,
+  );
 
+  test("are the one every route is handed: the Runner's registration has none of its own", () => {
     expect(
-      (
-        await present(
-          installation,
-          { headers: { clusterkey: "wrong" }, body: { clusterKey: key } },
-          "isAuthorizedRunnerRegistrationMiddleware",
-        )
-      ).passed,
-    ).toBe(false);
-    expect(
-      (
-        await present(
-          installation,
-          { headers: { clusterkey: key }, body: { clusterKey: "wrong" } },
-          "isAuthorizedRunnerRegistrationMiddleware",
-        )
-      ).passed,
-    ).toBe(true);
-    /*
-     * A Runner that sends the key in the header is of an earlier release,
-     * or its deployment still gives it ONEUPTIME_SECRET: let through, and
-     * told to update, once for the one request let through.
-     */
-    expect(installation.warnings).toHaveBeenCalledTimes(1);
-    expect(installation.warnings.mock.calls[0]![0]).toBe(
-      installation.messages.runnerClusterKey,
-    );
+      Object.getOwnPropertyNames(installation.ClusterKeyAuthorization).filter(
+        (name: string): boolean => {
+          return name.startsWith("isAuthorized");
+        },
+      ),
+    ).toStrictEqual(CHECKS);
   });
 });
 
@@ -1070,19 +939,4 @@ describe("isShippedSecretValue", () => {
       expect(installation.config.isShippedSecretValue(value)).toBe(false);
     }
   });
-});
-
-describe("HasClusterKey (the in-cluster Runner's mode) still follows whether ONEUPTIME_SECRET is set at all", () => {
-  test.each([
-    ["unset", undefined, false],
-    ["empty", "", false],
-    ["blank", "   ", true],
-    ["a placeholder", "please-change-this-to-random-value", true],
-    ["an operator's key", OPERATOR_CLUSTER_KEYS[0]!.value, true],
-  ] as Array<[string, string | undefined, boolean]>)(
-    "%s",
-    (_label: string, value: string | undefined, expected: boolean) => {
-      expect(loadInstallation(value).config.HasClusterKey).toBe(expected);
-    },
-  );
 });

@@ -68,7 +68,7 @@ export interface RepositoryInstructionsPromptOptions {
   checksChange: boolean;
   /*
    * Whether the agent can run commands here (a Runner of the project's own,
-   * RUNS_PROJECT_AUTHORED_COMMANDS). A shared Runner runs none: the agent
+   * runsProjectAuthoredCommands). A global Runner runs none: the agent
    * still follows the repository's conventions, and the repository's own CI
    * builds and tests the change.
    */

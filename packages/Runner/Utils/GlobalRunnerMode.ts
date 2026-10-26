@@ -11,14 +11,22 @@ import {
  * A global Runner is started like any other Runner (its id and key, from
  * Admin Dashboard -> Settings -> Global Runners), and the server tells it
  * what it is when it registers and on every heartbeat (isGlobalRunner). It
- * then takes steps from every project that uses global Runners, so it runs
- * only what can be kept apart project by project on one host
- * (GlobalRunnerWork): a runbook's own JavaScript step, each in a sandbox of
- * its own that reaches the internet only. It asks the server for nothing
- * else at claim time and refuses anything else at execution time - another
- * step type, an AI-composed command, a job carrying a credential - whatever
- * the server sent: the server already serves it nothing else, and this is
- * the second check, on the host that would run it.
+ * then takes work from every project that uses global Runners, so it runs
+ * only what can be kept apart project by project on one host:
+ *
+ *   - a runbook's own JavaScript step, each in a sandbox of its own that
+ *     reaches the internet only (GlobalRunnerWork). It asks the server for
+ *     no other step at claim time and refuses anything else at execution
+ *     time - another step type, an AI-composed command, a job carrying a
+ *     credential - whatever the server sent: the server already serves it
+ *     nothing else, and this is the second check, on the host that would
+ *     run it;
+ *   - the AI code fixes of every repository on the Global Runner, each in
+ *     a workspace of its own, written with the code agent's file tools
+ *     alone: none of the repository's commands and no command a model
+ *     composes ever runs here (Config.runsProjectAuthoredCommands), and its
+ *     Git servers are reached on the internet only unless the server says
+ *     otherwise (GitHostGuard).
  *
  * Never on by an environment variable of the Runner's own: only the server
  * says a Runner is global, so an operator cannot make a project's Runner

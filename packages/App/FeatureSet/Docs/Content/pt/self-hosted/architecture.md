@@ -11,7 +11,7 @@ flowchart TB
         direction TB
         Ingress["Ingress<br/>(Nginx, TLS)"]
         App["Aplicação<br/>dashboards,<br/>páginas de status,<br/>API, ingestão,<br/>tarefas em<br/>segundo plano"]
-        Runner["Runner"]
+        Runner["Runner global"]
         Probe["Sondas"]
         subgraph Data["Armazenamentos de dados"]
             direction LR
@@ -54,8 +54,7 @@ flowchart TB
 | Worker | Parte de `app` | `worker` (desligado por padrão) | As tarefas em segundo plano, em pods próprios, para que o processamento pesado das filas nunca concorra com as requisições à API. |
 | Telemetry writer | Parte de `app` | `telemetryWriter` (desligado por padrão) | Uma camada de tamanho fixo que faz cada inserção no ClickHouse, para que as inserções continuem limitadas por mais que os workers escalem. |
 | Sonda | `probe-1` | `probes` | Executa as verificações dos monitores e envia os resultados de volta. Cada sonda incluída é uma sonda global que todos os projetos podem usar. |
-| Runner | `runner` | `runner` | O Runner próprio da instância, que pode executar correções de código com IA para cada projeto. Os passos dos runbooks rodam em [Runners](/docs/runbooks/agents) que você instala onde eles devem rodar. |
-| Runner global | `global-runner` | `globalRunner` | Um [Runner global](/docs/runbooks/agents#runners-globais): executa as etapas JavaScript de todos os projetos que não escolhem um Runner próprio, cada uma em um sandbox que só alcança a internet. Tem a sua própria chave e nada mais do servidor. |
+| Runner global | `global-runner` | `globalRunner` | Um [Runner global](/docs/runbooks/agents#runners-globais): executa as etapas JavaScript de todos os projetos que não escolhem um Runner próprio, cada uma em um sandbox que só alcança a internet, e as correções de código da OneUptime AI em todo repositório de código que não escolhe nenhum. Tem a sua própria chave e nada mais do servidor. Os passos Bash, SSH e kubectl rodam em [Runners](/docs/runbooks/agents) que você instala onde eles devem rodar. |
 | PostgreSQL | `postgres` | `postgresql`, ou `postgresOperator.cnpg` | Projetos, monitores, incidentes, usuários e todas as outras configurações e estados. |
 | ClickHouse | `clickhouse` | `clickhouse`, ou `clickhouseOperator.altinity` | Logs, métricas, traces, exceções, perfis e logs de monitores. |
 | Valkey | `valkey` | `valkey` | O cache, as filas de tarefas e o estado de curta duração, como os recibos de push pendentes. |

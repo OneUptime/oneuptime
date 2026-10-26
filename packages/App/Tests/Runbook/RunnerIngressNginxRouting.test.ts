@@ -552,7 +552,6 @@ describe("the URL the Runner is told to call is the one nginx routes", () => {
    * to be considered rather than discovered in production.
    */
   test.each([
-    "/api/ai-agent/register",
     "/api/ai-agent/alive",
     "/api/ai-agent-task/get-pending-task",
     "/api/ai-agent-data/get-exception-details",
