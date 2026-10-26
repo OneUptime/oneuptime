@@ -247,6 +247,15 @@ export interface BulkSwitchActionsConfig<T extends BaseModel> {
         name: string;
       }) => RowActionConfirmation | undefined)
     | undefined;
+  /*
+   * How many rows a bulk switch writes at once: one at a time unless the
+   * list says otherwise. Turning something on can count against a plan's
+   * limit or start work the server schedules per project (a workflow's
+   * runs, a rule's next sweep), and each write must see the one before it.
+   * A list whose rows switch nothing shared - subscribers unsubscribed -
+   * passes BULK_ACTION_CONCURRENCY.
+   */
+  concurrency?: number | undefined;
 }
 
 export interface SwitchActionsResult<T extends BaseModel> {
@@ -443,7 +452,7 @@ export function buildSwitchActions<T extends BaseModel>(
       onClick: async (props: BulkActionOnClickProps<T>): Promise<void> => {
         await runBulkAction<T>({
           actionProps: props,
-          concurrency: 1,
+          concurrency: config.concurrency ?? 1,
           step: async (item: T): Promise<BulkItemOutcome> => {
             if (!item.id) {
               throw new BadDataException("Item ID not found");

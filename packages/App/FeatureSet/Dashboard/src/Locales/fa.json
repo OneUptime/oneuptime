@@ -14598,7 +14598,6 @@
   "Please upload a CSV file.": "Please upload a CSV file.",
   "Please wait while private users are being added. This may take a moment.": "Please wait while private users are being added. This may take a moment.",
   "Please wait while subscribers are being added. This may take a moment.": "Please wait while subscribers are being added. This may take a moment.",
-  "Please wait while the bulk action is being performed. This may take a moment.": "لطفاً تا انجام اقدام گروهی صبر کنید. ممکن است کمی طول بکشد.",
   "Please wait while your {{itemsName}} are being imported.": "لطفاً تا وارد شدن {{itemsName}} شما صبر کنید.",
   "Plot the per-second rate of change instead of the raw value. Recommended for cumulative counters (e.g. system.disk.io).": "Plot the per-second rate of change instead of the raw value. Recommended for cumulative counters (e.g. system.disk.io).",
   "Plot this metric as a per-second rate of change": "Plot this metric as a per-second rate of change",
@@ -35696,5 +35695,15 @@
   "Watch Session": "تماشای نشست",
   "Workspace Microsoft Teams Connection": "اتصال Microsoft Teams فضای کاری",
   "Workspace Slack Connection": "اتصال Slack فضای کاری",
-  "Unhealthy": "ناسالم"
+  "About {{count}} hours left": "حدود {{count}} ساعت باقی مانده",
+  "About {{count}} hours left_one": "حدود {{count}} ساعت باقی مانده",
+  "About {{count}} minutes left": "حدود {{count}} دقیقه باقی مانده",
+  "About {{count}} minutes left_one": "حدود {{count}} دقیقه باقی مانده",
+  "Keep this page open until this finishes.": "تا پایان کار، این صفحه را باز نگه دارید.",
+  "Keep this page open until this finishes. You can stop at any time: what is already done stays done.": "تا پایان کار، این صفحه را باز نگه دارید. هر زمان می‌توانید متوقف کنید: آنچه انجام شده، انجام‌شده باقی می‌ماند.",
+  "Less than a minute left": "کمتر از یک دقیقه باقی مانده",
+  "Stopping. The ones already started are finishing.": "در حال توقف. مواردی که شروع شده‌اند در حال تکمیل هستند.",
+  "Unhealthy": "ناسالم",
+  "{{count}} {{itemsName}} not started: you stopped the action": "{{count}} مورد شروع نشد ({{itemsName}}): شما اقدام را متوقف کردید",
+  "{{count}} {{itemsName}} not started: you stopped the action_one": "{{count}} مورد شروع نشد ({{itemName}}): شما اقدام را متوقف کردید"
 }

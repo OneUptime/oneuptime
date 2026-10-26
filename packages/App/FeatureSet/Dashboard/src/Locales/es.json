@@ -14598,7 +14598,6 @@
   "Please upload a CSV file.": "Sube un archivo CSV.",
   "Please wait while private users are being added. This may take a moment.": "Espera mientras se añaden los usuarios privados. Puede tardar un momento.",
   "Please wait while subscribers are being added. This may take a moment.": "Espera mientras se añaden los suscriptores. Puede tardar un momento.",
-  "Please wait while the bulk action is being performed. This may take a moment.": "Espera mientras se realiza la acción masiva. Esto puede tardar un momento.",
   "Please wait while your {{itemsName}} are being imported.": "Espera mientras se importan tus elementos ({{itemsName}}).",
   "Plot the per-second rate of change instead of the raw value. Recommended for cumulative counters (e.g. system.disk.io).": "Grafica la tasa de cambio por segundo en lugar del valor sin procesar. Recomendado para contadores acumulativos (p. ej., system.disk.io).",
   "Plot this metric as a per-second rate of change": "Graficar esta métrica como tasa de cambio por segundo",
@@ -35696,5 +35695,15 @@
   "Watch Session": "Ver sesión",
   "Workspace Microsoft Teams Connection": "Conexión de Microsoft Teams del espacio de trabajo",
   "Workspace Slack Connection": "Conexión de Slack del espacio de trabajo",
-  "Unhealthy": "Con problemas"
+  "About {{count}} hours left": "Quedan unas {{count}} horas",
+  "About {{count}} hours left_one": "Queda aproximadamente {{count}} hora",
+  "About {{count}} minutes left": "Quedan unos {{count}} minutos",
+  "About {{count}} minutes left_one": "Queda aproximadamente {{count}} minuto",
+  "Keep this page open until this finishes.": "Mantén esta página abierta hasta que termine.",
+  "Keep this page open until this finishes. You can stop at any time: what is already done stays done.": "Mantén esta página abierta hasta que termine. Puedes detenerla en cualquier momento: lo que ya está hecho sigue hecho.",
+  "Less than a minute left": "Queda menos de un minuto",
+  "Stopping. The ones already started are finishing.": "Deteniendo. Los que ya empezaron están terminando.",
+  "Unhealthy": "Con problemas",
+  "{{count}} {{itemsName}} not started: you stopped the action": "{{itemsName}} sin iniciar: {{count}} (detuviste la acción)",
+  "{{count}} {{itemsName}} not started: you stopped the action_one": "{{itemName}} sin iniciar: {{count}} (detuviste la acción)"
 }

@@ -14598,7 +14598,6 @@
   "Please upload a CSV file.": "Please upload a CSV file.",
   "Please wait while private users are being added. This may take a moment.": "Please wait while private users are being added. This may take a moment.",
   "Please wait while subscribers are being added. This may take a moment.": "Please wait while subscribers are being added. This may take a moment.",
-  "Please wait while the bulk action is being performed. This may take a moment.": "Vent mens massehandlingen utføres. Dette kan ta et øyeblikk.",
   "Please wait while your {{itemsName}} are being imported.": "Vent mens dine {{itemsName}} importeres.",
   "Plot the per-second rate of change instead of the raw value. Recommended for cumulative counters (e.g. system.disk.io).": "Plot the per-second rate of change instead of the raw value. Recommended for cumulative counters (e.g. system.disk.io).",
   "Plot this metric as a per-second rate of change": "Plot this metric as a per-second rate of change",
@@ -35696,5 +35695,15 @@
   "Watch Session": "Se økten",
   "Workspace Microsoft Teams Connection": "Arbeidsområdets Microsoft Teams-tilkobling",
   "Workspace Slack Connection": "Arbeidsområdets Slack-tilkobling",
-  "Unhealthy": "Ikke feilfri"
+  "About {{count}} hours left": "Omtrent {{count}} timer igjen",
+  "About {{count}} hours left_one": "Omtrent {{count}} time igjen",
+  "About {{count}} minutes left": "Omtrent {{count}} minutter igjen",
+  "About {{count}} minutes left_one": "Omtrent {{count}} minutt igjen",
+  "Keep this page open until this finishes.": "Hold denne siden åpen til handlingen er ferdig.",
+  "Keep this page open until this finishes. You can stop at any time: what is already done stays done.": "Hold denne siden åpen til handlingen er ferdig. Du kan stoppe når som helst: Det som allerede er gjort, forblir gjort.",
+  "Less than a minute left": "Mindre enn ett minutt igjen",
+  "Stopping. The ones already started are finishing.": "Stopper. De som allerede er startet, fullføres.",
+  "Unhealthy": "Ikke feilfri",
+  "{{count}} {{itemsName}} not started: you stopped the action": "{{count}} {{itemsName}} ikke startet: Du stoppet handlingen",
+  "{{count}} {{itemsName}} not started: you stopped the action_one": "{{count}} {{itemName}} ikke startet: Du stoppet handlingen"
 }

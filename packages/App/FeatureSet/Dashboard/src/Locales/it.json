@@ -14598,7 +14598,6 @@
   "Please upload a CSV file.": "Please upload a CSV file.",
   "Please wait while private users are being added. This may take a moment.": "Please wait while private users are being added. This may take a moment.",
   "Please wait while subscribers are being added. This may take a moment.": "Please wait while subscribers are being added. This may take a moment.",
-  "Please wait while the bulk action is being performed. This may take a moment.": "Attendi mentre viene eseguita l'azione di massa. Potrebbe richiedere qualche istante.",
   "Please wait while your {{itemsName}} are being imported.": "Attendi mentre vengono importati i tuoi elementi ({{itemsName}}).",
   "Plot the per-second rate of change instead of the raw value. Recommended for cumulative counters (e.g. system.disk.io).": "Plot the per-second rate of change instead of the raw value. Recommended for cumulative counters (e.g. system.disk.io).",
   "Plot this metric as a per-second rate of change": "Plot this metric as a per-second rate of change",
@@ -35696,5 +35695,15 @@
   "Watch Session": "Guarda la sessione",
   "Workspace Microsoft Teams Connection": "Connessione Microsoft Teams dell'area di lavoro",
   "Workspace Slack Connection": "Connessione Slack dell'area di lavoro",
-  "Unhealthy": "Non integro"
+  "About {{count}} hours left": "Circa {{count}} ore rimanenti",
+  "About {{count}} hours left_one": "Circa {{count}} ora rimanente",
+  "About {{count}} minutes left": "Circa {{count}} minuti rimanenti",
+  "About {{count}} minutes left_one": "Circa {{count}} minuto rimanente",
+  "Keep this page open until this finishes.": "Tieni aperta questa pagina finché l'operazione non termina.",
+  "Keep this page open until this finishes. You can stop at any time: what is already done stays done.": "Tieni aperta questa pagina finché l'operazione non termina. Puoi interromperla in qualsiasi momento: ciò che è già fatto resta fatto.",
+  "Less than a minute left": "Meno di un minuto rimanente",
+  "Stopping. The ones already started are finishing.": "Arresto in corso. Quelli già avviati stanno terminando.",
+  "Unhealthy": "Non integro",
+  "{{count}} {{itemsName}} not started: you stopped the action": "{{itemsName}} non avviati: {{count}} (hai interrotto l'azione)",
+  "{{count}} {{itemsName}} not started: you stopped the action_one": "{{itemName}} non avviato: {{count}} (hai interrotto l'azione)"
 }

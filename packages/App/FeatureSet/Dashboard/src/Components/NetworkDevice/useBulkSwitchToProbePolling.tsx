@@ -13,9 +13,9 @@ import ObjectID from "Common/Types/ObjectID";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import {
   BulkActionButtonSchema,
-  BulkActionFailed,
   BulkActionOnClickProps,
 } from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
+import { runBulkAction } from "Common/UI/Components/BulkUpdate/BulkActionRunner";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
@@ -220,53 +220,38 @@ function useBulkSwitchToProbePolling(): BulkSwitchToProbePollingResult {
     actionProps: BulkActionOnClickProps<NetworkDevice>,
     probeId: ObjectID,
   ): Promise<void> => {
-    const { items, onProgressInfo, onBulkActionStart, onBulkActionEnd } =
-      actionProps;
-
     // Close the form modal first so the progress modal is visible.
     setShowModal(false);
 
-    onBulkActionStart();
+    /*
+     * Through the shared runner (progress, Stop, failures by device), one
+     * device at a time: how a device is monitored decides which of its
+     * site's alert policies watch it, and each switch matches them again.
+     */
+    await runBulkAction<NetworkDevice>({
+      actionProps: actionProps,
+      concurrency: 1,
+      step: async (item: NetworkDevice): Promise<void> => {
+        let skippedMessage: string | null = null;
 
-    const totalItems: Array<NetworkDevice> = [...items];
-    const inProgressItems: Array<NetworkDevice> = [...items];
-    const successItems: Array<NetworkDevice> = [];
-    const failedItems: Array<BulkActionFailed<NetworkDevice>> = [];
+        try {
+          skippedMessage = await switchOne(item, probeId);
+        } catch (err) {
+          const message: string = API.getFriendlyMessage(err);
 
-    for (const item of totalItems) {
-      inProgressItems.splice(inProgressItems.indexOf(item), 1);
-
-      try {
-        const skippedMessage: string | null = await switchOne(item, probeId);
-
-        if (skippedMessage) {
-          failedItems.push({
-            item: item,
-            // The progress list shows it as given: a fixed sentence is looked up.
-            failedMessage:
-              translator.translateText(skippedMessage) || skippedMessage,
-          });
-        } else {
-          successItems.push(item);
+          // The progress list shows it as given: a fixed sentence is looked up.
+          throw new Error(translator.translateText(message) || message);
         }
-      } catch (err) {
-        const message: string = API.getFriendlyMessage(err);
 
-        failedItems.push({
-          item: item,
-          failedMessage: translator.translateText(message) || message,
-        });
-      }
+        // Skipped, and listed with why among the devices not switched.
+        if (skippedMessage) {
+          throw new Error(
+            translator.translateText(skippedMessage) || skippedMessage,
+          );
+        }
+      },
+    });
 
-      onProgressInfo({
-        totalItems: totalItems,
-        failed: failedItems,
-        successItems: successItems,
-        inProgressItems: inProgressItems,
-      });
-    }
-
-    onBulkActionEnd();
     setBulkActionProps(null);
   };
 

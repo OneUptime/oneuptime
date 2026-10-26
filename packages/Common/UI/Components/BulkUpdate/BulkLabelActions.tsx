@@ -16,7 +16,6 @@ import ListResult from "../../../Types/BaseDatabase/ListResult";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import ObjectID from "../../../Types/ObjectID";
 import { sortLabels } from "../../../Utils/LabelOrder";
-import API from "../../Utils/API/API";
 import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "../../Utils/Project";
 import PermissionGate, {
@@ -29,14 +28,22 @@ import BasicFormModal from "../FormModal/BasicFormModal";
 import Modal from "../Modal/Modal";
 import { DropdownOption } from "../Dropdown/Dropdown";
 import FormFieldSchemaType from "../Forms/Types/FormFieldSchemaType";
+import { BULK_ACTION_CONCURRENCY, runBulkAction } from "./BulkActionRunner";
+import BulkReadAhead from "./BulkReadAhead";
 import {
   BulkActionButtonSchema,
-  BulkActionFailed,
   BulkActionOnClickProps,
 } from "./BulkUpdateForm";
 
 export interface BulkLabelActionsConfig<T extends BaseModel> {
   modelType: { new (): T };
+  /*
+   * How many items a bulk Add or Remove Labels writes at once:
+   * BULK_ACTION_CONCURRENCY unless the list says otherwise. 1 for a list
+   * whose items' writes recompute something they share - network devices
+   * match their site's alert policies again.
+   */
+  concurrency?: number | undefined;
 }
 
 export interface BulkLabelActionsResult<T extends BaseModel> {
@@ -135,8 +142,7 @@ function useBulkLabelActions<T extends BaseModel>(
       return;
     }
 
-    const { items, onProgressInfo, onBulkActionStart, onBulkActionEnd } =
-      bulkActionProps;
+    const { items } = bulkActionProps;
 
     // Close the form modal first so the progress modal is visible
     setShowAddModal(false);
@@ -162,35 +168,83 @@ function useBulkLabelActions<T extends BaseModel>(
       return;
     }
 
-    onBulkActionStart();
+    /*
+     * Each item's labels now, read a window of items at a time - one list
+     * request for fifty, not one read each (BulkReadAhead) - so the
+     * selected labels can be merged into them or taken out of them
+     * without clobbering the others. A window whose read fails reads its
+     * items one by one, as every item used to be read.
+     */
+    const labelSelect: Record<string, unknown> = {
+      _id: true,
+      labels: {
+        _id: true,
+      },
+    };
 
-    const totalItems: Array<T> = [...items];
-    const inProgressItems: Array<T> = [...items];
-    const successItems: Array<T> = [];
-    const failedItems: Array<BulkActionFailed<T>> = [];
+    const reader: BulkReadAhead<T, T> = new BulkReadAhead<T, T>({
+      items: items,
+      getKey: (item: T): string => {
+        return item.id?.toString() || "";
+      },
+      readWindow: async (windowItems: Array<T>): Promise<Map<string, T>> => {
+        const ids: Array<string> = windowItems
+          .map((item: T) => {
+            return item.id?.toString() || "";
+          })
+          .filter((id: string) => {
+            return id.length > 0;
+          });
 
-    for (const item of totalItems) {
-      inProgressItems.splice(inProgressItems.indexOf(item), 1);
+        const found: Map<string, T> = new Map<string, T>();
 
-      try {
+        if (ids.length === 0) {
+          return found;
+        }
+
+        const result: ListResult<T> = await ModelAPI.getList<T>({
+          modelType: config.modelType,
+          query: {
+            _id: new Includes(ids),
+          } as any,
+          limit: ids.length,
+          skip: 0,
+          select: labelSelect as any,
+          sort: {},
+        });
+
+        for (const row of result.data) {
+          const id: string = row._id?.toString() || "";
+
+          if (id) {
+            found.set(id, row);
+          }
+        }
+
+        return found;
+      },
+      readOne: async (item: T): Promise<T | null> => {
+        if (!item.id) {
+          return null;
+        }
+
+        return await ModelAPI.getItem<T>({
+          modelType: config.modelType,
+          id: item.id,
+          select: labelSelect as any,
+        });
+      },
+    });
+
+    await runBulkAction<T>({
+      actionProps: bulkActionProps,
+      concurrency: config.concurrency ?? BULK_ACTION_CONCURRENCY,
+      step: async (item: T): Promise<void> => {
         if (!item.id) {
           throw new BadDataException("Item ID not found");
         }
 
-        /*
-         * Fetch current labels for this item so we can merge/subtract
-         * the selected label ids and avoid clobbering existing ones.
-         */
-        const currentItem: T | null = await ModelAPI.getItem<T>({
-          modelType: config.modelType,
-          id: item.id,
-          select: {
-            _id: true,
-            labels: {
-              _id: true,
-            },
-          } as any,
-        });
+        const currentItem: T | null = await reader.read(item);
 
         /*
          * A row that was deleted or filtered out between the table load
@@ -241,33 +295,19 @@ function useBulkLabelActions<T extends BaseModel>(
             return existingLabelIds.includes(id);
           })
         ) {
-          successItems.push(item);
-        } else {
-          await ModelAPI.updateById<T>({
-            id: item.id as ObjectID,
-            modelType: config.modelType,
-            data: {
-              labels: newLabelIds,
-            } as any,
-          });
-          successItems.push(item);
+          return;
         }
-      } catch (err) {
-        failedItems.push({
-          item: item,
-          failedMessage: API.getFriendlyMessage(err),
+
+        await ModelAPI.updateById<T>({
+          id: item.id as ObjectID,
+          modelType: config.modelType,
+          data: {
+            labels: newLabelIds,
+          } as any,
         });
-      }
+      },
+    });
 
-      onProgressInfo({
-        totalItems: totalItems,
-        failed: failedItems,
-        successItems: successItems,
-        inProgressItems: inProgressItems,
-      });
-    }
-
-    onBulkActionEnd();
     setBulkActionProps(null);
   };
 

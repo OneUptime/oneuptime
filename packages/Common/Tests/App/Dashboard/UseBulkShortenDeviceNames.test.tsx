@@ -1173,11 +1173,15 @@ describe("useBulkShortenDeviceNames", () => {
       expect(onBulkActionEndMock).toHaveBeenCalledTimes(1);
     });
 
-    test("reports progress after every device, and ends the action once", async () => {
+    test("reports progress as it goes, and ends the action once", async () => {
       await runAction([KDS_ONE, CORE_SWITCH, KDS_TWO]);
 
       expect(onBulkActionStartMock).toHaveBeenCalledTimes(1);
-      expect(progressSnapshots).toHaveLength(3);
+      /*
+       * Through the shared runner: the first device done is reported at
+       * once, the rest at most ten times a second, the end always.
+       */
+      expect(progressSnapshots.length).toBeGreaterThanOrEqual(2);
 
       expect(progressSnapshots[0]).toEqual({
         inProgressIds: [DEVICE_THREE_ID, DEVICE_TWO_ID],
@@ -1185,13 +1189,7 @@ describe("useBulkShortenDeviceNames", () => {
         failedIds: [],
         failedMessages: [],
       });
-      expect(progressSnapshots[1]).toEqual({
-        inProgressIds: [DEVICE_TWO_ID],
-        successIds: [DEVICE_ONE_ID],
-        failedIds: [DEVICE_THREE_ID],
-        failedMessages: [SKIPPED_NOT_FULLY_QUALIFIED_MESSAGE],
-      });
-      expect(progressSnapshots[2]).toEqual({
+      expect(progressSnapshots[progressSnapshots.length - 1]).toEqual({
         inProgressIds: [],
         successIds: [DEVICE_ONE_ID, DEVICE_TWO_ID],
         failedIds: [DEVICE_THREE_ID],

@@ -85,6 +85,7 @@ import {
   BulkActionButtonSchema,
   BulkActionOnClickProps,
 } from "../../../UI/Components/BulkUpdate/BulkUpdateForm";
+import { BULK_ACTION_CONCURRENCY } from "../../../UI/Components/BulkUpdate/BulkActionConcurrency";
 import PodmanHost from "../../../Models/DatabaseModels/PodmanHost";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
@@ -306,5 +307,80 @@ describe("useBulkArchiveActions copy overrides", () => {
     expect(
       onlyAction(result.archiveBulkActions).confirmMessage!(hosts(1)),
     ).toBe(ARCHIVE_OVERRIDE);
+  });
+});
+
+describe("how many rows a bulk Archive writes at once (issue #5299)", () => {
+  /*
+   * Archiving a row is a switch on that row alone, so a selection is written
+   * BULK_ACTION_CONCURRENCY rows at a time - unless the list says its rows'
+   * writes recompute something they share (network devices roll up into
+   * their site's health), and it passes concurrency 1.
+   */
+  let inFlight: number = 0;
+  let mostAtOnce: number = 0;
+  let startedIds: Array<string> = [];
+
+  beforeEach(() => {
+    inFlight = 0;
+    mostAtOnce = 0;
+    startedIds = [];
+
+    updateByIdMock.mockImplementation(async (args: unknown): Promise<void> => {
+      startedIds.push(String((args as { id: ObjectID }).id));
+      inFlight++;
+      mostAtOnce = Math.max(mostAtOnce, inFlight);
+
+      await new Promise((resolve: (value: unknown) => void) => {
+        setTimeout(resolve, 2);
+      });
+
+      inFlight--;
+    });
+  });
+
+  test("several at once, started in selection order, every row written", async () => {
+    const result: BulkArchiveActionsResult<PodmanHost> = renderActions();
+    const items: Array<PodmanHost> = hosts(10);
+
+    await onlyAction(result.archiveBulkActions).onClick(
+      clickHarness(items).props,
+    );
+
+    expect(mostAtOnce).toBe(BULK_ACTION_CONCURRENCY);
+    expect(startedIds).toEqual(
+      items.map((item: PodmanHost) => {
+        return String(item.id);
+      }),
+    );
+  });
+
+  test("Unarchive too", async () => {
+    const result: BulkArchiveActionsResult<PodmanHost> = renderActions();
+
+    await onlyAction(result.unarchiveBulkActions).onClick(
+      clickHarness(hosts(10)).props,
+    );
+
+    expect(mostAtOnce).toBe(BULK_ACTION_CONCURRENCY);
+    expect(updateByIdMock).toHaveBeenCalledTimes(10);
+  });
+
+  test("one at a time on a list that says so", async () => {
+    const result: BulkArchiveActionsResult<PodmanHost> = renderActions({
+      concurrency: 1,
+    });
+    const items: Array<PodmanHost> = hosts(5);
+
+    await onlyAction(result.archiveBulkActions).onClick(
+      clickHarness(items).props,
+    );
+
+    expect(mostAtOnce).toBe(1);
+    expect(startedIds).toEqual(
+      items.map((item: PodmanHost) => {
+        return String(item.id);
+      }),
+    );
   });
 });

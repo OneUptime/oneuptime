@@ -14598,7 +14598,6 @@
   "Please upload a CSV file.": "Please upload a CSV file.",
   "Please wait while private users are being added. This may take a moment.": "Please wait while private users are being added. This may take a moment.",
   "Please wait while subscribers are being added. This may take a moment.": "Please wait while subscribers are being added. This may take a moment.",
-  "Please wait while the bulk action is being performed. This may take a moment.": "Even geduld terwijl de bulkactie wordt uitgevoerd. Dit kan even duren.",
   "Please wait while your {{itemsName}} are being imported.": "Even geduld terwijl uw {{itemsName}} worden geïmporteerd.",
   "Plot the per-second rate of change instead of the raw value. Recommended for cumulative counters (e.g. system.disk.io).": "Plot the per-second rate of change instead of the raw value. Recommended for cumulative counters (e.g. system.disk.io).",
   "Plot this metric as a per-second rate of change": "Plot this metric as a per-second rate of change",
@@ -35696,5 +35695,15 @@
   "Watch Session": "Sessie bekijken",
   "Workspace Microsoft Teams Connection": "Microsoft Teams-verbinding van de werkruimte",
   "Workspace Slack Connection": "Slack-verbinding van de werkruimte",
-  "Unhealthy": "Ongezond"
+  "About {{count}} hours left": "Nog ongeveer {{count}} uur",
+  "About {{count}} hours left_one": "Nog ongeveer {{count}} uur",
+  "About {{count}} minutes left": "Nog ongeveer {{count}} minuten",
+  "About {{count}} minutes left_one": "Nog ongeveer {{count}} minuut",
+  "Keep this page open until this finishes.": "Houd deze pagina open totdat dit klaar is.",
+  "Keep this page open until this finishes. You can stop at any time: what is already done stays done.": "Houd deze pagina open totdat dit klaar is. U kunt op elk moment stoppen: wat al gedaan is, blijft gedaan.",
+  "Less than a minute left": "Nog minder dan een minuut",
+  "Stopping. The ones already started are finishing.": "Bezig met stoppen. Wat al gestart is, wordt nog afgerond.",
+  "Unhealthy": "Ongezond",
+  "{{count}} {{itemsName}} not started: you stopped the action": "{{count}} {{itemsName}} niet gestart: u hebt de actie gestopt",
+  "{{count}} {{itemsName}} not started: you stopped the action_one": "{{count}} {{itemName}} niet gestart: u hebt de actie gestopt"
 }
