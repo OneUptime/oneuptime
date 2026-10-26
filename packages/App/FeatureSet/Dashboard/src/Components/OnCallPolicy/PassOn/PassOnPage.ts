@@ -740,6 +740,20 @@ export function isAnyPassedOn(answers: Array<OnCallPassOnAnswer>): boolean {
 }
 
 /*
+ * Whether somebody took the record while the dialog asked: an answer
+ * refused because it is acknowledged or resolved now ("Already
+ * acknowledged"). The page shows it as it was when it was read - its
+ * header still offers Acknowledge - so it reads it again.
+ */
+export function isRecordTakenMeanwhile(
+  answers: Array<OnCallPassOnAnswer>,
+): boolean {
+  return answers.some((answer: OnCallPassOnAnswer): boolean => {
+    return answer.refusal === OnCallPassOnRefusal.RecordAcknowledged;
+  });
+}
+
+/*
  * A line of the dialog: a sentence, or - when escalating leaves nobody being
  * paged (isOnCallPassOnPagingStopped) - a warning, drawn apart and first.
  * Nobody is on the record then, and the person reading may decide to take

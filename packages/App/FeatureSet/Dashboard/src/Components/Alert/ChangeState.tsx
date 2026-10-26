@@ -11,8 +11,10 @@ import AlertInternalNote from "Common/Models/DatabaseModels/AlertInternalNote";
 import React, {
   Fragment,
   FunctionComponent,
+  MutableRefObject,
   ReactElement,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
@@ -86,6 +88,13 @@ export interface ComponentProps {
    * the alert has a video call - after Declare incident.
    */
   secondaryActions?: Array<EventPanelAction> | undefined;
+  /*
+   * Bump to read the alert's state again after it changed somewhere other
+   * than this header - acknowledged by somebody else while the reader's
+   * Escalate dialog asked (the dialog's onRecordChanged). The header stays
+   * on screen while it reads.
+   */
+  refreshToken?: number | undefined;
 }
 
 /*
@@ -250,6 +259,23 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
       setError(API.getFriendlyMessage(err as Exception));
     });
   }, [props.alertId.toString()]);
+
+  const lastRefreshTokenRef: MutableRefObject<number | undefined> = useRef<
+    number | undefined
+  >(props.refreshToken);
+
+  // Read the state again, quietly, when the page says it changed.
+  useEffect(() => {
+    if (lastRefreshTokenRef.current === props.refreshToken) {
+      return;
+    }
+
+    lastRefreshTokenRef.current = props.refreshToken;
+
+    fetchAlertStateTimelines().catch((err: unknown) => {
+      setError(API.getFriendlyMessage(err as Exception));
+    });
+  }, [props.refreshToken]);
 
   /*
    * The live region is mounted in every branch, so a status change that lands
