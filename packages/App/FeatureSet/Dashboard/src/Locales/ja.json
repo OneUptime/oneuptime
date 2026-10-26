@@ -35704,5 +35704,8 @@
   "Logs appear here once the kubernetes-agent's filelog receiver collects them.": "kubernetes-agent の filelog レシーバーがログを収集すると、ここに表示されます。",
   "Make sure the Docker agent's filelog receiver is configured and the collector is running.": "Docker エージェントの filelog レシーバーが設定され、コレクターが実行中であることを確認してください。",
   "Make sure the Podman agent's filelog receiver is configured and the collector is running.": "Podman エージェントの filelog レシーバーが設定され、コレクターが実行中であることを確認してください。",
-  "Each row is one recording of about a minute. For what is slow right now, use the Overview.": "各行は約 1 分間の記録 1 件です。今何が遅いかを見るには、概要を使ってください。"
+  "Each row is one recording of about a minute. For what is slow right now, use the Overview.": "各行は約 1 分間の記録 1 件です。今何が遅いかを見るには、概要を使ってください。",
+  "A removed column (the default order is shown)": "削除された列（既定の順序で表示されます）",
+  "Ascending": "昇順",
+  "Descending": "降順"
 }

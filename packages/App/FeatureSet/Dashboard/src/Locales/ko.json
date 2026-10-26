@@ -35704,5 +35704,8 @@
   "Logs appear here once the kubernetes-agent's filelog receiver collects them.": "kubernetes-agent의 filelog 리시버가 로그를 수집하면 여기에 표시됩니다.",
   "Make sure the Docker agent's filelog receiver is configured and the collector is running.": "Docker 에이전트의 filelog 리시버가 설정되어 있고 컬렉터가 실행 중인지 확인하세요.",
   "Make sure the Podman agent's filelog receiver is configured and the collector is running.": "Podman 에이전트의 filelog 리시버가 설정되어 있고 컬렉터가 실행 중인지 확인하세요.",
-  "Each row is one recording of about a minute. For what is slow right now, use the Overview.": "각 행은 약 1분 길이의 기록 하나입니다. 지금 무엇이 느린지 보려면 개요를 사용하세요."
+  "Each row is one recording of about a minute. For what is slow right now, use the Overview.": "각 행은 약 1분 길이의 기록 하나입니다. 지금 무엇이 느린지 보려면 개요를 사용하세요.",
+  "A removed column (the default order is shown)": "삭제된 열(기본 순서로 표시됨)",
+  "Ascending": "오름차순",
+  "Descending": "내림차순"
 }

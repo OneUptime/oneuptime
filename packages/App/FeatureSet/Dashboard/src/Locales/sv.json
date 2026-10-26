@@ -35704,5 +35704,8 @@
   "Logs appear here once the kubernetes-agent's filelog receiver collects them.": "Loggar visas här så snart kubernetes-agentens filelog-mottagare samlar in dem.",
   "Make sure the Docker agent's filelog receiver is configured and the collector is running.": "Se till att Docker-agentens filelog-mottagare är konfigurerad och att insamlaren körs.",
   "Make sure the Podman agent's filelog receiver is configured and the collector is running.": "Se till att Podman-agentens filelog-mottagare är konfigurerad och att insamlaren körs.",
-  "Each row is one recording of about a minute. For what is slow right now, use the Overview.": "Varje rad är en inspelning på ungefär en minut. Använd Översikt för att se vad som är långsamt just nu."
+  "Each row is one recording of about a minute. For what is slow right now, use the Overview.": "Varje rad är en inspelning på ungefär en minut. Använd Översikt för att se vad som är långsamt just nu.",
+  "A removed column (the default order is shown)": "En borttagen kolumn (standardordningen visas)",
+  "Ascending": "Stigande",
+  "Descending": "Fallande"
 }

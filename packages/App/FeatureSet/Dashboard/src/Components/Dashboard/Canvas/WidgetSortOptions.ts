@@ -29,10 +29,12 @@ import {
  * repeat the default is left out, so no two choices mean the same order.
  *
  * Values are what the widget's arguments hold: "" for the default, else
- * "<column>:<asc|desc>". A saved sort none of the choices names - a column
- * the widget no longer has, or a Data Source column before the query has
- * answered - is kept as a choice of its own, so the setting shows what is
- * saved instead of a blank.
+ * "<column>:<asc|desc>". A saved sort none of the choices names is kept as
+ * a choice of its own, so the setting shows what is saved instead of a
+ * blank - in words, never the stored key ("group:asc"): a Data Source
+ * column before the query has answered is named as the query names it, and
+ * a column the widget no longer has reads "A removed column (the default
+ * order is shown)", which is what the widget then does.
  *
  * React-free: the settings form draws these, and App's tests read them.
  */
@@ -110,8 +112,33 @@ function describeChoice(data: {
   );
 
   if (!column) {
-    // A column the widget does not show now: its key and direction as saved.
-    return formatDashboardWidgetSortChoice(data.choice);
+    /*
+     * Before a Data Source table's query has answered, none of its columns
+     * is known: the saved one is named as the query names it, with plain
+     * direction words, since its kind is not known either.
+     */
+    if (data.columns.length === 0) {
+      return data.translator.translateTemplate(
+        DashboardWidgetSortCopy.columnChoice,
+        {
+          column: data.choice.column,
+          direction: data.translator.translateText(
+            data.choice.direction === DashboardWidgetSortDirection.Descending
+              ? DashboardWidgetSortCopy.descending
+              : DashboardWidgetSortCopy.ascending,
+          ) as string,
+        },
+      ) as string;
+    }
+
+    /*
+     * A column the widget no longer has: it reads the saved sort as none
+     * (readDashboardWidgetSortChoiceForColumns) and shows its default
+     * order. The stored key ("group:asc", "col:<id>:desc") said neither.
+     */
+    return data.translator.translateText(
+      DashboardWidgetSortCopy.removedColumnChoice,
+    ) as string;
   }
 
   return data.translator.translateTemplate(
