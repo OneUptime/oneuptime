@@ -35112,5 +35112,7 @@
   "{{count}} more status pages": "Mais {{count}} páginas de status",
   "{{count}} more status pages_one": "Mais {{count}} página de status",
   "{{count}} more technologies": "Mais {{count}} tecnologias",
-  "{{count}} more technologies_one": "Mais {{count}} tecnologia"
+  "{{count}} more technologies_one": "Mais {{count}} tecnologia",
+  "First model the server lists": "Primeiro modelo listado pelo servidor",
+  "Leave empty for the first model your server lists. To use another, type its name exactly as your server lists it.": "Deixe vazio para usar o primeiro modelo que o seu servidor lista. Para usar outro, digite o nome dele exatamente como o seu servidor o lista."
 }

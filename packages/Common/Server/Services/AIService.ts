@@ -17,6 +17,7 @@ import Telemetry from "../Utils/Telemetry";
 import { Attributes, Span, trace } from "@opentelemetry/api";
 import LlmProvider from "../../Models/DatabaseModels/LlmProvider";
 import LlmLog from "../../Models/DatabaseModels/LlmLog";
+import ColumnLength from "../../Types/Database/ColumnLength";
 import LlmLogStatus from "../../Types/LlmLogStatus";
 import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
@@ -1489,6 +1490,19 @@ export class Service extends BaseService {
 
       // Update log with success info
       logEntry.status = LlmLogStatus.Success;
+
+      /*
+       * The model the call asked for, which a blank Model Name leaves to the
+       * server: an OpenAI-compatible server's first listed model can be a
+       * path longer than the column, which would refuse the whole log.
+       */
+      if (response.modelName) {
+        logEntry.modelName = response.modelName.substring(
+          0,
+          ColumnLength.ShortText,
+        );
+      }
+
       logEntry.totalTokens = response.usage?.totalTokens || 0;
       logEntry.completionTokens = response.usage?.completionTokens || 0;
       logEntry.cachedInputTokens = response.usage?.cachedInputTokens || 0;
@@ -1547,7 +1561,7 @@ export class Service extends BaseService {
        */
       this.setLlmSpanAttributes(() => {
         return LLMCallTelemetry.getResponseAttributes({
-          modelName: llmConfig.modelName,
+          modelName: response.modelName || llmConfig.modelName,
           response: response,
           usage: response.usage,
           costInUSDCents: logEntry.costInUSDCents,

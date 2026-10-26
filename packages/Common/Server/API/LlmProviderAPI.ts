@@ -298,6 +298,21 @@ export default class LlmProviderAPI extends BaseAPI<
             message = `Connection successful, but tool calling could not be verified — ${why}. OneUptime's AI features (Ask AI, investigations) read your data through tools, so a provider that cannot call them will answer that it has no tool for the question. Check that this model and endpoint support tool/function calling.`;
           }
 
+          /*
+           * A blank Model Name leaves the model to the server: say which one
+           * answered, so the person testing knows what AI features will use.
+           */
+          const testedModelName: string | undefined =
+            testResponse?.modelName;
+
+          if (testedModelName && !(provider.modelName || "").trim()) {
+            message = `${message} Model Name is empty, so it used ${testedModelName}, ${
+              provider.llmType === LlmType.OpenAICompatible
+                ? "the first model the server lists"
+                : "the provider's default"
+            }.`;
+          }
+
           return Response.sendJsonObjectResponse(req, res, {
             success: true,
             supportsToolCalling: calledTheTestTool,

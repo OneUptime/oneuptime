@@ -35112,5 +35112,7 @@
   "{{count}} more status pages": "{{count}} صفحهٔ وضعیت دیگر",
   "{{count}} more status pages_one": "{{count}} صفحهٔ وضعیت دیگر",
   "{{count}} more technologies": "{{count}} فناوری دیگر",
-  "{{count}} more technologies_one": "{{count}} فناوری دیگر"
+  "{{count}} more technologies_one": "{{count}} فناوری دیگر",
+  "First model the server lists": "نخستین مدل در فهرست سرور",
+  "Leave empty for the first model your server lists. To use another, type its name exactly as your server lists it.": "برای نخستین مدل در فهرست سرور شما خالی بگذارید. برای استفاده از مدلی دیگر، نامش را دقیقاً همان‌طور که در فهرست سرور شما آمده وارد کنید."
 }

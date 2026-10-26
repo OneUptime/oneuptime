@@ -35112,5 +35112,7 @@
   "{{count}} more status pages": "{{count}} statussidor till",
   "{{count}} more status pages_one": "{{count}} statussida till",
   "{{count}} more technologies": "{{count}} teknologier till",
-  "{{count}} more technologies_one": "{{count}} teknologi till"
+  "{{count}} more technologies_one": "{{count}} teknologi till",
+  "First model the server lists": "Första modellen i serverns lista",
+  "Leave empty for the first model your server lists. To use another, type its name exactly as your server lists it.": "Lämna tomt för den första modellen i din servers lista. Om du vill använda en annan skriver du dess namn exakt som det står i din servers lista."
 }

@@ -993,6 +993,8 @@
   "Never put keys here.": "ここにキーは入れないでください。",
   "Your deployment's name, exactly as Foundry shows it.": "デプロイの名前。Foundry の表示どおりに入力します。",
   "{{name}} (default)": "{{name}}（デフォルト）",
+  "Leave empty for the first model your server lists. To use another, type its name exactly as your server lists it.": "空欄にすると、サーバーの一覧の最初のモデルを使います。別のモデルを使う場合は、サーバーの一覧にある名前のとおりに入力します。",
+  "First model the server lists": "サーバーの一覧の最初のモデル",
   "Visitors share an address": "訪問者が同じアドレスを共有しています",
   "Several people signed in from one private network address in the last 30 days. OneUptime counts them as one visitor, so one person's failed sign-ins can lock the others out.": "過去 30 日間に、複数の人が同じプライベートネットワークアドレスからサインインしました。OneUptime はこれらの人を 1 人の訪問者として数えるため、1 人のサインイン失敗によって他の人が締め出されることがあります。",
   "Usually something in front of OneUptime hands it every visitor from an address of its own:": "通常は、OneUptime の前段にある何かが、すべての訪問者を自身のアドレスから渡しています：",

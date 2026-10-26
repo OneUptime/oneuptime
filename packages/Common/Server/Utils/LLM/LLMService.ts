@@ -21,6 +21,7 @@ import LlmProviderEndpoint, {
   AzureOpenAIRequestEndpoint,
 } from "../../../Utils/LLM/LlmProviderEndpoint";
 import { withoutTrailingSlashes } from "../../../Utils/TrailingRuns";
+import crypto from "crypto";
 
 export interface LLMToolDefinition {
   name: string;
@@ -112,6 +113,13 @@ export interface LLMCompletionResponse {
    */
   stopReason?: "stop" | "tool_use" | "length" | undefined;
   usage: LLMUsage | undefined;
+  /*
+   * The model the request asked for: the provider's Model Name, or - left
+   * blank - the one the server chose instead (the provider type's default,
+   * or the first model an OpenAI-compatible server lists). AI Logs and the
+   * Test button name it.
+   */
+  modelName?: string | undefined;
 }
 
 export interface LLMProviderConfig {
@@ -312,6 +320,13 @@ const AZURE_DEPLOYMENT_NOT_FOUND_CODES: Set<string> = new Set([
   "DeploymentNotFound",
   "model_not_found",
 ]);
+
+/*
+ * What OneUptime calls on an OpenAI-compatible server: its chat completions,
+ * and - for a provider whose Model Name is blank - the list of the models it
+ * serves.
+ */
+type OpenAICompatibleEndpoint = "chat/completions" | "models";
 
 export default class LLMService {
   /*
@@ -1634,14 +1649,29 @@ export default class LLMService {
     return "the LLM provider could not be reached";
   }
 
+  private static buildOpenAICompatibleChatCompletionsUrl(
+    baseUrl: string,
+  ): string {
+    return this.buildOpenAICompatibleUrl(baseUrl, "chat/completions");
+  }
+
   /*
-   * Build the chat completions URL for an OpenAI-compatible server from the
+   * Where an OpenAI-compatible server lists the models it serves: beside its
+   * chat completions, at ".../v1/models".
+   */
+  public static buildOpenAICompatibleModelsUrl(baseUrl: string): string {
+    return this.buildOpenAICompatibleUrl(baseUrl, "models");
+  }
+
+  /*
+   * Build an endpoint's URL for an OpenAI-compatible server from the
    * configured base URL. Users enter the base URL in a few different ways, and
    * we normalize all of them onto the right endpoint instead of 404-ing:
    *
-   *   - Already a full endpoint (".../chat/completions") -> used as-is.
-   *   - Includes a path (".../v1", ".../openai/v1") -> append "/chat/completions".
-   *   - Bare server root ("http://host:8000") -> append "/v1/chat/completions",
+   *   - Already the full chat endpoint (".../chat/completions") -> used as-is
+   *     for chat; the models list is its sibling (".../models").
+   *   - Includes a path (".../v1", ".../openai/v1") -> append the endpoint.
+   *   - Bare server root ("http://host:8000") -> append "/v1/<endpoint>",
    *     since vLLM, LocalAI and similar servers expose the OpenAI-compatible API
    *     under /v1 by default. This is the most common self-hosted setup and the
    *     easiest one for users to get wrong (omitting /v1 returns FastAPI's
@@ -1655,8 +1685,9 @@ export default class LLMService {
    * schemes are case-insensitive but downstream URL parsing only recognizes
    * lowercase http/https.
    */
-  private static buildOpenAICompatibleChatCompletionsUrl(
+  private static buildOpenAICompatibleUrl(
     baseUrl: string,
+    endpoint: OpenAICompatibleEndpoint,
   ): string {
     const raw: string = baseUrl.trim();
 
@@ -1692,24 +1723,298 @@ export default class LLMService {
     const hasPathAfterHostRegex: RegExp = /^[a-z][a-z0-9+.-]*:\/\/[^/]+\/.+/i;
 
     if (fullEndpointRegex.test(base)) {
-      // The user already pointed us at the full endpoint.
-      path = base;
+      // The user already pointed us at the full chat endpoint.
+      path =
+        endpoint === "chat/completions"
+          ? base
+          : `${base.replace(fullEndpointRegex, "")}/${endpoint}`;
     } else if (hasPathAfterHostRegex.test(base)) {
       /*
        * The base URL carries a path after the host[:port] (e.g.
        * "http://host:8000/v1" or ".../openai/v1") — trust it and only append
        * the endpoint.
        */
-      path = `${base}/chat/completions`;
+      path = `${base}/${endpoint}`;
     } else {
       /*
        * Bare server root ("http://host:8000") — add the conventional /v1
        * prefix that OpenAI-compatible servers (vLLM, LocalAI, ...) use.
        */
-      path = `${base}/v1/chat/completions`;
+      path = `${base}/v1/${endpoint}`;
     }
 
     return `${path}${query}${fragment}`;
+  }
+
+  /*
+   * How long the model an OpenAI-compatible server listed first stands in
+   * for a blank Model Name before the server is asked again. A server
+   * restarted with another model is followed within minutes - and at once
+   * when a request to the old model fails (forgetServedModel).
+   */
+  private static readonly SERVED_MODEL_CACHE_TTL_IN_MS: number = 5 * 60 * 1000;
+
+  private static readonly MAX_SERVED_MODEL_CACHE_ENTRIES: number = 500;
+
+  private static readonly servedModelCache: Map<
+    string,
+    { modelName: string; learnedAt: number }
+  > = new Map();
+
+  /*
+   * The most of a models list read: a gateway that serves hundreds of
+   * models (OpenRouter) lists them in about a megabyte.
+   */
+  private static readonly MAX_MODELS_LIST_BYTES: number = 8 * 1024 * 1024;
+
+  /*
+   * The longest model id taken from a models list. vLLM names a model it
+   * loaded from disk by its path, which can run past a hundred characters;
+   * anything longer than this is not a model id.
+   */
+  public static readonly MAX_SERVED_MODEL_NAME_LENGTH: number = 512;
+
+  /*
+   * The model a models list names first, or null when it names none. Every
+   * OpenAI-compatible server answers GET /models as OpenAI does,
+   * {"object": "list", "data": [{"id": "Qwen/Qwen3-8B", ...}]}; a bare list
+   * of the same, and {"models": [...]} entries named by id, name or model,
+   * are read too.
+   *
+   * An embedding model answers no chat: LM Studio lists the nomic-embed-text
+   * it ships with beside the chat model it loaded. So the first model whose
+   * id does not say "embed" is taken, and an embedding model only when the
+   * list holds nothing else.
+   */
+  public static getFirstListedModel(list: unknown): string | null {
+    let entries: unknown = list;
+
+    if (list && typeof list === "object" && !Array.isArray(list)) {
+      const listObject: JSONObject = list as JSONObject;
+
+      entries = Array.isArray(listObject["data"])
+        ? listObject["data"]
+        : listObject["models"];
+    }
+
+    if (!Array.isArray(entries)) {
+      return null;
+    }
+
+    const modelNames: Array<string> = [];
+
+    for (const entry of entries) {
+      const modelName: string | null = this.getListedModelName(entry);
+
+      if (modelName) {
+        modelNames.push(modelName);
+      }
+    }
+
+    return (
+      modelNames.find((modelName: string) => {
+        return !modelName.toLowerCase().includes("embed");
+      }) ||
+      modelNames[0] ||
+      null
+    );
+  }
+
+  private static getListedModelName(entry: unknown): string | null {
+    const candidates: Array<unknown> =
+      entry && typeof entry === "object" && !Array.isArray(entry)
+        ? [
+            (entry as JSONObject)["id"],
+            (entry as JSONObject)["name"],
+            (entry as JSONObject)["model"],
+          ]
+        : [entry];
+
+    for (const candidate of candidates) {
+      if (typeof candidate !== "string") {
+        continue;
+      }
+
+      const modelName: string = candidate.trim();
+
+      if (
+        modelName &&
+        modelName.length <= this.MAX_SERVED_MODEL_NAME_LENGTH
+      ) {
+        return modelName;
+      }
+    }
+
+    return null;
+  }
+
+  /*
+   * Whose list a remembered model came from: the address asked, the key it
+   * was asked with (a gateway can list each key's own models - only a hash
+   * of the key is kept), and whether a global provider asked, which the
+   * egress guard lets reach addresses a project's provider may not.
+   */
+  private static getServedModelCacheKey(
+    config: LLMProviderConfig,
+    modelsUrl: string,
+  ): string {
+    const apiKeyHash: string = config.apiKey
+      ? crypto.createHash("sha256").update(config.apiKey).digest("hex")
+      : "";
+
+    return `${config.isGlobalProvider === true ? "global" : "project"}|${modelsUrl}|${apiKeyHash}`;
+  }
+
+  private static cacheServedModel(key: string, modelName: string): void {
+    // Bound the cache; Map iterates in insertion order, so this drops the oldest.
+    if (
+      !this.servedModelCache.has(key) &&
+      this.servedModelCache.size >= this.MAX_SERVED_MODEL_CACHE_ENTRIES
+    ) {
+      const oldestKey: string | undefined = this.servedModelCache
+        .keys()
+        .next().value;
+
+      if (oldestKey !== undefined) {
+        this.servedModelCache.delete(oldestKey);
+      }
+    }
+
+    this.servedModelCache.set(key, {
+      modelName: modelName,
+      learnedAt: Date.now(),
+    });
+  }
+
+  /*
+   * Forget the model a server listed, so the next request asks again: its
+   * request failed, and the server may serve another model by now.
+   */
+  private static forgetServedModel(
+    config: LLMProviderConfig,
+    baseUrl: string,
+  ): void {
+    this.servedModelCache.delete(
+      this.getServedModelCacheKey(
+        config,
+        this.buildOpenAICompatibleModelsUrl(baseUrl),
+      ),
+    );
+  }
+
+  /**
+   * Test seam: the model each server listed is remembered process-wide, so
+   * tests must be able to start from a clean slate.
+   */
+  public static clearServedModelCache(): void {
+    this.servedModelCache.clear();
+  }
+
+  /*
+   * The model an OpenAI-compatible provider asks for when its Model Name is
+   * left blank: the first one its server lists at GET <Base URL>/models.
+   * That is the one model a vLLM, SGLang or llama.cpp server serves - vLLM's
+   * own examples pick models.data[0] the same way - and the first chat model
+   * LocalAI, LM Studio or a gateway lists.
+   *
+   * The list is asked for the way the chat request is sent: through the
+   * egress guard, pinned, with no redirects, the API key in the same header,
+   * and no address in any error. A server that answers with an error says
+   * why first in OneUptime's own words (the hint); one that lists no model
+   * asks for a Model Name; one that cannot be reached fails as the chat
+   * request would. The model is remembered for a few minutes, so an agent's
+   * many requests do not each ask first.
+   */
+  private static async getOpenAICompatibleServedModel(data: {
+    config: LLMProviderConfig;
+    baseUrl: string;
+    request: LLMCompletionRequest;
+  }): Promise<string> {
+    const providerName: string = data.config.llmType.toString();
+    const modelsUrl: string = this.buildOpenAICompatibleModelsUrl(
+      data.baseUrl,
+    );
+    const cacheKey: string = this.getServedModelCacheKey(
+      data.config,
+      modelsUrl,
+    );
+    const cached: { modelName: string; learnedAt: number } | undefined =
+      this.servedModelCache.get(cacheKey);
+
+    if (cached) {
+      if (Date.now() - cached.learnedAt < this.SERVED_MODEL_CACHE_TTL_IN_MS) {
+        return cached.modelName;
+      }
+
+      this.servedModelCache.delete(cacheKey);
+    }
+
+    const logAttributes: LogAttributes = {
+      llmType: data.config.llmType,
+    };
+
+    const requestOptions: RequestOptions =
+      await this.buildGuardedRequestOptions({
+        providerName: providerName,
+        requestUrl: modelsUrl,
+        isGlobalProvider: data.config.isGlobalProvider,
+        options: {
+          ...this.buildRequestPolicy({
+            request: data.request,
+            defaultTimeoutInMs: 30000,
+          }),
+          maxContentLength: this.MAX_MODELS_LIST_BYTES,
+        },
+        logAttributes: logAttributes,
+      });
+
+    let response: HTTPResponse<JSONObject | JSONArray> | HTTPErrorResponse;
+
+    try {
+      response = await API.get<JSONObject | JSONArray>({
+        url: URL.fromString(modelsUrl),
+        headers: {
+          Accept: "application/json",
+          // As on the chat request: a keyless server refuses an empty token.
+          ...(data.config.apiKey
+            ? { Authorization: `Bearer ${data.config.apiKey}` }
+            : {}),
+        },
+        options: requestOptions,
+      });
+    } catch (error) {
+      throw this.toAddressFreeProviderError({
+        providerName: providerName,
+        error: error,
+        timeoutInMs: requestOptions.timeout,
+        logAttributes: logAttributes,
+      });
+    }
+
+    if (response instanceof HTTPErrorResponse) {
+      this.throwProviderHTTPError({
+        providerName: providerName,
+        llmType: data.config.llmType,
+        request: data.request,
+        response: response,
+        logAttributes: logAttributes,
+        hint: `Model Name is empty, so the server was asked which models it serves, and it answered HTTP ${response.statusCode}. Check the Base URL and the API Key, or type the name of a model it serves in Model Name.`,
+      });
+    }
+
+    const modelName: string | null = this.getFirstListedModel(
+      response.jsonData,
+    );
+
+    if (!modelName) {
+      throw new BadDataException(
+        "Model Name is empty, and the server at the Base URL lists no models to use. Check the Base URL, or type the name of a model the server serves in Model Name.",
+      );
+    }
+
+    this.cacheServedModel(cacheKey, modelName);
+
+    return modelName;
   }
 
   @CaptureSpan()
@@ -1720,9 +2025,10 @@ export default class LLMService {
     /*
      * Generic OpenAI-compatible servers (vLLM, LocalAI, etc.) are usually
      * self-hosted, frequently keyless, and have no canonical endpoint or
-     * default model — so the API key is optional but the base URL and model
-     * name must be provided. The hosted providers (OpenAI, Groq, Mistral)
-     * keep requiring a key and fall back to sensible defaults.
+     * default model — so the API key is optional, the base URL must be
+     * provided, and a blank Model Name asks the server for the model it
+     * serves (getOpenAICompatibleServedModel). The hosted providers (OpenAI,
+     * Groq, Mistral) keep requiring a key and fall back to sensible defaults.
      */
     const isGenericOpenAICompatible: boolean =
       config.llmType === LlmType.OpenAICompatible;
@@ -1734,12 +2040,6 @@ export default class LLMService {
     if (isGenericOpenAICompatible && !config.baseUrl) {
       throw new BadDataException(
         "Base URL is required for OpenAI-compatible providers (e.g. http://your-vllm-server:8000/v1)",
-      );
-    }
-
-    if (isGenericOpenAICompatible && !config.modelName) {
-      throw new BadDataException(
-        "Model Name is required for OpenAI-compatible providers. It must match a model your server exposes.",
       );
     }
 
@@ -1765,8 +2065,18 @@ export default class LLMService {
       config.baseUrl ||
       defaultBaseUrls[config.llmType] ||
       "https://api.openai.com/v1";
+    const typedModelName: string = (config.modelName || "").trim();
+    const asksServerForModel: boolean =
+      isGenericOpenAICompatible && !typedModelName;
     const modelName: string =
-      config.modelName || defaultModels[config.llmType] || "gpt-5.1";
+      typedModelName ||
+      (asksServerForModel
+        ? await this.getOpenAICompatibleServedModel({
+            config: config,
+            baseUrl: baseUrl,
+            request: request,
+          })
+        : defaultModels[config.llmType] || "gpt-5.1");
     const logAttributes: LogAttributes = {
       llmType: config.llmType,
       modelName: modelName,
@@ -1794,6 +2104,10 @@ export default class LLMService {
       });
 
     if (response instanceof HTTPErrorResponse) {
+      if (asksServerForModel) {
+        this.forgetServedModel(config, baseUrl);
+      }
+
       this.throwProviderHTTPError({
         providerName: config.llmType.toString(),
         llmType: config.llmType,
@@ -1803,10 +2117,13 @@ export default class LLMService {
       });
     }
 
-    return this.parseOpenAIResponse(
-      response.jsonData as JSONObject,
-      config.llmType,
-    );
+    return {
+      ...this.parseOpenAIResponse(
+        response.jsonData as JSONObject,
+        config.llmType,
+      ),
+      modelName: modelName,
+    };
   }
 
   /*
@@ -1899,10 +2216,13 @@ export default class LLMService {
       });
     }
 
-    return this.parseOpenAIResponse(
-      response.jsonData as JSONObject,
-      "Azure OpenAI",
-    );
+    return {
+      ...this.parseOpenAIResponse(
+        response.jsonData as JSONObject,
+        "Azure OpenAI",
+      ),
+      modelName: modelName,
+    };
   }
 
   /*
@@ -2158,7 +2478,10 @@ export default class LLMService {
       });
     }
 
-    return this.parseAnthropicResponse(response.jsonData as JSONObject);
+    return {
+      ...this.parseAnthropicResponse(response.jsonData as JSONObject),
+      modelName: modelName,
+    };
   }
 
   private static buildAnthropicRequestBody(
@@ -3106,6 +3429,7 @@ export default class LLMService {
               totalTokens: ollamaPromptTokens + ollamaCompletionTokens,
             }
           : undefined,
+      modelName: modelName,
     };
   }
 }

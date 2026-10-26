@@ -296,7 +296,7 @@ export default class LlmProvider extends BaseModel {
     type: TableColumnType.ShortText,
     title: "Model Name",
     description:
-      "The model to use (e.g., gpt-5.1, claude-sonnet-5-5, llama3.1). For Azure OpenAI / Microsoft Foundry, the deployment's name.",
+      "The model to use (e.g., gpt-5.1, claude-sonnet-5-5, llama3.1). For Azure OpenAI / Microsoft Foundry, the deployment's name. Optional: left empty, the provider's default model is used, and an OpenAI-compatible server is asked for the first model it lists.",
   })
   @Column({
     nullable: true,

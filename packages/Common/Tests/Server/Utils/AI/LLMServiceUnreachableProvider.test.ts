@@ -344,6 +344,45 @@ describe("LLMService reports an unreachable provider without its address", () =>
     expect(error.message).toContain("OpenAICompatible API error");
     expect(error.message).toContain("Incorrect API key provided");
   });
+
+  test("a blank Model Name's question to the server, unanswered, names neither the URL nor the address", async () => {
+    /*
+     * A provider whose Model Name is blank asks its server which models it
+     * serves before anything else: when that gets no answer, it fails the
+     * way the request itself would.
+     */
+    LLMService.clearServedModelCache();
+    failTransport({
+      code: "ECONNREFUSED",
+      message: `connect ECONNREFUSED ${PROVIDER_HOST}:${PROVIDER_PORT}`,
+    });
+
+    const error: Error = await getCompletionError({
+      ...openAICompatibleCase,
+      config: {
+        llmType: LlmType.OpenAICompatible,
+        baseUrl: `http://${PROVIDER_HOST}:${PROVIDER_PORT}`,
+      },
+    });
+
+    expect(error).toBeInstanceOf(APIException);
+    expect(error.message).toBe(
+      "OpenAICompatible API request failed: the LLM provider refused the connection.",
+    );
+    expectNoAddress(error.message, [
+      ...openAICompatibleCase.addressParts,
+      PROVIDER_HOST,
+      PROVIDER_PORT,
+    ]);
+    // It was the models list that was asked for, and nothing was posted.
+    expect(mockedAxios).toHaveBeenCalledTimes(1);
+    expect(
+      (mockedAxios.mock.calls[0]![0] as AxiosRequestConfig).method,
+    ).toMatch(/^get$/i);
+    expect(String((mockedAxios.mock.calls[0]![0] as AxiosRequestConfig).url)).toBe(
+      `http://${PROVIDER_HOST}:${PROVIDER_PORT}/v1/models`,
+    );
+  });
 });
 
 describe("LLMService reports an egress refusal without the provider's host", () => {

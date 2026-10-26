@@ -35112,5 +35112,7 @@
   "{{count}} more status pages": "ほか {{count}} 件のステータスページ",
   "{{count}} more status pages_one": "ほか {{count}} 件のステータスページ",
   "{{count}} more technologies": "ほか {{count}} 件の技術",
-  "{{count}} more technologies_one": "ほか {{count}} 件の技術"
+  "{{count}} more technologies_one": "ほか {{count}} 件の技術",
+  "First model the server lists": "サーバーの一覧の最初のモデル",
+  "Leave empty for the first model your server lists. To use another, type its name exactly as your server lists it.": "空欄にすると、サーバーの一覧の最初のモデルを使います。別のモデルを使う場合は、サーバーの一覧にある名前のとおりに入力します。"
 }

@@ -31,11 +31,12 @@ import React, { FunctionComponent, ReactElement } from "react";
  * the Admin Dashboard's Global LLM Providers - so they ask the same thing in
  * the same words (they used to be three copies that drifted).
  *
- *   - Provider: one card per provider, each with what it is in a line
- *     (LlmProviderFormCopy).
+ *   - Provider: one row per provider in a single panel, each with what it
+ *     is in a line (LlmProviderFormCopy).
  *   - Connection: only what that provider uses, with the help for that
  *     provider under each field - where to get its API key, the address to
- *     give it, the model the server asks for when Model Name is left blank.
+ *     give it, the model the server asks for when Model Name is left blank
+ *     (for an OpenAI-compatible server, the first model it lists).
  *     Ollama is never asked for an API key. The Base URL is required of a
  *     provider with no address of its own (Azure, Ollama, a server of
  *     yours) and optional for one that has one (OpenAI, Anthropic, Groq,
@@ -209,8 +210,12 @@ function getLlmProviderMainFields(): Array<Field<LlmProvider>> {
       // Each card says what its provider is: the column's sentence would not.
       hideColumnDescription: true,
       cardSelectOptions: LLM_PROVIDER_CARD_OPTIONS,
-      // Two to a row in any dialog: each card carries a line.
-      cardSelectMaxColumns: 2,
+      /*
+       * One ruled row each, in one panel: two cards to a row in the dialog's
+       * column squeezed every line to a few words, and Azure's long name
+       * left the card beside it half empty.
+       */
+      cardSelectLayout: "list",
       dataTestId: "llm-provider-type",
       /*
        * The provider names the provider (as a rule is named after what it

@@ -35112,5 +35112,7 @@
   "{{count}} more status pages": "Ещё страниц статуса: {{count}}",
   "{{count}} more status pages_one": "Ещё {{count}} страница статуса",
   "{{count}} more technologies": "Ещё технологий: {{count}}",
-  "{{count}} more technologies_one": "Ещё {{count}} технология"
+  "{{count}} more technologies_one": "Ещё {{count}} технология",
+  "First model the server lists": "Первая модель из списка сервера",
+  "Leave empty for the first model your server lists. To use another, type its name exactly as your server lists it.": "Оставьте пустым, чтобы использовать первую модель из списка вашего сервера. Чтобы выбрать другую, введите её имя точно так, как оно указано в списке сервера."
 }

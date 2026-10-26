@@ -1769,4 +1769,180 @@ describe("CardSelect", () => {
       expect(grid()).not.toHaveClass("sm:grid-cols-2");
     });
   });
+
+  /*
+   * The LLM provider picker's seven providers, two cards to a row in a
+   * dialog's column, squeezed each line to a few words and left a card beside
+   * a long one half empty. layout "list" draws them as ruled rows of one
+   * panel instead: the icon, the title over its line, and a radio.
+   */
+  describe("list layout", () => {
+    type PanelFunction = () => HTMLElement;
+
+    const options: Array<CardSelectOption> = [website, kubernetes, manual];
+
+    const panel: PanelFunction = (): HTMLElement => {
+      return screen.getByTestId("card-select-option-Website")
+        .parentElement as HTMLElement;
+    };
+
+    type RadioFunction = (value: string) => HTMLElement;
+
+    const radioOf: RadioFunction = (value: string): HTMLElement => {
+      return screen.getByTestId(`card-select-option-${value}-radio`);
+    };
+
+    test("every choice is a row of one panel, ruled apart, not a grid of cards", () => {
+      renderComponent({ options: options, layout: "list" });
+
+      expect(panel()).toHaveClass(
+        "divide-y",
+        "divide-gray-200",
+        "rounded-lg",
+        "border",
+        "border-gray-200",
+      );
+      expect(panel()).not.toHaveClass("grid");
+      expect(panel().children).toHaveLength(3);
+
+      for (const option of options) {
+        const row: HTMLElement = screen.getByTestId(
+          `card-select-option-${option.value}`,
+        );
+
+        expect(row.parentElement).toBe(panel());
+        // A row, not a card: no frame or shadow of its own.
+        expect(row).not.toHaveClass("rounded-lg", "shadow-sm", "border");
+        expect(row).toHaveTextContent(option.title);
+        expect(row).toHaveTextContent(option.description);
+      }
+    });
+
+    test("in the order given, as radios of one group", () => {
+      renderComponent({ options: options, layout: "list" });
+
+      const group: HTMLElement = screen.getByRole("radiogroup");
+
+      expect(
+        within(group)
+          .getAllByRole("radio")
+          .map((row: HTMLElement) => {
+            return row.getAttribute("data-card-select-value");
+          }),
+      ).toEqual(["Website", "Kubernetes", "Manual"]);
+    });
+
+    test("the picked one is tinted, and only its radio is filled", () => {
+      renderComponent({ options: options, layout: "list", value: "Kubernetes" });
+
+      const picked: HTMLElement = screen.getByTestId(
+        "card-select-option-Kubernetes",
+      );
+      const other: HTMLElement = screen.getByTestId(
+        "card-select-option-Website",
+      );
+
+      expect(picked).toHaveAttribute("aria-checked", "true");
+      expect(other).toHaveAttribute("aria-checked", "false");
+      expect(picked).toHaveClass("bg-indigo-50/70");
+      expect(other).toHaveClass("bg-white", "hover:bg-gray-50");
+      expect(radioOf("Kubernetes")).toHaveClass("border-indigo-600");
+      expect(radioOf("Kubernetes").children).toHaveLength(1);
+      expect(radioOf("Website")).toHaveClass("border-gray-300");
+      expect(radioOf("Website").children).toHaveLength(0);
+      // The radio is drawn: the row itself is what is read out.
+      expect(radioOf("Kubernetes")).toHaveAttribute("aria-hidden", "true");
+    });
+
+    test("a click or Enter picks a row", () => {
+      const { onChange } = renderComponent({
+        options: options,
+        layout: "list",
+      });
+
+      fireEvent.click(screen.getByTestId("card-select-option-Manual"));
+      expect(onChange).toHaveBeenLastCalledWith("Manual");
+
+      fireEvent.keyDown(screen.getByTestId("card-select-option-Website"), {
+        key: "Enter",
+      });
+      expect(onChange).toHaveBeenLastCalledWith("Website");
+    });
+
+    test("one tab stop, and the arrow keys move between the rows", () => {
+      renderComponent({ options: options, layout: "list", value: "Kubernetes" });
+
+      expect(
+        screen.getByTestId("card-select-option-Kubernetes"),
+      ).toHaveAttribute("tabindex", "0");
+      expect(screen.getByTestId("card-select-option-Website")).toHaveAttribute(
+        "tabindex",
+        "-1",
+      );
+
+      fireEvent.keyDown(screen.getByTestId("card-select-option-Kubernetes"), {
+        key: "ArrowDown",
+      });
+      expect(document.activeElement).toBe(
+        screen.getByTestId("card-select-option-Manual"),
+      );
+
+      fireEvent.keyDown(screen.getByTestId("card-select-option-Manual"), {
+        key: "ArrowUp",
+      });
+      expect(document.activeElement).toBe(
+        screen.getByTestId("card-select-option-Kubernetes"),
+      );
+    });
+
+    test("ignores maxColumns and singleColumn: a list is one column already", () => {
+      renderComponent({
+        options: options,
+        layout: "list",
+        maxColumns: 2,
+        singleColumn: true,
+      });
+
+      expect(panel()).toHaveClass("divide-y");
+      expect(panel()).not.toHaveClass("grid", "sm:grid-cols-2");
+    });
+
+    test("each group of a grouped list is a panel of its own, under its heading", () => {
+      renderComponent({ options: groupedOptions, layout: "list" });
+
+      for (const group of groupedOptions) {
+        const firstRow: HTMLElement = screen.getByTestId(
+          `card-select-option-${group.options[0]!.value}`,
+        );
+
+        expect(firstRow.parentElement).toHaveClass("divide-y");
+        expect(screen.getByText(group.label)).toBeInTheDocument();
+      }
+    });
+
+    test("the catalog keeps its own rows: layout is for a plain choice", () => {
+      renderComponent({
+        options: catalogOptions,
+        layout: "list",
+        catalog: {
+          commonOptionValues: ["Website", "Kubernetes"],
+          moreOptionsText: "More monitor types",
+        },
+      });
+
+      expect(screen.getByTestId("card-select-common")).toHaveClass("grid");
+      expect(
+        screen.queryByTestId("card-select-option-Website-radio"),
+      ).not.toBeInTheDocument();
+    });
+
+    test("a grid is still the default", () => {
+      renderComponent({ options: options });
+
+      expect(panel()).toHaveClass("grid");
+      expect(
+        screen.queryByTestId("card-select-option-Website-radio"),
+      ).not.toBeInTheDocument();
+    });
+  });
 });

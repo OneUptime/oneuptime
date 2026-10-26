@@ -37,7 +37,8 @@ import {
  *     a field it does not ask for (Ollama's API key) is one the server never
  *     sends; an optional one runs both ways;
  *   - the model the form says a blank Model Name gets is the model the
- *     server asks the provider for;
+ *     server asks the provider for - for an OpenAI-compatible server, the
+ *     first model it lists;
  *   - the address the form says a blank Base URL gets is where the server
  *     sends the request.
  *
@@ -46,6 +47,19 @@ import {
  */
 
 type PostSpy = ReturnType<typeof jest.spyOn>;
+
+// The model an OpenAI-compatible server in these tests serves.
+const SERVED_MODEL: string = "meta-llama/Llama-3.1-8B-Instruct";
+
+/*
+ * What an OpenAI-compatible server answers GET /models with: a blank Model
+ * Name asks it which models it serves.
+ */
+function listModels(data: Array<JSONObject>): PostSpy {
+  return jest.spyOn(API, "get").mockResolvedValue({
+    jsonData: { object: "list", data: data },
+  } as unknown as HTTPResponse<JSONObject>) as PostSpy;
+}
 
 interface SentRequest {
   url: string;
@@ -130,7 +144,7 @@ function configFor(
     !leaveOut.includes("modelName") &&
     copy.modelName === LlmProviderFieldNeed.Required
   ) {
-    config.modelName = "meta-llama/Llama-3.1-8B-Instruct";
+    config.modelName = SERVED_MODEL;
   }
 
   return config;
@@ -159,6 +173,8 @@ async function refusalOf(config: LLMProviderConfig): Promise<string> {
 beforeEach(() => {
   stubLLMEgressGuard();
   LLMService.clearRequestAdaptationCache();
+  LLMService.clearServedModelCache();
+  listModels([{ id: SERVED_MODEL, object: "model" }]);
   jest.spyOn(logger, "debug").mockImplementation((): void => {});
   jest.spyOn(logger, "error").mockImplementation((): void => {});
 });
@@ -239,14 +255,29 @@ describe("a field the form requires is one the server will not run without", () 
     );
   });
 
-  test.each(
-    LLM_PROVIDER_TYPES.filter((type: LlmType) => {
-      return needsModelName(type);
-    }),
-  )("%s: the Model Name", async (type: LlmType) => {
-    expect(await refusalOf(configFor(type, ["modelName"]))).toMatch(
-      /Model Name is required/,
-    );
+  test("no provider's Model Name: every one runs with it blank", async () => {
+    for (const type of LLM_PROVIDER_TYPES) {
+      expect({ type, needsModelName: needsModelName(type) }).toEqual({
+        type,
+        needsModelName: false,
+      });
+
+      const config: LLMProviderConfig = configFor(type, ["modelName"]);
+      const spy: PostSpy = replyWith(replyFor(type, config.baseUrl));
+
+      await complete(config);
+
+      expect({ type, model: sent(spy).data["model"] }).toEqual({
+        type,
+        model:
+          getLlmProviderDefaultModel({
+            llmType: type,
+            baseUrl: config.baseUrl,
+          }) || SERVED_MODEL,
+      });
+
+      spy.mockRestore();
+    }
   });
 
   test("the providers it requires them of are the ones the docs list", () => {
@@ -270,7 +301,7 @@ describe("a field the form requires is one the server will not run without", () 
       LLM_PROVIDER_TYPES.filter((type: LlmType) => {
         return needsModelName(type);
       }),
-    ).toEqual([LlmType.OpenAICompatible]);
+    ).toEqual([]);
   });
 });
 
@@ -318,11 +349,18 @@ describe("a field the form does not require, the server runs without", () => {
 
     jest.restoreAllMocks();
     stubLLMEgressGuard();
+    const list: PostSpy = listModels([{ id: SERVED_MODEL }]);
     spy = replyWith(replyFor(LlmType.OpenAICompatible));
 
     await complete(configFor(LlmType.OpenAICompatible));
 
     expect(sent(spy).headers["Authorization"]).toBe(`Bearer ${API_KEY}`);
+    // Asking which models it serves, too.
+    expect(
+      (list.mock.calls[0]![0] as { headers: Record<string, string> }).headers[
+        "Authorization"
+      ],
+    ).toBe(`Bearer ${API_KEY}`);
   });
 });
 
@@ -382,13 +420,50 @@ describe("what the form says a blank field gets is what the server uses", () => 
     ).toBe(LLMService.AZURE_OPENAI_DEFAULT_DEPLOYMENT);
   });
 
-  test("an OpenAI-compatible server has no default model to name", () => {
+  test("an OpenAI-compatible server has no default model to name: it says what it does instead", () => {
     expect(
       LLM_PROVIDER_TYPE_COPY[LlmType.OpenAICompatible].defaultModel,
     ).toBeUndefined();
     expect(
       getLlmProviderDefaultModel({ llmType: LlmType.OpenAICompatible }),
     ).toBeUndefined();
+    expect(
+      LLM_PROVIDER_TYPE_COPY[LlmType.OpenAICompatible].defaultModelLabel,
+    ).toBe("First model the server lists");
+    expect(LLM_PROVIDER_TYPE_COPY[LlmType.OpenAICompatible].modelNameHint).toBe(
+      "Leave empty for the first model your server lists. To use another, type its name exactly as your server lists it.",
+    );
+  });
+
+  test("an OpenAI-compatible server: a blank Model Name gets the first model it lists, as its hint says", async () => {
+    jest.restoreAllMocks();
+    stubLLMEgressGuard();
+
+    // LM Studio lists the embedding model it ships with beside the chat one.
+    const list: PostSpy = listModels([
+      { id: "text-embedding-nomic-embed-text-v1.5", object: "model" },
+      { id: "qwen2.5-7b-instruct", object: "model" },
+      { id: "llama-3.2-3b-instruct", object: "model" },
+    ]);
+    const spy: PostSpy = replyWith(replyFor(LlmType.OpenAICompatible));
+
+    await complete(configFor(LlmType.OpenAICompatible, ["apiKey"]));
+
+    expect(
+      (list.mock.calls[0]![0] as { url: URL }).url.toString(),
+    ).toBe("http://vllm:8000/v1/models");
+    expect(sent(spy).data["model"]).toBe("qwen2.5-7b-instruct");
+  });
+
+  test("only a provider with no default model of its own says what it does instead", () => {
+    for (const type of LLM_PROVIDER_TYPES) {
+      const copy: LlmProviderTypeCopy = LLM_PROVIDER_TYPE_COPY[type];
+
+      expect({ type, label: Boolean(copy.defaultModelLabel) }).toEqual({
+        type,
+        label: !copy.defaultModel,
+      });
+    }
   });
 
   test.each(

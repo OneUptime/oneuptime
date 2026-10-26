@@ -35112,5 +35112,7 @@
   "{{count}} more status pages": "Nog {{count}} statuspagina's",
   "{{count}} more status pages_one": "Nog {{count}} statuspagina",
   "{{count}} more technologies": "Nog {{count}} technologieën",
-  "{{count}} more technologies_one": "Nog {{count}} technologie"
+  "{{count}} more technologies_one": "Nog {{count}} technologie",
+  "First model the server lists": "Eerste model in de lijst van de server",
+  "Leave empty for the first model your server lists. To use another, type its name exactly as your server lists it.": "Laat leeg voor het eerste model in de lijst van uw server. Typ voor een ander model de naam precies zoals die in de lijst van uw server staat."
 }

@@ -238,6 +238,107 @@ describe("AIService.executeWithLogging marks its span as an AI call", () => {
     });
   });
 
+  /*
+   * A provider whose Model Name is blank leaves the model to the server -
+   * the provider type's default, or the first model an OpenAI-compatible
+   * server lists. AI Logs and the span name the model that answered, as
+   * LLMService reports it, so nobody has to guess what ran.
+   */
+  describe("with the Model Name left to the server", () => {
+    const SERVED_MODEL: string = "Qwen/Qwen3.8-27B";
+
+    function loggedModelName(): string | undefined {
+      const logged: LlmLog = (
+        jest.mocked(LlmLogService.create).mock.calls[0]![0] as {
+          data: LlmLog;
+        }
+      ).data;
+
+      return logged.modelName;
+    }
+
+    beforeEach(() => {
+      getProviderForChat.mockResolvedValue({
+        id: ObjectID.generate(),
+        name: "Self-hosted vLLM",
+        llmType: LlmType.OpenAICompatible,
+        baseUrl: "http://vllm.internal:8000/v1",
+        isGlobalLlm: false,
+      } as unknown as LlmProvider);
+    });
+
+    test("AI Logs and the span name the model the server chose", async () => {
+      getCompletion.mockResolvedValue(completion({ modelName: SERVED_MODEL }));
+
+      await AIService.executeWithLogging(request());
+
+      // Asked for no model: the server chose.
+      expect(
+        getCompletion.mock.calls[0]![0].llmProviderConfig.modelName,
+      ).toBeUndefined();
+      expect(loggedModelName()).toBe(SERVED_MODEL);
+      expect(attributesOf(callSpan())["gen_ai.response.model"]).toBe(
+        SERVED_MODEL,
+      );
+      // Not known before the call went out.
+      expect(attributesOf(callSpan())["gen_ai.request.model"]).toBeUndefined();
+    });
+
+    test("a model id longer than AI Logs' column is cut to fit, and the call still logs", async () => {
+      // vLLM names a model loaded from disk by its path.
+      const path: string = `/models/huggingface/hub/models--meta-llama--Llama-3.1-8B-Instruct/snapshots/0e9e39f249a16976918f6564b8830bc894c89659`;
+
+      getCompletion.mockResolvedValue(completion({ modelName: path }));
+
+      const response: AILogResponse = await AIService.executeWithLogging(
+        request(),
+      );
+
+      expect(response.content).toBe(ANSWER);
+      expect(path.length).toBeGreaterThan(100);
+      expect(loggedModelName()).toBe(path.substring(0, 100));
+      // The span keeps it whole.
+      expect(attributesOf(callSpan())["gen_ai.response.model"]).toBe(path);
+    });
+
+    test("a typed Model Name is what AI Logs name, as before", async () => {
+      getProviderForChat.mockResolvedValue({
+        id: ObjectID.generate(),
+        name: "Self-hosted vLLM",
+        llmType: LlmType.OpenAICompatible,
+        baseUrl: "http://vllm.internal:8000/v1",
+        modelName: "meta-llama/Llama-3.1-8B-Instruct",
+        isGlobalLlm: false,
+      } as unknown as LlmProvider);
+      getCompletion.mockResolvedValue(
+        completion({ modelName: "meta-llama/Llama-3.1-8B-Instruct" }),
+      );
+
+      await AIService.executeWithLogging(request());
+
+      expect(loggedModelName()).toBe("meta-llama/Llama-3.1-8B-Instruct");
+      expect(attributesOf(callSpan())["gen_ai.request.model"]).toBe(
+        "meta-llama/Llama-3.1-8B-Instruct",
+      );
+    });
+
+    test("an answer that names no model keeps the provider's", async () => {
+      getProviderForChat.mockResolvedValue({
+        id: ObjectID.generate(),
+        name: "OpenRouter",
+        llmType: LlmType.OpenAI,
+        modelName: MODEL,
+        isGlobalLlm: false,
+      } as unknown as LlmProvider);
+      getCompletion.mockResolvedValue(completion({}));
+
+      await AIService.executeWithLogging(request());
+
+      expect(loggedModelName()).toBe(MODEL);
+      expect(attributesOf(callSpan())["gen_ai.response.model"]).toBe(MODEL);
+    });
+  });
+
   describe("with prompts and answers recorded", () => {
     beforeEach(() => {
       process.env[CAPTURE_MESSAGE_CONTENT_ENV_VAR] = "true";

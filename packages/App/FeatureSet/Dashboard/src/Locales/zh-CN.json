@@ -35112,5 +35112,7 @@
   "{{count}} more status pages": "另外 {{count}} 个状态页",
   "{{count}} more status pages_one": "另外 {{count}} 个状态页",
   "{{count}} more technologies": "另外 {{count}} 项技术",
-  "{{count}} more technologies_one": "另外 {{count}} 项技术"
+  "{{count}} more technologies_one": "另外 {{count}} 项技术",
+  "First model the server lists": "服务器列出的第一个模型",
+  "Leave empty for the first model your server lists. To use another, type its name exactly as your server lists it.": "留空则使用你的服务器列出的第一个模型。如需使用其他模型，请输入与服务器列表中完全一致的名称。"
 }

@@ -35112,5 +35112,7 @@
   "{{count}} more status pages": "상태 페이지 {{count}}개 더",
   "{{count}} more status pages_one": "상태 페이지 {{count}}개 더",
   "{{count}} more technologies": "기술 {{count}}개 더",
-  "{{count}} more technologies_one": "기술 {{count}}개 더"
+  "{{count}} more technologies_one": "기술 {{count}}개 더",
+  "First model the server lists": "서버 목록의 첫 번째 모델",
+  "Leave empty for the first model your server lists. To use another, type its name exactly as your server lists it.": "비워 두면 서버 목록의 첫 번째 모델을 사용합니다. 다른 모델을 쓰려면 서버 목록에 나온 이름 그대로 입력합니다."
 }
