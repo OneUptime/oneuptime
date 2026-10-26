@@ -179,7 +179,7 @@ export interface DiscoveredNetworkDevice {
   pluralName: "Network Device Discovery Scans",
   icon: IconProp.Search,
   tableDescription:
-    "Network discovery scans that sweep an address space — a CIDR subnet or an octet range — from a probe and report the hosts found, so they can be imported as Network Devices. Every sweep pings; scans with Check SNMP on also query each live host over SNMP.",
+    "Network discovery scans that sweep an address space — a CIDR subnet or an octet range — from a probe and report the hosts found, so they can be imported as Network Devices. Every sweep pings; an SNMP scan also queries each live host over SNMP, an ICMP scan asks nothing more.",
 })
 @Entity({
   name: "NetworkDeviceDiscoveryScan",
@@ -609,9 +609,9 @@ export default class NetworkDeviceDiscoveryScan extends BaseModel {
     required: false,
     type: TableColumnType.Boolean,
     canReadOnRelationQuery: true,
-    title: "Check SNMP",
+    title: "SNMP Scan",
     description:
-      "Whether hosts that answer the ping sweep are then queried over SNMP. Turn it off for an ICMP-only scan, which reports every host that answers ping and asks nothing else of them.",
+      "The scan method: true for an SNMP scan (the default), which also asks each host that answers ping for its name and vendor over SNMP; false for an ICMP scan, which only pings.",
     defaultValue: true,
   })
   @Column({
@@ -721,7 +721,7 @@ export default class NetworkDeviceDiscoveryScan extends BaseModel {
     canReadOnRelationQuery: true,
     title: "SNMP Version",
     description:
-      "SNMP version tried against every host in the subnet (V1, V2c, V3). Ignored when Check SNMP is off.",
+      "SNMP version tried against every host in the subnet (V1, V2c, V3). Ignored on an ICMP scan.",
     example: "V2c",
   })
   @Column({
@@ -763,7 +763,7 @@ export default class NetworkDeviceDiscoveryScan extends BaseModel {
     type: TableColumnType.ShortText,
     title: "SNMP Community String",
     description:
-      "Community string tried against every host in the subnet (SNMP v1/v2c). Ignored when Check SNMP is off.",
+      "Community string tried against every host in the subnet (SNMP v1/v2c). Ignored on an ICMP scan.",
     example: "public",
   })
   @Column({
@@ -806,7 +806,7 @@ export default class NetworkDeviceDiscoveryScan extends BaseModel {
     type: TableColumnType.Number,
     title: "SNMP Port",
     description:
-      "UDP port tried against every host in the subnet. Ignored when Check SNMP is off.",
+      "UDP port tried against every host in the subnet. Ignored on an ICMP scan.",
     example: "161",
   })
   @Column({
@@ -868,7 +868,7 @@ export default class NetworkDeviceDiscoveryScan extends BaseModel {
     type: TableColumnType.ShortText,
     title: "SNMP v3 Security Level",
     description:
-      "SNMP v3 security level tried against every host: noAuthNoPriv, authNoPriv, or authPriv. Ignored when Check SNMP is off.",
+      "SNMP v3 security level tried against every host: noAuthNoPriv, authNoPriv, or authPriv. Ignored on an ICMP scan.",
     example: "authPriv",
   })
   @Column({
@@ -911,7 +911,7 @@ export default class NetworkDeviceDiscoveryScan extends BaseModel {
     type: TableColumnType.ShortText,
     title: "SNMP v3 Username",
     description:
-      "SNMP v3 security name (username) tried against every host. Ignored when Check SNMP is off.",
+      "SNMP v3 security name (username) tried against every host. Ignored on an ICMP scan.",
     example: "monitoring",
   })
   @Column({
@@ -954,7 +954,7 @@ export default class NetworkDeviceDiscoveryScan extends BaseModel {
     type: TableColumnType.ShortText,
     title: "SNMP v3 Authentication Protocol",
     description:
-      "SNMP v3 authentication protocol: MD5, SHA, SHA256, or SHA512. Ignored when Check SNMP is off.",
+      "SNMP v3 authentication protocol: MD5, SHA, SHA256, or SHA512. Ignored on an ICMP scan.",
     example: "SHA",
   })
   @Column({
@@ -995,7 +995,7 @@ export default class NetworkDeviceDiscoveryScan extends BaseModel {
     type: TableColumnType.LongText,
     title: "SNMP v3 Authentication Key",
     description:
-      "SNMP v3 authentication passphrase tried against every host. Ignored when Check SNMP is off.",
+      "SNMP v3 authentication passphrase tried against every host. Ignored on an ICMP scan.",
   })
   @Column({
     nullable: true,
@@ -1036,7 +1036,7 @@ export default class NetworkDeviceDiscoveryScan extends BaseModel {
     type: TableColumnType.ShortText,
     title: "SNMP v3 Privacy Protocol",
     description:
-      "SNMP v3 privacy (encryption) protocol: DES, AES, or AES256. Ignored when Check SNMP is off.",
+      "SNMP v3 privacy (encryption) protocol: DES, AES, or AES256. Ignored on an ICMP scan.",
     example: "AES",
   })
   @Column({
@@ -1077,7 +1077,7 @@ export default class NetworkDeviceDiscoveryScan extends BaseModel {
     type: TableColumnType.LongText,
     title: "SNMP v3 Privacy Key",
     description:
-      "SNMP v3 privacy (encryption) passphrase tried against every host. Ignored when Check SNMP is off.",
+      "SNMP v3 privacy (encryption) passphrase tried against every host. Ignored on an ICMP scan.",
   })
   @Column({
     nullable: true,
@@ -1293,7 +1293,7 @@ export default class NetworkDeviceDiscoveryScan extends BaseModel {
     required: false,
     title: "Responded Host Count",
     description:
-      "Number of hosts that answered the check this scan performed: SNMP responders on a scan with Check SNMP on, hosts that answered the ping sweep on an ICMP-only one. Managed by the scanning probe.",
+      "Number of hosts that answered the check this scan performed: SNMP responders on an SNMP scan, hosts that answered the ping sweep on an ICMP scan. Managed by the scanning probe.",
   })
   @Column({
     type: ColumnType.Number,

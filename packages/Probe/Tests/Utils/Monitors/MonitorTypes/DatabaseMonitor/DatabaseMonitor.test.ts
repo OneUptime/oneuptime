@@ -341,36 +341,47 @@ describe("DatabaseMonitor.applyDerivedMetrics", () => {
     );
   });
 
-  test("derives PostgreSQL cache hit ratio and rollback ratio", () => {
+  test("derives PostgreSQL cache hit ratio and rollback ratio over the interval since the previous check", () => {
     const metrics: Partial<Record<MonitorMetricType, number>> = {};
 
     DatabaseMonitor.applyDerivedMetrics({
       databaseType: SqlDatabaseType.PostgreSQL,
       rawColumns: {
-        blks_hit: 999,
+        blks_hit: 1999,
+        blks_read: 2,
+        xact_commit: 190,
+        xact_rollback: 20,
+      },
+      previousCounters: {
+        blks_hit: 1000,
         blks_read: 1,
-        xact_commit: 90,
+        xact_commit: 100,
         xact_rollback: 10,
       },
       metrics,
     });
 
+    // 999 hits and 1 read since the previous check.
     expect(metrics[MonitorMetricType.DatabaseCacheHitPercent]).toBeCloseTo(
       99.9,
     );
-    expect(metrics[MonitorMetricType.DatabaseTransactionsTotal]).toBe(100);
+    // A counter: the engine's total since it started, never a difference.
+    expect(metrics[MonitorMetricType.DatabaseTransactionsTotal]).toBe(210);
+    // 90 commits and 10 rollbacks since the previous check.
     expect(metrics[MonitorMetricType.DatabaseRollbackPercent]).toBe(10);
   });
 
-  test("derives the MySQL buffer pool hit ratio", () => {
+  test("derives the MySQL buffer pool hit ratio over the interval since the previous check", () => {
     const metrics: Partial<Record<MonitorMetricType, number>> = {};
 
     DatabaseMonitor.applyDerivedMetrics({
       databaseType: SqlDatabaseType.MySQL,
-      rawColumns: { bp_read_requests: 1000, bp_disk_reads: 50 },
+      rawColumns: { bp_read_requests: 3000, bp_disk_reads: 150 },
+      previousCounters: { bp_read_requests: 2000, bp_disk_reads: 100 },
       metrics,
     });
 
+    // 1,000 requests, 50 of them from disk, since the previous check.
     expect(metrics[MonitorMetricType.DatabaseCacheHitPercent]).toBe(95);
   });
 
@@ -400,6 +411,7 @@ describe("DatabaseMonitor.applyDerivedMetrics", () => {
     DatabaseMonitor.applyDerivedMetrics({
       databaseType: SqlDatabaseType.PostgreSQL,
       rawColumns: { blks_hit: 0, blks_read: 0 },
+      previousCounters: { blks_hit: 0, blks_read: 0 },
       metrics,
     });
 

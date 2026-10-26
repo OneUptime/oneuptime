@@ -1,15 +1,12 @@
-import LabelsElement from "Common/UI/Components/Label/Labels";
 import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
-import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
-import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
-import EditInSettingsLink from "../../../Components/TelemetryResource/EditInSettingsLink";
 import Service from "Common/Models/DatabaseModels/Service";
+import TechStack from "Common/Types/Service/TechStack";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
@@ -22,7 +19,6 @@ import InBetween from "Common/Types/BaseDatabase/InBetween";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import SeriesPoint from "Common/UI/Components/Charts/Types/SeriesPoints";
 import React, {
-  Fragment,
   FunctionComponent,
   ReactElement,
   useEffect,
@@ -38,7 +34,6 @@ import { SecurityConnectionKind } from "Common/Types/SecurityCase/SecurityConnec
 import ResourceOverview, {
   ResourceOverviewChip,
   ResourceOverviewDetailRow,
-  ResourceOverviewQuickLink,
   ResourceOverviewTile,
 } from "../../../Components/TelemetryResource/ResourceOverview";
 import ChartCard from "../../../Components/TelemetryResource/ChartCard";
@@ -132,6 +127,10 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           name: true,
           description: true,
           techStack: true,
+          labels: {
+            name: true,
+            color: true,
+          },
           lastSeenAt: true,
           serviceVersion: true,
           deploymentEnvironment: true,
@@ -535,44 +534,30 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
     </div>
   );
 
-  const quickLinks: Array<ResourceOverviewQuickLink> = [
-    {
-      title: "Traces",
-      description: "Distributed traces from this service",
-      to: populate(PageMap.SERVICE_VIEW_TRACES),
-      icon: IconProp.Workflow,
-    },
-    {
-      title: "Logs",
-      description: "Logs emitted by this service",
-      to: populate(PageMap.SERVICE_VIEW_LOGS),
-      icon: IconProp.Terminal,
-    },
-    {
-      title: "Metrics",
-      description: "All metrics emitted by this service",
-      to: populate(PageMap.SERVICE_VIEW_METRICS),
-      icon: IconProp.ChartBar,
-    },
-    {
-      title: "Exceptions",
-      description: "Captured exceptions, grouped by fingerprint",
-      to: populate(PageMap.SERVICE_VIEW_EXCEPTIONS),
-      icon: IconProp.Alert,
-    },
-    {
-      title: "Performance profiles",
-      description: "CPU and memory profiles for this service",
-      to: populate(PageMap.SERVICE_VIEW_PROFILES),
-      icon: IconProp.Gauge,
-    },
-  ];
-
+  /*
+   * One Details card (follow-up of #4980): the service's ID and tech stack,
+   * which a second "Service Details" card used to show beside its name, are
+   * rows here, its labels the Labels card under it, and its description
+   * the card's own line. A row the service never reported is left out
+   * (ResourceOverviewDetails), so a service without a cloud detector shows
+   * no four empty cloud rows.
+   */
+  const techStack: Array<TechStack> = r.techStack || [];
   const detailRows: Array<ResourceOverviewDetailRow> = [
-    { label: "Technology", value: languageDisplay, mono: false },
+    { label: "Service ID", value: modelId.toString() },
     {
-      label: "SDK Language (telemetry.sdk.language)",
-      value: r.telemetrySdkLanguage,
+      /*
+       * The tech stack set in Settings, else the language detected from
+       * the service's telemetry (telemetry.sdk.language, then the runtime):
+       * the answer the Technology tile and chip give too.
+       */
+      label: "Technology",
+      value: techStack.length > 0 ? techStack.join(", ") : languageDisplay,
+      element:
+        techStack.length > 0 ? (
+          <TechStackView techStack={techStack} />
+        ) : undefined,
+      mono: false,
     },
     {
       label: "Runtime",
@@ -629,8 +614,9 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             }
           />
         }
-        quickLinks={quickLinks}
         detailRows={detailRows}
+        labels={r.labels}
+        settingsRoute={populate(PageMap.SERVICE_VIEW_SETTINGS)}
       />
 
       <div className="mt-6">
@@ -662,81 +648,6 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         />
       </div>
 
-      {/*
-       * Service Details: read here, edited in one place - the name,
-       * description and labels in the same card at the top of the
-       * service's Settings page (ResourceDetailsCard), the tech stack in
-       * the Service Settings card under it.
-       */}
-      <CardModelDetail<Service>
-        name="Service > Service Details"
-        cardProps={{
-          title: "Service Details",
-          buttons: [
-            <EditInSettingsLink
-              key="edit-in-settings"
-              to={RouteUtil.populateRouteParams(
-                RouteMap[PageMap.SERVICE_VIEW_SETTINGS] as Route,
-                { modelId: modelId },
-              )}
-            />,
-          ],
-        }}
-        modelDetailProps={{
-          showDetailsInNumberOfColumns: 2,
-          modelType: Service,
-          id: "model-detail-service",
-          fields: [
-            {
-              field: {
-                _id: true,
-              },
-              title: "Service ID",
-              fieldType: FieldType.ObjectID,
-            },
-            {
-              field: {
-                name: true,
-              },
-              title: "Service Name",
-            },
-            {
-              field: {
-                techStack: true,
-              },
-              title: "Tech Stack",
-              fieldType: FieldType.Element,
-              getElement: (item: Service): ReactElement => {
-                return (
-                  <Fragment>
-                    <TechStackView techStack={item["techStack"] || []} />
-                  </Fragment>
-                );
-              },
-            },
-            {
-              field: {
-                labels: {
-                  name: true,
-                  color: true,
-                },
-              },
-              title: "Labels",
-              fieldType: FieldType.Element,
-              getElement: (item: Service): ReactElement => {
-                return <LabelsElement labels={item["labels"] || []} />;
-              },
-            },
-            {
-              field: {
-                description: true,
-              },
-              title: "Description",
-            },
-          ],
-          modelId: modelId,
-        }}
-      />
     </TimeRangeZoomScope>
   );
 };
