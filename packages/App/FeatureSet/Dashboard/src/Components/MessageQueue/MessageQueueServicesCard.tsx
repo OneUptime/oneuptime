@@ -10,6 +10,7 @@ import {
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
+import { CARD_GRID_CENTERED_STATE_CLASS_NAME } from "Common/UI/Components/Card/CardGridLayout";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import {
   Translator,
@@ -160,7 +161,7 @@ const MessageQueueServicesCard: FunctionComponent<ComponentProps> = (
       ) : props.services.length === 0 ? (
         <div
           data-testid={`message-queue-${props.side}-empty`}
-          className="text-sm text-gray-500"
+          className={`${CARD_GRID_CENTERED_STATE_CLASS_NAME} py-6 text-sm text-gray-500`}
         >
           {translator.translateText(
             getMessageQueueServicesEmptyText(props.side, props.queueHasSpans),

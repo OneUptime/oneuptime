@@ -32,7 +32,7 @@ flowchart TB
 :::steps
 ### Das Postmortem öffnen
 
-Öffnen Sie den Vorfall und klicken Sie in seinem Seitenmenü unter **Untersuchung** auf **Postmortem**. Die Karte **Postmortem** zeigt **Status** und **Eigentümer** des Postmortems, die Notiz, die Anhänge und ob das Postmortem auf der Statusseite steht.
+Öffnen Sie den Vorfall und klicken Sie in seinem Seitenmenü unter **Untersuchung** auf **Postmortem**. Die Karte **Postmortem** zeigt **Status** und **Eigentümer** des Postmortems, die Notiz, die Anhänge und ob das Postmortem auf der Statusseite steht. **Eigentümer hinzufügen** neben den Eigentümern macht eine Person oder ein Team Ihres Projekts direkt dort zum Eigentümer des Vorfalls.
 
 ### Auf Postmortem schreiben klicken
 

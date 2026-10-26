@@ -18,6 +18,13 @@ import * as Linking from "expo-linking";
 import { useTheme, type ColorTokens } from "../theme";
 import { radius, spacing, typography } from "../theme/tokens";
 import { toPlainText } from "../utils/text";
+import { getServerUrl } from "../storage/serverUrl";
+import {
+  looksLikeSecurityCaseLink,
+  parseSecurityCaseLink,
+  type SecurityCaseLink,
+} from "../security/caseLinks";
+import { openSecurityCaseFromLink } from "../notifications/handlers";
 
 type MarkedTheme = NonNullable<MarkdownProps["theme"]>;
 
@@ -28,6 +35,36 @@ export interface MarkdownContentProps {
 
 class OneUptimeMarkdownRenderer extends Renderer implements RendererInterface {
   private openLink(href: string): void {
+    /*
+     * A link to a security case on the OneUptime this app is signed in to
+     * opens the case here: the alert a playbook paged with, and an incident
+     * declared from a case, name their case that way (security/caseLinks).
+     * Every other link opens at once, without reading the server address.
+     */
+    if (looksLikeSecurityCaseLink(href)) {
+      void getServerUrl()
+        .then((serverUrl: string): void => {
+          const link: SecurityCaseLink | null = parseSecurityCaseLink(
+            href,
+            serverUrl,
+          );
+
+          if (link && openSecurityCaseFromLink(link.projectId, link.caseId)) {
+            return;
+          }
+
+          this.openExternal(href);
+        })
+        .catch((): void => {
+          this.openExternal(href);
+        });
+      return;
+    }
+
+    this.openExternal(href);
+  }
+
+  private openExternal(href: string): void {
     /*
      * openURL rejects whenever nothing on the handset claims the scheme.
      * Surface that failure rather than leaving an incident responder tapping
@@ -51,7 +88,11 @@ class OneUptimeMarkdownRenderer extends Renderer implements RendererInterface {
       <Text
         selectable={true}
         accessibilityRole="link"
-        accessibilityHint="Opens in a new window"
+        accessibilityHint={
+          looksLikeSecurityCaseLink(href)
+            ? "Opens the security case"
+            : "Opens in a new window"
+        }
         accessibilityLabel={title || undefined}
         key={this.getKey()}
         onPress={(): void => {

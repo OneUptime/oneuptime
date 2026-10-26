@@ -1,5 +1,5 @@
 import { AnalyticsModelSchema } from "../../../Utils/Schema/AnalyticsModelSchema";
-import Zod from "../../../Utils/Schema/Zod";
+import { z } from "zod";
 import AnalyticsModels from "../../../Models/AnalyticsModels/Index";
 import AnalyticsBaseModel from "../../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import AnalyticsTableColumn from "../../../Types/AnalyticsDatabase/TableColumn";
@@ -53,7 +53,7 @@ const CREATE_EXCLUDED_FIELDS: Array<string> = ["_id", "createdAt", "updatedAt"];
 const isZodObject: (schema: unknown) => boolean = (
   schema: unknown,
 ): boolean => {
-  return schema instanceof Zod.ZodObject;
+  return schema instanceof z.ZodObject;
 };
 
 const shapeKeys: (schema: any) => Array<string> = (

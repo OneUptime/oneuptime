@@ -1,12 +1,23 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { escapeRegExp } from "Common/Utils/RegExpEscape";
 
 /*
  * Resource inventory pages used to return their setup documentation instead
  * of their ModelTable when the initial count was zero. That made the table's
  * Create button unreachable, so the only way to get the first resource was to
  * send telemetry and let auto-discovery create it.
+ *
+ * Lists whose resources register themselves when their agent first reports
+ * (Kubernetes clusters, Docker and Podman hosts, Docker Swarm, Proxmox and
+ * Ceph clusters, storage arrays, IoT fleets, serverless functions, cloud
+ * environments) are added the way a host is (Components/ResourceOnboarding):
+ * they have no create form, since a row typed in by hand only waited for data
+ * nothing sent. The card header's Add button opens the resource's Add guide in
+ * a dialog, and the empty list shows the same guide under its table. Lists
+ * whose rows a form adds (databases, queues, RUM applications, vCenters) keep
+ * their Create button.
  *
  * The App test suite runs in a plain Node environment without a React renderer.
  * These tests therefore pin the JSX wiring directly, following the same source
@@ -57,10 +68,54 @@ interface ResourceInventoryPageCase {
   readonly refreshToggle?: string | undefined;
   /*
    * Not created by a form, but added from a button of the card header (Add
-   * Host) that the empty table would repeat: while the list waits for its
-   * first record, the guide under it is the way in, so it does not.
+   * Host, Add Kubernetes Cluster) that the empty table would repeat: while
+   * the list waits for its first record, the guide under it is the way in,
+   * so it does not.
    */
   readonly isAddedFromHeader?: boolean | undefined;
+  /*
+   * That button, as the card header writes its title, and the dialog it
+   * opens: the same guide the empty list shows under its table.
+   */
+  readonly addButtonTitle?: string | undefined;
+  readonly addDialog?: string | undefined;
+  /*
+   * The onboarding config (Components/ResourceOnboarding) an Add guide is
+   * drawn from: the empty list's card is that resource's guide, not another
+   * one's.
+   */
+  readonly onboarding?: string | undefined;
+}
+
+/*
+ * A list whose resources register themselves when their agent first reports:
+ * no create form, the card header's Add button opens the resource's Add guide
+ * in a dialog (AddResourceModal), and the empty list shows the same guide,
+ * from the same onboarding config, as its first-run card. Either one seeing
+ * the resource connect makes the table read it again (connectedCount).
+ */
+function addedByGuide(data: {
+  label: string;
+  relativePath: string;
+  modelType: string;
+  onboarding: string;
+}): ResourceInventoryPageCase {
+  return {
+    label: data.label,
+    relativePath: data.relativePath,
+    modelType: data.modelType,
+    countState: "firstRecordWatch.count",
+    countSetter: "firstRecordWatch.onRecordCreated",
+    watchesForFirstRecord: true,
+    documentationCard: "AddResourceGuide",
+    onboarding: data.onboarding,
+    isCreateable: false,
+    isAddedFromHeader: true,
+    addButtonTitle: `${data.onboarding}.addTitle`,
+    addDialog: `<AddResourceModal onboarding={${data.onboarding}}`,
+    refreshToggle:
+      "refreshToggle={`${firstRecordWatch.refreshToken}-${connectedCount}`}",
+  };
 }
 
 const RESOURCE_INVENTORY_PAGES: ReadonlyArray<ResourceInventoryPageCase> = [
@@ -72,51 +127,36 @@ const RESOURCE_INVENTORY_PAGES: ReadonlyArray<ResourceInventoryPageCase> = [
     countSetter: "setCount",
     documentationCard: "RumDocumentationCard",
   },
-  {
+  addedByGuide({
     label: "Kubernetes clusters",
     relativePath: "Kubernetes/Clusters.tsx",
     modelType: "KubernetesCluster",
-    countState: "firstRecordWatch.count",
-    countSetter: "firstRecordWatch.onRecordCreated",
-    watchesForFirstRecord: true,
-    documentationCard: "KubernetesDocumentationCard",
-  },
-  {
+    onboarding: "KUBERNETES_CLUSTER_ONBOARDING",
+  }),
+  addedByGuide({
     label: "Docker hosts",
     relativePath: "Docker/Hosts.tsx",
     modelType: "DockerHost",
-    countState: "firstRecordWatch.count",
-    countSetter: "firstRecordWatch.onRecordCreated",
-    watchesForFirstRecord: true,
-    documentationCard: "DockerDocumentationCard",
-  },
-  {
+    onboarding: "DOCKER_HOST_ONBOARDING",
+  }),
+  addedByGuide({
     label: "Podman hosts",
     relativePath: "Podman/Hosts.tsx",
     modelType: "PodmanHost",
-    countState: "firstRecordWatch.count",
-    countSetter: "firstRecordWatch.onRecordCreated",
-    watchesForFirstRecord: true,
-    documentationCard: "PodmanDocumentationCard",
-  },
-  {
+    onboarding: "PODMAN_HOST_ONBOARDING",
+  }),
+  addedByGuide({
     label: "Docker Swarm clusters",
     relativePath: "DockerSwarm/Clusters.tsx",
     modelType: "DockerSwarmCluster",
-    countState: "firstRecordWatch.count",
-    countSetter: "firstRecordWatch.onRecordCreated",
-    watchesForFirstRecord: true,
-    documentationCard: "DockerSwarmDocumentationCard",
-  },
-  {
+    onboarding: "DOCKER_SWARM_CLUSTER_ONBOARDING",
+  }),
+  addedByGuide({
     label: "Proxmox clusters",
     relativePath: "Proxmox/Clusters.tsx",
     modelType: "ProxmoxCluster",
-    countState: "firstRecordWatch.count",
-    countSetter: "firstRecordWatch.onRecordCreated",
-    watchesForFirstRecord: true,
-    documentationCard: "ProxmoxDocumentationCard",
-  },
+    onboarding: "PROXMOX_CLUSTER_ONBOARDING",
+  }),
   {
     label: "vCenters",
     relativePath: "VMware/VCenters.tsx",
@@ -127,24 +167,18 @@ const RESOURCE_INVENTORY_PAGES: ReadonlyArray<ResourceInventoryPageCase> = [
     isAddedByHand: true,
     documentationCard: "VMwareDocumentationCard",
   },
-  {
+  addedByGuide({
     label: "Ceph clusters",
     relativePath: "Ceph/Clusters.tsx",
     modelType: "CephCluster",
-    countState: "firstRecordWatch.count",
-    countSetter: "firstRecordWatch.onRecordCreated",
-    watchesForFirstRecord: true,
-    documentationCard: "CephDocumentationCard",
-  },
-  {
+    onboarding: "CEPH_CLUSTER_ONBOARDING",
+  }),
+  addedByGuide({
     label: "storage arrays",
     relativePath: "StorageArray/StorageArrays.tsx",
     modelType: "StorageArray",
-    countState: "firstRecordWatch.count",
-    countSetter: "firstRecordWatch.onRecordCreated",
-    watchesForFirstRecord: true,
-    documentationCard: "StorageArrayDocumentationCard",
-  },
+    onboarding: "STORAGE_ARRAY_ONBOARDING",
+  }),
   /*
    * A host is added by one command on it, not by a form: the first run is
    * the Add Host guide, and a host typed in by hand would only wait for
@@ -160,36 +194,30 @@ const RESOURCE_INVENTORY_PAGES: ReadonlyArray<ResourceInventoryPageCase> = [
     documentationCard: "AddHostGuide",
     isCreateable: false,
     isAddedFromHeader: true,
+    addButtonTitle: '"Add Host"',
+    addDialog: "<AddHostModal",
     refreshToggle:
       "refreshToggle={`${firstRecordWatch.refreshToken}-${connectedCount}`}",
   },
-  {
+  addedByGuide({
     label: "IoT fleets",
     relativePath: "IoT/Fleets.tsx",
     modelType: "IoTFleet",
-    countState: "firstRecordWatch.count",
-    countSetter: "firstRecordWatch.onRecordCreated",
-    watchesForFirstRecord: true,
-    documentationCard: "IoTDocumentationCard",
-  },
-  {
+    onboarding: "IOT_FLEET_ONBOARDING",
+  }),
+  // The cloud environments an app's OpenTelemetry reports.
+  addedByGuide({
     label: "cloud resources",
     relativePath: "Cloud/CloudResources.tsx",
     modelType: "CloudResource",
-    countState: "firstRecordWatch.count",
-    countSetter: "firstRecordWatch.onRecordCreated",
-    watchesForFirstRecord: true,
-    documentationCard: "CloudDocumentationCard",
-  },
-  {
+    onboarding: "CLOUD_ENVIRONMENT_ONBOARDING",
+  }),
+  addedByGuide({
     label: "serverless functions",
     relativePath: "Serverless/ServerlessFunctions.tsx",
     modelType: "ServerlessFunction",
-    countState: "firstRecordWatch.count",
-    countSetter: "firstRecordWatch.onRecordCreated",
-    watchesForFirstRecord: true,
-    documentationCard: "ServerlessDocumentationCard",
-  },
+    onboarding: "SERVERLESS_FUNCTION_ONBOARDING",
+  }),
   {
     label: "databases",
     relativePath: "Database/Databases.tsx",
@@ -275,8 +303,9 @@ describe("empty resource inventory page catalog", () => {
 
         return (
           source.includes("<ModelTable<") &&
-          source.match(/<(?:[A-Za-z]+DocumentationCard|AddHostGuide)\b/) !==
-            null
+          source.match(
+            /<(?:[A-Za-z]+DocumentationCard|AddHostGuide|AddResourceGuide)\b/,
+          ) !== null
         );
       })
       .map(toPosixRelativePath)
@@ -310,7 +339,10 @@ describe.each(RESOURCE_INVENTORY_PAGES)(
     const code: string = readCode(resourceCase);
     const modelTable: string = `<ModelTable<${resourceCase.modelType}>`;
     const zeroState: string = `{${resourceCase.countState} === 0 && (`;
-    const documentationCard: string = `<${resourceCase.documentationCard}`;
+    // An Add guide is the one of this list's own resource.
+    const documentationCard: string = resourceCase.onboarding
+      ? `<${resourceCase.documentationCard} onboarding={${resourceCase.onboarding}}`
+      : `<${resourceCase.documentationCard}`;
 
     test("keeps the inventory table mounted when the count is zero", () => {
       expect(source).toContain(modelTable);
@@ -333,6 +365,43 @@ describe.each(RESOURCE_INVENTORY_PAGES)(
       );
     });
 
+    test("where rows register themselves, the card header's Add button opens the guide in a dialog", () => {
+      if (!resourceCase.isAddedFromHeader) {
+        return;
+      }
+
+      const tableStart: number = source.indexOf(modelTable);
+      const tableEnd: number = source.indexOf("/>", tableStart);
+      const table: string = source.slice(tableStart, tableEnd);
+      const button: RegExpMatchArray | null = table.match(
+        new RegExp(
+          `buttons: \\[ \\{ title: ${escapeRegExp(
+            resourceCase.addButtonTitle as string,
+          )}, icon: IconProp\\.Add, buttonStyle: ButtonStyleType\\.NORMAL, onClick: \\(\\) => \\{ set([A-Z][A-Za-z]*)\\(true\\); \\}, \\}, \\],`,
+        ),
+      );
+
+      // No form to fill in: the button is the way in, empty list or not.
+      expect(table).toContain("formFields={[]}");
+      expect(code).not.toContain("onCreateSuccess");
+      expect(button).not.toBeNull();
+
+      // The button opens the dialog with the guide.
+      const setter: string = button ? (button[1] as string) : "";
+      const isOpen: string = setter.charAt(0).toLowerCase() + setter.slice(1);
+      const dialogStart: number = source.indexOf(
+        `{${isOpen} && ( ${resourceCase.addDialog as string}`,
+      );
+      expect(dialogStart).toBeGreaterThan(tableEnd);
+
+      // One it sees connect shows in the list at once.
+      const dialog: string = source.slice(
+        dialogStart,
+        source.indexOf("/>", dialogStart),
+      );
+      expect(dialog).toContain("setConnectedCount(");
+    });
+
     test("renders setup documentation only for a zero count", () => {
       expect(source).toContain(zeroState);
       expect(
@@ -353,10 +422,31 @@ describe.each(RESOURCE_INVENTORY_PAGES)(
       expect(documentationStart).toBeGreaterThan(zeroStateStart);
     });
 
-    test("hides the guide immediately after the first manual creation", () => {
+    test("hides the guide immediately after the first one is added, by hand or through the guide", () => {
       if (resourceCase.isCreateable === false) {
         // Nothing is created here: no create callback to count it.
         expect(source).not.toContain("onCreateSuccess={");
+
+        if (resourceCase.isAddedFromHeader) {
+          /*
+           * Added through the guide: once its last step sees the first one
+           * connect, the guide gives way at once - not at the watch's next
+           * count - and the table reads the new row.
+           */
+          const guideStart: number = source.indexOf(
+            documentationCard,
+            source.indexOf(zeroState),
+          );
+          const guide: string = source.slice(
+            guideStart,
+            source.indexOf("/>", guideStart),
+          );
+
+          expect(guideStart).toBeGreaterThan(-1);
+          expect(guide).toMatch(/ on(?:Host)?Connected=\{\(\) => \{/);
+          expect(guide).toContain(`${resourceCase.countSetter}();`);
+          expect(guide).toContain("setConnectedCount(");
+        }
         return;
       }
 
@@ -436,9 +526,10 @@ describe.each(RESOURCE_INVENTORY_PAGES)(
 
       // The guide says what to do, not "No X yet" a second time.
       const guideStart: number = source.indexOf(
-        `<${resourceCase.documentationCard}`,
-        source.indexOf(`{${resourceCase.countState} === 0 && (`),
+        documentationCard,
+        source.indexOf(zeroState),
       );
+      expect(guideStart).toBeGreaterThan(-1);
       expect(source.slice(guideStart, guideStart + 300)).toContain(
         "description={FIRST_RUN_GUIDE_DESCRIPTION}",
       );

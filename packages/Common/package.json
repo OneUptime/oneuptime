@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/common",
-  "version": "14.0.90",
+  "version": "14.0.91",
   "description": "",
   "repository": {
     "type": "git",
@@ -13,6 +13,8 @@
     "coverage": "jest --detectOpenHandles --coverage",
     "compile": "tsc",
     "compile-tests": "node Scripts/compile-tests.js",
+    "build-npm-package": "node --max-old-space-size=8192 Scripts/NpmPackage/BuildNpmPackage.js",
+    "smoke-test-npm-package": "node Scripts/NpmPackage/SmokeTestNpmPackage.js",
     "clear-modules": "rm -rf node_modules && rm package-lock.json && npm install",
     "dep-check": "npm install -g depcheck && depcheck ./ --skip-missing=true",
     "debug:test": "cd ../.. && export $(grep -v '^#' config.env | xargs) && cd packages/Common && node --inspect node_modules/.bin/jest --runInBand ./Tests --detectOpenHandles",
@@ -54,7 +56,7 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "@asteasolutions/zod-to-openapi": "^7.3.2",
+    "@asteasolutions/zod-to-openapi": "^9.1.0",
     "@bull-board/express": "^5.21.4",
     "@clickhouse/client": "^1.10.1",
     "@elastic/elasticsearch": "^8.12.1",
@@ -167,7 +169,7 @@
     "universal-cookie": "^7.2.1",
     "use-async-effect": "^2.2.6",
     "web-push": "^3.6.7",
-    "zod": "^3.25.76"
+    "zod": "^4.6.7"
   },
   "overrides": {
     "lodash-es": "^4.18.0",
@@ -178,6 +180,12 @@
     },
     "@istanbuljs/load-nyc-config": {
       "js-yaml": "^4.3.2"
+    },
+    "botbuilder": {
+      "zod": "$zod"
+    },
+    "@azure/identity": {
+      "@azure/msal-node": "^7.1.0"
     }
   }
 }

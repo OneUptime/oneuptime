@@ -2,6 +2,7 @@ import React, { FunctionComponent, ReactElement } from "react";
 import IconProp from "Common/Types/Icon/IconProp";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import SetupGuideCard, {
+  SetupGuideFrameProps,
   SetupGuideRenderContext,
 } from "../SetupGuide/SetupGuideCard";
 import { SetupGuideContent } from "../SetupGuide/SetupGuide";
@@ -28,7 +29,7 @@ import {
  * The picker's options come from the shared platform registry, so it can
  * only ever offer a platform ingest accepts.
  */
-export interface ComponentProps {
+export interface ComponentProps extends SetupGuideFrameProps {
   title: string;
   description: string;
   initialPlatform?: string | undefined;
@@ -53,6 +54,9 @@ const CloudDocumentationCard: FunctionComponent<ComponentProps> = (
           platform: resolveCloudPlatform(context.option),
         });
       }}
+      isBare={props.isBare}
+      inputs={props.inputs}
+      lastStep={props.lastStep}
     />
   );
 };

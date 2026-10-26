@@ -2,6 +2,7 @@ import React, { FunctionComponent, ReactElement } from "react";
 import IconProp from "Common/Types/Icon/IconProp";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import SetupGuideCard, {
+  SetupGuideFrameProps,
   SetupGuideRenderContext,
 } from "../SetupGuide/SetupGuideCard";
 import { SetupGuideContent } from "../SetupGuide/SetupGuide";
@@ -12,7 +13,7 @@ import {
   resolveStorageArrayPlatform,
 } from "../../Pages/StorageArray/Utils/DocumentationMarkdown";
 
-export interface ComponentProps {
+export interface ComponentProps extends SetupGuideFrameProps {
   title: string;
   description: string;
   /*
@@ -49,6 +50,9 @@ const StorageArrayDocumentationCard: FunctionComponent<ComponentProps> = (
           arrayName: props.arrayName,
         });
       }}
+      isBare={props.isBare}
+      inputs={props.inputs}
+      lastStep={props.lastStep}
     />
   );
 };

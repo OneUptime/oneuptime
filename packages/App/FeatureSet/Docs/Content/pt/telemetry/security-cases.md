@@ -88,7 +88,7 @@ Um caso tem um menu lateral próprio, como um incidente, e cada parte do caso é
 | Seção do menu lateral | Páginas |
 | --- | --- |
 | **Visão geral** | **Visão geral**, **Linha do tempo** |
-| **Investigação** | **Detections**, **Entidades**, **Execuções de playbooks** |
+| **Investigação** | **Detections**, **Entidades**, **Sinais conectados**, **Execuções de playbooks** |
 | **Notas** | **Notas privadas** |
 | **Avançado** | **Registros de auditoria**, **Excluir caso**, recolhidos até você clicar em **Avançado** |
 
@@ -100,6 +100,7 @@ Cada página mantém no topo o cabeçalho do caso: número, prioridade, status e
 - **Linha do tempo**: tudo o que aconteceu com o caso, com quem fez.
 - **Detections**: o que disparou para abrir o caso ou entrar nele, com que frequência, e o último evento correspondente.
 - **Entidades**: os usuários, hosts e endereços de que o caso trata, com a atividade deles em todos os seus eventos de segurança dos últimos 7 dias. Cada um abre em **Correlacionar**.
+- **Sinais conectados**: os hosts, clusters, serviços e membros que o caso nomeia, como o OneUptime os conhece, e o que acontecia em cada um em torno das detecções dele: os seus registros, traços e métricas, o que está aberto neles e o que mudou. Veja [Sinais conectados](/docs/telemetry/security-connected-signals).
 - **Execuções de playbooks**: o que cada playbook fez no caso, etapa por etapa, e as etapas aguardando aprovação. Enquanto houver execuções aguardando, o menu mostra quantas ao lado de **Execuções de playbooks**.
 - **Notas privadas**: o que a equipe escreveu sobre o caso.
 - **Registros de auditoria**: cada alteração feita no caso, e quem a fez. Veja [Registros de auditoria](/docs/configuration/audit-logs).
@@ -182,7 +183,7 @@ Cada pessoa escolhe por si mesma, em **Configurações do usuário → Configura
 
 As escolhas seguem as prioridades de caso do projeto, com os próprios nomes: estas são as de um projeto novo.
 
-Mensagens de WhatsApp não são enviadas para casos de segurança. Uma notificação push abre o app do OneUptime, e o link dela abre o caso no navegador.
+Mensagens de WhatsApp não são enviadas para casos de segurança. Uma notificação push abre o caso no app OneUptime On-Call (1.7.0 ou posterior), onde você pode aprovar ou rejeitar uma etapa de playbook em espera, assumir o caso e fechá-lo. O link dela abre o caso no navegador.
 
 ### Publique em canais do Slack e do Microsoft Teams
 
@@ -321,7 +322,7 @@ Uma execução que deixa de receber sinais do worker dela, depois de uma reinici
 - Os casos abertos atribuídos a você, os casos abertos que ninguém assumiu, e as etapas de playbooks aguardando aprovação, cada um abrindo a página que os lista.
 - **Tempo médio para reconhecer**, **Tempo médio para conter** e **Tempo médio para fechar**, sobre os casos abertos nos últimos 30 dias: da abertura de um caso até alguém assumi-lo (atribuindo-o a uma pessoa, ou levando-o para um status que conta como reconhecido), até um status que conta como contido e até um que conta como fechado. Um caso que ainda está esperando não entra na média.
 - Os casos abertos a cada dia, nos últimos 30 dias, por prioridade, e as detecções geradas a cada dia, nos últimos 14 dias, por origem.
-- Os casos abertos por prioridade e por status, os vereditos dos últimos 30 dias, as táticas ATT&CK por trás dos casos, as detecções que mais dispararam e as entidades citadas pelo maior número de achados.
+- Os casos abertos por prioridade e por status, as entidades citadas pelo maior número de achados, as detecções que mais dispararam, as táticas ATT&CK por trás dos casos e os vereditos dos últimos 30 dias.
 
 Acima, uma faixa mostra como a segurança está configurada: suas origens, detecções, casos e playbooks, cada um com seus números. Um projeto que ainda não a configurou vê ali **Ativar o recomendado** e **Enviar um ataque de teste**; consulte [Primeiros passos com a segurança](/docs/telemetry/security-getting-started). Quando nada precisa de ninguém, a página diz **Tudo tranquilo**, e os gráficos aparecem assim que há algo para mostrar.
 

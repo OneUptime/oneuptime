@@ -88,7 +88,7 @@ Een zaak heeft een eigen zijmenu, zoals een incident, en elk deel van de zaak is
 | Sectie van het zijmenu | Pagina's |
 | --- | --- |
 | **Overzicht** | **Overzicht**, **Tijdlijn** |
-| **Onderzoek** | **Detections**, **Entiteiten**, **Playbook-uitvoeringen** |
+| **Onderzoek** | **Detections**, **Entiteiten**, **Verbonden signalen**, **Playbook-uitvoeringen** |
 | **Notities** | **Privénotities** |
 | **Geavanceerd** | **Auditlogboeken**, **Zaak verwijderen**, ingeklapt tot je op **Geavanceerd** klikt |
 
@@ -100,6 +100,7 @@ Elke pagina houdt bovenaan de kop van de zaak: nummer, prioriteit, status en tit
 - **Tijdlijn**: alles wat er met de zaak gebeurde, met wie het deed.
 - **Detections**: wat afging en zo de zaak opende of eraan werd toegevoegd, hoe vaak, en de laatste overeenkomende gebeurtenis.
 - **Entiteiten**: de gebruikers, hosts en adressen waar de zaak over gaat, met hun activiteit in al je beveiligingsgebeurtenissen van de afgelopen 7 dagen. Elk ervan opent in **Correleren**.
+- **Verbonden signalen**: de hosts, clusters, services en leden die de zaak noemt, zoals OneUptime ze kent, en wat er op elk ervan gebeurde rond de detecties: hun logboeken, traces en metrieken, wat erop openstaat en wat er is veranderd. Zie [Verbonden signalen](/docs/telemetry/security-connected-signals).
 - **Playbook-uitvoeringen**: wat elk playbook met de zaak deed, stap voor stap, en de stappen die op goedkeuring wachten. Zolang er uitvoeringen wachten, toont het menu hoeveel naast **Playbook-uitvoeringen**.
 - **Privénotities**: wat het team over de zaak schreef.
 - **Auditlogboeken**: elke wijziging aan de zaak, en wie die maakte. Zie [Auditlogboeken](/docs/configuration/audit-logs).
@@ -182,7 +183,7 @@ Ieder kiest dat voor zichzelf, onder **Gebruikersinstellingen → Meldingsinstel
 
 De keuzes volgen de zaakprioriteiten van het project, onder hun eigen namen: dit zijn die van een nieuw project.
 
-Voor beveiligingszaken worden geen WhatsApp-berichten verstuurd. Een pushmelding opent de OneUptime-app, en de link erin opent de zaak in de browser.
+Voor beveiligingszaken worden geen WhatsApp-berichten verstuurd. Een pushmelding opent de zaak in de app OneUptime On-Call (1.7.0 of nieuwer), waar u een wachtende playbookstap kunt goedkeuren of afwijzen, de zaak kunt oppakken en sluiten. De link erin opent de zaak in de browser.
 
 ### Plaatsen in kanalen van Slack en Microsoft Teams
 
@@ -321,7 +322,7 @@ Een uitvoering die niets meer van haar worker hoort, bijvoorbeeld na een herstar
 - De open zaken die aan jou zijn toegewezen, de open zaken die nog niemand heeft opgepakt, en de playbookstappen die op goedkeuring wachten; elk getal opent de pagina die ze toont.
 - **Gemiddelde tijd tot bevestiging**, **Gemiddelde tijd tot indamming** en **Gemiddelde tijd tot sluiting**, over de zaken die in de afgelopen 30 dagen zijn geopend: van het openen van een zaak tot iemand haar oppakt (een persoon toewijst, of haar in een status zet die als bevestigd telt), tot een status die als ingeperkt telt, en tot een die als gesloten telt. Een zaak die nog wacht, telt niet mee in een gemiddelde.
 - De zaken die per dag zijn geopend, over 30 dagen, per prioriteit, en de detecties die per dag zijn opgeworpen, over 14 dagen, per bron.
-- De open zaken per prioriteit en per status, de oordelen van de afgelopen 30 dagen, de ATT&CK-tactieken achter de zaken, de detecties die het vaakst afgingen, en de entiteiten die in de meeste bevindingen voorkomen.
+- De open zaken per prioriteit en per status, de entiteiten die in de meeste bevindingen voorkomen, de detecties die het vaakst afgingen, de ATT&CK-tactieken achter de zaken en de oordelen van de afgelopen 30 dagen.
 
 Daarboven toont een strook hoe beveiliging is ingericht: de bronnen, detecties, zaken en playbooks, elk met hun cijfers. Een project dat het nog niet heeft ingericht, ziet daar **Aanbevolen inschakelen** en **Testaanval sturen**; zie [Aan de slag met beveiliging](/docs/telemetry/security-getting-started). Als niets iemand nodig heeft, zegt de pagina **Alles rustig**, en de grafieken verschijnen zodra er iets te tonen is.
 

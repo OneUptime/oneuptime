@@ -295,10 +295,84 @@ export const placeAnchoredPopupInBounds: (data: {
   };
 };
 
+/*
+ * How far to scroll the page down when a popup opens below its anchor with
+ * less room than it wants - a people list opened from the foot of a
+ * phone's screen had room for its search box and two rows - so it opens
+ * at its full height. Never further than the anchor's own top (it stays in
+ * view), nothing when the popup has the room or opens above its anchor
+ * (shouldAnchoredPopupOpenAbove), and the browser stops the scroll where
+ * the page ends.
+ */
+export const getAnchoredPopupRevealScroll: (data: {
+  anchor: AnchoredPopupBox;
+  viewportHeight: number;
+  popupMaxHeight: number;
+  preferredPlacement?: AnchoredFieldPopupPlacement | undefined;
+}) => number = (data: {
+  anchor: AnchoredPopupBox;
+  viewportHeight: number;
+  popupMaxHeight: number;
+  preferredPlacement?: AnchoredFieldPopupPlacement | undefined;
+}): number => {
+  const spaceBelow: number = Math.max(
+    0,
+    data.viewportHeight -
+      data.anchor.bottom -
+      POPUP_GAP_PX -
+      POPUP_VIEWPORT_PADDING_PX,
+  );
+  const spaceAbove: number = Math.max(
+    0,
+    data.anchor.top - POPUP_GAP_PX - POPUP_VIEWPORT_PADDING_PX,
+  );
+
+  if (
+    shouldAnchoredPopupOpenAbove({
+      preferredPlacement: data.preferredPlacement || "below",
+      spaceAbove: spaceAbove,
+      spaceBelow: spaceBelow,
+    })
+  ) {
+    return 0;
+  }
+
+  const anchorHeight: number = Math.max(
+    0,
+    data.anchor.bottom - data.anchor.top,
+  );
+  const wanted: number = Math.min(
+    data.popupMaxHeight,
+    data.viewportHeight -
+      anchorHeight -
+      POPUP_GAP_PX -
+      2 * POPUP_VIEWPORT_PADDING_PX,
+  );
+
+  if (wanted <= 0 || spaceBelow >= wanted) {
+    return 0;
+  }
+
+  return Math.max(
+    0,
+    Math.min(
+      Math.ceil(wanted - spaceBelow),
+      Math.floor(data.anchor.top - POPUP_VIEWPORT_PADDING_PX),
+    ),
+  );
+};
+
 export interface AnchoredFieldPopupOptions {
   // Intrinsic width of the popup, used to clamp it inside the viewport.
   popupWidth: number;
   popupMaxHeight: number;
+  /*
+   * Scroll the page when the popup opens without the room it wants on
+   * either side of its anchor (getAnchoredPopupRevealScroll), so a list
+   * opened low on a phone's screen opens at its full height. For a popup
+   * opened from a page, not from a dialog's own scrolling body.
+   */
+  revealRoomOnOpen?: boolean | undefined;
   /*
    * The side the popup opens on when it fits there: below the anchor unless
    * said otherwise. "above" is for an anchor at the foot of what it works on -
@@ -340,6 +414,34 @@ export interface AnchoredFieldPopup {
   // Opens the popup from a trigger's keyboard, and moves focus into it.
   onTriggerKeyDown: (event: React.KeyboardEvent) => void;
 }
+
+// What a control that opens a popup hands its button.
+export interface AnchoredPopupTriggerProps {
+  "aria-haspopup": "dialog";
+  "aria-expanded": boolean;
+  "aria-controls": string | undefined;
+  onClick: () => void;
+  onKeyDown: (event: React.KeyboardEvent) => void;
+}
+
+/*
+ * The props of a button that opens a popup of this hook: it toggles the
+ * popup, opens it from the keyboard (onTriggerKeyDown), and tells a screen
+ * reader that it opens a dialog, whether it is open, and which.
+ */
+export const getAnchoredPopupTriggerProps: (
+  popup: AnchoredFieldPopup,
+) => AnchoredPopupTriggerProps = (
+  popup: AnchoredFieldPopup,
+): AnchoredPopupTriggerProps => {
+  return {
+    "aria-haspopup": "dialog",
+    "aria-expanded": popup.isPopupOpen,
+    "aria-controls": popup.isPopupOpen ? popup.popupId : undefined,
+    onClick: popup.togglePopup,
+    onKeyDown: popup.onTriggerKeyDown,
+  };
+};
 
 /*
  * The keys that open a popup from its trigger. ArrowDown/ArrowUp match the
@@ -384,8 +486,13 @@ type UseAnchoredFieldPopupFunction = (
 const useAnchoredFieldPopup: UseAnchoredFieldPopupFunction = (
   options: AnchoredFieldPopupOptions,
 ): AnchoredFieldPopup => {
-  const { popupWidth, popupMaxHeight, repositionKey, stayInsideBoundary } =
-    options;
+  const {
+    popupWidth,
+    popupMaxHeight,
+    repositionKey,
+    stayInsideBoundary,
+    revealRoomOnOpen,
+  } = options;
   const getInitialFocusElementRef: React.MutableRefObject<
     AnchoredFieldPopupOptions["getInitialFocusElement"]
   > = useRef<AnchoredFieldPopupOptions["getInitialFocusElement"]>(
@@ -614,6 +721,34 @@ const useAnchoredFieldPopup: UseAnchoredFieldPopupFunction = (
     stayInsideBoundary,
     closePopup,
   ]);
+
+  /*
+   * Room for the popup, once, as it opens: the page moves the anchor up
+   * when neither side of it has the popup's height. The scroll places the
+   * popup again (the scroll listener below).
+   */
+  useEffect(() => {
+    if (
+      !isPopupOpen ||
+      !revealRoomOnOpen ||
+      !anchorRef.current ||
+      typeof window === "undefined" ||
+      typeof window.scrollBy !== "function"
+    ) {
+      return;
+    }
+
+    const distance: number = getAnchoredPopupRevealScroll({
+      anchor: anchorRef.current.getBoundingClientRect(),
+      viewportHeight: window.innerHeight,
+      popupMaxHeight: popupMaxHeight,
+      preferredPlacement: preferredPlacement,
+    });
+
+    if (distance > 0) {
+      window.scrollBy({ top: distance, behavior: "auto" });
+    }
+  }, [isPopupOpen, revealRoomOnOpen, popupMaxHeight, preferredPlacement]);
 
   useLayoutEffect(() => {
     if (!isPopupOpen) {

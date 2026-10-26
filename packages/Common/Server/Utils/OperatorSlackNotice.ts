@@ -32,7 +32,11 @@ import FeedMarkdown, {
  * - either balance adjusted by a master admin (ProjectService.adjustBalance);
  * - the project deleted, with the feedback its owner gave for deleting it
  *   (ProjectService.onDeleteSuccess, NOTIFICATION_SLACK_WEBHOOK_ON_DELETED
- *   _PROJECT).
+ *   _PROJECT);
+ * - a 👍 or 👎 on an answer from OneUptime AI in Microsoft Teams, with what
+ *   its sender wrote (MicrosoftTeamsAiAnswer.handleFeedback,
+ *   NOTIFICATION_SLACK_WEBHOOK_ON_AI_FEEDBACK) - reports of answers that
+ *   are wrong or inappropriate, which the operator acts on.
  *
  * Plan changes and both balances post to NOTIFICATION_SLACK_WEBHOOK_ON
  * _SUBSCRIPTION_UPDATE. Both balances use the same words, so a refill or an
@@ -98,6 +102,29 @@ export interface ProjectDeletedNotice {
 export interface UserCreatedNotice {
   // As created: their email, and the name, phone and company they gave.
   user: User;
+}
+
+// A 👍 or a 👎, as Microsoft Teams names them.
+export enum AiAnswerFeedbackReaction {
+  Like = "like",
+  Dislike = "dislike",
+}
+
+export interface AiAnswerFeedbackNotice {
+  // Where the answer was given: "Microsoft Teams".
+  chat: string;
+  reaction: AiAnswerFeedbackReaction;
+  // What its sender wrote with it; empty for nothing.
+  feedback: string;
+  // The project the conversation belongs to, when it could be told.
+  project?: Project | null | undefined;
+  projectId?: ObjectID | null | undefined;
+  // "personal", "groupChat" or "channel".
+  conversationType?: string | undefined;
+  // Its sender's name, as the chat shows it.
+  userName?: string | undefined;
+  // The answer's message in the chat, to find it by.
+  messageId?: string | undefined;
 }
 
 export interface ProjectCreatedNotice {
@@ -239,6 +266,47 @@ export default class OperatorSlackNotice {
     }
 
     lines.push(this.getDeletionFeedback(data.deletionReason));
+
+    return this.toSlackText(lines);
+  }
+
+  /*
+   * A 👍 or 👎 on an answer from OneUptime AI: where it was given and in
+   * which project, who gave it, the answer's message to find it by, and what
+   * they wrote, quoted, last. The answer itself is not in it: it was written
+   * from the project's own data, for the people in the conversation.
+   */
+  public static getAiAnswerFeedbackText(data: AiAnswerFeedbackNotice): string {
+    const isReport: boolean =
+      data.reaction === AiAnswerFeedbackReaction.Dislike;
+    const conversation: string = this.getConversationName(
+      data.conversationType,
+    );
+
+    const lines: Array<MarkdownText> = [
+      isReport
+        ? mdText`**OneUptime AI Answer Reported 👎:**`
+        : mdText`**OneUptime AI Answer Liked 👍:**`,
+      ...this.getProjectLines({
+        project: data.project,
+        projectId: data.projectId || undefined,
+      }),
+      conversation
+        ? mdText`**Where:** ${data.chat}, ${conversation}`
+        : mdText`**Where:** ${data.chat}`,
+    ];
+
+    const userName: string = data.userName?.trim() || "";
+
+    if (userName) {
+      lines.push(mdText`**From:** ${userName}`);
+    }
+
+    if (data.messageId) {
+      lines.push(mdText`**Message ID:** ${data.messageId}`);
+    }
+
+    lines.push(this.getQuote("Feedback", data.feedback));
 
     return this.toSlackText(lines);
   }
@@ -414,6 +482,18 @@ export default class OperatorSlackNotice {
     return `Set to ${amount}`;
   }
 
+  // A Microsoft Teams conversation's kind, as a message names it.
+  private static getConversationName(type: string | undefined): string {
+    switch (type) {
+      case "personal":
+        return "personal chat";
+      case "groupChat":
+        return "group chat";
+      default:
+        return type || "";
+    }
+  }
+
   // "Jane Doe (jane@example.com)", or whichever of the two is known.
   private static describePerson(data: {
     name?: Name | string | null | undefined;
@@ -445,12 +525,24 @@ export default class OperatorSlackNotice {
   private static getDeletionFeedback(
     deletionReason: string | null | undefined,
   ): MarkdownText {
-    const feedback: string = (deletionReason || "")
+    return this.getQuote("Deletion Feedback", deletionReason);
+  }
+
+  /*
+   * What a customer wrote, under its title, as a quote (getDeletionFeedback
+   * says why each line is placed as text, and how much is quoted). Nothing
+   * written is "None given".
+   */
+  private static getQuote(
+    title: string,
+    written: string | null | undefined,
+  ): MarkdownText {
+    const feedback: string = (written || "")
       .trim()
       .substring(0, SlackUtil.MARKDOWN_MAX_LENGTH);
 
     if (!feedback) {
-      return mdText`**Deletion Feedback:** _None given_`;
+      return mdText`**${title}:** _None given_`;
     }
 
     const quotedLines: Array<MarkdownText> = feedback
@@ -465,7 +557,7 @@ export default class OperatorSlackNotice {
      * shown as written (SlackUtil.slackify), and the project above it stays
      * as it reads.
      */
-    return mdText`**Deletion Feedback:**
+    return mdText`**${title}:**
 
 ${FeedMarkdown.join(quotedLines, "\n")}`;
   }

@@ -21,6 +21,9 @@ node_modules
 # mermaid for the docs and the blog, built by Common/Scripts/build-mermaid-browser.js
 packages/Common/build/mermaid-browser*/
 
+# What npm publishes as @oneuptime/common, built by Common/Scripts/NpmPackage/BuildNpmPackage.js
+packages/Common/build/npm/
+
 .idea
 # testing
 **/coverage

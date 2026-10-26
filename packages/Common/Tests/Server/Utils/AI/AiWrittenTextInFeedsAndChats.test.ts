@@ -293,6 +293,8 @@ describe("OneUptime AI's answers in chat", () => {
     jest
       .spyOn(AIService, "getReachedProjectDailyLimit")
       .mockResolvedValue(null as never);
+    // No AI credits used up: with billing on, as CI runs Common, the real check reads Postgres.
+    jest.spyOn(AIService, "getAiBalanceBlocker").mockResolvedValue(null);
     jest
       .spyOn(
         MicrosoftTeamsUtil as unknown as {
@@ -319,8 +321,9 @@ describe("OneUptime AI's answers in chat", () => {
     ).answerObservabilityQuestion({
       activity: { from: { aadObjectId: "aad-user-1" } },
       turnContext: {
-        sendActivity: async (text: string): Promise<void> => {
-          sent.push(text);
+        // The answer is an activity: its text, and Teams' AI label on it.
+        sendActivity: async (activity: unknown): Promise<void> => {
+          sent.push(sentText(activity));
         },
       },
       projectId: PROJECT_ID,
@@ -337,6 +340,16 @@ describe("OneUptime AI's answers in chat", () => {
   });
 });
 
+/*
+ * What the Teams bot sent: a refusal or an acknowledgement as text, an
+ * answer as an activity whose text it is (MicrosoftTeamsAiAnswer).
+ */
+function sentText(activity: unknown): string {
+  return typeof activity === "string"
+    ? activity
+    : String((activity as { text?: unknown }).text);
+}
+
 // The reply the Teams bot posts for an answer.
 async function teamsReplyFor(
   result: ObservabilityAssistantResult,
@@ -351,6 +364,8 @@ async function teamsReplyFor(
   jest
     .spyOn(AIService, "getReachedProjectDailyLimit")
     .mockResolvedValue(null as never);
+  // No AI credits used up: with billing on, as CI runs Common, the real check reads Postgres.
+  jest.spyOn(AIService, "getAiBalanceBlocker").mockResolvedValue(null);
   jest
     .spyOn(
       MicrosoftTeamsUtil as unknown as {
@@ -377,8 +392,8 @@ async function teamsReplyFor(
   ).answerObservabilityQuestion({
     activity: { from: { aadObjectId: "aad-user-1" } },
     turnContext: {
-      sendActivity: async (text: string): Promise<void> => {
-        sent.push(text);
+      sendActivity: async (activity: unknown): Promise<void> => {
+        sent.push(sentText(activity));
       },
     },
     projectId: PROJECT_ID,

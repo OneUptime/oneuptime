@@ -48,6 +48,8 @@ Renseignez **Nom de l'application (service.name)** avec le `service.name` que vo
 L'application porte le nom de son application, comme une application découverte. Pour afficher un autre nom, ouvrez **Plus de champs** et saisissez un **Nom d'affichage** ; la description et les étiquettes s'y trouvent aussi. Enregistrez ensuite le formulaire.
 :::
 
+Son guide de configuration s'ouvre alors de lui-même, avec le nom de l'application comme `service.name` de l'extrait. Sa dernière étape, **Attendre la connexion**, indique quand les premières données arrivent.
+
 Si le projet a déjà une application avec ce `service.name`, découverte, ajoutée auparavant ou archivée, le formulaire le signale au lieu d'en créer une seconde.
 
 ## État de la connexion

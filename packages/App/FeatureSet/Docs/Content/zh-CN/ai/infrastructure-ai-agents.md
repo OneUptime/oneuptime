@@ -1,6 +1,6 @@
 # 基础设施 AI 代理
 
-OneUptime AI 在调查事件或警报时，能看到的不只是您的遥测数据。安装在您某个资源旁边的小型代理——Docker 或 Podman 主机、Docker Swarm 集群、Proxmox 集群、VMware vCenter、Ceph 集群、数据库服务器或 Linux 主机——会运行 OneUptime AI 请求的只读命令，例如 `docker logs --tail 200 web`、`pvesh get /cluster/status`、`ceph health detail`、`db long-queries --min-seconds 30` 或 `journalctl -u nginx -n 200 --no-pager`，并把输出发回，因此根本原因分析会引用资源本身给出的信息。如果您允许，同一个代理还会应用修复——重启容器、启动虚拟机、把 OSD 重新标记为 in——每项修复都由命令策略划入某个级别，并且除非您另作选择，都要先由人批准。
+OneUptime AI 在调查事件或警报时，能看到的不只是您的遥测数据。安装在您某个资源旁边的小型代理——Docker 或 Podman 主机、Docker Swarm 集群、Proxmox 集群、VMware vCenter、Ceph 集群、数据库服务器或 Linux 主机——会运行 OneUptime AI 请求的只读命令，例如 `docker logs --tail 200 web`、`pvesh get /cluster/status`、`ceph health detail`、`db long-queries --min-seconds 30` 或 `journalctl -u nginx -n 200 --no-pager`，并把输出发回，因此根本原因分析会引用资源本身给出的信息。如果您允许，同一个代理还会应用修复——重启容器、启动虚拟机、把 OSD 重新标记为 in——每项修复都由命令策略划入某个级别，并且除非您另作选择，都要先由人批准。在资源页面上打开的询问 AI，也会在您提出请求时运行同样的只读命令（请参阅[询问 AI](/docs/ai/ask-ai)）。
 
 这些代理就是 **资源 AI 代理**。每个资源的仪表板页面都有一个 **人工智能** 部分，包含三个页面：
 
@@ -134,7 +134,7 @@ sudo bash install.sh
 
 如果采集器仍在使用默认名称（`docker-host`、`podman-host`、`docker-swarm`、`proxmox-cluster`、`vmware-vcenter`、`ceph`），那么使用该默认值安装的每个资源都会上报到 OneUptime 中的同一个资源，发给它的命令可能会到达其中任何一个。代理会在日志中对此发出警告；请在采集器和代理上为每个资源设置唯一的名称。
 
-它使用项目的遥测摄取密钥进行身份验证——`ONEUPTIME_API_KEY`、`ONEUPTIME_TELEMETRY_INGESTION_KEY` 和 `ONEUPTIME_SERVICE_TOKEN` 中第一个已设置的值，采集器已经设置了它们——并获得自己的密钥。它的所有调用都是发往 `<ONEUPTIME_URL>/resource-ai-agent-ingest/…` 的 HTTPS `POST`：它在启动时注册一次，每 30 秒发送一次心跳（在最后一次心跳后的 5 分钟内都算在线），每 3 秒请求一次工作，并在停止时注销。当第一个代理在线时，具有相同标识的第二个代理会被拒绝：正常停止的容器会注销，因此替代它的代理会立即被接纳，但在崩溃或被 kill 之后，替代者要等到旧代理沉默满 5 分钟。如果 10 分钟后仍被拒绝，说明另一个正在运行的代理在使用相同的标识：代理会记录一条说明此情况的错误，并改为每 5 分钟才请求一次，直到您为每个资源设置各自的名称或停止另一个代理。一个项目最多容纳 250 个资源 AI 代理，每小时最多注册 30 个新代理。达到 250 个后，7 天内没有消息的代理会被删除，为新代理腾出位置（资源会保留其 AI 设置，这样的代理回来后只需重新注册）。
+它使用项目的遥测摄取密钥进行身份验证——`ONEUPTIME_API_KEY`、`ONEUPTIME_TELEMETRY_INGESTION_KEY` 和 `ONEUPTIME_SERVICE_TOKEN` 中第一个已设置的值，采集器已经设置了它们——并获得自己的密钥。它的所有调用都是发往 `<ONEUPTIME_URL>/resource-ai-agent-ingest/…` 的 HTTPS `POST`：它在启动时注册一次，每 30 秒发送一次心跳（在最后一次心跳后的 5 分钟内都算在线），每 3 秒请求一次工作，并在停止时注销。当第一个代理在线时，具有相同标识的第二个代理会被拒绝：正常停止的容器会注销，因此替代它的代理会立即被接纳，而在崩溃或被 kill 之后，从第一次被拒绝起，旧代理只要 40 秒内没有发送任何请求，替代者就会接替它。如果 10 分钟后仍被拒绝，说明另一个正在运行的代理在使用相同的标识：代理会记录一条说明此情况的错误，并改为每 5 分钟才请求一次，直到您为每个资源设置各自的名称或停止另一个代理。一个项目最多容纳 250 个资源 AI 代理，每小时最多注册 30 个新代理。达到 250 个后，7 天内没有消息的代理会被删除，为新代理腾出位置（资源会保留其 AI 设置，这样的代理回来后只需重新注册）。
 
 **调查** 对每个资源从一开始就是开启的，因此代理一连接，OneUptime AI 就会借助它进行调查。除此之外，AI 可以在资源上做什么由代理自己的设置决定（参见 [AI 可以做什么，由代理设置](#ai-可以做什么由代理设置)）。两个设置都没有指定的代理会使用其默认值：它为自己的资源开启 **调查**，如果允许写入（`ONEUPTIME_AI_ALLOW_WRITES=true`），则将 **修复** 设为 **请求批准**，否则设为 **关闭**。这些默认值只适用于没有人在 AI 代理页面上选择过 AI 设置的资源：有人在那里保存的设置会保持不变，直到代理的配置指定它们，所以有人关闭了 **调查** 开关的资源会保持关闭。早于这些设置的代理不会上报其中任何一个，而是像以前一样由 AI 代理页面设置。
 
@@ -457,7 +457,7 @@ docker exec oneuptime-docker-ai-agent wget -qO- http://127.0.0.1:3877/status
 | `This OneUptime server does not have the resource AI agent API` | 升级 OneUptime，或运行与您的服务器匹配的代理镜像版本。代理每 5 分钟会再检查一次。 |
 | `OneUptime refused the agent's API key` | 使用项目中未固定的遥测摄取密钥。 |
 | `OneUptime refused the registration: …` | 阅读这一行的其余部分：未知的资源类型、为空或过长的标识、另一个项目的 `DATABASE_SERVER_ID`，或项目的代理数量上限。 |
-| `Waiting for this …'s previous AI agent to go offline` | 旧容器没有注销（崩溃或被 kill），因此在其最后一次心跳后的 5 分钟内都算在线。如果持续更久：说明另一个代理正在使用这个标识。 |
+| `Waiting for this …'s previous AI agent to go offline` | 旧容器没有注销（崩溃或被 kill），因此旧代理 40 秒内没有发送任何请求后，新代理就会接替它。如果持续更久：说明另一个代理正在使用这个标识。 |
 | 提示名称是采集器默认值的警告 | 在采集器和代理上为资源设置唯一的名称。 |
 | `The agent cannot reach this … right now` | 检查消息中指出的套接字挂载、地址、凭据或密钥环。AI 代理页面会显示同样的原因。 |
 | `Refused by the …: … this agent is read-only` | 设置 `ONEUPTIME_AI_ALLOW_WRITES=true`，并将 `ONEUPTIME_AI_FIXES` 设为 `off` 以外的模式，然后重启代理。 |

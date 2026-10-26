@@ -1024,7 +1024,7 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
                     )
               }
             >
-              <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-md">
+              <div className="h-full rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-md">
                 <div className="mb-4 flex items-start justify-between">
                   <ServiceElement service={summary.service} />
                   <div className="flex flex-wrap items-center gap-1.5">

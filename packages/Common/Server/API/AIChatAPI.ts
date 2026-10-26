@@ -458,6 +458,12 @@ router.post(
         permissionMode: effectivePermissionMode,
         pageContext: pageContext,
         props: props,
+        /*
+         * On a resource's, a cluster's, an incident's or an alert's page,
+         * the turn may run read-only commands on that infrastructure
+         * through its AI agents, for the person asking (issue #5259).
+         */
+        offersPageInfrastructure: true,
       }).catch((error: Error) => {
         logger.error(`AI chat turn crashed: ${error.message}`);
       });
@@ -724,6 +730,8 @@ router.post(
           llmProviderId: conversation.llmProviderId,
           permissionMode: permissionMode,
           props: props,
+          // The paused turn's command tools, built again for its subject.
+          offersPageInfrastructure: true,
         },
         decisions,
       ).catch((error: Error) => {

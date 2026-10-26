@@ -274,6 +274,15 @@ export default tseslint.config(
         PromiseSettledResult: true,
         AsyncIterable: true,
         AsyncIterator: true,
+        /*
+         * TypeScript's own types from its ES2015 lib. A package whose tsconfig
+         * extends a base from its own node_modules (MobileApp's
+         * expo/tsconfig.base) falls back to TypeScript's default lib in the
+         * lint job, which installs only the root's dependencies, and that lib
+         * has ReadonlyArray but not these.
+         */
+        ReadonlySet: true,
+        ReadonlyMap: true,
       },
       parserOptions: {
         projectService: true,

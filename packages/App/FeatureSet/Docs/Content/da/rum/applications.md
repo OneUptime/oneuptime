@@ -48,6 +48,8 @@ Udfyld **App-navn (service.name)** med det `service.name`, din app vil sende, pr
 Applikationen får navnet på sin app, ligesom en opdaget applikation. For at vise et andet navn skal du åbne **Flere felter** og indtaste et **Visningsnavn**; beskrivelsen og etiketterne findes også der. Gem derefter formularen.
 :::
 
+Derefter åbner applikationens opsætningsvejledning af sig selv, med app-navnet som `service.name` i kodeuddraget. Dens sidste trin, **Vent på forbindelse**, fortæller, hvornår de første data kommer ind.
+
 Hvis projektet allerede har en applikation med det `service.name`, opdaget, tilføjet tidligere eller arkiveret, siger formularen det i stedet for at oprette en til.
 
 ## Forbindelsesstatus

@@ -16,12 +16,16 @@ import { elevation, radius, spacing, typography } from "../theme/tokens";
 import GradientButton from "./GradientButton";
 import IconBadge from "./IconBadge";
 import { useScreenPadding } from "../hooks/useScreenPadding";
+import { useWindowLayout } from "../layout/WindowLayout";
+import { SHEET_MAX_WIDTH, type WindowLayout } from "../layout/windowLayout";
 
 interface AddNoteModalProps {
   visible: boolean;
   onClose: () => void;
   onSubmit: (note: string) => void;
   isSubmitting: boolean;
+  /** Who reads the note, under the box: an incident's never reach a status page. */
+  footnote?: string;
 }
 
 export default function AddNoteModal({
@@ -29,9 +33,16 @@ export default function AddNoteModal({
   onClose,
   onSubmit,
   isSubmitting,
+  footnote = "Internal notes are never shown on status pages.",
 }: AddNoteModalProps): React.JSX.Element {
   const { theme } = useTheme();
   const paddingBottom: number = useScreenPadding({ tabBar: false });
+  const windowLayout: WindowLayout = useWindowLayout();
+  /*
+   * On a short window (a phone on its side) a 148-point box and the keyboard
+   * do not both fit; a smaller box keeps Submit in view above the keys.
+   */
+  const shortWindow: boolean = windowLayout.heightClass === "compact";
   const [noteText, setNoteText] = useState("");
   const [focused, setFocused] = useState(false);
 
@@ -113,6 +124,14 @@ export default function AddNoteModal({
         <View
           testID="add-note-sheet"
           style={{
+            /*
+             * On a wide window the sheet stops at 640 points and sits in the
+             * middle, as bottom sheets do on large screens, rather than
+             * stretching a text box across an unfolded foldable.
+             */
+            width: "100%",
+            maxWidth: SHEET_MAX_WIDTH,
+            alignSelf: "center",
             maxHeight: "92%",
             borderTopLeftRadius: radius.xl,
             borderTopRightRadius: radius.xl,
@@ -192,8 +211,8 @@ export default function AddNoteModal({
                  * the caret off the text it belongs to.
                  */
                 fontSize: typography.body.fontSize,
-                minHeight: 148,
-                maxHeight: 280,
+                minHeight: shortWindow ? 88 : 148,
+                maxHeight: shortWindow ? 140 : 280,
                 borderRadius: radius.md,
                 /*
                  * The focus ring is one point thicker, so the padding gives
@@ -250,7 +269,7 @@ export default function AddNoteModal({
                   color: theme.colors.textTertiary,
                 }}
               >
-                Internal notes are never shown on status pages.
+                {footnote}
               </Text>
             </View>
 

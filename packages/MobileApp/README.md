@@ -82,7 +82,8 @@ MobileApp/
 │   ├── hooks/         # Auth hook / context, data hooks
 │   ├── navigation/    # React Navigation (auth stack, main tabs)
 │   ├── oncall/        # Pure on-call domain logic (shifts, duty state, overrides)
-│   ├── screens/       # Screen components (auth, home, incidents, alerts, on-call, settings)
+│   ├── security/      # Pure security case logic (statuses, priorities, approvals, links)
+│   ├── screens/       # Screen components (auth, home, incidents, alerts, security cases, on-call, settings)
 │   ├── storage/       # AsyncStorage: session tokens, server URL, preferences
 │   ├── theme/         # Colors, typography, spacing, theme context
 │   └── App.tsx        # Root component with providers
@@ -135,9 +136,45 @@ screenshot capture, project isolation checks and the limits of browser previews.
 
 The light interface has five destinations: **Home, Monitors, Inbox, On-Call,
 Settings**. Inbox brings incidents and alerts together, including their grouped
-episodes. Pick a project in any workspace header; the selection is remembered
-for this account and server across restarts. Switching returns to Home and
-clears open forms and details so projects never share an editing context.
+episodes, and - for people who can see the project's security cases - the open
+cases (see [Security cases](#security-cases)). Pick a project in any workspace
+header; the selection is remembered for this account and server across
+restarts. Switching returns to Home and clears open forms and details so
+projects never share an editing context.
+
+## Foldables, tablets and wide windows
+
+The app follows the window it is drawn in, so it looks after itself on a
+foldable's narrow cover screen, its near-square inner screen, a tablet, a
+phone on its side, Split View, Slide Over and Android desktop windows - and
+when the window changes while somebody is using it.
+
+- **One pane** below 840 points (every phone held upright, a cover screen, a
+  narrow split): the app as it always was, with the five destinations in a
+  bar along the bottom.
+- **A list beside its detail** from 840 points (an unfolded Galaxy Z Fold or
+  Pixel Fold, the iPhone Duo held open, a tablet on its side): the Inbox,
+  Monitors and On-Call lists stay on the left, and what is opened from them
+  appears on the right, with the open row marked. Until something is opened,
+  On-Call's right pane shows the team's roster. The panes meet on the fold
+  where there is one, so nothing crosses the crease when the phone is half
+  open. The destinations move to a rail down the left, as they do on a phone
+  on its side.
+- **Readable width.** Text and cards stop at 720 points and centre; Home sets
+  its sections in two columns from 960 points; sheets stop at 640 points.
+- **Nothing is lost when the phone folds.** One navigation state serves both
+  layouts, so the open incident, its scroll position, a half-written note and
+  an open sheet come through a fold or an unfold; lists keep their search,
+  filter and scroll position. On Android the activity handles the change in
+  place (`plugins/withFoldableContinuity.js` adds the `density` change folding
+  makes to Expo's `configChanges`), so it is never restarted.
+- **iPhone Duo.** iOS builds adopt the UIKit scene life cycle
+  (`expo-build-properties`, `ios.enableSceneSupport`) and the store build
+  compiles with Xcode 27.1 (`eas.json`), the first SDK whose apps fill the
+  iPhone Duo's inner screen instead of being letterboxed in it.
+
+The rules are in `src/layout/windowLayout.ts`; how to build a screen that
+follows them is in the [design system](docs/DESIGN_SYSTEM.md).
 
 ## On-Call
 
@@ -207,6 +244,81 @@ The app identifies the signed-in user from the `userId` claim on the access
 token (`src/auth/currentUser.ts`) rather than from the login response, because
 a session restored on a cold start never produces one — and a null user id
 there does not degrade the on-call screens, it inverts them.
+
+## Security cases
+
+OneUptime pushes three things about a security case to the phones of the
+people who can see it: a case that opened, or rose, at their chosen priority;
+a case assigned to them or to their team; and a playbook step waiting for
+their approval. The app is where those pages land, so it has the part of
+Security Events a paged analyst needs, and only that part:
+
+- **The case the page was about.** Tapping a `security-case` push opens the
+  case - from a cold start, behind the biometric lock, in another project
+  after the app switches to it - with Back to the open cases. A link to a
+  case inside an incident or an alert (the alert a playbook's Page On-Call
+  step opens names its case; so does an incident declared from one) opens it
+  in the app too, when it points at the OneUptime the app is signed in to.
+- **The decisions that cannot wait for a laptop.** A playbook step waiting
+  for approval comes first on the case: approve it - leaving any user or host
+  out, protected ones never acted on - or reject it, with a comment. The
+  person who started a run cannot approve it. While a step waits for the
+  reader, Approve is the screen's one filled button. Then who has the case
+  and the next step: **Assign to me** (which is how a case is acknowledged),
+  **Close case** with a verdict and a closing note, **Reopen**; and the
+  status, the priority and the assignee, each a tap from its sheet.
+- **Enough to decide.** OneUptime AI's read: its verdict, what it found - the
+  report's own Summary, shown at once, with the rest of the report folded
+  under **Read the full report** - a warning when the case's data tried to
+  steer it, and its suggested priority as one tap. Then the case's entities
+  (users, hosts, addresses), its details, description, timeline and notes.
+- **The queue.** For people who can see the project's cases, in a project
+  that has had one, the Inbox has a **Security** category: the open cases,
+  a case waiting for an approval first, then the most urgent by the project's
+  own ranking, then the latest detection; **Open**, **Mine** and
+  **Unassigned**, and search by title, number, assignee, or a user, host or
+  address the case is about. Home has an **Open security cases** row, which
+  says how many wait for an approval. Everybody else's Inbox and Home are as
+  they were.
+
+Everything else stays on the web, on purpose: building and tuning (detection
+rules, the rule library, playbooks, connections and log sources, threat
+intel, protected entities, case priorities and statuses, notification
+rules), investigating in depth (searching events, correlation, entity risk,
+attack coverage, a detection's raw events, the triage's evidence rows), and
+the rare or heavy moves (running a playbook, triaging again, declaring an
+incident, undoing a containment, opening a case, bulk actions, labels,
+deleting). Closed cases are the record: a push still opens one, but the list
+holds open cases.
+
+### Where the data comes from
+
+| What                        | Endpoint                                                                                                   |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| Whether to show Security    | `POST /api/security-case/count`                                                                            |
+| Statuses and priorities     | `POST /api/security-case-status/get-list`, `POST /api/security-case-priority/get-list`                     |
+| Open cases, one case        | `POST /api/security-case/get-list` (open statuses, or by id)                                               |
+| Any change to the case      | `PUT /api/security-case/:id`                                                                               |
+| Timeline, notes, a new note | `POST /api/security-case-feed/get-list`, `.../security-case-note/get-list`, `POST /api/security-case-note` |
+| Steps waiting for approval  | `POST /api/security-playbook-run/get-list` (`status: Waiting for Approval`)                                |
+| Approve or reject a step    | `POST /api/security-playbook-run/:runId/approve`, `.../reject`                                             |
+
+Every request carries the selected project's `tenantid`, and the server
+decides, as it does for the dashboard: a case is read by Project Owners,
+Project Admins, Security Admins, Members and Viewers, and anyone given Read
+Security Case; it is worked by the same people but Security Viewers, and by
+anyone given Edit Security Case. A refusal (422 or 403) is an answer, not an
+error: Security is not shown, and it is not asked again and again. A change is
+never drawn ahead of the server's answer; the case is read again either way.
+
+The app keeps its own copy of what a case's status and priority mean
+(`src/security/caseValues`, `caseChanges`, `caseTerms`, `playbookApproval`),
+because it is built without Common's runtime code. Common's
+`SecurityCaseMobileParity` runs that copy next to Common's rules over the
+table both suites share (`src/__tests__/securityCaseRuleCases.json`) and
+thousands of generated lists, and holds its words to Common's; App's
+`SecurityCaseMobileChangesParity` holds what each move writes to the
+dashboard's.
 
 ## Push Notifications
 

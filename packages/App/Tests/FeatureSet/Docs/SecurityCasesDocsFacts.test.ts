@@ -1025,6 +1025,68 @@ describe("Security Cases and Playbooks docs", () => {
     expect(boldSpans(overview)).toContain("Mean Time to Acknowledge");
   });
 
+  /*
+   * The Overview draws its ranked lists the most urgent first, in rows of
+   * cards of a size (Pages/SecurityEvents/Overview.tsx): what is open now
+   * and who it touches, then what raised detections, the attacker goals and
+   * how the month's closed cases turned out. The page lists them in that
+   * order too.
+   */
+  it("lists the overview's ranked lists in the order the Overview draws them", () => {
+    const overviewPage: string = source(
+      `${DASHBOARD}/Pages/SecurityEvents/Overview.tsx`,
+    );
+    const phrases: Array<[string, string]> = [
+      // The card's title on the page, the docs' words for it.
+      ["Open Cases", "The open cases by priority and by status"],
+      ["Riskiest Entities", "the entities named by the most findings"],
+      ["Top Detections", "the detections that fired most"],
+      ["MITRE ATT&CK Tactics", "the ATT&CK tactics behind the cases"],
+      ["Verdicts", "the verdicts of the last 30 days"],
+    ];
+    const positionsIn: (
+      text: string,
+      needles: Array<string>,
+    ) => Array<number> = (
+      text: string,
+      needles: Array<string>,
+    ): Array<number> => {
+      return needles.map((needle: string): number => {
+        return text.indexOf(needle);
+      });
+    };
+    const ascending: (positions: Array<number>) => boolean = (
+      positions: Array<number>,
+    ): boolean => {
+      return positions.every((position: number, index: number): boolean => {
+        return (
+          position >= 0 && (index === 0 || position > positions[index - 1]!)
+        );
+      });
+    };
+
+    const titles: Array<number> = positionsIn(
+      overviewPage,
+      phrases.map(([title]: [string, string]): string => {
+        return `title="${title}"`;
+      }),
+    );
+    const words: Array<number> = positionsIn(
+      section(page, "The overview"),
+      phrases.map(([, words]: [string, string]): string => {
+        return words;
+      }),
+    );
+
+    expect({ titles: ascending(titles), words: ascending(words) }).toEqual({
+      titles: true,
+      words: true,
+    });
+    expect(section(page, "The overview")).toContain(
+      "- The open cases by priority and by status, the entities named by the most findings, the detections that fired most, the ATT&CK tactics behind the cases, and the verdicts of the last 30 days.",
+    );
+  });
+
   it("names the three notifications as Notification Settings lists them, on by email and push", () => {
     const settingsPage: string = source(
       `${DASHBOARD}/Pages/UserSettings/NotificationSettings.tsx`,
@@ -1070,6 +1132,40 @@ describe("Security Cases and Playbooks docs", () => {
         ) as SecurityCasePriority
       ).name,
     ).toBe(priorityNameOf(SecurityCasePriorityLevel.High));
+  });
+
+  it("says a push opens the case in the On-Call app, where a waiting step is approved or rejected and the case taken on and closed", () => {
+    const handlers: string = flat(
+      source("MobileApp/src/notifications/handlers.ts"),
+    );
+    const caseScreen: string = source(
+      "MobileApp/src/screens/SecurityCaseDetailScreen.tsx",
+    );
+    const approval: string = source(
+      "MobileApp/src/components/security/PlaybookApproval.tsx",
+    );
+
+    // The push names its case and project, and carries the case's link.
+    expect(flat(source("Common/Server/Utils/PushNotificationUtil.ts"))).toMatch(
+      /public static createSecurityCaseNotification\(.{0,900}?clickAction: params\.caseViewLink,.{0,400}?entityType: "security-case", entityId: params\.securityCaseId, projectId: params\.projectId,/,
+    );
+    // The app opens the case's own screen from them.
+    expect(handlers).toMatch(
+      /case "security-case": \/\*.{0,600}?\*\/ navigationRef\.navigate\( "Inbox", buildInboxDetailNavigation\(\{ name: "SecurityCaseDetail", params: \{ caseId: entityId, projectId \},/,
+    );
+    // Where the waiting step is decided, the case taken on and closed.
+    expect(approval).toContain('label="Approve"');
+    expect(approval).toContain('label="Reject"');
+    expect(caseScreen).toContain('label: "Assign to me",');
+    expect(caseScreen).toContain('label: "Close case",');
+
+    /*
+     * 1.7.0 is the store release the case screen ships in: 1.6.0 and
+     * earlier open on their last screen.
+     */
+    expect(englishPage()).toContain(
+      "WhatsApp messages are not sent for security cases. A push notification opens the case in the OneUptime On-Call app (1.7.0 or later), where you can approve or reject a waiting playbook step, take the case on and close it. Its link opens the case in the browser.",
+    );
   });
 
   it("lists a new project's priority choices as the setting offers them, the default marked", () => {

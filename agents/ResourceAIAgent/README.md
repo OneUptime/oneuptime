@@ -117,7 +117,7 @@ It needs the same OneUptime version as the image, or newer. With an older server
 | `ONEUPTIME_AI_WRITE_TARGETS` | all | Comma-separated globs (`*` matches any run of characters) of the targets changes may touch: container, service, VM, unit names, … Empty means any target except the protected ones. |
 | `ONEUPTIME_AI_PROTECTED_TARGETS` | — | Comma-separated globs of targets OneUptime AI must never change, on top of the agent's own container and its collector. |
 | `ONEUPTIME_AI_AGENT_POLL_INTERVAL_MS` | `3000` | How often to ask for work (minimum 1000). |
-| `ONEUPTIME_AI_AGENT_HEARTBEAT_INTERVAL_MS` | `30000` | How often to heartbeat (minimum 5000). |
+| `ONEUPTIME_AI_AGENT_HEARTBEAT_INTERVAL_MS` | `30000` | How often to heartbeat (minimum 5000). Keep this or the poll interval under 40000: once another agent is refused this agent's place, OneUptime lets it in if this agent sends nothing for 40 seconds. |
 | `PORT` | `3877` | Health server port (the Kubernetes AI agent uses 3876). |
 | `ONEUPTIME_AI_AGENT_HEALTH_HOST` | `127.0.0.1` | The address the health server listens on. Loopback, so an agent on the host's network (the Host AI agent, or `network_mode: host`) does not serve `/status` to the network; every documented check runs on the agent's own network. `0.0.0.0` (or `::`) serves it on every interface, to publish the port. Anything but an IP address is ignored, with a warning. |
 | `LOG_LEVEL` | `info` | `debug`, `info`, `warn` or `error`. |
@@ -217,7 +217,7 @@ docker compose exec oneuptime-docker-ai-agent wget -qO- http://127.0.0.1:3877/st
 | `ONEUPTIME_AI_AGENT_RESOURCE_TYPE is not set` (or another required setting) | Set it in the `.env` the agent shares with the collector, then `docker compose up -d`. |
 | `This OneUptime server does not have the resource AI agent API` | Upgrade OneUptime, or run the image version that matches your server. |
 | `OneUptime refused the agent's API key` | Use an unpinned telemetry ingestion key of the project. |
-| `Waiting for this <resource>'s previous AI agent to go offline` | The old container did not sign off (it crashed or was killed), so OneUptime counts it online until it has been quiet for 5 minutes; after a clean stop the new one is let in at once. If it lasts longer than 5 minutes, another agent uses the same identity. |
+| `Waiting for this <resource>'s previous AI agent to go offline` | The old container did not sign off (it crashed, or was killed or removed with `docker rm -f`), so OneUptime lets the new one in once the old one has sent nothing for 40 seconds; after a clean stop the new one is let in at once. If it lasts longer than that, another agent uses the same identity. |
 | `Another AI agent has been online as this <resource> … for over 10 minutes` | Two agents register with the same identity (often the collector's default name). Give each resource its own name on the collector and the agent, or stop the other agent; until then this one asks every 5 minutes. |
 | `… the collector's default …` warning | Give the resource a unique name on the collector and the agent. |
 | `The agent cannot reach this <resource> right now` | Check the socket mount, address, credentials or keyring the error names. |

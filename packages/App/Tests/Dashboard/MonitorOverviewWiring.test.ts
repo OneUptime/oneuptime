@@ -274,6 +274,8 @@ describe("Monitor overview page", () => {
         "useMonitorUptimeSummary",
         "useOutletContext",
         "useRef",
+        // The details card's saves, and owners added from the hero.
+        "useState",
         "useState",
       ].sort(),
     );
@@ -611,13 +613,17 @@ describe("Monitor overview data flow", () => {
     expect(INDEX_CODE).toContain(
       "refreshToken: data.pollCount + data.statusChangeCount + data.manualRefreshCount,",
     );
-    // Owners: once per monitor and on the Refresh button.
+    // Owners: once per monitor, on the Refresh button and once one was added.
     expect(INDEX_CODE).toMatch(
-      /useMonitorOwners\(\{ monitorId: modelId, refreshToken: data\.manualRefreshCount, \}\)/,
+      /useMonitorOwners\(\{ monitorId: modelId, refreshToken: data\.manualRefreshCount \+ ownersChangeCount, \}\)/,
     );
-    // The feed also shows the details card's own edits.
+    // The feed also shows the details card's own edits, and owners added.
     expect(INDEX_CODE).toContain(
-      "const feedRefreshToken: number = data.manualRefreshCount + data.statusChangeCount + detailsSaveCount;",
+      "const feedRefreshToken: number = data.manualRefreshCount + data.statusChangeCount + detailsSaveCount + ownersChangeCount;",
+    );
+    // An owner added from the hero, unless the reader has moved on.
+    expect(INDEX_CODE).toContain(
+      "onOwnersChanged={() => { if (currentModelIdRef.current !== modelIdString) { return; } setOwnersChangeCount((count: number) => { return count + 1; }); }}",
     );
     expect(INDEX_CODE).toContain(
       "refreshToggle={`${data.statusChangeCount}|${data.manualRefreshCount}`}",

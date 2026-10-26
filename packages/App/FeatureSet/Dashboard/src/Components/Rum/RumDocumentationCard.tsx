@@ -3,6 +3,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import TelemetryIngestionKeyType from "Common/Types/Telemetry/TelemetryIngestionKeyType";
 import SetupGuideCard, {
+  SetupGuideFrameProps,
   SetupGuideRenderContext,
 } from "../SetupGuide/SetupGuideCard";
 import { SetupGuideContent } from "../SetupGuide/SetupGuide";
@@ -13,7 +14,7 @@ import {
   resolveRumClient,
 } from "./RumSetupGuide";
 
-export interface ComponentProps {
+export interface ComponentProps extends SetupGuideFrameProps {
   title: string;
   description: string;
   /*
@@ -56,6 +57,9 @@ const RumDocumentationCard: FunctionComponent<ComponentProps> = (
           appName: props.appName,
         });
       }}
+      isBare={props.isBare}
+      inputs={props.inputs}
+      lastStep={props.lastStep}
     />
   );
 };

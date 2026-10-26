@@ -127,6 +127,28 @@ function dialog(page: Page): Locator {
   return page.getByTestId("modal");
 }
 
+// The owner rows the page wrote, as the fixture recorded them.
+async function ownerSaves(
+  page: Page,
+): Promise<Array<{ model: string; data: Record<string, unknown> }>> {
+  return await page.evaluate(
+    (): Array<{ model: string; data: Record<string, unknown> }> => {
+      return (
+        window as unknown as {
+          __fixture: {
+            saves: Array<{ model: string; data: Record<string, unknown> }>;
+          };
+        }
+      ).__fixture.saves.filter((save: { model: string }): boolean => {
+        return (
+          save.model === "IncidentOwnerUser" ||
+          save.model === "IncidentOwnerTeam"
+        );
+      });
+    },
+  );
+}
+
 // Nothing on the page reaches past the window's right edge.
 async function expectNoSidewaysScroll(page: Page): Promise<void> {
   const overflow: number = await page.evaluate((): number => {
@@ -586,9 +608,11 @@ test.describe("an incident's Postmortem page", () => {
     );
     await expect(summary).toContainText("Alice Smith");
     await expect(summary).toContainText("Database Team");
+    // Owners are added right here: no link away to the incident's Owners page.
     await expect(
-      summary.getByRole("link", { name: "Change owners" }),
-    ).toHaveAttribute("href", `${PROJECT}/incidents/${incidentId(1)}/owners`);
+      summary.getByRole("button", { name: "Add owners" }),
+    ).toHaveAttribute("data-testid", "postmortem-add-more-owners");
+    await expect(summary.getByRole("link")).toHaveCount(0);
 
     await expect(
       page.getByRole("button", { name: "Edit Postmortem Note" }),
@@ -682,7 +706,7 @@ test.describe("an incident's Postmortem page", () => {
     await screenshot(page, "tab-write-dialog", false);
   });
 
-  test("a viewer finds Write Postmortem alone, locked, with why under it, and no Change owners", async ({
+  test("a viewer finds Write Postmortem alone, locked, with why under it, and no Add owners", async ({
     page,
   }: {
     page: Page;
@@ -702,6 +726,156 @@ test.describe("an incident's Postmortem page", () => {
     await expect(
       page.getByTestId("postmortem-summary").getByRole("link"),
     ).toHaveCount(0);
+    await expect(
+      page
+        .getByTestId("postmortem-summary")
+        .getByRole("button", { name: "Add owners" }),
+    ).toHaveCount(0);
+  });
+
+  /*
+   * "If I click on add owners, I should be able to add owners from this
+   * page directly instead of going to owners page." The postmortem's
+   * owners are the incident's: Add owners - beside "No owners yet.", or the
+   * place after the owners - opens the Owners page's own list right here.
+   */
+  test("Add owners opens the Add owners list right here, and a pick makes them an owner of the incident", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openTab(page, "&incident=1");
+
+    const owners: Locator = page.getByTestId("postmortem-owners");
+    const more: Locator = owners.getByRole("button", { name: "Add owners" });
+    await expect(more).toHaveAttribute("aria-haspopup", "dialog");
+    await more.click();
+
+    const list: Locator = page.getByRole("dialog", { name: "Add owners" });
+    await expect(list).toBeVisible();
+    await expect(more).toHaveAttribute("aria-expanded", "true");
+    await expect(
+      list.getByRole("combobox", { name: "Search people or teams..." }),
+    ).toBeFocused();
+    // Alice Smith and the Database Team own it already.
+    await expect(list.getByTestId("people-search-option")).toHaveCount(2);
+    await expect(list.getByRole("option", { name: /Bob Jones/ })).toBeVisible();
+    await expect(list.getByRole("option", { name: /SRE/ })).toBeVisible();
+
+    await list.getByRole("option", { name: /SRE/ }).click();
+
+    // Named at once, the list open for the next, saying what it did.
+    await expect(owners).toContainText("SRE");
+    await expect(list.getByTestId("people-search-notice-done")).toHaveText(
+      "Added SRE.",
+    );
+    await expect(list.getByTestId("people-search-option")).toHaveCount(1);
+    const saves: Array<{ model: string; data: Record<string, unknown> }> =
+      await ownerSaves(page);
+    expect(saves).toHaveLength(1);
+    expect(saves[0]!.model).toBe("IncidentOwnerTeam");
+    const saved: string = JSON.stringify(saves[0]!.data);
+    expect(saved).toContain(incidentId(1));
+    expect(saved).toContain("31000000-0000-4000-8000-0000000000c1");
+    expect(saved).not.toContain("isOwnerNotified");
+    await screenshot(page, "tab-owners-added", false);
+
+    await page.keyboard.press("Escape");
+    await expect(list).toHaveCount(0);
+    // Nobody left the incident's Postmortem page.
+    expect(new URL(page.url()).pathname).toBe(
+      `${PROJECT}/incidents/${incidentId(1)}/postmortem`,
+    );
+  });
+
+  test("owners=none: No owners yet. with Add owners beside it, and the list stays open as the first owner takes its place", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openTab(page, "&incident=1&owners=none");
+
+    const owners: Locator = page.getByTestId("postmortem-owners");
+    await expect(owners).toContainText("No owners yet.");
+    const add: Locator = owners.getByRole("button", { name: "Add owners" });
+    await expect(add).toHaveAttribute("data-testid", "postmortem-add-owners");
+    await add.click();
+
+    const list: Locator = page.getByRole("dialog", { name: "Add owners" });
+    await expect(list.getByTestId("people-search-option")).toHaveCount(4);
+    await screenshot(page, "tab-owners-add-list", false);
+
+    await list.getByRole("option", { name: /Alice Smith/ }).click();
+
+    await expect(owners).toContainText("Alice Smith");
+    await expect(owners).not.toContainText("No owners yet.");
+    await expect(list.getByTestId("people-search-notice-done")).toHaveText(
+      "Added Alice Smith.",
+    );
+    await expect(
+      owners.getByRole("button", { name: "Add owners" }),
+    ).toHaveAttribute("aria-expanded", "true");
+    const saves: Array<{ model: string; data: Record<string, unknown> }> =
+      await ownerSaves(page);
+    expect(
+      saves.map((save: { model: string }): string => {
+        return save.model;
+      }),
+    ).toEqual(["IncidentOwnerUser"]);
+  });
+
+  test("fail=owner-add: a refused owner is said in the list, and nobody is named", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openTab(page, "&incident=1&owners=none&fail=owner-add");
+
+    const owners: Locator = page.getByTestId("postmortem-owners");
+    await owners.getByRole("button", { name: "Add owners" }).click();
+    const list: Locator = page.getByRole("dialog", { name: "Add owners" });
+    await list.getByRole("option", { name: /Bob Jones/ }).click();
+
+    await expect(list.getByRole("alert")).toHaveText(
+      "This user is already an owner of this incident.",
+    );
+    await expect(owners).toContainText("No owners yet.");
+    await expect(list.getByTestId("people-search-option")).toHaveCount(4);
+  });
+
+  test("on a phone the Add owners list opens whole on the screen", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openTab(page, "&incident=1&owners=none");
+
+    await page
+      .getByTestId("postmortem-owners")
+      .getByRole("button", { name: "Add owners" })
+      .click();
+    const list: Locator = page.getByRole("dialog", { name: "Add owners" });
+    await expect(list.getByTestId("people-search-option")).toHaveCount(4);
+    await expect
+      .poll(async (): Promise<boolean> => {
+        const box: {
+          x: number;
+          y: number;
+          width: number;
+          height: number;
+        } | null = await list.boundingBox();
+        return Boolean(
+          box &&
+            box.x >= 0 &&
+            box.y >= 0 &&
+            box.x + box.width <= 390.5 &&
+            box.y + box.height <= 844.5,
+        );
+      }, "the list is whole on screen")
+      .toBe(true);
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "tab-owners-add-list-phone", false);
   });
 
   test("on a phone the three buttons stack, each the card's width", async ({

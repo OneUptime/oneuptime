@@ -255,6 +255,8 @@ import {
   MESSAGE_QUEUE_OBSERVED_SERIES_TTL_MS,
   MessageQueueObservedSeriesCache,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/MessageQueue/MessageQueueTelemetryQueries";
+import { CARD_GRID_CELL_TEST_ID } from "../../../UI/Components/Card/CardGrid";
+import { CARD_GRID_CENTERED_STATE_CLASS_NAME } from "../../../UI/Components/Card/CardGridLayout";
 import MessageQueue from "../../../Models/DatabaseModels/MessageQueue";
 import Service from "../../../Models/DatabaseModels/Service";
 import Metric from "../../../Models/AnalyticsModels/Metric";
@@ -769,6 +771,46 @@ describe("the queue Overview's scope", () => {
       screen.getByTestId("message-queue-broker-health-guidance"),
     ).toBeInTheDocument();
     expect(aggregateMock).not.toHaveBeenCalled();
+  });
+
+  /*
+   * The producers and the consumers are a row of cards (CardGrid): side
+   * by side where the page has the room, the shorter list's card - or a
+   * side with nothing in it - as tall as the other, its sentence in the
+   * middle of the card's room.
+   */
+  test("the producers and the consumers are the two cards of one row, each filling its cell", async () => {
+    getItemMock.mockResolvedValue(
+      queueRow({ queueIdentifier: "not-an-identifier" }),
+    );
+
+    await renderOverview();
+    // The sections are drawn once the queue's telemetry is read.
+    await screen.findByTestId("message-queue-producers-empty");
+
+    const row: HTMLElement = screen.getByTestId("message-queue-services");
+
+    expect(row).toHaveAttribute("data-columns", "2");
+    expect(row).toHaveAttribute("data-card-width", "wide");
+
+    const cells: Array<HTMLElement> = within(row).getAllByTestId(
+      CARD_GRID_CELL_TEST_ID,
+    );
+
+    expect(cells).toHaveLength(2);
+    for (const [cell, side] of cells.map(
+      (cell: HTMLElement, index: number): [HTMLElement, string] => {
+        return [cell, index === 0 ? "producers" : "consumers"];
+      },
+    )) {
+      expect(within(cell).getByTestId("card")).toHaveAttribute(
+        "data-fill-height",
+        "true",
+      );
+      expect(
+        within(cell).getByTestId(`message-queue-${side}-empty`),
+      ).toHaveClass(...CARD_GRID_CENTERED_STATE_CLASS_NAME.split(" "));
+    }
   });
 
   test("a deleted or unknown id (the API's empty model) is 'Queue not found.' and queries nothing", async () => {

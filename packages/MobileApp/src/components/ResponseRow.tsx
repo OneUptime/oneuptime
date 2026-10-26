@@ -3,6 +3,7 @@ import { Pressable, Text, View, type ViewStyle } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../theme";
 import { elevation, radius, spacing, typography } from "../theme/tokens";
+import StatusPill, { type StatusTone } from "./StatusPill";
 
 interface ResponseRowProps {
   title: string;
@@ -14,8 +15,26 @@ interface ResponseRowProps {
   severity?: string;
   context?: string;
   contextLabel?: string;
+  /** The icon beside the context line; a monitor's pulse unless a row says otherwise. */
+  contextIcon?: keyof typeof Ionicons.glyphMap;
+  /**
+   * One short word or two that this row needs a decision ("Approval needed"),
+   * drawn as a pill under the title. The words carry the meaning.
+   */
+  badge?: { label: string; tone: StatusTone };
   projectName?: string;
   muted?: boolean;
+  /**
+   * The row whose record is open in the detail pane beside the list, on a
+   * window wide enough for both. Drawn the way the project sheet marks the
+   * current project: an accent border on a soft accent fill.
+   */
+  selected?: boolean;
+  /**
+   * The forward chevron says "this opens a new screen". Beside a detail pane
+   * a row opens on the right instead, so the list leaves it out.
+   */
+  showChevron?: boolean;
   accessibilityLabel: string;
   accessibilityHint: string;
   onPress: () => void;
@@ -35,8 +54,12 @@ export default function ResponseRow({
   severity,
   context,
   contextLabel,
+  contextIcon = "pulse-outline",
+  badge,
   projectName,
   muted,
+  selected = false,
+  showChevron = true,
   accessibilityLabel,
   accessibilityHint,
   onPress,
@@ -50,16 +73,23 @@ export default function ResponseRow({
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
       accessibilityHint={accessibilityHint}
+      accessibilityState={{ selected }}
+      aria-selected={selected}
       style={({ pressed }: { pressed: boolean }): ViewStyle => {
         return {
-          padding: spacing.lg,
+          // The thicker selected border must not shift the row's content.
+          padding: spacing.lg - (selected ? 1 : 0),
           marginBottom: spacing.md,
           borderRadius: radius.lg,
-          borderWidth: 1,
-          borderColor: theme.colors.borderSubtle,
-          backgroundColor: pressed
-            ? theme.colors.backgroundTertiary
-            : theme.colors.backgroundElevated,
+          borderWidth: selected ? 2 : 1,
+          borderColor: selected
+            ? theme.colors.actionPrimary
+            : theme.colors.borderSubtle,
+          backgroundColor: selected
+            ? theme.colors.cardAccent
+            : pressed
+              ? theme.colors.backgroundTertiary
+              : theme.colors.backgroundElevated,
           ...elevation(muted ? "none" : "card", theme.dark),
         };
       }}
@@ -158,13 +188,26 @@ export default function ResponseRow({
         >
           {title}
         </Text>
-        <Ionicons
-          name="chevron-forward"
-          size={18}
-          color={theme.colors.textTertiary}
-          style={{ marginTop: 2 }}
-        />
+        {showChevron ? (
+          <Ionicons
+            testID="response-row-chevron"
+            name="chevron-forward"
+            size={18}
+            color={theme.colors.textTertiary}
+            style={{ marginTop: 2 }}
+          />
+        ) : null}
       </View>
+
+      {badge ? (
+        <StatusPill
+          testID="response-row-badge"
+          label={badge.label}
+          tone={badge.tone}
+          size="sm"
+          style={{ marginTop: spacing.sm }}
+        />
+      ) : null}
 
       <View style={{ marginTop: spacing.sm, gap: spacing.xs }}>
         <Text
@@ -182,7 +225,7 @@ export default function ResponseRow({
             }}
           >
             <Ionicons
-              name="pulse-outline"
+              name={contextIcon}
               size={14}
               color={theme.colors.textTertiary}
               style={{ marginTop: 2 }}

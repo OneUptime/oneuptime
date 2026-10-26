@@ -49,6 +49,19 @@ jest.mock("react-native/Libraries/Utilities/useColorScheme", () => {
  */
 
 const mockOpenUrl: jest.Mock = jest.fn();
+const mockOpenCase: jest.Mock = jest.fn();
+
+/*
+ * The in-app route a link to a security case takes (notifications/handlers,
+ * whose own suite owns it): answers whether the app could show the case.
+ */
+jest.mock("../notifications/handlers", () => {
+  return {
+    openSecurityCaseFromLink: (projectId: string, caseId: string): boolean => {
+      return mockOpenCase(projectId, caseId) as boolean;
+    },
+  };
+});
 
 jest.mock("expo-linking", () => {
   return {
@@ -70,6 +83,8 @@ beforeEach(async () => {
   mockSystemScheme = "light";
   await AsyncStorage.clear();
   mockOpenUrl.mockResolvedValue(true);
+  mockOpenCase.mockReset();
+  mockOpenCase.mockReturnValue(true);
   jest
     .spyOn(Image, "getSize")
     .mockImplementation(
@@ -545,5 +560,97 @@ describe("In dark mode", () => {
     expect(StyleSheet.flatten(styles.hr)?.backgroundColor).toBe(
       lightColors.borderSubtle,
     );
+  });
+});
+
+describe("A link to a security case", () => {
+  /*
+   * The alert a playbook's Page On-Call step opens, and an incident declared
+   * from a case, name their case with a link to it in the dashboard. On the
+   * OneUptime this app is signed in to, the app opens the case itself rather
+   * than a browser and a sign-in page.
+   */
+  const PROJECT_ID: string = "0b5e55ed-aaaa-4aaa-8aaa-00000000a0a0";
+  const CASE_ID: string = "5ec0ca5e-0142-4d1a-9a00-000000000142";
+  const SERVER: string = "https://oneuptime.example.com";
+  const CASE_LINK: string =
+    SERVER + "/dashboard/" + PROJECT_ID + "/security-events/cases/" + CASE_ID;
+  const CONTENT: string =
+    "**[CASE-142](" + CASE_LINK + ")** Password spray against the VPN";
+
+  beforeEach(async () => {
+    await AsyncStorage.setItem("oneuptime_server_url", SERVER);
+  });
+
+  test("on this OneUptime, opens the case in the app and not in a browser", async () => {
+    await render(<MarkdownContent content={CONTENT} />);
+
+    await fireEvent.press(screen.getByText("CASE-142"));
+
+    await waitFor(() => {
+      expect(mockOpenCase).toHaveBeenCalledWith(PROJECT_ID, CASE_ID);
+    });
+    expect(mockOpenUrl).not.toHaveBeenCalled();
+  });
+
+  test("tells a screen reader it opens the case", async () => {
+    await render(<MarkdownContent content={CONTENT} />);
+
+    expect(
+      screen.getByRole("link", { name: "CASE-142" }).props.accessibilityHint,
+    ).toBe("Opens the security case");
+  });
+
+  test("a case on another OneUptime stays a link for the browser", async () => {
+    await AsyncStorage.setItem("oneuptime_server_url", "https://oneuptime.com");
+    await render(<MarkdownContent content={CONTENT} />);
+
+    await fireEvent.press(screen.getByText("CASE-142"));
+
+    await waitFor(() => {
+      expect(mockOpenUrl).toHaveBeenCalledWith(CASE_LINK);
+    });
+    expect(mockOpenCase).not.toHaveBeenCalled();
+  });
+
+  test("when the app cannot show the case now, the browser opens it", async () => {
+    mockOpenCase.mockReturnValue(false);
+    await render(<MarkdownContent content={CONTENT} />);
+
+    await fireEvent.press(screen.getByText("CASE-142"));
+
+    await waitFor(() => {
+      expect(mockOpenUrl).toHaveBeenCalledWith(CASE_LINK);
+    });
+  });
+
+  test("a link that is not a case opens at once, without reading the server address", async () => {
+    const getItem: jest.SpyInstance = jest.spyOn(AsyncStorage, "getItem");
+    await render(
+      <MarkdownContent content="See the [runbook](https://example.com/runbook)." />,
+    );
+
+    await fireEvent.press(screen.getByText("runbook"));
+
+    expect(mockOpenUrl).toHaveBeenCalledWith("https://example.com/runbook");
+    expect(getItem).not.toHaveBeenCalled();
+    expect(mockOpenCase).not.toHaveBeenCalled();
+    expect(
+      screen.getByRole("link", { name: "runbook" }).props.accessibilityHint,
+    ).toBe("Opens in a new window");
+  });
+
+  test("a server address that cannot be read sends the link to the browser", async () => {
+    jest
+      .spyOn(AsyncStorage, "getItem")
+      .mockRejectedValueOnce(new Error("storage unavailable"));
+    await render(<MarkdownContent content={CONTENT} />);
+
+    await fireEvent.press(screen.getByText("CASE-142"));
+
+    await waitFor(() => {
+      expect(mockOpenUrl).toHaveBeenCalledWith(CASE_LINK);
+    });
+    expect(mockOpenCase).not.toHaveBeenCalled();
   });
 });

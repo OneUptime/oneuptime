@@ -518,6 +518,34 @@ const createQueueButton: (page: Page) => Locator = (page: Page): Locator => {
 };
 
 /*
+ * Once Create Queue has saved a queue, its setup guide opens on its own
+ * (MessageQueueAddedModal): the queue's Documentation tab, for its
+ * messaging system, saying the queue is added, with a last step that waits
+ * for its first data. Done leaves the list.
+ */
+const closeAddedQueueGuide: (data: {
+  page: Page;
+  queueName: string;
+}) => Promise<void> = async (data: {
+  page: Page;
+  queueName: string;
+}): Promise<void> => {
+  const modal: Locator = data.page.getByTestId("modal");
+
+  await expect(data.page.getByTestId("resource-added-modal")).toBeVisible({
+    timeout: 30000,
+  });
+  await expect(data.page.getByTestId("resource-added-note")).toContainText(
+    data.queueName,
+  );
+  await expect(
+    data.page.getByTestId("resource-connection-waiting"),
+  ).toBeVisible();
+  await modal.getByRole("button", { name: "Done", exact: true }).click();
+  await expect(modal).toBeHidden({ timeout: 30000 });
+};
+
+/*
  * The Overview's Broker health section once every telemetry read of the
  * page has settled (one Promise.all loads the tiles, the cards and the broker
  * metrics): its charts, the guidance card or the "no metrics in this range"
@@ -807,7 +835,7 @@ test.describe.skip("Queues Product", () => {
     await expect(next).toHaveCount(0);
     await expect(submit).toHaveText("Create Queue");
     await submit.click();
-    await expect(modal).toBeHidden({ timeout: 30000 });
+    await closeAddedQueueGuide({ page, queueName: DESTINATION });
 
     // The queue is listed, and the setup guide of the empty list is gone.
     const queueLink: Locator = page.getByRole("link", {
@@ -1223,7 +1251,7 @@ test.describe.skip("Queues Product", () => {
       "Create Queue",
     );
     await modal.getByTestId("modal-footer-submit-button").click();
-    await expect(modal).toBeHidden({ timeout: 30000 });
+    await closeAddedQueueGuide({ page, queueName: SERVICE_BUS_QUEUE_NAME });
 
     // Its row: the name, the destination its telemetry names, the namespace.
     const row: Locator = page

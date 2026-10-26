@@ -88,7 +88,7 @@ En sak har sin egen sidemeny, slik en hendelse har, og hver del av saken er en e
 | Seksjon i sidemenyen | Sider |
 | --- | --- |
 | **Oversikt** | **Oversikt**, **Tidslinje** |
-| **Undersøkelse** | **Detections**, **Entiteter**, **Playbook-kjøringer** |
+| **Undersøkelse** | **Detections**, **Entiteter**, **Tilkoblede signaler**, **Playbook-kjøringer** |
 | **Notater** | **Private notater** |
 | **Avansert** | **Revisjonslogger**, **Slett sak**, skjult til du klikker på **Avansert** |
 
@@ -100,6 +100,7 @@ Hver side beholder sakens topptekst øverst: nummer, prioritet, status og tittel
 - **Tidslinje**: alt som skjedde med saken, med hvem som gjorde det.
 - **Detections**: det som slo til og åpnet saken eller ble lagt til i den, hvor ofte, og den siste hendelsen som traff.
 - **Entiteter**: brukerne, vertene og adressene saken gjelder, med aktiviteten deres på tvers av alle sikkerhetshendelsene dine de siste 7 dagene. Hver av dem åpnes i **Korreler**.
+- **Tilkoblede signaler**: vertene, klyngene, tjenestene og medlemmene saken nevner, slik OneUptime kjenner dem, og hva som skjedde på hver av dem rundt deteksjonene: loggene, sporene og målingene deres, hva som er åpent på dem, og hva som endret seg. Se [Tilkoblede signaler](/docs/telemetry/security-connected-signals).
 - **Playbook-kjøringer**: hva hver playbook gjorde på saken, steg for steg, og stegene som venter på godkjenning. Mens kjøringer venter, viser menyen hvor mange ved siden av **Playbook-kjøringer**.
 - **Private notater**: hva teamet skrev om saken.
 - **Revisjonslogger**: hver endring i saken, og hvem som gjorde den. Se [Revisjonslogger](/docs/configuration/audit-logs).
@@ -182,7 +183,7 @@ Hver person velger selv, under **Brukerinnstillinger → Varselinnstillinger →
 
 Valgene følger prosjektets saksprioriteter, under sine egne navn: dette er valgene i et nytt prosjekt.
 
-Det sendes ikke WhatsApp-meldinger for sikkerhetssaker. Et push-varsel åpner OneUptime-appen, og lenken i det åpner saken i nettleseren.
+Det sendes ikke WhatsApp-meldinger for sikkerhetssaker. Et push-varsel åpner saken i OneUptime On-Call-appen (1.7.0 eller nyere), der du kan godkjenne eller avvise et playbook-steg som venter, ta saken og lukke den. Lenken i det åpner saken i nettleseren.
 
 ### Legg ut i Slack- og Microsoft Teams-kanaler
 
@@ -321,7 +322,7 @@ En kjøring som slutter å høre fra workeren sin, for eksempel etter en omstart
 - De åpne sakene som er tildelt deg, de åpne sakene ingen har tatt, og playbook-stegene som venter på godkjenning; hvert tall åpner siden som viser dem.
 - **Gjennomsnittlig tid til kvittering**, **Gjennomsnittlig tid til begrensning** og **Gjennomsnittlig tid til lukking**, over sakene som er åpnet de siste 30 dagene: fra en sak åpnes til noen tar den (tildeler en person eller flytter den til en status som teller som kvittert), til en status som teller som begrenset, og til en som teller som lukket. En sak som fortsatt venter, telles ikke med i et gjennomsnitt.
 - Sakene som er åpnet hver dag i 30 dager, etter prioritet, og deteksjonene som er utløst hver dag i 14 dager, etter kilde.
-- De åpne sakene etter prioritet og etter status, konklusjonene fra de siste 30 dagene, ATT&CK-taktikkene bak sakene, deteksjonene som slo til oftest, og entitetene som flest funn nevner.
+- De åpne sakene etter prioritet og etter status, entitetene som flest funn nevner, deteksjonene som slo til oftest, ATT&CK-taktikkene bak sakene og konklusjonene fra de siste 30 dagene.
 
 Over dem viser en stripe hvordan sikkerhet er satt opp: kildene, deteksjonene, sakene og playbookene, hver med tallene sine. Et prosjekt som ennå ikke har satt det opp, ser **Slå på anbefalt** og **Send et testangrep** der; se [Kom i gang med sikkerhet](/docs/telemetry/security-getting-started). Når ingenting trenger noen, sier siden **Alt er rolig**, og diagrammene vises så snart det er noe å vise.
 

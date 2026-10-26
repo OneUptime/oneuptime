@@ -197,6 +197,8 @@ interface OpenOptions {
   // ATT&CK Coverage's address: the view, and the tactic it opens on.
   view?: "matrix";
   tactic?: string;
+  // The Overview's ranked lists cut short (two rules, tactics, entities) or empty.
+  ranked?: "short" | "none" | undefined;
 }
 
 test.use({ deviceScaleFactor: 2, actionTimeout: 15000 });
@@ -315,6 +317,9 @@ async function open(
   }
   if (options.tactic) {
     params.set("tactic", options.tactic);
+  }
+  if (options.ranked) {
+    params.set("ranked", options.ranked);
   }
   const query: string = params.toString();
   await page.goto(query ? `${pathname}?${query}` : pathname);
@@ -1141,6 +1146,289 @@ test.describe("the overview", () => {
 
 /*
  * ---------------------------------------------------------------------------
+ * The Overview's rows of cards
+ * ---------------------------------------------------------------------------
+ *
+ * "Gap between cards dont look nice. Please fix it." - the maintainer, of the
+ * Overview at a laptop's width: the whole queue beside four verdicts and two
+ * tactics, then two rules beside seven entities, with bare page under every
+ * shorter card. The rows are CardGrids now (Common/UI/Components/Card), the
+ * ranked lists sharing rows with lists of their size, the most urgent first.
+ * These measure the real boxes at the widths people use, beside the side menu
+ * and on a phone, with long lists, short ones (?ranked=short) and none
+ * (?ranked=none), light and dark: every card's frame reaches its row's
+ * bottom, every row reaches the grid's edges, and the only space between
+ * cards is the grid's own 20px gap.
+ */
+test.describe("the overview's rows of cards", () => {
+  interface CardRowSpec {
+    testId: string;
+    titles: Array<string>;
+    // Cards across at each window width.
+    columnsAt: Record<number, number>;
+  }
+
+  const ROWS: Array<CardRowSpec> = [
+    {
+      testId: "security-overview-charts",
+      titles: ["Cases Opened", "Detections"],
+      columnsAt: { 1440: 2, 1280: 2, 1024: 1, 768: 1, 390: 1 },
+    },
+    {
+      testId: "security-overview-now",
+      titles: ["Open Cases", "Riskiest Entities"],
+      columnsAt: { 1440: 2, 1280: 2, 1024: 1, 768: 1, 390: 1 },
+    },
+    {
+      testId: "security-overview-lately",
+      titles: ["Top Detections", "MITRE ATT&CK Tactics", "Verdicts"],
+      columnsAt: { 1440: 3, 1280: 3, 1024: 2, 768: 1, 390: 1 },
+    },
+  ];
+
+  const WIDTHS: Array<number> = [1440, 1280, 1024, 768, 390];
+  const GRID_GAP_IN_PX: number = 20;
+
+  interface CellBox {
+    title: string;
+    top: number;
+    left: number;
+    right: number;
+    bottom: number;
+    // Where the card's own frame - its border - ends.
+    frameBottom: number;
+  }
+
+  interface GridBoxes {
+    left: number;
+    right: number;
+    top: number;
+    bottom: number;
+    cells: Array<CellBox>;
+  }
+
+  async function gridBoxes(page: Page, testId: string): Promise<GridBoxes> {
+    return page
+      .getByTestId(testId)
+      .evaluate((container: Element): GridBoxes => {
+        const grid: Element = container.firstElementChild as Element;
+        const box: DOMRect = grid.getBoundingClientRect();
+
+        return {
+          left: box.left,
+          right: box.right,
+          top: box.top + window.scrollY,
+          bottom: box.bottom + window.scrollY,
+          cells: Array.from(grid.children).map((cell: Element): CellBox => {
+            const cellBox: DOMRect = cell.getBoundingClientRect();
+            const frame: Element = cell.querySelector(
+              '[data-testid="card"] > div',
+            ) as Element;
+
+            return {
+              title: (
+                cell.querySelector('[data-testid="card-details-heading"]')
+                  ?.textContent || ""
+              ).trim(),
+              top: cellBox.top + window.scrollY,
+              left: cellBox.left,
+              right: cellBox.right,
+              bottom: cellBox.bottom + window.scrollY,
+              frameBottom:
+                frame.getBoundingClientRect().bottom + window.scrollY,
+            };
+          }),
+        };
+      });
+  }
+
+  // The cells by the line they sit on, top to bottom.
+  function linesOf(cells: Array<CellBox>): Array<Array<CellBox>> {
+    const lines: Array<Array<CellBox>> = [];
+
+    for (const cell of cells) {
+      const line: Array<CellBox> | undefined = lines.find(
+        (candidate: Array<CellBox>): boolean => {
+          return Math.abs(candidate[0]!.top - cell.top) <= 1;
+        },
+      );
+
+      if (line) {
+        line.push(cell);
+      } else {
+        lines.push([cell]);
+      }
+    }
+
+    return lines;
+  }
+
+  // Waits for the entities, read after the overview, so the rows are whole.
+  async function openRows(page: Page, options: OpenOptions): Promise<void> {
+    await open(page, OVERVIEW_PATH, options);
+    await expect(
+      cardTitled(page, "Riskiest Entities").getByText(
+        options.ranked === "none"
+          ? "No findings named an entity in the last 7 days."
+          : "203.0.113.47",
+      ),
+    ).toBeVisible();
+    await pageAtRest(page);
+  }
+
+  for (const width of WIDTHS) {
+    test(`at ${width}px every row ends on one line, the grid's 20px between its cards and nothing beside or under them - long lists, short and none, light and dark`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      for (const ranked of [undefined, "short", "none"] as const) {
+        for (const theme of [undefined, "dark"] as const) {
+          await openRows(page, { width, theme, ranked });
+
+          const label: string = `${width}px, ${ranked || "long"} lists, ${
+            theme || "light"
+          }`;
+          let previousBottom: number | null = null;
+
+          for (const row of ROWS) {
+            const grid: GridBoxes = await gridBoxes(page, row.testId);
+            const lines: Array<Array<CellBox>> = linesOf(grid.cells);
+            const across: number = row.columnsAt[width]!;
+
+            // The cards in reading order, as many across as the room allows.
+            expect([
+              label,
+              grid.cells.map((cell: CellBox) => {
+                return cell.title;
+              }),
+            ]).toEqual([label, row.titles]);
+            expect([label, row.testId, lines[0]!.length]).toEqual([
+              label,
+              row.testId,
+              Math.min(across, row.titles.length),
+            ]);
+
+            lines.forEach((line: Array<CellBox>, index: number) => {
+              const bottom: number = Math.max(
+                ...line.map((cell: CellBox): number => {
+                  return cell.bottom;
+                }),
+              );
+
+              for (const cell of line) {
+                // The frame runs to the row's bottom: no page under it.
+                expect([
+                  label,
+                  cell.title,
+                  Math.round(bottom - cell.frameBottom),
+                ]).toEqual([label, cell.title, 0]);
+              }
+
+              // The row runs from the grid's left edge to its right: no empty slot.
+              expect([
+                label,
+                row.testId,
+                Math.round(line[0]!.left - grid.left),
+                Math.round(grid.right - line[line.length - 1]!.right),
+              ]).toEqual([label, row.testId, 0, 0]);
+
+              // Side by side, the grid's own gap and no more.
+              for (let next: number = 1; next < line.length; next++) {
+                expect([
+                  label,
+                  line[next]!.title,
+                  Math.round(line[next]!.left - line[next - 1]!.right),
+                ]).toEqual([label, line[next]!.title, GRID_GAP_IN_PX]);
+              }
+
+              // One above the other, the same gap.
+              if (index > 0) {
+                const above: number = Math.max(
+                  ...lines[index - 1]!.map((cell: CellBox): number => {
+                    return cell.bottom;
+                  }),
+                );
+                expect([
+                  label,
+                  row.testId,
+                  Math.round(line[0]!.top - above),
+                ]).toEqual([label, row.testId, GRID_GAP_IN_PX]);
+              }
+            });
+
+            // And between one row of cards and the next, the page's gap: the same.
+            if (previousBottom !== null) {
+              expect([
+                label,
+                row.testId,
+                Math.round(grid.top - previousBottom),
+              ]).toEqual([label, row.testId, GRID_GAP_IN_PX]);
+            }
+            previousBottom = grid.bottom;
+          }
+
+          expect([label, await pageOverflow(page)]).toEqual([label, 0]);
+        }
+      }
+
+      await openRows(page, { width });
+      await screenshot(page, `overview-rows-${width}`);
+    });
+  }
+
+  test("a short list's card is as tall as the list beside it, its rows at the top, and a list with nothing says so in the middle of its card", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openRows(page, { width: 1280, ranked: "short" });
+
+    const entities: Locator = cardTitled(page, "Riskiest Entities");
+    const queue: Locator = cardTitled(page, "Open Cases");
+    const entitiesBox: Box = await boxOf(entities);
+    const queueBox: Box = await boxOf(queue);
+
+    // Two entities beside the whole queue: one height, on one line.
+    expect(Math.round(entitiesBox.height)).toBe(Math.round(queueBox.height));
+    expect(Math.round(entitiesBox.y)).toBe(Math.round(queueBox.y));
+    // Its rows start under its header, as the queue's do: the room is under them.
+    const firstEntity: Box = await boxOf(entities.getByText("203.0.113.47"));
+    const firstPriority: Box = await boxOf(queue.getByText("Critical").first());
+    expect(Math.abs(firstEntity.y - firstPriority.y)).toBeLessThanOrEqual(30);
+    await screenshot(page, "overview-rows-short-1280");
+
+    await openRows(page, { width: 1280, ranked: "none" });
+
+    for (const [title, sentence] of [
+      ["Riskiest Entities", "No findings named an entity in the last 7 days."],
+      ["Top Detections", "Nothing was detected in the last 14 days."],
+      [
+        "MITRE ATT&CK Tactics",
+        "No case in the last 30 days is mapped to an ATT&CK tactic.",
+      ],
+    ]) {
+      const card: Locator = cardTitled(page, title!);
+      const cardBox: Box = await boxOf(card);
+      const heading: Box = await boxOf(card.getByTestId("card-header"));
+      const words: Box = await boxOf(card.getByText(sentence!));
+      // The middle of the room under the header, give or take a line.
+      const room: number =
+        (heading.y + heading.height + cardBox.y + cardBox.height) / 2;
+      expect([
+        title,
+        Math.abs(words.y + words.height / 2 - room) <= 24,
+        // Centred across it too.
+        Math.abs(words.x + words.width / 2 - (cardBox.x + cardBox.width / 2)) <=
+          2,
+      ]).toEqual([title, true, true]);
+    }
+    await screenshot(page, "overview-rows-none-1280");
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
  * The Overview's top card
  * ---------------------------------------------------------------------------
  */
@@ -1876,6 +2164,13 @@ const CASE_PAGES: ReadonlyArray<CasePage> = [
     segment: "/entities",
     text: "a.ng@acme-commerce.example",
     slug: "entities",
+  },
+  {
+    section: "Investigation",
+    title: "Connected Signals",
+    segment: "/connected-signals",
+    text: "Named by k.morgan@acme-commerce.example, their email.",
+    slug: "connected-signals",
   },
   {
     section: "Investigation",
@@ -7268,6 +7563,11 @@ test.describe("every page fits the screen", () => {
       "case entities",
       `${SPRAY_CASE_PATH}/entities`,
       "a.ng@acme-commerce.example",
+    ],
+    [
+      "case connected signals",
+      `${PRODUCT}/cases/20000000-0000-4000-8000-000000000141/connected-signals`,
+      "Named build-runner-07, the name it reports.",
     ],
     [
       "case playbook runs",

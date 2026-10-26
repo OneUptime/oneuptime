@@ -42,6 +42,7 @@ function tabRouteForEntityType(entityType: string): string | null {
     case "incident-episode":
     case "alert":
     case "alert-episode":
+    case "security-case":
       return "Inbox";
     case "monitor":
       return "Monitors";
@@ -118,6 +119,22 @@ function executeNavigation(data: NotificationData): void {
         buildInboxDetailNavigation({
           name: "AlertEpisodeDetail",
           params: { episodeId: entityId, projectId },
+        }),
+      );
+      break;
+    case "security-case":
+      /*
+       * A security case: one that opened or rose to the person's chosen
+       * priority, one assigned to them or their team, or one whose playbook
+       * waits for their approval (SecurityCaseNotifications sends all three
+       * with entityType "security-case"). The case's screen leads with any
+       * approval it is waiting for.
+       */
+      navigationRef.navigate(
+        "Inbox",
+        buildInboxDetailNavigation({
+          name: "SecurityCaseDetail",
+          params: { caseId: entityId, projectId },
         }),
       );
       break;
@@ -207,6 +224,47 @@ export function processPendingNotification(): void {
     return;
   }
   executeNavigation(data);
+}
+
+/*
+ * Opens a security case named by a link inside the app - the alert a
+ * playbook's Page On-Call step opened, an incident declared from a case - on
+ * top of what the reader is looking at, so Back returns to it. A case in
+ * another project opens there once the app has switched to it, as a tapped
+ * page does. False when the app cannot show it now (signed out, behind the
+ * lock), and the link is better opened in the browser.
+ */
+export function openSecurityCaseFromLink(
+  projectId: string,
+  caseId: string,
+): boolean {
+  if (!caseId || !isRouteMounted("Inbox")) {
+    return false;
+  }
+
+  const projectResult: ProjectNavigationResult =
+    projectNavigationGuard?.(projectId) ?? "ready";
+
+  if (projectResult === "unavailable") {
+    return true;
+  }
+
+  if (projectResult === "switching") {
+    pendingNotificationData = {
+      entityType: "security-case",
+      entityId: caseId,
+      projectId,
+    };
+    return true;
+  }
+
+  navigationRef.navigate("Inbox", {
+    screen: "SecurityCaseDetail",
+    initial: false,
+    params: { caseId, projectId },
+  });
+
+  return true;
 }
 
 export function handleNotificationResponse(

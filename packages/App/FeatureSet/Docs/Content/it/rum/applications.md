@@ -48,6 +48,8 @@ Compila **Nome dell'app (service.name)** con il `service.name` che la tua app in
 L'applicazione prende il nome della sua app, proprio come una scoperta. Per mostrare un nome diverso, apri **Altri campi** e inserisci un **Nome visualizzato**; lì si trovano anche la descrizione e le etichette. Poi salva il modulo.
 :::
 
+Si apre quindi da sola la sua guida di configurazione, con il nome dell'app come `service.name` dello snippet. Il suo ultimo passaggio, **Attendi che si connetta**, indica quando arrivano i primi dati.
+
 Se il progetto ha già un'applicazione con quel `service.name`, scoperta, aggiunta in precedenza o archiviata, il modulo lo segnala invece di crearne una seconda.
 
 ## Stato della connessione

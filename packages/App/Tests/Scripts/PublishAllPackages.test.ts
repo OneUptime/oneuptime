@@ -15,6 +15,30 @@ const COMMON: string = "packages/Common";
 const RECORDER: string = "packages/App/FeatureSet/MobileRecorder";
 const CLI: string = "packages/CLI";
 
+/*
+ * What npm publishes as @oneuptime/common: the package Common's
+ * build-npm-package script writes, not packages/Common itself, whose
+ * manifest is the one every package of the repository links as
+ * node_modules/Common.
+ */
+const COMMON_PACKAGE: string = "build/npm/package";
+
+// Every `publish_to_npm "<package>"` call, with the directory it publishes.
+const PUBLISH_CALL: RegExp = /^publish_to_npm "([^"\n]+)"(?: "([^"\n]+)")?$/gm;
+
+interface PublishCall {
+  directory: string;
+  publishes: string | undefined;
+}
+
+function publishToNpmCalls(): Array<PublishCall> {
+  return [...SOURCE.matchAll(PUBLISH_CALL)].map(
+    (match: RegExpMatchArray): PublishCall => {
+      return { directory: match[1] as string, publishes: match[2] };
+    },
+  );
+}
+
 // The script's command lines: comments and blank lines left out.
 const COMMAND_LINES: Array<string> = SOURCE.split("\n").filter(
   (line: string): boolean => {
@@ -284,10 +308,9 @@ describe("PublishAllPackages", () => {
    * Common when npm packs it.
    */
   it("publishes no package that needs Common when it runs", () => {
-    const publishCall: RegExp = /^publish_to_npm "([^"\n]+)"$/gm;
-    const published: Array<string> = [...SOURCE.matchAll(publishCall)].map(
-      (match: RegExpMatchArray): string => {
-        return match[1] as string;
+    const published: Array<string> = publishToNpmCalls().map(
+      (call: PublishCall): string => {
+        return call.directory;
       },
     );
 
@@ -366,6 +389,46 @@ describe("PublishAllPackages", () => {
   });
 
   /*
+   * What npm published from packages/Common could not be loaded: its main,
+   * index.js, did not exist, its paths held TypeScript, and its JavaScript
+   * was ES modules Node.js cannot resolve. packages/Common/package.json
+   * cannot be the npm package's manifest either - it is the one every
+   * package of the repository links as node_modules/Common, and an exports
+   * map there would redirect every require("Common/...") (#4877, #4900). So
+   * Common publishes the package its build-npm-package script writes, and
+   * only Common does.
+   */
+  it("publishes Common from the package its npm build writes, and every other package from its own directory", () => {
+    expect(publishToNpmCalls()).toEqual([
+      { directory: COMMON, publishes: COMMON_PACKAGE },
+      { directory: RECORDER, publishes: undefined },
+      { directory: CLI, publishes: undefined },
+    ]);
+
+    /*
+     * The script that builds it (Common's Tests/Scripts/NpmPackage suites
+     * hold it to writing exactly this directory).
+     */
+    const common: { scripts: Record<string, string> } = JSON.parse(
+      fs.readFileSync(path.join(REPO_ROOT, COMMON, "package.json"), "utf8"),
+    ) as { scripts: Record<string, string> };
+
+    expect(common.scripts["build-npm-package"]).toBe(
+      "node --max-old-space-size=8192 Scripts/NpmPackage/BuildNpmPackage.js",
+    );
+    expect(
+      fs.existsSync(
+        path.join(REPO_ROOT, COMMON, "Scripts/NpmPackage/BuildNpmPackage.js"),
+      ),
+    ).toBe(true);
+
+    // The build's output is never committed.
+    expect(
+      fs.readFileSync(path.join(REPO_ROOT, ".gitignore"), "utf8").split("\n"),
+    ).toContain(`${COMMON}/build/npm/`);
+  });
+
+  /*
    * The CLI's prepack script builds the bundle npm publishes, and
    * --ignore-scripts would skip it: the package would ship without the file
    * its bin points at.
@@ -377,7 +440,10 @@ describe("PublishAllPackages", () => {
       },
     );
 
-    expect(publishLines).toEqual(["        npm publish --access public"]);
+    expect(publishLines).toEqual([
+      "            npm publish --access public",
+      '            npm publish "./$built_package_directory" --access public',
+    ]);
     // Neither the flag nor npm config (ignore-scripts, npm_config_ignore_scripts), on any command line.
     expect(
       SOURCE.split("\n").filter((line: string): boolean => {
@@ -510,6 +576,19 @@ describe("PublishAllPackages, run with a fake npm", () => {
     ];
   }
 
+  // What it runs for Common: it builds the npm package, and publishes that.
+  function publishesCommon(): Array<string> {
+    return [
+      `.: npm view --prefer-online @oneuptime/common@${VERSION} version`,
+      `${COMMON}: npm version --allow-same-version ${VERSION}`,
+      `${COMMON}: npm install`,
+      `${COMMON}: npm run build-npm-package`,
+      `${COMMON}: npm publish ./${COMMON_PACKAGE} --access public`,
+    ];
+  }
+
+  const COMMON_PUBLISH: string = `${COMMON}: npm publish ./${COMMON_PACKAGE} --access public`;
+
   // What it runs for one that is.
   function skips(name: string): Array<string> {
     return [`.: npm view --prefer-online ${name}@${VERSION} version`];
@@ -522,7 +601,7 @@ describe("PublishAllPackages, run with a fake npm", () => {
 
     expect(run.status).toBe(0);
     expect(callLines(run)).toEqual([
-      ...publishes(COMMON, "@oneuptime/common"),
+      ...publishesCommon(),
       // Common's dependencies, for the dependents' builds (see below).
       COMMON_INSTALL,
       ...publishes(RECORDER, "@oneuptime/react-native-replay"),
@@ -606,11 +685,51 @@ describe("PublishAllPackages, run with a fake npm", () => {
 
   it("stops at a failed publish of Common, before anything else is published", () => {
     const run: ReleaseRun = runRelease({
-      fail: `${COMMON}: npm publish --access public`,
+      fail: COMMON_PUBLISH,
     });
 
     expect(run.status).not.toBe(0);
-    expect(callLines(run)).toEqual(publishes(COMMON, "@oneuptime/common"));
+    expect(callLines(run)).toEqual(publishesCommon());
+  });
+
+  /*
+   * The build refuses to write a package that does not compile, or that
+   * names a file or a package it lacks. Then nothing is published: not
+   * Common, which has nothing right to publish, and not what comes after it.
+   */
+  it("stops when Common's npm package does not build, before anything is published", () => {
+    const run: ReleaseRun = runRelease({
+      fail: `${COMMON}: npm run build-npm-package`,
+    });
+
+    expect(run.status).not.toBe(0);
+    expect(publishCalls(run)).toEqual([]);
+    expect(callLines(run)).toEqual(publishesCommon().slice(0, -1));
+  });
+
+  it("builds Common's npm package in place of compiling Common, and never publishes packages/Common itself", () => {
+    const run: ReleaseRun = runRelease({});
+    const common: Array<string> = callLines(run).filter((line: string) => {
+      return line.startsWith(`${COMMON}: `);
+    });
+
+    expect(run.status).toBe(0);
+    expect(common).toContain(`${COMMON}: npm run build-npm-package`);
+    expect(common).not.toContain(`${COMMON}: npm run compile`);
+    expect(common).not.toContain(`${COMMON}: npm publish --access public`);
+    expect(common.indexOf(`${COMMON}: npm run build-npm-package`)).toBeLessThan(
+      common.indexOf(COMMON_PUBLISH),
+    );
+    // The recorder and the CLI still compile, and publish their own directory.
+    for (const directory of [RECORDER, CLI]) {
+      expect(callLines(run)).toContain(`${directory}: npm run compile`);
+      expect(callLines(run)).toContain(
+        `${directory}: npm publish --access public`,
+      );
+      expect(callLines(run)).not.toContain(
+        `${directory}: npm run build-npm-package`,
+      );
+    }
   });
 
   it("stops at a failed publish of the recorder, before the CLI is published", () => {

@@ -121,6 +121,11 @@ describe("a case's side menu", () => {
       [
         ["Detections", "SECURITY_CASE_VIEW_DETECTIONS", IconProp.Bolt],
         ["Entities", "SECURITY_CASE_VIEW_ENTITIES", IconProp.Fingerprint],
+        [
+          "Connected Signals",
+          "SECURITY_CASE_VIEW_CONNECTED_SIGNALS",
+          IconProp.Link,
+        ],
         ["Playbook Runs", "SECURITY_CASE_VIEW_PLAYBOOK_RUNS", IconProp.Play],
       ],
       [["Private Notes", "SECURITY_CASE_VIEW_NOTES", IconProp.Lock]],
@@ -247,6 +252,7 @@ describe("a case's pages and their addresses", () => {
       "cases/:id/timeline",
       "cases/:id/detections",
       "cases/:id/entities",
+      "cases/:id/connected-signals",
       "cases/:id/playbook-runs",
       "cases/:id/notes",
       "cases/:id/audit-logs",
@@ -320,6 +326,7 @@ describe("where each page of a case says it is", () => {
       ["View Case", "Timeline"],
       ["View Case", "Detections"],
       ["View Case", "Entities"],
+      ["View Case", "Connected Signals"],
       ["View Case", "Playbook Runs"],
       ["View Case", "Private Notes"],
       ["View Case", "Audit Logs"],

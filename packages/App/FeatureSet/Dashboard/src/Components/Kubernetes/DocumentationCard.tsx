@@ -2,6 +2,7 @@ import React, { FunctionComponent, ReactElement } from "react";
 import IconProp from "Common/Types/Icon/IconProp";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import SetupGuideCard, {
+  SetupGuideFrameProps,
   SetupGuideRenderContext,
 } from "../SetupGuide/SetupGuideCard";
 import { SetupGuideContent } from "../SetupGuide/SetupGuide";
@@ -11,12 +12,13 @@ import {
   resolveKubernetesPlatform,
 } from "../../Pages/Kubernetes/Utils/DocumentationMarkdown";
 
-export interface ComponentProps {
+export interface ComponentProps extends SetupGuideFrameProps {
   title: string;
   description: string;
   /*
-   * The cluster being set up (its Documentation tab). Omitted on the product
-   * pages, where the guide suggests a name for a new cluster instead.
+   * The cluster being set up: its Documentation tab, or the name typed in
+   * the Add guide. Omitted on the Documentation page, where the guide
+   * suggests a name for a new cluster instead.
    */
   clusterName?: string | undefined;
 }
@@ -41,6 +43,9 @@ const KubernetesDocumentationCard: FunctionComponent<ComponentProps> = (
           clusterName: props.clusterName,
         });
       }}
+      isBare={props.isBare}
+      inputs={props.inputs}
+      lastStep={props.lastStep}
     />
   );
 };

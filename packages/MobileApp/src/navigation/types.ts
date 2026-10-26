@@ -130,15 +130,29 @@ export type AlertsStackParamList = {
   AlertEpisodeDetail: { episodeId: string; projectId: string };
 };
 
-/** One response workspace, with incident and alert details sharing a Back path. */
+/*
+ * The Inbox's three categories. Security - the project's security cases - is
+ * shown only to the people who can read them, in a project that has had one
+ * (hooks/useSecurityCases).
+ */
+export type InboxView = "incidents" | "alerts" | "security";
+
+/** One response workspace, with incident, alert and case details sharing a Back path. */
 export type InboxStackParamList = {
   InboxList:
     | {
-        initialView?: "incidents" | "alerts";
+        initialView?: InboxView;
         initialSegment?: "incidents" | "alerts" | "episodes";
         initialFilter?: "all" | "active" | "resolved";
+        // The security case list's filter a Home shortcut opens it on.
+        initialCaseFilter?: "open" | "mine" | "unassigned";
       }
     | undefined;
+  /*
+   * One security case: where a security-case push lands, and what the
+   * Security list, a link in an incident or alert, and Home open.
+   */
+  SecurityCaseDetail: { caseId: string; projectId: string };
 } & Pick<IncidentsStackParamList, "IncidentDetail" | "IncidentEpisodeDetail"> &
   Pick<AlertsStackParamList, "AlertDetail" | "AlertEpisodeDetail">;
 

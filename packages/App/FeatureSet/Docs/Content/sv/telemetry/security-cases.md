@@ -88,7 +88,7 @@ Ett ärende har en egen sidomeny, som en incident har, och varje del av ärendet
 | Avsnitt i sidomenyn | Sidor |
 | --- | --- |
 | **Översikt** | **Översikt**, **Tidslinje** |
-| **Utredning** | **Detections**, **Entiteter**, **Playbook-körningar** |
+| **Utredning** | **Detections**, **Entiteter**, **Kopplade signaler**, **Playbook-körningar** |
 | **Anteckningar** | **Privata anteckningar** |
 | **Avancerad** | **Granskningsloggar**, **Ta bort ärende**, hopfällda tills du klickar på **Avancerad** |
 
@@ -100,6 +100,7 @@ Varje sida behåller ärendets sidhuvud överst: nummer, prioritet, status och t
 - **Tidslinje**: allt som hände med ärendet, med vem som gjorde det.
 - **Detections**: det som löste ut och öppnade ärendet eller lades till i det, hur ofta, och den senaste händelsen som träffade.
 - **Entiteter**: användarna, värdarna och adresserna som ärendet handlar om, med deras aktivitet i alla dina säkerhetshändelser under de senaste 7 dagarna. Var och en öppnas i **Korrelera**.
+- **Kopplade signaler**: de värdar, kluster, tjänster och medlemmar som ärendet nämner, som OneUptime känner dem, och vad som hände på var och en kring dess detekteringar: deras loggar, spår och mätvärden, vad som är öppet på dem och vad som ändrades. Se [Kopplade signaler](/docs/telemetry/security-connected-signals).
 - **Playbook-körningar**: vad varje playbook gjorde i ärendet, steg för steg, och stegen som väntar på godkännande. Medan körningar väntar visar menyn hur många bredvid **Playbook-körningar**.
 - **Privata anteckningar**: vad teamet skrev om ärendet.
 - **Granskningsloggar**: varje ändring av ärendet, och vem som gjorde den. Se [Granskningsloggar](/docs/configuration/audit-logs).
@@ -182,7 +183,7 @@ Var och en väljer själv, under **Användarinställningar → Aviseringsinstäl
 
 Valen följer projektets ärendeprioriteter, under deras egna namn: det här är ett nytt projekts val.
 
-WhatsApp-meddelanden skickas inte för säkerhetsärenden. En push-avisering öppnar OneUptime-appen, och dess länk öppnar ärendet i webbläsaren.
+WhatsApp-meddelanden skickas inte för säkerhetsärenden. En push-avisering öppnar ärendet i appen OneUptime On-Call (1.7.0 eller senare), där du kan godkänna eller avvisa ett väntande playbook-steg, ta ärendet och stänga det. Dess länk öppnar ärendet i webbläsaren.
 
 ### Posta i kanaler i Slack och Microsoft Teams
 
@@ -321,7 +322,7 @@ En körning vars worker slutar höra av sig, till exempel efter en omstart, tas 
 - De öppna ärenden som är tilldelade dig, de öppna ärenden som ingen har tagit sig an, och playbook-stegen som väntar på godkännande; varje tal öppnar sidan som listar dem.
 - **Genomsnittlig tid till kvittering**, **Genomsnittlig tid till begränsning** och **Genomsnittlig tid till stängning**, över ärendena som öppnats under de senaste 30 dagarna: från att ett ärende öppnas till att någon tar sig an det (en person tilldelas, eller det flyttas till en status som räknas som kvitterad), till en status som räknas som begränsad och till en som räknas som stängd. Ett ärende som fortfarande väntar räknas inte in i något medelvärde.
 - Ärendena som öppnats varje dag i 30 dagar, efter prioritet, och detektionerna som skapats varje dag i 14 dagar, efter källa.
-- De öppna ärendena efter prioritet och efter status, bedömningarna från de senaste 30 dagarna, ATT&CK-taktikerna bakom ärendena, detektionerna som löste ut oftast, och entiteterna som nämns i flest fynd.
+- De öppna ärendena efter prioritet och efter status, entiteterna som nämns i flest fynd, detektionerna som löste ut oftast, ATT&CK-taktikerna bakom ärendena och bedömningarna från de senaste 30 dagarna.
 
 Ovanför visar en remsa hur säkerhet är uppsatt: dess källor, detektioner, ärenden och playbooks, var och en med sina siffror. Ett projekt som ännu inte har satt upp det ser **Slå på rekommenderat** och **Skicka en testattack** där; se [Kom igång med säkerhet](/docs/telemetry/security-getting-started). När inget behöver någon säger sidan **Allt är lugnt**, och diagrammen visas så snart det finns något att visa.
 

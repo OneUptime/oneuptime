@@ -92,6 +92,7 @@ import {
   PersonFactValue,
   getOwnersFact,
 } from "../../../Components/EventView/EventPeopleFacts";
+import { OwnersChange } from "../../../Components/Owners/AddOwners";
 import useEventOwners, {
   EventOwnersState,
 } from "../../../Components/EventView/useEventOwners";
@@ -558,8 +559,8 @@ const ScheduledMaintenanceView: FunctionComponent<
 
   /*
    * Who owns the event (teams first), where it shows, and who created it.
-   * Adding owners is offered until the event is over, to a reader who
-   * may add one.
+   * Adding owners - the Add owners list, right there - is offered until the
+   * event is over, to a reader who may add one.
    */
   const heroFacts: Array<EventStatusFact> = [];
 
@@ -569,7 +570,21 @@ const ScheduledMaintenanceView: FunctionComponent<
       RouteMap[PageMap.SCHEDULED_MAINTENANCE_VIEW_OWNERS] as Route,
       { modelId: modelId },
     ),
-    canAddOwners: !isEventOver && owners.canAddOwners,
+    addOwners:
+      !isEventOver && owners.canAddOwners
+        ? {
+            target: owners.target,
+            onOwnersChanged: async (change: OwnersChange): Promise<void> => {
+              // An owner added is a new feed entry too.
+              if (change.wasAdded) {
+                setFeedRefreshToken((token: number) => {
+                  return token + 1;
+                });
+              }
+              await owners.refresh();
+            },
+          }
+        : undefined,
   });
 
   if (ownersFact) {

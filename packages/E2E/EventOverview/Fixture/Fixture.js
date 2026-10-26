@@ -56,7 +56,11 @@
  *            channel-links, channel-members (the channel card's read),
  *            channel-add (its Join channel and Add people), pass-on-read
  *            (whether the viewer is paged, for Escalate), pass-on
- *            (escalating it). The matching API call throws HTTPErrorResponse. "conversation" is
+ *            (escalating it), owner-add (every owner a header's Add owners
+ *            list adds is refused, as the server refuses a second row for
+ *            an owner: "This user is already an owner of this incident."),
+ *            role-assign (the commander given from the header's Assign is
+ *            refused). The matching API call throws HTTPErrorResponse. "conversation" is
  *            the read of the AI card's thread and "conversation-send" a
  *            question sent to it. "resend" also marks the subscriber
  *            notifications of Incident #1042 and Scheduled Maintenance #58 as
@@ -130,6 +134,12 @@
  *            reads that language's words, fetched from the Dashboard's own
  *            locale files (server.js serves them).
  *   ?theme=  dark adds html.dark (handled by server.js).
+ *   ?security= declared | naming | both
+ *            What Security Events says about Incident #1042 on its Security
+ *            card (POST /security-case/incident-security): the security
+ *            case that declared it, the open cases naming a host and the
+ *            cluster it affects, or both. Left out, Security Events has
+ *            nothing to say about any incident here, and no card is drawn.
  *   ?channels= the record's own Slack / Microsoft Teams channels, as
  *            GET /workspace-channel-link answers them (the header's Open in
  *            Slack / Open in Microsoft Teams): a comma list of slack (one
@@ -165,7 +175,7 @@
  *   ?unknown= the people Slack does not know, as POST .../add answers them
  *            (not found): a comma list of maya, sam, jordan, alex. Alex by
  *            default.
- *   ?role=   owner (default) | alert-member | member | loading
+ *   ?role=   owner (default) | alert-member | member | owner-people | loading
  *            Who is signed in. "owner" is a master admin who is also the
  *            Project Owner, so every permission gate is open. "alert-member"
  *            is not a master admin and holds only Alert Member: it may
@@ -173,6 +183,9 @@
  *            gated actions show disabled with the reason. "member" is not a
  *            master admin and holds only Project Member: it works incidents
  *            and alerts but may not change the project's AI settings.
+ *            "owner-people" holds only Create Incident Owner User: it may
+ *            add people as an incident's owners but not teams, and give no
+ *            role, so the Add owners list locks its teams with why.
  *            "loading" is the moment before the permission snapshot arrives
  *            (no permissions yet), when gated actions are hidden rather
  *            than refused.
@@ -422,11 +435,17 @@ const smMode = params.get("sm") || "scheduled";
 const failures = new Set(
   (params.get("fail") || "").split(",").filter((value) => value.length > 0),
 );
-const roleMode = ["alert-member", "member", "loading"].includes(
+const roleMode = ["alert-member", "member", "owner-people", "loading"].includes(
   params.get("role"),
 )
   ? params.get("role")
   : "owner";
+// ?security=: what Incident #1042's Security card is told.
+const securityMode = ["declared", "naming", "both"].includes(
+  params.get("security"),
+)
+  ? params.get("security")
+  : "";
 /*
  * ?ai=off-*: not investigated because something was off for the record;
  * ?fixing=: what auto-remediation recorded beside it; ?switches=: the
@@ -797,6 +816,25 @@ function matches(record, query) {
     }
     if (condition instanceof NotEqual) {
       if (String(comparable(actual)) === String(comparable(condition.value))) {
+        return false;
+      }
+      continue;
+    }
+    /*
+     * A search through a relation - the people picker's
+     * { user: { name: Search } } - looks inside the related record.
+     */
+    if (
+      condition &&
+      typeof condition === "object" &&
+      condition.constructor === Object &&
+      actual &&
+      typeof actual === "object" &&
+      Object.values(condition).some((value) => {
+        return value instanceof Search;
+      })
+    ) {
+      if (!matches(actual, condition)) {
         return false;
       }
       continue;
@@ -2373,6 +2411,34 @@ for (const modelType of [
 ]) {
   table(modelType);
 }
+
+/*
+ * What the server says when it refuses an owner (?fail=owner-add): a second
+ * row for an owner it has already, per owner table.
+ */
+const OWNER_ADD_REFUSALS = {
+  [tableName(IncidentOwnerUser)]:
+    "This user is already an owner of this incident.",
+  [tableName(IncidentOwnerTeam)]:
+    "This team is already an owner of this incident.",
+  [tableName(AlertOwnerUser)]: "This user is already an owner of this alert.",
+  [tableName(AlertOwnerTeam)]: "This team is already an owner of this alert.",
+  [tableName(IncidentEpisodeOwnerUser)]:
+    "This user is already an owner of this incident episode.",
+  [tableName(IncidentEpisodeOwnerTeam)]:
+    "This team is already an owner of this incident episode.",
+  [tableName(AlertEpisodeOwnerUser)]:
+    "This user is already an owner of this alert episode.",
+  [tableName(AlertEpisodeOwnerTeam)]:
+    "This team is already an owner of this alert episode.",
+  [tableName(ScheduledMaintenanceOwnerUser)]:
+    "This user is already an owner of this scheduled maintenance event.",
+  [tableName(ScheduledMaintenanceOwnerTeam)]:
+    "This team is already an owner of this scheduled maintenance event.",
+};
+
+// What the server says when it refuses a role (?fail=role-assign).
+const ROLE_ASSIGN_REFUSAL = "This user already has this role.";
 
 const ownerTeams = {
   checkout: team,
@@ -4672,6 +4738,9 @@ PermissionUtil.getAllPermissions = () => {
   if (roleMode === "member") {
     return [Permission.ProjectMember];
   }
+  if (roleMode === "owner-people") {
+    return [Permission.CreateIncidentOwnerUser];
+  }
   if (roleMode === "loading") {
     return [];
   }
@@ -4892,6 +4961,18 @@ ModelAPI.createOrUpdate = async (options) => {
     data: serialize(data),
     miscDataProps: serialize(options.miscDataProps),
   });
+  // ?fail=owner-add / role-assign: refused as the server refuses them.
+  if (failures.has("owner-add") && OWNER_ADD_REFUSALS[modelName]) {
+    throw fail(400, OWNER_ADD_REFUSALS[modelName]);
+  }
+  if (
+    failures.has("role-assign") &&
+    [tableName(IncidentMember), tableName(IncidentEpisodeRoleMember)].includes(
+      modelName,
+    )
+  ) {
+    throw fail(400, ROLE_ASSIGN_REFUSAL);
+  }
   /*
    * An edit form's save (What happened's Edit): the record it edits takes
    * the fields the form sent, as the server's update does, instead of a
@@ -4925,6 +5006,15 @@ ModelAPI.createOrUpdate = async (options) => {
     });
     if (person) {
       record.user = person;
+    }
+  }
+  // A team added as an owner from a header is named by its read, too.
+  if (record.teamId && !record.team) {
+    const ownerTeam = table(Team).find((candidate) => {
+      return String(candidate._id) === String(record.teamId);
+    });
+    if (ownerTeam) {
+      record.team = make(Team, ownerTeam);
     }
   }
   record.createdAt = record.createdAt || NOW;
@@ -6374,6 +6464,75 @@ function handleCallTranscriptApi(method, url, body) {
   return null;
 }
 
+/*
+ * What Security Events says about an incident (?security=): for Incident
+ * #1042, the case that declared it, and the open cases naming the host and
+ * the cluster it affects, each with which; nothing for any other.
+ */
+function incidentSecurity(body) {
+  const nothing = {
+    declaredBy: [],
+    namingItsResources: [],
+    namingItsResourcesCount: 0,
+  };
+
+  if (!securityMode || body.incidentId !== ID.incident(1042)) {
+    return nothing;
+  }
+
+  const declaredBy = [
+    {
+      id: uuid("2f000000", 12),
+      number: "SEC-12",
+      title: "Credential stuffing against the checkout sign-in",
+      priorityName: "Critical",
+      priorityColor: "#dc2626",
+      statusName: "Contained",
+      statusColor: "#0ea5e9",
+      lastDetectedAt: ago(40 * 60 * 1000).toISOString(),
+    },
+  ];
+  const naming = [
+    {
+      id: uuid("2f000000", 15),
+      number: "SEC-15",
+      title: "Cryptominer on checkout-api-2",
+      priorityName: "High",
+      priorityColor: "#f97316",
+      statusName: "Investigating",
+      statusColor: "#3b82f6",
+      lastDetectedAt: ago(25 * 60 * 1000).toISOString(),
+      resources: [
+        { kind: "Host", id: uuid("2f100000", 1), name: "checkout-api-2" },
+        {
+          kind: "KubernetesCluster",
+          id: uuid("2f100000", 2),
+          name: "prod-eu-west-1",
+        },
+      ],
+    },
+    {
+      id: uuid("2f000000", 16),
+      number: "SEC-16",
+      title: "Outbound connection to a known-bad address from checkout-api-2",
+      priorityName: "Medium",
+      priorityColor: "#eab308",
+      statusName: "New",
+      statusColor: "#ef4444",
+      lastDetectedAt: ago(3 * 60 * 60 * 1000).toISOString(),
+      resources: [
+        { kind: "Host", id: uuid("2f100000", 1), name: "checkout-api-2" },
+      ],
+    },
+  ];
+
+  return {
+    declaredBy: securityMode === "naming" ? [] : declaredBy,
+    namingItsResources: securityMode === "declared" ? [] : naming,
+    namingItsResourcesCount: securityMode === "declared" ? 0 : 3,
+  };
+}
+
 async function handleApi(method, options) {
   const url = options.url.toString();
   const body = serialize(options.data) || {};
@@ -6544,6 +6703,14 @@ async function handleApi(method, options) {
       }
       return ok({ answers: passOnAnswers(recordType, recordId) });
     }
+  }
+
+  /*
+   * An incident's Security card: the case that declared it, and the open
+   * cases naming what it affects (?security=). Nothing, for the rest.
+   */
+  if (method === "POST" && url.endsWith("/security-case/incident-security")) {
+    return ok(incidentSecurity(body));
   }
 
   // An incident call's transcript routes (?calls=).

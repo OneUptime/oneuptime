@@ -88,7 +88,7 @@ Un dossier a son propre menu latéral, comme un incident, et chaque partie du do
 | Section du menu latéral | Pages |
 | --- | --- |
 | **Vue d'ensemble** | **Vue d'ensemble**, **Chronologie** |
-| **Investigation** | **Détections**, **Entités**, **Exécutions de playbooks** |
+| **Investigation** | **Détections**, **Entités**, **Signaux connectés**, **Exécutions de playbooks** |
 | **Notes** | **Notes privées** |
 | **Avancé** | **Journaux d'audit**, **Supprimer le dossier**, repliés jusqu'à ce que vous cliquiez sur **Avancé** |
 
@@ -100,6 +100,7 @@ Chaque page garde en haut l'en-tête du dossier : son numéro, sa priorité, son
 - **Chronologie** : tout ce qui est arrivé au dossier, avec son auteur.
 - **Détections** : ce qui s'est déclenché pour ouvrir le dossier ou s'y ajouter, combien de fois, et le dernier événement correspondant.
 - **Entités** : les utilisateurs, hôtes et adresses sur lesquels porte le dossier, avec leur activité dans l'ensemble de vos événements de sécurité des 7 derniers jours. Chacun s'ouvre dans **Corréler**.
+- **Signaux connectés** : les hôtes, clusters, services et membres que le dossier nomme, tels que OneUptime les connaît, et ce qui se passait sur chacun autour de ses détections : leurs journaux, traces et métriques, ce qui est ouvert sur eux et ce qui a changé. Voir [Signaux connectés](/docs/telemetry/security-connected-signals).
 - **Exécutions de playbooks** : ce que chaque playbook a fait sur le dossier, étape par étape, et les étapes en attente d'approbation. Tant que des exécutions attendent, le menu indique combien à côté de **Exécutions de playbooks**.
 - **Notes privées** : ce que l'équipe a écrit sur le dossier.
 - **Journaux d'audit** : chaque modification apportée au dossier, et qui l'a faite. Voir [Journaux d'audit](/docs/configuration/audit-logs).
@@ -182,7 +183,7 @@ Chaque personne choisit pour elle-même, dans **Paramètres utilisateur → Para
 
 Les choix suivent les priorités de dossier du projet, sous leurs propres noms : voici ceux d'un nouveau projet.
 
-Aucun message WhatsApp n'est envoyé pour les dossiers de sécurité. Une notification push ouvre l'application OneUptime, et son lien ouvre le dossier dans le navigateur.
+Aucun message WhatsApp n'est envoyé pour les dossiers de sécurité. Une notification push ouvre le dossier dans l'application OneUptime On-Call (1.7.0 ou ultérieure), où vous pouvez approuver ou rejeter une étape de playbook en attente, prendre le dossier en charge et le fermer. Son lien ouvre le dossier dans le navigateur.
 
 ### Publier dans des canaux Slack et Microsoft Teams
 
@@ -321,7 +322,7 @@ Le produit s'ouvre sur **Produits → Événements de sécurité → Vue d'ensem
 - Les dossiers ouverts qui vous sont assignés, les dossiers ouverts que personne n'a encore pris en charge, et les étapes de playbook en attente d'approbation, chacun ouvrant la page qui les liste.
 - **Temps moyen de prise en charge**, **Temps moyen de confinement** et **Temps moyen de clôture**, sur les dossiers ouverts au cours des 30 derniers jours : de l'ouverture d'un dossier à sa prise en charge (assignation à une personne, ou passage à un statut qui compte comme pris en charge), à un statut qui compte comme confiné, et à un statut qui compte comme fermé. Un dossier encore en attente n'est pas compté dans une moyenne.
 - Les dossiers ouverts chaque jour sur 30 jours, par priorité, et les détections levées chaque jour sur 14 jours, par source.
-- Les dossiers ouverts par priorité et par statut, les verdicts des 30 derniers jours, les tactiques ATT&CK à l'origine des dossiers, les détections qui se sont le plus déclenchées, et les entités nommées par le plus de constats.
+- Les dossiers ouverts par priorité et par statut, les entités nommées par le plus de constats, les détections qui se sont le plus déclenchées, les tactiques ATT&CK à l'origine des dossiers et les verdicts des 30 derniers jours.
 
 Au-dessus, un bandeau montre comment la sécurité est mise en place : ses sources, ses détections, ses dossiers et ses playbooks, chacun avec ses chiffres. Un projet qui ne l'a pas encore mise en place y voit **Activer les recommandations** et **Envoyer une attaque de test** ; voir [Bien démarrer avec la sécurité](/docs/telemetry/security-getting-started). Quand rien n'attend personne, la page affiche **Tout est calme**, et les graphiques apparaissent dès qu'il y a quelque chose à représenter.
 

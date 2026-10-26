@@ -89,9 +89,9 @@ Dentro de um ambiente, cada tarefa, instância ou réplica em execução ganha u
 
 A identidade própria da plataforma vem primeiro de propósito. Um coletor sidecar e o SDK da aplicação a enxergam, e ela sobrevive a reinicializações. Um SDK costuma inventar um `service.instance.id` novo para cada processo (o SDK do Node.js faz isso por padrão), então usá-lo como chave dividiria uma tarefa do ECS em duas linhas. `service.instance.id` é usado quando a plataforma não define uma identidade própria. A coluna **Identidade da instância** em [Plataformas compatíveis](#plataformas-compatíveis) indica o atributo que uma configuração típica usa em cada plataforma.
 
-### Ambientes que você cria à mão
+### Adicionar um ambiente
 
-Raramente é preciso: a ingestão cria os ambientes para você. Para criar um antes da telemetria dele, abra **Nuvem → All Environments** e clique em **Criar: Recurso de nuvem**. Escolha a **Plataforma de nuvem** e digite o **ID da conta de nuvem** e a **Região de nuvem** exatamente como sua telemetria os informa. O OneUptime monta a chave `platform|account|region` com esses três valores, e a ingestão associa um ambiente apenas pela chave. Ele dá ao ambiente o nome que a ingestão daria; para mostrar outro nome, abra **Mais campos** e digite-o em **Nome de exibição**.
+A ingestão cria os ambientes para você, então não há nada para digitar. Abra **Nuvem → All Environments** e clique em **Adicionar ambiente de nuvem**: escolha onde sua aplicação roda, e o guia mostra as configurações do OpenTelemetry dessa plataforma, com a URL do seu OneUptime e a chave de ingestão já preenchidas. A última etapa dele, **Aguardar a conexão**, avisa quando os primeiros dados do ambiente chegaram e traz um link para ele. Para mostrar outro nome, escolha **Editar detalhes** no cartão **Detalhes do recurso** da página **Configurações** do ambiente e digite um **Nome de exibição**.
 
 ## O que não é um ambiente de nuvem
 

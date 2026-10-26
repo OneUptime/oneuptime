@@ -13,6 +13,7 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import Label from "Common/Models/DatabaseModels/Label";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import Card from "Common/UI/Components/Card/Card";
+import CardGrid from "Common/UI/Components/Card/CardGrid";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
@@ -24,6 +25,8 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import ResourceConnectionGuideCard from "../../../Components/ResourceConnection/ResourceConnectionGuideCard";
 import { getDockerHostConnectionGuide } from "../../../Components/ResourceConnection/ResourceConnectionGuides";
 import ResourceActivityCards from "../../../Components/ResourceActivity/ResourceActivityCards";
+import ResourceSecurityCard from "../../../Components/SecurityConnections/ResourceSecurityCard";
+import { SecurityConnectionKind } from "Common/Types/SecurityCase/SecurityConnection";
 import ResourceAiAgentStatusSummaryCard from "../../../Components/ResourceAiAgent/ResourceAiAgentStatusSummaryCard";
 import { getResourceAiAgentDescriptor } from "../../../Components/ResourceAiAgent/ResourceAiAgentDescriptors";
 import AiResourceType from "Common/Types/ResourceAiAgent/AiResourceType";
@@ -1545,7 +1548,12 @@ const DockerHostOverview: FunctionComponent<
     };
 
     return (
-      <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
+      <CardGrid
+        columns={2}
+        cardWidth="narrow"
+        className="!mb-6"
+        dataTestId="container-host-top-consumers"
+      >
         {renderList(
           translationKey("Top CPU Consumers"),
           stats.topByCpu,
@@ -1558,7 +1566,7 @@ const DockerHostOverview: FunctionComponent<
           "memory",
           CONTAINER_HOST_METRIC_DESCRIPTIONS.topMemoryConsumers,
         )}
-      </div>
+      </CardGrid>
     );
   };
 
@@ -1659,6 +1667,15 @@ const DockerHostOverview: FunctionComponent<
           RouteMap[PageMap.DOCKER_HOST_VIEW_SCHEDULED_MAINTENANCE] as Route,
           { modelId: modelId },
         )}
+      />
+      {/*
+       * What Security Events found about it this week, for whoever
+       * may read it (Components/SecurityConnections).
+       */}
+      <ResourceSecurityCard
+        kind={SecurityConnectionKind.DockerHost}
+        modelId={modelId}
+        refreshToken={lastRefreshedAt ? lastRefreshedAt.getTime() : undefined}
       />
       {renderCharts()}
       {renderTopContainers()}

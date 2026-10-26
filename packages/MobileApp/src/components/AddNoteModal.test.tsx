@@ -10,6 +10,13 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import AddNoteModal from "./AddNoteModal";
 import { ThemeProvider, darkColors, lightColors } from "../theme";
 import { radius } from "../theme/tokens";
+import { SHEET_MAX_WIDTH } from "../layout/windowLayout";
+import {
+  TEST_WINDOWS,
+  resetWindowSize,
+  resizeWindow,
+  setWindowSize,
+} from "../__tests__/windowSize";
 
 let mockSystemScheme: "light" | "dark" | null = "light";
 
@@ -353,6 +360,70 @@ describe("The submit button", () => {
       borderColor: lightColors.borderDefault,
       borderWidth: 1,
     });
+  });
+});
+
+describe("The sheet on a foldable, a tablet or a phone on its side", () => {
+  afterEach(() => {
+    resetWindowSize();
+  });
+
+  test("stops at 640 points wide and sits in the middle, rather than stretching across an unfolded screen", async () => {
+    setWindowSize(TEST_WINDOWS.innerScreenOnItsSide);
+    await render(
+      <AddNoteModal
+        visible={true}
+        onClose={noop}
+        onSubmit={noop}
+        isSubmitting={false}
+      />,
+    );
+
+    expect(screen.getByTestId("add-note-sheet")).toHaveStyle({
+      width: "100%",
+      maxWidth: SHEET_MAX_WIDTH,
+      alignSelf: "center",
+    });
+  });
+
+  test("on a short window the text box is smaller, so Submit stays above the keyboard", async () => {
+    setWindowSize(TEST_WINDOWS.phoneOnItsSide);
+    await render(
+      <AddNoteModal
+        visible={true}
+        onClose={noop}
+        onSubmit={noop}
+        isSubmitting={false}
+      />,
+    );
+
+    expect(screen.getByPlaceholderText(PLACEHOLDER)).toHaveStyle({
+      minHeight: 88,
+      maxHeight: 140,
+    });
+  });
+
+  test("turning the phone upright again gives the box back its height, keeping what was typed", async () => {
+    setWindowSize(TEST_WINDOWS.phoneOnItsSide);
+    await render(
+      <AddNoteModal
+        visible={true}
+        onClose={noop}
+        onSubmit={noop}
+        isSubmitting={false}
+      />,
+    );
+    await fireEvent.changeText(
+      screen.getByPlaceholderText(PLACEHOLDER),
+      "Restarted the workers",
+    );
+
+    await resizeWindow(TEST_WINDOWS.coverScreen);
+
+    const input: ReturnType<typeof screen.getByPlaceholderText> =
+      screen.getByPlaceholderText(PLACEHOLDER);
+    expect(input).toHaveStyle({ minHeight: 148, maxHeight: 280 });
+    expect(input.props.value).toBe("Restarted the workers");
   });
 });
 

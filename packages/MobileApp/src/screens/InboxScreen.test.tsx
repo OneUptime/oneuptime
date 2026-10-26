@@ -1,8 +1,19 @@
 import React from "react";
 import { StyleSheet } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { act, fireEvent, render, screen } from "@testing-library/react-native";
-import { beforeEach, describe, expect, test } from "@jest/globals";
-import InboxScreen from "./InboxScreen";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import InboxScreen, {
+  CATEGORY_TAB_MIN_WIDTH_WITH_ICON,
+  getInboxViewOfRoute,
+} from "./InboxScreen";
+import type { SecurityCasesAvailability } from "../hooks/useSecurityCases";
+import {
+  TEST_WINDOWS,
+  resetWindowSize,
+  resizeWindow,
+  setWindowSize,
+} from "../__tests__/windowSize";
 import { ThemeProvider, darkColors, lightColors } from "../theme";
 import { withAlpha } from "../utils/color";
 
@@ -19,9 +30,10 @@ type RenderedElement = ReturnType<typeof screen.getByText>;
 type Style = Record<string, unknown>;
 
 interface InboxParams {
-  initialView?: "incidents" | "alerts";
+  initialView?: "incidents" | "alerts" | "security";
   initialSegment?: "incidents" | "alerts" | "episodes";
   initialFilter?: "all" | "active" | "resolved";
+  initialCaseFilter?: "open" | "mine" | "unassigned";
 }
 
 const mockSetParams: jest.Mock = jest.fn();
@@ -61,6 +73,39 @@ jest.mock("./IncidentsScreen", () => {
   };
 });
 
+jest.mock("./SecurityCasesScreen", () => {
+  const { Text } =
+    jest.requireActual<typeof import("react-native")>("react-native");
+  return {
+    __esModule: true,
+    default: () => {
+      return <Text>Security cases list</Text>;
+    },
+  };
+});
+
+/*
+ * Whether the person signed in can see the project's security cases, in a
+ * project that has had one (hooks/useSecurityCases.test.tsx owns how that is
+ * decided). Unless a test says so, they cannot: the Inbox they have always had.
+ */
+const mockSecurity: { current: SecurityCasesAvailability } = {
+  current: {
+    isAvailable: false,
+    isChecking: false,
+    isDenied: false,
+    projectId: "project-1",
+  },
+};
+
+jest.mock("../hooks/useSecurityCases", () => {
+  return {
+    useSecurityCasesAvailability: () => {
+      return mockSecurity.current;
+    },
+  };
+});
+
 jest.mock("./AlertsScreen", () => {
   const { Text } =
     jest.requireActual<typeof import("react-native")>("react-native");
@@ -85,15 +130,23 @@ jest.mock("react-native/Libraries/Utilities/useColorScheme", () => {
   };
 });
 
+// The character Ionicons draws an icon as: how a test finds an icon on screen.
+function glyphFor(name: keyof typeof Ionicons.glyphMap): string {
+  const glyph: string | number = Ionicons.glyphMap[name];
+  return typeof glyph === "string" ? glyph : String.fromCodePoint(glyph);
+}
+
 function styleOf(element: RenderedElement): Style {
   return (StyleSheet.flatten(element.props.style) ?? {}) as Style;
 }
 
-function tab(category: "incidents" | "alerts"): RenderedElement {
+function tab(category: "incidents" | "alerts" | "security"): RenderedElement {
   return screen.getByTestId(`inbox-category-${category}`);
 }
 
-function indicator(category: "incidents" | "alerts"): RenderedElement {
+function indicator(
+  category: "incidents" | "alerts" | "security",
+): RenderedElement {
   return screen.getByTestId(`inbox-category-${category}-indicator`);
 }
 
@@ -138,6 +191,196 @@ beforeEach(() => {
   mockColorScheme = "light";
   mockRoute.params = undefined;
   mockNavigationState.current = { index: 0, routes: [{ name: "InboxList" }] };
+  mockSecurity.current = {
+    isAvailable: false,
+    isChecking: false,
+    isDenied: false,
+    projectId: "project-1",
+  };
+});
+
+function canSeeSecurityCases(): void {
+  mockSecurity.current = { ...mockSecurity.current, isAvailable: true };
+}
+
+describe("Security, for the people who work security cases", () => {
+  afterEach(() => {
+    resetWindowSize();
+  });
+
+  test("nobody else sees a third category: the Inbox keeps its two", async () => {
+    await renderInbox();
+
+    expect(screen.queryByTestId("inbox-category-security")).toBeNull();
+    expect(screen.getAllByRole("tab")).toHaveLength(2);
+  });
+
+  test("a refusal, or a project that never had a case, keeps it away too", async () => {
+    mockSecurity.current = {
+      ...mockSecurity.current,
+      isAvailable: false,
+      isDenied: true,
+    };
+
+    await renderInbox();
+
+    expect(screen.queryByRole("tab", { name: "Security" })).toBeNull();
+  });
+
+  test("someone who can see the project's cases gets Security after Alerts", async () => {
+    canSeeSecurityCases();
+
+    await renderInbox();
+
+    const tabs: RenderedElement[] = screen.getAllByRole("tab");
+    expect(
+      tabs.map((element: RenderedElement): string => {
+        return element.props.accessibilityLabel as string;
+      }),
+    ).toEqual(["Incidents", "Alerts", "Security"]);
+    expect(isSelected(tab("security"))).toBe(false);
+  });
+
+  test("tapping Security shows the cases, and never resets the incident filters for them", async () => {
+    canSeeSecurityCases();
+    await renderInbox();
+
+    await fireEvent.press(tab("security"));
+
+    expect(mockSetParams).toHaveBeenCalledWith({ initialView: "security" });
+  });
+
+  test("a route that asks for Security selects it and draws the case list", async () => {
+    canSeeSecurityCases();
+    mockRoute.params = { initialView: "security" };
+
+    await renderInbox();
+
+    expect(isSelected(tab("security"))).toBe(true);
+    expect(indicator("security")).toHaveStyle({
+      backgroundColor: lightColors.actionPrimary,
+    });
+    expect(screen.getByText("Security cases list")).toBeTruthy();
+    expect(screen.queryByText(/Incidents list/)).toBeNull();
+  });
+
+  test("a case opened from a push keeps its category, before the check has answered", async () => {
+    /*
+     * The push lands before the availability count does: the list beneath
+     * the case must not be a list of incidents with no tab saying why.
+     */
+    mockSecurity.current = { ...mockSecurity.current, isChecking: true };
+    mockRoute.params = { initialView: "security" };
+
+    await renderInbox();
+
+    expect(isSelected(tab("security"))).toBe(true);
+    expect(screen.getByText("Security cases list")).toBeTruthy();
+  });
+
+  test("a case opened over the incidents list brings Security along for Back", async () => {
+    canSeeSecurityCases();
+    mockNavigationState.current = {
+      index: 1,
+      routes: [{ name: "InboxList" }, { name: "SecurityCaseDetail" }],
+    };
+
+    await renderInbox();
+
+    expect(mockSetParams).toHaveBeenCalledWith({
+      initialView: "security",
+      initialCaseFilter: "open",
+    });
+  });
+
+  test("on a 320-point phone three tabs drop their icons and keep their words", async () => {
+    canSeeSecurityCases();
+    setWindowSize({ width: 320, height: 740 });
+
+    await renderInbox();
+
+    for (const name of ["Incidents", "Alerts", "Security"]) {
+      expect(screen.getByRole("tab", { name })).toBeTruthy();
+      expect(screen.getByText(name)).toBeTruthy();
+    }
+    expect(screen.queryByText(glyphFor("warning"))).toBeNull();
+    expect(screen.queryByText(glyphFor("notifications-outline"))).toBeNull();
+    expect(screen.queryByText(glyphFor("shield-outline"))).toBeNull();
+  });
+
+  test("a 390-point phone has room for every icon beside its word", async () => {
+    canSeeSecurityCases();
+    setWindowSize({ width: 390, height: 844 });
+
+    await renderInbox();
+
+    expect(screen.getByText(glyphFor("warning"))).toBeTruthy();
+    expect(screen.getByText(glyphFor("notifications-outline"))).toBeTruthy();
+    expect(screen.getByText(glyphFor("shield-outline"))).toBeTruthy();
+  });
+
+  test("two tabs keep their icons even on the narrowest phone", async () => {
+    setWindowSize({ width: 320, height: 740 });
+
+    await renderInbox();
+
+    expect(screen.getByText(glyphFor("warning"))).toBeTruthy();
+    expect(screen.getByText(glyphFor("notifications-outline"))).toBeTruthy();
+  });
+
+  test("the threshold is the width of the widest label with its icon", () => {
+    // "Incidents" in bold beside an 18-point icon and its gap: about 96 points.
+    expect(CATEGORY_TAB_MIN_WIDTH_WITH_ICON).toBeGreaterThanOrEqual(96);
+    expect(CATEGORY_TAB_MIN_WIDTH_WITH_ICON).toBeLessThan(110);
+  });
+});
+
+describe("Which category a detail screen belongs to", () => {
+  test.each([
+    ["IncidentDetail", "incidents"],
+    ["IncidentEpisodeDetail", "incidents"],
+    ["AlertDetail", "alerts"],
+    ["AlertEpisodeDetail", "alerts"],
+    ["SecurityCaseDetail", "security"],
+    ["InboxList", null],
+  ])("%s is %s", (routeName: string, view: string | null) => {
+    expect(getInboxViewOfRoute(routeName)).toBe(view);
+  });
+});
+
+describe("On a short window - a phone on its side", () => {
+  afterEach(() => {
+    resetWindowSize();
+  });
+
+  test("the page title gives its height to the list; the categories stay", async () => {
+    /*
+     * 393 points tall, less a header and the home indicator: the rail beside
+     * the Inbox already says where the reader is, so the title goes and the
+     * list starts higher.
+     */
+    setWindowSize(TEST_WINDOWS.phoneOnItsSide);
+    await renderInbox();
+
+    expect(screen.queryByRole("header", { name: "Inbox" })).toBeNull();
+    expect(screen.getByRole("tab", { name: "Incidents" })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "Alerts" })).toBeTruthy();
+  });
+
+  test("turning the phone upright brings the title back", async () => {
+    setWindowSize(TEST_WINDOWS.phoneOnItsSide);
+    await renderInbox();
+    await resizeWindow(TEST_WINDOWS.coverScreen);
+
+    expect(screen.getByRole("header", { name: "Inbox" })).toBeTruthy();
+  });
+
+  test("an unfolded foldable keeps the title, and its gutters follow the pane", async () => {
+    setWindowSize(TEST_WINDOWS.innerScreen);
+    await renderInbox();
+
+    expect(screen.getByRole("header", { name: "Inbox" })).toBeTruthy();
+  });
 });
 
 describe("What the Inbox shows", () => {
@@ -207,6 +450,63 @@ describe("Choosing a category", () => {
     expect(mockSetParams).toHaveBeenCalledWith({
       initialView: "alerts",
       initialSegment: "episodes",
+      initialFilter: "all",
+    });
+  });
+
+  test("beside an open incident, the reader can still switch the list to Alerts", async () => {
+    /*
+     * On a wide window the list stays on screen beside the open record.
+     * Switching category there must stick; the category follows a record
+     * only when one is opened.
+     */
+    mockNavigationState.current = {
+      index: 1,
+      routes: [{ name: "InboxList" }, { name: "IncidentDetail" }],
+    };
+    const view: Awaited<ReturnType<typeof render>> = await render(
+      <InboxScreen />,
+    );
+
+    await fireEvent.press(tab("alerts"));
+    expect(mockSetParams).toHaveBeenLastCalledWith({
+      initialView: "alerts",
+      initialSegment: "alerts",
+      initialFilter: "all",
+    });
+
+    // The params land; the open incident must not pull the list back.
+    mockSetParams.mockClear();
+    mockRoute.params = {
+      initialView: "alerts",
+      initialSegment: "alerts",
+      initialFilter: "all",
+    };
+    await view.rerender(<InboxScreen />);
+
+    expect(mockSetParams).not.toHaveBeenCalled();
+    expect(isSelected(tab("alerts"))).toBe(true);
+  });
+
+  test("opening an alert beside the incidents list brings the list to Alerts", async () => {
+    mockNavigationState.current = {
+      index: 1,
+      routes: [{ name: "InboxList" }, { name: "IncidentDetail" }],
+    };
+    const view: Awaited<ReturnType<typeof render>> = await render(
+      <InboxScreen />,
+    );
+    expect(mockSetParams).not.toHaveBeenCalled();
+
+    mockNavigationState.current = {
+      index: 1,
+      routes: [{ name: "InboxList" }, { name: "AlertDetail" }],
+    };
+    await view.rerender(<InboxScreen />);
+
+    expect(mockSetParams).toHaveBeenCalledWith({
+      initialView: "alerts",
+      initialSegment: "alerts",
       initialFilter: "all",
     });
   });

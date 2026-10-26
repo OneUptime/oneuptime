@@ -93,3 +93,33 @@ describe("buildInboxDetailNavigation", () => {
     });
   });
 });
+
+describe("a security case", () => {
+  test("goes Back to every open case: the list that holds it", () => {
+    expect(
+      buildInboxDetailNavigation({
+        name: "SecurityCaseDetail",
+        params: { caseId: "case-1", projectId: "project-1" },
+      }),
+    ).toEqual({
+      state: {
+        stale: true,
+        index: 1,
+        routes: [
+          {
+            name: "InboxList",
+            params: {
+              initialView: "security",
+              initialCaseFilter: "open",
+              initialFilter: "all",
+            },
+          },
+          {
+            name: "SecurityCaseDetail",
+            params: { caseId: "case-1", projectId: "project-1" },
+          },
+        ],
+      },
+    });
+  });
+});

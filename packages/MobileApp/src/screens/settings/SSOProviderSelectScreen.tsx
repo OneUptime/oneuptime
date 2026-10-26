@@ -12,6 +12,8 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useTheme } from "../../theme";
 import { radius, spacing, touchTarget } from "../../theme/tokens";
 import { useScreenPadding } from "../../hooks/useScreenPadding";
+import { useContentGutters } from "../../layout/WindowLayout";
+import type { ContentGutters } from "../../layout/windowLayout";
 import AppText from "../../components/AppText";
 import Banner from "../../components/Banner";
 import Card from "../../components/Card";
@@ -88,6 +90,7 @@ export default function SSOProviderSelectScreen({
 }: Props): React.JSX.Element {
   const { theme } = useTheme();
   const paddingBottom: number = useScreenPadding();
+  const gutters: ContentGutters = useContentGutters();
   const { projectId, projectName, providers } = route.params;
   const [authenticatingId, setAuthenticatingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -251,6 +254,7 @@ export default function SSOProviderSelectScreen({
       style={{ backgroundColor: theme.colors.backgroundPrimary }}
       contentContainerStyle={{
         padding: spacing.xl,
+        ...gutters,
         paddingBottom,
         gap: spacing.lg,
       }}

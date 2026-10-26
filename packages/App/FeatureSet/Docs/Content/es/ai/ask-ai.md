@@ -58,6 +58,14 @@ Las listas de infraestructura y las páginas de recursos ofrecen preguntas para 
 
 En la página de un elemento hijo, el contexto también registra el pod, contenedor, VM, proceso u otro elemento que seleccionaste. Las herramientas de infraestructura leen la telemetría del recurso padre; no pueden medir un elemento hijo solo por su nombre. Preguntar a la IA lo dice, y no adivina un namespace de Kubernetes que la página no indica. Un estado de conexión no es la salud de una carga de trabajo, y la falta de telemetría no significa que un recurso esté sano.
 
+## Comandos en tu infraestructura
+
+Abierta en la página de un recurso cuyo agente de IA está conectado (un host, un host de Docker o Podman, un clúster de Docker Swarm, un clúster de Proxmox, un VMware vCenter, un clúster de Ceph, un servidor de base de datos o un clúster de Kubernetes), Preguntar a la IA ejecuta comandos en él a través de ese agente cuando se lo pides: "ejecuta `uptime` en este host" o "muestra las últimas 100 líneas de `journalctl -u nginx`". Responde con lo que se devolvió, citado como cualquier otra prueba. Abierta en un incidente o una alerta, llega a los recursos vinculados.
+
+- Solo ejecuta los comandos de solo lectura que una investigación de IA puede ejecutar en ese tipo de recurso (consulta [Agentes de IA para la infraestructura](/docs/ai/infrastructure-ai-agents)), como máximo 30 por respuesta a través de cada tipo de agente, comprobados por OneUptime y de nuevo por el agente, en cualquier modo de permiso. Un cambio a través del agente, como reiniciar un servicio, nunca se ejecuta desde Preguntar a la IA: en su lugar te da el comando exacto, y el agente solo hace cambios cuando OneUptime AI remedia un incidente o una alerta, según la propia configuración de correcciones del recurso. Las acciones propias de Preguntar a la IA, como ejecutar un runbook, siguen el modo de permiso de la conversación, como se explica más abajo.
+- Solo llega a los recursos que puedes ver, y solo mientras la investigación de IA esté activada para el recurso.
+- Cuando no puede ejecutar un comando allí (no hay ningún agente conectado, el agente está desconectado o la investigación de IA está desactivada para el recurso), lo dice, junto con lo que hay que cambiar, y responde en su lugar con los datos de tu proyecto.
+
 ## Acciones y modos de permiso
 
 Cada conversación tiene un modo de permiso, que eliges en el compositor, junto al cuadro donde escribes:

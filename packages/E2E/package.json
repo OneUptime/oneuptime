@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/e2e",
-  "version": "14.0.90",
+  "version": "14.0.91",
   "description": "",
   "repository": {
     "type": "git",
@@ -44,6 +44,7 @@
     "test-meraki-traffic-ui": "playwright test --config playwright.meraki-traffic-ui.config.ts",
     "test-infrastructure-first-run-ui": "playwright test --config playwright.infrastructure-first-run-ui.config.ts",
     "test-host-collectors-ui": "playwright test --config playwright.host-collectors-ui.config.ts",
+    "test-resource-onboarding-ui": "playwright test --config playwright.resource-onboarding-ui.config.ts",
     "test-chart-time-zoom-ui": "playwright test --config playwright.chart-time-zoom-ui.config.ts",
     "test-security-events-empty-states-ui": "playwright test --config playwright.security-events-empty-states-ui.config.ts",
     "test-security-operations-ui": "playwright test --config playwright.security-operations-ui.config.ts",

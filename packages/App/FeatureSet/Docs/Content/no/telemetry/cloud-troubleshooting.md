@@ -112,7 +112,7 @@ Miljønøkkelen er `cloud.platform|cloud.account.id|cloud.region`, sammenlignet 
 
 ## Et håndlaget miljø matcher aldri
 
-Inntaket matcher et miljø bare på nøkkelen, og nøkkelen må være nøyaktig `platform|account|region`, for eksempel `aws_ecs|123456789012|us-east-1`: den samme plattformverdien, konto-ID-en og regionen som telemetrien bærer. Opprettingsskjemaet (**Opprett Skyressurs** under **Sky → All Environments**) bygger nøkkelen fra feltene **Skyplattform**, **Sky-konto-ID** og **Skyregion**, så de tre må stemme overens med telemetrien tegn for tegn. Gjør de ikke det, oppretter inntaket et nytt miljø med nøkkelen det kom fram til, og ditt forblir tomt. Arkiver det håndlagde miljøet og la inntaket opprette det riktige, eller opprett det på nytt med de rettede verdiene.
+Inntaket matcher et miljø bare på nøkkelen, og nøkkelen må være nøyaktig `platform|account|region`, for eksempel `aws_ecs|123456789012|us-east-1`: den samme plattformverdien, konto-ID-en og regionen som telemetrien bærer. Et miljø som er opprettet via API-et, eller for hånd før **Legg til skymiljø** erstattet skjemaet i dashbordet, matches bare når miljøets **Skyplattform**, **Sky-konto-ID** og **Skyregion** stemmer overens med telemetriens tegn for tegn. Gjør de ikke det, oppretter inntaket et nytt miljø med nøkkelen det kom fram til, og ditt forblir tomt. Arkiver det håndlagde miljøet og la inntaket opprette det riktige.
 
 ## Fortsatt problemer
 

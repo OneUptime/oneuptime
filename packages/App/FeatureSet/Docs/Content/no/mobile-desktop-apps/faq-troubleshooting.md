@@ -32,9 +32,9 @@ Ja. Hver telefon eller hvert nettbrett er en egen push-enhet, med egne vaktregle
 :::
 
 :::details Hva kan jeg gjøre i appen?
-- **Home**: hva som trenger oppmerksomhet i prosjektet: aktive hendelser og varsler, monitorer med problemer og grupperte hendelser.
+- **Home**: hva som trenger oppmerksomhet i prosjektet: aktive hendelser og varsler, åpne sikkerhetssaker hvis rollen din gir deg tilgang til dem, monitorer med problemer og grupperte hendelser.
 - **Monitors**: alle monitorer, filtrert etter tilstand, med detaljene sine.
-- **Inbox**: hendelser og varsler, og episodene som grupperer dem. Åpne en for å bruke **Acknowledge**, **Resolve** eller **Add Note**.
+- **Inbox**: hendelser og varsler, og episodene som grupperer dem. Åpne en for å bruke **Acknowledge**, **Resolve** eller **Add Note**. Gir rollen din deg tilgang til prosjektets sikkerhetssaker, viser **Security** de åpne: åpne en for å bruke **Approve** eller **Reject** på et playbook-steg som venter på godkjenning, ta saken med **Assign to me** eller bruke **Close case**.
 - **On-Call**: om du har vakt og til når, hvem andre som har det, varslene som er sendt til deg, og **Cover for me**, som gir varslene dine videre til en kollega en stund.
 - **Settings**: prosjektene dine og single sign-on, utseendet, kritiske varsler og alarmlyden, **Biometrics Login**, vaktkalenderfeeden din og **Log Out**.
 
@@ -42,7 +42,7 @@ Alt annet finner du i dashbordet.
 :::
 
 :::details Kan jeg bekrefte et varsel fra varslingen?
-Nei. Trykk på varslingen: appen åpner hendelsen, varselet eller episoden den gjelder, i riktig prosjekt, og du bekrefter der. Er appen låst, eller er du logget ut, åpner den varselet så snart du er inne.
+Nei. Trykk på varslingen: appen åpner hendelsen, varselet, episoden eller sikkerhetssaken den gjelder, i riktig prosjekt, og du bekrefter der. Er appen låst, eller er du logget ut, åpner den varselet så snart du er inne.
 :::
 
 :::details Er innloggingen min trygg på telefonen?

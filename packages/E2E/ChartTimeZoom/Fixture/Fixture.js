@@ -116,6 +116,12 @@
  *
  * Query parameters (parsed once per page load):
  *   ?theme=dark   adds html.dark (handled by server.js).
+ *   ?security=    what Security Events says about the host and the cluster,
+ *                 on their Security card (POST /security-case/resource-
+ *                 security): `news` (open cases, a week of events and
+ *                 findings, some risk) or `quiet` (nothing named them this
+ *                 week). Left out, the project uses no Security Events and
+ *                 the card draws nothing, as on every page above.
  */
 import React from "react";
 import { createRoot } from "react-dom/client";
@@ -241,6 +247,14 @@ const projectObjectId = new ObjectID(PROJECT_ID);
 
 const CLUSTER_IDENTIFIER = "prod-eu-west-1";
 const HOST_IDENTIFIER = "api-gateway-01";
+
+// ?security=: what the host's and the cluster's Security card are told.
+const SECURITY_SCENARIOS = ["news", "quiet"];
+const securityScenario = SECURITY_SCENARIOS.includes(
+  new URLSearchParams(window.location.search).get("security"),
+)
+  ? new URLSearchParams(window.location.search).get("security")
+  : "";
 
 /*
  * ---------------------------------------------------------------------------
@@ -592,6 +606,18 @@ function projectRecord(modelType, record, select) {
  * ---------------------------------------------------------------------------
  */
 const project = make(Project, { _id: PROJECT_ID, name: "Acme Platform" });
+/*
+ * ?security=news: the card draws the host's risk against the project's
+ * threshold, which it reads off the project.
+ */
+if (securityScenario === "news") {
+  insert(Project, {
+    _id: PROJECT_ID,
+    name: "Acme Platform",
+    securityRiskCaseThreshold: 100,
+    enableSecurityRiskCases: true,
+  });
+}
 
 const viewer = insert(User, {
   _id: ID.user(1),
@@ -2853,6 +2879,119 @@ AnalyticsModelAPI.aggregate = async (options) => {
   );
 };
 
+/*
+ * What Security Events says about the host or the cluster this week, as
+ * POST /security-case/resource-security answers it (?security= above). The
+ * cases, the counts and the risk are made up, the way the server would
+ * answer them for a project that uses Security Events.
+ */
+const SECURITY_RECORDS = {
+  [`Host:${HOST_ID}`]: {
+    name: HOST_IDENTIFIER,
+    values: [HOST_IDENTIFIER, "203.0.113.40"],
+    news: {
+      eventCount: 128,
+      findingCount: 4,
+      maxSeverityId: 4,
+      lastSeen: ago(2 * HOUR),
+      openCases: {
+        count: 4,
+        items: [
+          {
+            id: uuid("20000000", 142),
+            number: "SEC-142",
+            title: `Brute force against ${HOST_IDENTIFIER} from 198.51.100.77`,
+            priorityName: "High",
+            priorityColor: "#f97316",
+            statusName: "Investigating",
+            statusColor: "#3b82f6",
+            lastDetectedAt: ago(2 * HOUR),
+          },
+          {
+            id: uuid("20000000", 139),
+            number: "SEC-139",
+            title: "Outbound connection to a known-bad address",
+            priorityName: "Medium",
+            priorityColor: "#eab308",
+            statusName: "New",
+            statusColor: "#ef4444",
+            lastDetectedAt: ago(9 * HOUR),
+          },
+          {
+            id: uuid("20000000", 131),
+            number: "SEC-131",
+            title: "sudo to root by a service account",
+            priorityName: "Low",
+            priorityColor: "#22c55e",
+            statusName: "Contained",
+            statusColor: "#0ea5e9",
+            lastDetectedAt: ago(2 * DAY),
+          },
+        ],
+      },
+      risk: { score: 64, entityValue: HOST_IDENTIFIER, entityType: "Host" },
+    },
+  },
+  [`KubernetesCluster:${CLUSTER_ID}`]: {
+    name: CLUSTER_IDENTIFIER,
+    values: [CLUSTER_IDENTIFIER],
+    news: {
+      eventCount: 37,
+      findingCount: 1,
+      maxSeverityId: 3,
+      lastSeen: ago(5 * HOUR),
+      openCases: {
+        count: 1,
+        items: [
+          {
+            id: uuid("20000000", 140),
+            number: "SEC-140",
+            title: "Privileged pod created in kube-system",
+            priorityName: "High",
+            priorityColor: "#f97316",
+            statusName: "New",
+            statusColor: "#ef4444",
+            lastDetectedAt: ago(5 * HOUR),
+          },
+        ],
+      },
+      risk: null,
+    },
+  },
+};
+
+function resourceSecurity(body) {
+  const known = SECURITY_RECORDS[`${body?.kind}:${body?.id}`];
+  if (!known) {
+    throw fail(404, "This record could not be found.");
+  }
+  const quiet = {
+    eventCount: 0,
+    findingCount: 0,
+    maxSeverityId: 0,
+    lastSeen: null,
+    openCases: { count: 0, items: [] },
+    risk: null,
+  };
+  const figures =
+    securityScenario === "news"
+      ? known.news
+      : securityScenario === "quiet"
+        ? quiet
+        : { ...quiet, openCases: null };
+  return ok({
+    kind: body.kind,
+    id: body.id,
+    name: known.name,
+    isInUse: securityScenario !== "",
+    windowDays: 7,
+    values: known.values,
+    entity: { type: "Host", value: known.name },
+    ...figures,
+    lastSeen: figures.lastSeen ? figures.lastSeen.toISOString() : null,
+  });
+}
+
 async function handleApi(method, options) {
   const url = options.url.toString();
   const body = serialize(options.data) || {};
@@ -3014,6 +3153,19 @@ async function handleApi(method, options) {
    */
   if (method === "POST" && parsed.pathname.endsWith("/receiving-gaps")) {
     return ok({ gaps: [] });
+  }
+
+  /*
+   * The host's and the cluster's Security card: what Security Events found
+   * about them this week (Components/SecurityConnections). Left out, the
+   * project uses no Security Events, as the server says when no event
+   * arrived this week, and the card draws nothing.
+   */
+  if (
+    method === "POST" &&
+    parsed.pathname.endsWith("/security-case/resource-security")
+  ) {
+    return resourceSecurity(body);
   }
 
   fixture.unhandled.push({ kind: "api", method, url });

@@ -149,6 +149,89 @@ jest.mock("./SettingsStackNavigator", () => {
     },
   };
 });
+/*
+ * Whether the person can see the project's security cases. Unless a test
+ * says so they cannot, and the Inbox is the one these tests have always
+ * driven; the security-case tests below turn it on.
+ */
+const mockSecurityAvailable: { current: boolean } = { current: false };
+jest.mock("../hooks/useSecurityCases", () => {
+  return {
+    useSecurityCasesAvailability: () => {
+      return {
+        isAvailable: mockSecurityAvailable.current,
+        isChecking: false,
+        isDenied: false,
+        projectId: "project-a",
+      };
+    },
+  };
+});
+jest.mock("../screens/SecurityCasesScreen", () => {
+  const ReactModule: typeof React = jest.requireActual("react");
+  const Native: typeof import("react-native") =
+    jest.requireActual("react-native");
+  return {
+    __esModule: true,
+    default: function SecurityCaseListLeaf(): React.JSX.Element {
+      const project: ProjectItem | null =
+        ReactModule.useContext(mockProjectContext)!.activeProject;
+      return ReactModule.createElement(
+        Native.Text,
+        null,
+        project?.name + " security case list",
+      );
+    },
+  };
+});
+jest.mock("../screens/SecurityCaseDetailScreen", () => {
+  const ReactModule: typeof React = jest.requireActual("react");
+  const Native: typeof import("react-native") =
+    jest.requireActual("react-native");
+  return {
+    __esModule: true,
+    default: function SecurityCaseDetailLeaf({
+      route,
+      navigation,
+    }: NativeStackScreenProps<
+      InboxStackParamList,
+      "SecurityCaseDetail"
+    >): React.JSX.Element {
+      const project: ProjectItem | null =
+        ReactModule.useContext(mockProjectContext)!.activeProject;
+      return ReactModule.createElement(
+        Native.View,
+        null,
+        ReactModule.createElement(
+          Native.Text,
+          { testID: "case-id" },
+          route.params.caseId,
+        ),
+        ReactModule.createElement(
+          Native.Text,
+          { testID: "case-project" },
+          route.params.projectId,
+        ),
+        ReactModule.createElement(
+          Native.Text,
+          { testID: "case-active-project" },
+          project?._id,
+        ),
+        ReactModule.createElement(
+          Native.Pressable,
+          {
+            accessibilityRole: "button",
+            accessibilityLabel: "Back from the case",
+            onPress: (): void => {
+              navigation.goBack();
+            },
+          },
+          ReactModule.createElement(Native.Text, null, "Back"),
+        ),
+      );
+    },
+  };
+});
 jest.mock("../screens/IncidentEpisodeDetailScreen", () => {
   return {
     __esModule: true,
@@ -329,6 +412,7 @@ beforeEach(() => {
   mockDetailProjects.length = 0;
   mockRootRef.current = null;
   mockSelectProject.current = null;
+  mockSecurityAvailable.current = false;
 });
 afterEach(() => {
   setNavigationRef(null);
@@ -804,3 +888,100 @@ test.each<NonNullable<InboxStackParamList["InboxList"]>>([
     expect(inboxState?.routes).toHaveLength(1);
   },
 );
+
+function securityCasePage(projectId: string): NotificationResponse {
+  return {
+    actionIdentifier: "VIEW",
+    notification: {
+      request: {
+        content: {
+          data: {
+            type: "security-playbook-approval",
+            entityType: "security-case",
+            entityId: "case-1",
+            projectId,
+          },
+        },
+      },
+    },
+  } as unknown as NotificationResponse;
+}
+
+test("a security-case page opens the case, and Back returns to the open cases", async () => {
+  mockSecurityAvailable.current = true;
+  await render(<ProjectHarness />);
+  const navigationRef: NavigationContainerRefWithCurrent<MainTabParamList> =
+    mockRootRef.current!;
+
+  await act(() => {
+    handleNotificationResponse(securityCasePage("project-a"));
+  });
+
+  await waitFor(() => {
+    expect(navigationRef.getCurrentRoute()?.name).toBe("SecurityCaseDetail");
+  });
+  expect(screen.getByTestId("case-id").props.children).toBe("case-1");
+  expect(screen.getByTestId("case-project").props.children).toBe("project-a");
+
+  await fireEvent.press(
+    screen.getByRole("button", { name: "Back from the case" }),
+  );
+  await waitFor(() => {
+    expect(navigationRef.getCurrentRoute()?.name).toBe("InboxList");
+  });
+  expect(navigationRef.getCurrentRoute()?.params).toMatchObject({
+    initialView: "security",
+    initialCaseFilter: "open",
+  });
+  expect(screen.getByText("Production security case list")).toBeTruthy();
+  expect(
+    screen.getByTestId("inbox-category-security").props.accessibilityState,
+  ).toMatchObject({ selected: true });
+});
+
+test("a security-case page from another project switches to it before the case is drawn", async () => {
+  mockSecurityAvailable.current = true;
+  await render(<ProjectHarness />);
+  const navigationRef: NavigationContainerRefWithCurrent<MainTabParamList> =
+    mockRootRef.current!;
+
+  await act(() => {
+    handleNotificationResponse(securityCasePage("project-b"));
+  });
+
+  await waitFor(() => {
+    expect(navigationRef.getCurrentRoute()?.name).toBe("SecurityCaseDetail");
+    expect(screen.getByTestId("case-active-project").props.children).toBe(
+      "project-b",
+    );
+  });
+  expect(screen.getByTestId("case-project").props.children).toBe("project-b");
+});
+
+test("a security-case page lands on its case even for somebody whose Inbox shows no Security yet", async () => {
+  /*
+   * The availability count has not answered (or the person's project has
+   * no other case): the page still opens the case, and the category under
+   * it is Security, so Back has a list that holds the case.
+   */
+  mockSecurityAvailable.current = false;
+  await render(<ProjectHarness />);
+  const navigationRef: NavigationContainerRefWithCurrent<MainTabParamList> =
+    mockRootRef.current!;
+
+  await act(() => {
+    handleNotificationResponse(securityCasePage("project-a"));
+  });
+
+  await waitFor(() => {
+    expect(navigationRef.getCurrentRoute()?.name).toBe("SecurityCaseDetail");
+  });
+  await fireEvent.press(
+    screen.getByRole("button", { name: "Back from the case" }),
+  );
+  await waitFor(() => {
+    expect(navigationRef.getCurrentRoute()?.name).toBe("InboxList");
+  });
+  expect(screen.getByTestId("inbox-category-security")).toBeTruthy();
+  expect(screen.getByText("Production security case list")).toBeTruthy();
+});

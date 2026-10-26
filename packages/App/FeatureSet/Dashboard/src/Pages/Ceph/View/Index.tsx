@@ -11,6 +11,8 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import Label from "Common/Models/DatabaseModels/Label";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import Card from "Common/UI/Components/Card/Card";
+import CardGrid from "Common/UI/Components/Card/CardGrid";
+import { CARD_GRID_CENTERED_STATE_CLASS_NAME } from "Common/UI/Components/Card/CardGridLayout";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
@@ -1459,7 +1461,9 @@ const CephClusterOverview: FunctionComponent<
         description={description}
       >
         {rows.length === 0 ? (
-          <div className="text-sm text-gray-500">
+          <div
+            className={`${CARD_GRID_CENTERED_STATE_CLASS_NAME} py-6 text-sm text-gray-500`}
+          >
             {translator.translateText("No pools in the inventory yet.")}
           </div>
         ) : (
@@ -1503,7 +1507,12 @@ const CephClusterOverview: FunctionComponent<
     }
 
     return (
-      <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <CardGrid
+        columns={2}
+        cardWidth="narrow"
+        className="!mb-6"
+        dataTestId="ceph-top-pools"
+      >
         {renderTopPoolList(
           "Largest Pools",
           "Top pools by stored bytes.",
@@ -1522,7 +1531,7 @@ const CephClusterOverview: FunctionComponent<
             return formatPercent(row.usedPercent);
           },
         )}
-      </div>
+      </CardGrid>
     );
   };
 

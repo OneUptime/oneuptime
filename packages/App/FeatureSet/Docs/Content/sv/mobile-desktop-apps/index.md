@@ -16,7 +16,7 @@ OneUptime har en app för din telefon och en för din dator. **OneUptime On-Call
 | Vad den är | OneUptime On-Call, en native app för iPhone, iPad och Android | OneUptime-instrumentpanelen, installerad från din webbläsare |
 | Var du får den | App Store, Google Play eller en APK från GitHub | Ditt eget OneUptime: det finns inget att ladda ner |
 | Jourlarm | Push-aviseringar, som kan ringa igenom tyst läge och Stör ej | Webbläsaraviseringar, när du har registrerat webbläsaren |
-| Vad du kan göra | Incidenter, varningar, monitorer och vem som har jour; bekräfta, lösa och lägga till anteckningar | Allt som instrumentpanelen gör |
+| Vad du kan göra | Incidenter, varningar, säkerhetsärenden, monitorer och vem som har jour; bekräfta, lösa, godkänna playbook-steg och lägga till anteckningar | Allt som instrumentpanelen gör |
 | Uppdateringar | Från butiken, eller genom att installera en nyare APK | Varje gång den öppnas hämtar den instrumentpanelen från ditt OneUptime |
 | Körs på | iOS 16.4 eller senare, Android 7.0 eller senare | Windows, macOS och Linux, med Edge eller Chrome, eller Safari på macOS Sonoma 14 eller senare |
 

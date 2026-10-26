@@ -26,6 +26,8 @@ import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelA
 import SloBurnRateRules from "../../../App/FeatureSet/Dashboard/src/Pages/Slo/View/BurnRateRules";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import ServiceLevelObjectiveBurnRateRule from "Common/Models/DatabaseModels/ServiceLevelObjectiveBurnRateRule";
+import ServiceLevelObjectiveOwnerTeam from "Common/Models/DatabaseModels/ServiceLevelObjectiveOwnerTeam";
+import ServiceLevelObjectiveOwnerUser from "Common/Models/DatabaseModels/ServiceLevelObjectiveOwnerUser";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import Label from "Common/Models/DatabaseModels/Label";
@@ -159,6 +161,35 @@ const teamMembers = people.map((member, index) => {
   record.user = member;
   return record;
 });
+
+/*
+ * The SLO's owners: nobody at first (?owners=team: the Checkout team), so
+ * the hero offers Add owners. A row the hero's Add owners list adds lands
+ * here, naming the person or the team as the server's join does.
+ */
+const sloOwnerUsers = [];
+const sloOwnerTeams = [];
+
+function sloOwnerRow(isUser, pickedId) {
+  const row = isUser
+    ? new ServiceLevelObjectiveOwnerUser()
+    : new ServiceLevelObjectiveOwnerTeam();
+  const number = sloOwnerUsers.length + sloOwnerTeams.length + 1;
+  row._id = `d0000000-0000-4000-8000-${String(number).padStart(12, "0")}`;
+  row.serviceLevelObjectiveId = new ObjectID(SLO_ID);
+  if (isUser) {
+    row.userId = new ObjectID(pickedId);
+    row.user = people.find((item) => item._id === pickedId);
+  } else {
+    row.teamId = new ObjectID(pickedId);
+    row.team = teams.find((item) => item._id === pickedId);
+  }
+  return row;
+}
+
+if (new URLSearchParams(window.location.search).get("owners") === "team") {
+  sloOwnerTeams.push(sloOwnerRow(false, teams[0]._id));
+}
 
 /*
  * Three rules, one per shape the "Declares" column can report: alert only
@@ -330,6 +361,8 @@ ModelAPI.getList = async (options) => {
     Label: labels,
     Team: teams,
     TeamMember: teamMembers,
+    ServiceLevelObjectiveOwnerUser: sloOwnerUsers,
+    ServiceLevelObjectiveOwnerTeam: sloOwnerTeams,
   };
   const items = itemsByTable[tableName] || [];
   return {
@@ -350,6 +383,26 @@ AnalyticsModelAPI.aggregate = async () => ({ data: [] });
 
 ModelAPI.createOrUpdate = async (options) => {
   const record = options.model;
+  if (
+    record.tableName === "ServiceLevelObjectiveOwnerUser" ||
+    record.tableName === "ServiceLevelObjectiveOwnerTeam"
+  ) {
+    const isUser = record.tableName === "ServiceLevelObjectiveOwnerUser";
+    const row = sloOwnerRow(
+      isUser,
+      (isUser ? record.userId : record.teamId).toString(),
+    );
+    (isUser ? sloOwnerUsers : sloOwnerTeams).push(row);
+    window.__sloOwnerAdds = [
+      ...(window.__sloOwnerAdds || []),
+      {
+        model: record.tableName,
+        serviceLevelObjectiveId: String(record.serviceLevelObjectiveId),
+        id: String(isUser ? record.userId : record.teamId),
+      },
+    ];
+    return { data: row };
+  }
   if (record.tableName === "ServiceLevelObjective") {
     Object.assign(slo, record, {
       labels: (record.labels || []).map((value) => {

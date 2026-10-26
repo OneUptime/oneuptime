@@ -32,9 +32,9 @@ Ja. Hver telefon eller tablet er sin egen push-enhed, med sine egne vagtregler o
 :::
 
 :::details Hvad kan jeg gøre i appen?
-- **Home**: hvad der kræver opmærksomhed i projektet: aktive hændelser og advarsler, monitorer med problemer og grupperede hændelser.
+- **Home**: hvad der kræver opmærksomhed i projektet: aktive hændelser og advarsler, åbne sikkerhedssager, hvis din rolle giver dig adgang til dem, monitorer med problemer og grupperede hændelser.
 - **Monitors**: alle monitorer, filtreret efter tilstand, med deres detaljer.
-- **Inbox**: hændelser og advarsler, og de episoder, der grupperer dem. Åbn en for at bruge **Acknowledge**, **Resolve** eller **Add Note**.
+- **Inbox**: hændelser og advarsler, og de episoder, der grupperer dem. Åbn en for at bruge **Acknowledge**, **Resolve** eller **Add Note**. Giver din rolle dig adgang til projektets sikkerhedssager, viser **Security** de åbne: åbn en for at bruge **Approve** eller **Reject** på et playbook-trin, der venter på godkendelse, tage sagen med **Assign to me** eller bruge **Close case**.
 - **On-Call**: om du har vagt og til hvornår, hvem der ellers har, de alarmer, der er sendt til dig, og **Cover for me**, som giver dine alarmer videre til en kollega i et stykke tid.
 - **Settings**: dine projekter og single sign-on, udseendet, kritiske advarsler og alarmlyden, **Biometrics Login**, dit vagtkalenderfeed og **Log Out**.
 
@@ -42,7 +42,7 @@ Alt andet finder du i dashboardet.
 :::
 
 :::details Kan jeg kvittere for en alarm fra notifikationen?
-Nej. Tryk på notifikationen: appen åbner den hændelse, advarsel eller episode, den handler om, i det rigtige projekt, og du kvitterer dér. Er appen låst, eller er du logget ud, åbner den alarmen, så snart du er inde.
+Nej. Tryk på notifikationen: appen åbner den hændelse, advarsel, episode eller sikkerhedssag, den handler om, i det rigtige projekt, og du kvitterer dér. Er appen låst, eller er du logget ud, åbner den alarmen, så snart du er inde.
 :::
 
 :::details Er mit login sikkert på telefonen?

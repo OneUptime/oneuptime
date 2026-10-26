@@ -45,6 +45,7 @@ import SetupGuideMarkdown from "./SetupGuideMarkdown";
  *
  *   ┌ title and description
  *   ├ option picker — "Where is your cluster running?"
+ *   ├ inputs — "Cluster name", on an Add guide
  *   ├ 1. Choose an ingestion key   (always first: every guide needs one)
  *   ├ 2..n. the chosen option's steps
  *   ├ ▸ Advanced          (folded)
@@ -54,6 +55,17 @@ import SetupGuideMarkdown from "./SetupGuideMarkdown";
  * the picked option and the picked key, so every command on screen already
  * carries the reader's OneUptime URL and ingestion key.
  */
+
+/*
+ * What a resource's guide card hands on to its SetupGuideCard, so an Add
+ * guide (Components/ResourceOnboarding) can frame it: bare in a dialog,
+ * with the name field above the steps and a live last step.
+ */
+export interface SetupGuideFrameProps {
+  isBare?: boolean | undefined;
+  inputs?: ReactNode | undefined;
+  lastStep?: SetupGuideStepView | undefined;
+}
 
 export interface SetupGuideRenderContext extends SetupGuideVariables {
   // The picked option's key; undefined when the guide offers no options.
@@ -103,6 +115,14 @@ export interface ComponentProps {
   keyStepDescription?: string | undefined;
 
   getContent: (context: SetupGuideRenderContext) => SetupGuideContent;
+
+  /*
+   * What the reader types that the commands are written with, under the
+   * option picker and above the steps (an Add guide's name field,
+   * Components/ResourceOnboarding). Not a step of its own: the guides'
+   * notes count the steps ("Pick an ingestion key in step 1").
+   */
+  inputs?: ReactNode | undefined;
 
   /*
    * A live step after the guide's own: what the reader waits for once the
@@ -350,6 +370,8 @@ const SetupGuideCard: FunctionComponent<ComponentProps> = (
           note={props.optionsNote}
         />
       )}
+
+      {props.inputs}
 
       {content.intro && (
         <div className="mb-6">

@@ -88,7 +88,7 @@ A case has a side menu of its own, as an incident has, and each part of the case
 | Side menu section | Pages |
 | --- | --- |
 | **Overview** | **Overview**, **Timeline** |
-| **Investigation** | **Detections**, **Entities**, **Playbook Runs** |
+| **Investigation** | **Detections**, **Entities**, **Connected Signals**, **Playbook Runs** |
 | **Notes** | **Private Notes** |
 | **Advanced** | **Audit Logs**, **Delete Case**, folded until you click **Advanced** |
 
@@ -100,6 +100,7 @@ Every page keeps the case's header on top: its number, priority, status and titl
 - **Timeline**: everything that happened to the case, with who did it.
 - **Detections**: what fired to open the case or join it, how often, and the latest matching event.
 - **Entities**: the users, hosts and addresses the case is about, with their activity across all your security events in the last 7 days. Each opens in **Correlate**.
+- **Connected Signals**: the hosts, clusters, services and members the case names, as OneUptime knows them, and what was happening on each around its detections: their logs, traces and metrics, what is open on them and what changed. See [Connected Signals](/docs/telemetry/security-connected-signals).
 - **Playbook Runs**: what each playbook did on the case, step by step, and the steps waiting for approval. While runs wait, the menu shows how many beside **Playbook Runs**.
 - **Private Notes**: what the team wrote about the case.
 - **Audit Logs**: every change made to the case, and who made it. See [Audit Logs](/docs/configuration/audit-logs).
@@ -182,7 +183,7 @@ Each person chooses for themselves, under **User Settings → Notification Setti
 
 The choices follow the project's case priorities, under their own names: these are a new project's.
 
-WhatsApp messages are not sent for security cases. A push notification opens the OneUptime app, and its link opens the case in the browser.
+WhatsApp messages are not sent for security cases. A push notification opens the case in the OneUptime On-Call app (1.7.0 or later), where you can approve or reject a waiting playbook step, take the case on and close it. Its link opens the case in the browser.
 
 ### Post to Slack and Microsoft Teams channels
 
@@ -321,7 +322,7 @@ A run that stops hearing from its worker, after a restart for example, is picked
 - The open cases assigned to you, the open cases nobody has picked up, and the playbook steps waiting for approval, each opening the page that lists them.
 - **Mean Time to Acknowledge**, **Mean Time to Contain** and **Mean Time to Close**, over the cases opened in the last 30 days: from a case opening to someone taking it on (assigning a person, or moving it to a status that counts as acknowledged), to a status that counts as contained, and to one that counts as closed. A case still waiting is not counted in a mean.
 - The cases opened each day for 30 days, by priority, and the detections raised each day for 14 days, by source.
-- The open cases by priority and by status, the verdicts of the last 30 days, the ATT&CK tactics behind the cases, the detections that fired most, and the entities named by the most findings.
+- The open cases by priority and by status, the entities named by the most findings, the detections that fired most, the ATT&CK tactics behind the cases, and the verdicts of the last 30 days.
 
 Above them, a strip shows how Security is set up: its sources, detections, cases and playbooks, each with its figures. A project that has not set it up yet sees **Turn on recommended** and **Send a test attack** there; see [Get Started with Security](/docs/telemetry/security-getting-started). When nothing needs anybody, the page says **All quiet**, and the charts show once there is something to chart.
 

@@ -13,8 +13,14 @@ import useResourceOwners, {
 } from "../../Components/ResourceOwners/useResourceOwners";
 import { FilterOperator } from "../../Components/ResourceOwners/FilterChipDropdown";
 import IconProp from "Common/Types/Icon/IconProp";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useState,
+} from "react";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import { ModalType } from "Common/UI/Components/ModelTable/BaseModelTable";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
@@ -42,6 +48,7 @@ import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
 import { JSONObject } from "Common/Types/JSON";
 import MessageQueueDocumentationCard from "./Utils/MessageQueueDocumentationCard";
+import MessageQueueAddedModal from "./Utils/MessageQueueAddedModal";
 import {
   MESSAGE_QUEUE_DESTINATION_DESCRIPTION,
   MESSAGE_QUEUE_NAMESPACE_DESCRIPTION,
@@ -151,6 +158,14 @@ const MessageQueues: FunctionComponent<
   const firstRecordWatch: FirstRecordWatch = useFirstRecordWatch<MessageQueue>({
     modelType: MessageQueue,
   });
+  /*
+   * The queue Add Queue just saved: its setup guide opens on its own
+   * (MessageQueueAddedModal), for its messaging system.
+   */
+  const [addedQueue, setAddedQueue] = useState<{
+    id: ObjectID;
+    name: string;
+  } | null>(null);
 
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<MessageQueue>({ modelType: MessageQueue });
@@ -289,8 +304,17 @@ const MessageQueues: FunctionComponent<
           }
           return Promise.resolve(item);
         }}
-        onCreateSuccess={(item: MessageQueue): Promise<MessageQueue> => {
+        onCreateSuccess={(
+          item: MessageQueue,
+          modalType?: ModalType,
+        ): Promise<MessageQueue> => {
           firstRecordWatch.onRecordCreated();
+          if (item._id && modalType !== ModalType.Edit) {
+            setAddedQueue({
+              id: new ObjectID(item._id.toString()),
+              name: item.name || item.destinationName || "",
+            });
+          }
           return Promise.resolve(item);
         }}
         isDeleteable={true}
@@ -664,6 +688,15 @@ const MessageQueues: FunctionComponent<
         <MessageQueueDocumentationCard
           title="Getting Started with Queues"
           description={FIRST_RUN_GUIDE_DESCRIPTION}
+        />
+      )}
+      {addedQueue && (
+        <MessageQueueAddedModal
+          queueId={addedQueue.id}
+          name={addedQueue.name}
+          onClose={() => {
+            setAddedQueue(null);
+          }}
         />
       )}
       {labelBulkActionModals}

@@ -56,7 +56,7 @@ Na etapa seguinte, clique em **Testar conexão**. A sonda entra, lê o que a con
 Por padrão, o vCenter usa um certificado da própria autoridade, em que a sonda não confia. O teste então mostra o certificado: compare a impressão digital dele com a do próprio vCenter e clique em **Confiar neste certificado**.
 
 ### Dar um nome e conectar
-O nome padrão é o nome de host do vCenter. Clique em **Conectar vCenter** para salvar.
+O nome padrão é o nome de host do vCenter. Clique em **Conectar vCenter** para salvar, e a página do vCenter se abre.
 :::
 
 A **Visão geral** do vCenter mostra um cartão **Coleta de dados**. Ele mostra **Verificando** até a primeira coleta, que começa em até um minuto, depois **Coletando**, e o inventário é preenchido.
