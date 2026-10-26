@@ -7,9 +7,11 @@
  * reads (setDateDisplayLanguage, from its i18n set-up), and OneUptimeDate
  * writes the words of a date in it: month and weekday names, "vor 5
  * Stunden", "2 Tage, 3 Stunden", a decimal comma. The words come from the
- * browser's Intl data, so no locale is shipped for them; the calendar is
- * always the Gregorian one and the digits Latin, so a Persian reader's dates
- * line up with every other number on the page.
+ * browser's Intl data, so no locale is shipped for them. The calendar is
+ * always the Gregorian one, the one every timestamp, log and export is
+ * written in; the digits are the language's own, so a Persian reader's
+ * dates, times and durations ("۲۶ اکتبر، ۱۵:۰۷") are written in the same
+ * digits as the counts and sentences around them.
  *
  * English is what nothing has set - the server, a worker, an email, a test -
  * and every function writes it exactly as it always has.
@@ -101,11 +103,12 @@ export function inEnglishDates<T>(work: () => T): T {
 const localeCache: Map<string, string> = new Map<string, string>();
 
 /*
- * The Intl locale a language writes dates in: its own words and order, the
- * Gregorian calendar and Latin digits ("fa" alone would give the Solar
- * Hijri calendar in Persian digits). A language Intl does not know reads
- * English, never the browser's own default, so a page never mixes two
- * languages.
+ * The Intl locale a language writes dates in: its own words, order and
+ * digits, on the Gregorian calendar ("fa" alone would give the Solar Hijri
+ * calendar). Persian writes its own digits - "۲۶ اکتبر، ۱۵:۰۷", as its counts
+ * are written (TranslateTemplate's formatNumber) - every other language of
+ * the product Latin ones. A language Intl does not know reads English,
+ * never the browser's own default, so a page never mixes two languages.
  */
 export const getDateLocale: (language: string | null | undefined) => string = (
   language: string | null | undefined,
@@ -125,7 +128,7 @@ export const getDateLocale: (language: string | null | undefined) => string = (
     ]);
 
     if (supported.length > 0 && supported[0]) {
-      locale = `${supported[0]}-u-ca-gregory-nu-latn`;
+      locale = `${supported[0]}-u-ca-gregory`;
       // Throws on a tag Intl cannot take an extension on.
       new Intl.DateTimeFormat(locale);
     }

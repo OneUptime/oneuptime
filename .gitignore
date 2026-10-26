@@ -15,8 +15,10 @@ node_modules
 # it, but a checkout that built before that still has the directory on disk.
 **/public/assets/monaco/
 
-# Tailwind, copied from Common/Server/Static/Vendor at build time
+# Tailwind, copied from Common/Server/Static/Vendor at build time, and the
+# reading direction config (Common/UI/Styles/TailwindReadingDirection.js)
 **/public/assets/js/tailwind-3.4.5.js
+**/public/assets/js/tailwind-reading-direction.js
 
 # mermaid for the docs and the blog, built by Common/Scripts/build-mermaid-browser.js
 packages/Common/build/mermaid-browser*/

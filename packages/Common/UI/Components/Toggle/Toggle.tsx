@@ -58,9 +58,10 @@ export interface ComponentProps {
  * filled pill with a white knob that slides across it, no outline.
  *
  *   Off - a gray-300 track, the grey every input, dropdown and checkbox in
- *         the product has for its edge, with the white knob on the left.
- *   On  - the brand indigo-600 of every primary button, the knob on the
- *         right.
+ *         the product has for its edge, with the white knob at the start
+ *         (the left; the right on a page that reads right to left).
+ *   On  - the brand indigo-600 of every primary button, the knob at the
+ *         end.
  *
  * The knob is the same white disc in both states, with the small shadow
  * that sets it off the track; only its side changes. Which side it is on,
@@ -119,6 +120,15 @@ export const TOGGLE_KNOB_OFF_CLASS: string = "translate-x-0";
 
 export const TOGGLE_KNOB_ON_CLASS: string = "translate-x-5";
 
+/*
+ * On a page that reads right to left the knob starts at the right of the
+ * track (it is the row's first item), so on slides it the other way: left
+ * by the same 20px. A translate does not follow the reading direction by
+ * itself, and translate-x-5 pushed the knob out past the track's right end.
+ */
+export const TOGGLE_KNOB_ON_RIGHT_TO_LEFT_CLASS: string =
+  "[&:dir(rtl)]:-translate-x-5";
+
 export interface ToggleClassNames {
   track: string;
   knob: string;
@@ -151,7 +161,9 @@ export const getToggleClassNames: (
   return {
     track: trackParts.join(" "),
     knob: `${TOGGLE_KNOB_BASE_CLASS} ${
-      state.isChecked ? TOGGLE_KNOB_ON_CLASS : TOGGLE_KNOB_OFF_CLASS
+      state.isChecked
+        ? `${TOGGLE_KNOB_ON_CLASS} ${TOGGLE_KNOB_ON_RIGHT_TO_LEFT_CLASS}`
+        : TOGGLE_KNOB_OFF_CLASS
     }`,
   };
 };

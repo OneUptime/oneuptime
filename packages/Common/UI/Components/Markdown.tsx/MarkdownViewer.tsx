@@ -92,6 +92,10 @@ import {
   rehypePutBackHeldText,
 } from "./MarkdownViewerOverLongText";
 import { markdownUrlTransform } from "./MarkdownUrlTransform";
+import {
+  getMarkdownReadingDirection,
+  MARKDOWN_BLOCKS_READ_THEIR_OWN_WAY_CLASS_NAME,
+} from "./MarkdownReadingDirection";
 import MarkdownLink from "./MarkdownLink";
 import MarkdownBlockquote, { useMarkdownTextClassName } from "./MarkdownQuote";
 import { remarkMarkdownCallouts } from "./MarkdownCallouts";
@@ -334,16 +338,27 @@ const INLINE_REFERENCE_TRANSFORM_OPTIONS: InlineReferenceTransformOptions = {
  * The viewer's outer wrapper. Provides the inline reference callbacks to the
  * module-scope reference elements only when the caller opted in, so the
  * default render is unchanged.
+ *
+ * It lays the text out the way it is written (MarkdownReadingDirection): an
+ * English note left to right on a Persian page, each paragraph the way its
+ * own first letter reads.
  */
 const MarkdownViewerFrame: FunctionComponent<{
   inlineReferences: MarkdownInlineReferenceRenderers | undefined;
+  text: string;
   children: ReactNode;
 }> = (props: {
   inlineReferences: MarkdownInlineReferenceRenderers | undefined;
+  text: string;
   children: ReactNode;
 }): ReactElement => {
   const frame: ReactElement = (
-    <div className="max-w-none">{props.children}</div>
+    <div
+      className={`max-w-none ${MARKDOWN_BLOCKS_READ_THEIR_OWN_WAY_CLASS_NAME}`}
+      dir={getMarkdownReadingDirection(props.text)}
+    >
+      {props.children}
+    </div>
   );
 
   if (!props.inlineReferences) {
@@ -1126,7 +1141,10 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
    */
   if (heldBack.showAsText) {
     return (
-      <MarkdownViewerFrame inlineReferences={inlineReferences}>
+      <MarkdownViewerFrame
+        inlineReferences={inlineReferences}
+        text={props.text}
+      >
         <p
           className="text-sm mt-2 mb-1 text-gray-700 leading-relaxed whitespace-pre-wrap break-words"
           data-testid="markdown-viewer-text"
@@ -1138,7 +1156,10 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
   }
 
   return (
-    <MarkdownViewerFrame inlineReferences={inlineReferences}>
+    <MarkdownViewerFrame
+      inlineReferences={inlineReferences}
+      text={props.text}
+    >
       <ReactMarkdown
         components={components}
         urlTransform={markdownUrlTransform}

@@ -23,9 +23,11 @@ export interface ComponentProps {
 // Glues the arrow to the words: U+00A0, which no line breaks around.
 export const ARROW_GLUE: string = "\u00a0";
 
-// The arrow's box: on the words' line, turned round right to left.
-export const ARROW_GLUED_ARROW_CLASS_NAME: string =
-  "inline-block align-middle rtl:rotate-180";
+/*
+ * The arrow's box: on the words' line. Right to left, Icon turns the arrow
+ * round itself.
+ */
+export const ARROW_GLUED_ARROW_CLASS_NAME: string = "inline-block align-middle";
 
 const ArrowGluedText: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
