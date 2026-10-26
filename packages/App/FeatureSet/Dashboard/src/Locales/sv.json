@@ -35839,5 +35839,6 @@
   "What its activity log recorded and its provider's health events about it.": "Vad aktivitetsloggen registrerade och leverantörens hälsohändelser om det.",
   "{{host}} points to {{endpoint}}": "{{host}} pekar på {{endpoint}}",
   "What its cloud says it is, where it is, and how OneUptime reads it.": "Vad molnet säger att den är, var den finns och hur OneUptime läser den.",
-  "Which account it is in its cloud, and the connection that reads it.": "Vilket konto det är i molnet, och anslutningen som läser det."
+  "Which account it is in its cloud, and the connection that reads it.": "Vilket konto det är i molnet, och anslutningen som läser det.",
+  "Cloud resource": "Molnresurs"
 }

@@ -35839,5 +35839,6 @@
   "What its activity log recorded and its provider's health events about it.": "Что записал его журнал активности, и события состояния от его провайдера.",
   "{{host}} points to {{endpoint}}": "{{host}} указывает на {{endpoint}}",
   "What its cloud says it is, where it is, and how OneUptime reads it.": "Что это за ресурс по данным его облака, где он находится и как OneUptime его читает.",
-  "Which account it is in its cloud, and the connection that reads it.": "Какой это аккаунт в его облаке и подключение, которое его читает."
+  "Which account it is in its cloud, and the connection that reads it.": "Какой это аккаунт в его облаке и подключение, которое его читает.",
+  "Cloud resource": "Облачный ресурс"
 }

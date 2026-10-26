@@ -35839,5 +35839,6 @@
   "What its activity log recorded and its provider's health events about it.": "Wat het activiteitenlogboek vastlegde en de statusgebeurtenissen van de provider erover.",
   "{{host}} points to {{endpoint}}": "{{host}} verwijst naar {{endpoint}}",
   "What its cloud says it is, where it is, and how OneUptime reads it.": "Wat deze volgens de cloud is, waar deze is en hoe OneUptime deze leest.",
-  "Which account it is in its cloud, and the connection that reads it.": "Welk account het in de cloud is, en de koppeling die het leest."
+  "Which account it is in its cloud, and the connection that reads it.": "Welk account het in de cloud is, en de koppeling die het leest.",
+  "Cloud resource": "Cloud-resource"
 }

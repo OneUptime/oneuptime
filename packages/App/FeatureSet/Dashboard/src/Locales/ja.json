@@ -35839,5 +35839,6 @@
   "What its activity log recorded and its provider's health events about it.": "アクティビティ ログに記録されたことと、プロバイダーによるヘルス イベントです。",
   "{{host}} points to {{endpoint}}": "{{host}} は {{endpoint}} を指しています",
   "What its cloud says it is, where it is, and how OneUptime reads it.": "クラウドが示すこのリソースの種類と場所、そして OneUptime による読み取り方法です。",
-  "Which account it is in its cloud, and the connection that reads it.": "クラウド上のどのアカウントか、そしてそれを読み取る接続です。"
+  "Which account it is in its cloud, and the connection that reads it.": "クラウド上のどのアカウントか、そしてそれを読み取る接続です。",
+  "Cloud resource": "クラウドリソース"
 }

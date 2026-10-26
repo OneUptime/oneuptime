@@ -35839,5 +35839,6 @@
   "What its activity log recorded and its provider's health events about it.": "آنچه گزارش فعالیتش ثبت کرده و رویدادهای سلامت ارائه‌دهنده دربارهٔ آن.",
   "{{host}} points to {{endpoint}}": "{{host}} به {{endpoint}} اشاره می‌کند",
   "What its cloud says it is, where it is, and how OneUptime reads it.": "ابرش می‌گوید چیست، کجاست، و OneUptime چگونه آن را می‌خواند.",
-  "Which account it is in its cloud, and the connection that reads it.": "کدام حساب در ابرش است، و اتصالی که آن را می‌خواند."
+  "Which account it is in its cloud, and the connection that reads it.": "کدام حساب در ابرش است، و اتصالی که آن را می‌خواند.",
+  "Cloud resource": "منبع ابری"
 }

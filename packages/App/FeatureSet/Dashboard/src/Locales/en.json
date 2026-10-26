@@ -35839,5 +35839,6 @@
   "What its activity log recorded and its provider's health events about it.": "What its activity log recorded and its provider's health events about it.",
   "{{host}} points to {{endpoint}}": "{{host}} points to {{endpoint}}",
   "What its cloud says it is, where it is, and how OneUptime reads it.": "What its cloud says it is, where it is, and how OneUptime reads it.",
-  "Which account it is in its cloud, and the connection that reads it.": "Which account it is in its cloud, and the connection that reads it."
+  "Which account it is in its cloud, and the connection that reads it.": "Which account it is in its cloud, and the connection that reads it.",
+  "Cloud resource": "Cloud resource"
 }

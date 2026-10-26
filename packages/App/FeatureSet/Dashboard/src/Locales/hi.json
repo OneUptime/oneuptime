@@ -35839,5 +35839,6 @@
   "What its activity log recorded and its provider's health events about it.": "इसके गतिविधि लॉग ने क्या दर्ज किया, और इसके प्रदाता के इससे जुड़े स्वास्थ्य इवेंट।",
   "{{host}} points to {{endpoint}}": "{{host}} {{endpoint}} की ओर इशारा करता है",
   "What its cloud says it is, where it is, and how OneUptime reads it.": "इसका क्लाउड इसे क्या बताता है, यह कहाँ है, और OneUptime इसे कैसे पढ़ता है।",
-  "Which account it is in its cloud, and the connection that reads it.": "यह अपने क्लाउड में कौन-सा खाता है, और वह कनेक्शन जो इसे पढ़ता है।"
+  "Which account it is in its cloud, and the connection that reads it.": "यह अपने क्लाउड में कौन-सा खाता है, और वह कनेक्शन जो इसे पढ़ता है।",
+  "Cloud resource": "क्लाउड संसाधन"
 }

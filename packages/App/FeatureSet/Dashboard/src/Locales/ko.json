@@ -35839,5 +35839,6 @@
   "What its activity log recorded and its provider's health events about it.": "활동 로그에 기록된 내용과 공급자가 알린 상태 이벤트입니다.",
   "{{host}} points to {{endpoint}}": "{{host}}은(는) {{endpoint}}을(를) 가리킵니다",
   "What its cloud says it is, where it is, and how OneUptime reads it.": "클라우드가 알려 주는 이 리소스의 정체와 위치, 그리고 OneUptime이 읽는 방식입니다.",
-  "Which account it is in its cloud, and the connection that reads it.": "클라우드에서 어떤 계정인지와 이 계정을 읽는 연결입니다."
+  "Which account it is in its cloud, and the connection that reads it.": "클라우드에서 어떤 계정인지와 이 계정을 읽는 연결입니다.",
+  "Cloud resource": "클라우드 리소스"
 }

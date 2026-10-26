@@ -35839,5 +35839,6 @@
   "What its activity log recorded and its provider's health events about it.": "其活動記錄記下的內容，以及其供應商發布的相關健康事件。",
   "{{host}} points to {{endpoint}}": "{{host}} 指向 {{endpoint}}",
   "What its cloud says it is, where it is, and how OneUptime reads it.": "其雲端所述的資源類型、所在位置，以及 OneUptime 如何讀取它。",
-  "Which account it is in its cloud, and the connection that reads it.": "它在雲端中是哪個帳戶，以及讀取它的連線。"
+  "Which account it is in its cloud, and the connection that reads it.": "它在雲端中是哪個帳戶，以及讀取它的連線。",
+  "Cloud resource": "雲端資源"
 }
