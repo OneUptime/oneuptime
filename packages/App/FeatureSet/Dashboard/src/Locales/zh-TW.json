@@ -2535,7 +2535,6 @@
   "Event Title": "事件標題",
   "Event Type": "事件類型",
   "Events from the last 24 hours in this cluster.": "此叢集過去 24 小時內的事件。",
-  "Every row is one ~60-second recording of a service. Prefer the aggregated view on the Overview page for answering \\u201cwhat is slow right now\\u201d \\u2014 individual profiles are most useful when you need a specific recording (for example, one linked from a slow trace).": "每一列都是某項服務約 60 秒的記錄。若要回答「目前哪裡很慢」，建議使用概覽頁面上的彙總檢視 \\u2014 個別設定檔在您需要特定記錄時最為有用（例如：從慢速追蹤連結而來的記錄）。",
   "Every runbook execution in this project, across all runbooks.": "此專案中所有操作手冊的每一次操作手冊執行。",
   "Everything you can do on the dashboard can also be done via the OneUptime API- use it to automate repetitive work or integrate with other platforms.": "您在儀表板上能做的一切，也都可以透過 OneUptime API 完成 - 使用它來自動化重複性工作或與其他平台整合。",
   "Exception Attributes": "例外屬性",
@@ -10442,7 +10441,6 @@
   "Every recorder diagnostics code and what to do when nothing is recorded.": "每個錄製器診斷代碼，以及沒有錄製任何內容時該怎麼辦。",
   "Every responder any on-call policy in this project can reach - directly, through a team, a schedule or an override - and whether a page would actually arrive.": "Every responder any on-call policy in this project can reach - directly, through a team, a schedule or an override - and whether a page would actually arrive.",
   "Every responder can be paged": "每位回應者都能被呼叫",
-  "Every row is one ~60-second recording of a service. Prefer the aggregated view on the Overview page for answering “what is slow right now” — individual profiles are most useful when you need a specific recording (for example, one linked from a slow trace).": "每一列都是某個服務約 60 秒的一次錄製。要回答「現在什麼慢」，請優先使用「概覽」頁面上的彙總檢視——單個設定檔最適合在你需要某次具體錄製時使用（例如從慢追蹤連結過來的那次）。",
   "Every scan pings each address in the range to find what is alive. SNMP is the second question: it is what gives a device its name and vendor, and what lets OneUptime poll it for interfaces and health.": "Every scan pings each address in the range to find what is alive. SNMP is the second question: it is what gives a device its name and vendor, and what lets OneUptime poll it for interfaces and health.",
   "Every series on this chart is hidden — click a series below to show it again.": "Every series on this chart is hidden — click a series below to show it again.",
   "Every session in the range.": "範圍內的所有工作階段。",
@@ -35705,5 +35703,6 @@
   "Clear a filter or widen the time range to see this host's logs.": "清除篩選條件或擴大時間範圍，即可查看此主機的日誌。",
   "Logs appear here once the kubernetes-agent's filelog receiver collects them.": "kubernetes-agent 的 filelog 接收器收集到日誌後，日誌會顯示在這裡。",
   "Make sure the Docker agent's filelog receiver is configured and the collector is running.": "請確認 Docker 代理程式的 filelog 接收器已設定，並且收集器正在執行。",
-  "Make sure the Podman agent's filelog receiver is configured and the collector is running.": "請確認 Podman 代理程式的 filelog 接收器已設定，並且收集器正在執行。"
+  "Make sure the Podman agent's filelog receiver is configured and the collector is running.": "請確認 Podman 代理程式的 filelog 接收器已設定，並且收集器正在執行。",
+  "Each row is one recording of about a minute. For what is slow right now, use the Overview.": "每一列是一次約一分鐘的記錄。要查看目前哪裡慢，請使用概覽。"
 }

@@ -2535,7 +2535,6 @@
   "Event Title": "이벤트 제목",
   "Event Type": "이벤트 유형",
   "Events from the last 24 hours in this cluster.": "이 클러스터에서 지난 24시간 동안의 이벤트입니다.",
-  "Every row is one ~60-second recording of a service. Prefer the aggregated view on the Overview page for answering \\u201cwhat is slow right now\\u201d \\u2014 individual profiles are most useful when you need a specific recording (for example, one linked from a slow trace).": "각 행은 서비스의 약 60초 기록 하나입니다. \\u201c지금 무엇이 느린가\\u201d를 파악하려면 개요 페이지의 집계 보기를 사용하는 것이 좋습니다 \\u2014 개별 프로필은 특정 기록이 필요할 때(예: 느린 트레이스에서 연결된 기록) 가장 유용합니다.",
   "Every runbook execution in this project, across all runbooks.": "모든 런북에 걸쳐 이 프로젝트의 모든 런북 실행입니다.",
   "Everything you can do on the dashboard can also be done via the OneUptime API- use it to automate repetitive work or integrate with other platforms.": "대시보드에서 할 수 있는 모든 작업은 OneUptime API를 통해서도 수행할 수 있습니다. 반복 작업을 자동화하거나 다른 플랫폼과 통합하는 데 사용하세요.",
   "Exception Attributes": "예외 속성",
@@ -10442,7 +10441,6 @@
   "Every recorder diagnostics code and what to do when nothing is recorded.": "모든 녹화기 진단 코드와 아무것도 녹화되지 않을 때 할 일.",
   "Every responder any on-call policy in this project can reach - directly, through a team, a schedule or an override - and whether a page would actually arrive.": "Every responder any on-call policy in this project can reach - directly, through a team, a schedule or an override - and whether a page would actually arrive.",
   "Every responder can be paged": "모든 대응자가 호출을 받을 수 있음",
-  "Every row is one ~60-second recording of a service. Prefer the aggregated view on the Overview page for answering “what is slow right now” — individual profiles are most useful when you need a specific recording (for example, one linked from a slow trace).": "각 행은 서비스를 약 60초 동안 기록한 하나의 녹화입니다. \"지금 무엇이 느린가\"에 답하려면 개요 페이지의 집계 보기를 쓰세요. 개별 프로필은 특정 녹화가 필요할 때(예: 느린 트레이스에 연결된 녹화) 가장 유용합니다.",
   "Every scan pings each address in the range to find what is alive. SNMP is the second question: it is what gives a device its name and vendor, and what lets OneUptime poll it for interfaces and health.": "Every scan pings each address in the range to find what is alive. SNMP is the second question: it is what gives a device its name and vendor, and what lets OneUptime poll it for interfaces and health.",
   "Every series on this chart is hidden — click a series below to show it again.": "Every series on this chart is hidden — click a series below to show it again.",
   "Every session in the range.": "범위 안의 모든 세션.",
@@ -35705,5 +35703,6 @@
   "Clear a filter or widen the time range to see this host's logs.": "이 호스트의 로그를 보려면 필터를 지우거나 시간 범위를 넓히세요.",
   "Logs appear here once the kubernetes-agent's filelog receiver collects them.": "kubernetes-agent의 filelog 리시버가 로그를 수집하면 여기에 표시됩니다.",
   "Make sure the Docker agent's filelog receiver is configured and the collector is running.": "Docker 에이전트의 filelog 리시버가 설정되어 있고 컬렉터가 실행 중인지 확인하세요.",
-  "Make sure the Podman agent's filelog receiver is configured and the collector is running.": "Podman 에이전트의 filelog 리시버가 설정되어 있고 컬렉터가 실행 중인지 확인하세요."
+  "Make sure the Podman agent's filelog receiver is configured and the collector is running.": "Podman 에이전트의 filelog 리시버가 설정되어 있고 컬렉터가 실행 중인지 확인하세요.",
+  "Each row is one recording of about a minute. For what is slow right now, use the Overview.": "각 행은 약 1분 길이의 기록 하나입니다. 지금 무엇이 느린지 보려면 개요를 사용하세요."
 }

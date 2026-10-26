@@ -2535,7 +2535,6 @@
   "Event Title": "Hendelsestittel",
   "Event Type": "Hendelsestype",
   "Events from the last 24 hours in this cluster.": "Hendelser fra de siste 24 timene i denne klyngen.",
-  "Every row is one ~60-second recording of a service. Prefer the aggregated view on the Overview page for answering \\u201cwhat is slow right now\\u201d \\u2014 individual profiles are most useful when you need a specific recording (for example, one linked from a slow trace).": "Hver rad er ett opptak på ~60 sekunder av en tjeneste. Foretrekk den aggregerte visningen på oversiktssiden for å svare på \\u201chva er tregt akkurat nå\\u201d \\u2014 individuelle profiler er mest nyttige når du trenger et bestemt opptak (for eksempel ett som er lenket fra et tregt spor).",
   "Every runbook execution in this project, across all runbooks.": "Hver kjøreboks-kjøring i dette prosjektet, på tvers av alle kjørebøker.",
   "Everything you can do on the dashboard can also be done via the OneUptime API- use it to automate repetitive work or integrate with other platforms.": "Alt du kan gjøre på dashbordet kan også gjøres via OneUptime API – bruk det til å automatisere repetitivt arbeid eller integrere med andre plattformer.",
   "Exception Attributes": "Unntaksattributter",
@@ -10442,7 +10441,6 @@
   "Every recorder diagnostics code and what to do when nothing is recorded.": "Hver diagnosekode fra opptakeren og hva du gjør når ingenting tas opp.",
   "Every responder any on-call policy in this project can reach - directly, through a team, a schedule or an override - and whether a page would actually arrive.": "Every responder any on-call policy in this project can reach - directly, through a team, a schedule or an override - and whether a page would actually arrive.",
   "Every responder can be paged": "Alle mottakere kan varsles",
-  "Every row is one ~60-second recording of a service. Prefer the aggregated view on the Overview page for answering “what is slow right now” — individual profiles are most useful when you need a specific recording (for example, one linked from a slow trace).": "Hver rad er ett opptak på ~60 sekunder av en tjeneste. Bruk heller den samlede visningen på siden Oversikt for å svare på “hva er tregt akkurat nå” – enkeltprofiler er mest nyttige når du trenger et bestemt opptak (for eksempel ett som er koblet til et tregt spor).",
   "Every scan pings each address in the range to find what is alive. SNMP is the second question: it is what gives a device its name and vendor, and what lets OneUptime poll it for interfaces and health.": "Every scan pings each address in the range to find what is alive. SNMP is the second question: it is what gives a device its name and vendor, and what lets OneUptime poll it for interfaces and health.",
   "Every series on this chart is hidden — click a series below to show it again.": "Every series on this chart is hidden — click a series below to show it again.",
   "Every session in the range.": "Alle økter i perioden.",
@@ -35705,5 +35703,6 @@
   "Clear a filter or widen the time range to see this host's logs.": "Fjern et filter eller utvid tidsintervallet for å se denne vertens logger.",
   "Logs appear here once the kubernetes-agent's filelog receiver collects them.": "Logger vises her så snart kubernetes-agentens filelog-mottaker samler dem inn.",
   "Make sure the Docker agent's filelog receiver is configured and the collector is running.": "Sørg for at Docker-agentens filelog-mottaker er konfigurert og at samleren kjører.",
-  "Make sure the Podman agent's filelog receiver is configured and the collector is running.": "Sørg for at Podman-agentens filelog-mottaker er konfigurert og at samleren kjører."
+  "Make sure the Podman agent's filelog receiver is configured and the collector is running.": "Sørg for at Podman-agentens filelog-mottaker er konfigurert og at samleren kjører.",
+  "Each row is one recording of about a minute. For what is slow right now, use the Overview.": "Hver rad er ett opptak på omtrent ett minutt. Bruk Oversikt for å se hva som er tregt akkurat nå."
 }

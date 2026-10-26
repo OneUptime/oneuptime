@@ -2535,7 +2535,6 @@
   "Event Title": "Begivenhedstitel",
   "Event Type": "Begivenhedstype",
   "Events from the last 24 hours in this cluster.": "Begivenheder fra de seneste 24 timer i denne klynge.",
-  "Every row is one ~60-second recording of a service. Prefer the aggregated view on the Overview page for answering \\u201cwhat is slow right now\\u201d \\u2014 individual profiles are most useful when you need a specific recording (for example, one linked from a slow trace).": "Hver række er én optagelse på cirka 60 sekunder af en tjeneste. Foretræk den aggregerede visning på oversigtssiden til at besvare \\u201chvad er langsomt lige nu\\u201d \\u2014 individuelle profiler er mest nyttige, når du har brug for en bestemt optagelse (for eksempel en, der er linket fra et langsomt spor).",
   "Every runbook execution in this project, across all runbooks.": "Hver kørselsbogudførelse i dette projekt, på tværs af alle kørselsbøger.",
   "Everything you can do on the dashboard can also be done via the OneUptime API- use it to automate repetitive work or integrate with other platforms.": "Alt, hvad du kan gøre på dashboardet, kan også gøres via OneUptime API'en - brug den til at automatisere gentagne opgaver eller integrere med andre platforme.",
   "Exception Attributes": "Undtagelsesattributter",
@@ -10442,7 +10441,6 @@
   "Every recorder diagnostics code and what to do when nothing is recorded.": "Hver diagnosekode fra optageren, og hvad du skal gøre, når intet optages.",
   "Every responder any on-call policy in this project can reach - directly, through a team, a schedule or an override - and whether a page would actually arrive.": "Every responder any on-call policy in this project can reach - directly, through a team, a schedule or an override - and whether a page would actually arrive.",
   "Every responder can be paged": "Alle modtagere kan tilkaldes",
-  "Every row is one ~60-second recording of a service. Prefer the aggregated view on the Overview page for answering “what is slow right now” — individual profiles are most useful when you need a specific recording (for example, one linked from a slow trace).": "Hver række er én optagelse på ~60 sekunder af en tjeneste. Brug hellere den samlede visning på siden Oversigt til at besvare “hvad er langsomt lige nu” – enkelte profiler er mest nyttige, når du skal bruge en bestemt optagelse (for eksempel én knyttet til et langsomt spor).",
   "Every scan pings each address in the range to find what is alive. SNMP is the second question: it is what gives a device its name and vendor, and what lets OneUptime poll it for interfaces and health.": "Every scan pings each address in the range to find what is alive. SNMP is the second question: it is what gives a device its name and vendor, and what lets OneUptime poll it for interfaces and health.",
   "Every series on this chart is hidden — click a series below to show it again.": "Every series on this chart is hidden — click a series below to show it again.",
   "Every session in the range.": "Alle sessioner i intervallet.",
@@ -35705,5 +35703,6 @@
   "Clear a filter or widen the time range to see this host's logs.": "Fjern et filter, eller udvid tidsintervallet for at se denne værts logs.",
   "Logs appear here once the kubernetes-agent's filelog receiver collects them.": "Logs vises her, så snart kubernetes-agentens filelog-receiver indsamler dem.",
   "Make sure the Docker agent's filelog receiver is configured and the collector is running.": "Sørg for, at Docker-agentens filelog-receiver er konfigureret, og at collectoren kører.",
-  "Make sure the Podman agent's filelog receiver is configured and the collector is running.": "Sørg for, at Podman-agentens filelog-receiver er konfigureret, og at collectoren kører."
+  "Make sure the Podman agent's filelog receiver is configured and the collector is running.": "Sørg for, at Podman-agentens filelog-receiver er konfigureret, og at collectoren kører.",
+  "Each row is one recording of about a minute. For what is slow right now, use the Overview.": "Hver række er én optagelse på omkring et minut. Brug Oversigt for at se, hvad der er langsomt lige nu."
 }

@@ -2535,7 +2535,6 @@
   "Event Title": "Ereignistitel",
   "Event Type": "Ereignistyp",
   "Events from the last 24 hours in this cluster.": "Ereignisse aus den letzten 24 Stunden in diesem Cluster.",
-  "Every row is one ~60-second recording of a service. Prefer the aggregated view on the Overview page for answering \\u201cwhat is slow right now\\u201d \\u2014 individual profiles are most useful when you need a specific recording (for example, one linked from a slow trace).": "Jede Zeile ist eine ~60-sekündige Aufzeichnung eines Dienstes. Bevorzugen Sie die aggregierte Ansicht auf der Übersichtsseite, um zu beantworten \\u201cwas ist gerade langsam\\u201d \\u2014 einzelne Profile sind am nützlichsten, wenn Sie eine bestimmte Aufzeichnung benötigen (zum Beispiel eine, die mit einem langsamen Trace verknüpft ist).",
   "Every runbook execution in this project, across all runbooks.": "Jede Runbook-Ausführung in diesem Projekt, über alle Runbooks hinweg.",
   "Everything you can do on the dashboard can also be done via the OneUptime API- use it to automate repetitive work or integrate with other platforms.": "Alles, was Sie im Dashboard tun können, ist auch über die OneUptime API möglich – nutzen Sie sie, um wiederkehrende Arbeiten zu automatisieren oder andere Plattformen zu integrieren.",
   "Exception Attributes": "Ausnahmeattribute",
@@ -10442,7 +10441,6 @@
   "Every recorder diagnostics code and what to do when nothing is recorded.": "Jeder Diagnosecode des Recorders und was zu tun ist, wenn nichts aufgezeichnet wird.",
   "Every responder any on-call policy in this project can reach - directly, through a team, a schedule or an override - and whether a page would actually arrive.": "Jede Person, die eine Bereitschaftsrichtlinie in diesem Projekt erreichen kann - direkt, über ein Team, einen Zeitplan oder eine Vertretung - und ob eine Alarmierung tatsächlich ankommen würde.",
   "Every responder can be paged": "Jede Person kann alarmiert werden",
-  "Every row is one ~60-second recording of a service. Prefer the aggregated view on the Overview page for answering “what is slow right now” — individual profiles are most useful when you need a specific recording (for example, one linked from a slow trace).": "Jede Zeile ist eine etwa 60-sekündige Aufzeichnung eines Dienstes. Bevorzugen Sie die aggregierte Ansicht auf der Übersichtsseite, um zu beantworten, „was gerade langsam ist“ — einzelne Profile sind vor allem nützlich, wenn Sie eine bestimmte Aufzeichnung brauchen (zum Beispiel eine, die mit einem langsamen Trace verknüpft ist).",
   "Every scan pings each address in the range to find what is alive. SNMP is the second question: it is what gives a device its name and vendor, and what lets OneUptime poll it for interfaces and health.": "Jeder Scan pingt jede Adresse im Bereich an, um herauszufinden, was aktiv ist. SNMP ist die zweite Frage: Darüber erhält ein Gerät seinen Namen und Hersteller, und damit kann OneUptime es nach Schnittstellen und Integrität abfragen.",
   "Every series on this chart is hidden — click a series below to show it again.": "Jede Reihe in diesem Diagramm ist ausgeblendet — klicken Sie unten auf eine Reihe, um sie wieder anzuzeigen.",
   "Every session in the range.": "Jede Sitzung im Zeitraum.",
@@ -35705,5 +35703,6 @@
   "Clear a filter or widen the time range to see this host's logs.": "Entfernen Sie einen Filter oder erweitern Sie den Zeitbereich, um die Protokolle dieses Hosts zu sehen.",
   "Logs appear here once the kubernetes-agent's filelog receiver collects them.": "Protokolle erscheinen hier, sobald der filelog-Receiver des kubernetes-agent sie erfasst.",
   "Make sure the Docker agent's filelog receiver is configured and the collector is running.": "Stellen Sie sicher, dass der filelog-Receiver des Docker-Agenten konfiguriert ist und der Collector läuft.",
-  "Make sure the Podman agent's filelog receiver is configured and the collector is running.": "Stellen Sie sicher, dass der filelog-Receiver des Podman-Agenten konfiguriert ist und der Collector läuft."
+  "Make sure the Podman agent's filelog receiver is configured and the collector is running.": "Stellen Sie sicher, dass der filelog-Receiver des Podman-Agenten konfiguriert ist und der Collector läuft.",
+  "Each row is one recording of about a minute. For what is slow right now, use the Overview.": "Jede Zeile ist eine Aufzeichnung von etwa einer Minute. Was gerade langsam ist, zeigt die Übersicht."
 }

@@ -2535,7 +2535,6 @@
   "Event Title": "Título do evento",
   "Event Type": "Tipo de evento",
   "Events from the last 24 hours in this cluster.": "Eventos das últimas 24 horas neste cluster.",
-  "Every row is one ~60-second recording of a service. Prefer the aggregated view on the Overview page for answering \\u201cwhat is slow right now\\u201d \\u2014 individual profiles are most useful when you need a specific recording (for example, one linked from a slow trace).": "Cada linha é uma gravação de aproximadamente 60 segundos de um serviço. Prefira a visão agregada na página de Visão geral para responder \\u201co que está lento agora\\u201d \\u2014 perfis individuais são mais úteis quando você precisa de uma gravação específica (por exemplo, uma vinculada a um traço lento).",
   "Every runbook execution in this project, across all runbooks.": "Cada execução de runbook neste projeto, em todos os runbooks.",
   "Everything you can do on the dashboard can also be done via the OneUptime API- use it to automate repetitive work or integrate with other platforms.": "Tudo o que você pode fazer no painel também pode ser feito via API do OneUptime - use-a para automatizar trabalhos repetitivos ou integrar com outras plataformas.",
   "Exception Attributes": "Atributos da exceção",
@@ -10442,7 +10441,6 @@
   "Every recorder diagnostics code and what to do when nothing is recorded.": "Cada código de diagnóstico do gravador e o que fazer quando nada é gravado.",
   "Every responder any on-call policy in this project can reach - directly, through a team, a schedule or an override - and whether a page would actually arrive.": "Every responder any on-call policy in this project can reach - directly, through a team, a schedule or an override - and whether a page would actually arrive.",
   "Every responder can be paged": "Todos os destinatários podem ser acionados",
-  "Every row is one ~60-second recording of a service. Prefer the aggregated view on the Overview page for answering “what is slow right now” — individual profiles are most useful when you need a specific recording (for example, one linked from a slow trace).": "Cada linha é uma gravação de ~60 segundos de um serviço. Prefira a visão agregada na página Visão geral para responder “o que está lento agora”; perfis individuais são mais úteis quando você precisa de uma gravação específica (por exemplo, uma vinculada a um trace lento).",
   "Every scan pings each address in the range to find what is alive. SNMP is the second question: it is what gives a device its name and vendor, and what lets OneUptime poll it for interfaces and health.": "Every scan pings each address in the range to find what is alive. SNMP is the second question: it is what gives a device its name and vendor, and what lets OneUptime poll it for interfaces and health.",
   "Every series on this chart is hidden — click a series below to show it again.": "Every series on this chart is hidden — click a series below to show it again.",
   "Every session in the range.": "Todas as sessões do período.",
@@ -35705,5 +35703,6 @@
   "Clear a filter or widen the time range to see this host's logs.": "Remova um filtro ou amplie o intervalo de tempo para ver os logs deste host.",
   "Logs appear here once the kubernetes-agent's filelog receiver collects them.": "Os logs aparecem aqui assim que o receptor filelog do kubernetes-agent os coleta.",
   "Make sure the Docker agent's filelog receiver is configured and the collector is running.": "Verifique se o receptor filelog do agente do Docker está configurado e se o coletor está em execução.",
-  "Make sure the Podman agent's filelog receiver is configured and the collector is running.": "Verifique se o receptor filelog do agente do Podman está configurado e se o coletor está em execução."
+  "Make sure the Podman agent's filelog receiver is configured and the collector is running.": "Verifique se o receptor filelog do agente do Podman está configurado e se o coletor está em execução.",
+  "Each row is one recording of about a minute. For what is slow right now, use the Overview.": "Cada linha é uma gravação de cerca de um minuto. Para ver o que está lento agora, use a Visão geral."
 }

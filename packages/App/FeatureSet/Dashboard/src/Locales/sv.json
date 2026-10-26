@@ -2535,7 +2535,6 @@
   "Event Title": "Händelsetitel",
   "Event Type": "Händelsetyp",
   "Events from the last 24 hours in this cluster.": "Händelser från de senaste 24 timmarna i detta kluster.",
-  "Every row is one ~60-second recording of a service. Prefer the aggregated view on the Overview page for answering \\u201cwhat is slow right now\\u201d \\u2014 individual profiles are most useful when you need a specific recording (for example, one linked from a slow trace).": "Varje rad är en cirka 60-sekunders inspelning av en tjänst. Föredra den aggregerade vyn på översiktssidan för att besvara \\u201cvad är långsamt just nu\\u201d \\u2014 enskilda profiler är mest användbara när du behöver en specifik inspelning (till exempel en som länkats från ett långsamt spår).",
   "Every runbook execution in this project, across all runbooks.": "Varje runbook-körning i detta projekt, över alla runbooks.",
   "Everything you can do on the dashboard can also be done via the OneUptime API- use it to automate repetitive work or integrate with other platforms.": "Allt du kan göra i instrumentpanelen kan även göras via OneUptime API – använd det för att automatisera repetitivt arbete eller integrera med andra plattformar.",
   "Exception Attributes": "Undantagsattribut",
@@ -10442,7 +10441,6 @@
   "Every recorder diagnostics code and what to do when nothing is recorded.": "Varje diagnoskod från inspelaren och vad du gör när inget spelas in.",
   "Every responder any on-call policy in this project can reach - directly, through a team, a schedule or an override - and whether a page would actually arrive.": "Every responder any on-call policy in this project can reach - directly, through a team, a schedule or an override - and whether a page would actually arrive.",
   "Every responder can be paged": "Alla mottagare kan larmas",
-  "Every row is one ~60-second recording of a service. Prefer the aggregated view on the Overview page for answering “what is slow right now” — individual profiles are most useful when you need a specific recording (for example, one linked from a slow trace).": "Varje rad är en inspelning på ~60 sekunder av en tjänst. Använd hellre den sammanställda vyn på sidan Översikt för att svara på ”vad är långsamt just nu” – enskilda profiler är mest användbara när du behöver en specifik inspelning (till exempel en som är länkad från ett långsamt spår).",
   "Every scan pings each address in the range to find what is alive. SNMP is the second question: it is what gives a device its name and vendor, and what lets OneUptime poll it for interfaces and health.": "Every scan pings each address in the range to find what is alive. SNMP is the second question: it is what gives a device its name and vendor, and what lets OneUptime poll it for interfaces and health.",
   "Every series on this chart is hidden — click a series below to show it again.": "Every series on this chart is hidden — click a series below to show it again.",
   "Every session in the range.": "Alla sessioner i intervallet.",
@@ -35705,5 +35703,6 @@
   "Clear a filter or widen the time range to see this host's logs.": "Ta bort ett filter eller vidga tidsintervallet för att se den här värdens loggar.",
   "Logs appear here once the kubernetes-agent's filelog receiver collects them.": "Loggar visas här så snart kubernetes-agentens filelog-mottagare samlar in dem.",
   "Make sure the Docker agent's filelog receiver is configured and the collector is running.": "Se till att Docker-agentens filelog-mottagare är konfigurerad och att insamlaren körs.",
-  "Make sure the Podman agent's filelog receiver is configured and the collector is running.": "Se till att Podman-agentens filelog-mottagare är konfigurerad och att insamlaren körs."
+  "Make sure the Podman agent's filelog receiver is configured and the collector is running.": "Se till att Podman-agentens filelog-mottagare är konfigurerad och att insamlaren körs.",
+  "Each row is one recording of about a minute. For what is slow right now, use the Overview.": "Varje rad är en inspelning på ungefär en minut. Använd Översikt för att se vad som är långsamt just nu."
 }

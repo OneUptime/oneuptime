@@ -878,10 +878,18 @@ export class DescriptionScanner {
   private holderName(node: ts.ObjectLiteralExpression): string {
     let current: ts.Node = node;
 
+    /*
+     * Through brackets, a cast, and either branch of a condition: a card
+     * that draws its props only sometimes (`cardProps={isMinimal ? undefined
+     * : { title, description }}`) is still a card. The All profiles card's
+     * 240-character description passed unread that way.
+     */
     while (
       current.parent &&
       (ts.isParenthesizedExpression(current.parent) ||
-        ts.isAsExpression(current.parent))
+        ts.isAsExpression(current.parent) ||
+        (ts.isConditionalExpression(current.parent) &&
+          current.parent.condition !== current))
     ) {
       current = current.parent;
     }

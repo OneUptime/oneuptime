@@ -643,7 +643,7 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
               : {
                   title: "All profiles",
                   description:
-                    "Every row is one ~60-second recording of a service. Prefer the aggregated view on the Overview page for answering \u201cwhat is slow right now\u201d \u2014 individual profiles are most useful when you need a specific recording (for example, one linked from a slow trace).",
+                    "Each row is one recording of about a minute. For what is slow right now, use the Overview.",
                 }
           }
           query={query}

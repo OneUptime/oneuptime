@@ -2535,7 +2535,6 @@
   "Event Title": "イベントのタイトル",
   "Event Type": "イベントタイプ",
   "Events from the last 24 hours in this cluster.": "このクラスター内の過去 24 時間のイベント。",
-  "Every row is one ~60-second recording of a service. Prefer the aggregated view on the Overview page for answering \\u201cwhat is slow right now\\u201d \\u2014 individual profiles are most useful when you need a specific recording (for example, one linked from a slow trace).": "各行はサービスの約 60 秒間の記録 1 件です。「今何が遅いのか」に答えるには、概要ページの集約ビューを優先してください \\u2014 個々のプロファイルは、特定の記録が必要な場合（例えば、遅いトレースからリンクされたもの）に最も役立ちます。",
   "Every runbook execution in this project, across all runbooks.": "すべての Runbook にわたる、このプロジェクト内のすべての Runbook 実行。",
   "Everything you can do on the dashboard can also be done via the OneUptime API- use it to automate repetitive work or integrate with other platforms.": "ダッシュボードでできることはすべて OneUptime API でも実行できます。繰り返し作業の自動化や、他のプラットフォームとの連携に利用してください。",
   "Exception Attributes": "例外属性",
@@ -10442,7 +10441,6 @@
   "Every recorder diagnostics code and what to do when nothing is recorded.": "レコーダーのすべての診断コードと、何も記録されないときの対処方法。",
   "Every responder any on-call policy in this project can reach - directly, through a team, a schedule or an override - and whether a page would actually arrive.": "このプロジェクトのいずれかのオンコールポリシーが到達できるすべての対応者（直接、チーム、スケジュール、オーバーライド経由）と、呼び出しが実際に届くかどうか。",
   "Every responder can be paged": "すべての対応者を呼び出せます",
-  "Every row is one ~60-second recording of a service. Prefer the aggregated view on the Overview page for answering “what is slow right now” — individual profiles are most useful when you need a specific recording (for example, one linked from a slow trace).": "各行は、サービスの約 60 秒間の記録 1 つです。「今何が遅いのか」を知るには「概要」ページの集計ビューを使ってください — 個々のプロファイルは、特定の記録（遅いトレースからリンクされたものなど）が必要なときに最も役立ちます。",
   "Every scan pings each address in the range to find what is alive. SNMP is the second question: it is what gives a device its name and vendor, and what lets OneUptime poll it for interfaces and health.": "どのスキャンも、範囲内の各アドレスに ping を送って稼働しているものを探します。SNMP はその次の確認です。SNMP によってデバイスの名前とベンダーがわかり、OneUptime がインターフェースとヘルスをポーリングできるようになります。",
   "Every series on this chart is hidden — click a series below to show it again.": "このチャートのすべての系列が非表示です — 再び表示するには、下の系列をクリックしてください。",
   "Every session in the range.": "範囲内のすべてのセッション。",
@@ -35705,5 +35703,6 @@
   "Clear a filter or widen the time range to see this host's logs.": "このホストのログを見るには、フィルターを外すか時間範囲を広げてください。",
   "Logs appear here once the kubernetes-agent's filelog receiver collects them.": "kubernetes-agent の filelog レシーバーがログを収集すると、ここに表示されます。",
   "Make sure the Docker agent's filelog receiver is configured and the collector is running.": "Docker エージェントの filelog レシーバーが設定され、コレクターが実行中であることを確認してください。",
-  "Make sure the Podman agent's filelog receiver is configured and the collector is running.": "Podman エージェントの filelog レシーバーが設定され、コレクターが実行中であることを確認してください。"
+  "Make sure the Podman agent's filelog receiver is configured and the collector is running.": "Podman エージェントの filelog レシーバーが設定され、コレクターが実行中であることを確認してください。",
+  "Each row is one recording of about a minute. For what is slow right now, use the Overview.": "各行は約 1 分間の記録 1 件です。今何が遅いかを見るには、概要を使ってください。"
 }
