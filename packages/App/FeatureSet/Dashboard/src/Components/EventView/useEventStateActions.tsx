@@ -3,6 +3,7 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
+import Includes from "Common/Types/BaseDatabase/Includes";
 import ObjectID from "Common/Types/ObjectID";
 import PrivateRecordPublicNotes from "Common/Types/StatusPage/PrivateRecordPublicNotes";
 import ActionButtonSchema, {
@@ -16,6 +17,7 @@ import {
   bulkItemUnchanged,
   runBulkAction,
 } from "Common/UI/Components/BulkUpdate/BulkActionRunner";
+import BulkReadAhead from "Common/UI/Components/BulkUpdate/BulkReadAhead";
 import {
   BulkActionButtonSchema,
   BulkActionOnClickProps,
@@ -27,7 +29,7 @@ import { REFRESH_SIDEBAR_COUNT_EVENT } from "Common/UI/Components/SideMenu/Count
 import API from "Common/UI/Utils/API/API";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import GlobalEvents from "Common/UI/Utils/GlobalEvents";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { getRecordDisplayName } from "Common/UI/Utils/ModelDisplayName";
 import PermissionGate, {
   ModelAction,
@@ -91,8 +93,10 @@ import useNoteTemplates from "./useNoteTemplates";
  *     private note", offered to whoever may post it - and names the records
  *     it is about;
  *   - each record is moved by a new row of its state timeline, written
- *     through the API one after another, the record's state read fresh
- *     first: one that is there already, or past it, is left alone and
+ *     through the API as one row's move is - several records at once (the
+ *     kind's bulkConcurrency), their states read a window at a time just
+ *     before (BulkReadAhead: one list request per window, not one read per
+ *     record): one that is there already, or past it, is left alone and
  *     listed with why ("Already acknowledged."), one the server refuses is
  *     listed in its words;
  *   - someone who may not move the kind sees the actions locked, with the
@@ -230,6 +234,78 @@ function useEventStateActions<T extends BaseModel>(
     );
   };
 
+  // What a move reads of a record first: the state it is in now.
+  const currentSelect: Record<string, unknown> = {
+    _id: true,
+    [definition.currentStateColumn]: {
+      _id: true,
+      name: true,
+      order: true,
+    },
+    ...(definition.hasPerEventPrivacy ? { isPrivate: true } : {}),
+  };
+
+  // One record's state, read alone: a row's move.
+  const readOne: (item: T) => Promise<BaseModel | null> = async (
+    item: T,
+  ): Promise<BaseModel | null> => {
+    if (!item.id) {
+      return null;
+    }
+
+    return await ModelAPI.getItem<BaseModel>({
+      modelType: definition.eventModelType,
+      id: item.id,
+      select: currentSelect as never,
+    });
+  };
+
+  /*
+   * A window of records' states in one list request: a bulk move
+   * (BulkReadAhead). A record the answer leaves out was deleted since, or is
+   * one the viewer may not read: it is moved as before, and the server
+   * answers for it.
+   */
+  const readWindow: (items: Array<T>) => Promise<Map<string, BaseModel>> =
+    async (items: Array<T>): Promise<Map<string, BaseModel>> => {
+      const ids: Array<string> = items
+        .map((item: T): string => {
+          return item.id?.toString() || "";
+        })
+        .filter((id: string): boolean => {
+          return id.length > 0;
+        });
+
+      const found: Map<string, BaseModel> = new Map<string, BaseModel>();
+
+      if (ids.length === 0) {
+        return found;
+      }
+
+      const result: ListResult<BaseModel> = await ModelAPI.getList<BaseModel>(
+        {
+          modelType: definition.eventModelType,
+          query: {
+            _id: new Includes(ids),
+          } as never,
+          limit: ids.length,
+          skip: 0,
+          select: currentSelect as never,
+          sort: {},
+        },
+      );
+
+      for (const record of result.data) {
+        const id: string = record.id?.toString() || "";
+
+        if (id) {
+          found.set(id, record);
+        }
+      }
+
+      return found;
+    };
+
   /*
    * Moves one record: reads the state it is in now, leaves it alone if the
    * move would not take it anywhere it may go, else writes the new row of
@@ -242,6 +318,7 @@ function useEventStateActions<T extends BaseModel>(
     targetStateName: string;
     move: EventStateQuickMove | null;
     submitted: BulkChangeStateSubmitData;
+    readCurrent: (item: T) => Promise<BaseModel | null>;
   }) => Promise<BulkItemOutcome>;
 
   const moveOne: MoveFunction = async (data: {
@@ -250,23 +327,13 @@ function useEventStateActions<T extends BaseModel>(
     targetStateName: string;
     move: EventStateQuickMove | null;
     submitted: BulkChangeStateSubmitData;
+    readCurrent: (item: T) => Promise<BaseModel | null>;
   }): Promise<BulkItemOutcome> => {
     if (!data.item.id) {
       throw new BadDataException("Item ID not found");
     }
 
-    const fetched: BaseModel | null = await ModelAPI.getItem<BaseModel>({
-      modelType: definition.eventModelType,
-      id: data.item.id,
-      select: {
-        [definition.currentStateColumn]: {
-          _id: true,
-          name: true,
-          order: true,
-        },
-        ...(definition.hasPerEventPrivacy ? { isPrivate: true } : {}),
-      } as never,
-    });
+    const fetched: BaseModel | null = await data.readCurrent(data.item);
 
     const refusal: string | null = getMoveRefusal({
       definition: definition,
@@ -382,6 +449,7 @@ function useEventStateActions<T extends BaseModel>(
           targetStateName: targetStateName,
           move: dialog.move,
           submitted: submitted,
+          readCurrent: readOne,
         });
 
         // Left alone: the dialog says why, and nothing was written.
@@ -414,9 +482,21 @@ function useEventStateActions<T extends BaseModel>(
       return;
     }
 
+    const reader: BulkReadAhead<T, BaseModel> = new BulkReadAhead<
+      T,
+      BaseModel
+    >({
+      items: actionProps.items,
+      getKey: (item: T): string => {
+        return item.id?.toString() || "";
+      },
+      readWindow: readWindow,
+      readOne: readOne,
+    });
+
     await runBulkAction<T>({
       actionProps: actionProps,
-      concurrency: 1,
+      concurrency: definition.bulkConcurrency,
       step: async (item: T): Promise<BulkItemOutcome> => {
         return await moveOne({
           item: item,
@@ -424,6 +504,9 @@ function useEventStateActions<T extends BaseModel>(
           targetStateName: targetStateName,
           move: move,
           submitted: submitted,
+          readCurrent: (record: T): Promise<BaseModel | null> => {
+            return reader.read(record);
+          },
         });
       },
     });

@@ -53,6 +53,92 @@ export const BULK_UNCHANGED_COUNT: PluralTemplate = {
   other: "{{count}} {{itemsName}} not changed",
 };
 
+/*
+ * The fourth outcome, only when the person stopped a run: the items it never
+ * reached. Nothing was done to them.
+ */
+export const BULK_NOT_STARTED_COUNT: PluralTemplate = {
+  one: "{{count}} {{itemName}} not started: you stopped the action",
+  other: "{{count}} {{itemsName}} not started: you stopped the action",
+};
+
+/*
+ * What the progress dialog says while a run goes on. A bulk action runs in
+ * this page: closing it stops the rest (the browser asks first), and a Stop
+ * leaves what is done as it is.
+ */
+export const BULK_KEEP_PAGE_OPEN: string =
+  "Keep this page open until this finishes. You can stop at any time: what is already done stays done.";
+
+export const BULK_KEEP_PAGE_OPEN_NOT_STOPPABLE: string =
+  "Keep this page open until this finishes.";
+
+export const BULK_STOPPING: string =
+  "Stopping. The ones already started are finishing.";
+
+// How long a run has left, as estimateBulkTimeLeftInMs works it out.
+export const BULK_TIME_LEFT_UNDER_A_MINUTE: string = "Less than a minute left";
+
+export const BULK_TIME_LEFT_MINUTES: PluralTemplate = {
+  one: "About {{count}} minute left",
+  other: "About {{count}} minutes left",
+};
+
+export const BULK_TIME_LEFT_HOURS: PluralTemplate = {
+  one: "About {{count}} hour left",
+  other: "About {{count}} hours left",
+};
+
+const MINUTE_IN_MS: number = 60 * 1000;
+const HOUR_IN_MS: number = 60 * MINUTE_IN_MS;
+
+/*
+ * The time-left line for an estimate: under a minute, whole minutes under
+ * an hour, whole hours after that. Undefined for no estimate.
+ */
+export const getBulkTimeLeftText: (
+  estimatedTimeLeftInMs: number | undefined,
+  translator: Translator,
+) => string | undefined = (
+  estimatedTimeLeftInMs: number | undefined,
+  translator: Translator,
+): string | undefined => {
+  if (
+    estimatedTimeLeftInMs === undefined ||
+    !Number.isFinite(estimatedTimeLeftInMs) ||
+    estimatedTimeLeftInMs < 0
+  ) {
+    return undefined;
+  }
+
+  if (estimatedTimeLeftInMs < MINUTE_IN_MS) {
+    return (
+      translator.translateText(BULK_TIME_LEFT_UNDER_A_MINUTE) ||
+      BULK_TIME_LEFT_UNDER_A_MINUTE
+    );
+  }
+
+  if (estimatedTimeLeftInMs < HOUR_IN_MS) {
+    const minutes: number = Math.max(
+      1,
+      Math.round(estimatedTimeLeftInMs / MINUTE_IN_MS),
+    );
+
+    return translator.translatePlural(BULK_TIME_LEFT_MINUTES, minutes, {
+      count: translator.formatNumber(minutes),
+    });
+  }
+
+  const hours: number = Math.max(
+    1,
+    Math.round(estimatedTimeLeftInMs / HOUR_IN_MS),
+  );
+
+  return translator.translatePlural(BULK_TIME_LEFT_HOURS, hours, {
+    count: translator.formatNumber(hours),
+  });
+};
+
 export const BULK_SELECTION_LIMIT: PluralTemplate = {
   one: "Selected {{selected}} of {{count}} matching {{itemName}}. You can only select {{limit}} {{itemsName}} at a time, for performance reasons, so bulk actions will apply to the selected {{selected}} only.",
   other:
@@ -126,6 +212,13 @@ export interface ProgressInfo<T extends GenericObject> {
    * it. Counted towards the progress bar like the other two.
    */
   unchanged?: Array<BulkActionUnchanged<T>> | undefined;
+  /*
+   * Only in the last report of a run the person stopped: the items it never
+   * reached (BULK_NOT_STARTED_COUNT). Nothing was done to them.
+   */
+  notStartedItems?: Array<T> | undefined;
+  // How long the run has left, once it can tell (runBulkAction).
+  estimatedTimeLeftInMs?: number | undefined;
   totalItems: Array<T>;
 }
 
@@ -133,7 +226,17 @@ export type OnProgressInfoFunction<T extends GenericObject> = (
   progressInfo: ProgressInfo<T>,
 ) => void;
 
-export type OnBulkActionStart = () => void;
+export interface BulkActionStartOptions {
+  /*
+   * Whether the run can be stopped part-way (runBulkAction): the progress
+   * dialog then offers Stop, which aborts the stopSignal it handed over.
+   */
+  isStoppable?: boolean | undefined;
+}
+
+export type OnBulkActionStart = (
+  options?: BulkActionStartOptions | undefined,
+) => void;
 export type OnBulkActionEnd = () => void;
 
 export interface BulkActionOnClickProps<T extends GenericObject> {
@@ -141,6 +244,12 @@ export interface BulkActionOnClickProps<T extends GenericObject> {
   onProgressInfo: OnProgressInfoFunction<T>;
   onBulkActionStart: OnBulkActionStart;
   onBulkActionEnd: OnBulkActionEnd;
+  /*
+   * Aborted when the person presses Stop in the progress dialog: a run
+   * starts no more items (runBulkAction). The dialog offers Stop only for a
+   * run that said at its start it can stop.
+   */
+  stopSignal?: AbortSignal | undefined;
 }
 
 export interface BulkActionButtonSchema<T extends GenericObject> {
@@ -262,6 +371,39 @@ const BulkUpdateForm: <T extends GenericObject>(
   const [runningAction, setRunningAction] =
     React.useState<BulkActionButtonSchema<T> | null>(null);
 
+  // Whether the run can be stopped, and whether the person asked it to.
+  const [isStoppable, setIsStoppable] = React.useState<boolean>(false);
+  const [isStopping, setIsStopping] = React.useState<boolean>(false);
+
+  // The run's Stop: aborted by the dialog's Stop button.
+  const stopControllerRef: React.MutableRefObject<AbortController | null> =
+    React.useRef<AbortController | null>(null);
+
+  /*
+   * A bulk action runs in this page, so closing or reloading it part-way
+   * leaves the rest undone. While one runs, the browser asks before the
+   * page goes.
+   */
+  React.useEffect(() => {
+    if (!actionInProgress) {
+      return;
+    }
+
+    const warnBeforeLeaving: (event: BeforeUnloadEvent) => void = (
+      event: BeforeUnloadEvent,
+    ): void => {
+      event.preventDefault();
+      // Older browsers show the prompt only when returnValue is set.
+      event.returnValue = "";
+    };
+
+    window.addEventListener("beforeunload", warnBeforeLeaving);
+
+    return () => {
+      window.removeEventListener("beforeunload", warnBeforeLeaving);
+    };
+  }, [actionInProgress]);
+
   if (props.selectedItems.length === 0) {
     return <></>;
   }
@@ -294,13 +436,20 @@ const BulkUpdateForm: <T extends GenericObject>(
       return;
     }
 
+    // A Stop of its own for every run.
+    const stopController: AbortController = new AbortController();
+    stopControllerRef.current = stopController;
+
     const buttonClickObject: BulkActionOnClickProps<T> = {
       items: props.selectedItems,
+      stopSignal: stopController.signal,
       onProgressInfo: (info: ProgressInfo<T>) => {
         setProgressInfo(info);
       },
-      onBulkActionStart: () => {
+      onBulkActionStart: (options?: BulkActionStartOptions | undefined) => {
         setRunningAction(button);
+        setIsStoppable(Boolean(options?.isStoppable));
+        setIsStopping(false);
         setShowProgressInfoModal(true);
         setProgressInfo({
           inProgressItems: props.selectedItems,
@@ -381,12 +530,80 @@ const BulkUpdateForm: <T extends GenericObject>(
       progressInfo?.unchanged || [];
 
     if (actionInProgress && progressInfo) {
+      const timeLeft: string | undefined = isStopping
+        ? undefined
+        : getBulkTimeLeftText(progressInfo.estimatedTimeLeftInMs, translator);
+
+      /*
+       * What has happened so far, in the words the summary will use: a
+       * failure shows up while the run goes on, not only at its end.
+       */
+      const liveCounts: Array<{
+        key: string;
+        text: string;
+        dotClassName: string;
+      }> = [];
+
+      if (progressInfo.successItems.length > 0) {
+        liveCounts.push({
+          key: "succeeded",
+          text: translator.translatePlural(
+            runningAction?.resultLabels?.succeeded || BULK_SUCCEEDED_COUNT,
+            progressInfo.successItems.length,
+            {
+              count: translator.formatNumber(progressInfo.successItems.length),
+              itemName: itemTerm,
+              itemsName: itemsTerm,
+            },
+          ),
+          dotClassName: "bg-green-500",
+        });
+      }
+
+      if (unchangedItems.length > 0) {
+        liveCounts.push({
+          key: "unchanged",
+          text: translator.translatePlural(
+            BULK_UNCHANGED_COUNT,
+            unchangedItems.length,
+            {
+              count: translator.formatNumber(unchangedItems.length),
+              itemName: itemTerm,
+              itemsName: itemsTerm,
+            },
+          ),
+          dotClassName: "bg-gray-400",
+        });
+      }
+
+      if (progressInfo.failed.length > 0) {
+        liveCounts.push({
+          key: "failed",
+          text: translator.translatePlural(
+            runningAction?.resultLabels?.failed || BULK_FAILED_COUNT,
+            progressInfo.failed.length,
+            {
+              count: translator.formatNumber(progressInfo.failed.length),
+              itemName: itemTerm,
+              itemsName: itemsTerm,
+            },
+          ),
+          dotClassName: "bg-red-500",
+        });
+      }
+
+      let note: string = BULK_KEEP_PAGE_OPEN_NOT_STOPPABLE;
+
+      if (isStopping) {
+        note = BULK_STOPPING;
+      } else if (isStoppable) {
+        note = BULK_KEEP_PAGE_OPEN;
+      }
+
       return (
-        <div className="space-y-4">
-          <p className="text-sm text-gray-500">
-            {tx(
-              "Please wait while the bulk action is being performed. This may take a moment.",
-            )}
+        <div className="space-y-4" data-testid="bulk-action-in-progress">
+          <p className="text-sm text-gray-500" data-testid="bulk-action-note">
+            {tx(note)}
           </p>
           <ProgressBar
             count={
@@ -398,6 +615,48 @@ const BulkUpdateForm: <T extends GenericObject>(
             suffix={props.pluralLabel}
             size={ProgressBarSize.Small}
           />
+          {liveCounts.length > 0 || timeLeft ? (
+            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-xs text-gray-600">
+              <div
+                className="flex flex-wrap items-center gap-x-3 gap-y-1"
+                data-testid="bulk-action-live-counts"
+              >
+                {liveCounts.map(
+                  (liveCount: {
+                    key: string;
+                    text: string;
+                    dotClassName: string;
+                  }) => {
+                    return (
+                      <span
+                        key={liveCount.key}
+                        className="inline-flex items-center gap-1.5"
+                        data-testid={`bulk-action-live-${liveCount.key}`}
+                      >
+                        <span
+                          aria-hidden="true"
+                          className={`h-1.5 w-1.5 flex-shrink-0 rounded-full ${liveCount.dotClassName}`}
+                        />
+                        {liveCount.text}
+                      </span>
+                    );
+                  },
+                )}
+              </div>
+              {timeLeft ? (
+                <span
+                  className="text-gray-500"
+                  data-testid="bulk-action-time-left"
+                >
+                  {timeLeft}
+                </span>
+              ) : (
+                <></>
+              )}
+            </div>
+          ) : (
+            <></>
+          )}
         </div>
       );
     }
@@ -406,6 +665,7 @@ const BulkUpdateForm: <T extends GenericObject>(
       const hasFailures: boolean = progressInfo.failed.length > 0;
       const hasSuccesses: boolean = progressInfo.successItems.length > 0;
       const hasUnchanged: boolean = unchangedItems.length > 0;
+      const notStartedItems: Array<T> = progressInfo.notStartedItems || [];
       const resultDetails: ReactElement | undefined =
         runningAction?.resultDetails?.();
 
@@ -513,6 +773,34 @@ const BulkUpdateForm: <T extends GenericObject>(
               "bulk-action-unchanged-items",
             )}
 
+          {/*
+           * What a Stop left: a count, not a list - thousands of names that
+           * all say the same would bury the failures above.
+           */}
+          {notStartedItems.length > 0 && (
+            <div
+              className="flex items-center rounded-lg bg-gray-50 p-3"
+              data-testid="bulk-action-not-started-count"
+            >
+              <Icon
+                className="h-5 w-5 flex-shrink-0"
+                icon={IconProp.Stop}
+                color={Gray500}
+              />
+              <div className="ml-2 text-sm font-medium text-gray-800">
+                {translator.translatePlural(
+                  BULK_NOT_STARTED_COUNT,
+                  notStartedItems.length,
+                  {
+                    count: translator.formatNumber(notStartedItems.length),
+                    itemName: itemTerm,
+                    itemsName: itemsTerm,
+                  },
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Where to go next, when the action says (resultDetails). */}
           {resultDetails && (
             <div data-testid="bulk-action-result-details">{resultDetails}</div>
@@ -605,6 +893,31 @@ const BulkUpdateForm: <T extends GenericObject>(
         </div>
       </div>
     );
+  };
+
+  /*
+   * "In Progress" while it runs; at the end "Stopped" when a Stop left items
+   * not started, "Completed" otherwise - a Stop pressed as the last items
+   * finished left nothing out, and the run did complete.
+   */
+  const getProgressTitle: () => string = (): string => {
+    if (actionInProgress) {
+      return "In Progress";
+    }
+
+    if ((progressInfo?.notStartedItems || []).length > 0) {
+      return "Stopped";
+    }
+
+    return "Completed";
+  };
+
+  const getProgressButtonText: () => string = (): string => {
+    if (!actionInProgress || !isStoppable) {
+      return "Close";
+    }
+
+    return isStopping ? "Stopping…" : "Stop";
   };
 
   const menuChildren: Array<ReactElement> = [];
@@ -791,12 +1104,27 @@ const BulkUpdateForm: <T extends GenericObject>(
 
       {showProgressInfoModal && progressInfo && (
         <ConfirmModal
-          title={actionInProgress ? "In Progress" : "Completed"}
+          title={getProgressTitle()}
           description={<div>{showProgressInfo()}</div>}
           submitButtonType={ButtonStyleType.NORMAL}
-          disableSubmitButton={actionInProgress}
-          submitButtonText="Close"
+          /*
+           * While a run goes on, its one button is Stop - a run that cannot
+           * stop keeps Close, unavailable until it ends - and once it has
+           * ended, Close.
+           */
+          disableSubmitButton={
+            actionInProgress && (!isStoppable || isStopping)
+          }
+          submitButtonText={getProgressButtonText()}
           onSubmit={() => {
+            if (actionInProgress) {
+              if (isStoppable && !isStopping) {
+                setIsStopping(true);
+                stopControllerRef.current?.abort();
+              }
+              return;
+            }
+
             setShowProgressInfoModal(false);
             if (props.onActionEnd) {
               props.onActionEnd();

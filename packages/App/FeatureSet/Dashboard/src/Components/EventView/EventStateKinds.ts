@@ -18,6 +18,7 @@ import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintena
 import ScheduledMaintenanceNoteTemplate from "Common/Models/DatabaseModels/ScheduledMaintenanceNoteTemplate";
 import ScheduledMaintenancePublicNote from "Common/Models/DatabaseModels/ScheduledMaintenancePublicNote";
 import ScheduledMaintenanceStateTimeline from "Common/Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
+import { BULK_ACTION_CONCURRENCY } from "Common/UI/Components/BulkUpdate/BulkActionRunner";
 import {
   PluralTemplate,
   translationKey,
@@ -99,6 +100,18 @@ export interface EventStateKindDefinition {
    * change is built per incident (buildIncidentBulkStateChange).
    */
   hasPerEventPrivacy: boolean;
+  /*
+   * How many records a bulk move changes at once. Each is still its own
+   * state timeline row, written through the API as one row's move is.
+   * Incidents, alerts and episodes: BULK_ACTION_CONCURRENCY - a change locks
+   * its own record, and what it touches beyond it is either locked per
+   * record too (an alert an incident carries along) or decided again by
+   * every change (a monitor goes back to operational once no open incident
+   * holds it). Scheduled maintenance: one at a time - starting and ending an
+   * event pauses and resumes the monitors and recomputes the network sites
+   * it shares with other events.
+   */
+  bulkConcurrency: number;
   quickMoves: Array<EventStateQuickMove>;
   quickMoveWords: Partial<
     Record<EventStateQuickMove, EventStateQuickMoveWords>
@@ -225,6 +238,7 @@ export const EVENT_STATE_KINDS: Record<
     noteType: BulkStateChangeNoteType.Public,
     notifiesSubscribers: true,
     hasPerEventPrivacy: true,
+    bulkConcurrency: BULK_ACTION_CONCURRENCY,
     quickMoves: [EventStateQuickMove.Acknowledge, EventStateQuickMove.Resolve],
     quickMoveWords: {
       [EventStateQuickMove.Acknowledge]: {
@@ -270,6 +284,7 @@ export const EVENT_STATE_KINDS: Record<
     noteType: BulkStateChangeNoteType.Private,
     notifiesSubscribers: false,
     hasPerEventPrivacy: false,
+    bulkConcurrency: BULK_ACTION_CONCURRENCY,
     quickMoves: [EventStateQuickMove.Acknowledge, EventStateQuickMove.Resolve],
     quickMoveWords: {
       [EventStateQuickMove.Acknowledge]: {
@@ -312,6 +327,7 @@ export const EVENT_STATE_KINDS: Record<
     noteType: BulkStateChangeNoteType.Private,
     notifiesSubscribers: false,
     hasPerEventPrivacy: false,
+    bulkConcurrency: BULK_ACTION_CONCURRENCY,
     quickMoves: [EventStateQuickMove.Acknowledge, EventStateQuickMove.Resolve],
     quickMoveWords: {
       [EventStateQuickMove.Acknowledge]: {
@@ -357,6 +373,7 @@ export const EVENT_STATE_KINDS: Record<
     noteType: BulkStateChangeNoteType.Private,
     notifiesSubscribers: false,
     hasPerEventPrivacy: false,
+    bulkConcurrency: BULK_ACTION_CONCURRENCY,
     quickMoves: [EventStateQuickMove.Acknowledge, EventStateQuickMove.Resolve],
     quickMoveWords: {
       [EventStateQuickMove.Acknowledge]: {
@@ -402,6 +419,7 @@ export const EVENT_STATE_KINDS: Record<
     noteType: BulkStateChangeNoteType.Public,
     notifiesSubscribers: true,
     hasPerEventPrivacy: false,
+    bulkConcurrency: 1,
     quickMoves: [EventStateQuickMove.Start, EventStateQuickMove.End],
     quickMoveWords: {
       [EventStateQuickMove.Start]: {

@@ -2131,6 +2131,37 @@ ${FeedMarkdown.asMarkdown(alert.remediationNotes || "No remediation notes provid
           idBeforeUpdate: severityIdsBeforeUpdate[alertId.toString()],
         });
 
+        /*
+         * What the update changed of the title, root cause, description,
+         * remediation notes, labels and Send reminders switch, against what
+         * the alert held before the write (recordStoredValuesBeforeUpdate).
+         * An alert the read did not see counts as changed.
+         */
+        const fieldChanges: EventFieldSet = EventFieldChange.getChanges({
+          written: onUpdate.updateBy.data as unknown as Record<string, unknown>,
+          valuesBeforeUpdate: valuesBeforeUpdate[alertId.toString()],
+        });
+
+        const monitorChange: AlertMonitorChange | undefined =
+          monitorChanges[alertId.toString()];
+
+        /*
+         * Nothing below follows from this update for this alert: it changed
+         * no text, label or reminders switch, no severity and no monitor -
+         * it wrote the alert's state, say, which the alert's own timeline
+         * records. No feed entry, and no reminder, investigation or on-call
+         * rule to match again, so the alert is not read for one. Every state
+         * change comes here (StateChangeFollowOn), and a bulk Resolve of
+         * thousands of alerts used to read each one again for nothing.
+         */
+        if (
+          !isSeverityChanged &&
+          !monitorChange &&
+          !EventFieldChange.isAnySet(fieldChanges)
+        ) {
+          continue;
+        }
+
         const alert: Model | null = await this.findOneById({
           id: alertId,
           select: {
@@ -2153,17 +2184,6 @@ ${FeedMarkdown.asMarkdown(alert.remediationNotes || "No remediation notes provid
 
         const createdByUserId: ObjectID | undefined | null =
           onUpdate.updateBy.props.userId;
-
-        /*
-         * What the update changed of the title, root cause, description,
-         * remediation notes, labels and Send reminders switch, against what
-         * the alert held before the write (recordStoredValuesBeforeUpdate).
-         * An alert the read did not see counts as changed.
-         */
-        const fieldChanges: EventFieldSet = EventFieldChange.getChanges({
-          written: onUpdate.updateBy.data as unknown as Record<string, unknown>,
-          valuesBeforeUpdate: valuesBeforeUpdate[alertId.toString()],
-        });
 
         /*
          * A line for each of the title, root cause, description, remediation
@@ -2208,9 +2228,6 @@ ${alertSeverity.name}
             shouldAddAlertFeed = true;
           }
         }
-
-        const monitorChange: AlertMonitorChange | undefined =
-          monitorChanges[alertId.toString()];
 
         if (monitorChange) {
           feedInfoInMarkdown += await this.getMonitorChangeFeedMarkdown({
