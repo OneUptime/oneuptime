@@ -879,10 +879,10 @@ describe("choosing the hosts", () => {
       "text-amber-700",
     );
     expect(screen.getByRole("button", { name: "Next" })).toBeDisabled();
-    // A Next that cannot be pressed looks it.
+    // A Next that cannot be pressed looks it: Button's disabled look.
     expect(screen.getByRole("button", { name: "Next" })).toHaveClass(
-      "disabled:opacity-50",
-      "disabled:cursor-not-allowed",
+      "opacity-50",
+      "cursor-not-allowed",
     );
     // Fifty rows at a time, however large the scan.
     expect(screen.getAllByTestId(/^discovered-host-row-/)).toHaveLength(50);

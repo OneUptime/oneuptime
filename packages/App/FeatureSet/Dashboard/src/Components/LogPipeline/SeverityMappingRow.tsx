@@ -105,6 +105,7 @@ const SeverityMappingRow: FunctionComponent<ComponentProps> = (
 
       <div className="col-span-1 flex justify-end">
         <Button
+          ariaLabel="Remove"
           icon={IconProp.Trash}
           buttonStyle={ButtonStyleType.DANGER_OUTLINE}
           buttonSize={ButtonSize.Small}

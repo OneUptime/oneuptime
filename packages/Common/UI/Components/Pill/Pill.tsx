@@ -47,9 +47,18 @@ export interface ComponentProps {
 /*
  * Spacing is in em, so each size is the same pill scaled: a Small pill in a
  * dense table and an ExtraLarge one in a page header keep their proportions.
+ *
+ * Every pill in the product is this one shape - a label, a state, a yes/no
+ * (Detail/BooleanValue) and a choice (Dropdown/DropdownValueBadge) - so a
+ * card that shows all of them shows one pill, not three: the yes/no was a
+ * 14px pill and a choice a 12px rounded-corner badge beside 13px labels.
  */
-const PILL_CLASS_NAME: string =
+export const PILL_CLASS_NAME: string =
   "inline-flex max-w-full items-center gap-[0.4em] rounded-full px-[0.6em] py-[0.2em] font-medium leading-[1.35]";
+
+// Its dot: half its text's size, the colour itself.
+export const PILL_DOT_CLASS_NAME: string =
+  "h-[0.5em] w-[0.5em] flex-shrink-0 rounded-full";
 
 /*
  * A pill whose words may run onto a next line: its dot on the first line,
@@ -132,7 +141,7 @@ const Pill: FunctionComponent<ComponentProps> = (
           <span
             data-testid="pill-dot"
             data-ou-pill-dot=""
-            className={`h-[0.5em] w-[0.5em] flex-shrink-0 rounded-full${
+            className={`${PILL_DOT_CLASS_NAME}${
               props.isWrapping ? ` ${WRAPPING_PILL_DOT_CLASS_NAME}` : ""
             }`}
             style={getPillDotStyle(colors)}

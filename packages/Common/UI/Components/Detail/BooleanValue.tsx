@@ -1,3 +1,12 @@
+import { Gray500, Green500 } from "../../../Types/BrandColors";
+import Color from "../../../Types/Color";
+import { PILL_CLASS_NAME, PILL_DOT_CLASS_NAME, PillSize } from "../Pill/Pill";
+import {
+  getPillColors,
+  getPillDotStyle,
+  getPillToneStyle,
+  PillColors,
+} from "../Pill/PillColors";
 import { Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -8,12 +17,16 @@ import React, { FunctionComponent, ReactElement } from "react";
  * it; a summary element of its own that still needs to say whether a box was
  * ticked uses it too, so the two cannot drift apart.
  *
- * As tall as a value's line (24px: py-0.5 round text-sm's 20px), so a row of
- * a detail card holding a yes/no is as tall as one holding text, and the
- * word sits level with the values beside it - top to top on the value's
- * line (align-top), not on its baseline. At py-1 the pill was 28px: its row
- * 4px taller than the others, its word lower than its neighbours'.
+ * It is the product's one pill (Pill's shape, size and colours, worked out
+ * from green and grey as a state's are), so a card that shows a yes/no
+ * beside labels and a choice shows one kind of pill. Top to top on the
+ * value's 24px line (align-top), so a row holding a yes/no is as tall as
+ * one holding text, and its word sits level with the values beside it.
  */
+
+export const BOOLEAN_YES_COLOR: Color = Green500;
+
+export const BOOLEAN_NO_COLOR: Color = Gray500;
 
 export interface ComponentProps {
   value: boolean;
@@ -24,26 +37,25 @@ const BooleanValue: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
-
-  if (props.value) {
-    return (
-      <span
-        data-testid={props.dataTestId}
-        className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-green-50 text-green-700 text-sm font-medium align-top"
-      >
-        <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-        {translator.translateText("Yes")}
-      </span>
-    );
-  }
+  const colors: PillColors = getPillColors(
+    props.value ? BOOLEAN_YES_COLOR : BOOLEAN_NO_COLOR,
+  );
 
   return (
     <span
       data-testid={props.dataTestId}
-      className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-gray-100 text-gray-600 text-sm font-medium align-top"
+      data-ou-pill=""
+      data-boolean-value={props.value ? "yes" : "no"}
+      className={`${PILL_CLASS_NAME} align-top`}
+      style={{ fontSize: PillSize.Normal, ...getPillToneStyle(colors) }}
     >
-      <span className="w-1.5 h-1.5 rounded-full bg-gray-400"></span>
-      {translator.translateText("No")}
+      <span
+        aria-hidden="true"
+        data-ou-pill-dot=""
+        className={PILL_DOT_CLASS_NAME}
+        style={getPillDotStyle(colors)}
+      ></span>
+      {translator.translateText(props.value ? "Yes" : "No")}
     </span>
   );
 };

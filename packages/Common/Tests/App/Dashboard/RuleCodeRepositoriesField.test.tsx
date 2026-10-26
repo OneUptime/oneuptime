@@ -168,22 +168,29 @@ function placeholder(): string {
 
 // The chips of the repositories picked, in order (EntityDropdown's chip row).
 function chips(): Array<Element> {
-  return Array.from(picker().querySelectorAll("div.flex-wrap > span"));
+  return Array.from(
+    picker().querySelectorAll('[data-testid="entity-dropdown-chip"]'),
+  );
+}
+
+// A chip's name: the whole of it, as the chip shows it.
+function chipName(chip: Element): string {
+  return (
+    chip.querySelector('[data-testid="entity-dropdown-chip-label"]')
+      ?.textContent || ""
+  ).trim();
 }
 
 function picked(): Array<string> {
   return chips().map((chip: Element): string => {
-    return (chip.querySelector("span.truncate")?.textContent || "").trim();
+    return chipName(chip);
   });
 }
 
 // Takes a picked repository out with its chip's own button.
 function removeChip(name: string): void {
   const chip: Element | undefined = chips().find((candidate: Element) => {
-    return (
-      (candidate.querySelector("span.truncate")?.textContent || "").trim() ===
-      name
-    );
+    return chipName(candidate) === name;
   });
 
   expect(chip).toBeDefined();

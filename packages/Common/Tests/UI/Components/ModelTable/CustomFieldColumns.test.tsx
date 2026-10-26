@@ -94,11 +94,14 @@ type GetBadgeLabelsFunction = (container: HTMLElement) => Array<string>;
 const getBadgeLabels: GetBadgeLabelsFunction = (
   container: HTMLElement,
 ): Array<string> => {
-  return Array.from(container.querySelectorAll("span.bg-indigo-50")).map(
-    (element: Element): string => {
-      return (element.textContent || "").trim();
-    },
-  );
+  // The badges drawn in the product's indigo: those with no colour of their own.
+  return Array.from(
+    container.querySelectorAll(
+      '[data-dropdown-value-badge="true"]:not([data-dropdown-value-color])',
+    ),
+  ).map((element: Element): string => {
+    return (element.textContent || "").trim();
+  });
 };
 
 type GetPlaceholderFunction = (container: HTMLElement) => Element | null;

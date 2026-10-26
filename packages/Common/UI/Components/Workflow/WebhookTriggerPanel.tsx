@@ -181,12 +181,6 @@ const WebhookTriggerPanel: FunctionComponent<ComponentProps> = (
     props.onResetUrl && !props.resetDisabledReason,
   );
 
-  /*
-   * Button keeps an outline button's colours when it is disabled, so a reset
-   * this user may not make would look like one they can. The tooltip says why.
-   */
-  const disabledLook: string = canReset ? "" : "opacity-50";
-
   type ChangeUrlFunction = () => Promise<boolean>;
 
   // Resolves whether the new key was saved; a failure is left in resetError.
@@ -271,7 +265,7 @@ const WebhookTriggerPanel: FunctionComponent<ComponentProps> = (
               icon={IconProp.Add}
               buttonStyle={ButtonStyleType.OUTLINE}
               buttonSize={ButtonSize.Small}
-              className={`shrink-0 self-start sm:self-auto ${disabledLook}`}
+              className="shrink-0 self-start sm:self-auto"
               dataTestId="webhook-trigger-create-url"
               isLoading={isResetting}
               disabled={!canReset}
@@ -505,7 +499,7 @@ const WebhookTriggerPanel: FunctionComponent<ComponentProps> = (
             icon={IconProp.Refresh}
             buttonStyle={ButtonStyleType.DANGER_OUTLINE}
             buttonSize={ButtonSize.Small}
-            className={`shrink-0 self-start sm:self-auto ${disabledLook}`}
+            className="shrink-0 self-start sm:self-auto"
             dataTestId="webhook-trigger-reset-url"
             disabled={!canReset}
             tooltip={props.resetDisabledReason}

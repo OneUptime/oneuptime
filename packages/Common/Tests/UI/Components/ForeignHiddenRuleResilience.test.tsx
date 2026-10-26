@@ -573,7 +573,11 @@ describe("Shared components under a foreign .hidden rule", () => {
     };
 
     test("is on screen from 768px up with the rule, and still off screen below it", () => {
-      render(<Card title="Monitors" description="Every monitor you own." />);
+      render(
+        <Card title="Monitors" description="Every monitor you own.">
+          <div>The monitors</div>
+        </Card>,
+      );
 
       const description: HTMLElement = screen.getByTestId("card-description");
 
@@ -585,7 +589,11 @@ describe("Shared components under a foreign .hidden rule", () => {
     });
 
     test("control: the pre-fix description class is gone under the rule", () => {
-      render(<Card title="Monitors" description="Every monitor you own." />);
+      render(
+        <Card title="Monitors" description="Every monitor you own.">
+          <div>The monitors</div>
+        </Card>,
+      );
 
       expectPreFixMarkupLostToForeignRule(
         screen.getByTestId("card-description"),

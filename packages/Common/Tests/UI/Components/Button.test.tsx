@@ -242,49 +242,52 @@ const ALL_BUTTON_STYLES: Array<[string, ButtonStyleType]> = Object.keys(
 
 describe("Button disabled styling", () => {
   /*
-   * The regression this suite exists for: the disabled background used to be
-   * appended alongside the enabled one, and Tailwind emits .bg-indigo-300
-   * before .bg-indigo-600, so the enabled colour won the cascade and every
-   * disabled primary button rendered at full saturation.
+   * A locked button keeps its own fill and fades as a whole. The filled
+   * styles used to swap their fill for a paler one (bg-indigo-300,
+   * bg-red-300) - appended beside the enabled one at first, where Tailwind's
+   * order let the enabled colour win - and in the dark theme that paler fill
+   * was a bright block, brighter than the button it stood for.
    */
-  test("disabled PRIMARY does not carry the enabled background class", () => {
+  test("disabled PRIMARY keeps its own fill, once, and fades", () => {
     const button: HTMLElement = renderButton({
       buttonStyle: ButtonStyleType.PRIMARY,
       disabled: true,
     });
 
-    expect(button).not.toHaveClass("bg-indigo-600");
-    expect(button).toHaveClass("bg-indigo-300");
+    expect(button).toHaveClass("bg-indigo-600", "opacity-50");
+    expect(button).not.toHaveClass("bg-indigo-300");
+    expect(button).not.toHaveClass("hover:bg-indigo-700");
   });
 
-  test("disabled SECONDARY does not carry the enabled background class", () => {
+  test("disabled SECONDARY keeps its own light fill and fades, never darker than enabled", () => {
     const button: HTMLElement = renderButton({
       buttonStyle: ButtonStyleType.SECONDARY,
       disabled: true,
     });
 
-    expect(button).not.toHaveClass("bg-indigo-100");
-    expect(button).toHaveClass("bg-indigo-300");
+    expect(button).toHaveClass("bg-indigo-100", "opacity-50");
+    expect(button).not.toHaveClass("bg-indigo-300");
+    expect(button).not.toHaveClass("hover:bg-indigo-200");
   });
 
-  test("enabled PRIMARY keeps the enabled background and no disabled background", () => {
+  test("enabled PRIMARY keeps its fill and its hover, and does not fade", () => {
     const button: HTMLElement = renderButton({
       buttonStyle: ButtonStyleType.PRIMARY,
       disabled: false,
     });
 
-    expect(button).toHaveClass("bg-indigo-600");
-    expect(button).not.toHaveClass("bg-indigo-300");
+    expect(button).toHaveClass("bg-indigo-600", "hover:bg-indigo-700");
+    expect(button).not.toHaveClass("opacity-50");
   });
 
-  test("enabled SECONDARY keeps the enabled background and no disabled background", () => {
+  test("enabled SECONDARY keeps its fill and its hover, and does not fade", () => {
     const button: HTMLElement = renderButton({
       buttonStyle: ButtonStyleType.SECONDARY,
       disabled: false,
     });
 
-    expect(button).toHaveClass("bg-indigo-100");
-    expect(button).not.toHaveClass("bg-indigo-300");
+    expect(button).toHaveClass("bg-indigo-100", "hover:bg-indigo-200");
+    expect(button).not.toHaveClass("opacity-50");
   });
 
   test("an omitted disabled prop styles PRIMARY as enabled", () => {
@@ -293,7 +296,7 @@ describe("Button disabled styling", () => {
     });
 
     expect(button).toHaveClass("bg-indigo-600");
-    expect(button).not.toHaveClass("bg-indigo-300");
+    expect(button).not.toHaveClass("opacity-50");
   });
 
   test("an omitted disabled prop styles SECONDARY as enabled", () => {
@@ -302,7 +305,7 @@ describe("Button disabled styling", () => {
     });
 
     expect(button).toHaveClass("bg-indigo-100");
-    expect(button).not.toHaveClass("bg-indigo-300");
+    expect(button).not.toHaveClass("opacity-50");
   });
 
   test.each(ALL_BUTTON_STYLES)(
@@ -338,15 +341,15 @@ describe("Button disabled styling", () => {
     },
   );
 
-  const DIMMING_STYLES: Array<[string, ButtonStyleType]> = [
+  const FILLED_STYLES: Array<[string, ButtonStyleType]> = [
     ["PRIMARY", ButtonStyleType.PRIMARY],
     ["SECONDARY", ButtonStyleType.SECONDARY],
     // A Delete still waiting to know what it would change.
     ["DANGER", ButtonStyleType.DANGER],
   ];
 
-  test.each(DIMMING_STYLES)(
-    "%s resolves to a different background when disabled",
+  test.each(FILLED_STYLES)(
+    "%s keeps the same fill when disabled, and fades instead",
     (_name: string, buttonStyle: ButtonStyleType) => {
       type BackgroundOfFunction = (disabled: boolean) => string | undefined;
 
@@ -364,8 +367,11 @@ describe("Button disabled styling", () => {
       const disabled: string | undefined = backgroundOf(true);
 
       expect(enabled).toBeDefined();
-      expect(disabled).toBeDefined();
-      expect(disabled).not.toBe(enabled);
+      expect(disabled).toBe(enabled);
+      expect(renderButton({ buttonStyle, disabled: true })).toHaveClass(
+        "opacity-50",
+        "cursor-not-allowed",
+      );
     },
   );
 });
@@ -418,7 +424,7 @@ describe("Button class list composition", () => {
     });
 
     expect(button).toHaveClass("my-custom-class");
-    expect(button).toHaveClass("bg-indigo-300");
+    expect(button).toHaveClass("bg-indigo-600", "opacity-50");
   });
 
   test("every style resolves to a non-empty class list in both states", () => {
