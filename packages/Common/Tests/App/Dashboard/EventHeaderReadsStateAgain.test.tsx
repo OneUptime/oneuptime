@@ -74,7 +74,9 @@ import UserUtil from "../../../UI/Utils/User";
  * answers "Already acknowledged" (usePassOnPage's onRecordChanged), and the
  * header still offered Acknowledge for a record already taken (#4914). The
  * page bumps the header's refreshToken; the header reads the timeline again,
- * quietly - it stays on screen, and does not read the states again.
+ * quietly - it stays on screen, and does not read the states again. A read
+ * that fails keeps the header as it was, buttons and all: an error in its
+ * place would take away a header that was fine.
  */
 
 const PROJECT_ID: string = "22222222-2222-4222-8222-222222222222";
@@ -158,6 +160,9 @@ let reads: Record<string, number> = {};
 // The record's path through its states, as the timeline answers now.
 let path: Array<string> = [CREATED];
 
+// Whether a read of the timeline fails now.
+let isTimelineDown: boolean = false;
+
 // The project's states, and the flag that marks each.
 interface StateSpec {
   id: string;
@@ -202,6 +207,18 @@ function respond(kind: HeaderKind): void {
     if (request.modelType === kind.timelineModel) {
       reads["timeline"] = (reads["timeline"] || 0) + 1;
 
+      /*
+       * A read that fails is an async function that throws, not
+       * Promise.reject: the header's imports load zone.js, whose patched
+       * Promise reports a rejected one as unhandled although the header
+       * catches it.
+       */
+      if (isTimelineDown) {
+        return (async (): Promise<never> => {
+          throw new Error("Network Error");
+        })();
+      }
+
       return Promise.resolve(
         listResult(
           path.map(
@@ -235,6 +252,7 @@ function respond(kind: HeaderKind): void {
 beforeEach(() => {
   reads = {};
   path = [CREATED];
+  isTimelineDown = false;
   PermissionGate.clearPermissionPropsCache();
 
   const project: Project = new Project();
@@ -283,6 +301,43 @@ describe.each(KINDS)("the $noun header", (kind: HeaderKind) => {
 
     // Only the timeline is read again: the states are as they were.
     expect(reads).toEqual({ states: 1, timeline: 2 });
+  });
+
+  test("a read again that fails keeps the header as it was, buttons and all - no error in its place", async () => {
+    respond(kind);
+
+    const view: ReturnType<typeof render> = render(kind.element(0));
+    await screen.findByRole("heading", { level: 2, name: TITLE });
+    expect(document.getElementById(kind.acknowledgeId)).not.toBeNull();
+
+    isTimelineDown = true;
+    view.rerender(kind.element(1));
+
+    await waitFor(() => {
+      expect(reads["timeline"]).toBe(2);
+    });
+    // Every promise the failed read set off has settled.
+    await act(async () => {
+      await new Promise((resolve: (value: unknown) => void) => {
+        setTimeout(resolve, 0);
+      });
+    });
+
+    expect(
+      screen.getByRole("heading", { level: 2, name: TITLE }),
+    ).toBeInTheDocument();
+    expect(document.getElementById(kind.acknowledgeId)).not.toBeNull();
+    expect(screen.queryByText("Network Error")).toBeNull();
+
+    // The next bump reads it again, and the header follows.
+    isTimelineDown = false;
+    path = [CREATED, ACKNOWLEDGED];
+    view.rerender(kind.element(2));
+
+    await waitFor(() => {
+      expect(document.getElementById(kind.acknowledgeId)).toBeNull();
+    });
+    expect(reads).toEqual({ states: 1, timeline: 3 });
   });
 
   test("a render with the same token reads nothing again", async () => {

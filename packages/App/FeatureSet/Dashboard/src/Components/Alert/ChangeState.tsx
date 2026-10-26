@@ -264,7 +264,12 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
     number | undefined
   >(props.refreshToken);
 
-  // Read the state again, quietly, when the page says it changed.
+  /*
+   * Read the state again, quietly, when the page says it changed. A read
+   * that fails keeps the header as it was - its buttons still work, and
+   * the server refuses what the record no longer allows - rather than
+   * taking it down for an error in place of a header that was fine.
+   */
   useEffect(() => {
     if (lastRefreshTokenRef.current === props.refreshToken) {
       return;
@@ -272,8 +277,8 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
 
     lastRefreshTokenRef.current = props.refreshToken;
 
-    fetchAlertStateTimelines().catch((err: unknown) => {
-      setError(API.getFriendlyMessage(err as Exception));
+    fetchAlertStateTimelines().catch(() => {
+      // Kept as it was: see above.
     });
   }, [props.refreshToken]);
 
