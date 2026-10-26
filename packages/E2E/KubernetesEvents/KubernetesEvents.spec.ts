@@ -1761,7 +1761,9 @@ test.describe("being told when Kubernetes warns", () => {
  * one of the rows its list shows: the list's entry stays lit there, says so
  * to a screen reader (aria-current="true": it holds the page), opens its
  * section if it is folded, and names the phone's button. The trail's last
- * crumb reads in the reader's language ("Knotendetails").
+ * crumb reads in the reader's language ("Knotendetails"). In a menu taller
+ * than the window the lit entry comes into sight with the next one past
+ * it, and the list fades out over the entries it scrolled out of sight.
  */
 test.describe("a cluster's own pages in its side menu", () => {
   function clusterMenu(page: Page): Locator {
@@ -1789,7 +1791,7 @@ test.describe("a cluster's own pages in its side menu", () => {
     ).toHaveText("Node Detail");
   });
 
-  test("on an HPA's page in a short window, the folded Scaling opens and HPAs is lit, in sight inside the long menu", async ({
+  test("on an HPA's page in a short window, the folded Scaling opens and HPAs is lit, in sight inside the long menu with VPAs past it", async ({
     page,
   }: {
     page: Page;
@@ -1809,22 +1811,34 @@ test.describe("a cluster's own pages in its side menu", () => {
     ).toHaveAttribute("aria-expanded", "true");
 
     const list: Locator = menu.locator("nav");
+    const isInSight: (href: string) => Promise<boolean> = async (
+      href: string,
+    ): Promise<boolean> => {
+      return await list.evaluate((element: Element, link: string): boolean => {
+        const target: Element | null = element.querySelector(
+          `a[href='${link}']`,
+        );
+        if (!target) {
+          return false;
+        }
+        const listBox: DOMRect = element.getBoundingClientRect();
+        const box: DOMRect = target.getBoundingClientRect();
+        return (
+          box.top >= Math.max(listBox.top, 0) &&
+          box.bottom <= Math.min(listBox.bottom, window.innerHeight)
+        );
+      }, href);
+    };
+
     await expect
       .poll(async (): Promise<boolean> => {
-        return await list.evaluate((element: Element): boolean => {
-          const lit: Element | null = element.querySelector("[aria-current]");
-          if (!lit) {
-            return false;
-          }
-          const listBox: DOMRect = element.getBoundingClientRect();
-          const litBox: DOMRect = lit.getBoundingClientRect();
-          return (
-            litBox.top >= Math.max(listBox.top, 0) &&
-            litBox.bottom <= Math.min(listBox.bottom, window.innerHeight)
-          );
-        });
+        return await isInSight(`${CLUSTER_PATH}/hpas`);
       })
       .toBe(true);
+    // The next entry is in sight past it: the list goes on.
+    expect(await isInSight(`${CLUSTER_PATH}/vpas`)).toBe(true);
+    // The entries scrolled out of sight above fade out at the list's top.
+    await expect(list).toHaveAttribute("data-hidden-top", "true");
     expect(
       await page.evaluate((): number => {
         return window.scrollY;

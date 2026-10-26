@@ -50,6 +50,64 @@ export function getDrawnLanguage(data: {
 }
 
 /*
+ * The shortest word a menu hyphenates. The narrowest menu (a 768 to 1023
+ * pixel window) gives a title about 120 pixels beside a badge, some sixteen
+ * letters, so a shorter word always has a line to itself and moves there
+ * whole. A longer one may not fit any line: a German compound
+ * ("Benachrichtigungsprotokolle", Notification Logs) is hyphenated where its
+ * language breaks it rather than cut at the menu's edge.
+ */
+export const SIDE_MENU_HYPHENATED_WORD_LENGTH: number = 14;
+
+// Where a title's words end: spaces, and the hyphens inside a compound.
+const WORD_SEPARATOR: RegExp = /[\s\-‐]+/u;
+
+// A word longer than the line breaks at the line's edge rather than spill.
+export const SIDE_MENU_WORDS_CLASS_NAME: string = "break-words";
+
+/*
+ * ...and one that may be hyphenated: in its language (hyphens: auto), and
+ * only inside a word SIDE_MENU_HYPHENATED_WORD_LENGTH letters long or more,
+ * five of them either side of the hyphen (hyphenate-limit-chars, which
+ * Safari does not read yet).
+ */
+export const SIDE_MENU_HYPHENATED_WORDS_CLASS_NAME: string =
+  "break-words hyphens-auto [hyphenate-limit-chars:14_5_5]";
+
+/*
+ * How a menu's words may break when a title or a section heading does not
+ * fit on one line. Between words always, and inside a word only when the
+ * title is in the reader's language (`lang`: getDrawnLanguage) and holds a
+ * word SIDE_MENU_HYPHENATED_WORD_LENGTH letters long or more - and then only
+ * inside such a word (hyphenate-limit-chars).
+ *
+ * Chrome hyphenates only a word that does not fit a line of its own, but
+ * Firefox and Safari hyphenate whatever word ends a line: the French Burn
+ * Rate Rules read "Règles de taux de consom- / mation" in Firefox, and the
+ * German Incoming Call Policies "Richtlinien für einge- / hende Anrufe",
+ * where the word fits whole on the next line. English, the words the page
+ * itself is in, is never hyphenated: its titles were written to fit.
+ */
+export function getMenuWordsBreakClassName(data: {
+  text: string | undefined;
+  lang: string | undefined;
+}): string {
+  if (!data.lang || !data.text) {
+    return SIDE_MENU_WORDS_CLASS_NAME;
+  }
+
+  const hasLongWord: boolean = data.text
+    .split(WORD_SEPARATOR)
+    .some((word: string): boolean => {
+      return Array.from(word).length >= SIDE_MENU_HYPHENATED_WORD_LENGTH;
+    });
+
+  return hasLongWord
+    ? SIDE_MENU_HYPHENATED_WORDS_CLASS_NAME
+    : SIDE_MENU_WORDS_CLASS_NAME;
+}
+
+/*
  * The page a link leads to, without the query or fragment it carries: an
  * entry whose link also resets a page's state - the network map's
  * "/network/map?site=" - still leads to that page.

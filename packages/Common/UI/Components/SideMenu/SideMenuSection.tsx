@@ -2,7 +2,10 @@ import Icon from "../Icon/Icon";
 import useTranslateValue from "../../Utils/Translation";
 import IconProp from "../../../Types/Icon/IconProp";
 import { startsCollapsed } from "./SideMenuSectionState";
-import { getDrawnLanguage } from "./SideMenuEntryState";
+import {
+  getDrawnLanguage,
+  getMenuWordsBreakClassName,
+} from "./SideMenuEntryState";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -63,6 +66,11 @@ const SideMenuSection: FunctionComponent<ComponentProps> = (
     }),
   );
   const translatedTitle: string = translateString(props.title) || props.title;
+  const titleLanguage: string | undefined = getDrawnLanguage({
+    english: props.title,
+    drawn: translatedTitle,
+    language: language,
+  });
   const bodyId: string = `side-menu-section-${useId()}`;
 
   const isCollapsible: boolean = props.collapsible ?? true;
@@ -89,7 +97,8 @@ const SideMenuSection: FunctionComponent<ComponentProps> = (
    * Drawn whole, on a second line when it needs one: cut to one line, the
    * German "Benachrichtigungsprotokolle" (Notification Logs) read
    * "BENACHRICHTIGUNGSPROT…". A word longer than the line is hyphenated in
-   * its language (getDrawnLanguage), or else breaks at its edge. The lines
+   * its language (getDrawnLanguage, getMenuWordsBreakClassName), or else
+   * breaks at its edge; a shorter one moves to the next line whole. The lines
    * start at the heading's start (a <button> centres its text), and the
    * icon and the chevron stay level with the first line, so a heading of
    * one line is drawn as before.
@@ -103,12 +112,11 @@ const SideMenuSection: FunctionComponent<ComponentProps> = (
         />
       )}
       <h6
-        className="min-w-0 break-words hyphens-auto text-start text-xs font-semibold uppercase tracking-wider text-gray-400"
-        lang={getDrawnLanguage({
-          english: props.title,
-          drawn: translatedTitle,
-          language: language,
-        })}
+        className={`min-w-0 ${getMenuWordsBreakClassName({
+          text: translatedTitle,
+          lang: titleLanguage,
+        })} text-start text-xs font-semibold uppercase tracking-wider text-gray-400`}
+        lang={titleLanguage}
       >
         {translatedTitle}
       </h6>

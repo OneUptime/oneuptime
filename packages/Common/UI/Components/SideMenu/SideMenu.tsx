@@ -9,8 +9,18 @@ import React, {
   useEffect,
 } from "react";
 import PageTrailEndContext from "../Page/PageTrailEnd";
-import { fitSideMenuCard, revealCurrentSideMenuEntry } from "./SideMenuScroll";
-import { getDrawnLanguage } from "./SideMenuEntryState";
+import {
+  fitSideMenuCard,
+  getSideMenuFadeClassName,
+  revealCurrentSideMenuEntry,
+  SIDE_MENU_SCROLL_PADDING_CLASS_NAME,
+  SideMenuHiddenEdges,
+} from "./SideMenuScroll";
+import {
+  getDrawnLanguage,
+  getMenuWordsBreakClassName,
+} from "./SideMenuEntryState";
+import useSideMenuHiddenEdges from "./UseSideMenuHiddenEdges";
 import Icon from "../Icon/Icon";
 import IconProp from "../../../Types/Icon/IconProp";
 import useComponentOutsideClick from "../../Types/UseComponentOutsideClick";
@@ -186,6 +196,19 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
   useEffect(() => {
     setIsMobileMenuVisible(isMobileMenuOpen);
   }, [isMobileMenuOpen]);
+
+  /*
+   * The edges of each list with entries behind them, which fade out
+   * (SideMenuScroll): the desktop menu's, and the phone menu's while open.
+   */
+  const desktopList: {
+    hiddenEdges: SideMenuHiddenEdges;
+    onScroll: () => void;
+  } = useSideMenuHiddenEdges(desktopListRef, !isMobile);
+  const mobileList: {
+    hiddenEdges: SideMenuHiddenEdges;
+    onScroll: () => void;
+  } = useSideMenuHiddenEdges(mobileListRef, isMobile && isMobileMenuVisible);
 
   // Check if we're on mobile
   useEffect(() => {
@@ -429,10 +452,25 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     : pageTrailEnd
       ? pageTrailEnd.recordName || pageTrailEnd.title
       : "Navigation";
+  const summarySectionLanguage: string | undefined = getDrawnLanguage({
+    english: activeItem.sectionTitle,
+    drawn: summarySection,
+    language: language,
+  });
+  const summaryPageLanguage: string | undefined = getDrawnLanguage({
+    english: summaryPageEnglish,
+    drawn: summaryPage,
+    language: language,
+  });
+
+  // Measuring the lists' hidden edges again, when the menu moves them.
+  const measureDesktopEdges: () => void = desktopList.onScroll;
+  const measureMobileEdges: () => void = mobileList.onScroll;
 
   /*
    * The lit entry, in sight inside the menu when a page opens (SideMenuScroll):
-   * after the next frame, once a section that holds the page has opened.
+   * after the next frame, once a section that holds the page has opened. The
+   * list's fades follow at once, not on the scroll event a frame later.
    */
   useEffect(() => {
     if (isMobile) {
@@ -444,13 +482,14 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         // The page above the menu may have changed: fit, then reveal.
         fitSideMenuCard(desktopCardRef.current);
         revealCurrentSideMenuEntry(desktopListRef.current);
+        measureDesktopEdges();
       });
     });
 
     return () => {
       window.cancelAnimationFrame(frame);
     };
-  }, [currentPath, isMobile]);
+  }, [currentPath, isMobile, measureDesktopEdges]);
 
   /*
    * The desktop menu's card ends above the window's bottom edge wherever it
@@ -491,12 +530,13 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
 
     const frame: number = window.requestAnimationFrame(() => {
       revealCurrentSideMenuEntry(mobileListRef.current);
+      measureMobileEdges();
     });
 
     return () => {
       window.cancelAnimationFrame(frame);
     };
-  }, [isMobile, isMobileMenuVisible]);
+  }, [isMobile, isMobileMenuVisible, measureMobileEdges]);
 
   // Render function for the menu content
   const renderMenuContent: () => ReactElement[] = (): ReactElement[] => {
@@ -693,43 +733,46 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
              * whole when the two do not fit together - the section and the
              * page each keep together while they fit a line - and a word
              * longer than the line is hyphenated in its language
-             * (getDrawnLanguage), or else breaks at its edge.
+             * (getDrawnLanguage, getMenuWordsBreakClassName), or else breaks
+             * at its edge.
              */}
             <div className="min-w-0 text-start">
               <p className="text-xs text-gray-400 font-medium">
                 {translateString("Navigate to")}
               </p>
-              <h3 className="text-sm font-semibold text-gray-900 break-words hyphens-auto">
+              <h3 className="text-sm font-semibold text-gray-900 break-words">
                 {summarySection ? (
                   <>
                     <span
-                      className="inline-block max-w-full"
-                      lang={getDrawnLanguage({
-                        english: activeItem.sectionTitle,
-                        drawn: summarySection,
-                        language: language,
-                      })}
+                      className={`inline-block max-w-full ${getMenuWordsBreakClassName(
+                        {
+                          text: summarySection,
+                          lang: summarySectionLanguage,
+                        },
+                      )}`}
+                      lang={summarySectionLanguage}
                     >
                       {`${summarySection} /`}
                     </span>{" "}
                     <span
-                      className="inline-block max-w-full"
-                      lang={getDrawnLanguage({
-                        english: summaryPageEnglish,
-                        drawn: summaryPage,
-                        language: language,
-                      })}
+                      className={`inline-block max-w-full ${getMenuWordsBreakClassName(
+                        {
+                          text: summaryPage,
+                          lang: summaryPageLanguage,
+                        },
+                      )}`}
+                      lang={summaryPageLanguage}
                     >
                       {summaryPage}
                     </span>
                   </>
                 ) : (
                   <span
-                    lang={getDrawnLanguage({
-                      english: summaryPageEnglish,
-                      drawn: summaryPage,
-                      language: language,
+                    className={getMenuWordsBreakClassName({
+                      text: summaryPage,
+                      lang: summaryPageLanguage,
                     })}
+                    lang={summaryPageLanguage}
                   >
                     {summaryPage}
                   </span>
@@ -786,10 +829,21 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                 </div>
               )}
 
-              {/* Menu Items */}
+              {/*
+               * Menu Items. An edge with entries behind it fades out, and
+               * the lit entry is brought into sight with the next one
+               * peeking past it (SideMenuScroll).
+               */}
               <nav
                 ref={mobileListRef}
-                className="p-2 max-h-[60vh] overflow-y-auto"
+                className={`p-2 max-h-[60vh] overflow-y-auto ${SIDE_MENU_SCROLL_PADDING_CLASS_NAME} ${getSideMenuFadeClassName(
+                  mobileList.hiddenEdges,
+                )}`}
+                data-hidden-top={mobileList.hiddenEdges.top ? "true" : "false"}
+                data-hidden-bottom={
+                  mobileList.hiddenEdges.bottom ? "true" : "false"
+                }
+                onScroll={mobileList.onScroll}
                 onClick={handleMenuItemClick}
               >
                 <div className="space-y-0.5">{renderMenuContent()}</div>
@@ -871,8 +925,23 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             </div>
           )}
 
-          {/* Menu Content */}
-          <nav ref={desktopListRef} className="p-2 min-h-0 overflow-y-auto">
+          {/*
+           * Menu Content. Scrolled, or with entries below its fold, the list
+           * fades out at that edge, so the reader sees it goes on - its
+           * scrollbar shows only while it scrolls on many screens - and the
+           * keyboard's focus stays clear of the fades (SideMenuScroll).
+           */}
+          <nav
+            ref={desktopListRef}
+            className={`p-2 min-h-0 overflow-y-auto ${SIDE_MENU_SCROLL_PADDING_CLASS_NAME} ${getSideMenuFadeClassName(
+              desktopList.hiddenEdges,
+            )}`}
+            data-hidden-top={desktopList.hiddenEdges.top ? "true" : "false"}
+            data-hidden-bottom={
+              desktopList.hiddenEdges.bottom ? "true" : "false"
+            }
+            onScroll={desktopList.onScroll}
+          >
             <div className="space-y-1">{renderMenuContent()}</div>
           </nav>
 

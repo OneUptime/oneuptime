@@ -7,6 +7,7 @@ import Link from "../../../Types/Link";
 import React, { FunctionComponent } from "react";
 import {
   getDrawnLanguage,
+  getMenuWordsBreakClassName,
   getSideMenuEntryCurrent,
   SIDE_MENU_ITEM_TITLE_TEST_ID,
 } from "./SideMenuEntryState";
@@ -38,12 +39,13 @@ export interface ComponentProps {
  * to one line with an ellipsis, which in other languages cut the words that
  * say what a page is: French "Règles de taux de consommation" (Burn Rate
  * Rules) read "Règles de taux de con…", and a tablet's 160 pixels cut
- * English "Import from another tool" too. A word longer than the whole line
- * (a German compound) is hyphenated where its language breaks it, the title
- * saying which language it is in (getDrawnLanguage), or else breaks at the
- * edge rather than running out of the menu. The icon, the rail and the
- * badge keep to the first line, so a row of one line is drawn exactly as
- * before.
+ * English "Import from another tool" too. A word that fits on a line moves
+ * there whole; one longer than the whole line (a German compound) is
+ * hyphenated where its language breaks it, the title saying which language
+ * it is in (getDrawnLanguage, getMenuWordsBreakClassName), or else breaks
+ * at the edge rather than running out of the menu. The icon, the rail and
+ * the badge keep to the first line, so a row of one line is drawn exactly
+ * as before.
  *
  * The entry for the page the user is on is lit, and says so to a screen
  * reader too (aria-current): "page" when it links to that very page, "true"
@@ -68,6 +70,16 @@ const SideMenuItem: FunctionComponent<ComponentProps> = (
   const translatedSubItemTitle: string | undefined = props.subItemLink
     ? translateString(props.subItemLink.title) || props.subItemLink.title
     : undefined;
+  const titleLanguage: string | undefined = getDrawnLanguage({
+    english: props.link.title,
+    drawn: translatedTitle,
+    language: language,
+  });
+  const subItemTitleLanguage: string | undefined = getDrawnLanguage({
+    english: props.subItemLink?.title,
+    drawn: translatedSubItemTitle,
+    language: language,
+  });
 
   return (
     <>
@@ -131,13 +143,12 @@ const SideMenuItem: FunctionComponent<ComponentProps> = (
            * from this test id.
            */}
           <span
-            className="min-w-0 break-words hyphens-auto transition-colors duration-150"
+            className={`min-w-0 ${getMenuWordsBreakClassName({
+              text: translatedTitle,
+              lang: titleLanguage,
+            })} transition-colors duration-150`}
             data-testid={SIDE_MENU_ITEM_TITLE_TEST_ID}
-            lang={getDrawnLanguage({
-              english: props.link.title,
-              drawn: translatedTitle,
-              language: language,
-            })}
+            lang={titleLanguage}
           >
             {translatedTitle}
           </span>
@@ -199,13 +210,12 @@ const SideMenuItem: FunctionComponent<ComponentProps> = (
                 `}
               />
               <span
-                className="min-w-0 break-words hyphens-auto"
+                className={`min-w-0 ${getMenuWordsBreakClassName({
+                  text: translatedSubItemTitle,
+                  lang: subItemTitleLanguage,
+                })}`}
                 data-testid={SIDE_MENU_ITEM_TITLE_TEST_ID}
-                lang={getDrawnLanguage({
-                  english: props.subItemLink.title,
-                  drawn: translatedSubItemTitle,
-                  language: language,
-                })}
+                lang={subItemTitleLanguage}
               >
                 {translatedSubItemTitle}
               </span>

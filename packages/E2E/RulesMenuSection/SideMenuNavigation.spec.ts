@@ -22,7 +22,9 @@ import path from "path";
  *  - the phone's menu button names the section and the page whole, and is
  *    named by the words it shows;
  *  - a menu taller than the window opens with the lit entry in sight
- *    inside it, without scrolling the page (#5250's line).
+ *    inside it, the next entry peeking past it, without scrolling the page
+ *    (#5250's line); an edge of the list with entries behind it fades out,
+ *    so a reader sees the list goes on.
  *
  * jsdom lays nothing out, so the jest suites (SideMenuItem,
  * SideMenuCurrentEntry, SideMenuScroll in packages/Common) can only pin the
@@ -171,6 +173,32 @@ async function isInSight(
     targetBox.top >= Math.max(listBox.top, 0) &&
     targetBox.bottom <= Math.min(listBox.bottom, windowHeight)
   );
+}
+
+/*
+ * Which edges of a list fade out because they hide entries: what the list
+ * says (data-hidden-top / -bottom) and whether a mask is drawn at all.
+ */
+interface ListFades {
+  top: string | null;
+  bottom: string | null;
+  isMasked: boolean;
+}
+
+async function fadesOf(list: Locator): Promise<ListFades> {
+  return await list.evaluate((element: Element): ListFades => {
+    const style: CSSStyleDeclaration = getComputedStyle(element);
+    const mask: string =
+      style.maskImage ||
+      (style as unknown as { webkitMaskImage?: string }).webkitMaskImage ||
+      "none";
+
+    return {
+      top: element.getAttribute("data-hidden-top"),
+      bottom: element.getAttribute("data-hidden-bottom"),
+      isMasked: mask !== "none" && mask.includes("gradient"),
+    };
+  });
 }
 
 /*
@@ -442,7 +470,85 @@ test.describe("the lit entry is in sight in a menu taller than the window", () =
       }),
     ).toBe(0);
 
+    /*
+     * The entries above, scrolled out of sight, are faded in at the top
+     * edge; nothing is below the last entry, so the foot stays sharp.
+     */
+    await expect
+      .poll(() => {
+        return fadesOf(list);
+      })
+      .toEqual({ top: "true", bottom: "false", isMasked: true });
+
     await screenshot(page, "short-window-delete-in-sight");
+  });
+
+  /*
+   * Brought in flush against the list's foot, the lit entry read as the
+   * menu's last: nothing past it in view, nothing to say the list went on.
+   * It comes in with the next entry in sight past it, and both edges of
+   * the list fade out over the entries they hide.
+   */
+  test("a page in the middle of a long menu opens with the next entry in sight past its own, and both edges fading", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const address: string = `${STATUS_PAGE_PATH}/microsoft-teams-subscribers`;
+    await open(page, address);
+    const menu: Locator = desktopMenu(page);
+    const list: Locator = desktopList(page);
+    const lit: Locator = entry(menu, address);
+    const next: Locator = entry(
+      menu,
+      `${STATUS_PAGE_PATH}/webhook-subscribers`,
+    );
+
+    await expect(lit).toHaveAttribute("aria-current", "page");
+    await expect
+      .poll(() => {
+        return isInSight(page, list, lit);
+      })
+      .toBe(true);
+    expect(await isInSight(page, list, next)).toBe(true);
+
+    // Clear of the foot's 1.5rem fade, with a row's room to spare.
+    const listBox: Box = await boxOf(list);
+    const litBox: Box = await boxOf(lit);
+    expect(litBox.bottom).toBeLessThanOrEqual(listBox.bottom - 24);
+
+    await expect
+      .poll(() => {
+        return fadesOf(list);
+      })
+      .toEqual({ top: "true", bottom: "true", isMasked: true });
+
+    // Scrolled back to its top, the list fades out only at its foot.
+    await list.evaluate((element: Element): void => {
+      element.scrollTop = 0;
+    });
+    await expect
+      .poll(() => {
+        return fadesOf(list);
+      })
+      .toEqual({ top: "false", bottom: "true", isMasked: true });
+
+    await screenshot(page, "short-window-teams-next-entry-in-sight");
+  });
+
+  test("a menu that fits the window does not fade at all", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 1100 });
+    await open(page, BURN_RATE_RULES_PATH);
+
+    await expect
+      .poll(() => {
+        return fadesOf(desktopList(page));
+      })
+      .toEqual({ top: "false", bottom: "false", isMasked: false });
   });
 
   /*
@@ -598,6 +704,13 @@ test.describe("on a phone", () => {
         return isInSight(page, list, lit);
       })
       .toBe(true);
+
+    // The phone's list fades out over the entries scrolled above it too.
+    await expect
+      .poll(() => {
+        return fadesOf(list);
+      })
+      .toEqual({ top: "true", bottom: "false", isMasked: true });
 
     await screenshot(page, "phone-menu-delete-in-sight");
   });

@@ -1185,6 +1185,12 @@ await i18next.use(initReactI18next).init({
 });
 document.documentElement.lang = language;
 
+/*
+ * Each page's trail, as the Dashboard's breadcrumbs end it: a monitor's and
+ * a site's Status Timeline, and the State Timeline of an incident, an
+ * alert, a maintenance event and an episode - the name of their menu entry
+ * and their card.
+ */
 const PAGES = {
   monitor: {
     component: MonitorStatusTimelinePage,
@@ -1192,14 +1198,14 @@ const PAGES = {
   },
   incident: {
     component: IncidentStateTimelinePage,
-    trail: ["Incidents", "#42 Checkout API is offline", "Status Timeline"],
+    trail: ["Incidents", "#42 Checkout API is offline", "State Timeline"],
   },
   alert: {
     component: AlertStateTimelinePage,
     trail: [
       "Alerts",
       "#318 Checkout API p95 latency over 2s",
-      "Status Timeline",
+      "State Timeline",
     ],
   },
   maintenance: {
@@ -1207,16 +1213,16 @@ const PAGES = {
     trail: [
       "Scheduled Maintenance",
       "Database upgrade to Postgres 18",
-      "Status Timeline",
+      "State Timeline",
     ],
   },
   "incident-episode": {
     component: IncidentEpisodeStateTimelinePage,
-    trail: ["Incident Episodes", "Checkout outages", "Status Timeline"],
+    trail: ["Incident Episodes", "Checkout outages", "State Timeline"],
   },
   "alert-episode": {
     component: AlertEpisodeStateTimelinePage,
-    trail: ["Alert Episodes", "Checkout latency alerts", "Status Timeline"],
+    trail: ["Alert Episodes", "Checkout latency alerts", "State Timeline"],
   },
   site: {
     component: NetworkSiteStatusTimelinePage,

@@ -1,5 +1,6 @@
 /*
- * Bringing the lit entry of a side menu into sight inside the menu.
+ * Bringing the lit entry of a side menu into sight inside the menu, and
+ * showing that the menu scrolls.
  *
  * A side menu is never taller than the window: past that, it scrolls inside
  * itself (SideMenu caps its card to the space under the header). On a
@@ -12,10 +13,14 @@
  * Only the menu's own list moves. Element.scrollIntoView would scroll every
  * scrolling box around the entry, the page included, and pull the page down
  * to the menu's entry on every navigation.
+ *
+ * An edge of the list with entries behind it fades out, as a telemetry
+ * product's tab bar does (TabBarScroll), so a reader sees the list goes on
+ * past it. Brought into sight flush against the list's edge, with nothing
+ * past it in view and nothing to say there was more, the lit entry read as
+ * the menu's last: a node's page showed Nodes at the foot of the menu, with
+ * PVCs, PVs and the rest out of sight below it.
  */
-
-// Room kept between the entry and the edge of the list it is brought into.
-export const SIDE_MENU_REVEAL_MARGIN_IN_PX: number = 8;
 
 export interface RevealBox {
   top: number;
@@ -23,33 +28,164 @@ export interface RevealBox {
 }
 
 /*
- * How far a scrolling list must scroll (positive: down) for an entry inside
- * it to be in sight with `margin` pixels to spare, moving the least it can:
- * 0 when the entry is in sight already. An entry taller than the list is
- * brought to its top.
+ * How much of a list's edge fades out (1.5rem) while there are entries
+ * behind it: above, once the list is scrolled from its top; below, while
+ * there are more past its fold. An edge with nothing behind it stays sharp.
+ */
+export const SIDE_MENU_FADE_IN_PX: number = 24;
+
+/*
+ * How much of the list is kept past the lit entry when the menu scrolls to
+ * it (3rem): the fade, and the next entry or section heading - so the
+ * reader sees where the entry sits and that the list goes on. The list
+ * keeps the same room for an entry the keyboard reaches
+ * (SIDE_MENU_SCROLL_PADDING_CLASS_NAME), so a focused entry never sits
+ * under the fade.
+ */
+export const SIDE_MENU_REVEAL_PEEK_IN_PX: number = 48;
+
+export const SIDE_MENU_SCROLL_PADDING_CLASS_NAME: string = "scroll-py-12";
+
+function isFiniteNumber(value: number): boolean {
+  return typeof value === "number" && Number.isFinite(value);
+}
+
+/*
+ * How far a scrolling list must scroll (positive: down) to show its lit
+ * entry: 0 while the entry is clear of both edges' fades, so a click on an
+ * entry in sight never moves the list under the pointer. Otherwise the
+ * entry comes in with SIDE_MENU_REVEAL_PEEK_IN_PX to spare past it, and no
+ * further, so as much of the menu as can stays where it was. A room too
+ * small for that keeps half of what is left on either side of the entry,
+ * and an entry taller than the room shows its top. The caller stops the
+ * scroll at either end of the list, so the first entries stay at the top
+ * and the last at the foot.
  */
 export function getRevealScrollDelta(data: {
   list: RevealBox;
   entry: RevealBox;
-  margin: number;
 }): number {
-  const visibleTop: number = data.list.top + data.margin;
-  const visibleBottom: number = data.list.bottom - data.margin;
+  const { list, entry } = data;
 
-  if (data.entry.top < visibleTop) {
-    return data.entry.top - visibleTop;
+  if (![list.top, list.bottom, entry.top, entry.bottom].every(isFiniteNumber)) {
+    return 0;
   }
 
-  if (data.entry.bottom > visibleBottom) {
-    const delta: number = data.entry.bottom - visibleBottom;
-    const entryHeight: number = data.entry.bottom - data.entry.top;
-    const roomHeight: number = visibleBottom - visibleTop;
+  const roomHeight: number = list.bottom - list.top;
+  const entryHeight: number = entry.bottom - entry.top;
 
-    // Taller than the room: its top, not its bottom, is what to show.
-    return entryHeight > roomHeight ? data.entry.top - visibleTop : delta;
+  if (roomHeight <= 0 || entryHeight <= 0) {
+    return 0;
+  }
+
+  // Clear of both fades: it stays where it is.
+  if (
+    entry.top >= list.top + SIDE_MENU_FADE_IN_PX &&
+    entry.bottom <= list.bottom - SIDE_MENU_FADE_IN_PX
+  ) {
+    return 0;
+  }
+
+  // The room on each side of the entry, were it in the middle.
+  const spare: number = (roomHeight - entryHeight) / 2;
+
+  // Taller than the room: its top, not its bottom, is what to show.
+  if (spare <= 0) {
+    return entry.top - list.top;
+  }
+
+  const peek: number = Math.min(SIDE_MENU_REVEAL_PEEK_IN_PX, spare);
+
+  // Under the bottom edge's fade, or past it: bring it in, the next peeking.
+  if (entry.bottom > list.bottom - peek) {
+    return entry.bottom - (list.bottom - peek);
+  }
+
+  // The same at the top edge.
+  if (entry.top < list.top + peek) {
+    return entry.top - (list.top + peek);
   }
 
   return 0;
+}
+
+// Which edges of a list have entries out of sight behind them.
+export interface SideMenuHiddenEdges {
+  top: boolean;
+  bottom: boolean;
+}
+
+export const NO_HIDDEN_EDGES: SideMenuHiddenEdges = {
+  top: false,
+  bottom: false,
+};
+
+// How far past an edge the entries must reach before they count as hidden.
+const HIDDEN_EPSILON_PX: number = 1;
+
+/*
+ * The edges with entries behind them, from what the list measures
+ * (element.scrollTop, scrollHeight, clientHeight). A list that holds all
+ * its entries has none. A scroll past either end - a touch screen's
+ * overscroll bounce - reads as that end.
+ */
+export function getSideMenuHiddenEdges(measure: {
+  scrollTop: number;
+  scrollHeight: number;
+  clientHeight: number;
+}): SideMenuHiddenEdges {
+  if (
+    ![measure.scrollTop, measure.scrollHeight, measure.clientHeight].every(
+      isFiniteNumber,
+    )
+  ) {
+    return NO_HIDDEN_EDGES;
+  }
+
+  const overflow: number = measure.scrollHeight - measure.clientHeight;
+
+  if (overflow <= HIDDEN_EPSILON_PX) {
+    return NO_HIDDEN_EDGES;
+  }
+
+  const fromTop: number = Math.min(overflow, Math.max(0, measure.scrollTop));
+
+  return {
+    top: fromTop > HIDDEN_EPSILON_PX,
+    bottom: fromTop < overflow - HIDDEN_EPSILON_PX,
+  };
+}
+
+/*
+ * The fade for the hidden edges: a mask that takes the last 1.5rem of a
+ * hidden edge to transparent. Colour-free, so it fades the entries into
+ * whatever the card is, light or dark.
+ */
+export const SIDE_MENU_FADE_CLASS_NAMES: Readonly<{
+  both: string;
+  top: string;
+  bottom: string;
+}> = {
+  both: "[-webkit-mask-image:linear-gradient(to_bottom,transparent,black_1.5rem,black_calc(100%-1.5rem),transparent)] [mask-image:linear-gradient(to_bottom,transparent,black_1.5rem,black_calc(100%-1.5rem),transparent)]",
+  top: "[-webkit-mask-image:linear-gradient(to_bottom,transparent,black_1.5rem)] [mask-image:linear-gradient(to_bottom,transparent,black_1.5rem)]",
+  bottom:
+    "[-webkit-mask-image:linear-gradient(to_top,transparent,black_1.5rem)] [mask-image:linear-gradient(to_top,transparent,black_1.5rem)]",
+};
+
+export function getSideMenuFadeClassName(edges: SideMenuHiddenEdges): string {
+  if (edges.top && edges.bottom) {
+    return SIDE_MENU_FADE_CLASS_NAMES.both;
+  }
+
+  if (edges.top) {
+    return SIDE_MENU_FADE_CLASS_NAMES.top;
+  }
+
+  if (edges.bottom) {
+    return SIDE_MENU_FADE_CLASS_NAMES.bottom;
+  }
+
+  return "";
 }
 
 // Room kept under the menu's card, above the window's bottom edge.
@@ -116,9 +252,9 @@ export function getVisibleRoom(data: {
 
 /*
  * Scrolls `list` - and nothing around it - so the menu's lit entry is in
- * sight: inside the list, and inside the window. Does nothing when the list
- * has no lit entry, when it does not scroll, or when none of it is in the
- * window.
+ * sight, with the next entry peeking past it: inside the list, and inside
+ * the window. Does nothing when the list has no lit entry, when it does not
+ * scroll, or when none of it is in the window.
  */
 export function revealCurrentSideMenuEntry(list: HTMLElement | null): void {
   if (!list) {
@@ -146,7 +282,6 @@ export function revealCurrentSideMenuEntry(list: HTMLElement | null): void {
   const delta: number = getRevealScrollDelta({
     list: room,
     entry: { top: entryBox.top, bottom: entryBox.bottom },
-    margin: SIDE_MENU_REVEAL_MARGIN_IN_PX,
   });
   // Never past either end of the list.
   const scrollTop: number = Math.min(
