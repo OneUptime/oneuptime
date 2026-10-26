@@ -1,8 +1,8 @@
 import {
-  FIX_PULL_REQUEST_LIMIT_SHOWN,
   FIX_PULL_REQUEST_LIMIT_SHOWN_COUNT,
   FixPullRequestLimit,
   getFixPullRequestLimit,
+  getFixPullRequestLimitCopy,
 } from "../CodeRepository/FixPullRequestLimit";
 import {
   PRODUCTION_REVIEW_CONTENT_COPY,
@@ -10,8 +10,10 @@ import {
   readProductionReviewContent,
 } from "./CodeProductionReviewCopy";
 import type { RunnerChoices } from "../Runner/RunnerChoices";
+import { getCodeRepositoryRunnerChoice } from "./CodeRepositoryRunnerChoice";
 import {
   CODE_HIDDEN_RUNNER_LABEL,
+  GLOBAL_RUNNER_CHOICE_LABEL,
   RunnerPickerModel,
   RunnerPickerOptionKind,
   RunnerPickerOutcome,
@@ -24,6 +26,7 @@ import {
   CodeHostCapability,
 } from "Common/Types/CodeRepository/CodeHost";
 import CodeRepositoryType from "Common/Types/CodeRepository/CodeRepositoryType";
+import { CodeRepositorySetting } from "Common/Types/CodeRepository/CodeRepositorySetting";
 import RunnerLiveStatus, {
   getRunnerLiveStatusLabel,
 } from "Common/Types/Runner/RunnerLiveStatus";
@@ -81,23 +84,11 @@ import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The settings of a repository, by their places on its Settings page, in
- * the order the page draws them under More settings.
+ * the order the page draws them under More settings - kept in Common, so
+ * the server's links into the page (the GitHub App's answer when commands
+ * are off) name the same places.
  */
-export enum CodeRepositorySetting {
-  GitHubCommands = "github-commands",
-  ProductionReview = "production-review",
-  Runner = "runner",
-  PullRequests = "pull-requests",
-  TriggerLabel = "trigger-label",
-  ProductionReviewComment = "production-review-comment",
-  // Only on a repository whose operator set build and test commands.
-  Commands = "commands",
-  /*
-   * A Git repository's Pull Requests: AI pushes a branch there and opens no
-   * pull request, so only the branch it starts from is asked.
-   */
-  Branches = "branches",
-}
+export { CodeRepositorySetting };
 
 export const CODE_REPOSITORY_SETTINGS_IN_ORDER: ReadonlyArray<CodeRepositorySetting> =
   [
@@ -171,9 +162,14 @@ export interface CodeRepositorySettingsValues {
   isProductionReviewEnabled?: boolean | undefined;
   /*
    * The Runner the repository picks, as getRepositoryRunnerId reads it:
-   * empty for none (a global Runner).
+   * empty for none.
    */
   runnerId?: string | undefined;
+  /*
+   * Whether it picked the Global Runner itself; read only when it picks no
+   * Runner (CodeRepositoryRunnerChoice).
+   */
+  isGlobalRunnerPicked?: boolean | undefined;
 }
 
 // The label that hands an issue to the GitHub App when none is set.
@@ -187,12 +183,15 @@ export const CODE_REPOSITORY_SETTINGS_COPY: {
   runnerCardDescription: string;
   moreSettingsDescription: string;
   moreSettingsDescriptionPullRequests: string;
+  moreSettingsDescriptionMergeRequests: string;
   moreSettingsDescriptionBranches: string;
   noRunnerValue: string;
   branchesCardTitle: string;
   branchesCardDescription: string;
   pullRequestsCardTitle: string;
   pullRequestsCardDescription: string;
+  mergeRequestsCardTitle: string;
+  mergeRequestsCardDescription: string;
   mainBranchTitle: string;
   mainBranchFormDescription: string;
   mainBranchDetailDescription: string;
@@ -227,6 +226,10 @@ export const CODE_REPOSITORY_SETTINGS_COPY: {
   moreSettingsDescriptionPullRequests: translationKey(
     "Where AI works, and where its pull requests open.",
   ),
+  // The same, on GitLab, which calls a pull request a merge request.
+  moreSettingsDescriptionMergeRequests: translationKey(
+    "Where AI works, and where its merge requests open.",
+  ),
   // The same, for a repository on a Git server.
   moreSettingsDescriptionBranches: translationKey(
     "Where AI works, and the branch it starts from.",
@@ -244,6 +247,11 @@ export const CODE_REPOSITORY_SETTINGS_COPY: {
   pullRequestsCardTitle: translationKey("Pull Requests"),
   pullRequestsCardDescription: translationKey(
     "Where AI's pull requests open, and how many may be open at once.",
+  ),
+  // On GitLab, which calls a pull request a merge request.
+  mergeRequestsCardTitle: translationKey("Merge Requests"),
+  mergeRequestsCardDescription: translationKey(
+    "Where AI's merge requests open, and how many may be open at once.",
   ),
   mainBranchTitle: translationKey("Main Branch"),
   mainBranchFormDescription: translationKey(
@@ -329,14 +337,17 @@ function getSwitchItem(data: {
 
 /*
  * The Runner, as More settings lists it while it is folded: by name alone
- * while the repository works on a global Runner (the default) or while the
- * page has not read where it works yet; otherwise set, with what it works
- * on -
+ * while the repository picks none - it follows the project's default
+ * Runner, or the Global Runner while there is none: the default - or while
+ * the page has not read where it works yet; otherwise set, with what it
+ * works on -
  *
  *   - one of the project's own Runners: its name ("Runner:
  *     prod-eu-west-1"), and how it is doing when it is not connected
  *     ("Runner: office-runner · Disconnected"), as an auto remediation
  *     rule's folded Runner says it;
+ *   - the Global Runner, picked beside the project's default: "Runner:
+ *     Global Runner";
  *   - one the reader does not have access to: says so, never its id;
  *   - none, where there is no global Runner to work on (the project turned
  *     them off, or the server runs none): "Runner: None".
@@ -344,6 +355,7 @@ function getSwitchItem(data: {
 export function getRepositoryRunnerItem(
   data: {
     runnerId: string | undefined;
+    isGlobalRunnerPicked?: boolean | undefined;
     choices: RunnerChoices | null | undefined;
   },
   translator: Translator,
@@ -361,11 +373,27 @@ export function getRepositoryRunnerItem(
   const model: RunnerPickerModel = buildRunnerPickerModel({
     work: RunnerPickerWork.CodeRepository,
     stepType: "",
-    currentRunnerId: data.runnerId,
+    currentRunnerId: getCodeRepositoryRunnerChoice({
+      runnerId: data.runnerId,
+      isGlobalRunnerPicked: data.isGlobalRunnerPicked,
+    }),
     projectRunners: data.choices.projectRunners,
     globalRunners: data.choices.globalRunners,
     projectUsesGlobalRunners: data.choices.projectUsesGlobalRunners,
   });
+
+  // The Global Runner, picked beside the project's default Runner.
+  if (
+    model.outcome === RunnerPickerOutcome.GlobalRunner &&
+    model.pickedGlobalRunner
+  ) {
+    return {
+      ...unset,
+      isSet: true,
+      value: GLOBAL_RUNNER_CHOICE_LABEL,
+      translateValue: true,
+    };
+  }
 
   if (model.selected?.kind === RunnerPickerOptionKind.Project) {
     const liveStatus: RunnerLiveStatus | undefined = model.selected.liveStatus;
@@ -443,12 +471,16 @@ export function getRepositoryMoreSettingsItems(
       isOn: repository?.isProductionReviewEnabled,
     }),
     getRepositoryRunnerItem(
-      { runnerId: repository?.runnerId, choices: runnerChoices },
+      {
+        runnerId: repository?.runnerId,
+        isGlobalRunnerPicked: repository?.isGlobalRunnerPicked,
+        choices: runnerChoices,
+      },
       translator,
     ),
     {
       key: CodeRepositorySetting.PullRequests,
-      title: CODE_REPOSITORY_SETTINGS_COPY.pullRequestsCardTitle,
+      title: getPullRequestsCardCopy(provider).title,
       isSet: limit !== FixPullRequestLimit.NoLimit,
       ...(limit === FixPullRequestLimit.Limit
         ? {
@@ -463,7 +495,10 @@ export function getRepositoryMoreSettingsItems(
           }
         : limit === FixPullRequestLimit.Blocked
           ? {
-              value: FIX_PULL_REQUEST_LIMIT_SHOWN[FixPullRequestLimit.Blocked],
+              value:
+                getFixPullRequestLimitCopy(provider).shown[
+                  FixPullRequestLimit.Blocked
+                ],
               translateValue: true,
             }
           : {}),
@@ -540,7 +575,38 @@ export function getRepositoryMoreSettingsDescription(
     return CODE_REPOSITORY_SETTINGS_COPY.moreSettingsDescription;
   }
 
-  return CodeHost.can(type, CodeHostCapability.PullRequests)
-    ? CODE_REPOSITORY_SETTINGS_COPY.moreSettingsDescriptionPullRequests
-    : CODE_REPOSITORY_SETTINGS_COPY.moreSettingsDescriptionBranches;
+  if (!CodeHost.can(type, CodeHostCapability.PullRequests)) {
+    return CODE_REPOSITORY_SETTINGS_COPY.moreSettingsDescriptionBranches;
+  }
+
+  return isMergeRequestHost(type)
+    ? CODE_REPOSITORY_SETTINGS_COPY.moreSettingsDescriptionMergeRequests
+    : CODE_REPOSITORY_SETTINGS_COPY.moreSettingsDescriptionPullRequests;
+}
+
+// Whether the host calls a pull request a merge request (GitLab).
+export function isMergeRequestHost(
+  provider: string | null | undefined,
+): boolean {
+  return CodeHost.getFacts(provider).pullRequestTerm === "merge request";
+}
+
+/*
+ * The Pull Requests card's title and description, in the host's word: on
+ * GitLab, Merge Requests - as its tasks, their rows and the request box say
+ * merge request.
+ */
+export function getPullRequestsCardCopy(provider: string | null | undefined): {
+  title: string;
+  description: string;
+} {
+  return isMergeRequestHost(provider)
+    ? {
+        title: CODE_REPOSITORY_SETTINGS_COPY.mergeRequestsCardTitle,
+        description: CODE_REPOSITORY_SETTINGS_COPY.mergeRequestsCardDescription,
+      }
+    : {
+        title: CODE_REPOSITORY_SETTINGS_COPY.pullRequestsCardTitle,
+        description: CODE_REPOSITORY_SETTINGS_COPY.pullRequestsCardDescription,
+      };
 }

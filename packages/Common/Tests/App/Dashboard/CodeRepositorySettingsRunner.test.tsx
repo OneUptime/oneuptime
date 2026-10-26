@@ -16,8 +16,10 @@ import React, { ReactElement } from "react";
  *     asks one thing on one page - no steps: the Runner picker for a
  *     repository (CodeRepositoryRunnerPicker), a field like the others -
  *     the form draws its title and its description, with no "(Optional)"
- *     since empty is Global Runner - and it writes the Runner's id, or
- *     nothing for Global Runner;
+ *     since empty is an answer of its own (the project's default Runner,
+ *     the Global Runner while there is none) - and its one choice writes the
+ *     two columns it is stored in (CodeRepositoryRunnerChoice): the
+ *     Runner's id, or none, and whether it picked the Global Runner itself;
  *   - the card says what the repository runs on
  *     (CodeRepositoryRunnerValueView, from the Runner choices the page
  *     read once for the card and for More settings' folded header), under
@@ -80,7 +82,11 @@ import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/P
 import RunnerChoicesLoader, {
   RunnerChoices,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Runner/RunnerChoices";
+import { CODE_REPOSITORY_RUNNER_CHOICE_FIELD_KEY } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeRepositoryRunnerChoice";
+import { GLOBAL_RUNNER_PICK_VALUE } from "../../../../App/FeatureSet/Dashboard/src/Components/Runner/RunnerPickerModel";
 import CodeRepository from "../../../Models/DatabaseModels/CodeRepository";
+import CodeRepositoryType from "../../../Types/CodeRepository/CodeRepositoryType";
+import IsNull from "../../../Types/BaseDatabase/IsNull";
 import ListResult from "../../../Types/BaseDatabase/ListResult";
 import ObjectID from "../../../Types/ObjectID";
 import { CustomElementProps } from "../../../UI/Components/Forms/Types/Field";
@@ -150,33 +156,49 @@ describe("a repository's settings: its Runner", () => {
     expect(card["editModalTitle"]).toBe("Runner");
     // No steps: the old dialog's Runner step was the third of four.
     expect(card["formSteps"]).toBeUndefined();
-    expect(card["formFields"] as Array<FormField>).toHaveLength(1);
-  });
 
-  test("its one field is the Runner picker for a repository, a field like the others, and it writes the Runner picked or nothing", () => {
-    const fields: Array<FormField> = page()["formFields"] as Array<FormField>;
-    const runner: FormField | undefined = fields.find((field: FormField) => {
-      return Boolean(
-        (field.field as Record<string, boolean> | undefined)?.["runnerId"],
-      );
+    /*
+     * One field drawn - the Runner picker - and the two columns its choice
+     * writes, never drawn.
+     */
+    const fields: Array<FormField> = card["formFields"] as Array<FormField>;
+    const drawn: Array<FormField> = fields.filter((field: FormField) => {
+      return !field.showIf || field.showIf({} as FormValues<CodeRepository>);
     });
 
+    expect(drawn).toHaveLength(1);
+    expect(fields).toHaveLength(3);
+  });
+
+  // The one choice, as the form holds it.
+  function choiceField(): FormField {
+    const fields: Array<FormField> = page()["formFields"] as Array<FormField>;
+
+    return fields.find((field: FormField) => {
+      return field.overrideFieldKey === CODE_REPOSITORY_RUNNER_CHOICE_FIELD_KEY;
+    })!;
+  }
+
+  test("its one field is the Runner picker for a repository, a field like the others, held as one choice that is never sent", () => {
+    const runner: FormField = choiceField();
+
     expect(runner).toBeDefined();
-    expect(runner!.stepId).toBeUndefined();
-    expect(runner!.title).toBe(CodeRepositoryRunnerCopy.fieldTitle);
-    expect(runner!.fieldType).toBe(FormFieldSchemaType.CustomComponent);
-    expect(runner!.required).toBe(false);
+    expect(runner.formOnly).toBe(true);
+    expect(runner.stepId).toBeUndefined();
+    expect(runner.title).toBe(CodeRepositoryRunnerCopy.fieldTitle);
+    expect(runner.fieldType).toBe(FormFieldSchemaType.CustomComponent);
+    expect(runner.required).toBe(false);
     /*
      * The form draws the title and the line under it, as for every other
      * field of the dialog - the card's own words - and no "(Optional)":
-     * empty is Global Runner, an answer of its own.
+     * empty is an answer of its own.
      */
-    expect(runner!.customElementDrawsOwnLabel).toBeFalsy();
-    expect(runner!.description).toBe(CodeRepositoryRunnerCopy.fieldDescription);
-    expect(runner!.hideOptionalLabel).toBe(true);
+    expect(runner.customElementDrawsOwnLabel).toBeFalsy();
+    expect(runner.description).toBe(CodeRepositoryRunnerCopy.fieldDescription);
+    expect(runner.hideOptionalLabel).toBe(true);
 
     const written: Array<unknown> = [];
-    const element: ReactElement = runner!.getCustomElement!(
+    const element: ReactElement = runner.getCustomElement!(
       { runnerId: new ObjectID(RUNNER_ID) } as FormValues<CodeRepository>,
       {
         onChange: (value: unknown): void => {
@@ -190,11 +212,107 @@ describe("a repository's settings: its Runner", () => {
     expect(String(element.props.value)).toBe(RUNNER_ID);
     // The menu is named by the label the form drew.
     expect(element.props.ariaLabelledby).toBe("field-label-runner");
+    /*
+     * Where the repository is hosted, for the lines under the picker: GitHub
+     * until the page has read it (CodeHost.readType).
+     */
+    expect(element.props.provider).toBe(CodeRepositoryType.GitHub);
 
-    element.props.onChange(null);
+    element.props.onChange("");
+    element.props.onChange(GLOBAL_RUNNER_PICK_VALUE);
     element.props.onChange(RUNNER_ID);
 
-    expect(written).toEqual([null, RUNNER_ID]);
+    expect(written).toEqual(["", GLOBAL_RUNNER_PICK_VALUE, RUNNER_ID]);
+  });
+
+  test("it starts on what the repository stores, read as one choice", () => {
+    const runner: FormField = choiceField();
+    const start: (values: Record<string, unknown>) => unknown = (
+      values: Record<string, unknown>,
+    ): unknown => {
+      return runner.getDefaultValue!(values as FormValues<CodeRepository>);
+    };
+
+    expect(start({ runnerId: new ObjectID(RUNNER_ID) })).toBe(RUNNER_ID);
+    expect(start({ runnerId: null, isGlobalRunnerPicked: true })).toBe(
+      GLOBAL_RUNNER_PICK_VALUE,
+    );
+    expect(start({ runnerId: null, isGlobalRunnerPicked: false })).toBe("");
+    expect(start({})).toBe("");
+    // A pick wins over a stale Global Runner pick.
+    expect(start({ runnerId: RUNNER_ID, isGlobalRunnerPicked: true })).toBe(
+      RUNNER_ID,
+    );
+
+    // While it is edited, what was picked is what the picker shows.
+    const element: ReactElement = runner.getCustomElement!(
+      {
+        runnerId: new ObjectID(RUNNER_ID),
+        [CODE_REPOSITORY_RUNNER_CHOICE_FIELD_KEY]: GLOBAL_RUNNER_PICK_VALUE,
+      } as unknown as FormValues<CodeRepository>,
+      { onChange: (): void => {} } as unknown as CustomElementProps,
+    ) as ReactElement;
+
+    expect(element.props.value).toBe(GLOBAL_RUNNER_PICK_VALUE);
+  });
+
+  test("a choice writes the two columns it is stored in, and keeps the form's other values", () => {
+    const runner: FormField = choiceField();
+    const written: Array<Record<string, unknown>> = [];
+    const write: (choice: string) => Record<string, unknown> = (
+      choice: string,
+    ): Record<string, unknown> => {
+      runner.onChange!(
+        choice,
+        { name: "checkout" } as unknown as FormValues<CodeRepository>,
+        (values: FormValues<CodeRepository>): void => {
+          written.push(values as unknown as Record<string, unknown>);
+        },
+      );
+
+      return written[written.length - 1]!;
+    };
+
+    // Picked none: it follows the project's default Runner.
+    expect(write("")).toEqual({
+      name: "checkout",
+      runnerId: null,
+      isGlobalRunnerPicked: false,
+    });
+
+    // The Global Runner itself: never the default.
+    expect(write(GLOBAL_RUNNER_PICK_VALUE)).toEqual({
+      name: "checkout",
+      runnerId: null,
+      isGlobalRunnerPicked: true,
+    });
+
+    // A Runner of the project's own.
+    const picked: Record<string, unknown> = write(RUNNER_ID);
+    expect(String(picked["runnerId"])).toBe(RUNNER_ID);
+    expect(picked["runnerId"]).toBeInstanceOf(ObjectID);
+    expect(picked["isGlobalRunnerPicked"]).toBe(false);
+  });
+
+  test("the two columns are fields of the form - so it reads and sends them - and never drawn", () => {
+    const fields: Array<FormField> = page()["formFields"] as Array<FormField>;
+
+    for (const column of ["runnerId", "isGlobalRunnerPicked"]) {
+      const field: FormField | undefined = fields.find(
+        (candidate: FormField) => {
+          return Boolean(
+            (candidate.field as Record<string, boolean> | undefined)?.[column],
+          );
+        },
+      );
+
+      expect({ column, found: Boolean(field) }).toEqual({
+        column,
+        found: true,
+      });
+      expect(field!.showIf!({} as FormValues<CodeRepository>)).toBe(false);
+      expect(field!.formOnly).toBeFalsy();
+    }
   });
 
   test("the card says what the repository runs on, under the card's own title alone", () => {
@@ -227,8 +345,29 @@ describe("a repository's settings: its Runner", () => {
      */
     expect(element.type).toBe(CodeRepositoryRunnerValueView);
     expect(String(element.props.runnerId)).toBe(RUNNER_ID);
-    expect(Object.keys(element.props).sort()).toEqual(["choices", "runnerId"]);
+    expect(Object.keys(element.props).sort()).toEqual([
+      "choices",
+      "isGlobalRunnerPicked",
+      "provider",
+      "runnerId",
+    ]);
     expect(element.props.choices).toBeNull();
+    // Where it is hosted, for the line under Global Runner.
+    expect(element.props.provider).toBe(CodeRepositoryType.GitHub);
+
+    // Whether it picked the Global Runner itself reaches the value too.
+    const global: CodeRepository = new CodeRepository();
+    global.isGlobalRunnerPicked = true;
+
+    expect(runner!.getElement!(global).props.isGlobalRunnerPicked).toBe(true);
+  });
+
+  test("the card reads whether the repository picked the Global Runner itself", () => {
+    const detail: { selectMoreFields?: Record<string, boolean> } = page()[
+      "modelDetailProps"
+    ] as { selectMoreFields?: Record<string, boolean> };
+
+    expect(detail.selectMoreFields).toEqual({ isGlobalRunnerPicked: true });
   });
 });
 
@@ -286,6 +425,84 @@ describe("a Runner's page: the repositories that pick it", () => {
     expect(read.select).toEqual({ _id: true, name: true });
     expect(Object.keys(read.sort)).toEqual(["name"]);
     expect(read.limit).toBe(MAX_LISTED_CODE_REPOSITORIES);
+  });
+
+  /*
+   * The project's default Runner works in the repositories that pick none
+   * as well - unless one picked the Global Runner itself - so its page lists
+   * them with the ones that pick it, by name.
+   */
+  test("the project's default Runner lists the repositories that follow it too, by name - never one that picked the Global Runner", async () => {
+    const getList: jest.SpiedFunction<typeof ModelAPI.getList> = jest
+      .spyOn(ModelAPI, "getList")
+      .mockImplementation(
+        async (data: {
+          query: Record<string, unknown>;
+        }): Promise<ListResult<never>> => {
+          const rows: Array<CodeRepository> =
+            data.query["runnerId"] instanceof IsNull
+              ? [
+                  Object.assign(new CodeRepository(), {
+                    _id: "eeeeeeee-0000-4000-8000-000000000031",
+                    name: "web-app",
+                  }),
+                  Object.assign(new CodeRepository(), {
+                    _id: "eeeeeeee-0000-4000-8000-000000000032",
+                    name: "api",
+                    isGlobalRunnerPicked: false,
+                  }),
+                  Object.assign(new CodeRepository(), {
+                    _id: "eeeeeeee-0000-4000-8000-000000000033",
+                    name: "public-docs",
+                    isGlobalRunnerPicked: true,
+                  }),
+                ]
+              : [
+                  Object.assign(new CodeRepository(), {
+                    _id: REPOSITORY_ID,
+                    name: "checkout",
+                  }),
+                ];
+
+          return {
+            data: rows as Array<never>,
+            count: rows.length,
+            skip: 0,
+            limit: MAX_LISTED_CODE_REPOSITORIES,
+          };
+        },
+      );
+
+    const rows: Array<RunnerCodeRepositoryRow> | null =
+      await loadRunnerCodeRepositories(new ObjectID(RUNNER_ID), {
+        isProjectDefault: true,
+      });
+
+    expect(rows).toEqual([
+      { id: "eeeeeeee-0000-4000-8000-000000000032", name: "api" },
+      { id: REPOSITORY_ID, name: "checkout" },
+      { id: "eeeeeeee-0000-4000-8000-000000000031", name: "web-app" },
+    ]);
+
+    const following: { select: Record<string, unknown> } = getList.mock
+      .calls[1]![0] as unknown as { select: Record<string, unknown> };
+    expect(following.select).toEqual({
+      _id: true,
+      name: true,
+      isGlobalRunnerPicked: true,
+    });
+  });
+
+  test("a Runner that is not the project's default lists only the repositories that pick it", async () => {
+    const getList: jest.SpiedFunction<typeof ModelAPI.getList> = lists([
+      { id: REPOSITORY_ID, name: "checkout" },
+    ]);
+
+    await loadRunnerCodeRepositories(new ObjectID(RUNNER_ID), {
+      isProjectDefault: false,
+    });
+
+    expect(getList).toHaveBeenCalledTimes(1);
   });
 
   test("a read that is refused is null - the row is left out - not an empty list", async () => {
@@ -384,7 +601,15 @@ describe("a Runner's page: the repositories that pick it", () => {
 
     // No card of its own any more.
     expect(source).not.toContain("<RunnerCodeRepositories ");
-    expect(source).toContain("loadRunnerCodeRepositories(modelId)");
+    /*
+     * Read with whether this Runner is the project's default, and again
+     * when that changes: the repositories that follow the default move with
+     * it.
+     */
+    expect(source).toContain(
+      "loadRunnerCodeRepositories(modelId, { isProjectDefault })",
+    );
+    expect(source).toContain("}, [modelId.toString(), isProjectDefault]);");
   });
 
   /*

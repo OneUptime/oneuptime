@@ -134,7 +134,7 @@ Si une exécution ne peut pas démarrer, l'app dit pourquoi dans le fil : elle n
 
 ## La désactiver
 
-Chaque dépôt a un interrupteur : **Respond to GitHub Commands**, sous **Plus de paramètres** sur la page **Paramètres** du dépôt. Il est activé pour chaque dépôt et s'enregistre dès que vous le basculez. Désactivée, l'app ignore les mentions, les assignations et l'étiquette de déclenchement dans ce dépôt, et indique à quiconque le demande où se trouve l'interrupteur.
+Chaque dépôt a un interrupteur : **Respond to GitHub Commands**, sous **Plus de paramètres** sur la page **Paramètres** du dépôt. Il est activé pour chaque dépôt et s'enregistre dès que vous le basculez. Désactivée, l'app ignore les mentions, les assignations et l'étiquette de déclenchement dans ce dépôt, et répond à quiconque le demande par un lien vers l'interrupteur.
 
 La même page contient l'**Étiquette de déclenchement GitHub**, sous **Plus de paramètres**, si vous voulez une autre étiquette que `oneuptime`.
 

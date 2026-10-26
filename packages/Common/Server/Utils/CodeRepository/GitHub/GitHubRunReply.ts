@@ -10,6 +10,10 @@ import CodeFixTaskContext, {
   GitHubTaskContext,
 } from "../../../../Types/AI/CodeFixTaskContext";
 import { DashboardClientUrl } from "../../../EnvironmentConfig";
+import {
+  CodeRepositorySetting,
+  getCodeRepositorySettingsPath,
+} from "../../../../Types/CodeRepository/CodeRepositorySetting";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import AIAgentTaskPullRequest from "../../../../Models/DatabaseModels/AIAgentTaskPullRequest";
 import AIRunService from "../../../Services/AIRunService";
@@ -71,6 +75,23 @@ export default class GitHubRunReply {
   // Code, the project's repositories and their tasks.
   public static buildProjectRunsUrl(projectId: ObjectID): string {
     return `${DashboardClientUrl.toString()}/${projectId.toString()}/code`;
+  }
+
+  /*
+   * A repository's Settings page in Code, landing on one of its settings
+   * (CodeRepositorySetting): ".../settings#github-commands" opens the page
+   * with More settings open at the GitHub Commands switch.
+   */
+  public static buildRepositorySettingsUrl(data: {
+    projectId: ObjectID;
+    codeRepositoryId: ObjectID;
+    setting?: CodeRepositorySetting | undefined;
+  }): string {
+    return `${DashboardClientUrl.toString()}${getCodeRepositorySettingsPath({
+      projectId: data.projectId.toString(),
+      codeRepositoryId: data.codeRepositoryId.toString(),
+      setting: data.setting,
+    })}`;
   }
 
   /*

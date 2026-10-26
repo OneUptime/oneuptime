@@ -1,7 +1,4 @@
-import CodeRepositoryService, {
-  NewRepositoryDefaults,
-  Service as CodeRepositoryServiceClass,
-} from "../../../Services/CodeRepositoryService";
+import CodeRepositoryService from "../../../Services/CodeRepositoryService";
 import CodeRepositoryConnectionService, {
   CodeRepositoryConnectionCredentials,
   Service as CodeRepositoryConnectionServiceClass,
@@ -960,9 +957,10 @@ export default class CodeRepositoryConnector {
   }
 
   /*
-   * Writes the repositories: new ones with what a connected repository
-   * starts with (CodeRepositoryService.getNewRepositoryDefaults), and the
-   * project's own ones from this server moved onto the connection.
+   * Writes the repositories: new ones with GitHub's switches off and no
+   * Runner of their own - they follow the project's default Runner, and a
+   * global Runner while there is none - and the project's own ones from
+   * this server moved onto the connection.
    */
   private static async saveRepositories(data: {
     projectId: ObjectID;
@@ -1002,7 +1000,6 @@ export default class CodeRepositoryConnector {
         }),
     );
 
-    let defaults: NewRepositoryDefaults | null = null;
     let imported: number = 0;
     let reconnected: number = 0;
     const ids: Array<string> = [];
@@ -1071,12 +1068,6 @@ export default class CodeRepositoryConnector {
         suffix++;
       }
 
-      if (!defaults) {
-        defaults = await CodeRepositoryServiceClass.getNewRepositoryDefaults(
-          data.projectId,
-        );
-      }
-
       const row: CodeRepository = new CodeRepository();
       row.projectId = data.projectId;
       row.name = displayName.substring(0, ColumnLength.ShortText);
@@ -1106,9 +1097,10 @@ export default class CodeRepositoryConnector {
       row.isGitHubCommandsEnabled = false;
       row.isProductionReviewEnabled = false;
 
-      if (defaults.runnerId) {
-        row.runnerId = defaults.runnerId;
-      }
+      /*
+       * No Runner of its own: it follows the project's default Runner, and
+       * a global Runner while there is none.
+       */
 
       try {
         const created: CodeRepository = await CodeRepositoryService.create({

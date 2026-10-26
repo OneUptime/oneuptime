@@ -16,7 +16,10 @@ import CodeFixReadiness, {
   CODE_FIX_AI_CREDITS_USED_UP_DETAIL,
   getRepositoryRunnerBlocker,
 } from "../CodeFix/CodeFixReadiness";
-import CodeRepositoryRunnerChoice from "../CodeFix/CodeRepositoryRunnerChoice";
+import CodeRepositoryRunnerChoice, {
+  CodeRepositoryRunnerStatus,
+} from "../CodeFix/CodeRepositoryRunnerChoice";
+import { CodeRepositoryRunnerChoiceKind } from "../../../../Types/Runner/CodeRepositoryRunner";
 import { CODE_TASK_ASK_REFUSED_MESSAGE } from "./CodeTaskAccess";
 import CodeRepository from "../../../../Models/DatabaseModels/CodeRepository";
 import Project from "../../../../Models/DatabaseModels/Project";
@@ -253,27 +256,36 @@ export default class CodeTaskGate {
         select: {
           _id: true,
           runnerId: true,
+          isGlobalRunnerPicked: true,
         },
         props: { isRoot: true },
       });
 
+    const status: CodeRepositoryRunnerStatus =
+      await CodeRepositoryRunnerChoice.getStatusForRepository({
+        projectId: data.projectId,
+        runnerId: runnerChoice?.runnerId,
+        isGlobalRunnerPicked: runnerChoice?.isGlobalRunnerPicked,
+      });
+
     /*
      * A Git server only a private network reaches is reached by a Runner of
-     * the project's own on it: a global Runner refuses its address.
+     * the project's own on it - the one the repository picks, or the
+     * project's default Runner it follows: a global Runner refuses its
+     * address.
      */
-    if (!connection.isReachableFromServer && !runnerChoice?.runnerId) {
+    if (
+      !connection.isReachableFromServer &&
+      status.decision.kind !== CodeRepositoryRunnerChoiceKind.Custom &&
+      status.decision.kind !== CodeRepositoryRunnerChoiceKind.ProjectDefault
+    ) {
       return {
         type: CodeTaskBlockerType.RepositoryNeedsOwnRunner,
         message: CODE_TASK_REPOSITORY_NEEDS_OWN_RUNNER_MESSAGE,
       };
     }
 
-    return getRepositoryRunnerBlocker(
-      await CodeRepositoryRunnerChoice.getStatusForRepository({
-        projectId: data.projectId,
-        runnerId: runnerChoice?.runnerId,
-      }),
-    );
+    return getRepositoryRunnerBlocker(status);
   }
 
   // Refuse with the blocker's own sentence, as an error of its kind.

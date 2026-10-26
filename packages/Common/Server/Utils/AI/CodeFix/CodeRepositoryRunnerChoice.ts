@@ -5,6 +5,7 @@ import RunnerService, {
 } from "../../../Services/RunnerService";
 import GlobalRunnerChoice from "../../Runner/GlobalRunnerChoice";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import QueryHelper from "../../../Types/Database/QueryHelper";
 import AIAgent from "../../../../Models/DatabaseModels/AIAgent";
 import CodeRepository from "../../../../Models/DatabaseModels/CodeRepository";
 import Runner from "../../../../Models/DatabaseModels/Runner";
@@ -14,6 +15,7 @@ import {
   CodeRepositoryRunnerDecision,
   CodeWorker,
   decideCodeRepositoryRunner,
+  followsProjectDefaultRunner,
   getRepositoryRunnerId,
   mayWorkInCodeRepository,
 } from "../../../../Types/Runner/CodeRepositoryRunner";
@@ -26,8 +28,13 @@ import RunnerLiveStatus, {
  * rule needs (Types/Runner/CodeRepositoryRunner), read as OneUptime, then
  * the rule - for the repository token (only the repository's Runner gets
  * one), for whether a project's Runner takes code work at all (a repository
- * picks it), and for who is online to do a repository's work (Code's gate,
- * the exception page's checklist, the queue sweeper).
+ * picks it, or follows it as the project's default Runner), and for who is
+ * online to do a repository's work (Code's gate, the exception page's
+ * checklist, the queue sweeper).
+ *
+ * The project's default Runner is read through GlobalRunnerChoice, the one
+ * reader of it, so a repository that picks none runs on the same Runner a
+ * runbook step that picks none runs on.
  */
 
 // What a repository's AI work runs on now, and whether it is there to do it.
@@ -36,22 +43,58 @@ export interface CodeRepositoryRunnerStatus {
   // Whether what the repository runs on is online to take its work now.
   isOnline: boolean;
   /*
-   * The name of the Runner the repository picked, for the words that name
-   * it; absent for a global Runner, and for a pick that is not one of the
-   * project's Runners any more.
+   * The name of the Runner the repository picked, or of the project's
+   * default Runner it follows, for the words that name it; absent for a
+   * global Runner, and for a pick that is not one of the project's Runners
+   * any more.
    */
   runnerName?: string | undefined;
 }
 
+/*
+ * What the rule reads off a repository: its project, the Runner it picked
+ * and whether it picked the Global Runner itself. Every key is asked for
+ * (never optional), so a caller hands over a row it selected
+ * isGlobalRunnerPicked on - a repository read without it would follow the
+ * project's default Runner when it picked the Global Runner.
+ */
 export interface CodeRepositoryRunnerFactsRow {
-  projectId?: ObjectID | undefined;
-  runnerId?: ObjectID | string | null | undefined;
+  projectId: ObjectID | undefined;
+  runnerId: ObjectID | string | null | undefined;
+  isGlobalRunnerPicked: boolean | null | undefined;
 }
+
+// The facts row of a repository read with the rule's columns.
+export function getCodeRepositoryRunnerFactsRow(
+  repository: Pick<
+    CodeRepository,
+    "projectId" | "runnerId" | "isGlobalRunnerPicked"
+  >,
+): CodeRepositoryRunnerFactsRow {
+  return {
+    projectId: repository.projectId,
+    runnerId: repository.runnerId,
+    isGlobalRunnerPicked: repository.isGlobalRunnerPicked,
+  };
+}
+
+// The columns the rule reads, for a read of the repository it decides for.
+export const CODE_REPOSITORY_RUNNER_SELECT: {
+  projectId: true;
+  runnerId: true;
+  isGlobalRunnerPicked: true;
+} = {
+  projectId: true,
+  runnerId: true,
+  isGlobalRunnerPicked: true,
+};
 
 export default class CodeRepositoryRunnerChoice {
   /*
-   * The rule's answer for a repository. The project's switch is read only
-   * for a repository that picked no Runner: a pick always wins.
+   * The rule's answer for a repository. Each fact is read only when the
+   * order reaches it: nothing for a repository that picked a Runner (a pick
+   * always wins), the project's default Runner for one that follows it, and
+   * the project's switch only for one that ends up on a global Runner.
    */
   @CaptureSpan()
   public static async decideForRepository(
@@ -64,6 +107,27 @@ export default class CodeRepositoryRunnerChoice {
       });
     }
 
+    const follows: boolean = followsProjectDefaultRunner({
+      repositoryRunnerId: null,
+      picksGlobalRunner: repository.isGlobalRunnerPicked,
+    });
+
+    const projectDefaultRunnerId: string =
+      follows && repository.projectId
+        ? await GlobalRunnerChoice.findProjectDefaultRunnerId(
+            repository.projectId,
+          )
+        : "";
+
+    if (projectDefaultRunnerId) {
+      return decideCodeRepositoryRunner({
+        repositoryRunnerId: null,
+        picksGlobalRunner: repository.isGlobalRunnerPicked,
+        projectDefaultRunnerId,
+        projectUsesGlobalRunners: false,
+      });
+    }
+
     const projectUsesGlobalRunners: boolean = repository.projectId
       ? await GlobalRunnerChoice.doesProjectUseGlobalRunners(
           repository.projectId,
@@ -72,6 +136,7 @@ export default class CodeRepositoryRunnerChoice {
 
     return decideCodeRepositoryRunner({
       repositoryRunnerId: null,
+      picksGlobalRunner: repository.isGlobalRunnerPicked,
       projectUsesGlobalRunners,
     });
   }
@@ -92,14 +157,16 @@ export default class CodeRepositoryRunnerChoice {
   }
 
   /*
-   * Whether a repository of the Runner's project picks it: what makes a
-   * project's Runner take code work at all - the code-fix identity it
-   * authenticates with, and the capability its heartbeat is told. A Runner
-   * no repository picks takes none, as one whose "Runs AI Code Fixes" was
-   * off did.
+   * Whether AI works in a repository of the Runner's project on it: a
+   * repository picks it, or it is the project's default Runner and a
+   * repository follows it (picks no Runner, and not the Global Runner).
+   * That is what makes a project's Runner take code work at all - the
+   * code-fix identity it authenticates with, and the capability its
+   * heartbeat is told. A Runner no repository works on takes none, as one
+   * whose "Runs AI Code Fixes" was off did.
    */
   @CaptureSpan()
-  public static async isRunnerPickedByARepository(runner: {
+  public static async doesRunnerWorkInARepository(runner: {
     id?: ObjectID | null | undefined;
     projectId?: ObjectID | null | undefined;
   }): Promise<boolean> {
@@ -107,7 +174,7 @@ export default class CodeRepositoryRunnerChoice {
       return false;
     }
 
-    const count: number = (
+    const picking: number = (
       await CodeRepositoryService.countBy({
         query: {
           projectId: runner.projectId,
@@ -117,7 +184,52 @@ export default class CodeRepositoryRunnerChoice {
       })
     ).toNumber();
 
-    return count > 0;
+    if (picking > 0) {
+      return true;
+    }
+
+    const defaultRunnerId: string =
+      await GlobalRunnerChoice.findProjectDefaultRunnerId(runner.projectId);
+
+    if (
+      !defaultRunnerId ||
+      getRepositoryRunnerId(defaultRunnerId) !==
+        getRepositoryRunnerId(runner.id)
+    ) {
+      return false;
+    }
+
+    return await CodeRepositoryRunnerChoice.hasRepositoryFollowingProjectDefault(
+      runner.projectId,
+    );
+  }
+
+  /*
+   * Whether a repository of the project follows its default Runner: picks
+   * no Runner, and did not pick the Global Runner (unset or false).
+   */
+  @CaptureSpan()
+  public static async hasRepositoryFollowingProjectDefault(
+    projectId: ObjectID,
+  ): Promise<boolean> {
+    for (const isGlobalRunnerPicked of [QueryHelper.isNull(), false]) {
+      const count: number = (
+        await CodeRepositoryService.countBy({
+          query: {
+            projectId: projectId,
+            runnerId: QueryHelper.isNull(),
+            isGlobalRunnerPicked: isGlobalRunnerPicked,
+          },
+          props: { isRoot: true },
+        })
+      ).toNumber();
+
+      if (count > 0) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   /*
@@ -149,11 +261,13 @@ export default class CodeRepositoryRunnerChoice {
    * What a repository's AI work runs on now, and whether it is online to
    * do it:
    *
-   *   - a Runner it picked: that Runner, online while it heartbeats (an
-   *     in-cluster Runner the Kubernetes agent chart installed never takes
-   *     code work, so it is never online for it);
-   *   - none, in a project that uses global Runners: a global Runner, or an
-   *     AI agent of the project's own;
+   *   - a Runner it picked, or the project's default Runner it follows:
+   *     that Runner, online while it heartbeats (an in-cluster Runner the
+   *     Kubernetes agent chart installed never takes code work, so it is
+   *     never online for it) - or, for the default Runner, while an AI
+   *     agent of the project's own is;
+   *   - a global Runner, in a project that uses them: a global Runner, or
+   *     an AI agent of the project's own;
    *   - none, in a project that does not: an AI agent of the project's own
    *     only.
    */
@@ -164,7 +278,10 @@ export default class CodeRepositoryRunnerChoice {
     const decision: CodeRepositoryRunnerDecision =
       await CodeRepositoryRunnerChoice.decideForRepository(repository);
 
-    if (decision.kind === CodeRepositoryRunnerChoiceKind.Custom) {
+    if (
+      decision.kind === CodeRepositoryRunnerChoiceKind.Custom ||
+      decision.kind === CodeRepositoryRunnerChoiceKind.ProjectDefault
+    ) {
       const runner: Runner | null = await RunnerService.findOneBy({
         query: {
           _id: decision.runnerId,
@@ -179,17 +296,30 @@ export default class CodeRepositoryRunnerChoice {
         props: { isRoot: true },
       });
 
-      if (!runner) {
-        return { decision, isOnline: false };
-      }
-
-      return {
-        decision,
-        runnerName: runner.name || undefined,
-        isOnline:
+      const isRunnerOnline: boolean = Boolean(
+        runner &&
           getRunnerLiveStatus(runner.lastAlive) ===
             RunnerLiveStatus.Connected &&
           !RunnerServiceClass.isKubernetesAgentRunnerRow(runner),
+      );
+
+      /*
+       * A repository that follows the project's default Runner is served
+       * by an AI agent of the project's own too, as one on a global Runner
+       * is; a pick is served by the Runner it picked alone.
+       */
+      const isProjectAgentOnline: boolean =
+        !isRunnerOnline &&
+        decision.kind === CodeRepositoryRunnerChoiceKind.ProjectDefault &&
+        Boolean(repository.projectId) &&
+        Boolean(
+          await AIAgentService.getOnlineProjectAIAgent(repository.projectId!),
+        );
+
+      return {
+        decision,
+        ...(runner?.name ? { runnerName: runner.name } : {}),
+        isOnline: isRunnerOnline || isProjectAgentOnline,
       };
     }
 
@@ -214,8 +344,9 @@ export default class CodeRepositoryRunnerChoice {
   /*
    * Whether anything is online to do the AI work of any of the project's
    * repositories: a global Runner while the project uses them, a Runner a
-   * repository picks, or an AI agent of the project's own. What a
-   * project-wide checklist asks before any repository is known.
+   * repository picks, the project's default Runner while a repository
+   * follows it, or an AI agent of the project's own. What a project-wide
+   * checklist asks before any repository is known.
    */
   @CaptureSpan()
   public static async isAnyRunnerOnlineForProject(
@@ -257,11 +388,29 @@ export default class CodeRepositoryRunnerChoice {
       ),
     );
 
+    /*
+     * The project's default Runner, while a repository follows it: read as
+     * a repository that follows it would be.
+     */
+    if (
+      await CodeRepositoryRunnerChoice.hasRepositoryFollowingProjectDefault(
+        projectId,
+      )
+    ) {
+      const defaultRunnerId: string =
+        await GlobalRunnerChoice.findProjectDefaultRunnerId(projectId);
+
+      if (defaultRunnerId && !runnerIds.includes(defaultRunnerId)) {
+        runnerIds.push(getRepositoryRunnerId(defaultRunnerId));
+      }
+    }
+
     for (const runnerId of runnerIds) {
       const status: CodeRepositoryRunnerStatus =
         await CodeRepositoryRunnerChoice.getStatusForRepository({
           projectId,
           runnerId,
+          isGlobalRunnerPicked: false,
         });
 
       if (status.isOnline) {

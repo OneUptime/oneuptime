@@ -5,7 +5,7 @@ A **Runbook Agent**, called a **Runner** in the dashboard, is a small self-hoste
 :::cards
 - [Install a Runner](#install-a-runner): From the dashboard to a connected container, in five steps.
 - [Point a step at a Runner](#point-a-step-at-a-runner): Bind a step to the Runner that should run it.
-- [The project's default Runner](#the-projects-default-runner): The Runner a step runs on when it picks none.
+- [The project's default Runner](#the-projects-default-runner): The Runner a step or a code repository works on when it picks none.
 - [Global Runners](#global-runners): The Runners OneUptime runs for every project, and what they run.
 - [Timeouts](#timeouts): Claim and execution timeouts, and how they interact.
 - [Environment variables](#environment-variables): What the container reads when it starts.
@@ -70,7 +70,7 @@ A global Runner runs the steps of many projects, so each step is kept apart from
 - It gets a secret variable only when the variable's **Global Runners can use it** switch is on, and only for a step of the variable's own project.
 - A project runs at most three steps on global Runners at once, so no project keeps them to itself.
 
-Pick one of your own Runners for a step that must reach your network, or to keep the step on hosts you control. To keep every step on your own Runners, turn **Use global Runners** off at the bottom of **Runbooks → Runners**. A JavaScript step that picks no Runner then runs on the project's default Runner or, with none set, fails, saying so, until it picks one of yours; a step that picks one of your Runners keeps it either way. A code repository that picks no Runner in its settings in Code works on a global Runner too, and needs one of yours while the switch is off; see [Code](/docs/ai/ai-agent#pick-the-repositorys-runner).
+Pick one of your own Runners for a step that must reach your network, or to keep the step on hosts you control. To keep every step on your own Runners, turn **Use global Runners** off at the bottom of **Runbooks → Runners**. A JavaScript step that picks no Runner then runs on the project's default Runner or, with none set, fails, saying so, until it picks one of yours; a step that picks one of your Runners keeps it either way. A code repository that picks no Runner in its settings in Code works on the project's default Runner too or, with none set, on a global Runner, and needs one of yours while the switch is off; see [Code](/docs/ai/ai-agent#pick-the-repositorys-runner).
 
 ### Where global Runners come from
 
@@ -156,7 +156,7 @@ Need more than one Runner? Create them, then point each step at the one that fit
 
 ## The project's default Runner
 
-A project can make one of its own Runners its default, as it makes one Twilio configuration its default. Every runbook step that picks no Runner then runs on it: Bash, SSH and kubectl steps, and JavaScript steps, which would otherwise run on a global Runner.
+A project can make one of its own Runners its default, as it makes one Twilio configuration its default. Every runbook step that picks no Runner then runs on it: Bash, SSH and kubectl steps, and JavaScript steps, which would otherwise run on a global Runner. So does AI in every code repository that picks no Runner in its settings in Code.
 
 To make a Runner the default, go to **Runbooks → Runners**, open the **⋯** menu on the Runner's row, click **Set as Project Default** and confirm with **Make Project Default**. Or open the Runner, and on its **Project Default** card turn on **Use as the project default**. The list marks the default **Project default**, beside its name, and so does a step's **Runner** dropdown, on its first choice. A project has one default Runner: making another Runner the default replaces it. **Stop Using as Project Default**, in the same menu, or the switch on the Runner's page, stops using it.
 
@@ -172,7 +172,7 @@ A step that picked a Runner keeps it, whatever the default is, and a JavaScript 
 
 The default is one of the project's own Runners that runs runbook steps: not a global Runner, not the in-cluster Runner the Kubernetes agent installed, and not one with **Runs Runbooks** off. While a Runner is the default, its **Runs Runbooks** stays on. When the default is not connected, a step's dropdown says so, and a step on it waits for it, as for any Runner, until its claim timeout.
 
-Only runbook steps use the default. A code repository picks its Runner in its settings in Code, and an AI rule picks its own.
+Runbook steps and code repositories that pick no Runner use the default, and move with it when another Runner becomes the default. An AI rule picks its own Runner, and a new rule starts on the default.
 
 ## Operational notes
 

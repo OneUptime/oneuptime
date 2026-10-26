@@ -5,7 +5,7 @@ En **runbook-agent**, der kaldes **Runner** i dashboardet, er en lille selvhoste
 :::cards
 - [Installer en Runner](#installer-en-runner): Fra dashboardet til en forbundet container i fem trin.
 - [Peg et trin mod en Runner](#peg-et-trin-mod-en-runner): Bind et trin til den Runner, der skal køre det.
-- [Projektets standard-Runner](#projektets-standard-runner): Den Runner, et trin kører på, når det ikke vælger nogen.
+- [Projektets standard-Runner](#projektets-standard-runner): Den Runner, et trin eller et koderepositorie kører på, når det ikke vælger nogen.
 - [Globale Runnere](#globale-runnere): De Runnere, OneUptime kører for alle projekter, og hvad de kører.
 - [Timeouts](#timeouts): Claim- og udførelsestimeouts, og hvordan de spiller sammen.
 - [Miljøvariabler](#miljøvariabler): Hvad containeren læser ved opstart.
@@ -70,7 +70,7 @@ En global Runner kører trinnene fra mange projekter, så hvert trin holdes adsk
 - Den får kun en hemmelig variabel, når variablens kontakt **Globale Runnere må bruge den** er slået til, og kun for et trin i variablens eget projekt.
 - Et projekt kører højst tre trin ad gangen på globale Runnere, så intet projekt holder dem for sig selv.
 
-Vælg en af dine egne Runnere til et trin, der skal nå dit netværk, eller for at holde trinnet på værter, du styrer. For at holde hvert trin på dine egne Runnere skal du slå **Brug globale Runnere** fra nederst på **Runbooks → Runbook-agenter**. Et JavaScript-trin, der ikke vælger nogen Runner, kører så på projektets standard-Runner eller fejler, hvis der ikke er angivet en, og siger det, indtil det vælger en af dine; et trin, der vælger en af dine Runnere, beholder den under alle omstændigheder. Et koderepositorie, der ikke vælger nogen Runner i sine indstillinger i Kode, arbejder også på en global Runner og skal bruge en af dine, mens kontakten er slået fra; se [Kode](/docs/ai/ai-agent#vælg-repositoriets-runner).
+Vælg en af dine egne Runnere til et trin, der skal nå dit netværk, eller for at holde trinnet på værter, du styrer. For at holde hvert trin på dine egne Runnere skal du slå **Brug globale Runnere** fra nederst på **Runbooks → Runbook-agenter**. Et JavaScript-trin, der ikke vælger nogen Runner, kører så på projektets standard-Runner eller fejler, hvis der ikke er angivet en, og siger det, indtil det vælger en af dine; et trin, der vælger en af dine Runnere, beholder den under alle omstændigheder. Et koderepositorie, der ikke vælger nogen Runner i sine indstillinger i Kode, arbejder også på projektets standard-Runner eller, hvis der ikke er angivet en, på en global Runner og skal bruge en af dine, mens kontakten er slået fra; se [Kode](/docs/ai/ai-agent#vælg-repositoriets-runner).
 
 ### Hvor globale Runnere kommer fra
 
@@ -156,7 +156,7 @@ Brug for mere end én Runner? Opret dem, og peg hvert trin mod den rette. For re
 
 ## Projektets standard-Runner
 
-Et projekt kan gøre en af sine egne Runnere til sin standard, ligesom det gør en Twilio-konfiguration til sin standard. Hvert runbook-trin, der ikke vælger nogen Runner, kører så på den: Bash-, SSH- og kubectl-trin og JavaScript-trin, som ellers ville køre på en global Runner.
+Et projekt kan gøre en af sine egne Runnere til sin standard, ligesom det gør en Twilio-konfiguration til sin standard. Hvert runbook-trin, der ikke vælger nogen Runner, kører så på den: Bash-, SSH- og kubectl-trin og JavaScript-trin, som ellers ville køre på en global Runner. Det samme gør AI i hvert koderepositorie, der ikke vælger nogen Runner i sine indstillinger i Kode.
 
 For at gøre en Runner til standard skal du gå til **Runbooks → Runbook-agenter**, åbne menuen **⋯** i Runnerens række, klikke på **Indstil som projektstandard** og bekræfte med **Gør til projektstandard**. Eller åbn Runneren, og slå **Brug som projektstandard** til på dens kort **Projektstandard**. Listen markerer standarden med **Projektstandard** ved siden af dens navn, og det samme gør et trins rulleliste **Runner** ved det første valg. Et projekt har én standard-Runner: At gøre en anden Runner til standard erstatter den. **Stop med at bruge som projektstandard** i samme menu, eller kontakten på Runnerens side, holder op med at bruge den.
 
@@ -172,7 +172,7 @@ Et trin, der har valgt en Runner, beholder den, uanset hvad standarden er, og et
 
 Standarden er en af projektets egne Runnere, der kører runbook-trin: ikke en global Runner, ikke den Runner i klyngen, som Kubernetes-agenten installerede, og ikke en med **Kører runbooks** slået fra. Så længe en Runner er standarden, forbliver dens **Kører runbooks** slået til. Når standarden ikke er forbundet, siger et trins rulleliste det, og et trin på den venter på den, som på enhver Runner, indtil dets claim timeout er gået.
 
-Kun runbook-trin bruger standarden. Et koderepositorie vælger sin Runner i sine indstillinger i Kode, og en AI-regel vælger sin egen.
+Runbook-trin og koderepositorier, der ikke vælger nogen Runner, bruger standarden og flytter med, når en anden Runner bliver standard. En AI-regel vælger sin egen Runner, og en ny regel starter på standarden.
 
 ## Driftsnoter
 

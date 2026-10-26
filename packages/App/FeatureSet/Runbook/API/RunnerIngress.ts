@@ -361,7 +361,7 @@ export default class RunnerIngressAPI {
       return false;
     }
 
-    return await CodeRepositoryRunnerChoice.isRunnerPickedByARepository(agent);
+    return await CodeRepositoryRunnerChoice.doesRunnerWorkInARepository(agent);
   }
 
   /*

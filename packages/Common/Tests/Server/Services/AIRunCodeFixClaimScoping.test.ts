@@ -88,9 +88,15 @@ describe("AIRunService.claimNextQueuedCodeFixRun — tenancy scoping", () => {
     expect(statements[0]!.parameters[0]).toBe(AIRunType.CodeFix);
     expect(statements[0]!.parameters[1]).toBe(AIRunStatus.Queued);
     expect(statements[0]!.parameters[3]).toBe(PROJECT_ID.toString());
-    // ...and to the repositories that pick this Runner, or none known yet.
+    /*
+     * ...and to the repositories that pick this Runner, or none known yet -
+     * or, while it is the project's default Runner, that follow it.
+     */
     expect(statements[0]!.sql).toContain(
-      `("repository"."runnerId" = $5::uuid OR "repository"."_id" IS NULL)`,
+      `("repository"."runnerId" = $5::uuid OR "repository"."_id" IS NULL OR (`,
+    );
+    expect(statements[0]!.sql).toContain(
+      `"defaultRunner"."_id" = $5::uuid AND "defaultRunner"."projectId" = "run"."projectId"`,
     );
     expect(statements[0]!.parameters[4]).toBe(AGENT_ID.toString());
     // No candidate: nothing is read or claimed.

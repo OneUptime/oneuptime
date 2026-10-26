@@ -21,11 +21,12 @@ import { PROJECT_DEFAULT_TAG } from "./RunnerPickerModel";
  *   - a Runner's own page: a Project Default card whose one switch saves
  *     the moment it is flipped.
  *
- * Both ask first, saying which steps move: making a Runner the default
- * moves every step that picks no Runner onto it - the JavaScript steps on
- * the Global Runner among them - and stopping moves them back. No Runner is
- * the default until someone makes it so: a Runner that never connected is
- * never picked by default.
+ * Both ask first, saying what moves: making a Runner the default moves
+ * every step that picks no Runner onto it - the JavaScript steps on the
+ * Global Runner among them - and the AI work of every code repository that
+ * picks none (Common/Types/Runner/CodeRepositoryRunner), and stopping moves
+ * them back. No Runner is the default until someone makes it so: a Runner
+ * that never connected is never picked by default.
  *
  * Kept free of React, so App/Tests can read these exact strings. Every
  * sentence is wrapped in translationKey() so npm run i18n:extract finds it;
@@ -78,10 +79,10 @@ export const ProjectDefaultRunnerCopy: {
     "Make {{runner}} the project default?",
   ),
   makeDefaultConfirmDescription: translationKey(
-    "Runbook steps that pick no Runner will run on it, including the JavaScript steps that run on the Global Runner now.",
+    "Runbook steps and code repositories that pick no Runner will run on it, including those on the Global Runner now.",
   ),
   replaceDefaultConfirmDescription: translationKey(
-    "Runbook steps that pick no Runner will run on it instead of {{current}}.",
+    "Runbook steps and code repositories that pick no Runner will run on it instead of {{current}}.",
   ),
   makeDefaultConfirmButton: translationKey("Make Project Default"),
   makeDefaultNotConnectedWarning: translationKey(
@@ -91,25 +92,25 @@ export const ProjectDefaultRunnerCopy: {
     "Stop using {{runner}} as the project default?",
   ),
   stopDefaultConfirmDescription: translationKey(
-    "Runbook steps that pick no Runner will run on the Global Runner if they are JavaScript steps. Other steps will need a Runner picked.",
+    "JavaScript steps and code repositories that pick no Runner will run on the Global Runner. Other steps will need a Runner picked.",
   ),
   stopDefaultConfirmButton: translationKey("Stop Using as Default"),
   customCardSentence: translationKey(
-    "Make one the project default from its ⋯ menu, and the steps that pick no Runner run on it.",
+    "Make one the project default from its ⋯ menu, and the steps and code repositories that pick no Runner run on it.",
   ),
   switchCardTitle: translationKey("Project Default"),
   switchCardDescription: translationKey(
-    "The project's default Runner runs the runbook steps that pick no Runner of their own, in place of the Global Runner.",
+    "The project's default Runner runs the runbook steps and the code repositories that pick no Runner of their own, in place of the Global Runner.",
   ),
   switchTitle: translationKey("Use as the project default"),
   switchOnDescription: translationKey(
-    "Runbook steps that pick no Runner run on this Runner.",
+    "Runbook steps and code repositories that pick no Runner run on this Runner.",
   ),
   switchOffDescription: translationKey(
-    "Runbook steps that pick no Runner run on the project's default Runner, or on the Global Runner when there is none.",
+    "Runbook steps and code repositories that pick no Runner run on the project's default Runner, or on the Global Runner when there is none.",
   ),
   switchOffDescriptionWithDefault: translationKey(
-    "Runbook steps that pick no Runner run on {{runner}}, the project default.",
+    "Runbook steps and code repositories that pick no Runner run on {{runner}}, the project default.",
   ),
 };
 

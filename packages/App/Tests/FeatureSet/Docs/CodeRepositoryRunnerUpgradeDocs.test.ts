@@ -145,14 +145,20 @@ describe("the note is true to the upgrade", () => {
     );
   });
 
-  it("holds a repository's Runner on the repository, empty for a global Runner", () => {
+  /*
+   * Empty still means a global Runner in a project with no default Runner;
+   * one with a default has its repositories follow it since a later change
+   * (CodeRepositoryDefaultRunnerUpgradeDocs), which kept every repository
+   * this note's upgrade left on a global Runner there.
+   */
+  it("holds a repository's Runner on the repository, empty for a global Runner where the project has no default", () => {
     const repository: string = source(
       "Common/Models/DatabaseModels/CodeRepository.ts",
     );
 
     expect(repository).toContain("public runnerId?: ObjectID = undefined;");
     expect(repository).toContain(
-      "Empty means a global Runner, one OneUptime runs for every project.",
+      "Empty means the project's default Runner when it has one, and otherwise a global Runner, one OneUptime runs for every project.",
     );
   });
 
