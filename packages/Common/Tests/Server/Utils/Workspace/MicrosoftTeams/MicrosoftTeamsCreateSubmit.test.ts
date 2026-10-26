@@ -556,7 +556,8 @@ describe("Microsoft Teams: submitting the Create New Incident form", (): void =>
     // The create credits the member it is made by, from the props.
     expect(incident.createdByUserId).toBeUndefined();
     expect(incident.incidentSeverityId?.toString()).toBe(SEVERITY_ID);
-    expect(incident.rootCause).toBe("Incident created via Microsoft Teams");
+    // No root cause until somebody knows one: the member is its creator.
+    expect(incident.rootCause).toBeUndefined();
   });
 
   test.each([

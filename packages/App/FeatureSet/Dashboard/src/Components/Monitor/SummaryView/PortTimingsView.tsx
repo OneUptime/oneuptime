@@ -2,6 +2,10 @@ import PortMonitorTimings from "Common/Types/Monitor/PortMonitor/PortMonitorTimi
 import React, { FunctionComponent, ReactElement } from "react";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  TIMING_LABEL_CLASS_NAME,
+  TIMING_VALUE_CLASS_NAME,
+} from "./SummaryFacts";
 
 export interface ComponentProps {
   portTimings: PortMonitorTimings;
@@ -80,14 +84,14 @@ const PortTimingsView: FunctionComponent<ComponentProps> = (
 
           return (
             <div key={phase.label} className="flex items-center text-sm">
-              <div className="w-32 shrink-0 text-gray-700">{phase.label}</div>
+              <div className={TIMING_LABEL_CLASS_NAME}>{phase.label}</div>
               <div className="flex-1 mx-2">
                 <div
                   className={`h-3 rounded ${phase.colorClassName}`}
                   style={{ width: `${Math.max(percent, 1)}%` }}
                 ></div>
               </div>
-              <div className="w-24 shrink-0 text-right text-gray-700 font-mono">
+              <div className={TIMING_VALUE_CLASS_NAME}>
                 {formatDurationInMs(phase.valueInMs)}
               </div>
             </div>

@@ -124,6 +124,7 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
     // Criteria names: the criteria form's Filter Type options.
     "SNMP OID Value",
     "SNMP OID Exists",
+    "SNMP OID Rate (per second)",
     "SNMP Table Row Is Unhealthy",
     "SNMP Transceiver Reading",
     "SNMP Trap Received (Trap OID)",

@@ -115,7 +115,7 @@ describe("where the page was asked from: what it is about, under the first line"
     expect(markdown.split("\n\n").slice(0, 3)).toEqual([
       `📟 **[DB Escalation](https://oneuptime.test/dashboard/p/on-call-duty/policies/1)** is paging for ${RECORD}`,
       `“${TITLE}”`,
-      "**Escalation rule 1 of 2**: if nobody acknowledges within 10 minutes, escalation rule 2 is next.",
+      "**Level 1 of 2**: if nobody acknowledges within 10 minutes, Level 2 of 2 is next.",
     ]);
   });
 

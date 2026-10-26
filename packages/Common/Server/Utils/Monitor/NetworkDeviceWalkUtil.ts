@@ -14,6 +14,10 @@ import { NetworkDevicePollMode } from "./NetworkDeviceHydrationUtil";
 import NetworkDeviceMetricUtil from "./NetworkDeviceMetricUtil";
 import NetworkInventoryUtil from "./NetworkInventoryUtil";
 import SnmpInterfaceRateUtil from "./SnmpInterfaceRateUtil";
+import SnmpOidRateUtil, {
+  SNMP_OID_COUNTER_BASELINE_KEY,
+  SnmpOidCounterBaseline,
+} from "./SnmpOidRateUtil";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
@@ -185,11 +189,36 @@ export default class NetworkDeviceWalkUtil {
     }
 
     /*
+     * The same for the counter OIDs a poll reads (SNMP OID Rate (per
+     * second)): each one's growth since the previous poll that read it,
+     * against the counters the device's lastWalkLog keeps. One receipt
+     * time for the poll, for the rate and for the counters kept below.
+     */
+    const receivedAt: Date = OneUptimeDate.getCurrentDate();
+    const previousWalkLog: JSONObject | undefined = device.lastWalkLog as
+      | JSONObject
+      | undefined;
+
+    if (data.snmpResponse) {
+      SnmpOidRateUtil.attachOidRates({
+        snmpResponse: data.snmpResponse,
+        previousBaseline: SnmpOidRateUtil.readBaseline(previousWalkLog),
+        now: receivedAt,
+      });
+    }
+
+    const counterBaseline: SnmpOidCounterBaseline | undefined =
+      SnmpOidRateUtil.getCounterBaseline({
+        snmpResponse: data.snmpResponse,
+        now: receivedAt,
+      });
+
+    /*
      * Persist this walk as the next delta baseline — but only when it
-     * actually walked interfaces. Keeping the last GOOD counters across
-     * failed polls (and across ping-only polls, which walk nothing) means
-     * rates resume with a correct (longer-window) delta instead of losing
-     * a cycle.
+     * actually walked interfaces or read counter OIDs. Keeping the last GOOD
+     * counters across failed polls (and across ping-only polls, which walk
+     * nothing) means rates resume with a correct (longer-window) delta
+     * instead of losing a cycle.
      *
      * Hook-free single-statement write, deliberately. A 48-interface walk
      * log is ~28 KB of jsonb, stored out of line: the full updateOneById
@@ -227,35 +256,61 @@ export default class NetworkDeviceWalkUtil {
      * every five minutes and would otherwise be the only thing moving the
      * counter at all.
      */
-    if (
+    const hasWalkedInterfaces: boolean = Boolean(
       data.snmpResponse &&
-      data.snmpResponse.interfaces &&
-      data.snmpResponse.interfaces.length > 0
-    ) {
-      await NetworkDeviceService.updateColumnsByIdWithoutHooks({
-        id: device.id,
-        data: {
-          lastWalkLog: {
-            /*
-             * ONLY the interfaces, not the whole response.
-             *
-             * This column exists for exactly one reader —
-             * SnmpInterfaceRateUtil, which computes counter deltas from
-             * `snmpResponse.interfaces` and touches nothing else. Every other
-             * field was dead weight in a jsonb column rewritten on every poll
-             * of every device, and `oidResponses` is the one that grows: OID
-             * Collection Templates make long health-OID lists normal, so
-             * leaving them here would add tens of KB per device per poll of
-             * pure TOAST churn on the product's hottest table, for data
-             * nothing ever reads back.
-             */
+        data.snmpResponse.interfaces &&
+        data.snmpResponse.interfaces.length > 0,
+    );
+
+    if (data.snmpResponse && (hasWalkedInterfaces || counterBaseline)) {
+      /*
+       * What the next poll's rates are computed against, and nothing else.
+       *
+       * The interfaces, for SnmpInterfaceRateUtil, which reads
+       * `snmpResponse.interfaces` and touches nothing else; and the counter
+       * OIDs' readings, for SnmpOidRateUtil - a few numbers, the counters
+       * only. Every other field was dead weight in a jsonb column rewritten
+       * on every poll of every device, and `oidResponses` is the one that
+       * grows: OID Collection Templates make long health-OID lists normal,
+       * so storing them here would add tens of KB per device per poll of
+       * pure TOAST churn on the product's hottest table, for data nothing
+       * ever reads back.
+       *
+       * A part this poll did not read keeps the one before - and the time
+       * it was read - so a poll that walked no interfaces leaves their rates
+       * a correct (longer) window, and one that read no counter leaves the
+       * counters theirs.
+       */
+      const lastWalkLog: JSONObject = hasWalkedInterfaces
+        ? {
             snmpResponse: {
               interfaces: JSON.parse(
                 JSON.stringify(data.snmpResponse.interfaces),
               ),
             },
-            monitoredAt: OneUptimeDate.getCurrentDate(),
-          },
+            monitoredAt: receivedAt,
+          }
+        : {
+            ...(previousWalkLog?.["snmpResponse"] !== undefined
+              ? { snmpResponse: previousWalkLog["snmpResponse"] }
+              : {}),
+            ...(previousWalkLog?.["monitoredAt"] !== undefined
+              ? { monitoredAt: previousWalkLog["monitoredAt"] }
+              : {}),
+          };
+
+      const keptCounters: SnmpOidCounterBaseline | undefined =
+        counterBaseline || SnmpOidRateUtil.readBaseline(previousWalkLog);
+
+      if (keptCounters) {
+        lastWalkLog[SNMP_OID_COUNTER_BASELINE_KEY] =
+          keptCounters as unknown as JSONObject;
+      }
+
+      await NetworkDeviceService.updateColumnsByIdWithoutHooks({
+        id: device.id,
+        data: {
+          lastWalkLog: lastWalkLog,
         } as any,
         /*
          * The hooked path finds rows with `withDeleted: false`, so a device

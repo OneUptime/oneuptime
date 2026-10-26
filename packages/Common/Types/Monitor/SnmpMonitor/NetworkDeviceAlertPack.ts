@@ -247,6 +247,13 @@ export default class NetworkDeviceAlertPackUtil {
     name: string;
     filterType: FilterType;
     value: string | number | undefined;
+    /*
+     * SNMP OID Value when left out; SNMP OID Rate (per second) for a
+     * counter, which is alerted on by how fast it grows.
+     */
+    checkOn?: CheckOn.SnmpOidValue | CheckOn.SnmpOidRatePerSecond | undefined;
+    // What the criteria watches, when the value alone does not say it.
+    description?: string | undefined;
   }): MonitorCriteriaInstance {
     const oid: string = SnmpOidListUtil.normalizeOid(data.oid);
     const instance: MonitorCriteriaInstance = new MonitorCriteriaInstance();
@@ -257,7 +264,7 @@ export default class NetworkDeviceAlertPackUtil {
       filterCondition: FilterCondition.All,
       filters: [
         {
-          checkOn: CheckOn.SnmpOidValue,
+          checkOn: data.checkOn || CheckOn.SnmpOidValue,
           filterType: data.filterType,
           value: data.value,
           snmpMonitorOptions: { oid: oid },
@@ -270,7 +277,9 @@ export default class NetworkDeviceAlertPackUtil {
       changeMonitorStatus: false,
       isEnabled: true,
       name: data.name,
-      description: `The value the device reports for ${data.name === oid ? oid : `${data.name} (${oid})`}.`,
+      description:
+        data.description ||
+        `The value the device reports for ${data.name === oid ? oid : `${data.name} (${oid})`}.`,
     };
 
     return instance;

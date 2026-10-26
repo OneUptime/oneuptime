@@ -240,15 +240,21 @@ export default class MonitorTemplate extends BaseModel {
       Permission.EditMonitorTemplate,
     ],
   })
+  /*
+   * Optional: a template's name usually says what it is for, and a
+   * description only helps when it does not. It was required, so the
+   * create form asked for one every time.
+   */
   @TableColumn({
-    required: true,
+    required: false,
     type: TableColumnType.LongText,
     canReadOnRelationQuery: true,
     title: "Template Description",
-    description: "Description of the Monitor Template",
+    description:
+      "What the template is for, shown in the template list. Optional.",
   })
   @Column({
-    nullable: false,
+    nullable: true,
     type: ColumnType.LongText,
     length: ColumnLength.LongText,
   })

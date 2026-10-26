@@ -82,7 +82,7 @@ On **Reminders**, set **Reminder Interval (minutes)**, how often owners are remi
 | **Before it starts** | From when the event is scheduled until it starts. |
 | **Before it starts and while it is in progress** | From when the event is scheduled until it ends. |
 
-A rule saved through the API or Terraform that waits for the event to start and stops when it starts never sends a reminder: the list marks it **Never reminds**, and its form asks you to pick one.
+The API and Terraform refuse a rule that would wait for the event to start and stop when it starts: it would never send a reminder. An older rule saved that way is marked **Never reminds** in the list, and its form asks you to pick when to remind.
 
 Owners get each reminder as **Maintenance reminder**, which is on by email for every new member. Saving, changing or deleting a reminder rule matches every event that is not completed again. To stop the reminders for one event, turn **Send reminders** off on its **Settings** page; it saves the moment you flip it.
 

@@ -8,26 +8,26 @@ import NtpMonitorUtil, {
   NTP_MAX_SYNCHRONIZED_STRATUM,
 } from "Common/Types/Monitor/NtpMonitor/NtpMonitorUtil";
 import HostAddressUtil from "Common/Utils/HostAddressUtil";
-import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 import NetworkPathView from "./NetworkPathView";
 import ProbeAttemptsView from "./ProbeAttemptsView";
+import { SummaryFact, SummaryFacts, SummaryView } from "./SummaryFacts";
 
 export interface ComponentProps {
   probeMonitorResponse: ProbeMonitorResponse;
   probeName?: string | undefined;
 }
 
-const CARD_CLASS_NAME: string = "w-full shadow-none border-2 border-gray-100";
-
 /*
  * The latest NTP check: the server, whether it answered and is synchronized,
  * and - for a server that answered - its clock offset, stratum, reference
  * and the rest of its reply's header, with what each one means a hover away.
  *
- * Cards wrap two to a row on a narrow screen and four on a wide one.
+ * Cards go two to a row, and four once the summary itself is wide enough
+ * (SummaryFacts): by the summary's width, not the screen's, which put four
+ * to a row in the overview's two-thirds card.
  */
 const NtpMonitorView: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -144,28 +144,21 @@ const NtpMonitorView: FunctionComponent<ComponentProps> = (
   };
 
   return (
-    <div className="space-y-5" data-testid="ntp-monitor-summary">
-      <InfoCard
-        className={CARD_CLASS_NAME}
-        title="NTP Server"
-        value={serverAddress ? `${server} (${serverAddress})` : server}
-      />
-
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <InfoCard
-          className={CARD_CLASS_NAME}
-          title="Probe"
-          value={props.probeName || "-"}
+    <SummaryView dataTestId="ntp-monitor-summary">
+      <SummaryFacts>
+        <SummaryFact
+          isWide={true}
+          title="NTP Server"
+          value={serverAddress ? `${server} (${serverAddress})` : server}
         />
-        <InfoCard
-          className={CARD_CLASS_NAME}
+        <SummaryFact title="Probe" value={props.probeName || "-"} />
+        <SummaryFact
           title="Status"
           value={translator.translateTemplate(
             response.isOnline ? "Online" : "Offline",
           )}
         />
-        <InfoCard
-          className={CARD_CLASS_NAME}
+        <SummaryFact
           title="Synchronized"
           tooltip="Answered at stratum 1 to 15, without the leap indicator's alarm."
           value={
@@ -176,8 +169,7 @@ const NtpMonitorView: FunctionComponent<ComponentProps> = (
               : "-"
           }
         />
-        <InfoCard
-          className={CARD_CLASS_NAME}
+        <SummaryFact
           title="Monitored At"
           value={
             response.monitoredAt
@@ -187,70 +179,58 @@ const NtpMonitorView: FunctionComponent<ComponentProps> = (
               : "-"
           }
         />
-      </div>
+        {response.failureCause ? (
+          <SummaryFact
+            isWide={true}
+            title={isAnswered ? "Not Synchronized" : "Error"}
+            value={response.failureCause.toString()}
+          />
+        ) : (
+          <></>
+        )}
+      </SummaryFacts>
 
       {isAnswered && ntpResponse && (
-        <>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <InfoCard
-              className={CARD_CLASS_NAME}
-              title="Clock Offset"
-              tooltip="How far the server's clock is from this probe's clock, measured from the four timestamps of the exchange. It is measured against the probe's clock: if every server shows a similar offset from one probe, check that probe's time."
-              value={getOffsetText()}
-            />
-            <InfoCard
-              className={CARD_CLASS_NAME}
-              title="Stratum"
-              tooltip="Hops from a reference clock: 1 is a server with its own GPS or atomic source, 2 syncs to a stratum 1 server, and so on. 16 means not synchronized."
-              value={getStratumText()}
-            />
-            <InfoCard
-              className={CARD_CLASS_NAME}
-              title="Reference"
-              tooltip="What the server synchronizes to: a source such as GPS at stratum 1, or its upstream server's address."
-              value={ntpResponse.referenceId || "-"}
-            />
-            <InfoCard
-              className={CARD_CLASS_NAME}
-              title="Response Time"
-              value={formatMs(ntpResponse.responseTimeInMs)}
-            />
-          </div>
-
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <InfoCard
-              className={CARD_CLASS_NAME}
-              title="Leap Indicator"
-              tooltip="Warns of a leap second at the end of the day. 3 is an alarm: the server says its clock is not synchronized."
-              value={getLeapText()}
-            />
-            <InfoCard
-              className={CARD_CLASS_NAME}
-              title="Root Dispersion"
-              tooltip="The server's own estimate of how far its time could be from the true time. Clients stop trusting a server once it passes about a second."
-              value={formatMs(ntpResponse.rootDispersionInMs)}
-            />
-            <InfoCard
-              className={CARD_CLASS_NAME}
-              title="Root Delay"
-              tooltip="Round trip from the server to its reference clock."
-              value={formatMs(ntpResponse.rootDelayInMs)}
-            />
-            <InfoCard
-              className={CARD_CLASS_NAME}
-              title="Server Time"
-              value={formatDate(ntpResponse.serverTime)}
-            />
-          </div>
-        </>
-      )}
-
-      {response.failureCause && (
-        <InfoCard
-          className={CARD_CLASS_NAME}
-          title={isAnswered ? "Not Synchronized" : "Error"}
-          value={response.failureCause.toString()}
-        />
+        <SummaryFacts dataTestId="ntp-monitor-reply-facts">
+          <SummaryFact
+            title="Clock Offset"
+            tooltip="How far the server's clock is from this probe's clock, measured from the four timestamps of the exchange. It is measured against the probe's clock: if every server shows a similar offset from one probe, check that probe's time."
+            value={getOffsetText()}
+          />
+          <SummaryFact
+            title="Stratum"
+            tooltip="Hops from a reference clock: 1 is a server with its own GPS or atomic source, 2 syncs to a stratum 1 server, and so on. 16 means not synchronized."
+            value={getStratumText()}
+          />
+          <SummaryFact
+            title="Reference"
+            tooltip="What the server synchronizes to: a source such as GPS at stratum 1, or its upstream server's address."
+            value={ntpResponse.referenceId || "-"}
+          />
+          <SummaryFact
+            title="Response Time"
+            value={formatMs(ntpResponse.responseTimeInMs)}
+          />
+          <SummaryFact
+            title="Leap Indicator"
+            tooltip="Warns of a leap second at the end of the day. 3 is an alarm: the server says its clock is not synchronized."
+            value={getLeapText()}
+          />
+          <SummaryFact
+            title="Root Dispersion"
+            tooltip="The server's own estimate of how far its time could be from the true time. Clients stop trusting a server once it passes about a second."
+            value={formatMs(ntpResponse.rootDispersionInMs)}
+          />
+          <SummaryFact
+            title="Root Delay"
+            tooltip="Round trip from the server to its reference clock."
+            value={formatMs(ntpResponse.rootDelayInMs)}
+          />
+          <SummaryFact
+            title="Server Time"
+            value={formatDate(ntpResponse.serverTime)}
+          />
+        </SummaryFacts>
       )}
 
       {response.networkPathTrace && (
@@ -263,7 +243,7 @@ const NtpMonitorView: FunctionComponent<ComponentProps> = (
           totalAttempts={totalAttempts}
         />
       )}
-    </div>
+    </SummaryView>
   );
 };
 

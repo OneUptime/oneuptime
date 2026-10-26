@@ -2,9 +2,15 @@ import OneUptimeDate from "Common/Types/Date";
 import ProbeAttempt from "Common/Types/Probe/ProbeAttempt";
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import DomainMonitorResponse from "Common/Types/Monitor/DomainMonitor/DomainMonitorResponse";
-import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import React, { FunctionComponent, ReactElement } from "react";
 import ProbeAttemptsView from "./ProbeAttemptsView";
+import {
+  SUMMARY_TABLE_FRAME_CLASS_NAME,
+  SUMMARY_TABLE_VALUE_CLASS_NAME,
+  SummaryFact,
+  SummaryFacts,
+  SummaryView,
+} from "./SummaryFacts";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 
@@ -60,30 +66,39 @@ const DomainMonitorView: FunctionComponent<ComponentProps> = (
   const hadRetries: boolean = totalAttempts > 1;
 
   return (
-    <div className="space-y-5">
-      <div className="flex space-x-3">
-        <InfoCard
-          className="w-1/5 shadow-none border-2 border-gray-100"
-          title="Probe"
-          value={props.probeName || "-"}
-        />
-        <InfoCard
-          className="w-1/5 shadow-none border-2 border-gray-100"
+    <SummaryView dataTestId="domain-monitor-summary">
+      <SummaryFacts>
+        <SummaryFact title="Probe" value={props.probeName || "-"} />
+        <SummaryFact
           title="Status"
-          value={props.probeMonitorResponse.isOnline ? "Online" : "Offline"}
+          value={translator.translateTemplate(
+            props.probeMonitorResponse.isOnline ? "Online" : "Offline",
+          )}
         />
-        <InfoCard
-          className="w-1/5 shadow-none border-2 border-gray-100"
-          title="Response Time"
-          value={responseTimeInMs ? responseTimeInMs + " ms" : "-"}
-        />
-        <InfoCard
-          className="w-1/5 shadow-none border-2 border-gray-100"
+        <SummaryFact
           title="Expires At"
           value={formatDateText(domainResponse?.expiresDate)}
         />
-        <InfoCard
-          className="w-1/5 shadow-none border-2 border-gray-100"
+        <SummaryFact
+          title="Created"
+          value={formatDateText(domainResponse?.createdDate)}
+        />
+        <SummaryFact
+          isWide={true}
+          title="Registrar"
+          value={domainResponse?.registrar || "-"}
+        />
+        <SummaryFact title="DNSSEC" value={domainResponse?.dnssec || "-"} />
+        {/* With the Auto lookup method this varies by TLD, so it is worth showing. */}
+        <SummaryFact
+          title="Lookup Method"
+          value={domainResponse?.lookupMethod || "-"}
+        />
+        <SummaryFact
+          title="Response Time"
+          value={responseTimeInMs ? responseTimeInMs + " ms" : "-"}
+        />
+        <SummaryFact
           title="Monitored At"
           value={
             props.probeMonitorResponse?.monitoredAt
@@ -93,41 +108,12 @@ const DomainMonitorView: FunctionComponent<ComponentProps> = (
               : "-"
           }
         />
-      </div>
-
-      <div className="flex space-x-3">
-        <InfoCard
-          className="w-1/4 shadow-none border-2 border-gray-100"
-          title="Registrar"
-          value={domainResponse?.registrar || "-"}
-        />
-        <InfoCard
-          className="w-1/4 shadow-none border-2 border-gray-100"
-          title="Created"
-          value={formatDateText(domainResponse?.createdDate)}
-        />
-        <InfoCard
-          className="w-1/4 shadow-none border-2 border-gray-100"
-          title="DNSSEC"
-          value={domainResponse?.dnssec || "-"}
-        />
-        {/* With the Auto lookup method this varies by TLD, so it is worth showing. */}
-        <InfoCard
-          className="w-1/4 shadow-none border-2 border-gray-100"
-          title="Lookup Method"
-          value={domainResponse?.lookupMethod || "-"}
-        />
-      </div>
-
-      {failureCause && (
-        <div className="flex space-x-3">
-          <InfoCard
-            className="w-full shadow-none border-2 border-gray-100"
-            title="Error"
-            value={failureCause}
-          />
-        </div>
-      )}
+        {failureCause ? (
+          <SummaryFact isWide={true} title="Error" value={failureCause} />
+        ) : (
+          <></>
+        )}
+      </SummaryFacts>
 
       {/* Name Servers Section */}
       {domainResponse?.nameServers && domainResponse.nameServers.length > 0 && (
@@ -135,7 +121,7 @@ const DomainMonitorView: FunctionComponent<ComponentProps> = (
           <h3 className="text-sm font-medium text-gray-700">
             {translator.translateText("Name Servers")}
           </h3>
-          <div className="border rounded-md overflow-hidden">
+          <div className={SUMMARY_TABLE_FRAME_CLASS_NAME}>
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
@@ -148,7 +134,9 @@ const DomainMonitorView: FunctionComponent<ComponentProps> = (
                 {domainResponse.nameServers.map((ns: string, index: number) => {
                   return (
                     <tr key={index}>
-                      <td className="px-4 py-2 text-sm text-gray-900 font-mono">
+                      <td
+                        className={`px-4 py-2 text-sm text-gray-900 font-mono ${SUMMARY_TABLE_VALUE_CLASS_NAME}`}
+                      >
                         {ns}
                       </td>
                     </tr>
@@ -167,7 +155,7 @@ const DomainMonitorView: FunctionComponent<ComponentProps> = (
             <h3 className="text-sm font-medium text-gray-700">
               {translator.translateText("Domain Status Codes")}
             </h3>
-            <div className="border rounded-md overflow-hidden">
+            <div className={SUMMARY_TABLE_FRAME_CLASS_NAME}>
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
@@ -181,7 +169,9 @@ const DomainMonitorView: FunctionComponent<ComponentProps> = (
                     (status: string, index: number) => {
                       return (
                         <tr key={index}>
-                          <td className="px-4 py-2 text-sm text-gray-900 font-mono">
+                          <td
+                            className={`px-4 py-2 text-sm text-gray-900 font-mono ${SUMMARY_TABLE_VALUE_CLASS_NAME}`}
+                          >
                             {status}
                           </td>
                         </tr>
@@ -200,7 +190,7 @@ const DomainMonitorView: FunctionComponent<ComponentProps> = (
           totalAttempts={totalAttempts}
         />
       )}
-    </div>
+    </SummaryView>
   );
 };
 

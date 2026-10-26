@@ -15,12 +15,17 @@ import {
 } from "Common/Types/Monitor/DatabaseMetricCatalog";
 import MonitorMetricType from "Common/Types/Monitor/MonitorMetricType";
 import ValueFormatter from "Common/Utils/ValueFormatter";
-import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import Link from "Common/UI/Components/Link/Link";
 import URL from "Common/Types/API/URL";
 import { DOCS_URL } from "Common/UI/Config";
 import React, { FunctionComponent, ReactElement } from "react";
 import ProbeAttemptsView from "./ProbeAttemptsView";
+import {
+  SUMMARY_TABLE_FRAME_CLASS_NAME,
+  SummaryFact,
+  SummaryFacts,
+  SummaryView,
+} from "./SummaryFacts";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 
@@ -260,45 +265,18 @@ const DatabaseMonitorView: FunctionComponent<ComponentProps> = (
   };
 
   return (
-    <div className="space-y-5">
-      <div className="flex space-x-3">
-        <InfoCard
-          className="w-1/5 shadow-none border-2 border-gray-100"
-          title="Probe"
-          value={props.probeName || "-"}
-        />
-        <InfoCard
-          className="w-1/5 shadow-none border-2 border-gray-100"
+    <SummaryView dataTestId="database-monitor-summary">
+      <SummaryFacts>
+        <SummaryFact title="Probe" value={props.probeName || "-"} />
+        <SummaryFact
           title="Status"
-          value={isOnline ? "Online" : "Offline"}
+          value={translator.translateTemplate(isOnline ? "Online" : "Offline")}
         />
-        <InfoCard
-          className="w-1/5 shadow-none border-2 border-gray-100"
-          title="Engine"
-          value={engineDescription || "-"}
-        />
-        <InfoCard
-          className="w-1/5 shadow-none border-2 border-gray-100"
+        <SummaryFact
           title="Response Time"
           value={responseTimeInMs ? responseTimeInMs + " ms" : "-"}
         />
-        <InfoCard
-          className="w-1/5 shadow-none border-2 border-gray-100"
-          title="Collection"
-          value={collectionSummary}
-        />
-      </div>
-
-      <div className="flex space-x-3">
-        <InfoCard
-          className="w-1/2 shadow-none border-2 border-gray-100"
-          title="Metric Groups Collected"
-          value={
-            collectedGroups.length > 0 ? collectedGroups.join(", ") : "None"
-          }
-        />
-        <InfoCard
-          className="w-1/2 shadow-none border-2 border-gray-100"
+        <SummaryFact
           title="Monitored At"
           value={
             props.probeMonitorResponse?.monitoredAt
@@ -308,13 +286,25 @@ const DatabaseMonitorView: FunctionComponent<ComponentProps> = (
               : "-"
           }
         />
-      </div>
-
-      {(dbResponse?.connectionError ||
-        props.probeMonitorResponse.failureCause) && (
-        <div className="flex space-x-3">
-          <InfoCard
-            className="w-full shadow-none border-2 border-gray-100"
+        {/* An engine's version string runs long: the row is its own. */}
+        <SummaryFact
+          isWide={true}
+          title="Engine"
+          value={engineDescription || "-"}
+        />
+        <SummaryFact title="Collection" value={collectionSummary} />
+        <SummaryFact
+          title="Metric Groups Collected"
+          value={
+            collectedGroups.length > 0
+              ? collectedGroups.join(", ")
+              : translator.translateTemplate("None")
+          }
+        />
+        {dbResponse?.connectionError ||
+        props.probeMonitorResponse.failureCause ? (
+          <SummaryFact
+            isWide={true}
             title="Error"
             value={
               dbResponse?.connectionError ||
@@ -322,8 +312,10 @@ const DatabaseMonitorView: FunctionComponent<ComponentProps> = (
               "-"
             }
           />
-        </div>
-      )}
+        ) : (
+          <></>
+        )}
+      </SummaryFacts>
 
       {unavailableGroups.length > 0 && (
         <div className="rounded-md border-2 border-amber-200 bg-amber-50 p-4">
@@ -410,7 +402,7 @@ const DatabaseMonitorView: FunctionComponent<ComponentProps> = (
                   {getDatabaseMetricCategoryDescription(category)}
                 </p>
               </div>
-              <div className="border rounded-md overflow-hidden">
+              <div className={SUMMARY_TABLE_FRAME_CLASS_NAME}>
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
@@ -462,7 +454,7 @@ const DatabaseMonitorView: FunctionComponent<ComponentProps> = (
           totalAttempts={totalAttempts}
         />
       )}
-    </div>
+    </SummaryView>
   );
 };
 

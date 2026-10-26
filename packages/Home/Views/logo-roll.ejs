@@ -1,9 +1,14 @@
 <%#
   Customer logos, in one colour. Two rows drift past in opposite directions,
   the first the largest companies. Each row is drawn twice so it loops without
-  a seam, and the second copy is hidden from screen readers. Hovering a row,
-  or the pause control, stops them; visitors who ask for less motion get every
-  logo once, standing still.
+  a seam, and the second copy is hidden from screen readers. Hovering a row
+  stops them; visitors who ask for less motion get every logo once, standing
+  still.
+
+  Every logo loads with the page, not lazily. The rows move on the compositor,
+  which draws no new frame on the page itself, and a lazy image only asks
+  whether it is near the screen when the page draws one: a logo that slid in
+  while the visitor sat still was never fetched, and left a gap in the row.
 -%>
 <%
   /*
@@ -73,8 +78,7 @@
   .customer-logos-track[data-direction="right"] {
     animation-direction: reverse;
   }
-  .customer-logos-viewport:hover .customer-logos-track,
-  .customer-logos-pause:checked ~ div .customer-logos-track {
+  .customer-logos-viewport:hover .customer-logos-track {
     animation-play-state: paused;
   }
   .customer-logos-list {
@@ -94,17 +98,6 @@
   }
   .customer-logo:hover {
     opacity: 0.9;
-  }
-  .customer-logos-pause:checked ~ div .customer-logos-pause-icon,
-  .customer-logos-resume-icon {
-    display: none;
-  }
-  .customer-logos-pause:checked ~ div .customer-logos-resume-icon {
-    display: block;
-  }
-  .customer-logos-pause:focus-visible ~ div .customer-logos-toggle {
-    outline: 2px solid #030712;
-    outline-offset: 2px;
   }
   @keyframes customer-logos-drift {
     to {
@@ -136,24 +129,14 @@
       row-gap: 1.75rem;
       padding: 0 1.5rem;
     }
-    .customer-logos-list[aria-hidden="true"],
-    .customer-logos-pause,
-    .customer-logos-toggle {
+    .customer-logos-list[aria-hidden="true"] {
       display: none;
     }
   }
 </style>
 <section class="relative bg-white py-12 sm:py-16" aria-labelledby="customer-logos-title">
-  <input type="checkbox" id="customer-logos-paused" class="customer-logos-pause sr-only">
   <div class="mx-auto max-w-6xl px-6 lg:px-8">
-    <div class="relative">
-      <p id="customer-logos-title" class="text-center text-sm font-medium text-gray-500">Trusted by engineering teams at</p>
-      <label for="customer-logos-paused" title="Pause the moving logos" class="customer-logos-toggle absolute right-0 top-1/2 flex h-7 w-7 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full text-gray-400 ring-1 ring-inset ring-gray-200 hover:bg-gray-50 hover:text-gray-700">
-        <span class="sr-only">Pause the moving logos</span>
-        <svg class="customer-logos-pause-icon h-3 w-3" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true"><rect x="2" y="1.5" width="2.75" height="9" rx="0.75" /><rect x="7.25" y="1.5" width="2.75" height="9" rx="0.75" /></svg>
-        <svg class="customer-logos-resume-icon h-3 w-3" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true"><path d="M3.5 1.9v8.2a.75.75 0 0 0 1.14.64l6.6-4.1a.75.75 0 0 0 0-1.28l-6.6-4.1A.75.75 0 0 0 3.5 1.9Z" /></svg>
-      </label>
-    </div>
+    <p id="customer-logos-title" class="text-center text-sm font-medium text-gray-500">Trusted by engineering teams at</p>
   </div>
   <div class="mx-auto mt-8 max-w-6xl sm:mt-10 sm:px-6 lg:px-8">
     <div class="customer-logos-viewport space-y-7 overflow-hidden sm:space-y-9">
@@ -163,7 +146,7 @@
         <ul class="customer-logos-list"<% if (isCopy) { %> aria-hidden="true"<% } %>>
           <% row.forEach(function (logo) { -%>
           <li class="flex-none">
-            <img src="/img/customers/<%= logo.file %>" alt="<%= isCopy ? '' : logo.name %>" width="<%= logo.width %>" height="<%= logo.height %>" class="customer-logo" style="--customer-logo-width: <%= logo.width %>px;" loading="lazy" decoding="async">
+            <img src="/img/customers/<%= logo.file %>" alt="<%= isCopy ? '' : logo.name %>" width="<%= logo.width %>" height="<%= logo.height %>" class="customer-logo" style="--customer-logo-width: <%= logo.width %>px;" loading="eager" fetchpriority="low" decoding="async">
           </li>
           <% }); -%>
         </ul>

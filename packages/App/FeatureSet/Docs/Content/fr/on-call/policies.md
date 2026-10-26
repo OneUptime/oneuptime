@@ -138,7 +138,7 @@ Les politiques d'astreinte sont la ressource `/api/on-call-duty-policy`, et la r
 | **Après combien de minutes ?** | `acknowledgementTimeoutInMinutes` |
 | Archivée | `isArchived` |
 
-`repeatPolicyIfNoOneAcknowledges` vaut `false` pour **Arrêter les alertes** et `true` pour **Recommencer depuis Level 1**. À `true` avec `repeatPolicyIfNoOneAcknowledgesNoOfTimes` à `0`, une politique ne se répète jamais, et le tableau de bord l'affiche comme **Arrêter les alertes**.
+`repeatPolicyIfNoOneAcknowledges` vaut `false` pour **Arrêter les alertes** et `true` pour **Recommencer depuis Level 1**. À `true`, `repeatPolicyIfNoOneAcknowledgesNoOfTimes` doit être un nombre entier d'au moins 1 : OneUptime refuse `0`. Une politique plus ancienne enregistrée avec `0` ne se répète jamais, et le tableau de bord l'affiche comme **Arrêter les alertes**.
 
 `acknowledgementTimeoutInMinutes` vaut `null` pour **Ne pas alerter de nouveau**, et un nombre entier de minutes de 5 à 1440 pour **Alerter de nouveau**. OneUptime refuse toute autre valeur.
 

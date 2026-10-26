@@ -381,8 +381,17 @@ describe("the Create Monitor Template form", () => {
     const create: string = section(page, "## Create a template");
 
     expect(create).toContain(
-      "On **Template Info**, enter a **Template Name**, such as `Production API Health`, and a **Template Description**",
+      "On **Template Info**, enter a **Template Name**, such as `Production API Health`.",
     );
+
+    // The description may be left blank, as the page says.
+    expect(
+      sourceBetween(list, 'title: "Template Description"', "},"),
+    ).toContain("required: false,");
+    expect(sourceBetween(list, 'title: "Template Name"', "},")).toContain(
+      "required: true,",
+    );
+    expect(create).toContain("A **Template Description** is optional.");
     expect(create).toContain(
       "On **Monitor Defaults**, pick the **Monitor Type**",
     );

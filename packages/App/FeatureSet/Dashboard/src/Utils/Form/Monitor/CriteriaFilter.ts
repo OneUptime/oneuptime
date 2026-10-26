@@ -745,6 +745,8 @@ export default class CriteriaFilterUtil {
           i.value === CheckOn.SnmpResponseTime ||
           i.value === CheckOn.SnmpOidValue ||
           i.value === CheckOn.SnmpOidExists ||
+          // A counter OID's growth per second: what a counter is alerted on.
+          i.value === CheckOn.SnmpOidRatePerSecond ||
           i.value === CheckOn.SnmpInterfaceIsDown ||
           i.value === CheckOn.SnmpInterfaceUtilizationPercent ||
           i.value === CheckOn.SnmpInterfaceErrorsPerSecond ||
@@ -1370,7 +1372,11 @@ export default class CriteriaFilterUtil {
       });
     }
 
-    if (checkOn === CheckOn.SnmpResponseTime) {
+    if (
+      checkOn === CheckOn.SnmpResponseTime ||
+      // A rate is a number: above or below a threshold.
+      checkOn === CheckOn.SnmpOidRatePerSecond
+    ) {
       options = options.filter((i: DropdownOption) => {
         return (
           i.value === FilterType.GreaterThan ||
@@ -2146,6 +2152,10 @@ export default class CriteriaFilterUtil {
 
     if (checkOn === CheckOn.SnmpOidValue) {
       return "1";
+    }
+
+    if (checkOn === CheckOn.SnmpOidRatePerSecond) {
+      return "100";
     }
 
     if (checkOn === CheckOn.SnmpInterfaceUtilizationPercent) {

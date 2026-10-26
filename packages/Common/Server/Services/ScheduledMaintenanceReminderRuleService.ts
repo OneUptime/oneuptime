@@ -16,6 +16,25 @@ import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLim
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 import RuleCriteriaMatcher from "../../Utils/Rules/RuleCriteriaMatcher";
 import { RuleEvaluation } from "../Utils/PatternWorkScope";
+import CreateBy from "../Types/Database/CreateBy";
+import UpdateBy from "../Types/Database/UpdateBy";
+import ColumnRuleCheck, { ColumnRule } from "../Utils/Database/ColumnRuleCheck";
+import {
+  SCHEDULED_MAINTENANCE_REMINDER_TIMING_COLUMNS,
+  getScheduledMaintenanceReminderRuleRefusal,
+} from "../../Types/Reminder/ScheduledMaintenanceReminderNeverReminds";
+
+/*
+ * A rule that would never remind - waiting for the event to start, and
+ * stopping when it starts - is refused however it is saved, as the form
+ * never makes one (Types/Reminder/ScheduledMaintenanceReminderNeverReminds).
+ */
+export const SCHEDULED_MAINTENANCE_REMINDER_TIMING_RULE: ColumnRule = {
+  columns: SCHEDULED_MAINTENANCE_REMINDER_TIMING_COLUMNS,
+  getRefusal: (values: Record<string, unknown>): string | null => {
+    return getScheduledMaintenanceReminderRuleRefusal(values);
+  },
+};
 
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -23,6 +42,30 @@ export class Service extends ProjectReferencesService<Model> {
     if (IsBillingEnabled) {
       this.hardDeleteItemsOlderThanInDays("createdAt", 3 * 365); // 3 years
     }
+  }
+
+  /*
+   * When the rule reminds is checked before anything else is looked up: the
+   * values alone decide (ColumnRuleCheck) - from the Dashboard, the API,
+   * Terraform, MCP or a workflow alike.
+   */
+  protected override async checkCreateBeforeReferences(
+    createBy: CreateBy<Model>,
+  ): Promise<void> {
+    ColumnRuleCheck.checkCreate(
+      createBy.data,
+      SCHEDULED_MAINTENANCE_REMINDER_TIMING_RULE,
+    );
+  }
+
+  protected override async checkUpdateBeforeReferences(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    await ColumnRuleCheck.checkUpdate({
+      service: this,
+      updateBy: updateBy,
+      rule: SCHEDULED_MAINTENANCE_REMINDER_TIMING_RULE,
+    });
   }
 
   @CaptureSpan()

@@ -120,6 +120,24 @@ describe.each(RECORD_PAGES)(
 
       expect(onActionComplete).toContain("passOn.refresh();");
     });
+
+    /*
+     * Somebody acknowledged the record while the reader's dialog asked
+     * ("Already acknowledged"): the header still offered Acknowledge for it
+     * (#4914). The page bumps the header's refreshToken, so it reads the
+     * record's state again.
+     */
+    test("reads the header again when somebody took the record while the dialog asked", () => {
+      const call: string = between(source, "usePassOnPage({", "\n  });");
+      const onRecordChanged: string = between(
+        call,
+        "onRecordChanged: () => {",
+        "\n    },",
+      );
+
+      expect(onRecordChanged).toContain("setHeaderRefreshToken(");
+      expect(source).toContain("refreshToken={headerRefreshToken}");
+    });
   },
 );
 

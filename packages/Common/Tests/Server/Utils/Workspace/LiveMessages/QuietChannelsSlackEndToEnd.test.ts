@@ -273,7 +273,7 @@ describe("an incident from declared to resolved, in its Slack channel", () => {
       expect.stringContaining("Incident INC-8 Created"),
       expect.stringContaining("could not be added to this channel"),
       expect.stringContaining("PolicyX"),
-      expect.stringContaining("paged nobody at escalation rule 3 of 3"),
+      expect.stringContaining("paged nobody at third (Level 3 of 3)"),
       expect.stringContaining("State"),
       expect.stringContaining("State"),
     ]);
@@ -293,7 +293,7 @@ describe("an incident from declared to resolved, in its Slack channel", () => {
       "🚨 Incident INC-8 Created: testslack",
       "NB User 3 could not be added to this channel",
       "PolicyX is paging for Incident INC-8",
-      "PolicyX paged nobody at escalation rule 3 of 3 (third) for Incident INC-8",
+      "PolicyX paged nobody at third (Level 3 of 3) for Incident INC-8",
       "Nitin 👀 Changed Incident INC-8 State to Acknowledged",
       "Nitin ✅ Changed Incident INC-8 State to Resolved",
     ]);
@@ -332,7 +332,7 @@ describe("an incident from declared to resolved, in its Slack channel", () => {
     expect(posts[2]!.text).toContain("Incident INC-8");
 
     // 4. The alarm: rule "third" paged nobody.
-    expect(posts[3]!.text).toContain("escalation rule 3 of 3 (third)");
+    expect(posts[3]!.text).toContain("third (Level 3 of 3)");
     expect(posts[3]!.text).toContain("NB User 2: not a member of this project");
 
     // 5 and 6. The later state changes, with who made them.
@@ -413,7 +413,7 @@ describe("an incident from declared to resolved, in its Slack channel", () => {
     let message: string = runMessage();
     expect(message).toContain("is paging for");
     expect(message).toContain(
-      `Escalation rule 1 of 3 (fhirst)*\u200b: if nobody acknowledges by ${slackTime("2026-10-08T17:21:00Z")}, escalation rule 2 (second) is next.`,
+      `fhirst (Level 1 of 3)*\u200b: if nobody acknowledges by ${slackTime("2026-10-08T17:21:00Z")}, second (Level 2 of 3) is next.`,
     );
     expect(message).toContain("Nitin*\u200b: paged once · by SMS and email");
     expect(message).not.toContain("not paged");
@@ -423,7 +423,7 @@ describe("an incident from declared to resolved, in its Slack channel", () => {
     await world.escalate();
     message = runMessage();
     expect(message).toContain(
-      `Escalation rule 2 of 3 (second)*\u200b: if nobody acknowledges by ${slackTime("2026-10-08T17:28:00Z")}, escalation rule 3 (third) is next.`,
+      `second (Level 2 of 3)*\u200b: if nobody acknowledges by ${slackTime("2026-10-08T17:28:00Z")}, third (Level 3 of 3) is next.`,
     );
     expect(message).toContain("Nitin*\u200b: paged twice · by SMS and email");
     expect(message).toContain(
@@ -434,7 +434,7 @@ describe("an incident from declared to resolved, in its Slack channel", () => {
     await world.escalate();
     message = runMessage();
     expect(message).toContain(
-      `Escalation rule 3 of 3 (third)*\u200b: if nobody acknowledges by ${slackTime("2026-10-08T17:35:00Z")}, the policy starts again from escalation rule 1.`,
+      `third (Level 3 of 3)*\u200b: if nobody acknowledges by ${slackTime("2026-10-08T17:35:00Z")}, the policy starts again from Level 1.`,
     );
     expect(message).toContain(
       "NB User 2*\u200b: not paged · not a member of this project",
@@ -444,7 +444,7 @@ describe("an incident from declared to resolved, in its Slack channel", () => {
     await world.escalate();
     message = runMessage();
     expect(message).toContain(
-      `Escalation rule 1 of 3 (fhirst)*\u200b, repeat 1 of 1: if nobody acknowledges by ${slackTime("2026-10-08T17:41:00Z")}, escalation rule 2 (second) is next.`,
+      `fhirst (Level 1 of 3)*\u200b, repeat 1 of 1: if nobody acknowledges by ${slackTime("2026-10-08T17:41:00Z")}, second (Level 2 of 3) is next.`,
     );
     expect(message).toContain("Nitin*\u200b: paged 3 times · by SMS and email");
 
@@ -472,7 +472,7 @@ describe("an incident from declared to resolved, in its Slack channel", () => {
         .map(headline),
     ).toEqual([
       expect.stringContaining("is paging for"),
-      expect.stringContaining("paged nobody at escalation rule 3 of 3"),
+      expect.stringContaining("paged nobody at third (Level 3 of 3)"),
     ]);
   });
 
@@ -483,9 +483,9 @@ describe("an incident from declared to resolved, in its Slack channel", () => {
     const last: string = slack.updates()[slack.updates().length - 1]!.text;
 
     expect(last).toContain("is paging for");
-    expect(last).toContain("Escalation rule 2 of 3 (second)");
+    expect(last).toContain("second (Level 2 of 3)");
     expect(last).toContain(
-      `if nobody acknowledges by ${slackTime("2026-10-08T17:28:00Z")}, escalation rule 3 (third) is next`,
+      `if nobody acknowledges by ${slackTime("2026-10-08T17:28:00Z")}, third (Level 3 of 3) is next`,
     );
     // The first pass leaves the repeat to the last rule's next step.
     expect(last).not.toContain("repeat");
@@ -503,7 +503,7 @@ describe("an incident from declared to resolved, in its Slack channel", () => {
     const alarms: Array<SlackRequest> = slack.posts().slice(3);
 
     expect(alarms.map(headline)).toEqual([
-      expect.stringContaining("paged nobody at escalation rule 3 of 3"),
+      expect.stringContaining("paged nobody at third (Level 3 of 3)"),
       expect.stringContaining("Nobody has acknowledged"),
     ]);
     expect(alarms[1]!.text).toContain("Someone needs to take it");

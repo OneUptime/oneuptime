@@ -7,6 +7,7 @@ import OnCallPolicyRunMessageView, {
   OnCallPolicyRunAlarm,
   OnCallPolicyRunOutcome,
 } from "../../../../../Server/Utils/Workspace/LiveMessages/OnCallPolicyRunMessageView";
+import { getOnCallPassOnLevelLabel } from "../../../../../Types/OnCallDutyPolicy/OnCallPagePassOn";
 
 /*
  * WHAT ONE ON-CALL POLICY RUN SAYS IN SLACK AND MICROSOFT TEAMS.
@@ -92,13 +93,13 @@ describe("OnCallPolicyRunMessageView.getMarkdown - a run that is paging", () => 
     expect(OnCallPolicyRunMessageView.getMarkdown(run())).toBe(
       [
         `📟 ${POLICY} is paging for ${RECORD}`,
-        "**Escalation rule 2 of 3 (second)**: if nobody acknowledges within 5 minutes, escalation rule 3 (third) is next.",
+        "**second (Level 2 of 3)**: if nobody acknowledges within 5 minutes, third (Level 3 of 3) is next.",
         [
           "- **Nitin**: paged 3 times · by call, SMS and email",
           "- **NB User 3**: paged twice · by email",
           "- **NB User 2**: not paged · not a member of this project",
           "- Nobody was on call in schedule **sec**",
-          "- Escalation rule 3 (third): nobody to page",
+          "- third (Level 3 of 3): nobody to page",
         ].join("\n"),
         `[See every step in OneUptime](${RUN_URL})`,
       ].join("\n\n"),
@@ -125,7 +126,7 @@ describe("OnCallPolicyRunMessageView.getMarkdown - a run that is paging", () => 
     );
 
     expect(progressOf(markdown)).toBe(
-      "**Escalation rule 2 of 3 (second)**: if nobody acknowledges by {{TIME(2026-10-08T17:28:00Z)}}, escalation rule 3 (third) is next.",
+      "**second (Level 2 of 3)**: if nobody acknowledges by {{TIME(2026-10-08T17:28:00Z)}}, third (Level 3 of 3) is next.",
     );
     expect(markdown).not.toContain("within");
   });
@@ -151,7 +152,7 @@ describe("OnCallPolicyRunMessageView.getMarkdown - a run that is paging", () => 
         ),
       ),
     ).toBe(
-      "**Escalation rule 1 of 3 (fhirst)**, repeat 1 of 2: if nobody acknowledges within 5 minutes, escalation rule 3 (third) is next.",
+      "**fhirst (Level 1 of 3)**, repeat 1 of 2: if nobody acknowledges within 5 minutes, third (Level 3 of 3) is next.",
     );
 
     // A policy changed under the run, now allowing fewer repeats: no "3 of 2".
@@ -161,7 +162,7 @@ describe("OnCallPolicyRunMessageView.getMarkdown - a run that is paging", () => 
           run({ repeatNumber: 3, repeatsAllowed: 2 }),
         ),
       ),
-    ).toContain("**Escalation rule 2 of 3 (second)**, repeat 3: if nobody");
+    ).toContain("**second (Level 2 of 3)**, repeat 3: if nobody");
   });
 
   test("the first pass says nothing about repeats: the last rule says when the policy starts again", () => {
@@ -186,13 +187,13 @@ describe("OnCallPolicyRunMessageView.getMarkdown - a run that is paging", () => 
     };
 
     expect(next({ nextRule: undefined, repeatNumber: 0 })).toBe(
-      "**Escalation rule 3 of 3 (third)**: if nobody acknowledges within 5 minutes, the policy starts again from escalation rule 1.",
+      "**third (Level 3 of 3)**: if nobody acknowledges within 5 minutes, the policy starts again from Level 1.",
     );
     expect(next({ nextRule: undefined, repeatNumber: 2 })).toBe(
-      "**Escalation rule 3 of 3 (third)**, repeat 2 of 2: if nobody acknowledges within 5 minutes, paging stops.",
+      "**third (Level 3 of 3)**, repeat 2 of 2: if nobody acknowledges within 5 minutes, paging stops.",
     );
     expect(next({ nextRule: undefined, repeatsAllowed: 0 })).toBe(
-      "**Escalation rule 3 of 3 (third)**: if nobody acknowledges within 5 minutes, paging stops.",
+      "**third (Level 3 of 3)**: if nobody acknowledges within 5 minutes, paging stops.",
     );
   });
 
@@ -238,7 +239,7 @@ describe("OnCallPolicyRunMessageView.getMarkdown - a run that is paging", () => 
     );
 
     expect(retrying).toBe(
-      "**Escalation rule 1 of 3 (fhirst)**: nobody is on call yet, trying again by {{TIME(2026-10-08T17:16:00Z)}}.",
+      "**fhirst (Level 1 of 3)**: nobody is on call yet, trying again by {{TIME(2026-10-08T17:16:00Z)}}.",
     );
     expect(retrying).not.toContain("is next");
 
@@ -254,7 +255,7 @@ describe("OnCallPolicyRunMessageView.getMarkdown - a run that is paging", () => 
         ),
       ),
     ).toBe(
-      "**Escalation rule 1 of 3 (fhirst)**, repeat 1 of 2: nobody is on call yet, trying again within 1 minute.",
+      "**fhirst (Level 1 of 3)**, repeat 1 of 2: nobody is on call yet, trying again within 1 minute.",
     );
   });
 
@@ -272,7 +273,7 @@ describe("OnCallPolicyRunMessageView.getMarkdown - a run that is paging", () => 
     expect(markdown).toBe(
       [
         `📟 ${POLICY} is paging for ${RECORD}`,
-        "**Starting with escalation rule 1 of 3**",
+        "**Starting with Level 1 of 3**",
         `[See every step in OneUptime](${RUN_URL})`,
       ].join("\n\n"),
     );
@@ -302,7 +303,7 @@ describe("OnCallPolicyRunMessageView.getMarkdown - a run that is paging", () => 
         ),
       ),
     ).toBe(
-      "**Escalation rule 2 of 3**: if nobody acknowledges within 5 minutes, escalation rule 3 is next.",
+      "**Level 2 of 3**: if nobody acknowledges within 5 minutes, Level 3 of 3 is next.",
     );
   });
 
@@ -390,7 +391,7 @@ describe("OnCallPolicyRunMessageView.getMarkdown - a run that is paging", () => 
         "- **Yan**: not paged",
         "- **Nitin**: could not be paged (Nitin has no verified notification method)",
         "- Nobody was on call in schedule **sec**",
-        "- Escalation rule 3: nobody to page",
+        "- Level 3 of 3: nobody to page",
         "- Nobody was on call",
       ].join("\n"),
     );
@@ -420,7 +421,7 @@ describe("OnCallPolicyRunMessageView.getMarkdown - how a run ended", () => {
     expect(markdown.split("\n\n")[0]).toBe(
       `✅ **Nitin** acknowledged ${RECORD}, so ${POLICY} stopped paging`,
     );
-    expect(markdown).not.toContain("Escalation rule 2 of 3");
+    expect(markdown).not.toContain("Level 2 of 3");
     expect(markdown).not.toContain("if nobody acknowledges");
     expect(markdown.split("\n\n")[1]).toContain(
       "- **Nitin**: paged 3 times · by call, SMS and email",
@@ -541,8 +542,8 @@ describe("OnCallPolicyRunMessageView.getAlarms - loud only where somebody has to
     expect(alarms).toEqual([
       {
         key: ON_CALL_RUN_ALARM_NOBODY_PAGED_AT_A_RULE,
-        markdown: `⚠️ ${POLICY} paged nobody at escalation rule 3 of 3 (third) for ${RECORD} (nobody was on call in schedule sec; NB User 2: not a member of this project). If nobody is on it yet, page someone or fix the policy.`,
-        text: "PolicyX paged nobody at escalation rule 3 of 3 (third) for Incident INC-8",
+        markdown: `⚠️ ${POLICY} paged nobody at third (Level 3 of 3) for ${RECORD} (nobody was on call in schedule sec; NB User 2: not a member of this project). If nobody is on it yet, page someone or fix the policy.`,
+        text: "PolicyX paged nobody at third (Level 3 of 3) for Incident INC-8",
       },
     ]);
   });
@@ -798,7 +799,7 @@ describe("OnCallPolicyRunMessageView.getAlarms - loud only where somebody has to
         }),
       )[0]!.markdown,
     ).toBe(
-      `⚠️ ${POLICY} paged nobody at escalation rule 1 of 3 for ${RECORD}. If nobody is on it yet, page someone or fix the policy.`,
+      `⚠️ ${POLICY} paged nobody at Level 1 of 3 for ${RECORD}. If nobody is on it yet, page someone or fix the policy.`,
     );
   });
 });
@@ -933,7 +934,100 @@ describe("OnCallPolicyRunMessageView - names are text, never Markdown", () => {
      * notification (SlackUtil.getNotificationText).
      */
     expect(alarms[0]!.text).toBe(
-      "Ops *on call* [click](evil-target) paged nobody at escalation rule 1 of 3 ([x](evil-target)) for Incident <!channel>",
+      "Ops *on call* [click](evil-target) paged nobody at [x](evil-target) (Level 1 of 3) for Incident <!channel>",
     );
+  });
+});
+
+/*
+ * A LEVEL IS NAMED AS THE ESCALATE DIALOG NAMES IT.
+ *
+ * The dialog says "This will immediately page Platform leads (Level 2 of
+ * 3)"; the run's Slack and Teams message said "escalation rule 2 of 3
+ * (Platform leads)" for the same level (#5167). Both name it by one
+ * function now (getOnCallPassOnLevelLabel): its name, then its place - or
+ * its place alone when it has no name, or only the one its place gives it.
+ */
+describe("OnCallPolicyRunMessageView - levels, in the Escalate dialog's words", () => {
+  test.each([
+    [{ order: 2, name: "Platform leads" }, "Platform leads (Level 2 of 3)"],
+    [{ order: 2, name: "  Platform leads  " }, "Platform leads (Level 2 of 3)"],
+    [{ order: 2, name: "Level 2" }, "Level 2 of 3"],
+    [{ order: 2, name: "" }, "Level 2 of 3"],
+    [{ order: 2 }, "Level 2 of 3"],
+    // A name somebody typed is kept as typed: never capitalized.
+    [{ order: 2, name: "second shift" }, "second shift (Level 2 of 3)"],
+  ])(
+    "the level the run is on, %p, reads %p - the dialog's own label",
+    (rule: { order: number; name?: string }, label: string) => {
+      const markdown: string = OnCallPolicyRunMessageView.getMarkdown(
+        run({ currentRule: rule, nextRule: undefined, repeatsAllowed: 0 }),
+      );
+
+      expect(getOnCallPassOnLevelLabel(rule, 3)).toBe(label);
+      expect(progressOf(markdown)).toBe(
+        `**${label}**: if nobody acknowledges within 5 minutes, paging stops.`,
+      );
+    },
+  );
+
+  test("the next level, a level that reached nobody and its alarm are named the same way", () => {
+    const markdown: string = OnCallPolicyRunMessageView.getMarkdown(
+      run({
+        currentRule: { order: 1, name: "Primary" },
+        nextRule: { order: 2, name: "Platform leads" },
+        notPaged: [{ rule: { order: 3 }, reason: "nobody to page" }],
+      }),
+    );
+
+    expect(progressOf(markdown)).toBe(
+      "**Primary (Level 1 of 3)**: if nobody acknowledges within 5 minutes, Platform leads (Level 2 of 3) is next.",
+    );
+    expect(markdown).toContain("- Level 3 of 3: nobody to page");
+
+    const alarms: Array<OnCallPolicyRunAlarm> =
+      OnCallPolicyRunMessageView.getAlarms(
+        run({
+          firstRuleThatReachedNobody: {
+            rule: { order: 2, name: "Platform leads" },
+            reasons: [],
+          },
+        }),
+      );
+
+    expect(alarms[0]!.text).toBe(
+      "PolicyX paged nobody at Platform leads (Level 2 of 3) for Incident INC-8",
+    );
+  });
+
+  test("the policy starting again starts from Level 1, and a run not under way yet starts with it", () => {
+    expect(
+      progressOf(
+        OnCallPolicyRunMessageView.getMarkdown(
+          run({ currentRule: { order: 3 }, nextRule: undefined }),
+        ),
+      ),
+    ).toBe(
+      "**Level 3 of 3**: if nobody acknowledges within 5 minutes, the policy starts again from Level 1.",
+    );
+    expect(
+      progressOf(
+        OnCallPolicyRunMessageView.getMarkdown(
+          run({
+            currentRule: undefined,
+            nextRule: undefined,
+            paged: [],
+            notPaged: [],
+          }),
+        ),
+      ),
+    ).toBe("**Starting with Level 1 of 3**");
+  });
+
+  test("never the old words", () => {
+    const markdown: string = OnCallPolicyRunMessageView.getMarkdown(run());
+
+    expect(markdown.toLowerCase()).not.toContain("escalation rule 2");
+    expect(markdown.toLowerCase()).not.toContain("escalation rule 3");
   });
 });
