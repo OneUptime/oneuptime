@@ -364,6 +364,8 @@ Fördröjningen i sekunder visar noll på en inaktiv primärserver även när en
 
 Räknare som slutar på `total` är kumulativa sedan servern startade. Jämför två tidpunkter för att få en takt; ett enskilt värde säger bara något i förhållande till sin egen historik, och det nollställs när servern startas om (vilket **Uptime** visar dig).
 
+**Cache Hit Ratio** och **Rollback Ratio** räknas fram vid varje kontroll ur hur mycket deras räknare har rört sig sedan monitorns föregående kontroll, inte sedan servern startade, så en cache som börjar missa syns direkt. Den första kontrollen efter att proben startat, och den första efter att servern startats om, har ingen av dem.
+
 ## Ställ in kriterier
 
 | Filtertyp | Vad den kontrollerar |

@@ -258,7 +258,7 @@ Cada evento também é um registro. Um aviso é guardado com a gravidade **Warni
 | `k8s.object.name` | `aks-userpool-11935137-vmss00000o` |
 | `k8s.namespace.name` | `default` |
 
-Pesquise-os em **Registros**, descarte os que não quer com um filtro de descarte, ou seja avisado quando um acontecer com um [monitor de registros](/docs/monitor/logs-monitor): filtre pela gravidade **Warning** e por `k8s.event.reason`, e agrupe por `k8s.object.name` para um alerta por nó ou autoscaler.
+Pesquise-os em **Registros**, ou descarte os que não quer com um filtro de descarte. Para ser avisado quando um acontecer, ative **Warning Events** na página **Recomendações** do cluster, ou selecione **Ativar alertas de avisos** no fim da página **Eventos** dele: um [monitor de registros](/docs/monitor/logs-monitor) sobre os avisos do cluster que gera um alerta por objeto e motivo, e o resolve quando 5 minutos passam sem um novo aviso sobre ele. Para ser avisado só de alguns motivos, adicione `k8s.event.reason` ao filtro dele.
 
 ## Opções de configuração
 

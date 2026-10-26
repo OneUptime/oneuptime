@@ -364,6 +364,8 @@ Lag in seconds reads as zero on an idle primary even when a replica is far behin
 
 Counters ending in `total` are cumulative since the server started. Compare two points in time to get a rate; a single value is only meaningful against its own history, and it resets to zero when the server restarts (which **Uptime** will show you).
 
+**Cache Hit Ratio** and **Rollback Ratio** are worked out on every check from what their counters moved since the monitor's previous check, not since the server started, so a cache that starts missing shows at once. The first check after the probe starts, and the first after the server restarts, carry neither.
+
 ## Setting up criteria
 
 | Filter type | What it checks |

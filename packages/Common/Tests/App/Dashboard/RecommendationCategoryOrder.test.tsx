@@ -25,6 +25,11 @@ import { PROJECT_ID, goTo } from "./SideMenuHarness";
  * second template) and last in Quick Setup. Each page is rendered here for
  * real; its order is read off the headings' Select all buttons and held to
  * the picker's own grouping of the same templates.
+ *
+ * A Kubernetes cluster's Recommendations end with one heading Quick Setup
+ * does not have: Events, the cluster's Warning Events alert - a Logs
+ * monitor, which a Kubernetes monitor's Quick Setup cannot build (follow-up
+ * of #5201).
  */
 
 const RESOURCE_ID: string = "6c1b2a3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d";
@@ -74,6 +79,7 @@ import { getAllCephAlertTemplates } from "../../../Types/Monitor/CephAlertTempla
 import { getAllDockerSwarmAlertTemplates } from "../../../Types/Monitor/DockerSwarmAlertTemplates";
 import { getAllIoTAlertTemplates } from "../../../Types/Monitor/IotAlertTemplates";
 import { getAllKubernetesAlertTemplates } from "../../../Types/Monitor/KubernetesAlertTemplates";
+import { getAllKubernetesEventAlertTemplates } from "../../../Types/Monitor/KubernetesEventAlertTemplates";
 import { getAllProxmoxAlertTemplates } from "../../../Types/Monitor/ProxmoxAlertTemplates";
 import { getAllVMwareAlertTemplates } from "../../../Types/Monitor/VMwareAlertTemplates";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
@@ -108,6 +114,8 @@ interface OrderCase {
   path: string;
   templates: Array<AlertTemplatePickerTemplate>;
   categories: Array<AlertTemplateCategory>;
+  // Headings the page draws after Quick Setup's, in this order.
+  afterQuickSetup?: Array<string>;
 }
 
 const CASES: Array<OrderCase> = [
@@ -118,6 +126,11 @@ const CASES: Array<OrderCase> = [
     path: "kubernetes",
     templates: getAllKubernetesAlertTemplates(),
     categories: KUBERNETES_TEMPLATE_CATEGORIES,
+    afterQuickSetup: getAllKubernetesEventAlertTemplates().map(
+      (template: { category: string }): string => {
+        return template.category;
+      },
+    ),
   },
   {
     name: "Ceph",
@@ -262,6 +275,9 @@ describe.each(CASES)("$name Recommendations", (orderCase: OrderCase) => {
     });
 
     expect(quickSetupOrder.length).toBeGreaterThan(1);
-    expect(drawnCategoryOrder()).toEqual(quickSetupOrder);
+    expect(drawnCategoryOrder()).toEqual([
+      ...quickSetupOrder,
+      ...(orderCase.afterQuickSetup || []),
+    ]);
   });
 });

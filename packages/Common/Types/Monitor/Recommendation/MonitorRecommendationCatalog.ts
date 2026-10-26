@@ -41,6 +41,10 @@ import {
   getAllKubernetesAlertTemplates,
 } from "../KubernetesAlertTemplates";
 import {
+  KubernetesEventAlertTemplate,
+  getAllKubernetesEventAlertTemplates,
+} from "../KubernetesEventAlertTemplates";
+import {
   PodmanAlertTemplate,
   getAllPodmanAlertTemplates,
 } from "../PodmanAlertTemplates";
@@ -184,25 +188,54 @@ function normalize(data: {
  */
 
 function getKubernetesRecommendations(): Array<MonitorRecommendation> {
-  return getAllKubernetesAlertTemplates().map(
-    (template: KubernetesAlertTemplate) => {
-      return normalize({
-        resourceType: MonitorRecommendationResourceType.Kubernetes,
-        monitorType: MonitorType.Kubernetes,
-        template: template,
-        getMonitorStep: (args: MonitorRecommendationArgs) => {
-          return template.getMonitorStep({
-            clusterIdentifier: args.resourceIdentifier,
-            onlineMonitorStatusId: args.onlineMonitorStatusId,
-            offlineMonitorStatusId: args.offlineMonitorStatusId,
-            defaultIncidentSeverityId: args.defaultIncidentSeverityId,
-            defaultAlertSeverityId: args.defaultAlertSeverityId,
-            monitorName: args.monitorName,
-          });
-        },
-      });
-    },
-  );
+  const metricRecommendations: Array<MonitorRecommendation> =
+    getAllKubernetesAlertTemplates().map(
+      (template: KubernetesAlertTemplate) => {
+        return normalize({
+          resourceType: MonitorRecommendationResourceType.Kubernetes,
+          monitorType: MonitorType.Kubernetes,
+          template: template,
+          getMonitorStep: (args: MonitorRecommendationArgs) => {
+            return template.getMonitorStep({
+              clusterIdentifier: args.resourceIdentifier,
+              onlineMonitorStatusId: args.onlineMonitorStatusId,
+              offlineMonitorStatusId: args.offlineMonitorStatusId,
+              defaultIncidentSeverityId: args.defaultIncidentSeverityId,
+              defaultAlertSeverityId: args.defaultAlertSeverityId,
+              monitorName: args.monitorName,
+            });
+          },
+        });
+      },
+    );
+
+  /*
+   * A cluster's warning events are logs (KubernetesEventAlertTemplates), so
+   * their alert is a Logs monitor scoped to the cluster - offered beside the
+   * metric templates, last, under its own Events heading.
+   */
+  const eventRecommendations: Array<MonitorRecommendation> =
+    getAllKubernetesEventAlertTemplates().map(
+      (template: KubernetesEventAlertTemplate) => {
+        return normalize({
+          resourceType: MonitorRecommendationResourceType.Kubernetes,
+          monitorType: MonitorType.Logs,
+          template: template,
+          getMonitorStep: (args: MonitorRecommendationArgs) => {
+            return template.getMonitorStep({
+              clusterIdentifier: args.resourceIdentifier,
+              onlineMonitorStatusId: args.onlineMonitorStatusId,
+              offlineMonitorStatusId: args.offlineMonitorStatusId,
+              defaultIncidentSeverityId: args.defaultIncidentSeverityId,
+              defaultAlertSeverityId: args.defaultAlertSeverityId,
+              monitorName: args.monitorName,
+            });
+          },
+        });
+      },
+    );
+
+  return [...metricRecommendations, ...eventRecommendations];
 }
 
 function getHostRecommendations(): Array<MonitorRecommendation> {
@@ -592,7 +625,8 @@ const RESOURCE_TYPE_DEFINITIONS: Array<MonitorRecommendationResourceTypeDefiniti
   [
     {
       resourceType: MonitorRecommendationResourceType.Kubernetes,
-      monitorTypes: [MonitorType.Kubernetes],
+      // Metric templates, and the warning events' Logs monitor.
+      monitorTypes: [MonitorType.Kubernetes, MonitorType.Logs],
       resourceLabel: "Kubernetes Cluster",
       identifierFieldName: "clusterIdentifier",
       icon: IconProp.Kubernetes,

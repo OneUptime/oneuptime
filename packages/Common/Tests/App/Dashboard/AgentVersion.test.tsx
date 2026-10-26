@@ -55,7 +55,10 @@ function setServerVersion(version: string): void {
 }
 
 import AgentVersion from "../../../../App/FeatureSet/Dashboard/src/Components/AgentVersion/AgentVersion";
-import { AgentKind } from "../../../../App/FeatureSet/Dashboard/src/Components/AgentVersion/AgentKind";
+import {
+  AgentKind,
+  DOCKER_SWARM_AGENT_VERSION,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/AgentVersion/AgentKind";
 import {
   getKubernetesAgentChartUpgradeCommand,
   getKubernetesAgentChartUpgradeFallbackCommand,
@@ -480,13 +483,18 @@ describe("the upgrade dialog", () => {
     ]);
   });
 
-  test("Docker Swarm: behind the collector this release pins, whatever the server knows of itself", async () => {
+  /*
+   * The Swarm agent reports its files' version (DOCKER_SWARM_AGENT_VERSION):
+   * the collector it pins, raised when its files change without the
+   * collector (follow-up of #5076).
+   */
+  test("Docker Swarm: behind the files this release ships, whatever the server knows of itself", async () => {
     setServerVersion("");
     render(
       <AgentVersion kind={AgentKind.DockerSwarmAgent} version="0.154.0" />,
     );
     const dialog: HTMLElement = await openDialog(
-      "Agent 0.154.0 is outdated. A newer agent is available: 0.161.0. Show how to upgrade.",
+      `Agent 0.154.0 is outdated. A newer agent is available: ${DOCKER_SWARM_AGENT_VERSION}. Show how to upgrade.`,
     );
 
     expect(
@@ -496,7 +504,7 @@ describe("the upgrade dialog", () => {
     ).toBeInTheDocument();
     expect(
       within(dialog).getByText(
-        "This agent runs version 0.154.0. Version 0.161.0 is available.",
+        `This agent runs version 0.154.0. Version ${DOCKER_SWARM_AGENT_VERSION} is available.`,
       ),
     ).toBeInTheDocument();
     expect(codeBlocksIn(dialog)).toEqual([
@@ -604,7 +612,7 @@ describe("the hero chip", () => {
     render(
       <AgentVersion
         kind={AgentKind.DockerSwarmAgent}
-        version="0.161.0"
+        version={DOCKER_SWARM_AGENT_VERSION}
         variant="chip"
       />,
     );
@@ -612,7 +620,9 @@ describe("the hero chip", () => {
     const chip: HTMLElement = screen.getByTestId("agent-version-chip");
     expect(chip.tagName).toBe("SPAN");
     expect(chip.className).toBe(OLD_CHIP_CLASS);
-    expect(within(chip).getByText("Agent 0.161.0")).toHaveClass("font-medium");
+    expect(
+      within(chip).getByText(`Agent ${DOCKER_SWARM_AGENT_VERSION}`),
+    ).toHaveClass("font-medium");
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
 
@@ -639,7 +649,7 @@ describe("the hero chip", () => {
     );
 
     const chip: HTMLElement = screen.getByRole("button", {
-      name: "Agent 0.154.0 is outdated. A newer agent is available: 0.161.0. Show how to upgrade.",
+      name: `Agent 0.154.0 is outdated. A newer agent is available: ${DOCKER_SWARM_AGENT_VERSION}. Show how to upgrade.`,
     });
     expect(chip).toHaveTextContent("Agent 0.154.0");
     expect(chip.className).toContain("border-amber-200");

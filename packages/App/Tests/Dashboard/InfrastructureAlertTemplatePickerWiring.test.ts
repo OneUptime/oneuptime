@@ -25,6 +25,7 @@ import {
 } from "../../FeatureSet/Dashboard/src/Components/Form/Monitor/AlertTemplatePicker/AlertTemplateGroups";
 import {
   ALERT_TEMPLATE_CATEGORIES_BY_RESOURCE_TYPE,
+  KUBERNETES_RECOMMENDATION_CATEGORIES,
   KUBERNETES_TEMPLATE_CATEGORIES,
   getAlertTemplateCategoryLabel,
   orderAlertTemplateCategories,
@@ -660,12 +661,52 @@ describe("a resource's Recommendations use the picker's category names", () => {
 
     // The catalog meets Scheduling second (Pod Stuck in Pending); the picker lists it last.
     expect(catalogOrder).not.toEqual(pickerOrder);
+    /*
+     * Then Events: the warning events alert is a Logs monitor
+     * (KubernetesEventAlertTemplates), which a Kubernetes monitor's Quick
+     * Setup cannot build, so only Recommendations list it - last.
+     */
     expect(
       orderAlertTemplateCategories(
         MonitorRecommendationResourceType.Kubernetes,
         catalogOrder,
       ),
-    ).toEqual(pickerOrder);
+    ).toEqual([...pickerOrder, "Events"]);
+  });
+
+  test("Kubernetes Recommendations name Quick Setup's headings, then Events, and Quick Setup never lists Events", () => {
+    expect(
+      KUBERNETES_RECOMMENDATION_CATEGORIES.map(
+        (category: { category: string }): string => {
+          return category.category;
+        },
+      ),
+    ).toEqual([
+      ...KUBERNETES_TEMPLATE_CATEGORIES.map(
+        (category: { category: string }): string => {
+          return category.category;
+        },
+      ),
+      "Events",
+    ]);
+    expect(
+      ALERT_TEMPLATE_CATEGORIES_BY_RESOURCE_TYPE[
+        MonitorRecommendationResourceType.Kubernetes
+      ],
+    ).toBe(KUBERNETES_RECOMMENDATION_CATEGORIES);
+    expect(
+      getAlertTemplateCategoryLabel(
+        MonitorRecommendationResourceType.Kubernetes,
+        "Events",
+      ),
+    ).toBe("Events");
+    expect(
+      KUBERNETES_TEMPLATE_CATEGORIES.some(
+        (category: { category: string }): boolean => {
+          return category.category === "Events";
+        },
+      ),
+    ).toBe(false);
   });
 
   test.each(
