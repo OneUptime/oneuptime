@@ -11,16 +11,51 @@ import AIService, {
 } from "../../../Server/Services/AIService";
 import SuggestionOffer from "../../../Utils/Suggestions/SuggestionOffer";
 import { TelemetryImprovementSuggestion } from "../../../Utils/Suggestions/TelemetryImprovementSuggestion";
+import CodeFixStartGate, {
+  CodeFixStart,
+} from "../../../Server/Utils/AI/CodeFix/CodeFixStartGate";
+import {
+  CODE_TASK_PLAN_REQUIRED_MESSAGE,
+  CODE_TASK_SUBSCRIPTION_UNPAID_MESSAGE,
+} from "../../../Server/Utils/AI/CodeTask/CodeTaskGate";
+import {
+  CodeTaskBlocker,
+  CodeTaskBlockerType,
+} from "../../../Types/AI/CodeTask";
+import CodeFixTaskContext from "../../../Types/AI/CodeFixTaskContext";
+import PaymentRequiredException from "../../../Types/Exception/PaymentRequiredException";
 import { describe, expect, test, afterEach, beforeEach } from "@jest/globals";
 
 /*
  * The service-scoped instrumentation-improvement triggers (ImproveLogging /
  * ImproveTracing): human-triggered, so every unmet gate fails EARLY with a
  * clear message — unsupported recipe, AI switched off, missing/foreign
- * service, no GitHub-App repository, or a duplicate active run for the same
- * service. The service's page asks getSuggestion first, and draws the card
- * exactly when those gates would let the click through.
+ * service, no GitHub-App repository, a duplicate active run for the same
+ * service, or what Code's own gate says about the repository the run will
+ * be queued on (CodeFixStartGate: the plan, AI credits or an LLM provider,
+ * the daily AI limit, a Runner online). The service's page asks
+ * getSuggestion first, and draws the card exactly when those gates would
+ * let the click through.
  */
+
+const GATE_REPOSITORY_ID: ObjectID = new ObjectID(
+  "50000000-0000-4000-8000-000000000005",
+);
+
+// What Code's gate says when no Runner is online for the repository.
+const NO_RUNNER: CodeTaskBlocker = {
+  type: CodeTaskBlockerType.NoAgent,
+  message: "No global Runner is online to work in this repository.",
+};
+
+function gateSays(
+  blocker: CodeTaskBlocker | null,
+  codeRepositoryId: ObjectID | null = GATE_REPOSITORY_ID,
+): jest.SpyInstance {
+  return jest
+    .spyOn(CodeFixStartGate, "check")
+    .mockResolvedValue({ codeRepositoryId, blocker } as CodeFixStart);
+}
 
 function aiSwitch(isOn: boolean): void {
   jest.spyOn(AIService, "isProjectAIEnabled").mockResolvedValue(isOn);
@@ -55,6 +90,7 @@ describe("TelemetryImprovementTaskTrigger.createTelemetryImprovementTask", () =>
     jest
       .spyOn(SubjectCodeFixRun, "findNonTerminalRunForTelemetryService")
       .mockResolvedValue(null);
+    gateSays(null);
   });
 
   afterEach(() => {
@@ -180,8 +216,119 @@ describe("TelemetryImprovementTaskTrigger.createTelemetryImprovementTask", () =>
           telemetryServiceId: telemetryServiceId.toString(),
           serviceName: "checkout",
         }),
+        // Queued on the repository Code's gate was asked about.
+        codeRepositoryId: GATE_REPOSITORY_ID,
       }),
     );
+  });
+
+  test("Code's gate is asked about the run as it will be queued: its recipe and the service's name", async () => {
+    mockService();
+    const check: jest.SpyInstance = gateSays(null);
+    jest
+      .spyOn(SubjectCodeFixRun, "enqueueSubjectCodeFixRun")
+      .mockResolvedValue({ id: ObjectID.generate() } as unknown as AIRun);
+
+    await TelemetryImprovementTaskTrigger.createTelemetryImprovementTask({
+      projectId,
+      telemetryServiceId,
+      taskType: CodeFixTaskType.ImproveTracing,
+      userId,
+    });
+
+    expect(check).toHaveBeenCalledTimes(1);
+    const asked: {
+      projectId: ObjectID;
+      taskType: CodeFixTaskType;
+      taskContext: CodeFixTaskContext;
+    } = check.mock.calls[0]![0];
+    expect(asked.projectId).toBe(projectId);
+    expect(asked.taskType).toBe(CodeFixTaskType.ImproveTracing);
+    expect(asked.taskContext).toEqual({
+      telemetryServiceId: telemetryServiceId.toString(),
+      serviceName: "checkout",
+    });
+    // The service was read once, for both the gate and the run.
+    expect(ServiceService.findOneById).toHaveBeenCalledTimes(1);
+  });
+
+  test("no Runner online: refused in Code's words, nothing queued", async () => {
+    mockService();
+    gateSays(NO_RUNNER);
+    const enqueue: jest.SpyInstance = jest.spyOn(
+      SubjectCodeFixRun,
+      "enqueueSubjectCodeFixRun",
+    );
+
+    await expect(
+      TelemetryImprovementTaskTrigger.createTelemetryImprovementTask({
+        projectId,
+        telemetryServiceId,
+        taskType: CodeFixTaskType.ImproveLogging,
+        userId,
+      }),
+    ).rejects.toThrow(new BadDataException(NO_RUNNER.message));
+
+    expect(enqueue).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    [CodeTaskBlockerType.PlanRequired, CODE_TASK_PLAN_REQUIRED_MESSAGE],
+    [
+      CodeTaskBlockerType.SubscriptionUnpaid,
+      CODE_TASK_SUBSCRIPTION_UNPAID_MESSAGE,
+    ],
+  ])(
+    "%s: refused as a payment, the way Code refuses it",
+    async (type: CodeTaskBlockerType, message: string) => {
+      mockService();
+      gateSays({ type, message });
+
+      await expect(
+        TelemetryImprovementTaskTrigger.createTelemetryImprovementTask({
+          projectId,
+          telemetryServiceId,
+          taskType: CodeFixTaskType.ImproveLogging,
+          userId,
+        }),
+      ).rejects.toThrow(PaymentRequiredException);
+    },
+  );
+
+  test("a run in flight is said before what Code's gate says", async () => {
+    mockService();
+    jest
+      .spyOn(SubjectCodeFixRun, "findNonTerminalRunForTelemetryService")
+      .mockResolvedValue({ id: ObjectID.generate() } as unknown as AIRun);
+    const check: jest.SpyInstance = gateSays(NO_RUNNER);
+
+    await expect(
+      TelemetryImprovementTaskTrigger.createTelemetryImprovementTask({
+        projectId,
+        telemetryServiceId,
+        taskType: CodeFixTaskType.ImproveTracing,
+        userId,
+      }),
+    ).rejects.toThrow(/already queued or running/);
+
+    expect(check).not.toHaveBeenCalled();
+  });
+
+  test("no repository resolves for the service: queued without one, as the run then finds its own", async () => {
+    mockService();
+    gateSays(null, null);
+    const enqueue: jest.SpyInstance = jest
+      .spyOn(SubjectCodeFixRun, "enqueueSubjectCodeFixRun")
+      .mockResolvedValue({ id: ObjectID.generate() } as unknown as AIRun);
+
+    await TelemetryImprovementTaskTrigger.createTelemetryImprovementTask({
+      projectId,
+      telemetryServiceId,
+      taskType: CodeFixTaskType.ImproveLogging,
+      userId,
+    });
+
+    expect(enqueue.mock.calls[0]![0]).toMatchObject({ codeRepositoryId: null });
   });
 });
 
@@ -243,6 +390,8 @@ describe("TelemetryImprovementTaskTrigger.getSuggestion (what a service's page o
 
   test("a repository and nothing in flight: the card", async () => {
     aiSwitch(true);
+    mockService();
+    gateSays(null);
     jest
       .spyOn(SubjectCodeFixRun, "findNonTerminalRunForTelemetryService")
       .mockResolvedValue(null);
@@ -254,6 +403,84 @@ describe("TelemetryImprovementTaskTrigger.getSuggestion (what a service's page o
       offer: SuggestionOffer.Act,
       aiRunId: null,
     });
+  });
+
+  test.each([
+    ["no Runner is online", NO_RUNNER],
+    [
+      "the plan does not include AI in Code",
+      {
+        type: CodeTaskBlockerType.PlanRequired,
+        message: CODE_TASK_PLAN_REQUIRED_MESSAGE,
+      },
+    ],
+  ])(
+    "Code's gate says %s: no card - never a set-up step on every page of every service",
+    async (_label: string, blocker: CodeTaskBlocker) => {
+      aiSwitch(true);
+      mockService();
+      gateSays(blocker);
+      jest
+        .spyOn(SubjectCodeFixRun, "findNonTerminalRunForTelemetryService")
+        .mockResolvedValue(null);
+      jest
+        .spyOn(SubjectCodeFixRun, "hasConnectedRepository")
+        .mockResolvedValue(true);
+
+      expect(await suggest()).toEqual({
+        offer: SuggestionOffer.None,
+        aiRunId: null,
+      });
+    },
+  );
+
+  test("Code's gate is asked with the service's name, read as OneUptime", async () => {
+    aiSwitch(true);
+    mockService({ name: "payments-api" });
+    const check: jest.SpyInstance = gateSays(null);
+    jest
+      .spyOn(SubjectCodeFixRun, "findNonTerminalRunForTelemetryService")
+      .mockResolvedValue(null);
+    jest
+      .spyOn(SubjectCodeFixRun, "hasConnectedRepository")
+      .mockResolvedValue(true);
+
+    await suggest(CodeFixTaskType.ImproveLogging);
+
+    expect(ServiceService.findOneById).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: telemetryServiceId,
+        props: { isRoot: true },
+      }),
+    );
+    expect(check.mock.calls[0]![0]).toMatchObject({
+      projectId,
+      taskType: CodeFixTaskType.ImproveLogging,
+      taskContext: {
+        telemetryServiceId: telemetryServiceId.toString(),
+        serviceName: "payments-api",
+      },
+    });
+  });
+
+  test("no repository, or a run in flight: Code's gate is not asked", async () => {
+    aiSwitch(true);
+    const check: jest.SpyInstance = gateSays(NO_RUNNER);
+    jest
+      .spyOn(SubjectCodeFixRun, "findNonTerminalRunForTelemetryService")
+      .mockResolvedValue(null);
+    jest
+      .spyOn(SubjectCodeFixRun, "hasConnectedRepository")
+      .mockResolvedValue(false);
+
+    expect((await suggest()).offer).toBe(SuggestionOffer.None);
+
+    jest
+      .spyOn(SubjectCodeFixRun, "findNonTerminalRunForTelemetryService")
+      .mockResolvedValue({ id: ObjectID.generate() } as unknown as AIRun);
+
+    expect((await suggest()).offer).toBe(SuggestionOffer.InProgress);
+    expect(check).not.toHaveBeenCalled();
   });
 
   test("the same improvement already on its way: a link to it, and the repository is not asked about", async () => {
@@ -281,9 +508,12 @@ describe("TelemetryImprovementTaskTrigger.getSuggestion (what a service's page o
 
   /*
    * The card is drawn exactly when the create route would accept the click:
-   * every AI setting, repository and run in flight, both recipes.
+   * every AI setting, repository, run in flight and word from Code's gate,
+   * both recipes.
    */
-  const cases: Array<[string, CodeFixTaskType, boolean, boolean, boolean]> = [];
+  const cases: Array<
+    [string, CodeFixTaskType, boolean, boolean, boolean, boolean]
+  > = [];
   for (const taskType of [
     CodeFixTaskType.ImproveLogging,
     CodeFixTaskType.ImproveTracing,
@@ -291,13 +521,16 @@ describe("TelemetryImprovementTaskTrigger.getSuggestion (what a service's page o
     for (const isAiOn of [true, false]) {
       for (const hasRepository of [true, false]) {
         for (const hasActiveRun of [true, false]) {
-          cases.push([
-            `${taskType}, AI ${isAiOn ? "on" : "off"}, ${hasRepository ? "a repository" : "no repository"}, ${hasActiveRun ? "a run in flight" : "no run"}`,
-            taskType,
-            isAiOn,
-            hasRepository,
-            hasActiveRun,
-          ]);
+          for (const isBlocked of [true, false]) {
+            cases.push([
+              `${taskType}, AI ${isAiOn ? "on" : "off"}, ${hasRepository ? "a repository" : "no repository"}, ${hasActiveRun ? "a run in flight" : "no run"}, ${isBlocked ? "Code's gate says no" : "nothing in the way"}`,
+              taskType,
+              isAiOn,
+              hasRepository,
+              hasActiveRun,
+              isBlocked,
+            ]);
+          }
         }
       }
     }
@@ -311,9 +544,11 @@ describe("TelemetryImprovementTaskTrigger.getSuggestion (what a service's page o
       isAiOn: boolean,
       hasRepository: boolean,
       hasActiveRun: boolean,
+      isBlocked: boolean,
     ) => {
       aiSwitch(isAiOn);
       mockService();
+      gateSays(isBlocked ? NO_RUNNER : null);
       jest
         .spyOn(SubjectCodeFixRun, "hasConnectedRepository")
         .mockResolvedValue(hasRepository);

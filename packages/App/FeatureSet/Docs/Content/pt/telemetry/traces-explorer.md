@@ -91,7 +91,7 @@ Clique em um span em qualquer visualização para abrir o painel dele, com abas 
 Um traço grande carrega 500 spans por vez. Clique no botão no fim do traço para carregar mais, ou todos.
 
 > [!TIP]
-> **Acelerar com IA** só aparece em um traço que vale a pena corrigir: um com uma consulta N+1, chamadas feitas uma após a outra que poderiam rodar em paralelo, ou uma chamada que ocupa a maior parte da requisição, quando isso custa tempo real (100 ms ou mais para as chamadas juntas, 500 ms ou mais para uma única chamada, e pelo menos um décimo da requisição). Ele diz o que encontrou, por exemplo "A mesma consulta ao banco de dados foi executada 40 vezes em ReportService.build", e inicia uma tarefa de IA que abre um pull request para corrigi-lo. Veja [Código](/docs/ai/ai-agent).
+> **Acelerar com IA** só aparece em um traço que vale a pena corrigir: um com uma consulta N+1, chamadas feitas uma após a outra que poderiam rodar em paralelo, ou uma chamada que ocupa a maior parte da requisição, quando isso custa tempo real (100 ms ou mais para as chamadas juntas, 500 ms ou mais para uma única chamada, e pelo menos um décimo da requisição). Ele diz o que encontrou, por exemplo "A mesma consulta ao banco de dados foi executada 40 vezes em ReportService.build", e inicia uma tarefa de IA que abre um pull request para corrigi-lo. Quando uma correção do traço já fez seu trabalho, o traço leva à tarefa dela em vez de oferecer uma segunda. Quando outra coisa impede a IA de trabalhar, como o plano, os créditos de IA esgotados ou nenhum Runner online, o traço diz o quê, com o link que resolve. Veja [Código](/docs/ai/ai-agent).
 
 ## Transformar seus spans em gráficos
 
@@ -150,7 +150,7 @@ Em **Mais campos** uma regra escolhe os repositórios de código, os servidores 
 ### Ver o que ele fez
 
 - **Traços → IA → Insights** lista o que o OneUptime encontrou, cada constatação com suas evidências e **Abrir em Traços**, que abre os spans de que ela trata, da hora em que foi encontrada, no **Visualizador**. Em uma operação com falha, **Criar monitor** configura um monitor de traços sobre seus spans com falha.
-- **Traços → IA → Registros** lista cada investigação e cada pull request, do mais recente, com a situação de cada um.
+- **Traços → IA → Registros** lista cada investigação e cada pull request, do mais recente, com a situação de cada um e o que cada investigação encontrou.
 - Em Código, a tarefa diz que o OneUptime a iniciou, com um link para a constatação, e o pull request diz por que foi aberto.
 
 ## O que acontece com os spans quando chegam

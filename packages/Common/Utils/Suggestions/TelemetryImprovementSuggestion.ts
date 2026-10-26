@@ -20,6 +20,10 @@ import SuggestionOffer, { parseSuggestionOffer } from "./SuggestionOffer";
  *     pull request in: nothing. Without a finding on screen a "connect a
  *     repository" link would sit on every page of every service, so none
  *     is shown (the trace page's finding is the one that earns that link).
+ *   - Code's gate says the run could not do its work now (the plan or the
+ *     bill, AI credits or an LLM provider, the daily AI limit, a Runner
+ *     online): nothing either, for the same reason - the click would only
+ *     queue a run that fails, or waits for a Runner that is not there.
  *   - The same improvement already queued or running for this service:
  *     a link to it (InProgress), not a second card.
  *   - Otherwise: the card (Act).
@@ -34,6 +38,8 @@ export interface TelemetryImprovementOfferInput {
   // The same improvement is already queued or running for this service.
   hasActiveFix: boolean;
   hasConnectedRepository: boolean;
+  // Code's gate says something stops the run (CodeFixStartGate).
+  isBlocked?: boolean | undefined;
 }
 
 export function getTelemetryImprovementOffer(
@@ -44,6 +50,7 @@ export function getTelemetryImprovementOffer(
     applies: true,
     hasActiveFix: input.hasActiveFix,
     hasConnectedRepository: input.hasConnectedRepository,
+    isBlocked: input.isBlocked,
     isBackedByEvidence: false,
   });
 }

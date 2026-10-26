@@ -254,9 +254,11 @@ ModelAPI.count = async (options) => {
     return filterInsights(aiInsights(NOW), options.query).length;
   }
 
+  // The enabled rules, and of those the ones that fix when asked.
   if (options.modelType === AutoRemediationRule) {
+    const query = serialize(options.query || {});
     return aiRules().filter((rule) => {
-      return rule.isEnabled;
+      return rule.isEnabled && (query.fixes !== true || rule.fixes === true);
     }).length;
   }
 
@@ -285,6 +287,34 @@ await i18next.use(initReactI18next).init({
   resources: { en: { translation: {} } },
   interpolation: { escapeValue: false },
 });
+
+/*
+ * ?lang=de or ?lang=fa: the page in German (long words) or Persian (right
+ * to left), with the Dashboard's own locale file - loaded only then, as a
+ * chunk of its own, so an English page loads none of it.
+ */
+const LOCALES = {
+  de: () => import("../../../App/FeatureSet/Dashboard/src/Locales/de.json"),
+  fa: () => import("../../../App/FeatureSet/Dashboard/src/Locales/fa.json"),
+};
+const language = params.get("lang");
+
+if (language && LOCALES[language]) {
+  const locale = await LOCALES[language]();
+  i18next.addResourceBundle(
+    language,
+    "translation",
+    locale.default || locale,
+    true,
+    true,
+  );
+  await i18next.changeLanguage(language);
+  document.documentElement.setAttribute("lang", language);
+  document.documentElement.setAttribute(
+    "dir",
+    language === "fa" ? "rtl" : "ltr",
+  );
+}
 
 function RouterHooks() {
   Navigation.setNavigateHook(useNavigate());

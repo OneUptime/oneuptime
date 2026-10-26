@@ -18,6 +18,7 @@ import React from "react";
 import { MemoryRouter, Route as PageRoute, Routes } from "react-router-dom";
 import ExceptionsAILogs from "../../../../App/FeatureSet/Dashboard/src/Pages/Exceptions/AI/Logs";
 import ProfilesAILogs from "../../../../App/FeatureSet/Dashboard/src/Pages/Profiles/AI/Logs";
+import TracesAILogs from "../../../../App/FeatureSet/Dashboard/src/Pages/Traces/AI/Logs";
 import {
   TELEMETRY_AI_LANE_COPY,
   TELEMETRY_AI_TEST_IDS,
@@ -29,6 +30,7 @@ import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import Route from "../../../Types/API/Route";
 import { TelemetryAiLane } from "../../../Types/AI/TelemetryAi";
+import AIInsightType from "../../../Types/AI/AIInsightType";
 import {
   TELEMETRY_AI_LOGS_PATH,
   TelemetryAiLogKind,
@@ -58,9 +60,12 @@ jest.mock("react-i18next", () => {
  * under each investigation, what it found. That verdict decides a new or
  * rising exception's pull request (a fix for a fault of the code, better
  * handling for an expected error, none on its own for the rest), so the
- * row says it in the lane's words. The Profiler's Logs, whose lane has no
- * such words, say nothing of a verdict: the line is the Exceptions lane's
- * to opt in to (TelemetryAiLaneCopy.investigationVerdicts).
+ * row says it in the lane's words. Every lane's Logs say it, each kind of
+ * finding in its own words where found in the code means something else
+ * (TelemetryAiLaneCopy.investigationVerdictsByInsightType): the Profiler's
+ * slow code is avoidable work, Traces' failing operation a fault and its
+ * slow one avoidable work, a service's missing stack traces lost in the
+ * code.
  */
 
 const WAIT_TIMEOUT: number = 20000;
@@ -276,22 +281,142 @@ describe("Exceptions → AI → Logs", () => {
     ).toHaveTextContent("Found a fault in the code");
   });
 
-  test("the Profiler's Logs say no verdict: the line is the Exceptions lane's", async () => {
-    expect(
-      TELEMETRY_AI_LANE_COPY[TelemetryAiLane.Profile].investigationVerdicts,
-    ).toBeUndefined();
+  test("a service's missing stack traces were lost in the code: its own words, no expected error", async () => {
+    serve([
+      entry({
+        runId: "5240eded-0000-4000-8000-0000000000d1",
+        classification: ErrorClass.CodeFault,
+        insight: {
+          id: "5240eded-0000-4000-8000-0000000000a2",
+          title: "Exceptions in edge have no stack trace",
+          serviceName: "edge",
+          type: AIInsightType.ExceptionMissingStackTrace,
+        },
+      }),
+      entry({
+        runId: "5240eded-0000-4000-8000-0000000000d2",
+        classification: ErrorClass.UserError,
+        insight: {
+          id: "5240eded-0000-4000-8000-0000000000a3",
+          title: "Exceptions in api have no stack trace",
+          serviceName: "api",
+          type: AIInsightType.ExceptionMissingStackTrace,
+        },
+      }),
+    ]);
+    openExceptionsLogs();
 
-    serve([entry({ classification: ErrorClass.CodeFault })]);
+    const [lost, expected] = await shownEntries(2);
+
+    expect(
+      within(lost!).getByTestId(TELEMETRY_AI_TEST_IDS.logVerdict),
+    ).toHaveTextContent("Found where the code loses the stack trace");
+    // An expected error is not a missing stack trace's: nothing is said.
+    expect(
+      within(expected!).queryByTestId(TELEMETRY_AI_TEST_IDS.logVerdict),
+    ).not.toBeInTheDocument();
+  });
+
+  test("the Profiler's Logs say slow code's verdict in its own words: avoidable work, never a fault", async () => {
+    serve([
+      entry({
+        classification: ErrorClass.CodeFault,
+        insight: {
+          id: INSIGHT_ID,
+          title: "parseOrder takes 34% of the CPU time in checkout",
+          serviceName: "checkout",
+          type: AIInsightType.ProfileHotspot,
+        },
+      }),
+    ]);
     openPage(PageMap.PROFILES_AI_LOGS, ProfilesAILogs);
 
-    await shownEntries(1);
+    const [row] = await shownEntries(1);
 
     expect(lanesRead()).toEqual([TelemetryAiLane.Profile]);
     expect(
-      screen.queryByTestId(TELEMETRY_AI_TEST_IDS.logVerdict),
-    ).not.toBeInTheDocument();
+      within(row!).getByTestId(TELEMETRY_AI_TEST_IDS.logVerdict),
+    ).toHaveTextContent("Found avoidable work in the code");
     expect(
       screen.queryByText("Found a fault in the code"),
+    ).not.toBeInTheDocument();
+  });
+
+  test.each([
+    [
+      AIInsightType.TraceFailingOperation,
+      ErrorClass.CodeFault,
+      "Found a fault in the code",
+    ],
+    [
+      AIInsightType.TraceFailingOperation,
+      ErrorClass.ExpectedDenial,
+      "Found an expected error: a check doing its job",
+    ],
+    [
+      AIInsightType.TraceSlowOperation,
+      ErrorClass.CodeFault,
+      "Found avoidable work in the code",
+    ],
+    [
+      AIInsightType.TraceMissingTracing,
+      ErrorClass.CodeFault,
+      "Found tracing the code should add",
+    ],
+    [
+      AIInsightType.TraceMissingTracing,
+      ErrorClass.Infrastructure,
+      "Found a cause outside the code",
+    ],
+    [
+      AIInsightType.TraceSlowOperation,
+      ErrorClass.Unknown,
+      "Could not tell the cause",
+    ],
+  ])(
+    "Traces' Logs: a %s investigation that found %s says what it found in its kind's words",
+    async (type: AIInsightType, verdict: ErrorClass, words: string) => {
+      serve([
+        entry({
+          classification: verdict,
+          insight: {
+            id: INSIGHT_ID,
+            title: "POST /checkout in checkout fails 12% of the time",
+            serviceName: "checkout",
+            type,
+          },
+        }),
+      ]);
+      openPage(PageMap.TRACES_AI_LOGS, TracesAILogs);
+
+      const [row] = await shownEntries(1);
+
+      expect(lanesRead()).toEqual([TelemetryAiLane.Trace]);
+      expect(
+        within(row!).getByTestId(TELEMETRY_AI_TEST_IDS.logVerdict),
+      ).toHaveTextContent(words);
+    },
+  );
+
+  test("a slow operation never says an expected error, whatever the triage wrote", async () => {
+    serve([
+      entry({
+        classification: ErrorClass.UserError,
+        insight: {
+          id: INSIGHT_ID,
+          title:
+            "GET /orders in checkout runs the same database query 40 times",
+          serviceName: "checkout",
+          type: AIInsightType.TraceSlowOperation,
+        },
+      }),
+    ]);
+    openPage(PageMap.TRACES_AI_LOGS, TracesAILogs);
+
+    await shownEntries(1);
+
+    expect(
+      screen.queryByTestId(TELEMETRY_AI_TEST_IDS.logVerdict),
     ).not.toBeInTheDocument();
   });
 });

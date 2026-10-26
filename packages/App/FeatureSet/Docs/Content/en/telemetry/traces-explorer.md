@@ -91,7 +91,7 @@ Click a span in any view to open its panel, with tabs for its attributes, events
 A large trace loads 500 spans at a time. Click the button at the bottom of the trace to load more, or all of them.
 
 > [!TIP]
-> **Fix performance with AI** shows only on a trace worth fixing: one with an N+1 query, calls made one after another that could run in parallel, or one call that takes most of the request, when it costs real time (100 ms or more for the calls together, 500 ms or more for a single call, and at least a tenth of the request). It names what it found, such as "The same database query ran 40 times in ReportService.build", and starts an AI task that opens a pull request to fix it. See [Code](/docs/ai/ai-agent).
+> **Fix performance with AI** shows only on a trace worth fixing: one with an N+1 query, calls made one after another that could run in parallel, or one call that takes most of the request, when it costs real time (100 ms or more for the calls together, 500 ms or more for a single call, and at least a tenth of the request). It names what it found, such as "The same database query ran 40 times in ReportService.build", and starts an AI task that opens a pull request to fix it. Once a fix for the trace has done its work, the trace links to that fix's task instead of offering a second one. When something else stops AI working, such as the plan, used-up AI credits or no Runner online, the trace says what, with the link that clears it. See [Code](/docs/ai/ai-agent).
 
 ## Chart your spans
 
@@ -150,7 +150,7 @@ Under **More fields** a rule picks the code repositories, the MCP servers and th
 ### See what it did
 
 - **Traces → AI → Insights** lists what OneUptime found, each finding with its evidence and **Open in Traces**, which opens the spans it is about, from the hour it was found in, in the **Viewer**. On a failing operation, **Create Monitor** sets up a Traces monitor on its failed spans.
-- **Traces → AI → Logs** lists every investigation and pull request, newest first, with how each one stands.
+- **Traces → AI → Logs** lists every investigation and pull request, newest first, with how each one stands and what each investigation found.
 - In Code, the task says OneUptime started it, with a link to its finding, and the pull request says why it was opened.
 
 ## What happens to spans as they arrive

@@ -127,6 +127,8 @@ const SUGGESTION: TracePerformanceFixSuggestion = {
   offer: SuggestionOffer.SetUp,
   finding: FINDING,
   findingCount: 1,
+  fixOutcome: null,
+  blocker: null,
   aiRunId: null,
 };
 

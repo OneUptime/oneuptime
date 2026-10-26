@@ -29,6 +29,11 @@ import {
 } from "../../Utils/EventDuration";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import { TELEMETRY_AI_PAGES } from "../TelemetryAi/TelemetryAiCopy";
+import {
+  getTelemetryAiLaneOfInsightType,
+  TelemetryAiLane,
+} from "Common/Types/AI/TelemetryAi";
 import {
   ProfilesUrlState,
   buildProfilesRoute,
@@ -468,7 +473,8 @@ const TurnDuration: FunctionComponent<{ turn: CodeTaskTurnJSON }> = (props: {
 /*
  * The page a task's origin opens, for the kinds of record it can name: the
  * exception, the incident, the alert, or the AI insight OneUptime found the
- * problem in (AI Insights' view of it, whichever product filed it).
+ * problem in (AI Insights' view of it, for a kind no product's AI section
+ * files - see getCodeTaskOriginRecordPage).
  */
 export const CODE_TASK_ORIGIN_RECORD_PAGES: Partial<
   Record<CodeTaskOriginType, PageMap>
@@ -478,6 +484,30 @@ export const CODE_TASK_ORIGIN_RECORD_PAGES: Partial<
   [CodeTaskOriginType.Alert]: PageMap.ALERT_VIEW,
   [CodeTaskOriginType.Insight]: PageMap.AI_INSIGHT_VIEW,
 };
+
+/*
+ * Where an origin's record opens. A finding a telemetry product's AI
+ * section filed opens on that section's own page of it - slow code in the
+ * Profiler, an error log in Logs, a failing operation in Traces - where
+ * its side menu, its Fix with AI and its Activity are, as the pull
+ * request's own link opens it (TelemetryAi getAiInsightDashboardPath).
+ * It opened in AI Insights' view, a product away from where it was found.
+ */
+export function getCodeTaskOriginRecordPage(
+  origin: CodeTaskOriginJSON,
+): PageMap | undefined {
+  if (origin.type === CodeTaskOriginType.Insight) {
+    const lane: TelemetryAiLane | null = getTelemetryAiLaneOfInsightType(
+      origin.insightType,
+    );
+
+    if (lane) {
+      return TELEMETRY_AI_PAGES[lane].insightView;
+    }
+  }
+
+  return CODE_TASK_ORIGIN_RECORD_PAGES[origin.type];
+}
 
 /*
  * One turn of a task's conversation: what the person asked (or what started
@@ -566,7 +596,7 @@ const CodeTaskTurn: FunctionComponent<ComponentProps> = (
     if (props.origin) {
       const origin: CodeTaskOriginJSON = props.origin;
       const recordPage: PageMap | undefined = origin.recordId
-        ? CODE_TASK_ORIGIN_RECORD_PAGES[origin.type]
+        ? getCodeTaskOriginRecordPage(origin)
         : undefined;
       const recordRoute: Route | null =
         recordPage && origin.recordId

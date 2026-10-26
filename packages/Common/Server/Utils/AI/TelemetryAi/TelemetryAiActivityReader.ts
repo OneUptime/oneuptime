@@ -153,6 +153,7 @@ export default class TelemetryAiActivityReader {
         title: true,
         serviceName: true,
         classification: true,
+        insightType: true,
       },
       sort: { lastSeenAt: SortOrder.Descending },
       limit: TELEMETRY_AI_LOGS_MAX_PROBLEMS,
@@ -334,6 +335,10 @@ export default class TelemetryAiActivityReader {
         title: data.problem.title || "",
         ...(data.problem.serviceName
           ? { serviceName: data.problem.serviceName }
+          : {}),
+        // Its kind: the words its investigation's verdict is said in.
+        ...(data.problem.insightType
+          ? { type: data.problem.insightType.toString() }
           : {}),
       },
     };

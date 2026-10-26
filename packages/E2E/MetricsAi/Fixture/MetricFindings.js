@@ -424,27 +424,32 @@ export function aiLogs(now, skip) {
     return { entries: [], totalCount: 0 };
   }
 
-  const insight = (id, evidence, serviceName) => {
+  // Its kind too, as the server sends it: a verdict is said in its words.
+  const insight = (id, evidence, serviceName, type) => {
     return {
       id,
       title: getMetricInsightTitle({ evidence, serviceName }),
       serviceName,
+      type,
     };
   };
   const buckets = insight(
     AI_INSIGHT_IDS.buckets,
     bucketsEvidence(now),
     SERVICE_NAMES[SERVICE_IDS.checkout],
+    AIInsightType.MetricHistogramBuckets,
   );
   const cardinality = insight(
     AI_INSIGHT_IDS.cardinality,
     cardinalityEvidence(now),
     SERVICE_NAMES[SERVICE_IDS.checkout],
+    AIInsightType.MetricHighCardinality,
   );
   const missing = insight(
     AI_INSIGHT_IDS.missing,
     missingEvidence(now),
     SERVICE_NAMES[SERVICE_IDS.payments],
+    AIInsightType.MetricMissingMetrics,
   );
 
   const entries = [
