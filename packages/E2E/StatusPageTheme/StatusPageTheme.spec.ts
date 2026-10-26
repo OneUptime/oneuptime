@@ -818,3 +818,112 @@ test("nothing scrolls sideways on a phone in the dark theme", async ({
     }),
   ).toBe(true);
 });
+
+/*
+ * The overall status banner ("Some Resources are Offline"), filled with the
+ * colour the page's owner gave the status. Its words were white whatever the
+ * fill - 3:1 on the default Offline red, 1.6:1 on the Degraded yellow, 2.6:1
+ * on the Operational green - the one sentence every visitor reads first. They now take the
+ * colour that reads on the fill, at 4.5:1, the same in both themes.
+ */
+test.describe("the overall status banner's words read on the status colour", () => {
+  const bannerColours: (
+    page: Page,
+  ) => Promise<{ text: string; ground: string; contrast: number }> = async (
+    page: Page,
+  ): Promise<{ text: string; ground: string; contrast: number }> => {
+    return page
+      .locator("#overview-alert")
+      .evaluate(
+        (
+          element: Element,
+        ): { text: string; ground: string; contrast: number } => {
+          const RGB: RegExp = /rgba?\(([\d.]+),\s*([\d.]+),\s*([\d.]+)/;
+          const parse: (value: string) => Array<number> = (
+            value: string,
+          ): Array<number> => {
+            const match: RegExpExecArray | null = RGB.exec(value);
+
+            return match
+              ? [Number(match[1]), Number(match[2]), Number(match[3])]
+              : [0, 0, 0];
+          };
+          const linear: (channel: number) => number = (
+            channel: number,
+          ): number => {
+            const value: number = channel / 255;
+            return value <= 0.03928
+              ? value / 12.92
+              : Math.pow((value + 0.055) / 1.055, 2.4);
+          };
+          const luminance: (rgb: Array<number>) => number = (
+            rgb: Array<number>,
+          ): number => {
+            return (
+              0.2126 * linear(rgb[0]!) +
+              0.7152 * linear(rgb[1]!) +
+              0.0722 * linear(rgb[2]!)
+            );
+          };
+
+          // The words as drawn: the banner's message, where its sentence is.
+          const message: Element =
+            element.querySelector(".alert-message") || element;
+          const text: string = getComputedStyle(message).color;
+          const ground: string = getComputedStyle(element).backgroundColor;
+          const first: number = luminance(parse(text));
+          const second: number = luminance(parse(ground));
+
+          return {
+            text,
+            ground,
+            contrast:
+              (Math.max(first, second) + 0.05) /
+              (Math.min(first, second) + 0.05),
+          };
+        },
+      );
+  };
+
+  for (const theme of ["Light", "Dark"]) {
+    test(`on a ${theme} page, at 4.5:1 and not white where white did not read`, async ({
+      page,
+    }: { page: Page }, testInfo: TestInfo) => {
+      await openPage(page, PAGE, `theme=${theme}`);
+
+      const banner: Locator = page.locator("#overview-alert");
+
+      await expect(banner).toBeVisible();
+
+      const colours: { text: string; ground: string; contrast: number } =
+        await bannerColours(page);
+
+      expect(colours.contrast).toBeGreaterThanOrEqual(4.5);
+      /*
+       * The fixture's page has a resource offline: the default Offline red,
+       * on which white was 3:1 - so its words are a deep red now.
+       */
+      expect(colours.ground).toBe("rgb(253, 98, 94)");
+      expect(colours.text).not.toBe("rgb(255, 255, 255)");
+
+      await banner.screenshot({
+        path: `${SCREENSHOTS}/${testInfo.project.name}-banner-${theme.toLowerCase()}.png`,
+      });
+    });
+  }
+
+  test("the same banner in both themes: the owner's colour, and the words on it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openPage(page, PAGE, "theme=Light");
+    const light: { text: string; ground: string } = await bannerColours(page);
+
+    await openPage(page, PAGE, "theme=Dark");
+    const dark: { text: string; ground: string } = await bannerColours(page);
+
+    expect(dark.ground).toBe(light.ground);
+    expect(dark.text).toBe(light.text);
+  });
+});
