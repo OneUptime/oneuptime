@@ -1,10 +1,12 @@
 import {
-  getSentenceParts,
+  getSentencePartsAndLanguage,
   PluralTemplate,
   SentencePart,
+  SentenceParts,
   TemplateValues,
   Translator,
 } from "../../Utils/TranslateTemplate";
+import { SentenceLanguageContext } from "../../Utils/SentenceLanguage";
 import useTranslator from "../../Utils/UseTranslator";
 import React, {
   Fragment,
@@ -24,6 +26,10 @@ import React, {
  * The slots are drawn exactly as given and never go through translation. A
  * translation that lost a slot or repeated one falls back to the English
  * sentence, so nothing the reader needs is dropped.
+ *
+ * The slots are told the language the sentence came out in
+ * (SentenceLanguageContext): a time or a duration drawn there is written in
+ * it, so an English sentence never holds a German date.
  */
 
 export interface ComponentProps {
@@ -48,7 +54,7 @@ const TranslatedSentence: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
 
-  const parts: Array<SentencePart> = getSentenceParts({
+  const sentence: SentenceParts = getSentencePartsAndLanguage({
     translator: translator,
     template: props.template,
     slots: Object.keys(props.slots),
@@ -57,8 +63,8 @@ const TranslatedSentence: FunctionComponent<ComponentProps> = (
   });
 
   return (
-    <>
-      {parts.map((part: SentencePart, index: number): ReactElement => {
+    <SentenceLanguageContext.Provider value={sentence.language}>
+      {sentence.parts.map((part: SentencePart, index: number): ReactElement => {
         return (
           <Fragment key={index}>
             {part.kind === "slot"
@@ -69,7 +75,7 @@ const TranslatedSentence: FunctionComponent<ComponentProps> = (
           </Fragment>
         );
       })}
-    </>
+    </SentenceLanguageContext.Provider>
   );
 };
 

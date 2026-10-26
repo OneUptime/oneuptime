@@ -8,28 +8,23 @@ import CloudResourceOwnerTeam from "Common/Models/DatabaseModels/CloudResourceOw
 import CloudResourceOwnerUser from "Common/Models/DatabaseModels/CloudResourceOwnerUser";
 import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
 import useResourceOwners from "../../Components/ResourceOwners/useResourceOwners";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useState,
+} from "react";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
-import getLabelsFormField from "../../Utils/Form/LabelsFormField";
-import {
-  followWithDisplayName,
-  getCloudEnvironmentNameFromFields,
-  getDisplayNameFormField,
-} from "../../Utils/Form/DiscoveredResourceFormFields";
-import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
-import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green, Red } from "Common/Types/BrandColors";
 import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
-import { JSONObject } from "Common/Types/JSON";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import useFirstRecordWatch, {
   FirstRecordWatch,
@@ -45,23 +40,24 @@ import {
   CloudProvider,
   MANAGED_CLOUD_PLATFORMS,
   ManagedCloudPlatformDescriptor,
-  buildCloudEnvironmentKey,
-  buildCloudEnvironmentName,
-  getCloudProviderForPlatform,
   getCloudProviderLabel,
   getManagedCloudPlatformLabel,
 } from "Common/Types/Cloud/CloudPlatform";
-import CloudDocumentationCard from "../../Components/Cloud/CloudDocumentationCard";
+import AddResourceGuide from "../../Components/ResourceOnboarding/AddResourceGuide";
+import AddResourceModal from "../../Components/ResourceOnboarding/AddResourceModal";
+import CLOUD_ENVIRONMENT_ONBOARDING from "../../Components/Cloud/CloudEnvironmentOnboarding";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import IconProp from "Common/Types/Icon/IconProp";
 import { CloudResourceKind } from "Common/Types/Cloud/CloudResourceKind";
 import CloudFleetSummary from "../../Components/Cloud/CloudFleetSummary";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
- * Picker options for the create form and the Platform filter. The label
- * carries the raw cloud.platform value in brackets because that string is
- * what the user has to find in their collector's resource attributes to
- * confirm they picked the right one.
+ * Options for the Platform filter. The label carries the raw cloud.platform
+ * value in brackets because that string is what the user has to find in
+ * their collector's resource attributes to confirm they picked the right
+ * one.
  */
 const PLATFORM_DROPDOWN_OPTIONS: Array<DropdownOption> =
   MANAGED_CLOUD_PLATFORMS.map(
@@ -89,6 +85,10 @@ const CloudResources: FunctionComponent<
       query: { cloudResourceKind: CloudResourceKind.Environment },
     },
   );
+  const [isAddEnvironmentOpen, setIsAddEnvironmentOpen] =
+    useState<boolean>(false);
+  // Environments connected from the Add dialog show in the list at once.
+  const [connectedCount, setConnectedCount] = useState<number>(0);
 
   const { archiveBulkActions, archiveRowActions } =
     useBulkArchiveActions<CloudResource>({
@@ -146,23 +146,24 @@ const CloudResources: FunctionComponent<
   }
 
   /*
-   * The create form asks for what an environment is matched on - its
-   * platform, account and region - on one page. The display name follows
-   * them ("AWS ECS · us-east-1 · 123456789012"), the way a discovered
-   * environment is named, and folds under Advanced with the description and
-   * the labels (DiscoveredResourceFormFields).
+   * An environment is added by pointing an app's OpenTelemetry at
+   * OneUptime with a cloud resource detector (Add Cloud Environment): it
+   * registers itself under its platform, account and region when its first
+   * data arrives, and the guide's last step says so. There is no form: an
+   * environment typed in by hand would only wait for telemetry that
+   * nothing sends.
    */
-  const advancedSection: FormFieldCollapsibleSection<CloudResource> =
-    getAdvancedFormSection<CloudResource>();
-
   return (
     <Fragment>
-      <CloudFleetSummary refreshToken={firstRecordWatch.count} />
+      {/* Counted again for the first environment and for each the Add dialog connects. */}
+      <CloudFleetSummary
+        refreshToken={(firstRecordWatch.count || 0) + connectedCount}
+      />
       <ModelTable<CloudResource>
         modelType={CloudResource}
         // Archive in each row's ⋯ menu, as in Bulk Actions.
         actionButtons={[...archiveRowActions]}
-        refreshToggle={firstRecordWatch.refreshToken}
+        refreshToggle={`${firstRecordWatch.refreshToken}-${connectedCount}`}
         topContent={getFirstRunTopContent({
           topContent: filterBar,
           count: firstRecordWatch.count,
@@ -188,65 +189,10 @@ const CloudResources: FunctionComponent<
         onFetchSuccess={(data: Array<CloudResource>) => {
           onResourcesFetched(data);
         }}
-        onBeforeCreate={(
-          item: CloudResource,
-          _miscDataProps: JSONObject,
-        ): Promise<CloudResource> => {
-          /*
-           * Ingest looks an environment up by its key
-           * ("platform|account|region"), never by name, so a hand-made
-           * environment only ever receives telemetry if the key here is
-           * built the same way ingest builds it. Provider and the default
-           * name derive from the same identity for the same reason: what
-           * the user creates must be indistinguishable from what
-           * auto-discovery would have created.
-           */
-          const platform: string = String(item.cloudPlatform || "").trim();
-          const accountId: string = String(item.cloudAccountId || "").trim();
-          const region: string = String(item.cloudRegion || "").trim();
-
-          item.cloudPlatform = platform;
-          /*
-           * Optional columns are omitted rather than set to undefined: the
-           * Dashboard compiles with exactOptionalPropertyTypes, and the
-           * serializer drops absent keys either way.
-           */
-          if (accountId) {
-            item.cloudAccountId = accountId;
-          } else {
-            delete item.cloudAccountId;
-          }
-          if (region) {
-            item.cloudRegion = region;
-          } else {
-            delete item.cloudRegion;
-          }
-          item.resourceIdentifier = buildCloudEnvironmentKey({
-            platform,
-            accountId,
-            region,
-          });
-
-          const provider: CloudProvider | null =
-            getCloudProviderForPlatform(platform);
-          if (provider) {
-            item.cloudProvider = provider;
-          }
-
-          item.name =
-            String(item.name || "").trim() ||
-            buildCloudEnvironmentName({ platform, accountId, region });
-
-          return Promise.resolve(item);
-        }}
-        onCreateSuccess={(item: CloudResource): Promise<CloudResource> => {
-          firstRecordWatch.onRecordCreated();
-          return Promise.resolve(item);
-        }}
         isDeleteable={true}
         deleteConfirmationWarning={ARCHIVE_INSTEAD_OF_DELETE}
         isEditable={false}
-        isCreateable={true}
+        isCreateable={false}
         isViewable={true}
         bulkActions={{
           buttons: [
@@ -269,75 +215,18 @@ const CloudResources: FunctionComponent<
           title: "Cloud Environments",
           description:
             "Managed compute environments discovered from OpenTelemetry, one per platform, account and region, such as AWS ECS or Google Cloud Run.",
+          buttons: [
+            {
+              title: CLOUD_ENVIRONMENT_ONBOARDING.addTitle,
+              icon: IconProp.Add,
+              buttonStyle: ButtonStyleType.NORMAL,
+              onClick: () => {
+                setIsAddEnvironmentOpen(true);
+              },
+            },
+          ],
         }}
-        formFields={[
-          {
-            field: {
-              cloudPlatform: true,
-            },
-            title: "Cloud Platform",
-            fieldType: FormFieldSchemaType.Dropdown,
-            dropdownOptions: PLATFORM_DROPDOWN_OPTIONS,
-            required: true,
-            placeholder: "Select a platform",
-            description:
-              "The platform this environment runs on. It must match the cloud.platform your collector reports.",
-            onChange: followWithDisplayName<CloudResource>({
-              fieldKey: "cloudPlatform",
-              getDefaultName: getCloudEnvironmentNameFromFields,
-            }),
-          },
-          {
-            field: {
-              cloudAccountId: true,
-            },
-            title: "Cloud Account ID",
-            fieldType: FormFieldSchemaType.Text,
-            required: false,
-            placeholder: "123456789012",
-            description:
-              "The AWS account, GCP project or Azure subscription id, as cloud.account.id reports it. Leave blank if it is not reported.",
-            onChange: followWithDisplayName<CloudResource>({
-              fieldKey: "cloudAccountId",
-              getDefaultName: getCloudEnvironmentNameFromFields,
-            }),
-          },
-          {
-            field: {
-              cloudRegion: true,
-            },
-            title: "Cloud Region",
-            fieldType: FormFieldSchemaType.Text,
-            required: false,
-            placeholder: "us-east-1",
-            description:
-              "The cloud.region resource attribute, e.g. us-east-1, europe-west1 or eastus. Leave blank if your collector does not report one.",
-            onChange: followWithDisplayName<CloudResource>({
-              fieldKey: "cloudRegion",
-              getDefaultName: getCloudEnvironmentNameFromFields,
-            }),
-          },
-          getDisplayNameFormField<CloudResource>({
-            getDefaultName: getCloudEnvironmentNameFromFields,
-            placeholder: "AWS ECS · us-east-1 · 123456789012",
-            description:
-              "Starts as platform · region · account. Type your own name to show instead; telemetry is still matched by platform, account and region.",
-            collapsibleSection: advancedSection,
-          }),
-          {
-            field: {
-              description: true,
-            },
-            title: "Description",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder: "Production ECS cluster for the checkout stack",
-            collapsibleSection: advancedSection,
-          },
-          getLabelsFormField<CloudResource>({
-            collapsibleSection: advancedSection,
-          }),
-        ]}
+        formFields={[]}
         filters={[
           {
             field: {
@@ -534,9 +423,30 @@ const CloudResources: FunctionComponent<
         }}
       />
       {firstRecordWatch.count === 0 && (
-        <CloudDocumentationCard
-          title="Getting Started with Cloud Environments"
+        <AddResourceGuide
+          onboarding={CLOUD_ENVIRONMENT_ONBOARDING}
+          title={CLOUD_ENVIRONMENT_ONBOARDING.firstRunTitle}
           description={FIRST_RUN_GUIDE_DESCRIPTION}
+          onConnected={() => {
+            // The guide gives way, and the table reads the new environment.
+            firstRecordWatch.onRecordCreated();
+            setConnectedCount((count: number): number => {
+              return count + 1;
+            });
+          }}
+        />
+      )}
+      {isAddEnvironmentOpen && (
+        <AddResourceModal
+          onboarding={CLOUD_ENVIRONMENT_ONBOARDING}
+          onClose={() => {
+            setIsAddEnvironmentOpen(false);
+          }}
+          onConnected={() => {
+            setConnectedCount((count: number): number => {
+              return count + 1;
+            });
+          }}
         />
       )}
       {labelBulkActionModals}

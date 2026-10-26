@@ -433,6 +433,42 @@ describe("Managing Applications: how an application is created", () => {
     }
   });
 
+  it("opens the application's setup guide once the form has saved it, waiting for its first data", () => {
+    const list: string = source("rumApplications");
+    const added: string = fs.readFileSync(
+      path.join(
+        REPO_DIR,
+        DASHBOARD,
+        "Components/Rum/RumApplicationAddedModal.tsx",
+      ),
+      "utf8",
+    );
+    const onboarding: string = fs.readFileSync(
+      path.join(
+        REPO_DIR,
+        DASHBOARD,
+        "Components/ResourceOnboarding/ResourceOnboarding.ts",
+      ),
+      "utf8",
+    );
+
+    expect(list).toContain("<RumApplicationAddedModal");
+    expect(added).toContain("appName={props.appIdentifier}");
+    expect(onboarding).toMatch(
+      /RESOURCE_CONNECTION_STEP_TITLE: string = translationKey\(\s*"Wait for it to connect",?\s*\);/,
+    );
+
+    const add: string = section(
+      RUM_APPLICATIONS,
+      "### Add an application yourself",
+    );
+
+    expect(add).toContain(
+      "Its setup guide then opens on its own, with the app name as the snippet's `service.name`.",
+    );
+    expect(add).toContain("**Wait for it to connect**");
+  });
+
   it("refuses an app name the project already has, archived ones included", () => {
     const service: string = source("rumApplicationService");
     const refusal: string = fs.readFileSync(

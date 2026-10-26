@@ -376,11 +376,13 @@
   "Switch to markdown source": "Naar Markdown-bron wisselen",
   "Switch to visual editor": "Naar visuele editor wisselen",
   "Opens in a new tab": "Opent in een nieuw tabblad",
-  "Note": "Opmerking",
-  "Tip": "Tip",
-  "Info": "Info",
-  "Important": "Belangrijk",
-  "Warning": "Waarschuwing",
-  "Caution": "Let op",
-  "Danger": "Gevaar"
+  "markdownCallouts": {
+    "caution": "Let op",
+    "danger": "Gevaar",
+    "important": "Belangrijk",
+    "info": "Info",
+    "note": "Opmerking",
+    "tip": "Tip",
+    "warning": "Waarschuwing"
+  }
 }

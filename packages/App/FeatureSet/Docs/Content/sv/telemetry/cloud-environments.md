@@ -89,9 +89,9 @@ Inom en miljö får varje uppgift, instans eller replik som körs en rad under *
 
 Plattformens egen identitet kommer först med avsikt. En sidecar-collector och applikationens SDK ser den båda, och den överlever omstarter. Ett SDK hittar oftast på ett nytt `service.instance.id` för varje process (Node.js-SDK:t gör det som standard), så om det vore nyckeln först skulle en ECS-uppgift delas upp på två rader. `service.instance.id` används när plattformen inte sätter någon egen identitet. Kolumnen **Instansidentitet** i [Plattformar som stöds](#plattformar-som-stöds) anger det attribut som en typisk konfiguration använder på varje plattform.
 
-### Miljöer som du skapar för hand
+### Lägg till en miljö
 
-Det behövs sällan: intaget skapar miljöer åt dig. För att skapa en innan dess telemetri kommer öppnar du **Moln → All Environments** och klickar på **Skapa Molnresurs**. Välj **Molnplattform** och skriv sedan **Moln-konto-ID** och **Molnregion** exakt som din telemetri rapporterar dem. OneUptime bygger nyckeln `platform|account|region` av dessa tre, och intaget matchar en miljö enbart på nyckeln. Miljön får det namn som intaget skulle ge den; vill du visa ett annat namn öppnar du **Fler fält** och skriver ett **Visningsnamn**.
+Intaget skapar miljöer åt dig, så det finns inget att fylla i. Öppna **Moln → All Environments** och klicka på **Lägg till molnmiljö**: välj var din app körs, så visar guiden plattformens OpenTelemetry-inställningar, med din OneUptime-URL och intagningsnyckel ifyllda. Dess sista steg, **Vänta på anslutningen**, visar när miljöns första data har kommit in och länkar till den. Vill du visa ett annat namn väljer du **Redigera detaljer** på kortet **Resursdetaljer** på miljöns sida **Inställningar** och skriver ett **Visningsnamn**.
 
 ## Det som inte är en molnmiljö
 

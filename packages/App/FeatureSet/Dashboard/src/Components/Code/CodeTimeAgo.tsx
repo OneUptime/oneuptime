@@ -4,6 +4,7 @@ import {
   formatFeedTimeAgo,
   getFeedClock,
 } from "Common/UI/Components/Feed/FeedTime";
+import { useSentenceLanguage } from "Common/UI/Utils/SentenceLanguage";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -22,6 +23,8 @@ const CodeTimeAgo: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  // Inside a sentence, the sentence's language.
+  const sentenceLanguage: string | null = useSentenceLanguage();
 
   if (!props.date) {
     return <></>;
@@ -33,7 +36,9 @@ const CodeTimeAgo: FunctionComponent<ComponentProps> = (
     return <></>;
   }
 
-  const clock: FeedClock = getFeedClock({ language: translator.language });
+  const clock: FeedClock = getFeedClock({
+    language: sentenceLanguage ?? translator.language,
+  });
 
   return (
     <time

@@ -2,6 +2,7 @@ import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import MonitorCheckScheduleUtil from "Common/Utils/Monitor/MonitorCheckScheduleUtil";
 import MonitoringIntervalUtil from "Common/Utils/Monitor/MonitoringIntervalUtil";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const MonitoringInterval: Array<DropdownOption> = [
   {
@@ -107,8 +108,10 @@ export const getMonitoringIntervalValue: (
  */
 export const getMonitoringIntervalLabel: (
   interval: string | null | undefined,
+  translator?: Translator | undefined,
 ) => string | undefined = (
   interval: string | null | undefined,
+  translator?: Translator | undefined,
 ): string | undefined => {
   const value: string | undefined = getMonitoringIntervalValue(interval);
 
@@ -122,9 +125,13 @@ export const getMonitoringIntervalLabel: (
     },
   );
 
+  /*
+   * An option's label is translated where it is drawn; a described schedule
+   * is written in the reader's language here.
+   */
   return option
     ? option.label
-    : MonitorCheckScheduleUtil.describeInterval(value);
+    : MonitorCheckScheduleUtil.describeInterval(value, translator);
 };
 
 /*

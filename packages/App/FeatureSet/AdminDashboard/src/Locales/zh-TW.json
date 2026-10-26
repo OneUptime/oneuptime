@@ -901,13 +901,6 @@
   "Test passed, with a warning": "測試通過，但有警告",
   "Test failed": "測試失敗",
   "Opens in a new tab": "在新分頁中開啟",
-  "Note": "注意",
-  "Tip": "提示",
-  "Info": "資訊",
-  "Important": "重要",
-  "Warning": "警告",
-  "Caution": "小心",
-  "Danger": "危險",
   "Such as your company or team name. You can change it later.": "例如您的公司或團隊名稱。之後可以變更。",
   "If you have one, from an offer or a reseller.": "如有，可填寫來自優惠活動或經銷商的代碼。",
   "Plan": "方案",
@@ -1470,5 +1463,14 @@
   "This couldn't be loaded.": "無法載入此內容。",
   "Try again": "再試一次",
   "Dismiss": "關閉",
-  "Loading": "載入中"
+  "Loading": "載入中",
+  "markdownCallouts": {
+    "caution": "小心",
+    "danger": "危險",
+    "important": "重要",
+    "info": "資訊",
+    "note": "注意",
+    "tip": "提示",
+    "warning": "警告"
+  }
 }

@@ -35,7 +35,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import MonitorUptimeSummaryUtil, {
   UptimeWindowPresentation,
 } from "Common/Utils/Monitor/MonitorUptimeSummaryUtil";
-import { formatDurationCompact } from "Common/Utils/Slo/SloDuration";
+import { formatDurationCompactInLanguage } from "Common/Utils/Slo/SloDuration";
 import React, {
   FunctionComponent,
   MutableRefObject,
@@ -302,6 +302,7 @@ const MonitorUptimeHistoryCard: FunctionComponent<ComponentProps> = (
         summary.statuses,
       ),
       isPausedNow: false,
+      translator: translator,
     });
 
   let rightElement: ReactElement | undefined = undefined;
@@ -330,7 +331,10 @@ const MonitorUptimeHistoryCard: FunctionComponent<ComponentProps> = (
         <span className="font-normal text-gray-500">
           {presentation90.isPartial
             ? translator.translateTemplate("measured over {{duration}}", {
-                duration: formatDurationCompact(presentation90.coveredSeconds),
+                duration: formatDurationCompactInLanguage(
+                  presentation90.coveredSeconds,
+                  translator.language,
+                ),
               })
             : translator.translateText("over 90 days")}
         </span>

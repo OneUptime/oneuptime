@@ -1272,9 +1272,9 @@ const MonitorTemplatesView: FunctionComponent<
             <span>
               {translator.translatePlural(
                 {
-                  one: "This will overwrite the monitoring interval and minimum probe agreement on {{count}} monitor created from this template. Criteria, name, description, labels, and custom field values will be left alone. This cannot be undone.",
+                  one: "Copies the template's monitoring interval and minimum probe agreement to {{count}} linked monitor. Everything else is kept. This cannot be undone.",
                   other:
-                    "This will overwrite the monitoring interval and minimum probe agreement on {{count}} monitors created from this template. Criteria, name, description, labels, and custom field values will be left alone. This cannot be undone.",
+                    "Copies the template's monitoring interval and minimum probe agreement to {{count}} linked monitors. Everything else is kept. This cannot be undone.",
                 },
                 linkedMonitorCount ?? 0,
               )}
@@ -1299,9 +1299,9 @@ const MonitorTemplatesView: FunctionComponent<
             <span>
               {translator.translatePlural(
                 {
-                  one: "This will overwrite ONLY the labels on {{count}} monitor created from this template. Criteria, monitoring interval, minimum probe agreement, name, description, and custom field values will be left alone. This cannot be undone.",
+                  one: "Copies the template's labels to {{count}} linked monitor. Everything else is kept. This cannot be undone.",
                   other:
-                    "This will overwrite ONLY the labels on {{count}} monitors created from this template. Criteria, monitoring interval, minimum probe agreement, name, description, and custom field values will be left alone. This cannot be undone.",
+                    "Copies the template's labels to {{count}} linked monitors. Everything else is kept. This cannot be undone.",
                 },
                 linkedMonitorCount ?? 0,
               )}
@@ -1326,9 +1326,9 @@ const MonitorTemplatesView: FunctionComponent<
             <span>
               {translator.translatePlural(
                 {
-                  one: "This will overwrite the {{customFields}} this template defaults ({{fieldNames}}) on {{count}} monitor created from this template, replacing any value entered on that monitor. Custom fields this template leaves blank are not touched, and neither are criteria, monitoring interval, labels, name, or description. This cannot be undone.",
+                  one: "Copies the template's {{customFields}} ({{fieldNames}}) to {{count}} linked monitor, replacing its values. This cannot be undone.",
                   other:
-                    "This will overwrite the {{customFields}} this template defaults ({{fieldNames}}) on {{count}} monitors created from this template, replacing any value entered on those monitors. Custom fields this template leaves blank are not touched, and neither are criteria, monitoring interval, labels, name, or description. This cannot be undone.",
+                    "Copies the template's {{customFields}} ({{fieldNames}}) to {{count}} linked monitors, replacing their values. This cannot be undone.",
                 },
                 linkedMonitorCount ?? 0,
                 {

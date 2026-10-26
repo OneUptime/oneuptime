@@ -89,9 +89,9 @@ Binnen een omgeving krijgt elke draaiende taak, instantie of replica één rij o
 
 De eigen identiteit van het platform komt bewust eerst. Een sidecar-collector en de SDK van de applicatie zien die allebei, en ze overleeft herstarts. Een SDK verzint meestal een nieuwe `service.instance.id` voor elk proces (de Node.js-SDK doet dat standaard), dus als die als eerste sleutel diende, zou één ECS-taak in twee rijen uiteenvallen. `service.instance.id` wordt gebruikt als het platform zelf geen identiteit instelt. De kolom **Instantie-identiteit** in [Ondersteunde platforms](#ondersteunde-platforms) noemt het attribuut dat een gangbare opzet op elk platform gebruikt.
 
-### Omgevingen die je met de hand aanmaakt
+### Een omgeving toevoegen
 
-Dat is zelden nodig: de ingestie maakt omgevingen voor je aan. Om er een aan te maken voordat de telemetrie binnenkomt, open je **Cloud → All Environments** en klik je op **Cloud-resource aanmaken**. Kies het **Cloud-platform** en typ de **Cloud-account-ID** en de **Cloud-regio** precies zoals je telemetrie ze meldt. OneUptime bouwt de sleutel `platform|account|region` uit deze drie, en de ingestie koppelt een omgeving uitsluitend op basis van die sleutel. De omgeving krijgt de naam die de ingestie ook zou geven; wil je een andere naam tonen, open dan **Meer velden** en typ een **Weergavenaam**.
+De ingestie maakt omgevingen voor je aan, dus je hoeft niets in te typen. Open **Cloud → All Environments** en klik op **Cloud-omgeving toevoegen**: kies waar je applicatie draait, en de gids toont de OpenTelemetry-instellingen van dat platform, met je OneUptime-URL en ingestiesleutel al ingevuld. De laatste stap, **Wachten op verbinding**, meldt wanneer de eerste gegevens van de omgeving zijn binnengekomen en linkt ernaar. Wil je een andere naam tonen, kies dan **Details bewerken** op de kaart **Resourcedetails** op de pagina **Instellingen** van de omgeving en typ een **Weergavenaam**.
 
 ## Wat geen cloud-omgeving is
 

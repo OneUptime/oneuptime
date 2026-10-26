@@ -207,6 +207,29 @@ const MODULE_ALIASES: ReadonlyArray<{ prefix: string; directory: string }> = [
 const TRANSLATION_CALL: RegExp =
   /^(t|tx|translate|translationKey|translatableTerm|translateString|translateText|translateTemplate|translateValue|translateTerm)$/;
 
+/*
+ * A call whose first argument is a count-dependent sentence, a
+ * PluralTemplate ({ one, other }): translatePlural(template, count). The
+ * reader sees one form or the other, so both are measured.
+ */
+const PLURAL_CALL: RegExp = /^translatePlural$/;
+
+// The two English sentences of a PluralTemplate.
+const PLURAL_FORMS: ReadonlyArray<string> = ["one", "other"];
+
+// The longest of several texts, or undefined for none.
+function longestText(texts: Array<FoundText>): FoundText | undefined {
+  let longest: FoundText | undefined = undefined;
+
+  for (const text of texts) {
+    if (!longest || text.text.length > longest.text.length) {
+      longest = text;
+    }
+  }
+
+  return longest;
+}
+
 // A nested locale key, read with t("pages.settings.fieldDescription").
 const NESTED_KEY: RegExp = /^[a-zA-Z]\w*(\.\w+)+$/;
 
@@ -1354,6 +1377,11 @@ export class DescriptionScanner {
     }
 
     if (ts.isCallExpression(node)) {
+      // translatePlural({ one, other }, count): either form is drawn.
+      if (PLURAL_CALL.test(this.calleeName(node.expression))) {
+        return this.pluralTexts(file, node.arguments[0], depth + 1);
+      }
+
       if (TRANSLATION_CALL.test(this.calleeName(node.expression))) {
         const keys: Array<FoundText> = this.textsOf(
           file,
@@ -1397,6 +1425,70 @@ export class DescriptionScanner {
     return [];
   }
 
+  // translatePlural(...), by its callee, however it is reached.
+  private isPluralCall(node: ts.Node | undefined): boolean {
+    if (!node) {
+      return false;
+    }
+
+    const unwrapped: ts.Node = this.isWrapper(node) ? this.unwrap(node) : node;
+
+    return (
+      ts.isCallExpression(unwrapped) &&
+      PLURAL_CALL.test(this.calleeName(unwrapped.expression))
+    );
+  }
+
+  /*
+   * Both sentences of a count-dependent template - { one: "...", other:
+   * "..." } written in place, or a constant holding one - which
+   * translatePlural and a TranslatedSentence with a count draw. Empty for
+   * anything that is not a PluralTemplate.
+   */
+  public pluralTexts(
+    file: string,
+    node: ts.Node | undefined,
+    depth: number,
+  ): Array<FoundText> {
+    if (!node || depth > 14) {
+      return [];
+    }
+
+    if (this.isWrapper(node)) {
+      return this.pluralTexts(file, this.unwrap(node), depth + 1);
+    }
+
+    if (ts.isIdentifier(node) || ts.isPropertyAccessExpression(node)) {
+      const resolved: Located | null = this.resolveExpression(
+        file,
+        node,
+        depth + 1,
+      );
+
+      return resolved
+        ? this.pluralTexts(resolved.file, resolved.node, depth + 1)
+        : [];
+    }
+
+    if (!ts.isObjectLiteralExpression(node)) {
+      return [];
+    }
+
+    const properties: Map<string, ts.Node> = this.propertiesOf(node);
+
+    if (
+      !PLURAL_FORMS.every((form: string): boolean => {
+        return properties.has(form);
+      })
+    ) {
+      return [];
+    }
+
+    return PLURAL_FORMS.flatMap((form: string): Array<FoundText> => {
+      return this.textsOf(file, properties.get(form), depth + 1);
+    });
+  }
+
   /*
    * The sentence a JSX description reads as: its text, with the text of
    * links and emphasis in it, and a TranslatedSentence's template. A JSX
@@ -1429,13 +1521,24 @@ export class DescriptionScanner {
               attribute.name.getText() === "template" &&
               attribute.initializer
             ) {
-              const template: FoundText | undefined = this.textsOf(
+              const value: ts.Node | undefined = ts.isJsxExpression(
+                attribute.initializer,
+              )
+                ? attribute.initializer.expression
+                : attribute.initializer;
+              /*
+               * A count-dependent template draws one of its forms: the
+               * longer is the one that has to fit.
+               */
+              const forms: Array<FoundText> = this.pluralTexts(
                 file,
-                ts.isJsxExpression(attribute.initializer)
-                  ? attribute.initializer.expression
-                  : attribute.initializer,
+                value,
                 depth + 1,
-              )[0];
+              );
+              const template: FoundText | undefined =
+                forms.length > 0
+                  ? longestText(forms)
+                  : this.textsOf(file, value, depth + 1)[0];
 
               if (template) {
                 parts.push(template.text);
@@ -1463,11 +1566,18 @@ export class DescriptionScanner {
       }
 
       if (ts.isJsxExpression(child)) {
-        const inner: FoundText | undefined = this.textsOf(
+        const texts: Array<FoundText> = this.textsOf(
           file,
           child.expression,
           depth + 1,
-        )[0];
+        );
+        /*
+         * A count-dependent sentence draws one of its forms: the longer is
+         * the one that has to fit.
+         */
+        const inner: FoundText | undefined = this.isPluralCall(child.expression)
+          ? longestText(texts)
+          : texts[0];
 
         if (inner) {
           parts.push(inner.text);

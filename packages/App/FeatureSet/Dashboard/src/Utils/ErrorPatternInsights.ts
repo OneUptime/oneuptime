@@ -1,4 +1,5 @@
 import OneUptimeDate from "Common/Types/Date";
+import { inEnglishDates } from "Common/Types/DateLanguage";
 import {
   ErrorPatternCoOccurrenceRow,
   ErrorPatternCorrelation,
@@ -974,8 +975,11 @@ export function buildErrorPatternFindings(
 
 // --- The Ask AI hand-off ---
 
+// In English, as the rest of the prompt is.
 function describeWindow(evidence: ErrorPatternEvidence): string {
-  return `${OneUptimeDate.getDateAsFormattedString(new Date(evidence.windowStartMs))} — ${OneUptimeDate.getDateAsFormattedString(new Date(evidence.windowEndMs))}`;
+  return inEnglishDates((): string => {
+    return `${OneUptimeDate.getDateAsFormattedString(new Date(evidence.windowStartMs))} — ${OneUptimeDate.getDateAsFormattedString(new Date(evidence.windowEndMs))}`;
+  });
 }
 
 /** How many of each list the prompt carries. Enough to reason from, short enough to read. */
@@ -1072,7 +1076,9 @@ export function buildErrorPatternPrompt(
     lines.push("", "What else happened in this window:");
     for (const event of events) {
       lines.push(
-        `- ${event.label} at ${OneUptimeDate.getDateAsFormattedString(new Date(event.timeMs))}`,
+        `- ${event.label} at ${inEnglishDates((): string => {
+          return OneUptimeDate.getDateAsFormattedString(new Date(event.timeMs));
+        })}`,
       );
     }
   }

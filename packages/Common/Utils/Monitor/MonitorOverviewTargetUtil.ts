@@ -4,6 +4,7 @@ import MonitorSteps from "../../Types/Monitor/MonitorSteps";
 import MonitorType from "../../Types/Monitor/MonitorType";
 import { DEFAULT_NTP_PORT } from "../../Types/Monitor/NtpMonitor/NtpMonitorUtil";
 import HostAddressUtil from "../HostAddressUtil";
+import { Translator } from "../../UI/Utils/TranslateTemplate";
 
 /*
  * The one-line "what does this monitor watch" under the hero headline:
@@ -69,6 +70,12 @@ export default class MonitorOverviewTargetUtil {
     monitorType: MonitorType;
     monitorSteps: MonitorSteps | undefined;
     serverHostname?: string | undefined;
+    /*
+     * The reader's language, for the words a target is described with when
+     * it has no address ("Browser script"). English without one. An
+     * address, a host or a query goes in as written.
+     */
+    translator?: Translator | undefined;
   }): MonitorOverviewTarget | null {
     try {
       const steps: Array<unknown> = MonitorOverviewTargetUtil.getSteps(
@@ -87,6 +94,7 @@ export default class MonitorOverviewTargetUtil {
           monitorType: data.monitorType,
           step: step,
           serverHostname: data.serverHostname,
+          translator: data.translator,
         });
 
       if (!target || !target.value) {
@@ -151,6 +159,7 @@ export default class MonitorOverviewTargetUtil {
     monitorType: MonitorType;
     step: Partial<MonitorStepType> | undefined;
     serverHostname: string | undefined;
+    translator?: Translator | undefined;
   }): { value: string; isMono: boolean } | null {
     const step: Partial<MonitorStepType> | undefined = data.step;
 
@@ -310,10 +319,20 @@ export default class MonitorOverviewTargetUtil {
         return { value: toText(data.serverHostname), isMono: true };
 
       case MonitorType.SyntheticMonitor:
-        return { value: "Browser script", isMono: false };
+        return {
+          value: data.translator
+            ? data.translator.translateTemplate("Browser script")
+            : "Browser script",
+          isMono: false,
+        };
 
       case MonitorType.CustomJavaScriptCode:
-        return { value: "Custom script", isMono: false };
+        return {
+          value: data.translator
+            ? data.translator.translateTemplate("Custom script")
+            : "Custom script",
+          isMono: false,
+        };
 
       default:
         /*

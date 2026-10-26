@@ -12,6 +12,7 @@ import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import OneUptimeDate from "Common/Types/Date";
+import { inEnglishDates } from "Common/Types/DateLanguage";
 import { SessionReplayGap } from "Common/Types/Rum/SessionReplay";
 import Clipboard from "Common/UI/Utils/Clipboard";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -339,12 +340,15 @@ function describeAbsence(
 ): AbsenceCopy {
   switch (absence.kind) {
     case "expired": {
+      // In English, as the sentence it goes into is.
       const expiredOn: string | null =
         absence.expiresAtUnixMs !== null
-          ? OneUptimeDate.getDateAsLocalFormattedString(
-              new Date(absence.expiresAtUnixMs),
-              true,
-            )
+          ? inEnglishDates((): string => {
+              return OneUptimeDate.getDateAsLocalFormattedString(
+                new Date(absence.expiresAtUnixMs as number),
+                true,
+              );
+            })
           : null;
       const retention: string =
         absence.retentionDays !== null

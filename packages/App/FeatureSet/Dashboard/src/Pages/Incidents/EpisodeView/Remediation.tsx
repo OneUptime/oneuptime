@@ -2,7 +2,6 @@ import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
-import MarkdownUtil from "Common/UI/Utils/Markdown";
 import React, { FunctionComponent, ReactElement } from "react";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -35,9 +34,7 @@ const EpisodeRemediation: FunctionComponent<
           fieldType: FormFieldSchemaType.Markdown,
           required: true,
           placeholder: "Remediation Notes",
-          description: MarkdownUtil.getMarkdownCheatsheet(
-            "Add remediation notes for this episode here",
-          ),
+          description: "Add remediation notes for this episode here.",
         },
       ]}
       modelDetailProps={{

@@ -48,6 +48,8 @@ Preencha **Nome do app (service.name)** com o `service.name` que o seu aplicativ
 A aplicação recebe o nome do seu app, assim como uma descoberta. Para mostrar outro nome, abra **Mais campos** e informe um **Nome de exibição**; a descrição e os rótulos também ficam ali. Depois salve o formulário.
 :::
 
+Em seguida, o guia de configuração da aplicação se abre sozinho, com o nome do app como `service.name` do trecho. A última etapa dele, **Aguardar a conexão**, avisa quando chegam os primeiros dados.
+
 Se o projeto já tiver uma aplicação com esse `service.name`, descoberta, adicionada antes ou arquivada, o formulário avisa em vez de criar uma segunda.
 
 ## Status da conexão

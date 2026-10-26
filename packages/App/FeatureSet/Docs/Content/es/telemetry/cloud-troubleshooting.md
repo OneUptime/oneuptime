@@ -112,7 +112,7 @@ Abra la **Vista general** de cada entorno: su **Clave de entorno** muestra qué 
 
 ## Un entorno creado a mano nunca se asocia
 
-La ingesta asocia un entorno solo por su clave, y la clave debe ser exactamente `platform|account|region`, como `aws_ecs|123456789012|us-east-1`: el mismo valor de plataforma, ID de cuenta y región que lleva la telemetría. El formulario de creación (**Crear Recurso en la nube** en **Nube → Todos los entornos**) construye la clave a partir de sus campos **Plataforma en la nube**, **ID de cuenta en la nube** y **Región en la nube**, así que esos tres deben coincidir con la telemetría carácter por carácter. Si no coinciden, la ingesta crea un segundo entorno con la clave que calculó, y el suyo se queda vacío. Archive el entorno creado a mano y deje que la ingesta cree el correcto, o vuelva a crearlo con los valores corregidos.
+La ingesta asocia un entorno solo por su clave, y la clave debe ser exactamente `platform|account|region`, como `aws_ecs|123456789012|us-east-1`: el mismo valor de plataforma, ID de cuenta y región que lleva la telemetría. Un entorno creado mediante la API, o a mano antes de que **Añadir entorno en la nube** sustituyera el formulario del panel, solo se asocia cuando sus campos **Plataforma en la nube**, **ID de cuenta en la nube** y **Región en la nube** son iguales a los de la telemetría carácter por carácter. Si no coinciden, la ingesta crea un segundo entorno con la clave que calculó, y el suyo se queda vacío. Archive el entorno creado a mano y deje que la ingesta cree el correcto.
 
 ## Sigue sin resolverse
 

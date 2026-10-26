@@ -14,6 +14,7 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import OneUptimeDate from "Common/Types/Date";
+import { inEnglishDates } from "Common/Types/DateLanguage";
 import React, { FunctionComponent, ReactElement } from "react";
 import useAsyncEffect from "use-async-effect";
 
@@ -294,9 +295,12 @@ const BackupCodes: FunctionComponent<ComponentProps> = (
       return;
     }
 
+    // The file is English throughout, its date too.
     const content: string = [
       "OneUptime two-factor authentication backup codes",
-      `Generated: ${OneUptimeDate.getCurrentDateAsFormattedString()}`,
+      `Generated: ${inEnglishDates((): string => {
+        return OneUptimeDate.getCurrentDateAsFormattedString();
+      })}`,
       "",
       "Each code can be used once after entering your password.",
       "Keep this file somewhere safe, separate from your authenticator or security key.",
@@ -410,7 +414,17 @@ const BackupCodes: FunctionComponent<ComponentProps> = (
             Store your codes in a password manager or another safe place.
           </span>
           {status.generatedAt && (
-            <span>{`Generated ${OneUptimeDate.getDateAsLocalFormattedString(status.generatedAt)}`}</span>
+            <span>
+              {/*
+               * In English, as every other line of this card still is: one
+               * German line in it would read as a mistake.
+               */}
+              {inEnglishDates((): string => {
+                return `Generated ${OneUptimeDate.getDateAsLocalFormattedString(
+                  status.generatedAt as Date,
+                )}`;
+              })}
+            </span>
           )}
         </div>
       </div>

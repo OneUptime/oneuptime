@@ -1,4 +1,5 @@
 import OneUptimeDate from "Common/Types/Date";
+import { inEnglishDates } from "Common/Types/DateLanguage";
 import { JSONObject } from "Common/Types/JSON";
 import { LogVolumeSummary, TopErrorPatternRow } from "./LogsInsights";
 import {
@@ -238,8 +239,11 @@ export function buildInvestigationFindings(
   return findings;
 }
 
+// In English, as the rest of the prompt is.
 function describeWindow(evidence: InvestigationEvidence): string {
-  return `${OneUptimeDate.getDateAsFormattedString(new Date(evidence.windowStartMs))} — ${OneUptimeDate.getDateAsFormattedString(new Date(evidence.windowEndMs))}`;
+  return inEnglishDates((): string => {
+    return `${OneUptimeDate.getDateAsFormattedString(new Date(evidence.windowStartMs))} — ${OneUptimeDate.getDateAsFormattedString(new Date(evidence.windowEndMs))}`;
+  });
 }
 
 function describeScope(evidence: InvestigationEvidence): string {

@@ -12,6 +12,7 @@ import HTTPMethod from "Common/Types/API/HTTPMethod";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
 import OneUptimeDate from "Common/Types/Date";
+import { inEnglishDates } from "Common/Types/DateLanguage";
 import { JSONObject } from "Common/Types/JSON";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 
@@ -64,8 +65,11 @@ const toDate: (value: unknown) => Date | null = (
   return isNaN(date.getTime()) ? null : date;
 };
 
+// In English, as the sentences around it are.
 const formatDate: (date: Date) => string = (date: Date): string => {
-  return OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(date, true);
+  return inEnglishDates((): string => {
+    return OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(date, true);
+  });
 };
 
 export interface ComponentProps {

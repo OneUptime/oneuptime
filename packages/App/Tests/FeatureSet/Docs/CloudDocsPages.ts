@@ -186,11 +186,12 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, Array<string>>> = {
   ],
 };
 
-// A table's create button, drawn as translateNamedAction draws it.
-export const CREATE_BUTTONS: Readonly<Record<string, Array<string>>> = {
-  [CLOUD_ENVIRONMENTS]: ["Create Cloud Resource"],
-  [CLOUD_TROUBLESHOOTING]: ["Create Cloud Resource"],
-};
+/*
+ * A table's create button, drawn as translateNamedAction draws it. The
+ * Cloud pages name none: All Environments adds an environment with its
+ * Add Cloud Environment guide, a label of its own.
+ */
+export const CREATE_BUTTONS: Readonly<Record<string, Array<string>>> = {};
 
 /*
  * The pages' own bold leads: neither Dashboard labels nor the consoles'

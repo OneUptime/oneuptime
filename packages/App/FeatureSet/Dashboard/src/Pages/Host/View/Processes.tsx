@@ -494,18 +494,36 @@ const HostProcesses: FunctionComponent<
   ];
 
   const description: ReactElement = (() => {
+    // One paragraph, every sentence in the reader's language.
     const parts: Array<string> = [
-      `Latest snapshot of processes on this host (last ${PROCESS_LOOKBACK_MINUTES} minutes).`,
+      translator.translatePlural(
+        {
+          one: "Latest snapshot of processes on this host (last {{count}} minute).",
+          other:
+            "Latest snapshot of processes on this host (last {{count}} minutes).",
+        },
+        PROCESS_LOOKBACK_MINUTES,
+      ),
     ];
     if (latestSampleAt) {
-      parts.push(`Latest sample ${OneUptimeDate.fromNow(latestSampleAt)}.`);
+      parts.push(
+        translator.translateTemplate("Latest sample {{time}}.", {
+          time: OneUptimeDate.fromNow(latestSampleAt),
+        }),
+      );
     }
     if (refreshedAt) {
-      parts.push(`Refreshed ${OneUptimeDate.fromNow(refreshedAt)}.`);
+      parts.push(
+        translator.translateTemplate("Refreshed {{time}}.", {
+          time: OneUptimeDate.fromNow(refreshedAt),
+        }),
+      );
     }
     if (isSnapshotTruncated) {
       parts.push(
-        `This host reports more processes than this page can load at once, so some may be missing or show no CPU or memory reading — narrow the collector's "process" scraper with include or exclude filters to see a complete list.`,
+        translator.translateText(
+          `This host reports more processes than this page can load at once, so some may be missing or show no CPU or memory reading — narrow the collector's "process" scraper with include or exclude filters to see a complete list.`,
+        ) || "",
       );
     }
     return <span>{parts.join(" ")}</span>;

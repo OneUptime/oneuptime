@@ -1,7 +1,6 @@
 import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
-import MessageQueue from "Common/Models/DatabaseModels/MessageQueue";
 import React, {
   Fragment,
   FunctionComponent,
@@ -9,7 +8,6 @@ import React, {
   useEffect,
   useState,
 } from "react";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
@@ -19,10 +17,11 @@ import {
   MessageQueueDocumentationTarget,
   getMessageQueueDocumentationHeading,
 } from "../Utils/DocumentationMarkdown";
+import { MESSAGE_QUEUE_NOT_FOUND_MESSAGE } from "../Utils/MessageQueuePresentation";
 import {
-  MESSAGE_QUEUE_NOT_FOUND_MESSAGE,
-  isMessageQueueFound,
-} from "../Utils/MessageQueuePresentation";
+  MessageQueueDocumentation as QueueDocumentation,
+  fetchMessageQueueDocumentation,
+} from "../Utils/MessageQueueDocumentationTarget";
 
 /*
  * The setup guide prefilled for THIS queue: the guide of its specific
@@ -46,32 +45,16 @@ const MessageQueueDocumentation: FunctionComponent<
     setIsLoading(true);
     setError("");
     try {
-      const item: MessageQueue | null = await ModelAPI.getItem<MessageQueue>({
-        modelType: MessageQueue,
-        id: modelId,
-        select: {
-          name: true,
-          queueIdentifier: true,
-          messagingSystem: true,
-          destinationName: true,
-          brokerScope: true,
-          brokerAddress: true,
-        },
-      });
+      const found: QueueDocumentation | null =
+        await fetchMessageQueueDocumentation(modelId);
 
-      // A deleted or unknown id comes back as an empty model, not null.
-      if (!item || !isMessageQueueFound(item)) {
+      if (!found) {
         setError(MESSAGE_QUEUE_NOT_FOUND_MESSAGE);
         setIsLoading(false);
         return;
       }
 
-      setTarget({
-        system: item.messagingSystem,
-        destination: item.destinationName || item.name,
-        brokerScope: item.brokerScope,
-        brokerAddress: item.brokerAddress,
-      });
+      setTarget(found.target);
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     }

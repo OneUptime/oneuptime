@@ -780,47 +780,20 @@ export const LABELS_FORM_SHAPES: Array<FormShape> = [
   ),
 
   /*
-   * Create forms of a resource matched by an identifier: the identifier
+   * The create form of a resource matched by an identifier: the identifier
    * open, and the display name (which follows it), the description and the
-   * labels folded (DiscoveredResourceCreateFormsGuard). Hosts have none: a
-   * host is added by the Add Host command, labels and all.
+   * labels folded (DiscoveredResourceCreateFormsGuard). The others have
+   * none: a host, a Kubernetes cluster, a Docker or Podman host, a
+   * serverless function and a cloud environment are added by the commands
+   * of their Add guide, and registered when their first data arrives
+   * (Components/ResourceOnboarding), labels from their label rules.
    */
-  ...[
-    ["Docker/Hosts.tsx", "ModelTable: Docker Hosts", "hostIdentifier"],
-    ["Podman/Hosts.tsx", "ModelTable: Podman Hosts", "hostIdentifier"],
-    [
-      "Kubernetes/Clusters.tsx",
-      "ModelTable: Kubernetes Clusters",
-      "clusterIdentifier",
-    ],
-    [
-      "Rum/RumApplications.tsx",
-      "ModelTable: RUM Applications",
-      "appIdentifier",
-    ],
-    [
-      "Serverless/ServerlessFunctions.tsx",
-      "ModelTable: Serverless Functions",
-      "functionIdentifier",
-    ],
-  ].map(([file, label, identifier]: Array<string>): FormShape => {
-    return onePage(
-      `${DASHBOARD}/Pages/${file}`,
-      label!,
-      [identifier!],
-      ["name", "description", "labels"],
-    );
-  }),
-  // The same for a cloud environment, matched on its platform, account and region.
-  {
-    ...onePage(
-      `${DASHBOARD}/Pages/Cloud/CloudResources.tsx`,
-      "ModelTable: Cloud Environments",
-      ["cloudPlatform", "cloudAccountId", "cloudRegion"],
-      ["name", "description", "labels"],
-    ),
-    longOnePageRows: 4,
-  },
+  onePage(
+    `${DASHBOARD}/Pages/Rum/RumApplications.tsx`,
+    "ModelTable: RUM Applications",
+    ["appIdentifier"],
+    ["name", "description", "labels"],
+  ),
   /*
    * Name and "Who takes turns?" (OnCallScheduleCreateForm.ts); how long each
    * turn lasts and the timezone fold with the description and the labels.
@@ -864,21 +837,6 @@ export const LABELS_FORM_SHAPES: Array<FormShape> = [
       "labels",
     ]);
   }),
-  // One-page create forms that showed Labels as a plain field.
-  ...[
-    ["Ceph/Clusters.tsx", "ModelTable: Ceph Clusters"],
-    ["DockerSwarm/Clusters.tsx", "ModelTable: Docker Swarm Clusters"],
-    ["IoT/Fleets.tsx", "ModelTable: IoT Fleets"],
-    ["Proxmox/Clusters.tsx", "ModelTable: Proxmox Clusters"],
-  ].map(([file, label]: Array<string>): FormShape => {
-    return onePage(
-      `${DASHBOARD}/Pages/${file}`,
-      label!,
-      NAME_DESCRIPTION,
-      LABELS_ONLY,
-    );
-  }),
-
   /*
    * Create Service asks for the service.name its apps send, with the
    * description folded beside the labels (simplicity-audit-telemetry): most
