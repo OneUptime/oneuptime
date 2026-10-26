@@ -174,7 +174,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 :::
 
 > [!TIP]
-> De samme trin findes i dashboardet med dit token udfyldt: under **Cloud → All Environments**, indtil dit første miljø ankommer, og på hvert miljøs fane **Dokumentation**.
+> De samme trin findes i dashboardet med dit token udfyldt: under **Cloud → All Environments**, klik på **Tilføj cloud-miljø**. Hvert miljøs fane **Dokumentation** har dem også.
 
 ## Hvad du får
 

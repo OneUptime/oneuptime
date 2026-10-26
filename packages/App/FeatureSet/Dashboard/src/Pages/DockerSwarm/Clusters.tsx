@@ -30,14 +30,14 @@ import useFirstRecordWatch, {
   FirstRecordWatch,
 } from "../../Components/Infrastructure/UseFirstRecordWatch";
 import {
-  FIRST_RUN_GUIDE_DESCRIPTION,
   getFirstRunEmptyState,
   getFirstRunTopContent,
 } from "../../Components/Infrastructure/FirstRecordWatch";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import AddResourceGuide from "../../Components/ResourceOnboarding/AddResourceGuide";
 import AddResourceModal from "../../Components/ResourceOnboarding/AddResourceModal";
 import DOCKER_SWARM_CLUSTER_ONBOARDING from "../../Components/DockerSwarm/DockerSwarmClusterOnboarding";
+import ResourceShowcaseCard from "../../Components/ResourceShowcase/ResourceShowcaseCard";
+import DOCKER_SWARM_CLUSTER_SHOWCASE from "../../Components/DockerSwarm/DockerSwarmClusterShowcase";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
@@ -373,16 +373,13 @@ const DockerSwarmClusters: FunctionComponent<
         }}
       />
       {firstRecordWatch.count === 0 && (
-        <AddResourceGuide
-          onboarding={DOCKER_SWARM_CLUSTER_ONBOARDING}
-          title={DOCKER_SWARM_CLUSTER_ONBOARDING.firstRunTitle}
-          description={FIRST_RUN_GUIDE_DESCRIPTION}
-          onConnected={() => {
-            // The guide gives way, and the table reads the new cluster.
-            firstRecordWatch.onRecordCreated();
-            setConnectedCount((count: number): number => {
-              return count + 1;
-            });
+        <ResourceShowcaseCard
+          showcase={DOCKER_SWARM_CLUSTER_SHOWCASE}
+          addButton={{
+            title: DOCKER_SWARM_CLUSTER_ONBOARDING.addTitle,
+            onClick: () => {
+              setIsAddClusterOpen(true);
+            },
           }}
         />
       )}
@@ -393,6 +390,8 @@ const DockerSwarmClusters: FunctionComponent<
             setIsAddClusterOpen(false);
           }}
           onConnected={() => {
+            // The showcase gives way, and the table reads the new cluster.
+            firstRecordWatch.onRecordCreated();
             setConnectedCount((count: number): number => {
               return count + 1;
             });

@@ -660,7 +660,7 @@ describe("the Databases list", () => {
     expect(source).toContain("the server");
   });
 
-  test("the summary strip sits above the table and the guide below it, count first", () => {
+  test("the summary strip sits above the table and the showcase below it, count first", () => {
     expect(code.indexOf("<DatabaseServerSummaryStrip")).toBeGreaterThan(-1);
     expect(code.indexOf("<DatabaseServerSummaryStrip")).toBeLessThan(
       code.indexOf("<ModelTable<DatabaseServer>"),
@@ -668,7 +668,7 @@ describe("the Databases list", () => {
     // The count is the shared first-record watch's (useFirstRecordWatch).
     expect(
       code.indexOf(
-        "{firstRecordWatch.count === 0 && ( <DatabaseDocumentationCard",
+        "{firstRecordWatch.count === 0 && ( <ResourceShowcaseCard showcase={DATABASE_SHOWCASE}",
       ),
     ).toBeGreaterThan(code.indexOf("<ModelTable<DatabaseServer>"));
   });

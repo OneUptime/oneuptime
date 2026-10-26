@@ -10,7 +10,10 @@ import RumApplicationOwnerTeam from "Common/Models/DatabaseModels/RumApplication
 import RumApplicationOwnerUser from "Common/Models/DatabaseModels/RumApplicationOwnerUser";
 import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
 import useResourceOwners from "../../Components/ResourceOwners/useResourceOwners";
-import { getFirstRunTopContent } from "../../Components/Infrastructure/FirstRecordWatch";
+import {
+  getFirstRunEmptyState,
+  getFirstRunTopContent,
+} from "../../Components/Infrastructure/FirstRecordWatch";
 import React, {
   Fragment,
   FunctionComponent,
@@ -40,7 +43,11 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import RumDocumentationCard from "../../Components/Rum/RumDocumentationCard";
+import ResourceShowcaseCard from "../../Components/ResourceShowcase/ResourceShowcaseCard";
+import useShowcaseCreateForm, {
+  ShowcaseCreateForm,
+} from "../../Components/ResourceShowcase/UseShowcaseCreateForm";
+import RUM_APPLICATION_SHOWCASE from "../../Components/Rum/RumApplicationShowcase";
 import RumApplicationAddedModal from "../../Components/Rum/RumApplicationAddedModal";
 
 const RumApplications: FunctionComponent<
@@ -56,6 +63,10 @@ const RumApplications: FunctionComponent<
     id: ObjectID;
     appIdentifier: string;
   } | null>(null);
+  // The showcase's Create RUM Application: the table's own form.
+  const showcaseCreateForm: ShowcaseCreateForm = useShowcaseCreateForm({
+    modelType: RumApplication,
+  });
 
   const { archiveBulkActions, archiveRowActions } =
     useBulkArchiveActions<RumApplication>({
@@ -140,7 +151,11 @@ const RumApplications: FunctionComponent<
           topContent: filterBar,
           count: count,
         })}
-        emptyState={facetEmptyState}
+        emptyState={getFirstRunEmptyState({
+          emptyState: facetEmptyState,
+          count: count,
+        })}
+        showCreateForm={showcaseCreateForm.showCreateForm}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
         query={mergeFiltersIntoQuery({
@@ -377,9 +392,9 @@ const RumApplications: FunctionComponent<
         }}
       />
       {count === 0 && (
-        <RumDocumentationCard
-          title="Getting Started with Real User Monitoring"
-          description="Pick what you are instrumenting and follow the steps. Your app appears in the list above once its first telemetry arrives."
+        <ResourceShowcaseCard
+          showcase={RUM_APPLICATION_SHOWCASE}
+          addButton={showcaseCreateForm.addButton}
         />
       )}
       {addedApplication && (

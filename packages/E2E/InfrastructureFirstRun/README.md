@@ -1,8 +1,9 @@
 # Infrastructure first-run fixture
 
 An offline harness for the real first run of the infrastructure lists: a project with nothing on
-it opens a list, sees the empty table and the setup guide under it, and the list fills in on its
-own when the first record arrives (`Components/Infrastructure/UseFirstRecordWatch`).
+it opens a list, sees the empty table and under it what the product gives (its showcase, with the
+list's Add button; Cloud resources keeps its Connect tiles and folded guide), and the list fills in
+on its own when the first record arrives (`Components/Infrastructure/UseFirstRecordWatch`).
 
 | Page            | Route (from `RouteMap`)                                             | Production components                                     |
 | --------------- | ------------------------------------------------------------------- | --------------------------------------------------------- |

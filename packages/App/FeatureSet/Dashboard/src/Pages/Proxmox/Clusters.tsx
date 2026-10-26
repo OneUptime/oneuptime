@@ -30,14 +30,14 @@ import useFirstRecordWatch, {
   FirstRecordWatch,
 } from "../../Components/Infrastructure/UseFirstRecordWatch";
 import {
-  FIRST_RUN_GUIDE_DESCRIPTION,
   getFirstRunEmptyState,
   getFirstRunTopContent,
 } from "../../Components/Infrastructure/FirstRecordWatch";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import AddResourceGuide from "../../Components/ResourceOnboarding/AddResourceGuide";
 import AddResourceModal from "../../Components/ResourceOnboarding/AddResourceModal";
 import PROXMOX_CLUSTER_ONBOARDING from "../../Components/Proxmox/ProxmoxClusterOnboarding";
+import ResourceShowcaseCard from "../../Components/ResourceShowcase/ResourceShowcaseCard";
+import PROXMOX_CLUSTER_SHOWCASE from "../../Components/Proxmox/ProxmoxClusterShowcase";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
@@ -304,16 +304,13 @@ const ProxmoxClusters: FunctionComponent<
         }}
       />
       {firstRecordWatch.count === 0 && (
-        <AddResourceGuide
-          onboarding={PROXMOX_CLUSTER_ONBOARDING}
-          title={PROXMOX_CLUSTER_ONBOARDING.firstRunTitle}
-          description={FIRST_RUN_GUIDE_DESCRIPTION}
-          onConnected={() => {
-            // The guide gives way, and the table reads the new cluster.
-            firstRecordWatch.onRecordCreated();
-            setConnectedCount((count: number): number => {
-              return count + 1;
-            });
+        <ResourceShowcaseCard
+          showcase={PROXMOX_CLUSTER_SHOWCASE}
+          addButton={{
+            title: PROXMOX_CLUSTER_ONBOARDING.addTitle,
+            onClick: () => {
+              setIsAddClusterOpen(true);
+            },
           }}
         />
       )}
@@ -324,6 +321,8 @@ const ProxmoxClusters: FunctionComponent<
             setIsAddClusterOpen(false);
           }}
           onConnected={() => {
+            // The showcase gives way, and the table reads the new cluster.
+            firstRecordWatch.onRecordCreated();
             setConnectedCount((count: number): number => {
               return count + 1;
             });

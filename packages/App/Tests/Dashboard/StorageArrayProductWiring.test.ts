@@ -801,7 +801,7 @@ describe("the install guide is wired to the shipped agent", () => {
     expect(page).toContain("select:{name:true,storageSystem:true,}");
   });
 
-  test("the list page shows the guide only while the project has no array", () => {
+  test("the list page opens the guide from Add, and shows its showcase while the project has no array", () => {
     const list: string = squash(
       readSource("Pages", "StorageArray", "StorageArrays.tsx"),
     );
@@ -811,17 +811,24 @@ describe("the install guide is wired to the shipped agent", () => {
     // Counted by the shared first-record watch (useFirstRecordWatch).
     expect(list).toContain("{firstRecordWatch.count === 0 && (");
     /*
-     * The guide is the array's Add guide, which draws this install guide
-     * with the name the field above its steps asks for.
+     * Under the empty table: what monitoring an array gives, with the Add
+     * button - not every step of the guide.
      */
     expect(
-      list.indexOf("<AddResourceGuide onboarding={STORAGE_ARRAY_ONBOARDING}"),
+      list.indexOf(
+        "<ResourceShowcaseCard showcase={STORAGE_ARRAY_SHOWCASE} addButton={{ title: STORAGE_ARRAY_ONBOARDING.addTitle,",
+      ),
     ).toBeGreaterThan(list.indexOf("{firstRecordWatch.count === 0 && ("));
+    expect(list).not.toContain("<AddResourceGuide");
+    /*
+     * The array's Add guide draws this install guide with the name the
+     * field above its steps asks for.
+     */
     expect(onboarding).toContain("<StorageArrayDocumentationCard");
     expect(onboarding).toContain("arrayName={props.name}");
     /*
      * An array registers itself when the agent first reports, so the list
-     * has no create form: Add Storage Array opens the same guide in a dialog.
+     * has no create form: Add Storage Array opens the guide in a dialog.
      */
     expect(list).toContain("isCreateable={false}");
     expect(list).toContain("formFields={[]}");
@@ -829,7 +836,7 @@ describe("the install guide is wired to the shipped agent", () => {
     expect(list).toContain(
       "<AddResourceModal onboarding={STORAGE_ARRAY_ONBOARDING}",
     );
-    // One the guide sees connect puts the guide away at once.
+    // One the dialog sees connect puts the showcase away at once.
     expect(list).toContain("firstRecordWatch.onRecordCreated();");
   });
 });

@@ -30,16 +30,21 @@ import { PROJECT_ID, goTo } from "./SideMenuHarness";
  * new project meets it.
  *
  * The empty table says what the list is ("No Docker hosts yet" and what
- * it is for), and the setup guide under it says only what to do. Create
- * stays in the card header; the empty table repeats it only where adding
- * one by hand is itself a way to connect (a vCenter through a probe, a
- * database or queue endpoint). Agents report on their own, so the page
- * keeps watching while the list is empty: when the first one arrives the
- * table reads its rows again and the guide is put away - no reload. Six of
- * these lists used to hide the guide without refreshing the table (an
- * empty table, and no guide), and the other nine never looked again.
- * Until the first one arrives the filter chips stay away (there is nothing
- * to filter), and a first count that failed offers Refresh.
+ * it is for), and the showcase under it what the product gives once one
+ * is connected (Components/ResourceShowcase) - not every step of the setup
+ * guide, which the list's Add opens. Create stays in the card header, and
+ * the showcase has it too, opening what the header's opens: the Add dialog,
+ * or the table's create form where adding one by hand is a way to connect
+ * (a vCenter through a probe, a database or queue endpoint). The empty
+ * table never repeats it. Cloud Resources, which nothing adds by hand,
+ * keeps its Connect tiles and its folded guide. Agents report on their
+ * own, so the page keeps watching while the list is empty: when the first
+ * one arrives the table reads its rows again and the showcase is put away
+ * - no reload. Six of these lists used to hide their first-run card
+ * without refreshing the table (an empty table, and no card), and the
+ * other nine never looked again. Until the first one arrives the filter
+ * chips stay away (there is nothing to filter), and a first count that
+ * failed offers Refresh.
  *
  * Every real page is rendered with the real ModelTable over a project
  * behind ModelAPI; useFirstRecordWatch and its rules are then tested on
@@ -158,6 +163,26 @@ import ServerlessFunctionsPage from "../../../../App/FeatureSet/Dashboard/src/Pa
 import CloudEnvironmentsPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Cloud/CloudResources";
 import CloudMonitoredResourcesPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Cloud/MonitoredResources";
 
+import {
+  RESOURCE_SHOWCASE_ADD_BUTTON_TEST_ID,
+  RESOURCE_SHOWCASE_TEST_ID,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceShowcase/ResourceShowcaseCard";
+import { ResourceShowcase } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceShowcase/ResourceShowcase";
+import HOST_SHOWCASE from "../../../../App/FeatureSet/Dashboard/src/Components/Host/HostShowcase";
+import KUBERNETES_CLUSTER_SHOWCASE from "../../../../App/FeatureSet/Dashboard/src/Components/Kubernetes/KubernetesClusterShowcase";
+import DOCKER_HOST_SHOWCASE from "../../../../App/FeatureSet/Dashboard/src/Components/Docker/DockerHostShowcase";
+import PODMAN_HOST_SHOWCASE from "../../../../App/FeatureSet/Dashboard/src/Components/Podman/PodmanHostShowcase";
+import DOCKER_SWARM_CLUSTER_SHOWCASE from "../../../../App/FeatureSet/Dashboard/src/Components/DockerSwarm/DockerSwarmClusterShowcase";
+import PROXMOX_CLUSTER_SHOWCASE from "../../../../App/FeatureSet/Dashboard/src/Components/Proxmox/ProxmoxClusterShowcase";
+import VMWARE_VCENTER_SHOWCASE from "../../../../App/FeatureSet/Dashboard/src/Components/VMware/VMwareVCenterShowcase";
+import CEPH_CLUSTER_SHOWCASE from "../../../../App/FeatureSet/Dashboard/src/Components/Ceph/CephClusterShowcase";
+import STORAGE_ARRAY_SHOWCASE from "../../../../App/FeatureSet/Dashboard/src/Components/StorageArray/StorageArrayShowcase";
+import IOT_FLEET_SHOWCASE from "../../../../App/FeatureSet/Dashboard/src/Components/IoT/IoTFleetShowcase";
+import DATABASE_SHOWCASE from "../../../../App/FeatureSet/Dashboard/src/Components/DatabaseServer/DatabaseShowcase";
+import MESSAGE_QUEUE_SHOWCASE from "../../../../App/FeatureSet/Dashboard/src/Components/MessageQueue/MessageQueueShowcase";
+import SERVERLESS_FUNCTION_SHOWCASE from "../../../../App/FeatureSet/Dashboard/src/Components/Serverless/ServerlessFunctionShowcase";
+import CLOUD_ENVIRONMENT_SHOWCASE from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CloudEnvironmentShowcase";
+
 type PageComponent = (props: PageComponentProps) => ReactElement | null;
 
 const PAGE_PROPS: PageComponentProps = {
@@ -173,15 +198,20 @@ interface FirstRunCase {
   name: string;
   page: PageComponent;
   modelType: { new (): BaseModel };
-  // What the page counts to decide whether the guide shows.
+  // What the page counts to decide whether its first-run card shows.
   watchQuery: JSONObject;
-  guideTitle: string;
   /*
-   * Adding one by hand is a way to connect here, so the empty table keeps
-   * its Create button. Elsewhere creating a row by hand connects nothing:
-   * the guide is the way in, and Create stays in the card header only.
+   * What an empty list shows under its table: its showcase, or - Cloud
+   * Resources - a guide of this title.
    */
-  isAddedByHand: boolean;
+  showcase?: ResourceShowcase | undefined;
+  guideTitle?: string | undefined;
+  /*
+   * Adding one by hand is a way to connect here: the showcase's button
+   * opens the table's create form. Elsewhere creating a row by hand
+   * connects nothing, and the button opens the Add dialog.
+   */
+  isAddedByForm: boolean;
   // Cloud Resources are ingest's rows only: no Create anywhere.
   isCreateable: boolean;
   // It draws filter chips over its table (once it has a record).
@@ -192,115 +222,95 @@ const agentList: (
   name: string,
   page: unknown,
   modelType: { new (): BaseModel },
-  guideTitle: string,
+  showcase: ResourceShowcase | undefined,
 ) => FirstRunCase = (
   name: string,
   page: unknown,
   modelType: { new (): BaseModel },
-  guideTitle: string,
+  showcase: ResourceShowcase | undefined,
 ): FirstRunCase => {
   return {
     name,
     page: page as PageComponent,
     modelType,
     watchQuery: {},
-    guideTitle,
-    isAddedByHand: false,
+    showcase,
+    isAddedByForm: false,
     isCreateable: true,
     hasChips: true,
   };
 };
 
 const FIRST_RUN_CASES: Array<FirstRunCase> = [
-  // #5137: Hosts' first run is Add Host's one command (AddHostGuide).
-  agentList("Hosts", HostsPage, Host, "Add your first host"),
+  // #5137: Hosts are added by Add Host's one command (AddHostGuide).
+  agentList("Hosts", HostsPage, Host, HOST_SHOWCASE),
   agentList(
     "Kubernetes Clusters",
     KubernetesClustersPage,
     KubernetesCluster,
-    "Getting Started with Kubernetes Monitoring",
+    KUBERNETES_CLUSTER_SHOWCASE,
   ),
-  agentList(
-    "Docker Hosts",
-    DockerHostsPage,
-    DockerHost,
-    "Getting Started with Docker Monitoring",
-  ),
-  agentList(
-    "Podman Hosts",
-    PodmanHostsPage,
-    PodmanHost,
-    "Getting Started with Podman Monitoring",
-  ),
+  agentList("Docker Hosts", DockerHostsPage, DockerHost, DOCKER_HOST_SHOWCASE),
+  agentList("Podman Hosts", PodmanHostsPage, PodmanHost, PODMAN_HOST_SHOWCASE),
   agentList(
     "Docker Swarm Clusters",
     DockerSwarmClustersPage,
     DockerSwarmCluster,
-    "Getting Started with Docker Swarm Monitoring",
+    DOCKER_SWARM_CLUSTER_SHOWCASE,
   ),
   agentList(
     "Proxmox Clusters",
     ProxmoxClustersPage,
     ProxmoxCluster,
-    "Getting Started with Proxmox Monitoring",
+    PROXMOX_CLUSTER_SHOWCASE,
   ),
   {
     ...agentList(
       "vCenters",
       VCentersPage,
       VMwareVCenter,
-      "Getting Started with VMware Monitoring",
+      VMWARE_VCENTER_SHOWCASE,
     ),
-    isAddedByHand: true,
+    isAddedByForm: true,
   },
   agentList(
     "Ceph Clusters",
     CephClustersPage,
     CephCluster,
-    "Getting Started with Ceph Monitoring",
+    CEPH_CLUSTER_SHOWCASE,
   ),
   agentList(
     "Storage Arrays",
     StorageArraysPage,
     StorageArray,
-    "Getting Started with Storage Array Monitoring",
+    STORAGE_ARRAY_SHOWCASE,
   ),
-  agentList(
-    "IoT Fleets",
-    IoTFleetsPage,
-    IoTFleet,
-    "Getting Started with IoT Monitoring",
-  ),
+  agentList("IoT Fleets", IoTFleetsPage, IoTFleet, IOT_FLEET_SHOWCASE),
   {
-    ...agentList(
-      "Databases",
-      DatabasesPage,
-      DatabaseServer,
-      "Getting Started with Databases",
-    ),
-    isAddedByHand: true,
+    ...agentList("Databases", DatabasesPage, DatabaseServer, DATABASE_SHOWCASE),
+    isAddedByForm: true,
   },
   {
     ...agentList(
       "Queues",
       MessageQueuesPage,
       MessageQueue,
-      "Getting Started with Queues",
+      MESSAGE_QUEUE_SHOWCASE,
     ),
-    isAddedByHand: true,
+    isAddedByForm: true,
   },
   agentList(
     "Serverless Functions",
     ServerlessFunctionsPage,
     ServerlessFunction,
-    "Getting Started with Serverless Functions",
+    SERVERLESS_FUNCTION_SHOWCASE,
   ),
   {
     ...agentList(
       "Cloud Environments",
       CloudEnvironmentsPage,
       CloudResource,
-      "Getting Started with Cloud Environments",
+      CLOUD_ENVIRONMENT_SHOWCASE,
     ),
     watchQuery: { cloudResourceKind: CloudResourceKind.Environment },
   },
@@ -309,12 +319,18 @@ const FIRST_RUN_CASES: Array<FirstRunCase> = [
       "Cloud Resources",
       CloudMonitoredResourcesPage,
       CloudResource,
-      "Discover your cloud resources",
+      undefined,
     ),
+    guideTitle: "Discover your cloud resources",
     watchQuery: { cloudResourceKind: CloudResourceKind.Resource },
     isCreateable: false,
   },
 ];
+
+// The words that say an empty list's first-run card is on the page.
+function firstRunText(listCase: FirstRunCase): string {
+  return listCase.showcase?.title || listCase.guideTitle || "";
+}
 
 const COUNT_FAILURE: string = "The API is down.";
 
@@ -515,63 +531,133 @@ function headerCreateButtons(): Array<HTMLElement> {
     });
 }
 
+// The showcase under the table, while the list waits for its first record.
+function showcaseElement(): HTMLElement | null {
+  return screen.queryByTestId(RESOURCE_SHOWCASE_TEST_ID);
+}
+
+// What a dialog says it is: its title.
+async function dialogTitle(): Promise<string> {
+  const dialog: HTMLElement = await screen.findByRole("dialog");
+  const heading: HTMLElement | undefined =
+    within(dialog).queryAllByRole("heading")[0];
+  return (heading?.textContent || "").trim();
+}
+
 describe.each(FIRST_RUN_CASES)("$name, first run", (listCase: FirstRunCase) => {
-  test("a new project: the empty table says what the list is, and the guide under it what to do", async () => {
-    await renderList(listCase);
+  test(
+    listCase.showcase
+      ? "a new project: the empty table says what the list is, and the showcase under it what the product gives"
+      : "a new project: the empty table says what the list is, and the guide under it what to do",
+    async () => {
+      await renderList(listCase);
 
-    const guideTitle: HTMLElement = await screen.findByText(
-      listCase.guideTitle,
-    );
-    const guideDescription: HTMLElement = screen.getByText(
-      FIRST_RUN_GUIDE_DESCRIPTION,
-    );
-    const table: HTMLElement | null = emptyTable();
+      const table: HTMLElement | null = emptyTable();
+      const title: HTMLElement = await screen.findByText(
+        firstRunText(listCase),
+      );
 
-    expect(table).not.toBeNull();
-    // The table first, then the guide.
-    expect(
-      table!.compareDocumentPosition(guideTitle) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
-    expect(
-      table!.compareDocumentPosition(guideDescription) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
-    // The guide does not say "No ... yet" a second time.
-    expect(guideDescription.textContent || "").not.toMatch(/ yet\b/);
-  });
+      expect(table).not.toBeNull();
+      // The table first, then what is under it.
+      expect(
+        table!.compareDocumentPosition(title) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+
+      if (listCase.showcase) {
+        const showcase: HTMLElement = showcaseElement()!;
+
+        expect(showcase).toContainElement(title);
+        expect(
+          within(showcase).getByRole("heading", {
+            level: 2,
+            name: listCase.showcase.title,
+          }),
+        ).toBeInTheDocument();
+        // Not the setup guide: that opens from Add.
+        expect(screen.queryByTestId("setup-guide")).toBeNull();
+        expect(screen.queryByText(FIRST_RUN_GUIDE_DESCRIPTION)).toBeNull();
+        return;
+      }
+
+      const guideDescription: HTMLElement = screen.getByText(
+        FIRST_RUN_GUIDE_DESCRIPTION,
+      );
+      expect(
+        table!.compareDocumentPosition(guideDescription) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+      // The guide does not say "No ... yet" a second time.
+      expect(guideDescription.textContent || "").not.toMatch(/ yet\b/);
+    },
+  );
 
   test(
     listCase.isCreateable
-      ? listCase.isAddedByHand
-        ? "Create in the card header, and again in the empty table: adding one by hand connects it"
-        : "Create stays in the card header only: the guide is the way in"
+      ? "Create stays in the card header, and the showcase has it too; the empty table never repeats it"
       : "no Create anywhere: only discovery adds these",
     async () => {
       await renderList(listCase);
-      await screen.findByText(listCase.guideTitle);
+      await screen.findByText(firstRunText(listCase));
 
       expect(headerCreateButtons()).toHaveLength(listCase.isCreateable ? 1 : 0);
       expect(
-        screen.queryByTestId(EMPTY_TABLE_CREATE_BUTTON_TEST_ID) !== null,
-      ).toBe(listCase.isAddedByHand);
+        screen.queryByTestId(EMPTY_TABLE_CREATE_BUTTON_TEST_ID),
+      ).toBeNull();
 
-      if (listCase.isAddedByHand) {
+      if (listCase.isCreateable) {
         // The same button as the header's, by its words.
         expect(
-          screen.getByTestId(EMPTY_TABLE_CREATE_BUTTON_TEST_ID),
+          screen.getByTestId(RESOURCE_SHOWCASE_ADD_BUTTON_TEST_ID),
         ).toHaveTextContent(
           (headerCreateButtons()[0]!.textContent || "").trim(),
         );
+      } else {
+        expect(
+          screen.queryByTestId(RESOURCE_SHOWCASE_ADD_BUTTON_TEST_ID),
+        ).toBeNull();
       }
     },
   );
 
-  test("the first one arriving shows in the table and puts the guide away, without a reload", async () => {
+  if (listCase.isCreateable) {
+    test(
+      listCase.isAddedByForm
+        ? "the showcase's button opens the table's create form, as the header's does"
+        : "the showcase's button opens the Add dialog, as the header's does",
+      async () => {
+        // From the card header.
+        await renderList(listCase);
+        await screen.findByText(firstRunText(listCase));
+        await act(async () => {
+          headerCreateButtons()[0]!.click();
+        });
+        const fromHeader: string = await dialogTitle();
+        cleanup();
+
+        // From the showcase, on a page of its own.
+        await renderList(listCase);
+        await screen.findByText(firstRunText(listCase));
+        await act(async () => {
+          screen.getByTestId(RESOURCE_SHOWCASE_ADD_BUTTON_TEST_ID).click();
+        });
+        const fromShowcase: string = await dialogTitle();
+
+        expect(fromHeader.length).toBeGreaterThan(0);
+        expect(fromShowcase).toBe(fromHeader);
+        expect(
+          screen.queryByTestId("add-resource-modal") !== null ||
+            screen.queryByTestId("add-host-modal") !== null,
+        ).toBe(!listCase.isAddedByForm);
+      },
+    );
+  }
+
+  test("the first one arriving shows in the table and puts the first-run card away, without a reload", async () => {
     jest.useFakeTimers();
     await renderList(listCase);
 
-    expect(screen.getByText(listCase.guideTitle)).toBeInTheDocument();
+    expect(screen.getByText(firstRunText(listCase))).toBeInTheDocument();
     expect(emptyTable()).not.toBeNull();
     expect(watchChecks).toBe(1);
     const readsBefore: number = tableReads;
@@ -580,7 +666,7 @@ describe.each(FIRST_RUN_CASES)("$name, first run", (listCase: FirstRunCase) => {
     await advance(FIRST_RECORD_POLL_INTERVAL_MS);
     expect(watchChecks).toBe(2);
     expect(tableReads).toBe(readsBefore);
-    expect(screen.getByText(listCase.guideTitle)).toBeInTheDocument();
+    expect(screen.getByText(firstRunText(listCase))).toBeInTheDocument();
 
     // The agent reports: the next check finds it.
     projectCount = 1;
@@ -589,7 +675,8 @@ describe.each(FIRST_RUN_CASES)("$name, first run", (listCase: FirstRunCase) => {
 
     expect(watchChecks).toBe(3);
     expect(tableReads).toBeGreaterThan(readsBefore);
-    expect(screen.queryByText(listCase.guideTitle)).toBeNull();
+    expect(screen.queryByText(firstRunText(listCase))).toBeNull();
+    expect(showcaseElement()).toBeNull();
     expect(screen.queryByText(FIRST_RUN_GUIDE_DESCRIPTION)).toBeNull();
     expect(emptyTable()).toBeNull();
     expect(screen.getAllByText(ROW_NAME).length).toBeGreaterThan(0);
@@ -607,15 +694,15 @@ describe.each(FIRST_RUN_CASES)("$name, first run", (listCase: FirstRunCase) => {
       jest.useFakeTimers();
       await renderList(listCase);
 
-      expect(screen.getByText(listCase.guideTitle)).toBeInTheDocument();
-      // Nothing to filter yet: the guide is the one thing to do.
+      expect(screen.getByText(firstRunText(listCase))).toBeInTheDocument();
+      // Nothing to filter yet: the showcase is the one thing to read.
       expect(chips()).toBeNull();
 
       projectCount = 1;
       listedRows = [rowOf(listCase.modelType)];
       await advance(FIRST_RECORD_POLL_INTERVAL_MS);
 
-      expect(screen.queryByText(listCase.guideTitle)).toBeNull();
+      expect(screen.queryByText(firstRunText(listCase))).toBeNull();
       expect(chips() !== null).toBe(listCase.hasChips);
     },
   );
@@ -625,7 +712,7 @@ describe.each(FIRST_RUN_CASES)("$name, first run", (listCase: FirstRunCase) => {
     await renderList(listCase);
 
     expect(screen.getByText(COUNT_FAILURE)).toBeInTheDocument();
-    expect(screen.queryByText(listCase.guideTitle)).toBeNull();
+    expect(screen.queryByText(firstRunText(listCase))).toBeNull();
     expect(watchChecks).toBe(1);
 
     await act(async () => {
@@ -635,18 +722,19 @@ describe.each(FIRST_RUN_CASES)("$name, first run", (listCase: FirstRunCase) => {
 
     expect(watchChecks).toBe(2);
     expect(screen.queryByText(COUNT_FAILURE)).toBeNull();
-    expect(await screen.findByText(listCase.guideTitle)).toBeInTheDocument();
+    expect(await screen.findByText(firstRunText(listCase))).toBeInTheDocument();
     expect(emptyTable()).not.toBeNull();
   });
 
-  test("a project that already has some: no guide, and nothing watched", async () => {
+  test("a project that already has some: no first-run card, and nothing watched", async () => {
     jest.useFakeTimers();
     projectCount = 2;
     listedRows = [rowOf(listCase.modelType)];
 
     await renderList(listCase);
 
-    expect(screen.queryByText(listCase.guideTitle)).toBeNull();
+    expect(screen.queryByText(firstRunText(listCase))).toBeNull();
+    expect(showcaseElement()).toBeNull();
     expect(screen.queryByText(FIRST_RUN_GUIDE_DESCRIPTION)).toBeNull();
     expect(screen.queryByTestId(EMPTY_TABLE_CREATE_BUTTON_TEST_ID)).toBeNull();
     // Its chips are there from the start.
@@ -680,7 +768,7 @@ describe("each Cloud list's empty table names what it lists", () => {
       title: string,
     ) => {
       await renderList({
-        ...agentList(name, page, CloudResource, ""),
+        ...agentList(name, page, CloudResource, undefined),
         watchQuery,
       });
 
@@ -710,17 +798,10 @@ describe("the first-run rules", () => {
     expect(getCountAfterCheck({ current: null, checked: null })).toBeNull();
   });
 
-  test("an empty list's table does not repeat Create, unless adding one by hand connects it", () => {
+  test("an empty list's table does not repeat Create: the showcase under it has the button", () => {
     expect(getFirstRunEmptyState({ emptyState: undefined, count: 0 })).toEqual({
       hideCreateButton: true,
     });
-    expect(
-      getFirstRunEmptyState({
-        emptyState: undefined,
-        count: 0,
-        isAddedByHand: true,
-      }),
-    ).toEqual({});
   });
 
   test("once there are records, the table's own empty state is left as it is (a search that finds nothing)", () => {
@@ -745,7 +826,7 @@ describe("the first-run rules", () => {
     ).toEqual({ isFiltered: false, onClearFilters, hideCreateButton: true });
   });
 
-  test("the guide's sentence says what to do and that the list fills in by itself, briefly", () => {
+  test("the folded guide's sentence says what to do and that the list fills in by itself, briefly", () => {
     expect(FIRST_RUN_GUIDE_DESCRIPTION).toBe(
       "Follow the steps below. This list fills in on its own once data arrives.",
     );

@@ -20,7 +20,6 @@ const KUBERNETES_CLUSTER_ONBOARDING: ResourceOnboarding = {
   addDescription: translationKey(
     "Install the OneUptime agent with Helm. The cluster shows up here as soon as the agent connects.",
   ),
-  firstRunTitle: translationKey("Getting Started with Kubernetes Monitoring"),
   viewText: translationKey("View cluster"),
   viewPage: PageMap.KUBERNETES_CLUSTER_VIEW,
   name: {

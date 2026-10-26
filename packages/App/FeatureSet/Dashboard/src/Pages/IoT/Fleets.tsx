@@ -30,14 +30,14 @@ import useFirstRecordWatch, {
   FirstRecordWatch,
 } from "../../Components/Infrastructure/UseFirstRecordWatch";
 import {
-  FIRST_RUN_GUIDE_DESCRIPTION,
   getFirstRunEmptyState,
   getFirstRunTopContent,
 } from "../../Components/Infrastructure/FirstRecordWatch";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import AddResourceGuide from "../../Components/ResourceOnboarding/AddResourceGuide";
 import AddResourceModal from "../../Components/ResourceOnboarding/AddResourceModal";
 import IOT_FLEET_ONBOARDING from "../../Components/IoT/IoTFleetOnboarding";
+import ResourceShowcaseCard from "../../Components/ResourceShowcase/ResourceShowcaseCard";
+import IOT_FLEET_SHOWCASE from "../../Components/IoT/IoTFleetShowcase";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
@@ -321,16 +321,13 @@ const IoTFleets: FunctionComponent<PageComponentProps> = (): ReactElement => {
         }}
       />
       {firstRecordWatch.count === 0 && (
-        <AddResourceGuide
-          onboarding={IOT_FLEET_ONBOARDING}
-          title={IOT_FLEET_ONBOARDING.firstRunTitle}
-          description={FIRST_RUN_GUIDE_DESCRIPTION}
-          onConnected={() => {
-            // The guide gives way, and the table reads the new fleet.
-            firstRecordWatch.onRecordCreated();
-            setConnectedCount((count: number): number => {
-              return count + 1;
-            });
+        <ResourceShowcaseCard
+          showcase={IOT_FLEET_SHOWCASE}
+          addButton={{
+            title: IOT_FLEET_ONBOARDING.addTitle,
+            onClick: () => {
+              setIsAddFleetOpen(true);
+            },
           }}
         />
       )}
@@ -341,6 +338,8 @@ const IoTFleets: FunctionComponent<PageComponentProps> = (): ReactElement => {
             setIsAddFleetOpen(false);
           }}
           onConnected={() => {
+            // The showcase gives way, and the table reads the new fleet.
+            firstRecordWatch.onRecordCreated();
             setConnectedCount((count: number): number => {
               return count + 1;
             });

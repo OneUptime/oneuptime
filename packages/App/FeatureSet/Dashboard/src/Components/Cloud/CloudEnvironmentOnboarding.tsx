@@ -24,7 +24,6 @@ const CLOUD_ENVIRONMENT_ONBOARDING: ResourceOnboarding = {
   addDescription: translationKey(
     "Point your app's OpenTelemetry at OneUptime with a cloud resource detector. The environment shows up here as soon as its first data arrives.",
   ),
-  firstRunTitle: translationKey("Getting Started with Cloud Environments"),
   viewText: translationKey("View environment"),
   viewPage: PageMap.CLOUD_RESOURCE_VIEW,
   // The resources the cloud's monitoring API reports are listed elsewhere.

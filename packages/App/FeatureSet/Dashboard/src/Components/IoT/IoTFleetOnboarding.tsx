@@ -20,7 +20,6 @@ const IOT_FLEET_ONBOARDING: ResourceOnboarding = {
   addDescription: translationKey(
     "Send readings from your devices with OpenTelemetry or MQTT. The fleet shows up here as soon as the first reading arrives.",
   ),
-  firstRunTitle: translationKey("Getting Started with IoT Monitoring"),
   viewText: translationKey("View fleet"),
   viewPage: PageMap.IOT_FLEET_VIEW,
   name: {

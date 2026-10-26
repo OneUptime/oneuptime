@@ -13,12 +13,12 @@ import {
  * How many records an infrastructure list has, and - while it has none -
  * a quiet watch for the first one, every FIRST_RECORD_POLL_INTERVAL_MS.
  *
- * The page shows its setup guide while `count` is 0. When the first record
- * arrives (an agent reported, telemetry was matched) the guide gives way
+ * The page shows its showcase while `count` is 0. When the first record
+ * arrives (an agent reported, telemetry was matched) the showcase gives way
  * and `refreshToken` changes, which the list's ModelTable takes as its
  * refreshToggle, so the new row shows without a reload; `onFirstRecord`
  * tells whatever else on the page counts records (the Databases summary
- * strip). A failed background check keeps the guide; only the first
+ * strip). A failed background check keeps the showcase; only the first
  * count's failure is an error, and `retry` counts again (the error's
  * Refresh).
  */
@@ -30,7 +30,10 @@ export interface FirstRecordWatch {
   error: string;
   // For the list's ModelTable refreshToggle: changes when the first record arrives.
   refreshToken: string;
-  // For the list's onCreateSuccess: one more, so the guide gives way at once.
+  /*
+   * For the list's onCreateSuccess, and its Add dialog's onConnected: one
+   * more, so the showcase gives way at once.
+   */
   onRecordCreated: () => void;
   // After a failed first count: count again (the page shows its loader meanwhile).
   retry: () => void;
@@ -117,7 +120,7 @@ export default function useFirstRecordWatch<
           onFirstRecordRef.current?.();
         })
         .catch(() => {
-          // A transient failure: keep the guide, and keep watching.
+          // A transient failure: keep the showcase, and keep watching.
         });
     }, FIRST_RECORD_POLL_INTERVAL_MS);
 
