@@ -13,6 +13,7 @@ import Route from "../../../Types/API/Route";
 import URL from "../../../Types/API/URL";
 import ObjectID from "../../../Types/ObjectID";
 import Navigation from "../../../UI/Utils/Navigation";
+import { getJestSpyOn } from "../../Spy";
 import {
   afterEach,
   beforeEach,
@@ -375,10 +376,10 @@ describe("where single sign-on returns to", () => {
 
   test("blocked storage keeps nothing and takes nothing, without failing", () => {
     setUrl(`/status-page/${PAGE_A}/sso`);
-    jest.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+    getJestSpyOn(Storage.prototype, "setItem").mockImplementation(() => {
       throw new Error("SecurityError");
     });
-    jest.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+    getJestSpyOn(Storage.prototype, "getItem").mockImplementation(() => {
       throw new Error("SecurityError");
     });
 
