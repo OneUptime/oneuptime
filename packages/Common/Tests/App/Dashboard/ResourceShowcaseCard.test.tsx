@@ -31,6 +31,11 @@ import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 import ResourceShowcaseCard, {
   RESOURCE_SHOWCASE_ADD_BUTTON_TEST_ID,
   RESOURCE_SHOWCASE_CHART_TEST_ID,
+  SHOWCASE_CLASS_NAME,
+  SHOWCASE_FEATURES_CLASS_NAME,
+  SHOWCASE_HERO_CLASS_NAME,
+  SHOWCASE_PREVIEW_CLASS_NAME,
+  SHOWCASE_STATS_CLASS_NAME,
   RESOURCE_SHOWCASE_EXAMPLE_DESCRIPTION,
   RESOURCE_SHOWCASE_EXAMPLE_LABEL,
   RESOURCE_SHOWCASE_FEATURES_TITLE,
@@ -272,6 +277,85 @@ describe("the showcase", () => {
     );
 
     expect(screen.queryByText(SHOWCASE.preview.alert!.title)).toBeNull();
+  });
+});
+
+/*
+ * A list sits beside its product's side menu, so the window's width says
+ * little about the showcase's: a 1280px window leaves it about 940px. Its
+ * rows and grids switch on its own width (container queries), which jsdom
+ * does not evaluate - so the classes they are drawn with are what is held.
+ */
+describe("the showcase's layout", () => {
+  const WINDOW_GRID: RegExp = /(?:^|\s)(?:sm|md|lg|xl|2xl):grid-cols-/;
+
+  test("the showcase and its example are size containers, and every grid switches on them, not the window", () => {
+    expect(SHOWCASE_CLASS_NAME).toContain("[container-type:inline-size]");
+    expect(SHOWCASE_PREVIEW_CLASS_NAME).toContain(
+      "[container-type:inline-size]",
+    );
+
+    for (const className of [
+      SHOWCASE_HERO_CLASS_NAME,
+      SHOWCASE_FEATURES_CLASS_NAME,
+      SHOWCASE_STATS_CLASS_NAME,
+    ]) {
+      expect(className).not.toMatch(WINDOW_GRID);
+    }
+
+    // The pitch and the example side by side from 56rem of showcase.
+    expect(SHOWCASE_HERO_CLASS_NAME).toContain(
+      "[@container(min-width:56rem)]:grid-cols-2",
+    );
+    // Stacked below that, the example is not stretched across the card.
+    expect(SHOWCASE_PREVIEW_CLASS_NAME).toContain("max-w-xl");
+    expect(SHOWCASE_PREVIEW_CLASS_NAME).toContain(
+      "[@container(min-width:56rem)]:max-w-none",
+    );
+    // The example's tiles four across only with 30rem of example.
+    expect(SHOWCASE_STATS_CLASS_NAME).toContain("grid-cols-2");
+    expect(SHOWCASE_STATS_CLASS_NAME).toContain(
+      "[@container(min-width:30rem)]:grid-cols-4",
+    );
+    // The features in one, two, then three columns.
+    expect(SHOWCASE_FEATURES_CLASS_NAME).toContain(
+      "[@container(min-width:36rem)]:grid-cols-2",
+    );
+    expect(SHOWCASE_FEATURES_CLASS_NAME).toContain(
+      "[@container(min-width:56rem)]:grid-cols-3",
+    );
+  });
+
+  test("the drawn showcase carries them", () => {
+    render(<ResourceShowcaseCard showcase={SHOWCASE} />);
+
+    const showcase: HTMLElement = screen.getByTestId(RESOURCE_SHOWCASE_TEST_ID);
+    const preview: HTMLElement = screen.getByTestId(
+      RESOURCE_SHOWCASE_PREVIEW_TEST_ID,
+    );
+
+    expect(showcase.className).toBe(SHOWCASE_CLASS_NAME);
+    expect(preview.className).toBe(SHOWCASE_PREVIEW_CLASS_NAME);
+    expect(preview.parentElement!.className).toBe(SHOWCASE_HERO_CLASS_NAME);
+    expect(
+      screen.getAllByTestId("resource-showcase-feature")[0]!.parentElement!
+        .className,
+    ).toBe(SHOWCASE_FEATURES_CLASS_NAME);
+    expect(
+      within(preview).getByText(SHOWCASE.preview.stats[0]!.label).parentElement!
+        .parentElement!.className,
+    ).toBe(SHOWCASE_STATS_CLASS_NAME);
+  });
+
+  test("a tile's label wraps rather than being cut: a long word is not lost", () => {
+    render(<ResourceShowcaseCard showcase={SHOWCASE} />);
+
+    const label: HTMLElement = within(
+      screen.getByTestId(RESOURCE_SHOWCASE_PREVIEW_TEST_ID),
+    ).getByText(SHOWCASE.preview.stats[0]!.label);
+
+    expect(label).not.toHaveClass("truncate");
+    expect(label).toHaveClass("break-words");
   });
 });
 

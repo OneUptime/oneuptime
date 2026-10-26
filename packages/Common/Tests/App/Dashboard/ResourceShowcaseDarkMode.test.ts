@@ -10,9 +10,9 @@
  * the example's frame, tiles, chart, rows and status pills, the alert in
  * each of its colours, and the feature grid.
  *
- * Its two backgrounds that are not classes - the glow behind the pitch and
- * the dots behind the example - are drawn with the theme's own variables,
- * so they follow the theme without a rule.
+ * Its one background that is not a class - the glow behind the pitch - is
+ * drawn with the theme's own accent variable, so it follows the theme
+ * without a rule.
  */
 
 import { DarkModeScan, scanDarkMode } from "../../Helpers/DarkModeScan";
@@ -68,13 +68,12 @@ describe("the resource showcase in the dark theme", () => {
     expect(scan.unmapped).toEqual([]);
   });
 
-  test("the glow and the dots are drawn with the theme's variables", () => {
+  test("the glow is drawn with the theme's accent variable", () => {
     const source: string = fs.readFileSync(
       path.join(__dirname, "..", "..", "..", "UI", CARD),
       "utf8",
     );
 
     expect(source).toContain("var(--ou-accent-soft, #eef2ff)");
-    expect(source).toContain("var(--ou-border-default, #e5e7eb)");
   });
 });
