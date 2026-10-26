@@ -82,7 +82,7 @@ Em **Lembretes**, defina **Intervalo de lembrete (minutos)**, a frequência com 
 | **Antes de começar** | Desde o agendamento do evento até o início dele. |
 | **Antes de começar e enquanto estiver em andamento** | Desde o agendamento do evento até o fim dele. |
 
-Uma regra salva pela API ou pelo Terraform que espera o evento começar e para quando ele começa nunca envia um lembrete: a lista a marca com **Nunca envia lembretes**, e o formulário dela pede que você escolha uma resposta.
+A API e o Terraform recusam uma regra que esperaria o evento começar e pararia quando ele começa: ela nunca enviaria um lembrete. Uma regra mais antiga salva assim aparece na lista com **Nunca envia lembretes**, e o formulário dela pede que você escolha quando lembrar.
 
 Os proprietários recebem cada lembrete como **Maintenance reminder**, ativado por e-mail para cada membro novo. Salvar, alterar ou excluir uma regra de lembrete volta a atribuir uma regra a cada evento que ainda não foi concluído. Para parar os lembretes de um evento, desative **Enviar lembretes** na página **Configurações** dele; a chave salva assim que você a aciona.
 

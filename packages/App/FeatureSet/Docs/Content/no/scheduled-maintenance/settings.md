@@ -82,7 +82,7 @@ Under **Påminnelser** stiller du inn **Påminnelsesintervall (minutter)**, hvor
 | **Før den starter** | Fra hendelsen er planlagt til den starter. |
 | **Før den starter og mens den pågår** | Fra hendelsen er planlagt til den slutter. |
 
-En regel lagret via API-et eller Terraform som venter til hendelsen starter, og stopper når den starter, sender aldri en påminnelse: Listen merker den med **Påminner aldri**, og skjemaet ber deg velge et svar.
+API-et og Terraform avviser en regel som ville ventet til hendelsen starter, og stoppet når den starter: Den ville aldri sende en påminnelse. En eldre regel som er lagret slik, er merket med **Påminner aldri** i listen, og skjemaet ber deg velge når det skal sendes påminnelser.
 
 Eierne får hver påminnelse som **Maintenance reminder**, som er på via e-post for hvert nye medlem. Å lagre, endre eller slette en påminnelsesregel matcher hver hendelse som ikke er fullført, på nytt. For å stoppe påminnelsene for én hendelse slår du av **Send påminnelser** på siden **Innstillinger** for den; den lagres i det øyeblikket du slår den om.
 

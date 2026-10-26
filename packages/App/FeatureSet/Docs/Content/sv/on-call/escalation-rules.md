@@ -134,6 +134,13 @@ Det anger allvarlighetsgraden och vad som har hänt (en incident, ett larm eller
 
 Allvarlighetsgraden, numret och länken kortas aldrig. En titel behåller minst 20 tecken: ryms inte ens det, till exempel med en mycket lång adress eller ett mycket långt produktnamn, tar sms:et en del till och säger allt.
 
+När en policy larmar igen för att en bekräftad incident eller ett bekräftat larm fortfarande inte är löst, säger sms:et det efter numret och projektet, och de orden kortas heller aldrig:
+
+```text
+OneUptime: Critical Incident INC-42 in Acme Prod is still not resolved:
+Checkout API is down. Ack or escalate: https://oneuptime.com/l/XJlaZRsd
+```
+
 Ett enda tecken utanför sms:ets enkla alfabet gör att hela meddelandet går ut i delar om 70 tecken. Därför skrivs typografiska citattecken och tankstreck som `"`, `'` och `-`, `…` som `...`, och bokstäver som `ç` och `ł` förlorar sina accenter; emojier utelämnas. En titel i en annan skrift, som japanska eller ryska, skickas som den är skriven och tar två delar eller fler.
 
 De andra sms som OneUptime skickar till dig, till exempel om en ändring i en incident du äger eller början på ditt jourpass, börjar också med `OneUptime:` och slutar med `Turn off in User Settings > Notification Settings.`, en mening som utelämnas när det är det som gör att sms:et ryms i en del.
@@ -221,7 +228,7 @@ Att eskalera ett larm bekräftar det inte: incidenten eller larmet väntar fortf
 
 Ett larm som ett arbetsflöde skickar direkt till personer har inga nivåer: eskalerar du det larmas du inte mer, och när alla som det larmade har eskalerat det stoppar larmandet.
 
-Varje gång ett larm eskaleras registreras det. Körningens **Tidslinje för körningen** markerar personens rad **Eskalerad**, incidentens feed säger "Alex Kim escalated the page from on-call policy Payments at escalation rule Level 1.", körningens meddelande i Slack och Microsoft Teams säger att hen eskalerade det, och hens **Jourloggar** visar larmet som **Eskalerad**.
+Varje gång ett larm eskaleras registreras det. Körningens **Tidslinje för körningen** markerar personens rad **Eskalerad**, incidentens feed säger "Alex Kim escalated the page from on-call policy Payments at Level 1 of 3.", körningens meddelande i Slack och Microsoft Teams säger att hen eskalerade det, och hens **Jourloggar** visar larmet som **Eskalerad**.
 
 ## Redigera, ändra ordning på och ta bort regler
 

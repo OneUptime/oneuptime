@@ -138,7 +138,7 @@ Jourpolicyer är resursen `/api/on-call-duty-policy`, och resursen `oneuptime_on
 | **Efter hur många minuter?** | `acknowledgementTimeoutInMinutes` |
 | Arkiverad | `isArchived` |
 
-`repeatPolicyIfNoOneAcknowledges` är `false` för **Sluta larma** och `true` för **Börja om från Level 1**. Med `true` och `repeatPolicyIfNoOneAcknowledgesNoOfTimes` på `0` upprepas en policy aldrig, och instrumentpanelen visar den som **Sluta larma**.
+`repeatPolicyIfNoOneAcknowledges` är `false` för **Sluta larma** och `true` för **Börja om från Level 1**. Med `true` måste `repeatPolicyIfNoOneAcknowledgesNoOfTimes` vara ett heltal på 1 eller mer: OneUptime avvisar `0`. En äldre policy som sparats med `0` upprepas aldrig, och instrumentpanelen visar den som **Sluta larma**.
 
 `acknowledgementTimeoutInMinutes` är `null` för **Larma inte igen** och ett helt antal minuter från 5 till 1440 för **Larma igen**. OneUptime avvisar allt annat.
 

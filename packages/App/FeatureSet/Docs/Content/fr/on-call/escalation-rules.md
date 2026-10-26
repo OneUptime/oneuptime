@@ -134,6 +134,13 @@ Il indique la gravité et ce qui s'est passé (un incident, une alerte ou un ép
 
 La gravité, le numéro et le lien ne sont jamais coupés. Un titre garde au moins 20 caractères : si même cela ne tient pas, par exemple avec une adresse ou un nom de produit très long, le SMS prend une deuxième partie et dit tout.
 
+Quand une politique alerte de nouveau parce qu'un incident ou une alerte pris en compte n'est toujours pas résolu, le SMS le dit après le numéro et le projet, et ces mots ne sont jamais coupés non plus :
+
+```text
+OneUptime: Critical Incident INC-42 in Acme Prod is still not resolved:
+Checkout API is down. Ack or escalate: https://oneuptime.com/l/XJlaZRsd
+```
+
 Un seul caractère hors de l'alphabet simple des SMS fait partir tout le message par parties de 70 caractères. C'est pourquoi les guillemets et les tirets typographiques sont écrits `"`, `'` et `-`, `…` est écrit `...`, et les lettres comme `ç` et `ł` perdent leurs accents ; les emoji sont omis. Un titre dans une autre écriture, comme le japonais ou le russe, est envoyé tel qu'il est écrit, et prend deux parties ou plus.
 
 Les autres SMS que OneUptime vous envoie, par exemple pour une modification d'un incident dont vous êtes propriétaire ou le début de votre tour d'astreinte, commencent aussi par `OneUptime:` et se terminent par `Turn off in User Settings > Notification Settings.`, une phrase omise quand c'est ce qui permet au SMS de tenir en une partie.
@@ -221,7 +228,7 @@ Escalader une alerte n'en accuse pas réception : l'incident ou l'alerte attend 
 
 Une alerte qu'un workflow envoie directement à des personnes n'a pas de niveaux : l'escalader arrête de vous alerter, et une fois que tous ceux qu'elle a alertés l'ont escaladée, les alertes s'arrêtent.
 
-Chaque escalade est enregistrée. La **Chronologie d'exécution** de l'exécution marque la ligne de la personne **Escaladé**, le fil d'activité de l'incident indique « Alex Kim escalated the page from on-call policy Payments at escalation rule Level 1. », le message de l'exécution dans Slack et Microsoft Teams indique qu'elle l'a escaladée, et ses **Journaux d'astreinte** montrent l'alerte comme **Escaladé**.
+Chaque escalade est enregistrée. La **Chronologie d'exécution** de l'exécution marque la ligne de la personne **Escaladé**, le fil d'activité de l'incident indique « Alex Kim escalated the page from on-call policy Payments at Level 1 of 3. », le message de l'exécution dans Slack et Microsoft Teams indique qu'elle l'a escaladée, et ses **Journaux d'astreinte** montrent l'alerte comme **Escaladé**.
 
 ## Modifier, réordonner et supprimer des règles
 

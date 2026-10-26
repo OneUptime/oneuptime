@@ -308,6 +308,120 @@ describe("PostgresErrorTranslator", () => {
     });
   });
 
+  /*
+   * A service that recovers from ONE unique index tells it from every other
+   * by its name: the episode member services make a create again when it
+   * lost a race to their first-membership index, and never when it broke
+   * any other (EpisodeSingleMembership).
+   */
+  describe("isUniqueViolationOf", () => {
+    const INDEX: string = "IDX_IncidentEpisodeMember_first_membership";
+
+    const firstMembershipCollision: () => FakeQueryFailedError & {
+      constraint?: string | undefined;
+    } = (): FakeQueryFailedError & { constraint?: string | undefined } => {
+      return {
+        message:
+          'duplicate key value violates unique constraint "IDX_IncidentEpisodeMember_first_membership"',
+        code: "23505",
+        table: "IncidentEpisodeMember",
+        detail:
+          'Key ("incidentId")=(cfc2f04f-79cb-4344-8c54-dafe5e3a290c) already exists.',
+        constraint: INDEX,
+      };
+    };
+
+    it("recognises the index by name, raw and wrapped", () => {
+      expect(
+        PostgresErrorTranslator.isUniqueViolationOf(
+          firstMembershipCollision(),
+          INDEX,
+        ),
+      ).toBe(true);
+      expect(
+        PostgresErrorTranslator.isUniqueViolationOf(
+          { message: "wrapped", driverError: firstMembershipCollision() },
+          INDEX,
+        ),
+      ).toBe(true);
+    });
+
+    it("still recognises it after translation: the name is kept on the exception", () => {
+      const translated: TranslatedPostgresException =
+        PostgresErrorTranslator.translate(
+          firstMembershipCollision(),
+        ) as TranslatedPostgresException;
+
+      expect(translated).toBeInstanceOf(BadDataException);
+      expect(translated.postgresConstraintName).toBe(INDEX);
+      expect(
+        PostgresErrorTranslator.isUniqueViolationOf(translated, INDEX),
+      ).toBe(true);
+    });
+
+    it("is false for another unique index, translated or not", () => {
+      const other: FakeQueryFailedError & { constraint?: string } = {
+        ...firstMembershipCollision(),
+        constraint: "IDX_some_other_index",
+      };
+
+      expect(PostgresErrorTranslator.isUniqueViolationOf(other, INDEX)).toBe(
+        false,
+      );
+      expect(
+        PostgresErrorTranslator.isUniqueViolationOf(
+          PostgresErrorTranslator.translate(other),
+          INDEX,
+        ),
+      ).toBe(false);
+    });
+
+    it("is false when Postgres named no constraint", () => {
+      expect(
+        PostgresErrorTranslator.isUniqueViolationOf(
+          twilioAccountSidCollision(),
+          INDEX,
+        ),
+      ).toBe(false);
+      expect(
+        PostgresErrorTranslator.isUniqueViolationOf(
+          PostgresErrorTranslator.translate(twilioAccountSidCollision()),
+          INDEX,
+        ),
+      ).toBe(false);
+    });
+
+    it("is false for anything that is not a unique violation, whatever it names", () => {
+      expect(
+        PostgresErrorTranslator.isUniqueViolationOf(
+          { ...foreignKeyDeleteError(), constraint: INDEX },
+          INDEX,
+        ),
+      ).toBe(false);
+      expect(
+        PostgresErrorTranslator.isUniqueViolationOf(
+          new BadDataException("Nope"),
+          INDEX,
+        ),
+      ).toBe(false);
+      expect(PostgresErrorTranslator.isUniqueViolationOf(null, INDEX)).toBe(
+        false,
+      );
+    });
+
+    it("an exception made by the application, not the database, names no index", () => {
+      const made: TranslatedPostgresException =
+        PostgresErrorTranslator.createUniqueViolationException(
+          "Already there.",
+        ) as TranslatedPostgresException;
+
+      expect(made.postgresConstraintName).toBeUndefined();
+      expect(PostgresErrorTranslator.isUniqueViolationOf(made, INDEX)).toBe(
+        false,
+      );
+    });
+  });
+
   describe("createUniqueViolationException (issue #3394)", () => {
     /*
      * @UniqueColumnsTogether refuses a duplicate owner row before the insert.

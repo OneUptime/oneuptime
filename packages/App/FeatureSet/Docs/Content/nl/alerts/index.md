@@ -77,7 +77,7 @@ Ga naar **Waarschuwingen → Alle waarschuwingen** en klik op **Waarschuwing mak
 
 ### De waarschuwing beschrijven
 
-Vul de **Titel** in en kies een **Ernst van waarschuwing**; beide zijn verplicht. Voeg een **Beschrijving** toe als dat helpt. Onder **Meer velden**, ingeklapt, kun je een **Initiële status** kiezen, **Labels** toevoegen of **Privéwaarschuwing** aanzetten. Daar wacht ook **Eigenaren**: je wordt hoe dan ook eigenaar van de waarschuwing die je maakt, en elk team waarvan je lid bent, is onder de kiezer één klik verwijderd.
+Vul de **Titel** in en kies een **Ernst van waarschuwing**; beide zijn verplicht. Voeg een **Beschrijving** toe als dat helpt. Onder **Meer velden**, ingeklapt, kun je een **Initiële status** kiezen, **Labels** toevoegen of **Privéwaarschuwing** aanzetten. Daar wacht ook **Eigenaren**: je wordt hoe dan ook eigenaar van de waarschuwing die je maakt, en elk team waarvan je lid bent, is onder de kiezer één klik verwijderd. Een master-admin, die de hele installatie beheert, is de enige uitzondering: die wordt geen eigenaar van wat hij of zij maakt.
 
 ### Kiezen wat ze treft en wie wordt opgeroepen
 

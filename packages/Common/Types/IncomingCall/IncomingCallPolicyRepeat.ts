@@ -1,3 +1,5 @@
+import { isRepeatCountOfAtLeastOne } from "../OnCallDutyPolicy/OnCallDutyPolicyRepeat";
+
 /*
  * How many more times an incoming call policy rings its escalation rules
  * from the first one, after the last one rang and nobody answered.
@@ -45,4 +47,51 @@ export function getIncomingCallPolicyRepeatsAllowed(
    * whole numbers, so this is the number itself.
    */
   return Math.ceil(times);
+}
+
+/*
+ * A POLICY THAT SAYS IT RINGS AGAIN SAYS HOW MANY TIMES: 1 OR MORE.
+ *
+ * The call handler reads the switch on with 0 as "ring again once" (above),
+ * a quirk kept for the policies stored that way. The Dashboard's Repeat
+ * Policy card never makes it - its "How many more times?" box takes a whole
+ * number of 1 or more - and the server holds the API, Terraform, MCP and
+ * workflows to the same (IncomingCallPolicyService, through
+ * Server/Utils/Database/ColumnRuleCheck): 0, a negative number or a part of
+ * one is refused while the switch is on. A policy stored that way before
+ * keeps ringing as it did, and an edit that leaves the pair as it is still
+ * saves.
+ *
+ * A number not given is the column's default, 1: turning the switch on
+ * alone rings again once, as it always did.
+ */
+export const INCOMING_CALL_POLICY_REPEAT_COLUMNS: ReadonlyArray<string> = [
+  "repeatPolicyIfNoOneAnswers",
+  "repeatPolicyIfNoOneAnswersTimes",
+];
+
+export const INCOMING_CALL_POLICY_REPEAT_TIMES_REFUSAL: string =
+  "An incoming call policy that repeats must ring again at least once: set Repeat Policy Times to a whole number of 1 or more, or turn off Repeat Policy If No One Answers.";
+
+/*
+ * The refusal for a pair that says it rings again without a whole number of
+ * times of 1 or more, or null: the switch off, on with the number not given,
+ * or on with 1 or more.
+ */
+export function getIncomingCallPolicyRepeatRefusal(policy: {
+  repeatPolicyIfNoOneAnswers?: unknown;
+  repeatPolicyIfNoOneAnswersTimes?: unknown;
+}): string | null {
+  if (policy.repeatPolicyIfNoOneAnswers !== true) {
+    return null;
+  }
+
+  // Not given: the column's default, 1.
+  if (policy.repeatPolicyIfNoOneAnswersTimes === undefined) {
+    return null;
+  }
+
+  return isRepeatCountOfAtLeastOne(policy.repeatPolicyIfNoOneAnswersTimes)
+    ? null
+    : INCOMING_CALL_POLICY_REPEAT_TIMES_REFUSAL;
 }
