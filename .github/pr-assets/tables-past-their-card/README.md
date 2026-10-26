@@ -28,3 +28,6 @@ the same lab, its SMS numbers drawn as phone numbers:
   "+2 weitere" goes under the number where the column is narrow.
 - `review-postmortem-rules-1280-de-*`: the postmortem rules fit their card
   in German, Status in sight.
+- `review-linked-incidents-1280-de-*`: an alert's linked incidents say
+  Anzeigen (View) on the row and fit their card in German, Linked By in
+  sight.
