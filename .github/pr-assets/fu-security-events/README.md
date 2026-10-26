@@ -33,3 +33,22 @@ frames are CASE-142 from the same fixture, with the old name put back for
 | `before-case-menu-1280-fr.png` | French at 1280px: "Exécutions de play..." cut short. |
 | `after-case-menu-1280-fr.png` | "Playbooks" whole. |
 | `after-case-menu-1280-en-page.png` | The case's page at 1280px: the breadcrumb and the card read Playbooks; the held run keeps its Waiting for Approval status. |
+
+## UI review
+
+Taken the same way, at 2x. The `review-before-*` frames are this branch
+before the review's commits (the previous component, translations and table).
+
+| File | Shows |
+| --- | --- |
+| `review-before-chat-table-768.png` | OneUptime AI's Security Events table in the 768px chat panel: Time, Severity, Class and Message fill it - a launch reads "Process Activity" twice, a failed sign-in "Authentication" twice - and the Process column sits past the panel's edge. |
+| `review-after-chat-table-768.png` | Time, Severity, Event and Host: what happened (the class and its activity when the message only repeats the class), "(Failure)" when it failed, then the process. |
+| `review-after-chat-table-768-dark.png` | The same in the dark theme. |
+| `review-before-menu-800-de-runs.png` | German at 800px: "Playbook-Ausführun..." cut beside the tablet's menu, under Genehmigungen. |
+| `review-after-menu-800-de-runs.png` | "Ausführungen", whole, under Playbooks. |
+| `review-before-menu-800-es-runs.png` | Spanish: "Ejecuciones de play..." cut. |
+| `review-after-menu-800-es-runs.png` | "Ejecuciones", whole. |
+| `review-before-case-empty-1280-en.png` | A case no playbook has run on (CASE-139): the card's description, then a line of grey text saying much the same. |
+| `review-after-case-empty-1280-en.png` | The product's empty state, as Approvals and Playbook Runs draw theirs, and no description while it is empty. |
+| `review-before-case-empty-1280-de-dark.png` | German, dark: both paragraphs in English. |
+| `review-after-case-empty-1280-de-dark.png` | German, dark: the empty state in German. |
