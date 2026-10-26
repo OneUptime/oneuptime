@@ -102,7 +102,9 @@ describe("the monitor summary views lay their facts out by their own width", () 
     expect(FRACTION_WIDTH.test('className="w-full shadow-none"')).toBe(false);
     expect(VIEWPORT_GRID.test("grid grid-cols-2 lg:grid-cols-4")).toBe(true);
     expect(
-      VIEWPORT_GRID.test("grid grid-cols-2 [@container(min-width:64rem)]:grid-cols-4"),
+      VIEWPORT_GRID.test(
+        "grid grid-cols-2 [@container(min-width:64rem)]:grid-cols-4",
+      ),
     ).toBe(false);
     expect(CLIPPING_FRAME.test('"border rounded-md overflow-hidden"')).toBe(
       true,

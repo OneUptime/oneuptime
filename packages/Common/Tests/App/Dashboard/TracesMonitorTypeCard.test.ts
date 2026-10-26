@@ -35,11 +35,11 @@ function tracesCard(): MonitorTypeProps {
 describe("the Traces monitor type's card", () => {
   test("the criteria form offers one check for Traces: the span count", () => {
     expect(
-      CriteriaFilterUtil.getCheckOnOptionsByMonitorType(
-        MonitorType.Traces,
-      ).map((option: DropdownOption): string => {
-        return option.value.toString();
-      }),
+      CriteriaFilterUtil.getCheckOnOptionsByMonitorType(MonitorType.Traces).map(
+        (option: DropdownOption): string => {
+          return option.value.toString();
+        },
+      ),
     ).toEqual([CheckOn.SpanCount]);
   });
 

@@ -303,9 +303,9 @@ describe("a Synthetic monitor is refused steps that run nothing", () => {
       monitorType: MonitorType.SyntheticMonitor,
       monitorSteps: RUNS,
     });
-    const step: { browserTypes?: unknown; screenSizeTypes?: unknown } =
-      result.createBy.data.monitorSteps!.data!.monitorStepsInstanceArray[0]!
-        .data! as never;
+    const step: { browserTypes?: unknown; screenSizeTypes?: unknown } = result
+      .createBy.data.monitorSteps!.data!.monitorStepsInstanceArray[0]!
+      .data! as never;
 
     expect(step.browserTypes).toEqual([BrowserType.Chromium]);
     expect(step.screenSizeTypes).toEqual([ScreenSizeType.Desktop]);
@@ -324,7 +324,10 @@ describe("a Synthetic monitor is refused steps that run nothing", () => {
     await expect(
       updateMonitor({
         write: { monitorSteps: MonitorSteps.fromJSON(NO_BROWSER) },
-        stored: { monitorType: MonitorType.SyntheticMonitor, monitorSteps: RUNS },
+        stored: {
+          monitorType: MonitorType.SyntheticMonitor,
+          monitorSteps: RUNS,
+        },
       }),
     ).rejects.toThrow(SYNTHETIC_STEP_NO_BROWSER_MESSAGE);
   });
@@ -399,7 +402,10 @@ describe("a Synthetic monitor template is refused steps that run nothing", () =>
     await expect(
       updateTemplate({
         write: { monitorSteps: MonitorSteps.fromJSON(NO_BROWSER) },
-        stored: { monitorType: MonitorType.SyntheticMonitor, monitorSteps: RUNS },
+        stored: {
+          monitorType: MonitorType.SyntheticMonitor,
+          monitorSteps: RUNS,
+        },
       }),
     ).rejects.toThrow(SYNTHETIC_STEP_NO_BROWSER_MESSAGE);
   });

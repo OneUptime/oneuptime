@@ -100,7 +100,8 @@ function isFormField(literal: ts.ObjectLiteralExpression): boolean {
   );
 
   return Boolean(
-    fieldType && fieldType.initializer.getText().startsWith("FormFieldSchemaType."),
+    fieldType &&
+      fieldType.initializer.getText().startsWith("FormFieldSchemaType."),
   );
 }
 

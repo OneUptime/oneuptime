@@ -4,7 +4,10 @@ import ProbeAttempt from "Common/Types/Probe/ProbeAttempt";
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
+import {
+  translateTemplate,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 import React, { FunctionComponent, ReactElement } from "react";
 import ProbeAttemptsView from "./ProbeAttemptsView";
 import { SummaryFact, SummaryFacts, SummaryView } from "./SummaryFacts";
@@ -48,6 +51,19 @@ interface CertificateSummaryProps extends ComponentProps {
   sslResponse: SslMonitorResponse;
 }
 
+// A detail's words; stored responses are read as they were written.
+const textOf: (value: unknown) => string = (value: unknown): string => {
+  return value === undefined || value === null ? "" : String(value).trim();
+};
+
+// One line of what a certificate says about itself.
+interface CertificateDetail {
+  // English; looked up when drawn.
+  title: string;
+  value: string;
+  isWide: boolean;
+}
+
 // Drawn by SSLCertificateMonitorView once there is a certificate to show.
 const CertificateSummary: FunctionComponent<CertificateSummaryProps> = (
   props: CertificateSummaryProps,
@@ -61,6 +77,62 @@ const CertificateSummary: FunctionComponent<CertificateSummaryProps> = (
   const totalAttempts: number =
     props.probeMonitorResponse.totalAttempts ?? probeAttempts.length;
   const hadRetries: boolean = totalAttempts > 1;
+
+  // Only what the certificate says (Show More Details).
+  const certificateDetails: Array<CertificateDetail> = [
+    { title: translationKey("Common Name"), value: sslResponse.commonName },
+    { title: translationKey("Organization"), value: sslResponse.organization },
+    {
+      title: translationKey("Organizational Unit"),
+      value: sslResponse.organizationalUnit,
+    },
+    { title: translationKey("Country"), value: sslResponse.country },
+    { title: translationKey("State"), value: sslResponse.state },
+    { title: translationKey("Locality"), value: sslResponse.locality },
+    // Without this the product could not name the signing CA.
+    {
+      title: translationKey("Issuer"),
+      value: sslResponse.issuer,
+      isWide: true,
+    },
+    {
+      title: translationKey("Serial Number"),
+      value: sslResponse.serialNumber,
+      isWide: true,
+    },
+    {
+      title: translationKey("Fingerprint"),
+      value: sslResponse.fingerprint,
+      isWide: true,
+    },
+    {
+      title: translationKey("Fingerprint 256"),
+      value: sslResponse.fingerprint256,
+      isWide: true,
+    },
+  ]
+    .filter(
+      (detail: {
+        title: string;
+        value: string | undefined;
+        isWide?: boolean;
+      }): boolean => {
+        return textOf(detail.value) !== "";
+      },
+    )
+    .map(
+      (detail: {
+        title: string;
+        value: string | undefined;
+        isWide?: boolean;
+      }): CertificateDetail => {
+        return {
+          title: detail.title,
+          value: textOf(detail.value),
+          isWide: Boolean(detail.isWide),
+        };
+      },
+    );
 
   return (
     <SummaryView dataTestId="ssl-certificate-monitor-summary">
@@ -126,46 +198,22 @@ const CertificateSummary: FunctionComponent<CertificateSummaryProps> = (
       {/*
        * Who the certificate is for and who signed it, then the long values
        * - the issuer, the serial number and the fingerprints - each on a
-       * row of its own and whole, where they were cut short with an ellipsis.
+       * row of its own and whole, where they were cut short with an
+       * ellipsis. What the certificate does not say is left out, rather
+       * than a card of "-" for each.
        */}
-      {showMoreDetails && (
+      {showMoreDetails && certificateDetails.length > 0 && (
         <SummaryFacts dataTestId="ssl-certificate-details">
-          <SummaryFact
-            title="Common Name"
-            value={sslResponse.commonName || "-"}
-          />
-          <SummaryFact
-            title="Organization"
-            value={sslResponse.organization || "-"}
-          />
-          <SummaryFact
-            title="Organizational Unit"
-            value={sslResponse.organizationalUnit || "-"}
-          />
-          <SummaryFact title="Country" value={sslResponse.country || "-"} />
-          <SummaryFact title="State" value={sslResponse.state || "-"} />
-          <SummaryFact title="Locality" value={sslResponse.locality || "-"} />
-          {/* Without this the product could not name the signing CA. */}
-          <SummaryFact
-            isWide={true}
-            title="Issuer"
-            value={sslResponse.issuer || "-"}
-          />
-          <SummaryFact
-            isWide={true}
-            title="Serial Number"
-            value={sslResponse.serialNumber || "-"}
-          />
-          <SummaryFact
-            isWide={true}
-            title="Fingerprint"
-            value={sslResponse.fingerprint || "-"}
-          />
-          <SummaryFact
-            isWide={true}
-            title="Fingerprint 256"
-            value={sslResponse.fingerprint256 || "-"}
-          />
+          {certificateDetails.map((detail: CertificateDetail): ReactElement => {
+            return (
+              <SummaryFact
+                key={detail.title}
+                isWide={detail.isWide}
+                title={detail.title}
+                value={detail.value}
+              />
+            );
+          })}
         </SummaryFacts>
       )}
 

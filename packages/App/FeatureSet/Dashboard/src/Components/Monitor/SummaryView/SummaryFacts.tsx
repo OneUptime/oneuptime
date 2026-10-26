@@ -51,6 +51,13 @@ export const SUMMARY_FACT_CARD_CLASS_NAME: string =
 export const SUMMARY_WIDE_FACT_CLASS_NAME: string = "col-span-full";
 
 /*
+ * A fact's padding: a stat tile's p-5 once the view is 32rem wide, less on
+ * a phone, where two cards to a row left each value a column of 90px.
+ */
+export const SUMMARY_FACT_PADDING_CLASS_NAME: string =
+  "p-4 [@container(min-width:32rem)]:p-5";
+
+/*
  * A fact's value: a size smaller while the view is narrower than 32rem (a
  * phone), and a long word - a URL, an id - broken rather than run out of its
  * card.
@@ -164,6 +171,7 @@ export const SummaryFact: FunctionComponent<SummaryFactProps> = (
       value={props.value}
       tooltip={props.tooltip}
       dataTestId={props.dataTestId || SUMMARY_FACT_TEST_ID}
+      paddingClassName={SUMMARY_FACT_PADDING_CLASS_NAME}
     />
   );
 };

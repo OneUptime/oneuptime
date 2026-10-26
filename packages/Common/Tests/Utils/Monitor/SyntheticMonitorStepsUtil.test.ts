@@ -272,7 +272,9 @@ describe("SyntheticMonitorStepsUtil.fillEmptyListsInJSON", () => {
 
     expect(result.changed).toBe(true);
     expect(result.stepsFilled).toBe(1);
-    expect(step["browserTypes"]).toEqual(SYNTHETIC_MONITOR_DEFAULT_BROWSER_TYPES);
+    expect(step["browserTypes"]).toEqual(
+      SYNTHETIC_MONITOR_DEFAULT_BROWSER_TYPES,
+    );
     expect(step["screenSizeTypes"]).toEqual(
       SYNTHETIC_MONITOR_DEFAULT_SCREEN_SIZE_TYPES,
     );

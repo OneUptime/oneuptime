@@ -310,9 +310,7 @@ const ModelPage: <TBaseModel extends BaseModel>(
       labels={labels.length > 0 ? labels : undefined}
       isLoading={!isCurrentModelLoaded}
       error={isCurrentModelLoaded ? loadedHeader!.error : ""}
-      title={
-        isCurrentModelLoaded ? getLoadedTitle(loadedHeader!) : props.title
-      }
+      title={isCurrentModelLoaded ? getLoadedTitle(loadedHeader!) : props.title}
     />
   );
 };

@@ -42,9 +42,7 @@ afterEach(() => {
 });
 
 function renderCard(): HTMLElement {
-  render(
-    <CustomProbeDocumentation probeKey={PROBE_KEY} probeId={PROBE_ID} />,
-  );
+  render(<CustomProbeDocumentation probeKey={PROBE_KEY} probeId={PROBE_ID} />);
 
   return screen.getByTestId(CUSTOM_PROBE_SETUP_TEST_ID);
 }

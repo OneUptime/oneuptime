@@ -36,14 +36,18 @@ const DnsMonitorView: FunctionComponent<ComponentProps> = (
 
   type GetDnssecStatusText = () => string;
 
-  // English, looked up where it is drawn.
+  /*
+   * English, looked up where it is drawn. What the probe checks is whether a
+   * validating resolver set the AD flag, and an unsigned zone never gets it:
+   * "Not validated", not "Invalid", which would accuse every unsigned zone.
+   */
   const getDnssecStatusText: GetDnssecStatusText = (): string => {
     if (dnsResponse?.isDnssecValid === undefined) {
       return translationKey("Unknown");
     }
     return dnsResponse.isDnssecValid
-      ? translationKey("Valid")
-      : translationKey("Invalid");
+      ? translationKey("Validated")
+      : translationKey("Not validated");
   };
 
   const probeAttempts: Array<ProbeAttempt> =

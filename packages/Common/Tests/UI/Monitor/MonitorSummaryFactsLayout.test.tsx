@@ -194,7 +194,8 @@ const SCENARIOS: Array<Scenario> = [
         probeResponse({
           domainResponse: {
             responseTimeInMs: 410,
-            registrar: "Example Registrar, LLC (registrar of record since 2009)",
+            registrar:
+              "Example Registrar, LLC (registrar of record since 2009)",
             expiresDate: "2027-03-01T00:00:00.000Z",
             createdDate: "2009-03-01T00:00:00.000Z",
             dnssec: "unsigned",
@@ -628,15 +629,15 @@ describe("what a fact is drawn with", () => {
     renderScenario(SCENARIOS[0]!);
 
     for (const title of ["URL", "Error", "Error Details"]) {
-      expect(
-        screen.getByText(title).closest("div.rounded-xl"),
-      ).toHaveClass(SUMMARY_WIDE_FACT_CLASS_NAME);
+      expect(screen.getByText(title).closest("div.rounded-xl")).toHaveClass(
+        SUMMARY_WIDE_FACT_CLASS_NAME,
+      );
     }
 
     for (const title of ["Probe", "Response Status Code", "Failed At"]) {
-      expect(
-        screen.getByText(title).closest("div.rounded-xl"),
-      ).not.toHaveClass(SUMMARY_WIDE_FACT_CLASS_NAME);
+      expect(screen.getByText(title).closest("div.rounded-xl")).not.toHaveClass(
+        SUMMARY_WIDE_FACT_CLASS_NAME,
+      );
     }
   });
 
@@ -645,9 +646,7 @@ describe("what a fact is drawn with", () => {
 
     const url: HTMLElement = screen.getByText(LONG_URL);
 
-    expect(url).toHaveClass(
-      ...SUMMARY_FACT_VALUE_CLASS_NAME.split(" "),
-    );
+    expect(url).toHaveClass(...SUMMARY_FACT_VALUE_CLASS_NAME.split(" "));
     expect(url).toHaveClass("break-words", "text-sm");
   });
 
@@ -676,6 +675,61 @@ describe("what a fact is drawn with", () => {
       expect(card).toHaveClass(SUMMARY_WIDE_FACT_CLASS_NAME);
       expect(card.innerHTML).not.toContain("truncate");
     }
+  });
+
+  test("what a certificate does not say is left out of its details, not a card of '-' each", () => {
+    render(
+      <SummaryInfo
+        monitorType={MonitorType.SSLCertificate}
+        probeName="Frankfurt"
+        probeMonitorResponses={[
+          probeResponse({
+            monitorDestination: "https://shop.acme-commerce.example",
+            sslResponse: {
+              isValidCertificate: true,
+              isSelfSigned: false,
+              commonName: "shop.acme-commerce.example",
+              organization: "Acme Commerce",
+              issuer: "R11 (Let's Encrypt)",
+              serialNumber: "  ",
+            },
+          }),
+        ]}
+      />,
+    );
+
+    fireEvent.click(screen.getByText("Show More Details"));
+
+    const details: HTMLElement = screen.getByTestId("ssl-certificate-details");
+
+    expect(details).toHaveTextContent("shop.acme-commerce.example");
+    expect(details).toHaveTextContent("R11 (Let's Encrypt)");
+
+    for (const title of [
+      "Organizational Unit",
+      "Country",
+      "State",
+      "Locality",
+      "Serial Number",
+      "Fingerprint",
+      "Fingerprint 256",
+    ]) {
+      expect({ title, shown: details.textContent?.includes(title) }).toEqual({
+        title,
+        shown: false,
+      });
+    }
+  });
+
+  test("a fact card takes less padding while the summary is narrow", () => {
+    renderScenario(SCENARIOS[0]!);
+
+    const card: HTMLElement = screen
+      .getByText("Response Status Code")
+      .closest("div.rounded-xl") as HTMLElement;
+
+    expect(card).toHaveClass("p-4", "[@container(min-width:32rem)]:p-5");
+    expect(card).not.toHaveClass("p-5");
   });
 
   test("every table sits in a frame that scrolls rather than clips, and its values break", () => {
@@ -709,5 +763,43 @@ describe("what a fact is drawn with", () => {
     renderScenario(SCENARIOS[2]!);
 
     expect(screen.getByText("Offline")).toBeInTheDocument();
+  });
+
+  /*
+   * The probe asks whether a validating resolver set the AD flag, which an
+   * unsigned zone never gets: so the card says it was not validated, and
+   * never calls such a zone "Invalid".
+   */
+  test("DNSSEC says whether the answer was validated, not that an unsigned zone is invalid", () => {
+    const dns: Scenario = SCENARIOS.find((scenario: Scenario): boolean => {
+      return scenario.name === "DNS";
+    })!;
+
+    const cases: Array<{ isDnssecValid: boolean | undefined; word: string }> = [
+      { isDnssecValid: true, word: "Validated" },
+      { isDnssecValid: false, word: "Not validated" },
+      { isDnssecValid: undefined, word: "Unknown" },
+    ];
+
+    for (const entry of cases) {
+      renderScenario({
+        ...dns,
+        props: {
+          probeMonitorResponses: [
+            probeResponse({
+              dnsResponse: {
+                responseTimeInMs: 22,
+                isDnssecValid: entry.isDnssecValid,
+                records: [],
+              },
+            }),
+          ],
+        },
+      });
+
+      expect(screen.getByText(entry.word)).toBeInTheDocument();
+      expect(screen.queryByText("Invalid")).toBeNull();
+      cleanup();
+    }
   });
 });

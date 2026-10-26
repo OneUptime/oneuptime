@@ -263,9 +263,8 @@ describe("FillSyntheticMonitorBrowsersAndScreenSizes", () => {
       expect(monitors.statements[0]!.sql).toContain(`FROM "Monitor"`);
 
       const templateCall: number = (
-        (
-          MonitorTemplateService.getRepository().manager.query as jest.Mock
-        ).mock.invocationCallOrder as Array<number>
+        (MonitorTemplateService.getRepository().manager.query as jest.Mock).mock
+          .invocationCallOrder as Array<number>
       )[0]!;
       const monitorCall: number = (
         (MonitorService.getRepository().manager.query as jest.Mock).mock
