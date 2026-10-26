@@ -496,6 +496,7 @@ const App: () => JSX.Element = () => {
               <Sso
                 statusPageName={statusPageName}
                 logoFileId={new ObjectID(statusPageLogoFileId)}
+                forceSSO={forceSSO}
               />
             }
           />
@@ -1210,6 +1211,7 @@ const App: () => JSX.Element = () => {
               <Sso
                 statusPageName={statusPageName}
                 logoFileId={new ObjectID(statusPageLogoFileId)}
+                forceSSO={forceSSO}
               />
             }
           />

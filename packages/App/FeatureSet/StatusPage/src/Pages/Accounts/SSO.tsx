@@ -8,10 +8,13 @@ import StatusPageUtil from "../../Utils/StatusPage";
 import UserUtil from "../../Utils/User";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
+import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
+import LabelledDivider from "Common/UI/Components/Divider/LabelledDivider";
 import Link from "Common/UI/Components/Link/Link";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ModelList from "Common/UI/Components/ModelList/ModelList";
+import SignInOptionLink from "Common/UI/Components/SignInOption/SignInOptionLink";
 import LocalStorage from "Common/UI/Utils/LocalStorage";
 import Navigation from "Common/UI/Utils/Navigation";
 import StatusPageSSO from "Common/Models/DatabaseModels/StatusPageSso";
@@ -22,7 +25,17 @@ import { useTranslation } from "react-i18next";
 export interface ComponentProps {
   statusPageName: string;
   logoFileId: ObjectID;
+  /*
+   * The page requires SSO (Require SSO for Login): its private users can't
+   * sign in with an email and password, so the page offers no way back to
+   * the password form - the sign-in page would only send them here again.
+   */
+  forceSSO?: boolean | undefined;
 }
+
+// The way back to the email and password form, under the providers.
+export const PASSWORD_SIGN_IN_OPTION_TEST_ID: string = "password-login";
+export const SSO_SIGN_IN_OPTIONS_TEST_ID: string = "sign-in-options";
 
 const LoginPage: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -99,6 +112,28 @@ const LoginPage: FunctionComponent<ComponentProps> = (
 
   const hasNoProviders: boolean =
     ssoProviderCount === 0 && oidcProviderCount === 0;
+
+  /*
+   * The page's own sign-in, on its domain or in the Dashboard's preview,
+   * still taking the visitor back to the page they were sent to sign in
+   * from once they have.
+   */
+  const loginRoute: Route = StatusPageUtil.getSignInRoute({
+    path: StatusPageUtil.isPreviewPage()
+      ? `/status-page/${statusPageId}/login`
+      : "/login",
+    redirectUrl: safeRedirectUrlForStorage,
+  });
+
+  /*
+   * Under the providers, the way back to the email and password form, drawn
+   * as the sign-in page draws its way here (Log in with SSO): "or", then an
+   * outlined button as wide as the providers. Only where a private user may
+   * sign in with a password - not on a page that requires SSO - and not
+   * when the page has no provider to list, where the notice below already
+   * says what to do instead, with its own link back.
+   */
+  const offersPasswordSignIn: boolean = !props.forceSSO && !hasNoProviders;
 
   return (
     <div className="flex min-h-full flex-col justify-center py-12 sm:px-6 lg:px-8">
@@ -200,6 +235,23 @@ const LoginPage: FunctionComponent<ComponentProps> = (
             />
           </div>
 
+          {offersPasswordSignIn && (
+            <div data-testid={SSO_SIGN_IN_OPTIONS_TEST_ID}>
+              <LabelledDivider
+                label={t("accounts.login.or")}
+                className="mb-5"
+                dataTestId="sign-in-options-divider"
+              />
+              <SignInOptionLink
+                to={loginRoute}
+                id={PASSWORD_SIGN_IN_OPTION_TEST_ID}
+                dataTestId={PASSWORD_SIGN_IN_OPTION_TEST_ID}
+                icon={IconProp.Lock}
+                title={t("accounts.sso.logInWithPassword")}
+              />
+            </div>
+          )}
+
           {hasNoProviders && (
             <div
               className="text-center text-sm text-gray-600"
@@ -213,13 +265,7 @@ const LoginPage: FunctionComponent<ComponentProps> = (
               </p>
               <p className="mt-4">
                 <Link
-                  to={
-                    new Route(
-                      StatusPageUtil.isPreviewPage()
-                        ? `/status-page/${statusPageId}/login`
-                        : "/login",
-                    )
-                  }
+                  to={loginRoute}
                   className="text-indigo-500 hover:text-indigo-900 cursor-pointer text-sm"
                 >
                   {t("accounts.sso.backToLogin", {

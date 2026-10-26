@@ -1,7 +1,9 @@
 {
   "a11y": {
     "skipToMainContent": "Naar hoofdinhoud springen",
-    "loading": "Laden..."
+    "loading": "Laden...",
+    "moreLinks": "Meer links",
+    "navigation": "Navigatie"
   },
   "common": {
     "save": "Opslaan",
@@ -303,7 +305,8 @@
       "loginPrompt": "Log alstublieft in om {{statusPageName}} te bekijken",
       "noProviders": "Geen SSO-providers geconfigureerd of ingeschakeld",
       "notAvailable": "Eenmalige aanmelding (SSO) is niet beschikbaar voor deze statuspagina. Log in plaats daarvan in met uw e-mailadres en wachtwoord.",
-      "backToLogin": "Terug naar inloggen"
+      "backToLogin": "Terug naar inloggen",
+      "logInWithPassword": "Inloggen met wachtwoord"
     },
     "forgotPassword": {
       "title": "Wachtwoord vergeten",
@@ -320,13 +323,9 @@
       "knowPassword": "Kent u uw wachtwoord?"
     },
     "masterPassword": {
-      "enterWithName": "Voer wachtwoord van {{statusPageName}} in",
-      "enterGeneric": "Voer wachtwoord in",
-      "prompt": "Voer het wachtwoord in om door te gaan.",
+      "prompt": "Voer het wachtwoord in om deze statuspagina te bekijken.",
       "passwordRequired": "wachtwoord is vereist.",
       "passwordLabel": "Wachtwoord",
-      "passwordDescription": "Voer het wachtwoord in om deze pagina te ontgrendelen.",
-      "passwordPlaceholder": "Wachtwoord invoeren",
       "submit": "Statuspagina ontgrendelen"
     },
     "signingOut": "Bezig met afmelden..."

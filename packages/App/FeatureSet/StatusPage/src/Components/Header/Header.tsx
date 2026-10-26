@@ -12,6 +12,7 @@ import React, {
   useEffect,
   useRef,
 } from "react";
+import { useTranslation } from "react-i18next";
 
 export interface ComponentProps {
   links: Array<Link>;
@@ -23,6 +24,7 @@ export interface ComponentProps {
 const StatusPageHeader: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const { t } = useTranslation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
   const mobileMenuRef: React.RefObject<HTMLDivElement> =
     useRef<HTMLDivElement>(null);
@@ -122,6 +124,11 @@ const StatusPageHeader: FunctionComponent<ComponentProps> = (
               className="p-2"
               icon={isMobileMenuOpen ? IconProp.Close : IconProp.More}
               dataTestId="mobile-header-toggle"
+              /*
+               * An icon alone: named for what it opens, open or closed, so a
+               * screen reader hears more than "button".
+               */
+              ariaLabel={t("a11y.moreLinks")}
               ariaExpanded={isMobileMenuOpen}
             />
 

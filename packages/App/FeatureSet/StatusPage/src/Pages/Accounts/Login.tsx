@@ -215,13 +215,12 @@ const LoginPage: FunctionComponent<ComponentProps> = (
                     dataTestId="sign-in-options-divider"
                   />
                   <SignInOptionLink
-                    to={
-                      new Route(
-                        StatusPageUtil.isPreviewPage()
-                          ? `/status-page/${StatusPageUtil.getStatusPageId()?.toString()}/sso`
-                          : "/sso",
-                      )
-                    }
+                    to={StatusPageUtil.getSignInRoute({
+                      path: StatusPageUtil.isPreviewPage()
+                        ? `/status-page/${StatusPageUtil.getStatusPageId()?.toString()}/sso`
+                        : "/sso",
+                      redirectUrl: StatusPageUtil.getSafeRedirectUrl(),
+                    })}
                     id="sso-login"
                     dataTestId="sso-login"
                     icon={IconProp.ShieldCheck}

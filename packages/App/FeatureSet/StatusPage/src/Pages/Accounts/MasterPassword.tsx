@@ -138,20 +138,27 @@ const MasterPasswordPage: FunctionComponent<ComponentProps> = (
 
   return (
     <div className="flex min-h-full flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
+      <div className="px-4 sm:mx-auto sm:w-full sm:max-w-md sm:px-0">
         {logoUrl ? (
           <LogoPlate className="mx-auto w-fit">
             <img style={{ height: "70px", margin: "auto" }} src={logoUrl} />
           </LogoPlate>
         ) : null}
-        <h2 className="mt-6 text-center text-2xl tracking-tight text-gray-900">
-          {props.statusPageName
-            ? t("accounts.masterPassword.enterWithName", {
-                statusPageName: props.statusPageName,
-              })
-            : t("accounts.masterPassword.enterGeneric")}
+        {/*
+         * What the visitor is opening, then what to do, once: the title, the
+         * sentence under it, the field's description and its placeholder
+         * used to say "enter the password" four times over.
+         */}
+        <h2
+          className="mt-6 break-words text-center text-2xl tracking-tight text-gray-900"
+          data-testid="master-password-title"
+        >
+          {props.statusPageName || t("common.statusPage")}
         </h2>
-        <p className="mt-2 text-center text-sm text-gray-600">
+        <p
+          className="mt-2 text-center text-sm text-gray-600"
+          data-testid="master-password-prompt"
+        >
           {privatePageCopy}
         </p>
       </div>
@@ -170,9 +177,7 @@ const MasterPasswordPage: FunctionComponent<ComponentProps> = (
                   password: true,
                 },
                 title: t("accounts.masterPassword.passwordLabel"),
-                description: t("accounts.masterPassword.passwordDescription"),
                 required: true,
-                placeholder: t("accounts.masterPassword.passwordPlaceholder"),
                 fieldType: FormFieldSchemaType.Password,
                 // What unlocks the page: password managers may fill it.
                 autoComplete: "current-password",

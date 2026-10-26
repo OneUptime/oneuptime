@@ -116,4 +116,60 @@ describe("Status Page redirect safety", () => {
       expect(StatusPageUtil.getSafeRedirectUrl()).toBeNull();
     });
   });
+
+  /*
+   * Moving between the page's two ways in - the password form and single
+   * sign-on - keeps where the visitor is going once signed in, and only
+   * ever a safe place on the page itself.
+   */
+  describe("getSignInRoute", () => {
+    test("carries a safe redirect along", () => {
+      expect(
+        StatusPageUtil.getSignInRoute({
+          path: "/sso",
+          redirectUrl: "/incidents/incident-id?tab=timeline",
+        }).toString(),
+      ).toBe(
+        `/sso?redirectUrl=${encodeURIComponent("/incidents/incident-id?tab=timeline")}`,
+      );
+    });
+
+    test("is the bare page without one", () => {
+      expect(
+        StatusPageUtil.getSignInRoute({
+          path: "/login",
+          redirectUrl: null,
+        }).toString(),
+      ).toBe("/login");
+    });
+
+    test.each([
+      "https://evil.example/path",
+      "//evil.example/path",
+      "javascript:alert(1)",
+      // A sign-in page is never where a sign-in lands.
+      "/login",
+      "/sso",
+    ])("drops an unsafe or sign-in redirect %s", (redirectUrl: string) => {
+      expect(
+        StatusPageUtil.getSignInRoute({
+          path: "/login",
+          redirectUrl: redirectUrl,
+        }).toString(),
+      ).toBe("/login");
+    });
+
+    test("keeps the preview's own path", () => {
+      expect(
+        StatusPageUtil.getSignInRoute({
+          path: "/status-page/status-page-id/login",
+          redirectUrl: "/status-page/status-page-id/incidents/incident-id",
+        }).toString(),
+      ).toBe(
+        `/status-page/status-page-id/login?redirectUrl=${encodeURIComponent(
+          "/status-page/status-page-id/incidents/incident-id",
+        )}`,
+      );
+    });
+  });
 });
