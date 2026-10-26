@@ -4,9 +4,11 @@ import {
   getGlobalSMTPConfig,
   getSendgridConfig,
 } from "../Config";
+import InlineImageAttachments from "./MailProviders/InlineImageAttachments";
+import InlineImageRefusal from "./MailProviders/InlineImageRefusal";
 import MicrosoftGraphMailProvider from "./MailProviders/MicrosoftGraphMailProvider";
+import SendGridMailProvider from "./MailProviders/SendGridMailProvider";
 import SMTPOAuthService from "./SMTPOAuthService";
-import SendgridMail, { ClientResponse, MailDataRequired } from "@sendgrid/mail";
 import Hostname from "Common/Types/API/Hostname";
 import URL from "Common/Types/API/URL";
 import OneUptimeDate from "Common/Types/Date";
@@ -35,7 +37,9 @@ import DataSourceEgressGuard, {
 import PinnedSmtpSocket, {
   SmtpSocketCallback,
 } from "Common/Server/Utils/Mail/PinnedSmtpSocket";
-import { EmailInlineImage } from "Common/Server/Utils/Mail/EmailInlineImages";
+import EmailInlineImages, {
+  EmailInlineImage,
+} from "Common/Server/Utils/Mail/EmailInlineImages";
 import EmailPlainText from "Common/Server/Utils/Mail/EmailPlainText";
 import EmailSize, {
   EmailWithinLimit,
@@ -52,26 +56,46 @@ import nodemailer, {
   type SMTPTransportOptions,
   type Transporter,
 } from "nodemailer";
-import type Mailer from "nodemailer/lib/mailer";
 import SMTPTransport from "nodemailer/lib/smtp-transport";
 import Path from "path";
 import * as tls from "tls";
 import {
   BRAND_VARIABLE_NAMES,
+  ONEUPTIME_LOGO_VARIABLE_NAME,
   getCurrentEmailBrandingVariables,
   withBrandedSubject,
 } from "../Utils/EmailBranding";
 import HandlebarsText from "../Utils/HandlebarsText";
-import ProductBrandingText from "Common/Server/Utils/ProductBrandingText";
-
-// One attachment of a SendGrid message.
-type SendgridAttachment = NonNullable<MailDataRequired["attachments"]>[number];
 
 // An email as it is sent: its final subject and HTML body.
 export interface RenderedEmail {
   subject: string;
   body: string;
 }
+
+// What every email that went says it was not: delivered.
+const EMAIL_DELIVERY_NOT_TRACKED: string =
+  "This does not mean the email was delivered. We do not track email delivery. If the email was not delivered - it is likely due to the email address being invalid, user has blocked sending domain, or it could have landed in spam.";
+
+export const EMAIL_SENT_STATUS_MESSAGE: string = `Email sent successfully. ${EMAIL_DELIVERY_NOT_TRACKED}`;
+
+const SENTENCE_END_PATTERN: RegExp = /[.!?]$/;
+
+/*
+ * What the Email Log says of an email that went without its images, the
+ * mail service having refused it with them (sendEvenWithoutImages):
+ * `refusal` is the service's answer, as its provider explains it.
+ */
+export const getSentWithoutImagesStatusMessage: (refusal: string) => string = (
+  refusal: string,
+): string => {
+  const answer: string = refusal.trim();
+  const sentence: string = SENTENCE_END_PATTERN.test(answer)
+    ? answer
+    : `${answer}.`;
+
+  return `Email sent successfully without its images, which the mail service refused: ${sentence} ${EMAIL_DELIVERY_NOT_TRACKED}`;
+};
 
 interface PooledTransporter {
   transporter: Transporter<SMTPSentMessageInfo>;
@@ -804,13 +828,13 @@ export default class MailService {
 
   private static async updateUserNotificationLogTimelineAsSent(
     timelineId: ObjectID,
+    statusMessage: string,
   ): Promise<void> {
     if (timelineId) {
       await UserOnCallLogTimelineService.updateOneById({
         data: {
           status: UserNotificationStatus.Sent,
-          statusMessage:
-            "Email sent successfully. This does not mean the email was delivered. We do not track email delivery. If the email was not delivered - it is likely due to the email address being invalid, user has blocked sending domain, or it could have landed in spam.",
+          statusMessage: statusMessage,
         },
         id: timelineId,
         props: {
@@ -890,6 +914,19 @@ export default class MailService {
    * EmailInlineImages and EmailLogo).
    */
   public static async render(mail: EmailEnvelope): Promise<RenderedEmail> {
+    return await this.renderEmail(mail, { withOneUptimeLogo: true });
+  }
+
+  /*
+   * render(), or the same email without OneUptime's logo - what an email is
+   * sent as when a mail service would not take its images
+   * (sendEvenWithoutImages). Its header then shows the name alone, as it
+   * does when the logo's file cannot be read.
+   */
+  private static async renderEmail(
+    mail: EmailEnvelope,
+    options: { withOneUptimeLogo: boolean },
+  ): Promise<RenderedEmail> {
     // The defaults every email gets.
     const vars: Dictionary<string | JSONObject> = { ...(mail.vars || {}) };
 
@@ -907,6 +944,10 @@ export default class MailService {
 
     const brandVariables: Dictionary<string> =
       getCurrentEmailBrandingVariables();
+
+    if (!options.withOneUptimeLogo) {
+      delete brandVariables[ONEUPTIME_LOGO_VARIABLE_NAME];
+    }
 
     Object.assign(vars, brandVariables);
 
@@ -1015,20 +1056,7 @@ export default class MailService {
                * sends both in one multipart/related part.
                */
               ...(inlineImages.length > 0
-                ? {
-                    attachments: inlineImages.map(
-                      (image: EmailInlineImage): Mailer.Attachment => {
-                        return {
-                          filename: image.fileName,
-                          content: image.base64,
-                          encoding: "base64",
-                          contentType: image.mimeType,
-                          contentDisposition: "inline",
-                          cid: image.contentId,
-                        };
-                      },
-                    ),
-                  }
+                ? { attachments: InlineImageAttachments.forSmtp(inlineImages) }
                 : {}),
             });
 
@@ -1047,6 +1075,18 @@ export default class MailService {
            */
           logger.error(`Email send attempt ${attempt} failed:`, EXTERNAL_FAULT);
           logger.error(error, EXTERNAL_FAULT);
+
+          /*
+           * The server will not take the message for its size or its parts
+           * (InlineImageRefusal): it would refuse the same message again.
+           * sendEvenWithoutImages sends it once more without its images.
+           */
+          if (
+            inlineImages.length > 0 &&
+            InlineImageRefusal.isSmtpRefusal(error)
+          ) {
+            break;
+          }
 
           if (attempt === maxRetries) {
             break; // Don't wait after the last attempt
@@ -1094,6 +1134,87 @@ export default class MailService {
       timeoutMs: timeout,
       inlineImages: inlineImages,
     });
+  }
+
+  /*
+   * Sends `mail` with its inline images and, when the mail service refuses
+   * the email for them (InlineImageRefusal: an attachment field it does not
+   * read, a message too big with them), once more without them - rendered
+   * again from `envelope` without OneUptime's logo, its header showing the
+   * name alone, and with each screenshot a short note
+   * (EmailInlineImages.leaveOut). An email is worth more than its images: a
+   * password reset or an on-call page refused for the logo in its header
+   * would otherwise be lost for a picture.
+   *
+   * Returns the refusal when the email went without its images, for the
+   * Email Log to say so, or null when it went as it was. Any other failure,
+   * and any failure of an email that has no images, is thrown as it is:
+   * leaving the images out would not change it. So is a failure of the
+   * email without them.
+   */
+  private static async sendEvenWithoutImages(data: {
+    mail: EmailMessage;
+    envelope: EmailEnvelope;
+    inlineImages: Array<EmailInlineImage>;
+    // Whether the service is the tenant's own (an SMTP server), not ours to fix.
+    isServiceExternal: boolean;
+    send: (
+      mail: EmailMessage,
+      inlineImages: Array<EmailInlineImage>,
+    ) => Promise<void>;
+  }): Promise<Error | null> {
+    try {
+      await data.send(data.mail, data.inlineImages);
+      return null;
+    } catch (err) {
+      if (
+        data.inlineImages.length === 0 ||
+        !InlineImageRefusal.isRefusalOfInlineImages(err)
+      ) {
+        throw err;
+      }
+
+      const refusal: Error =
+        err instanceof Error ? err : new Error(String(err));
+
+      /*
+       * Our own attachments refused by SendGrid or Microsoft Graph are
+       * OneUptime's to fix, as issue #5308 was; an SMTP server's limits are
+       * the tenant's.
+       */
+      logger.error(
+        `The mail service refused an email for its inline images, so it is sent again without them: ${refusal.message}`,
+        data.isServiceExternal ? EXTERNAL_FAULT : undefined,
+      );
+
+      data.mail.body = await this.renderWithoutImages(data.envelope);
+      await data.send(data.mail, []);
+
+      return refusal;
+    }
+  }
+
+  /*
+   * The HTML of the email `envelope` asks for, with no image to attach: no
+   * OneUptime logo, each screenshot a note, and the whole held to
+   * MAX_EMAIL_BYTES as any email is (EmailSize).
+   */
+  private static async renderWithoutImages(
+    envelope: EmailEnvelope,
+  ): Promise<string> {
+    const rendered: RenderedEmail = await this.renderEmail(envelope, {
+      withOneUptimeLogo: false,
+    });
+
+    const html: string = EmailInlineImages.leaveOut(rendered.body);
+    const fitted: string = EmailSize.cutHtml(html, MAX_EMAIL_BYTES);
+
+    return fitted === html
+      ? html
+      : EmailSize.linkTruncatedTextNotes(
+          fitted,
+          EmailSize.getRecordLink(envelope.vars),
+        );
   }
 
   public static async send(
@@ -1260,6 +1381,13 @@ export default class MailService {
       const emailServerType: EmailServerType = await getEmailServerType();
 
       /*
+       * The email as it was asked for, before its body and subject below
+       * are the rendered ones: what it is rendered from again, without its
+       * images, should a mail service refuse them (sendEvenWithoutImages).
+       */
+      const envelope: EmailEnvelope = { ...mail };
+
+      /*
        * Rendered as render() renders it, so a preview of an email shows what
        * this sends.
        */
@@ -1373,72 +1501,33 @@ export default class MailService {
           ).asUserError();
         }
 
-        SendgridMail.setApiKey(sendgridConfig.apiKey);
-
-        const msg: MailDataRequired = {
-          to: mail.toEmail.toString(),
-          from: `${
-            sendgridConfig.fromName || ProductBrandingText.getProductName()
-          } <${sendgridConfig.fromEmail.toString()}>`,
-          subject: mail.subject,
-          // The same email as text, beside the HTML (EmailPlainText).
-          text: EmailPlainText.fromHtml(mail.body),
-          html: mail.body,
-          ...(inlineImages.length > 0
-            ? {
-                attachments: inlineImages.map(
-                  (image: EmailInlineImage): SendgridAttachment => {
-                    return {
-                      content: image.base64,
-                      filename: image.fileName,
-                      type: image.mimeType,
-                      disposition: "inline",
-                      contentId: image.contentId,
-                    };
-                  },
-                ),
-              }
-            : {}),
-        };
-
         if (emailLog) {
           emailLog.fromEmail = sendgridConfig.fromEmail;
         }
 
-        const sendgridResponse: [ClientResponse, Record<string, unknown>] =
-          await SendgridMail.send(msg);
+        const config: SendGridConfig = sendgridConfig;
 
-        logger.debug("SendGrid Email Provider Response:");
-        logger.debug(
-          JSON.stringify(
-            {
-              statusCode: sendgridResponse[0]?.statusCode,
-              headers: sendgridResponse[0]?.headers,
-              body: sendgridResponse[0]?.body,
-            },
-            null,
-            2,
-          ),
-        );
+        const imagesRefused: Error | null = await this.sendEvenWithoutImages({
+          mail: mail,
+          envelope: envelope,
+          inlineImages: inlineImages,
+          isServiceExternal: false,
+          send: async (
+            message: EmailMessage,
+            images: Array<EmailInlineImage>,
+          ): Promise<void> => {
+            await new SendGridMailProvider().send(message, config, {
+              inlineImages: images,
+            });
+          },
+        });
 
-        if (emailLog) {
-          emailLog.status = MailStatus.Success;
-          emailLog.statusMessage =
-            "Email sent successfully. This does not mean the email was delivered. We do not track email delivery. If the email was not delivered - it is likely due to the email address being invalid, user has blocked sending domain, or it could have landed in spam.";
+        await this.recordSent({
+          emailLog: emailLog,
+          userOnCallLogTimelineId: options?.userOnCallLogTimelineId,
+          imagesRefused: imagesRefused,
+        });
 
-          await EmailLogService.create({
-            data: emailLog,
-            props: {
-              isRoot: true,
-            },
-          });
-        }
-
-        if (options?.userOnCallLogTimelineId) {
-          await this.updateUserNotificationLogTimelineAsSent(
-            options?.userOnCallLogTimelineId,
-          );
-        }
         return;
       }
 
@@ -1489,31 +1578,34 @@ export default class MailService {
         throw new BadDataException("Email server not found");
       }
 
-      await this.transportMail(mail, {
-        emailServer: options.emailServer,
-        projectId: options.projectId,
-        timeout: options.timeout,
+      const emailServer: EmailServer = options.emailServer;
+      const projectId: ObjectID | undefined = options.projectId;
+      const timeout: number | undefined = options.timeout;
+
+      const imagesRefused: Error | null = await this.sendEvenWithoutImages({
+        mail: mail,
+        envelope: envelope,
         inlineImages: inlineImages,
+        isServiceExternal:
+          emailServer.transportType !== MailTransportType.MicrosoftGraph,
+        send: async (
+          message: EmailMessage,
+          images: Array<EmailInlineImage>,
+        ): Promise<void> => {
+          await this.transportMail(message, {
+            emailServer: emailServer,
+            projectId: projectId,
+            timeout: timeout,
+            inlineImages: images,
+          });
+        },
       });
 
-      if (emailLog) {
-        emailLog.status = MailStatus.Success;
-        emailLog.statusMessage =
-          "Email sent successfully. This does not mean the email was delivered. We do not track email delivery. If the email was not delivered - it is likely due to the email address being invalid, user has blocked sending domain, or it could have landed in spam.";
-
-        await EmailLogService.create({
-          data: emailLog,
-          props: {
-            isRoot: true,
-          },
-        });
-      }
-
-      if (options?.userOnCallLogTimelineId) {
-        await this.updateUserNotificationLogTimelineAsSent(
-          options?.userOnCallLogTimelineId,
-        );
-      }
+      await this.recordSent({
+        emailLog: emailLog,
+        userOnCallLogTimelineId: options.userOnCallLogTimelineId,
+        imagesRefused: imagesRefused,
+      });
     } catch (err: any) {
       let message: string | undefined = err.message;
 
@@ -1553,6 +1645,39 @@ export default class MailService {
       }
 
       throw err;
+    }
+  }
+
+  /*
+   * An email that went: its Email Log row and its on-call timeline entry say
+   * so - and, when it went without its images, that it did and why.
+   */
+  private static async recordSent(data: {
+    emailLog: EmailLog | undefined;
+    userOnCallLogTimelineId: ObjectID | undefined;
+    imagesRefused: Error | null;
+  }): Promise<void> {
+    const statusMessage: string = data.imagesRefused
+      ? getSentWithoutImagesStatusMessage(data.imagesRefused.message)
+      : EMAIL_SENT_STATUS_MESSAGE;
+
+    if (data.emailLog) {
+      data.emailLog.status = MailStatus.Success;
+      data.emailLog.statusMessage = statusMessage;
+
+      await EmailLogService.create({
+        data: data.emailLog,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    if (data.userOnCallLogTimelineId) {
+      await this.updateUserNotificationLogTimelineAsSent(
+        data.userOnCallLogTimelineId,
+        statusMessage,
+      );
     }
   }
 
