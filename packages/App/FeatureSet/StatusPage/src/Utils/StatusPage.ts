@@ -4,6 +4,7 @@ import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import Typeof from "Common/Types/Typeof";
 import LocalStorage from "Common/UI/Utils/LocalStorage";
+import SessionStorage from "Common/UI/Utils/SessionStorage";
 import Navigation from "Common/UI/Utils/Navigation";
 
 export default class StatusPageUtil {
@@ -72,7 +73,55 @@ export default class StatusPageUtil {
     );
   }
 
+  public static getStatusPageIdFromUrl(): ObjectID | null {
+    if (!Navigation.containsInPath("/status-page/")) {
+      return null;
+    }
+
+    try {
+      const pathParts: string[] = Navigation.getCurrentPath()
+        .toString()
+        .split("/");
+      const statusPageIndex: number = pathParts.indexOf("status-page");
+
+      if (statusPageIndex !== -1 && pathParts[statusPageIndex + 1]) {
+        const candidateId: string = pathParts[statusPageIndex + 1] as string;
+
+        if (
+          candidateId &&
+          !candidateId.startsWith(":") &&
+          !candidateId.includes("?")
+        ) {
+          const cleanId: string = candidateId.split("?")[0] || candidateId;
+          return new ObjectID(cleanId);
+        }
+      }
+    } catch {
+      return null;
+    }
+
+    return null;
+  }
+
   public static getStatusPageId(): ObjectID | null {
+    const idFromUrl: ObjectID | null = StatusPageUtil.getStatusPageIdFromUrl();
+
+    if (idFromUrl) {
+      return idFromUrl;
+    }
+
+    const sessionValue: ObjectID | null = SessionStorage.getItem(
+      "statusPageId",
+    ) as ObjectID | null;
+
+    if (sessionValue) {
+      if (typeof sessionValue === Typeof.String) {
+        return new ObjectID(sessionValue.toString());
+      }
+
+      return sessionValue;
+    }
+
     const value: ObjectID | null = LocalStorage.getItem(
       "statusPageId",
     ) as ObjectID | null;
@@ -85,7 +134,14 @@ export default class StatusPageUtil {
   }
 
   public static setStatusPageId(id: ObjectID | null): void {
-    LocalStorage.setItem("statusPageId", id);
+    if (!id) {
+      SessionStorage.removeItem("statusPageId");
+      LocalStorage.removeItem("statusPageId");
+      return;
+    }
+
+    SessionStorage.setItem("statusPageId", id.toString());
+    LocalStorage.setItem("statusPageId", id.toString());
   }
 
   public static setIsPrivateStatusPage(isPrivate: boolean): void {
