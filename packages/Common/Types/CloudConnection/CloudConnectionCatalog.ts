@@ -163,16 +163,21 @@ function readIntervalField(defaultMinutes: number): CloudConnectionField {
   };
 }
 
+/*
+ * The two choices, and the line under the title, in the cloud's own words:
+ * an AWS account of an organization, an Azure subscription of a tenant, a
+ * Google Cloud project of an organization.
+ */
 function readScopeField(data: {
   one: string;
   every: string;
+  description: string;
   authMethods?: Array<CloudConnectionAuthMethod> | undefined;
 }): CloudConnectionField {
   return {
     key: READ_SCOPE_FIELD_KEY,
     title: "What to read",
-    description:
-      "One account, or every account of the organization. The command changes with it.",
+    description: data.description,
     type: "dropdown",
     required: false,
     options: [
@@ -236,6 +241,8 @@ export const CloudConnectionCatalog: Array<CloudConnectionDefinition> = [
       readScopeField({
         one: "This account",
         every: "Every account in the organization",
+        description:
+          "One account, or every account of the organization. The command changes with it.",
         authMethods: [CloudConnectionAuthMethod.AwsRole],
       }),
       {
@@ -305,6 +312,8 @@ export const CloudConnectionCatalog: Array<CloudConnectionDefinition> = [
       readScopeField({
         one: "This subscription",
         every: "Every subscription in the tenant",
+        description:
+          "One subscription, or every subscription of the tenant. The command changes with it.",
       }),
       {
         key: "subscriptionIds",
@@ -379,6 +388,8 @@ export const CloudConnectionCatalog: Array<CloudConnectionDefinition> = [
       readScopeField({
         one: "This project",
         every: "Every project in the organization",
+        description:
+          "One project, or every project of the organization. The command changes with it.",
       }),
       {
         key: "projectIds",

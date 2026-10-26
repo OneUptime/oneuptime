@@ -78,6 +78,12 @@ export interface ResourceIdentityField {
    */
   description?: string | undefined;
   placeholder?: string | undefined;
+  /*
+   * How the stored value reads, when it is a code rather than words: a
+   * cloud account's cloud is kept as "aws" and reads "AWS". Left out, the
+   * value is shown as stored.
+   */
+  getDisplayValue?: ((value: string) => string) | undefined;
 }
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
@@ -205,6 +211,30 @@ const ResourceDetailsCard: <TBaseModel extends BaseModel>(
     },
     ...identityFields.map(
       (identity: ResourceIdentityField): ModelDetailField<TBaseModel> => {
+        const getDisplayValue: ((value: string) => string) | undefined =
+          identity.getDisplayValue;
+
+        if (getDisplayValue) {
+          return {
+            field: {
+              [identity.column]: true,
+            } as unknown as Select<TBaseModel>,
+            title: identity.title,
+            fieldType: FieldType.Element,
+            getElement: (item: TBaseModel): ReactElement => {
+              const value: unknown = (
+                item as unknown as Record<string, unknown>
+              )[identity.column];
+
+              return (
+                <span>
+                  {getDisplayValue(typeof value === "string" ? value : "")}
+                </span>
+              );
+            },
+          };
+        }
+
         return {
           field: {
             [identity.column]: true,

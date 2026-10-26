@@ -3,6 +3,15 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageComponentProps from "../../PageComponentProps";
 import AppLink from "../../../Components/AppLink/AppLink";
 import CloudConnectCallout from "../../../Components/Cloud/Connect/CloudConnectCallout";
+import {
+  CLOUD_ACCOUNT_STATUS_COLORS,
+  CloudAccountStatus,
+  getCloudAccountStatus,
+} from "../../../Components/Cloud/CloudAccountStatus";
+import {
+  LAST_READ_AT,
+  NOT_READ_YET,
+} from "../../../Components/Cloud/Connect/CloudConnectionWords";
 import useFirstRecordWatch, {
   FirstRecordWatch,
 } from "../../../Components/Infrastructure/UseFirstRecordWatch";
@@ -13,19 +22,23 @@ import {
   CloudProvider,
   getCloudProviderLabel,
 } from "Common/Types/Cloud/CloudPlatform";
+import OneUptimeDate from "Common/Types/Date";
 import ObjectID from "Common/Types/ObjectID";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 /*
  * Cloud > Accounts: the AWS accounts, Azure subscriptions and Google Cloud
- * projects the cloud connections reach, each with how many resources it
- * holds, in how many regions, and when a connection last read it.
+ * projects the cloud connections reach, each with whether a connection is
+ * reading it and when it last did, and how many resources it holds.
  *
  * Every row is a connection's: an account is added when a connection first
  * reaches it (CloudAccountService), so there is no create button -
@@ -42,6 +55,7 @@ const PROVIDER_DROPDOWN_OPTIONS: Array<DropdownOption> = Object.values(
 const CloudAccounts: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const firstRecordWatch: FirstRecordWatch = useFirstRecordWatch<CloudAccount>({
     modelType: CloudAccount,
   });
@@ -86,6 +100,7 @@ const CloudAccounts: FunctionComponent<
         selectMoreFields={{
           provider: true,
           accountId: true,
+          cloudConnectionId: true,
         }}
         cardProps={{
           title: "Cloud Accounts",
@@ -172,6 +187,58 @@ const CloudAccounts: FunctionComponent<
               );
             },
           },
+          /*
+           * Whether a connection is reading it - the pill its Overview
+           * shows - and when one last did, in one column, as the Connect
+           * page's list says it of a connection. Right after the name, and
+           * kept on phones: it is what a list of accounts is checked for,
+           * so a table too wide for its card scrolls the counts away, not it.
+           */
+          {
+            field: {
+              lastSeenAt: true,
+            },
+            title: "Status",
+            type: FieldType.Element,
+            getElement: (item: CloudAccount): ReactElement => {
+              const status: CloudAccountStatus = getCloudAccountStatus({
+                lastSeenAt: item.lastSeenAt,
+                hasConnection: Boolean(item.cloudConnectionId),
+                now: OneUptimeDate.getCurrentDate(),
+              });
+
+              return (
+                <div
+                  className="min-w-0 space-y-1"
+                  data-testid="cloud-account-status"
+                >
+                  <Pill
+                    text={status.label}
+                    color={CLOUD_ACCOUNT_STATUS_COLORS[status.tone]}
+                  />
+                  <div
+                    className="text-xs text-gray-500"
+                    data-testid="cloud-account-last-read"
+                    title={
+                      item.lastSeenAt
+                        ? OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+                            item.lastSeenAt,
+                          )
+                        : undefined
+                    }
+                  >
+                    {item.lastSeenAt
+                      ? translator.translateTemplate(LAST_READ_AT, {
+                          time: OneUptimeDate.getDateAsLocalShortDateTimeString(
+                            item.lastSeenAt,
+                          ),
+                        })
+                      : translator.translateText(NOT_READ_YET)}
+                  </div>
+                </div>
+              );
+            },
+          },
           {
             field: {
               resourceCount: true,
@@ -181,7 +248,7 @@ const CloudAccounts: FunctionComponent<
           },
           /*
            * On an account's Overview with its resources by Region; here only
-           * when asked for, so Last Read and Labels fit beside the side menu.
+           * when asked for, so Status and Labels fit beside the side menu.
            */
           {
             field: {
@@ -191,14 +258,6 @@ const CloudAccounts: FunctionComponent<
             type: FieldType.Number,
             hideOnMobile: true,
             isHiddenByDefault: true,
-          },
-          {
-            field: {
-              lastSeenAt: true,
-            },
-            title: "Last Read",
-            type: FieldType.DateTime,
-            hideOnMobile: true,
           },
           {
             field: {

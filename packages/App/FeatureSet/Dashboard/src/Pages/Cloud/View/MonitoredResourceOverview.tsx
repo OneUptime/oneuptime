@@ -26,6 +26,7 @@ import {
   CloudResourceTypeDescriptor,
   getCloudResourceTypeDescriptor,
   getCloudResourceTypeLabel,
+  isInventoryOnlyCloudResourceType,
 } from "Common/Types/Cloud/CloudResourceCatalog";
 import ResourceOverview, {
   ResourceOverviewChip,
@@ -169,6 +170,9 @@ const CloudMonitoredResourceOverview: FunctionComponent<
   const descriptor: CloudResourceTypeDescriptor | null =
     getCloudResourceTypeDescriptor(provider, type);
   const isReporting: boolean = r.otelCollectorStatus === "connected";
+  const hasNoMetrics: boolean =
+    isInventoryOnlyCloudResourceType(provider, type) &&
+    Object.keys(attributeFilters).length === 0;
 
   const chips: Array<ResourceOverviewChip> = [];
   if (provider) {
@@ -194,24 +198,34 @@ const CloudMonitoredResourceOverview: FunctionComponent<
     return RouteUtil.populateRouteParams(RouteMap[page] as Route, { modelId });
   };
 
+  /*
+   * Words in the page's own type, the cloud's ids and names in mono: a
+   * reader tells "AWS" and "Networking" from the strings to copy.
+   */
   const detailRows: Array<ResourceOverviewDetailRow> = [
-    { label: "Cloud Provider", value: getCloudProviderLabel(provider) },
+    {
+      label: "Cloud Provider",
+      value: getCloudProviderLabel(provider),
+      mono: false,
+    },
     { label: "Resource Type", value: type, mono: true },
     {
       label: "Service Model",
       value: descriptor
         ? CLOUD_SERVICE_MODEL_LABELS[descriptor.serviceModel]
         : undefined,
+      mono: false,
     },
     {
       label: "Category",
       value: descriptor
         ? CLOUD_RESOURCE_CATEGORY_LABELS[descriptor.category]
         : undefined,
+      mono: false,
     },
-    { label: "Cloud Region", value: r.cloudRegion },
-    { label: "Cloud Account ID", value: r.cloudAccountId },
-    { label: "Resource Group", value: r.cloudResourceGroup },
+    { label: "Cloud Region", value: r.cloudRegion, mono: true },
+    { label: "Cloud Account ID", value: r.cloudAccountId, mono: true },
+    { label: "Resource Group", value: r.cloudResourceGroup, mono: true },
     {
       label: "Provider Resource ID",
       value: r.providerResourceId,
@@ -222,12 +236,14 @@ const CloudMonitoredResourceOverview: FunctionComponent<
       value: Object.keys(attributeFilters).length
         ? MONITORING_SOURCE_BY_PROVIDER[provider]
         : undefined,
+      mono: false,
     },
     {
       label: "Listed By",
       value: r.inventoriedAt
         ? INVENTORY_SOURCE_BY_PROVIDER[provider]
         : undefined,
+      mono: false,
     },
     {
       label: "Last Listed",
@@ -236,6 +252,7 @@ const CloudMonitoredResourceOverview: FunctionComponent<
             r.inventoriedAt,
           )
         : undefined,
+      mono: false,
     },
     /*
      * The cloud connection that reads it (Cloud > Connect), when one does:
@@ -243,6 +260,7 @@ const CloudMonitoredResourceOverview: FunctionComponent<
      */
     {
       label: "Cloud Connection",
+      mono: false,
       value: r.cloudConnectionId ? r.cloudConnection?.name || "" : undefined,
       element: r.cloudConnectionId ? (
         <AppLink
@@ -275,6 +293,7 @@ const CloudMonitoredResourceOverview: FunctionComponent<
         chips={chips}
         tiles={[]}
         detailRows={detailRows}
+        detailsDescription="What its cloud says it is, where it is, and how OneUptime reads it."
         recordId={modelId.toString()}
         settingsRoute={populate(PageMap.CLOUD_RESOURCE_VIEW_SETTINGS)}
         labels={r.labels}
@@ -291,27 +310,35 @@ const CloudMonitoredResourceOverview: FunctionComponent<
 
       <CloudResourceInventoryCards resource={r} />
 
-      <div className="mt-6">
-        <Card
-          title="Metrics"
-          description="Everything the provider reports about this resource. Open a metric to chart it, then choose Create monitor from this view to alert on it."
-        >
-          {Object.keys(attributeFilters).length > 0 ? (
-            <MetricsViewer
-              attributeFilters={attributeFilters}
-              attributeFilterDisplayKeys={attributeFilterDisplayKeys}
-              eventScope={eventScope}
-              disableUrlSync={true}
-            />
-          ) : (
-            <p className="text-sm text-gray-500">
-              {translator.translateText(
-                "No metric attributes are recorded for this resource yet. They are recorded with the next metrics its provider reports about it.",
-              )}
-            </p>
-          )}
-        </Card>
-      </div>
+      {/*
+       * A network (a VPC) publishes no metrics of its own: no card saying
+       * they will come.
+       */}
+      {hasNoMetrics ? (
+        <></>
+      ) : (
+        <div className="mt-6">
+          <Card
+            title="Metrics"
+            description="Everything the provider reports about this resource. Open a metric to chart it, then choose Create monitor from this view to alert on it."
+          >
+            {Object.keys(attributeFilters).length > 0 ? (
+              <MetricsViewer
+                attributeFilters={attributeFilters}
+                attributeFilterDisplayKeys={attributeFilterDisplayKeys}
+                eventScope={eventScope}
+                disableUrlSync={true}
+              />
+            ) : (
+              <p className="text-sm text-gray-500">
+                {translator.translateText(
+                  "No metric attributes are recorded for this resource yet. They are recorded with the next metrics its provider reports about it.",
+                )}
+              </p>
+            )}
+          </Card>
+        </div>
+      )}
     </>
   );
 };

@@ -1879,6 +1879,30 @@ export function getCloudResourceTypeDescriptor(
   return DESCRIPTORS_BY_TYPE.get(typeLookupKey(provider, type)) || null;
 }
 
+const INVENTORY_ONLY_TYPE_KEYS: ReadonlySet<string> = new Set(
+  INVENTORY_ONLY_RESOURCE_TYPES.map(
+    (descriptor: CloudResourceTypeDescriptor): string => {
+      return typeLookupKey(descriptor.provider, descriptor.type);
+    },
+  ),
+);
+
+/*
+ * Whether resources of this type publish no metrics of their own (a
+ * network: INVENTORY_ONLY_RESOURCE_TYPES), whatever case it is spelled in:
+ * a resource's page has none to list, and says nothing about them.
+ */
+export function isInventoryOnlyCloudResourceType(
+  provider: string | null | undefined,
+  type: string | null | undefined,
+): boolean {
+  if (!provider || !type) {
+    return false;
+  }
+
+  return INVENTORY_ONLY_TYPE_KEYS.has(typeLookupKey(provider, type));
+}
+
 /*
  * What to call a resource of this type: the catalog's label, or - for a
  * type the catalog does not list - the type itself, so nothing renders

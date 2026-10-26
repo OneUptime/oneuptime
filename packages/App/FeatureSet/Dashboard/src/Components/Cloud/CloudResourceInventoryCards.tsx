@@ -250,7 +250,7 @@ const CloudResourceInventoryCards: FunctionComponent<ComponentProps> = (
         <div className="mt-6">
           <Card
             title="Connected Resources"
-            description="What this resource runs in, is part of and sends traffic to, and what does that to it, as its cloud's inventory lists them."
+            description="What it runs in, is part of and sends traffic to, and what connects to it, as its cloud's inventory lists them."
           >
             {neighbours === null ? (
               <ComponentLoader />

@@ -1293,3 +1293,489 @@ test.describe("cloud accounts", () => {
     await shoot(page, "account-overview-dark-de");
   });
 });
+
+/*
+ * ---------------------------------------------------------------------------
+ * An account's and a resource's own pages, as the UI review left them: the
+ * list's status beside each name, the Overview's four tiles and its counts
+ * side by side, Resources with each one's status and when it was last
+ * seen, Changes that keep the time whole and say only what a row does not,
+ * the account's map, its Settings in words, and a resource's inventory,
+ * open incidents and alerts, and changes.
+ * ---------------------------------------------------------------------------
+ */
+
+const RESOURCE_PATH: string = `/dashboard/${PROJECT_ID}/cloud`;
+// The fixture's AWS resources (Fixture.js AWS_RESOURCES).
+const WEB_ALB: string = "40000000-0000-4000-8000-000000000001";
+const ORDERS_DB: string = "40000000-0000-4000-8000-000000000002";
+const WEB_1: string = "40000000-0000-4000-8000-000000000004";
+const WEB_2: string = "40000000-0000-4000-8000-000000000005";
+const PROD_VPC: string = "40000000-0000-4000-8000-000000000006";
+
+interface Box {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+interface ChangeListRequest {
+  model: string;
+  attributes?: Record<string, string>;
+}
+
+// The map's count of Regions: its number, then its word.
+const TWO_REGIONS: RegExp = /^\s*2\s*Regions\s*$/;
+
+function isDesktop(): boolean {
+  return test.info().project.name === "desktop";
+}
+
+// A box's place on the page, once laid out.
+async function boxOf(locator: Locator): Promise<Box> {
+  const box: Box | null = await locator.boundingBox();
+  expect(box, "the element is laid out").not.toBeNull();
+  return box!;
+}
+
+// The card that holds a heading's words.
+function cardTitled(page: Page, title: string): Locator {
+  return page.getByTestId("card").filter({
+    has: page.getByRole("heading", { name: title, exact: true }),
+  });
+}
+
+// One overview tile, found by its title.
+function tile(page: Page, title: string): Locator {
+  return page
+    .getByTestId("resource-overview-tiles")
+    .locator(":scope > div")
+    .filter({ has: page.getByText(title, { exact: true }) });
+}
+
+async function headerTexts(page: Page): Promise<Array<string>> {
+  return (await page.locator("thead th").allInnerTexts()).map(
+    (text: string): string => {
+      return text.trim();
+    },
+  );
+}
+
+test.describe("an account's pages", () => {
+  test("the list: how each account is read, right after its name", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openAccounts(page, `${ACCOUNTS_PATH}?state=connected`);
+
+    const statuses: Locator = page.getByTestId("cloud-account-status");
+    await expect(statuses).toHaveCount(3);
+    await expect(statuses.nth(0)).toContainText("Reading");
+    await expect(statuses.nth(1)).toContainText("Not read lately");
+    await expect(statuses.nth(2)).toContainText("Not connected");
+    // When a connection last read each one, under its pill.
+    for (let index: number = 0; index < 3; index++) {
+      await expect(statuses.nth(index)).toContainText("Last read ");
+    }
+
+    if (!isDesktop()) {
+      return;
+    }
+
+    // The status comes right after the name, before the counts.
+    const headers: Array<string> = await headerTexts(page);
+    expect(headers.indexOf("Status")).toBeGreaterThan(headers.indexOf("Name"));
+    expect(headers.indexOf("Status")).toBeLessThan(
+      headers.indexOf("Resources"),
+    );
+
+    // Beside the side menu at 1024, the pills are clear of the row's actions.
+    await page.setViewportSize({ width: 1024, height: 900 });
+    await openAccounts(page, `${ACCOUNTS_PATH}?state=connected`);
+    const pill: Box = await boxOf(
+      page.getByTestId("cloud-account-status").first().getByTestId("pill"),
+    );
+    const view: Box = await boxOf(
+      page.getByRole("button", { name: "View" }).first(),
+    );
+    expect(pill.x + pill.width).toBeLessThanOrEqual(view.x);
+  });
+
+  test("an account's Overview: four tiles in a row, the last day's changes a click away, its counts side by side", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openAccounts(page, `${ACCOUNTS_PATH}/${AWS_ACCOUNT}?state=connected`);
+
+    // The Changes tile counts the last day's, and leads to them.
+    const changes: Locator = tile(page, "Changes");
+    await expect(changes).toContainText("6");
+    await expect(changes).toContainText("Last 24 hours");
+    await expect(
+      page.getByRole("link", { name: "View Changes" }),
+    ).toHaveAttribute("href", `${ACCOUNTS_PATH}/${AWS_ACCOUNT}/changes`);
+
+    // The Details card says what its rows are, not that telemetry sent them.
+    const details: Locator = cardTitled(page, "Details");
+    await expect(details).toContainText(
+      "Which account it is in its cloud, and the connection that reads it.",
+    );
+    await expect(details).not.toContainText("OpenTelemetry");
+
+    // A name is words; an id is set in mono.
+    const fontOf: (label: string) => Promise<string> = async (
+      label: string,
+    ): Promise<string> => {
+      return page
+        .getByTestId("resource-overview-detail-row")
+        .filter({ hasText: label })
+        .getByTestId("resource-overview-detail-value")
+        .evaluate((element: Element): string => {
+          return getComputedStyle(element).fontFamily;
+        });
+    };
+    expect(await fontOf("Name in the Cloud")).not.toContain("monospace");
+    expect(await fontOf("Account ID")).toContain("monospace");
+
+    // Each count with a bar for its share; the Regions' too.
+    const types: Locator = page.getByTestId("cloud-account-types");
+    const regions: Locator = page.getByTestId("cloud-account-regions");
+    await expect(countRow(types, "EC2 Instance")).toContainText("24");
+    await expect(countRow(regions, "us-east-1")).toContainText("31");
+
+    const tiles: Array<Box> = [];
+    for (const title of ["Resources", "Regions", "Resource Types", "Changes"]) {
+      tiles.push(await boxOf(tile(page, title)));
+    }
+
+    const typesBox: Box = await boxOf(cardTitled(page, "Resources by Type"));
+    const regionsBox: Box = await boxOf(
+      cardTitled(page, "Resources by Region"),
+    );
+
+    if (isDesktop()) {
+      // One row of four at 1280.
+      for (const box of tiles) {
+        expect(Math.abs(box.y - tiles[0]!.y)).toBeLessThanOrEqual(1);
+      }
+      // By type and by Region side by side.
+      expect(Math.abs(typesBox.y - regionsBox.y)).toBeLessThanOrEqual(1);
+      expect(regionsBox.x).toBeGreaterThan(typesBox.x);
+    } else {
+      // Two rows of two on a phone, the counts one above the other.
+      expect(Math.abs(tiles[0]!.y - tiles[1]!.y)).toBeLessThanOrEqual(1);
+      expect(tiles[2]!.y).toBeGreaterThan(tiles[0]!.y);
+      expect(Math.abs(tiles[2]!.y - tiles[3]!.y)).toBeLessThanOrEqual(1);
+      expect(regionsBox.y).toBeGreaterThan(typesBox.y);
+    }
+
+    await expectNoSidewaysScroll(page);
+    await shoot(page, "account-overview-tiles");
+  });
+
+  test("an account with no changes lately counts none", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.skip(!isDesktop(), "One count: a desktop's.");
+
+    await openAccounts(
+      page,
+      `${ACCOUNTS_PATH}/${AZURE_ACCOUNT}?state=connected`,
+    );
+    await expect(tile(page, "Changes")).toContainText("0");
+  });
+
+  test("an account's Resources: each one's status and when it was last seen, in one column that fits", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openAccounts(
+      page,
+      `${ACCOUNTS_PATH}/${AWS_ACCOUNT}/resources?state=connected`,
+    );
+
+    const statuses: Locator = page.getByTestId("cloud-account-resource-status");
+    await expect(statuses).toHaveCount(8);
+    await expect(statuses.first()).toContainText("Reporting");
+    await expect(statuses.first()).toContainText("Last seen ");
+    await expect(
+      statuses.filter({ hasText: "Not reporting" }).first(),
+    ).toBeVisible();
+
+    // What it is and where, under its name, on a phone too.
+    await expect(
+      page.getByTestId("cloud-account-resource-where").first(),
+    ).toHaveText("Elastic Load Balancer (ALB, NLB, GWLB) · us-east-1");
+
+    if (!isDesktop()) {
+      return;
+    }
+
+    // No column of its own for when each was last seen, or for its Region.
+    expect(await headerTexts(page)).not.toContain("Last Seen");
+    expect(await headerTexts(page)).not.toContain("Region");
+
+    // Beside the side menu at 1280, in English and German, nothing scrolls sideways.
+    for (const language of ["", "&lang=de"]) {
+      await openAccounts(
+        page,
+        `${ACCOUNTS_PATH}/${AWS_ACCOUNT}/resources?state=connected${language}`,
+      );
+      await expect(statuses.first()).toBeVisible();
+      const table: { scroll: number; client: number } = await page.evaluate(
+        () => {
+          const scroller: HTMLElement = document.querySelector("table")!
+            .parentElement as HTMLElement;
+          return {
+            scroll: scroller.scrollWidth,
+            client: scroller.clientWidth,
+          };
+        },
+      );
+      expect(table.scroll).toBeLessThanOrEqual(table.client + 1);
+    }
+  });
+
+  test("an account's Changes: newest first, the time whole, a provider's words only where they add something", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openAccounts(
+      page,
+      `${ACCOUNTS_PATH}/${AWS_ACCOUNT}/changes?state=connected`,
+    );
+
+    await expect(
+      page.getByText("AuthorizeSecurityGroupIngress on sg-0f1e2d3c4b5a69788"),
+    ).toBeVisible();
+
+    // Read by the account's own row.
+    const reads: Array<ChangeListRequest> = (
+      (await listRequests(page)) as Array<ChangeListRequest>
+    ).filter((request: ChangeListRequest): boolean => {
+      return request.model === "ChangeEvent";
+    });
+    expect(reads.length).toBeGreaterThan(0);
+    expect(reads[0]!.attributes).toEqual({
+      "oneuptime.cloud_account.id": AWS_ACCOUNT,
+    });
+
+    // Only the health event keeps a line of its own words.
+    const details: Locator = page.getByTestId("cloud-change-detail");
+    await expect(details).toHaveCount(1);
+    await expect(details).toContainText(
+      "We are investigating increased API error rates",
+    );
+    await expect(
+      page.getByText("ran AuthorizeSecurityGroupIngress"),
+    ).toHaveCount(0);
+
+    if (!isDesktop()) {
+      return;
+    }
+
+    const rows: Locator = page.locator("tbody tr");
+    await expect(rows).toHaveCount(6);
+    expect(await headerTexts(page)).toContain("What changed");
+
+    // Who did it, on one line; where; and the failed one says so.
+    await expect(page.getByTestId("cloud-change-actor").first()).toHaveText(
+      "maya.lopez",
+    );
+    await expect(
+      rows
+        .filter({ hasText: "DeleteLoadBalancer" })
+        .getByText("Failed", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      rows.filter({ hasText: "ModifyDBInstance" }).getByText("eu-west-1"),
+    ).toBeVisible();
+
+    // The time is never cut short, at 1280 or beside the side menu at 1024.
+    for (const width of [1280, 1024]) {
+      await page.setViewportSize({ width, height: 900 });
+      const cut: Array<boolean> = await page
+        .locator("tbody tr td:nth-child(2) > div")
+        .evaluateAll((cells: Array<Element>): Array<boolean> => {
+          return cells.map((cell: Element): boolean => {
+            return cell.scrollWidth > cell.clientWidth + 1;
+          });
+        });
+      expect(cut).toEqual([false, false, false, false, false, false]);
+    }
+
+    await shoot(page, "account-changes");
+  });
+
+  test("a resource's Changes: only those its account's log tied to it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.skip(!isDesktop(), "The list's rows: a desktop's.");
+
+    await openAccounts(
+      page,
+      `${RESOURCE_PATH}/${WEB_ALB}/changes?state=connected`,
+    );
+
+    await expect(page.locator("tbody tr")).toHaveCount(2);
+    await expect(
+      page.getByText("Failed: DeleteLoadBalancer on web-alb"),
+    ).toBeVisible();
+    await expect(
+      page.getByText("ModifyLoadBalancerAttributes on web-alb"),
+    ).toBeVisible();
+    // One place: no Region column.
+    expect(await headerTexts(page)).not.toContain("Region");
+  });
+
+  test("an account's Topology: its Regions, what runs in them, and what needs attention", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.skip(!isDesktop(), "The map: a desktop's.");
+
+    await openAccounts(
+      page,
+      `${ACCOUNTS_PATH}/${AWS_ACCOUNT}/topology?state=connected`,
+    );
+
+    // Counted above the map: its Regions, and what needs attention.
+    await expect(
+      page.getByTestId("resource-topology-count-cloud.region"),
+    ).toHaveText(TWO_REGIONS);
+    const issues: Locator = page.getByTestId("resource-topology-issue-summary");
+    await expect(issues).toContainText("1 open incident");
+    await expect(issues).toContainText("1 open alert");
+    for (const name of ["us-east-1", "eu-west-1", "web-alb", "orders-db"]) {
+      await expect(page.getByText(name, { exact: true }).first()).toBeVisible();
+    }
+
+    // The account's own resources, and their open incidents and alerts.
+    const reads: Array<ListRequest> = await listRequests(page);
+    expect(
+      reads.some((request: ListRequest): boolean => {
+        return (
+          request.model === "CloudResource" &&
+          request.cloudProvider === "aws" &&
+          (request.cloudAccountIds || []).includes("123456789012")
+        );
+      }),
+    ).toBe(true);
+    for (const model of ["Incident", "Alert"]) {
+      expect(
+        reads.some((request: ListRequest): boolean => {
+          return request.model === model;
+        }),
+      ).toBe(true);
+    }
+
+    await shoot(page, "account-topology");
+  });
+
+  test("an account's Settings name its cloud in words", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.skip(!isDesktop(), "One card: a desktop's.");
+
+    await openAccounts(
+      page,
+      `${ACCOUNTS_PATH}/${AWS_ACCOUNT}/settings?state=connected`,
+    );
+
+    const card: Locator = cardTitled(page, "Account Details");
+    await expect(card).toContainText("AWS");
+    await expect(card.getByText("aws", { exact: true })).toHaveCount(0);
+    await expect(card).toContainText("acme-production");
+  });
+});
+
+test.describe("a cloud resource's pages", () => {
+  test("its Overview: what its cloud says it is, its open issues, and what its inventory lists", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openAccounts(page, `${RESOURCE_PATH}/${WEB_ALB}?state=connected`);
+
+    const details: Locator = cardTitled(page, "Details");
+    await expect(details).toContainText(
+      "What its cloud says it is, where it is, and how OneUptime reads it.",
+    );
+    await expect(details).toContainText("AWS Cloud Control");
+
+    // Its open incident, a click from its Incidents.
+    await expect(page.getByText("Active Incidents")).toBeVisible();
+
+    // What it sends traffic to, each a link to its page.
+    const connected: Locator = cardTitled(page, "Connected Resources");
+    await expect(connected).toContainText("Sends traffic to");
+    await expect(
+      connected.getByRole("link", { name: "web-1" }),
+    ).toHaveAttribute("href", `${RESOURCE_PATH}/${WEB_1}`);
+    await expect(
+      connected.getByRole("link", { name: "web-2" }),
+    ).toHaveAttribute("href", `${RESOURCE_PATH}/${WEB_2}`);
+    await expect(connected).toContainText("Protected by");
+
+    await expect(cardTitled(page, "Endpoints")).toContainText(
+      "web-alb-1234567890.us-east-1.elb.amazonaws.com",
+    );
+    await expect(cardTitled(page, "Tags")).toContainText("storefront");
+    await expect(cardTitled(page, "Configuration")).toContainText(
+      "internet-facing",
+    );
+    // A load balancer reports metrics: its card is there.
+    await expect(cardTitled(page, "Metrics")).toHaveCount(1);
+
+    await expectNoSidewaysScroll(page);
+    await shoot(page, "resource-overview");
+  });
+
+  test("a network's Overview lists what runs in it, and no Metrics card", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.skip(!isDesktop(), "One page: a desktop's.");
+
+    await openAccounts(page, `${RESOURCE_PATH}/${PROD_VPC}?state=connected`);
+
+    const connected: Locator = cardTitled(page, "Connected Resources");
+    await expect(connected).toContainText("Runs here");
+    await expect(connected.getByRole("link", { name: "web-1" })).toBeVisible();
+    await expect(cardTitled(page, "Tags")).toContainText("prod-vpc");
+    await expect(cardTitled(page, "Metrics")).toHaveCount(0);
+  });
+
+  test("its Incidents and Alerts: the ones linked to it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.skip(!isDesktop(), "The lists: a desktop's.");
+
+    await openAccounts(
+      page,
+      `${RESOURCE_PATH}/${WEB_ALB}/incidents?state=connected`,
+    );
+    await expect(page.getByText("Checkout pages answer slowly")).toBeVisible();
+
+    await openAccounts(
+      page,
+      `${RESOURCE_PATH}/${ORDERS_DB}/alerts?state=connected`,
+    );
+    await expect(page.getByText("orders-db CPU above 90%")).toBeVisible();
+  });
+});

@@ -1,3 +1,5 @@
+import { Gray500, Green, Yellow } from "Common/Types/BrandColors";
+import Color from "Common/Types/Color";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
@@ -11,6 +13,18 @@ export const CLOUD_ACCOUNT_READING_WINDOW_MS: number = 60 * 60 * 1000;
 
 // The pill's colour, as the overview hero takes it (ResourceOverviewStatusTone).
 export type CloudAccountStatusTone = "positive" | "warning" | "neutral";
+
+/*
+ * The same tones as the accounts list's pills draw them, the colours the
+ * Connect page's list gives a connection that works, warns or is off.
+ */
+export const CLOUD_ACCOUNT_STATUS_COLORS: Readonly<
+  Record<CloudAccountStatusTone, Color>
+> = {
+  positive: Green,
+  warning: Yellow,
+  neutral: Gray500,
+};
 
 export interface CloudAccountStatus {
   // English, translated where it is shown.

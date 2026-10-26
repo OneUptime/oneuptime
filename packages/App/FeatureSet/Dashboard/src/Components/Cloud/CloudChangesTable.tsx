@@ -18,6 +18,7 @@ import { getChangeEventTypeLabel } from "../Metrics/Utils/UseEventTimeReferenceL
 import {
   CloudChangesScope,
   getCloudChangesAttributeFilter,
+  isCloudHealthChange,
 } from "./CloudChangesScope";
 
 /*
@@ -31,6 +32,9 @@ import {
  * The words are the cloud's - an operation's name, a principal, a health
  * event's title - shown as written.
  */
+
+// A change's time takes the room it needs (TableLayout's min-w- floor).
+export const CLOUD_CHANGE_TIME_CONTENT_CLASS_NAME: string = "min-w-max";
 
 // The kinds of change a cloud records, for the Type filter.
 export const CLOUD_CHANGE_TYPE_OPTIONS: Array<DropdownOption> = [
@@ -120,7 +124,8 @@ const CloudChangesTable: FunctionComponent<ComponentProps> = (
           field: {
             title: true,
           },
-          title: "Change",
+          // A noun in every language ("Change" reads as a verb in some).
+          title: "What changed",
           type: FieldType.Text,
         },
       ]}
@@ -131,25 +136,48 @@ const CloudChangesTable: FunctionComponent<ComponentProps> = (
           },
           title: "Time",
           type: FieldType.DateTime,
+          /*
+           * Whole, never cut: the row's first column is otherwise read as
+           * its name, which the table may shorten to fit its card - and a
+           * time cut to "Oct 26 2026, 21:58 G..." says less than the
+           * change beside it, which wraps instead.
+           */
+          contentClassName: CLOUD_CHANGE_TIME_CONTENT_CLASS_NAME,
         },
         {
           field: {
             title: true,
           },
-          title: "Change",
+          // A noun in every language ("Change" reads as a verb in some).
+          title: "What changed",
           type: FieldType.Element,
           isNotCustomizable: true,
           wrapContent: true,
           wrapMaxWidthClassName: "max-w-2xl",
           getElement: (change: ChangeEvent): ReactElement => {
+            /*
+             * The provider's own words under a health event's title; an
+             * operation's description only repeats its row (who, where).
+             */
+            const detail: string = isCloudHealthChange({
+              eventType: change.eventType,
+              attributes: change.attributes as JSONObject | undefined,
+            })
+              ? (change.description || "").trim()
+              : "";
+
             return (
               <div className="min-w-0">
                 <div className="text-sm font-medium text-gray-900 break-words">
                   {change.title || "—"}
                 </div>
-                {change.description ? (
-                  <div className="mt-0.5 text-xs text-gray-500 line-clamp-2 break-words">
-                    {change.description}
+                {detail ? (
+                  <div
+                    className="mt-0.5 text-xs text-gray-500 line-clamp-2 break-words"
+                    title={detail}
+                    data-testid="cloud-change-detail"
+                  >
+                    {detail}
                   </div>
                 ) : (
                   <></>
@@ -201,8 +229,19 @@ const CloudChangesTable: FunctionComponent<ComponentProps> = (
               ChangeEventAttribute.CloudActor,
             );
 
+            /*
+             * One line, the whole name on hover: a service account's
+             * address or an app's id would otherwise stand four lines tall
+             * and push the Region out of the card.
+             */
             return actor ? (
-              <span className="text-sm text-gray-700 break-all">{actor}</span>
+              <div
+                className="max-w-[14rem] truncate text-sm text-gray-700"
+                title={actor}
+                data-testid="cloud-change-actor"
+              >
+                {actor}
+              </div>
             ) : (
               <span className="text-sm text-gray-400">—</span>
             );

@@ -1,6 +1,7 @@
 import PageComponentProps from "../../../PageComponentProps";
 import ResourceDetailsCard from "../../../../Components/TelemetryResource/ResourceDetailsCard";
 import CloudAccount from "Common/Models/DatabaseModels/CloudAccount";
+import { getCloudProviderLabel } from "Common/Types/Cloud/CloudPlatform";
 import ObjectID from "Common/Types/ObjectID";
 import ModelDetailField from "Common/UI/Components/ModelDetail/Field";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -47,6 +48,8 @@ const CloudAccountSettings: FunctionComponent<
           {
             column: "provider",
             title: "Cloud",
+            // Kept as "aws", read as "AWS".
+            getDisplayValue: getCloudProviderLabel,
           },
           {
             column: "accountId",

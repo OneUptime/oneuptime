@@ -704,8 +704,16 @@ describe("rule 5: every hero draws its description one way", () => {
     );
     // The Details card's own line says what its rows are, at every width.
     expect(component).not.toContain("description={ props.description ||");
+    /*
+     * The resource attributes its telemetry reported, unless the page says
+     * its rows come from somewhere else (a cloud account's, a listed cloud
+     * resource's): never the hero's description.
+     */
     expect(component).toContain(
-      '<Card title="Details" description="Metadata captured from OpenTelemetry resource attributes."',
+      '<Card title="Details" description={ props.detailsDescription || RESOURCE_OVERVIEW_DETAILS_DESCRIPTION }',
+    );
+    expect(component).toContain(
+      'export const RESOURCE_OVERVIEW_DETAILS_DESCRIPTION: string = "Metadata captured from OpenTelemetry resource attributes.";',
     );
   });
 });

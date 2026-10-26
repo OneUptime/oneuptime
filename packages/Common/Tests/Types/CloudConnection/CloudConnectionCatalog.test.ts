@@ -262,6 +262,74 @@ describe("fields by sign-in method", () => {
     ).not.toContain(READ_SCOPE_FIELD_KEY);
   });
 
+  /*
+   * The line under What to read says what its two choices say, in each
+   * cloud's own words: an AWS account of an organization, an Azure
+   * subscription of a tenant, a Google Cloud project of an organization.
+   */
+  test("what to read is explained in each cloud's own words, as its choices are", () => {
+    const expected: Record<
+      string,
+      { description: string; one: string; every: string; unit: string }
+    > = {
+      [CloudProvider.AWS]: {
+        description:
+          "One account, or every account of the organization. The command changes with it.",
+        one: "This account",
+        every: "Every account in the organization",
+        unit: "account",
+      },
+      [CloudProvider.Azure]: {
+        description:
+          "One subscription, or every subscription of the tenant. The command changes with it.",
+        one: "This subscription",
+        every: "Every subscription in the tenant",
+        unit: "subscription",
+      },
+      [CloudProvider.GCP]: {
+        description:
+          "One project, or every project of the organization. The command changes with it.",
+        one: "This project",
+        every: "Every project in the organization",
+        unit: "project",
+      },
+    };
+
+    for (const provider of [
+      CloudProvider.AWS,
+      CloudProvider.Azure,
+      CloudProvider.GCP,
+    ]) {
+      const scope: CloudConnectionField = definitionOf(
+        provider,
+      ).configFields.find((field: CloudConnectionField): boolean => {
+        return field.key === READ_SCOPE_FIELD_KEY;
+      })!;
+      const words: {
+        description: string;
+        one: string;
+        every: string;
+        unit: string;
+      } = expected[provider]!;
+
+      expect(scope.title).toBe("What to read");
+      expect(scope.description).toBe(words.description);
+      expect(
+        (scope.options || []).map((option: { label: string }): string => {
+          return option.label;
+        }),
+      ).toEqual([words.one, words.every]);
+      // The line names what the choices name, and no other cloud's unit.
+      expect(scope.description).toContain(words.unit);
+      expect(words.one.toLowerCase()).toContain(words.unit);
+      for (const other of ["account", "subscription", "project"]) {
+        if (other !== words.unit) {
+          expect(scope.description).not.toContain(other);
+        }
+      }
+    }
+  });
+
   test("the Azure client secret's expiry is a setting kept from the paste, never shown", () => {
     const expiry: CloudConnectionField | undefined = definitionOf(
       CloudProvider.Azure,

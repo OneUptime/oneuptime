@@ -11,6 +11,7 @@ import CloudResourceOwnerTeam from "Common/Models/DatabaseModels/CloudResourceOw
 import CloudResourceOwnerUser from "Common/Models/DatabaseModels/CloudResourceOwnerUser";
 import Route from "Common/Types/API/Route";
 import { Gray500, Green } from "Common/Types/BrandColors";
+import OneUptimeDate from "Common/Types/Date";
 import {
   CLOUD_RESOURCE_TYPES,
   CloudResourceTypeDescriptor,
@@ -28,6 +29,8 @@ import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 /*
@@ -42,6 +45,7 @@ const CloudAccountResources: FunctionComponent<
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
   const read: CloudAccountRead = useCloudAccount(modelId);
   const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+  const translator: Translator = useTranslator();
 
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<CloudResource>({ modelType: CloudResource });
@@ -136,6 +140,8 @@ const CloudAccountResources: FunctionComponent<
         selectMoreFields={{
           cloudResourceType: true,
           cloudProvider: true,
+          cloudRegion: true,
+          lastSeenAt: true,
         }}
         cardProps={{
           title: "Resources",
@@ -182,11 +188,26 @@ const CloudAccountResources: FunctionComponent<
             title: "Name",
             type: FieldType.Element,
             isNotCustomizable: true,
+            /*
+             * What it is and where, under its name - the way the accounts
+             * list says each account's cloud and id - not a Region column
+             * of its own: beside the side menu at 1280 pixels a German
+             * list ran 20 pixels past its card with one. On a phone the
+             * Region is then still said.
+             */
             getElement: (item: CloudResource): ReactElement => {
               const typeLabel: string = getCloudResourceTypeLabel(
                 item.cloudProvider as string | undefined,
                 item.cloudResourceType as string | undefined,
               );
+              const where: string = [
+                typeLabel,
+                ((item.cloudRegion as string) || "").trim(),
+              ]
+                .filter((part: string): boolean => {
+                  return part.length > 0;
+                })
+                .join(" · ");
 
               return (
                 <div className="min-w-0">
@@ -196,9 +217,13 @@ const CloudAccountResources: FunctionComponent<
                   >
                     {(item.name as string) || "—"}
                   </AppLink>
-                  {typeLabel ? (
-                    <div className="text-xs text-gray-500 truncate">
-                      {typeLabel}
+                  {where ? (
+                    <div
+                      className="max-w-[18rem] text-xs text-gray-500 truncate"
+                      title={where}
+                      data-testid="cloud-account-resource-where"
+                    >
+                      {where}
                     </div>
                   ) : (
                     <></>
@@ -207,14 +232,12 @@ const CloudAccountResources: FunctionComponent<
               );
             },
           },
-          {
-            field: {
-              cloudRegion: true,
-            },
-            title: "Region",
-            type: FieldType.Text,
-            hideOnMobile: true,
-          },
+          /*
+           * Whether it reports, and when it was last seen, in one column -
+           * as the accounts list says when each account was last read - so
+           * Labels and Owners stay clear of the row's actions beside the
+           * side menu.
+           */
           {
             field: {
               otelCollectorStatus: true,
@@ -226,20 +249,33 @@ const CloudAccountResources: FunctionComponent<
                 item.otelCollectorStatus === "connected";
 
               return (
-                <Pill
-                  text={isReporting ? "Reporting" : "Not reporting"}
-                  color={isReporting ? Green : Gray500}
-                />
+                <div
+                  className="min-w-0 space-y-1"
+                  data-testid="cloud-account-resource-status"
+                >
+                  <Pill
+                    text={isReporting ? "Reporting" : "Not reporting"}
+                    color={isReporting ? Green : Gray500}
+                  />
+                  {item.lastSeenAt ? (
+                    <div
+                      className="text-xs text-gray-500"
+                      title={OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+                        item.lastSeenAt,
+                      )}
+                    >
+                      {translator.translateTemplate("Last seen {{time}}", {
+                        time: OneUptimeDate.getDateAsLocalShortDateTimeString(
+                          item.lastSeenAt,
+                        ),
+                      })}
+                    </div>
+                  ) : (
+                    <></>
+                  )}
+                </div>
               );
             },
-          },
-          {
-            field: {
-              lastSeenAt: true,
-            },
-            title: "Last Seen",
-            type: FieldType.DateTime,
-            hideOnMobile: true,
           },
           {
             field: {
