@@ -5,11 +5,14 @@
  * Some titles say it themselves - "DNS Server (Optional)", the LLM budgets'
  * "Service (optional)", a custom field someone named "Notes (optional)" -
  * and their fields read "DNS Server (Optional) (Optional)", the first in
- * the title's weight. Such a title is drawn with one mark: its own,
- * in the reader's language as its translation words it ("Serveur DNS
- * (facultatif)", "サービス（任意）"), split off the title and drawn as the
- * label draws its mark. The words read are the title's, so a guide that
- * names the field by its title still names what is on screen.
+ * the title's weight. Such a title is drawn with one mark: its own words
+ * are split off the title as drawn, in the reader's language ("Serveur DNS
+ * (facultatif)", "サービス（任意）"), and the label draws its own mark in
+ * their place - the mark every other field on the form has. Kept as the
+ * title words it, the mark read "Service (optional)" beside "Daily Budget
+ * (USD) (Optional)", and in French "(facultatif)" beside "(Optionnel)". A
+ * guide that names the field by its title still names what is on screen:
+ * the title, then the mark.
  *
  * React-free, so the docs suites and guards can read it.
  */

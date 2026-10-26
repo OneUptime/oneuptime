@@ -6,7 +6,7 @@ import useTranslateValue from "../../Utils/Translation";
 import { Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 import UnsavedChanges from "../../Utils/NewVersion/UnsavedChanges";
-import bringIntoView from "../../Utils/BringIntoView";
+import bringIntoView, { focusInvalidControl } from "../../Utils/BringIntoView";
 import Alert, { AlertType } from "../Alerts/Alert";
 import Button, { ButtonStyleType } from "../Button/Button";
 import ButtonTypes from "../Button/ButtonTypes";
@@ -680,9 +680,36 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
      * view: in a long dialog it can be above or below what is in sight, and
      * one folded away has been opened for it in this same render
      * (CollapsibleFormSection). Before paint, so it is drawn where it ends.
+     * The focus goes to it too (focusInvalidControl): the reader types the
+     * fix there, and a screen reader reads the field with its error.
+     *
+     * Only a press or the server's answer asks for it, once, and the ask is
+     * kept until the field is drawn - a field the server refused on another
+     * step is drawn once the form has moved there. Nothing else moves the
+     * reader: putting the server's answer away by changing its field (the
+     * reader is typing there), or opening a step from the step list.
      */
+    const isRevealPending: MutableRefObject<boolean> = useRef<boolean>(false);
+    const lastRevealAttempt: MutableRefObject<number> = useRef<number>(0);
+    const lastServerErrorFieldName: MutableRefObject<string | null> = useRef<
+      string | null
+    >(null);
+
     useLayoutEffect(() => {
-      if (validationAttempt === 0 && !shownServerErrorFieldName) {
+      if (validationAttempt !== lastRevealAttempt.current) {
+        lastRevealAttempt.current = validationAttempt;
+        isRevealPending.current = true;
+      }
+
+      if (shownServerErrorFieldName !== lastServerErrorFieldName.current) {
+        lastServerErrorFieldName.current = shownServerErrorFieldName;
+
+        if (shownServerErrorFieldName) {
+          isRevealPending.current = true;
+        }
+      }
+
+      if (!isRevealPending.current) {
         return;
       }
 
@@ -701,10 +728,30 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
       );
 
       if (!firstFieldInError) {
+        // The server's field is on another step: once the form is there.
+        const isMovingToServerErrorStep: boolean = Boolean(
+          serverErrorField &&
+            shownServerErrorFieldName &&
+            serverErrorField.stepId &&
+            currentFormStepId &&
+            serverErrorField.stepId !== currentFormStepId,
+        );
+
+        if (!isMovingToServerErrorStep) {
+          isRevealPending.current = false;
+        }
+
         return;
       }
 
-      bringIntoView(fieldElements.current.get(getFieldName(firstFieldInError)));
+      isRevealPending.current = false;
+
+      const fieldElement: HTMLElement | undefined = fieldElements.current.get(
+        getFieldName(firstFieldInError),
+      );
+
+      bringIntoView(fieldElement);
+      focusInvalidControl(fieldElement);
     }, [validationAttempt, shownServerErrorFieldName, currentFormStepId]);
 
     const setAllTouched: VoidFunction = (): void => {
@@ -1433,8 +1480,15 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                             </div>
                           )}
                           <div
+                            /*
+                             * scroll-my-4: brought into view for an error,
+                             * a field keeps a little room from the edge of
+                             * the dialog or page it scrolls in.
+                             */
                             className={
-                              field.spanFullRow ? fullRowSpan : undefined
+                              field.spanFullRow
+                                ? `scroll-my-4 ${fullRowSpan}`
+                                : "scroll-my-4"
                             }
                             ref={(element: HTMLDivElement | null): void => {
                               if (element) {

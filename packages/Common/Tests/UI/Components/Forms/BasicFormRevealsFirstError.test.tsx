@@ -182,4 +182,126 @@ describe("the first field in error is brought into view", () => {
     expect(screen.getByText("Name is required.")).toBeVisible();
     expect(calls).toEqual([]);
   });
+
+  test("with a little room from the edge it scrolls in (scroll-my-4)", async () => {
+    renderForm({});
+    await screen.findByTestId("name");
+
+    await pressSave();
+
+    expect(calls[0]!.element).toHaveClass("scroll-my-4");
+  });
+});
+
+/*
+ * AND THE FOCUS GOES TO IT.
+ *
+ * The keyboard's reader presses Save, or Enter in the last field, and was
+ * left on the button at the bottom while the field to fix was brought into
+ * view above. The focus now goes to the first field in error's control (its
+ * aria-invalid one, Utils/BringIntoView focusInvalidControl): the fix is
+ * typed straight away, and a screen reader reads the field with its error.
+ */
+describe("the focus goes to the first field in error", () => {
+  test("the first one in the order the form draws them", async () => {
+    renderForm({});
+    await screen.findByTestId("name");
+    screen.getByRole("button", { name: "Save" }).focus();
+
+    await pressSave();
+
+    expect(screen.getByTestId("name")).toHaveFocus();
+  });
+
+  test("a later one when the earlier ones are fine", async () => {
+    renderForm({ name: "Acme" });
+    await screen.findByTestId("name");
+
+    await pressSave();
+
+    expect(screen.getByTestId("city")).toHaveFocus();
+  });
+
+  test("one folded under More fields, opened for it", async () => {
+    renderForm({ name: "Acme", city: "Berlin" });
+    await screen.findByTestId("name");
+
+    await pressSave();
+
+    expect(screen.getByTestId("code")).toBeVisible();
+    expect(screen.getByTestId("code")).toHaveFocus();
+  });
+
+  test("Enter in a later field takes the reader back to the one to fix", async () => {
+    renderForm({});
+    await screen.findByTestId("city");
+    screen.getByTestId("city").focus();
+
+    await act(async () => {
+      fireEvent.keyDown(screen.getByTestId("city"), {
+        key: "Enter",
+        code: "Enter",
+      });
+    });
+
+    expect(screen.getByText("Name is required.")).toBeVisible();
+    expect(screen.getByTestId("name")).toHaveFocus();
+  });
+
+  test("a choice in error: its first option takes the focus", async () => {
+    renderForm({ name: "Acme", city: "Berlin", code: "B1" }, [
+      ...FIELDS,
+      {
+        field: { plan: true },
+        title: "Plan",
+        fieldType: FormFieldSchemaType.RadioButton,
+        required: true,
+        radioButtonOptions: [
+          { value: "free", title: "Free" },
+          { value: "growth", title: "Growth" },
+        ],
+      },
+    ]);
+    await screen.findByTestId("name");
+
+    await pressSave();
+
+    expect(screen.getByText("Plan is required.")).toBeVisible();
+    expect(screen.getByRole("radio", { name: "Free" })).toHaveFocus();
+  });
+
+  test("a press that sends the form leaves the focus where it was", async () => {
+    const onSubmit: MockFunction = renderForm({
+      name: "Acme",
+      city: "Berlin",
+      code: "B1",
+    });
+    await screen.findByTestId("name");
+    const save: HTMLElement = screen.getByRole("button", { name: "Save" });
+    save.focus();
+
+    await pressSave();
+
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    expect(save).toHaveFocus();
+  });
+
+  test("leaving a field in error does not pull the focus back to it", async () => {
+    renderForm({});
+    await screen.findByTestId("name");
+
+    await act(async () => {
+      fireEvent.change(screen.getByTestId("name"), { target: { value: "A" } });
+    });
+    await act(async () => {
+      fireEvent.change(screen.getByTestId("name"), { target: { value: "" } });
+    });
+    screen.getByTestId("city").focus();
+    await act(async () => {
+      fireEvent.blur(screen.getByTestId("name"));
+    });
+
+    expect(screen.getByText("Name is required.")).toBeVisible();
+    expect(screen.getByTestId("city")).toHaveFocus();
+  });
 });

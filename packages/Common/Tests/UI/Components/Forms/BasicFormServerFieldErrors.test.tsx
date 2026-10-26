@@ -135,6 +135,50 @@ describe("an answer about a folded field", () => {
     expect(brought!.contains(screen.getByTestId("name"))).toBe(false);
   });
 
+  test("puts the focus in the field, where the code is changed or cleared", async () => {
+    const { rerender } = render(<TheForm error="" />);
+    await screen.findByTestId("name");
+    screen.getByRole("button", { name: "Create Project" }).focus();
+
+    rerender(<TheForm error={PROMO_ERROR} />);
+
+    expect(screen.getByTestId("promo")).toHaveFocus();
+  });
+
+  test("changing the field moves nothing, though another field says what is wrong with it", async () => {
+    const { rerender } = render(<TheForm error="" />);
+    await screen.findByTestId("name");
+
+    // The form was sent (a press), and the server refused the code.
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Create Project" }));
+    });
+    rerender(<TheForm error={PROMO_ERROR} />);
+
+    // The reader empties the name, which says so once left ...
+    await act(async () => {
+      fireEvent.change(screen.getByTestId("name"), { target: { value: "" } });
+    });
+    await act(async () => {
+      fireEvent.blur(screen.getByTestId("name"));
+    });
+    expect(screen.getByText("Project Name is required.")).toBeVisible();
+
+    // ... then types a new code: the page stays put, the focus in the code.
+    screen.getByTestId("promo").focus();
+    scrolled = [];
+
+    await act(async () => {
+      fireEvent.change(screen.getByTestId("promo"), {
+        target: { value: "N" },
+      });
+    });
+
+    expect(screen.queryByText(PROMO_ERROR)).toBeNull();
+    expect(scrolled).toEqual([]);
+    expect(screen.getByTestId("promo")).toHaveFocus();
+  });
+
   test("changing the field puts the message away", async () => {
     const { rerender } = render(<TheForm error="" />);
     await screen.findByTestId("name");
@@ -241,5 +285,12 @@ describe("an answer about a field on another step", () => {
       "true",
     );
     expect(screen.getByText(PROMO_ERROR)).toBeVisible();
+    // Brought into view and focused once the form is on that step.
+    expect(
+      scrolled.some((element: Element) => {
+        return element.contains(screen.getByTestId("promo"));
+      }),
+    ).toBe(true);
+    expect(screen.getByTestId("promo")).toHaveFocus();
   });
 });

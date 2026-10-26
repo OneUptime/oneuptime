@@ -1138,11 +1138,15 @@ describe("a criteria's actions", () => {
       }),
     );
 
-    // Create Alert and Create Incident head their sections: no "(Optional)".
+    /*
+     * Create Alert and Create Incident head their sections, and Change
+     * monitor status to is the status the switch above it asks for: none
+     * says "(Optional)", as the docs name them.
+     */
     const formOnOneLine: string = CRITERIA_INSTANCE_FORM.replace(/\s+/g, " ");
 
     for (const label of [
-      'title="Change monitor status to"',
+      'title="Change monitor status to" description="What would you like the monitor status to be when the criteria have been met?" hideOptionalLabel={true} />',
       '<FieldLabelElement title="Create Alert" hideOptionalLabel={true} />',
       '<FieldLabelElement title="Create Incident" hideOptionalLabel={true} />',
     ]) {

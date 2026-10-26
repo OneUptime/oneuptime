@@ -72,7 +72,7 @@ import React, {
  * dialog's edge, so pressing it seemed to do nothing. Only as far as
  * needed: a fold that fits stays where it is, one below the view comes up
  * until its last field is in sight, and one taller than the view keeps its
- * header at the top. A fold opened for the reader by something else - a
+ * header at the top - each a little room (scroll-my-4) from the edge. A fold opened for the reader by something else - a
  * field in it that failed - is brought into view by what opened it.
  */
 
@@ -378,7 +378,7 @@ const FoldedSection: FunctionComponent<ComponentProps> = (
     return (
       <div
         ref={rootRef}
-        className={`min-w-0 ${props.className || ""}`}
+        className={`min-w-0 scroll-my-4 ${props.className || ""}`}
         data-testid={props.dataTestId || FOLDED_SECTION_TEST_ID}
         data-collapsed={isCollapsed ? "true" : "false"}
         data-variant={variant}
@@ -537,7 +537,7 @@ const FoldedSection: FunctionComponent<ComponentProps> = (
   return (
     <div
       ref={rootRef}
-      className={`border border-gray-200 bg-white transition-colors duration-150 ${
+      className={`scroll-my-4 border border-gray-200 bg-white transition-colors duration-150 ${
         props.isElevated ? "rounded-xl shadow-sm" : "rounded-lg"
       } ${props.className || ""}`}
       data-testid={props.dataTestId || FOLDED_SECTION_TEST_ID}

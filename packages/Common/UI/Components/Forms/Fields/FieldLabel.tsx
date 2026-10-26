@@ -50,13 +50,25 @@ const FieldLabelElement: FunctionComponent<ComponentProps> = (
     translateValue(props.description);
 
   /*
-   * A title that says "(Optional)" itself keeps its own words but draws
-   * them as the mark, and gets no second one (Utils/OptionalMark).
+   * A title that says "(Optional)" itself - "DNS Server (Optional)", the
+   * LLM budgets' "Service (optional)" - is drawn without those words and
+   * with the label's own mark: one mark, worded as every other field's on
+   * the form ("Service (optional)" beside "Daily Budget (USD) (Optional)",
+   * or a French "(facultatif)" beside "(Optionnel)", read as two different
+   * marks). Its mark shows even on a field marked required or told to hide
+   * it, as its title asks (Utils/OptionalMark).
    */
   const titleMark: TitleOptionalMark = splitTitleOptionalMark({
     englishTitle: props.title,
     drawnTitle: translatedTitle,
   });
+
+  const drawnTitle: string = titleMark.mark
+    ? titleMark.title.trimEnd()
+    : translatedTitle;
+
+  const showsOptionalMark: boolean =
+    Boolean(titleMark.mark) || !(props.required || props.hideOptionalLabel);
 
   const label: ReactElement = (
     <label
@@ -69,21 +81,14 @@ const FieldLabelElement: FunctionComponent<ComponentProps> = (
         }  font-medium text-gray-700 flex justify-between`
       }
     >
-      {titleMark.mark ? (
-        <span>
-          {titleMark.title}
-          <span className="text-gray-400 text-xs">{titleMark.mark}</span>
+      <span>
+        {drawnTitle}{" "}
+        <span className="text-gray-400 text-xs">
+          {showsOptionalMark
+            ? translateString("(Optional)") ?? "(Optional)"
+            : ""}
         </span>
-      ) : (
-        <span>
-          {translatedTitle}{" "}
-          <span className="text-gray-400 text-xs">
-            {props.required || props.hideOptionalLabel
-              ? ""
-              : translateString("(Optional)") ?? "(Optional)"}
-          </span>
-        </span>
-      )}
+      </span>
       {props.sideLink && translatedSideLinkText && props.sideLink?.url && (
         <span data-testid="login-forgot-password">
           <Link

@@ -540,9 +540,14 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
 
           {showMonitorStatusChangeControl && (
             <div className={CRITERIA_ACTION_FORM_CLASS_NAME}>
+              {/*
+               * No "(Optional)": the switch above asks for a status change,
+               * and this is the status it changes to.
+               */}
               <FieldLabelElement
                 title="Change monitor status to"
                 description="What would you like the monitor status to be when the criteria have been met?"
+                hideOptionalLabel={true}
               />
               <Dropdown
                 value={props.monitorStatusDropdownOptions.find(
