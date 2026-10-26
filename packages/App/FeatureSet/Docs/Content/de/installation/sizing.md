@@ -100,7 +100,7 @@ Neben den Datenspeichern dimensionieren Sie die zustandslosen Workloads. Jeder l
 | Ingress-Gateway | `nginx` | Dem Anfragevolumen |
 | Telemetry Writer, wenn eingeschaltet | `telemetryWriter` | Nicht mit der Last: Er bündelt jeden Telemetrie-Insert in ClickHouse und wird daher nach dem dimensioniert, was ClickHouse verkraftet |
 
-Das Chart bringt **KEDA** mit, sodass App, Worker, Probes und der Runner nach ihrem Warteschlangenrückstand skalieren können. Schalten Sie `keda.enabled` zusammen mit dem eigenen `keda.enabled` jedes Dienstes ein (zum Beispiel `app.keda.enabled`). Auf einem Cluster ohne KEDA braucht die erste Installation einen zusätzlichen Durchlauf: Siehe die [KEDA-Anleitung](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Docs/Keda.md) des Charts. Dienste, die KEDA nicht verwaltet, können stattdessen einen CPU- oder Speicher-Autoscaler nutzen (`autoscaling`).
+Das Chart bringt **KEDA** mit, sodass App, Worker, Probes und der globale Runner nach ihrem Warteschlangenrückstand skalieren können. Schalten Sie `keda.enabled` zusammen mit dem eigenen `keda.enabled` jedes Dienstes ein (zum Beispiel `app.keda.enabled`). Auf einem Cluster ohne KEDA braucht die erste Installation einen zusätzlichen Durchlauf: Siehe die [KEDA-Anleitung](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Docs/Keda.md) des Charts. Dienste, die KEDA nicht verwaltet, können stattdessen einen CPU- oder Speicher-Autoscaler nutzen (`autoscaling`).
 
 ## Startstufen
 

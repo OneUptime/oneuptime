@@ -1,7 +1,9 @@
 import AIRunService from "../Services/AIRunService";
 import AIRunEventService from "../Services/AIRunEventService";
 import CodeFixAgentAuth, {
+  CODE_FIX_RUN_HOLD_SELECT,
   CodeFixAgentIdentity,
+  CodeFixRunAccess,
 } from "../Utils/AI/CodeFix/CodeFixAgentAuth";
 import CodeFixPullRequestRecord from "../Utils/AI/CodeFix/CodeFixPullRequestRecord";
 import Express, {
@@ -72,8 +74,8 @@ export default class AIAgentTaskAPI {
           /*
            * Scope the claim to the agent's project when it has one. A
            * project-scoped Runner (what customers install) must never
-           * claim another tenant's code-fix run; the in-cluster Runner has
-           * no projectId and keeps serving every project. Within that, each
+           * claim another tenant's code-fix run; a global Runner has no
+           * projectId and serves every project. Within that, each
            * repository's Runner setting decides who takes its runs: a
            * project's Runner only those of the repositories that pick it, a
            * global Runner only those of repositories that pick none.
@@ -289,9 +291,7 @@ export default class AIAgentTaskAPI {
           const existingRun: AIRun | null = await AIRunService.findOneById({
             id: runId,
             select: {
-              _id: true,
-              projectId: true,
-              status: true,
+              ...CODE_FIX_RUN_HOLD_SELECT,
               ...(hasPullRequestUrls ? { taskContext: true } : {}),
             },
             props: {
@@ -301,14 +301,17 @@ export default class AIAgentTaskAPI {
 
           /*
            * A project-scoped identity may only report on its own project's
-           * runs. Denial answers exactly like a missing run so a probing key
-           * cannot tell "other tenant's run" from "no such run".
+           * runs, and a global Runner only on a run it claimed
+           * (deniesAccessToRun). Denial answers exactly like a missing run so
+           * a probing key cannot tell "other tenant's run" from "no such
+           * run".
            */
           if (
             !existingRun ||
-            CodeFixAgentAuth.deniesAccessToProject(
+            CodeFixAgentAuth.deniesAccessToRun(
               aiAgent,
-              existingRun.projectId,
+              existingRun,
+              CodeFixRunAccess.Report,
             )
           ) {
             return Response.sendErrorResponse(

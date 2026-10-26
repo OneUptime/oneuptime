@@ -3,17 +3,14 @@ import { isShippedSecretValue } from "../EnvironmentConfig";
 /*
  * THE ROW A COMPONENT COMING BACK UNDER A NEW KEY TAKES OVER
  *
- * A global probe (Telemetry/API/ProbeIngest/Register) and the in-cluster
- * Runner's global AI agent (API/AIAgentAPI, /register) are each one row,
- * found by the key the component presents. An installation that ran them on
- * a key this repository ships (EnvironmentConfig.isShippedSecretValue) gets
- * random keys instead - npm start and npm run update put them in config.env
- * for Docker Compose - so the same component comes back under a key no row
- * holds yet. The row it ran as is refused on every request from then on
- * (a shipped key never authenticates), so the component takes that row
- * over: it keeps its id, and with it everything that points at it - a
- * probe's monitors, the global agent every project without one of its own
- * uses.
+ * A global probe (Telemetry/API/ProbeIngest/Register) is one row, found by
+ * the key the probe presents. An installation that ran it on a key this
+ * repository ships (EnvironmentConfig.isShippedSecretValue) gets random keys
+ * instead - npm start and npm run update put them in config.env for Docker
+ * Compose - so the same probe comes back under a key no row holds yet. The
+ * row it ran as is refused on every request from then on (a shipped key
+ * never authenticates), so the probe takes that row over: it keeps its id,
+ * and with it everything that points at it - its monitors.
  *
  * The rule:
  *
@@ -27,10 +24,9 @@ import { isShippedSecretValue } from "../EnvironmentConfig";
  *   - of several such rows, the one that reported in last is the one the
  *     component ran as.
  *
- * The caller has already proved it is one of the installation's own
- * components (REGISTER_PROBE_KEY for a probe, the cluster key for the
- * Runner) and narrowed the rows to its own kind (a probe: the global probes
- * of its name).
+ * The caller has already proved it is one of the installation's own probes
+ * (REGISTER_PROBE_KEY) and narrowed the rows to the global probes of its
+ * name.
  */
 export interface TakeoverCandidate {
   key?: string | undefined | null;

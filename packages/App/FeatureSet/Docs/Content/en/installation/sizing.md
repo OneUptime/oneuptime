@@ -100,7 +100,7 @@ Beyond the datastores, size the stateless workloads. Each runs with **no resourc
 | Ingress gateway | `nginx` | Request volume |
 | Telemetry writer, when turned on | `telemetryWriter` | Not with load: it batches every telemetry insert into ClickHouse, so it is sized to what ClickHouse can take |
 
-The chart bundles **KEDA**, so the app, workers, probes and the Runner can scale on their queue backlog. Turn on `keda.enabled` together with each service's own `keda.enabled` (`app.keda.enabled`, for example). On a cluster that has no KEDA yet, the first install takes an extra pass: see the chart's [KEDA guide](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Docs/Keda.md). Services that KEDA does not manage can use a CPU or memory autoscaler instead (`autoscaling`).
+The chart bundles **KEDA**, so the app, workers, probes and the global Runner can scale on their queue backlog. Turn on `keda.enabled` together with each service's own `keda.enabled` (`app.keda.enabled`, for example). On a cluster that has no KEDA yet, the first install takes an extra pass: see the chart's [KEDA guide](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Docs/Keda.md). Services that KEDA does not manage can use a CPU or memory autoscaler instead (`autoscaling`).
 
 ## Starting tiers
 

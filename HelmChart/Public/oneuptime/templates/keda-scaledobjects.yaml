@@ -31,9 +31,9 @@ KEDA ScaledObjects for various services
      that tier.
 
      The exclusion must keep mirroring the render conditions below. It does
-     today for all five tiers: telemetryWriter is the one whose ScaledObject
-     ignores disableAutoscaler, and it has no such key to ignore —
-     values.schema.json pins telemetryWriter to `additionalProperties: false`
+     today for all five tiers: telemetryWriter and globalRunner are the ones
+     whose ScaledObjects ignore disableAutoscaler, and they have no such key to
+     ignore — values.schema.json pins both to `additionalProperties: false`
      without one, so setting it is a schema error, not a silent excuse. If that
      key is ever added to the schema, its render condition below must start
      honouring it too or this loop must stop excusing it. */}}
@@ -44,7 +44,7 @@ KEDA ScaledObjects for various services
 {{- $orphaned = append $orphaned (printf "probes.%s.keda.enabled" $key) }}
 {{- end }}
 {{- end }}
-{{- range $service := list "app" "worker" "telemetryWriter" "runner" }}
+{{- range $service := list "app" "worker" "telemetryWriter" "globalRunner" }}
 {{- $serviceValues := get $.Values $service }}
 {{- if and $serviceValues $serviceValues.keda $serviceValues.keda.enabled (not $serviceValues.disableAutoscaler) }}
 {{- $orphaned = append $orphaned (printf "%s.keda.enabled" $service) }}
@@ -136,9 +136,14 @@ KEDA ScaledObjects for various services
 {{- include "oneuptime.kedaScaledObject" $twKedaArgs }}
 {{- end }}
 
-{{/* AI Agent KEDA ScaledObject */}}
-{{- if and .Values.keda.enabled .Values.runner.enabled .Values.runner.keda.enabled (not .Values.runner.disableAutoscaler) (not .Values.deployment.disableDeployments) }}
-{{- $metricsConfig := dict "enabled" .Values.runner.keda.enabled "minReplicas" .Values.runner.keda.minReplicas "maxReplicas" .Values.runner.keda.maxReplicas "pollingInterval" .Values.runner.keda.pollingInterval "cooldownPeriod" .Values.runner.keda.cooldownPeriod "fallback" .Values.runner.keda.fallback "triggers" (list (dict "query" "oneuptime_ai_agent_queue_size" "threshold" .Values.runner.keda.queueSizeThreshold "port" .Values.runner.ports.http)) }}
-{{- $runnerKedaArgs := dict "ServiceName" "runner" "Release" .Release "Values" .Values "MetricsConfig" $metricsConfig "DisableAutoscaler" .Values.runner.disableAutoscaler }}
-{{- include "oneuptime.kedaScaledObject" $runnerKedaArgs }}
+{{/* Global Runner KEDA ScaledObject — scales the bundled global Runner, which
+     does the AI code fixes of every project that uses global Runners, on the
+     code-fix tasks waiting for it: its own /metrics/queue-size, on its http
+     port, through the Service global-runner.yaml renders while KEDA scales it.
+     The global Runner has no disableAutoscaler: globalRunner.keda.enabled is
+     its one switch. */}}
+{{- if and .Values.keda.enabled .Values.globalRunner.enabled ((.Values.globalRunner.keda).enabled) (not .Values.deployment.disableDeployments) }}
+{{- $metricsConfig := dict "enabled" .Values.globalRunner.keda.enabled "minReplicas" .Values.globalRunner.keda.minReplicas "maxReplicas" .Values.globalRunner.keda.maxReplicas "pollingInterval" .Values.globalRunner.keda.pollingInterval "cooldownPeriod" .Values.globalRunner.keda.cooldownPeriod "fallback" .Values.globalRunner.keda.fallback "triggers" (list (dict "query" "oneuptime_ai_agent_queue_size" "threshold" .Values.globalRunner.keda.queueSizeThreshold "port" .Values.globalRunner.ports.http)) }}
+{{- $globalRunnerKedaArgs := dict "ServiceName" "global-runner" "Release" .Release "Values" .Values "MetricsConfig" $metricsConfig "DisableAutoscaler" false }}
+{{- include "oneuptime.kedaScaledObject" $globalRunnerKedaArgs }}
 {{- end }}

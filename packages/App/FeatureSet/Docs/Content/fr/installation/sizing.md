@@ -100,7 +100,7 @@ Au-delà des bases de données, dimensionnez les charges de travail sans état. 
 | Passerelle d'entrée | `nginx` | Le volume de requêtes |
 | Telemetry writer, quand il est activé | `telemetryWriter` | Pas avec la charge : il regroupe chaque insertion de télémétrie dans ClickHouse, il se dimensionne donc selon ce que ClickHouse peut absorber |
 
-Le chart intègre **KEDA**, pour que l'app, les workers, les sondes et le Runner puissent s'adapter à leur file d'attente. Activez `keda.enabled` en même temps que le `keda.enabled` propre à chaque service (par exemple `app.keda.enabled`). Sur un cluster qui n'a pas encore KEDA, la première installation demande un passage supplémentaire : voir le [guide KEDA](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Docs/Keda.md) du chart. Les services que KEDA ne gère pas peuvent utiliser à la place un autoscaler fondé sur le CPU ou la mémoire (`autoscaling`).
+Le chart intègre **KEDA**, pour que l'app, les workers, les sondes et le Runner global puissent s'adapter à leur file d'attente. Activez `keda.enabled` en même temps que le `keda.enabled` propre à chaque service (par exemple `app.keda.enabled`). Sur un cluster qui n'a pas encore KEDA, la première installation demande un passage supplémentaire : voir le [guide KEDA](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Docs/Keda.md) du chart. Les services que KEDA ne gère pas peuvent utiliser à la place un autoscaler fondé sur le CPU ou la mémoire (`autoscaling`).
 
 ## Paliers de départ
 

@@ -119,7 +119,7 @@ describe("RunnerCapabilities on a global Runner", () => {
     });
   });
 
-  test("code fixes and AI commands stay off whatever was granted", () => {
+  test("takes the code fixes it was granted, and AI commands stay off whatever was granted", () => {
     RunnerCapabilities.setGrantedByServer({
       canRunRunbooks: true,
       canRunCodeFixTasks: true,
@@ -129,9 +129,20 @@ describe("RunnerCapabilities on a global Runner", () => {
 
     expect(RunnerCapabilities.resolve()).toEqual({
       canRunRunbooks: true,
+      canRunCodeFixTasks: true,
+      canRunAiCommands: false,
+    });
+  });
+
+  test("takes no code fixes it was not granted", () => {
+    RunnerCapabilities.setGrantedByServer({
+      canRunRunbooks: true,
       canRunCodeFixTasks: false,
       canRunAiCommands: false,
     });
+    GlobalRunnerMode.setFromServer(true);
+
+    expect(RunnerCapabilities.resolve().canRunCodeFixTasks).toBe(false);
   });
 
   test("a paused global Runner takes no runbook steps", () => {

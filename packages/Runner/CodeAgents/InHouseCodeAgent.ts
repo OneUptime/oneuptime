@@ -6,7 +6,8 @@ import {
   CodeAgentProgressCallback,
   CodeAgentProgressEvent,
 } from "./CodeAgentInterface";
-import { RUNS_PROJECT_AUTHORED_COMMANDS } from "../Config";
+import { runsProjectAuthoredCommands } from "../Config";
+import { CODE_AGENT_COMMAND_TOOL_NAME } from "Common/Types/Runner/GlobalRunnerWork";
 import TaskLogger from "../Utils/TaskLogger";
 import BackendAPI, {
   LlmCompletionResult,
@@ -73,7 +74,7 @@ const WORKSPACE_TOOL_NAMES: ReadonlyArray<string> = [
   "write_file",
   "list_directory",
   "search_files",
-  "run_command",
+  CODE_AGENT_COMMAND_TOOL_NAME,
   ASK_QUESTION_TOOL_NAME,
 ];
 
@@ -610,7 +611,7 @@ export default class InHouseCodeAgent implements CodeAgent {
       "- read_file / write_file / list_directory / search_files operate on paths",
       "  relative to the repository root and cannot leave it (links included);",
       "  write_file cannot change the .git directory.",
-      ...(RUNS_PROJECT_AUTHORED_COMMANDS
+      ...(runsProjectAuthoredCommands()
         ? [
             "- run_command runs a shell command in the repository root. Use it to",
             "  set up, build and run the tests the way the repository says to. A",
@@ -644,7 +645,7 @@ export default class InHouseCodeAgent implements CodeAgent {
       {
         instructions,
         checksChange: !task.skipsChangeChecks,
-        canRunCommands: RUNS_PROJECT_AUTHORED_COMMANDS,
+        canRunCommands: runsProjectAuthoredCommands(),
       },
     );
 
@@ -659,14 +660,14 @@ export default class InHouseCodeAgent implements CodeAgent {
   private getToolDefinitions(): Array<LLMToolDefinition> {
     /*
      * run_command is offered only on a Runner that may run project-authored
-     * or model-composed shell (a project-scoped Runner). The shared
-     * in-cluster Runner never executes it — the agent edits files and the
-     * fix opens for review (see RUNS_PROJECT_AUTHORED_COMMANDS). The model
-     * cannot force it either: toolRunCommand refuses it when it is not
-     * offered, so an unadvertised call never spawns a process.
+     * or model-composed shell (a project's own Runner). A global Runner
+     * never executes it — the agent edits files and the fix opens for review
+     * (see runsProjectAuthoredCommands). The model cannot force it either:
+     * toolRunCommand refuses it when it is not offered, so an unadvertised
+     * call never spawns a process.
      */
     const runCommandTool: LLMToolDefinition = {
-      name: "run_command",
+      name: CODE_AGENT_COMMAND_TOOL_NAME,
       description: `Run a shell command in the repository root. It stops after ${DEFAULT_AGENT_COMMAND_TIMEOUT_SECONDS} seconds unless ${AGENT_COMMAND_TIMEOUT_ARGUMENT} gives it longer. Returns the exit code and combined output (truncated).`,
       inputSchema: {
         type: "object",
@@ -754,7 +755,7 @@ export default class InHouseCodeAgent implements CodeAgent {
           required: ["pattern"],
         },
       },
-      ...(RUNS_PROJECT_AUTHORED_COMMANDS ? [runCommandTool] : []),
+      ...(runsProjectAuthoredCommands() ? [runCommandTool] : []),
       /*
        * Offered until the run's calls are spent - the server refuses one
        * past them anyway, and a tool the model cannot use is noise.
@@ -863,7 +864,7 @@ export default class InHouseCodeAgent implements CodeAgent {
           return await this.toolListDirectory(workspaceRoot, args);
         case "search_files":
           return await this.toolSearchFiles(workspaceRoot, args);
-        case "run_command":
+        case CODE_AGENT_COMMAND_TOOL_NAME:
           return await this.toolRunCommand(workspaceRoot, args);
         default:
           if (this.productionTelemetry?.names.has(toolCall.name)) {
@@ -1121,15 +1122,15 @@ export default class InHouseCodeAgent implements CodeAgent {
     const command: string = (args["command"] as string) || "";
 
     /*
-     * The shared in-cluster Runner never runs a shell command: it serves
-     * every project, so nothing a model composes runs on it (see
-     * RUNS_PROJECT_AUTHORED_COMMANDS). The tool is not offered there, but a
+     * A global Runner never runs a shell command: it serves every project,
+     * so nothing a model composes runs on it (see
+     * runsProjectAuthoredCommands). The tool is not offered there, but a
      * model can still emit the call, so refuse it here BEFORE anything
      * spawns — this, not the tool list, is the control.
      */
-    if (!RUNS_PROJECT_AUTHORED_COMMANDS) {
+    if (!runsProjectAuthoredCommands()) {
       return {
-        narration: `refused run_command on a shared Runner: ${command.substring(0, 120)}`,
+        narration: `refused run_command on a global Runner: ${command.substring(0, 120)}`,
         output:
           "Error: run_command is not available on this Runner. Make the change with read_file, write_file, list_directory and search_files; the repository's own CI and the reviewer build and test it after the pull request opens.",
       };

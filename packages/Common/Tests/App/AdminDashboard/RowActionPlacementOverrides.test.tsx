@@ -19,14 +19,14 @@ import React, { FunctionComponent, ReactElement, ReactNode } from "react";
 import englishLocale from "../../../../App/FeatureSet/AdminDashboard/src/Locales/en.json";
 
 /*
- * Settings > Global Probes and Settings > Global AI Agents, where every row
- * used to carry "Show ID and Key", "Edit" and "Delete" side by side.
+ * Settings > Global Probes, where every row used to carry "Show ID and
+ * Key", "Edit" and "Delete" side by side.
  *
  * Rows now show one action as a button and fold the rest into a ⋯ menu, and
  * the split picks the button by style. "Show ID and Key" is styled NORMAL and
  * the table's own Edit is OUTLINE, so left to the style the utility that
  * reveals a secret key would be the button on every row and Edit would go
- * behind the ⋯. Both pages mark it MoreMenu; these tests render each page with
+ * behind the ⋯. The page marks it MoreMenu; these tests render the page with
  * the real ModelTable and hold it to that. The dashboard's own probe table is
  * covered in App/Dashboard/RowActionPlacementOverrides.test.tsx.
  */
@@ -106,8 +106,6 @@ jest.mock("../../../UI/Utils/API/API", () => {
 });
 
 import SettingsProbes from "../../../../App/FeatureSet/AdminDashboard/src/Pages/Settings/Probes/Index";
-import SettingsAIAgents from "../../../../App/FeatureSet/AdminDashboard/src/Pages/Settings/AIAgents/Index";
-import AIAgent from "../../../Models/DatabaseModels/AIAgent";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Probe from "../../../Models/DatabaseModels/Probe";
 import ListResult from "../../../Types/BaseDatabase/ListResult";
@@ -122,7 +120,6 @@ interface AdminKeyTable {
 }
 
 const PROBE_ID: string = "11111111-1111-4111-8111-111111111111";
-const AI_AGENT_ID: string = "22222222-2222-4222-8222-222222222222";
 
 const ADMIN_KEY_TABLES: Array<AdminKeyTable> = [
   {
@@ -137,19 +134,6 @@ const ADMIN_KEY_TABLES: Array<AdminKeyTable> = [
     },
     rowId: PROBE_ID,
     keyModalTitle: "Probe Key",
-  },
-  {
-    name: "Global AI Agents",
-    Page: SettingsAIAgents,
-    buildRow: (): BaseModel => {
-      const agent: AIAgent = new AIAgent();
-      agent._id = AI_AGENT_ID;
-      agent.name = "Triage agent";
-      agent.key = "global-agent-key";
-      return agent;
-    },
-    rowId: AI_AGENT_ID,
-    keyModalTitle: "AI Agent Key",
   },
 ];
 

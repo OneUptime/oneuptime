@@ -1,5 +1,6 @@
 import { ONEUPTIME_BASE_URL } from "../Config";
 import RunnerAPIRequest from "./RunnerAPIRequest";
+import RepositoryTokenRevocation from "./RepositoryTokenRevocation";
 import URL from "Common/Types/API/URL";
 import API from "Common/Utils/API";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -516,10 +517,13 @@ export default class BackendAPI {
   /*
    * Resolve the repository for an exception — the server matches the
    * exception's stack-trace files against the project's connected repos at
-   * runtime (with name-match / only-repository fallbacks).
+   * runtime (with name-match / only-repository fallbacks). The task this
+   * Runner claimed goes with it: a global Runner is answered only for the
+   * exception of the run it holds (CodeFixAgentAuth.deniesAccessToRun).
    */
   public async getCodeRepositories(
     exceptionId: string,
+    taskId?: string | undefined,
   ): Promise<Array<CodeRepositoryInfo>> {
     const url: URL = URL.fromURL(this.baseUrl).addRoute(
       "/api/ai-agent-data/get-code-repositories",
@@ -530,6 +534,7 @@ export default class BackendAPI {
       data: {
         ...RunnerAPIRequest.getDefaultRequestBody(),
         exceptionId: exceptionId,
+        ...(taskId ? { taskId } : {}),
       },
       options: RunnerAPIRequest.getDefaultRequestOptions(),
     });
@@ -680,6 +685,16 @@ export default class BackendAPI {
     const codeHost: CodeHostRunnerInfo | null = BackendAPI.readCodeHost(
       data.codeHost,
     );
+
+    /*
+     * A GitHub repository's token - one that came with no code host - is
+     * minted for this run, and is revoked when the run ends
+     * (RepositoryTokenRevocation). Another host's is its connection's own,
+     * and stays.
+     */
+    if (!data.codeHost && data.token) {
+      RepositoryTokenRevocation.remember(data.token);
+    }
 
     return {
       token: data.token,

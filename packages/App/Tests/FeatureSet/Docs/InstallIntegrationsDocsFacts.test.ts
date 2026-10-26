@@ -1213,7 +1213,7 @@ describe("Docker Compose, against the compose files and scripts", () => {
       "ingress",
       "app",
       "probe-1",
-      "runner",
+      "global-runner",
       "postgres",
       "clickhouse",
       "valkey",
@@ -1238,7 +1238,7 @@ describe("Docker Compose, against the compose files and scripts", () => {
     }
   });
 
-  it("the probe and the Runner use the host's network, and npm start moves their URLs to the ingress the proxy steps publish", () => {
+  it("the probe uses the host's network, and npm start moves its URLs to the ingress the proxy steps publish; the global Runner calls the app directly", () => {
     const base: Record<string, ComposeService> = composeServices("baseCompose");
     const config: Map<string, string> = configExample();
     const proxyStep: string = blockFrom(
@@ -1282,12 +1282,8 @@ describe("Docker Compose, against the compose files and scripts", () => {
     expect(followed.moved).toEqual([
       "GLOBAL_PROBE_1_ONEUPTIME_URL",
       "GLOBAL_PROBE_2_ONEUPTIME_URL",
-      "ONEUPTIME_RUNNER_ONEUPTIME_URL",
     ]);
     expect(after.get("GLOBAL_PROBE_1_ONEUPTIME_URL")).toBe(
-      "http://localhost:8080",
-    );
-    expect(after.get("ONEUPTIME_RUNNER_ONEUPTIME_URL")).toBe(
       "http://localhost:8080",
     );
     expect(
@@ -1298,24 +1294,25 @@ describe("Docker Compose, against the compose files and scripts", () => {
       start.indexOf("docker compose up"),
     );
     expect(proxyStep).toContain(
-      "`npm start` moves them to the ingress's new port, `http://localhost:8080`, and says so.",
+      "`npm start` moves it to the ingress's new port, `http://localhost:8080`, and says so.",
     );
     expect(page).toContain(
-      "`npm start` moves it and `ONEUPTIME_RUNNER_ONEUPTIME_URL` to the ingress's port while they point at `localhost`.",
+      "`npm start` moves it to the ingress's port while it points at `localhost`.",
     );
 
     expect(base["probe-1"]?.["network_mode"]).toBe("host");
-    expect(base["runner"]?.["network_mode"]).toBe("host");
     expect(valueAt(base, "probe-1.environment.ONEUPTIME_URL")).toBe(
       "${GLOBAL_PROBE_1_ONEUPTIME_URL}",
     );
-    expect(valueAt(base, "runner.environment.ONEUPTIME_URL")).toBe(
-      "${ONEUPTIME_RUNNER_ONEUPTIME_URL}",
-    );
     expect(config.get("GLOBAL_PROBE_1_ONEUPTIME_URL")).toBe("http://localhost");
-    expect(config.get("ONEUPTIME_RUNNER_ONEUPTIME_URL")).toBe(
-      "http://localhost",
+
+    // The global Runner calls the app on the oneuptime network: no URL to move.
+    expect(base["global-runner"]?.["networks"]).toEqual(["oneuptime"]);
+    expect(valueAt(base, "global-runner.environment.ONEUPTIME_URL")).toBe(
+      "http://app:${APP_PORT}",
     );
+    expect(base["runner"]).toBeUndefined();
+    expect(config.has("ONEUPTIME_RUNNER_ONEUPTIME_URL")).toBe(false);
 
     expect(rowOf(sectionOf(page, "## How it works"), "`probe-1`")[2]).toContain(
       "It uses the host's network.",
@@ -1379,7 +1376,7 @@ describe("Docker Compose, against the compose files and scripts", () => {
       rows.map((row: Array<string>): string => {
         return row[0] as string;
       }),
-    ).toEqual(["80", "443", "5400", "3874", "3876"]);
+    ).toEqual(["80", "443", "5400", "3874"]);
 
     for (const row of rows) {
       const settings: Array<string> = inlineCodes(row[2] as string);
@@ -1406,9 +1403,9 @@ describe("Docker Compose, against the compose files and scripts", () => {
     expect(valueAt(base, "probe-1.environment.PORT")).toBe(
       "${GLOBAL_PROBE_1_PORT}",
     );
-    expect(valueAt(base, "runner.environment.PORT")).toBe(
-      "${ONEUPTIME_RUNNER_PORT}",
-    );
+    // The global Runner publishes no host port (the shared Runner's 3876 went with it).
+    expect(base["global-runner"]?.["ports"]).toBeUndefined();
+    expect(config.has("ONEUPTIME_RUNNER_PORT")).toBe(false);
     expect(config.get("DATABASE_BACKUP_HOST")).toBe("localhost");
     expect(config.get("DATABASE_BACKUP_PORT")).toBe("5400");
   });
@@ -1442,7 +1439,7 @@ describe("Docker Compose, against the compose files and scripts", () => {
     ].sort();
     const start: string = scriptsOf("rootPackage")["start"] as string;
 
-    expect(shipped.length).toBe(10);
+    expect(shipped.length).toBe(9);
     expect(named).toEqual(shipped);
     expect(setByNpmStart).toEqual(shipped);
     for (const step of [
@@ -1983,7 +1980,7 @@ describe("Sizing & Capacity Planning, against the Helm chart", () => {
     const runByDefault: Array<[string, string]> = [
       ["app", "app.resources"],
       ["nginx", "nginx.resources"],
-      ["runner", "runner.resources"],
+      ["globalRunner", "globalRunner.resources"],
       ["probes.one", "probes.one.resources"],
       ["postgresql", "postgresql.primary.resources"],
       ["clickhouse", "clickhouse.resources"],
@@ -2083,7 +2080,7 @@ describe("Sizing & Capacity Planning, against the Helm chart", () => {
     expect(keda?.condition).toContain("keda.enabled");
     expect(valueAt(values, "keda.enabled")).toBe(false);
 
-    for (const service of ["app", "worker", "probes.one", "runner"]) {
+    for (const service of ["app", "worker", "probes.one", "globalRunner"]) {
       expect({
         service,
         keda: valueAt(values, `${service}.keda.enabled`),

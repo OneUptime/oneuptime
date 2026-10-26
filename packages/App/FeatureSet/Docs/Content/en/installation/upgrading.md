@@ -80,7 +80,7 @@ Then check your version again, as in the first step. If you have not reached you
 
 | Upgrade | What you must do |
 | --- | --- |
-| [13 → 14](#upgrading-from-oneuptime-13-14) | Pick an edition. Docker Compose installs that set `IS_ENTERPRISE_EDITION=true` move to `APP_TAG=enterprise-release`. Activate a license on the Enterprise Edition. Re-save IPv6 Ping, Port and SSL monitors. |
+| [13 → 14](#upgrading-from-oneuptime-13-14) | Pick an edition. Docker Compose installs that set `IS_ENTERPRISE_EDITION=true` move to `APP_TAG=enterprise-release`. Activate a license on the Enterprise Edition. Re-save IPv6 Ping, Port and SSL monitors. AI code fixes move to the global Runner: keep it on, and on Helm move `runner.keda` to `globalRunner.keda`. |
 | [12 → 13](#upgrading-from-oneuptime-12-13) | Usually nothing: Redis becomes Valkey, and the old setting names keep working. Running Docker Compose by hand? Add `--remove-orphans`. Using a cache of your own? Read [If you run your own cache](#if-you-run-your-own-cache). |
 | [11 → 12](#upgrading-from-oneuptime-11-12) | Redeploy Runbook Agents as Runners. On Docker Compose, set `ONEUPTIME_RUNNER_KEY`. On Helm, rename `aiAgent:` to `runner:`. Re-grant Runner permissions that API keys held directly. |
 | [10 → 11](#upgrading-from-oneuptime-10-11) | SCIM and team compliance settings need the Enterprise Edition. To keep your telemetry history, rename the old ClickHouse tables before you upgrade. |
@@ -244,6 +244,13 @@ switching editions needs no migration in either direction.
 6. **If you monitor IPv6 addresses with Ping, Port or SSL monitors, re-save
    those monitors after the upgrade.** Destinations saved before 14 may have been
    stored truncated — see [IPv6 Ping, Port and SSL monitors](#ipv6-ping-port-and-ssl-monitors).
+7. **If OneUptime AI fixes code in your repositories, keep the global Runner
+   on.** It now takes the AI code fixes the shared Runner did, and Docker
+   Compose's `runner` service and the chart's `runner` deployment are gone. If
+   you set `GLOBAL_RUNNER_REPLICAS=0` or `globalRunner.enabled: false`, turn it
+   back on, or [pick a Runner of your own](/docs/ai/ai-agent#pick-the-repositorys-runner)
+   for those repositories in Code. On Helm, remove `runner:` from your values
+   and move `runner.keda` to `globalRunner.keda`.
 
 ### Editions: what changed, and what did not
 
@@ -1284,7 +1291,7 @@ API, SSO, or the Slack and Microsoft Teams apps.
   project's probes - name, description, icon, status and whether new
   monitors start with it - but not a probe's key, version, labels or packet
   capture report. A probe's key stays with project owners and admins. The
-  lists of global probes and global AI agents answer signed-in users only.
+  list of global probes answers signed-in users only.
 - **An update or a delete names its project.** A signed-in user's update
   or delete of a project's records that names no project (no `tenantid`
   header), or that asks across all of their projects (the
@@ -1366,18 +1373,16 @@ API, SSO, or the Slack and Microsoft Teams apps.
   shows. An installation that set its own `ONEUPTIME_SECRET` sees no change.
 - **OneUptime's own services send `ONEUPTIME_SECRET` in a header, and only to
   the routes that take it.** Those routes read it from the `clusterkey`
-  request header alone. A request whose URL carries it is refused, and a body
-  is read for it only by the in-cluster Runner's registration, so a Runner of
-  an earlier release still registers while the app logs that it should be
-  updated. The routes that nothing in OneUptime called are removed: the queue
-  statistics and failed jobs (`GET .../queue/stats`, `GET .../queue/size`,
-  `GET .../queue/failed`) and the pending monitors
+  request header alone. A request whose URL carries it is refused. The routes
+  that nothing in OneUptime called are removed: the queue statistics and failed
+  jobs (`GET .../queue/stats`, `GET .../queue/size`, `GET .../queue/failed`)
+  and the pending monitors
   (`GET /monitor/pending-count/...`, `GET /monitor/pending-list/...`). The
   support bundle in the Admin Dashboard shows the queues. A script of yours
   that calls a route with `ONEUPTIME_SECRET` sends it in the `clusterkey`
   header now, and if it ever put it in a URL, change `ONEUPTIME_SECRET` on the
-  app and the Runner. An installation's own services need no change, during a
-  rolling upgrade too.
+  app and on every service that uses it. An installation's own services need
+  no change, during a rolling upgrade too.
 - **PostgreSQL answers only on the server itself, and a new install starts
   with a database password of its own.** `docker-compose.yml` published
   PostgreSQL's port 5400 on every address of the server. It is now published
@@ -1491,16 +1496,59 @@ API, SSO, or the Slack and Microsoft Teams apps.
   out of its environment. A Runner of an earlier release, or one that is still
   given `ONEUPTIME_SECRET`, keeps registering with it, and the app logs that it
   should be updated.
+- **Global Runners take OneUptime AI's code fixes, and the shared Runner is
+  gone.** The bundled global Runner, and every global Runner a master admin
+  adds, now works in every code repository on **Global Runner**: one that
+  picks it in its Runner setting in Code, or that picks no Runner in a project
+  with no default Runner, while the project uses global Runners. Projects that
+  turn global Runners off, and repositories that pick their own Runner, see no
+  change. On a global Runner, a fix never runs
+  the repository's own setup, build and test commands, and the code agent has
+  no command tool: the fix is written and opened for review with its
+  verification shown as skipped, as on the shared Runner before. A Runner of
+  your own still builds and tests fixes: see
+  [Run a Runner of your own](/docs/ai/ai-agent#run-a-runner-of-your-own). A
+  global Runner reaches Git servers on the internet only, over HTTPS, except on
+  a self-hosted OneUptime, where it may reach the private Git servers the
+  server itself may reach. It still never runs Bash, SSH or kubectl steps,
+  OneUptime AI's commands, or a step that needs a credential. A global Runner
+  acts only for the fix it took: it is handed that fix's details, and its
+  repository's token, only while it works on it. On every Runner, the token a
+  fix is handed for a GitHub repository now reaches that one repository, not
+  every repository the GitHub App can reach, and the Runner revokes it when the
+  fix ends. The separate shared Runner, which the notes above call the bundled
+  Runner, is gone. Docker
+  Compose no longer has the `runner` service and no longer uses
+  `ONEUPTIME_RUNNER_KEY`, `ONEUPTIME_RUNNER_PORT` or
+  `ONEUPTIME_RUNNER_ONEUPTIME_URL`: `npm run update` removes the old container
+  (`docker compose up -d --remove-orphans` does, if you run Compose by hand),
+  and you may delete those three lines from `config.env`. The Helm chart no
+  longer has the `runner` deployment and ignores `runner.*` values, which its
+  schema still accepts so old values files keep working: remove `runner:` from
+  your values, and move `runner.keda` to `globalRunner.keda`, which has the same
+  fields. A Runner still started as the shared Runner, with
+  `ONEUPTIME_RUNNER_SHARED` set to `true`, now logs that the shared Runner is
+  gone and stops: remove it from your deployment. If you set
+  `GLOBAL_RUNNER_REPLICAS=0` or `globalRunner.enabled: false`,
+  that now also stops AI code fixes in the repositories on **Global Runner**:
+  turn the global Runner back on, or pick a Runner of your own for those
+  repositories in Code. The Admin Dashboard's Global AI Agents page, under
+  **Settings → AI**, is removed: for global Runners, open **Settings**, then
+  **Global Runners**. A Runner you started with the ID and key of a global AI
+  agent from that page no longer takes work, and says so: start it with a
+  global Runner's ID and key instead. AI agents a project created before 12.0
+  keep working as before. See
+  [Global Runners](/docs/runbooks/agents#global-runners).
 - **Wrong probe and Runner keys are counted.** One address may send only ten
   different wrong keys for one probe, Runner or AI agent in a quarter of an
-  hour, and only ten different wrong values of `REGISTER_PROBE_KEY` or of the
-  bundled Runner's `ONEUPTIME_RUNNER_KEY`. After that, its requests for that
-  probe, Runner or agent, or its registrations, are answered with `429` until
-  the quarter of an hour ends, the right key included. A probe or Runner that
-  still sends the key it had before a reset sends one wrong key however often it
-  calls, so it is never refused for it. Keys sent from a private network
-  address, which is where the bundled probes and Runner call from, are not
-  counted at all, so nothing sent beside them can get them refused.
+  hour, and only ten different wrong values of `REGISTER_PROBE_KEY`. After
+  that, its requests for that probe, Runner or agent, or its registrations, are
+  answered with `429` until the quarter of an hour ends, the right key
+  included. A probe or Runner that still sends the key it had before a reset
+  sends one wrong key however often it calls, so it is never refused for it.
+  Keys sent from a private network address, which is where the bundled probes
+  and Runner call from, are not counted at all, so nothing sent beside them can
+  get them refused.
 - **Every install runs a global Runner of its own.** A new `global-runner`
   service in Docker Compose, and a `globalRunner` deployment in the Helm chart,
   run the JavaScript steps of every project that picks no Runner of its own,

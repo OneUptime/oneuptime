@@ -11,14 +11,14 @@ import crypto from "crypto";
  * THEM.
  *
  * A probe, a Runner and an AI agent prove who they are with a key of their
- * own, and a global probe and the installation's shared Runner register with
- * a key of the installation's own (REGISTER_PROBE_KEY, ONEUPTIME_RUNNER_KEY).
- * An operator may set any of them by hand, and so may the people who manage a
- * probe or a Runner, so these keys are held to what every credential is held
- * to: one client may try only so many wrong ones. The rule is the one the
- * cluster key keeps (WrongKeyLimit): different wrong keys are counted, the
- * right key never is, and a client over the limit is refused whichever key it
- * carries until its window ends. Valkey away, keys are compared as always.
+ * own, and a global probe registers with a key of the installation's own
+ * (REGISTER_PROBE_KEY). An operator may set any of them by hand, and so may
+ * the people who manage a probe or a Runner, so these keys are held to what
+ * every credential is held to: one client may try only so many wrong ones.
+ * The rule is the one the cluster key keeps (WrongKeyLimit): different wrong
+ * keys are counted, the right key never is, and a client over the limit is
+ * refused whichever key it carries until its window ends. Valkey away, keys
+ * are compared as always.
  *
  * WHAT IS COUNTED TOGETHER
  *
@@ -31,9 +31,8 @@ import crypto from "crypto";
  *    is counted only for a probe, Runner or agent there is: an id nothing has
  *    can never be let in, whatever key comes with it, so nothing is kept for
  *    it either.
- *  - REGISTER_PROBE_KEY and the shared Runner's ONEUPTIME_RUNNER_KEY, each
- *    one secret of the installation's, are counted for the client alone,
- *    like the cluster key.
+ *  - REGISTER_PROBE_KEY, one secret of the installation's, is counted for
+ *    the client alone, like the cluster key.
  *
  * Every one of them sends the same key on every request, so a probe or a
  * Runner that restarts, or still holds the key it had before a rotation or a
@@ -51,14 +50,14 @@ import crypto from "crypto";
  * compared, so its requests cost no database read, and each is answered the
  * same whatever key it carries. Once the key is compared, checkComponentKey
  * counts it, and refuses a client that went over the limit while its request
- * was on the way. REGISTER_PROBE_KEY and the shared Runner's key are
- * compared with a value the app holds, and read nothing.
+ * was on the way. REGISTER_PROBE_KEY is compared with a value the app
+ * holds, and reads nothing.
  *
  * NOT ON A PRIVATE NETWORK ADDRESS
  *
  * Like every wrong-key limit, a key presented from a private network address
  * is compared as it always was and never counted (WrongKeyLimit, NOT ON A
- * PRIVATE NETWORK ADDRESS): the bundled probes, the shared Runner and the
+ * PRIVATE NETWORK ADDRESS): the bundled probes, the global Runner and the
  * agents beside them call from one, so nothing sent from beside them can get
  * them refused. Here that is asked before anything else, so nothing is looked
  * up, read or kept for such a key either.
@@ -80,8 +79,6 @@ export enum ComponentKeyKind {
   Agent = "agent",
   // REGISTER_PROBE_KEY, which registers a global probe.
   ProbeRegistration = "probe registration",
-  // ONEUPTIME_RUNNER_KEY, which registers the installation's shared Runner.
-  SharedRunner = "shared Runner",
 }
 
 // What a client refused for its wrong keys is told, by the kind of key.
@@ -93,9 +90,6 @@ export const WRONG_AGENT_KEYS_MESSAGE: string =
 
 export const WRONG_PROBE_REGISTRATION_KEYS_MESSAGE: string =
   "This address has sent too many different wrong probe registration keys, so its registrations are refused for now. Wait for the time in the Retry-After header, then register with the REGISTER_PROBE_KEY the OneUptime server is set to.";
-
-export const WRONG_SHARED_RUNNER_KEYS_MESSAGE: string =
-  "This address has sent too many different wrong Runner keys, so its registrations are refused for now. Wait for the time in the Retry-After header, then register with the ONEUPTIME_RUNNER_KEY the OneUptime app is set to.";
 
 /*
  * What a wrong key's digest is made with: a key derived for this alone from
@@ -156,14 +150,6 @@ const KINDS: Record<ComponentKeyKind, KindOfKey> = {
       keyPrefix: "probe-registration-key:wrong-keys:",
     }),
     message: WRONG_PROBE_REGISTRATION_KEYS_MESSAGE,
-  },
-  [ComponentKeyKind.SharedRunner]: {
-    limit: limitFor({
-      scope: "wrong shared Runner key",
-      countedKeys: "different wrong shared Runner keys",
-      keyPrefix: "shared-runner-key:wrong-keys:",
-    }),
-    message: WRONG_SHARED_RUNNER_KEYS_MESSAGE,
   },
 };
 
@@ -246,14 +232,14 @@ export default class WrongComponentKeyLimit {
   }
 
   /*
-   * For a request that presented an installation key - REGISTER_PROBE_KEY,
-   * or the shared Runner's ONEUPTIME_RUNNER_KEY - once the key was compared:
+   * For a request that presented an installation key - REGISTER_PROBE_KEY -
+   * once the key was compared:
    * the refusal to answer it with, when its client has sent too many
    * different wrong ones, or null.
    */
   public static async checkRegistrationKey(data: {
     req: ExpressRequest;
-    kind: ComponentKeyKind.ProbeRegistration | ComponentKeyKind.SharedRunner;
+    kind: ComponentKeyKind.ProbeRegistration;
     presentedKey: unknown;
     isKeyRight: boolean;
   }): Promise<WrongKeyRefusal | null> {

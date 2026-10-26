@@ -348,8 +348,10 @@ export default class RunnerIngressAPI {
   /*
    * Whether a code repository of the Runner's project picks it (its Runner
    * setting in Code): what the code-fix capability its heartbeat is told
-   * says. Not asked for a global Runner, nor for an in-cluster Runner the
-   * Kubernetes agent chart installed, which never take code work.
+   * says. Not asked for a global Runner, which takes the code work of every
+   * repository on the Global Runner (getHeartbeatAnswer), nor for an
+   * in-cluster Runner the Kubernetes agent chart installed, which never
+   * takes code work.
    */
   public static async isPickedByACodeRepository(
     agent: Runner,
@@ -376,10 +378,12 @@ export default class RunnerIngressAPI {
    * repository that picks it starts its code-fix loop within a heartbeat,
    * and one that picks another stops it.
    *
-   * A global Runner is told it is one, and that it runs runbook steps only
-   * (a master admin may pause even those with "Runs Runbooks"): it then
-   * asks only for what global Runners run, and refuses anything else it is
-   * handed. The server serves it no other work whatever it asks for.
+   * A global Runner is told it is one: it runs every project's JavaScript
+   * steps (a master admin may pause those with "Runs Runbooks") and the AI
+   * code fixes of every repository on the Global Runner, never with the
+   * repository's own commands. It then asks only for what global Runners
+   * run, and refuses anything else it is handed. The server serves it no
+   * other work whatever it asks for.
    */
   public static getHeartbeatAnswer(
     agent: Runner,
@@ -392,7 +396,7 @@ export default class RunnerIngressAPI {
         globalStepTypes: [...GLOBAL_RUNNER_STEP_TYPES],
         capabilities: {
           canRunRunbooks: agent.canRunRunbooks !== false,
-          canRunCodeFixTasks: false,
+          canRunCodeFixTasks: true,
           canRunAiCommands: false,
         },
       };

@@ -29,10 +29,10 @@ import {
  *
  * Now each is read with its project's read permissions, and nothing about
  * either is read by Public: the lists of public columns below are empty and
- * pinned that way. The shared global probes and AI agents are listed to
- * signed-in members by their own routes (ProbeAPI's global-probes,
- * AIAgentAPI's global-ai-agents), which read a fixed set of columns as
- * OneUptime. A probe or agent named on another record (a monitor's probes, a
+ * pinned that way. The shared global probes are listed to signed-in
+ * members by their own route (ProbeAPI's global-probes), which reads a fixed
+ * set of columns as OneUptime; global AI agents are listed nowhere any more,
+ * their work a global Runner's. A probe or agent named on another record (a monitor's probes, a
  * device's probe) still shows its name there, through the relation, to
  * whoever may read that record.
  *
