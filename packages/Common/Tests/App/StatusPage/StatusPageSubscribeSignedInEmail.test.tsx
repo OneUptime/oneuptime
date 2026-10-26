@@ -92,15 +92,13 @@ jest.mock(
   },
 );
 
-// The status page this tab shows, as StatusPageUtil.getStatusPageId answers it.
-let tabStatusPageId: string | null = null;
-
 jest.mock("../../../../App/FeatureSet/StatusPage/src/Utils/StatusPage", () => {
   return {
     __esModule: true,
     default: {
+      // The page this tab shows, from where RouteMap reads it too.
       getStatusPageId: (): ObjectID | null => {
-        return tabStatusPageId ? new ObjectID(tabStatusPageId) : null;
+        return StatusPageInTab.get();
       },
       checkIfUserHasLoggedIn: (): void => {},
       isPreviewPage: (): boolean => {
@@ -158,6 +156,7 @@ jest.mock("../../../../App/FeatureSet/StatusPage/src/Utils/ModelAPI", () => {
 import EmailSubscribe from "../../../../App/FeatureSet/StatusPage/src/Pages/Subscribe/EmailSubscribe";
 import English from "../../../../App/FeatureSet/StatusPage/src/Locales/en.json";
 import ObjectID from "../../../Types/ObjectID";
+import StatusPageInTab from "../../../../App/FeatureSet/StatusPage/src/Utils/StatusPageInTab";
 
 const STATUS_PAGE_ID: string = "22222222-2222-4222-8222-222222222222";
 
@@ -208,7 +207,7 @@ function signIn(email: string | null): void {
 
 describe("Subscribing by email on a status page that takes only its private users", () => {
   beforeEach(() => {
-    tabStatusPageId = STATUS_PAGE_ID;
+    StatusPageInTab.set(STATUS_PAGE_ID);
     signIn(null);
     createOrUpdateMock.mockReset();
     createOrUpdateMock.mockResolvedValue({ data: {} });

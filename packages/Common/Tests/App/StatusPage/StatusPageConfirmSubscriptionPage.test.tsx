@@ -81,15 +81,13 @@ jest.mock(
 const checkIfUserHasLoggedIn: MockFunction = getJestMockFunction();
 let isPreviewPage: boolean = false;
 
-// The status page this tab shows, as StatusPageUtil.getStatusPageId answers it.
-let tabStatusPageId: string | null = null;
-
 jest.mock("../../../../App/FeatureSet/StatusPage/src/Utils/StatusPage", () => {
   return {
     __esModule: true,
     default: {
+      // The page this tab shows, from where RouteMap reads it too.
       getStatusPageId: (): ObjectID | null => {
-        return tabStatusPageId ? new ObjectID(tabStatusPageId) : null;
+        return StatusPageInTab.get();
       },
       checkIfUserHasLoggedIn: (): void => {
         checkIfUserHasLoggedIn();
@@ -128,6 +126,7 @@ import ConfirmSubscription from "../../../../App/FeatureSet/StatusPage/src/Pages
 import English from "../../../../App/FeatureSet/StatusPage/src/Locales/en.json";
 import PageMap from "../../../../App/FeatureSet/StatusPage/src/Utils/PageMap";
 import RouteMap from "../../../../App/FeatureSet/StatusPage/src/Utils/RouteMap";
+import StatusPageInTab from "../../../../App/FeatureSet/StatusPage/src/Utils/StatusPageInTab";
 
 const STATUS_PAGE_ID: string = "11111111-1111-4111-8111-111111111111";
 const SUBSCRIBER_ID: string = "22222222-2222-4222-8222-222222222222";
@@ -178,7 +177,7 @@ function subscribeAgain(): HTMLElement | null {
 }
 
 beforeEach(() => {
-  tabStatusPageId = STATUS_PAGE_ID;
+  StatusPageInTab.set(STATUS_PAGE_ID);
   isPreviewPage = false;
   code = CODE;
   subscriberId = SUBSCRIBER_ID;
@@ -214,7 +213,7 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
-  tabStatusPageId = null;
+  StatusPageInTab.set(null);
   jest.restoreAllMocks();
 });
 

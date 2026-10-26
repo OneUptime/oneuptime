@@ -93,15 +93,13 @@ jest.mock(
 
 const checkIfUserHasLoggedIn: MockFunction = getJestMockFunction();
 
-// The status page this tab shows, as StatusPageUtil.getStatusPageId answers it.
-let tabStatusPageId: string | null = null;
-
 jest.mock("../../../../App/FeatureSet/StatusPage/src/Utils/StatusPage", () => {
   return {
     __esModule: true,
     default: {
+      // The page this tab shows, from where RouteMap reads it too.
       getStatusPageId: (): ObjectID | null => {
-        return tabStatusPageId ? new ObjectID(tabStatusPageId) : null;
+        return StatusPageInTab.get();
       },
       checkIfUserHasLoggedIn: (): void => {
         checkIfUserHasLoggedIn();
@@ -158,6 +156,7 @@ jest.mock("../../../../App/FeatureSet/StatusPage/src/Utils/ModelAPI", () => {
 import UpdateSubscription from "../../../../App/FeatureSet/StatusPage/src/Pages/Subscribe/UpdateSubscription";
 import English from "../../../../App/FeatureSet/StatusPage/src/Locales/en.json";
 import ObjectID from "../../../Types/ObjectID";
+import StatusPageInTab from "../../../../App/FeatureSet/StatusPage/src/Utils/StatusPageInTab";
 
 const STORAGE_KEY: string = "oneuptime-sensitive-url-token";
 
@@ -235,7 +234,7 @@ function linkNotValidShown(): boolean {
 }
 
 beforeEach(() => {
-  tabStatusPageId = STATUS_PAGE_ID;
+  StatusPageInTab.set(STATUS_PAGE_ID);
   stash(`${SUBSCRIBER_ID}-${TOKEN}`);
   linkState = StatusPageSubscriberUnsubscribeState.Subscribed;
 
@@ -267,7 +266,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   window.sessionStorage.clear();
-  tabStatusPageId = null;
+  StatusPageInTab.set(null);
   jest.restoreAllMocks();
 });
 
