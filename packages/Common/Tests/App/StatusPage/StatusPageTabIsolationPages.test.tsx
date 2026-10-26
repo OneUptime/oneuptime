@@ -202,6 +202,8 @@ import WebhookSubscribe from "../../../../App/FeatureSet/StatusPage/src/Pages/Su
 import ForgotPassword from "../../../../App/FeatureSet/StatusPage/src/Pages/Accounts/ForgotPassword";
 import ResetPassword from "../../../../App/FeatureSet/StatusPage/src/Pages/Accounts/ResetPassword";
 import MasterPassword from "../../../../App/FeatureSet/StatusPage/src/Pages/Accounts/MasterPassword";
+import Logout from "../../../../App/FeatureSet/StatusPage/src/Pages/Accounts/Logout";
+import StatusPageUser from "../../../../App/FeatureSet/StatusPage/src/Utils/User";
 
 const PAGE_A: string = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const PAGE_B: string = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
@@ -822,6 +824,107 @@ describe("the sign-in pages of a tab", () => {
 
     expect(navigatedTo).toEqual([
       { to: `/status-page/${PAGE_A}`, force: true },
+    ]);
+  });
+
+  /*
+   * The prompt's check ran again on every render: it was keyed by the page's
+   * id as an object, a new one each render. So the render after a right
+   * password found the page unlocked and sent the visitor to the bare
+   * overview too - after, and so instead of, the place they were going.
+   */
+  test("the password prompt, once the password is right, goes where the visitor was going - once", async () => {
+    const goingTo: string = `/status-page/${PAGE_A}/incidents/cccccccc-cccc-4ccc-8ccc-cccccccccccc`;
+
+    openAt(
+      `/status-page/${PAGE_A}/master-password?redirectUrl=${encodeURIComponent(goingTo)}`,
+    );
+    StatusPageUtil.setStatusPageId(new ObjectID(PAGE_A));
+    StatusPageUtil.setIsPrivateStatusPage(true);
+    StatusPageUtil.setRequiresMasterPassword(true);
+    anotherTabOpens(PAGE_B);
+
+    const posted: Array<string> = [];
+
+    getJestSpyOn(API, "post").mockImplementation(
+      async (options: {
+        url: { toString: () => string };
+      }): Promise<HTTPResponse<JSONObject>> => {
+        posted.push(new globalThis.URL(options.url.toString()).pathname);
+        return new HTTPResponse<JSONObject>(200, {}, {});
+      },
+    );
+
+    await act(async () => {
+      render(
+        <MemoryRouter>
+          <MasterPassword
+            statusPageName="Page A"
+            logoFileId={new ObjectID("")}
+          />
+        </MemoryRouter>,
+      );
+    });
+
+    fireEvent.change(screen.getByLabelText("Password"), {
+      target: { value: "open sesame" },
+    });
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole("button", { name: "Unlock Status Page" }),
+      );
+    });
+
+    await waitFor(() => {
+      expect(navigatedTo.length).toBeGreaterThan(0);
+    });
+
+    // Whatever renders after the unlock sends the visitor nowhere else.
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(posted).toEqual([`/status-page-api/master-password/${PAGE_A}`]);
+    expect(StatusPageUtil.isMasterPasswordValidated()).toBe(true);
+    expect(navigatedTo).toEqual([{ to: goingTo, force: true }]);
+  });
+
+  test("signing out signs out of the tab's own page, once, and lands on its sign-in", async () => {
+    openAt(`/status-page/${PAGE_A}/logout`);
+    StatusPageUtil.setStatusPageId(new ObjectID(PAGE_A));
+    anotherTabOpens(PAGE_B);
+
+    const signedOutOf: Array<string> = [];
+
+    getJestSpyOn(StatusPageUser, "logout").mockImplementation(
+      async (statusPageId: ObjectID): Promise<void> => {
+        signedOutOf.push(statusPageId.toString());
+      },
+    );
+
+    const tree: () => ReactElement = (): ReactElement => {
+      return (
+        <MemoryRouter>
+          <Logout />
+        </MemoryRouter>
+      );
+    };
+
+    let result: RenderResult | null = null;
+
+    await act(async () => {
+      result = render(tree());
+    });
+
+    // Another render - its page's id handed back as a new object - signs out once.
+    await act(async () => {
+      result!.rerender(tree());
+    });
+
+    expect(signedOutOf).toEqual([PAGE_A]);
+    expect(navigatedTo).toEqual([
+      { to: `/status-page/${PAGE_A}/login`, force: true },
     ]);
   });
 });
