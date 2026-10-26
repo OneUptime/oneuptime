@@ -248,7 +248,9 @@ describe("Connect a Cloud Account", () => {
       "export const AZURE_MAX_SUBSCRIPTIONS: number = 50;",
     );
     expect(PAGE).toContain("One connection reads up to 50 accounts.");
-    expect(PAGE).toContain("up to 50, unless you list some under **Subscriptions**");
+    expect(PAGE).toContain(
+      "up to 50, unless you list some under **Subscriptions**",
+    );
     expect(PAGE).toContain("reads up to 50 of its projects");
   });
 
@@ -256,7 +258,9 @@ describe("Connect a Cloud Account", () => {
     expect(source("lanes")).toContain(
       "export const CLOUD_INVENTORY_INTERVAL_MS: number = 30 * 60 * 1000;",
     );
-    expect(PAGE).toContain("every 30 minutes a read lists every resource again");
+    expect(PAGE).toContain(
+      "every 30 minutes a read lists every resource again",
+    );
     expect(source("changeWindow")).toContain(
       "export const CLOUD_CHANGE_FIRST_LOOK_BACK_MS: number = 2 * 60 * 60 * 1000;",
     );
@@ -266,7 +270,9 @@ describe("Connect a Cloud Account", () => {
     );
     expect(PAGE).toContain("from 30 days before, each read warns about it");
     // An account on no support plan that includes AWS Health is asked a day later.
-    expect(source("awsHealth")).toContain("const HEALTH_PAUSE_MS: number = DAY_MS;");
+    expect(source("awsHealth")).toContain(
+      "const HEALTH_PAUSE_MS: number = DAY_MS;",
+    );
     expect(PAGE).toContain("OneUptime asks again a day later");
   });
 

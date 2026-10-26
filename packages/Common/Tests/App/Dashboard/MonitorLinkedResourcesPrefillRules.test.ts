@@ -182,6 +182,7 @@ describe("getLinkedResourcesToAdd", () => {
       dockerSwarmClusters: [],
       iotFleets: [],
       databaseServers: [],
+      cloudResources: [],
       networkSites: undefined,
       services: [],
     };

@@ -85,7 +85,7 @@ const CloudAccounts: FunctionComponent<
         searchableFields={["name", "accountId", "providerAccountName"]}
         selectMoreFields={{
           provider: true,
-          providerAccountName: true,
+          accountId: true,
         }}
         cardProps={{
           title: "Cloud Accounts",
@@ -132,10 +132,22 @@ const CloudAccounts: FunctionComponent<
             title: "Name",
             type: FieldType.Element,
             isNotCustomizable: true,
+            /*
+             * The account's cloud and its id there under its name - not a
+             * column of their own: an Azure subscription's id is 36
+             * characters, and a column for it pushed Last Read and Labels
+             * under the row's actions beside the side menu at 1280 pixels.
+             */
             getElement: (item: CloudAccount): ReactElement => {
               const name: string = (item.name as string) || "";
-              const providerName: string =
-                (item.providerAccountName as string) || "";
+              const accountId: string = (item.accountId as string) || "";
+              const cloud: string = getCloudProviderLabel(
+                (item.provider as string) || "",
+              );
+              const where: string =
+                accountId && accountId !== name
+                  ? `${cloud} · ${accountId}`
+                  : cloud;
 
               return (
                 <div className="min-w-0">
@@ -143,29 +155,16 @@ const CloudAccounts: FunctionComponent<
                     to={viewRoute(item)}
                     className="text-sm font-medium text-gray-900 truncate hover:underline"
                   >
-                    {name || (item.accountId as string) || "—"}
+                    {name || accountId || "—"}
                   </AppLink>
-                  <div className="text-xs text-gray-500 truncate">
-                    {getCloudProviderLabel((item.provider as string) || "")}
-                    {providerName && providerName !== name
-                      ? ` · ${providerName}`
-                      : ""}
+                  <div
+                    className="text-xs text-gray-500 truncate"
+                    title={where}
+                    data-testid="cloud-account-where"
+                  >
+                    {where}
                   </div>
                 </div>
-              );
-            },
-          },
-          {
-            field: {
-              accountId: true,
-            },
-            title: "Account ID",
-            type: FieldType.Element,
-            getElement: (item: CloudAccount): ReactElement => {
-              return (
-                <span className="text-sm font-mono text-gray-700 break-all">
-                  {(item.accountId as string) || "—"}
-                </span>
               );
             },
           },

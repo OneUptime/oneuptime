@@ -35815,5 +35815,8 @@
   "Link resource": "Связать ресурс",
   "View Account": "Просмотр аккаунта",
   "{{count}} new changes": "Новых изменений: {{count}}",
-  "{{count}} new changes_one": "{{count}} новое изменение"
+  "{{count}} new changes_one": "{{count}} новое изменение",
+  "Run this in AWS CloudShell in your organization's management account. It puts a role that can only read in every account, and prints the management account's role ARN.": "Выполните это в AWS CloudShell в управляющем аккаунте вашей организации. Команда создаёт в каждом аккаунте роль, которая может только читать, и выводит ARN роли управляющего аккаунта.",
+  "Run this in Azure Cloud Shell as someone who may assign roles on the tenant's root management group. It creates an app that can only read every subscription, and prints its details.": "Выполните это в Azure Cloud Shell от имени того, кто может назначать роли в корневой группе управления клиента. Команда создаёт приложение, которое может только читать каждую подписку, и выводит его данные.",
+  "Run this in Google Cloud Shell in a project of your organization, as someone who may grant roles on it. It creates a service account that can only read every project, and prints its key.": "Выполните это в Google Cloud Shell в проекте вашей организации от имени того, кто может выдавать в ней роли. Команда создаёт сервисный аккаунт, который может только читать каждый проект, и выводит его ключ."
 }

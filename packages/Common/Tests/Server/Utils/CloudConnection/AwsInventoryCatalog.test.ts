@@ -558,8 +558,7 @@ describe("what an item keeps", () => {
           Aliases: ["www.example.com"],
           Origins: [
             {
-              DomainName:
-                "checkout-123.eu-west-1.elb.amazonaws.com",
+              DomainName: "checkout-123.eu-west-1.elb.amazonaws.com",
             },
           ],
         },
@@ -696,7 +695,9 @@ describe("what a load balancer sends traffic to", () => {
       context,
       targetGroups: [
         listed("arn:...:targetgroup/other/9", {
-          LoadBalancerArns: ["arn:aws:elasticloadbalancing:eu-west-1:1:loadbalancer/app/other/1"],
+          LoadBalancerArns: [
+            "arn:aws:elasticloadbalancing:eu-west-1:1:loadbalancer/app/other/1",
+          ],
           TargetType: "instance",
           Targets: [{ Id: "i-9" }],
         }),

@@ -87,6 +87,7 @@ describe("getMonitorLinkedResourcesFormFields", () => {
       dockerSwarmClusters: [],
       iotFleets: [],
       databaseServers: ["db-1"],
+      cloudResources: ["cr-1"],
       networkSites: undefined,
       services: ["svc-1"],
     };
@@ -115,6 +116,7 @@ describe("getMonitorLinkedResourcesFormFields", () => {
       dockerSwarmClusters: [],
       iotFleets: [],
       databaseServers: ["db-1"],
+      cloudResources: ["cr-1"],
       services: ["svc-1"],
     });
   });

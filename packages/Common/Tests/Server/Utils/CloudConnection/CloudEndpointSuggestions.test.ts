@@ -216,9 +216,9 @@ describe("the names a host answers under", () => {
 });
 
 describe("suggestions for a monitor", () => {
-  let monitorSpy: SpyInstance;
-  let idsSpy: SpyInstance;
-  let findSpy: SpyInstance;
+  let monitorSpy: SpyInstance<typeof MonitorService.findOneById>;
+  let idsSpy: SpyInstance<typeof CloudResourceService.findIdsByEndpoints>;
+  let findSpy: SpyInstance<typeof CloudResourceService.findBy>;
 
   beforeEach(() => {
     monitorSpy = jest.spyOn(MonitorService, "findOneById");
@@ -305,7 +305,7 @@ describe("suggestions for a monitor", () => {
     const rowsRead: {
       query: { _id: Includes; projectId: ObjectID };
       props: unknown;
-    } = findSpy.mock.calls[0]![0] as {
+    } = findSpy.mock.calls[0]![0] as unknown as {
       query: { _id: Includes; projectId: ObjectID };
       props: unknown;
     };

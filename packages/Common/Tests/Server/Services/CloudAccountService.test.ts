@@ -190,7 +190,11 @@ describe("an account a read reaches for the first time", () => {
   });
 
   test("an Azure subscription's name of 64 characters is kept whole", async () => {
-    const name: string = "Contoso Production Workloads - Europe West - Payments Platform 01".slice(0, 64);
+    const name: string =
+      "Contoso Production Workloads - Europe West - Payments Platform 01".slice(
+        0,
+        64,
+      );
 
     await CloudAccountService.recordAccountsSeen({
       projectId: PROJECT,

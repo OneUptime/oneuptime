@@ -35815,5 +35815,8 @@
   "Link resource": "Resource koppelen",
   "View Account": "Account bekijken",
   "{{count}} new changes": "{{count}} nieuwe wijzigingen",
-  "{{count}} new changes_one": "{{count}} nieuwe wijziging"
+  "{{count}} new changes_one": "{{count}} nieuwe wijziging",
+  "Run this in AWS CloudShell in your organization's management account. It puts a role that can only read in every account, and prints the management account's role ARN.": "Voer dit uit in AWS CloudShell in het beheeraccount van je organisatie. Het zet in elk account een rol die alleen kan lezen en toont de ARN van de rol van het beheeraccount.",
+  "Run this in Azure Cloud Shell as someone who may assign roles on the tenant's root management group. It creates an app that can only read every subscription, and prints its details.": "Voer dit uit in Azure Cloud Shell als iemand die rollen mag toewijzen op de hoofdbeheergroep van de tenant. Het maakt een app die elk abonnement alleen kan lezen en toont de gegevens ervan.",
+  "Run this in Google Cloud Shell in a project of your organization, as someone who may grant roles on it. It creates a service account that can only read every project, and prints its key.": "Voer dit uit in Google Cloud Shell in een project van je organisatie, als iemand die er rollen mag toekennen. Het maakt een serviceaccount die elk project alleen kan lezen en toont de sleutel ervan."
 }

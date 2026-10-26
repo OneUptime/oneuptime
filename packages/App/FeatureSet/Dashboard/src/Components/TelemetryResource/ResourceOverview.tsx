@@ -164,8 +164,17 @@ const STATUS_TONE_CLASSES: Record<
 const GoldenMetricTile: FunctionComponent<ResourceOverviewTile> = (
   props: ResourceOverviewTile,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const colors: { bg: string; ring: string; text: string } =
     tileColorClasses[props.iconColor];
+  /*
+   * A page names its tiles in English: each is drawn, and explained, in the
+   * reader's language - "Ressourcen", not "RESOURCES", on a German page.
+   */
+  const title: string = translator.translateText(props.title) || props.title;
+  const description: string | undefined = props.description
+    ? translator.translateText(props.description) || props.description
+    : undefined;
 
   const barColor: string = (() => {
     if (props.percent === null || props.percent === undefined) {
@@ -222,11 +231,11 @@ const GoldenMetricTile: FunctionComponent<ResourceOverviewTile> = (
       <div className="flex items-center justify-between mb-3">
         <div className="flex min-w-0 items-center gap-1">
           <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-            {props.title}
+            {title}
           </span>
           <InfoTooltip
-            label={props.title}
-            text={props.description}
+            label={title}
+            text={description}
             className="relative z-10"
           />
         </div>
@@ -487,7 +496,7 @@ const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
                     className="px-5 py-3 sm:grid sm:grid-cols-3 sm:gap-4 md:px-6"
                   >
                     <dt className="text-sm font-medium text-gray-500">
-                      {row.label}
+                      {translator.translateText(row.label) || row.label}
                     </dt>
                     <dd
                       className={`mt-1 text-sm text-gray-900 sm:col-span-2 sm:mt-0 break-all ${

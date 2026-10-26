@@ -338,7 +338,11 @@ describe("a look back for an investigation", () => {
       return new Promise<CloudChangesResult>(
         (resolve: (result: CloudChangesResult) => void) => {
           releases.push(() => {
-            resolve({ changes: [change("evt-1")], warnings: [], complete: true });
+            resolve({
+              changes: [change("evt-1")],
+              warnings: [],
+              complete: true,
+            });
           });
         },
       );

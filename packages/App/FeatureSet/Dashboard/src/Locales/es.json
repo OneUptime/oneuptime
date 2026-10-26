@@ -35815,5 +35815,8 @@
   "Link resource": "Vincular recurso",
   "View Account": "Ver cuenta",
   "{{count}} new changes": "{{count}} cambios nuevos",
-  "{{count}} new changes_one": "{{count}} cambio nuevo"
+  "{{count}} new changes_one": "{{count}} cambio nuevo",
+  "Run this in AWS CloudShell in your organization's management account. It puts a role that can only read in every account, and prints the management account's role ARN.": "Ejecuta esto en AWS CloudShell, en la cuenta de administración de tu organización. Pone en cada cuenta un rol que solo puede leer e imprime el ARN del rol de la cuenta de administración.",
+  "Run this in Azure Cloud Shell as someone who may assign roles on the tenant's root management group. It creates an app that can only read every subscription, and prints its details.": "Ejecuta esto en Azure Cloud Shell como alguien que pueda asignar roles en el grupo de administración raíz del inquilino. Crea una aplicación que solo puede leer cada suscripción e imprime sus detalles.",
+  "Run this in Google Cloud Shell in a project of your organization, as someone who may grant roles on it. It creates a service account that can only read every project, and prints its key.": "Ejecuta esto en Google Cloud Shell en un proyecto de tu organización, como alguien que pueda otorgar roles en ella. Crea una cuenta de servicio que solo puede leer cada proyecto e imprime su clave."
 }

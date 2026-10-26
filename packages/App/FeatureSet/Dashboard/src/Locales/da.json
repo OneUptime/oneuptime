@@ -35815,5 +35815,8 @@
   "Link resource": "Tilknyt ressource",
   "View Account": "Vis konto",
   "{{count}} new changes": "{{count}} nye ændringer",
-  "{{count}} new changes_one": "{{count}} ny ændring"
+  "{{count}} new changes_one": "{{count}} ny ændring",
+  "Run this in AWS CloudShell in your organization's management account. It puts a role that can only read in every account, and prints the management account's role ARN.": "Kør dette i AWS CloudShell i din organisations administrationskonto. Det opretter en rolle, der kun kan læse, i hver konto og udskriver administrationskontoens rolle-ARN.",
+  "Run this in Azure Cloud Shell as someone who may assign roles on the tenant's root management group. It creates an app that can only read every subscription, and prints its details.": "Kør dette i Azure Cloud Shell som en, der må tildele roller på lejerens rodadministrationsgruppe. Det opretter en app, der kun kan læse hvert abonnement, og udskriver dens oplysninger.",
+  "Run this in Google Cloud Shell in a project of your organization, as someone who may grant roles on it. It creates a service account that can only read every project, and prints its key.": "Kør dette i Google Cloud Shell i et projekt i din organisation som en, der må tildele roller på den. Det opretter en tjenestekonto, der kun kan læse hvert projekt, og udskriver dens nøgle."
 }

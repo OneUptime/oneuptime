@@ -520,13 +520,17 @@ test.describe("connecting AWS", () => {
     await shoot(page, "aws-organization-command");
 
     // An access key reads its own account: nothing to choose, one account's command.
-    await dialog(page).getByRole("radio", { name: /Access key/ }).check();
+    await dialog(page)
+      .getByRole("radio", { name: /Access key/ })
+      .check();
     await expect(scope).toHaveCount(0);
     await expect(code).toContainText("aws iam create-access-key");
     await expect(code).not.toContainText("create-stack-set");
 
     // Back to the role: the organization is still what it reads.
-    await dialog(page).getByRole("radio", { name: /IAM role/ }).check();
+    await dialog(page)
+      .getByRole("radio", { name: /IAM role/ })
+      .check();
     await expect(every).toBeChecked();
 
     await next(page).click();
@@ -1041,10 +1045,13 @@ test.describe("cloud accounts", () => {
     await expect(
       page.getByRole("link", { name: "Production", exact: true }),
     ).toBeVisible();
-    await expect(page.getByText("123456789012").first()).toBeVisible();
-    await expect(page.getByText("AWS · acme-production")).toBeVisible();
-    // The Azure subscription is named as in Azure already: said once.
-    await expect(page.getByRole("cell", { name: "Contoso production Azure" })).toBeVisible();
+    // Under each name, its cloud and its id there; an id that is its name, once.
+    const where: Locator = page.getByTestId("cloud-account-where");
+    await expect(where.nth(0)).toHaveText("AWS · 123456789012");
+    await expect(where.nth(1)).toHaveText(
+      "Azure · 7c4a1f2e-9d3b-4e5f-8a6b-1c2d3e4f5a6b",
+    );
+    await expect(where.nth(2)).toHaveText("Google Cloud");
     await expect(
       page.getByRole("link", { name: "acme-legacy", exact: true }),
     ).toBeVisible();
@@ -1061,6 +1068,19 @@ test.describe("cloud accounts", () => {
       await expect(
         sideMenu(page).getByRole("link", { name: "Accounts", exact: true }),
       ).toHaveAttribute("aria-current", "page");
+
+      // Nothing runs under the sticky actions: the table does not scroll sideways.
+      const table: { scroll: number; client: number } = await page.evaluate(
+        () => {
+          const scroller: HTMLElement = document.querySelector("table")!
+            .parentElement as HTMLElement;
+          return {
+            scroll: scroller.scrollWidth,
+            client: scroller.clientWidth,
+          };
+        },
+      );
+      expect(table.scroll).toBeLessThanOrEqual(table.client + 1);
     }
     await expectNoSidewaysScroll(page);
     await shoot(page, "accounts-list");
@@ -1117,17 +1137,16 @@ test.describe("cloud accounts", () => {
     ).toContainText("123456789012");
 
     // The tiles: how many resources (the way to them), Regions and types.
-    const resources: Locator = page.getByRole("link", { name: /Resources/ }).filter({
-      hasText: "46",
-    });
-    await expect(resources.first()).toHaveAttribute(
-      "href",
-      `${ACCOUNTS_PATH}/${AWS_ACCOUNT}/resources`,
-    );
+    await expect(
+      page.getByRole("link", { name: "View Resources" }),
+    ).toHaveAttribute("href", `${ACCOUNTS_PATH}/${AWS_ACCOUNT}/resources`);
+    await expect(
+      page.getByText("Resource Types", { exact: true }),
+    ).toBeVisible();
 
     // The Details card: the account's cloud, its name there and its connection.
     const details: Locator = page.getByTestId("resource-overview-details");
-    await expect(details).toContainText("Amazon Web Services");
+    await expect(details).toContainText("AWS");
     await expect(details).toContainText("acme-production");
     await expect(
       details.getByRole("link", { name: "AWS 123456789012" }),

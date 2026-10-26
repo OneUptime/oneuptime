@@ -190,10 +190,9 @@ export default class CloudChangeLookBack {
         Array.from(byConnection.entries())
           .slice(0, LOOK_BACK_MAX_CONNECTIONS)
           .map(
-            ([connectionId, held]: [
-              string,
-              Array<CloudResource>,
-            ]): Promise<number | null> => {
+            ([connectionId, held]: [string, Array<CloudResource>]): Promise<
+              number | null
+            > => {
               return CloudChangeLookBack.readConnection(
                 {
                   projectId: data.projectId,

@@ -35815,5 +35815,8 @@
   "Link resource": "리소스 연결",
   "View Account": "계정 보기",
   "{{count}} new changes": "새 변경 사항 {{count}}개",
-  "{{count}} new changes_one": "새 변경 사항 {{count}}개"
+  "{{count}} new changes_one": "새 변경 사항 {{count}}개",
+  "Run this in AWS CloudShell in your organization's management account. It puts a role that can only read in every account, and prints the management account's role ARN.": "조직의 관리 계정에서 AWS CloudShell로 실행하세요. 모든 계정에 읽기만 할 수 있는 역할을 만들고 관리 계정 역할의 ARN을 출력합니다.",
+  "Run this in Azure Cloud Shell as someone who may assign roles on the tenant's root management group. It creates an app that can only read every subscription, and prints its details.": "테넌트의 루트 관리 그룹에서 역할을 할당할 수 있는 사용자로 Azure Cloud Shell에서 실행하세요. 모든 구독을 읽기만 할 수 있는 앱을 만들고 그 세부 정보를 출력합니다.",
+  "Run this in Google Cloud Shell in a project of your organization, as someone who may grant roles on it. It creates a service account that can only read every project, and prints its key.": "조직의 프로젝트에서 조직에 역할을 부여할 수 있는 사용자로 Google Cloud Shell에서 실행하세요. 모든 프로젝트를 읽기만 할 수 있는 서비스 계정을 만들고 그 키를 출력합니다."
 }

@@ -215,9 +215,7 @@ describe("relationships", () => {
       },
     );
 
-    expect(boundCloudRelationships(many)).toHaveLength(
-      CLOUD_RELATIONSHIPS_MAX,
-    );
+    expect(boundCloudRelationships(many)).toHaveLength(CLOUD_RELATIONSHIPS_MAX);
   });
 
   test("read back from a row, anything malformed is skipped", () => {
@@ -230,7 +228,11 @@ describe("relationships", () => {
         null,
       ]),
     ).toEqual([
-      { kind: CloudRelationshipKind.RunsIn, target: "subnet-1", targetType: undefined },
+      {
+        kind: CloudRelationshipKind.RunsIn,
+        target: "subnet-1",
+        targetType: undefined,
+      },
     ]);
     expect(readCloudRelationships({ kind: "runs-in" })).toEqual([]);
   });
@@ -244,9 +246,9 @@ describe("relationships", () => {
 
 describe("endpoints", () => {
   test("a host is compared lower case, without scheme, credentials, path, port or trailing dot", () => {
-    expect(normalizeCloudHost("https://Shop.Example.com:443/checkout?x=1")).toBe(
-      "shop.example.com",
-    );
+    expect(
+      normalizeCloudHost("https://Shop.Example.com:443/checkout?x=1"),
+    ).toBe("shop.example.com");
     expect(normalizeCloudHost("user:pass@api.example.com")).toBe(
       "api.example.com",
     );

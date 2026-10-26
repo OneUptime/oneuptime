@@ -6,6 +6,7 @@ import IncidentState from "../../../Models/DatabaseModels/IncidentState";
 import Alert from "../../../Models/DatabaseModels/Alert";
 import AlertState from "../../../Models/DatabaseModels/AlertState";
 import Includes from "../../../Types/BaseDatabase/Includes";
+import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
 import {
   CloudRelationshipKind,
   CLOUD_RELATIONSHIP_LABELS,
@@ -466,7 +467,7 @@ describe("loading an account's topology", () => {
 
     const account: CloudAccount = new CloudAccount();
     account.name = "Production";
-    account.provider = "aws" as CloudAccount["provider"];
+    account.provider = CloudProvider.AWS;
     account.accountId = ACCOUNT;
     account.lastSeenAt = new Date();
 

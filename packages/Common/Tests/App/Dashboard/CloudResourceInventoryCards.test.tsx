@@ -233,16 +233,19 @@ describe("a listed resource's inventory", () => {
 
 describe("a resource no connection lists", () => {
   test("draws none of it, and reads nothing it does not need", async () => {
-    await renderCards(
-      instance({
-        inventoriedAt: undefined,
-        cloudTags: undefined,
-        cloudRelationships: undefined,
-        cloudEndpoints: undefined,
-        cloudProperties: undefined,
-        cloudAccountId: undefined,
-      }),
-    );
+    const unlisted: CloudResource = instance();
+
+    // What a listing writes, never written for this one.
+    Object.assign(unlisted, {
+      inventoriedAt: undefined,
+      cloudTags: undefined,
+      cloudRelationships: undefined,
+      cloudEndpoints: undefined,
+      cloudProperties: undefined,
+      cloudAccountId: undefined,
+    });
+
+    await renderCards(unlisted);
 
     expect(screen.queryByText("Connected Resources")).not.toBeInTheDocument();
     expect(screen.queryByText("Tags")).not.toBeInTheDocument();

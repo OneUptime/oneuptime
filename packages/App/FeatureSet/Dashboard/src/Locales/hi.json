@@ -35815,5 +35815,8 @@
   "Link resource": "संसाधन लिंक करें",
   "View Account": "खाता देखें",
   "{{count}} new changes": "{{count}} नए परिवर्तन",
-  "{{count}} new changes_one": "{{count}} नया परिवर्तन"
+  "{{count}} new changes_one": "{{count}} नया परिवर्तन",
+  "Run this in AWS CloudShell in your organization's management account. It puts a role that can only read in every account, and prints the management account's role ARN.": "इसे अपने संगठन के प्रबंधन खाते में AWS CloudShell में चलाएँ। यह हर खाते में केवल पढ़ सकने वाली एक भूमिका बनाता है और प्रबंधन खाते की भूमिका का ARN दिखाता है।",
+  "Run this in Azure Cloud Shell as someone who may assign roles on the tenant's root management group. It creates an app that can only read every subscription, and prints its details.": "इसे Azure Cloud Shell में ऐसे व्यक्ति के रूप में चलाएँ जो टेनेंट के रूट प्रबंधन समूह पर भूमिकाएँ असाइन कर सकता है। यह एक ऐप बनाता है जो हर सदस्यता को केवल पढ़ सकता है, और उसका विवरण दिखाता है।",
+  "Run this in Google Cloud Shell in a project of your organization, as someone who may grant roles on it. It creates a service account that can only read every project, and prints its key.": "इसे अपने संगठन के किसी प्रोजेक्ट में Google Cloud Shell में ऐसे व्यक्ति के रूप में चलाएँ जो उस पर भूमिकाएँ दे सकता है। यह एक सेवा खाता बनाता है जो हर प्रोजेक्ट को केवल पढ़ सकता है, और उसकी कुंजी दिखाता है।"
 }

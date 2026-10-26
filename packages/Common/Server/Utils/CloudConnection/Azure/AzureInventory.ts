@@ -216,7 +216,10 @@ function relationshipsOf(row: JSONObject): Array<CloudResourceRelationship> {
 
   if (Array.isArray(configurations)) {
     for (const configuration of configurations) {
-      const subnet: unknown = readCloudPath(configuration, "properties.subnet.id");
+      const subnet: unknown = readCloudPath(
+        configuration,
+        "properties.subnet.id",
+      );
 
       if (typeof subnet === "string" && subnet.trim()) {
         relationships.push({
@@ -258,8 +261,8 @@ export function buildAzureInventoryItem(
     return null;
   }
 
-  const resource: CloudMonitoredResource | null =
-    resolveCloudMonitoredResource({
+  const resource: CloudMonitoredResource | null = resolveCloudMonitoredResource(
+    {
       metricName: "azure_inventory",
       attributes: {
         [AZURE_MONITOR_RESOURCE_ID_ATTRIBUTE]: id,
@@ -268,7 +271,8 @@ export function buildAzureInventoryItem(
         location: text(row, "location"),
         resource_group: text(row, "resourceGroup"),
       },
-    });
+    },
+  );
 
   if (!resource) {
     return null;

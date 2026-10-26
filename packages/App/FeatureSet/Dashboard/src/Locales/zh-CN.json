@@ -35815,5 +35815,8 @@
   "Link resource": "关联资源",
   "View Account": "查看账户",
   "{{count}} new changes": "{{count}} 项新更改",
-  "{{count}} new changes_one": "{{count}} 项新更改"
+  "{{count}} new changes_one": "{{count}} 项新更改",
+  "Run this in AWS CloudShell in your organization's management account. It puts a role that can only read in every account, and prints the management account's role ARN.": "在组织管理账户的 AWS CloudShell 中运行此命令。它会在每个账户中创建一个只能读取的角色，并输出管理账户角色的 ARN。",
+  "Run this in Azure Cloud Shell as someone who may assign roles on the tenant's root management group. It creates an app that can only read every subscription, and prints its details.": "请以可以在租户根管理组上分配角色的身份在 Azure Cloud Shell 中运行此命令。它会创建一个只能读取每个订阅的应用，并输出其详细信息。",
+  "Run this in Google Cloud Shell in a project of your organization, as someone who may grant roles on it. It creates a service account that can only read every project, and prints its key.": "请以可以在组织上授予角色的身份，在组织的某个项目中于 Google Cloud Shell 运行此命令。它会创建一个只能读取每个项目的服务账号，并输出其密钥。"
 }

@@ -165,11 +165,12 @@ const CloudAccountOverview: FunctionComponent<
   ];
 
   const detailRows: Array<ResourceOverviewDetailRow> = [
-    { label: "Cloud", value: getCloudProviderLabel(provider) },
+    { label: "Cloud", value: getCloudProviderLabel(provider), mono: false },
     { label: "Account ID", value: account.accountId, mono: true },
     { label: "Name in the Cloud", value: account.providerAccountName },
     {
       label: "Cloud Connection",
+      mono: false,
       value: account.cloudConnectionId
         ? account.cloudConnection?.name || ""
         : undefined,
@@ -189,6 +190,7 @@ const CloudAccountOverview: FunctionComponent<
     },
     {
       label: "Last Read",
+      mono: false,
       value: account.lastSeenAt
         ? OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
             account.lastSeenAt,
@@ -197,6 +199,7 @@ const CloudAccountOverview: FunctionComponent<
     },
     {
       label: "Last Listed",
+      mono: false,
       value: account.inventoryListedAt
         ? OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
             account.inventoryListedAt,

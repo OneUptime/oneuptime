@@ -35815,5 +35815,8 @@
   "Link resource": "リソースをリンク",
   "View Account": "アカウントを表示",
   "{{count}} new changes": "新しい変更 {{count}} 件",
-  "{{count}} new changes_one": "新しい変更 {{count}} 件"
+  "{{count}} new changes_one": "新しい変更 {{count}} 件",
+  "Run this in AWS CloudShell in your organization's management account. It puts a role that can only read in every account, and prints the management account's role ARN.": "組織の管理アカウントの AWS CloudShell で実行してください。すべてのアカウントに読み取り専用のロールを作成し、管理アカウントのロールの ARN を出力します。",
+  "Run this in Azure Cloud Shell as someone who may assign roles on the tenant's root management group. It creates an app that can only read every subscription, and prints its details.": "テナントのルート管理グループでロールを割り当てられるユーザーとして Azure Cloud Shell で実行してください。すべてのサブスクリプションを読み取ることしかできないアプリを作成し、その詳細を出力します。",
+  "Run this in Google Cloud Shell in a project of your organization, as someone who may grant roles on it. It creates a service account that can only read every project, and prints its key.": "組織のプロジェクトで、組織にロールを付与できるユーザーとして Google Cloud Shell で実行してください。すべてのプロジェクトを読み取ることしかできないサービス アカウントを作成し、そのキーを出力します。"
 }

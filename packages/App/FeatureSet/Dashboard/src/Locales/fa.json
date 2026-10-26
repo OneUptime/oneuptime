@@ -35815,5 +35815,8 @@
   "Link resource": "پیوند منبع",
   "View Account": "مشاهده حساب",
   "{{count}} new changes": "{{count}} تغییر تازه",
-  "{{count}} new changes_one": "{{count}} تغییر تازه"
+  "{{count}} new changes_one": "{{count}} تغییر تازه",
+  "Run this in AWS CloudShell in your organization's management account. It puts a role that can only read in every account, and prints the management account's role ARN.": "این را در AWS CloudShell در حساب مدیریت سازمان خود اجرا کنید. در هر حساب نقشی می‌سازد که فقط می‌تواند بخواند و ARN نقش حساب مدیریت را چاپ می‌کند.",
+  "Run this in Azure Cloud Shell as someone who may assign roles on the tenant's root management group. It creates an app that can only read every subscription, and prints its details.": "این را در Azure Cloud Shell به‌عنوان کسی اجرا کنید که می‌تواند در گروه مدیریت ریشهٔ مستأجر نقش واگذار کند. برنامه‌ای می‌سازد که فقط می‌تواند هر اشتراک را بخواند و جزئیات آن را چاپ می‌کند.",
+  "Run this in Google Cloud Shell in a project of your organization, as someone who may grant roles on it. It creates a service account that can only read every project, and prints its key.": "این را در Google Cloud Shell در یکی از پروژه‌های سازمان خود اجرا کنید، به‌عنوان کسی که می‌تواند در آن نقش اعطا کند. یک حساب سرویس می‌سازد که فقط می‌تواند هر پروژه را بخواند و کلید آن را چاپ می‌کند."
 }

@@ -48,7 +48,9 @@ import CloudConnectionTestDialog from "../../../../App/FeatureSet/Dashboard/src/
 import CloudConnectionTestPanel from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/Connect/CloudConnectionTestPanel";
 import CloudConnectionTiles from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/Connect/CloudConnectionTiles";
 import CloudResourceGroups from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/Connect/CloudResourceGroups";
-import CloudSetupCommand from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/Connect/CloudSetupCommand";
+import CloudSetupCommand, {
+  ORGANIZATION_SETUP_HINTS,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/Connect/CloudSetupCommand";
 
 /*
  * The pieces of Cloud > Connect, drawn:
@@ -242,6 +244,10 @@ describe("the setup step", () => {
     expect(screen.getByTestId("cloud-setup-command-code")).toHaveTextContent(
       "Microsoft.Management/managementGroups",
     );
+    // Said above it: who may run it, since it assigns a role on the tenant.
+    expect(screen.getByTestId("cloud-setup-hint")).toHaveTextContent(
+      ORGANIZATION_SETUP_HINTS[CloudProvider.Azure],
+    );
   });
 
   test("Google Cloud for every project of the organization: the roles on the organization", () => {
@@ -255,6 +261,36 @@ describe("the setup step", () => {
 
     expect(screen.getByTestId("cloud-setup-command-code")).toHaveTextContent(
       "gcloud organizations add-iam-policy-binding",
+    );
+    expect(screen.getByTestId("cloud-setup-hint")).toHaveTextContent(
+      "as someone who may grant roles on it",
+    );
+  });
+
+  test("each cloud's organization command says where it is run; one account's says what the method's does", () => {
+    for (const definition of CloudConnectionCatalog) {
+      const hint: string = ORGANIZATION_SETUP_HINTS[definition.provider];
+
+      // Run anywhere else it fails part way: each names where it may run.
+      expect(hint).toMatch(/^Run this in /);
+      expect(hint).toContain("can only read");
+      expect(hint).not.toBe(definition.authMethods[0]!.hint);
+    }
+
+    expect(ORGANIZATION_SETUP_HINTS[CloudProvider.AWS]).toContain(
+      "management account",
+    );
+
+    render(
+      <CloudSetupCommand
+        definition={AZURE}
+        method={CloudConnectionAuthMethod.AzureClientSecret}
+        scope={CloudConnectionSetupScope.Account}
+      />,
+    );
+
+    expect(screen.getByTestId("cloud-setup-hint")).toHaveTextContent(
+      AZURE.authMethods[0]!.hint,
     );
   });
 

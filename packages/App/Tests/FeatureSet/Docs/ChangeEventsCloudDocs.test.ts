@@ -164,9 +164,7 @@ describe("Deploys and Changes, on a connected cloud account", () => {
     ]) {
       const member: string = Object.keys(ChangeEventType).find(
         (key: string): boolean => {
-          return (
-            ChangeEventType[key as keyof typeof ChangeEventType] === type
-          );
+          return ChangeEventType[key as keyof typeof ChangeEventType] === type;
         },
       ) as string;
 
@@ -258,7 +256,9 @@ describe("Deploys and Changes, on a connected cloud account", () => {
       return line.endsWith("| `cloud-health` |");
     });
     const paragraph: number = lineIndex((line: string): boolean => {
-      return line.includes("[connected cloud account](/docs/telemetry/cloud-accounts)");
+      return line.includes(
+        "[connected cloud account](/docs/telemetry/cloud-accounts)",
+      );
     });
     const attributes: number = lineIndex((line: string): boolean => {
       return line.includes("`oneuptime.cloud.operation`");
@@ -301,7 +301,9 @@ describe("Deploys and Changes, on a connected cloud account", () => {
       }
 
       expect(lines[diagram]).toMatch(/^ {4}D\[".+"\] --> E$/);
-      expect(lines[card]).toMatch(/^- \[[^\]]+\]\(\/docs\/telemetry\/cloud-accounts\): /);
+      expect(lines[card]).toMatch(
+        /^- \[[^\]]+\]\(\/docs\/telemetry\/cloud-accounts\): /,
+      );
       expect(lines[paragraph]).toContain("(/docs/telemetry/cloud-accounts)");
 
       if (language !== "en") {
