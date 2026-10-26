@@ -379,6 +379,42 @@ describe("a Synthetic monitor is refused steps that run nothing", () => {
       }),
     ).resolves.toBeDefined();
   });
+
+  /*
+   * Turning a Synthetic monitor into another type leaves steps nothing runs
+   * in a browser: nothing to judge, and no monitor is read for it.
+   */
+  test("on update: turning a Synthetic monitor into another type is never refused, and reads no monitor", async () => {
+    // The findBy stub of beforeEach, which every read of a monitor goes through.
+    const findBy: {
+      mock: { calls: Array<Array<FindByArgs>> };
+      mockClear: () => void;
+    } = (
+      DatabaseService.prototype as unknown as {
+        findBy: {
+          mock: { calls: Array<Array<FindByArgs>> };
+          mockClear: () => void;
+        };
+      }
+    ).findBy;
+    findBy.mockClear();
+
+    await expect(
+      updateMonitor({
+        write: { monitorType: MonitorType.Manual },
+        stored: {
+          monitorType: MonitorType.SyntheticMonitor,
+          monitorSteps: NO_BROWSER,
+        },
+      }),
+    ).resolves.toBeDefined();
+
+    expect(
+      findBy.mock.calls.filter((call: Array<FindByArgs>): boolean => {
+        return Boolean(call[0]?.select?.["monitorSteps"]);
+      }),
+    ).toHaveLength(0);
+  });
 });
 
 describe("a Synthetic monitor template is refused steps that run nothing", () => {

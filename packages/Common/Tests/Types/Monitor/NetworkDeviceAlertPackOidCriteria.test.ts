@@ -7,6 +7,7 @@ import {
 import FilterCondition from "../../../Types/Filter/FilterCondition";
 import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInstance";
 import NetworkDeviceAlertPackUtil from "../../../Types/Monitor/SnmpMonitor/NetworkDeviceAlertPack";
+import MonitorType from "../../../Types/Monitor/MonitorType";
 
 /*
  * "Alert on it" on a device's SNMP Walk page (issue #5184) opens a Network
@@ -123,6 +124,37 @@ describe("the criteria Alert on it starts a monitor with", () => {
     // Still an alert that leaves the monitor's status alone.
     expect(data.createAlerts).toBe(true);
     expect(data.changeMonitorStatus).toBe(false);
+  });
+
+  /*
+   * A threshold left blank is the person's to choose: the monitor cannot be
+   * saved until there is one, so nothing fires on a guess.
+   */
+  test("a threshold left blank stops the save until one is set", () => {
+    const blank: MonitorCriteriaInstance = build({
+      oid: "1.3.6.1.2.1.2.2.1.14.3",
+      name: "ifInErrors.3",
+      checkOn: CheckOn.SnmpOidRatePerSecond,
+      value: undefined,
+    });
+
+    expect(
+      MonitorCriteriaInstance.getValidationError(
+        blank,
+        MonitorType.NetworkDevice,
+      ),
+    ).toBe(
+      'Value is required for criteria "ifInErrors.3" on filter type: SNMP OID Rate (per second)',
+    );
+
+    blank.data!.filters[0]!.value = "0.5";
+
+    expect(
+      MonitorCriteriaInstance.getValidationError(
+        blank,
+        MonitorType.NetworkDevice,
+      ),
+    ).toBeNull();
   });
 
   test("left out, the check is the OID's value and the description says so", () => {

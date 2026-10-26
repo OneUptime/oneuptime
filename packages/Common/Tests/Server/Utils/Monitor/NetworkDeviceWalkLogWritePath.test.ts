@@ -107,7 +107,10 @@ function mockWalkPipeline(
   device.id = new ObjectID(DEVICE_ID);
   device.projectId = PROJECT_ID;
   device.name = "core-sw-01";
-  device.lastWalkLog = previousWalkLog ?? undefined;
+
+  if (previousWalkLog) {
+    device.lastWalkLog = previousWalkLog;
+  }
 
   deviceFindSpy = jest
     .spyOn(NetworkDeviceService, "findOneBy")

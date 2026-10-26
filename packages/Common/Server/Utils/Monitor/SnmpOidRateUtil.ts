@@ -156,8 +156,10 @@ export default class SnmpOidRateUtil {
   /*
    * Gives every counter of this poll that the previous poll read too its
    * ratePerSecond: the counter's growth over the seconds between the two
-   * polls. Leaves alone a counter with no earlier reading, one that went
-   * backwards, and every OID that is not a counter.
+   * polls. A counter with no earlier reading, one that went backwards, and
+   * every OID that is not a counter get none. The rate is the server's
+   * alone: one a poll arrived with is dropped first, so no probe can hand a
+   * criteria a rate.
    */
   public static attachOidRates(data: {
     snmpResponse: SnmpMonitorResponse | undefined;
@@ -166,6 +168,10 @@ export default class SnmpOidRateUtil {
   }): void {
     const oidResponses: Array<SnmpOidResponse> =
       data.snmpResponse?.oidResponses || [];
+
+    for (const oidResponse of oidResponses) {
+      delete oidResponse.ratePerSecond;
+    }
 
     if (!data.previousBaseline || oidResponses.length === 0) {
       return;

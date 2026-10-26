@@ -823,6 +823,15 @@ export class Service extends ProjectReferencesService<Model> {
       updateDataKeys.includes("monitorSteps");
     const isMonitorTypeWritten: boolean =
       updateDataKeys.includes("monitorType");
+    /*
+     * Turning a monitor Synthetic is judged on the steps it holds; turning it
+     * into any other type needs nothing read - another type's steps run
+     * without a browser - so a write of {monitorType: Manual} stays a write
+     * that reads no monitor.
+     */
+    const isSyntheticTypeWritten: boolean =
+      isMonitorTypeWritten &&
+      updateBy.data.monitorType === MonitorType.SyntheticMonitor;
     const isMonitorTemplateWritten: boolean = RelationIdUtil.isWritten(
       updateDataKeys,
       MONITOR_TEMPLATE_RELATION_KEYS,
@@ -830,7 +839,7 @@ export class Service extends ProjectReferencesService<Model> {
 
     if (
       isMonitorStepsWritten ||
-      isMonitorTypeWritten ||
+      isSyntheticTypeWritten ||
       isMonitorTemplateWritten
     ) {
       /*
@@ -876,7 +885,7 @@ export class Service extends ProjectReferencesService<Model> {
          * Key presence again - a write of neither (a rename) is never
          * refused for steps stored before this check existed.
          */
-        if (isMonitorStepsWritten || isMonitorTypeWritten) {
+        if (isMonitorStepsWritten || isSyntheticTypeWritten) {
           SyntheticMonitorStepsUtil.assertRunsSomewhere({
             monitorType:
               (isMonitorTypeWritten

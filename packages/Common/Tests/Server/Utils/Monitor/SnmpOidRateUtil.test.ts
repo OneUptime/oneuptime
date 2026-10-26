@@ -380,6 +380,34 @@ describe("SnmpOidRateUtil.attachOidRates", () => {
     expect(response.oidResponses[0]!.ratePerSecond).toBe(1);
   });
 
+  test("a rate a poll arrived with is never trusted: the server works it out or there is none", () => {
+    const first: SnmpMonitorResponse = responseWith([
+      { ...counter(IF_IN_ERRORS, 1500), ratePerSecond: 99999 },
+      { oid: CPU, value: 7, type: SnmpDataType.Gauge32, ratePerSecond: 5 },
+    ]);
+
+    SnmpOidRateUtil.attachOidRates({
+      snmpResponse: first,
+      previousBaseline: undefined,
+      now: FIVE_MINUTES_LATER,
+    });
+
+    expect(first.oidResponses[0]!.ratePerSecond).toBeUndefined();
+    expect(first.oidResponses[1]!.ratePerSecond).toBeUndefined();
+
+    const next: SnmpMonitorResponse = responseWith([
+      { ...counter(IF_IN_ERRORS, 1500), ratePerSecond: 99999 },
+    ]);
+
+    SnmpOidRateUtil.attachOidRates({
+      snmpResponse: next,
+      previousBaseline: baselineOf({ [IF_IN_ERRORS]: "1200" }),
+      now: FIVE_MINUTES_LATER,
+    });
+
+    expect(next.oidResponses[0]!.ratePerSecond).toBe(1);
+  });
+
   test("the counters one poll keeps rate the next poll", () => {
     const first: SnmpMonitorResponse = responseWith([
       counter(IF_IN_ERRORS, 1200),

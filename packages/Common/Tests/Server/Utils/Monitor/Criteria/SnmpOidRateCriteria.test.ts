@@ -1,11 +1,14 @@
 import SnmpMonitorCriteria from "../../../../../Server/Utils/Monitor/Criteria/SnmpMonitorCriteria";
+import EvaluateOverTime from "../../../../../Server/Utils/Monitor/Criteria/EvaluateOverTime";
 import MonitorCriteriaObservationBuilder from "../../../../../Server/Utils/Monitor/MonitorCriteriaObservationBuilder";
 import Monitor from "../../../../../Models/DatabaseModels/Monitor";
 import MonitorStep from "../../../../../Types/Monitor/MonitorStep";
 import {
   CheckOn,
   CriteriaFilter,
+  EvaluateOverTimeType,
   FilterType,
+  NoDataPolicy,
 } from "../../../../../Types/Monitor/CriteriaFilter";
 import SnmpDataType from "../../../../../Types/Monitor/SnmpMonitor/SnmpDataType";
 import SnmpMonitorResponse, {
@@ -13,7 +16,7 @@ import SnmpMonitorResponse, {
 } from "../../../../../Types/Monitor/SnmpMonitor/SnmpMonitorResponse";
 import ProbeMonitorResponse from "../../../../../Types/Probe/ProbeMonitorResponse";
 import ObjectID from "../../../../../Types/ObjectID";
-import { describe, expect, test } from "@jest/globals";
+import { afterEach, describe, expect, jest, test } from "@jest/globals";
 
 /*
  * SNMP OID Rate (per second): how fast a counter OID grows between polls.
@@ -308,6 +311,47 @@ describe("SNMP OID Rate (per second) criteria", () => {
       }),
     ).toBeNull();
   });
+
+  /*
+   * The check is walk-dependent: on a poll that walked nothing it is not
+   * evaluated before any window is looked up. A window set through the API
+   * would otherwise ask for samples nobody records, and a "breach on no
+   * data" policy would raise an alert on a device that is only pinged.
+   */
+  test("a poll that ran no walk looks up no window, whatever the filter asks", async () => {
+    const overTime: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      EvaluateOverTime,
+      "getOverTimeValueForCriteriaFilter",
+    );
+
+    expect(
+      await SnmpMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+        dataToProcess: {
+          projectId: ObjectID.generate(),
+          monitorId: ObjectID.generate(),
+          monitorStepId: ObjectID.generate(),
+          probeId: ObjectID.generate(),
+          failureCause: "",
+          isOnline: true,
+          monitoredAt: new Date(),
+        },
+        criteriaFilter: {
+          ...rateFilter({ filterType: FilterType.GreaterThan, value: "10" }),
+          evaluateOverTime: true,
+          evaluateOverTimeOptions: {
+            timeValueInMinutes: 5,
+            evaluateOverTimeType: EvaluateOverTimeType.AllValues,
+            onNoDataPolicy: NoDataPolicy.Trigger,
+          },
+        },
+      }),
+    ).toBeNull();
+    expect(overTime).not.toHaveBeenCalled();
+  });
+});
+
+afterEach(() => {
+  jest.restoreAllMocks();
 });
 
 /*
