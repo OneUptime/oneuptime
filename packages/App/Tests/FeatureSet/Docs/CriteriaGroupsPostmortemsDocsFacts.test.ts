@@ -1138,12 +1138,15 @@ describe("a criteria's actions", () => {
       }),
     );
 
+    // Create Alert and Create Incident head their sections: no "(Optional)".
+    const formOnOneLine: string = CRITERIA_INSTANCE_FORM.replace(/\s+/g, " ");
+
     for (const label of [
       'title="Change monitor status to"',
-      '<FieldLabelElement title="Create Alert" />',
-      '<FieldLabelElement title="Create Incident" />',
+      '<FieldLabelElement title="Create Alert" hideOptionalLabel={true} />',
+      '<FieldLabelElement title="Create Incident" hideOptionalLabel={true} />',
     ]) {
-      expect(CRITERIA_INSTANCE_FORM).toContain(label);
+      expect(formOnOneLine).toContain(label);
     }
 
     expect(actions).toContain(

@@ -63,6 +63,47 @@ describe("a column description that only restates its field is left off", () => 
     );
   });
 
+  test("an SLA rule's Name and Description do not say 'Name of this SLA rule'", async () => {
+    render(
+      <BasicModelForm<IncidentSlaRule>
+        model={new IncidentSlaRule()}
+        id="sla-form"
+        onSubmit={getJestMockFunction()}
+        error={null}
+        fields={[
+          {
+            field: { name: true },
+            title: "Name",
+            fieldType: FormFieldSchemaType.Text,
+            required: true,
+          },
+          {
+            field: { description: true },
+            title: "Description",
+            fieldType: FormFieldSchemaType.LongText,
+            required: false,
+          },
+        ]}
+      />,
+    );
+
+    await screen.findByLabelText("Name");
+
+    // What the model's columns say, for the API reference.
+    expect(
+      new IncidentSlaRule().getTableColumnMetadata("name")?.description,
+    ).toBe("Name of this SLA rule");
+    expect(
+      new IncidentSlaRule().getTableColumnMetadata("description")?.description,
+    ).toBe("Description of this SLA rule");
+
+    expect(screen.queryByText("Name of this SLA rule")).toBeNull();
+    expect(screen.queryByText("Description of this SLA rule")).toBeNull();
+    expect(screen.getByLabelText("Name")).not.toHaveAttribute(
+      "aria-describedby",
+    );
+  });
+
   test("a field's own words are shown, whatever its column says", async () => {
     render(
       <BasicModelForm<Label>

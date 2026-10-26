@@ -40,6 +40,7 @@ jest.mock("Common/Server/Utils/Telemetry/CaptureSpan", () => {
 import { MONITOR_SECRET_ACCESS_STEP_ID } from "../../../FeatureSet/Dashboard/src/Pages/Monitor/Settings/MonitorSecretAccessFormFields";
 import { readPage } from "./DocsContentSupport";
 import MonitorSecret from "Common/Models/DatabaseModels/MonitorSecret";
+import { FormValidationMessage } from "Common/UI/Components/Forms/Utils/FormValidationMessages";
 import VMUtil from "Common/Server/Utils/VM/VMAPI";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import MonitorType, {
@@ -460,7 +461,11 @@ describe("adding a secret", () => {
     );
 
     expect(nameField).toContain("noSpecialCharacters: true,");
+    // Validation says it from the shared list of form messages.
     expect(readRepoFile(FORM_VALIDATION_FILE)).toContain(
+      "FormValidationMessage.NoSpecialCharacters",
+    );
+    expect(FormValidationMessage.NoSpecialCharacters).toContain(
       "can only contain letters, numbers, hyphens (-), and underscores (_).",
     );
     expect(readRepoFile(SECRET_MODEL_FILE)).toContain(
