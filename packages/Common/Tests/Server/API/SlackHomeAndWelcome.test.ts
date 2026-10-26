@@ -16,6 +16,7 @@ import ObjectID from "../../../Types/ObjectID";
 import Name from "../../../Types/Name";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
+import ExceptionMessages from "../../../Types/Exception/ExceptionMessages";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import OnCallDutyPolicySchedule from "../../../Models/DatabaseModels/OnCallDutyPolicySchedule";
 import Project from "../../../Models/DatabaseModels/Project";
@@ -1276,6 +1277,8 @@ describe("a person in several of the workspace's projects: Switch project", () =
   let members: Set<string>;
   let memberPropsReads: Array<string>;
   let namesReadable: boolean;
+  // Projects an administrator blocked: their members are refused there.
+  let blocked: Set<string>;
 
   function memberKey(userId: ObjectID, projectId: ObjectID | string): string {
     return `${userId.toString()} ${projectId.toString().toLowerCase()}`;
@@ -1373,6 +1376,7 @@ describe("a person in several of the workspace's projects: Switch project", () =
     ]);
     memberPropsReads = [];
     namesReadable = true;
+    blocked = new Set<string>();
 
     // The workspaces' connections, oldest first, as the resolver reads them.
     jest
@@ -1437,6 +1441,10 @@ describe("a person in several of the workspace's projects: Switch project", () =
           throw new NotAuthorizedException(
             WorkspaceActionAuthorization.NOT_A_PROJECT_MEMBER_MESSAGE,
           );
+        }
+
+        if (blocked.has(data.projectId.toString())) {
+          throw new NotAuthorizedException(ExceptionMessages.ProjectBlocked);
         }
 
         return { userId: data.userId, tenantId: data.projectId };
@@ -1549,6 +1557,8 @@ describe("a person in several of the workspace's projects: Switch project", () =
     // The menu's options, by name and value; null without a menu.
     menu: Array<{ name: string; value: string }> | null;
     menuBlockId: string | null;
+    // The text the menu is drawn beside.
+    menuBeside: string | null;
     texts: Array<string>;
     json: string;
   }
@@ -1578,7 +1588,9 @@ describe("a person in several of the workspace's projects: Switch project", () =
         );
       },
     );
-    const accessory: JSONObject | undefined = line?.["accessory"] as
+    // The menu: beside the project's line, or beside why the project was refused.
+    const menuBlock: JSONObject | undefined = withMenus[0];
+    const accessory: JSONObject | undefined = menuBlock?.["accessory"] as
       | JSONObject
       | undefined;
 
@@ -1601,7 +1613,12 @@ describe("a person in several of the workspace's projects: Switch project", () =
             },
           )
         : null,
-      menuBlockId: accessory ? String(line!["block_id"]) : null,
+      menuBlockId: accessory ? String(menuBlock!["block_id"]) : null,
+      menuBeside: menuBlock
+        ? String((menuBlock["text"] as JSONObject)["text"])
+            .split(ZWSP)
+            .join("")
+        : null,
       texts: blockTexts(blocks).map((text: string): string => {
         return text.split(ZWSP).join("");
       }),
@@ -1685,6 +1702,7 @@ describe("a person in several of the workspace's projects: Switch project", () =
       { name: "Acme Sandbox", value: SANDBOX.toString() },
     ]);
     expect(home.menuBlockId).toBe(`SwitchHomeProject:${PRODUCTION.toString()}`);
+    expect(home.menuBeside).toBe(home.projectLine);
     expect(home.json).not.toContain("Acme Finance");
     expect(home.json).not.toContain(FINANCE.toString());
 
@@ -2034,6 +2052,37 @@ describe("a person in several of the workspace's projects: Switch project", () =
     expect(memberPropsReads).toEqual([]);
     expect(onCallReads).toEqual([]);
     expect(rememberedHomes()).toEqual([]);
+  });
+
+  test("the project her Home opens on is refused - blocked by an administrator: told why, with the menu of her others beside it, so she is never stuck there", async () => {
+    await opened();
+    await switched({ value: STAGING.toString(), shown: PRODUCTION });
+
+    blocked.add(STAGING.toString());
+
+    later();
+    const readsBefore: number = onCallReads.length;
+    const home: DrawnHome = await opened();
+
+    expect(home.projectId).toBe(STAGING.toString());
+    expect(home.texts).toContain(`${ExceptionMessages.ProjectBlocked}\n`);
+    expect(home.menuBeside).toBe(`${ExceptionMessages.ProjectBlocked}\n`);
+    expect(namesIn(home)).toEqual(["Acme Production", "Acme Sandbox"]);
+    // Nothing of the blocked project is shown.
+    expect(home.json).not.toContain("Here's what is happening");
+    expect(onCallReads).toHaveLength(readsBefore);
+
+    const away: DrawnHome = await switched({
+      value: PRODUCTION.toString(),
+      shown: STAGING,
+    });
+
+    expect(away.projectId).toBe(PRODUCTION.toString());
+    expect(away.projectLine).toContain("Acme Production");
+    expect(namesIn(away)).toEqual(["Acme Staging", "Acme Sandbox"]);
+
+    later();
+    expect((await opened()).projectId).toBe(PRODUCTION.toString());
   });
 
   test("the projects cannot be named: the Home of the first, with no menu - never a nameless option", async () => {

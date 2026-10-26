@@ -545,6 +545,11 @@ export default class SlackHome {
       });
     }
 
+    const projectMenu: WorkspacePayloadMenu | null = SlackHome.getProjectMenu({
+      shownProjectId: data.projectId,
+      choices: data.choices || [],
+    });
+
     let props: DatabaseCommonInteractionProps;
 
     try {
@@ -553,8 +558,13 @@ export default class SlackHome {
         projectId: data.projectId,
       });
     } catch (err) {
+      /*
+       * Refused here - the project blocked, or left a moment ago - the Home
+       * says why, and keeps the menu of the person's other projects: the
+       * project they chose, or the first, never keeps them from the rest.
+       */
       if (err instanceof NotAuthorizedException) {
-        return SlackHome.getRefusedBlocks(err.message);
+        return SlackHome.getRefusedBlocks(err.message, projectMenu);
       }
 
       throw err;
@@ -565,11 +575,6 @@ export default class SlackHome {
       userId: userAuth.userId,
       props: props,
       now: data.now,
-    });
-
-    const projectMenu: WorkspacePayloadMenu | null = SlackHome.getProjectMenu({
-      shownProjectId: data.projectId,
-      choices: data.choices || [],
     });
 
     /*
@@ -675,19 +680,29 @@ export default class SlackHome {
     });
   }
 
-  // A member refused - not one any more, or the project blocked: why.
+  /*
+   * A member refused - not one any more, or the project blocked: why, with
+   * the menu of their other projects beside it when they have any.
+   */
   private static getRefusedBlocks(
     message: string,
+    projectMenu: WorkspacePayloadMenu | null,
   ): Array<WorkspaceMessageBlock> {
     const blocks: Array<WorkspaceMessageBlock> =
       WorkspaceHome.getNotAMemberBlocks();
 
     return blocks.map((block: WorkspaceMessageBlock): WorkspaceMessageBlock => {
       if (block._type === "WorkspacePayloadMarkdown") {
-        return {
+        const refusal: WorkspacePayloadMarkdown = {
           _type: "WorkspacePayloadMarkdown",
           text: mdText`${message}`.toString(),
-        } as WorkspacePayloadMarkdown;
+        };
+
+        if (projectMenu) {
+          refusal.menu = projectMenu;
+        }
+
+        return refusal;
       }
 
       return block as WorkspacePayloadHeader;
