@@ -1079,10 +1079,17 @@ describe("Change Postmortem Status, for many at once", () => {
 
     expect(run.started).toBe(1);
     expect(run.ended).toBe(1);
-    expect(run.progress).toHaveLength(3);
-    expect(run.progress[2]!.successItems).toHaveLength(3);
-    expect(run.progress[2]!.failed).toHaveLength(0);
-    expect(run.progress[2]!.inProgressItems).toHaveLength(0);
+    /*
+     * Through the shared runner: the first done is reported at once, the
+     * rest at most ten times a second, the end always.
+     */
+    expect(run.progress.length).toBeGreaterThanOrEqual(2);
+
+    const lastProgress: (typeof run.progress)[number] =
+      run.progress[run.progress.length - 1]!;
+    expect(lastProgress.successItems).toHaveLength(3);
+    expect(lastProgress.failed).toHaveLength(0);
+    expect(lastProgress.inProgressItems).toHaveLength(0);
 
     // The dialog closed; the counts recount.
     expect(screen.queryByTestId("bulk-status-dialog")).toBeNull();
