@@ -25,7 +25,10 @@ import Button, {
 import Icon from "Common/UI/Components/Icon/Icon";
 import { isRowOpeningClick } from "Common/UI/Components/Table/RowClick";
 import Table from "Common/UI/Components/Table/Table";
-import { useIsTableCard } from "Common/UI/Components/Table/TableCellContext";
+import {
+  useAreTableColumnsFolded,
+  useIsTableCard,
+} from "Common/UI/Components/Table/TableCellContext";
 import { TableEmptyStateProps } from "Common/UI/Components/Table/TableEmptyState";
 import Columns from "Common/UI/Components/Table/Types/Columns";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -179,8 +182,13 @@ const RuleCell: FunctionComponent<RuleCellProps> = (
   props: RuleCellProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
-  // A phone's card: the severity and the events go under the name.
+  /*
+   * A phone's card, and below lg a tablet's row, where the Data and
+   * Severity columns are left out (hideBelowLargeScreen): the severity and
+   * the events go under the name.
+   */
   const isCard: boolean = useIsTableCard();
+  const areFactsFolded: boolean = useAreTableColumnsFolded();
   const view: LibraryRuleView = props.view;
   const entry: DetectionRuleLibraryEntry = view.entry;
   const attackLine: string = getRuleAttackLine(view);
@@ -238,7 +246,7 @@ const RuleCell: FunctionComponent<RuleCellProps> = (
       ) : (
         <></>
       )}
-      {isCard ? (
+      {isCard || areFactsFolded ? (
         <span
           className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1"
           data-testid={`rule-library-card-facts-${entry.id}`}
@@ -372,6 +380,14 @@ const RuleLibraryTable: FunctionComponent<ComponentProps> = (
       key: "dataStatus",
       disableSort: true,
       hideOnMobile: true,
+      /*
+       * Under the rule's name below lg, with its severity (RuleCell):
+       * beside the side menu at 768px the card is 478px wide, and Rule,
+       * Data, Severity and Add needed 566px - Add was under the sticky
+       * last column until about 860px, and in German at 900px, where Data
+       * is as wide as Anmeldeereignisse.
+       */
+      hideBelowLargeScreen: true,
       wrapContent: true,
       wrapMaxWidthClassName: RULE_LIBRARY_DATA_COLUMN_MAX_WIDTH_CLASS_NAME,
       contentClassName: RULE_LIBRARY_DATA_COLUMN_CLASS_NAME,
@@ -392,6 +408,8 @@ const RuleLibraryTable: FunctionComponent<ComponentProps> = (
       key: "severity",
       disableSort: true,
       hideOnMobile: true,
+      // Under the rule's name below lg, with its events (see Data).
+      hideBelowLargeScreen: true,
       getElement: (view: LibraryRuleView): ReactElement => {
         return (
           <span data-testid={`rule-library-severity-${view.entry.id}`}>

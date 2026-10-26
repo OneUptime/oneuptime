@@ -2,9 +2,13 @@ import {
   CUSTOM_DOMAIN_RECORD_TYPE,
   CUSTOM_DOMAIN_VERIFIED_NEXT,
   CustomDomainCopy,
+  CustomDomainInstallation,
   DNS_SETUP_TEST_IDS,
 } from "./CustomDomainCopy";
-import { CustomDomainKind } from "./CustomDomainKinds";
+import {
+  CustomDomainKind,
+  getCustomDomainInstallation,
+} from "./CustomDomainKinds";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
@@ -98,6 +102,12 @@ const CustomDomainDnsSetupModal: FunctionComponent<ComponentProps> = (
   );
 
   /*
+   * Whether this installation issues free certificates: without a Let's
+   * Encrypt account key it issues none, and the dialog promises none.
+   */
+  const installation: CustomDomainInstallation = getCustomDomainInstallation();
+
+  /*
    * What happens next, for where the domain is: a verified one is here
    * because its free certificate is not in place - an order that keeps
    * failing, or a certificate that has expired - and Check now tries again
@@ -105,11 +115,13 @@ const CustomDomainDnsSetupModal: FunctionComponent<ComponentProps> = (
    */
   const whatHappensNext: string = props.domain.isCustomCertificate
     ? CustomDomainCopy.dnsSetupWhatHappensNextUploaded
-    : props.domain.isCnameVerified
-      ? props.hasExpiredCertificate
-        ? CustomDomainCopy.dnsSetupVerifiedExpired
-        : CustomDomainCopy.dnsSetupVerifiedNotIssued
-      : CustomDomainCopy.dnsSetupWhatHappensNext;
+    : !installation.issuesFreeCertificates
+      ? CustomDomainCopy.dnsSetupWhatHappensNextWithoutFreeCertificate
+      : props.domain.isCnameVerified
+        ? props.hasExpiredCertificate
+          ? CustomDomainCopy.dnsSetupVerifiedExpired
+          : CustomDomainCopy.dnsSetupVerifiedNotIssued
+        : CustomDomainCopy.dnsSetupWhatHappensNext;
 
   // The subdomain is empty for the domain itself ("@" when it was added).
   const isRootDomain: boolean =
@@ -179,6 +191,17 @@ const CustomDomainDnsSetupModal: FunctionComponent<ComponentProps> = (
     );
   }
 
+  /*
+   * On an installation that issues no free certificates, a verified domain
+   * has no certificate on its way: whatever the order the server tried says,
+   * the next step is the installation's own HTTPS, or an upload.
+   */
+  const isWithoutFreeCertificate: boolean = Boolean(
+    result &&
+      !installation.issuesFreeCertificates &&
+      result.certificateStatus !== CustomDomainCertificateStatus.Uploaded,
+  );
+
   if (result) {
     return (
       <Modal
@@ -192,12 +215,19 @@ const CustomDomainDnsSetupModal: FunctionComponent<ComponentProps> = (
             title={CustomDomainCopy.dnsSetupVerified}
           />
           <p className="text-sm leading-6 text-gray-600">
-            <TranslatedSentence
-              template={CUSTOM_DOMAIN_VERIFIED_NEXT[result.certificateStatus]}
-              slots={{ domain: domainSlot }}
-            />
+            {isWithoutFreeCertificate ? (
+              translator.translateText(
+                CustomDomainCopy.dnsSetupVerifiedWithoutFreeCertificate,
+              )
+            ) : (
+              <TranslatedSentence
+                template={CUSTOM_DOMAIN_VERIFIED_NEXT[result.certificateStatus]}
+                slots={{ domain: domainSlot }}
+              />
+            )}
           </p>
-          {result.certificateStatus === CustomDomainCertificateStatus.Failed &&
+          {!isWithoutFreeCertificate &&
+          result.certificateStatus === CustomDomainCertificateStatus.Failed &&
           result.certificateError ? (
             <Alert
               type={AlertType.WARNING}

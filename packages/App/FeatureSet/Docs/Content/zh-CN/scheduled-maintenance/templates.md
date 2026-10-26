@@ -24,7 +24,7 @@ flowchart TB
 ## 开始之前
 
 - **你的套餐。** 在 OneUptime Cloud 上，模板需要 **Growth** 或更高的套餐。
-- **你的角色。** 创建模板需要 **Project Owner** 、 **Project Admin** 、 **Project Member** 、 **Scheduled Maintenance Admin** 或 **Scheduled Maintenance Member** ，或可以创建计划维护模板的自定义角色。
+- **你的角色。** 创建模板需要 **项目所有者** 、 **项目管理员** 、 **项目成员** 、 **计划维护管理员** 或 **计划维护成员** ，或可以创建计划维护模板的自定义角色。
 
 ## 创建模板
 

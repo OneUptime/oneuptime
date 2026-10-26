@@ -70,7 +70,7 @@ Sammenfoldet nævner overskriften på **Flere felter** de to og viser dem, regle
 
 ### Opret reglen
 
-Klik på **Create Rule**. Reglen tilføjes under de andre, som politikkens næste niveau.
+Klik på **Opret regel**. Reglen tilføjes under de andre, som politikkens næste niveau.
 :::
 
 ## Sådan tilkalder niveauerne folk
@@ -134,6 +134,13 @@ Det nævner alvorligheden og hvad der er sket (en hændelse, en advarsel eller e
 
 Alvorligheden, nummeret og linket afkortes aldrig. En titel beholder mindst 20 tegn: kan selv det ikke være der, for eksempel med en meget lang adresse eller et meget langt produktnavn, tager sms'en en ekstra del og siger det hele.
 
+Når en politik tilkalder igen, fordi en bekræftet hændelse eller advarsel stadig ikke er løst, siger sms'en det efter nummeret og projektet, og de ord afkortes heller aldrig:
+
+```text
+OneUptime: Critical Incident INC-42 in Acme Prod is still not resolved:
+Checkout API is down. Ack or escalate: https://oneuptime.com/l/XJlaZRsd
+```
+
 Ét tegn uden for sms'ers enkle alfabet får hele beskeden til at gå ud i dele på 70 tegn. Derfor skrives typografiske anførselstegn og tankestreger som `"`, `'` og `-`, `…` som `...`, og bogstaver som `ç` og `ł` mister deres accenter; emojis udelades. En titel i en anden skrift, for eksempel japansk eller russisk, sendes, som den er skrevet, og fylder to dele eller flere.
 
 De andre sms'er, OneUptime sender dig, for eksempel om en ændring i en hændelse, du ejer, eller om starten på din vagt, begynder også med `OneUptime:` og slutter med `Turn off in User Settings > Notification Settings.`, en sætning, der udelades, når det er det, der får sms'en til at passe i én del.
@@ -154,7 +161,7 @@ På OneUptime Cloud betales hver SMS, hvert opkald, hver WhatsApp- og Telegram-b
 - Tilkald bliver ved med at gå ud på den resterende saldo, mens automatisk genopfyldning ikke kan trække på kortet.
 
 > [!IMPORTANT]
-> SMS, telefonopkald, WhatsApp og Telegram er slået fra i et nyt projekt: på OneUptime Cloud betales hver besked af projektets saldo, og en selvhostet installation skal først have en Twilio-konto eller en Telegram-bot sat op. Så længe en kanal er slået fra, kan ingen i projektet tilføje en metode på den. Kun en projektejer, en **Billing Admin** eller en person med tilladelsen **Manage Billing** kan slå en til, i kortet **Notifikationskanaler** på **Projektindstillinger > Notifikationer > Notifikationsindstillinger** — en projektadministrator kan ikke. Alle andre får præcis at vide, hvem der kan, overalt hvor en kanal er slået fra: over deres egen liste over metoder på den, på deres opsætningstjekliste og i den besked, de får, når noget har brug for den.
+> SMS, telefonopkald, WhatsApp og Telegram er slået fra i et nyt projekt: på OneUptime Cloud betales hver besked af projektets saldo, og en selvhostet installation skal først have en Twilio-konto eller en Telegram-bot sat op. Så længe en kanal er slået fra, kan ingen i projektet tilføje en metode på den. Kun en projektejer, en **Faktureringsadministrator** eller en person med tilladelsen **Manage Billing** kan slå en til, i kortet **Notifikationskanaler** på **Projektindstillinger > Notifikationer > Notifikationsindstillinger** — en projektadministrator kan ikke. Alle andre får præcis at vide, hvem der kan, overalt hvor en kanal er slået fra: over deres egen liste over metoder på den, på deres opsætningstjekliste og i den besked, de får, når noget har brug for den.
 
 ## Eskalér til den næste person i rotationen
 
@@ -168,7 +175,7 @@ Et niveau kan tilkalde den næste person i en vagtplans rotation: personen efter
 
 :::steps
 1. Sørg for, at politikkens første niveau, **Level 1**, underretter vagtplanen.
-2. Klik på **Tilføj eskaleringsregel**, derefter på **Tilføj modtager**, og vælg den samme vagtplan under **Næste i rotationen**. Angiv **Eskalér efter (i minutter)**, og klik på **Create Rule**.
+2. Klik på **Tilføj eskaleringsregel**, derefter på **Tilføj modtager**, og vælg den samme vagtplan under **Næste i rotationen**. Angiv **Eskalér efter (i minutter)**, og klik på **Opret regel**.
 3. Tilføj ét niveau mere for det team eller den chef, der skal have besked bagefter.
 :::
 
@@ -221,15 +228,15 @@ At eskalere et tilkald kvitterer ikke for det: hændelsen eller advarslen venter
 
 Et tilkald, som et workflow sender direkte til personer, har ingen niveauer: eskalerer du det, bliver du ikke tilkaldt mere, og når alle, det tilkaldte, har eskaleret det, stopper tilkaldet.
 
-Hver gang et tilkald eskaleres, bliver det registreret. Kørslens **Tidslinje for udførelsen** markerer personens linje **Eskaleret**, hændelsens feed siger "Alex Kim escalated the page from on-call policy Payments at escalation rule Level 1.", kørslens besked i Slack og Microsoft Teams siger, at vedkommende eskalerede det, og vedkommendes **Vagtlogs** viser tilkaldet som **Eskaleret**.
+Hver gang et tilkald eskaleres, bliver det registreret. Kørslens **Tidslinje for udførelsen** markerer personens linje **Eskaleret**, hændelsens feed siger "Alex Kim escalated the page from on-call policy Payments at Level 1 of 3.", kørslens besked i Slack og Microsoft Teams siger, at vedkommende eskalerede det, og vedkommendes **Vagtlogs** viser tilkaldet som **Eskaleret**.
 
 ## Rediger, omarranger og slet regler
 
-Hver regels kort har **Edit rule** og en **⋯**-menu med de andre handlinger:
+Hver regels kort har **Rediger regel** og en **⋯**-menu med de andre handlinger:
 
-- **Edit rule** åbner den samme dialog på én side, udfyldt med reglen, som den er: dens modtagere, dens ventetid og dens navn og beskrivelse under **Flere felter**. Tilføj eller fjern modtagere, og klik på **Gem ændringer**. Rydder du navnet, får reglen sit niveaus navn igen.
+- **Rediger regel** åbner den samme dialog på én side, udfyldt med reglen, som den er: dens modtagere, dens ventetid og dens navn og beskrivelse under **Flere felter**. Tilføj eller fjern modtagere, og klik på **Gem ændringer**. Rydder du navnet, får reglen sit niveaus navn igen.
 - **Flyt op** og **Flyt ned** i en regels **⋯**-menu ændrer dens niveau. En regel, der er opkaldt efter sit niveau, beholder et navn, der passer til dens plads: når **Level 3** rykker op forbi **Level 2**, bytter de to navne. Et navn, du selv har valgt, fx **Ledere**, forbliver det samme, uanset hvor reglen flytter hen.
-- **Delete rule** spørger først og siger, hvem niveauet tilkalder. Sletter du et niveau, rykker niveauerne under det op, og regler, der er opkaldt efter deres niveau, omdøbes, så de passer.
+- **Slet regel** spørger først og siger, hvem niveauet tilkalder. Sletter du et niveau, rykker niveauerne under det op, og regler, der er opkaldt efter deres niveau, omdøbes, så de passer.
 
 ## Opret regler med API'et eller Terraform
 

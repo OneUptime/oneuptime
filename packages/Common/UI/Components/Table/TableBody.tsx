@@ -1,6 +1,10 @@
 import ActionButtonSchema from "../ActionButton/ActionButtonSchema";
 import { DetailValueContext } from "../Detail/DetailValueContext";
-import { TableCardContext, TableCellContext } from "./TableCellContext";
+import {
+  TableCardContext,
+  TableCellContext,
+  TableFoldedColumnsContext,
+} from "./TableCellContext";
 import TableRow from "./TableRow";
 import Columns from "./Types/Columns";
 import GenericObject from "../../../Types/GenericObject";
@@ -46,6 +50,11 @@ export interface ComponentProps<T extends GenericObject> {
 
   // responsive
   isMobile?: boolean;
+  /*
+   * A column is left out here whose value the cells show in their own
+   * place (Column.hideBelowLargeScreen, useAreTableColumnsFolded).
+   */
+  areColumnsFolded?: boolean | undefined;
 }
 
 type TableBodyFunction = <T extends GenericObject>(
@@ -227,15 +236,19 @@ const TableBody: TableBodyFunction = <T extends GenericObject>(
     <DetailValueContext.Provider value={false}>
       <TableCellContext.Provider value={true}>
         <TableCardContext.Provider value={Boolean(props.isMobile)}>
-          {props.enableDragAndDrop ? (
-            <Droppable droppableId={props.dragAndDropScope || ""}>
-              {(provided: DroppableProvided) => {
-                return getBody(provided);
-              }}
-            </Droppable>
-          ) : (
-            getBody()
-          )}
+          <TableFoldedColumnsContext.Provider
+            value={Boolean(props.areColumnsFolded)}
+          >
+            {props.enableDragAndDrop ? (
+              <Droppable droppableId={props.dragAndDropScope || ""}>
+                {(provided: DroppableProvided) => {
+                  return getBody(provided);
+                }}
+              </Droppable>
+            ) : (
+              getBody()
+            )}
+          </TableFoldedColumnsContext.Provider>
         </TableCardContext.Provider>
       </TableCellContext.Provider>
     </DetailValueContext.Provider>

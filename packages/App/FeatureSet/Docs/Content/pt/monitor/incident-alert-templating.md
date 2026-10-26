@@ -150,7 +150,7 @@ Alerts for payments:
 
 ### Valores de um monitor agrupado
 
-Um monitor baseado em métricas com atributos em **Group by** abre um incidente por série, e o valor de cada atributo é uma variável com o nome do atributo. Agrupar por `host.name` dá `{{host.name}}`, e agrupar por `resource.k8s.pod.name` dá `{{resource.k8s.pod.name}}`. `{{seriesLabels}}` contém todos eles, como um objeto.
+Um monitor baseado em métricas com atributos em **Agrupar por** abre um incidente por série, e o valor de cada atributo é uma variável com o nome do atributo. Agrupar por `host.name` dá `{{host.name}}`, e agrupar por `resource.k8s.pod.name` dá `{{resource.k8s.pod.name}}`. `{{seriesLabels}}` contém todos eles, como um objeto.
 
 Um [monitor de logs](/docs/monitor/logs-monitor) agrupado funciona da mesma forma: o valor de cada atributo de agrupamento é uma variável com a sua chave.
 
@@ -457,7 +457,7 @@ Os monitores Metrics, Kubernetes, Docker, Host, Podman, Docker Swarm, Proxmox, V
 | --- | --- | --- |
 | `metricName` | O nome da métrica que a primeira consulta do monitor lê, como `container.cpu.time`. | `string` |
 
-Agrupados, eles também têm o valor de cada atributo de **Group by**, e `seriesLabels`: veja [Valores de um monitor agrupado](#valores-de-um-monitor-agrupado). Os modelos do monitor IoT Device agrupam por dispositivo, por isso um monitor criado a partir de um deles também tem `{{device.id}}`.
+Agrupados, eles também têm o valor de cada atributo de **Agrupar por**, e `seriesLabels`: veja [Valores de um monitor agrupado](#valores-de-um-monitor-agrupado). Os modelos do monitor IoT Device agrupam por dispositivo, por isso um monitor criado a partir de um deles também tem `{{device.id}}`.
 
 ### Outros tipos de monitor
 

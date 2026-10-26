@@ -142,13 +142,13 @@ curl -X POST 'https://oneuptime.com/api/inventory-item/get-list?output-type=csv'
 | IP 주소 | `host.ip` | 수집기가 보고하는 모든 주소 | OneUptime이 폴링하는 주소(IP 주소인 경우). 그렇지 않으면 프로브가 그 DNS 이름을 확인한 주소 |
 | MAC 주소 | `host.mac` | 감지됨 | 장치에 입력한 값, 또는 순회한 라우터의 ARP 테이블에서 알아낸 값 |
 | 일련 번호 | `host.serial_number` | 지정함 | ENTITY-MIB |
-| Manufacturer | `device.manufacturer` | 지정함 | ENTITY-MIB, 없으면 `sysDescr` 또는 `sysObjectID`가 가리키는 것 |
+| 제조업체 | `device.manufacturer` | 지정함 | ENTITY-MIB, 없으면 `sysDescr` 또는 `sysObjectID`가 가리키는 것 |
 | 모델 | `device.model.name` | 지정함 | ENTITY-MIB, 없으면 `sysDescr`가 가리키는 것 |
 | 펌웨어 버전 | `device.firmware.version` | 지정함 | ENTITY-MIB, 없으면 `sysDescr`가 가리키는 것 |
 | 운영 체제 | `os.name` | `os.description`(또는 `os.type`) | `sysDescr`가 가리키는 것: Cisco IOS, Junos OS, Arista EOS, Linux |
 | OS 버전 | `os.version` | 감지됨 | ENTITY-MIB, 없으면 `sysDescr`가 가리키는 것 |
 | Device Type | `device.type` | 지정함. 없으면 카드가 OS와 이름으로 분류합니다(서버, 방화벽, ...) | 장치의 역할. 지정한 역할, 없으면 토폴로지 맵이 그리는 역할 |
-| Location | `device.location` | 지정함. 없으면 카드가 클라우드 영역을 보여 줍니다 | `sysLocation`. 카드는 사이트를 먼저 보여 줍니다 |
+| 위치 | `device.location` | 지정함. 없으면 카드가 클라우드 영역을 보여 줍니다 | `sysLocation`. 카드는 사이트를 먼저 보여 줍니다 |
 
 각 값의 출처는 아래의 [호스트 표](#호스트-자산-속성)와 [네트워크 장치 표](#네트워크-장치-자산-속성)에 자세히 나와 있습니다.
 

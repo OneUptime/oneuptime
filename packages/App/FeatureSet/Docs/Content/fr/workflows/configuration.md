@@ -99,7 +99,7 @@ Les déclencheurs webhook vous donnent une URL unique. Quiconque connaît l'URL 
 - Pour les workflows sensibles, demandez au système appelant d'envoyer un jeton partagé dans un en-tête (comme `X-Webhook-Token`) et vérifiez-le avec un bloc **If / Else** avant de faire quoi que ce soit d'important. Enregistrez le jeton attendu comme variable secrète.
 - Pour les workflows très sensibles, préférez un déclencheur d'événement OneUptime et une étape d'import manuelle à un webhook public.
 
-Seules les personnes qui peuvent modifier le workflow — **Project Owner**, **Project Admin**, **Workflow Admin** ou **Edit Workflow** — peuvent voir ou réinitialiser son URL de webhook. Quiconque a l'URL peut démarrer le workflow depuis n'importe où, sans se connecter : tous les autres voient donc une note qui dit à qui s'adresser. Cela inclut un **Workflow Member**, qui exécute le workflow à la main depuis le **Constructeur**.
+Seules les personnes qui peuvent modifier le workflow — **Propriétaire du projet**, **Administrateur du projet**, **Administrateur des flux de travail** ou **Edit Workflow** — peuvent voir ou réinitialiser son URL de webhook. Quiconque a l'URL peut démarrer le workflow depuis n'importe où, sans se connecter : tous les autres voient donc une note qui dit à qui s'adresser. Cela inclut un **Membre des flux de travail**, qui exécute le workflow à la main depuis le **Constructeur**.
 
 ## Sécurité des e-mails entrants
 
@@ -110,7 +110,7 @@ Le déclencheur Incoming Email donne au workflow sa propre adresse, et quiconque
 - N'importe qui peut mettre n'importe quel expéditeur sur un e-mail : **From** ne prouve donc pas qui l'a envoyé. Avant qu'un workflow fasse quoi que ce soit d'important, vérifiez une information que seul le véritable expéditeur connaît — un jeton dans l'objet ou dans un en-tête — avec un bloc **If / Else**. Enregistrez le jeton attendu comme variable secrète.
 - La clé est masquée dans tout ce que reçoit l'exécution — **To**, **CC**, les en-têtes et les corps — car le journal de l'exécution est visible par toute personne qui peut lire les exécutions du workflow.
 
-Seules les personnes qui peuvent modifier le workflow — **Project Owner**, **Project Admin**, **Workflow Admin** ou **Edit Workflow** — peuvent voir ou réinitialiser son adresse. Tous les autres voient une note qui dit à qui s'adresser.
+Seules les personnes qui peuvent modifier le workflow — **Propriétaire du projet**, **Administrateur du projet**, **Administrateur des flux de travail** ou **Edit Workflow** — peuvent voir ou réinitialiser son adresse. Tous les autres voient une note qui dit à qui s'adresser.
 
 ## Accès réseau sortant
 
@@ -166,30 +166,30 @@ Les échecs de validation, de configuration, d'accès, de limite, de crédits, d
 
 Les workflows respectent le contrôle d'accès basé sur les rôles de votre projet. Les trois rôles de workflow :
 
-- **Workflow Admin** — construit les workflows : les crée, les modifie, les exécute et les supprime, et gère les variables qu'ils utilisent.
-- **Workflow Member** — les utilise : ouvre les workflows et leurs exécutions, et exécute un workflow à la main avec **Exécuter le flux de travail**. Un membre ne peut pas créer, modifier ni supprimer un workflow, ni exécuter l'une de ses étapes seule.
-- **Workflow Viewer** — lit les workflows et leurs exécutions.
+- **Administrateur des flux de travail** — construit les workflows : les crée, les modifie, les exécute et les supprime, et gère les variables qu'ils utilisent.
+- **Membre des flux de travail** — les utilise : ouvre les workflows et leurs exécutions, et exécute un workflow à la main avec **Exécuter le flux de travail**. Un membre ne peut pas créer, modifier ni supprimer un workflow, ni exécuter l'une de ses étapes seule.
+- **Lecteur des flux de travail** — lit les workflows et leurs exécutions.
 
-**Project Owner** et **Project Admin** peuvent faire tout ce que peut faire un Workflow Admin. **Project Member** peut créer et supprimer des workflows, mais pas les modifier ni les exécuter.
+**Propriétaire du projet** et **Administrateur du projet** peuvent faire tout ce que peut faire un Workflow Admin. **Membre du projet** peut créer et supprimer des workflows, mais pas les modifier ni les exécuter.
 
 Les autorisations individuelles, pour une équipe ou une clé d'API qui a besoin d'une seule chose :
 
 - **Create / Read / Edit / Delete Workflow** — les autorisations de base sur le workflow lui-même. Modifier un workflow, y compris l'activer, le désactiver ou l'archiver, demande **Edit Workflow** ; **Delete Workflow** ne fait que supprimer.
-- **Edit Workflow** — c'est aussi ce qu'il faut pour exécuter une seule étape avec **Run just this step**, et pour voir ou réinitialiser l'URL de webhook et l'adresse e-mail entrante d'un workflow. Exécuter un workflow entier à la main demande **Edit Workflow**, **Workflow Admin** ou **Workflow Member**.
+- **Edit Workflow** — c'est aussi ce qu'il faut pour exécuter une seule étape avec **Run just this step**, et pour voir ou réinitialiser l'URL de webhook et l'adresse e-mail entrante d'un workflow. Exécuter un workflow entier à la main demande **Edit Workflow**, **Administrateur des flux de travail** ou **Membre des flux de travail**.
 - **Read Workflow Log** — nécessaire pour voir les exécutions.
 - **Create / Read / Edit / Delete Workflow Variables** — gérer les variables globales et de workflow.
 
 Une exécution à la main n'atteint que les workflows que vous pouvez ouvrir : un rôle limité à certaines étiquettes, ou aux workflows que possède votre équipe, n'exécute que ceux-là. Une personne qui ne peut pas exécuter un workflow voit **Exécuter le flux de travail** grisé, avec la raison dans son info-bulle.
 
-Donnez **Workflow Admin** aux personnes qui construisent l'automatisation, et **Workflow Member** à celles qui ne font que la lancer. Réservez l'accès en modification aux variables aux personnes qui gèrent les secrets de votre projet. Voir [Utilisateurs, équipes et autorisations](/docs/permissions/index) pour savoir comment les rôles sont attribués.
+Donnez **Administrateur des flux de travail** aux personnes qui construisent l'automatisation, et **Membre des flux de travail** à celles qui ne font que la lancer. Réservez l'accès en modification aux variables aux personnes qui gèrent les secrets de votre projet. Voir [Utilisateurs, équipes et autorisations](/docs/permissions/index) pour savoir comment les rôles sont attribués.
 
 ## Ce que les étapes d'un workflow peuvent faire
 
-Les étapes qui lisent et modifient des enregistrements OneUptime — les composants Find, Create, Update et Delete, et les déclencheurs On Create, On Update, On Create or Update et On Delete — agissent en tant que **Project Admin** du projet du workflow. Quelle que soit la personne qui a construit le workflow, une étape est soumise aux mêmes vérifications qu'un Project Admin dans le tableau de bord et l'API :
+Les étapes qui lisent et modifient des enregistrements OneUptime — les composants Find, Create, Update et Delete, et les déclencheurs On Create, On Update, On Create or Update et On Delete — agissent en tant que **Administrateur du projet** du projet du workflow. Quelle que soit la personne qui a construit le workflow, une étape est soumise aux mêmes vérifications qu'un Project Admin dans le tableau de bord et l'API :
 
 - **Uniquement le projet du workflow.** Une étape lit et écrit les enregistrements du projet auquel appartient le workflow et d'aucun autre, et un Update ne déplace jamais un enregistrement vers un autre projet.
-- **Uniquement ce qu'un Project Admin peut faire.** Une étape ne peut pas faire ce que seuls **Project Owner** et les autorisations de facturation ou de suppression du projet permettent, et elle ne peut pas lire qui a créé une sonde ou un agent IA, ce que seuls les propriétaires du projet voient.
-- **Pas qui a accès.** Une étape ne crée, ne modifie ni ne supprime d'équipes, de membres d'équipe, d'autorisations d'équipe, de rôles personnalisés ou d'autorisations de clé d'API, même si un Project Admin le peut. Celui qui construit un workflow décide de ce que font ses étapes, et ce peut être un **Project Member** : une étape qui le pourrait donnerait donc à celui qui l'a construite un accès qu'on ne lui a pas donné, comme **Project Admin**. L'étape est refusée, et le journal de l'exécution indique qu'une personne qui gère les équipes et les clés d'API du projet doit faire la modification. Les déclencheurs et les étapes Find sur ces enregistrements fonctionnent toujours.
+- **Uniquement ce qu'un Project Admin peut faire.** Une étape ne peut pas faire ce que seuls **Propriétaire du projet** et les autorisations de facturation ou de suppression du projet permettent, et elle ne peut pas lire qui a créé une sonde ou un agent IA, ce que seuls les propriétaires du projet voient.
+- **Pas qui a accès.** Une étape ne crée, ne modifie ni ne supprime d'équipes, de membres d'équipe, d'autorisations d'équipe, de rôles personnalisés ou d'autorisations de clé d'API, même si un Project Admin le peut. Celui qui construit un workflow décide de ce que font ses étapes, et ce peut être un **Membre du projet** : une étape qui le pourrait donnerait donc à celui qui l'a construite un accès qu'on ne lui a pas donné, comme **Administrateur du projet**. L'étape est refusée, et le journal de l'exécution indique qu'une personne qui gère les équipes et les clés d'API du projet doit faire la modification. Les déclencheurs et les étapes Find sur ces enregistrements fonctionnent toujours.
 - **Pas la lecture des paramètres qui contiennent des identifiants.** Un Project Admin peut lire les serveurs SMTP, les fournisseurs d'appels et de SMS, les identifiants SNMP, les connexions d'appel vidéo et les clés d'API, mais ce droit n'est jamais prêté à une étape, quelle que soit la personne qui a construit ou enregistré le workflow. Une étape ne peut désigner aucun de ces paramètres, comme le serveur SMTP par lequel une page de statut envoie ses e-mails ou la clé d'API à laquelle une autorisation est accordée. L'étape est refusée, et son journal d'exécution indique qu'une personne qui peut les lire (l'autorisation de lecture de ce type de paramètre, ou un Project Owner ou un Project Admin) doit faire la modification. Une étape qui garde le paramètre qu'un enregistrement désigne déjà, ou qui le vide, n'est pas refusée.
 - **Uniquement ce que votre forfait inclut.** Sur OneUptime Cloud, une étape qui crée ou modifie quelque chose que votre forfait n'inclut pas est refusée avec le forfait nécessaire, comme dans le tableau de bord. Les installations auto-hébergées sans facturation n'ont pas de limites de forfait.
 - **Rien de ce que OneUptime garde pour lui.** Ceci est refusé à tout le monde, workflows compris :

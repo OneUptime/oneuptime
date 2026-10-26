@@ -60,7 +60,7 @@ Vous construisez tout cela visuellement, sur un canevas. La plupart des workflow
 ## Avant de commencer
 
 - **Un forfait qui inclut les workflows.** Sur OneUptime Cloud, les workflows demandent le forfait **Growth** ou supérieur, et chaque forfait autorise un certain nombre d'exécutions tous les 30 jours — voir [Limites du forfait](/docs/workflows/configuration#limites-du-forfait). Les installations auto-hébergées sans facturation n'ont aucune de ces limites.
-- **L'autorisation de construire.** Créer et modifier des workflows demande **Workflow Admin**, **Project Admin** ou **Project Owner**, ou un rôle personnalisé avec les autorisations correspondantes. Un **Workflow Member** peut ouvrir les workflows et les exécuter à la main, mais pas les modifier. Voir [Autorisations](/docs/workflows/configuration#autorisations).
+- **L'autorisation de construire.** Créer et modifier des workflows demande **Administrateur des flux de travail**, **Administrateur du projet** ou **Propriétaire du projet**, ou un rôle personnalisé avec les autorisations correspondantes. Un **Membre des flux de travail** peut ouvrir les workflows et les exécuter à la main, mais pas les modifier. Voir [Autorisations](/docs/workflows/configuration#autorisations).
 
 ## Où trouver les workflows dans OneUptime
 
@@ -122,7 +122,7 @@ Le nouveau workflow s'ouvre dans le **Constructeur**, désactivé.
 
 ### Ajouter le déclencheur
 
-Cliquez sur le bloc en pointillés **Choisissez ce qui démarre ce flux de travail**, puis cliquez sur **On Create Incident** sous **Popular** dans le panneau **Ajouter un déclencheur**.
+Cliquez sur le bloc en pointillés **Choisissez ce qui démarre ce flux de travail**, puis cliquez sur **On Create Incident** sous **Populaires** dans le panneau **Ajouter un déclencheur**.
 
 Le déclencheur prend la place du bloc en pointillés. L'ID qui y figure, `incident-on-create-1`, est le nom par lequel les blocs suivants s'y réfèrent.
 
@@ -134,7 +134,7 @@ Le déclencheur transmet le nouvel incident avec ces champs. Un champ que vous n
 
 ### Ajouter le bloc API
 
-Cliquez sur **Ajouter un composant**, puis sur **API Post (JSON)** sous **Popular**. Faites glisser depuis le point **Success** du déclencheur jusqu'au point supérieur du nouveau bloc.
+Cliquez sur **Ajouter un composant**, puis sur **API Post (JSON)** sous **Populaires**. Faites glisser depuis le point **Success** du déclencheur jusqu'au point supérieur du nouveau bloc.
 
 ### Remplir la requête
 

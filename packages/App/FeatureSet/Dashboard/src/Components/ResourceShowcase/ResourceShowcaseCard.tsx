@@ -67,6 +67,30 @@ export const RESOURCE_SHOWCASE_EXAMPLE_DESCRIPTION: string = translationKey(
 const CONNECTED_TEXT: string = translationKey("Connected");
 const CHART_RANGE_TEXT: string = translationKey("Last hour");
 
+/*
+ * The showcase lays itself out by its own width, not the window's: a list
+ * sits beside its product's side menu, so a 1280px window leaves it about
+ * 940px, and a 1024px one about 680px. The pitch and the example share a
+ * row from 56rem of showcase (stacked below that, the example no wider than
+ * 36rem); the features run in two columns from 36rem and three from 56rem;
+ * the example's four tiles go four across from 30rem of example, two by two
+ * below that. Exported for the layout tests.
+ */
+export const SHOWCASE_CLASS_NAME: string =
+  "mb-5 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm [container-type:inline-size]";
+
+export const SHOWCASE_HERO_CLASS_NAME: string =
+  "relative grid gap-10 px-5 py-8 sm:px-8 [@container(min-width:56rem)]:grid-cols-2 [@container(min-width:56rem)]:items-center [@container(min-width:56rem)]:py-10";
+
+export const SHOWCASE_PREVIEW_CLASS_NAME: string =
+  "relative min-w-0 max-w-xl [container-type:inline-size] [@container(min-width:56rem)]:max-w-none";
+
+export const SHOWCASE_STATS_CLASS_NAME: string =
+  "grid grid-cols-2 gap-2 [@container(min-width:30rem)]:grid-cols-4";
+
+export const SHOWCASE_FEATURES_CLASS_NAME: string =
+  "mt-5 grid gap-x-8 gap-y-6 [@container(min-width:36rem)]:grid-cols-2 [@container(min-width:56rem)]:grid-cols-3";
+
 // The chart's box, in SVG units; it is stretched to the panel's width.
 const CHART_WIDTH: number = 320;
 const CHART_HEIGHT: number = 64;
@@ -149,7 +173,7 @@ const ShowcasePreviewPanel: FunctionComponent<{
       role="img"
       aria-label={translate(RESOURCE_SHOWCASE_EXAMPLE_DESCRIPTION)}
       data-testid={RESOURCE_SHOWCASE_PREVIEW_TEST_ID}
-      className="relative min-w-0"
+      className={SHOWCASE_PREVIEW_CLASS_NAME}
     >
       <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl ring-1 ring-black/5">
         <div className="flex items-center gap-1.5 border-b border-gray-100 bg-gray-50 px-4 py-2.5">
@@ -180,17 +204,18 @@ const ShowcasePreviewPanel: FunctionComponent<{
             </span>
           </div>
 
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <div className={SHOWCASE_STATS_CLASS_NAME}>
             {preview.stats.map((stat: ShowcaseStat): ReactElement => {
               return (
                 <div
                   key={stat.label}
-                  className="min-w-0 rounded-lg border border-gray-100 bg-gray-50 px-3 py-2"
+                  className="flex min-w-0 flex-col justify-between gap-0.5 rounded-lg border border-gray-100 bg-gray-50 px-3 py-2"
                 >
-                  <div className="truncate text-[11px] font-medium text-gray-500">
+                  {/* A long word ("Arbeitsspeicher") wraps rather than being cut. */}
+                  <div className="hyphens-auto break-words text-[11px] font-medium leading-snug text-gray-500">
                     {translate(stat.label)}
                   </div>
-                  <div className="mt-0.5 truncate text-base font-semibold tabular-nums text-gray-900">
+                  <div className="truncate text-base font-semibold tabular-nums text-gray-900">
                     {stat.value}
                   </div>
                 </div>
@@ -315,12 +340,12 @@ const ResourceShowcaseCard: FunctionComponent<ComponentProps> = (
 
   return (
     <section
-      className="mb-5 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm"
+      className={SHOWCASE_CLASS_NAME}
       aria-labelledby={titleId}
       data-testid={RESOURCE_SHOWCASE_TEST_ID}
     >
       <div className="relative">
-        {/* A soft glow behind the pitch, and a dotted ground behind the example. */}
+        {/* A soft glow behind the pitch, in the theme's own accent. */}
         <div
           aria-hidden="true"
           className="pointer-events-none absolute inset-0"
@@ -329,21 +354,8 @@ const ResourceShowcaseCard: FunctionComponent<ComponentProps> = (
               "radial-gradient(48rem 20rem at 0% 0%, var(--ou-accent-soft, #eef2ff), transparent 70%)",
           }}
         />
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-y-0 right-0 hidden w-1/2 lg:block"
-          style={{
-            backgroundImage:
-              "radial-gradient(var(--ou-border-default, #e5e7eb) 1px, transparent 1px)",
-            backgroundSize: "18px 18px",
-            maskImage:
-              "radial-gradient(ellipse at center, black 30%, transparent 72%)",
-            WebkitMaskImage:
-              "radial-gradient(ellipse at center, black 30%, transparent 72%)",
-          }}
-        />
 
-        <div className="relative grid gap-10 px-5 py-8 sm:px-8 lg:grid-cols-2 lg:items-center lg:gap-12 lg:py-10">
+        <div className={SHOWCASE_HERO_CLASS_NAME}>
           <div className="min-w-0">
             <div className="inline-flex max-w-full items-center gap-2 rounded-full border border-indigo-100 bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700">
               <Icon icon={showcase.icon} className="h-4 w-4 flex-shrink-0" />
@@ -351,11 +363,11 @@ const ResourceShowcaseCard: FunctionComponent<ComponentProps> = (
             </div>
             <h2
               id={titleId}
-              className="mt-4 text-2xl font-semibold tracking-tight text-gray-900 sm:text-3xl"
+              className="mt-4 text-balance text-2xl font-semibold tracking-tight text-gray-900 sm:text-3xl"
             >
               {translate(showcase.title)}
             </h2>
-            <p className="mt-3 max-w-xl text-base leading-relaxed text-gray-600">
+            <p className="mt-3 max-w-xl text-pretty text-base leading-relaxed text-gray-600">
               {translate(showcase.description)}
             </p>
 
@@ -404,7 +416,7 @@ const ResourceShowcaseCard: FunctionComponent<ComponentProps> = (
         <h3 className="text-sm font-semibold text-gray-900">
           {translate(RESOURCE_SHOWCASE_FEATURES_TITLE)}
         </h3>
-        <ul className="mt-5 grid gap-x-8 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">
+        <ul className={SHOWCASE_FEATURES_CLASS_NAME}>
           {showcase.features.map((feature: ShowcaseFeature): ReactElement => {
             return (
               <li

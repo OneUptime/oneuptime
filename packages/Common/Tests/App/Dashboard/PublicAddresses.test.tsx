@@ -46,6 +46,8 @@ import { getJestSpyOn } from "../../Spy";
  */
 
 let mockCnameRecord: string = "statuspage.oneuptime.com";
+// Whether the installation issues free certificates: yes unless a test says.
+let mockIssuesFreeCertificates: boolean = true;
 
 /*
  * Getters defined on the copy, not in an object literal: the compiled
@@ -64,6 +66,11 @@ jest.mock("../../../UI/Config", () => {
 
   Object.defineProperty(mocked, "StatusPageCNameRecord", cnameRecord);
   Object.defineProperty(mocked, "DashboardCNameRecord", cnameRecord);
+  Object.defineProperty(mocked, "CUSTOM_DOMAIN_FREE_CERTIFICATES", {
+    get: (): boolean => {
+      return mockIssuesFreeCertificates;
+    },
+  });
 
   return mocked;
 });
@@ -141,7 +148,7 @@ import CustomDomainCertificates, {
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
-import { APP_API_URL } from "../../../UI/Config";
+import { APP_API_URL, HTTP_PROTOCOL } from "../../../UI/Config";
 import PermissionGate, {
   ModelAction,
   PermissionGateResult,
@@ -297,6 +304,7 @@ beforeEach(() => {
   };
   hasSnapshot = true;
   mockCnameRecord = "statuspage.oneuptime.com";
+  mockIssuesFreeCertificates = true;
   currentKind = STATUS_PAGE;
 
   getListMock.mockReset();
@@ -894,6 +902,80 @@ describe("the certificates", () => {
     },
   );
 });
+
+/*
+ * An installation without a Let's Encrypt account key issues no free
+ * certificate. Its verified domains read "Not live yet - Issuing a free
+ * certificate" for ever here, while the server already linked them in every
+ * email (getUsableCustomDomain, rule 3).
+ */
+describe.each(KINDS)(
+  "the addresses of $name, on an installation that issues no free certificates",
+  (kindCase: KindCase) => {
+    beforeEach(() => {
+      mockIssuesFreeCertificates = false;
+    });
+
+    afterEach(() => {
+      mockIssuesFreeCertificates = true;
+    });
+
+    test("a verified domain is live: a link to open, with Copy link", async () => {
+      domains = [
+        { id: domainId(1), fullDomain: "status.acme.com", state: "unordered" },
+        { id: domainId(2), fullDomain: "eu.acme.com", state: "failed" },
+        { id: domainId(3), fullDomain: "waiting.acme.com", state: "dns" },
+      ];
+
+      await renderList(kindCase);
+
+      expect(listed()).toEqual([
+        "live eu.acme.com",
+        "live status.acme.com",
+        "not live waiting.acme.com",
+        `live ${oneUptimeText(kindCase)}`,
+      ]);
+
+      const live: HTMLElement = rowFor("status.acme.com");
+
+      expect(
+        within(live).getByTestId(PUBLIC_ADDRESS_TEST_IDS.link),
+      ).toHaveAttribute("href", `${HTTP_PROTOCOL}status.acme.com`);
+      expect(
+        within(live).getByRole("button", {
+          name: "Copy link to status.acme.com",
+        }),
+      ).toBeInTheDocument();
+      expect(
+        within(live).queryByTestId(PUBLIC_ADDRESS_TEST_IDS.notLive),
+      ).toBeNull();
+    });
+
+    test("no certificate is read: none says where a domain is", async () => {
+      domains = [
+        { id: domainId(1), fullDomain: "status.acme.com", state: "issuing" },
+      ];
+
+      await renderList(kindCase);
+
+      expect(apiGetMock).not.toHaveBeenCalled();
+    });
+
+    test("a domain still waiting for DNS keeps its DNS Setup", async () => {
+      domains = [
+        { id: domainId(1), fullDomain: "waiting.acme.com", state: "dns" },
+      ];
+
+      await renderList(kindCase);
+
+      expect(
+        within(rowFor("waiting.acme.com")).getByTestId(
+          PUBLIC_ADDRESS_TEST_IDS.dnsSetup,
+        ),
+      ).toBeInTheDocument();
+    });
+  },
+);
 
 describe("who sees what", () => {
   test("someone who may not read the custom domains is not asked about them: the OneUptime address alone, no offer", async () => {

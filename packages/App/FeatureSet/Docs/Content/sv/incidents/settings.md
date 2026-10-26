@@ -345,7 +345,7 @@ flowchart TB
     resolved -->|"Tid till efteranalys"| postmortem["Efteranalysen publiceras"]
 ```
 
-Larm och schemalagda underhållshändelser har samma funktion, under **Varningar → Inställningar → Mätningar** och **Schemalagt underhåll → Inställningar → Mätningar**. Allt nedan gäller för alla tre, var och en med sina egna ögonblick.
+Larm och schemalagda underhållshändelser har samma funktion, under **Larm → Inställningar → Mätningar** och **Schemalagt underhåll → Inställningar → Mätningar**. Allt nedan gäller för alla tre, var och en med sina egna ögonblick.
 
 ### Färdiga mätningar
 
@@ -512,7 +512,7 @@ Dialogen säger vad som är fel innan du sparar, och API:t avvisar samma prefix.
 
 Project Owners, Project Admins och alla med **Edit Project** kan ändra prefixen. Alla andra ser dem med knappen **Uppdatera** låst.
 
-Larm och schemalagda underhållshändelser har samma sida: **Varningar → Inställningar → Numrering** för numren på larm och larmepisoder (`ALT-` och `AE-` i nya projekt), och **Schemalagt underhåll → Inställningar → Numrering** för numren på händelser (`SM-`). I alla tre fungerar sidans gamla adresser fortfarande och öppnar **Numrering**: **Fler inställningar** (`…/settings/more`) och **Nummerprefix** (`…/settings/number-prefix`).
+Larm och schemalagda underhållshändelser har samma sida: **Larm → Inställningar → Numrering** för numren på larm och larmepisoder (`ALT-` och `AE-` i nya projekt), och **Schemalagt underhåll → Inställningar → Numrering** för numren på händelser (`SM-`). I alla tre fungerar sidans gamla adresser fortfarande och öppnar **Numrering**: **Fler inställningar** (`…/settings/more`) och **Nummerprefix** (`…/settings/number-prefix`).
 
 ## Nästa nummer
 
@@ -538,7 +538,7 @@ Dialogen säger vad som är fel innan du sparar, och bara de nummer du har ändr
 
 Project Owners, Project Admins och alla med **Edit Project** kan ändra nästa nummer, precis som prefixen. Alla andra ser dem med knappen **Uppdatera** låst.
 
-Larm och schemalagda underhållshändelser har samma kort på sina sidor **Numrering**: **Nästa varningsnummer** och **Nästa nummer för varningsepisod**, samt **Nästa nummer för schemalagt underhåll**. [Importera från ett annat verktyg](/docs/moving-to-oneuptime/incident-io) tar med din konfiguration, inte dina tidigare incidenter, och lämnar därför numren som de är: ställ in nästa nummer innan den första incidenten deklareras i OneUptime.
+Larm och schemalagda underhållshändelser har samma kort på sina sidor **Numrering**: **Nästa larmnummer** och **Nästa nummer för larmepisod**, samt **Nästa nummer för schemalagt underhåll**. [Importera från ett annat verktyg](/docs/moving-to-oneuptime/incident-io) tar med din konfiguration, inte dina tidigare incidenter, och lämnar därför numren som de är: ställ in nästa nummer innan den första incidenten deklareras i OneUptime.
 
 ## Reglage för länkade larm
 
@@ -584,7 +584,7 @@ Grupperings-, SLA-, påminnelse- och AI-regler verkar också på den nya inciden
 
 Sidorna **Jourregler**, **Ägarregler**, **Etikettregler** och **Sekretessregler** har flikar — en flik **Incident Rules** och en flik **Episode Rules**, var och en med sin egen tabell. Konfigurera fliken **Incident Rules** om du inte specifikt menar episoder. **Grupperingsregler**, **Runbook-regler**, **AI-regler**, **SLA-regler** och **Reminder Rules** är enkla tabeller.
 
-Ägar-, etikett- och sekretessregler verkar bara på incidenter och episoder som skapas efter att regeln finns. För att tillämpa en av dem på incidenter som redan finns använder du **Run Now** på regelns rad, på dess egen sida eller från tabellens massåtgärder — se [Köra regler på befintliga resurser](/docs/configuration/run-rules-now). Jour-, runbook-, AI-, grupperings-, SLA- och påminnelseregler kan inte köras mot befintliga incidenter.
+Ägar-, etikett- och sekretessregler verkar bara på incidenter och episoder som skapas efter att regeln finns. För att tillämpa en av dem på incidenter som redan finns använder du **Kör nu** på regelns rad, på dess egen sida eller från tabellens massåtgärder — se [Köra regler på befintliga resurser](/docs/configuration/run-rules-now). Jour-, runbook-, AI-, grupperings-, SLA- och påminnelseregler kan inte köras mot befintliga incidenter.
 
 **En ny regel börjar påslagen.** Att skapa en regel frågar inte om den ska vara aktiverad: den börjar aktiverad, precis som en som skapas via API:t eller Terraform, och varje annat reglage på formuläret börjar som API:t skulle lagra det — **Avisera ägare** på en ägarregel är påslaget, till exempel. För att pausa en regel utan att ta bort den stänger du av **Aktiverad** på dess redigeringsformulär; listan visar ett grönt märke **Aktiverad** eller ett rött märke **Inaktiverad** för varje regel. Grupperingsregler är undantaget: deras skapandeformulär visar reglaget **Aktiverad**, redan påslaget.
 
@@ -592,7 +592,7 @@ Sidorna **Jourregler**, **Ägarregler**, **Etikettregler** och **Sekretessregler
 
 ## Etikett- och ägarregler för incidenter
 
-**Incidenter → Regler → Etikettregler** sätter etiketter på nya incidenter som matchar, och **Ägarregler** lägger till användare och team som ägare till dem. **Varningar → Regler** och **Schemalagt underhåll → Regler** har samma två sidor och fungerar på samma sätt. Att skapa en regel tar två steg: **Matcha**, villkoren som en incident måste uppfylla, och sedan **Etiketter** (eller **Ägare**), det som regeln lägger till. Dess **Namn** fylls i utifrån det du väljer tills du skriver ett eget namn, och den valfria **Beskrivning** (och en ägarregels **Avisera ägare**) väntar under **Fler fält**.
+**Incidenter → Regler → Etikettregler** sätter etiketter på nya incidenter som matchar, och **Ägarregler** lägger till användare och team som ägare till dem. **Larm → Regler** och **Schemalagt underhåll → Regler** har samma två sidor och fungerar på samma sätt. Att skapa en regel tar två steg: **Matcha**, villkoren som en incident måste uppfylla, och sedan **Etiketter** (eller **Ägare**), det som regeln lägger till. Dess **Namn** fylls i utifrån det du väljer tills du skriver ett eget namn, och den valfria **Beskrivning** (och en ägarregels **Avisera ägare**) väntar under **Fler fält**.
 
 **En regel kan ärva.** Under **Etiketter att lägga till** (eller **Ägare**) innehåller det hopfällda avsnittet **Ärv etiketter** (eller **Ärv ägare**) sex reglage som också för vidare etiketterna (eller ägarna) från incidentens monitorer, värdar, Kubernetes-kluster, Docker-värdar, Podman-värdar och tjänster. En regel som ärver kan lämna **Etiketter att lägga till** tomt, och får då namn efter det som den ärver från (_Inherit labels from monitors, hosts_); en ny regel som varken nämner eller ärver något kan inte sparas — varken från formuläret, API:t eller Terraform. Episodregler, på fliken **Episode Rules**, har inga reglage för att ärva. På en ägarregel för incidenter eller larm slutar **Ärv ägare** med **Skaparens team**: av teamen som står där blir varje team som den som deklarerar incidenten eller skapar larmet är med i också ägare.
 
@@ -600,7 +600,7 @@ Sidorna **Jourregler**, **Ägarregler**, **Etikettregler** och **Sekretessregler
 
 ## Grupperingsregler för incidenter
 
-**Incidenter → Regler → Grupperingsregler** (`/dashboard/{projectId}/incidents/settings/grouping-rules`) samlar relaterade incidenter i en episod. När en databas går ner och 20 monitorer öppnar incidenter inom fem minuter kan en regel lägga alla 20 i en episod som ditt team bekräftar och löser tillsammans. **Varningar → Regler → Grupperingsregler** gör samma sak för larm.
+**Incidenter → Regler → Grupperingsregler** (`/dashboard/{projectId}/incidents/settings/grouping-rules`) samlar relaterade incidenter i en episod. När en databas går ner och 20 monitorer öppnar incidenter inom fem minuter kan en regel lägga alla 20 i en episod som ditt team bekräftar och löser tillsammans. **Larm → Regler → Grupperingsregler** gör samma sak för larm.
 
 **Börja från en mall.** Ett projekt utan grupperingsregler ser fyra färdiga regler i stället för den tomma listan; när det finns regler öppnar **Skapa från mall** på kortet samma fyra. **Lägg till regel** sparar en med ett enda klick — aktiverad, sist i listan och gällande för varje ny incident. Redigera den sedan som vilken annan regel som helst.
 
@@ -662,7 +662,7 @@ För att se vad som hände öppnar du incidenten och väljer **Jourexekveringar*
 
 ## Styr incidenter från arbetsflöden
 
-Utlösare för arbetsflöden för incidenter är inte handskrivna — OneUptime genererar dem från datamodellerna, så varje modell i incidentfamiljen får komponenterna **On Create X**, **On Update X**, **On Create or Update X** och **On Delete X**, namngivna efter modellens namn i singular. De viktigaste är **On Create Incident**, **On Update Incident**, **On Create or Update Incident** och **On Delete Incident**. Du hittar dem i panelen **Add Trigger** på `/dashboard/{projectId}/workflows`, under **OneUptime resources** → **Incident**; de två första finns också under **Popular**.
+Utlösare för arbetsflöden för incidenter är inte handskrivna — OneUptime genererar dem från datamodellerna, så varje modell i incidentfamiljen får komponenterna **On Create X**, **On Update X**, **On Create or Update X** och **On Delete X**, namngivna efter modellens namn i singular. De viktigaste är **On Create Incident**, **On Update Incident**, **On Create or Update Incident** och **On Delete Incident**. Du hittar dem i panelen **Add Trigger** på `/dashboard/{projectId}/workflows`, under **OneUptime-resurser** → **Incident**; de två första finns också under **Populära**.
 
 Samma generering ger dig utlösare för själva konfigurationen: **On Create Incident State**, **On Update Incident Severity**, **On Create Incident Template**, **On Create Incident Note Template**, **On Create Incident State Timeline**, **On Create Incident Public Note**, **On Create Incident Internal Note**, **On Create Incident On-Call Rule**, **On Create Incident Role**, **On Create Incident Member** och fler. Varje modell får också matchande åtgärdskomponenter — **Find One Incident**, **Create One Incident**, **Update One Incident**, **Delete One Incident** och deras motsvarigheter för många rader — så en utlösare och en åtgärd med liknande namn står sida vid sida i samma kategori. **On Create Incident** startar ett arbetsflöde; **Create One Incident** öppnar en incident.
 

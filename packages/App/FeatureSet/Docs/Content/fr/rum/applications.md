@@ -91,11 +91,11 @@ Une règle ajoute des étiquettes ou des propriétaires à chaque nouvelle appli
 1. Dans **Correspondance**, **Toutes les applications RUM**, où démarre une nouvelle règle, sélectionne toutes les applications. Pour la restreindre, choisissez **Uniquement les applications RUM qui correspondent aux conditions** et ajoutez des conditions sur **Étiquettes de l'application** (a l'une, toutes ou aucune des étiquettes choisies), **Nom de l'application** ou **Description de l'application** (est égal à, contient, commence par, se termine par, ou correspond à un motif).
 2. Dans **Étiquettes**, ou **Propriétaires** pour une règle de propriétaires, choisissez ce que la règle ajoute. Une nouvelle règle doit ajouter au moins une étiquette ou un propriétaire. Le **Nom** est rempli à partir de vos choix, comme _Add team:payments_ ou _Add Payments as owners_, jusqu'à ce que vous saisissiez votre propre nom. La **Description**, et **Notifier les propriétaires** pour une règle de propriétaires, attendent sous **Plus de champs**.
 
-Les règles s'exécutent à la création d'une application, applications découvertes comprises. Pour appliquer une règle aux applications que vous avez déjà, ouvrez le menu **⋯** de sa ligne et choisissez **Run Now** : voir [Exécuter des règles sur les ressources existantes](/docs/configuration/run-rules-now). Une règle qu'une modification a laissée sans rien à ajouter est marquée **N'ajoute rien** dans la liste. [Règles d'étiquettes et de propriétaires](/docs/configuration/label-and-owner-rules) couvre les formulaires en entier.
+Les règles s'exécutent à la création d'une application, applications découvertes comprises. Pour appliquer une règle aux applications que vous avez déjà, ouvrez le menu **⋯** de sa ligne et choisissez **Exécuter maintenant** : voir [Exécuter des règles sur les ressources existantes](/docs/configuration/run-rules-now). Une règle qu'une modification a laissée sans rien à ajouter est marquée **N'ajoute rien** dans la liste. [Règles d'étiquettes et de propriétaires](/docs/configuration/label-and-owner-rules) couvre les formulaires en entier.
 
 ### Propriétaires
 
-Les propriétaires sont les personnes et les équipes responsables d'une application. Les règles de propriétaires les ajoutent aux nouvelles applications. Pour les ajouter ou les retirer à la main, sélectionnez des applications dans la liste et choisissez **Ajouter un propriétaire** ou **Remove Owner** sous **Actions groupées** ; l'API les ajoute via `/rum-application-owner-user` et `/rum-application-owner-team`. Avec **Notifier les propriétaires** activé, ce qui est le défaut, chaque propriétaire qu'une règle ajoute en est averti. Désactivez-le avant d'exécuter une règle sur de nombreuses applications si personne ne doit être notifié.
+Les propriétaires sont les personnes et les équipes responsables d'une application. Les règles de propriétaires les ajoutent aux nouvelles applications. Pour les ajouter ou les retirer à la main, sélectionnez des applications dans la liste et choisissez **Ajouter un propriétaire** ou **Retirer un propriétaire** sous **Actions groupées** ; l'API les ajoute via `/rum-application-owner-user` et `/rum-application-owner-team`. Avec **Notifier les propriétaires** activé, ce qui est le défaut, chaque propriétaire qu'une règle ajoute en est averti. Désactivez-le avant d'exécuter une règle sur de nombreuses applications si personne ne doit être notifié.
 
 ## Rétention
 
@@ -119,7 +119,7 @@ Sur un forfait Cloud inférieur, un remplacement laissé par un essai continue d
 
 ### Rétention de la relecture de session
 
-Les enregistrements ont leur propre rétention, réglée dans la page **Replay Policy** de l'application avec **Modifier la politique → Limites** : 7 jours par défaut, ou 1, 14, 30 ou 90 jours. Elle est courte à dessein, car un enregistrement est bien plus sensible, et bien plus volumineux, qu'un span. La carte **Session Replay Retention** de la page **Paramètres** l'affiche (_Session replays are kept for 7 days._), et son bouton **Modifier dans Replay Policy** ouvre la politique.
+Les enregistrements ont leur propre rétention, réglée dans la page **Replay Policy** de l'application avec **Modifier la politique → Limites** : 7 jours par défaut, ou 1, 14, 30 ou 90 jours. Elle est courte à dessein, car un enregistrement est bien plus sensible, et bien plus volumineux, qu'un span. La carte **Conservation de la relecture de session** de la page **Paramètres** l'affiche (_Session replays are kept for 7 days._), et son bouton **Modifier dans Replay Policy** ouvre la politique.
 
 Une rétention de télémétrie plus longue ne conserve pas les enregistrements plus longtemps. Les compteurs, signaux et appareil d'une session expirent avec ses images ; seuls les journaux, spans et exceptions de la session suivent la rétention de la télémétrie. Voir [Rétention et suppression](/docs/telemetry/session-replay#rétention-et-suppression).
 
@@ -147,17 +147,17 @@ Toute personne ayant le rôle Viewer du projet peut voir les applications RUM et
 | `CreateRumApplication`, `EditRumApplication`, `DeleteRumApplication` | Ajouter, modifier et supprimer des applications. |
 | `ReadRumSessionReplay` (_List Session Replays_) | Lister les sessions enregistrées et leurs détails, sans les lire ni savoir qui était l'utilisateur. |
 | `ReadRumSessionReplayPayload` (_Watch Session Replays_) | Lire les enregistrements, et lire la référence et les attributs de l'utilisateur identifié. |
-| `ReadRumSessionReplayAudit` (_Read Session Replay Audit_) | Lire le **Replay Access Log** : qui a regardé quel enregistrement. |
+| `ReadRumSessionReplayAudit` (_Read Session Replay Audit_) | Lire le **Journal d'accès aux relectures** : qui a regardé quel enregistrement. |
 | `DeleteRumSessionReplay` (_Delete Session Replays_) | Supprimer des enregistrements. |
 | `CreateRumSessionErasureRequest`, `ReadRumSessionErasureRequest` | Déposer des demandes d'effacement et les suivre. |
 | `ReadRumApplicationLabelRule`, `ReadRumApplicationOwnerRule` (et leurs Create, Edit et Delete) | Gérer les règles d'étiquettes et les règles de propriétaires. |
 | `ReadRumApplicationOwnerUser`, `ReadRumApplicationOwnerTeam` (et leurs Create, Edit et Delete) | Ajouter et retirer des propriétaires via l'API. |
 
-Une répartition utile : donnez à un ingénieur du support `ReadRumApplication` et `ReadRumSessionReplay`. Il peut voir quelles sessions ont rencontré des erreurs sans regarder l'écran de quiconque ni savoir qui était l'utilisateur. Ne donnez `ReadRumSessionReplayPayload` qu'aux personnes qui en ont besoin ; les membres qui ont `ReadRumSessionReplayAudit` voient alors chaque lecture dans la page **Replay Access Log** de l'application. [Qui peut regarder un enregistrement](/docs/telemetry/session-replay#qui-peut-regarder-un-enregistrement) montre ce que chaque autorisation ouvre dans la liste des sessions et le lecteur.
+Une répartition utile : donnez à un ingénieur du support `ReadRumApplication` et `ReadRumSessionReplay`. Il peut voir quelles sessions ont rencontré des erreurs sans regarder l'écran de quiconque ni savoir qui était l'utilisateur. Ne donnez `ReadRumSessionReplayPayload` qu'aux personnes qui en ont besoin ; les membres qui ont `ReadRumSessionReplayAudit` voient alors chaque lecture dans la page **Journal d'accès aux relectures** de l'application. [Qui peut regarder un enregistrement](/docs/telemetry/session-replay#qui-peut-regarder-un-enregistrement) montre ce que chaque autorisation ouvre dans la liste des sessions et le lecteur.
 
 ## Alertes sur les données RUM
 
-La télémétrie RUM se compose de journaux, de métriques et de traces ordinaires : il n'y a donc pas de moniteur RUM à part, les moniteurs habituels fonctionnent dessus. Le plus rapide est de commencer par la page **Recommendations** de l'application, qui propose des moniteurs déjà limités à l'application :
+La télémétrie RUM se compose de journaux, de métriques et de traces ordinaires : il n'y a donc pas de moniteur RUM à part, les moniteurs habituels fonctionnent dessus. Le plus rapide est de commencer par la page **Recommandations** de l'application, qui propose des moniteurs déjà limités à l'application :
 
 | Groupe | Recommandations |
 | --- | --- |

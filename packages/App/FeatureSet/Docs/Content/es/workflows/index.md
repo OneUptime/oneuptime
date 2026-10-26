@@ -60,7 +60,7 @@ Todo esto lo construyes visualmente en un lienzo. La mayoría de los flujos de t
 ## Antes de empezar
 
 - **Un plan que incluya flujos de trabajo.** En OneUptime Cloud, los flujos de trabajo necesitan el plan **Growth** o superior, y cada plan permite un número de ejecuciones cada 30 días — consulta [Límites del plan](/docs/workflows/configuration#límites-del-plan). Las instalaciones autoalojadas sin facturación no tienen ninguno de estos límites.
-- **Permiso para construir.** Crear y cambiar flujos de trabajo requiere **Workflow Admin**, **Project Admin** o **Project Owner**, o un rol personalizado con los permisos correspondientes. Un **Workflow Member** puede abrir flujos de trabajo y ejecutarlos a mano, pero no cambiarlos. Consulta [Permisos](/docs/workflows/configuration#permisos).
+- **Permiso para construir.** Crear y cambiar flujos de trabajo requiere **Administrador de flujos de trabajo**, **Administrador del proyecto** o **Propietario del proyecto**, o un rol personalizado con los permisos correspondientes. Un **Miembro de flujos de trabajo** puede abrir flujos de trabajo y ejecutarlos a mano, pero no cambiarlos. Consulta [Permisos](/docs/workflows/configuration#permisos).
 
 ## Dónde encontrar los flujos de trabajo en OneUptime
 

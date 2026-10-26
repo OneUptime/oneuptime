@@ -187,7 +187,7 @@ amtool alert add test_alert severity=warning \
 
 ### 新增 Webhook 觸發器
 
-點選虛線的 **Choose what starts this workflow** 區塊並選擇 **Webhook**。點選該觸發器，然後點選 **複製 URL**，把該 URL 用在 `alertmanager.yml` 的接收器中。
+點選虛線的 **選擇啟動此工作流程的方式** 區塊並選擇 **Webhook**。點選該觸發器，然後點選 **複製 URL**，把該 URL 用在 `alertmanager.yml` 的接收器中。
 
 ### 檢查通知是否為觸發狀態
 

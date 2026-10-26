@@ -97,7 +97,7 @@ Fanen **Custom Metric** tilbyr disse metrikkene, gruppert etter ressurstype:
 
 ### Hva som evalueres
 
-Disse monitorene evaluerer alltid **Metric Value** – verdien av den konfigurerte metrikkspørringen eller formelen. Kriterieskjemaet har ingen velger for filtertype; det viser **Metrikk**, **Aggregering**, **Betingelse** og **Threshold**.
+Disse monitorene evaluerer alltid **Metric Value** – verdien av den konfigurerte metrikkspørringen eller formelen. Kriterieskjemaet har ingen velger for filtertype; det viser **Metrikk**, **Aggregering**, **Betingelse** og **Terskel**.
 
 ### Aggregeringstyper
 
@@ -112,7 +112,7 @@ Disse monitorene evaluerer alltid **Metric Value** – verdien av den konfigurer
 
 ### Betingelser
 
-Statiske terskler sammenlignes med **Threshold** du angir: **Større enn**, **Mindre enn**, **Større enn eller lik**, **Mindre enn eller lik** og **Lik**.
+Statiske terskler sammenlignes med **Terskel** du angir: **Større enn**, **Mindre enn**, **Større enn eller lik**, **Mindre enn eller lik** og **Lik**.
 
 Avviksdeteksjon mot en grunnlinje trenger ingen terskel. Velg en av disse betingelsene, så viser skjemaet i stedet **Følsomhet** og **Grunnlinjevindu**:
 
@@ -124,7 +124,7 @@ Avviksdeteksjon mot en grunnlinje trenger ingen terskel. Velg en av disse beting
 
 Hver måling sammenlignes med en grunnlinje for samme time i uken, bygget fra **Grunnlinjevindu** (14 dager som standard; 28, 60 eller 90 dager). **Følsomhet** angir hvor bredt det forventede området er: **Lav (4σ — kun grove avvik)**, **Middels (3σ — anbefalt)**, som er standard, eller **Høy (2σ — mer støy, svært stabile tjenester)**. Avviksbetingelser blir værende i en «Learning»-tilstand og gir ingen varsler før det finnes minst det valgte grunnlinjevinduet med metrikkhistorikk.
 
-**Hvis ingen data**, under **Flere felt**, avgjør hva som skjer når spørringen ikke returnerer noe i vinduet: **Ignore** (standard) samsvarer ikke, **Trigger** behandler stillheten som problemet, og **Treat As Zero** sammenligner en null. Tid der OneUptime selv ikke mottok data, er aldri manglende data: en kontroll der vinduet inneholder slik tid, venter i stedet, slik [Når OneUptime ikke mottar data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
+**Hvis ingen data**, under **Flere felt**, avgjør hva som skjer når spørringen ikke returnerer noe i vinduet: **Ignore** (standard) samsvarer ikke, **Utløser** behandler stillheten som problemet, og **Treat As Zero** sammenligner en null. Tid der OneUptime selv ikke mottok data, er aldri manglende data: en kontroll der vinduet inneholder slik tid, venter i stedet, slik [Når OneUptime ikke mottar data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
 
 ## Ferdige varslingsmaler
 

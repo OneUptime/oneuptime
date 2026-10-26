@@ -34,8 +34,8 @@ Begge registrerer et problem, og begge kan tilkalde den, der har vagt. Forskelle
 | **Hvad det er**              | Et problem, dit team skal undersøge, før brugerne rammes | Et problem, der rammer dine brugere, som et udfald |
 | **På statussider**           | Aldrig                                                 | Kan vises og giver abonnenter besked              |
 | **Noter**                    | Private noter, kun for dit team                        | Offentlige noter til kunder og private noter      |
-| **Starttilstande**           | **Identified**, **Bekræftet**, **Løst**                | **Identified**, **Bekræftet**, **Løst**           |
-| **Startalvorsgrader**        | **High**, **Low**                                      | Critical Incident, Major Incident, Minor Incident |
+| **Starttilstande**           | **Identificeret**, **Bekræftet**, **Løst**                | **Identificeret**, **Bekræftet**, **Løst**           |
+| **Startalvorsgrader**        | **Høj**, **Lav**                                      | Critical Incident, Major Incident, Minor Incident |
 | **Numre i et nyt projekt**   | `ALT-42` og `AE-42` for episoder                       | `INC-42` og `IE-42` for episoder                  |
 
 Udløs en advarsel, når dit team bør kigge, før nogen udenfor opdager noget, og erklær en hændelse, når brugerne rammes. Viser det sig, at en advarsel er en del af et udfald, så erklær en hændelse fra den, eller knyt den til den hændelse, der forklarer den: se [Tilknyttede advarsler](/docs/incidents/linked-alerts).
@@ -64,9 +64,9 @@ Udløs en advarsel, når dit team bør kigge, før nogen udenfor opdager noget, 
 
 **Advarsler** og **Episoder** er åbne; **AI**, **Arbejdsområde**, **Regler**, **Indstillinger** og **Udvikler** er foldet sammen fra start, og en sektion åbner af sig selv, når du er på en af dens sider. Konfigurationen af advarsler ligger her, ikke i **Projektindstillinger**.
 
-Listen viser **Advarselsnummer**, **Titel**, **Tilstand**, **Alvorlighed**, **Berørte ressourcer** (advarslens monitor først), **Oprettet**, **Varighed**, **Etiketter** og **Ejere**. Vælg advarsler for at handle på flere på én gang: **Bekræft**, **Løs**, **Skift tilstand**, **Skift alvorlighed**, **Tildel til mig**, **Add Owner**, **Remove Owner**, **Add Labels**, **Remove Labels**, **Tilknyt til hændelse**, **Erklær hændelse** eller slet dem.
+Listen viser **Advarselsnummer**, **Titel**, **Tilstand**, **Alvorlighed**, **Berørte ressourcer** (advarslens monitor først), **Oprettet**, **Varighed**, **Etiketter** og **Ejere**. Vælg advarsler for at handle på flere på én gang: **Bekræft**, **Løs**, **Skift tilstand**, **Skift alvorlighed**, **Tildel til mig**, **Tilføj ejer**, **Fjern ejer**, **Tilføj etiketter**, **Fjern etiketter**, **Tilknyt til hændelse**, **Erklær hændelse** eller slet dem.
 
-Menuen **⋯** for enden af hver advarsels række gør det samme for netop den advarsel: **Bekræft** og **Løs**, så længe advarslen kan tage det skridt, **Skift tilstand**, **Skift alvorlighed**, **Tildel til mig**, indtil du ejer den, og **Add Owner** for at give den videre til en anden.
+Menuen **⋯** for enden af hver advarsels række gør det samme for netop den advarsel: **Bekræft** og **Løs**, så længe advarslen kan tage det skridt, **Skift tilstand**, **Skift alvorlighed**, **Tildel til mig**, indtil du ejer den, og **Tilføj ejer** for at give den videre til en anden.
 
 ## Opret en advarsel i hånden
 
@@ -77,7 +77,7 @@ Gå til **Advarsler → Alle advarsler**, og klik på **Opret advarsel**. Formul
 
 ### Beskriv advarslen
 
-Udfyld **Titel**, og vælg en **Advarselsalvor**; begge er påkrævede. Tilføj en **Beskrivelse**, hvis det hjælper. Under **Flere felter**, foldet sammen, kan du vælge en **Indledende tilstand**, tilføje **Etiketter** eller slå **Privat advarsel** til. Der venter også **Ejere**: du bliver alligevel ejer af den advarsel, du opretter, og hvert team, du er medlem af, er et enkelt klik væk under vælgeren.
+Udfyld **Titel**, og vælg en **Advarselsalvor**; begge er påkrævede. Tilføj en **Beskrivelse**, hvis det hjælper. Under **Flere felter**, foldet sammen, kan du vælge en **Indledende tilstand**, tilføje **Etiketter** eller slå **Privat advarsel** til. Der venter også **Ejere**: du bliver alligevel ejer af den advarsel, du opretter, og hvert team, du er medlem af, er et enkelt klik væk under vælgeren. En master-admin, der driver hele installationen, er den eneste undtagelse: vedkommende bliver ikke ejer af det, vedkommende opretter.
 
 ### Vælg, hvad den berører, og hvem der tilkaldes
 
@@ -88,7 +88,7 @@ Klik på **Næste** for at komme til **Ressourcer og vagt**. Vælg den **Overvå
 Klik på **Næste** for at gennemse oversigten og derefter på **Opret advarsel**. Advarslens egen side åbner, og reglerne begynder at køre. I oversigten nævner rækken **Ejere** hver ejerregel, der vil tilføje nogen, og hvem: se [Hvem der ejer den](/docs/incidents/declaring-incidents#hvem-der-ejer-den).
 :::
 
-Lader du **Indledende tilstand** være tom, starter advarslen, hvor enhver ny advarsel gør: i din oprettelsestilstand, **Identified** i et nyt projekt. Vælger du en senere tilstand, registrerer du en advarsel, som nogen allerede håndterer, eller som allerede er overstået; se [Oprettet allerede bekræftet eller løst](#oprettet-allerede-bekræftet-eller-løst).
+Lader du **Indledende tilstand** være tom, starter advarslen, hvor enhver ny advarsel gør: i din oprettelsestilstand, **Identificeret** i et nyt projekt. Vælger du en senere tilstand, registrerer du en advarsel, som nogen allerede håndterer, eller som allerede er overstået; se [Oprettet allerede bekræftet eller løst](#oprettet-allerede-bekræftet-eller-løst).
 
 ## Hvad der sker, når en advarsel oprettes
 

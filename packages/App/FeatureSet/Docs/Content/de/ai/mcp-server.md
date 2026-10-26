@@ -140,7 +140,7 @@ Gehen Sie zu **Projekteinstellungen → Erweitert → API-Schlüssel** und klick
 
 ### Festlegen, was er darf
 
-Wählen Sie unter **Zugriff** **Viewer** für einen Agenten, der nur liest, oder **Project Admin** für einen, der auch anlegt, aktualisiert und löscht (siehe [Berechtigungen von API-Schlüsseln](#berechtigungen-von-api-schlüsseln)).
+Wählen Sie unter **Zugriff** **Betrachter** für einen Agenten, der nur liest, oder **Projektadministrator** für einen, der auch anlegt, aktualisiert und löscht (siehe [Berechtigungen von API-Schlüsseln](#berechtigungen-von-api-schlüsseln)).
 
 ### Den Schlüssel kopieren
 
@@ -422,8 +422,8 @@ Diese funktionieren ohne Zugangsdaten, allein mit den Tools für öffentliche St
 
 | Was der Agent tut | Unter **Zugriff** wählen |
 | --- | --- |
-| Liest nur | **Viewer**, oder fügen Sie auf der Seite des Schlüssels Leseberechtigungen hinzu |
-| Legt auch an, aktualisiert und löscht | **Project Admin**, oder fügen Sie auf der Seite des Schlüssels die Rolle Project Admin hinzu |
+| Liest nur | **Betrachter**, oder fügen Sie auf der Seite des Schlüssels Leseberechtigungen hinzu |
+| Legt auch an, aktualisiert und löscht | **Projektadministrator**, oder fügen Sie auf der Seite des Schlüssels die Rolle Project Admin hinzu |
 
 Geben Sie jedem Schlüssel das Minimum, das er braucht, rotieren Sie Schlüssel regelmäßig, verwenden Sie für jede Umgebung einen eigenen Schlüssel und beobachten Sie in OneUptime, was jeder Schlüssel tut.
 

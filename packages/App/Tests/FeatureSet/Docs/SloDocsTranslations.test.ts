@@ -29,7 +29,7 @@ import {
   tableShape,
   toLatinDigits,
 } from "./DocsTranslationChecks";
-import { PermissionHelper, PermissionProps } from "Common/Types/Permission";
+import { isPermissionTitleKeptInEnglish } from "./DocsRoleNames";
 import { describe, expect, it } from "@jest/globals";
 
 /*
@@ -149,7 +149,6 @@ const PERMISSIONS_THAT_ARE_BUTTONS: Array<string> = [
 // Names the SLO pages draw in English in every language: the Dashboard has no wording for them.
 const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
   [INTRODUCTION]: [
-    "Calendar Month",
     "Budget exceeded",
     "Archive SLO",
     "Window 23% full",
@@ -178,7 +177,6 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
     "Error Budget History",
     "Monitor Metric Retention (Days)",
     "Follow SLO Variable",
-    "Telemetry Attribute",
     "SLO Dashboard",
     "Error Budget & Burn Rate",
     "Lowest Error Budget Remaining",
@@ -373,14 +371,7 @@ function boldLabels(markdown: string): Array<string> {
 }
 
 function isPermissionOrPlan(name: string): boolean {
-  return (
-    name === "Enterprise" ||
-    PermissionHelper.getAllPermissionProps().some(
-      (props: PermissionProps): boolean => {
-        return props.title === name;
-      },
-    )
-  );
+  return name === "Enterprise" || isPermissionTitleKeptInEnglish(name);
 }
 
 // How this language's Dashboard draws a bold label of a page.

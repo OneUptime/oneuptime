@@ -55,11 +55,11 @@ flowchart TB
 
 - **Quick Setup**: [템플릿](#미리-만든-알림-템플릿)을 클릭합니다. 템플릿은 메트릭, 레이블 필터, 집계, 시간 범위, 임계값을 설정하고 아래의 기준을 자신의 기준으로 바꿉니다. **시간 범위** 는 나중에도 바꿀 수 있습니다.
 - **Custom Metric**: **Storage Array Metric** 에서 메트릭 하나를 고른 다음 **집계** 와 **시간 범위** 를 설정합니다. [필터](#모니터-설정)로 볼륨, 호스트, 파드, 구성 요소, 파일 시스템, 버킷 하나로 좁힙니다.
-- **고급**: **메트릭 선택** 에서 쿼리와 수식을 직접 만듭니다. 예를 들어 사용된 용량은 `purefa_array_space_bytes` 를 `space=capacity` 로 필터링한 값에서 같은 메트릭을 `space=empty` 로 필터링한 값을 뺀 것입니다. 객체의 레이블로 **Group by** 하면 각 객체를 따로 판단합니다.
+- **고급**: **메트릭 선택** 에서 쿼리와 수식을 직접 만듭니다. 예를 들어 사용된 용량은 `purefa_array_space_bytes` 를 `space=capacity` 로 필터링한 값에서 같은 메트릭을 `space=empty` 로 필터링한 값을 뺀 것입니다. 객체의 레이블로 **그룹화 기준** 하면 각 객체를 따로 판단합니다.
 
 ### 기준 확인
 
-**모니터 기준** 의 각 기준을 열고 **메트릭**, **집계**, **조건**, **Threshold** 를 확인합니다. 템플릿을 쓰면 이 값들이 채워집니다. **Custom Metric** 이나 **고급** 에서는 모니터가 [기본 기준](#기본-기준)으로 시작하는데, 이 기준은 메트릭이 0으로 떨어지는 것만 알아차리므로 직접 임계값을 설정하세요.
+**모니터 기준** 의 각 기준을 열고 **메트릭**, **집계**, **조건**, **임계값** 을 확인합니다. 템플릿을 쓰면 이 값들이 채워집니다. **Custom Metric** 이나 **고급** 에서는 모니터가 [기본 기준](#기본-기준)으로 시작하는데, 이 기준은 메트릭이 0으로 떨어지는 것만 알아차리므로 직접 임계값을 설정하세요.
 
 ### 모니터 만들기
 
@@ -67,7 +67,7 @@ flowchart TB
 :::
 
 > [!TIP]
-> 템플릿 여러 개를 한 번에 설정하려면 **제품 → 인프라 → Storage Arrays** 에서 어레이를 열고 **Recommendations** 로 이동하세요. 원하는 템플릿을 고르고 호출할 사람을 정하면, OneUptime이 템플릿마다 모니터를 하나씩 만듭니다.
+> 템플릿 여러 개를 한 번에 설정하려면 **제품 → 인프라 → Storage Arrays** 에서 어레이를 열고 **권장 사항** 으로 이동하세요. 원하는 템플릿을 고르고 호출할 사람을 정하면, OneUptime이 템플릿마다 모니터를 하나씩 만듭니다.
 
 ## 모니터 설정
 
@@ -76,14 +76,14 @@ flowchart TB
 | **스토리지 어레이** | 모두 | 필수. 모든 쿼리를 `resource.storage.array.name` 으로 한정하므로, 둘 다 `vol-01` 이라는 볼륨을 가진 두 어레이가 섞이지 않습니다. |
 | **볼륨** | Custom Metric, 고급 | FlashArray만. `name` 레이블로 볼륨 하나(예: `vol-db-01`). 파드나 볼륨 그룹 안의 볼륨은 `pod::volume` 이나 `group/volume` 이라는 이름을 씁니다. |
 | **호스트** | Custom Metric, 고급 | FlashArray만. 어레이가 아는 호스트 하나를 `host` 레이블로(예: `esxi-01`). |
-| **Pod** | Custom Metric, 고급 | FlashArray만. ActiveCluster 또는 ActiveDR 파드 하나를 `name` 레이블로, 복제 링크 시리즈에서는 `local_pod` 로. |
+| **파드** | Custom Metric, 고급 | FlashArray만. ActiveCluster 또는 ActiveDR 파드 하나를 `name` 레이블로, 복제 링크 시리즈에서는 `local_pod` 로. |
 | **Hardware Component** | Custom Metric, 고급 | 하드웨어 구성 요소 하나(예: `CH0.BAY1`, `CT0`). FlashArray에서는 `component_name` 레이블, FlashBlade에서는 `name`. |
-| **File System** | Custom Metric, 고급 | FlashBlade만. `name` 레이블로 파일 시스템 하나. |
-| **Bucket** | Custom Metric, 고급 | FlashBlade만. `name` 레이블로 객체 저장소 버킷 하나. |
+| **파일 시스템** | Custom Metric, 고급 | FlashBlade만. `name` 레이블로 파일 시스템 하나. |
+| **버킷** | Custom Metric, 고급 | FlashBlade만. `name` 레이블로 객체 저장소 버킷 하나. |
 | **Storage Array Metric** | Custom Metric | [카탈로그](#수집되는-메트릭)의 메트릭 하나. 양식은 그 의미를 주는 레이블 필터를 추가하고, 메트릭이 설명하는 객체로 그룹화하므로, 각 볼륨, 호스트, 구성 요소가 따로 판단됩니다. |
 | **집계** | Custom Metric | 샘플을 합치는 방법: **평균**, **최대**, **최소**, **합계**, **개수**. 메트릭의 일반적인 집계로 시작합니다. |
-| **시간 범위** | 모두 | 쿼리가 읽는 이동 기간으로, **Past 1 Minute** 부터 **Past 365 Days** 까지입니다. 새 모니터는 **Past 5 Minutes** 로, 파일 시스템이나 버킷의 사용자 지정 메트릭은 **Past 15 Minutes** 로 시작하며, 템플릿은 자체 값을 설정합니다. |
-| **메트릭 선택** | 고급 | 쿼리 빌더: **메트릭**, **Aggregate by**, **Filter by attributes**, **Group by**, 그리고 쿼리를 합치는 **메트릭 추가** 와 **수식 추가**. |
+| **시간 범위** | 모두 | 쿼리가 읽는 이동 기간으로, **Past 1 Minute** 부터 **Past 365 Days** 까지입니다. 새 모니터는 **지난 5분** 으로, 파일 시스템이나 버킷의 사용자 지정 메트릭은 **지난 15분** 으로 시작하며, 템플릿은 자체 값을 설정합니다. |
+| **메트릭 선택** | 고급 | 쿼리 빌더: **메트릭**, **Aggregate by**, **Filter by attributes**, **그룹화 기준**, 그리고 쿼리를 합치는 **메트릭 추가** 와 **수식 추가**. |
 
 에이전트는 어레이 엔드포인트를 60초마다, 볼륨, 호스트, 파드를 2분마다 읽으므로 5분 기간에는 항상 샘플이 있습니다. FlashBlade의 파일 시스템과 버킷은 5분마다 읽고(그래서 15분), FlashArray 디렉터리는 30분마다 읽습니다. 디렉터리 모니터에는 60분 기간을 주세요.
 
@@ -123,9 +123,9 @@ OneUptime은 템플릿 18개(FlashArray용 11개, FlashBlade용 7개)를 제공�
 | Capacity Above 90% | 용량 | 심각 | `purefa_array_space_utilization`, Max, 최근 5분 | > 90 — 어레이가 쓰기를 거부하기 직전. ≤ 81에서 복구 |
 | High Read Latency | Performance | Warning | `purefa_array_performance_latency_usec` 를 `dimension=usec_per_read_op` 로 필터링, Avg, 최근 10분 | > 5000 µs (5 ms) — FlashArray 읽기는 보통 1 ms보다 훨씬 짧음. ≤ 4500에서 복구 |
 | High Write Latency | Performance | Warning | `purefa_array_performance_latency_usec` 를 `dimension=usec_per_write_op` 로 필터링, Avg, 최근 10분 | > 5000 µs (5 ms). ≤ 4500에서 복구 |
-| Hardware Component Failed | Hardware | 심각 | `purefa_hw_component_status` 를 `component_status=critical` 로 필터링, `component_name` 별 Max, 최근 5분 | > 0 — 컨트롤러, 전원 공급 장치, 팬, 베이, 포트가 심각 상태이고 이중화가 사라짐. 구성 요소마다 인시던트 하나. ok를 보고하면 복구 |
-| Hardware Component Degraded | Hardware | Warning | `purefa_hw_component_status` 를 `component_status=degraded` 로 필터링, `component_name` 별 Max, 최근 5분 | > 0 — 구성 요소의 성능이 저하됨. 구성 요소마다 인시던트 하나. ok를 보고하면 복구 |
-| Drive Failed | Hardware | 심각 | `purefa_drive_capacity_bytes` 를 `component_status=failed` 로 필터링, `component_name` 별 Max, 최근 5분 | > 0 — DirectFlash 모듈이나 SSD가 고장 나서 어레이가 나머지 드라이브로 재구성 중. 드라이브마다 인시던트 하나. 교체되면 복구 |
+| Hardware Component Failed | 하드웨어 | 심각 | `purefa_hw_component_status` 를 `component_status=critical` 로 필터링, `component_name` 별 Max, 최근 5분 | > 0 — 컨트롤러, 전원 공급 장치, 팬, 베이, 포트가 심각 상태이고 이중화가 사라짐. 구성 요소마다 인시던트 하나. ok를 보고하면 복구 |
+| Hardware Component Degraded | 하드웨어 | Warning | `purefa_hw_component_status` 를 `component_status=degraded` 로 필터링, `component_name` 별 Max, 최근 5분 | > 0 — 구성 요소의 성능이 저하됨. 구성 요소마다 인시던트 하나. ok를 보고하면 복구 |
+| Drive Failed | 하드웨어 | 심각 | `purefa_drive_capacity_bytes` 를 `component_status=failed` 로 필터링, `component_name` 별 Max, 최근 5분 | > 0 — DirectFlash 모듈이나 SSD가 고장 나서 어레이가 나머지 드라이브로 재구성 중. 드라이브마다 인시던트 하나. 교체되면 복구 |
 | Host Lost Redundant Paths | 호스트 | Warning | `purefa_host_connectivity_info` 를 `status=critical` 로 필터링, `host` 별 Max, 최근 5분 | > 0 — 호스트가 컨트롤러 하나를 통해서만 어레이에 닿거나 전혀 닿지 않음. 컨트롤러 페일오버가 일어나면 스토리지가 오프라인이 됨. 호스트마다 인시던트 하나. 경로가 돌아오면 복구 |
 | Replication Lag Above 1 Minute | Replication | Warning | `purefa_pod_replica_links_lag_max_msec`, `local_pod` 별 Max, 최근 10분 | > 60000 ms (60 s) — 지금 페일오버하면 계획보다 많은 최근 쓰기를 잃음. 파드마다 인시던트 하나. ≤ 54000에서 복구 |
 
@@ -137,15 +137,15 @@ OneUptime은 템플릿 18개(FlashArray용 11개, FlashBlade용 7개)를 제공�
 | Warning Array Alert | Array Health | Warning | `purefb_alerts_open` 을 `severity=warning` 으로 필터링, `summary` 별 Max, 최근 5분 | > 0 — FlashBlade에 열린 경고 알림이 있음. 알림마다 인시던트 하나. 알림이 닫히면 복구 |
 | Capacity Above 80% | 용량 | Warning | `purefb_array_space_utilization` 을 `type=array` 로 필터링, Max, 최근 15분 | > 80. ≤ 72에서 복구 |
 | Capacity Above 90% | 용량 | 심각 | `purefb_array_space_utilization` 을 `type=array` 로 필터링, Max, 최근 5분 | > 90 — 가득 차면 모든 클라이언트의 쓰기가 실패함. ≤ 81에서 복구 |
-| Hardware Component Unhealthy | Hardware | 심각 | `purefb_hardware_health`, `name` 별 Min, 최근 5분 | < 1 — 블레이드, 패브릭 모듈, 전원 공급 장치, 팬이 정상이 아님(사용하지 않는 슬롯은 2를 보고함). 구성 요소마다 인시던트 하나. ≥ 1에서 복구 |
+| Hardware Component Unhealthy | 하드웨어 | 심각 | `purefb_hardware_health`, `name` 별 Min, 최근 5분 | < 1 — 블레이드, 패브릭 모듈, 전원 공급 장치, 팬이 정상이 아님(사용하지 않는 슬롯은 2를 보고함). 구성 요소마다 인시던트 하나. ≥ 1에서 복구 |
 | High Read Latency | Performance | Warning | `purefb_array_performance_latency_usec` 를 `dimension=usec_per_read_op` 및 `protocol=all` 로 필터링, Avg, 최근 10분 | > 10000 µs (10 ms), 모든 프로토콜 기준. ≤ 9000에서 복구 |
-| File System Near Full | File Systems | Warning | `purefb_file_systems_space_bytes` 를 `space=available_ratio` 로 필터링, `name` 별 Min, 최근 15분 | < 0.1 — 파일 시스템의 프로비저닝된 크기 중 10%도 남지 않음. 파일 시스템마다 인시던트 하나. ≥ 0.11에서 복구 |
+| File System Near Full | 파일 시스템 | Warning | `purefb_file_systems_space_bytes` 를 `space=available_ratio` 로 필터링, `name` 별 Min, 최근 15분 | < 0.1 — 파일 시스템의 프로비저닝된 크기 중 10%도 남지 않음. 파일 시스템마다 인시던트 하나. ≥ 0.11에서 복구 |
 
 **심각도** 는 선택기가 보여 주는 레이블입니다. 템플릿이 만드는 인시던트와 알림은 프로젝트에서 가장 심각한 인시던트 및 알림 심각도로 시작하며, 기준에서 바꿀 수 있습니다.
 
 - **열린 알림과 하드웨어 상태는 Max를 씁니다**. 알림이 열려 있거나 구성 요소가 그 상태에 있는 동안에만 존재하는 시리즈이므로, 이를 보여 주는 수집 한 번으로 임계값을 넘습니다.
 - **객체별 템플릿은 모두 객체 자체의 레이블로 그룹화합니다**(`summary`, `component_name`, `host`, `local_pod`, `name`). 그래서 영향받은 객체마다 인시던트가 하나씩 발생하고, 인시던트에 그 객체의 이름이 들어갑니다.
-- **지연 시간 템플릿은 Avg를 씁니다**. 어레이 자체의 작업당 평균에 대한 Avg이며, 용량 템플릿은 어레이 자체의 사용률에 대한 **Max** 를 씁니다. 지연 시간은 마이크로초, 용량은 퍼센트로 고정되어 있습니다.
+- **지연 시간 템플릿은 Avg를 씁니다**. 어레이 자체의 작업당 평균에 대한 Avg이며, 용량 템플릿은 어레이 자체의 사용률에 대한 **최대** 를 씁니다. 지연 시간은 마이크로초, 용량은 퍼센트로 고정되어 있습니다.
 - **Hardware Component Unhealthy는 구성 요소별 Min을 씁니다**. 상태는 정상일 때 1이고, 아닐 때 0으로 떨어집니다.
 
 볼륨별 지연 시간 템플릿은 없습니다. 알맞은 임계값이 워크로드에 따라 다르기 때문입니다. 카탈로그에서 `name` 으로 그룹화해 직접 만드세요. 용량 예측에는 임계값보다 증가 추세가 필요하고, 드라이브 마모에는 알림을 걸 시리즈가 없습니다.
@@ -264,7 +264,7 @@ OneUptime은 템플릿 18개(FlashArray용 11개, FlashBlade용 7개)를 제공�
 | **메트릭** | 확인할 쿼리나 수식(변수 이름으로). |
 | **집계** | 기간 안의 값을 답 하나로 만드는 방법: **평균**, **합계**, **Maximum Value**, **Minimum Value**, **All Values**(기간 전체에서 모든 값이 일치해야 함), **Any Value**(하나면 충분). |
 | **조건** | **보다 큼**, **보다 작음**, **이상**, **이하**, **같음**, 또는 이상 조건: **Anomalously High**, **Anomalously Low**, **Anomalous**. |
-| **Threshold** | 비교할 값. 메트릭에 단위가 있으면 옆에 단위 목록이 있습니다. 이상 조건에서는 표시되지 않습니다. |
+| **임계값** | 비교할 값. 메트릭에 단위가 있으면 옆에 단위 목록이 있습니다. 이상 조건에서는 표시되지 않습니다. |
 | **민감도** | 이상 조건만. **낮음**(4σ), **중간**(3σ, 기본값), **높음**(2σ). |
 | **기준선 기간** | 이상 조건만. 14일(기본값), 28일, 60일, 90일의 기록. |
 | **데이터가 없는 경우** | **추가 필드** 아래에 있습니다. 기간에 샘플이 없을 때의 동작: **Ignore**(기본값), **Treat As Zero**, **트리거**. |

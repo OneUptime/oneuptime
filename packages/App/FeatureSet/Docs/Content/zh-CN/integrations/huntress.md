@@ -40,7 +40,7 @@ sequenceDiagram
 
 ## 开始之前
 
-- 在 OneUptime 中具有能创建和编辑工作流的角色，例如 **Project Owner**、**Project Admin** 或 **Workflow Admin**。
+- 在 OneUptime 中具有能创建和编辑工作流的角色，例如 **项目所有者**、**项目管理员** 或 **工作流管理员**。
 - 在 Huntress 中具有 **Account Admin** 角色：只有账户管理员可以添加 Webhook。
 - 一个要呼叫的值班策略。
 - 在 OneUptime Cloud 上，需要包含工作流的套餐：Growth 或更高。Huntress 发送的每个事件是一次工作流运行。

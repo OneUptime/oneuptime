@@ -54,7 +54,7 @@ Vai su **Flussi di lavoro**, fai clic su **Crea flusso di lavoro**, poi su **Par
 
 ### Aggiungere il trigger
 
-Fai clic sul blocco tratteggiato **Choose what starts this workflow** e scegli **On Create Incident**. Fai clic sul trigger: i suoi **Fields to pass on** iniziano con **Titolo**, quindi fai clic su **Aggiungi campo** e scegli **Descrizione**.
+Fai clic sul blocco tratteggiato **Scegli cosa avvia questo flusso di lavoro** e scegli **On Create Incident**. Fai clic sul trigger: i suoi **Fields to pass on** iniziano con **Titolo**, quindi fai clic su **Aggiungi campo** e scegli **Descrizione**.
 
 ### Creare il record
 

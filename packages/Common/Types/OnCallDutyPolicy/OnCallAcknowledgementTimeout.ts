@@ -302,9 +302,10 @@ export function getOnCallPageAgainChatReason(pageAgainNumber: number): string {
  * acknowledged the incident half an hour ago that "a new incident has been
  * created". It says what it is instead: the incident (alert, episode) is
  * still not resolved, so long after it was acknowledged. The text message
- * is left as it is - it names the record and asks to acknowledge or
- * escalate it, never calls it new, and has one 160-character part to fit
- * in - and so is WhatsApp's, whose words are a template Meta approved.
+ * says it is still not resolved too, after the project, in the one
+ * 160-character part it fits in (Utils/Sms/OnCallPageSms). WhatsApp's is
+ * left as it is: its words are a template Meta approved, and a page again's
+ * own wording would need a new template approved first.
  */
 export interface OnCallPageAgainNotice {
   // Which page again, from 1.

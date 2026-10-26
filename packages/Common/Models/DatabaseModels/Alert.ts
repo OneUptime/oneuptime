@@ -2020,7 +2020,14 @@ export default class Alert extends BaseModel {
       Permission.AlertViewer,
       Permission.ReadAlert,
     ],
-    update: [],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.EditAlert,
+    ],
   })
   @TableColumn({
     type: TableColumnType.Markdown,

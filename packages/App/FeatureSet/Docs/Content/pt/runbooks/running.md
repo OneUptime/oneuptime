@@ -41,7 +41,7 @@ Uma execução de runbook é criada de cinco maneiras:
 
 1. **Automaticamente por uma regra**: uma [regra de runbook](/docs/runbooks/rules) a inicia quando é criado um incidente, alerta ou evento de manutenção programada que corresponde. Uma regra de IA também pode iniciar uma; consulte [AI SRE](/docs/ai/ai-sre).
 2. **Manualmente a partir de um evento**: clique em **Executar Runbook** em um incidente, alerta ou evento de manutenção programada. A execução fica ligada a esse evento.
-3. **Manualmente a partir da página do runbook**: clique em **Run Now** na página **Visão geral** de um runbook. A execução não fica ligada a nenhum incidente, alerta ou evento de manutenção programada.
+3. **Manualmente a partir da página do runbook**: clique em **Executar agora** na página **Visão geral** de um runbook. A execução não fica ligada a nenhum incidente, alerta ou evento de manutenção programada.
 4. **Por agendamento**: o agendamento do runbook a inicia em horários definidos. Veja [Executar por agendamento](/docs/runbooks/triggers#executar-por-agendamento).
 5. **A partir de outra ferramenta**: um `POST` para a URL do webhook do runbook a inicia, com os valores que a chamada envia. Veja [Chamar o webhook](/docs/runbooks/triggers#chamar-o-webhook).
 
@@ -51,18 +51,18 @@ Para iniciar uma manualmente:
 @tab A partir de um evento
 1. Abra o incidente, alerta ou evento de manutenção programada e vá para a página **Runbooks** dele.
 2. Clique em **Executar Runbook**. A caixa de diálogo **Executar um Runbook** lista os runbooks do projeto que estão ligados.
-3. Clique em **Executar** ao lado do runbook. A execução aparece na lista do evento: clique em **Visualizar** para abri-la.
+3. Clique em **Executar** ao lado do runbook. A execução aparece na lista do evento: clique em **Ver** para abri-la.
 @tab A partir do runbook
 1. Abra o runbook em **Runbooks**.
-2. Na **Visão geral** dele, clique em **Run Now**.
+2. Na **Visão geral** dele, clique em **Executar agora**.
 3. A página da execução se abre.
 :::
 
-Iniciar uma execução exige Project Owner, Project Admin, Project Member, Runbook Admin ou Runbook Member, ou a permissão **Create Runbook Execution**. Runbook Viewer e Viewer veem **Run Now** bloqueado, com o motivo. Consulte [Permissões](/docs/runbooks/configuration#permissões).
+Iniciar uma execução exige Project Owner, Project Admin, Project Member, Runbook Admin ou Runbook Member, ou a permissão **Create Runbook Execution**. Runbook Viewer e Viewer veem **Executar agora** bloqueado, com o motivo. Consulte [Permissões](/docs/runbooks/configuration#permissões).
 
 ## A visão da execução
 
-Abra qualquer execução para ver sua checklist. O topo da página mostra o **Status** da execução, seu **Progress** (etapas feitas do total), **Iniciada** (quando começou) e **Acionado por** (o que a iniciou). Cada etapa mostra:
+Abra qualquer execução para ver sua checklist. O topo da página mostra o **Status** da execução, seu **Progresso** (etapas feitas do total), **Iniciada** (quando começou) e **Acionado por** (o que a iniciou). Cada etapa mostra:
 
 - **Indicador de status** — Pendente, Em execução, Aguardando você, Aguardando aprovação, Concluído, Ignorado, Falhou ou Cancelado.
 - **Título e descrição** — copiados do runbook no momento da execução.
@@ -113,7 +113,7 @@ A saída de cada etapa é limitada a **50 KB**, para que um script descontrolado
 
 ## Executar um runbook de novo
 
-Uma execução é um registro único e imutável. Para executar o runbook de novo, clique em **Executar novamente** em uma execução terminada, ou em **Run Now** no runbook. Os dois criam uma nova execução com as etapas atuais do runbook, sem ligá-la a nenhum evento. Para executá-lo de novo em um incidente, use **Executar Runbook** na página **Runbooks** do incidente. A execução original fica intacta para a trilha de auditoria.
+Uma execução é um registro único e imutável. Para executar o runbook de novo, clique em **Executar novamente** em uma execução terminada, ou em **Executar agora** no runbook. Os dois criam uma nova execução com as etapas atuais do runbook, sem ligá-la a nenhum evento. Para executá-lo de novo em um incidente, use **Executar Runbook** na página **Runbooks** do incidente. A execução original fica intacta para a trilha de auditoria.
 
 ## Encontrar execuções anteriores
 
@@ -130,11 +130,11 @@ Sua função lê runbooks, mas não os executa: o botão diz "Você não tem per
 :::
 
 :::details Iniciar uma execução falha com "Runbook is disabled" ou "Runbook has no steps to run"
-O interruptor **Executar este runbook** do runbook está desligado, na página **Configurações** dele, ou ele não tem etapas salvas. Ligue o interruptor, ou adicione etapas e clique em **Save Steps**. A **Visão geral** dele diz qual, com **Ligar o runbook** ou **Adicionar etapas**.
+O interruptor **Executar este runbook** do runbook está desligado, na página **Configurações** dele, ou ele não tem etapas salvas. Ligue o interruptor, ou adicione etapas e clique em **Salvar etapas**. A **Visão geral** dele diz qual, com **Ligar o runbook** ou **Adicionar etapas**.
 :::
 
 :::details Uma etapa falhou porque falta um Runner
-A mensagem diz, por exemplo, "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or make one the project's default Runner under Runbooks → Runners." A etapa foi salva sem **Runner**, e o projeto não tem um [Runner padrão](/docs/runbooks/agents#o-runner-padrão-do-projeto). Uma etapa JavaScript só precisa de um Runner próprio quando nenhum [Runner global](/docs/runbooks/agents#runners-globais) consegue executá-la. Abra as **Etapas** do runbook, escolha o Runner da etapa em **Mais campos**, clique em **Save Steps** e execute o runbook de novo.
+A mensagem diz, por exemplo, "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or make one the project's default Runner under Runbooks → Runners." A etapa foi salva sem **Runner**, e o projeto não tem um [Runner padrão](/docs/runbooks/agents#o-runner-padrão-do-projeto). Uma etapa JavaScript só precisa de um Runner próprio quando nenhum [Runner global](/docs/runbooks/agents#runners-globais) consegue executá-la. Abra as **Etapas** do runbook, escolha o Runner da etapa em **Mais campos**, clique em **Salvar etapas** e execute o runbook de novo.
 :::
 
 :::details Uma etapa falhou porque nomeia variáveis que não pode usar

@@ -34,10 +34,11 @@ const SyntheticMonitorItemView: FunctionComponent<ComponentProps> = (
 
   return (
     <div>
-      <div className="mb-3">
+      {/* Which run: a heading over its facts, as the summary's lists have. */}
+      <h3 className="mb-3 text-sm font-medium text-gray-700">
         {props.syntheticMonitorResponse.browserType} -{" "}
         {props.syntheticMonitorResponse.screenSizeType}
-      </div>
+      </h3>
       <CustomCodeMonitorSummaryView
         customCodeMonitorResponse={syntheticMonitorResponse}
         monitoredAt={props.monitoredAt}

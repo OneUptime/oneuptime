@@ -27,8 +27,8 @@ Um destinatário é qualquer pessoa que uma política de plantão pode acionar: 
 | Status | O que significa |
 | --- | --- |
 | **Pronto** | A pessoa tem um método verificado em um canal que o projeto ligou, e uma regra para cada gravidade, em cada aba das suas regras de plantão. |
-| **Needs setup** | A pessoa pode ser contatada, mas algumas gravidades não têm regra. A linha conta essas lacunas. |
-| **Unreachable** | Nada chega à pessoa: nenhum método verificado, cada método verificado está em um canal que o projeto desligou, ou ela não é membro do projeto. |
+| **Precisa de configuração** | A pessoa pode ser contatada, mas algumas gravidades não têm regra. A linha conta essas lacunas. |
+| **Inacessível** | Nada chega à pessoa: nenhum método verificado, cada método verificado está em um canal que o projeto desligou, ou ela não é membro do projeto. |
 
 Uma lacuna é uma gravidade sem regra, na aba de incidentes, episódios de incidentes, alertas ou episódios de alertas. Uma regra que desliga uma gravidade de propósito não é uma lacuna. Um acionamento que encontra uma lacuna ainda chega à pessoa pelos métodos verificados dela, a menos que o projeto tenha desligado essa alternativa: veja [Quando nenhuma regra corresponde](/docs/notifications/index#quando-nenhuma-regra-corresponde).
 
@@ -36,18 +36,18 @@ Uma lacuna é uma gravidade sem regra, na aba de incidentes, episódios de incid
 
 Abra **Plantão → Prontidão**. O cartão **On-call readiness** lista cada pessoa que uma política de plantão do projeto pode alcançar, primeiro as que precisam de algo. Qualquer pessoa do projeto pode abri-lo.
 
-Acima da lista, os blocos contam **Responders**, **Pronto**, **Needs setup** e **Unreachable**. Clique em **Pronto**, **Needs setup** ou **Unreachable** para listar só esses destinatários, e clique de novo para listar todos.
+Acima da lista, os blocos contam **Destinatários**, **Pronto**, **Precisa de configuração** e **Inacessível**. Clique em **Pronto**, **Precisa de configuração** ou **Inacessível** para listar só esses destinatários, e clique de novo para listar todos.
 
 | Coluna | O que mostra |
 | --- | --- |
-| **Responder** | A pessoa, com o endereço de e-mail dela. |
-| **Status** | **Pronto**, **Unreachable** ou quantas lacunas a pessoa tem. |
+| **Destinatário** | A pessoa, com o endereço de e-mail dela. |
+| **Status** | **Pronto**, **Inacessível** ou quantas lacunas a pessoa tem. |
 | **Equipes** | As equipes que a acionam por meio de uma regra de escalonamento. |
 | **Canais** | Um segmento por canal: cheio para um método verificado, vazado para um ainda não verificado. |
 | **Coverage** | Quantas gravidades têm regra, em cada aba, do total. |
 | **Reached via** | Como as políticas chegam à pessoa: `Direct`, `Team`, `Schedule` ou `Override`. |
 
-**Coverage** em uma linha mostra os métodos de notificação da pessoa, por que ela tem o status dela e uma grade de cada gravidade com ou sem regra. O funil filtra a lista por **Responder**, **Status**, **Equipe** ou **Reached via**. A resposta pode ter um minuto: **Atualizar** a calcula de novo.
+**Coverage** em uma linha mostra os métodos de notificação da pessoa, por que ela tem o status dela e uma grade de cada gravidade com ou sem regra. O funil filtra a lista por **Destinatário**, **Status**, **Equipe** ou **Reached via**. A resposta pode ter um minuto: **Atualizar** a calcula de novo.
 
 ## Lembrar as pessoas de terminar a configuração
 
@@ -55,28 +55,28 @@ Só a própria pessoa pode adicionar e verificar seus métodos de notificação 
 
 :::steps
 1. Na página Prontidão, marque os destinatários que quer lembrar. Destinatários prontos não podem ser marcados: não há nada para lembrá-los.
-2. Clique em **Send setup reminder**. A confirmação nomeia cada pessoa que vai receber o e-mail.
+2. Clique em **Enviar lembrete de configuração**. A confirmação nomeia cada pessoa que vai receber o e-mail.
 3. Confirme. Cada pessoa recebe um e-mail que diz o que falta na própria configuração, com um link para a página que resolve isso.
 :::
 
-Depois, um aviso diz quantos lembretes foram enviados, ignorados ou falharam, e por quê para cada um que não foi enviado. Ninguém recebe mais de um lembrete a cada 24 horas, e um envio lembra no máximo 250 pessoas. Enviar lembretes exige **Project Owner**, **Project Admin** ou **On-Call Admin**, ou **Edit On-Call Duty Policy** em uma função personalizada.
+Depois, um aviso diz quantos lembretes foram enviados, ignorados ou falharam, e por quê para cada um que não foi enviado. Ninguém recebe mais de um lembrete a cada 24 horas, e um envio lembra no máximo 250 pessoas. Enviar lembretes exige **Proprietário do projeto**, **Administrador do projeto** ou **Administrador de plantão**, ou **Edit On-Call Duty Policy** em uma função personalizada.
 
 ## A prontidão em outras páginas
 
-- Na **Visão geral** de uma política, **Responder readiness** lista cada pessoa que essa política pode acionar e que precisa de atenção, e **Recheck** lê tudo de novo. A sua própria linha tem um botão para a página que resolve o problema; a de outra pessoa abre um e-mail para ela no seu próprio programa de e-mail, com a solução nele.
+- Na **Visão geral** de uma política, **Prontidão dos destinatários** lista cada pessoa que essa política pode acionar e que precisa de atenção, e **Verificar de novo** lê tudo de novo. A sua própria linha tem um botão para a página que resolve o problema; a de outra pessoa abre um e-mail para ela no seu próprio programa de e-mail, com a solução nele.
 - Nas **Regras de escalonamento** de uma política, um nível cujos destinatários não podem ser todos acionados diz isso no seu cartão. Veja [O resumo do escalonamento](/docs/on-call/escalation-rules#o-resumo-do-escalonamento).
 - Em **Usuários**, abra um membro e depois **Prontidão** na seção **Plantão**: o status, os métodos e a grade de cobertura da pessoa.
 - Para a sua própria configuração, **Configurações do usuário → Lista de configuração** guia você. Veja [A lista de configuração](/docs/notifications/index#a-lista-de-configuração).
 
 ## O e-mail semanal de prontidão
 
-Uma vez por semana, o OneUptime verifica cada projeto que tem uma política de plantão. Quando alguém nele está **Unreachable** ou **Needs setup**, os proprietários do projeto recebem um e-mail que lista essas pessoas em dois grupos, quem não pode ser acionado de jeito nenhum e quem pode ser contatado com lacunas, até 20 nomes cada, com um link para a página Prontidão.
+Uma vez por semana, o OneUptime verifica cada projeto que tem uma política de plantão. Quando alguém nele está **Inacessível** ou **Precisa de configuração**, os proprietários do projeto recebem um e-mail que lista essas pessoas em dois grupos, quem não pode ser acionado de jeito nenhum e quem pode ser contatado com lacunas, até 20 nomes cada, com um link para a página Prontidão.
 
 Uma semana em que todos estão prontos não envia nada, então o e-mail sempre significa que há algo a corrigir. Quando alguém não pode ser acionado de jeito nenhum, o assunto começa com `[Action Required]`.
 
 ## Tempo de plantão do usuário
 
-**Plantão → Relatórios → Tempo de plantão do usuário** mostra quanto tempo cada pessoa ficou de plantão, em um período que você escolhe: **Past 1 Month** de início.
+**Plantão → Relatórios → Tempo de plantão do usuário** mostra quanto tempo cada pessoa ficou de plantão, em um período que você escolhe: **Último mês** de início.
 
 | Coluna | O que mostra |
 | --- | --- |
@@ -101,7 +101,7 @@ A lista só tem pessoas que uma política de plantão pode acionar. Ficam de for
 :::
 
 :::details Os proprietários nunca recebem o e-mail semanal
-Ele só é enviado em uma semana em que alguém está **Unreachable** ou **Needs setup**, e só para os proprietários do projeto.
+Ele só é enviado em uma semana em que alguém está **Inacessível** ou **Precisa de configuração**, e só para os proprietários do projeto.
 :::
 
 ## Próximos passos

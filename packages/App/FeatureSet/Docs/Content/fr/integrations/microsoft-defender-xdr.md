@@ -48,7 +48,7 @@ La connexion s'authentifie avec le [flux d'informations d'identification du clie
 
 Allez dans **Certificates & secrets → Client secrets → New client secret**, choisissez quand il expire, et sélectionnez **Add**. Copiez la **Value** du secret, et non son **Secret ID**, avant de quitter la page : elle n'est plus jamais affichée.
 
-Notez quand le secret expire. Ce jour-là, l'interrogation s'arrête avec `Microsoft Defender XDR token request failed (HTTP 401)` jusqu'à ce que vous le remplaciez avec **Update credentials**.
+Notez quand le secret expire. Ce jour-là, l'interrogation s'arrête avec `Microsoft Defender XDR token request failed (HTTP 401)` jusqu'à ce que vous le remplaciez avec **Mettre à jour les identifiants**.
 
 ### Ajouter la connexion dans OneUptime
 
@@ -56,7 +56,7 @@ Ouvrez **Produits → Événements de sécurité → Connexions** (`/dashboard/{
 
 ### La tester avant d'enregistrer
 
-Cliquez sur **Test these settings** sous **Tester avant d'enregistrer**. Le test se connecte et lit les alertes avec les valeurs du formulaire, et n'enregistre rien, un secret erroné ou un consentement manquant apparaît donc avant que la connexion existe. Cliquez ensuite sur **Suivant**, donnez à la connexion un **Nom**, et créez-la.
+Cliquez sur **Tester ces paramètres** sous **Tester avant d'enregistrer**. Le test se connecte et lit les alertes avec les valeurs du formulaire, et n'enregistre rien, un secret erroné ou un consentement manquant apparaît donc avant que la connexion existe. Cliquez ensuite sur **Suivant**, donnez à la connexion un **Nom**, et créez-la.
 :::
 
 | Réglage | Où le trouver |
@@ -64,9 +64,9 @@ Cliquez sur **Test these settings** sous **Tester avant d'enregistrer**. Le test
 | **ID de l'annuaire (tenant)** | La page **Overview** de l'application. Le GUID du locataire, ou un domaine vérifié comme `contoso.onmicrosoft.com`. |
 | **ID d'application (client)** | La page **Overview** de l'application. Le GUID de l'application qui a `SecurityAlert.Read.All`. |
 | **Cloud** | **Cloud public Azure**, qui sert aussi Microsoft 365 GCC, ou **Azure Government (États-Unis)** pour GCC High (`login.microsoftonline.us` et `graph.microsoft.us`). Microsoft 365 DoD et le cloud 21Vianet en Chine ne sont pas pris en charge. |
-| **Secret client** | La **Value** du secret. Il est chiffré, jamais renvoyé par l'API et plus jamais affiché. Remplacez-le avec **Update credentials** sur la connexion. |
+| **Secret client** | La **Value** du secret. Il est chiffré, jamais renvoyé par l'API et plus jamais affiché. Remplacez-le avec **Mettre à jour les identifiants** sur la connexion. |
 
-L'étape **Polling** contient aussi une **Description** facultative, le **Poll Interval (Minutes)**, un nombre entier de `1` à `1440` qui vaut `5` au départ, et **Activé**, qui est activé au départ.
+L'étape **Interrogation** contient aussi une **Description** facultative, le **Intervalle d'interrogation (minutes)**, un nombre entier de `1` à `1440` qui vaut `5` au départ, et **Activé**, qui est activé au départ.
 
 ## Ce qui est importé
 
@@ -107,7 +107,7 @@ GET https://graph.microsoft.com/v1.0/security/alerts_v2?$filter=createdDateTime 
 
 ### Quand une fenêtre contient plus qu'une interrogation ne peut lire
 
-Une interrogation lit au plus 20 pages de 100 alertes : 2 000 alertes. Quand cette limite l'arrête avant la fin de sa fenêtre, l'exécution est **Partial**, avec cet avertissement :
+Une interrogation lit au plus 20 pages de 100 alertes : 2 000 alertes. Quand cette limite l'arrête avant la fin de sa fenêtre, l'exécution est **Partiel**, avec cet avertissement :
 
 ```text
 Stopped after 20 alerts requests (the per-run request limit) before reading the whole window. Microsoft Graph lists alerts newest first and documents no way to sort them oldest first, so this run cannot name a point to resume from.
@@ -117,22 +117,22 @@ Stopped after 20 alerts requests (the per-run request limit) before reading the 
 
 1. **Réduire.** L'interrogation suivante lit une fenêtre deux fois plus courte, depuis le même point de départ, et continue de la diviser par deux jusqu'à ce qu'une fenêtre soit lue entièrement, jusqu'à une minute. L'avertissement de l'exécution le dit : `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.` Les alertes déjà importées depuis la fenêtre plus longue sont sautées comme doublons.
 2. **Revenir à la taille normale.** Une fois une fenêtre lue entièrement, le curseur passe à sa fin, et la fenêtre suivante est de nouveau deux fois plus longue, jusqu'à 24 heures.
-3. **Passer au-delà d'une seule minute.** Si même une minute contient plus de 2 000 alertes, l'interrogation passe au-delà, pour que les alertes plus récentes continuent d'arriver. L'exécution reste **Partial**, et **Dernière erreur** indique `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importez cette minute avec **Importer cette plage de temps** pour récupérer ce qu'une exécution peut lire.
+3. **Passer au-delà d'une seule minute.** Si même une minute contient plus de 2 000 alertes, l'interrogation passe au-delà, pour que les alertes plus récentes continuent d'arriver. L'exécution reste **Partiel**, et **Dernière erreur** indique `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importez cette minute avec **Importer cette plage de temps** pour récupérer ce qu'une exécution peut lire.
 
-Une exécution **Partial** pour une autre raison, comme une alerte qui n'a pas pu être lue en événement de sécurité, est réessayée de la même façon, depuis le même point de départ. Changer le **Poll Interval (Minutes)** n'y change rien : il décide à quelle fréquence une interrogation commence, pas où commence sa fenêtre.
+Une exécution **Partiel** pour une autre raison, comme une alerte qui n'a pas pu être lue en événement de sécurité, est réessayée de la même façon, depuis le même point de départ. Changer le **Intervalle d'interrogation (minutes)** n'y change rien : il décide à quelle fréquence une interrogation commence, pas où commence sa fenêtre.
 
 ### Exécuter, prévisualiser et importer à la demande
 
 Cliquez sur **Diagnostics** sur une connexion pour voir ses exécutions récentes et travailler avec elle à la main. Quiconque peut modifier la connexion peut les lancer ; quiconque peut la voir peut lire l'historique.
 
-- **Run now** lance tout de suite une interrogation, avec le curseur habituel, même quand la connexion n'est pas **Activé**.
+- **Exécuter maintenant** lance tout de suite une interrogation, avec le curseur habituel, même quand la connexion n'est pas **Activé**.
 - **Preview alerts** lit une plage de temps de 7 jours au plus et n'importe rien.
 - **Importer cette plage de temps** importe une plage de 7 jours au plus, après votre confirmation, sans déplacer le curseur. Les alertes déjà importées sont sautées.
 - **Copier les diagnostics** sur une exécution copie son rapport pour le support. Il ne contient jamais d'identifiants.
 
 ## Tester la connexion
 
-**Tester la connexion** sur la ligne d'une connexion, et **Test these settings** dans le formulaire, s'exécutent dans le processus de l'API, pas dans un worker d'arrière-plan, pour qu'un test réponde même quand les workers sont le problème. Il effectue ces vérifications, dans l'ordre :
+**Tester la connexion** sur la ligne d'une connexion, et **Tester ces paramètres** dans le formulaire, s'exécutent dans le processus de l'API, pas dans un worker d'arrière-plan, pour qu'un test réponde même quand les workers sont le problème. Il effectue ces vérifications, dans l'ordre :
 
 | Vérification | Ce qu'elle vérifie |
 | --- | --- |
@@ -151,7 +151,7 @@ La **Dernière erreur** de la connexion conserve le message d'erreur complet, id
 
 :::details Dernière erreur commence par `Microsoft Defender XDR token request`
 - `Microsoft Defender XDR token request failed (HTTP ...)` : Microsoft Entra ID a refusé de délivrer un jeton, Graph n'a donc jamais été contacté. Le message se termine par une indication, selon le code `error` d'Entra :
-  - `invalid_client` (`AADSTS7000215`) : le secret est erroné, expiré, ou appartient à une autre application. Créez-en un nouveau sous **Certificates & secrets**, et enregistrez-le avec **Update credentials**.
+  - `invalid_client` (`AADSTS7000215`) : le secret est erroné, expiré, ou appartient à une autre application. Créez-en un nouveau sous **Certificates & secrets**, et enregistrez-le avec **Mettre à jour les identifiants**.
   - `unauthorized_client` (`AADSTS700016`) : l'**ID d'application (client)** n'est pas dans ce **ID de l'annuaire (tenant)**, ou **Cloud** est erroné.
   - `AADSTS90002` : ce locataire n'existe pas.
   - `invalid_scope` : l'étendue Graph n'existe pas dans le cloud que vous avez choisi. Vérifiez **Cloud**.
@@ -163,7 +163,7 @@ La **Dernière erreur** de la connexion conserve le message d'erreur complet, id
 - `Microsoft Defender XDR alerts request failed (HTTP ...)` : Graph a refusé de lister les alertes. Le message nomme le code d'erreur de Graph, et une indication :
   - `403` (`Authorization_RequestDenied`) : `SecurityAlert.Read.All` ou son consentement administrateur manque, ou le locataire n'a pas de licence Defender XDR. Le consentement met quelques minutes à s'appliquer.
   - `401` (`InvalidAuthenticationToken`) après la délivrance d'un jeton : **Cloud** ne correspond généralement pas au locataire.
-  - `429` (`TooManyRequests`) : Graph limite l'application, et l'interrogation suivante relit la même fenêtre. Le message ne peut pas citer le `Retry-After` de Graph, car le client HTTP de OneUptime ne garde aucun en-tête de réponse sur une erreur. Si cela continue, augmentez le **Poll Interval (Minutes)**.
+  - `429` (`TooManyRequests`) : Graph limite l'application, et l'interrogation suivante relit la même fenêtre. Le message ne peut pas citer le `Retry-After` de Graph, car le client HTTP de OneUptime ne garde aucun en-tête de réponse sur une erreur. Si cela continue, augmentez le **Intervalle d'interrogation (minutes)**.
   - `5xx` : un problème du côté de Graph. L'interrogation suivante réessaie.
   - `400` : Graph n'a pas voulu exécuter la requête, que construit OneUptime et non vos réglages. Copiez le message pour le support de OneUptime.
 - `Microsoft Defender XDR alerts request returned ...` : Graph a répondu `200`, mais avec quelque chose que le connecteur ne pouvait pas utiliser : un corps qui n'est pas du JSON, aucune liste `value`, ou un `@odata.nextLink` qui n'est pas un lien `https://` sur l'hôte Graph de votre cloud. Un tel lien est refusé, pour que le jeton ne soit jamais envoyé ailleurs. C'est signalé plutôt que pris pour une fenêtre vide, pour que le curseur ne dépasse jamais des alertes que personne n'a lues.
@@ -178,7 +178,7 @@ La tâche d'interrogation ne s'est jamais exécutée. Lisez les vérifications *
 Comparez le `createdDateTime` de l'alerte dans le portail Defender avec la fenêtre de l'exécution dans **Diagnostics** : les fenêtres portent sur l'heure de création, pas sur l'heure d'activité.
 
 - Une alerte créée avant que la connexion existe est plus ancienne que le premier retour en arrière de 24 heures. Importez-la avec **Importer cette plage de temps**.
-- Une exécution **Partial** a été arrêtée par la limite de 2 000 alertes. L'interrogation suivante lit une fenêtre plus courte depuis le même début, l'alerte est donc importée dès qu'une fenêtre qui la contient est lue entièrement.
+- Une exécution **Partiel** a été arrêtée par la limite de 2 000 alertes. L'interrogation suivante lit une fenêtre plus courte depuis le même début, l'alerte est donc importée dès qu'une fenêtre qui la contient est lue entièrement.
 - Si **Dernière erreur** nomme une minute que l'interrogation a dépassée, importez cette minute avec **Importer cette plage de temps**.
 :::
 

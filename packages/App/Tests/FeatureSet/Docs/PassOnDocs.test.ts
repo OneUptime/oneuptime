@@ -106,6 +106,8 @@ const FEED_SENTENCE: string = OnCallFeedText.getStepMarkdown({
   status: OnCallDutyExecutionLogTimelineStatus.PassedOn,
   policyLink: mdText`Payments`,
   ruleName: "Level 1",
+  ruleOrder: 1,
+  ruleCount: 3,
   recipient: mdText`Alex Kim`,
   statusMessage: ON_CALL_PAGE_PASSED_ON_STATUS_MESSAGE,
 })
@@ -294,7 +296,7 @@ describe("the Escalation Rules page, on escalating a page", () => {
 
   it("quotes the feed's entry, and names the statuses the lists show as they draw them", () => {
     expect(FEED_SENTENCE).toBe(
-      "Alex Kim escalated the page from on-call policy Payments at escalation rule Level 1.",
+      "Alex Kim escalated the page from on-call policy Payments at Level 1 of 3.",
     );
     expect(section).toContain(`the incident's feed says "${FEED_SENTENCE}"`);
 

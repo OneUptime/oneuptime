@@ -30,7 +30,7 @@ flowchart TB
 :::steps
 ### Öppna dina inställningar
 
-Gå till **Användarinställningar → Aviseringsinställningar**. Flikarna är **Incidenter**, **Varningar**, **Övervakning**, **Statussidor**, **Schemalagt underhåll**, **Jour** och **Säkerhet**.
+Gå till **Användarinställningar → Aviseringsinställningar**. Flikarna är **Incidenter**, **Larm**, **Övervakning**, **Statussidor**, **Schemalagt underhåll**, **Jour** och **Säkerhet**.
 
 ### Hitta händelsen
 
@@ -48,7 +48,7 @@ När du går med i ett projekt är de här händelserna påslagna, via e-post. A
 | Flik | Påslagna via e-post | Avstängda tills du slår på dem |
 | --- | --- | --- |
 | **Incidenter** | **Incident skapad**, **Incidenttillstånd ändrat**, **Incident reminder**, **Incidentepisod skapad**, **Tillstånd för incidentepisod ändrat**, **Incident tillagd i incidentepisod** | **Incidentanteckning publicerad**, **Tillagd som ägare av incident**, **Tilldelad till en incident**, **Anteckning för incidentepisod publicerad**, **Tillagd som ägare av incidentepisod** |
-| **Varningar** | **Larm skapat**, **Larmtillstånd ändrades**, **Alert reminder**, **Larmepisod skapad**, **Tillstånd för larmepisod ändrades**, **Larm tillagt i larmepisod** | **Larmanteckning publicerad**, **Tillagd som ägare av larm**, **Anteckning för larmepisod publicerad**, **Tillagd som ägare av larmepisod** |
+| **Larm** | **Larm skapat**, **Larmtillstånd ändrades**, **Alert reminder**, **Larmepisod skapad**, **Tillstånd för larmepisod ändrades**, **Larm tillagt i larmepisod** | **Larmanteckning publicerad**, **Tillagd som ägare av larm**, **Anteckning för larmepisod publicerad**, **Tillagd som ägare av larmepisod** |
 | **Övervakning** | **Sondstatus ändrad för din övervakning**, **Övervakningen har inga aktiva sonder**, **SLO status changed**, **Added as SLO owner**, **Sondstatus ändrad**, **Tillagd som ägare av sond** | **Övervakning skapad**, **Övervakningsstatus ändrad**, **Tillagd som ägare av övervakning**, **Status för AI-agent ändrades**, **Tillagd som ägare av AI-agent** |
 | **Statussidor** | Inga | **Statussida skapad**, **Statussidemeddelande publicerat**, **Tillagd som ägare av statussida** |
 | **Schemalagt underhåll** | **Maintenance reminder** | **Underhållshändelse skapad**, **Underhållstillstånd ändrat**, **Underhållsanteckning publicerad**, **Tillagd som ägare av underhåll** |

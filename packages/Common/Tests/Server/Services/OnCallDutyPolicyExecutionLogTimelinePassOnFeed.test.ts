@@ -1,6 +1,7 @@
 import OnCallDutyPolicyExecutionLogTimeline from "../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLogTimeline";
 import AlertFeedService from "../../../Server/Services/AlertFeedService";
 import IncidentFeedService from "../../../Server/Services/IncidentFeedService";
+import OnCallDutyPolicyEscalationRuleService from "../../../Server/Services/OnCallDutyPolicyEscalationRuleService";
 import OnCallDutyPolicyExecutionLogService from "../../../Server/Services/OnCallDutyPolicyExecutionLogService";
 import OnCallDutyPolicyExecutionLogTimelineService from "../../../Server/Services/OnCallDutyPolicyExecutionLogTimelineService";
 import OnCallDutyPolicyService from "../../../Server/Services/OnCallDutyPolicyService";
@@ -10,6 +11,7 @@ import URL from "../../../Types/API/URL";
 import { Yellow500 } from "../../../Types/BrandColors";
 import Color from "../../../Types/Color";
 import ObjectID from "../../../Types/ObjectID";
+import PositiveNumber from "../../../Types/PositiveNumber";
 import OnCallDutyExecutionLogTimelineStatus from "../../../Types/OnCallDutyPolicy/OnCalDutyExecutionLogTimelineStatus";
 import {
   LEGACY_ON_CALL_PAGE_PASSED_ON_SKIP_TIMELINE_MESSAGE,
@@ -262,5 +264,105 @@ describe("the line a later rule writes for somebody who escalated it", () => {
     );
 
     expect(incidentEntries).toHaveLength(1);
+  });
+});
+
+/*
+ * The level, as the Escalate dialog names it: the line's rule by its place
+ * among the policy's levels - "Level 1 of 2" - which the entry reads by
+ * counting the policy's escalation rules (#5167).
+ */
+describe("the level an entry names", () => {
+  test("is the rule's place among the policy's levels, counted as OneUptime", async () => {
+    const counts: Array<unknown> = [];
+
+    jest
+      .spyOn(OnCallDutyPolicyEscalationRuleService, "countBy")
+      .mockImplementation((async (data: unknown) => {
+        counts.push(data);
+        return new PositiveNumber(2);
+      }) as never);
+
+    await feedFor(
+      lineOf({
+        status: OnCallDutyExecutionLogTimelineStatus.PassedOn,
+        statusMessage: ON_CALL_PAGE_PASSED_ON_STATUS_MESSAGE,
+        onCallDutyPolicyEscalationRule: {
+          name: "Level 1",
+          order: 1,
+        } as never,
+      }),
+    );
+
+    expect(incidentEntries[0]!.markdown).toBe(
+      "**Ana Lopez** escalated the page from on-call policy **[Payments](https://oneuptime.test/dashboard/policies/payments)** at **Level 1 of 2**.",
+    );
+    expect(counts).toEqual([
+      {
+        query: { onCallDutyPolicyId: POLICY },
+        props: { isRoot: true },
+      },
+    ]);
+  });
+
+  test("with its own name first", async () => {
+    jest
+      .spyOn(OnCallDutyPolicyEscalationRuleService, "countBy")
+      .mockResolvedValue(new PositiveNumber(3));
+
+    await feedFor(
+      lineOf({
+        status: OnCallDutyExecutionLogTimelineStatus.NotificationSent,
+        onCallDutyPolicyEscalationRule: {
+          name: "Platform leads",
+          order: 2,
+        } as never,
+      }),
+    );
+
+    expect(incidentEntries[0]!.markdown).toBe(
+      "On-call policy **[Payments](https://oneuptime.test/dashboard/policies/payments)** paged **Ana Lopez** at **Platform leads** (Level 2 of 3).",
+    );
+  });
+
+  test("when the levels cannot be counted, is the place alone, and the entry is still written", async () => {
+    jest
+      .spyOn(OnCallDutyPolicyEscalationRuleService, "countBy")
+      .mockRejectedValue(new Error("database is down"));
+
+    await feedFor(
+      lineOf({
+        status: OnCallDutyExecutionLogTimelineStatus.PassedOn,
+        onCallDutyPolicyEscalationRule: {
+          name: "Platform leads",
+          order: 2,
+        } as never,
+      }),
+    );
+
+    expect(incidentEntries).toHaveLength(1);
+    expect(incidentEntries[0]!.markdown).toBe(
+      "**Ana Lopez** escalated the page from on-call policy **[Payments](https://oneuptime.test/dashboard/policies/payments)** at **Platform leads** (Level 2).",
+    );
+  });
+
+  test("a line whose rule's place is not known counts nothing, and names the rule as before", async () => {
+    let counted: number = 0;
+
+    jest
+      .spyOn(OnCallDutyPolicyEscalationRuleService, "countBy")
+      .mockImplementation((async () => {
+        counted++;
+        return new PositiveNumber(3);
+      }) as never);
+
+    await feedFor(
+      lineOf({ status: OnCallDutyExecutionLogTimelineStatus.PassedOn }),
+    );
+
+    expect(counted).toBe(0);
+    expect(incidentEntries[0]!.markdown).toContain(
+      "at escalation rule **Level 1**.",
+    );
   });
 });

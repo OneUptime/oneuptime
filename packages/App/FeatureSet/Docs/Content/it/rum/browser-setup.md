@@ -36,7 +36,7 @@ flowchart TB
 1. Vai a **Prodotti → Impostazioni del progetto**.
 2. Nel menu laterale, apri **Telemetria e APM** e seleziona **Chiavi di acquisizione**.
 3. Fai clic su **Crea chiave di ingestione** e scegli **Browser** come **Tipo di chiave**.
-4. Nel passaggio **Impostazioni del browser**, elenca le tue origini in **Allowed Origins** come array JSON, per esempio `["https://app.example.com"]`, poi crea la chiave. Nel piano gratuito di OneUptime Cloud, un ultimo passaggio **Fatturazione** mostra prima il prezzo della telemetria.
+4. Nel passaggio **Impostazioni del browser**, elenca le tue origini in **Origini consentite** come array JSON, per esempio `["https://app.example.com"]`, poi crea la chiave. Nel piano gratuito di OneUptime Cloud, un ultimo passaggio **Fatturazione** mostra prima il prezzo della telemetria.
 
 ![La pagina delle chiavi di acquisizione della telemetria nelle impostazioni del progetto](/docs/static/images/TelemetryIngestionKeys.png)
 
@@ -164,9 +164,9 @@ Tutto ciò che è nello snippet arriva ai tuoi visitatori, quindi chiunque può 
 
 | Impostazione | Cosa fa |
 | --- | --- |
-| **Allowed Origins** | Le richieste sono accettate solo da queste origini, ciascuna con il suo schema e l'eventuale porta. Un host può iniziare con un solo carattere jolly `*.`: `https://*.example.com` copre ogni sottodominio di `example.com`, ma non `example.com` stesso. |
+| **Origini consentite** | Le richieste sono accettate solo da queste origini, ciascuna con il suo schema e l'eventuale porta. Un host può iniziare con un solo carattere jolly `*.`: `https://*.example.com` copre ogni sottodominio di `example.com`, ma non `example.com` stesso. |
 | **Requests Per Minute Limit** | Un unico tetto per tutti i visitatori che usano la chiave: 6000 richieste al minuto, a meno che tu non ne imposti uno tuo. |
-| **Pinned Service Name** | Impone `service.name` su tutto ciò che la chiave scrive, così una copia non può far passare la sua telemetria per uno dei tuoi servizi backend. |
+| **Nome del servizio fissato** | Impone `service.name` su tutto ciò che la chiave scrive, così una copia non può far passare la sua telemetria per uno dei tuoi servizi backend. |
 | **Scade il** | Dopo questa data la chiave non viene più accettata. |
 | **Abilitato** | Disattivalo per fermare subito una chiave trapelata. |
 
@@ -245,7 +245,7 @@ Con la [Session Replay](/docs/telemetry/session-replay) installata, le richieste
 
 Se usi anche la [Session Replay](/docs/telemetry/session-replay), la tua telemetria **backend** si unisce alla registrazione senza codice qui. Mentre una sessione viene caricata, il recorder aggiunge un membro `tracestate` con l'ID di sessione alle richieste che la tua pagina fa verso la sua origine, e lascia il `traceparent` alla tua `FetchInstrumentation` / `XMLHttpRequestInstrumentation`. Gli span del tuo backend ricevono l'ID di sessione all'acquisizione, in ogni servizio che prosegue il contesto di traccia W3C, e i suoi log ed eccezioni si uniscono alla registrazione tramite l'ID di traccia. Vedi [Correlare con il resto della telemetria](/docs/telemetry/session-replay#correlare-con-il-resto-della-tua-telemetria) per come funziona, cosa non copre e l'interruttore che lo disattiva.
 
-Il recorder rilegge anche il `traceparent` impostato dalle tue strumentazioni, sia che la chiamata passi un URL (con o senza oggetto init) sia un oggetto `Request`, così ogni riga di richiesta nella riproduzione rimanda alla sua traccia di backend. Per un'API su un'altra origine, elencala sopra in `propagateTraceHeaderCorsUrls`; le sue richieste non portano un ID di sessione e si uniscono alla registrazione tramite l'ID di traccia. **Trace propagation origins** nella policy di riproduzione dell'applicazione fa lo stesso per le pagine *senza* questo SDK.
+Il recorder rilegge anche il `traceparent` impostato dalle tue strumentazioni, sia che la chiamata passi un URL (con o senza oggetto init) sia un oggetto `Request`, così ogni riga di richiesta nella riproduzione rimanda alla sua traccia di backend. Per un'API su un'altra origine, elencala sopra in `propagateTraceHeaderCorsUrls`; le sue richieste non portano un ID di sessione e si uniscono alla registrazione tramite l'ID di traccia. **Origini di propagazione delle tracce** nella policy di riproduzione dell'applicazione fa lo stesso per le pagine *senza* questo SDK.
 
 Ciò che le intestazioni non raggiungono sono gli span del browser di questo SDK: caricamenti di documento, cambi di route e gli errori che segnali. Per archiviare anche questi sotto la registrazione, imposta `session.id` su ogni span quando parte. Il recorder ti comunica l'ID tramite `onSessionChange`, che scatta subito se esiste già una sessione e di nuovo ogni volta che l'ID cambia: quando il visitatore torna dopo 30 minuti di inattività, al limite di 4 ore, quando `identify()` indica un altro utente, o quando un'altra scheda dello stesso visitatore l'ha cambiato per prima.
 
@@ -430,7 +430,7 @@ Apri gli strumenti per sviluppatori del browser, vai alla scheda Rete e filtra p
 :::
 
 :::details OneUptime rifiuta la richiesta
-- `422` con `Origin https://app.example.com is not allowed for this browser ingestion key.` significa che l'origine esatta della pagina (schema, host e porta) manca dalle **Allowed Origins** della chiave.
+- `422` con `Origin https://app.example.com is not allowed for this browser ingestion key.` significa che l'origine esatta della pagina (schema, host e porta) manca dalle **Origini consentite** della chiave.
 - `422` con `This telemetry ingestion key has been disabled.` significa che qualcuno ha disattivato la chiave. Riattivala o usa un'altra chiave.
 - `401` significa che la chiave è sconosciuta, revocata o scaduta. Esegui la verifica della chiave in [Configurazione](#configurazione), poi crea una chiave Browser valida.
 - `404` significa che l'URL è sbagliato. L'exporter delle tracce ha bisogno del percorso completo, `/otlp/v1/traces`.

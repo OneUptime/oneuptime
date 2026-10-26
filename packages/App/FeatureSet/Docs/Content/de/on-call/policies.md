@@ -110,7 +110,7 @@ Ausführungsprotokolle finden Sie an drei Stellen:
 - unter **Bereitschaftsdienst → Erweitert → Ausführungsprotokolle**, für jede Richtlinie, wobei direkte Alarmierungen aus Workflows und Chat als **Direkte Alarmierung** erscheinen;
 - auf der Seite **Bereitschaftsausführungen** eines Vorfalls oder einer Warnung.
 
-Jede Zeile zeigt, was den Lauf ausgelöst hat, wann, seinen **Status** und wer ihn bestätigt hat. **View Timeline** öffnet seine **Zeitachse der Ausführung**: jede Eskalationsregel, wen sie alarmiert hat, über welchen Plan und wie jeder Alarm geendet hat. Ein Plan, in dem niemand Bereitschaft hat, zeigt statt einer Person **No one was on call**. In OneUptime Cloud brauchen Ausführungsprotokolle den Plan **Growth**.
+Jede Zeile zeigt, was den Lauf ausgelöst hat, wann, seinen **Status** und wer ihn bestätigt hat. **Zeitachse anzeigen** öffnet seine **Zeitachse der Ausführung**: jede Eskalationsregel, wen sie alarmiert hat, über welchen Plan und wie jeder Alarm geendet hat. Ein Plan, in dem niemand Bereitschaft hat, zeigt statt einer Person **Niemand hatte Bereitschaft**. In OneUptime Cloud brauchen Ausführungsprotokolle den Plan **Growth**.
 
 ## Eine Richtlinie archivieren oder löschen
 
@@ -123,7 +123,7 @@ Archivieren stellt eine Richtlinie außer Dienst und behält alles: Öffnen Sie 
 
 ## Wer eine Richtlinie ändern darf
 
-**Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** und **On-Call Member** dürfen Richtlinien anlegen, ändern und löschen; **Viewer** und **On-Call Viewer** dürfen sie lesen. In einer eigenen Rolle heißen die Berechtigungen **Create On-Call Duty Policy**, **Edit On-Call Duty Policy**, **Delete On-Call Duty Policy** und **Read On-Call Duty Policy**, und eine Rolle, die auf einige Beschriftungen beschränkt ist, erreicht nur die Richtlinien mit diesen Beschriftungen. Eigentümer und benutzerdefinierte Felder hinzuzufügen braucht in OneUptime Cloud den Plan **Growth**.
+**Projektinhaber**, **Projektadministrator**, **Projektmitglied**, **Bereitschafts-Administrator** und **Bereitschafts-Mitglied** dürfen Richtlinien anlegen, ändern und löschen; **Betrachter** und **Bereitschafts-Betrachter** dürfen sie lesen. In einer eigenen Rolle heißen die Berechtigungen **Create On-Call Duty Policy**, **Edit On-Call Duty Policy**, **Delete On-Call Duty Policy** und **Read On-Call Duty Policy**, und eine Rolle, die auf einige Beschriftungen beschränkt ist, erreicht nur die Richtlinien mit diesen Beschriftungen. Eigentümer und benutzerdefinierte Felder hinzuzufügen braucht in OneUptime Cloud den Plan **Growth**.
 
 ## API und Terraform
 
@@ -138,7 +138,7 @@ Bereitschaftsrichtlinien sind die Ressource `/api/on-call-duty-policy` und in Te
 | **Nach wie vielen Minuten?** | `acknowledgementTimeoutInMinutes` |
 | Archiviert | `isArchived` |
 
-`repeatPolicyIfNoOneAcknowledges` ist `false` für **Alarmierung beenden** und `true` für **Erneut bei Level 1 beginnen**. Steht es auf `true` und `repeatPolicyIfNoOneAcknowledgesNoOfTimes` auf `0`, wiederholt sich die Richtlinie nie, und das Dashboard zeigt sie als **Alarmierung beenden**.
+`repeatPolicyIfNoOneAcknowledges` ist `false` für **Alarmierung beenden** und `true` für **Erneut bei Level 1 beginnen**. Steht es auf `true`, muss `repeatPolicyIfNoOneAcknowledgesNoOfTimes` eine ganze Zahl ab 1 sein: OneUptime lehnt `0` ab. Eine ältere, mit `0` gespeicherte Richtlinie wiederholt sich nie, und das Dashboard zeigt sie als **Alarmierung beenden**.
 
 `acknowledgementTimeoutInMinutes` ist `null` für **Nicht erneut alarmieren** und eine ganze Zahl von Minuten zwischen 5 und 1440 für **Erneut alarmieren**. Alles andere lehnt OneUptime ab.
 
@@ -147,7 +147,7 @@ Wie Sie eine Richtlinie mit ihrer ersten Stufe in einer einzigen Anfrage anlegen
 ## Fehlerbehebung
 
 :::details Eine Richtlinie ist gelaufen, aber niemand wurde alarmiert
-Ihr Lauf zeigt **Execution Completed - No One Notified**. Öffnen Sie **View Timeline**: Eine Zeile mit **No one was on call** verweist auf einen Plan mit einer Lücke, und die Statusmeldung einer Zeile **Übersprungen** sagt, warum, etwa weil jemand abwesend war und niemand ihn vertreten hat. **Bereitschaftsdienst → Einsatzbereitschaft** zeigt, wer nicht erreichbar war.
+Ihr Lauf zeigt **Execution Completed - No One Notified**. Öffnen Sie **Zeitachse anzeigen**: Eine Zeile mit **Niemand hatte Bereitschaft** verweist auf einen Plan mit einer Lücke, und die Statusmeldung einer Zeile **Übersprungen** sagt, warum, etwa weil jemand abwesend war und niemand ihn vertreten hat. **Bereitschaftsdienst → Einsatzbereitschaft** zeigt, wer nicht erreichbar war.
 :::
 
 :::details Die nächste Stufe wurde eine Minute nach ihrer Wartezeit alarmiert

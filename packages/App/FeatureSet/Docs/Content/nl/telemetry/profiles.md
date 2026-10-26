@@ -309,13 +309,13 @@ Wanneer een functie van uw eigen code minstens 5% van de tijd of het geheugen va
 | --- | --- |
 | **Flame graph** | Elke balk is een functie in de aanroepstack, en de breedte is evenredig aan de verbruikte tijd of resources. Klik op een functie om in te zoomen en de aanroepers en aangeroepen functies te zien. |
 | **Top functions** | De functies in het profiel, gerangschikt op eigen of totale tijd. **Alleen mijn code** verbergt bibliotheekframes. |
-| **Diff vs. baseline** | Het profiel vergeleken met een eerdere periode (**t.o.v. 1 uur geleden**, **t.o.v. gisteren** of **t.o.v. vorige week**), met de functies onder **Most regressed** en **Most improved**. |
+| **Diff vs. baseline** | Het profiel vergeleken met een eerdere periode (**t.o.v. 1 uur geleden**, **t.o.v. gisteren** of **t.o.v. vorige week**), met de functies onder **Grootste achteruitgang** en **Grootste verbetering**. |
 
-**Download pprof** slaat het profiel op voor lokale tools zoals `go tool pprof`.
+**pprof downloaden** slaat het profiel op voor lokale tools zoals `go tool pprof`.
 
 ### Tracecorrelatie
 
-Wanneer een profiel trace- en span-ID's draagt (bijvoorbeeld als samplelabels `trace_id` / `span_id`), gaat u rechtstreeks van een trage tracespan naar het bijbehorende CPU- of geheugenprofiel om precies te begrijpen welke code draaide, en **Open linked trace** gaat de andere kant op.
+Wanneer een profiel trace- en span-ID's draagt (bijvoorbeeld als samplelabels `trace_id` / `span_id`), gaat u rechtstreeks van een trage tracespan naar het bijbehorende CPU- of geheugenprofiel om precies te begrijpen welke code draaide, en **Gekoppelde trace openen** gaat de andere kant op.
 
 Het tabblad **Profiel** van een span bevat ook de samples die gekoppeld zijn aan de spans die eronder zijn genest, omdat profilers de CPU-tijd van een verzoek vaak aan een kindspan toekennen in plaats van aan de span van het verzoek zelf.
 

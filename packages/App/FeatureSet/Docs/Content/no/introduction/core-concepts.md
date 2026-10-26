@@ -57,8 +57,8 @@ Begge registrerer et problem, og begge kan varsle den som har vakt. Forskjellen 
 | --- | --- | --- |
 | **Hva det er** | Et problem som rammer brukerne dine, for eksempel et brudd eller en treghet | Et problem teamet ditt bør se på før brukerne blir rammet |
 | **På statussider** | Kan vises, og gir abonnenter beskjed | Aldri |
-| **Startstatuser** | **Identified**, **Bekreftet**, **Løst** | **Identified**, **Bekreftet**, **Løst** |
-| **Startalvorlighetsgrader** | Critical Incident, Major Incident, Minor Incident | **High**, **Low** |
+| **Startstatuser** | **Identifisert**, **Bekreftet**, **Løst** | **Identifisert**, **Bekreftet**, **Løst** |
+| **Startalvorlighetsgrader** | Critical Incident, Major Incident, Minor Incident | **Høy**, **Lav** |
 
 Å bekrefte sier at noen tar seg av det, og hindrer vaktpolicyene i å varsle neste nivå. Å løse avslutter det. Du kan legge til egne statuser og alvorlighetsgrader, og koble varsler til hendelsen de viste seg å høre til.
 

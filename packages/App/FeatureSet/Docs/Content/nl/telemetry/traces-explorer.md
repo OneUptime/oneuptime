@@ -56,7 +56,7 @@ Typ een zoekopdracht en druk op Enter, bijvoorbeeld `service:checkout status:err
 
 ### Beperken met filters
 
-Klik op een waarde in de zijbalk **Filters** om die als chip toe te voegen. De zijbalk filtert op **Service**, op de host, het cluster of de andere bron die de span stuurde, op **Status**, **Span-type**, **Heeft uitzondering**, **Span-soort**, **Span-naam**, **Service Instance** en **Naam van de host**.
+Klik op een waarde in de zijbalk **Filters** om die als chip toe te voegen. De zijbalk filtert op **Service**, op de host, het cluster of de andere bron die de span stuurde, op **Status**, **Span-type**, **Heeft uitzondering**, **Span-soort**, **Span-naam**, **Service-instantie** en **Naam van de host**.
 
 ### Een span openen
 
@@ -102,7 +102,7 @@ Wilt u meer, zet de lijst dan van **Spans** op **Analytics**. Kies een tijdreeks
 ## Volgen, opslaan en delen
 
 - Klik boven de lijst op **Gepauzeerd** om live-updates aan te zetten. De knop toont dan **Live**, en de lijst kijkt elke 10 seconden of er nieuwe spans zijn. Klik nogmaals om te pauzeren.
-- **Saved Views** bewaart een zoekopdracht, de filters en het tijdsbereik onder een naam, voor iedereen in het project. Opgeslagen weergaven werken zoals in de [Logboekverkenner](/docs/telemetry/logs-explorer#een-weergave-opslaan).
+- **Opgeslagen weergaven** bewaart een zoekopdracht, de filters en het tijdsbereik onder een naam, voor iedereen in het project. Opgeslagen weergaven werken zoals in de [Logboekverkenner](/docs/telemetry/logs-explorer#een-weergave-opslaan).
 - De knoppen **Logboeken** en **Metrieken** openen die verkenners voor hetzelfde tijdvenster, met zoveel van uw filtering als ze kunnen gebruiken. Wijs een knop aan om te zien wat hij niet kan meenemen.
 
 ## Inzichten in traces

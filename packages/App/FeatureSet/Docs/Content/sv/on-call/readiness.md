@@ -27,8 +27,8 @@ En mottagare är vem som helst som en jourpolicy kan larma: en person som nämns
 | Status | Vad den betyder |
 | --- | --- |
 | **Klar** | Personen har en verifierad metod på en kanal som projektet har slagit på, och en regel för varje allvarlighetsgrad, på varje flik i sina jourregler. |
-| **Needs setup** | Personen kan nås, men vissa allvarlighetsgrader saknar regel. Raden räknar dessa luckor. |
-| **Unreachable** | Inget når personen: ingen verifierad metod, varje verifierad metod finns på en kanal som projektet har stängt av, eller personen är inte medlem i projektet. |
+| **Behöver konfigureras** | Personen kan nås, men vissa allvarlighetsgrader saknar regel. Raden räknar dessa luckor. |
+| **Onåbar** | Inget når personen: ingen verifierad metod, varje verifierad metod finns på en kanal som projektet har stängt av, eller personen är inte medlem i projektet. |
 
 En lucka är en allvarlighetsgrad utan regel, på fliken för incidenter, incidentepisoder, larm eller larmepisoder. En regel som avsiktligt stänger av en allvarlighetsgrad är ingen lucka. En utlarmning som träffar en lucka når ändå personen på hens verifierade metoder, om inte projektet har stängt av den reservlösningen: se [När ingen regel matchar](/docs/notifications/index#när-ingen-regel-matchar).
 
@@ -36,18 +36,18 @@ En lucka är en allvarlighetsgrad utan regel, på fliken för incidenter, incide
 
 Öppna **Jourtjänst → Beredskap**. Kortet **On-call readiness** listar alla som någon jourpolicy i projektet kan nå, med de som behöver något först. Alla i projektet kan öppna den.
 
-Ovanför listan räknar rutorna **Responders**, **Klar**, **Needs setup** och **Unreachable**. Klicka på **Klar**, **Needs setup** eller **Unreachable** för att bara lista de mottagarna, och klicka igen för att lista alla.
+Ovanför listan räknar rutorna **Mottagare**, **Klar**, **Behöver konfigureras** och **Onåbar**. Klicka på **Klar**, **Behöver konfigureras** eller **Onåbar** för att bara lista de mottagarna, och klicka igen för att lista alla.
 
 | Kolumn | Vad den visar |
 | --- | --- |
-| **Responder** | Personen, med e-postadress. |
-| **Status** | **Klar**, **Unreachable**, eller hur många luckor personen har. |
+| **Mottagare** | Personen, med e-postadress. |
+| **Status** | **Klar**, **Onåbar**, eller hur många luckor personen har. |
 | **Team** | Teamen som larmar personen via en eskaleringsregel. |
 | **Kanaler** | Ett segment per kanal: ifyllt för en verifierad metod, ihåligt för en som inte är verifierad än. |
 | **Coverage** | Hur många allvarlighetsgrader som har en regel, på varje flik, av alla. |
 | **Reached via** | Hur policyerna når personen: `Direct`, `Team`, `Schedule` eller `Override`. |
 
-**Coverage** på en rad visar personens aviseringsmetoder, varför hen har sin status och ett rutnät över varje allvarlighetsgrad med eller utan regel. Tratten filtrerar listan efter **Responder**, **Status**, **Team** eller **Reached via**. Svaret kan vara en minut gammalt: **Uppdatera** avgör det på nytt.
+**Coverage** på en rad visar personens aviseringsmetoder, varför hen har sin status och ett rutnät över varje allvarlighetsgrad med eller utan regel. Tratten filtrerar listan efter **Mottagare**, **Status**, **Team** eller **Reached via**. Svaret kan vara en minut gammalt: **Uppdatera** avgör det på nytt.
 
 ## Påminn personer om att slutföra inställningarna
 
@@ -55,28 +55,28 @@ Bara personen själv kan lägga till och verifiera sina aviseringsmetoder och re
 
 :::steps
 1. Markera mottagarna som ska påminnas på sidan Beredskap. Mottagare som är klara kan inte markeras: det finns inget att påminna dem om.
-2. Klicka på **Send setup reminder**. Bekräftelsen nämner alla som är på väg att få ett e-postmeddelande.
+2. Klicka på **Skicka påminnelse om konfiguration**. Bekräftelsen nämner alla som är på väg att få ett e-postmeddelande.
 3. Bekräfta. Varje person får ett e-postmeddelande som säger vad som saknas i hens egna inställningar, med en länk till sidan där det åtgärdas.
 :::
 
-En banner visar sedan hur många påminnelser som skickades, hoppades över eller misslyckades, och varför för varje som inte skickades. Ingen påminns mer än en gång per 24 timmar, och en omgång påminner högst 250 personer. För att skicka påminnelser krävs **Project Owner**, **Project Admin** eller **On-Call Admin**, eller **Edit On-Call Duty Policy** i en anpassad roll.
+En banner visar sedan hur många påminnelser som skickades, hoppades över eller misslyckades, och varför för varje som inte skickades. Ingen påminns mer än en gång per 24 timmar, och en omgång påminner högst 250 personer. För att skicka påminnelser krävs **Projektägare**, **Projektadministratör** eller **Jouradministratör**, eller **Edit On-Call Duty Policy** i en anpassad roll.
 
 ## Beredskap på andra sidor
 
-- På en policys **Översikt** listar **Responder readiness** alla som den policyn kan larma och som behöver åtgärdas, och **Recheck** läser det igen. Din egen rad har en knapp till sidan som åtgärdar det; någon annans rad öppnar ett e-postmeddelande till personen i ditt eget e-postprogram, med åtgärden i.
+- På en policys **Översikt** listar **Mottagarnas beredskap** alla som den policyn kan larma och som behöver åtgärdas, och **Kontrollera igen** läser det igen. Din egen rad har en knapp till sidan som åtgärdar det; någon annans rad öppnar ett e-postmeddelande till personen i ditt eget e-postprogram, med åtgärden i.
 - På en policys **Eskaleringsregler** säger en nivå det på sitt kort om inte alla dess mottagare kan larmas. Se [Eskaleringsöversikten](/docs/on-call/escalation-rules#eskaleringsöversikten).
 - Under **Användare** öppnar du en medlem, och sedan **Beredskap** i avsnittet **Jour**: personens status, metoder och rutnät över täckning.
 - För dina egna inställningar guidar **Användarinställningar → Checklista för konfiguration** dig igenom dem. Se [Checklistan för konfiguration](/docs/notifications/index#checklistan-för-konfiguration).
 
 ## Det veckovisa e-postmeddelandet om beredskap
 
-En gång i veckan kontrollerar OneUptime varje projekt som har en jourpolicy. När någon där är **Unreachable** eller **Needs setup** får projektets ägare ett e-postmeddelande som listar dem i två grupper, vem som inte kan larmas alls och vem som kan nås med luckor, upp till 20 namn i varje, med en länk till sidan Beredskap.
+En gång i veckan kontrollerar OneUptime varje projekt som har en jourpolicy. När någon där är **Onåbar** eller **Behöver konfigureras** får projektets ägare ett e-postmeddelande som listar dem i två grupper, vem som inte kan larmas alls och vem som kan nås med luckor, upp till 20 namn i varje, med en länk till sidan Beredskap.
 
 En vecka då alla är klara skickas inget, så e-postmeddelandet betyder alltid att något behöver åtgärdas. När någon inte kan larmas alls börjar ämnesraden med `[Action Required]`.
 
 ## Användarens jourtid
 
-**Jourtjänst → Rapporter → Användarens jourtid** visar hur länge varje person hade jour, under en period du väljer: **Past 1 Month** till att börja med.
+**Jourtjänst → Rapporter → Användarens jourtid** visar hur länge varje person hade jour, under en period du väljer: **Senaste månaden** till att börja med.
 
 | Kolumn | Vad den visar |
 | --- | --- |
@@ -101,7 +101,7 @@ Listan innehåller bara personer som en jourpolicy kan larma. En teammedlem som 
 :::
 
 :::details Ägarna får aldrig det veckovisa e-postmeddelandet
-Det skickas bara en vecka då någon är **Unreachable** eller **Needs setup**, och bara till projektets ägare.
+Det skickas bara en vecka då någon är **Onåbar** eller **Behöver konfigureras**, och bara till projektets ägare.
 :::
 
 ## Nästa steg

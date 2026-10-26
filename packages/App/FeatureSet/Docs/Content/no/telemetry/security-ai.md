@@ -62,7 +62,7 @@ Den kan også lese resten av OneUptime slik undersøkelsen av en hendelse gjør:
 | Sannsynligvis falsk positiv | Deteksjonen ser ut til å ha mistolket normal aktivitet | False Positive |
 | Uavklart | Det var ikke nok bevis til å avgjøre det, og en person må se på det | Ingenting |
 
-Vurderingen er OneUptime AI sin, aldri sakens konklusjon: **Close Case** starter på konklusjonen den foreslår, og en person velger. Under vurderingen viser kortet:
+Vurderingen er OneUptime AI sin, aldri sakens konklusjon: **Lukk sak** starter på konklusjonen den foreslår, og en person velger. Under vurderingen viser kortet:
 
 - **Foreslått prioritet**, med **Angi prioritet** når saken har en annen prioritet.
 - **Foreslått playbook**, med **Kjør playbook**, som kjører den på dine vegne, med hver godkjenning den trenger. Mens den playbooken allerede kjører på saken, står statusen til kjøringen, for eksempel **Venter på godkjenning**, i stedet for **Kjør playbook**: kjøringen ligger under sakens **Playbooks**, og en ny ville be om den samme godkjenningen igjen.
@@ -88,7 +88,7 @@ Nye prosjekter starter med den slått på; et prosjekt som ble opprettet før, h
 
 ## Kjør en playbook etter en vurdering
 
-En playbook med **Trigger** satt til **Vurdert som sannsynligvis ondsinnet** kjører én gang på en sak, når en vurdering leser saken som Sannsynligvis ondsinnet. **For Cases At Least**, **Only For Detections From** og **Only For These Detection Rules** avgrenser den som for enhver utløser, og inndemmingstrinnene venter som alltid på godkjenning. Den kjører ikke:
+En playbook med **Utløser** satt til **Vurdert som sannsynligvis ondsinnet** kjører én gang på en sak, når en vurdering leser saken som Sannsynligvis ondsinnet. **For saker med minst**, **Bare for deteksjoner fra** og **Bare for disse deteksjonsreglene** avgrenser den som for enhver utløser, og inndemmingstrinnene venter som alltid på godkjenning. Den kjører ikke:
 
 - etter en vurdering som fant tekst skrevet for å styre en KI;
 - en gang til på samme sak, uansett hvor ofte saken blir vurdert;
@@ -98,7 +98,7 @@ En ny playbook får bare tilbud om denne utløseren mens prosjektets KI er slåt
 
 ## Skriv et utkast til en deteksjonsregel
 
-Klikk på siden **Detection Rules**, under feltet **Sigma Rule (YAML)**, på **Draft with AI**, og si hva regelen skal fange, for eksempel ti mislykkede pålogginger fra én IP-adresse innen fem minutter. **Skriv regel** setter en Sigma-regel inn i feltet, kontrollert på samme måte som en lagret regel. Les den, endre den ved behov, og lagre den som vanlig: ingenting blir lagret før du gjør det. Står det allerede en regel i feltet, heter knappen **Skriv på nytt med KI**, og utkastet erstatter den regelen.
+Klikk på siden **Deteksjonsregler**, under feltet **Sigma-regel (YAML)**, på **Utkast med KI**, og si hva regelen skal fange, for eksempel ti mislykkede pålogginger fra én IP-adresse innen fem minutter. **Skriv regel** setter en Sigma-regel inn i feltet, kontrollert på samme måte som en lagret regel. Les den, endre den ved behov, og lagre den som vanlig: ingenting blir lagret før du gjør det. Står det allerede en regel i feltet, heter knappen **Skriv på nytt med KI**, og utkastet erstatter den regelen.
 
 Et utkast krever en rolle som kan opprette deteksjonsregler.
 
@@ -131,7 +131,7 @@ Noe av sakens data, som en hendelsesmelding eller et brukernavn, ble skrevet for
 :::
 
 :::details En playbook med KI-utløseren kjørte ikke
-Sjekk at playbooken er slått på, at vurderingen leste saken som Sannsynligvis ondsinnet, og at innstillingene **For Cases At Least**, **Only For Detections From** og **Only For These Detection Rules** passer saken. Den kjører én gang per sak, og ikke etter en vurdering som fant tekst skrevet for å styre en KI.
+Sjekk at playbooken er slått på, at vurderingen leste saken som Sannsynligvis ondsinnet, og at innstillingene **For saker med minst**, **Bare for deteksjoner fra** og **Bare for disse deteksjonsreglene** passer saken. Den kjører én gang per sak, og ikke etter en vurdering som fant tekst skrevet for å styre en KI.
 :::
 
 ## Neste steg

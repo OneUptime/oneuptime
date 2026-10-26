@@ -311,11 +311,11 @@ Quand une fonction de votre propre code prend au moins 5 % du temps ou de la mé
 | **Top functions** | Les fonctions du profil, classées par temps propre ou total. **Seulement mon code** masque les frames des bibliothèques. |
 | **Diff vs. baseline** | Le profil comparé à une période antérieure (**vs il y a 1 heure**, **vs hier** ou **vs la semaine dernière**), avec les fonctions **Les plus dégradées** et **Les plus améliorées**. |
 
-**Download pprof** enregistre le profil pour des outils locaux comme `go tool pprof`.
+**Télécharger le pprof** enregistre le profil pour des outils locaux comme `go tool pprof`.
 
 ### Corrélation avec les traces
 
-Quand un profil porte des ID de trace et de span (par exemple sous forme d'étiquettes d'échantillon `trace_id` / `span_id`), vous passez directement d'un span de trace lent au profil CPU ou mémoire correspondant pour comprendre exactement quel code s'exécutait, et **Open linked trace** fait le chemin inverse.
+Quand un profil porte des ID de trace et de span (par exemple sous forme d'étiquettes d'échantillon `trace_id` / `span_id`), vous passez directement d'un span de trace lent au profil CPU ou mémoire correspondant pour comprendre exactement quel code s'exécutait, et **Ouvrir la trace associée** fait le chemin inverse.
 
 L'onglet **Profil** d'un span inclut aussi les échantillons liés aux spans imbriqués sous lui, car les profileurs attribuent souvent le temps CPU d'une requête à un span enfant plutôt qu'au span de la requête lui-même.
 

@@ -46,11 +46,11 @@ Hver av disse rettighetene kan også gis for seg, fra å opprette en sak til å 
 
 | Kilde | Åpner en sak når | Slås av med |
 | --- | --- | --- |
-| Deteksjonsregler | En regel treffer | **Open a Case on Match**, i regelens steg **Ved treff** |
-| Trusseletterretning | En hendelse nevner en kjent indikator | **Open a Case on Match**, i feedens steg **Ved treff** |
-| Tilkoblede produkter | Et varsel fra selve produktet importeres på eller over tilkoblingens terskel | **Open Cases From** satt til **Aldri**, i tilkoblingens steg **Polling** |
+| Deteksjonsregler | En regel treffer | **Åpne en sak ved treff**, i regelens steg **Ved treff** |
+| Trusseletterretning | En hendelse nevner en kjent indikator | **Åpne en sak ved treff**, i feedens steg **Ved treff** |
+| Tilkoblede produkter | Et varsel fra selve produktet importeres på eller over tilkoblingens terskel | **Open Cases From** satt til **Aldri**, i tilkoblingens steg **Henting** |
 | Entitetsrisiko | Risikoen til en bruker, vert eller adresse når prosjektets terskel | **Risikosaker** under **Innstillinger → Risikovurdering** |
-| Personer | Noen åpner en fra **Sikkerhetssaker**, eller med **Open Case** i panelet til en hendelse | Ingen |
+| Personer | Noen åpner en fra **Sikkerhetssaker**, eller med **Åpne sak** i panelet til en hendelse | Ingen |
 
 Alle kilder åpner saker som standard, unntatt entitetsrisiko i prosjekter som ble opprettet før det fantes: slå først på **Risikosaker** der ([Entitetsrisiko](/docs/telemetry/security-entity-risk)). En tilkobling åpner saker for **Høy og høyere** med mindre du velger et annet nivå; varslene under det nivået importeres fortsatt som hendelser.
 
@@ -88,17 +88,17 @@ En sak har sin egen sidemeny, slik en hendelse har, og hver del av saken er en e
 | Seksjon i sidemenyen | Sider |
 | --- | --- |
 | **Oversikt** | **Oversikt**, **Tidslinje** |
-| **Undersøkelse** | **Detections**, **Entiteter**, **Tilkoblede signaler**, **Playbooks** |
+| **Undersøkelse** | **Deteksjoner**, **Entiteter**, **Tilkoblede signaler**, **Playbooks** |
 | **Notater** | **Private notater** |
 | **Avansert** | **Revisjonslogger**, **Slett sak**, skjult til du klikker på **Avansert** |
 
-Hver side beholder sakens topptekst øverst: nummer, prioritet, status og tittel, **Tildel til meg**, **Run Playbook**, **Erklær hendelse** og **Close Case**, og i menyen ⋯ ved siden av **Angi prioritet**, **Tildel til en annen**, **Endre status**, **Rediger sak** og **Slett sak**. Slik kan saken behandles fra hvilken som helst av sidene, og en lenke til saken åpner fortsatt **Oversikt**.
+Hver side beholder sakens topptekst øverst: nummer, prioritet, status og tittel, **Tildel til meg**, **Kjør playbook**, **Erklær hendelse** og **Lukk sak**, og i menyen ⋯ ved siden av **Angi prioritet**, **Tildel til en annen**, **Endre status**, **Rediger sak** og **Slett sak**. Slik kan saken behandles fra hvilken som helst av sidene, og en lenke til saken åpner fortsatt **Oversikt**.
 
 - **Oversikt**: sakens beskrivelse, etiketter og statussteg, hvem som har den og hva som åpnet den, og tallene: hvor mange deteksjoner den har, hvor lenge den har vært åpen, og hvor lang tid det tok å bekrefte og inndemme den.
 - **OneUptime AI**, på **Oversikt**: hva OneUptime AI fikk ut av saken, prioriteten og playbooken den foreslår, og bevisene bak. Se [OneUptime AI i sikkerhet](/docs/telemetry/security-ai).
 - **MITRE ATT&CK**, på **Oversikt**: taktikkene og teknikkene deteksjonene i saken er tilordnet, hver med en lenke til sin side på attack.mitre.org.
 - **Tidslinje**: alt som skjedde med saken, med hvem som gjorde det.
-- **Detections**: det som slo til og åpnet saken eller ble lagt til i den, hvor ofte, og den siste hendelsen som traff.
+- **Deteksjoner**: det som slo til og åpnet saken eller ble lagt til i den, hvor ofte, og den siste hendelsen som traff.
 - **Entiteter**: brukerne, vertene og adressene saken gjelder, med aktiviteten deres på tvers av alle sikkerhetshendelsene dine de siste 7 dagene. Hver av dem åpnes i **Korreler**.
 - **Tilkoblede signaler**: vertene, klyngene, tjenestene og medlemmene saken nevner, slik OneUptime kjenner dem, og hva som skjedde på hver av dem rundt deteksjonene: loggene, sporene og målingene deres, hva som er åpent på dem, og hva som endret seg. Se [Tilkoblede signaler](/docs/telemetry/security-connected-signals).
 - **Playbooks**: hva hver playbook gjorde på saken, steg for steg, og stegene som venter på godkjenning. Mens kjøringer venter, viser menyen hvor mange ved siden av **Playbooks**.
@@ -111,12 +111,12 @@ Hver side beholder sakens topptekst øverst: nummer, prioritet, status og tittel
 Du trenger ikke åpne en sak for å behandle den. I køens lister har menyen ⋯ på raden til en sak **Tildel til meg**, **Tildel til en annen**, **Endre status** og **Endre prioritet**. For å behandle flere saker samtidig merker du dem og bruker de samme handlingene under **Massehandlinger**: De viser hvilke saker som ble endret, hvilke som ble latt være, og hvorfor.
 
 - For å gi en sak til noen andre bruker du **Tildel til en annen** og velger én person eller et team. En sak som hører til et team, venter under **Ikke tildelt** til noen på teamet tar den.
-- En status som lukker en sak, ber om en konklusjon og et avslutningsnotat, slik **Close Case** gjør.
+- En status som lukker en sak, ber om en konklusjon og et avslutningsnotat, slik **Lukk sak** gjør.
 - En lukket sak tildeles ikke noen. For å jobbe med den igjen gjenåpner du den med **Endre status**.
 
 ### Lukk en sak
 
-**Close Case** ber om en konklusjon og et valgfritt avslutningsnotat:
+**Lukk sak** ber om en konklusjon og et valgfritt avslutningsnotat:
 
 | Konklusjon | Betyr |
 | --- | --- |
@@ -142,13 +142,13 @@ Noen er innebygde, fordi OneUptime leser hva de betyr. De kan få nytt navn og n
 | Innebygd | Hva OneUptime gjør med den |
 | --- | --- |
 | Den nye statusen | Nye saker starter i den |
-| Den kvitterte statusen | Når en sak når den, registreres det når saken ble kvittert, og **Reopen** flytter en lukket sak tilbake til den |
+| Den kvitterte statusen | Når en sak når den, registreres det når saken ble kvittert, og **Gjenåpne** flytter en lukket sak tilbake til den |
 | Den begrensede statusen | Når en sak når den, registreres det når saken ble begrenset |
-| Den lukkede statusen | **Close Case** flytter en sak dit, med en konklusjon |
+| Den lukkede statusen | **Lukk sak** flytter en sak dit, med en konklusjon |
 | Prioritetene Kritisk, High, Medium, Low og Til orientering | En deteksjon åpner saken sin med prioriteten for alvorlighetsgraden sin, og en sak som noen åpner, starter på Medium |
 
 - Hvor en status står, avgjør hva en sak i den teller som, slik kolonnen **Teller som** viser: fra den kvitterte statusen og ned som kvittert, fra den begrensede statusen og ned som begrenset, fra den lukkede statusen og ned som lukket. En status du legger til, havner rett over den lukkede statusen, og når du flytter en sak til en status som lukker den, blir du først bedt om en konklusjon.
-- Plassen til en prioritet sier hvor mye den haster, den som haster mest først: **For Cases At Least**, valgene for varslinger og reglene for Slack og Microsoft Teams leser denne rekkefølgen. En prioritet du legger til, havner sist, og kolonnen **Deteksjonens alvorlighetsgrad** viser hvilke deteksjoner som åpner sakene sine med hver innebygde prioritet.
+- Plassen til en prioritet sier hvor mye den haster, den som haster mest først: **For saker med minst**, valgene for varslinger og reglene for Slack og Microsoft Teams leser denne rekkefølgen. En prioritet du legger til, havner sist, og kolonnen **Deteksjonens alvorlighetsgrad** viser hvilke deteksjoner som åpner sakene sine med hver innebygde prioritet.
 
 For å slutte å bruke en egen status eller prioritet bruker du **Arkiver** i raden dens. Ingen kan velge den igjen, og API-et, Terraform og MCP avviser den, men sakene som har den, beholder den, og du kan fortsatt filtrere på den. Arkiverte verdier står i den sammenslåtte delen **Arkiverte saksstatuser** eller **Arkiverte saksprioriteter** under tabellen, der **Fjern fra arkiv** henter en tilbake. **Slett** avvises så lenge saker har verdien eller en playbook kjører fra prioriteten.
 
@@ -197,7 +197,7 @@ For å legge ut i en kanal legger du til en regel under **Produkter → Security
 | Kilde for sikkerhetssak | Detection Rule, Threat Intel, Connected Product, Entitetsrisiko eller Manual |
 | Etiketter for sikkerhetssak | Etikettene på saken |
 
-De tre varslingene legges hver ut i kanalene til hver regel saken treffer i det øyeblikket. En regel der **Prioritet for sikkerhetssak** inneholder en av **Kritisk** og **High**, legger ut saker med High og Kritisk når de åpnes, og en sak med Medium når den stiger til High. En sikkerhetssak får aldri en egen kanal.
+De tre varslingene legges hver ut i kanalene til hver regel saken treffer i det øyeblikket. En regel der **Prioritet for sikkerhetssak** inneholder en av **Kritisk** og **Høy**, legger ut saker med High og Kritisk når de åpnes, og en sak med Medium når den stiger til High. En sikkerhetssak får aldri en egen kanal.
 
 ## Playbooks
 
@@ -212,11 +212,11 @@ En playbook er en liste med steg som kjører på en sak. Opprett en under **Prod
 | Vurdert som sannsynligvis ondsinnet | Én gang, når OneUptime AI sin vurdering leser saken som Sannsynligvis ondsinnet |
 | Manual | Bare når noen kjører den fra en sak |
 
-Enhver aktivert playbook kan også kjøres manuelt, med **Run Playbook** på en sak. En playbook som kjører av seg selv, kan snevres inn:
+Enhver aktivert playbook kan også kjøres manuelt, med **Kjør playbook** på en sak. En playbook som kjører av seg selv, kan snevres inn:
 
-- **For Cases At Least**: bare saker med denne prioriteten eller høyere.
-- **Only For Detections From**: bare når deteksjonen bak saken kom fra denne kilden.
-- **Only For These Detection Rules**: bare når den kom fra en av disse reglene.
+- **For saker med minst**: bare saker med denne prioriteten eller høyere.
+- **Bare for deteksjoner fra**: bare når deteksjonen bak saken kom fra denne kilden.
+- **Bare for disse deteksjonsreglene**: bare når den kom fra en av disse reglene.
 
 En deaktivert playbook kjører verken av seg selv eller manuelt.
 
@@ -248,9 +248,9 @@ En deaktivert playbook kjører verken av seg selv eller manuelt.
 
 En playbook har høyst 25 steg. De kjører i rekkefølge, hvert steg når det forrige er ferdig. Hvert steg kan også:
 
-- **Needs Approval**: stoppe kjøringen før steget til noen godkjenner det på saken. De fire stegene som stenger noen ute, stopper alltid kjøringen, med mindre en Security Admin slår det av.
-- **Only If Threat Intel Matched**: hoppe over steget med mindre et tidligere steg **Check entities against threat intel** i kjøringen fant en kjent indikator.
-- **Carry On If It Fails**: kjøre neste steg selv om dette feiler. Er det av, stopper et mislykket steg kjøringen.
+- **Krever godkjenning**: stoppe kjøringen før steget til noen godkjenner det på saken. De fire stegene som stenger noen ute, stopper alltid kjøringen, med mindre en Security Admin slår det av.
+- **Bare ved treff i trusselsinformasjon**: hoppe over steget med mindre et tidligere steg **Sjekk entiteter mot trusselsinformasjon** i kjøringen fant en kjent indikator.
+- **Fortsett hvis det mislykkes**: kjøre neste steg selv om dette feiler. Er det av, stopper et mislykket steg kjøringen.
 
 ### Inndemming
 
@@ -271,15 +271,15 @@ En sak som er gruppert etter en adresse, for eksempel et brute force-angrep mot 
 
 #### Beskyttede entiteter
 
-**Protected Entities**, under **Playbooks** i menyen, viser brukerne og vertene som ingen playbook demmer inn, for eksempel nødtilgangskontoer, domenekontrollere og VPN-gatewayer. En verdi treffer uten forskjell på store og små bokstaver, og `*` står for en hvilken som helst rekke tegn: `svc-*` beskytter alle tjenestekontoer. Et steg melder en beskyttet bruker eller vert som beskyttet og lar den være i fred. Security Admins vedlikeholder listen.
+**Beskyttede entiteter**, under **Playbooks** i menyen, viser brukerne og vertene som ingen playbook demmer inn, for eksempel nødtilgangskontoer, domenekontrollere og VPN-gatewayer. En verdi treffer uten forskjell på store og små bokstaver, og `*` står for en hvilken som helst rekke tegn: `svc-*` beskytter alle tjenestekontoer. Et steg melder en beskyttet bruker eller vert som beskyttet og lar den være i fred. Security Admins vedlikeholder listen.
 
 #### Godkjenning
 
-De fire stegene som stenger noen ute, venter på godkjenning. Bare en Security Admin kan slå av **Needs Approval** for ett av dem, og OneUptime registrerer hvem som gjorde det. Godkjenningen viser under **Act On** brukerne eller vertene steget ville handlet på, alle avkrysset: fjern krysset for dem det skal la være i fred. Beskyttede brukere og verter tilbys ikke. Den som startet en kjøring, kan ikke godkjenne stegene i den: det gjør noen andre, men vedkommende kan fortsatt avvise det.
+De fire stegene som stenger noen ute, venter på godkjenning. Bare en Security Admin kan slå av **Krever godkjenning** for ett av dem, og OneUptime registrerer hvem som gjorde det. Godkjenningen viser under **Handle på** brukerne eller vertene steget ville handlet på, alle avkrysset: fjern krysset for dem det skal la være i fred. Beskyttede brukere og verter tilbys ikke. Den som startet en kjøring, kan ikke godkjenne stegene i den: det gjør noen andre, men vedkommende kan fortsatt avvise det.
 
 #### Angre
 
-Angrestegene handler på brukerne eller vertene saken gjelder, akkurat som stegene de angrer. Når kjøringen har stoppet, har en inndemmet bruker eller vert også en egen knapp på steget sitt: **Unsuspend**, **Lift Containment** eller **Frigi**. En avsluttet Okta-økt kan ikke angres. Alt som angres, lagres på tidslinjen til saken og i revisjonsloggen til prosjektet.
+Angrestegene handler på brukerne eller vertene saken gjelder, akkurat som stegene de angrer. Når kjøringen har stoppet, har en inndemmet bruker eller vert også en egen knapp på steget sitt: **Opphev suspensjon**, **Opphev begrensning** eller **Frigi**. En avsluttet Okta-økt kan ikke angres. Alt som angres, lagres på tidslinjen til saken og i revisjonsloggen til prosjektet.
 
 ### Meldinger
 
@@ -311,7 +311,7 @@ Hver kjøring vises på saken sin og under **Produkter → Security Events → P
 | Mislyktes | Et steg feilet, og kjøringen stoppet |
 | Avbrutt | Noen avbrøt den eller avviste et steg |
 
-Et steg som venter på godkjenning, viser **Approve** og **Reject** på kjøringen, med en valgfri kommentar. Å godkjenne fører kjøringen videre fra det steget; å avvise avslutter den. Beslutningen, hvem som tok den, og kommentaren deres lagres på steget, på tidslinjen til saken og i revisjonsloggen til prosjektet. Siden **Godkjenninger**, under **Playbooks** i menyen, viser kjøringene som venter på en beslutning, og teller dem; **Playbook-kjøringer** viser hver kjøring. På **Playbook-kjøringer** og på siden til en playbook er hver kjøring én linje som sier hvor langt den kom, eller hvilket steg den stoppet ved; **Vis trinn** åpner stegene. En kjøring som venter på godkjenning, åpnes av seg selv.
+Et steg som venter på godkjenning, viser **Godkjenn** og **Avvis** på kjøringen, med en valgfri kommentar. Å godkjenne fører kjøringen videre fra det steget; å avvise avslutter den. Beslutningen, hvem som tok den, og kommentaren deres lagres på steget, på tidslinjen til saken og i revisjonsloggen til prosjektet. Siden **Godkjenninger**, under **Playbooks** i menyen, viser kjøringene som venter på en beslutning, og teller dem; **Playbook-kjøringer** viser hver kjøring. På **Playbook-kjøringer** og på siden til en playbook er hver kjøring én linje som sier hvor langt den kom, eller hvilket steg den stoppet ved; **Vis trinn** åpner stegene. En kjøring som venter på godkjenning, åpnes av seg selv.
 
 En kjøring som slutter å høre fra workeren sin, for eksempel etter en omstart, plukkes opp igjen: en kjøring i kø settes i kø på nytt etter 2 minutter, og en kjøring som ikke har sagt noe på 30 minutter, markeres som mislykket.
 
@@ -329,12 +329,12 @@ Over dem viser en stripe hvordan sikkerhet er satt opp: kildene, deteksjonene, s
 ## Finn trusler
 
 - **Entiteter** rangerer brukerne, vertene, adressene og hashene som funnene dine nevner oftest, over det siste døgnet, den siste uken eller måneden, og slår opp hvilken som helst verdi på tvers av 30 dager med hendelser. Velg en entitet for å åpne den i **Korreler**.
-- **Rule Library** har ferdige deteksjonsregler for trusler mot identitet, endepunkter, sky, nettverk, web og Kubernetes. Hver av dem er en Sigma-regel skrevet for feltene som alle tilkoblede kilder normaliseres til. Raden dens viser hva den finner, MITRE ATT&CK-taktikkene og -teknikkene den er merket med, hendelsene den leser og om noen har kommet inn de siste 7 dagene (**Mottas** eller **Mottas ikke**), og alvorlighetsgraden. Avgrens listen etter kategori, etter dataene reglene leser og etter om du har lagt dem til, eller søk i den etter navn, ATT&CK-teknikk eller alvorlighetsgrad; adressen til siden tar vare på filtrene. Velg en regel for å se detaljene: hvordan du begynner å sende hendelsene den leser, hvordan den kjører, og Sigma-regelen. **Legg til** oppretter den som din egen deteksjonsregel, slått på og med saker i stedet for varsler; endre den under **Detection Rules** som alle andre. Reglene merket **Anbefalt** finner trusler i data OneUptime allerede har, og én knapp legger til dem du ikke har ennå.
-- **ATT&CK Coverage** viser taktikkene i MITRE ATT&CK, hver med hvor mange av teknikkene dens de aktiverte reglene dine dekker, og hvor mange flere **Rule Library** har regler for. Åpne en taktikk for teknikkene dens, eller bytt til **Matrise** for hele matrisen. Velg en teknikk for å se reglene fra biblioteket som dekker den, og åpne **Rule Library** på dem.
+- **Regelbibliotek** har ferdige deteksjonsregler for trusler mot identitet, endepunkter, sky, nettverk, web og Kubernetes. Hver av dem er en Sigma-regel skrevet for feltene som alle tilkoblede kilder normaliseres til. Raden dens viser hva den finner, MITRE ATT&CK-taktikkene og -teknikkene den er merket med, hendelsene den leser og om noen har kommet inn de siste 7 dagene (**Mottas** eller **Mottas ikke**), og alvorlighetsgraden. Avgrens listen etter kategori, etter dataene reglene leser og etter om du har lagt dem til, eller søk i den etter navn, ATT&CK-teknikk eller alvorlighetsgrad; adressen til siden tar vare på filtrene. Velg en regel for å se detaljene: hvordan du begynner å sende hendelsene den leser, hvordan den kjører, og Sigma-regelen. **Legg til** oppretter den som din egen deteksjonsregel, slått på og med saker i stedet for varsler; endre den under **Deteksjonsregler** som alle andre. Reglene merket **Anbefalt** finner trusler i data OneUptime allerede har, og én knapp legger til dem du ikke har ennå.
+- **ATT&CK-dekning** viser taktikkene i MITRE ATT&CK, hver med hvor mange av teknikkene dens de aktiverte reglene dine dekker, og hvor mange flere **Regelbibliotek** har regler for. Åpne en taktikk for teknikkene dens, eller bytt til **Matrise** for hele matrisen. Velg en teknikk for å se reglene fra biblioteket som dekker den, og åpne **Regelbibliotek** på dem.
 
 ## Automatiser
 
-- **Arbeidsflyter**: en sak eller et notat kan starte en arbeidsflyt når den opprettes, oppdateres eller slettes. Et steg **Run a workflow** starter en arbeidsflyt som har en webhook som utløser.
+- **Arbeidsflyter**: en sak eller et notat kan starte en arbeidsflyt når den opprettes, oppdateres eller slettes. Et steg **Kjør en arbeidsflyt** starter en arbeidsflyt som har en webhook som utløser.
 - **API**: saker, notater, deteksjoner, playbooks, kjøringer, beskyttede entiteter og saksprioriteter og saksstatuser har det samme REST-API-et som resten av OneUptime, under `/security-case`, `/security-case-note`, `/security-detection`, `/security-playbook`, `/security-playbook-run`, `/security-protected-entity`, `/security-case-priority` og `/security-case-status`. Se [API-referanse](/docs/api-reference/api-reference).
 - AI-agenter: MCP-serveren har verktøy for saker, notater, deteksjoner, playbooks og saksprioriteter og saksstatuser. Se [MCP-server](/docs/ai/mcp-server).
 - Terraform: ressursene `oneuptime_security_case_priority` og `oneuptime_security_case_status` holder prioritetene og statusene til et prosjekt som kode.
@@ -342,7 +342,7 @@ Over dem viser en stripe hvordan sikkerhet er satt opp: kildene, deteksjonene, s
 ## Feilsøking
 
 :::details En regel treffer, men ingen sak åpnes
-Sjekk **Open a Case on Match** i regelens steg **Ved treff**. En deteksjon om en entitet som allerede har en åpen sak, legges til i den saken i stedet for å åpne en ny: se etter den under **Detections** på den åpne saken.
+Sjekk **Åpne en sak ved treff** i regelens steg **Ved treff**. En deteksjon om en entitet som allerede har en åpen sak, legges til i den saken i stedet for å åpne en ny: se etter den under **Deteksjoner** på den åpne saken.
 :::
 
 :::details Ingen fikk beskjed om en sak
@@ -350,7 +350,7 @@ Se på **Tidslinje** for saken, som viser hvem som ble varslet. En varsling om *
 :::
 
 :::details En playbook kjørte ikke
-Sjekk at den er aktivert, at innstillingen **Trigger** passer (Case Opened kjører én gang, når en sak åpnes), og at saken oppfyller innstillingene **For Cases At Least**, **Only For Detections From** og **Only For These Detection Rules**. En sak som er åpnet manuelt, har ingen deteksjon, så en playbook som er begrenset til en kilde eller til regler, kjører ikke på den.
+Sjekk at den er aktivert, at innstillingen **Utløser** passer (Case Opened kjører én gang, når en sak åpnes), og at saken oppfyller innstillingene **For saker med minst**, **Bare for deteksjoner fra** og **Bare for disse deteksjonsreglene**. En sak som er åpnet manuelt, har ingen deteksjon, så en playbook som er begrenset til en kilde eller til regler, kjører ikke på den.
 :::
 
 :::details Et Contain-steg mislyktes

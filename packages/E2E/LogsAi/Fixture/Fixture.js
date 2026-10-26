@@ -293,14 +293,25 @@ await i18next.use(initReactI18next).init({
  * to left), with the Dashboard's own locale file - loaded only then, as a
  * chunk of its own, so an English page loads none of it.
  */
-const LOCALES = {
-  de: () => import("../../../App/FeatureSet/Dashboard/src/Locales/de.json"),
-  fa: () => import("../../../App/FeatureSet/Dashboard/src/Locales/fa.json"),
-};
+/*
+ * One static import per language, so the ?lang= value only ever chooses
+ * among these - it never names the function that runs.
+ */
+function loadLocale(language) {
+  switch (language) {
+    case "de":
+      return import("../../../App/FeatureSet/Dashboard/src/Locales/de.json");
+    case "fa":
+      return import("../../../App/FeatureSet/Dashboard/src/Locales/fa.json");
+    default:
+      return null;
+  }
+}
 const language = params.get("lang");
+const localeLoading = loadLocale(language);
 
-if (language && LOCALES[language]) {
-  const locale = await LOCALES[language]();
+if (localeLoading) {
+  const locale = await localeLoading;
   i18next.addResourceBundle(
     language,
     "translation",

@@ -1,6 +1,6 @@
 # Kjøre regler på eksisterende ressurser
 
-Etikettregler, eierregler og personvernregler kjører automatisk når en ressurs **opprettes**. En regel du skriver i dag, gjør derfor ingenting med monitorene, hendelsene eller vertene du allerede har. **Run Now** tetter det hullet: den bruker én regel på hver ressurs som allerede finnes i prosjektet.
+Etikettregler, eierregler og personvernregler kjører automatisk når en ressurs **opprettes**. En regel du skriver i dag, gjør derfor ingenting med monitorene, hendelsene eller vertene du allerede har. **Kjør nå** tetter det hullet: den bruker én regel på hver ressurs som allerede finnes i prosjektet.
 
 ```mermaid title="Hva én kjøring gjør"
 flowchart TB
@@ -16,8 +16,8 @@ flowchart TB
 
 - **Etikettregler** og **Eierregler**, for hver ressurs som har dem: monitorer, hendelser, hendelsesepisoder, varsler, varselepisoder, planlagte vedlikeholdshendelser, statussider, tjenester, verter, Kubernetes-klynger, Docker-verter, Docker Swarm-klynger, Podman-verter, Proxmox-klynger, VMware vCentre, Ceph-klynger, lagringsmatriser, databaser, køer, IoT-flåter, serverløse funksjoner, skyressurser, RUM-applikasjoner, dashbord, vaktpolicyer, vaktplaner, policyer for innkommende anrop, arbeidsflyter, runbooks, nettverksenheter og SLO-er.
 - **Personvernregler**, for hendelser, varsler, hendelsesepisoder og varselepisoder.
-- **Monitor Rules** på en statusside. De synkroniserer allerede siden på nytt hver gang en regel lagres; å kjøre en synkroniserer den med en gang.
-- **Monitor Rules** på en SLO. De synkroniserer allerede SLO-en på nytt hver gang en regel lagres; å kjøre en synkroniserer SLO-ens monitorer med en gang. Se [Monitorer og monitorregler](/docs/slo/monitor-rules).
+- **Monitorregler** på en statusside. De synkroniserer allerede siden på nytt hver gang en regel lagres; å kjøre en synkroniserer den med en gang.
+- **Monitorregler** på en SLO. De synkroniserer allerede SLO-en på nytt hver gang en regel lagres; å kjøre en synkroniserer SLO-ens monitorer med en gang. Se [Monitorer og monitorregler](/docs/slo/monitor-rules).
 
 Regler som utfører en handling i stedet for å beskrive en ressurs (**Vaktregler**, **Runbook-regler**, **AI-regler** og **Grupperingsregler**), kan ikke kjøres på eksisterende poster. Å kjøre dem ville tilkalle folk, kjøre runbooks, starte rettinger eller omorganisere episoder for hendelser som allerede er over.
 
@@ -28,7 +28,7 @@ For å kjøre en regel trenger du tillatelse til å redigere regelen **og** til 
 > [!IMPORTANT]
 > En tillatelse som er begrenset til bestemte etiketter, eller til ressurser du eier, er ikke nok: en kjøring kan endre alle ressursene i prosjektet. Teamenes blokkeringslister gjelder som overalt ellers, og en blokkering begrenset til noen etiketter teller også: en kjøring ville endre ressursene som har de etikettene, så en blokkering med etiketter på redigering av ressursene en regel endrer, avviser kjøringen.
 
-Et nettverks regler krever det samme når du kjører dem på enhetene du allerede har. **Run Now** for en regel for stedstildeling eller enhetsetiketter krever tillatelse til å redigere regelen og **Edit Network Device**. **Dry Run** og **Run Rule** for en regel for automatisk import krever tillatelse til å redigere regelen, **Create Network Device** og, når regelen har en monitormal, **Create Monitor**. Hver av dem må nå hele prosjektet. Se [Automatisk import med regler for automatisk import](/docs/monitor/network-device-monitor#importer-automatisk-med-automatiske-importregler).
+Et nettverks regler krever det samme når du kjører dem på enhetene du allerede har. **Kjør nå** for en regel for stedstildeling eller enhetsetiketter krever tillatelse til å redigere regelen og **Edit Network Device**. **Dry Run** og **Run Rule** for en regel for automatisk import krever tillatelse til å redigere regelen, **Create Network Device** og, når regelen har en monitormal, **Create Monitor**. Hver av dem må nå hele prosjektet. Se [Automatisk import med regler for automatisk import](/docs/monitor/network-device-monitor#importer-automatisk-med-automatiske-importregler).
 
 ## Kjøre én regel
 
@@ -39,7 +39,7 @@ Et nettverks regler krever det samme når du kjører dem på enhetene du allered
 
 ### Velg Run Now
 
-Åpne menyen **⋯** på slutten av raden til regelen og velg **Run Now**, eller velg **Vis** og deretter **Run Now** på regelens egen side. En dialogboks forteller hva kjøringen kommer til å gjøre.
+Åpne menyen **⋯** på slutten av raden til regelen og velg **Kjør nå**, eller velg **Vis** og deretter **Kjør nå** på regelens egen side. En dialogboks forteller hva kjøringen kommer til å gjøre.
 
 ### Velg om nye eiere skal varsles
 
@@ -56,7 +56,7 @@ Når kjøringen er ferdig, forteller dialogboksen hvor mange ressurser regelen t
 
 ## Kjøre flere regler
 
-Velg regler i tabellen, åpne menyen med massehandlinger og velg **Run Now**. De valgte reglene kjører etter hverandre.
+Velg regler i tabellen, åpne menyen med massehandlinger og velg **Kjør nå**. De valgte reglene kjører etter hverandre.
 
 - Eiere som legges til av en massekjøring, varsles aldri. Kjør i stedet én enkelt regel for å varsle dem.
 - En regel som ikke kan kjøre (for eksempel fordi den er deaktivert), vises med årsaken, og de andre reglene kjører likevel.

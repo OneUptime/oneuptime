@@ -119,7 +119,7 @@ Ein Host führt die erste Konfiguration der Liste aus, die für ihn gilt: Ziehen
 
 ### Versionen und Wiederherstellen
 
-Die Liste **Versionen** einer Konfiguration bewahrt jede gespeicherte Änderung auf, die neueste zuerst, mit wer sie gespeichert hat und wann. Wählen Sie **Ansehen**, um eine Version zu lesen, und **Wiederherstellen**, um sie erneut an die Hosts zu senden: Sie wird als neue Version gespeichert, die sagt, welche sie wiederhergestellt hat, sodass die Liste immer zeigt, was jeder Host erhalten hat.
+Die Liste **Versionen** einer Konfiguration bewahrt jede gespeicherte Änderung auf, die neueste zuerst, mit wer sie gespeichert hat und wann. Wählen Sie **Anzeigen**, um eine Version zu lesen, und **Wiederherstellen**, um sie erneut an die Hosts zu senden: Sie wird als neue Version gespeichert, die sagt, welche sie wiederhergestellt hat, sodass die Liste immer zeigt, was jeder Host erhalten hat.
 
 ### Eine Konfiguration für einen Host wählen
 

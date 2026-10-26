@@ -169,6 +169,8 @@ const TeamCustomRoleTable: FunctionComponent<ComponentProps> = (
   const addButton: CardButtonSchema | null = PermissionGate.gateCardButton(
     {
       title: "Add Custom Role",
+      // On a phone "Add", beside the ⋯: the card's title names the kind.
+      phoneTitle: "Add",
       // NORMAL with the Add icon, so the empty table repeats it as its way on.
       icon: IconProp.Add,
       buttonStyle: ButtonStyleType.NORMAL,

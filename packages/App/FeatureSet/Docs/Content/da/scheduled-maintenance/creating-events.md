@@ -22,7 +22,7 @@ flowchart TB
 
 ## Før du begynder
 
-- **Din rolle.** At oprette en begivenhed kræver **Project Owner**, **Project Admin**, **Project Member**, **Scheduled Maintenance Admin** eller **Scheduled Maintenance Member** eller en brugerdefineret rolle med **Create Scheduled Maintenance**.
+- **Din rolle.** At oprette en begivenhed kræver **Projektejer**, **Projektadministrator**, **Projektmedlem**, **Vedligeholdelsesadministrator** eller **Vedligeholdelsesmedlem** eller en brugerdefineret rolle med **Create Scheduled Maintenance**.
 - **Dine statussider.** For at informere kunderne skal du have en statusside, der viser planlagte vedligeholdelsesbegivenheder. Se [Statussider – Oversigt](/docs/status-pages/index).
 
 ## Opret en begivenhed

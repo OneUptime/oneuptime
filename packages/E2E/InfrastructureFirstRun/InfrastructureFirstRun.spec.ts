@@ -14,11 +14,14 @@ import path from "path";
  * (Fixture/Fixture.js). Only the data boundary and the signed-in user are
  * synthetic.
  *
- * A new project opens a list and sees what the list is (the empty table),
- * what to do (the setup guide under it), and - where creating a row by hand
- * connects nothing - Create only in the card header. When the agent
- * reports, the page shows the first record and puts the guide away on its
- * own: no reload. On a desktop, on a phone, in the dark theme and in German.
+ * A new project opens a list and sees what the list is (the empty table)
+ * and what the product gives (the showcase under it, with the list's Add
+ * button, which opens the setup guide). The empty table does not repeat the
+ * button: it is in the card header and on the showcase. Cloud resources,
+ * where nothing is added by hand, keeps its Connect tiles and folded guide.
+ * When the agent reports, the page shows the first record and puts the
+ * showcase away on its own: no reload. On a desktop, on a phone, in the dark
+ * theme and in German.
  *
  * Every test puts up a network fence that aborts anything leaving the
  * fixture server, and fails on an uncaught page error, on a request the
@@ -36,8 +39,18 @@ const CLOUD_RESOURCES: string = `/dashboard/${PROJECT_ID}/cloud/resources`;
 // FIRST_RECORD_POLL_INTERVAL_MS: how often an empty list looks again.
 const POLL_MS: number = 10_000;
 
+/*
+ * FIRST_RUN_GUIDE_DESCRIPTION: under the title of Cloud resources' folded
+ * guide. Hosts and vCenters show their showcase instead, and no guide.
+ */
 const GUIDE_SENTENCE: string =
   "Follow the steps below. This list fills in on its own once data arrives.";
+
+// The showcases' titles: HostShowcase.ts and VMwareVCenterShowcase.ts.
+const HOSTS_SHOWCASE_TITLE: string =
+  "Know what every server is doing, down to the process";
+const VCENTERS_SHOWCASE_TITLE: string =
+  "See every host, VM and datastore in vSphere";
 
 // The fixture's answer to a count that fails (?failFirstCount=1).
 const COUNT_FAILURE: string =
@@ -183,6 +196,19 @@ function emptyTableCreate(page: Page): Locator {
   return page.getByTestId("empty-table-create-button");
 }
 
+// What an empty list shows under its table: the product, and its Add button.
+function showcase(page: Page): Locator {
+  return page.getByTestId("resource-showcase");
+}
+
+function showcaseTitle(page: Page): Locator {
+  return showcase(page).getByRole("heading", { level: 2 });
+}
+
+function showcaseButton(page: Page): Locator {
+  return showcase(page).getByTestId("resource-showcase-add-button");
+}
+
 // The filter chips over the list's table.
 function chips(page: Page): Locator {
   return page.getByTestId("facet-filter-bar");
@@ -219,7 +245,7 @@ async function isBelow(upper: Locator, lower: Locator): Promise<boolean> {
  * ---------------------------------------------------------------------------
  */
 
-test("a new project's Hosts: the empty table says what the list is, the guide under it what to do, and Add Host stays in the header", async ({
+test("a new project's Hosts: the empty table says what the list is, the showcase under it what Hosts gives, and Add Host opens the one command", async ({
   page,
 }: {
   page: Page;
@@ -232,28 +258,37 @@ test("a new project's Hosts: the empty table says what the list is, the guide un
     "Hosts being monitored in this project. Add one with a single command on the host.",
   );
 
-  // The guide is the one command that adds a host (Add Host).
-  const guideTitle: Locator = page.getByText("Add your first host", {
-    exact: true,
-  });
-  const guideSentence: Locator = page.getByText(GUIDE_SENTENCE, {
-    exact: true,
-  });
-  await expect(guideTitle).toBeVisible();
-  await expect(guideSentence).toBeVisible();
-  expect(await isBelow(emptyTable(page), guideTitle)).toBe(true);
+  // What Hosts gives, under the empty table. The guide waits behind Add Host.
+  await expect(showcaseTitle(page)).toHaveText(HOSTS_SHOWCASE_TITLE);
+  expect(await isBelow(emptyTable(page), showcase(page))).toBe(true);
+  await expect(page.getByTestId("setup-guide")).toHaveCount(0);
+  await expect(page.getByText(GUIDE_SENTENCE)).toHaveCount(0);
 
-  // Typing a host in by hand connects nothing: the one command is the way in.
+  /*
+   * Typing a host in by hand connects nothing: the one command is the way
+   * in, from Add Host in the header or on the showcase.
+   */
   await expect(headerButton(page, "Add Host")).toBeVisible();
   await expect(headerButton(page, "Create Host")).toHaveCount(0);
+  await expect(showcaseButton(page)).toHaveText("Add Host");
   await expect(emptyTableCreate(page)).toHaveCount(0);
   // Nothing to filter yet: no chips over the empty table.
   await expect(chips(page)).toHaveCount(0);
 
   await screenshot(page, "hosts-first-run");
+
+  // The showcase's Add Host is the header's: the one command, in a dialog.
+  await showcaseButton(page).click();
+  const addHost: Locator = page.getByTestId("add-host-modal");
+  await expect(addHost.getByTestId("setup-guide")).toBeVisible();
+  await page
+    .getByTestId("modal")
+    .getByRole("button", { name: "Done", exact: true })
+    .click();
+  await expect(addHost).toHaveCount(0);
 });
 
-test("the first host to report shows in the table, and the guide goes away, without a reload", async ({
+test("the first host to report shows in the table, and the showcase goes away, without a reload", async ({
   page,
 }: {
   page: Page;
@@ -274,7 +309,7 @@ test("the first host to report shows in the table, and the guide goes away, with
     })
     .toBe(2);
   await expect(emptyTable(page)).toBeVisible();
-  await expect(page.getByText(GUIDE_SENTENCE)).toBeVisible();
+  await expect(showcaseTitle(page)).toHaveText(HOSTS_SHOWCASE_TITLE);
 
   await arrive(page, "host");
   await page.clock.runFor(POLL_MS + 1);
@@ -283,8 +318,7 @@ test("the first host to report shows in the table, and the guide goes away, with
     tableCard(page).getByText("web-01", { exact: true }).first(),
   ).toBeVisible();
   await expect(emptyTable(page)).toHaveCount(0);
-  await expect(page.getByText("Add your first host")).toHaveCount(0);
-  await expect(page.getByText(GUIDE_SENTENCE)).toHaveCount(0);
+  await expect(showcase(page)).toHaveCount(0);
   // With a host to filter, the chips are back.
   await expect(chips(page)).toBeVisible();
   expect(
@@ -304,7 +338,7 @@ test("the first host to report shows in the table, and the guide goes away, with
   await screenshot(page, "hosts-first-host-arrived");
 });
 
-test("a project that has a host: no guide, and the page does not keep looking", async ({
+test("a project that has a host: no showcase, and the page does not keep looking", async ({
   page,
 }: {
   page: Page;
@@ -314,7 +348,7 @@ test("a project that has a host: no guide, and the page does not keep looking", 
   await expect(
     tableCard(page).getByText("web-01", { exact: true }).first(),
   ).toBeVisible();
-  await expect(page.getByText(GUIDE_SENTENCE)).toHaveCount(0);
+  await expect(showcase(page)).toHaveCount(0);
   await expect(emptyTable(page)).toHaveCount(0);
   await expect(chips(page)).toBeVisible();
 
@@ -335,7 +369,7 @@ test("a first count that failed says so, and its Refresh counts again", async ({
   // The message and its Refresh share one block, so the words are matched within it.
   await expect(page.getByText(COUNT_FAILURE)).toBeVisible();
   await expect(emptyTable(page)).toHaveCount(0);
-  await expect(page.getByText(GUIDE_SENTENCE)).toHaveCount(0);
+  await expect(showcase(page)).toHaveCount(0);
   expect(await checks(page, "Host")).toBe(1);
 
   const refresh: Locator = page.getByTestId("refresh-button");
@@ -344,7 +378,7 @@ test("a first count that failed says so, and its Refresh counts again", async ({
   await refresh.click();
 
   await expect(emptyTable(page)).toBeVisible();
-  await expect(page.getByText(GUIDE_SENTENCE, { exact: true })).toBeVisible();
+  await expect(showcaseTitle(page)).toHaveText(HOSTS_SHOWCASE_TITLE);
   await expect(page.getByText(COUNT_FAILURE)).toHaveCount(0);
   expect(await checks(page, "Host")).toBe(2);
 });
@@ -355,7 +389,7 @@ test("a first count that failed says so, and its Refresh counts again", async ({
  * ---------------------------------------------------------------------------
  */
 
-test("vCenters: connecting one by hand is a way in, so the empty table keeps Connect vCenter", async ({
+test("vCenters: connecting one by hand is a way in, from Connect vCenter in the header and on the showcase - not in the empty table", async ({
   page,
 }: {
   page: Page;
@@ -363,15 +397,26 @@ test("vCenters: connecting one by hand is a way in, so the empty table keeps Con
   await open(page, VCENTERS);
 
   await expect(emptyTable(page)).toContainText("No vCenters yet");
+  await expect(showcaseTitle(page)).toHaveText(VCENTERS_SHOWCASE_TITLE);
+  expect(await isBelow(emptyTable(page), showcase(page))).toBe(true);
+  await expect(page.getByTestId("setup-guide")).toHaveCount(0);
+  await expect(page.getByText(GUIDE_SENTENCE)).toHaveCount(0);
+
+  // In the card header and on the showcase, and not in the empty table.
   await expect(headerButton(page, "Connect vCenter")).toBeVisible();
-  await expect(emptyTableCreate(page)).toBeVisible();
-  await expect(emptyTableCreate(page)).toHaveText("Connect vCenter");
-  await expect(
-    page.getByText("Getting Started with VMware Monitoring", { exact: true }),
-  ).toBeVisible();
-  await expect(page.getByText(GUIDE_SENTENCE, { exact: true })).toBeVisible();
+  await expect(showcaseButton(page)).toHaveText("Connect vCenter");
+  await expect(emptyTableCreate(page)).toHaveCount(0);
 
   await screenshot(page, "vcenters-first-run");
+
+  // The showcase's button opens the table's own form, as the header's does.
+  await showcaseButton(page).click();
+  const form: Locator = page.getByTestId("modal");
+  await expect(
+    form.getByPlaceholder("https://vcsa.example.com", { exact: true }),
+  ).toBeVisible();
+  await form.getByTestId("modal-footer-close-button").click();
+  await expect(page.getByTestId("modal")).toHaveCount(0);
 
   // The first vCenter an agent sends shows on its own, too.
   await arrive(page, "vcenter");
@@ -379,7 +424,7 @@ test("vCenters: connecting one by hand is a way in, so the empty table keeps Con
   await expect(
     tableCard(page).getByText("vcenter-lab", { exact: true }).first(),
   ).toBeVisible();
-  await expect(page.getByText(GUIDE_SENTENCE)).toHaveCount(0);
+  await expect(showcase(page)).toHaveCount(0);
   await expect(emptyTableCreate(page)).toHaveCount(0);
 });
 
@@ -854,7 +899,7 @@ test("in German, Customize Columns reads German and its search finds the columns
  * ---------------------------------------------------------------------------
  */
 
-test("on a phone the first run fits, with the guide under the empty table", async ({
+test("on a phone the first run fits, with the showcase under the empty table", async ({
   page,
 }: {
   page: Page;
@@ -864,7 +909,8 @@ test("on a phone the first run fits, with the guide under the empty table", asyn
 
   await expect(emptyTable(page)).toBeVisible();
   await expect(emptyTableCreate(page)).toHaveCount(0);
-  await expect(page.getByText(GUIDE_SENTENCE)).toBeVisible();
+  await expect(showcaseTitle(page)).toHaveText(HOSTS_SHOWCASE_TITLE);
+  await expect(showcaseButton(page)).toBeVisible();
   expect(await scrollsSideways(page)).toBe(false);
   await screenshot(page, "hosts-first-run-phone");
 
@@ -872,7 +918,8 @@ test("on a phone the first run fits, with the guide under the empty table", asyn
   await expect(page.getByTestId("synthetic-banner")).toBeVisible({
     timeout: 60000,
   });
-  await expect(emptyTableCreate(page)).toBeVisible();
+  await expect(showcaseButton(page)).toHaveText("Connect vCenter");
+  await expect(emptyTableCreate(page)).toHaveCount(0);
   expect(await scrollsSideways(page)).toBe(false);
   await screenshot(page, "vcenters-first-run-phone");
 });
@@ -881,11 +928,11 @@ test("in the dark theme", async ({ page }: { page: Page }) => {
   await open(page, HOSTS, "theme=dark");
 
   await expect(emptyTable(page)).toBeVisible();
-  await expect(page.getByText(GUIDE_SENTENCE)).toBeVisible();
+  await expect(showcaseTitle(page)).toHaveText(HOSTS_SHOWCASE_TITLE);
   await screenshot(page, "hosts-first-run-dark");
 });
 
-test("in German, the guide's sentence and the list's description are translated", async ({
+test("in German, the list's description and Add Host on the showcase are translated", async ({
   page,
 }: {
   page: Page;
@@ -893,15 +940,14 @@ test("in German, the guide's sentence and the list's description are translated"
   await open(page, HOSTS, "lang=de");
 
   await expect(emptyTable(page)).toBeVisible();
-  await expect(
-    page.getByText(
-      "Folge den Schritten unten. Diese Liste füllt sich von selbst, sobald Daten eintreffen.",
-      { exact: true },
-    ),
-  ).toBeVisible();
   await expect(emptyTable(page)).toContainText(
     "Hosts, die in diesem Projekt überwacht werden. Fügen Sie einen mit einem einzigen Befehl auf dem Host hinzu.",
   );
-  await expect(page.getByText(GUIDE_SENTENCE)).toHaveCount(0);
+  /*
+   * The showcase's button reads as the header's. Its own words are new and
+   * not translated yet, so they are not checked here.
+   */
+  await expect(headerButton(page, "Host hinzufügen")).toBeVisible();
+  await expect(showcaseButton(page)).toHaveText("Host hinzufügen");
   await screenshot(page, "hosts-first-run-de");
 });

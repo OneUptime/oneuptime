@@ -54,12 +54,12 @@ Er worden met het project drie statussen aangemaakt, in deze volgorde. Het aanma
 
 | Status           | `order` | Vlag                  | Kleur     | Wat het betekent                                   |
 | ---------------- | ------- | --------------------- | --------- | -------------------------------------------------- |
-| **Identified**   | `1`     | `isCreatedState`      | `#fd625e` | De status waarin nieuwe incidenten belanden.       |
+| **Geïdentificeerd**   | `1`     | `isCreatedState`      | `#fd625e` | De status waarin nieuwe incidenten belanden.       |
 | **Bevestigd**    | `2`     | `isAcknowledgedState` | `#ffbf53` | Iemand heeft het incident opgepakt.                |
 | **Opgelost**     | `3`     | `isResolvedState`     | `#2ab57d` | Het incident is voorbij en telt niet meer als actief. |
 
 > [!NOTE]
-> De eerste status heet **Identified**, ook al noemen verschillende beschrijvingen in het product hem nog de status "created". Als een document of tooltip "aanmaakstatus" zegt, bedoelt het de status die `isCreatedState` draagt — in een nieuw project is dat **Identified**.
+> De eerste status heet **Geïdentificeerd**, ook al noemen verschillende beschrijvingen in het product hem nog de status "created". Als een document of tooltip "aanmaakstatus" zegt, bedoelt het de status die `isCreatedState` draagt — in een nieuw project is dat **Geïdentificeerd**.
 
 ## Wat elke statusvlag werkelijk doet
 
@@ -74,7 +74,7 @@ Per project hoort maar één status elke vlag te dragen — de opzoekingen pakke
 - **Ze houden hun volgorde.** De aanmaakstatus komt vóór de bevestigde status, en de bevestigde vóór de opgeloste. Een sleepbeweging die dat zou breken — **Opgelost** boven **Bevestigd** bijvoorbeeld — wordt geweigerd, de rijen gaan terug en de pagina zegt waarom.
 - **Ze kunnen niet worden verwijderd.** Hun **Verwijderen** blijft in het menu van de rij staan, vergrendeld, met de reden. Een bulkverwijdering slaat ze over en noemt ze als niet verwijderd. Ook de API weigert de laatste aanmaak-, bevestigde of opgeloste status van een project te verwijderen.
 
-Omdat de interface statusnamen dynamisch leest, verandert het hernoemen van een status wat je overal ziet — de statistiektegels (**Acknowledged in** en **Resolved in** met de vooraf aangemaakte namen), de bevestiging **Incident markeren als …** van een eigen status en het label in de incidentenlijst volgen allemaal de naam die je de rij gaf.
+Omdat de interface statusnamen dynamisch leest, verandert het hernoemen van een status wat je overal ziet — de statistiektegels (**Bevestigd na** en **Opgelost na** met de vooraf aangemaakte namen), de bevestiging **Incident markeren als …** van een eigen status en het label in de incidentenlijst volgen allemaal de naam die je de rij gaf.
 
 ## Eigen statussen toevoegen
 
@@ -188,7 +188,7 @@ Een incident is bevestigd vanaf het moment dat het in je bevestigde status komt,
 - **Bevestigen wordt niet meer aangeboden.** Niet in de kop van het incident, niet in de mobiele app (de knop en de veegbeweging), niet in Slack of Microsoft Teams, en niet via `acknowledge_incident` van de OneUptime MCP-server. Het toch bevestigen — vanaf een oproeppagina, Slack of Teams — wordt geweigerd met "Incident is already acknowledged." (of "Incident is already resolved."), in plaats van het weer omhoog in zijn lijst te zetten.
 - **De bereikbaarheidsdienst stopt met oproepen ervoor.** Een responder die zijn oproep bevestigt nadat een collega het incident bevestigde of verder zette, krijgt zijn oproep bevestigd, en het incident blijft waar het is.
 - **De SLA wordt als beantwoord gemarkeerd**, bij de eerste zo'n verplaatsing; verder gaan door latere statussen houdt dat tijdstip.
-- **De tijd tot bevestiging loopt tot die eerste verplaatsing** — de statistiektegel op het **Overzicht** van het incident, de metriek **Time to Acknowledge**, een meting die eindigt wanneer **Het incident wordt bevestigd**, en de MTTA in de samenvattingen in Slack en Microsoft Teams. Een incident dat rechtstreeks van **Identified** naar **Investigating** ging, werd toen bevestigd; een incident dat meteen werd opgelost, werd bevestigd toen het werd opgelost.
+- **De tijd tot bevestiging loopt tot die eerste verplaatsing** — de statistiektegel op het **Overzicht** van het incident, de metriek **Time to Acknowledge**, een meting die eindigt wanneer **Het incident wordt bevestigd**, en de MTTA in de samenvattingen in Slack en Microsoft Teams. Een incident dat rechtstreeks van **Geïdentificeerd** naar **Investigating** ging, werd toen bevestigd; een incident dat meteen werd opgelost, werd bevestigd toen het werd opgelost.
 - **Een filter Bevestigd** — op de widget met een incidentenlijst van een dashboard bijvoorbeeld — toont de incidenten in je bevestigde status en in elke latere status, tot aan opgelost.
 
 Waarschuwingen en episodes volgen dezelfde regel, met je waarschuwingsstatussen.
@@ -206,7 +206,7 @@ Van **Opgelost** verder gaan naar een latere status — **Closed** bijvoorbeeld 
 
 De pagina **Statustijdlijn** in het zijmenu van het incident is het auditspoor van elke status waarin het incident heeft gestaan. De kaart op die pagina heet **Statustijdlijn**, en tekent het hele leven van het incident als tijdlijn:
 
-- **De band** toont elke status als een stuk in zijn kleur, zo lang als het incident erin stond, zodat je in één oogopslag ziet hoe het incident verliep. Zolang het incident open is, loopt de band door tot **Nu**; is het opgelost, dan stopt de band kort na de laatste wijziging. Wijs een stuk aan om te zien wanneer het begon en hoe lang het duurde, en klik erop om de wijziging in de lijst te vinden. Wijzigingen die te dicht op elkaar liggen om uit elkaar te houden, worden als één gestreept stuk getekend: klik erop, of sleep over de band, om in te zoomen, en **Reset zoom** gaat terug.
+- **De band** toont elke status als een stuk in zijn kleur, zo lang als het incident erin stond, zodat je in één oogopslag ziet hoe het incident verliep. Zolang het incident open is, loopt de band door tot **Nu**; is het opgelost, dan stopt de band kort na de laatste wijziging. Wijs een stuk aan om te zien wanneer het begon en hoe lang het duurde, en klik erop om de wijziging in de lijst te vinden. Wijzigingen die te dicht op elkaar liggen om uit elkaar te houden, worden als één gestreept stuk getekend: klik erop, of sleep over de band, om in te zoomen, en **Zoom herstellen** gaat terug.
 - **Boven de band** staat elke status met de tijd die het incident erin doorbracht.
 - **Onder de band** staat elke wijziging, de nieuwste eerst, per dag gegroepeerd en in je eigen tijdzone: wanneer ze begon en eindigde, hoe lang ze duurde, wie haar maakte en daaronder **Abonnees van de statuspagina:** of de melding aan de statuspagina voor de wijziging is verstuurd, overgeslagen of nog in behandeling is, met een link **meer details**, en — als het versturen mislukte — een actie **Opnieuw proberen**. **Opnieuw proberen** verstuurt de statuswijziging opnieuw naar elke statuspagina die het incident nu bereikt, ook naar de abonnees die haar al kregen.
 

@@ -104,6 +104,7 @@ import {
   splitTableHeaderButtons,
   useTableHeaderSearchShortcut,
 } from "../Table/TableHeaderControls";
+import { getCreateButtonPhoneVerb } from "./CreateButtonPhoneVerb";
 import EmptyStateOptions from "./EmptyStateOptions";
 import {
   ModelTableEmptyState,
@@ -265,9 +266,20 @@ export const MODEL_TABLE_FOLDED_BUTTONS_CLASS_NAME: string =
  * The frame of a table drawn without a card of its own (no cardProps),
  * padded as a card is - 20px on a phone, 24px from md up - since the
  * table's rows and footer reach through that padding to its edges.
+ *
+ * Its header band starts at the frame's top, where the frame's own border
+ * already rules it off: the band's top rule is dropped there
+ * (MODEL_TABLE_FRAME_BAND_TOP_CLASS_NAME), or the two hairlines drew a 2px
+ * top edge no card has. When the table's filter chips are shown above the
+ * band (the first element is not empty) the band keeps its rule under them.
  */
-export const MODEL_TABLE_FRAME_CLASS_NAME: string =
-  "overflow-clip rounded-xl border border-gray-200 bg-white px-5 pb-6 shadow-sm md:px-6";
+export const MODEL_TABLE_FRAME_BAND_TOP_CLASS_NAME: string =
+  "[&>div:first-child:empty+[data-testid=table-scroll]_thead_th]:border-t-0";
+
+export const MODEL_TABLE_FRAME_CLASS_NAME: string = [
+  "overflow-clip rounded-xl border border-gray-200 bg-white px-5 pb-6 shadow-sm md:px-6",
+  MODEL_TABLE_FRAME_BAND_TOP_CLASS_NAME,
+].join(" ");
 
 export interface SaveFilterProps {
   tableId: string;
@@ -856,6 +868,19 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   // The header's create button, "<verb> <noun>".
   const getCreateButtonTitle: () => string = (): string => {
     return translateCreateAction(translator, {
+      verb: props.createVerb,
+      itemName: props.singularName || model.singularName || "",
+    });
+  };
+
+  /*
+   * What it says on a phone: its verb alone, the card's title right above
+   * naming the kind (CardButtonSchema.phoneTitle).
+   */
+  const getCreateButtonPhoneTitle: () => string | undefined = ():
+    | string
+    | undefined => {
+    return getCreateButtonPhoneVerb({
       verb: props.createVerb,
       itemName: props.singularName || model.singularName || "",
     });
@@ -2979,6 +3004,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     if (props.isCreateable && createGate.show) {
       headerbuttons.push({
         title: getCreateButtonTitle(),
+        phoneTitle: getCreateButtonPhoneTitle(),
         buttonStyle: ButtonStyleType.NORMAL,
         buttonSize: ButtonSize.Normal,
         className: "",
@@ -3443,6 +3469,12 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
          * of its own on the row can still mark it Primary.
          */
         placement: ActionButtonPlacement.Primary,
+        /*
+         * On the row, View alone: the row names the record, and the list
+         * its kind (ActionButtonSchema's rowButtonTitle). A page's own
+         * words for it are kept as they are.
+         */
+        rowButtonTitle: props.viewButtonText ? undefined : tx("View"),
         onClick: async (
           item: TBaseModel,
           onCompleteAction: VoidFunction,

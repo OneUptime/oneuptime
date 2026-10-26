@@ -459,7 +459,10 @@ describe("other lists in a detail card", () => {
         return (
           <TableColumnListComponent<Monitor>
             items={items}
-            moreText="more monitors"
+            moreTemplate={{
+              one: "{{count}} more monitor",
+              other: "{{count}} more monitors",
+            }}
             noItemsMessage="No monitors."
             getEachElement={(monitor: Monitor): ReactElement => {
               return <span data-testid="monitor">{monitor.name}</span>;

@@ -169,7 +169,7 @@ Een webhook heeft geen verificatie nodig, dus toevoegen voegt meteen de regels e
 
 **SMS**, **Telefoonoproepen**, **WhatsApp** en **Telegram** staan in elk nieuw project uit, omdat elk bericht geld kost: in OneUptime Cloud wordt het betaald uit het tegoed van het project, en sms en oproepen lopen in plaats daarvan via het eigen Twilio-account van het project als het standaardaccount ze verstuurt. E-mail, push, Slack, Microsoft Teams en webhooks staan altijd aan.
 
-Zolang een kanaal uitstaat, kan niemand in het project er een methode op toevoegen: de kaart ervan heeft geen knop om toe te voegen, en zegt wie het kan aanzetten. Een projecteigenaar, een **Billing Admin** of iemand met **Manage Billing** zet het aan, in de kaart **Meldingskanalen** onder **Projectinstellingen → Meldingen → Meldingsinstellingen**. Een projectbeheerder kan dat niet. In een zelfgehoste OneUptime hebben sms en oproepen ook een Twilio-account nodig, en Telegram een bot die de beheerder van de server koppelt; zie [Twilio-integratie](/docs/self-hosted/twilio-integration).
+Zolang een kanaal uitstaat, kan niemand in het project er een methode op toevoegen: de kaart ervan heeft geen knop om toe te voegen, en zegt wie het kan aanzetten. Een projecteigenaar, een **Factureringsbeheerder** of iemand met **Manage Billing** zet het aan, in de kaart **Meldingskanalen** onder **Projectinstellingen → Meldingen → Meldingsinstellingen**. Een projectbeheerder kan dat niet. In een zelfgehoste OneUptime hebben sms en oproepen ook een Twilio-account nodig, en Telegram een bot die de beheerder van de server koppelt; zie [Twilio-integratie](/docs/self-hosted/twilio-integration).
 
 ## Een methode verwijderen
 

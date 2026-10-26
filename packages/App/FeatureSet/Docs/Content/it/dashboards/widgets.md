@@ -17,15 +17,15 @@ Parti dalla domanda a cui deve rispondere il riquadro:
 | La domanda | Il widget |
 | --- | --- |
 | Come è cambiata una metrica nel tempo? | **Grafico** |
-| Quanti log, di quale gravità, nel tempo? | **Log Chart** |
-| Quanto sono veloci le richieste, e quante falliscono, nel tempo? | **Trace Chart** |
+| Quanti log, di quale gravità, nel tempo? | **Grafico dei log** |
+| Quanto sono veloci le richieste, e quante falliscono, nel tempo? | **Grafico delle tracce** |
 | Qual è un certo numero in questo momento? | **Valore**, oppure **Indicatore** quando ha un intervallo noto |
-| Quali host, servizi o endpoint si distinguono? | **Tabella** o **Trace Table** |
+| Quali host, servizi o endpoint si distinguono? | **Tabella** o **Tabella delle tracce** |
 | Che cosa sta succedendo in questo momento? | **Flusso di log**, **Elenco delle tracce**, **Elenco incidenti** o **Elenco avvisi** |
 | I nostri siti sono tutti attivi? | **Elenco monitor** |
-| Stiamo mantenendo l'affidabilità che abbiamo promesso? | **SLO** o **SLO List** |
+| Stiamo mantenendo l'affidabilità che abbiamo promesso? | **SLO** o **Elenco SLO** |
 | In che stato sono i nostri cluster e i nostri host? | Un widget del gruppo Infrastruttura |
-| Dove si trova nel mondo la nostra rete, e che cosa è inattivo? | **Network Map** |
+| Dove si trova nel mondo la nostra rete, e che cosa è inattivo? | **Mappa di rete** |
 | Un titolo, una nota, l'ora in un altro ufficio? | **Testo** o **Orologio** |
 | Dati conservati fuori da OneUptime? | Un widget del gruppo Fonti di dati esterne |
 | Qualcosa che nessun widget copre? | **HTML**, una volta sicuro che nessun altro widget lo faccia |
@@ -127,13 +127,13 @@ Chi può modificare la dashboard decide che cosa esegue questo widget, e tutti q
 
 | Widget | Che cosa mostra | Impostazioni che contano |
 | --- | --- | --- |
-| **Log Chart** | Il volume dei log nel tempo, una serie per gravità, come barre, linee o aree. | Gravità, testo contenuto nel corpo, filtri sugli attributi. |
+| **Grafico dei log** | Il volume dei log nel tempo, una serie per gravità, come barre, linee o aree. | Gravità, testo contenuto nel corpo, filtri sugli attributi. |
 | **Flusso di log** | Le ultime righe di log che corrispondono a un filtro. | Gravità, testo contenuto nel corpo, filtri sugli attributi come `@service.name:checkout`, quante righe. |
-| **Trace Chart** | Numero di richieste, numero di errori o tempo di risposta (medio, minimo, massimo, da P50 a P99) nel tempo. | La metrica, quali span contare, e un attributo per cui dividere le serie. |
+| **Grafico delle tracce** | Numero di richieste, numero di errori o tempo di risposta (medio, minimo, massimo, da P50 a P99) nel tempo. | La metrica, quali span contare, e un attributo per cui dividere le serie. |
 | **Elenco delle tracce** | Le ultime tracce, con la loro durata e il loro stato. | Stato, quante righe. |
-| **Trace Table** | I principali nomi di span, stati o valori di attributo per numero di richieste, con i tempi di risposta mediano, medio, minimo e massimo. | Per che cosa raggruppare le righe, e quali span contare. |
-| **Security Events** | Gli ultimi eventi di sicurezza, con gravità, classe di evento e host. | Gravità, classi di evento, testo contenuto nel messaggio. |
-| **Security Events Flow** | Un flusso di eventi di sicurezza dalla loro origine, attraverso la classe di evento, fino alla gravità. | Gravità, quanti eventi. |
+| **Tabella delle tracce** | I principali nomi di span, stati o valori di attributo per numero di richieste, con i tempi di risposta mediano, medio, minimo e massimo. | Per che cosa raggruppare le righe, e quali span contare. |
+| **Eventi di sicurezza** | Gli ultimi eventi di sicurezza, con gravità, classe di evento e host. | Gravità, classi di evento, testo contenuto nel messaggio. |
+| **Flusso degli eventi di sicurezza** | Un flusso di eventi di sicurezza dalla loro origine, attraverso la classe di evento, fino alla gravità. | Gravità, quanti eventi. |
 
 I widget delle tracce contano solo gli span radice, come fa l'esploratore delle tracce, a meno che tu non includa gli span figli nelle loro impostazioni. Uno schema comune è un grafico della latenza in alto con un elenco di tracce lente sotto.
 
@@ -143,7 +143,7 @@ I widget delle tracce contano solo gli span radice, come fa l'esploratore delle 
 | --- | --- | --- |
 | **Elenco incidenti** | Gli incidenti con il loro stato e la loro gravità. | Non risolti, presi in carico o risolti; gravità, stato, monitor ed etichette. |
 | **Elenco avvisi** | Gli avvisi con il loro stato e la loro gravità. | Non risolti, presi in carico o risolti; gravità, stato, monitor ed etichette. |
-| **Elenco monitor** | I monitor con il loro stato attuale. | Operativi o no, stato, tipo di monitor ed etichette, oppure una **Label Variable** che i visualizzatori scelgono nella barra degli strumenti. |
+| **Elenco monitor** | I monitor con il loro stato attuale. | Operativi o no, stato, tipo di monitor ed etichette, oppure una **Variabile etichetta** che i visualizzatori scelgono nella barra degli strumenti. |
 
 Come la maggior parte dei widget di elenco, questi tre possono disegnare un alveare di celle colorate per stato al posto di una tabella: sceglilo in **Modalità di visualizzazione**. Mostrano lo stato attuale, qualunque sia l'intervallo di tempo della dashboard.
 
@@ -164,7 +164,7 @@ Il widget SLO funziona sulle [dashboard pubbliche](/docs/dashboards/sharing). Ci
 
 ### SLO List
 
-Ogni SLO con il suo stato, lo SLI, l'error budget e il burn rate, a partire da quello con meno budget rimasto. Filtralo per stato o etichette, oppure con una **Label Variable** che i visualizzatori scelgono nella barra degli strumenti. [Metriche e dashboard degli SLO](/docs/slo/metrics) mostra entrambi i widget SLO all'opera.
+Ogni SLO con il suo stato, lo SLI, l'error budget e il burn rate, a partire da quello con meno budget rimasto. Filtralo per stato o etichette, oppure con una **Variabile etichetta** che i visualizzatori scelgono nella barra degli strumenti. [Metriche e dashboard degli SLO](/docs/slo/metrics) mostra entrambi i widget SLO all'opera.
 
 ## Infrastruttura
 
@@ -177,9 +177,9 @@ Ognuno di questi widget elenca le risorse che un agent o un collector comunica a
 | **Docker** | **Host**, **Contenitori**, **Immagini**, **Reti**, **Volumi** | L'agent Docker |
 | **Docker Swarm** | **Nodi**, **Servizi** | L'agent Docker Swarm |
 | **Podman** | **Host**, **Contenitori**, **Immagini**, **Reti**, **Volumi** | L'agent Podman |
-| **Proxmox** | **Nodi**, **Guests** | L'agent Proxmox |
+| **Proxmox** | **Nodi**, **Guest** | L'agent Proxmox |
 | **VMware** | **Host**, **Macchine virtuali** | L'agent VMware, o un vCenter che colleghi |
-| **Ceph** | **OSDs**, come un muro colorato per stato, e **Pools** | L'agent Ceph |
+| **Ceph** | **OSD**, come un muro colorato per stato, e **Pools** | L'agent Ceph |
 | **Array di storage** | **Volumi**, e **Hardware** come un muro colorato per stato | L'agent per array di storage |
 
 Usali per una pagina che unisca lo stato della tua infrastruttura alla telemetria dei carichi di lavoro che ci girano sopra.
@@ -231,7 +231,7 @@ Tramite l'API e Terraform, l'ordine è l'`arguments.sort` del widget: una colonn
 
 Una [dashboard pubblica](/docs/dashboards/sharing) disegna la maggior parte dei widget per i suoi visitatori, e ciascuno mostra solo ciò per cui è stato configurato. Alcuni non possono essere mostrati senza una sessione con accesso:
 
-- **Log Chart**, **Trace Chart**, **Trace Table**, **Security Events** e **Security Events Flow** indicano al loro posto che non sono disponibili sulle dashboard pubbliche.
+- **Grafico dei log**, **Grafico delle tracce**, **Tabella delle tracce**, **Eventi di sicurezza** e **Flusso degli eventi di sicurezza** indicano al loro posto che non sono disponibili sulle dashboard pubbliche.
 - I widget di Fonti di dati esterne vengono esclusi del tutto da una dashboard pubblica, perché le loro impostazioni sono la query stessa.
 
 ## Quando un widget non può essere mostrato

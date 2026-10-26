@@ -62,7 +62,7 @@ Vá em **Fluxos de trabalho**, clique em **Criar fluxo de trabalho** e depois em
 
 ### Adicionar o gatilho
 
-Clique no bloco tracejado **Choose what starts this workflow** e escolha **On Create Incident**. Clique no gatilho: os seus **Fields to pass on** começam com **Título**, então clique em **Adicionar campo** e escolha **Descrição** e **Incident Number With Prefix**.
+Clique no bloco tracejado **Escolha o que inicia este fluxo de trabalho** e escolha **On Create Incident**. Clique no gatilho: os seus **Fields to pass on** começam com **Título**, então clique em **Adicionar campo** e escolha **Descrição** e **Incident Number With Prefix**.
 
 ### Abrir a issue
 

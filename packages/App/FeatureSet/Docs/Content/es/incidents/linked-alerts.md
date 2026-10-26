@@ -121,7 +121,7 @@ Uses la que uses, llegas al formulario habitual **Declarar nuevo incidente**, co
 | **Etiquetas**              | Todas las etiquetas de todas las alertas seleccionadas.                                                                                                                                                                                                                                |
 | **Incidente privado**      | Activado si alguna de las alertas es privada. El formulario lo dice, y los propietarios de las alertas pasan a ser propietarios del incidente; consulta más abajo.                                                                                                                    |
 
-«La más grave» sigue el orden de tus gravedades de alerta: la primera gravedad de alerta de la lista es la más grave. Con las gravedades con las que empieza todo proyecto, una alerta **Alta** se convierte en un **Critical Incident** y una alerta **Low** en un **Major Incident**.
+«La más grave» sigue el orden de tus gravedades de alerta: la primera gravedad de alerta de la lista es la más grave. Con las gravedades con las que empieza todo proyecto, una alerta **Alta** se convierte en un **Critical Incident** y una alerta **Baja** en un **Major Incident**.
 
 Todo se puede editar antes de enviar. **Etiquetas** e **Incidente privado** están en **Más campos** en el primer paso del formulario, cuya cabecera plegada muestra cualquiera de los dos mientras está definido.
 

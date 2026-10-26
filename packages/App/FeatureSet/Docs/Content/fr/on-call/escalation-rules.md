@@ -134,6 +134,13 @@ Il indique la gravité et ce qui s'est passé (un incident, une alerte ou un ép
 
 La gravité, le numéro et le lien ne sont jamais coupés. Un titre garde au moins 20 caractères : si même cela ne tient pas, par exemple avec une adresse ou un nom de produit très long, le SMS prend une deuxième partie et dit tout.
 
+Quand une politique alerte de nouveau parce qu'un incident ou une alerte pris en compte n'est toujours pas résolu, le SMS le dit après le numéro et le projet, et ces mots ne sont jamais coupés non plus :
+
+```text
+OneUptime: Critical Incident INC-42 in Acme Prod is still not resolved:
+Checkout API is down. Ack or escalate: https://oneuptime.com/l/XJlaZRsd
+```
+
 Un seul caractère hors de l'alphabet simple des SMS fait partir tout le message par parties de 70 caractères. C'est pourquoi les guillemets et les tirets typographiques sont écrits `"`, `'` et `-`, `…` est écrit `...`, et les lettres comme `ç` et `ł` perdent leurs accents ; les emoji sont omis. Un titre dans une autre écriture, comme le japonais ou le russe, est envoyé tel qu'il est écrit, et prend deux parties ou plus.
 
 Les autres SMS que OneUptime vous envoie, par exemple pour une modification d'un incident dont vous êtes propriétaire ou le début de votre tour d'astreinte, commencent aussi par `OneUptime:` et se terminent par `Turn off in User Settings > Notification Settings.`, une phrase omise quand c'est ce qui permet au SMS de tenir en une partie.
@@ -154,7 +161,7 @@ Sur OneUptime Cloud, chaque SMS, appel, message WhatsApp et Telegram est payé s
 - Les alertes continuent de partir sur le solde restant tant que le rechargement automatique ne peut pas débiter la carte.
 
 > [!IMPORTANT]
-> Les SMS, les appels téléphoniques, WhatsApp et Telegram sont désactivés dans un nouveau projet : sur OneUptime Cloud, chaque message est payé sur le solde du projet, et une installation auto-hébergée a d'abord besoin d'un compte Twilio ou d'un bot Telegram configuré. Tant qu'un canal est désactivé, personne dans le projet ne peut y ajouter de méthode. Seul un propriétaire du projet ou une personne disposant du rôle **Billing Admin** ou de l'autorisation **Manage Billing** peut en activer un, dans la carte **Canaux de notification** de **Paramètres du projet > Notifications > Paramètres de notification** — un administrateur du projet ne le peut pas. Partout où un canal est désactivé, tous les autres apprennent exactement qui peut l'activer : au-dessus de leur propre liste de méthodes sur ce canal, dans leur liste de configuration et dans le message qu'ils reçoivent quand quelque chose en a besoin.
+> Les SMS, les appels téléphoniques, WhatsApp et Telegram sont désactivés dans un nouveau projet : sur OneUptime Cloud, chaque message est payé sur le solde du projet, et une installation auto-hébergée a d'abord besoin d'un compte Twilio ou d'un bot Telegram configuré. Tant qu'un canal est désactivé, personne dans le projet ne peut y ajouter de méthode. Seul un propriétaire du projet ou une personne disposant du rôle **Administrateur de la facturation** ou de l'autorisation **Manage Billing** peut en activer un, dans la carte **Canaux de notification** de **Paramètres du projet > Notifications > Paramètres de notification** — un administrateur du projet ne le peut pas. Partout où un canal est désactivé, tous les autres apprennent exactement qui peut l'activer : au-dessus de leur propre liste de méthodes sur ce canal, dans leur liste de configuration et dans le message qu'ils reçoivent quand quelque chose en a besoin.
 
 ## Escalader vers la personne suivante de la rotation
 
@@ -221,14 +228,14 @@ Escalader une alerte n'en accuse pas réception : l'incident ou l'alerte attend 
 
 Une alerte qu'un workflow envoie directement à des personnes n'a pas de niveaux : l'escalader arrête de vous alerter, et une fois que tous ceux qu'elle a alertés l'ont escaladée, les alertes s'arrêtent.
 
-Chaque escalade est enregistrée. La **Chronologie d'exécution** de l'exécution marque la ligne de la personne **Escaladé**, le fil d'activité de l'incident indique « Alex Kim escalated the page from on-call policy Payments at escalation rule Level 1. », le message de l'exécution dans Slack et Microsoft Teams indique qu'elle l'a escaladée, et ses **Journaux d'astreinte** montrent l'alerte comme **Escaladé**.
+Chaque escalade est enregistrée. La **Chronologie d'exécution** de l'exécution marque la ligne de la personne **Escaladé**, le fil d'activité de l'incident indique « Alex Kim escalated the page from on-call policy Payments at Level 1 of 3. », le message de l'exécution dans Slack et Microsoft Teams indique qu'elle l'a escaladée, et ses **Journaux d'astreinte** montrent l'alerte comme **Escaladé**.
 
 ## Modifier, réordonner et supprimer des règles
 
 La carte de chaque règle propose **Modifier la règle**, et un menu **⋯** avec les autres actions :
 
 - **Modifier la règle** ouvre la même boîte de dialogue d'une page, remplie avec la règle telle qu'elle est : ses intervenants, son délai, ainsi que son nom et sa description sous **Plus de champs**. Ajoutez ou retirez des intervenants et cliquez sur **Enregistrer les modifications**. Vider le nom redonne à la règle le nom de son niveau.
-- **Monter** et **Descendre**, dans le menu **⋯** d'une règle, changent son niveau. Une règle qui porte le nom de son niveau garde un nom qui correspond à sa place : quand **Level 3** remonte au-dessus de **Level 2**, les deux échangent leurs noms. Un nom que vous avez choisi, comme **Managers**, reste le même où que la règle aille.
+- **Monter** et **Descendre**, dans le menu **⋯** d'une règle, changent son niveau. Une règle qui porte le nom de son niveau garde un nom qui correspond à sa place : quand **Level 3** remonte au-dessus de **Level 2**, les deux échangent leurs noms. Un nom que vous avez choisi, comme **Nœuds manager**, reste le même où que la règle aille.
 - **Supprimer la règle** demande d'abord confirmation et indique qui ce niveau alerte. Supprimer un niveau fait remonter les niveaux situés en dessous, et les règles qui portent le nom de leur niveau sont renommées en conséquence.
 
 ## Créer des règles avec l'API ou Terraform

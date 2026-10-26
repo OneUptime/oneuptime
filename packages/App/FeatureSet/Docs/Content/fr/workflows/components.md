@@ -285,7 +285,7 @@ Convertissez entre texte et JSON, ou combinez deux objets JSON.
 
 ## Conditions
 
-Créez un embranchement à partir d'une comparaison. Dans le panneau **Ajouter un composant**, ce bloc s'appelle **If / Else**, sous **Popular**. Pour choisir entre plus de deux chemins, utilisez [Switch / Case](#switch-case).
+Créez un embranchement à partir d'une comparaison. Dans le panneau **Ajouter un composant**, ce bloc s'appelle **If / Else**, sous **Populaires**. Pour choisir entre plus de deux chemins, utilisez [Switch / Case](#switch-case).
 
 Ses paramètres se lisent comme une phrase : **Si** *valeur à vérifier* *comparaison* *valeur de comparaison*, continuer sur **Yes**, sinon sur **No**. Sous les paramètres, la condition est relue en toutes lettres, pour que vous puissiez vérifier qu'elle dit ce que vous voulez. Sur le canevas, le bloc affiche aussi sa condition, par exemple *Si environment is equal to “production”*.
 
@@ -315,7 +315,7 @@ Les comparaisons de nombres comparent des nombres et les comparaisons de texte c
 
 ## Switch / Case
 
-Prendre un chemin parmi plusieurs selon une valeur. Dans le panneau **Ajouter un composant**, ce bloc s'appelle **Switch / Case**, sous **Popular**.
+Prendre un chemin parmi plusieurs selon une valeur. Dans le panneau **Ajouter un composant**, ce bloc s'appelle **Switch / Case**, sous **Populaires**.
 
 Il compare une valeur à chacun de ses cas tour à tour, depuis le haut, et continue par le premier cas qui correspond, ou par **Default** si aucun ne correspond. Un seul chemin s'exécute : une valeur qui correspond à deux cas prend le premier des deux.
 

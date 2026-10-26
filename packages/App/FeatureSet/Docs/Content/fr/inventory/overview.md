@@ -80,7 +80,7 @@ Les mêmes faits sont des colonnes de la liste **Tous les éléments**, masquée
 
 ### Connexions
 
-La page **Connexions** d'un élément liste ses voisins dans les deux sens, regroupés en **Appels**, **Appelé par**, **Runs on** et **Related**. Chaque groupe affiche son total (un groupe de plus de 100 000 connexions affiche « 100 000+ »), et **Afficher plus** parcourt le reste, si bien qu'un cluster, un espace de noms ou un nœud très chargé montre chaque connexion plutôt que les premières seulement. La page n'est limitée à aucune plage de temps : elle inclut les relations ajoutées à la main par l'API et les voisins archivés. Un voisin qui n'est plus dans l'inventaire est affiché par sa clé.
+La page **Connexions** d'un élément liste ses voisins dans les deux sens, regroupés en **Appels**, **Appelé par**, **S'exécute sur** et **Associés**. Chaque groupe affiche son total (un groupe de plus de 100 000 connexions affiche « 100 000+ »), et **Afficher plus** parcourt le reste, si bien qu'un cluster, un espace de noms ou un nœud très chargé montre chaque connexion plutôt que les premières seulement. La page n'est limitée à aucune plage de temps : elle inclut les relations ajoutées à la main par l'API et les voisins archivés. Un voisin qui n'est plus dans l'inventaire est affiché par sa clé.
 
 ## Ajouter quelque chose à la main
 

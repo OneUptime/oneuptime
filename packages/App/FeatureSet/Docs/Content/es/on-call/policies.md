@@ -110,7 +110,7 @@ Encontrarás registros de ejecución en tres lugares:
 - en **Guardia → Avanzado → Registros de ejecución**, para todas las políticas, donde los avisos directos desde workflows y chat aparecen como **Aviso directo**;
 - en la página **Ejecuciones de guardia** de un incidente o de una alerta.
 
-Cada fila muestra qué desencadenó la ejecución, cuándo, su **Estado** y quién la reconoció. **View Timeline** abre su **Cronología de ejecución**: cada regla de escalado, a quién avisó, a través de qué programación y cómo terminó cada aviso. Una programación sin nadie de guardia muestra **No one was on call** en lugar de una persona. En OneUptime Cloud, los registros de ejecución necesitan el plan **Growth**.
+Cada fila muestra qué desencadenó la ejecución, cuándo, su **Estado** y quién la reconoció. **Ver cronología** abre su **Cronología de ejecución**: cada regla de escalado, a quién avisó, a través de qué programación y cómo terminó cada aviso. Una programación sin nadie de guardia muestra **Nadie estaba de guardia** en lugar de una persona. En OneUptime Cloud, los registros de ejecución necesitan el plan **Growth**.
 
 ## Archivar o eliminar una política
 
@@ -123,7 +123,7 @@ Archivar retira una política del servicio y lo conserva todo: abre los **Ajuste
 
 ## Quién puede cambiar una política
 
-**Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** y **On-Call Member** pueden crear, cambiar y eliminar políticas; **Viewer** y **On-Call Viewer** pueden verlas. En un rol personalizado, los permisos son **Create On-Call Duty Policy**, **Edit On-Call Duty Policy**, **Delete On-Call Duty Policy** y **Read On-Call Duty Policy**, y un rol limitado a algunas etiquetas solo llega a las políticas que las llevan. Añadir propietarios y campos personalizados necesita el plan **Growth** en OneUptime Cloud.
+**Propietario del proyecto**, **Administrador del proyecto**, **Miembro del proyecto**, **Administrador de guardias** y **Miembro de guardias** pueden crear, cambiar y eliminar políticas; **Visor** y **Visor de guardias** pueden verlas. En un rol personalizado, los permisos son **Create On-Call Duty Policy**, **Edit On-Call Duty Policy**, **Delete On-Call Duty Policy** y **Read On-Call Duty Policy**, y un rol limitado a algunas etiquetas solo llega a las políticas que las llevan. Añadir propietarios y campos personalizados necesita el plan **Growth** en OneUptime Cloud.
 
 ## API y Terraform
 
@@ -138,7 +138,7 @@ Las políticas de guardia son el recurso `/api/on-call-duty-policy`, y el recurs
 | **¿Después de cuántos minutos?** | `acknowledgementTimeoutInMinutes` |
 | Archivada | `isArchived` |
 
-`repeatPolicyIfNoOneAcknowledges` es `false` para **Dejar de avisar** y `true` para **Empezar de nuevo desde Level 1**. Con `true` y `repeatPolicyIfNoOneAcknowledgesNoOfTimes` en `0`, una política nunca se repite, y el panel la muestra como **Dejar de avisar**.
+`repeatPolicyIfNoOneAcknowledges` es `false` para **Dejar de avisar** y `true` para **Empezar de nuevo desde Level 1**. Con `true`, `repeatPolicyIfNoOneAcknowledgesNoOfTimes` debe ser un número entero de 1 o más: OneUptime rechaza `0`. Una política antigua guardada con `0` nunca se repite, y el panel la muestra como **Dejar de avisar**.
 
 `acknowledgementTimeoutInMinutes` es `null` para **No volver a avisar**, y un número entero de minutos de 5 a 1440 para **Volver a avisar**. OneUptime rechaza cualquier otro valor.
 
@@ -147,7 +147,7 @@ Para crear una política con su primer nivel en una sola petición, consulta [Cr
 ## Solución de problemas
 
 :::details Una política se ejecutó, pero no se avisó a nadie
-Su ejecución dice **Execution Completed - No One Notified**. Abre **View Timeline**: una fila con **No one was on call** señala una programación con un hueco, y el mensaje de estado de una fila **Omitido** dice por qué, por ejemplo alguien ausente sin nadie que lo cubra. **Guardia → Preparación** muestra a quién no se pudo localizar.
+Su ejecución dice **Execution Completed - No One Notified**. Abre **Ver cronología**: una fila con **Nadie estaba de guardia** señala una programación con un hueco, y el mensaje de estado de una fila **Omitido** dice por qué, por ejemplo alguien ausente sin nadie que lo cubra. **Guardia → Preparación** muestra a quién no se pudo localizar.
 :::
 
 :::details El siguiente nivel recibió el aviso un minuto después de su espera

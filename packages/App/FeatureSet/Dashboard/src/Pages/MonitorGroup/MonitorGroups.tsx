@@ -89,6 +89,7 @@ const MonitorGroupPage: FunctionComponent<
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "Monitor Group Name",
+            hideColumnDescription: true,
             validation: {
               minLength: 2,
             },
@@ -102,6 +103,7 @@ const MonitorGroupPage: FunctionComponent<
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "Description",
+            hideColumnDescription: true,
           },
         ]}
         viewPageRoute={Navigation.getCurrentRoute()}

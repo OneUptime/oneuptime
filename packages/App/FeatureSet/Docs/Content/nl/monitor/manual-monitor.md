@@ -44,7 +44,7 @@ Ga naar **Monitoren** en klik op **Monitor maken**.
 
 ### Manual kiezen
 
-Klik onder **Monitortype** op **Meer monitortypen** en kies **Manual** onder **Overig**.
+Klik onder **Monitortype** op **Meer monitortypen** en kies **Handmatig** onder **Overig**.
 
 ### Een naam geven en maken
 

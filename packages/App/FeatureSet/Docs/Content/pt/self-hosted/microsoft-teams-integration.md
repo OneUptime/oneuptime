@@ -42,7 +42,7 @@ As videochamadas (uma reunião do Teams para um incidente) não usam este bot: e
 - Uma conta que possa criar registros de app no Microsoft Entra ID, e um administrador do Microsoft 365 para conceder o consentimento de administrador.
 - Um nome de host HTTPS público para o OneUptime que o Azure Bot Service consiga alcançar. Veja [Acesso de rede](#acesso-de-rede).
 - Acesso à configuração do servidor: `config.env` no Docker Compose, ou os seus values do Helm no Kubernetes.
-- Para conectar um projeto, a função **Project Owner**, **Project Admin** ou **Project Member** nele.
+- Para conectar um projeto, a função **Proprietário do projeto**, **Administrador do projeto** ou **Membro do projeto** nele.
 
 ## Configurar a integração
 
@@ -382,7 +382,7 @@ Quando a Microsoft devolve você e a conexão não foi feita (ao conceder o cons
 | A página diz | O que fazer |
 | --- | --- |
 | **"Este link de conexão é inválido, expirou ou já foi usado. Comece novamente."** | O link funciona uma vez, por 15 minutos, no navegador que o iniciou. Comece de novo pela página do Microsoft Teams e termine em menos de 15 minutos, no mesmo navegador. |
-| **"Você não tem permissão para conectar este projeto ao Microsoft Teams."** | Conceder o consentimento de administrador para o projeto exige **Project Owner**, **Project Admin** ou **Project Member**. Isso é verificado de novo quando a Microsoft devolve você. |
+| **"Você não tem permissão para conectar este projeto ao Microsoft Teams."** | Conceder o consentimento de administrador para o projeto exige **Proprietário do projeto**, **Administrador do projeto** ou **Membro do projeto**. Isso é verificado de novo quando a Microsoft devolve você. |
 | **"Você não é mais membro deste projeto."** | Para conectar a sua própria conta Microsoft, você precisa ser membro do projeto quando a Microsoft devolve você. |
 | **"Você entrou em uma organização do Microsoft 365 diferente daquela a que esta conexão se destina."** | Entre com uma conta da organização do Microsoft 365 que concedeu o consentimento de administrador, ou à qual o projeto está conectado. |
 | **"Sua organização do Microsoft 365 ainda não tem equipes."** | Crie uma equipe no Microsoft Teams e depois conceda o consentimento de administrador novamente. |

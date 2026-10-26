@@ -70,7 +70,7 @@ Ingeklapt noemt de kop van **Meer velden** de twee en toont welke de regel heeft
 
 ### Maak de regel aan
 
-Klik op **Create Rule**. De regel wordt onder de andere toegevoegd, als het volgende niveau van het beleid.
+Klik op **Regel maken**. De regel wordt onder de andere toegevoegd, als het volgende niveau van het beleid.
 :::
 
 ## Hoe de niveaus mensen oproepen
@@ -134,6 +134,13 @@ Hij noemt de ernst en wat er is gebeurd (een incident, een waarschuwing of een e
 
 De ernst, het nummer en de link worden nooit ingekort. Een titel houdt minstens 20 tekens: past zelfs dat niet, bijvoorbeeld bij een heel lang adres of een heel lange productnaam, dan neemt de sms een tweede deel en zegt hij alles.
 
+Roept een beleid opnieuw op omdat een bevestigd incident of een bevestigde waarschuwing nog steeds niet is opgelost, dan zegt de sms dat na het nummer en het project, en ook die woorden worden nooit ingekort:
+
+```text
+OneUptime: Critical Incident INC-42 in Acme Prod is still not resolved:
+Checkout API is down. Ack or escalate: https://oneuptime.com/l/XJlaZRsd
+```
+
 Eén teken buiten het eenvoudige alfabet van sms'jes laat het hele bericht in delen van 70 tekens vertrekken. Daarom worden gekrulde aanhalingstekens en gedachtestreepjes geschreven als `"`, `'` en `-`, `…` als `...`, en verliezen letters als `ç` en `ł` hun accenten; emoji worden weggelaten. Een titel in een ander schrift, zoals Japans of Russisch, wordt verstuurd zoals hij is geschreven, en neemt twee delen of meer.
 
 De andere sms'jes die OneUptime u stuurt, bijvoorbeeld over een wijziging in een incident waarvan u eigenaar bent of het begin van uw dienst, beginnen ook met `OneUptime:` en eindigen met `Turn off in User Settings > Notification Settings.`, een zin die wordt weggelaten als de sms juist daardoor in één deel past.
@@ -154,7 +161,7 @@ Op OneUptime Cloud wordt elke SMS, oproep, WhatsApp- en Telegram-bericht betaald
 - Oproepen blijven uitgaan op het resterende saldo zolang automatisch bijvullen de kaart niet kan belasten.
 
 > [!IMPORTANT]
-> SMS, telefoonoproepen, WhatsApp en Telegram staan uit in een nieuw project: op OneUptime Cloud wordt elk bericht betaald uit het saldo van het project, en een zelfgehoste installatie heeft eerst een Twilio-account of een ingestelde Telegram-bot nodig. Zolang een kanaal uit staat, kan niemand in het project er een methode op toevoegen. Alleen een projecteigenaar of iemand met de rol **Billing Admin** of de machtiging **Manage Billing** kan er een aanzetten, in de kaart **Meldingskanalen** onder **Projectinstellingen > Meldingen > Meldingsinstellingen** — een projectbeheerder kan dat niet. Alle anderen krijgen overal waar een kanaal uit staat precies te horen wie het kan aanzetten: boven hun eigen lijst met methoden op dat kanaal, op hun installatiechecklist en in het bericht dat ze krijgen wanneer iets het kanaal nodig heeft.
+> SMS, telefoonoproepen, WhatsApp en Telegram staan uit in een nieuw project: op OneUptime Cloud wordt elk bericht betaald uit het saldo van het project, en een zelfgehoste installatie heeft eerst een Twilio-account of een ingestelde Telegram-bot nodig. Zolang een kanaal uit staat, kan niemand in het project er een methode op toevoegen. Alleen een projecteigenaar of iemand met de rol **Factureringsbeheerder** of de machtiging **Manage Billing** kan er een aanzetten, in de kaart **Meldingskanalen** onder **Projectinstellingen > Meldingen > Meldingsinstellingen** — een projectbeheerder kan dat niet. Alle anderen krijgen overal waar een kanaal uit staat precies te horen wie het kan aanzetten: boven hun eigen lijst met methoden op dat kanaal, op hun installatiechecklist en in het bericht dat ze krijgen wanneer iets het kanaal nodig heeft.
 
 ## Escaleren naar de volgende persoon in de rotatie
 
@@ -168,7 +175,7 @@ Een niveau kan de volgende persoon in de rotatie van een bereikbaarheidsschema o
 
 :::steps
 1. Zorg dat het eerste niveau van het beleid, **Level 1**, het bereikbaarheidsschema op de hoogte stelt.
-2. Klik op **Escalatieregel toevoegen**, dan op **Ontvanger toevoegen**, en kies hetzelfde schema onder **Volgende in de rotatie**. Stel **Escaleren na (in minuten)** in en klik op **Create Rule**.
+2. Klik op **Escalatieregel toevoegen**, dan op **Ontvanger toevoegen**, en kies hetzelfde schema onder **Volgende in de rotatie**. Stel **Escaleren na (in minuten)** in en klik op **Regel maken**.
 3. Voeg nog een niveau toe voor het team of de manager die het daarna moet horen.
 :::
 
@@ -221,15 +228,15 @@ Een oproep escaleren bevestigt hem niet: het incident of de waarschuwing wacht n
 
 Een oproep die een workflow rechtstreeks naar mensen stuurt, heeft geen niveaus: als u hem escaleert, wordt u niet meer opgeroepen, en zodra iedereen die hij opriep hem heeft geëscaleerd, stopt het oproepen.
 
-Elke keer dat een oproep wordt geëscaleerd, wordt dat vastgelegd. De **Tijdlijn van de uitvoering** markeert de regel van de persoon als **Geëscaleerd**, de feed van het incident zegt "Alex Kim escalated the page from on-call policy Payments at escalation rule Level 1.", het bericht van de uitvoering in Slack en Microsoft Teams vermeldt dat diegene hem heeft geëscaleerd, en de **Bereikbaarheidslogboeken** van diegene tonen de oproep als **Geëscaleerd**.
+Elke keer dat een oproep wordt geëscaleerd, wordt dat vastgelegd. De **Tijdlijn van de uitvoering** markeert de regel van de persoon als **Geëscaleerd**, de feed van het incident zegt "Alex Kim escalated the page from on-call policy Payments at Level 1 of 3.", het bericht van de uitvoering in Slack en Microsoft Teams vermeldt dat diegene hem heeft geëscaleerd, en de **Bereikbaarheidslogboeken** van diegene tonen de oproep als **Geëscaleerd**.
 
 ## Regels bewerken, herordenen en verwijderen
 
-De kaart van elke regel heeft **Edit rule**, en een **⋯**-menu met de andere acties:
+De kaart van elke regel heeft **Regel bewerken**, en een **⋯**-menu met de andere acties:
 
-- **Edit rule** opent hetzelfde dialoogvenster van één pagina, ingevuld met de regel zoals die is: de ontvangers, de wachttijd, en de naam en beschrijving onder **Meer velden**. Voeg ontvangers toe of verwijder ze en klik op **Wijzigingen opslaan**. Wordt de naam leeggemaakt, dan krijgt de regel weer de naam van zijn niveau.
+- **Regel bewerken** opent hetzelfde dialoogvenster van één pagina, ingevuld met de regel zoals die is: de ontvangers, de wachttijd, en de naam en beschrijving onder **Meer velden**. Voeg ontvangers toe of verwijder ze en klik op **Wijzigingen opslaan**. Wordt de naam leeggemaakt, dan krijgt de regel weer de naam van zijn niveau.
 - **Omhoog** en **Omlaag** in het **⋯**-menu van een regel wijzigen het niveau. Een regel die naar zijn niveau is genoemd, houdt een naam die bij zijn plaats past: wanneer **Level 3** voorbij **Level 2** omhoog gaat, wisselen beide van naam. Een naam die u zelf koos, zoals **Managers**, blijft hetzelfde waar de regel ook heen gaat.
-- **Delete rule** vraagt eerst om bevestiging en zegt wie het niveau oproept. Verwijdert u een niveau, dan schuiven de niveaus eronder omhoog, en regels die naar hun niveau zijn genoemd, worden mee hernoemd.
+- **Regel verwijderen** vraagt eerst om bevestiging en zegt wie het niveau oproept. Verwijdert u een niveau, dan schuiven de niveaus eronder omhoog, en regels die naar hun niveau zijn genoemd, worden mee hernoemd.
 
 ## Regels maken met de API of Terraform
 

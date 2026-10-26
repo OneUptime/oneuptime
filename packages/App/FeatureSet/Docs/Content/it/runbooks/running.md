@@ -41,7 +41,7 @@ Un'esecuzione di runbook viene creata in cinque modi:
 
 1. **Automaticamente tramite una regola**: una [regola di runbook](/docs/runbooks/rules) la avvia quando viene creato un incidente, un avviso o un evento di manutenzione programmata corrispondente. Anche una regola IA può avviarne una; vedi [AI SRE](/docs/ai/ai-sre).
 2. **Manualmente da un evento**: fai clic su **Esegui Runbook** su un incidente, un avviso o un evento di manutenzione programmata. L'esecuzione è collegata a quell'evento.
-3. **Manualmente dalla pagina del runbook**: fai clic su **Run Now** nella pagina **Panoramica** di un runbook. L'esecuzione non è collegata ad alcun incidente, avviso o evento di manutenzione programmata.
+3. **Manualmente dalla pagina del runbook**: fai clic su **Esegui ora** nella pagina **Panoramica** di un runbook. L'esecuzione non è collegata ad alcun incidente, avviso o evento di manutenzione programmata.
 4. **Secondo una pianificazione**: la pianificazione del runbook la avvia a orari stabiliti. Vedi [Eseguire secondo una pianificazione](/docs/runbooks/triggers#eseguire-secondo-una-pianificazione).
 5. **Da un altro strumento**: un `POST` all'URL del webhook del runbook la avvia, con i valori inviati dalla chiamata. Vedi [Chiamare il webhook](/docs/runbooks/triggers#chiamare-il-webhook).
 
@@ -54,15 +54,15 @@ Per avviarne una a mano:
 3. Fai clic su **Esegui** accanto al runbook. L'esecuzione compare nell'elenco dell'evento: fai clic su **Visualizza** per aprirla.
 @tab Dal runbook
 1. Apri il runbook da **Runbook**.
-2. Nella sua **Panoramica**, fai clic su **Run Now**.
+2. Nella sua **Panoramica**, fai clic su **Esegui ora**.
 3. Si apre la pagina dell'esecuzione.
 :::
 
-Avviare un'esecuzione richiede Project Owner, Project Admin, Project Member, Runbook Admin o Runbook Member, oppure l'autorizzazione **Create Runbook Execution**. Runbook Viewer e Viewer vedono **Run Now** bloccato, con il motivo. Vedi [Autorizzazioni](/docs/runbooks/configuration#autorizzazioni).
+Avviare un'esecuzione richiede Project Owner, Project Admin, Project Member, Runbook Admin o Runbook Member, oppure l'autorizzazione **Create Runbook Execution**. Runbook Viewer e Viewer vedono **Esegui ora** bloccato, con il motivo. Vedi [Autorizzazioni](/docs/runbooks/configuration#autorizzazioni).
 
 ## La vista dell'esecuzione
 
-Apri un'esecuzione qualsiasi per vederne la checklist. In alto la pagina mostra lo **Stato** dell'esecuzione, il suo **Progress** (passaggi fatti sul totale), **Iniziata** (quando è partita) e **Attivato da** (cosa l'ha avviata). Ogni passaggio mostra:
+Apri un'esecuzione qualsiasi per vederne la checklist. In alto la pagina mostra lo **Stato** dell'esecuzione, il suo **Avanzamento** (passaggi fatti sul totale), **Iniziata** (quando è partita) e **Attivato da** (cosa l'ha avviata). Ogni passaggio mostra:
 
 - **Etichetta di stato** — In sospeso, In esecuzione, In attesa di te, In attesa di approvazione, Fatto, Saltato, Non riuscito o Annullato.
 - **Titolo e descrizione** — copiati dal runbook al momento dell'esecuzione.
@@ -113,7 +113,7 @@ L'output di ogni passaggio è limitato a **50 KB**, così uno script fuori contr
 
 ## Rieseguire un runbook
 
-Un'esecuzione è un record unico e immutabile. Per eseguire di nuovo il runbook, fai clic su **Esegui di nuovo** su un'esecuzione terminata, oppure su **Run Now** sul runbook. Entrambi creano una nuova esecuzione con i passaggi attuali del runbook, non collegata ad alcun evento. Per rieseguirlo su un incidente, usa **Esegui Runbook** nella pagina **Runbook** dell'incidente. L'esecuzione originale resta intatta per la traccia di controllo.
+Un'esecuzione è un record unico e immutabile. Per eseguire di nuovo il runbook, fai clic su **Esegui di nuovo** su un'esecuzione terminata, oppure su **Esegui ora** sul runbook. Entrambi creano una nuova esecuzione con i passaggi attuali del runbook, non collegata ad alcun evento. Per rieseguirlo su un incidente, usa **Esegui Runbook** nella pagina **Runbook** dell'incidente. L'esecuzione originale resta intatta per la traccia di controllo.
 
 ## Trovare le esecuzioni passate
 
@@ -130,11 +130,11 @@ Il tuo ruolo legge i runbook ma non li esegue: il pulsante dice «Non hai l'auto
 :::
 
 :::details L'avvio di un'esecuzione fallisce con "Runbook is disabled" o "Runbook has no steps to run"
-L'interruttore **Esegui questo runbook** del runbook è disattivato, nella sua pagina **Impostazioni**, oppure il runbook non ha passaggi salvati. Attiva l'interruttore, oppure aggiungi passaggi e fai clic su **Save Steps**. La sua **Panoramica** dice quale, con **Attiva il runbook** o **Aggiungi passaggi**.
+L'interruttore **Esegui questo runbook** del runbook è disattivato, nella sua pagina **Impostazioni**, oppure il runbook non ha passaggi salvati. Attiva l'interruttore, oppure aggiungi passaggi e fai clic su **Salva passaggi**. La sua **Panoramica** dice quale, con **Attiva il runbook** o **Aggiungi passaggi**.
 :::
 
 :::details Un passaggio è fallito perché gli manca un Runner
-Il messaggio dice, ad esempio, "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or make one the project's default Runner under Runbooks → Runners." Il passaggio è stato salvato senza **Runner**, e il progetto non ha un [Runner predefinito](/docs/runbooks/agents#il-runner-predefinito-del-progetto). Un passaggio JavaScript ha bisogno di un Runner proprio solo quando nessun [Runner globale](/docs/runbooks/agents#runner-globali) può eseguirlo. Apri i **Passaggi** del runbook, scegli il Runner del passaggio sotto **Altri campi**, fai clic su **Save Steps** ed esegui di nuovo il runbook.
+Il messaggio dice, ad esempio, "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or make one the project's default Runner under Runbooks → Runners." Il passaggio è stato salvato senza **Runner**, e il progetto non ha un [Runner predefinito](/docs/runbooks/agents#il-runner-predefinito-del-progetto). Un passaggio JavaScript ha bisogno di un Runner proprio solo quando nessun [Runner globale](/docs/runbooks/agents#runner-globali) può eseguirlo. Apri i **Passaggi** del runbook, scegli il Runner del passaggio sotto **Altri campi**, fai clic su **Salva passaggi** ed esegui di nuovo il runbook.
 :::
 
 :::details Un passaggio è fallito perché nomina variabili che non può usare

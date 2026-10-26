@@ -19,7 +19,7 @@ flowchart TB
 
 唯一一種靜默屬於正常的設定，是 _On error or frustration_ （ `OnErrorOrFrustration` ）上傳：此時錄製器在記憶體中保留一個滾動緩衝區，只在出問題時才上傳，在觸發器觸發之前，看起來與安裝損壞完全一樣。在排查其他問題之前，請先確認你用的是哪一種設定：下面說明的 `config-accepted` 行會輸出它。
 
-如果可以，請從伺服器端開始。應用程式側邊選單 **Session Replay** 區段中的 **Health** 頁面，會在沒有資料抵達時說明原因：錄製器從未載入；已載入但沒有上傳任何內容，以及原因；上傳遭到拒絕，以及原因；或預算已用完。請參閱 [錄製健康狀態](/docs/telemetry/session-replay#錄製健康狀態) 。接下來是瀏覽器端：開啟診斷，重新載入一次，然後閱讀主控台。
+如果可以，請從伺服器端開始。應用程式側邊選單 **工作階段重播** 區段中的 **健康狀況** 頁面，會在沒有資料抵達時說明原因：錄製器從未載入；已載入但沒有上傳任何內容，以及原因；上傳遭到拒絕，以及原因；或預算已用完。請參閱 [錄製健康狀態](/docs/telemetry/session-replay#錄製健康狀態) 。接下來是瀏覽器端：開啟診斷，重新載入一次，然後閱讀主控台。
 
 錄製能抵達，但播放時圖片損壞、圖示遺失或某些區域沒有樣式？這是重播的問題，答案在 [重播中缺少圖片、圖示或樣式](#重播中缺少圖片圖示或樣式) 中。
 
@@ -108,7 +108,7 @@ copy(JSON.stringify(OneUptimeReplay.getDiagnostics(), null, 2));
 copy(JSON.stringify(window.__ONEUPTIME_SESSION_REPLAY_DEBUG__.records, null, 2));
 ```
 
-把其中任一個貼到你的支援票證中 — 或貼到應用程式 **Health** 頁面上的 **Ask the browser** 中，它會說明其中的每個代碼。通常只要這樣就足夠了。
+把其中任一個貼到你的支援票證中 — 或貼到應用程式 **健康狀況** 頁面上的 **Ask the browser** 中，它會說明其中的每個代碼。通常只要這樣就足夠了。
 
 ## 何時靜默是正常的：錯誤觸發的策略
 
@@ -132,7 +132,7 @@ OneUptimeReplay.captureSession("installation test");
 
 要找的是帶有 `chunk-accepted` 的 `202` 。 `204` 則會記錄 `chunk-not-recorded` ：請求沒有問題，是伺服器選擇不儲存它 — 預算超標、未被取樣，或應用程式已關閉。這是策略給出的答案，而不是安裝錯誤，旁邊的 `server-directive` 行會說明是哪一種。
 
-若要重新錄製每個工作階段，請在應用程式的 **Replay Policy** 頁面上將 **When to upload a recording** 設為 _Always_ ，並將 **Sample percentage** 設為大於 0。這是出廠預設值。
+若要重新錄製每個工作階段，請在應用程式的 **Replay Policy** 頁面上將 **何時上傳錄製** 設為 _Always_ ，並將 **取樣百分比** 設為大於 0。這是出廠預設值。
 
 ## 代碼
 
@@ -171,7 +171,7 @@ OneUptimeReplay.captureSession("installation test");
 | --- | --- |
 | `401` | 擷取權杖錯誤、已撤銷、已到期或屬於另一個專案。請在 **專案設定 → 遙測與 APM → 擷取金鑰** 下建立一個，並用 `GET /session-replay/v1/validate` 確認 — 像錄製器那樣傳送金鑰並加上 `x-oneuptime-app-identifier` 標頭，回應中還會包含該應用程式的 `isSessionReplayEnabled` 、在未開啟時指出關閉了哪個開關的 `sessionReplayDisabledDetail` 、 `isIngestEnabledOnThisInstance` 與 `keyType` 。 |
 | `400` | 缺少 `data-oneuptime-app-identifier` 。 |
-| `403` | 頁面的來源不在擷取金鑰的 **Allowed Origins** 中。請加入它，或使用允許清單涵蓋此頁面的金鑰。 |
+| `403` | 頁面的來源不在擷取金鑰的 **允許的來源** 中。請加入它，或使用允許清單涵蓋此頁面的金鑰。 |
 | `404` | 在 OneUptime 來源上找不到該路徑。幾乎總是 `data-oneuptime-host` 錯誤 — 或是 OneUptime 前面的反向 Proxy 沒有轉送 `/telemetry/*` 。 |
 | `5xx` | 伺服器端錯誤；請檢查 OneUptime 應用程式的日誌。 |
 
@@ -179,7 +179,7 @@ OneUptimeReplay.captureSession("installation test");
 
 | 值 | 處理 |
 | --- | --- |
-| `not-enabled-for-application` | 這個 RUM 應用程式關閉了工作階段重播、識別碼與任何應用程式都不相符，或者專案不允許使用重播。 `disabledDetail` 會說明是哪一種： `application-not-enabled` （該應用程式的開關）、 `project-not-allowed` （位於 **真實使用者監測 → 設定 → Session Replay** 下的專案層級開關）、 `application-unknown` （沒有應用程式使用這個 `appIdentifier` — 請在應用程式的 **Replay Policy** 頁面上核對拼字），或 `project-killed` （此部署上維運人員的緊急開關）。 |
+| `not-enabled-for-application` | 這個 RUM 應用程式關閉了工作階段重播、識別碼與任何應用程式都不相符，或者專案不允許使用重播。 `disabledDetail` 會說明是哪一種： `application-not-enabled` （該應用程式的開關）、 `project-not-allowed` （位於 **真實使用者監測 → 設定 → 工作階段重播** 下的專案層級開關）、 `application-unknown` （沒有應用程式使用這個 `appIdentifier` — 請在應用程式的 **Replay Policy** 頁面上核對拼字），或 `project-killed` （此部署上維運人員的緊急開關）。 |
 | `budget-exhausted` | 專案的每日位元組預算或應用程式的每月預算已經用完，因此錄製器被告知不要錄製，而不是上傳會被拒絕的區塊。 `disabledDetail` 為 `project-daily-budget-exhausted` 或 `app-monthly-budget-exhausted` ， `budgetResetsAt` 會說明何時解除。請在 **Replay Policy** 頁面上提高預算，或等待重設。 |
 | `recorder-not-built` | **該部署沒有錄製器成品。** 用戶端無法修正這個問題。產生 `packages/App/FeatureSet/BrowserRecorder/public/dist/manifest.json` 的建置沒有執行，或者其輸出從未進入正在執行的映像。請重新建置並重新部署 OneUptime 應用程式。對於重播從未正常運作過的自行託管安裝，這就是典型的答案。 |
 | `disabled-by-default` | 此部署上設定了 `SESSION_REPLAY_ENABLED_BY_DEFAULT=false` 。請將其設為 `true` — 如果是自行託管，請先設定 `SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY` ，因為重播是你最重的資料表。 |
@@ -209,7 +209,7 @@ OneUptimeReplay.captureSession("installation test");
 | --- | --- |
 | `not-sampled` | 這個工作階段在取樣抽籤中落選，因此完全不會被錄製。取樣由工作階段 ID 決定，是確定性的，所以重新載入對這個工作階段沒有幫助。請提高取樣百分比。 |
 | `recording` | 正在錄製。請閱讀詳細資料：在預設觸發器 `Always` 下， `uploading: true` 是正常狀態。 `captureTrigger: "OnErrorOrFrustration"` 時的 `uploading: false` 是另一種正常狀態，不會送出請求。 |
-| `same-origin-propagation` | 錄製器啟動時記錄一次：它是否會在傳往頁面本身來源的請求中加入追蹤內容（ `traceparent` ，以及帶有工作階段 ID 的 `tracestate` ）。帶 `reason: "on"` 的 `enabled: true` 是預設值。 `reason: "policy-off"` 表示應用程式的 **Replay Policy** 頁面上關閉了 **Same-origin trace propagation** ； `reason: "opaque-origin"` 表示頁面沒有自己的來源（沙箱化的 iframe、 `about:blank` 、 `srcdoc` 或 `file:` ），因此沒有任何東西算作同源。即使開啟，這些標頭也只會隨工作階段上傳期間送出的請求一起傳送，並且絕不會附加到路徑以 `/v1/traces` 、 `/v1/logs` 或 `/v1/metrics` 結尾的 `POST` 上（頁面本身的 OpenTelemetry 匯出）。當錄製器在一次頁面載入中第一次把同源請求的 `traceparent` 讓給某個代理程式時（因為該代理程式被設定為追蹤該請求；對 Datadog RUM 而言僅限它追蹤的工作階段），還會再記錄一次，帶有 `reason: "agent-stand-down"` 和一個 `agent` 欄位（ `DD_RUM` 、 `NREUM` 或 `elasticApm` ）；該請求仍會取得 `tracestate` 成員，而且只有在代理程式確實傳送了 `traceparent` 時才會被關聯，而 Datadog 只會在它所追蹤、且被取樣用於追蹤的 Datadog 工作階段中傳送。New Relic（ `NREUM` ）會傳送它自己的 `tracestate` 來取代該成員，因此它的請求只能透過追蹤 ID 關聯（請參閱 [Logs 與 Traces 分頁為空](#播放器的-logs-與-traces-分頁為空) ）。請參閱 [與其他遙測資料關聯](/docs/telemetry/session-replay#與其他遙測資料關聯) 。 |
+| `same-origin-propagation` | 錄製器啟動時記錄一次：它是否會在傳往頁面本身來源的請求中加入追蹤內容（ `traceparent` ，以及帶有工作階段 ID 的 `tracestate` ）。帶 `reason: "on"` 的 `enabled: true` 是預設值。 `reason: "policy-off"` 表示應用程式的 **Replay Policy** 頁面上關閉了 **同源追蹤傳播** ； `reason: "opaque-origin"` 表示頁面沒有自己的來源（沙箱化的 iframe、 `about:blank` 、 `srcdoc` 或 `file:` ），因此沒有任何東西算作同源。即使開啟，這些標頭也只會隨工作階段上傳期間送出的請求一起傳送，並且絕不會附加到路徑以 `/v1/traces` 、 `/v1/logs` 或 `/v1/metrics` 結尾的 `POST` 上（頁面本身的 OpenTelemetry 匯出）。當錄製器在一次頁面載入中第一次把同源請求的 `traceparent` 讓給某個代理程式時（因為該代理程式被設定為追蹤該請求；對 Datadog RUM 而言僅限它追蹤的工作階段），還會再記錄一次，帶有 `reason: "agent-stand-down"` 和一個 `agent` 欄位（ `DD_RUM` 、 `NREUM` 或 `elasticApm` ）；該請求仍會取得 `tracestate` 成員，而且只有在代理程式確實傳送了 `traceparent` 時才會被關聯，而 Datadog 只會在它所追蹤、且被取樣用於追蹤的 Datadog 工作階段中傳送。New Relic（ `NREUM` ）會傳送它自己的 `tracestate` 來取代該成員，因此它的請求只能透過追蹤 ID 關聯（請參閱 [Logs 與 Traces 分頁為空](#播放器的-logs-與-traces-分頁為空) ）。請參閱 [與其他遙測資料關聯](/docs/telemetry/session-replay#與其他遙測資料關聯) 。 |
 | `same-origin-propagation-tripped` | 錄製器加入了追蹤內容的某個請求在網路層失敗，通常是一個被重新導向到另一個來源的同源請求，而那個來源不允許 `traceparent` 與 `tracestate` 。在本次頁面載入的剩餘時間裡，錄製器不再加入它們。 `retried: true` 表示它是不帶本文的 `fetch` `GET` 或 `HEAD` ，並已依你的頁面送出的原樣再傳送了一次； `false` 表示它無法重試並且失敗了：只有不帶本文的 `fetch` `GET` 或 `HEAD` 會被重試（不包括 XHR、其他方法和帶本文的請求）。你自己頁面的中止與逾時不會觸發它，瀏覽器回報離線期間的失敗也不會；下一次頁面載入會重新開始。請參閱 [啟用工作階段重播後下載或重新導向失敗](#啟用工作階段重播後下載或重新導向失敗) 。 |
 | `trigger` | 發生了值得保留的事情。 `reason` 是 `error` 、 `frustration` 、 `performance` 、 `sampled` 或 `manual` 之一。 |
 | `upload-started` | 正在清出緩衝區中的預錄內容。區塊 POST 從這裡開始。 |
@@ -263,7 +263,7 @@ OneUptimeReplay.captureSession("installation test");
 | 狀態 | 意義 |
 | --- | --- |
 | `202` | 已接受並排入佇列等待儲存。如果它還帶有原因為 `session-chunk-cap` 的 `directive: "stop"` ，表示這個請求中位於每個工作階段上限內的區塊已經抵達，之後的內容將永遠不會抵達 — 這是一個長時間開啟的分頁達到了工作階段能容納的上限，而不是錯誤。 |
-| `204` | 已收到，但刻意不儲存。204 沒有本文，因此指示透過標頭傳遞：當錄製器應該放棄錄製時（重播已關閉、未被取樣、預算超標、達到上限）， `x-oneuptime-replay-directive` 為 `stop` ；當只有這個請求被拒絕時為 `continue` ，而 `x-oneuptime-replay-reason` 帶有原因。隨 `continue` 傳回的是 `consent-required` ：同意模式為 _Require explicit_ ，而頁面尚未呼叫 `grantConsent()` ，因此錄製器繼續錄製並會再次嘗試。原因詞彙表為 `ingest-disabled` 、 `instance-not-offering-replay` 、 `policy-unavailable` 、 `not-enabled` 、 `origin-not-allowed` 、 `session-chunk-cap` 、 `not-sampled` 、 `rate-limited` 、 `rate-counter-unavailable` 、 `budget-exhausted` 、 `budget-counter-unavailable` 、 `app-monthly-budget-exhausted` 與 `consent-required` ， **Health** 頁面會依名稱統計它們。 |
+| `204` | 已收到，但刻意不儲存。204 沒有本文，因此指示透過標頭傳遞：當錄製器應該放棄錄製時（重播已關閉、未被取樣、預算超標、達到上限）， `x-oneuptime-replay-directive` 為 `stop` ；當只有這個請求被拒絕時為 `continue` ，而 `x-oneuptime-replay-reason` 帶有原因。隨 `continue` 傳回的是 `consent-required` ：同意模式為 _Require explicit_ ，而頁面尚未呼叫 `grantConsent()` ，因此錄製器繼續錄製並會再次嘗試。原因詞彙表為 `ingest-disabled` 、 `instance-not-offering-replay` 、 `policy-unavailable` 、 `not-enabled` 、 `origin-not-allowed` 、 `session-chunk-cap` 、 `not-sampled` 、 `rate-limited` 、 `rate-counter-unavailable` 、 `budget-exhausted` 、 `budget-counter-unavailable` 、 `app-monthly-budget-exhausted` 與 `consent-required` ， **健康狀況** 頁面會依名稱統計它們。 |
 | `400` | 無法處理該框架，同一建置的下一個框架也同樣無法處理，因此本文帶有 `directive: "stop"` 和一個穩定的 `error` 代碼： `empty-body` 、 `missing-envelope` 、 `envelope-too-large` 、 `malformed-envelope` 、 `malformed-body` 、 `unsupported-wire-version` 、 `truncated-payload` 、 `too-many-frames` 、 `app-identifier-mismatch` 、 `missing-app-identifier` 或 `chunk-index-malformed` （ `chunkIndex` 遺失、為負、為小數或不合理）。其中六個 — `unsupported-wire-version` 、 `app-identifier-mismatch` 、 `missing-app-identifier` 、 `malformed-body` 、 `malformed-envelope` 、 `missing-envelope` — 會立即停止上傳（ `chunk-refused-terminal` ）；其他任何 400 都會被容忍一次，連續三次後停止上傳。幾乎總是改寫請求的 Proxy，或錄製器與伺服器的版本不一致。 |
 | `401` | 擷取金鑰錯誤、已撤銷、已到期或屬於另一個專案。 |
 | `403` | 頁面的來源不在擷取金鑰或應用程式的允許清單中。這是終止性的 — 錄製器不會重試。本文是 HTML 頁面或為空的 403 並非來自 OneUptime：是 Web 應用程式防火牆拒絕了請求 — 請參閱 [OneUptime 前面的防火牆拒絕了區塊](#oneuptime-前面的防火牆拒絕了區塊) 。 |
@@ -345,13 +345,13 @@ OpenTelemetry 瀏覽器 SDK 的 OTLP/HTTP 匯出工具傳送 `application/json` 
 
 ## 工作階段清單顯示「N chunks missing」，或播放器繪製出空缺
 
-錄製會按分頁以編號的區塊序列上傳。終結器會把每個從未抵達的索引回報為遺失的區塊，清單會將該工作階段顯示為 **Partial** 並註明遺失的秒數，播放器會在序列跳躍處繪製一個帶標籤的空缺並跳過它 — 這是刻意的，因為否則就要在缺口之上播放變更，呈現一個使用者從未見過的 DOM。
+錄製會按分頁以編號的區塊序列上傳。終結器會把每個從未抵達的索引回報為遺失的區塊，清單會將該工作階段顯示為 **部分** 並註明遺失的秒數，播放器會在序列跳躍處繪製一個帶標籤的空缺並跳過它 — 這是刻意的，因為否則就要在缺口之上播放變更，呈現一個使用者從未見過的 DOM。
 
 所以這個數字始終說的是實話。它代表什麼，取決於缺口的位置：
 
 - **最末端的缺口** 是常見且無害的情況：瀏覽器在清出過程中被關閉或導覽到其他頁面。請在主控台中尋找 `final-flush-partial` 或 `final-chunk-carried-queue` 。帶有 `sealed: true` 的 `final-chunk-too-large` 會遺失最後幾秒，但不會在區塊序列中留下空缺。
 - **中間的缺口** 是伺服器拒絕或從未收到的區塊。主控台中的 `chunk-refused` 、 `chunk-abandoned` 、 `chunk-post-failed` 、 `chunk-not-recorded` 以及帶有 `sealed: false` 的 `final-chunk-too-large` 各自代表不同的原因，旁邊的 `server-directive` 行會帶出伺服器的原因。
-- **在 DOM 很大的頁面上，每個工作階段都在同一位置出現同樣的空缺** ，這是舊錄製器的一個缺陷，已在這個 OneUptime 版本發佈的錄製器中修正。那些建置會把超過 256 KB 清出臨界值的整頁 rrweb 快照切成標記為 `snapshotPart` 的片段，而接收端從未把它們重新組合起來，所以每次頁面載入時，該快照 — 以及它佔用的每個區塊索引 — 都會被捨棄，客戶頁面上的任何做法都無法繞過它。目前的錄製器從不拆分快照。伺服器會統計它拒絕的內容，因此舊錄製器會在 **Health** 頁面上顯示為原因是 `snapshot-fragment-unsupported` 的捨棄。請重新載入受影響的頁面，在不使用瀏覽器快取的情況下取得 `latest` ；已經錄製的內容維持原樣。
+- **在 DOM 很大的頁面上，每個工作階段都在同一位置出現同樣的空缺** ，這是舊錄製器的一個缺陷，已在這個 OneUptime 版本發佈的錄製器中修正。那些建置會把超過 256 KB 清出臨界值的整頁 rrweb 快照切成標記為 `snapshotPart` 的片段，而接收端從未把它們重新組合起來，所以每次頁面載入時，該快照 — 以及它佔用的每個區塊索引 — 都會被捨棄，客戶頁面上的任何做法都無法繞過它。目前的錄製器從不拆分快照。伺服器會統計它拒絕的內容，因此舊錄製器會在 **健康狀況** 頁面上顯示為原因是 `snapshot-fragment-unsupported` 的捨棄。請重新載入受影響的頁面，在不使用瀏覽器快取的情況下取得 `latest` ；已經錄製的內容維持原樣。
 
 空缺與閒置區段不同：閒置區段是什麼都沒發生的錄製內容，在時間軸上以灰色繪製，可以略過；空缺是從未抵達的錄製內容，以琥珀色繪製。
 
@@ -372,8 +372,8 @@ OpenTelemetry 瀏覽器 SDK 的 OTLP/HTTP 匯出工具傳送 `application/json` 
 
 ### 先檢查這些
 
-1. **閱讀播放器下方的錄製說明。** 當圖片或樣式表無法在你的瀏覽器中載入時，第一則說明會指出這一點 — 例如 _2 images didn't load in this replay_ — 並列出它們來自哪些網站。它涵蓋自你開啟工作階段以來播放器播放過的每個分頁。 **Session details** （ `I` ）→ **Fidelity** → **Missing assets** 會列出每個位址，最多列出前 200 個。網頁字型、CSS 背景圖片以及你的頁面在瀏覽器中建立的圖片（ `blob:` 位址）不在該清單中；請在 DevTools 中尋找它們（見下文）。
-2. **檢查遮罩模式。** 在 _Mask all text_ 下錄製的工作階段依設計既不載入圖片也不載入網頁字型（頁面以 `data:` URL 形式持有的圖片是錄製的一部分，仍會顯示），其錄製說明會寫著 _Images and web fonts are not loaded_ 。遮罩模式未被回報、或不是儀表板能辨識之模式的工作階段也是如此。兩種情況下樣式表仍會載入。 **Session details** → **Privacy** 會顯示工作階段回報的模式，也就是其最近一次頁面載入的模式。
+1. **閱讀播放器下方的錄製說明。** 當圖片或樣式表無法在你的瀏覽器中載入時，第一則說明會指出這一點 — 例如 _2 images didn't load in this replay_ — 並列出它們來自哪些網站。它涵蓋自你開啟工作階段以來播放器播放過的每個分頁。 **工作階段詳細資料** （ `I` ）→ **Fidelity** → **Missing assets** 會列出每個位址，最多列出前 200 個。網頁字型、CSS 背景圖片以及你的頁面在瀏覽器中建立的圖片（ `blob:` 位址）不在該清單中；請在 DevTools 中尋找它們（見下文）。
+2. **檢查遮罩模式。** 在 _Mask all text_ 下錄製的工作階段依設計既不載入圖片也不載入網頁字型（頁面以 `data:` URL 形式持有的圖片是錄製的一部分，仍會顯示），其錄製說明會寫著 _Images and web fonts are not loaded_ 。遮罩模式未被回報、或不是儀表板能辨識之模式的工作階段也是如此。兩種情況下樣式表仍會載入。 **工作階段詳細資料** → **隱私** 會顯示工作階段回報的模式，也就是其最近一次頁面載入的模式。
 3. **檢查使用者那裡是否也失敗了。** 在那個時刻開啟事件面板的 **錯誤** 分頁：如果同一個檔案有一行 _Resource failed to load_ ，表示它在使用者的螢幕上也是壞的，重播只是忠實地呈現了這一點。
 
 ### 在 DevTools 中找出原因
@@ -417,9 +417,9 @@ OpenTelemetry 瀏覽器 SDK 的 OTLP/HTTP 匯出工具傳送 `application/json` 
 
 這些分頁顯示與錄製關聯的後端遙測，不需要你撰寫任何程式碼：在擷取時根據錄製器加入你的頁面傳往其自身來源之請求的 `tracestate` 而被標記上工作階段 ID 的 span，以及同一批追蹤上的日誌與例外狀況，透過追蹤 ID 合併。請參閱 [與其他遙測資料關聯](/docs/telemetry/session-replay#與其他遙測資料關聯) 。如果它們一直是空的，請依序檢查這份清單：
 
-1. **錄製器是否加入了標頭？** 開啟診斷後， `same-origin-propagation` 應顯示 `enabled: true` 。 `reason: "policy-off"` 表示該應用程式關閉了 **Same-origin trace propagation** ； `"opaque-origin"` 表示頁面沒有自己的來源。出現 `same-origin-propagation-tripped` 行表示某個請求失敗，錄製器在本次頁面載入的剩餘時間裡不再加入這些標頭（請參閱 [下文](#啟用工作階段重播後下載或重新導向失敗) ）。在 DevTools 中，工作階段上傳期間送出的同源 `fetch` 會帶有 `tracestate: oneuptime=sid:…` 。在 _Require explicit_ 下取得同意之前，或在 _On error or frustration_ 下觸發之前，不會加入任何內容。
+1. **錄製器是否加入了標頭？** 開啟診斷後， `same-origin-propagation` 應顯示 `enabled: true` 。 `reason: "policy-off"` 表示該應用程式關閉了 **同源追蹤傳播** ； `"opaque-origin"` 表示頁面沒有自己的來源。出現 `same-origin-propagation-tripped` 行表示某個請求失敗，錄製器在本次頁面載入的剩餘時間裡不再加入這些標頭（請參閱 [下文](#啟用工作階段重播後下載或重新導向失敗) ）。在 DevTools 中，工作階段上傳期間送出的同源 `fetch` 會帶有 `tracestate: oneuptime=sid:…` 。在 _Require explicit_ 下取得同意之前，或在 _On error or frustration_ 下觸發之前，不會加入任何內容。
 2. **有 `tracestate` 但沒有 `traceparent` ？** 一個在 DevTools 中顯示 `tracestate: oneuptime=…` 卻沒有 `traceparent` 的同源請求，表示頁面上的另一個追蹤代理程式讓錄製器讓步了，而它自己又沒有加入 `traceparent` 。你的後端會捨棄沒有這個標頭的 `tracestate` ，因此什麼都不會關聯。開啟診斷後，請尋找帶有 `reason: "agent-stand-down"` 的 `same-origin-propagation` ：它的 `agent` 會指出 Datadog RUM（ `DD_RUM` ）或 Elastic APM（ `elasticApm` ）。如果是 Datadog，通常是 Datadog 沒有為追蹤取樣的工作階段：當 `traceSampleRate` 低於 100 且使用預設的 `traceContextInjection: "sampled"` 時，它在其他工作階段中不會傳送 `traceparent` 。設定 `traceSampleRate: 100` 可以關聯它追蹤的每個工作階段； `traceContextInjection: "all"` 也會在那些工作階段中傳送 `traceparent` ，但會標記為未取樣，所以你後端預設的 `ParentBased` 取樣器仍會捨棄它們的追蹤。如果是 Elastic APM，請檢查它的 `disableInstrumentations` 沒有列出 `fetch` 或 `xmlhttprequest` 。否則，請將該代理程式設定為向你自己的來源傳播 W3C `traceparent` 。如果是 OpenTelemetry 瀏覽器 SDK，請檢查該 URL 不在其檢測的 `ignoreUrls` 中。New Relic（ `NREUM` ）表現出不同的症狀，在第 5 步中說明。
-3. **你的 API 在另一個來源上嗎？** 除非該來源在 **Trace propagation origins** 中，否則它的請求什麼也得不到，即使在其中也只會得到 `traceparent` ，透過追蹤 ID 比對。如果該請求在 Network 分頁中的那一行也沒有追蹤連結，表示該來源沒有列出，而你的頁面也沒有自行設定 `traceparent` 。
+3. **你的 API 在另一個來源上嗎？** 除非該來源在 **追蹤傳播來源** 中，否則它的請求什麼也得不到，即使在其中也只會得到 `traceparent` ，透過追蹤 ID 比對。如果該請求在 Network 分頁中的那一行也沒有追蹤連結，表示該來源沒有列出，而你的頁面也沒有自行設定 `traceparent` 。
 4. **你的後端是否延續了 W3C 追蹤內容？** 它的 OpenTelemetry 傳播器必須包含 `tracecontext` （Go SDK 在呼叫 `otel.SetTextMapPropagator(propagation.TraceContext{})` 之前不會傳播任何內容），而且它前面的 Proxy 或 CDN 都不能移除 `traceparent` 與 `tracestate` 。如果某個後端追蹤的 ID 與 Network 分頁那一行的追蹤 ID 一致，但它的 span 卻不在分頁中，問題就在這裡。
 5. **請求是否已經帶有 `tracestate` ？** Datadog RUM、Elastic RUM 與某些 OpenTelemetry 設定會傳送它們自己的 tracestate。錄製器不會寫入其他廠商的標頭，因此那些 span 不會被標記，只能透過追蹤 ID 關聯。開啟分散式追蹤的 New Relic（ `agent-stand-down` 指出 `NREUM` ）會隨它加入的每個 `traceparent` 傳送它自己的 `tracestate` ，取代該成員：DevTools 中顯示一個 `traceparent` 與一個沒有 `oneuptime=` 項目的 `tracestate` 。它的 `XMLHttpRequest` 呼叫，以及用 `Request` 物件發起的 `fetch` 呼叫，會透過追蹤 ID 關聯；當 New Relic 先載入時，以 URL 呼叫的 `fetch` 完全不會被關聯，因為 New Relic 傳送的是請求選項的一個複本，錄製器從來看不到它。沒有任何 New Relic 設定能讓該成員回來；只有關閉它的分散式追蹤才行，屆時錄製器會自己產生 `traceparent` 。
 6. **有追蹤，但日誌是空的？** 日誌透過追蹤 ID 合併，因此你的後端必須在請求的 span 內部寫入日誌，並使用會記錄目前追蹤 ID 的 OpenTelemetry 日誌功能。
@@ -434,7 +434,7 @@ OpenTelemetry 瀏覽器 SDK 的 OTLP/HTTP 匯出工具傳送 `application/json` 
 錄製器在第一次出現這種失敗時就會觸發斷路器。它會記錄 `same-origin-propagation-tripped` ，在本次頁面載入的剩餘時間裡停止加入這些標頭，並把不帶本文的 `fetch` `GET` 或 `HEAD` 依你的頁面送出的原樣重試一次（詳細資料中的 `retried: true` ），因此你的頁面會得到重試的結果。除了不帶本文的 `fetch` `GET` 或 `HEAD` 之外的任何請求（任何 `XMLHttpRequest` 、任何其他方法、任何帶本文的請求）都不會重試，所以那個請求仍然會失敗，而下一次頁面載入又會重新加入這些標頭。若要徹底解決，可以：
 
 - 在另一個來源的 CORS 設定中允許 `traceparent` 與 `tracestate` （在 S3 上是儲存貯體 CORS 的 `AllowedHeaders` ），或者
-- 在應用程式的 **Replay Policy** 頁面上關閉 **Same-origin trace propagation** ，如果你把自己的來源加入了 **Trace propagation origins** ，也請把它移除，否則它的請求會繼續取得 `traceparent` 。這樣一來，只有 **Trace propagation origins** 中的來源，以及你的頁面自行追蹤的請求，才會關聯後端遙測。
+- 在應用程式的 **Replay Policy** 頁面上關閉 **同源追蹤傳播** ，如果你把自己的來源加入了 **追蹤傳播來源** ，也請把它移除，否則它的請求會繼續取得 `traceparent` 。這樣一來，只有 **追蹤傳播來源** 中的來源，以及你的頁面自行追蹤的請求，才會關聯後端遙測。
 
 請參閱 [重新導向到其他來源](/docs/telemetry/session-replay#重新導向到其他來源) 。
 
@@ -447,7 +447,7 @@ OpenTelemetry 瀏覽器 SDK 的 OTLP/HTTP 匯出工具傳送 `application/json` 
 - **每一行都是 _Visitor_** — 錄製器是最新的，而你的頁面沒有呼叫 `identify()` ，或者只在工作階段結束後才呼叫。一旦帶有特徵的 `identify()` 抵達錄製器， `getDiagnostics()` 中的 `hasTraits` 就會變為 `true` 。
 - **顯示 _Anonymous_ 而不是 _Visitor_** — 這些工作階段來自訪客 ID 出現之前建置的錄製器。請檢查 `getDiagnostics().capabilities` 中是否有 `visitor-id` ；如果沒有，請重新載入頁面以取得目前的 `latest` 錄製器。
 - **同一個瀏覽器每次載入頁面都出現新的 _Visitor_ ID** — 錄製器無法寫入 `localStorage` （私密瀏覽、網站資料被封鎖），因此每次載入都產生了新的 ID。錄製仍然正常運作；只是跨造訪的分組遺失了。
-- **你的頁面呼叫了 `identify()` ，卻仍顯示 _Visitor_** — 請檢查該應用程式是否開啟了 **Capture end-user identity** 。關閉時，參照依設計不會離開瀏覽器，工作階段仍是一位訪客的工作階段。顯示 _Hidden_ 的行則是另一回事：頁面識別了某個人，但你的角色無權讀取那是誰。
+- **你的頁面呼叫了 `identify()` ，卻仍顯示 _Visitor_** — 請檢查該應用程式是否開啟了 **擷取終端使用者身分** 。關閉時，參照依設計不會離開瀏覽器，工作階段仍是一位訪客的工作階段。顯示 _Hidden_ 的行則是另一回事：頁面識別了某個人，但你的角色無權讀取那是誰。
 - **已登入使用者的某些工作階段顯示 _Visitor_ ，另一些顯示使用者名稱** — 只要工作階段中的任何一個頁面呼叫了 `identify()` ，工作階段就會以該使用者命名，此後該工作階段的每個頁面與分頁都帶有這個使用者，包括那些自己從不呼叫它的頁面（請參閱 [識別你的使用者](/docs/telemetry/session-replay#識別你的使用者) ）。 _Visitor_ 行是沒有任何頁面識別過任何人的工作階段：通常是一個開著沒動的登入頁面、一次在使用者登入前就結束的造訪，或者一個新的工作階段 — 在閒置 30 分鐘或達到 4 小時上限之後 — 開始於一個自己沒有呼叫 `identify()` 的頁面。在應用程式知道使用者的每次頁面載入時都呼叫 `identify()` ，而不只是在登入後立即呼叫，就能涵蓋最後一種情況。在同一個瀏覽器中，一個使用者登出、另一個使用者登入，會各自得到自己的工作階段：以不同的參照呼叫 `identify()` 會結束目前的工作階段並開始一個新的工作階段。
 
 ## 診斷資訊從不包含的內容
@@ -466,7 +466,7 @@ OpenTelemetry 瀏覽器 SDK 的 OTLP/HTTP 匯出工具傳送 `application/json` 
 
 - `OneUptimeReplay.getDiagnostics()` 的輸出。
 - `session-replay/v1/config` 請求的狀態。
-- 應用程式的 **Health** 頁面，以及 **Replay Policy** 上的 **Test your installation** 面板顯示的內容。它們從伺服器端回答，也就是瀏覽器看不到的那一半。
+- 應用程式的 **健康狀況** 頁面，以及 **Replay Policy** 上的 **Test your installation** 面板顯示的內容。它們從伺服器端回答，也就是瀏覽器看不到的那一半。
 - 對於遺失的圖片、圖示或樣式：一個未能載入之檔案的位址（ **Missing assets** 會列出它們），以及瀏覽器主控台為它輸出的那一行。
 
 然後聯絡 support@oneuptime.com，或在 [GitHub](https://github.com/OneUptime/oneuptime) 上提出 issue。

@@ -142,13 +142,13 @@ Värdar och nätverksenheter beskrivs med samma uppgifter, sparade under samma n
 | IP-adress | `host.ip` | Varje adress som collectorn rapporterar | Adressen som OneUptime pollar, när den är en IP-adress, annars adressen som dess sond slog upp DNS-namnet till |
 | MAC-adress | `host.mac` | Upptäckt | Inskriven på enheten, eller inlärd från ARP-tabellen i en genomgången router |
 | Serienummer | `host.serial_number` | Stämplat | ENTITY-MIB |
-| Manufacturer | `device.manufacturer` | Stämplat | ENTITY-MIB, annars det `sysDescr` eller `sysObjectID` nämner |
+| Tillverkare | `device.manufacturer` | Stämplat | ENTITY-MIB, annars det `sysDescr` eller `sysObjectID` nämner |
 | Modell | `device.model.name` | Stämplad | ENTITY-MIB, annars det `sysDescr` nämner |
 | Firmwareversion | `device.firmware.version` | Stämplad | ENTITY-MIB, annars det `sysDescr` nämner |
 | Operativsystem | `os.name` | `os.description` (eller `os.type`) | Det `sysDescr` nämner: Cisco IOS, Junos OS, Arista EOS, Linux |
 | OS-version | `os.version` | Upptäckt | ENTITY-MIB, annars det `sysDescr` nämner |
 | Device Type | `device.type` | Stämplad. Annars klassificerar kortet den utifrån operativsystem och namn (Server, Brandvägg, ...) | Dess roll: den du tilldelade, annars den som topologikartan ritar den som |
-| Location | `device.location` | Stämplad. Annars visar kortet dess molnzon | `sysLocation`. Kortet visar dess plats först |
+| Plats | `device.location` | Stämplad. Annars visar kortet dess molnzon | `sysLocation`. Kortet visar dess plats först |
 
 [Värdtabellen](#tillgångsattribut-för-värdar) och [tabellen över nätverksenheter](#tillgångsattribut-för-nätverksenheter) nedan talar i detalj om var varje värde kommer ifrån.
 

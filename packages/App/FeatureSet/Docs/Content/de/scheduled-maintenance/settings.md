@@ -82,7 +82,7 @@ Legen Sie unter **Erinnerungen** das **Erinnerungsintervall (Minuten)** fest, wi
 | **Vor dem Beginn** | Ab der Planung des Ereignisses bis zu seinem Beginn. |
 | **Vor dem Beginn und während es läuft** | Ab der Planung des Ereignisses bis zu seinem Ende. |
 
-Eine über die API oder Terraform gespeicherte Regel, die auf den Beginn des Ereignisses wartet und beim Beginn aufhört, sendet nie eine Erinnerung: Die Liste markiert sie mit **Erinnert nie**, und ihr Formular bittet Sie, eine Antwort zu wählen.
+Die API und Terraform lehnen eine Regel ab, die auf den Beginn des Ereignisses warten und beim Beginn aufhören würde: Sie würde nie eine Erinnerung senden. Eine ältere, so gespeicherte Regel ist in der Liste mit **Erinnert nie** markiert, und ihr Formular bittet Sie zu wählen, wann erinnert werden soll.
 
 Eigentümer erhalten jede Erinnerung als **Wartungserinnerung**, die für jedes neue Mitglied per E-Mail eingeschaltet ist. Das Speichern, Ändern oder Löschen einer Erinnerungsregel ordnet jedes noch nicht abgeschlossene Ereignis neu zu. Um die Erinnerungen für ein Ereignis zu stoppen, schalten Sie **Erinnerungen senden** auf seiner Seite **Einstellungen** aus; es speichert, sobald Sie den Schalter umlegen.
 
@@ -119,11 +119,11 @@ Jedes Wartungsmodell hat Workflow-Trigger und -Aktionen, nach ihm benannt: **On 
 
 | Rolle                             | Was sie darf                                                                                         |
 | --------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| **Scheduled Maintenance Viewer**  | Liest Ereignisse und ändert nichts.                                                                  |
-| **Scheduled Maintenance Member**  | Erstellt, ändert und löscht Ereignisse mit ihren Notizen, Zustands-Zeitachsen und Eigentümern sowie beide Arten von Vorlagen. |
-| **Scheduled Maintenance Admin**   | Alles, was ein Mitglied darf, und erstellt, ändert und löscht zusätzlich Wartungsstatus.             |
+| **Wartungs-Betrachter**  | Liest Ereignisse und ändert nichts.                                                                  |
+| **Wartungs-Mitglied**  | Erstellt, ändert und löscht Ereignisse mit ihren Notizen, Zustands-Zeitachsen und Eigentümern sowie beide Arten von Vorlagen. |
+| **Wartungs-Administrator**   | Alles, was ein Mitglied darf, und erstellt, ändert und löscht zusätzlich Wartungsstatus.             |
 
-Regeln, benutzerdefinierte Felder und Messungen erfordern **Project Owner** oder **Project Admin** oder eine benutzerdefinierte Rolle mit der eigenen Berechtigung dieser Seite, etwa **Create Scheduled Maintenance Owner Rule**. Runbook-Regeln akzeptieren auch **Runbook Admin**. **Project Member** arbeitet mit Ereignissen und Vorlagen, wie **Scheduled Maintenance Member**. Siehe [Benutzer, Teams & Berechtigungen](/docs/permissions/index).
+Regeln, benutzerdefinierte Felder und Messungen erfordern **Projektinhaber** oder **Projektadministrator** oder eine benutzerdefinierte Rolle mit der eigenen Berechtigung dieser Seite, etwa **Create Scheduled Maintenance Owner Rule**. Runbook-Regeln akzeptieren auch **Runbook-Administrator**. **Projektmitglied** arbeitet mit Ereignissen und Vorlagen, wie **Wartungs-Mitglied**. Siehe [Benutzer, Teams & Berechtigungen](/docs/permissions/index).
 
 ## Fehlerbehebung
 

@@ -87,7 +87,7 @@ Hver kørsel gemmer ord for ord de noter, den læste. Dens aktivitet siger **Læ
 
 ## Hvem der kan ændre den
 
-- **Project Owner** og **Project Admin** kan ændre projektets AI-kontekst. **Project Member**, **Viewer** og **Read Project** kan læse den.
+- **Projektejer** og **Projektadministrator** kan ændre projektets AI-kontekst. **Projektmedlem**, **Seer** og **Read Project** kan læse den.
 - En AI-regels noter er en del af reglen: den, der kan ændre reglen, kan ændre dem.
 - Noterne læses kun nogensinde for deres eget projekt: ingen kørsel læser et andet projekts AI-kontekst.
 

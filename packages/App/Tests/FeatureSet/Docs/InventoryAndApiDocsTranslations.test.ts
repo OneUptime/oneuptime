@@ -1100,11 +1100,11 @@ describe("the helpers, on these pages' shapes", () => {
     expect(drawnPath("en", ["Products", "Resources", "Inventory"])).toBe(
       "**Products → Resources → Inventory**",
     );
-    // The Persian menu reads موجودی; the flat "Inventory" label is English.
+    // The Persian menu reads موجودی, from its own key; the flat label now reads the same.
     expect(
       drawnPathSegment("fa", ["Products", "Resources", "Inventory"], 2),
     ).toBe("موجودی");
-    expect(drawnDashboardLabel("fa", "Inventory")).toBe("Inventory");
+    expect(drawnDashboardLabel("fa", "Inventory")).toBe("موجودی");
     // A side menu item is looked up whole: no "Delete {{itemName}}" is filled in.
     expect(drawnLabel("fa", "Delete Item")).toBe(
       drawnDashboardLabel("fa", "Delete Item"),

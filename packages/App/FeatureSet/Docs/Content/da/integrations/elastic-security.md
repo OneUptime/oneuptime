@@ -44,20 +44,20 @@ Alarmer gemmes pr. space. Åbn det space, hvor dine regler kører: dets ID er de
 
 ### Tilføj forbindelsen i OneUptime
 
-Åbn **Produkter → Security Events → Connections** (`/dashboard/{projectId}/security-events/connections`), klik på **Tilføj forbindelse**, vælg **Elastic Security**, og klik på **Næste**. Udfyld indstillingerne i tabellen nedenfor, klik på **Næste**, og indsæt nøglen i **API-nøgle**.
+Åbn **Produkter → Security Events → Forbindelser** (`/dashboard/{projectId}/security-events/connections`), klik på **Tilføj forbindelse**, vælg **Elastic Security**, og klik på **Næste**. Udfyld indstillingerne i tabellen nedenfor, klik på **Næste**, og indsæt nøglen i **API-nøgle**.
 
 ### Test den, før du gemmer
 
-Klik på **Test these settings** under **Test, før du gemmer**. Testen godkender og læser alarmer med værdierne i formularen og gemmer intet, så et forkert space eller en manglende rettighed viser sig, før forbindelsen findes. Klik derefter på **Næste**, giv forbindelsen et **Navn**, og opret den.
+Klik på **Test disse indstillinger** under **Test, før du gemmer**. Testen godkender og læser alarmer med værdierne i formularen og gemmer intet, så et forkert space eller en manglende rettighed viser sig, før forbindelsen findes. Klik derefter på **Næste**, giv forbindelsen et **Navn**, og opret den.
 :::
 
 | Indstilling | Hvad du skal angive |
 | --- | --- |
 | **Kibana URL** | Adressen, Kibana udstilles fra, for eksempel `https://kibana.example.com` eller `https://<deployment>.kb.<region>.cloud.es.io`. Uden sti: ingen `/app/security`, ingen `/api` og ingen `/s/<space>`-del. |
 | **Kibana space** | Spacets ID, ikke dets navn: bogstaver, cifre, bindestreger og understregninger. Lad det være tomt for standard-spacet. |
-| **API-nøgle** | Nøglens **Base64**-værdi, alene: OneUptime tilføjer selv skemaet `ApiKey`. Den krypteres, returneres aldrig af API'et og vises aldrig igen. Erstat den med **Update credentials** på forbindelsen. |
+| **API-nøgle** | Nøglens **Base64**-værdi, alene: OneUptime tilføjer selv skemaet `ApiKey`. Den krypteres, returneres aldrig af API'et og vises aldrig igen. Erstat den med **Opdater legitimationsoplysninger** på forbindelsen. |
 
-Trinnet **Polling** har også en valgfri **Beskrivelse**, **Poll Interval (Minutes)**, et heltal fra `1` til `1440`, der starter på `5`, og **Aktiveret**, som starter slået til.
+Trinnet **Hentning** har også en valgfri **Beskrivelse**, **Hentningsinterval (minutter)**, et heltal fra `1` til `1440`, der starter på `5`, og **Aktiveret**, som starter slået til.
 
 ## Hvad der importeres
 
@@ -94,14 +94,14 @@ POST {Kibana URL}/api/detection_engine/signals/search
 - **Oprettelsestidspunktet er markøren.** Alarmer vises efter deres eget `@timestamp`, da regelkørslen oprettede dem, aldrig efter tidspunktet for den aktivitet, de handler om. En regel, der kører hver time, opretter alarmer om aktivitet, der er op til en time gammel, og en markør på aktivitetstidspunktet ville springe dem alle over.
 - **Den første poll ser 24 timer tilbage**, så en ny forbindelse straks viser sine nylige advarsler.
 - **Hver senere poll starter 1 minut før den gemte markør**, så en alarm, der er oprettet på grænsen mellem to vinduer, aldrig går tabt.
-- **En poll læser højst 24 timer forbi markøren.** En forbindelse, hvis markør er kommet bagud, indhenter i en række vinduer på 24 timer, og dens **Health** viser **Catching up**.
+- **En poll læser højst 24 timer forbi markøren.** En forbindelse, hvis markør er kommet bagud, indhenter i en række vinduer på 24 timer, og dens **Sundhed** viser **Catching up**.
 - **Dubletter fjernes efter alarmens `_id`** i projektet, så overlappet, et gentaget vindue og en import aldrig gemmer en alarm to gange.
 
 Kibanas alarmsøgning tager en størrelse og en sortering, men intet sidetoken. Derfor paginerer OneUptime ved at flytte intervallets start til den sidste alarm på hver side og udelader, efter `_id`, de alarmer, den allerede har læst på det tidspunkt. En regelkørsel stempler ofte mange alarmer med samme tidspunkt, og sådan en gruppe læses side for side, ingen to gange og ingen sprunget over.
 
 ### Når et vindue indeholder mere, end én poll kan læse
 
-En poll læser højst 10.000 alarmer i højst 20 anmodninger. Når et vindue indeholder flere, er kørslen **Partial** med en advarsel som:
+En poll læser højst 10.000 alarmer i højst 20 anmodninger. Når et vindue indeholder flere, er kørslen **Delvis** med en advarsel som:
 
 ```text
 Stopped after collecting 10000 alerts; the window holds more.
@@ -109,28 +109,28 @@ Stopped after collecting 10000 alerts; the window holds more.
 
 Alarmer læses de ældste først, så OneUptime flytter markøren til oprettelsestidspunktet for den sidst læste alarm, og den næste poll starter der med samme vindueslængde. Et travlt space indhenter 10.000 alarmer pr. poll i stedet for at læse de samme igen. Alarmer, der er oprettet i præcis samme øjeblik, læses to gange, og dubletkontrollen fjerner den anden kopi.
 
-De udeladte ID'er sendes med i hver anmodning, og Kibana begrænser størrelsen på en anmodning. Når flere alarmer deler ét øjeblik, end én anmodning kan udelade, omkring 7.800, stopper kørslen dér som **Partial** med en advarsel, der navngiver øjeblikket.
+De udeladte ID'er sendes med i hver anmodning, og Kibana begrænser størrelsen på en anmodning. Når flere alarmer deler ét øjeblik, end én anmodning kan udelade, omkring 7.800, stopper kørslen dér som **Delvis** med en advarsel, der navngiver øjeblikket.
 
 Når en kørsel slet ikke kan komme forbi den gemte markør, gør OneUptime i stedet vinduet kortere:
 
 1. **Indsnævr.** Den næste poll læser et vindue, der er halvt så langt, fra det samme startpunkt, og bliver ved med at halvere, indtil et vindue læses helt, ned til ét minut. Kørslens advarsel siger det: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **Voks igen.** Når et vindue er læst helt, er det næste igen dobbelt så langt, op til 24 timer.
-3. **Gå forbi et enkelt minut.** Hvis selv ét minut indeholder mere, end en poll kan læse, går pollingen forbi det, så nyere advarsler bliver ved med at komme. Kørslen forbliver **Partial**, og **Seneste fejl** lyder `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importér det minut med **Import this time range** for at hente det, én kørsel kan læse.
+3. **Gå forbi et enkelt minut.** Hvis selv ét minut indeholder mere, end en poll kan læse, går pollingen forbi det, så nyere advarsler bliver ved med at komme. Kørslen forbliver **Delvis**, og **Seneste fejl** lyder `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importér det minut med **Import this time range** for at hente det, én kørsel kan læse.
 
-En kørsel, der mislykkes helt, med en fejl fra Kibana, beholder markøren og vindueslængden, og den næste poll læser det samme vindue igen. Den eneste undtagelse er en anmodning, der fik timeout: markøren bliver, men det næste vindue er halvt så langt, fordi et vindue, der er for tungt til at blive besvaret i tide, ville få timeout ved hvert forsøg. At ændre **Poll Interval (Minutes)** ændrer intet af dette: det afgør, hvor ofte en poll starter, ikke hvor dens vindue begynder.
+En kørsel, der mislykkes helt, med en fejl fra Kibana, beholder markøren og vindueslængden, og den næste poll læser det samme vindue igen. Den eneste undtagelse er en anmodning, der fik timeout: markøren bliver, men det næste vindue er halvt så langt, fordi et vindue, der er for tungt til at blive besvaret i tide, ville få timeout ved hvert forsøg. At ændre **Hentningsinterval (minutter)** ændrer intet af dette: det afgør, hvor ofte en poll starter, ikke hvor dens vindue begynder.
 
 ### Kør, se forhåndsvisning og importér efter behov
 
-Klik på **Diagnostics** på en forbindelse for at se dens seneste kørsler og arbejde med den manuelt. Alle, der kan ændre forbindelsen, kan starte disse handlinger; alle, der kan se den, kan læse historikken.
+Klik på **Diagnosticering** på en forbindelse for at se dens seneste kørsler og arbejde med den manuelt. Alle, der kan ændre forbindelsen, kan starte disse handlinger; alle, der kan se den, kan læse historikken.
 
-- **Run now** starter straks en poll med den sædvanlige markør, også når forbindelsen ikke er **Aktiveret**.
+- **Kør nu** starter straks en poll med den sædvanlige markør, også når forbindelsen ikke er **Aktiveret**.
 - **Preview alerts** læser et tidsinterval på op til 7 dage og importerer intet.
 - **Import this time range** importerer et interval på op til 7 dage, efter at du har bekræftet, uden at flytte markøren. Advarsler, der allerede er importeret, springes over.
 - **Copy diagnostics** på en kørsel kopierer dens rapport til support. Den indeholder aldrig legitimationsoplysninger.
 
 ## Test forbindelse
 
-**Test forbindelse** på en forbindelses række og **Test these settings** i formularen kører i API-processen, ikke i en baggrundsworker, så en test også svarer, når det er workerne, der er problemet. Den kører disse kontroller i rækkefølge:
+**Test forbindelse** på en forbindelses række og **Test disse indstillinger** i formularen kører i API-processen, ikke i en baggrundsworker, så en test også svarer, når det er workerne, der er problemet. Den kører disse kontroller i rækkefølge:
 
 | Kontrol | Hvad den kontrollerer |
 | --- | --- |
@@ -154,7 +154,7 @@ OneUptime kan også sende det, den finder, til Elasticsearch som Elastic Common 
 
 ### Tilføj destinationen
 
-Åbn **Produkter → Security Events → Connections**. Klik på **Tilføj destination** under **Send til dit SIEM**, vælg Elastic Security under **SIEM**, og klik på **Næste**. Udfyld **Elasticsearch-URL**, deploymentets Elasticsearch-slutpunkt og ikke Kibanas, og indsæt nøglen i **API-nøgle**. **Datastrøm** er valgfri: står den tom, går dokumenterne til `logs-oneuptime.security-default`, som Elasticsearch opretter ved første skrivning.
+Åbn **Produkter → Security Events → Forbindelser**. Klik på **Tilføj destination** under **Send til dit SIEM**, vælg Elastic Security under **SIEM**, og klik på **Næste**. Udfyld **Elasticsearch-URL**, deploymentets Elasticsearch-slutpunkt og ikke Kibanas, og indsæt nøglen i **API-nøgle**. **Datastrøm** er valgfri: står den tom, går dokumenterne til `logs-oneuptime.security-default`, som Elasticsearch opretter ved første skrivning.
 
 ### Send en testhændelse, og begynd at sende
 
@@ -191,7 +191,7 @@ Forbindelsens **Seneste fejl** gemmer hele fejlmeddelelsen, med legitimationsopl
 
 :::details Last Error starter med `Elastic Security status request`
 - `Elastic Security status request failed (HTTP ...)`: Kibana afviste statusanmodningen.
-  - `HTTP 401`: Kibana accepterede ikke API-nøglen. Det er ikke **Base64**-værdien, eller den er udløbet eller ugyldiggjort. Opret en ny nøgle, og gem den med **Update credentials**.
+  - `HTTP 401`: Kibana accepterede ikke API-nøglen. Det er ikke **Base64**-værdien, eller den er udløbet eller ugyldiggjort. Opret en ny nøgle, og gem den med **Opdater legitimationsoplysninger**.
   - `HTTP 404`: **Kibana URL** har en sti eller er ikke Kibana.
   - `HTTP 503`: Kibana melder sig selv utilgængelig, som regel fordi den ikke kan nå Elasticsearch.
   - `HTTP 3xx`: Kibana omdirigerede anmodningen, og omdirigeringer afvises. Brug den adresse, Kibana udstilles fra.
@@ -216,8 +216,8 @@ Ingen poll er blevet færdig for denne forbindelse. Kør **Test forbindelse**: d
 :::
 
 :::details En kørsel er Partial
-- `Stopped after collecting 10000 alerts; the window holds more`: vinduet indeholdt mere end de 10.000 alarmer, én kørsel læser. Intet går tabt: den næste poll starter efter den sidst læste alarm. En forbindelse, der forbliver **Partial** poll efter poll, er ved at indhente et efterslæb, og dens **Last Polled** og **Last Event Imported** bliver ved med at rykke frem. Hvis den aldrig indhenter, opretter spacet mere end 10.000 alarmer pr. pollinterval: gør **Poll Interval (Minutes)** kortere.
-- `More records were created in the one minute from ... than one poll can read`: pollingen gik forbi det minut. Importér det med **Import this time range** i **Diagnostics**. En import læser lige så meget som en poll.
+- `Stopped after collecting 10000 alerts; the window holds more`: vinduet indeholdt mere end de 10.000 alarmer, én kørsel læser. Intet går tabt: den næste poll starter efter den sidst læste alarm. En forbindelse, der forbliver **Delvis** poll efter poll, er ved at indhente et efterslæb, og dens **Senest hentet** og **Seneste importerede hændelse** bliver ved med at rykke frem. Hvis den aldrig indhenter, opretter spacet mere end 10.000 alarmer pr. pollinterval: gør **Hentningsinterval (minutter)** kortere.
+- `More records were created in the one minute from ... than one poll can read`: pollingen gik forbi det minut. Importér det med **Import this time range** i **Diagnosticering**. En import læser lige så meget som en poll.
 :::
 
 :::details Testen lykkes, men intet importeres

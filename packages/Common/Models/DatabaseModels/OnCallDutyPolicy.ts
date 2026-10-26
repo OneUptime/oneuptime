@@ -713,7 +713,7 @@ export default class OnCallDutyPolicy extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Repeat Policy Times If No One Acknowledges",
     description:
-      "Repeat the policy X number of times if no one acknowledges the alert",
+      "How many more times the policy starts again from its first escalation rule when nobody acknowledges: a whole number of 1 or more while Repeat Policy If No One Acknowledges is on.",
     defaultValue: 0,
   })
   @Column({

@@ -170,6 +170,7 @@ var monitorStepsCheckOnValues = []string{
 	"Email Received",
 	"SNMP OID Value",
 	"SNMP OID Exists",
+	"SNMP OID Rate (per second)",
 	"SNMP Response Time (in ms)",
 	"SNMP Device Is Online",
 	"SNMP Walk Is Succeeding",

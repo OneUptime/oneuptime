@@ -68,7 +68,7 @@ flowchart TB
 
 ## ओवरराइड कौन जोड़ सकता है
 
-**Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** और **On-Call Member** ओवरराइड जोड़ और हटा सकते हैं; **Viewer** और **On-Call Viewer** उन्हें देख सकते हैं। कस्टम भूमिका में अनुमतियों के नाम **Create On-Call Duty Policy User Override**, **Delete On-Call Duty Policy User Override** और **Read On-Call Duty Policy User Override** हैं। **शेड्यूल टाइमलाइन** पर केवल वे लोग देखते हैं कि किसकी शिफ्ट कवर की जा रही है, जो ओवरराइड पढ़ सकते हैं।
+**प्रोजेक्ट स्वामी**, **प्रोजेक्ट एडमिन**, **प्रोजेक्ट सदस्य**, **ऑन-कॉल एडमिन** और **ऑन-कॉल सदस्य** ओवरराइड जोड़ और हटा सकते हैं; **दर्शक** और **ऑन-कॉल दर्शक** उन्हें देख सकते हैं। कस्टम भूमिका में अनुमतियों के नाम **Create On-Call Duty Policy User Override**, **Delete On-Call Duty Policy User Override** और **Read On-Call Duty Policy User Override** हैं। **शेड्यूल टाइमलाइन** पर केवल वे लोग देखते हैं कि किसकी शिफ्ट कवर की जा रही है, जो ओवरराइड पढ़ सकते हैं।
 
 OneUptime Cloud पर उपयोगकर्ता ओवरराइड के लिए **Growth** प्लान चाहिए।
 

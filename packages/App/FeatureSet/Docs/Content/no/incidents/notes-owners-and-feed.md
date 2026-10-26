@@ -64,7 +64,7 @@ De to typene notater ser like ut i dashbordet og oppfører seg svært forskjelli
 
 ### Skriv oppdateringen
 
-Skriv notatet i Markdown, eller start fra en av **Maler** eller fra **Draft with AI**. Legg til filer med **Attach** hvis abonnentene skal se dem.
+Skriv notatet i Markdown, eller start fra en av **Maler** eller fra **Utkast med KI**. Legg til filer med **Attach** hvis abonnentene skal se dem.
 
 ### Bestem hvem som får beskjed
 
@@ -81,7 +81,7 @@ Det samme redigeringsverktøyet åpner i en dialog fra **Add Public Note** i men
 | ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
 | Notatet                            | Teksten, i Markdown. Påkrevd.                                                                                                                 |
 | **Maler**                          | Setter en av notatmalene dine inn i notatet, etter det du allerede har skrevet. Se [Notatmaler](#notatmaler).                             |
-| **Draft with AI**                  | Skriver et utkast til notatet ut fra hendelsen, som du redigerer. Se [Generer et notat med KI](#generer-et-notat-med-ki).                    |
+| **Utkast med KI**                  | Skriver et utkast til notatet ut fra hendelsen, som du redigerer. Se [Generer et notat med KI](#generer-et-notat-med-ki).                    |
 | **Attach**                         | Filer som deles med abonnentene på statussiden. Valgfritt.                                                                                    |
 | **Posted now**                     | Når notatet sier at det ble publisert: øyeblikket du publiserer det, med mindre du velger et tidligere tidspunkt her, i din gjeldende tidssone. |
 | **Notify status page subscribers** | Avkrysningsboks. Slått på som standard, med mindre hendelsen ble erklært uten å gi abonnentene beskjed — da starter den slått av. Slå den av for å publisere stille. |
@@ -99,7 +99,7 @@ Hvert notat viser hvem som skrev det, publiseringstidspunktet, den gjengitte Mar
 
 ## Publiser et privat notat
 
-**Notater → Private notater** er bevisst enklere. Det er det samme redigeringsverktøyet, som sier **Private · Only your team can see this**, med notatet, **Maler**, **Draft with AI** og **Attach** for filer som er ment for teamet som responderer på hendelsen. **Legg til privat notat** i menyen **Handlinger** i hendelsens feed åpner det i en dialog. Via API-et er private notater `/api/incident-internal-note`.
+**Notater → Private notater** er bevisst enklere. Det er det samme redigeringsverktøyet, som sier **Private · Only your team can see this**, med notatet, **Maler**, **Utkast med KI** og **Attach** for filer som er ment for teamet som responderer på hendelsen. **Legg til privat notat** i menyen **Handlinger** i hendelsens feed åpner det i en dialog. Via API-et er private notater `/api/incident-internal-note`.
 
 Ikke noe publiseringstidspunkt, ingen avkrysningsboks for abonnenter — notatet stemples når det opprettes.
 
@@ -138,7 +138,7 @@ Hver opplasting starter privat, fra dashbordet og fra API-et. Et bilde kan bare 
 
 ## Generer et notat med KI
 
-Redigeringsverktøyet har en knapp **Draft with AI**, på begge notatsidene og i feedens dialoger **Add Public Note** og **Legg til privat notat**. Den sender hendelsen til prosjektets KI-leverandør og setter den genererte Markdown-en inn i notatet, der du redigerer den før du publiserer — ingenting publiseres automatisk.
+Redigeringsverktøyet har en knapp **Utkast med KI**, på begge notatsidene og i feedens dialoger **Add Public Note** og **Legg til privat notat**. Den sender hendelsen til prosjektets KI-leverandør og setter den genererte Markdown-en inn i notatet, der du redigerer den før du publiserer — ingenting publiseres automatisk.
 
 | Dialog                             | Hva den skriver                                                      | Maler                                                             |
 | ---------------------------------- | -------------------------------------------------------------------- | ----------------------------------------------------------------- |
@@ -250,7 +250,7 @@ Kortets overskrift har også en meny **Handlinger**, så du kan handle uten å f
 
 - **Execute Runbook** — start et [runbook](/docs/runbooks/index) for denne hendelsen.
 - **Kjør vakttjenesteretningslinje** — tilkall en policy ved behov. En arkivert policy tilkaller ingen: kjøringsloggen på hendelsen sier at den ikke ble kjørt fordi policyen er arkivert.
-- **Add Public Note** — redigeringsverktøyet fra siden **Offentlige notater**, i en dialog: skriv notatet, og deretter **Post update**. Maler, **Draft with AI**, vedlegg, **Notify status page subscribers** med hvem det når, og **Forhåndsvisning** er der alle sammen. Notatet publiseres nå; for å tilbakedatere det velger du **Posted now**.
+- **Add Public Note** — redigeringsverktøyet fra siden **Offentlige notater**, i en dialog: skriv notatet, og deretter **Post update**. Maler, **Utkast med KI**, vedlegg, **Notify status page subscribers** med hvem det når, og **Forhåndsvisning** er der alle sammen. Notatet publiseres nå; for å tilbakedatere det velger du **Posted now**.
 - **Legg til privat notat** — redigeringsverktøyet fra siden **Private notater**, i en dialog: skriv notatet, og deretter **Add note**.
 
 Begge notathandlingene er låst, med navnet på den manglende tillatelsen, for noen som ikke kan skrive notater. Når et notat er publisert, lukkes dialogen, og feeden viser det.

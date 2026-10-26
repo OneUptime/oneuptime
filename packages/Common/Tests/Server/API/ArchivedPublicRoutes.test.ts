@@ -389,7 +389,7 @@ describe("archived status pages and dashboards on their public routes", () => {
     });
 
     it("the logo and cover image are not served", async () => {
-      for (const asset of ["logo", "cover-image"]) {
+      for (const asset of ["logo", "dark-theme-logo", "cover-image"]) {
         const archived: HttpResult = await send({
           port,
           method: "GET",

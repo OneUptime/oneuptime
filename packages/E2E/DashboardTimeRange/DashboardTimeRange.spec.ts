@@ -168,14 +168,16 @@ const shoot: (
 /*
  * A press on a control of the dashboard's toolbar, as the viewer makes it.
  *
- * Both dashboards are 1000px wide (DashboardView, DashboardViewPage:
- * minWidth), so on a phone the toolbar sits past the screen's right edge
- * and the viewer scrolls to it. Playwright's own click cannot reach it
- * there - in the phone emulation the browser scrolls the visual viewport,
- * and the check of what is under the pointer looks at the wrong place - so
- * on the phone the control is scrolled to, must be visible and enabled, and
- * gets the click a tap ends in (as the public dashboard theme suite does);
- * at 1280 it is Playwright's real click.
+ * The dashboard in the app is 1000px wide (DashboardView: minWidth), so on
+ * a phone its toolbar sits past the screen's right edge and the viewer
+ * scrolls to it; the public dashboard's toolbar fits the screen, and only
+ * its board scrolls, in its own frame (DashboardViewLayout). Playwright's
+ * own click cannot reach a control the viewer scrolls to - in the phone
+ * emulation the browser scrolls the visual viewport, and the check of what
+ * is under the pointer looks at the wrong place - so on the phone the
+ * control is scrolled to, must be visible and enabled, and gets the click
+ * a tap ends in (as the public dashboard theme suite does); at 1280 it is
+ * Playwright's real click.
  */
 const press: (control: Locator) => Promise<void> = async (
   control: Locator,

@@ -73,13 +73,13 @@ Une nouvelle condition sur le nom ou la description commence sur **Contient**. U
 ## Quand les règles s'exécutent
 
 - **Quand un SLO est créé**, depuis le tableau de bord ou par l'API : chaque règle d'étiquettes activée, puis chaque règle de propriétaire activée.
-- **Quand vous exécutez une règle** avec **Run Now** : voir ci-dessous.
+- **Quand vous exécutez une règle** avec **Exécuter maintenant** : voir ci-dessous.
 
 Modifier un SLO n'applique pas de nouveau les règles, et une règle ne retire jamais rien : ni les étiquettes ou propriétaires que quelqu'un a ajoutés à la main, ni ceux qu'elle a ajoutés elle-même. Une règle désactivée ne fait rien.
 
 ## Appliquer une règle aux SLO existants
 
-Une règle que vous écrivez aujourd'hui s'applique aux SLO créés après elle. Pour l'appliquer aux SLO que vous avez déjà, cliquez sur **Run Now** sur la ligne de la règle, ou sur **Voir** puis sur **Run Now** sur la page de la règle. Vous pouvez aussi sélectionner plusieurs règles et les exécuter depuis les actions groupées du tableau.
+Une règle que vous écrivez aujourd'hui s'applique aux SLO créés après elle. Pour l'appliquer aux SLO que vous avez déjà, cliquez sur **Exécuter maintenant** sur la ligne de la règle, ou sur **Voir** puis sur **Exécuter maintenant** sur la page de la règle. Vous pouvez aussi sélectionner plusieurs règles et les exécuter depuis les actions groupées du tableau.
 
 Une exécution passe en revue chaque SLO du projet, archivés compris, et indique à combien elle a correspondu et combien elle en a modifié. Les propriétaires qu'ajoute une exécution ne sont notifiés que si vous le choisissez dans la boîte de dialogue d'exécution et que la règle a **Notifier les propriétaires** activé. Voir [Exécuter des règles sur les ressources existantes](/docs/configuration/run-rules-now).
 

@@ -46,7 +46,7 @@ Under **Påloggingsinformasjon** fyller du ut det verktøyet ber om. Hemmelighet
 
 ### Velg hvem som kan lese
 
-Under **Privacy** stiller du inn **Hvem som kan lese samtaler** og **Behold det som ble skrevet**, slik [Personvern](#personvern) forklarer.
+Under **Personvern** stiller du inn **Hvem som kan lese samtaler** og **Behold det som ble skrevet**, slik [Personvern](#personvern) forklarer.
 
 ### Test det
 
@@ -90,7 +90,7 @@ Gi appen applikasjonstillatelsene `AiEnterpriseInteraction.Read.All` og `User.Re
 
 ### Koble til Copilot
 
-Fyll ut **Katalog-ID (tenant)**, **Program-ID (klient)** og **Client secret**. Vil du bare lese noen personer, setter du objekt-ID-en til en gruppe i **Bare personer i denne gruppen** under **Flere felt**, og gir appen også `GroupMember.Read.All`. For Azure Government endrer du **Sky** på samme sted.
+Fyll ut **Katalog-ID (tenant)**, **Program-ID (klient)** og **Klienthemmelighet**. Vil du bare lese noen personer, setter du objekt-ID-en til en gruppe i **Bare personer i denne gruppen** under **Flere felt**, og gir appen også `GroupMember.Read.All`. For Azure Government endrer du **Sky** på samme sted.
 :::
 
 ## Personvern

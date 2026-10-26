@@ -48,6 +48,7 @@ import {
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { isPermissionTitleKeptInEnglish } from "./DocsRoleNames";
 
 /*
  * Docs overhaul task 14: Label and Owner Rules, Import and Export Label
@@ -145,8 +146,6 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
   ],
   [SMTP]: [
     // Roles, permissions and the plan of Send Test Email (TestSendDocs).
-    "Project Owner",
-    "Project Admin",
     "Create SMTP Config",
     "Read SMTP Config",
     "Growth",
@@ -648,14 +647,6 @@ function occurrences(text: string, needle: string): number {
   return needle ? text.split(needle).length - 1 : 0;
 }
 
-function isPermissionOrRole(name: string): boolean {
-  return PermissionHelper.getAllPermissionProps().some(
-    (props: { title: string }): boolean => {
-      return props.title === name;
-    },
-  );
-}
-
 function listed(
   lists: Record<string, Array<string>>,
   page: string,
@@ -932,7 +923,7 @@ describe("the lists this test keeps", () => {
           name,
           why:
             PLANS.includes(name) ||
-            isPermissionOrRole(name) ||
+            isPermissionTitleKeptInEnglish(name) ||
             name === "Form" ||
             WORKFLOW_COMPONENTS.includes(name) ||
             STORED_QUESTION_LABELS.includes(name) ||
@@ -949,7 +940,7 @@ describe("the lists this test keeps", () => {
         expect(listed(KEPT_IN_ENGLISH, page)).toContain(name);
         expect({ name, permission: true, label: true }).toEqual({
           name,
-          permission: isPermissionOrRole(name),
+          permission: isPermissionTitleKeptInEnglish(name),
           label: isDashboardLabel(name),
         });
       }

@@ -310,6 +310,8 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
               fieldType: FormFieldSchemaType.ImageFile,
               required: false,
               placeholder: "Upload logo",
+              // The column's description only said "Probe Icon".
+              hideColumnDescription: true,
               collapsibleSection: advancedSection,
             },
             {

@@ -20,7 +20,7 @@ En vaktretningslinje avgjør hvem som tilkalles om en hendelse eller et varsel, 
 
 **Hvem varsles først?** er valgfritt og vises bare for folk som kan legge til eskaleringsregler: står det tomt, tilkaller retningslinjen ingen før den har en regel. **Beskrivelse** og **Etiketter** venter under **Flere felt**. Se [Eskaleringsregler](/docs/on-call/escalation-rules) for å legge til de neste nivåene.
 
-Listen **Vaktpolicyer** viser **Navn**, **Beskrivelse**, **Etiketter** og **Eiere** for hver retningslinje. Velg retningslinjer for å bruke **Add Labels**, **Remove Labels**, **Add Owner**, **Remove Owner**, **Arkiver** eller **Eksporter JSON**, eller for å slette dem. **Import JSON** oppretter retningslinjer fra en eksport: en eksport inneholder retningslinjens egne innstillinger, ikke eskaleringsreglene eller eierne.
+Listen **Vaktpolicyer** viser **Navn**, **Beskrivelse**, **Etiketter** og **Eiere** for hver retningslinje. Velg retningslinjer for å bruke **Legg til etiketter**, **Fjern etiketter**, **Legg til eier**, **Fjern eier**, **Arkiver** eller **Eksporter JSON**, eller for å slette dem. **Import JSON** oppretter retningslinjer fra en eksport: en eksport inneholder retningslinjens egne innstillinger, ikke eskaleringsreglene eller eierne.
 
 ## Hva som kjører en retningslinje
 
@@ -49,7 +49,7 @@ En retningslinje som flere regler legger til, kjører én gang. En alvorlighetsg
 
 **Grunnleggende** er åpen; de andre seksjonene starter sammenslått til du klikker på dem.
 
-- **Oversikt** viser **Detaljer for vaktretningslinje**, deretter **Policy at a glance**: hvor mange nivåer og mottakere retningslinjen har, hvor lang tid det går til det siste nivået, og hvor ofte den gjentas. **Responder readiness** sier om alle den kan tilkalle, kan nås nå, og **Vaktpolicyens feed** viser hva som er endret: personer, team og vaktplaner som er lagt til eller fjernet, overstyringer og overleveringer.
+- **Oversikt** viser **Detaljer for vaktretningslinje**, deretter **Policyen i korte trekk**: hvor mange nivåer og mottakere retningslinjen har, hvor lang tid det går til det siste nivået, og hvor ofte den gjentas. **Mottakernes beredskap** sier om alle den kan tilkalle, kan nås nå, og **Vaktpolicyens feed** viser hva som er endret: personer, team og vaktplaner som er lagt til eller fjernet, overstyringer og overleveringer.
 - **Eiere** er personene og teamene som er ansvarlige for retningslinjen. Når en tilkalling fra den ikke finner noen regel for noen, eller ikke kan leveres, får de en e-post; en retningslinje uten eiere sender i stedet e-post til prosjektets eiere.
 - **Varsellogger** viser hver melding retningslinjen har sendt, med en fane per kanal.
 - **Brukeroverstyringer** dekker for folk bare i denne retningslinjen. Se [Brukeroverstyringer](/docs/on-call/user-overrides).
@@ -64,7 +64,7 @@ Når ventetiden til det siste nivået er ute uten at noen har bekreftet, stopper
 | **Stopp varslingen** | Ingen varsles igjen, så retningslinjen kjører én gang. En ny retningslinje starter med dette svaret. |
 | **Start på nytt fra Level 1** | Hvert nivå varsles igjen, i rekkefølge. **Hvor mange ganger til?** sier hvor mange: 1 eller flere. |
 
-En retningslinje som starter på nytt tre ganger til, går gjennom nivåene sine fire ganger til sammen. Kortets rad **Etter det siste nivået** sier hva retningslinjen gjør, og **Policy at a glance** på **Oversikt** sier det samme med ord.
+En retningslinje som starter på nytt tre ganger til, går gjennom nivåene sine fire ganger til sammen. Kortets rad **Etter det siste nivået** sier hva retningslinjen gjør, og **Policyen i korte trekk** på **Oversikt** sier det samme med ord.
 
 ## Varsle igjen hvis den ikke blir løst
 
@@ -77,7 +77,7 @@ En bekreftelse stopper en retningslinjes varsling for godt, også om ingen løse
 
 Minuttene telles fra hver bekreftelse, og en retningslinje varsler høyst 5 ganger igjen om den samme hendelsen, det samme varselet eller den samme episoden. En ny varsling starter på nivået som varslet da det ble bekreftet, varsler den som har vakt der nå, og går videre gjennom nivåene som den første kjøringen. Hendelsen eller varselet forblir bekreftet: den nye varslingen er en egen kjøring, i feeden og i utførelsesloggene til retningslinjen, der **Status** sier "Varslet igjen (1 av 5)".
 
-Den som varsles igjen, bekrefter fra meldingen eller med **Bekreft igjen** på siden til hendelsen eller varselet, og minuttene starter på nytt; **Eskaler** sender varslingen videre til neste nivå. Å løse eller slette hendelsen eller varselet, arkivere eller slette retningslinjen, eller velge **Ikke varsle igjen** stopper den. Kortets rad **Etter en bekreftelse** sier hva retningslinjen gjør, og **Flere innstillinger** viser minuttene mens den er lukket. **Policy at a glance** på **Oversikt** og **Escalation summary** sier det samme med ord.
+Den som varsles igjen, bekrefter fra meldingen eller med **Bekreft igjen** på siden til hendelsen eller varselet, og minuttene starter på nytt; **Eskaler** sender varslingen videre til neste nivå. Å løse eller slette hendelsen eller varselet, arkivere eller slette retningslinjen, eller velge **Ikke varsle igjen** stopper den. Kortets rad **Etter en bekreftelse** sier hva retningslinjen gjør, og **Flere innstillinger** viser minuttene mens den er lukket. **Policyen i korte trekk** på **Oversikt** og **Oversikt over eskalering** sier det samme med ord.
 
 ## Utførelseslogger
 
@@ -110,7 +110,7 @@ Du finner utførelseslogger tre steder:
 - under **Vakttjeneste → Avansert → Utførelseslogger**, for alle retningslinjer, der direkte tilkallinger fra arbeidsflyter og chat står som **Direkte tilkalling**;
 - på siden **Vaktutførelser** for en hendelse eller et varsel.
 
-Hver rad viser hva som startet kjøringen, når, **Status** og hvem som bekreftet. **View Timeline** åpner **Tidslinje for utførelsen**: hver eskaleringsregel, hvem den tilkalte, gjennom hvilken vaktplan, og hvordan hver tilkalling endte. En vaktplan der ingen har vakt, viser **No one was on call** i stedet for en person. I OneUptime Cloud krever utførelseslogger abonnementet **Growth**.
+Hver rad viser hva som startet kjøringen, når, **Status** og hvem som bekreftet. **Vis tidslinje** åpner **Tidslinje for utførelsen**: hver eskaleringsregel, hvem den tilkalte, gjennom hvilken vaktplan, og hvordan hver tilkalling endte. En vaktplan der ingen har vakt, viser **Ingen hadde vakt** i stedet for en person. I OneUptime Cloud krever utførelseslogger abonnementet **Growth**.
 
 ## Arkiver eller slett en retningslinje
 
@@ -123,7 +123,7 @@ Arkivering tar en retningslinje ut av drift og beholder alt: åpne **Innstilling
 
 ## Hvem som kan endre en retningslinje
 
-**Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** og **On-Call Member** kan opprette, endre og slette retningslinjer; **Viewer** og **On-Call Viewer** kan lese dem. I en egendefinert rolle heter tillatelsene **Create On-Call Duty Policy**, **Edit On-Call Duty Policy**, **Delete On-Call Duty Policy** og **Read On-Call Duty Policy**, og en rolle som er begrenset til enkelte etiketter, når bare retningslinjene som har dem. Å legge til eiere og egendefinerte felt krever abonnementet **Growth** i OneUptime Cloud.
+**Prosjekteier**, **Prosjektadministrator**, **Prosjektmedlem**, **Vaktadministrator** og **Vaktmedlem** kan opprette, endre og slette retningslinjer; **Leser** og **Vaktleser** kan lese dem. I en egendefinert rolle heter tillatelsene **Create On-Call Duty Policy**, **Edit On-Call Duty Policy**, **Delete On-Call Duty Policy** og **Read On-Call Duty Policy**, og en rolle som er begrenset til enkelte etiketter, når bare retningslinjene som har dem. Å legge til eiere og egendefinerte felt krever abonnementet **Growth** i OneUptime Cloud.
 
 ## API og Terraform
 
@@ -138,7 +138,7 @@ Vaktretningslinjer er ressursen `/api/on-call-duty-policy`, og ressursen `oneupt
 | **Etter hvor mange minutter?** | `acknowledgementTimeoutInMinutes` |
 | Arkivert | `isArchived` |
 
-`repeatPolicyIfNoOneAcknowledges` er `false` for **Stopp varslingen** og `true` for **Start på nytt fra Level 1**. Med `true` og `repeatPolicyIfNoOneAcknowledgesNoOfTimes` på `0` gjentas en retningslinje aldri, og dashbordet viser den som **Stopp varslingen**.
+`repeatPolicyIfNoOneAcknowledges` er `false` for **Stopp varslingen** og `true` for **Start på nytt fra Level 1**. Med `true` må `repeatPolicyIfNoOneAcknowledgesNoOfTimes` være et heltall på 1 eller mer: OneUptime avviser `0`. En eldre retningslinje som er lagret med `0`, gjentas aldri, og dashbordet viser den som **Stopp varslingen**.
 
 `acknowledgementTimeoutInMinutes` er `null` for **Ikke varsle igjen** og et helt antall minutter fra 5 til 1440 for **Varsle igjen**. OneUptime avviser alt annet.
 
@@ -147,7 +147,7 @@ Se [Opprett regler med API-et eller Terraform](/docs/on-call/escalation-rules#op
 ## Feilsøking
 
 :::details En retningslinje kjørte, men ingen ble tilkalt
-Kjøringen viser **Execution Completed - No One Notified**. Åpne **View Timeline**: en rad med **No one was on call** peker på en vaktplan med et hull, og statusmeldingen i en rad med **Hoppet over** sier hvorfor, for eksempel noen som var borte uten noen til å dekke. **Vakttjeneste → Beredskap** viser hvem som ikke kunne nås.
+Kjøringen viser **Execution Completed - No One Notified**. Åpne **Vis tidslinje**: en rad med **Ingen hadde vakt** peker på en vaktplan med et hull, og statusmeldingen i en rad med **Hoppet over** sier hvorfor, for eksempel noen som var borte uten noen til å dekke. **Vakttjeneste → Beredskap** viser hvem som ikke kunne nås.
 :::
 
 :::details Neste nivå ble tilkalt et minutt etter ventetiden

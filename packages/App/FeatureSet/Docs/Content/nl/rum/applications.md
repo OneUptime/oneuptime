@@ -66,7 +66,7 @@ Labels groeperen applicaties in lijsten en filters. Ze bepalen ook waar een lid 
 
 | Hoe | Waar |
 | --- | --- |
-| Met de hand | In het aanmaakformulier, onder **Meer velden**, of later met **Details bewerken** op de kaart **Applicatiedetails** van de pagina **Instellingen** van de applicatie. Voor meerdere tegelijk selecteer je ze in de lijst en kies je **Add Labels** onder **Bulkacties**. |
+| Met de hand | In het aanmaakformulier, onder **Meer velden**, of later met **Details bewerken** op de kaart **Applicatiedetails** van de pagina **Instellingen** van de applicatie. Voor meerdere tegelijk selecteer je ze in de lijst en kies je **Labels toevoegen** onder **Bulkacties**. |
 | Uit telemetrie | Een resource-attribuut met de naam `oneuptime.label.<name>` voegt het label `<name>:<value>` toe, zoals hieronder. |
 | Uit een labelregel | Een regel voegt labels toe aan elke nieuwe applicatie die eraan voldoet. Zie [Labelregels en eigenaarsregels](#labelregels-en-eigenaarsregels). |
 
@@ -91,11 +91,11 @@ Een regel voegt labels of eigenaren toe aan elke nieuwe applicatie die eraan vol
 1. Onder **Overeenkomst** geldt **Alle RUM-applicaties**, waar een nieuwe regel mee begint, voor elke applicatie. Om de regel in te perken, kies **Alleen RUM-applicaties die aan de voorwaarden voldoen** en voeg voorwaarden toe op **Applicatielabels** (heeft een, alle of geen van de labels die je kiest), **Applicatienaam** of **Applicatiebeschrijving** (is gelijk aan, bevat, begint met, eindigt op of voldoet aan een patroon).
 2. Kies onder **Labels**, of **Eigenaren** voor een eigenaarsregel, wat de regel toevoegt. Een nieuwe regel moet minstens één label of eigenaar toevoegen. De **Naam** wordt ingevuld op basis van wat je kiest, zoals _Add team:payments_ of _Add Payments as owners_, totdat je zelf een naam typt. De **Beschrijving**, en **Eigenaren op de hoogte stellen** bij een eigenaarsregel, staan onder **Meer velden**.
 
-Regels draaien wanneer een applicatie wordt aangemaakt, ook als die ontdekt is. Om een regel toe te passen op applicaties die je al hebt, open je het menu **⋯** van de rij en kies je **Run Now**: zie [Regels uitvoeren op bestaande resources](/docs/configuration/run-rules-now). Een regel die door een bewerking niets meer toevoegt, staat in de lijst gemarkeerd met **Voegt niets toe**. [Label- en eigenaarsregels](/docs/configuration/label-and-owner-rules) behandelt de volledige formulieren.
+Regels draaien wanneer een applicatie wordt aangemaakt, ook als die ontdekt is. Om een regel toe te passen op applicaties die je al hebt, open je het menu **⋯** van de rij en kies je **Nu uitvoeren**: zie [Regels uitvoeren op bestaande resources](/docs/configuration/run-rules-now). Een regel die door een bewerking niets meer toevoegt, staat in de lijst gemarkeerd met **Voegt niets toe**. [Label- en eigenaarsregels](/docs/configuration/label-and-owner-rules) behandelt de volledige formulieren.
 
 ### Eigenaren
 
-Eigenaren zijn de mensen en teams die verantwoordelijk zijn voor een applicatie. Eigenaarsregels voegen ze toe aan nieuwe applicaties. Om ze met de hand toe te voegen of te verwijderen, selecteer je applicaties in de lijst en kies je **Add Owner** of **Remove Owner** onder **Bulkacties**; de API voegt ze toe via `/rum-application-owner-user` en `/rum-application-owner-team`. Met **Eigenaren op de hoogte stellen** aan, wat de standaard is, krijgt elke eigenaar die een regel toevoegt een melding. Zet het uit voordat je een regel op veel applicaties uitvoert als niemand een melding hoeft te krijgen.
+Eigenaren zijn de mensen en teams die verantwoordelijk zijn voor een applicatie. Eigenaarsregels voegen ze toe aan nieuwe applicaties. Om ze met de hand toe te voegen of te verwijderen, selecteer je applicaties in de lijst en kies je **Eigenaar toevoegen** of **Eigenaar verwijderen** onder **Bulkacties**; de API voegt ze toe via `/rum-application-owner-user` en `/rum-application-owner-team`. Met **Eigenaren op de hoogte stellen** aan, wat de standaard is, krijgt elke eigenaar die een regel toevoegt een melding. Zet het uit voordat je een regel op veel applicaties uitvoert als niemand een melding hoeft te krijgen.
 
 ## Bewaring
 
@@ -104,7 +104,7 @@ De telemetrie van een applicatie en haar opnamen worden verschillend lang bewaar
 | Gegevens | Bewaard | Ingesteld op |
 | --- | --- | --- |
 | Logs, metrieken, traces en profielen | De bewaring van het project, tenzij de applicatie die overschrijft | De pagina **Instellingen** van de applicatie |
-| Opnamen van sessieherhalingen | Standaard 7 dagen, of 1, 14, 30 of 90 dagen | **Replay Policy**, met **Edit Policy → Limits** |
+| Opnamen van sessieherhalingen | Standaard 7 dagen, of 1, 14, 30 of 90 dagen | **Replay Policy**, met **Beleid bewerken → Limieten** |
 
 ### Bewaring van telemetrie
 
@@ -119,7 +119,7 @@ Op een lager Cloud-abonnement blijft een overschrijving die van een proefperiode
 
 ### Bewaring van sessieherhalingen
 
-Opnamen hebben hun eigen bewaring, ingesteld op de pagina **Replay Policy** van de applicatie met **Edit Policy → Limits**: standaard 7 dagen, of 1, 14, 30 of 90 dagen. Die is bewust kort, want een opname is veel gevoeliger, en veel groter, dan een span. De kaart **Session Replay Retention** op de pagina **Instellingen** toont haar (_Session replays are kept for 7 days._), en de knop **Bewerken in Replay Policy** opent het beleid.
+Opnamen hebben hun eigen bewaring, ingesteld op de pagina **Replay Policy** van de applicatie met **Beleid bewerken → Limieten**: standaard 7 dagen, of 1, 14, 30 of 90 dagen. Die is bewust kort, want een opname is veel gevoeliger, en veel groter, dan een span. De kaart **Bewaartermijn van sessieherhaling** op de pagina **Instellingen** toont haar (_Session replays are kept for 7 days._), en de knop **Bewerken in Replay Policy** opent het beleid.
 
 Een langere bewaring van telemetrie bewaart opnamen niet langer. De tellingen, signalen en het apparaat van een sessie verlopen samen met de beelden; alleen de logs, spans en uitzonderingen van de sessie volgen de bewaring van telemetrie. Zie [Bewaring en verwijdering](/docs/telemetry/session-replay#bewaring-en-verwijdering).
 
@@ -147,17 +147,17 @@ Iedereen met de Viewer-rol van het project kan RUM-applicaties en hun telemetrie
 | `CreateRumApplication`, `EditRumApplication`, `DeleteRumApplication` | Applicaties toevoegen, bewerken en verwijderen. |
 | `ReadRumSessionReplay` (_List Session Replays_) | Opgenomen sessies en hun details opvragen, zonder ze af te spelen of te weten wie de gebruiker was. |
 | `ReadRumSessionReplayPayload` (_Watch Session Replays_) | Opnamen afspelen en de referentie en kenmerken van de geïdentificeerde gebruiker lezen. |
-| `ReadRumSessionReplayAudit` (_Read Session Replay Audit_) | Het **Replay Access Log** lezen: wie welke opname bekeek. |
+| `ReadRumSessionReplayAudit` (_Read Session Replay Audit_) | Het **Toegangslog van replays** lezen: wie welke opname bekeek. |
 | `DeleteRumSessionReplay` (_Delete Session Replays_) | Opnamen verwijderen. |
 | `CreateRumSessionErasureRequest`, `ReadRumSessionErasureRequest` | Wisverzoeken indienen en volgen. |
 | `ReadRumApplicationLabelRule`, `ReadRumApplicationOwnerRule` (en hun Create, Edit en Delete) | Labelregels en eigenaarsregels beheren. |
 | `ReadRumApplicationOwnerUser`, `ReadRumApplicationOwnerTeam` (en hun Create, Edit en Delete) | Eigenaren via de API toevoegen en verwijderen. |
 
-Een handige verdeling: geef een supportmedewerker `ReadRumApplication` en `ReadRumSessionReplay`. Die kan dan zien welke sessies fouten hadden zonder iemands scherm te bekijken of te weten wie de gebruiker was. Geef `ReadRumSessionReplayPayload` alleen aan de mensen die het nodig hebben; leden met `ReadRumSessionReplayAudit` zien dan elke weergave op de pagina **Replay Access Log** van de applicatie. [Wie een opname kan bekijken](/docs/telemetry/session-replay#wie-een-opname-kan-bekijken) toont wat elke machtiging ontgrendelt in de sessielijst en de speler.
+Een handige verdeling: geef een supportmedewerker `ReadRumApplication` en `ReadRumSessionReplay`. Die kan dan zien welke sessies fouten hadden zonder iemands scherm te bekijken of te weten wie de gebruiker was. Geef `ReadRumSessionReplayPayload` alleen aan de mensen die het nodig hebben; leden met `ReadRumSessionReplayAudit` zien dan elke weergave op de pagina **Toegangslog van replays** van de applicatie. [Wie een opname kan bekijken](/docs/telemetry/session-replay#wie-een-opname-kan-bekijken) toont wat elke machtiging ontgrendelt in de sessielijst en de speler.
 
 ## Waarschuwingen op RUM-gegevens
 
-RUM-telemetrie bestaat uit gewone logs, metrieken en traces, dus er is geen aparte RUM-monitor: de gebruikelijke monitors werken ermee. De snelste start is de pagina **Recommendations** van de applicatie, die monitors aanbiedt die al tot de applicatie beperkt zijn:
+RUM-telemetrie bestaat uit gewone logs, metrieken en traces, dus er is geen aparte RUM-monitor: de gebruikelijke monitors werken ermee. De snelste start is de pagina **Aanbevelingen** van de applicatie, die monitors aanbiedt die al tot de applicatie beperkt zijn:
 
 | Groep | Aanbevelingen |
 | --- | --- |

@@ -150,7 +150,7 @@ Alerts for payments:
 
 ### Waarden van een gegroepeerde monitor
 
-Een monitor op basis van metrieken met attributen in **Group by** opent één incident per reeks, en de waarde van elk attribuut is een variabele onder de naam van het attribuut. Groeperen op `host.name` geeft `{{host.name}}`, en groeperen op `resource.k8s.pod.name` geeft `{{resource.k8s.pod.name}}`. `{{seriesLabels}}` bevat ze allemaal, als een object.
+Een monitor op basis van metrieken met attributen in **Groeperen op** opent één incident per reeks, en de waarde van elk attribuut is een variabele onder de naam van het attribuut. Groeperen op `host.name` geeft `{{host.name}}`, en groeperen op `resource.k8s.pod.name` geeft `{{resource.k8s.pod.name}}`. `{{seriesLabels}}` bevat ze allemaal, als een object.
 
 Een gegroepeerde [Logs-monitor](/docs/monitor/logs-monitor) werkt op dezelfde manier: de waarde van elk groeperingsattribuut is een variabele onder zijn sleutel.
 
@@ -457,7 +457,7 @@ Metrics-, Kubernetes-, Docker-, Host-, Podman-, Docker Swarm-, Proxmox-, VMware-
 | --- | --- | --- |
 | `metricName` | De naam van de metriek die de eerste query van de monitor leest, zoals `container.cpu.time`. | `string` |
 
-Gegroepeerd hebben ze ook de waarde van elk attribuut in **Group by**, en `seriesLabels`: zie [Waarden van een gegroepeerde monitor](#waarden-van-een-gegroepeerde-monitor). De templates van de IoT Device-monitor groeperen per apparaat, dus een monitor die met een ervan is gemaakt, heeft ook `{{device.id}}`.
+Gegroepeerd hebben ze ook de waarde van elk attribuut in **Groeperen op**, en `seriesLabels`: zie [Waarden van een gegroepeerde monitor](#waarden-van-een-gegroepeerde-monitor). De templates van de IoT Device-monitor groeperen per apparaat, dus een monitor die met een ervan is gemaakt, heeft ook `{{device.id}}`.
 
 ### Andere monitortypen
 

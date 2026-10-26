@@ -24,7 +24,7 @@ flowchart TB
     ack["Sie bestätigen"] -.->|"stoppt den Rest"| third
 ```
 
-Die meisten Nachrichten können den Alarm bestätigen: E-Mails, SMS und Nachrichten über WhatsApp, Telegram, Slack und Microsoft Teams enthalten einen Bestätigungslink, und ein Anruf bittet Sie, die 1 zu drücken. Können Sie einen Alarm nicht übernehmen, können Sie ihn über dieselben Nachrichten eskalieren, und ein Anruf bittet Sie, die 2 zu drücken: Die Richtlinie alarmiert sofort ihre nächste Stufe, und Sie werden dazu nicht mehr alarmiert. Siehe [Eine Alarmierung eskalieren](/docs/on-call/escalation-rules#eine-alarmierung-eskalieren). Jeder Alarm an Sie steht unter **Benutzereinstellungen → Bereitschaftsprotokolle**, wo **View Timeline** jede gesendete Nachricht zeigt und ob sie zugestellt wurde.
+Die meisten Nachrichten können den Alarm bestätigen: E-Mails, SMS und Nachrichten über WhatsApp, Telegram, Slack und Microsoft Teams enthalten einen Bestätigungslink, und ein Anruf bittet Sie, die 1 zu drücken. Können Sie einen Alarm nicht übernehmen, können Sie ihn über dieselben Nachrichten eskalieren, und ein Anruf bittet Sie, die 2 zu drücken: Die Richtlinie alarmiert sofort ihre nächste Stufe, und Sie werden dazu nicht mehr alarmiert. Siehe [Eine Alarmierung eskalieren](/docs/on-call/escalation-rules#eine-alarmierung-eskalieren). Jeder Alarm an Sie steht unter **Benutzereinstellungen → Bereitschaftsprotokolle**, wo **Zeitachse anzeigen** jede gesendete Nachricht zeigt und ob sie zugestellt wurde.
 
 ## Die vier Tabs
 

@@ -26,7 +26,7 @@ Hvert minutt kjører OneUptime hver av monitorens metrikkspørringer over tidsin
 ## Før du starter
 
 - Applikasjonene eller infrastrukturen din sender metrikker til OneUptime via OpenTelemetry. Se [OpenTelemetry](/docs/telemetry/open-telemetry).
-- Kjenn navnet på metrikken og attributtene du vil filtrere eller gruppere på. Listene **Metrikk** og **Group by** tilbyr bare navn og attributter som OneUptime har mottatt.
+- Kjenn navnet på metrikken og attributtene du vil filtrere eller gruppere på. Listene **Metrikk** og **Grupper etter** tilbyr bare navn og attributter som OneUptime har mottatt.
 
 ## Opprett en metrikkmonitor
 
@@ -45,11 +45,11 @@ I **Metrikkmonitorkonfigurasjon** velger du et **Tidsintervall**: hvor langt til
 
 ### Legg til metrikkspørringene
 
-Under **Velg målinger** velger du en **Metrikk** og hvordan den aggregeres med **Aggregate by**. Åpne **Filters & grouping** for å filtrere etter attributter eller gruppere med **Group by**. Klikk på **Legg til metrikk** for en spørring til, eller på **Legg til formel** for å kombinere dem. Diagrammet under spørringene viser en forhåndsvisning av tidsintervallet, så du ser verdiene kriteriene kommer til å sjekke.
+Under **Velg målinger** velger du en **Metrikk** og hvordan den aggregeres med **Aggregate by**. Åpne **Filters & grouping** for å filtrere etter attributter eller gruppere med **Grupper etter**. Klikk på **Legg til metrikk** for en spørring til, eller på **Legg til formel** for å kombinere dem. Diagrammet under spørringene viser en forhåndsvisning av tidsintervallet, så du ser verdiene kriteriene kommer til å sjekke.
 
 ### Angi kriteriene
 
-I **Monitorkriterier** velger hvert kriterium **Metrikk** som skal sjekkes (en spørring eller en formel), sin **Aggregering**, en **Betingelse** og en **Threshold**. Se [Kriterier](#kriterier) for kriteriene en ny monitor starter med.
+I **Monitorkriterier** velger hvert kriterium **Metrikk** som skal sjekkes (en spørring eller en formel), sin **Aggregering**, en **Betingelse** og en **Terskel**. Se [Kriterier](#kriterier) for kriteriene en ny monitor starter med.
 
 ### Opprett monitoren
 
@@ -65,7 +65,7 @@ Klikk på **Opprett monitor**. Monitoren åpnes på siden **Oversikt**, og den f
 | **Metrikk** | Metrikken det spørres etter. | Påkrevd |
 | **Aggregate by** | Hvordan verdiene i hvert tidsintervall kombineres til ett datapunkt: Gj.snitt, Sum, Min, Max, Antall eller en persentil (P50, P75, P90, P95 eller P99). | Gj.snitt |
 | **Filter by attributes** (under **Filters & grouping**) | Bare serier der attributtene oppfyller disse vilkårene. | Ingen filter |
-| **Group by** (under **Filters & grouping**) | Én serie per unike verdi av disse attributtene (se [Varsler per serie](#varsler-per-serie-group-by)). | Én serie |
+| **Grupper etter** (under **Filters & grouping**) | Én serie per unike verdi av disse attributtene (se [Varsler per serie](#varsler-per-serie-group-by)). | Én serie |
 
 Hver spørring og formel får en variabel (`a`, `b`, `c` og så videre) i den rekkefølgen du legger dem til.
 
@@ -79,7 +79,7 @@ En formel kombinerer spørringsvariabler med `+`, `-`, `*`, `/`, `%`, `^` og par
 
 ### Glidende tidsvindu
 
-**Tidsintervall** bestemmer hvor langt tilbake hver evaluering ser: **Past 1 Minute**, **Past 5 Minutes**, **Past 10 Minutes**, **Past 15 Minutes**, **Past 30 Minutes**, **Past 1 Hour**, **Past 2 Hours**, **Past 3 Hours**, **Past 6 Hours**, **Past 12 Hours**, **Past 1 Day**, **Past 2 Days**, **Past 3 Days**, **Past 7 Days**, **Past 14 Days**, **Past 30 Days**, **Past 60 Days**, **Past 90 Days**, **Past 180 Days** eller **Past 365 Days**.
+**Tidsintervall** bestemmer hvor langt tilbake hver evaluering ser: **Past 1 Minute**, **Siste 5 minutter**, **Past 10 Minutes**, **Siste 15 minutter**, **Siste 30 minutter**, **Siste time**, **Siste 2 timer**, **Siste 3 timer**, **Past 6 Hours**, **Past 12 Hours**, **Siste døgn**, **Siste 2 døgn**, **Past 3 Days**, **Past 7 Days**, **Past 14 Days**, **Past 30 Days**, **Past 60 Days**, **Past 90 Days**, **Past 180 Days** eller **Past 365 Days**.
 
 Jo lengre intervallet er, desto bredere er hvert tidsintervall, så ett datapunkt står for mer tid:
 
@@ -110,13 +110,13 @@ Jo lengre intervallet er, desto bredere er hvert tidsintervall, så ett datapunk
 | Any Value | hvert datapunkt: det holder at ett av dem oppfyller betingelsen |
 
 - **Kriterier fra topp til bunn.** På en monitor uten Group By avgjør det første kriteriet som samsvarer, så legg det mest alvorlige øverst. En gruppert monitor sjekker alle kriterier for hver serie (se [Evalueringen av kriterier er annerledes](#evalueringen-av-kriterier-er-annerledes)).
-- **Ingen data er ikke null.** Når spørringen ikke returnerer noen datapunkter i tidsintervallet, gjør et kriterium det innstillingen **Hvis ingen data** sier, under **Flere felt**: **Ignore** (standard: kriteriet samsvarer ikke), **Treat As Zero** eller **Trigger**.
+- **Ingen data er ikke null.** Når spørringen ikke returnerer noen datapunkter i tidsintervallet, gjør et kriterium det innstillingen **Hvis ingen data** sier, under **Flere felt**: **Ignore** (standard: kriteriet samsvarer ikke), **Treat As Zero** eller **Utløser**.
 - **All Values trenger hele tidsintervallet.** En serie oppfyller først et kriterium med **All Values** når datapunktene dens dekker tidsintervallet, fra starten til nå, uten et hull på mer enn ett manglende datapunkt. Når alle monitorens data kommer forsinket, slik CloudWatchs gjør, trer det nyeste datapunktet i stedet for nå. En vert, container eller deployment som nettopp har begynt å sende data, eller som har vært stille en stund, venter til den har data for et helt tidsintervall, og evalueringsloggen viser hvor langt den har kommet: `Waiting for 15 minutes of data: 2 of 15 minutes so far`. En serie med et varsel eller en hendelse som allerede er åpen, bedømmes ut fra datapunktene alene, så et kort hull i dataene løser det ikke. Hvis metrikken sender sjeldnere enn tidsintervallet er langt, teller et enkelt datapunkt for hele intervallet når det er noen minutter gammelt; for å bedømme hvor lenge en verdi varer, må tidsintervallet være minst to rapporteringsintervaller langt.
 - **OneUptimes eget nedetid er ikke stillhet.** Så lenge tidsintervallet inneholder tid da OneUptime selv ikke mottok data (det startet på nytt, ble oppgradert eller tok igjen et etterslep), venter sjekken: statusen endres ikke, og ingen hendelse eller varsel åpnes eller løses, uansett hva **Hvis ingen data** sier. Se [Når OneUptime ikke mottar data](/docs/monitor/when-oneuptime-is-not-receiving).
 
 ## Kriterier
 
-Disse monitorene evaluerer alltid **Metric Value**: den aggregerte verdien av den konfigurerte metrikkspørringen eller formelen. Kriterieskjemaet har ingen velger for filtertype; det viser **Metrikk**, **Aggregering**, **Betingelse** og **Threshold**. Når metrikken har en enhet, velger du terskelens enhet ved siden av den.
+Disse monitorene evaluerer alltid **Metric Value**: den aggregerte verdien av den konfigurerte metrikkspørringen eller formelen. Kriterieskjemaet har ingen velger for filtertype; det viser **Metrikk**, **Aggregering**, **Betingelse** og **Terskel**. Når metrikken har en enhet, velger du terskelens enhet ved siden av den.
 
 | Betingelse | Samsvarer når verdien er… |
 | --- | --- |
@@ -139,17 +139,17 @@ En ny metrikkmonitor starter med to kriterier på den første spørringen, begge
 | Check if … is online | **Større enn** `0` | Setter monitoren som tilkoblet |
 
 > [!NOTE]
-> Frakoblet-kriteriet utløses av en rapportert verdi på 0, ikke av stillhet. For å bli varslet når en metrikk slutter å komme, setter du **Hvis ingen data** for den til **Trigger**.
+> Frakoblet-kriteriet utløses av en rapportert verdi på 0, ikke av stillhet. For å bli varslet når en metrikk slutter å komme, setter du **Hvis ingen data** for den til **Utløser**.
 
 ## Gjennomgått eksempel: en kø som vokser
 
-Du vil ha en hendelse når checkout-køen forblir dyp. Spørring `a` er måleren `checkout.queue.depth`, med **Aggregate by** Max, og **Tidsintervall** er **Past 5 Minutes**. Én evaluering ser disse fem datapunktene på ett minutt hver:
+Du vil ha en hendelse når checkout-køen forblir dyp. Spørring `a` er måleren `checkout.queue.depth`, med **Aggregate by** Max, og **Tidsintervall** er **Siste 5 minutter**. Én evaluering ser disse fem datapunktene på ett minutt hver:
 
 | Minutt | 10:01 | 10:02 | 10:03 | 10:04 | 10:05 |
 | --- | --- | --- | --- | --- | --- |
 | `a` | 640 | 980 | 1 500 | 1 620 | 1 100 |
 
-Et kriterium med **Metrikk** `a`, **Betingelse** **Større enn** og **Threshold** `1000` gir et ulikt svar for hver **Aggregering**:
+Et kriterium med **Metrikk** `a`, **Betingelse** **Større enn** og **Terskel** `1000` gir et ulikt svar for hver **Aggregering**:
 
 | Aggregering | Sammenlignet med 1 000 | Samsvarer? |
 | --- | --- | --- |
@@ -164,7 +164,7 @@ Et kriterium med **Metrikk** `a`, **Betingelse** **Større enn** og **Threshold*
 
 ## Varsler per serie (Group By)
 
-**Group by** på en metrikkspørring deler spørringen opp i én serie per unike attributtverdi (én per vert, én per container, én per monteringspunkt), og en monitor med Group By evaluerer hver serie uavhengig. Den ene innstillingen er forskjellen mellom «flåten er usunn» og «`prod-db-01` er usunn».
+**Grupper etter** på en metrikkspørring deler spørringen opp i én serie per unike attributtverdi (én per vert, én per container, én per monteringspunkt), og en monitor med Group By evaluerer hver serie uavhengig. Den ene innstillingen er forskjellen mellom «flåten er usunn» og «`prod-db-01` er usunn».
 
 ### Ett varsel per gruppe
 
@@ -189,7 +189,7 @@ Hvert varsel per gruppe følger sin egen gruppe. Når vert A faller under terske
 
 ### Velg et attributt å gruppere etter
 
-Grupper etter et attributt som virkelig identifiserer en særskilt ting du ville tilkalt noen for: vertsattributtet for en vertsmetrikk på tvers av flåten, container- eller pod-attributtet for en containermetrikk, monteringspunkt- eller enhetsattributtet for en filsystem- eller disk-I/O-metrikk, grensesnittattributtet for en nettverksmetrikk. Nedtrekkslisten **Group by** fylles med attributtene collectoren din faktisk sender, så velg fra listen i stedet for å skrive en nøkkel for hånd.
+Grupper etter et attributt som virkelig identifiserer en særskilt ting du ville tilkalt noen for: vertsattributtet for en vertsmetrikk på tvers av flåten, container- eller pod-attributtet for en containermetrikk, monteringspunkt- eller enhetsattributtet for en filsystem- eller disk-I/O-metrikk, grensesnittattributtet for en nettverksmetrikk. Nedtrekkslisten **Grupper etter** fylles med attributtene collectoren din faktisk sender, så velg fra listen i stedet for å skrive en nøkkel for hånd.
 
 Ikke grupper en metrikk som allerede er én skalar for hele systemet (et lederflagg for hele klyngen, et etterslep i planleggeren eller CPU-en på én vert i en monitor for én vert). Å gruppere slike metrikker gir nøyaktig én serie og endrer ingenting utenom varslenes titler.
 
@@ -202,11 +202,11 @@ Sjekk først kriteriets **Aggregering**: **All Values** samsvarer bare når hver
 :::
 
 :::details Metrikken sluttet å komme, og ingenting skjedde
-Et tidsintervall uten datapunkter er ikke en verdi på 0. Med **Hvis ingen data** på standardverdien, **Ignore**, samsvarer ikke kriteriet. Sett det til **Trigger** under kriteriets **Flere felt** for å bli varslet om stillhet.
+Et tidsintervall uten datapunkter er ikke en verdi på 0. Med **Hvis ingen data** på standardverdien, **Ignore**, samsvarer ikke kriteriet. Sett det til **Utløser** under kriteriets **Flere felt** for å bli varslet om stillhet.
 :::
 
 :::details Jeg får ett varsel for hele flåten
-Spørringen har ingen **Group by**, så alle verter slås sammen til ett tall. Grupper spørringen etter vert-, container- eller monteringspunktattributtet (se [Varsler per serie](#varsler-per-serie-group-by)).
+Spørringen har ingen **Grupper etter**, så alle verter slås sammen til ett tall. Grupper spørringen etter vert-, container- eller monteringspunktattributtet (se [Varsler per serie](#varsler-per-serie-group-by)).
 :::
 
 :::details Et avvikskriterium utløses aldri

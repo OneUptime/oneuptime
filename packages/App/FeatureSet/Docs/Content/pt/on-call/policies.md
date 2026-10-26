@@ -20,7 +20,7 @@ Uma política de plantão decide quem é acionado por um incidente ou alerta, e 
 
 **Quem é acionado primeiro?** é opcional, e só é perguntado a quem pode adicionar regras de escalonamento: se ficar vazio, a política não aciona ninguém até ter uma regra. **Descrição** e **Rótulos** ficam em **Mais campos**. Para adicionar os próximos níveis, veja [Regras de escalonamento](/docs/on-call/escalation-rules).
 
-A lista **Políticas de plantão** mostra de cada política o **Nome**, a **Descrição**, os **Rótulos** e os **Proprietários**. Selecione políticas para **Add Labels**, **Remove Labels**, **Add Owner**, **Remove Owner**, **Arquivar**, **Exportar: JSON** ou excluí-las. **Import JSON** cria políticas a partir de uma exportação: uma exportação contém as configurações próprias de uma política, não suas regras de escalonamento nem seus proprietários.
+A lista **Políticas de plantão** mostra de cada política o **Nome**, a **Descrição**, os **Rótulos** e os **Proprietários**. Selecione políticas para **Adicionar rótulos**, **Remover rótulos**, **Adicionar proprietário**, **Remover proprietário**, **Arquivar**, **Exportar: JSON** ou excluí-las. **Import JSON** cria políticas a partir de uma exportação: uma exportação contém as configurações próprias de uma política, não suas regras de escalonamento nem seus proprietários.
 
 ## O que executa uma política
 
@@ -49,7 +49,7 @@ Abra uma política a partir da lista. O menu lateral dela reúne tudo sobre ela:
 
 **Básico** fica aberta; as outras seções começam recolhidas até você clicar nelas.
 
-- **Visão geral** mostra os **Detalhes da política de Plantão** e depois **Policy at a glance**: quantos níveis e destinatários a política tem, quanto tempo falta até o último nível e quantas vezes ela se repete. **Responder readiness** diz se cada pessoa que ela pode acionar pode ser contatada agora, e **Feed da política de plantão** lista o que mudou: pessoas, equipes e agendamentos adicionados ou removidos, substituições e passagens de turno.
+- **Visão geral** mostra os **Detalhes da política de Plantão** e depois **Política em resumo**: quantos níveis e destinatários a política tem, quanto tempo falta até o último nível e quantas vezes ela se repete. **Prontidão dos destinatários** diz se cada pessoa que ela pode acionar pode ser contatada agora, e **Feed da política de plantão** lista o que mudou: pessoas, equipes e agendamentos adicionados ou removidos, substituições e passagens de turno.
 - Os **Proprietários** são as pessoas e as equipes responsáveis pela política. Quando um acionamento que ela envia não encontra regra para alguém, ou não pode ser entregue, eles recebem um e-mail; uma política sem proprietários escreve aos proprietários do projeto.
 - **Logs de notificação** lista cada mensagem que a política enviou, com uma aba por canal.
 - **Substituições de usuário** cobre pessoas só nesta política. Veja [Substituições de usuário](/docs/on-call/user-overrides).
@@ -64,7 +64,7 @@ Quando a espera do último nível acaba sem que ninguém confirme, uma política
 | **Parar de acionar** | Ninguém é acionado de novo, então a política é executada uma única vez. Uma nova política começa com esta resposta. |
 | **Recomeçar a partir do Level 1** | Cada nível é acionado de novo, em ordem. **Quantas vezes mais?** diz quantas vezes: 1 ou mais. |
 
-Uma política que recomeça mais três vezes percorre seus níveis quatro vezes no total. A linha **Depois do último nível** do cartão diz o que a política faz, e **Policy at a glance** na **Visão geral** diz o mesmo em palavras.
+Uma política que recomeça mais três vezes percorre seus níveis quatro vezes no total. A linha **Depois do último nível** do cartão diz o que a política faz, e **Política em resumo** na **Visão geral** diz o mesmo em palavras.
 
 ## Acionar de novo se não for resolvido
 
@@ -77,7 +77,7 @@ Confirmar encerra os acionamentos de uma política de vez, mesmo que depois ning
 
 Os minutos contam a partir de cada confirmação, e uma política aciona de novo no máximo 5 vezes pelo mesmo incidente, alerta ou episódio. Um novo acionamento começa no nível que estava acionando quando houve a confirmação, aciona quem está de plantão agora nesse nível e segue pelos níveis como a primeira execução. O incidente ou alerta continua confirmado: o novo acionamento é uma execução própria, no seu feed e nos registros de execução da política, onde o seu **Status** diz "Acionado de novo (1 de 5)".
 
-Quem é acionado de novo confirma pela mensagem, ou com **Confirmar de novo** na página do incidente ou alerta, e os minutos recomeçam; **Escalonar** passa o acionamento para o próximo nível. Resolver ou excluir o incidente ou alerta, arquivar ou excluir a política, ou escolher **Não acionar de novo** o encerra. A linha **Depois de uma confirmação** do cartão diz o que a política faz, e **Mais configurações** mostra os minutos enquanto está recolhido. **Policy at a glance** na **Visão geral** e **Escalation summary** dizem o mesmo em palavras.
+Quem é acionado de novo confirma pela mensagem, ou com **Confirmar de novo** na página do incidente ou alerta, e os minutos recomeçam; **Escalonar** passa o acionamento para o próximo nível. Resolver ou excluir o incidente ou alerta, arquivar ou excluir a política, ou escolher **Não acionar de novo** o encerra. A linha **Depois de uma confirmação** do cartão diz o que a política faz, e **Mais configurações** mostra os minutos enquanto está recolhido. **Política em resumo** na **Visão geral** e **Resumo do escalonamento** dizem o mesmo em palavras.
 
 ## Registros de execução
 
@@ -110,7 +110,7 @@ Você encontra registros de execução em três lugares:
 - em **Plantão → Avançado → Registros de execução**, para todas as políticas, onde os acionamentos diretos de workflows e do chat aparecem como **Acionamento direto**;
 - na página **Execuções de plantão** de um incidente ou de um alerta.
 
-Cada linha mostra o que disparou a execução, quando, seu **Status** e quem a confirmou. **View Timeline** abre a **Linha do tempo de execução** dela: cada regra de escalonamento, quem ela acionou, por qual agendamento e como cada acionamento terminou. Um agendamento sem ninguém de plantão mostra **No one was on call** no lugar de uma pessoa. No OneUptime Cloud, os registros de execução precisam do plano **Growth**.
+Cada linha mostra o que disparou a execução, quando, seu **Status** e quem a confirmou. **Ver linha do tempo** abre a **Linha do tempo de execução** dela: cada regra de escalonamento, quem ela acionou, por qual agendamento e como cada acionamento terminou. Um agendamento sem ninguém de plantão mostra **Ninguém estava de plantão** no lugar de uma pessoa. No OneUptime Cloud, os registros de execução precisam do plano **Growth**.
 
 ## Arquivar ou excluir uma política
 
@@ -123,7 +123,7 @@ Arquivar tira uma política de serviço e mantém tudo: abra as **Configuraçõe
 
 ## Quem pode alterar uma política
 
-**Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** e **On-Call Member** podem criar, alterar e excluir políticas; **Viewer** e **On-Call Viewer** podem lê-las. Em uma função personalizada, as permissões são **Create On-Call Duty Policy**, **Edit On-Call Duty Policy**, **Delete On-Call Duty Policy** e **Read On-Call Duty Policy**, e uma função limitada a alguns rótulos só alcança as políticas que os têm. Adicionar proprietários e campos personalizados precisa do plano **Growth** no OneUptime Cloud.
+**Proprietário do projeto**, **Administrador do projeto**, **Membro do projeto**, **Administrador de plantão** e **Membro de plantão** podem criar, alterar e excluir políticas; **Visualizador** e **Visualizador de plantão** podem lê-las. Em uma função personalizada, as permissões são **Create On-Call Duty Policy**, **Edit On-Call Duty Policy**, **Delete On-Call Duty Policy** e **Read On-Call Duty Policy**, e uma função limitada a alguns rótulos só alcança as políticas que os têm. Adicionar proprietários e campos personalizados precisa do plano **Growth** no OneUptime Cloud.
 
 ## API e Terraform
 
@@ -138,7 +138,7 @@ As políticas de plantão são o recurso `/api/on-call-duty-policy`, e o recurso
 | **Depois de quantos minutos?** | `acknowledgementTimeoutInMinutes` |
 | Arquivada | `isArchived` |
 
-`repeatPolicyIfNoOneAcknowledges` é `false` para **Parar de acionar** e `true` para **Recomeçar a partir do Level 1**. Com `true` e `repeatPolicyIfNoOneAcknowledgesNoOfTimes` em `0`, uma política nunca se repete, e o painel a mostra como **Parar de acionar**.
+`repeatPolicyIfNoOneAcknowledges` é `false` para **Parar de acionar** e `true` para **Recomeçar a partir do Level 1**. Com `true`, `repeatPolicyIfNoOneAcknowledgesNoOfTimes` precisa ser um número inteiro de 1 ou mais: o OneUptime recusa `0`. Uma política mais antiga salva com `0` nunca se repete, e o painel a mostra como **Parar de acionar**.
 
 `acknowledgementTimeoutInMinutes` é `null` para **Não acionar de novo**, e um número inteiro de minutos de 5 a 1440 para **Acionar de novo**. O OneUptime recusa qualquer outro valor.
 
@@ -147,7 +147,7 @@ Para criar uma política com seu primeiro nível em uma única requisição, vej
 ## Solução de problemas
 
 :::details Uma política foi executada, mas ninguém foi acionado
-A execução dela diz **Execution Completed - No One Notified**. Abra **View Timeline**: uma linha com **No one was on call** aponta para um agendamento com uma lacuna, e a mensagem de status de uma linha **Ignorado** diz por quê, por exemplo alguém ausente sem ninguém para cobrir. **Plantão → Prontidão** mostra quem não pôde ser contatado.
+A execução dela diz **Execution Completed - No One Notified**. Abra **Ver linha do tempo**: uma linha com **Ninguém estava de plantão** aponta para um agendamento com uma lacuna, e a mensagem de status de uma linha **Ignorado** diz por quê, por exemplo alguém ausente sem ninguém para cobrir. **Plantão → Prontidão** mostra quem não pôde ser contatado.
 :::
 
 :::details O próximo nível foi acionado um minuto depois da espera

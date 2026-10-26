@@ -99,7 +99,7 @@ Webhook-triggers geven je een unieke URL. Iedereen die de URL kent, kan hem aanr
 - Vraag bij gevoelige workflows het aanroepende systeem om een gedeeld token in een header mee te sturen (zoals `X-Webhook-Token`) en controleer dat met een **If / Else**-blok voordat er iets belangrijks gebeurt. Sla het verwachte token op als geheime variabele.
 - Kies bij heel gevoelige workflows liever een OneUptime-gebeurtenistrigger en een handmatige importstap dan een openbare webhook.
 
-Alleen mensen die de workflow mogen bewerken — **Project Owner**, **Project Admin**, **Workflow Admin** of **Edit Workflow** — kunnen de webhook-URL zien of opnieuw instellen. Iedereen met de URL kan de workflow vanaf elke plek starten, zonder in te loggen, dus alle anderen zien een notitie die zegt wie ze kunnen vragen. Dat geldt ook voor een **Workflow Member**, die de workflow handmatig uitvoert vanuit de **Bouwer**.
+Alleen mensen die de workflow mogen bewerken — **Projecteigenaar**, **Projectbeheerder**, **Workflowbeheerder** of **Edit Workflow** — kunnen de webhook-URL zien of opnieuw instellen. Iedereen met de URL kan de workflow vanaf elke plek starten, zonder in te loggen, dus alle anderen zien een notitie die zegt wie ze kunnen vragen. Dat geldt ook voor een **Workflowlid**, die de workflow handmatig uitvoert vanuit de **Bouwer**.
 
 ## Beveiliging van binnenkomende e-mail
 
@@ -110,7 +110,7 @@ De Incoming Email-trigger geeft de workflow een eigen adres, en iedereen die het
 - Iedereen kan elke willekeurige afzender op een e-mail zetten, dus **From** bewijst niet wie hem stuurde. Controleer met een **If / Else**-blok iets wat alleen de echte afzender weet — een token in het onderwerp of in een header — voordat een workflow iets belangrijks doet. Sla het verwachte token op als geheime variabele.
 - De sleutel wordt afgeschermd in alles wat de uitvoering ontvangt — **To**, **CC**, de headers en de bodies —, omdat het logboek van de uitvoering zichtbaar is voor iedereen die de uitvoeringen van de workflow kan lezen.
 
-Alleen mensen die de workflow mogen bewerken — **Project Owner**, **Project Admin**, **Workflow Admin** of **Edit Workflow** — kunnen het adres zien of opnieuw instellen. Alle anderen zien een notitie die zegt wie ze kunnen vragen.
+Alleen mensen die de workflow mogen bewerken — **Projecteigenaar**, **Projectbeheerder**, **Workflowbeheerder** of **Edit Workflow** — kunnen het adres zien of opnieuw instellen. Alle anderen zien een notitie die zegt wie ze kunnen vragen.
 
 ## Uitgaande netwerktoegang
 
@@ -166,30 +166,30 @@ Fouten in validatie, configuratie, toegang, limieten, tegoed, gelijktijdigheid, 
 
 Workflows volgen het rolgebaseerde toegangsbeheer van je project. De drie workflowrollen:
 
-- **Workflow Admin** — bouwt workflows: maakt ze, wijzigt ze, voert ze uit en verwijdert ze, en beheert de variabelen die ze gebruiken.
-- **Workflow Member** — gebruikt ze: opent workflows en hun uitvoeringen, en voert een workflow handmatig uit met **Workflow uitvoeren**. Een member kan een workflow niet maken, wijzigen of verwijderen, en ook geen losse stap ervan uitvoeren.
-- **Workflow Viewer** — leest workflows en hun uitvoeringen.
+- **Workflowbeheerder** — bouwt workflows: maakt ze, wijzigt ze, voert ze uit en verwijdert ze, en beheert de variabelen die ze gebruiken.
+- **Workflowlid** — gebruikt ze: opent workflows en hun uitvoeringen, en voert een workflow handmatig uit met **Workflow uitvoeren**. Een member kan een workflow niet maken, wijzigen of verwijderen, en ook geen losse stap ervan uitvoeren.
+- **Workflowkijker** — leest workflows en hun uitvoeringen.
 
-**Project Owner** en **Project Admin** kunnen alles wat een Workflow Admin kan. **Project Member** kan workflows maken en verwijderen, maar ze niet wijzigen of uitvoeren.
+**Projecteigenaar** en **Projectbeheerder** kunnen alles wat een Workflow Admin kan. **Projectlid** kan workflows maken en verwijderen, maar ze niet wijzigen of uitvoeren.
 
 De losse machtigingen, voor een team of een API-sleutel die precies één ding nodig heeft:
 
 - **Create / Read / Edit / Delete Workflow** — de basismachtigingen op de workflow zelf. Een workflow wijzigen, inclusief hem aan- of uitzetten en archiveren, vereist **Edit Workflow**; **Delete Workflow** verwijdert alleen.
-- **Edit Workflow** — is ook wat nodig is om één stap los uit te voeren met **Run just this step**, en om de webhook-URL en het adres voor binnenkomende e-mail van een workflow te zien of opnieuw in te stellen. Een hele workflow handmatig uitvoeren vereist **Edit Workflow**, **Workflow Admin** of **Workflow Member**.
+- **Edit Workflow** — is ook wat nodig is om één stap los uit te voeren met **Run just this step**, en om de webhook-URL en het adres voor binnenkomende e-mail van een workflow te zien of opnieuw in te stellen. Een hele workflow handmatig uitvoeren vereist **Edit Workflow**, **Workflowbeheerder** of **Workflowlid**.
 - **Read Workflow Log** — nodig om uitvoeringen te bekijken.
 - **Create / Read / Edit / Delete Workflow Variables** — globale en workflow-variabelen beheren.
 
 Een handmatige uitvoering bereikt alleen workflows die je kunt openen: een rol die beperkt is tot bepaalde labels, of tot de workflows die je team bezit, voert alleen die uit. Wie een workflow niet kan uitvoeren, ziet **Workflow uitvoeren** grijs, met de reden in de tooltip.
 
-Geef **Workflow Admin** aan de mensen die automatisering bouwen, en **Workflow Member** aan de mensen die haar alleen starten. Bewaar bewerkrechten op variabelen voor de mensen die de geheimen van je project beheren. Zie [Gebruikers, teams en machtigingen](/docs/permissions/index) voor hoe rollen worden toegekend.
+Geef **Workflowbeheerder** aan de mensen die automatisering bouwen, en **Workflowlid** aan de mensen die haar alleen starten. Bewaar bewerkrechten op variabelen voor de mensen die de geheimen van je project beheren. Zie [Gebruikers, teams en machtigingen](/docs/permissions/index) voor hoe rollen worden toegekend.
 
 ## Wat workflowstappen mogen
 
-De stappen die OneUptime-records lezen en wijzigen — de componenten Find, Create, Update en Delete, en de triggers On Create, On Update, On Create or Update en On Delete — handelen als **Project Admin** van het project van de workflow. Wie de workflow ook bouwde, een stap krijgt dezelfde controles als een Project Admin in het dashboard en de API:
+De stappen die OneUptime-records lezen en wijzigen — de componenten Find, Create, Update en Delete, en de triggers On Create, On Update, On Create or Update en On Delete — handelen als **Projectbeheerder** van het project van de workflow. Wie de workflow ook bouwde, een stap krijgt dezelfde controles als een Project Admin in het dashboard en de API:
 
 - **Alleen het eigen project van de workflow.** Een stap leest en schrijft de records van het project waartoe de workflow behoort en van geen ander, en een Update verplaatst een record nooit naar een ander project.
-- **Alleen wat een Project Admin mag.** Een stap kan niet doen wat alleen **Project Owner** en factuur- of projectverwijderingsmachtigingen toestaan, en hij kan niet lezen wie een probe of een AI-agent heeft gemaakt; dat zien alleen projecteigenaren.
-- **Niet wie toegang heeft.** Een stap maakt, wijzigt of verwijdert geen teams, teamleden, teammachtigingen, aangepaste rollen of API-sleutelmachtigingen, ook al mag een Project Admin dat. Wie een workflow bouwt, bepaalt wat zijn stappen doen, en dat kan een **Project Member** zijn, dus een stap die het kon, zou zijn bouwer toegang geven die hij niet heeft gekregen, zoals **Project Admin**. De stap wordt geweigerd, en het logboek van de uitvoering zegt dat iemand die de teams en API-sleutels van het project beheert de wijziging moet doen. Triggers en Find-stappen op deze records werken nog steeds.
+- **Alleen wat een Project Admin mag.** Een stap kan niet doen wat alleen **Projecteigenaar** en factuur- of projectverwijderingsmachtigingen toestaan, en hij kan niet lezen wie een probe of een AI-agent heeft gemaakt; dat zien alleen projecteigenaren.
+- **Niet wie toegang heeft.** Een stap maakt, wijzigt of verwijdert geen teams, teamleden, teammachtigingen, aangepaste rollen of API-sleutelmachtigingen, ook al mag een Project Admin dat. Wie een workflow bouwt, bepaalt wat zijn stappen doen, en dat kan een **Projectlid** zijn, dus een stap die het kon, zou zijn bouwer toegang geven die hij niet heeft gekregen, zoals **Projectbeheerder**. De stap wordt geweigerd, en het logboek van de uitvoering zegt dat iemand die de teams en API-sleutels van het project beheert de wijziging moet doen. Triggers en Find-stappen op deze records werken nog steeds.
 - **Niet het lezen van instellingen met inloggegevens.** Een Project Admin mag SMTP-servers, aanbieders voor bellen en sms, SNMP-inloggegevens, videogesprekverbindingen en API-sleutels lezen, maar dat wordt nooit aan een stap uitgeleend, wie de workflow ook bouwde of opsloeg. Een stap kan geen van deze instellingen noemen, zoals de SMTP-server waarmee een statuspagina e-mail verstuurt of de API-sleutel waaraan een machtiging wordt verleend. De stap wordt geweigerd, en zijn uitvoeringslog zegt dat iemand die ze mag lezen (de leesmachtiging van dat soort instelling, of een Project Owner of Project Admin) de wijziging moet doen. Een stap die de instelling houdt die een record al noemt, of haar leegmaakt, wordt niet geweigerd.
 - **Alleen wat je abonnement bevat.** In OneUptime Cloud wordt een stap die iets aanmaakt of wijzigt wat je abonnement niet bevat, geweigerd met het abonnement dat nodig is, net als in het dashboard. Zelf gehoste installaties zonder facturering hebben geen abonnementslimieten.
 - **Niets wat OneUptime voor zichzelf houdt.** Dit wordt iedereen geweigerd, workflows inbegrepen:

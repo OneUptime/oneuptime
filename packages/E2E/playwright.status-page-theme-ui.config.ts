@@ -1,6 +1,12 @@
 import { defineConfig, devices } from "@playwright/test";
 import path from "path";
 
+/*
+ * The fixture's port: 4341, or another one for a second copy running at the
+ * same time (the server reads the same variable).
+ */
+const port: string = process.env["STATUS_PAGE_THEME_FIXTURE_PORT"] || "4341";
+
 export default defineConfig({
   testDir: "./StatusPageTheme",
   testMatch: "**/*.spec.ts",
@@ -16,7 +22,7 @@ export default defineConfig({
     { name: "mobile-chromium", use: { ...devices["Pixel 5"] } },
   ],
   use: {
-    baseURL: "http://127.0.0.1:4341",
+    baseURL: `http://127.0.0.1:${port}`,
     timezoneId: "UTC",
     locale: "en-GB",
     trace: "retain-on-failure",
@@ -25,7 +31,7 @@ export default defineConfig({
   webServer: {
     command: "node StatusPageTheme/Fixture/server.js",
     cwd: path.resolve(__dirname),
-    url: "http://127.0.0.1:4341/release",
+    url: `http://127.0.0.1:${port}/release`,
     timeout: 300000,
     reuseExistingServer: false,
   },

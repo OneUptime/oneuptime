@@ -46,7 +46,7 @@ Ga naar **Monitoren** en klik op **Monitor maken**.
 
 ### IoT Device kiezen
 
-Klik onder **Monitortype** op **Meer monitortypen** en kies **IoT Device** onder **Infrastructuur**, of typ `iot` in het zoekvak. Vul een **Naam** in - die wordt gebruikt in de titels van incidenten en waarschuwingen - en klik op **Volgende**.
+Klik onder **Monitortype** op **Meer monitortypen** en kies **IoT-apparaat** onder **Infrastructuur**, of typ `iot` in het zoekvak. Vul een **Naam** in - die wordt gebruikt in de titels van incidenten en waarschuwingen - en klik op **Volgende**.
 
 ### De vloot kiezen
 
@@ -58,11 +58,11 @@ Kies een van de drie tabbladen:
 
 - **Quick Setup** - klik op een [template](#kant-en-klare-waarschuwingstemplates). Dat stelt de metriek, de aggregatie, het tijdsbereik, een groepering op `device.id` en de drempels in, en vervangt de criteria hieronder door de eigen criteria. Het **Tijdsbereik** kun je nog steeds aanpassen.
 - **Custom Metric** - kies één metriek uit **IoT Metric** en stel daarna **Aggregatie** en **Tijdsbereik** in. De [filters](#monitorinstellingen) beperken haar tot één apparaat of één apparaattype. Een eigen metriek wordt niet gegroepeerd: ze beoordeelt de vloot als geheel.
-- **Geavanceerd** - bouw zelf queries en formules onder **Selecteer metrieken**, ook over eigen metrieknamen, bijvoorbeeld het gebruikte geheugen als percentage van de geheugengrootte van een apparaat. Gebruik **Group by** `device.id` om elk apparaat afzonderlijk te beoordelen.
+- **Geavanceerd** - bouw zelf queries en formules onder **Selecteer metrieken**, ook over eigen metrieknamen, bijvoorbeeld het gebruikte geheugen als percentage van de geheugengrootte van een apparaat. Gebruik **Groeperen op** `device.id` om elk apparaat afzonderlijk te beoordelen.
 
 ### De criteria controleren
 
-Open elk criterium onder **Monitorcriteria** en controleer de **Select Metric Variable**, de **Aggregatie**, de **Voorwaarde** en de **Threshold**. Een template vult die in. Met **Custom Metric** of **Geavanceerd** begint de monitor met de [standaardcriteria](#standaardcriteria), die alleen merken dat een metriek naar nul zakt, dus stel je eigen drempel in.
+Open elk criterium onder **Monitorcriteria** en controleer de **Select Metric Variable**, de **Aggregatie**, de **Voorwaarde** en de **Drempel**. Een template vult die in. Met **Custom Metric** of **Geavanceerd** begint de monitor met de [standaardcriteria](#standaardcriteria), die alleen merken dat een metriek naar nul zakt, dus stel je eigen drempel in.
 
 ### De monitor maken
 
@@ -70,7 +70,7 @@ Klik op **Monitor maken**. OneUptime opent de pagina van de monitor en evalueert
 :::
 
 > [!TIP]
-> Om meerdere templates tegelijk in te stellen, open je de vloot via **Producten → Infrastructuur → IoT** en ga je naar **Recommendations**. Kies de templates die je wilt, kies wie wordt opgeroepen, en OneUptime maakt één monitor per template.
+> Om meerdere templates tegelijk in te stellen, open je de vloot via **Producten → Infrastructuur → IoT** en ga je naar **Aanbevelingen**. Kies de templates die je wilt, kies wie wordt opgeroepen, en OneUptime maakt één monitor per template.
 
 ## Monitorinstellingen
 
@@ -83,7 +83,7 @@ Klik op **Monitor maken**. OneUptime opent de pagina van de monitor en evalueert
 | **IoT Metric** | Custom Metric | Eén metriek uit de [catalogus](#verzamelde-metrieken). |
 | **Aggregatie** | Custom Metric | Hoe monsters worden gecombineerd: **Gemiddelde**, **Maximum**, **Minimum**, **Som** of **Aantal**. Begint bij de gebruikelijke aggregatie van de metriek. |
 | **Tijdsbereik** | Alle | Het voortschrijdende venster dat de query leest, van **Past 1 Minute** tot **Past 365 Days**. Een nieuwe monitor begint bij **Past 1 Minute**; templates stellen hun eigen venster in. |
-| **Selecteer metrieken** | Geavanceerd | De querybouwer: **Metriek**, **Aggregate by**, **Filter by attributes**, **Group by**, plus **Metriek toevoegen** en **Formule toevoegen** om queries te combineren. |
+| **Selecteer metrieken** | Geavanceerd | De querybouwer: **Metriek**, **Aggregate by**, **Filter by attributes**, **Groeperen op**, plus **Metriek toevoegen** en **Formule toevoegen** om queries te combineren. |
 
 De filters werken samen: met een **Device ID** en een **Device Type** komt een apparaat van een ander type met niets overeen.
 
@@ -97,7 +97,7 @@ Een criterium gaat alleen af als de voorwaarde geldt voor elke minuut van zijn v
 | --- | --- | --- | --- | --- | --- |
 | Device Offline | Beschikbaarheid | Kritiek | `iot_device_up`, Min per `device.id`, laatste 30 minuten | Een meting ligt onder 1, of een geregistreerd apparaat stuurt het hele venster niets | Weer op 1 |
 | Low Battery | Power | Warning | `iot_battery_percent`, Avg per `device.id`, laatste 5 minuten | Onder 20 % | Op 22 % of hoger |
-| Weak Signal | Connectivity | Warning | `iot_signal_strength_dbm`, Avg per `device.id`, laatste 5 minuten | Onder -100 dBm | Op -90 dBm of hoger |
+| Weak Signal | Connectiviteit | Warning | `iot_signal_strength_dbm`, Avg per `device.id`, laatste 5 minuten | Onder -100 dBm | Op -90 dBm of hoger |
 | High Temperature | Omgeving | Kritiek | `iot_temperature_celsius`, Max per `device.id`, laatste 5 minuten | Boven 70 °C | Op 63 °C of lager |
 | High CPU Usage | Systeem | Warning | `iot_cpu_usage_ratio`, Avg per `device.id`, laatste 5 minuten | Boven 0.9 (90 % van zijn CPU) | Op 0.81 of lager |
 
@@ -146,7 +146,7 @@ Een criterium vergelijkt een van de queries of formules van de monitor met een d
 | **Select Metric Variable** | De query of formule om te controleren, op haar variabelenaam. |
 | **Aggregatie** | Hoe de waarden in het venster één antwoord worden: **Gemiddelde**, **Som**, **Maximum Value**, **Minimum Value**, **All Values** (elke waarde moet overeenkomen, over het hele venster) of **Any Value** (één is genoeg). |
 | **Voorwaarde** | **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** of **Gelijk aan** — of een anomalievoorwaarde: **Anomalously High**, **Anomalously Low** of **Anomalous**. |
-| **Threshold** | De waarde om mee te vergelijken. Er staat een eenhedenlijst naast als de metriek een eenheid heeft. Niet getoond bij anomalievoorwaarden. |
+| **Drempel** | De waarde om mee te vergelijken. Er staat een eenhedenlijst naast als de metriek een eenheid heeft. Niet getoond bij anomalievoorwaarden. |
 | **Gevoeligheid** | Alleen bij anomalievoorwaarden. **Laag** (4σ), **Gemiddeld** (3σ, de standaard) of **Hoog** (2σ). |
 | **Baseline-venster** | Alleen bij anomalievoorwaarden. 14 dagen (de standaard), 28, 60 of 90 dagen geschiedenis. |
 | **Als geen gegevens** | Onder **Meer velden**. Wat er gebeurt als een reeks geen monsters in het venster heeft: **Ignore** (de standaard) slaat haar over, **Treat As Zero** leest haar als `0`, en **Trigger** laat het criterium overeenkomen. |
@@ -204,7 +204,7 @@ Vloten registreren zichzelf op basis van de gegevens van de apparaten. Controlee
 :::
 
 :::details Er gaat één incident af voor de hele vloot in plaats van één per apparaat
-De query is niet gegroepeerd. Monitoren met **Custom Metric** beoordelen de vloot als geheel; gebruik een template, of **Geavanceerd** met **Group by** `device.id`.
+De query is niet gegroepeerd. Monitoren met **Custom Metric** beoordelen de vloot als geheel; gebruik een template, of **Geavanceerd** met **Groeperen op** `device.id`.
 :::
 
 :::details Een apparaat viel uit maar Device Offline ging niet af

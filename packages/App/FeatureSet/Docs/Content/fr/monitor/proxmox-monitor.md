@@ -60,7 +60,7 @@ Choisissez l'un des trois onglets :
 
 ### Vérifier les critères
 
-Ouvrez chaque critère sous **Critères du moniteur** et vérifiez sa **Métrique**, son **Agrégation**, sa **Condition** et son **Threshold**. Un modèle les remplit. Avec **Custom Metric** ou **Avancé**, le moniteur commence avec les [critères par défaut](#critères-par-défaut), qui ne remarquent qu'une métrique tombant à zéro ; définissez donc votre propre seuil.
+Ouvrez chaque critère sous **Critères du moniteur** et vérifiez sa **Métrique**, son **Agrégation**, sa **Condition** et son **Seuil**. Un modèle les remplit. Avec **Custom Metric** ou **Avancé**, le moniteur commence avec les [critères par défaut](#critères-par-défaut), qui ne remarquent qu'une métrique tombant à zéro ; définissez donc votre propre seuil.
 
 ### Créer le moniteur
 
@@ -68,7 +68,7 @@ Cliquez sur **Créer un moniteur**. OneUptime ouvre la page du moniteur et l'év
 :::
 
 > [!TIP]
-> Pour configurer plusieurs modèles à la fois, ouvrez le cluster depuis **Produits → Infrastructure → Proxmox** et allez dans **Recommendations**. Choisissez les modèles voulus, choisissez qui est alerté, et OneUptime crée un moniteur par modèle.
+> Pour configurer plusieurs modèles à la fois, ouvrez le cluster depuis **Produits → Infrastructure → Proxmox** et allez dans **Recommandations**. Choisissez les modèles voulus, choisissez qui est alerté, et OneUptime crée un moniteur par modèle.
 
 ## Paramètres du moniteur
 
@@ -153,7 +153,7 @@ L'agent interroge prometheus-pve-exporter toutes les 30 secondes avec les collec
 | Métrique | Unité | Description |
 | --- | --- | --- |
 | `pve_up` | — | 1 quand le nœud ou l'invité est actif ou en cours d'exécution, 0 sinon. |
-| `pve_uptime_seconds` | seconds | Durée de fonctionnement du nœud ou de l'invité. |
+| `pve_uptime_seconds` | secondes | Durée de fonctionnement du nœud ou de l'invité. |
 | `pve_version_info` | count | La version de Proxmox VE, dans ses étiquettes. Toujours 1. |
 
 ### Nœud
@@ -209,10 +209,10 @@ Proviennent du collecteur `replication` de l'exportateur, au niveau des nœuds. 
 | Métrique | Unité | Description |
 | --- | --- | --- |
 | `pve_replication_failed_syncs` | count | Tentatives de synchronisation échouées d'affilée. Au-dessus de 0, la réplique devient obsolète. |
-| `pve_replication_duration_seconds` | seconds | Durée de la dernière synchronisation. |
-| `pve_replication_last_sync_timestamp_seconds` | seconds | Heure Unix de la dernière synchronisation **réussie**. |
-| `pve_replication_last_try_timestamp_seconds` | seconds | Heure Unix de la dernière **tentative**. Plus récente que la dernière synchronisation, elle signifie que la dernière tentative a échoué. |
-| `pve_replication_next_sync_timestamp_seconds` | seconds | Heure Unix de la prochaine synchronisation planifiée. |
+| `pve_replication_duration_seconds` | secondes | Durée de la dernière synchronisation. |
+| `pve_replication_last_sync_timestamp_seconds` | secondes | Heure Unix de la dernière synchronisation **réussie**. |
+| `pve_replication_last_try_timestamp_seconds` | secondes | Heure Unix de la dernière **tentative**. Plus récente que la dernière synchronisation, elle signifie que la dernière tentative a échoué. |
+| `pve_replication_next_sync_timestamp_seconds` | secondes | Heure Unix de la prochaine synchronisation planifiée. |
 | `pve_replication_info` | count | Métadonnées de la tâche – type, source, cible, invité – dans les étiquettes. Toujours 1. |
 
 ## Critères de surveillance
@@ -224,7 +224,7 @@ Un critère compare l'une des requêtes ou formules du moniteur à un seuil. Les
 | **Métrique** | La requête ou la formule à vérifier, par son nom de variable. |
 | **Agrégation** | Comment les valeurs de la fenêtre deviennent une seule réponse : **Moyenne**, **Somme**, **Maximum Value**, **Minimum Value**, **All Values** (chaque valeur doit correspondre, sur toute la fenêtre) ou **Any Value** (une seule suffit). |
 | **Condition** | **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à** ou **Égal à** – ou une condition d'anomalie : **Anomalously High**, **Anomalously Low** ou **Anomalous**. |
-| **Threshold** | La valeur de comparaison. Une liste d'unités se trouve à côté quand la métrique a une unité. Non affiché pour les conditions d'anomalie. |
+| **Seuil** | La valeur de comparaison. Une liste d'unités se trouve à côté quand la métrique a une unité. Non affiché pour les conditions d'anomalie. |
 | **Sensibilité** | Conditions d'anomalie uniquement. **Faible** (4σ), **Moyen** (3σ, la valeur par défaut) ou **Élevé** (2σ). |
 | **Fenêtre de référence** | Conditions d'anomalie uniquement. 14 jours (la valeur par défaut), 28, 60 ou 90 jours d'historique. |
 | **En l'absence de données** | Sous **Plus de champs**. Ce qui se passe quand la fenêtre n'a aucune mesure : **Ignore** (par défaut), **Treat As Zero** ou **Déclencheur**. |

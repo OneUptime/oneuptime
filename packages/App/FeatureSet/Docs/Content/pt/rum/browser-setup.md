@@ -11,7 +11,7 @@ Instrumente um aplicativo web com o SDK do OpenTelemetry para navegador para que
 
 ## Como funciona
 
-O SDK roda nos navegadores dos seus visitantes. Ele registra um span para cada carregamento de página e cada requisição e os exporta direto para o OneUptime com uma chave de ingestão **Browser**, sem coletor ou proxy seu no meio.
+O SDK roda nos navegadores dos seus visitantes. Ele registra um span para cada carregamento de página e cada requisição e os exporta direto para o OneUptime com uma chave de ingestão **Navegador**, sem coletor ou proxy seu no meio.
 
 ```mermaid title="Para onde vai a telemetria do navegador"
 flowchart TB
@@ -35,8 +35,8 @@ flowchart TB
 
 1. Vá para **Produtos → Configurações do projeto**.
 2. No menu lateral, expanda **Telemetria e APM** e selecione **Chaves de ingestão**.
-3. Clique em **Criar chave de ingestão** e escolha **Browser** como **Tipo de chave**.
-4. Na etapa **Configurações do navegador**, liste suas origens em **Allowed Origins** como um array JSON, por exemplo `["https://app.example.com"]`, e crie a chave. No plano gratuito do OneUptime Cloud, uma última etapa **Cobrança** mostra antes o preço da telemetria.
+3. Clique em **Criar chave de ingestão** e escolha **Navegador** como **Tipo de chave**.
+4. Na etapa **Configurações do navegador**, liste suas origens em **Origens permitidas** como um array JSON, por exemplo `["https://app.example.com"]`, e crie a chave. No plano gratuito do OneUptime Cloud, uma última etapa **Cobrança** mostra antes o preço da telemetria.
 
 ![A página de chaves de ingestão de telemetria nas configurações do projeto](/docs/static/images/TelemetryIngestionKeys.png)
 
@@ -164,9 +164,9 @@ Tudo o que está no snippet vai para os seus visitantes, então qualquer pessoa 
 
 | Configuração | O que faz |
 | --- | --- |
-| **Allowed Origins** | As requisições só são aceitas destas origens, cada uma com seu esquema e a porta, se houver. Um host pode começar com um único curinga `*.`: `https://*.example.com` abrange todos os subdomínios de `example.com`, mas não o próprio `example.com`. |
+| **Origens permitidas** | As requisições só são aceitas destas origens, cada uma com seu esquema e a porta, se houver. Um host pode começar com um único curinga `*.`: `https://*.example.com` abrange todos os subdomínios de `example.com`, mas não o próprio `example.com`. |
 | **Requests Per Minute Limit** | Um único teto para todos os visitantes que usam a chave: 6000 requisições por minuto, a menos que você defina o seu. |
-| **Pinned Service Name** | Força `service.name` em tudo o que a chave grava, para que uma cópia não possa fazer a telemetria dela passar por um dos seus serviços de backend. |
+| **Nome do serviço fixado** | Força `service.name` em tudo o que a chave grava, para que uma cópia não possa fazer a telemetria dela passar por um dos seus serviços de backend. |
 | **Expira em** | Depois desta data, a chave deixa de ser aceita. |
 | **Habilitado** | Desligue para interromper na hora uma chave vazada. |
 
@@ -245,7 +245,7 @@ Com o [Session Replay](/docs/telemetry/session-replay) instalado, as requisiçõ
 
 Se você também usa o [Session Replay](/docs/telemetry/session-replay), a sua telemetria de **backend** se junta à gravação sem nenhum código aqui. Enquanto uma sessão é enviada, o gravador adiciona um membro `tracestate` com o ID de sessão às requisições que a sua página faz para a própria origem e deixa o `traceparent` para a sua `FetchInstrumentation` / `XMLHttpRequestInstrumentation`. Os spans do seu backend recebem o ID de sessão na ingestão, em todo serviço que continua o contexto de trace W3C, e os registros e exceções dele se juntam à gravação pelo ID do traço. Veja [Correlacionar com o restante da sua telemetria](/docs/telemetry/session-replay#correlacionar-com-o-resto-da-sua-telemetria) para saber como funciona, o que não cobre e qual chave o desliga.
 
-O gravador também lê de volta o `traceparent` que as suas instrumentações definem, quer a chamada passe uma URL (com ou sem objeto init) quer um objeto `Request`, para que cada linha de requisição na reprodução leve ao seu traço de backend. Para uma API em outra origem, liste-a acima em `propagateTraceHeaderCorsUrls`; as requisições dela não levam ID de sessão e se juntam à gravação pelo ID do traço. **Trace propagation origins** na política de reprodução da aplicação faz o mesmo para páginas *sem* este SDK.
+O gravador também lê de volta o `traceparent` que as suas instrumentações definem, quer a chamada passe uma URL (com ou sem objeto init) quer um objeto `Request`, para que cada linha de requisição na reprodução leve ao seu traço de backend. Para uma API em outra origem, liste-a acima em `propagateTraceHeaderCorsUrls`; as requisições dela não levam ID de sessão e se juntam à gravação pelo ID do traço. **Origens de propagação de traços** na política de reprodução da aplicação faz o mesmo para páginas *sem* este SDK.
 
 O que os cabeçalhos não alcançam são os spans de navegador deste SDK: carregamentos de documento, mudanças de rota e os erros que você relata. Para arquivá-los também sob a gravação, marque cada span com `session.id` quando ele começa. O gravador informa o ID por meio de `onSessionChange`, que dispara na hora se já existe uma sessão e de novo sempre que o ID muda: quando o visitante volta depois de 30 minutos ocioso, no limite de 4 horas, quando `identify()` indica outro usuário ou quando outra aba do mesmo visitante o mudou primeiro.
 
@@ -430,7 +430,7 @@ Abra as ferramentas de desenvolvedor do navegador, vá para a aba Rede e filtre 
 :::
 
 :::details O OneUptime recusa a requisição
-- `422` com `Origin https://app.example.com is not allowed for this browser ingestion key.` significa que a origem exata da página (esquema, host e porta) está faltando nas **Allowed Origins** da chave.
+- `422` com `Origin https://app.example.com is not allowed for this browser ingestion key.` significa que a origem exata da página (esquema, host e porta) está faltando nas **Origens permitidas** da chave.
 - `422` com `This telemetry ingestion key has been disabled.` significa que alguém desligou a chave. Ligue-a de novo ou use outra chave.
 - `401` significa que a chave é desconhecida, foi revogada ou expirou. Faça a verificação da chave em [Configurar](#configurar) e depois crie uma chave Browser válida.
 - `404` significa que a URL está errada. O exportador de traços precisa do caminho completo, `/otlp/v1/traces`.

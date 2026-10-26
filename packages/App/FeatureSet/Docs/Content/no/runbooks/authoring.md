@@ -29,7 +29,7 @@ Klikk **Opprett Runbook**, skriv inn et **Navn** og eventuelt en **Beskrivelse**
 
 ### Legg til trinn
 
-Under **Start your runbook** velger du typen for det første trinnet; under det siste trinnet tilbyr **Add another step** de samme sju typene. Hvert trinn åpnes med **Tittel** og det typen trenger; resten, som **Beskrivelse** og tidsavbrudd, er brettet sammen under **Flere felt**. Når runbooket har et trinn, legger **Legg til trinn** øverst på kortet til et Manual-trinn.
+Under **Kom i gang med runbooken din** velger du typen for det første trinnet; under det siste trinnet tilbyr **Legg til et trinn til** de samme sju typene. Hvert trinn åpnes med **Tittel** og det typen trenger; resten, som **Beskrivelse** og tidsavbrudd, er brettet sammen under **Flere felt**. Når runbooket har et trinn, legger **Legg til trinn** øverst på kortet til et Manual-trinn.
 
 ### Sett trinnene i rekkefølge
 
@@ -37,7 +37,7 @@ Trinn kjører **i rekkefølge**. Du endrer rekkefølgen ved å dra et trinn i h�
 
 ### Lagre trinnene
 
-Klikk **Save Steps**. Inntil du gjør det, viser redigeringsverktøyet **Ulagrede endringer**. Når de er lagret, ser du **Lagret**, og runbooket er klart til å [kjøres](/docs/runbooks/running).
+Klikk **Lagre trinn**. Inntil du gjør det, viser redigeringsverktøyet **Ulagrede endringer**. Når de er lagret, ser du **Lagret**, og runbooket er klart til å [kjøres](/docs/runbooks/running).
 :::
 
 ## Hvordan et trinn er bygd opp
@@ -79,7 +79,7 @@ Et stykke JavaScript som kjører i en `isolated-vm`-sandkasse på en [runbook-ag
 | Felt | Hva det gjør | Standard |
 | --- | --- | --- |
 | **Runner** | Under **Flere felt**. Runneren som kjører trinnet: **Global Runner** eller en av dine egne. Bare Runneren du velger, kan ta jobben; enhver global Runner kan ta et trinn på **Global Runner**. | [Prosjektets standard-Runner](/docs/runbooks/agents#prosjektets-standard-runner), hvis du har angitt en; ellers **Global Runner**, når det finnes en |
-| **Script** | JavaScript-koden som skal kjøre. Returner en verdi med `return` for å registrere den; hver linje fra `console.log` registreres også. En kastet feil får trinnet til å feile. | — |
+| **Skript** | JavaScript-koden som skal kjøre. Returner en verdi med `return` for å registrere den; hver linje fra `console.log` registreres også. En kastet feil får trinnet til å feile. | — |
 | **Tidsavbrudd for kjøring** | Hvor lenge Runneren lar koden kjøre før den river ned sandkassen. En global Runner lar den kjøre i høyst 5 minutter. | 30 sekunder |
 | **Tidsavbrudd for overtakelse** | Hvor lenge Workeren venter på at Runneren tar jobben. | 2 minutter |
 
@@ -98,11 +98,11 @@ Et utgående HTTP-kall, gjort av OneUptime Worker. Ingen Runner trengs.
 
 | Felt | Hva det gjør | Standard |
 | --- | --- | --- |
-| **Method** | `GET`, `POST`, `PUT`, `PATCH`, `DELETE` eller `HEAD`. | `GET` |
+| **Metode** | `GET`, `POST`, `PUT`, `PATCH`, `DELETE` eller `HEAD`. | `GET` |
 | **URL** | Endepunktet som skal kalles. | Tom |
-| **Headers (JSON)** | Under **Flere felt**. Et JSON-objekt, for eksempel `{ "Authorization": "Bearer ..." }`. Headere som ikke er gyldig JSON, får trinnet til å feile. | Ingen |
-| **Body** | Vises for `POST`, `PUT`, `PATCH` og `DELETE`. Sendes som JSON når den kan leses som JSON, ellers som tekst. | Ingen |
-| **Request timeout** | Hvor lenge det ventes på svar fra endepunktet før trinnet feiler. | 30 sekunder |
+| **Overskrifter (JSON)** | Under **Flere felt**. Et JSON-objekt, for eksempel `{ "Authorization": "Bearer ..." }`. Headere som ikke er gyldig JSON, får trinnet til å feile. | Ingen |
+| **Brødtekst** | Vises for `POST`, `PUT`, `PATCH` og `DELETE`. Sendes som JSON når den kan leses som JSON, ellers som tekst. | Ingen |
+| **Tidsavbrudd for forespørsel** | Hvor lenge det ventes på svar fra endepunktet før trinnet feiler. | 30 sekunder |
 
 Trinnet lykkes ved et `2xx`- eller `3xx`-svar og feiler ved alt annet, med `HTTP <status>` som feil. Omdirigeringer følges ikke. Svarets status, headere og body registreres, opptil 50 KB.
 
@@ -170,7 +170,7 @@ Kjør kubectl-kommandoer mot en klynge. Skriptet kjører med bash på Runneren, 
 | --- | --- |
 | **Runner** | Under **Flere felt**. Runneren som kjører kubectl. Den må kunne nå klyngens API-server. Et trinn som ikke velger noen, kjører på prosjektets standard-Runner. |
 | **Kubeconfig** | Den hemmelige variabelen som holder klyngens kubeconfig, eller **Runnerens egen tilgang**: Runnerens egen kubeconfig, eller tjenestekontoen når den kjører i klyngen. Runneren skriver en kubeconfig til en fil bare den kan lese, og fjerner den når skriptet avsluttes. |
-| **Script** | kubectl-kommandoene. Utdata fanges opp til 50 KB, og en avslutningskode som ikke er null, får trinnet til å feile. |
+| **Skript** | kubectl-kommandoene. Utdata fanges opp til 50 KB, og en avslutningskode som ikke er null, får trinnet til å feile. |
 | **Tidsavbrudd for kjøring** | Hvor lenge Runneren lar skriptet kjøre før den stopper det med `SIGKILL`. Standard 30 sekunder. |
 | **Tidsavbrudd for overtakelse** | Hvor lenge Workeren venter på at Runneren tar jobben. Standard 2 minutter. |
 
@@ -190,9 +190,9 @@ Be AI om å analysere, oppsummere eller bestemme noe midt i kjøringen. Svaret b
 | Felt | Hva det gjør |
 | --- | --- |
 | **Prompt** | Hva AI-en skal gjøre. For eksempel: "Gå gjennom outputen fra de forrige trinnene, og si om det er trygt å fortsette med utbedringen." |
-| **LLM provider** | Valgfritt. **Prosjektstandard** bruker prosjektets standardleverandør. Fest en leverandør når trinnet trenger en bestemt modell, for eksempel en selvhostet modell for data som ikke skal forlate nettverket ditt. Se [LLM-leverandører](/docs/ai/llm-provider). |
-| **Include previous step context** | Når den er slått på, ser AI-en alt om trinnene som kjørte før dette: tittel, type, status, output og feilmeldinger. Den får opptil 4 000 tegn av hvert trinns output. |
-| **Include trigger context** | Når den er slått på, ser AI-en hva som startet kjøringen: den tilknyttede hendelsen, varselet eller den planlagte vedlikeholdshendelsen (beskrivelse, alvorlighetsgrad, nåværende tilstand, berørte monitorer, rotårsak, tilstandstidslinje og offentlige notater), eller hvem som kjørte runbooket manuelt. |
+| **LLM-leverandør** | Valgfritt. **Prosjektstandard** bruker prosjektets standardleverandør. Fest en leverandør når trinnet trenger en bestemt modell, for eksempel en selvhostet modell for data som ikke skal forlate nettverket ditt. Se [LLM-leverandører](/docs/ai/llm-provider). |
+| **Ta med kontekst fra forrige trinn** | Når den er slått på, ser AI-en alt om trinnene som kjørte før dette: tittel, type, status, output og feilmeldinger. Den får opptil 4 000 tegn av hvert trinns output. |
+| **Ta med utløserkontekst** | Når den er slått på, ser AI-en hva som startet kjøringen: den tilknyttede hendelsen, varselet eller den planlagte vedlikeholdshendelsen (beskrivelse, alvorlighetsgrad, nåværende tilstand, berørte monitorer, rotårsak, tilstandstidslinje og offentlige notater), eller hvem som kjørte runbooket manuelt. |
 
 For å holde et menneske i løkken slår du på **Krev godkjenning** på trinnet etter et AI-trinn: AI-en analyserer, en person leser svaret, og det utbedrende trinnet kjører først når personen godkjenner det.
 
@@ -226,7 +226,7 @@ Gjennom API-et og Terraform er bryteren et trinns felt `requireApprovalBeforeRun
 
 ## Lagre og redigere
 
-Endringer i trinnene trer i kraft når du klikker **Save Steps**. Hver kjøring arbeider ut fra øyeblikksbildet som ble tatt da den startet, så pågående kjøringer beholder trinnene de startet med, og redigering skriver aldri om historikken for tidligere kjøringer.
+Endringer i trinnene trer i kraft når du klikker **Lagre trinn**. Hver kjøring arbeider ut fra øyeblikksbildet som ble tatt da den startet, så pågående kjøringer beholder trinnene de startet med, og redigering skriver aldri om historikken for tidligere kjøringer.
 
 ## Et gjennomgått eksempel
 

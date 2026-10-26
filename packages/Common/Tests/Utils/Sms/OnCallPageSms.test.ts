@@ -6,6 +6,7 @@ import {
   MIN_TITLE_CHARACTERS,
   ON_CALL_PAGE_SMS_ACTION,
   ON_CALL_PAGE_SMS_CUT_MARK,
+  ON_CALL_PAGE_SMS_STILL_NOT_RESOLVED,
   OnCallPageSms,
   OnCallPageSmsInput,
   OnCallPageSmsKind,
@@ -828,4 +829,172 @@ describe("titles from monitoring and from other scripts", () => {
       expect(sms.text).not.toContain(`${title}.`);
     },
   );
+});
+
+/*
+ * A PAGE AGAIN (OnCallAcknowledgementTimeout) - a policy paging again
+ * because a record acknowledged a while ago is still not resolved - says so
+ * after the number and the project, where a first page goes straight on to
+ * the title. Those words are never cut: they are why the person is paged
+ * again. Worded as a first page, the text read like a second alarm about
+ * something new (#5173). Every other channel says "still not resolved" too.
+ */
+describe("a page again", () => {
+  test("says the record is still not resolved, after the number and the project", () => {
+    expect(ON_CALL_PAGE_SMS_STILL_NOT_RESOLVED).toBe("is still not resolved");
+    expect(page({ isPageAgain: true }).text).toBe(
+      `OneUptime: Critical Incident INC-21033 in Acme Prod is still not resolved: API is down.${tail(CLOUD_LINK)}`,
+    );
+  });
+
+  test.each(KINDS)(
+    "says it of a %s too, in one part",
+    (kind: OnCallPageSmsKind) => {
+      const sms: OnCallPageSms = page({
+        kind: kind,
+        title: "Checkout API is offline",
+        isPageAgain: true,
+      });
+
+      expect(sms.text).toBe(
+        `OneUptime: ${DEFAULTS[kind].what} ${DEFAULTS[kind].number} in Acme Prod is still not resolved: Checkout API is offline.${tail(CLOUD_LINK)}`,
+      );
+      expect(sms.sent).toEqual({
+        encoding: SmsEncoding.Gsm7,
+        length: sms.text.length,
+        segments: 1,
+      });
+    },
+  );
+
+  test("a first page reads exactly as before", () => {
+    const first: string = page({}).text;
+
+    expect(page({ isPageAgain: false }).text).toBe(first);
+    expect(page({ isPageAgain: undefined }).text).toBe(first);
+    expect(first).not.toContain("still not resolved");
+  });
+
+  test("the docs' example is one part of GSM-7", () => {
+    const sms: OnCallPageSms = buildOnCallPageSms({
+      kind: OnCallPageSmsKind.Incident,
+      productName: "OneUptime",
+      severityName: "Critical Incident",
+      number: "INC-42",
+      projectName: "Acme Prod",
+      title: "Checkout API is down",
+      link: CLOUD_LINK,
+      isPageAgain: true,
+    });
+
+    expect(sms.text).toBe(
+      "OneUptime: Critical Incident INC-42 in Acme Prod is still not resolved: Checkout API is down. Ack or escalate: https://oneuptime.com/l/XJlaZRsd",
+    );
+    expect(sms.sent).toEqual({
+      encoding: SmsEncoding.Gsm7,
+      length: 143,
+      segments: 1,
+    });
+  });
+
+  test("a record without a title, a number or a project still says it", () => {
+    expect(page({ isPageAgain: true, title: "" }).text).toBe(
+      `OneUptime: Critical Incident INC-21033 in Acme Prod is still not resolved.${tail(CLOUD_LINK)}`,
+    );
+    expect(page({ isPageAgain: true, number: undefined }).text).toBe(
+      `OneUptime: Critical Incident in Acme Prod is still not resolved: API is down.${tail(CLOUD_LINK)}`,
+    );
+    expect(page({ isPageAgain: true, projectName: undefined }).text).toBe(
+      `OneUptime: Critical Incident INC-21033 is still not resolved: API is down.${tail(CLOUD_LINK)}`,
+    );
+  });
+
+  test("its words are never cut: the project goes first, then the title is cut, as on any page", () => {
+    const sms: OnCallPageSms = page({
+      isPageAgain: true,
+      title:
+        "Checkout API is down for every customer in every region since the deploy of 10:42",
+    });
+
+    expect(sms.text).toBe(
+      `OneUptime: Critical Incident INC-21033 is still not resolved: Checkout API is down for every customer in${ON_CALL_PAGE_SMS_CUT_MARK}${tail(CLOUD_LINK)}`,
+    );
+    expect(sms.isProjectLeftOut).toBe(true);
+    expect(sms.isTitleCut).toBe(true);
+    expect(sms.sent).toEqual({
+      encoding: SmsEncoding.Gsm7,
+      length: 157,
+      segments: 1,
+    });
+  });
+
+  test("on a very long address a short title still fits in one part, the project left out", () => {
+    const sms: OnCallPageSms = page({
+      isPageAgain: true,
+      link: LONG_SELF_HOSTED_LINK,
+    });
+
+    expect(sms.text).toBe(
+      `OneUptime: Critical Incident INC-21033 is still not resolved: API is down.${tail(LONG_SELF_HOSTED_LINK)}`,
+    );
+    expect(sms.isProjectLeftOut).toBe(true);
+    expect(sms.sent.segments).toBe(1);
+  });
+
+  test("on a very long address a longer title takes a second part and says it all, as any page whose title would be cut below MIN_TITLE_CHARACTERS", () => {
+    const title: string = "Checkout payments API is failing for every customer";
+    const sms: OnCallPageSms = page({
+      isPageAgain: true,
+      title: title,
+      link: LONG_SELF_HOSTED_LINK,
+    });
+
+    expect(sms.sent.segments).toBe(2);
+    expect(sms.isTitleCut).toBe(false);
+    expect(sms.isProjectLeftOut).toBe(false);
+    expect(sms.text).toBe(
+      `OneUptime: Critical Incident INC-21033 in Acme Prod is still not resolved: ${title}.${tail(LONG_SELF_HOSTED_LINK)}`,
+    );
+  });
+
+  test("every GSM-7 title of up to 500 characters fits in one part on Cloud and on a self-hosted address, and in two at most on a very long one, never losing its words", () => {
+    for (const link of LINKS) {
+      const most: number = link === LONG_SELF_HOSTED_LINK ? 2 : 1;
+
+      for (let length: number = 0; length <= 500; length++) {
+        const sms: OnCallPageSms = page({
+          title: "Checkout is down ".repeat(30).slice(0, length),
+          link: link,
+          isPageAgain: true,
+        });
+
+        expect({
+          length,
+          link,
+          isWithin: sms.sent.segments <= most,
+          isSaid: sms.text.startsWith(
+            `OneUptime: Critical Incident INC-21033 ${sms.isProjectLeftOut ? "" : "in Acme Prod "}${ON_CALL_PAGE_SMS_STILL_NOT_RESOLVED}`,
+          ),
+          isLinked: sms.text.endsWith(tail(link)),
+        }).toEqual({
+          length,
+          link,
+          isWithin: true,
+          isSaid: true,
+          isLinked: true,
+        });
+      }
+    }
+  });
+
+  test("a title in another script is said to be still not resolved as well, in UCS-2", () => {
+    const title: string =
+      "\u{6C7A}\u{6E08}\u{304C}\u{505C}\u{6B62}\u{3057}\u{307E}\u{3057}\u{305F}\u{3002}";
+    const sms: OnCallPageSms = page({ isPageAgain: true, title: title });
+
+    expect(sms.text).toContain(
+      ` ${ON_CALL_PAGE_SMS_STILL_NOT_RESOLVED}: ${title}${tail(CLOUD_LINK)}`,
+    );
+    expect(sms.sent.encoding).toBe(SmsEncoding.Ucs2);
+  });
 });

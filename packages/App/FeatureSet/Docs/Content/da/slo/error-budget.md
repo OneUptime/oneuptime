@@ -29,9 +29,9 @@ SLO'ets side **Indstillinger** viser det budget, dets mål tillader, ved siden a
 
 ### Budgettet for et SLO med flere monitorer
 
-I tilstanden **Any Monitor Down** er budgettet `(100% − target) × window`, uanset hvor mange monitorer SLO'et måler: vinduet er én tidslinje.
+I tilstanden **En vilkårlig monitor nede** er budgettet `(100% − target) × window`, uanset hvor mange monitorer SLO'et måler: vinduet er én tidslinje.
 
-I tilstanden **Monitor Seconds Average** tælles budgettet i monitorsekunder, lagt sammen på tværs af monitorerne, så det vokser med antallet af monitorer: et SLO med tre monitorer på 99,9 % over 30 dage har cirka 129 minutters budget i stedet for 43. Procenterne (SLI, resterende budget, forbrugsrate) betyder det samme; kun varighederne ændrer sig.
+I tilstanden **Gennemsnit af monitorsekunder** tælles budgettet i monitorsekunder, lagt sammen på tværs af monitorerne, så det vokser med antallet af monitorer: et SLO med tre monitorer på 99,9 % over 30 dage har cirka 129 minutters budget i stedet for 43. Procenterne (SLI, resterende budget, forbrugsrate) betyder det samme; kun varighederne ændrer sig.
 
 ### Budgettet for en kalendermåned
 
@@ -39,7 +39,7 @@ Et SLO med kalendermåned har hele månedens budget fra første dag: et SLO på 
 
 ## Resterende budget
 
-Efterhånden som nedetiden løber op, viser **Oversigt** det resterende budget i feltet **Error budget left**:
+Efterhånden som nedetiden løber op, viser **Oversigt** det resterende budget i feltet **Fejlbudget tilbage**:
 
 - som en procentdel af det samlede budget, der også afgør SLO'ets status og fylder bjælken. Bjælken har et mærke ved SLO'ets risikotærskel;
 - som en varighed, for eksempel "31m 4s left of 43m 12s".
@@ -48,11 +48,11 @@ Når budgettet er brugt op, viser feltet **No budget left**. Når nedetiden over
 
 Det resterende budget gemmes som et tal med fortegn til beregninger og historikdiagrammer, så der vises et overskredet budget som en negativ procentdel. En stærkt negativ procentdel betyder, at overskridelsen er stor i forhold til budgettet; det er ikke den andel af tiden, hvor tjenesten var nede.
 
-Hvilke sekunder der tæller som nedetid, afgøres af SLO'ets nedetidsstatusser og, for et SLO med flere monitorer, af dets tilstand for flere monitorer, begge under **Indstillinger** → **Downtime Calculation**. Se [SLO'er – Oversigt](/docs/slo/introduction).
+Hvilke sekunder der tæller som nedetid, afgøres af SLO'ets nedetidsstatusser og, for et SLO med flere monitorer, af dets tilstand for flere monitorer, begge under **Indstillinger** → **Beregning af nedetid**. Se [SLO'er – Oversigt](/docs/slo/introduction).
 
 ## Budgettets rækkevidde
 
-Feltet **Budget runway** på **Oversigt** svarer på "hvis det fortsætter sådan, hvornår løber vi tør?". Det deler det resterende budget med forbrugsraten over de seneste 60 minutter:
+Feltet **Budgettets rækkevidde** på **Oversigt** svarer på "hvis det fortsætter sådan, hvornår løber vi tør?". Det deler det resterende budget med forbrugsraten over de seneste 60 minutter:
 
 ```text
 runway = budget left ÷ (burn rate × (100% − target))
@@ -68,18 +68,18 @@ runway = budget left ÷ (burn rate × (100% − target))
 
 For SLO'er med kalendermåned fortæller feltet også, hvornår budgettet nulstilles.
 
-Rækkevidden er en lineær fremskrivning. I et rullende vindue giver gammel nedetid, der falder ud af vinduet, budget tilbage, hvilket fremskrivningen ser bort fra: læs den som den mindste tid, du har tilbage. Den vises ikke før den første evaluering, og heller ikke for SLO'er i tilstanden **Monitor Seconds Average**, hvis budget tælles i monitorsekunder og ikke i realtid.
+Rækkevidden er en lineær fremskrivning. I et rullende vindue giver gammel nedetid, der falder ud af vinduet, budget tilbage, hvilket fremskrivningen ser bort fra: læs den som den mindste tid, du har tilbage. Den vises ikke før den første evaluering, og heller ikke for SLO'er i tilstanden **Gennemsnit af monitorsekunder**, hvis budget tælles i monitorsekunder og ikke i realtid.
 
 ## Fejlbudgettets forbrug
 
-Diagrammet **Error budget burn-down** på **Oversigt** viser det resterende budget, i procent, hen over det aktuelle compliancevindue:
+Diagrammet **Burn-down af fejlbudget** på **Oversigt** viser det resterende budget, i procent, hen over det aktuelle compliancevindue:
 
 - En linje ved 0 % markerer, hvor budgettet er brugt op, og en stiplet linje markerer SLO'ets risikotærskel.
 - For SLO'er med kalendermåned falder en svag linje jævnt fra et fuldt budget ved månedens start til et tomt ved nulstillingen. Under den linje bruger måneden sit budget for hurtigt.
 - Der registreres et punkt ved hver evaluering, hvert 5. minut, så et nyt SLO's diagram er tomt indtil dets første evaluering.
-- Træk hen over diagrammet for at zoome ind på en del af vinduet. Dobbeltklik, eller klik på **Reset zoom**, for at se hele vinduet igen.
+- Træk hen over diagrammet for at zoome ind på en del af vinduet. Dobbeltklik, eller klik på **Nulstil zoom**, for at se hele vinduet igen.
 
-**Open metrics** åbner SLO'ets side **Metrikker**, hvis fane **Error Budget History** går op til 400 dage tilbage. Se [SLO-metrikker og -dashboards](/docs/slo/metrics).
+**Åbn metrikker** åbner SLO'ets side **Metrikker**, hvis fane **Error Budget History** går op til 400 dage tilbage. Se [SLO-metrikker og -dashboards](/docs/slo/metrics).
 
 ## Hvordan budgettet kommer igen
 
@@ -96,7 +96,7 @@ Et SLO med kalendermåned nulstilles ved midnat den første i hver måned, i sin
 
 ### Unge SLO'er
 
-Et SLO med rullende vindue, der er yngre end sit vindue, måles over de data, der findes indtil videre, og dets samlede budget vokser med dem: et SLO på 30 dage, der blev oprettet for en uge siden, har indtil videre et budget for 7 dage. Indtil vinduet er fyldt, viser **Oversigt**, hvor fyldt det er, med en indikator **Window 23% full** og den samme bemærkning i feltet **Error budget left**. Forvent, at tallene falder til ro, efterhånden som vinduet fyldes.
+Et SLO med rullende vindue, der er yngre end sit vindue, måles over de data, der findes indtil videre, og dets samlede budget vokser med dem: et SLO på 30 dage, der blev oprettet for en uge siden, har indtil videre et budget for 7 dage. Indtil vinduet er fyldt, viser **Oversigt**, hvor fyldt det er, med en indikator **Window 23% full** og den samme bemærkning i feltet **Fejlbudget tilbage**. Forvent, at tallene falder til ro, efterhånden som vinduet fyldes.
 
 ## Statusændringer og risikotærsklen
 
@@ -108,7 +108,7 @@ Det resterende budget afgør SLO'ets status:
 | **I risiko** | Det resterende budget ligger på risikotærsklen eller derunder: 20 % som standard. |
 | **Budget opbrugt** | Det resterende budget er nul eller derunder. |
 
-Angiv risikotærsklen under **Indstillinger** → **Objective**.
+Angiv risikotærsklen under **Indstillinger** → **Mål**.
 
 Rullende vinduer kommer sig ét sekund ad gangen, så et SLO tæt på en grænse kunne hoppe frem og tilbage mellem to statusser. For at hver statusændring skal betyde noget, forlader et SLO kun en status, når det tydeligt er kommet over grænsen:
 

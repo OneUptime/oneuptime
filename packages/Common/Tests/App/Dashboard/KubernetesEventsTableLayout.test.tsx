@@ -293,6 +293,67 @@ describe("Warning and Normal on each row", () => {
   });
 });
 
+/*
+ * Beside the cluster's side menu at 768px the card is 478px wide, and the
+ * four columns needed 680px: the rows ran under the sticky last column.
+ * Below lg (Column.hideBelowLargeScreen) how many times and when go in the
+ * Event's own lines, as on a phone's card; the object keeps its column.
+ */
+describe("the Events table at a tablet's width, beside the side menu", () => {
+  test("has two columns - Event and Object - below 1024px, and four from 1024px", async () => {
+    for (const width of [1023, 900, 768]) {
+      await renderTable({ width });
+      expect([width, headerTitles()]).toEqual([width, ["Event", "Object"]]);
+      cleanup();
+    }
+
+    await renderTable({ width: 1024 });
+    expect(headerTitles()).toEqual(["Event", "Object", "Count", "Last seen"]);
+  });
+
+  test("the Event says how many times and when, each once in its row; the object stays in its own column", async () => {
+    await renderTable({ width: 900 });
+
+    const oom: HTMLElement = eventOf("OOMKilling");
+    expect(within(oom).getByTestId("kubernetes-event-count")).toHaveTextContent(
+      "2 times",
+    );
+    expect(
+      within(oom).getByTestId("kubernetes-event-last-seen"),
+    ).toHaveAttribute("dateTime", OOM_KILL.lastSeenAt!.toISOString());
+
+    const row: HTMLElement = rowOf("OOMKilling");
+    expect(within(row).getAllByTestId("kubernetes-event-count")).toHaveLength(
+      1,
+    );
+    expect(
+      within(row).getAllByTestId("kubernetes-event-last-seen"),
+    ).toHaveLength(1);
+
+    // Its object in the Object column, not in the Event's lines as well.
+    expect(
+      within(oom).queryByTestId("kubernetes-event-object"),
+    ).not.toBeInTheDocument();
+    expect(within(row).getAllByTestId("kubernetes-event-object")).toHaveLength(
+      1,
+    );
+
+    // An Event that happened once says no count, as on a phone.
+    expect(
+      within(eventOf("Pulled")).queryByTestId("kubernetes-event-count"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("a view of one object leaves the Object column out too: the Event alone", async () => {
+    await renderTable({ width: 900, showObject: false });
+
+    expect(headerTitles()).toEqual(["Event"]);
+    expect(
+      within(eventOf("OOMKilling")).getByTestId("kubernetes-event-count"),
+    ).toHaveTextContent("2 times");
+  });
+});
+
 describe("the Events table on a phone", () => {
   test("each Event is one card: the reason and when, the message, the object, its namespace, how many times and who reported it", async () => {
     await renderTable({ width: 390 });

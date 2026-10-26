@@ -34,8 +34,8 @@ Entrambi registrano un problema, ed entrambi possono chiamare chi è reperibile.
 | **Che cos'è**                    | Un problema che il vostro team deve esaminare prima che gli utenti ne risentano | Un problema che colpisce i vostri utenti, come un disservizio |
 | **Sulle pagine di stato**        | Mai                                                    | Può comparire, e avvisa gli iscritti              |
 | **Note**                         | Note private, solo per il vostro team                  | Note pubbliche per i clienti, e note private      |
-| **Stati iniziali**               | **Identified**, **Riconosciuto**, **Risolto**          | **Identified**, **Riconosciuto**, **Risolto**     |
-| **Gravità iniziali**             | **High**, **Low**                                      | Critical Incident, Major Incident, Minor Incident |
+| **Stati iniziali**               | **Identificato**, **Riconosciuto**, **Risolto**          | **Identificato**, **Riconosciuto**, **Risolto**     |
+| **Gravità iniziali**             | **Alto**, **Basso**                                      | Critical Incident, Major Incident, Minor Incident |
 | **Numeri in un nuovo progetto**  | `ALT-42`, e `AE-42` per gli episodi                    | `INC-42`, e `IE-42` per gli episodi               |
 
 Sollevate un avviso quando il vostro team deve guardare prima che qualcuno all'esterno noti qualcosa, e dichiarate un incidente quando gli utenti ne risentono. Se un avviso si rivela parte di un disservizio, dichiarate un incidente a partire da esso, o collegatelo all'incidente che lo spiega: vedere [Avvisi collegati](/docs/incidents/linked-alerts).
@@ -64,9 +64,9 @@ Aprite **Avvisi** dal menu **Prodotti** nella barra superiore. L'elenco degli av
 
 **Avvisi** ed **Episodi** sono aperte; **IA**, **Area di lavoro**, **Regole**, **Impostazioni** e **Sviluppatori** partono compresse, e una sezione si apre da sola quando siete su una delle sue pagine. La configurazione degli avvisi sta qui, non nelle **Impostazioni del progetto**.
 
-L'elenco mostra **Numero dell'avviso**, **Titolo**, **Stato**, **Gravità**, **Risorse interessate** (prima il monitor dell'avviso), **Creato**, **Durata**, **Etichette** e **Proprietari**. Selezionate gli avvisi per agire su più avvisi alla volta: **Riconosci**, **Risolvi**, **Cambia stato**, **Cambia gravità**, **Assegna a me**, **Add Owner**, **Remove Owner**, **Add Labels**, **Remove Labels**, **Collega a incidente**, **Dichiara incidente** o eliminarli.
+L'elenco mostra **Numero dell'avviso**, **Titolo**, **Stato**, **Gravità**, **Risorse interessate** (prima il monitor dell'avviso), **Creato**, **Durata**, **Etichette** e **Proprietari**. Selezionate gli avvisi per agire su più avvisi alla volta: **Riconosci**, **Risolvi**, **Cambia stato**, **Cambia gravità**, **Assegna a me**, **Aggiungi proprietario**, **Rimuovi proprietario**, **Aggiungi etichette**, **Rimuovi etichette**, **Collega a incidente**, **Dichiara incidente** o eliminarli.
 
-Il menu **⋯** in fondo alla riga di ogni avviso fa lo stesso per quel solo avviso: **Riconosci** e **Risolvi** finché l'avviso può fare quel passo, **Cambia stato**, **Cambia gravità**, **Assegna a me** finché non ne siete proprietari e **Add Owner** per affidarlo a qualcun altro.
+Il menu **⋯** in fondo alla riga di ogni avviso fa lo stesso per quel solo avviso: **Riconosci** e **Risolvi** finché l'avviso può fare quel passo, **Cambia stato**, **Cambia gravità**, **Assegna a me** finché non ne siete proprietari e **Aggiungi proprietario** per affidarlo a qualcun altro.
 
 ## Creare un avviso a mano
 
@@ -77,7 +77,7 @@ Andate in **Avvisi → Tutti gli avvisi** e fate clic su **Crea avviso**. Il mod
 
 ### Descrivere l'avviso
 
-Compilate il **Titolo** e scegliete una **Gravità avviso**; entrambi sono obbligatori. Aggiungete una **Descrizione** se aiuta. In **Altri campi**, compresso, potete scegliere uno **Stato iniziale**, aggiungere **Etichette** o attivare **Avviso privato**. Lì trovate anche **Proprietari**: diventate comunque proprietari dell'avviso che create, e ogni team di cui siete membri è a un clic sotto il selettore.
+Compilate il **Titolo** e scegliete una **Gravità avviso**; entrambi sono obbligatori. Aggiungete una **Descrizione** se aiuta. In **Altri campi**, compresso, potete scegliere uno **Stato iniziale**, aggiungere **Etichette** o attivare **Avviso privato**. Lì trovate anche **Proprietari**: diventate comunque proprietari dell'avviso che create, e ogni team di cui siete membri è a un clic sotto il selettore. Un amministratore principale, che gestisce l'intera installazione, è l'unica eccezione: non diventa proprietario di ciò che crea.
 
 ### Scegliere che cosa riguarda e chi viene chiamato
 
@@ -88,7 +88,7 @@ Fate clic su **Avanti** per arrivare a **Risorse e reperibilità**. Scegliete il
 Fate clic su **Avanti** per controllare il riepilogo, poi su **Crea avviso**. Si apre la pagina dell'avviso, e le regole iniziano a girare. Nel riepilogo, la riga **Proprietari** elenca ogni regola del proprietario che aggiungerà qualcuno, e chi: vedete [Chi ne sarà proprietario](/docs/incidents/declaring-incidents#chi-ne-sarà-proprietario).
 :::
 
-Lasciate vuoto **Stato iniziale** e l'avviso parte da dove parte ogni nuovo avviso: dal vostro stato di creazione, **Identified** in un nuovo progetto. Scegliere uno stato successivo registra un avviso di cui qualcuno si sta già occupando, o che è già concluso; vedere [Creato già riconosciuto o risolto](#creato-già-riconosciuto-o-risolto).
+Lasciate vuoto **Stato iniziale** e l'avviso parte da dove parte ogni nuovo avviso: dal vostro stato di creazione, **Identificato** in un nuovo progetto. Scegliere uno stato successivo registra un avviso di cui qualcuno si sta già occupando, o che è già concluso; vedere [Creato già riconosciuto o risolto](#creato-già-riconosciuto-o-risolto).
 
 ## Che cosa succede quando viene creato un avviso
 

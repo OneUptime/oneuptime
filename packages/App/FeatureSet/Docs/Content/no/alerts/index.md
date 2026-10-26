@@ -34,8 +34,8 @@ Begge registrerer et problem, og begge kan tilkalle den som har vakt. Forskjelle
 | **Hva det er**               | Et problem teamet ditt bør undersøke før brukerne rammes | Et problem som rammer brukerne dine, som et avbrudd |
 | **På statussider**           | Aldri                                                  | Kan vises og gir abonnenter beskjed               |
 | **Notater**                  | Private notater, bare for teamet ditt                  | Offentlige notater for kunder og private notater  |
-| **Starttilstander**          | **Identified**, **Bekreftet**, **Løst**                | **Identified**, **Bekreftet**, **Løst**           |
-| **Startalvorlighetsgrader**  | **High**, **Low**                                      | Critical Incident, Major Incident, Minor Incident |
+| **Starttilstander**          | **Identifisert**, **Bekreftet**, **Løst**                | **Identifisert**, **Bekreftet**, **Løst**           |
+| **Startalvorlighetsgrader**  | **Høy**, **Lav**                                      | Critical Incident, Major Incident, Minor Incident |
 | **Numre i et nytt prosjekt** | `ALT-42` og `AE-42` for episoder                       | `INC-42` og `IE-42` for episoder                  |
 
 Utløs et varsel når teamet ditt bør se på noe før noen utenfor merker det, og erklær en hendelse når brukerne rammes. Viser det seg at et varsel er en del av et avbrudd, kan du erklære en hendelse fra det eller knytte det til hendelsen som forklarer det: se [Koblede varsler](/docs/incidents/linked-alerts).
@@ -64,9 +64,9 @@ Utløs et varsel når teamet ditt bør se på noe før noen utenfor merker det, 
 
 **Varsler** og **Episoder** er åpne; **KI**, **Arbeidsområde**, **Regler**, **Innstillinger** og **Utvikler** starter sammenfoldet, og en seksjon åpner seg selv når du er på en av sidene i den. Konfigurasjonen av varsler ligger her, ikke i **Prosjektinnstillinger**.
 
-Listen viser **Varselnummer**, **Tittel**, **Tilstand**, **Alvorlighetsgrad**, **Berørte ressurser** (varselets monitor først), **Opprettet**, **Varighet**, **Etiketter** og **Eiere**. Velg varsler for å handle på flere samtidig: **Bekreft**, **Løs**, **Endre tilstand**, **Endre alvorlighetsgrad**, **Tildel til meg**, **Add Owner**, **Remove Owner**, **Add Labels**, **Remove Labels**, **Knytt til en hendelse**, **Erklær hendelse** eller slett dem.
+Listen viser **Varselnummer**, **Tittel**, **Tilstand**, **Alvorlighetsgrad**, **Berørte ressurser** (varselets monitor først), **Opprettet**, **Varighet**, **Etiketter** og **Eiere**. Velg varsler for å handle på flere samtidig: **Bekreft**, **Løs**, **Endre tilstand**, **Endre alvorlighetsgrad**, **Tildel til meg**, **Legg til eier**, **Fjern eier**, **Legg til etiketter**, **Fjern etiketter**, **Knytt til en hendelse**, **Erklær hendelse** eller slett dem.
 
-Menyen **⋯** på slutten av raden til hvert varsel gjør det samme for bare det varselet: **Bekreft** og **Løs** så lenge varselet kan ta det steget, **Endre tilstand**, **Endre alvorlighetsgrad**, **Tildel til meg** til du eier det, og **Add Owner** for å gi det videre til noen andre.
+Menyen **⋯** på slutten av raden til hvert varsel gjør det samme for bare det varselet: **Bekreft** og **Løs** så lenge varselet kan ta det steget, **Endre tilstand**, **Endre alvorlighetsgrad**, **Tildel til meg** til du eier det, og **Legg til eier** for å gi det videre til noen andre.
 
 ## Opprett et varsel manuelt
 
@@ -77,7 +77,7 @@ Gå til **Varsler → Alle varsler**, og klikk på **Opprett varsel**. Skjemaet 
 
 ### Beskriv varselet
 
-Fyll ut **Tittel**, og velg en **Varselsalvor**; begge er påkrevd. Legg til en **Beskrivelse** hvis det hjelper. Under **Flere felt**, sammenfoldet, kan du velge en **Innledende tilstand**, legge til **Etiketter** eller slå på **Privat varsel**. Der venter også **Eiere**: du blir uansett eier av varselet du oppretter, og hvert team du er medlem av, er bare ett klikk unna under velgeren.
+Fyll ut **Tittel**, og velg en **Varselsalvor**; begge er påkrevd. Legg til en **Beskrivelse** hvis det hjelper. Under **Flere felt**, sammenfoldet, kan du velge en **Innledende tilstand**, legge til **Etiketter** eller slå på **Privat varsel**. Der venter også **Eiere**: du blir uansett eier av varselet du oppretter, og hvert team du er medlem av, er bare ett klikk unna under velgeren. En master-admin, som driver hele installasjonen, er det eneste unntaket: vedkommende blir ikke eier av det vedkommende oppretter.
 
 ### Velg hva det berører, og hvem som tilkalles
 
@@ -88,7 +88,7 @@ Klikk på **Neste** for å komme til **Ressurser og vakt**. Velg **Overvåking**
 Klikk på **Neste** for å se gjennom sammendraget og deretter på **Opprett varsel**. Varselets egen side åpnes, og reglene begynner å kjøre. I sammendraget nevner raden **Eiere** hver eierregel som vil legge til noen, og hvem: se [Hvem som eier den](/docs/incidents/declaring-incidents#hvem-som-eier-den).
 :::
 
-Lar du **Innledende tilstand** stå tom, starter varselet der alle nye varsler gjør: i opprettelsestilstanden din, **Identified** i et nytt prosjekt. Velger du en senere tilstand, registrerer du et varsel som noen allerede håndterer, eller som allerede er over; se [Opprettet allerede bekreftet eller løst](#opprettet-allerede-bekreftet-eller-løst).
+Lar du **Innledende tilstand** stå tom, starter varselet der alle nye varsler gjør: i opprettelsestilstanden din, **Identifisert** i et nytt prosjekt. Velger du en senere tilstand, registrerer du et varsel som noen allerede håndterer, eller som allerede er over; se [Opprettet allerede bekreftet eller løst](#opprettet-allerede-bekreftet-eller-løst).
 
 ## Hva som skjer når et varsel opprettes
 

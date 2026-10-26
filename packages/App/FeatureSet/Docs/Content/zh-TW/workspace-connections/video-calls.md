@@ -100,7 +100,7 @@ OneUptime 會加密保存登入的重新整理權杖，並至少每週更新一�
 
 卡片上的 **移除** 會把通話從事件頁面上移除。會議本身不會被刪除，擁有連結的任何人仍然可以加入。
 
-開始和移除通話需要處理事件（或警示）的權限： **Project Owner**、 **Project Admin**、 **Project Member**、 **Incident Admin** 或 **Incident Member**，或自訂角色中的 **Create Incident Video Call** 和 **Delete Incident Video Call**。能讀取該事件的每個人都能看到它的通話。
+開始和移除通話需要處理事件（或警示）的權限： **專案擁有者**、 **專案管理員**、 **專案成員**、 **事件管理員** 或 **事件成員**，或自訂角色中的 **Create Incident Video Call** 和 **Delete Incident Video Call**。能讀取該事件的每個人都能看到它的通話。
 
 ## 通話逐字稿
 
@@ -146,7 +146,7 @@ Microsoft 只允許應用程式讀取行事曆上的 Teams 會議的逐字稿，
 
 ### 誰可以做什麼
 
-取得、新增、取代和移除逐字稿，讓它重新被讀取，以及駁回建議，都需要開始事件通話的權限： **Project Owner**、 **Project Admin**、 **Project Member**、 **Incident Admin** 或 **Incident Member**，或自訂角色中的 **Create Incident Video Call**。 **用作根本原因** 需要編輯事件根本原因的權限。能讀取該事件的每個人都能看到其通話的逐字稿，以及 OneUptime AI 從中讀取的內容。
+取得、新增、取代和移除逐字稿，讓它重新被讀取，以及駁回建議，都需要開始事件通話的權限： **專案擁有者**、 **專案管理員**、 **專案成員**、 **事件管理員** 或 **事件成員**，或自訂角色中的 **Create Incident Video Call**。 **用作根本原因** 需要編輯事件根本原因的權限。能讀取該事件的每個人都能看到其通話的逐字稿，以及 OneUptime AI 從中讀取的內容。
 
 ### OneUptime AI 讀取什麼
 
@@ -160,7 +160,7 @@ Microsoft 只允許應用程式讀取行事曆上的 Teams 會議的逐字稿，
 
 連線表單中的 **Start test meeting** 和連線所在列的 **測試** 會使用連線的設定建立一場真實的會議並顯示其連結。這是唯一能證明認證資訊、服務供應商端的權限以及主持人可以協同運作的檢查。不會向任何地方發布任何內容。
 
-連接服務供應商需要 **Project Owner**、 **Project Admin** 或 **Settings Admin**，或自訂角色中的 **Create Video Call Connection** 和 **Edit Video Call Connection**。
+連接服務供應商需要 **專案擁有者**、 **專案管理員** 或 **設定管理員**，或自訂角色中的 **Create Video Call Connection** 和 **Edit Video Call Connection**。
 
 ### Zoom
 
@@ -169,7 +169,7 @@ OneUptime 透過 Zoom **Server-to-Server OAuth** 應用程式為每個事件建�
 :::steps
 1. 在 [Zoom App Marketplace](https://marketplace.zoom.us/) 中，選擇 **Develop** > **Build App**，建立一個 **Server-to-Server OAuth** 應用程式。建立它需要 Zoom 帳戶管理員，或允許 Server-to-Server OAuth 應用程式的角色。
 2. 在應用程式的 **Scopes** 頁面，新增 **meeting:write:meeting:admin** （為使用者建立會議）。在細部權限範圍出現之前建立的應用程式可以改用 **meeting:write:admin**。要讓 OneUptime 也讀取 [通話逐字稿](#通話逐字稿)，請新增 **cloud_recording:read:list_recording_files:admin** 和 **cloud_recording:read:meeting_transcript:admin** （在細部權限範圍出現之前建立的應用程式使用 **recording:read:admin** ）。
-3. 按一下 **Activate** 啟用應用程式，然後將其 **App Credentials** 頁面上的 **Account ID**、 **Client ID** 和 **Client secret** 複製到連線表單中。
+3. 按一下 **Activate** 啟用應用程式，然後將其 **App Credentials** 頁面上的 **Account ID**、 **Client ID** 和 **用戶端密碼** 複製到連線表單中。
 4. 填寫 **Meeting host**：一個已授權 Zoom 使用者的電子郵件，最好是 incidents@example.com 之類的服務帳戶，這樣有人離職後會議仍能正常進行。由 Basic（免費）使用者主持的會議會在 40 分鐘後結束。
 5. 由於主持人是一個永遠不會加入的服務帳戶，應變人員不必等待主持人即可加入。請確認您 Zoom 帳戶的 **Waiting room** 設定沒有被鎖定為開啟，否則誰都無法進入。
 :::
@@ -203,7 +203,7 @@ OneUptime 透過一個代表已授權 Teams 使用者召集會議的 Microsoft E
 :::steps
 1. 在 [Microsoft Entra 系統管理中心](https://entra.microsoft.com/) 中，開啟 **App registrations** > **New registration**，註冊一個單一租用戶應用程式。複製其 **Directory (tenant) ID** 和 **Application (client) ID**。
 2. 在 **API permissions** 下，新增 Microsoft Graph 的 **application** 權限 **OnlineMeetings.ReadWrite.All** （如果還要 [錄製並轉錄事件通話](#錄製並轉錄每次通話)，再新增 **Calendars.ReadWrite** 和 **OnlineMeetingTranscript.Read.All** ），然後按一下 **Grant admin consent**。
-3. 在 **Certificates & secrets** 下建立一個用戶端密碼，並將其 **Value** （不是 Secret ID）貼到連線表單的 **Client secret** 中。
+3. 在 **Certificates & secrets** 下建立一個用戶端密碼，並將其 **Value** （不是 Secret ID）貼到連線表單的 **用戶端密碼** 中。
 4. 選擇召集人：一個已授權的 Teams 使用者，最好是服務帳戶。從 Entra 系統管理中心的 **Users** 中複製其 **Object ID** 到 **Organizer object ID**。
 5. 使用應用程式存取原則允許該應用程式為召集人建立會議。在 Teams PowerShell 中，執行 `Connect-MicrosoftTeams` 之後，執行下面兩個指令。
 :::

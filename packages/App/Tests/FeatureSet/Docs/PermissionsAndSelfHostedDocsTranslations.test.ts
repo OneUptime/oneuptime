@@ -126,7 +126,6 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
 // Permission titles, which the permission picker shows in English.
 const PERMISSIONS: Record<string, Array<string>> = {
   [PERMISSIONS_PAGE]: [
-    "Billing Admin",
     "Manage Billing",
     "Create Incident State Timeline",
     "Create Alert State Timeline",

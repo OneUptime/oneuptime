@@ -12,6 +12,8 @@ import React, {
 import { useParams } from "react-router-dom";
 import AIRunStatus, { AIRunStatusHelper } from "Common/Types/AI/AIRunStatus";
 import AIRunEventType from "Common/Types/AI/AIRunEventType";
+import { LlmProviderActivity } from "Common/Types/AI/LlmProviderChoice";
+import { describeRuleLlmProviderActivity } from "../../../Components/AI/RuleLlmProviderCopy";
 import AiTokenCount from "Common/Types/AI/AiTokenCount";
 import { AIRunEventContentPayload } from "Common/Types/AI/AIChatTypes";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -111,11 +113,29 @@ interface LogEntry {
   eventType: AIRunEventType | undefined;
   toolName: string | undefined;
   message: string;
+  /*
+   * The LLM provider a run's rule picked, or why it used another: the step's
+   * message says it in English, and this is the same line as data, so the
+   * step reads it in the reader's language (as the conversation does).
+   */
+  llmProvider: LlmProviderActivity | undefined;
   severity: string | undefined;
   createdAt: Date | undefined;
   durationInMs: number | undefined;
   contentPayload: AIRunEventContentPayload | undefined;
 }
+
+type ReadLlmProviderActivityFunction = (
+  value: unknown,
+) => LlmProviderActivity | undefined;
+
+const readLlmProviderActivity: ReadLlmProviderActivityFunction = (
+  value: unknown,
+): LlmProviderActivity | undefined => {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as LlmProviderActivity)
+    : undefined;
+};
 
 type FormatTimestampFunction = (date: Date | undefined) => string;
 
@@ -199,6 +219,7 @@ const toLogEntries: ToLogEntriesFunction = (
       eventType: eventJson["eventType"] as AIRunEventType | undefined,
       toolName: eventJson["toolName"] as string | undefined,
       message: (resultSummary["message"] as string) || "",
+      llmProvider: readLlmProviderActivity(resultSummary["llmProvider"]),
       severity: resultSummary["severity"] as string | undefined,
       createdAt: createdAt ? OneUptimeDate.fromString(createdAt) : undefined,
       durationInMs: resultSummary["durationInMs"] as number | undefined,
@@ -294,7 +315,9 @@ const LogEntryRow: FunctionComponent<{
             isFailureEntry(entry) ? "text-red-600" : "text-gray-700"
           }`}
         >
-          {entry.message || translator.translateText("(no message)")}
+          {entry.llmProvider
+            ? describeRuleLlmProviderActivity(entry.llmProvider, translator)
+            : entry.message || translator.translateText("(no message)")}
         </span>
         {entry.durationInMs !== undefined ? (
           <span className="ml-auto shrink-0 text-xs text-gray-400">

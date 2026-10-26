@@ -1,7 +1,7 @@
 import OneUptimeDate from "Common/Types/Date";
-import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import React, { FunctionComponent, ReactElement } from "react";
 import TelemetryMonitorSummary from "./Types/TelemetryMonitorSummary";
+import { SummaryFact, SummaryFacts, SummaryView } from "./SummaryFacts";
 
 export interface ComponentProps {
   telemetryMonitorSummary?: TelemetryMonitorSummary | undefined;
@@ -11,10 +11,9 @@ const WebsiteMonitorSummaryView: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   return (
-    <div className="space-y-5">
-      <div className="flex space-x-3">
-        <InfoCard
-          className="w-1/2 shadow-none border-2 border-gray-100 "
+    <SummaryView dataTestId="telemetry-monitor-summary">
+      <SummaryFacts>
+        <SummaryFact
           title={
             props.telemetryMonitorSummary?.lastCheckedLabel || "Monitored At"
           }
@@ -26,8 +25,7 @@ const WebsiteMonitorSummaryView: FunctionComponent<ComponentProps> = (
               : "-"
           }
         />
-        <InfoCard
-          className="w-1/2 shadow-none border-2 border-gray-100 "
+        <SummaryFact
           title="Next Check At"
           value={
             props.telemetryMonitorSummary?.nextCheckAt
@@ -37,8 +35,8 @@ const WebsiteMonitorSummaryView: FunctionComponent<ComponentProps> = (
               : "-"
           }
         />
-      </div>
-    </div>
+      </SummaryFacts>
+    </SummaryView>
   );
 };
 

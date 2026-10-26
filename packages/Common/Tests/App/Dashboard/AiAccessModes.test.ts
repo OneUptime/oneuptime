@@ -633,13 +633,14 @@ describe("in the reader's language", () => {
   test("the shared permission sentences", async () => {
     await i18next.changeLanguage("xx");
 
+    // A built-in role is named in the sentence's language: ‹Project Owner›.
     expect(
       getAiAccessTestPermissionMessage({
         noun: "cluster",
         permissionTitles: ["Project Owner"],
       }),
     ).toBe(
-      "‹‹Testing the connection needs permission to edit this ‹cluster› (one of: Project Owner).› Nothing on the ‹cluster› or in its AI settings was changed.›",
+      "‹‹Testing the connection needs permission to edit this ‹cluster› (one of: ‹Project Owner›).› Nothing on the ‹cluster› or in its AI settings was changed.›",
     );
     expect(
       getAiAccessLooseningRefusal({
@@ -653,7 +654,7 @@ describe("in the reader's language", () => {
         permissionTitles: ["Project Owner"],
       }),
     ).toBe(
-      "‹‹switching fixes to Automatic› needs one of these permissions: Project Owner.›",
+      "‹‹switching fixes to Automatic› needs one of these permissions: ‹Project Owner›.›",
     );
   });
 

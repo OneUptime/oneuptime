@@ -126,7 +126,7 @@ Ogni comando che avvia lavoro è un'esecuzione completa dell'agente: un clone, f
 
 I comandi GitHub sono lavoro di IA al di fuori di incidenti e avvisi, quindi a loro non si applica alcun limite giornaliero di attività di correzione; si applicano i limiti giornalieri di IA del progetto, quando il progetto li imposta. L'unico altro limite è quello che già governa le attività di [Codice](/docs/ai/ai-agent):
 
-- **Il tetto di pull request aperte** (**Max Open Fix Pull Requests**, in **Altre impostazioni** nella pagina **Impostazioni** del repository). **Pull request di correzione IA** è su **Nessun limite** finché non scegli **Un limite**, oppure **Nessuno**, che blocca le pull request di correzione IA su quel repository. Review e revisioni sono esenti: nessuna delle due aggiunge una pull request alla tua coda di revisione.
+- **Il tetto di pull request aperte** (**Numero massimo di pull request di correzione aperte**, in **Altre impostazioni** nella pagina **Impostazioni** del repository). **Pull request di correzione IA** è su **Nessun limite** finché non scegli **Un limite**, oppure **Nessuno**, che blocca le pull request di correzione IA su quel repository. Review e revisioni sono esenti: nessuna delle due aggiunge una pull request alla tua coda di revisione.
 
 Per ogni issue o pull request è attiva una sola esecuzione per tipo alla volta. Chiedere due volte ti dice che sta già lavorando; chiedere una review mentre è in corso una revisione le avvia entrambe, perché sono richieste diverse.
 
@@ -134,9 +134,9 @@ Se un'esecuzione non può partire, l'app dice perché nel thread: non fallisce m
 
 ## Disattivarla
 
-Ogni repository ha un interruttore: **Respond to GitHub Commands**, in **Altre impostazioni** nella pagina **Impostazioni** del repository. È acceso per ogni repository e si salva appena lo cambi. Quando è spento, l'app ignora menzioni, assegnazioni e l'etichetta di trigger in quel repository, e risponde a chiunque chieda con un link all'interruttore.
+Ogni repository ha un interruttore: **Rispondi ai comandi GitHub**, in **Altre impostazioni** nella pagina **Impostazioni** del repository. È acceso per ogni repository e si salva appena lo cambi. Quando è spento, l'app ignora menzioni, assegnazioni e l'etichetta di trigger in quel repository, e risponde a chiunque chieda con un link all'interruttore.
 
-La stessa pagina contiene il **GitHub Trigger Label**, in **Altre impostazioni**, se vuoi un'etichetta diversa da `oneuptime`.
+La stessa pagina contiene il **Etichetta di attivazione GitHub**, in **Altre impostazioni**, se vuoi un'etichetta diversa da `oneuptime`.
 
 ## A cosa iscriversi
 
@@ -166,7 +166,7 @@ Tratta una pull request scritta dall'IA come tratteresti quella di un nuovo cont
 ## Risoluzione dei problemi
 
 :::details Non succede nulla quando la menziono
-Controlla prima l'handle: è lo slug dell'app, non il suo nome visualizzato. Poi controlla che il repository sia collegato a un progetto (in **Prodotti → Codice**), che **Respond to GitHub Commands** sia attivo e che la tua GitHub App sia iscritta agli eventi indicati sopra.
+Controlla prima l'handle: è lo slug dell'app, non il suo nome visualizzato. Poi controlla che il repository sia collegato a un progetto (in **Prodotti → Codice**), che **Rispondi ai comandi GitHub** sia attivo e che la tua GitHub App sia iscritta agli eventi indicati sopra.
 :::
 
 :::details Reagisce con 😕 e non dice nulla

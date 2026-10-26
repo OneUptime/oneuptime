@@ -129,6 +129,7 @@ const MonitorSecrets: FunctionComponent<
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "Secret Description",
+            hideColumnDescription: true,
           },
           {
             field: {
@@ -137,6 +138,8 @@ const MonitorSecrets: FunctionComponent<
             title: "Secret Value",
             stepId: "secret",
             doNotShowWhenEditing: true, // Do not show this field when editing
+            description:
+              "This value will be encrypted and stored securely. Once saved, this value cannot be retrieved.",
             fieldType: FormFieldSchemaType.LongText,
             required: true,
             placeholder: "Secret Value (eg: API Key, Password, etc.)",

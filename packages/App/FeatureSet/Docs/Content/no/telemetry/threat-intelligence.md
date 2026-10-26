@@ -31,7 +31,7 @@ flowchart TB
 
 ## Legg til en gratis liste
 
-Kortet **Gratis lister** på **Threat Intel** legger til en gratis blokkeringsliste med ett klikk: klikk på **Legg til liste** ved en liste, så oppretter OneUptime en feed som laster den ned etter listens tidsplan. En liste prosjektet allerede leser, viser **Lagt til**.
+Kortet **Gratis lister** på **Trusselsinformasjon** legger til en gratis blokkeringsliste med ett klikk: klikk på **Legg til liste** ved en liste, så oppretter OneUptime en feed som laster den ned etter listens tidsplan. En liste prosjektet allerede leser, viser **Lagt til**.
 
 | Liste | Publisert av | Leses | Confidence | Et treff åpner |
 | --- | --- | --- | --- | --- |
@@ -46,41 +46,41 @@ Flisen til en liste lenker til vilkårene: Feodo Tracker er fri for all bruk (CC
 :::steps
 ### Gå til Threat Intel
 
-Åpne **Produkter → Security Events → Detections → Threat Intel**.
+Åpne **Produkter → Security Events → Deteksjoner → Trusselsinformasjon**.
 
 ### Opprett feeden
 
-Klikk på **Opprett Threat Intel Feed**, og velg **Kilde**: **Liste over indikatorer**, **TAXII-samling** eller **Google SecOps**. Neste steg spør bare om den kilden: en listes **Liste-URL**, en samlings **TAXII-server** og **Pålogging**, eller **Google SecOps-tilkobling**. **Ved treff** kommer sist. Feltene står i tabellen nedenfor.
+Klikk på **Opprett Feed med trusselsinformasjon**, og velg **Kilde**: **Liste over indikatorer**, **TAXII-samling** eller **Google SecOps**. Neste steg spør bare om den kilden: en listes **Liste-URL**, en samlings **TAXII-server** og **Pålogging**, eller **Google SecOps-tilkobling**. **Ved treff** kommer sist. Feltene står i tabellen nedenfor.
 
 ### Sjekk den første hentingen
 
-I løpet av et minutt eller to viser feedens rad **Last Polled**, og **Last Poll Summary** forteller hva hentingen fikk med seg. Indikatorene vises i tabellen **Indikatorer** under feedene.
+I løpet av et minutt eller to viser feedens rad **Sist hentet**, og **Sammendrag av siste henting** forteller hva hentingen fikk med seg. Indikatorene vises i tabellen **Indikatorer** under feedene.
 :::
 
 | Felt | Hva du skal fylle inn |
 | --- | --- |
 | **Kilde** | Hvor indikatorene kommer fra. Den settes når feeden opprettes: en feed fra en annen kilde er en ny feed. |
 | **Liste-URL** | For en liste: `https`-adressen til en tekstfil med én IP-adresse, ett domene, én URL eller én filhash per linje. |
-| **Confidence** | For en liste: hvor sikker listen er, 1 til 100. Hver indikator på listen får verdien, og den bestemmer [trusselnivået](#trusselnivåer); tom er Medium. |
-| **Google SecOps-tilkobling** | For Google SecOps: tilkoblingen der nøkkelen leser indikatorene Google SecOps fant. **Koble til Google SecOps** åpner **Connections** når det ikke finnes noen. |
-| **TAXII API Root URL** | Serverens TAXII 2.1-API-rot, for eksempel `https://taxii.example.com/api1/`. Samlingene adresseres under den. |
-| **Collection ID** | Samlingen som publiserer indikatorene. |
-| **Poll Interval (Minutes)** | Hvor ofte kilden leses: 1 til 1440 minutter, 60 som standard. En liste leses høyst hvert 15. minutt. |
-| **Minimum Confidence** | For en TAXII-samling eller Google SecOps: indikatorer med lavere confidence hoppes over, 0 til 100, og 0 beholder alt. Indikatorer uten confidence slipper alltid gjennom. |
+| **Sikkerhet** | For en liste: hvor sikker listen er, 1 til 100. Hver indikator på listen får verdien, og den bestemmer [trusselnivået](#trusselnivåer); tom er Medium. |
+| **Google SecOps-tilkobling** | For Google SecOps: tilkoblingen der nøkkelen leser indikatorene Google SecOps fant. **Koble til Google SecOps** åpner **Tilkoblinger** når det ikke finnes noen. |
+| **Rot-URL for TAXII-API** | Serverens TAXII 2.1-API-rot, for eksempel `https://taxii.example.com/api1/`. Samlingene adresseres under den. |
+| **Samlings-ID** | Samlingen som publiserer indikatorene. |
+| **Henteintervall (minutter)** | Hvor ofte kilden leses: 1 til 1440 minutter, 60 som standard. En liste leses høyst hvert 15. minutt. |
+| **Minste sikkerhet** | For en TAXII-samling eller Google SecOps: indikatorer med lavere confidence hoppes over, 0 til 100, og 0 beholder alt. Indikatorer uten confidence slipper alltid gjennom. |
 | **Pålogging** | Hvordan OneUptime logger på: **Ingen pålogging** for en offentlig samling, **Bearer-token** for et token fra operatøren av serveren eller **Brukernavn og passord** for HTTP Basic-autentisering. |
-| **API Token**, **Basic Auth Username** og **Basic Auth Password** | Spørres bare om for påloggingen som er valgt. |
-| **Open a Case on Match** | På som standard: hver hendelse som nevner en indikator, åpner en [sak](/docs/telemetry/security-cases) om den, eller legges til i den åpne saken som allerede gjelder den. |
+| **API-token**, **Brukernavn for Basic Auth** og **Passord for Basic Auth** | Spørres bare om for påloggingen som er valgt. |
+| **Åpne en sak ved treff** | På som standard: hver hendelse som nevner en indikator, åpner en [sak](/docs/telemetry/security-cases) om den, eller legges til i den åpne saken som allerede gjelder den. |
 | **Varsler og hendelser** | **Opprett et varsel** som standard: hver indikator som treffer, åpner et varsel. |
 | **Varselsalvor** | Alvorlighetsgraden til hvert varsel denne feeden åpner. La den stå tom for å bruke trusselnivået til hver indikator. |
 | **Erklær en hendelse** eller **Begge** | Under **Varsler og hendelser**. Hendelser (incidents) driver vakteskalering, SLA-er og statussider, og for indikatortreff er varsler som regel nok. |
 | **Hendelsesalvor** | Som **Varselsalvor**, for hendelser (incidents). |
-| **Write Detection Finding on Match** | På som standard: hvert treff skriver et funn inn i hendelsesstrømmen. |
+| **Skriv Detection Finding ved treff** | På som standard: hvert treff skriver et funn inn i hendelsesstrømmen. |
 
-En TAXII-feeds tokener og passord krypteres og vises aldri igjen etter at du har lagret dem. For å endre dem velger du **Update Credentials** i feedens rad og deretter **Bearer-token**, **Brukernavn og passord** eller **Ingen pålogging**, som fjerner det lagrede: valget ditt erstatter feedens pålogging, så å lagre et token fjerner et lagret passord, og omvendt.
+En TAXII-feeds tokener og passord krypteres og vises aldri igjen etter at du har lagret dem. For å endre dem velger du **Oppdater påloggingsinformasjon** i feedens rad og deretter **Bearer-token**, **Brukernavn og passord** eller **Ingen pålogging**, som fjerner det lagrede: valget ditt erstatter feedens pålogging, så å lagre et token fjerner et lagret passord, og omvendt.
 
 ### Slik hentes en feed
 
-Hver henting ber om objektene som er lagt til siden forrige gang, gjennom TAXII-markøren `added_after`, og leser opptil 10 sider med 500 objekter. En stor samling synkroniseres derfor over flere hentinger: **Last Poll Summary** sier fra når det gjenstår flere sider. For å bli ferdig med en stor første synkronisering raskere senker du **Poll Interval (Minutes)**, helt ned til 1, til den har tatt igjen.
+Hver henting ber om objektene som er lagt til siden forrige gang, gjennom TAXII-markøren `added_after`, og leser opptil 10 sider med 500 objekter. En stor samling synkroniseres derfor over flere hentinger: **Sammendrag av siste henting** sier fra når det gjenstår flere sider. For å bli ferdig med en stor første synkronisering raskere senker du **Henteintervall (minutter)**, helt ned til 1, til den har tatt igjen.
 
 Hentingene presenterer seg med brukeragenten `OneUptime/<version> (+https://oneuptime.com)`. Hvis leverandørens brannmur svarer `403`, be dem om å tillate den: mange brannmurer blokkerer forespørsler som ser ut som et navnløst skript.
 
@@ -90,7 +90,7 @@ En deaktivert feed hentes ikke og sammenlignes ikke. Indikatorene den allerede h
 
 - Hver henting laster ned hele listen og leser den én linje om gangen: den første verdien på en linje, frem til et mellomrom, en tabulator, et komma eller et semikolon. Linjer som starter med `#`, `;` eller `//`, er kommentarer, en port etter en adresse eller et domene fjernes, og et adresseområde som `198.51.100.0/24` hoppes over.
 - En verdi forblir en aktiv indikator i 2 dager etter hentingen som sist leste den, og en verdi listen fjerner, slutter å treffe ved neste henting. En liste som ikke er endret, skrives på nytt én gang om dagen.
-- En liste rommer høyst 50 000 indikatorer. **Last Poll Summary** forteller hvor mange som ble lest, hvor mange linjer som ble hoppet over, og hvor mange som ble utelatt.
+- En liste rommer høyst 50 000 indikatorer. **Sammendrag av siste henting** forteller hvor mange som ble lest, hvor mange linjer som ble hoppet over, og hvor mange som ble utelatt.
 - Adressen må bruke `https` og følger de samme utgående reglene som en tilkobling: på OneUptime Cloud avvises en privat adresse.
 
 ### Slik leses Google SecOps
@@ -121,7 +121,7 @@ Sammenligninger som er koblet med `OR`, innenfor én `[...]` eller på tvers av 
 [ipv4-addr:value = '198.51.100.7'] OR [url:value = 'http://evil.example/x']
 ```
 
-Alle andre mønstre, med `AND`, `FOLLOWEDBY`, `NOT`, `LIKE`, `MATCHES`, en tidsbetingelse som `WITHIN`, eller en annen objekttype, hoppes over i sin helhet og telles som ikke støttet i **Last Poll Summary**. Å oversette bare en del av et `AND`-mønster ville treffe langt mer enn feedens forfatter mente.
+Alle andre mønstre, med `AND`, `FOLLOWEDBY`, `NOT`, `LIKE`, `MATCHES`, en tidsbetingelse som `WITHIN`, eller en annen objekttype, hoppes over i sin helhet og telles som ikke støttet i **Sammendrag av siste henting**. Å oversette bare en del av et `AND`-mønster ville treffe langt mer enn feedens forfatter mente.
 
 ### Hvor lenge en indikator er aktiv
 
@@ -129,7 +129,7 @@ Alle andre mønstre, med `AND`, `FOLLOWEDBY`, `NOT`, `LIKE`, `MATCHES`, en tidsb
 - En tilbakekalt indikator, eller en som er oppdatert med en `valid_until` i fortiden, slutter å treffe så snart oppdateringen er hentet. Det samme gjelder en verdi som leverandøren fjerner fra et oppdatert mønster.
 - Verdier lagres med små bokstaver og treffer uansett store og små bokstaver.
 
-Tabellen **Indikatorer** viser indikatorene slik de er lagret, med en **Status** som er **Aktiv**, **Utløpt** eller **Revoked**. En indikator som er hentet på nytt, kan vises to ganger en stund, og en utløpt eller tilbakekalt rad blir stående i listen til lageropprydningen fjerner den, opptil omtrent en måned etter at den utløper. Sammenligningen sjekker alltid gyldighet og tilbakekalling, så en slik rad treffer aldri.
+Tabellen **Indikatorer** viser indikatorene slik de er lagret, med en **Status** som er **Aktiv**, **Utløpt** eller **Tilbakekalt**. En indikator som er hentet på nytt, kan vises to ganger en stund, og en utløpt eller tilbakekalt rad blir stående i listen til lageropprydningen fjerner den, opptil omtrent en måned etter at den utløper. Sammenligningen sjekker alltid gyldighet og tilbakekalling, så en slik rad treffer aldri.
 
 ## Slik finnes treff
 
@@ -170,13 +170,13 @@ Hvert minutt sammenlignes de aktive indikatorene til hver aktiverte feed med hen
 - Den første sjekken dekker de siste 15 minuttene. Etter et avbrudd tar neste sjekk igjen høyst de siste 24 timene.
 - Hvert vindu sjekkes én gang. Etterretning som kommer etter at vinduet er sjekket, gjelder bare for senere hendelser.
 - En hendelse som kommer sent, med et tidspunkt fra før forrige sjekk, merkes fortsatt når den kommer inn, men sammenlignes ikke.
-- Hver sjekk registrerer hver indikatorverdi som traff, som et Detection Finding, opptil 10 000 per feed. Varsler, hendelser og saker åpnes for de 100 verdiene som finnes i flest hendelser; resten deler én sak om feeden, og feedens **Last Match Error** sier hvor mange som traff.
+- Hver sjekk registrerer hver indikatorverdi som traff, som et Detection Finding, opptil 10 000 per feed. Varsler, hendelser og saker åpnes for de 100 verdiene som finnes i flest hendelser; resten deler én sak om feeden, og feedens **Siste samsvarsfeil** sier hvor mange som traff.
 
 ### Hva et treff gjør
 
 - Et varsel med tittelen `[Threat Intel] <feed name> — <indicator value>`, ett per feed og verdi så lenge det er åpent. Når det er løst, åpner neste treff et nytt. Varsler løses ikke automatisk.
 - En hendelse (incident), bare med **Erklær en hendelse** eller **Begge** under **Varsler og hendelser**, deduplisert på samme måte.
-- Et Threat Intel-funn, med **Write Detection Finding on Match**: en hendelse `Detection Finding` (OCSF-klasse 2004) fra produktet `OneUptime Threat Intel`, med indikatorens trusselnivå som alvorlighetsgrad, og disse attributtene:
+- Et Threat Intel-funn, med **Skriv Detection Finding ved treff**: en hendelse `Detection Finding` (OCSF-klasse 2004) fra produktet `OneUptime Threat Intel`, med indikatorens trusselnivå som alvorlighetsgrad, og disse attributtene:
 
 | Attributt | Verdi |
 | --- | --- |
@@ -206,7 +206,7 @@ En indikator uten poengsum teller som Medium: noen valgte likevel å legge den i
 2. Alvorlighetsgraden din som er oppkalt etter trusselnivået, for eksempel High, uansett store og små bokstaver.
 3. Etter rang: Critical og High får den alvorligste alvorlighetsgraden din, Medium og Low den minst alvorlige.
 
-Trusselnivået hører til hver indikator, ikke til feeden, så én feed kan åpne et Critical-varsel og et Low-varsel i samme minutt. **Minimum Confidence** filtrerer på det samme tallet: et minimum på 70 beholder bare High- og Critical-indikatorer, pluss de uten poengsum, som alltid slipper gjennom.
+Trusselnivået hører til hver indikator, ikke til feeden, så én feed kan åpne et Critical-varsel og et Low-varsel i samme minutt. **Minste sikkerhet** filtrerer på det samme tallet: et minimum på 70 beholder bare High- og Critical-indikatorer, pluss de uten poengsum, som alltid slipper gjennom.
 
 ## Følg med på treffene til en feed
 
@@ -219,11 +219,11 @@ Indikatorer er konfigurasjon, ikke telemetri, og faktureres ikke som innhentede 
 ## Feilsøking
 
 :::details Last Error er satt etter en henting
-`401` eller `403`: legitimasjonen er feil eller mangler; erstatt den med **Update Credentials**. En `403` kan også være leverandørens brannmur som blokkerer brukeragenten. `404`: sjekk **TAXII API Root URL**, som vanligvis slutter med en sti som `/api1/`, og **Collection ID**. Feilen forsvinner ved neste vellykkede henting.
+`401` eller `403`: legitimasjonen er feil eller mangler; erstatt den med **Oppdater påloggingsinformasjon**. En `403` kan også være leverandørens brannmur som blokkerer brukeragenten. `404`: sjekk **Rot-URL for TAXII-API**, som vanligvis slutter med en sti som `/api1/`, og **Samlings-ID**. Feilen forsvinner ved neste vellykkede henting.
 :::
 
 :::details Feeden hentes, men ingen indikatorer vises
-Les **Last Poll Summary**. Ingen objekter hentet: samlingen er tom eller publiserer ingen indikatorer. Mønstre som ikke støttes: leverandøren bruker mønsterfunksjoner som denne siden oppgir som hoppet over. Under minimum confidence: senk **Minimum Confidence**. Allerede inaktive: leverandøren sendte indikatorer som allerede var tilbakekalt eller utløpt.
+Les **Sammendrag av siste henting**. Ingen objekter hentet: samlingen er tom eller publiserer ingen indikatorer. Mønstre som ikke støttes: leverandøren bruker mønsterfunksjoner som denne siden oppgir som hoppet over. Under minimum confidence: senk **Minste sikkerhet**. Allerede inaktive: leverandøren sendte indikatorer som allerede var tilbakekalt eller utløpt.
 :::
 
 :::details Det finnes indikatorer, men ingenting treffer

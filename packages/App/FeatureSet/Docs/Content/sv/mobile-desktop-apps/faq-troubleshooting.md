@@ -28,21 +28,21 @@ Ja. Appen registrerar telefonen i varje projekt du är medlem i, så att varje p
 :::
 
 :::details Kan jag logga in på mer än en telefon?
-Ja. Varje telefon eller surfplatta är en egen push-enhet, med egna jourregler och en egen inställning för kritiska varningar.
+Ja. Varje telefon eller surfplatta är en egen push-enhet, med egna jourregler och en egen inställning för kritiska larm.
 :::
 
 :::details Vad kan jag göra i appen?
-- **Home**: vad som behöver uppmärksamhet i projektet: aktiva incidenter och varningar, öppna säkerhetsärenden om din roll låter dig se dem, monitorer med problem och grupperade händelser.
+- **Home**: vad som behöver uppmärksamhet i projektet: aktiva incidenter och larm, öppna säkerhetsärenden om din roll låter dig se dem, monitorer med problem och grupperade händelser.
 - **Monitors**: alla monitorer, filtrerade efter hälsa, med sina detaljer.
-- **Inbox**: incidenter och varningar, och episoderna som grupperar dem. Öppna en för att använda **Acknowledge**, **Resolve** eller **Add Note**. Låter din roll dig se projektets säkerhetsärenden visar **Security** de öppna: öppna ett för att använda **Approve** eller **Reject** på ett playbook-steg som väntar på godkännande, ta ärendet med **Assign to me** eller använda **Close case**.
+- **Inbox**: incidenter och larm, och episoderna som grupperar dem. Öppna en för att använda **Acknowledge**, **Resolve** eller **Add Note**. Låter din roll dig se projektets säkerhetsärenden visar **Security** de öppna: öppna ett för att använda **Approve** eller **Reject** på ett playbook-steg som väntar på godkännande, ta ärendet med **Assign to me** eller använda **Close case**.
 - **On-Call**: om du har jour och till när, vem mer som har det, larmen som skickats till dig, och **Cover for me**, som lämnar över dina larm till en kollega en stund.
-- **Settings**: dina projekt och enkel inloggning, utseendet, kritiska varningar och larmljudet, **Biometrics Login**, ditt jourkalenderflöde och **Log Out**.
+- **Settings**: dina projekt och enkel inloggning, utseendet, kritiska larm och larmljudet, **Biometrics Login**, ditt jourkalenderflöde och **Log Out**.
 
 Allt annat finns i instrumentpanelen.
 :::
 
 :::details Kan jag bekräfta ett larm från aviseringen?
-Nej. Tryck på aviseringen: appen öppnar incidenten, varningen, episoden eller säkerhetsärendet den gäller, i rätt projekt, och där bekräftar du. Är appen låst eller du utloggad öppnar den larmet så snart du är inne.
+Nej. Tryck på aviseringen: appen öppnar incidenten, larmet, episoden eller säkerhetsärendet den gäller, i rätt projekt, och där bekräftar du. Är appen låst eller du utloggad öppnar det larmet så snart du är inne.
 :::
 
 :::details Är min inloggning säker på telefonen?
@@ -64,7 +64,7 @@ Det behövs inte. Appen hämtar instrumentpanelen från ditt OneUptime varje gå
 :::
 
 :::details Kan den väcka mig som telefonen?
-Nej. Webbläsare kan inte åsidosätta Stör ej eller ett Fokus, så en skrivbordsavisering är bara så hög som datorn tillåter. Använd mobilappen med kritiska varningar för larm som måste väcka dig.
+Nej. Webbläsare kan inte åsidosätta Stör ej eller ett Fokus, så en skrivbordsavisering är bara så hög som datorn tillåter. Använd mobilappen med kritiska larm för larm som måste väcka dig.
 :::
 
 :::details Fungerar den offline?
@@ -134,8 +134,8 @@ Passkeys kräver att adressen till ditt OneUptime börjar med `https://`, och en
 Ställ in appens batterianvändning på **Obegränsad** i Androids inställningar för OneUptime On-Call, och håll appen utanför alla listor för batterisparande: se [Undvik att larm kommer fram för sent](/docs/mobile-desktop-apps/android-installation#undvik-att-larm-kommer-fram-för-sent).
 :::
 
-:::details Kritiska varningar ringer inte igenom tyst läge
-Öppna **Settings** i appen: raden under **Critical On-Call Alerts** säger vad som saknas på den telefonen. Kontrollera sedan under **Användarinställningar → Jourregler** att jourregeln som skickade larmet är satt till **Kritisk varning**, inte **Normal**. Varje telefon har sitt eget reglage.
+:::details Kritiska larm ringer inte igenom tyst läge
+Öppna **Settings** i appen: raden under **Critical On-Call Alerts** säger vad som saknas på den telefonen. Kontrollera sedan under **Användarinställningar → Jourregler** att jourregeln som skickade larmet är satt till **Kritiskt larm**, inte **Normal**. Varje telefon har sitt eget reglage.
 :::
 
 ### Skrivbordsapp

@@ -115,6 +115,7 @@ type TableOptions = {
   onBeforeView?: ((item: Monitor) => Promise<Monitor>) | undefined;
   onViewComplete?: ((item: Monitor) => void) | undefined;
   isDeleteable?: boolean | undefined;
+  viewButtonText?: string | undefined;
 };
 
 type NavigateCall = [Route | URL, { openInNewTab?: boolean } | undefined];
@@ -185,6 +186,7 @@ describe("a row opens its record", () => {
       onViewPage: options.onViewPage,
       onBeforeView: options.onBeforeView,
       onViewComplete: options.onViewComplete,
+      viewButtonText: options.viewButtonText,
       callbacks: callbacks,
     } as unknown as BaseModelTableProps<Monitor>;
   };
@@ -314,6 +316,36 @@ describe("a row opens its record", () => {
       setTimeout(resolve, 20);
     });
     expect(calls()).toHaveLength(0);
+  });
+
+  /*
+   * "View" on every row, not "View Monitor": the row names its record and
+   * the list its kind, and "View Scheduled Maintenance Template" took the
+   * room of two columns on every row (ActionButtonSchema's
+   * rowButtonTitle). The kind is still in the button's name.
+   */
+  test("View says View on the row, and is named by what it views", async () => {
+    renderTable();
+
+    const row: HTMLElement = await rowOf("Checkout API");
+    const view: HTMLElement = within(row).getByRole("button", {
+      name: "View Monitor",
+    });
+
+    expect(view).toHaveTextContent(/^View$/);
+    expect(view).toHaveAttribute("aria-label", "View Monitor");
+  });
+
+  test("a page's own words for View are kept, on the row and in its name", async () => {
+    renderTable({ viewButtonText: "View Timeline" });
+
+    const row: HTMLElement = await rowOf("Checkout API");
+    const view: HTMLElement = within(row).getByRole("button", {
+      name: "View Timeline",
+    });
+
+    expect(view).toHaveTextContent(/^View Timeline$/);
+    expect(view).not.toHaveAttribute("aria-label");
   });
 
   test("View still opens the record, once - its click is the button's, not the row's", async () => {

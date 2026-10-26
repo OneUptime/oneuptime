@@ -1,4 +1,4 @@
-import { FilterType } from "Common/Types/Monitor/CriteriaFilter";
+import { CheckOn, FilterType } from "Common/Types/Monitor/CriteriaFilter";
 import SnmpDataType from "Common/Types/Monitor/SnmpMonitor/SnmpDataType";
 import SnmpOid from "Common/Types/Monitor/SnmpMonitor/SnmpOid";
 import SnmpOidListUtil from "Common/Types/Monitor/SnmpMonitor/SnmpOidListUtil";
@@ -697,28 +697,82 @@ export function addWalkedOid(
 }
 
 /*
- * The condition a monitor started from a walked OID begins with, by the
- * OID's type. A threshold is the person's to set; the condition is chosen
- * so the value the walk read is a sensible starting point:
+ * The criteria a monitor started from a walked OID begins with, by the OID's
+ * type. A threshold is the person's to set; what is prefilled is only what
+ * holds whatever the walk read:
  *
- *   - a gauge or a counter (CPU, memory, temperature, traffic): above it;
- *   - timeticks (uptime): below it - the uptime only goes down when the
- *     device restarts;
- *   - text, a state, an address: not equal to it - alert when it changes.
+ *   - a counter (Counter32, Counter64): its rate per second, above a
+ *     threshold left blank. A counter only grows, so "above the walked
+ *     value" on the raw counter was true at the very next poll, and any
+ *     threshold on it stays crossed until the device restarts;
+ *   - a gauge (CPU, memory, temperature): above a threshold left blank -
+ *     "above the walked value" fired at the next rise;
+ *   - timeticks (an uptime): below ten minutes, so the device restarted in
+ *     the last ten minutes. "Below the walked value" held the alert open
+ *     until the uptime passed it again, which could be months;
+ *   - text, a state, an address, an integer: not equal to the walked value -
+ *     alert when it changes.
  */
-export function getSnmpWalkAlertCondition(type: SnmpDataType): FilterType {
+export enum SnmpWalkAlertThreshold {
+  // The value the walk read.
+  WalkedValue = "WalkedValue",
+  // Nothing: the person types one before the monitor can be created.
+  None = "None",
+  // SNMP_WALK_UPTIME_RESTART_THRESHOLD (uptime below ten minutes).
+  RecentRestart = "RecentRestart",
+}
+
+// The checks Alert on it starts a criteria on.
+export type SnmpWalkAlertCheckOn =
+  | CheckOn.SnmpOidValue
+  | CheckOn.SnmpOidRatePerSecond;
+
+export interface SnmpWalkAlertCriteria {
+  checkOn: SnmpWalkAlertCheckOn;
+  filterType: FilterType;
+  threshold: SnmpWalkAlertThreshold;
+}
+
+// Ten minutes, in the hundredths of a second an uptime (TimeTicks) counts.
+export const SNMP_WALK_UPTIME_RESTART_THRESHOLD: number = 60000;
+
+export function getSnmpWalkAlertCriteria(
+  type: SnmpDataType,
+): SnmpWalkAlertCriteria {
   switch (type) {
-    case SnmpDataType.Gauge:
-    case SnmpDataType.Gauge32:
     case SnmpDataType.Counter:
     case SnmpDataType.Counter32:
     case SnmpDataType.Counter64:
-      return FilterType.GreaterThan;
+      return {
+        checkOn: CheckOn.SnmpOidRatePerSecond,
+        filterType: FilterType.GreaterThan,
+        threshold: SnmpWalkAlertThreshold.None,
+      };
+    case SnmpDataType.Gauge:
+    case SnmpDataType.Gauge32:
+      return {
+        checkOn: CheckOn.SnmpOidValue,
+        filterType: FilterType.GreaterThan,
+        threshold: SnmpWalkAlertThreshold.None,
+      };
     case SnmpDataType.TimeTicks:
-      return FilterType.LessThan;
+      return {
+        checkOn: CheckOn.SnmpOidValue,
+        filterType: FilterType.LessThan,
+        threshold: SnmpWalkAlertThreshold.RecentRestart,
+      };
     default:
-      return FilterType.NotEqualTo;
+      return {
+        checkOn: CheckOn.SnmpOidValue,
+        filterType: FilterType.NotEqualTo,
+        threshold: SnmpWalkAlertThreshold.WalkedValue,
+      };
   }
+}
+
+// The condition alone (getSnmpWalkAlertCriteria).
+export function getSnmpWalkAlertCondition(type: SnmpDataType): FilterType {
+  return getSnmpWalkAlertCriteria(type).filterType;
 }
 
 /*
@@ -754,8 +808,9 @@ export function buildSnmpWalkAlertQuery(data: {
 
 /*
  * What the monitor-create page reads back from "Alert on it"'s query
- * string: the OID, the name the walk gives it, the condition for its type,
- * and the value the walk read as the starting threshold - or null when the
+ * string: the OID, the name the walk gives it, the criteria for its type
+ * (getSnmpWalkAlertCriteria) and its starting threshold - the walked value
+ * where it holds, nothing where the person must choose - or null when the
  * query names no usable OID. The page is reachable by any link, so nothing
  * here is taken on trust: the OID must be numeric, an unknown type reads as
  * text, and a value too long to be a threshold is left out.
@@ -763,8 +818,11 @@ export function buildSnmpWalkAlertQuery(data: {
 export interface SnmpWalkAlertPrefill {
   oid: string;
   oidName: string;
+  checkOn: SnmpWalkAlertCheckOn;
   filterType: FilterType;
   value: string | number | undefined;
+  // What the criteria says it watches.
+  description: string;
 }
 
 export function parseSnmpWalkAlertQuery(data: {
@@ -783,28 +841,58 @@ export function parseSnmpWalkAlertQuery(data: {
       return entry === data.snmpOidType;
     }) || SnmpDataType.Unknown;
 
-  const filterType: FilterType = getSnmpWalkAlertCondition(type);
+  const criteria: SnmpWalkAlertCriteria = getSnmpWalkAlertCriteria(type);
+  const oidName: string = SnmpOidNameUtil.suggestedHealthOidName(oid) || oid;
   const rawValue: string = data.snmpOidValue || "";
 
-  let value: string | number | undefined =
-    rawValue && rawValue.length <= SNMP_WALK_MAX_MONITOR_VALUE_LENGTH
-      ? rawValue
-      : undefined;
+  let value: string | number | undefined = undefined;
 
-  if (
-    value !== undefined &&
-    filterType !== FilterType.NotEqualTo &&
-    Number.isFinite(Number(value))
+  if (criteria.threshold === SnmpWalkAlertThreshold.RecentRestart) {
+    value = SNMP_WALK_UPTIME_RESTART_THRESHOLD;
+  } else if (
+    criteria.threshold === SnmpWalkAlertThreshold.WalkedValue &&
+    rawValue &&
+    rawValue.length <= SNMP_WALK_MAX_MONITOR_VALUE_LENGTH
   ) {
-    value = Number(value);
+    value = rawValue;
   }
 
   return {
     oid: oid,
-    oidName: SnmpOidNameUtil.suggestedHealthOidName(oid) || oid,
-    filterType: filterType,
+    oidName: oidName,
+    checkOn: criteria.checkOn,
+    filterType: criteria.filterType,
     value: value,
+    description: describeSnmpWalkAlertCriteria({
+      criteria: criteria,
+      oid: oid,
+      oidName: oidName,
+    }),
   };
+}
+
+/*
+ * The criteria's description: what it watches, in the words a person reads
+ * on the monitor's criteria. English, as every criteria the server and the
+ * alert pack write.
+ */
+export function describeSnmpWalkAlertCriteria(data: {
+  criteria: SnmpWalkAlertCriteria;
+  oid: string;
+  oidName: string;
+}): string {
+  const named: string =
+    data.oidName === data.oid ? data.oid : `${data.oidName} (${data.oid})`;
+
+  if (data.criteria.checkOn === CheckOn.SnmpOidRatePerSecond) {
+    return `How fast the counter ${named} grows, per second, between polls.`;
+  }
+
+  if (data.criteria.threshold === SnmpWalkAlertThreshold.RecentRestart) {
+    return `How long the device has been up, from ${named}, in hundredths of a second: below ${SNMP_WALK_UPTIME_RESTART_THRESHOLD} (ten minutes), it restarted.`;
+  }
+
+  return `The value the device reports for ${named}.`;
 }
 
 /*

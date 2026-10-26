@@ -228,7 +228,7 @@ De eenheden zijn de eigen OTLP-eenheden van de receiver, die OneUptime voor weer
 
 ### Aan/uit-status van VM's
 
-De receiver stuurt geen metric voor de aan/uit-status van een VM. Hij stuurt `vcenter.vm.cpu.*` **alleen voor ingeschakelde VM's**, dus leidt OneUptime de status af uit wat er in elke verzameling binnenkwam: een VM die CPU-metrics meldde, is **Powered on**; een die alleen geheugen- en schijfgebruik meldde, is **Powered off** (of gepauzeerd: vSphere maakt hier geen onderscheid tussen die twee). VM-sjablonen hebben geen aan/uit-status. Dit leest **een hele verzameling tegelijk**, en daarom heeft de meegeleverde processor `batch` een grote `send_batch_size` en bewust geen `send_batch_max_size`: een verzameling die over twee exports is verdeeld, zou de inventaristellingen op nul zetten en VM's "uit" zetten. Houd de batchinstellingen zoals ze geleverd worden.
+De receiver stuurt geen metric voor de aan/uit-status van een VM. Hij stuurt `vcenter.vm.cpu.*` **alleen voor ingeschakelde VM's**, dus leidt OneUptime de status af uit wat er in elke verzameling binnenkwam: een VM die CPU-metrics meldde, is **Powered on**; een die alleen geheugen- en schijfgebruik meldde, is **Uitgeschakeld** (of gepauzeerd: vSphere maakt hier geen onderscheid tussen die twee). VM-sjablonen hebben geen aan/uit-status. Dit leest **een hele verzameling tegelijk**, en daarom heeft de meegeleverde processor `batch` een grote `send_batch_size` en bewust geen `send_batch_max_size`: een verzameling die over twee exports is verdeeld, zou de inventaristellingen op nul zetten en VM's "uit" zetten. Houd de batchinstellingen zoals ze geleverd worden.
 
 ## Het vCenter in OneUptime
 
@@ -249,7 +249,7 @@ Selecteer een host om zijn pagina te openen. Die beantwoordt wat de pagina van e
 
 Als vCenter een host niet meer meldt, zegt de pagina dat boven zijn tabbladen, met wanneer vCenter hem voor het laatst meldde. Na 15 minuten zonder melding verlaat de host de inventaris: zijn pagina zegt dat dan, en toont nog steeds zijn eerdere metrieken.
 
-De vijf hostwaarschuwingen (CPU- en geheugenverzadiging, hoge schijflatentie, netwerkpakketfouten en verworpen pakketten) bewaken elk alle hosts van de vCenter en gaan af voor elke host die de drempel overschrijdt. De kaart **Hostwaarschuwingen** op de pagina van een host toont welke aan staan, en de knop ervan opent de **Recommendations** van de vCenter met de ontbrekende al geselecteerd: maak ze daar één keer aan, voor alle hosts.
+De vijf hostwaarschuwingen (CPU- en geheugenverzadiging, hoge schijflatentie, netwerkpakketfouten en verworpen pakketten) bewaken elk alle hosts van de vCenter en gaan af voor elke host die de drempel overschrijdt. De kaart **Hostwaarschuwingen** op de pagina van een host toont welke aan staan, en de knop ervan opent de **Aanbevelingen** van de vCenter met de ontbrekende al geselecteerd: maak ze daar één keer aan, voor alle hosts.
 
 ### Virtuele machines
 

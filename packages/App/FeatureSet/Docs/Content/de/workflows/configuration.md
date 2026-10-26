@@ -99,7 +99,7 @@ Webhook-Trigger geben Ihnen eine eindeutige URL. Jeder, der die URL kennt, kann 
 - Bei sensiblen Workflows bitten Sie das aufrufende System, ein gemeinsames Token als Header zu senden (etwa `X-Webhook-Token`), und prüfen Sie es mit einem **If / Else**-Baustein, bevor etwas Wichtiges passiert. Speichern Sie das erwartete Token als geheime Variable.
 - Bei sehr sensiblen Workflows ziehen Sie einen OneUptime-Ereignis-Trigger und einen manuellen Importschritt einem öffentlichen Webhook vor.
 
-Nur Personen, die den Workflow bearbeiten dürfen – **Project Owner**, **Project Admin**, **Workflow Admin** oder **Edit Workflow** –, können seine Webhook-URL sehen oder zurücksetzen. Jeder mit der URL kann den Workflow von überall starten, ohne sich anzumelden, daher sehen alle anderen einen Hinweis, wen sie fragen sollen. Das schließt einen **Workflow Member** ein, der den Workflow aus dem **Editor** von Hand ausführt.
+Nur Personen, die den Workflow bearbeiten dürfen – **Projektinhaber**, **Projektadministrator**, **Arbeitsablauf-Administrator** oder **Edit Workflow** –, können seine Webhook-URL sehen oder zurücksetzen. Jeder mit der URL kann den Workflow von überall starten, ohne sich anzumelden, daher sehen alle anderen einen Hinweis, wen sie fragen sollen. Das schließt einen **Arbeitsablauf-Mitglied** ein, der den Workflow aus dem **Editor** von Hand ausführt.
 
 ## Sicherheit eingehender E-Mails
 
@@ -110,7 +110,7 @@ Der Incoming-Email-Trigger gibt dem Workflow eine eigene Adresse, und jeder, der
 - Jeder kann einen beliebigen Absender in eine E-Mail schreiben, daher beweist **From** nicht, wer sie gesendet hat. Bevor ein Workflow etwas Wichtiges tut, prüfen Sie mit einem **If / Else**-Baustein etwas, das nur der echte Absender weiß – ein Token im Betreff oder in einem Header. Speichern Sie das erwartete Token als geheime Variable.
 - Der Schlüssel ist in allem, was die Ausführung empfängt, verborgen – **To**, **CC**, den Headern und den Bodys –, weil das Protokoll der Ausführung für jeden sichtbar ist, der die Ausführungen des Workflows lesen kann.
 
-Nur Personen, die den Workflow bearbeiten dürfen – **Project Owner**, **Project Admin**, **Workflow Admin** oder **Edit Workflow** –, können seine Adresse sehen oder zurücksetzen. Alle anderen sehen einen Hinweis, wen sie fragen sollen.
+Nur Personen, die den Workflow bearbeiten dürfen – **Projektinhaber**, **Projektadministrator**, **Arbeitsablauf-Administrator** oder **Edit Workflow** –, können seine Adresse sehen oder zurücksetzen. Alle anderen sehen einen Hinweis, wen sie fragen sollen.
 
 ## Ausgehender Netzwerkzugriff
 
@@ -166,30 +166,30 @@ Validierungs-, Konfigurations-, Zugriffs-, Grenz-, Guthaben-, Gleichzeitigkeits-
 
 Workflows beachten die rollenbasierte Zugriffskontrolle Ihres Projekts. Die drei Workflow-Rollen:
 
-- **Workflow Admin** – baut Workflows: legt sie an, ändert sie, führt sie aus und löscht sie und verwaltet die Variablen, die sie verwenden.
-- **Workflow Member** – nutzt sie: öffnet Workflows und ihre Ausführungen und führt einen Workflow mit **Arbeitsablauf ausführen** von Hand aus. Ein Mitglied kann keinen Workflow anlegen, ändern oder löschen und keinen seiner Schritte einzeln ausführen.
-- **Workflow Viewer** – liest Workflows und ihre Ausführungen.
+- **Arbeitsablauf-Administrator** – baut Workflows: legt sie an, ändert sie, führt sie aus und löscht sie und verwaltet die Variablen, die sie verwenden.
+- **Arbeitsablauf-Mitglied** – nutzt sie: öffnet Workflows und ihre Ausführungen und führt einen Workflow mit **Arbeitsablauf ausführen** von Hand aus. Ein Mitglied kann keinen Workflow anlegen, ändern oder löschen und keinen seiner Schritte einzeln ausführen.
+- **Arbeitsablauf-Betrachter** – liest Workflows und ihre Ausführungen.
 
-**Project Owner** und **Project Admin** können alles, was ein Workflow Admin kann. **Project Member** kann Workflows anlegen und löschen, aber nicht ändern oder ausführen.
+**Projektinhaber** und **Projektadministrator** können alles, was ein Workflow Admin kann. **Projektmitglied** kann Workflows anlegen und löschen, aber nicht ändern oder ausführen.
 
 Die einzelnen Berechtigungen, für ein Team oder einen API-Schlüssel, die genau eine Sache brauchen:
 
 - **Create / Read / Edit / Delete Workflow** – die grundlegenden Berechtigungen für den Workflow selbst. Einen Workflow zu ändern, auch ihn ein- oder auszuschalten und zu archivieren, erfordert **Edit Workflow**; **Delete Workflow** löscht nur.
-- **Edit Workflow** – ist auch das, was es braucht, um einen einzelnen Schritt mit **Nur diesen Schritt ausführen** auszuführen und die Webhook-URL und die Adresse für eingehende E-Mails eines Workflows zu sehen oder zurückzusetzen. Einen ganzen Workflow von Hand auszuführen erfordert **Edit Workflow**, **Workflow Admin** oder **Workflow Member**.
+- **Edit Workflow** – ist auch das, was es braucht, um einen einzelnen Schritt mit **Nur diesen Schritt ausführen** auszuführen und die Webhook-URL und die Adresse für eingehende E-Mails eines Workflows zu sehen oder zurückzusetzen. Einen ganzen Workflow von Hand auszuführen erfordert **Edit Workflow**, **Arbeitsablauf-Administrator** oder **Arbeitsablauf-Mitglied**.
 - **Read Workflow Log** – nötig, um Ausführungen anzusehen.
 - **Create / Read / Edit / Delete Workflow Variables** – globale und Workflow-Variablen verwalten.
 
 Eine Ausführung von Hand erreicht nur Workflows, die Sie öffnen können: Eine Rolle, die auf einige Beschriftungen oder auf die Workflows Ihres Teams beschränkt ist, führt nur diese aus. Wer einen Workflow nicht ausführen darf, sieht **Arbeitsablauf ausführen** ausgegraut, mit dem Grund im Tooltip.
 
-Geben Sie den Personen, die Automatisierungen bauen, **Workflow Admin** und denen, die sie nur starten, **Workflow Member**. Behalten Sie den Bearbeitungszugriff auf Variablen den Personen vor, die die Geheimnisse Ihres Projekts verwalten. Wie Rollen vergeben werden, steht unter [Benutzer, Teams und Berechtigungen](/docs/permissions/index).
+Geben Sie den Personen, die Automatisierungen bauen, **Arbeitsablauf-Administrator** und denen, die sie nur starten, **Arbeitsablauf-Mitglied**. Behalten Sie den Bearbeitungszugriff auf Variablen den Personen vor, die die Geheimnisse Ihres Projekts verwalten. Wie Rollen vergeben werden, steht unter [Benutzer, Teams und Berechtigungen](/docs/permissions/index).
 
 ## Was Workflow-Schritte dürfen
 
-Die Schritte, die OneUptime-Datensätze lesen und ändern – die Find-, Create-, Update- und Delete-Komponenten sowie die Trigger On Create, On Update, On Create or Update und On Delete –, handeln als **Project Admin** des Projekts des Workflows. Wer den Workflow auch gebaut hat, ein Schritt unterliegt denselben Prüfungen wie ein Project Admin im Dashboard und in der API:
+Die Schritte, die OneUptime-Datensätze lesen und ändern – die Find-, Create-, Update- und Delete-Komponenten sowie die Trigger On Create, On Update, On Create or Update und On Delete –, handeln als **Projektadministrator** des Projekts des Workflows. Wer den Workflow auch gebaut hat, ein Schritt unterliegt denselben Prüfungen wie ein Project Admin im Dashboard und in der API:
 
 - **Nur das eigene Projekt des Workflows.** Ein Schritt liest und schreibt die Datensätze des Projekts, zu dem der Workflow gehört, und keines anderen, und ein Update verschiebt nie einen Datensatz in ein anderes Projekt.
-- **Nur, was ein Project Admin darf.** Ein Schritt kann nichts tun, was nur **Project Owner** oder Berechtigungen für Abrechnung oder Projektlöschung erlauben, und er kann nicht lesen, wer eine Probe oder einen KI-Agenten angelegt hat; das sehen nur Projekteigentümer.
-- **Nicht, wer Zugriff hat.** Ein Schritt legt keine Teams, Teammitglieder, Team-Berechtigungen, benutzerdefinierten Rollen oder API-Schlüssel-Berechtigungen an, ändert und löscht sie nicht, auch wenn ein Project Admin das darf. Wer einen Workflow baut, entscheidet, was seine Schritte tun, und das kann ein **Project Member** sein; ein Schritt, der es könnte, gäbe ihm also Zugriff, den er nicht bekommen hat, etwa **Project Admin**. Der Schritt wird abgelehnt, und das Protokoll der Ausführung sagt, dass eine Person, die die Teams und API-Schlüssel des Projekts verwaltet, die Änderung vornehmen muss. Trigger und Find-Schritte auf diesen Datensätzen funktionieren weiterhin.
+- **Nur, was ein Project Admin darf.** Ein Schritt kann nichts tun, was nur **Projektinhaber** oder Berechtigungen für Abrechnung oder Projektlöschung erlauben, und er kann nicht lesen, wer eine Probe oder einen KI-Agenten angelegt hat; das sehen nur Projekteigentümer.
+- **Nicht, wer Zugriff hat.** Ein Schritt legt keine Teams, Teammitglieder, Team-Berechtigungen, benutzerdefinierten Rollen oder API-Schlüssel-Berechtigungen an, ändert und löscht sie nicht, auch wenn ein Project Admin das darf. Wer einen Workflow baut, entscheidet, was seine Schritte tun, und das kann ein **Projektmitglied** sein; ein Schritt, der es könnte, gäbe ihm also Zugriff, den er nicht bekommen hat, etwa **Projektadministrator**. Der Schritt wird abgelehnt, und das Protokoll der Ausführung sagt, dass eine Person, die die Teams und API-Schlüssel des Projekts verwaltet, die Änderung vornehmen muss. Trigger und Find-Schritte auf diesen Datensätzen funktionieren weiterhin.
 - **Nicht das Lesen von Einstellungen mit Zugangsdaten.** Ein Project Admin darf SMTP-Server, Anruf- und SMS-Anbieter, SNMP-Zugangsdaten, Videoanruf-Verbindungen und API-Schlüssel lesen, aber einem Schritt wird das nie geliehen, wer auch immer den Workflow gebaut oder gespeichert hat. Ein Schritt kann keine dieser Einstellungen nennen, etwa den SMTP-Server, über den eine Statusseite E-Mails sendet, oder den API-Schlüssel, dem eine Berechtigung erteilt wird. Der Schritt wird abgelehnt, und sein Ausführungsprotokoll sagt, dass eine Person, die sie lesen darf (die Leseberechtigung dieser Art von Einstellung oder ein Project Owner oder Project Admin), die Änderung vornehmen muss. Ein Schritt, der die Einstellung behält, die ein Datensatz bereits nennt, oder sie leert, wird nicht abgelehnt.
 - **Nur, was Ihr Plan enthält.** In OneUptime Cloud wird ein Schritt, der etwas anlegt oder ändert, das Ihr Plan nicht enthält, mit dem Plan abgelehnt, den er braucht, genau wie das Dashboard. Selbst gehostete Installationen ohne Abrechnung haben keine Plan-Grenzen.
 - **Nichts, was OneUptime für sich behält.** Diese werden allen verweigert, Workflows eingeschlossen:

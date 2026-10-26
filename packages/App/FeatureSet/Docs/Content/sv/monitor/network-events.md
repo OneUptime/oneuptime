@@ -13,9 +13,9 @@ Det finns en Händelser-sida på två ställen:
 - **Problem**, **Återställningar** och **Informativa**, var och en med antalet i tidsintervallet. Klicka på en av dem för att bara se dem.
 - Väljaren **Alla händelser** och, på nätverkets sida, väljaren **All devices** smalnar av listan ytterligare. Tidsintervallet och filtren sparas i sidans adress, så en länk öppnar exakt samma vy.
 - Klicka på en händelse för att öppna den: när den hände, vad den handlar om, meddelandet så som enheten skickade det, och varje attribut som OneUptime läste ur det.
-- **Skapa varning** erbjuder de varningar som de flesta nätverk vill ha, och **Skapa varning för den här händelsen** skapar en för händelsen du har öppnat. Se [Varningar](#varningar).
+- **Skapa larm** erbjuder de larm som de flesta nätverk vill ha, och **Skapa larm för den här händelsen** skapar en för händelsen du har öppnat. Se [Larm](#larm).
 
-En händelse är en logg. Allt på Händelser-sidan kan också sökas i, visas i diagram och användas för varningar från **Loggar**: en händelse är en logg vars attribut `event.domain` är `network`, med det som hände i `event.name`.
+En händelse är en logg. Allt på Händelser-sidan kan också sökas i, visas i diagram och användas för larm från **Loggar**: en händelse är en logg vars attribut `event.domain` är `network`, med det som hände i `event.name`.
 
 ## Vad OneUptime läser
 
@@ -202,11 +202,11 @@ Där det inte finns någon port att ställa in skickar accesspunkten till port 5
 
 Lägg till en extern syslog-server på enheten: sondens IP-adress, port 5140, över UDP eller TCP, med informationsmeddelanden och allt som är allvarligare. En enhet vars format OneUptime inte känner till får ändå sina meddelanden sparade, och du kan själv namnge dess händelser.
 
-## Varningar
+## Larm
 
-**Skapa varning** på en Händelser-sida listar de varningar som de flesta nätverk vill ha. Var och en öppnar **Skapa monitor** ifyllt, där du kan ändra vad som helst innan du sparar:
+**Skapa larm** på en Händelser-sida listar de larm som de flesta nätverk vill ha. Var och en öppnar **Skapa monitor** ifyllt, där du kan ändra vad som helst innan du sparar:
 
-| Varning | Säger till när | En varning per | Stängs när |
+| Larm | Säger till när | Ett larm per | Stängs när |
 | --- | --- | --- | --- |
 | En VPN-tunnel går ner | `vpn.tunnel_down` | enhet och tunnel | `vpn.tunnel_up` för den tunneln |
 | En brandvägg eller switch växlar över | `ha.failover` | enhet | 5 minuter går utan en till |
@@ -217,15 +217,15 @@ Lägg till en extern syslog-server på enheten: sondens IP-adress, port 5140, ö
 | Ett gränssnitt går ner | `interface.down` | enhet och gränssnitt | `interface.up` för det gränssnittet |
 | Någon misslyckas gång på gång med att logga in | fler än 10 `auth.login_failed` på 5 minuter | enhet | 5 minuter går med 10 eller färre |
 
-Var och en är en [loggmonitor](/docs/monitor/logs-monitor) som räknar händelsen över de senaste 5 minuterna, med **Group by Attributes** inställt så att varje tunnel, gateway eller gränssnitt får sin egen varning, och med **Löst av attribut** inställt på händelsen som säger att problemet är över. En sådan varning förblir öppen tills den händelsen kommer för samma enhet och samma tunnel, hur lång tid det än tar; se [Löst av en logg](/docs/monitor/logs-monitor#löst-av-en-logg). OneUptime läser ingen händelse som säger att en temperatur är normal igen, så en temperaturvarning förblir öppen tills du löser den.
+Var och en är en [loggmonitor](/docs/monitor/logs-monitor) som räknar händelsen över de senaste 5 minuterna, med **Group by Attributes** inställt så att varje tunnel, gateway eller gränssnitt får sitt eget larm, och med **Löst av attribut** inställt på händelsen som säger att problemet är över. Ett sådant larm förblir öppen tills den händelsen kommer för samma enhet och samma tunnel, hur lång tid det än tar; se [Löst av en logg](/docs/monitor/logs-monitor#löst-av-en-logg). OneUptime läser ingen händelse som säger att en temperatur är normal igen, så en temperaturlarm förblir öppen tills du löser den.
 
-Från en enhets **Händelser**-flik bevakar monitorerna bara den enheten. För vilken annan händelse som helst öppnar du en på Händelser-sidan och klickar på **Skapa varning för den här händelsen**. För att skicka en varning någonstans, eller för att larma någon i jour, lägger du till en jourpolicy eller ett arbetsflöde på monitorn, som på vilken annan som helst.
+Från en enhets **Händelser**-flik bevakar monitorerna bara den enheten. För vilken annan händelse som helst öppnar du en på Händelser-sidan och klickar på **Skapa larm för den här händelsen**. För att skicka ett larm någonstans, eller för att larma någon i jour, lägger du till en jourpolicy eller ett arbetsflöde på monitorn, som på vilken annan som helst.
 
 ## Adresser som inte är enheter ännu
 
 Syslog kan komma innan enheten som skickar det har lagts till i OneUptime. På din egen sond sparas det, dess händelser finns på nätverkets Händelser-sida med namnet enheten ger sig själv, och adressen listas under **Skickar syslog, ännu inte en enhet**:
 
-- **Lägg till som enhet** öppnar **Add Device** med adressen och sonden ifyllda. Meddelandena som redan har kommit stannar på nätverkets sida; nya går till enheten.
+- **Lägg till som enhet** öppnar **Lägg till enhet** med adressen och sonden ifyllda. Meddelandena som redan har kommit stannar på nätverkets sida; nya går till enheten.
 - **Det är en av mina enheter** lägger till adressen bland en enhets **Övriga adresser**: använd den när en enhet du redan har lagt till skickar från en annan adress, till exempel en loopback. Dess meddelanden går till den enheten från och med nästa minut.
 
 Flera enheter bakom en och samma NAT-adress delar den adressen, så deras meddelanden går till den enda enhet som har den, om inte ett meddelande nämner sin egen enhet.
@@ -238,7 +238,7 @@ En enhet vars format OneUptime inte känner till, eller en händelse som det int
 2. Lägg till en **Grok Parser** eller en **Key=Value Parser** för att plocka ut de fält du behöver ur meddelandet.
 3. Lägg till en **Kategoriprocessor** med **Målattribut** `event.name`, och en regel per händelse. Namnge var och en som händelserna ovan, med små bokstäver och punkter eller understreck: `ups.on_battery`.
 
-En logg från en nätverksenhet som bär ett sådant namn blir en nätverkshändelse: den finns på Händelser-sidorna, och **Skapa varning för den här händelsen** fungerar på den. För att säga vad den handlar om lägger du till en **Attributremappare** som kopierar ditt fält till ett av attributen i händelsetabellen, till exempel `hw.name`. Om inte din pipeline sätter `event.kind` till `problem` eller `recovery` listas händelsen under **Informativa**. En regel som är namngiven efter en inbyggd händelse, till exempel `interface.down`, ger den inbyggda händelsen, med dess typ och dess varningar.
+En logg från en nätverksenhet som bär ett sådant namn blir en nätverkshändelse: den finns på Händelser-sidorna, och **Skapa larm för den här händelsen** fungerar på den. För att säga vad den handlar om lägger du till en **Attributremappare** som kopierar ditt fält till ett av attributen i händelsetabellen, till exempel `hw.name`. Om inte din pipeline sätter `event.kind` till `problem` eller `recovery` listas händelsen under **Informativa**. En regel som är namngiven efter en inbyggd händelse, till exempel `interface.down`, ger den inbyggda händelsen, med dess typ och dess larm.
 
 En pipeline tillhör sitt projekt. För att använda en i ett annat projekt skapar du den där med samma processorer.
 
@@ -246,7 +246,7 @@ En pipeline tillhör sitt projekt. För att använda en i ett annat projekt skap
 
 - **Syslog över TLS** (RFC 5425). Sonden tar emot vanlig UDP och TCP; håll vägen mellan enheterna och sonden på ett nätverk du litar på.
 - **Dela parsrar mellan projekt.** En pipeline kan ännu inte exporteras och importeras.
-- **Händelser från andra SNMP-traps än de fyra standardtrapsen.** En leverantörs egna traps sparas som loggar, och varningar på dem skapas med kriteriet **SNMP Trap Received (Trap OID)** i [nätverksenhetsmonitorn](/docs/monitor/network-device-monitor).
+- **Händelser från andra SNMP-traps än de fyra standardtrapsen.** En leverantörs egna traps sparas som loggar, och larm på dem skapas med kriteriet **SNMP Trap Received (Trap OID)** i [nätverksenhetsmonitorn](/docs/monitor/network-device-monitor).
 - **Cambium cnMatrix-switchar, Aruba mobility controllers och FortiGate i CEF-läge.** Deras meddelanden sparas och är sökbara; inga händelser läses ur dem ännu.
 - **En livevy.** Händelser-sidan visar det som hade kommit när den öppnades; använd dess uppdateringsknapp, eller livevyn i **Loggar**.
 

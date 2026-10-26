@@ -56,11 +56,11 @@ Kies een van de drie tabbladen:
 
 - **Quick Setup** - klik op een [template](#kant-en-klare-waarschuwingstemplates). Dat stelt de metriek, de attribuutfilters, de aggregatie, het tijdsbereik, de groepering en de drempels in, en vervangt de criteria hieronder door de eigen criteria. Het **Tijdsbereik** kun je nog steeds aanpassen.
 - **Custom Metric** - kies één metriek uit **VMware Metric** en stel daarna **Aggregatie** en **Tijdsbereik** in. Het formulier groepeert haar op het object dat ze beschrijft, zodat elke host, VM of datastore afzonderlijk wordt beoordeeld, en de [filters](#monitorinstellingen) beperken haar tot één datacenter, cluster, host, VM, datastore of resourcepool.
-- **Geavanceerd** - bouw zelf queries en formules onder **Selecteer metrieken**, met filters op attributen zoals `disk_state`, `power_state` of `status`. Gebruik **Group by** met een [identiteitsattribuut](#identiteitsattributen) om elk object afzonderlijk te beoordelen.
+- **Geavanceerd** - bouw zelf queries en formules onder **Selecteer metrieken**, met filters op attributen zoals `disk_state`, `power_state` of `status`. Gebruik **Groeperen op** met een [identiteitsattribuut](#identiteitsattributen) om elk object afzonderlijk te beoordelen.
 
 ### De criteria controleren
 
-Open elk criterium onder **Monitorcriteria** en controleer de **Metriek**, de **Aggregatie**, de **Voorwaarde** en de **Threshold**. Een template vult die in. Met **Custom Metric** of **Geavanceerd** begint de monitor met de [standaardcriteria](#standaardcriteria), die alleen merken dat een metriek naar nul zakt, dus stel je eigen drempel in.
+Open elk criterium onder **Monitorcriteria** en controleer de **Metriek**, de **Aggregatie**, de **Voorwaarde** en de **Drempel**. Een template vult die in. Met **Custom Metric** of **Geavanceerd** begint de monitor met de [standaardcriteria](#standaardcriteria), die alleen merken dat een metriek naar nul zakt, dus stel je eigen drempel in.
 
 ### De monitor maken
 
@@ -68,7 +68,7 @@ Klik op **Monitor maken**. OneUptime opent de pagina van de monitor en evalueert
 :::
 
 > [!TIP]
-> Om meerdere templates tegelijk in te stellen, open je het vCenter via **Producten → Infrastructuur → VMware** en ga je naar **Recommendations**. Kies de templates die je wilt, kies wie wordt opgeroepen, en OneUptime maakt één monitor per template.
+> Om meerdere templates tegelijk in te stellen, open je het vCenter via **Producten → Infrastructuur → VMware** en ga je naar **Aanbevelingen**. Kies de templates die je wilt, kies wie wordt opgeroepen, en OneUptime maakt één monitor per template.
 
 ## Monitorinstellingen
 
@@ -77,14 +77,14 @@ Klik op **Monitor maken**. OneUptime opent de pagina van de monitor en evalueert
 | **vCenter** | Alle | Verplicht. Beperkt elke query tot `resource.vmware.vcenter.name`. |
 | **Datacenter** | Custom Metric, Geavanceerd | Optioneel. Eén datacenter: `resource.vcenter.datacenter.name`. Elke reeks draagt het. |
 | **Cluster** | Custom Metric, Geavanceerd | Optioneel. Eén cluster: `resource.vcenter.cluster.name`. Komt overeen met de eigen reeksen van het cluster en die van de hosts, VM's en resourcepools erin; een losse ESXi-host heeft er geen. |
-| **ESXi Host** | Custom Metric, Geavanceerd | Optioneel. Eén ESXi-host: `resource.vcenter.host.name`. Komt overeen met de eigen reeksen van de host **en** die van elke VM die hij draait, omdat een VM de naam van haar host draagt. |
-| **Virtual Machine** | Custom Metric, Geavanceerd | Optioneel. Eén VM: `resource.vcenter.vm.name`. VM-namen hoeven niet uniek te zijn: voeg een host of een cluster toe als twee VM's dezelfde naam hebben. |
+| **ESXi-host** | Custom Metric, Geavanceerd | Optioneel. Eén ESXi-host: `resource.vcenter.host.name`. Komt overeen met de eigen reeksen van de host **en** die van elke VM die hij draait, omdat een VM de naam van haar host draagt. |
+| **Virtuele machine** | Custom Metric, Geavanceerd | Optioneel. Eén VM: `resource.vcenter.vm.name`. VM-namen hoeven niet uniek te zijn: voeg een host of een cluster toe als twee VM's dezelfde naam hebben. |
 | **Datastore** | Custom Metric, Geavanceerd | Optioneel. Eén datastore: `resource.vcenter.datastore.name`. |
 | **Resource Pool Path** | Custom Metric, Geavanceerd | Optioneel. Eén resourcepool, via zijn inventarispad (`/DC/host/Cluster/Resources/pool`): `resource.vcenter.resource_pool.inventory_path`. Een pad, omdat poolnamen alleen binnen hun bovenliggende object uniek zijn. |
 | **VMware Metric** | Custom Metric | Eén metriek uit de [catalogus](#verzamelde-metrieken). |
 | **Aggregatie** | Custom Metric | Hoe monsters worden gecombineerd: **Gemiddelde**, **Maximum**, **Minimum**, **Som** of **Aantal**. Begint bij de gebruikelijke aggregatie van de metriek. |
-| **Tijdsbereik** | Alle | Het voortschrijdende venster dat de query leest, van **Past 1 Minute** tot **Past 365 Days**. Een nieuwe monitor begint bij **Past 5 Minutes**; templates stellen hun eigen venster in. |
-| **Selecteer metrieken** | Geavanceerd | De querybouwer: **Metriek**, **Aggregate by**, **Filter by attributes**, **Group by**, plus **Metriek toevoegen** en **Formule toevoegen** om queries te combineren. |
+| **Tijdsbereik** | Alle | Het voortschrijdende venster dat de query leest, van **Past 1 Minute** tot **Past 365 Days**. Een nieuwe monitor begint bij **Afgelopen 5 minuten**; templates stellen hun eigen venster in. |
+| **Selecteer metrieken** | Geavanceerd | De querybouwer: **Metriek**, **Aggregate by**, **Filter by attributes**, **Groeperen op**, plus **Metriek toevoegen** en **Formule toevoegen** om queries te combineren. |
 
 vCenter wordt één keer per verzamelinterval gelezen, standaard 2 minuten, dus een venster van 1 minuut bevat mogelijk helemaal geen monster. Houd het venster op 5 minuten of meer, en langer als je het verzamelinterval voor een grote inventaris hebt verhoogd.
 
@@ -117,13 +117,13 @@ Templates lezen de laatste 5 minuten, tenzij de tabel iets anders zegt. Een crit
 | Host Disk Latency High | Host | Warning | `vcenter.host.disk.latency.max`, Max per host | Boven 50 ms: elke VM waarvan de schijven op dat pad liggen, wacht op opslag. Vereist prestatietellerniveau 3 | Op 45 ms of lager |
 | Host Network Packet Errors | Host | Warning | `vcenter.host.network.packet.error.rate`, Max per host | Boven 0: bijna altijd een defecte kabel, SFP of switchpoort | Op 0 |
 | Host Network Packet Drops | Host | Warning | `vcenter.host.network.packet.drop.rate`, Max per host | Boven 0: een overbelaste uplink, of ringbuffers van de NIC die overlopen | Op 0 |
-| VM CPU Saturation | Virtual Machine | Warning | `vcenter.vm.cpu.utilization`, Avg per `resource.vcenter.vm.name`, **laatste 15 minuten** | Boven 90 % van de vCPU's van de VM gedurende alle 15 minuten: een VM mag gebruiken wat ze kreeg, dus alleen een VM die nooit zakt, roept op | Op 81 % of lager |
-| VM CPU Ready Contention | Virtual Machine | Warning | `vcenter.vm.cpu.readiness`, Avg per VM | Boven 10 %: de VM was klaar om te draaien, maar de host had geen fysieke core voor haar. Onzichtbaar vanuit de guest | Op 9 % of lager |
-| VM Memory Saturation | Virtual Machine | Warning | `vcenter.vm.memory.utilization`, Avg per VM | Boven 90 % van haar geheugen: de guest staat op het punt te pagen | Op 81 % of lager |
-| VM Memory Ballooning | Virtual Machine | Warning | `vcenter.vm.memory.ballooned`, Max per VM | Boven 0: de host komt geheugen tekort en neemt het terug van deze guest | Op 0 |
-| VM Memory Swapping | Virtual Machine | Kritiek | `vcenter.vm.memory.swapped`, Max per VM | Boven 0: de host swapt het geheugen van de VM, het laatste redmiddel na ballooning en compressie | Op 0 |
-| VM Disk Latency High | Virtual Machine | Warning | `vcenter.vm.disk.latency.max`, Max per VM | Boven 50 ms: applicaties in de guest krijgen time-outs op I/O | Op 45 ms of lager |
-| VM Disk Usage High | Virtual Machine | Warning | `vcenter.vm.disk.utilization`, Avg per VM | Boven 90 % van haar toegewezen opslag vastgelegd: een thin-provisioned VM staat op het punt haar volledige grootte op te eisen | Op 81 % of lager |
+| VM CPU Saturation | Virtuele machine | Warning | `vcenter.vm.cpu.utilization`, Avg per `resource.vcenter.vm.name`, **laatste 15 minuten** | Boven 90 % van de vCPU's van de VM gedurende alle 15 minuten: een VM mag gebruiken wat ze kreeg, dus alleen een VM die nooit zakt, roept op | Op 81 % of lager |
+| VM CPU Ready Contention | Virtuele machine | Warning | `vcenter.vm.cpu.readiness`, Avg per VM | Boven 10 %: de VM was klaar om te draaien, maar de host had geen fysieke core voor haar. Onzichtbaar vanuit de guest | Op 9 % of lager |
+| VM Memory Saturation | Virtuele machine | Warning | `vcenter.vm.memory.utilization`, Avg per VM | Boven 90 % van haar geheugen: de guest staat op het punt te pagen | Op 81 % of lager |
+| VM Memory Ballooning | Virtuele machine | Warning | `vcenter.vm.memory.ballooned`, Max per VM | Boven 0: de host komt geheugen tekort en neemt het terug van deze guest | Op 0 |
+| VM Memory Swapping | Virtuele machine | Kritiek | `vcenter.vm.memory.swapped`, Max per VM | Boven 0: de host swapt het geheugen van de VM, het laatste redmiddel na ballooning en compressie | Op 0 |
+| VM Disk Latency High | Virtuele machine | Warning | `vcenter.vm.disk.latency.max`, Max per VM | Boven 50 ms: applicaties in de guest krijgen time-outs op I/O | Op 45 ms of lager |
+| VM Disk Usage High | Virtuele machine | Warning | `vcenter.vm.disk.utilization`, Avg per VM | Boven 90 % van haar toegewezen opslag vastgelegd: een thin-provisioned VM staat op het punt haar volledige grootte op te eisen | Op 81 % of lager |
 | Datastore Capacity Warning | Datastore | Warning | `vcenter.datastore.disk.utilization`, Avg per `resource.vcenter.datastore.name` | Boven 80 %: een vroege waarschuwing, omdat thin disks en snapshots de rest snel opmaken | Op 72 % of lager |
 | Datastore Capacity Critical | Datastore | Kritiek | `vcenter.datastore.disk.utilization`, Avg per datastore | Boven 90 %: een volle datastore pauzeert elke VM met een schijf erop | Op 81 % of lager |
 | Cluster Host Not Effective | Cluster | Kritiek | `vcenter.cluster.host.count` gefilterd op `effective = false`, Max per `resource.vcenter.cluster.name` | Boven 0: een host staat in onderhoudsmodus, is losgekoppeld of reageert niet, dus het cluster draait met minder capaciteit dan waarvoor het is ontworpen | Op 0 |
@@ -260,7 +260,7 @@ Alleen verstuurd voor clusters met vSAN, de hosts erin, en de VM's op een vSAN-d
 | `vcenter.vm.vsan.throughput`        | `By/s`            | vSAN-doorvoer van de VM, per `direction`                                                                                                        |
 
 > [!NOTE]
-> De aan/uit-toestand van een VM is geen metriek. De receiver stuurt `vcenter.vm.cpu.*` alleen voor ingeschakelde VM's, dus OneUptime onderscheidt **Powered on** van **Powered off** aan de hand van of er CPU-gegevens binnenkwamen in dezelfde verzameling als de geheugen- en schijfgegevens van de VM; de pagina **Virtuele machines** van het vCenter toont het resultaat. Om te waarschuwen op uitgeschakelde hosts of op hoeveel VM's draaien, gebruik je het attribuut `power_state` van `vcenter.datacenter.host.count`, `vcenter.datacenter.vm.count` of `vcenter.cluster.vm.count`.
+> De aan/uit-toestand van een VM is geen metriek. De receiver stuurt `vcenter.vm.cpu.*` alleen voor ingeschakelde VM's, dus OneUptime onderscheidt **Powered on** van **Uitgeschakeld** aan de hand van of er CPU-gegevens binnenkwamen in dezelfde verzameling als de geheugen- en schijfgegevens van de VM; de pagina **Virtuele machines** van het vCenter toont het resultaat. Om te waarschuwen op uitgeschakelde hosts of op hoeveel VM's draaien, gebruik je het attribuut `power_state` van `vcenter.datacenter.host.count`, `vcenter.datacenter.vm.count` of `vcenter.cluster.vm.count`.
 
 ## Monitoringcriteria
 
@@ -271,7 +271,7 @@ Een criterium vergelijkt een van de queries of formules van de monitor met een d
 | **Metriek** | De query of formule om te controleren, op haar variabelenaam. |
 | **Aggregatie** | Hoe de waarden in het venster één antwoord worden: **Gemiddelde**, **Som**, **Maximum Value**, **Minimum Value**, **All Values** (elke waarde moet overeenkomen, over het hele venster) of **Any Value** (één is genoeg). |
 | **Voorwaarde** | **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** of **Gelijk aan** — of een anomalievoorwaarde: **Anomalously High**, **Anomalously Low** of **Anomalous**. |
-| **Threshold** | De waarde om mee te vergelijken. Er staat een eenhedenlijst naast als de metriek een eenheid heeft. Niet getoond bij anomalievoorwaarden. |
+| **Drempel** | De waarde om mee te vergelijken. Er staat een eenhedenlijst naast als de metriek een eenheid heeft. Niet getoond bij anomalievoorwaarden. |
 | **Gevoeligheid** | Alleen bij anomalievoorwaarden. **Laag** (4σ), **Gemiddeld** (3σ, de standaard) of **Hoog** (2σ). |
 | **Baseline-venster** | Alleen bij anomalievoorwaarden. 14 dagen (de standaard), 28, 60 of 90 dagen geschiedenis. |
 | **Als geen gegevens** | Onder **Meer velden**. Wat er gebeurt als het venster geen monsters heeft: **Ignore** (de standaard), **Treat As Zero** of **Trigger**. |

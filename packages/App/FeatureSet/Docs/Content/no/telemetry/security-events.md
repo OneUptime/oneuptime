@@ -39,22 +39,22 @@ flowchart TB
 | **Entiteter** | Hendelser | Brukerne, vertene og adressene som funnene dine nevner oftest |
 | **Entitetsrisiko** | Hendelser | Hver bruker, vert og adresse, vurdert etter hva som er funnet om den denne uken, de mest risikable først |
 | **Korreler** | Hendelser | En graf over hendelsene som deler en vert, en bruker eller en IP-adresse |
-| **Detection Rules** | Detections | Sigma-regler som kjører etter en tidsplan og åpner saker |
-| **Rule Library** | Detections | Ferdige deteksjonsregler å legge til, hver med hendelsene den leser og om de kommer inn, med de anbefalte merket |
-| **Threat Intel** | Detections | STIX/TAXII-feeder med kjente ondsinnede indikatorer |
-| **ATT&CK Coverage** | Detections | MITRE ATT&CK-teknikkene som reglene dine dekker |
+| **Deteksjonsregler** | Detections | Sigma-regler som kjører etter en tidsplan og åpner saker |
+| **Regelbibliotek** | Detections | Ferdige deteksjonsregler å legge til, hver med hendelsene den leser og om de kommer inn, med de anbefalte merket |
+| **Trusselsinformasjon** | Detections | STIX/TAXII-feeder med kjente ondsinnede indikatorer |
+| **ATT&CK-dekning** | Detections | MITRE ATT&CK-teknikkene som reglene dine dekker |
 | **Playbooks** | Playbooks | Steg som kjører på saker, av seg selv eller manuelt |
 | **Godkjenninger** | Playbooks | Playbook-stegene som venter på at noen godkjenner eller avviser dem |
 | **Playbook-kjøringer** | Playbooks | Hva hver playbook gjorde, steg for steg |
-| **Protected Entities** | Playbooks | Brukerne og vertene som ingen playbook demmer inn |
+| **Beskyttede entiteter** | Playbooks | Brukerne og vertene som ingen playbook demmer inn |
 | **Innstillinger** | KI | Om OneUptime AI vurderer hver nye sak |
-| **Connections** | Connections | Loggene dine, sikkerhetsproduktene OneUptime henter fra, og SIEM-ene det sender til |
+| **Tilkoblinger** | Connections | Loggene dine, sikkerhetsproduktene OneUptime henter fra, og SIEM-ene det sender til |
 | **Oppsettveiledning** | Connections | Kodesnutter for å sende hendelser, fylt ut med ingestion-nøkkelen din |
 | **Saksprioriteter** | Innstillinger | Hvor mye en sak haster: prosjektets egne prioriteter, den som haster mest først |
 | **Saksstatuser** | Innstillinger | Trinnene en sak går gjennom, og hva en sak i hvert trinn teller som |
 | **Risikovurdering** | Innstillinger | Om risikoen for en entitet åpner en sak, ved hvilken risiko, og hvor mye hver entitet betyr |
 
-**Detections**, **KI**, **Connections** og **Innstillinger**, som settes opp én gang, er slått sammen til du åpner dem. Ny med sikkerhet? [Kom i gang med sikkerhet](/docs/telemetry/security-getting-started) setter det opp med to klikk.
+**Deteksjoner**, **KI**, **Tilkoblinger** og **Innstillinger**, som settes opp én gang, er slått sammen til du åpner dem. Ny med sikkerhet? [Kom i gang med sikkerhet](/docs/telemetry/security-getting-started) setter det opp med to klikk.
 
 ## Før du begynner
 
@@ -169,15 +169,15 @@ For å sende sikkerhetslogger du allerede samler inn, for eksempel auditd, syslo
     Retry_Limit      5
 ```
 
-Siden **Oppsettveiledning**, under **Connections**, har disse kodesnuttene med din egen vert og nøkkel fylt ut.
+Siden **Oppsettveiledning**, under **Tilkoblinger**, har disse kodesnuttene med din egen vert og nøkkel fylt ut.
 
 ### Finn sikkerhetshendelser i loggene dine
 
-Kortet **Loggene dine**, øverst på **Connections**, gjør loggene du allerede sender til OneUptime, til en kilde. Med **Finn sikkerhetshendelser i loggene dine** slått på leses prosjektets nye logger hvert minutt, og hver SSH-pålogging, sudo-kommando, Kubernetes-revisjonsoppføring, AWS CloudTrail-endring og hvert webangrep i dem lagres som en sikkerhetshendelse. Se [Kom i gang med sikkerhet](/docs/telemetry/security-getting-started#finn-sikkerhetshendelser-i-loggene-dine) for hva hver type dekker.
+Kortet **Loggene dine**, øverst på **Tilkoblinger**, gjør loggene du allerede sender til OneUptime, til en kilde. Med **Finn sikkerhetshendelser i loggene dine** slått på leses prosjektets nye logger hvert minutt, og hver SSH-pålogging, sudo-kommando, Kubernetes-revisjonsoppføring, AWS CloudTrail-endring og hvert webangrep i dem lagres som en sikkerhetshendelse. Se [Kom i gang med sikkerhet](/docs/telemetry/security-getting-started#finn-sikkerhetshendelser-i-loggene-dine) for hva hver type dekker.
 
 ### Koble til et sikkerhetsprodukt
 
-**Connections** henter data fra et sikkerhetsprodukt for deg og importerer de nye postene som sikkerhetshendelser. En tilkobling inneholder produktets innstillinger og en kryptert legitimasjon; en worker henter fra den med intervallet du angir, og hopper over poster den allerede har importert.
+**Tilkoblinger** henter data fra et sikkerhetsprodukt for deg og importerer de nye postene som sikkerhetshendelser. En tilkobling inneholder produktets innstillinger og en kryptert legitimasjon; en worker henter fra den med intervallet du angir, og hopper over poster den allerede har importert.
 
 | Produkt | Importerer | Oppsettveiledning |
 | --- | --- | --- |
@@ -193,7 +193,7 @@ Kortet **Loggene dine**, øverst på **Connections**, gjør loggene du allerede 
 - Produktets egne varsler på eller over **Open Cases From** (**Høy og høyere** med mindre du velger et annet nivå, eller **Aldri**) åpner [saker](/docs/telemetry/security-cases), gruppert etter brukeren, verten eller adressen de gjelder.
 - En tilkobling leser poster etter tidspunktet produktet opprettet dem, ikke etter tidspunktet for aktiviteten de beskriver. En SIEM-regel som kjører hver time, oppretter deteksjoner lenge etter hendelsene den traff, og de importeres likevel.
 - Den første hentingen ser 24 timer tilbake, så en ny tilkobling viser nylige poster med en gang.
-- **Test tilkoblingen**, i tilkoblingens rad, sjekker tilgangen til produktet og at OneUptimes egne workers kjører, og importerer ingenting. **Run now** henter med en gang.
+- **Test tilkoblingen**, i tilkoblingens rad, sjekker tilgangen til produktet og at OneUptimes egne workers kjører, og importerer ingenting. **Kjør nå** henter med en gang.
 
 ## Hva en hendelse inneholder
 
@@ -236,7 +236,7 @@ Et felt er enten et kort navn (`severity`, `class`, `category`, `activity`, `sta
 
 ### Fasetter
 
-Sidepanelet teller vinduets hendelser etter **Kilde**, **Alvorlighetsgrad**, **Hendelsesklasse**, **Category**, **Aktivitet**, **Status**, **Leverandør**, **Produkt**, **Detection Rule**, **Kildebruker**, **Kildevert**, **Prosess** og **Overordnet prosess**. Klikk på en verdi for å beholde bare hendelsene med den, eller på minustegnet ved siden av for å utelate dem. Klikk igjen for å angre. Diagrammet og hver telling beskriver nøyaktig hendelsene i listen.
+Sidepanelet teller vinduets hendelser etter **Kilde**, **Alvorlighetsgrad**, **Hendelsesklasse**, **Kategori**, **Aktivitet**, **Status**, **Leverandør**, **Produkt**, **Deteksjonsregel**, **Kildebruker**, **Kildevert**, **Prosess** og **Overordnet prosess**. Klikk på en verdi for å beholde bare hendelsene med den, eller på minustegnet ved siden av for å utelate dem. Klikk igjen for å angre. Diagrammet og hver telling beskriver nøyaktig hendelsene i listen.
 
 ### Korreler
 
@@ -244,7 +244,7 @@ Sidepanelet teller vinduets hendelser etter **Kilde**, **Alvorlighetsgrad**, **H
 
 ## Deteksjonsregler
 
-En deteksjonsregel er en [Sigma](https://sigmahq.io/)-regel, et åpent YAML-format for å beskrive mistenkelig aktivitet, som OneUptime kjører etter en tidsplan mot hendelsene dine. Når den treffer, åpner den en [sak](/docs/telemetry/security-cases) eller legger treffet til i en åpen sak, åpner et varsel, eventuelt en hendelse (incident), og skriver et Detection Finding tilbake blant sikkerhetshendelsene. **Rule Library** har ferdige regler å starte fra.
+En deteksjonsregel er en [Sigma](https://sigmahq.io/)-regel, et åpent YAML-format for å beskrive mistenkelig aktivitet, som OneUptime kjører etter en tidsplan mot hendelsene dine. Når den treffer, åpner den en [sak](/docs/telemetry/security-cases) eller legger treffet til i en åpen sak, åpner et varsel, eventuelt en hendelse (incident), og skriver et Detection Finding tilbake blant sikkerhetshendelsene. **Regelbibliotek** har ferdige regler å starte fra.
 
 ```mermaid title="Slik slår en deteksjonsregel til"
 flowchart TB
@@ -258,12 +258,12 @@ flowchart TB
 ### Opprett en regel
 
 :::steps
-1. Åpne **Produkter → Security Events → Detections → Detection Rules**, og klikk på **Opprett Detection Rule**.
-2. Lim inn regelens YAML i **Sigma Rule (YAML)** under **Sigma Rule**. Den tolkes når du lagrer, så en feil vises i skjemaet.
+1. Åpne **Produkter → Security Events → Deteksjoner → Deteksjonsregler**, og klikk på **Opprett Deteksjonsregel**.
+2. Lim inn regelens YAML i **Sigma-regel (YAML)** under **Sigma-regel**. Den tolkes når du lagrer, så en feil vises i skjemaet.
 3. **Navn** fylles inn fra regelens `title`: skriv over det for å kalle regelen noe annet. En ny regel kjører; **Aktivert** står i redigeringsskjemaet.
-4. La **Open a Case on Match** stå på under **Ved treff** for å samle treffene i saker, etter verdien regelen grupperer etter.
+4. La **Åpne en sak ved treff** stå på under **Ved treff** for å samle treffene i saker, etter verdien regelen grupperer etter.
 5. Velg under **Varsler og hendelser** hva et treff ellers skal utløse: **Opprett et varsel** (standard), **Erklær en hendelse**, **Begge** eller **Ingen av dem**, med valgfri **Varselsalvor** eller **Hendelsesalvor**.
-6. **Flere felt** har **Beskrivelse**, **Write Detection Finding on Match** (på) og hvordan treff telles; se [Evalueringsinnstillinger](#evalueringsinnstillinger).
+6. **Flere felt** har **Beskrivelse**, **Skriv Detection Finding ved treff** (på) og hvordan treff telles; se [Evalueringsinnstillinger](#evalueringsinnstillinger).
 :::
 
 En første regel, som treffer mislykkede pålogginger fra utenfor `10.x.x.x`:
@@ -295,11 +295,11 @@ OneUptime kjører den boolske kjernen i Sigma:
 - `Image` og `CommandLine` leser prosessen hendelsen handler om, ved en prosessoppstart den som startet (`processPath`, `processCommandLine`), og `ParentImage` og `ParentCommandLine` prosessen som startet den (`parentProcessPath`, `parentProcessCommandLine`). `principalProcess` er prosessen som handlet, som ved en oppstart er den overordnede.
 - `level` angir alvorlighetsgraden: `informational`, `low`, `medium`, `high` eller `critical`, og `medium` når den mangler. ATT&CK-ID-er i `tags` (`attack.t1110`, `attack.ta0006`) fyller ut funnets MITRE-felt.
 
-Aggregeringer som `| count() by principalIp > 5` avvises når du lagrer: bruk en [korrelasjonsregel](#korrelasjonsregler), eller **Group By Field** og **Match Count Threshold**, i stedet. `logsource` er bare informativ og snevrer ikke inn noe: legg det filteret i en seleksjon, for eksempel `className: Authentication`. En `timeframe` ignoreres, fordi regelens intervall bestemmer vinduet.
+Aggregeringer som `| count() by principalIp > 5` avvises når du lagrer: bruk en [korrelasjonsregel](#korrelasjonsregler), eller **Grupperingsfelt** og **Terskel for antall treff**, i stedet. `logsource` er bare informativ og snevrer ikke inn noe: legg det filteret i en seleksjon, for eksempel `className: Authentication`. En `timeframe` ignoreres, fordi regelens intervall bestemmer vinduet.
 
 ### Korrelasjonsregler
 
-En [Sigma-korrelasjon](https://sigmahq.io/docs/meta/correlations.html) utløses av flere hendelser sammen i stedet for én. Lim den inn i **Sigma Rule (YAML)** sammen med reglene den leser, som YAML-dokumenter atskilt med `---`, eller navngi regler prosjektet allerede har, med Sigma-`name` eller -`id`. **Rule Library** har ferdige, for eksempel mislykkede pålogginger fulgt av en vellykket.
+En [Sigma-korrelasjon](https://sigmahq.io/docs/meta/correlations.html) utløses av flere hendelser sammen i stedet for én. Lim den inn i **Sigma-regel (YAML)** sammen med reglene den leser, som YAML-dokumenter atskilt med `---`, eller navngi regler prosjektet allerede har, med Sigma-`name` eller -`id`. **Regelbibliotek** har ferdige, for eksempel mislykkede pålogginger fulgt av en vellykket.
 
 | Type | Utløses når | Vises som |
 | --- | --- | --- |
@@ -352,16 +352,16 @@ detection:
 
 - En gruppe er verdien av feltene i `group-by`, for eksempel én adresse. Tellinger er rullerende: et utbrudd som to kjøringer deler, telles likevel helt innenfor sitt `timespan`, som er høyst 24 timer.
 - `new_value` er OneUptimes egen type, siden Sigma ikke har noen korrelasjon for "sett første gang": den sammenligner med opptil 30 dagers historikk. `value_sum`, `value_avg`, `value_percentile` og `value_median` avvises når du lagrer.
-- Kolonnen **Type** i **Detection Rules** viser hver regels type, og skjemaet sier i én setning hva regelen ser etter.
+- Kolonnen **Type** i **Deteksjonsregler** viser hver regels type, og skjemaet sier i én setning hva regelen ser etter.
 
 ### Evalueringsinnstillinger
 
 | Felt | Hva det gjør |
 | --- | --- |
-| **Evaluation Interval (Minutes)** | Hvor ofte regelen kjører: hele minutter, 1 til 1440. Skjemaet for en ny regel starter på 5. |
-| **Group By Field** | Valgfritt. Treff som deler dette feltets verdi, for eksempel `principalHost`, telles, varsles og dedupliseres samlet: ett varsel per vert i stedet for hundrevis. |
-| **Distinct Count Field** | Valgfritt. Tell de ulike verdiene i dette feltet i stedet for hendelsene som treffer. Tomme verdier telles ikke. |
-| **Match Count Threshold** | En gruppe slår bare til når tellingen når dette tallet innenfor én kjøring: 1 til 1000000, og 1 slår til på hvert treff. |
+| **Evalueringsintervall (minutter)** | Hvor ofte regelen kjører: hele minutter, 1 til 1440. Skjemaet for en ny regel starter på 5. |
+| **Grupperingsfelt** | Valgfritt. Treff som deler dette feltets verdi, for eksempel `principalHost`, telles, varsles og dedupliseres samlet: ett varsel per vert i stedet for hundrevis. |
+| **Felt for unik telling** | Valgfritt. Tell de ulike verdiene i dette feltet i stedet for hendelsene som treffer. Tomme verdier telles ikke. |
+| **Terskel for antall treff** | En gruppe slår bare til når tellingen når dette tallet innenfor én kjøring: 1 til 1000000, og 1 slår til på hvert treff. |
 
 Group By og Distinct Count tar de samme feltnavnene som regelen. Med dem sier terskelen «så mange, fra den samme tingen, i én kjøring», uten en monitor på toppen:
 
@@ -412,7 +412,7 @@ Funn er vanlige hendelser: søk etter dem under **Hendelser** og pivoter på dem
 
 ## Monitorer for sikkerhetshendelser
 
-En monitor for sikkerhetshendelser teller hendelsene som treffer filtrene, over et glidende vindu, og kjører de vanlige monitorkriteriene på tellingen: den endrer monitorens status, åpner varsler eller hendelser (incidents), og varsler vakthavende. Opprett en under **Overvåkere → Opprett monitor**, med **Security Events** som type; den vises der sammen med de andre monitorene dine.
+En monitor for sikkerhetshendelser teller hendelsene som treffer filtrene, over et glidende vindu, og kjører de vanlige monitorkriteriene på tellingen: den endrer monitorens status, åpner varsler eller hendelser (incidents), og varsler vakthavende. Opprett en under **Overvåkere → Opprett monitor**, med **Sikkerhetshendelser** som type; den vises der sammen med de andre monitorene dine.
 
 Skjemaet viser **Monitor events that include this text**, **Monitor Security Events for (time)**, **Event Severity** og **Hendelsesklasse**. **Filtrer etter telemetritjeneste** og **Filtrer etter attributter** venter under **Flere felt**, der overskriften viser hvilke en monitor bruker. Kriteriene sjekker **Security Event Count**.
 
@@ -420,7 +420,7 @@ Skjemaet viser **Monitor events that include this text**, **Monitor Security Eve
 | --- | --- | --- |
 | Treffer | En Sigma-regel | Filtre på alvorlighetsgrad, klasse, melding, tjeneste og attributter |
 | Vindu | Etter hverandre, ett per kjøring | Glidende: de siste 5 sekundene til 24 timer |
-| Teller per gruppe | Ja, med **Group By Field** | Nei: én telling for alt som treffer |
+| Teller per gruppe | Ja, med **Grupperingsfelt** | Nei: én telling for alt som treffer |
 | Åpner | Varsler, hendelser (incidents) og funn | En status, varsler og hendelser (incidents) |
 | Hentes inn igjen | Nei: varsler forblir åpne til de løses | Ja: statusen går tilbake når tellingen gjør det |
 
@@ -434,11 +434,11 @@ Funn er hendelser, så en monitor kan følge med på selve reglene:
 - Endringer i takt: filtrer på `oneuptime.detection.rule_id` for én regel. En regel som slår til ukentlig og plutselig slår til femti ganger i timen, trenger en annen respons.
 - Stillhet: funn som faller til null når du vanligvis ser noen få, betyr som regel at en kilde har sluttet å sende. Bruk et kriterium som sjekker for en telling under et tall.
 
-Handlingen **Opprett monitor** i raden til en regel åpner en ny monitor som allerede er satt opp slik: klassen `Detection Finding`, regelens ID (aldri navnet, som et nytt navn ville endre), og den siste timen. En slik monitor teller funn, ett per gruppe per kjøring, ikke hendelsene bak dem. For å kreve et antall hendelser før noe slår til, bruker du regelens **Match Count Threshold**.
+Handlingen **Opprett monitor** i raden til en regel åpner en ny monitor som allerede er satt opp slik: klassen `Detection Finding`, regelens ID (aldri navnet, som et nytt navn ville endre), og den siste timen. En slik monitor teller funn, ett per gruppe per kjøring, ikke hendelsene bak dem. For å kreve et antall hendelser før noe slår til, bruker du regelens **Terskel for antall treff**.
 
 ## Trusseletterretning
 
-**Threat Intel** abonnerer på STIX/TAXII-feeder med kjente ondsinnede IP-adresser, domener, URL-er, e-postadresser og filhasher. Hendelser som nevner en av dem, merkes med `threat.*`-attributter når de kommer inn, som regler og monitorer kan filtrere på, og hvert minutt sammenlignes nylige hendelser med feedene, noe som åpner varsler og funn slik en regel gjør. Se [Trusseletterretning](/docs/telemetry/threat-intelligence).
+**Trusselsinformasjon** abonnerer på STIX/TAXII-feeder med kjente ondsinnede IP-adresser, domener, URL-er, e-postadresser og filhasher. Hendelser som nevner en av dem, merkes med `threat.*`-attributter når de kommer inn, som regler og monitorer kan filtrere på, og hvert minutt sammenlignes nylige hendelser med feedene, noe som åpner varsler og funn slik en regel gjør. Se [Trusseletterretning](/docs/telemetry/threat-intelligence).
 
 ## Oppbevaring og fakturering
 
@@ -459,7 +459,7 @@ Sjekk **Status**: med **Deaktivert** kjører ikke regelen, og med **Kjøring mis
 :::
 
 :::details En regel åpner for mange varsler
-Hver verdi av **Group By Field** får sitt eget varsel: grupper etter noe grovere, hev terskelen, eller legg til et Distinct Count Field. Bryr du deg om takten og ikke om hvert treff, setter du **Varsler og hendelser** til **Ingen av dem** og setter en monitor på regelens funn.
+Hver verdi av **Grupperingsfelt** får sitt eget varsel: grupper etter noe grovere, hev terskelen, eller legg til et Distinct Count Field. Bryr du deg om takten og ikke om hvert treff, setter du **Varsler og hendelser** til **Ingen av dem** og setter en monitor på regelens funn.
 :::
 
 ## Neste steg

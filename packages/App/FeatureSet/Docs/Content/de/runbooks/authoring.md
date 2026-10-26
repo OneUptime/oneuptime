@@ -190,7 +190,7 @@ Lassen Sie die KI mitten im Lauf etwas analysieren, zusammenfassen oder entschei
 | Feld | Was es tut |
 | --- | --- |
 | **Prompt** | Was die KI tun soll. Zum Beispiel: „Prüfe die Ausgabe der vorherigen Schritte und sag, ob die Behebung sicher fortgesetzt werden kann.“ |
-| **LLM provider** | Optional. **Projektstandard** nutzt den Standardanbieter des Projekts. Legen Sie einen Anbieter fest, wenn der Schritt ein bestimmtes Modell braucht, etwa ein selbst gehostetes für Daten, die Ihr Netz nicht verlassen dürfen. Siehe [LLM-Anbieter](/docs/ai/llm-provider). |
+| **LLM-Anbieter** | Optional. **Projektstandard** nutzt den Standardanbieter des Projekts. Legen Sie einen Anbieter fest, wenn der Schritt ein bestimmtes Modell braucht, etwa ein selbst gehostetes für Daten, die Ihr Netz nicht verlassen dürfen. Siehe [LLM-Anbieter](/docs/ai/llm-provider). |
 | **Kontext vorheriger Schritte einbeziehen** | Ist es an, sieht die KI alles über die Schritte, die vor diesem liefen: Titel, Typ, Status, Ausgabe und Fehlermeldungen. Sie erhält bis zu 4.000 Zeichen der Ausgabe jedes Schritts. |
 | **Auslöserkontext einbeziehen** | Ist es an, sieht die KI, was den Lauf gestartet hat: den verknüpften Vorfall, die Warnung oder das geplante Wartungsereignis (Beschreibung, Schweregrad, aktueller Zustand, betroffene Monitore, Grundursache, Zustandsverlauf und öffentliche Notizen) oder wer das Runbook von Hand gestartet hat. |
 

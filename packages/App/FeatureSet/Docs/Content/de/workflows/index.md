@@ -60,7 +60,7 @@ All das bauen Sie visuell auf einer Arbeitsfläche. Die meisten Workflows brauch
 ## Bevor Sie beginnen
 
 - **Ein Plan, der Workflows enthält.** In OneUptime Cloud brauchen Workflows den Plan **Growth** oder höher, und jeder Plan erlaubt eine bestimmte Zahl von Ausführungen alle 30 Tage – siehe [Plan-Grenzen](/docs/workflows/configuration#plan-grenzen). Selbst gehostete Installationen ohne Abrechnung haben keine dieser Grenzen.
-- **Die Berechtigung zum Bauen.** Workflows anlegen und ändern erfordert **Workflow Admin**, **Project Admin** oder **Project Owner** oder eine benutzerdefinierte Rolle mit den passenden Berechtigungen. Ein **Workflow Member** kann Workflows öffnen und von Hand ausführen, aber nicht ändern. Siehe [Berechtigungen](/docs/workflows/configuration#berechtigungen).
+- **Die Berechtigung zum Bauen.** Workflows anlegen und ändern erfordert **Arbeitsablauf-Administrator**, **Projektadministrator** oder **Projektinhaber** oder eine benutzerdefinierte Rolle mit den passenden Berechtigungen. Ein **Arbeitsablauf-Mitglied** kann Workflows öffnen und von Hand ausführen, aber nicht ändern. Siehe [Berechtigungen](/docs/workflows/configuration#berechtigungen).
 
 ## Wo Sie Workflows in OneUptime finden
 

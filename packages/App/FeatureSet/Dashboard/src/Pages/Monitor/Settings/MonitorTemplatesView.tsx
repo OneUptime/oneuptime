@@ -674,6 +674,7 @@ const MonitorTemplatesView: FunctionComponent<
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "Production API Health",
+            hideColumnDescription: true,
             validation: {
               minLength: 2,
             },
@@ -683,12 +684,11 @@ const MonitorTemplatesView: FunctionComponent<
               templateDescription: true,
             },
             title: "Template Description",
+            // Optional, and clearable back to blank (see Monitor Templates).
             fieldType: FormFieldSchemaType.LongText,
-            required: true,
+            required: false,
             placeholder: "What is this template for?",
-            validation: {
-              minLength: 2,
-            },
+            hideColumnDescription: true,
           },
         ]}
         /*
@@ -726,6 +726,7 @@ const MonitorTemplatesView: FunctionComponent<
               },
               title: "Template Description",
               fieldType: FieldType.LongText,
+              placeholder: "No description",
             },
             {
               field: {
@@ -776,6 +777,7 @@ const MonitorTemplatesView: FunctionComponent<
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "Description",
+            hideColumnDescription: true,
           },
           // The same picker as Create Monitor (MonitorTypeFormField).
           getMonitorTypeFormField<MonitorTemplate>({
@@ -877,6 +879,7 @@ const MonitorTemplatesView: FunctionComponent<
               title: "Monitor Details",
               fieldType: FormFieldSchemaType.CustomComponent,
               required: true,
+              hideColumnDescription: true,
               customValidation: (values: FormValues<MonitorTemplate>) => {
                 return MonitorStepsType.getValidationError(
                   values.monitorSteps as MonitorStepsType,
@@ -973,6 +976,7 @@ const MonitorTemplatesView: FunctionComponent<
                 title: "Monitoring Interval",
                 fieldType: FormFieldSchemaType.Dropdown,
                 required: true,
+                hideColumnDescription: true,
                 /*
                  * What Create Monitor offers the type, and the template's own
                  * interval even when that is one the type is not offered, so

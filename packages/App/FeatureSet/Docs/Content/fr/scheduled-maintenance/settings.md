@@ -39,7 +39,7 @@ Les règles diffèrent dans la façon dont plusieurs correspondances se résolve
 - **Règles de propriétaire**, **Règles d'étiquettes** et **Règles de runbook** agissent toutes quand elles correspondent. Les propriétaires et étiquettes ajoutés par plusieurs règles sont ajoutés une seule fois.
 - **Reminder Rules** sont vérifiées du haut de leur liste vers le bas, et la première correspondance l'emporte. Faites glisser une règle pour changer sa place ; une nouvelle règle va à la fin.
 
-Une nouvelle règle démarre activée ; désactivez **Activé** dans son formulaire de modification pour la mettre en pause, et la liste affiche pour chaque règle un **Activé** vert ou un **Désactivé** rouge. Les règles de propriétaire, d'étiquettes et de runbook agissent sur les événements créés après leur enregistrement. Pour appliquer une règle de propriétaire ou d'étiquettes aux événements que vous avez déjà, utilisez **Run Now** : voir [Exécuter des règles sur les ressources existantes](/docs/configuration/run-rules-now).
+Une nouvelle règle démarre activée ; désactivez **Activé** dans son formulaire de modification pour la mettre en pause, et la liste affiche pour chaque règle un **Activé** vert ou un **Désactivé** rouge. Les règles de propriétaire, d'étiquettes et de runbook agissent sur les événements créés après leur enregistrement. Pour appliquer une règle de propriétaire ou d'étiquettes aux événements que vous avez déjà, utilisez **Exécuter maintenant** : voir [Exécuter des règles sur les ressources existantes](/docs/configuration/run-rules-now).
 
 ## Règles de propriétaire et d'étiquettes
 
@@ -82,7 +82,7 @@ Dans **Rappels**, réglez **Intervalle de rappel (minutes)**, la fréquence des 
 | **Avant le début** | De la planification de l'événement jusqu'à son début. |
 | **Avant le début et pendant son déroulement** | De la planification de l'événement jusqu'à sa fin. |
 
-Une règle enregistrée via l'API ou Terraform qui attend le début de l'événement et s'arrête à ce moment-là n'envoie jamais de rappel : la liste la signale par **N'envoie jamais de rappel**, et son formulaire vous demande de choisir une réponse.
+L'API et Terraform refusent une règle qui attendrait le début de l'événement et s'arrêterait à ce moment-là : elle n'enverrait jamais de rappel. Une règle plus ancienne enregistrée ainsi est signalée dans la liste par **N'envoie jamais de rappel**, et son formulaire vous demande de choisir quand rappeler.
 
 Les propriétaires reçoivent chaque rappel comme **Rappel de maintenance**, activé par e-mail pour chaque nouveau membre. Enregistrer, modifier ou supprimer une règle de rappel réattribue une règle à chaque événement qui n'est pas achevé. Pour arrêter les rappels d'un événement, désactivez **Envoyer des rappels** sur sa page **Paramètres** ; il enregistre dès que vous le basculez.
 
@@ -119,16 +119,16 @@ Chaque modèle de maintenance a des déclencheurs et des actions de workflow, no
 
 | Rôle                              | Ce qu'il peut faire                                                                                  |
 | --------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| **Scheduled Maintenance Viewer**  | Lit les événements, et ne modifie rien.                                                              |
-| **Scheduled Maintenance Member**  | Crée, modifie et supprime des événements avec leurs notes, chronologies d'état et propriétaires, ainsi que les deux types de modèles. |
-| **Scheduled Maintenance Admin**   | Tout ce que fait un membre, et en plus crée, modifie et supprime des états de maintenance.          |
+| **Lecteur de la maintenance planifiée**  | Lit les événements, et ne modifie rien.                                                              |
+| **Membre de la maintenance planifiée**  | Crée, modifie et supprime des événements avec leurs notes, chronologies d'état et propriétaires, ainsi que les deux types de modèles. |
+| **Administrateur de la maintenance planifiée**   | Tout ce que fait un membre, et en plus crée, modifie et supprime des états de maintenance.          |
 
-Les règles, champs personnalisés et mesures requièrent **Project Owner** ou **Project Admin**, ou un rôle personnalisé avec l'autorisation propre à cette page, comme **Create Scheduled Maintenance Owner Rule**. Les règles de runbook acceptent aussi **Runbook Admin**. **Project Member** travaille avec les événements et les modèles, comme **Scheduled Maintenance Member**. Voir [Utilisateurs, équipes et autorisations](/docs/permissions/index).
+Les règles, champs personnalisés et mesures requièrent **Propriétaire du projet** ou **Administrateur du projet**, ou un rôle personnalisé avec l'autorisation propre à cette page, comme **Create Scheduled Maintenance Owner Rule**. Les règles de runbook acceptent aussi **Administrateur des runbooks**. **Membre du projet** travaille avec les événements et les modèles, comme **Membre de la maintenance planifiée**. Voir [Utilisateurs, équipes et autorisations](/docs/permissions/index).
 
 ## Dépannage
 
 :::details Une règle de propriétaire n'a ajouté personne à un nouvel événement
-Ouvrez la règle et vérifiez ses conditions : chaque condition remplie doit être vraie. Un motif de titre est une expression régulière, donc `db upgrade` ne correspond pas à « DB-Upgrade » ; écrivez `db.upgrade`. Une règle n'agit par ailleurs que sur les événements créés après son enregistrement : utilisez **Run Now** pour ceux que vous avez déjà.
+Ouvrez la règle et vérifiez ses conditions : chaque condition remplie doit être vraie. Un motif de titre est une expression régulière, donc `db upgrade` ne correspond pas à « DB-Upgrade » ; écrivez `db.upgrade`. Une règle n'agit par ailleurs que sur les événements créés après son enregistrement : utilisez **Exécuter maintenant** pour ceux que vous avez déjà.
 :::
 
 :::details Les propriétaires n'ont reçu aucun rappel

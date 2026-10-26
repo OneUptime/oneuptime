@@ -147,7 +147,7 @@ Abra **Mais campos** da etapa: a lista **Runner** dela mostra todos os Runners d
 
 ### Salvar as etapas
 
-Clique em **Save Steps**. Quando uma execução chega à etapa, o Worker coloca na fila um trabalho para o ID desse Runner, e só esse Runner pode assumi-lo. Uma etapa em **Runner global** espera pelo Runner global que estiver livre.
+Clique em **Salvar etapas**. Quando uma execução chega à etapa, o Worker coloca na fila um trabalho para o ID desse Runner, e só esse Runner pode assumi-lo. Uma etapa em **Runner global** espera pelo Runner global que estiver livre.
 :::
 
 O Bash é executado com `bash -c`. O JavaScript roda em um sandbox `isolated-vm` no Runner, sem acesso ao sistema de arquivos nem a processos; ele pode chamar APIs HTTP públicas com `axios`, mas não endereços de uma rede privada. Uma etapa SSH ou kubectl entra com uma [variável de runbook](/docs/runbooks/variables) secreta, que precisa listar o Runner da etapa em **Seus Runners que podem usá-lo**.

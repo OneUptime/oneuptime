@@ -57,6 +57,8 @@ interface Statement {
 const FILE_REFERENCES_ADDED_LATER: Array<string> = [
   // A packet capture's pcap file is stored with the capture's project.
   '{"table":"PacketCapture","fileIdColumn":"fileId","owner":null}',
+  // A status page's dark theme logo is uploaded with the page's project.
+  '{"table":"StatusPage","fileIdColumn":"darkThemeLogoFileId","owner":null}',
 ];
 const MARKDOWN_COLUMNS_ADDED_LATER: Array<string> = [
   // Security cases and their detections and notes came after the backfill.

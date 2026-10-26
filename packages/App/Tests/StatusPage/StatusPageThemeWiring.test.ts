@@ -138,59 +138,124 @@ describe("the master page", () => {
 });
 
 describe("the page's logo", () => {
-  test("is plated on every page a visitor can see dark: Dark, and one that follows the device", () => {
-    const plate: string = readCode("Components", "Logo", "LogoPlate.tsx");
+  // The pages shown on their own, without the page's header.
+  const PAGES_WITH_LOGO: Array<string> = [
+    "Pages/Accounts/Login.tsx",
+    "Pages/Accounts/SSO.tsx",
+    "Pages/Accounts/ForgotPassword.tsx",
+    "Pages/Accounts/ResetPassword.tsx",
+    "Pages/Accounts/MasterPassword.tsx",
+    "Pages/Subscribe/Unsubscribe.tsx",
+  ];
 
-    expect(plate).toContain("canStatusPageThemeBeDark(theme)");
+  const theme: string = readCode("Utils", "StatusPageTheme.ts");
+  const plate: string = readCode("Components", "Logo", "LogoPlate.tsx");
+  const pageLogo: string = readCode("Components", "Logo", "PageLogo.tsx");
+
+  test("is plated on every page a visitor can see dark: Dark, one that follows the device, and any in the Dashboard's preview", () => {
+    expect(plate).toContain("StatusPageThemeUtil.canBeDarkForVisitor(theme)");
     expect(plate).not.toContain("doesStatusPageThemeFollowDevice");
+    expect(theme).toContain(
+      "return canStatusPageThemeBeDark(theme) || StatusPageThemeUtil.isPreview();",
+    );
+    expect(theme).toContain("return StatusPageUtil.isPreviewPage();");
+  });
+
+  test("gives way to the logo made for the dark theme while the page is dark, with no backdrop", () => {
+    const dark: number = plate.indexOf(
+      "if (colorScheme === STATUS_PAGE_DARK_SCHEME && props.darkLogo) {",
+    );
+    const plated: number = plate.indexOf("[LOGO_PLATE_ATTRIBUTE]");
+
+    expect(dark).toBeGreaterThan(-1);
+    // Returned before the backdrop is considered.
+    expect(plated).toBeGreaterThan(dark);
+    expect(plate.slice(dark, plated)).toContain("{props.darkLogo} </div> );");
   });
 
   test("sits in a LogoPlate wherever the app draws it: the header and every page shown on its own", () => {
-    const drawsLogo: Array<[string, string]> = [
-      ["Components/Header/Header.tsx", "<LogoPlate"],
-      ["Pages/Accounts/Login.tsx", "<LogoPlate"],
-      ["Pages/Accounts/SSO.tsx", "<LogoPlate"],
-      ["Pages/Accounts/ForgotPassword.tsx", "<LogoPlate"],
-      ["Pages/Accounts/ResetPassword.tsx", "<LogoPlate"],
-      ["Pages/Accounts/MasterPassword.tsx", "<LogoPlate"],
-      ["Pages/Subscribe/Unsubscribe.tsx", "<LogoPlate"],
-    ];
+    const header: string = readCode("Components", "Header", "Header.tsx");
 
-    for (const [file, plate] of drawsLogo) {
+    expect(header).toContain("<LogoPlate");
+    expect(header).toContain("darkLogo={ props.darkLogo ? (");
+    expect(pageLogo).toContain("<LogoPlate");
+
+    for (const file of PAGES_WITH_LOGO) {
       const code: string = readCode(...file.split("/"));
 
-      expect([file, code.includes(plate)]).toEqual([file, true]);
+      expect([file, code.includes("<PageLogo")]).toEqual([file, true]);
+      // Both of the page's logos: each page hands over the two ids.
+      expect([
+        file,
+        code.includes("darkThemeLogoFileId={props.darkThemeLogoFileId}"),
+      ]).toEqual([file, true]);
     }
   });
 
   test("no page draws the logo's image outside one", () => {
-    const pagesWithLogo: Array<string> = [
-      "Pages/Accounts/Login.tsx",
-      "Pages/Accounts/SSO.tsx",
-      "Pages/Accounts/ForgotPassword.tsx",
-      "Pages/Accounts/ResetPassword.tsx",
-      "Pages/Accounts/MasterPassword.tsx",
-      "Pages/Subscribe/Unsubscribe.tsx",
-    ];
-
-    for (const file of pagesWithLogo) {
+    for (const file of PAGES_WITH_LOGO) {
       const code: string = readCode(...file.split("/"));
-      const image: number = code.indexOf("src={logoUrl}");
-      const plate: number = code.lastIndexOf("<LogoPlate", image);
-      const plateEnd: number = code.indexOf("</LogoPlate>", plate);
 
-      expect([file, image > plate && plate > -1 && plateEnd > image]).toEqual([
-        file,
-        true,
-      ]);
+      // The pages draw no image of their own: PageLogo does.
+      expect([file, code.includes("<img")]).toEqual([file, false]);
     }
+
+    const plateStart: number = pageLogo.indexOf("<LogoPlate");
+    const plateEnd: number = pageLogo.indexOf("</LogoPlate>");
+    const images: Array<number> = [];
+    let at: number = pageLogo.indexOf("<img");
+
+    while (at >= 0) {
+      images.push(at);
+      at = pageLogo.indexOf("<img", at + 1);
+    }
+
+    // The logo, and the one for the dark theme.
+    expect(images).toHaveLength(2);
+
+    for (const image of images) {
+      expect(image > plateStart && plateStart > -1 && plateEnd > image).toBe(
+        true,
+      );
+    }
+
+    expect(pageLogo).toContain('route: "dark-theme-logo"');
+    expect(pageLogo).toContain('route: "logo"');
+  });
+
+  test("is read with the page: the master page hands the header both logos, and the app every page both ids", () => {
+    const masterPage: string = readCode(
+      "Components",
+      "MasterPage",
+      "MasterPage.tsx",
+    );
+    const app: string = readCode("App.tsx");
+
+    expect(masterPage).toContain('"statusPage.darkThemeLogoFile"');
+    expect(masterPage).toContain("logo={logo} darkLogo={darkLogo}");
+
+    const count: (code: string, text: string) => number = (
+      code: string,
+      text: string,
+    ): number => {
+      return code.split(text).length - 1;
+    };
+
+    // Counted by the values, which prettier may wrap onto lines of their own.
+    const logos: number = count(app, "new ObjectID(statusPageLogoFileId)");
+
+    expect(logos).toBeGreaterThan(5);
+    expect(count(app, "new ObjectID(statusPageDarkThemeLogoFileId)")).toBe(
+      logos,
+    );
+    expect(count(app, "darkThemeLogoFileId={")).toBe(logos);
   });
 });
 
 describe("the footer's switch", () => {
   const footer: string = readCode("Components", "Footer", "Footer.tsx");
 
-  test("sits beside the language switcher in one footer entry, and is drawn only on a page that follows the visitor's device", () => {
+  test("sits beside the language switcher in one footer entry, and is drawn only on a page that follows the visitor's device, or in the Dashboard's preview", () => {
     // One entry on every page, centred on a phone like the footer's others.
     expect(footer).toContain("className={FOOTER_VISITOR_CONTROLS_CLASS_NAME}");
     expect(footer).toContain(
@@ -205,7 +270,13 @@ describe("the footer's switch", () => {
     );
 
     expect(themeSwitch).toContain(
-      "if (!doesStatusPageThemeFollowDevice(theme)) { return <></>; }",
+      "if (!StatusPageThemeUtil.canVisitorSwitch(theme)) { return <></>; }",
+    );
+
+    const theme: string = readCode("Utils", "StatusPageTheme.ts");
+
+    expect(theme).toContain(
+      "return ( doesStatusPageThemeFollowDevice(theme) || StatusPageThemeUtil.isPreview() );",
     );
   });
 

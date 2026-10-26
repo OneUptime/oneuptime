@@ -117,6 +117,7 @@ import HostAddressUtil from "../../Utils/HostAddressUtil";
 import DeviceMonitorTemplateUtil from "../../Utils/Monitor/DeviceMonitorTemplateUtil";
 import IncomingEmailMonitorAddress from "../../Utils/Monitor/IncomingEmailMonitorAddress";
 import MonitorStepsIdentityUtil from "../../Utils/Monitor/MonitorStepsIdentityUtil";
+import SyntheticMonitorStepsUtil from "../../Utils/Monitor/SyntheticMonitorStepsUtil";
 import ProbeStatusMonitorEvaluator from "../Utils/Monitor/ProbeStatusMonitorEvaluator";
 import ProbeMonitorsNotification, {
   ProbeAffectedMonitor,
@@ -820,12 +821,27 @@ export class Service extends ProjectReferencesService<Model> {
 
     const isMonitorStepsWritten: boolean =
       updateDataKeys.includes("monitorSteps");
+    const isMonitorTypeWritten: boolean =
+      updateDataKeys.includes("monitorType");
+    /*
+     * Turning a monitor Synthetic is judged on the steps it holds; turning it
+     * into any other type needs nothing read - another type's steps run
+     * without a browser - so a write of {monitorType: Manual} stays a write
+     * that reads no monitor.
+     */
+    const isSyntheticTypeWritten: boolean =
+      isMonitorTypeWritten &&
+      updateBy.data.monitorType === MonitorType.SyntheticMonitor;
     const isMonitorTemplateWritten: boolean = RelationIdUtil.isWritten(
       updateDataKeys,
       MONITOR_TEMPLATE_RELATION_KEYS,
     );
 
-    if (isMonitorStepsWritten || isMonitorTemplateWritten) {
+    if (
+      isMonitorStepsWritten ||
+      isSyntheticTypeWritten ||
+      isMonitorTemplateWritten
+    ) {
       /*
        * Validated per matched monitor rather than per distinct project, because
        * the check needs that monitor's CURRENT monitorSteps: a reference id it
@@ -863,6 +879,24 @@ export class Service extends ProjectReferencesService<Model> {
       }
 
       for (const monitor of monitors) {
+        /*
+         * A Synthetic step with no browser or no screen size would run
+         * nothing: the steps this write leaves, under the type it leaves.
+         * Key presence again - a write of neither (a rename) is never
+         * refused for steps stored before this check existed.
+         */
+        if (isMonitorStepsWritten || isSyntheticTypeWritten) {
+          SyntheticMonitorStepsUtil.assertRunsSomewhere({
+            monitorType:
+              (isMonitorTypeWritten
+                ? (updateBy.data.monitorType as MonitorType | undefined)
+                : undefined) || monitor.monitorType,
+            monitorSteps: isMonitorStepsWritten
+              ? (updateBy.data.monitorSteps as MonitorSteps | JSONObject)
+              : monitor.monitorSteps,
+          });
+        }
+
         if (isMonitorStepsWritten) {
           if (updateBy.data.monitorSteps) {
             await MonitorStepsProjectValidator.validateMonitorStepsBelongToProject(
@@ -1854,6 +1888,12 @@ export class Service extends ProjectReferencesService<Model> {
     if (!createBy.props.tenantId) {
       throw new BadDataException("ProjectId required to create monitor.");
     }
+
+    // A Synthetic step with no browser or no screen size would run nothing.
+    SyntheticMonitorStepsUtil.assertRunsSomewhere({
+      monitorType: createBy.data.monitorType,
+      monitorSteps: createBy.data.monitorSteps,
+    });
 
     /*
      * Canonicalize the monitoring interval before anything is persisted.

@@ -81,6 +81,7 @@ import {
 import {
   POSTMORTEM_RULE_TEMPLATE_TEST_ID,
   POSTMORTEM_RULE_TEMPLATES_COLUMN_CLASS_NAME,
+  POSTMORTEM_RULE_TEXT_COLUMN_FLOOR_CLASS_NAME,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AISettings/PostmortemRuleTemplates";
 import {
   FILLED_IN_RULE_NAME_KEY,
@@ -354,9 +355,21 @@ describe("the postmortem rules table", () => {
       POSTMORTEM_RULE_TEMPLATES_COLUMN_CLASS_NAME,
     );
     expect(POSTMORTEM_RULE_TEMPLATES_COLUMN_CLASS_NAME).toBe(
-      "max-w-[11rem] 2xl:max-w-[18rem]",
+      "max-w-[10rem] 2xl:max-w-[18rem]",
     );
-    expect(columns[1]!.contentClassName).toBeUndefined();
+
+    /*
+     * Both narrow to 8rem, not a column of prose's 10rem: at 10rem the
+     * table ran past its card at 1280px in German and Russian. A floor,
+     * never a cap.
+     */
+    expect(POSTMORTEM_RULE_TEXT_COLUMN_FLOOR_CLASS_NAME).toBe("min-w-[8rem]");
+    expect(columns[0]!.contentClassName).toBe(
+      POSTMORTEM_RULE_TEXT_COLUMN_FLOOR_CLASS_NAME,
+    );
+    expect(columns[1]!.contentClassName).toBe(
+      POSTMORTEM_RULE_TEXT_COLUMN_FLOOR_CLASS_NAME,
+    );
 
     // Status stays a one-line pill.
     expect(columns[2]!.wrapContent).toBeUndefined();

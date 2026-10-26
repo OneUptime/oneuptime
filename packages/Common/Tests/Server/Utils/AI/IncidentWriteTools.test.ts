@@ -109,9 +109,8 @@ describe("create_incident", () => {
       "Card payments are failing for every region.",
     );
     expect(data.createdByUserId).toBe(USER_ID);
-    expect(data.rootCause).toBe(
-      "Incident created via the OneUptime AI copilot.",
-    );
+    // No root cause until somebody knows one: the person is its creator.
+    expect(data.rootCause).toBeUndefined();
     // The write runs under the caller's props so model-layer RBAC applies too.
     expect(callArgs["props"]).toBe(ctx.props);
 

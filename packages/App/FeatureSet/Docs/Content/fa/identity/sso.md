@@ -54,7 +54,7 @@ OneUptime فقط چند چیز را از assertionی که IdP شما می‌فر
 
 ## برپا کردن SSO
 
-به دسترسی افزودن ارائه‌دهندگان SSO نیاز دارید — **Project Owner**، **Project Admin** یا **Create Project SSO** — و در OneUptime Cloud به طرح **Scale**. برای سمت ارائه‌دهنده هویت خود، [راهنمای ارائه‌دهندگان هویت](#راهنمای-ارائهدهندگان-هویت) را ببینید.
+به دسترسی افزودن ارائه‌دهندگان SSO نیاز دارید — **مالک پروژه**، **مدیر پروژه** یا **Create Project SSO** — و در OneUptime Cloud به طرح **Scale**. برای سمت ارائه‌دهنده هویت خود، [راهنمای ارائه‌دهندگان هویت](#راهنمای-ارائهدهندگان-هویت) را ببینید.
 
 :::steps
 1. **رفتن به تنظیمات پروژه**
@@ -248,7 +248,7 @@ SSO در OneUptime از SAML 2.0 استفاده می‌کند و با هر ار�
 
 ## OpenID Connect (OIDC)
 
-یک پروژه می‌تواند از راه یک ارائه‌دهنده OpenID Connect هم وارد شود، مانند Google Workspace، Okta، Microsoft Entra ID، Auth0 یا Keycloak. به دسترسی افزودن ارائه‌دهندگان OIDC (**Project Owner**، **Project Admin** یا **Create Project OIDC**) و در OneUptime Cloud به طرح **Scale** نیاز دارید.
+یک پروژه می‌تواند از راه یک ارائه‌دهنده OpenID Connect هم وارد شود، مانند Google Workspace، Okta، Microsoft Entra ID، Auth0 یا Keycloak. به دسترسی افزودن ارائه‌دهندگان OIDC (**مالک پروژه**، **مدیر پروژه** یا **Create Project OIDC**) و در OneUptime Cloud به طرح **Scale** نیاز دارید.
 
 :::steps
 1. نزد ارائه‌دهنده هویت خود یک برنامه (یک کلاینت OIDC) ثبت کنید که بتواند از جریان authorization code با PKCE استفاده کند، و **نشانی صادرکننده**، **شناسه کلاینت** و **کلید محرمانه کلاینت** آن را کپی کنید.

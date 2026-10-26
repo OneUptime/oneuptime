@@ -28,6 +28,8 @@ import {
   isScopeShownFor,
 } from "../Permission/PermissionScopeChoice";
 import PermissionScopeCell from "../Permission/PermissionScopeCell";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import {
   ADD_PERMISSION_DIALOG_WORDS,
   AddPermissionDialogKind,
@@ -73,6 +75,7 @@ export interface ComponentProps {
 const TeamPermissionTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const { teamId, permissionType, currentProject } = props;
   const isBlock: boolean = permissionType === PermissionType.BlockPermissions;
 
@@ -374,7 +377,10 @@ const TeamPermissionTable: FunctionComponent<ComponentProps> = (
           getElement: (item: TeamPermission): ReactElement => {
             return (
               <p>
-                {PermissionHelper.getTitle(item["permission"] as Permission)}
+                {translator.translateText(
+                  PermissionHelper.getTitle(item["permission"] as Permission),
+                ) ||
+                  PermissionHelper.getTitle(item["permission"] as Permission)}
               </p>
             );
           },

@@ -35,7 +35,7 @@ Cliquez sur **Ajouter une variable**. Une nouvelle variable lit un attribut de t
 
 ### La renseigner
 
-Donnez-lui un **Nom**, qu'utilisent les widgets et les liens, comme `service` : des lettres, des chiffres et des tirets bas, commençant par une lettre ou un tiret bas, et différent des autres noms du tableau de bord. Ajoutez une **Étiquette** pour la barre d'outils si vous le souhaitez, une valeur **Par défaut** de départ, et cochez **Allow multi-select** pour permettre de choisir plusieurs valeurs.
+Donnez-lui un **Nom**, qu'utilisent les widgets et les liens, comme `service` : des lettres, des chiffres et des tirets bas, commençant par une lettre ou un tiret bas, et différent des autres noms du tableau de bord. Ajoutez une **Étiquette** pour la barre d'outils si vous le souhaitez, une valeur **Par défaut** de départ, et cochez **Autoriser la sélection multiple** pour permettre de choisir plusieurs valeurs.
 
 ### L'enregistrer
 
@@ -63,11 +63,11 @@ C'est la source la plus courante, car elle n'a besoin d'aucune liste propre : le
 
 ### Project Labels
 
-Choisissez des étiquettes de projet existantes à proposer dans une liste du tableau de bord. Par exemple, créez une variable nommée `UNIT`, réglez sa source sur **Project Labels**, et choisissez les étiquettes `0660` et `0661`.
+Choisissez des étiquettes de projet existantes à proposer dans une liste du tableau de bord. Par exemple, créez une variable nommée `UNIT`, réglez sa source sur **Étiquettes du projet**, et choisissez les étiquettes `0660` et `0661`.
 
 Le tableau de bord enregistre les identifiants et les noms affichés des étiquettes choisies. Le filtrage utilise les identifiants, donc renommer une étiquette de projet ne casse pas sa liaison. Les noms affichés sont enregistrés avec le tableau de bord ; resélectionnez une étiquette renommée dans l'éditeur de variables pour mettre à jour son nom affiché. Les tableaux de bord publics affichent ces mêmes choix enregistrés.
 
-Dans un widget **Liste des moniteurs**, ouvrez **Filtres → Variable d'étiquette** et sélectionnez `UNIT`. Choisir `0660` affiche alors les moniteurs qui portent cette étiquette. Les autres widgets ne sont pas concernés, sauf s'ils prennent en charge et lient explicitement la variable : la **SLO List** a le même réglage **Variable d'étiquette**.
+Dans un widget **Liste des moniteurs**, ouvrez **Filtres → Variable d'étiquette** et sélectionnez `UNIT`. Choisir `0660` affiche alors les moniteurs qui portent cette étiquette. Les autres widgets ne sont pas concernés, sauf s'ils prennent en charge et lient explicitement la variable : la **Liste des SLO** a le même réglage **Variable d'étiquette**.
 
 Les filtres fixes du widget restent appliqués. Par exemple, avec une étiquette fixe `network` et `UNIT` réglé sur `0660`, un moniteur doit porter les deux étiquettes. Plusieurs unités choisies correspondent à n'importe laquelle d'entre elles. Choisir **Tous** ne retire que la condition de la variable et conserve les filtres fixes d'étiquette, de statut et de type de moniteur.
 
@@ -81,7 +81,7 @@ Une variable Query d'un tableau de bord plus ancien est conservée et affiche un
 
 ## Choix multiple et valeurs par défaut
 
-Avec **Allow multi-select** coché, les personnes choisissent une ou plusieurs valeurs, et les widgets affichent n'importe laquelle d'entre elles. Une sélection vide signifie **Tous**, et une variable à choix multiple démarre toujours sur **Tous**, d'où sa valeur **Par défaut** grisée.
+Avec **Autoriser la sélection multiple** coché, les personnes choisissent une ou plusieurs valeurs, et les widgets affichent n'importe laquelle d'entre elles. Une sélection vide signifie **Tous**, et une variable à choix multiple démarre toujours sur **Tous**, d'où sa valeur **Par défaut** grisée.
 
 Une variable à choix unique démarre sur sa valeur **Par défaut**, ou sur **Tous** si elle n'en a pas. **Tous** retire le filtre de la variable, et les widgets affichent tout.
 
@@ -91,9 +91,9 @@ Utilisez le choix multiple pour comparer « checkout et payments ensemble » san
 
 Chaque source atteint les widgets à sa manière :
 
-- Les variables **Telemetry Attribute** filtrent des widgets sans rien régler sur eux : chaque graphique, valeur, jauge et tableau de métriques ; le **Graphique de journaux**, le **Flux de journaux**, le **Trace Chart** et le **Trace Table** ; et les listes d'infrastructure dont les ressources portent l'attribut, comme `host.name` sur les listes d'hôtes et `k8s.namespace.name` sur les listes Kubernetes. Le graphique d'une métrique sans cet attribut n'affiche aucune donnée tant qu'une valeur est choisie : choisissez **Tous** pour le revoir. La **Liste des traces** et les listes d'incidents et d'alertes ne les suivent pas.
-- Les variables **Project Labels** filtrent une **Liste des moniteurs** ou une **SLO List** dont la **Variable d'étiquette** les nomme.
-- **N'importe quelle variable** peut s'écrire dans du texte sous la forme `{{name}}` : dans un [widget HTML](/docs/dashboards/widgets#html), dans la requête d'une [source de données externe](/docs/dashboards/data-sources), et dans le titre d'une **Liste des moniteurs** ou d'une **SLO List**. Un titre comme `{{UNIT}} NETWORK` affiche `0660 NETWORK`, `0660, 0661 NETWORK` ou `All NETWORK`. Un titre ne règle que le texte affiché ; configurez la **Variable d'étiquette** pour filtrer la requête des moniteurs.
+- Les variables **Attribut de télémétrie** filtrent des widgets sans rien régler sur eux : chaque graphique, valeur, jauge et tableau de métriques ; le **Graphique de journaux**, le **Flux de journaux**, le **Graphique de traces** et le **Tableau des traces** ; et les listes d'infrastructure dont les ressources portent l'attribut, comme `host.name` sur les listes d'hôtes et `k8s.namespace.name` sur les listes Kubernetes. Le graphique d'une métrique sans cet attribut n'affiche aucune donnée tant qu'une valeur est choisie : choisissez **Tous** pour le revoir. La **Liste des traces** et les listes d'incidents et d'alertes ne les suivent pas.
+- Les variables **Étiquettes du projet** filtrent une **Liste des moniteurs** ou une **Liste des SLO** dont la **Variable d'étiquette** les nomme.
+- **N'importe quelle variable** peut s'écrire dans du texte sous la forme `{{name}}` : dans un [widget HTML](/docs/dashboards/widgets#html), dans la requête d'une [source de données externe](/docs/dashboards/data-sources), et dans le titre d'une **Liste des moniteurs** ou d'une **Liste des SLO**. Un titre comme `{{UNIT}} NETWORK` affiche `0660 NETWORK`, `0660, 0661 NETWORK` ou `All NETWORK`. Un titre ne règle que le texte affiché ; configurez la **Variable d'étiquette** pour filtrer la requête des moniteurs.
 
 Le [widget SLO](/docs/dashboards/widgets#slo) peut suivre une variable Telemetry Attribute sur la clé `sloName`, pour que les personnes choisissent quel SLO il affiche.
 

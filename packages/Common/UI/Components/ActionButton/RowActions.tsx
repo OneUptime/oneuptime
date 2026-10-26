@@ -2,6 +2,7 @@ import ActionButtonSchema, {
   RowActionConfirmation,
 } from "./ActionButtonSchema";
 import { startsNewMenuGroup } from "./ActionMenuGroup";
+import { isShortTitleInName } from "../Button/ShortButtonWords";
 import splitActionButtons, {
   ActionButtonLock,
   getActionButtonLock,
@@ -145,6 +146,15 @@ const RowActions: RowActionsFunction = <T extends GenericObject>(
   const primaryLock: ActionButtonLock | null = primary
     ? getActionButtonLock(primary.button, props.item)
     : null;
+
+  // Its short words, while its name holds them as they are shown.
+  const isPrimaryShortened: boolean = Boolean(
+    primary &&
+      isShortTitleInName({
+        title: translateString(primary.button.title),
+        shortTitle: translateString(primary.button.rowButtonTitle),
+      }),
+  );
 
   if (!primary && moreMenu.length === 0 && !error && !confirming) {
     return <></>;
@@ -345,7 +355,12 @@ const RowActions: RowActionsFunction = <T extends GenericObject>(
         <div className="shrink-0">
           <Button
             buttonSize={ButtonSize.Small}
-            title={primary.button.title}
+            title={
+              isPrimaryShortened
+                ? primary.button.rowButtonTitle
+                : primary.button.title
+            }
+            ariaLabel={isPrimaryShortened ? primary.button.title : undefined}
             buttonStyle={getRowButtonStyle(primary.button.buttonStyleType)}
             isLoading={loadingActionIndexes.current[primary.index]}
             disabled={primaryLock?.isDisabled}

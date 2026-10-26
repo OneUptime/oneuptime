@@ -1,4 +1,4 @@
-import LogoPlate from "../../Components/Logo/LogoPlate";
+import PageLogo from "../../Components/Logo/PageLogo";
 import API from "../../Utils/API";
 import { STATUS_PAGE_API_URL } from "../../Utils/Config";
 import PageMap from "../../Utils/PageMap";
@@ -52,6 +52,8 @@ import { useTranslation } from "react-i18next";
 export interface ComponentProps {
   statusPageName: string;
   logoFileId: ObjectID;
+  // The logo made for the dark theme, shown instead while the page is dark.
+  darkThemeLogoFileId?: ObjectID | undefined;
   /*
    * The channels the page offers, for the link an out-of-date link's reader
    * gets to the Subscribe page (see ManageLinkRequestPage).
@@ -203,13 +205,6 @@ const UnsubscribePage: FunctionComponent<ComponentProps> = (
   if (!statusPageId) {
     return <PageLoader isVisible={true} />;
   }
-
-  const logoUrl: string | null =
-    props.logoFileId && props.logoFileId.toString()
-      ? URL.fromString(STATUS_PAGE_API_URL.toString())
-          .addRoute(`/logo/${statusPageId.toString()}`)
-          .toString()
-      : null;
 
   /*
    * The subscriber's Update Subscription page, for a link that carries its
@@ -401,15 +396,11 @@ const UnsubscribePage: FunctionComponent<ComponentProps> = (
   return (
     <div className="flex min-h-full flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        {logoUrl ? (
-          <LogoPlate className="mx-auto w-fit">
-            <img
-              style={{ height: "70px", margin: "auto" }}
-              src={logoUrl}
-              alt={props.statusPageName || ""}
-            />
-          </LogoPlate>
-        ) : null}
+        <PageLogo
+          logoFileId={props.logoFileId}
+          darkThemeLogoFileId={props.darkThemeLogoFileId}
+          altText={props.statusPageName}
+        />
         <h2 className="mt-6 text-center text-2xl tracking-tight text-gray-900">
           {props.statusPageName
             ? t("subscribe.unsubscribe.titleWithName", {

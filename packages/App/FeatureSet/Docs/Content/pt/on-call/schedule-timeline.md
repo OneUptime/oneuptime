@@ -23,7 +23,7 @@ flowchart TB
 - **Plantão** > **Linha do tempo de plantões** mostra todos os agendamentos que você pode ver, agrupados pela equipe proprietária. O botão **Visualização em linha do tempo** em **Agendamentos de plantão** abre a mesma página.
 - **Equipes** > uma equipe > **Agendamentos de plantão** mostra só os agendamentos de que essa equipe é proprietária.
 
-Uma equipe é proprietária de um agendamento quando aparece na página **Proprietários** do agendamento. Os agendamentos sem equipe proprietária ficam agrupados em **No owner team**. Desligue **Group by team** para ver todos os agendamentos em uma única lista, ordenada por nome.
+Uma equipe é proprietária de um agendamento quando aparece na página **Proprietários** do agendamento. Os agendamentos sem equipe proprietária ficam agrupados em **Sem equipe proprietária**. Desligue **Agrupar por equipe** para ver todos os agendamentos em uma única lista, ordenada por nome.
 
 ## Leia a grade
 
@@ -34,16 +34,16 @@ Uma equipe é proprietária de um agendamento quando aparece na página **Propri
 | Uma barra marcada com **⇄** | Uma substituição: alguém está cobrindo um turno. A faixa fina abaixo dela mostra a pessoa cujo turno está sendo coberto, riscada. |
 | Um bloco âmbar hachurado | Uma lacuna de cobertura: ninguém está de plantão. Um alerta que escala para esse agendamento não aciona ninguém. |
 | A linha vermelha | Agora. |
-| A linha abaixo do nome de um agendamento | Quem está de plantão agora, ou **No one on call now**. |
+| A linha abaixo do nome de um agendamento | Quem está de plantão agora, ou **Ninguém de plantão agora**. |
 
 Passe o ponteiro sobre uma barra ou uma lacuna, ou chegue até elas pelo teclado, para ver os detalhes.
 
-Abaixo da grade, **On call this week** (**On call this month** na visualização mensal) lista todo mundo que está de plantão no período. Passe o ponteiro sobre um nome para ver por quanto tempo a pessoa está de plantão, e em quantos agendamentos.
+Abaixo da grade, **De plantão esta semana** (**De plantão este mês** na visualização mensal) lista todo mundo que está de plantão no período. Passe o ponteiro sobre um nome para ver por quanto tempo a pessoa está de plantão, e em quantos agendamentos.
 
 ## Mude o período e o fuso horário
 
 - Alterne entre **Semana** e **Mês**, navegue com as setas e volte com **Hoje**.
-- Os horários aparecem no seu próprio fuso horário. O botão de fuso horário abre **View timeline in timezone**, que mostra a linha do tempo em qualquer outro fuso sem mudar quem está de plantão: cada agendamento continua passando o turno no próprio fuso horário.
+- Os horários aparecem no seu próprio fuso horário. O botão de fuso horário abre **Ver a linha do tempo em um fuso horário**, que mostra a linha do tempo em qualquer outro fuso sem mudar quem está de plantão: cada agendamento continua passando o turno no próprio fuso horário.
 - A linha do tempo cobre 180 dias para trás e 365 dias para frente.
 
 > [!NOTE]
@@ -52,9 +52,9 @@ Abaixo da grade, **On call this week** (**On call this month** na visualização
 ## Encontre um agendamento ou uma pessoa
 
 - **Pesquisar** encontra nomes de agendamentos, nomes de equipes e as pessoas de plantão.
-- O filtro de equipe limita a visualização a uma equipe ou a **My teams**; **Schedules I'm on** mantém só os agendamentos de que você faz parte.
-- Acima da grade, clique em **with no one on call now** ou **with coverage gaps this week** (**with coverage gaps this month** na visualização mensal) para ver só esses agendamentos. Clique de novo para ver todos.
-- Clique em uma pessoa abaixo da grade, ou em uma das barras dela, para destacar todos os turnos dela. **Clear highlight** desfaz isso, e **Clear filters** limpa a pesquisa e os filtros.
+- O filtro de equipe limita a visualização a uma equipe ou a **Minhas equipes**; **Agendamentos em que estou** mantém só os agendamentos de que você faz parte.
+- Acima da grade, clique em **sem ninguém de plantão agora** ou **com lacunas de cobertura esta semana** (**com lacunas de cobertura este mês** na visualização mensal) para ver só esses agendamentos. Clique de novo para ver todos.
+- Clique em uma pessoa abaixo da grade, ou em uma das barras dela, para destacar todos os turnos dela. **Limpar destaque** desfaz isso, e **Limpar filtros** limpa a pesquisa e os filtros.
 
 ## Quem vê o quê
 

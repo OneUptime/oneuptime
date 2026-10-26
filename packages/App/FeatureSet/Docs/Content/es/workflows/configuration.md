@@ -99,7 +99,7 @@ Los disparadores webhook te dan una URL única. Cualquiera que conozca la URL pu
 - Para flujos de trabajo sensibles, pide al sistema que llama que envíe un token compartido en una cabecera (como `X-Webhook-Token`) y compruébalo con un bloque **If / Else** antes de hacer nada importante. Guarda el token esperado como variable secreta.
 - Para flujos de trabajo muy sensibles, prefiere un disparador de eventos de OneUptime y un paso de importación manual en lugar de un webhook público.
 
-Solo las personas que pueden editar el flujo de trabajo — **Project Owner**, **Project Admin**, **Workflow Admin** o **Edit Workflow** — pueden ver o restablecer su URL de webhook. Cualquiera que tenga la URL puede iniciar el flujo de trabajo desde cualquier lugar, sin iniciar sesión, así que todos los demás ven una nota que dice a quién pedírsela. Eso incluye a un **Workflow Member**, que ejecuta el flujo de trabajo a mano desde el **Constructor**.
+Solo las personas que pueden editar el flujo de trabajo — **Propietario del proyecto**, **Administrador del proyecto**, **Administrador de flujos de trabajo** o **Edit Workflow** — pueden ver o restablecer su URL de webhook. Cualquiera que tenga la URL puede iniciar el flujo de trabajo desde cualquier lugar, sin iniciar sesión, así que todos los demás ven una nota que dice a quién pedírsela. Eso incluye a un **Miembro de flujos de trabajo**, que ejecuta el flujo de trabajo a mano desde el **Constructor**.
 
 ## Seguridad del correo entrante
 
@@ -110,7 +110,7 @@ El disparador Incoming Email da al flujo de trabajo una dirección propia, y cua
 - Cualquiera puede poner cualquier remitente en un correo, así que **From** no prueba quién lo envió. Antes de que un flujo de trabajo haga algo importante, comprueba algo que solo sepa el remitente real — un token en el asunto o en una cabecera — con un bloque **If / Else**. Guarda el token esperado como variable secreta.
 - La clave se oculta en todo lo que recibe la ejecución — **To**, **CC**, las cabeceras y los cuerpos —, porque el registro de la ejecución es visible para cualquiera que pueda leer las ejecuciones del flujo de trabajo.
 
-Solo las personas que pueden editar el flujo de trabajo — **Project Owner**, **Project Admin**, **Workflow Admin** o **Edit Workflow** — pueden ver o restablecer su dirección. Todos los demás ven una nota que dice a quién pedírsela.
+Solo las personas que pueden editar el flujo de trabajo — **Propietario del proyecto**, **Administrador del proyecto**, **Administrador de flujos de trabajo** o **Edit Workflow** — pueden ver o restablecer su dirección. Todos los demás ven una nota que dice a quién pedírsela.
 
 ## Acceso de red saliente
 
@@ -166,30 +166,30 @@ Los fallos de validación, configuración, acceso, límite, créditos, simultane
 
 Los flujos de trabajo respetan el control de acceso basado en roles de tu proyecto. Los tres roles de flujo de trabajo:
 
-- **Workflow Admin** — construye flujos de trabajo: los crea, cambia, ejecuta y elimina, y gestiona las variables que usan.
-- **Workflow Member** — los usa: abre los flujos de trabajo y sus ejecuciones, y ejecuta un flujo de trabajo a mano con **Ejecutar flujo de trabajo**. Un miembro no puede crear, cambiar ni eliminar un flujo de trabajo, ni ejecutar uno de sus pasos por separado.
-- **Workflow Viewer** — lee los flujos de trabajo y sus ejecuciones.
+- **Administrador de flujos de trabajo** — construye flujos de trabajo: los crea, cambia, ejecuta y elimina, y gestiona las variables que usan.
+- **Miembro de flujos de trabajo** — los usa: abre los flujos de trabajo y sus ejecuciones, y ejecuta un flujo de trabajo a mano con **Ejecutar flujo de trabajo**. Un miembro no puede crear, cambiar ni eliminar un flujo de trabajo, ni ejecutar uno de sus pasos por separado.
+- **Visor de flujos de trabajo** — lee los flujos de trabajo y sus ejecuciones.
 
-**Project Owner** y **Project Admin** pueden hacer todo lo que puede hacer un Workflow Admin. **Project Member** puede crear y eliminar flujos de trabajo, pero no cambiarlos ni ejecutarlos.
+**Propietario del proyecto** y **Administrador del proyecto** pueden hacer todo lo que puede hacer un Workflow Admin. **Miembro del proyecto** puede crear y eliminar flujos de trabajo, pero no cambiarlos ni ejecutarlos.
 
 Los permisos individuales, para un equipo o una clave de API que necesita exactamente una cosa:
 
 - **Create / Read / Edit / Delete Workflow** — los permisos básicos sobre el propio flujo de trabajo. Cambiar un flujo de trabajo, incluido activarlo, desactivarlo o archivarlo, requiere **Edit Workflow**; **Delete Workflow** solo elimina.
-- **Edit Workflow** — también es lo que hace falta para ejecutar un paso por separado con **Ejecutar solo este paso**, y para ver o restablecer la URL de webhook y la dirección de correo entrante de un flujo de trabajo. Ejecutar un flujo de trabajo completo a mano requiere **Edit Workflow**, **Workflow Admin** o **Workflow Member**.
+- **Edit Workflow** — también es lo que hace falta para ejecutar un paso por separado con **Ejecutar solo este paso**, y para ver o restablecer la URL de webhook y la dirección de correo entrante de un flujo de trabajo. Ejecutar un flujo de trabajo completo a mano requiere **Edit Workflow**, **Administrador de flujos de trabajo** o **Miembro de flujos de trabajo**.
 - **Read Workflow Log** — necesario para ver las ejecuciones.
 - **Create / Read / Edit / Delete Workflow Variables** — gestionar las variables globales y del flujo de trabajo.
 
 Una ejecución manual solo llega a los flujos de trabajo que puedes abrir: un rol limitado a algunas etiquetas, o a los flujos de trabajo que posee tu equipo, solo ejecuta esos. Quien no puede ejecutar un flujo de trabajo ve **Ejecutar flujo de trabajo** en gris, con el motivo en su tooltip.
 
-Da **Workflow Admin** a las personas que construyen la automatización, y **Workflow Member** a las que solo la ponen en marcha. Reserva el acceso de edición de variables a las personas que gestionan los secretos de tu proyecto. Consulta [Usuarios, equipos y permisos](/docs/permissions/index) para ver cómo se conceden los roles.
+Da **Administrador de flujos de trabajo** a las personas que construyen la automatización, y **Miembro de flujos de trabajo** a las que solo la ponen en marcha. Reserva el acceso de edición de variables a las personas que gestionan los secretos de tu proyecto. Consulta [Usuarios, equipos y permisos](/docs/permissions/index) para ver cómo se conceden los roles.
 
 ## Qué pueden hacer los pasos de un flujo de trabajo
 
-Los pasos que leen y cambian registros de OneUptime — los componentes Find, Create, Update y Delete, y los disparadores On Create, On Update, On Create or Update y On Delete — actúan como **Project Admin** del proyecto del flujo de trabajo. Lo haya construido quien lo haya construido, un paso pasa las mismas comprobaciones que pasa un Project Admin en el panel y en la API:
+Los pasos que leen y cambian registros de OneUptime — los componentes Find, Create, Update y Delete, y los disparadores On Create, On Update, On Create or Update y On Delete — actúan como **Administrador del proyecto** del proyecto del flujo de trabajo. Lo haya construido quien lo haya construido, un paso pasa las mismas comprobaciones que pasa un Project Admin en el panel y en la API:
 
 - **Solo el proyecto del propio flujo de trabajo.** Un paso lee y escribe los registros del proyecto al que pertenece el flujo de trabajo y de ningún otro, y un Update nunca mueve un registro a otro proyecto.
-- **Solo lo que puede hacer un Project Admin.** Un paso no puede hacer lo que solo permiten **Project Owner** y los permisos de facturación o de eliminación del proyecto, y no puede leer quién creó una sonda o un agente de IA, algo que solo ven los propietarios del proyecto.
-- **No quién tiene acceso.** Un paso no crea, cambia ni elimina equipos, miembros de equipo, permisos de equipo, roles personalizados ni permisos de claves de API, aunque un Project Admin sí pueda. Quien construye un flujo de trabajo decide lo que hacen sus pasos, y puede ser un **Project Member**, así que un paso que pudiera hacerlo le daría a quien lo construyó un acceso que no se le dio, como **Project Admin**. El paso se rechaza, y el registro de la ejecución dice que una persona que gestione los equipos y las claves de API del proyecto tiene que hacer el cambio. Los disparadores y los pasos Find sobre estos registros siguen funcionando.
+- **Solo lo que puede hacer un Project Admin.** Un paso no puede hacer lo que solo permiten **Propietario del proyecto** y los permisos de facturación o de eliminación del proyecto, y no puede leer quién creó una sonda o un agente de IA, algo que solo ven los propietarios del proyecto.
+- **No quién tiene acceso.** Un paso no crea, cambia ni elimina equipos, miembros de equipo, permisos de equipo, roles personalizados ni permisos de claves de API, aunque un Project Admin sí pueda. Quien construye un flujo de trabajo decide lo que hacen sus pasos, y puede ser un **Miembro del proyecto**, así que un paso que pudiera hacerlo le daría a quien lo construyó un acceso que no se le dio, como **Administrador del proyecto**. El paso se rechaza, y el registro de la ejecución dice que una persona que gestione los equipos y las claves de API del proyecto tiene que hacer el cambio. Los disparadores y los pasos Find sobre estos registros siguen funcionando.
 - **No la lectura de configuraciones que contienen credenciales.** Un Project Admin puede leer servidores SMTP, proveedores de llamadas y SMS, credenciales SNMP, conexiones de videollamada y claves de API, pero eso nunca se le presta a un paso, sin importar quién creó o guardó el flujo de trabajo. Un paso no puede nombrar una de estas configuraciones, como el servidor SMTP con el que una página de estado envía correos o la clave de API a la que se concede un permiso. El paso se rechaza, y su registro de ejecución dice que tiene que hacer el cambio una persona que pueda leerlas (el permiso de lectura de ese tipo de configuración, o un Project Owner o Project Admin). Un paso que conserva la configuración que un registro ya nombra, o la vacía, no se rechaza.
 - **Solo lo que incluye tu plan.** En OneUptime Cloud, un paso que crea o cambia algo que tu plan no incluye se rechaza indicando el plan que necesita, igual que en el panel. Las instalaciones autoalojadas sin facturación no tienen límites de plan.
 - **Nada de lo que OneUptime se reserva.** Esto se rechaza a todo el mundo, flujos de trabajo incluidos:

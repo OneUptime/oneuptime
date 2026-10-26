@@ -29,7 +29,7 @@ Abra **Produtos → Security Events → Risco de entidades**: cada usuário, hos
 ## Antes de começar
 
 - Eventos de segurança chegando, e regras de detecção, inteligência de ameaças ou produtos conectados que encontram algo neles. Veja [Primeiros passos com a segurança](/docs/telemetry/security-getting-started).
-- Regras de detecção que agrupam por um campo que nomeia alguém: **Group By Field**, como `principalUser`, `principalHost` ou `principalIp`, ou os campos pelos quais uma correlação agrupa. Uma regra que não agrupa por nada não soma risco.
+- Regras de detecção que agrupam por um campo que nomeia alguém: **Campo de agrupamento**, como `principalUser`, `principalHost` ou `principalIp`, ou os campos pelos quais uma correlação agrupa. Uma regra que não agrupa por nada não soma risco.
 - Para alterar **Pontuação de risco**: Project Owner ou Project Admin para o seu interruptor e o seu limite, e uma função que possa criar regras de detecção para a sua lista de entidades. Security Viewer lê tudo. Veja [Funções](/docs/permissions/reference#funções).
 
 ## Como uma pontuação é contada
@@ -86,7 +86,7 @@ Uma entrada é um valor ou um padrão com `*`, sem diferenciar maiúsculas: `dc-
 
 ## A página de uma entidade
 
-Clique em **Visualizar** numa linha de **Risco de entidades**, ou no risco ao lado de uma entidade na página **Entidades** de um caso:
+Clique em **Ver** numa linha de **Risco de entidades**, ou no risco ao lado de uma entidade na página **Entidades** de um caso:
 
 | Parte | O que mostra |
 | --- | --- |

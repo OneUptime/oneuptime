@@ -25,7 +25,7 @@ flowchart TB
 
 - **Le nom fait l'identité du service.** La comparaison ignore la casse : `Checkout-API` et `checkout-api` sont un seul service. Un nouveau `service.name` crée un nouveau service.
 - **Les conteneurs se nomment eux-mêmes.** La télémétrie des agents Docker et Podman nomme un service d'après son conteneur quand elle n'a pas de `service.name`.
-- **Une clé d'ingestion peut nommer le service.** Les données OpenTelemetry envoyées avec une clé qui a un **Pinned Service Name** sont rangées sous ce nom, quel que soit leur `service.name`. Voir [Clés d'ingestion](/docs/telemetry/ingestion-keys#verrouiller-une-clé-de-navigateur).
+- **Une clé d'ingestion peut nommer le service.** Les données OpenTelemetry envoyées avec une clé qui a un **Nom du service épinglé** sont rangées sous ce nom, quel que soit leur `service.name`. Voir [Clés d'ingestion](/docs/telemetry/ingestion-keys#verrouiller-une-clé-de-navigateur).
 - **Les navigateurs et les téléphones ne sont pas des services.** La télémétrie d'un navigateur ou d'une application mobile appartient plutôt à une [application RUM](/docs/rum/applications).
 - **Les étiquettes peuvent venir avec la télémétrie.** Un attribut de ressource nommé `oneuptime.label.<name>` ajoute l'étiquette `<name>:<value>` au service, par exemple `oneuptime.label.team=payments` pour `team:payments`.
 
@@ -61,7 +61,7 @@ Le menu latéral d'un service compte cinq sections :
 
 | Section | Pages |
 | --- | --- |
-| **Basique** | **Vue d'ensemble** : requêtes, taux d'erreur et latence p95 tirés de ses spans, graphiques et détails. **Recommendations** : des moniteurs prêts à l'emploi pour le service, choisis selon son langage. **Propriétaires** : les personnes et les équipes qui en sont responsables. **Fil d'activité** : tout ce qui lui est arrivé, de sa création à chaque modification depuis. |
+| **Basique** | **Vue d'ensemble** : requêtes, taux d'erreur et latence p95 tirés de ses spans, graphiques et détails. **Recommandations** : des moniteurs prêts à l'emploi pour le service, choisis selon son langage. **Propriétaires** : les personnes et les équipes qui en sont responsables. **Fil d'activité** : tout ce qui lui est arrivé, de sa création à chaque modification depuis. |
 | **Télémétrie** | Ses **Journaux**, **Traces**, **Métriques**, **Profils de performance**, **Exceptions** et **Source Maps**, déjà filtrés sur ce service. |
 | **Activité** | Les **Incidents**, les **Alertes** et les événements de **Maintenance planifiée** qui le concernent. |
 | **Développeurs** | **Terraform**, **API** et **Assistants IA** : le service géré depuis du code. Cette section est d'abord repliée. |

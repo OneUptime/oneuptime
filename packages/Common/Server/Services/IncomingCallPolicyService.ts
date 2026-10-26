@@ -21,6 +21,24 @@ import IncomingCallPolicyOwnerUser from "../../Models/DatabaseModels/IncomingCal
 import User from "../../Models/DatabaseModels/User";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import Select from "../Types/Database/Select";
+import CreateBy from "../Types/Database/CreateBy";
+import ColumnRuleCheck, { ColumnRule } from "../Utils/Database/ColumnRuleCheck";
+import {
+  INCOMING_CALL_POLICY_REPEAT_COLUMNS,
+  getIncomingCallPolicyRepeatRefusal,
+} from "../../Types/IncomingCall/IncomingCallPolicyRepeat";
+
+/*
+ * A policy that says it rings again gives a whole number of times of 1 or
+ * more, however it is saved, as the Repeat Policy card does
+ * (Types/IncomingCall/IncomingCallPolicyRepeat).
+ */
+export const INCOMING_CALL_POLICY_REPEAT_RULE: ColumnRule = {
+  columns: INCOMING_CALL_POLICY_REPEAT_COLUMNS,
+  getRefusal: (values: Record<string, unknown>): string | null => {
+    return getIncomingCallPolicyRepeatRefusal(values);
+  },
+};
 
 function normalizeProjectCallSMSConfigIdValue(
   value: unknown,
@@ -81,6 +99,30 @@ function normalizeProjectCallSMSConfigId(
 export class Service extends ProjectReferencesService<IncomingCallPolicy> {
   public constructor() {
     super(IncomingCallPolicy);
+  }
+
+  /*
+   * How many times the policy rings again is checked before anything else
+   * is looked up: the values alone decide (ColumnRuleCheck) - from the
+   * Dashboard, the API, Terraform, MCP or a workflow alike.
+   */
+  protected override async checkCreateBeforeReferences(
+    createBy: CreateBy<IncomingCallPolicy>,
+  ): Promise<void> {
+    ColumnRuleCheck.checkCreate(
+      createBy.data,
+      INCOMING_CALL_POLICY_REPEAT_RULE,
+    );
+  }
+
+  protected override async checkUpdateBeforeReferences(
+    updateBy: UpdateBy<IncomingCallPolicy>,
+  ): Promise<void> {
+    await ColumnRuleCheck.checkUpdate({
+      service: this,
+      updateBy: updateBy,
+      rule: INCOMING_CALL_POLICY_REPEAT_RULE,
+    });
   }
 
   @CaptureSpan()

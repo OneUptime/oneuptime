@@ -142,13 +142,13 @@ curl -X POST 'https://oneuptime.com/api/inventory-item/get-list?output-type=csv'
 | IP 位址 | `host.ip` | 收集器回報的每個位址 | OneUptime 輪詢的位址（當它是 IP 位址時），否則為其探測器將該 DNS 名稱解析到的位址 |
 | MAC 位址 | `host.mac` | 偵測取得 | 在裝置上輸入，或從走訪過的路由器的 ARP 表中得知 |
 | 序號 | `host.serial_number` | 標記 | ENTITY-MIB |
-| Manufacturer | `device.manufacturer` | 標記 | ENTITY-MIB，否則為 `sysDescr` 或 `sysObjectID` 指明的內容 |
+| 製造商 | `device.manufacturer` | 標記 | ENTITY-MIB，否則為 `sysDescr` 或 `sysObjectID` 指明的內容 |
 | 模型 | `device.model.name` | 標記 | ENTITY-MIB，否則為 `sysDescr` 指明的內容 |
 | 韌體版本 | `device.firmware.version` | 標記 | ENTITY-MIB，否則為 `sysDescr` 指明的內容 |
 | 作業系統 | `os.name` | `os.description`（或 `os.type`） | `sysDescr` 指明的內容：Cisco IOS、Junos OS、Arista EOS、Linux |
 | 作業系統版本 | `os.version` | 偵測取得 | ENTITY-MIB，否則為 `sysDescr` 指明的內容 |
 | Device Type | `device.type` | 標記。否則卡片會根據其作業系統和名稱加以分類（伺服器、防火牆……） | 它的角色：你指派的角色，否則為拓撲圖繪製它時使用的角色 |
-| Location | `device.location` | 標記。否則卡片會顯示其雲端可用區域 | `sysLocation`。卡片會優先顯示其站點 |
+| 位置 | `device.location` | 標記。否則卡片會顯示其雲端可用區域 | `sysLocation`。卡片會優先顯示其站點 |
 
 下文的 [主機表](#主機資產屬性) 和 [網路裝置表](#網路裝置資產屬性) 詳細說明了每個值的來源。
 

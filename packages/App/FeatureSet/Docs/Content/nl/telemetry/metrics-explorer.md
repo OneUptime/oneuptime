@@ -59,7 +59,7 @@ Kies onder **Aggregate by** hoe de waarden in elk punt van de grafiek worden gec
 
 ### Filteren en groeperen
 
-Open **Filters & grouping**. **Filter by attributes** houdt de datapunten waarvan de attributen overeenkomen, zoals één `http.route`, en **Group by** tekent één lijn per waarde van de attributen die u kiest, zoals één lijn per host.
+Open **Filters & grouping**. **Filter by attributes** houdt de datapunten waarvan de attributen overeenkomen, zoals één `http.route`, en **Groeperen op** tekent één lijn per waarde van de attributen die u kiest, zoals één lijn per host.
 
 ### De grafiek aanpassen
 
@@ -104,7 +104,7 @@ Sleep over een grafiek om op een moment in te zoomen, en dubbelklik om weer uit 
 - **Acties → Monitor maken vanuit deze weergave** opent een nieuwe metriekmonitor waarin deze query's en formules al zijn ingevuld. Zie [Metrics-monitor](/docs/monitor/metrics-monitor).
 - **Acties → Add to dashboard** voegt de grafiek toe aan een dashboard naar keuze. U hebt toestemming nodig om dat dashboard te bewerken.
 - **Link kopiëren** kopieert een link naar precies deze weergave: query's, formules en tijdsbereik.
-- **Saved Views** bewaart de weergave onder een naam voor iedereen in het project. De **Kijker** heeft eigen opgeslagen weergaven, voor zijn zoekopdracht en filters. Opgeslagen weergaven werken zoals in de [Logboekverkenner](/docs/telemetry/logs-explorer#een-weergave-opslaan).
+- **Opgeslagen weergaven** bewaart de weergave onder een naam voor iedereen in het project. De **Kijker** heeft eigen opgeslagen weergaven, voor zijn zoekopdracht en filters. Opgeslagen weergaven werken zoals in de [Logboekverkenner](/docs/telemetry/logs-explorer#een-weergave-opslaan).
 
 ## Inzichten in metrieken
 

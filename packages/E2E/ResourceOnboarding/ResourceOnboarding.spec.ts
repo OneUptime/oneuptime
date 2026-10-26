@@ -14,14 +14,15 @@ import path from "path";
  * pages against the offline fixture (Fixture/Fixture.js). Only the data
  * boundary and the signed-in user are synthetic.
  *
- * A list's Add button opens its setup guide in a dialog - and an empty list
- * shows the same guide as its first-run card. The guide names the resource
- * with a name the project has not used, writes what is typed into the
- * commands (made safe for them, and says so), warns about a name the project
- * already has, and its last step says when the resource connected. A
- * database, a queue or a RUM application is added with its form, and its
- * prefilled guide then opens on its own. On a desktop, on a phone, in the
- * dark theme and in German.
+ * A list's Add button opens its setup guide in a dialog. An empty list shows
+ * no guide: under its table is the showcase, what the product gives, with
+ * the same Add button. The guide names the resource with a name the project
+ * has not used, writes what is typed into the commands (made safe for them,
+ * and says so), warns about a name the project already has, and its last
+ * step says when the resource connected - and the showcase gives way to the
+ * new row. A database, a queue or a RUM application is added with its form,
+ * and its prefilled guide then opens on its own. On a desktop, on a phone,
+ * in the dark theme and in German.
  *
  * Every test puts up a network fence that aborts anything leaving the
  * fixture server, and fails on an uncaught page error, on a request the
@@ -185,6 +186,58 @@ function nameInput(scope: Page | Locator): Locator {
   return scope.getByTestId("resource-name-input");
 }
 
+// The empty table: "No X yet" and what the list is for.
+function emptyTable(page: Page): Locator {
+  return page.locator('[data-empty-state-kind="empty"]');
+}
+
+// What an empty list shows under its table: the product, and its Add button.
+function showcase(page: Page): Locator {
+  return page.getByTestId("resource-showcase");
+}
+
+function showcaseButton(page: Page): Locator {
+  return showcase(page).getByTestId("resource-showcase-add-button");
+}
+
+// Whether `lower` is drawn below `upper` on the page.
+async function isBelow(upper: Locator, lower: Locator): Promise<boolean> {
+  const top: { y: number; height: number } | null = await upper.boundingBox();
+  const bottom: { y: number } | null = await lower.boundingBox();
+  return Boolean(top && bottom && bottom.y >= top.y + top.height - 1);
+}
+
+/*
+ * A new project's list: the empty table, and under it the showcase with
+ * this title. No guide on the page until Add opens one.
+ */
+async function expectShowcase(page: Page, title: string): Promise<void> {
+  await expect(emptyTable(page)).toBeVisible();
+  await expect(showcase(page).getByRole("heading", { level: 2 })).toHaveText(
+    title,
+  );
+  expect(await isBelow(emptyTable(page), showcase(page))).toBe(true);
+  await expect(page.getByTestId("setup-guide")).toHaveCount(0);
+}
+
+/*
+ * The showcase's button, named as the list's header names it, opens the
+ * list's Add dialog with the guide in it.
+ */
+async function openAddDialog(page: Page, addTitle: string): Promise<Locator> {
+  await expect(showcaseButton(page)).toHaveText(addTitle);
+  await showcaseButton(page).click();
+  const dialog: Locator = page.getByTestId("add-resource-modal");
+  await expect(dialog.getByTestId("setup-guide")).toBeVisible();
+  await expect(
+    page
+      .getByTestId("modal")
+      .filter({ has: dialog })
+      .getByTestId("modal-title"),
+  ).toHaveText(addTitle);
+  return dialog;
+}
+
 // What the guide's commands say, as a reader copies them.
 async function commands(scope: Locator): Promise<string> {
   return (await scope.locator("pre").allInnerTexts()).join("\n");
@@ -223,21 +276,22 @@ async function scrollsSideways(page: Page): Promise<boolean> {
  * ---------------------------------------------------------------------------
  */
 
-test("a new project's Kubernetes list: its first-run guide names the cluster, writes the name into helm, and sees it connect", async ({
+test("a new project's Kubernetes list: the showcase's Add Kubernetes Cluster opens the guide, which names the cluster, writes the name into helm, and sees it connect", async ({
   page,
 }: {
   page: Page;
 }) => {
   await open(page, KUBERNETES);
 
-  const guide: Locator = page.getByTestId("setup-guide");
-  await expect(
-    guide.getByText("Getting Started with Kubernetes Monitoring"),
-  ).toBeVisible();
+  await expectShowcase(page, "See every cluster, node and pod in one place");
 
-  // No form: the list's one way in is the guide.
+  // No form: the list's one way in is Add, in the header and on the showcase.
   await expect(headerButton(page, "Add Kubernetes Cluster")).toBeVisible();
   await expect(headerButton(page, "Create Kubernetes Cluster")).toHaveCount(0);
+
+  await screenshot(page, "kubernetes-first-run-showcase");
+
+  const guide: Locator = await openAddDialog(page, "Add Kubernetes Cluster");
 
   // A name to start with, already in the command, with the project's key.
   await expect(nameInput(guide)).toHaveValue("my-cluster");
@@ -261,16 +315,37 @@ test("a new project's Kubernetes list: its first-run guide names the cluster, wr
   );
 
   await nameInput(guide).scrollIntoViewIfNeeded();
-  await screenshot(page, "kubernetes-first-run-named");
+  await screenshot(page, "kubernetes-first-run-add-dialog-named");
 
   // The agent connects: the cluster registers under that name.
   await call(page, "arrive", "kubernetes", "Prod-East-1");
   await page.clock.runFor(FIRST_RECORD_MS + 1);
 
-  // The guide gives way, and the table shows the cluster - no reload.
+  /*
+   * The dialog says so, the showcase gives way, and the table shows the
+   * cluster - no reload.
+   */
+  const connected: Locator = guide.getByTestId("resource-connection-connected");
+  await expect(connected).toContainText(
+    "Prod-East-1 is connected. Its data arrives within a minute or two.",
+  );
+  await expect(
+    connected.getByRole("link", { name: "View cluster" }),
+  ).toHaveAttribute(
+    "href",
+    `${KUBERNETES}/30000000-0000-4000-8000-000000000001`,
+  );
   await expect(
     tableCard(page).getByText("Prod-East-1", { exact: true }).first(),
   ).toBeVisible();
+  await expect(showcase(page)).toHaveCount(0);
+
+  // Done leaves the list, with no guide on it.
+  await page
+    .getByTestId("modal")
+    .getByRole("button", { name: "Done", exact: true })
+    .click();
+  await expect(guide).toHaveCount(0);
   await expect(page.getByTestId("setup-guide")).toHaveCount(0);
 
   await screenshot(page, "kubernetes-first-cluster-connected");
@@ -430,14 +505,18 @@ test("the Add dialog in German", async ({ page }: { page: Page }) => {
  * ---------------------------------------------------------------------------
  */
 
-test("an IoT fleet's name goes into the SDK's resource attributes and the MQTT topics", async ({
+test("a new project's IoT list: the showcase's Add IoT Fleet opens the guide, and the fleet's name goes into the SDK's resource attributes and the MQTT topics", async ({
   page,
 }: {
   page: Page;
 }) => {
   await open(page, IOT);
 
-  const guide: Locator = page.getByTestId("setup-guide");
+  await expectShowcase(
+    page,
+    "Know which devices are online, and which need help",
+  );
+  const guide: Locator = await openAddDialog(page, "Add IoT Fleet");
   await expect(nameInput(guide)).toHaveValue("building-a-sensors");
   await typeName(page, guide, "warehouse-7");
 
@@ -458,20 +537,18 @@ test("an IoT fleet's name goes into the SDK's resource attributes and the MQTT t
   // The fleet keeps its name across the switch.
   await expect(nameInput(guide)).toHaveValue("warehouse-7");
 
-  await screenshot(page, "iot-first-run-mqtt");
+  await screenshot(page, "iot-add-dialog-mqtt");
 });
 
-test("a serverless function names itself: no name to type, and the first data connects it", async ({
+test("a serverless function names itself: the showcase's Add Serverless Function opens a guide with no name to type, and the first data connects it", async ({
   page,
 }: {
   page: Page;
 }) => {
   await open(page, SERVERLESS);
 
-  const guide: Locator = page.getByTestId("setup-guide");
-  await expect(
-    guide.getByText("Getting Started with Serverless Functions"),
-  ).toBeVisible();
+  await expectShowcase(page, "See how every function performs, call by call");
+  const guide: Locator = await openAddDialog(page, "Add Serverless Function");
   await expect(nameInput(guide)).toHaveCount(0);
   await expect(guide.getByTestId("resource-connection-waiting")).toHaveText(
     "Waiting for the first data. This step updates by itself.",
@@ -480,10 +557,14 @@ test("a serverless function names itself: no name to type, and the first data co
   await call(page, "arrive", "serverless", "checkout-handler");
   await page.clock.runFor(FIRST_RECORD_MS + 1);
 
+  // The dialog says so, the showcase gives way, and the table shows it.
+  await expect(
+    guide.getByTestId("resource-connection-connected"),
+  ).toContainText("checkout-handler is connected.");
   await expect(
     tableCard(page).getByText("checkout-handler", { exact: true }).first(),
   ).toBeVisible();
-  await expect(page.getByTestId("setup-guide")).toHaveCount(0);
+  await expect(showcase(page)).toHaveCount(0);
 });
 
 /*

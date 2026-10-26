@@ -241,6 +241,8 @@ aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes
 | 計數 | 發生的次數：重複發生時會增加計數，而不是新增一列 |
 | 最後出現 | 最後一次發生的時間；將指標停留在上面可檢視第一次發生的時間 |
 
+在寬度小於 1024 像素的螢幕上，**事件** 欄也會顯示 **計數** 與 **最近出現**，它們在那裡沒有單獨的欄。
+
 ### 搜尋事件並設定警示
 
 每個事件也是一筆日誌。警告以嚴重程度 **Warning** 儲存，事件的內容在其屬性中：
@@ -619,7 +621,7 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 
 當此叢集上出現事件或警示時，OneUptime AI 會進行調查。chart 中的 **Kubernetes AI 代理程式** 會為它提供一個終端機：它會像值班工程師那樣執行唯讀的 `kubectl`（describe 出問題的 Pod、讀取其事件、查看當機容器的日誌、檢查節點容量），並在事件頁面上引用它執行的每一個指令。
 
-該代理程式 **預設為開啟** 且 **唯讀**：一個小型 Deployment（`kubernetes-agent-ai-agent`，Pod 標籤 `component=ai-agent`，映像檔 `oneuptime/kubernetes-ai-agent`），其 ServiceAccount 只能讀取。它會使用與 Collector 相同的 `oneuptime.apiKey` 和 `clusterName` 自行註冊，因此不需要在儀表板中進行任何設定：叢集的 **AI 代理程式** 頁面（Kubernetes → 叢集 → 人工智慧 → 代理程式）會在一分鐘內顯示其為已連線，而該狀態旁邊 **⋯** 選單中的 **測試連線** 會透過它執行 `kubectl version` 和 `kubectl auth can-i --list`。AI 用它做過的一切都在叢集的 **AI 日誌** 頁面（人工智慧 → 日誌）上，而關於該叢集值得了解的內容——反覆出現的問題及其原因、造成其中大多數問題的節點或工作負載、AI 修正了什麼——則在 **AI Insights** 頁面（人工智慧 → Insights）上。該代理程式內建一個固定版本的 kubectl（v1.36.5）。它不是 Runner，也永遠不會出現在 Runbooks → Runners 下：OneUptime 從不提供它認證資料，從不在它上面執行 runbook，它也永遠不會被接受為 AI 規則的指令 Runner。
+該代理程式 **預設為開啟** 且 **唯讀**：一個小型 Deployment（`kubernetes-agent-ai-agent`，Pod 標籤 `component=ai-agent`，映像檔 `oneuptime/kubernetes-ai-agent`），其 ServiceAccount 只能讀取。它會使用與 Collector 相同的 `oneuptime.apiKey` 和 `clusterName` 自行註冊，因此不需要在儀表板中進行任何設定：叢集的 **AI 代理程式** 頁面（Kubernetes → 叢集 → 人工智慧 → 代理程式）會在一分鐘內顯示其為已連線，而該狀態旁邊 **⋯** 選單中的 **測試連線** 會透過它執行 `kubectl version` 和 `kubectl auth can-i --list`。AI 用它做過的一切都在叢集的 **AI 日誌** 頁面（人工智慧 → 日誌）上，而關於該叢集值得了解的內容——反覆出現的問題及其原因、造成其中大多數問題的節點或工作負載、AI 修正了什麼——則在 **AI 洞察** 頁面（人工智慧 → Insights）上。該代理程式內建一個固定版本的 kubectl（v1.36.5）。它不是 Runner，也永遠不會出現在 Runbooks → Runners 下：OneUptime 從不提供它認證資料，從不在它上面執行 runbook，它也永遠不會被接受為 AI 規則的指令 Runner。
 
 對於在 AI 代理程式出現之前安裝的代理程式，請先重新整理 chart 索引，然後升級（在自行託管的 OneUptime 上，請先升級 OneUptime——請參閱 [升級代理程式](#升級代理程式)）：
 
@@ -709,7 +711,7 @@ kubectl logs -n oneuptime-agent -l component=ai-agent --tail=100
 
 - **"This OneUptime server does not have the Kubernetes AI agent API"** — chart 比你的 OneUptime 伺服器更新。請升級 OneUptime，或安裝與你的伺服器相符的 chart 版本（`--version <your OneUptime version>`）。代理程式每 5 分鐘重試一次。
 - **會自行解除的拒絕** — 先前的代理程式 Pod 仍在回報（沒有正常關閉就被取代的 Pod），或舊的叢集內 Runner 在升級期間仍在關閉。代理程式會在伺服器指定的等待時間之後重試。
-- **需要你處理的拒絕** — `clusterName` 為空或過長，或專案已達到 AI 代理程式的上限；日誌會指出需要變更什麼。如果代理程式始終無法連線，而且其日誌顯示 `Another Kubernetes AI agent for cluster "<name>" is online`，表示兩個安裝共用了同一個 `clusterName`（AI 代理程式頁面也會對此發出警告）：已經連線的那個只要在執行就會一直占用它，因此請為每個叢集提供自己的 `clusterName`，或移除多餘的發行版本。帶有 **Pinned Service Name** 的擷取金鑰無法註冊代理程式——請給 chart 一把不帶它的金鑰。
+- **需要你處理的拒絕** — `clusterName` 為空或過長，或專案已達到 AI 代理程式的上限；日誌會指出需要變更什麼。如果代理程式始終無法連線，而且其日誌顯示 `Another Kubernetes AI agent for cluster "<name>" is online`，表示兩個安裝共用了同一個 `clusterName`（AI 代理程式頁面也會對此發出警告）：已經連線的那個只要在執行就會一直占用它，因此請為每個叢集提供自己的 `clusterName`，或移除多餘的發行版本。帶有 **固定的服務名稱** 的擷取金鑰無法註冊代理程式——請給 chart 一把不帶它的金鑰。
 
 AI 代理程式頁面上代理程式狀態旁邊 **⋯** 選單中的 **重設代理程式**，會在你確認後讓伺服器忘記該代理程式的金鑰（Project Owner、Project Admin 或擁有 **Edit AI Rule** 權限者可以在其可編輯的叢集上執行）；Pod 會在幾分鐘內自行重新連線。代理程式的就緒狀態不依賴 OneUptime，因此設定錯誤的 AI 代理程式永遠不會讓 `helm upgrade --wait` 失敗——只有無法提取映像檔的 Pod 才會。
 
@@ -753,7 +755,7 @@ chart 現在預設會執行 [Kubernetes AI 代理程式](#kubernetes-ai-代理�
 - `aiAccess.image` 和 `aiAccess.resources` 不會沿用：AI 代理程式是不同的映像檔，有它自己的 `aiAgent.image` 和 `aiAgent.resources`。
 - 在 OneUptime 中，每個叢集都會保留其 AI 設定，但升級伺服器時會做兩項變更：如果有人解除繫結或刪除了某個叢集的 Runner（叢集內 Runner 或任何其他 Runner），該叢集啟動時 **使用 kubectl 調查** 和修正都會處於關閉狀態（請在其 AI 代理程式頁面上重新開啟）；而對於專案從未開啟 **Enable AI Command Execution** 的叢集，**自動** 或 **略過核准** 會變為 **請求核准**——那個開關過去會擋住這些修正，而透過 AI 代理程式進行的修正已不再需要它。
 
-若要回退，請使用 `helm rollback kubernetes-agent <revision> --namespace oneuptime-agent`（`helm history` 會列出修訂版本），而不是 `helm upgrade --version <older version>`：舊 chart 的 schema 會拒絕儲存在發行版本中的 `aiAgent` 值。在升級後一週內，復原會帶回叢集內 Runner，而且一旦 AI 代理程式停止，它會自行重新連線。超過這個期限，OneUptime 可能已經移除了舊的 Runner（叢集的 **Feed** 會顯示時間）。此時復原後的 Runner 會連線，但不會被使用，直到你用 API 或 Terraform 再次將它繫結到叢集（叢集的 **AI Access Runner**；Project Owner、Project Admin 或擁有 **Edit AI Rule** 權限者可以執行），或再次升級 chart。
+若要回退，請使用 `helm rollback kubernetes-agent <revision> --namespace oneuptime-agent`（`helm history` 會列出修訂版本），而不是 `helm upgrade --version <older version>`：舊 chart 的 schema 會拒絕儲存在發行版本中的 `aiAgent` 值。在升級後一週內，復原會帶回叢集內 Runner，而且一旦 AI 代理程式停止，它會自行重新連線。超過這個期限，OneUptime 可能已經移除了舊的 Runner（叢集的 **動態** 會顯示時間）。此時復原後的 Runner 會連線，但不會被使用，直到你用 API 或 Terraform 再次將它繫結到叢集（叢集的 **AI Access Runner**；Project Owner、Project Admin 或擁有 **Edit AI Rule** 權限者可以執行），或再次升級 chart。
 
 Kubernetes AI 代理程式與 OneUptime 12 中已停用的 AI Agent 無關。
 

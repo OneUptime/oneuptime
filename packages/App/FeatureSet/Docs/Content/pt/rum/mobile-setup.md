@@ -39,7 +39,7 @@ Faça de `device.id` um identificador próprio da instalação, nunca um ID de p
 ## Antes de começar
 
 - Um aplicativo com um SDK do OpenTelemetry: o SDK Java do OpenTelemetry ou o OpenTelemetry Android, o opentelemetry-swift, ou o SDK JavaScript do OpenTelemetry para React Native.
-- Uma chave de ingestão **Servidor**, criada em **Configurações do projeto → Telemetria e APM → Chaves de ingestão** com **Criar chave de ingestão**. Uma chave **Browser** é recusada a partir de um aplicativo móvel: ela é verificada contra o cabeçalho `Origin`, que os SDKs móveis não enviam.
+- Uma chave de ingestão **Servidor**, criada em **Configurações do projeto → Telemetria e APM → Chaves de ingestão** com **Criar chave de ingestão**. Uma chave **Navegador** é recusada a partir de um aplicativo móvel: ela é verificada contra o cabeçalho `Origin`, que os SDKs móveis não enviam.
 - Estas configurações de OTLP. Se você hospeda o OneUptime por conta própria, troque `https://oneuptime.com` pelo seu próprio host.
 
 | Configuração | Valor |
@@ -51,7 +51,7 @@ Faça de `device.id` um identificador próprio da instalação, nunca um ID de p
 | Registros | `POST https://oneuptime.com/otlp/v1/logs` |
 
 > [!WARNING]
-> A chave vai dentro do seu aplicativo, e um aplicativo pode ser descompactado, então parta do princípio de que alguém vai copiá-la. Na página da chave, defina um **Pinned Service Name** para que uma cópia não possa gravar com os nomes dos seus serviços de backend, adicione um **Requests Per Minute Limit** e uma data em **Expira em**, e troque a chave a cada versão.
+> A chave vai dentro do seu aplicativo, e um aplicativo pode ser descompactado, então parta do princípio de que alguém vai copiá-la. Na página da chave, defina um **Nome do serviço fixado** para que uma cópia não possa gravar com os nomes dos seus serviços de backend, adicione um **Requests Per Minute Limit** e uma data em **Expira em**, e troque a chave a cada versão.
 
 ## Configurar sua plataforma
 
@@ -193,9 +193,9 @@ Abra a página **Clientes** da aplicação: cada modelo de dispositivo de `devic
 
 ## Session Replay em dispositivos móveis
 
-Aplicativos React Native podem gravar sessões com `@oneuptime/react-native-replay`. Ele grava a árvore de views nativa como um wireframe, nunca capturas de tela nem o texto na tela, e as gravações dele abrem no mesmo player que as da web. Ele envia com uma chave **Browser** cujas **Allowed Origins** listam o seu aplicativo como `app://` seguido do ID do aplicativo Android ou do ID de bundle do iOS: uma chave diferente da chave Servidor que o seu SDK do OpenTelemetry usa. [Instalar no React Native](/docs/telemetry/session-replay#instalação-no-react-native) mostra o passo a passo.
+Aplicativos React Native podem gravar sessões com `@oneuptime/react-native-replay`. Ele grava a árvore de views nativa como um wireframe, nunca capturas de tela nem o texto na tela, e as gravações dele abrem no mesmo player que as da web. Ele envia com uma chave **Navegador** cujas **Origens permitidas** listam o seu aplicativo como `app://` seguido do ID do aplicativo Android ou do ID de bundle do iOS: uma chave diferente da chave Servidor que o seu SDK do OpenTelemetry usa. [Instalar no React Native](/docs/telemetry/session-replay#instalação-no-react-native) mostra o passo a passo.
 
-Aplicativos nativos de Android e iOS, e as demais plataformas, não têm gravador de sessão: a página **Session Replay** deles fica vazia, enquanto traços, registros, métricas, exceções e a página **Clientes** funcionam normalmente.
+Aplicativos nativos de Android e iOS, e as demais plataformas, não têm gravador de sessão: a página **Reprodução de sessões** deles fica vazia, enquanto traços, registros, métricas, exceções e a página **Clientes** funcionam normalmente.
 
 ## Solução de problemas
 

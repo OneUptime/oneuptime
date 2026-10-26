@@ -217,6 +217,7 @@ const MonitorCriteria: FunctionComponent<
                 fieldType: FormFieldSchemaType.Text,
                 required: true,
                 placeholder: "New Monitor Name",
+                hideColumnDescription: true,
                 validation: {
                   minLength: 2,
                 },

@@ -42,7 +42,7 @@ L'écran est divisé en deux :
 | Partie | Ce qu'elle contient |
 | ---- | ------------- |
 | **Navigateur de groupes** (à gauche) | Chaque groupe de la page, en arbre, avec un champ **Search groups...** au-dessus et un décompte en dessous, comme `3 groups · 12 resources`. Une longue liste se termine par un bouton **Show N more of M**. |
-| **Top of page** | La première ligne du navigateur : les ressources sans groupe, que les visiteurs voient en premier, au-dessus de chaque groupe. Sur une page sans groupe, le volet de droite s'intitule plutôt **Toutes les ressources**. |
+| **Haut de la page** | La première ligne du navigateur : les ressources sans groupe, que les visiteurs voient en premier, au-dessus de chaque groupe. Sur une page sans groupe, le volet de droite s'intitule plutôt **Toutes les ressources**. |
 | **Volet des ressources** (à droite) | Les ressources du groupe sélectionné. Son en-tête contient **Modifier le groupe**, le bouton principal **Ajouter un moniteur** et un menu **Plus d'actions**. |
 | En-tête de la carte | **Nouveau groupe**, et un menu à trois points avec **Importer des groupes depuis un CSV** et **Actualiser**. |
 
@@ -53,7 +53,7 @@ L'écran est divisé en deux :
 :::steps
 ### Choisir où va la ligne
 
-Dans le navigateur de groupes, sélectionnez le groupe auquel appartient la ressource, ou **Top of page** pour une ligne sans groupe.
+Dans le navigateur de groupes, sélectionnez le groupe auquel appartient la ressource, ou **Haut de la page** pour une ligne sans groupe.
 
 ### Cliquer sur Ajouter un moniteur
 
@@ -196,7 +196,7 @@ L'ordre, c'est vous qui le fixez, pas l'alphabet :
 | ---- | ------------------ |
 | Les ressources d'un groupe | Faites glisser une ligne. Le volet le dit : **Faites glisser une ligne pour changer l'ordre vu par les visiteurs**. |
 | Les groupes entre eux | **Monter** / **Descendre** dans le menu de ligne du navigateur, ou **Monter le groupe** / **Descendre le groupe** dans **Plus d'actions**. |
-| Les ressources sans groupe | Elles sont dans **Top of page** et s'affichent toujours au-dessus de chaque groupe : mettez-y donc la chose que tout le monde vérifie en premier. |
+| Les ressources sans groupe | Elles sont dans **Haut de la page** et s'affichent toujours au-dessus de chaque groupe : mettez-y donc la chose que tout le monde vérifie en premier. |
 
 **Deux cas où le glisser-déposer est désactivé.** Une recherche dans le champ **Search in {group}...** désactive le réordonnancement – le volet indique `N of M shown · drag to reorder is off while filtering` –, videz donc d'abord la recherche. Et les groupes en grille ne se réordonnent jamais par glisser-déposer, car la place d'un moniteur vient de sa ligne et de sa colonne.
 

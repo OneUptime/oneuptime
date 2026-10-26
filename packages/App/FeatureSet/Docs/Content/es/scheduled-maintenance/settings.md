@@ -82,7 +82,7 @@ En **Recordatorios**, fija el **Intervalo de recordatorio (minutos)**, cada cuá
 | **Antes de que empiece** | Desde que se programa el evento hasta que empieza. |
 | **Antes de que empiece y mientras esté en curso** | Desde que se programa el evento hasta que termina. |
 
-Una regla guardada mediante la API o Terraform que espera a que empiece el evento y se detiene cuando empieza nunca envía un recordatorio: la lista la marca con **Nunca envía recordatorios** y su formulario te pide que elijas una respuesta.
+La API y Terraform rechazan una regla que esperaría a que empiece el evento y se detendría cuando empieza: nunca enviaría un recordatorio. Una regla antigua guardada así aparece en la lista con **Nunca envía recordatorios**, y su formulario te pide que elijas cuándo recordar.
 
 Los propietarios reciben cada recordatorio como **Recordatorio de mantenimiento**, activado por correo electrónico para cada miembro nuevo. Guardar, cambiar o eliminar una regla de recordatorio vuelve a asignar regla a cada evento que no está completado. Para detener los recordatorios de un evento, desactiva **Enviar recordatorios** en su página **Ajustes**; se guarda en cuanto lo cambias.
 
@@ -119,11 +119,11 @@ Cada modelo de mantenimiento tiene disparadores y acciones de flujo de trabajo c
 
 | Rol                               | Qué puede hacer                                                                                      |
 | --------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| **Scheduled Maintenance Viewer**  | Lee eventos y no cambia nada.                                                                        |
-| **Scheduled Maintenance Member**  | Crea, cambia y elimina eventos con sus notas, cronologías de estados y propietarios, y ambos tipos de plantillas. |
-| **Scheduled Maintenance Admin**   | Todo lo que hace un miembro, y además crea, cambia y elimina estados de mantenimiento.               |
+| **Visor de mantenimiento programado**  | Lee eventos y no cambia nada.                                                                        |
+| **Miembro de mantenimiento programado**  | Crea, cambia y elimina eventos con sus notas, cronologías de estados y propietarios, y ambos tipos de plantillas. |
+| **Administrador de mantenimiento programado**   | Todo lo que hace un miembro, y además crea, cambia y elimina estados de mantenimiento.               |
 
-Las reglas, los campos personalizados y las mediciones requieren **Project Owner** o **Project Admin**, o un rol personalizado con el permiso propio de esa página, como **Create Scheduled Maintenance Owner Rule**. Las reglas de runbook también aceptan **Runbook Admin**. **Project Member** trabaja con eventos y plantillas, como **Scheduled Maintenance Member**. Consulta [Usuarios, equipos y permisos](/docs/permissions/index).
+Las reglas, los campos personalizados y las mediciones requieren **Propietario del proyecto** o **Administrador del proyecto**, o un rol personalizado con el permiso propio de esa página, como **Create Scheduled Maintenance Owner Rule**. Las reglas de runbook también aceptan **Administrador de runbooks**. **Miembro del proyecto** trabaja con eventos y plantillas, como **Miembro de mantenimiento programado**. Consulta [Usuarios, equipos y permisos](/docs/permissions/index).
 
 ## Solución de problemas
 

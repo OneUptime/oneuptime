@@ -108,7 +108,7 @@ Giv appen rollen Monitoring Reader på abonnementet.
 
 ### Forbind Azure
 
-Udfyld **Mappe-id (tenant)**, **Program-id (klient)**, **Abonnements-id** og **Client secret**. For Azure Government ændrer du **Cloud** under **Flere felter**.
+Udfyld **Mappe-id (tenant)**, **Program-id (klient)**, **Abonnements-id** og **Klienthemmelighed**. For Azure Government ændrer du **Cloud** under **Flere felter**.
 :::
 
 ## Amazon Bedrock

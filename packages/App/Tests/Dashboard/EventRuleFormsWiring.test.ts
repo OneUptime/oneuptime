@@ -265,10 +265,17 @@ describe("a maintenance reminder rule's one choice", () => {
       "Components/Reminders/MaintenanceReminderTimingText.tsx",
     );
 
-    expect(text).toContain("<Pill");
+    /*
+     * A pill that says why on hover, on a tap, on keyboard focus and to a
+     * screen reader (ExplainedPill), not under a mouse only.
+     */
+    expect(text).toContain("<ExplainedPill");
+    expect(text).not.toContain("<Pill");
     expect(text).toContain("color={Yellow}");
     expect(text).toContain("text={MAINTENANCE_REMINDER_NEVER_REMINDS_TEXT}");
-    expect(text).toContain("tooltip={MAINTENANCE_REMINDER_NEVER_REMINDS_NOTE}");
+    expect(text).toContain(
+      "explanation={MAINTENANCE_REMINDER_NEVER_REMINDS_NOTE}",
+    );
     // Not an empty value's dash: a phone's card leaves an empty value out.
     expect(text).not.toContain("TableEmptyValue");
   });

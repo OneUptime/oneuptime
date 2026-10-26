@@ -241,6 +241,8 @@ L'agent envoie à OneUptime chaque événement Kubernetes du cluster : de chaque
 | Comptage | Combien de fois il s'est produit : une répétition augmente le compteur au lieu d'ajouter une ligne |
 | Vu pour la dernière fois | Quand il s'est produit pour la dernière fois ; survolez pour voir quand il s'est produit la première fois |
 
+Sur un écran de moins de 1024 pixels de large, la colonne **Événement** affiche aussi **Comptage** et **Vu pour la dernière fois**, qui n'y ont pas de colonne à eux.
+
 ### Rechercher les événements et être alerté
 
 Chaque événement est aussi un journal. Un avertissement est enregistré avec la gravité **Warning**, et ce que dit l'événement se trouve dans ses attributs :
@@ -709,7 +711,7 @@ kubectl logs -n oneuptime-agent -l component=ai-agent --tail=100
 
 - **"This OneUptime server does not have the Kubernetes AI agent API"** — le chart est plus récent que votre serveur OneUptime. Mettez OneUptime à jour, ou installez la version du chart qui correspond à votre serveur (`--version <your OneUptime version>`). L'agent réessaie toutes les 5 minutes.
 - **Un refus qui se résout tout seul** — un ancien pod de l'agent qui se signale encore (un pod remplacé sans arrêt propre), ou l'ancien Runner du cluster encore en cours d'arrêt pendant une mise à jour. L'agent réessaie après le délai indiqué par le serveur.
-- **Un refus qui demande votre intervention** — un `clusterName` vide ou trop long, ou un projet qui a atteint sa limite d'agents IA ; le journal indique ce qu'il faut changer. Si un agent ne se connecte jamais et que son journal indique `Another Kubernetes AI agent for cluster "<name>" is online`, deux installations partagent un même `clusterName` (la page de l'agent IA le signale aussi) : celui qui est déjà connecté le garde tant qu'il s'exécute. Donnez donc à chaque cluster son propre `clusterName`, ou supprimez la release en trop. Une clé d'ingestion avec un **Pinned Service Name** ne peut pas enregistrer l'agent — donnez au chart une clé qui n'en a pas.
+- **Un refus qui demande votre intervention** — un `clusterName` vide ou trop long, ou un projet qui a atteint sa limite d'agents IA ; le journal indique ce qu'il faut changer. Si un agent ne se connecte jamais et que son journal indique `Another Kubernetes AI agent for cluster "<name>" is online`, deux installations partagent un même `clusterName` (la page de l'agent IA le signale aussi) : celui qui est déjà connecté le garde tant qu'il s'exécute. Donnez donc à chaque cluster son propre `clusterName`, ou supprimez la release en trop. Une clé d'ingestion avec un **Nom du service épinglé** ne peut pas enregistrer l'agent — donnez au chart une clé qui n'en a pas.
 
 **Réinitialiser l'agent**, dans le menu **⋯** à côté de l'état de l'agent sur la page de l'agent IA, fait oublier au serveur la clé de l'agent une fois que vous confirmez (un Project Owner, un Project Admin ou **Edit AI Rule** peut le faire, sur un cluster qu'il peut modifier) ; le pod se reconnecte de lui-même en quelques minutes. La disponibilité de l'agent ne dépend pas de OneUptime : un agent IA mal configuré ne fait donc jamais échouer `helm upgrade --wait` — seul un pod qui ne peut pas tirer son image le fait.
 

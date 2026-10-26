@@ -59,7 +59,7 @@ Nur die Person selbst kann ihre Benachrichtigungsmethoden und Regeln hinzufügen
 3. Bestätigen Sie. Jede Person bekommt eine E-Mail, die nennt, was in ihrer eigenen Einrichtung fehlt, mit einem Link zu der Seite, auf der sie es behebt.
 :::
 
-Ein Banner sagt dann, wie viele Erinnerungen gesendet, übersprungen oder fehlgeschlagen sind, und warum, für jede, die nicht gesendet wurde. Niemand wird öfter als einmal in 24 Stunden erinnert, und ein Durchgang erinnert höchstens 250 Personen. Erinnerungen senden dürfen **Project Owner**, **Project Admin** oder **On-Call Admin**, oder wer in einer eigenen Rolle **Edit On-Call Duty Policy** hat.
+Ein Banner sagt dann, wie viele Erinnerungen gesendet, übersprungen oder fehlgeschlagen sind, und warum, für jede, die nicht gesendet wurde. Niemand wird öfter als einmal in 24 Stunden erinnert, und ein Durchgang erinnert höchstens 250 Personen. Erinnerungen senden dürfen **Projektinhaber**, **Projektadministrator** oder **Bereitschafts-Administrator**, oder wer in einer eigenen Rolle **Edit On-Call Duty Policy** hat.
 
 ## Einsatzbereitschaft auf anderen Seiten
 

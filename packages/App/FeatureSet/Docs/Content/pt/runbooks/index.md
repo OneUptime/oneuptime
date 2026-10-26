@@ -45,7 +45,7 @@ As etapas HTTP e de IA são executadas no Worker do OneUptime. As etapas Bash, S
 | **Runbook** | O modelo. Um procedimento nomeado e reutilizável, com uma lista ordenada de etapas e um interruptor **Executar este runbook**. |
 | **Etapa** | Um item de um runbook. Tem um tipo (Manual, JavaScript, HTTP request, Bash, SSH, kubectl ou AI), um título, uma descrição e configurações específicas do tipo. |
 | **Regra de runbook** | Uma regra que anexa automaticamente um ou mais runbooks a incidentes, alertas ou eventos de manutenção programada que atendem às suas condições: seus monitores, severidade, rótulos, rótulos dos monitores, título ou descrição. |
-| **Execução** | Uma execução de um runbook. É criada quando uma regra dispara, quando alguém clica em **Executar Runbook** em um evento ou quando alguém clica em **Run Now** no próprio runbook. Guarda um instantâneo das etapas e o status e a saída de cada etapa. |
+| **Execução** | Uma execução de um runbook. É criada quando uma regra dispara, quando alguém clica em **Executar Runbook** em um evento ou quando alguém clica em **Executar agora** no próprio runbook. Guarda um instantâneo das etapas e o status e a saída de cada etapa. |
 | **Instantâneo** | A cópia congelada das etapas do runbook que fica em cada execução. Você pode editar o runbook depois sem reescrever o histórico das execuções anteriores. |
 | **Runner** | Um pequeno agente que você executa em um host da sua própria infraestrutura. Ele executa as etapas JavaScript, Bash, SSH e kubectl que o indicam. Também chamado de agente de runbook. Um Runner global, um dos que o OneUptime executa para todos os projetos, executa as etapas JavaScript que não citam nenhum, a menos que o projeto tenha um Runner padrão. |
 | **Variável** | Um valor que as etapas usam pelo nome, como um host ou uma URL: `{{global.variables.NAME}}` para um do projeto, que qualquer runbook pode usar, ou `{{local.variables.NAME}}` para um do próprio runbook. |
@@ -73,7 +73,7 @@ Um runbook pode misturar todos eles. A força dos runbooks está em intercalar v
 | --- | --- | --- |
 | Uma regra de runbook | **Incidentes**, **Alertas** ou **Manutenção programada** → **Regras** → **Regras de runbook** | O novo incidente, alerta ou evento |
 | **Executar Runbook** | A página **Runbooks** de um incidente, alerta ou evento de manutenção programada | Esse evento |
-| **Run Now** | A página **Visão geral** do runbook | Nada: uma execução avulsa |
+| **Executar agora** | A página **Visão geral** do runbook | Nada: uma execução avulsa |
 | Uma regra de IA | Consulte [AI SRE](/docs/ai/ai-sre) | O incidente ou alerta |
 | O agendamento do runbook | A página **Gatilhos** do runbook, veja [Gatilhos de runbook](/docs/runbooks/triggers#executar-por-agendamento) | Nada: uma execução sem supervisão |
 | Uma chamada à URL do webhook do runbook | A página **Gatilhos** do runbook, veja [Gatilhos de runbook](/docs/runbooks/triggers#chamar-o-webhook) | Nada: a execução guarda os valores que a chamada enviou |
@@ -87,8 +87,8 @@ Runbooks fica em **Produtos**, no grupo **Painéis e automação**.
 | Página | O que você faz lá |
 | --- | --- |
 | **Produtos → Runbooks** | Navegar, criar e abrir runbooks. |
-| As **Etapas** de um runbook | Escrever e reordenar suas etapas, depois **Save Steps**. |
-| A **Visão geral** de um runbook | Ver sua última execução e os resultados, e clicar em **Run Now**. |
+| As **Etapas** de um runbook | Escrever e reordenar suas etapas, depois **Salvar etapas**. |
+| A **Visão geral** de um runbook | Ver sua última execução e os resultados, e clicar em **Executar agora**. |
 | As **Execuções** de um runbook | Todas as execuções deste runbook, filtradas por status ou data de início. |
 | **Gatilhos** de um runbook | Executá-lo por [agendamento](/docs/runbooks/triggers#executar-por-agendamento), ou a partir de outra ferramenta pela [URL do webhook](/docs/runbooks/triggers#chamar-o-webhook) dele. |
 | As **Variáveis** de um runbook | Gerenciar as [variáveis](/docs/runbooks/variables) que só as etapas desse runbook usam. |
@@ -118,7 +118,7 @@ Suponha que você queira que todo incidente com "db-primary" no título inicie u
 :::steps
 ### Criar o runbook
 
-Em **Runbooks**, clique em **Criar: Runbook** e dê o nome "DB primary failover". Ele abre em **Etapas**: adicione estas etapas e clique em **Save Steps**:
+Em **Runbooks**, clique em **Criar: Runbook** e dê o nome "DB primary failover". Ele abre em **Etapas**: adicione estas etapas e clique em **Salvar etapas**:
 
 | # | Tipo | Título |
 | --- | --- | --- |

@@ -1,11 +1,13 @@
 import {
   CUSTOM_DOMAIN_STATUS,
+  CustomDomainInstallation,
   CustomDomainState,
 } from "../../FeatureSet/Dashboard/src/Components/CustomDomain/CustomDomainCopy";
 import PublicAddressCopy, {
   getAddressParts,
   getAddressText,
   getCustomDomainUrl,
+  getFirstLiveAddress,
   getNotLiveReason,
   getPublicAddresses,
   isCertificateNeededFor,
@@ -16,6 +18,7 @@ import PublicAddressCopy, {
   PublicAddressDomainInput,
   PublicAddressKind,
 } from "../../FeatureSet/Dashboard/src/Components/CustomDomain/PublicAddressCopy";
+import Protocol from "Common/Types/API/Protocol";
 import { CustomDomainCertificate } from "Common/Types/CustomDomain/CustomDomainCertificates";
 import { describe, expect, test } from "@jest/globals";
 
@@ -158,6 +161,8 @@ describe("which custom domain is live", () => {
         CustomDomainState.CertificateIssued,
         CustomDomainState.RenewalFailed,
         CustomDomainState.UsesUploadedCertificate,
+        // Where the installation issues none: its own proxy's HTTPS.
+        CustomDomainState.VerifiedWithoutFreeCertificate,
       ]),
     );
   });
@@ -461,5 +466,158 @@ describe("the words", () => {
       listLabel: "Addresses",
       loading: "Loading addresses",
     });
+  });
+});
+
+/*
+ * An installation that issues no free certificates (no Let's Encrypt
+ * account key: a self-hosted one that ends TLS at its own proxy). A
+ * verified domain there read "Issuing a free certificate" for ever, so the
+ * Status Page Link card never offered it, although the server links to it
+ * in every email (getUsableCustomDomain, rule 3). It is live there, opened
+ * as the installation itself is reached, and its certificate is never read.
+ */
+describe("on an installation that issues no free certificates", () => {
+  const OVER_HTTPS: CustomDomainInstallation = {
+    issuesFreeCertificates: false,
+    protocol: Protocol.HTTPS,
+  };
+  const OVER_HTTP: CustomDomainInstallation = {
+    issuesFreeCertificates: false,
+    protocol: Protocol.HTTP,
+  };
+
+  const addressesWithout: (
+    installation: CustomDomainInstallation,
+    rows: Array<Domain>,
+  ) => Array<PublicAddress<Domain>> = (
+    installation: CustomDomainInstallation,
+    rows: Array<Domain>,
+  ): Array<PublicAddress<Domain>> => {
+    return getPublicAddresses<Domain>({
+      domains: rows,
+      oneUptimeUrl: ONEUPTIME_URL,
+      now: NOW,
+      installation: installation,
+    });
+  };
+
+  test("a verified domain is live, a link on the installation's protocol", () => {
+    const [first] = addressesWithout(OVER_HTTPS, [
+      domain("d1", "status.acme.com", "unordered"),
+    ]);
+
+    expect(first!.state).toBe(CustomDomainState.VerifiedWithoutFreeCertificate);
+    expect(first!.isLive).toBe(true);
+    expect(first!.url).toBe("https://status.acme.com");
+
+    const [overHttp] = addressesWithout(OVER_HTTP, [
+      domain("d1", "status.acme.com", "unordered"),
+    ]);
+
+    expect(overHttp!.url).toBe("http://status.acme.com");
+    // The row shows the host alone either way.
+    expect(getAddressText(overHttp!)).toBe("status.acme.com");
+  });
+
+  test("a domain on an uploaded certificate is HTTPS, whatever the installation", () => {
+    const [first] = addressesWithout(OVER_HTTP, [
+      domain("d1", "status.acme.com", "uploaded"),
+    ]);
+
+    expect(first!.isLive).toBe(true);
+    expect(first!.url).toBe("https://status.acme.com");
+  });
+
+  test("a domain whose record is not found yet is still not live, with DNS Setup", () => {
+    const [first] = addressesWithout(OVER_HTTPS, [
+      domain("d1", "status.acme.com", "dns"),
+    ]);
+
+    expect(first!.isLive).toBe(false);
+    expect(getNotLiveReason(first!)).toBe(
+      CUSTOM_DOMAIN_STATUS[CustomDomainState.WaitingForDns],
+    );
+    expect(isDnsSetupOffered(first!, OVER_HTTPS)).toBe(true);
+  });
+
+  test("its certificates are never read: no verified domain needs one to say where it is", () => {
+    for (const state of ["unordered", "issuing", "failed", "live"] as const) {
+      expect([
+        state,
+        isCertificateNeededFor(domain("d1", "a.acme.com", state), OVER_HTTPS),
+      ]).toEqual([state, false]);
+    }
+
+    // On an installation that issues them, as before.
+    expect(
+      isCertificateNeededFor(domain("d1", "a.acme.com", "unordered")),
+    ).toBe(true);
+  });
+
+  test("the order is the same: live custom domains first, alphabetically, then OneUptime", () => {
+    expect(
+      summary(
+        addressesWithout(OVER_HTTPS, [
+          domain("d1", "zeta.acme.com", "unordered"),
+          domain("d2", "waiting.acme.com", "dns"),
+          domain("d3", "alpha.acme.com", "failed"),
+        ]),
+      ),
+    ).toEqual([
+      "live alpha.acme.com",
+      "live zeta.acme.com",
+      "not live waiting.acme.com",
+      "live oneuptime.com/status-page/5ba0193d-c333-48c3-9e94-ca8fa487dd4a",
+    ]);
+  });
+});
+
+/*
+ * The address visitors are sent to first - what the embedded status badge
+ * links to: the first live one in the list's order.
+ */
+describe("the first live address", () => {
+  test("a live custom domain, alphabetically first", () => {
+    expect(
+      getFirstLiveAddress(
+        addressesOf([
+          ["d1", "zeta.acme.com", "live"],
+          ["d2", "issuing.acme.com", "issuing"],
+          ["d3", "alpha.acme.com", "uploaded"],
+        ]),
+      )!.url,
+    ).toBe("https://alpha.acme.com");
+  });
+
+  test("the address on OneUptime when no custom domain is live", () => {
+    expect(
+      getFirstLiveAddress(
+        addressesOf([
+          ["d1", "a.acme.com", "dns"],
+          ["d2", "b.acme.com", "failed"],
+        ]),
+      )!.url,
+    ).toBe(ONEUPTIME_URL);
+  });
+
+  test("getCustomDomainUrl names the protocol only for a domain the installation serves itself", () => {
+    expect(getCustomDomainUrl("status.acme.com")).toBe(
+      "https://status.acme.com",
+    );
+    expect(
+      getCustomDomainUrl(
+        "status.acme.com",
+        CustomDomainState.CertificateIssued,
+        { issuesFreeCertificates: false, protocol: Protocol.HTTP },
+      ),
+    ).toBe("https://status.acme.com");
+    expect(
+      getCustomDomainUrl(
+        "status.acme.com",
+        CustomDomainState.VerifiedWithoutFreeCertificate,
+        { issuesFreeCertificates: false, protocol: Protocol.HTTP },
+      ),
+    ).toBe("http://status.acme.com");
   });
 });
