@@ -1833,7 +1833,11 @@ describe("CardSelect", () => {
     });
 
     test("the picked one is tinted, and only its radio is filled", () => {
-      renderComponent({ options: options, layout: "list", value: "Kubernetes" });
+      renderComponent({
+        options: options,
+        layout: "list",
+        value: "Kubernetes",
+      });
 
       const picked: HTMLElement = screen.getByTestId(
         "card-select-option-Kubernetes",
@@ -1870,7 +1874,11 @@ describe("CardSelect", () => {
     });
 
     test("one tab stop, and the arrow keys move between the rows", () => {
-      renderComponent({ options: options, layout: "list", value: "Kubernetes" });
+      renderComponent({
+        options: options,
+        layout: "list",
+        value: "Kubernetes",
+      });
 
       expect(
         screen.getByTestId("card-select-option-Kubernetes"),

@@ -1837,10 +1837,7 @@ export default class LLMService {
 
       const modelName: string = candidate.trim();
 
-      if (
-        modelName &&
-        modelName.length <= this.MAX_SERVED_MODEL_NAME_LENGTH
-      ) {
+      if (modelName && modelName.length <= this.MAX_SERVED_MODEL_NAME_LENGTH) {
         return modelName;
       }
     }
@@ -1931,9 +1928,7 @@ export default class LLMService {
     request: LLMCompletionRequest;
   }): Promise<string> {
     const providerName: string = data.config.llmType.toString();
-    const modelsUrl: string = this.buildOpenAICompatibleModelsUrl(
-      data.baseUrl,
-    );
+    const modelsUrl: string = this.buildOpenAICompatibleModelsUrl(data.baseUrl);
     const cacheKey: string = this.getServedModelCacheKey(
       data.config,
       modelsUrl,

@@ -53,7 +53,7 @@ En una instancia autoalojada, la forma más rápida de activar la IA para **todo
 | `GLOBAL_LLM_PROVIDER_TYPE` | Necesaria para activarlo. Una de `OpenAI`, `AzureOpenAI`, `Anthropic`, `Groq`, `Mistral`, `Ollama`, `OpenAICompatible` |
 | `GLOBAL_LLM_PROVIDER_API_KEY` | La clave de API: necesaria para OpenAI, Azure OpenAI, Anthropic, Groq y Mistral; no hace falta para Ollama ni para un servidor compatible con OpenAI sin clave |
 | `GLOBAL_LLM_PROVIDER_BASE_URL` | El endpoint: necesario para Azure OpenAI, Ollama y los servidores compatibles con OpenAI |
-| `GLOBAL_LLM_PROVIDER_MODEL_NAME` | El modelo que se usa: necesario para los servidores compatibles con OpenAI, recomendado para los demás |
+| `GLOBAL_LLM_PROVIDER_MODEL_NAME` | El modelo que se usa. Opcional: si no se define, OneUptime usa el modelo predeterminado del proveedor y, en un servidor compatible con OpenAI, el primer modelo que lista el servidor |
 | `GLOBAL_LLM_PROVIDER_NAME` | Un nombre descriptivo opcional, que se muestra en el panel |
 
 :::tabs
@@ -105,7 +105,7 @@ En **Conexión**, el formulario solo pide lo que usa ese proveedor, con su propi
 
 - **Clave de API**: tu clave de API, necesaria para OpenAI, Azure OpenAI, Anthropic, Groq y Mistral y opcional para un servidor compatible con OpenAI; para Ollama no se pide ninguna
 - **URL base**: el endpoint, necesario para Azure OpenAI, Ollama y OpenAI Compatible; para los demás, solo para pasar por un proxy o una pasarela
-- **Nombre del modelo**: el modelo que se usa, como `gpt-5.1`, `claude-sonnet-5-5` o `llama3.1`. Si lo dejas vacío, OneUptime usa el modelo predeterminado del proveedor, salvo en un servidor compatible con OpenAI, que necesita uno
+- **Nombre del modelo**: el modelo que se usa, como `gpt-5.1`, `claude-sonnet-5-5` o `llama3.1`. Si lo dejas vacío, OneUptime usa el modelo predeterminado del proveedor; un servidor compatible con OpenAI no tiene ninguno, así que OneUptime le pregunta qué modelos sirve y usa el primero que lista
 - **Nombre**: el nombre del proveedor hasta que escribas el tuyo, como "Production OpenAI" o "Local Ollama"
 - **Más campos**, plegado bajo los campos anteriores: una **Descripción**, **Establecer como predeterminado**, que está activado en un proveedor nuevo porque las funciones de IA solo usan el proveedor predeterminado del proyecto, y **Parámetros adicionales**, un objeto JSON opcional con parámetros extra que se envían al proveedor en cada petición (por ejemplo `{"temperature": 0.2}`)
 
@@ -225,7 +225,7 @@ Usa el proveedor **OpenAI Compatible** para cualquier servidor que implemente la
 1. Arranca tu servidor compatible con OpenAI y anota su URL base (suele terminar en `/v1`)
 2. Selecciona **OpenAI Compatible** como proveedor de LLM
 3. Introduce la **URL base** (obligatoria), p. ej. `http://your-server:8000/v1`. El servidor de OneUptime tiene que llegar a ella, así que no `localhost`: consulta [Elegir una URL base para un modelo autoalojado](#elegir-una-url-base-para-un-modelo-autoalojado)
-4. Introduce el **Nombre del modelo** (obligatorio): tiene que coincidir con un modelo que sirva tu servidor
+4. Introduce el **Nombre del modelo** o déjalo vacío: en ese caso OneUptime pregunta a tu servidor qué modelos sirve y usa el primero que lista, que en vLLM es el modelo que sirve. Un nombre que introduzcas tiene que coincidir con un modelo que sirva tu servidor
 5. Introduce la **Clave de API** solo si tu servidor la pide; déjala en blanco para un servidor sin clave
 
 ```text title="A keyless vLLM"
@@ -258,7 +258,7 @@ Si desactivaste el registro automático (`vllm.globalProvider.enabled: false`), 
 
 1. Selecciona **OpenAI Compatible** como proveedor de LLM (vLLM habla la API de OpenAI)
 2. Introduce la URL base dentro del clúster: `http://<release>-vllm.<namespace>.svc.cluster.local:8000/v1` (sustituye `cluster.local` si cambiaste `global.clusterDomain`)
-3. Introduce el nombre del modelo: el id completo del modelo en Hugging Face (o `vllm.servedModelName` si definiste uno)
+3. Introduce el nombre del modelo: el id completo del modelo en Hugging Face (o `vllm.servedModelName` si definiste uno), o déjalo vacío para usar el modelo que sirve vLLM
 4. Introduce la clave de API solo si definiste `vllm.apiKey`; déjala en blanco para un vLLM sin clave
 
 ```text title="The in-cluster vLLM"
@@ -286,7 +286,7 @@ Consulta la [guía de vLLM del chart de Helm](https://github.com/OneUptime/oneup
 - **OpenAI o Anthropic**: comprueba que tu clave de API es válida y tiene créditos
 - **Azure OpenAI / Microsoft Foundry**: el error empieza por lo que hay que cambiar. [Microsoft Foundry y Azure OpenAI](/docs/ai/microsoft-foundry) explica cada error con el que responde Azure
 - **Ollama**: comprueba que el servidor de Ollama se ejecuta, que escucha en una dirección a la que llega el servidor de OneUptime (`OLLAMA_HOST=0.0.0.0:11434` en una instalación nativa) y que la URL base apunta a esa dirección
-- **OpenAI Compatible**: comprueba que la URL base termina en `/v1` (o coincide con tu servidor), que el nombre del modelo coincide con un modelo que sirve tu servidor y que solo definiste una clave de API si tu servidor la pide
+- **OpenAI Compatible**: comprueba que la URL base termina en `/v1` (o coincide con tu servidor), que el nombre del modelo, si introdujiste uno, coincide con un modelo que sirve tu servidor y que solo definiste una clave de API si tu servidor la pide. Si el nombre del modelo está vacío y el servidor no lista ningún modelo en su endpoint `/models`, introduce uno
 - **"…points to an address OneUptime is not allowed to connect to"**: la URL base resuelve a una dirección rechazada: `localhost` u otra dirección de loopback o, en OneUptime Cloud, una dirección de red privada. (OneUptime Cloud informa en cambio de un nombre de host rechazado como "…could not be reached".) Consulta [Elegir una URL base para un modelo autoalojado](#elegir-una-url-base-para-un-modelo-autoalojado)
 - **Un cortafuegos**: comprueba que tu red permite conexiones salientes a la API del proveedor
 :::

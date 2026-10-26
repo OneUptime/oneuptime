@@ -214,7 +214,10 @@ describe("where an OpenAI-compatible server lists its models", () => {
       "https://gateway.example.com/openai/v1/models",
     ],
     ["HTTP://vllm:8000/v1", "http://vllm:8000/v1/models"],
-    ["http://vllm:8000/v1?api-version=2", "http://vllm:8000/v1/models?api-version=2"],
+    [
+      "http://vllm:8000/v1?api-version=2",
+      "http://vllm:8000/v1/models?api-version=2",
+    ],
     ["  http://vllm:8000/v1  ", "http://vllm:8000/v1/models"],
   ])("%s lists them at %s", (baseUrl: string, expected: string) => {
     expect(modelsUrlFor(baseUrl)).toBe(expected);
@@ -226,16 +229,13 @@ describe("where an OpenAI-compatible server lists its models", () => {
     "http://vllm:8000/v1/chat/completions",
     "https://gateway.example.com/openai/v1",
     "http://vllm:8000/v1?api-version=2",
-  ])(
-    "beside the chat completions %s is sent to",
-    async (baseUrl: string) => {
-      const chatUrl: string = await chatUrlFor(baseUrl);
+  ])("beside the chat completions %s is sent to", async (baseUrl: string) => {
+    const chatUrl: string = await chatUrlFor(baseUrl);
 
-      expect(modelsUrlFor(baseUrl)).toBe(
-        chatUrl.replace("/chat/completions", "/models"),
-      );
-    },
-  );
+    expect(modelsUrlFor(baseUrl)).toBe(
+      chatUrl.replace("/chat/completions", "/models"),
+    );
+  });
 });
 
 describe("the model a models list names first", () => {
@@ -384,14 +384,13 @@ describe("a provider whose Model Name is blank", () => {
     await complete(server());
 
     // vLLM started without --api-key refuses an empty bearer token.
-    expect(Object.keys(requestOf(list).headers)).not.toContain(
-      "Authorization",
-    );
+    expect(Object.keys(requestOf(list).headers)).not.toContain("Authorization");
     expect(requestOf(list).headers["Accept"]).toBe("application/json");
   });
 
   test("asks through the egress guard, pinned, refusing redirects, reading a bounded list", async () => {
-    const guard: Spy = DataSourceEgressGuard.assertUrlAllowedAndPin as unknown as Spy;
+    const guard: Spy =
+      DataSourceEgressGuard.assertUrlAllowedAndPin as unknown as Spy;
     const list: Spy = listModels(vllmModelsList(SERVED_MODEL));
 
     answerChat();
@@ -407,7 +406,8 @@ describe("a provider whose Model Name is blank", () => {
   });
 
   test("a global provider's server may be at a private address, as its requests may", async () => {
-    const guard: Spy = DataSourceEgressGuard.assertUrlAllowedAndPin as unknown as Spy;
+    const guard: Spy =
+      DataSourceEgressGuard.assertUrlAllowedAndPin as unknown as Spy;
 
     listModels(vllmModelsList(SERVED_MODEL));
     answerChat();
@@ -531,7 +531,9 @@ describe("a typed Model Name, and the other providers, are as they were", () => 
                 usage: { input_tokens: 1, output_tokens: 1 },
               }
             : {
-                choices: [{ message: { content: "OK" }, finish_reason: "stop" }],
+                choices: [
+                  { message: { content: "OK" }, finish_reason: "stop" },
+                ],
               },
       } as unknown as HTTPResponse<JSONObject>;
     }) as never);
@@ -718,7 +720,9 @@ describe("a server that cannot say which model to use", () => {
      * What the Test button says: what to do. FastAPI's {"detail": ...}
      * carries no message HTTPErrorResponse reads, so nothing follows it.
      */
-    expect(LlmProviderTestFailure.describe(error, LlmType.OpenAICompatible)).toBe(
+    expect(
+      LlmProviderTestFailure.describe(error, LlmType.OpenAICompatible),
+    ).toBe(
       "Model Name is empty, so the server was asked which models it serves, and it answered HTTP 404. Check the Base URL and the API Key, or type the name of a model it serves in Model Name.",
     );
   });
@@ -736,7 +740,9 @@ describe("a server that cannot say which model to use", () => {
       server({ baseUrl: "http://vllm.internal:8000/v2" }),
     );
 
-    expect(LlmProviderTestFailure.describe(error, LlmType.OpenAICompatible)).toBe(
+    expect(
+      LlmProviderTestFailure.describe(error, LlmType.OpenAICompatible),
+    ).toBe(
       "Model Name is empty, so the server was asked which models it serves, and it answered HTTP 404. Check the Base URL and the API Key, or type the name of a model it serves in Model Name.\nThe OpenAI-compatible server answered: Route /v2/models not found",
     );
   });
@@ -789,9 +795,9 @@ describe("a server that cannot say which model to use", () => {
     );
     expect(chat).not.toHaveBeenCalled();
     // The Test button says it as it is.
-    expect(LlmProviderTestFailure.describe(error, LlmType.OpenAICompatible)).toBe(
-      error.message,
-    );
+    expect(
+      LlmProviderTestFailure.describe(error, LlmType.OpenAICompatible),
+    ).toBe(error.message);
   });
 
   test("a page that is not a models list is read as no models", async () => {

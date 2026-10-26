@@ -584,8 +584,9 @@ describe("LLMService — OpenAI-compatible (generic, e.g. vLLM)", () => {
     });
 
     expect(
-      (listSpy.mock.calls[0]![0] as { url: { toString: () => string } }).url
-        .toString(),
+      (
+        listSpy.mock.calls[0]![0] as { url: { toString: () => string } }
+      ).url.toString(),
     ).toBe("http://vllm.local:8000/v1/models");
     expect((spy.mock.calls[0]![0] as { data: JSONObject }).data["model"]).toBe(
       "Qwen/Qwen3.8-27B",

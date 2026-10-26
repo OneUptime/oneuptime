@@ -379,9 +379,9 @@ describe("LLMService reports an unreachable provider without its address", () =>
     expect(
       (mockedAxios.mock.calls[0]![0] as AxiosRequestConfig).method,
     ).toMatch(/^get$/i);
-    expect(String((mockedAxios.mock.calls[0]![0] as AxiosRequestConfig).url)).toBe(
-      `http://${PROVIDER_HOST}:${PROVIDER_PORT}/v1/models`,
-    );
+    expect(
+      String((mockedAxios.mock.calls[0]![0] as AxiosRequestConfig).url),
+    ).toBe(`http://${PROVIDER_HOST}:${PROVIDER_PORT}/v1/models`);
   });
 });
 

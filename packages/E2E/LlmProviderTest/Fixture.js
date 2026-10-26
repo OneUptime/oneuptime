@@ -48,7 +48,9 @@ import UserUtil from "Common/UI/Utils/User";
  *   ?blankmodel=1 the provider on its own page left its Model Name and Base
  *                 URL blank (its page names the defaults the server uses),
  *                 and the Admin Dashboard's self-hosted Llama its Model Name
- *                 (its list names the model the server uses)
+ *                 (its list names the model the server uses); both lists
+ *                 also hold an OpenAI-compatible vLLM with no Model Name,
+ *                 which uses the first model its server lists
  *
  * Every provider a form saves is kept in state.saves (LlmProviderForm.spec).
  */
@@ -99,6 +101,9 @@ const PROVIDER_ID = "20000000-0000-4000-8000-000000000001";
 const SECOND_PROVIDER_ID = "20000000-0000-4000-8000-000000000002";
 const GLOBAL_PROVIDER_ID = "20000000-0000-4000-8000-000000000003";
 const SECOND_GLOBAL_PROVIDER_ID = "20000000-0000-4000-8000-000000000004";
+const VLLM_PROVIDER_ID = "20000000-0000-4000-8000-000000000005";
+const VLLM_GLOBAL_PROVIDER_ID = "20000000-0000-4000-8000-000000000006";
+const isBlankModel = params.get("blankmodel") === "1";
 
 const project = new Project();
 project._id = PROJECT_ID;
@@ -203,6 +208,17 @@ const providers = [
     llmType: LlmType.Anthropic,
     modelName: "claude-sonnet-5-5",
   }),
+  // A vLLM serving one model, its Model Name left to the server.
+  ...(isBlankModel
+    ? [
+        provider(VLLM_PROVIDER_ID, {
+          name: "Self-hosted vLLM",
+          llmType: LlmType.OpenAICompatible,
+          baseUrl: "http://vllm:8000/v1",
+          modelName: undefined,
+        }),
+      ]
+    : []),
 ];
 
 const globalProvider = provider(GLOBAL_PROVIDER_ID, {
@@ -229,6 +245,21 @@ const globalProviders = [
     item.projectId = undefined;
     return item;
   })(),
+  ...(isBlankModel
+    ? [
+        (() => {
+          const item = provider(VLLM_GLOBAL_PROVIDER_ID, {
+            name: "In-cluster vLLM",
+            isGlobalLlm: true,
+            llmType: LlmType.OpenAICompatible,
+            baseUrl: "http://oneuptime-vllm.default.svc.cluster.local:8000/v1",
+            modelName: undefined,
+          });
+          item.projectId = undefined;
+          return item;
+        })(),
+      ]
+    : []),
 ];
 
 /*

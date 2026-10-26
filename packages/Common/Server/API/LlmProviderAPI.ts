@@ -302,8 +302,7 @@ export default class LlmProviderAPI extends BaseAPI<
            * A blank Model Name leaves the model to the server: say which one
            * answered, so the person testing knows what AI features will use.
            */
-          const testedModelName: string | undefined =
-            testResponse?.modelName;
+          const testedModelName: string | undefined = testResponse?.modelName;
 
           if (testedModelName && !(provider.modelName || "").trim()) {
             message = `${message} Model Name is empty, so it used ${testedModelName}, ${

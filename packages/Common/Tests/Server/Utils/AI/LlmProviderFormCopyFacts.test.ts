@@ -449,9 +449,9 @@ describe("what the form says a blank field gets is what the server uses", () => 
 
     await complete(configFor(LlmType.OpenAICompatible, ["apiKey"]));
 
-    expect(
-      (list.mock.calls[0]![0] as { url: URL }).url.toString(),
-    ).toBe("http://vllm:8000/v1/models");
+    expect((list.mock.calls[0]![0] as { url: URL }).url.toString()).toBe(
+      "http://vllm:8000/v1/models",
+    );
     expect(sent(spy).data["model"]).toBe("qwen2.5-7b-instruct");
   });
 

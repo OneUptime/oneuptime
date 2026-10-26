@@ -290,9 +290,8 @@ describe("AIService.executeWithLogging marks its span as an AI call", () => {
 
       getCompletion.mockResolvedValue(completion({ modelName: path }));
 
-      const response: AILogResponse = await AIService.executeWithLogging(
-        request(),
-      );
+      const response: AILogResponse =
+        await AIService.executeWithLogging(request());
 
       expect(response.content).toBe(ANSWER);
       expect(path.length).toBeGreaterThan(100);
