@@ -517,6 +517,18 @@ export const getDeleteConsequenceSentences: (
 const ENDS_WITH_FULL_WIDTH_STOP: RegExp = /[。！？]$/u;
 
 /*
+ * What goes between a sentence and the next one: a space, or nothing after
+ * a full-width stop ("…よろしいですか？この操作…"). For a paragraph drawn in
+ * pieces - a sentence with a name in bold, then the plain ones after it -
+ * where joinSentences cannot run the strings together.
+ */
+export const getSentenceSeparator: (sentence: string) => string = (
+  sentence: string,
+): string => {
+  return ENDS_WITH_FULL_WIDTH_STOP.test(sentence.trim()) ? "" : " ";
+};
+
+/*
  * Whole sentences, each translated on its own, run together as one
  * paragraph the way the reader's script writes them: a space after each,
  * except after a full-width stop. Empty ones are left out.
@@ -536,9 +548,7 @@ export const joinSentences: (sentences: ReadonlyArray<string>) => string = (
         return sentence;
       }
 
-      return ENDS_WITH_FULL_WIDTH_STOP.test(paragraph)
-        ? `${paragraph}${sentence}`
-        : `${paragraph} ${sentence}`;
+      return `${paragraph}${getSentenceSeparator(paragraph)}${sentence}`;
     }, "");
 };
 

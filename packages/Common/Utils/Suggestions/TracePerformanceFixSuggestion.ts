@@ -4,7 +4,16 @@ import {
   PerformanceFindingType,
 } from "../../Types/AI/CodeFixTaskContext";
 import { JSONObject } from "../../Types/JSON";
-import { getCodeFixOffer } from "./CodeFixSuggestion";
+import {
+  FinishedFixOutcome,
+  getCodeFixOffer,
+  parseFinishedFixOutcome,
+} from "./CodeFixSuggestion";
+import {
+  parseSuggestionBlocker,
+  SuggestionBlocker,
+  suggestionBlockerToJSON,
+} from "./SuggestionBlocker";
 import SuggestionOffer, { parseSuggestionOffer } from "./SuggestionOffer";
 
 /*
@@ -102,7 +111,17 @@ export interface TracePerformanceFixOfferInput {
   isAiEnabled: boolean;
   // A FixPerformance run for this trace is already queued or running.
   hasActiveFix: boolean;
+  /*
+   * How the fix for this trace came out, when one already did its work
+   * (getFinishedFixOutcome): the trace is not offered a second one.
+   */
+  finishedFix?: FinishedFixOutcome | null | undefined;
   hasConnectedRepository: boolean;
+  /*
+   * What Code's gate says for the run the click would queue
+   * (CodeFixStartGate), when it says anything.
+   */
+  blocker?: SuggestionBlocker | null | undefined;
 }
 
 export interface TracePerformanceFixOffer {
@@ -114,6 +133,13 @@ export interface TracePerformanceFixOffer {
   finding: PerformanceFinding | null;
   // How many findings are worth fixing (the pull request covers them all).
   findingCount: number;
+  // Done: how the fix came out.
+  fixOutcome: FinishedFixOutcome | null;
+  /*
+   * SetUp: what stands in the way, in Code's words. Null while the step is
+   * a repository to connect.
+   */
+  blocker: SuggestionBlocker | null;
 }
 
 export function getTracePerformanceFixOffer(
@@ -127,19 +153,34 @@ export function getTracePerformanceFixOffer(
     isAiEnabled: input.isAiEnabled,
     applies: worthFixing.length > 0,
     hasActiveFix: input.hasActiveFix,
+    hasFinishedFix: Boolean(input.finishedFix),
     hasConnectedRepository: input.hasConnectedRepository,
+    isBlocked: Boolean(input.blocker),
     // The finding is on screen: worth a quiet "connect a repository" link.
     isBackedByEvidence: true,
   });
 
   if (offer === SuggestionOffer.None) {
-    return { offer, finding: null, findingCount: 0 };
+    return {
+      offer,
+      finding: null,
+      findingCount: 0,
+      fixOutcome: null,
+      blocker: null,
+    };
   }
 
   return {
     offer,
     finding: worthFixing[0] || null,
     findingCount: worthFixing.length,
+    fixOutcome:
+      offer === SuggestionOffer.Done ? input.finishedFix || null : null,
+    // A repository to connect comes first: Code's gate needs one to ask.
+    blocker:
+      offer === SuggestionOffer.SetUp && input.hasConnectedRepository
+        ? input.blocker || null
+        : null,
   };
 }
 
@@ -182,11 +223,14 @@ export function getFindingOperationName(finding: PerformanceFinding): string {
 /*
  * What POST /ai-investigation/performance-fix-suggestion answers, and the
  * trace page reads: the offer, the finding it names, and - when a fix is
- * already on its way - the run to link to.
+ * already on its way, or done - the run to link to.
  */
 export interface TracePerformanceFixSuggestion
   extends TracePerformanceFixOffer {
-  // The queued or running FixPerformance run, when the offer is InProgress.
+  /*
+   * The FixPerformance run to link to: the queued or running one when the
+   * offer is InProgress, the one that did its work when it is Done.
+   */
   aiRunId: string | null;
 }
 
@@ -195,6 +239,8 @@ export const NO_TRACE_PERFORMANCE_FIX_SUGGESTION: TracePerformanceFixSuggestion 
     offer: SuggestionOffer.None,
     finding: null,
     findingCount: 0,
+    fixOutcome: null,
+    blocker: null,
     aiRunId: null,
   };
 
@@ -312,8 +358,11 @@ export function parsePerformanceFinding(
 /*
  * Reads the suggestion route's answer. Whatever does not hold together - an
  * offer that names no finding, a finding the rule would not offer, an
- * in-progress offer with no run - reads as no suggestion, so the page never
- * draws an action the answer does not fully back.
+ * in-progress or done offer with no run, a done offer that does not say how
+ * it came out, a set-up step whose blocker this build cannot draw - reads as
+ * no suggestion, so the page never draws an action the answer does not
+ * fully back. A set-up step with no blocker at all is a repository to
+ * connect, as it was before blockers were sent.
  */
 export function parseTracePerformanceFixSuggestion(
   value: unknown,
@@ -342,8 +391,34 @@ export function parseTracePerformanceFixSuggestion(
       ? record["aiRunId"]
       : null;
 
-  if (offer === SuggestionOffer.InProgress && !aiRunId) {
+  const linksRun: boolean =
+    offer === SuggestionOffer.InProgress || offer === SuggestionOffer.Done;
+
+  if (linksRun && !aiRunId) {
     return NO_TRACE_PERFORMANCE_FIX_SUGGESTION;
+  }
+
+  const fixOutcome: FinishedFixOutcome | null =
+    offer === SuggestionOffer.Done
+      ? parseFinishedFixOutcome(record["fixOutcome"])
+      : null;
+
+  if (offer === SuggestionOffer.Done && !fixOutcome) {
+    return NO_TRACE_PERFORMANCE_FIX_SUGGESTION;
+  }
+
+  let blocker: SuggestionBlocker | null = null;
+
+  if (
+    offer === SuggestionOffer.SetUp &&
+    record["blocker"] !== undefined &&
+    record["blocker"] !== null
+  ) {
+    blocker = parseSuggestionBlocker(record["blocker"]);
+
+    if (!blocker) {
+      return NO_TRACE_PERFORMANCE_FIX_SUGGESTION;
+    }
   }
 
   return {
@@ -352,7 +427,9 @@ export function parseTracePerformanceFixSuggestion(
     findingCount: isFiniteNumber(record["findingCount"])
       ? Math.max(1, Math.floor(record["findingCount"]))
       : 1,
-    aiRunId: offer === SuggestionOffer.InProgress ? aiRunId : null,
+    fixOutcome,
+    blocker,
+    aiRunId: linksRun ? aiRunId : null,
   };
 }
 
@@ -366,6 +443,10 @@ export function tracePerformanceFixSuggestionToJSON(
       ? (JSON.parse(JSON.stringify(suggestion.finding)) as JSONObject)
       : null,
     findingCount: suggestion.findingCount,
+    fixOutcome: suggestion.fixOutcome,
+    blocker: suggestion.blocker
+      ? suggestionBlockerToJSON(suggestion.blocker)
+      : null,
     aiRunId: suggestion.aiRunId,
   };
 }

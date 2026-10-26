@@ -250,6 +250,252 @@ test.describe("Logs → AI tab", () => {
       await expectNoSidewaysScroll(page);
     }
   });
+
+  /*
+   * The shared telemetry tab bar (Components/Telemetry/NavTabs): five tabs
+   * need about 510px and a phone gives them 326, so they used to wrap,
+   * Setup Guide and Settings on a line of their own. They stay on one line
+   * now, the line scrolls sideways with its hidden edge faded, and the lit
+   * tab opens in view with the next tab peeking past the fade - scrolled no
+   * further, so the first tabs stay in sight. Only the bar scrolls, never
+   * the page.
+   */
+  test("the tabs stay on one line: on a phone the line scrolls, the lit tab in view and its neighbours peeking", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await inBothThemes(page, `${AI}/insights`, async () => {
+      const tabs: Locator = logsTabs(page);
+      const scroller: Locator = page.getByTestId("telemetry-nav-tabs-scroller");
+
+      await expect(tabs).toBeVisible({ timeout: 60000 });
+
+      const tops: Array<number> = await tabs
+        .getByRole("link")
+        .evaluateAll((links: Array<Element>): Array<number> => {
+          return links.map((link: Element): number => {
+            return Math.round(link.getBoundingClientRect().top);
+          });
+        });
+
+      // Every tab on the same line, never one under another.
+      expect(new Set(tops).size).toBe(1);
+      expect(tops.length).toBe(5);
+      await expect(
+        tabs.getByRole("link", { name: "AI", exact: true }),
+      ).toHaveAttribute("aria-current", "page");
+
+      const measure: () => Promise<{
+        overflow: number;
+        scrollLeft: number;
+        litLeft: number;
+        litRight: number;
+        barLeft: number;
+        barRight: number;
+      }> = async () => {
+        return scroller.evaluate(
+          (
+            element: Element,
+          ): {
+            overflow: number;
+            scrollLeft: number;
+            litLeft: number;
+            litRight: number;
+            barLeft: number;
+            barRight: number;
+          } => {
+            const bar: DOMRect = element.getBoundingClientRect();
+            const lit: DOMRect = element
+              .querySelector("[aria-current='page']")!
+              .getBoundingClientRect();
+
+            return {
+              overflow: element.scrollWidth - element.clientWidth,
+              scrollLeft: element.scrollLeft,
+              litLeft: lit.left,
+              litRight: lit.right,
+              barLeft: bar.left,
+              barRight: bar.right,
+            };
+          },
+        );
+      };
+
+      if (!isPhone(testInfo)) {
+        // A laptop has the room: nothing scrolls and no edge fades.
+        expect((await measure()).overflow).toBeLessThanOrEqual(1);
+        await expect(scroller).toHaveAttribute("data-hidden-left", "false");
+        await expect(scroller).toHaveAttribute("data-hidden-right", "false");
+        return;
+      }
+
+      const opened: Awaited<ReturnType<typeof measure>> = await measure();
+
+      // The tabs do not fit, so the line scrolls - the page does not.
+      expect(opened.overflow).toBeGreaterThan(100);
+      await expectNoSidewaysScroll(page);
+
+      /*
+       * The lit tab opens whole, with room past it for the next tab to
+       * peek. AI fits in English, so nothing scrolls: Viewer, the first
+       * tab, stays whole at the start, and Setup Guide peeks past the right
+       * fade (1.5rem) by more than its own padding.
+       */
+      expect(opened.litLeft).toBeGreaterThanOrEqual(opened.barLeft);
+      expect(opened.litRight).toBeLessThanOrEqual(opened.barRight - 47);
+      expect(opened.scrollLeft).toBe(0);
+      await expect(scroller).toHaveAttribute("data-hidden-left", "false");
+      await expect(scroller).toHaveAttribute("data-hidden-right", "true");
+
+      const setupGuideLeft: number = await tabs
+        .getByRole("link", { name: "Setup Guide", exact: true })
+        .evaluate((link: Element): number => {
+          return link.getBoundingClientRect().left;
+        });
+
+      expect(setupGuideLeft).toBeLessThan(opened.barRight - 24 - 12);
+
+      // Scrolled to its end, the last tab is whole and that edge is sharp.
+      await scroller.evaluate((element: Element): void => {
+        element.scrollLeft = element.scrollWidth;
+      });
+      await expect(scroller).toHaveAttribute("data-hidden-right", "false");
+
+      const settings: { left: number; right: number } = await tabs
+        .getByRole("link", { name: "Settings", exact: true })
+        .evaluate((link: Element): { left: number; right: number } => {
+          const box: DOMRect = link.getBoundingClientRect();
+
+          return { left: box.left, right: box.right };
+        });
+      const atEnd: Awaited<ReturnType<typeof measure>> = await measure();
+
+      expect(settings.right).toBeLessThanOrEqual(atEnd.barRight + 1);
+      expect(settings.left).toBeGreaterThanOrEqual(atEnd.barLeft);
+
+      // Back at the start, the first tab is whole and that edge is sharp.
+      await scroller.evaluate((element: Element): void => {
+        element.scrollLeft = 0;
+      });
+      await expect(scroller).toHaveAttribute("data-hidden-left", "false");
+      await expect(scroller).toHaveAttribute("data-hidden-right", "true");
+      await expectNoSidewaysScroll(page);
+    });
+
+    await screenshot(page, testInfo, "tabs-one-line");
+  });
+
+  /*
+   * In German AI does not fit with room past it on a phone: the bar
+   * scrolls just that far, so Betrachter (Viewer) still shows past the left
+   * fade and Einrichtungsanleitung (Setup Guide) peeks past the right one.
+   * Bringing the lit tab to the middle hid a first tab wholly behind the
+   * fade (German Exceptions showed no Exceptions tab at all).
+   */
+  test("on a phone in German the lit tab scrolls just into view, the first tab still in sight", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    test.skip(!isPhone(testInfo), "Only a phone's bar scrolls.");
+
+    await page.goto(`${AI}/insights?lang=de`);
+
+    const tabs: Locator = page.getByTestId("telemetry-nav-tabs");
+    const scroller: Locator = page.getByTestId("telemetry-nav-tabs-scroller");
+
+    await expect(
+      tabs.getByRole("link", { name: "KI", exact: true }),
+    ).toHaveAttribute("aria-current", "page");
+
+    const boxes: {
+      scrollLeft: number;
+      barLeft: number;
+      barRight: number;
+      firstRight: number;
+      litLeft: number;
+      litRight: number;
+    } = await scroller.evaluate(
+      (
+        element: Element,
+      ): {
+        scrollLeft: number;
+        barLeft: number;
+        barRight: number;
+        firstRight: number;
+        litLeft: number;
+        litRight: number;
+      } => {
+        const bar: DOMRect = element.getBoundingClientRect();
+        const first: DOMRect = element.children[0]!.getBoundingClientRect();
+        const lit: DOMRect = element
+          .querySelector("[aria-current='page']")!
+          .getBoundingClientRect();
+
+        return {
+          scrollLeft: element.scrollLeft,
+          barLeft: bar.left,
+          barRight: bar.right,
+          firstRight: first.right,
+          litLeft: lit.left,
+          litRight: lit.right,
+        };
+      },
+    );
+
+    // Scrolled, but only a little: the lit tab whole, room past it.
+    expect(boxes.scrollLeft).toBeGreaterThan(0);
+    expect(boxes.scrollLeft).toBeLessThan(48);
+    expect(boxes.litLeft).toBeGreaterThanOrEqual(boxes.barLeft);
+    expect(boxes.litRight).toBeLessThanOrEqual(boxes.barRight - 47);
+    // The first tab's name still shows past the left fade and its padding.
+    expect(boxes.firstRight).toBeGreaterThan(boxes.barLeft + 24 + 12 + 40);
+    await expect(scroller).toHaveAttribute("data-hidden-left", "true");
+    await expect(scroller).toHaveAttribute("data-hidden-right", "true");
+    await expectNoSidewaysScroll(page);
+
+    await screenshot(page, testInfo, "tabs-one-line-german");
+  });
+
+  /*
+   * Between a phone and a laptop the page header puts the bar on a line of
+   * its own beside the title's: from 640px to about 700px German's tabs are
+   * wider than that line, and the bar kept their width and pushed the page
+   * sideways. It scrolls inside the page there too.
+   */
+  test("at 640px in German the bar scrolls inside the page, never pushing it sideways", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    test.skip(isPhone(testInfo), "The laptop project resizes to 640px.");
+
+    await page.setViewportSize({ width: 640, height: 900 });
+    await page.goto(`${AI}/insights?lang=de`);
+
+    const scroller: Locator = page.getByTestId("telemetry-nav-tabs-scroller");
+
+    await expect(scroller).toBeVisible({ timeout: 60000 });
+    await expect(scroller).toHaveAttribute("data-hidden-right", "true");
+
+    const widths: { overflow: number; barRight: number; pageWidth: number } =
+      await scroller.evaluate(
+        (
+          element: Element,
+        ): { overflow: number; barRight: number; pageWidth: number } => {
+          return {
+            overflow: element.scrollWidth - element.clientWidth,
+            barRight: element.getBoundingClientRect().right,
+            pageWidth: document.documentElement.clientWidth,
+          };
+        },
+      );
+
+    expect(widths.overflow).toBeGreaterThan(0);
+    expect(widths.barRight).toBeLessThanOrEqual(widths.pageWidth);
+    await expectNoSidewaysScroll(page);
+  });
 });
 
 test.describe("Logs → AI → Settings", () => {
@@ -324,6 +570,65 @@ test.describe("Logs → AI → Settings", () => {
         await screenshot(page, testInfo, `settings-rules-${theme}`);
       },
     );
+  });
+
+  /*
+   * With rules, OneUptime AI fixes only what a rule that fixes matches: once
+   * every enabled rule says Don't fix, the switch that says it fixes says
+   * that it opens no pull request on its own, with the way to the rules.
+   */
+  test("every enabled rule says Don't fix: the switch says OneUptime AI opens no pull request on its own, and leads to the rules", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await page.goto(`${AI}/settings?aiRules=dontfix`);
+
+    const switches: Locator = page.getByTestId("telemetry-ai-switches");
+    const warning: Locator = switches.getByTestId("ai-rules-fix-nothing");
+
+    await expect(warning).toHaveText(
+      "Every enabled AI rule is set to “Don't fix”, so OneUptime AI opens no pull request on its own. Review the AI rules",
+      { timeout: 60000 },
+    );
+    // The switch is still on: the rules decide what it fixes.
+    await expect(
+      page.getByRole("switch", {
+        name: "Find and fix error, missing and noisy logs",
+      }),
+    ).toHaveAttribute("aria-checked", "true");
+
+    if (isPhone(testInfo)) {
+      await expectNoSidewaysScroll(page);
+    }
+
+    await screenshot(page, testInfo, "settings-dont-fix");
+
+    // The link opens More settings at the rules table.
+    await warning.getByRole("link", { name: "Review the AI rules" }).click();
+
+    await expect(page).toHaveURL(/#telemetry-ai-rules-table-Log$/);
+    await expect(
+      page.getByText("Checkout services: look, don't touch"),
+    ).toBeVisible();
+  });
+
+  test("a rule that fixes, or no rule at all, leaves the switch's own words alone", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const query of ["?aiRules=two", ""]) {
+      await page.goto(`${AI}/settings${query}`);
+
+      const switches: Locator = page.getByTestId("telemetry-ai-switches");
+
+      await expect(switches).toContainText(
+        "OneUptime AI fixes what it can with pull requests.",
+        { timeout: 60000 },
+      );
+      await expect(switches.getByTestId("ai-rules-fix-nothing")).toHaveCount(0);
+    }
   });
 
   test("a new rule asks Match, Investigate and Fix in the words of log problems, and an error log's pull request waits for the code at fault", async ({
@@ -680,6 +985,172 @@ test.describe("Logs → AI → a finding", () => {
 
     // The repository the code was found in: nothing to pick.
     expect(fixRequests).toEqual([{ insightId: ERROR_INSIGHT }]);
+  });
+
+  /*
+   * The finding page's Details rail, shared by every lane and AI Insights:
+   * in a narrow rail a value too long for its label's line goes under it,
+   * whole, instead of being cut beside it - German's "Zuletzt gesehen"
+   * left "4 minutes a..." of its value - and right to left the values sit
+   * at the end, each in its own direction ("5 hours ago" read "hours ago 5"
+   * in Persian). The cards' descriptions say what they hold in plain words.
+   */
+  test("Details: every value whole, under its label when it does not fit beside it, at the end in Persian too", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    const valuesOf: () => Promise<
+      Array<{
+        label: string;
+        text: string;
+        isCut: boolean;
+        isUnderLabel: boolean;
+        valueLeft: number;
+        valueRight: number;
+        rowLeft: number;
+        rowRight: number;
+      }>
+    > = async () => {
+      return page.getByTestId("insight-fact").evaluateAll(
+        (
+          rows: Array<Element>,
+        ): Array<{
+          label: string;
+          text: string;
+          isCut: boolean;
+          isUnderLabel: boolean;
+          valueLeft: number;
+          valueRight: number;
+          rowLeft: number;
+          rowRight: number;
+        }> => {
+          return rows.map((row: Element) => {
+            const label: Element = row.querySelector("dt")!;
+            const value: HTMLElement = row.querySelector("dd")!;
+            const labelBox: DOMRect = label.getBoundingClientRect();
+            const valueBox: DOMRect = value.getBoundingClientRect();
+            const rowBox: DOMRect = row.getBoundingClientRect();
+
+            return {
+              label: (label.textContent || "").trim(),
+              text: (value.textContent || "").trim(),
+              isCut: value.scrollWidth > value.clientWidth + 1,
+              isUnderLabel: valueBox.top >= labelBox.bottom - 1,
+              valueLeft: valueBox.left,
+              valueRight: valueBox.right,
+              rowLeft: rowBox.left,
+              rowRight: rowBox.right,
+            };
+          });
+        },
+      );
+    };
+
+    await page.goto(`${AI}/insights/${ERROR_INSIGHT}?lang=de`);
+    await expect(
+      page.getByText("Zuletzt gesehen", { exact: true }),
+    ).toBeVisible({ timeout: 60000 });
+
+    const german: Awaited<ReturnType<typeof valuesOf>> = await valuesOf();
+
+    expect(
+      german.map((fact: { label: string }): string => {
+        return fact.label;
+      }),
+    ).toEqual(["Dienst", "Erkennungen", "Zuerst gesehen", "Zuletzt gesehen"]);
+
+    for (const fact of german) {
+      // Nothing is cut: "4 minutes ago" is whole, wherever it sits.
+      expect(fact.isCut, `${fact.label}: ${fact.text}`).toBe(false);
+      // At the end of its row, under its label or beside it.
+      expect(Math.abs(fact.rowRight - fact.valueRight)).toBeLessThanOrEqual(1);
+    }
+
+    const lastSeen: { isUnderLabel: boolean } = german.find(
+      (fact: { label: string }): boolean => {
+        return fact.label === "Zuletzt gesehen";
+      },
+    )!;
+
+    /*
+     * In a laptop's 280px rail the value goes under its long label; a
+     * phone's rail is the page's width, and it sits beside it.
+     */
+    expect(lastSeen.isUnderLabel).toBe(!isPhone(testInfo));
+
+    // The cards say what they hold, in plain words.
+    await expect(
+      page.getByText(
+        "What OneUptime measured in your telemetry when it found this. Not written by AI.",
+        { exact: true },
+      ),
+    ).toHaveCount(0);
+    await expect(page.getByText(/Belege/).first()).toBeVisible();
+
+    await page.goto(`${AI}/insights/${ERROR_INSIGHT}?lang=fa`);
+    await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+    await expect(page.getByTestId("insight-fact").first()).toBeVisible({
+      timeout: 60000,
+    });
+
+    for (const fact of await valuesOf()) {
+      expect(fact.isCut, `${fact.label}: ${fact.text}`).toBe(false);
+      // Right to left, the end of a row is its left.
+      expect(Math.abs(fact.valueLeft - fact.rowLeft)).toBeLessThanOrEqual(1);
+    }
+
+    // English text keeps its own order on a Persian page.
+    await expect(
+      page
+        .getByTestId("insight-fact-value")
+        .locator("bdi")
+        .filter({ hasText: "minutes ago" }),
+    ).toHaveText("4 minutes ago");
+
+    if (isPhone(testInfo)) {
+      await expectNoSidewaysScroll(page);
+    }
+
+    await screenshot(page, testInfo, "insight-details-fa");
+  });
+
+  test("the cards say what they hold in plain words: what was measured, what OneUptime AI found, and what an answer does", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(`${AI}/insights/${ERROR_INSIGHT}`);
+
+    await expect(
+      page.getByText(
+        "What OneUptime measured in your telemetry when it found this. Not written by AI.",
+        { exact: true },
+      ),
+    ).toBeVisible({ timeout: 60000 });
+    await expect(
+      page.getByText(
+        "Confirm it if it was worth raising, or dismiss it if not: your answer tells OneUptime which of its findings help. Resolve it once it has been handled.",
+        { exact: true },
+      ),
+    ).toBeVisible();
+
+    // Nothing a reader has to decode.
+    const words: string = (
+      await page.locator("main, #root").first().innerText()
+    )
+      .toLowerCase()
+      .replace(/\s+/g, " ");
+
+    for (const jargon of [
+      "deterministic",
+      "baselines and multipliers",
+      "at detect time",
+      "detector's precision",
+      "worth surfacing",
+    ]) {
+      expect(words).not.toContain(jargon);
+    }
   });
 
   test("the evidence is the detector's own: the message as its pattern, how often, and where it was logged", async ({
@@ -1041,13 +1512,15 @@ test.describe("Logs → AI → Activity", () => {
 
         /*
          * A done investigation says what OneUptime AI found, marked with the
-         * AI tab's sparkles, on one line beside its mark.
+         * AI tab's sparkles, on one line beside its mark - in its kind's
+         * words: a failure that writes no log line found logging to add (it
+         * said "a fault in the code").
          */
         const verdict: Locator = entries
           .nth(1)
           .getByTestId("telemetry-ai-log-verdict");
 
-        await expect(verdict).toHaveText("Found a fault in the code");
+        await expect(verdict).toHaveText("Found logging the code should add");
         await expect(verdict.locator("svg")).toHaveCount(1);
 
         const markBox: { y: number; height: number } | null = await verdict

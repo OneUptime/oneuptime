@@ -1437,14 +1437,16 @@ router.post(
 
 /*
  * What the trace page offers for one trace: "Fix performance with AI" with
- * the finding it would fix (Act), a quiet link to connect a repository
- * (SetUp), a link to the fix already on its way (InProgress), or nothing
- * (None). Decided by FixPerformanceTaskTrigger.getSuggestionForTrace with
- * the very gates the create route below enforces, so the page never offers
- * a fix the server then refuses. The spans are read under the USER's
- * permissions, and only when AI is on. Body: { traceId }. Response: the
+ * the finding it would fix (Act), the one step in the way (SetUp: a
+ * repository to connect, or what Code's gate says - the plan, AI credits, a
+ * Runner online), a link to the fix already on its way (InProgress) or
+ * already done (Done, with how it came out), or nothing (None). Decided by
+ * FixPerformanceTaskTrigger.getSuggestionForTrace with the very gates the
+ * create route below enforces, so the page never offers a fix the server
+ * then refuses. The spans are read under the USER's permissions, and only
+ * when AI is on. Body: { traceId }. Response: the
  * TracePerformanceFixSuggestion JSON (offer, finding, findingCount,
- * aiRunId).
+ * fixOutcome, blocker, aiRunId).
  */
 router.post(
   "/ai-investigation/performance-fix-suggestion",
@@ -1502,9 +1504,10 @@ router.post(
  * spans are loaded under the USER's permissions (the same telemetry-read
  * ACL the trace explorer enforces — a user who cannot read the trace gets
  * "not found"), and the trigger's gates (AI on, a finding worth fixing, a
- * GitHub-App repository, per-trace dedupe) fail early with a clear
- * message. Body: { traceId }. Response: { aiRunId } — the Queued CodeFix
- * run the agent worker will claim.
+ * GitHub-App repository, per-trace dedupe, a fix that already did its
+ * work, Code's gate) fail early with a clear message. Body: { traceId }.
+ * Response: { aiRunId } — the Queued CodeFix run the agent worker will
+ * claim.
  */
 router.post(
   "/ai-investigation/create-performance-fix-task",
@@ -1907,8 +1910,9 @@ router.post(
  * "Improve logging / tracing with AI" from a telemetry service's Logs or
  * Traces page: gate and enqueue a service-scoped instrumentation-
  * improvement CodeFix run (ImproveLogging / ImproveTracing). Human-
- * triggered — the click is the gate; the AI switch, budget, repository and
- * per-service dedupe are enforced in the trigger. Returns { aiRunId }.
+ * triggered — the click is the gate; the AI switch, budget, repository,
+ * per-service dedupe and Code's gate are enforced in the trigger. Returns
+ * { aiRunId }.
  */
 router.post(
   "/ai-investigation/create-telemetry-improvement-task",

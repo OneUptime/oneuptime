@@ -1318,8 +1318,8 @@ describe("the function panel's figures and the fix strip", () => {
     );
 
     expect(button).toBeDisabled();
-    expect(button.className).toContain("disabled:opacity-50");
-    expect(button.className).toContain("disabled:cursor-not-allowed");
+    // Button's own disabled look: faded, with the not-allowed cursor.
+    expect(button).toHaveClass("opacity-50", "cursor-not-allowed");
     expect(
       within(strip).getByTestId("profiles-fix-repository"),
     ).toHaveTextContent("Which repository holds this code?");

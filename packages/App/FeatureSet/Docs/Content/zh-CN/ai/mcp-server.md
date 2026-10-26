@@ -9,6 +9,8 @@ OneUptime MCP 服务器让 AI 助手可以直接操作您的 OneUptime 项目。
 - [故障排除](#故障排除): 登录、权限和连接问题。
 :::
 
+本页介绍连接到 OneUptime 的 AI 助手。如果要反过来让 OneUptime AI 使用其他 MCP 服务器（例如 AWS 或 GitHub 的）的工具，请参阅 [外部 MCP 服务器](/docs/ai/external-mcp-servers)。
+
 ## 工作原理
 
 MCP 服务器是每个 OneUptime 实例的一部分，位于与仪表板相同地址的 `/mcp`，使用 streamable HTTP 传输。无需安装任何东西。

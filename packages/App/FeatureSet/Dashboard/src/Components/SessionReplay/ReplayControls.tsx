@@ -23,6 +23,7 @@ import {
   splitReplayClock,
 } from "./ReplayTimeFormat";
 import {
+  REPLAY_ICON_GHOST_BUTTON_CLASS,
   ReplayButtonGroup,
   ReplayClock,
   ReplayPill,
@@ -627,9 +628,21 @@ const ReplayControls: FunctionComponent<ReplayControlsProps> = (
           <MoreMenu
             text=""
             ariaLabel="More player options"
-            dataTestId="replay-more-menu"
             menuIcon={IconProp.EllipsisHorizontal}
             isOpeningUpwards={true}
+            // A ghost like the chrome's other icon buttons.
+            elementToBeShownInsteadOfButton={
+              <button
+                type="button"
+                className={REPLAY_ICON_GHOST_BUTTON_CLASS}
+                data-testid="replay-more-menu"
+              >
+                <Icon
+                  icon={IconProp.EllipsisHorizontal}
+                  className="h-3.5 w-3.5 shrink-0"
+                />
+              </button>
+            }
           >
             {props.onMouseTrailChange ? (
               <MoreMenuItem

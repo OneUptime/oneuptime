@@ -1,21 +1,40 @@
 import "@testing-library/jest-dom";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import { Mock } from "jest-mock";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
 import * as React from "react";
 import { BrowserRouter } from "react-router-dom";
 import TracePerformanceSuggestion from "../../../../App/FeatureSet/Dashboard/src/Components/Traces/TraceDetail/TracePerformanceSuggestion";
 import {
+  FINISHED_FIX_MARKS,
+  FINISHED_FIX_LINKS,
+  FINISHED_FIX_SENTENCES,
   PerformanceFindingWords,
+  TRACE_FIX_PERFORMANCE_DONE_TEST_IDS,
+  VIEW_THE_TASK,
   getPerformanceFindingWords,
   getShownSpanIds,
   getShownSpanSearch,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Traces/TraceDetail/TracePerformanceSuggestionCopy";
+import { TELEMETRY_AI_FIX_COPY } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryAi/TelemetryAiFixCopy";
 import {
   PerformanceFinding,
   PerformanceFindingType,
 } from "../../../Types/AI/CodeFixTaskContext";
+import { CodeTaskBlockerType } from "../../../Types/AI/CodeTask";
 import Route from "../../../Types/API/Route";
+import ObjectID from "../../../Types/ObjectID";
+import Permission from "../../../Types/Permission";
+import PermissionUtil from "../../../UI/Utils/Permission";
+import User from "../../../UI/Utils/User";
+import { FinishedFixOutcome } from "../../../Utils/Suggestions/CodeFixSuggestion";
+import { SuggestionBlocker } from "../../../Utils/Suggestions/SuggestionBlocker";
 import SuggestionOffer from "../../../Utils/Suggestions/SuggestionOffer";
 import { TracePerformanceFixSuggestion } from "../../../Utils/Suggestions/TracePerformanceFixSuggestion";
 
@@ -24,8 +43,9 @@ import { TracePerformanceFixSuggestion } from "../../../Utils/Suggestions/TraceP
  * it found, in plain words. Which traces get it is decided on the server
  * (and held by TracePerformanceFixSuggestion.test.ts); these tests hold how
  * each finding is worded and what each offer draws - the fix, a quiet
- * link to connect a repository, a link to the fix on its way - and that nothing
- * is drawn for None.
+ * link to connect a repository, what else stops AI in Code's own words, a
+ * link to the fix on its way, how a fix already done came out - and that
+ * nothing is drawn for None.
  */
 
 jest.mock("react-i18next", () => {
@@ -72,8 +92,46 @@ function suggestion(
     offer,
     finding: finding(overrides),
     findingCount: 1,
+    fixOutcome: null,
+    blocker: null,
     aiRunId: offer === SuggestionOffer.InProgress ? "run-1" : null,
   };
+}
+
+// A fix for the trace that already did its work, as the server says it.
+function done(outcome: FinishedFixOutcome): TracePerformanceFixSuggestion {
+  return {
+    ...suggestion(SuggestionOffer.Done),
+    fixOutcome: outcome,
+    aiRunId: "run-1",
+  };
+}
+
+// The one step Code's gate says stands in the way.
+function blocked(blocker: SuggestionBlocker): TracePerformanceFixSuggestion {
+  return { ...suggestion(SuggestionOffer.SetUp), blocker };
+}
+
+/*
+ * The signed-in person's permissions, as the permission snapshot hands them
+ * to the gates CodeBlockerNotice asks before it links a fix.
+ */
+function grant(permissions: Array<Permission>): void {
+  jest.spyOn(User, "isMasterAdmin").mockReturnValue(false);
+  jest.spyOn(PermissionUtil, "getAllPermissions").mockReturnValue(permissions);
+  jest.spyOn(PermissionUtil, "getGlobalPermissions").mockReturnValue(null);
+  jest.spyOn(PermissionUtil, "getProjectPermissions").mockReturnValue({
+    projectId: new ObjectID("10000000-0000-4000-8000-000000000001"),
+    userId: ObjectID.generate(),
+    permissions: permissions.map((permission: Permission) => {
+      return {
+        permission: permission,
+        labelIds: [],
+        _type: "UserPermission",
+      };
+    }),
+    _type: "UserTenantAccessPermission",
+  } as never);
 }
 
 const TASK_ROUTE: Route = new Route("/dashboard/p/code/tasks/run-1");
@@ -117,6 +175,7 @@ function renderStrip(props: {
 
 afterEach(() => {
   cleanup();
+  jest.restoreAllMocks();
 });
 
 describe("the words for each finding", () => {
@@ -300,6 +359,8 @@ describe("what each offer draws", () => {
             offer: SuggestionOffer.None,
             finding: null,
             findingCount: 0,
+            fixOutcome: null,
+            blocker: null,
             aiRunId: null,
           }}
           taskRoute={null}
@@ -389,6 +450,167 @@ describe("what each offer draws", () => {
     ).toHaveTextContent("OneUptime AI is working on a fix.");
   });
 
+  test.each([
+    [
+      FinishedFixOutcome.Fixed,
+      "OneUptime AI already opened a pull request that fixes this.",
+      "text-emerald-600",
+      "View the task",
+    ],
+    [
+      FinishedFixOutcome.NothingToChange,
+      "OneUptime AI already looked at this and found nothing to change.",
+      "text-gray-400",
+      "View the task",
+    ],
+    /*
+     * A task that waits for an answer: the link says what it is for - the
+     * task opens on its question, the reply box under it.
+     */
+    [
+      FinishedFixOutcome.WaitingForYou,
+      "OneUptime AI has a question about fixing this.",
+      "text-amber-600",
+      "Answer it",
+    ],
+  ])(
+    "Done (%s): how the fix came out, marked as Code marks its task, and a link to it - never the fix again",
+    (
+      outcome: FinishedFixOutcome,
+      sentence: string,
+      markClass: string,
+      linkWords: string,
+    ) => {
+      const { onFix } = renderStrip({
+        suggestion: done(outcome),
+        taskRoute: TASK_ROUTE,
+      });
+
+      expect(
+        screen.getByTestId("trace-performance-suggestion"),
+      ).toHaveAttribute("data-offer", "Done");
+      // What was found is still said: it is what the fix was about.
+      expect(screen.getByTestId("trace-performance-finding")).toHaveTextContent(
+        "The same database query ran 14 times in POST /api/v1/checkout",
+      );
+      expect(screen.queryByTestId("trace-fix-performance")).toBeNull();
+      expect(onFix).not.toHaveBeenCalled();
+
+      const line: HTMLElement = screen.getByTestId(
+        TRACE_FIX_PERFORMANCE_DONE_TEST_IDS.done,
+      );
+      expect(line).toHaveAttribute("data-outcome", outcome);
+      expect(line).toHaveTextContent(`${sentence} ${linkWords}`);
+      expect(FINISHED_FIX_SENTENCES[outcome]).toBe(sentence);
+      expect(FINISHED_FIX_LINKS[outcome]).toBe(linkWords);
+      expect(FINISHED_FIX_MARKS[outcome].className).toBe(markClass);
+      expect(line.querySelector(`.${markClass}`)).not.toBeNull();
+
+      const link: HTMLElement = screen.getByTestId(
+        TRACE_FIX_PERFORMANCE_DONE_TEST_IDS.link,
+      );
+      expect(link.closest("a")!.getAttribute("href")).toBe(
+        "/dashboard/p/code/tasks/run-1",
+      );
+      expect(link).toHaveTextContent(linkWords);
+      // The same words as a telemetry finding's link to its task.
+      expect(VIEW_THE_TASK).toBe(TELEMETRY_AI_FIX_COPY.viewTask);
+      // Not a working line: no live dot, no status that would be announced.
+      expect(screen.queryByTestId("trace-fix-performance-progress")).toBeNull();
+      expect(line).not.toHaveAttribute("role");
+    },
+  );
+
+  test("Done with no task to link to: how it came out, alone", () => {
+    renderStrip({ suggestion: done(FinishedFixOutcome.Fixed) });
+
+    expect(
+      screen.getByTestId(TRACE_FIX_PERFORMANCE_DONE_TEST_IDS.done),
+    ).toHaveTextContent(
+      "OneUptime AI already opened a pull request that fixes this.",
+    );
+    expect(
+      screen.queryByTestId(TRACE_FIX_PERFORMANCE_DONE_TEST_IDS.link),
+    ).toBeNull();
+    expect(screen.queryByTestId("trace-fix-performance")).toBeNull();
+  });
+
+  test("Done that does not say how it came out draws no line, and never the fix", () => {
+    renderStrip({
+      suggestion: { ...done(FinishedFixOutcome.Fixed), fixOutcome: null },
+      taskRoute: TASK_ROUTE,
+    });
+
+    expect(
+      screen.queryByTestId(TRACE_FIX_PERFORMANCE_DONE_TEST_IDS.done),
+    ).toBeNull();
+    expect(screen.queryByTestId("trace-fix-performance")).toBeNull();
+  });
+
+  test("SetUp with Code's blocker: its sentence in the strip's own amber, with its fix for someone who may make it - no button, no connect link", () => {
+    grant([Permission.ProjectUser, Permission.ProjectOwner]);
+
+    renderStrip({
+      suggestion: blocked({
+        type: CodeTaskBlockerType.NoAiCredits,
+        message: "This project's AI credits are used up.",
+      }),
+    });
+
+    expect(screen.queryByTestId("trace-fix-performance")).toBeNull();
+    expect(screen.queryByTestId("trace-fix-performance-connect")).toBeNull();
+    const notice: HTMLElement = screen.getByTestId("code-blocker");
+    expect(notice).toHaveAttribute("data-blocker", "NoAiCredits");
+    expect(notice).toHaveTextContent("This project's AI credits are used up.");
+    // Inline: no box of its own inside the amber strip.
+    expect(notice).not.toHaveClass("rounded-lg");
+    expect(within(notice).getByTestId("code-blocker-fix")).toHaveTextContent(
+      "Add AI credits",
+    );
+  });
+
+  test("SetUp with Code's blocker, for someone who may not clear it: who can", () => {
+    grant([Permission.ProjectUser, Permission.ProjectMember]);
+
+    renderStrip({
+      suggestion: blocked({
+        type: CodeTaskBlockerType.NoAiCredits,
+        message: "This project's AI credits are used up.",
+      }),
+    });
+
+    const notice: HTMLElement = screen.getByTestId("code-blocker");
+    expect(within(notice).queryByTestId("code-blocker-fix")).toBeNull();
+    expect(
+      within(notice).getByTestId("code-blocker-who-can"),
+    ).toHaveTextContent(
+      "A project owner or someone with Manage Billing can add AI credits.",
+    );
+  });
+
+  test("SetUp with the repository's Runner offline: names the Runner, and opens the repository's settings at it", () => {
+    grant([Permission.ProjectUser, Permission.ProjectOwner]);
+
+    renderStrip({
+      suggestion: blocked({
+        type: CodeTaskBlockerType.RunnerNotOnline,
+        message: 'The Runner "build-box" this repository picks is not online.',
+        runnerName: "build-box",
+        repositoryId: "50000000-0000-4000-8000-000000000005",
+      }),
+    });
+
+    const notice: HTMLElement = screen.getByTestId("code-blocker");
+    expect(within(notice).getByTestId("code-blocker-runner")).toHaveTextContent(
+      "build-box",
+    );
+    const fix: HTMLElement = within(notice).getByTestId("code-blocker-fix");
+    expect(fix).toHaveTextContent("Pick a Runner");
+    expect(fix.closest("a")!.getAttribute("href")).toContain(
+      "50000000-0000-4000-8000-000000000005",
+    );
+  });
+
   test("a refusal reads as the reason the fix did not start", () => {
     renderStrip({
       suggestion: suggestion(SuggestionOffer.Act),
@@ -461,6 +683,7 @@ describe("what each offer draws", () => {
       classesOf(SuggestionOffer.SetUp),
       classesOf(SuggestionOffer.InProgress, TASK_ROUTE),
       classesOf(SuggestionOffer.Act, TASK_ROUTE),
+      classesOf(SuggestionOffer.Done, TASK_ROUTE),
     ]) {
       expect(words).toEqual(expect.arrayContaining(["pl-8", "lg:pl-0"]));
     }

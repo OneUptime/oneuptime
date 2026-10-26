@@ -5,6 +5,7 @@ import {
 } from "../../../Components/StateTimeline/StateTimelineRowDelete";
 import PageComponentProps from "../../PageComponentProps";
 import DeleteConsequenceParagraph from "Common/UI/Components/DeleteConfirmation/DeleteConsequenceParagraph";
+import IrreversibleQuestion from "Common/UI/Components/DeleteConfirmation/IrreversibleQuestion";
 import { Black } from "Common/Types/BrandColors";
 import OneUptimeDate from "Common/Types/Date";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -119,6 +120,9 @@ const NO_ROOT_CAUSE_TEXT: string = translationKey(
   "No root cause. This monitor status could be created manually.",
 );
 const NO_LOGS_TEXT: string = translationKey("No logs for this status event.");
+const STATUS_EVENT_DELETE_QUESTION: string = translationKey(
+  "Are you sure you want to delete the {{status}} status event that started {{startsAt}}?",
+);
 const LOGS_DESCRIPTION: string = translationKey(
   "What OneUptime recorded when this monitor changed to this status, such as the check that caused it.",
 );
@@ -447,14 +451,13 @@ const StatusTimeline: FunctionComponent<PageComponentProps> = (
     return {
       description: (
         <span data-testid="status-event-delete-confirmation">
-          <TranslatedSentence
-            template="Are you sure you want to delete the {{status}} status event that started {{startsAt}}?"
+          <IrreversibleQuestion
+            template={STATUS_EVENT_DELETE_QUESTION}
             slots={{
               status: boldStateName(getStatusName(event.monitorStatus)),
               startsAt: boldStartsAt(formatStartsAt(event)),
             }}
-          />{" "}
-          {translator.translateText("This action cannot be undone.")}
+          />
           {effectSentence ? (
             <DeleteConsequenceParagraph dataTestId="status-event-delete-effect">
               {effectSentence}

@@ -231,6 +231,31 @@ describe("Navbar", () => {
       window.localStorage.clear();
     });
 
+    /*
+     * The phone's toggle is an outline button with only an icon: a square
+     * round it, named for a screen reader and saying whether its menu is
+     * open. Bordered now, it had been a wide box with its icon off its
+     * middle, and it had no name at all.
+     */
+    it("has a square toggle, named Navigation, that says whether its menu is open", () => {
+      openPhoneMenu({});
+
+      const toggle: HTMLElement = screen.getByTestId("mobile-nav-toggle");
+
+      expect(toggle).toHaveAccessibleName("Navigation");
+      expect(toggle).toHaveAttribute("aria-expanded", "true");
+      expect(toggle).toHaveClass("p-2", "border-gray-300");
+      expect(toggle).not.toHaveClass("px-3");
+      expect(toggle.querySelector("svg")).not.toHaveClass("me-1");
+
+      fireEvent.click(toggle);
+
+      expect(screen.getByTestId("mobile-nav-toggle")).toHaveAttribute(
+        "aria-expanded",
+        "false",
+      );
+    });
+
     it("lists every product one after another when the menu names no categories to open on", () => {
       expect(openPhoneMenu({})).toEqual([
         "home-nav-bar-item:Home",

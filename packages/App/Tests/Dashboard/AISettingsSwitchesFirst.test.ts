@@ -296,12 +296,13 @@ describe("every AI behaviour is a switch", () => {
       const fix: ProjectAiSwitchDefinition<string> = AI_LANE_SWITCHES[lane][1]!;
 
       /*
-       * What fixes: the AI agent where it happens, one of the runbooks, or
-       * a pull request - one of the ways it fixes, not a switch of its own.
+       * What fixes: the AI agent where it happens, one of the runbooks or
+       * of the project's external MCP servers, or a pull request - one of
+       * the ways it fixes, not a switch of its own.
        */
       expect(fix.description).toContain("through the AI agent");
       expect(fix.description).toContain(
-        "with one of your runbooks, or with a pull request.",
+        "with one of your runbooks or MCP servers, or with a pull request.",
       );
       expect(fix.children).toBeUndefined();
       /*
@@ -589,8 +590,16 @@ describe("the pages draw switches first, and fold the limits", () => {
       const page: string = readDashboard(file);
       const advanced: string = page.slice(page.indexOf("<AdvancedPageSection"));
 
+      /*
+       * The table reports what it holds to the section, and has the fix
+       * switch read again what the rules fix (AiRulesFixNothing): a rule
+       * added, changed or turned off can make every rule say Don't fix.
+       */
+      expect(page).toContain(
+        "const onAiRulesLoaded: (count: number) => void = advanced.onRulesLoaded( AiLaneAdvancedCard.AiRules, );",
+      );
       expect(advanced).toContain(
-        `<AiRulesTable lane={${lane}} onRulesLoaded={advanced.onRulesLoaded(AiLaneAdvancedCard.AiRules)} />`,
+        `<AiRulesTable lane={${lane}} onRulesLoaded={(count: number): void => { onAiRulesLoaded(count); fixNothing.refresh(); }} />`,
       );
       // Nothing about rules shows above the fold.
       expect(page.indexOf("<AiRulesTable")).toBeGreaterThan(

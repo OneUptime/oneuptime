@@ -409,6 +409,11 @@ export function parseProfileFixSuggestion(
     };
   }
 
+  // A finished fix is something this suggestion never says (it says None).
+  if (offer !== SuggestionOffer.Act) {
+    return NO_PROFILE_FIX_SUGGESTION;
+  }
+
   // Act: somewhere to ask it.
   if (!repository && repositories.length === 0) {
     return NO_PROFILE_FIX_SUGGESTION;

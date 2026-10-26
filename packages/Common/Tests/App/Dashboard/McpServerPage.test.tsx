@@ -1458,6 +1458,42 @@ describe("the page's other cards", () => {
     expect(link).toHaveAttribute("target", "_blank");
   });
 
+  /*
+   * The other way round: this page lets agents use OneUptime's tools, and
+   * External MCP Servers lets OneUptime AI use other servers' - a person
+   * who came here looking for that finds it, one link away, in the same
+   * tab (it is a page of the same Settings).
+   */
+  test("points the other way: OneUptime AI uses other MCP servers' tools from External MCP Servers", () => {
+    renderPage();
+
+    const agents: HTMLElement = card("What agents can do");
+    const line: HTMLElement = within(agents).getByTestId(
+      "mcp-server-external-servers",
+    );
+
+    expect(line).toHaveTextContent(
+      "To let OneUptime AI use the tools of other MCP servers, such as AWS's or GitHub's, add them in External MCP Servers.",
+    );
+
+    const link: HTMLElement = within(line).getByRole("link", {
+      name: "External MCP Servers",
+    });
+
+    expect(link).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/settings/external-mcp-servers`,
+    );
+    expect(link).not.toHaveAttribute("target", "_blank");
+    // After the documentation's line: what this page is, then the other way.
+    expect(
+      isBefore(
+        within(agents).getByRole("link", { name: "MCP server documentation" }),
+        line,
+      ),
+    ).toBe(true);
+  });
+
   test("tells the reader a signed-in client can be limited to read-only", () => {
     renderPage();
 

@@ -374,7 +374,8 @@ describe("the SLO's Rules section", () => {
 
     expect(isExpanded("Rules")).toBe(true);
     expect(sectionBody("Rules")).not.toHaveClass("invisible");
-    expect(sectionBody("Rules")).toHaveClass("max-h-[2000px]", "opacity-100");
+    expect(sectionBody("Rules")).toHaveClass("opacity-100");
+    expect(sectionBody("Rules").className).not.toContain("max-h-");
     expect(isExpanded("Configuration")).toBe(false);
     expect(isExpanded("Management")).toBe(false);
     expect(isExpanded("Overview")).toBe(true);

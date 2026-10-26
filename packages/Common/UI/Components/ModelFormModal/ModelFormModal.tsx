@@ -28,7 +28,8 @@ import React, { MutableRefObject, ReactElement, useRef, useState } from "react";
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
   title: string;
-  description?: string | undefined;
+  // A line under the title; an element can carry a link (Modal).
+  description?: string | ReactElement | undefined;
   modelAPI?: typeof ModelAPI | undefined;
   name?: string | undefined;
   modelType: { new (): TBaseModel };

@@ -9,6 +9,8 @@ El servidor MCP de OneUptime permite que un asistente de IA trabaje directamente
 - [Solución de problemas](#solución-de-problemas): Problemas de inicio de sesión, de permisos y de conexión.
 :::
 
+Esta página trata de los asistentes de IA que se conectan a OneUptime. Para que, en cambio, OneUptime AI use las herramientas de otros servidores MCP, como los de AWS o GitHub, consulta [Servidores MCP externos](/docs/ai/external-mcp-servers).
+
 ## Cómo funciona
 
 El servidor MCP forma parte de cada instancia de OneUptime, en `/mcp` en la misma dirección que el panel, y usa el transporte streamable HTTP. No hay nada que instalar.

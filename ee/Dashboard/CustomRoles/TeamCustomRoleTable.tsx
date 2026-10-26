@@ -11,9 +11,12 @@ import {
   loadCustomRoles,
 } from "@oneuptime/dashboard/Components/CustomRole/CustomRoleOptions";
 import {
+  ADD_ROLE_TO_TEAM_DESCRIPTION,
+  EVERY_ROLE_GIVEN_TO_TEAM_TOOLTIP,
   getPermissionCountText,
   getRoleRemoveFromTeamSentence,
 } from "@oneuptime/dashboard/Components/CustomRole/CustomRoleCopy";
+import RolesPageLink from "./RolesPageLink";
 import AppLink from "@oneuptime/dashboard/Components/AppLink/AppLink";
 import PageMap from "@oneuptime/dashboard/Utils/PageMap";
 import RouteMap, { RouteUtil } from "@oneuptime/dashboard/Utils/RouteMap";
@@ -171,10 +174,9 @@ const TeamCustomRoleTable: FunctionComponent<ComponentProps> = (
       buttonStyle: ButtonStyleType.NORMAL,
       // Every role the project has is the team's already: nothing to add.
       disabled: roleOptions.length === 0,
+      // The card's description just above links to the Roles page.
       tooltip:
-        roleOptions.length === 0
-          ? "This team has every custom role already. Make another on the Roles page."
-          : undefined,
+        roleOptions.length === 0 ? EVERY_ROLE_GIVEN_TO_TEAM_TOOLTIP : undefined,
       onClick: () => {
         setIsAdding(true);
       },
@@ -217,16 +219,7 @@ const TeamCustomRoleTable: FunctionComponent<ComponentProps> = (
               <TranslatedSentence
                 template="Named sets of permissions, made on the {{roles}} page. Changing a role changes this team too."
                 slots={{
-                  roles: (
-                    <AppLink
-                      className="font-medium text-indigo-600 hover:underline"
-                      to={RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.TEAM_ROLES] as Route,
-                      )}
-                    >
-                      {translator.translateText("Roles") || "Roles"}
-                    </AppLink>
-                  ),
+                  roles: <RolesPageLink />,
                 }}
               />
             ),
@@ -305,7 +298,15 @@ const TeamCustomRoleTable: FunctionComponent<ComponentProps> = (
         <ModelFormModal<TeamCustomRole>
           title="Add a Custom Role"
           name="Add a custom role to a team"
-          description="The team's members get everything the role allows. Make or change roles on the Roles page."
+          // Roles is a link here too: the dialog sends people to make one.
+          description={
+            <TranslatedSentence
+              template={ADD_ROLE_TO_TEAM_DESCRIPTION}
+              slots={{
+                roles: <RolesPageLink />,
+              }}
+            />
+          }
           modelType={TeamCustomRole}
           modalWidth={ModalWidth.Large}
           submitButtonText="Add Role"

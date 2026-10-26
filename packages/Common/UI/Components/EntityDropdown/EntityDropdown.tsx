@@ -1474,7 +1474,8 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
             return (
               <span
                 key={key}
-                className="inline-flex items-center gap-1.5 rounded-md border border-indigo-100 bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-900"
+                data-testid="entity-dropdown-chip"
+                className="inline-flex max-w-full items-center gap-1.5 rounded-md border border-indigo-100 bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-900"
               >
                 {colorStr && (
                   <span
@@ -1483,7 +1484,16 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                     style={{ backgroundColor: colorStr }}
                   />
                 )}
-                <span className="max-w-[14rem] truncate">{opt.label}</span>
+                {/*
+                 * The whole name, on two lines if it must: cut at 14rem, two
+                 * picks that differ only at their end read the same.
+                 */}
+                <span
+                  data-testid="entity-dropdown-chip-label"
+                  className="min-w-0 [overflow-wrap:anywhere]"
+                >
+                  {opt.label}
+                </span>
                 {opt.isArchived && (
                   <ArchivedTag
                     isCompact={true}

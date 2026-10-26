@@ -80,6 +80,16 @@ export const DETAIL_SINGLE_CELL_CLASS_NAME: string = "min-w-0";
  */
 export const DETAIL_VALUE_BADGE_CLASS_NAME: string = "align-top";
 
+/*
+ * Several pills drawn as a value - a multi-select's choices, related
+ * records - in a row that wraps, as a record's labels are: one line of them
+ * is the value's 24px line, centred on it, so their row is as tall as one
+ * of text beside it. The pills are 22.7px; without the line's height, their
+ * row stood 1.3px shorter than the rest.
+ */
+export const DETAIL_VALUE_BADGES_CLASS_NAME: string =
+  "flex min-h-6 flex-wrap items-center gap-1.5";
+
 export interface ComponentProps<T extends GenericObject> {
   item: T;
   fields: Array<Field<T>>;
@@ -229,7 +239,7 @@ const Detail: DetailFunction = <T extends GenericObject>(
     );
 
     return (
-      <div className="flex flex-wrap gap-1.5">
+      <div className={DETAIL_VALUE_BADGES_CLASS_NAME}>
         {values.map(
           (value: string | number | boolean, index: number): ReactElement => {
             const matched: DropdownOption | undefined = flatOptions.find(
@@ -360,7 +370,7 @@ const Detail: DetailFunction = <T extends GenericObject>(
     }
 
     return (
-      <div className="flex flex-wrap gap-1.5">
+      <div className={DETAIL_VALUE_BADGES_CLASS_NAME}>
         {labelled.map(
           (
             item: { label: string; entity: unknown },

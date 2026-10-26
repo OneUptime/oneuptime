@@ -1443,6 +1443,31 @@ describe("event notes: the composer", () => {
     expect(screen.getByTestId("note-submit")).toBeEnabled();
   });
 
+  /*
+   * The empty composer's Post looks locked the way every locked button does
+   * - its own fill, faded, no hover - not a paler fill of its own, which was
+   * a bright block in the dark theme.
+   */
+  test("an empty note's Post looks locked like every other locked button, and wakes once there is a note", async () => {
+    await renderPublic();
+    await openComposer();
+
+    const submit: () => HTMLElement = (): HTMLElement => {
+      return screen.getByTestId("note-submit");
+    };
+
+    expect(submit()).toHaveClass("bg-indigo-600", "opacity-50");
+    expect(submit()).toHaveClass("cursor-not-allowed");
+    expect(submit()).not.toHaveClass("hover:bg-indigo-700");
+    expect(submit().className).not.toContain("bg-indigo-300");
+
+    type(editor(), "Fix deployed");
+
+    expect(submit()).toHaveClass("bg-indigo-600", "hover:bg-indigo-700");
+    expect(submit()).not.toHaveClass("opacity-50");
+    expect(submit()).not.toHaveClass("cursor-not-allowed");
+  });
+
   test("posts the note on this incident and project, notifying subscribers explicitly", async () => {
     await renderPublic();
     await openComposer();

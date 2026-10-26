@@ -3,6 +3,7 @@ import InsightFixRouting, {
 } from "../../../../../Server/Utils/AI/SRE/Insights/FixRouting";
 import FixPerformanceTaskTrigger from "../../../../../Server/Utils/AI/SRE/FixPerformanceTaskTrigger";
 import SubjectCodeFixRun from "../../../../../Server/Utils/AI/SRE/SubjectCodeFixRun";
+import CodeFixStartGate from "../../../../../Server/Utils/AI/CodeFix/CodeFixStartGate";
 import SpanTreeAnalyzer, {
   AnalyzableSpan,
 } from "../../../../../Utils/Traces/SpanTreeAnalyzer";
@@ -511,6 +512,17 @@ describe("FixPerformanceTaskTrigger refactor invariance (spans path unchanged)",
   beforeEach(() => {
     // AI on: the switch's own refusals have their suites.
     jest.spyOn(AIService, "assertProjectAIEnabled").mockResolvedValue();
+    /*
+     * No fix for the trace did its work, and Code's gate (asked for a
+     * person's click) says nothing: both have their suites
+     * (FixPerformanceTaskTrigger.test.ts, CodeFixStartGate.test.ts).
+     */
+    jest
+      .spyOn(SubjectCodeFixRun, "findFinishedPerformanceFixRunForTrace")
+      .mockResolvedValue(null);
+    jest
+      .spyOn(CodeFixStartGate, "check")
+      .mockResolvedValue({ codeRepositoryId: null, blocker: null });
   });
 
   function makeSpan(): AnalyzableSpan {

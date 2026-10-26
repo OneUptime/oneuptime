@@ -295,6 +295,33 @@ export function filterInsights(rows, query) {
 }
 
 export function aiRules() {
+  /*
+   * ?aiRules=dontfix: the one enabled rule says Don't fix (and the rule
+   * that would fix is off), so the lane's switch says nothing is fixed.
+   */
+  if (rulesMode === "dontfix") {
+    return [
+      Object.assign(new AutoRemediationRule(), {
+        _id: RULE_IDS.checkout,
+        name: "Checkout services: look, don't touch",
+        triggerEntityType: AutoRemediationTriggerEntity.Log,
+        isEnabled: true,
+        investigates: true,
+        fixes: false,
+        executionMode: AutoRemediationExecutionMode.Suggest,
+      }),
+      Object.assign(new AutoRemediationRule(), {
+        _id: RULE_IDS.everything,
+        name: "Everything else",
+        triggerEntityType: AutoRemediationTriggerEntity.Log,
+        isEnabled: false,
+        investigates: true,
+        fixes: true,
+        executionMode: AutoRemediationExecutionMode.Suggest,
+      }),
+    ];
+  }
+
   if (rulesMode !== "two") {
     return [];
   }
@@ -397,7 +424,13 @@ export function aiLogs(now, skip) {
   const insights = aiInsights(now);
   const insight = (id) => {
     const row = insights.find((candidate) => candidate.id.toString() === id);
-    return { id, title: row.title, serviceName: row.serviceName };
+    // Its kind too, as the server sends it: a verdict is said in its words.
+    return {
+      id,
+      title: row.title,
+      serviceName: row.serviceName,
+      type: row.insightType,
+    };
   };
   const silent = insight(AI_INSIGHT_IDS.silent);
   const error = insight(AI_INSIGHT_IDS.error);

@@ -3257,11 +3257,15 @@ test.describe("a task OneUptime started on its own, from slow code it found", ()
     await expect(origin).toContainText(
       "OneUptime started this task from an AI insight: parseOrder takes 34% of the CPU time in checkout",
     );
+    // Slow code the Profiler found opens in the Profiler's AI section.
     await expect(
       origin.getByRole("link", {
         name: "parseOrder takes 34% of the CPU time in checkout",
       }),
-    ).toHaveAttribute("href", `${DASHBOARD}/ai/insights/${INSIGHT_ID}`);
+    ).toHaveAttribute(
+      "href",
+      `${DASHBOARD}/profiles/ai/insights/${INSIGHT_ID}`,
+    );
     await expect(origin.getByTestId("code-turn-request-message")).toContainText(
       "OneUptime found this in the service's profiles on its own.",
     );

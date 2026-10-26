@@ -893,9 +893,10 @@ const SwitchEditor: FunctionComponent<SwitchEditorProps> = (
             buttonStyle={ButtonStyleType.NORMAL}
             /*
              * Flush with the cases above, not a modal footer's gap in from
-             * them; and plainly off once the step holds all it can.
+             * them. Once the step holds all it can it is plainly off, with
+             * Button's disabled look.
              */
-            className="md:!ml-0 disabled:cursor-not-allowed disabled:opacity-50"
+            className="md:!ml-0"
             dataTestId={SWITCH_TEST_IDS.addCase}
             disabled={isFull}
             onClick={add}
