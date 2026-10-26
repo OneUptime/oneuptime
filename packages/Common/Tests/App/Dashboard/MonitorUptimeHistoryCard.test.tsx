@@ -484,6 +484,21 @@ describe("MonitorUptimeHistoryCard", () => {
     }
   });
 
+  test("the strip's first day is the day its bars were cut by, in their zone", () => {
+    // Midnight of June 24 in Tehran: still June 23 by the page's own UTC clock.
+    renderCard({
+      summary: loaded(
+        summaryOf({
+          timezone: "Asia/Tehran",
+          startDate: new Date("2026-06-23T20:30:00.000Z"),
+        }),
+      ),
+    });
+
+    expect(screen.getByText("Jun 24")).toBeInTheDocument();
+    expect(screen.queryByText("Jun 23")).toBeNull();
+  });
+
   test("the status models are kept across re-renders of the same summary", () => {
     const summary: OverviewSection<MonitorUptimeSummary> = loaded(summaryOf());
     const view: RenderResult = renderCard({ summary: summary });

@@ -425,12 +425,14 @@ const MonitorUptimeHistoryCard: FunctionComponent<ComponentProps> = (
             <div className="mt-2 flex justify-between text-xs text-gray-500">
               {/*
                * In the reader's language and digits ("۳۰ ژوئیه"), as every
-               * other date on the page.
+               * other date on the page, and on the clock the day bars were
+               * cut by.
                */}
               <span>
                 {OneUptimeDate.getDateAsCustomFormattedStringInTimezone({
                   date: summary.startDate,
                   format: "MMM D",
+                  timezone: summary.timezone,
                 })}
               </span>
               <span>{translator.translateText("Today")}</span>
