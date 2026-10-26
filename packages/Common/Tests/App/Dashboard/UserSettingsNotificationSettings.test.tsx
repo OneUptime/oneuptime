@@ -302,6 +302,72 @@ describe("user settings > notification settings", () => {
     });
 
     /*
+     * An SLA breach was sent under "Incident created" until it had an event
+     * of its own, so switching that off silenced breaches too. Its row sits
+     * on the Incidents card, right after the reminder, and turns breaches on
+     * or off by itself.
+     */
+    test("the Incidents card has an SLA breached row of its own, which toggles alone", async () => {
+      const updateById: jest.SpyInstance = jest
+        .spyOn(ModelAPI, "updateById")
+        .mockResolvedValue({} as any);
+
+      renderPage();
+
+      const row: HTMLElement = await findEventRow("Incident SLA breached");
+      expect(
+        within(row).getByText(
+          "An incident you own misses its SLA response or resolution deadline.",
+        ),
+      ).toBeVisible();
+
+      // In the Incidents card, after the reminder and before the notes.
+      const labels: Array<string> = Array.from(
+        row.closest("table")!.querySelectorAll("tr"),
+      ).map((tableRow: Element): string => {
+        return tableRow.textContent || "";
+      });
+      const at: (label: string) => number = (label: string): number => {
+        return labels.findIndex((text: string): boolean => {
+          return text.includes(label);
+        });
+      };
+      expect(at("Incident SLA breached")).toBe(at("Incident reminder") + 1);
+      expect(at("Incident SLA breached")).toBeLessThan(
+        at("Incident note posted"),
+      );
+
+      fireEvent.click(
+        within(row).getByRole("switch", {
+          name: /^SMS:/,
+        }),
+      );
+
+      await waitFor(() => {
+        expect(updateById).toHaveBeenCalledTimes(1);
+      });
+      const slaRow: UserNotificationSetting | undefined = rows.find(
+        (setting: UserNotificationSetting): boolean => {
+          return (
+            setting.eventType ===
+            NotificationSettingEventType.SEND_INCIDENT_SLA_BREACHED_OWNER_NOTIFICATION
+          );
+        },
+      );
+      const createdRow: UserNotificationSetting | undefined = rows.find(
+        (setting: UserNotificationSetting): boolean => {
+          return (
+            setting.eventType ===
+            NotificationSettingEventType.SEND_INCIDENT_CREATED_OWNER_NOTIFICATION
+          );
+        },
+      );
+      expect(updateById.mock.calls[0][0].id).toEqual(slaRow!.id);
+      expect(updateById.mock.calls[0][0].id).not.toEqual(createdRow!.id);
+      expect(updateById.mock.calls[0][0].data).toEqual({ alertBySMS: false });
+    });
+
+    /*
      * A single cell used to be blocked while the bulk preset ran, because
      * both lived on this page. That interlock is gone with the preset, so the
      * one thing left to prove is that an ordinary toggle still writes exactly

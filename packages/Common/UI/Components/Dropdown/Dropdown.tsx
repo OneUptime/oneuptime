@@ -1,6 +1,7 @@
 import ObjectID from "../../../Types/ObjectID";
 import ArchivedTag from "../ArchivedTag/ArchivedTag";
 import DROPDOWN_MENU_Z_INDEX from "./DropdownMenuZIndex";
+import joinAriaIds from "../../Utils/AriaIds";
 import useTranslateValue from "../../Utils/Translation";
 import { createTranslator } from "../../Utils/TranslateTemplate";
 import React, {
@@ -22,6 +23,7 @@ import Select, {
   CSSObjectWithLabel,
   FormatOptionLabelMeta,
   GroupBase,
+  InputProps,
   MultiValueRemoveProps,
   OptionProps,
 } from "react-select";
@@ -130,6 +132,8 @@ export interface ComponentProps {
   dataTestId?: string | undefined;
   ariaLabel?: string | undefined;
   ariaLabelledby?: string | undefined;
+  // What describes the list besides its error, read first: its field's help.
+  ariaDescribedby?: string | undefined;
   disabled?: boolean | undefined;
   /*
    * Show the clear (×) control. Defaults to true; turn it off for a choice
@@ -769,6 +773,52 @@ const Dropdown: FunctionComponent<ComponentProps> = (
     return MultiValueRemove;
   }, []);
 
+  /*
+   * What describes the search box besides react-select's own words: the
+   * field's help (ariaDescribedby), then its error. react-select writes the
+   * input's aria-describedby itself - its placeholder, or its live region -
+   * and takes no prop for it (one handed to Select is dropped), so its Input
+   * is wrapped and ours go first. Read from a ref by a component that holds
+   * still across renders, for the reason above: a new one would remount the
+   * input and lose the focus.
+   */
+  const describedByRef: React.MutableRefObject<string | undefined> = useRef<
+    string | undefined
+  >(undefined);
+  describedByRef.current = joinAriaIds(
+    props.ariaDescribedby,
+    props.error ? errorId : undefined,
+  );
+
+  const InputDescribedByField: FunctionComponent<
+    InputProps<DropdownOption, boolean, GroupBase<DropdownOption>>
+  > = useMemo(() => {
+    const DescribedInput: FunctionComponent<
+      InputProps<DropdownOption, boolean, GroupBase<DropdownOption>>
+    > = (
+      inputProps: InputProps<
+        DropdownOption,
+        boolean,
+        GroupBase<DropdownOption>
+      >,
+    ): ReactElement => {
+      const ownDescribedBy: string | undefined = (
+        inputProps as unknown as Record<string, string | undefined>
+      )["aria-describedby"];
+
+      return (
+        <ReactSelectComponents.Input
+          {...inputProps}
+          aria-describedby={joinAriaIds(describedByRef.current, ownDescribedBy)}
+        />
+      );
+    };
+
+    DescribedInput.displayName = "DropdownDescribedInput";
+
+    return DescribedInput;
+  }, []);
+
   useLayoutEffect(() => {
     if (firstUpdate.current && props.initialValue) {
       firstUpdate.current = false;
@@ -807,7 +857,10 @@ const Dropdown: FunctionComponent<ComponentProps> = (
         classNamePrefix="ou-select"
         unstyled={false}
         formatOptionLabel={formatDropdownOptionLabel}
-        components={{ MultiValueRemove: MultiValueRemoveWithOptionName }}
+        components={{
+          MultiValueRemove: MultiValueRemoveWithOptionName,
+          Input: InputDescribedByField,
+        }}
         onBlur={() => {
           props.onBlur?.();
         }}
@@ -822,7 +875,6 @@ const Dropdown: FunctionComponent<ComponentProps> = (
         aria-label={tx(props.ariaLabel)}
         aria-labelledby={props.ariaLabelledby}
         aria-invalid={props.error ? true : undefined}
-        aria-describedby={props.error ? errorId : undefined}
         classNames={{
           control: (
             state: ControlProps<DropdownOption, boolean, GroupBase<any>>,

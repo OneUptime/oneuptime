@@ -77,14 +77,19 @@ const CollapsibleSection: FunctionComponent<ComponentProps> = (
     }
   };
 
+  /*
+   * A framed section's sides are 12px on a phone and 16px from sm up: it
+   * sits in other boxes there (a monitor criteria's Filters and Actions are
+   * three cards deep), and each one's padding came off its fields' width.
+   */
   const getHeaderClassName: () => string = (): string => {
     const baseHeaderClassName: string = props.headerClassName || "";
 
     switch (variant) {
       case "card":
-        return `px-4 py-3 bg-gray-50 ${baseHeaderClassName}`;
+        return `px-3 py-3 bg-gray-50 sm:px-4 ${baseHeaderClassName}`;
       case "bordered":
-        return `px-4 py-3 bg-gray-50 ${baseHeaderClassName}`;
+        return `px-3 py-3 bg-gray-50 sm:px-4 ${baseHeaderClassName}`;
       default:
         return `py-2 ${baseHeaderClassName}`;
     }
@@ -93,9 +98,9 @@ const CollapsibleSection: FunctionComponent<ComponentProps> = (
   const getContentClassName: () => string = (): string => {
     switch (variant) {
       case "card":
-        return "px-4 py-3";
+        return "px-3 py-3 sm:px-4";
       case "bordered":
-        return "px-4 py-3";
+        return "px-3 py-3 sm:px-4";
       default:
         return "py-2";
     }

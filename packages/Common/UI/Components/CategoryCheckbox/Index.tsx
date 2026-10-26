@@ -20,6 +20,8 @@ export interface CategoryCheckboxProps
   error?: string | undefined;
   dataTestId?: string | undefined;
   ariaLabelledby?: string | undefined;
+  // What describes the choices: their field's help.
+  ariaDescribedby?: string | undefined;
 }
 
 const CategoryCheckbox: FunctionComponent<CategoryCheckboxProps> = (
@@ -153,7 +155,11 @@ const CategoryCheckbox: FunctionComponent<CategoryCheckboxProps> = (
   };
 
   return (
-    <div role="group" aria-labelledby={props.ariaLabelledby}>
+    <div
+      role="group"
+      aria-labelledby={props.ariaLabelledby}
+      aria-describedby={props.ariaDescribedby}
+    >
       {getCategory(undefined, categories.length === 0)}
       {categories.map((category: CheckboxCategory, i: number) => {
         return (

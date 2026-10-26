@@ -15,6 +15,7 @@ describe("routine email preset allowlist", () => {
     NotificationSettingEventType.SEND_INCIDENT_CREATED_OWNER_NOTIFICATION,
     NotificationSettingEventType.SEND_INCIDENT_STATE_CHANGED_OWNER_NOTIFICATION,
     NotificationSettingEventType.SEND_INCIDENT_REMINDER_OWNER_NOTIFICATION,
+    NotificationSettingEventType.SEND_INCIDENT_SLA_BREACHED_OWNER_NOTIFICATION,
     NotificationSettingEventType.SEND_INCIDENT_MEMBER_ADDED_NOTIFICATION,
     NotificationSettingEventType.SEND_ALERT_CREATED_OWNER_NOTIFICATION,
     NotificationSettingEventType.SEND_ALERT_STATE_CHANGED_OWNER_NOTIFICATION,

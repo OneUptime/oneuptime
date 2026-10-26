@@ -7,6 +7,13 @@
   It is placed raw because it is a value MailService alone sets, holding
   only letters, digits and "+/=:;,"; escaped, its base64 "=" would read
   "&#x3D;". Without it - its file could not be read - the name stands alone.
+
+  A screen reader says the name once. Beside OneUptime's logo, whose alt
+  text already says "OneUptime" (and names the link home, when there is
+  one), the name written next to it is the same word again: it is hidden
+  from screen readers (aria-hidden), and stays on screen. Gmail, Outlook
+  and Apple Mail read aria-hidden; a client that drops it reads the name
+  twice, as every client did before. Standing alone, the name is read.
 --}}
 <table role="presentation" class="st-Header st-Width st-Width--mobile" border="0" cellpadding="0" cellspacing="0" width="100%" style="width: 100%; table-layout: fixed;">
   <tr><td class="st-Gutter" style="padding: 32px 40px 28px;">
@@ -24,7 +31,7 @@
           <img src="{{{@root.oneUptimeLogoUrl}}}" width="32" height="32" alt="OneUptime" style="display: block; width: 32px; height: 32px; border-radius: 6px;">
         {{#if homeURL}}</a>{{else}}{{#if homeUrl}}</a>{{/if}}{{/if}}
       </td>
-      {{/if}}<td style="{{#if @root.oneUptimeLogoUrl}}padding-left: 10px; {{/if}}font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-size: 18px; line-height: 24px; font-weight: 700; letter-spacing: -0.5px; color: #0f172a;">OneUptime</td>
+      {{/if}}<td{{#if @root.oneUptimeLogoUrl}} aria-hidden="true"{{/if}} style="{{#if @root.oneUptimeLogoUrl}}padding-left: 10px; {{/if}}font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-size: 18px; line-height: 24px; font-weight: 700; letter-spacing: -0.5px; color: #0f172a;">OneUptime</td>
     </tr></table>{{/if}}{{/if}}
   </td></tr>
 </table>

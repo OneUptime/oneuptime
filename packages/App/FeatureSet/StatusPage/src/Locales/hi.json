@@ -415,6 +415,8 @@
   "Try again": "फिर से प्रयास करें",
   "Loading...": "लोड हो रहा है...",
   "Loading": "लोड हो रहा है",
+  "{{field}} is not valid JSON. {{parserMessage}}": "{{field}} मान्य JSON नहीं है। {{parserMessage}}",
+  "{{field}} is not valid YAML. {{parserMessage}}": "{{field}} मान्य YAML नहीं है। {{parserMessage}}",
   "markdownCallouts": {
     "caution": "सावधानी",
     "danger": "खतरा",

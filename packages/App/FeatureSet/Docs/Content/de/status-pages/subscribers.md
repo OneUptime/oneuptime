@@ -446,6 +446,8 @@ Vier weitere Abschnitte unter **Weitere Einstellungen** unten in den **Abonnente
 
 Eigenes SMTP lohnt sich früh, wenn Sie E-Mail-Abonnenten haben: Mail von Ihrer eigenen Domain wird weit seltener gefiltert und weit eher von dem Kunden vertraut, der sie um 2 Uhr nachts liest.
 
+Die Standard-SMS werden in den Zeichen geschrieben, die eine SMS am günstigsten überträgt: Typografische Anführungszeichen, Gedankenstriche und Ähnliches gehen als ihre schlichten Entsprechungen hinaus, und ein Emoji wird weggelassen, sodass ein einzelnes Zeichen in einem Titel eine SMS nie zwei oder drei Teile kosten lässt. Links gehen genau so hinaus, wie sie geschrieben sind. Eine eigene SMS-Vorlage geht so hinaus, wie Sie sie geschrieben haben, mit den Werten, die sie einsetzt.
+
 ## Ankündigungen
 
 Eine Ankündigung ist ein Datensatz auf Projektebene (das Modell `StatusPageAnnouncement`), den Sie auf eine oder mehrere Statusseiten verteilen, optional auf bestimmte Monitore beschränkt, mit einem Zeitfenster, in dem sie angezeigt wird.

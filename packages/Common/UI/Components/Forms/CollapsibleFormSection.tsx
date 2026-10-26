@@ -92,6 +92,33 @@ const CollapsibleFormSection: FunctionComponent<ComponentProps> = (
     openWhenConfigured ? !props.isConfigured : true,
   );
 
+  /*
+   * A field in the section that fails - the form's action pressed, or the
+   * server refusing it - opens the section, in the same render that draws
+   * the error: the form brings the first field in error into view as it is
+   * drawn (BasicForm), and a section still folded then would hide it. Each
+   * new attempt opens it again, so a section folded by hand over an error
+   * opens when the action is pressed once more.
+   */
+  const [errorShown, setErrorShown] = useState<{
+    hasError: boolean;
+    validationAttempt: number;
+  }>({ hasError: false, validationAttempt: props.validationAttempt });
+
+  if (
+    errorShown.hasError !== props.hasError ||
+    errorShown.validationAttempt !== props.validationAttempt
+  ) {
+    setErrorShown({
+      hasError: props.hasError,
+      validationAttempt: props.validationAttempt,
+    });
+
+    if (props.hasError && isCollapsed) {
+      setIsCollapsed(false);
+    }
+  }
+
   const reportSectionOpen: ReportFormSectionOpenFunction | null = useContext(
     OpenFormSectionsContext,
   );
@@ -130,12 +157,6 @@ const CollapsibleFormSection: FunctionComponent<ComponentProps> = (
       setIsCollapsed(false);
     }
   }, [props.isConfigured]);
-
-  useEffect(() => {
-    if (props.hasError) {
-      setIsCollapsed(false);
-    }
-  }, [props.hasError, props.validationAttempt]);
 
   // Each sentence on its own: a locale translates sentences, not a paragraph.
   const summary: string = (props.summary || [])

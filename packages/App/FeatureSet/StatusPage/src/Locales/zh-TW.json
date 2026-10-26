@@ -415,6 +415,8 @@
   "Try again": "再試一次",
   "Loading...": "載入中...",
   "Loading": "載入中",
+  "{{field}} is not valid JSON. {{parserMessage}}": "{{field}} 不是有效的 JSON。{{parserMessage}}",
+  "{{field}} is not valid YAML. {{parserMessage}}": "{{field}} 不是有效的 YAML。{{parserMessage}}",
   "markdownCallouts": {
     "caution": "小心",
     "danger": "危險",

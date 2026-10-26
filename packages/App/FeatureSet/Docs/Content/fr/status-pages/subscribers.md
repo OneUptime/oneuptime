@@ -446,6 +446,8 @@ Quatre autres sections, sous **Plus de paramètres** en bas de **Paramètres des
 
 Le SMTP personnalisé vaut la peine d'être configuré tôt si vous avez des abonnés par e-mail : le courrier qui vient de votre propre domaine est bien moins susceptible d'être filtré, et bien plus susceptible d'inspirer confiance au client qui le lit à 2 h du matin.
 
+Les SMS par défaut sont écrits avec les caractères qu'un SMS transporte au meilleur coût : les guillemets typographiques, les tirets et autres partent sous leur équivalent simple et un emoji est omis, si bien qu'un seul caractère dans un titre ne fait jamais coûter deux ou trois parties à un SMS. Les liens partent exactement tels qu'ils sont écrits. Un modèle de SMS personnalisé part tel que vous l'avez écrit, avec les valeurs qu'il insère.
+
 ## Annonces
 
 Une annonce est un enregistrement au niveau du projet (le modèle `StatusPageAnnouncement`) que vous diffusez sur une ou plusieurs pages de statut, éventuellement limité à des moniteurs précis, avec une fenêtre pendant laquelle elle s'affiche.

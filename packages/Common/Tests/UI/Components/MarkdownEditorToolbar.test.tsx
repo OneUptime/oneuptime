@@ -579,6 +579,39 @@ describe("the Markdown editor's toolbar on a phone", () => {
     ).toBeInTheDocument();
     expect(formattingTitles().slice(0, 4)).toEqual(EVERY_BUTTON.slice(0, 4));
   });
+
+  /*
+   * A monitor criteria's alert form on a 390px phone gave its description's
+   * editor some 165px, and Insert variable's words were cut to "Insert
+   * variab" at the editor's edge.
+   */
+  test("where even Insert variable's words do not fit, keeps its { } and its name, and gives the words back as it widens", () => {
+    installLayout(147);
+    render(<MarkdownEditor initialValue="" templateVariables={GROUPS} />);
+
+    const insert: HTMLElement = screen.getByTestId(
+      "markdown-editor-insert-variable",
+    );
+
+    // Its { } alone, a square like the formatting buttons ...
+    expect(insert).toHaveClass("w-8");
+    expect(within(insert).getByText("Insert variable")).toHaveClass("sr-only");
+    // ... still named by its words, which show on hover.
+    expect(insert).toHaveAccessibleName("Insert variable");
+    expect(insert).toHaveAttribute("title", "Insert variable");
+    expect(moreButton()).not.toBeNull();
+    expect(screen.queryByRole("button", { name: "Markdown" })).toBeNull();
+
+    resizeLineTo(600);
+
+    const widened: HTMLElement = screen.getByTestId(
+      "markdown-editor-insert-variable",
+    );
+    expect(widened).not.toHaveClass("w-8");
+    expect(within(widened).getByText("Insert variable")).not.toHaveClass(
+      "sr-only",
+    );
+  });
 });
 
 describe("the Markdown editor's toolbar as its line is resized", () => {

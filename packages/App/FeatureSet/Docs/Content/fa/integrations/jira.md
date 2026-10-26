@@ -64,7 +64,7 @@ flowchart TB
 | Create a Jira issue when an alert is created | برای هر هشدار تازه یک issue ثبت می‌کند، از جمله هر هشداری که یک مانیتور برمی‌انگیزد، و شناسه هشدار را به صورت برچسب روی آن می‌گذارد. هشدارهایی که از Jira ساخته شده‌اند، و هشدارهای خصوصی، نادیده گرفته می‌شوند. | نشانی API، توکن API، کلید پروژه، نوع issue، نشانی OneUptime |
 | Move the Jira issue when the alert is acknowledged or resolved | issue وصل‌شده را به جلو می‌برد: با تأیید هشدار به یک وضعیت In Progress، و با رفع آن به یک وضعیت Done. هرگز آن را به عقب برنمی‌گرداند. | نشانی API، توکن API |
 | Copy alert private notes to the Jira issue | هر یادداشت خصوصی تازه را به صورت نظر روی issue وصل‌شده می‌فرستد — در Jira Service Management یک نظر داخلی. | نشانی API، توکن API |
-| Comment on the Jira issue when the alert is edited | وقتی عنوان، شدت، توضیحات یا یادداشت‌های رفع هشدار تغییر کنند، وضعیت کنونی هشدار را می‌فرستد — در Jira Service Management یک نظر داخلی. | نشانی API، توکن API |
+| Comment on the Jira issue when the alert is edited | وقتی عنوان، شدت، توضیحات، علت ریشه‌ای یا یادداشت‌های رفع هشدار تغییر کنند، وضعیت کنونی هشدار را می‌فرستد — در Jira Service Management یک نظر داخلی. | نشانی API، توکن API |
 | **از Jira به OneUptime** | | |
 | Create an alert when a Jira issue is created | برای هر issue تازه یک هشدار می‌سازد، با شدتی که از اولویت issue انتخاب شده، سپس برای وصل کردن این دو روی issue برچسب می‌گذارد. | نشانی سایت، نشانی API، توکن API، و یک وب‌هوک Jira برای **Issue created** |
 | Acknowledge or resolve the alert when its Jira issue moves | وقتی issue وصل‌شده به یک وضعیت In Progress برود هشدار را تأیید می‌کند، و وقتی به یک وضعیت Done برود آن را رفع می‌کند. | یک وب‌هوک Jira برای **Issue updated** |
@@ -80,7 +80,6 @@ flowchart TB
 - **بدون یادداشت عمومی.** هشدارها فقط یادداشت خصوصی دارند، پس هر نظری که قالب‌های هشدار می‌فرستند، در Jira Service Management یک نظر داخلی است.
 - **بدون صفحه وضعیت.** یک هشدار هرگز به صفحه وضعیت نمی‌رسد، پس **Create an alert when a Jira issue is created** شدت، عنوان، توضیحات و `customFields.jiraIssueKey` را می‌نویسد، و نه چیز دیگری.
 - **دو شدت، پس Medium به Low تبدیل می‌شود.** یک پروژه تازه دو شدت هشدار دارد، High و Low، در حالی که سه شدت حادثه دارد. قالب ساخت، اولویت‌های Jira را میان شدت‌هایی که پروژه دارد پخش می‌کند. با دو شدت پیش‌فرض، Highest، High، Critical و Blocker به High تبدیل می‌شوند، و هر اولویت دیگری، از جمله Medium و Major، به Low. برای فرستادن Medium به High، در اسکریپت `prepare-alert-1` در `PRIORITY_RANK` مقدار `medium: 1` را به `medium: 0` تغییر دهید.
-- **ویرایش علت ریشه‌ای پایش نمی‌شود.** علت ریشه‌ای یک هشدار هنگام ساخت هشدار نوشته می‌شود و قابل ویرایش نیست، پس قالب ویرایش با تغییر عنوان، توضیحات، شدت و یادداشت‌های رفع اجرا می‌شود. نظر آن همچنان علت ریشه‌ای را نشان می‌دهد.
 - **پیوندها و برچسب‌های هشدار.** issue به `/dashboard/<project id>/alerts/<alert id>` پیوند می‌دهد، و برچسب `oneuptime-alert-<alert id>` را می‌گیرد.
 - **شماره‌ها می‌گویند شماره چه چیزی هستند.** با پیشوند پیش‌فرض `#`، یک هشدار و یک حادثه هر دو می‌توانند `#12` باشند، پس قالب‌ها `Alert #12` یا `Incident #12` می‌نویسند. شماره‌ای با پیشوند خودش، مانند `ALT-12`، همان‌طور که هست نوشته می‌شود.
 - **هشدارهای خصوصی.** هشداری که **هشدار خصوصی** علامت خورده، چه دستی و چه با یک قاعده حریم خصوصی هشدار، بیرون از Jira می‌ماند، مگر اینکه `SYNC_PRIVATE_ALERTS` را روی `true` بگذارید.

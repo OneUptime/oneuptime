@@ -1,4 +1,5 @@
 import IconProp from "../../../Types/Icon/IconProp";
+import bringIntoView from "../../Utils/BringIntoView";
 import { getListSeparator } from "../../Utils/ListSeparator";
 import { Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
@@ -16,10 +17,12 @@ import {
 import React, {
   Fragment,
   FunctionComponent,
+  MutableRefObject,
   ReactElement,
   ReactNode,
-  useEffect,
   useId,
+  useLayoutEffect,
+  useRef,
   useState,
 } from "react";
 
@@ -59,6 +62,18 @@ import React, {
  * theme (Theme.css remaps every colour class used here), at phone width
  * (the lines wrap; the chevron keeps its place) and right to left (the
  * line's chevron points left while it is folded).
+ *
+ * On a phone a card's sides are 12px, not 16 (from sm up): a card is often
+ * nested in other cards there - a monitor criteria's alert form sits in
+ * four - and each one's padding came off the width its fields have.
+ *
+ * Opened by the reader, it brings itself into view (Utils/BringIntoView):
+ * a More fields line at the bottom of a dialog opened its fields below the
+ * dialog's edge, so pressing it seemed to do nothing. Only as far as
+ * needed: a fold that fits stays where it is, one below the view comes up
+ * until its last field is in sight, and one taller than the view keeps its
+ * header at the top - each a little room (scroll-my-4) from the edge. A fold opened for the reader by something else - a
+ * field in it that failed - is brought into view by what opened it.
  */
 
 export const FOLDED_SECTION_TEST_ID: string = "folded-section";
@@ -90,7 +105,12 @@ export interface ComponentProps {
    * section that knows something in it is set but not what.
    */
   badge?: string | undefined;
-  // Controlled: follows the prop. Left out, starts as defaultCollapsed.
+  /*
+   * Controlled: drawn as the prop says, in the same render it changes in -
+   * so a form that opens a section for a field in error can bring the field
+   * into view as it is drawn. A press asks onToggle. Left out, the section
+   * keeps its own state, starting as defaultCollapsed.
+   */
   isCollapsed?: boolean | undefined;
   // True when left out: a fold starts folded.
   defaultCollapsed?: boolean | undefined;
@@ -114,21 +134,38 @@ const FoldedSection: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
 
-  const [isCollapsed, setIsCollapsed] = useState<boolean>(
+  const [ownIsCollapsed, setOwnIsCollapsed] = useState<boolean>(
     props.isCollapsed ?? props.defaultCollapsed ?? true,
   );
 
-  useEffect(() => {
-    if (props.isCollapsed !== undefined) {
-      setIsCollapsed(props.isCollapsed);
-    }
-  }, [props.isCollapsed]);
+  const isCollapsed: boolean =
+    props.isCollapsed !== undefined ? props.isCollapsed : ownIsCollapsed;
+
+  const rootRef: MutableRefObject<HTMLDivElement | null> =
+    useRef<HTMLDivElement | null>(null);
+
+  // Set by a press that opens the fold, until it has been brought into view.
+  const isOpeningForReader: MutableRefObject<boolean> = useRef<boolean>(false);
 
   const toggle: () => void = (): void => {
     const next: boolean = !isCollapsed;
-    setIsCollapsed(next);
+    isOpeningForReader.current = !next;
+    setOwnIsCollapsed(next);
     props.onToggle?.(next);
   };
+
+  /*
+   * Once what the press opened is drawn, before it is painted: the fold
+   * comes into view as it opens.
+   */
+  useLayoutEffect(() => {
+    if (isCollapsed || !isOpeningForReader.current) {
+      return;
+    }
+
+    isOpeningForReader.current = false;
+    bringIntoView(rootRef.current);
+  }, [isCollapsed]);
 
   const id: string = useId();
   const titleId: string = `folded-section-title-${id}`;
@@ -340,7 +377,8 @@ const FoldedSection: FunctionComponent<ComponentProps> = (
 
     return (
       <div
-        className={`min-w-0 ${props.className || ""}`}
+        ref={rootRef}
+        className={`min-w-0 scroll-my-4 ${props.className || ""}`}
         data-testid={props.dataTestId || FOLDED_SECTION_TEST_ID}
         data-collapsed={isCollapsed ? "true" : "false"}
         data-variant={variant}
@@ -498,7 +536,8 @@ const FoldedSection: FunctionComponent<ComponentProps> = (
 
   return (
     <div
-      className={`border border-gray-200 bg-white transition-colors duration-150 ${
+      ref={rootRef}
+      className={`scroll-my-4 border border-gray-200 bg-white transition-colors duration-150 ${
         props.isElevated ? "rounded-xl shadow-sm" : "rounded-lg"
       } ${props.className || ""}`}
       data-testid={props.dataTestId || FOLDED_SECTION_TEST_ID}
@@ -508,7 +547,7 @@ const FoldedSection: FunctionComponent<ComponentProps> = (
       <button
         type="button"
         className={`flex w-full items-start gap-3 text-left transition-colors duration-150 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 ${
-          props.isElevated ? "px-5 py-4 md:px-6" : "px-4 py-3"
+          props.isElevated ? "px-5 py-4 md:px-6" : "px-3 py-3 sm:px-4"
         } ${
           props.isElevated
             ? isCollapsed
@@ -676,7 +715,9 @@ const FoldedSection: FunctionComponent<ComponentProps> = (
             props.isBodyFlush
               ? ""
               : `border-t border-gray-200 ${
-                  props.isElevated ? "px-5 py-5 md:px-6" : "px-4 py-4"
+                  props.isElevated
+                    ? "px-5 py-5 md:px-6"
+                    : "px-3 py-3 sm:px-4 sm:py-4"
                 }`
           }
         >

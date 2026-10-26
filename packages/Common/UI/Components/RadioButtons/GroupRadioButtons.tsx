@@ -21,6 +21,8 @@ export interface ComponentProps {
   error?: string | undefined;
   dataTestId?: string | undefined;
   ariaLabelledby?: string | undefined;
+  // What describes the choice: its field's help.
+  ariaDescribedby?: string | undefined;
 }
 
 const RadioButtons: FunctionComponent<ComponentProps> = (
@@ -50,6 +52,7 @@ const RadioButtons: FunctionComponent<ComponentProps> = (
       <fieldset
         role="radiogroup"
         aria-labelledby={props.ariaLabelledby}
+        aria-describedby={props.ariaDescribedby}
         data-testid={props.dataTestId}
       >
         <div className="space-y-2 mt-2">

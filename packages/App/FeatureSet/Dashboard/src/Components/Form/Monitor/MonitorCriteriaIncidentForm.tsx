@@ -149,7 +149,11 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
       onClick={(): void => {
         setIsTemplateModalOpen(true);
       }}
-      className="underline text-blue-600 hover:text-blue-800"
+      /*
+       * Read as the words of the sentence it ends: a button centres a
+       * label that wraps, and on a phone this one wraps.
+       */
+      className="text-start underline text-blue-600 hover:text-blue-800"
     >
       {translator.translateText("Learn about dynamic templates")}
     </button>

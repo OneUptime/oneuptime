@@ -47,7 +47,7 @@ Når du blir medlem av et prosjekt, er disse hendelsene slått på, via e-post. 
 
 | Fane | Slått på via e-post | Av til du slår dem på |
 | --- | --- | --- |
-| **Hendelser** | **Hendelse opprettet**, **Hendelsestilstand endret**, **Incident reminder**, **Hendelsesepisode opprettet**, **Tilstand for hendelsesepisode endret**, **Hendelse lagt til i hendelsesepisode** | **Hendelsesnotat publisert**, **Lagt til som hendelseseier**, **Tildelt en hendelse**, **Notat for hendelsesepisode publisert**, **Lagt til som hendelsesepisode-eier** |
+| **Hendelser** | **Hendelse opprettet**, **Hendelsestilstand endret**, **Incident reminder**, **SLA for hendelse brutt**, **Hendelsesepisode opprettet**, **Tilstand for hendelsesepisode endret**, **Hendelse lagt til i hendelsesepisode** | **Hendelsesnotat publisert**, **Lagt til som hendelseseier**, **Tildelt en hendelse**, **Notat for hendelsesepisode publisert**, **Lagt til som hendelsesepisode-eier** |
 | **Varsler** | **Varsel opprettet**, **Varseltilstand endret**, **Alert reminder**, **Varselepisode opprettet**, **Tilstand for varselepisode endret**, **Varsel lagt til i varselepisode** | **Varselnotat publisert**, **Lagt til som varseleier**, **Notat for varselepisode publisert**, **Lagt til som varselepisode-eier** |
 | **Overvåking** | **Sondestatus endret for overvåkingen din**, **Overvåking har ingen aktive sonder**, **SLO status changed**, **Added as SLO owner**, **Sondestatus endret**, **Lagt til som sonde-eier** | **Overvåking opprettet**, **Overvåkingsstatus endret**, **Lagt til som overvåkingseier**, **AI-agentstatus endret**, **Lagt til som AI-agenteier** |
 | **Statussider** | Ingen | **Statusside opprettet**, **Statusside-kunngjøring publisert**, **Lagt til som statussideeier** |

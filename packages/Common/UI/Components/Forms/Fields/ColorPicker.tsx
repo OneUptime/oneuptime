@@ -24,6 +24,7 @@ import DROPDOWN_MENU_Z_INDEX from "../../Dropdown/DropdownMenuZIndex";
 import Icon from "../../Icon/Icon";
 import Color from "../../../../Types/Color";
 import IconProp from "../../../../Types/Icon/IconProp";
+import joinAriaIds from "../../../Utils/AriaIds";
 import { Translator } from "../../../Utils/TranslateTemplate";
 import useTranslator from "../../../Utils/UseTranslator";
 import React, {
@@ -103,6 +104,8 @@ export interface ComponentProps {
   disabled?: boolean | undefined;
   error?: string | undefined;
   ariaLabelledby?: string | undefined;
+  // What describes the color besides its error, read first: its field's help.
+  ariaDescribedby?: string | undefined;
   ariaLabel?: string | undefined;
   dataTestId?: string | undefined;
   onFocus?: (() => void) | undefined;
@@ -410,7 +413,10 @@ const ColorPicker: FunctionComponent<ComponentProps> = (
             }
             ariaLabelledby={props.ariaLabelledby}
             ariaLabel={props.ariaLabel || translator.translateText("Color")}
-            ariaDescribedby={props.error ? errorId : undefined}
+            ariaDescribedby={joinAriaIds(
+              props.ariaDescribedby,
+              props.error ? errorId : undefined,
+            )}
             ariaInvalid={Boolean(props.error)}
             ariaRequired={!isClearable}
             disabled={!isInteractive}
@@ -493,7 +499,10 @@ const ColorPicker: FunctionComponent<ComponentProps> = (
            * for High, Red" - so the value is heard without opening it.
            */
           aria-labelledby={`${props.ariaLabelledby || ownLabelId} ${valueTextId}`}
-          aria-describedby={props.error ? errorId : undefined}
+          aria-describedby={joinAriaIds(
+            props.ariaDescribedby,
+            props.error ? errorId : undefined,
+          )}
           aria-invalid={props.error ? true : undefined}
           disabled={!isInteractive}
           tabIndex={props.tabIndex}

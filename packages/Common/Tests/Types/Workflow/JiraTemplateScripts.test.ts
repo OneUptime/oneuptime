@@ -4486,8 +4486,8 @@ describe("the alert scripts speak of alerts", () => {
     );
   });
 
-  test("build-comment-1 in jira-comment-on-alert-update still shows the root cause the trigger does not listen on", async () => {
-    // An alert's root cause is written when it is created and cannot be edited, but it is still worth reading.
+  test("build-comment-1 in jira-comment-on-alert-update shows the alert's root cause", async () => {
+    // An edit of the root cause posts this comment too, so it says what the root cause now is.
     const result: JSONObject = await ALERT.steps.updateComment({
       alert: quoted(
         alertModel({

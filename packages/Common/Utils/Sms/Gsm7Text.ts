@@ -506,6 +506,13 @@ const collapseSpaces: (text: string) => string = (text: string): string => {
   let collapsed: string = "";
   // A space is written only once the next character shows it parts words.
   let pendingSpace: boolean = false;
+  /*
+   * The last character written, kept apart: reading it back from the string
+   * (collapsed[collapsed.length - 1]) made V8 flatten the string being
+   * built at every space, copying all of it - time that grew with the
+   * square of the text (400,000 characters of words took 12 seconds).
+   */
+  let last: string | undefined;
 
   for (const character of text) {
     if (character === SPACE) {
@@ -516,12 +523,11 @@ const collapseSpaces: (text: string) => string = (text: string): string => {
     if (character === "\n" || character === "\r") {
       pendingSpace = false;
       collapsed += character;
+      last = character;
       continue;
     }
 
     if (pendingSpace) {
-      const last: string | undefined = collapsed[collapsed.length - 1];
-
       if (last !== undefined && last !== "\n" && last !== "\r") {
         collapsed += SPACE;
       }
@@ -530,6 +536,7 @@ const collapseSpaces: (text: string) => string = (text: string): string => {
     }
 
     collapsed += character;
+    last = character;
   }
 
   return collapsed;

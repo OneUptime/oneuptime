@@ -29,6 +29,7 @@ import React, {
 } from "react";
 import { Translator, translationKey } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
+import joinAriaIds from "../../Utils/AriaIds";
 import { canPickByLabel, withLabels, withSearch } from "./EntityDropdownQuery";
 import ArchivedValuePicker from "../../Utils/ArchivedValuePicker";
 import ArchivedTag from "../ArchivedTag/ArchivedTag";
@@ -110,6 +111,8 @@ export interface EntityDropdownProps {
   dataTestId?: string | undefined;
   ariaLabel?: string | undefined;
   ariaLabelledby?: string | undefined;
+  // What describes the field besides its error, read first: its help.
+  ariaDescribedby?: string | undefined;
   disabled?: boolean | undefined;
 
   /*
@@ -735,6 +738,8 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
 
   // Names the shown value to a screen reader (aria-describedby).
   const valueLabelId: string = useId();
+  // The error under the field, read with the control that failed.
+  const errorId: string = `entity-dropdown-error-${useId()}`;
 
   useEffect(() => {
     return () => {
@@ -1579,7 +1584,11 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                * Named by the field's label, the button would otherwise never
                * say what is picked.
                */
-              aria-describedby={props.ariaLabelledby ? valueLabelId : undefined}
+              aria-describedby={joinAriaIds(
+                props.ariaLabelledby ? valueLabelId : undefined,
+                props.ariaDescribedby,
+                props.error ? errorId : undefined,
+              )}
               onClick={(): void => {
                 if (props.disabled) {
                   return;
@@ -1684,6 +1693,10 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
               aria-label={props.ariaLabel}
               aria-labelledby={props.ariaLabelledby}
               aria-invalid={props.error ? true : undefined}
+              aria-describedby={joinAriaIds(
+                props.ariaDescribedby,
+                props.error ? errorId : undefined,
+              )}
               data-testid={props.dataTestId}
               role="combobox"
               placeholder={
@@ -2326,7 +2339,7 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
       )}
 
       {props.error && (
-        <p className="mt-1 text-sm text-red-400" role="alert">
+        <p id={errorId} className="mt-1 text-sm text-red-400" role="alert">
           {props.error}
         </p>
       )}

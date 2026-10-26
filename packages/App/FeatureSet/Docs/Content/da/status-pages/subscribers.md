@@ -446,6 +446,8 @@ Fire afsnit mere, under **Yderligere indstillinger** nederst på **Abonnementsin
 
 Brugerdefineret SMTP er værd at sætte op tidligt, hvis du har e-mailabonnenter: post, der kommer fra dit eget domæne, er langt mindre tilbøjelig til at blive filtreret fra og langt mere tilbøjelig til at blive troet på af den kunde, der læser den klokken 2 om natten.
 
+Standard-sms'erne skrives med de tegn, en sms bærer billigst: typografiske anførselstegn, tankestreger og lignende sendes som deres enkle modstykke, og en emoji udelades, så ét tegn i en titel aldrig får en sms til at koste to eller tre dele. Links sendes præcis, som de er skrevet. En brugerdefineret sms-skabelon sendes, som du skrev den, med de værdier, den indsætter.
+
 ## Meddelelser
 
 En meddelelse er en post på projektniveau (modellen `StatusPageAnnouncement`), som du sender ud til en eller flere statussider, eventuelt begrænset til bestemte monitorer, med et vindue, hvor den vises.

@@ -9,6 +9,10 @@ import Field, { CustomElementProps } from "../Forms/Types/Field";
 import FormFieldSchemaType from "../Forms/Types/FormFieldSchemaType";
 import FormValues from "../Forms/Types/FormValues";
 import { getAdvancedFormSection } from "../Forms/Utils/AdvancedFormSection";
+import {
+  isProjectNameServerError,
+  isPromoCodeServerError,
+} from "./CreateProjectServerErrors";
 import React, { ReactElement } from "react";
 
 /*
@@ -31,6 +35,14 @@ import React, { ReactElement } from "react";
  *     where its name still shows on the folded header, and a code that came
  *     with the sign-up link shows as set.
  *
+ * A promo code the server refuses, or a name another of the reader's
+ * projects has, is said under its field (Field.ownsServerError): More
+ * fields opens on the refused code, which can be changed or cleared there.
+ *
+ * A name needs two characters, like every other name in the product: a
+ * minimum of four (client-side only) refused real teams and companies -
+ * "IBM", "Ops", "QA".
+ *
  * Self-hosted (billing off), the form is the name alone.
  */
 
@@ -39,6 +51,12 @@ export interface CreateProjectFormFieldsOptions {
   // The plans this deployment sells (SUBSCRIPTION_PLAN_*), in their order.
   plans: Array<SubscriptionPlan>;
 }
+
+/*
+ * The fewest characters a project's name takes: two, as every other name in
+ * the product (a state, a policy, a rule) - "IBM", "QA" and "Ops" are names.
+ */
+export const PROJECT_NAME_MIN_LENGTH: number = 2;
 
 // The period the plan picker opens on: yearly, as on the pricing page.
 export const CREATE_PROJECT_INITIAL_BILLING_PERIOD: BillingPeriod =
@@ -59,8 +77,9 @@ export const getCreateProjectFormFields: (
     fieldType: FormFieldSchemaType.Text,
     required: true,
     validation: {
-      minLength: 4,
+      minLength: PROJECT_NAME_MIN_LENGTH,
     },
+    ownsServerError: isProjectNameServerError,
   };
 
   if (!options.isBillingEnabled) {
@@ -112,6 +131,7 @@ export const getCreateProjectFormFields: (
     fieldType: FormFieldSchemaType.Text,
     required: false,
     collapsibleSection: getAdvancedFormSection<Project>(),
+    ownsServerError: isPromoCodeServerError,
   };
 
   return [nameField, planField, promoCodeField];

@@ -12428,6 +12428,12 @@ test.describe("links and quotes in a note", () => {
       openedTabs += 1;
     });
 
+    // A mark on this page's window: a page loaded again would not have it.
+    await page.evaluate((): void => {
+      (window as unknown as { keptAcrossTheLink: boolean }).keptAcrossTheLink =
+        true;
+    });
+
     await Promise.all([
       page.waitForURL(`**${incidentPath(1036)}`),
       otherIncident.click(),
@@ -12435,6 +12441,15 @@ test.describe("links and quotes in a note", () => {
 
     expect(openedTabs).toBe(0);
     expect(page.context().pages()).toHaveLength(1);
+    // Opened inside the app, as its own links open: the app was not loaded again.
+    expect(
+      await page.evaluate((): boolean => {
+        return Boolean(
+          (window as unknown as { keptAcrossTheLink?: boolean })
+            .keptAcrossTheLink,
+        );
+      }),
+    ).toBe(true);
   });
 
   test("quoted text is a quote: a grey bar and lighter text, with no icon", async ({

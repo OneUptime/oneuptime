@@ -68,7 +68,7 @@ Jamais retardé, et jamais décompté :
 | Facturation et solde | Factures, abonnement impayé, « nous n'avons pu alerter personne car la carte a été refusée » |
 | Santé de l'instance | Avertissements Postgres, Valkey et ClickHouse envoyés aux administrateurs de l'instance |
 | Abonnés des pages de statut | Chaque e-mail que votre page de statut envoie à vos propres abonnés |
-| Violations de SLA | Envoyées immédiatement, même si elles réutilisent le type de notification « incident créé » |
+| Violations de SLA | Un incident dont vous êtes propriétaire qui dépasse son délai SLA de réponse ou de résolution |
 
 Seul l'e-mail est concerné. Les SMS, appels téléphoniques, notifications push, WhatsApp, Telegram, Slack, Microsoft Teams et webhooks sont distribués immédiatement, exactement comme avant — y compris pour les notifications dont l'e-mail a été retenu.
 

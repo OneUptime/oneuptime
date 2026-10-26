@@ -843,7 +843,7 @@ describe("the rule forms match exactly what the rule engines evaluate", () => {
 });
 
 describe("the pages follow the house idioms", () => {
-  test("the list keeps manual creation, reads 'Create Queue' and shows the guide only while empty", () => {
+  test("the list keeps manual creation, reads 'Create Queue' and shows its showcase only while empty", () => {
     const source: string = squash(
       readSource("Pages", "MessageQueue", "MessageQueues.tsx"),
     );
@@ -855,8 +855,9 @@ describe("the pages follow the house idioms", () => {
     expect(source).toContain(
       "query={mergeFiltersIntoQuery({ isArchived: false })}",
     );
+    // The empty list shows what queues give (#5289), its Add the table's form.
     expect(source).toContain(
-      "{firstRecordWatch.count === 0 && ( <MessageQueueDocumentationCard",
+      "{firstRecordWatch.count === 0 && ( <ResourceShowcaseCard showcase={MESSAGE_QUEUE_SHOWCASE}",
     );
     expect(source).toContain("RouteMap[PageMap.MESSAGE_QUEUE_VIEW] as Route");
   });

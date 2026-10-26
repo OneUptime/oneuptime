@@ -47,6 +47,8 @@ const OLD_SMS_OPENING: RegExp =
 const SMS_WRITTEN_ELSEWHERE: Record<string, string> = {
   "packages/Common/Server/Services/IncomingCallMissedCallNotificationService.ts":
     "packages/Common/Server/Utils/IncomingCall/MissedCallNotification.ts",
+  "packages/App/FeatureSet/Workers/Jobs/IncidentSla/CheckSlaBreaches.ts":
+    "packages/Common/Server/Utils/Incident/IncidentSlaBreachNotice.ts",
 };
 
 // The service that sends them, which defines sendUserNotification.
@@ -314,14 +316,26 @@ describe("the notifications", () => {
     const slaJob: string = read(
       "packages/App/FeatureSet/Workers/Jobs/IncidentSla/CheckSlaBreaches.ts",
     );
+    const slaNotice: string = read(
+      "packages/Common/Server/Utils/Incident/IncidentSlaBreachNotice.ts",
+    );
     const sloJob: string = read(
       "packages/App/FeatureSet/Workers/Jobs/Slo/EvaluateSlos.ts",
     );
 
-    expect(slaJob).toContain(
-      "message: buildNotificationSms(\n          `SLA ${breachTypeStr} Breached for incident ${incident.title} ${incidentNumberStr}. Deadline was ${deadlineStr}.`,\n        ),",
+    /*
+     * The SLA breach job sends what IncidentSlaBreachNotice words: one
+     * sentence, which the call reads out too.
+     */
+    expect(slaJob).toContain("smsMessage: messages.smsMessage,");
+    expect(slaNotice).toContain(
+      "const missedSentence: string = `Incident ${identifier} missed its SLA ${breachWord} deadline.`;",
+    );
+    expect(slaNotice).toContain(
+      "message: buildNotificationSms(missedSentence),",
     );
     expect(slaJob).not.toContain("View incident in OneUptime Dashboard.");
+    expect(slaNotice).not.toContain("View incident in OneUptime Dashboard.");
     expect(sloJob).toContain("message: buildNotificationSms(news),");
     // WhatsApp still says the news alone.
     expect(sloJob).toContain("body: news,");

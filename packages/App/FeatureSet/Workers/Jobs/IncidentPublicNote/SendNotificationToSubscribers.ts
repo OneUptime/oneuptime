@@ -74,6 +74,7 @@ import FeedMarkdown, {
   mdText,
   MarkdownText,
 } from "Common/Utils/Markdown/FeedMarkdown";
+import { writeDefaultSubscriberSms } from "Common/Utils/Sms/SubscriberSms";
 
 /*
  * Two jobs share this send path: one tells subscribers about a new public
@@ -755,7 +756,9 @@ const notifySubscribersOfIncidentPublicNote: (data: {
                     })
                   : `Incident update: ${incident.title || "-"} on ${statusPageName}.`;
 
-                smsMessage = `${smsHeadline} ${copy.smsNoteSentence} Details: ${incidentDetailsUrl}. Unsub: ${unsubscribeUrl}`;
+                smsMessage = writeDefaultSubscriberSms(
+                  `${smsHeadline} ${copy.smsNoteSentence} Details: ${incidentDetailsUrl}. Unsub: ${unsubscribeUrl}`,
+                );
               }
 
               const sms: SMS = {

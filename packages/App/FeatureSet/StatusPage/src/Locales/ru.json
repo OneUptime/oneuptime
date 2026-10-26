@@ -415,6 +415,8 @@
   "Try again": "Повторить попытку",
   "Loading...": "Загрузка...",
   "Loading": "Загрузка",
+  "{{field}} is not valid JSON. {{parserMessage}}": "{{field}}: недопустимый JSON. {{parserMessage}}",
+  "{{field}} is not valid YAML. {{parserMessage}}": "{{field}}: недопустимый YAML. {{parserMessage}}",
   "markdownCallouts": {
     "caution": "Осторожно",
     "danger": "Опасно",

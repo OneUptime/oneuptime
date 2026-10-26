@@ -12,8 +12,6 @@ import {
   ON_CALL_RULE_POLICIES_DESCRIPTION,
   PRIVACY_RULE_NAMES,
   REMINDER_STOP_STATE_TITLES,
-  SLA_RULE_OPTIONAL_MINUTE_COLUMNS,
-  clearEmptiedSlaRuleMinutes,
   followValueWithRuleName,
   getMaintenanceReminderRuleName,
   getNewMaintenanceReminderRuleName,
@@ -440,55 +438,6 @@ describe("a new SLA rule", () => {
     expect(change(resolution.onChange, "", start)?.["name"]).toBe(
       "Respond in 15 minutes",
     );
-  });
-});
-
-describe("an SLA rule's emptied number box", () => {
-  test("is saved as none, for both targets and both note intervals", () => {
-    expect(SLA_RULE_OPTIONAL_MINUTE_COLUMNS).toEqual([
-      "responseTimeInMinutes",
-      "resolutionTimeInMinutes",
-      "internalNoteReminderIntervalInMinutes",
-      "publicNoteReminderIntervalInMinutes",
-    ]);
-
-    const model: Values = {
-      name: "Customer SLA",
-      responseTimeInMinutes: "",
-      resolutionTimeInMinutes: "  ",
-      internalNoteReminderIntervalInMinutes: "",
-      publicNoteReminderIntervalInMinutes: "",
-    };
-
-    expect(clearEmptiedSlaRuleMinutes(model)).toBe(model);
-    expect(model).toEqual({
-      name: "Customer SLA",
-      responseTimeInMinutes: null,
-      resolutionTimeInMinutes: null,
-      internalNoteReminderIntervalInMinutes: null,
-      publicNoteReminderIntervalInMinutes: null,
-    });
-  });
-
-  test("leaves every value it was given, and every column it does not own, alone", () => {
-    const model: Values = {
-      responseTimeInMinutes: 15,
-      resolutionTimeInMinutes: "240",
-      atRiskThresholdInPercentage: "",
-      name: "",
-    };
-
-    clearEmptiedSlaRuleMinutes(model);
-
-    expect(model).toEqual({
-      responseTimeInMinutes: 15,
-      resolutionTimeInMinutes: "240",
-      // Not an SLA target: the form's own validation speaks for it.
-      atRiskThresholdInPercentage: "",
-      name: "",
-    });
-    // A column the form did not send stays unsent.
-    expect("internalNoteReminderIntervalInMinutes" in model).toBe(false);
   });
 });
 

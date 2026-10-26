@@ -299,6 +299,23 @@ describe("Critical alerts turned off in iOS Settings since they were turned on",
     expect(screen.queryByTestId("settings-row-alarm-sound")).toBeNull();
     expect(screen.queryByTestId("settings-critical-alerts-error")).toBeNull();
   });
+
+  test("the footnote under the switch says iOS Settings turned it off, and opens them", async () => {
+    await render(<SettingsScreen />);
+
+    const lead: ReturnType<typeof screen.getByTestId> =
+      await screen.findByTestId(
+        "settings-critical-alerts-off-in-phone-settings-title",
+      );
+
+    expect(lead).toHaveTextContent("Off in iOS Settings.", { exact: false });
+    expect(
+      screen.getByText(/Turn on Critical Alerts under Notifications\./),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Open iOS Settings" }),
+    ).toBeTruthy();
+  });
 });
 
 describe("With notifications turned off for the app", () => {

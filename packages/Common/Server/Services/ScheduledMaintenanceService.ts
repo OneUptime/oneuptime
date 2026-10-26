@@ -123,6 +123,7 @@ import FeedMarkdown, {
   MarkdownText,
 } from "../../Utils/Markdown/FeedMarkdown";
 import { isSendingSubscriberNotifications } from "../../Types/StatusPage/SubscriberNotificationsSwitch";
+import { writeDefaultSubscriberSms } from "../../Utils/Sms/SubscriberSms";
 
 /*
  * The attachments whose membership an ongoing event acts on. Monitors are
@@ -543,7 +544,9 @@ export class Service extends ProjectReferencesService<Model> {
                 );
             } else {
               // Use default template
-              smsMessage = `Scheduled Maintenance: ${event.title || ""} on ${statusPageName}.${resourcesAffected ? ` Impact: ${resourcesAffected}.` : ""} Details: ${scheduledEventDetailsUrl}. Unsub: ${unsubscribeUrl}`;
+              smsMessage = writeDefaultSubscriberSms(
+                `Scheduled Maintenance: ${event.title || ""} on ${statusPageName}.${resourcesAffected ? ` Impact: ${resourcesAffected}.` : ""} Details: ${scheduledEventDetailsUrl}. Unsub: ${unsubscribeUrl}`,
+              );
             }
 
             const sms: SMS = {

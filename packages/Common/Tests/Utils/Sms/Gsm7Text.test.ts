@@ -485,6 +485,25 @@ describe("toGsm7Message", () => {
     expect(written.result).not.toContain("  ");
     expect(written.inMs).toBeLessThan(2000);
   });
+
+  /*
+   * Words and single spaces: every space read back the last character of
+   * the text being written, which made V8 copy all of it each time - 400,000
+   * characters took 12 seconds. A status page's subscriber texts and every
+   * team member's notification SMS go through it.
+   */
+  test("400,000 characters of words and spaces take well under two seconds", () => {
+    const worst: string = "abc ".repeat(100000);
+    const written: FastestRun<string> = fastestRun({
+      run: (): string => {
+        return toGsm7Message(worst);
+      },
+      limitInMs: 2000,
+    });
+
+    expect(written.result).toBe(worst.trimEnd());
+    expect(written.inMs).toBeLessThan(2000);
+  });
 });
 
 describe("toGsm7Text: units", () => {

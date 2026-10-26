@@ -573,6 +573,12 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
          */
         key={`${component.componentId.toString()}-${sectionKey}`}
         hideSubmitButton={true}
+        /*
+         * A widget's settings apply as they are typed, and no press checks
+         * them (the dialog's button is Done): a field says what is wrong as
+         * soon as it is left, changed or not.
+         */
+        showErrorsWhenLeftUnchanged={true}
         ref={(ref: FormProps<FormValues<JSONObject>> | null) => {
           formRefs.current[sectionKey] = ref;
         }}

@@ -52,6 +52,7 @@ import StatusPageEmailLogo from "Common/Server/Utils/StatusPage/StatusPageEmailL
 import SubscriberMarkdownTemplateValues from "Common/Server/Utils/StatusPage/SubscriberMarkdownTemplateValues";
 import { mdText } from "Common/Utils/Markdown/FeedMarkdown";
 import { isSendingSubscriberNotifications } from "Common/Types/StatusPage/SubscriberNotificationsSwitch";
+import { writeDefaultSubscriberSms } from "Common/Utils/Sms/SubscriberSms";
 
 RunCron(
   "ScheduledMaintenanceStateTimeline:SendNotificationToSubscribers",
@@ -491,7 +492,9 @@ RunCron(
                   );
               } else {
                 // Use default hard-coded template
-                smsMessage = `Maintenance ${event.title || ""} on ${statusPageName} is ${scheduledEventStateTimeline.scheduledMaintenanceState?.name}. Details: ${scheduledEventDetailsUrl}. Unsub: ${unsubscribeUrl}`;
+                smsMessage = writeDefaultSubscriberSms(
+                  `Maintenance ${event.title || ""} on ${statusPageName} is ${scheduledEventStateTimeline.scheduledMaintenanceState?.name}. Details: ${scheduledEventDetailsUrl}. Unsub: ${unsubscribeUrl}`,
+                );
               }
 
               const sms: SMS = {

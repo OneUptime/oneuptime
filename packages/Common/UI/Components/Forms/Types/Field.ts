@@ -51,6 +51,12 @@ export interface CustomElementProps {
    * way a native input is by <label for>.
    */
   ariaLabelledby?: string | undefined;
+  /*
+   * The id of the field's help under its label, when it has one, so a
+   * custom control can be described by it (aria-describedby) as the
+   * product's own controls are.
+   */
+  ariaDescribedby?: string | undefined;
 }
 
 export interface CategoryCheckboxProps {
@@ -381,6 +387,17 @@ export default interface Field<TEntity> {
    */
   isOwnCredential?: boolean | undefined;
   ariaDescribedby?: string | undefined;
+
+  /*
+   * Whether an error the server refused the form with is about this field,
+   * handed the server's message as it came: a promo code that does not
+   * apply, a name another project already has. The form shows the message
+   * under the field instead of above the form - the folded section the
+   * field is in opens, the form moves to the field's step and brings the
+   * field into view - until the field is changed (BasicForm). Read the
+   * message with indexOf or a linear pattern: it is the server's words.
+   */
+  ownsServerError?: ((message: string) => boolean) | undefined;
 
   // set this to true if you want to show this field in the form even when the form is in edit mode.
   doNotShowWhenEditing?: boolean | undefined;
