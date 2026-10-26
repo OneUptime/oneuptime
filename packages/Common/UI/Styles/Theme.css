@@ -550,8 +550,11 @@ html.dark tr[data-selected="true"].bg-indigo-50 {
 /*
  * A team's avatar (PeopleAvatar's group palette) is a dark slate tile: on
  * the dark theme's surfaces it all but vanished, in the people row of an
- * incident's header as on an Owners page. It is lifted a few steps, so a
- * team still reads as a tile beside a person's coloured circle.
+ * incident's header as on an Owners page. It is lifted to a mid slate that
+ * stands out from a card and from its grey wash at 3:1 on every edge, as a
+ * person's coloured circle does, with its white initials still at 4.5:1. A
+ * slate-700 end (#334155) was the card's own colour at the tile's lower
+ * edge - 1.6:1 - so the tile and its people badge dissolved into the card.
  */
 html.dark :is(
     .from-slate-700,
@@ -560,8 +563,8 @@ html.dark :is(
     .from-zinc-700,
     .from-neutral-700
   ) {
-  --tw-gradient-from: #64748b var(--tw-gradient-from-position);
-  --tw-gradient-to: #334155 var(--tw-gradient-to-position);
+  --tw-gradient-from: #67778e var(--tw-gradient-from-position);
+  --tw-gradient-to: #64748b var(--tw-gradient-to-position);
 }
 
 /* Light gradients become layered dark surfaces. */

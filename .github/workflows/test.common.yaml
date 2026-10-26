@@ -54,6 +54,10 @@ jobs:
     name: test (${{ matrix.shard }}/${{ strategy.job-total }})
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    # It reads the checkout, runs against the Postgres and Valkey it starts
+    # itself, and writes nothing on GitHub.
+    permissions:
+      contents: read
     strategy:
       # One slow or broken shard should not hide the results of the others.
       fail-fast: false

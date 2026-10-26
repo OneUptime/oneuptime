@@ -10,6 +10,7 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ObjectID from "Common/Types/ObjectID";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DeleteConsequenceParagraph from "Common/UI/Components/DeleteConfirmation/DeleteConsequenceParagraph";
+import IrreversibleQuestion from "Common/UI/Components/DeleteConfirmation/IrreversibleQuestion";
 import { DeleteConfirmation } from "Common/UI/Components/ModelTable/BaseModelTable";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -418,14 +419,13 @@ const useStateTimelineRowDelete: <T extends BaseModel>(
     return {
       description: (
         <span data-testid="state-row-delete-confirmation">
-          <TranslatedSentence
+          <IrreversibleQuestion
             template={STATE_ROW_DELETE_QUESTION}
             slots={{
               state: boldStateName(row.stateName),
               startsAt: boldStartsAt(formatStartsAt(row.startsAt)),
             }}
-          />{" "}
-          {translator.translateText("This action cannot be undone.")}
+          />
           {effect ? (
             <DeleteConsequenceParagraph dataTestId="state-row-delete-effect">
               {effect}

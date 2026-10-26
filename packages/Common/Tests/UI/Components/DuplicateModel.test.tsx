@@ -1037,7 +1037,13 @@ describe("DuplicateModel", () => {
   });
 
   describe("the dialog", () => {
-    test("asks to confirm, with Duplicate and Cancel", async () => {
+    type RenderFooDuplicateFunction = (
+      navigateToOnSuccess: Route | undefined,
+    ) => void;
+
+    const renderFooDuplicate: RenderFooDuplicateFunction = (
+      navigateToOnSuccess: Route | undefined,
+    ): void => {
       render(
         <DuplicateModel
           modelType={TestModel}
@@ -1053,8 +1059,46 @@ describe("DuplicateModel", () => {
               placeholder: "You can change this",
             },
           ]}
+          navigateToOnSuccess={navigateToOnSuccess}
         />,
       );
+    };
+
+    test("says what happens, with Duplicate and Cancel", async () => {
+      renderFooDuplicate(LIST_ROUTE);
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "Duplicate Foo" }));
+      });
+
+      const confirmDialog: HTMLElement = await screen.findByRole("dialog");
+      expect(
+        within(confirmDialog).getByTestId("modal-title")?.textContent,
+      ).toBe("Duplicate Foo");
+      // What happens once Duplicate is pressed - not a question.
+      expect(
+        within(confirmDialog).getByTestId("modal-description")?.textContent,
+      ).toBe("The copy opens as soon as it is made.");
+      expect(
+        within(confirmDialog).getByTestId("modal-description")?.textContent,
+      ).not.toMatch(/are you sure/i);
+      expect(
+        within(confirmDialog).getByTestId("modal-footer-submit-button")
+          ?.textContent,
+      ).toBe("Duplicate Foo");
+      expect(
+        within(confirmDialog).getByTestId("modal-footer-close-button")
+          ?.textContent,
+      ).toBe("Cancel");
+    });
+
+    /*
+     * A card given nowhere to go makes the copy and stays where it is
+     * ("opens nothing when the card is given nowhere to go"), so its dialog
+     * never says the copy opens - nor asks "Are you sure".
+     */
+    test("never promises to open a copy it will not open", async () => {
+      renderFooDuplicate(undefined);
 
       await act(async () => {
         fireEvent.click(screen.getByRole("button", { name: "Duplicate Foo" }));
@@ -1065,16 +1109,10 @@ describe("DuplicateModel", () => {
         within(confirmDialog).getByTestId("modal-title")?.textContent,
       ).toBe("Duplicate Foo");
       expect(
-        within(confirmDialog).getByTestId("modal-description")?.textContent,
-      ).toBe("Are you sure you want to duplicate this foo?");
-      expect(
-        within(confirmDialog).getByTestId("modal-footer-submit-button")
-          ?.textContent,
-      ).toBe("Duplicate Foo");
-      expect(
-        within(confirmDialog).getByTestId("modal-footer-close-button")
-          ?.textContent,
-      ).toBe("Cancel");
+        within(confirmDialog).queryByTestId("modal-description"),
+      ).not.toBeInTheDocument();
+      expect(confirmDialog.textContent).not.toMatch(/opens as soon as/i);
+      expect(confirmDialog.textContent).not.toMatch(/are you sure/i);
     });
 
     test("Cancel closes it without saving anything", async () => {

@@ -18,12 +18,12 @@ export interface ComponentProps {
  * The ⋯ button's look: a square button drawn like the card's other
  * buttons - Edit, a table's Create - with their border, their height (38px,
  * 42px under md where their text is larger), their hover and their focus
- * ring. It used to take the outline button style, whose class no stylesheet
- * defines: three dots with no border, no hover and no focus ring of their
- * own, beside bordered buttons.
+ * ring. It used to take the outline button style while that style's class
+ * was defined by no stylesheet: three dots with no border, no hover and no
+ * focus ring of their own, beside bordered buttons.
  */
 export const CARD_MORE_MENU_TRIGGER_CLASS_NAME: string =
-  "inline-flex flex-none items-center justify-center rounded-md border border-gray-300 bg-white px-2.5 py-2.5 text-gray-700 shadow-sm transition-colors duration-150 ease-out hover:bg-gray-50 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 md:px-2 md:py-2";
+  "inline-flex flex-none items-center justify-center rounded-md border border-gray-300 bg-white px-2.5 py-2.5 text-gray-700 shadow-sm transition-colors duration-150 ease-out hover:bg-gray-50 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:px-2 md:py-2";
 
 /*
  * The ⋯ More button at the end of a card's header, and the menu it opens.

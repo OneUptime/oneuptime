@@ -417,8 +417,9 @@ describe("SecurityEventConnectionsEmptyState", () => {
 
       const button: HTMLElement = addButton();
       expect(button).toBeDisabled();
-      expect(button).toHaveClass("bg-indigo-300");
-      expect(button).not.toHaveClass("bg-indigo-600");
+      // Button's disabled look: its own fill, faded, with no hover.
+      expect(button).toHaveClass("bg-indigo-600", "opacity-50");
+      expect(button).not.toHaveClass("hover:bg-indigo-700");
 
       /*
        * A disabled button cannot be hovered, so the tooltip hangs off a

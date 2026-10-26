@@ -12,7 +12,8 @@ import { createPortal } from "react-dom";
 import IconProp from "../../../Types/Icon/IconProp";
 import useComponentOutsideClick from "../../Types/UseComponentOutsideClick";
 import { consumePressForAnchoredPopup } from "../../Types/LayeredDismissal";
-import Button, { ButtonStyleType } from "../Button/Button";
+import Icon from "../Icon/Icon";
+import { getMoreMenuBareTriggerClassName } from "./MoreMenuTriggerStyle";
 import DROPDOWN_MENU_Z_INDEX from "../Dropdown/DropdownMenuZIndex";
 import useTranslateValue from "../../Utils/Translation";
 
@@ -812,22 +813,35 @@ const MoreMenu: React.ForwardRefExoticComponent<
         className="relative inline-block text-left"
         onKeyDown={handleKeyDown}
       >
+        {/*
+         * Its own trigger is a bare ⋯ (MoreMenuTriggerStyle), as a row's
+         * is, with its words beside the icon when it has some. It was an
+         * outline Button, whose style drew nothing until that style got a
+         * border: these menus sit in rows and toolbars of bare icons, and a
+         * card header draws its bordered ⋯ itself (CardMoreMenu).
+         */}
         {!props.elementToBeShownInsteadOfButton && (
-          <Button
+          <button
             id={buttonId}
-            icon={props.menuIcon || IconProp.More}
-            title={text || ""}
-            buttonStyle={ButtonStyleType.OUTLINE}
+            type="button"
+            className={getMoreMenuBareTriggerClassName(Boolean(text))}
             disabled={props.isDisabled}
-            dataTestId={props.dataTestId}
+            aria-disabled={Boolean(props.isDisabled)}
+            data-testid={props.dataTestId}
             onClick={() => {
               setIsComponentVisible(!isDropdownVisible);
             }}
-            ariaLabel={ariaLabel || text || moreOptionsLabel}
-            ariaExpanded={isComponentVisible}
-            ariaHaspopup="menu"
-            ariaControls={isComponentVisible ? menuId : undefined}
-          />
+            aria-label={ariaLabel || text || moreOptionsLabel}
+            aria-expanded={isComponentVisible}
+            aria-haspopup="menu"
+            aria-controls={isComponentVisible ? menuId : undefined}
+          >
+            <Icon
+              icon={props.menuIcon || IconProp.More}
+              className="h-5 w-5 flex-shrink-0"
+            />
+            {text ? <span>{text}</span> : <></>}
+          </button>
         )}
 
         {getNativeButtonTrigger()}

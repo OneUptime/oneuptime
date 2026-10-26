@@ -2401,9 +2401,14 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                     </div>
                                   </div>
 
+                                  {/*
+                                   * Open, nothing caps its height: a step's
+                                   * script can be taller than the 5,000
+                                   * pixels it was capped at.
+                                   */}
                                   <div
-                                    className={`transition-all duration-200 ease-in-out overflow-hidden ${
-                                      isCollapsed ? "max-h-0" : "max-h-[5000px]"
+                                    className={`transition-all duration-200 ease-in-out overflow-hidden${
+                                      isCollapsed ? " max-h-0" : ""
                                     }`}
                                   >
                                     <div className="border-t border-gray-100 px-5 py-4 bg-white">

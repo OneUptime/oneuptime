@@ -282,7 +282,8 @@ describe("a status page's Rules section: folded by default", () => {
 
     expect(isExpanded("Rules")).toBe(true);
     expect(sectionBody("Rules")).not.toHaveClass("invisible");
-    expect(sectionBody("Rules")).toHaveClass("max-h-[2000px]", "opacity-100");
+    expect(sectionBody("Rules")).toHaveClass("opacity-100");
+    expect(sectionBody("Rules").className).not.toContain("max-h-");
     expect(isExpanded("Resources")).toBe(true);
     expect(isExpanded("Subscribers")).toBe(false);
 

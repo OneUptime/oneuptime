@@ -52,6 +52,13 @@ import {
  *      last box, at the right edge ("There's a lot of gap between the title
  *      of the card and the description of the card").
  *
+ *      The one exception: a card with no body - a Delete page's, a key's
+ *      Reset - keeps its description on a phone, in the title's block, as
+ *      it is all the card says. The card then reads in order, the title,
+ *      the sentence and its button, which goes on the next line at the
+ *      right edge (CardDescriptionOnPhones.test.tsx holds it). The shapes
+ *      below have bodies, as the cards they model do.
+ *
  * It runs over every layout Card has (CARD_HEADER_LAYOUTS is built from the
  * CardHeaderLayout type, so a new layout is checked here the moment it
  * exists) and at every breakpoint's first pixel and the pixel before it.
@@ -73,6 +80,8 @@ const SHAPES: Array<HeaderShape> = [
   {
     name: "a details card with Edit",
     props: {
+      // A body, as the card it models has (see the note on rule 4).
+      children: <div>body</div>,
       title: "Incident Details",
       description: "Key facts about this incident.",
       buttons: [EDIT],
@@ -81,6 +90,8 @@ const SHAPES: Array<HeaderShape> = [
   {
     name: "a list with a right element, a main action and an outline one",
     props: {
+      // A body, as the card it models has (see the note on rule 4).
+      children: <div>body</div>,
       title: "Incident Severity",
       description:
         "Severities rank incidents so the most urgent ones get attention first.",
@@ -104,6 +115,8 @@ const SHAPES: Array<HeaderShape> = [
   {
     name: "a status badge and nothing else",
     props: {
+      // A body, as the card it models has (see the note on rule 4).
+      children: <div>body</div>,
       title: "AI Investigation",
       description: "OneUptime AI's root-cause report for this incident.",
       rightElement: <span>Completed</span>,
@@ -112,6 +125,8 @@ const SHAPES: Array<HeaderShape> = [
   {
     name: "a locked Edit that explains itself",
     props: {
+      // A body, as the card it models has (see the note on rule 4).
+      children: <div>body</div>,
       title: "Owners",
       description: "People and teams who own this monitor.",
       buttons: [
@@ -126,6 +141,8 @@ const SHAPES: Array<HeaderShape> = [
   {
     name: "a long title and three actions",
     props: {
+      // A body, as the card it models has (see the note on rule 4).
+      children: <div>body</div>,
       title: "Scheduled maintenance events this status page announces",
       description: "What subscribers of this status page are told, and when.",
       buttons: [

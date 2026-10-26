@@ -281,12 +281,11 @@ const expectFixedButtonLabel: ExpectButtonLabelFunction = (): void => {
 };
 
 /*
- * WHY THE BUTTON'S CLASSES ARE PINNED. The shared Button's OUTLINE style is
- * nothing but two custom classes, btn-outline-secondary and
- * background-very-light-Gray500-on-hover, and no stylesheet the Accounts app
- * loads defines either -- an OUTLINE button there renders as bare text with
- * no border. NORMAL is plain Tailwind (a gray border on white), which the
- * Accounts build does ship, so it is the one that looks like a button.
+ * WHY THE BUTTON'S CLASSES ARE PINNED. The button is the shared Button's
+ * NORMAL style - a gray border on white - as wide as the card. (Its OUTLINE
+ * style was once two class names no stylesheet defined, btn-outline-secondary
+ * and background-very-light-Gray500-on-hover, and drew bare text; neither
+ * may come back.)
  *
  * NORMAL also carries md:w-auto and md:ml-3 for dialog footers. The inline
  * width and margin are what keep it full width and flush with the card on a
@@ -295,10 +294,10 @@ const expectFixedButtonLabel: ExpectButtonLabelFunction = (): void => {
 const ACCOUNTS_BUTTON_CLASSES: string =
   "w-full justify-center gap-1 disabled:cursor-not-allowed disabled:opacity-60";
 
-// Only Button's NORMAL branch renders these; OUTLINE replaces them wholesale.
+// The bordered button's own border and fill.
 const NORMAL_STYLE_CLASSES: Array<string> = ["border-gray-300", "bg-white"];
 
-// OUTLINE's classes, undefined in every stylesheet Accounts loads.
+// The old OUTLINE's classes, undefined in every stylesheet.
 const OUTLINE_STYLE_CLASSES: Array<string> = [
   "btn-outline-secondary",
   "background-very-light-Gray500-on-hover",
@@ -1184,17 +1183,16 @@ describe("ResendVerificationEmail", () => {
       await settle();
     });
 
-    test("the check above fails for an OUTLINE button with the same classes and style", () => {
+    test("the check above fails for a borderless button with the same classes and style", () => {
       /*
        * A control, so the check cannot pass by accident: the shared Button
-       * in OUTLINE style, given exactly what the component passes, keeps
-       * w-full, justify-center and the inline width -- those come from the
-       * caller -- but loses NORMAL's border and background to the two
-       * classes Accounts has no CSS for.
+       * as a link, given exactly what the component passes, keeps w-full,
+       * justify-center and the inline width -- those come from the caller --
+       * but has no border and no white fill.
        */
       render(
         <Button
-          buttonStyle={ButtonStyleType.OUTLINE}
+          buttonStyle={ButtonStyleType.LINK}
           title={BUTTON}
           dataTestId="outline-control"
           className={ACCOUNTS_BUTTON_CLASSES}
@@ -1208,10 +1206,6 @@ describe("ResendVerificationEmail", () => {
 
       for (const className of NORMAL_STYLE_CLASSES) {
         expect(outline).not.toHaveClass(className);
-      }
-
-      for (const className of OUTLINE_STYLE_CLASSES) {
-        expect(outline).toHaveClass(className);
       }
 
       expect(() => {

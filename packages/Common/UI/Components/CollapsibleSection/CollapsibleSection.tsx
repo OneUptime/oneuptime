@@ -192,13 +192,17 @@ const CollapsibleSection: FunctionComponent<ComponentProps> = (
        * the property list of the state it goes to: folding transitions
        * visibility with the rest, so it turns invisible once the fold has
        * finished; opening leaves it out, so the fields are reachable at once.
+       *
+       * Open, nothing caps its height (FoldedSection does the same): a cap of
+       * 5,000 pixels cut the end of a tall section off - a long form, a guide,
+       * a section of many criteria on a phone - with nothing to scroll to.
        */}
       <div
         id={collapsibleBodyId}
         className={`duration-200 ease-in-out overflow-hidden ${
           isCollapsed
             ? "max-h-0 opacity-0 invisible transition-all"
-            : "max-h-[5000px] opacity-100 transition-[max-height,opacity]"
+            : "opacity-100 transition-opacity"
         }`}
       >
         <div className={getContentClassName()}>{props.children}</div>

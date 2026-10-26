@@ -85,11 +85,10 @@ const ModalFooter: FunctionComponent<ComponentProps> = (
               "modal-footer-secondary-button"
             }
             /*
-             * A plain button has no disabled look of its own, so a Next that
-             * cannot be pressed yet (nothing chosen) looked exactly like one
-             * that can. Dimmed, with the not-allowed cursor, it says so.
+             * A Next that cannot be pressed yet (nothing chosen) is dimmed,
+             * with the not-allowed cursor: Button's own disabled look.
              */
-            className="sm:!w-auto md:!ml-0 disabled:cursor-not-allowed disabled:opacity-50"
+            className="sm:!w-auto md:!ml-0"
           />
         ) : (
           <></>

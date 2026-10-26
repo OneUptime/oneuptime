@@ -533,9 +533,10 @@ describe("the row ⋯ trigger looks the same wherever a row draws it", () => {
 
 describe("the row ⋯ trigger matches the card header's ⋯", () => {
   /*
-   * The card header's overflow menu - the one a ModelTable puts beside its
-   * Create button - is MoreMenu's own default trigger with the horizontal
-   * ellipsis. That is what the row's ⋯ is meant to look like.
+   * MoreMenu's own trigger with the horizontal ellipsis - the ⋯ of a
+   * toolbar or a row that draws none of its own - is a bare ⋯
+   * (MoreMenuTriggerStyle), and the row's ⋯ is the same button. (A card
+   * header's ⋯ is CardMoreMenu's, bordered like the buttons beside it.)
    */
   const renderCardHeaderMoreMenu: () => HTMLElement = (): HTMLElement => {
     render(
