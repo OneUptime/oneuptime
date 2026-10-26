@@ -126,7 +126,7 @@ La colonna **Stato** indica a che punto è ogni dominio sulla strada verso HTTPS
 | Certificato emesso, si rinnova automaticamente. | Fatto. Il dominio serve il suo certificato via HTTPS, e OneUptime lo rinnova. |
 | Certificato emesso, ma il rinnovo non è riuscito. Continuiamo a provare. | Il dominio serve ancora un certificato valido, ma il suo ultimo rinnovo è fallito, per il motivo indicato nella riga sottostante. OneUptime riprova ben prima che il certificato scada. |
 | Usa il tuo certificato caricato. | Il record è verificato, e il dominio è servito con il certificato che hai caricato. |
-| Verificato. Questa installazione non emette certificati gratuiti: servi l'HTTPS di questo dominio dal tuo proxy o carica un certificato. | Su un'installazione self-hosted senza chiave dell'account Let's Encrypt, il record è verificato e il dominio è attivo. Il suo HTTPS spetta al vostro proxy, a meno che non carichiate un certificato. |
+| Verificato. Usa l'HTTPS del tuo proxy. | Su un'installazione self-hosted senza chiave dell'account Let's Encrypt, il record è verificato e il dominio è attivo. Il suo HTTPS spetta al vostro proxy, a meno che non carichiate un certificato. |
 
 Se un ordine fallisce, le cause abituali sono un record CAA sul tuo dominio che non consente `letsencrypt.org` e, su un'installazione self-hosted, un server che Let's Encrypt non riesce a raggiungere sulla porta 80.
 

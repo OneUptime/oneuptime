@@ -126,7 +126,7 @@ De kolom **Status** zegt waar elk domein is op weg naar HTTPS, in een van acht t
 | Certificaat uitgegeven, wordt automatisch verlengd. | Klaar. Het domein biedt zijn certificaat aan via HTTPS, en OneUptime verlengt het. |
 | Certificaat uitgegeven, maar verlengen is mislukt. We blijven het proberen. | Het domein biedt nog een geldig certificaat aan, maar de laatste verlenging is mislukt, om de reden op de regel eronder. OneUptime probeert het opnieuw ruim voordat het certificaat verloopt. |
 | Gebruikt uw geüploade certificaat. | Het record is geverifieerd, en het domein wordt aangeboden met het certificaat dat je hebt geüpload. |
-| Geverifieerd. Deze installatie geeft geen gratis certificaten uit: lever HTTPS voor dit domein via uw eigen proxy, of upload een certificaat. | Op een zelfgehoste installatie zonder Let's Encrypt-accountsleutel is het record geverifieerd en is het domein bereikbaar. Het HTTPS ervan is aan uw eigen proxy, tenzij u een certificaat uploadt. |
+| Geverifieerd. Gebruikt de HTTPS van uw eigen proxy. | Op een zelfgehoste installatie zonder Let's Encrypt-accountsleutel is het record geverifieerd en is het domein bereikbaar. Het HTTPS ervan is aan uw eigen proxy, tenzij u een certificaat uploadt. |
 
 Als een bestelling mislukt, zijn de gebruikelijke oorzaken een CAA-record op je domein dat `letsencrypt.org` niet toestaat en, op een zelfgehoste installatie, een server die Let's Encrypt niet kan bereiken op poort 80.
 

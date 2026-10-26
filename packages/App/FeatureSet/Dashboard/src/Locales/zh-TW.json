@@ -35083,7 +35083,6 @@
   "This playbook is already running on this case. Its run is under the case's Playbooks.": "此 Playbook 已在這個案例上執行。它的執行在案例的「Playbooks」中。",
   "A playbook runs here when the case opens or grows, or when someone runs it on the case.": "當案例開啟或擴大時，或有人對這個案例執行劇本時，劇本就會在這裡執行。",
   "No playbook has run on this case yet.": "這個案例還沒有執行過任何劇本。",
-  "Verified. This installation issues no free certificates: serve HTTPS for this domain at your own proxy, or upload a certificate.": "已驗證。此安裝不核發免費憑證：請透過您自己的 Proxy 為此網域提供 HTTPS，或上傳憑證。",
   "Served with your own proxy's HTTPS, unless you upload a certificate.": "使用您自己的 Proxy 提供的 HTTPS，除非您上傳憑證。",
   "We check for this record every 15 minutes. Added it already? Click Check now.": "我們每 15 分鐘檢查一次此記錄。已經新增了嗎？請按一下「立即檢查」。",
   "Serve this status page on your own domain. Point each domain's CNAME record to {{cnameRecord}}.": "在您自己的網域上提供此狀態頁面。將每個網域的 CNAME 記錄指向 {{cnameRecord}}。",
@@ -35091,5 +35090,8 @@
   "Dark Theme Logo": "深色主題標誌",
   "Upload logo for the dark theme": "上傳深色主題標誌",
   "Shown instead of the logo where your status page is dark. Without one, the logo is shown on a light backdrop there.": "在狀態頁面為深色的地方取代標誌顯示。如果沒有，標誌會在那裡顯示在淺色底板上。",
-  "None. The logo is shown on a light backdrop.": "無。標誌顯示在淺色底板上。"
+  "None. The logo is shown on a light backdrop.": "無。標誌顯示在淺色底板上。",
+  "Verified. Uses your own proxy's HTTPS.": "已驗證。正在使用您自己的 Proxy 提供的 HTTPS。",
+  "This installation issues no free certificates: serve HTTPS for this domain at your own proxy, or upload a certificate.": "此安裝不核發免費憑證：請透過您自己的 Proxy 為此網域提供 HTTPS，或上傳憑證。",
+  "Shown on your status page and in the emails it sends.": "顯示在您的狀態頁面上，以及它寄出的電子郵件中。"
 }

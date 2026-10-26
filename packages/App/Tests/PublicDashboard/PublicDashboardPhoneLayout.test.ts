@@ -116,15 +116,35 @@ describe("a public dashboard's page on a phone", () => {
     expect(source).not.toContain("dashboardViewRef");
   });
 
-  test("the title and the toolbar share a row while they fit, and the toolbar moves under the title when not", () => {
+  /*
+   * The title keeps 18rem beside the toolbar or takes the row: beside the
+   * toolbar on a phone (10rem), "Acme Production" read "Acme Prod...".
+   */
+  test("the title and the toolbar share a row while the title keeps room to be read; on a phone the toolbar moves under it", () => {
     expect(source).toContain(
       '<div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">',
     );
     expect(source).toContain(
-      '<div className="flex min-w-0 flex-1 basis-40 items-center gap-3 sm:gap-4">',
+      '<div className="flex min-w-0 flex-1 basis-72 items-center gap-3 sm:gap-4">',
     );
+    expect(source).not.toContain("basis-40");
     expect(source).toContain(
       'className="ml-auto flex items-center gap-2 flex-shrink-0"',
+    );
+  });
+
+  test("a long name takes two lines on a phone and one beside the toolbar, never cut to a word", () => {
+    expect(source).toContain(
+      '<h1 className="line-clamp-2 break-words text-lg font-semibold text-gray-900 sm:line-clamp-1">',
+    );
+    expect(source).not.toContain(
+      '<h1 className="text-lg font-semibold text-gray-900 truncate">',
+    );
+  });
+
+  test("the rule between the time range and the variables is not left hanging when they wrap on a phone", () => {
+    expect(source).toContain(
+      '<div className="w-px h-5 bg-gray-200 max-sm:hidden"></div>',
     );
   });
 });

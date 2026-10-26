@@ -115,6 +115,7 @@ import { SUPPORTED_STATUS_PAGE_LANGUAGES } from "../../../Types/StatusPage/Statu
 import { MORE_SETTINGS_SECTION_TITLE } from "../../../UI/Components/FoldedSection/FoldedSectionTitles";
 import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import FieldType from "../../../UI/Components/Types/FieldType";
+import { DetailImageBackdrop } from "../../../UI/Components/Detail/DetailImageBackdrop";
 import Navigation from "../../../UI/Utils/Navigation";
 import ProjectUtil from "../../../UI/Utils/Project";
 import {
@@ -217,6 +218,8 @@ type FieldShape = {
   placeholder?: string;
   stepId?: string;
   description?: string;
+  hideColumnDescription?: boolean;
+  imageBackdrop?: DetailImageBackdrop;
   dropdownOptions?: Array<{ value: unknown; label: string }>;
   getElement?: (item: StatusPage) => ReactElement;
 };
@@ -479,6 +482,51 @@ describe("the cards people set", () => {
     expect(shown.placeholder).toBe(StatusPageBrandingCopy.noDarkThemeLogo);
     expect(StatusPageBrandingCopy.noDarkThemeLogo).toBe(
       "None. The logo is shown on a light backdrop.",
+    );
+  });
+
+  /*
+   * Each logo on the page it is made for, in the dashboard's light theme
+   * and its dark one alike: a dark theme logo - light lettering - vanished
+   * on the card's white frame, and the logo on the dark theme's slate one.
+   */
+  test("Logo and Cover Image: each logo is shown on the page it is made for; the cover image on the card", async () => {
+    await renderPage();
+
+    const details: Array<FieldShape> = detailFieldsOf(
+      "Status Page > Branding > Header Style",
+    );
+    const backdropOf: (column: string) => DetailImageBackdrop | undefined = (
+      column: string,
+    ): DetailImageBackdrop | undefined => {
+      return details.find((field: FieldShape): boolean => {
+        return columnsOf([field])[0] === column;
+      })?.imageBackdrop;
+    };
+
+    expect(backdropOf("logoFile")).toBe(DetailImageBackdrop.Light);
+    expect(backdropOf("darkThemeLogoFile")).toBe(DetailImageBackdrop.Dark);
+    expect(backdropOf("coverImageFile")).toBeUndefined();
+  });
+
+  /*
+   * The two logos in Edit Images each say where they are shown. The logo
+   * said only its column's "Status Page Logo", right above a logo for the
+   * dark theme that said where it goes.
+   */
+  test("Logo and Cover Image: the logo says where it is shown, as the dark theme logo does", async () => {
+    await renderPage();
+
+    const logo: FieldShape | undefined = formFieldsOf(
+      "Status Page > Branding > Header Style",
+    ).find((field: FieldShape): boolean => {
+      return columnsOf([field])[0] === "logoFile";
+    });
+
+    expect(logo!.description).toBe(StatusPageBrandingCopy.logoDescription);
+    expect(logo!.hideColumnDescription).toBe(true);
+    expect(StatusPageBrandingCopy.logoDescription).toBe(
+      "Shown on your status page and in the emails it sends.",
     );
   });
 

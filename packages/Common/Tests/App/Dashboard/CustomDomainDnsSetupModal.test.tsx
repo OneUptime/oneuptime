@@ -661,11 +661,21 @@ describe.each(KINDS)(
         await clickCheckNow();
 
         expect(dialog()).toHaveTextContent("Your CNAME record is verified.");
+        /*
+         * Why, and what to do instead - under the alert that already says
+         * the record is verified, so not the Status cell's "Verified. ...".
+         */
         expect(dialog()).toHaveTextContent(
+          CustomDomainCopy.dnsSetupVerifiedWithoutFreeCertificate,
+        );
+        expect(dialog()).not.toHaveTextContent(
           CUSTOM_DOMAIN_STATUS[
             CustomDomainState.VerifiedWithoutFreeCertificate
           ],
         );
+        const verifiedWord: RegExp = /verified/gi;
+
+        expect(dialog().textContent?.match(verifiedWord)).toHaveLength(1);
         expect(dialog()).not.toHaveTextContent("We could not issue");
         expect(
           screen.queryByTestId(DNS_SETUP_TEST_IDS.certificateError),

@@ -280,7 +280,7 @@ De kolom **Status** zegt hoe ver elk domein op weg is naar HTTPS, in een van ach
 | Certificaat uitgegeven, wordt automatisch verlengd. | Klaar. Het domein serveert zijn certificaat via HTTPS, en OneUptime verlengt het. |
 | Certificaat uitgegeven, maar verlengen is mislukt. We blijven het proberen. | Het domein serveert nog een geldig certificaat, maar de laatste verlenging is mislukt, om de reden op de regel eronder. OneUptime probeert het ruim voordat het certificaat verloopt opnieuw. |
 | Gebruikt uw geüploade certificaat. | Het record is geverifieerd, en het domein wordt geserveerd met het certificaat dat u hebt geüpload. |
-| Geverifieerd. Deze installatie geeft geen gratis certificaten uit: lever HTTPS voor dit domein via uw eigen proxy, of upload een certificaat. | Op een zelfgehoste installatie zonder Let's Encrypt-accountsleutel is het record geverifieerd en is het domein bereikbaar. Het HTTPS ervan is aan uw eigen proxy, tenzij u een certificaat uploadt. |
+| Geverifieerd. Gebruikt de HTTPS van uw eigen proxy. | Op een zelfgehoste installatie zonder Let's Encrypt-accountsleutel is het record geverifieerd en is het domein bereikbaar. Het HTTPS ervan is aan uw eigen proxy, tenzij u een certificaat uploadt. |
 
 :::details Een domein blijft lang na het toevoegen van het record op "Wachten op DNS" staan
 Controleer of de naam van het record het volledige domein is, zoals `status.yourcompany.com`, en of de waarde precies overeenkomt met het CNAME-record van uw installatie. Gebruik op een hoofddomein een ALIAS-, ANAME- of afgevlakt CNAME-record. Klik daarna op **Nu controleren** in **DNS-instelling**.

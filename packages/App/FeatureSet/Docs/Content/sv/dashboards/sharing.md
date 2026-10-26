@@ -126,7 +126,7 @@ Kolumnen **Status** säger var varje domän befinner sig på vägen mot HTTPS, i
 | Certifikat utfärdat, förnyas automatiskt. | Klart. Domänen levererar sitt certifikat över HTTPS, och OneUptime förnyar det. |
 | Certifikat utfärdat, men förnyelsen misslyckades. Vi fortsätter att försöka. | Domänen levererar fortfarande ett giltigt certifikat, men den senaste förnyelsen misslyckades, av orsaken på raden under. OneUptime försöker igen i god tid innan certifikatet går ut. |
 | Använder ditt uppladdade certifikat. | Posten är verifierad, och domänen levereras med certifikatet som du laddade upp. |
-| Verifierad. Den här installationen utfärdar inga gratis certifikat: leverera HTTPS för den här domänen via din egen proxy, eller ladda upp ett certifikat. | På en egeninstallation utan Let's Encrypt-kontonyckel är posten verifierad och domänen i drift. Dess HTTPS sköter din egen proxy, om du inte laddar upp ett certifikat. |
+| Verifierad. Använder din egen proxys HTTPS. | På en egeninstallation utan Let's Encrypt-kontonyckel är posten verifierad och domänen i drift. Dess HTTPS sköter din egen proxy, om du inte laddar upp ett certifikat. |
 
 Om en beställning misslyckas är de vanliga orsakerna en CAA-post på din domän som inte tillåter `letsencrypt.org` och, på en egeninstallation, en server som Let's Encrypt inte kan nå på port 80.
 

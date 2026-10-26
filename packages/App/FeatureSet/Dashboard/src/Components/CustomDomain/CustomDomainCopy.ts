@@ -245,8 +245,14 @@ export const CUSTOM_DOMAIN_STATUS: Record<CustomDomainState, string> = {
   [CustomDomainState.RenewalFailed]: translationKey(
     "Certificate issued, but renewing it failed. We keep trying.",
   ),
+  /*
+   * As short as the other states, beside "Uses your uploaded certificate.":
+   * the whole sentence - why, and what to do - is DNS Setup's once Check
+   * now has verified the domain (dnsSetupVerifiedWithoutFreeCertificate),
+   * and it ran out of the Status column mid-word.
+   */
   [CustomDomainState.VerifiedWithoutFreeCertificate]: translationKey(
-    "Verified. This installation issues no free certificates: serve HTTPS for this domain at your own proxy, or upload a certificate.",
+    "Verified. Uses your own proxy's HTTPS.",
   ),
 };
 
@@ -301,6 +307,12 @@ export const CustomDomainCopy: {
   dnsSetupWhatHappensNextUploaded: string;
   // On an installation that issues no free certificates: no order to wait for.
   dnsSetupWhatHappensNextWithoutFreeCertificate: string;
+  /*
+   * DNS Setup once Check now has verified a domain on an installation that
+   * issues no free certificates: under "Your CNAME record is verified.", so
+   * it does not say "Verified." again.
+   */
+  dnsSetupVerifiedWithoutFreeCertificate: string;
   // DNS Setup on a verified domain whose free certificate is not issued yet.
   dnsSetupVerifiedNotIssued: string;
   // DNS Setup on a verified domain whose free certificate has expired.
@@ -346,6 +358,9 @@ export const CustomDomainCopy: {
   ),
   dnsSetupWhatHappensNextWithoutFreeCertificate: translationKey(
     "We check for this record every 15 minutes. Added it already? Click Check now.",
+  ),
+  dnsSetupVerifiedWithoutFreeCertificate: translationKey(
+    "This installation issues no free certificates: serve HTTPS for this domain at your own proxy, or upload a certificate.",
   ),
   dnsSetupVerifiedNotIssued: translationKey(
     "Your CNAME record is verified, but the free SSL certificate for this domain is not issued yet. Click Check now to try again and see why.",

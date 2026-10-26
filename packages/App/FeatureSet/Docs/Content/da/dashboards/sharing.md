@@ -126,7 +126,7 @@ Kolonnen **Status** fortæller, hvor hvert domæne er på vejen mod HTTPS, i én
 | Certifikat udstedt, fornyes automatisk. | Færdig. Domænet serverer sit certifikat over HTTPS, og OneUptime fornyer det. |
 | Certifikat udstedt, men fornyelsen mislykkedes. Vi bliver ved med at prøve. | Domænet serverer stadig et gyldigt certifikat, men den seneste fornyelse fejlede, af årsagen på linjen nedenunder. OneUptime prøver igen i god tid, før certifikatet udløber. |
 | Bruger dit uploadede certifikat. | Posten er bekræftet, og domænet serveres med det certifikat, du har uploadet. |
-| Bekræftet. Denne installation udsteder ingen gratis certifikater: lever HTTPS for dette domæne via din egen proxy, eller upload et certifikat. | På en selvhostet installation uden en Let's Encrypt-kontonøgle er posten bekræftet, og domænet er live. Dets HTTPS klarer din egen proxy, medmindre du uploader et certifikat. |
+| Bekræftet. Bruger din egen proxys HTTPS. | På en selvhostet installation uden en Let's Encrypt-kontonøgle er posten bekræftet, og domænet er live. Dets HTTPS klarer din egen proxy, medmindre du uploader et certifikat. |
 
 Hvis en bestilling fejler, er de almindelige årsager en CAA-post på dit domæne, der ikke tillader `letsencrypt.org`, og, på en selvhostet installation, en server, som Let's Encrypt ikke kan nå på port 80.
 

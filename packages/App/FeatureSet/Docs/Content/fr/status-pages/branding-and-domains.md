@@ -280,7 +280,7 @@ La colonne **Statut** indique où en est chaque domaine sur le chemin de HTTPS, 
 | Certificat émis, renouvelé automatiquement. | Terminé. Le domaine sert son certificat en HTTPS, et OneUptime le renouvelle. |
 | Certificat émis, mais son renouvellement a échoué. Nous continuons d'essayer. | Le domaine sert toujours un certificat valide, mais son dernier renouvellement a échoué, pour la raison indiquée sur la ligne en dessous. OneUptime réessaie bien avant l'expiration du certificat. |
 | Utilise votre certificat téléversé. | L'enregistrement est vérifié, et le domaine est servi avec le certificat que vous avez téléversé. |
-| Vérifié. Cette installation n'émet pas de certificats gratuits : servez le HTTPS de ce domaine depuis votre propre proxy, ou téléversez un certificat. | Sur une installation auto-hébergée sans clé de compte Let's Encrypt, l'enregistrement est vérifié et le domaine est en ligne. Son HTTPS revient à votre propre proxy, sauf si vous téléversez un certificat. |
+| Vérifié. Utilise le HTTPS de votre propre proxy. | Sur une installation auto-hébergée sans clé de compte Let's Encrypt, l'enregistrement est vérifié et le domaine est en ligne. Son HTTPS revient à votre propre proxy, sauf si vous téléversez un certificat. |
 
 :::details Un domaine reste sur « En attente du DNS » longtemps après l'ajout de l'enregistrement
 Vérifiez que le nom de l'enregistrement est le domaine complet, comme `status.yourcompany.com`, et que sa valeur correspond exactement à l'enregistrement CNAME de votre installation. Sur un domaine racine, utilisez un enregistrement ALIAS, ANAME ou CNAME aplati. Cliquez ensuite sur **Vérifier maintenant** dans **Configuration DNS**.

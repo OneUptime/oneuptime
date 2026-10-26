@@ -35083,7 +35083,6 @@
   "This playbook is already running on this case. Its run is under the case's Playbooks.": "이 플레이북은 이 케이스에서 이미 실행 중입니다. 실행 내역은 케이스의 Playbooks에 있습니다.",
   "A playbook runs here when the case opens or grows, or when someone runs it on the case.": "케이스가 열리거나 커질 때, 또는 누군가 이 케이스에서 실행할 때 플레이북이 여기에서 실행됩니다.",
   "No playbook has run on this case yet.": "이 케이스에서 아직 실행된 플레이북이 없습니다.",
-  "Verified. This installation issues no free certificates: serve HTTPS for this domain at your own proxy, or upload a certificate.": "확인되었습니다. 이 설치에서는 무료 인증서를 발급하지 않습니다. 이 도메인의 HTTPS는 자체 프록시에서 제공하거나 인증서를 업로드하세요.",
   "Served with your own proxy's HTTPS, unless you upload a certificate.": "인증서를 업로드하지 않으면 자체 프록시의 HTTPS로 제공됩니다.",
   "We check for this record every 15 minutes. Added it already? Click Check now.": "이 레코드는 15분마다 확인됩니다. 이미 추가하셨나요? 지금 확인을 클릭하세요.",
   "Serve this status page on your own domain. Point each domain's CNAME record to {{cnameRecord}}.": "이 상태 페이지를 자체 도메인에서 제공하세요. 각 도메인의 CNAME 레코드를 {{cnameRecord}}(으)로 지정하세요.",
@@ -35091,5 +35090,8 @@
   "Dark Theme Logo": "다크 테마 로고",
   "Upload logo for the dark theme": "다크 테마용 로고 업로드",
   "Shown instead of the logo where your status page is dark. Without one, the logo is shown on a light backdrop there.": "상태 페이지가 어두운 곳에서 로고 대신 표시됩니다. 없으면 그곳에서는 로고가 밝은 배경 위에 표시됩니다.",
-  "None. The logo is shown on a light backdrop.": "없음. 로고가 밝은 배경 위에 표시됩니다."
+  "None. The logo is shown on a light backdrop.": "없음. 로고가 밝은 배경 위에 표시됩니다.",
+  "Verified. Uses your own proxy's HTTPS.": "확인되었습니다. 자체 프록시의 HTTPS를 사용 중입니다.",
+  "This installation issues no free certificates: serve HTTPS for this domain at your own proxy, or upload a certificate.": "이 설치에서는 무료 인증서를 발급하지 않습니다. 이 도메인의 HTTPS는 자체 프록시에서 제공하거나 인증서를 업로드하세요.",
+  "Shown on your status page and in the emails it sends.": "상태 페이지와 상태 페이지가 보내는 이메일에 표시됩니다."
 }

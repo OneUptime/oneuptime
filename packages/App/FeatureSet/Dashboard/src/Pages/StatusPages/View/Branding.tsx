@@ -28,6 +28,7 @@ import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
+import { DetailImageBackdrop } from "Common/UI/Components/Detail/DetailImageBackdrop";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -168,6 +169,8 @@ const StatusPageBranding: FunctionComponent<PageComponentProps> = (
             fieldType: FormFieldSchemaType.ImageFile,
             required: false,
             placeholder: "Upload logo",
+            description: StatusPageBrandingCopy.logoDescription,
+            hideColumnDescription: true,
           },
           /*
            * A logo made for a dark background, shown instead of the logo
@@ -237,6 +240,12 @@ const StatusPageBranding: FunctionComponent<PageComponentProps> = (
               fieldType: FieldType.ImageFile,
               title: "Logo",
               placeholder: "No logo uploaded.",
+              /*
+               * Each logo on the page it is made for, in both of the
+               * dashboard's themes: a dark theme logo's light lettering
+               * vanished on the card's white frame.
+               */
+              imageBackdrop: DetailImageBackdrop.Light,
             },
             {
               field: {
@@ -248,6 +257,7 @@ const StatusPageBranding: FunctionComponent<PageComponentProps> = (
               fieldType: FieldType.ImageFile,
               title: "Dark Theme Logo",
               placeholder: StatusPageBrandingCopy.noDarkThemeLogo,
+              imageBackdrop: DetailImageBackdrop.Dark,
             },
             {
               field: {

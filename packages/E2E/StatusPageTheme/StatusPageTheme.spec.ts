@@ -3,6 +3,7 @@ import {
   expect,
   Locator,
   Page,
+  Route as PlaywrightRoute,
   test,
   TestInfo,
 } from "@playwright/test";
@@ -1157,6 +1158,157 @@ test.describe("the SSO page", () => {
       page.getByText("Welcome back!", { exact: true }),
     ).toBeVisible();
     expect(new URL(page.url()).pathname).toBe(`${PAGE}/login`);
+  });
+
+  /*
+   * A page with SAML and OpenID Connect providers. Each list drew a frame
+   * of its own - padding, a margin under it and a scroll box - so the two
+   * read as two lists far apart; a long description ran out past its card,
+   * which made that scroll box the one thing Tab stopped on; and no
+   * provider could be chosen from the keyboard.
+   */
+  test("SAML and OpenID Connect providers read as one evenly spaced list, each chosen from the keyboard", async ({
+    page,
+  }: { page: Page }, testInfo: TestInfo) => {
+    const SAML_PROVIDERS: Array<{
+      _id: string;
+      name: string;
+      description: string;
+    }> = [
+      {
+        _id: "00000000-0000-4000-8000-000000000801",
+        name: "Acme Okta",
+        description: "Sign in with your Acme account.",
+      },
+      {
+        _id: "00000000-0000-4000-8000-000000000802",
+        name: "Contractors (Microsoft Entra ID)",
+        description:
+          "For agency and contractor accounts managed in Microsoft Entra ID, in the contractors tenant.",
+      },
+    ];
+    const OIDC_PROVIDER_ID: string = "00000000-0000-4000-8000-000000000803";
+
+    await page.route(
+      "**/status-page-api/sso/**",
+      async (route: PlaywrightRoute): Promise<void> => {
+        await route.fulfill({
+          contentType: "application/json",
+          body: JSON.stringify(SAML_PROVIDERS),
+        });
+      },
+    );
+    await page.route(
+      "**/status-page-api/oidc/**",
+      async (route: PlaywrightRoute): Promise<void> => {
+        await route.fulfill({
+          contentType: "application/json",
+          body: JSON.stringify([
+            {
+              _id: OIDC_PROVIDER_ID,
+              name: "Auth0",
+              description: "Customers sign in here.",
+            },
+          ]),
+        });
+      },
+    );
+    // Where choosing the OpenID Connect provider goes: its sign-in's start.
+    await page.route(
+      "**/status-page-oidc/**",
+      async (route: PlaywrightRoute): Promise<void> => {
+        await route.fulfill({ contentType: "text/plain", body: "OIDC start" });
+      },
+    );
+
+    await page.emulateMedia({ colorScheme: "light" });
+    await openPage(page, `${PAGE}/sso`, "theme=System&private=1&sso=1", "");
+    await expect(page.getByText("Auth0", { exact: true })).toBeVisible();
+
+    const providers: Locator = page.getByTestId("model-list-row");
+
+    await expect(providers).toHaveCount(3);
+
+    const boxes: Array<{
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+    }> = [];
+
+    for (let index: number = 0; index < 3; index++) {
+      boxes.push((await providers.nth(index).boundingBox())!);
+    }
+
+    // As far apart from one list to the other as within one.
+    const firstGap: number = boxes[1]!.y - (boxes[0]!.y + boxes[0]!.height);
+    const secondGap: number = boxes[2]!.y - (boxes[1]!.y + boxes[1]!.height);
+
+    expect(Math.abs(firstGap - secondGap)).toBeLessThanOrEqual(1);
+    expect(secondGap).toBeLessThan(16);
+
+    // Every card as wide as Log in with password, in line with it.
+    const back: { x: number; width: number } = (await page
+      .getByRole("link", { name: "Log in with password" })
+      .boundingBox())!;
+
+    for (const box of boxes) {
+      expect(Math.abs(box.x - back.x)).toBeLessThanOrEqual(1);
+      expect(Math.abs(box.width - back.width)).toBeLessThanOrEqual(1);
+    }
+
+    // The long description wraps inside its card, and nothing scrolls.
+    const description: { x: number; width: number } = (await page
+      .getByText(SAML_PROVIDERS[1]!.description, { exact: true })
+      .boundingBox())!;
+
+    expect(description.x + description.width).toBeLessThanOrEqual(
+      boxes[1]!.x + boxes[1]!.width,
+    );
+    expect(
+      await page
+        .getByTestId("status-page-sso-provider-lists")
+        .evaluate((element: Element): boolean => {
+          return element.scrollWidth <= element.clientWidth;
+        }),
+    ).toBe(true);
+
+    await shoot(page, testInfo, "sso-providers-one-list");
+
+    // Tab: each provider in turn, then the way back.
+    const focused: () => Promise<string> = async (): Promise<string> => {
+      return page.evaluate((): string => {
+        return (document.activeElement?.textContent || "").trim();
+      });
+    };
+
+    const visited: Array<string> = [];
+
+    for (let press: number = 0; press < 4; press++) {
+      await page.keyboard.press("Tab");
+      visited.push(await focused());
+    }
+
+    expect(visited[0]).toContain("Acme Okta");
+    expect(visited[1]).toContain("Contractors (Microsoft Entra ID)");
+    expect(visited[2]).toContain("Auth0");
+    expect(visited[3]).toBe("Log in with password");
+
+    // Enter on a provider starts its sign-in.
+    await page.keyboard.press("Shift+Tab");
+    expect(await focused()).toContain("Auth0");
+
+    const started: Promise<string> = page
+      .waitForRequest("**/status-page-oidc/**")
+      .then((request: { url: () => string }): string => {
+        return request.url();
+      });
+
+    await page.keyboard.press("Enter");
+
+    expect(new URL(await started).pathname).toContain(
+      `/status-page-oidc/00000000-0000-4000-8000-000000000001/${OIDC_PROVIDER_ID}`,
+    );
   });
 });
 

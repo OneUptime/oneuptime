@@ -375,10 +375,13 @@ const CustomDomainsTable: FunctionComponent<ComponentProps> = (
                * Only where there is a Let's Encrypt certificate of ours to
                * replace. A custom certificate is the customer's own upload,
                * and a domain whose first certificate is not ordered yet
-               * gets one on its own.
+               * gets one on its own. An installation without a Let's
+               * Encrypt account key orders none, so nothing is reissued
+               * there - not even for a domain ordered before the key went.
                */
               return Boolean(
-                !item.isCustomCertificate &&
+                installation.issuesFreeCertificates &&
+                  !item.isCustomCertificate &&
                   item.isCnameVerified &&
                   item.isSslOrdered,
               );
@@ -564,6 +567,11 @@ const CustomDomainsTable: FunctionComponent<ComponentProps> = (
             },
             title: "Status",
             type: FieldType.Element,
+            /*
+             * A sentence, and an order's failure under it: they wrap in
+             * the column rather than run out of it mid-word.
+             */
+            wrapContent: true,
 
             getElement: (item: CustomDomainModel): ReactElement => {
               return (

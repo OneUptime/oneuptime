@@ -280,7 +280,7 @@ La colonna **Stato** dice a che punto è ogni dominio sulla strada verso HTTPS, 
 | Certificato emesso, si rinnova automaticamente. | Fatto. Il dominio serve il suo certificato in HTTPS, e OneUptime lo rinnova. |
 | Certificato emesso, ma il rinnovo non è riuscito. Continuiamo a provare. | Il dominio serve ancora un certificato valido, ma il suo ultimo rinnovo è fallito, per il motivo indicato nella riga sotto. OneUptime riprova ben prima della scadenza del certificato. |
 | Usa il tuo certificato caricato. | Il record è verificato, e il dominio viene servito con il certificato che avete caricato. |
-| Verificato. Questa installazione non emette certificati gratuiti: servi l'HTTPS di questo dominio dal tuo proxy o carica un certificato. | Su un'installazione self-hosted senza chiave dell'account Let's Encrypt, il record è verificato e il dominio è attivo. Il suo HTTPS spetta al vostro proxy, a meno che non carichiate un certificato. |
+| Verificato. Usa l'HTTPS del tuo proxy. | Su un'installazione self-hosted senza chiave dell'account Let's Encrypt, il record è verificato e il dominio è attivo. Il suo HTTPS spetta al vostro proxy, a meno che non carichiate un certificato. |
 
 :::details Un dominio resta su «In attesa del DNS» molto dopo l'aggiunta del record
 Controllate che il nome del record sia il dominio completo, come `status.yourcompany.com`, e che il suo valore corrisponda esattamente al record CNAME della vostra installazione. Su un dominio radice, usate un record ALIAS, ANAME o CNAME appiattito. Poi fate clic su **Verifica ora** in **Configurazione DNS**.

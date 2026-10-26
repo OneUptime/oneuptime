@@ -280,7 +280,7 @@ Kolonnen **Status** siger, hvor langt hvert domæne er på vej mod HTTPS, i en a
 | Certifikat udstedt, fornyes automatisk. | Færdig. Domænet serverer sit certifikat over HTTPS, og OneUptime fornyer det. |
 | Certifikat udstedt, men fornyelsen mislykkedes. Vi bliver ved med at prøve. | Domænet serverer stadig et gyldigt certifikat, men dets seneste fornyelse mislykkedes af årsagen på linjen under. OneUptime prøver igen i god tid før certifikatet udløber. |
 | Bruger dit uploadede certifikat. | Posten er bekræftet, og domænet serveres med det certifikat, du har uploadet. |
-| Bekræftet. Denne installation udsteder ingen gratis certifikater: lever HTTPS for dette domæne via din egen proxy, eller upload et certifikat. | På en selvhostet installation uden en Let's Encrypt-kontonøgle er posten bekræftet, og domænet er live. Dets HTTPS klarer din egen proxy, medmindre du uploader et certifikat. |
+| Bekræftet. Bruger din egen proxys HTTPS. | På en selvhostet installation uden en Let's Encrypt-kontonøgle er posten bekræftet, og domænet er live. Dets HTTPS klarer din egen proxy, medmindre du uploader et certifikat. |
 
 :::details Et domæne bliver stående på "Venter på DNS" længe efter, at jeg har tilføjet posten
 Tjek, at postens navn er det fulde domæne, såsom `status.yourcompany.com`, og at dens værdi matcher din installations CNAME-post præcist. På et roddomæne bruger du en ALIAS-, ANAME- eller flattened CNAME-post. Klik derefter på **Tjek nu** i **DNS-opsætning**.

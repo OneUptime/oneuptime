@@ -126,7 +126,7 @@ Die Spalte **Status** sagt, wo jede Domain auf ihrem Weg zu HTTPS steht, in eine
 | Zertifikat ausgestellt, wird automatisch erneuert. | Fertig. Die Domain liefert ihr Zertifikat über HTTPS aus, und OneUptime erneuert es. |
 | Zertifikat ausgestellt, aber die Erneuerung ist fehlgeschlagen. Wir versuchen es weiter. | Die Domain liefert noch ein gültiges Zertifikat aus, aber ihre letzte Erneuerung ist fehlgeschlagen, aus dem Grund in der Zeile darunter. OneUptime versucht es lange vor dem Ablauf des Zertifikats erneut. |
 | Verwendet Ihr hochgeladenes Zertifikat. | Der Eintrag ist verifiziert, und die Domain wird mit dem Zertifikat ausgeliefert, das Sie hochgeladen haben. |
-| Verifiziert. Diese Installation stellt keine kostenlosen Zertifikate aus: Stellen Sie HTTPS für diese Domain über Ihren eigenen Proxy bereit, oder laden Sie ein Zertifikat hoch. | Bei einer selbst gehosteten Installation ohne Let's-Encrypt-Kontoschlüssel ist der Eintrag verifiziert und die Domain erreichbar. Ihr HTTPS übernimmt Ihr eigener Proxy, es sei denn, Sie laden ein Zertifikat hoch. |
+| Verifiziert. Verwendet das HTTPS Ihres eigenen Proxys. | Bei einer selbst gehosteten Installation ohne Let's-Encrypt-Kontoschlüssel ist der Eintrag verifiziert und die Domain erreichbar. Ihr HTTPS übernimmt Ihr eigener Proxy, es sei denn, Sie laden ein Zertifikat hoch. |
 
 Schlägt eine Bestellung fehl, sind die üblichen Ursachen ein CAA-Eintrag Ihrer Domain, der `letsencrypt.org` nicht erlaubt, und bei einer selbst gehosteten Installation ein Server, den Let's Encrypt auf Port 80 nicht erreichen kann.
 

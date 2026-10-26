@@ -211,8 +211,20 @@ describe("where a custom domain is on its way to HTTPS", () => {
       [CustomDomainState.RenewalFailed]:
         "Certificate issued, but renewing it failed. We keep trying.",
       [CustomDomainState.VerifiedWithoutFreeCertificate]:
-        "Verified. This installation issues no free certificates: serve HTTPS for this domain at your own proxy, or upload a certificate.",
+        "Verified. Uses your own proxy's HTTPS.",
     });
+  });
+
+  /*
+   * One short sentence, as a status cell holds: the longest is about the
+   * length of "Certificate issued, but renewing it failed. We keep trying."
+   * The verified-without-free-certificates one was a 127-character
+   * paragraph that ran out of the column mid-word.
+   */
+  test("every state is a sentence short enough for its column", () => {
+    for (const sentence of Object.values(CUSTOM_DOMAIN_STATUS)) {
+      expect([sentence, sentence.length <= 60]).toEqual([sentence, true]);
+    }
   });
 
   test("Check now has a sentence for every certificate status the server answers", () => {
@@ -468,11 +480,11 @@ describe("the copy", () => {
    * intro of DNS Setup, and the failed order's sentence without a timing;
    * dashboards brought their card description and DNS Setup intro; an
    * installation without free certificates brought its Status sentence,
-   * its folded header, its DNS Setup sentence and both kinds' card
-   * descriptions.
+   * its folded header, its two DNS Setup sentences (before and after Check
+   * now verifies the record) and both kinds' card descriptions.
    */
-  test("brings 35 sentences of its own", () => {
-    expect(NEW_SENTENCES).toHaveLength(35);
+  test("brings 36 sentences of its own", () => {
+    expect(NEW_SENTENCES).toHaveLength(36);
   });
 
   test.each(OTHER_LOCALES)(
@@ -765,7 +777,10 @@ describe("an installation that issues no free certificates", () => {
       DASHBOARD_CUSTOM_DOMAIN_COPY.cardDescriptionWithoutFreeCertificates,
     ];
 
-    for (const sentence of sentences) {
+    for (const sentence of [
+      ...sentences,
+      CustomDomainCopy.dnsSetupVerifiedWithoutFreeCertificate,
+    ]) {
       expect([sentence, sentence.includes("we issue")]).toEqual([
         sentence,
         false,
@@ -773,10 +788,24 @@ describe("an installation that issues no free certificates", () => {
       expect([sentence, sentence.includes("renew")]).toEqual([sentence, false]);
     }
 
-    // The Status sentence says what to do instead.
+    /*
+     * The Status cell says where the domain is, beside "Uses your uploaded
+     * certificate."; DNS Setup, once Check now has verified it, says why
+     * and what to do instead - under "Your CNAME record is verified.", so
+     * without a second "Verified.".
+     */
     expect(
       CUSTOM_DOMAIN_STATUS[CustomDomainState.VerifiedWithoutFreeCertificate],
-    ).toContain("upload a certificate");
+    ).toBe("Verified. Uses your own proxy's HTTPS.");
+    expect(CustomDomainCopy.dnsSetupVerifiedWithoutFreeCertificate).toBe(
+      "This installation issues no free certificates: serve HTTPS for this domain at your own proxy, or upload a certificate.",
+    );
+    expect(CustomDomainCopy.dnsSetupVerifiedWithoutFreeCertificate).toContain(
+      "upload a certificate",
+    );
+    expect(
+      CustomDomainCopy.dnsSetupVerifiedWithoutFreeCertificate,
+    ).not.toContain("Verified");
   });
 
   test("each kind's card says where its domains point, and no more", () => {
@@ -820,5 +849,14 @@ describe("the pages ask the installation", () => {
     expect(table).toContain(
       "CustomDomainCopy.advancedSummaryWithoutFreeCertificate",
     );
+  });
+
+  test("DNS Setup's verified sentence is its own, not the Status cell's", () => {
+    const dialog: string = readSource(DIALOG);
+
+    expect(dialog).toContain(
+      "CustomDomainCopy.dnsSetupVerifiedWithoutFreeCertificate",
+    );
+    expect(dialog).not.toContain("CUSTOM_DOMAIN_STATUS");
   });
 });

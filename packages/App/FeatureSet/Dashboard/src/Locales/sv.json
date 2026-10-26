@@ -35083,7 +35083,6 @@
   "This playbook is already running on this case. Its run is under the case's Playbooks.": "Den här playbooken körs redan för ärendet. Körningen finns under ärendets Playbooks.",
   "A playbook runs here when the case opens or grows, or when someone runs it on the case.": "En playbook körs här när ärendet öppnas eller växer, eller när någon kör den på ärendet.",
   "No playbook has run on this case yet.": "Ingen playbook har körts för det här ärendet än.",
-  "Verified. This installation issues no free certificates: serve HTTPS for this domain at your own proxy, or upload a certificate.": "Verifierad. Den här installationen utfärdar inga gratis certifikat: leverera HTTPS för den här domänen via din egen proxy, eller ladda upp ett certifikat.",
   "Served with your own proxy's HTTPS, unless you upload a certificate.": "Levereras med din egen proxys HTTPS, om du inte laddar upp ett certifikat.",
   "We check for this record every 15 minutes. Added it already? Click Check now.": "Vi kontrollerar den här posten var 15:e minut. Redan tillagd? Klicka på Kontrollera nu.",
   "Serve this status page on your own domain. Point each domain's CNAME record to {{cnameRecord}}.": "Visa den här statussidan på din egen domän. Peka varje domäns CNAME-post mot {{cnameRecord}}.",
@@ -35091,5 +35090,8 @@
   "Dark Theme Logo": "Logotyp för mörkt tema",
   "Upload logo for the dark theme": "Ladda upp logotyp för mörkt tema",
   "Shown instead of the logo where your status page is dark. Without one, the logo is shown on a light backdrop there.": "Visas i stället för logotypen där din statussida är mörk. Utan en visas logotypen där på en ljus bakgrund.",
-  "None. The logo is shown on a light backdrop.": "Ingen. Logotypen visas på en ljus bakgrund."
+  "None. The logo is shown on a light backdrop.": "Ingen. Logotypen visas på en ljus bakgrund.",
+  "Verified. Uses your own proxy's HTTPS.": "Verifierad. Använder din egen proxys HTTPS.",
+  "This installation issues no free certificates: serve HTTPS for this domain at your own proxy, or upload a certificate.": "Den här installationen utfärdar inga gratis certifikat: leverera HTTPS för den här domänen via din egen proxy, eller ladda upp ett certifikat.",
+  "Shown on your status page and in the emails it sends.": "Visas på din statussida och i e-postmeddelandena den skickar."
 }

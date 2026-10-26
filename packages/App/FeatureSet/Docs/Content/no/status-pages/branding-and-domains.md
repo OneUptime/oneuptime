@@ -280,7 +280,7 @@ Kolonnen **Status** sier hvor langt hvert domene har kommet på vei mot HTTPS, i
 | Sertifikat utstedt, fornyes automatisk. | Ferdig. Domenet serverer sertifikatet sitt over HTTPS, og OneUptime fornyer det. |
 | Sertifikat utstedt, men fornyelsen mislyktes. Vi fortsetter å prøve. | Domenet serverer fortsatt et gyldig sertifikat, men den siste fornyelsen mislyktes, av årsaken på linjen under. OneUptime prøver igjen i god tid før sertifikatet utløper. |
 | Bruker det opplastede sertifikatet ditt. | Posten er verifisert, og domenet serveres med sertifikatet du lastet opp. |
-| Bekreftet. Denne installasjonen utsteder ingen gratis sertifikater: lever HTTPS for dette domenet via din egen proxy, eller last opp et sertifikat. | På en selvdriftet installasjon uten Let's Encrypt-kontonøkkel er posten verifisert og domenet i drift. HTTPS-en står din egen proxy for, med mindre du laster opp et sertifikat. |
+| Bekreftet. Bruker HTTPS fra din egen proxy. | På en selvdriftet installasjon uten Let's Encrypt-kontonøkkel er posten verifisert og domenet i drift. HTTPS-en står din egen proxy for, med mindre du laster opp et sertifikat. |
 
 :::details Et domene blir stående på «Venter på DNS» lenge etter at jeg la til posten
 Sjekk at postens navn er hele domenet, som `status.yourcompany.com`, og at verdien samsvarer nøyaktig med installasjonens CNAME-post. På et rotdomene bruker du en ALIAS-, ANAME- eller flattened CNAME-post. Klikk deretter på **Sjekk nå** i **DNS-oppsett**.

@@ -126,7 +126,7 @@ La columna **Estado** indica en qué punto está cada dominio en su camino hacia
 | Certificado emitido, se renueva automáticamente. | Listo. El dominio sirve su certificado por HTTPS, y OneUptime lo renueva. |
 | Certificado emitido, pero su renovación ha fallado. Lo seguimos intentando. | El dominio sigue sirviendo un certificado válido, pero su última renovación falló, por el motivo de la línea de debajo. OneUptime vuelve a intentarlo mucho antes de que caduque el certificado. |
 | Usa tu certificado subido. | El registro está verificado, y el dominio se sirve con el certificado que subiste. |
-| Verificado. Esta instalación no emite certificados gratuitos: sirve HTTPS para este dominio desde tu propio proxy o sube un certificado. | En una instalación autoalojada sin clave de cuenta de Let's Encrypt, el registro está verificado y el dominio está activo. Su HTTPS corre a cargo de tu propio proxy, salvo que subas un certificado. |
+| Verificado. Usa el HTTPS de tu propio proxy. | En una instalación autoalojada sin clave de cuenta de Let's Encrypt, el registro está verificado y el dominio está activo. Su HTTPS corre a cargo de tu propio proxy, salvo que subas un certificado. |
 
 Si una solicitud falla, las causas habituales son un registro CAA en tu dominio que no permite `letsencrypt.org` y, en una instalación autoalojada, un servidor al que Let's Encrypt no puede llegar en el puerto 80.
 

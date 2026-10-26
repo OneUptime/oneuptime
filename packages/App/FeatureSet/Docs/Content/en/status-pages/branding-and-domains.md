@@ -280,7 +280,7 @@ The **Status** column says where each domain is on its way to HTTPS, in one of e
 | Certificate issued, renews automatically. | Done. The domain serves its certificate over HTTPS, and OneUptime renews it. |
 | Certificate issued, but renewing it failed. We keep trying. | The domain still serves a valid certificate, but its last renewal failed, for the reason on the line below. OneUptime tries again well before the certificate expires. |
 | Uses your uploaded certificate. | The record is verified, and the domain is served with the certificate you uploaded. |
-| Verified. This installation issues no free certificates: serve HTTPS for this domain at your own proxy, or upload a certificate. | On a self-hosted installation without a Let's Encrypt account key, the record is verified and the domain is live. Its HTTPS is up to your own proxy, unless you upload a certificate. |
+| Verified. Uses your own proxy's HTTPS. | On a self-hosted installation without a Let's Encrypt account key, the record is verified and the domain is live. Its HTTPS is up to your own proxy, unless you upload a certificate. |
 
 :::details A domain stays on "Waiting for DNS" long after I added the record
 Check that the record's name is the full domain, such as `status.yourcompany.com`, and that its value matches your installation's CNAME record exactly. On a root domain, use an ALIAS, ANAME or flattened CNAME record. Then click **Check now** in **DNS Setup**.

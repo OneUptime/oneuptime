@@ -35083,7 +35083,6 @@
   "This playbook is already running on this case. Its run is under the case's Playbooks.": "このプレイブックはこのケースですでに実行中です。実行はケースの「Playbooks」にあります。",
   "A playbook runs here when the case opens or grows, or when someone runs it on the case.": "ケースが開かれたとき、ケースが拡大したとき、または誰かがこのケースに対して実行したときに、プレイブックがここで実行されます。",
   "No playbook has run on this case yet.": "このケースではまだプレイブックが実行されていません。",
-  "Verified. This installation issues no free certificates: serve HTTPS for this domain at your own proxy, or upload a certificate.": "確認済みです。このインストールでは無料の証明書は発行されません。このドメインの HTTPS は独自のプロキシで提供するか、証明書をアップロードしてください。",
   "Served with your own proxy's HTTPS, unless you upload a certificate.": "証明書をアップロードしない限り、独自のプロキシの HTTPS で提供されます。",
   "We check for this record every 15 minutes. Added it already? Click Check now.": "このレコードは 15 分ごとに確認されます。すでに追加しましたか？「今すぐ確認」をクリックしてください。",
   "Serve this status page on your own domain. Point each domain's CNAME record to {{cnameRecord}}.": "このステータスページを独自のドメインで公開します。各ドメインの CNAME レコードを {{cnameRecord}} に向けてください。",
@@ -35091,5 +35090,8 @@
   "Dark Theme Logo": "ダークテーマ用ロゴ",
   "Upload logo for the dark theme": "ダークテーマ用ロゴをアップロード",
   "Shown instead of the logo where your status page is dark. Without one, the logo is shown on a light backdrop there.": "ステータスページが暗い場所で、ロゴの代わりに表示されます。ない場合、そこではロゴが明るい背景の上に表示されます。",
-  "None. The logo is shown on a light backdrop.": "なし。ロゴは明るい背景の上に表示されます。"
+  "None. The logo is shown on a light backdrop.": "なし。ロゴは明るい背景の上に表示されます。",
+  "Verified. Uses your own proxy's HTTPS.": "確認済みです。独自のプロキシの HTTPS を使用しています。",
+  "This installation issues no free certificates: serve HTTPS for this domain at your own proxy, or upload a certificate.": "このインストールでは無料の証明書は発行されません。このドメインの HTTPS は独自のプロキシで提供するか、証明書をアップロードしてください。",
+  "Shown on your status page and in the emails it sends.": "ステータスページと、そのページが送信するメールに表示されます。"
 }

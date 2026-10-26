@@ -339,6 +339,61 @@ describe("Status page SSO page: the way back to the password form", () => {
     expect(screen.getByRole("link")).toHaveAttribute("href", "/login");
   });
 
+  /*
+   * The SAML and OpenID Connect providers are one list: neither draws a
+   * frame of its own (padding, a margin under it, a scroll box), so a page
+   * with both showed two lists far apart, and the cards sat a frame's
+   * padding in from Log in with password.
+   */
+  test("the SAML and OpenID Connect providers read as one list, with no frame of either's", async () => {
+    await renderPage();
+
+    await screen.findByText("Okta");
+    await screen.findByText("Entra ID");
+
+    for (const list of ["sso-list-rows", "oidc-list-rows"]) {
+      expect([list, screen.getByTestId(list).getAttribute("class")]).toEqual([
+        list,
+        null,
+      ]);
+    }
+
+    // The rows' own outer margins are taken back at the card's edge.
+    expect(screen.getByTestId("status-page-sso-provider-lists").className).toBe(
+      "-my-2",
+    );
+  });
+
+  /*
+   * A provider is chosen from the keyboard too: it was a box only a mouse
+   * could click, and Tab went past every provider to Log in with password.
+   */
+  test("each provider is a button the keyboard reaches and Enter chooses", async () => {
+    await renderPage();
+
+    const okta: HTMLElement = (await screen.findByText("Okta")).closest(
+      "[role='button']",
+    ) as HTMLElement;
+    const entra: HTMLElement = (await screen.findByText("Entra ID")).closest(
+      "[role='button']",
+    ) as HTMLElement;
+
+    expect(okta).toHaveAttribute("tabindex", "0");
+    expect(entra).toHaveAttribute("tabindex", "0");
+    // In the order they are read: the providers, then the way back.
+    expect(comesAfter(entra, okta)).toBe(true);
+    expect(comesAfter(passwordOption(), entra)).toBe(true);
+
+    await act(async () => {
+      fireEvent.keyDown(entra, { key: "Enter" });
+    });
+
+    expect(Navigation.navigate).toHaveBeenCalledTimes(1);
+    expect(
+      String(jest.mocked(Navigation.navigate).mock.calls[0]![0]),
+    ).toContain(`/${STATUS_PAGE_ID.toString()}/${ENTRA._id}`);
+  });
+
   test("the words come from the locale, translated in all 16 other languages", () => {
     const english: Record<string, any> = readLocale("en.json");
 

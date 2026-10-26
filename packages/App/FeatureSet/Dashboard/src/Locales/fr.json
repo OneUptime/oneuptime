@@ -35083,7 +35083,6 @@
   "This playbook is already running on this case. Its run is under the case's Playbooks.": "Ce playbook est déjà en cours sur ce dossier. Son exécution figure sous Playbooks du dossier.",
   "A playbook runs here when the case opens or grows, or when someone runs it on the case.": "Un playbook s'exécute ici quand le dossier s'ouvre ou s'agrandit, ou quand quelqu'un l'exécute sur le dossier.",
   "No playbook has run on this case yet.": "Aucun playbook ne s'est encore exécuté sur ce dossier.",
-  "Verified. This installation issues no free certificates: serve HTTPS for this domain at your own proxy, or upload a certificate.": "Vérifié. Cette installation n'émet pas de certificats gratuits : servez le HTTPS de ce domaine depuis votre propre proxy, ou téléversez un certificat.",
   "Served with your own proxy's HTTPS, unless you upload a certificate.": "Servi avec le HTTPS de votre propre proxy, sauf si vous téléversez un certificat.",
   "We check for this record every 15 minutes. Added it already? Click Check now.": "Nous vérifions cet enregistrement toutes les 15 minutes. Déjà ajouté ? Cliquez sur Vérifier maintenant.",
   "Serve this status page on your own domain. Point each domain's CNAME record to {{cnameRecord}}.": "Servez cette page de statut sur votre propre domaine. Faites pointer l'enregistrement CNAME de chaque domaine vers {{cnameRecord}}.",
@@ -35091,5 +35090,8 @@
   "Dark Theme Logo": "Logo du thème sombre",
   "Upload logo for the dark theme": "Téléverser le logo du thème sombre",
   "Shown instead of the logo where your status page is dark. Without one, the logo is shown on a light backdrop there.": "Affiché à la place du logo là où votre page de statut est sombre. Sans lui, le logo y est affiché sur un fond clair.",
-  "None. The logo is shown on a light backdrop.": "Aucun. Le logo est affiché sur un fond clair."
+  "None. The logo is shown on a light backdrop.": "Aucun. Le logo est affiché sur un fond clair.",
+  "Verified. Uses your own proxy's HTTPS.": "Vérifié. Utilise le HTTPS de votre propre proxy.",
+  "This installation issues no free certificates: serve HTTPS for this domain at your own proxy, or upload a certificate.": "Cette installation n'émet pas de certificats gratuits : servez le HTTPS de ce domaine depuis votre propre proxy, ou téléversez un certificat.",
+  "Shown on your status page and in the emails it sends.": "Affiché sur votre page de statut et dans les e-mails qu'elle envoie."
 }

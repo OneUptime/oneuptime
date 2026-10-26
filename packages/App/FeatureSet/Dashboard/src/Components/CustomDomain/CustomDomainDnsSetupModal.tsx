@@ -1,10 +1,8 @@
 import {
   CUSTOM_DOMAIN_RECORD_TYPE,
-  CUSTOM_DOMAIN_STATUS,
   CUSTOM_DOMAIN_VERIFIED_NEXT,
   CustomDomainCopy,
   CustomDomainInstallation,
-  CustomDomainState,
   DNS_SETUP_TEST_IDS,
 } from "./CustomDomainCopy";
 import {
@@ -219,9 +217,7 @@ const CustomDomainDnsSetupModal: FunctionComponent<ComponentProps> = (
           <p className="text-sm leading-6 text-gray-600">
             {isWithoutFreeCertificate ? (
               translator.translateText(
-                CUSTOM_DOMAIN_STATUS[
-                  CustomDomainState.VerifiedWithoutFreeCertificate
-                ],
+                CustomDomainCopy.dnsSetupVerifiedWithoutFreeCertificate,
               )
             ) : (
               <TranslatedSentence

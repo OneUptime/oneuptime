@@ -27,7 +27,9 @@ theme on every surface: no light box on the overview, the incident list and an
 incident, an announcement, the maintenance list and an event, the subscribe form,
 the private sign-in page, its SSO page (whose one provider the fixture's server
 lists over HTTP, as the page's ModelList reads it) and the not-found page; the SSO
-page's way back to the password form, lined up under its providers; status text at 4.5:1; the very dark
+page's way back to the password form, lined up under its providers, and its SAML and
+OpenID Connect providers as one evenly spaced list, each chosen from the keyboard; status
+text at 4.5:1; the very dark
 red of a long outage's bar with an edge; the logo on a light backdrop whenever a Dark
 page or one that follows the device is dark, and the logo made for the dark theme
 drawn instead, on nothing, where the page has one; no switch on a Light or Dark page

@@ -1378,6 +1378,66 @@ test.describe("the page at a phone's width", () => {
     await shoot(page, testInfo, "phone-page-dark");
   });
 
+  /*
+   * Beside the toolbar a phone left the title about 7rem, and "Acme
+   * Production" read "Acme Prod...". The toolbar moves under the title on
+   * a phone; the title has the row, and a long one takes two lines.
+   */
+  test("the dashboard's name is read whole on a phone, with the toolbar under it", async ({
+    page,
+  }: { page: Page }, testInfo: TestInfo) => {
+    test.skip(!testInfo.project.use.isMobile, "A phone's width.");
+
+    await openDashboard(page, "light");
+
+    const title: Locator = page.getByRole("heading", {
+      level: 1,
+      name: "Acme Production",
+    });
+
+    await expect(title).toBeVisible();
+
+    const clipped: { width: boolean; height: boolean } = await title.evaluate(
+      (element: Element): { width: boolean; height: boolean } => {
+        return {
+          width: element.scrollWidth > element.clientWidth + 0.5,
+          height: element.scrollHeight > element.clientHeight + 0.5,
+        };
+      },
+    );
+
+    expect(clipped).toEqual({ width: false, height: false });
+
+    const titleBox: { y: number; height: number } =
+      (await title.boundingBox())!;
+    const toolbarBox: { y: number } = (await page
+      .getByTestId("public-dashboard-toolbar")
+      .boundingBox())!;
+
+    expect(toolbarBox.y).toBeGreaterThanOrEqual(titleBox.y + titleBox.height);
+  });
+
+  test("at 1280 the title and the toolbar share one row", async ({
+    page,
+  }: { page: Page }, testInfo: TestInfo) => {
+    test.skip(Boolean(testInfo.project.use.isMobile), "The desktop's width.");
+
+    await openDashboard(page, "light");
+
+    const titleBox: { y: number; height: number } = (await page
+      .getByRole("heading", { level: 1, name: "Acme Production" })
+      .boundingBox())!;
+    const toolbarBox: { y: number; height: number } = (await page
+      .getByTestId("public-dashboard-toolbar")
+      .boundingBox())!;
+
+    // The toolbar's middle is level with the title's row.
+    const toolbarMiddle: number = toolbarBox.y + toolbarBox.height / 2;
+
+    expect(toolbarMiddle).toBeGreaterThan(titleBox.y - 16);
+    expect(toolbarMiddle).toBeLessThan(titleBox.y + titleBox.height + 16);
+  });
+
   test("the board's frame scrolls sideways to its right edge, and back", async ({
     page,
   }: { page: Page }, testInfo: TestInfo) => {

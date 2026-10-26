@@ -57,10 +57,13 @@ const LoginPage: FunctionComponent<ComponentProps> = (
    * found." - or the blank space of an empty list - under a provider that is
    * right there.
    *
-   * The lists' own padding is taken back (-mx-2, and the last list's mb-5),
-   * so a provider's card lines up with Log in with password under it, and
-   * the "or" sits as far below the cards as it sits below the sign-in
-   * page's button.
+   * Both lists draw no frame of their own (isUnframed): their providers
+   * read as one evenly spaced list, line up with Log in with password
+   * under them, and sit as far from the card's edge as the sign-in page's
+   * fields do (-my-2 takes back the first and last row's own margin). Each
+   * list used to keep its padding, the space under it and a scroll box, so
+   * a page with SAML and OpenID Connect providers showed two lists far
+   * apart, and a long description made a box the keyboard stopped on.
    */
   const [ssoProviderCount, setSsoProviderCount] = useState<number | null>(null);
   const [oidcProviderCount, setOidcProviderCount] = useState<number | null>(
@@ -158,13 +161,14 @@ const LoginPage: FunctionComponent<ComponentProps> = (
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10 space-y-6">
           <div
-            className="-mx-2 -mb-5"
+            className="-my-2"
             hidden={hasNoProviders}
             data-testid="status-page-sso-provider-lists"
           >
             <div hidden={ssoProviderCount === 0}>
               <ModelList<StatusPageSSO>
                 id="sso-list"
+                isUnframed={true}
                 overrideFetchApiUrl={URL.fromString(
                   STATUS_PAGE_API_URL.toString(),
                 ).addRoute(
@@ -203,6 +207,7 @@ const LoginPage: FunctionComponent<ComponentProps> = (
             <div hidden={oidcProviderCount === 0}>
               <ModelList<StatusPageOIDC>
                 id="oidc-list"
+                isUnframed={true}
                 overrideFetchApiUrl={URL.fromString(
                   STATUS_PAGE_API_URL.toString(),
                 ).addRoute(

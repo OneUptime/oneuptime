@@ -1448,6 +1448,28 @@ describe.each(PAGES)("Custom Domains on $name", (page: PageCase) => {
       }
     });
 
+    /*
+     * Reissue SSL asks Let's Encrypt for a new certificate, which needs the
+     * account key this installation has none of: even a domain ordered
+     * while it had one (ordered, provisioned) is not offered it here.
+     */
+    test("Reissue SSL is not offered: there is no certificate of ours to replace", () => {
+      renderPage();
+
+      for (const row of [
+        UNVERIFIED,
+        VERIFIED,
+        ORDERED,
+        PROVISIONED,
+        UPLOADED,
+      ]) {
+        expect([
+          row,
+          within(rowOf(row)).queryByRole("button", { name: "Reissue SSL" }),
+        ]).toEqual([row, null]);
+      }
+    });
+
     test("an order the server recorded as failed is not shown as a failure", async () => {
       renderPage();
 
@@ -1501,5 +1523,25 @@ describe.each(PAGES)("Custom Domains on $name", (page: PageCase) => {
     expect(Object.keys(CUSTOM_DOMAIN_STATUS).sort()).toEqual(
       Object.values(CustomDomainState).sort(),
     );
+  });
+
+  /*
+   * A cell holds one line unless its column says it wraps, and clips the
+   * rest: "Issuing a free certificate, usually within 15 minutes." lost its
+   * end at 1280px, and an order's failure under it more.
+   */
+  test("the Status column wraps its sentence rather than cutting it off", () => {
+    renderPage();
+
+    const status: { wrapContent?: boolean } | undefined = (
+      mockTableProps!.columns as Array<{
+        title?: string;
+        wrapContent?: boolean;
+      }>
+    ).find((column: { title?: string }) => {
+      return column.title === "Status";
+    });
+
+    expect(status?.wrapContent).toBe(true);
   });
 });

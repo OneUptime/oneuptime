@@ -35083,7 +35083,6 @@
   "This playbook is already running on this case. Its run is under the case's Playbooks.": "Denne playbook kører allerede på sagen. Kørslen står under sagens Playbooks.",
   "A playbook runs here when the case opens or grows, or when someone runs it on the case.": "En playbook kører her, når sagen åbnes eller vokser, eller når nogen kører den på sagen.",
   "No playbook has run on this case yet.": "Ingen playbook har kørt på denne sag endnu.",
-  "Verified. This installation issues no free certificates: serve HTTPS for this domain at your own proxy, or upload a certificate.": "Bekræftet. Denne installation udsteder ingen gratis certifikater: lever HTTPS for dette domæne via din egen proxy, eller upload et certifikat.",
   "Served with your own proxy's HTTPS, unless you upload a certificate.": "Leveres med din egen proxys HTTPS, medmindre du uploader et certifikat.",
   "We check for this record every 15 minutes. Added it already? Click Check now.": "Vi tjekker denne post hvert 15. minut. Allerede tilføjet? Klik på Tjek nu.",
   "Serve this status page on your own domain. Point each domain's CNAME record to {{cnameRecord}}.": "Vis denne statusside på dit eget domæne. Peg hvert domænes CNAME-post på {{cnameRecord}}.",
@@ -35091,5 +35090,8 @@
   "Dark Theme Logo": "Logo til mørkt tema",
   "Upload logo for the dark theme": "Upload logo til mørkt tema",
   "Shown instead of the logo where your status page is dark. Without one, the logo is shown on a light backdrop there.": "Vises i stedet for logoet, hvor din statusside er mørk. Uden et vises logoet der på en lys baggrund.",
-  "None. The logo is shown on a light backdrop.": "Intet. Logoet vises på en lys baggrund."
+  "None. The logo is shown on a light backdrop.": "Intet. Logoet vises på en lys baggrund.",
+  "Verified. Uses your own proxy's HTTPS.": "Bekræftet. Bruger din egen proxys HTTPS.",
+  "This installation issues no free certificates: serve HTTPS for this domain at your own proxy, or upload a certificate.": "Denne installation udsteder ingen gratis certifikater: lever HTTPS for dette domæne via din egen proxy, eller upload et certifikat.",
+  "Shown on your status page and in the emails it sends.": "Vises på din statusside og i de e-mails, den sender."
 }

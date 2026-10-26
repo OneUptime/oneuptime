@@ -280,7 +280,7 @@ Kolumnen **Status** säger hur långt varje domän har kommit på vägen mot HTT
 | Certifikat utfärdat, förnyas automatiskt. | Klart. Domänen serverar sitt certifikat över HTTPS, och OneUptime förnyar det. |
 | Certifikat utfärdat, men förnyelsen misslyckades. Vi fortsätter att försöka. | Domänen serverar fortfarande ett giltigt certifikat, men dess senaste förnyelse misslyckades, av orsaken på raden under. OneUptime försöker igen i god tid innan certifikatet går ut. |
 | Använder ditt uppladdade certifikat. | Posten är verifierad, och domänen serveras med det certifikat som du laddade upp. |
-| Verifierad. Den här installationen utfärdar inga gratis certifikat: leverera HTTPS för den här domänen via din egen proxy, eller ladda upp ett certifikat. | På en egeninstallation utan Let's Encrypt-kontonyckel är posten verifierad och domänen i drift. Dess HTTPS sköter din egen proxy, om du inte laddar upp ett certifikat. |
+| Verifierad. Använder din egen proxys HTTPS. | På en egeninstallation utan Let's Encrypt-kontonyckel är posten verifierad och domänen i drift. Dess HTTPS sköter din egen proxy, om du inte laddar upp ett certifikat. |
 
 :::details En domän blir kvar på "Väntar på DNS" långt efter att jag lade till posten
 Kontrollera att postens namn är den fullständiga domänen, som `status.yourcompany.com`, och att dess värde exakt matchar din installations CNAME-post. På en rotdomän använder du en ALIAS-, ANAME- eller flattened CNAME-post. Klicka sedan på **Kontrollera nu** i **DNS-inställning**.

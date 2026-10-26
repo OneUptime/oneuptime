@@ -332,13 +332,14 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
       >
         <div className="max-w-7xl mx-auto px-4 py-4 sm:px-5">
           {/*
-           * The title and the toolbar on one row while they fit; on a
-           * phone, when the toolbar is wider than the title leaves room for
-           * (Reset Zoom showing), it moves under the title, at the right.
+           * The title and the toolbar on one row while the title keeps room
+           * to be read (18rem); on a phone the toolbar moves under it, at
+           * the right, and the title has the whole width - beside the
+           * toolbar a phone cut a dashboard's name down to its first word.
            */}
           <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
             {/* Logo + Title + Description */}
-            <div className="flex min-w-0 flex-1 basis-40 items-center gap-3 sm:gap-4">
+            <div className="flex min-w-0 flex-1 basis-72 items-center gap-3 sm:gap-4">
               {logoUrl && (
                 <LogoPlate className="flex-shrink-0">
                   <img
@@ -349,7 +350,11 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
                 </LogoPlate>
               )}
               <div className="min-w-0">
-                <h1 className="text-lg font-semibold text-gray-900 truncate">
+                {/*
+                 * Two lines at most on a phone, one beside the toolbar: a
+                 * long name ends in an ellipsis rather than off the page.
+                 */}
+                <h1 className="line-clamp-2 break-words text-lg font-semibold text-gray-900 sm:line-clamp-1">
                   {dashboardName}
                 </h1>
                 {pageDescription && (
@@ -504,7 +509,12 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
 
               {dashboardVariables.length > 0 && (
                 <>
-                  <div className="w-px h-5 bg-gray-200"></div>
+                  {/*
+                   * Between the time range and the variables on one line;
+                   * on a phone they wrap, and a rule would hang at the end
+                   * of the first line.
+                   */}
+                  <div className="w-px h-5 bg-gray-200 max-sm:hidden"></div>
                   <DashboardVariableSelector
                     variables={dashboardVariables}
                     dashboardId={props.dashboardId}
