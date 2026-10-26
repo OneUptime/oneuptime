@@ -1464,15 +1464,6 @@
   "Try again": "Opnieuw proberen",
   "Dismiss": "Sluiten",
   "Loading": "Laden",
-  "markdownCallouts": {
-    "caution": "Let op",
-    "danger": "Gevaar",
-    "important": "Belangrijk",
-    "info": "Info",
-    "note": "Opmerking",
-    "tip": "Tip",
-    "warning": "Waarschuwing"
-  },
   "{{field}} is required.": "{{field}} is verplicht.",
   "{{field}} cannot be less than {{minLength}} characters.": "{{field}} mag niet korter zijn dan {{minLength}} tekens.",
   "{{field}} cannot be more than {{maxLength}} characters.": "{{field}} mag niet langer zijn dan {{maxLength}} tekens.",
@@ -1485,5 +1476,14 @@
   "{{field}} should match {{matchField}}": "{{field}} moet overeenkomen met {{matchField}}",
   "Email is not valid.": "Het e-mailadres is ongeldig.",
   "{{field}} is not valid JSON. {{parserMessage}}": "{{field}} is geen geldige JSON. {{parserMessage}}",
-  "{{field}} is not valid YAML. {{parserMessage}}": "{{field}} is geen geldige YAML. {{parserMessage}}"
+  "{{field}} is not valid YAML. {{parserMessage}}": "{{field}} is geen geldige YAML. {{parserMessage}}",
+  "markdownCallouts": {
+    "caution": "Let op",
+    "danger": "Gevaar",
+    "important": "Belangrijk",
+    "info": "Info",
+    "note": "Opmerking",
+    "tip": "Tip",
+    "warning": "Waarschuwing"
+  }
 }

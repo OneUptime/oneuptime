@@ -1464,15 +1464,6 @@
   "Try again": "Prøv igen",
   "Dismiss": "Luk",
   "Loading": "Indlæser",
-  "markdownCallouts": {
-    "caution": "Forsigtig",
-    "danger": "Fare",
-    "important": "Vigtigt",
-    "info": "Info",
-    "note": "Bemærk",
-    "tip": "Tip",
-    "warning": "Advarsel"
-  },
   "{{field}} is required.": "{{field}} er påkrævet.",
   "{{field}} cannot be less than {{minLength}} characters.": "{{field}} må ikke være kortere end {{minLength}} tegn.",
   "{{field}} cannot be more than {{maxLength}} characters.": "{{field}} må ikke være længere end {{maxLength}} tegn.",
@@ -1485,5 +1476,14 @@
   "{{field}} should match {{matchField}}": "{{field}} skal matche {{matchField}}",
   "Email is not valid.": "E-mailadressen er ikke gyldig.",
   "{{field}} is not valid JSON. {{parserMessage}}": "{{field}} er ikke gyldig JSON. {{parserMessage}}",
-  "{{field}} is not valid YAML. {{parserMessage}}": "{{field}} er ikke gyldig YAML. {{parserMessage}}"
+  "{{field}} is not valid YAML. {{parserMessage}}": "{{field}} er ikke gyldig YAML. {{parserMessage}}",
+  "markdownCallouts": {
+    "caution": "Forsigtig",
+    "danger": "Fare",
+    "important": "Vigtigt",
+    "info": "Info",
+    "note": "Bemærk",
+    "tip": "Tip",
+    "warning": "Advarsel"
+  }
 }

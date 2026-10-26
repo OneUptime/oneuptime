@@ -1464,15 +1464,6 @@
   "Try again": "重试",
   "Dismiss": "关闭",
   "Loading": "加载中",
-  "markdownCallouts": {
-    "caution": "小心",
-    "danger": "危险",
-    "important": "重要",
-    "info": "信息",
-    "note": "注意",
-    "tip": "提示",
-    "warning": "警告"
-  },
   "{{field}} is required.": "{{field}} 为必填项。",
   "{{field}} cannot be less than {{minLength}} characters.": "{{field}} 不能少于 {{minLength}} 个字符。",
   "{{field}} cannot be more than {{maxLength}} characters.": "{{field}} 不能超过 {{maxLength}} 个字符。",
@@ -1485,5 +1476,14 @@
   "{{field}} should match {{matchField}}": "{{field}} 必须与 {{matchField}} 一致",
   "Email is not valid.": "电子邮件地址无效。",
   "{{field}} is not valid JSON. {{parserMessage}}": "{{field}} 不是有效的 JSON。{{parserMessage}}",
-  "{{field}} is not valid YAML. {{parserMessage}}": "{{field}} 不是有效的 YAML。{{parserMessage}}"
+  "{{field}} is not valid YAML. {{parserMessage}}": "{{field}} 不是有效的 YAML。{{parserMessage}}",
+  "markdownCallouts": {
+    "caution": "小心",
+    "danger": "危险",
+    "important": "重要",
+    "info": "信息",
+    "note": "注意",
+    "tip": "提示",
+    "warning": "警告"
+  }
 }

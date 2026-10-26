@@ -415,6 +415,8 @@
   "Try again": "Prøv igjen",
   "Loading...": "Laster...",
   "Loading": "Laster",
+  "{{field}} is not valid JSON. {{parserMessage}}": "{{field}} er ikke gyldig JSON. {{parserMessage}}",
+  "{{field}} is not valid YAML. {{parserMessage}}": "{{field}} er ikke gyldig YAML. {{parserMessage}}",
   "markdownCallouts": {
     "caution": "Forsiktig",
     "danger": "Fare",
@@ -423,7 +425,5 @@
     "note": "Merk",
     "tip": "Tips",
     "warning": "Advarsel"
-  },
-  "{{field}} is not valid JSON. {{parserMessage}}": "{{field}} er ikke gyldig JSON. {{parserMessage}}",
-  "{{field}} is not valid YAML. {{parserMessage}}": "{{field}} er ikke gyldig YAML. {{parserMessage}}"
+  }
 }

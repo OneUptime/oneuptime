@@ -1464,15 +1464,6 @@
   "Try again": "再試行",
   "Dismiss": "閉じる",
   "Loading": "読み込み中",
-  "markdownCallouts": {
-    "caution": "注意",
-    "danger": "危険",
-    "important": "重要",
-    "info": "情報",
-    "note": "注記",
-    "tip": "ヒント",
-    "warning": "警告"
-  },
   "{{field}} is required.": "{{field}} は必須です。",
   "{{field}} cannot be less than {{minLength}} characters.": "{{field}} は {{minLength}} 文字以上で入力してください。",
   "{{field}} cannot be more than {{maxLength}} characters.": "{{field}} は {{maxLength}} 文字以内で入力してください。",
@@ -1485,5 +1476,14 @@
   "{{field}} should match {{matchField}}": "{{field}} は {{matchField}} と一致する必要があります",
   "Email is not valid.": "メールアドレスが無効です。",
   "{{field}} is not valid JSON. {{parserMessage}}": "{{field}} は有効な JSON ではありません。{{parserMessage}}",
-  "{{field}} is not valid YAML. {{parserMessage}}": "{{field}} は有効な YAML ではありません。{{parserMessage}}"
+  "{{field}} is not valid YAML. {{parserMessage}}": "{{field}} は有効な YAML ではありません。{{parserMessage}}",
+  "markdownCallouts": {
+    "caution": "注意",
+    "danger": "危険",
+    "important": "重要",
+    "info": "情報",
+    "note": "注記",
+    "tip": "ヒント",
+    "warning": "警告"
+  }
 }

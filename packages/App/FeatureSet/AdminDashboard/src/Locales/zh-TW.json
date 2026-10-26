@@ -1464,15 +1464,6 @@
   "Try again": "再試一次",
   "Dismiss": "關閉",
   "Loading": "載入中",
-  "markdownCallouts": {
-    "caution": "小心",
-    "danger": "危險",
-    "important": "重要",
-    "info": "資訊",
-    "note": "注意",
-    "tip": "提示",
-    "warning": "警告"
-  },
   "{{field}} is required.": "{{field}} 為必填欄位。",
   "{{field}} cannot be less than {{minLength}} characters.": "{{field}} 不得少於 {{minLength}} 個字元。",
   "{{field}} cannot be more than {{maxLength}} characters.": "{{field}} 不得超過 {{maxLength}} 個字元。",
@@ -1485,5 +1476,14 @@
   "{{field}} should match {{matchField}}": "{{field}} 必須與 {{matchField}} 相符",
   "Email is not valid.": "電子郵件地址無效。",
   "{{field}} is not valid JSON. {{parserMessage}}": "{{field}} 不是有效的 JSON。{{parserMessage}}",
-  "{{field}} is not valid YAML. {{parserMessage}}": "{{field}} 不是有效的 YAML。{{parserMessage}}"
+  "{{field}} is not valid YAML. {{parserMessage}}": "{{field}} 不是有效的 YAML。{{parserMessage}}",
+  "markdownCallouts": {
+    "caution": "小心",
+    "danger": "危險",
+    "important": "重要",
+    "info": "資訊",
+    "note": "注意",
+    "tip": "提示",
+    "warning": "警告"
+  }
 }

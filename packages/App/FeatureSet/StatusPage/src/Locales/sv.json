@@ -415,6 +415,8 @@
   "Try again": "Försök igen",
   "Loading...": "Laddar...",
   "Loading": "Laddar",
+  "{{field}} is not valid JSON. {{parserMessage}}": "{{field}} är inte giltig JSON. {{parserMessage}}",
+  "{{field}} is not valid YAML. {{parserMessage}}": "{{field}} är inte giltig YAML. {{parserMessage}}",
   "markdownCallouts": {
     "caution": "Försiktighet",
     "danger": "Fara",
@@ -423,7 +425,5 @@
     "note": "Obs",
     "tip": "Tips",
     "warning": "Varning"
-  },
-  "{{field}} is not valid JSON. {{parserMessage}}": "{{field}} är inte giltig JSON. {{parserMessage}}",
-  "{{field}} is not valid YAML. {{parserMessage}}": "{{field}} är inte giltig YAML. {{parserMessage}}"
+  }
 }

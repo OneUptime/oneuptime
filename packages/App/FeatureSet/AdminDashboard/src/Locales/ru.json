@@ -1464,15 +1464,6 @@
   "Try again": "Повторить попытку",
   "Dismiss": "Скрыть",
   "Loading": "Загрузка",
-  "markdownCallouts": {
-    "caution": "Осторожно",
-    "danger": "Опасно",
-    "important": "Важно",
-    "info": "Информация",
-    "note": "Примечание",
-    "tip": "Совет",
-    "warning": "Предупреждение"
-  },
   "{{field}} is required.": "Поле «{{field}}» обязательно.",
   "{{field}} cannot be less than {{minLength}} characters.": "{{field}}: не менее {{minLength}} символов.",
   "{{field}} cannot be more than {{maxLength}} characters.": "{{field}}: не более {{maxLength}} символов.",
@@ -1485,5 +1476,14 @@
   "{{field}} should match {{matchField}}": "{{field}} должно совпадать с {{matchField}}",
   "Email is not valid.": "Недопустимый адрес электронной почты.",
   "{{field}} is not valid JSON. {{parserMessage}}": "{{field}}: недопустимый JSON. {{parserMessage}}",
-  "{{field}} is not valid YAML. {{parserMessage}}": "{{field}}: недопустимый YAML. {{parserMessage}}"
+  "{{field}} is not valid YAML. {{parserMessage}}": "{{field}}: недопустимый YAML. {{parserMessage}}",
+  "markdownCallouts": {
+    "caution": "Осторожно",
+    "danger": "Опасно",
+    "important": "Важно",
+    "info": "Информация",
+    "note": "Примечание",
+    "tip": "Совет",
+    "warning": "Предупреждение"
+  }
 }

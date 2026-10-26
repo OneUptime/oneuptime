@@ -415,6 +415,8 @@
   "Try again": "Réessayer",
   "Loading...": "Chargement...",
   "Loading": "Chargement",
+  "{{field}} is not valid JSON. {{parserMessage}}": "{{field}} n'est pas un JSON valide. {{parserMessage}}",
+  "{{field}} is not valid YAML. {{parserMessage}}": "{{field}} n'est pas un YAML valide. {{parserMessage}}",
   "markdownCallouts": {
     "caution": "Attention",
     "danger": "Danger",
@@ -423,7 +425,5 @@
     "note": "Remarque",
     "tip": "Astuce",
     "warning": "Avertissement"
-  },
-  "{{field}} is not valid JSON. {{parserMessage}}": "{{field}} n'est pas un JSON valide. {{parserMessage}}",
-  "{{field}} is not valid YAML. {{parserMessage}}": "{{field}} n'est pas un YAML valide. {{parserMessage}}"
+  }
 }

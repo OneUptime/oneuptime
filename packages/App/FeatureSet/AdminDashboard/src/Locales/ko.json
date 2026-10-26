@@ -1464,15 +1464,6 @@
   "Try again": "다시 시도",
   "Dismiss": "닫기",
   "Loading": "로드 중",
-  "markdownCallouts": {
-    "caution": "주의",
-    "danger": "위험",
-    "important": "중요",
-    "info": "정보",
-    "note": "참고",
-    "tip": "팁",
-    "warning": "경고"
-  },
   "{{field}} is required.": "{{field}}은(는) 필수입니다.",
   "{{field}} cannot be less than {{minLength}} characters.": "{{field}}은(는) {{minLength}}자 이상이어야 합니다.",
   "{{field}} cannot be more than {{maxLength}} characters.": "{{field}}은(는) {{maxLength}}자를 넘을 수 없습니다.",
@@ -1485,5 +1476,14 @@
   "{{field}} should match {{matchField}}": "{{field}}은(는) {{matchField}}와(과) 일치해야 합니다",
   "Email is not valid.": "이메일 주소가 올바르지 않습니다.",
   "{{field}} is not valid JSON. {{parserMessage}}": "{{field}}은(는) 올바른 JSON이 아닙니다. {{parserMessage}}",
-  "{{field}} is not valid YAML. {{parserMessage}}": "{{field}}은(는) 올바른 YAML이 아닙니다. {{parserMessage}}"
+  "{{field}} is not valid YAML. {{parserMessage}}": "{{field}}은(는) 올바른 YAML이 아닙니다. {{parserMessage}}",
+  "markdownCallouts": {
+    "caution": "주의",
+    "danger": "위험",
+    "important": "중요",
+    "info": "정보",
+    "note": "참고",
+    "tip": "팁",
+    "warning": "경고"
+  }
 }

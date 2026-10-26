@@ -1464,15 +1464,6 @@
   "Try again": "Réessayer",
   "Dismiss": "Masquer",
   "Loading": "Chargement",
-  "markdownCallouts": {
-    "caution": "Attention",
-    "danger": "Danger",
-    "important": "Important",
-    "info": "Info",
-    "note": "Remarque",
-    "tip": "Astuce",
-    "warning": "Avertissement"
-  },
   "{{field}} is required.": "{{field}} est obligatoire.",
   "{{field}} cannot be less than {{minLength}} characters.": "{{field}} doit contenir au moins {{minLength}} caractères.",
   "{{field}} cannot be more than {{maxLength}} characters.": "{{field}} ne peut pas dépasser {{maxLength}} caractères.",
@@ -1485,5 +1476,14 @@
   "{{field}} should match {{matchField}}": "{{field}} doit correspondre à {{matchField}}",
   "Email is not valid.": "L'adresse e-mail n'est pas valide.",
   "{{field}} is not valid JSON. {{parserMessage}}": "{{field}} n'est pas un JSON valide. {{parserMessage}}",
-  "{{field}} is not valid YAML. {{parserMessage}}": "{{field}} n'est pas un YAML valide. {{parserMessage}}"
+  "{{field}} is not valid YAML. {{parserMessage}}": "{{field}} n'est pas un YAML valide. {{parserMessage}}",
+  "markdownCallouts": {
+    "caution": "Attention",
+    "danger": "Danger",
+    "important": "Important",
+    "info": "Info",
+    "note": "Remarque",
+    "tip": "Astuce",
+    "warning": "Avertissement"
+  }
 }
