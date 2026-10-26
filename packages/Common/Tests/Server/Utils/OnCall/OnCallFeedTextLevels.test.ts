@@ -14,7 +14,10 @@ import FeedMarkdown, {
  * Slack and Teams message "escalation rule 2 of 3 (Platform leads)" (#5167).
  * A feed entry now names the level by its name, then its place - or its
  * place alone when it has no name of its own - the dialog's own wording.
- * An entry whose level's place is not known is written as before.
+ * The schedule the person was paged from shares the place's brackets:
+ * "(Level 1 of 3, schedule **Primary**)", never "(Level 1 of 3) (schedule
+ * **Primary**)". An entry whose level's place is not known is written as
+ * before.
  */
 
 const POLICY: MarkdownText = FeedMarkdown.link(
@@ -113,15 +116,24 @@ describe("a page sent at a level", () => {
     );
   });
 
-  test("the schedule, the rotation and the team follow the level", () => {
+  test("the schedule and the rotation share the place's brackets, and the team follows", () => {
     expect(
       paged(
         { ruleName: "Primary", ruleOrder: 1, ruleCount: 2 },
         { scheduleName: "EU primary", teamName: "Payments" },
       ),
     ).toBe(
-      `On-call policy ${POLICY_MD} paged ${NITIN_MD} at **Primary** (Level 1 of 2) (schedule **EU primary**), as a member of **Payments**.`,
+      `On-call policy ${POLICY_MD} paged ${NITIN_MD} at **Primary** (Level 1 of 2, schedule **EU primary**), as a member of **Payments**.`,
     );
+    expect(
+      paged(
+        { ruleName: "Backup", ruleOrder: 2, ruleCount: 2 },
+        { scheduleName: "EU primary", isNextInRotation: true },
+      ),
+    ).toBe(
+      `On-call policy ${POLICY_MD} paged ${NITIN_MD} at **Backup** (Level 2 of 2, next in the **EU primary** rotation).`,
+    );
+    // A level with no name of its own is its place: the schedule has the brackets.
     expect(
       paged(
         { ruleOrder: 2, ruleCount: 2 },
@@ -130,6 +142,28 @@ describe("a page sent at a level", () => {
     ).toBe(
       `On-call policy ${POLICY_MD} paged ${NITIN_MD} at **Level 2 of 2** (next in the **EU primary** rotation).`,
     );
+    expect(
+      paged({ ruleOrder: 1, ruleCount: 2 }, { scheduleName: "EU primary" }),
+    ).toBe(
+      `On-call policy ${POLICY_MD} paged ${NITIN_MD} at **Level 1 of 2** (schedule **EU primary**).`,
+    );
+  });
+
+  test("REGRESSION: never two brackets in a row - '(Level 1 of 3) (schedule Primary)' read like a stutter", () => {
+    for (const ruleName of ["First line", "Level 1", undefined]) {
+      for (const isNextInRotation of [false, true]) {
+        const markdown: string = paged(
+          { ruleName: ruleName, ruleOrder: 1, ruleCount: 3 },
+          { scheduleName: "Primary", isNextInRotation: isNextInRotation },
+        );
+
+        // Where the page was sent from: everything after " at ".
+        const where: string = markdown.split(" at ")[1]!;
+
+        expect(where).not.toContain(") (");
+        expect(where.split("(").length - 1).toBe(1);
+      }
+    }
   });
 
   test("a level whose place is not known is named as before", () => {
