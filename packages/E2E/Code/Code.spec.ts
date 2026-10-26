@@ -3761,21 +3761,27 @@ test.describe("a task's conversation", () => {
     page,
   }: {
     page: Page;
-  }) => {
+  }, testInfo: TestInfo) => {
+    /*
+     * The Session Log card's description - drawn from a tablet up: a
+     * card's description is folded away on a phone, as every card's is.
+     */
+    const description: Locator = page.getByTestId("card-description").first();
+    const isPhone: boolean = testInfo.project.name === "phone";
+
     await page.goto(`${taskPath(TASK.retries)}/log?turn=${TASK.retries}`);
     await expect(page.getByTestId("code-task-log-turn-picker")).toBeVisible();
-    await expect(
-      page.getByText(
-        "Every step this turn took, in order. Expand a step to see what the model was sent and what it said.",
-      ),
-    ).toBeVisible();
+    await expect(description).toHaveText(
+      "Every step this turn took, in order. Expand a step to see what the model was sent and what it said.",
+    );
+    if (!isPhone) {
+      await expect(description).toBeVisible();
+    }
 
     await page.goto(`${taskPath(TASK.failed)}/log`);
-    await expect(
-      page.getByText(
-        "Every step this task took, in order. Expand a step to see what the model was sent and what it said.",
-      ),
-    ).toBeVisible();
+    await expect(description).toHaveText(
+      "Every step this task took, in order. Expand a step to see what the model was sent and what it said.",
+    );
     await expect(page.getByTestId("code-task-log-turn-picker")).toHaveCount(0);
   });
 
