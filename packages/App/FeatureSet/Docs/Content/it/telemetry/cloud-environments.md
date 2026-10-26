@@ -174,7 +174,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 :::
 
 > [!TIP]
-> Gli stessi passaggi sono nella dashboard, con il tuo token già inserito: in **Cloud → All Environments** finché non arriva il tuo primo ambiente, e nella scheda **Documentazione** di ogni ambiente.
+> Gli stessi passaggi sono nella dashboard, con il tuo token già inserito: in **Cloud → All Environments**, fai clic su **Aggiungi ambiente cloud**. Anche la scheda **Documentazione** di ogni ambiente li mostra.
 
 ## Che cosa ottieni
 
