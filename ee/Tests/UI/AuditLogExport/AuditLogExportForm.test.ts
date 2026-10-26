@@ -533,12 +533,23 @@ describe("how long an export has been failing, in the reader's language", () => 
     },
   );
 
-  test("digits are Latin in every language, as every other date on the page", () => {
+  test("digits are the reader's own, as every other date and count on the page", () => {
+    // Persian writes its own digits (Common/Types/DateLanguage's getDateLocale).
+    const persian: string = formatAuditLogExportDuration({
+      since: before(2 * 60 * 60),
+      now: NOW,
+      language: "fa",
+    });
+
+    expect(persian).toContain("۲");
+    expect(persian).not.toMatch(/[0-9]/);
+
+    // Every other language writes Latin ones.
     expect(
       formatAuditLogExportDuration({
         since: before(2 * 60 * 60),
         now: NOW,
-        language: "fa",
+        language: "de",
       }),
     ).toContain("2");
   });
