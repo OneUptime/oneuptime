@@ -259,14 +259,16 @@ describe("an embedded explorer's own empty block", () => {
         id="vmware-host-logs-test"
         logQuery={HOST_QUERY}
         showFilters={true}
-        noLogsMessage="No logs from this host match these filters."
+        noLogsMessage="Clear a filter or widen the time range to see this host's logs."
         emptyContentWhenUnfiltered={ownBlock()}
       />,
     );
 
     expect(await screen.findByTestId("embed-empty-block")).toBeInTheDocument();
     expect(
-      screen.queryByText("No logs from this host match these filters."),
+      screen.queryByText(
+        "Clear a filter or widen the time range to see this host's logs.",
+      ),
     ).toBeNull();
   });
 
@@ -276,7 +278,7 @@ describe("an embedded explorer's own empty block", () => {
         id="vmware-host-logs-test"
         logQuery={HOST_QUERY}
         showFilters={true}
-        noLogsMessage="No logs from this host match these filters."
+        noLogsMessage="Clear a filter or widen the time range to see this host's logs."
         emptyContentWhenUnfiltered={ownBlock()}
       />,
     );
@@ -291,7 +293,9 @@ describe("an embedded explorer's own empty block", () => {
       expect(screen.queryByTestId("embed-empty-block")).toBeNull();
     });
     expect(
-      screen.getByText("No logs from this host match these filters."),
+      screen.getByText(
+        "Clear a filter or widen the time range to see this host's logs.",
+      ),
     ).toBeInTheDocument();
   });
 
@@ -331,12 +335,14 @@ describe("an embedded explorer's own empty block", () => {
         id="host-logs-test"
         logQuery={HOST_QUERY}
         showFilters={true}
-        noLogsMessage="No logs found for this host."
+        noLogsMessage="Make sure your OTel collector forwards logs with the host.name resource attribute."
       />,
     );
 
     expect(
-      await screen.findByText("No logs found for this host."),
+      await screen.findByText(
+        "Make sure your OTel collector forwards logs with the host.name resource attribute.",
+      ),
     ).toBeInTheDocument();
   });
 });

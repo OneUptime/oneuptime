@@ -318,7 +318,7 @@ const PodmanHostContainerDetail: FunctionComponent<
             attributeFilterDisplayValues={logAttributeDisplayValues}
             showFilters={true}
             enableRealtime={true}
-            noLogsMessage="No logs found for this container. Make sure the Podman agent's filelog receiver is collecting logs from /var/lib/containers."
+            noLogsMessage="Make sure the Podman agent's filelog receiver is collecting logs from /var/lib/containers."
           />
         </Card>
       ),

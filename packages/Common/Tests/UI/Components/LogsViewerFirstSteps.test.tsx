@@ -196,13 +196,15 @@ describe("the Logs page's first steps in an empty explorer", () => {
 
   test("a page that hands over nothing keeps its own message: an embed is unchanged", async () => {
     const table: HTMLElement = await renderLogs({
-      noLogsMessage: "No logs found for this service.",
+      noLogsMessage: "Logs appear here as soon as this service sends them.",
     });
 
     expect(within(table).queryByTestId("page-first-steps")).toBeNull();
     expect(within(table).getByText("No logs found")).toBeInTheDocument();
     expect(
-      within(table).getByText("No logs found for this service."),
+      within(table).getByText(
+        "Logs appear here as soon as this service sends them.",
+      ),
     ).toBeInTheDocument();
   });
 });

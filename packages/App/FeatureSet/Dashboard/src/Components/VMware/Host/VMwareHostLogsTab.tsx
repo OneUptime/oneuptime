@@ -271,7 +271,7 @@ const VMwareHostLogsTab: FunctionComponent<ComponentProps> = (
       }}
       showFilters={true}
       enableRealtime={true}
-      noLogsMessage="No logs from this host match these filters."
+      noLogsMessage="Clear a filter or widen the time range to see this host's logs."
       emptyContentWhenUnfiltered={
         <VMwareHostLogsSetup
           hostName={props.hostName}

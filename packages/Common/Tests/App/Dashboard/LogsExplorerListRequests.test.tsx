@@ -744,7 +744,7 @@ describe("an embedded viewer reads once, and only on a real change of its scope"
         showFilters={true}
         enableRealtime={true}
         limit={100}
-        noLogsMessage="No logs found for this service."
+        noLogsMessage="Logs appear here as soon as this service sends them."
       />
     );
   }

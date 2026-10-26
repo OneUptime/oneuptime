@@ -803,7 +803,7 @@ describe.each([
 
       await openTab("Logs");
       expect(latestProps("LogsViewer")["noLogsMessage"]).toBe(
-        "No logs found in the zoomed part of the snapshot window.",
+        "Nothing was logged in the zoomed part of the snapshot window.",
       );
       await openTab("Traces");
       expect(latestProps("TracesViewer")["emptyMessage"]).toBe(
@@ -824,7 +824,7 @@ describe.each([
       );
       await openTab("Logs");
       expect(latestProps("LogsViewer")["noLogsMessage"]).toBe(
-        "No logs found in the snapshot window.",
+        "Nothing was logged in the snapshot window.",
       );
     });
 

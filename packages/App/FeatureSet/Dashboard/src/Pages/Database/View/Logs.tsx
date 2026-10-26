@@ -92,7 +92,7 @@ const DatabaseServerLogs: FunctionComponent<
         entityKeyDisplays={entityKeyDisplays}
         showFilters={true}
         enableRealtime={true}
-        noLogsMessage="No logs found for this database."
+        noLogsMessage="Logs from the Database Agent, and from the pods or containers this database runs in, appear here."
       />
     </Fragment>
   );
