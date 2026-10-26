@@ -78,6 +78,7 @@ Cada fila que devuelve la búsqueda se convierte en un evento Detection Finding 
 | `status_label`, si no `status_description`, si no el nombre del estado de revisión que contiene `status` | Estado |
 | `annotations.mitre_attack`, y campos como `mitre_technique_id` y `mitre_tactic` | Tácticas y técnicas de MITRE ATT&CK |
 | `user` o `src_user`; `src`, `src_ip` o `src_host`; `process`, `process_name` o `parent_process` | Usuario, IP, host y proceso del actor |
+| `process_name` o `process_exec`, `process_path` y `process`; `parent_process_name` o `parent_process_exec`, `parent_process_path` y `parent_process` | Nombre, ruta y línea de comandos del proceso; nombre, ruta y línea de comandos del proceso padre |
 | `dest_user`; `dest`, `dest_ip` o `dest_host`; `dest_port` | Usuario, IP, host y puerto del destino |
 | `file_path`, `url` o `risk_object` | Recurso de destino |
 | Cada usuario, host e IP, además de `dvc`, `host`, `file_hash`, `file_name`, `url`, `domain`, `query` y `risk_object` | Observables |

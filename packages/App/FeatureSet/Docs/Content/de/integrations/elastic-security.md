@@ -74,6 +74,7 @@ Jede Erkennungswarnung wird zu einem Ereignis Detection Finding (OCSF-Klasse `20
 | `kibana.alert.workflow_status`: `open`, `acknowledged` oder `closed` | Status |
 | `kibana.alert.rule.threat`, einschließlich Untertechniken | MITRE-ATT&CK-Taktiken und -Techniken |
 | `user.name`, `host.name`, `source.ip` oder `host.ip`, `process.name` oder `process.executable` | Benutzer, Host, IP und Prozess des Akteurs |
+| `process.name`, `process.executable` und `process.command_line`; `process.parent.name`, `process.parent.executable` und `process.parent.command_line` | Prozessname, -pfad und -befehlszeile; Name, Pfad und Befehlszeile des übergeordneten Prozesses |
 | `user.target.name`, `destination.domain`, `destination.ip`, `destination.port`, `file.path` | Benutzer, Host, IP, Port und Ressource des Ziels |
 | Diese, sowie `related.*`, `dns.question.name`, `url.domain` und Datei-Hashes | Observables |
 | Die ganze Warnung, flach gemacht zu Schlüsseln mit Punkten, mit `_index` und `_id` | `attributes` |

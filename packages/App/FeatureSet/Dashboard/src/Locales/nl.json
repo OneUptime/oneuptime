@@ -28109,7 +28109,7 @@
   "Assign To": "Assign To",
   "Assign the case": "Assign the case",
   "Assign to Me": "Aan mij toewijzen",
-  "Assigned to Me": "Aan mij toegewezen",
+  "Assigned to Me": "Mijn zaken",
   "Assignee": "Assignee",
   "Automated responses to security cases: steps that assign, investigate, notify, escalate and contain, run when a matching case opens or by hand.": "Automated responses to security cases: steps that assign, investigate, notify, escalate and contain, run when a matching case opens or by hand.",
   "Available in the rule library": "Beschikbaar in de Rule Library",
@@ -28270,7 +28270,6 @@
   "No finding named an entity in this window.": "Geen bevinding noemde een entiteit in deze periode.",
   "No open cases are assigned to you.": "No open cases are assigned to you.",
   "No open cases. New ones appear here as detections fire.": "Geen open zaken. Nieuwe verschijnen hier zodra detecties afgaan.",
-  "No playbook has run on this case yet. Playbooks set to start when a case opens run here by themselves; you can run any playbook by hand.": "No playbook has run on this case yet. Playbooks set to start when a case opens run here by themselves; you can run any playbook by hand.",
   "No playbook has run yet.": "Er is nog geen playbook uitgevoerd.",
   "No playbook is running right now.": "No playbook is running right now.",
   "No playbooks yet. Start from a template above, or create one.": "No playbooks yet. Start from a template above, or create one.",
@@ -28335,7 +28334,7 @@
   "Pick what the step does, then fill in its settings.": "Pick what the step does, then fill in its settings.",
   "Playbook": "Playbook",
   "Playbook Name": "Playbook Name",
-  "Playbook Runs": "Playbook-uitvoeringen",
+  "Playbook Runs": "Uitvoeringen",
   "Playbooks": "Playbooks",
   "Post a summary of the case to a Microsoft Teams channel, through the project's Microsoft Teams connection.": "Post a summary of the case to a Microsoft Teams channel, through the project's Microsoft Teams connection.",
   "Post a summary of the case to a Slack channel, through the project's Slack connection.": "Post a summary of the case to a Slack channel, through the project's Slack connection.",
@@ -35079,5 +35078,9 @@
   "Run by OneUptime for every project. It does not build or test AI's change before the branch is pushed.": "Door OneUptime voor elk project gedraaid. Bouwt of test de wijziging van AI niet voordat de branch wordt gepusht.",
   "Run by OneUptime for every project. It does not build or test AI's change before the merge request opens.": "Door OneUptime voor elk project gedraaid. Bouwt of test de wijziging van AI niet voordat de merge request opent.",
   "This turn has not reported a step yet. This page updates on its own.": "Deze beurt heeft nog geen stap gemeld. Deze pagina werkt zichzelf bij.",
-  "This turn recorded no steps. If it failed before starting, the reason is in the conversation.": "Deze beurt heeft geen stappen vastgelegd. Als die mislukte voordat die begon, staat de reden in het gesprek."
+  "This turn recorded no steps. If it failed before starting, the reason is in the conversation.": "Deze beurt heeft geen stappen vastgelegd. Als die mislukte voordat die begon, staat de reden in het gesprek.",
+  "Approvals": "Goedkeuringen",
+  "This playbook is already running on this case. Its run is under the case's Playbooks.": "Dit playbook loopt al voor deze zaak. De uitvoering staat onder Playbooks van de zaak.",
+  "A playbook runs here when the case opens or grows, or when someone runs it on the case.": "Een playbook draait hier wanneer de zaak wordt geopend of groeit, of wanneer iemand het op de zaak uitvoert.",
+  "No playbook has run on this case yet.": "Er is nog geen playbook uitgevoerd voor deze zaak."
 }

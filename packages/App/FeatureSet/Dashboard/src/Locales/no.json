@@ -28270,7 +28270,6 @@
   "No finding named an entity in this window.": "Ingen funn nevnte en entitet i dette tidsrommet.",
   "No open cases are assigned to you.": "No open cases are assigned to you.",
   "No open cases. New ones appear here as detections fire.": "Ingen åpne saker. Nye vises her etter hvert som deteksjoner utløses.",
-  "No playbook has run on this case yet. Playbooks set to start when a case opens run here by themselves; you can run any playbook by hand.": "No playbook has run on this case yet. Playbooks set to start when a case opens run here by themselves; you can run any playbook by hand.",
   "No playbook has run yet.": "Ingen playbook har kjørt ennå.",
   "No playbook is running right now.": "No playbook is running right now.",
   "No playbooks yet. Start from a template above, or create one.": "No playbooks yet. Start from a template above, or create one.",
@@ -35079,5 +35078,9 @@
   "Run by OneUptime for every project. It does not build or test AI's change before the branch is pushed.": "Kjøres av OneUptime for alle prosjekter. Den bygger og tester ikke endringen fra AI før grenen pushes.",
   "Run by OneUptime for every project. It does not build or test AI's change before the merge request opens.": "Kjøres av OneUptime for alle prosjekter. Den bygger og tester ikke endringen fra AI før merge requesten åpnes.",
   "This turn has not reported a step yet. This page updates on its own.": "Denne turen har ikke rapportert noe trinn ennå. Siden oppdateres av seg selv.",
-  "This turn recorded no steps. If it failed before starting, the reason is in the conversation.": "Denne turen registrerte ingen trinn. Hvis den mislyktes før den startet, står årsaken i samtalen."
+  "This turn recorded no steps. If it failed before starting, the reason is in the conversation.": "Denne turen registrerte ingen trinn. Hvis den mislyktes før den startet, står årsaken i samtalen.",
+  "Approvals": "Godkjenninger",
+  "This playbook is already running on this case. Its run is under the case's Playbooks.": "Denne playbooken kjører allerede på saken. Kjøringen står under sakens Playbooks.",
+  "A playbook runs here when the case opens or grows, or when someone runs it on the case.": "En playbook kjører her når saken åpnes eller vokser, eller når noen kjører den på saken.",
+  "No playbook has run on this case yet.": "Ingen playbook har kjørt på denne saken ennå."
 }

@@ -28270,7 +28270,6 @@
   "No finding named an entity in this window.": "इस अवधि में किसी निष्कर्ष ने किसी एंटिटी का नाम नहीं लिया।",
   "No open cases are assigned to you.": "No open cases are assigned to you.",
   "No open cases. New ones appear here as detections fire.": "कोई खुला केस नहीं है। डिटेक्शन ट्रिगर होते ही नए केस यहाँ दिखते हैं।",
-  "No playbook has run on this case yet. Playbooks set to start when a case opens run here by themselves; you can run any playbook by hand.": "No playbook has run on this case yet. Playbooks set to start when a case opens run here by themselves; you can run any playbook by hand.",
   "No playbook has run yet.": "अभी तक कोई प्लेबुक नहीं चली है।",
   "No playbook is running right now.": "No playbook is running right now.",
   "No playbooks yet. Start from a template above, or create one.": "No playbooks yet. Start from a template above, or create one.",
@@ -35079,5 +35078,9 @@
   "Run by OneUptime for every project. It does not build or test AI's change before the branch is pushed.": "OneUptime इसे हर प्रोजेक्ट के लिए चलाता है। ब्रांच पुश होने से पहले यह AI के बदलाव को बिल्ड या टेस्ट नहीं करता।",
   "Run by OneUptime for every project. It does not build or test AI's change before the merge request opens.": "OneUptime इसे हर प्रोजेक्ट के लिए चलाता है। मर्ज रिक्वेस्ट खुलने से पहले यह AI के बदलाव को बिल्ड या टेस्ट नहीं करता।",
   "This turn has not reported a step yet. This page updates on its own.": "इस बारी ने अभी तक कोई चरण दर्ज नहीं किया है। यह पेज अपने आप अपडेट होता है।",
-  "This turn recorded no steps. If it failed before starting, the reason is in the conversation.": "इस बारी ने कोई चरण दर्ज नहीं किया। अगर यह शुरू होने से पहले विफल हुई, तो कारण बातचीत में है।"
+  "This turn recorded no steps. If it failed before starting, the reason is in the conversation.": "इस बारी ने कोई चरण दर्ज नहीं किया। अगर यह शुरू होने से पहले विफल हुई, तो कारण बातचीत में है।",
+  "Approvals": "स्वीकृतियाँ",
+  "This playbook is already running on this case. Its run is under the case's Playbooks.": "यह प्लेबुक इस केस पर पहले से चल रही है। उसका रन केस के Playbooks में है।",
+  "A playbook runs here when the case opens or grows, or when someone runs it on the case.": "प्लेबुक यहाँ तब चलती है जब केस खुलता है या बढ़ता है, या जब कोई उसे इस केस पर चलाता है।",
+  "No playbook has run on this case yet.": "इस केस पर अभी तक कोई प्लेबुक नहीं चली है।"
 }

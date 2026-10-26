@@ -126,7 +126,7 @@ describe("a case's side menu", () => {
           "SECURITY_CASE_VIEW_CONNECTED_SIGNALS",
           IconProp.Link,
         ],
-        ["Playbook Runs", "SECURITY_CASE_VIEW_PLAYBOOK_RUNS", IconProp.Play],
+        ["Playbooks", "SECURITY_CASE_VIEW_PLAYBOOK_RUNS", IconProp.Play],
       ],
       [["Private Notes", "SECURITY_CASE_VIEW_NOTES", IconProp.Lock]],
       [
@@ -140,6 +140,11 @@ describe("a case's side menu", () => {
     expect(getSecurityCasePages()[0]).toBe(PageMap.SECURITY_CASE_VIEW);
   });
 
+  /*
+   * A case's page that lists what a Security Events page lists, for the case
+   * alone, draws that page's icon: its Entities, and its Playbooks - the
+   * runs on the case, as Playbook Runs lists every run.
+   */
   test("draws a page the Security Events menu has with that menu's icon", () => {
     const productItems: Array<SecurityEventsMenuItem> =
       SECURITY_EVENTS_MENU.flatMap(
@@ -148,10 +153,13 @@ describe("a case's side menu", () => {
         },
       );
 
-    for (const title of ["Entities", "Playbook Runs"]) {
+    for (const [caseTitle, productTitle] of [
+      ["Entities", "Entities"],
+      ["Playbooks", "Playbook Runs"],
+    ]) {
       const productItem: SecurityEventsMenuItem | undefined = productItems.find(
         (item: SecurityEventsMenuItem): boolean => {
-          return item.title === title;
+          return item.title === productTitle;
         },
       );
       const caseItem: SecurityCaseMenuItem | undefined =
@@ -160,17 +168,18 @@ describe("a case's side menu", () => {
             return section.items;
           },
         ).find((item: SecurityCaseMenuItem): boolean => {
-          return item.title === title;
+          return item.title === caseTitle;
         });
 
-      expect({ title, icon: caseItem?.icon }).toEqual({
-        title,
+      expect({ caseTitle, icon: caseItem?.icon }).toEqual({
+        caseTitle,
         icon: productItem?.icon,
       });
+      expect(productItem?.icon).toBeDefined();
     }
   });
 
-  test("counts one thing beside an entry: the case's runs waiting for an approval, beside Playbook Runs", () => {
+  test("counts one thing beside an entry: the case's runs waiting for an approval, beside Playbooks", () => {
     const counted: Array<[string, string | undefined]> =
       SECURITY_CASE_MENU.flatMap(
         (section: SecurityCaseMenuSection): Array<SecurityCaseMenuItem> => {
@@ -184,7 +193,7 @@ describe("a case's side menu", () => {
           return [item.title, item.badge];
         });
 
-    expect(counted).toEqual([["Playbook Runs", "runsWaitingForApproval"]]);
+    expect(counted).toEqual([["Playbooks", "runsWaitingForApproval"]]);
   });
 
   test("draws one entry as a deletion: Delete Case, last, under Advanced", () => {
@@ -327,7 +336,7 @@ describe("where each page of a case says it is", () => {
       ["View Case", "Detections"],
       ["View Case", "Entities"],
       ["View Case", "Connected Signals"],
-      ["View Case", "Playbook Runs"],
+      ["View Case", "Playbooks"],
       ["View Case", "Private Notes"],
       ["View Case", "Audit Logs"],
       ["View Case", "Delete Case"],

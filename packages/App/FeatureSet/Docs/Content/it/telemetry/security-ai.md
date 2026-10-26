@@ -40,6 +40,8 @@ Apri un caso: la scheda **OneUptime AI** è in cima alla sua pagina.
 | Una lettura, come **Probabilmente dannoso** | La classificazione è finita. **Classifica di nuovo** rilegge il caso da capo. |
 | **La classificazione non è terminata** | L'esecuzione si è interrotta. **Riprova** ne avvia un'altra. |
 
+Un Security Viewer legge la stessa scheda: **Classifica con l'IA** e **Riprova** restano in grigio accanto a una riga che dice chi può avviare una classificazione, e **Classifica di nuovo** e **Imposta la priorità** non vengono offerti.
+
 Una classificazione legge:
 
 - il caso: titolo, priorità, stato, entità e mappatura ATT&CK;
@@ -63,7 +65,7 @@ Può anche leggere il resto di OneUptime come fa l'indagine di un incidente: log
 La lettura è di OneUptime AI, mai il verdetto del caso: **Close Case** parte dal verdetto che suggerisce, e una persona sceglie. Sotto la lettura, la scheda mostra:
 
 - **Priorità suggerita**, con **Imposta la priorità** quando il caso ha un'altra priorità.
-- **Playbook suggerito**, con **Esegui il playbook**, che lo esegue a tuo nome, con ogni approvazione che richiede.
+- **Playbook suggerito**, con **Esegui il playbook**, che lo esegue a tuo nome, con ogni approvazione che richiede. Mentre quel playbook è già in esecuzione sul caso, lo stato della sua esecuzione, come **In attesa di approvazione**, prende il posto di **Esegui il playbook**: l'esecuzione è in **Playbooks** del caso, e una seconda chiederebbe di nuovo la stessa approvazione.
 - Il rapporto: che cosa è successo, quanto è sicura e che cosa fare dopo, ogni affermazione seguita da un riferimento come C1.
 - **Evidence checked**: ogni query eseguita dalla classificazione. Un riferimento apre la sua query, e aprendone una la si esegue di nuovo con i tuoi permessi, sull'intervallo letto dalla classificazione.
 - **Chiedi di questo caso**, che apre Ask AI sul caso.

@@ -79,6 +79,7 @@ Die Verbindung liest die Warnungen von Falcon: was die Falcon-Konsole unter **En
 | `status`, etwa `new`, `in_progress` oder `closed` | Status |
 | `tactic_id`, `technique_id` | MITRE-ATT&CK-Taktiken und -Techniken |
 | `device.hostname`, `device.local_ip`, `user_name`, `filename` oder `cmdline` | Hauptakteur: Host, IP, Benutzer und Prozess |
+| `filename`, `filepath` und `cmdline`; `parent_details.filename`, `parent_details.filepath` und `parent_details.cmdline` | Prozessname, -pfad und -befehlszeile; Name, Pfad und Befehlszeile des übergeordneten Prozesses |
 | `device.hostname`, `device.local_ip`, `device.external_ip`, `user_name`, `sha256` | Observables |
 | Alles andere, etwa `device.platform_name`, `falcon_host_link`, `product` und `timestamp` | `attributes`, flach gemacht zu Schlüsseln mit Punkten |
 

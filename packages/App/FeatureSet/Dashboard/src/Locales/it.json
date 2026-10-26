@@ -28270,7 +28270,6 @@
   "No finding named an entity in this window.": "Nessun rilevamento ha nominato un'entità in questo periodo.",
   "No open cases are assigned to you.": "No open cases are assigned to you.",
   "No open cases. New ones appear here as detections fire.": "Nessun caso aperto. I nuovi compaiono qui man mano che scattano i rilevamenti.",
-  "No playbook has run on this case yet. Playbooks set to start when a case opens run here by themselves; you can run any playbook by hand.": "No playbook has run on this case yet. Playbooks set to start when a case opens run here by themselves; you can run any playbook by hand.",
   "No playbook has run yet.": "Nessun playbook è stato ancora eseguito.",
   "No playbook is running right now.": "No playbook is running right now.",
   "No playbooks yet. Start from a template above, or create one.": "No playbooks yet. Start from a template above, or create one.",
@@ -28335,7 +28334,7 @@
   "Pick what the step does, then fill in its settings.": "Pick what the step does, then fill in its settings.",
   "Playbook": "Playbook",
   "Playbook Name": "Playbook Name",
-  "Playbook Runs": "Esecuzioni dei playbook",
+  "Playbook Runs": "Esecuzioni",
   "Playbooks": "Playbooks",
   "Post a summary of the case to a Microsoft Teams channel, through the project's Microsoft Teams connection.": "Post a summary of the case to a Microsoft Teams channel, through the project's Microsoft Teams connection.",
   "Post a summary of the case to a Slack channel, through the project's Slack connection.": "Post a summary of the case to a Slack channel, through the project's Slack connection.",
@@ -35079,5 +35078,9 @@
   "Run by OneUptime for every project. It does not build or test AI's change before the branch is pushed.": "Gestito da OneUptime per ogni progetto. Non compila né testa la modifica dell'IA prima che il branch venga inviato.",
   "Run by OneUptime for every project. It does not build or test AI's change before the merge request opens.": "Gestito da OneUptime per ogni progetto. Non compila né testa la modifica dell'IA prima che si apra la merge request.",
   "This turn has not reported a step yet. This page updates on its own.": "Questo turno non ha ancora segnalato alcun passaggio. Questa pagina si aggiorna da sola.",
-  "This turn recorded no steps. If it failed before starting, the reason is in the conversation.": "Questo turno non ha registrato passaggi. Se non è riuscito prima di iniziare, il motivo è nella conversazione."
+  "This turn recorded no steps. If it failed before starting, the reason is in the conversation.": "Questo turno non ha registrato passaggi. Se non è riuscito prima di iniziare, il motivo è nella conversazione.",
+  "Approvals": "Approvazioni",
+  "This playbook is already running on this case. Its run is under the case's Playbooks.": "Questo playbook è già in esecuzione su questo caso. La sua esecuzione è in Playbooks del caso.",
+  "A playbook runs here when the case opens or grows, or when someone runs it on the case.": "Un playbook viene eseguito qui quando il caso si apre o cresce, oppure quando qualcuno lo esegue sul caso.",
+  "No playbook has run on this case yet.": "Nessun playbook è stato ancora eseguito su questo caso."
 }

@@ -79,6 +79,7 @@ La conexión lee las alertas de Falcon: lo que la consola de Falcon lista en **E
 | `status`, como `new`, `in_progress` o `closed` | Estado |
 | `tactic_id`, `technique_id` | Tácticas y técnicas de MITRE ATT&CK |
 | `device.hostname`, `device.local_ip`, `user_name`, `filename` o `cmdline` | Host, IP, usuario y proceso principales |
+| `filename`, `filepath` y `cmdline`; `parent_details.filename`, `parent_details.filepath` y `parent_details.cmdline` | Nombre, ruta y línea de comandos del proceso; nombre, ruta y línea de comandos del proceso padre |
 | `device.hostname`, `device.local_ip`, `device.external_ip`, `user_name`, `sha256` | Observables |
 | Todo lo demás, como `device.platform_name`, `falcon_host_link`, `product` y `timestamp` | `attributes`, aplanado en claves con puntos |
 

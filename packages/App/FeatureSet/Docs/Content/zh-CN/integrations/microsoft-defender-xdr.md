@@ -83,6 +83,7 @@ OneUptime 每分钟轮询一次已过轮询间隔的每个已启用连接。一�
 | `mitreTechniques` | `mitreTechniques` |
 | `mitreTactics` | `categories` 或 `category`（当它是 ATT&CK 战术时）：`CredentialAccess` 变为 `TA0006`。其他类别保留在 `attributes` 中。 |
 | `principalHost`, `principalUser`, `principalIp`, `principalProcess` | 具有 `source`、`attacker` 或 `compromised` 角色的 `evidence`，否则取每种类型的第一个 |
+| `processName`, `processPath`, `processCommandLine`, `parentProcessName`, `parentProcessPath` | `principalProcess` 所来自的进程证据：其 `imageFile`、`processCommandLine` 和 `parentProcessImageFile`。Graph 不提供父进程的命令行。 |
 | `targetHost`, `targetUser`, `targetIp`, `targetResource` | 具有目标角色（例如 `destination` 或 `attacked`）的 `evidence`。URL、邮箱和云资源填入 `targetResource`。 |
 | `observables` | `evidence` 中的每个主机名、IP、用户、文件名、SHA-1 和 SHA-256、URL、域名、邮箱和资源 ID |
 | `attributes` | 整个警报，展平为点分隔的键，例如 `evidence.0.hostName`、`serviceSource` 和 `incidentId` |

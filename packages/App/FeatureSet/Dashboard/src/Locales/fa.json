@@ -28270,7 +28270,6 @@
   "No finding named an entity in this window.": "در این بازه هیچ یافته‌ای از موجودیتی نام نبرد.",
   "No open cases are assigned to you.": "No open cases are assigned to you.",
   "No open cases. New ones appear here as detections fire.": "هیچ پرونده بازی نیست. پرونده‌های تازه با رخ دادن شناسایی‌ها این‌جا نمایش داده می‌شوند.",
-  "No playbook has run on this case yet. Playbooks set to start when a case opens run here by themselves; you can run any playbook by hand.": "No playbook has run on this case yet. Playbooks set to start when a case opens run here by themselves; you can run any playbook by hand.",
   "No playbook has run yet.": "هنوز هیچ پلی‌بوکی اجرا نشده است.",
   "No playbook is running right now.": "No playbook is running right now.",
   "No playbooks yet. Start from a template above, or create one.": "No playbooks yet. Start from a template above, or create one.",
@@ -35079,5 +35078,9 @@
   "Run by OneUptime for every project. It does not build or test AI's change before the branch is pushed.": "OneUptime آن را برای همه پروژه‌ها اجرا می‌کند. پیش از push شدن شاخه، تغییر هوش مصنوعی را نمی‌سازد و آزمون نمی‌کند.",
   "Run by OneUptime for every project. It does not build or test AI's change before the merge request opens.": "OneUptime آن را برای همه پروژه‌ها اجرا می‌کند. پیش از باز شدن Merge Request، تغییر هوش مصنوعی را نمی‌سازد و آزمون نمی‌کند.",
   "This turn has not reported a step yet. This page updates on its own.": "این نوبت هنوز هیچ گامی گزارش نکرده است. این صفحه خودش به‌روز می‌شود.",
-  "This turn recorded no steps. If it failed before starting, the reason is in the conversation.": "این نوبت هیچ گامی ثبت نکرد. اگر پیش از شروع ناموفق شد، علت در گفتگو آمده است."
+  "This turn recorded no steps. If it failed before starting, the reason is in the conversation.": "این نوبت هیچ گامی ثبت نکرد. اگر پیش از شروع ناموفق شد، علت در گفتگو آمده است.",
+  "Approvals": "تأییدها",
+  "This playbook is already running on this case. Its run is under the case's Playbooks.": "این پلی‌بوک از قبل روی این پرونده در حال اجراست. اجرای آن در «Playbooks» این پرونده است.",
+  "A playbook runs here when the case opens or grows, or when someone runs it on the case.": "پلی‌بوک وقتی اینجا اجرا می‌شود که پرونده باز شود یا بزرگ‌تر شود، یا کسی آن را روی پرونده اجرا کند.",
+  "No playbook has run on this case yet.": "هنوز هیچ پلی‌بوکی روی این پرونده اجرا نشده است."
 }

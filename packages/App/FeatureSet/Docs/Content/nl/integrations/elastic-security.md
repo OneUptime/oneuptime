@@ -74,6 +74,7 @@ Elke detectie-alert wordt een Detection Finding-gebeurtenis (OCSF-klasse `2004`)
 | `kibana.alert.workflow_status`: `open`, `acknowledged` of `closed` | Status |
 | `kibana.alert.rule.threat`, inclusief subtechnieken | MITRE ATT&CK-tactieken en -technieken |
 | `user.name`, `host.name`, `source.ip` of `host.ip`, `process.name` of `process.executable` | Gebruiker, host, IP en proces van de actor |
+| `process.name`, `process.executable` en `process.command_line`; `process.parent.name`, `process.parent.executable` en `process.parent.command_line` | Naam, pad en opdrachtregel van het proces; naam, pad en opdrachtregel van het bovenliggende proces |
 | `user.target.name`, `destination.domain`, `destination.ip`, `destination.port`, `file.path` | Gebruiker, host, IP, poort en resource van het doel |
 | Die, en `related.*`, `dns.question.name`, `url.domain` en bestandshashes | Observables |
 | De hele alert, plat gemaakt tot sleutels met punten, met `_index` en `_id` | `attributes` |

@@ -88,7 +88,7 @@ En sak har sin egen sidemeny, slik en hendelse har, og hver del av saken er en e
 | Seksjon i sidemenyen | Sider |
 | --- | --- |
 | **Oversikt** | **Oversikt**, **Tidslinje** |
-| **Undersøkelse** | **Detections**, **Entiteter**, **Tilkoblede signaler**, **Playbook-kjøringer** |
+| **Undersøkelse** | **Detections**, **Entiteter**, **Tilkoblede signaler**, **Playbooks** |
 | **Notater** | **Private notater** |
 | **Avansert** | **Revisjonslogger**, **Slett sak**, skjult til du klikker på **Avansert** |
 
@@ -101,7 +101,7 @@ Hver side beholder sakens topptekst øverst: nummer, prioritet, status og tittel
 - **Detections**: det som slo til og åpnet saken eller ble lagt til i den, hvor ofte, og den siste hendelsen som traff.
 - **Entiteter**: brukerne, vertene og adressene saken gjelder, med aktiviteten deres på tvers av alle sikkerhetshendelsene dine de siste 7 dagene. Hver av dem åpnes i **Korreler**.
 - **Tilkoblede signaler**: vertene, klyngene, tjenestene og medlemmene saken nevner, slik OneUptime kjenner dem, og hva som skjedde på hver av dem rundt deteksjonene: loggene, sporene og målingene deres, hva som er åpent på dem, og hva som endret seg. Se [Tilkoblede signaler](/docs/telemetry/security-connected-signals).
-- **Playbook-kjøringer**: hva hver playbook gjorde på saken, steg for steg, og stegene som venter på godkjenning. Mens kjøringer venter, viser menyen hvor mange ved siden av **Playbook-kjøringer**.
+- **Playbooks**: hva hver playbook gjorde på saken, steg for steg, og stegene som venter på godkjenning. Mens kjøringer venter, viser menyen hvor mange ved siden av **Playbooks**.
 - **Private notater**: hva teamet skrev om saken.
 - **Revisjonslogger**: hver endring i saken, og hvem som gjorde den. Se [Revisjonslogger](/docs/configuration/audit-logs).
 - **Slett sak**: sletter saken for godt, med deteksjonene, notatene, tidslinjen og playbook-kjøringene. For å beholde den som dokumentasjon, lukk den heller med en konklusjon.
@@ -311,7 +311,7 @@ Hver kjøring vises på saken sin og under **Produkter → Security Events → P
 | Mislyktes | Et steg feilet, og kjøringen stoppet |
 | Avbrutt | Noen avbrøt den eller avviste et steg |
 
-Et steg som venter på godkjenning, viser **Approve** og **Reject** på kjøringen, med en valgfri kommentar. Å godkjenne fører kjøringen videre fra det steget; å avvise avslutter den. Beslutningen, hvem som tok den, og kommentaren deres lagres på steget, på tidslinjen til saken og i revisjonsloggen til prosjektet. **Venter på godkjenning**, under **Playbooks** i menyen, viser kjøringene som venter på en beslutning, og teller dem; **Playbook-kjøringer** viser hver kjøring. På **Playbook-kjøringer** og på siden til en playbook er hver kjøring én linje som sier hvor langt den kom, eller hvilket steg den stoppet ved; **Vis trinn** åpner stegene. En kjøring som venter på godkjenning, åpnes av seg selv.
+Et steg som venter på godkjenning, viser **Approve** og **Reject** på kjøringen, med en valgfri kommentar. Å godkjenne fører kjøringen videre fra det steget; å avvise avslutter den. Beslutningen, hvem som tok den, og kommentaren deres lagres på steget, på tidslinjen til saken og i revisjonsloggen til prosjektet. Siden **Godkjenninger**, under **Playbooks** i menyen, viser kjøringene som venter på en beslutning, og teller dem; **Playbook-kjøringer** viser hver kjøring. På **Playbook-kjøringer** og på siden til en playbook er hver kjøring én linje som sier hvor langt den kom, eller hvilket steg den stoppet ved; **Vis trinn** åpner stegene. En kjøring som venter på godkjenning, åpnes av seg selv.
 
 En kjøring som slutter å høre fra workeren sin, for eksempel etter en omstart, plukkes opp igjen: en kjøring i kø settes i kø på nytt etter 2 minutter, og en kjøring som ikke har sagt noe på 30 minutter, markeres som mislykket.
 

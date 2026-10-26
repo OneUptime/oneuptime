@@ -79,6 +79,7 @@ The connection reads Falcon's alerts: what the Falcon console lists under **Endp
 | `status`, such as `new`, `in_progress` or `closed` | Status |
 | `tactic_id`, `technique_id` | MITRE ATT&CK tactics and techniques |
 | `device.hostname`, `device.local_ip`, `user_name`, `filename` or `cmdline` | Principal host, IP, user and process |
+| `filename`, `filepath` and `cmdline`; `parent_details.filename`, `parent_details.filepath` and `parent_details.cmdline` | Process name, path and command line; parent process name, path and command line |
 | `device.hostname`, `device.local_ip`, `device.external_ip`, `user_name`, `sha256` | Observables |
 | Everything else, such as `device.platform_name`, `falcon_host_link`, `product` and `timestamp` | `attributes`, flattened to dotted keys |
 

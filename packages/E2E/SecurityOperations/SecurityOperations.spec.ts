@@ -188,8 +188,8 @@ interface OpenOptions {
   fail?: "status" | "overview";
   // What the project's events say it sends: nothing this week, or a read that fails.
   data?: "none" | "fail";
-  // The Dashboard's German or Japanese locale.
-  lang?: "de" | "ja";
+  // The Dashboard's German, Spanish, French, Italian, Portuguese, Dutch, Japanese or Persian locale.
+  lang?: "de" | "es" | "fr" | "it" | "pt" | "nl" | "ja" | "fa";
   // "custom": the project's own case statuses and priorities.
   values?: "custom";
   // Case numbers, comma separated, whose every change the server refuses.
@@ -772,7 +772,7 @@ test.describe("the overview", () => {
       [
         "1 playbook step waiting for approval",
         RUNS_PATH,
-        "Waiting for Approval",
+        "Approvals",
         "Contain Compromised Okta Users",
       ],
     ]) {
@@ -2174,7 +2174,7 @@ const CASE_PAGES: ReadonlyArray<CasePage> = [
   },
   {
     section: "Investigation",
-    title: "Playbook Runs",
+    title: "Playbooks",
     segment: "/playbook-runs",
     text: "Started on its own: Case Opened",
     slug: "playbook-runs",
@@ -3301,7 +3301,46 @@ test.describe("a case", () => {
     expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
   });
 
-  test("the Playbook Runs page: the held run with Approve and Reject, and its count beside the entry", async ({
+  /*
+   * A case no playbook has run on says so the way Approvals and Playbook
+   * Runs do: the product's empty state, in the reader's language, with no
+   * card description saying it a second time. It was a line of grey
+   * English under that description.
+   */
+  test("the case's Playbooks page before any run: the product's empty state, in German too, whole on a phone", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const views: Array<[number, OpenOptions["lang"] | undefined, string]> = [
+      [1440, undefined, "No playbook has run on this case yet"],
+      [390, undefined, "No playbook has run on this case yet"],
+      [1440, "de", "Für diesen Fall ist noch kein Playbook gelaufen"],
+    ];
+
+    for (const [width, lang, title] of views) {
+      await open(
+        page,
+        `${TRAVEL_CASE_PATH}/playbook-runs`,
+        lang ? { width, lang } : { width },
+      );
+
+      await expect(
+        page.getByTestId("security-case-playbook-runs-empty"),
+      ).toBeVisible({ timeout: 30000 });
+      await expect(
+        page.getByTestId("security-case-playbook-runs-empty-title"),
+      ).toHaveText(title);
+      await expect(
+        cardTitled(page, "Playbooks").getByTestId("card-description"),
+      ).toHaveCount(0);
+      expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    }
+
+    await screenshot(page, "case-playbooks-empty-de", { fullPage: false });
+  });
+
+  test("the case's Playbooks page: the held run with Approve and Reject, and its count beside the entry", async ({
     page,
   }: {
     page: Page;
@@ -3316,22 +3355,22 @@ test.describe("a case", () => {
     await expect(held.getByRole("button", { name: "Approve" })).toBeEnabled();
     await expect(held.getByRole("button", { name: "Reject" })).toBeEnabled();
 
-    // One run of this case waits: counted beside Playbook Runs, on any page of it.
+    // One run of this case waits: counted beside Playbooks, on any page of it.
     await expect
       .poll(() => {
-        return menuCount(page, "Playbook Runs");
+        return menuCount(page, "Playbooks");
       })
       .toBe("1");
     await menuEntry(page, "Timeline").click();
     await waitForCasePage(page, CASE_PAGES[1]!);
     await expect
       .poll(() => {
-        return menuCount(page, "Playbook Runs");
+        return menuCount(page, "Playbooks");
       })
       .toBe("1");
 
     // Run Playbook is the header's: the card has no second one.
-    await menuEntry(page, "Playbook Runs").click();
+    await menuEntry(page, "Playbooks").click();
     await expect(held).toBeVisible();
     await expect(
       page.getByRole("button", { name: "Run Playbook", exact: true }),
@@ -3352,7 +3391,7 @@ test.describe("a case", () => {
     });
     await expect
       .poll(() => {
-        return menuCount(page, "Playbook Runs");
+        return menuCount(page, "Playbooks");
       })
       .toBe("1");
 
@@ -3386,7 +3425,7 @@ test.describe("a case", () => {
     // Nothing waits on this case any more.
     await expect
       .poll(() => {
-        return menuCount(page, "Playbook Runs");
+        return menuCount(page, "Playbooks");
       })
       .toBe("");
   });
@@ -4153,7 +4192,7 @@ test.describe("playbooks", () => {
     await screenshot(page, "playbook-desktop");
   });
 
-  test("Waiting for Approval, at the runs page's old address, lists the run held for a decision", async ({
+  test("Approvals, at the runs page's old address, lists the run held for a decision", async ({
     page,
   }: {
     page: Page;
@@ -4169,14 +4208,14 @@ test.describe("playbooks", () => {
       "CASE-142",
     );
     await expect(
-      page.getByRole("heading", { name: "Waiting for Approval", exact: true }),
+      page.getByRole("heading", { name: "Approvals", exact: true }),
     ).toBeVisible();
-    expect(await litEntries(page)).toEqual(["Waiting for Approval"]);
+    expect(await litEntries(page)).toEqual(["Approvals"]);
     expect(await breadcrumbs(page)).toEqual([
       "Project",
       "Security Events",
       "Playbooks",
-      "Waiting for Approval",
+      "Approvals",
     ]);
     // The views that sat on the card are gone: each is a page.
     await expect(
@@ -4185,7 +4224,7 @@ test.describe("playbooks", () => {
     await expect(page.locator("button[aria-pressed]")).toHaveCount(0);
     // With a run listed, the card says what the page holds.
     await expect(
-      cardTitled(page, "Waiting for Approval").getByTestId("card-description"),
+      cardTitled(page, "Approvals").getByTestId("card-description"),
     ).toContainText("Runs held before a step that needs approval.");
 
     await screenshot(page, "playbook-runs-waiting-desktop");
@@ -4334,7 +4373,7 @@ test.describe("playbooks", () => {
     }
   });
 
-  test("with nothing held, Waiting for Approval says all is clear; with no run, Playbook Runs points at the playbooks", async ({
+  test("with nothing held, Approvals says all is clear; with no run, Playbook Runs points at the playbooks", async ({
     page,
   }: {
     page: Page;
@@ -4346,7 +4385,7 @@ test.describe("playbooks", () => {
     await expect(waiting).toContainText("No step is waiting for approval");
     // The empty state says what the page is for; the card does not say it again.
     await expect(
-      cardTitled(page, "Waiting for Approval").getByTestId("card-description"),
+      cardTitled(page, "Approvals").getByTestId("card-description"),
     ).toHaveCount(0);
 
     await open(page, ALL_RUNS_PATH, { quiet: true });
@@ -5404,7 +5443,7 @@ test.describe("detections", () => {
       "Entities",
       "Correlate",
       "Playbooks",
-      "Waiting for Approval",
+      "Approvals",
       "Playbook Runs",
     ]) {
       await expect(menuEntry(page, title)).toBeVisible();
@@ -5424,7 +5463,7 @@ test.describe("detections", () => {
     // What waits for someone is counted beside the page that lists it.
     await expect(menuEntry(page, "Open Cases")).toContainText("6");
     await expect(menuEntry(page, "Assigned to Me")).toContainText("2");
-    await expect(menuEntry(page, "Waiting for Approval")).toContainText("1");
+    await expect(menuEntry(page, "Approvals")).toContainText("1");
 
     await screenshot(page, "side-menu-desktop", { fullPage: false });
 
@@ -5445,6 +5484,118 @@ test.describe("detections", () => {
       timeout: 30000,
     });
     await screenshot(page, "side-menu-dark", { fullPage: false });
+  });
+
+  /*
+   * An entry shares its row with its count. Beside the 224px menu a tablet
+   * has (768 to 1023px), "Waiting for Approval" was cut to "Waiting for
+   * Appr…" - and in German, French and Italian at every width - and so were
+   * Assigned to Me's Dutch and Japanese names, and a case's Playbook Runs in
+   * ten languages (six of them at every width). The page is Approvals now,
+   * those two are Mijn zaken and 自分の担当, and a case's entry is
+   * Playbooks: every entry that carries a count - the three of Security
+   * Events' menu and the one of a case's - keeps its whole name, in English
+   * and in the languages whose names ran longest, beside a tablet's menu and
+   * a laptop's.
+   *
+   * So does every other entry a visit sees: the sections that start open
+   * (Overview, Security Cases, Events, Playbooks, and a case's own).
+   * Playbook Runs, under Approvals, was cut beside a tablet's menu in
+   * German, Spanish, French, Italian and Portuguese, and filled its row to
+   * the pixel in Dutch; it reads as each language's own word for runs
+   * (Ausführungen, Ejecuciones, Exécutions, Esecuzioni, Execuções,
+   * Uitvoeringen) under Playbooks. A folded section's entries show on their
+   * own pages.
+   */
+  test("every entry in sight keeps its whole name, beside its count too, beside a tablet's menu and in the longest languages", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const views: Array<[number, OpenOptions["lang"] | undefined]> = [
+      [800, undefined],
+      [1023, undefined],
+      [1440, undefined],
+      [800, "de"],
+      [1440, "de"],
+      [800, "fr"],
+      [1440, "fr"],
+      [800, "it"],
+      [800, "nl"],
+      [800, "es"],
+      [800, "pt"],
+      [800, "ja"],
+      [800, "fa"],
+    ];
+
+    // Each counted entry, by the page whose menu draws it, its address and its count.
+    const counted: Array<[string, string, string]> = [
+      [OVERVIEW_PATH, CASES_PATH, "6"],
+      [OVERVIEW_PATH, MY_CASES_PATH, "2"],
+      [OVERVIEW_PATH, RUNS_PATH, "1"],
+      [SPRAY_CASE_PATH, `${SPRAY_CASE_PATH}/playbook-runs`, "1"],
+    ];
+    const cutShort: Array<string> = [];
+
+    for (const [width, lang] of views) {
+      for (const menuPage of [OVERVIEW_PATH, SPRAY_CASE_PATH]) {
+        await open(page, menuPage, lang ? { width, lang } : { width });
+
+        for (const [onPage, pathname, count] of counted) {
+          if (onPage !== menuPage) {
+            continue;
+          }
+
+          const entry: Locator = sideMenu(page).locator(
+            `a[href="${pathname!}"]`,
+          );
+          await expect(entry).toContainText(count!, { timeout: 30000 });
+
+          const title: Locator = entry.locator("span.truncate").first();
+          const cutBy: number = await title.evaluate(
+            (element: Element): number => {
+              return element.scrollWidth - element.clientWidth;
+            },
+          );
+
+          if (cutBy > 0) {
+            cutShort.push(
+              `${(await title.textContent()) || ""} (${lang || "en"}, ${width}px): ${cutBy}px`,
+            );
+          }
+        }
+
+        // Every entry in sight: a folded section's are hidden.
+        const cutInSight: Array<string> = await sideMenu(page)
+          .locator("a span.truncate")
+          .evaluateAll((titles: Array<Element>): Array<string> => {
+            return titles
+              .filter((title: Element): boolean => {
+                return (
+                  getComputedStyle(title).visibility === "visible" &&
+                  title.scrollWidth > title.clientWidth
+                );
+              })
+              .map((title: Element): string => {
+                return `${title.textContent || ""}: ${title.scrollWidth - title.clientWidth}px`;
+              });
+          });
+        for (const title of cutInSight) {
+          cutShort.push(`${title} (${lang || "en"}, ${width}px, in sight)`);
+        }
+      }
+    }
+
+    expect(cutShort).toEqual([]);
+
+    await open(page, OVERVIEW_PATH, { width: 800, lang: "de" });
+    await expect(
+      sideMenu(page).locator(`a[href="${RUNS_PATH}"]`),
+    ).toContainText("Genehmigungen", { timeout: 30000 });
+    await expect(
+      sideMenu(page).locator(`a[href="${ALL_RUNS_PATH}"]`),
+    ).toHaveText("Ausführungen");
+    await screenshot(page, "side-menu-tablet-de", { fullPage: false });
   });
 
   test("on a phone, the menu names the section and the page, and opens on its sections", async ({

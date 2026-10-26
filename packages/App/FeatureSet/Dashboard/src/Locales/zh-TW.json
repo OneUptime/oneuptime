@@ -28270,7 +28270,6 @@
   "No finding named an entity in this window.": "此時間範圍內沒有發現提到任何實體。",
   "No open cases are assigned to you.": "No open cases are assigned to you.",
   "No open cases. New ones appear here as detections fire.": "沒有未結案例。偵測觸發時，新案例會出現在這裡。",
-  "No playbook has run on this case yet. Playbooks set to start when a case opens run here by themselves; you can run any playbook by hand.": "No playbook has run on this case yet. Playbooks set to start when a case opens run here by themselves; you can run any playbook by hand.",
   "No playbook has run yet.": "還沒有執行過任何劇本。",
   "No playbook is running right now.": "No playbook is running right now.",
   "No playbooks yet. Start from a template above, or create one.": "No playbooks yet. Start from a template above, or create one.",
@@ -35079,5 +35078,9 @@
   "Run by OneUptime for every project. It does not build or test AI's change before the branch is pushed.": "由 OneUptime 為所有專案執行。在推送分支之前，它不會建置或測試 AI 的變更。",
   "Run by OneUptime for every project. It does not build or test AI's change before the merge request opens.": "由 OneUptime 為所有專案執行。在合併請求開啟之前，它不會建置或測試 AI 的變更。",
   "This turn has not reported a step yet. This page updates on its own.": "此回合尚未回報任何步驟。此頁面會自動更新。",
-  "This turn recorded no steps. If it failed before starting, the reason is in the conversation.": "此回合沒有記錄任何步驟。若在開始前失敗，原因會顯示在對話中。"
+  "This turn recorded no steps. If it failed before starting, the reason is in the conversation.": "此回合沒有記錄任何步驟。若在開始前失敗，原因會顯示在對話中。",
+  "Approvals": "待核准",
+  "This playbook is already running on this case. Its run is under the case's Playbooks.": "此 Playbook 已在這個案例上執行。它的執行在案例的「Playbooks」中。",
+  "A playbook runs here when the case opens or grows, or when someone runs it on the case.": "當案例開啟或擴大時，或有人對這個案例執行劇本時，劇本就會在這裡執行。",
+  "No playbook has run on this case yet.": "這個案例還沒有執行過任何劇本。"
 }

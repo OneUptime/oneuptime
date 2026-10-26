@@ -83,6 +83,7 @@ Elke [waarschuwing](https://learn.microsoft.com/en-us/graph/api/resources/securi
 | `mitreTechniques` | `mitreTechniques` |
 | `mitreTactics` | `categories` of `category`, als het een ATT&CK-tactiek is: `CredentialAccess` wordt `TA0006`. Andere categorieën blijven in `attributes`. |
 | `principalHost`, `principalUser`, `principalIp`, `principalProcess` | De `evidence` met de rol `source`, `attacker` of `compromised`, anders de eerste van elk soort |
+| `processName`, `processPath`, `processCommandLine`, `parentProcessName`, `parentProcessPath` | Het procesbewijs waar `principalProcess` uit komt: de `imageFile`, `processCommandLine` en `parentProcessImageFile` ervan. Graph geeft geen opdrachtregel van het bovenliggende proces. |
 | `targetHost`, `targetUser`, `targetIp`, `targetResource` | De `evidence` met een doelrol, zoals `destination` of `attacked`. URL's, postvakken en cloudresources vullen `targetResource`. |
 | `observables` | Elke hostnaam, IP, gebruiker, bestandsnaam, SHA-1 en SHA-256, URL, domein, postvak en resource-ID in `evidence` |
 | `attributes` | De hele waarschuwing, plat gemaakt tot sleutels met punten zoals `evidence.0.hostName`, `serviceSource` en `incidentId` |
