@@ -1,4 +1,4 @@
-# Email, SMS, chat and phones follow-ups: the SLA breach email and the text part
+# Email, SMS, chat and phones follow-ups: the SLA breach email, the text part and the phone
 
 Screenshots for the pull request "Follow-ups: Email, SMS, chat and phones".
 
@@ -13,7 +13,36 @@ Screenshots for the pull request "Follow-ups: Email, SMS, chat and phones".
 Both were rendered by MailService.render with OneUptime's own branding (its
 logo as a data: URL, as a browser shows it; mail clients get it by
 Content-ID) and shot in headless Chromium at 1280px and 390px, 2x, with every
-request to the network refused.
+request to the network refused. After the UI review the missed deadline is
+one row, "Resolution Deadline:" (or "Response Deadline:") and when it was,
+where it had been two: "Deadline Missed: Resolution" over "Deadline Was:".
+
+## The phone: why Critical On-Call Alerts reads off
+
+- `mobile-settings-ios-before.png`: the app's Settings when iOS Settings had
+  turned the responder's critical alerts off - the switch off, no reason.
+- `mobile-settings-ios-after.png` (and `-after-dark.png`): the footnote under
+  the switch - what turned it off, in bold, what pages do meanwhile, the one
+  switch to turn on, and Open iOS Settings.
+- `mobile-settings-notifications-off-after.png`: notifications off for the
+  app altogether - pages do not come at all - said in red.
+- `mobile-settings-android-after.png`: the alarm cannot ring through Do Not
+  Disturb on Android, with Open Do Not Disturb access.
+- `mobile-alarm-warning-before.png` / `-after.png`: the Alarm sound screen's
+  Android warning, before and after (what happens meanwhile, and a button).
+
+The app's own web build (`expo export --platform web`, as `npm run test-ui`
+builds it) of a copy whose two critical-alert hooks answer each state with
+the real module's words, signed in with tests/ui/fixtures.js and shot in
+headless Chromium at 390px, 2x, light and dark. The phone's own settings
+pages are not part of it.
+
+## The Dashboard: Incident SLA breached
+
+`notification-settings-sla-row-1280.png`: User Settings > Notification
+Settings > Incidents with the new row, under Incident reminder, as a member
+who just joined has it (email on). The real page bundled with the
+Dashboard's esbuild config beside a stand-in for the side menu, at 1280px.
 
 ## The text part
 
@@ -31,8 +60,7 @@ This incident was not resolved before its SLA resolution deadline.
 Here are the details:
 
 Incident Title: Checkout API is down
-Deadline Missed: Resolution
-Deadline Was: Oct 26 2026, 11:59 AM GMT
+Resolution Deadline: Oct 26 2026, 11:59 AM GMT
 SLA Rule: P1 customer SLA
 Current State: Investigating
 Open For: 2 hours, 30 minutes

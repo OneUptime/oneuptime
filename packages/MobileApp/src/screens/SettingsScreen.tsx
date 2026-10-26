@@ -21,7 +21,7 @@ import {
   type ColorTokens,
   type Theme,
 } from "../theme";
-import { radius, spacing } from "../theme/tokens";
+import { radius, spacing, touchTarget } from "../theme/tokens";
 import { useAuth } from "../hooks/useAuth";
 import { useBiometric } from "../hooks/useBiometric";
 import {
@@ -255,14 +255,17 @@ function AppearancePicker({
 }
 
 /*
- * Help or status text under a group, with an icon that repeats its tone,
- * and an action under the text when it names one (the phone's settings).
+ * Help or status text under a group, with an icon that repeats its tone: a
+ * lead in bold when it has one (what turned a switch off), and an action
+ * under the text when it names one (the phone's settings), as tall to tap
+ * as a Banner's.
  */
 function GroupFootnote({
   tone,
   icon,
   isAlert = false,
   testID,
+  title,
   actionLabel,
   onAction,
   children,
@@ -271,6 +274,7 @@ function GroupFootnote({
   icon: IconName;
   isAlert?: boolean;
   testID?: string;
+  title?: string | undefined;
   actionLabel?: string | undefined;
   onAction?: (() => void) | undefined;
   children: React.ReactNode;
@@ -306,6 +310,16 @@ function GroupFootnote({
           accessibilityRole={isAlert ? "alert" : undefined}
           accessibilityLiveRegion="polite"
         >
+          {title ? (
+            <AppText
+              testID={testID ? `${testID}-title` : undefined}
+              variant="footnote"
+              tone={tone}
+              weight="700"
+            >
+              {title}{" "}
+            </AppText>
+          ) : null}
           {children}
         </AppText>
         {actionLabel && onAction ? (
@@ -318,6 +332,8 @@ function GroupFootnote({
             style={({ pressed }: { pressed: boolean }): ViewStyle => {
               return {
                 alignSelf: "flex-start",
+                minHeight: touchTarget - 12,
+                justifyContent: "center",
                 opacity: pressed ? 0.7 : 1,
               };
             }}
@@ -551,8 +567,13 @@ export default function SettingsScreen(): React.JSX.Element {
           ) : criticalAlerts.offInPhoneSettings ? (
             <GroupFootnote
               testID="settings-critical-alerts-off-in-phone-settings"
-              tone="warning"
-              icon="warning"
+              tone={criticalAlerts.offInPhoneSettings.tone}
+              icon={
+                criticalAlerts.offInPhoneSettings.tone === "danger"
+                  ? "alert-circle"
+                  : "warning"
+              }
+              title={criticalAlerts.offInPhoneSettings.title}
               actionLabel={phoneSettingsActionLabel(
                 criticalAlerts.offInPhoneSettings.place,
               )}

@@ -270,7 +270,7 @@ describe("an SLA breach", () => {
       "[SLA breached] Incident INC-42 missed its resolution deadline - Checkout API is down",
     );
     expect(email.vars).toMatchObject({
-      breachType: "Resolution",
+      deadlineLabel: "Resolution Deadline:",
       slaRuleName: "P1 customer SLA",
       projectName: "Acme Prod",
       isOwner: "true",
@@ -287,7 +287,9 @@ describe("an SLA breach", () => {
     expect(sent.emailEnvelope.subject).toContain(
       "missed its response deadline",
     );
-    expect(sent.emailEnvelope.vars).toMatchObject({ breachType: "Response" });
+    expect(sent.emailEnvelope.vars).toMatchObject({
+      deadlineLabel: "Response Deadline:",
+    });
     expect(sent.smsMessage.message).toContain(
       "missed its SLA response deadline",
     );

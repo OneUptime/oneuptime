@@ -629,10 +629,12 @@ describe("useCriticalAlerts says why the phone's settings turned it off", () => 
     const { result } = await renderCriticalAlerts();
 
     expect(result.current.isEnabled).toBe(false);
-    expect(result.current.offInPhoneSettings).toEqual({
-      message: IOS_CRITICAL_ALERTS_OFF_IN_SETTINGS,
-      place: CriticalAlertSettingsPlace.IosAppSettings,
-    });
+    expect(result.current.offInPhoneSettings).toEqual(
+      IOS_CRITICAL_ALERTS_OFF_IN_SETTINGS,
+    );
+    expect(result.current.offInPhoneSettings?.place).toBe(
+      CriticalAlertSettingsPlace.IosAppSettings,
+    );
     // Nothing was asked of the responder: an explanation, not an error.
     expect(result.current.error).toBe("");
   });

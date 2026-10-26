@@ -81,10 +81,24 @@ export interface CriticalAlertStatus {
   offInPhoneSettings?: CriticalAlertsOffInPhoneSettings | undefined;
 }
 
+/*
+ * The footnote under the switch, in the order a responder reads it: what
+ * turned critical alerts off (said first, in bold - it is why the switch
+ * reads off), then what on-call pages do meanwhile and the switch to turn on
+ * - one short line each, beside a button that opens the place.
+ */
 export interface CriticalAlertsOffInPhoneSettings {
+  title: string;
   message: string;
   place: CriticalAlertSettingsPlace;
+  /*
+   * "danger" while pages do not reach the phone at all (notifications off
+   * for the app); "warning" while they still come, as ordinary ones.
+   */
+  tone: CriticalAlertsOffTone;
 }
+
+export type CriticalAlertsOffTone = "warning" | "danger";
 
 /*
  * Where offInPhoneSettings sends the responder: the phone's settings page
@@ -120,18 +134,48 @@ const GRANTED_REASON: string =
  * Alerts on and the phone's settings have turned them off since - the
  * switch reads off, and the server sends pages as ordinary notifications
  * (criticalAlertsReport), so the responder is told why, and where to undo it.
+ *
+ * Short, because it sits under a switch on a phone: where they were turned
+ * off, what that costs - the switch's own promise, "override silent mode or
+ * Do Not Disturb", undone - and the one switch to turn on, beside a button
+ * that opens the page it is on. On an iPhone that button opens this app's
+ * page in iOS Settings, where Notifications holds both switches.
  */
-export const IOS_CRITICAL_ALERTS_OFF_IN_SETTINGS: string =
-  "Off in iOS Settings: Critical Alerts are turned off for OneUptime On-Call, so on-call pages arrive as ordinary notifications. Turn them back on in iOS Settings > Notifications > OneUptime On-Call.";
+export const IOS_CRITICAL_ALERTS_OFF_IN_SETTINGS: CriticalAlertsOffInPhoneSettings =
+  {
+    title: "Off in iOS Settings.",
+    message:
+      "On-call pages will not ring through silent mode or Do Not Disturb. Turn on Critical Alerts under Notifications.",
+    place: CriticalAlertSettingsPlace.IosAppSettings,
+    tone: "warning",
+  };
 
-export const IOS_NOTIFICATIONS_OFF_IN_SETTINGS: string =
-  "Off in iOS Settings: notifications are turned off for OneUptime On-Call, so on-call pages do not reach this phone at all. Turn on Allow Notifications in iOS Settings > Notifications > OneUptime On-Call.";
+export const IOS_NOTIFICATIONS_OFF_IN_SETTINGS: CriticalAlertsOffInPhoneSettings =
+  {
+    title: "Notifications are off in iOS Settings.",
+    message:
+      "On-call pages do not reach this phone at all. Turn on Allow Notifications.",
+    place: CriticalAlertSettingsPlace.IosAppSettings,
+    tone: "danger",
+  };
 
-export const IOS_CRITICAL_ALERTS_NOT_OFFERED: string =
-  "Off: iOS does not offer critical alerts to this version of the app, so on-call pages arrive as ordinary notifications. Update OneUptime On-Call from the App Store.";
+export const IOS_CRITICAL_ALERTS_NOT_OFFERED: CriticalAlertsOffInPhoneSettings =
+  {
+    title: "This version of the app cannot receive critical alerts.",
+    message:
+      "On-call pages will not ring through silent mode or Do Not Disturb. Update OneUptime On-Call from the App Store.",
+    place: CriticalAlertSettingsPlace.AppStore,
+    tone: "warning",
+  };
 
-export const ANDROID_CRITICAL_ALERTS_OFF_IN_SETTINGS: string =
-  "Off in Android settings: your alarm cannot ring through Do Not Disturb, so on-call pages arrive as ordinary notifications, silent in Do Not Disturb. Allow OneUptime On-Call in Settings > Notifications > Do Not Disturb access.";
+export const ANDROID_CRITICAL_ALERTS_OFF_IN_SETTINGS: CriticalAlertsOffInPhoneSettings =
+  {
+    title: "Off in Android settings.",
+    message:
+      "On-call pages will not ring through Do Not Disturb. Allow OneUptime On-Call in Do Not Disturb access.",
+    place: CriticalAlertSettingsPlace.AndroidDoNotDisturbAccess,
+    tone: "warning",
+  };
 
 /*
  * Write the critical channels again, then report whether Android really lets
@@ -267,10 +311,7 @@ async function getIosCriticalAlertStatus(): Promise<CriticalAlertStatus> {
     return {
       availability: CriticalAlertAvailability.Denied,
       reason: IOS_NOTIFICATIONS_OFF_REASON,
-      offInPhoneSettings: {
-        message: IOS_NOTIFICATIONS_OFF_IN_SETTINGS,
-        place: CriticalAlertSettingsPlace.IosAppSettings,
-      },
+      offInPhoneSettings: IOS_NOTIFICATIONS_OFF_IN_SETTINGS,
     };
   }
 
@@ -278,20 +319,14 @@ async function getIosCriticalAlertStatus(): Promise<CriticalAlertStatus> {
     return {
       availability: CriticalAlertAvailability.Denied,
       reason: IOS_DENIED_REASON,
-      offInPhoneSettings: {
-        message: IOS_CRITICAL_ALERTS_OFF_IN_SETTINGS,
-        place: CriticalAlertSettingsPlace.IosAppSettings,
-      },
+      offInPhoneSettings: IOS_CRITICAL_ALERTS_OFF_IN_SETTINGS,
     };
   }
 
   return {
     availability: CriticalAlertAvailability.Denied,
     reason: IOS_NOT_OFFERED_REASON,
-    offInPhoneSettings: {
-      message: IOS_CRITICAL_ALERTS_NOT_OFFERED,
-      place: CriticalAlertSettingsPlace.AppStore,
-    },
+    offInPhoneSettings: IOS_CRITICAL_ALERTS_NOT_OFFERED,
   };
 }
 
@@ -310,10 +345,7 @@ async function getAndroidCriticalAlertStatus(
   return {
     availability: CriticalAlertAvailability.Denied,
     reason: ANDROID_DENIED_REASON,
-    offInPhoneSettings: {
-      message: ANDROID_CRITICAL_ALERTS_OFF_IN_SETTINGS,
-      place: CriticalAlertSettingsPlace.AndroidDoNotDisturbAccess,
-    },
+    offInPhoneSettings: ANDROID_CRITICAL_ALERTS_OFF_IN_SETTINGS,
     ...(bypassesDnd === null ? { isUncertain: true } : {}),
   };
 }

@@ -108,7 +108,7 @@ describe("IncidentSlaBreachNotice", () => {
         incidentTitle: "Checkout API is down",
         incidentNumber: "INC-42",
         projectName: "Acme Prod",
-        breachType: "Resolution",
+        deadlineLabel: "Resolution Deadline:",
         breachSentence:
           "This incident was not resolved before its SLA resolution deadline.",
         slaRuleName: "P1 customer SLA",
@@ -130,7 +130,7 @@ describe("IncidentSlaBreachNotice", () => {
       const vars: Record<string, unknown> = messages.emailEnvelope
         .vars as Record<string, unknown>;
 
-      expect(vars["breachType"]).toBe("Response");
+      expect(vars["deadlineLabel"]).toBe("Response Deadline:");
       expect(vars["breachSentence"]).toBe(
         "Nobody acknowledged this incident before its SLA response deadline.",
       );
@@ -215,23 +215,39 @@ describe("IncidentSlaBreachNotice", () => {
     });
   });
 
-  test("the call says it out loud and how to end", () => {
+  /*
+   * Heard, not read: the number and the title are set apart, as the SMS
+   * sets them, so "Checkout API is down" is not heard running into "missed
+   * its deadline" - and it says how to stop these calls, as every call to an
+   * incident's owners does.
+   */
+  test("the call says the SMS's sentence out loud, and how to stop these calls", () => {
     expect(messagesFor().callRequestMessage.data).toEqual([
       {
         sayMessage:
-          "This is a message from OneUptime. Incident Checkout API is down missed its SLA resolution deadline. Please check the incident in the OneUptime Dashboard. Good bye.",
+          "This is a message from OneUptime. Incident INC-42 (Checkout API is down) missed its SLA resolution deadline. Please check the incident in the OneUptime Dashboard. To unsubscribe from this notification go to User Settings in OneUptime Dashboard. Good bye.",
       },
     ]);
+    expect(
+      messagesFor({ breachType: "response" }).callRequestMessage.data[0],
+    ).toMatchObject({
+      sayMessage: expect.stringContaining(
+        "Incident INC-42 (Checkout API is down) missed its SLA response deadline.",
+      ),
+    });
   });
 
-  test("the push names the incident and opens it", () => {
+  test("the push names the incident, then what happened, set apart from its title", () => {
     const push: IncidentSlaBreachMessages["pushNotificationMessage"] =
       messagesFor().pushNotificationMessage;
 
     expect(push.title).toBe("SLA breached: Incident INC-42");
     expect(push.body).toBe(
-      "Checkout API is down missed its resolution deadline.",
+      "Checkout API is down - missed its SLA resolution deadline.",
     );
+    expect(
+      messagesFor({ breachType: "response" }).pushNotificationMessage.body,
+    ).toBe("Checkout API is down - missed its SLA response deadline.");
     expect(push.clickAction).toBe(LINK);
     expect(push.tag).toBe(IncidentSlaBreachNotice.PUSH_TAG);
     expect(push.requireInteraction).toBe(true);

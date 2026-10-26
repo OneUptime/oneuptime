@@ -159,12 +159,14 @@ describe("the SLA breached email", () => {
     );
   });
 
-  test("lists the deadline missed, when it was, the rule, the state, how long it is open, the severity and the project", () => {
-    const text: string = visibleText(render());
+  test("lists the deadline missed and when it was, the rule, the state, how long it is open, the severity and the project", () => {
+    const text: string = visibleText(
+      render(undefined, { timezone: Timezone.EuropeLondon }),
+    );
 
     for (const row of [
       "Incident Title: Checkout API is down",
-      "Deadline Missed: Resolution",
+      "Resolution Deadline: Oct 26 2026, 11:59 AM GMT",
       "SLA Rule: P1 customer SLA",
       "Current State: Investigating",
       "Open For: 2 hours, 30 minutes",
@@ -173,8 +175,32 @@ describe("the SLA breached email", () => {
     ]) {
       expect(text).toContain(row);
     }
+  });
 
-    expect(text).toContain("Deadline Was:");
+  /*
+   * One row says which deadline and when: the sentence above the card has
+   * said it was missed. Two rows - "Deadline Missed: Resolution" over
+   * "Deadline Was: ..." - said it at greater length.
+   */
+  test("the missed deadline is one row, named after the deadline it was", () => {
+    const london: { timezone: Timezone } = {
+      timezone: Timezone.EuropeLondon,
+    };
+    const resolution: string = visibleText(render(undefined, london));
+    const response: string = visibleText(
+      render({ breachType: "response" }, london),
+    );
+
+    expect(resolution).toContain("Resolution Deadline:");
+    expect(resolution).not.toContain("Response Deadline:");
+    expect(response).toContain("Response Deadline: Oct 26 2026, 11:59 AM GMT");
+    expect(response).not.toContain("Resolution Deadline:");
+
+    for (const text of [resolution, response]) {
+      expect(text).not.toContain("Deadline Missed");
+      expect(text).not.toContain("Deadline Was");
+      expect(text.split("Deadline:").length).toBe(2);
+    }
   });
 
   test("shows the deadline in the reader's own time zone", () => {
@@ -189,8 +215,11 @@ describe("the SLA breached email", () => {
     );
 
     expect(text).not.toContain("SLA Rule:");
-    expect(text).not.toContain("Deadline Was:");
-    expect(text).toContain("Deadline Missed: Resolution");
+    expect(text).not.toContain("Deadline:");
+    // The sentence above the card still says which deadline was missed.
+    expect(text).toContain(
+      "This incident was not resolved before its SLA resolution deadline.",
+    );
   });
 
   test("links to the incident with its button and its address", () => {

@@ -520,15 +520,14 @@ describe("choosing a sound on Android", () => {
     await waitFor(() => {
       expect(result.current.channelWarning).toBe(CHANNEL_WARNING);
     });
-    expect(result.current.channelWarning).toContain(
-      "Critical alerts are off on this phone",
-    );
-    expect(result.current.channelWarning).toContain(
-      "on-call pages arrive as ordinary notifications",
+    expect(result.current.channelWarning).toBe(
+      "Until it can, on-call pages arrive as ordinary notifications, silent in Do Not Disturb. Allow OneUptime On-Call in Do Not Disturb access, or let this sound's channel override Do Not Disturb in the app's notification settings.",
     );
     expect(result.current.channelWarning).not.toContain(
       "would arrive silently",
     );
+    // The banner's button opens Do Not Disturb access: no path to follow.
+    expect(result.current.channelWarning).not.toContain(" > ");
   });
 
   test("its button opens Do Not Disturb access", async () => {

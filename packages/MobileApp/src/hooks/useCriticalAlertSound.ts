@@ -81,10 +81,12 @@ const PREVIEW_ERROR: string =
 /*
  * While the chosen sound's channel cannot ring through Do Not Disturb, the
  * server is told this phone's critical alerts are off (criticalAlertsReport),
- * so pages come as ordinary notifications: said as it is, with where to fix it.
+ * so pages come as ordinary notifications: said as it is, under the banner's
+ * title ("This sound cannot ring through Do Not Disturb"), with the two ways
+ * to fix it - the first of them one tap away on the banner's button.
  */
 export const CHANNEL_WARNING: string =
-  "Critical alerts are off on this phone until it can: on-call pages arrive as ordinary notifications, silent while Do Not Disturb is on. Allow OneUptime On-Call in Settings > Notifications > Do Not Disturb access, or let this sound's channel override Do Not Disturb in the app's notification settings.";
+  "Until it can, on-call pages arrive as ordinary notifications, silent in Do Not Disturb. Allow OneUptime On-Call in Do Not Disturb access, or let this sound's channel override Do Not Disturb in the app's notification settings.";
 
 /*
  * The alarm sound and volume for critical pages on this phone, for the screen

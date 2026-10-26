@@ -5,7 +5,8 @@
   project's owners when it has none - under their "Incident SLA breached"
   notification setting. Every value is a plain value, escaped where it is
   shown; the deadline is the HTML OneUptimeDate writes for the reader's own
-  time zone.
+  time zone, under the label of the deadline it was ("Resolution
+  Deadline:") - the sentence above the card says it was missed.
 --}}
 {{> Start this}}
 
@@ -19,8 +20,7 @@
 
 {{> DetailBoxStart this }}
 {{> DetailBoxField title="Incident Title:" plainText=incidentTitle }}
-{{> DetailBoxField title="Deadline Missed:" plainText=breachType }}
-{{> DetailBoxField title="Deadline Was:" text=deadline }}
+{{> DetailBoxField title=deadlineLabel text=deadline }}
 {{> DetailBoxField title="SLA Rule:" plainText=slaRuleName }}
 {{> DetailBoxField title="Current State:" plainText=currentState color=currentStateColor textColor=currentStateTextColor }}
 {{> DetailBoxField title="Open For:" plainText=openDuration }}

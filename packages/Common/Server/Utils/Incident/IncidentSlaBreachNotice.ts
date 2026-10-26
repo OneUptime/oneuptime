@@ -30,13 +30,14 @@ import { createWhatsAppMessageFromTemplate } from "../WhatsAppTemplateUtil";
  * which deadline was missed, when it was, under which rule - in words of its
  * own, on every channel:
  *
- *   email     IncidentOwnerSlaBreached.hbs, the deadline in the reader's
- *             own time zone;
+ *   email     IncidentOwnerSlaBreached.hbs: "Resolution Deadline:" and
+ *             when it was, in the reader's own time zone;
  *   SMS       OneUptime: Incident INC-42 (Checkout is down) missed its SLA
  *             resolution deadline. Turn off in User Settings > Notification
  *             Settings.
- *   call      the same, read out;
- *   push      "SLA breached: Incident INC-42", the title and the deadline;
+ *   call      the same sentence, read out, and how to stop these calls;
+ *   push      "SLA breached: Incident INC-42" over "Checkout is down -
+ *             missed its SLA resolution deadline.";
  *   WhatsApp  Meta's approved "still open" reminder template (see
  *             WhatsAppTemplateUtil): the incident, its state and how long
  *             it has been open - all true of a missed deadline.
@@ -110,9 +111,15 @@ export default class IncidentSlaBreachNotice {
     return number ? `${number} (${facts.incidentTitle})` : facts.incidentTitle;
   }
 
-  // "Response" or "Resolution": the deadline that was missed, as a label.
-  public static getBreachTypeLabel(breachType: IncidentSlaBreachType): string {
-    return breachType === "response" ? "Response" : "Resolution";
+  /*
+   * The email's row for the missed deadline: "Resolution Deadline:" and when
+   * it was. One row says both which deadline and when - the sentence above
+   * the card has already said it was missed.
+   */
+  public static getDeadlineLabel(breachType: IncidentSlaBreachType): string {
+    return breachType === "response"
+      ? "Response Deadline:"
+      : "Resolution Deadline:";
   }
 
   // What missing the deadline means, in a sentence of the email.
@@ -149,12 +156,14 @@ export default class IncidentSlaBreachNotice {
       IncidentSlaBreachNotice.getIncidentIdentifier(facts);
     const stateName: string = facts.currentStateName || "Open";
     const openDuration: string = IncidentSlaBreachNotice.getOpenDuration(facts);
+    // "Incident INC-42 (Checkout is down) missed its SLA resolution deadline."
+    const missedSentence: string = `Incident ${identifier} missed its SLA ${breachWord} deadline.`;
 
     const vars: Dictionary<string> = {
       incidentTitle: facts.incidentTitle,
       incidentNumber: numberText,
       projectName: facts.projectName,
-      breachType: IncidentSlaBreachNotice.getBreachTypeLabel(facts.breachType),
+      deadlineLabel: IncidentSlaBreachNotice.getDeadlineLabel(facts.breachType),
       breachSentence: IncidentSlaBreachNotice.getBreachSentence(
         facts.breachType,
       ),
@@ -195,20 +204,28 @@ export default class IncidentSlaBreachNotice {
         isSubjectLiteral: true,
       },
       smsMessage: {
-        message: buildNotificationSms(
-          `Incident ${identifier} missed its SLA ${breachWord} deadline.`,
-        ),
+        message: buildNotificationSms(missedSentence),
       },
+      /*
+       * The SMS's sentence, read out: the number and the title set apart
+       * (a title read straight into "missed its deadline" is heard as one
+       * sentence), and how to stop these calls, as every owner call says.
+       */
       callRequestMessage: {
         data: [
           {
-            sayMessage: `This is a message from OneUptime. Incident ${facts.incidentTitle} missed its SLA ${breachWord} deadline. Please check the incident in the OneUptime Dashboard. Good bye.`,
+            sayMessage: `This is a message from OneUptime. ${missedSentence} Please check the incident in the OneUptime Dashboard. To unsubscribe from this notification go to User Settings in OneUptime Dashboard. Good bye.`,
           },
         ],
       },
+      /*
+       * The title names the incident by its number; the body is its title,
+       * then - set apart from it - what happened. Run together, "Checkout
+       * is down missed its deadline" reads as one sentence.
+       */
       pushNotificationMessage: PushNotificationUtil.createGenericNotification({
         title: `SLA breached: Incident ${numberText}`.trim(),
-        body: `${facts.incidentTitle} missed its ${breachWord} deadline.`,
+        body: `${facts.incidentTitle} - missed its SLA ${breachWord} deadline.`,
         clickAction: facts.incidentViewLink,
         tag: IncidentSlaBreachNotice.PUSH_TAG,
         requireInteraction: true,

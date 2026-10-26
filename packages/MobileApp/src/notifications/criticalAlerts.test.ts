@@ -991,16 +991,16 @@ describe("why the phone's settings turn critical alerts off", () => {
 
     const status: CriticalAlertStatus = await getCriticalAlertStatus();
 
+    expect(status.offInPhoneSettings).toEqual(
+      IOS_CRITICAL_ALERTS_OFF_IN_SETTINGS,
+    );
     expect(status.offInPhoneSettings).toEqual({
-      message: IOS_CRITICAL_ALERTS_OFF_IN_SETTINGS,
+      title: "Off in iOS Settings.",
+      message:
+        "On-call pages will not ring through silent mode or Do Not Disturb. Turn on Critical Alerts under Notifications.",
       place: CriticalAlertSettingsPlace.IosAppSettings,
+      tone: "warning",
     });
-    expect(status.offInPhoneSettings?.message).toContain(
-      "on-call pages arrive as ordinary notifications",
-    );
-    expect(status.offInPhoneSettings?.message).toContain(
-      "iOS Settings > Notifications > OneUptime On-Call",
-    );
   });
 
   test("iOS with notifications off: says pages do not reach the phone at all", async () => {
@@ -1012,13 +1012,20 @@ describe("why the phone's settings turn critical alerts off", () => {
 
     const status: CriticalAlertStatus = await getCriticalAlertStatus();
 
-    expect(status.offInPhoneSettings).toEqual({
-      message: IOS_NOTIFICATIONS_OFF_IN_SETTINGS,
-      place: CriticalAlertSettingsPlace.IosAppSettings,
-    });
-    expect(status.offInPhoneSettings?.message).toContain(
-      "do not reach this phone at all",
+    expect(status.offInPhoneSettings).toEqual(
+      IOS_NOTIFICATIONS_OFF_IN_SETTINGS,
     );
+    expect(status.offInPhoneSettings?.title).toBe(
+      "Notifications are off in iOS Settings.",
+    );
+    expect(status.offInPhoneSettings?.message).toBe(
+      "On-call pages do not reach this phone at all. Turn on Allow Notifications.",
+    );
+    expect(status.offInPhoneSettings?.place).toBe(
+      CriticalAlertSettingsPlace.IosAppSettings,
+    );
+    // Nothing reaches the phone at all: said in red, not amber.
+    expect(status.offInPhoneSettings?.tone).toBe("danger");
   });
 
   test("iOS that does not offer critical alerts to this version: the App Store, which the app does not open", async () => {
@@ -1030,10 +1037,17 @@ describe("why the phone's settings turn critical alerts off", () => {
 
     const status: CriticalAlertStatus = await getCriticalAlertStatus();
 
-    expect(status.offInPhoneSettings).toEqual({
-      message: IOS_CRITICAL_ALERTS_NOT_OFFERED,
-      place: CriticalAlertSettingsPlace.AppStore,
-    });
+    expect(status.offInPhoneSettings).toEqual(IOS_CRITICAL_ALERTS_NOT_OFFERED);
+    expect(status.offInPhoneSettings?.title).toBe(
+      "This version of the app cannot receive critical alerts.",
+    );
+    expect(status.offInPhoneSettings?.message).toContain(
+      "Update OneUptime On-Call from the App Store.",
+    );
+    expect(status.offInPhoneSettings?.place).toBe(
+      CriticalAlertSettingsPlace.AppStore,
+    );
+    expect(status.offInPhoneSettings?.tone).toBe("warning");
   });
 
   test("Android whose alarm cannot ring through Do Not Disturb: sent to Do Not Disturb access", async () => {
@@ -1045,13 +1059,38 @@ describe("why the phone's settings turn critical alerts off", () => {
 
     const status: CriticalAlertStatus = await getCriticalAlertStatus();
 
-    expect(status.offInPhoneSettings).toEqual({
-      message: ANDROID_CRITICAL_ALERTS_OFF_IN_SETTINGS,
-      place: CriticalAlertSettingsPlace.AndroidDoNotDisturbAccess,
-    });
-    expect(status.offInPhoneSettings?.message).toContain(
-      "silent in Do Not Disturb",
+    expect(status.offInPhoneSettings).toEqual(
+      ANDROID_CRITICAL_ALERTS_OFF_IN_SETTINGS,
     );
+    expect(status.offInPhoneSettings).toEqual({
+      title: "Off in Android settings.",
+      message:
+        "On-call pages will not ring through Do Not Disturb. Allow OneUptime On-Call in Do Not Disturb access.",
+      place: CriticalAlertSettingsPlace.AndroidDoNotDisturbAccess,
+      tone: "warning",
+    });
+  });
+
+  /*
+   * A footnote under a switch on a phone: a short bold lead, then a line or
+   * two - never the paragraph that once named a whole settings path the
+   * button beside it already opens.
+   */
+  test("each explanation is short: a lead of a few words, two sentences after it", () => {
+    for (const off of [
+      IOS_CRITICAL_ALERTS_OFF_IN_SETTINGS,
+      IOS_NOTIFICATIONS_OFF_IN_SETTINGS,
+      IOS_CRITICAL_ALERTS_NOT_OFFERED,
+      ANDROID_CRITICAL_ALERTS_OFF_IN_SETTINGS,
+    ]) {
+      expect(off.title.endsWith(".")).toBe(true);
+      expect(off.title.length).toBeLessThanOrEqual(60);
+      expect(off.message.length).toBeLessThanOrEqual(120);
+      expect(off.message.split(". ").length).toBe(2);
+      // The button opens the place: no "Settings > A > B" path to follow.
+      expect(off.message).not.toContain(" > ");
+      expect(`${off.title} ${off.message}`).not.toContain("Off:");
+    }
   });
 
   test("a granted phone has nothing to explain", async () => {
