@@ -244,7 +244,7 @@ describe("bulk change-state modal offers a note on every event table", () => {
      * read each when a window's request fails.
      */
     expect(ENGINE).toContain(
-      "const result: ListResult<BaseModel> = await ModelAPI.getList<BaseModel>( { modelType: definition.eventModelType, query: { _id: new Includes(ids), } as never,",
+      "const result: ListResult<BaseModel> = await ModelAPI.getList<BaseModel>({ modelType: definition.eventModelType, query: { _id: new Includes(ids), } as never,",
     );
     expect(ENGINE).toContain("readWindow: readWindow, readOne: readOne,");
     expect(ENGINE).toContain("return reader.read(record);");
