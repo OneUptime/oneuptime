@@ -711,8 +711,21 @@ test.describe("the cluster's Events page", () => {
 
     // The full list is the newest records of the range, and says so.
     await typeButton(page, "All").click();
-    await expect(page.getByTestId("kubernetes-events-more-note")).toBeVisible();
+    const note: Locator = page.getByTestId("kubernetes-events-more-note");
+    await expect(note).toBeVisible();
     await expect(typeButton(page, "All")).toHaveText(/^All$/);
+
+    /*
+     * Under the list's pager, clear of it (#5298's UI review): the pager ends
+     * its card, and the note sat 8px into it, against Rows per page.
+     */
+    const pager: { y: number; height: number } | null = await page
+      .getByTestId("kubernetes-events-view")
+      .getByTestId("pagination-summary")
+      .locator("xpath=ancestor::nav[1]")
+      .boundingBox();
+    const noteBox: { y: number } | null = await note.boundingBox();
+    expect(noteBox!.y).toBeGreaterThanOrEqual(pager!.y + pager!.height + 12);
   });
 
   test("a cluster with no warnings opens on every event, and its Warnings view says so", async ({
