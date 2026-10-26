@@ -1511,8 +1511,13 @@ API, SSO, or the Slack and Microsoft Teams apps.
   global Runner reaches Git servers on the internet only, over HTTPS, except on
   a self-hosted OneUptime, where it may reach the private Git servers the
   server itself may reach. It still never runs Bash, SSH or kubectl steps,
-  OneUptime AI's commands, or a step that needs a credential. The separate
-  shared Runner, which the notes above call the bundled Runner, is gone. Docker
+  OneUptime AI's commands, or a step that needs a credential. A global Runner
+  acts only for the fix it took: it is handed that fix's details, and its
+  repository's token, only while it works on it. On every Runner, the token a
+  fix is handed for a GitHub repository now reaches that one repository, not
+  every repository the GitHub App can reach, and the Runner revokes it when the
+  fix ends. The separate shared Runner, which the notes above call the bundled
+  Runner, is gone. Docker
   Compose no longer has the `runner` service and no longer uses
   `ONEUPTIME_RUNNER_KEY`, `ONEUPTIME_RUNNER_PORT` or
   `ONEUPTIME_RUNNER_ONEUPTIME_URL`: `npm run update` removes the old container
@@ -1529,8 +1534,10 @@ API, SSO, or the Slack and Microsoft Teams apps.
   turn the global Runner back on, or pick a Runner of your own for those
   repositories in Code. The Admin Dashboard's Global AI Agents page, under
   **Settings → AI**, is removed: for global Runners, open **Settings**, then
-  **Global Runners**. AI agents a project created before 12.0 keep working as
-  before. See
+  **Global Runners**. A Runner you started with the ID and key of a global AI
+  agent from that page no longer takes work, and says so: start it with a
+  global Runner's ID and key instead. AI agents a project created before 12.0
+  keep working as before. See
   [Global Runners](/docs/runbooks/agents#global-runners).
 - **Wrong probe and Runner keys are counted.** One address may send only ten
   different wrong keys for one probe, Runner or AI agent in a quarter of an

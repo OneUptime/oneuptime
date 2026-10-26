@@ -63,6 +63,14 @@ global Runner (`globalRunner:`) does the AI code fixes of every project that
 uses global Runners. Nothing under `runner:` is read; remove it from your
 values when convenient. Its KEDA settings (`runner.keda`) now go under
 `globalRunner.keda`.
+{{- if eq (toString .Values.runner.enabled) "false" }}
+
+You had turned the shared Runner off (`runner.enabled: false`). The code
+repositories on the Global Runner now get their AI code fixes from the global
+Runner, which runs none of a repository's commands. To keep them off it, pick
+a Runner of your own for those repositories in Code, or set
+`globalRunner.enabled: false` (that also stops its JavaScript steps).
+{{- end }}
 {{- end }}
 {{- /*
   Chart probes register with REGISTER_PROBE_KEY, so each one is a global probe

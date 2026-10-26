@@ -380,6 +380,19 @@ describe("the English upgrade note", () => {
     ]);
   });
 
+  it("says a global Runner acts only for the fix it took, and that every Runner's GitHub token reaches one repository and ends with the fix", () => {
+    says(ENGLISH_NOTE, [
+      "A global Runner acts only for the fix it took: it is handed that fix's details, and its repository's token, only while it works on it.",
+      "On every Runner, the token a fix is handed for a GitHub repository now reaches that one repository, not every repository the GitHub App can reach, and the Runner revokes it when the fix ends.",
+    ]);
+  });
+
+  it("says what a Runner started with a global AI agent's ID and key from the removed page does now", () => {
+    says(ENGLISH_NOTE, [
+      "A Runner you started with the ID and key of a global AI agent from that page no longer takes work, and says so: start it with a global Runner's ID and key instead.",
+    ]);
+  });
+
   it("says a Runner still started as the shared Runner stops, and what to do with it", () => {
     says(ENGLISH_NOTE, [
       "A Runner still started as the shared Runner, with `ONEUPTIME_RUNNER_SHARED` set to `true`, now logs that the shared Runner is gone and stops: remove it from your deployment.",
@@ -489,6 +502,63 @@ describe("a global Runner takes code fixes, and runs no repository command", () 
     );
     expect(source("packages/Runner/Utils/PullRequestOpener.ts")).toContain(
       "GitHostGuard.getTransport(",
+    );
+  });
+});
+
+describe("a global Runner acts only for the fix it took, and a GitHub token reaches one repository and ends with the fix", () => {
+  it("every code-fix route holds a global Runner to the run it claimed, and the token route to the run it holds", () => {
+    const auth: string = source(
+      "packages/Common/Server/Utils/AI/CodeFix/CodeFixAgentAuth.ts",
+    );
+
+    expect(auth).toContain("public static deniesAccessToRun(");
+    expect(auth).toContain("run.aiAgentId.toString() !== identity.id.toString()");
+    expect(auth).toContain("return run.status !== AIRunStatus.Running;");
+
+    const data: string = source("packages/Common/Server/API/AIAgentDataAPI.ts");
+
+    expect(data).toContain(
+      "if (CodeFixAgentAuth.isGlobalIdentity(aiAgent) && !tokenRun) {",
+    );
+  });
+
+  it("the token a Runner is handed for a GitHub repository is minted for that one repository", () => {
+    const data: string = source("packages/Common/Server/API/AIAgentDataAPI.ts");
+    const github: string = source(
+      "packages/Common/Server/Utils/CodeRepository/GitHub/GitHub.ts",
+    );
+
+    expect(data).toContain("GitHubUtil.getRepositoryAccessToken({");
+    expect(data).not.toContain("getInstallationAccessToken(");
+    expect(github).toContain("repositories: [data.repositoryName],");
+    expect(github).toContain("repositoryIds: [repositoryId],");
+  });
+
+  it("the Runner revokes every GitHub token a run was handed when the run ends", () => {
+    expect(source("packages/Runner/Jobs/PollCodeFixWork.ts")).toContain(
+      "await RepositoryTokenRevocation.revokeAll();",
+    );
+    expect(source("packages/Runner/Utils/RepositoryTokenRevocation.ts")).toContain(
+      '"https://api.github.com/installation/token"',
+    );
+    // Only a GitHub repository's token: another host's is its connection's own.
+    expect(source("packages/Runner/Utils/BackendAPI.ts")).toContain(
+      "if (!data.codeHost && data.token) {\n      RepositoryTokenRevocation.remember(data.token);\n    }",
+    );
+  });
+
+  it("a Runner started with a global AI agent's ID and key is told what to start instead", () => {
+    const gone: string = source(
+      "packages/Common/Types/Runner/GlobalAIAgentsGone.ts",
+    );
+
+    expect(gone).toContain("Settings > Global Runners");
+    expect(source("packages/Common/Server/API/AIAgentAPI.ts")).toContain(
+      "new BadDataException(GLOBAL_AI_AGENT_GONE_MESSAGE)",
+    );
+    expect(source("packages/Runner/Services/RegisterRunner.ts")).toContain(
+      "message: GLOBAL_AI_AGENT_GONE_MESSAGE,",
     );
   });
 });

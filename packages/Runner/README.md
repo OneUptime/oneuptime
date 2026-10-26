@@ -107,10 +107,17 @@ Runners, and nothing else:
   opens with verification shown as skipped, and the repository's own CI
   checks the change. It reaches Git servers on the internet only, over
   HTTPS, unless the server allows its private network (a self-hosted
-  OneUptime).
+  OneUptime). The server hands it a fix's details, and its repository's
+  token, only for the run it claimed and only while it holds it.
 
 It never runs Bash, SSH or kubectl steps, OneUptime AI's commands, or a step
-that needs a credential. Earlier releases ran a separate shared Runner for
+that needs a credential.
+
+On every Runner, the token a fix is handed for a GitHub repository reaches
+that one repository only, and the Runner revokes it when the run ends
+(`Utils/RepositoryTokenRevocation.ts`), however the run ended. A GitLab,
+Forgejo, Gitea or Git repository is reached with its connection's own token,
+which the Runner leaves alone. Earlier releases ran a separate shared Runner for
 the code fixes (`ONEUPTIME_RUNNER_SHARED=true`); a Runner still started that
 way says so and stops.
 

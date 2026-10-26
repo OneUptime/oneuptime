@@ -162,7 +162,15 @@ transport (REST, MCP, realtime sockets, workers, AI tools, workflows):
    project on the Global Runner and, for each, holds a token that can push
    branches to that repository: the isolated-vm boundary around every
    project's JavaScript steps is what keeps a step from reaching it, and a
-   fix runs none of the repository's commands beside them.
+   fix runs none of the repository's commands beside them (the server never
+   hands a global Runner those commands, nor offers its model a command
+   tool). What a global Runner's key reaches is held to the run it claimed
+   (`CodeFixAgentAuth.deniesAccessToRun`): that run's details, exception,
+   repositories and repository token, only while it holds the run - never
+   another project's runs. A GitHub repository's token is minted for that
+   one repository, not the whole GitHub App installation, and the Runner
+   revokes it when the fix ends; a GitLab, Forgejo, Gitea or Git
+   repository's is its connection's own token.
 6. **Network egress from shared infrastructure.** Requests to URLs a user
    chooses (webhooks, workflow HTTP calls, sandboxed HTTP, data sources, SSO
    metadata, external status pages, monitors) go through

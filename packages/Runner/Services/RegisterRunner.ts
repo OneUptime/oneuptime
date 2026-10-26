@@ -884,7 +884,10 @@ export default class Register {
         (legacyResult.data as JSONObject | undefined)?.["message"] ===
           GLOBAL_AI_AGENT_GONE_MESSAGE
       ) {
-        throw new Error(GLOBAL_AI_AGENT_GONE_MESSAGE);
+        throw new RegistrationRefusedError({
+          message: GLOBAL_AI_AGENT_GONE_MESSAGE,
+          statusCode: legacyResult.statusCode,
+        });
       }
 
       if (!legacyResult.isSuccess()) {

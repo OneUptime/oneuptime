@@ -141,6 +141,38 @@ tests:
           pattern: "\\nIGNORED VALUES: runner\\n"
       - matchRegexRaw:
           pattern: "`globalRunner\\.keda`"
+      # The shared Runner was on: nothing changes about where fixes run.
+      - notMatchRegexRaw:
+          pattern: "You had turned the shared Runner off"
+
+  # An install that turned the shared Runner off kept the repositories on the
+  # Global Runner from getting code fixes; the global Runner does them now,
+  # so NOTES.txt says so, and how to keep them off it.
+  - it: tells an install that had turned the shared Runner off that the global Runner now does its code fixes
+    templates:
+      - templates/NOTES.txt
+    set:
+      runner:
+        enabled: false
+    asserts:
+      - matchRegexRaw:
+          pattern: "\\nIGNORED VALUES: runner\\n"
+      - matchRegexRaw:
+          pattern: "You had turned the shared Runner off \\(`runner\\.enabled: false`\\)\\. The code\\nrepositories on the Global Runner now get their AI code fixes from the global\\nRunner, which runs none of a repository's commands\\."
+      - matchRegexRaw:
+          pattern: "`globalRunner\\.enabled: false` \\(that also stops its JavaScript steps\\)"
+
+  - it: says nothing of a turned-off shared Runner when runner sets no enabled
+    templates:
+      - templates/NOTES.txt
+    set:
+      runner:
+        replicaCount: 2
+    asserts:
+      - matchRegexRaw:
+          pattern: "\\nIGNORED VALUES: runner\\n"
+      - notMatchRegexRaw:
+          pattern: "You had turned the shared Runner off"
 
   # `runner:` with everything under it commented out is null: still accepted,
   # and nothing to say about it.

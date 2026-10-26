@@ -29,6 +29,7 @@ import type {
   CodeAgentTask,
 } from "../../CodeAgents/CodeAgentInterface";
 import type { LLMToolCall } from "Common/Server/Utils/LLM/LLMService";
+import { CODE_AGENT_COMMAND_TOOL_NAME } from "Common/Types/Runner/GlobalRunnerWork";
 import { execFileSync } from "child_process";
 import fs from "fs";
 import os from "os";
@@ -259,6 +260,8 @@ describe("a global Runner does not run shell commands", () => {
     // run_command was never offered to the model.
     expect(advertisedToolNames()).not.toContain("run_command");
     expect(advertisedToolNames()).toContain("write_file");
+    // It is the tool the server takes out for a global Runner, by the same name.
+    expect(CODE_AGENT_COMMAND_TOOL_NAME).toBe("run_command");
 
     // The command never ran: its sentinel file does not exist.
     expect(fs.existsSync(path.join(workspace, "COMMAND_RAN.txt"))).toBe(false);
@@ -311,6 +314,45 @@ describe("a global Runner does not run shell commands", () => {
     expect(outcome.repairAttemptsUsed).toBe(0);
     // The configured command never ran: its sentinel file does not exist.
     expect(fs.existsSync(path.join(workspace, "SETUP_RAN.txt"))).toBe(false);
+  });
+
+  test("handed no commands - the server withholds them from a global Runner - the fix still says no command runs here, and why", async () => {
+    const mods: LoadedModules = loadForScope(true);
+    const workspace: string = makeWorkspace();
+    const logged: Array<string> = [];
+
+    /* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
+    const { GLOBAL_RUNNER_VERIFICATION_LOG, NO_COMMANDS_VERIFICATION_SUMMARY } =
+      require("../../Utils/BuildVerification") as {
+        GLOBAL_RUNNER_VERIFICATION_LOG: string;
+        NO_COMMANDS_VERIFICATION_SUMMARY: string;
+      };
+    /* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
+
+    const outcome: Awaited<
+      ReturnType<typeof BuildVerificationType.verifyWithRepairs>
+    > = await mods.BuildVerification.verifyWithRepairs({
+      repo: { setupCommand: null, buildCommand: null, testCommand: null },
+      repositoryPath: workspace,
+      agent: {} as unknown as Parameters<
+        typeof BuildVerificationType.verifyWithRepairs
+      >[0]["agent"],
+      originalPrompt: "Fix it",
+      log: async (message: string): Promise<void> => {
+        logged.push(message);
+      },
+    });
+
+    expect(logged).toEqual([GLOBAL_RUNNER_VERIFICATION_LOG]);
+    expect(GLOBAL_RUNNER_VERIFICATION_LOG).toContain(
+      "no command runs here - not the repository's setup, build or test commands, and none the AI composes",
+    );
+    // The pull request says a global Runner skipped it, not that no commands are set.
+    expect(outcome.status).toBe("Skipped");
+    expect(outcome.summary).toContain(
+      "a global Runner does not build or test the change",
+    );
+    expect(outcome.summary).not.toBe(NO_COMMANDS_VERIFICATION_SUMMARY);
   });
 
   test("the command runner itself refuses, whoever calls it (the spawn point, not only verification)", async () => {
@@ -398,6 +440,7 @@ describe("a project's own Runner keeps running commands (no regression)", () => 
     await runAgent(mods.InHouseCodeAgent, workspace);
 
     expect(advertisedToolNames()).toContain("run_command");
+    expect(advertisedToolNames()).toContain(CODE_AGENT_COMMAND_TOOL_NAME);
     // The command ran: its sentinel file exists.
     expect(fs.existsSync(path.join(workspace, "COMMAND_RAN.txt"))).toBe(true);
   });
