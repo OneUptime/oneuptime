@@ -1235,9 +1235,7 @@ describe("a person in several of the workspace's projects: Switch project", () =
   // A project of another Slack workspace, where Alice is in two projects too.
   const ELSEWHERE_TEAM_ID: string = "T0ELSEWHERE";
   const LAB: ObjectID = new ObjectID("d2000000-0000-4000-8000-000000000005");
-  const STUDIO: ObjectID = new ObjectID(
-    "d2000000-0000-4000-8000-000000000006",
-  );
+  const STUDIO: ObjectID = new ObjectID("d2000000-0000-4000-8000-000000000006");
 
   const BOB: string = "U0BOB";
   const DAVE: string = "U0DAVE";
@@ -1306,7 +1304,10 @@ describe("a person in several of the workspace's projects: Switch project", () =
       });
   }
 
-  function connectionOf(projectId: ObjectID, teamId: string): WorkspaceProjectAuthToken {
+  function connectionOf(
+    projectId: ObjectID,
+    teamId: string,
+  ): WorkspaceProjectAuthToken {
     const projectAuth: WorkspaceProjectAuthToken =
       new WorkspaceProjectAuthToken();
     projectAuth.projectId = projectId;
@@ -1391,7 +1392,9 @@ describe("a person in several of the workspace's projects: Switch project", () =
         for (const [teamId, projectIds] of Object.entries(connectionsByTeam)) {
           if (
             projectIds.some((projectId: ObjectID): boolean => {
-              return projectId.toString() === getProjectAuth.projectId.toString();
+              return (
+                projectId.toString() === getProjectAuth.projectId.toString()
+              );
             })
           ) {
             return connectionOf(getProjectAuth.projectId, teamId);
@@ -1440,13 +1443,13 @@ describe("a person in several of the workspace's projects: Switch project", () =
       }) as never);
 
     // The projects' names: for the line that names one, and for the menu.
-    jest.spyOn(ProjectService, "findOneById").mockImplementation((async (
-      findOneById: { id: ObjectID },
-    ) => {
-      const project: Project = new Project();
-      project.name = NAMES[findOneById.id.toString()]!;
-      return project;
-    }) as never);
+    jest
+      .spyOn(ProjectService, "findOneById")
+      .mockImplementation((async (findOneById: { id: ObjectID }) => {
+        const project: Project = new Project();
+        project.name = NAMES[findOneById.id.toString()]!;
+        return project;
+      }) as never);
     jest.spyOn(ProjectService, "findBy").mockImplementation((async (findBy: {
       query: JSONObject;
     }) => {
@@ -1493,7 +1496,8 @@ describe("a person in several of the workspace's projects: Switch project", () =
     user?: string | undefined;
     teamId?: string | undefined;
   }): JSONObject {
-    return {
+    // Any value a press may carry, as Slack would post it.
+    const payload: Record<string, unknown> = {
       type: "block_actions",
       user: {
         id: data.user || ALICE,
@@ -1535,6 +1539,8 @@ describe("a person in several of the workspace's projects: Switch project", () =
         },
       ],
     };
+
+    return payload as JSONObject;
   }
 
   interface DrawnHome {
@@ -1612,7 +1618,10 @@ describe("a person in several of the workspace's projects: Switch project", () =
       : null;
   }
 
-  async function opened(user: string = ALICE, teamId: string = TEAM_ID): Promise<DrawnHome> {
+  async function opened(
+    user: string = ALICE,
+    teamId: string = TEAM_ID,
+  ): Promise<DrawnHome> {
     const count: number = calls("views.publish").length;
 
     expect((await deliverEvent(openHomeIn(teamId, user))).status).toBe(200);
@@ -1695,9 +1704,11 @@ describe("a person in several of the workspace's projects: Switch project", () =
 
     // The rest of the Home, as anybody's: the buttons right under it.
     expect(
-      (view["blocks"] as Array<JSONObject>).map((block: JSONObject): unknown => {
-        return block["type"];
-      }),
+      (view["blocks"] as Array<JSONObject>).map(
+        (block: JSONObject): unknown => {
+          return block["type"];
+        },
+      ),
     ).toEqual([
       "header",
       "section",
@@ -1891,7 +1902,8 @@ describe("a person in several of the workspace's projects: Switch project", () =
 
     links = links.filter((link: Link): boolean => {
       return !(
-        link.slackUserId === ALICE && link.projectId.toString() === STAGING.toString()
+        link.slackUserId === ALICE &&
+        link.projectId.toString() === STAGING.toString()
       );
     });
 
@@ -1972,9 +1984,11 @@ describe("a person in several of the workspace's projects: Switch project", () =
       expect(memberPropsReads).toEqual([SANDBOX.toString()]);
       expect(home.json).not.toContain("Acme Finance");
       expect(home.json).not.toContain("Elsewhere");
-      expect(rememberedHomes().map((entry: { value: string }) => {
-        return entry.value;
-      })).toEqual([SANDBOX.toString()]);
+      expect(
+        rememberedHomes().map((entry: { value: string }) => {
+          return entry.value;
+        }),
+      ).toEqual([SANDBOX.toString()]);
     }
   });
 
@@ -2087,7 +2101,8 @@ describe("a person in several of the workspace's projects: Switch project", () =
   });
 
   test("a long project name: cut in the menu to what Slack takes, named in full on the Home it chooses", async () => {
-    const longName: string = `Acme Staging ${"for the payments platform ".repeat(4)}`.trim();
+    const longName: string =
+      `Acme Staging ${"for the payments platform ".repeat(4)}`.trim();
     NAMES[STAGING.toString()] = longName;
 
     try {

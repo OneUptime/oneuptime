@@ -2860,7 +2860,10 @@ describe("one Slack workspace connected to two OneUptime projects", () => {
    */
   describe("the Home tab of somebody in both projects: Switch project", () => {
     let homeEvents: number;
-    let scheduleReads: Array<{ projectId: string; props: DatabaseCommonInteractionProps }>;
+    let scheduleReads: Array<{
+      projectId: string;
+      props: DatabaseCommonInteractionProps;
+    }>;
     let incidentListReads: Array<{
       projectId: Array<string>;
       props: DatabaseCommonInteractionProps;
@@ -3086,9 +3089,13 @@ describe("one Slack workspace connected to two OneUptime projects", () => {
 
       expect(home.userId).toBe("U0DEANE");
       expect(home.projectId).toBe(PLATFORM.toString());
-      expect(home.text).toContain("Here's what is happening in *IRM Platform*.");
+      expect(home.text).toContain(
+        "Here's what is happening in *IRM Platform*.",
+      );
       expect(home.menu).toEqual([["IRM Non-Prod", NONPRD.toString()]]);
-      expect(home.text).toContain('"placeholder":{"type":"plain_text","text":"Switch project"');
+      expect(home.text).toContain(
+        '"placeholder":{"type":"plain_text","text":"Switch project"',
+      );
 
       // INC-12 is IRM Non-Prod's: not on IRM Platform's Home.
       expect(home.text).not.toContain("INC-12");
@@ -3114,7 +3121,9 @@ describe("one Slack workspace connected to two OneUptime projects", () => {
       });
 
       expect(home.projectId).toBe(NONPRD.toString());
-      expect(home.text).toContain("Here's what is happening in *IRM Non-Prod*.");
+      expect(home.text).toContain(
+        "Here's what is happening in *IRM Non-Prod*.",
+      );
       expect(home.text).toContain("INC-12");
       expect(home.text).not.toContain(REFUSED);
       expect(home.menu).toEqual([["IRM Platform", PLATFORM.toString()]]);

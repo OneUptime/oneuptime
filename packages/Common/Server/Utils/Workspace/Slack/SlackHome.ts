@@ -277,7 +277,8 @@ export default class SlackHome {
       }
 
       if (
-        (action as JSONObject)["action_id"] !== SlackActionType.SwitchHomeProject
+        (action as JSONObject)["action_id"] !==
+        SlackActionType.SwitchHomeProject
       ) {
         continue;
       }
@@ -475,7 +476,10 @@ export default class SlackHome {
           })
         : null;
 
-      if (home && SlackHome.isSameId(home.projectAuth.projectId, data.projectId)) {
+      if (
+        home &&
+        SlackHome.isSameId(home.projectAuth.projectId, data.projectId)
+      ) {
         if (home.isInSeveralProjects) {
           await SlackProjectChoice.rememberHomeProject({
             person: { teamId: teamId, slackUserId: data.slackUserId },

@@ -1519,7 +1519,11 @@ describe("Slack and Microsoft Teams, against the Dashboard and the server", () =
    * member there, the first connected before that (SlackHome).
    */
   it("names the Slack Home's Switch project menu as the app draws it, and what it does", () => {
-    const home: string = section(englishPage(SLACK), 2, "OneUptime's Home in Slack");
+    const home: string = section(
+      englishPage(SLACK),
+      2,
+      "OneUptime's Home in Slack",
+    );
     const paragraph: string = lineStarting(
       home,
       "In a Slack workspace connected to more than one project,",

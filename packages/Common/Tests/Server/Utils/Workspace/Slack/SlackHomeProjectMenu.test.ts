@@ -145,8 +145,10 @@ describe("the menu the Home builds", () => {
 
   test("each project's Home names its menu apart, so Slack keeps nothing chosen in another's", () => {
     expect(
-      SlackHome.getProjectMenu({ shownProjectId: PRODUCTION, choices: CHOICES })!
-        .blockId,
+      SlackHome.getProjectMenu({
+        shownProjectId: PRODUCTION,
+        choices: CHOICES,
+      })!.blockId,
     ).not.toBe(
       SlackHome.getProjectMenu({ shownProjectId: STAGING, choices: CHOICES })!
         .blockId,
@@ -244,7 +246,9 @@ describe("the static select Slack is sent", () => {
 
     expect(
       optionTexts(
-        sectionsOf(line(menuOf([{ label: name, value: STAGING.toString() }])))[0]!,
+        sectionsOf(
+          line(menuOf([{ label: name, value: STAGING.toString() }])),
+        )[0]!,
       ),
     ).toEqual([name]);
   });
@@ -254,7 +258,9 @@ describe("the static select Slack is sent", () => {
 
     expect(
       optionTexts(
-        sectionsOf(line(menuOf([{ label: name, value: STAGING.toString() }])))[0]!,
+        sectionsOf(
+          line(menuOf([{ label: name, value: STAGING.toString() }])),
+        )[0]!,
       ),
     ).toEqual([name]);
   });
@@ -263,7 +269,10 @@ describe("the static select Slack is sent", () => {
     const options: Array<WorkspacePayloadMenuOption> = Array.from(
       { length: 130 },
       (_value: unknown, index: number): WorkspacePayloadMenuOption => {
-        return { label: `Project ${index}`, value: ObjectID.generate().toString() };
+        return {
+          label: `Project ${index}`,
+          value: ObjectID.generate().toString(),
+        };
       },
     );
 
@@ -366,7 +375,8 @@ describe("what a press of the menu names", () => {
   }
 
   function chosen(value: unknown): JSONObject {
-    return {
+    // Any value a press may carry, as Slack would post it.
+    const action: Record<string, unknown> = {
       type: "static_select",
       action_id: "SwitchHomeProject",
       block_id: `SwitchHomeProject:${PRODUCTION.toString()}`,
@@ -376,11 +386,15 @@ describe("what a press of the menu names", () => {
       },
       action_ts: "1760000001.000300",
     };
+
+    return action as JSONObject;
   }
 
   test("the project its chosen option names", () => {
     expect(
-      SlackHome.readProjectSwitch(press([chosen(STAGING.toString())]))?.toString(),
+      SlackHome.readProjectSwitch(
+        press([chosen(STAGING.toString())]),
+      )?.toString(),
     ).toBe(STAGING.toString());
   });
 

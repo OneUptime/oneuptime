@@ -1272,7 +1272,9 @@ describe("the project somebody chose for their Home", () => {
     });
 
     expect(
-      (await SlackProjectChoice.getConversationProject(conversation))?.toString(),
+      (
+        await SlackProjectChoice.getConversationProject(conversation)
+      )?.toString(),
     ).toBe(NONPRD.toString());
     expect(
       (await SlackProjectChoice.getHomeProject(DEANE_HOME))?.toString(),
