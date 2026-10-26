@@ -35700,7 +35700,6 @@
   "The Storage Array Agent sends metrics by default. Forward the array's syslog to the agent's optional syslog receiver and its lines appear here, tagged with the storage.array.name resource attribute.": "Storage Array Agent به‌طور پیش‌فرض متریک می‌فرستد. syslog آرایه را به گیرنده syslog اختیاری عامل بفرستید تا خطوط آن با ویژگی منبع storage.array.name اینجا نمایش داده شوند.",
   "The VMware agent sends metrics only by default. To see ESXi syslog here, enable the syslog receiver in its collector config and point your ESXi hosts' Syslog.global.logHost at the agent (see the Documentation page), or send OpenTelemetry logs with this vCenter's vmware.vcenter.name resource attribute.": "عامل VMware به‌طور پیش‌فرض فقط متریک می‌فرستد. برای دیدن syslog میزبان‌های ESXi در اینجا، گیرنده syslog را در پیکربندی کالکتور آن فعال کنید و Syslog.global.logHost میزبان‌های ESXi را به عامل بفرستید (صفحه مستندات را ببینید)، یا لاگ‌های OpenTelemetry را با ویژگی منبع vmware.vcenter.name این vCenter بفرستید.",
   "This trace wrote no logs in the pinned window.": "این ترِیس در بازه سنجاق‌شده هیچ لاگی ننوشته است.",
-  "Clear a filter or widen the time range to see this host's logs.": "برای دیدن لاگ‌های این میزبان، یک فیلتر را بردارید یا بازه زمانی را گسترده‌تر کنید.",
   "Logs appear here once the kubernetes-agent's filelog receiver collects them.": "به محض اینکه گیرنده filelog در kubernetes-agent لاگ‌ها را جمع‌آوری کند، اینجا نمایش داده می‌شوند.",
   "Make sure the Docker agent's filelog receiver is configured and the collector is running.": "مطمئن شوید گیرنده filelog عامل Docker پیکربندی شده و کالکتور در حال اجراست.",
   "Make sure the Podman agent's filelog receiver is configured and the collector is running.": "مطمئن شوید گیرنده filelog عامل Podman پیکربندی شده و کالکتور در حال اجراست.",
@@ -35708,5 +35707,6 @@
   "A removed column (the default order is shown)": "ستونی حذف‌شده (ترتیب پیش‌فرض نمایش داده می‌شود)",
   "Ascending": "صعودی",
   "Descending": "نزولی",
-  "The browser prerendered this page before anybody opened it, so the recorder waited for the visitor to open it. A page that is never opened records nothing.": "مرورگر این صفحه را پیش از آنکه کسی بازش کند از پیش رندر کرد، پس ضبط‌کننده منتظر ماند تا بازدیدکننده آن را باز کند. صفحه‌ای که هرگز باز نشود چیزی ضبط نمی‌کند."
+  "The browser prerendered this page before anybody opened it, so the recorder waited for the visitor to open it. A page that is never opened records nothing.": "مرورگر این صفحه را پیش از آنکه کسی بازش کند از پیش رندر کرد، پس ضبط‌کننده منتظر ماند تا بازدیدکننده آن را باز کند. صفحه‌ای که هرگز باز نشود چیزی ضبط نمی‌کند.",
+  "Each row is one recording of about a minute.": "هر سطر یک ضبط حدوداً یک‌دقیقه‌ای است."
 }

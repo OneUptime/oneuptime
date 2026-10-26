@@ -35700,7 +35700,6 @@
   "The Storage Array Agent sends metrics by default. Forward the array's syslog to the agent's optional syslog receiver and its lines appear here, tagged with the storage.array.name resource attribute.": "Storage Array Agent skickar mätvärden som standard. Vidarebefordra arrayens syslog till agentens valfria syslog-mottagare så visas raderna här, märkta med resursattributet storage.array.name.",
   "The VMware agent sends metrics only by default. To see ESXi syslog here, enable the syslog receiver in its collector config and point your ESXi hosts' Syslog.global.logHost at the agent (see the Documentation page), or send OpenTelemetry logs with this vCenter's vmware.vcenter.name resource attribute.": "VMware-agenten skickar som standard bara mätvärden. Om du vill se ESXi-syslog här aktiverar du syslog-mottagaren i dess insamlarkonfiguration och pekar dina ESXi-värdars Syslog.global.logHost mot agenten (se sidan Dokumentation), eller skickar OpenTelemetry-loggar med det här vCenters resursattribut vmware.vcenter.name.",
   "This trace wrote no logs in the pinned window.": "Det här spåret skrev inga loggar i det fästa fönstret.",
-  "Clear a filter or widen the time range to see this host's logs.": "Ta bort ett filter eller vidga tidsintervallet för att se den här värdens loggar.",
   "Logs appear here once the kubernetes-agent's filelog receiver collects them.": "Loggar visas här så snart kubernetes-agentens filelog-mottagare samlar in dem.",
   "Make sure the Docker agent's filelog receiver is configured and the collector is running.": "Se till att Docker-agentens filelog-mottagare är konfigurerad och att insamlaren körs.",
   "Make sure the Podman agent's filelog receiver is configured and the collector is running.": "Se till att Podman-agentens filelog-mottagare är konfigurerad och att insamlaren körs.",
@@ -35708,5 +35707,6 @@
   "A removed column (the default order is shown)": "En borttagen kolumn (standardordningen visas)",
   "Ascending": "Stigande",
   "Descending": "Fallande",
-  "The browser prerendered this page before anybody opened it, so the recorder waited for the visitor to open it. A page that is never opened records nothing.": "Webbläsaren förrenderade den här sidan innan någon öppnade den, så inspelaren väntade tills besökaren öppnade den. En sida som aldrig öppnas spelar inte in något."
+  "The browser prerendered this page before anybody opened it, so the recorder waited for the visitor to open it. A page that is never opened records nothing.": "Webbläsaren förrenderade den här sidan innan någon öppnade den, så inspelaren väntade tills besökaren öppnade den. En sida som aldrig öppnas spelar inte in något.",
+  "Each row is one recording of about a minute.": "Varje rad är en inspelning på ungefär en minut."
 }

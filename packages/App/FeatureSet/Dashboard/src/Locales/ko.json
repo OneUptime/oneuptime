@@ -35700,7 +35700,6 @@
   "The Storage Array Agent sends metrics by default. Forward the array's syslog to the agent's optional syslog receiver and its lines appear here, tagged with the storage.array.name resource attribute.": "Storage Array Agent는 기본적으로 메트릭을 보냅니다. 어레이의 syslog를 에이전트의 선택적 syslog 리시버로 전달하면 해당 줄이 storage.array.name 리소스 속성과 함께 여기에 표시됩니다.",
   "The VMware agent sends metrics only by default. To see ESXi syslog here, enable the syslog receiver in its collector config and point your ESXi hosts' Syslog.global.logHost at the agent (see the Documentation page), or send OpenTelemetry logs with this vCenter's vmware.vcenter.name resource attribute.": "VMware 에이전트는 기본적으로 메트릭만 보냅니다. 여기서 ESXi syslog를 보려면 컬렉터 설정에서 syslog 리시버를 켜고 ESXi 호스트의 Syslog.global.logHost를 에이전트로 지정하거나(문서 페이지 참고), 이 vCenter의 vmware.vcenter.name 리소스 속성이 있는 OpenTelemetry 로그를 보내세요.",
   "This trace wrote no logs in the pinned window.": "이 트레이스는 고정한 시간 범위에 로그를 쓰지 않았습니다.",
-  "Clear a filter or widen the time range to see this host's logs.": "이 호스트의 로그를 보려면 필터를 지우거나 시간 범위를 넓히세요.",
   "Logs appear here once the kubernetes-agent's filelog receiver collects them.": "kubernetes-agent의 filelog 리시버가 로그를 수집하면 여기에 표시됩니다.",
   "Make sure the Docker agent's filelog receiver is configured and the collector is running.": "Docker 에이전트의 filelog 리시버가 설정되어 있고 컬렉터가 실행 중인지 확인하세요.",
   "Make sure the Podman agent's filelog receiver is configured and the collector is running.": "Podman 에이전트의 filelog 리시버가 설정되어 있고 컬렉터가 실행 중인지 확인하세요.",
@@ -35708,5 +35707,6 @@
   "A removed column (the default order is shown)": "삭제된 열(기본 순서로 표시됨)",
   "Ascending": "오름차순",
   "Descending": "내림차순",
-  "The browser prerendered this page before anybody opened it, so the recorder waited for the visitor to open it. A page that is never opened records nothing.": "브라우저가 누군가 열기 전에 이 페이지를 미리 렌더링했으므로, 녹화기는 방문자가 페이지를 열 때까지 기다렸습니다. 한 번도 열리지 않은 페이지는 아무것도 녹화하지 않습니다."
+  "The browser prerendered this page before anybody opened it, so the recorder waited for the visitor to open it. A page that is never opened records nothing.": "브라우저가 누군가 열기 전에 이 페이지를 미리 렌더링했으므로, 녹화기는 방문자가 페이지를 열 때까지 기다렸습니다. 한 번도 열리지 않은 페이지는 아무것도 녹화하지 않습니다.",
+  "Each row is one recording of about a minute.": "각 행은 약 1분 길이의 기록 하나입니다."
 }

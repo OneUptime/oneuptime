@@ -35700,7 +35700,6 @@
   "The Storage Array Agent sends metrics by default. Forward the array's syslog to the agent's optional syslog receiver and its lines appear here, tagged with the storage.array.name resource attribute.": "De Storage Array Agent verstuurt standaard metrieken. Stuur de syslog van de array door naar de optionele syslog-receiver van de agent, dan verschijnen de regels hier, gemarkeerd met het resource-attribuut storage.array.name.",
   "The VMware agent sends metrics only by default. To see ESXi syslog here, enable the syslog receiver in its collector config and point your ESXi hosts' Syslog.global.logHost at the agent (see the Documentation page), or send OpenTelemetry logs with this vCenter's vmware.vcenter.name resource attribute.": "De VMware-agent verstuurt standaard alleen metrieken. Om hier ESXi-syslog te zien, schakelt u de syslog-receiver in de collectorconfiguratie in en richt u Syslog.global.logHost van uw ESXi-hosts op de agent (zie de pagina Documentatie), of verstuurt u OpenTelemetry-logs met het resource-attribuut vmware.vcenter.name van deze vCenter.",
   "This trace wrote no logs in the pinned window.": "Deze trace schreef geen logs in het vastgezette venster.",
-  "Clear a filter or widen the time range to see this host's logs.": "Verwijder een filter of vergroot het tijdsbereik om de logs van deze host te zien.",
   "Logs appear here once the kubernetes-agent's filelog receiver collects them.": "Logs verschijnen hier zodra de filelog-receiver van de kubernetes-agent ze verzamelt.",
   "Make sure the Docker agent's filelog receiver is configured and the collector is running.": "Controleer of de filelog-receiver van de Docker-agent is geconfigureerd en of de collector draait.",
   "Make sure the Podman agent's filelog receiver is configured and the collector is running.": "Controleer of de filelog-receiver van de Podman-agent is geconfigureerd en of de collector draait.",
@@ -35708,5 +35707,6 @@
   "A removed column (the default order is shown)": "Een verwijderde kolom (de standaardvolgorde wordt getoond)",
   "Ascending": "Oplopend",
   "Descending": "Aflopend",
-  "The browser prerendered this page before anybody opened it, so the recorder waited for the visitor to open it. A page that is never opened records nothing.": "De browser heeft deze pagina vooraf weergegeven voordat iemand hem opende, dus de recorder wachtte tot de bezoeker hem opende. Een pagina die nooit wordt geopend, neemt niets op."
+  "The browser prerendered this page before anybody opened it, so the recorder waited for the visitor to open it. A page that is never opened records nothing.": "De browser heeft deze pagina vooraf weergegeven voordat iemand hem opende, dus de recorder wachtte tot de bezoeker hem opende. Een pagina die nooit wordt geopend, neemt niets op.",
+  "Each row is one recording of about a minute.": "Elke rij is één opname van ongeveer een minuut."
 }

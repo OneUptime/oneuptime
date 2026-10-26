@@ -56,6 +56,12 @@ const SKIPPED_DIRECTORIES: Array<string> = [
 // The logs table's own words (Common LogsTable).
 const TITLE: string = "No logs found";
 const HINT: string = "Adjust filters or check again later.";
+/*
+ * What a list the reader's own chip or search emptied says in place of the
+ * embed's line (Common LogsViewer getLogsEmptyMessage): the embed's line
+ * says how logs reach the page, which a filtered-out list does not need.
+ */
+const NARROWED_HINT: string = "Try adjusting filters or time range.";
 
 /*
  * "No logs", "No container logs", "No application logs from this pod": up
@@ -305,6 +311,8 @@ describe("embedded logs lists say each thing once", () => {
   test("the table's own title and hint read in every language", () => {
     expect(untranslatedIn(TITLE)).toEqual([]);
     expect(untranslatedIn(HINT)).toEqual([]);
+    expect(locales["en"]?.[NARROWED_HINT]).toBe(NARROWED_HINT);
+    expect(untranslatedIn(NARROWED_HINT)).toEqual([]);
   });
 
   test("the lines that were dropped are gone from the locale files", () => {
@@ -313,6 +321,8 @@ describe("embedded logs lists say each thing once", () => {
       "No logs found for this host. Make sure your OTel collector forwards logs with the host.name resource attribute.",
       "No logs found for this trace.",
       "No logs received from this device yet. Point the device's syslog and SNMP trap forwarding at the probe and messages will appear here.",
+      // The VMware host's line for a filtered-out list, now NARROWED_HINT.
+      "Clear a filter or widen the time range to see this host's logs.",
     ]) {
       for (const code of Object.keys(locales)) {
         expect({ code, has: oldLine in (locales[code] || {}) }).toEqual({

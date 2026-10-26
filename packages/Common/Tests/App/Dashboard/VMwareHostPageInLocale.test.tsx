@@ -248,7 +248,6 @@ const PART_SENTENCES: Record<string, Array<string>> = {
   ],
   "Components/VMware/Host/VMwareHostLogsTab.tsx": [
     "A probe collects this vCenter, and a probe reads the vSphere API only: it does not receive the syslog ESXi sends. The VMware agent has a syslog listener that brings this host's logs here.",
-    "Clear a filter or widen the time range to see this host's logs.",
     "ESXi sends its logs - vmkernel, hostd, vpxa and the rest - as syslog. Two steps bring them here:",
     "Every host of cluster {{cluster}} at once:",
     "It is off until you turn it on: uncomment the syslog receivers in the agent's config and open port 5514.",

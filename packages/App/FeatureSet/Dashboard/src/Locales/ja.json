@@ -35700,7 +35700,6 @@
   "The Storage Array Agent sends metrics by default. Forward the array's syslog to the agent's optional syslog receiver and its lines appear here, tagged with the storage.array.name resource attribute.": "Storage Array Agent は既定でメトリクスを送信します。アレイの syslog をエージェントの任意の syslog レシーバーに転送すると、その行が storage.array.name リソース属性付きでここに表示されます。",
   "The VMware agent sends metrics only by default. To see ESXi syslog here, enable the syslog receiver in its collector config and point your ESXi hosts' Syslog.global.logHost at the agent (see the Documentation page), or send OpenTelemetry logs with this vCenter's vmware.vcenter.name resource attribute.": "VMware エージェントは既定でメトリクスのみを送信します。ESXi の syslog をここに表示するには、コレクター設定で syslog レシーバーを有効にし、ESXi ホストの Syslog.global.logHost をエージェントに向けてください（ドキュメントのページを参照）。または、この vCenter の vmware.vcenter.name リソース属性を付けた OpenTelemetry ログを送信してください。",
   "This trace wrote no logs in the pinned window.": "このトレースは、固定した時間枠にログを書き込んでいません。",
-  "Clear a filter or widen the time range to see this host's logs.": "このホストのログを見るには、フィルターを外すか時間範囲を広げてください。",
   "Logs appear here once the kubernetes-agent's filelog receiver collects them.": "kubernetes-agent の filelog レシーバーがログを収集すると、ここに表示されます。",
   "Make sure the Docker agent's filelog receiver is configured and the collector is running.": "Docker エージェントの filelog レシーバーが設定され、コレクターが実行中であることを確認してください。",
   "Make sure the Podman agent's filelog receiver is configured and the collector is running.": "Podman エージェントの filelog レシーバーが設定され、コレクターが実行中であることを確認してください。",
@@ -35708,5 +35707,6 @@
   "A removed column (the default order is shown)": "削除された列（既定の順序で表示されます）",
   "Ascending": "昇順",
   "Descending": "降順",
-  "The browser prerendered this page before anybody opened it, so the recorder waited for the visitor to open it. A page that is never opened records nothing.": "ブラウザーが、誰かが開く前にこのページを事前レンダリングしたため、レコーダーは訪問者がページを開くまで待ちました。一度も開かれないページは何も録画しません。"
+  "The browser prerendered this page before anybody opened it, so the recorder waited for the visitor to open it. A page that is never opened records nothing.": "ブラウザーが、誰かが開く前にこのページを事前レンダリングしたため、レコーダーは訪問者がページを開くまで待ちました。一度も開かれないページは何も録画しません。",
+  "Each row is one recording of about a minute.": "各行は約 1 分間の記録 1 件です。"
 }

@@ -201,7 +201,9 @@ export interface ComponentProps {
    * The Logs page's explorer: an empty list that no filter or search
    * narrows offers the setup guide and a longer range instead of "try
    * adjusting filters" (Telemetry/TelemetryFirstSteps). Embeds leave it
-   * unset and keep their noLogsMessage.
+   * unset and keep their noLogsMessage, which says how logs reach what the
+   * page shows; a list the reader's own chip or search emptied says what
+   * to try instead (Common LogsViewer getLogsEmptyMessage).
    */
   offersSetupWhenEmpty?: boolean | undefined;
   /*

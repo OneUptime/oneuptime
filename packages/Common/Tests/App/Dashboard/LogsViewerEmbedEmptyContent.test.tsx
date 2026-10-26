@@ -28,9 +28,13 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * LogsViewer over the real Common LogsViewer and a mocked data layer:
  *
  *   - an empty, unnarrowed list shows the embed's block;
- *   - a list a search narrows to nothing says so, without the block;
+ *   - a list a search narrows to nothing says what to try, without the
+ *     block;
  *   - a list with lines shows them, without the block;
- *   - the Logs page's first steps (offersSetupWhenEmpty) win over it.
+ *   - the Logs page's first steps (offersSetupWhenEmpty) win over it;
+ *   - an embed's own line (how logs reach what it shows) is for a list
+ *     nothing narrows: once the reader's search empties the list, it says
+ *     what to try instead (getLogsEmptyMessage).
  */
 
 const getListMock: MockFunction = getJestMockFunction();
@@ -151,6 +155,7 @@ jest.mock("recharts", () => {
 
 import DashboardLogsViewer from "../../../../App/FeatureSet/Dashboard/src/Components/Logs/LogsViewer";
 import { LOGS_VIEWER_TOOLBAR_TEST_ID } from "../../../UI/Components/LogsViewer/components/LogsViewerToolbar";
+import { LOGS_NARROWED_EMPTY_HINT } from "../../../UI/Components/LogsViewer/LogsViewer";
 import Log from "../../../Models/AnalyticsModels/Log";
 import LogSeverity from "../../../Types/Log/LogSeverity";
 import Query from "../../../Types/BaseDatabase/Query";
@@ -181,6 +186,18 @@ const HOST_QUERY: Query<Log> = {
 
 function ownBlock(): React.ReactElement {
   return <div data-testid="embed-empty-block">Send the host syslog</div>;
+}
+
+// A host's Logs tab's own line (Pages/Host/View/Logs.tsx).
+const HOST_HINT: string =
+  "Make sure your OTel collector forwards logs with the host.name resource attribute.";
+
+// Types a search into the bar and runs it, as a reader does.
+async function search(text: string): Promise<void> {
+  const box: HTMLElement = screen.getByRole("textbox");
+  fireEvent.change(box, { target: { value: text } });
+  fireEvent.keyDown(box, { key: "Enter", code: "Enter" });
+  await settle();
 }
 
 async function settle(): Promise<void> {
@@ -259,44 +276,34 @@ describe("an embedded explorer's own empty block", () => {
         id="vmware-host-logs-test"
         logQuery={HOST_QUERY}
         showFilters={true}
-        noLogsMessage="Clear a filter or widen the time range to see this host's logs."
         emptyContentWhenUnfiltered={ownBlock()}
       />,
     );
 
     expect(await screen.findByTestId("embed-empty-block")).toBeInTheDocument();
-    expect(
-      screen.queryByText(
-        "Clear a filter or widen the time range to see this host's logs.",
-      ),
-    ).toBeNull();
+    expect(screen.queryByTestId("logs-table-empty")).toBeNull();
+    expect(screen.queryByText(LOGS_NARROWED_EMPTY_HINT)).toBeNull();
   });
 
-  test("a list a search narrows to nothing says so, without the block", async () => {
+  test("a list a search narrows to nothing says what to try, without the block", async () => {
     await mount(
       <DashboardLogsViewer
         id="vmware-host-logs-test"
         logQuery={HOST_QUERY}
         showFilters={true}
-        noLogsMessage="Clear a filter or widen the time range to see this host's logs."
         emptyContentWhenUnfiltered={ownBlock()}
       />,
     );
     await screen.findByTestId("embed-empty-block");
 
-    const search: HTMLElement = screen.getByRole("textbox");
-    fireEvent.change(search, { target: { value: "hostd" } });
-    fireEvent.keyDown(search, { key: "Enter", code: "Enter" });
-    await settle();
+    await search("hostd");
 
     await waitFor(() => {
       expect(screen.queryByTestId("embed-empty-block")).toBeNull();
     });
-    expect(
-      screen.getByText(
-        "Clear a filter or widen the time range to see this host's logs.",
-      ),
-    ).toBeInTheDocument();
+    expect(screen.getByTestId("logs-table-empty")).toHaveTextContent(
+      LOGS_NARROWED_EMPTY_HINT,
+    );
   });
 
   test("a list with lines shows them, not the block", async () => {
@@ -335,14 +342,44 @@ describe("an embedded explorer's own empty block", () => {
         id="host-logs-test"
         logQuery={HOST_QUERY}
         showFilters={true}
-        noLogsMessage="Make sure your OTel collector forwards logs with the host.name resource attribute."
+        noLogsMessage={HOST_HINT}
       />,
     );
 
-    expect(
-      await screen.findByText(
-        "Make sure your OTel collector forwards logs with the host.name resource attribute.",
-      ),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(HOST_HINT)).toBeInTheDocument();
+  });
+
+  test("REGRESSION: an embed's own line gives way to what to try once a search empties the list", async () => {
+    /*
+     * A host's line says how its logs get here. Shown under a search that
+     * found nothing, it told the reader the host sent no logs - it did, and
+     * the search left none.
+     */
+    await mount(
+      <DashboardLogsViewer
+        id="host-logs-test"
+        logQuery={HOST_QUERY}
+        showFilters={true}
+        noLogsMessage={HOST_HINT}
+      />,
+    );
+    await screen.findByText(HOST_HINT);
+
+    await search("connection refused");
+
+    await waitFor(() => {
+      expect(screen.getByTestId("logs-table-empty")).toHaveTextContent(
+        LOGS_NARROWED_EMPTY_HINT,
+      );
+    });
+    expect(screen.queryByText(HOST_HINT)).toBeNull();
+
+    // The search cleared, the list is the host's again, with its line.
+    await search("");
+
+    await waitFor(() => {
+      expect(screen.getByText(HOST_HINT)).toBeInTheDocument();
+    });
+    expect(screen.queryByText(LOGS_NARROWED_EMPTY_HINT)).toBeNull();
   });
 });

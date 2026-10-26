@@ -35700,7 +35700,6 @@
   "The Storage Array Agent sends metrics by default. Forward the array's syslog to the agent's optional syslog receiver and its lines appear here, tagged with the storage.array.name resource attribute.": "El Storage Array Agent envía métricas de forma predeterminada. Reenvía el syslog de la cabina al receptor syslog opcional del agente y sus líneas aparecerán aquí, etiquetadas con el atributo de recurso storage.array.name.",
   "The VMware agent sends metrics only by default. To see ESXi syslog here, enable the syslog receiver in its collector config and point your ESXi hosts' Syslog.global.logHost at the agent (see the Documentation page), or send OpenTelemetry logs with this vCenter's vmware.vcenter.name resource attribute.": "El agente de VMware solo envía métricas de forma predeterminada. Para ver aquí el syslog de ESXi, habilita el receptor syslog en la configuración de su colector y dirige el Syslog.global.logHost de tus hosts ESXi al agente (consulta la página Documentación), o envía registros de OpenTelemetry con el atributo de recurso vmware.vcenter.name de este vCenter.",
   "This trace wrote no logs in the pinned window.": "Esta traza no escribió registros en la ventana fijada.",
-  "Clear a filter or widen the time range to see this host's logs.": "Quita un filtro o amplía el intervalo de tiempo para ver los registros de este host.",
   "Logs appear here once the kubernetes-agent's filelog receiver collects them.": "Los registros aparecen aquí en cuanto el receptor filelog del kubernetes-agent los recopila.",
   "Make sure the Docker agent's filelog receiver is configured and the collector is running.": "Asegúrate de que el receptor filelog del agente de Docker está configurado y de que el colector está en ejecución.",
   "Make sure the Podman agent's filelog receiver is configured and the collector is running.": "Asegúrate de que el receptor filelog del agente de Podman está configurado y de que el colector está en ejecución.",
@@ -35708,5 +35707,6 @@
   "A removed column (the default order is shown)": "Una columna eliminada (se muestra el orden predeterminado)",
   "Ascending": "Ascendente",
   "Descending": "Descendente",
-  "The browser prerendered this page before anybody opened it, so the recorder waited for the visitor to open it. A page that is never opened records nothing.": "El navegador prerrenderizó esta página antes de que nadie la abriera, así que el grabador esperó a que el visitante la abriera. Una página que nunca se abre no graba nada."
+  "The browser prerendered this page before anybody opened it, so the recorder waited for the visitor to open it. A page that is never opened records nothing.": "El navegador prerrenderizó esta página antes de que nadie la abriera, así que el grabador esperó a que el visitante la abriera. Una página que nunca se abre no graba nada.",
+  "Each row is one recording of about a minute.": "Cada fila es una grabación de alrededor de un minuto."
 }

@@ -35700,7 +35700,6 @@
   "The Storage Array Agent sends metrics by default. Forward the array's syslog to the agent's optional syslog receiver and its lines appear here, tagged with the storage.array.name resource attribute.": "Le Storage Array Agent envoie des métriques par défaut. Transmettez le syslog de la baie au récepteur syslog facultatif de l'agent et ses lignes apparaissent ici, marquées de l'attribut de ressource storage.array.name.",
   "The VMware agent sends metrics only by default. To see ESXi syslog here, enable the syslog receiver in its collector config and point your ESXi hosts' Syslog.global.logHost at the agent (see the Documentation page), or send OpenTelemetry logs with this vCenter's vmware.vcenter.name resource attribute.": "L'agent VMware n'envoie par défaut que des métriques. Pour voir ici le syslog ESXi, activez le récepteur syslog dans la configuration de son collecteur et dirigez le Syslog.global.logHost de vos hôtes ESXi vers l'agent (voir la page Documentation), ou envoyez des journaux OpenTelemetry portant l'attribut de ressource vmware.vcenter.name de ce vCenter.",
   "This trace wrote no logs in the pinned window.": "Cette trace n'a écrit aucun journal dans la fenêtre épinglée.",
-  "Clear a filter or widen the time range to see this host's logs.": "Retirez un filtre ou élargissez la plage de temps pour voir les journaux de cet hôte.",
   "Logs appear here once the kubernetes-agent's filelog receiver collects them.": "Les journaux apparaissent ici dès que le récepteur filelog du kubernetes-agent les collecte.",
   "Make sure the Docker agent's filelog receiver is configured and the collector is running.": "Vérifiez que le récepteur filelog de l'agent Docker est configuré et que le collecteur est en cours d'exécution.",
   "Make sure the Podman agent's filelog receiver is configured and the collector is running.": "Vérifiez que le récepteur filelog de l'agent Podman est configuré et que le collecteur est en cours d'exécution.",
@@ -35708,5 +35707,6 @@
   "A removed column (the default order is shown)": "Une colonne supprimée (l'ordre par défaut est affiché)",
   "Ascending": "Croissant",
   "Descending": "Décroissant",
-  "The browser prerendered this page before anybody opened it, so the recorder waited for the visitor to open it. A page that is never opened records nothing.": "Le navigateur a pré-rendu cette page avant que quiconque ne l'ouvre ; l'enregistreur a donc attendu que le visiteur l'ouvre. Une page qui n'est jamais ouverte n'enregistre rien."
+  "The browser prerendered this page before anybody opened it, so the recorder waited for the visitor to open it. A page that is never opened records nothing.": "Le navigateur a pré-rendu cette page avant que quiconque ne l'ouvre ; l'enregistreur a donc attendu que le visiteur l'ouvre. Une page qui n'est jamais ouverte n'enregistre rien.",
+  "Each row is one recording of about a minute.": "Chaque ligne est un enregistrement d'environ une minute."
 }

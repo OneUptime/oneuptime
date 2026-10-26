@@ -13,6 +13,7 @@ import {
 import {
   act,
   cleanup,
+  fireEvent,
   render,
   screen,
   waitFor,
@@ -163,6 +164,7 @@ import {
   LOGS_TABLE_EMPTY_TITLE,
 } from "../../../UI/Components/LogsViewer/components/LogsTable";
 import { LOGS_VIEWER_TOOLBAR_TEST_ID } from "../../../UI/Components/LogsViewer/components/LogsViewerToolbar";
+import { LOGS_NARROWED_EMPTY_HINT } from "../../../UI/Components/LogsViewer/LogsViewer";
 import Log from "../../../Models/AnalyticsModels/Log";
 import Query from "../../../Types/BaseDatabase/Query";
 
@@ -240,6 +242,16 @@ async function mountEmpty(noLogsMessage: string): Promise<HTMLElement> {
   await waitFor(() => {
     expect(screen.getByTestId(LOGS_VIEWER_TOOLBAR_TEST_ID)).toBeInTheDocument();
   });
+  await settle();
+
+  return await screen.findByTestId("logs-table-empty");
+}
+
+// The block once a search the reader typed has emptied the list.
+async function searchedEmpty(): Promise<HTMLElement> {
+  const box: HTMLElement = screen.getByRole("textbox");
+  fireEvent.change(box, { target: { value: "connection refused" } });
+  fireEvent.keyDown(box, { key: "Enter", code: "Enter" });
   await settle();
 
   return await screen.findByTestId("logs-table-empty");
@@ -334,7 +346,51 @@ describe("an embedded logs list with nothing in it", () => {
     ]);
   });
 
+  test("a search that empties the list says what to try, not how logs get here", async () => {
+    await mountEmpty(HOST_HINT);
+
+    const block: HTMLElement = await searchedEmpty();
+
+    expect(linesOf(block)).toEqual([
+      LOGS_TABLE_EMPTY_TITLE,
+      LOGS_NARROWED_EMPTY_HINT,
+    ]);
+  });
+
+  test("what to try is a key, translated in each language read here", () => {
+    const untranslated: Array<string> = Object.keys(LOCALES).filter(
+      (language: string): boolean => {
+        return (
+          language !== "en" &&
+          LOCALES[language]![LOGS_NARROWED_EMPTY_HINT] ===
+            LOGS_NARROWED_EMPTY_HINT
+        );
+      },
+    );
+
+    expect(LOCALES["en"]![LOGS_NARROWED_EMPTY_HINT]).toBe(
+      LOGS_NARROWED_EMPTY_HINT,
+    );
+    expect(untranslated).toEqual([]);
+  });
+
   for (const language of LANGUAGES) {
+    test(`a search that empties the list says what to try in ${language}`, async () => {
+      await readIn(language);
+
+      await mountEmpty(HOST_HINT);
+      const block: HTMLElement = await searchedEmpty();
+      const words: Record<string, string> = LOCALES[language]!;
+
+      expect(linesOf(block)).toEqual([
+        words[LOGS_TABLE_EMPTY_TITLE],
+        words[LOGS_NARROWED_EMPTY_HINT],
+      ]);
+      expect(words[LOGS_NARROWED_EMPTY_HINT]).not.toBe(
+        LOGS_NARROWED_EMPTY_HINT,
+      );
+    });
+
     test(`reads wholly in ${language}: the title and the page's line`, async () => {
       await readIn(language);
 
