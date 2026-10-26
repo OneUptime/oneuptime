@@ -10,10 +10,16 @@ import LabelsElement from "Common/UI/Components/Label/Labels";
 import Label from "Common/Models/DatabaseModels/Label";
 import OneUptimeDate from "Common/Types/Date";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
-import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
+import { getDrawnLanguage } from "Common/UI/Components/SideMenu/SideMenuEntryState";
+import {
+  translateNamedAction,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import AppLink from "../AppLink/AppLink";
 import EditInSettingsLink from "./EditInSettingsLink";
+import { getTileTitleWordsClassName } from "./TileTitleWords";
 import ResourceHeroDescription from "./ResourceHeroDescription";
 import {
   RESOURCE_HERO_CONTROLS_CLASS_NAME,
@@ -56,6 +62,11 @@ export type ResourceOverviewTileColor =
   | "rose";
 
 export interface ResourceOverviewTile {
+  /*
+   * The metric's name, and the line under its value, as English literals:
+   * the tile draws both in the reader's language (a name or a line the
+   * locale has no words for, or one a page worded itself, reads as given).
+   */
   title: string;
   value: string;
   icon: IconProp;
@@ -198,13 +209,38 @@ const GoldenMetricTile: FunctionComponent<ResourceOverviewTile> = (
   const colors: { bg: string; ring: string; text: string } =
     tileColorClasses[props.iconColor];
   /*
-   * A page names its tiles in English: each is drawn, and explained, in the
-   * reader's language - "Ressourcen", not "RESOURCES", on a German page.
+   * A page hands the tile its English name ("Page loads", "Queries"), and the
+   * tile draws it in the reader's language, as the shared components do with
+   * the English they are given (Locales/README.md, stage 2). The link laid
+   * over a linked tile and the line read while it loads say the same name in
+   * the same language; the (i) takes the English and words its own label.
    */
   const title: string = translator.translateText(props.title) || props.title;
-  const description: string | undefined = props.description
-    ? translator.translateText(props.description) || props.description
+  /*
+   * A translated name can hold a word longer than a narrow tile's line - a
+   * Portuguese "Carregamentos" in a phone's two columns. It breaks where
+   * its language hyphenates it, the title saying which language it is in
+   * (TileTitleWords), and never runs under the icon, which keeps its size.
+   */
+  const titleLanguage: string | undefined = getDrawnLanguage({
+    english: props.title,
+    drawn: title,
+    language: translator.language,
+  });
+  /*
+   * The line under the value, too: a page hands it in English ("selected
+   * range", "spans, selected range") or already worded ("median 0.9 s"), and
+   * the tile draws it as the locale words it, so a title in the reader's
+   * language never sits over an English line the locale has words for.
+   */
+  const sublabel: string | undefined = props.sublabel
+    ? translator.translateText(props.sublabel) || props.sublabel
     : undefined;
+  const sublabelLanguage: string | undefined = getDrawnLanguage({
+    english: props.sublabel,
+    drawn: sublabel,
+    language: translator.language,
+  });
 
   const barColor: string = (() => {
     if (props.percent === null || props.percent === undefined) {
@@ -253,31 +289,46 @@ const GoldenMetricTile: FunctionComponent<ResourceOverviewTile> = (
           to={props.to}
           className="absolute inset-0 rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
         >
-          <span className="sr-only">{`View ${props.title}`}</span>
+          <span className="sr-only">
+            {translateNamedAction(translator, {
+              template: "View {{itemName}}",
+              itemName: props.title,
+            })}
+          </span>
         </AppLink>
       ) : (
         <></>
       )}
       <div className="flex items-center justify-between mb-3">
         <div className="flex min-w-0 items-center gap-1">
-          <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+          <span
+            className={`min-w-0 text-xs font-medium text-gray-500 uppercase tracking-wider ${getTileTitleWordsClassName(
+              { text: title, lang: titleLanguage },
+            )}`}
+            lang={titleLanguage}
+          >
             {title}
           </span>
           <InfoTooltip
-            label={title}
-            text={description}
+            label={props.title}
+            text={props.description}
             className="relative z-10"
           />
         </div>
         <div
-          className={`flex h-7 w-7 items-center justify-center rounded-md ${colors.bg} ring-1 ring-inset ${colors.ring}`}
+          className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md ${colors.bg} ring-1 ring-inset ${colors.ring}`}
         >
           <Icon icon={props.icon} className={`h-3.5 w-3.5 ${colors.text}`} />
         </div>
       </div>
       {props.loading ? (
         <div role="status" aria-live="polite">
-          <span className="sr-only">Loading {props.title}</span>
+          <span className="sr-only">
+            {translateNamedAction(translator, {
+              template: "Loading {{itemsName}}",
+              itemName: props.title,
+            })}
+          </span>
           <div
             className="h-6 w-24 rounded bg-gray-100 motion-safe:animate-pulse"
             aria-hidden="true"
@@ -300,9 +351,12 @@ const GoldenMetricTile: FunctionComponent<ResourceOverviewTile> = (
           <div className="text-2xl font-semibold text-gray-900 leading-none">
             {props.value}
           </div>
-          {props.sublabel ? (
-            <div className="mt-1 text-xs text-gray-500 truncate">
-              {props.sublabel}
+          {sublabel ? (
+            <div
+              className="mt-1 text-xs text-gray-500 truncate"
+              lang={sublabelLanguage}
+            >
+              {sublabel}
             </div>
           ) : (
             <div className="mt-1 text-xs text-gray-400">&nbsp;</div>

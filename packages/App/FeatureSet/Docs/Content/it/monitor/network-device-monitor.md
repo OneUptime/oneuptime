@@ -62,7 +62,7 @@ Sotto, una riga dice se qualcosa apre un incidente quando un dispositivo diventa
 
 Finché non è stato aggiunto nulla, la panoramica ti guida invece in tre passaggi. **Metti una sonda nella tua rete**: una sonda esegue il ping e il walk dei tuoi dispositivi dall'interno della loro rete, quindi **Aggiungi una sonda** ne nomina una, mostra il comando che la avvia e la osserva connettersi. **Aggiungi i tuoi dispositivi**: **Rileva dispositivi** scansiona un intervallo di indirizzi perché tu scelga cosa aggiungere, ideale per un'intera rete o un nuovo sito, e **Aggiungi un singolo dispositivo** ne aggiunge uno tramite il suo indirizzo IP o hostname. **Ricevi un avviso quando un dispositivo diventa inattivo**: **Configura gli avvisi** apre le [policy di avviso](#policy-di-avviso), dove la policy consigliata è a un clic. Su OneUptime Cloud, [aggiungere una sonda](/docs/probe/custom-probe) richiede il piano Growth: al di sotto, il passaggio lo dice e rimanda invece alle impostazioni di fatturazione, e le sonde di OneUptime su Internet possono comunque controllare i dispositivi con un indirizzo pubblico.
 
-Il menu Rete tiene in vista ciò che apri ogni giorno: **Panoramica**, **Devices**, **Siti**, **Mappa**, **Traffic**, **Eventi** e **Discovery**. Il resto è raccolto in sezioni, e una sezione si apre da sola su una qualsiasi delle sue pagine:
+Il menu Rete tiene in vista ciò che apri ogni giorno: **Panoramica**, **Dispositivi**, **Siti**, **Mappa**, **Traffic**, **Eventi** e **Discovery**. Il resto è raccolto in sezioni, e una sezione si apre da sola su una qualsiasi delle sue pagine:
 
 | Sezione | Pagine |
 | --- | --- |
@@ -75,7 +75,7 @@ Il menu Rete tiene in vista ciò che apri ogni giorno: **Panoramica**, **Devices
 
 :::steps
 ### Aprire l'elenco dei dispositivi
-Vai su **Rete → Devices** e fai clic su **Aggiungi dispositivo**. **Aggiungi dispositivo** nella **Panoramica** di Rete apre lo stesso modulo.
+Vai su **Rete → Dispositivi** e fai clic su **Aggiungi dispositivo**. **Aggiungi dispositivo** nella **Panoramica** di Rete apre lo stesso modulo.
 
 ### Digitare l'indirizzo del dispositivo
 In **Nome host**, digita il suo indirizzo IP o hostname. Lascia vuoto **Nome** per dare al dispositivo il nome del suo hostname.
@@ -140,7 +140,7 @@ Le credenziali digitate sul dispositivo prevalgono su un profilo di credenziali 
 
 ## Modificare molti dispositivi insieme
 
-Una scansione di rilevamento della rete di un cliente porta dentro decine di dispositivi che appartengono a un solo sito, condividono un ruolo e provengono da un solo produttore. Non li apri uno a uno: selezionali nell'elenco **Devices**, spuntando le righe o selezionando tutti i dispositivi che corrispondono ai filtri, e apri **Azioni di massa**.
+Una scansione di rilevamento della rete di un cliente porta dentro decine di dispositivi che appartengono a un solo sito, condividono un ruolo e provengono da un solo produttore. Non li apri uno a uno: selezionali nell'elenco **Dispositivi**, spuntando le righe o selezionando tutti i dispositivi che corrispondono ai filtri, e apri **Azioni di massa**.
 
 | Azione | Cosa fa |
 | --- | --- |
@@ -184,7 +184,7 @@ Un dispositivo il cui ping e il cui walk falliscono entrambi è semplicemente **
 
 ### Leggere lo stato di un dispositivo
 
-Ogni punto che mostra un dispositivo — l'elenco Devices, la pagina Devices di un sito, la panoramica, la mappa — usa gli stessi tre verdetti e gli stessi qualificatori accanto.
+Ogni punto che mostra un dispositivo — l'elenco Dispositivi, la pagina Dispositivi di un sito, la panoramica, la mappa — usa gli stessi tre verdetti e gli stessi qualificatori accanto.
 
 | Verdetto | Significa |
 | --- | --- |
@@ -194,12 +194,12 @@ Ogni punto che mostra un dispositivo — l'elenco Devices, la pagina Devices di 
 
 | Qualificatore | Compare quando | Cosa fare |
 | --- | --- | --- |
-| **Stale** | Nessun polling è stato tentato da ben più dell'intervallo del dispositivo. | Controlla che la sonda del dispositivo sia online e stia al passo con la sua flotta. |
+| **Non aggiornato** | Nessun polling è stato tentato da ben più dell'intervallo del dispositivo. | Controlla che la sonda del dispositivo sia online e stia al passo con la sua flotta. |
 | **No probe** | Il dispositivo è interrogato dalla sonda ma non ne ha una, o il suo polling è disattivato. | Assegna una sonda in grado di raggiungerlo; fino ad allora nulla lo interroga. |
 | **Nessun monitor** | Il dispositivo usa l'[override con monitor associato](#loverride-con-monitor-associato) e nulla è associato. | Associa un monitor, o riportalo al polling tramite sonda. |
 | **SNMP failing** | Attivo al ping, ma l'ultimo walk SNMP è fallito. | Controlla le credenziali, l'agente SNMP o un'ACL. |
 
-L'elenco **Devices** ha un filtro **SNMP** con tre valori: **OK** (l'ultimo walk è riuscito), **In errore** (l'ultimo walk è fallito) e **Not configured** (solo ping, senza credenziali o mai interrogato). «Quali dispositivi hanno credenziali che hanno smesso di funzionare» è a un clic di distanza. La colonna **Interfaces (Up / Down)** dell'elenco riporta **Senza SNMP** invece di `0 / 0` per un dispositivo che riceve il ping e non viene mai sottoposto a walk: zero porte funzionanti sarebbe un'affermazione diversa, e sbagliata.
+L'elenco **Dispositivi** ha un filtro **SNMP** con tre valori: **OK** (l'ultimo walk è riuscito), **In errore** (l'ultimo walk è fallito) e **Not configured** (solo ping, senza credenziali o mai interrogato). «Quali dispositivi hanno credenziali che hanno smesso di funzionare» è a un clic di distanza. La colonna **Interfaces (Up / Down)** dell'elenco riporta **Senza SNMP** invece di `0 / 0` per un dispositivo che riceve il ping e non viene mai sottoposto a walk: zero porte funzionanti sarebbe un'affermazione diversa, e sbagliata.
 
 ## Credenziali SNMP e profili di credenziali
 
@@ -240,13 +240,13 @@ Cancellare le credenziali proprie del dispositivo non cancella un profilo. Se il
 
 ### In blocco
 
-Seleziona i dispositivi nell'elenco **Devices** e usa:
+Seleziona i dispositivi nell'elenco **Dispositivi** e usa:
 
 - **Set SNMP Credential Profile** / **Clear SNMP Credential Profile**: assegna un profilo a una selezione, o toglilo.
 - **Switch to Probe Polling**: per i dispositivi con l'override con monitor associato. Scegli una sonda, e da quel momento ogni dispositivo selezionato riceve il ping secondo la sua pianificazione, e il walk quando ha le credenziali. Un monitor già associato resta associato; lo stato del dispositivo ora viene dalla sonda.
 - **Create Ping Monitors**: per i dispositivi con l'override con monitor associato, crea un monitor Ping sull'hostname di ogni dispositivo e lo associa, così il dispositivo risulta Up o Down.
 
-La pagina **Devices** mostra un banner quando il progetto contiene dispositivi con l'override con monitor associato senza nulla di associato — dispositivi che nulla interroga e su cui nulla riferisce — e rimanda alla selezione che li sistema.
+La pagina **Dispositivi** mostra un banner quando il progetto contiene dispositivi con l'override con monitor associato senza nulla di associato — dispositivi che nulla interroga e su cui nulla riferisce — e rimanda alla selezione che li sistema.
 
 ## Impostazioni predefinite di monitoraggio del sito
 
@@ -322,7 +322,7 @@ Nell'editor **Health OIDs**, **Vendor Health Template** applica un insieme di OI
 
 Gli OID del modello vengono copiati nell'elenco proprio del dispositivo, dove puoi sfoltirli o ampliarli. Dopo che il primo walk ha identificato il produttore, la panoramica del dispositivo propone il modello corrispondente finché aggiungerebbe qualcosa, e **Aggiungi i controlli di salute** lo aggiunge con un clic. L'abbinamento legge il `sysObjectID` del dispositivo, e il suo `sysDescr` quando uno stesso numero enterprise ospita due sistemi operativi: Extreme Fabric Engine su hardware universale riporta lo stesso numero enterprise (1916) di EXOS, e solo la sua descrizione (`…-FabricEngine (9.0.4.0)`) li distingue. Gli access point UniFi si distinguono allo stesso modo dai router Ubiquiti (`U6-Pro 6.6.50.15098`), anche quando un firmware più vecchio risponde con il ramo di Net-SNMP, e gli access point IQ Engine dagli switch Aerohive che ne condividono il ramo (`AP230, HiveOS 8.2r1`).
 
-I dispositivi con **Auto-Apply Vendor Health Template** attivo ricevono gli OID e le tabelle del modello al loro primo polling: i dispositivi portati dentro da una regola di importazione automatica, e quelli importati da **Esamina i risultati** con l'interruttore del modello del produttore attivo, come è a meno che tu non lo disattivi. Per dare a molti dispositivi il loro modello in una volta, come una flotta rilevata prima che esistesse l'interruttore, selezionali nell'elenco **Devices** e usa **Applica modello del produttore** (vedi [Modificare molti dispositivi insieme](#modificare-molti-dispositivi-insieme)).
+I dispositivi con **Auto-Apply Vendor Health Template** attivo ricevono gli OID e le tabelle del modello al loro primo polling: i dispositivi portati dentro da una regola di importazione automatica, e quelli importati da **Esamina i risultati** con l'interruttore del modello del produttore attivo, come è a meno che tu non lo disattivi. Per dare a molti dispositivi il loro modello in una volta, come una flotta rilevata prima che esistesse l'interruttore, selezionali nell'elenco **Dispositivi** e usa **Applica modello del produttore** (vedi [Modificare molti dispositivi insieme](#modificare-molti-dispositivi-insieme)).
 
 Applicare un modello del produttore è una copia una tantum: nulla si propaga quando il modello cambia. Per più di un singolo dispositivo, usa invece un **OID Collection Template**; i modelli dei produttori vengono proposti come punto di partenza quando ne crei uno.
 
@@ -352,7 +352,7 @@ Un OID in un modello viene raccolto così com'è scritto, quindi un OID che indi
 Ci sono tre modi per collegare i dispositivi, e su una flotta che il rilevamento continua a trovare, il terzo è quello che conta di più:
 
 - Un dispositivo alla volta, nella scheda **Polling & Data Collection** del dispositivo.
-- In blocco, selezionando i dispositivi nell'elenco **Devices** e usando **Set OID Collection Template**. La colonna **Modello** dell'elenco mostra quali dispositivi sono collegati a cosa.
+- In blocco, selezionando i dispositivi nell'elenco **Dispositivi** e usando **Set OID Collection Template**. La colonna **Modello** dell'elenco mostra quali dispositivi sono collegati a cosa.
 - Automaticamente, impostando un OID Collection Template su una regola di importazione automatica, così ogni dispositivo importato da una scansione viene collegato nel momento in cui viene creato.
 
 Un dispositivo raccoglie prima gli OID del suo modello, poi i propri **Device-Specific Health OIDs**. Quando entrambi indicano lo stesso OID, questo viene raccolto una sola volta, prevalgono il nome e la descrizione del dispositivo e le voci del modello mantengono il loro posto, quindi le aggiunte specifiche del dispositivo non possono mai spingerle fuori.
@@ -638,12 +638,12 @@ I nomi propri del dispositivo vengono prima perché sono quelli usati dai suoi r
 
 **Dai ai dispositivi il nome breve dell'host** tronca un nome completo alla sua prima etichetta: `core-sw-01.corp.example.com` viene importato come `core-sw-01`. Si applica a un nome DNS inverso e a un `sysName` che è un hostname completo; tutto il resto (`Core Switch`, `ubuntu-22.04`, un indirizzo IP) resta com'è. Cambia solo come si chiamano i dispositivi, quindi non serve una nuova scansione: **Esamina i risultati** e le regole di importazione automatica lo usano la prossima volta che danno un nome a un host, e i dispositivi già importati mantengono i loro nomi.
 
-Un dispositivo importato da un host con un nome DNS inverso conserva il nome completo come suo **DNS Name**, che la scansione usi i nomi brevi o no. Viene mostrato nella panoramica del dispositivo, la ricerca dell'elenco **Devices** lo trova, e le regole di assegnazione dei siti confrontano con esso i modelli di hostname, così una regola `*.store-0660.corp.example.com` continua a collocare un dispositivo il cui nome ha perso il dominio. Un nome NetBIOS non viene mai salvato come DNS Name: l'host lo riporta su di sé, e non è un record DNS.
+Un dispositivo importato da un host con un nome DNS inverso conserva il nome completo come suo **DNS Name**, che la scansione usi i nomi brevi o no. Viene mostrato nella panoramica del dispositivo, la ricerca dell'elenco **Dispositivi** lo trova, e le regole di assegnazione dei siti confrontano con esso i modelli di hostname, così una regola `*.store-0660.corp.example.com` continua a collocare un dispositivo il cui nome ha perso il dominio. Un nome NetBIOS non viene mai salvato come DNS Name: l'host lo riporta su di sé, e non è un record DNS.
 
 > [!WARNING]
 > Le regole delle etichette e dei proprietari confrontano il nome del dispositivo. Un modello scritto per i nomi DNS (`*.wbhq.com`) o per i nomi completi (`*.corp.example.com`) non corrisponde a un dispositivo chiamato con il suo nome proprio o con il suo nome breve. Le regole di assegnazione dei siti provano anche il DNS Name, quindi continuano a corrispondere.
 
-Per accorciare i dispositivi che hai già importato, selezionali nell'elenco **Devices** e usa **Shorten Names to Hostname**. La conferma mostra quanti dispositivi verranno rinominati, con degli esempi. Un dispositivo senza DNS Name conserva il suo nome completo come DNS Name, a meno che quel nome non sia anche il suo nome di sistema SNMP o sia abbastanza lungo da essere stato troncato all'importazione. Un dispositivo viene saltato quando un altro dispositivo ha già il suo nome breve, quando due dispositivi selezionati riceverebbero lo stesso nome breve, o quando il suo nome è cambiato dopo che lo hai selezionato. Le regole di assegnazione dei siti vengono rieseguite per ogni dispositivo rinominato; quelle delle etichette e dei proprietari no, quindi usa [Run Now](/docs/configuration/run-rules-now) su una regola che confronta i nomi dei dispositivi. I monitor Ping esistenti mantengono i loro nomi, e le serie di metriche etichettate con il nome del dispositivo iniziano una nuova serie con il nuovo nome.
+Per accorciare i dispositivi che hai già importato, selezionali nell'elenco **Dispositivi** e usa **Shorten Names to Hostname**. La conferma mostra quanti dispositivi verranno rinominati, con degli esempi. Un dispositivo senza DNS Name conserva il suo nome completo come DNS Name, a meno che quel nome non sia anche il suo nome di sistema SNMP o sia abbastanza lungo da essere stato troncato all'importazione. Un dispositivo viene saltato quando un altro dispositivo ha già il suo nome breve, quando due dispositivi selezionati riceverebbero lo stesso nome breve, o quando il suo nome è cambiato dopo che lo hai selezionato. Le regole di assegnazione dei siti vengono rieseguite per ogni dispositivo rinominato; quelle delle etichette e dei proprietari no, quindi usa [Run Now](/docs/configuration/run-rules-now) su una regola che confronta i nomi dei dispositivi. I monitor Ping esistenti mantengono i loro nomi, e le serie di metriche etichettate con il nome del dispositivo iniziano una nuova serie con il nuovo nome.
 
 :::details Nomi NetBIOS: come funziona la ricerca
 Gli host Windows e Samba spesso non hanno un agente SNMP, quindi senza questa opzione verrebbero elencati con un nome DNS inverso che i loro responsabili magari non usano, o per indirizzo. Con **Cerca i nomi Windows (NetBIOS)** attivo, dopo la scansione la sonda chiede a ogni host senza nome di sistema SNMP il suo nome NetBIOS, con una query NBSTAT su UDP 137, iniziando dagli host senza nome DNS inverso. L'opzione è attiva per le nuove scansioni e disattiva per quelle create prima che esistesse; attivarla o disattivarla mantiene i risultati della scansione e ha effetto alla successiva esecuzione della scansione. Funziona al meglio delle possibilità:

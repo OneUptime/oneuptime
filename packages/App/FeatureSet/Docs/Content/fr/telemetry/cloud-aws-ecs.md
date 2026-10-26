@@ -322,7 +322,7 @@ aws ecs update-service \
 ## Ce que vous obtenez
 
 - **Vue d'ensemble** : requêtes, taux d'erreur et latence p95 issus de vos traces, les tuiles **CPU** et **Mémoire** et **Principales instances par CPU**. Les tuiles se remplissent à partir de `ecs.task.cpu.utilized` et `ecs.task.memory.utilized` du récepteur `awsecscontainermetrics`, ou de toute métrique `container.cpu.utilization` et `container.memory.usage` qui porte l'identité de la tâche. SDK direct n'envoie ni l'un ni l'autre.
-- **Instances** : une ligne par tâche en cours, nommée par son ID de tâche (la fin de `aws.ecs.task.arn`), avec son dernier CPU, sa mémoire et l'heure où elle a été vue pour la dernière fois. Une tâche qui ne remonte plus de données passe en **Stale**.
+- **Instances** : une ligne par tâche en cours, nommée par son ID de tâche (la fin de `aws.ecs.task.arn`), avec son dernier CPU, sa mémoire et l'heure où elle a été vue pour la dernière fois. Une tâche qui ne remonte plus de données passe en **Obsolète**.
 - **Journaux**, **Traces** et **Métriques** : tout ce qui a porté `cloud.platform=aws_ecs` pour ce compte et cette région.
 - **Services** : les mêmes tâches, ventilées par `service.name`.
 

@@ -147,10 +147,10 @@ OneUptime 每 10 分钟汇总一次你的应用在过去 15 分钟内发送的�
 - 地址在整个项目中指向唯一的一台服务器：是 DNS 名称，而不是 IP 字面量，也不是只在一台机器上或一个网络内才能解析的名称，除非调用方的 Kubernetes 集群对其进行了限定（见 [端点](#端点和唯一所有者规则)）；
 - 端口是服务器监听的端口。操作系统从 32768 及以上为连接的客户端一侧分配端口（Linux 的默认临时端口范围从这里开始；Windows 和 macOS 使用 49152–65535），因此 32768 及以上的端口永远不会创建数据库，除非它是该引擎自己的默认端口（IBM Db2 的 50000）。eBPF 插桩（包括 Kubernetes 代理的插桩）可能在长连接中途接入并把两端对调。这时 span 会把客户端自己的端口报告为服务器端口，如果没有这条规则，每个连接都会变成一个单独的数据库；
 - 引擎是 OneUptime 知道且有独立地址的引擎：见 [支持的数据库](#支持的数据库) 中的 **从追踪创建** 列。所有客户共享主机的云 API（DynamoDB、BigQuery、Spanner、Firestore、Bigtable、Cosmos DB、Pinecone）、在应用内部运行的引擎（SQLite、DuckDB、H2、HyperSQL、Derby）以及 OneUptime 不认识的引擎，永远不会从追踪创建；请手动添加它们；
-- 该端点在一次运行所查看的 15 分钟窗口内至少收到 10 个查询，这样一次性脚本就不会创建数据库。客户端库的连接管理 span（node-postgres 的 `pg.connect` 和 `pg-pool.connect`、`redis-connect`、`connect`、…）不是查询：它们既不计入这里，也不计入数据库的 **Queries**；
+- 该端点在一次运行所查看的 15 分钟窗口内至少收到 10 个查询，这样一次性脚本就不会创建数据库。客户端库的连接管理 span（node-postgres 的 `pg.connect` 和 `pg-pool.connect`、`redis-connect`、`connect`、…）不是查询：它们既不计入这里，也不计入数据库的 **查询**；
 - 项目未超出其 [自动创建额度](#自动创建额度)。
 
-每个发往数据库的 CLIENT span 在摄取时也会被标记上它的端点，因此一旦某个数据库拥有了某个端点，**Queries from applications** 部分和 **追踪** 选项卡就会显示对它的每一次调用，包括数据库创建之前的调用。带有 `server.address` 的 `db.client.*` 指标（例如 `db.client.operation.duration`）也以同样的方式标记。
+每个发往数据库的 CLIENT span 在摄取时也会被标记上它的端点，因此一旦某个数据库拥有了某个端点，**来自应用的查询** 部分和 **追踪** 选项卡就会显示对它的每一次调用，包括数据库创建之前的调用。带有 `server.address` 的 `db.client.*` 指标（例如 `db.client.operation.duration`）也以同样的方式标记。
 
 **集群和主机列表。** 列出多台主机的连接字符串（`m1:27017,m2:27017,m3:27017`）是一个数据库，无论客户端以什么顺序列出它们。MongoDB Atlas 成员（`cluster0-shard-00-01.ab1cd.mongodb.net`）会成为一个以其集群命名的数据库（`cluster0.ab1cd.mongodb.net`），看到的每个成员都会成为它的一个端点。单独报告 Cassandra 环、Redis Cluster、Elasticsearch 集群的每个成员或 ElastiCache 节点的驱动程序，仍然会为每个成员生成一个数据库：这些主机名中没有任何信息说明它们属于哪个集群。保留一个，并把其他的 [合并](#端点和唯一所有者规则) 到它上面。
 
@@ -713,13 +713,13 @@ bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-d
 
 ### 我的应用使用的数据库没有被创建
 
-它很可能不符合 [创建策略](#从应用追踪)：IP 地址、仅本地有效的名称或单标签名称、从 Kubernetes 外部调用的只在一个网络内解析的名称（`.internal` 或 `.local` 名称、集群本地名称）、不是引擎默认端口的 32768 及以上端口（例如随机发布的 Docker 端口）、过去 15 分钟内少于 10 个查询（`pg.connect` 和 `pg-pool.connect` 之类的连接 span 不计入）、永远不会从追踪创建的引擎（共享云 API、进程内引擎或 OneUptime 不认识的引擎），或者项目的 [自动创建额度](#自动创建额度)。请用你的应用使用的地址手动创建它：它的 **Queries from applications** 部分会用已存储的 span 填充。
+它很可能不符合 [创建策略](#从应用追踪)：IP 地址、仅本地有效的名称或单标签名称、从 Kubernetes 外部调用的只在一个网络内解析的名称（`.internal` 或 `.local` 名称、集群本地名称）、不是引擎默认端口的 32768 及以上端口（例如随机发布的 Docker 端口）、过去 15 分钟内少于 10 个查询（`pg.connect` 和 `pg-pool.connect` 之类的连接 span 不计入）、永远不会从追踪创建的引擎（共享云 API、进程内引擎或 OneUptime 不认识的引擎），或者项目的 [自动创建额度](#自动创建额度)。请用你的应用使用的地址手动创建它：它的 **来自应用的查询** 部分会用已存储的 span 填充。
 
 ### Kubernetes 数据库没有被发现
 
 集群必须已连接（Kubernetes 代理在运行），并且数据库的某个 Pod 必须已处于 Ready 状态约 10 分钟；处于 `CrashLoopBackOff` 的 Pod 每次重启都会重新变为 Ready。同时运行应用容器的 Pod、数据库镜像的客户端或调试运行（直接运行、通过 `sh -c`，或在 `env`、`nohup`、`tini`、`dumb-init` 或 `docker-entrypoint.sh` 之后）、没有声明端口的 `kubectl run` Pod、OneUptime 不识别的镜像，或者连接池，都不是数据库。请手动创建它，并把它的 Service 名称作为附带集群的端点（`postgres.prod.svc.cluster.local:5432@my-cluster`）添加，这样来自集群中应用的调用就能匹配。
 
-### Queries from applications 为空
+### 来自应用的查询为空
 
 span 缺少 `db.system.name` / `db.system` 或 `server.address`，或者使用的地址不是数据库的端点之一：比较 **端点** 选项卡与 **追踪** 浏览器中某个 span 上的 `server.address`，并添加缺少的别名。
 
@@ -736,6 +736,6 @@ _未连接_：从未有 Database Agent 或 Collector 为该数据库报告过数
 :::cards
 - [指标监控](/docs/monitor/metrics-monitor): 对数据库的引擎指标设置警报，并按其 `oneuptime.database.server.id` 过滤。
 - [数据库健康监控](/docs/monitor/database-health-monitor): 无需代理，从探测器检查 PostgreSQL、MySQL 或 SQL Server。
-- [OpenTelemetry](/docs/telemetry/open-telemetry): 为你的应用插桩，让它们的数据库调用填充 **Queries from applications**。
+- [OpenTelemetry](/docs/telemetry/open-telemetry): 为你的应用插桩，让它们的数据库调用填充 **来自应用的查询**。
 - [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents): 数据库 AI 代理可以运行什么，以及修复如何工作。
 :::

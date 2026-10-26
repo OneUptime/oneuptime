@@ -50,7 +50,7 @@ Sophos rapporterar inte gatewayernas eller SD-WAN:s hälsa via SNMP, i någon SF
 
 :::steps
 1. Slå på SNMP på brandväggen under **Administration → SNMP**: lägg till en SNMPv3-användare, eller en v2c-community, och tillåt sondens adress att fråga den.
-2. Gå i OneUptime till **Nätverk → Devices** och klicka på **Lägg till enhet**. Skriv brandväggens hanteringsadress, välj en sond som kan nå den och lägg till SNMP-autentiseringsuppgifterna under **SNMP**.
+2. Gå i OneUptime till **Nätverk → Enheter** och klicka på **Lägg till enhet**. Skriv brandväggens hanteringsadress, välj en sond som kan nå den och lägg till SNMP-autentiseringsuppgifterna under **SNMP**.
 3. På enhetens sida **Inställningar**, under **Polling & Data Collection**, tillämpar du mallen **Sophos Firewall (SFOS / XGS)** från **Vendor Health Template** och lägger till dess tabeller från **Add a Vendor's Tables**. Eller slå på **Auto-Apply Vendor Health Template**, så gör den första avsökningen båda.
 :::
 

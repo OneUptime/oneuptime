@@ -107,7 +107,9 @@ case:
    field `title`/`description`/`placeholder`, Button `title`, Modal `title` and
    button texts, Pill and StatusBadge `text`, Tooltip `text`, MoreMenuItem,
    Checkbox, CollapsibleSection, SideOver, Link, EmptyState, the "What AI may
-   do" building blocks (`Components/AiAccess/AiAccessRow.tsx`), and more. Do not
+   do" building blocks (`Components/AiAccess/AiAccessRow.tsx`), the telemetry
+   overviews' metric tiles (`ResourceOverview` `tiles[].title` and
+   `tiles[].sublabel`) and `ChartCard` `title`, and more. Do not
    translate a prop before you pass it. Write it as a literal, so the extractor
    sees it. `USER_FACING_PROPS` in `scripts/i18n/ExtractStrings.ts` lists the
    prop names the extractor reads.
@@ -397,11 +399,23 @@ translated the same locale. Take either side, then run
   (UTC)") read in English in every language (`Common/Utils/CronScheduleText`).
 - The monitor metric charts' own titles, units and descriptions
   (`MonitorMetricTypeUtil.getTitleByMonitorMetricType` and its siblings) are
-  not keys yet; the metric groups' titles and descriptions are.
+  not keys yet; the metric groups' titles and descriptions are. Nor are the
+  database monitor's metric names
+  (`Common/Types/Monitor/DatabaseMetricCatalog`), which its criteria draw as
+  written, so the docs' metric table keeps them in English.
 - "Up", "Down", "Manual", "Not evaluated yet", "Interfaces" and "Security
   Events" are still English in some languages, the monitor overview's
   verdicts among them. The translated docs quote each label as that
   language's Dashboard draws it, and the `*DocsTranslations` suites in
   `App/Tests/FeatureSet/Docs` hold the two together, so a label is translated
-  in the same change as the docs pages that quote it.
+  in the same change as the docs pages that quote it. The labels the
+  resource showcases draw (Stale, Devices, Broker health, Queries, Page loads
+  and the rest) were translated that way: `DocsQuotedLabelsTranslated` holds
+  each of them translated in every language, or kept as written for the
+  reason it gives, and every page that quotes it in the same words.
+- The infrastructure pages' metric tiles
+  (`Components/Infrastructure/GoldenMetricTile`) draw their title as a page
+  hands it, so a page that wants it translated words it itself (the VMware
+  host tab does); the telemetry overviews' tiles and `ChartCard` translate
+  theirs. A chart's legend draws its series names as given.
 - `ee/Dashboard` and documentation markdown are not scanned.

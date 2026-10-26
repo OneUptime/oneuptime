@@ -62,7 +62,7 @@ Under den säger en rad om något skapar en incident när en enhet går ner: hur
 
 Innan något har lagts till leder översikten dig i stället genom tre steg. **Placera en sond i ditt nätverk**: en sond pingar och går igenom dina enheter inifrån deras nätverk, så **Lägg till en sond** namnger en, visar kommandot som startar den och följer när den ansluter. **Lägg till dina enheter**: **Upptäck enheter** skannar ett adressintervall så att du kan välja vad du vill lägga till, bäst för ett helt nätverk eller en ny plats, och **Lägg till en enda enhet** lägger till en via dess IP-adress eller värdnamn. **Få veta när en enhet går ner**: **Konfigurera larm** öppnar [larmpolicyerna](#larmpolicyer), där den rekommenderade policyn är ett klick bort. På OneUptime Cloud kräver det Growth-abonnemanget att [lägga till en sond](/docs/probe/custom-probe): under det säger steget det och länkar i stället till dina faktureringsinställningar, och OneUptimes egna sonder på internet kan fortfarande kontrollera enheter med en offentlig adress.
 
-Nätverk-menyn håller det du öppnar varje dag synligt: **Översikt**, **Devices**, **Platser**, **Karta**, **Traffic**, **Händelser** och **Discovery**. Resten är hopfällt i avsnitt, och ett avsnitt fäller ut sig självt på var och en av sina sidor:
+Nätverk-menyn håller det du öppnar varje dag synligt: **Översikt**, **Enheter**, **Platser**, **Karta**, **Traffic**, **Händelser** och **Discovery**. Resten är hopfällt i avsnitt, och ett avsnitt fäller ut sig självt på var och en av sina sidor:
 
 | Avsnitt | Sidor |
 | --- | --- |
@@ -75,7 +75,7 @@ Nätverk-menyn håller det du öppnar varje dag synligt: **Översikt**, **Device
 
 :::steps
 ### Öppna listan över enheter
-Gå till **Nätverk → Devices** och klicka på **Lägg till enhet**. **Lägg till enhet** på Nätverk-**Översikt** öppnar samma formulär.
+Gå till **Nätverk → Enheter** och klicka på **Lägg till enhet**. **Lägg till enhet** på Nätverk-**Översikt** öppnar samma formulär.
 
 ### Skriv enhetens adress
 Skriv dess IP-adress eller värdnamn i **Värdnamn**. Lämna **Namn** tomt för att namnge enheten efter dess värdnamn.
@@ -140,7 +140,7 @@ Autentiseringsuppgifter som skrivs på enheten vinner över en autentiseringspro
 
 ## Ändra många enheter på en gång
 
-En discovery-skanning av en kunds nätverk tar in dussintals enheter som hör till en plats, delar en roll och kommer från en tillverkare. Du öppnar dem inte en i taget: markera dem i listan **Devices**, genom att bocka för rader eller markera alla enheter som filtren matchar, och öppna **Massåtgärder**.
+En discovery-skanning av en kunds nätverk tar in dussintals enheter som hör till en plats, delar en roll och kommer från en tillverkare. Du öppnar dem inte en i taget: markera dem i listan **Enheter**, genom att bocka för rader eller markera alla enheter som filtren matchar, och öppna **Massåtgärder**.
 
 | Åtgärd | Vad den gör |
 | --- | --- |
@@ -184,7 +184,7 @@ En enhet vars ping och walk båda misslyckas är helt enkelt **Nere**, så marke
 
 ### Läsa en enhets status
 
-Varje ställe som visar en enhet — listan Devices, en plats Devices-sida, översikten, kartan — använder samma tre utslag och samma tillägg bredvid dem.
+Varje ställe som visar en enhet — listan Enheter, en plats Enheter-sida, översikten, kartan — använder samma tre utslag och samma tillägg bredvid dem.
 
 | Utslag | Betyder |
 | --- | --- |
@@ -194,12 +194,12 @@ Varje ställe som visar en enhet — listan Devices, en plats Devices-sida, öve
 
 | Tillägg | Visas när | Vad du gör |
 | --- | --- | --- |
-| **Stale** | Ingen avsökning har försökts på betydligt längre tid än enhetens intervall. | Kontrollera att enhetens sond är online och hinner med sin flotta. |
+| **Inaktuell** | Ingen avsökning har försökts på betydligt längre tid än enhetens intervall. | Kontrollera att enhetens sond är online och hinner med sin flotta. |
 | **No probe** | Enheten avsöks av en sond men har ingen, eller dess avsökning är avstängd. | Tilldela en sond som kan nå den; inget avsöker den förrän dess. |
 | **Ingen övervakning** | Enheten använder [åsidosättningen med bunden monitor](#åsidosättningen-med-bunden-monitor) och inget är bundet. | Bind en monitor, eller byt tillbaka den till avsökning via sond. |
 | **SNMP failing** | Uppe på ping, men den senaste SNMP-walken misslyckades. | Kontrollera autentiseringsuppgifterna, SNMP-agenten eller en ACL. |
 
-Listan **Devices** har ett filter **SNMP** med tre värden: **OK** (den senaste walken lyckades), **Misslyckas** (den senaste walken misslyckades) och **Not configured** (bara ping, inga autentiseringsuppgifter eller aldrig avsökt). "Vilka enheter har autentiseringsuppgifter som har slutat fungera" är ett klick bort. Listans kolumn **Interfaces (Up / Down)** visar **Ingen SNMP** i stället för `0 / 0` för en enhet som pingas och aldrig walkas: noll fungerande portar vore ett annat påstående, och ett felaktigt.
+Listan **Enheter** har ett filter **SNMP** med tre värden: **OK** (den senaste walken lyckades), **Misslyckas** (den senaste walken misslyckades) och **Not configured** (bara ping, inga autentiseringsuppgifter eller aldrig avsökt). "Vilka enheter har autentiseringsuppgifter som har slutat fungera" är ett klick bort. Listans kolumn **Interfaces (Up / Down)** visar **Ingen SNMP** i stället för `0 / 0` för en enhet som pingas och aldrig walkas: noll fungerande portar vore ett annat påstående, och ett felaktigt.
 
 ## SNMP-autentiseringsuppgifter och autentiseringsprofiler
 
@@ -240,13 +240,13 @@ Att rensa enhetens egna autentiseringsuppgifter rensar inte en profil. Om enhete
 
 ### I bulk
 
-Markera enheter i listan **Devices** och använd:
+Markera enheter i listan **Enheter** och använd:
 
 - **Set SNMP Credential Profile** / **Clear SNMP Credential Profile**: koppla en profil till ett urval, eller ta bort den.
 - **Switch to Probe Polling**: för enheter med åsidosättningen med bunden monitor. Välj en sond, så pingas varje markerad enhet enligt sitt schema från och med då, och walkas när den har autentiseringsuppgifter. En monitor som redan är bunden förblir bunden; enhetens status kommer nu från sonden.
 - **Create Ping Monitors**: för enheter med åsidosättningen med bunden monitor; skapar en Ping-monitor på varje enhets värdnamn och binder den, så att enheten visar Up eller Down.
 
-Sidan **Devices** visar en banderoll när projektet har enheter med åsidosättningen med bunden monitor där inget är bundet — enheter som inget avsöker och som inget rapporterar om — och länkar till det urval som åtgärdar dem.
+Sidan **Enheter** visar en banderoll när projektet har enheter med åsidosättningen med bunden monitor där inget är bundet — enheter som inget avsöker och som inget rapporterar om — och länkar till det urval som åtgärdar dem.
 
 ## Platsens standardvärden för övervakning
 
@@ -322,7 +322,7 @@ I redigeraren **Health OIDs** tillämpar **Vendor Health Template** en färdig u
 
 Mallens OID:er kopieras till enhetens egen lista, där du kan beskära eller utöka dem. När den första walken har identifierat tillverkaren erbjuder enhetens översikt den matchande mallen så länge den skulle lägga till något, och **Lägg till hälsokontroller** lägger till den med ett klick. Matchningen läser enhetens `sysObjectID`, och dess `sysDescr` där ett enterprisenummer rymmer två operativsystem: Extreme Fabric Engine på universell hårdvara rapporterar samma enterprisenummer (1916) som EXOS, och bara dess beskrivning (`…-FabricEngine (9.0.4.0)`) skiljer dem åt. UniFi-accesspunkter skiljs från Ubiquitis routrar på samma sätt (`U6-Pro 6.6.50.15098`), även när äldre firmware svarar med Net-SNMP:s gren, och IQ Engine-accesspunkter från de Aerohive-switchar som delar deras gren (`AP230, HiveOS 8.2r1`).
 
-Enheter med **Auto-Apply Vendor Health Template** påslaget får mallens OID:er och tabeller vid sin första avsökning: enheter som en regel för automatisk import tar in, och enheter som importeras från **Granska resultat** med reglaget för tillverkarmall påslaget, vilket det är om du inte stänger av det. För att ge många enheter deras mall på en gång, som en upptäckt flotta från tiden innan reglaget fanns, markerar du dem i listan **Devices** och använder **Tillämpa tillverkarmall** (se [Ändra många enheter på en gång](#ändra-många-enheter-på-en-gång)).
+Enheter med **Auto-Apply Vendor Health Template** påslaget får mallens OID:er och tabeller vid sin första avsökning: enheter som en regel för automatisk import tar in, och enheter som importeras från **Granska resultat** med reglaget för tillverkarmall påslaget, vilket det är om du inte stänger av det. För att ge många enheter deras mall på en gång, som en upptäckt flotta från tiden innan reglaget fanns, markerar du dem i listan **Enheter** och använder **Tillämpa tillverkarmall** (se [Ändra många enheter på en gång](#ändra-många-enheter-på-en-gång)).
 
 Att tillämpa en tillverkarmall är en engångskopia, så inget sprids när mallen ändras. Använd hellre en **OID Collection Template** för allt utöver en enskild enhet; tillverkarmallarna erbjuds som utgångspunkt när du skapar en.
 
@@ -352,7 +352,7 @@ En OID i en mall samlas in som den är skriven, så en OID som anger en rad i en
 Det finns tre sätt att koppla enheter, och i en flotta som discovery fortsätter att hitta spelar det tredje störst roll:
 
 - En enhet i taget, på enhetens kort **Polling & Data Collection**.
-- I bulk, genom att markera enheter i listan **Devices** och använda **Set OID Collection Template**. Listans kolumn **Mall** visar vilka enheter som är kopplade till vad.
+- I bulk, genom att markera enheter i listan **Enheter** och använda **Set OID Collection Template**. Listans kolumn **Mall** visar vilka enheter som är kopplade till vad.
 - Automatiskt, genom att sätta en OID Collection Template på en regel för automatisk import, så att varje enhet som en skanning importerar kopplas i samma ögonblick som den skapas.
 
 En enhet samlar först in mallens OID:er och sedan sina egna **Device-Specific Health OIDs**. När båda anger samma OID samlas den in en gång, med enhetens namn och beskrivning som vinnare, och mallens poster behåller sin plats, så enhetsspecifika tillägg kan aldrig tränga undan dem.
@@ -638,12 +638,12 @@ Enhetens egna namn kommer först eftersom det är de namn som dess ägare använ
 
 **Namnge enheter efter deras korta värdnamn** kortar ett fullständigt kvalificerat namn till dess första etikett: `core-sw-01.corp.example.com` importeras som `core-sw-01`. Det gäller ett omvänt DNS-namn och ett `sysName` som är ett fullständigt kvalificerat värdnamn; allt annat (`Core Switch`, `ubuntu-22.04`, en IP-adress) lämnas som det är. Det ändrar bara vad enheter heter, så ingen ny skanning behövs: **Granska resultat** och regler för automatisk import använder det nästa gång de namnger en värd, och enheter som redan är importerade behåller sina namn.
 
-En enhet som importeras från en värd med ett omvänt DNS-namn behåller hela namnet som sitt **DNS Name**, oavsett om skanningen använder korta namn. Det visas på enhetens översikt, sökningen i listan **Devices** hittar det, och platstilldelningsregler matchar värdnamnsmönster mot det, så en regel `*.store-0660.corp.example.com` fortsätter att placera en enhet vars namn har förlorat sin domän. Ett NetBIOS-namn lagras aldrig som DNS Name: värden rapporterar det om sig själv, och det är inte en DNS-post.
+En enhet som importeras från en värd med ett omvänt DNS-namn behåller hela namnet som sitt **DNS Name**, oavsett om skanningen använder korta namn. Det visas på enhetens översikt, sökningen i listan **Enheter** hittar det, och platstilldelningsregler matchar värdnamnsmönster mot det, så en regel `*.store-0660.corp.example.com` fortsätter att placera en enhet vars namn har förlorat sin domän. Ett NetBIOS-namn lagras aldrig som DNS Name: värden rapporterar det om sig själv, och det är inte en DNS-post.
 
 > [!WARNING]
 > Etikett- och ägarregler matchar på enhetens namn. Ett mönster som är skrivet för DNS-namn (`*.wbhq.com`) eller fullständiga namn (`*.corp.example.com`) matchar inte en enhet som är namngiven efter sitt eget namn eller sitt korta namn. Platstilldelningsregler provar också DNS Name, så de fortsätter att matcha.
 
-För att korta enheter som du redan har importerat markerar du dem i listan **Devices** och använder **Shorten Names to Hostname**. Bekräftelsen visar hur många enheter som byter namn, med exempel. En enhet utan DNS Name behåller sitt fullständiga namn som DNS Name, om inte det namnet också är dess SNMP-systemnamn eller är tillräckligt långt för att ha kortats vid importen. En enhet hoppas över när en annan enhet redan har dess korta namn, när två markerade enheter skulle få samma korta namn, eller när dess namn har ändrats efter att du markerade den. Platstilldelningsregler körs igen för varje enhet som byter namn; etikett- och ägarregler gör det inte, så använd [Run Now](/docs/configuration/run-rules-now) på en regel som matchar enhetsnamn. Befintliga Ping-monitorer behåller sina namn, och mätvärdesserier märkta med enhetsnamnet börjar en ny serie under det nya namnet.
+För att korta enheter som du redan har importerat markerar du dem i listan **Enheter** och använder **Shorten Names to Hostname**. Bekräftelsen visar hur många enheter som byter namn, med exempel. En enhet utan DNS Name behåller sitt fullständiga namn som DNS Name, om inte det namnet också är dess SNMP-systemnamn eller är tillräckligt långt för att ha kortats vid importen. En enhet hoppas över när en annan enhet redan har dess korta namn, när två markerade enheter skulle få samma korta namn, eller när dess namn har ändrats efter att du markerade den. Platstilldelningsregler körs igen för varje enhet som byter namn; etikett- och ägarregler gör det inte, så använd [Run Now](/docs/configuration/run-rules-now) på en regel som matchar enhetsnamn. Befintliga Ping-monitorer behåller sina namn, och mätvärdesserier märkta med enhetsnamnet börjar en ny serie under det nya namnet.
 
 :::details NetBIOS-namn: så fungerar uppslagningen
 Windows- och Samba-värdar saknar ofta SNMP-agent, så utan detta listas de med ett omvänt DNS-namn som deras ägare kanske inte använder, eller med sin adress. Med **Slå upp Windows-namn (NetBIOS)** påslaget frågar sonden efter skanningen varje värd som saknar SNMP-systemnamn efter dess NetBIOS-namn, med en NBSTAT-förfrågan till UDP 137, värdar utan omvänt DNS-namn först. Alternativet är påslaget för nya skanningar och avslaget för skanningar som skapades innan det fanns; att slå på eller av det behåller skanningens resultat och börjar gälla nästa gång skanningen körs. Det görs efter bästa förmåga:
