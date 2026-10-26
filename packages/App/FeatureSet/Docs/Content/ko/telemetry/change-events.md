@@ -1,9 +1,9 @@
 # 배포 및 변경 사항
 
-OneUptime은 프로젝트에서 무엇이 바뀌었는지 기록합니다. 배포, Kubernetes 롤아웃, 구성 변경, 그리고 OneUptime이 직접 실행한 수정입니다. 각 변경은 해당 서비스의 차트에 마커로 표시되고, OneUptime AI는 인시던트를 조사할 때 이 변경들을 읽습니다. 그래서 "10:02 배포 직후에 시작되었다"는 사실을 마지막이 아니라 가장 먼저 알게 됩니다.
+OneUptime은 프로젝트에서 무엇이 바뀌었는지 기록합니다. 배포, Kubernetes 롤아웃, 구성 변경, 연결된 클라우드 계정의 변경, 그리고 OneUptime이 직접 실행한 수정입니다. 각 변경은 해당 서비스나 클라우드 리소스의 차트에 마커로 표시되고, OneUptime AI는 인시던트를 조사할 때 이 변경들을 읽습니다. 그래서 "10:02 배포 직후에 시작되었다"는 사실을 마지막이 아니라 가장 먼저 알게 됩니다.
 
 :::cards
-- [OneUptime이 자동으로 기록하는 것](#oneuptime이-자동으로-기록하는-것): 텔레메트리에서 알아낸 배포와 롤아웃, 그리고 자체 수정.
+- [OneUptime이 자동으로 기록하는 것](#oneuptime이-자동으로-기록하는-것): 텔레메트리에서 알아낸 배포와 롤아웃, 클라우드 계정의 변경, 그리고 자체 수정.
 - [파이프라인에서 배포 기록하기](#파이프라인에서-배포-기록하기): CLI, GitHub Actions, API.
 - [OneUptime AI가 변경을 사용하는 방법](#oneuptime-ai가-변경을-사용하는-방법): 모든 조사의 의심 대상.
 - [참조](#참조): 필드, 속성, 한도.
@@ -17,6 +17,7 @@ flowchart LR
     K["새 Kubernetes<br/>ReplicaSet"] --> E
     P["파이프라인:<br/>CLI 또는 API"] --> E
     A["OneUptime AI가<br/>실행한 수정,<br/>OneUptime이<br/>실행한 Runbook"] --> E
+    D["클라우드 계정의<br/>활동 로그"] --> E
     E --> C["서비스 차트의<br/>마커"]
     E --> I["OneUptime AI의<br/>조사"]
 ```
@@ -31,6 +32,8 @@ flowchart LR
 | 롤아웃 | Kubernetes Deployment의 파드가 이전에 실행한 적 없는 ReplicaSet을 실행하기 시작할 때: 새 이미지, 바뀐 환경 변수나 구성 참조, 또는 재시작 | `kubernetes` |
 | OneUptime AI가 실행한 수정 | AI 에이전트가 무언가를 바꾸는 명령(예: `kubectl rollout restart`)의 결과를 보고할 때 | `oneuptime-ai` |
 | Runbook | OneUptime이 실행한 Runbook이 시작된 뒤 완료되거나, 실패하거나, 취소될 때 | `runbook` |
+| 클라우드 변경 | 연결된 클라우드 계정의 활동 로그가 변경을 기록할 때: AWS CloudTrail, Azure 활동 로그 또는 Google Cloud의 Admin Activity 감사 로그 | `cloud` |
+| 공급자 이벤트 | 클라우드 공급자가 계정에 대한 상태 이벤트를 게시할 때: AWS Health, Azure Service Health 또는 Resource Health, 또는 Google Cloud Service Health | `cloud-health` |
 
 - **서비스가 처음 보고하는 버전은 배포가 아니라 기준선입니다.** 몇 달 동안 실행된 서비스가 OneUptime이 그 텔레메트리를 받기 시작한 순간에 배포되는 것은 아닙니다.
 - **최근 30일 안에 보고된 적 있는 버전으로의 롤백은 기록되지 않습니다.** 그 버전은 새것이 아니기 때문입니다. OneUptime AI가 실행한 롤백은 수정으로 기록됩니다.
@@ -43,6 +46,8 @@ OTEL_RESOURCE_ATTRIBUTES="service.version=2.3.1,deployment.environment.name=prod
 ```
 
 롤아웃에는 [Kubernetes 에이전트](/docs/telemetry/kubernetes-agent)가 필요합니다. 에이전트는 각 파드의 텔레메트리에 해당 Deployment와 ReplicaSet을 표시합니다.
+
+클라우드 변경과 공급자 이벤트에는 [연결된 클라우드 계정](/docs/telemetry/cloud-accounts)이 필요합니다. 각각은 OneUptime이 그 리소스를 나열하고 있으면 이름이 나온 클라우드 리소스에 연결되고, 그 리소스의 차트에 그려집니다. 유형은 작업에서 정해집니다. 작업 이름이 그렇게 말하면 `deployment`, `scaling` 또는 `rollback`, 그 밖에는 `config-change`, 상태 이벤트는 `provider-event`입니다. 어떤 리소스로도 필터링되지 않은 차트에는 클라우드 계정의 활동 로그가 나오지 않으므로, 바쁜 계정이 배포를 밀어내지 않습니다. 공급자의 상태 이벤트는 그대로 표시됩니다.
 
 ## 파이프라인에서 배포 기록하기
 
@@ -94,7 +99,7 @@ CLI의 모든 옵션은 [`oneuptime deploy`](/docs/cli/command-reference#oneupti
 
 ## OneUptime AI가 변경을 사용하는 방법
 
-인시던트나 경고에 대한 모든 [AI 조사](/docs/ai/ai-sre)는 그 전 2시간 동안 기록된 변경과 그 후 10분 동안 기록된 변경에서 시작합니다. 후자는 롤아웃이 끝난 뒤에 배포를 기록하는 파이프라인을 위한 것입니다. 인시던트가 연결된 서비스, 클러스터, 호스트의 변경이 먼저 옵니다.
+인시던트나 경고에 대한 모든 [AI 조사](/docs/ai/ai-sre)는 그 전 2시간 동안 기록된 변경과 그 후 10분 동안 기록된 변경에서 시작합니다. 후자는 롤아웃이 끝난 뒤에 배포를 기록하는 파이프라인을 위한 것입니다. 인시던트가 연결된 서비스, 클러스터, 호스트, 클라우드 리소스의 변경이 먼저 옵니다.
 
 OneUptime은 서비스를 지정한 변경 중 최대 4개에 대해 변경 전후 30분 동안의 서비스 텔레메트리를 읽고, 변경 직후 서비스가 눈에 띄게 나빠졌으면 그 변경을 **의심 대상**으로 표시합니다:
 
@@ -139,6 +144,8 @@ OneUptime AI가 연 수정 풀 리퀘스트도 같은 방식으로 확인됩니�
 
 이름이 `oneuptime.`으로 시작하는 속성은 OneUptime 자체의 것이므로 파이프라인이 보낸 내용에서 제거됩니다. 파이프라인이 기록한 모든 변경은 `oneuptime.change.source`에 그 사실이 표시되며, 그 값은 `api`입니다.
 
+클라우드 계정에서 읽은 변경은 OpenTelemetry 이름 `cloud.provider`, `cloud.account.id`, `cloud.region`, `cloud.resource_id`로 계정과 리소스를 나타내고, 작업은 `oneuptime.cloud.operation`, 실행한 사람은 `oneuptime.cloud.actor`, 실패 여부는 `oneuptime.change.status`, 클라우드 계정은 `oneuptime.cloud_account.id`에 담습니다.
+
 ### 한도
 
 | 한도 | 값 |
@@ -155,4 +162,5 @@ OneUptime AI가 연 수정 풀 리퀘스트도 같은 방식으로 확인됩니�
 - [AI SRE](/docs/ai/ai-sre): 조사가 무엇을 읽는지, 찾은 문제를 어떻게 수정하는지.
 - [명령 참조](/docs/cli/command-reference): CLI의 모든 명령.
 - [OpenTelemetry](/docs/telemetry/open-telemetry): 서비스의 텔레메트리를 버전과 함께 보냅니다.
+- [클라우드 계정 연결](/docs/telemetry/cloud-accounts): AWS, Azure, Google Cloud 계정의 변경과 상태 이벤트.
 :::

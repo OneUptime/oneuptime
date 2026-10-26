@@ -69,7 +69,7 @@ Nichts wird gesendet, bis Sie eine Statusseite wählen: Ein Ereignis, das auf ke
 
 Zwei Dinge füllen das Formular unterwegs für Sie aus:
 
-- **Verknüpfte Ressourcen.** Wenn Sie einen Monitor wählen, werden die Hosts, Cluster, Dienste und anderen Ressourcen, mit denen er verknüpft ist, unter **Andere betroffene Ressourcen** hinzugefügt, und eine Zeile unter dem Feld nennt sie. Entfernen Sie alle, die Sie nicht möchten.
+- **Verknüpfte Ressourcen.** Wenn Sie einen Monitor wählen, werden die Hosts, Cluster, Dienste und anderen Ressourcen, mit denen er verknüpft ist, unter **Andere betroffene Ressourcen** hinzugefügt, und eine Zeile unter dem Feld nennt sie. Entfernen Sie alle, die Sie nicht möchten. Cloud-Ressourcen werden nicht hinzugefügt: Ein Wartungsereignis enthält keine.
 - **Vorgeschlagene Statusseiten.** Unter **Ereignis auf diesen Status-Seiten anzeigen** werden die Seiten vorgeschlagen, die Ihre Monitore zeigen: Klicken Sie auf den Namen einer Seite, um sie hinzuzufügen, oder auf **Alle hinzufügen**. Nichts wird für Sie ausgewählt. Siehe [Geplante Wartungsereignisse](/docs/status-pages/subscribers#geplante-wartungsereignisse).
 
 ## Von einer Ressource oder einer Vorlage aus beginnen

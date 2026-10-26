@@ -1,12 +1,12 @@
 # Подключение облачного аккаунта
 
-Подключите аккаунт AWS, подписку Azure или проект Google Cloud из панели управления, и OneUptime получит список их ресурсов и будет читать их ключевые метрики по расписанию. Вы выполняете одну команду в браузерном терминале своего облака и вставляете то, что она выведет: не нужно запускать коллектор и ничего устанавливать.
+Подключите аккаунт AWS, подписку Azure или проект Google Cloud из панели управления, и OneUptime получит список всех ресурсов в нём, будет читать их ключевые метрики и записывать, что в них изменилось и что ваш облачный провайдер сообщает об их состоянии. Вы выполняете одну команду в браузерном терминале своего облака и вставляете то, что она выведет: не нужно запускать коллектор и ничего устанавливать.
 
 :::cards
 - [Amazon Web Services](#amazon-web-services): Роль IAM, под которой входит OneUptime, или ключ доступа.
 - [Microsoft Azure](#microsoft-azure): Приложение с ролью Monitoring Reader.
-- [Google Cloud](#google-cloud): Сервисный аккаунт с ролью Monitoring Viewer.
-- [Что читает OneUptime](#что-читает-oneuptime): Какие ресурсы и метрики, как часто и сколько это стоит.
+- [Google Cloud](#google-cloud): Сервисный аккаунт с четырьмя ролями только для чтения.
+- [Что читает OneUptime](#что-читает-oneuptime): Ресурсы, метрики, изменения и события состояния, как часто и сколько это стоит.
 :::
 
 ## Как это работает
@@ -17,11 +17,14 @@ flowchart TB
     access --> ou["OneUptime читает его<br/>каждые несколько минут"]
     ou --> res["Облачные ресурсы"]
     ou --> met["Метрики"]
+    ou --> chg["Изменения и<br/>события состояния"]
 ```
 
-- **Доступ позволяет только читать.** Команда создаёт доступ, который читает метрики и ничего больше: три действия чтения в AWS, роль **Monitoring Reader** в Azure и роль **Monitoring Viewer** в Google Cloud. Удалите его, чтобы отключить OneUptime.
-- **OneUptime читает по расписанию.** Каждые 5 минут для Azure и Google Cloud и каждые 10 минут для AWS, если при подключении вы не выберете другой интервал.
-- **У каждого ресурса своя страница.** Ресурсы появляются в разделе **Облако → Все ресурсы** со своими ключевыми метриками, владельцами и метками, как ресурсы, о которых сообщает коллектор.
+- **Доступ позволяет только читать.** Команда создаёт доступ, который читает ваши ресурсы и их настройки, их метрики, что изменилось и события состояния от вашего провайдера, и ничего больше: перечисленные ниже действия в AWS, роль **Monitoring Reader** в Azure и четыре роли просмотра в Google Cloud. Он никогда не читает данные или секреты. Удалите его, чтобы отключить OneUptime.
+- **OneUptime читает по расписанию.** Каждые 5 минут для Azure и Google Cloud и каждые 10 минут для AWS, если при подключении вы не выберете другой интервал. Каждое чтение также записывает, что изменилось с предыдущего, а каждые 30 минут чтение заново получает список всех ресурсов.
+- **У каждого ресурса своя страница.** Ресурсы появляются в разделе **Облако → Все ресурсы** со своими ключевыми метриками, владельцами и метками. Страница ресурса из списка также показывает карточку **Связанные ресурсы** (в чём он работает, что отправляет ему трафик), его конечные точки, теги и настройки, а также вкладки **Инциденты**, **Оповещения** и **Изменения**.
+- **У каждого аккаунта своя страница.** Аккаунты появляются в разделе **Облако → Аккаунты** со своими ресурсами по типу и региону, вкладкой **Изменения** и вкладкой **Топология**, которая показывает, как связаны их ресурсы.
+- **OneUptime AI читает, что изменилось.** Расследование инцидента или оповещения, связанного с облачным ресурсом, сначала читает изменения этого ресурса, а при запуске заново читает журнал активности аккаунта.
 
 ## Перед началом
 
@@ -37,30 +40,39 @@ flowchart TB
 
 ### Выполните команду в AWS CloudShell
 
-Выберите, как будет входить OneUptime. **Роль IAM** — рекомендуемый способ: ничего секретного не хранится, и роль можно удалить в любой момент. Форма показывает команду, написанную для вашего проекта: она создаёт роль, которая доверяет аккаунту AWS OneUptime с внешним ID вашего проекта, и выводит ARN роли. Используйте **Ключ доступа**, если роль невозможна. Эта команда создаёт пользователя с теми же разрешениями и выводит его ключ:
+Выберите, как будет входить OneUptime. **Роль IAM** — рекомендуемый способ: ничего секретного не хранится, и роль можно удалить в любой момент. Форма показывает команду, написанную для вашего проекта: она создаёт роль, которая доверяет аккаунту AWS OneUptime с внешним ID вашего проекта, и выводит ARN роли.
+
+В поле **Что читать** выберите этот аккаунт или все аккаунты вашей AWS Organization. Выполните команду организации в её управляющем аккаунте: она добавляет StackSet, который создаёт ту же роль в каждом аккаунте, сейчас и по мере появления новых аккаунтов, и позволяет роли управляющего аккаунта получать список аккаунтов. Одно подключение читает до 50 аккаунтов.
+
+Используйте **Ключ доступа**, если роль невозможна: он читает только свой аккаунт. Эта команда создаёт пользователя с теми же разрешениями и выводит его ключ:
 
 ```bash
 aws iam create-user --user-name OneUptimeReadOnly > /dev/null 2>&1 || true
-aws iam put-user-policy --user-name OneUptimeReadOnly --policy-name OneUptimeReadOnly --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["cloudwatch:GetMetricData","cloudwatch:ListMetrics","tag:GetResources"],"Resource":"*"}]}'
+aws iam put-user-policy --user-name OneUptimeReadOnly --policy-name OneUptimeReadOnly --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["cloudwatch:GetMetricData","cloudwatch:ListMetrics","tag:GetResources","iam:ListAccountAliases","cloudformation:ListResources","ec2:DescribeInstances","ec2:DescribeVolumes","ec2:DescribeVpcs","ec2:DescribeNatGateways","autoscaling:DescribeAutoScalingGroups","elasticloadbalancing:DescribeLoadBalancers","elasticloadbalancing:DescribeLoadBalancerAttributes","elasticloadbalancing:DescribeTargetGroups","elasticloadbalancing:DescribeTargetGroupAttributes","elasticloadbalancing:DescribeTargetHealth","elasticloadbalancing:DescribeTags","ecs:ListClusters","ecs:DescribeClusters","ecs:ListServices","ecs:DescribeServices","lambda:ListFunctions","rds:DescribeDBInstances","rds:DescribeDBClusters","elasticache:DescribeReplicationGroups","sqs:ListQueues","sqs:GetQueueAttributes","sns:ListTopics","sns:GetTopicAttributes","sns:ListSubscriptionsByTopic","dynamodb:ListTables","dynamodb:DescribeTable","kinesis:ListStreams","kinesis:DescribeStreamSummary","states:ListStateMachines","states:DescribeStateMachine","cloudfront:ListDistributions","elasticfilesystem:DescribeFileSystems","es:ListDomainNames","es:DescribeDomains","apprunner:ListServices","apprunner:DescribeService","cloudtrail:LookupEvents","health:DescribeEvents","health:DescribeEventDetails"],"Resource":"*"},{"Effect":"Allow","Action":["apigateway:GET"],"Resource":["arn:aws:apigateway:*::/restapis","arn:aws:apigateway:*::/restapis/*","arn:aws:apigateway:*::/apis","arn:aws:apigateway:*::/apis/*"]}]}'
 aws iam create-access-key --user-name OneUptimeReadOnly
 ```
 
 ### Вставьте то, что вывела команда AWS
 
-Вставьте всё, что вывела команда, в поле **Что вывела команда**. OneUptime сам найдёт ARN роли или ID ключа доступа и его секрет.
+Вставьте всё, что вывела команда, в поле **Что вывела команда**. OneUptime найдёт ARN роли или ID ключа доступа и его секрет.
 
 ### Проверьте и подключите AWS
 
-OneUptime проверяет подключение, как только открывается этот шаг: входит, подсчитывает найденные ресурсы и сообщает, сколько стоит их чтение. Выберите **Подключить**, чтобы сохранить.
+OneUptime проверяет подключение, как только открывается этот шаг: он входит, считает найденные ресурсы и сообщает, сколько стоит их чтение. Нажмите **Подключить**, чтобы сохранить.
 :::
 
-Роль и пользователь могут делать три вещи, и ничего больше:
+Роль и пользователь могут делать следующее, и ничего больше:
 
-| Действие | Для чего его использует OneUptime |
+| Для чего их использует OneUptime | Действия |
 | --- | --- |
-| `cloudwatch:ListMetrics` | Находить ресурсы, которые отправляют метрики, в каждом регионе |
-| `cloudwatch:GetMetricData` | Читать их ключевые метрики |
-| `tag:GetResources` | Называть каждый ресурс по его тегу `Name` |
+| Находить ресурсы, которые отправляют метрики, и читать их метрики | `cloudwatch:GetMetricData`, `cloudwatch:ListMetrics` |
+| Называть каждый ресурс и читать его теги | `tag:GetResources`, `iam:ListAccountAliases` |
+| Получать список всех ресурсов и их настройки через Cloud Control | `cloudformation:ListResources`, `ec2:DescribeInstances`, `ec2:DescribeVolumes`, `ec2:DescribeVpcs`, `ec2:DescribeNatGateways`, `autoscaling:DescribeAutoScalingGroups`, `elasticloadbalancing:DescribeLoadBalancers`, `elasticloadbalancing:DescribeLoadBalancerAttributes`, `elasticloadbalancing:DescribeTargetGroups`, `elasticloadbalancing:DescribeTargetGroupAttributes`, `elasticloadbalancing:DescribeTargetHealth`, `elasticloadbalancing:DescribeTags`, `ecs:ListClusters`, `ecs:DescribeClusters`, `ecs:ListServices`, `ecs:DescribeServices`, `lambda:ListFunctions`, `rds:DescribeDBInstances`, `rds:DescribeDBClusters`, `elasticache:DescribeReplicationGroups`, `sqs:ListQueues`, `sqs:GetQueueAttributes`, `sns:ListTopics`, `sns:GetTopicAttributes`, `sns:ListSubscriptionsByTopic`, `dynamodb:ListTables`, `dynamodb:DescribeTable`, `kinesis:ListStreams`, `kinesis:DescribeStreamSummary`, `states:ListStateMachines`, `states:DescribeStateMachine`, `cloudfront:ListDistributions`, `elasticfilesystem:DescribeFileSystems`, `es:ListDomainNames`, `es:DescribeDomains`, `apprunner:ListServices`, `apprunner:DescribeService`, `apigateway:GET` |
+| Читать, что изменилось: события управления аккаунта | `cloudtrail:LookupEvents` |
+| Читать собственные события состояния AWS для аккаунта | `health:DescribeEvents`, `health:DescribeEventDetails` |
+| Получать список аккаунтов организации из её управляющего аккаунта | `organizations:ListAccounts` |
+
+`apigateway:GET` разрешён только для собственных определений API, никогда для их ключей, и только роль управляющего аккаунта может получать список аккаунтов организации. AWS Health отвечает только аккаунтам с планом поддержки Business, Enterprise On-Ramp или Enterprise: без него OneUptime спрашивает снова через день.
 
 > [!NOTE]
 > В самостоятельно размещённом OneUptime для способа **Роль IAM** нужна собственная AWS-идентичность OneUptime: задайте в `CLOUD_CONNECT_AWS_ACCESS_KEY_ID` и `CLOUD_CONNECT_AWS_SECRET_ACCESS_KEY` ключ пользователя IAM, которому разрешено вызывать `sts:AssumeRole`. Без них форма предлагает **Ключ доступа**.
@@ -74,28 +86,42 @@ OneUptime проверяет подключение, как только отк�
 
 ### Выполните команду в Azure Cloud Shell
 
-Команда создаёт приложение с ролью **Monitoring Reader** в вашей текущей подписке и выводит его данные:
+Команда создаёт приложение с ролью **Monitoring Reader** в вашей текущей подписке и выводит его данные с датой, когда истекает его секрет:
 
 ```bash
-az ad sp create-for-rbac --name OneUptimeReadOnly --role "Monitoring Reader" --scopes "/subscriptions/$(az account show --query id --output tsv)"
+SCOPE="/subscriptions/$(az account show --query id --output tsv)"
+OUT=$(az ad sp create-for-rbac --name OneUptimeReadOnly --role "Monitoring Reader" --scopes "$SCOPE")
+APP=$(echo "$OUT" | jq -r .appId)
+END=$(az ad app credential list --id "$APP" --query "max([].endDateTime)" --output tsv)
+echo "$OUT" | jq --arg end "$END" '. + {endDateTime: $end}'
+```
+
+В поле **Что читать** выберите вместо этого все подписки в клиенте, и роль назначается корневой группе управления клиента:
+
+```bash
+SCOPE="/providers/Microsoft.Management/managementGroups/$(az account show --query tenantId --output tsv)"
+OUT=$(az ad sp create-for-rbac --name OneUptimeReadOnly --role "Monitoring Reader" --scopes "$SCOPE")
+APP=$(echo "$OUT" | jq -r .appId)
+END=$(az ad app credential list --id "$APP" --query "max([].endDateTime)" --output tsv)
+echo "$OUT" | jq --arg end "$END" '. + {endDateTime: $end}'
 ```
 
 ### Вставьте то, что вывела команда Azure
 
-Вставьте всё, что вывела команда, в поле **Что вывела команда**. OneUptime сам найдёт `tenant`, `appId` и `password`.
+Вставьте всё, что вывела команда, в поле **Что вывела команда**. OneUptime найдёт `tenant`, `appId`, `password` и дату, когда он истекает.
 
 ### Проверьте и подключите Azure
 
-OneUptime проверяет подключение, как только открывается этот шаг. Выберите **Подключить**, чтобы сохранить.
+OneUptime проверяет подключение, как только открывается этот шаг. Нажмите **Подключить**, чтобы сохранить.
 :::
 
-Чтобы читать другие подписки тем же приложением, выдайте ему роль в каждой из них:
+Чтобы читать больше подписок с тем же приложением, назначьте ему роль в каждой из них:
 
 ```bash
 az role assignment create --assignee <APP_ID> --role "Monitoring Reader" --scope /subscriptions/<SUBSCRIPTION_ID>
 ```
 
-OneUptime читает все подписки, доступные приложению, если вы не перечислите некоторые в поле **Подписки**.
+OneUptime читает все подписки, которые может читать приложение, до 50, если вы не перечислите некоторые в поле **Подписки**. Секрет приложения перестаёт работать в день истечения: за 30 дней до этого каждое чтение предупреждает об этом. Выполните команду снова и вставьте то, что она выведет, чтобы выдать новый.
 
 ## Google Cloud
 
@@ -106,13 +132,31 @@ OneUptime читает все подписки, доступные прилож�
 
 ### Выполните команду в Google Cloud Shell
 
-Выполните её в проекте, который нужно отслеживать. Она включает API Cloud Monitoring, создаёт сервисный аккаунт с ролью **Monitoring Viewer** и выводит его ключ:
+Выполните её в проекте, который нужно отслеживать. Она включает API, которые читает OneUptime, создаёт сервисный аккаунт с ролями **Monitoring Viewer**, **Cloud Asset Viewer**, **Logs Viewer** и **Service Health Viewer** и выводит его ключ:
 
 ```bash
 PROJECT_ID=$(gcloud config get-value project)
-gcloud services enable monitoring.googleapis.com
-gcloud iam service-accounts create oneuptime-read-only --display-name "OneUptime (read only)"
+gcloud services enable monitoring.googleapis.com cloudasset.googleapis.com logging.googleapis.com cloudresourcemanager.googleapis.com servicehealth.googleapis.com
+gcloud iam service-accounts create oneuptime-read-only --display-name "OneUptime (read only)" > /dev/null 2>&1 || true
 gcloud projects add-iam-policy-binding "$PROJECT_ID" --member "serviceAccount:oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com" --role roles/monitoring.viewer --condition=None > /dev/null
+gcloud projects add-iam-policy-binding "$PROJECT_ID" --member "serviceAccount:oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com" --role roles/cloudasset.viewer --condition=None > /dev/null
+gcloud projects add-iam-policy-binding "$PROJECT_ID" --member "serviceAccount:oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com" --role roles/logging.viewer --condition=None > /dev/null
+gcloud projects add-iam-policy-binding "$PROJECT_ID" --member "serviceAccount:oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com" --role roles/servicehealth.viewer --condition=None > /dev/null
+gcloud iam service-accounts keys create oneuptime-key.json --iam-account "oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com"
+cat oneuptime-key.json && rm oneuptime-key.json
+```
+
+В поле **Что читать** выберите вместо этого все проекты в организации, и роли назначаются организации проекта:
+
+```bash
+PROJECT_ID=$(gcloud config get-value project)
+ORG_ID=$(gcloud projects get-ancestors "$PROJECT_ID" --format="value(id)" | tail -1)
+gcloud services enable monitoring.googleapis.com cloudasset.googleapis.com logging.googleapis.com cloudresourcemanager.googleapis.com servicehealth.googleapis.com
+gcloud iam service-accounts create oneuptime-read-only --display-name "OneUptime (read only)" > /dev/null 2>&1 || true
+gcloud organizations add-iam-policy-binding "$ORG_ID" --member "serviceAccount:oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com" --role roles/monitoring.viewer --condition=None > /dev/null
+gcloud organizations add-iam-policy-binding "$ORG_ID" --member "serviceAccount:oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com" --role roles/cloudasset.viewer --condition=None > /dev/null
+gcloud organizations add-iam-policy-binding "$ORG_ID" --member "serviceAccount:oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com" --role roles/logging.viewer --condition=None > /dev/null
+gcloud organizations add-iam-policy-binding "$ORG_ID" --member "serviceAccount:oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com" --role roles/servicehealth.viewer --condition=None > /dev/null
 gcloud iam service-accounts keys create oneuptime-key.json --iam-account "oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com"
 cat oneuptime-key.json && rm oneuptime-key.json
 ```
@@ -123,27 +167,31 @@ cat oneuptime-key.json && rm oneuptime-key.json
 
 ### Проверьте и подключите Google Cloud
 
-OneUptime проверяет подключение, как только открывается этот шаг. Выберите **Подключить**, чтобы сохранить.
+OneUptime проверяет подключение, как только открывается этот шаг. Нажмите **Подключить**, чтобы сохранить.
 :::
 
-Чтобы читать другие проекты тем же сервисным аккаунтом, выдайте ему роль в каждом из них и перечислите их в поле **Проекты**:
+Чтобы читать больше проектов с тем же сервисным аккаунтом, выдайте ему четыре роли в каждом из них и перечислите их в поле **Проекты**:
 
 ```bash
-gcloud projects add-iam-policy-binding <PROJECT_ID> --member "serviceAccount:oneuptime-read-only@<KEY_PROJECT_ID>.iam.gserviceaccount.com" --role roles/monitoring.viewer
+for ROLE in roles/monitoring.viewer roles/cloudasset.viewer roles/logging.viewer roles/servicehealth.viewer; do gcloud projects add-iam-policy-binding <PROJECT_ID> --member "serviceAccount:oneuptime-read-only@<KEY_PROJECT_ID>.iam.gserviceaccount.com" --role "$ROLE"; done
 ```
+
+Подключение организации читает до 50 её проектов, если вы не перечислите некоторые в поле **Проекты**.
 
 ## Что читает OneUptime
 
 | | AWS | Azure | Google Cloud |
 | --- | --- | --- | --- |
-| Ресурсы | Те, что отправляют метрики в CloudWatch, во всех регионах, которые вы используете | Все ресурсы в подписках | Те, что отправляют метрики в Cloud Monitoring |
+| Ресурсы | Все ресурсы известных OneUptime типов во всех регионах, которые вы используете, через Cloud Control | Все ресурсы в подписках, через Resource Graph | Все ресурсы в проектах, через Cloud Asset Inventory |
 | Метрики | Ключевые метрики каждого сервиса, например CPU, сеть и проверки состояния инстанса | До 8 ключевых метрик на ресурс | Ключевые метрики каждого типа ресурсов |
+| Изменения | События управления CloudTrail | Административные события журнала активности | Журнал аудита Admin Activity |
+| События состояния | AWS Health | Service Health и Resource Health | Service Health |
 | Чтение каждые | 10 минут | 5 минут | 5 минут |
-| Удалённый ресурс | Архивируется через 7 дней без метрик | Архивируется при следующем чтении | Архивируется через 7 дней без метрик |
+| Удалённый ресурс | Архивируется, когда полный список больше его не содержит | Архивируется, когда полный список больше его не содержит | Архивируется, когда полный список больше его не содержит |
 
-Каждое чтение продолжается с того места, где остановилось предыдущее, поэтому каждая точка данных записывается один раз. Первое чтение нового подключения начинается в течение минуты и охватывает последний час; после перерыва чтение охватывает не больше 6 часов.
+Каждое чтение продолжается с того места, где остановилось предыдущее, поэтому каждая точка данных и каждое изменение записываются один раз. Первое чтение нового подключения начинается в течение минуты и охватывает последний час для метрик и последние 2 часа для изменений; после перерыва чтение охватывает не больше 6 часов. Ресурс, который только отправляет метрики и которого нет ни в одном списке, архивируется через 7 дней без метрик.
 
-Вызовы OneUptime оплачиваются в вашем облачном аккаунте по ценам вашего облака. Проверка оценивает стоимость найденного, а более редкое чтение стоит дешевле: измените **Как часто читать метрики** в разделе **Дополнительные поля**.
+Вызовы OneUptime оплачиваются в вашем облачном аккаунте по ценам вашего облака. Получение списка ресурсов и чтение изменений и событий состояния ничего не стоят во всех трёх облаках, а чтение метрик стоит. Проверка оценивает стоимость найденного, а более редкое чтение стоит дешевле: измените **Как часто читать метрики** в разделе **Дополнительные поля**.
 
 | Облако | Цена |
 | --- | --- |
@@ -151,14 +199,20 @@ gcloud projects add-iam-policy-binding <PROJECT_ID> --member "serviceAccount:one
 | Azure | Первые 1 000 000 чтений метрик в месяц для каждой подписки бесплатны, затем $0.01 за 1 000 |
 | Google Cloud | Первые 1 000 000 прочитанных временных рядов в месяц бесплатны, затем $0.50 за миллион |
 
+## Что вы видите в OneUptime
+
+- **Страница аккаунта.** В разделе **Облако → Аккаунты** обзор аккаунта считает его ресурсы по типу и региону и сообщает, когда подключение последний раз читало его. Вкладка **Ресурсы** перечисляет их, вкладка **Изменения** перечисляет, что в нём изменилось, начиная с новых, а вкладка **Топология** рисует его регионы, сети в них и то, что работает в каждой, с открытыми инцидентами и оповещениями на ресурсах, с которыми они связаны.
+- **Изменения ресурса.** Изменение хранится как событие изменения, привязанное к ресурсу, который оно изменило, и к его аккаунту, и отображается как отметка на графиках метрик ресурса вместе с его инцидентами и оповещениями. Графики, не отфильтрованные ни по одному ресурсу, не показывают журнал активности облачного аккаунта, чтобы загруженный аккаунт не вытеснял ваши развёртывания; события состояния провайдера на них остаются.
+- **Инциденты и оповещения.** Свяжите облачный ресурс с монитором, инцидентом или оповещением в разделе их связанных ресурсов, и инциденты и оповещения ресурса появятся на его странице. Монитор веб-сайта, API, SSL, ping или порта, чей хост ведёт к конечной точке ресурса напрямую или через его DNS, показывает ресурс в разделе **Предлагаемые облачные ресурсы** на своей карточке **Связанные ресурсы**: нажмите **Связать ресурс**, чтобы связать его.
+
 ## Устранение неполадок
 
 :::details Проверка сообщает, что ключ или секрет не принят
-Скопируйте всё, что вывела команда, и вставьте снова. Ключу, созданному минуту назад, может понадобиться минута, чтобы заработать.
+Скопируйте всё, что вывела команда, и вставьте снова. Ключу, созданному минуту назад, может понадобиться минута, чтобы заработать. Истёкший секрет Azure тоже отклоняется: выполните команду снова.
 :::
 
 :::details Проверка выполняет вход, но не может читать
-Выполните команду ещё раз: она выдаёт роль, которая нужна OneUptime. В AWS выполните команду, которую форма показывает для этого проекта: роль, созданная для другого проекта, доверяет внешнему ID того проекта, а не этого.
+Выполните команду ещё раз: она выдаёт роли, которые нужны OneUptime. В AWS выполните команду, которую форма показывает для этого проекта: роль, созданная для другого проекта, доверяет внешнему ID того проекта, а не этого.
 :::
 
 :::details Google Cloud не даёт команде создать ключ
@@ -166,12 +220,17 @@ gcloud projects add-iam-policy-binding <PROJECT_ID> --member "serviceAccount:one
 :::
 
 :::details Ресурсы не появляются
-В AWS и Google Cloud ресурс появляется, когда отправляет метрики. Если подключение не работает, кнопка **View error** в разделе **Облако → Подключить** покажет, почему не удалось его последнее чтение.
+Первое чтение получает список всех ресурсов аккаунта, независимо от того, отправляют ли они метрики. Если подключение не работает, кнопка **View error** в разделе **Облако → Подключить** покажет, почему не удалось его последнее чтение.
+:::
+
+:::details Некоторых аккаунтов организации не хватает
+Одно подключение читает до 50 аккаунтов, подписок или проектов, и каждое чтение сообщает, если их больше. Подключите остальные отдельным подключением.
 :::
 
 ## Что дальше
 
 :::cards
 - [Облачные ресурсы](/docs/telemetry/cloud-resources): Запустите вместо этого собственный OpenTelemetry Collector или передавайте метрики CloudWatch потоком.
+- [Развёртывания и изменения](/docs/telemetry/change-events): Каждое изменение, которое записывает OneUptime, и как OneUptime AI их читает.
 - [Монитор метрик](/docs/monitor/metrics-monitor): Оповещения по метрикам ресурса.
 :::

@@ -69,7 +69,7 @@ Ingenting skickas förrän du väljer en statussida: en händelse som inte visas
 
 Två saker fyller i formuläret åt dig medan du arbetar:
 
-- **Länkade resurser.** När du väljer en monitor läggs de värdar, kluster, tjänster och andra resurser den är länkad till under **Andra påverkade resurser**, och en rad under fältet nämner dem. Ta bort dem du inte vill ha.
+- **Länkade resurser.** När du väljer en monitor läggs de värdar, kluster, tjänster och andra resurser den är länkad till under **Andra påverkade resurser**, och en rad under fältet nämner dem. Ta bort dem du inte vill ha. Molnresurser läggs inte till: en underhållshändelse innehåller inga.
 - **Föreslagna statussidor.** Under **Visa händelse på dessa statussidor** föreslås de sidor som visar dina monitorer: klicka på en sidas namn för att lägga till den, eller på **Lägg till alla**. Ingenting väljs åt dig. Se [Schemalagda underhållshändelser](/docs/status-pages/subscribers#schemalagda-underhållshändelser).
 
 ## Börja från en resurs eller en mall

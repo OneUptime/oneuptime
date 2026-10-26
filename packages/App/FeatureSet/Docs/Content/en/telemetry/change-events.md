@@ -1,9 +1,9 @@
 # Deploys and Changes
 
-OneUptime keeps a record of what changed in your project: deploys, Kubernetes rollouts, config changes, and the fixes it ran itself. Each change is drawn as a marker on the charts of its service, and OneUptime AI reads them when it investigates an incident, so "it started right after the 10:02 deploy" is the first thing you learn, not the last.
+OneUptime keeps a record of what changed in your project: deploys, Kubernetes rollouts, config changes, the changes in your connected cloud accounts, and the fixes it ran itself. Each change is drawn as a marker on the charts of its service or cloud resource, and OneUptime AI reads them when it investigates an incident, so "it started right after the 10:02 deploy" is the first thing you learn, not the last.
 
 :::cards
-- [What OneUptime records on its own](#what-oneuptime-records-on-its-own): Deploys and rollouts from telemetry, and its own fixes.
+- [What OneUptime records on its own](#what-oneuptime-records-on-its-own): Deploys and rollouts from telemetry, your cloud accounts' changes, and its own fixes.
 - [Record a deploy from a pipeline](#record-a-deploy-from-a-pipeline): The CLI, GitHub Actions and the API.
 - [How OneUptime AI uses changes](#how-oneuptime-ai-uses-changes): The suspects in every investigation.
 - [Reference](#reference): Fields, attributes and limits.
@@ -17,6 +17,7 @@ flowchart LR
     K["A new Kubernetes<br/>ReplicaSet"] --> E
     P["A pipeline:<br/>the CLI or the API"] --> E
     A["A fix OneUptime AI ran,<br/>a runbook OneUptime ran"] --> E
+    D["A cloud account's<br/>activity log"] --> E
     E --> C["Markers on<br/>the service's charts"]
     E --> I["OneUptime AI's<br/>investigations"]
 ```
@@ -31,6 +32,8 @@ You do not have to send anything for these. OneUptime records them from the tele
 | A rollout | The pods of a Kubernetes Deployment start running a ReplicaSet they have not run before: a new image, a changed environment variable or config reference, or a restart | `kubernetes` |
 | A fix OneUptime AI ran | An AI agent reports the result of a command that changes something, such as `kubectl rollout restart` | `oneuptime-ai` |
 | A runbook | A runbook OneUptime ran completes, fails, or is cancelled after it started | `runbook` |
+| A cloud change | A connected cloud account's activity log records a change: AWS CloudTrail, the Azure Activity Log or Google Cloud's Admin Activity audit log | `cloud` |
+| A provider event | The cloud provider publishes a health event about the account: AWS Health, Azure Service Health or Resource Health, or Google Cloud Service Health | `cloud-health` |
 
 - **The first version a service reports is its baseline, not a deploy.** A service that has run for months is not deployed the moment OneUptime starts receiving its telemetry.
 - **A rollback to a version seen in the last 30 days is not recorded,** because that version is not new. A rollback OneUptime AI runs is recorded as a fix.
@@ -43,6 +46,8 @@ OTEL_RESOURCE_ATTRIBUTES="service.version=2.3.1,deployment.environment.name=prod
 ```
 
 A rollout needs the [Kubernetes agent](/docs/telemetry/kubernetes-agent), which stamps each pod's telemetry with its Deployment and ReplicaSet.
+
+A cloud change or a provider event needs a [connected cloud account](/docs/telemetry/cloud-accounts). Each is tied to the cloud resource it names, when OneUptime lists that resource, and drawn on the resource's charts. Its type comes from the operation: `deployment`, `scaling` or `rollback` when the operation's name says so, `config-change` otherwise, and `provider-event` for a health event. Charts filtered to no resource leave a cloud account's activity log out, so a busy account cannot crowd out your deploys; the provider's health events stay on them.
 
 ## Record a deploy from a pipeline
 
@@ -94,7 +99,7 @@ See [`oneuptime deploy`](/docs/cli/command-reference#oneuptime-deploy) for every
 
 ## How OneUptime AI uses changes
 
-Every [AI investigation](/docs/ai/ai-sre) of an incident or an alert starts from the changes recorded in the two hours before it, and in the ten minutes after, for a pipeline that records its deploy once the rollout finished. The changes on the services, clusters and hosts the incident is linked to come first.
+Every [AI investigation](/docs/ai/ai-sre) of an incident or an alert starts from the changes recorded in the two hours before it, and in the ten minutes after, for a pipeline that records its deploy once the rollout finished. The changes on the services, clusters, hosts and cloud resources the incident is linked to come first.
 
 For up to four of them that name a service, OneUptime reads the service's telemetry in the 30 minutes before and after the change, and marks the change a **suspect** when the service got measurably worse right after it:
 
@@ -139,6 +144,8 @@ The top-level fields are stored as attributes under the OpenTelemetry names: `ve
 
 Attributes whose names start with `oneuptime.` are OneUptime's own and are dropped from what a pipeline sends. Every change a pipeline records says so in `oneuptime.change.source`, which is `api`.
 
+A change read from a cloud account names the account and the resource under OpenTelemetry's names, `cloud.provider`, `cloud.account.id`, `cloud.region` and `cloud.resource_id`, and keeps the operation in `oneuptime.cloud.operation`, who ran it in `oneuptime.cloud.actor`, whether it failed in `oneuptime.change.status` and its Cloud Account in `oneuptime.cloud_account.id`.
+
 ### Limits
 
 | Limit | Value |
@@ -155,4 +162,5 @@ Attributes whose names start with `oneuptime.` are OneUptime's own and are dropp
 - [AI SRE](/docs/ai/ai-sre): What an investigation reads, and how it fixes what it finds.
 - [Command Reference](/docs/cli/command-reference): Every command of the CLI.
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Send your services' telemetry, with their versions.
+- [Connect a Cloud Account](/docs/telemetry/cloud-accounts): The changes and health events of your AWS, Azure and Google Cloud accounts.
 :::

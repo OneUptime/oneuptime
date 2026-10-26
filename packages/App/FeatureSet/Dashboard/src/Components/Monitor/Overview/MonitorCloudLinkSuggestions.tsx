@@ -147,7 +147,7 @@ const MonitorCloudLinkSuggestions: FunctionComponent<ComponentProps> = (
                       </p>
                     </div>
                     <Button
-                      title="Link"
+                      title="Link resource"
                       buttonStyle={ButtonStyleType.NORMAL}
                       isLoading={linkingId === suggestion.cloudResourceId}
                       disabled={!gate.isAllowed || Boolean(linkingId)}

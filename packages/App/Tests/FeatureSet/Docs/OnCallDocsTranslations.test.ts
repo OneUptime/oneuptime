@@ -118,6 +118,8 @@ const PROSE: Record<string, Array<string>> = {
     // The mobile app's tab and the iPhone's Settings app.
     "On-Call",
     "Settings",
+    // Settings > Calendar > Accounts on the iPhone, not Cloud's Accounts page.
+    "Accounts",
     // Emphasis, and the name of a permission level in a sentence.
     "project",
     "Edit",

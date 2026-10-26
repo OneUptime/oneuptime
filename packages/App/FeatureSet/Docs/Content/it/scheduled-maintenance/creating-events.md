@@ -69,7 +69,7 @@ Non viene inviato nulla finché non scegliete una pagina di stato: un evento mos
 
 Due cose compilano il modulo per voi strada facendo:
 
-- **Risorse collegate.** Quando scegliete un monitor, gli host, i cluster, i servizi e le altre risorse a cui è collegato vengono aggiunti in **Altre risorse interessate**, e una riga sotto il campo li nomina. Togliete quelli che non volete.
+- **Risorse collegate.** Quando scegliete un monitor, gli host, i cluster, i servizi e le altre risorse a cui è collegato vengono aggiunti in **Altre risorse interessate**, e una riga sotto il campo li nomina. Togliete quelli che non volete. Le risorse cloud non vengono aggiunte: un evento di manutenzione non le contiene.
 - **Pagine di stato suggerite.** In **Mostra evento su queste pagine di stato** vengono suggerite le pagine che mostrano i vostri monitor: fate clic sul nome di una pagina per aggiungerla, oppure su **Aggiungi tutte**. Non viene scelto nulla per voi. Vedere [Eventi di manutenzione programmata](/docs/status-pages/subscribers#eventi-di-manutenzione-programmata).
 
 ## Partire da una risorsa o da un modello

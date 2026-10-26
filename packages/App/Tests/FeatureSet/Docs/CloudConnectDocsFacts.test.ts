@@ -14,6 +14,7 @@ import {
   CloudConnectionCatalog,
   CloudConnectionDefinition,
   READ_INTERVAL_FIELD_KEY,
+  READ_SCOPE_FIELD_KEY,
   getCloudConnectionDefinition,
 } from "Common/Types/CloudConnection/CloudConnectionCatalog";
 import {
@@ -24,9 +25,14 @@ import {
   GCP_USD_PER_MILLION_TIME_SERIES,
 } from "Common/Types/CloudConnection/CloudConnectionCost";
 import {
+  AWS_ORGANIZATION_ACTION_GROUP,
+  AWS_READ_ONLY_ACTION_GROUPS,
   AWS_READ_ONLY_ACTIONS,
   AZURE_READ_ONLY_ROLE,
+  AwsReadOnlyActionGroup,
+  CloudConnectionSetupScope,
   GCP_READ_ONLY_ROLE,
+  GCP_READ_ONLY_ROLES,
   getAwsAccessKeySetupCommand,
   getAzureSetupCommand,
   getCloudConnectionSetupCommand,
@@ -61,6 +67,11 @@ const SOURCES: Record<string, string> = {
   table: `${DASHBOARD}/Components/Cloud/Connect/CloudConnectionsTable.tsx`,
   sideMenu: `${DASHBOARD}/Pages/Cloud/SideMenu.tsx`,
   serverIdentity: `${SERVER}/Utils/CloudConnection/Aws/AwsServerIdentity.ts`,
+  connectorTypes: `${SERVER}/Utils/CloudConnection/CloudConnectorTypes.ts`,
+  lanes: `${SERVER}/Utils/CloudConnection/CloudConnectionLanes.ts`,
+  changeWindow: `${SERVER}/Utils/CloudConnection/CloudChangeWindow.ts`,
+  azure: `${SERVER}/Utils/CloudConnection/Azure/AzureCloudConnector.ts`,
+  awsHealth: `${SERVER}/Utils/CloudConnection/Aws/AwsCloudConnector.ts`,
   windows: `${SERVER}/Utils/CloudConnection/CloudMetricWindows.ts`,
   resources: `${SERVER}/Services/CloudResourceService.ts`,
   resourceSync: `${SERVER}/Utils/CloudConnection/CloudConnectionResourceSync.ts`,
@@ -143,6 +154,13 @@ describe("Connect a Cloud Account", () => {
     expect(blocks).toContain(getAwsAccessKeySetupCommand());
     expect(blocks).toContain(getAzureSetupCommand());
     expect(blocks).toContain(getGcpSetupCommand());
+    // What to read: every subscription of the tenant, every project of the organization.
+    expect(blocks).toContain(
+      getAzureSetupCommand(CloudConnectionSetupScope.Organization),
+    );
+    expect(blocks).toContain(
+      getGcpSetupCommand(CloudConnectionSetupScope.Organization),
+    );
     expect(
       getCloudConnectionSetupCommand(
         CloudProvider.AWS,
@@ -153,22 +171,103 @@ describe("Connect a Cloud Account", () => {
     expect(PAGE).not.toContain("aws iam create-role");
   });
 
-  it("lists every AWS action the access gets, and no other", () => {
-    const actions: Array<string> = (
+  it("lists every AWS action the access gets, by what it is for, and no other", () => {
+    const rows: Array<Array<string>> = (
       tables(section("Amazon Web Services"))[0] as Array<Array<string>>
-    )
-      .slice(1)
-      .map((row: Array<string>): string => {
-        return (row[0] as string).split("`").join("");
-      });
+    ).slice(1);
+    const groups: Array<AwsReadOnlyActionGroup> = [
+      ...AWS_READ_ONLY_ACTION_GROUPS,
+      AWS_ORGANIZATION_ACTION_GROUP,
+    ];
 
-    expect(actions.sort()).toEqual([...AWS_READ_ONLY_ACTIONS].sort());
+    expect(
+      rows.map((row: Array<string>): Array<unknown> => {
+        return [
+          row[0],
+          (row[1] as string)
+            .split(",")
+            .map((action: string): string => {
+              return action.split("`").join("").trim();
+            })
+            .sort(),
+        ];
+      }),
+    ).toEqual(
+      groups.map((group: AwsReadOnlyActionGroup): Array<unknown> => {
+        return [group.purpose, [...group.actions].sort()];
+      }),
+    );
+    // Every action of the role and the user is a row's.
+    expect(
+      rows
+        .flatMap((row: Array<string>): Array<string> => {
+          return (row[1] as string).split(",").map((action: string) => {
+            return action.split("`").join("").trim();
+          });
+        })
+        .filter((action: string): boolean => {
+          return !AWS_ORGANIZATION_ACTION_GROUP.actions.includes(action);
+        })
+        .sort(),
+    ).toEqual([...AWS_READ_ONLY_ACTIONS].sort());
   });
 
   it("names the roles the Azure and Google Cloud commands grant", () => {
     expect(section("Microsoft Azure")).toContain(`**${AZURE_READ_ONLY_ROLE}**`);
     expect(GCP_READ_ONLY_ROLE).toBe("roles/monitoring.viewer");
-    expect(section("Google Cloud")).toContain("**Monitoring Viewer**");
+
+    // Each Google Cloud role the command grants, by the name its console shows.
+    const consoleNames: Record<string, string> = {
+      "roles/monitoring.viewer": "Monitoring Viewer",
+      "roles/cloudasset.viewer": "Cloud Asset Viewer",
+      "roles/logging.viewer": "Logs Viewer",
+      "roles/servicehealth.viewer": "Service Health Viewer",
+    };
+
+    expect(Object.keys(consoleNames).sort()).toEqual(
+      [...GCP_READ_ONLY_ROLES].sort(),
+    );
+
+    for (const role of GCP_READ_ONLY_ROLES) {
+      expect(section("Google Cloud")).toContain(`**${consoleNames[role]}**`);
+    }
+  });
+
+  it("names What to read as the form asks it, and the limits a connection reads to", () => {
+    const scope: string | undefined = definition(
+      CloudProvider.Azure,
+    ).configFields.find((field: { key: string }): boolean => {
+      return field.key === READ_SCOPE_FIELD_KEY;
+    })?.title;
+
+    expect(PAGE).toContain(`**${scope}**`);
+    expect(source("connectorTypes")).toContain(
+      "export const CLOUD_MAX_ORGANIZATION_ACCOUNTS: number = 50;",
+    );
+    expect(source("azure")).toContain(
+      "export const AZURE_MAX_SUBSCRIPTIONS: number = 50;",
+    );
+    expect(PAGE).toContain("One connection reads up to 50 accounts.");
+    expect(PAGE).toContain("up to 50, unless you list some under **Subscriptions**");
+    expect(PAGE).toContain("reads up to 50 of its projects");
+  });
+
+  it("says how often the inventory is listed, how far back changes are read, and when an Azure secret is warned about", () => {
+    expect(source("lanes")).toContain(
+      "export const CLOUD_INVENTORY_INTERVAL_MS: number = 30 * 60 * 1000;",
+    );
+    expect(PAGE).toContain("every 30 minutes a read lists every resource again");
+    expect(source("changeWindow")).toContain(
+      "export const CLOUD_CHANGE_FIRST_LOOK_BACK_MS: number = 2 * 60 * 60 * 1000;",
+    );
+    expect(PAGE).toContain("2 hours back for changes");
+    expect(source("azure")).toContain(
+      "export const AZURE_SECRET_EXPIRY_WARNING_DAYS: number = 30;",
+    );
+    expect(PAGE).toContain("from 30 days before, each read warns about it");
+    // An account on no support plan that includes AWS Health is asked a day later.
+    expect(source("awsHealth")).toContain("const HEALTH_PAUSE_MS: number = DAY_MS;");
+    expect(PAGE).toContain("OneUptime asks again a day later");
   });
 
   it("says how often each cloud is read, as the catalog defaults", () => {
@@ -231,10 +330,14 @@ describe("Connect a Cloud Account", () => {
 
     expect(row).toEqual([
       "A deleted resource",
-      "Archived after 7 days without metrics",
-      "Archived at the next read",
-      "Archived after 7 days without metrics",
+      "Archived once a full listing no longer has it",
+      "Archived once a full listing no longer has it",
+      "Archived once a full listing no longer has it",
     ]);
+    // A resource no listing has, only metrics: after the 7 days.
+    expect(PAGE).toContain(
+      "A resource that only reports metrics, which no listing has, is archived after 7 days without metrics.",
+    );
   });
 
   it("states each cloud's price as the test's estimate uses it", () => {
