@@ -233,6 +233,8 @@ describe("the Remediation card in the dark theme", () => {
        */
       "AI/AiOffSummaryData.ts",
       "AI/AiOffSummaryWords.ts",
+      // The links' arrow, glued to their last word (#5273). No colours.
+      "AI/ArrowGluedText.tsx",
       "AI/InvestigationStatusBadge.tsx",
       // A fix through MCP servers: its changes, in order.
       "AutoRemediation/McpToolCallList.tsx",
