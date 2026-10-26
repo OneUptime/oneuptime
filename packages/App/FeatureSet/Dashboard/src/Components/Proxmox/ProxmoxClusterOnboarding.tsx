@@ -20,7 +20,6 @@ const PROXMOX_CLUSTER_ONBOARDING: ResourceOnboarding = {
   addDescription: translationKey(
     "Connect the cluster with the OneUptime agent or Proxmox VE's native push. It shows up here as soon as its first data arrives.",
   ),
-  firstRunTitle: translationKey("Getting Started with Proxmox Monitoring"),
   viewText: translationKey("View cluster"),
   viewPage: PageMap.PROXMOX_CLUSTER_VIEW,
   name: {

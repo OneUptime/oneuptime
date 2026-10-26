@@ -58,7 +58,7 @@ Ambos registran un problema, y ambos pueden avisar a quien esté de guardia. Lo 
 | **Qué es** | Un problema que afecta a tus usuarios, como una caída o una ralentización | Un problema que tu equipo debe revisar antes de que afecte a los usuarios |
 | **En las páginas de estado** | Puede aparecer, y avisa a los suscriptores | Nunca |
 | **Estados iniciales** | **Identificado**, **Reconocido**, **Resuelto** | **Identificado**, **Reconocido**, **Resuelto** |
-| **Gravedades iniciales** | Critical Incident, Major Incident, Minor Incident | **Alta**, **Low** |
+| **Gravedades iniciales** | Critical Incident, Major Incident, Minor Incident | **Alta**, **Baja** |
 
 Reconocerlo indica que alguien se está ocupando, y evita que sus políticas de guardia avisen al siguiente nivel. Resolverlo lo cierra. Puedes añadir tus propios estados y gravedades, y vincular alertas al incidente del que resultaron formar parte.
 

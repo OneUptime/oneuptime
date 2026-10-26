@@ -144,10 +144,10 @@ Quando um saldo não consegue pagar, a mensagem não é enviada ou o OneUptime A
 
 | Para | É preciso |
 | --- | --- |
-| Ler as páginas de cobrança: o plano, as faturas, o uso, os saldos e os métodos de pagamento | Project Owner, **Manage Billing**, **Billing Admin**, **Billing Member** ou **Billing Viewer** |
-| Baixar uma fatura | Project Owner, Project Admin, **Manage Billing**, **Read Invoices**, **Billing Admin** ou **Billing Member** |
-| Mudar o endereço de cobrança e o e-mail das faturas | Project Owner, **Manage Billing**, **Billing Admin** ou **Billing Member** |
-| Ativar ou desativar SMS, chamadas, WhatsApp ou Telegram | Project Owner, **Manage Billing** ou **Billing Admin** |
+| Ler as páginas de cobrança: o plano, as faturas, o uso, os saldos e os métodos de pagamento | Project Owner, **Manage Billing**, **Administrador de cobrança**, **Membro de cobrança** ou **Visualizador de cobrança** |
+| Baixar uma fatura | Project Owner, Project Admin, **Manage Billing**, **Read Invoices**, **Administrador de cobrança** ou **Membro de cobrança** |
+| Mudar o endereço de cobrança e o e-mail das faturas | Project Owner, **Manage Billing**, **Administrador de cobrança** ou **Membro de cobrança** |
+| Ativar ou desativar SMS, chamadas, WhatsApp ou Telegram | Project Owner, **Manage Billing** ou **Administrador de cobrança** |
 | Adicionar um método de pagamento | Project Owner, **Manage Billing** ou **Create Payment Method** |
 | Pagar uma fatura | Project Owner, **Manage Billing** ou **Edit Invoices** |
 | Mudar o plano, recarregar um saldo ou mudar a recarga automática | Project Owner ou **Manage Billing** |

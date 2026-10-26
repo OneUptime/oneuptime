@@ -99,7 +99,7 @@ Webhook-triggere gir deg en unik URL. Alle som kjenner URL-en, kan kalle den. Sl
 - For sensitive arbeidsflyter ber du systemet som kaller, sende et delt token som header (som `X-Webhook-Token`), og sjekker det med en **If / Else**-blokk før noe viktig skjer. Lagre det forventede tokenet som en hemmelig variabel.
 - For svært sensitive arbeidsflyter er en OneUptime-begivenhetstrigger og et manuelt importtrinn å foretrekke fremfor en offentlig webhook.
 
-Bare personer som kan redigere arbeidsflyten — **Project Owner**, **Project Admin**, **Workflow Admin** eller **Edit Workflow** — kan se eller tilbakestille webhook-URL-en. Alle med URL-en kan starte arbeidsflyten hvor som helst fra, uten å logge inn, så alle andre ser en merknad om hvem de kan spørre i stedet. Det gjelder også en **Workflow Member**, som kjører arbeidsflyten manuelt fra **Bygger**.
+Bare personer som kan redigere arbeidsflyten — **Prosjekteier**, **Prosjektadministrator**, **Arbeidsflytadministrator** eller **Edit Workflow** — kan se eller tilbakestille webhook-URL-en. Alle med URL-en kan starte arbeidsflyten hvor som helst fra, uten å logge inn, så alle andre ser en merknad om hvem de kan spørre i stedet. Det gjelder også en **Arbeidsflytmedlem**, som kjører arbeidsflyten manuelt fra **Bygger**.
 
 ## Sikkerhet for innkommende e-post
 
@@ -110,7 +110,7 @@ Incoming Email-triggeren gir arbeidsflyten sin egen adresse, og alle som kjenner
 - Hvem som helst kan sette en hvilken som helst avsender på en e-post, så **From** beviser ikke hvem som sendte den. Før en arbeidsflyt gjør noe viktig, sjekker du noe bare den ekte avsenderen vet — et token i emnet eller i en header — med en **If / Else**-blokk. Lagre det forventede tokenet som en hemmelig variabel.
 - Nøkkelen skjules i alt kjøringen mottar — **To**, **CC**, headerne og innholdet — fordi loggen til kjøringen er synlig for alle som kan lese kjøringene til arbeidsflyten.
 
-Bare personer som kan redigere arbeidsflyten — **Project Owner**, **Project Admin**, **Workflow Admin** eller **Edit Workflow** — kan se eller tilbakestille adressen. Alle andre ser en merknad om hvem de kan spørre.
+Bare personer som kan redigere arbeidsflyten — **Prosjekteier**, **Prosjektadministrator**, **Arbeidsflytadministrator** eller **Edit Workflow** — kan se eller tilbakestille adressen. Alle andre ser en merknad om hvem de kan spørre.
 
 ## Utgående nettverkstilgang
 
@@ -166,30 +166,30 @@ Feil i validering, konfigurasjon, tilgang, grenser, kreditt, samtidighet, levera
 
 Arbeidsflyter følger den rollebaserte tilgangskontrollen i prosjektet ditt. De tre arbeidsflytrollene:
 
-- **Workflow Admin** — bygger arbeidsflyter: oppretter, endrer, kjører og sletter dem, og administrerer variablene de bruker.
-- **Workflow Member** — bruker dem: åpner arbeidsflyter og kjøringene deres, og kjører en arbeidsflyt manuelt med **Kjør arbeidsflyt**. Et medlem kan ikke opprette, endre eller slette en arbeidsflyt, eller kjøre ett av trinnene for seg.
-- **Workflow Viewer** — leser arbeidsflyter og kjøringene deres.
+- **Arbeidsflytadministrator** — bygger arbeidsflyter: oppretter, endrer, kjører og sletter dem, og administrerer variablene de bruker.
+- **Arbeidsflytmedlem** — bruker dem: åpner arbeidsflyter og kjøringene deres, og kjører en arbeidsflyt manuelt med **Kjør arbeidsflyt**. Et medlem kan ikke opprette, endre eller slette en arbeidsflyt, eller kjøre ett av trinnene for seg.
+- **Arbeidsflytleser** — leser arbeidsflyter og kjøringene deres.
 
-**Project Owner** og **Project Admin** kan alt en Workflow Admin kan. **Project Member** kan opprette og slette arbeidsflyter, men ikke endre eller kjøre dem.
+**Prosjekteier** og **Prosjektadministrator** kan alt en Workflow Admin kan. **Prosjektmedlem** kan opprette og slette arbeidsflyter, men ikke endre eller kjøre dem.
 
 De enkelte tillatelsene, for et team eller en API-nøkkel som trenger nøyaktig én ting:
 
 - **Create / Read / Edit / Delete Workflow** — de grunnleggende tillatelsene på selve arbeidsflyten. Å endre en arbeidsflyt, også å slå den på eller av og å arkivere den, krever **Edit Workflow**; **Delete Workflow** sletter bare.
-- **Edit Workflow** — er også det som skal til for å kjøre ett trinn for seg med **Run just this step**, og for å se eller tilbakestille webhook-URL-en og adressen for innkommende e-post til en arbeidsflyt. Å kjøre en hel arbeidsflyt manuelt krever **Edit Workflow**, **Workflow Admin** eller **Workflow Member**.
+- **Edit Workflow** — er også det som skal til for å kjøre ett trinn for seg med **Run just this step**, og for å se eller tilbakestille webhook-URL-en og adressen for innkommende e-post til en arbeidsflyt. Å kjøre en hel arbeidsflyt manuelt krever **Edit Workflow**, **Arbeidsflytadministrator** eller **Arbeidsflytmedlem**.
 - **Read Workflow Log** — nødvendig for å se kjøringer.
 - **Create / Read / Edit / Delete Workflow Variables** — administrasjon av globale variabler og arbeidsflytvariabler.
 
 En manuell kjøring når bare arbeidsflyter du kan åpne: en rolle som er begrenset til bestemte etiketter, eller til arbeidsflytene teamet ditt eier, kjører bare dem. Den som ikke kan kjøre en arbeidsflyt, ser **Kjør arbeidsflyt** nedtonet, med årsaken i verktøytipset.
 
-Gi dem som bygger automatisering, **Workflow Admin**, og dem som bare starter den, **Workflow Member**. Hold redigeringstilgang til variabler for dem som administrerer hemmelighetene i prosjektet. Se [Brukere, team og tillatelser](/docs/permissions/index) for hvordan roller tildeles.
+Gi dem som bygger automatisering, **Arbeidsflytadministrator**, og dem som bare starter den, **Arbeidsflytmedlem**. Hold redigeringstilgang til variabler for dem som administrerer hemmelighetene i prosjektet. Se [Brukere, team og tillatelser](/docs/permissions/index) for hvordan roller tildeles.
 
 ## Hva arbeidsflyttrinn kan gjøre
 
-Trinnene som leser og endrer OneUptime-poster — komponentene Find, Create, Update og Delete, og triggerne On Create, On Update, On Create or Update og On Delete — handler som en **Project Admin** i prosjektet til arbeidsflyten. Uansett hvem som bygde arbeidsflyten, møter et trinn de samme kontrollene som en Project Admin møter i dashbordet og API-et:
+Trinnene som leser og endrer OneUptime-poster — komponentene Find, Create, Update og Delete, og triggerne On Create, On Update, On Create or Update og On Delete — handler som en **Prosjektadministrator** i prosjektet til arbeidsflyten. Uansett hvem som bygde arbeidsflyten, møter et trinn de samme kontrollene som en Project Admin møter i dashbordet og API-et:
 
 - **Bare arbeidsflytens eget prosjekt.** Et trinn leser og skriver postene i prosjektet arbeidsflyten hører til, og ingen andre, og en Update flytter aldri en post til et annet prosjekt.
-- **Bare det en Project Admin har lov til.** Et trinn kan ikke gjøre det bare **Project Owner** og tillatelser for fakturering eller prosjektsletting gir lov til, og det kan ikke lese hvem som opprettet en probe eller en AI-agent, noe bare prosjekteiere ser.
-- **Ikke hvem som har tilgang.** Et trinn oppretter, endrer og sletter ikke team, teammedlemmer, teamtillatelser, egendefinerte roller eller API-nøkkeltillatelser, selv om en Project Admin har lov til det. Den som bygger en arbeidsflyt, bestemmer hva trinnene gjør, og det kan være en **Project Member**, så et trinn som kunne det, ville gitt den som bygde den, tilgang vedkommende ikke har fått, som **Project Admin**. Trinnet avvises, og loggen til kjøringen sier at en person som administrerer prosjektets team og API-nøkler, må gjøre endringen. Triggere og Find-trinn på disse postene virker fortsatt.
+- **Bare det en Project Admin har lov til.** Et trinn kan ikke gjøre det bare **Prosjekteier** og tillatelser for fakturering eller prosjektsletting gir lov til, og det kan ikke lese hvem som opprettet en probe eller en AI-agent, noe bare prosjekteiere ser.
+- **Ikke hvem som har tilgang.** Et trinn oppretter, endrer og sletter ikke team, teammedlemmer, teamtillatelser, egendefinerte roller eller API-nøkkeltillatelser, selv om en Project Admin har lov til det. Den som bygger en arbeidsflyt, bestemmer hva trinnene gjør, og det kan være en **Prosjektmedlem**, så et trinn som kunne det, ville gitt den som bygde den, tilgang vedkommende ikke har fått, som **Prosjektadministrator**. Trinnet avvises, og loggen til kjøringen sier at en person som administrerer prosjektets team og API-nøkler, må gjøre endringen. Triggere og Find-trinn på disse postene virker fortsatt.
 - **Ikke lesing av innstillinger som inneholder påloggingsinformasjon.** En Project Admin har lov til å lese SMTP-servere, leverandører for anrop og SMS, SNMP-påloggingsinformasjon, videosamtaletilkoblinger og API-nøkler, men det lånes aldri ut til et trinn, uansett hvem som bygde eller lagret arbeidsflyten. Et trinn kan ikke angi noen av disse innstillingene, som SMTP-serveren en statusside sender e-post med, eller API-nøkkelen en tillatelse gis til. Trinnet avvises, og kjøreloggen sier at en person som kan lese dem (lesetillatelsen for den typen innstilling, eller en Project Owner eller Project Admin), må gjøre endringen. Et trinn som beholder innstillingen en post allerede angir, eller tømmer den, avvises ikke.
 - **Bare det planen din inkluderer.** I OneUptime Cloud avvises et trinn som oppretter eller endrer noe planen din ikke inkluderer, med planen det krever, akkurat som i dashbordet. Selvhostede installasjoner uten fakturering har ingen plangrenser.
 - **Ingenting OneUptime holder for seg selv.** Dette avvises for alle, arbeidsflyter inkludert:

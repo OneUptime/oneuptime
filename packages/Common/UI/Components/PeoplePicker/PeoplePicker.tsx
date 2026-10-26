@@ -4,6 +4,7 @@ import useAnchoredFieldPopup, {
 } from "../../Types/UseAnchoredFieldPopup";
 import { translationKey } from "../../Utils/TranslateTemplate";
 import useTranslateValue from "../../Utils/Translation";
+import joinAriaIds from "../../Utils/AriaIds";
 import Icon from "../Icon/Icon";
 import { PeopleChip } from "./PeopleList";
 import PeopleSearchPopup, {
@@ -78,6 +79,8 @@ export interface ComponentProps {
   error?: string | undefined;
   // The id of the label that names the field.
   ariaLabelledby?: string | undefined;
+  // What describes the field besides its error, read first: its help.
+  ariaDescribedby?: string | undefined;
   dataTestId?: string | undefined;
   // The search list closed: the field has been visited.
   onBlur?: (() => void) | undefined;
@@ -354,7 +357,10 @@ const PeoplePicker: FunctionComponent<ComponentProps> = (
       <div
         role="group"
         aria-labelledby={props.ariaLabelledby}
-        aria-describedby={props.error ? errorId : undefined}
+        aria-describedby={joinAriaIds(
+          props.ariaDescribedby,
+          props.error ? errorId : undefined,
+        )}
         className="flex flex-wrap items-center gap-2"
       >
         {/*

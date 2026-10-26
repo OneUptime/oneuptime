@@ -59,6 +59,7 @@ import FeedMarkdown, {
   mdText,
 } from "Common/Utils/Markdown/FeedMarkdown";
 import { isSendingSubscriberNotifications } from "Common/Types/StatusPage/SubscriberNotificationsSwitch";
+import { writeDefaultSubscriberSms } from "Common/Utils/Sms/SubscriberSms";
 
 /*
  * Two jobs share this send path: one tells subscribers about a new public
@@ -595,7 +596,9 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
                 })
               : `${copy.smsPrefix} ${event.title || ""} on ${statusPageName}.`;
 
-            smsMessage = `${smsHeadline} Details: ${scheduledEventDetailsUrl}. Unsub: ${unsubscribeUrl}`;
+            smsMessage = writeDefaultSubscriberSms(
+              `${smsHeadline} Details: ${scheduledEventDetailsUrl}. Unsub: ${unsubscribeUrl}`,
+            );
           }
 
           const sms: SMS = {

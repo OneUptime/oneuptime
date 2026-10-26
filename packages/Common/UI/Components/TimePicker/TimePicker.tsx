@@ -2,10 +2,12 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
 } from "react";
+import joinAriaIds from "../../Utils/AriaIds";
 import { Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 import OneUptimeDate from "../../../Types/Date";
@@ -27,6 +29,8 @@ export interface ComponentProps {
   autoFocus?: boolean | undefined;
   error?: string | undefined;
   ariaLabelledby?: string | undefined;
+  // What describes the time besides its error, read first: its field's help.
+  ariaDescribedby?: string | undefined;
 }
 
 const pad2: (n: number) => string = (n: number): string => {
@@ -58,6 +62,11 @@ const TimePicker: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  /*
+   * An error id of its own: a fixed one was shared by every time picker on
+   * a page, so each read the first one's error.
+   */
+  const errorId: string = `timepicker-error-${useId()}`;
   // Start with project-level preference (works on server), then update to browser preference on mount
   const [userPrefers12h, setUserPrefers12h] = useState<boolean>(
     OneUptimeDate.getUserPrefers12HourFormat(),
@@ -171,7 +180,10 @@ const TimePicker: FunctionComponent<ComponentProps> = (
         aria-label={translator.translateText("Time input")}
         aria-labelledby={props.ariaLabelledby}
         aria-disabled={props.disabled ? true : undefined}
-        aria-describedby={props.error ? "timepicker-error" : undefined}
+        aria-describedby={joinAriaIds(
+          props.ariaDescribedby,
+          props.error ? errorId : undefined,
+        )}
         onClick={openModal}
         aria-haspopup="dialog"
         aria-expanded={showModal || undefined}
@@ -483,7 +495,7 @@ const TimePicker: FunctionComponent<ComponentProps> = (
 
       {props.error && (
         <p
-          id="timepicker-error"
+          id={errorId}
           data-testid="error-message"
           className="mt-1 text-sm text-red-400"
           aria-live="polite"

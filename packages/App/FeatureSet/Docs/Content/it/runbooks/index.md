@@ -45,7 +45,7 @@ I passaggi HTTP e IA vengono eseguiti sul Worker di OneUptime. I passaggi Bash, 
 | **Runbook** | Il modello. Una procedura con un nome, riutilizzabile, con un elenco ordinato di passaggi e un interruttore **Esegui questo runbook**. |
 | **Passaggio** | Un elemento di un runbook. Ha un tipo (Manual, JavaScript, HTTP request, Bash, SSH, kubectl o AI), un titolo, una descrizione e impostazioni specifiche del tipo. |
 | **Regola di runbook** | Una regola che collega automaticamente uno o più runbook agli incidenti, agli avvisi o agli eventi di manutenzione programmata che soddisfano le sue condizioni: i loro monitor, la gravità, le etichette, le etichette dei monitor, il titolo o la descrizione. |
-| **Esecuzione** | Un'esecuzione di un runbook. Viene creata quando scatta una regola, quando qualcuno fa clic su **Esegui Runbook** su un evento o quando qualcuno fa clic su **Run Now** sul runbook stesso. Contiene un'istantanea dei passaggi e lo stato e l'output di ciascuno. |
+| **Esecuzione** | Un'esecuzione di un runbook. Viene creata quando scatta una regola, quando qualcuno fa clic su **Esegui Runbook** su un evento o quando qualcuno fa clic su **Esegui ora** sul runbook stesso. Contiene un'istantanea dei passaggi e lo stato e l'output di ciascuno. |
 | **Istantanea** | La copia congelata dei passaggi del runbook che vive su ogni esecuzione. Puoi modificare il runbook in seguito senza riscrivere la storia delle esecuzioni passate. |
 | **Runner** | Un piccolo agente che esegui su un host della tua infrastruttura. Esegue i passaggi JavaScript, Bash, SSH e kubectl che lo indicano. Detto anche agente di runbook. Un Runner globale, uno di quelli che OneUptime esegue per ogni progetto, esegue i passaggi JavaScript che non ne nominano nessuno, a meno che il progetto non abbia un Runner predefinito. |
 | **Variabile** | Un valore che i passaggi usano per nome, come un host o un URL: `{{global.variables.NAME}}` per uno del progetto, che ogni runbook può usare, oppure `{{local.variables.NAME}}` per uno proprio del runbook. |
@@ -73,7 +73,7 @@ Un runbook può combinarli tutti. La forza dei runbook sta nell'alternare verifi
 | --- | --- | --- |
 | Una regola di runbook | **Incidenti**, **Avvisi** o **Manutenzione programmata** → **Regole** → **Regole di runbook** | Il nuovo incidente, avviso o evento |
 | **Esegui Runbook** | La pagina **Runbook** di un incidente, un avviso o un evento di manutenzione programmata | Quell'evento |
-| **Run Now** | La pagina **Panoramica** del runbook | Niente: un'esecuzione estemporanea |
+| **Esegui ora** | La pagina **Panoramica** del runbook | Niente: un'esecuzione estemporanea |
 | Una regola IA | Vedi [AI SRE](/docs/ai/ai-sre) | L'incidente o l'avviso |
 | La pianificazione del runbook | La pagina **Trigger** del runbook, vedi [Trigger dei runbook](/docs/runbooks/triggers#eseguire-secondo-una-pianificazione) | Nulla: un'esecuzione non presidiata |
 | Una chiamata all'URL del webhook del runbook | La pagina **Trigger** del runbook, vedi [Trigger dei runbook](/docs/runbooks/triggers#chiamare-il-webhook) | Nulla: l'esecuzione conserva i valori inviati dalla chiamata |
@@ -87,8 +87,8 @@ Runbook si trova in **Prodotti**, nel gruppo **Dashboard e automazione**.
 | Pagina | Cosa fai lì |
 | --- | --- |
 | **Prodotti → Runbook** | Sfogliare, creare e aprire runbook. |
-| I **Passaggi** di un runbook | Scrivere e riordinare i passaggi, poi **Save Steps**. |
-| La **Panoramica** di un runbook | Vedere l'ultima esecuzione e i risultati, e fare clic su **Run Now**. |
+| I **Passaggi** di un runbook | Scrivere e riordinare i passaggi, poi **Salva passaggi**. |
+| La **Panoramica** di un runbook | Vedere l'ultima esecuzione e i risultati, e fare clic su **Esegui ora**. |
 | Le **Esecuzioni** di un runbook | Tutte le esecuzioni di questo runbook, filtrate per stato o data di inizio. |
 | **Trigger** di un runbook | Eseguirlo secondo una [pianificazione](/docs/runbooks/triggers#eseguire-secondo-una-pianificazione), o da un altro strumento tramite il suo [URL del webhook](/docs/runbooks/triggers#chiamare-il-webhook). |
 | Le **Variabili** di un runbook | Gestire le [variabili](/docs/runbooks/variables) che usano solo i passaggi di quel runbook. |
@@ -118,7 +118,7 @@ Supponi di voler fare in modo che ogni incidente con «db-primary» nel titolo a
 :::steps
 ### Crea il runbook
 
-In **Runbook**, fai clic su **Crea: Runbook** e chiamalo «DB primary failover». Si apre su **Passaggi**: aggiungi questi passaggi e fai clic su **Save Steps**:
+In **Runbook**, fai clic su **Crea: Runbook** e chiamalo «DB primary failover». Si apre su **Passaggi**: aggiungi questi passaggi e fai clic su **Salva passaggi**:
 
 | # | Tipo | Titolo |
 | --- | --- | --- |

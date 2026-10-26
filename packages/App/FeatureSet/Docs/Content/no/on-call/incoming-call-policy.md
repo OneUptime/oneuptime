@@ -41,8 +41,8 @@ flowchart TB
 Gå til **Prosjektinnstillinger** > **Varsler** > **Varselinnstillinger**. Klikk på **Opprett Twilio-konfigurasjon** i kortet **Twilio-konfigurasjon**, og fyll ut skjemaet:
 
 - **Navn** og **Beskrivelse**: hva kontoen brukes til, for eksempel "Supportlinje".
-- **Twilio Account SID**: fra Twilio Console. Den starter med `AC`.
-- **Twilio Auth Token**: fra Twilio Console.
+- **Twilio-konto-SID**: fra Twilio Console. Den starter med `AC`.
+- **Twilio-autentiseringstoken**: fra Twilio Console.
 - **Twilio primært telefonnummer**: et nummer på den kontoen, for SMS-ene og anropene den sender. Under **Flere felt**, valgfritt: numre for mottakere i andre land og numre for SMS når kontoens numre bare kan ringe (se [Egne numre for anrop og SMS](/docs/self-hosted/twilio-integration#egne-numre-for-anrop-og-sms)).
 - **Angi som prosjektstandard**: på for prosjektets første Twilio-konfigurasjon, så SMS-er og anrop til prosjektets medlemmer også går gjennom denne kontoen. Slå det av hvis kontoen bare er for innkommende anrop.
 
@@ -56,7 +56,7 @@ Gå til **Vakttjeneste** > **Retningslinjer for innkommende anrop**, og klikk p�
 
 ### Legg til et telefonnummer
 
-Klikk på **Add Phone Number** i det andre steget. Velg **Use Existing Phone Number** for å ta med et nummer Twilio-kontoen din allerede har, eller **Reserve New Phone Number** for å få et nytt. OneUptime peker nummeret mot seg selv, så det er ingenting å sette opp i Twilio. Se [Telefonnumre](#telefonnumre).
+Klikk på **Legg til telefonnummer** i det andre steget. Velg **Bruk eksisterende telefonnummer** for å ta med et nummer Twilio-kontoen din allerede har, eller **Reserver nytt telefonnummer** for å få et nytt. OneUptime peker nummeret mot seg selv, så det er ingenting å sette opp i Twilio. Se [Telefonnumre](#telefonnumre).
 
 ### Legg til eskaleringsregler
 
@@ -68,7 +68,7 @@ Alle som en regel kan ringe, legger til og verifiserer sitt eget nummer for innk
 
 ### Ring nummeret
 
-Når alle tre stegene er fullført, blir kortet til **Phone Numbers & Twilio Configuration**. Ring nummeret fra en hvilken som helst telefon, og åpne deretter policyens **Anropslogger** for å se hvem som ble ringt.
+Når alle tre stegene er fullført, blir kortet til **Telefonnumre og Twilio-konfigurasjon**. Ring nummeret fra en hvilken som helst telefon, og åpne deretter policyens **Anropslogger** for å se hvem som ble ringt.
 :::
 
 ## Slik rutes et anrop
@@ -127,16 +127,16 @@ For eksempel tre regler som prøver to rotasjoner og deretter en leder:
 
 ## Telefonnumre
 
-En policy kan ha flere numre, og alle ringer de samme reglene. Hvert nummer hører til én policy. Legg dem til med **Add Phone Number** på policyens **Oversikt**:
+En policy kan ha flere numre, og alle ringer de samme reglene. Hvert nummer hører til én policy. Legg dem til med **Legg til telefonnummer** på policyens **Oversikt**:
 
 :::tabs
 @tab Bruk et nummer du har
-1. Klikk på **Add Phone Number** og deretter på **Use Existing Phone Number**. OneUptime viser numrene på policyens Twilio-konto.
+1. Klikk på **Legg til telefonnummer** og deretter på **Bruk eksisterende telefonnummer**. OneUptime viser numrene på policyens Twilio-konto.
 2. Klikk på **Velg** ved siden av nummeret og deretter på **Tildel nummer**.
 
 Et nummer som allerede sender anropene sine et annet sted, sier "Currently has a webhook configured". Å tildele det sender anropene til OneUptime i stedet.
 @tab Reserver et nytt nummer
-1. Klikk på **Add Phone Number**, deretter på **Reserve New Phone Number** og **Søk etter numre**.
+1. Klikk på **Legg til telefonnummer**, deretter på **Reserver nytt telefonnummer** og **Søk etter numre**.
 2. Velg et **Land**. Fyll eventuelt ut **Retningsnummer (valgfritt)**, for eksempel 415, eller **Inneholder (valgfritt)** med sifre nummeret skal inneholde. Klikk på **Søk**: opptil 10 lokale numre vises.
 3. Klikk på **Reserver** ved siden av et nummer, og bekreft med **Reserver**. Twilio belaster nummeret på Twilio-kontoen din.
 :::
@@ -146,7 +146,7 @@ OneUptime setter nummerets voice-webhook til `https://<your host>/notification/i
 For å frigi et nummer klikker du på **Frigi** ved siden av det og bekrefter med **Frigi nummer**.
 
 > [!CAUTION]
-> Å frigi et nummer gir det tilbake til Twilio, også et nummer du tok med via **Use Existing Phone Number**, og du får det kanskje ikke igjen. Å slette en policy, eller Twilio-konfigurasjonen den bruker, frigir også numrene.
+> Å frigi et nummer gir det tilbake til Twilio, også et nummer du tok med via **Bruk eksisterende telefonnummer**, og du får det kanskje ikke igjen. Å slette en policy, eller Twilio-konfigurasjonen den bruker, frigir også numrene.
 
 ## Ingeniørenes telefonnumre
 
@@ -160,7 +160,7 @@ En regel ringer en person på nummeret personen har verifisert for innkommende a
 
 Hver person kan ha ett verifisert nummer per prosjekt. For å endre det sletter du først det gamle nummeret. Disse numrene er atskilt fra telefonnumrene under **Varselmetoder**, som vaktvarsler bruker. Se [Varselmetoder](/docs/notifications/notification-methods).
 
-Numre for innkommende anrop verifiseres på SMS, så **SMS** må først være slått på for prosjektet. En prosjekteier, en **Billing Admin** eller noen med **Manage Billing** slår det på i kortet **Varslingskanaler** på **Prosjektinnstillinger > Varsler > Varselinnstillinger**.
+Numre for innkommende anrop verifiseres på SMS, så **SMS** må først være slått på for prosjektet. En prosjekteier, en **Faktureringsadministrator** eller noen med **Manage Billing** slår det på i kortet **Varslingskanaler** på **Prosjektinnstillinger > Varsler > Varselinnstillinger**.
 
 ## Talemeldinger og innstillinger for policyen
 
@@ -182,19 +182,19 @@ Twilio leser meldingene opp med en tekst-til-tale-stemme, så skriv dem slik du 
 
 ## Anropslogger
 
-Hvert anrop står på policyens side **Anropslogger**, under **Logger** i sidemenyen: **Oppringer**, **Number Called**, **Status**, hvem som svarte (**Besvart av**), **Varighet**, og når det startet (**Startet den**). Klikk på **View Timeline** ved et anrop for å se **Anropstidslinje**: hver person som ble ringt, på hvilket nummer, og hvordan hvert forsøk endte.
+Hvert anrop står på policyens side **Anropslogger**, under **Logger** i sidemenyen: **Oppringer**, **Oppringt nummer**, **Status**, hvem som svarte (**Besvart av**), **Varighet**, og når det startet (**Startet den**). Klikk på **Vis tidslinje** ved et anrop for å se **Anropstidslinje**: hver person som ble ringt, på hvilket nummer, og hvordan hvert forsøk endte.
 
 | Status | Hva som skjedde |
 | --- | --- |
-| **Initiated**, **Eskalert** | Anropet pågår fortsatt: det kom inn og en telefon ringer, eller det gikk videre til en senere regel. |
+| **Startet**, **Eskalert** | Anropet pågår fortsatt: det kom inn og en telefon ringer, eller det gikk videre til en senere regel. |
 | **Fullført** | Noen svarte, og innringeren ble satt over. |
 | **Ingen svar** | Alle eskaleringsregler ble prøvd, og ingen svarte. Innringeren hørte **Melding ved ingen svar**. |
-| **Caller Hung Up** | Innringeren la på mens telefonen til en ingeniør ringte. |
+| **Innringer la på** | Innringeren la på mens telefonen til en ingeniør ringte. |
 | **Mislyktes** | Ingen kunne ringes: ingen eskaleringsregel hadde en bruker på vakt med et verifisert nummer for innkommende anrop (innringeren hørte **Melding ved ingen tilgjengelige**), eller **Besvar anrop** er slått av. |
 
 ## Tapte anrop
 
-Et anrop er tapt når det avsluttes uten å nå noen: statusen er **Ingen svar**, **Caller Hung Up** eller **Mislyktes**.
+Et anrop er tapt når det avsluttes uten å nå noen: statusen er **Ingen svar**, **Innringer la på** eller **Mislyktes**.
 
 ### Hvem som får beskjed
 
@@ -225,10 +225,10 @@ En arbeidsflyt kan lese anropslogger med **Find One** og **Find Many**, men kan 
 
 Telefonnumrene til en policy følger de samme rollene som selve policyen:
 
-- **Slå opp numre** - søke i Twilio etter et nummer å reservere, eller vise numrene Twilio-kontoen din allerede har - krever tillatelse til å lese policyer for innkommende anrop og til å lese konfigurasjoner for anrop og SMS, fordi det leser Twilio-kontoen din gjennom en av dem. **Project Owner**, **Project Admin**, **Project Member**, **Viewer**, **Settings Admin**, **Settings Member** og **Settings Viewer** har begge. I en egendefinert rolle er det **Read Incoming Call Policy** og **Read Call and SMS**.
-- **Reservere et nummer, bruke et eksisterende og frigi et** krever tillatelse til å redigere policyer for innkommende anrop: **Project Owner**, **Project Admin**, **Project Member**, **Settings Admin** og **Settings Member**, eller **Edit Incoming Call Policy** i en egendefinert rolle. De endrer numrene til en policy du kan redigere: med en rolle som er begrenset til bestemte etiketter, policyene som har de etikettene.
+- **Slå opp numre** - søke i Twilio etter et nummer å reservere, eller vise numrene Twilio-kontoen din allerede har - krever tillatelse til å lese policyer for innkommende anrop og til å lese konfigurasjoner for anrop og SMS, fordi det leser Twilio-kontoen din gjennom en av dem. **Prosjekteier**, **Prosjektadministrator**, **Prosjektmedlem**, **Leser**, **Innstillingsadministrator**, **Innstillingsmedlem** og **Innstillingsleser** har begge. I en egendefinert rolle er det **Read Incoming Call Policy** og **Read Call and SMS**.
+- **Reservere et nummer, bruke et eksisterende og frigi et** krever tillatelse til å redigere policyer for innkommende anrop: **Prosjekteier**, **Prosjektadministrator**, **Prosjektmedlem**, **Innstillingsadministrator** og **Innstillingsmedlem**, eller **Edit Incoming Call Policy** i en egendefinert rolle. De endrer numrene til en policy du kan redigere: med en rolle som er begrenset til bestemte etiketter, policyene som har de etikettene.
 
-En blokkering fra et team uten etiketter på en av disse tillatelsene tar den bort. For alle andre blir **Add Phone Number** og **Frigi** stående på siden, låst, og verktøytipset deres sier hva som kreves. API-et avviser forespørselen deres med en setning som sier hva som kreves: "Looking up phone numbers needs permission to read incoming call policies and call and SMS settings." eller "Adding or releasing a phone number needs permission to edit incoming call policies." Å reservere et nummer belastes din egen Twilio-konto, ikke OneUptime-saldoen din, så det krever ingen faktureringstillatelse.
+En blokkering fra et team uten etiketter på en av disse tillatelsene tar den bort. For alle andre blir **Legg til telefonnummer** og **Frigi** stående på siden, låst, og verktøytipset deres sier hva som kreves. API-et avviser forespørselen deres med en setning som sier hva som kreves: "Looking up phone numbers needs permission to read incoming call policies and call and SMS settings." eller "Adding or releasing a phone number needs permission to edit incoming call policies." Å reservere et nummer belastes din egen Twilio-konto, ikke OneUptime-saldoen din, så det krever ingen faktureringstillatelse.
 
 ## Opprett policyer med API-et eller Terraform
 
@@ -255,7 +255,7 @@ En regel som opprettes gjennom API-et uten `escalateAfterSeconds`, ringer i 20 s
 :::details Anrop når ikke frem til OneUptime
 - Åpne nummeret i Twilio Console: **A call comes in** må være webhooken `https://<your host>/notification/incoming-call/voice`, med HTTP POST. OneUptime setter den når nummeret legges til, fra `HOST` og `HTTP_PROTOCOL`. Har de endret seg siden, retter du webhooken i Twilio.
 - En selvdriftet OneUptime må kunne nås fra internett over https. Nummerets anropslogg i Twilio Console, og Twilios **Debugger**, viser hva OneUptime svarte.
-- Et svar `403` betyr at signaturen på forespørselen ikke stemte. Sørg for at Twilio-konfigurasjonen har kontoens gjeldende **Twilio Auth Token**, og at en proxy foran OneUptime sender videre verten og skjemaet Twilio kalte (`X-Forwarded-Host` og `X-Forwarded-Proto`).
+- Et svar `403` betyr at signaturen på forespørselen ikke stemte. Sørg for at Twilio-konfigurasjonen har kontoens gjeldende **Twilio-autentiseringstoken**, og at en proxy foran OneUptime sender videre verten og skjemaet Twilio kalte (`X-Forwarded-Host` og `X-Forwarded-Proto`).
 :::
 
 :::details Anropet besvares, men ingen ringes
@@ -267,7 +267,7 @@ Havner anrop i talepostkassen til en ingeniør, setter du regelens **Ringetid** 
 :::
 
 :::details Et nytt nummer kan ikke reserveres
-Twilio krever i mange land en godkjent regulatory bundle før det selger lokale numre, og noen numre krever positiv Twilio-saldo. Sett det opp i Twilio Console, eller skaff nummeret der og legg det til med **Use Existing Phone Number**.
+Twilio krever i mange land en godkjent regulatory bundle før det selger lokale numre, og noen numre krever positiv Twilio-saldo. Sett det opp i Twilio Console, eller skaff nummeret der og legg det til med **Bruk eksisterende telefonnummer**.
 :::
 
 :::details Policyens Twilio-konto kan ikke endres

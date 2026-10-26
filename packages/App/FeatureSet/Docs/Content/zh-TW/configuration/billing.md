@@ -144,10 +144,10 @@ API 金鑰需要 Growth 或更高的方案，而在 Scale 方案以下，SCIM �
 
 | 要做的事 | 需要 |
 | --- | --- |
-| 讀取帳單頁面：方案、發票、用量、餘額和付款方式 | Project Owner、**Manage Billing**、**Billing Admin**、**Billing Member** 或 **Billing Viewer** |
-| 下載發票 | Project Owner、Project Admin、**Manage Billing**、**Read Invoices**、**Billing Admin** 或 **Billing Member** |
-| 變更帳單地址和發票電子郵件 | Project Owner、**Manage Billing**、**Billing Admin** 或 **Billing Member** |
-| 開啟或關閉簡訊、電話、WhatsApp 或 Telegram | Project Owner、**Manage Billing** 或 **Billing Admin** |
+| 讀取帳單頁面：方案、發票、用量、餘額和付款方式 | Project Owner、**Manage Billing**、**帳單管理員**、**帳單成員** 或 **帳單檢視者** |
+| 下載發票 | Project Owner、Project Admin、**Manage Billing**、**Read Invoices**、**帳單管理員** 或 **帳單成員** |
+| 變更帳單地址和發票電子郵件 | Project Owner、**Manage Billing**、**帳單管理員** 或 **帳單成員** |
+| 開啟或關閉簡訊、電話、WhatsApp 或 Telegram | Project Owner、**Manage Billing** 或 **帳單管理員** |
 | 新增付款方式 | Project Owner、**Manage Billing** 或 **Create Payment Method** |
 | 支付發票 | Project Owner、**Manage Billing** 或 **Edit Invoices** |
 | 變更方案、為餘額儲值或變更自動儲值 | Project Owner 或 **Manage Billing** |

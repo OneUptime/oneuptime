@@ -15,6 +15,8 @@ export interface ComponentProps {
   tabIndex?: number | undefined;
   dataTestId?: string | undefined;
   ariaLabelledby?: string | undefined;
+  // What describes the document besides its status: its field's help.
+  ariaDescribedby?: string | undefined;
   height?: string | undefined;
   className?: string | undefined;
 }
@@ -59,6 +61,7 @@ const YamlEditor: FunctionComponent<ComponentProps> = (
         tabIndex={props.tabIndex}
         dataTestId={props.dataTestId}
         ariaLabelledby={props.ariaLabelledby}
+        ariaDescribedby={props.ariaDescribedby}
         height={props.height}
         // A rule is the whole point of the form it sits in: give it room.
         minLines={12}

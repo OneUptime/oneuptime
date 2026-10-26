@@ -68,6 +68,7 @@ import FeedMarkdown, {
   mdText,
   MarkdownText,
 } from "Common/Utils/Markdown/FeedMarkdown";
+import { writeDefaultSubscriberSms } from "Common/Utils/Sms/SubscriberSms";
 
 // The status message of a 'created' notification that reached everyone.
 const SENT_MESSAGE: string =
@@ -718,7 +719,9 @@ RunCron(
                       ]);
                     } else {
                       // Use default hard-coded template
-                      smsMessage = `Incident ${incident.title || ""} (${incident.incidentSeverity?.name || "-"}) on ${statusPageName}. Impact: ${resourcesAffectedPlainText}. Details: ${incidentDetailsUrl}. Unsub: ${unsubscribeUrl}`;
+                      smsMessage = writeDefaultSubscriberSms(
+                        `Incident ${incident.title || ""} (${incident.incidentSeverity?.name || "-"}) on ${statusPageName}. Impact: ${resourcesAffectedPlainText}. Details: ${incidentDetailsUrl}. Unsub: ${unsubscribeUrl}`,
+                      );
                     }
 
                     const sms: SMS = {

@@ -36,7 +36,8 @@ import ResourceConnectionWatch, {
  * A resource's Add guide: its setup guide, with the name the agent is told
  * above the steps (where the agent is told one) and a live last step that
  * waits for the resource to connect. The list's Add dialog shows it
- * (AddResourceModal), and so does an empty list, as its first-run card.
+ * (AddResourceModal); an empty list shows what the product gives instead
+ * (Components/ResourceShowcase), with the same Add button.
  *
  * Each resource says what it is in a ResourceOnboarding: its words, the
  * column its name lands in, and how to draw its guide with the name, the
@@ -74,13 +75,12 @@ export interface ResourceOnboarding {
   modelType: { new (): BaseModel };
   /*
    * English translation keys. `addTitle` is the list's button and the
-   * dialog's title, "Add Kubernetes Cluster"; `addDescription` is under
-   * the dialog's title; `firstRunTitle` titles the empty list's card, "Add
-   * your first cluster"; `viewText` links to the one that connected.
+   * dialog's title, "Add Kubernetes Cluster" - and the button of the empty
+   * list's showcase; `addDescription` is under the dialog's title;
+   * `viewText` links to the one that connected.
    */
   addTitle: string;
   addDescription: string;
-  firstRunTitle: string;
   viewText: string;
   viewPage: PageMap;
   // Where the agent is told the resource's name.

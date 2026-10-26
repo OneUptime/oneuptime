@@ -371,7 +371,7 @@ OneUptime serve OTLP/gRPC sullo stesso host dell'app web, sulla porta 443 tramit
 
 In un'installazione self-hosted, gRPC raggiunge OneUptime solo tramite HTTPS: una connessione HTTP in chiaro (h2c) viene rifiutata. Se la tua istanza è servita in HTTP semplice, usa OTLP/HTTP.
 
-Due impostazioni di una chiave valgono solo per OTLP/HTTP: il suo **Requests Per Minute Limit** e il suo **Pinned Service Name**. I dati inviati tramite gRPC mantengono il `service.name` con cui sono stati inviati e non vengono contati nel limite.
+Due impostazioni di una chiave valgono solo per OTLP/HTTP: il suo **Requests Per Minute Limit** e il suo **Nome del servizio fissato**. I dati inviati tramite gRPC mantengono il `service.name` con cui sono stati inviati e non vengono contati nel limite.
 
 ### Risposte
 
@@ -400,9 +400,9 @@ La pagina di ogni chiave, in **Impostazioni del progetto → Telemetria e APM �
 
 | Impostazione | A cosa serve |
 | --- | --- |
-| **Tipo di chiave** | **Server** (predefinito) per applicazioni, collector e agenti. **Browser** per chiavi distribuite in una pagina web: solo scrittura, e accettate solo dalle sue **Allowed Origins**. Non si può cambiare dopo la creazione della chiave. |
-| **Allowed Origins** | Le origini web da cui funziona una chiave Browser, come `https://app.example.com`. Ignorato su una chiave Server. |
-| **Pinned Service Name** | Se impostato, sostituisce `service.name` su tutto ciò che viene inviato con questa chiave tramite OTLP/HTTP. |
+| **Tipo di chiave** | **Server** (predefinito) per applicazioni, collector e agenti. **Browser** per chiavi distribuite in una pagina web: solo scrittura, e accettate solo dalle sue **Origini consentite**. Non si può cambiare dopo la creazione della chiave. |
+| **Origini consentite** | Le origini web da cui funziona una chiave Browser, come `https://app.example.com`. Ignorato su una chiave Server. |
+| **Nome del servizio fissato** | Se impostato, sostituisce `service.name` su tutto ciò che viene inviato con questa chiave tramite OTLP/HTTP. |
 | **Abilitato** | Disattivalo per smettere subito di accettare i dati inviati con la chiave, senza eliminarla. |
 | **Scade il** | Dopo questa data la chiave viene rifiutata. Vuoto significa che non scade mai. |
 | **Requests Per Minute Limit** | Il numero massimo di richieste OTLP/HTTP al minuto accettate con la chiave, considerando tutti i client che la usano. Vuoto significa nessun limite su una chiave Server e 6.000 su una chiave Browser. |
@@ -420,7 +420,7 @@ Tutto ciò che è in questa pagina funziona allo stesso modo con la tua installa
 
 ## Eccezioni dai log
 
-OneUptime trova le eccezioni nei tuoi **logs** e le riunisce nella stessa vista **Eccezioni** alimentata dagli errori delle tracce. Ogni log appartiene già a un servizio o a un host, quindi l'eccezione viene attribuita a esso. Le eccezioni dei log e delle tracce condividono il raggruppamento per impronta, così un errore segnalato sia da una traccia sia da un log diventa un unico problema.
+OneUptime trova le eccezioni nei tuoi **registri** e le riunisce nella stessa vista **Eccezioni** alimentata dagli errori delle tracce. Ogni log appartiene già a un servizio o a un host, quindi l'eccezione viene attribuita a esso. Le eccezioni dei log e delle tracce condividono il raggruppamento per impronta, così un errore segnalato sia da una traccia sia da un log diventa un unico problema.
 
 Un log diventa un'eccezione in due modi:
 
@@ -460,7 +460,7 @@ Un batch supera il limite di dimensione. Riduci la dimensione dei batch, per ese
 :::
 
 :::details I dati arrivano sotto il servizio sbagliato, o sotto Unknown Service
-Il servizio deriva dall'attributo di risorsa `service.name`. Imposta `OTEL_SERVICE_NAME` in ogni applicazione. Se la chiave ha un **Pinned Service Name**, ogni esportazione OTLP/HTTP con quella chiave viene archiviata invece sotto quel nome.
+Il servizio deriva dall'attributo di risorsa `service.name`. Imposta `OTEL_SERVICE_NAME` in ogni applicazione. Se la chiave ha un **Nome del servizio fissato**, ogni esportazione OTLP/HTTP con quella chiave viene archiviata invece sotto quel nome.
 :::
 
 ## Passaggi successivi

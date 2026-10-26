@@ -2,9 +2,9 @@
 
 An offline harness for adding a resource the way a host is added (`Components/ResourceOnboarding`): a
 list's Add button opens the resource's setup guide in a dialog, the guide names the resource and writes the
-name into its commands, and its last step watches for the resource to connect. An empty list shows the same
-guide as its first-run card. A database, a queue or a RUM application is added with its form, and its
-prefilled guide then opens on its own.
+name into its commands, and its last step watches for the resource to connect. An empty list shows what the
+product gives instead (`Components/ResourceShowcase`), with the same Add button. A database, a queue or a RUM
+application is added with its form, and its prefilled guide then opens on its own.
 
 | Page                 | Route (from `RouteMap`)                                            | Production components                                         |
 | -------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------- |

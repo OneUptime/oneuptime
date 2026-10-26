@@ -371,7 +371,7 @@ OneUptime erbjuder OTLP/gRPC på samma värd som webbappen, på port 443 över T
 
 I en installation i egen drift når gRPC bara OneUptime över HTTPS: En okrypterad HTTP-anslutning (h2c) nekas. Om din instans levereras över vanlig HTTP, använd OTLP/HTTP.
 
-Två av en nyckels inställningar gäller bara OTLP/HTTP: dess **Requests Per Minute Limit** och dess **Pinned Service Name**. Data som skickas över gRPC behåller det `service.name` de skickades med och räknas inte mot gränsen.
+Två av en nyckels inställningar gäller bara OTLP/HTTP: dess **Requests Per Minute Limit** och dess **Fäst tjänstnamn**. Data som skickas över gRPC behåller det `service.name` de skickades med och räknas inte mot gränsen.
 
 ### Svar
 
@@ -400,9 +400,9 @@ Varje nyckels sida, under **Projektinställningar → Telemetri och APM → Inta
 
 | Inställning | Vad den gör |
 | --- | --- |
-| **Nyckeltyp** | **Server** (standard) för applikationer, collectors och agenter. **Browser** för nycklar som levereras i en webbsida: bara skrivning, och accepteras bara från dess **Allowed Origins**. Den kan inte ändras efter att nyckeln har skapats. |
-| **Allowed Origins** | De webb-origins som en webbläsarnyckel fungerar från, till exempel `https://app.example.com`. Ignoreras på en servernyckel. |
-| **Pinned Service Name** | När den är satt ersätter den `service.name` på allt som skickas med den här nyckeln över OTLP/HTTP. |
+| **Nyckeltyp** | **Server** (standard) för applikationer, collectors och agenter. **Webbläsare** för nycklar som levereras i en webbsida: bara skrivning, och accepteras bara från dess **Tillåtna ursprung**. Den kan inte ändras efter att nyckeln har skapats. |
+| **Tillåtna ursprung** | De webb-origins som en webbläsarnyckel fungerar från, till exempel `https://app.example.com`. Ignoreras på en servernyckel. |
+| **Fäst tjänstnamn** | När den är satt ersätter den `service.name` på allt som skickas med den här nyckeln över OTLP/HTTP. |
 | **Aktiverad** | Stäng av den för att genast sluta acceptera data som skickas med nyckeln, utan att radera den. |
 | **Upphör** | Efter detta datum nekas nyckeln. Tomt betyder att den aldrig går ut. |
 | **Requests Per Minute Limit** | Det högsta antalet OTLP/HTTP-begäranden per minut som accepteras med nyckeln, sammanlagt för alla klienter som använder den. Tomt betyder ingen gräns på en servernyckel och 6 000 på en webbläsarnyckel. |
@@ -420,7 +420,7 @@ Allt på den här sidan fungerar likadant mot din egen installation. Använd din
 
 ## Undantag från loggar
 
-OneUptime hittar undantag i dina **logs** och samlar dem i samma vy **Undantag** som fel från traces matar. Varje logg hör redan till en tjänst eller värd, så undantaget tillskrivs den. Undantag från loggar och traces delar gruppering efter fingeravtryck, så ett fel som rapporteras av både en trace och en logg blir ett enda ärende.
+OneUptime hittar undantag i dina **loggar** och samlar dem i samma vy **Undantag** som fel från traces matar. Varje logg hör redan till en tjänst eller värd, så undantaget tillskrivs den. Undantag från loggar och traces delar gruppering efter fingeravtryck, så ett fel som rapporteras av både en trace och en logg blir ett enda ärende.
 
 En logg kan bli ett undantag på två sätt:
 
@@ -460,7 +460,7 @@ En batch är större än storleksgränsen. Minska batcherna, till exempel med `s
 :::
 
 :::details Data hamnar under fel tjänst, eller under Unknown Service
-Tjänsten kommer från resursattributet `service.name`. Sätt `OTEL_SERVICE_NAME` i varje applikation. Om nyckeln har en **Pinned Service Name** hamnar varje OTLP/HTTP-export med den nyckeln under det namnet i stället.
+Tjänsten kommer från resursattributet `service.name`. Sätt `OTEL_SERVICE_NAME` i varje applikation. Om nyckeln har en **Fäst tjänstnamn** hamnar varje OTLP/HTTP-export med den nyckeln under det namnet i stället.
 :::
 
 ## Nästa steg

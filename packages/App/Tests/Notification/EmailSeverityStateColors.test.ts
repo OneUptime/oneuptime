@@ -235,6 +235,16 @@ const COLOURED_ROWS: Array<ColouredRow> = [
     variable: "incidentSeverity",
   },
   {
+    template: "IncidentOwnerSlaBreached.hbs",
+    label: "Current State:",
+    variable: "currentState",
+  },
+  {
+    template: "IncidentOwnerSlaBreached.hbs",
+    label: "Severity:",
+    variable: "incidentSeverity",
+  },
+  {
     template: "IncidentMemberAdded.hbs",
     label: "Current State:",
     variable: "currentState",

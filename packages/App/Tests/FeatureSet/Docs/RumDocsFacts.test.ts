@@ -1169,7 +1169,6 @@ describe("Core Web Vitals", () => {
     const ratings: string = section(WEB_VITALS, "## Rating thresholds");
     const table: Array<Array<string>> = tables(ratings)[0] || [];
     const card: string = source("webVitalsCard");
-    const locale: Record<string, unknown> = JSON.parse(source("englishLocale"));
 
     expect(table[0]).toEqual([
       "Vital",
@@ -1180,9 +1179,14 @@ describe("Core Web Vitals", () => {
 
     for (const label of WEB_VITAL_RATING_LABELS) {
       expect(card).toContain(`return "${label}";`);
-      // No translation lookup: every language's card draws it in English.
-      expect({ label, key: locale[label] }).toEqual({ label, key: undefined });
     }
+
+    /*
+     * No translation lookup in the card: every language's card draws its
+     * ratings in English, whatever words another screen gave the locales
+     * (a showcase's Good, #5289).
+     */
+    expect(card).not.toMatch(/useTranslat|translateString|translateTerm/);
 
     for (const row of table.slice(1)) {
       const vital: WebVitalDefinition = definition(

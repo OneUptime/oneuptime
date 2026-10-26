@@ -70,7 +70,7 @@ Crie uma página por público, por exemplo de `Site 01` a `Site 10`. Torne-as pr
 
 ### Colocar o monitor compartilhado em cada página
 
-Adicione o monitor compartilhado a cada página como recurso (veja [Recursos e grupos da página de status](/docs/status-pages/resources-and-groups)). Uma regra em **Regras → Monitor Rules** pode fazer isso por você a partir dos rótulos do monitor.
+Adicione o monitor compartilhado a cada página como recurso (veja [Recursos e grupos da página de status](/docs/status-pages/resources-and-groups)). Uma regra em **Regras → Regras de monitor** pode fazer isso por você a partir dos rótulos do monitor.
 
 ### Ligar Mostrar apenas incidentes limitados a esta página
 
@@ -82,7 +82,7 @@ Para a equipe, use **Adicionar em massa** em **Assinantes de e-mail**, e prefira
 
 ### Deixar os responsáveis lerem as páginas de status
 
-O seletor lista apenas as páginas de status que a pessoa pode ler, e as funções de incidente não podem ler páginas de status. Dê aos responsáveis a função **Status Page Viewer** ao lado da função de incidente deles; ela pode ser limitada a páginas com determinados rótulos. Sem ela, o seletor fica vazio.
+O seletor lista apenas as páginas de status que a pessoa pode ler, e as funções de incidente não podem ler páginas de status. Dê aos responsáveis a função **Visualizador de páginas de status** ao lado da função de incidente deles; ela pode ser limitada a páginas com determinados rótulos. Sem ela, o seletor fica vazio.
 
 ### Decidir o que toda mensagem diz
 
@@ -251,7 +251,7 @@ Veja [Notas, responsáveis e feed de incidentes](/docs/incidents/notes-owners-an
 
 ## Permissões
 
-- **Escolher uma página de status exige acesso de leitura a ela.** As páginas de status são lidas pelas funções de página de status, não pelas funções de incidente, e uma página de status pode ser restrita por rótulo. Dê aos responsáveis **Status Page Viewer**, limitado a rótulos se quiser. Sem ela, o seletor fica vazio, e a API recusa uma página que quem chama não pode ler, tanto em incidentes quanto em modelos de incidente.
+- **Escolher uma página de status exige acesso de leitura a ela.** As páginas de status são lidas pelas funções de página de status, não pelas funções de incidente, e uma página de status pode ser restrita por rótulo. Dê aos responsáveis **Visualizador de páginas de status**, limitado a rótulos se quiser. Sem ela, o seletor fica vazio, e a API recusa uma página que quem chama não pode ler, tanto em incidentes quanto em modelos de incidente.
 - **As páginas que quem edita não pode ver são mantidas.** Quem edita e só pode ler algumas das páginas de um incidente vê apenas essas no seletor, e salvar mantém as páginas que ele não pode ver.
 - **As páginas às quais um incidente está limitado fazem parte do incidente.** Como os monitores dele, qualquer pessoa que pode ler o incidente vê os nomes delas, no cartão **Escopo de páginas de status**, na visão geral e no feed do incidente, possa ela ler essas páginas de status ou não.
 - **O que um envio alcançou também faz parte do incidente.** Depois que uma notificação saiu, a mensagem de status dela e o item dela no feed nomeiam toda página de status para a qual ela foi, com o que foi enviado e o que falhou em cada uma, e qualquer pessoa que pode ler o incidente os vê, possa ela ler essas páginas de status ou não. Só o resumo e a pré-visualização abaixo, que olham para a frente, se limitam às páginas que a pessoa pode ler.

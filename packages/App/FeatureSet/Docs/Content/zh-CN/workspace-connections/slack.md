@@ -29,11 +29,11 @@ flowchart TB
 - **项目的连接** 只需建立一次：安装在您的 Slack 工作区中的 OneUptime 应用。它发布消息、创建频道并邀请人员。
 - **每个人自己的连接**：此人的 Slack 账户关联到其 OneUptime 账户。按钮、命令和表情回应都以此人的身份、按其在项目中的权限执行。
 
-一个 Slack 工作区可以连接到多个项目，例如生产环境和测试环境。按钮或表单在其所涉及记录的项目中执行。命令或发给 OneUptime 的消息在其所在频道（例如事件的频道）的项目中执行，否则在您的 Slack 账户所连接的唯一项目中执行。如果无法据此判断，OneUptime 会列出您所在的项目，并请您从目标项目的频道中重试。
+一个 Slack 工作区可以连接到多个项目，例如生产环境和测试环境。按钮或表单在其所涉及记录的项目中执行。命令或发给 OneUptime 的消息在其所在频道（例如事件的频道）的项目中执行，否则在您的 Slack 账户所连接的唯一项目中执行。如果无法据此判断，OneUptime 会询问您指的是哪个项目，并为您所在的每个项目显示一个按钮，您选择后即在该项目中继续。在与 OneUptime AI 的对话中，您的选择在该消息串的其余部分中保持有效。
 
 ## 开始之前
 
-- **可以连接项目的角色：** **Project Owner**、 **Project Admin** 或 **Project Member**。卸载应用需要 **Project Owner** 或 **Project Admin**。
+- **可以连接项目的角色：** **项目所有者**、 **项目管理员** 或 **项目成员**。卸载应用需要 **项目所有者** 或 **项目管理员**。
 - 一个您可以安装应用的 **Slack 工作区**。
 - 通知规则和摘要需要 **OneUptime Cloud 的 Growth 套餐**。请参阅 [低于 Growth 套餐时的通知规则](#低于-growth-套餐时的通知规则)。
 - **在自托管服务器上，** 需要先为其设置好 Slack 应用。请参阅 [Slack 集成](/docs/self-hosted/slack-integration)。
@@ -60,7 +60,7 @@ flowchart TB
 
 ## 请所有人连接账户
 
-任何人都无法替他人连接 Slack 账户，管理员也不例外：每个人都要亲自登录自己的账户。要让整个团队完成连接，可由 **Project Owner** 或 **Project Admin** 在 **项目设置** > **工作区** > **Slack** 中一次性请所有人连接。 **Members' Slack accounts** 卡片会显示已有多少成员完成连接。 **Ask everyone to connect** 会由 OneUptime 在 Slack 中向每位尚未连接的成员发送一条私信，并附带一个 **Connect Slack account** 按钮，只需点击一下即可连接其账户。
+任何人都无法替他人连接 Slack 账户，管理员也不例外：每个人都要亲自登录自己的账户。要让整个团队完成连接，可由 **项目所有者** 或 **项目管理员** 在 **项目设置** > **工作区** > **Slack** 中一次性请所有人连接。 **Members' Slack accounts** 卡片会显示已有多少成员完成连接。 **Ask everyone to connect** 会由 OneUptime 在 Slack 中向每位尚未连接的成员发送一条私信，并附带一个 **Connect Slack account** 按钮，只需点击一下即可连接其账户。
 
 - **谁会收到消息。** 项目中每位尚未连接 Slack 账户的成员，通过其电子邮件地址在 Slack 中找到。过去 24 小时内已请求过的人不会被再次请求，因此第二天再请一次时，只会提醒仍未连接的人。
 - **卡片显示的内容。** 消息发送期间显示发送进度，之后显示是谁发起的请求，以及有多少成员收到了消息。OneUptime 无法通过电子邮件地址在 Slack 中找到的成员，会在卡片上列出姓名：他们需要自行在 **用户设置** > **工作区** > **Slack** 中连接。
@@ -72,8 +72,8 @@ flowchart TB
 
 | 产品 | 其 **Slack** 页面上的标签页 |
 | --- | --- |
-| **事件** | **事件**、 **事件 片段**、 **Summary** |
-| **警报** | **警报**、 **警报 片段**、 **Summary** |
+| **事件** | **事件**、 **事件 片段**、 **摘要** |
+| **警报** | **警报**、 **警报 片段**、 **摘要** |
 | **计划维护** | 一个规则列表 |
 | **监视器** | 一个规则列表 |
 | **值班** | 一个规则列表 |
@@ -112,7 +112,7 @@ flowchart TB
 
 由 OneUptime 应用添加他们，就像它为规则的频道添加人员一样。应用会一直留在它创建的频道中，所以即使所有人都已离开私密频道，也能这样重新进入。
 
-- **谁可以添加成员。** 可以编辑该记录的人：对于事件，是 **Project Owner**、 **Project Admin**、 **Project Member**、 **Incident Admin** 和 **Incident Member**，或自定义角色中的 **Edit Incident**；对于警报、片段或计划维护事件，则是其各自类型的相同权限（例如 **Edit Alert**）。其他人可以看到频道中有谁，以及如何进入。
+- **谁可以添加成员。** 可以编辑该记录的人：对于事件，是 **项目所有者**、 **项目管理员**、 **项目成员**、 **事件管理员** 和 **事件成员**，或自定义角色中的 **Edit Incident**；对于警报、片段或计划维护事件，则是其各自类型的相同权限（例如 **Edit Alert**）。其他人可以看到频道中有谁，以及如何进入。
 - **可以添加谁。** OneUptime 能在 Slack 中找到的人：通过此人已连接的 Slack 账户，否则通过 Slack 中此人的电子邮件地址。卡片会列出无法添加的人及原因，例如被 Slack 挡在频道之外的访客。
 - **会记录什么。** 谁被添加、由谁添加，都记录在该记录的信息流中（ **已添加频道成员** ），以及 **项目设置** > **通知** > **通知日志** 的 **工作区** 标签页中。
 - **移出某人。** OneUptime 只添加成员：请在 Slack 中将某人移出频道。
@@ -121,13 +121,13 @@ flowchart TB
 
 规则所在行的 **测试规则** 会将该规则的测试消息发布到它指定的频道，让您看到消息到达。如果规则为每个事件创建频道，测试也会创建一个频道并邀请规则的相关人员。
 
-与 **项目设置** > **工作区** > **Slack** 中频道旁的 **发送测试** 一样，它需要创建通知规则的权限： **Project Owner**、 **Project Admin**、 **Project Member**、 **Settings Admin**、 **Settings Member**，或自定义角色中的 **Create Workspace Notification Rule** 和 **Read Workspace Notification Rule**。对于只能查看规则的人（例如 **Viewer** ）， **测试规则** 处于锁定状态，其工具提示会说明需要什么；API 会以 "You do not have permission to send test notifications in this project." 拒绝其测试。在 OneUptime Cloud 上，测试规则与添加规则一样需要 **Growth** 套餐。
+与 **项目设置** > **工作区** > **Slack** 中频道旁的 **发送测试** 一样，它需要创建通知规则的权限： **项目所有者**、 **项目管理员**、 **项目成员**、 **设置管理员**、 **设置成员**，或自定义角色中的 **Create Workspace Notification Rule** 和 **Read Workspace Notification Rule**。对于只能查看规则的人（例如 **查看者** ）， **测试规则** 处于锁定状态，其工具提示会说明需要什么；API 会以 "You do not have permission to send test notifications in this project." 拒绝其测试。在 OneUptime Cloud 上，测试规则与添加规则一样需要 **Growth** 套餐。
 
 在 OneUptime Cloud 上，频道旁的 **发送测试** 同样需要 **Growth** 套餐，因为向频道发布消息正是规则和摘要所做的事。摘要上的 **立即发送测试** 需要创建摘要的权限（自定义角色中的 **Create Workspace Notification Summary** 和 **Read Workspace Notification Summary** ），在 OneUptime Cloud 上还需要 **Growth** 套餐；对其他任何人它都处于锁定状态，其工具提示会说明需要什么。以只读权限连接的 MCP 客户端无法发送任何测试。
 
 ## 摘要
 
-**事件** > **工作区** > **Slack** （以及 **警报** ）的 **Summary** 标签页会向您指定的频道发布定期汇总：有多少事件或警报、它们被确认和解决的速度，以及一个带链接的列表。新的摘要每周发送一次，涵盖最近 7 天。将 **发送首份报告时间** 留空，第一份摘要会在下一周、下一天或下一月开始时的 09:00 发送；表单会显示具体时间。
+**事件** > **工作区** > **Slack** （以及 **警报** ）的 **摘要** 标签页会向您指定的频道发布定期汇总：有多少事件或警报、它们被确认和解决的速度，以及一个带链接的列表。新的摘要每周发送一次，涵盖最近 7 天。将 **发送首份报告时间** 留空，第一份摘要会在下一周、下一天或下一月开始时的 09:00 发送；表单会显示具体时间。
 
 摘要按其 **时区** 的时钟发送，时区的初始值为您的时区。它全年在该时区保持同一时刻：设置为柏林 09:00 的摘要，在夏令时调整时钟后仍会在柏林时间 09:00 发送，其消息中的日期也是柏林的日期。通过 API 时，请以 IANA 时区名称发送 `timezone`，例如 `Europe/Berlin`。未指定时区创建的摘要会使用创建者个人资料中的时区；由 API 密钥创建时使用 UTC。
 
@@ -208,11 +208,11 @@ OneUptime 只回答发给它的内容。
 
 `/oneuptime incident` 和 `/oneuptime maintenance` 会打开一个表单，由您以本人身份填写并提交：即以您的 Slack 账户所连接的 OneUptime 账户的身份（请参阅 [连接 Slack](#连接-slack) ），按该账户在项目中的权限提交。如果您的 Slack 账户未连接，或您的 OneUptime 账户已不再是项目成员，OneUptime 会在您运行命令的地方，以只有您能看到的消息告诉您该怎么做，并且不会打开表单。 **Create New Incident** 和 **Create Scheduled Event** 快捷方式会打开相同的表单。
 
-- **谁可以使用。** 能在 OneUptime 中声明事件或创建计划维护活动的人：对于事件，是 **Project Owner**、 **Project Admin**、 **Project Member**、 **Incident Admin** 和 **Incident Member** （自定义角色中的 **Create Incident** ）；对于活动，是 **Scheduled Maintenance Admin** 和 **Scheduled Maintenance Member** （ **Create Scheduled Maintenance** ）。其他任何人都会在运行命令的地方收到告知，并且不会打开表单。
+- **谁可以使用。** 能在 OneUptime 中声明事件或创建计划维护活动的人：对于事件，是 **项目所有者**、 **项目管理员**、 **项目成员**、 **事件管理员** 和 **事件成员** （自定义角色中的 **Create Incident** ）；对于活动，是 **计划维护管理员** 和 **计划维护成员** （ **Create Scheduled Maintenance** ）。其他任何人都会在运行命令的地方收到告知，并且不会打开表单。
 - **表单提供什么。** 每个列表（严重程度、监视器、监视器状态、值班策略和标签）都包含您可以读取的内容，与 OneUptime 中的同一列表一致：如果角色仅限于某些标签，则为带有这些标签的监视器和值班策略。您完全无法读取的列表不会出现在表单中。已归档的值班策略永远不会提供。
 - **表单可以指定什么。** 事件或活动以您自己的权限创建，并记在您名下。您无法读取的监视器、值班策略、标签、严重程度或状态，或属于其他项目的，都会像项目中不存在一样被拒绝，即使表单是在您的权限变化之前打开的，也不会创建任何内容。OneUptime 会在频道中，以只有您能看到的消息告诉您原因。
 
-事件、警报或片段上的 **Execute On-Call Policy** 也以同样方式工作：它需要执行值班策略的权限（ **Project Owner**、 **Project Admin**、 **Project Member**、 **On-Call Admin** 和 **On-Call Member**，或自定义角色中的 **Create On-Call Duty Policy Execution Log** ）以及读取该事件、警报或片段的权限，并提供您可以读取的有效值班策略。
+事件、警报或片段上的 **Execute On-Call Policy** 也以同样方式工作：它需要执行值班策略的权限（ **项目所有者**、 **项目管理员**、 **项目成员**、 **值班管理员** 和 **值班成员**，或自定义角色中的 **Create On-Call Duty Policy Execution Log** ）以及读取该事件、警报或片段的权限，并提供您可以读取的有效值班策略。
 
 ## 从 Slack 呼叫他人
 
@@ -221,7 +221,7 @@ OneUptime 只回答发给它的内容。
 - **立即被呼叫的人。** 您 @提及的人，以及您 @提及的用户组所关联值班计划中正在值班的人，前提是其后跟有消息（请参阅 [值班用户组](#值班用户组)）。OneUptime 通过此人的 Slack 账户所连接的 OneUptime 账户识别此人，否则通过 Slack 中此人的电子邮件地址识别。项目之外的人不会被呼叫。
 - **其他情况会打开表单。** 如果没有 @提及任何人、没有消息、提及了 `@here` 或未关联您可见值班计划的用户组，或有 OneUptime 无法识别的人，就会打开 **Page someone** 表单，其中已填入您输入的内容，并说明哪些人无法选中。选择人员、团队、值班计划（呼叫此刻在该计划中值班的人）或值班策略（按其升级规则呼叫），然后提交。最先输入的名称，例如 `/oneuptime page Primary The disk is full` 中的名称，会选中同名的值班计划、团队或策略。
 - **显示位置。** 频道会以一条持续更新的消息显示这次呼叫：呼叫了谁、如何呼叫，以及谁已确认。在 OneUptime 无法发帖的地方，例如未邀请它加入的私有频道，一条只有您能看到的消息会告诉您呼叫了谁，并附上警报的链接。
-- **谁可以呼叫。** 既能执行值班策略又能创建警报的人： **Project Owner**、 **Project Admin** 和 **Project Member**，或同时拥有 **On-Call Member** 和 **Alert Member** 的人（自定义角色中的 **Create On-Call Duty Policy Execution Log** 和 **Create Alert** ）。不经值班策略直接呼叫人员、团队或值班计划，还需要访问项目中所有值班策略的权限。其他任何人都会在运行命令的地方收到告知，并且不会呼叫任何人。在 OneUptime Cloud 上，呼叫需要 Growth 套餐：低于该套餐时，OneUptime 会说明所需的套餐，并且不会呼叫任何人。
+- **谁可以呼叫。** 既能执行值班策略又能创建警报的人： **项目所有者**、 **项目管理员** 和 **项目成员**，或同时拥有 **值班成员** 和 **警报成员** 的人（自定义角色中的 **Create On-Call Duty Policy Execution Log** 和 **Create Alert** ）。不经值班策略直接呼叫人员、团队或值班计划，还需要访问项目中所有值班策略的权限。其他任何人都会在运行命令的地方收到告知，并且不会呼叫任何人。在 OneUptime Cloud 上，呼叫需要 Growth 套餐：低于该套餐时，OneUptime 会说明所需的套餐，并且不会呼叫任何人。
 
 ## 值班用户组
 
@@ -241,7 +241,7 @@ OneUptime 只回答发给它的内容。
 - **无人值班时。** Slack 无法保留没有成员的用户组，因此 OneUptime 会停用该组，直到有人值班后再重新启用。
 - **呼叫该组。** `/oneuptime page @payments-oncall The checkout API is down` 会呼叫该组所关联值班计划中正在值班的人。请参阅 [从 Slack 呼叫他人](#从-slack-呼叫他人)。
 - **Slack 的要求。** 用户组属于 Slack 付费套餐的功能，而且工作区可能只允许所有者和管理员更改用户组：卡片会说明属于哪种情况以及该怎么做。如果在 OneUptime 能够维护用户组之前就已连接 Slack，请在 **项目设置** > **工作区** > **Slack** 中重新连接一次。
-- **谁可以连接。** 可以编辑值班计划的角色： **Project Owner**、 **Project Admin**、 **Project Member**、 **On-Call Admin** 和 **On-Call Member**，或自定义角色中的 **Edit On-Call Duty Policy Schedule**。在 OneUptime Cloud 上，连接需要 **Growth** 套餐。
+- **谁可以连接。** 可以编辑值班计划的角色： **项目所有者**、 **项目管理员**、 **项目成员**、 **值班管理员** 和 **值班成员**，或自定义角色中的 **Edit On-Call Duty Policy Schedule**。在 OneUptime Cloud 上，连接需要 **Growth** 套餐。
 - **断开连接后。** OneUptime 不再更改该组。该组及其成员会按原样保留在 Slack 中。
 
 ## 从 Slack 管理一个事件
@@ -258,7 +258,7 @@ OneUptime 只回答发给它的内容。
 
 `/oneuptime incident 42` 会在只有您能看到的消息中显示事件 42，以及这些按钮和它的菜单。按 OneUptime 显示的样子输入编号： `42`、 `#42` 或 `INC-42`。在事件自己的频道中，只输入 `/oneuptime incident` 就会显示该事件。
 
-- **谁可以使用。** 能在 OneUptime 中做同样更改的人。 **Change Severity** 和 **Edit Custom Fields** 需要编辑事件的权限： **Project Owner**、 **Project Admin**、 **Project Member**、 **Incident Admin** 和 **Incident Member**，或自定义角色中的 **Edit Incident**。 **Assign Role** 需要 **Create Incident Member**，转移只能由一人担任的角色还需要 **Delete Incident Member**。 **Page Someone** 需要的权限与 **Execute On-Call Policy** 相同。其他任何人都会被告知原因，并且不会打开表单。
+- **谁可以使用。** 能在 OneUptime 中做同样更改的人。 **Change Severity** 和 **Edit Custom Fields** 需要编辑事件的权限： **项目所有者**、 **项目管理员**、 **项目成员**、 **事件管理员** 和 **事件成员**，或自定义角色中的 **Edit Incident**。 **Assign Role** 需要 **Create Incident Member**，转移只能由一人担任的角色还需要 **Delete Incident Member**。 **Page Someone** 需要的权限与 **Execute On-Call Policy** 相同。其他任何人都会被告知原因，并且不会打开表单。
 - **表单提供的内容。** 您在项目中可以读取的内容。从事件的监视器复制的自定义字段不会出现在表单中，因为它会被再次复制；一个表单最多容纳 40 个字段，其余字段请在 OneUptime 中编辑。
 - **之后会发生什么。** 表单会关闭，更改会像在 OneUptime 中一样以您本人的身份进行：事件的动态，以及随之而来的事件频道，会说明更改了什么，每个自定义字段都会附上新值。不适合其字段的值，例如数字字段中的文本，会在该字段下方说明，表单保持打开。 **Page Someone** 会说明呼叫了谁，或为什么没有呼叫任何人；已经解决的事件不会呼叫任何人。
 - **菜单出现之前发布的消息。** 它们保留 **Execute On-Call Policy** 按钮，并且仍然有效： **Page Someone** 也能呼叫值班策略。警报和片段保留它们自己的按钮。
@@ -267,7 +267,7 @@ OneUptime 只回答发给它的内容。
 
 OneUptime 的 Slack 消息上的按钮同样以您的身份执行：即以您的 Slack 账户所连接的 OneUptime 账户的身份，按该账户在项目中的权限执行。事件、警报或片段上的 **Acknowledge**、 **Resolve**、 **Change State**、 **Add Note** 和 **Execute On-Call Policy**，以及计划维护活动上的 **Mark as Ongoing**、 **Mark as Complete**、 **Change State** 和 **Add Note**，各自会做出与 OneUptime 中相同操作一样的更改，并在那里记在您名下：记录的状态时间线和动态会显示是您更改了其状态，备注也归您所有。通过表情回应从消息保存的备注也以同样方式发布。
 
-- **谁可以使用。** 能在 OneUptime 中做出同样更改的人。确认、解决事件或更改其状态需要更改其状态的权限： **Project Owner**、 **Project Admin**、 **Project Member**、 **Incident Admin** 和 **Incident Member**，或自定义角色中的 **Create Incident State Timeline**。警报、片段或计划维护活动需要其自身类型的同等权限（例如 **Create Alert State Timeline** ），备注需要发布该类备注的权限。其他任何人都会收到告知，并且不会有任何更改。
+- **谁可以使用。** 能在 OneUptime 中做出同样更改的人。确认、解决事件或更改其状态需要更改其状态的权限： **项目所有者**、 **项目管理员**、 **项目成员**、 **事件管理员** 和 **事件成员**，或自定义角色中的 **Create Incident State Timeline**。警报、片段或计划维护活动需要其自身类型的同等权限（例如 **Create Alert State Timeline** ），备注需要发布该类备注的权限。其他任何人都会收到告知，并且不会有任何更改。
 - **哪些记录。** 与在 OneUptime 中一样，是您可以读取的记录：如果角色仅限于某些标签，则为带有这些标签的事件、警报、片段和活动。任何其他记录上的按钮都会说明原因，并且不会有任何更改：对于您的角色无法触及的事件，回复 "your access in this project does not include this incident. Ask a project admin for access to it."；对于您不是负责人的私密事件，回复 "this incident is private, so only its owners and the project's owners and admins can see it. Ask one of them to add you as an owner."；对于此后已删除的事件，回复 "the incident was not found. It may have been deleted." 在 OneUptime Cloud 上，项目套餐不包含的更改会被拒绝，并说明所需的套餐。
 - **Change State 提供什么。** 按项目的顺序，提供您可以读取、记录接下来可以转入的状态：不会提供早于其当前状态的状态，片段与事件、警报或计划维护活动一样，因为状态更改永远不会让记录在其列表中回退（请参阅 [顺序是真正的约束，而不是显示偏好](/docs/incidents/states-and-severities#顺序是真正的约束而不是显示偏好) ）。如果您一个都无法读取，会收到 "No incident states are available to you in this project. Ask a project admin for access to them."；如果记录处于它能达到的最后一个状态，会收到 "There is no later state to move this incident to."。这两种情况都不会打开空表单。
 - **私密事件或片段上的 Add Note。** 私密事件或片段不能添加公开备注，因此它的表单不会询问备注类型，而是添加一条私密备注。在它设为私密之前打开的表单也会添加私密备注，并说明这一点。参见[私密事件只能添加私密备注](/docs/incidents/notes-owners-and-feed#私密事件只能添加私密备注)。
@@ -276,7 +276,7 @@ OneUptime 的 Slack 消息上的按钮同样以您的身份执行：即以您的
 
 ## 断开连接
 
-- **Disconnect** 只解除您自己的 Slack 账户的关联，并同时删除您的 Slack 通知方式。
+- **断开连接** 只解除您自己的 Slack 账户的关联，并同时删除您的 Slack 通知方式。
 - **项目设置** > **工作区** > **Slack** 上的 **Uninstall OneUptime from Slack** 会断开项目的连接。OneUptime 停止向 Slack 发布，并且 **工作区** 菜单不再列出它。通知规则和摘要会被保留，以便您再次连接时使用。
 
 > [!WARNING]

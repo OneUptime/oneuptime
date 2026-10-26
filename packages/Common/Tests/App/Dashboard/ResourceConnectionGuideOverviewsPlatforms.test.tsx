@@ -571,18 +571,27 @@ describe.each(OVERVIEWS)(
       await expectDirectlyUnderHero(overview, element);
     });
 
-    test("its hero agrees: Disconnected, last seen never", async () => {
+    test("its hero agrees: Disconnected, never seen", async () => {
       await mount(overview, handMade());
 
       const element: HTMLElement = shownCard();
       const title: HTMLElement = heroTitle(overview);
 
       expect(overview.heroStatus(title)).toHaveTextContent(/^Disconnected$/);
+      /*
+       * One whole sentence, not "Last seen never": a language that words
+       * "Last seen" would read an English "never" inside it.
+       */
       expect(
         within(element.previousElementSibling as HTMLElement).getByText(
-          "Last seen never",
+          "Never seen",
         ),
       ).toBeInTheDocument();
+      expect(
+        within(element.previousElementSibling as HTMLElement).queryByText(
+          /Last seen/,
+        ),
+      ).toBeNull();
     });
 
     test("the setup step names this resource's own identifier, in code", async () => {

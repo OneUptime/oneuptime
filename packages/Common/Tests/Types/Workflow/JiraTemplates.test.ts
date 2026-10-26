@@ -27,8 +27,8 @@
  *     event and said to go ahead.
  *   - That the two sets are one design. The alert templates are the incident
  *     templates with the record's name swapped, step for step, except where
- *     an alert really is different: it has no public notes, never reaches a
- *     status page, and its root cause cannot be edited.
+ *     an alert really is different: it has no public notes and never
+ *     reaches a status page.
  *
  * The scripts are only read here. Running them is another suite's job.
  */
@@ -228,15 +228,12 @@ const ALERT: RecordKind = {
   model: Alert,
   // An alert never reaches a status page, so there is nothing to keep it off.
   quietCreateFields: {},
-  /*
-   * An alert's root cause is written when the alert is created and nobody
-   * can edit it afterwards, so there is no edit of it to listen for.
-   */
   editListenOn: {
     title: true,
     description: true,
     alertSeverityId: true,
     alertSeverity: true,
+    rootCause: true,
     remediationNotes: true,
   },
   templates: {
@@ -4789,8 +4786,8 @@ describe("Jira template triggers", () => {
   /*
    * Listening for an edit nobody is allowed to make is dead weight, and not
    * listening for one somebody can make is a comment that never comes. The
-   * alert's root cause is the case in point: it is set when the alert is
-   * created and never again, so the alert version leaves it out.
+   * alert's root cause is the case in point: it could not be edited until
+   * #5290, and now that it can be, the alert version listens for it.
    */
   test.each(KINDS)(
     "$noun: a field the edit comment shows is listened on exactly when someone can edit it",
@@ -4815,18 +4812,18 @@ describe("Jira template triggers", () => {
     },
   );
 
-  test("an alert's root cause is still in the edit comment, though nothing listens for it", () => {
+  test("an alert's root cause can be edited, so an edit of it is listened for and shown, as an incident's is", () => {
     const templateId: string = ALERT.templates.updateComment;
     const trigger: TemplateNodeSpec = triggerOf(templateId);
 
-    expect(canBeEdited(new Alert(), "rootCause")).toBe(false);
-    expect(trigger.args?.["listen-on"]).not.toHaveProperty("rootCause");
+    expect(canBeEdited(new Alert(), "rootCause")).toBe(true);
+    expect(trigger.args?.["listen-on"]).toHaveProperty("rootCause", true);
     expect(selectHas(trigger.args?.["select"], ["rootCause"])).toBe(true);
     expect(scriptBody(scriptCode(templateId, "build-comment-1"))).toContain(
       "add('Root cause', alert.rootCause, 5000);",
     );
 
-    // An incident's root cause can be edited, so there it is listened for.
+    // The incident version listens for it the same way.
     expect(canBeEdited(new Incident(), "rootCause")).toBe(true);
     expect(
       triggerOf(INCIDENT.templates.updateComment).args?.["listen-on"],
@@ -5312,11 +5309,11 @@ describe("the incident and alert sets side by side", () => {
       );
     }
 
+    /*
+     * The edit-comment templates are twins: an alert's root cause can be
+     * edited as an incident's can (#5290), so both listen for it.
+     */
     expect(differences).toEqual([
-      // An alert's root cause cannot be edited: not listened for, nor said to be.
-      `${ALERT.templates.updateComment} description`,
-      `${ALERT.templates.updateComment} workflowDescription`,
-      `${ALERT.templates.updateComment} ${ALERT.steps.onUpdate}.listen-on`,
       // An alert never reaches a status page, so there is nothing to keep it off.
       `${ALERT.templates.createFromIssue} workflowDescription`,
       `${ALERT.templates.createFromIssue} ${ALERT.steps.createRecord}.json`,

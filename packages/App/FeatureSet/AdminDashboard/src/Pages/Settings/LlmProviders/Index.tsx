@@ -14,8 +14,7 @@ import {
   getLlmProviderFormSteps,
 } from "Common/UI/Components/AI/LlmProviderFormFields";
 import {
-  getLlmProviderDefaultModel,
-  getLlmProviderShownValue,
+  getLlmProviderShownModelName,
   getLlmProviderTypeCopy,
 } from "Common/UI/Components/AI/LlmProviderFormCopy";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -173,17 +172,16 @@ const Settings: FunctionComponent = (): ReactElement => {
             type: FieldType.Text,
             /*
              * Left blank, the model the server asks for, by name - as a
-             * project's LLM Providers list shows it ("gpt-5.1 (default)").
+             * project's LLM Providers list shows it ("gpt-5.1 (default)",
+             * or "First model the server lists").
              */
             getElement: (item: LlmProvider): ReactElement => {
               return (
                 <span>
-                  {getLlmProviderShownValue({
-                    value: item.modelName,
-                    defaultValue: getLlmProviderDefaultModel({
-                      llmType: item.llmType,
-                      baseUrl: item.baseUrl,
-                    }),
+                  {getLlmProviderShownModelName({
+                    modelName: item.modelName,
+                    llmType: item.llmType,
+                    baseUrl: item.baseUrl,
                     translator: translator,
                   })}
                 </span>

@@ -155,7 +155,7 @@ end
 ### Palo Alto Networks
 
 1. Under **Device** > **Server Profiles** > **NetFlow** legger du til en profil med sondens IP-adresse og port `2055`, og setter **Active Timeout** til 1 minutt.
-2. Under **Network** > **Interfaces** åpner du hvert grensesnitt du vil se trafikken til, og velger profilen som **NetFlow Profile** på fanen **Advanced**.
+2. Under **Network** > **Grensesnitt** åpner du hvert grensesnitt du vil se trafikken til, og velger profilen som **NetFlow Profile** på fanen **Advanced**.
 3. Utfør commit.
 
 ### MikroTik RouterOS 7

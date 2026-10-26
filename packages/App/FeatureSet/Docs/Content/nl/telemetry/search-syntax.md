@@ -160,7 +160,7 @@ Tracevelden nemen een gewone waarde of een lijst zoals `status:(ok OR unset)`, e
 
 Losse woorden doorzoeken het uitzonderingsbericht.
 
-De verkenner **Security Events** gebruikt dezelfde taal met eigen velden, zoals `severity`, `tactic` en `user`: zie [Security Events](/docs/telemetry/security-events).
+De verkenner **Beveiligingsgebeurtenissen** gebruikt dezelfde taal met eigen velden, zoals `severity`, `tactic` en `user`: zie [Security Events](/docs/telemetry/security-events).
 
 ## Filters combineren
 

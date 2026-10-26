@@ -24,7 +24,7 @@ flowchart TB
 ## 開始之前
 
 - **你的方案。** 在 OneUptime Cloud 上，範本需要 **Growth** 或更高的方案。
-- **你的角色。** 建立範本需要 **Project Owner** 、 **Project Admin** 、 **Project Member** 、 **Scheduled Maintenance Admin** 或 **Scheduled Maintenance Member** ，或可以建立排定維護範本的自訂角色。
+- **你的角色。** 建立範本需要 **專案擁有者** 、 **專案管理員** 、 **專案成員** 、 **排定維護管理員** 或 **排定維護成員** ，或可以建立排定維護範本的自訂角色。
 
 ## 建立範本
 

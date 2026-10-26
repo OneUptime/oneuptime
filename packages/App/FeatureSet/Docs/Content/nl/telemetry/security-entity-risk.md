@@ -29,7 +29,7 @@ Open **Producten → Security Events → Entiteitrisico**: elke gebruiker, host 
 ## Voordat u begint
 
 - Binnenkomende beveiligingsgebeurtenissen, en detectieregels, dreigingsinformatie of verbonden producten die er iets in vinden. Zie [Aan de slag met beveiliging](/docs/telemetry/security-getting-started).
-- Detectieregels die groeperen op een veld dat iemand noemt: **Group By Field**, zoals `principalUser`, `principalHost` of `principalIp`, of de velden waarop een correlatie groepeert. Een regel die op niets groepeert, voegt geen risico toe.
+- Detectieregels die groeperen op een veld dat iemand noemt: **Groeperingsveld**, zoals `principalUser`, `principalHost` of `principalIp`, of de velden waarop een correlatie groepeert. Een regel die op niets groepeert, voegt geen risico toe.
 - Om **Risicoscoring** te wijzigen: Project Owner of Project Admin voor de schakelaar en de drempel, en een rol die detectieregels mag maken voor de lijst met entiteiten. Security Viewer leest alles. Zie [Rollen](/docs/permissions/reference#rollen).
 
 ## Zo wordt een score geteld

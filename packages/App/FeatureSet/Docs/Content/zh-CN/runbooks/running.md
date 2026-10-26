@@ -41,7 +41,7 @@ Runbook 执行有五种创建方式：
 
 1. **通过规则自动启动**：当匹配的事件、警报或计划维护事件被创建时，[Runbook 规则](/docs/runbooks/rules) 会启动执行。AI 规则也可以启动执行；参见 [AI SRE](/docs/ai/ai-sre)。
 2. **从事件手动启动**：在事件、警报或计划维护事件上点击 **运行 Runbook** 。执行会关联到该事件。
-3. **从 Runbook 页面手动启动**：在 Runbook 的 **概览** 页面上点击 **Run Now** 。这次运行不会关联到任何事件、警报或计划维护事件。
+3. **从 Runbook 页面手动启动**：在 Runbook 的 **概览** 页面上点击 **立即运行** 。这次运行不会关联到任何事件、警报或计划维护事件。
 4. **按计划**：Runbook 的计划在设定的时间启动它。参见[按计划运行](/docs/runbooks/triggers#按计划运行)。
 5. **从其他工具**：向 Runbook 的 Webhook URL 发送 `POST` 即可启动它，并带上调用发送的值。参见[调用 Webhook](/docs/runbooks/triggers#调用-webhook)。
 
@@ -54,15 +54,15 @@ Runbook 执行有五种创建方式：
 3. 点击 Runbook 旁边的 **运行** 。这次运行会出现在该事件的列表中：点击 **查看** 打开它。
 @tab 从 Runbook 启动
 1. 从 **运行手册** 打开 Runbook。
-2. 在其 **概览** 上点击 **Run Now** 。
+2. 在其 **概览** 上点击 **立即运行** 。
 3. 执行页面会打开。
 :::
 
-启动执行需要 Project Owner、Project Admin、Project Member、Runbook Admin 或 Runbook Member，或者 **Create Runbook Execution** 权限。Runbook Viewer 和 Viewer 看到的 **Run Now** 处于锁定状态，并附有原因。参见 [权限](/docs/runbooks/configuration#权限)。
+启动执行需要 Project Owner、Project Admin、Project Member、Runbook Admin 或 Runbook Member，或者 **Create Runbook Execution** 权限。Runbook Viewer 和 Viewer 看到的 **立即运行** 处于锁定状态，并附有原因。参见 [权限](/docs/runbooks/configuration#权限)。
 
 ## 执行视图
 
-打开一次执行即可看到它的清单。页面顶部显示执行的 **状态** 、 **Progress** （已完成的步骤数与总步骤数）、 **已开始** （开始时间）和 **触发者** （由什么启动）。每个步骤显示：
+打开一次执行即可看到它的清单。页面顶部显示执行的 **状态** 、 **进度** （已完成的步骤数与总步骤数）、 **已开始** （开始时间）和 **触发者** （由什么启动）。每个步骤显示：
 
 - **状态徽章** ——待处理、正在运行、等待您处理、等待批准、完成、已跳过、失败或已取消。
 - **标题和描述** ——在执行开始时从 Runbook 复制而来。
@@ -113,7 +113,7 @@ Runbook 执行有五种创建方式：
 
 ## 再次运行 Runbook
 
-执行是一次性的、不可更改的记录。要再次运行，请在已结束的执行上点击 **再次运行** ，或在 Runbook 上点击 **Run Now** 。两者都会根据 Runbook 当前的步骤创建一次新的执行，且不关联任何事件。要在某个事件上再次运行，请在该事件的 **运行手册** 页面上使用 **运行 Runbook** 。原来的执行保持不变，用于审计追踪。
+执行是一次性的、不可更改的记录。要再次运行，请在已结束的执行上点击 **再次运行** ，或在 Runbook 上点击 **立即运行** 。两者都会根据 Runbook 当前的步骤创建一次新的执行，且不关联任何事件。要在某个事件上再次运行，请在该事件的 **运行手册** 页面上使用 **运行 Runbook** 。原来的执行保持不变，用于审计追踪。
 
 ## 查找过去的执行
 
@@ -130,11 +130,11 @@ Runbook 执行有五种创建方式：
 :::
 
 :::details 启动执行时失败，提示“Runbook is disabled”或“Runbook has no steps to run”
-Runbook 的 **运行此 Runbook** 开关在其 **设置** 页面上被关闭了，或者它没有已保存的步骤。请打开开关或添加步骤，然后点击 **Save Steps** 。Runbook 的 **概览** 会说明是哪一种，并提供 **开启运行手册** 或 **添加步骤** 。
+Runbook 的 **运行此 Runbook** 开关在其 **设置** 页面上被关闭了，或者它没有已保存的步骤。请打开开关或添加步骤，然后点击 **保存步骤** 。Runbook 的 **概览** 会说明是哪一种，并提供 **开启运行手册** 或 **添加步骤** 。
 :::
 
 :::details 步骤因缺少 Runner 而失败
-消息类似于“This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or make one the project's default Runner under Runbooks → Runners.”该步骤在保存时没有选择 **Runner** ，项目也没有 [默认 Runner](/docs/runbooks/agents#项目默认-runner) 。只有当没有 [全局 Runner](/docs/runbooks/agents#全局-runner) 可以运行 JavaScript 步骤时，它才需要你自己的 Runner。打开 Runbook 的 **步骤** ，在步骤的 **更多字段** 中选择它的 Runner，点击 **Save Steps** ，然后再次运行 Runbook。
+消息类似于“This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or make one the project's default Runner under Runbooks → Runners.”该步骤在保存时没有选择 **Runner** ，项目也没有 [默认 Runner](/docs/runbooks/agents#项目默认-runner) 。只有当没有 [全局 Runner](/docs/runbooks/agents#全局-runner) 可以运行 JavaScript 步骤时，它才需要你自己的 Runner。打开 Runbook 的 **步骤** ，在步骤的 **更多字段** 中选择它的 Runner，点击 **保存步骤** ，然后再次运行 Runbook。
 :::
 
 :::details 步骤因引用了无法使用的变量而失败

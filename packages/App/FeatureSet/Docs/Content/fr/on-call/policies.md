@@ -20,7 +20,7 @@ Une politique d'astreinte décide qui est alerté pour un incident ou une alerte
 
 **Qui est alerté en premier ?** est facultatif, et n'est demandé qu'aux personnes autorisées à ajouter des règles d'escalade : laissé vide, la politique n'alerte personne tant qu'elle n'a pas de règle. **Description** et **Étiquettes** attendent sous **Plus de champs**. Pour ajouter les niveaux suivants, voir [Règles d'escalade](/docs/on-call/escalation-rules).
 
-La liste **Politiques d'astreinte** affiche pour chaque politique **Nom**, **Description**, **Étiquettes** et **Propriétaires**. Sélectionnez des politiques pour **Ajouter des étiquettes**, **Remove Labels**, **Ajouter un propriétaire**, **Remove Owner**, **Archiver**, **Exporter en JSON** ou pour les supprimer. **Importer du JSON** crée des politiques à partir d'un export : un export contient les réglages propres à une politique, pas ses règles d'escalade ni ses propriétaires.
+La liste **Politiques d'astreinte** affiche pour chaque politique **Nom**, **Description**, **Étiquettes** et **Propriétaires**. Sélectionnez des politiques pour **Ajouter des étiquettes**, **Retirer des étiquettes**, **Ajouter un propriétaire**, **Retirer un propriétaire**, **Archiver**, **Exporter en JSON** ou pour les supprimer. **Importer du JSON** crée des politiques à partir d'un export : un export contient les réglages propres à une politique, pas ses règles d'escalade ni ses propriétaires.
 
 ## Ce qui exécute une politique
 
@@ -49,7 +49,7 @@ Ouvrez une politique depuis la liste. Son menu latéral contient tout ce qui la 
 
 **Basique** est ouverte ; les autres sections démarrent repliées jusqu'à ce que vous cliquiez dessus.
 
-- **Vue d'ensemble** affiche les **Détails de la politique d'astreinte**, puis **Policy at a glance** : combien de niveaux et d'intervenants a la politique, combien de temps avant son dernier niveau et combien de fois elle se répète. **Responder readiness** indique si chaque personne qu'elle peut alerter est joignable maintenant, et **Fil d'activité de la politique d'astreinte** liste ce qui a changé : personnes, équipes et plannings ajoutés ou retirés, remplacements et passations.
+- **Vue d'ensemble** affiche les **Détails de la politique d'astreinte**, puis **La politique en un coup d'œil** : combien de niveaux et d'intervenants a la politique, combien de temps avant son dernier niveau et combien de fois elle se répète. **Préparation des intervenants** indique si chaque personne qu'elle peut alerter est joignable maintenant, et **Fil d'activité de la politique d'astreinte** liste ce qui a changé : personnes, équipes et plannings ajoutés ou retirés, remplacements et passations.
 - Les **Propriétaires** sont les personnes et les équipes responsables de la politique. Quand une alerte qu'elle envoie ne trouve pas de règle pour quelqu'un, ou ne peut pas être remise, ils reçoivent un e-mail ; une politique sans propriétaires écrit à la place aux propriétaires du projet.
 - **Journaux de notification** liste chaque message envoyé par la politique, avec un onglet par canal.
 - **Remplacements d'utilisateur** remplace des personnes dans cette seule politique. Voir [Remplacements d'utilisateur](/docs/on-call/user-overrides).
@@ -64,7 +64,7 @@ Quand l'attente du dernier niveau se termine sans que personne ne prenne en comp
 | **Arrêter les alertes** | Personne n'est alerté de nouveau : la politique s'exécute une seule fois. Une nouvelle politique commence avec cette réponse. |
 | **Recommencer depuis Level 1** | Chaque niveau est alerté de nouveau, dans l'ordre. **Combien de fois de plus ?** indique combien de fois : 1 ou plus. |
 
-Une politique qui recommence trois fois de plus parcourt ses niveaux quatre fois au total. La ligne **Après le dernier niveau** de la carte dit ce que fait la politique, et **Policy at a glance** sur la **Vue d'ensemble** dit la même chose en toutes lettres.
+Une politique qui recommence trois fois de plus parcourt ses niveaux quatre fois au total. La ligne **Après le dernier niveau** de la carte dit ce que fait la politique, et **La politique en un coup d'œil** sur la **Vue d'ensemble** dit la même chose en toutes lettres.
 
 ## Alerter de nouveau si ce n'est pas résolu
 
@@ -77,7 +77,7 @@ La prise en compte arrête définitivement les alertes d'une politique, même si
 
 Les minutes sont comptées à partir de chaque prise en compte, et une politique alerte de nouveau au plus 5 fois pour un même incident, une même alerte ou un même épisode. Une nouvelle alerte commence au niveau qui alertait lors de la prise en compte, alerte la personne d'astreinte à ce niveau maintenant, puis parcourt les niveaux comme la première exécution. L'incident ou l'alerte reste pris en compte : la nouvelle alerte est une exécution à part, dans son fil d'activité et dans les journaux d'exécution de la politique, où son **Statut** indique « Alerté de nouveau (1 sur 5) ».
 
-La personne alertée de nouveau la prend en compte depuis son message, ou avec **Prendre en compte de nouveau** sur la page de l'incident ou de l'alerte, et les minutes recommencent ; **Escalader** la passe au niveau suivant. Résoudre ou supprimer l'incident ou l'alerte, archiver ou supprimer la politique, ou choisir **Ne pas alerter de nouveau** l'arrête. La ligne **Après une prise en compte** de la carte dit ce que fait la politique, et **Plus de paramètres** affiche les minutes tant qu'il est replié. **Policy at a glance** sur la **Vue d'ensemble** et le **Résumé de l'escalade** disent la même chose en toutes lettres.
+La personne alertée de nouveau la prend en compte depuis son message, ou avec **Prendre en compte de nouveau** sur la page de l'incident ou de l'alerte, et les minutes recommencent ; **Escalader** la passe au niveau suivant. Résoudre ou supprimer l'incident ou l'alerte, archiver ou supprimer la politique, ou choisir **Ne pas alerter de nouveau** l'arrête. La ligne **Après une prise en compte** de la carte dit ce que fait la politique, et **Plus de paramètres** affiche les minutes tant qu'il est replié. **La politique en un coup d'œil** sur la **Vue d'ensemble** et le **Résumé de l'escalade** disent la même chose en toutes lettres.
 
 ## Journaux d'exécution
 
@@ -110,7 +110,7 @@ Vous trouvez les journaux d'exécution à trois endroits :
 - dans **Astreinte → Avancé → Journaux d'exécution**, pour toutes les politiques, où les appels directs venus des workflows et du chat apparaissent comme **Appel direct** ;
 - sur la page **Exécutions d'astreinte** d'un incident ou d'une alerte.
 
-Chaque ligne montre ce qui a déclenché l'exécution, quand, son **Statut** et qui l'a prise en compte. **View Timeline** ouvre sa **Chronologie d'exécution** : chaque règle d'escalade, qui elle a alerté, par quel planning, et comment chaque alerte s'est terminée. Un planning où personne n'est d'astreinte affiche **No one was on call** au lieu d'une personne. Sur OneUptime Cloud, les journaux d'exécution nécessitent l'offre **Growth**.
+Chaque ligne montre ce qui a déclenché l'exécution, quand, son **Statut** et qui l'a prise en compte. **Voir la chronologie** ouvre sa **Chronologie d'exécution** : chaque règle d'escalade, qui elle a alerté, par quel planning, et comment chaque alerte s'est terminée. Un planning où personne n'est d'astreinte affiche **Personne n'était d'astreinte** au lieu d'une personne. Sur OneUptime Cloud, les journaux d'exécution nécessitent l'offre **Growth**.
 
 ## Archiver ou supprimer une politique
 
@@ -123,7 +123,7 @@ Archiver retire une politique du service et conserve tout : ouvrez les **Paramè
 
 ## Qui peut modifier une politique
 
-**Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** et **On-Call Member** peuvent créer, modifier et supprimer des politiques ; **Viewer** et **On-Call Viewer** peuvent les consulter. Dans un rôle personnalisé, les permissions sont **Create On-Call Duty Policy**, **Edit On-Call Duty Policy**, **Delete On-Call Duty Policy** et **Read On-Call Duty Policy**, et un rôle limité à certaines étiquettes n'atteint que les politiques qui les portent. Ajouter des propriétaires et des champs personnalisés nécessite l'offre **Growth** sur OneUptime Cloud.
+**Propriétaire du projet**, **Administrateur du projet**, **Membre du projet**, **Administrateur des astreintes** et **Membre des astreintes** peuvent créer, modifier et supprimer des politiques ; **Lecteur** et **Lecteur des astreintes** peuvent les consulter. Dans un rôle personnalisé, les permissions sont **Create On-Call Duty Policy**, **Edit On-Call Duty Policy**, **Delete On-Call Duty Policy** et **Read On-Call Duty Policy**, et un rôle limité à certaines étiquettes n'atteint que les politiques qui les portent. Ajouter des propriétaires et des champs personnalisés nécessite l'offre **Growth** sur OneUptime Cloud.
 
 ## API et Terraform
 
@@ -147,7 +147,7 @@ Pour créer une politique avec son premier niveau en une seule requête, voir [C
 ## Dépannage
 
 :::details Une politique s'est exécutée, mais personne n'a été alerté
-Son exécution indique **Execution Completed - No One Notified**. Ouvrez **View Timeline** : une ligne **No one was on call** désigne un planning avec un trou, et le message de statut d'une ligne **Ignoré** dit pourquoi, par exemple quelqu'un d'absent sans personne pour le remplacer. **Astreinte → Disponibilité** montre qui n'a pas pu être joint.
+Son exécution indique **Execution Completed - No One Notified**. Ouvrez **Voir la chronologie** : une ligne **Personne n'était d'astreinte** désigne un planning avec un trou, et le message de statut d'une ligne **Ignoré** dit pourquoi, par exemple quelqu'un d'absent sans personne pour le remplacer. **Astreinte → Disponibilité** montre qui n'a pas pu être joint.
 :::
 
 :::details Le niveau suivant a été alerté une minute après son attente

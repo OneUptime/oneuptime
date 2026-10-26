@@ -33,7 +33,7 @@ flowchart TB
 
 ## 始める前に
 
-- **プロジェクトを接続できるロール:** **Project Owner**、 **Project Admin**、 **Project Member** のいずれか。アンインストールには **Project Owner** または **Project Admin** が必要です。
+- **プロジェクトを接続できるロール:** **プロジェクト所有者**、 **プロジェクト管理者**、 **プロジェクトメンバー** のいずれか。アンインストールには **プロジェクト所有者** または **プロジェクト管理者** が必要です。
 - **Microsoft 365 の管理者** (組織全体に対して 1 回、管理者の同意を付与する)。
 - **OneUptime Cloud の Growth プラン** (通知ルールとサマリーに必要)。[Growth プラン未満の通知ルール](#growth-プラン未満の通知ルール) を参照してください。
 - **セルフホストのサーバーでは**、先にそのサーバー用に設定した Teams ボット。[Microsoft Teams 統合](/docs/self-hosted/microsoft-teams-integration) を参照してください。
@@ -72,7 +72,7 @@ OneUptime Cloud では、 **Teams ストアを開く** で Microsoft Teams ス�
 
 ## 全員に接続を依頼する
 
-管理者を含め、誰もほかの人の Microsoft Teams アカウントを接続することはできません。各自が自分のアカウントにサインインします。チーム全員に接続してもらうには、 **Project Owner** または **Project Admin** が **プロジェクト設定** > **ワークスペース** > **Microsoft Teams** で全員にまとめて依頼します。 **Members' Microsoft Teams accounts** カードには、接続済みのメンバーの数が表示されます。 **Ask everyone to connect** を押すと、まだ接続していない各メンバーに OneUptime ボットがメッセージを送ります。メッセージには、ワンクリックでアカウントを接続できる **Connect Microsoft Teams account** ボタンがあります。
+管理者を含め、誰もほかの人の Microsoft Teams アカウントを接続することはできません。各自が自分のアカウントにサインインします。チーム全員に接続してもらうには、 **プロジェクト所有者** または **プロジェクト管理者** が **プロジェクト設定** > **ワークスペース** > **Microsoft Teams** で全員にまとめて依頼します。 **Members' Microsoft Teams accounts** カードには、接続済みのメンバーの数が表示されます。 **Ask everyone to connect** を押すと、まだ接続していない各メンバーに OneUptime ボットがメッセージを送ります。メッセージには、ワンクリックでアカウントを接続できる **Connect Microsoft Teams account** ボタンがあります。
 
 - **メッセージを受け取る人。** Microsoft Teams アカウントを接続しておらず、OneUptime アプリが追加されたチームにいる、プロジェクトのメンバー全員です。そのチームでは、メールアドレスまたはユーザープリンシパル名 (UPN) でその人を見つけます。過去 24 時間以内に依頼を受けた人には再度依頼しないため、翌日にもう一度依頼すると、まだ接続していない人にだけリマインドが届きます。
 - **カードが示すこと。** 送信中はメッセージの送信状況を、送信後は依頼した人とメッセージを受け取ったメンバーの数を示します。OneUptime が見つけられなかったメンバーは、カードに名前が表示されます。そのメンバーのチームにアプリを追加するか、本人に **ユーザー設定** > **ワークスペース** > **Microsoft Teams** で接続してもらいます。
@@ -119,7 +119,7 @@ OneUptime Cloud では、 **Teams ストアを開く** で Microsoft Teams ス�
 
 ルールの行の **ルールをテスト** は、そのルールのテストメッセージをルールが指定するチャネルに投稿し、届くことを確かめられるようにします。イベントごとにチャネルを作るルールなら、テストでもチャネルを 1 つ作り、ルールの対象者を招待します。
 
-**プロジェクト設定** > **ワークスペース** > **Microsoft Teams** のチャネルの横にある **テストを送信** と同じく、通知ルールを作成する権限が必要です。 **Project Owner**、 **Project Admin**、 **Project Member**、 **Settings Admin**、 **Settings Member**、またはカスタムロールの **Create Workspace Notification Rule** と **Read Workspace Notification Rule** です。ルールを見ることしかできない人 ( **Viewer** など) には **ルールをテスト** がロックされ、ツールチップに必要なものが表示されます。API はその人のテストを "You do not have permission to send test notifications in this project." で拒否します。OneUptime Cloud では、ルールのテストにはルールの追加と同じく **Growth** プランが必要です。
+**プロジェクト設定** > **ワークスペース** > **Microsoft Teams** のチャネルの横にある **テストを送信** と同じく、通知ルールを作成する権限が必要です。 **プロジェクト所有者**、 **プロジェクト管理者**、 **プロジェクトメンバー**、 **設定管理者**、 **設定メンバー**、またはカスタムロールの **Create Workspace Notification Rule** と **Read Workspace Notification Rule** です。ルールを見ることしかできない人 ( **閲覧者** など) には **ルールをテスト** がロックされ、ツールチップに必要なものが表示されます。API はその人のテストを "You do not have permission to send test notifications in this project." で拒否します。OneUptime Cloud では、ルールのテストにはルールの追加と同じく **Growth** プランが必要です。
 
 OneUptime Cloud では、チャネルやチャットの横にある **テストを送信** にも **Growth** プランが必要です。チャネルへの投稿はルールとサマリーが行うことだからです。サマリーの **今すぐテストを送信** には、サマリーを作成する権限 (カスタムロールの **Create Workspace Notification Summary** と **Read Workspace Notification Summary**) と、OneUptime Cloud では **Growth** プランが必要です。それ以外の人にはロックされ、ツールチップに必要なものが表示されます。読み取り専用で接続された MCP クライアントは、どのテストも送信できません。
 
@@ -195,11 +195,11 @@ OneUptime アプリを自分用に追加すると、ボットがすぐにあな�
 
 OneUptime ボットに `incident` または `maintenance` と入力すると、個人チャット、チャネル、グループチャットのどこでも、入力した人のためのフォームが開きます。フォームはその人として入力されます。その人の Microsoft Teams アカウントが接続されている OneUptime アカウント ([Microsoft Teams を接続する](#microsoft-teams-を接続する) を参照) として、そのアカウントのプロジェクトでの権限で送信されます。アカウントが接続されていない人や、OneUptime アカウントがもうプロジェクトのメンバーでない人には、フォームの代わりに、その人をメンションした返信でどうすればよいかが伝えられます。
 
-- **使える人。** OneUptime でインシデントを宣言できる人、または定期メンテナンスイベントを作成できる人です。インシデントには **Project Owner**、 **Project Admin**、 **Project Member**、 **Incident Admin**、 **Incident Member** (カスタムロールでは **Create Incident**)、イベントには **Scheduled Maintenance Admin** と **Scheduled Maintenance Member** ( **Create Scheduled Maintenance** ) です。それ以外の人にはそう伝えられ、フォームは届きません。
+- **使える人。** OneUptime でインシデントを宣言できる人、または定期メンテナンスイベントを作成できる人です。インシデントには **プロジェクト所有者**、 **プロジェクト管理者**、 **プロジェクトメンバー**、 **インシデント管理者**、 **インシデントメンバー** (カスタムロールでは **Create Incident**)、イベントには **定期メンテナンス管理者** と **定期メンテナンスメンバー** ( **Create Scheduled Maintenance** ) です。それ以外の人にはそう伝えられ、フォームは届きません。
 - **フォームが提示するもの。** 各一覧 (重大度、モニター、モニターのステータス、オンコールポリシー、ラベル) には、OneUptime の同じ一覧と同じく、フォームを求めた人が読めるものが含まれ、カードの "not shown" の注記もそれだけを数えます。一部のラベルに限定されたロールなら、それらのラベルが付いたモニターとオンコールポリシーです。まったく読めない一覧は外されます。アーカイブされたオンコールポリシーは提示されません。
 - **フォームで指定できるもの。** チャネルやグループチャットでは、そこにいる誰でもフォームを送信でき、送信した人として、その人自身の権限で送信されます。インシデントやイベントはその権限で作成され、その人の操作として記録されます。その人が読めないモニター、オンコールポリシー、ラベル、重大度、ステータス、または別のプロジェクトのものは、プロジェクトにないものとして拒否され、何も作成されません。ボットは "One of the values you picked ... is not available in this project any more. Please pick it again." と返します。
 
-インシデント、アラート、エピソードの **Execute On-Call Policy** も同じように動作します。オンコールポリシーを実行する権限 ( **Project Owner**、 **Project Admin**、 **Project Member**、 **On-Call Admin**、 **On-Call Member**、またはカスタムロールの **Create On-Call Duty Policy Execution Log** ) と、そのインシデント、アラート、エピソードを読む権限が必要で、その人が読める有効なオンコールポリシーが提示されます。カードからモニターやオンコールポリシーを表示するときも、ボタンを押した人として読み取ります。
+インシデント、アラート、エピソードの **Execute On-Call Policy** も同じように動作します。オンコールポリシーを実行する権限 ( **プロジェクト所有者**、 **プロジェクト管理者**、 **プロジェクトメンバー**、 **オンコール管理者**、 **オンコールメンバー**、またはカスタムロールの **Create On-Call Duty Policy Execution Log** ) と、そのインシデント、アラート、エピソードを読む権限が必要で、その人が読める有効なオンコールポリシーが提示されます。カードからモニターやオンコールポリシーを表示するときも、ボタンを押した人として読み取ります。
 
 ## Microsoft Teams から誰かを呼び出す
 
@@ -208,7 +208,7 @@ OneUptime ボットに `incident` または `maintenance` と入力すると、�
 - **すぐに呼び出される人。** @メンションした人と、@メンションしたタグが連動するスケジュールでオンコール中の人で、その後にメッセージが続く場合です ( [オンコールタグ](#オンコールタグ) を参照)。OneUptime は、その人の Microsoft Teams アカウントが接続されている OneUptime アカウントで、それがなければ Microsoft Teams でのその人のメールアドレスで、人を特定します。プロジェクト外の人が呼び出されることはありません。
 - **それ以外はカードが届きます。** 誰も @メンションしていない (ボットとの個人チャットなど)、メッセージがない、表示できるオンコールスケジュールに連動していないタグを指定した、または OneUptime が特定できない人がいる場合は、ボットが **Page someone** カードで応答します。カードには入力した内容が記入され、選べなかった人が示されます。人、チーム、オンコールスケジュール (今その中でオンコールの人を呼び出します)、またはオンコールポリシー (エスカレーションルールに従って呼び出します) を選んで送信します。会話にいる人なら誰でも、自分としてカードを送信できます。呼び出しが済むとカードは削除されるので、同じカードで二度呼び出されることはありません。
 - **表示される場所。** 会話には、呼び出しが 1 つのカードとして表示され、最新の状態に保たれます。誰がどのように呼び出されたか、誰が確認したかがわかります。ボットがそれを投稿できない場合は、ボットの返信で、誰が呼び出されたかがアラートへのリンクとともに伝えられます。
-- **呼び出せる人。** オンコールポリシーの実行とアラートの作成の両方ができる人です。 **Project Owner**、 **Project Admin**、 **Project Member**、または **On-Call Member** と **Alert Member** の組み合わせ (カスタムロールでは **Create On-Call Duty Policy Execution Log** と **Create Alert** ) です。オンコールポリシーを介さずに人、チーム、スケジュールを直接呼び出すには、さらにプロジェクトのすべてのオンコールポリシーへのアクセスが必要です。それ以外の人には返信でそう伝えられ、誰も呼び出されません。OneUptime Cloud では、呼び出しには Growth プランが必要です。それより下のプランでは、OneUptime が必要なプランを示し、誰も呼び出されません。
+- **呼び出せる人。** オンコールポリシーの実行とアラートの作成の両方ができる人です。 **プロジェクト所有者**、 **プロジェクト管理者**、 **プロジェクトメンバー**、または **オンコールメンバー** と **アラートメンバー** の組み合わせ (カスタムロールでは **Create On-Call Duty Policy Execution Log** と **Create Alert** ) です。オンコールポリシーを介さずに人、チーム、スケジュールを直接呼び出すには、さらにプロジェクトのすべてのオンコールポリシーへのアクセスが必要です。それ以外の人には返信でそう伝えられ、誰も呼び出されません。OneUptime Cloud では、呼び出しには Growth プランが必要です。それより下のプランでは、OneUptime が必要なプランを示し、誰も呼び出されません。
 
 ## オンコールタグ
 
@@ -228,7 +228,7 @@ OneUptime ボットに `incident` または `maintenance` と入力すると、�
 - **オンコール担当者がいないとき。** OneUptime は、誰かがオンコールになるまでタグから全員を外します。Microsoft Teams は空のタグを作成できないため、新しいタグにはチームのオンコール担当者が必要です。
 - **タグを呼び出す。** `@OneUptime page @Payments on-call The checkout API is down` は、タグが連動するスケジュールでオンコール中の人を呼び出します。 [Microsoft Teams から誰かを呼び出す](#microsoft-teams-から誰かを呼び出す) を参照してください。
 - **Microsoft 365 に必要なもの。** タグを変更するには、アプリの `TeamworkTag.ReadWrite.All` アクセス許可が必要です。Microsoft 365 管理者が **プロジェクト設定** > **ワークスペース** > **Microsoft Teams** の **管理者の同意を付与** で付与します。OneUptime がタグを管理できるようになる前に組織が同意していた場合は、もう一度同意してください。
-- **接続できる人。** スケジュールを編集できるロールです。 **Project Owner**、 **Project Admin**、 **Project Member**、 **On-Call Admin**、 **On-Call Member**、またはカスタムロールの **Edit On-Call Duty Policy Schedule** です。OneUptime Cloud では、接続には **Growth** プランが必要です。
+- **接続できる人。** スケジュールを編集できるロールです。 **プロジェクト所有者**、 **プロジェクト管理者**、 **プロジェクトメンバー**、 **オンコール管理者**、 **オンコールメンバー**、またはカスタムロールの **Edit On-Call Duty Policy Schedule** です。OneUptime Cloud では、接続には **Growth** プランが必要です。
 - **切断するとき。** OneUptime はタグの変更をやめます。タグとそのメンバーは、Microsoft Teams にそのまま残ります。
 
 ## Microsoft Teams からインシデントを管理する
@@ -254,7 +254,7 @@ OneUptime ボットに `incident` または `maintenance` と入力すると、�
 
 OneUptime のカードのボタンは、個人チャット、チャネル、グループチャットのどこでも、押した人として動作します。その人の Microsoft Teams アカウントが接続されている OneUptime アカウントとして、そのアカウントのプロジェクトでの権限で動作します。インシデント、アラート、エピソードの **Acknowledge**、 **Resolve**、 **Change State**、 **Add Note**、 **Execute On-Call Policy**、そして定期メンテナンスイベントの **Mark as Ongoing**、 **Mark as Complete**、 **Change State**、 **Add Note** は、それぞれ OneUptime で同じ操作を行ったときと同じ変更を行い、その変更は OneUptime でその人の操作として記録されます。レコードの状態タイムラインとフィードには誰が状態を変更したかが表示され、メモもその人のものになります。リアクションでメッセージから保存したメモも、同じように投稿されます。
 
-- **使える人。** OneUptime で同じ変更を行える人です。インシデントの確認、解決、状態の変更には、その状態を変更する権限が必要です。 **Project Owner**、 **Project Admin**、 **Project Member**、 **Incident Admin**、 **Incident Member**、またはカスタムロールの **Create Incident State Timeline** です。アラート、エピソード、定期メンテナンスイベントには、それぞれの種類に対応する同じ権限 (たとえば **Create Alert State Timeline** ) が必要で、メモにはその種類のメモを投稿する権限が必要です。OneUptime の状態パネルと同じく、インシデントやアラート自体を編集する権限は求めません。それ以外の人にはそう伝えられ、何も変わりません。
+- **使える人。** OneUptime で同じ変更を行える人です。インシデントの確認、解決、状態の変更には、その状態を変更する権限が必要です。 **プロジェクト所有者**、 **プロジェクト管理者**、 **プロジェクトメンバー**、 **インシデント管理者**、 **インシデントメンバー**、またはカスタムロールの **Create Incident State Timeline** です。アラート、エピソード、定期メンテナンスイベントには、それぞれの種類に対応する同じ権限 (たとえば **Create Alert State Timeline** ) が必要で、メモにはその種類のメモを投稿する権限が必要です。OneUptime の状態パネルと同じく、インシデントやアラート自体を編集する権限は求めません。それ以外の人にはそう伝えられ、何も変わりません。
 - **対象のレコード。** OneUptime と同じく、その人が読めるレコードです。一部のラベルに限定されたロールなら、それらのラベルが付いたインシデント、アラート、エピソード、イベントです。ほかのレコードのボタンは理由を伝え、何も変わりません。その人のロールが及ばないインシデントでは "your access in this project does not include this incident. Ask a project admin for access to it."、その人がオーナーではないプライベートなインシデントでは "this incident is private, so only its owners and the project's owners and admins can see it. Ask one of them to add you as an owner."、その後削除されたインシデントでは "the incident was not found. It may have been deleted." と返されます。OneUptime Cloud では、プロジェクトのプランに含まれない変更は、必要なプランを示して拒否されます。
 - **Change State が提示するもの。** その人が読める状態のうち、レコードが次に移れる状態を、プロジェクトの順序で提示します。今の状態より前の状態は提示されません。これはインシデント、アラート、定期メンテナンスイベントと同様にエピソードでも同じです。状態の変更でレコードが一覧の上に戻ることはないからです ([順序は表示上の好みではなく、実際の制約](/docs/incidents/states-and-severities#順序は表示上の好みではなく実際の制約) を参照)。読める状態が 1 つもない場合、ボットは "No incident states are available to you in this project. Ask a project admin for access to them." と伝え、レコードが到達できる最後の状態にある場合は "There is no later state to move this incident to." と伝えます。どちらの場合も空のカードは表示されません。
 - **プライベートインシデントでの Add Note。** プライベートインシデントには公開メモを追加できないため、カードはメモの種類を尋ねず、非公開メモを追加します。プライベートになる前に送られたカードも非公開メモを追加し、そのことを伝えます。[プライベートインシデントには非公開メモだけ](/docs/incidents/notes-owners-and-feed#プライベートインシデントには非公開メモだけ) を参照してください。

@@ -46,7 +46,7 @@ El paso toma su salida **Éxito** en cuanto el servidor ha aceptado todas las l�
 ## Antes de empezar
 
 - En OneUptime Cloud, el plan **Growth** o uno superior: los flujos de trabajo y sus variables forman parte de él. Las instalaciones autoalojadas sin facturación no tienen límites de plan.
-- Un rol que construye flujos de trabajo: **Project Owner**, **Project Admin** o **Workflow Admin**.
+- Un rol que construye flujos de trabajo: **Propietario del proyecto**, **Administrador del proyecto** o **Administrador de flujos de trabajo**.
 - Una cuenta en la red IRC, si te pide iniciar sesión. Libera.Chat lo pide para las conexiones desde algunas direcciones de nube y de VPN.
 
 ## Configurar la integración

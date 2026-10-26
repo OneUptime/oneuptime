@@ -23,7 +23,7 @@ flowchart TB
 - **Astreinte** > **Chronologie des astreintes** affiche tous les plannings que vous pouvez voir, regroupés par équipe propriétaire. Le bouton **Vue chronologique** de **Plannings d'astreinte** ouvre la même page.
 - **Équipes** > une équipe > **Plannings d'astreinte** n'affiche que les plannings dont cette équipe est propriétaire.
 
-Une équipe est propriétaire d'un planning lorsqu'elle figure sur la page **Propriétaires** du planning. Les plannings sans équipe propriétaire sont regroupés sous **Aucune équipe propriétaire**. Désactivez **Group by team** pour voir tous les plannings dans une seule liste, triée par nom.
+Une équipe est propriétaire d'un planning lorsqu'elle figure sur la page **Propriétaires** du planning. Les plannings sans équipe propriétaire sont regroupés sous **Aucune équipe propriétaire**. Désactivez **Grouper par équipe** pour voir tous les plannings dans une seule liste, triée par nom.
 
 ## Lire la grille
 
@@ -34,16 +34,16 @@ Une équipe est propriétaire d'un planning lorsqu'elle figure sur la page **Pro
 | Une barre marquée **⇄** | Un remplacement : quelqu'un assure une permanence à la place d'un autre. La fine piste en dessous nomme la personne remplacée, barrée. |
 | Un bloc orangé hachuré | Un trou de couverture : personne n'est d'astreinte. Une alerte qui escalade vers ce planning n'alerte alors personne. |
 | La ligne rouge | Maintenant. |
-| La ligne sous le nom d'un planning | Qui est d'astreinte en ce moment, ou **No one on call now**. |
+| La ligne sous le nom d'un planning | Qui est d'astreinte en ce moment, ou **Personne d'astreinte maintenant**. |
 
 Survolez une barre ou un trou, ou atteignez-le au clavier, pour en voir le détail.
 
-Sous la grille, **On call this week** (**On call this month** dans la vue mensuelle) liste toutes les personnes d'astreinte sur la période. Survolez un nom pour voir combien de temps la personne est d'astreinte, et sur combien de plannings.
+Sous la grille, **D'astreinte cette semaine** (**D'astreinte ce mois-ci** dans la vue mensuelle) liste toutes les personnes d'astreinte sur la période. Survolez un nom pour voir combien de temps la personne est d'astreinte, et sur combien de plannings.
 
 ## Changer la période et le fuseau horaire
 
 - Basculez entre **Semaine** et **Mois**, naviguez avec les flèches et revenez avec **Aujourd'hui**.
-- Les heures s'affichent dans votre propre fuseau horaire. Le bouton de fuseau horaire ouvre **View timeline in timezone**, qui affiche la chronologie dans n'importe quel autre fuseau sans changer qui est d'astreinte : chaque planning continue de faire ses passations dans son propre fuseau.
+- Les heures s'affichent dans votre propre fuseau horaire. Le bouton de fuseau horaire ouvre **Afficher la chronologie dans un fuseau horaire**, qui affiche la chronologie dans n'importe quel autre fuseau sans changer qui est d'astreinte : chaque planning continue de faire ses passations dans son propre fuseau.
 - La chronologie couvre 180 jours en arrière et 365 jours en avant.
 
 > [!NOTE]
@@ -52,8 +52,8 @@ Sous la grille, **On call this week** (**On call this month** dans la vue mensue
 ## Trouver un planning ou une personne
 
 - **Rechercher** trouve les noms de plannings, les noms d'équipes et les personnes d'astreinte.
-- Le filtre d'équipe restreint l'affichage à une équipe ou à **Mes équipes** ; **Schedules I'm on** ne garde que les plannings dont vous faites partie.
-- Au-dessus de la grille, cliquez sur **with no one on call now** ou **with coverage gaps this week** (**with coverage gaps this month** dans la vue mensuelle) pour ne voir que ces plannings. Cliquez à nouveau pour les revoir tous.
+- Le filtre d'équipe restreint l'affichage à une équipe ou à **Mes équipes** ; **Plannings dont je fais partie** ne garde que les plannings dont vous faites partie.
+- Au-dessus de la grille, cliquez sur **sans personne d'astreinte maintenant** ou **avec des trous de couverture cette semaine** (**avec des trous de couverture ce mois-ci** dans la vue mensuelle) pour ne voir que ces plannings. Cliquez à nouveau pour les revoir tous.
 - Cliquez sur une personne sous la grille, ou sur l'une de ses barres, pour mettre en évidence toutes ses permanences. **Effacer la mise en évidence** l'annule, et **Effacer les filtres** réinitialise la recherche et les filtres.
 
 ## Qui voit quoi

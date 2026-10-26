@@ -13,7 +13,7 @@ Een LLM-provider is het model achter elke AI-functie in OneUptime: onderzoeken, 
 
 - **Onderzoeken**: OneUptime AI onderzoekt nieuwe incidenten en waarschuwingen en plaatst een onderbouwde analyse van de hoofdoorzaak op de tijdlijn. Zie [AI SRE](/docs/ai/ai-sre).
 - **Vragen**: **Ask AI** antwoordt uit de gegevens van je project, met een bron bij elke bewering. Zie [AI vragen](/docs/ai/ask-ai).
-- **Concepten**: **Draft with AI** in de notities van incidenten, waarschuwingen en gepland onderhoud, en postmortems, opgesteld op verzoek of wanneer een incident wordt opgelost.
+- **Concepten**: **Concept met AI** in de notities van incidenten, waarschuwingen en gepland onderhoud, en postmortems, opgesteld op verzoek of wanneer een incident wordt opgelost.
 - **Code**: pull requests die uitzonderingen, trage traces en de oorzaken die onderzoeken vinden herstellen, vanuit OneUptime of vanuit GitHub. Zie [Code](/docs/ai/ai-agent).
 - **Al het andere**: de triage van AI Insights, de AI-stappen van workflows en runbooks, en antwoorden in Slack en Microsoft Teams.
 
@@ -53,7 +53,7 @@ Op een zelf gehoste instantie zet je AI het snelst aan voor **alle projecten teg
 | `GLOBAL_LLM_PROVIDER_TYPE` | Nodig om hem aan te zetten. Een van `OpenAI`, `AzureOpenAI`, `Anthropic`, `Groq`, `Mistral`, `Ollama`, `OpenAICompatible` |
 | `GLOBAL_LLM_PROVIDER_API_KEY` | De API-sleutel: nodig voor OpenAI, Azure OpenAI, Anthropic, Groq en Mistral; niet nodig voor Ollama of een OpenAI-compatibele server zonder sleutel |
 | `GLOBAL_LLM_PROVIDER_BASE_URL` | Het endpoint: nodig voor Azure OpenAI, Ollama en OpenAI-compatibele servers |
-| `GLOBAL_LLM_PROVIDER_MODEL_NAME` | Het model dat gebruikt wordt: nodig voor OpenAI-compatibele servers, aanbevolen voor de andere |
+| `GLOBAL_LLM_PROVIDER_MODEL_NAME` | Het model dat gebruikt wordt. Optioneel: niet ingesteld gebruikt OneUptime het standaardmodel van de provider en bij een OpenAI-compatibele server het eerste model in de lijst van de server |
 | `GLOBAL_LLM_PROVIDER_NAME` | Een optionele weergavenaam, getoond in het dashboard |
 
 :::tabs
@@ -105,15 +105,15 @@ Onder **Verbinding** vraagt het formulier alleen wat die provider gebruikt, met 
 
 - **API-sleutel**: je API-sleutel, nodig voor OpenAI, Azure OpenAI, Anthropic, Groq en Mistral en optioneel voor een OpenAI-compatibele server; voor Ollama wordt er geen gevraagd
 - **Basis-URL**: het endpoint, nodig voor Azure OpenAI, Ollama en OpenAI Compatible; voor de andere alleen om via een proxy of gateway te gaan
-- **Modelnaam**: het model dat gebruikt wordt, zoals `gpt-5.1`, `claude-sonnet-5-5` of `llama3.1`. Leeg gelaten gebruikt OneUptime het standaardmodel van de provider, behalve bij een OpenAI-compatibele server, die er een nodig heeft
+- **Modelnaam**: het model dat gebruikt wordt, zoals `gpt-5.1`, `claude-sonnet-5-5` of `llama3.1`. Leeg gelaten gebruikt OneUptime het standaardmodel van de provider; een OpenAI-compatibele server heeft er geen, dus vraagt OneUptime welke modellen hij aanbiedt en gebruikt het eerste in zijn lijst
 - **Naam**: de naam van de provider totdat je zelf een naam typt, zoals "Production OpenAI" of "Local Ollama"
 - **Meer velden**, ingeklapt onder de velden hierboven: een **Beschrijving**, **Instellen als standaard**, dat aan staat voor een nieuwe provider omdat AI-functies alleen de standaardprovider van het project gebruiken, en **Extra parameters**, een optioneel JSON-object met extra parameters dat bij elk verzoek naar de provider wordt gestuurd (bijvoorbeeld `{"temperature": 0.2}`)
 
-**Wie een provider kan zien.** De LLM-providers van een project worden alleen gelezen door de leden die de instellingen van het project mogen lezen: **Project Owner**, **Project Admin**, **Project Member**, **Viewer**, **Settings Admin**, **Settings Member**, **Settings Viewer** en **Read LLM**. De **API-sleutel** en de **Extra parameters** van een provider worden alleen gelezen door de eigenaren en beheerders van het project, omdat de parameters bij elk verzoek naar de provider worden gestuurd en net als de sleutel een token of een header kunnen bevatten. De andere leden zien of er parameters zijn opgeslagen, niet welke. Leden die een provider mogen bewerken, kunnen de API-sleutel of de parameters nog steeds vervangen zonder ze te lezen: in het bewerkformulier zijn die velden eerst leeg, en een veld leeg laten behoudt wat er is opgeslagen. Om de parameters te verwijderen, sla je `{}` op. Alleen eigenaren en beheerders van het project kunnen de **Basis-URL** van een provider wijzigen, omdat de API-sleutel en de extra parameters naar dat adres worden gestuurd; de andere leden die een provider mogen bewerken, kunnen al het andere wijzigen. Iedereen die een provider kan lezen, kan de **Basis-URL** lezen, zet er dus nooit een sleutel, een token of een wachtwoord in: gebruik de **API-sleutel**. De lijst **Globale LLM-providers** op dezelfde pagina, de gedeelde providers waarop een project terugvalt, toont hun naam, beschrijving en prijs aan iedereen die is aangemeld, en verder niets over hen.
+**Wie een provider kan zien.** De LLM-providers van een project worden alleen gelezen door de leden die de instellingen van het project mogen lezen: **Projecteigenaar**, **Projectbeheerder**, **Projectlid**, **Kijker**, **Instellingenbeheerder**, **Instellingenlid**, **Instellingenkijker** en **Read LLM**. De **API-sleutel** en de **Extra parameters** van een provider worden alleen gelezen door de eigenaren en beheerders van het project, omdat de parameters bij elk verzoek naar de provider worden gestuurd en net als de sleutel een token of een header kunnen bevatten. De andere leden zien of er parameters zijn opgeslagen, niet welke. Leden die een provider mogen bewerken, kunnen de API-sleutel of de parameters nog steeds vervangen zonder ze te lezen: in het bewerkformulier zijn die velden eerst leeg, en een veld leeg laten behoudt wat er is opgeslagen. Om de parameters te verwijderen, sla je `{}` op. Alleen eigenaren en beheerders van het project kunnen de **Basis-URL** van een provider wijzigen, omdat de API-sleutel en de extra parameters naar dat adres worden gestuurd; de andere leden die een provider mogen bewerken, kunnen al het andere wijzigen. Iedereen die een provider kan lezen, kan de **Basis-URL** lezen, zet er dus nooit een sleutel, een token of een wachtwoord in: gebruik de **API-sleutel**. De lijst **Globale LLM-providers** op dezelfde pagina, de gedeelde providers waarop een project terugvalt, toont hun naam, beschrijving en prijs aan iedereen die is aangemeld, en verder niets over hen.
 
 ### Test hem
 
-**Een provider testen.** **Testen**, op de pagina van de provider of in het menu van zijn rij, stuurt de provider een korte prompt met zijn **API-sleutel**, **Modelnaam**, **Basis-URL** en **Extra parameters**, en zegt of hij antwoordde en een tool aanriep, wat de AI-functies van OneUptime nodig hebben. Een mislukte test zegt eerst wat je moet controleren en daarna wat de provider antwoordde. Wie een provider mag wijzigen, kan hem testen: **Project Owner**, **Project Admin**, **Project Member**, **Settings Admin**, **Settings Member** en **Edit LLM**. Alle anderen die de provider kunnen zien, vinden **Testen** vergrendeld. Een globale LLM-provider wordt getest door een serverbeheerder, in het Admin Dashboard onder **Instellingen → Globale LLM-providers**.
+**Een provider testen.** **Testen**, op de pagina van de provider of in het menu van zijn rij, stuurt de provider een korte prompt met zijn **API-sleutel**, **Modelnaam**, **Basis-URL** en **Extra parameters**, en zegt of hij antwoordde en een tool aanriep, wat de AI-functies van OneUptime nodig hebben. Een mislukte test zegt eerst wat je moet controleren en daarna wat de provider antwoordde. Wie een provider mag wijzigen, kan hem testen: **Projecteigenaar**, **Projectbeheerder**, **Projectlid**, **Instellingenbeheerder**, **Instellingenlid** en **Edit LLM**. Alle anderen die de provider kunnen zien, vinden **Testen** vergrendeld. Een globale LLM-provider wordt getest door een serverbeheerder, in het Admin Dashboard onder **Instellingen → Globale LLM-providers**.
 :::
 
 ## Configuratie per provider
@@ -225,7 +225,7 @@ Gebruik de provider **OpenAI Compatible** voor elke server die de OpenAI-API `/c
 1. Start je OpenAI-compatibele server en noteer de basis-URL (die eindigt meestal op `/v1`)
 2. Kies **OpenAI Compatible** als LLM-provider
 3. Voer de **Basis-URL** in (verplicht), bijv. `http://your-server:8000/v1`. De OneUptime-server moet hem kunnen bereiken, dus niet `localhost`: zie [Een basis-URL kiezen voor een zelf gehost model](#een-basis-url-kiezen-voor-een-zelf-gehost-model)
-4. Voer de **Modelnaam** in (verplicht): die moet overeenkomen met een model dat je server aanbiedt
+4. Voer de **Modelnaam** in of laat die leeg: dan vraagt OneUptime je server welke modellen hij aanbiedt en gebruikt het eerste in zijn lijst, bij vLLM het model dat hij aanbiedt. Een naam die je invoert moet overeenkomen met een model dat je server aanbiedt
 5. Voer de **API-sleutel** alleen in als je server erom vraagt; laat hem leeg voor een server zonder sleutel
 
 ```text title="A keyless vLLM"
@@ -258,7 +258,7 @@ Als je de automatische registratie hebt uitgezet (`vllm.globalProvider.enabled: 
 
 1. Kies **OpenAI Compatible** als LLM-provider (vLLM spreekt de OpenAI-API)
 2. Voer de basis-URL binnen het cluster in: `http://<release>-vllm.<namespace>.svc.cluster.local:8000/v1` (vervang `cluster.local` als je `global.clusterDomain` hebt gewijzigd)
-3. Voer de modelnaam in: de volledige Hugging Face-model-id (of `vllm.servedModelName` als je die hebt ingesteld)
+3. Voer de modelnaam in: de volledige Hugging Face-model-id (of `vllm.servedModelName` als je die hebt ingesteld), of laat die leeg om het model te gebruiken dat vLLM aanbiedt
 4. Voer de API-sleutel alleen in als je `vllm.apiKey` hebt ingesteld; laat hem leeg voor een vLLM zonder sleutel
 
 ```text title="The in-cluster vLLM"
@@ -286,7 +286,7 @@ Zie de [vLLM-handleiding van de Helm-chart](https://github.com/OneUptime/oneupti
 - **OpenAI of Anthropic**: controleer of je API-sleutel geldig is en tegoed heeft
 - **Azure OpenAI / Microsoft Foundry**: de fout begint met wat je moet wijzigen. [Microsoft Foundry en Azure OpenAI](/docs/ai/microsoft-foundry) legt elke fout uit waarmee Azure antwoordt
 - **Ollama**: controleer of de Ollama-server draait, luistert op een adres dat de OneUptime-server kan bereiken (`OLLAMA_HOST=0.0.0.0:11434` bij een native installatie), en of de basis-URL naar dat adres wijst
-- **OpenAI Compatible**: controleer of de basis-URL eindigt op `/v1` (of bij je server past), of de modelnaam overeenkomt met een model dat je server aanbiedt, en of je alleen een API-sleutel hebt ingesteld als je server erom vraagt
+- **OpenAI Compatible**: controleer of de basis-URL eindigt op `/v1` (of bij je server past), of de modelnaam, als je er een hebt ingevoerd, overeenkomt met een model dat je server aanbiedt, en of je alleen een API-sleutel hebt ingesteld als je server erom vraagt. Is de modelnaam leeg en noemt de server geen modellen op zijn `/models`-endpoint, voer er dan een in
 - **"…points to an address OneUptime is not allowed to connect to"**: de basis-URL verwijst naar een geweigerd adres: `localhost` of een ander loopback-adres, of, op OneUptime Cloud, een privénetwerkadres. (OneUptime Cloud meldt een geweigerde hostnaam in plaats daarvan als "…could not be reached".) Zie [Een basis-URL kiezen voor een zelf gehost model](#een-basis-url-kiezen-voor-een-zelf-gehost-model)
 - **Een firewall**: controleer of je netwerk uitgaande verbindingen naar de API van de provider toestaat
 :::

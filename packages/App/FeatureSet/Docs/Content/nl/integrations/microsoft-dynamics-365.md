@@ -122,7 +122,7 @@ De stap **Configureren** van de aanmaakwizard vraagt om maximaal zeven waarden: 
 
 Om de aanmelding te controleren voordat er iets draait, open je **Workflow-variabelen**, klik je bij `dynamicsAccessToken` op **Bekijken** en klik je op **Nu vernieuwen**. **Access Token Fetched** betekent dat de app-registratie klopt. Anders noemt de fout van Microsoft Entra ID wat er mis is, zoals `AADSTS7000215: Invalid client secret provided`.
 
-Elke workflow houdt een eigen kopie bij. Wanneer je het clientgeheim vervangt, open je `dynamicsAccessToken` in elke Dynamics 365-workflow en gebruik je **Update Credentials**.
+Elke workflow houdt een eigen kopie bij. Wanneer je het clientgeheim vervangt, open je `dynamicsAccessToken` in elke Dynamics 365-workflow en gebruik je **Inloggegevens bijwerken**.
 
 ### De workflows maken
 

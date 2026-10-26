@@ -33,16 +33,16 @@ flowchart TB
 
 Open **Producten → Bronnen → Real User Monitoring**. **Alle applicaties** toont je applicaties met hun **Clienttype**, **Status** en **Laatst gezien**. Twee andere secties van het zijmenu staan eerst ingeklapt:
 
-- **Instellingen**: **Eigenaarsregels**, **Labelregels** en de projectbrede schakelaar **Session Replay**.
+- **Instellingen**: **Eigenaarsregels**, **Labelregels** en de projectbrede schakelaar **Sessieherhaling**.
 - **Geavanceerd**: **Gearchiveerd**, de applicaties die je hebt gearchiveerd.
 
 Het zijmenu van een applicatie groepeert de pagina's zo; **Instellingen**, **Ontwikkelaars** en **Geavanceerd** staan eerst ingeklapt:
 
 | Sectie | Pagina's |
 | --- | --- |
-| **Basis** | **Overzicht**, **Recommendations**, **Documentatie** |
+| **Basis** | **Overzicht**, **Aanbevelingen**, **Documentatie** |
 | **Observability** | **Metrieken**, **Logboeken**, **Traces**, **Clients** |
-| **Session Replay** | **Session Replay**, **User Flows**, **Replay Users**, **Health**, **Replay Policy**, **Replay Access Log**, **Documentatie** |
+| **Sessieherhaling** | **Sessieherhaling**, **User Flows**, **Replay Users**, **Gezondheid**, **Replay Policy**, **Toegangslog van replays**, **Documentatie** |
 | **Instellingen** | **Instellingen** |
 | **Ontwikkelaars** | **Terraform**, **API**, **AI-assistenten** |
 | **Geavanceerd** | **Applicatie verwijderen** |
@@ -81,8 +81,8 @@ OneUptime vindt de applicatie via `service.name`, zonder op hoofdletters te lett
 | **Core Web Vitals** | Een kaart in het overzicht met LCP, INP, CLS, FCP en TTFB, elk beoordeeld tegen de grenzen van Google, en de INP van elke route van een single-page-app. Zie [Core Web Vitals](/docs/rum/web-vitals) en [Single-page-apps](/docs/rum/web-vitals#single-page-apps). |
 | **Metrieken**, **Logboeken**, **Traces** | De telemetrieverkenners, beperkt tot deze applicatie. |
 | **Clients** | De browserplatforms en apparaatmodellen waarop de applicatie is gebruikt: een korte lijst per platform, nooit een rij per gebruiker. |
-| **Session Replay** | Opnames van echte sessies, naast hun fouten, traces en logs: zie [Sessieherhaling](/docs/telemetry/session-replay). |
-| **Recommendations** | Kant-en-klare monitors voor de applicatie: slechte Core Web Vitals, mislukte verzoeken, browseruitzonderingen en, zodra ze opneemt, budgetten voor Session Replay. |
+| **Sessieherhaling** | Opnames van echte sessies, naast hun fouten, traces en logs: zie [Sessieherhaling](/docs/telemetry/session-replay). |
+| **Aanbevelingen** | Kant-en-klare monitors voor de applicatie: slechte Core Web Vitals, mislukte verzoeken, browseruitzonderingen en, zodra ze opneemt, budgetten voor Session Replay. |
 
 De tellingen komen uit de spans die je instrumentatie verstuurt. **Page loads** telt de span `documentLoad` die de instrumentatie voor paginaladingen bij elke volledige lading vastlegt, dus een routewissel binnen een single-page-app is geen paginalading.
 

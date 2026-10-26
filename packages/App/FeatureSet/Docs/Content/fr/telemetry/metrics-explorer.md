@@ -104,7 +104,7 @@ Faites glisser la souris sur un graphique pour zoomer sur un moment, et double-c
 - **Actions → Créer un moniteur à partir de cette vue** ouvre un nouveau moniteur de métriques avec ces requêtes et ces formules déjà remplies. Voir [Surveillance des métriques](/docs/monitor/metrics-monitor).
 - **Actions → Ajouter au tableau de bord** ajoute le graphique au tableau de bord de votre choix. Il vous faut la permission de modifier ce tableau de bord.
 - **Copier le lien** copie un lien vers exactement cette vue : requêtes, formules et plage de temps.
-- **Saved Views** garde la vue sous un nom pour tout le projet. Le **Lecteur** a ses propres vues enregistrées, pour sa recherche et ses filtres. Les vues enregistrées fonctionnent comme dans l'[Explorateur de journaux](/docs/telemetry/logs-explorer#enregistrer-une-vue).
+- **Vues enregistrées** garde la vue sous un nom pour tout le projet. Le **Lecteur** a ses propres vues enregistrées, pour sa recherche et ses filtres. Les vues enregistrées fonctionnent comme dans l'[Explorateur de journaux](/docs/telemetry/logs-explorer#enregistrer-une-vue).
 
 ## Analyses des métriques
 

@@ -68,7 +68,7 @@ Aldrig fördröjt och aldrig medräknat:
 | Fakturering och saldo | Fakturor, förfallen prenumeration, ”vi kunde inte larma någon eftersom kortet nekades” |
 | Instansens hälsa | Varningar om Postgres, Valkey och ClickHouse till instansens administratörer |
 | Prenumeranter på statussidor | Varje mejl som din statussida skickar till dina egna prenumeranter |
-| SLA-brott | Skickas direkt, trots att de återanvänder aviseringstypen för skapade incidenter |
+| SLA-brott | En incident som du äger missar sin SLA-tidsgräns för svar eller lösning |
 
 Bara mejl påverkas. SMS, telefonsamtal, push-aviseringar, WhatsApp, Telegram, Slack, Microsoft Teams och webhooks levereras direkt, precis som förut — även för aviseringar vars mejl hölls tillbaka.
 

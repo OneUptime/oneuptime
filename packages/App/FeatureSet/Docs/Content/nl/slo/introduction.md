@@ -46,7 +46,7 @@ Open **SLOs** via het menu **Producten** in de bovenbalk. Het staat in de eerste
 
 ### Een naam en een doel geven
 
-Vul een **Naam** in, bijvoorbeeld "API Availability", en een **Target (%)**: het deel van de tijd dat de monitoren beschikbaar moeten zijn. Het doel begint op `99.9`. Het moet groter zijn dan 0 en hoogstens 99,999, omdat een doel van 100% geen foutbudget overlaat om te volgen.
+Vul een **Naam** in, bijvoorbeeld "API Availability", en een **Doel (%)**: het deel van de tijd dat de monitoren beschikbaar moeten zijn. Het doel begint op `99.9`. Het moet groter zijn dan 0 en hoogstens 99,999, omdat een doel van 100% geen foutbudget overlaat om te volgen.
 
 ### De standaardwaarden onder Meer velden controleren
 
@@ -58,7 +58,7 @@ Klik op **Service Level Objective aanmaken**. OneUptime opent de nieuwe SLO. Het
 
 ### Monitoren koppelen
 
-Klik op **Create a monitor rule** om elke overeenkomende monitor te koppelen, nu en later, of op **Add monitors** om ze met de hand te kiezen. Zie [Monitoren en monitorregels](/docs/slo/monitor-rules).
+Klik op **Een monitorregel maken** om elke overeenkomende monitor te koppelen, nu en later, of op **Monitoren toevoegen** om ze met de hand te kiezen. Zie [Monitoren en monitorregels](/docs/slo/monitor-rules).
 
 ### De eerste cijfers zien binnenkomen
 
@@ -71,8 +71,8 @@ De velden onder **Meer velden**:
 | --- | --- | --- |
 | **Beschrijving** | Waar de SLO voor dient. | Leeg |
 | **Risicodrempel (%)** | Het deel van het resterende foutbudget waarbij de SLO naar **Risico** gaat. Een geheel getal van 0 tot 100. | 20 |
-| **Window Type** | **Rolling**: de laatste N dagen, die herstellen naarmate oude downtime uit het venster valt. **Calendar Month**: elke maand op zichzelf, teruggezet op de 1e. | **Rolling** |
-| **Window (Days)** | Alleen voortschrijdende vensters: hoeveel dagen terug te kijken, van 1 tot 366. Gebruikelijk is 28 of 30. | 30 |
+| **Type venster** | **Voortschrijdend**: de laatste N dagen, die herstellen naarmate oude downtime uit het venster valt. **Kalendermaand**: elke maand op zichzelf, teruggezet op de 1e. | **Voortschrijdend** |
+| **Venster (dagen)** | Alleen voortschrijdende vensters: hoeveel dagen terug te kijken, van 1 tot 366. Gebruikelijk is 28 of 30. | 30 |
 | **Tijdzone** | Alleen kalendermaanden: de tijdzone waarin elke maand begint en eindigt. | UTC |
 | **Labels** | Labels om SLO's te ordenen en te filteren. | Geen |
 
@@ -80,11 +80,11 @@ Alles wat bepaalt hoe de SLO meet, begint met een standaardwaarde die u later wi
 
 | Instelling | Een nieuwe SLO begint met | Waar te wijzigen |
 | --- | --- | --- |
-| Monitoren | Geen | **Monitoren** of **Monitor Rules** |
-| Downtime-statussen | Alle niet-operationele statussen van het project | **Instellingen** → **Downtime Calculation** |
-| Modus voor meerdere monitoren | **Any Monitor Down** | **Instellingen** → **Downtime Calculation** |
+| Monitoren | Geen | **Monitoren** of **Monitorregels** |
+| Downtime-statussen | Alle niet-operationele statussen van het project | **Instellingen** → **Downtimeberekening** |
+| Modus voor meerdere monitoren | **Willekeurige monitor uitgevallen** | **Instellingen** → **Downtimeberekening** |
 | Evaluatie | Aan | **Instellingen** → **Evaluatie** |
-| Regels voor verbruikssnelheid | Een regel **Fast burn** en een regel **Slow burn**, afgestemd op het venster | **Burn Rate Rules** |
+| Regels voor verbruikssnelheid | Een regel **Fast burn** en een regel **Slow burn**, afgestemd op het venster | **Verbruikssnelheidsregels** |
 
 ## Waaruit een SLO bestaat
 
@@ -99,7 +99,7 @@ Alles wat bepaalt hoe de SLO meet, begint met een standaardwaarde die u later wi
 
 ### Welke statussen als downtime tellen
 
-Elke SLO heeft een eigen lijst monitorstatussen die als downtime tellen. Een nieuwe SLO begint met alle statussen van het project die niet als operationeel zijn gemarkeerd, zoals Degraded en Offline, net als uw statuspagina's. Wijzig de lijst onder **Instellingen** → **Downtime Calculation**. Laat hem leeg om alle niet-operationele statussen te tellen, ook statussen die later aan het project worden toegevoegd.
+Elke SLO heeft een eigen lijst monitorstatussen die als downtime tellen. Een nieuwe SLO begint met alle statussen van het project die niet als operationeel zijn gemarkeerd, zoals Degraded en Offline, net als uw statuspagina's. Wijzig de lijst onder **Instellingen** → **Downtimeberekening**. Laat hem leeg om alle niet-operationele statussen te tellen, ook statussen die later aan het project worden toegevoegd.
 
 > [!TIP]
 > Meet dezelfde monitoren op twee manieren met twee SLO's: een strikte beschikbaarheids-SLO waarin zowel Degraded als Offline tellen, en een ruimere SLO voor volledige uitval waarin alleen Offline telt.
@@ -108,19 +108,19 @@ Elke SLO heeft een eigen lijst monitorstatussen die als downtime tellen. Een nie
 
 | Venstertype | Hoe het werkt |
 | --- | --- |
-| **Rolling** | Kijkt vanaf nu een vast aantal dagen terug. Oude downtime valt uit het venster, dus het budget komt geleidelijk terug. |
-| **Calendar Month** | Meet vanaf de eerste van de maand, in de tijdzone van de SLO (standaard UTC). Het hele budget komt aan het begin van elke maand terug. |
+| **Voortschrijdend** | Kijkt vanaf nu een vast aantal dagen terug. Oude downtime valt uit het venster, dus het budget komt geleidelijk terug. |
+| **Kalendermaand** | Meet vanaf de eerste van de maand, in de tijdzone van de SLO (standaard UTC). Het hele budget komt aan het begin van elke maand terug. |
 
 ### Meerdere monitoren in één SLO
 
-Als een SLO meer dan één monitor meet, bepaalt de **Multi Monitor Mode** hoe hun downtime wordt gecombineerd. Een nieuwe SLO gebruikt **Any Monitor Down**.
+Als een SLO meer dan één monitor meet, bepaalt de **Modus voor meerdere monitoren** hoe hun downtime wordt gecombineerd. Een nieuwe SLO gebruikt **Willekeurige monitor uitgevallen**.
 
 | Modus | Hoe downtime telt | Gebruik als |
 | --- | --- | --- |
-| **Any Monitor Down** | Elk moment waarop minstens één monitor uitvalt, telt als downtime voor de hele SLO. Overlappende uitval telt één keer. | De monitoren samen één dienst vormen: valt er één uit, dan merken gebruikers het. |
-| **Monitor Seconds Average** | De downtime van elke monitor telt apart, gemiddeld over alle bewaakte tijd: SLI = 1 − (seconden uitval van alle monitoren ÷ bewaakte seconden van alle monitoren). | De monitoren een vloot van vergelijkbare resources zijn en gedeeltelijke impact gedeeltelijk moet tellen. |
+| **Willekeurige monitor uitgevallen** | Elk moment waarop minstens één monitor uitvalt, telt als downtime voor de hele SLO. Overlappende uitval telt één keer. | De monitoren samen één dienst vormen: valt er één uit, dan merken gebruikers het. |
+| **Gemiddelde monitorseconden** | De downtime van elke monitor telt apart, gemiddeld over alle bewaakte tijd: SLI = 1 − (seconden uitval van alle monitoren ÷ bewaakte seconden van alle monitoren). | De monitoren een vloot van vergelijkbare resources zijn en gedeeltelijke impact gedeeltelijk moet tellen. |
 
-Stel dat monitor A van 10:00 tot 11:00 uitvalt terwijl monitor B beschikbaar blijft. **Any Monitor Down** registreert 60 minuten downtime; **Monitor Seconds Average** registreert het equivalent van 30 minuten, omdat een van de twee monitoren een uur uitviel. In die modus wordt ook het budget in monitorseconden geteld: zie [Foutbudgetten](/docs/slo/error-budget).
+Stel dat monitor A van 10:00 tot 11:00 uitvalt terwijl monitor B beschikbaar blijft. **Willekeurige monitor uitgevallen** registreert 60 minuten downtime; **Gemiddelde monitorseconden** registreert het equivalent van 30 minuten, omdat een van de twee monitoren een uur uitviel. In die modus wordt ook het budget in monitorseconden geteld: zie [Foutbudgetten](/docs/slo/error-budget).
 
 ## Status van de SLO
 
@@ -131,7 +131,7 @@ OneUptime geeft elke geëvalueerde SLO een status:
 | **Gezond** | Er is meer budget over dan de risicodrempel. |
 | **Risico** | Het resterende budget is gedaald tot de risicodrempel of lager: standaard 20%. |
 | **Budget uitgeput** | Het budget is helemaal op, of overschreden. |
-| **Misconfigured** | De SLO kan niet worden gemeten: hij heeft geen monitoren, zijn monitoren bestaan niet meer of hebben in zijn venster nog geen status geregistreerd, of zijn doel valt buiten het bereik. |
+| **Verkeerd geconfigureerd** | De SLO kan niet worden gemeten: hij heeft geen monitoren, zijn monitoren bestaan niet meer of hebben in zijn venster nog geen status geregistreerd, of zijn doel valt buiten het bereik. |
 | **Gepauzeerd** | Alle monitoren die hij meet, zijn gearchiveerd of hebben actieve bewaking uitgeschakeld, met de hand, door een handmatig incident of door gepland onderhoud. Hij gaat vanzelf verder zodra een van die monitoren weer wordt bewaakt. |
 
 Een uitgeschakelde of gearchiveerde SLO wordt niet geëvalueerd, dus zijn status blijft zoals hij was; de SLO-lijst toont in plaats daarvan een badge **Uitgeschakeld** of **Gearchiveerd**. De eigenaren van een SLO krijgen een melding als de status verandert in **Risico** of **Budget uitgeput**: zie [Foutbudgetten](/docs/slo/error-budget).
@@ -140,7 +140,7 @@ Een uitgeschakelde of gearchiveerde SLO wordt niet geëvalueerd, dus zijn status
 
 De pagina **SLOs** toont elke niet-gearchiveerde SLO, met status, SLI, resterend budget, verbruikssnelheid, doel, venster, monitoren, labels en eigenaren.
 
-- De tegels boven de lijst tellen SLO's per status: **Gezond**, **Risico**, **Budget uitgeput**, **Misconfigured**, **Gepauzeerd** en **Uitgeschakeld**. Ze verschijnen zodra er een SLO is die niet gearchiveerd is. Klik op een tegel om alleen die SLO's te zien, en nog eens om alle te zien.
+- De tegels boven de lijst tellen SLO's per status: **Gezond**, **Risico**, **Budget uitgeput**, **Verkeerd geconfigureerd**, **Gepauzeerd** en **Uitgeschakeld**. Ze verschijnen zodra er een SLO is die niet gearchiveerd is. Klik op een tegel om alleen die SLO's te zien, en nog eens om alle te zien.
 - Selecteer SLO's om in één keer labels en eigenaren toe te voegen of te verwijderen, ze in of uit te schakelen, ze te archiveren of ze te verwijderen.
 - De sectie **Instellingen** van het zijmenu bevat **Labelregels** en **Eigenaarsregels**, die nieuwe SLO's labelen en eigenaren geven: zie [Label- en eigenaarsregels](/docs/slo/label-and-owner-rules).
 - De sectie **Geavanceerd** van het zijmenu bevat **Gearchiveerd**, de lijst met gearchiveerde SLO's.
@@ -157,14 +157,14 @@ Open een SLO om zijn pagina's in het zijmenu te zien:
 | **Waarschuwingen** | De waarschuwingen die zijn regels voor verbruikssnelheid hebben gegeven. De badge telt de open waarschuwingen. |
 | **Feed** | Wat er met de SLO is gebeurd, als tijdlijn. Zie [SLO-feed en auditlogboeken](/docs/slo/feed-and-audit-logs). |
 | **Monitoren** | De monitoren die hij meet, en of elke monitor door een persoon of een regel is gekoppeld. |
-| **Monitor Rules** | De regels die overeenkomende monitoren koppelen. |
-| **Burn Rate Rules** | De regels die waarschuwingen geven en incidenten melden als het budget te snel opraakt. |
+| **Monitorregels** | De regels die overeenkomende monitoren koppelen. |
+| **Verbruikssnelheidsregels** | De regels die waarschuwingen geven en incidenten melden als het budget te snel opraakt. |
 | **Eigenaren** | De gebruikers en teams die over zijn statuswijzigingen horen. |
 | **Instellingen** | Het doel, de complianceperiode, de downtimeberekening, de evaluatieschakelaar en de archiefkaart. |
 | **Auditlogboeken** | Wie de SLO, zijn regels en zijn eigenaren heeft gewijzigd, en wanneer. |
-| **Delete SLO** | Verwijdert de SLO definitief en lost de open waarschuwingen en incidenten voor verbruikssnelheid op. |
+| **SLO verwijderen** | Verwijdert de SLO definitief en lost de open waarschuwingen en incidenten voor verbruikssnelheid op. |
 
-**Monitoren** staat in een sectie **Configuratie**, **Monitor Rules** en **Burn Rate Rules** in een sectie **Regels**, en **Eigenaren**, **Instellingen**, **Auditlogboeken** en **Delete SLO** in een sectie **Management**. Alle drie beginnen ingeklapt, net als een sectie **Ontwikkelaars** om de SLO vanuit code te beheren: klik op de titel van een sectie om hem te openen.
+**Monitoren** staat in een sectie **Configuratie**, **Monitorregels** en **Verbruikssnelheidsregels** in een sectie **Regels**, en **Eigenaren**, **Instellingen**, **Auditlogboeken** en **SLO verwijderen** in een sectie **Beheer**. Alle drie beginnen ingeklapt, net als een sectie **Ontwikkelaars** om de SLO vanuit code te beheren: klik op de titel van een sectie om hem te openen.
 
 Als iets een SLO verhindert te meten, zegt een banner bovenaan elk van zijn pagina's wat er mis is en linkt hij naar de pagina die het oplost: zie [Problemen oplossen](#problemen-oplossen).
 
@@ -172,16 +172,16 @@ Als iets een SLO verhindert te meten, zegt een banner bovenaan elk van zijn pagi
 
 Het **Overzicht** beantwoordt "zitten we binnen het budget?", van boven naar beneden:
 
-- **De samenvatting**: de status, een zin over wat die betekent en de beschrijving. Ernaast staan **Vernieuwen** en wanneer de SLO voor het laatst is geëvalueerd. Daaronder staan het doel, het **Compliance window** (met een vulindicator zolang een jong voortschrijdend venster zich vult: zie [Jonge SLO's en de vulindicator van het venster](#jonge-slos-en-de-vulindicator-van-het-venster)), het aantal monitoren en de eigenaren, met **Eigenaren toevoegen** om er daar meteen een toe te voegen.
+- **De samenvatting**: de status, een zin over wat die betekent en de beschrijving. Ernaast staan **Vernieuwen** en wanneer de SLO voor het laatst is geëvalueerd. Daaronder staan het doel, het **Nalevingsvenster** (met een vulindicator zolang een jong voortschrijdend venster zich vult: zie [Jonge SLO's en de vulindicator van het venster](#jonge-slos-en-de-vulindicator-van-het-venster)), het aantal monitoren en de eigenaren, met **Eigenaren toevoegen** om er daar meteen een toe te voegen.
 - **De kerncijfers**:
   - **SLI**: het deel goede tijd in het venster, en hoeveel het boven of onder het doel zit.
-  - **Error budget left**: een percentage, een duur zoals "12m 30s left of 43m 12s" en een balk met een markering op de risicodrempel. Als het budget is overschreden, toont het **Budget exceeded** en met hoeveel.
-  - **Burn rate**: hoe snel het budget wordt uitgegeven over de laatste 60 minuten, de periode die de standaardregel voor snel verbruik gebruikt. Wordt oranje boven 1× en rood, met **Rule threshold reached**, bij de laagste drempel van de ingeschakelde regels voor verbruikssnelheid van de SLO.
-  - **Budget runway**: hoelang het budget in dit tempo meegaat. Zie [Foutbudgetten](/docs/slo/error-budget#looptijd-van-het-budget).
-- **Error budget burn-down**: het resterende budget over het huidige venster. Zie [Foutbudgetten](/docs/slo/error-budget#verbranding-van-het-foutbudget).
-- **Recent activity**: de nieuwste items in de feed van de SLO.
-- **SLO Details**: de naam, de beschrijving en de labels, de enige instellingen die op het overzicht worden bewerkt.
-- **Open alerts & incidents**: wat de regels voor verbruikssnelheid op dit moment open hebben.
+  - **Foutbudget over**: een percentage, een duur zoals "12m 30s left of 43m 12s" en een balk met een markering op de risicodrempel. Als het budget is overschreden, toont het **Budget exceeded** en met hoeveel.
+  - **Verbruikssnelheid**: hoe snel het budget wordt uitgegeven over de laatste 60 minuten, de periode die de standaardregel voor snel verbruik gebruikt. Wordt oranje boven 1× en rood, met **Regeldrempel bereikt**, bij de laagste drempel van de ingeschakelde regels voor verbruikssnelheid van de SLO.
+  - **Resterende looptijd van budget**: hoelang het budget in dit tempo meegaat. Zie [Foutbudgetten](/docs/slo/error-budget#looptijd-van-het-budget).
+- **Burn-down van foutbudget**: het resterende budget over het huidige venster. Zie [Foutbudgetten](/docs/slo/error-budget#verbranding-van-het-foutbudget).
+- **Recente activiteit**: de nieuwste items in de feed van de SLO.
+- **SLO-details**: de naam, de beschrijving en de labels, de enige instellingen die op het overzicht worden bewerkt.
+- **Open waarschuwingen en incidenten**: wat de regels voor verbruikssnelheid op dit moment open hebben.
 - **Burn rate rules**: de drempel van elke ingeschakelde regel naast de huidige verbruikssnelheid, en wat de regel meldt.
 
 ### Instellingen
@@ -190,9 +190,9 @@ De pagina **Instellingen** brengt samen hoe een SLO meet, één kaart per onderd
 
 | Kaart | Wat u wijzigt | Goed om te weten |
 | --- | --- | --- |
-| **Objective** | **Target (%)** en **Risicodrempel (%)**, met **Edit Objective**. | Toont de downtime die het doel toestaat, bijvoorbeeld "43m 12s downtime per venster van 30 dagen". |
-| **Compliance Period** | **Window Type**, **Window (Days)** en **Tijdzone**, met **Edit Period**. | Regels voor verbruikssnelheid houden hun drempels als het venster verandert, dus controleer ze daarna. |
-| **Downtime Calculation** | **Multi Monitor Mode** en **Downtime-monitorstatussen**, met **Edit Downtime Calculation**. | Zonder statussen tellen alle niet-operationele statussen, ook statussen die later worden toegevoegd. |
+| **Doelstelling** | **Doel (%)** en **Risicodrempel (%)**, met **Doelstelling bewerken**. | Toont de downtime die het doel toestaat, bijvoorbeeld "43m 12s downtime per venster van 30 dagen". |
+| **Nalevingsperiode** | **Type venster**, **Venster (dagen)** en **Tijdzone**, met **Periode bewerken**. | Regels voor verbruikssnelheid houden hun drempels als het venster verandert, dus controleer ze daarna. |
+| **Downtimeberekening** | **Modus voor meerdere monitoren** en **Downtime-monitorstatussen**, met **Downtimeberekening bewerken**. | Zonder statussen tellen alle niet-operationele statussen, ook statussen die later worden toegevoegd. |
 | **Evaluatie** | De schakelaar **Dit SLO evalueren**, die opslaat zodra u hem omzet. | Uitzetten vraagt om bevestiging, omdat het ook de open waarschuwingen en incidenten voor verbruikssnelheid van de SLO oplost. |
 | **Archive SLO** | **Archiveren** of **Uit archief halen**. | Zie [Een SLO archiveren](#een-slo-archiveren). |
 
@@ -235,7 +235,7 @@ Het zijmenu van een monitor heeft ook een pagina **SLOs**: de SLO's die die moni
 
 Een SLO met een voortschrijdend venster die jonger is dan zijn venster, wordt gemeten over de gegevens die er tot nu toe zijn: een SLO van 30 dagen die gisteren is aangemaakt, heeft één dag aan gegevens. Zijn foutbudget begint klein en groeit naarmate het venster zich vult, dus zijn eerste cijfers schommelen meer dan later.
 
-Zolang dat zo is, zegt het **Overzicht** het: de samenvatting toont een indicator **Window 23% full** (**Window under 1% full** op de eerste dag), en de tegel **Error budget left** herhaalt het onder zijn getal. Beide verdwijnen als het venster vol is. SLO's met een kalendermaand tonen ze nooit, omdat hun budget vanaf de eerste dag de hele maand dekt, en SLO's in de modus **Monitor Seconds Average** ook niet, omdat hun budget over de monitoren heen wordt geteld.
+Zolang dat zo is, zegt het **Overzicht** het: de samenvatting toont een indicator **Window 23% full** (**Window under 1% full** op de eerste dag), en de tegel **Foutbudget over** herhaalt het onder zijn getal. Beide verdwijnen als het venster vol is. SLO's met een kalendermaand tonen ze nooit, omdat hun budget vanaf de eerste dag de hele maand dekt, en SLO's in de modus **Gemiddelde monitorseconden** ook niet, omdat hun budget over de monitoren heen wordt geteld.
 
 ## Problemen oplossen
 
@@ -243,13 +243,13 @@ Een banner bovenaan de pagina's van de SLO zegt wat hem verhindert te meten:
 
 | Banner | Wat het betekent | Wat te doen |
 | --- | --- | --- |
-| **No monitors attached** | De SLO heeft geen monitoren, dus er valt niets te meten. | Koppel monitoren of maak een monitorregel. |
+| **Geen monitoren gekoppeld** | De SLO heeft geen monitoren, dus er valt niets te meten. | Koppel monitoren of maak een monitorregel. |
 | **Waiting for SLO evaluation** | Er zijn monitoren gekoppeld, maar de laatste evaluatie had geen statusgegevens van ze. | Controleer of de monitoren worden gecontroleerd. De cijfers verschijnen na de volgende evaluatie met gegevens. |
 | **Measurement is paused** | Alle monitoren die hij meet, zijn gearchiveerd of hebben actieve bewaking uitgeschakeld. | Zet de bewaking van minstens één monitor weer aan, of wacht tot het onderhoud voorbij is. |
-| **The target is out of range** | Het doel is niet groter dan 0 en kleiner dan 100. | Stel een doel zoals 99,9 in onder **Instellingen** → **Objective**. |
+| **The target is out of range** | Het doel is niet groter dan 0 en kleiner dan 100. | Stel een doel zoals 99,9 in onder **Instellingen** → **Doelstelling**. |
 | **This SLO is disabled** | De evaluatie staat uit. | Klik op **Evaluatie aanzetten**. |
 | **This SLO is archived** | De SLO is gearchiveerd. | Haal hem uit het archief onder **Instellingen**. |
-| **Not evaluated yet** | De SLO is net aangemaakt. | Wacht op de eerste evaluatie, hooguit een paar minuten. |
+| **Nog niet geëvalueerd** | De SLO is net aangemaakt. | Wacht op de eerste evaluatie, hooguit een paar minuten. |
 
 ## Volgende stappen
 

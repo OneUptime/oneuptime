@@ -309,13 +309,13 @@ Quando una funzione del vostro codice occupa almeno il 5% del tempo o della memo
 | --- | --- |
 | **Flame graph** | Ogni barra è una funzione dello stack di chiamate, e la sua larghezza è proporzionale al tempo o alle risorse consumati. Fate clic su una funzione per ingrandirla e vederne chiamanti e chiamate. |
 | **Top functions** | Le funzioni del profilo, ordinate per tempo proprio o totale. **Solo il mio codice** nasconde i frame delle librerie. |
-| **Diff vs. baseline** | Il profilo confrontato con un periodo precedente (**rispetto a 1 ora fa**, **rispetto a ieri** o **rispetto alla scorsa settimana**), con le funzioni **Most regressed** e **Most improved**. |
+| **Diff vs. baseline** | Il profilo confrontato con un periodo precedente (**rispetto a 1 ora fa**, **rispetto a ieri** o **rispetto alla scorsa settimana**), con le funzioni **Più peggiorate** e **Più migliorate**. |
 
-**Download pprof** salva il profilo per strumenti locali come `go tool pprof`.
+**Scarica pprof** salva il profilo per strumenti locali come `go tool pprof`.
 
 ### Correlazione con le tracce
 
-Quando un profilo contiene ID di traccia e di span (per esempio come etichette di campione `trace_id` / `span_id`), potete passare direttamente da uno span lento di una traccia al profilo CPU o di memoria corrispondente per capire esattamente quale codice era in esecuzione, e **Open linked trace** fa il percorso inverso.
+Quando un profilo contiene ID di traccia e di span (per esempio come etichette di campione `trace_id` / `span_id`), potete passare direttamente da uno span lento di una traccia al profilo CPU o di memoria corrispondente per capire esattamente quale codice era in esecuzione, e **Apri la traccia collegata** fa il percorso inverso.
 
 La scheda **Profilo** di uno span include anche i campioni collegati agli span annidati sotto di esso, perché i profiler spesso attribuiscono il tempo CPU di una richiesta a uno span figlio anziché allo span della richiesta stessa.
 

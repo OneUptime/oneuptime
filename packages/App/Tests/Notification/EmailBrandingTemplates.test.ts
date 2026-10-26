@@ -3,6 +3,10 @@ import fs from "fs";
 import Path from "path";
 import { beforeAll, describe, expect, test } from "@jest/globals";
 import { markupAsSpacesWithOutlookContent } from "Common/Tests/Helpers/HtmlText";
+import {
+  screenReaderPieces,
+  timesSaid,
+} from "Common/Tests/Helpers/ScreenReaderText";
 import EmailLogo from "Common/Server/Utils/Mail/EmailLogo";
 import "../../FeatureSet/Notification/Utils/Handlebars";
 import {
@@ -499,6 +503,110 @@ describe("the partials every email is built from", () => {
 
       expect(html).not.toContain("<img");
       expect(textOf(html).trim()).toBe(NAME_IN_HTML);
+    });
+
+    /*
+     * A screen reader says the product's name once: beside OneUptime's
+     * logo, whose alt text says it (and names the link home), the name
+     * written next to it is hidden from screen readers - aria-hidden, which
+     * Gmail, Outlook and Apple Mail keep - and still drawn on screen.
+     */
+    describe("as a screen reader says it: the name once", () => {
+      test.each([
+        [
+          "OneUptime's logo, linked home",
+          { oneUptimeLogoUrl: ONEUPTIME_LOGO, homeURL: "https://x.example" },
+          ["OneUptime"],
+        ],
+        [
+          "OneUptime's logo, linked home (homeUrl)",
+          { oneUptimeLogoUrl: ONEUPTIME_LOGO, homeUrl: "https://x.example" },
+          ["OneUptime"],
+        ],
+        [
+          "OneUptime's logo, no link",
+          { oneUptimeLogoUrl: ONEUPTIME_LOGO },
+          ["OneUptime"],
+        ],
+        ["no logo could be read: the name alone", {}, ["OneUptime"]],
+        [
+          "a logo of its own",
+          { brandLogoUrl: "https://status.acme.example/api/branding/logo" },
+          ["OneUptime"],
+        ],
+        [
+          "renamed, with a logo of its own",
+          {
+            ...RENAMED,
+            brandLogoUrl: "https://status.acme.example/api/branding/logo",
+            homeUrl: "https://status.acme.example",
+          },
+          [NAME],
+        ],
+        ["renamed, without a logo", RENAMED, [NAME]],
+      ])(
+        "%s",
+        (
+          _case: string,
+          variables: Record<string, string>,
+          spoken: Array<string>,
+        ) => {
+          const html: string = renderPartial("Logo", variables);
+
+          expect(screenReaderPieces(html)).toEqual(spoken);
+        },
+      );
+
+      test("the name beside OneUptime's logo is still drawn, only not read out", () => {
+        const html: string = renderPartial("Logo", {
+          oneUptimeLogoUrl: ONEUPTIME_LOGO,
+          homeURL: "https://x.example",
+        });
+
+        // On screen: the logo and the name beside it, as before.
+        expect(textOf(html).trim()).toBe("OneUptime");
+        expect(html).toContain('alt="OneUptime"');
+        // Hidden from screen readers only - never from sight.
+        expect(html).toContain('<td aria-hidden="true" style="padding-left');
+        expect(html).not.toContain("display: none");
+        expect(timesSaid(html, "OneUptime")).toBe(1);
+      });
+
+      test("standing alone, the name is never hidden from a screen reader", () => {
+        for (const variables of [{}, RENAMED]) {
+          expect(renderPartial("Logo", variables)).not.toContain("aria-hidden");
+        }
+      });
+
+      test("every email with OneUptime's header says the name there once", () => {
+        const withHeader: Array<string> = templateNames().filter(
+          (name: string): boolean => {
+            return readTemplate(name).includes("{{> Logo");
+          },
+        );
+
+        expect(withHeader.length).toBeGreaterThan(50);
+
+        for (const name of withHeader) {
+          const html: string = render(name, {
+            ...variablesFor(readTemplate(name), FILLED),
+            brandProductName: "OneUptime",
+            oneUptimeLogoUrl: ONEUPTIME_LOGO,
+          });
+          // The header: the st-Header table, to the end of the one it holds.
+          const start: number = html.indexOf(
+            '<table role="presentation" class="st-Header',
+          );
+          const innerEnd: number = html.indexOf("</table>", start);
+          const end: number = html.indexOf("</table>", innerEnd + 1);
+
+          expect(start).toBeGreaterThan(-1);
+          expect({
+            name: name,
+            said: timesSaid(html.slice(start, end), "OneUptime"),
+          }).toEqual({ name: name, said: 1 });
+        }
+      });
     });
   });
 

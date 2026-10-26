@@ -2,7 +2,7 @@
 
 Um site de rede é um lugar: uma região, um mercado, um franqueado, um centro de distribuição, uma loja. Os sites se aninham uns dentro dos outros, os dispositivos de rede se ligam a eles, e o OneUptime resume a saúde dos dispositivos ao longo da árvore, para que um único status em uma região responda a "tem alguma coisa errada lá fora?".
 
-Encontre-os em **Rede → Sites**, e em um mapa em **Rede → Map**. Esta página define como o status de um site é calculado a partir do que está abaixo dele, o que o tempo de atividade dele significa e como a manutenção programada muda os dois.
+Encontre-os em **Rede → Sites**, e em um mapa em **Rede → Mapa**. Esta página define como o status de um site é calculado a partir do que está abaixo dele, o que o tempo de atividade dele significa e como a manutenção programada muda os dois.
 
 :::cards
 - [Adicionar um site](#adicionar-um-site): Três etapas, ou um arquivo CSV para um parque inteiro.
@@ -82,7 +82,7 @@ Store 0660,Unit,Leeds,"1 High Street, Leeds",53.7997,-1.5492
 
 ## O mapa
 
-**Rede → Map** mostra os seus sites em um mapa, enquadrado onde quer que estejam; clique em um site para entrar nele. Um site com sites abaixo os mostra, no mapa e como um grafo dos enlaces entre eles. Um site sem sites abaixo, mas com dispositivos próprios, ou um site cujo tipo é de nível de unidade, abre a topologia ao vivo desses dispositivos.
+**Rede → Mapa** mostra os seus sites em um mapa, enquadrado onde quer que estejam; clique em um site para entrar nele. Um site com sites abaixo os mostra, no mapa e como um grafo dos enlaces entre eles. Um site sem sites abaixo, mas com dispositivos próprios, ou um site cujo tipo é de nível de unidade, abre a topologia ao vivo desses dispositivos.
 
 Um projeto ainda sem sites também tem um mapa: o Map mostra no lugar a topologia dos dispositivos dele, e agrupar os dispositivos em sites os coloca no mapa pela localização.
 

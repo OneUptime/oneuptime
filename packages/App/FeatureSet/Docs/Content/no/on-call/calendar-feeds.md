@@ -24,7 +24,7 @@ flowchart TB
 - Overstyringer følges. Når noen dekker for deg, flyttes hendelsen til dem (`(covering for <Name>)` legges til) og forblir den samme hendelsen i kalenderappen din, så den oppdateres på stedet i stedet for å dupliseres. En delvis overstyring deler vakten i hendelser som ligger inntil hverandre.
 - To dager med historikk og 90 dager fremover som standard. Du kan utvide dette til 60 dager bakover og 180 dager fremover; en feed som ville ha over 5 000 hendelser, kortes ned og sier det i kalenderbeskrivelsen.
 - Hendelser er merket som ledig (`TRANSP:TRANSPARENT`), så en abonnert feed blokkerer aldri tilgjengeligheten din, og ingenting er merket som privat, så en delt teamkalender viser titlene til alle som kan se den.
-- Tider sendes i UTC og regnes om av kalenderappen din; beskrivelsen skriver klokkeslettet i vaktplanens sone og i din. Angi din egen tidssone som **Tidssone** på **Profil** (bildet ditt øverst til høyre i dashbordet), og vaktplanens i kortet **Schedule timezone** på siden **Lag**. En vaktplan uten tidssone regnes ut i serverens sone, slik som ved varsling, og hendelsen sier det.
+- Tider sendes i UTC og regnes om av kalenderappen din; beskrivelsen skriver klokkeslettet i vaktplanens sone og i din. Angi din egen tidssone som **Tidssone** på **Profil** (bildet ditt øverst til høyre i dashbordet), og vaktplanens i kortet **Tidsplanens tidssone** på siden **Lag**. En vaktplan uten tidssone regnes ut i serverens sone, slik som ved varsling, og hendelsen sier det.
 
 Faste tildelinger — en bruker eller et team som er nevnt direkte i en regel i en eskaleringsretningslinje — har ingen start eller slutt og vises ikke i noen feed. På OneUptime Cloud følger feeder samme plan som vaktplaner (Growth); et prosjekt under den planen får en tom kalender i stedet for en feil.
 
@@ -327,7 +327,7 @@ Disse appene validerer TLS på enheten. Importer din interne CA i enhetens tilli
 :::
 
 :::details Tidene er feil
-Alle tider i filen er UTC; kalenderappen regner om til sin egen sone. Ser vaktene ut til å være forskjøvet med en fast forskjell, sjekker du vaktplanens tidssone (**Schedule timezone** på siden **Lag**) og din egen (**Tidssone** på **Profil**). En vaktplan uten tidssone regnes ut i serverens sone, og hendelsen sier det.
+Alle tider i filen er UTC; kalenderappen regner om til sin egen sone. Ser vaktene ut til å være forskjøvet med en fast forskjell, sjekker du vaktplanens tidssone (**Tidsplanens tidssone** på siden **Lag**) og din egen (**Tidssone** på **Profil**). En vaktplan uten tidssone regnes ut i serverens sone, og hendelsen sier det.
 :::
 
 :::details Feeden sier at den er kortet ned

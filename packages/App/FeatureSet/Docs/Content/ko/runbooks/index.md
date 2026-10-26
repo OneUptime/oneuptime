@@ -45,7 +45,7 @@ HTTP와 AI 단계는 OneUptime Worker에서 실행됩니다. Bash, SSH, kubectl 
 | **Runbook** | 템플릿입니다. 순서 있는 단계 목록과 **이 런북 실행** 스위치를 가진, 이름이 붙은 재사용 가능한 절차입니다. |
 | **단계** | Runbook의 항목 하나입니다. 유형(Manual, JavaScript, HTTP request, Bash, SSH, kubectl, AI), 제목, 설명, 유형별 설정을 가집니다. |
 | **Runbook 규칙** | 조건(모니터, 심각도, 레이블, 모니터 레이블, 제목, 설명)을 만족하는 인시던트, 알림, 예정된 유지 관리 이벤트에 하나 이상의 Runbook을 자동으로 연결하는 규칙입니다. |
-| **실행** | Runbook의 한 번의 실행입니다. 규칙이 발동할 때, 누군가 이벤트에서 **런북 실행**을 클릭할 때, 또는 Runbook 자체에서 **Run Now**를 클릭할 때 만들어집니다. 단계의 스냅샷과 각 단계의 상태 및 출력을 담습니다. |
+| **실행** | Runbook의 한 번의 실행입니다. 규칙이 발동할 때, 누군가 이벤트에서 **런북 실행**을 클릭할 때, 또는 Runbook 자체에서 **지금 실행**을 클릭할 때 만들어집니다. 단계의 스냅샷과 각 단계의 상태 및 출력을 담습니다. |
 | **스냅샷** | 각 실행에 저장되는, Runbook 단계의 고정된 사본입니다. 나중에 Runbook을 편집해도 지난 실행의 기록은 바뀌지 않습니다. |
 | **Runner** | 자체 인프라의 호스트에서 실행하는 작은 에이전트입니다. 자신을 지정한 JavaScript, Bash, SSH, kubectl 단계를 실행합니다. Runbook 에이전트라고도 합니다. OneUptime이 모든 프로젝트를 위해 실행하는 글로벌 Runner는 프로젝트에 기본 Runner가 없는 한 Runner를 지정하지 않은 JavaScript 단계를 실행합니다. |
 | **변수** | 단계가 이름으로 사용하는 값입니다. 호스트나 URL 같은 값으로, 모든 Runbook이 사용할 수 있는 프로젝트의 변수는 `{{global.variables.NAME}}`, Runbook 자체 변수는 `{{local.variables.NAME}}`로 씁니다. |
@@ -73,7 +73,7 @@ HTTP와 AI 단계는 OneUptime Worker에서 실행됩니다. Bash, SSH, kubectl 
 | --- | --- | --- |
 | Runbook 규칙 | **인시던트**, **알림** 또는 **예정된 유지 관리** → **규칙** → **Runbook 규칙** | 새 인시던트, 알림 또는 이벤트 |
 | **런북 실행** | 인시던트, 알림 또는 예정된 유지 관리 이벤트의 **런북** 페이지 | 해당 이벤트 |
-| **Run Now** | Runbook의 **개요** 페이지 | 없음(일회성 실행) |
+| **지금 실행** | Runbook의 **개요** 페이지 | 없음(일회성 실행) |
 | AI 규칙 | [AI SRE](/docs/ai/ai-sre) 참조 | 인시던트 또는 알림 |
 | Runbook의 일정 | Runbook의 **트리거** 페이지, [Runbook 트리거](/docs/runbooks/triggers#일정에-따라-실행) 참고 | 없음: 무인 실행 |
 | Runbook 웹훅 URL 호출 | Runbook의 **트리거** 페이지, [Runbook 트리거](/docs/runbooks/triggers#웹훅-호출) 참고 | 없음: 실행은 호출이 보낸 값을 보관합니다 |
@@ -87,8 +87,8 @@ Runbook은 **제품**의 **대시보드 및 자동화** 그룹에 있습니다.
 | 페이지 | 하는 일 |
 | --- | --- |
 | **제품 → 런북** | Runbook을 찾아보고, 만들고, 엽니다. |
-| Runbook의 **단계** | 단계를 작성하고 순서를 바꾼 다음 **Save Steps**를 선택합니다. |
-| Runbook의 **개요** | 최근 실행과 결과를 보고 **Run Now**를 클릭합니다. |
+| Runbook의 **단계** | 단계를 작성하고 순서를 바꾼 다음 **단계 저장**을 선택합니다. |
+| Runbook의 **개요** | 최근 실행과 결과를 보고 **지금 실행**을 클릭합니다. |
 | Runbook의 **실행** | 이 Runbook의 모든 실행을 상태나 시작 날짜로 필터링해 봅니다. |
 | Runbook의 **트리거** | [일정](/docs/runbooks/triggers#일정에-따라-실행)에 따라, 또는 다른 도구에서 [웹훅 URL](/docs/runbooks/triggers#웹훅-호출)로 실행합니다. |
 | Runbook의 **변수** | 그 Runbook의 단계만 사용하는 [변수](/docs/runbooks/variables)를 관리합니다. |
@@ -118,7 +118,7 @@ Runbook 자체의 사이드 메뉴는 페이지를 다음과 같이 묶습니다
 :::steps
 ### Runbook 만들기
 
-**런북**에서 **런북 만들기**를 클릭하고 이름을 "DB primary failover"로 지정합니다. Runbook은 **단계**에서 열리므로 다음 단계를 추가한 다음 **Save Steps**를 클릭합니다.
+**런북**에서 **런북 만들기**를 클릭하고 이름을 "DB primary failover"로 지정합니다. Runbook은 **단계**에서 열리므로 다음 단계를 추가한 다음 **단계 저장**을 클릭합니다.
 
 | # | 유형 | 제목 |
 | --- | --- | --- |

@@ -108,7 +108,7 @@ Gi appen rollen Monitoring Reader på abonnementet.
 
 ### Koble til Azure
 
-Fyll ut **Katalog-ID (tenant)**, **Program-ID (klient)**, **Abonnements-ID** og **Client secret**. For Azure Government endrer du **Sky** under **Flere felt**.
+Fyll ut **Katalog-ID (tenant)**, **Program-ID (klient)**, **Abonnements-ID** og **Klienthemmelighet**. For Azure Government endrer du **Sky** under **Flere felt**.
 :::
 
 ## Amazon Bedrock

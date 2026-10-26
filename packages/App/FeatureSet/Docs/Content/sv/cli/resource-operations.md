@@ -33,7 +33,7 @@ Listan visar varje sorts post med dess kommando, dess namn, dess typ och dess AP
 
 | Typ | Vad den innehåller | Operationer |
 | --- | --- | --- |
-| `database` | Poster som du hanterar: monitorer, incidenter, varningar, statussidor, team och mer | `list`, `get`, `create`, `update`, `delete`, `count` |
+| `database` | Poster som du hanterar: monitorer, incidenter, larm, statussidor, team och mer | `list`, `get`, `create`, `update`, `delete`, `count` |
 | `analytics` | Telemetri: loggar, spans, mätvärden, undantag och andra händelser | `list`, `create`, `count` |
 
 Visa en typ med `oneuptime resources --type database` eller `--type analytics`. [Kommandoreferensen](/docs/cli/command-reference#resurser) listar varje kommando.

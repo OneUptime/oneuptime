@@ -12,8 +12,7 @@ import {
   getProjectLlmProviderFormFields,
 } from "Common/UI/Components/AI/LlmProviderFormFields";
 import {
-  getLlmProviderDefaultModel,
-  getLlmProviderShownValue,
+  getLlmProviderShownModelName,
   getLlmProviderTypeCopy,
 } from "Common/UI/Components/AI/LlmProviderFormCopy";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -171,12 +170,10 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
               getElement: (item: LlmProvider): ReactElement => {
                 return (
                   <span>
-                    {getLlmProviderShownValue({
-                      value: item.modelName,
-                      defaultValue: getLlmProviderDefaultModel({
-                        llmType: item.llmType,
-                        baseUrl: item.baseUrl,
-                      }),
+                    {getLlmProviderShownModelName({
+                      modelName: item.modelName,
+                      llmType: item.llmType,
+                      baseUrl: item.baseUrl,
                       translator: translator,
                     })}
                   </span>

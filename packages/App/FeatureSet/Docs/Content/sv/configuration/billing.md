@@ -144,10 +144,10 @@ När ett saldo inte räcker skickas inte meddelandet, eller så stoppas OneUptim
 
 | För att | Krävs |
 | --- | --- |
-| Läsa faktureringssidorna: planen, fakturor, användning, saldon och betalningsmetoder | Project Owner, **Manage Billing**, **Billing Admin**, **Billing Member** eller **Billing Viewer** |
-| Ladda ner en faktura | Project Owner, Project Admin, **Manage Billing**, **Read Invoices**, **Billing Admin** eller **Billing Member** |
-| Ändra faktureringsadressen och faktura-e-posten | Project Owner, **Manage Billing**, **Billing Admin** eller **Billing Member** |
-| Slå på eller av SMS, samtal, WhatsApp eller Telegram | Project Owner, **Manage Billing** eller **Billing Admin** |
+| Läsa faktureringssidorna: planen, fakturor, användning, saldon och betalningsmetoder | Project Owner, **Manage Billing**, **Faktureringsadministratör**, **Faktureringsmedlem** eller **Faktureringstittare** |
+| Ladda ner en faktura | Project Owner, Project Admin, **Manage Billing**, **Read Invoices**, **Faktureringsadministratör** eller **Faktureringsmedlem** |
+| Ändra faktureringsadressen och faktura-e-posten | Project Owner, **Manage Billing**, **Faktureringsadministratör** eller **Faktureringsmedlem** |
+| Slå på eller av SMS, samtal, WhatsApp eller Telegram | Project Owner, **Manage Billing** eller **Faktureringsadministratör** |
 | Lägga till en betalningsmetod | Project Owner, **Manage Billing** eller **Create Payment Method** |
 | Betala en faktura | Project Owner, **Manage Billing** eller **Edit Invoices** |
 | Byta plan, fylla på ett saldo eller ändra automatisk påfyllning | Project Owner eller **Manage Billing** |

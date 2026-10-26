@@ -1,5 +1,7 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import ValueFormatter from "Common/Utils/ValueFormatter";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import {
   GaugeArcGeometry,
   computeGaugeArcGeometry,
@@ -114,6 +116,24 @@ export interface GaugeWidgetViewProps {
 const GaugeWidgetView: FunctionComponent<GaugeWidgetViewProps> = (
   props: GaugeWidgetViewProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+
+  /*
+   * The states' words come from the hosts in English (each wraps them in
+   * translationKey so the extractor finds them) and are read out in the
+   * reader's language here, as the Value widget reads its own. A
+   * connector's own error message has no entry, so it reads as the
+   * connector wrote it.
+   */
+  const setupTitle: string =
+    props.title?.trim() ||
+    translator.translateText(props.setupTitle) ||
+    props.setupTitle;
+  const setupMessage: string =
+    translator.translateText(props.setupMessage) || props.setupMessage;
+  const noDataMessage: string =
+    translator.translateText(props.noDataMessage) || props.noDataMessage;
+
   if (props.isLoading && !props.hasEverLoaded) {
     // Skeleton loading for gauge - only on initial load
     return (
@@ -142,12 +162,8 @@ const GaugeWidgetView: FunctionComponent<GaugeWidgetViewProps> = (
     return (
       <div className="flex flex-col items-center justify-center w-full h-full gap-1.5">
         <GaugeStateIcon tone="emerald" />
-        <p className="text-xs font-medium text-gray-500">
-          {props.title?.trim() || props.setupTitle}
-        </p>
-        <p className="text-xs text-gray-400 text-center">
-          {props.setupMessage}
-        </p>
+        <p className="text-xs font-medium text-gray-500">{setupTitle}</p>
+        <p className="text-xs text-gray-400 text-center">{setupMessage}</p>
       </div>
     );
   }
@@ -180,7 +196,7 @@ const GaugeWidgetView: FunctionComponent<GaugeWidgetViewProps> = (
           <></>
         )}
         <p className="text-xs text-gray-400 text-center max-w-40">
-          {props.noDataMessage}
+          {noDataMessage}
         </p>
       </div>
     );

@@ -1,12 +1,12 @@
 # AI- / LLM-observerbarhet
 
-Läs varje konversation som din AI har haft, spela upp den igen som den hände och få veta när den svarar dåligt. OneUptime bygger allt detta på standard-OpenTelemetry: om din app skickar spans med **GenAI-semantiska konventioner** (`gen_ai.*`) får du konversationer, varningar, användning och kostnad, utan något proprietärt SDK.
+Läs varje konversation som din AI har haft, spela upp den igen som den hände och få veta när den svarar dåligt. OneUptime bygger allt detta på standard-OpenTelemetry: om din app skickar spans med **GenAI-semantiska konventioner** (`gen_ai.*`) får du konversationer, larm, användning och kostnad, utan något proprietärt SDK.
 
 :::cards
 - [Tre vägar in](#tre-vägar-in): Dina appar, dina konton hos AI-leverantörer och ditt företags AI-verktyg.
 - [Sätt upp det](#sätt-upp-det-i-fem-steg): Fem steg, från det första spannet till flaggade svar.
 - [Spela upp en konversation](#läs-och-spela-upp-en-konversation): Läs en chatt som personen såg den, i den takt den hände.
-- [Få varningar](#få-veta-när-ain-svarar-dåligt): Färdiga varningar för svar som misslyckas, nekas, kapas, flaggas eller är långsamma.
+- [Få larm](#få-veta-när-ain-svarar-dåligt): Färdiga larm för svar som misslyckas, nekas, kapas, flaggas eller är långsamma.
 - [Håll koll på kostnaderna](#se-vem-som-spenderar-vad): Kostnad per person, team, modell och app, med dagliga budgetar.
 :::
 
@@ -19,7 +19,7 @@ flowchart TB
     app["GenAI-instrumentering<br/>i din app"] -->|"Spans via OTLP"| ingest["OneUptime-intag"]
     ingest --> check["Kontrollerar svaret,<br/>prissätter anropet"]
     ingest --> group["Hittar anropets<br/>konversation"]
-    check --> tabs["Konversationer, Anrop,<br/>Användning, Varningar,<br/>Budgetar"]
+    check --> tabs["Konversationer, Anrop,<br/>Användning, Larm,<br/>Budgetar"]
     group --> tabs
 ```
 
@@ -30,7 +30,7 @@ flowchart TB
 | **Konversationer** | Varje konversation som din AI har haft, med de som behöver uppmärksamhet först. Ovanför listan: konversationer, AI-svar, hur många som behöver uppmärksamhet, kostnad och den typiska svarstiden. |
 | **Anrop** | Varje modell-, embedding-, agent- och verktygsanrop. Filtrera på tjänst, leverantör, modell, operation, person, team eller konversation; klicka på ett anrop för att öppna det i trace-visaren. |
 | **Användning** | Anrop, tokens och kostnad för en tidsperiod, rangordnade efter anställd, team, modell, leverantör eller app; under **Leverantörskonton**, vad dina anslutna konton fakturerades. |
-| **Varningar** | Färdiga varningar för när AI:n svarar dåligt, och dina AI / LLM-monitorer. |
+| **Larm** | Färdiga larm för när AI:n svarar dåligt, och dina AI / LLM-monitorer. |
 | **Budgetar** | Dagliga kostnadsgränser, publicerade som mätvärden som du kan varna på. |
 | **Priser** | Dina egna priser för modeller som den inbyggda prislistan inte känner till. |
 | **Anslut** | De tre vägarna in, sida vid sida, var och en avbockad så fort den fungerar. |
@@ -39,7 +39,7 @@ I trace-visaren har spannet för varje AI-anrop också en **LLM**-flik: leverant
 
 ## Tre vägar in
 
-Alla tre finns under **Produkter → AI / LLM → Anslut**. Använd en, två eller alla tre: allt hamnar i samma **Konversationer**, **Användning**, **Varningar** och **Budgetar**.
+Alla tre finns under **Produkter → AI / LLM → Anslut**. Använd en, två eller alla tre: allt hamnar i samma **Konversationer**, **Användning**, **Larm** och **Budgetar**.
 
 | Väg in | Vad du får | Hur |
 | --- | --- | --- |
@@ -181,9 +181,9 @@ Sidans adress sparar meddelandet där en uppspelning stannade (`?step=`), så en
 
 ## Få veta när AI:n svarar dåligt
 
-Fliken **Varningar** listar de varningar som de flesta AI-appar vill ha. När du väljer en öppnas **Skapa monitor** ifylld, och du kan ändra allt innan du sparar:
+Fliken **Larm** listar de larm som de flesta AI-appar vill ha. När du väljer en öppnas **Skapa monitor** ifylld, och du kan ändra allt innan du sparar:
 
-| Varning | När den meddelar dig | Allvarlighetsgrad |
+| Larm | När den meddelar dig | Allvarlighetsgrad |
 | --- | --- | --- |
 | Svar går fel | Mer än 5 % av svaren på 15 minuter misslyckas, nekas, kapas, är tomma eller flaggas | Warning |
 | AI-anrop misslyckas | Mer än 10 % av anropen till modellen på 5 minuter slutar med ett fel | Critical |
@@ -195,9 +195,9 @@ Fliken **Varningar** listar de varningar som de flesta AI-appar vill ha. När du
 
 Varningarna på en andel av svaren väntar också på minst 3 dåliga svar, så ett dåligt svar av två larmar ingen. En Critical-varning får ditt projekts högsta varningsgrad och en Warning-varning nästa: High och Low i ett nytt projekt.
 
-Varje varning är en **AI / LLM**-monitor. Dess inställningar anger vad som räknas som ett dåligt svar (**Räkna ett svar som dåligt när det**, **Eller tar längre än (sekunder)**), hur långt bakåt varje kontroll tittar (**Tidsfönster**, 15 minuter som standard), vilka **Appar** den övervakar och, under **Fler fält**, vilken **Modell**. En **Förhandsgranskning** visar vad monitorn skulle räkna just nu. Dess kriterier jämför tre tal: **Dåliga AI-svar (i %)**, **Dåliga AI-svar** och **AI-svar**.
+Varje larm är en **AI / LLM**-monitor. Dess inställningar anger vad som räknas som ett dåligt svar (**Räkna ett svar som dåligt när det**, **Eller tar längre än (sekunder)**), hur långt bakåt varje kontroll tittar (**Tidsfönster**, 15 minuter som standard), vilka **Appar** den övervakar och, under **Fler fält**, vilken **Modell**. En **Förhandsgranskning** visar vad monitorn skulle räkna just nu. Dess kriterier jämför tre tal: **Dåliga AI-svar (i %)**, **Dåliga AI-svar** och **AI-svar**.
 
-En färdig varning skapar en varning som löser sig själv, och visar monitorn som **Degraded** medan svaren är dåliga. Dess incident är ifylld men avstängd: slå på den för att larma någon.
+Ett färdigt larm skapar ett larm som löser sig själv, och visar monitorn som **Degraded** medan svaren är dåliga. Dess incident är ifylld men avstängd: slå på den för att larma någon.
 
 ## Se vem som spenderar vad
 
@@ -266,9 +266,9 @@ Skapa en [metrikövervakning](/docs/monitor/metrics-monitor) på `oneuptime.llm.
 Sätt monitorns rullande fönster till 30 minuter. En budget publicerar en punkt var 15:e minut, så standardfönstret på 1 minut skulle inte hitta något mellan två punkter.
 :::
 
-En budgetvarning kan också köra ett arbetsflöde som stoppar en skenande agent: se [Circuit breakers för AI-agenter](/docs/telemetry/ai-agent-circuit-breaker).
+En budgetlarm kan också köra ett arbetsflöde som stoppar en skenande agent: se [Circuit breakers för AI-agenter](/docs/telemetry/ai-agent-circuit-breaker).
 
-## Dashboards och varningar på mätvärden
+## Dashboards och larm på mätvärden
 
 GenAI-mätvärden som `gen_ai.client.token.usage` och `gen_ai.client.operation.duration` kommer in som vanliga OpenTelemetry-mätvärden. Visa dem i en [dashboard](/docs/dashboards/index), eller varna på dem med en [metrikövervakning](/docs/monitor/metrics-monitor), till exempel när p95 för `gen_ai.client.operation.duration` passerar ett tröskelvärde, grupperat per modell.
 
@@ -345,6 +345,6 @@ Monitorns rullande fönster är kortare än 15 minuter, så ibland hittar den in
 - [Företagets AI-verktyg](/docs/telemetry/ai-company-tools): Vad dina medarbetare frågar Claude Enterprise och Microsoft 365 Copilot.
 - [AI-kodassistenter](/docs/telemetry/ai-coding-assistants): Kostnad per utvecklare för Claude Code, Cursor, Codex, Gemini CLI och Copilot.
 - [AI-gatewayer](/docs/telemetry/ai-gateways): Traca alla appars modellanrop från en enda LiteLLM- eller Portkey-gateway.
-- [Circuit breakers för AI-agenter](/docs/telemetry/ai-agent-circuit-breaker): Stoppa en skenande agent när en budgetvarning utlöses.
+- [Circuit breakers för AI-agenter](/docs/telemetry/ai-agent-circuit-breaker): Stoppa en skenande agent när en budgetlarm utlöses.
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Endpoints, intagningsnycklar och gränser för varje signal.
 :::

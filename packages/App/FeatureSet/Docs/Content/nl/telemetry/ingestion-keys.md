@@ -60,7 +60,7 @@ Klik op **Inname-sleutel aanmaken**. Het dialoogvenster begint met de naam **Ser
 
 ### De origins van een browsersleutel toevoegen
 
-Een **Browser**-sleutel vraagt om zijn **Allowed Origins** in de volgende stap, **Browserinstellingen**, met zijn **Pinned Service Name** onder **Geavanceerd**. Zie [Een browsersleutel afschermen](#een-browsersleutel-afschermen).
+Een **Browser**-sleutel vraagt om zijn **Toegestane origins** in de volgende stap, **Browserinstellingen**, met zijn **Vastgezette servicenaam** onder **Geavanceerd**. Zie [Een browsersleutel afschermen](#een-browsersleutel-afschermen).
 
 ### De sleutel aanmaken en het geheim kopiëren
 
@@ -88,8 +88,8 @@ Een browsersleutel staat in uw pagina, waar iedereen hem kan kopiëren. Deze ins
 
 | Instelling | Wat ze doet |
 | --- | --- |
-| **Allowed Origins** | De enige origins waarvandaan de sleutel wordt geaccepteerd. Een verzoek vanaf een andere origin, of helemaal zonder `Origin`-header, wordt geweigerd. Een browsersleutel moet er minstens één houden. |
-| **Pinned Service Name** | Zet alles wat de sleutel via OTLP/HTTP verzendt onder deze ene service, welke `service.name` de afzender ook instelde. Een kopie van de sleutel kan dan alleen in die service schrijven. |
+| **Toegestane origins** | De enige origins waarvandaan de sleutel wordt geaccepteerd. Een verzoek vanaf een andere origin, of helemaal zonder `Origin`-header, wordt geweigerd. Een browsersleutel moet er minstens één houden. |
+| **Vastgezette servicenaam** | Zet alles wat de sleutel via OTLP/HTTP verzendt onder deze ene service, welke `service.name` de afzender ook instelde. Een kopie van de sleutel kan dan alleen in die service schrijven. |
 | **Requests Per Minute Limit** | Het maximale aantal verzoeken waarvoor de sleutel elke minuut wordt geaccepteerd, gedeeld door alle bezoekers. Een browsersleutel krijgt 6.000 als u het veld leeg laat. |
 | **Verloopt om** | De datum waarna de sleutel wordt geweigerd, zodat een gepubliceerde kopie niet meer werkt. |
 
@@ -130,8 +130,8 @@ Een geweigerd verzoek krijgt een status en een zin die zegt waarom.
 | `422` met `This telemetry ingestion key has been disabled.` | Iemand heeft **Ingeschakeld** uitgezet. |
 | `422` met `A browser ingestion key cannot be used for` | Een browsersleutel bereikte een endpoint dat alleen serversleutels accepteert. |
 | `422` met `did not send an Origin header` | Een browsersleutel werd van buiten een browser verzonden. Gebruik daar een serversleutel. |
-| `422` met `is not allowed for this browser ingestion key` | De origin van de pagina staat niet in **Allowed Origins**. |
-| `422` met `is pinned to a single service` | Een sleutel met een **Pinned Service Name** werd gebruikt om een agent te registreren. Gebruik een serversleutel zonder vastgelegde naam. |
+| `422` met `is not allowed for this browser ingestion key` | De origin van de pagina staat niet in **Toegestane origins**. |
+| `422` met `is pinned to a single service` | Een sleutel met een **Vastgezette servicenaam** werd gebruikt om een agent te registreren. Gebruik een serversleutel zonder vastgelegde naam. |
 | `429` met `Too many telemetry requests for this ingestion key` | De sleutel bereikte zijn **Requests Per Minute Limit**. Exporters proberen het opnieuw na de `Retry-After`-tijd. |
 
 Voor de andere antwoorden die een OTLP-exporter kan krijgen, zie [Antwoorden](/docs/telemetry/open-telemetry#antwoorden).

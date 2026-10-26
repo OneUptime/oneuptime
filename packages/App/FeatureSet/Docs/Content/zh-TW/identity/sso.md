@@ -54,7 +54,7 @@ OneUptime 只會從您的 IdP 傳送的斷言中讀取少量內容：
 
 ## 設定 SSO
 
-您需要新增 SSO 提供者的權限（**Project Owner**、**Project Admin** 或 **Create Project SSO**），在 OneUptime Cloud 上還需要 **Scale** 方案。身分提供者端的設定請參閱 [身分提供者指南](#身分提供者指南)。
+您需要新增 SSO 提供者的權限（**專案擁有者**、**專案管理員** 或 **Create Project SSO**），在 OneUptime Cloud 上還需要 **Scale** 方案。身分提供者端的設定請參閱 [身分提供者指南](#身分提供者指南)。
 
 :::steps
 1. **前往專案設定**
@@ -248,7 +248,7 @@ OneUptime 的 SSO 使用 SAML 2.0，可與任何相容的身分提供者搭配�
 
 ## OpenID Connect (OIDC)
 
-專案也可以透過 OpenID Connect 提供者登入，例如 Google Workspace、Okta、Microsoft Entra ID、Auth0 或 Keycloak。您需要新增 OIDC 提供者的權限（**Project Owner**、**Project Admin** 或 **Create Project OIDC**），在 OneUptime Cloud 上還需要 **Scale** 方案。
+專案也可以透過 OpenID Connect 提供者登入，例如 Google Workspace、Okta、Microsoft Entra ID、Auth0 或 Keycloak。您需要新增 OIDC 提供者的權限（**專案擁有者**、**專案管理員** 或 **Create Project OIDC**），在 OneUptime Cloud 上還需要 **Scale** 方案。
 
 :::steps
 1. 在身分提供者中註冊一個可以使用帶有 PKCE 之授權碼流程的應用程式（OIDC 用戶端），並複製其 **簽發者 URL**、**用戶端 ID** 和 **用戶端密鑰**。

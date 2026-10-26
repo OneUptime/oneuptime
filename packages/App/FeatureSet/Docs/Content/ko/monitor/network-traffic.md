@@ -155,7 +155,7 @@ end
 ### Palo Alto Networks
 
 1. **Device** > **Server Profiles** > **NetFlow**에서 프로브의 IP 주소와 포트 `2055`로 프로필을 추가하고, **Active Timeout**을 1분으로 설정합니다.
-2. **Network** > **Interfaces**에서 트래픽을 보려는 각 인터페이스를 열고 **Advanced** 탭의 **NetFlow Profile**로 그 프로필을 선택합니다.
+2. **Network** > **인터페이스**에서 트래픽을 보려는 각 인터페이스를 열고 **Advanced** 탭의 **NetFlow Profile**로 그 프로필을 선택합니다.
 3. 커밋합니다.
 
 ### MikroTik RouterOS 7

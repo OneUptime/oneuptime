@@ -32,7 +32,7 @@ flowchart TB
 
 Escolha o tipo pelo lugar onde a chave vai ficar. O tipo não pode ser mudado depois que a chave é criada.
 
-| | **Servidor** | **Browser** |
+| | **Servidor** | **Navegador** |
 | --- | --- | --- |
 | Para | Aplicações, collectors e agentes em máquinas que você opera | Páginas web, e React Native Session Replay |
 | Envia | Todo tipo de telemetria, para todos os endpoints | Traços, registros, métricas e Session Replays |
@@ -60,7 +60,7 @@ Clique em **Criar chave de ingestão**. A caixa começa com o nome **Chave de se
 
 ### Adicionar as origens de uma chave de navegador
 
-Uma chave **Browser** pede as suas **Allowed Origins** na etapa seguinte, **Configurações do navegador**, com o seu **Pinned Service Name** em **Avançado**. Veja [Proteger uma chave de navegador](#proteger-uma-chave-de-navegador).
+Uma chave **Navegador** pede as suas **Origens permitidas** na etapa seguinte, **Configurações do navegador**, com o seu **Nome do serviço fixado** em **Avançado**. Veja [Proteger uma chave de navegador](#proteger-uma-chave-de-navegador).
 
 ### Criar a chave e copiar o segredo
 
@@ -88,8 +88,8 @@ Uma chave de navegador fica na sua página, onde qualquer pessoa pode copiá-la.
 
 | Configuração | O que faz |
 | --- | --- |
-| **Allowed Origins** | As únicas origens das quais a chave é aceita. Uma requisição de qualquer outra origem, ou sem nenhum cabeçalho `Origin`, é recusada. Uma chave de navegador precisa manter pelo menos uma. |
-| **Pinned Service Name** | Arquiva tudo o que a chave envia por OTLP/HTTP sob este único serviço, seja qual for o `service.name` que o remetente definiu. Uma cópia da chave só pode então gravar nesse serviço. |
+| **Origens permitidas** | As únicas origens das quais a chave é aceita. Uma requisição de qualquer outra origem, ou sem nenhum cabeçalho `Origin`, é recusada. Uma chave de navegador precisa manter pelo menos uma. |
+| **Nome do serviço fixado** | Arquiva tudo o que a chave envia por OTLP/HTTP sob este único serviço, seja qual for o `service.name` que o remetente definiu. Uma cópia da chave só pode então gravar nesse serviço. |
 | **Requests Per Minute Limit** | O máximo de requisições pelas quais a chave é aceita a cada minuto, compartilhado por todos os visitantes. Uma chave de navegador recebe 6.000 quando você deixa o campo vazio. |
 | **Expira em** | A data depois da qual a chave é recusada, para que uma cópia publicada pare de funcionar. |
 
@@ -130,8 +130,8 @@ Uma requisição recusada recebe um status e uma frase que diz o motivo.
 | `422` com `This telemetry ingestion key has been disabled.` | Alguém desativou **Habilitado**. |
 | `422` com `A browser ingestion key cannot be used for` | Uma chave de navegador chegou a um endpoint que só aceita chaves de servidor. |
 | `422` com `did not send an Origin header` | Uma chave de navegador foi enviada de fora de um navegador. Use ali uma chave de servidor. |
-| `422` com `is not allowed for this browser ingestion key` | A origem da página não está em **Allowed Origins**. |
-| `422` com `is pinned to a single service` | Uma chave com um **Pinned Service Name** foi usada para registrar um agente. Use uma chave de servidor sem nome fixado. |
+| `422` com `is not allowed for this browser ingestion key` | A origem da página não está em **Origens permitidas**. |
+| `422` com `is pinned to a single service` | Uma chave com um **Nome do serviço fixado** foi usada para registrar um agente. Use uma chave de servidor sem nome fixado. |
 | `429` com `Too many telemetry requests for this ingestion key` | A chave atingiu o seu **Requests Per Minute Limit**. Os exportadores tentam de novo depois do tempo de `Retry-After`. |
 
 Para as outras respostas que um exportador OTLP pode receber, veja [Respostas](/docs/telemetry/open-telemetry#respostas).

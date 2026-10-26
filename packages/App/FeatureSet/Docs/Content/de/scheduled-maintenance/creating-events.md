@@ -22,7 +22,7 @@ flowchart TB
 
 ## Bevor Sie beginnen
 
-- **Ihre Rolle.** Um ein Ereignis zu erstellen, brauchen Sie **Project Owner**, **Project Admin**, **Project Member**, **Scheduled Maintenance Admin** oder **Scheduled Maintenance Member** oder eine benutzerdefinierte Rolle mit **Create Scheduled Maintenance**.
+- **Ihre Rolle.** Um ein Ereignis zu erstellen, brauchen Sie **Projektinhaber**, **Projektadministrator**, **Projektmitglied**, **Wartungs-Administrator** oder **Wartungs-Mitglied** oder eine benutzerdefinierte Rolle mit **Create Scheduled Maintenance**.
 - **Ihre Statusseiten.** Um Kunden zu informieren, brauchen Sie eine Statusseite, die geplante Wartungsereignisse anzeigt. Siehe [Statusseiten – Übersicht](/docs/status-pages/index).
 
 ## Ein Ereignis erstellen

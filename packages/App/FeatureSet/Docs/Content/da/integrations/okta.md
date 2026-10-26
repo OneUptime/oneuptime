@@ -42,20 +42,20 @@ Hvert token må bruge en andel af organisationens API-hastighedsgrænse, som det
 
 ### Tilføj forbindelsen i OneUptime
 
-Åbn **Produkter → Security Events → Connections** (`/dashboard/{projectId}/security-events/connections`), klik på **Tilføj forbindelse**, vælg **Okta System Log**, og klik på **Næste**. Udfyld indstillingerne i tabellen nedenfor, klik på **Næste**, og indsæt tokenet i **API token**.
+Åbn **Produkter → Security Events → Forbindelser** (`/dashboard/{projectId}/security-events/connections`), klik på **Tilføj forbindelse**, vælg **Okta System Log**, og klik på **Næste**. Udfyld indstillingerne i tabellen nedenfor, klik på **Næste**, og indsæt tokenet i **API token**.
 
 ### Test den, før du gemmer
 
-Klik på **Test these settings** under **Test, før du gemmer**. Testen logger på og læser begivenheder med værdierne i formularen og gemmer intet, så en forkert URL eller et ugyldigt filter viser sig, før forbindelsen findes. Klik derefter på **Næste**, giv forbindelsen et **Navn**, og opret den.
+Klik på **Test disse indstillinger** under **Test, før du gemmer**. Testen logger på og læser begivenheder med værdierne i formularen og gemmer intet, så en forkert URL eller et ugyldigt filter viser sig, før forbindelsen findes. Klik derefter på **Næste**, giv forbindelsen et **Navn**, og opret den.
 :::
 
 | Indstilling | Hvad du skal angive |
 | --- | --- |
 | **Okta organization URL** | Adressen, dine brugere logger på hos, for eksempel `https://acme.okta.com`, `https://acme.oktapreview.com` eller `https://login.example.com`. Den skal bruge `https`, uden sti. Ikke Admin Consoles `-admin`-adresse, som ikke udstiller API'et. |
 | **Event filter** | Valgfrit. Et [System Log-filter](https://developer.okta.com/docs/reference/core-okta-api/#filter), der vælger de begivenheder, der skal importeres, for eksempel `eventType sw "user.session" or eventType sw "security"`. Tomt importerer familierne nedenfor. Højst 2.000 tegn, på én linje, og ikke på `published`: OneUptime sætter selv tidsintervallet. |
-| **API token** | Tokenets værdi, alene: OneUptime tilføjer selv skemaet `SSWS`. Den krypteres, returneres aldrig af API'et og vises aldrig igen. Erstat den med **Update credentials** på forbindelsen. |
+| **API token** | Tokenets værdi, alene: OneUptime tilføjer selv skemaet `SSWS`. Den krypteres, returneres aldrig af API'et og vises aldrig igen. Erstat den med **Opdater legitimationsoplysninger** på forbindelsen. |
 
-Trinnet **Polling** har også en valgfri **Beskrivelse**, **Poll Interval (Minutes)**, et heltal fra `1` til `1440`, der starter på `5`, og **Aktiveret**, som starter slået til.
+Trinnet **Hentning** har også en valgfri **Beskrivelse**, **Hentningsinterval (minutter)**, et heltal fra `1` til `1440`, der starter på `5`, og **Aktiveret**, som starter slået til.
 
 ## Hvad der importeres
 
@@ -116,14 +116,14 @@ GET {Okta organization URL}/api/v1/logs?since={window start}&until={window end}&
 - **Udgivelsestidspunktet er markøren.** En System Log-begivenhed er selve aktiviteten, så `published` er både, hvornår den skete, og det, pollingen læser.
 - **Den første poll ser 24 timer tilbage**, så en ny forbindelse straks viser sine nylige begivenheder.
 - **Hver senere poll starter 15 minutter før den gemte markør.** Okta advarer om, at en anmodning med et sluttidspunkt kan udelade forsinkede begivenheder, hvilket Okta kalder sjældent. Overlappet læser dem ved den næste poll. En begivenhed, der er forsinket mere end 15 minutter, kan havne bag markøren: importér dens tidsinterval for at hente den.
-- **En poll læser højst 24 timer forbi markøren.** En forbindelse, hvis markør er kommet bagud, indhenter i en række vinduer på 24 timer, og dens **Health** viser **Catching up**.
+- **En poll læser højst 24 timer forbi markøren.** En forbindelse, hvis markør er kommet bagud, indhenter i en række vinduer på 24 timer, og dens **Sundhed** viser **Catching up**.
 - **Dubletter fjernes efter `uuid`** i projektet, så overlappet, et gentaget vindue og en import aldrig gemmer en begivenhed to gange.
 
 Et `next`-link, der peger andre steder hen end din **Okta organization URL**, følges aldrig, da tokenet sendes med hver anmodning.
 
 ### Når et vindue indeholder mere, end én poll kan læse
 
-En poll læser højst 10.000 begivenheder i højst 20 anmodninger. Når et vindue indeholder flere, er kørslen **Partial** med en advarsel som:
+En poll læser højst 10.000 begivenheder i højst 20 anmodninger. Når et vindue indeholder flere, er kørslen **Delvis** med en advarsel som:
 
 ```text
 Stopped after collecting 10000 events; the window holds more. The last event read was published at 2026-09-14T08:12:44.000Z.
@@ -135,22 +135,22 @@ Når en kørsel slet ikke kan komme forbi den gemte markør, for eksempel fordi 
 
 1. **Indsnævr.** Den næste poll læser et vindue, der er halvt så langt, fra det samme startpunkt, og bliver ved med at halvere, indtil et vindue læses helt, ned til ét minut. Kørslens advarsel siger det: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **Voks igen.** Når et vindue er læst helt, er det næste igen dobbelt så langt, op til 24 timer.
-3. **Gå forbi et enkelt minut.** Hvis selv ét minut indeholder mere, end en poll kan læse, går pollingen forbi det, så nyere begivenheder bliver ved med at komme, og senere pollers overlap når ikke længere tilbage til det. Kørslen forbliver **Partial**, og **Seneste fejl** lyder `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importér det minut med **Import this time range** for at hente det, én kørsel kan læse, eller indsnævr **Event filter**.
+3. **Gå forbi et enkelt minut.** Hvis selv ét minut indeholder mere, end en poll kan læse, går pollingen forbi det, så nyere begivenheder bliver ved med at komme, og senere pollers overlap når ikke længere tilbage til det. Kørslen forbliver **Delvis**, og **Seneste fejl** lyder `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importér det minut med **Import this time range** for at hente det, én kørsel kan læse, eller indsnævr **Event filter**.
 
-En kørsel, der mislykkes helt, med en fejl fra Okta, beholder markøren og vindueslængden, og den næste poll læser det samme vindue igen. Den eneste undtagelse er en anmodning, der fik timeout: markøren bliver, men det næste vindue er halvt så langt, fordi et vindue, der er for tungt til at blive besvaret i tide, ville få timeout ved hvert forsøg. At ændre **Poll Interval (Minutes)** ændrer intet af dette: det afgør, hvor ofte en poll starter, ikke hvor dens vindue begynder.
+En kørsel, der mislykkes helt, med en fejl fra Okta, beholder markøren og vindueslængden, og den næste poll læser det samme vindue igen. Den eneste undtagelse er en anmodning, der fik timeout: markøren bliver, men det næste vindue er halvt så langt, fordi et vindue, der er for tungt til at blive besvaret i tide, ville få timeout ved hvert forsøg. At ændre **Hentningsinterval (minutter)** ændrer intet af dette: det afgør, hvor ofte en poll starter, ikke hvor dens vindue begynder.
 
 ### Kør, se forhåndsvisning og importér efter behov
 
-Klik på **Diagnostics** på en forbindelse for at se dens seneste kørsler og arbejde med den manuelt. Alle, der kan ændre forbindelsen, kan starte disse handlinger; alle, der kan se den, kan læse historikken.
+Klik på **Diagnosticering** på en forbindelse for at se dens seneste kørsler og arbejde med den manuelt. Alle, der kan ændre forbindelsen, kan starte disse handlinger; alle, der kan se den, kan læse historikken.
 
-- **Run now** starter straks en poll med den sædvanlige markør, også når forbindelsen ikke er **Aktiveret**.
+- **Kør nu** starter straks en poll med den sædvanlige markør, også når forbindelsen ikke er **Aktiveret**.
 - **Preview log events** læser et tidsinterval på op til 7 dage og importerer intet.
 - **Import this time range** importerer et interval på op til 7 dage, efter at du har bekræftet, uden at flytte markøren. Begivenheder, der allerede er importeret, springes over. Okta gemmer 90 dages System Log.
 - **Copy diagnostics** på en kørsel kopierer dens rapport til support. Den indeholder aldrig legitimationsoplysninger.
 
 ## Test forbindelse
 
-**Test forbindelse** på en forbindelses række og **Test these settings** i formularen kører i API-processen, ikke i en baggrundsworker, så en test også svarer, når det er workerne, der er problemet. Den kører disse kontroller i rækkefølge:
+**Test forbindelse** på en forbindelses række og **Test disse indstillinger** i formularen kører i API-processen, ikke i en baggrundsworker, så en test også svarer, når det er workerne, der er problemet. Den kører disse kontroller i rækkefølge:
 
 | Kontrol | Hvad den kontrollerer |
 | --- | --- |
@@ -172,7 +172,7 @@ Okta afviste anmodningens parametre, `E0000053`. Når tokenet virkede, er det n�
 :::
 
 :::details Last Error siger `failed (HTTP 401)` eller `failed (HTTP 403)`
-- `HTTP 401`: Okta accepterede ikke tokenet, `E0000011`. Det er tilbagekaldt, har stået ubrugt i 30 dage eller er deaktiveret sammen med sin administrator; eller det er indsat med `SSWS` eller et overskydende tegn. Opret et nyt token som skrivebeskyttet administrator, og gem det med **Update credentials**.
+- `HTTP 401`: Okta accepterede ikke tokenet, `E0000011`. Det er tilbagekaldt, har stået ubrugt i 30 dage eller er deaktiveret sammen med sin administrator; eller det er indsat med `SSWS` eller et overskydende tegn. Opret et nyt token som skrivebeskyttet administrator, og gem det med **Opdater legitimationsoplysninger**.
 - `HTTP 403`: tokenet logger på, men dets administrator kan ikke læse System Log, `E0000006`. Opret det som Read-only Administrator eller Super Administrator, og kontrollér, at dets netværkszone tillader de adresser, OneUptime kalder fra.
 :::
 
@@ -194,8 +194,8 @@ Ingen poll er blevet færdig for denne forbindelse. Kør **Test forbindelse**: d
 :::
 
 :::details En kørsel er Partial
-- `Stopped after collecting 10000 events`: vinduet indeholdt mere end de 10.000 begivenheder, én kørsel læser. Intet går tabt: den næste poll starter efter den sidst læste begivenhed. En forbindelse, der forbliver **Partial** poll efter poll, er ved at indhente et efterslæb, og dens **Last Polled** og **Last Event Imported** bliver ved med at rykke frem. Hvis den aldrig indhenter, udgiver organisationen flere matchende begivenheder, end et pollinterval kan rumme: indsnævr **Event filter**, eller gør **Poll Interval (Minutes)** kortere.
-- `More records were created in the one minute from ... than one poll can read`: pollingen gik forbi det minut. Importér det med **Import this time range** i **Diagnostics**. En import læser lige så meget som en poll.
+- `Stopped after collecting 10000 events`: vinduet indeholdt mere end de 10.000 begivenheder, én kørsel læser. Intet går tabt: den næste poll starter efter den sidst læste begivenhed. En forbindelse, der forbliver **Delvis** poll efter poll, er ved at indhente et efterslæb, og dens **Senest hentet** og **Seneste importerede hændelse** bliver ved med at rykke frem. Hvis den aldrig indhenter, udgiver organisationen flere matchende begivenheder, end et pollinterval kan rumme: indsnævr **Event filter**, eller gør **Hentningsinterval (minutter)** kortere.
+- `More records were created in the one minute from ... than one poll can read`: pollingen gik forbi det minut. Importér det med **Import this time range** i **Diagnosticering**. En import læser lige så meget som en poll.
 :::
 
 :::details Testen lykkes, men intet importeres

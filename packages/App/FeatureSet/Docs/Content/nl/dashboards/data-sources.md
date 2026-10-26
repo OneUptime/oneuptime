@@ -46,7 +46,7 @@ flowchart TB
 :::steps
 ### Open de gegevensbronnen
 
-Open **Producten → Dashboards**, klap **Instellingen** uit in het zijmenu en klik op **Data Sources**.
+Open **Producten → Dashboards**, klap **Instellingen** uit in het zijmenu en klik op **Gegevensbronnen**.
 
 ### Kies het type
 
@@ -62,14 +62,14 @@ Onder **Verbinding** krijgt een HTTP-bron de **URL** waarop ze antwoordt. Een da
 
 ### Geef aan hoe je je aanmeldt
 
-Vul onder **Authenticatie** een **Gebruikersnaam** en een **Wachtwoord** in, of voor een HTTP-bron een **API Token**, dat als bearer-token wordt verstuurd. **Meer velden** bevat **Custom HTTP Headers**, zoals `{ "X-Scope-OrgID": "tenant-1" }`, en **Additional Options**: `sslEnabled` en `sslRejectUnauthorized` voor databases, en `elasticsearchIndex` voor Elasticsearch, dat zonder deze optie elke index (`*`) leest.
+Vul onder **Authenticatie** een **Gebruikersnaam** en een **Wachtwoord** in, of voor een HTTP-bron een **API-token**, dat als bearer-token wordt verstuurd. **Meer velden** bevat **Custom HTTP Headers**, zoals `{ "X-Scope-OrgID": "tenant-1" }`, en **Additional Options**: `sslEnabled` en `sslRejectUnauthorized` voor databases, en `elasticsearchIndex` voor Elasticsearch, dat zonder deze optie elke index (`*`) leest.
 
 ### Test haar
 
 Klik op **Data Source aanmaken** en daarna op **Testen** in haar rij. OneUptime maakt verbinding met de gegevens die je hebt opgegeven, en zegt of het werkte of wat er misging.
 :::
 
-Om een gegevensbron later te wijzigen, open je haar vanuit de lijst. **Bewerken** op **Data Source Details** wijzigt alles behalve de geheimen; **Update Credentials** vervangt het wachtwoord, het token of de headers, en laat de velden die je leeg laat zoals ze waren; **Testen** controleert haar opnieuw.
+Om een gegevensbron later te wijzigen, open je haar vanuit de lijst. **Bewerken** op **Data Source Details** wijzigt alles behalve de geheimen; **Inloggegevens bijwerken** vervangt het wachtwoord, het token of de headers, en laat de velden die je leeg laat zoals ze waren; **Testen** controleert haar opnieuw.
 
 ## Haar gebruiken in een widget
 
@@ -162,7 +162,7 @@ Bereikquery's van Prometheus en Loki vragen om ongeveer 250 punten over het tijd
 ## Veiligheid
 
 - **SQL blijft alleen-lezen.** Een query moet één statement zijn dat begint met `SELECT`, `WITH`, `SHOW`, `EXPLAIN`, `DESCRIBE` of `DESC`. Woorden die schrijven of een sessie wijzigen, zoals `INSERT`, `UPDATE`, `DELETE`, `DROP`, `INTO` of `SET`, worden overal buiten strings en geciteerde namen geweigerd, dus zet een kolom die naar een daarvan heet tussen aanhalingstekens. Schrijf een aanhalingsteken in een string als twee aanhalingstekens (`''`): een backslash voor een aanhalingsteken wordt geweigerd. Sessies van PostgreSQL, MySQL en ClickHouse zijn ook alleen-lezen. SQL Server heeft geen alleen-lezen sessie, dus koppel die met een alleen-lezen login.
-- **Inloggegevens zijn alleen-schrijven.** **Wachtwoord**, **API Token** en **Custom HTTP Headers** worden versleuteld opgeslagen, en de API geeft ze nooit terug, zelfs niet aan jou.
+- **Inloggegevens zijn alleen-schrijven.** **Wachtwoord**, **API-token** en **Custom HTTP Headers** worden versleuteld opgeslagen, en de API geeft ze nooit terug, zelfs niet aan jou.
 - **Adressen worden gecontroleerd.** Loopback-, link-local- (waar cloudmetadata staat) en andere gereserveerde adressen worden overal geweigerd. Privéadressen worden geweigerd in OneUptime Cloud, en toegestaan op een zelfgehoste installatie tenzij `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` `true` is: zie [Toegang tot privénetwerk](/docs/self-hosted/private-network-access).
 - **Openbare dashboards voeren ze nooit uit.** De widgets van Externe gegevensbronnen worden weggelaten uit een [openbaar dashboard](/docs/dashboards/sharing), query's en al.
 

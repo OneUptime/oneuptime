@@ -769,18 +769,16 @@ const ALERT_KIND: TemplateRecordKind = {
   creating: "Creating",
   quietCreateFields: {},
   quietCreateText: "",
-  /*
-   * An alert's root cause is written when the alert is created and cannot be
-   * edited afterwards, so it is not listened on. The comment still shows it.
-   */
   editListenOn: {
     title: true,
     description: true,
     alertSeverityId: true,
     alertSeverity: true,
+    rootCause: true,
     remediationNotes: true,
   },
-  editedFieldsText: "title, severity, description or remediation notes",
+  editedFieldsText:
+    "title, severity, description, root cause or remediation notes",
   hasPublicNotes: false,
   otherPlural: "incidents",
 };

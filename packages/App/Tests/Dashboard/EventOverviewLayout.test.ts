@@ -466,7 +466,11 @@ describe.each(PAGES)("%s overview layout", (_name: string, page: EventPage) => {
 
   test("response times come from the shared first-entry reading", () => {
     expect(page.view).toContain("getEventResponseTimes({");
-    expect(countOccurrences(page.view, "getTimeToStateText({")).toBe(2);
+    expect(countOccurrences(tight(page.view), "getTimeToStateText({")).toBe(2);
+    // Worded in the reader's language: the page hands its translator in.
+    expect(
+      countOccurrences(tight(page.view), "}, translator)"),
+    ).toBeGreaterThanOrEqual(2);
     expect(page.view).toContain("reachedAt: responseTimes.acknowledgedAt,");
     expect(page.view).toContain("reachedAt: responseTimes.resolvedAt,");
     expect(page.view).not.toContain(".reverse()");
@@ -937,9 +941,14 @@ describe("header duration label", () => {
       );
       expect(page.changeState).not.toContain("Resolved in");
       expect(page.changeState).not.toContain('"{{stateName}} in"');
-      // The stat bar's label: "<resolved state's name> in", translated whole.
+      /*
+       * The stat bar's label: "<resolved state's name> in", translated whole.
+       * The state's name is a term the sentence translates: the seeded
+       * "Resolved" reads in the reader's language, a state the project named
+       * itself reads as written.
+       */
       expect(page.view).toContain(
-        'label={translator.translateTemplate("{{stateName}} in", { stateName: resolvedState?.name || translatableTerm("Resolved"), })}',
+        'label={translator.translateTemplate("{{stateName}} in", { stateName: translatableTerm(resolvedState?.name || "Resolved"), })}',
       );
     },
   );

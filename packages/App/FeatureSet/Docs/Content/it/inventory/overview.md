@@ -36,7 +36,7 @@ Un elemento scoperto ha un battito. Ogni volta che arriva telemetria per lui, la
 
 | Stato | Cosa significa |
 | --- | --- |
-| **Live** | Visto negli ultimi 30 minuti. |
+| **In diretta** | Visto negli ultimi 30 minuti. |
 | **Recent** | Visto nell'ultimo giorno. |
 | **Stale** | Non visto da più di un giorno. La pagina **Gone Quiet** li elenca. |
 
@@ -65,7 +65,7 @@ Apri **Prodotti → Risorse → Inventario**. Il suo menu laterale ha queste pag
 | **Aiuto → Documentazione** | Una breve guida all'inventario, con i tipi di elemento che riconosce. |
 | **Avanzato → Archiviato** | Gli elementi che hai archiviato. Ripristinali da qui. |
 
-Apri un elemento e il suo menu laterale ha la sua **Panoramica** (tipo, fonte e stato, e ogni attributo osservato su di esso), le sue **Connections** e i suoi **Campi personalizzati**; i suoi **Registri**, **Tracce**, **Metriche**, **Profili di prestazioni** ed **Eccezioni**; e i suoi **Incidenti**, **Avvisi** e **Manutenzione programmata**. In **Avanzato** ci sono le sue **Impostazioni**, i suoi **Registri di audit** e **Delete Item**. Le pagine di telemetria mostrano ciò che l'elemento stesso ha inviato. Gli incidenti, gli avvisi e gli eventi di manutenzione sono quelli del servizio, dell'host o del cluster Kubernetes che l'elemento rappresenta; su qualsiasi altro elemento, quelle pagine dicono quale risorsa guardare.
+Apri un elemento e il suo menu laterale ha la sua **Panoramica** (tipo, fonte e stato, e ogni attributo osservato su di esso), le sue **Connessioni** e i suoi **Campi personalizzati**; i suoi **Registri**, **Tracce**, **Metriche**, **Profili di prestazioni** ed **Eccezioni**; e i suoi **Incidenti**, **Avvisi** e **Manutenzione programmata**. In **Avanzato** ci sono le sue **Impostazioni**, i suoi **Registri di audit** e **Delete Item**. Le pagine di telemetria mostrano ciò che l'elemento stesso ha inviato. Gli incidenti, gli avvisi e gli eventi di manutenzione sono quelli del servizio, dell'host o del cluster Kubernetes che l'elemento rappresenta; su qualsiasi altro elemento, quelle pagine dicono quale risorsa guardare.
 
 ### Dettagli dell'asset
 
@@ -80,7 +80,7 @@ Gli stessi dati sono colonne dell'elenco **All Items**, nascoste finché non le 
 
 ### Connessioni
 
-La pagina **Connections** di un elemento elenca i suoi vicini in entrambe le direzioni, raggruppati in **Chiamate**, **Called by**, **Runs on** e **Related**. Ogni gruppo mostra il suo totale (un gruppo con più di 100.000 connessioni mostra «100.000+»), e **Mostra di più** scorre il resto, così un cluster, un namespace o un nodo molto affollato mostra ogni connessione e non solo le prime. La pagina non è limitata a un intervallo di tempo: include le relazioni aggiunte a mano tramite l'API e i vicini archiviati. Un vicino che non è più nell'inventario viene mostrato con la sua chiave.
+La pagina **Connessioni** di un elemento elenca i suoi vicini in entrambe le direzioni, raggruppati in **Chiamate**, **Chiamato da**, **Eseguito su** e **Correlati**. Ogni gruppo mostra il suo totale (un gruppo con più di 100.000 connessioni mostra «100.000+»), e **Mostra di più** scorre il resto, così un cluster, un namespace o un nodo molto affollato mostra ogni connessione e non solo le prime. La pagina non è limitata a un intervallo di tempo: include le relazioni aggiunte a mano tramite l'API e i vicini archiviati. Un vicino che non è più nell'inventario viene mostrato con la sua chiave.
 
 ## Aggiungere qualcosa a mano
 
@@ -102,8 +102,8 @@ Apri il nuovo elemento. La sua fonte indica **Added by you**, e la sua pagina **
 
 Puoi aggiungere a mano tre tipi:
 
-- `external.service` (**External Service**): un'API di terze parti o una dipendenza software-as-a-service.
-- `external.database` (**External Database**): un database che non è un server che OneUptime può modellare. Un server di database, self-hosted o gestito, da PostgreSQL a Snowflake, va invece in **Databases → Crea: Database** ([Database](/docs/telemetry/databases)): quel record si collega alle tracce, ai container e alle metriche del motore che nominano lo stesso indirizzo, cosa che un elemento dell'inventario non fa mai, e aggiungere lo stesso server in entrambi i modi lascia due record scollegati.
+- `external.service` (**Servizio esterno**): un'API di terze parti o una dipendenza software-as-a-service.
+- `external.database` (**Database esterno**): un database che non è un server che OneUptime può modellare. Un server di database, self-hosted o gestito, da PostgreSQL a Snowflake, va invece in **Databases → Crea: Database** ([Database](/docs/telemetry/databases)): quel record si collega alle tracce, ai container e alle metriche del motore che nominano lo stesso indirizzo, cosa che un elemento dell'inventario non fa mai, e aggiungere lo stesso server in entrambi i modi lascia due record scollegati.
 - `appliance` (**Appliance**): hardware o software senza agente.
 
 La restrizione evita i duplicati. Un elemento creato a mano di un tipo che OneUptime può osservare, come un host, sarebbe identificato dal nome che hai scritto, mentre l'elemento scoperto della stessa macchina è identificato dagli attributi che segnala. I due non si unirebbero mai, e lo stesso host comparirebbe due volte nel tuo elenco, per sempre.
@@ -125,7 +125,7 @@ Per archiviare elementi, selezionali in **All Items** e archiviali in un colpo s
 
 ## Relazioni e topologia
 
-OneUptime collega gli elementi con relazioni orientate man mano che le osserva. **Inventario → Topology Map** le disegna, e la pagina **Connections** di un elemento elenca le sue. Vedi [Topologia](/docs/telemetry/topology).
+OneUptime collega gli elementi con relazioni orientate man mano che le osserva. **Inventario → Topology Map** le disegna, e la pagina **Connessioni** di un elemento elenca le sue. Vedi [Topologia](/docs/telemetry/topology).
 
 | Relazione | Per esempio |
 | --- | --- |

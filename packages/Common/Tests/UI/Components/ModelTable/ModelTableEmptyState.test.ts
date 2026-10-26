@@ -722,22 +722,37 @@ describe("buildNoAccessState", () => {
     ).toBeUndefined();
   });
 
-  test("is said in the reader's language, the permission names as given", () => {
+  test("is said in the reader's language, a role's name included", () => {
     const props: TableEmptyStateProps = buildNoAccessState({
-      permissionTitles: ["Project Owner"],
+      permissionTitles: ["Project Owner", "Read Monitor"],
       translate: (value: string): string => {
         const dictionary: Record<string, string> = {
           [NO_ACCESS_TITLE]: "Sie haben keinen Zugriff auf diese Liste",
           [NO_ACCESS_DESCRIPTION]:
             "Bitten Sie einen Projektadministrator um eine dieser Berechtigungen:",
+          "Project Owner": "Projektinhaber",
         };
         return dictionary[value] ?? value;
       },
     });
 
     expect(props.title).toBe("Sie haben keinen Zugriff auf diese Liste");
+    // A permission with no translation of its own reads as given.
     expect(props.description).toBe(
-      "Bitten Sie einen Projektadministrator um eine dieser Berechtigungen: Project Owner",
+      "Bitten Sie einen Projektadministrator um eine dieser Berechtigungen: Projektinhaber, Read Monitor",
+    );
+  });
+
+  test("keeps a name the lookup has nothing for, rather than an empty one", () => {
+    const props: TableEmptyStateProps = buildNoAccessState({
+      permissionTitles: ["Project Owner", "Read Monitor"],
+      translate: (value: string): string => {
+        return value === "Read Monitor" ? "" : value;
+      },
+    });
+
+    expect(props.description).toBe(
+      `${NO_ACCESS_DESCRIPTION} Project Owner, Read Monitor`,
     );
   });
 });

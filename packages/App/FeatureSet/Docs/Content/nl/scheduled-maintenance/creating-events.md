@@ -22,7 +22,7 @@ flowchart TB
 
 ## Voordat je begint
 
-- **Je rol.** Een gebeurtenis maken vraagt **Project Owner**, **Project Admin**, **Project Member**, **Scheduled Maintenance Admin** of **Scheduled Maintenance Member**, of een aangepaste rol met **Create Scheduled Maintenance**.
+- **Je rol.** Een gebeurtenis maken vraagt **Projecteigenaar**, **Projectbeheerder**, **Projectlid**, **Onderhoudsbeheerder** of **Onderhoudslid**, of een aangepaste rol met **Create Scheduled Maintenance**.
 - **Je statuspagina's.** Om klanten te informeren heb je een statuspagina nodig die geplande onderhoudsgebeurtenissen toont. Zie [Statuspagina's – Overzicht](/docs/status-pages/index).
 
 ## Een gebeurtenis maken

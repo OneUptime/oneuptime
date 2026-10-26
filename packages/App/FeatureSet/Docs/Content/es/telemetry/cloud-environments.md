@@ -174,7 +174,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 :::
 
 > [!TIP]
-> Los mismos pasos están en el panel, con su token ya incluido: en **Nube → Todos los entornos** hasta que llegue su primer entorno, y en la pestaña **Documentación** de cada entorno.
+> Los mismos pasos están en el panel, con su token ya incluido: en **Nube → Todos los entornos**, haga clic en **Añadir entorno en la nube**. La pestaña **Documentación** de cada entorno también los muestra.
 
 ## Qué obtiene
 

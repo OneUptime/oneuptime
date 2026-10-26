@@ -87,7 +87,7 @@ Una volta aperta una pagina di stato, il suo menu laterale sinistro è raggruppa
 | --- | --- |
 | **Base** | **Panoramica**, **Annunci**, **Proprietari**. |
 | **Risorse** | Un'unica schermata **Risorse** (i gruppi a sinistra, i monitor del gruppo selezionato a destra). |
-| **Regole** | **Monitor Rules**: regole che aggiungono alla pagina ogni monitor corrispondente, ora e in seguito. |
+| **Regole** | **Regole dei monitor**: regole che aggiungono alla pagina ogni monitor corrispondente, ora e in seguito. |
 | **Iscritti** | **Iscritti email**, **Iscritti SMS**, **Iscritti Slack**, **Iscritti a Microsoft Teams**, **Iscritti webhook**, **Impostazioni iscritti**. |
 | **Registri di notifica** | **Registri di notifica**: ciò che è stato inviato agli iscritti. |
 | **Branding** | **Branding** (logo, titolo, favicon, link, piè di pagina, colori e lingue, in un'unica pagina), **Domini personalizzati**, **HTML, CSS e JavaScript**. |

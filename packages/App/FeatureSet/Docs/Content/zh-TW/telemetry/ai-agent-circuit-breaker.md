@@ -46,7 +46,7 @@ flowchart TB
 :::steps
 1. 開啟 **產品 → AI / LLM → 預算** ，按一下 **建立LLM Cost Budget** 。設定 **每日預算（美元）** ，並在 **服務（選填）** 中選擇代理程式的服務，讓預算只監看這個代理程式。
 2. 在新預算的列選單中選擇 **顯示 ID** ，複製該 ID。
-3. 針對 `oneuptime.llm.budget.percent.used` 建立一個 [指標監控](/docs/monitor/metrics-monitor)，以屬性 `oneuptime.llm.budget.id` 等於複製的 ID 進行篩選，並把 **時間範圍** 設為 **Past 30 Minutes** 。
+3. 針對 `oneuptime.llm.budget.percent.used` 建立一個 [指標監控](/docs/monitor/metrics-monitor)，以屬性 `oneuptime.llm.budget.id` 等於複製的 ID 進行篩選，並把 **時間範圍** 設為 **過去 30 分鐘** 。
 4. 新增一個會建立警示的條件 **大於或等於** `100`，並給它一個包含代理程式名稱的 **警示標題** ，例如 `LLM budget exceeded: support-bot`。工作流程和你的端點都會讀取這個標題。
 :::
 
@@ -125,7 +125,7 @@ app.post("/circuit-breaker", (req, res) => {
 
 ### 新增觸發器
 
-按一下虛線框 **Choose what starts this workflow** ，在 **新增觸發器** 面板中選擇 **On Create Alert** 。按一下觸發器： **Fields to pass on** 一開始就帶有標題，所以按一下 **新增欄位** ，勾選描述，然後按一下 **儲存** 。區塊上的 ID `alert-on-create-1` 是後續區塊參照它的方式。
+按一下虛線框 **選擇啟動此工作流程的方式** ，在 **新增觸發器** 面板中選擇 **On Create Alert** 。按一下觸發器： **Fields to pass on** 一開始就帶有標題，所以按一下 **新增欄位** ，勾選描述，然後按一下 **儲存** 。區塊上的 ID `alert-on-create-1` 是後續區塊參照它的方式。
 
 ### 檢查標題
 
@@ -197,7 +197,7 @@ API 區塊的 **Request Headers** ：
 :::
 
 :::details 預算警示反覆開啟又解決
-監測器的 **時間範圍** 短於預算兩個點之間的 15 分鐘。請把它設為 **Past 30 Minutes** 。
+監測器的 **時間範圍** 短於預算兩個點之間的 15 分鐘。請把它設為 **過去 30 分鐘** 。
 :::
 
 :::details 請求始終到不了你的端點

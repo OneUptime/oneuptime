@@ -1,5 +1,6 @@
 // Tailwind
 import { Logger } from "../../Utils/Logger";
+import joinAriaIds from "../../Utils/AriaIds";
 import useTranslateValue from "../../Utils/Translation";
 import Icon from "../Icon/Icon";
 import OneUptimeDate from "../../../Types/Date";
@@ -59,8 +60,10 @@ export interface ComponentProps {
   // For inputs with no visible label element to point ariaLabelledby at.
   ariaLabel?: string | undefined;
   /*
-   * For fields that render their own error text - a picker whose message sits
-   * below the whole control rather than below this input.
+   * What describes the input besides its own error, read before the error:
+   * its field's help (FormField), or the error text of a field that draws
+   * its own - a picker whose message sits below the whole control rather
+   * than below this input.
    */
   ariaDescribedby?: string | undefined;
   ariaInvalid?: boolean | undefined;
@@ -311,7 +314,10 @@ const Input: FunctionComponent<ComponentProps> = (
           aria-autocomplete={props.ariaAutoComplete}
           aria-activedescendant={props.ariaActiveDescendant}
           aria-invalid={props.error || props.ariaInvalid ? "true" : undefined}
-          aria-describedby={props.error ? errorId : props.ariaDescribedby}
+          aria-describedby={joinAriaIds(
+            props.ariaDescribedby,
+            props.error ? errorId : undefined,
+          )}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
             const value: string | Date = e.target.value;
 

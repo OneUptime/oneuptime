@@ -18,7 +18,7 @@ För att sätta upp säkerhet krävs rollen Project Owner, Project Admin eller S
 :::steps
 ### Slå på det som de flesta team behöver
 
-Öppna **Produkter → Security Events**. Klicka på **Slå på rekommenderat** på **Översikt**. Det slår på tre saker samtidigt: **Hitta säkerhetshändelser i dina loggar**, de rekommenderade detektionsreglerna och **Enrich New Cases**, en playbook som kontrollerar varje nytt ärende mot hotunderrättelser och lämnar en checklista för triage i det.
+Öppna **Produkter → Security Events**. Klicka på **Slå på rekommenderat** på **Översikt**. Det slår på tre saker samtidigt: **Hitta säkerhetshändelser i dina loggar**, de rekommenderade detektionsreglerna och **Berika nya ärenden**, en playbook som kontrollerar varje nytt ärende mot hotunderrättelser och lämnar en checklista för triage i det.
 
 ### Skicka en testattack
 
@@ -26,7 +26,7 @@ Klicka på **Skicka en testattack**. Ett dussin misslyckade inloggningar från e
 
 ### Öppna ärendet
 
-Klicka på **Öppna ärendet**. Så ser ett riktigt fynd ut: händelserna bakom det, adressen det gäller och vad **Enrich New Cases** hittade. Stäng det som ett test när du är klar.
+Klicka på **Öppna ärendet**. Så ser ett riktigt fynd ut: händelserna bakom det, adressen det gäller och vad **Berika nya ärenden** hittade. Stäng det som ett test när du är klar.
 :::
 
 Därefter öppnar **Översikt** på det som behöver någon, under **Kräver uppmärksamhet**: dina öppna ärenden, de som ingen har tagit och playbook-stegen som väntar på ett godkännande. När det inte finns några står det **Allt är lugnt**.
@@ -43,8 +43,8 @@ flowchart LR
 
 | Del | Var | Vad den gör |
 | --- | --- | --- |
-| **Källor** | **Connections** | Dina loggar, säkerhetsprodukterna som OneUptime hämtar från och allt du skickar |
-| **Detections** | **Detections** | Sigma-regler och flöden med hotunderrättelser som letar efter hot i varje händelse |
+| **Källor** | **Anslutningar** | Dina loggar, säkerhetsprodukterna som OneUptime hämtar från och allt du skickar |
+| **Detektioner** | **Detektioner** | Sigma-regler och flöden med hotunderrättelser som letar efter hot i varje händelse |
 | **Säkerhetsärenden** | **Säkerhetsärenden** | Det som hittades, grupperat efter användaren, värden eller adressen det gäller |
 | **Playbooks** | **Playbooks** | Steg som körs på nya ärenden: berikar dem, meddelar, öppnar en incident eller begränsar |
 
@@ -52,7 +52,7 @@ Högst upp på **Översikt**, under det som behöver någon, visar varje del sin
 
 ## Hitta säkerhetshändelser i dina loggar
 
-Kortet **Dina loggar**, högst upp på **Connections**, behöver ingen installation. Med **Hitta säkerhetshändelser i dina loggar** påslaget läser OneUptime projektets nya loggar varje minut och gör raderna det känner igen till säkerhetshändelser:
+Kortet **Dina loggar**, högst upp på **Anslutningar**, behöver ingen installation. Med **Hitta säkerhetshändelser i dina loggar** påslaget läser OneUptime projektets nya loggar varje minut och gör raderna det känner igen till säkerhetshändelser:
 
 | Loggar | Vad som blir en säkerhetshändelse |
 | --- | --- |
@@ -66,7 +66,7 @@ Dina loggar förblir som de är. Bara raderna som spelar roll för säkerheten b
 
 ## Skicka det OneUptime hittar till ditt SIEM
 
-Arbetar ditt team redan i ett SIEM skickar OneUptime sina fynd dit också. Klicka på **Lägg till mål** under **Connections → Skicka till ditt SIEM**, fyll i region, instans och tjänstekontonyckel för din Google SecOps-instans och klicka på **Skicka en testhändelse** innan du sparar. Se [Skicka säkerhetshändelser till Google SecOps](/docs/integrations/google-secops#skicka-säkerhetshändelser-till-google-secops).
+Arbetar ditt team redan i ett SIEM skickar OneUptime sina fynd dit också. Klicka på **Lägg till mål** under **Anslutningar → Skicka till ditt SIEM**, fyll i region, instans och tjänstekontonyckel för din Google SecOps-instans och klicka på **Skicka en testhändelse** innan du sparar. Se [Skicka säkerhetshändelser till Google SecOps](/docs/integrations/google-secops#skicka-säkerhetshändelser-till-google-secops).
 
 ## Felsökning
 
@@ -79,7 +79,7 @@ Kortet nämner allt det inte kunde slå på och varför: din roll, din plan elle
 :::
 
 :::details Testattacken öppnade inget ärende
-Ärendet öppnas oftast innan knappen svarar; när regeln fortfarande hämtar in säger den det, och ärendet öppnas inom en minut. Titta under **Säkerhetsärenden** igen och kontrollera under **Detections** att brute force-regeln är påslagen.
+Ärendet öppnas oftast innan knappen svarar; när regeln fortfarande hämtar in säger den det, och ärendet öppnas inom en minut. Titta under **Säkerhetsärenden** igen och kontrollera under **Detektioner** att brute force-regeln är påslagen.
 :::
 
 :::details Inga säkerhetshändelser kommer från mina loggar
@@ -87,7 +87,7 @@ Kontrollera att **Hitta säkerhetshändelser i dina loggar** är påslaget och a
 :::
 
 :::details Översikt säger att den senaste säkerhetshändelsen kom för flera dagar sedan
-Inget har nått Security sedan dess. Öppna **Connections** och kontrollera att **Dina loggar** och varje anslutning fortfarande är påslagna, och när var och en senast kontrollerade.
+Inget har nått Security sedan dess. Öppna **Anslutningar** och kontrollera att **Dina loggar** och varje anslutning fortfarande är påslagna, och när var och en senast kontrollerade.
 :::
 
 :::details Kortet som slår på Security är borta

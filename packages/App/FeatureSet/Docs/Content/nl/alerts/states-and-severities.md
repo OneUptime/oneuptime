@@ -44,7 +44,7 @@ Elk nieuw project begint met drie waarschuwingsstatussen, in deze volgorde:
 
 | Status           | `order` | Vlag                  | Kleur     | Wat het betekent                                  |
 | ---------------- | ------- | --------------------- | --------- | ------------------------------------------------- |
-| **Identified**   | `1`     | `isCreatedState`      | `#fd625e` | De status waarin nieuwe waarschuwingen beginnen.  |
+| **Geïdentificeerd**   | `1`     | `isCreatedState`      | `#fd625e` | De status waarin nieuwe waarschuwingen beginnen.  |
 | **Bevestigd**    | `2`     | `isAcknowledgedState` | `#ffbf53` | Iemand is ermee bezig, en het oproepen stopt.     |
 | **Opgelost**     | `3`     | `isResolvedState`     | `#2ab57d` | De waarschuwing is voorbij en telt niet meer als actief. |
 
@@ -99,10 +99,10 @@ Elk nieuw project begint met twee ernstniveaus voor waarschuwingen, het ernstigs
 
 | Ernst    | `order` | Kleur     | Vooraf ingestelde beschrijving                                                    |
 | -------- | ------- | --------- | --------------------------------------------------------------------------------- |
-| **High** | `1`     | `#b70400` | Issues causing very high impact to customers. Immediate attention is required.    |
-| **Low**  | `2`     | `#ffbf53` | Issues causing low impact to customers.                                           |
+| **Hoog** | `1`     | `#b70400` | Issues causing very high impact to customers. Immediate attention is required.    |
+| **Laag**  | `2`     | `#ffbf53` | Issues causing low impact to customers.                                           |
 
-Incidenten beginnen met drie ernstniveaus en waarschuwingen met twee. Wanneer het sjabloon van een monitoraanbeveling **Kritiek** of **Warning** zegt, koppelt OneUptime dat aan je eerste en tweede ernstniveau voor waarschuwingen, in een nieuw project **High** en **Low**.
+Incidenten beginnen met drie ernstniveaus en waarschuwingen met twee. Wanneer het sjabloon van een monitoraanbeveling **Kritiek** of **Warning** zegt, koppelt OneUptime dat aan je eerste en tweede ernstniveau voor waarschuwingen, in een nieuw project **Hoog** en **Laag**.
 
 ## Ernstniveaus bewerken
 

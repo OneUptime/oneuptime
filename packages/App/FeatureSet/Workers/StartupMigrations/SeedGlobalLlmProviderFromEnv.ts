@@ -123,15 +123,15 @@ export default class SeedGlobalLlmProviderFromEnv extends StartupMigrationBase {
     ) {
       missing.push("GLOBAL_LLM_PROVIDER_BASE_URL");
     }
-    // Generic OpenAI-compatible servers have no default model.
-    if (llmType === LlmType.OpenAICompatible && !modelName) {
-      missing.push("GLOBAL_LLM_PROVIDER_MODEL_NAME");
-    }
+    /*
+     * No model is required: left unset, every provider type uses a default,
+     * and an OpenAI-compatible server the first model it lists.
+     */
     if (missing.length > 0) {
       logger.error(
         `Global LLM provider type "${llmType}" requires ${missing.join(
           " and ",
-        )} to be set - AI requests will fail until it is. For a keyless OpenAI-compatible server (e.g. vLLM without an API key), set GLOBAL_LLM_PROVIDER_TYPE to "OpenAICompatible" with GLOBAL_LLM_PROVIDER_BASE_URL and GLOBAL_LLM_PROVIDER_MODEL_NAME; no API key is needed.`,
+        )} to be set - AI requests will fail until it is. For a keyless OpenAI-compatible server (e.g. vLLM without an API key), set GLOBAL_LLM_PROVIDER_TYPE to "OpenAICompatible" with GLOBAL_LLM_PROVIDER_BASE_URL; no API key is needed, and without GLOBAL_LLM_PROVIDER_MODEL_NAME it uses the first model the server lists.`,
       );
     }
 

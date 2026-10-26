@@ -6,6 +6,13 @@ enum NotificationSettingEventType {
   SEND_INCIDENT_OWNER_ADDED_NOTIFICATION = "Send notification when I am added as a owner to the incident",
   SEND_INCIDENT_MEMBER_ADDED_NOTIFICATION = "Send notification when I am assigned to an incident as a member",
   SEND_INCIDENT_REMINDER_OWNER_NOTIFICATION = "Send reminder notification when an incident I own is still open",
+  /*
+   * An incident SLA rule's response or resolution deadline passed
+   * (Workers IncidentSla/CheckSlaBreaches). Its own event since it had
+   * borrowed SEND_INCIDENT_CREATED_OWNER_NOTIFICATION, so switching off
+   * "Incident created" silenced SLA breaches too.
+   */
+  SEND_INCIDENT_SLA_BREACHED_OWNER_NOTIFICATION = "Send notification when an incident I own misses an SLA deadline",
 
   // Alerts
 

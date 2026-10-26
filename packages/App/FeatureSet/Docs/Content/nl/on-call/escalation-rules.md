@@ -70,7 +70,7 @@ Ingeklapt noemt de kop van **Meer velden** de twee en toont welke de regel heeft
 
 ### Maak de regel aan
 
-Klik op **Create Rule**. De regel wordt onder de andere toegevoegd, als het volgende niveau van het beleid.
+Klik op **Regel maken**. De regel wordt onder de andere toegevoegd, als het volgende niveau van het beleid.
 :::
 
 ## Hoe de niveaus mensen oproepen
@@ -161,7 +161,7 @@ Op OneUptime Cloud wordt elke SMS, oproep, WhatsApp- en Telegram-bericht betaald
 - Oproepen blijven uitgaan op het resterende saldo zolang automatisch bijvullen de kaart niet kan belasten.
 
 > [!IMPORTANT]
-> SMS, telefoonoproepen, WhatsApp en Telegram staan uit in een nieuw project: op OneUptime Cloud wordt elk bericht betaald uit het saldo van het project, en een zelfgehoste installatie heeft eerst een Twilio-account of een ingestelde Telegram-bot nodig. Zolang een kanaal uit staat, kan niemand in het project er een methode op toevoegen. Alleen een projecteigenaar of iemand met de rol **Billing Admin** of de machtiging **Manage Billing** kan er een aanzetten, in de kaart **Meldingskanalen** onder **Projectinstellingen > Meldingen > Meldingsinstellingen** — een projectbeheerder kan dat niet. Alle anderen krijgen overal waar een kanaal uit staat precies te horen wie het kan aanzetten: boven hun eigen lijst met methoden op dat kanaal, op hun installatiechecklist en in het bericht dat ze krijgen wanneer iets het kanaal nodig heeft.
+> SMS, telefoonoproepen, WhatsApp en Telegram staan uit in een nieuw project: op OneUptime Cloud wordt elk bericht betaald uit het saldo van het project, en een zelfgehoste installatie heeft eerst een Twilio-account of een ingestelde Telegram-bot nodig. Zolang een kanaal uit staat, kan niemand in het project er een methode op toevoegen. Alleen een projecteigenaar of iemand met de rol **Factureringsbeheerder** of de machtiging **Manage Billing** kan er een aanzetten, in de kaart **Meldingskanalen** onder **Projectinstellingen > Meldingen > Meldingsinstellingen** — een projectbeheerder kan dat niet. Alle anderen krijgen overal waar een kanaal uit staat precies te horen wie het kan aanzetten: boven hun eigen lijst met methoden op dat kanaal, op hun installatiechecklist en in het bericht dat ze krijgen wanneer iets het kanaal nodig heeft.
 
 ## Escaleren naar de volgende persoon in de rotatie
 
@@ -175,7 +175,7 @@ Een niveau kan de volgende persoon in de rotatie van een bereikbaarheidsschema o
 
 :::steps
 1. Zorg dat het eerste niveau van het beleid, **Level 1**, het bereikbaarheidsschema op de hoogte stelt.
-2. Klik op **Escalatieregel toevoegen**, dan op **Ontvanger toevoegen**, en kies hetzelfde schema onder **Volgende in de rotatie**. Stel **Escaleren na (in minuten)** in en klik op **Create Rule**.
+2. Klik op **Escalatieregel toevoegen**, dan op **Ontvanger toevoegen**, en kies hetzelfde schema onder **Volgende in de rotatie**. Stel **Escaleren na (in minuten)** in en klik op **Regel maken**.
 3. Voeg nog een niveau toe voor het team of de manager die het daarna moet horen.
 :::
 
@@ -232,11 +232,11 @@ Elke keer dat een oproep wordt geëscaleerd, wordt dat vastgelegd. De **Tijdlijn
 
 ## Regels bewerken, herordenen en verwijderen
 
-De kaart van elke regel heeft **Edit rule**, en een **⋯**-menu met de andere acties:
+De kaart van elke regel heeft **Regel bewerken**, en een **⋯**-menu met de andere acties:
 
-- **Edit rule** opent hetzelfde dialoogvenster van één pagina, ingevuld met de regel zoals die is: de ontvangers, de wachttijd, en de naam en beschrijving onder **Meer velden**. Voeg ontvangers toe of verwijder ze en klik op **Wijzigingen opslaan**. Wordt de naam leeggemaakt, dan krijgt de regel weer de naam van zijn niveau.
+- **Regel bewerken** opent hetzelfde dialoogvenster van één pagina, ingevuld met de regel zoals die is: de ontvangers, de wachttijd, en de naam en beschrijving onder **Meer velden**. Voeg ontvangers toe of verwijder ze en klik op **Wijzigingen opslaan**. Wordt de naam leeggemaakt, dan krijgt de regel weer de naam van zijn niveau.
 - **Omhoog** en **Omlaag** in het **⋯**-menu van een regel wijzigen het niveau. Een regel die naar zijn niveau is genoemd, houdt een naam die bij zijn plaats past: wanneer **Level 3** voorbij **Level 2** omhoog gaat, wisselen beide van naam. Een naam die u zelf koos, zoals **Managers**, blijft hetzelfde waar de regel ook heen gaat.
-- **Delete rule** vraagt eerst om bevestiging en zegt wie het niveau oproept. Verwijdert u een niveau, dan schuiven de niveaus eronder omhoog, en regels die naar hun niveau zijn genoemd, worden mee hernoemd.
+- **Regel verwijderen** vraagt eerst om bevestiging en zegt wie het niveau oproept. Verwijdert u een niveau, dan schuiven de niveaus eronder omhoog, en regels die naar hun niveau zijn genoemd, worden mee hernoemd.
 
 ## Regels maken met de API of Terraform
 

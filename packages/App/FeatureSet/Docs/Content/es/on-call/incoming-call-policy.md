@@ -160,7 +160,7 @@ Una regla hace sonar a una persona en el número que verificó para llamadas ent
 
 Cada persona puede tener un número verificado por proyecto. Para cambiarlo, elimina primero el número antiguo. Estos números son distintos de los números de teléfono de **Métodos de notificación**, que usan los avisos de guardia. Consulta [Métodos de notificación](/docs/notifications/notification-methods).
 
-Los números para llamadas entrantes se verifican por SMS, así que primero el proyecto debe tener **SMS** activado. Un propietario del proyecto o alguien con el rol **Billing Admin** o el permiso **Manage Billing** lo activa en la tarjeta **Canales de notificación** de **Ajustes del proyecto > Notificaciones > Ajustes de notificaciones**.
+Los números para llamadas entrantes se verifican por SMS, así que primero el proyecto debe tener **SMS** activado. Un propietario del proyecto o alguien con el rol **Administrador de facturación** o el permiso **Manage Billing** lo activa en la tarjeta **Canales de notificación** de **Ajustes del proyecto > Notificaciones > Ajustes de notificaciones**.
 
 ## Mensajes de voz y ajustes de la política
 
@@ -182,7 +182,7 @@ Twilio lee los mensajes con una voz sintética, así que escríbelos como quiera
 
 ## Registros de llamadas
 
-Cada llamada aparece en la página **Registros de llamadas** de la política, en **Registros** en su menú lateral: el **Llamante**, el **Número llamado**, su **Estado**, quién la contestó (**Respondida por**), la **Duración** y cuándo empezó (**Iniciado en**). Haz clic en **View Timeline** en una llamada para ver su **Cronología de llamadas**: cada persona a la que sonó, en qué número y cómo terminó cada intento.
+Cada llamada aparece en la página **Registros de llamadas** de la política, en **Registros** en su menú lateral: el **Llamante**, el **Número llamado**, su **Estado**, quién la contestó (**Respondida por**), la **Duración** y cuándo empezó (**Iniciado en**). Haz clic en **Ver cronología** en una llamada para ver su **Cronología de llamadas**: cada persona a la que sonó, en qué número y cómo terminó cada intento.
 
 | Estado | Qué pasó |
 | --- | --- |
@@ -225,8 +225,8 @@ Un flujo de trabajo puede leer registros de llamadas con **Find One** y **Find M
 
 Los números de teléfono de una política siguen los mismos roles que la propia política:
 
-- **Buscar números** - buscar en Twilio un número que reservar, o listar los números que ya tiene tu cuenta de Twilio - necesita permiso para leer las políticas de llamadas entrantes y para leer las configuraciones de llamadas y SMS, porque lee tu cuenta de Twilio a través de una de ellas. **Project Owner**, **Project Admin**, **Project Member**, **Viewer**, **Settings Admin**, **Settings Member** y **Settings Viewer** tienen ambos. En un rol personalizado, son **Read Incoming Call Policy** y **Read Call and SMS**.
-- **Reservar un número, usar uno existente y liberar uno** necesitan permiso para editar las políticas de llamadas entrantes: **Project Owner**, **Project Admin**, **Project Member**, **Settings Admin** y **Settings Member**, o **Edit Incoming Call Policy** en un rol personalizado. Cambian los números de una política que puedes editar: con un rol limitado a ciertas etiquetas, las políticas que llevan esas etiquetas.
+- **Buscar números** - buscar en Twilio un número que reservar, o listar los números que ya tiene tu cuenta de Twilio - necesita permiso para leer las políticas de llamadas entrantes y para leer las configuraciones de llamadas y SMS, porque lee tu cuenta de Twilio a través de una de ellas. **Propietario del proyecto**, **Administrador del proyecto**, **Miembro del proyecto**, **Visor**, **Administrador de ajustes**, **Miembro de ajustes** y **Visor de ajustes** tienen ambos. En un rol personalizado, son **Read Incoming Call Policy** y **Read Call and SMS**.
+- **Reservar un número, usar uno existente y liberar uno** necesitan permiso para editar las políticas de llamadas entrantes: **Propietario del proyecto**, **Administrador del proyecto**, **Miembro del proyecto**, **Administrador de ajustes** y **Miembro de ajustes**, o **Edit Incoming Call Policy** en un rol personalizado. Cambian los números de una política que puedes editar: con un rol limitado a ciertas etiquetas, las políticas que llevan esas etiquetas.
 
 Un bloqueo de equipo sin etiquetas sobre uno de estos permisos lo retira. Para cualquier otra persona, **Añadir número de teléfono** y **Liberar** siguen en la página, bloqueados, y su descripción emergente dice qué necesitan. La API rechaza su petición con una frase que dice qué necesita: "Looking up phone numbers needs permission to read incoming call policies and call and SMS settings." o "Adding or releasing a phone number needs permission to edit incoming call policies." Reservar un número se cobra a tu propia cuenta de Twilio, no a tu saldo de OneUptime, así que no necesita permiso de facturación.
 

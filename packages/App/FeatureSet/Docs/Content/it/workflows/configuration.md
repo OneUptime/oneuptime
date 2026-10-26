@@ -99,7 +99,7 @@ I trigger webhook ti danno un URL univoco. Chiunque conosca l'URL può chiamarlo
 - Per i workflow sensibili, chiedi al sistema chiamante di inviare un token condiviso in un header (come `X-Webhook-Token`) e verificalo con un blocco **If / Else** prima di fare qualcosa di importante. Salva il token atteso come variabile segreta.
 - Per i workflow molto sensibili, preferisci un trigger di evento OneUptime e un passaggio di importazione manuale a un webhook pubblico.
 
-Solo le persone che possono modificare il workflow — **Project Owner**, **Project Admin**, **Workflow Admin** o **Edit Workflow** — possono vedere o reimpostare il suo URL di webhook. Chiunque abbia l'URL può avviare il workflow da qualsiasi luogo, senza accedere, quindi tutti gli altri vedono una nota che dice a chi chiederlo. Questo include un **Workflow Member**, che esegue il workflow a mano dal **Costruttore**.
+Solo le persone che possono modificare il workflow — **Proprietario del progetto**, **Amministratore del progetto**, **Amministratore dei flussi di lavoro** o **Edit Workflow** — possono vedere o reimpostare il suo URL di webhook. Chiunque abbia l'URL può avviare il workflow da qualsiasi luogo, senza accedere, quindi tutti gli altri vedono una nota che dice a chi chiederlo. Questo include un **Membro dei flussi di lavoro**, che esegue il workflow a mano dal **Costruttore**.
 
 ## Sicurezza delle email in arrivo
 
@@ -110,7 +110,7 @@ Il trigger Incoming Email dà al workflow un indirizzo tutto suo, e chiunque con
 - Chiunque può mettere qualsiasi mittente su un'email, quindi **From** non prova chi l'ha inviata. Prima che un workflow faccia qualcosa di importante, verifica qualcosa che conosce solo il vero mittente — un token nell'oggetto o in un header — con un blocco **If / Else**. Salva il token atteso come variabile segreta.
 - La chiave viene nascosta in tutto ciò che l'esecuzione riceve — **To**, **CC**, gli header e i corpi — perché il registro dell'esecuzione è visibile a chiunque possa leggere le esecuzioni del workflow.
 
-Solo le persone che possono modificare il workflow — **Project Owner**, **Project Admin**, **Workflow Admin** o **Edit Workflow** — possono vedere o reimpostare il suo indirizzo. Tutti gli altri vedono una nota che dice a chi chiederlo.
+Solo le persone che possono modificare il workflow — **Proprietario del progetto**, **Amministratore del progetto**, **Amministratore dei flussi di lavoro** o **Edit Workflow** — possono vedere o reimpostare il suo indirizzo. Tutti gli altri vedono una nota che dice a chi chiederlo.
 
 ## Accesso alla rete in uscita
 
@@ -166,30 +166,30 @@ Gli errori di convalida, configurazione, accesso, limite, crediti, concorrenza, 
 
 I workflow rispettano il controllo degli accessi basato sui ruoli del tuo progetto. I tre ruoli dei workflow:
 
-- **Workflow Admin** — costruisce i workflow: li crea, li modifica, li esegue e li elimina, e gestisce le variabili che usano.
-- **Workflow Member** — li usa: apre i workflow e le loro esecuzioni, ed esegue un workflow a mano con **Esegui flusso di lavoro**. Un membro non può creare, modificare o eliminare un workflow, né eseguire da solo uno dei suoi passaggi.
-- **Workflow Viewer** — legge i workflow e le loro esecuzioni.
+- **Amministratore dei flussi di lavoro** — costruisce i workflow: li crea, li modifica, li esegue e li elimina, e gestisce le variabili che usano.
+- **Membro dei flussi di lavoro** — li usa: apre i workflow e le loro esecuzioni, ed esegue un workflow a mano con **Esegui flusso di lavoro**. Un membro non può creare, modificare o eliminare un workflow, né eseguire da solo uno dei suoi passaggi.
+- **Visualizzatore dei flussi di lavoro** — legge i workflow e le loro esecuzioni.
 
-**Project Owner** e **Project Admin** possono fare tutto ciò che può fare un Workflow Admin. **Project Member** può creare ed eliminare workflow, ma non modificarli né eseguirli.
+**Proprietario del progetto** e **Amministratore del progetto** possono fare tutto ciò che può fare un Workflow Admin. **Membro del progetto** può creare ed eliminare workflow, ma non modificarli né eseguirli.
 
 I singoli permessi, per un team o una chiave API che ha bisogno di una sola cosa:
 
 - **Create / Read / Edit / Delete Workflow** — i permessi di base sul workflow stesso. Modificare un workflow, compreso accenderlo, spegnerlo o archiviarlo, richiede **Edit Workflow**; **Delete Workflow** serve solo a eliminare.
-- **Edit Workflow** — è anche ciò che serve per eseguire un singolo passaggio con **Run just this step**, e per vedere o reimpostare l'URL del webhook e l'indirizzo email in arrivo di un workflow. Eseguire un intero workflow a mano richiede **Edit Workflow**, **Workflow Admin** o **Workflow Member**.
+- **Edit Workflow** — è anche ciò che serve per eseguire un singolo passaggio con **Run just this step**, e per vedere o reimpostare l'URL del webhook e l'indirizzo email in arrivo di un workflow. Eseguire un intero workflow a mano richiede **Edit Workflow**, **Amministratore dei flussi di lavoro** o **Membro dei flussi di lavoro**.
 - **Read Workflow Log** — necessario per vedere le esecuzioni.
 - **Create / Read / Edit / Delete Workflow Variables** — gestire le variabili globali e del workflow.
 
 Un'esecuzione a mano raggiunge solo i workflow che puoi aprire: un ruolo limitato ad alcune etichette, o ai workflow posseduti dal tuo team, esegue solo quelli. Chi non può eseguire un workflow vede **Esegui flusso di lavoro** disattivato, con il motivo nel tooltip.
 
-Assegna **Workflow Admin** alle persone che costruiscono l'automazione, e **Workflow Member** a quelle che si limitano ad avviarla. Riserva l'accesso in modifica alle variabili alle persone che gestiscono i segreti del progetto. Vedi [Utenti, team e autorizzazioni](/docs/permissions/index) per come vengono assegnati i ruoli.
+Assegna **Amministratore dei flussi di lavoro** alle persone che costruiscono l'automazione, e **Membro dei flussi di lavoro** a quelle che si limitano ad avviarla. Riserva l'accesso in modifica alle variabili alle persone che gestiscono i segreti del progetto. Vedi [Utenti, team e autorizzazioni](/docs/permissions/index) per come vengono assegnati i ruoli.
 
 ## Cosa possono fare i passaggi di un workflow
 
-I passaggi che leggono e modificano i record di OneUptime — i componenti Find, Create, Update e Delete, e i trigger On Create, On Update, On Create or Update e On Delete — agiscono come **Project Admin** del progetto del workflow. Chiunque abbia costruito il workflow, un passaggio supera gli stessi controlli che supera un Project Admin nella dashboard e nell'API:
+I passaggi che leggono e modificano i record di OneUptime — i componenti Find, Create, Update e Delete, e i trigger On Create, On Update, On Create or Update e On Delete — agiscono come **Amministratore del progetto** del progetto del workflow. Chiunque abbia costruito il workflow, un passaggio supera gli stessi controlli che supera un Project Admin nella dashboard e nell'API:
 
 - **Solo il progetto del workflow.** Un passaggio legge e scrive i record del progetto a cui appartiene il workflow e di nessun altro, e un Update non sposta mai un record in un altro progetto.
-- **Solo ciò che può fare un Project Admin.** Un passaggio non può fare ciò che solo **Project Owner** e i permessi di fatturazione o di eliminazione del progetto consentono, e non può leggere chi ha creato una sonda o un agente IA, cosa che vedono solo i proprietari del progetto.
-- **Non chi ha accesso.** Un passaggio non crea, non modifica e non elimina team, membri dei team, permessi dei team, ruoli personalizzati o permessi delle chiavi API, anche se un Project Admin può farlo. Chi costruisce un workflow decide cosa fanno i suoi passaggi, e può essere un **Project Member**, quindi un passaggio che potesse farlo darebbe a chi lo ha costruito un accesso che non gli è stato dato, come **Project Admin**. Il passaggio viene rifiutato, e il registro dell'esecuzione dice che deve fare la modifica una persona che gestisce i team e le chiavi API del progetto. I trigger e i passaggi Find su questi record continuano a funzionare.
+- **Solo ciò che può fare un Project Admin.** Un passaggio non può fare ciò che solo **Proprietario del progetto** e i permessi di fatturazione o di eliminazione del progetto consentono, e non può leggere chi ha creato una sonda o un agente IA, cosa che vedono solo i proprietari del progetto.
+- **Non chi ha accesso.** Un passaggio non crea, non modifica e non elimina team, membri dei team, permessi dei team, ruoli personalizzati o permessi delle chiavi API, anche se un Project Admin può farlo. Chi costruisce un workflow decide cosa fanno i suoi passaggi, e può essere un **Membro del progetto**, quindi un passaggio che potesse farlo darebbe a chi lo ha costruito un accesso che non gli è stato dato, come **Amministratore del progetto**. Il passaggio viene rifiutato, e il registro dell'esecuzione dice che deve fare la modifica una persona che gestisce i team e le chiavi API del progetto. I trigger e i passaggi Find su questi record continuano a funzionare.
 - **Non la lettura delle impostazioni che contengono credenziali.** Un Project Admin può leggere server SMTP, fornitori di chiamate e SMS, credenziali SNMP, connessioni per videochiamate e chiavi API, ma questo non viene mai prestato a un passaggio, chiunque abbia costruito o salvato il workflow. Un passaggio non può indicare una di queste impostazioni, come il server SMTP con cui una pagina di stato invia email o la chiave API a cui viene concesso un permesso. Il passaggio viene rifiutato, e il suo log di esecuzione dice che deve fare la modifica una persona che può leggerle (il permesso di lettura di quel tipo di impostazione, oppure un Project Owner o un Project Admin). Un passaggio che mantiene l'impostazione che un record indica già, o la svuota, non viene rifiutato.
 - **Solo ciò che il tuo piano include.** Su OneUptime Cloud, un passaggio che crea o modifica qualcosa che il tuo piano non include viene rifiutato indicando il piano necessario, proprio come nella dashboard. Le installazioni self-hosted senza fatturazione non hanno limiti di piano.
 - **Niente di ciò che OneUptime tiene per sé.** Questo viene rifiutato a tutti, workflow compresi:

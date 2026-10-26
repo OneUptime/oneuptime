@@ -54,6 +54,7 @@ import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import { ColumnAccessControl } from "../../../Types/BaseDatabase/AccessControl";
 import { Black, VeryLightGray } from "../../../Types/BrandColors";
 import Color from "../../../Types/Color";
+import { clearBlankColumnValues } from "../../../Types/Database/BlankColumnValue";
 import { getMaxLengthFromTableColumnType } from "../../../Types/Database/ColumnLength";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
@@ -1378,6 +1379,13 @@ const ModelForm: <TBaseModel extends BaseModel>(
 
         (valuesToSend as any)[key] = values[key];
       }
+
+      /*
+       * An emptied number, date or port box hands back "", which those
+       * columns cannot hold: it is sent as none, or the column's default
+       * where the column may not be empty (Types/Database/BlankColumnValue).
+       */
+      clearBlankColumnValues(valuesToSend, model);
 
       applyRuleCriteriaLegacySafetyShadow({
         model: model,

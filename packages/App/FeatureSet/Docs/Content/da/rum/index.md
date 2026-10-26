@@ -33,16 +33,16 @@ flowchart TB
 
 Åbn **Produkter → Ressourcer → Overvågning af reelle brugere**. **Alle applikationer** viser dine applikationer med **Klienttype**, **Status** og **Sidst set**. To andre sektioner i sidemenuen er foldet sammen fra start:
 
-- **Indstillinger**: **Ejerregler**, **Etiketregler** og projektets fælles **Session Replay**-kontakt.
+- **Indstillinger**: **Ejerregler**, **Etiketregler** og projektets fælles **Sessionsafspilning**-kontakt.
 - **Avanceret**: **Arkiveret**, de applikationer, du har arkiveret.
 
 En applikations egen sidemenu grupperer dens sider sådan; **Indstillinger**, **Udvikler** og **Avanceret** er foldet sammen fra start:
 
 | Sektion | Sider |
 | --- | --- |
-| **Grundlæggende** | **Oversigt**, **Recommendations**, **Dokumentation** |
+| **Grundlæggende** | **Oversigt**, **Anbefalinger**, **Dokumentation** |
 | **Observabilitet** | **Metrikker**, **Protokoller**, **Spor**, **Klienter** |
-| **Session Replay** | **Session Replay**, **User Flows**, **Replay Users**, **Health**, **Replay Policy**, **Replay Access Log**, **Dokumentation** |
+| **Sessionsafspilning** | **Sessionsafspilning**, **User Flows**, **Replay Users**, **Sundhed**, **Replay Policy**, **Adgangslog for afspilninger**, **Dokumentation** |
 | **Indstillinger** | **Indstillinger** |
 | **Udvikler** | **Terraform**, **API**, **AI-assistenter** |
 | **Avanceret** | **Slet applikation** |
@@ -81,8 +81,8 @@ OneUptime finder applikationen ud fra `service.name` uden hensyn til store og sm
 | **Core Web Vitals** | Et kort i oversigten med LCP, INP, CLS, FCP og TTFB, hver vurderet efter Googles grænser, og INP for hver rute i en single-page-app. Se [Core Web Vitals](/docs/rum/web-vitals) og [Single-page-apps](/docs/rum/web-vitals#single-page-apps). |
 | **Metrikker**, **Protokoller**, **Spor** | Telemetri-explorerne, begrænset til denne applikation. |
 | **Klienter** | De browserplatforme og enhedsmodeller, applikationen er blevet brugt på: en kort liste pr. platform, aldrig en række pr. bruger. |
-| **Session Replay** | Optagelser af rigtige sessioner ved siden af deres fejl, spor og logs: se [Sessionsafspilning](/docs/telemetry/session-replay). |
-| **Recommendations** | Færdige monitorer til applikationen: dårlige Core Web Vitals, mislykkede forespørgsler, browserundtagelser og, så snart den optager, budgetter for Session Replay. |
+| **Sessionsafspilning** | Optagelser af rigtige sessioner ved siden af deres fejl, spor og logs: se [Sessionsafspilning](/docs/telemetry/session-replay). |
+| **Anbefalinger** | Færdige monitorer til applikationen: dårlige Core Web Vitals, mislykkede forespørgsler, browserundtagelser og, så snart den optager, budgetter for Session Replay. |
 
 Tallene kommer fra de spans, din instrumentering sender. **Page loads** tæller det `documentLoad`-span, som sideindlæsningsinstrumenteringen registrerer ved hver fuld indlæsning, så et ruteskift i en single-page-app er ikke en sideindlæsning.
 

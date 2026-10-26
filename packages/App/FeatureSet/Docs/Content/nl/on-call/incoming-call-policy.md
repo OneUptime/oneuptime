@@ -38,11 +38,11 @@ flowchart TB
 :::steps
 ### Voeg uw Twilio-account toe
 
-Ga naar **Projectinstellingen** > **Meldingen** > **Meldingsinstellingen**. Klik in de kaart **Twilio-configuratie** op **Twilio-configuratie aanmaken** en vul het formulier in:
+Ga naar **Projectinstellingen** > **Meldingen** > **Meldingsinstellingen**. Klik in de kaart **Twilio-configuratie** op **Twilio-configuratie maken** en vul het formulier in:
 
 - **Naam** en **Beschrijving**: waar het account voor is, zoals "Supportlijn".
-- **Twilio Account SID**: uit de Twilio Console. Hij begint met `AC`.
-- **Twilio Auth Token**: uit de Twilio Console.
+- **Twilio-account-SID**: uit de Twilio Console. Hij begint met `AC`.
+- **Twilio-authenticatietoken**: uit de Twilio Console.
 - **Twilio primair telefoonnummer**: een nummer van dat account, voor de sms'jes en gesprekken die het verstuurt. Onder **Meer velden**, optioneel: nummers voor ontvangers in andere landen, en nummers voor sms als de nummers van het account alleen kunnen bellen (zie [Aparte nummers voor oproepen en sms](/docs/self-hosted/twilio-integration#aparte-nummers-voor-oproepen-en-sms)).
 - **Instellen als projectstandaard**: aan voor de eerste Twilio-configuratie van het project, zodat ook de sms'jes en gesprekken naar de leden van het project via dit account gaan. Zet het uit als dit account alleen voor inkomende oproepen is.
 
@@ -56,7 +56,7 @@ Het **Overzicht** van het beleid toont een kaart **Instellen** met drie genummer
 
 ### Voeg een telefoonnummer toe
 
-Klik in de tweede stap op **Add Phone Number**. Kies **Use Existing Phone Number** om een nummer mee te nemen dat uw Twilio-account al heeft, of **Reserve New Phone Number** om een nieuw nummer te krijgen. OneUptime laat het nummer naar zichzelf wijzen, dus in Twilio hoeft u niets in te stellen. Zie [Telefoonnummers](#telefoonnummers).
+Klik in de tweede stap op **Telefoonnummer toevoegen**. Kies **Bestaand telefoonnummer gebruiken** om een nummer mee te nemen dat uw Twilio-account al heeft, of **Nieuw telefoonnummer reserveren** om een nieuw nummer te krijgen. OneUptime laat het nummer naar zichzelf wijzen, dus in Twilio hoeft u niets in te stellen. Zie [Telefoonnummers](#telefoonnummers).
 
 ### Voeg escalatieregels toe
 
@@ -68,7 +68,7 @@ Iedereen die een regel kan laten overgaan, voegt zijn eigen nummer voor inkomend
 
 ### Bel het nummer
 
-Wanneer alle drie de stappen klaar zijn, wordt de kaart **Phone Numbers & Twilio Configuration**. Bel het nummer vanaf een willekeurige telefoon en open daarna de **Belogboeken** van het beleid om te zien wie er is gebeld.
+Wanneer alle drie de stappen klaar zijn, wordt de kaart **Telefoonnummers en Twilio-configuratie**. Bel het nummer vanaf een willekeurige telefoon en open daarna de **Belogboeken** van het beleid om te zien wie er is gebeld.
 :::
 
 ## Hoe een gesprek wordt gerouteerd
@@ -127,16 +127,16 @@ Bijvoorbeeld drie regels die twee rotaties proberen en daarna een leidinggevende
 
 ## Telefoonnummers
 
-Een beleid kan meerdere nummers hebben, en elk ervan laat dezelfde regels overgaan. Elk nummer hoort bij één beleid. Voeg ze toe met **Add Phone Number** op het **Overzicht** van het beleid:
+Een beleid kan meerdere nummers hebben, en elk ervan laat dezelfde regels overgaan. Elk nummer hoort bij één beleid. Voeg ze toe met **Telefoonnummer toevoegen** op het **Overzicht** van het beleid:
 
 :::tabs
 @tab Een nummer gebruiken dat u al hebt
-1. Klik op **Add Phone Number** en daarna op **Use Existing Phone Number**. OneUptime toont de nummers van het Twilio-account van het beleid.
+1. Klik op **Telefoonnummer toevoegen** en daarna op **Bestaand telefoonnummer gebruiken**. OneUptime toont de nummers van het Twilio-account van het beleid.
 2. Klik op **Selecteren** naast het nummer en daarna op **Nummer toewijzen**.
 
 Een nummer dat zijn gesprekken al ergens anders heen stuurt, meldt "Currently has a webhook configured". Toewijzen stuurt de gesprekken ervan voortaan naar OneUptime.
 @tab Een nieuw nummer reserveren
-1. Klik op **Add Phone Number**, daarna op **Reserve New Phone Number** en **Zoek naar nummers**.
+1. Klik op **Telefoonnummer toevoegen**, daarna op **Nieuw telefoonnummer reserveren** en **Zoek naar nummers**.
 2. Kies een **Land**. Vul desgewenst **Netnummer (optioneel)** in, zoals 415, of **Bevat (optioneel)** met cijfers die het nummer moet bevatten. Klik op **Zoeken**: er worden tot 10 lokale nummers getoond.
 3. Klik op **Reserveren** naast een nummer en bevestig met **Reserveren**. Twilio brengt het nummer in rekening op uw Twilio-account.
 :::
@@ -146,7 +146,7 @@ OneUptime stelt de voice-webhook van het nummer in op `https://<your host>/notif
 Om een nummer vrij te geven, klikt u op **Vrijgeven** ernaast en bevestigt u met **Nummer vrijgeven**.
 
 > [!CAUTION]
-> Een nummer vrijgeven geeft het terug aan Twilio, ook een nummer dat u met **Use Existing Phone Number** hebt meegenomen, en u krijgt het misschien niet terug. Een beleid verwijderen, of de Twilio-configuratie die het gebruikt, geeft de nummers ervan ook vrij.
+> Een nummer vrijgeven geeft het terug aan Twilio, ook een nummer dat u met **Bestaand telefoonnummer gebruiken** hebt meegenomen, en u krijgt het misschien niet terug. Een beleid verwijderen, of de Twilio-configuratie die het gebruikt, geeft de nummers ervan ook vrij.
 
 ## Telefoonnummers van engineers
 
@@ -160,7 +160,7 @@ Een regel laat een persoon overgaan op het nummer dat die persoon in dit project
 
 Iedereen kan één geverifieerd nummer per project hebben. Om het te wijzigen, verwijdert u eerst het oude nummer. Deze nummers staan los van de telefoonnummers onder **Meldingsmethoden**, die oproepen voor bereikbaarheidsdiensten gebruiken. Zie [Meldingsmethoden](/docs/notifications/notification-methods).
 
-Nummers voor inkomende oproepen worden per sms geverifieerd, dus **SMS** moet eerst aan staan voor het project. Een projecteigenaar, een **Billing Admin** of iemand met **Manage Billing** zet het aan in de kaart **Meldingskanalen** op **Projectinstellingen > Meldingen > Meldingsinstellingen**.
+Nummers voor inkomende oproepen worden per sms geverifieerd, dus **SMS** moet eerst aan staan voor het project. Een projecteigenaar, een **Factureringsbeheerder** of iemand met **Manage Billing** zet het aan in de kaart **Meldingskanalen** op **Projectinstellingen > Meldingen > Meldingsinstellingen**.
 
 ## Spraakberichten en beleidsinstellingen
 
@@ -182,19 +182,19 @@ Twilio leest de berichten voor met een tekst-naar-spraakstem, dus schrijf ze zoa
 
 ## Belogboeken
 
-Elk gesprek staat op de pagina **Belogboeken** van het beleid, onder **Logboeken** in het zijmenu ervan: de **Beller**, het **Number Called**, de **Status** ervan, wie het aannam (**Beantwoord door**), de **Duur**, en wanneer het begon (**Gestart op**). Klik op **View Timeline** bij een gesprek om de **Oproeptijdlijn** ervan te zien: elke persoon die is gebeld, op welk nummer, en hoe elke poging eindigde.
+Elk gesprek staat op de pagina **Belogboeken** van het beleid, onder **Logboeken** in het zijmenu ervan: de **Beller**, het **Gebeld nummer**, de **Status** ervan, wie het aannam (**Beantwoord door**), de **Duur**, en wanneer het begon (**Gestart op**). Klik op **Tijdlijn bekijken** bij een gesprek om de **Oproeptijdlijn** ervan te zien: elke persoon die is gebeld, op welk nummer, en hoe elke poging eindigde.
 
 | Status | Wat er gebeurde |
 | --- | --- |
-| **Initiated**, **Geëscaleerd** | Het gesprek loopt nog: het kwam binnen en een telefoon gaat over, of het ging naar een latere regel. |
+| **Gestart**, **Geëscaleerd** | Het gesprek loopt nog: het kwam binnen en een telefoon gaat over, of het ging naar een latere regel. |
 | **Voltooid** | Iemand nam op, en de beller werd doorverbonden. |
 | **Geen antwoord** | Elke escalatieregel is geprobeerd en niemand nam op. De beller hoorde uw **Bericht bij geen antwoord**. |
-| **Caller Hung Up** | De beller hing op terwijl de telefoon van een engineer overging. |
+| **Beller heeft opgehangen** | De beller hing op terwijl de telefoon van een engineer overging. |
 | **Mislukt** | Niemand kon worden gebeld: geen enkele escalatieregel had een dienstdoende gebruiker met een geverifieerd nummer voor inkomende oproepen (de beller hoorde uw **Bericht bij niemand beschikbaar**), of **Gesprekken aannemen** staat uit. |
 
 ## Gemiste oproepen
 
-Een gesprek is gemist wanneer het eindigt zonder iemand te bereiken: de status ervan is **Geen antwoord**, **Caller Hung Up** of **Mislukt**.
+Een gesprek is gemist wanneer het eindigt zonder iemand te bereiken: de status ervan is **Geen antwoord**, **Beller heeft opgehangen** of **Mislukt**.
 
 ### Wie een melding krijgt
 
@@ -225,10 +225,10 @@ Een workflow kan belogboeken lezen met **Find One** en **Find Many**, maar kan z
 
 De telefoonnummers van een beleid volgen dezelfde rollen als het beleid zelf:
 
-- **Nummers opzoeken** - in Twilio zoeken naar een nummer om te reserveren, of de nummers tonen die uw Twilio-account al heeft - vereist de machtiging om beleid voor inkomende oproepen te lezen en om configuraties voor gesprekken en sms te lezen, omdat het uw Twilio-account via zo'n configuratie leest. **Project Owner**, **Project Admin**, **Project Member**, **Viewer**, **Settings Admin**, **Settings Member** en **Settings Viewer** hebben beide. In een aangepaste rol zijn dat **Read Incoming Call Policy** en **Read Call and SMS**.
-- **Een nummer reserveren, een bestaand nummer gebruiken en een nummer vrijgeven** vereisen de machtiging om beleid voor inkomende oproepen te bewerken: **Project Owner**, **Project Admin**, **Project Member**, **Settings Admin** en **Settings Member**, of **Edit Incoming Call Policy** in een aangepaste rol. Ze wijzigen de nummers van een beleid dat u mag bewerken: met een rol die tot bepaalde labels is beperkt, het beleid met die labels.
+- **Nummers opzoeken** - in Twilio zoeken naar een nummer om te reserveren, of de nummers tonen die uw Twilio-account al heeft - vereist de machtiging om beleid voor inkomende oproepen te lezen en om configuraties voor gesprekken en sms te lezen, omdat het uw Twilio-account via zo'n configuratie leest. **Projecteigenaar**, **Projectbeheerder**, **Projectlid**, **Kijker**, **Instellingenbeheerder**, **Instellingenlid** en **Instellingenkijker** hebben beide. In een aangepaste rol zijn dat **Read Incoming Call Policy** en **Read Call and SMS**.
+- **Een nummer reserveren, een bestaand nummer gebruiken en een nummer vrijgeven** vereisen de machtiging om beleid voor inkomende oproepen te bewerken: **Projecteigenaar**, **Projectbeheerder**, **Projectlid**, **Instellingenbeheerder** en **Instellingenlid**, of **Edit Incoming Call Policy** in een aangepaste rol. Ze wijzigen de nummers van een beleid dat u mag bewerken: met een rol die tot bepaalde labels is beperkt, het beleid met die labels.
 
-Een blokkade van een team zonder labels op een van deze machtigingen neemt die weg. Voor alle anderen blijven **Add Phone Number** en **Vrijgeven** op de pagina staan, vergrendeld, en hun tooltip zegt wat ervoor nodig is. De API weigert hun verzoek met een zin die zegt wat ervoor nodig is: "Looking up phone numbers needs permission to read incoming call policies and call and SMS settings." of "Adding or releasing a phone number needs permission to edit incoming call policies." Een nummer reserveren wordt in rekening gebracht op uw eigen Twilio-account, niet op uw OneUptime-saldo, dus daar is geen factureringsmachtiging voor nodig.
+Een blokkade van een team zonder labels op een van deze machtigingen neemt die weg. Voor alle anderen blijven **Telefoonnummer toevoegen** en **Vrijgeven** op de pagina staan, vergrendeld, en hun tooltip zegt wat ervoor nodig is. De API weigert hun verzoek met een zin die zegt wat ervoor nodig is: "Looking up phone numbers needs permission to read incoming call policies and call and SMS settings." of "Adding or releasing a phone number needs permission to edit incoming call policies." Een nummer reserveren wordt in rekening gebracht op uw eigen Twilio-account, niet op uw OneUptime-saldo, dus daar is geen factureringsmachtiging voor nodig.
 
 ## Beleid maken met de API of Terraform
 
@@ -255,7 +255,7 @@ Een regel die via de API zonder `escalateAfterSeconds` wordt gemaakt, gaat 20 se
 :::details Gesprekken bereiken OneUptime niet
 - Open het nummer in de Twilio Console: **A call comes in** moet de webhook `https://<your host>/notification/incoming-call/voice` zijn, met HTTP POST. OneUptime stelt die in wanneer het nummer wordt toegevoegd, uit `HOST` en `HTTP_PROTOCOL`. Zijn die sindsdien gewijzigd, corrigeer de webhook dan in Twilio.
 - Een zelfgehoste OneUptime moet vanaf internet bereikbaar zijn via https. Het belogboek van het nummer in de Twilio Console, en de **Debugger** van Twilio, tonen wat OneUptime antwoordde.
-- Een antwoord `403` betekent dat de handtekening van het verzoek niet klopte. Controleer of de Twilio-configuratie het huidige **Twilio Auth Token** van het account bevat, en of een proxy vóór OneUptime de host en het schema doorgeeft die Twilio aanriep (`X-Forwarded-Host` en `X-Forwarded-Proto`).
+- Een antwoord `403` betekent dat de handtekening van het verzoek niet klopte. Controleer of de Twilio-configuratie het huidige **Twilio-authenticatietoken** van het account bevat, en of een proxy vóór OneUptime de host en het schema doorgeeft die Twilio aanriep (`X-Forwarded-Host` en `X-Forwarded-Proto`).
 :::
 
 :::details Het gesprek wordt aangenomen, maar niemand wordt gebeld
@@ -267,7 +267,7 @@ Eindigen gesprekken in de voicemail van een engineer, stel dan **Overgaan gedure
 :::
 
 :::details Een nieuw nummer kan niet worden gereserveerd
-Twilio heeft in veel landen een goedgekeurde regulatory bundle nodig voordat het lokale nummers verkoopt, en sommige nummers vereisen een positief Twilio-saldo. Regel dat in de Twilio Console, of haal het nummer daar en voeg het toe met **Use Existing Phone Number**.
+Twilio heeft in veel landen een goedgekeurde regulatory bundle nodig voordat het lokale nummers verkoopt, en sommige nummers vereisen een positief Twilio-saldo. Regel dat in de Twilio Console, of haal het nummer daar en voeg het toe met **Bestaand telefoonnummer gebruiken**.
 :::
 
 :::details Het Twilio-account van het beleid kan niet worden gewijzigd

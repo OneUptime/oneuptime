@@ -39,7 +39,7 @@ Reglerne er forskellige i, hvordan flere match afgøres:
 - **Ejerregler**, **Etiketregler** og **Runbook-regler** handler alle, når de matcher. Ejere og etiketter, som flere regler tilføjer, tilføjes én gang.
 - **Reminder Rules** kontrolleres fra toppen af deres liste og nedad, og det første match vinder. Træk en regel for at ændre dens plads; en ny regel kommer sidst.
 
-En ny regel starter aktiveret; slå **Aktiveret** fra i dens redigeringsformular for at sætte den på pause, og listen viser et grønt **Aktiveret** eller et rødt **Deaktiveret** for hver regel. Ejer-, etiket- og runbook-regler handler på begivenheder, der oprettes, efter du har gemt dem. For at anvende en ejer- eller etiketregel på de begivenheder, du allerede har, bruger du **Run Now**: se [Kør regler på eksisterende ressourcer](/docs/configuration/run-rules-now).
+En ny regel starter aktiveret; slå **Aktiveret** fra i dens redigeringsformular for at sætte den på pause, og listen viser et grønt **Aktiveret** eller et rødt **Deaktiveret** for hver regel. Ejer-, etiket- og runbook-regler handler på begivenheder, der oprettes, efter du har gemt dem. For at anvende en ejer- eller etiketregel på de begivenheder, du allerede har, bruger du **Kør nu**: se [Kør regler på eksisterende ressourcer](/docs/configuration/run-rules-now).
 
 ## Ejer- og etiketregler
 
@@ -119,16 +119,16 @@ Hver vedligeholdelsesmodel har workflow-udløsere og -handlinger, opkaldt efter 
 
 | Rolle                             | Hvad den kan                                                                                         |
 | --------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| **Scheduled Maintenance Viewer**  | Læser begivenheder og ændrer intet.                                                                  |
-| **Scheduled Maintenance Member**  | Opretter, ændrer og sletter begivenheder med deres noter, tilstandstidslinjer og ejere samt begge slags skabeloner. |
-| **Scheduled Maintenance Admin**   | Alt, hvad et medlem gør, og opretter, ændrer og sletter desuden vedligeholdelsestilstande.           |
+| **Vedligeholdelsesseer**  | Læser begivenheder og ændrer intet.                                                                  |
+| **Vedligeholdelsesmedlem**  | Opretter, ændrer og sletter begivenheder med deres noter, tilstandstidslinjer og ejere samt begge slags skabeloner. |
+| **Vedligeholdelsesadministrator**   | Alt, hvad et medlem gør, og opretter, ændrer og sletter desuden vedligeholdelsestilstande.           |
 
-Regler, brugerdefinerede felter og målinger kræver **Project Owner** eller **Project Admin** eller en brugerdefineret rolle med den sides egen tilladelse, for eksempel **Create Scheduled Maintenance Owner Rule**. Runbook-regler accepterer også **Runbook Admin**. **Project Member** arbejder med begivenheder og skabeloner ligesom **Scheduled Maintenance Member**. Se [Brugere, teams og tilladelser](/docs/permissions/index).
+Regler, brugerdefinerede felter og målinger kræver **Projektejer** eller **Projektadministrator** eller en brugerdefineret rolle med den sides egen tilladelse, for eksempel **Create Scheduled Maintenance Owner Rule**. Runbook-regler accepterer også **Runbook-administrator**. **Projektmedlem** arbejder med begivenheder og skabeloner ligesom **Vedligeholdelsesmedlem**. Se [Brugere, teams og tilladelser](/docs/permissions/index).
 
 ## Fejlfinding
 
 :::details En ejerregel tilføjede ingen til en ny begivenhed
-Åbn reglen, og kontrollér dens betingelser: hver betingelse, du har udfyldt, skal holde. Et titelmønster er et regulært udtryk, så `db upgrade` matcher ikke "DB-Upgrade"; skriv `db.upgrade`. En regel handler også kun på begivenheder, der er oprettet, efter den blev gemt: brug **Run Now** til dem, du allerede har.
+Åbn reglen, og kontrollér dens betingelser: hver betingelse, du har udfyldt, skal holde. Et titelmønster er et regulært udtryk, så `db upgrade` matcher ikke "DB-Upgrade"; skriv `db.upgrade`. En regel handler også kun på begivenheder, der er oprettet, efter den blev gemt: brug **Kør nu** til dem, du allerede har.
 :::
 
 :::details Ejerne fik ingen påmindelse

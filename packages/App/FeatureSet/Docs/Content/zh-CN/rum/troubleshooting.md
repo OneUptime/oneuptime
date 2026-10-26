@@ -39,7 +39,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 | `200` 且 `"valid": true` | OneUptime 接受该密钥。响应中还会给出它的 `keyType` 和 `projectId` 。继续下一项检查。 |
 | `401` 且 `"valid": false` | 密钥缺失、未知、已吊销、已关闭或已过期， `message` 会说明是哪一种。在 **项目设置 → 遥测与 APM → 摄取密钥** 下创建一个有效的密钥。 |
 
-Web 应用需要 **Browser** 密钥，移动应用需要 **服务器** 密钥：参见 [浏览器端设置](/docs/rum/browser-setup) 和 [移动端设置](/docs/rum/mobile-setup) 。导出端点也会按 OTLP 规范的要求以 `401` 拒绝错误的密钥，因此行为良好的 SDK 会记录这次拒绝，而不是重试。这一行在浏览器控制台中很容易被忽略，而这项检查会直接给出答案。
+Web 应用需要 **浏览器** 密钥，移动应用需要 **服务器** 密钥：参见 [浏览器端设置](/docs/rum/browser-setup) 和 [移动端设置](/docs/rum/mobile-setup) 。导出端点也会按 OTLP 规范的要求以 `401` 拒绝错误的密钥，因此行为良好的 SDK 会记录这次拒绝，而不是重试。这一行在浏览器控制台中很容易被忽略，而这项检查会直接给出答案。
 
 ## 检查离开浏览器的内容
 
@@ -77,7 +77,7 @@ new BatchSpanProcessor(exporter, { maxExportBatchSize: 100 });
 
 除非 span 携带了很大的属性，例如整段堆栈跟踪或响应正文，浏览器很少发送这么大的批次。精简这些属性是更好的解决办法。
 
-**`422`.** OneUptime 在这里拒绝了该密钥，消息会说明原因。 `Origin https://app.example.com is not allowed for this browser ingestion key.` 表示页面的确切来源（包括协议和端口，如果有）不在该密钥的 **Allowed Origins** 中。 `This telemetry ingestion key has been disabled.` 表示有人关闭了该密钥。
+**`422`.** OneUptime 在这里拒绝了该密钥，消息会说明原因。 `Origin https://app.example.com is not allowed for this browser ingestion key.` 表示页面的确切来源（包括协议和端口，如果有）不在该密钥的 **允许的来源** 中。 `This telemetry ingestion key has been disabled.` 表示有人关闭了该密钥。
 
 **`429`.** 该密钥的 **Requests Per Minute Limit** 已用完： `Too many telemetry requests for this ingestion key. Please retry later.` 除非你在密钥上设置了自己的上限，否则 Browser 密钥对你所有访客合计每分钟允许 6000 个请求。
 
@@ -139,7 +139,7 @@ localStorage.setItem("oneuptime.sessionReplay.debug", "true");
 // then reload the page
 ```
 
-应用程序 **Session Replay** 部分中的 **Health** 页面，以及 **Replay Policy** 上的 **Test your installation** 面板，会从服务器端检查密钥、允许列表和策略，并说明为什么没有数据到达。浏览器控制台则告诉你服务器看不到的那一半。
+应用程序 **会话回放** 部分中的 **健康状况** 页面，以及 **Replay Policy** 上的 **Test your installation** 面板，会从服务器端检查密钥、允许列表和策略，并说明为什么没有数据到达。浏览器控制台则告诉你服务器看不到的那一半。
 
 在默认策略下，用户与页面交互时，录制器大约每 15 秒发送一个分块。空闲的选项卡没有东西可发送，所以先点击或移动鼠标；如果之后仍然完全没有分块请求，那就是出了问题。如果应用程序只在 _On error or frustration_ 时上传，那么在出问题之前保持静默是正常的。调用 `OneUptimeReplay.captureSession()` 强制上传，无论哪种情况都能验证这条路径。
 

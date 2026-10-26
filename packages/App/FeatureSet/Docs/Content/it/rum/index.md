@@ -33,16 +33,16 @@ flowchart TB
 
 Apri **Prodotti → Risorse → Monitoraggio degli utenti reali**. **Tutte le applicazioni** elenca le tue applicazioni con **Tipo di client**, **Stato** e **Visto l'ultima volta**. Altre due sezioni del menu laterale partono chiuse:
 
-- **Impostazioni**: **Regole del proprietario**, **Regole etichette** e l'interruttore **Session Replay** dell'intero progetto.
+- **Impostazioni**: **Regole del proprietario**, **Regole etichette** e l'interruttore **Riproduzione delle sessioni** dell'intero progetto.
 - **Avanzato**: **Archiviato**, le applicazioni che hai archiviato.
 
 Il menu laterale di un'applicazione raggruppa le sue pagine così; **Impostazioni**, **Sviluppatori** e **Avanzato** partono chiuse:
 
 | Sezione | Pagine |
 | --- | --- |
-| **Base** | **Panoramica**, **Recommendations**, **Documentazione** |
+| **Base** | **Panoramica**, **Raccomandazioni**, **Documentazione** |
 | **Osservabilità** | **Metriche**, **Registri**, **Tracce**, **Client** |
-| **Session Replay** | **Session Replay**, **User Flows**, **Replay Users**, **Health**, **Replay Policy**, **Replay Access Log**, **Documentazione** |
+| **Riproduzione delle sessioni** | **Riproduzione delle sessioni**, **User Flows**, **Replay Users**, **Integrità**, **Replay Policy**, **Registro degli accessi alle riproduzioni**, **Documentazione** |
 | **Impostazioni** | **Impostazioni** |
 | **Sviluppatori** | **Terraform**, **API**, **Assistenti IA** |
 | **Avanzato** | **Elimina applicazione** |
@@ -81,8 +81,8 @@ OneUptime trova l'applicazione tramite `service.name`, senza distinguere maiusco
 | **Core Web Vitals** | Una scheda nella panoramica con LCP, INP, CLS, FCP e TTFB, ciascuno valutato secondo le soglie di Google, e l'INP di ogni route di un'app a pagina singola. Vedi [Core Web Vitals](/docs/rum/web-vitals) e [App a pagina singola](/docs/rum/web-vitals#app-a-pagina-singola). |
 | **Metriche**, **Registri**, **Tracce** | Gli explorer della telemetria, limitati a questa applicazione. |
 | **Client** | Le piattaforme browser e i modelli di dispositivo su cui l'applicazione è stata usata: un breve elenco per piattaforma, mai una riga per utente. |
-| **Session Replay** | Registrazioni di sessioni reali, accanto ai loro errori, tracce e log: vedi [Riproduzione delle sessioni](/docs/telemetry/session-replay). |
-| **Recommendations** | Monitor pronti all'uso per l'applicazione: Core Web Vitals scadenti, richieste fallite, eccezioni del browser e, appena registra, budget della Session Replay. |
+| **Riproduzione delle sessioni** | Registrazioni di sessioni reali, accanto ai loro errori, tracce e log: vedi [Riproduzione delle sessioni](/docs/telemetry/session-replay). |
+| **Raccomandazioni** | Monitor pronti all'uso per l'applicazione: Core Web Vitals scadenti, richieste fallite, eccezioni del browser e, appena registra, budget della Session Replay. |
 
 I conteggi derivano dagli span che la tua strumentazione invia. **Page loads** conta lo span `documentLoad` che la strumentazione di caricamento pagina registra a ogni caricamento completo, quindi un cambio di route dentro un'app a pagina singola non è un caricamento di pagina.
 

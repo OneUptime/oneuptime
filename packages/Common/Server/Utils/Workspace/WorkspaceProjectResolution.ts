@@ -65,7 +65,9 @@ import WorkspaceActionAuthorization from "./WorkspaceActionAuthorization";
  *      a member of it.
  *
  * What none of these tells is not guessed: the request is ambiguous, and
- * the person is told why and how to say which (getAmbiguousAnswer). The
+ * the person is told why and how to say which (getAmbiguousAnswer) - in
+ * Slack, asked which, with a button for each project they are in, and the
+ * request made again in the one they choose (SlackProjectChoice). The
  * project told apart decides only where the request is read: what it may
  * do there, it does as the member the chat account is connected to in that
  * project, held to their own permissions (WorkspaceActionAuthorization) -
@@ -115,6 +117,12 @@ export interface WorkspaceAmbiguousRetry {
   kind: WorkspaceAmbiguousRetryKind;
   // For Command: the command to use instead, "/oneuptime incident".
   command?: string | undefined;
+}
+
+// A project somebody can choose for their request, with its name.
+export interface WorkspaceProjectChoice {
+  projectId: ObjectID;
+  name: string;
 }
 
 export interface WorkspaceProjectResolution {
@@ -665,9 +673,9 @@ export default class WorkspaceProjectResolver {
     const isTeams: boolean =
       data.workspaceType === WorkspaceType.MicrosoftTeams;
 
-    const lead: string = isTeams
-      ? WorkspaceProjectResolver.TEAMS_AMBIGUOUS_LEAD
-      : `This Slack workspace is connected to more than one ${productName} project`;
+    const lead: string = WorkspaceProjectResolver.getAmbiguousLead(
+      data.workspaceType,
+    );
 
     if (!data.resolution.isPersonConnected) {
       const workspaceName: string = isTeams ? "Microsoft Teams" : "Slack";
@@ -718,6 +726,52 @@ export default class WorkspaceProjectResolver {
         mdText`${lead}, ${notSure} You're in ${boldList}: ${again.markdown}`.toString(),
       text: `${lead}, ${notSure} You're in ${plainList}: ${again.text}`,
     };
+  }
+
+  /*
+   * How an answer to a request that could be about more than one project
+   * starts, without its full stop: "This Slack workspace is connected to
+   * more than one OneUptime project". Microsoft Teams' is a literal its docs
+   * quote (TEAMS_AMBIGUOUS_LEAD).
+   */
+  public static getAmbiguousLead(workspaceType: WorkspaceType): string {
+    if (workspaceType === WorkspaceType.MicrosoftTeams) {
+      return WorkspaceProjectResolver.TEAMS_AMBIGUOUS_LEAD;
+    }
+
+    return `This Slack workspace is connected to more than one ${ProductBrandingText.getProductName()} project`;
+  }
+
+  /*
+   * The projects somebody can choose among, named, in the order given -
+   * the order the projects were connected. Null when any of them cannot be
+   * named (not found, or no name), or none can be read: a choice is offered
+   * only with every button named.
+   */
+  @CaptureSpan()
+  public static async getProjectChoices(
+    projectIds: Array<ObjectID>,
+  ): Promise<Array<WorkspaceProjectChoice> | null> {
+    if (projectIds.length === 0) {
+      return null;
+    }
+
+    const names: Array<string | null> =
+      await WorkspaceProjectResolver.readProjectNames(projectIds);
+
+    if (
+      names.some((name: string | null): boolean => {
+        return !name;
+      })
+    ) {
+      return null;
+    }
+
+    return projectIds.map(
+      (projectId: ObjectID, index: number): WorkspaceProjectChoice => {
+        return { projectId: projectId, name: names[index]! };
+      },
+    );
   }
 
   /*
@@ -808,6 +862,21 @@ export default class WorkspaceProjectResolver {
   private static async getProjectNames(
     projectIds: Array<ObjectID>,
   ): Promise<Array<string>> {
+    return (await WorkspaceProjectResolver.readProjectNames(projectIds)).filter(
+      (name: string | null): boolean => {
+        return Boolean(name);
+      },
+    ) as Array<string>;
+  }
+
+  /*
+   * The name of each of `projectIds`, in that order: null for a project not
+   * found or without a name, and for every one when they cannot be read.
+   * Never throws: what is answered with them stands without them.
+   */
+  private static async readProjectNames(
+    projectIds: Array<ObjectID>,
+  ): Promise<Array<string | null>> {
     if (projectIds.length === 0) {
       return [];
     }
@@ -828,24 +897,21 @@ export default class WorkspaceProjectResolver {
         },
       });
 
-      return projectIds
-        .map((projectId: ObjectID): string => {
-          const project: Project | undefined = projects.find(
-            (candidate: Project): boolean => {
-              return WorkspaceProjectResolver.isSameId(candidate.id, projectId);
-            },
-          );
+      return projectIds.map((projectId: ObjectID): string | null => {
+        const project: Project | undefined = projects.find(
+          (candidate: Project): boolean => {
+            return WorkspaceProjectResolver.isSameId(candidate.id, projectId);
+          },
+        );
 
-          return (project?.name || "").trim();
-        })
-        .filter((name: string): boolean => {
-          return Boolean(name);
-        });
+        return (project?.name || "").trim() || null;
+      });
     } catch (err) {
-      // The answer stands without the names.
       logger.debug("Could not read the names of the projects a person is in.");
       logger.debug(err);
-      return [];
+      return projectIds.map((): null => {
+        return null;
+      });
     }
   }
 

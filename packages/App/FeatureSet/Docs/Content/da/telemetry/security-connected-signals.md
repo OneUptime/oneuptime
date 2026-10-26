@@ -55,7 +55,7 @@ Hver bruger, vært og adresse, som en sag eller en begivenhed nævner, slås op 
 
 ## Hvad hver post viser
 
-- Dens signaler, hver åbnet på posten og sagens periode: **Protokoller**, **Spor** og **Metrikker**, en tjenestes **Undtagelser**, en klynges **Kubernetes-hændelser**, postens **Topologi** og dens element i **Inventory**, når inventaret har et.
+- Dens signaler, hver åbnet på posten og sagens periode: **Protokoller**, **Spor** og **Metrikker**, en tjenestes **Undtagelser**, en klynges **Kubernetes-hændelser**, postens **Topologi** og dens element i **Inventar**, når inventaret har et.
 - De hændelser og advarsler, der er åbne på den nu, og de monitorer, der overvåger den, hver med sin egen side.
 - Hvad der ændrede sig på den i perioden: en tjenestes udrulninger, en klynges rollouts og en værts rettelser.
 

@@ -109,7 +109,7 @@ In cima alla pagina, fai clic su **Enable two-factor authentication** e conferma
 Puoi appartenere a quanti progetti vuoi. Il selettore di progetti in alto a sinistra nella dashboard li elenca: scegline uno per passarci.
 
 - **Creare un progetto**: apri il selettore di progetti e fai clic su **Crea nuovo progetto**. In un'installazione self-hosted, l'amministratore può riservare la creazione dei progetti agli amministratori.
-- **Accettare un invito**: quando qualcuno ti invita, la campanella in alto a destra mostra l'invito in sospeso e apre **Inviti al progetto**. Lì puoi scegliere **Accetta** o **Reject**.
+- **Accettare un invito**: quando qualcuno ti invita, la campanella in alto a destra mostra l'invito in sospeso e apre **Inviti al progetto**. Lì puoi scegliere **Accetta** o **Rifiuta**.
 - **Lasciare un progetto**: chiedi a chi gestisce gli utenti del progetto di rimuoverti, con **Rimuovi dal progetto** nella sua pagina **Utenti**.
 
 ## Cosa conserva per te ogni progetto

@@ -122,7 +122,7 @@ Il passaggio **Configura** della procedura guidata di creazione chiede fino a se
 
 Per verificare l'accesso prima che parta qualcosa, apri **Variabili del flusso**, fai clic su **Visualizza** su `dynamicsAccessToken` e fai clic su **Aggiorna ora**. **Access Token Fetched** significa che la registrazione dell'app è corretta. Altrimenti l'errore di Microsoft Entra ID nomina cosa non va, come `AADSTS7000215: Invalid client secret provided`.
 
-Ogni workflow conserva la propria copia. Quando sostituisci il client secret, apri `dynamicsAccessToken` in ogni workflow Dynamics 365 e usa **Update Credentials**.
+Ogni workflow conserva la propria copia. Quando sostituisci il client secret, apri `dynamicsAccessToken` in ogni workflow Dynamics 365 e usa **Aggiorna le credenziali**.
 
 ### Creare i workflow
 

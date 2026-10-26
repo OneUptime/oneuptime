@@ -74,11 +74,6 @@ export const CREATE_BUTTONS: Readonly<Record<string, ReadonlyArray<string>>> = {
 export const PERMISSION_NAMES: Readonly<Record<string, ReadonlyArray<string>>> =
   {
     [ASK_AI]: [
-      "Project Owner",
-      "Project Admin",
-      "Project Member",
-      "Incident Admin",
-      "Incident Member",
       "Create Incident State Timeline",
       "Create Alert State Timeline",
       "Create On-Call Duty Policy Execution Log",
@@ -86,26 +81,10 @@ export const PERMISSION_NAMES: Readonly<Record<string, ReadonlyArray<string>>> =
     ],
     [AI_SRE]: ["Manage Billing", "Edit AI Rule"],
     // Who changes the project's AI context, and who reads it.
-    [AI_CONTEXT]: [
-      "Project Owner",
-      "Project Admin",
-      "Project Member",
-      "Viewer",
-      "Read Project",
-    ],
+    [AI_CONTEXT]: ["Read Project"],
     [INFRASTRUCTURE_AI_AGENTS]: ["Edit AI Rule"],
-    [LLM_PROVIDERS]: [
-      "Project Owner",
-      "Project Admin",
-      "Project Member",
-      "Viewer",
-      "Settings Admin",
-      "Settings Member",
-      "Settings Viewer",
-      "Read LLM",
-      "Edit LLM",
-    ],
-    [MCP_SERVER]: ["Viewer", "Project Admin", "Authorize MCP Client"],
+    [LLM_PROVIDERS]: ["Read LLM", "Edit LLM"],
+    [MCP_SERVER]: ["Authorize MCP Client"],
   };
 
 // The plans the pages name: the Dashboard shows a plan's name as written.

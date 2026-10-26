@@ -41,7 +41,7 @@ Det finnes fem måter en runbook-kjøring opprettes på:
 
 1. **Automatisk via en regel**: en [runbook-regel](/docs/runbooks/rules) starter den når en hendelse, et varsel eller en planlagt vedlikeholdshendelse som treffer, opprettes. En AI-regel kan også starte en; se [AI SRE](/docs/ai/ai-sre).
 2. **Manuelt fra en begivenhet**: klikk **Kjør runbook** på en hendelse, et varsel eller en planlagt vedlikeholdshendelse. Kjøringen knyttes til den begivenheten.
-3. **Manuelt fra runbookets side**: klikk **Run Now** på siden **Oversikt** for et runbook. Kjøringen knyttes ikke til noen hendelse, noe varsel eller noen planlagt vedlikeholdshendelse.
+3. **Manuelt fra runbookets side**: klikk **Kjør nå** på siden **Oversikt** for et runbook. Kjøringen knyttes ikke til noen hendelse, noe varsel eller noen planlagt vedlikeholdshendelse.
 4. **Etter en tidsplan**: runbookets tidsplan starter den på faste tidspunkter. Se [Kjør etter en tidsplan](/docs/runbooks/triggers#kjør-etter-en-tidsplan).
 5. **Fra et annet verktøy**: en `POST` til runbookets webhook-URL starter den, med verdiene kallet sender. Se [Kall webhooken](/docs/runbooks/triggers#kall-webhooken).
 
@@ -54,15 +54,15 @@ Slik starter du en manuelt:
 3. Klikk **Kjør** ved runbooket. Kjøringen vises i begivenhetens liste: klikk **Vis** for å åpne den.
 @tab Fra runbooket
 1. Åpne runbooket fra **Runbooks**.
-2. Klikk **Run Now** på **Oversikt**.
+2. Klikk **Kjør nå** på **Oversikt**.
 3. Kjøringssiden åpnes.
 :::
 
-For å starte en kjøring trenger du Project Owner, Project Admin, Project Member, Runbook Admin eller Runbook Member, eller tillatelsen **Create Runbook Execution**. Runbook Viewer og Viewer ser **Run Now** låst, med begrunnelsen. Se [Tillatelser](/docs/runbooks/configuration#tillatelser).
+For å starte en kjøring trenger du Project Owner, Project Admin, Project Member, Runbook Admin eller Runbook Member, eller tillatelsen **Create Runbook Execution**. Runbook Viewer og Viewer ser **Kjør nå** låst, med begrunnelsen. Se [Tillatelser](/docs/runbooks/configuration#tillatelser).
 
 ## Kjøringsvisningen
 
-Åpne en kjøring for å se sjekklisten. Øverst på siden vises kjøringens **Status**, **Progress** (ferdige trinn av alle trinn), **Startet** (når den begynte) og **Utløst av** (hva som startet den). Hvert trinn viser:
+Åpne en kjøring for å se sjekklisten. Øverst på siden vises kjøringens **Status**, **Fremdrift** (ferdige trinn av alle trinn), **Startet** (når den begynte) og **Utløst av** (hva som startet den). Hvert trinn viser:
 
 - **Statusmerke** — Venter, Kjører, Venter på deg, Venter på godkjenning, Ferdig, Hoppet over, Mislyktes eller Avbrutt.
 - **Tittel og beskrivelse** — kopiert fra runbooket da kjøringen startet.
@@ -113,7 +113,7 @@ Output per trinn er begrenset til **50 KB**, slik at et løpsk skript ikke blås
 
 ## Kjør et runbook på nytt
 
-En kjøring er en engangs, uforanderlig post. Klikk **Kjør igjen** på en avsluttet kjøring, eller **Run Now** på runbooket, for å kjøre det på nytt. Begge oppretter en ny kjøring ut fra runbookets nåværende trinn, ikke knyttet til noen begivenhet. Bruk **Kjør runbook** på hendelsens side **Runbooks** for å kjøre det på nytt på en hendelse. Den opprinnelige kjøringen forblir uendret for revisjonssporet.
+En kjøring er en engangs, uforanderlig post. Klikk **Kjør igjen** på en avsluttet kjøring, eller **Kjør nå** på runbooket, for å kjøre det på nytt. Begge oppretter en ny kjøring ut fra runbookets nåværende trinn, ikke knyttet til noen begivenhet. Bruk **Kjør runbook** på hendelsens side **Runbooks** for å kjøre det på nytt på en hendelse. Den opprinnelige kjøringen forblir uendret for revisjonssporet.
 
 ## Finn tidligere kjøringer
 
@@ -130,11 +130,11 @@ Rollen din leser runbooks, men kjører dem ikke: knappen sier "Du har ikke tilla
 :::
 
 :::details Oppstart av en kjøring feiler med "Runbook is disabled" eller "Runbook has no steps to run"
-Runbookets bryter **Kjør dette runbooket** er slått av på siden **Innstillinger**, eller det har ingen lagrede trinn. Slå bryteren på, eller legg til trinn, og klikk **Save Steps**. **Oversikt** sier hvilken, med **Slå på runbook** eller **Legg til trinn**.
+Runbookets bryter **Kjør dette runbooket** er slått av på siden **Innstillinger**, eller det har ingen lagrede trinn. Slå bryteren på, eller legg til trinn, og klikk **Lagre trinn**. **Oversikt** sier hvilken, med **Slå på runbook** eller **Legg til trinn**.
 :::
 
 :::details Et trinn feilet fordi det mangler en Runner
-Meldingen lyder for eksempel "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or make one the project's default Runner under Runbooks → Runners." Trinnet ble lagret uten **Runner**, og prosjektet har ingen [standard-Runner](/docs/runbooks/agents#prosjektets-standard-runner). Et JavaScript-trinn trenger bare sin egen Runner når ingen [global Runner](/docs/runbooks/agents#globale-runnere) kan kjøre det. Åpne runbookets **Trinn**, velg trinnets Runner under **Flere felt**, klikk **Save Steps**, og kjør runbooket på nytt.
+Meldingen lyder for eksempel "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or make one the project's default Runner under Runbooks → Runners." Trinnet ble lagret uten **Runner**, og prosjektet har ingen [standard-Runner](/docs/runbooks/agents#prosjektets-standard-runner). Et JavaScript-trinn trenger bare sin egen Runner når ingen [global Runner](/docs/runbooks/agents#globale-runnere) kan kjøre det. Åpne runbookets **Trinn**, velg trinnets Runner under **Flere felt**, klikk **Lagre trinn**, og kjør runbooket på nytt.
 :::
 
 :::details Et trinn feilet fordi det nevner variabler det ikke kan bruke

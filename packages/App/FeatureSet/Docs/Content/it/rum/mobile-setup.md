@@ -51,7 +51,7 @@ Fai di `device.id` un identificativo legato all'installazione, mai un ID pubblic
 | Log | `POST https://oneuptime.com/otlp/v1/logs` |
 
 > [!WARNING]
-> La chiave viaggia dentro la tua app, e un'app si può spacchettare: dai quindi per scontato che qualcuno la copierà. Nella pagina della chiave, imposta un **Pinned Service Name** in modo che una copia non possa scrivere con i nomi dei tuoi servizi backend, aggiungi un **Requests Per Minute Limit** e una data in **Scade il**, e ruota la chiave a ogni rilascio.
+> La chiave viaggia dentro la tua app, e un'app si può spacchettare: dai quindi per scontato che qualcuno la copierà. Nella pagina della chiave, imposta un **Nome del servizio fissato** in modo che una copia non possa scrivere con i nomi dei tuoi servizi backend, aggiungi un **Requests Per Minute Limit** e una data in **Scade il**, e ruota la chiave a ogni rilascio.
 
 ## Configurare la piattaforma
 
@@ -193,9 +193,9 @@ Apri la pagina **Client** dell'applicazione: ogni modello di dispositivo da `dev
 
 ## Session Replay su mobile
 
-Le app React Native possono registrare le sessioni con `@oneuptime/react-native-replay`. Registra l'albero delle viste native come wireframe, mai schermate né il testo a video, e le sue registrazioni si aprono nello stesso player di quelle web. Invia con una chiave **Browser** le cui **Allowed Origins** elencano la tua app come `app://` seguito dal suo ID applicazione Android o dal suo bundle ID iOS: una chiave diversa dalla chiave Server usata dal tuo SDK OpenTelemetry. [Installare in React Native](/docs/telemetry/session-replay#installazione-in-react-native) ti guida passo per passo.
+Le app React Native possono registrare le sessioni con `@oneuptime/react-native-replay`. Registra l'albero delle viste native come wireframe, mai schermate né il testo a video, e le sue registrazioni si aprono nello stesso player di quelle web. Invia con una chiave **Browser** le cui **Origini consentite** elencano la tua app come `app://` seguito dal suo ID applicazione Android o dal suo bundle ID iOS: una chiave diversa dalla chiave Server usata dal tuo SDK OpenTelemetry. [Installare in React Native](/docs/telemetry/session-replay#installazione-in-react-native) ti guida passo per passo.
 
-Le app Android e iOS native, e le altre piattaforme, non hanno un registratore di sessioni: la loro pagina **Session Replay** resta vuota, mentre tracce, log, metriche, eccezioni e la pagina **Client** funzionano come sempre.
+Le app Android e iOS native, e le altre piattaforme, non hanno un registratore di sessioni: la loro pagina **Riproduzione delle sessioni** resta vuota, mentre tracce, log, metriche, eccezioni e la pagina **Client** funzionano come sempre.
 
 ## Risoluzione dei problemi
 

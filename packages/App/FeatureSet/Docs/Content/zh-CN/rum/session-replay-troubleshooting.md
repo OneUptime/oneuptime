@@ -19,7 +19,7 @@ flowchart TB
 
 唯一一种静默属于正常的设置，是 _On error or frustration_ （ `OnErrorOrFrustration` ）上传：此时录制器在内存中保留一个滚动缓冲区，只在出问题时才上传，在触发器触发之前，看起来与安装损坏完全一样。在排查其他问题之前，先确认你用的是哪种设置：下面介绍的 `config-accepted` 行会输出它。
 
-如果可以，从服务器端开始。应用程序侧边菜单 **Session Replay** 部分中的 **Health** 页面会在没有数据到达时说明原因：录制器从未加载；已加载但没有上传任何内容，以及原因；上传被拒绝，以及原因；或预算已用完。参见 [录制健康状况](/docs/telemetry/session-replay#录制健康状况) 。接下来是浏览器端：开启诊断，重新加载一次，然后阅读控制台。
+如果可以，从服务器端开始。应用程序侧边菜单 **会话回放** 部分中的 **健康状况** 页面会在没有数据到达时说明原因：录制器从未加载；已加载但没有上传任何内容，以及原因；上传被拒绝，以及原因；或预算已用完。参见 [录制健康状况](/docs/telemetry/session-replay#录制健康状况) 。接下来是浏览器端：开启诊断，重新加载一次，然后阅读控制台。
 
 录制能到达，但播放时图片损坏、图标缺失或某些区域没有样式？这是回放的问题，答案在 [回放中缺少图片、图标或样式](#回放中缺少图片图标或样式) 中。
 
@@ -108,7 +108,7 @@ copy(JSON.stringify(OneUptimeReplay.getDiagnostics(), null, 2));
 copy(JSON.stringify(window.__ONEUPTIME_SESSION_REPLAY_DEBUG__.records, null, 2));
 ```
 
-把其中任意一个粘贴到你的支持工单中 — 或粘贴到应用程序 **Health** 页面上的 **Ask the browser** 中，它会解释其中的每个代码。通常仅靠这些就足够了。
+把其中任意一个粘贴到你的支持工单中 — 或粘贴到应用程序 **健康状况** 页面上的 **Ask the browser** 中，它会解释其中的每个代码。通常仅靠这些就足够了。
 
 ## 何时静默是正常的：错误触发的策略
 
@@ -132,7 +132,7 @@ OneUptimeReplay.captureSession("installation test");
 
 要找的是带有 `chunk-accepted` 的 `202` 。 `204` 则会记录 `chunk-not-recorded` ：请求没有问题，是服务器选择不存储它 — 预算超标、未被采样，或应用程序已关闭。这是策略给出的答案，而不是安装故障，旁边的 `server-directive` 行会说明是哪一种。
 
-要重新录制每个会话，在应用程序的 **Replay Policy** 页面上将 **When to upload a recording** 设为 _Always_ ，并将 **Sample percentage** 设为大于 0。这是出厂默认设置。
+要重新录制每个会话，在应用程序的 **Replay Policy** 页面上将 **何时上传录制** 设为 _Always_ ，并将 **采样百分比** 设为大于 0。这是出厂默认设置。
 
 ## 代码
 
@@ -171,7 +171,7 @@ OneUptimeReplay.captureSession("installation test");
 | --- | --- |
 | `401` | 摄取令牌错误、已吊销、已过期或属于另一个项目。在 **项目设置 → 遥测与 APM → 摄取密钥** 下创建一个，并用 `GET /session-replay/v1/validate` 确认 — 像录制器那样发送密钥并加上 `x-oneuptime-app-identifier` 标头，响应中还会包含该应用程序的 `isSessionReplayEnabled` 、在未开启时指出关闭了哪个开关的 `sessionReplayDisabledDetail` 、 `isIngestEnabledOnThisInstance` 和 `keyType` 。 |
 | `400` | 缺少 `data-oneuptime-app-identifier` 。 |
-| `403` | 页面的来源不在摄取密钥的 **Allowed Origins** 中。添加它，或使用允许列表覆盖此页面的密钥。 |
+| `403` | 页面的来源不在摄取密钥的 **允许的来源** 中。添加它，或使用允许列表覆盖此页面的密钥。 |
 | `404` | 在 OneUptime 来源上找不到该路径。几乎总是 `data-oneuptime-host` 错误 — 或者 OneUptime 前面的反向代理没有转发 `/telemetry/*` 。 |
 | `5xx` | 服务器端错误；检查 OneUptime 应用的日志。 |
 
@@ -179,7 +179,7 @@ OneUptimeReplay.captureSession("installation test");
 
 | 值 | 处理 |
 | --- | --- |
-| `not-enabled-for-application` | 这个 RUM 应用程序关闭了会话回放、标识符与任何应用程序都不匹配，或者项目不允许使用回放。 `disabledDetail` 会说明是哪一种： `application-not-enabled` （该应用程序的开关）、 `project-not-allowed` （位于 **真实用户监控 → 设置 → Session Replay** 下的项目级开关）、 `application-unknown` （没有应用程序使用这个 `appIdentifier` — 在应用程序的 **Replay Policy** 页面上核对拼写），或 `project-killed` （此部署上运维人员的紧急开关）。 |
+| `not-enabled-for-application` | 这个 RUM 应用程序关闭了会话回放、标识符与任何应用程序都不匹配，或者项目不允许使用回放。 `disabledDetail` 会说明是哪一种： `application-not-enabled` （该应用程序的开关）、 `project-not-allowed` （位于 **真实用户监控 → 设置 → 会话回放** 下的项目级开关）、 `application-unknown` （没有应用程序使用这个 `appIdentifier` — 在应用程序的 **Replay Policy** 页面上核对拼写），或 `project-killed` （此部署上运维人员的紧急开关）。 |
 | `budget-exhausted` | 项目的每日字节预算或应用程序的每月预算已经用完，因此录制器被告知不要录制，而不是上传会被拒绝的分块。 `disabledDetail` 为 `project-daily-budget-exhausted` 或 `app-monthly-budget-exhausted` ， `budgetResetsAt` 会说明何时解除。在 **Replay Policy** 页面上提高预算，或等待重置。 |
 | `recorder-not-built` | **该部署没有录制器构件。** 客户端无法修复这个问题。生成 `packages/App/FeatureSet/BrowserRecorder/public/dist/manifest.json` 的构建没有运行，或者其输出从未进入正在运行的镜像。重新构建并重新部署 OneUptime 应用。对于回放从未正常工作过的自托管安装，这就是典型的答案。 |
 | `disabled-by-default` | 此部署上设置了 `SESSION_REPLAY_ENABLED_BY_DEFAULT=false` 。将其设为 `true` — 如果是自托管，请先设置 `SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY` ，因为回放是你最重的表。 |
@@ -209,7 +209,7 @@ OneUptimeReplay.captureSession("installation test");
 | --- | --- |
 | `not-sampled` | 这个会话在采样抽签中落选，因此完全不会被录制。采样由会话 ID 决定，是确定性的，所以重新加载对这个会话没有帮助。提高采样百分比。 |
 | `recording` | 正在录制。阅读详细信息：在默认触发器 `Always` 下， `uploading: true` 是正常状态。 `captureTrigger: "OnErrorOrFrustration"` 时的 `uploading: false` 是另一种正常状态，不会发出请求。 |
-| `same-origin-propagation` | 录制器启动时记录一次：它是否会向页面自身来源的请求添加追踪上下文（ `traceparent` ，以及携带会话 ID 的 `tracestate` ）。带 `reason: "on"` 的 `enabled: true` 是默认值。 `reason: "policy-off"` 表示应用程序的 **Replay Policy** 页面上关闭了 **Same-origin trace propagation** ； `reason: "opaque-origin"` 表示页面没有自己的来源（沙箱化的 iframe、 `about:blank` 、 `srcdoc` 或 `file:` ），因此没有任何东西算作同源。即使开启，这些标头也只随会话上传期间发出的请求一起发送，并且绝不会附加到路径以 `/v1/traces` 、 `/v1/logs` 或 `/v1/metrics` 结尾的 `POST` 上（页面自身的 OpenTelemetry 导出）。当录制器在一次页面加载中第一次把同源请求的 `traceparent` 让给某个代理（因为该代理被配置为追踪该请求；对 Datadog RUM 而言仅限它跟踪的会话）时，还会再记录一次，带有 `reason: "agent-stand-down"` 和一个 `agent` 字段（ `DD_RUM` 、 `NREUM` 或 `elasticApm` ）；该请求仍会获得 `tracestate` 成员，并且只有在代理确实发送了 `traceparent` 时才会被关联，而 Datadog 只会在被采样用于追踪的、它所跟踪的 Datadog 会话中发送。New Relic（ `NREUM` ）会发送它自己的 `tracestate` 来代替该成员，因此它的请求只能通过追踪 ID 关联（参见 [Logs 和 Traces 选项卡为空](#播放器的-logs-和-traces-选项卡为空) ）。参见 [与其他遥测数据关联](/docs/telemetry/session-replay#与其他遥测数据关联) 。 |
+| `same-origin-propagation` | 录制器启动时记录一次：它是否会向页面自身来源的请求添加追踪上下文（ `traceparent` ，以及携带会话 ID 的 `tracestate` ）。带 `reason: "on"` 的 `enabled: true` 是默认值。 `reason: "policy-off"` 表示应用程序的 **Replay Policy** 页面上关闭了 **同源追踪传播** ； `reason: "opaque-origin"` 表示页面没有自己的来源（沙箱化的 iframe、 `about:blank` 、 `srcdoc` 或 `file:` ），因此没有任何东西算作同源。即使开启，这些标头也只随会话上传期间发出的请求一起发送，并且绝不会附加到路径以 `/v1/traces` 、 `/v1/logs` 或 `/v1/metrics` 结尾的 `POST` 上（页面自身的 OpenTelemetry 导出）。当录制器在一次页面加载中第一次把同源请求的 `traceparent` 让给某个代理（因为该代理被配置为追踪该请求；对 Datadog RUM 而言仅限它跟踪的会话）时，还会再记录一次，带有 `reason: "agent-stand-down"` 和一个 `agent` 字段（ `DD_RUM` 、 `NREUM` 或 `elasticApm` ）；该请求仍会获得 `tracestate` 成员，并且只有在代理确实发送了 `traceparent` 时才会被关联，而 Datadog 只会在被采样用于追踪的、它所跟踪的 Datadog 会话中发送。New Relic（ `NREUM` ）会发送它自己的 `tracestate` 来代替该成员，因此它的请求只能通过追踪 ID 关联（参见 [Logs 和 Traces 选项卡为空](#播放器的-logs-和-traces-选项卡为空) ）。参见 [与其他遥测数据关联](/docs/telemetry/session-replay#与其他遥测数据关联) 。 |
 | `same-origin-propagation-tripped` | 录制器添加了追踪上下文的某个请求在网络层失败，通常是一个被重定向到另一个来源的同源请求，而那个来源不允许 `traceparent` 和 `tracestate` 。在本次页面加载的剩余时间里，录制器不再添加它们。 `retried: true` 表示它是不带正文的 `fetch` `GET` 或 `HEAD` ，并已按你的页面发出的原样再发送了一次； `false` 表示它无法重试并且失败了：只有不带正文的 `fetch` `GET` 或 `HEAD` 会被重试（不包括 XHR、其他方法和带正文的请求）。你自己页面的中止和超时不会触发它，浏览器报告离线期间的失败也不会；下一次页面加载会重新开始。参见 [启用会话回放后下载或重定向失败](#启用会话回放后下载或重定向失败) 。 |
 | `trigger` | 发生了值得保留的事情。 `reason` 是 `error` 、 `frustration` 、 `performance` 、 `sampled` 或 `manual` 之一。 |
 | `upload-started` | 正在冲刷缓冲区中的预录内容。分块 POST 从这里开始。 |
@@ -263,7 +263,7 @@ OneUptimeReplay.captureSession("installation test");
 | 状态 | 含义 |
 | --- | --- |
 | `202` | 已接受并排队等待存储。如果它还带有原因为 `session-chunk-cap` 的 `directive: "stop"` ，说明这个请求中处于每会话上限以内的分块已经到达，之后的内容将永远不会到达 — 这是一个长时间打开的选项卡达到了会话能容纳的上限，而不是错误。 |
-| `204` | 已收到，但有意不存储。204 没有正文，因此指令通过标头传递：当录制器应当放弃录制时（回放已关闭、未被采样、预算超标、达到上限）， `x-oneuptime-replay-directive` 为 `stop` ；当只有这个请求被拒绝时为 `continue` ，而 `x-oneuptime-replay-reason` 携带原因。随 `continue` 返回的是 `consent-required` ：同意模式为 _Require explicit_ ，而页面尚未调用 `grantConsent()` ，因此录制器继续录制并会再次尝试。原因词汇表为 `ingest-disabled` 、 `instance-not-offering-replay` 、 `policy-unavailable` 、 `not-enabled` 、 `origin-not-allowed` 、 `session-chunk-cap` 、 `not-sampled` 、 `rate-limited` 、 `rate-counter-unavailable` 、 `budget-exhausted` 、 `budget-counter-unavailable` 、 `app-monthly-budget-exhausted` 和 `consent-required` ， **Health** 页面会按名称统计它们。 |
+| `204` | 已收到，但有意不存储。204 没有正文，因此指令通过标头传递：当录制器应当放弃录制时（回放已关闭、未被采样、预算超标、达到上限）， `x-oneuptime-replay-directive` 为 `stop` ；当只有这个请求被拒绝时为 `continue` ，而 `x-oneuptime-replay-reason` 携带原因。随 `continue` 返回的是 `consent-required` ：同意模式为 _Require explicit_ ，而页面尚未调用 `grantConsent()` ，因此录制器继续录制并会再次尝试。原因词汇表为 `ingest-disabled` 、 `instance-not-offering-replay` 、 `policy-unavailable` 、 `not-enabled` 、 `origin-not-allowed` 、 `session-chunk-cap` 、 `not-sampled` 、 `rate-limited` 、 `rate-counter-unavailable` 、 `budget-exhausted` 、 `budget-counter-unavailable` 、 `app-monthly-budget-exhausted` 和 `consent-required` ， **健康状况** 页面会按名称统计它们。 |
 | `400` | 无法处理该帧，同一构建的下一帧也同样无法处理，因此正文带有 `directive: "stop"` 和一个稳定的 `error` 代码： `empty-body` 、 `missing-envelope` 、 `envelope-too-large` 、 `malformed-envelope` 、 `malformed-body` 、 `unsupported-wire-version` 、 `truncated-payload` 、 `too-many-frames` 、 `app-identifier-mismatch` 、 `missing-app-identifier` 或 `chunk-index-malformed` （ `chunkIndex` 缺失、为负、为小数或不合理）。其中六个 — `unsupported-wire-version` 、 `app-identifier-mismatch` 、 `missing-app-identifier` 、 `malformed-body` 、 `malformed-envelope` 、 `missing-envelope` — 会立即停止上传（ `chunk-refused-terminal` ）；其他任何 400 都会被容忍一次，连续三次后停止上传。几乎总是改写请求的代理，或录制器与服务器的版本不一致。 |
 | `401` | 摄取密钥错误、已吊销、已过期或属于另一个项目。 |
 | `403` | 页面的来源不在摄取密钥或应用程序的允许列表中。这是终止性的 — 录制器不会重试。正文是 HTML 页面或为空的 403 并非来自 OneUptime：是 Web 应用防火墙拒绝了请求 — 参见 [OneUptime 前面的防火墙拒绝了分块](#oneuptime-前面的防火墙拒绝了分块) 。 |
@@ -345,13 +345,13 @@ OpenTelemetry 浏览器 SDK 的 OTLP/HTTP 导出器发送 `application/json` ，
 
 ## 会话列表显示“N chunks missing”，或者播放器绘制出空缺
 
-录制按选项卡以编号的分块序列上传。终结器会把每个从未到达的索引报告为缺失的分块，列表会将该会话显示为 **Partial** 并注明缺失的秒数，播放器会在序列跳跃处绘制一个带标签的空缺并跳过它 — 这是有意的，因为否则就要在漏洞之上重放变更，展示一个用户从未见过的 DOM。
+录制按选项卡以编号的分块序列上传。终结器会把每个从未到达的索引报告为缺失的分块，列表会将该会话显示为 **部分** 并注明缺失的秒数，播放器会在序列跳跃处绘制一个带标签的空缺并跳过它 — 这是有意的，因为否则就要在漏洞之上重放变更，展示一个用户从未见过的 DOM。
 
 所以这个数字始终说的是实话。它意味着什么，取决于漏洞的位置：
 
 - **最末尾的漏洞** 是常见且无害的情况：浏览器在冲刷过程中被关闭或跳转到了其他页面。在控制台中查找 `final-flush-partial` 或 `final-chunk-carried-queue` 。带有 `sealed: true` 的 `final-chunk-too-large` 会丢失最后几秒，但不会在分块序列中留下空缺。
 - **中间的漏洞** 是服务器拒绝或从未收到的分块。控制台中的 `chunk-refused` 、 `chunk-abandoned` 、 `chunk-post-failed` 、 `chunk-not-recorded` 以及带有 `sealed: false` 的 `final-chunk-too-large` 各自说明了一个原因，旁边的 `server-directive` 行给出服务器的原因。
-- **在 DOM 很大的页面上，每个会话都在同一位置出现同样的空缺** ，这是旧录制器的一个缺陷，已在这个 OneUptime 版本发布的录制器中修复。那些构建会把超过 256 KB 冲刷阈值的整页 rrweb 快照拆分成标记为 `snapshotPart` 的片段，而接收端从未把它们重新组装起来，所以每次页面加载时，该快照 — 以及它占用的每个分块索引 — 都会被丢弃，客户这一侧对此无能为力。当前的录制器从不拆分快照。服务器会统计它拒绝的内容，因此旧录制器会在 **Health** 页面上显示为原因是 `snapshot-fragment-unsupported` 的被丢弃分块。重新加载受影响的页面，绕过浏览器缓存获取 `latest` ；已经生成的录制保持原样。
+- **在 DOM 很大的页面上，每个会话都在同一位置出现同样的空缺** ，这是旧录制器的一个缺陷，已在这个 OneUptime 版本发布的录制器中修复。那些构建会把超过 256 KB 冲刷阈值的整页 rrweb 快照拆分成标记为 `snapshotPart` 的片段，而接收端从未把它们重新组装起来，所以每次页面加载时，该快照 — 以及它占用的每个分块索引 — 都会被丢弃，客户这一侧对此无能为力。当前的录制器从不拆分快照。服务器会统计它拒绝的内容，因此旧录制器会在 **健康状况** 页面上显示为原因是 `snapshot-fragment-unsupported` 的被丢弃分块。重新加载受影响的页面，绕过浏览器缓存获取 `latest` ；已经生成的录制保持原样。
 
 空缺与空闲区段不同：空闲区段是什么都没发生的录制，在时间线上以灰色绘制，可以跳过；空缺是从未到达的录制，以琥珀色绘制。
 
@@ -372,8 +372,8 @@ OpenTelemetry 浏览器 SDK 的 OTLP/HTTP 导出器发送 `application/json` ，
 
 ### 先检查这些
 
-1. **阅读播放器下方的录制说明。** 当图片或样式表无法在你的浏览器中加载时，第一条说明会指出这一点 — 例如 _2 images didn't load in this replay_ — 并列出它们来自哪些网站。它涵盖自你打开会话以来播放器播放过的每个选项卡。 **Session details** （ `I` ）→ **Fidelity** → **Missing assets** 会列出每个地址，最多列出前 200 个。Web 字体、CSS 背景图片以及你的页面在浏览器中创建的图片（ `blob:` 地址）不在该列表中；请在 DevTools 中查找它们（见下文）。
-2. **检查遮盖模式。** 在 _Mask all text_ 下录制的会话按设计既不加载图片也不加载 Web 字体（页面以 `data:` URL 形式持有的图片是录制的一部分，仍会显示），其录制说明会写着 _Images and web fonts are not loaded_ 。遮盖模式未被上报、或不是仪表板能识别的模式的会话也是如此。两种情况下样式表仍会加载。 **Session details** → **Privacy** 会显示会话上报的模式，即其最近一次页面加载的模式。
+1. **阅读播放器下方的录制说明。** 当图片或样式表无法在你的浏览器中加载时，第一条说明会指出这一点 — 例如 _2 images didn't load in this replay_ — 并列出它们来自哪些网站。它涵盖自你打开会话以来播放器播放过的每个选项卡。 **会话详情** （ `I` ）→ **Fidelity** → **Missing assets** 会列出每个地址，最多列出前 200 个。Web 字体、CSS 背景图片以及你的页面在浏览器中创建的图片（ `blob:` 地址）不在该列表中；请在 DevTools 中查找它们（见下文）。
+2. **检查遮盖模式。** 在 _Mask all text_ 下录制的会话按设计既不加载图片也不加载 Web 字体（页面以 `data:` URL 形式持有的图片是录制的一部分，仍会显示），其录制说明会写着 _Images and web fonts are not loaded_ 。遮盖模式未被上报、或不是仪表板能识别的模式的会话也是如此。两种情况下样式表仍会加载。 **会话详情** → **隐私** 会显示会话上报的模式，即其最近一次页面加载的模式。
 3. **检查用户那里是否也失败了。** 在那个时刻打开事件面板的 **错误** 选项卡：如果同一文件有一行 _Resource failed to load_ ，说明它在用户的屏幕上也是坏的，回放只是如实地展示了这一点。
 
 ### 在 DevTools 中找到原因
@@ -417,9 +417,9 @@ OpenTelemetry 浏览器 SDK 的 OTLP/HTTP 导出器发送 `application/json` ，
 
 这些选项卡显示与录制关联的后端遥测，无需你编写任何代码：在摄取时根据录制器添加到你的页面发往其自身来源的请求中的 `tracestate` 而被盖上会话 ID 的 span，以及同一批追踪中的日志和异常，通过追踪 ID 合并。参见 [与其他遥测数据关联](/docs/telemetry/session-replay#与其他遥测数据关联) 。如果它们一直为空，请按顺序检查这份清单：
 
-1. **录制器是否添加了标头？** 开启诊断后， `same-origin-propagation` 应显示 `enabled: true` 。 `reason: "policy-off"` 表示该应用程序关闭了 **Same-origin trace propagation** ； `"opaque-origin"` 表示页面没有自己的来源。出现 `same-origin-propagation-tripped` 行表示某个请求失败，录制器在本次页面加载的剩余时间里不再添加这些标头（参见 [下文](#启用会话回放后下载或重定向失败) ）。在 DevTools 中，会话上传期间发出的同源 `fetch` 会带有 `tracestate: oneuptime=sid:…` 。在 _Require explicit_ 下获得同意之前，或在 _On error or frustration_ 下触发之前，不会添加任何内容。
+1. **录制器是否添加了标头？** 开启诊断后， `same-origin-propagation` 应显示 `enabled: true` 。 `reason: "policy-off"` 表示该应用程序关闭了 **同源追踪传播** ； `"opaque-origin"` 表示页面没有自己的来源。出现 `same-origin-propagation-tripped` 行表示某个请求失败，录制器在本次页面加载的剩余时间里不再添加这些标头（参见 [下文](#启用会话回放后下载或重定向失败) ）。在 DevTools 中，会话上传期间发出的同源 `fetch` 会带有 `tracestate: oneuptime=sid:…` 。在 _Require explicit_ 下获得同意之前，或在 _On error or frustration_ 下触发之前，不会添加任何内容。
 2. **有 `tracestate` 但没有 `traceparent` ？** 一个在 DevTools 中显示 `tracestate: oneuptime=…` 却没有 `traceparent` 的同源请求，意味着页面上的另一个追踪代理让录制器退让了，而它自己又没有添加 `traceparent` 。你的后端会丢弃没有这个标头的 `tracestate` ，因此什么都不会关联。开启诊断后，查找带有 `reason: "agent-stand-down"` 的 `same-origin-propagation` ：它的 `agent` 会指出 Datadog RUM（ `DD_RUM` ）或 Elastic APM（ `elasticApm` ）。如果是 Datadog，通常是 Datadog 没有为追踪采样的会话：当 `traceSampleRate` 低于 100 且使用默认的 `traceContextInjection: "sampled"` 时，它在其他会话中不发送 `traceparent` 。设置 `traceSampleRate: 100` 可以关联它跟踪的每个会话； `traceContextInjection: "all"` 也会在那些会话中发送 `traceparent` ，但会标记为未采样，所以你后端默认的 `ParentBased` 采样器仍会丢弃它们的追踪。如果是 Elastic APM，检查它的 `disableInstrumentations` 是否没有列出 `fetch` 或 `xmlhttprequest` 。否则，请将该代理配置为向你自己的来源传播 W3C `traceparent` 。如果是 OpenTelemetry 浏览器 SDK，检查该 URL 不在其插桩的 `ignoreUrls` 中。New Relic（ `NREUM` ）表现出不同的症状，在第 5 步中介绍。
-3. **你的 API 在另一个来源上吗？** 除非该来源在 **Trace propagation origins** 中，否则它的请求什么也得不到，即使在其中也只得到 `traceparent` ，通过追踪 ID 匹配。如果该请求在 Network 选项卡中的那一行也没有追踪链接，说明该来源没有列出，而你的页面也没有自己设置 `traceparent` 。
+3. **你的 API 在另一个来源上吗？** 除非该来源在 **追踪传播来源** 中，否则它的请求什么也得不到，即使在其中也只得到 `traceparent` ，通过追踪 ID 匹配。如果该请求在 Network 选项卡中的那一行也没有追踪链接，说明该来源没有列出，而你的页面也没有自己设置 `traceparent` 。
 4. **你的后端是否延续了 W3C 追踪上下文？** 它的 OpenTelemetry 传播器必须包含 `tracecontext` （Go SDK 在调用 `otel.SetTextMapPropagator(propagation.TraceContext{})` 之前不会传播任何内容），并且它前面的代理或 CDN 不能去除 `traceparent` 和 `tracestate` 。如果某个后端追踪的 ID 与 Network 行中的追踪 ID 一致，但它的 span 却不在选项卡中，问题就在这里。
 5. **请求是否已经带有 `tracestate` ？** Datadog RUM、Elastic RUM 和某些 OpenTelemetry 配置会发送它们自己的 tracestate。录制器不会写入其他厂商的标头，因此那些 span 不会被盖章，只能通过追踪 ID 关联。开启分布式追踪的 New Relic（ `agent-stand-down` 指出 `NREUM` ）会随它添加的每个 `traceparent` 发送它自己的 `tracestate` ，代替该成员：DevTools 中显示一个 `traceparent` 和一个没有 `oneuptime=` 条目的 `tracestate` 。它的 `XMLHttpRequest` 调用以及用 `Request` 对象发起的 `fetch` 调用会通过追踪 ID 关联；当 New Relic 先加载时，用 URL 调用的 `fetch` 完全不会被关联，因为 New Relic 发送的是请求选项的一个副本，录制器从来看不到它。没有任何 New Relic 设置能让该成员回来；只有关闭它的分布式追踪才行，届时录制器会自己生成 `traceparent` 。
 6. **有追踪，但日志为空？** 日志通过追踪 ID 合并，因此你的后端必须在请求的 span 内部写日志，并使用会记录当前追踪 ID 的 OpenTelemetry 日志功能。
@@ -434,7 +434,7 @@ OpenTelemetry 浏览器 SDK 的 OTLP/HTTP 导出器发送 `application/json` ，
 录制器在第一次出现这种失败时就会熔断。它会记录 `same-origin-propagation-tripped` ，在本次页面加载的剩余时间里停止添加这些标头，并把不带正文的 `fetch` `GET` 或 `HEAD` 按你的页面发出的原样重试一次（详细信息中的 `retried: true` ），因此你的页面会得到重试的结果。除了不带正文的 `fetch` `GET` 或 `HEAD` 之外的任何请求（不包括 `XMLHttpRequest` 、其他方法和带正文的请求）都不会重试，所以那个请求仍然会失败，而下一次页面加载又会重新添加这些标头。要彻底解决，可以：
 
 - 在另一个来源的 CORS 配置中允许 `traceparent` 和 `tracestate` （在 S3 上是存储桶 CORS 的 `AllowedHeaders` ），或者
-- 在应用程序的 **Replay Policy** 页面上关闭 **Same-origin trace propagation** ，如果你把自己的来源加入了 **Trace propagation origins** ，也把它移除，否则它的请求会继续获得 `traceparent` 。这样一来，只有 **Trace propagation origins** 中的来源以及你的页面自行追踪的请求，才会关联后端遥测。
+- 在应用程序的 **Replay Policy** 页面上关闭 **同源追踪传播** ，如果你把自己的来源加入了 **追踪传播来源** ，也把它移除，否则它的请求会继续获得 `traceparent` 。这样一来，只有 **追踪传播来源** 中的来源以及你的页面自行追踪的请求，才会关联后端遥测。
 
 参见 [重定向到其他来源](/docs/telemetry/session-replay#重定向到其他来源) 。
 
@@ -447,7 +447,7 @@ OpenTelemetry 浏览器 SDK 的 OTLP/HTTP 导出器发送 `application/json` ，
 - **每一行都是 _Visitor_** — 录制器是最新的，而你的页面没有调用 `identify()` ，或者只在会话结束后才调用。一旦带有特征的 `identify()` 到达录制器， `getDiagnostics()` 中的 `hasTraits` 就会变为 `true` 。
 - **显示 _Anonymous_ 而不是 _Visitor_** — 这些会话来自访客 ID 出现之前构建的录制器。检查 `getDiagnostics().capabilities` 中是否有 `visitor-id` ；如果没有，重新加载页面以获取当前的 `latest` 录制器。
 - **同一个浏览器每次加载页面都出现新的 _Visitor_ ID** — 录制器无法写入 `localStorage` （隐私浏览、站点数据被阻止），因此每次加载都创建了新的 ID。录制仍然正常工作；只是跨访问的分组丢失了。
-- **你的页面调用了 `identify()` ，却仍显示 _Visitor_** — 检查该应用程序是否开启了 **Capture end-user identity** 。关闭时，引用有意不离开浏览器，会话仍是一位访客的会话。显示 _Hidden_ 的行则是另一回事：页面识别了某个人，但你的角色无权读取那是谁。
+- **你的页面调用了 `identify()` ，却仍显示 _Visitor_** — 检查该应用程序是否开启了 **捕获最终用户身份** 。关闭时，引用有意不离开浏览器，会话仍是一位访客的会话。显示 _Hidden_ 的行则是另一回事：页面识别了某个人，但你的角色无权读取那是谁。
 - **已登录用户的某些会话显示 _Visitor_ ，另一些显示用户名** — 只要会话中的任意一个页面调用了 `identify()` ，会话就会获得用户名，此后该会话的每个页面和选项卡都带有这个用户，包括那些自己从不调用它的页面（参见 [识别你的用户](/docs/telemetry/session-replay#识别你的用户) ）。 _Visitor_ 行是没有任何页面识别过任何人的会话：通常是一个开着没动的登录页面、一次在用户登录前就结束的访问，或者一个新会话 — 在空闲 30 分钟或达到 4 小时上限之后 — 开始于一个自己没有调用 `identify()` 的页面。在应用知道用户的每次页面加载时都调用 `identify()` ，而不只是在登录后立即调用，就能覆盖最后一种情况。在同一浏览器中，一个用户退出、另一个用户登录，会各自得到自己的会话：用不同的引用调用 `identify()` 会结束当前会话并开始一个新会话。
 
 ## 诊断信息从不包含的内容
@@ -466,7 +466,7 @@ OpenTelemetry 浏览器 SDK 的 OTLP/HTTP 导出器发送 `application/json` ，
 
 - `OneUptimeReplay.getDiagnostics()` 的输出。
 - `session-replay/v1/config` 请求的状态。
-- 应用程序的 **Health** 页面以及 **Replay Policy** 上的 **Test your installation** 面板显示的内容。它们从服务器端回答，也就是浏览器看不到的那一半。
+- 应用程序的 **健康状况** 页面以及 **Replay Policy** 上的 **Test your installation** 面板显示的内容。它们从服务器端回答，也就是浏览器看不到的那一半。
 - 对于缺失的图片、图标或样式：一个未能加载的文件的地址（ **Missing assets** 会列出它们），以及浏览器控制台为它输出的那一行。
 
 然后联系 support@oneuptime.com，或在 [GitHub](https://github.com/OneUptime/oneuptime) 上提交 issue。

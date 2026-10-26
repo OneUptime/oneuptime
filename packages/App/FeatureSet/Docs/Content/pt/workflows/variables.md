@@ -160,11 +160,11 @@ O cartão **Token de acesso** na página de uma variável OAuth 2.0 mostra um de
 | **No expiry reported**     | O provedor não disse quando o token expira, então cada execução obtém um novo.                                                       |
 | **Refresh failed**         | A última tentativa de obter um token falhou. O motivo do provedor aparece por inteiro, com quando aconteceu. A próxima renovação bem-sucedida o limpa. |
 
-**Atualizar agora**, abaixo do status, obtém um token novo na hora. Use-o para conferir configurações novas sem rodar um workflow. **Update Credentials**, no cartão **OAuth 2.0 Settings**, substitui o client secret ou o refresh token e depois obtém um token com eles. Alterar qualquer configuração (URL do token, client ID, escopo e assim por diante) descarta o token em cache, então a próxima execução obtém um com as configurações novas.
+**Atualizar agora**, abaixo do status, obtém um token novo na hora. Use-o para conferir configurações novas sem rodar um workflow. **Atualizar credenciais**, no cartão **OAuth 2.0 Settings**, substitui o client secret ou o refresh token e depois obtém um token com eles. Alterar qualquer configuração (URL do token, client ID, escopo e assim por diante) descarta o token em cache, então a próxima execução obtém um com as configurações novas.
 
 ### Quando o provedor diz não
 
-O passo que precisava do token falha antes de rodar, e o log da execução nomeia a variável e cita a resposta do provedor, por exemplo `Could not get an OAuth 2.0 access token for {{global.variables.CRM_API_TOKEN}}: The token endpoint refused the request (HTTP 400): invalid_grant - Token has been expired or revoked.` O mesmo motivo aparece no cartão **Token de acesso** da variável. `invalid_grant` em uma variável Refresh Token quase sempre significa que o próprio refresh token expirou ou foi revogado, e a solução é **Update Credentials**.
+O passo que precisava do token falha antes de rodar, e o log da execução nomeia a variável e cita a resposta do provedor, por exemplo `Could not get an OAuth 2.0 access token for {{global.variables.CRM_API_TOKEN}}: The token endpoint refused the request (HTTP 400): invalid_grant - Token has been expired or revoked.` O mesmo motivo aparece no cartão **Token de acesso** da variável. `invalid_grant` em uma variável Refresh Token quase sempre significa que o próprio refresh token expirou ou foi revogado, e a solução é **Atualizar credenciais**.
 
 Se a renovação falha enquanto o token em cache ainda não expirou de fato (ele só estava dentro da margem de um minuto), o passo segue com o token em cache e o log avisa.
 

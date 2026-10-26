@@ -11,7 +11,7 @@ For å opprette et dashbord åpner du **Produkter → Dashbord** og klikker på 
 
 ## Før du begynner
 
-Prosjekteiere og -administratorer kan opprette og redigere alle dashbord. Alle andre trenger en teamtillatelse: `CreateDashboard` for å opprette dashbord og `EditDashboard` for å endre dem. Prosjektmedlemmer og seere kan lese dashbord uten noen av dem. Den som ikke kan redigere et dashbord, kan likevel åpne **⋯**-menyen, der **Edit Dashboard** er låst og forteller hvilken tillatelse som trengs.
+Prosjekteiere og -administratorer kan opprette og redigere alle dashbord. Alle andre trenger en teamtillatelse: `CreateDashboard` for å opprette dashbord og `EditDashboard` for å endre dem. Prosjektmedlemmer og seere kan lese dashbord uten noen av dem. Den som ikke kan redigere et dashbord, kan likevel åpne **⋯**-menyen, der **Rediger dashbord** er låst og forteller hvilken tillatelse som trengs.
 
 ## Opprett dashbordet
 
@@ -45,7 +45,7 @@ Malene, etter kategorien velgeren viser dem under:
 
 ## Rediger og lagre
 
-Et dashbord åpnes i visningsmodus, for lesing. For å endre det åpner du **⋯**-menyen i verktøylinjen og velger **Edit Dashboard**. Verktøylinjen viser **Editing** ved siden av navnet og bytter ut tidsintervallet og de andre kontrollene med **Legg til widget**, **Variabler**, **Avbryt** og **Lagre endringer**, med en rad under for dashbordets **Standard tidsrom** og **Standard automatisk oppdatering**.
+Et dashbord åpnes i visningsmodus, for lesing. For å endre det åpner du **⋯**-menyen i verktøylinjen og velger **Rediger dashbord**. Verktøylinjen viser **Redigerer** ved siden av navnet og bytter ut tidsintervallet og de andre kontrollene med **Legg til widget**, **Variabler**, **Avbryt** og **Lagre endringer**, med en rad under for dashbordets **Standard tidsrom** og **Standard automatisk oppdatering**.
 
 ```mermaid title="Fra å lese et dashbord til å endre det, og tilbake"
 flowchart TB
@@ -122,7 +122,7 @@ Det første valget i hver velger viser dashbordets standard, som i Standard (Pas
 
 Du trenger ikke ta i bruk tidsintervallvelgeren for å se på en topp. Dra over den interessante strekningen av et linje- eller arealdiagram, og **hele dashbordet** flytter seg til det vinduet, akkurat som om du hadde valgt det i tidsintervallvelgeren: hver widget som bruker tidsintervallet, spør på nytt samtidig, så du leser ett øyeblikk over hele dashbordet i stedet for ett diagram i en annen skala enn naboene. Sanntidslister fortsetter å vise hva som skjer nå, som de alltid gjør.
 
-**Dobbeltklikk på et hvilket som helst diagram** for å angre: dashbordet går tilbake til intervallet det hadde før du begynte å zoome, uansett hvor mange ganger du har zoomet videre inn. En knapp **Reset zoom** vises ved siden av tidsintervallvelgeren mens en zoom er aktiv, og et dobbeltklikk på et dashbord som ikke er zoomet, gjør ingenting.
+**Dobbeltklikk på et hvilket som helst diagram** for å angre: dashbordet går tilbake til intervallet det hadde før du begynte å zoome, uansett hvor mange ganger du har zoomet videre inn. En knapp **Tilbakestill zoom** vises ved siden av tidsintervallvelgeren mens en zoom er aktiv, og et dobbeltklikk på et dashbord som ikke er zoomet, gjør ingenting.
 
 Et zoomet vindu ligger fast, så det slutter å rulle fremover mens automatisk oppdatering er på; det er med vilje, for et vindu som gled unna deg midt i en feilsøking, ville vært verre. Tilbakestill zoomen for å få det til å rulle igjen.
 
@@ -130,7 +130,7 @@ Zoom fungerer bare i visningsmodus; i redigeringsmodus flytter og skalerer dra i
 
 ## Fullskjerm
 
-**⋯ → Full Screen** viser dashbordets widgets på hele skjermen, for en veggskjerm eller et møte. Trykk Esc for å gå ut.
+**⋯ → Fullskjerm** viser dashbordets widgets på hele skjermen, for en veggskjerm eller et møte. Trykk Esc for å gå ut.
 
 ## Tips for dashbord som eldes godt
 

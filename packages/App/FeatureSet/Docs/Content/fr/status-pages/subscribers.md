@@ -34,7 +34,7 @@ Une page de statut prend en charge cinq canaux. Eux, et la page sur laquelle les
 
 - **Afficher la page des abonnés** (`showSubscriberPageOnStatusPage`) — activé par défaut. Place l'élément **S'abonner** dans la barre de navigation de la page de statut, où les visiteurs s'inscrivent par les canaux ci-dessous.
 - **E-mail** (`enableEmailSubscribers`) — activé par défaut. Tout le reste est désactivé jusqu'à ce que vous l'activiez.
-- **SMS** (`enableSmsSubscribers`) — désactivé par défaut. Sur OneUptime Cloud, chaque SMS est payé sur le solde SMS et appels du projet, sauf si la page a sa propre **Configuration Twilio** (voir [plus bas](#pied-de-page-de-le-mail-smtp-personnalisé-et-twilio)). Pour l'activer, il faut aussi que **SMS** soit activé pour le projet, dans la carte **Canaux de notification** sur **Paramètres du projet > Notifications > Paramètres de notification**, ce que peut faire un propriétaire du projet, un **Billing Admin** ou une personne disposant de **Manage Billing**.
+- **SMS** (`enableSmsSubscribers`) — désactivé par défaut. Sur OneUptime Cloud, chaque SMS est payé sur le solde SMS et appels du projet, sauf si la page a sa propre **Configuration Twilio** (voir [plus bas](#pied-de-page-de-le-mail-smtp-personnalisé-et-twilio)). Pour l'activer, il faut aussi que **SMS** soit activé pour le projet, dans la carte **Canaux de notification** sur **Paramètres du projet > Notifications > Paramètres de notification**, ce que peut faire un propriétaire du projet, un **Administrateur de la facturation** ou une personne disposant de **Manage Billing**.
 - **Slack** (`enableSlackSubscribers`) — désactivé par défaut.
 - **Microsoft Teams** (`enableMicrosoftTeamsSubscribers`) — désactivé par défaut.
 - **Webhook** (`enableWebhookSubscribers`) — désactivé par défaut.
@@ -275,7 +275,7 @@ Les champs personnalisés d'incident dont **Inclure dans les notifications aux a
 - **Slack** et **Microsoft Teams** les listent de la même façon, un par ligne.
 - Les charges utiles **Webhook** les portent dans `data.customFields`, indexés par la **Variable de modèle** de chaque champ : `{ "name": ..., "type": ..., "value": ... }`, avec la valeur telle qu'elle est stockée (`null` quand l'incident n'en a pas). Les clés ne changent pas quand un champ est renommé.
 - **SMS** les omet. Un SMS est facturé par segment et le message par défaut en remplit déjà presque un ; un modèle SMS personnalisé peut placer n'importe quel champ avec `{{incident.customFields.<key>}}`.
-- Les notifications d'**Incident episode** ne portent aucun champ personnalisé : un épisode regroupe des incidents qui ont chacun leurs propres valeurs. Les notifications propres à chaque incident membre portent ses champs.
+- Les notifications d'**Épisode d'incident** ne portent aucun champ personnalisé : un épisode regroupe des incidents qui ont chacun leurs propres valeurs. Les notifications propres à chaque incident membre portent ses champs.
 
 L'entrée **Notification aux abonnés envoyée** du fil de l'incident liste, sous **Custom fields sent**, les valeurs que chaque envoi a placées dans un message. Les abonnés sont généralement extérieurs à votre équipe : n'activez le réglage que pour des champs qu'il est sans risque de partager avec eux.
 
@@ -415,7 +415,7 @@ La clé est la **Variable de modèle** du champ, qui ne change pas quand le cham
 
 **Deux d'entre elles sont des données internes.** `{{affectedStatusPages}}` nomme chaque public que l'incident atteint : avec [une page de statut par public](/docs/status-pages/one-status-page-per-audience), les abonnés d'un site apprennent quels autres sites sont touchés, et un client apprend le nom d'autres clients. Un champ personnalisé peut contenir des notes destinées à votre équipe. Ne les placez que dans des modèles dont les abonnés peuvent les voir.
 
-**Placer des étiquettes et des champs personnalisés nécessite un accès aux incidents.** `{{incidentLabels}}` et `{{incident.customFields.<key>}}` lisent les dossiers d'incident de votre équipe, que la page de statut n'affiche pas. Un modèle qui les place ne peut donc être enregistré que par une personne qui peut lire chaque incident et ses champs personnalisés — **Project Owner**, **Project Admin**, **Project Member** ou **Viewer**, ou **Incident Admin**, **Incident Member** ou **Incident Viewer**, sans limitation à certaines étiquettes ou aux incidents dont elle est propriétaire. **Status Page Admin** et **Status Page Member** seuls peuvent rédiger des modèles, mais pas ajouter ces espaces réservés ; ils peuvent toujours modifier le reste d'un modèle qui les contient déjà. `{{affectedStatusPages}}` ne nécessite rien de plus que le modèle.
+**Placer des étiquettes et des champs personnalisés nécessite un accès aux incidents.** `{{incidentLabels}}` et `{{incident.customFields.<key>}}` lisent les dossiers d'incident de votre équipe, que la page de statut n'affiche pas. Un modèle qui les place ne peut donc être enregistré que par une personne qui peut lire chaque incident et ses champs personnalisés — **Propriétaire du projet**, **Administrateur du projet**, **Membre du projet** ou **Lecteur**, ou **Administrateur des incidents**, **Membre des incidents** ou **Lecteur des incidents**, sans limitation à certaines étiquettes ou aux incidents dont elle est propriétaire. **Administrateur des pages de statut** et **Membre des pages de statut** seuls peuvent rédiger des modèles, mais pas ajouter ces espaces réservés ; ils peuvent toujours modifier le reste d'un modèle qui les contient déjà. `{{affectedStatusPages}}` ne nécessite rien de plus que le modèle.
 
 ### L'état dans les modèles de note
 
@@ -445,6 +445,8 @@ Quatre autres sections, sous **Plus de paramètres** en bas de **Paramètres des
 - **Configuration Twilio** — **Configuration Twilio** est le compte Twilio utilisé pour les abonnés SMS.
 
 Le SMTP personnalisé vaut la peine d'être configuré tôt si vous avez des abonnés par e-mail : le courrier qui vient de votre propre domaine est bien moins susceptible d'être filtré, et bien plus susceptible d'inspirer confiance au client qui le lit à 2 h du matin.
+
+Les SMS par défaut sont écrits avec les caractères qu'un SMS transporte au meilleur coût : les guillemets typographiques, les tirets et autres partent sous leur équivalent simple et un emoji est omis, si bien qu'un seul caractère dans un titre ne fait jamais coûter deux ou trois parties à un SMS. Les liens partent exactement tels qu'ils sont écrits. Un modèle de SMS personnalisé part tel que vous l'avez écrit, avec les valeurs qu'il insère.
 
 ## Annonces
 

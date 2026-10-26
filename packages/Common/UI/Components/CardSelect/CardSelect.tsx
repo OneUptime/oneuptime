@@ -11,6 +11,7 @@ import React, {
 } from "react";
 import { PluralTemplate, Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
+import joinAriaIds from "../../Utils/AriaIds";
 
 export interface CardSelectOption {
   value: string;
@@ -71,6 +72,8 @@ export interface ComponentProps {
   tabIndex?: number | undefined;
   dataTestId?: string | undefined;
   ariaLabelledby?: string | undefined;
+  // What describes the choice besides its error, read first: its field's help.
+  ariaDescribedby?: string | undefined;
   // Force single-column (1 item per row). Default: responsive 1/2/3 grid.
   singleColumn?: boolean | undefined;
   /*
@@ -79,6 +82,14 @@ export interface ComponentProps {
    * narrow ones whose titles wrap.
    */
   maxColumns?: 2 | 3 | undefined;
+  /*
+   * "list": one ruled row per choice in a single panel - an icon, the
+   * title, its line and a radio - for a short choice in a dialog's column,
+   * where two cards side by side squeeze every line to a few words and
+   * leave rows of uneven height. "grid" (the default): the cards. The
+   * catalog layout (catalog) keeps its own rows either way.
+   */
+  layout?: "grid" | "list" | undefined;
   /*
    * Opt in to the search box. Off by default so a picker with a handful of
    * cards is not given a search box it does not need, and so existing callers
@@ -401,6 +412,12 @@ const CardSelect: FunctionComponent<ComponentProps> = (
     useRef<HTMLButtonElement>(null);
   const summaryTitleId: string = useId();
   const moreOptionsId: string = useId();
+  // The error under the cards, read with the choice.
+  const errorId: string = `card-select-error-${useId()}`;
+  const groupDescribedBy: string | undefined = joinAriaIds(
+    props.ariaDescribedby,
+    props.error ? errorId : undefined,
+  );
 
   // Catalog layout: whether More was pressed, and whether Change was.
   const [isShowingMoreOptions, setIsShowingMoreOptions] =
@@ -552,16 +569,21 @@ const CardSelect: FunctionComponent<ComponentProps> = (
     };
   }, [groups, tokens, isSearching]);
 
-  const gridClassName: string = props.singleColumn
-    ? catalogSections
-      ? "grid grid-cols-1 gap-2"
-      : "grid grid-cols-1 gap-4"
-    : catalogSections
-      ? // Compact rows read best two to a line: a third column wraps them.
-        "grid grid-cols-1 gap-2 sm:grid-cols-2"
-      : props.maxColumns === 2
-        ? "grid grid-cols-1 gap-4 sm:grid-cols-2"
-        : "grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3";
+  const isListLayout: boolean = props.layout === "list" && !catalogSections;
+
+  const gridClassName: string = isListLayout
+    ? // One panel, its rows ruled apart: the card around them is the panel.
+      "divide-y divide-gray-200 overflow-hidden rounded-lg border border-gray-200 shadow-sm"
+    : props.singleColumn
+      ? catalogSections
+        ? "grid grid-cols-1 gap-2"
+        : "grid grid-cols-1 gap-4"
+      : catalogSections
+        ? // Compact rows read best two to a line: a third column wraps them.
+          "grid grid-cols-1 gap-2 sm:grid-cols-2"
+        : props.maxColumns === 2
+          ? "grid grid-cols-1 gap-4 sm:grid-cols-2"
+          : "grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3";
 
   /*
    * The cards on screen, in the order they are rendered. A search reorders
@@ -885,9 +907,76 @@ const CardSelect: FunctionComponent<ComponentProps> = (
     );
   };
 
+  /*
+   * The list layout's option: one ruled row of the panel - the icon in its
+   * tile, the title over its line, and a radio at the end that says which
+   * one is picked, as the rows of a choice elsewhere do (ChoiceRows). Every
+   * row is as wide as the column, so a long line wraps under its own title
+   * instead of stretching the row beside it.
+   */
+  const renderListRow: RenderCardFunction = (
+    option: CardSelectOption,
+  ): ReactElement => {
+    const isSelected: boolean = props.value === option.value;
+
+    return (
+      <div
+        key={option.value}
+        tabIndex={option.value === activeOptionValue ? props.tabIndex || 0 : -1}
+        data-card-select-value={option.value}
+        onClick={() => {
+          choose(option.value);
+        }}
+        onKeyDown={(event: React.KeyboardEvent) => {
+          onOptionKeyDown(event, option);
+        }}
+        className={`relative flex cursor-pointer items-center gap-3.5 px-4 py-3 transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 ${
+          isSelected ? "bg-indigo-50/70" : "bg-white hover:bg-gray-50"
+        }`}
+        role="radio"
+        aria-checked={isSelected}
+        data-testid={`card-select-option-${option.value}`}
+      >
+        <div
+          className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg ${
+            isSelected ? "bg-indigo-100" : "bg-gray-100"
+          }`}
+        >
+          <Icon
+            icon={option.icon}
+            className={`h-5 w-5 ${
+              isSelected ? "text-indigo-600" : "text-gray-600"
+            }`}
+          />
+        </div>
+        <div className="min-w-0 flex-1">
+          <span className="block text-sm font-semibold text-gray-900">
+            {getOptionText(option, option.title)}
+          </span>
+          <span className="mt-0.5 block text-sm text-gray-500">
+            {getOptionText(option, option.description)}
+          </span>
+        </div>
+        <span
+          aria-hidden="true"
+          data-testid={`card-select-option-${option.value}-radio`}
+          className={`flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full border ${
+            isSelected ? "border-indigo-600" : "border-gray-300"
+          }`}
+        >
+          {isSelected && (
+            <span className="h-2 w-2 rounded-full bg-indigo-600" />
+          )}
+        </span>
+      </div>
+    );
+  };
+
   const renderOption: RenderCardFunction = catalogSections
     ? renderRow
-    : renderCard;
+    : isListLayout
+      ? renderListRow
+      : renderCard;
 
   const renderError: () => ReactElement | null = (): ReactElement | null => {
     if (!props.error) {
@@ -895,7 +984,7 @@ const CardSelect: FunctionComponent<ComponentProps> = (
     }
 
     return (
-      <p className="mt-2 text-sm text-red-600" role="alert">
+      <p id={errorId} className="mt-2 text-sm text-red-600" role="alert">
         {props.error}
       </p>
     );
@@ -912,6 +1001,7 @@ const CardSelect: FunctionComponent<ComponentProps> = (
         <div
           role="group"
           aria-labelledby={props.ariaLabelledby}
+          aria-describedby={groupDescribedBy}
           data-testid="card-select-summary"
           data-card-select-value={selectedOption.value}
           className="flex items-center gap-3 rounded-lg border border-indigo-200 bg-indigo-50/50 px-3 py-2.5"
@@ -1082,6 +1172,7 @@ const CardSelect: FunctionComponent<ComponentProps> = (
         role="radiogroup"
         aria-label={translator.translateText("Select an option")}
         aria-labelledby={props.ariaLabelledby}
+        aria-describedby={groupDescribedBy}
       >
         {isSearching && isShowingClosestMatches && (
           <p

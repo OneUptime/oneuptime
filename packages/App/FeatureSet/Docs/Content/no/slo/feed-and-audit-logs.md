@@ -23,7 +23,7 @@ flowchart LR
 
 ## Feeden til SLO-et
 
-Feeden ligger på siden **Feed** til SLO-et, og de nyeste elementene under **Recent activity** i **Oversikt** til SLO-et. Elementene lenker til SLO-et, monitorene, varslene og hendelsene de nevner, og de fleste har detaljer med tallene eller de gamle og nye verdiene, som **Vis detaljer** bretter ut under elementet.
+Feeden ligger på siden **Feed** til SLO-et, og de nyeste elementene under **Nylig aktivitet** i **Oversikt** til SLO-et. Elementene lenker til SLO-et, monitorene, varslene og hendelsene de nevner, og de fleste har detaljer med tallene eller de gamle og nye verdiene, som **Vis detaljer** bretter ut under elementet.
 
 | Hendelse | Publiseres når |
 | --- | --- |
@@ -31,7 +31,7 @@ Feeden ligger på siden **Feed** til SLO-et, og de nyeste elementene under **Rec
 | SLO oppdatert | Navnet, beskrivelsen, etikettene, målet, samsvarsvinduet, tidssonen, risikoterskelen, modusen for flere monitorer eller nedetidsstatusene endres. Viser hver gammel og ny verdi. |
 | SLO aktivert eller deaktivert | Evalueringen slås på eller av. |
 | SLO arkivert eller gjenopprettet | SLO-et arkiveres eller fjernes fra arkivet. |
-| Status endret | En evaluering flytter SLO-et til en ny status. Viser SLI-en, feilbudsjettet, forbruksraten og risikoterskelen som forklarer den, og årsaken ved **Pauset** eller **Misconfigured**. |
+| Status endret | En evaluering flytter SLO-et til en ny status. Viser SLI-en, feilbudsjettet, forbruksraten og risikoterskelen som forklarer den, og årsaken ved **Pauset** eller **Feilkonfigurert**. |
 | Forbruksratevarsel utløst | En forbruksrateregel oppretter et varsel. Lenker til det og viser forbruksratene som utløste det. |
 | Forbruksratehendelse erklært | En forbruksrateregel erklærer en hendelse. Lenker til den og viser forbruksratene som utløste den. |
 | Forbruksratevarsel eller -hendelse løst | Varselet eller hendelsen til en regel lukkes: løst automatisk, eller for hånd mens automatisk løsning var slått av. |

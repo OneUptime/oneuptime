@@ -57,7 +57,7 @@ Klik onder **Monitortype** op **Meer monitortypen** en kies **Ceph** onder **Inf
 
 ### Het cluster kiezen
 
-Kies onder **Ceph Monitor Configuration** het cluster in **Ceph Cluster**. Elk cluster dat gegevens heeft gestuurd, staat in de lijst.
+Kies onder **Ceph Monitor Configuration** het cluster in **Ceph-cluster**. Elk cluster dat gegevens heeft gestuurd, staat in de lijst.
 
 ### Kiezen wat je bewaakt
 
@@ -65,11 +65,11 @@ Kies een van de drie tabbladen:
 
 - **Quick Setup** — klik op een [sjabloon](#kant-en-klare-waarschuwingssjablonen). Dat stelt de metrics, filters, aggregatie, het tijdsbereik en de drempels in, en vervangt de criteria hieronder door die van het sjabloon. Het **Tijdsbereik** kun je nog wijzigen.
 - **Custom Metric** — kies één metric in **Ceph Metric** en stel daarna **Aggregatie** en **Tijdsbereik** in. **OSD** en **Pool ID** beperken hem tot één daemon of pool.
-- **Geavanceerd** — bouw zelf query's en formules onder **Selecteer metrieken**, bijvoorbeeld een verhouding van gebruikte capaciteit uit `ceph_cluster_total_used_bytes / ceph_cluster_total_bytes`. Gebruik **Group by** `ceph_daemon` of `pool_id` om elke daemon of pool afzonderlijk te beoordelen.
+- **Geavanceerd** — bouw zelf query's en formules onder **Selecteer metrieken**, bijvoorbeeld een verhouding van gebruikte capaciteit uit `ceph_cluster_total_used_bytes / ceph_cluster_total_bytes`. Gebruik **Groeperen op** `ceph_daemon` of `pool_id` om elke daemon of pool afzonderlijk te beoordelen.
 
 ### De criteria controleren
 
-Open elk criterium onder **Monitorcriteria** en controleer **Metriek**, **Aggregatie**, **Voorwaarde** en **Threshold**. Een sjabloon vult ze in. Met **Custom Metric** of **Geavanceerd** begint de monitor met de [standaardcriteria](#standaardcriteria), die alleen merken dat een metric naar nul zakt, dus stel je eigen drempel in.
+Open elk criterium onder **Monitorcriteria** en controleer **Metriek**, **Aggregatie**, **Voorwaarde** en **Drempel**. Een sjabloon vult ze in. Met **Custom Metric** of **Geavanceerd** begint de monitor met de [standaardcriteria](#standaardcriteria), die alleen merken dat een metric naar nul zakt, dus stel je eigen drempel in.
 
 ### De monitor aanmaken
 
@@ -77,19 +77,19 @@ Klik op **Monitor maken**. OneUptime opent de pagina van de monitor en evalueert
 :::
 
 > [!TIP]
-> Om meerdere sjablonen tegelijk in te stellen, open je het cluster via **Producten → Infrastructuur → Ceph** en ga je naar **Recommendations**. Kies de sjablonen die je wilt en wie er wordt opgeroepen, en OneUptime maakt per sjabloon één monitor.
+> Om meerdere sjablonen tegelijk in te stellen, open je het cluster via **Producten → Infrastructuur → Ceph** en ga je naar **Aanbevelingen**. Kies de sjablonen die je wilt en wie er wordt opgeroepen, en OneUptime maakt per sjabloon één monitor.
 
 ## Monitorinstellingen
 
 | Veld | Tabblad | Wat het doet |
 | --- | --- | --- |
-| **Ceph Cluster** | Alle | Verplicht. Beperkt elke query tot `resource.ceph.cluster.name`. |
+| **Ceph-cluster** | Alle | Verplicht. Beperkt elke query tot `resource.ceph.cluster.name`. |
 | **OSD** | Custom Metric, Geavanceerd | Optioneel. Exacte overeenkomst op het label `ceph_daemon`, bijvoorbeeld `osd.3`. |
 | **Pool ID** | Custom Metric, Geavanceerd | Optioneel. Exacte overeenkomst op het label `pool_id`, bijvoorbeeld `2`. |
 | **Ceph Metric** | Custom Metric | Eén metric uit de [catalogus](#verzamelde-metrics). |
 | **Aggregatie** | Custom Metric | Hoe meetwaarden worden gecombineerd: **Gemiddelde**, **Maximum**, **Minimum**, **Som** of **Aantal**. Begint bij de gebruikelijke aggregatie van de metric. |
 | **Tijdsbereik** | Alle | Het voortschuivende venster dat de query leest, van **Past 1 Minute** tot **Past 365 Days**. Een nieuwe monitor begint bij **Past 1 Minute**; sjablonen stellen hun eigen waarde in. |
-| **Selecteer metrieken** | Geavanceerd | De querybouwer: **Metriek**, **Aggregate by**, **Filter by attributes**, **Group by**, plus **Metriek toevoegen** en **Formule toevoegen** om query's te combineren. |
+| **Selecteer metrieken** | Geavanceerd | De querybouwer: **Metriek**, **Aggregate by**, **Filter by attributes**, **Groeperen op**, plus **Metriek toevoegen** en **Formule toevoegen** om query's te combineren. |
 
 Gegevensreeksen van pools dragen alleen het label `pool_id`: de naam van de pool bestaat alleen in `ceph_pool_metadata`. Filter en groepeer poolreeksen op `pool_id`, en zoek de naam op in `ceph_pool_metadata` als je die nodig hebt.
 
@@ -220,8 +220,8 @@ Een criterium vergelijkt een van de query's of formules van de monitor met een d
 | **Metriek** | De query of formule die wordt gecontroleerd, via de variabelenaam. |
 | **Aggregatie** | Hoe de waarden in het venster één antwoord worden: **Gemiddelde**, **Som**, **Maximum Value**, **Minimum Value**, **All Values** (elke waarde moet voldoen, over het hele venster) of **Any Value** (één is genoeg). |
 | **Voorwaarde** | **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** of **Gelijk aan** — of een anomalievoorwaarde: **Anomalously High**, **Anomalously Low** of **Anomalous**. |
-| **Threshold** | De waarde om mee te vergelijken. Ernaast staat een eenhedenlijst als de metric een eenheid heeft. Niet zichtbaar bij anomalievoorwaarden. |
-| **Gevoeligheid** | Alleen bij anomalievoorwaarden. **Low** (4σ), **Medium** (3σ, standaard) of **High** (2σ). |
+| **Drempel** | De waarde om mee te vergelijken. Ernaast staat een eenhedenlijst als de metric een eenheid heeft. Niet zichtbaar bij anomalievoorwaarden. |
+| **Gevoeligheid** | Alleen bij anomalievoorwaarden. **Laag** (4σ), **Gemiddeld** (3σ, standaard) of **Hoog** (2σ). |
 | **Baseline-venster** | Alleen bij anomalievoorwaarden. 14 dagen (standaard), 28, 60 of 90 dagen geschiedenis. |
 | **Als geen gegevens** | Onder **Meer velden**. Wat er gebeurt als het venster geen meetwaarden heeft: **Ignore** (standaard), **Treat As Zero** of **Trigger**. |
 

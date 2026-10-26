@@ -34,7 +34,7 @@ flowchart TB
 
 - **顯示訂閱者頁面**（`showSubscriberPageOnStatusPage`）：預設開啟。在狀態頁面的導覽列中放置 **訂閱** 項目，訪客在那裡透過下面的管道註冊。
 - **電子郵件**（`enableEmailSubscribers`）：預設開啟。其他管道在你開啟之前都是關閉的。
-- **SMS**（`enableSmsSubscribers`）：預設關閉。在 OneUptime Cloud 上，每則簡訊都從專案的簡訊和通話餘額中支付，除非頁面有自己的 **Twilio 設定**（請參閱[下文](#電子郵件頁尾自訂-smtp-與-twilio)）。要開啟它，還需要在 **專案設定 > 通知 > 通知設定** 的 **通知管道** 卡片中為專案開啟 **SMS**，專案擁有者、**Billing Admin** 或擁有 **Manage Billing** 的人可以這麼做。
+- **SMS**（`enableSmsSubscribers`）：預設關閉。在 OneUptime Cloud 上，每則簡訊都從專案的簡訊和通話餘額中支付，除非頁面有自己的 **Twilio 設定**（請參閱[下文](#電子郵件頁尾自訂-smtp-與-twilio)）。要開啟它，還需要在 **專案設定 > 通知 > 通知設定** 的 **通知管道** 卡片中為專案開啟 **SMS**，專案擁有者、**帳單管理員** 或擁有 **Manage Billing** 的人可以這麼做。
 - **Slack**（`enableSlackSubscribers`）：預設關閉。
 - **Microsoft Teams**（`enableMicrosoftTeamsSubscribers`）：預設關閉。
 - **Webhook**（`enableWebhookSubscribers`）：預設關閉。
@@ -275,7 +275,7 @@ Slack、Microsoft Teams 和 Webhook 訂閱者會跳過這一步，你的團隊�
 - **Slack** 和 **Microsoft Teams** 以同樣的方式列出它們，每行一個。
 - **Webhook** 承載內容把它們放在 `data.customFields` 中，以每個欄位的 **範本變數** 為鍵：`{ "name": ..., "type": ..., "value": ... }`，值依儲存的原樣提供（事件沒有值時為 `null`）。欄位重新命名時鍵不會改變。
 - **SMS** 會省略它們。簡訊依區段計費，預設簡訊已經接近一個區段；自訂簡訊範本可以用 `{{incident.customFields.<key>}}` 放入任何欄位。
-- **Incident episode** 通知不附帶自訂欄位：一個片段把各自擁有自己值的事件歸為一組。每個成員事件自己的通知會附上它的欄位。
+- **事件片段** 通知不附帶自訂欄位：一個片段把各自擁有自己值的事件歸為一組。每個成員事件自己的通知會附上它的欄位。
 
 事件動態中的 **訂閱者通知已傳送** 項目會在 **Custom fields sent** 下列出每次傳送放進訊息的值。訂閱者通常在你的團隊之外，所以只為可以安全地與他們分享的欄位開啟這個設定。
 
@@ -415,7 +415,7 @@ Slack、Microsoft Teams 和 Webhook 訂閱者會跳過這一步，你的團隊�
 
 **其中兩個是內部資料。** `{{affectedStatusPages}}` 會寫出事件到達的每個受眾的名稱：在 [每個受眾一個狀態頁](/docs/status-pages/one-status-page-per-audience) 的情況下，一個站點的訂閱者會知道還有哪些站點受到影響，一個客戶會知道其他客戶的名稱。自訂欄位可能包含寫給你的團隊的備註。只把它們放在訂閱者可以看到這些內容的範本中。
 
-**放置標籤和自訂欄位需要事件存取權限。** `{{incidentLabels}}` 和 `{{incident.customFields.<key>}}` 會讀取你的團隊的事件記錄，而狀態頁面並不顯示這些記錄。所以放置它們的範本，只有能讀取每個事件及其自訂欄位的人才能儲存：**Project Owner**、**Project Admin**、**Project Member** 或 **Viewer**，或者 **Incident Admin**、**Incident Member** 或 **Incident Viewer**，而且沒有被限制在某些標籤或自己負責的事件上。僅有 **Status Page Admin** 和 **Status Page Member** 可以撰寫範本，但不能新增這些預留位置；對於已經包含它們的範本，他們仍然可以編輯其餘部分。`{{affectedStatusPages}}` 不需要比範本本身更多的權限。
+**放置標籤和自訂欄位需要事件存取權限。** `{{incidentLabels}}` 和 `{{incident.customFields.<key>}}` 會讀取你的團隊的事件記錄，而狀態頁面並不顯示這些記錄。所以放置它們的範本，只有能讀取每個事件及其自訂欄位的人才能儲存：**專案擁有者**、**專案管理員**、**專案成員** 或 **檢視者**，或者 **事件管理員**、**事件成員** 或 **事件檢視者**，而且沒有被限制在某些標籤或自己負責的事件上。僅有 **狀態頁面管理員** 和 **狀態頁面成員** 可以撰寫範本，但不能新增這些預留位置；對於已經包含它們的範本，他們仍然可以編輯其餘部分。`{{affectedStatusPages}}` 不需要比範本本身更多的權限。
 
 ### 備註範本中的狀態
 
@@ -445,6 +445,8 @@ Slack、Microsoft Teams 和 Webhook 訂閱者會跳過這一步，你的團隊�
 - **Twilio 設定**：**Twilio 設定** 是用於簡訊訂閱者的 Twilio 帳戶。
 
 如果你有電子郵件訂閱者，值得盡早設定自訂 SMTP：來自你自己網域的郵件被過濾的可能性要低得多，在凌晨 2 點閱讀它的客戶也更有可能信任它。
+
+預設簡訊使用簡訊傳送成本最低的字元書寫：彎引號、破折號等會換成外觀相同的一般字元，表情符號會省略，因此標題中的一個字元絕不會讓一則簡訊多花兩三則的費用。連結會照原樣傳送。自訂簡訊範本會按你撰寫的樣子傳送，包括其中插入的值。
 
 ## 公告
 

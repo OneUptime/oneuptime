@@ -100,7 +100,7 @@ La scheda **Video Call** sulla pagina di un incidente o di un avviso ha **Start 
 
 **Rimuovi** sulla scheda toglie una chiamata dalla pagina dell'incidente. La riunione in sé non viene eliminata, e chiunque abbia il link può ancora unirsi.
 
-Avviare e rimuovere chiamate richiede il permesso di lavorare sugli incidenti (o sugli avvisi): **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin** o **Incident Member**, oppure **Create Incident Video Call** e **Delete Incident Video Call** in un ruolo personalizzato. Tutti quelli che possono leggere l'incidente vedono le sue chiamate.
+Avviare e rimuovere chiamate richiede il permesso di lavorare sugli incidenti (o sugli avvisi): **Proprietario del progetto**, **Amministratore del progetto**, **Membro del progetto**, **Amministratore degli incidenti** o **Membro degli incidenti**, oppure **Create Incident Video Call** e **Delete Incident Video Call** in un ruolo personalizzato. Tutti quelli che possono leggere l'incidente vedono le sue chiamate.
 
 ## Trascrizioni delle chiamate
 
@@ -146,7 +146,7 @@ Microsoft consente alle app di leggere solo le trascrizioni delle riunioni di Te
 
 ### Chi può fare cosa
 
-Ottenere, aggiungere, sostituire e rimuovere una trascrizione, farla rileggere e scartare un suggerimento richiedono l'autorizzazione ad avviare le chiamate dell'incidente: **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin** o **Incident Member**, oppure **Create Incident Video Call** in un ruolo personalizzato. **Usa come causa principale** richiede l'autorizzazione a modificare la causa principale dell'incidente. Chiunque possa leggere l'incidente vede le trascrizioni delle sue chiamate e ciò che OneUptime AI vi ha letto.
+Ottenere, aggiungere, sostituire e rimuovere una trascrizione, farla rileggere e scartare un suggerimento richiedono l'autorizzazione ad avviare le chiamate dell'incidente: **Proprietario del progetto**, **Amministratore del progetto**, **Membro del progetto**, **Amministratore degli incidenti** o **Membro degli incidenti**, oppure **Create Incident Video Call** in un ruolo personalizzato. **Usa come causa principale** richiede l'autorizzazione a modificare la causa principale dell'incidente. Chiunque possa leggere l'incidente vede le trascrizioni delle sue chiamate e ciò che OneUptime AI vi ha letto.
 
 ### Cosa legge OneUptime AI
 
@@ -160,7 +160,7 @@ Le credenziali sono cifrate a riposo e l'API non le restituisce mai. Quando modi
 
 **Start test meeting** nel modulo della connessione, e **Test** nella riga di una connessione, creano una vera riunione con le impostazioni della connessione e ne mostrano il link. È l'unica verifica che dimostra che le credenziali, il permesso presso il provider e l'host funzionano insieme. Non viene pubblicato nulla da nessuna parte.
 
-Collegare un provider richiede **Project Owner**, **Project Admin** o **Settings Admin**, oppure **Create Video Call Connection** ed **Edit Video Call Connection** in un ruolo personalizzato.
+Collegare un provider richiede **Proprietario del progetto**, **Amministratore del progetto** o **Amministratore delle impostazioni**, oppure **Create Video Call Connection** ed **Edit Video Call Connection** in un ruolo personalizzato.
 
 ### Zoom
 
@@ -169,7 +169,7 @@ OneUptime crea una riunione Zoom per ogni incidente tramite un'app Zoom **Server
 :::steps
 1. Nello [Zoom App Marketplace](https://marketplace.zoom.us/), scegli **Develop** > **Build App** e crea un'app **Server-to-Server OAuth**. Crearne una richiede un amministratore dell'account Zoom, o un ruolo che consenta le app Server-to-Server OAuth.
 2. Nella pagina **Scopes** dell'app, aggiungi **meeting:write:meeting:admin** (creare una riunione per un utente). Un'app creata prima degli scope granulari può usare invece **meeting:write:admin**. Per permettere a OneUptime di leggere anche le [trascrizioni delle chiamate](#trascrizioni-delle-chiamate), aggiungi **cloud_recording:read:list_recording_files:admin** e **cloud_recording:read:meeting_transcript:admin** (oppure **recording:read:admin** per un'app creata prima degli scope granulari).
-3. Fai clic su **Activate** per attivare l'app, poi copia **Account ID**, **Client ID** e **Client secret** dalla sua pagina **App Credentials** nel modulo della connessione.
+3. Fai clic su **Activate** per attivare l'app, poi copia **Account ID**, **Client ID** e **Segreto client** dalla sua pagina **App Credentials** nel modulo della connessione.
 4. Inserisci il **Meeting host**: l'email di un utente Zoom con licenza, idealmente un account di servizio come incidents@example.com, così le riunioni continuano a funzionare quando qualcuno se ne va. Le riunioni ospitate da un utente Basic (gratuito) terminano dopo 40 minuti.
 5. I responder si uniscono senza aspettare l'host, perché l'host è un account di servizio che non si unisce mai. Assicurati che l'impostazione **Waiting room** del tuo account Zoom non sia bloccata su attivo, altrimenti nessuno può entrare.
 :::
@@ -203,7 +203,7 @@ OneUptime crea una riunione di Microsoft Teams per ogni incidente con Microsoft 
 :::steps
 1. Nell'[interfaccia di amministrazione di Microsoft Entra](https://entra.microsoft.com/), apri **App registrations** > **New registration** e registra un'app a tenant singolo. Copia il suo **Directory (tenant) ID** e il suo **Application (client) ID**.
 2. In **API permissions**, aggiungi il permesso Microsoft Graph di tipo **application** **OnlineMeetings.ReadWrite.All** (e, per poter anche [registrare e trascrivere le chiamate degli incidenti](#registrare-e-trascrivere-ogni-chiamata), **Calendars.ReadWrite** e **OnlineMeetingTranscript.Read.All**), poi fai clic su **Grant admin consent**.
-3. In **Certificates & secrets**, crea un segreto client e incolla il suo **Value**, non il suo Secret ID, nel modulo della connessione come **Client secret**.
+3. In **Certificates & secrets**, crea un segreto client e incolla il suo **Value**, non il suo Secret ID, nel modulo della connessione come **Segreto client**.
 4. Scegli l'organizzatore: un utente di Teams con licenza, idealmente un account di servizio. Copia il suo **Object ID** da **Users** nell'interfaccia di amministrazione di Entra in **Organizer object ID**.
 5. Consenti all'app di creare riunioni per l'organizzatore con un criterio di accesso alle applicazioni. In Teams PowerShell, dopo `Connect-MicrosoftTeams`, esegui i due comandi qui sotto.
 :::

@@ -160,7 +160,11 @@ async function open(
   await expect(page.getByTestId("synthetic-banner")).toBeVisible({
     timeout: 60000,
   });
-  // A card, or a setup guide (which draws a card of its own).
+  /*
+   * A card, or a setup guide, which draws a card of its own (Hosts >
+   * Documentation is only guides). An empty Hosts list is its table's card,
+   * with the showcase under it and no guide.
+   */
   await expect(
     page.locator('[data-testid="card"], [data-testid="setup-guide"]').first(),
   ).toBeVisible();
@@ -463,19 +467,25 @@ test("the list says where each host's collector stands and which config it runs"
   await screenshot(page, "hosts-list");
 });
 
-test("a new project: the first-run card is the one command, and the host shows up on its own", async ({
+test("a new project: the showcase's Add Host opens the one command, and the host shows up on its own", async ({
   page,
 }: {
   page: Page;
 }) => {
   await open(page, HOSTS, "hosts=none&keys=none");
 
-  await expect(
-    page.getByText("Add your first host", { exact: true }),
-  ).toBeVisible();
+  // What Hosts gives, under the empty list, with Add Host: no guide yet.
+  const showcase: Locator = page.getByTestId("resource-showcase");
+  await expect(showcase.getByRole("heading", { level: 2 })).toHaveText(
+    "Know what every server is doing, down to the process",
+  );
+  await expect(page.getByTestId("setup-guide")).toHaveCount(0);
+
+  await showcase.getByTestId("resource-showcase-add-button").click();
+  const addHost: Locator = page.getByTestId("add-host-modal");
   // No key yet: the command says where the key goes.
   await expect(
-    page.getByText(
+    addHost.getByText(
       `curl -fsSL ${ONEUPTIME_URL}/docs/static/scripts/host-collector/install.sh | sudo sh -s -- --url ${ONEUPTIME_URL} --key '<YOUR_API_KEY>'`,
       { exact: true },
     ),
@@ -484,10 +494,14 @@ test("a new project: the first-run card is the one command, and the host shows u
   await register(page, "web-09");
   await page.clock.runFor(WATCH_MS + 1);
 
+  // The dialog says so, and the showcase gives way to the host's row.
+  await expect(addHost.getByTestId("host-connection-connected")).toContainText(
+    "web-09 is connected.",
+  );
+  await expect(showcase).toHaveCount(0);
+  await dialog(page).getByRole("button", { name: "Done" }).click();
+  await expect(dialog(page)).toHaveCount(0);
   await expect(row(card(page, "Hosts"), "web-09")).toBeVisible();
-  await expect(
-    page.getByText("Add your first host", { exact: true }),
-  ).toHaveCount(0);
 });
 
 test("Hosts > Documentation: the one command first, the manual guide one card down", async ({

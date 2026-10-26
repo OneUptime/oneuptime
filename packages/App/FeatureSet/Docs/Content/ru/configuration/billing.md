@@ -144,10 +144,10 @@ SMS, звонки, сообщения WhatsApp и Telegram оплачивают�
 
 | Чтобы | Нужно |
 | --- | --- |
-| Читать страницы биллинга: план, счета, использование, балансы и способы оплаты | Project Owner, **Manage Billing**, **Billing Admin**, **Billing Member** или **Billing Viewer** |
-| Скачать счёт | Project Owner, Project Admin, **Manage Billing**, **Read Invoices**, **Billing Admin** или **Billing Member** |
-| Изменить платёжный адрес и почту для счетов | Project Owner, **Manage Billing**, **Billing Admin** или **Billing Member** |
-| Включить или выключить SMS, звонки, WhatsApp или Telegram | Project Owner, **Manage Billing** или **Billing Admin** |
+| Читать страницы биллинга: план, счета, использование, балансы и способы оплаты | Project Owner, **Manage Billing**, **Администратор биллинга**, **Участник биллинга** или **Зритель биллинга** |
+| Скачать счёт | Project Owner, Project Admin, **Manage Billing**, **Read Invoices**, **Администратор биллинга** или **Участник биллинга** |
+| Изменить платёжный адрес и почту для счетов | Project Owner, **Manage Billing**, **Администратор биллинга** или **Участник биллинга** |
+| Включить или выключить SMS, звонки, WhatsApp или Telegram | Project Owner, **Manage Billing** или **Администратор биллинга** |
 | Добавить способ оплаты | Project Owner, **Manage Billing** или **Create Payment Method** |
 | Оплатить счёт | Project Owner, **Manage Billing** или **Edit Invoices** |
 | Сменить план, пополнить баланс или изменить автопополнение | Project Owner или **Manage Billing** |

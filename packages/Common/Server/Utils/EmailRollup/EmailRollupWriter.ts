@@ -74,13 +74,11 @@ export interface SendOrRollupData {
   emailEnvelope: EmailEnvelope;
   mailOptions: RollupMailOptions;
   /*
-   * Set by a producer that reuses another family's event type for something
-   * urgent, so the event type alone cannot express the urgency. The SLA-breach
-   * job is the case that exists today: it sends under
-   * EmailTemplateType.IncidentOwnerResourceCreated and reuses
-   * SEND_INCIDENT_CREATED_OWNER_NOTIFICATION, so nothing about its event type
-   * distinguishes "your SLA just breached" from an ordinary incident-created
-   * notice.
+   * Set by a producer whose message is urgent although its event type can be
+   * rolled up, so the event type alone cannot express the urgency: a
+   * critical security case's notification (SecurityCaseNotifications), for
+   * one. An SLA breach has an event type of its own, which is never rolled
+   * up (NEVER_ROLLED_UP_EVENT_TYPES), and needs no flag.
    */
   forceImmediate?: boolean | undefined;
 }

@@ -144,10 +144,10 @@ flowchart TB
 
 | برای | لازم است |
 | --- | --- |
-| خواندن صفحه‌های صورت‌حساب: طرح، فاکتورها، مصرف، موجودی‌ها و روش‌های پرداخت | Project Owner، **Manage Billing**، **Billing Admin**، **Billing Member** یا **Billing Viewer** |
-| دانلود یک فاکتور | Project Owner، Project Admin، **Manage Billing**، **Read Invoices**، **Billing Admin** یا **Billing Member** |
-| تغییر نشانی صورت‌حساب و ایمیل فاکتور | Project Owner، **Manage Billing**، **Billing Admin** یا **Billing Member** |
-| روشن یا خاموش کردن پیامک، تماس، WhatsApp یا Telegram | Project Owner، **Manage Billing** یا **Billing Admin** |
+| خواندن صفحه‌های صورت‌حساب: طرح، فاکتورها، مصرف، موجودی‌ها و روش‌های پرداخت | Project Owner، **Manage Billing**، **مدیر صورت‌حساب**، **عضو صورت‌حساب** یا **بیننده صورت‌حساب** |
+| دانلود یک فاکتور | Project Owner، Project Admin، **Manage Billing**، **Read Invoices**، **مدیر صورت‌حساب** یا **عضو صورت‌حساب** |
+| تغییر نشانی صورت‌حساب و ایمیل فاکتور | Project Owner، **Manage Billing**، **مدیر صورت‌حساب** یا **عضو صورت‌حساب** |
+| روشن یا خاموش کردن پیامک، تماس، WhatsApp یا Telegram | Project Owner، **Manage Billing** یا **مدیر صورت‌حساب** |
 | افزودن یک روش پرداخت | Project Owner، **Manage Billing** یا **Create Payment Method** |
 | پرداخت یک فاکتور | Project Owner، **Manage Billing** یا **Edit Invoices** |
 | تغییر طرح، شارژ یک موجودی یا تغییر شارژ خودکار | Project Owner یا **Manage Billing** |

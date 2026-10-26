@@ -22,7 +22,7 @@ flowchart TB
 
 ## Antes de começar
 
-- **Sua função.** Criar um evento requer **Project Owner**, **Project Admin**, **Project Member**, **Scheduled Maintenance Admin** ou **Scheduled Maintenance Member**, ou uma função personalizada com **Create Scheduled Maintenance**.
+- **Sua função.** Criar um evento requer **Proprietário do projeto**, **Administrador do projeto**, **Membro do projeto**, **Administrador de manutenção programada** ou **Membro de manutenção programada**, ou uma função personalizada com **Create Scheduled Maintenance**.
 - **Suas páginas de status.** Para avisar os clientes, você precisa de uma página de status que mostre eventos de manutenção programada. Veja [Visão geral das páginas de status](/docs/status-pages/index).
 
 ## Criar um evento

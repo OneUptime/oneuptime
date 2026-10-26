@@ -34,6 +34,7 @@ import {
   TRUNCATED_VALUE_SUFFIX,
 } from "Common/Types/Workflow/StepTrace";
 import WorkflowPlan from "Common/Types/Workflow/WorkflowPlan";
+import { FormValidationMessage } from "Common/UI/Components/Forms/Utils/FormValidationMessages";
 import { describeUnresolvedIdReference } from "Common/Server/Types/Workflow/Components/BaseModel/UnresolvedIdReference";
 import WorkflowStatus, {
   getWorkflowStatusLabel,
@@ -1102,7 +1103,11 @@ describe("the variables page", () => {
     expect(WORKFLOW_VARIABLE_UTIL).toContain(
       "validation: {\n      minLength: 2,\n      noSpaces: true,\n      noSpecialCharacters: true,\n    },",
     );
+    // Validation says it from the shared list of form messages.
     expect(FORM_VALIDATION).toContain(
+      "FormValidationMessage.NoSpecialCharacters",
+    );
+    expect(FormValidationMessage.NoSpecialCharacters).toContain(
       "can only contain letters, numbers, hyphens (-), and underscores (_).",
     );
     expect(VARIABLES).toContain(

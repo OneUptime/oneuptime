@@ -5,6 +5,7 @@ import TinyFormDocumentation from "../TinyFormDocumentation/TinyFormDocumentatio
 import { FILE_URL } from "../../Config";
 import API from "../../Utils/API/API";
 import useTranslateValue from "../../Utils/Translation";
+import joinAriaIds from "../../Utils/AriaIds";
 import TranslatedSentence from "../TranslatedSentence/TranslatedSentence";
 import { translationKey } from "../../Utils/TranslateTemplate";
 import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
@@ -89,6 +90,8 @@ export interface ComponentProps {
   disableSpellCheck?: boolean | undefined;
   dataTestId?: string | undefined;
   ariaLabelledby?: string | undefined;
+  // What describes the editor besides its error, read first: its field's help.
+  ariaDescribedby?: string | undefined;
   /*
    * Default: true. Inline images upload to the File API, which needs a
    * signed-in user, so a form open to anyone (no OneUptime account) sets
@@ -2171,6 +2174,13 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
   const modeToggleWidthsRef: React.MutableRefObject<{
     [key in EditorMode]?: number | undefined;
   }> = useRef({});
+  /*
+   * Insert variable as last measured with its words, for the fitting to use
+   * while it shows its { } alone: whether its words fit again is judged by
+   * their width, not by the square's.
+   */
+  const variableButtonFullWidthRef: React.MutableRefObject<number> =
+    useRef<number>(0);
   const [toolbarLayout, setToolbarLayout] = useState<MarkdownToolbarLayout>(
     (): MarkdownToolbarLayout => {
       return getFullToolbarLayout(toolbarGroupSizes);
@@ -2197,6 +2207,14 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
       modeToggleWidths[mode] = modeToggleWidth;
     }
 
+    // Always on the line: measured as it is, with its words or without.
+    const variableButtonWidth: number =
+      variableButtonRef.current?.offsetWidth || 0;
+
+    if (!current.isVariableButtonCompact && variableButtonWidth > 0) {
+      variableButtonFullWidthRef.current = variableButtonWidth;
+    }
+
     const next: MarkdownToolbarLayout = fitMarkdownToolbar({
       availableWidth: line.clientWidth,
       groupSizes: toolbarGroupSizes,
@@ -2204,8 +2222,9 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
         modeToggleWidths[mode] ||
         modeToggleWidths[mode === "wysiwyg" ? "markdown" : "wysiwyg"] ||
         ESTIMATED_MODE_TOGGLE_PX,
-      // Always on the line, so always measured as it is.
-      variableButtonWidth: variableButtonRef.current?.offsetWidth || 0,
+      variableButtonWidth: current.isVariableButtonCompact
+        ? variableButtonFullWidthRef.current || variableButtonWidth
+        : variableButtonWidth,
     });
 
     if (!isSameToolbarLayout(current, next)) {
@@ -2608,6 +2627,12 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
               <InsertTemplateVariableButton
                 groups={templateVariables}
                 dataTestId="markdown-editor-insert-variable"
+                /*
+                 * Its { } alone where even its words do not fit beside the
+                 * menu's button (MarkdownToolbarLayout): a square like the
+                 * formatting buttons, named by its words all the same.
+                 */
+                isCompact={toolbarLayout.isVariableButtonCompact}
                 className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-2.5 py-1 text-sm font-medium text-indigo-700 transition-colors duration-200 hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
                 onPressStart={rememberEditableSelection}
                 onPick={insertVariableAtCursor}
@@ -2638,7 +2663,10 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
               aria-multiline="true"
               aria-labelledby={props.ariaLabelledby}
               aria-invalid={props.error ? "true" : undefined}
-              aria-describedby={props.error ? errorId : undefined}
+              aria-describedby={joinAriaIds(
+                props.ariaDescribedby,
+                props.error ? errorId : undefined,
+              )}
               aria-autocomplete={canPickVariables ? "list" : undefined}
               aria-controls={editableTrigger ? variableListboxId : undefined}
               aria-activedescendant={
@@ -2704,7 +2732,10 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
               autoFocus={false}
               aria-labelledby={props.ariaLabelledby}
               aria-invalid={props.error ? "true" : undefined}
-              aria-describedby={props.error ? errorId : undefined}
+              aria-describedby={joinAriaIds(
+                props.ariaDescribedby,
+                props.error ? errorId : undefined,
+              )}
               placeholder={sourcePlaceholder}
               className={`${className} rounded-t-none min-h-32 ${
                 isDraggingOver

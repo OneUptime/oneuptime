@@ -36,11 +36,11 @@ flowchart TB
 :::steps
 ### 在 Vercel Marketplace 上開啟 OneUptime
 
-在 Vercel 主控台中開啟 **Integrations**，然後開啟 **Browse Marketplace**，在 **Observability** 下找到 OneUptime。點選 **Install**，並接受 OneUptime 的條款。
+在 Vercel 主控台中開啟 **Integrations**，然後開啟 **Browse Marketplace**，在 **Observability** 下找到 OneUptime。點選 **安裝**，並接受 OneUptime 的條款。
 
 ### 選擇方案
 
-選擇 **Free**、**Growth** 或 **Scale**。這些是 OneUptime 自己的方案，價格以 [oneuptime.com/pricing](https://oneuptime.com/pricing) 上列出的為準。
+選擇 **免費**、**Growth** 或 **Scale**。這些是 OneUptime 自己的方案，價格以 [oneuptime.com/pricing](https://oneuptime.com/pricing) 上列出的為準。
 
 ### 為資源命名並選擇設定
 
@@ -148,7 +148,7 @@ Drain 會把 Vercel 記錄的關於你的專案的內容傳送到 OneUptime：�
 
 | | 運作方式 |
 | --- | --- |
-| 方案 | **Free**、**Growth** 和 **Scale**，價格與 oneuptime.com 上的相同：方案的每位使用者價格、每個監測器每月 $1 的作用中監測器，以及依 GB 計費的遙測。 |
+| 方案 | **免費**、**Growth** 和 **Scale**，價格與 oneuptime.com 上的相同：方案的每位使用者價格、每個監測器每月 $1 的作用中監測器，以及依 GB 計費的遙測。 |
 | 在哪裡付款 | 在你的 Vercel 發票上，每月一次，每個資源分別計費。Vercel 會在資源上顯示當月到目前為止的用量，每小時更新一次。 |
 | 試用期 | 方案試用期內不收取任何費用：使用者、監測器和遙測都不收費。 |
 | 變更方案 | 在 Vercel 中的資源上變更，或在 OneUptime 的 **專案設定 → 帳單與發票 → 帳單** 下變更。在任一處變更都會同時變更兩邊。 |

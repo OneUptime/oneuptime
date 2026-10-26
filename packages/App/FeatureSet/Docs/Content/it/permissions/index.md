@@ -78,7 +78,7 @@ I team **Owners** e **Admin** sono bloccati di proposito: le loro autorizzazioni
 
 `ProjectOwner` è il livello di accesso più alto: fatturazione, eliminazione del progetto e tutto ciò che può fare un amministratore. `ProjectAdmin` copre tutto tranne la fatturazione e l'eliminazione del progetto.
 
-Attivare o disattivare SMS, chiamate telefoniche, WhatsApp o Telegram per il progetto rientra nella fatturazione, perché ogni messaggio costa denaro. Solo `ProjectOwner`, il ruolo `BillingAdmin` (**Billing Admin**) e l'autorizzazione `ManageProjectBilling` (**Manage Billing**) possono cambiare questi interruttori, in **Impostazioni del progetto > Notifiche > Impostazioni notifiche** — non `ProjectAdmin`.
+Attivare o disattivare SMS, chiamate telefoniche, WhatsApp o Telegram per il progetto rientra nella fatturazione, perché ogni messaggio costa denaro. Solo `ProjectOwner`, il ruolo `BillingAdmin` (**Amministratore della fatturazione**) e l'autorizzazione `ManageProjectBilling` (**Manage Billing**) possono cambiare questi interruttori, in **Impostazioni del progetto > Notifiche > Impostazioni notifiche** — non `ProjectAdmin`.
 
 Ricaricare i saldi prepagati del progetto rientra anch'esso nella fatturazione. Su OneUptime Cloud SMS, chiamate telefoniche, WhatsApp e Telegram sono pagati dal saldo in **Impostazioni del progetto > Notifiche > Impostazioni notifiche**, e l'IA dai crediti IA in **Impostazioni del progetto > IA > Crediti IA**. Solo un proprietario del progetto o qualcuno con **Manage Billing** può ricaricarli o cambiarne la **Ricarica automatica** — non un amministratore del progetto. Un messaggio su un saldo in esaurimento dice chi può ricaricarlo, e solo queste persone hanno un pulsante **Ricarica saldo** funzionante o un link alla pagina.
 
@@ -202,7 +202,7 @@ Ogni autorizzazione concessa ha un ambito: quando la aggiungete, **Ambito** si t
 
 **Etichette** è la versione più manuale della stessa idea: etichettate le risorse, poi concedete autorizzazioni limitate a quelle etichette.
 
-**Agire sull'intero progetto richiede un'autorizzazione che lo raggiunga.** **Run Now** di una regola applica la regola a ogni risorsa del progetto, e le regole di assegnazione del sito, di etichetta dei dispositivi e di importazione automatica di una rete a ogni dispositivo di rete o scansione, quindi richiede autorizzazioni con ambito su tutte le risorse del progetto: un'autorizzazione limitata a etichette o alle risorse possedute non basta, e un blocco con etichette sulle risorse che un'esecuzione modifica rifiuta l'esecuzione, perché modificherebbe anche le risorse che portano quelle etichette.
+**Agire sull'intero progetto richiede un'autorizzazione che lo raggiunga.** **Esegui ora** di una regola applica la regola a ogni risorsa del progetto, e le regole di assegnazione del sito, di etichetta dei dispositivi e di importazione automatica di una rete a ogni dispositivo di rete o scansione, quindi richiede autorizzazioni con ambito su tutte le risorse del progetto: un'autorizzazione limitata a etichette o alle risorse possedute non basta, e un blocco con etichette sulle risorse che un'esecuzione modifica rifiuta l'esecuzione, perché modificherebbe anche le risorse che portano quelle etichette.
 
 Alcuni ruoli sono per definizione validi su tutto il progetto e non offrono alcun ambito, perché restringerli non avrebbe senso — «Billing Admin, ma solo per la fatturazione che possiedo» non descrive nulla:
 

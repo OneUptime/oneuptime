@@ -1244,12 +1244,12 @@ const ALERT: SimulatedKind = {
   leastSevere: { id: LOW_ALERT_SEVERITY_ID, name: "Low" },
   // An alert never reaches a status page, so there is nothing to keep it off.
   quietCreateFields: {},
-  // An alert's root cause is written at creation and cannot be edited after.
   editListenOn: {
     title: true,
     description: true,
     alertSeverityId: true,
     alertSeverity: true,
+    rootCause: true,
     remediationNotes: true,
   },
   defaultTitle: "Disk usage above 90% on db-1",
@@ -3752,14 +3752,13 @@ describe("simulated: what differs for alerts", () => {
   );
 
   /*
-   * An alert's root cause is written when the alert is created and cannot be
-   * edited afterwards, so the edit-comment template does not listen for it —
-   * but the comment it posts for any other edit still shows it.
+   * An alert's root cause can be edited (#5290), so an edit of it posts a
+   * comment, as an incident's does, and the comment shows it.
    */
-  test("an alert's root cause is not listened on, and the comment still shows it", async () => {
+  test("an alert's root cause edit is heard, as an incident's is, and the comment shows it", async () => {
     const TEMPLATE: string = "jira-comment-on-alert-update";
 
-    expect(firesOnUpdate(TEMPLATE, { rootCause: "Changed" })).toBe(false);
+    expect(firesOnUpdate(TEMPLATE, { rootCause: "Changed" })).toBe(true);
     expect(
       firesOnUpdate("jira-comment-on-incident-update", {
         rootCause: "Changed",

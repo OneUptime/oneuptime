@@ -87,7 +87,7 @@ Cada execução registra palavra por palavra as notas que leu. A atividade dela 
 
 ## Quem pode alterá-lo
 
-- **Project Owner** e **Project Admin** podem alterar o contexto de IA do projeto. **Project Member**, **Viewer** e **Read Project** podem lê-lo.
+- **Proprietário do projeto** e **Administrador do projeto** podem alterar o contexto de IA do projeto. **Membro do projeto**, **Visualizador** e **Read Project** podem lê-lo.
 - As notas de uma regra de IA fazem parte da regra: quem pode alterar a regra pode alterá-las.
 - As notas só são lidas para o próprio projeto: nenhuma execução lê o contexto de IA de outro projeto.
 

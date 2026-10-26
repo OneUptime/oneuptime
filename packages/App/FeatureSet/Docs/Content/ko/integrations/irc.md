@@ -46,7 +46,7 @@ sequenceDiagram
 ## 시작하기 전에
 
 - OneUptime Cloud에서는 **Growth** 이상의 플랜: 워크플로와 그 변수는 이 플랜에 포함됩니다. 결제가 없는 셀프 호스팅 설치에는 플랜 제한이 없습니다.
-- 워크플로를 만드는 역할: **Project Owner**, **Project Admin** 또는 **Workflow Admin**.
+- 워크플로를 만드는 역할: **프로젝트 소유자**, **프로젝트 관리자** 또는 **워크플로 관리자**.
 - 네트워크가 로그인을 요구한다면 그 IRC 네트워크의 계정. Libera.Chat은 일부 클라우드 및 VPN 주소에서 오는 연결에 로그인을 요구합니다.
 
 ## 통합 설정
@@ -87,7 +87,7 @@ sequenceDiagram
 워크플로가 **빌더**에서 세 단계와 함께 열립니다: **On Create Incident**, 인시던트의 번호, 제목, 심각도, 상태를 두 줄로 게시하는 **Send Message to IRC**, 그리고 그 **오류** 출력에 연결되어 메시지가 전달되지 않은 이유를 기록하는 **로그** 단계입니다. 서버와 채널은 워크플로 변수 `ircServer`와 `ircChannel`로 저장됩니다. 이전 단계에서 비밀번호를 저장했다면 **Send Message to IRC**를 클릭하고 **추가 필드**를 연 다음, 각 설정의 **{ }** 버튼으로 변수를 고릅니다.
 @tab 처음부터
 1. **워크플로**를 열고 **워크플로 생성**을 클릭한 다음, **처음부터 시작**을 고르고 워크플로 이름을 정한 뒤 **워크플로 생성**을 클릭합니다.
-2. **빌더**에서 **Choose what starts this workflow**를 클릭하고 **Popular** 아래의 **On Create Incident**를 고릅니다. 트리거를 클릭하고 **Fields to pass on**에서 메시지에 보여 줄 인시던트 필드(예: 제목)를 고릅니다.
+2. **빌더**에서 **이 워크플로를 시작할 항목 선택**을 클릭하고 **인기** 아래의 **On Create Incident**를 고릅니다. 트리거를 클릭하고 **Fields to pass on**에서 메시지에 보여 줄 인시던트 필드(예: 제목)를 고릅니다.
 3. **구성 요소 추가**를 클릭하고 `irc`를 검색한 다음 **Send Message to IRC**를 클릭합니다. 트리거의 **성공** 출력을 이 단계에 연결합니다.
 4. 새 단계를 클릭하고 **IRC Server**, **Channel**, **Message Text**를 입력합니다. **Message Text**의 **{ }** 버튼으로 인시던트 필드(예: 제목)를 넣을 수 있습니다.
 5. 이전 단계에서 비밀번호를 저장했다면 **추가 필드**를 엽니다. **Server Password**, **SASL Password** 또는 **Channel Key**에서 **{ }**를 클릭하고 **Global variables** 아래에서 변수를 고릅니다. **SASL Username**에는 계정 이름을 넣습니다.

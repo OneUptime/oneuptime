@@ -68,7 +68,7 @@ Mai ritardate e mai conteggiate:
 | Fatturazione e saldo | Fatture, abbonamento scaduto, «non siamo riusciti a chiamare nessuno perché la carta è stata rifiutata» |
 | Stato dell'istanza | Avvisi su Postgres, Valkey e ClickHouse agli amministratori dell'istanza |
 | Iscritti alle pagine di stato | Ogni e-mail che la tua pagina di stato invia ai tuoi iscritti |
-| Violazioni degli SLA | Inviate subito anche se riutilizzano il tipo di notifica per gli incidenti creati |
+| Violazioni degli SLA | Un incidente di cui sei proprietario che supera la scadenza SLA di risposta o di risoluzione |
 
 Riguarda solo le e-mail. SMS, telefonate, notifiche push, WhatsApp, Telegram, Slack, Microsoft Teams e webhook vengono recapitati subito, esattamente come prima, anche per le notifiche la cui e-mail è stata trattenuta.
 

@@ -36,11 +36,11 @@ Integrationen är för OneUptime Cloud (`oneuptime.com`). En självhostad OneUpt
 :::steps
 ### Öppna OneUptime på Vercel Marketplace
 
-Öppna **Integrations** i Vercels instrumentpanel, sedan **Browse Marketplace**, och hitta OneUptime under **Observability**. Klicka på **Install** och godkänn OneUptimes villkor.
+Öppna **Integrations** i Vercels instrumentpanel, sedan **Browse Marketplace**, och hitta OneUptime under **Observability**. Klicka på **Installation** och godkänn OneUptimes villkor.
 
 ### Välj en plan
 
-Välj **Free**, **Growth** eller **Scale**. Planerna är OneUptimes egna, till priserna på [oneuptime.com/pricing](https://oneuptime.com/pricing).
+Välj **Gratis**, **Growth** eller **Scale**. Planerna är OneUptimes egna, till priserna på [oneuptime.com/pricing](https://oneuptime.com/pricing).
 
 ### Namnge resursen och välj dess inställningar
 
@@ -148,7 +148,7 @@ Finns det redan ett OneUptime-konto med den e-postadressen är det det kontot so
 
 | | Så fungerar det |
 | --- | --- |
-| Planer | **Free**, **Growth** och **Scale**, till priserna på oneuptime.com: planens pris per användare, aktiva monitorer för $1 per monitor och månad, och telemetri per GB. |
+| Planer | **Gratis**, **Growth** och **Scale**, till priserna på oneuptime.com: planens pris per användare, aktiva monitorer för $1 per monitor och månad, och telemetri per GB. |
 | Var du betalar | På din Vercel-faktura, en gång i månaden, för varje resurs. Vercel visar månadens användning hittills på resursen, uppdaterad varje timme. |
 | Provperioder | Ingen debitering medan planens provperiod pågår: varken för användarna, monitorerna eller telemetrin. |
 | Byta plan | I Vercel, på resursen, eller i OneUptime under **Projektinställningar → Fakturering och fakturor → Fakturering**. En ändring på det ena stället gäller båda. |

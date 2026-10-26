@@ -9,6 +9,7 @@ import EgressGuardException, {
 import { JSONObject } from "Common/Types/JSON";
 import LlmType from "Common/Types/LLM/LlmType";
 import { LLM_PROVIDER_TYPE_COPY } from "Common/UI/Components/AI/LlmProviderFormCopy";
+import { FormValidationMessage } from "Common/UI/Components/Forms/Utils/FormValidationMessages";
 import { PermissionHelper } from "Common/Types/Permission";
 import API from "Common/Utils/API";
 import LlmProviderEndpoint from "Common/Utils/LLM/LlmProviderEndpoint";
@@ -33,6 +34,7 @@ import {
 } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { writtenPermissionTitle } from "./DocsRoleNames";
 
 /*
  * Issue #4476: the Microsoft Foundry (Azure AI Foundry) guide, in every docs
@@ -659,7 +661,13 @@ describe("the page names the forms as the Dashboard draws them", () => {
       ).join("\n");
 
       for (const title of titles) {
-        expect({ title, named: markdown.includes(`**${title}**`) }).toEqual({
+        // A role reads as the language's Dashboard names it.
+        const written: string = writtenPermissionTitle(language, title);
+
+        expect({
+          title,
+          named: markdown.includes(`**${written}**`),
+        }).toEqual({
           title,
           named: true,
         });
@@ -888,7 +896,7 @@ describe("the example request and response are LLMService's", () => {
     expect(request.data["model"]).toBe(curls[0]!.body["model"]);
     expect(request.data["messages"]).toEqual(curls[0]!.body["messages"]);
 
-    // And the answer shown is one OneUptime reads.
+    // And the answer shown is one OneUptime reads, from the deployment asked.
     expect(response).toEqual({
       content: "OK",
       toolCalls: undefined,
@@ -899,6 +907,7 @@ describe("the example request and response are LLMService's", () => {
         totalTokens: 14,
         cachedInputTokens: undefined,
       },
+      modelName: curls[0]!.body["model"],
     });
   });
 
@@ -1047,9 +1056,11 @@ describe("the troubleshooting quotes what OneUptime says", () => {
   }
 
   test("the forms build the length message from the template the page fills in", () => {
+    // Validation says it from the shared list of form messages.
     expect(readSource("Common/UI/Components/Forms/Validation.ts")).toContain(
-      `"${VALIDATION_TEMPLATE}"`,
+      "FormValidationMessage.MaxLength",
     );
+    expect(FormValidationMessage.MaxLength).toBe(VALIDATION_TEMPLATE);
     expect(lengthMessage("en")).toBe(
       "Base URL cannot be more than 100 characters.",
     );

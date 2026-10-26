@@ -830,9 +830,15 @@ const CephClusterOverview: FunctionComponent<
 
     const status: string = (cluster.otelCollectorStatus as string) || "";
     const lastSeenAt: Date | undefined = cluster.lastSeenAt;
+    /*
+     * One whole sentence either way: an English "never" in a translated
+     * "Last seen {{time}}" would read in two languages at once.
+     */
     const lastSeenText: string = lastSeenAt
-      ? OneUptimeDate.fromNow(lastSeenAt)
-      : "never";
+      ? translator.translateTemplate("Last seen {{time}}", {
+          time: OneUptimeDate.fromNow(lastSeenAt),
+        })
+      : translator.translateText("Never seen") || "Never seen";
 
     const isConnected: boolean =
       status.toLowerCase() === "connected" || status.toLowerCase() === "active";
@@ -953,9 +959,7 @@ const CephClusterOverview: FunctionComponent<
                     </div>
                   )}
                   <div className="mt-1 text-xs text-gray-400">
-                    {translator.translateTemplate("Last seen {{time}}", {
-                      time: lastSeenText,
-                    })}
+                    {lastSeenText}
                   </div>
                 </div>
               </div>

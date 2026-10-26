@@ -1,4 +1,5 @@
 import { DropdownOption, DropdownValue } from "../Dropdown/Dropdown";
+import joinAriaIds from "../../Utils/AriaIds";
 import Text from "../../../Types/Text";
 import React, {
   FunctionComponent,
@@ -25,6 +26,8 @@ export interface ComponentProps {
   dataTestId?: string | undefined;
   ariaLabel?: string | undefined;
   ariaLabelledby?: string | undefined;
+  // What describes the choice besides its error, read first: its field's help.
+  ariaDescribedby?: string | undefined;
 }
 
 const Radio: FunctionComponent<ComponentProps> = (
@@ -50,7 +53,10 @@ const Radio: FunctionComponent<ComponentProps> = (
       aria-label={props.ariaLabel}
       aria-labelledby={props.ariaLabelledby}
       aria-invalid={props.error ? "true" : undefined}
-      aria-describedby={props.error ? errorId : undefined}
+      aria-describedby={joinAriaIds(
+        props.ariaDescribedby,
+        props.error ? errorId : undefined,
+      )}
     >
       {props.options.map((option: RadioOption, index: number) => {
         const optionId: string = `${groupName}-option-${index}`;

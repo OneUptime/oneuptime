@@ -292,7 +292,7 @@ Registrar a URL concreta em vez do padrão da rota cria uma série temporal por 
 
 ## Alertar sobre um vital
 
-A página **Recommendations** da aplicação oferece um monitor pronto para cada vital. Cada um lê a média de cinco minutos da sua métrica e dispara quando ela atinge o limite de ruim do Google:
+A página **Recomendações** da aplicação oferece um monitor pronto para cada vital. Cada um lê a média de cinco minutos da sua métrica e dispara quando ela atinge o limite de ruim do Google:
 
 | Recomendação | Métrica | Dispara em | Gravidade |
 | --- | --- | --- | --- |

@@ -207,7 +207,7 @@ Gjør vinduet lengre enn overvåkingsintervallet, slik at det rommer flere sjekk
 | Alternativ | Hva som skjer | Bruk det til |
 | --- | --- | --- |
 | **Ignore** (standard) | Kriteriet samsvarer ikke. | Vanlige terskelvarsler. |
-| **Trigger** | De manglende dataene regnes som problemet. | Sjekker der stillhet i seg selv er en feil. |
+| **Utløser** | De manglende dataene regnes som problemet. | Sjekker der stillhet i seg selv er en feil. |
 | **Treat As Zero** | Vinduet sammenlignes som én enkelt null. | Tellere der ingen hendelser virkelig betyr null. |
 
 ### Eksempelkriterier

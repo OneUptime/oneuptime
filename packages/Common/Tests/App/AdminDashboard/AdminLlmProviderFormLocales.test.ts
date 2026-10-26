@@ -2,6 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import LlmProvider from "../../../Models/DatabaseModels/LlmProvider";
+import LlmType from "../../../Types/LLM/LlmType";
 import {
   LLM_PROVIDER_CARD_OPTIONS,
   getGlobalLlmProviderFormFields,
@@ -97,6 +98,8 @@ function drawnTexts(): Array<string> {
     add(LLM_PROVIDER_TYPE_COPY[type].apiKeyHint);
     add(LLM_PROVIDER_TYPE_COPY[type].baseUrlHint);
     add(LLM_PROVIDER_TYPE_COPY[type].modelNameHint);
+    // The list's Model column, for a blank Model no one model stands for.
+    add(LLM_PROVIDER_TYPE_COPY[type].defaultModelLabel);
   }
 
   add(LlmProviderFormCopy.optionalBaseUrlHint);
@@ -120,8 +123,10 @@ describe("the Global LLM Providers form, in the Admin Dashboard's languages", ()
         "Open models you run yourself. No API key.",
         "Never put keys here.",
         "Leave empty for {{model}}.",
+        "Leave empty for the first model your server lists. To use another, type its name exactly as your server lists it.",
         "More fields",
         "{{name}} (default)",
+        "First model the server lists",
       ]),
     );
   });
@@ -162,6 +167,9 @@ describe("the Global LLM Providers form, in the Admin Dashboard's languages", ()
         LLM_PROVIDER_TYPE_COPY[LLM_PROVIDER_TYPES[0]!].description,
         LlmProviderFormCopy.baseUrlNoKeys,
         LlmProviderFormCopy.nameDescription,
+        // A blank Model Name on an OpenAI-compatible server, and its list.
+        LLM_PROVIDER_TYPE_COPY[LlmType.OpenAICompatible].modelNameHint,
+        LLM_PROVIDER_TYPE_COPY[LlmType.OpenAICompatible].defaultModelLabel!,
       ]) {
         expect({ text, translated: admin[text] !== text }).toEqual({
           text,

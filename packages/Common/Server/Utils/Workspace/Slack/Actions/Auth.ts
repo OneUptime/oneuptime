@@ -37,6 +37,9 @@ import { WorkspaceAnswer } from "../../WorkspaceActionAnswers";
 import WorkspaceCommands, {
   WorkspaceCommandName,
 } from "../../WorkspaceCommands";
+import SlackProjectChoice, {
+  SlackProjectChoiceKind,
+} from "../SlackProjectChoice";
 
 // The forms whose value is the channel they were opened in.
 const NEW_RECORD_FORMS: ReadonlyArray<SlackActionType> = [
@@ -141,6 +144,17 @@ export interface SlackRequest {
    * what it does, so it is answered with what it did.
    */
   isFromPrivateMessage?: boolean | undefined;
+  /*
+   * What Slack sent, as read: a press that could be about more than one
+   * project is made again from it once its person chooses which
+   * (SlackProjectChoice).
+   */
+  payload?: JSONObject | undefined;
+  /*
+   * A press made again once its project was chosen in a modal: a form it
+   * opens, or an answer in a modal, takes that modal's place.
+   */
+  replaceViewId?: string | undefined;
 }
 
 /*
@@ -187,6 +201,13 @@ const slackActionTypesThatDoNotRequireUserSlackAccountToBeConnectedToOneUptime: 
 
     // A link to a page in OneUptime (SlackWelcome).
     SlackActionType.OpenInOneUptime,
+
+    /*
+     * A project chosen for a request (SlackProjectChoice): it reads and
+     * writes nothing itself. The request it makes again is read in full -
+     * the account, the membership, the permissions - in that project.
+     */
+    SlackActionType.ChooseProject,
   ];
 
 export default class SlackAuthAction {
@@ -238,16 +259,24 @@ export default class SlackAuthAction {
    * to. Says nothing to anybody: a press that is refused comes back with
    * isAuthorized false and why (refusal), and the caller answers Slack
    * first, then the person (answerRefusal), where they pressed.
+   *
+   * A request made again once its person chose its project
+   * (SlackProjectChoice) is read from `payload`, what Slack sent of it,
+   * with `chosenProjectId` telling its project apart; a form it opens takes
+   * the place of `replaceViewId`, the modal they chose in.
    */
   @CaptureSpan()
   public static async isAuthorized(data: {
     req: ExpressRequest;
+    payload?: JSONObject | undefined;
+    chosenProjectId?: ObjectID | undefined;
+    replaceViewId?: string | undefined;
   }): Promise<SlackRequest> {
     const { req } = data;
 
     logger.debug("Starting Slack request authorization");
 
-    let payload: JSONObject = req.body;
+    let payload: JSONObject = data.payload || req.body;
 
     if (payload["payload"] && typeof payload["payload"] === "string") {
       payload = JSON.parse(payload["payload"]);
@@ -294,6 +323,17 @@ export default class SlackAuthAction {
             isMenuChoice: true,
           };
         }
+      }
+
+      /*
+       * A project chosen for a request: each button's action id carries its
+       * place among them (SlackProjectChoice).
+       */
+      if (SlackProjectChoice.isChoiceActionId(action["action_id"])) {
+        return {
+          actionValue: action["value"] as string,
+          actionType: SlackActionType.ChooseProject,
+        };
       }
 
       return {
@@ -451,6 +491,23 @@ export default class SlackAuthAction {
       );
     }
 
+    /*
+     * The project its person chose for it - a request made again, or the
+     * press of the button they chose with (SlackProjectChoice) - tells it
+     * apart as the project a form was drawn for does, and before it.
+     */
+    const chosenProjectId: string | undefined =
+      data.chosenProjectId?.toString() ||
+      SlackProjectChoice.readChoice(
+        actions.find((action: SlackAction): boolean => {
+          return action.actionType === SlackActionType.ChooseProject;
+        })?.actionValue,
+      )?.projectId.toString();
+
+    if (chosenProjectId) {
+      drawnForProjectId = chosenProjectId;
+    }
+
     // The first press that reads or writes the project's records, if any.
     const memberAction: SlackAction | undefined = actions.find(
       (action: SlackAction): boolean => {
@@ -518,6 +575,8 @@ export default class SlackAuthAction {
         view: view,
         viewValues: viewValues,
         ...(isFromPrivateMessage ? { isFromPrivateMessage: true } : {}),
+        payload: payload,
+        ...(data.replaceViewId ? { replaceViewId: data.replaceViewId } : {}),
         refusal: {
           reason: SlackAuthRefusalReason.AmbiguousProject,
           projectId: firstConnection.projectId!,
@@ -626,6 +685,8 @@ export default class SlackAuthAction {
       view: view,
       viewValues: viewValues,
       ...(isFromPrivateMessage ? { isFromPrivateMessage: true } : {}),
+      payload: payload,
+      ...(data.replaceViewId ? { replaceViewId: data.replaceViewId } : {}),
     };
 
     // check if all the actions are authed.
@@ -670,9 +731,12 @@ export default class SlackAuthAction {
    *   - one connected to somebody who has left the project: that their
    *     account is not a member, and to ask an admin;
    *   - a press that could be about more than one of the projects the
-   *     workspace is connected to: which projects they are in, and to press
-   *     or run it where it can be told apart - or, connected in none, how
-   *     to connect (WorkspaceProjectResolution.getAmbiguousAnswer).
+   *     workspace is connected to: which of the projects they are in they
+   *     mean, a button for each, and the press made again in the one they
+   *     choose (SlackProjectChoice) - or, when that cannot be asked, which
+   *     projects they are in, and to press or run it where it can be told
+   *     apart; connected in none, how to connect
+   *     (WorkspaceProjectResolution.getAmbiguousAnswer).
    *
    * Called once Slack has been answered. Never throws.
    */
@@ -694,6 +758,37 @@ export default class SlackAuthAction {
         refusal.reason === SlackAuthRefusalReason.AmbiguousProject &&
         refusal.resolution
       ) {
+        /*
+         * A press that can be made again in the project they choose: asked
+         * which, with a button for each project they are in, and made again
+         * there (SlackProjectChoice) - answered as below when it cannot be.
+         */
+        if (
+          SlackProjectChoice.canMakeAgain({
+            actionType: refusal.action.actionType,
+            payloadType: slackRequest.payloadType,
+            payload: slackRequest.payload,
+          })
+        ) {
+          const delivery: SlackAnswerDelivery | null =
+            await SlackProjectChoice.offer({
+              place: place,
+              teamId: slackRequest.slackTeamId,
+              slackUserId: slackRequest.slackUserId,
+              resolution: refusal.resolution,
+              request: {
+                kind: SlackProjectChoiceKind.Press,
+                payload: SlackProjectChoice.getPressPayload(
+                  slackRequest.payload!,
+                ),
+              },
+            });
+
+          if (delivery !== null) {
+            return delivery;
+          }
+        }
+
         const answer: WorkspaceAnswer =
           await WorkspaceProjectResolver.getAmbiguousAnswer({
             workspaceType: WorkspaceType.Slack,

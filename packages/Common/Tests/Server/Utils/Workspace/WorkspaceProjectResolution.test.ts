@@ -1043,4 +1043,114 @@ describe("WorkspaceProjectResolution", () => {
       }
     });
   });
+
+  /*
+   * The projects somebody is asked to choose among, with a button for each
+   * (SlackProjectChoice): every button is named, or none is offered.
+   */
+  describe("getProjectChoices: the projects a person chooses among, named", () => {
+    test("each project with its name, in the order given - the order the projects were connected", async () => {
+      expect(
+        await WorkspaceProjectResolver.getProjectChoices([NONPRD, PLATFORM]),
+      ).toEqual([
+        { projectId: NONPRD, name: "IRM Non-Prod" },
+        { projectId: PLATFORM, name: "IRM Platform" },
+      ]);
+      expect(
+        await WorkspaceProjectResolver.getProjectChoices([
+          PLATFORM,
+          NONPRD,
+          SANDBOX,
+        ]),
+      ).toEqual([
+        { projectId: PLATFORM, name: "IRM Platform" },
+        { projectId: NONPRD, name: "IRM Non-Prod" },
+        { projectId: SANDBOX, name: "Sandbox" },
+      ]);
+    });
+
+    test("names are read in one read, and trimmed", async () => {
+      const name: string = NAMES[NONPRD.toString()]!;
+      NAMES[NONPRD.toString()] = "  IRM Non-Prod  ";
+      const nameReads: ReturnType<typeof jest.spyOn> = jest.spyOn(
+        ProjectService,
+        "findBy",
+      );
+
+      try {
+        expect(
+          await WorkspaceProjectResolver.getProjectChoices([PLATFORM, NONPRD]),
+        ).toEqual([
+          { projectId: PLATFORM, name: "IRM Platform" },
+          { projectId: NONPRD, name: "IRM Non-Prod" },
+        ]);
+        expect(nameReads).toHaveBeenCalledTimes(1);
+      } finally {
+        NAMES[NONPRD.toString()] = name;
+      }
+    });
+
+    test("a project not found, or with a blank name: none - no button without a name", async () => {
+      expect(
+        await WorkspaceProjectResolver.getProjectChoices([PLATFORM, ELSEWHERE]),
+      ).toBeNull();
+
+      const name: string = NAMES[NONPRD.toString()]!;
+      NAMES[NONPRD.toString()] = "   ";
+
+      try {
+        expect(
+          await WorkspaceProjectResolver.getProjectChoices([PLATFORM, NONPRD]),
+        ).toBeNull();
+      } finally {
+        NAMES[NONPRD.toString()] = name;
+      }
+    });
+
+    test("no projects: none, and nothing is read", async () => {
+      const nameReads: ReturnType<typeof jest.spyOn> = jest.spyOn(
+        ProjectService,
+        "findBy",
+      );
+
+      expect(await WorkspaceProjectResolver.getProjectChoices([])).toBeNull();
+      expect(nameReads).not.toHaveBeenCalled();
+    });
+
+    test("names that cannot be read: none, never a throw", async () => {
+      jest
+        .spyOn(ProjectService, "findBy")
+        .mockRejectedValue(new Error("database is away"));
+
+      expect(
+        await WorkspaceProjectResolver.getProjectChoices([PLATFORM, NONPRD]),
+      ).toBeNull();
+    });
+  });
+
+  describe("getAmbiguousLead: how an answer to such a request starts", () => {
+    test("Slack names the product, as renamed", () => {
+      expect(
+        WorkspaceProjectResolver.getAmbiguousLead(WorkspaceType.Slack),
+      ).toBe(
+        "This Slack workspace is connected to more than one OneUptime project",
+      );
+
+      jest
+        .spyOn(ProductBrandingText, "getProductName")
+        .mockReturnValue("Acme Status");
+
+      expect(
+        WorkspaceProjectResolver.getAmbiguousLead(WorkspaceType.Slack),
+      ).toBe(
+        "This Slack workspace is connected to more than one Acme Status project",
+      );
+    });
+
+    test("Microsoft Teams keeps the literal its docs quote", () => {
+      expect(
+        WorkspaceProjectResolver.getAmbiguousLead(WorkspaceType.MicrosoftTeams),
+      ).toBe(WorkspaceProjectResolver.TEAMS_AMBIGUOUS_LEAD);
+    });
+  });
 });

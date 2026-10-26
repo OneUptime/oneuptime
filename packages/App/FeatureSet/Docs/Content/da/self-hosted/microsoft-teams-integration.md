@@ -42,7 +42,7 @@ Videoopkald (et Teams-møde for en hændelse) bruger ikke denne bot: de kræver 
 - En konto, der kan oprette app-registreringer i Microsoft Entra ID, og en Microsoft 365-administrator, der kan give administratorsamtykke.
 - Et offentligt HTTPS-værtsnavn til OneUptime, som Azure Bot Service kan nå. Se [Netværksadgang](#netværksadgang).
 - Adgang til serverkonfigurationen: `config.env` med Docker Compose eller dine Helm-values på Kubernetes.
-- For at forbinde et projekt: rollen **Project Owner**, **Project Admin** eller **Project Member** i det.
+- For at forbinde et projekt: rollen **Projektejer**, **Projektadministrator** eller **Projektmedlem** i det.
 
 ## Sæt integrationen op
 
@@ -382,7 +382,7 @@ Når Microsoft sender dig tilbage, og forbindelsen ikke blev oprettet (da du gav
 | Siden siger | Hvad du skal gøre |
 | --- | --- |
 | **"Dette forbindelseslink er ugyldigt, er udløbet eller er allerede brugt. Start forfra."** | Linket virker én gang, i 15 minutter, i den browser, der startede det. Start forfra fra Microsoft Teams-siden, og bliv færdig inden for 15 minutter i samme browser. |
-| **"Du har ikke tilladelse til at forbinde dette projekt til Microsoft Teams."** | At give administratorsamtykke for projektet kræver **Project Owner**, **Project Admin** eller **Project Member**. Det kontrolleres igen, når Microsoft sender dig tilbage. |
+| **"Du har ikke tilladelse til at forbinde dette projekt til Microsoft Teams."** | At give administratorsamtykke for projektet kræver **Projektejer**, **Projektadministrator** eller **Projektmedlem**. Det kontrolleres igen, når Microsoft sender dig tilbage. |
 | **"Du er ikke længere medlem af dette projekt."** | For at forbinde din egen Microsoft-konto skal du være medlem af projektet, når Microsoft sender dig tilbage. |
 | **"Du loggede ind i en anden Microsoft 365-organisation end den, denne forbindelse er til."** | Log ind med en konto fra den Microsoft 365-organisation, der gav administratorsamtykke, eller som projektet er forbundet med. |
 | **"Din Microsoft 365-organisation har endnu ingen teams."** | Opret et team i Microsoft Teams, og giv derefter administratorsamtykke igen. |

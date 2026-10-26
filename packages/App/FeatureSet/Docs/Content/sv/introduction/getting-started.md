@@ -13,19 +13,19 @@ Börja här:
 
 ## Så hänger OneUptime ihop
 
-Allt börjar med något som du håller koll på. En monitor kontrollerar det enligt ett schema, eller läser telemetrin som det skickar. När monitorns kriterier uppfylls deklarerar OneUptime en incident eller skapar en varning, larmar den som har jour och visar incidenten på din statussida om du vill.
+Allt börjar med något som du håller koll på. En monitor kontrollerar det enligt ett schema, eller läser telemetrin som det skickar. När monitorns kriterier uppfylls deklarerar OneUptime en incident eller skapar ett larm, larmar den som har jour och visar incidenten på din statussida om du vill.
 
 ```mermaid title="Från en misslyckad kontroll till ett larmat team och en uppdaterad statussida"
 flowchart TB
     probes["Sonder kontrollerar dina<br/>webbplatser och API:er"] --> monitors["Monitorer"]
     telemetry["Dina appar och agenter<br/>skickar telemetri"] --> monitors
-    monitors -->|"kriterier uppfyllda"| problems["Incidenter och varningar"]
+    monitors -->|"kriterier uppfyllda"| problems["Incidenter och larm"]
     problems --> oncall["Jourpolicyer<br/>larmar ditt team"]
     problems --> status["Statussidor<br/>informerar dina kunder"]
 ```
 
 - En **incident** är ett problem som drabbar dina användare. Den kan larma den som har jour och visas på din statussida.
-- En **varning** är ett problem som ditt team bör titta på innan användarna märker det. Den kan också larma den som har jour, men visas aldrig på en statussida.
+- En **larm** är ett problem som ditt team bör titta på innan användarna märker det. Den kan också larma den som har jour, men visas aldrig på en statussida.
 
 [Grundbegrepp](/docs/introduction/core-concepts) förklarar varje del med några få meningar.
 
@@ -38,7 +38,7 @@ Dokumentationen är ordnad som sidofältet, i nio avsnitt. Välj den del du beh�
 :::cards
 - [Monitorer](/docs/monitor/create-monitor): Kontrollera webbplatser, API:er, portar, DNS, NTP-servrar, certifikat och mer från sonder runt om i världen.
 - [Infrastrukturmonitorer](/docs/monitor/server-monitor): Håll koll på servrar, Kubernetes, Docker, VMware, nätverksenheter och lagring.
-- [Telemetrimonitorer](/docs/monitor/logs-monitor): Få varningar om loggarna, mätvärdena, spåren, undantagen och profilerna du skickar.
+- [Telemetrimonitorer](/docs/monitor/logs-monitor): Få larm om loggarna, mätvärdena, spåren, undantagen och profilerna du skickar.
 - [SLO:er](/docs/slo/introduction): Följ tillförlitlighetsmål, felbudgetar och förbrukningstakt.
 - [Sonder](/docs/probe/custom-probe): Kör kontroller inifrån ditt eget nätverk.
 - [När OneUptime inte tar emot data](/docs/monitor/when-oneuptime-is-not-receiving): Varför ett avbrott hos OneUptime aldrig räknas som din driftstörning.
@@ -48,7 +48,7 @@ Dokumentationen är ordnad som sidofältet, i nio avsnitt. Välj den del du beh�
 
 :::cards
 - [Incidenter](/docs/incidents/index): Deklarera, samordna och lös incidenter, med en fullständig tidslinje.
-- [Varningar](/docs/alerts/index): Undersök problem innan dina användare märker dem, och samla bruset i episoder.
+- [Larm](/docs/alerts/index): Undersök problem innan dina användare märker dem, och samla bruset i episoder.
 - [Jour](/docs/on-call/index): Policyer, eskaleringsregler, rotationer och vem som larmas när.
 - [Aviseringar](/docs/notifications/index): Så når OneUptime dig: dina metoder, jourregler och aviseringsinställningar.
 - [Statussidor](/docs/status-pages/index): Håll kunderna informerade på offentliga eller privata statussidor.
@@ -75,7 +75,7 @@ Dokumentationen är ordnad som sidofältet, i nio avsnitt. Välj den del du beh�
 - [Runbooks](/docs/runbooks/index): Gör om insatsrutiner till steg som ditt team kan köra.
 - [Formulär](/docs/forms/index): Låt vem som helst rapportera ett problem via ett formulär som öppnar en incident.
 - [Arbetsflöden](/docs/workflows/index): Automatisera åtgärder när något händer i OneUptime.
-- [AI](/docs/ai/ai-sre): Låt OneUptime AI undersöka incidenter och varningar, och fråga den om dina system.
+- [AI](/docs/ai/ai-sre): Låt OneUptime AI undersöka incidenter och larm, och fråga den om dina system.
 :::
 
 ### Integrationer
@@ -136,7 +136,7 @@ Dokumentationen är ordnad som sidofältet, i nio avsnitt. Välj den del du beh�
 | Drifttidsövervakning | Kontrollerar tillgänglighet och svarstid från platser runt om i världen. | Pingdom, UptimeRobot |
 | Statussidor | Visar kunderna aktuell status och historik för dina tjänster. | Atlassian Statuspage |
 | Incidenthantering | Driver incidenter från början till slut, med anteckningar, ägare och en tidslinje. | incident.io |
-| Jour och varningar | Schemalägger jourpass och eskalerar tills någon svarar. | PagerDuty, Opsgenie |
+| Jour och larm | Schemalägger jourpass och eskalerar tills någon svarar. | PagerDuty, Opsgenie |
 | Logghantering | Samlar in, söker i och visualiserar loggar. | Loggly |
 | Arbetsflöden | Automatiserar åtgärder och kopplar OneUptime till verktygen du redan använder. | Zapier |
 | Application performance monitoring | Följer spår, svarstider, genomströmning och felfrekvenser. | New Relic, Datadog |
