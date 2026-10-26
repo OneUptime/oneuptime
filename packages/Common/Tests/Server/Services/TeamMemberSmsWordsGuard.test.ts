@@ -323,10 +323,16 @@ describe("the notifications", () => {
       "packages/App/FeatureSet/Workers/Jobs/Slo/EvaluateSlos.ts",
     );
 
-    // The SLA breach job sends what IncidentSlaBreachNotice words.
+    /*
+     * The SLA breach job sends what IncidentSlaBreachNotice words: one
+     * sentence, which the call reads out too.
+     */
     expect(slaJob).toContain("smsMessage: messages.smsMessage,");
     expect(slaNotice).toContain(
-      "message: buildNotificationSms(\n          `Incident ${identifier} missed its SLA ${breachWord} deadline.`,\n        ),",
+      "const missedSentence: string = `Incident ${identifier} missed its SLA ${breachWord} deadline.`;",
+    );
+    expect(slaNotice).toContain(
+      "message: buildNotificationSms(missedSentence),",
     );
     expect(slaJob).not.toContain("View incident in OneUptime Dashboard.");
     expect(slaNotice).not.toContain("View incident in OneUptime Dashboard.");
