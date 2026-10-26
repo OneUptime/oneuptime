@@ -1541,6 +1541,30 @@ class AutoRemediationRuleEngineServiceClass {
    * made together evaluate it once; without the lock (Valkey unreachable)
    * it does not try again rather than risk two fixes at once. Never throws.
    */
+  /*
+   * An update of an incident or alert, as its service's onUpdateSuccess
+   * hands it over: when the update writes what links it to something a fix
+   * acts on (REMEDIATION_LINK_COLUMNS), OneUptime AI may try again
+   * (onSubjectLinksChanged). Resolves whether it did; never throws.
+   */
+  public async onSubjectUpdated(data: {
+    projectId: ObjectID;
+    incidentId?: ObjectID | undefined;
+    alertId?: ObjectID | undefined;
+    // The update's data.
+    written: unknown;
+  }): Promise<boolean> {
+    if (!doesWriteRemediationLinks(data.written)) {
+      return false;
+    }
+
+    return await this.onSubjectLinksChanged({
+      projectId: data.projectId,
+      incidentId: data.incidentId,
+      alertId: data.alertId,
+    });
+  }
+
   @CaptureSpan()
   public async onSubjectLinksChanged(data: {
     projectId: ObjectID;

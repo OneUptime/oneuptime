@@ -110,9 +110,7 @@ import WaitingRunsOnRecordChange from "../Utils/OnCall/WaitingRunsOnRecordChange
 import { OnCallRulePagingHold } from "../Utils/OnCall/OnCallRulePagingHold";
 import AlertOwnerRuleEngineService from "./AlertOwnerRuleEngineService";
 import RunbookRuleEngineService from "./RunbookRuleEngineService";
-import AutoRemediationRuleEngineService, {
-  doesWriteRemediationLinks,
-} from "./AutoRemediationRuleEngineService";
+import AutoRemediationRuleEngineService from "./AutoRemediationRuleEngineService";
 import AIAlertInvestigationRunner from "../Utils/AI/SRE/AlertInvestigationRunner";
 import InvestigationRuleWait from "../Utils/AI/SRE/InvestigationRuleWait";
 import IncidentFollowUpCheck from "../Utils/AI/SRE/IncidentFollowUpCheck";
@@ -2154,23 +2152,22 @@ ${FeedMarkdown.asMarkdown(alert.remediationNotes || "No remediation notes provid
          * Linked to what it is about - a cluster, a host, its monitor -
          * after auto-remediation found nothing it could fix on it because
          * it was linked to nothing (#5293): OneUptime AI tries again, when
-         * onSubjectLinksChanged finds it may. Not awaited: an edit never
-         * waits for a fix to start.
+         * the engine finds it may (onSubjectUpdated). Not awaited: an edit
+         * never waits for a fix to start.
          */
-        if (doesWriteRemediationLinks(onUpdate.updateBy.data)) {
-          AutoRemediationRuleEngineService.onSubjectLinksChanged({
-            projectId: projectId,
-            alertId: alertId,
-          }).catch((relinkError: unknown) => {
-            logger.error(
-              `Trying auto-remediation again failed in AlertService.onUpdateSuccess: ${relinkError}`,
-              {
-                projectId: projectId?.toString(),
-                alertId: alertId?.toString(),
-              } as LogAttributes,
-            );
-          });
-        }
+        AutoRemediationRuleEngineService.onSubjectUpdated({
+          projectId: projectId,
+          alertId: alertId,
+          written: onUpdate.updateBy.data,
+        }).catch((relinkError: unknown) => {
+          logger.error(
+            `Trying auto-remediation again failed in AlertService.onUpdateSuccess: ${relinkError}`,
+            {
+              projectId: projectId?.toString(),
+              alertId: alertId?.toString(),
+            } as LogAttributes,
+          );
+        });
 
         let feedInfoInMarkdown: string =
           mdText`**[Alert ${alertNumberWithPrefix || "#" + alertNumber}](${(await this.getAlertLinkInDashboard(projectId!, alertId!)).toString()}) was updated.**`.toString();
