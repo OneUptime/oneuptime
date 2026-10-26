@@ -29,7 +29,7 @@ Dos conexiones lo hacen posible:
 - **La conexión del proyecto**, hecha una vez: la app de OneUptime instalada en tu espacio de trabajo de Slack. Publica los mensajes, crea los canales e invita a las personas.
 - **La conexión propia de cada persona**: su cuenta de Slack vinculada a su cuenta de OneUptime. Los botones, los comandos y las reacciones con emoji actúan como esa persona, con sus permisos en el proyecto.
 
-Un espacio de trabajo de Slack puede estar conectado a más de un proyecto, como producción y staging. Un botón o un formulario actúa en el proyecto del registro al que se refiere. Un comando o un mensaje a OneUptime actúa en el proyecto del canal en el que está, como el canal de un incidente, o si no, en el único proyecto en el que está conectada tu cuenta de Slack. Cuando nada lo indica, OneUptime nombra los proyectos en los que estás y te pide que lo intentes de nuevo desde un canal del proyecto al que te refieres.
+Un espacio de trabajo de Slack puede estar conectado a más de un proyecto, como producción y staging. Un botón o un formulario actúa en el proyecto del registro al que se refiere. Un comando o un mensaje a OneUptime actúa en el proyecto del canal en el que está, como el canal de un incidente, o si no, en el único proyecto en el que está conectada tu cuenta de Slack. Cuando nada lo indica, OneUptime te pregunta a qué proyecto te refieres, con un botón para cada proyecto en el que estás, y continúa allí en cuanto eliges. En una conversación con OneUptime AI, tu elección se mantiene durante el resto del hilo.
 
 ## Antes de empezar
 
