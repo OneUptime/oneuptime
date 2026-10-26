@@ -1031,6 +1031,7 @@ describe("canLoadRows — which evidence may be re-run for a viewer", () => {
 
   test.each([
     "create_incident",
+    "create_alert",
     "acknowledge_incident",
     "resolve_alert",
     "page_on_call_policy",
