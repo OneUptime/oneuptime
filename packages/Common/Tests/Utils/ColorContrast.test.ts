@@ -32,10 +32,7 @@ describe("ColorContrast stands on its own", () => {
     expect(imports).toEqual(["../Types/Color"]);
   });
 
-  /*
-   * What the Pill re-exports. The module has more (the words on a filled
-   * alert, FilledAlertLook), which the Pill has no use for.
-   */
+  // What the Pill re-exports.
   const PILL_REEXPORTS: ReadonlyArray<
     keyof typeof ColorContrast & keyof typeof PillColors
   > = [
