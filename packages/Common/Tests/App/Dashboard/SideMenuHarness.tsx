@@ -3,6 +3,7 @@ import { ReactElement } from "react";
 import { Location } from "react-router-dom";
 import Route from "../../../Types/API/Route";
 import Navigation from "../../../UI/Utils/Navigation";
+import { SIDE_MENU_ITEM_TITLE_TEST_ID } from "../../../UI/Components/SideMenu/SideMenuEntryState";
 import RouteMap, {
   RouteUtil,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
@@ -121,15 +122,24 @@ export function isExpanded(title: string): boolean {
   return sectionToggle(title).getAttribute("aria-expanded") === "true";
 }
 
+/*
+ * A row's title, without the digits of the badge drawn in the same link:
+ * SideMenuItem gives the title its own test id.
+ */
+export function entryTitle(anchor: Element): string {
+  return (
+    anchor.querySelector(`[data-testid="${SIDE_MENU_ITEM_TITLE_TEST_ID}"]`)
+      ?.textContent ??
+    anchor.textContent ??
+    ""
+  ).trim();
+}
+
 export function linksIn(title: string): Array<MenuLink> {
   return Array.from(sectionRoot(title).querySelectorAll("a")).map(
     (anchor: HTMLAnchorElement): MenuLink => {
       return {
-        title: (
-          anchor.querySelector("span.truncate")?.textContent ??
-          anchor.textContent ??
-          ""
-        ).trim(),
+        title: entryTitle(anchor),
         href: anchor.getAttribute("href") ?? "",
       };
     },
@@ -157,21 +167,57 @@ export function titlesInMenu(): Array<string> {
 /*
  * The entries the menu marks as the page you are on: the tinted row with the
  * rail (SideMenuItem's active classes). Exactly one on any of its pages.
+ *
+ * What the colour shows, a screen reader is told (aria-current): every suite
+ * that reads the lit entries through here also checks that the entries
+ * marked for a screen reader are exactly the lit ones.
  */
 export function activeLinkTitles(): Array<string> {
-  return sectionTitlesInOrder().flatMap((title: string): Array<string> => {
-    return Array.from(sectionRoot(title).querySelectorAll("a"))
-      .filter((anchor: HTMLAnchorElement): boolean => {
-        return anchor.className.split(/\s+/).includes("bg-indigo-50");
-      })
-      .map((anchor: HTMLAnchorElement): string => {
-        return (
-          anchor.querySelector("span.truncate")?.textContent ??
-          anchor.textContent ??
-          ""
-        ).trim();
+  const anchors: Array<HTMLAnchorElement> = sectionTitlesInOrder().flatMap(
+    (title: string): Array<HTMLAnchorElement> => {
+      return Array.from(sectionRoot(title).querySelectorAll("a"));
+    },
+  );
+
+  const lit: Array<string> = anchors
+    .filter((anchor: HTMLAnchorElement): boolean => {
+      return anchor.className.split(/\s+/).includes("bg-indigo-50");
+    })
+    .map(entryTitle);
+
+  const current: Array<string> = anchors
+    .filter((anchor: HTMLAnchorElement): boolean => {
+      return anchor.hasAttribute("aria-current");
+    })
+    .map(entryTitle);
+
+  if (lit.join("\n") !== current.join("\n")) {
+    throw new Error(
+      `The lit entries (${lit.join(", ") || "none"}) are not the ones marked aria-current (${current.join(", ") || "none"}).`,
+    );
+  }
+
+  return lit;
+}
+
+/*
+ * The entries marked for a screen reader (aria-current), each with what it
+ * says: "page" for the entry that is the page, "true" for the one that
+ * holds it (a list whose record is open).
+ */
+export function currentEntries(): Array<{ title: string; current: string }> {
+  return sectionTitlesInOrder().flatMap(
+    (title: string): Array<{ title: string; current: string }> => {
+      return Array.from(
+        sectionRoot(title).querySelectorAll("a[aria-current]"),
+      ).map((anchor: Element): { title: string; current: string } => {
+        return {
+          title: entryTitle(anchor),
+          current: anchor.getAttribute("aria-current") ?? "",
+        };
       });
-  });
+    },
+  );
 }
 
 // Every anchor in a section carries an icon, rendered as an inline <svg>.

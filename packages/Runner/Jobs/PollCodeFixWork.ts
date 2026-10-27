@@ -8,6 +8,7 @@ import BackendAPI, {
   UnrecordedPullRequest,
 } from "../Utils/BackendAPI";
 import SecretRedactor from "../Utils/SecretRedactor";
+import RepositoryTokenRevocation from "../Utils/RepositoryTokenRevocation";
 import {
   getTaskHandlerRegistry,
   TaskContext,
@@ -215,6 +216,15 @@ export const executeTask: ExecuteTaskFunction = async (
         : {}),
     };
   } finally {
+    /*
+     * The GitHub tokens this run was handed end with it, however it ended:
+     * revoked rather than left good for the rest of their hour
+     * (RepositoryTokenRevocation). First, so nothing below can keep it
+     * from happening (it never throws), and before the redactor forgets
+     * them, so nothing said about the revocation can carry one.
+     */
+    await RepositoryTokenRevocation.revokeAll();
+
     /*
      * dispose(), not flush(): a TaskLogger starts a repeating flush timer in
      * its constructor, and only dispose() stops it. One logger is created

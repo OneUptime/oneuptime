@@ -19,6 +19,8 @@ import {
   getCloudResourceTypeDescriptor,
   getCloudResourceTypeLabel,
   getGcpMonitoredResourceRule,
+  INVENTORY_ONLY_RESOURCE_TYPES,
+  isInventoryOnlyCloudResourceType,
 } from "../../../Types/Cloud/CloudResourceCatalog";
 import { findAwsCloudWatchRule } from "../../../Types/Cloud/CloudMonitoredResource";
 import { describe, expect, test } from "@jest/globals";
@@ -171,6 +173,57 @@ describe("lookups", () => {
       getCloudResourceTypeDescriptor(null, "AWS::EC2::Instance"),
     ).toBeNull();
     expect(getCloudResourceTypeLabel(undefined, undefined)).toBe("");
+  });
+});
+
+/*
+ * A network publishes no metrics of its own: a resource's page says
+ * nothing about metrics for one, and asks every other type for them.
+ */
+describe("types that publish no metrics", () => {
+  test("the networks the inventory lists, in any case", () => {
+    expect(
+      isInventoryOnlyCloudResourceType(CloudProvider.AWS, "AWS::EC2::VPC"),
+    ).toBe(true);
+    expect(
+      isInventoryOnlyCloudResourceType(CloudProvider.AWS, " aws::ec2::vpc "),
+    ).toBe(true);
+    expect(
+      isInventoryOnlyCloudResourceType(
+        CloudProvider.GCP,
+        "compute.googleapis.com/Network",
+      ),
+    ).toBe(true);
+
+    for (const descriptor of INVENTORY_ONLY_RESOURCE_TYPES) {
+      expect(
+        isInventoryOnlyCloudResourceType(descriptor.provider, descriptor.type),
+      ).toBe(true);
+    }
+  });
+
+  test("never a type with metrics, another cloud's network, or nothing", () => {
+    expect(
+      isInventoryOnlyCloudResourceType(CloudProvider.AWS, "AWS::EC2::Instance"),
+    ).toBe(false);
+    expect(
+      isInventoryOnlyCloudResourceType(CloudProvider.Azure, "AWS::EC2::VPC"),
+    ).toBe(false);
+    expect(
+      isInventoryOnlyCloudResourceType(CloudProvider.AWS, "AWS::EC2::Subnet"),
+    ).toBe(false);
+    expect(isInventoryOnlyCloudResourceType(undefined, "AWS::EC2::VPC")).toBe(
+      false,
+    );
+    expect(isInventoryOnlyCloudResourceType(CloudProvider.AWS, null)).toBe(
+      false,
+    );
+
+    for (const descriptor of [...AWS_RESOURCE_TYPES, ...AZURE_RESOURCE_TYPES]) {
+      expect(
+        isInventoryOnlyCloudResourceType(descriptor.provider, descriptor.type),
+      ).toBe(false);
+    }
   });
 });
 

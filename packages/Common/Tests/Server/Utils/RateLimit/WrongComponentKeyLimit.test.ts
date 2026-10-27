@@ -7,7 +7,6 @@ import WrongComponentKeyLimit, {
   WRONG_COMPONENT_KEY_WINDOW_SECONDS,
   WRONG_PROBE_KEYS_MESSAGE,
   WRONG_PROBE_REGISTRATION_KEYS_MESSAGE,
-  WRONG_SHARED_RUNNER_KEYS_MESSAGE,
 } from "../../../../Server/Utils/RateLimit/WrongComponentKeyLimit";
 import WrongKeyLimit, {
   WRONG_KEY_COUNT_TIMEOUT_MS,
@@ -51,8 +50,7 @@ import type { Mock } from "jest-mock";
  *   - a wrong key is counted only for a component there is, only when it is
  *     text the repository does not ship, and only while Valkey is there;
  *   - every spelling of one id is one component;
- *   - REGISTER_PROBE_KEY and the shared Runner's key are counted for the
- *     client alone;
+ *   - REGISTER_PROBE_KEY is counted for the client alone;
  *   - an IPv6 /64 is counted too, with room for ten addresses;
  *   - what Valkey keeps is an HMAC under a key of the installation's own,
  *     never the key;
@@ -177,13 +175,12 @@ async function presentComponentKey(data: {
 
 async function presentRegistrationKey(data: {
   from: string;
-  kind?: ComponentKeyKind.ProbeRegistration | ComponentKeyKind.SharedRunner;
   key: unknown;
   isKeyRight: boolean;
 }): Promise<WrongKeyRefusal | null> {
   return await WrongComponentKeyLimit.checkRegistrationKey({
     req: requestFrom(data.from),
-    kind: data.kind ?? ComponentKeyKind.ProbeRegistration,
+    kind: ComponentKeyKind.ProbeRegistration,
     presentedKey: data.key,
     isKeyRight: data.isKeyRight,
   });
@@ -629,117 +626,85 @@ describe("an IPv6 host is counted for its /64 as well", () => {
   });
 });
 
-describe("REGISTER_PROBE_KEY and the shared Runner's key, counted for the client alone", () => {
-  test.each([
-    [
-      "REGISTER_PROBE_KEY",
-      ComponentKeyKind.ProbeRegistration as const,
-      "probe-registration-key:wrong-keys:",
-    ],
-    [
-      "the shared Runner's key",
-      ComponentKeyKind.SharedRunner as const,
-      "shared-runner-key:wrong-keys:",
-    ],
-  ])(
-    "%s: ten different wrong keys, then every registration from that client is refused, the right key too",
-    async (
-      _label: string,
-      kind: ComponentKeyKind.ProbeRegistration | ComponentKeyKind.SharedRunner,
-      prefix: string,
-    ) => {
-      for (
-        let index: number = 0;
-        index < WRONG_COMPONENT_KEYS_PER_ADDRESS;
-        index++
-      ) {
-        expect(
-          await presentRegistrationKey({
-            from: CLIENT,
-            kind: kind,
-            key: `guess-${index}`,
-            isKeyRight: false,
-          }),
-        ).toBeNull();
-      }
-
+describe("REGISTER_PROBE_KEY, counted for the client alone", () => {
+  test("ten different wrong keys, then every registration from that client is refused, the right key too", async () => {
+    for (
+      let index: number = 0;
+      index < WRONG_COMPONENT_KEYS_PER_ADDRESS;
+      index++
+    ) {
       expect(
         await presentRegistrationKey({
           from: CLIENT,
-          kind: kind,
-          key: "guess-eleven",
+          key: `guess-${index}`,
           isKeyRight: false,
         }),
-      ).not.toBeNull();
-      expect(
-        await presentRegistrationKey({
-          from: CLIENT,
-          kind: kind,
-          key: "right",
-          isKeyRight: true,
-        }),
-      ).not.toBeNull();
-      expect(
-        await presentRegistrationKey({
-          from: OTHER_CLIENT,
-          kind: kind,
-          key: "right",
-          isKeyRight: true,
-        }),
       ).toBeNull();
+    }
 
-      expect(redis.keysHolding(prefix).length).toBeGreaterThan(0);
-    },
-  );
+    expect(
+      await presentRegistrationKey({
+        from: CLIENT,
+        key: "guess-eleven",
+        isKeyRight: false,
+      }),
+    ).not.toBeNull();
+    expect(
+      await presentRegistrationKey({
+        from: CLIENT,
+        key: "right",
+        isKeyRight: true,
+      }),
+    ).not.toBeNull();
+    expect(
+      await presentRegistrationKey({
+        from: OTHER_CLIENT,
+        key: "right",
+        isKeyRight: true,
+      }),
+    ).toBeNull();
 
-  test.each([
-    ["REGISTER_PROBE_KEY", ComponentKeyKind.ProbeRegistration as const],
-    ["the shared Runner's key", ComponentKeyKind.SharedRunner as const],
-  ])(
-    "%s: the right key is never counted, however many registrations carry it, and leaves the client all ten of its wrong keys",
-    async (
-      _label: string,
-      kind: ComponentKeyKind.ProbeRegistration | ComponentKeyKind.SharedRunner,
-    ) => {
-      for (let call: number = 0; call < 1000; call++) {
-        expect(
-          await presentRegistrationKey({
-            from: CLIENT,
-            kind: kind,
-            key: "the-right-key",
-            isKeyRight: true,
-          }),
-        ).toBeNull();
-      }
+    expect(
+      redis.keysHolding("probe-registration-key:wrong-keys:").length,
+    ).toBeGreaterThan(0);
+  });
 
-      expect(redis.sets.size).toBe(0);
-
-      for (
-        let index: number = 0;
-        index < WRONG_COMPONENT_KEYS_PER_ADDRESS;
-        index++
-      ) {
-        expect(
-          await presentRegistrationKey({
-            from: CLIENT,
-            kind: kind,
-            key: `guess-${index}`,
-            isKeyRight: false,
-          }),
-        ).toBeNull();
-      }
-
-      // Ten wrong ones, and no more: the right key is still let through.
+  test("the right key is never counted, however many registrations carry it, and leaves the client all ten of its wrong keys", async () => {
+    for (let call: number = 0; call < 1000; call++) {
       expect(
         await presentRegistrationKey({
           from: CLIENT,
-          kind: kind,
           key: "the-right-key",
           isKeyRight: true,
         }),
       ).toBeNull();
-    },
-  );
+    }
+
+    expect(redis.sets.size).toBe(0);
+
+    for (
+      let index: number = 0;
+      index < WRONG_COMPONENT_KEYS_PER_ADDRESS;
+      index++
+    ) {
+      expect(
+        await presentRegistrationKey({
+          from: CLIENT,
+          key: `guess-${index}`,
+          isKeyRight: false,
+        }),
+      ).toBeNull();
+    }
+
+    // Ten wrong ones, and no more: the right key is still let through.
+    expect(
+      await presentRegistrationKey({
+        from: CLIENT,
+        key: "the-right-key",
+        isKeyRight: true,
+      }),
+    ).toBeNull();
+  });
 
   test("probes that all hold one old registration key send one value, and are never refused for it", async () => {
     for (let call: number = 0; call < 300; call++) {
@@ -751,30 +716,6 @@ describe("REGISTER_PROBE_KEY and the shared Runner's key, counted for the client
         }),
       ).toBeNull();
     }
-  });
-
-  test("the two installation keys are counted apart", async () => {
-    for (
-      let index: number = 0;
-      index <= WRONG_COMPONENT_KEYS_PER_ADDRESS;
-      index++
-    ) {
-      await presentRegistrationKey({
-        from: CLIENT,
-        kind: ComponentKeyKind.ProbeRegistration,
-        key: `guess-${index}`,
-        isKeyRight: false,
-      });
-    }
-
-    expect(
-      await presentRegistrationKey({
-        from: CLIENT,
-        kind: ComponentKeyKind.SharedRunner,
-        key: "right",
-        isKeyRight: true,
-      }),
-    ).toBeNull();
   });
 
   test("a shipped or non-text registration key is never counted", async () => {
@@ -827,10 +768,9 @@ describe("what Valkey keeps of a wrong key", () => {
         "",
         key,
       ),
-      WrongComponentKeyLimit.digestOf(ComponentKeyKind.SharedRunner, "", key),
     ]);
 
-    expect(values.size).toBe(5);
+    expect(values.size).toBe(4);
   });
 
   test("a component's sets carry its id in a hash tag, and live two windows", async () => {
@@ -857,7 +797,7 @@ describe("what Valkey keeps of a wrong key", () => {
 });
 
 /*
- * OneUptime's own probes, its shared Runner and the agents beside it call
+ * OneUptime's own probes, its global Runner and the agents beside it call
  * from private network addresses, which a proxy, a load balancer or a
  * container network can show many callers as. A client over the limit is
  * refused whichever key it carries, so a key from such an address is never
@@ -914,43 +854,32 @@ describe("a key from a private network address is never counted", () => {
     },
   );
 
-  test.each([
-    ["REGISTER_PROBE_KEY", ComponentKeyKind.ProbeRegistration as const],
-    ["the shared Runner's key", ComponentKeyKind.SharedRunner as const],
-  ])(
-    "%s: wrong value after wrong value from one, and the right one from the same address still registers; nothing is kept",
-    async (
-      _label: string,
-      kind: ComponentKeyKind.ProbeRegistration | ComponentKeyKind.SharedRunner,
-    ) => {
-      for (
-        let index: number = 0;
-        index < WRONG_COMPONENT_KEYS_PER_ADDRESS * 3;
-        index++
-      ) {
-        expect(
-          await presentRegistrationKey({
-            from: SHARED_PRIVATE_ADDRESS,
-            kind: kind,
-            key: `guess-${index}`,
-            isKeyRight: false,
-          }),
-        ).toBeNull();
-      }
-
+  test("REGISTER_PROBE_KEY: wrong value after wrong value from one, and the right one from the same address still registers; nothing is kept", async () => {
+    for (
+      let index: number = 0;
+      index < WRONG_COMPONENT_KEYS_PER_ADDRESS * 3;
+      index++
+    ) {
       expect(
         await presentRegistrationKey({
           from: SHARED_PRIVATE_ADDRESS,
-          kind: kind,
-          key: "the-right-key",
-          isKeyRight: true,
+          key: `guess-${index}`,
+          isKeyRight: false,
         }),
       ).toBeNull();
+    }
 
-      expect(redis.sent).toHaveLength(0);
-      expect(redis.keys()).toStrictEqual([]);
-    },
-  );
+    expect(
+      await presentRegistrationKey({
+        from: SHARED_PRIVATE_ADDRESS,
+        key: "the-right-key",
+        isKeyRight: true,
+      }),
+    ).toBeNull();
+
+    expect(redis.sent).toHaveLength(0);
+    expect(redis.keys()).toStrictEqual([]);
+  });
 
   test.each([
     ["10.0.0.0/8", "10.0.0.1"],
@@ -1464,12 +1393,22 @@ describe("a client over the limit is refused before its key is looked up", () =>
 });
 
 describe("answering a refused request", () => {
-  test.each([
+  // Every kind of key, and what a client refused for it is told.
+  const ANSWERS: Array<[ComponentKeyKind, string]> = [
     [ComponentKeyKind.Probe, WRONG_PROBE_KEYS_MESSAGE],
     [ComponentKeyKind.Agent, WRONG_AGENT_KEYS_MESSAGE],
     [ComponentKeyKind.ProbeRegistration, WRONG_PROBE_REGISTRATION_KEYS_MESSAGE],
-    [ComponentKeyKind.SharedRunner, WRONG_SHARED_RUNNER_KEYS_MESSAGE],
-  ])(
+  ];
+
+  test("every kind of key there is is answered below: the shared Runner's key is gone", () => {
+    expect(Object.values(ComponentKeyKind)).toStrictEqual(
+      ANSWERS.map((answer: [ComponentKeyKind, string]): ComponentKeyKind => {
+        return answer[0];
+      }),
+    );
+  });
+
+  test.each(ANSWERS)(
     "%s: 429, with when to try again in Retry-After, and what to do",
     (kind: ComponentKeyKind, message: string) => {
       const sendErrorResponse: Mock<(...args: Array<unknown>) => unknown> =
@@ -1581,13 +1520,6 @@ describe("the limits are kept apart in Valkey", () => {
     });
     await presentRegistrationKey({
       from: CLIENT,
-      kind: ComponentKeyKind.ProbeRegistration,
-      key: "w",
-      isKeyRight: false,
-    });
-    await presentRegistrationKey({
-      from: CLIENT,
-      kind: ComponentKeyKind.SharedRunner,
       key: "w",
       isKeyRight: false,
     });
@@ -1597,7 +1529,6 @@ describe("the limits are kept apart in Valkey", () => {
         "agent-key:wrong-keys:",
         "probe-key:wrong-keys:",
         "probe-registration-key:wrong-keys:",
-        "shared-runner-key:wrong-keys:",
       ].sort(),
     );
   });

@@ -74,6 +74,15 @@ const RESOURCE_COUNT: PluralTemplate = {
   other: "{{count}} resources",
 };
 
+/*
+ * Short, under the count and the regions of a column that has to fit
+ * beside the side menu at 1280 pixels in every language.
+ */
+const CHANGES_RECORDED: PluralTemplate = {
+  one: "{{count}} new change",
+  other: "{{count}} new changes",
+};
+
 function pluralOf(
   template: PluralTemplate,
   count: number,
@@ -177,7 +186,7 @@ export function getCloudTestWords(
         "It works, but OneUptime found no resources to monitor yet.",
       ),
       advice: translationKey(
-        "Resources show up once they report metrics. If you have some, check that the access is for the right account, subscription or project.",
+        "The first read lists every resource of the account, whether it reports metrics or not. If none appear then, check that the access is for the right account, subscription or project.",
       ),
     };
   }
@@ -295,6 +304,15 @@ export function getCloudConnectionHealth(
 // "12 resources", "1 resource".
 export function getResourceCountWords(count: number): CloudTemplate {
   return pluralOf(RESOURCE_COUNT, count);
+}
+
+/*
+ * "3 new changes": what the last read added from the accounts' activity
+ * logs and their provider's health events, kept as change events. Shown
+ * only when the last read added some.
+ */
+export function getChangesRecordedWords(count: number): CloudTemplate {
+  return pluralOf(CHANGES_RECORDED, count);
 }
 
 /*

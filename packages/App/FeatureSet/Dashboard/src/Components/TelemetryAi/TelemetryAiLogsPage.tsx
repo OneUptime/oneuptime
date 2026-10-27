@@ -309,11 +309,8 @@ export const TelemetryAiLogRow: FunctionComponent<TelemetryAiLogRowProps> = (
                 <span>
                   {translator.translateText(TELEMETRY_AI_LOG_OPEN_TASK)}
                 </span>
-                {/* It points the way the words run, right to left too. */}
-                <Icon
-                  icon={IconProp.ArrowRight}
-                  className="h-3.5 w-3.5 rtl:rotate-180"
-                />
+                {/* It points the way the words run, right to left too (Icon). */}
+                <Icon icon={IconProp.ArrowRight} className="h-3.5 w-3.5" />
               </Link>
             ) : (
               <></>

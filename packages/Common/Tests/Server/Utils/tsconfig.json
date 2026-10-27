@@ -1,0 +1,16 @@
+{
+  /*
+   * The project every file in this directory belongs to: exactly
+   * ../../../tsconfig.tests.server-utils.json, the part of
+   * `npm run compile-tests` that type-checks Tests/Server/Utils. Its
+   * "include" is inherited and resolves against packages/Common, where it is
+   * written.
+   *
+   * It exists because TypeScript picks a file's project by the nearest
+   * tsconfig.json - editors, and ESLint's typed linting (projectService in
+   * eslint.config.js) - and each Common test part is linted as the program
+   * compile-tests checks (see ../../tsconfig.json and
+   * ../../Scripts/LintTestPrograms.test.ts).
+   */
+  "extends": "../../../tsconfig.tests.server-utils.json"
+}

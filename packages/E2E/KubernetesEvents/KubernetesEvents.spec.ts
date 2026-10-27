@@ -711,8 +711,21 @@ test.describe("the cluster's Events page", () => {
 
     // The full list is the newest records of the range, and says so.
     await typeButton(page, "All").click();
-    await expect(page.getByTestId("kubernetes-events-more-note")).toBeVisible();
+    const note: Locator = page.getByTestId("kubernetes-events-more-note");
+    await expect(note).toBeVisible();
     await expect(typeButton(page, "All")).toHaveText(/^All$/);
+
+    /*
+     * Under the list's pager, clear of it (#5298's UI review): the pager ends
+     * its card, and the note sat 8px into it, against Rows per page.
+     */
+    const pager: { y: number; height: number } | null = await page
+      .getByTestId("kubernetes-events-view")
+      .getByTestId("pagination-summary")
+      .locator("xpath=ancestor::nav[1]")
+      .boundingBox();
+    const noteBox: { y: number } | null = await note.boundingBox();
+    expect(noteBox!.y).toBeGreaterThanOrEqual(pager!.y + pager!.height + 12);
   });
 
   test("a cluster with no warnings opens on every event, and its Warnings view says so", async ({
@@ -1741,6 +1754,124 @@ test.describe("being told when Kubernetes warns", () => {
     await screenshot(page, "kubernetes-warning-alerts-line-phone-dark");
   });
 
+  /*
+   * #5298's UI review: 6px under the list's Rows per page, in the pager's
+   * grey, the line read as part of the pager. It is the card's footer now:
+   * right under the pager, a rule across the card as the pager's own, its
+   * words where the pager's start, ending the card.
+   */
+  test("the card's footer, under the list's pager, at a laptop's and a phone's width, light and dark", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const [width, theme] of [
+      [1280, ""],
+      [390, ""],
+      [1280, "theme=dark"],
+      [390, "theme=dark"],
+    ] as Array<[number, string]>) {
+      await page.setViewportSize({ width, height: 900 });
+      await openEventsPage(page, theme);
+
+      const line: Locator = page.getByTestId("kubernetes-warning-alerts");
+      await expect(line).toBeVisible();
+      const pager: Locator = page
+        .getByTestId("kubernetes-events-view")
+        .getByTestId("pagination-summary")
+        .locator("xpath=ancestor::nav[1]");
+
+      const pagerBox: {
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+      } | null = await pager.boundingBox();
+      const lineBox: {
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+      } | null = await line.boundingBox();
+      const summaryBox: { x: number } | null = await page
+        .getByTestId("kubernetes-events-view")
+        .getByTestId("pagination-summary")
+        .boundingBox();
+      const cardBox: { y: number; height: number } | null = await page
+        .getByTestId("kubernetes-events-view")
+        .boundingBox();
+
+      // Right under the pager, never over its Rows per page.
+      expect(
+        Math.abs(lineBox!.y - (pagerBox!.y + pagerBox!.height)),
+      ).toBeLessThanOrEqual(1);
+      // Across the card, as the pager is; its words where the pager's start.
+      expect(Math.abs(lineBox!.x - pagerBox!.x)).toBeLessThanOrEqual(1);
+      expect(Math.abs(lineBox!.width - pagerBox!.width)).toBeLessThanOrEqual(1);
+      const icon: { x: number } | null = await line
+        .locator("svg")
+        .first()
+        .boundingBox();
+      expect(Math.abs(icon!.x - summaryBox!.x)).toBeLessThanOrEqual(1);
+      // The card's end.
+      expect(
+        cardBox!.y + cardBox!.height - (lineBox!.y + lineBox!.height),
+      ).toBeLessThanOrEqual(2);
+
+      const look: {
+        borderTopStyle: string;
+        borderTopWidth: string;
+        borderTopColor: string;
+        paddingTop: string;
+        cardBackground: string;
+      } = await line.evaluate(
+        (
+          element: Element,
+        ): {
+          borderTopStyle: string;
+          borderTopWidth: string;
+          borderTopColor: string;
+          paddingTop: string;
+          cardBackground: string;
+        } => {
+          const style: CSSStyleDeclaration = getComputedStyle(element);
+          // The first ancestor with a background: the card the line is in.
+          let ancestor: Element | null = element.parentElement;
+          let cardBackground: string = "";
+          while (ancestor && !cardBackground) {
+            const background: string =
+              getComputedStyle(ancestor).backgroundColor;
+            if (background && background !== "rgba(0, 0, 0, 0)") {
+              cardBackground = background;
+            }
+            ancestor = ancestor.parentElement;
+          }
+          return {
+            borderTopStyle: style.borderTopStyle,
+            borderTopWidth: style.borderTopWidth,
+            borderTopColor: style.borderTopColor,
+            paddingTop: style.paddingTop,
+            cardBackground,
+          };
+        },
+      );
+
+      // A rule across its top that shows on its card, then room to its words.
+      expect(look.borderTopStyle).toBe("solid");
+      expect(parseFloat(look.borderTopWidth)).toBeGreaterThanOrEqual(1);
+      expect(look.borderTopColor).not.toBe(look.cardBackground);
+      expect(parseFloat(look.paddingTop)).toBeGreaterThanOrEqual(10);
+      await expectNoSidewaysScroll(page);
+    }
+
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await openEventsPage(page);
+    await page
+      .getByTestId("kubernetes-warning-alerts")
+      .scrollIntoViewIfNeeded();
+    await screenshot(page, "kubernetes-warning-alerts-line-under-a-rule");
+  });
+
   test("in German, the line and its link read in German", async ({
     page,
   }: {
@@ -1751,5 +1882,123 @@ test.describe("being told when Kubernetes warns", () => {
     await expect(page.getByTestId("kubernetes-warning-alerts")).toHaveText(
       `${GERMAN["Get an alert when Kubernetes reports a warning."]} ${GERMAN["Turn on warning alerts"]}`,
     );
+  });
+});
+
+/*
+ * Follow-up of #5201: a cluster's own pages - a node's, an HPA's - had no
+ * entry in the cluster's side menu, so nothing in it was lit there, and on
+ * a phone the menu's button said "Navigate to / Navigation". Such a page is
+ * one of the rows its list shows: the list's entry stays lit there, says so
+ * to a screen reader (aria-current="true": it holds the page), opens its
+ * section if it is folded, and names the phone's button. The trail's last
+ * crumb reads in the reader's language ("Knotendetails"). In a menu taller
+ * than the window the lit entry comes into sight with the next one past
+ * it, and the list fades out over the entries it scrolled out of sight.
+ */
+test.describe("a cluster's own pages in its side menu", () => {
+  function clusterMenu(page: Page): Locator {
+    return page.locator("aside[role='navigation']");
+  }
+
+  test("on a node's page, Nodes is lit and holds the page; the trail ends on the node", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(`${CLUSTER_PATH}/nodes/${AGENT_POOL_NODE}`);
+    const menu: Locator = clusterMenu(page);
+    const nodes: Locator = menu.locator(`a[href='${CLUSTER_PATH}/nodes']`);
+
+    await expect(nodes).toHaveAttribute("aria-current", "true", {
+      timeout: 30000,
+    });
+    await expect(menu.locator("[aria-current]")).toHaveCount(1);
+    await expect(nodes).toHaveClass(/bg-indigo-50/);
+    await expect(
+      page
+        .getByRole("navigation", { name: "Breadcrumb" })
+        .locator("[aria-current='page']"),
+    ).toHaveText("Node Detail");
+  });
+
+  test("on an HPA's page in a short window, the folded Scaling opens and HPAs is lit, in sight inside the long menu with VPAs past it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 600 });
+    await page.goto(`${CLUSTER_PATH}/hpas/istiod`);
+    const menu: Locator = clusterMenu(page);
+    const hpas: Locator = menu.locator(`a[href='${CLUSTER_PATH}/hpas']`);
+
+    await expect(hpas).toHaveAttribute("aria-current", "true", {
+      timeout: 30000,
+    });
+    await expect(
+      menu.locator(
+        "xpath=.//h6[normalize-space(.)='Scaling']/ancestor::button[1]",
+      ),
+    ).toHaveAttribute("aria-expanded", "true");
+
+    const list: Locator = menu.locator("nav");
+    const isInSight: (href: string) => Promise<boolean> = async (
+      href: string,
+    ): Promise<boolean> => {
+      return await list.evaluate((element: Element, link: string): boolean => {
+        const target: Element | null = element.querySelector(
+          `a[href='${link}']`,
+        );
+        if (!target) {
+          return false;
+        }
+        const listBox: DOMRect = element.getBoundingClientRect();
+        const box: DOMRect = target.getBoundingClientRect();
+        return (
+          box.top >= Math.max(listBox.top, 0) &&
+          box.bottom <= Math.min(listBox.bottom, window.innerHeight)
+        );
+      }, href);
+    };
+
+    await expect
+      .poll(async (): Promise<boolean> => {
+        return await isInSight(`${CLUSTER_PATH}/hpas`);
+      })
+      .toBe(true);
+    // The next entry is in sight past it: the list goes on.
+    expect(await isInSight(`${CLUSTER_PATH}/vpas`)).toBe(true);
+    // The entries scrolled out of sight above fade out at the list's top.
+    await expect(list).toHaveAttribute("data-hidden-top", "true");
+    expect(
+      await page.evaluate((): number => {
+        return window.scrollY;
+      }),
+    ).toBe(0);
+    await screenshot(page, "hpa-page-short-window-menu");
+  });
+
+  test("on a phone, in German, the button names Infrastruktur / Knoten and the trail Knotendetails", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(
+      withQuery(`${CLUSTER_PATH}/nodes/${AGENT_POOL_NODE}`, "lang=de"),
+    );
+    const toggle: Locator = page.getByTestId("mobile-sidemenu-toggle");
+
+    await expect(toggle.locator("h3")).toHaveText(
+      `${GERMAN["Infrastructure"]} / ${GERMAN["Nodes"]}`,
+      { timeout: 30000 },
+    );
+    await expect(toggle).not.toContainText("Navigation");
+    expect(GERMAN["Node Detail"]).toBeTruthy();
+    expect(GERMAN["Node Detail"]).not.toBe("Node Detail");
+    await expect(
+      page.locator("nav[aria-label] [aria-current='page']"),
+    ).toHaveText(GERMAN["Node Detail"]!);
+    await screenshot(page, "node-page-phone-de");
   });
 });

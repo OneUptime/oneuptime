@@ -22,7 +22,7 @@ flowchart TB
         Ingress["ingress"]
         App["app"]
         Probe["probe-1"]
-        Runner["runner"]
+        Runner["global-runner"]
         subgraph Data["مخازن داده"]
             direction LR
             PG[("postgres")]
@@ -38,7 +38,7 @@ flowchart TB
     App --> CH
     App --> VK
     Probe -->|نتیجه‌ها| Ingress
-    Runner -->|کارها| Ingress
+    Runner -->|کارها| App
     Probe -->|بررسی‌ها| Targets
     Data ~~~ Probe
     Data ~~~ Runner
@@ -49,7 +49,7 @@ flowchart TB
 | `ingress` | `oneuptime/nginx` | همهٔ ترافیک را روی درگاه‌های ۸۰ و ۴۴۳ می‌گیرد و به برنامه می‌فرستد. وقتی OneUptime گواهی را مدیریت می‌کند، HTTPS ارائه می‌دهد. |
 | `app` | `oneuptime/app` | داشبورد، API، صفحه‌های وضعیت، دریافت تله‌متری و کارگرهای پس‌زمینه. |
 | `probe-1` | `oneuptime/probe` | یک پراب سراسری که بررسی‌های مانیتورهای شما را اجرا می‌کند. از شبکهٔ میزبان استفاده می‌کند. |
-| `runner` | `oneuptime/runner` | Runner نمونه، که اصلاح کد با هوش مصنوعی را اجرا می‌کند. از شبکهٔ میزبان استفاده می‌کند. |
+| `global-runner` | `oneuptime/runner` | Runner سراسری همراه، که گام‌های JavaScript رانبوک‌ها و اصلاح‌های کد OneUptime AI را برای همه پروژه‌ها اجرا می‌کند. |
 | `postgres` | `postgres:15` | پیکربندی و وضعیت: مانیتورها، رخدادها، کاربران. در ولوم `postgres` ذخیره می‌شود. |
 | `clickhouse` | `clickhouse/clickhouse-server:26.7` | تله‌متری: لاگ‌ها، متریک‌ها، تریس‌ها و استثناها. در ولوم `clickhouse` ذخیره می‌شود. |
 | `valkey` | `valkey/valkey:9.1-alpine` | حافظهٔ نهان و صف‌ها. چیزی روی دیسک نگه نمی‌دارد. |
@@ -84,9 +84,8 @@ flowchart TB
 | --- | --- | --- | --- |
 | ۸۰ | `ingress` | `ONEUPTIME_HTTP_PORT` | داشبورد، API، دریافت تله‌متری و اعتبارسنجی Let's Encrypt. |
 | ۴۴۳ | `ingress` | `STATUS_PAGE_HTTPS_PORT` | HTTPS برای نمونهٔ شما وقتی OneUptime گواهی را مدیریت می‌کند، و برای صفحه‌های وضعیت و داشبوردهای روی دامنه‌های سفارشی. |
-| ۵۴۰۰ | `postgres` | تنظیم‌شده در `docker-compose.yml` | به `npm run backup` و `restore.sh` اجازه می‌دهد از خود سرور به PostgreSQL برسند. این درگاه فقط روی `127.0.0.1` منتشر شده است. |
+| ۵۴۰۰ | `postgres` | `DATABASE_PUBLISHED_PORT` | به `npm run backup` و `restore.sh` اجازه می‌دهد از خود سرور به PostgreSQL برسند. این درگاه فقط روی `127.0.0.1` منتشر شده است. |
 | ۳۸۷۴ | `probe-1` | `GLOBAL_PROBE_1_PORT` | سرور خود پراب. هیچ چیز بیرون از سرور به آن نیاز ندارد. |
-| ۳۸۷۶ | `runner` | `ONEUPTIME_RUNNER_PORT` | سرور خود Runner. هیچ چیز بیرون از سرور به آن نیاز ندارد. |
 
 یک [ویدیوی گام‌به‌گام](https://youtu.be/j1SWmMW2oL4) از نصب هم وجود دارد.
 
@@ -133,7 +132,7 @@ npm start
 ```
 @tab Docker CLI
 ```bash
-(export $(grep -v '^#' config.env | xargs) && docker compose up --remove-orphans -d)
+sh Scripts/Install/WithConfig.sh docker compose up --remove-orphans -d
 ```
 پیش از نخستین اجرا، رازهای جای‌نگهدار را خودتان جایگزین کنید، همان‌طور که [رازهای تصادفی بسازید](#رازهای-تصادفی-بسازید) نشان می‌دهد: فقط `npm start` این کار را برایتان انجام می‌دهد.
 :::
@@ -158,8 +157,7 @@ npm start
 | `DATABASE_PASSWORD`، `CLICKHOUSE_PASSWORD`، `VALKEY_PASSWORD` | سه مخزن داده. |
 | `REGISTER_PROBE_KEY` | ثبت پراب‌ها در نمونهٔ شما. |
 | `GLOBAL_PROBE_1_KEY`، `GLOBAL_PROBE_2_KEY` | پراب‌های سراسری‌ای که Docker Compose می‌تواند اجرا کند (`probe-1` به‌طور پیش‌فرض اجرا می‌شود). |
-| `ONEUPTIME_RUNNER_KEY` | Runner همراه. |
-| `GLOBAL_RUNNER_KEY` | Runner سراسری همراه، که گام‌های JavaScript همه پروژه‌ها را اجرا می‌کند. |
+| `GLOBAL_RUNNER_KEY` | Runner سراسری همراه، که گام‌های JavaScript و اصلاح‌های کد هوش مصنوعی همه پروژه‌ها را اجرا می‌کند. |
 
 > [!IMPORTANT]
 > پس از آنکه OneUptime اجرا شد، رازها را تغییر ندهید. PostgreSQL گذرواژه‌اش را فقط هنگام ساختن پایگاه داده‌اش می‌گیرد، و تغییر `ENCRYPTION_SECRET` در آینده هر مقداری را که با مقدار قبلی رمزگذاری شده ناخوانا می‌کند. به همین دلیل `npm start` مقدار `DATABASE_PASSWORD` و `ENCRYPTION_SECRET` را فقط در یک نصب تازه تنظیم می‌کند، پیش از آنکه PostgreSQL پایگاه داده‌اش را بسازد.
@@ -234,7 +232,7 @@ ONEUPTIME_HTTP_PORT=127.0.0.1:8080
 STATUS_PAGE_HTTPS_PORT=127.0.0.1:8443
 ```
 
-پراب و Runner از شبکهٔ میزبان استفاده می‌کنند و از راه `http://localhost` به OneUptime می‌رسند. `npm start` آن‌ها را به درگاه تازهٔ ingress، یعنی `http://localhost:8080`، می‌برد و این را اعلام می‌کند.
+پراب از شبکهٔ میزبان استفاده می‌کند و از راه `http://localhost` به OneUptime می‌رسد. `npm start` آن را به درگاه تازهٔ ingress، یعنی `http://localhost:8080`، می‌برد و این را اعلام می‌کند.
 
 #### به OneUptime بگویید پشت یک پراکسی است
 
@@ -388,7 +386,7 @@ PostgreSQL گذرواژه‌ای را که با آن ساخته شده نگه م
 
 ```bash
 NEW_PASSWORD=$(openssl rand -hex 32) &&
-  (export $(grep -v '^#' config.env | xargs) && docker compose exec -T postgres psql -U "$DATABASE_USERNAME" -d "$DATABASE_NAME" -c "ALTER USER \"$DATABASE_USERNAME\" PASSWORD '$NEW_PASSWORD'") &&
+  echo "ALTER USER CURRENT_USER PASSWORD '$NEW_PASSWORD';" | sh Scripts/Install/WithConfig.sh sh -c 'docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$DATABASE_USERNAME" -d "$DATABASE_NAME"' &&
   sed -i "s/^DATABASE_PASSWORD=.*/DATABASE_PASSWORD=$NEW_PASSWORD/" config.env
 npm start
 ```
@@ -470,7 +468,7 @@ npm run down
 داده‌های شما در ولوم‌های `oneuptime_postgres` و `oneuptime_clickhouse` می‌مانند، و پوشهٔ `oneuptime`، `config.env` و پشتیبان‌های شما را نگه می‌دارد. برای حذف داده‌ها هم:
 
 ```bash
-(export $(grep -v '^#' config.env | xargs) && docker compose down --volumes --remove-orphans)
+sh Scripts/Install/WithConfig.sh docker compose down --volumes --remove-orphans
 ```
 
 سپس پوشهٔ `oneuptime` را حذف کنید.
@@ -536,12 +534,12 @@ OneUptime را با نشانی موجود در `HOST` باز کنید. ingress �
 وقتی سفارشی شکست بخورد، برنامه خطایی ثبت می‌کند که با `CoreSSL:EnsurePrimaryHostCertificate` شروع می‌شود و پس از آن دلیلش می‌آید:
 
 ```bash
-(export $(grep -v '^#' config.env | xargs) && docker compose logs app) | grep -A 5 CoreSSL
+sh Scripts/Install/WithConfig.sh docker compose logs app | grep -A 5 CoreSSL
 ```
 :::
 
 :::details پس از جابه‌جایی درگاه ingress، پراب همراه وضعیت قطع‌شده را نشان می‌دهد
-Admin Dashboard پراب را زیر **تنظیمات** > **پایش** > **پراب‌های سراسری** فهرست می‌کند. پراب از راه `GLOBAL_PROBE_1_ONEUPTIME_URL` به OneUptime می‌رسد که به‌طور پیش‌فرض `http://localhost` (درگاه ۸۰) است. تا وقتی این نشانی و `ONEUPTIME_RUNNER_ONEUPTIME_URL` به `localhost` اشاره کنند، `npm start` آن‌ها را به درگاه ingress می‌برد. اگر آن‌ها را روی نشانی دیگری گذاشته‌اید، یا OneUptime را با Docker CLI اجرا کرده‌اید، هر دو را روی درگاه تازهٔ ingress بگذارید، برای نمونه `http://localhost:8080`، و OneUptime را دوباره راه‌اندازی کنید.
+Admin Dashboard پراب را زیر **تنظیمات** > **پایش** > **پراب‌های سراسری** فهرست می‌کند. پراب از راه `GLOBAL_PROBE_1_ONEUPTIME_URL` به OneUptime می‌رسد که به‌طور پیش‌فرض `http://localhost` (درگاه ۸۰) است. تا وقتی این نشانی به `localhost` اشاره کند، `npm start` آن را به درگاه ingress می‌برد. اگر آن را روی نشانی دیگری گذاشته‌اید، یا OneUptime را با Docker CLI اجرا کرده‌اید، آن را روی درگاه تازهٔ ingress بگذارید، برای نمونه `http://localhost:8080`، و OneUptime را دوباره راه‌اندازی کنید.
 :::
 
 ## گام‌های بعدی

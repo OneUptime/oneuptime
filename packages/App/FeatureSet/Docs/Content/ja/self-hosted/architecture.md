@@ -11,7 +11,7 @@ flowchart TB
         direction TB
         Ingress["Ingress<br/>(Nginx、TLS)"]
         App["アプリ<br/>ダッシュボード、<br/>ステータスページ、<br/>API、取り込み、<br/>バックグラウンドジョブ"]
-        Runner["Runner"]
+        Runner["グローバル Runner"]
         Probe["プローブ"]
         subgraph Data["データストア"]
             direction LR
@@ -54,8 +54,7 @@ flowchart TB
 | Worker | `app` の一部 | `worker` (既定ではオフ) | バックグラウンドジョブを専用の Pod で実行し、重いキュー処理が API リクエストと競合しないようにします。 |
 | Telemetry writer | `app` の一部 | `telemetryWriter` (既定ではオフ) | ClickHouse へのすべての挿入を行う固定サイズの層で、ワーカーがどれだけスケールしても挿入数を一定の範囲に保ちます。 |
 | プローブ | `probe-1` | `probes` | モニターのチェックを実行し、結果を送り返します。同梱のプローブはすべて、全プロジェクトが使えるグローバルプローブです。 |
-| Runner | `runner` | `runner` | インスタンス自身の Runner で、すべてのプロジェクトの AI によるコード修正を実行できます。Runbook のステップは、実行すべき場所にインストールした [Runner](/docs/runbooks/agents) で実行されます。 |
-| グローバル Runner | `global-runner` | `globalRunner` | [グローバル Runner](/docs/runbooks/agents#グローバル-runner) です。自社の Runner を選ばないすべてのプロジェクトの JavaScript のステップを、それぞれインターネットにしかアクセスできないサンドボックスで実行します。専用のキーを持ち、サーバーのそれ以外のものは何も持ちません。 |
+| グローバル Runner | `global-runner` | `globalRunner` | [グローバル Runner](/docs/runbooks/agents#グローバル-runner) です。自社の Runner を選ばないすべてのプロジェクトの JavaScript のステップを、それぞれインターネットにしかアクセスできないサンドボックスで実行し、Runner を選ばないすべてのコードリポジトリで OneUptime AI のコード修正を実行します。専用のキーを持ち、サーバーのそれ以外のものは何も持ちません。Bash、SSH、kubectl のステップは、実行すべき場所にインストールした [Runner](/docs/runbooks/agents) で実行されます。 |
 | PostgreSQL | `postgres` | `postgresql`、または `postgresOperator.cnpg` | プロジェクト、モニター、インシデント、ユーザー、その他すべての設定と状態。 |
 | ClickHouse | `clickhouse` | `clickhouse`、または `clickhouseOperator.altinity` | ログ、メトリクス、トレース、例外、プロファイル、モニターのログ。 |
 | Valkey | `valkey` | `valkey` | キャッシュ、ジョブのキュー、保留中のプッシュの受領確認のような短期間の状態。 |
@@ -64,9 +63,10 @@ flowchart TB
 
 ## ネットワークの外への接続
 
-設定を変えない限り、次の 3 つの接続が行われます。
+設定を変えない限り、次の 4 つの接続が行われます。
 
 - アプリは 1 日に 1 回、新しいリリースが出ているかを GitHub の API (`api.github.com`) に問い合わせます。これを止めるには、Helm チャートでは `updateCheck.disabled: true` を、Docker Compose では `config.env` に `DISABLE_UPDATE_CHECK=true` を設定します。
+- アプリは 1 日に 1 回、インストールのアドレスと実行中のバージョンを `oneuptime.com` に伝えます。セキュリティ上の問題があるリリースをまだ実行しているインストールを、OneUptime が把握するためです。ユーザー、プロジェクト、監視データについては何も送信されません。これを止めるには、Helm チャートでは `instanceCheckIn.disabled: true` を、Docker Compose では `config.env` に `DISABLE_INSTANCE_CHECK_IN=true` を設定します。
 - 「セキュリティパッチと新リリースについて通知する」にチェックを入れたまま (最初はチェックが入っています) サインアップすると、その人の名前とメールアドレス、入力した会社名と電話番号、そしてインストールのアドレスとバージョンが `oneuptime.com` に送られます。インターネットに接続できないネットワークでは、チェックを外してください。
 - Kubernetes では、プローブはクラスター自身の DNS の次に、公開リゾルバーの `8.8.8.8` と `1.1.1.1` を使います。すべての名前解決を自分の DNS にとどめるには、`dnsConfig.nameservers` を `[]` に設定します。
 

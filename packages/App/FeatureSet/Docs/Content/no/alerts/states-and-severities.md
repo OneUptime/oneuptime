@@ -157,7 +157,7 @@ Et varsel er løst når det flyttes til løst-tilstanden din eller til en tilsta
 
 ## Tilstandstidslinjen
 
-Varselets side **Tilstandstidslinje** er en oversikt over hver tilstand det har vært i. Kortet, **Statustidslinje**, tegner dem som en tidslinje: et bånd med hver tilstand så lang som den varte, og under det hver endring med den nyeste først. **Tabell** i kortets topptekst viser dem i stedet som rader, med **Varselstatus**, **Begynner den**, **Slutter den** og **Varighet**.
+Varselets side **Tilstandstidslinje** er en oversikt over hver tilstand det har vært i. Kortet tegner dem som en tidslinje: et bånd med hver tilstand så lang som den varte, og under det hver endring med den nyeste først. **Tabell** i kortets topptekst viser dem i stedet som rader, med **Varselstatus**, **Begynner den**, **Slutter den** og **Varighet**.
 
 - **Vis årsak** viser rotårsaken som ble registrert med den endringen.
 - **Vis logger** viser hva OneUptime registrerte da varselet endret seg, for eksempel monitorsjekken som forårsaket det.

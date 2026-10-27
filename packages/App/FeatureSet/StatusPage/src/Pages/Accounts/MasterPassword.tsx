@@ -41,9 +41,20 @@ const MasterPasswordPage: FunctionComponent<ComponentProps> = (
     Navigation.navigate(new Route(path), { forceNavigate: true });
   };
 
+  /*
+   * Once, as the prompt opens (and again only for another page): a visitor
+   * with nothing to enter goes straight to the page. Keyed by the id's value
+   * - getStatusPageId() hands back a new ObjectID each render, and keyed by
+   * that, this ran again on the render after a right password and sent the
+   * visitor to the bare overview, after and so instead of where they were
+   * going (as the public dashboard's prompt did).
+   */
+  const statusPageIdKey: string = statusPageId?.toString() || "";
+
   useEffect(() => {
+    // A page everyone may see asks for no password: on to its overview.
     if (!StatusPageUtil.isPrivateStatusPage()) {
-      Navigation.navigate(new Route("/"), { forceNavigate: true });
+      redirectToOverview();
       return;
     }
 
@@ -61,7 +72,7 @@ const MasterPasswordPage: FunctionComponent<ComponentProps> = (
       redirectToOverview();
       return;
     }
-  }, [statusPageId]);
+  }, [statusPageIdKey]);
 
   if (!statusPageId || !StatusPageUtil.requiresMasterPassword()) {
     return <PageLoader isVisible={true} />;

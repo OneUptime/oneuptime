@@ -23,6 +23,7 @@ import {
 } from "./ResourceTools";
 import { QueryContainersTool } from "./ContainerTools";
 import { QueryNetworkTransceiversTool } from "./TransceiverTools";
+import { QueryCloudAccountsTool, QueryCloudResourceTool } from "./CloudTools";
 import { QueryScheduledMaintenanceTool } from "./ScheduledMaintenanceTools";
 import {
   GetOnCallStatusTool,
@@ -80,10 +81,16 @@ import {
 } from "./CodeWriteTools";
 import {
   AcknowledgeIncidentTool,
+  AddIncidentAffectedResourcesTool,
   CreateIncidentTool,
   ResolveIncidentTool,
 } from "./IncidentWriteTools";
-import { AcknowledgeAlertTool, ResolveAlertTool } from "./AlertWriteTools";
+import {
+  AcknowledgeAlertTool,
+  AddAlertAffectedResourcesTool,
+  CreateAlertTool,
+  ResolveAlertTool,
+} from "./AlertWriteTools";
 import {
   PageOnCallPolicyTool,
   RunRunbookTool,
@@ -132,6 +139,9 @@ export default class AIToolbox {
     QueryContainersTool,
     // A network device's optics, port by port, with their trend.
     QueryNetworkTransceiversTool,
+    // What a connected cloud's inventory says: one resource, every account.
+    QueryCloudResourceTool,
+    QueryCloudAccountsTool,
     QueryScheduledMaintenanceTool,
     /*
      * Platform reads: the operational surface an on-call product exists to
@@ -195,8 +205,17 @@ export default class AIToolbox {
     CreateIncidentTool,
     AcknowledgeIncidentTool,
     ResolveIncidentTool,
+    // An alert raised from the conversation, as an incident is declared (#5301).
+    CreateAlertTool,
     AcknowledgeAlertTool,
     ResolveAlertTool,
+    /*
+     * What an incident or alert is about (#5293): the infrastructure and
+     * services OneUptime AI investigates and fixes, added as its Affected
+     * Resources Edit adds them.
+     */
+    AddIncidentAffectedResourcesTool,
+    AddAlertAffectedResourcesTool,
     // AI action belt (Phase 0) — operate the platform, not just answer.
     PageOnCallPolicyTool,
     RunRunbookTool,

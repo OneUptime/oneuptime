@@ -19,6 +19,7 @@ import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
 import MonitorStatusTimeline from "../../../Models/DatabaseModels/MonitorStatusTimeline";
 import StatusPageHistoryChartBarColorRule from "../../../Models/DatabaseModels/StatusPageHistoryChartBarColorRule";
 import UptimeBarTooltipIncident from "../../../Types/Monitor/UptimeBarTooltipIncident";
+import UptimeBarTooltipMaintenance from "../../../Types/Monitor/UptimeBarTooltipMaintenance";
 import UptimeHistoryLabels from "../../../Types/Monitor/UptimeHistoryLabels";
 import React, { FunctionComponent, ReactElement, useMemo } from "react";
 
@@ -59,6 +60,12 @@ export interface ComponentProps {
     summary: UptimeBarDaySummary,
   ) => void;
   onIncidentClick?: ((incidentId: string) => void) | undefined;
+  /*
+   * Scheduled maintenance of this monitor (or monitor group), listed on the
+   * days its window touches and marking their bars. See DayUptimeGraph.
+   */
+  maintenanceEvents?: Array<UptimeBarTooltipMaintenance> | undefined;
+  onMaintenanceClick?: ((maintenanceId: string) => void) | undefined;
   /* Wording for the strip's accessible names. Defaults to English. */
   labels?: UptimeHistoryLabels | undefined;
 }
@@ -172,6 +179,8 @@ const MonitorUptimeGraph: FunctionComponent<ComponentProps> = (
       incidents={props.incidents}
       onBarClick={props.onBarClick}
       onIncidentClick={props.onIncidentClick}
+      maintenanceEvents={props.maintenanceEvents}
+      onMaintenanceClick={props.onMaintenanceClick}
       labels={props.labels}
     />
   );

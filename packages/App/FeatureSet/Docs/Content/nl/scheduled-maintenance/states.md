@@ -142,7 +142,7 @@ Archiveer een eigen status die uw team niet meer moet gebruiken, in plaats van d
 
 ## De statustijdlijn
 
-De pagina **Statustijdlijn** van de gebeurtenis is het overzicht van elke status waarin ze heeft gestaan. Haar kaart, **Statustijdlijn**, tekent ze als tijdlijn: een band met elke status zo lang als die duurde, en daaronder elke wijziging, de nieuwste eerst. **Tabel**, in de kop van de kaart, toont ze in plaats daarvan als rijen, met **Status van geplande onderhoud**, **Begint op**, **Eindigt op**, **Duur**, of abonnees bericht moesten krijgen en hoe hun melding verliep.
+De pagina **Statustijdlijn** van de gebeurtenis is het overzicht van elke status waarin ze heeft gestaan. Haar kaart tekent ze als tijdlijn: een band met elke status zo lang als die duurde, en daaronder elke wijziging, de nieuwste eerst. **Tabel**, in de kop van de kaart, toont ze in plaats daarvan als rijen, met **Status van geplande onderhoud**, **Begint op**, **Eindigt op**, **Duur**, of abonnees bericht moesten krijgen en hoe hun melding verliep.
 
 In het dashboard kunnen rijen worden toegevoegd en verwijderd, maar niet bewerkt, en een gebeurtenis houdt er altijd minstens één. Via de API kan de `startsAt` van een rij worden gecorrigeerd, en elke meting die uit de tijdlijn wordt berekend, volgt die. Als je de nieuwste rij verwijdert, gaat de gebeurtenis terug naar de status van de rij ervoor.
 

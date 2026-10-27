@@ -59,6 +59,18 @@ import User from "../../../Models/DatabaseModels/User";
 import { JSONObject } from "../../../Types/JSON";
 
 /*
+ * The server does not require single sign-on here, and says so at once: the
+ * sign-in pages ask before they draw (SignInMethodsStandIn).
+ */
+jest.mock("../../../../App/FeatureSet/Accounts/src/Utils/SignInMethods", () => {
+  return (
+    jest.requireActual(
+      "./SignInMethodsStandIn",
+    ) as typeof import("./SignInMethodsStandIn")
+  ).signInMethodsNotRequired();
+});
+
+/*
  * The edition pill fetches the instance's global config on mount. It is page
  * chrome with nothing to do with recovery, and stubbing the component is a
  * smaller lie than stubbing the fetch it makes.
@@ -186,7 +198,7 @@ const submitPassword: SubmitPasswordFunction = async (): Promise<void> => {
    * awaited click is inside one.
    */
   await act(async () => {
-    await user.click(screen.getByTestId("Login"));
+    await user.click(screen.getByTestId("Sign in"));
   });
 };
 
@@ -270,7 +282,7 @@ const enterTotpCode: EnterTotpCodeFunction = async (): Promise<void> => {
   await user.type(await screen.findByTestId("code"), "123456");
 
   await act(async () => {
-    await user.click(screen.getByTestId("Login"));
+    await user.click(screen.getByTestId("Sign in"));
   });
 };
 
@@ -845,7 +857,7 @@ describe("Finishing a two factor sign-in offers the codes that were missing", ()
     await user.type(await screen.findByTestId("backup-code"), "ABCDE-12345");
 
     await act(async () => {
-      await user.click(screen.getByTestId("Login"));
+      await user.click(screen.getByTestId("Sign in"));
     });
 
     expect(
@@ -873,7 +885,7 @@ describe("Finishing a two factor sign-in offers the codes that were missing", ()
     await user.type(await screen.findByTestId("backup-code"), "ABCDE-12345");
 
     await act(async () => {
-      await user.click(screen.getByTestId("Login"));
+      await user.click(screen.getByTestId("Sign in"));
     });
 
     await waitFor(() => {

@@ -30,6 +30,12 @@ import RunbookVariablePicker from "../../../Components/Runbook/Steps/RunbookVari
 import RunbookVariableChips from "../../../Components/Runbook/Steps/RunbookVariableChips";
 import SshTargetInput from "../../../Components/Runbook/Steps/SshTargetInput";
 import UnknownVariablesNote from "../../../Components/Runbook/Steps/UnknownVariablesNote";
+import { HTTP_STEP_VARIABLES_HELP } from "../../../Components/Runbook/RunbookVariableCopy";
+import { getHttpStepVariableTexts } from "Common/Types/Runbook/HttpStepVariables";
+import {
+  ParsedSshHostKeys,
+  parseSshHostKeys,
+} from "Common/Types/Runbook/SshHostKey";
 import RunbookVariableChoicesLoader, {
   NO_RUNBOOK_VARIABLE_CHOICES,
   RunbookVariableChoices,
@@ -51,6 +57,11 @@ import {
   REQUIRE_APPROVAL_TITLE,
   RUNNER_OWN_KUBECONFIG_LABEL,
   SSH_EXAMPLES,
+  SSH_HOST_KEY_HELP,
+  SSH_HOST_KEY_INVALID,
+  SSH_HOST_KEY_PLACEHOLDER,
+  SSH_HOST_KEY_TITLE,
+  SSH_HOST_KEY_TOO_LONG,
   SSH_PASSPHRASE_TITLE,
   SSH_TARGET_HELP,
   SSH_PORT_TITLE,
@@ -188,6 +199,11 @@ interface StepTypeMeta {
   ring: string;
   iconColor: string;
   numberBg: string;
+  /*
+   * The card's coloured left edge, over its gray-200 border. Important: in
+   * dark mode the theme repaints a gray-200 border on all four sides
+   * (Theme.css), which painted the edge grey too.
+   */
   borderL: string;
 }
 
@@ -202,7 +218,7 @@ const STEP_TYPE_META: Record<RunbookStepType, StepTypeMeta> = {
     ring: "ring-indigo-100",
     iconColor: "text-indigo-600",
     numberBg: "bg-indigo-600",
-    borderL: "border-l-indigo-500",
+    borderL: "!border-l-indigo-500",
   },
   [RunbookStepType.JavaScript]: {
     type: RunbookStepType.JavaScript,
@@ -214,7 +230,7 @@ const STEP_TYPE_META: Record<RunbookStepType, StepTypeMeta> = {
     ring: "ring-amber-100",
     iconColor: "text-amber-600",
     numberBg: "bg-amber-500",
-    borderL: "border-l-amber-500",
+    borderL: "!border-l-amber-500",
   },
   [RunbookStepType.HttpRequest]: {
     type: RunbookStepType.HttpRequest,
@@ -226,7 +242,7 @@ const STEP_TYPE_META: Record<RunbookStepType, StepTypeMeta> = {
     ring: "ring-sky-100",
     iconColor: "text-sky-600",
     numberBg: "bg-sky-600",
-    borderL: "border-l-sky-500",
+    borderL: "!border-l-sky-500",
   },
   [RunbookStepType.Bash]: {
     type: RunbookStepType.Bash,
@@ -238,7 +254,7 @@ const STEP_TYPE_META: Record<RunbookStepType, StepTypeMeta> = {
     ring: "ring-slate-200",
     iconColor: "text-slate-600",
     numberBg: "bg-slate-700",
-    borderL: "border-l-slate-500",
+    borderL: "!border-l-slate-500",
   },
   [RunbookStepType.SSH]: {
     type: RunbookStepType.SSH,
@@ -250,7 +266,7 @@ const STEP_TYPE_META: Record<RunbookStepType, StepTypeMeta> = {
     ring: "ring-emerald-100",
     iconColor: "text-emerald-600",
     numberBg: "bg-emerald-600",
-    borderL: "border-l-emerald-500",
+    borderL: "!border-l-emerald-500",
   },
   /*
    * A kubectl script: the step type keeps its stored name, Kubernetes. It
@@ -267,7 +283,7 @@ const STEP_TYPE_META: Record<RunbookStepType, StepTypeMeta> = {
     ring: "ring-blue-100",
     iconColor: "text-blue-600",
     numberBg: "bg-blue-600",
-    borderL: "border-l-blue-500",
+    borderL: "!border-l-blue-500",
   },
   [RunbookStepType.AI]: {
     type: RunbookStepType.AI,
@@ -280,7 +296,7 @@ const STEP_TYPE_META: Record<RunbookStepType, StepTypeMeta> = {
     ring: "ring-violet-100",
     iconColor: "text-violet-600",
     numberBg: "bg-violet-600",
-    borderL: "border-l-violet-500",
+    borderL: "!border-l-violet-500",
   },
   /*
    * Only OneUptime AI composes kubectl steps (investigations and
@@ -299,7 +315,7 @@ const STEP_TYPE_META: Record<RunbookStepType, StepTypeMeta> = {
     ring: "ring-cyan-100",
     iconColor: "text-cyan-600",
     numberBg: "bg-cyan-600",
-    borderL: "border-l-cyan-500",
+    borderL: "!border-l-cyan-500",
   },
   /*
    * Same for a command OneUptime AI composed for an infrastructure
@@ -317,7 +333,7 @@ const STEP_TYPE_META: Record<RunbookStepType, StepTypeMeta> = {
     ring: "ring-teal-100",
     iconColor: "text-teal-600",
     numberBg: "bg-teal-600",
-    borderL: "border-l-teal-500",
+    borderL: "!border-l-teal-500",
   },
 };
 
@@ -1588,6 +1604,43 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
         ) : (
           <></>
         )}
+        {/*
+         * Variables, named as a script names them, in the URL, the headers
+         * or the body. OneUptime sends the request itself - no Runner is
+         * involved - so a secret is filled in too, and hidden in what the
+         * step records. The chips copy what to write; with none yet, the
+         * line above says how one is written.
+         */}
+        <div data-testid={`runbook-step-${idx}-http-variables-field`}>
+          <p
+            className="text-xs text-gray-500"
+            data-testid={`runbook-step-${idx}-http-variables-help`}
+          >
+            <TranslatedSentence
+              template={HTTP_STEP_VARIABLES_HELP}
+              slots={{
+                reference: <code>{"{{global.variables.NAME}}"}</code>,
+              }}
+            />
+          </p>
+          <UnknownVariablesNote
+            references={getUnknownVariableReferences(
+              variableChoices,
+              getHttpStepVariableTexts(config),
+            )}
+            dataTestId={`runbook-step-${idx}-http-unknown-variables`}
+          />
+          {variableChoices.variables.length > 0 ? (
+            <div className="mt-2 rounded-md border border-gray-200 bg-gray-50 px-3 py-2.5">
+              <RunbookVariableChips
+                choices={variableChoices}
+                dataTestId={`runbook-step-${idx}-http-variables`}
+              />
+            </div>
+          ) : (
+            <></>
+          )}
+        </div>
         {renderMoreFields(
           step,
           idx,
@@ -1842,6 +1895,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 updateConfig(idx, { passphrase: reference });
               }}
             />
+            {renderSshHostKeyField(config, idx)}
             {renderDescriptionField(step, idx)}
             {renderAgentTimeouts({
               idx,
@@ -1858,6 +1912,57 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
           </>,
         )}
       </>
+    );
+  };
+
+  /*
+   * An SSH step's Host key, under More fields: the machine's keys, one a
+   * line, as a fingerprint or as ssh-keyscan prints them. Said under the
+   * box, while a line is not a key, that the step will fail - the server
+   * refuses it rather than sign in unchecked.
+   */
+  const renderSshHostKeyField: (
+    config: SSHStepConfig,
+    idx: number,
+  ) => ReactElement = (config: SSHStepConfig, idx: number): ReactElement => {
+    const parsed: ParsedSshHostKeys = parseSshHostKeys(config.hostKey);
+    const problem: string | null = parsed.isTooLong
+      ? SSH_HOST_KEY_TOO_LONG
+      : parsed.invalidLines.length > 0
+        ? SSH_HOST_KEY_INVALID
+        : null;
+
+    return (
+      <div data-testid={`runbook-step-${idx}-ssh-host-key-field`}>
+        <label
+          id={`runbook-step-${idx}-ssh-host-key-label`}
+          htmlFor={`runbook-step-${idx}-ssh-host-key`}
+          className="block text-xs font-medium text-gray-700 mb-1.5"
+        >
+          {translator.translateText(SSH_HOST_KEY_TITLE)}
+        </label>
+        <TextArea
+          id={`runbook-step-${idx}-ssh-host-key`}
+          dataTestId={`runbook-step-${idx}-ssh-host-key`}
+          value={config.hostKey || ""}
+          placeholder={SSH_HOST_KEY_PLACEHOLDER}
+          disableSpellCheck={true}
+          autoGrow={true}
+          rows={2}
+          maxRows={8}
+          ariaDescribedby={`runbook-step-${idx}-ssh-host-key-help`}
+          error={problem ? translator.translateText(problem) : undefined}
+          onChange={(v: string) => {
+            updateConfig(idx, { hostKey: v.trim() ? v : undefined });
+          }}
+        />
+        <p
+          id={`runbook-step-${idx}-ssh-host-key-help`}
+          className="text-xs text-gray-500 mt-1.5"
+        >
+          {translator.translateText(SSH_HOST_KEY_HELP)}
+        </p>
+      </div>
     );
   };
 

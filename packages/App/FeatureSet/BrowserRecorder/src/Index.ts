@@ -8,7 +8,11 @@ import {
   getDebugRecords,
   setEnabled,
 } from "./Debug";
-import { EarlyErrorRecord } from "./EarlyErrors";
+import {
+  EarlyErrorBuffer,
+  EarlyErrorRecord,
+  installEarlyErrorBuffer,
+} from "./EarlyErrors";
 import Recorder, {
   RecorderDecisions,
   RecorderState,
@@ -51,6 +55,9 @@ const COMMAND_QUEUE_GLOBAL: string = "OneUptimeReplayQueue";
 
 /* Set by the loader so a directly loaded artifact does not double-start. */
 const BOOTSTRAP_FLAG_GLOBAL: string = "__ONEUPTIME_SESSION_REPLAY_STARTED__";
+
+/* Fired at the document when the visitor opens a prerendered page. */
+const PRERENDERING_CHANGE_EVENT: string = "prerenderingchange";
 
 export type SessionReplayTraits = Record<string, string | number | boolean>;
 
@@ -180,6 +187,13 @@ let activeRecorder: Recorder | null = null;
 let bootstrapDecision: SessionReplayBootstrapDecision = "not-started";
 
 /*
+ * True while bootstrap() waits for a prerendered page to be opened. A call
+ * the page makes meanwhile is queued (queueUntilOpened), as if the artifact
+ * had not arrived yet.
+ */
+let waitingToBeOpened: boolean = false;
+
+/*
  * Kept here rather than on the recorder so a listener registered before
  * the artifact loaded (through the command queue) survives into the
  * recorder, and one registered after a rotation still fires on the next.
@@ -198,6 +212,54 @@ function markStarted(): boolean {
   }
 
   globalRecord[BOOTSTRAP_FLAG_GLOBAL] = true;
+
+  return true;
+}
+
+/*
+ * Whether the browser is prerendering this page: running it before anybody
+ * has opened it (speculation rules, or Chrome's address bar guessing where
+ * the visitor is going).
+ */
+function isPrerendering(): boolean {
+  try {
+    return (
+      (document as unknown as Record<string, unknown>)["prerendering"] === true
+    );
+  } catch {
+    return false;
+  }
+}
+
+/*
+ * While a prerendered page waits to be opened there is no recorder, and a
+ * call the page makes on the API is queued exactly as one it pushes onto the
+ * queue, rather than dropped as a call with no recorder running: a page that
+ * identifies its user or grants consent as it loads does so before anybody
+ * opens it. True when the call was queued.
+ */
+function queueUntilOpened(entry: Array<unknown>): boolean {
+  if (!waitingToBeOpened) {
+    return false;
+  }
+
+  const globalRecord: Record<string, unknown> = globalThis as unknown as Record<
+    string,
+    unknown
+  >;
+
+  if (globalRecord[COMMAND_QUEUE_GLOBAL] === undefined) {
+    globalRecord[COMMAND_QUEUE_GLOBAL] = [];
+  }
+
+  const queue: unknown = globalRecord[COMMAND_QUEUE_GLOBAL];
+
+  if (!Array.isArray(queue)) {
+    /* The drain reports a queue that is not an array. */
+    return false;
+  }
+
+  queue.push(entry);
 
   return true;
 }
@@ -221,7 +283,7 @@ export function bootstrap(
     setEnabled(true, "init-options");
   }
 
-  if (activeRecorder) {
+  if (activeRecorder || waitingToBeOpened) {
     debugWarn(
       "bootstrap-already-running",
       "bootstrap() called again while a recorder is running; ignored.",
@@ -280,6 +342,51 @@ export function bootstrap(
     return;
   }
 
+  /*
+   * A prerendered page runs its scripts - the loader and this artifact
+   * included - before anybody opens it, and many such pages are never
+   * opened. Recording one made a session nobody visited: a snapshot of a
+   * page no one saw, uploaded and listed, and a session id in the visitor's
+   * storage. So the recorder is built only once the page is opened, from
+   * what the visitor sees then. Until then the page's calls are queued and
+   * the errors it throws are kept, to be applied and replayed in order.
+   */
+  if (isPrerendering()) {
+    waitingToBeOpened = true;
+
+    const unopenedErrors: EarlyErrorBuffer = installEarlyErrorBuffer();
+
+    debugLog(
+      "prerender-wait",
+      "The browser is prerendering this page. Recording starts once it is opened.",
+    );
+
+    document.addEventListener(
+      PRERENDERING_CHANGE_EVENT,
+      (): void => {
+        waitingToBeOpened = false;
+
+        startRecorder(
+          initOptions,
+          config,
+          (earlyErrors || []).concat(unopenedErrors.drain()),
+        );
+      },
+      { once: true },
+    );
+
+    return;
+  }
+
+  startRecorder(initOptions, config, earlyErrors);
+}
+
+/* Builds the recorder and starts it: the end of bootstrap(). */
+function startRecorder(
+  initOptions: RecorderInitOptions,
+  config: SessionReplayConfigResponse,
+  earlyErrors?: Array<EarlyErrorRecord>,
+): void {
   activeRecorder = new Recorder({
     initOptions: initOptions,
     config: config,
@@ -358,6 +465,10 @@ export async function start(initOptions?: RecorderInitOptions): Promise<void> {
 
 export function captureSession(reason?: string): void {
   if (!activeRecorder) {
+    if (queueUntilOpened(["captureSession", reason])) {
+      return;
+    }
+
     debugWarn(
       "api-no-recorder",
       "captureSession() called with no recorder running.",
@@ -377,6 +488,10 @@ export function captureSession(reason?: string): void {
 
 export function grantConsent(): void {
   if (!activeRecorder) {
+    if (queueUntilOpened(["grantConsent"])) {
+      return;
+    }
+
     debugWarn(
       "api-no-recorder",
       "grantConsent() called with no recorder running.",
@@ -401,6 +516,8 @@ export function revokeConsent(): void {
      * of the page's life.
      */
     activeRecorder.revokeConsent();
+  } else {
+    queueUntilOpened(["revokeConsent"]);
   }
 }
 
@@ -420,7 +537,9 @@ function warnNoRecorder(call: string): void {
 
 export function identify(userRef: string, traits?: SessionReplayTraits): void {
   if (!activeRecorder) {
-    warnNoRecorder("identify()");
+    if (!queueUntilOpened(["identify", userRef, traits])) {
+      warnNoRecorder("identify()");
+    }
 
     return;
   }
@@ -430,7 +549,9 @@ export function identify(userRef: string, traits?: SessionReplayTraits): void {
 
 export function track(name: string, properties?: SessionReplayTraits): void {
   if (!activeRecorder) {
-    warnNoRecorder("track()");
+    if (!queueUntilOpened(["track", name, properties])) {
+      warnNoRecorder("track()");
+    }
 
     return;
   }
@@ -440,7 +561,9 @@ export function track(name: string, properties?: SessionReplayTraits): void {
 
 export function setTags(tags: SessionReplayTraits): void {
   if (!activeRecorder) {
-    warnNoRecorder("setTags()");
+    if (!queueUntilOpened(["setTags", tags])) {
+      warnNoRecorder("setTags()");
+    }
 
     return;
   }
@@ -450,7 +573,9 @@ export function setTags(tags: SessionReplayTraits): void {
 
 export function addTag(key: string, value: string | number | boolean): void {
   if (!activeRecorder) {
-    warnNoRecorder("addTag()");
+    if (!queueUntilOpened(["addTag", key, value])) {
+      warnNoRecorder("addTag()");
+    }
 
     return;
   }
@@ -514,6 +639,8 @@ export function stop(): void {
 
     activeRecorder.stop();
     activeRecorder = null;
+  } else {
+    queueUntilOpened(["stop"]);
   }
 }
 

@@ -29,7 +29,7 @@ Tre ting får det til at virke:
 - **OneUptime-appen i hvert team**, du vil have notifikationer i. Microsoft lader kun botten slå op i et team, den er føjet til.
 - **Hver persons egen forbindelse**: personens Microsoft Teams-konto knyttet til personens OneUptime-konto. Knapper, kommandoer og reaktioner handler som den person, med personens rettigheder i projektet.
 
-Én Microsoft 365-organisation kan være forbundet til mere end ét projekt, for eksempel produktion og staging. Et korts knap handler i projektet for den post, kortet handler om. En besked til botten handler i projektet for den kanal, den sendes i, for eksempel en hændelses kanal, ellers i det ene projekt, afsenderens Microsoft Teams-konto er forbundet i. Når intet viser hvilket, nævner botten de projekter, personen er med i, og beder personen prøve igen fra en kanal i det projekt, personen mener.
+Én Microsoft 365-organisation kan være forbundet til mere end ét projekt, for eksempel produktion og staging. Et korts knap handler i det projekt, kortet blev sendt for, for eksempel projektet for den hændelse, kortet handler om. En besked til botten handler i projektet for den kanal, den sendes i, for eksempel en hændelses kanal, ellers i det ene projekt, afsenderens Microsoft Teams-konto er forbundet i. Når intet viser hvilket, spørger botten afsenderen, hvilket projekt personen mener, med en knap for hvert projekt, personen er med i, og fortsætter dér, når personen har valgt. I en samtale med OneUptime AI gælder valget for de opfølgende spørgsmål, indtil der går en time uden et.
 
 ## Før du begynder
 

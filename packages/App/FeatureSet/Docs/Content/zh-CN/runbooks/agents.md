@@ -62,6 +62,7 @@ Runner 只保存自己的 ID 和密钥。其余一切都随它领取的任务一
 | 步骤的最长运行时间 | 5 分钟 | 1 小时 |
 | 机密变量 | 你允许全局 Runner 使用的那些 | 列出了它的那些 |
 | OneUptime AI 的 Bash 命令 | 从不运行 | 选择它的 AI 规则的命令 |
+| OneUptime AI 的代码修复 | 不构建也不测试，直接打开供审查 | 在拉取请求打开前构建并测试 |
 
 全局 Runner 运行许多项目的步骤，因此每个步骤都与其他所有步骤相互隔离：
 
@@ -70,15 +71,17 @@ Runner 只保存自己的 ID 和密钥。其余一切都随它领取的任务一
 - 只有当机密变量的 **全局 Runner 可以使用** 开关开启时，它才会收到该变量，而且只用于该变量所属项目的步骤。
 - 一个项目在全局 Runner 上同时最多运行三个步骤，因此没有项目能独占它们。
 
+全局 Runner 还负责 OneUptime AI 的代码修复，覆盖每个在 **全局 Runner** 上工作的代码存储库。它编写每个修复并打开拉取请求，但不运行任何命令，连存储库的设置、构建和测试命令也不运行，因此拉取请求会说明其验证已跳过。它只通过 HTTPS 访问互联网上的 Git 服务器；但在自托管的 OneUptime 上，它还可以访问服务器本身可以访问的私有 Git 服务器。它只为自己接手的修复工作，并且只在为某个存储库处理修复期间获得该存储库的令牌。GitHub 存储库的令牌只能访问那一个存储库，并会在修复结束时被撤销。
+
 对于需要访问你的网络的步骤，或者要让步骤留在你掌控的主机上，请为它选择你自己的 Runner。要让每个步骤都在你自己的 Runner 上运行，请在 **运行手册 → Runbook 代理** 底部关闭 **使用全局 Runner** 。之后，未选择 Runner 的 JavaScript 步骤会在项目默认 Runner 上运行；如果没有设置默认 Runner，它会失败并说明原因，直到它选择你的某个 Runner；选择了你的某个 Runner 的步骤无论如何都会保留它。在代码的设置中没有选择 Runner 的代码存储库同样在项目默认 Runner 上工作，没有设置默认 Runner 时在全局 Runner 上工作，而在关闭该开关时需要你的某个 Runner；参见 [代码](/docs/ai/ai-agent#选择存储库的-runner)。
 
 ### 全局 Runner 从哪里来
 
 在 OneUptime Cloud 上，由 OneUptime 运行它们。自托管安装默认运行一个自己的全局 Runner，就像它运行自己的全局探针一样：Docker Compose 中的 `global-runner` 服务，以及 Helm chart 中的 `globalRunner` 部署。它持有自己的密钥 `GLOBAL_RUNNER_KEY`，不持有服务器的任何其他东西。
 
-主管理员可以添加更多全局 Runner，以便从其他主机运行步骤：在 Admin Dashboard 中依次打开 **设置** 、 **全局 Runner** ，创建一个，然后在可以访问互联网的主机上运行其 **显示 ID 和密钥** 给出的命令。
+主管理员可以添加更多全局 Runner，以便从其他主机运行步骤和代码修复：在 Admin Dashboard 中依次打开 **设置** 、 **全局 Runner** ，创建一个，然后在可以访问互联网的主机上运行其 **显示 ID 和密钥** 给出的命令。
 
-要关闭内置的全局 Runner，请在 Docker Compose 的 `config.env` 中设置 `GLOBAL_RUNNER_REPLICAS=0`，或在 Helm chart 中将 `globalRunner.enabled` 设为 `false`。完全没有全局 Runner 时， **运行手册 → Runbook 代理** 只列出你自己的 Runner，每个 JavaScript 步骤都要选择其中一个。
+要关闭内置的全局 Runner，请在 Docker Compose 的 `config.env` 中设置 `GLOBAL_RUNNER_REPLICAS=0`，或在 Helm chart 中将 `globalRunner.enabled` 设为 `false`。完全没有全局 Runner 时， **运行手册 → Runbook 代理** 只列出你自己的 Runner，每个 JavaScript 步骤和每个代码存储库都要选择其中一个。
 
 ## 开始之前
 
@@ -98,7 +101,7 @@ Runner 只保存自己的 ID 和密钥。其余一切都随它领取的任务一
 | **执行运行手册** | **更多字段** 下 | 默认开启。允许此 Runner 领取 Runbook 步骤。 |
 | **标签** | **更多字段** 下 | 可选。 |
 
-Runner 会在下一次心跳时获取功能的变更，无需重启。AI 不是一项功能。代码存储库会在代码的设置中选择 AI 在其中工作所用的 Runner，Runner 的页面会列出选择了它的存储库。AI 规则选择 OneUptime AI 运行其命令所用的 Runner：正是在那里选择 Runner，才让 OneUptime AI 的命令可以在其上运行。
+Runner 会在下一次心跳时获取功能的变更，无需重启。AI 不是一项功能。代码存储库会在代码的设置中选择 AI 在其中工作所用的 Runner，Runner 的页面会列出选择了它的存储库。AI 规则选择 OneUptime AI 运行其命令所用的 Runner：正是在那里选择 Runner，才让 OneUptime AI 的命令可以在其上运行。Runner 的页面也会列出选择了它的 AI 规则。
 
 ### 2. 复制安装命令
 
@@ -302,7 +305,7 @@ docker rm -f oneuptime-runner
 | `POST /job/:jobId/result` | 提交最终结果。如果租约已经转移，则忽略。 |
 | `POST /disconnect` | 正常关闭时注销。 |
 
-你不需要手动调用它们：随附的 Runner 会调用。在这里记录它们，是为了在我们的代理不符合你的限制条件时，你可以自己构建代理。
+你不需要手动调用它们：Runner 容器会调用。在这里记录它们，是为了在我们的代理不符合你的限制条件时，你可以自己构建代理。
 
 ## 故障排除
 

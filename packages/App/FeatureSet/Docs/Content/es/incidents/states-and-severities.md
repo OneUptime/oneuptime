@@ -204,7 +204,7 @@ Pasar de **Resuelto** a un estado posterior —**Closed**, por ejemplo— no es 
 
 ## La cronología de estados
 
-La página **Cronología de estados** del menú lateral del incidente es el registro de auditoría de cada estado por el que ha pasado el incidente. La tarjeta de esa página se titula **Cronología de estados** y dibuja toda la vida del incidente como una cronología:
+La página **Cronología de estados** del menú lateral del incidente es el registro de auditoría de cada estado por el que ha pasado el incidente. La tarjeta de esa página dibuja toda la vida del incidente como una cronología:
 
 - **La banda** muestra cada estado como un tramo de su color, tan largo como el incidente estuvo en él, para que la evolución del incidente se lea de un vistazo. Mientras el incidente está abierto, la banda llega hasta **Ahora**; una vez resuelto, termina poco después de su último cambio. Señala un tramo para ver cuándo empezó y cuánto duró, y haz clic en él para encontrar su cambio en la lista. Los cambios demasiado juntos para distinguirlos se dibujan como un solo tramo rayado: haz clic en él, o arrastra sobre la banda, para acercar, y **Restablecer zoom** vuelve atrás.
 - **Encima de la banda**, cada estado aparece con el tiempo que el incidente pasó en él.

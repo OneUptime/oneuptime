@@ -29,9 +29,12 @@ import { getJestSpyOn } from "../../Spy";
  * that can lock people out or grant full access ask first:
  *
  *   - Settings > Authentication: "Let people sign up" (on while
- *     GlobalConfig.disableSignup is false), "Require SSO for Login" (asks,
- *     red, before it turns on) and "Let users create projects" (on while
+ *     GlobalConfig.disableSignup is false, saying under it that nobody signs
+ *     up while SSO is required) and "Let users create projects" (on while
  *     disableUserProjectCreation is false);
+ *   - Settings > Single Sign-On: "Require SSO for Login" (asks, red, before
+ *     it turns on), under the providers it depends on - it was the card
+ *     between the two above;
  *   - a user's Settings: "Master Admin", asking both ways - with a red
  *     button, and the words "This is your own account", when it would take
  *     the signed-in master admin's own access away;
@@ -106,6 +109,16 @@ jest.mock("../../../UI/Components/Page/ModelPage", () => {
   };
 });
 
+// The provider tables of Settings > Single Sign-On read lists of their own.
+jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
+  return {
+    __esModule: true,
+    default: (props: { id?: string }): ReactElement => {
+      return <section data-testid={`model-table-${props.id || ""}`} />;
+    },
+  };
+});
+
 jest.mock(
   "../../../../App/FeatureSet/AdminDashboard/src/Pages/Settings/SideMenu",
   () => {
@@ -142,15 +155,21 @@ jest.mock(
   },
 );
 
-import AuthenticationSettings, {
-  getRequireSsoConfirmation,
-} from "../../../../App/FeatureSet/AdminDashboard/src/Pages/Settings/Authentication/Index";
+import AuthenticationSettings from "../../../../App/FeatureSet/AdminDashboard/src/Pages/Settings/Authentication/Index";
 import {
   PROJECT_CREATION_SWITCH_TEST_ID,
-  REQUIRE_SSO_COPY,
-  REQUIRE_SSO_SWITCH_TEST_ID,
+  SIGN_UP_SSO_REQUIRED_TEST_ID,
   SIGN_UP_SWITCH_TEST_ID,
 } from "../../../../App/FeatureSet/AdminDashboard/src/Pages/Settings/Authentication/AuthenticationSwitchesCopy";
+import SsoSettings, {
+  getRequireSsoConfirmation,
+} from "../../../../App/FeatureSet/AdminDashboard/src/Pages/Settings/SSO/Index";
+import {
+  MASTER_ADMIN_SIGN_IN_TEST_ID,
+  REQUIRE_SSO_COPY,
+  REQUIRE_SSO_SWITCH_TEST_ID,
+  SIGN_UP_WHILE_SSO_REQUIRED,
+} from "../../../../App/FeatureSet/AdminDashboard/src/Pages/Settings/SSO/SsoSettingsCopy";
 import UserSettings, {
   getMasterAdminConfirmation,
   MASTER_ADMIN_SWITCH_TEST_ID,
@@ -354,7 +373,7 @@ afterEach(() => {
 });
 
 describe("Settings > Authentication", () => {
-  test("is three switches, in order: sign up, require SSO, project creation", async () => {
+  test("is two switches, in order: sign up, project creation", async () => {
     await renderPage(<AuthenticationSettings />);
 
     const switches: Array<string> = screen
@@ -363,11 +382,12 @@ describe("Settings > Authentication", () => {
         return control.getAttribute("data-testid") || "";
       });
 
+    // Require SSO for Login is on Settings > Single Sign-On now.
     expect(switches).toEqual([
       SIGN_UP_SWITCH_TEST_ID,
-      REQUIRE_SSO_SWITCH_TEST_ID,
       PROJECT_CREATION_SWITCH_TEST_ID,
     ]);
+    expect(screen.queryByText(REQUIRE_SSO_COPY.switchTitle)).toBeNull();
 
     // Named by their own words, under their cards' titles.
     expect(
@@ -375,9 +395,6 @@ describe("Settings > Authentication", () => {
         name: en("pages.settings.authentication.signUpSwitchTitle"),
       }),
     ).toBe(switchFor(SIGN_UP_SWITCH_TEST_ID));
-    expect(
-      screen.getByRole("switch", { name: REQUIRE_SSO_COPY.switchTitle }),
-    ).toBe(switchFor(REQUIRE_SSO_SWITCH_TEST_ID));
     expect(
       screen.getByRole("switch", {
         name: en("pages.settings.authentication.projectCreationSwitchTitle"),
@@ -387,9 +404,6 @@ describe("Settings > Authentication", () => {
     for (const text of [
       en("pages.settings.authentication.signUpCardTitle"),
       en("pages.settings.authentication.signUpCardDescription"),
-      REQUIRE_SSO_COPY.cardTitle,
-      REQUIRE_SSO_COPY.cardDescription,
-      REQUIRE_SSO_COPY.note,
       en("pages.settings.authentication.projectCreationCardTitle"),
       en("pages.settings.authentication.projectCreationCardDescription"),
     ]) {
@@ -400,33 +414,28 @@ describe("Settings > Authentication", () => {
     expect(screen.queryByRole("button", { name: /^Edit/ })).toBeNull();
   });
 
-  test("each reads the one GlobalConfig row, through the admin API", async () => {
+  test("each reads the one GlobalConfig row, through the admin API - sign up with whether SSO is required", async () => {
     await renderPage(<AuthenticationSettings />);
 
     const reads: Array<string> = itemCalls().map((call: ItemCall): string => {
       expect(call.modelType).toBe(GlobalConfig);
       expect(call.id.toString()).toBe(ZERO_ID);
 
-      return Object.keys(call.select).join(",");
+      return Object.keys(call.select).sort().join(",");
     });
 
     expect(reads.sort()).toEqual([
-      "disableSignup",
+      "disableSignup,requireSsoForLogin",
       "disableUserProjectCreation",
-      "requireSsoForLogin",
     ]);
   });
 
-  test("a server that never set them lets people sign up and create projects, and does not require SSO", async () => {
+  test("a server that never set them lets people sign up and create projects", async () => {
     await renderPage(<AuthenticationSettings />);
 
     expect(switchFor(SIGN_UP_SWITCH_TEST_ID)).toHaveAttribute(
       "aria-checked",
       "true",
-    );
-    expect(switchFor(REQUIRE_SSO_SWITCH_TEST_ID)).toHaveAttribute(
-      "aria-checked",
-      "false",
     );
     expect(switchFor(PROJECT_CREATION_SWITCH_TEST_ID)).toHaveAttribute(
       "aria-checked",
@@ -442,6 +451,39 @@ describe("Settings > Authentication", () => {
         en("pages.settings.authentication.projectCreationSwitchOnDescription"),
       ),
     ).toBeInTheDocument();
+  });
+
+  test("while the server requires SSO, Sign Up says nobody signs up", async () => {
+    stored[storedKey("GlobalConfig", ZERO_ID)] = { requireSsoForLogin: true };
+
+    await renderPage(<AuthenticationSettings />);
+
+    expect(screen.getByTestId(SIGN_UP_SSO_REQUIRED_TEST_ID)).toHaveTextContent(
+      SIGN_UP_WHILE_SSO_REQUIRED,
+    );
+  });
+
+  test("while it does not, Sign Up says nothing more, and draws no empty row", async () => {
+    await renderPage(<AuthenticationSettings />);
+
+    expect(screen.queryByTestId(SIGN_UP_SSO_REQUIRED_TEST_ID)).toBeNull();
+    expect(
+      screen.queryByTestId(`${SIGN_UP_SWITCH_TEST_ID}-details`),
+    ).toBeNull();
+  });
+
+  test("in German, the line under Sign Up is German", async () => {
+    stored[storedKey("GlobalConfig", ZERO_ID)] = { requireSsoForLogin: true };
+
+    await renderPage(<AuthenticationSettings />, { locale: "de" });
+
+    const german: string = GERMAN[SIGN_UP_WHILE_SSO_REQUIRED] as string;
+
+    expect(german).toBeTruthy();
+    expect(german).not.toBe(SIGN_UP_WHILE_SSO_REQUIRED);
+    expect(screen.getByTestId(SIGN_UP_SSO_REQUIRED_TEST_ID)).toHaveTextContent(
+      german,
+    );
   });
 
   test("closing sign up saves disableSignup: true at once, with no dialog, and says invited people can still join", async () => {
@@ -485,63 +527,6 @@ describe("Settings > Authentication", () => {
     expect(control).toHaveAttribute("aria-checked", "true");
   });
 
-  test("requiring SSO asks first, with a red button, and says who is locked out", async () => {
-    await renderPage(<AuthenticationSettings />);
-
-    const control: HTMLElement = switchFor(REQUIRE_SSO_SWITCH_TEST_ID);
-
-    await press(control);
-
-    expect(updateCalls()).toEqual([]);
-    expect(dialog()).toHaveAccessibleName(REQUIRE_SSO_COPY.confirmTitle);
-    expect(
-      within(dialog()).getByTestId("confirm-modal-description"),
-    ).toHaveTextContent(REQUIRE_SSO_COPY.confirmDescription);
-    expect(
-      within(dialog()).getByRole("button", {
-        name: REQUIRE_SSO_COPY.confirmButton,
-      }),
-    ).toHaveClass("bg-red-600");
-
-    // While it asks, the switch shows where it is going, locked.
-    expect(control).toHaveAttribute("aria-checked", "true");
-    expect(control).toHaveAttribute("aria-disabled", "true");
-
-    await confirmWith(REQUIRE_SSO_COPY.confirmButton);
-
-    expect(updateCalls()).toHaveLength(1);
-    expect(updateCalls()[0]!.data).toEqual({ requireSsoForLogin: true });
-    expect(control).toHaveAttribute("aria-checked", "true");
-    expect(screen.queryByRole("dialog")).toBeNull();
-  });
-
-  test("cancelling leaves SSO not required, and saves nothing", async () => {
-    await renderPage(<AuthenticationSettings />);
-
-    const control: HTMLElement = switchFor(REQUIRE_SSO_SWITCH_TEST_ID);
-
-    await press(control);
-    await confirmWith("Cancel");
-
-    expect(updateCalls()).toEqual([]);
-    expect(control).toHaveAttribute("aria-checked", "false");
-  });
-
-  test("no longer requiring SSO saves at once: it locks nobody out", async () => {
-    stored[storedKey("GlobalConfig", ZERO_ID)] = { requireSsoForLogin: true };
-
-    await renderPage(<AuthenticationSettings />);
-
-    const control: HTMLElement = switchFor(REQUIRE_SSO_SWITCH_TEST_ID);
-
-    expect(control).toHaveAttribute("aria-checked", "true");
-
-    await press(control);
-
-    expect(screen.queryByRole("dialog")).toBeNull();
-    expect(updateCalls()[0]!.data).toEqual({ requireSsoForLogin: false });
-  });
-
   test("keeping project creation to master admins saves disableUserProjectCreation: true at once", async () => {
     await renderPage(<AuthenticationSettings />);
 
@@ -575,6 +560,180 @@ describe("Settings > Authentication", () => {
     expect(
       screen.getByText("This setting cannot be changed right now."),
     ).toBeInTheDocument();
+  });
+});
+
+describe("Settings > Single Sign-On: Require SSO for Login", () => {
+  test("is the page's one switch, under its providers, with its own words", async () => {
+    await renderPage(<SsoSettings />);
+
+    expect(screen.getAllByRole("switch")).toHaveLength(1);
+    expect(
+      screen.getByRole("switch", { name: REQUIRE_SSO_COPY.switchTitle }),
+    ).toBe(switchFor(REQUIRE_SSO_SWITCH_TEST_ID));
+
+    for (const text of [
+      REQUIRE_SSO_COPY.cardTitle,
+      REQUIRE_SSO_COPY.cardDescription,
+      REQUIRE_SSO_COPY.switchOffDescription,
+    ]) {
+      expect(screen.getByText(text)).toBeInTheDocument();
+    }
+
+    // Under the SAML and OIDC providers.
+    for (const table of ["global-sso-table", "global-oidc-table"]) {
+      expect(
+        screen
+          .getByTestId(`model-table-${table}`)
+          .compareDocumentPosition(switchFor(REQUIRE_SSO_SWITCH_TEST_ID)) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    }
+
+    // No Edit dialog: the switch is the card.
+    expect(screen.queryByRole("button", { name: /^Edit/ })).toBeNull();
+  });
+
+  test("reads the one GlobalConfig row, through the admin API", async () => {
+    await renderPage(<SsoSettings />);
+
+    expect(
+      itemCalls().map((call: ItemCall): string => {
+        expect(call.modelType).toBe(GlobalConfig);
+        expect(call.id.toString()).toBe(ZERO_ID);
+
+        return Object.keys(call.select).join(",");
+      }),
+    ).toEqual(["requireSsoForLogin"]);
+  });
+
+  test("a server that never set it does not require SSO", async () => {
+    await renderPage(<SsoSettings />);
+
+    expect(switchFor(REQUIRE_SSO_SWITCH_TEST_ID)).toHaveAttribute(
+      "aria-checked",
+      "false",
+    );
+  });
+
+  test("names the master admins' sign-in under the switch, with a button that copies it", async () => {
+    await renderPage(<SsoSettings />);
+
+    const details: HTMLElement = screen.getByTestId(
+      MASTER_ADMIN_SIGN_IN_TEST_ID,
+    );
+
+    expect(details).toHaveTextContent(REQUIRE_SSO_COPY.masterAdminSentence);
+    expect(details).toHaveTextContent("/accounts/admin-login");
+    expect(within(details).getByRole("button")).toBeInTheDocument();
+  });
+
+  test("requiring SSO asks first, with a red button, and says what it does", async () => {
+    await renderPage(<SsoSettings />);
+
+    const control: HTMLElement = switchFor(REQUIRE_SSO_SWITCH_TEST_ID);
+
+    await press(control);
+
+    expect(updateCalls()).toEqual([]);
+    expect(dialog()).toHaveAccessibleName(REQUIRE_SSO_COPY.confirmTitle);
+    expect(
+      within(dialog()).getByTestId("confirm-modal-description"),
+    ).toHaveTextContent(REQUIRE_SSO_COPY.confirmDescription);
+    expect(
+      within(dialog()).getByRole("button", {
+        name: REQUIRE_SSO_COPY.confirmButton,
+      }),
+    ).toHaveClass("bg-red-600");
+
+    // While it asks, the switch shows where it is going, locked.
+    expect(control).toHaveAttribute("aria-checked", "true");
+    expect(control).toHaveAttribute("aria-disabled", "true");
+
+    await confirmWith(REQUIRE_SSO_COPY.confirmButton);
+
+    expect(updateCalls()).toHaveLength(1);
+    expect(updateCalls()[0]!.data).toEqual({ requireSsoForLogin: true });
+    expect(control).toHaveAttribute("aria-checked", "true");
+    expect(screen.queryByRole("dialog")).toBeNull();
+    // What it does now, under it.
+    expect(
+      screen.getByText(REQUIRE_SSO_COPY.switchOnDescription),
+    ).toBeInTheDocument();
+  });
+
+  test("cancelling leaves SSO not required, and saves nothing", async () => {
+    await renderPage(<SsoSettings />);
+
+    const control: HTMLElement = switchFor(REQUIRE_SSO_SWITCH_TEST_ID);
+
+    await press(control);
+    await confirmWith("Cancel");
+
+    expect(updateCalls()).toEqual([]);
+    expect(control).toHaveAttribute("aria-checked", "false");
+  });
+
+  test("no longer requiring SSO saves at once: it locks nobody out", async () => {
+    stored[storedKey("GlobalConfig", ZERO_ID)] = { requireSsoForLogin: true };
+
+    await renderPage(<SsoSettings />);
+
+    const control: HTMLElement = switchFor(REQUIRE_SSO_SWITCH_TEST_ID);
+
+    expect(control).toHaveAttribute("aria-checked", "true");
+
+    await press(control);
+
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(updateCalls()[0]!.data).toEqual({ requireSsoForLogin: false });
+  });
+
+  test("a refused requirement - a project with no way in - moves the switch back and says why", async () => {
+    mockUpdateById.mockImplementation(async (): Promise<unknown> => {
+      throw new Error(
+        "Require SSO for Login would leave Acme with no SSO provider to sign in with.",
+      );
+    });
+
+    await renderPage(<SsoSettings />);
+
+    const control: HTMLElement = switchFor(REQUIRE_SSO_SWITCH_TEST_ID);
+
+    await press(control);
+    await confirmWith(REQUIRE_SSO_COPY.confirmButton);
+
+    expect(control).toHaveAttribute("aria-checked", "false");
+    expect(
+      screen.getByText(
+        "Require SSO for Login would leave Acme with no SSO provider to sign in with.",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  test("in German: the card, the switch, its dialog and the master admins' line", async () => {
+    await renderPage(<SsoSettings />, { locale: "de" });
+
+    for (const english of [
+      REQUIRE_SSO_COPY.cardTitle,
+      REQUIRE_SSO_COPY.cardDescription,
+      REQUIRE_SSO_COPY.switchOffDescription,
+      REQUIRE_SSO_COPY.masterAdminSentence,
+    ]) {
+      const german: string = GERMAN[english] as string;
+
+      expect({ english, translated: Boolean(german) }).toEqual({
+        english,
+        translated: true,
+      });
+      expect(screen.getByText(german)).toBeInTheDocument();
+    }
+
+    await press(switchFor(REQUIRE_SSO_SWITCH_TEST_ID));
+
+    expect(dialog()).toHaveTextContent(
+      GERMAN[REQUIRE_SSO_COPY.confirmDescription] as string,
+    );
   });
 
   test("the confirmation is only for requiring SSO, and it is a danger", () => {
@@ -844,7 +1003,7 @@ describe("in German", () => {
     return nested(GERMAN, key);
   }
 
-  test("the authentication switches, the SSO dialog and the save status read as German", async () => {
+  test("the authentication switches read as German", async () => {
     await renderPage(<AuthenticationSettings />, { locale: "de" });
 
     expect(
@@ -853,13 +1012,18 @@ describe("in German", () => {
       }),
     ).toBe(switchFor(SIGN_UP_SWITCH_TEST_ID));
     expect(
+      screen.getByText(de("pages.settings.authentication.signUpCardTitle")),
+    ).toBeInTheDocument();
+  });
+
+  test("the SSO switch, its dialog and the save status read as German", async () => {
+    await renderPage(<SsoSettings />, { locale: "de" });
+
+    expect(
       screen.getByRole("switch", {
         name: GERMAN[REQUIRE_SSO_COPY.switchTitle] as string,
       }),
     ).toBe(switchFor(REQUIRE_SSO_SWITCH_TEST_ID));
-    expect(
-      screen.getByText(de("pages.settings.authentication.signUpCardTitle")),
-    ).toBeInTheDocument();
 
     await press(switchFor(REQUIRE_SSO_SWITCH_TEST_ID));
 

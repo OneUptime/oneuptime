@@ -36,6 +36,10 @@ import {
   STATUS_PAGE_THEME_FALLBACK,
 } from "Common/Types/StatusPage/StatusPageTheme";
 import {
+  getStatusPageLanguageHead,
+  StatusPageLanguageHead,
+} from "Common/Types/StatusPage/StatusPageLanguage";
+import {
   getPublicDashboardData,
   handlePublicDashboardLlmsTxt,
   PublicDashboardData,
@@ -53,6 +57,7 @@ import { getProductBrandingViewVariables } from "Common/Server/Utils/ProductBran
 import EnterpriseEdition from "Common/Server/Enterprise/EnterpriseEdition";
 import { ProductBranding } from "Common/Types/Branding/ProductBranding";
 import { getBrandedDashboardManifest } from "./BrandedManifest";
+import { sendToRegisterBeforeFirstAccount } from "../Identity/Utils/FirstAccount";
 import StatusPageMaintenanceCalendarFeed from "Common/Server/Utils/StatusPage/StatusPageMaintenanceCalendarFeed";
 import fsp from "fs/promises";
 
@@ -145,10 +150,17 @@ const StatusPageFrontendConfig: FrontendConfig = {
         statusPageData.isSearchEngineIndexingEnabled,
       );
 
+      // The page's default language, and the way it is read.
+      const languageHead: StatusPageLanguageHead = getStatusPageLanguageHead(
+        statusPageData.defaultLanguage,
+      );
+
       return {
         title: statusPageData.title,
         description: statusPageData.description,
         faviconUrl: statusPageData.faviconUrl,
+        lang: languageHead.lang,
+        dir: languageHead.dir,
         rssFeedPath: rssFeedPath,
         isSearchEngineIndexingEnabled:
           statusPageData.isSearchEngineIndexingEnabled,
@@ -179,6 +191,8 @@ const StatusPageFrontendConfig: FrontendConfig = {
         "Status Page lets you see real-time information about the status of our services.",
       faviconUrl:
         "/status-page-api/favicon/" + ObjectID.getZeroObjectID().toString(),
+      lang: getStatusPageLanguageHead(null).lang,
+      dir: getStatusPageLanguageHead(null).dir,
       rssFeedPath: rssFeedPath,
       isSearchEngineIndexingEnabled: isSearchEngineIndexingEnabled,
       /*
@@ -662,6 +676,11 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     publicPath: AccountsPublicPath,
     indexViewPath: AccountsViewPath,
     primaryHostOnly: true,
+    /*
+     * A self-hosted server with no account yet: its sign-in page sends the
+     * browser on to register (Identity/Utils/FirstAccount.ts).
+     */
+    getVariablesToRenderIndexPage: sendToRegisterBeforeFirstAccount,
   });
 
   registerFrontendApp(DashboardFrontendConfig);

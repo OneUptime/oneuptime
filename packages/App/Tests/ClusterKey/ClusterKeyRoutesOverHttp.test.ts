@@ -1,6 +1,5 @@
 import {
   ClusterKeyRoute,
-  RUNNER_REGISTRATION_MIDDLEWARE,
   SERVICE_MIDDLEWARE,
   findClusterKeyRoutes,
 } from "Common/Tests/Server/TestingUtils/ClusterKeyRoutes";
@@ -16,10 +15,6 @@ import {
   restoreEncryptionSecret,
   setEncryptionSecret,
 } from "Common/Tests/Server/TestingUtils/ShippedEncryptionSecrets";
-import {
-  restoreSharedRunnerKey,
-  setSharedRunnerKey,
-} from "Common/Tests/Server/TestingUtils/SharedRunnerKeys";
 import {
   createExpressApp,
   ExpressApplication,
@@ -47,22 +42,13 @@ import {
 } from "http";
 import { AddressInfo } from "net";
 
-/*
- * What any installation's logger was asked to warn about. The logger is one
- * stand-in shared by every copy of the product here, so a test empties this
- * before it acts.
- */
-const mockWarnings: Array<string> = [];
-
 jest.mock("Common/Server/Utils/Logger", () => {
   return {
     __esModule: true,
     default: {
       debug: jest.fn(),
       info: jest.fn(),
-      warn: (message: unknown): void => {
-        mockWarnings.push(String(message));
-      },
+      warn: jest.fn(),
       error: jest.fn(),
     },
     getLogAttributesFromRequest: jest.fn().mockReturnValue({}),
@@ -75,10 +61,9 @@ jest.mock("Common/Server/Utils/Logger", () => {
  *
  * These routes send an email, an SMS, a call, a WhatsApp or Telegram message
  * or a webhook with the installation's own accounts, release its phone
- * numbers, run its workflows, write telemetry for any project, and register
- * the Runner that fixes code for every project. Only OneUptime's own
- * services may ask for that, they ask for it with POST requests, and a value
- * this repository ships is never their key.
+ * numbers, run its workflows and write telemetry for any project. Only
+ * OneUptime's own services may ask for that, they ask for it with POST
+ * requests, and a value this repository ships is never their key.
  *
  * Each installation here is a fresh copy of the product, loaded with the
  * ONEUPTIME_SECRET it names: the real EnvironmentConfig reads it, and the
@@ -100,17 +85,15 @@ jest.mock("Common/Server/Utils/Logger", () => {
  *   - an installation whose operator set ONEUPTIME_SECRET takes exactly that;
  *   - the key is taken from a request header alone: a URL that carries it
  *     is refused, whatever else the request carries, and a body that
- *     carries it is not read - but by the Runner's registration, where
- *     Runners of earlier releases put it;
+ *     carries it is not read;
  *   - the routes nothing in OneUptime called (queue statistics, failed
  *     jobs, pending monitors, and GET twins of the workflow routes) are
  *     gone from every address.
  *
  * The second part runs the real handlers, with the senders behind them
  * stood in for, and the real callers in another copy of the product: a
- * worker's MailService and SmsService, and a Runner-shaped registration.
- * What the shipped value asks for is never sent, and what the installation's
- * own services ask for still is.
+ * worker's MailService and SmsService. What the shipped value asks for is
+ * never sent, and what the installation's own services ask for still is.
  */
 
 const PROJECT_ID: string = "6c7f1e2a-3b4d-4e5f-8a9b-0c1d2e3f4a5b";
@@ -160,9 +143,6 @@ function incomingRequestUrls(routePath: string): Array<string> {
 const NOTIFICATION_API: string = "packages/App/FeatureSet/Notification/API";
 const TELEMETRY_API: string = "packages/App/FeatureSet/Telemetry/API";
 
-// The in-cluster Runner's registration.
-const REGISTRATION_URL: string = "/api/ai-agent/register";
-
 /*
  * The routes that took the cluster key though nothing in OneUptime called
  * them, at every address the app answered them on: queue statistics and
@@ -208,20 +188,18 @@ function routesUnderTest(modelTriggerPath: string): Array<RouteUnderTest> {
     method: "POST",
     sourcePath: string,
     urls: Array<string>,
-    middleware?: string,
   ) => RouteUnderTest = (
     file: string,
     method: "POST",
     sourcePath: string,
     urls: Array<string>,
-    middleware: string = SERVICE_MIDDLEWARE,
   ): RouteUnderTest => {
     return {
       source: {
         file: file,
         method: method,
         path: sourcePath,
-        middleware: middleware,
+        middleware: SERVICE_MIDDLEWARE,
       },
       method: method,
       urls: urls,
@@ -284,13 +262,6 @@ function routesUnderTest(modelTriggerPath: string): Array<RouteUnderTest> {
       [`/workflow/update/${WORKFLOW_ID}`],
     ),
     route(
-      "packages/Common/Server/API/AIAgentAPI.ts",
-      "POST",
-      "`${new this.entityType().getCrudApiPath()?.toString()}/register`",
-      [REGISTRATION_URL],
-      RUNNER_REGISTRATION_MIDDLEWARE,
-    ),
-    route(
       "packages/Common/Server/Types/Workflow/Components/BaseModel/OnTriggerBaseModel.ts",
       "POST",
       "`/model/:projectId/${this.modelId}/${this.type}`",
@@ -319,9 +290,6 @@ interface RunningInstallation {
     invalid: string;
     shipped: string;
     inUrl: string;
-    olderRunner: string;
-    runnerClusterKey: string;
-    runnerKeyNotSet: string;
   };
   routes: Array<RouteUnderTest>;
   // The requests that reached a route nothing called, which is gone.
@@ -331,7 +299,6 @@ interface RunningInstallation {
   // What the stood-in senders were handed.
   mails: Array<JSONObject>;
   smses: Array<JSONObject>;
-  registeredAgents: Array<JSONObject>;
 }
 
 interface InstallationOptions {
@@ -379,12 +346,6 @@ async function startInstallation(
   setClusterKey(options.clusterKey);
   // A shipped ENCRYPTION_SECRET: the token signing key is the installation's own.
   setEncryptionSecret("please-change-this-to-random-value");
-  /*
-   * No shared Runner key on these apps: a registration that carries no
-   * cluster key is decided by the Runner's own key, which is driven in
-   * SharedRunnerRegistrationOverHttp.
-   */
-  setSharedRunnerKey(undefined);
 
   let installation: RunningInstallation | null = null;
 
@@ -406,35 +367,28 @@ async function startInstallation(
       const reached: Array<string> = [];
       const mails: Array<JSONObject> = [];
       const smses: Array<JSONObject> = [];
-      const registeredAgents: Array<JSONObject> = [];
 
       if (options.mode === "check") {
         /*
-         * Before any router is loaded, so every route captures them: the
-         * real checks, and the request answered as soon as one lets it
-         * through.
+         * Before any router is loaded, so every route captures it: the real
+         * check, and the request answered as soon as it lets it through.
          */
-        for (const check of [
-          SERVICE_MIDDLEWARE,
-          RUNNER_REGISTRATION_MIDDLEWARE,
-        ]) {
-          const realCheck: (
-            req: ExpressRequest,
-            res: ExpressResponse,
-            next: NextFunction,
-          ) => Promise<void> = ClusterKeyAuthorization[check];
+        const realCheck: (
+          req: ExpressRequest,
+          res: ExpressResponse,
+          next: NextFunction,
+        ) => Promise<void> = ClusterKeyAuthorization[SERVICE_MIDDLEWARE];
 
-          ClusterKeyAuthorization[check] = async (
-            req: ExpressRequest,
-            res: ExpressResponse,
-          ): Promise<void> => {
-            await realCheck(req, res, () => {
-              res.status(200).json(CHECK_PASSED);
-            });
-          };
-        }
+        ClusterKeyAuthorization[SERVICE_MIDDLEWARE] = async (
+          req: ExpressRequest,
+          res: ExpressResponse,
+        ): Promise<void> => {
+          await realCheck(req, res, () => {
+            res.status(200).json(CHECK_PASSED);
+          });
+        };
       } else {
-        standInForSenders({ reached, mails, smses, registeredAgents });
+        standInForSenders({ reached, mails, smses });
       }
 
       const app: ExpressApplication = createExpressApp();
@@ -522,11 +476,6 @@ async function startInstallation(
 
       app.use("/workflow", componentRouter);
 
-      const AIAgentAPI: AnyModule = require_(
-        "Common/Server/API/AIAgentAPI",
-      ).default;
-      app.use("/api", new AIAgentAPI().getRouter());
-
       app.use(require_("Common/Server/Utils/StartServer").expressErrorHandler);
 
       http.on("request", app);
@@ -542,24 +491,17 @@ async function startInstallation(
           invalid: middlewareModule.INVALID_CLUSTER_KEY_MESSAGE,
           shipped: middlewareModule.SHIPPED_CLUSTER_KEY_MESSAGE,
           inUrl: middlewareModule.CLUSTER_KEY_IN_URL_MESSAGE,
-          olderRunner: middlewareModule.OLDER_RUNNER_CLUSTER_KEY_MESSAGE,
-          runnerClusterKey: middlewareModule.RUNNER_CLUSTER_KEY_MESSAGE,
-          runnerKeyNotSet: require_(
-            "Common/Server/Middleware/SharedRunnerKeyAuthorization",
-          ).SHARED_RUNNER_KEY_NOT_SET_MESSAGE,
         },
         routes: routesUnderTest(modelTriggerPath),
         removed: removedRequests(modelTriggerPath),
         reached: reached,
         mails: mails,
         smses: smses,
-        registeredAgents: registeredAgents,
       };
     });
   } finally {
     restoreClusterKey();
     restoreEncryptionSecret();
-    restoreSharedRunnerKey();
   }
 
   return installation!;
@@ -574,7 +516,6 @@ function standInForSenders(record: {
   reached: Array<string>;
   mails: Array<JSONObject>;
   smses: Array<JSONObject>;
-  registeredAgents: Array<JSONObject>;
 }): void {
   const standIn: (
     modulePath: string,
@@ -649,26 +590,6 @@ function standInForSenders(record: {
       return null;
     },
   );
-  standIn("Common/Server/Services/AIAgentService", "findOneBy", () => {
-    return null;
-  });
-  // No global agent yet, so a registration has none to take over.
-  standIn("Common/Server/Services/AIAgentService", "findBy", () => {
-    return [];
-  });
-  standIn(
-    "Common/Server/Services/AIAgentService",
-    "create",
-    (args: Array<unknown>) => {
-      const data: AnyModule = (args[0] as JSONObject)["data"];
-      record.registeredAgents.push({
-        key: data.key,
-        isGlobalAIAgent: data.isGlobalAIAgent,
-      });
-      data._id = "2b3c4d5e-6f70-4a81-9b2c-3d4e5f607182";
-      return data;
-    },
-  );
 }
 
 interface HttpResult {
@@ -706,18 +627,11 @@ async function send(
 
 function everyRequest(
   installation: RunningInstallation,
-): Array<{ method: "POST"; url: string; registration: boolean }> {
+): Array<{ method: "POST"; url: string }> {
   return installation.routes.flatMap(
-    (
-      route: RouteUnderTest,
-    ): Array<{ method: "POST"; url: string; registration: boolean }> => {
+    (route: RouteUnderTest): Array<{ method: "POST"; url: string }> => {
       return route.urls.map((url: string) => {
-        return {
-          method: route.method,
-          url: url,
-          registration:
-            route.source.middleware === RUNNER_REGISTRATION_MIDDLEWARE,
-        };
+        return { method: route.method, url: url };
       });
     },
   );
@@ -860,15 +774,11 @@ describe.each(SHIPPED_INSTALLATIONS)(
           { clusterKey: "secret" },
         );
 
-        // Only the Runner's registration reads a body, and refuses it there.
+        // No route reads a body for the key: none was found.
         expect({ ...request, ...inBody }).toStrictEqual({
           ...request,
           status: 400,
-          body: {
-            message: request.registration
-              ? installation.messages.shipped
-              : installation.messages.notFound,
-          },
+          body: { message: installation.messages.notFound },
         });
       }
     });
@@ -957,7 +867,7 @@ describe.each(SHIPPED_INSTALLATIONS)(
       }
     });
 
-    test("does not read its own processes' key from a body, but on the Runner's registration", async () => {
+    test("does not read its own processes' key from a body, on any route", async () => {
       const worker: RunningInstallation = await startInstallation({
         clusterKey: configuration.value,
         installationKey: INSTALLATION_KEY,
@@ -978,12 +888,8 @@ describe.each(SHIPPED_INSTALLATIONS)(
 
           expect({ ...request, ...result }).toStrictEqual({
             ...request,
-            ...(request.registration
-              ? { status: 200, body: CHECK_PASSED }
-              : {
-                  status: 400,
-                  body: { message: installation.messages.notFound },
-                }),
+            status: 400,
+            body: { message: installation.messages.notFound },
           });
         }
       } finally {
@@ -1019,7 +925,7 @@ describe.each(SHIPPED_INSTALLATIONS)(
       }
     });
 
-    test("answers a request without a key as before, and the Runner's registration by the Runner's own key", async () => {
+    test("answers a request without a key as before", async () => {
       for (const request of everyRequest(installation)) {
         const result: HttpResult = await send(
           installation,
@@ -1028,19 +934,10 @@ describe.each(SHIPPED_INSTALLATIONS)(
           {},
         );
 
-        /*
-         * The shared Runner of this release carries no cluster key: its
-         * registration is decided by its own key, which this app was not
-         * given. Refused either way.
-         */
         expect({ ...request, ...result }).toStrictEqual({
           ...request,
           status: 400,
-          body: {
-            message: request.registration
-              ? installation.messages.runnerKeyNotSet
-              : installation.messages.notFound,
-          },
+          body: { message: installation.messages.notFound },
         });
       }
     });
@@ -1138,11 +1035,7 @@ describe("an installation whose operator set ONEUPTIME_SECRET", () => {
           {},
         );
 
-        /*
-         * Refused as a key in a URL, or as no key at all - for the Runner's
-         * registration, by the Runner's own key, which the app was not given
-         * here: never let through.
-         */
+        // Refused as a key in a URL, or as no key at all: never let through.
         expect({ ...request, name, status: result.status }).toStrictEqual({
           ...request,
           name,
@@ -1150,9 +1043,7 @@ describe("an installation whose operator set ONEUPTIME_SECRET", () => {
         });
         expect([
           installation.messages.inUrl,
-          request.registration
-            ? installation.messages.runnerKeyNotSet
-            : installation.messages.notFound,
+          installation.messages.notFound,
         ]).toContain(result.body?.["message"]);
       }
     }
@@ -1305,11 +1196,6 @@ describe("the real handlers behind the routes", () => {
       body: { url: "https://example.com/hooks/oneuptime", eventType: "test" },
     },
     {
-      name: "a global AI agent registration",
-      url: REGISTRATION_URL,
-      body: { aiAgentKey: "an-agent-key" },
-    },
-    {
       name: "a workflow update",
       url: `/workflow/update/${WORKFLOW_ID}`,
       body: {},
@@ -1353,7 +1239,7 @@ describe("the real handlers behind the routes", () => {
     },
   );
 
-  test("the installation's own key in a URL, or in the body of anything but the Runner's registration, sends nothing", async () => {
+  test("the installation's own key in a URL, or in a body, sends nothing", async () => {
     const worker: RunningInstallation = await startInstallation({
       clusterKey: "please-change-this-to-random-value",
       installationKey: INSTALLATION_KEY,
@@ -1379,21 +1265,19 @@ describe("the real handlers behind the routes", () => {
           body: { message: api.messages.inUrl },
         });
 
-        if (sendCase.url !== REGISTRATION_URL) {
-          const inBody: HttpResult = await send(
-            api,
-            "POST",
-            sendCase.url,
-            {},
-            { ...sendCase.body, clusterKey: key },
-          );
+        const inBody: HttpResult = await send(
+          api,
+          "POST",
+          sendCase.url,
+          {},
+          { ...sendCase.body, clusterKey: key },
+        );
 
-          expect({ name: sendCase.name, ...inBody }).toStrictEqual({
-            name: sendCase.name,
-            status: 400,
-            body: { message: api.messages.notFound },
-          });
-        }
+        expect({ name: sendCase.name, ...inBody }).toStrictEqual({
+          name: sendCase.name,
+          status: 400,
+          body: { message: api.messages.notFound },
+        });
       }
 
       expect(api.reached.slice(before)).toStrictEqual([]);
@@ -1402,13 +1286,12 @@ describe("the real handlers behind the routes", () => {
     }
   });
 
-  test("nothing was sent, registered or run by any refused request", () => {
+  test("nothing was sent or run by any refused request", () => {
     expect(api.mails).toStrictEqual([]);
     expect(api.smses).toStrictEqual([]);
-    expect(api.registeredAgents).toStrictEqual([]);
   });
 
-  test("the installation's own key still gets an email sent, an SMS sent and an agent registered", async () => {
+  test("the installation's own key still gets an email and an SMS sent", async () => {
     const worker: RunningInstallation = await startInstallation({
       clusterKey: "please-change-this-to-random-value",
       installationKey: INSTALLATION_KEY,
@@ -1441,39 +1324,6 @@ describe("the real handlers behind the routes", () => {
           )
         ).status,
       ).toBe(200);
-      /*
-       * A Runner of an earlier release, or one whose deployment still gives
-       * it ONEUPTIME_SECRET: the key in the header, still let in, and told to
-       * update.
-       */
-      mockWarnings.length = 0;
-
-      expect(
-        (
-          await send(api, "POST", REGISTRATION_URL, headers, {
-            aiAgentKey: "the-runner-key",
-          })
-        ).status,
-      ).toBe(200);
-      expect(mockWarnings).toStrictEqual([api.messages.runnerClusterKey]);
-      mockWarnings.length = 0;
-
-      // A Runner of an earlier release: the key in the body, still let in.
-      expect(
-        (
-          await send(
-            api,
-            "POST",
-            REGISTRATION_URL,
-            {},
-            {
-              aiAgentKey: "an-earlier-runner-key",
-              clusterKey: worker.ClusterKeyAuthorization.getClusterKey(),
-            },
-          )
-        ).status,
-      ).toBe(200);
-      expect(mockWarnings).toStrictEqual([api.messages.olderRunner]);
 
       expect(
         api.mails.map((mail: JSONObject) => {
@@ -1482,10 +1332,6 @@ describe("the real handlers behind the routes", () => {
       ).toStrictEqual(["someone@example.com"]);
       expect(api.smses).toStrictEqual([
         { to: "+15005550006", message: "All monitors are up" },
-      ]);
-      expect(api.registeredAgents).toStrictEqual([
-        { key: "the-runner-key", isGlobalAIAgent: true },
-        { key: "an-earlier-runner-key", isGlobalAIAgent: true },
       ]);
     } finally {
       await close(worker.http);

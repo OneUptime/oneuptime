@@ -22,7 +22,7 @@ flowchart TB
         Ingress["ingress"]
         App["app"]
         Probe["probe-1"]
-        Runner["runner"]
+        Runner["global-runner"]
         subgraph Data["データストア"]
             direction LR
             PG[("postgres")]
@@ -38,7 +38,7 @@ flowchart TB
     App --> CH
     App --> VK
     Probe -->|結果| Ingress
-    Runner -->|ジョブ| Ingress
+    Runner -->|ジョブ| App
     Probe -->|チェック| Targets
     Data ~~~ Probe
     Data ~~~ Runner
@@ -49,7 +49,7 @@ flowchart TB
 | `ingress` | `oneuptime/nginx` | ポート 80 と 443 ですべてのトラフィックを受け、アプリにルーティングします。OneUptime が証明書を管理する場合は HTTPS を提供します。 |
 | `app` | `oneuptime/app` | ダッシュボード、API、ステータスページ、テレメトリの取り込み、バックグラウンドワーカー。 |
 | `probe-1` | `oneuptime/probe` | モニターのチェックを実行するグローバルプローブ。ホストのネットワークを使います。 |
-| `runner` | `oneuptime/runner` | AI によるコード修正を実行する、インスタンスの Runner。ホストのネットワークを使います。 |
+| `global-runner` | `oneuptime/runner` | すべてのプロジェクトの Runbook の JavaScript のステップと OneUptime AI のコード修正を実行する、同梱のグローバル Runner。 |
 | `postgres` | `postgres:15` | 設定と状態: モニター、インシデント、ユーザー。`postgres` ボリュームに保存されます。 |
 | `clickhouse` | `clickhouse/clickhouse-server:26.7` | テレメトリ: ログ、メトリクス、トレース、例外。`clickhouse` ボリュームに保存されます。 |
 | `valkey` | `valkey/valkey:9.1-alpine` | キャッシュとキュー。ディスクには何も保存しません。 |
@@ -84,9 +84,8 @@ flowchart TB
 | --- | --- | --- | --- |
 | 80 | `ingress` | `ONEUPTIME_HTTP_PORT` | ダッシュボード、API、テレメトリの取り込み、Let's Encrypt の検証。 |
 | 443 | `ingress` | `STATUS_PAGE_HTTPS_PORT` | OneUptime が証明書を管理する場合のインスタンスの HTTPS、およびカスタムドメインのステータスページとダッシュボード。 |
-| 5400 | `postgres` | `docker-compose.yml` で設定 | `npm run backup` と `restore.sh` がサーバー自身から PostgreSQL に到達するためのもの。`127.0.0.1` だけで公開されます。 |
+| 5400 | `postgres` | `DATABASE_PUBLISHED_PORT` | `npm run backup` と `restore.sh` がサーバー自身から PostgreSQL に到達するためのもの。`127.0.0.1` だけで公開されます。 |
 | 3874 | `probe-1` | `GLOBAL_PROBE_1_PORT` | プローブ自身のサーバー。サーバーの外からは必要ありません。 |
-| 3876 | `runner` | `ONEUPTIME_RUNNER_PORT` | Runner 自身のサーバー。サーバーの外からは必要ありません。 |
 
 インストールの [動画ウォークスルー](https://youtu.be/j1SWmMW2oL4) もあります。
 
@@ -133,7 +132,7 @@ npm start
 ```
 @tab Docker CLI
 ```bash
-(export $(grep -v '^#' config.env | xargs) && docker compose up --remove-orphans -d)
+sh Scripts/Install/WithConfig.sh docker compose up --remove-orphans -d
 ```
 最初の起動の前に、[ランダムなシークレットを生成する](#ランダムなシークレットを生成する) のとおりにプレースホルダーのシークレットを自分で置き換えてください。自動で置き換えるのは `npm start` だけです。
 :::
@@ -158,8 +157,7 @@ npm start
 | `DATABASE_PASSWORD`、`CLICKHOUSE_PASSWORD`、`VALKEY_PASSWORD` | 3 つのデータストア。 |
 | `REGISTER_PROBE_KEY` | インスタンスへのプローブの登録。 |
 | `GLOBAL_PROBE_1_KEY`、`GLOBAL_PROBE_2_KEY` | Docker Compose が実行できるグローバルプローブ (デフォルトでは `probe-1` が動きます)。 |
-| `ONEUPTIME_RUNNER_KEY` | 同梱の Runner。 |
-| `GLOBAL_RUNNER_KEY` | すべてのプロジェクトの JavaScript のステップを実行する、同梱のグローバル Runner。 |
+| `GLOBAL_RUNNER_KEY` | すべてのプロジェクトの JavaScript のステップと AI によるコード修正を実行する、同梱のグローバル Runner。 |
 
 > [!IMPORTANT]
 > OneUptime を起動したあとは、シークレットを変えないでください。PostgreSQL はデータベースを作成するときにしかパスワードを受け取りません。また、あとから `ENCRYPTION_SECRET` を変えると、古い値で暗号化されたものはすべて読めなくなります。そのため `npm start` が `DATABASE_PASSWORD` と `ENCRYPTION_SECRET` を設定するのは、PostgreSQL がデータベースを作成する前の新規インストールのときだけです。
@@ -234,7 +232,7 @@ ONEUPTIME_HTTP_PORT=127.0.0.1:8080
 STATUS_PAGE_HTTPS_PORT=127.0.0.1:8443
 ```
 
-プローブと Runner はホストのネットワークを使い、`http://localhost` 経由で OneUptime に到達します。`npm start` がこれらを ingress の新しいポート `http://localhost:8080` に移し、そのことを表示します。
+プローブはホストのネットワークを使い、`http://localhost` 経由で OneUptime に到達します。`npm start` がこれを ingress の新しいポート `http://localhost:8080` に移し、そのことを表示します。
 
 #### プロキシの背後にあることを OneUptime に伝える
 
@@ -388,7 +386,7 @@ PostgreSQL は作成されたときのパスワードを保ち続けるため、
 
 ```bash
 NEW_PASSWORD=$(openssl rand -hex 32) &&
-  (export $(grep -v '^#' config.env | xargs) && docker compose exec -T postgres psql -U "$DATABASE_USERNAME" -d "$DATABASE_NAME" -c "ALTER USER \"$DATABASE_USERNAME\" PASSWORD '$NEW_PASSWORD'") &&
+  echo "ALTER USER CURRENT_USER PASSWORD '$NEW_PASSWORD';" | sh Scripts/Install/WithConfig.sh sh -c 'docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$DATABASE_USERNAME" -d "$DATABASE_NAME"' &&
   sed -i "s/^DATABASE_PASSWORD=.*/DATABASE_PASSWORD=$NEW_PASSWORD/" config.env
 npm start
 ```
@@ -470,7 +468,7 @@ npm run down
 データは `oneuptime_postgres` と `oneuptime_clickhouse` のボリュームに残り、`oneuptime` フォルダーには `config.env` とバックアップが残ります。データも削除するには次を実行します。
 
 ```bash
-(export $(grep -v '^#' config.env | xargs) && docker compose down --volumes --remove-orphans)
+sh Scripts/Install/WithConfig.sh docker compose down --volumes --remove-orphans
 ```
 
 その後、`oneuptime` フォルダーを削除します。
@@ -536,12 +534,12 @@ Let's Encrypt が証明書を発行するまで、ingress は一時的な自己�
 注文が失敗すると、アプリは `CoreSSL:EnsurePrimaryHostCertificate` で始まり、理由が続くエラーをログに記録します。
 
 ```bash
-(export $(grep -v '^#' config.env | xargs) && docker compose logs app) | grep -A 5 CoreSSL
+sh Scripts/Install/WithConfig.sh docker compose logs app | grep -A 5 CoreSSL
 ```
 :::
 
 :::details ingress のポートを移したあと、同梱のプローブが切断済みと表示される
-Admin Dashboard は **設定 > 監視 > グローバルプローブ** でプローブを表示します。プローブは `GLOBAL_PROBE_1_ONEUPTIME_URL` で OneUptime に到達し、その値はデフォルトで `http://localhost` (ポート 80) です。これと `ONEUPTIME_RUNNER_ONEUPTIME_URL` が `localhost` を指している間は、`npm start` が ingress のポートに合わせて移します。別のアドレスに設定した場合や、Docker CLI で OneUptime を起動した場合は、両方を ingress の新しいポート (例: `http://localhost:8080`) に設定してから OneUptime を再起動します。
+Admin Dashboard は **設定 > 監視 > グローバルプローブ** でプローブを表示します。プローブは `GLOBAL_PROBE_1_ONEUPTIME_URL` で OneUptime に到達し、その値はデフォルトで `http://localhost` (ポート 80) です。これが `localhost` を指している間は、`npm start` が ingress のポートに合わせて移します。別のアドレスに設定した場合や、Docker CLI で OneUptime を起動した場合は、これを ingress の新しいポート (例: `http://localhost:8080`) に設定してから OneUptime を再起動します。
 :::
 
 ## 次のステップ

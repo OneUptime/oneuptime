@@ -11,7 +11,7 @@ flowchart TB
         direction TB
         Ingress["Ingress<br/>(Nginx, TLS)"]
         App["App<br/>dashboards,<br/>statuspagina's,<br/>API, ingest,<br/>achtergrondtaken"]
-        Runner["Runner"]
+        Runner["Globale Runner"]
         Probe["Probes"]
         subgraph Data["Gegevensopslagen"]
             direction LR
@@ -54,8 +54,7 @@ flowchart TB
 | Worker | Onderdeel van `app` | `worker` (standaard uit) | De achtergrondtaken, in eigen pods, zodat zware wachtrijverwerking nooit concurreert met API-verzoeken. |
 | Telemetry writer | Onderdeel van `app` | `telemetryWriter` (standaard uit) | Een laag van vaste grootte die elke ClickHouse-insert uitvoert, zodat de inserts begrensd blijven hoe ver de workers ook schalen. |
 | Probe | `probe-1` | `probes` | Voert monitorcontroles uit en stuurt de resultaten terug. Elke meegeleverde probe is een globale probe die alle projecten kunnen gebruiken. |
-| Runner | `runner` | `runner` | De eigen Runner van de instantie, die AI-codecorrecties voor elk project kan uitvoeren. Runbook-stappen draaien op [Runners](/docs/runbooks/agents) die u installeert waar ze moeten draaien. |
-| Globale Runner | `global-runner` | `globalRunner` | Een [globale Runner](/docs/runbooks/agents#globale-runners): hij voert de JavaScript-stappen uit van elk project dat geen eigen Runner kiest, elk in een sandbox die alleen het internet bereikt. Hij heeft een eigen sleutel en verder niets van de server. |
+| Globale Runner | `global-runner` | `globalRunner` | Een [globale Runner](/docs/runbooks/agents#globale-runners): hij voert de JavaScript-stappen uit van elk project dat geen eigen Runner kiest, elk in een sandbox die alleen het internet bereikt, en de codecorrecties van OneUptime AI in elke coderepository die er geen kiest. Hij heeft een eigen sleutel en verder niets van de server. Bash-, SSH- en kubectl-stappen draaien op [Runners](/docs/runbooks/agents) die u installeert waar ze moeten draaien. |
 | PostgreSQL | `postgres` | `postgresql`, of `postgresOperator.cnpg` | Projecten, monitors, incidenten, gebruikers en elke andere instelling en status. |
 | ClickHouse | `clickhouse` | `clickhouse`, of `clickhouseOperator.altinity` | Logs, metrics, traces, exceptions, profielen en monitorlogs. |
 | Valkey | `valkey` | `valkey` | De cache, de takenwachtrijen en kortlevende status zoals openstaande push-ontvangstbewijzen. |
@@ -64,9 +63,10 @@ Alle rollen van de app zijn hetzelfde image: Docker Compose draait ze in één `
 
 ## Verbindingen uit uw netwerk
 
-Drie verbindingen worden gemaakt, tenzij u een instelling wijzigt:
+Vier verbindingen worden gemaakt, tenzij u een instelling wijzigt:
 
 - Eén keer per dag vraagt de app aan de API van GitHub (`api.github.com`) of er een nieuwere versie is. Zet dit uit met `updateCheck.disabled: true` in de Helm-chart, of met `DISABLE_UPDATE_CHECK=true` in `config.env` bij Docker Compose.
+- Eén keer per dag meldt de app het adres van uw installatie en de versie die ze draait aan `oneuptime.com`, zodat OneUptime weet welke installaties nog een versie met een beveiligingsprobleem draaien. Er wordt niets over uw gebruikers, projecten of monitoringgegevens verstuurd. Zet dit uit met `instanceCheckIn.disabled: true` in de Helm-chart, of met `DISABLE_INSTANCE_CHECK_IN=true` in `config.env` bij Docker Compose.
 - Bij een aanmelding met „Stel mij op de hoogte van beveiligingspatches en nieuwe versies” aangevinkt, zoals het in het begin staat, gaan de naam en het e-mailadres van die persoon, een opgegeven bedrijf en telefoonnummer, en het adres en de versie van uw installatie naar `oneuptime.com`. Vink het uit op een netwerk zonder internettoegang.
 - Op Kubernetes vallen probes na de eigen DNS van uw cluster terug op de openbare resolvers `8.8.8.8` en `1.1.1.1`. Zet `dnsConfig.nameservers` op `[]` om elke lookup op uw eigen DNS te houden.
 

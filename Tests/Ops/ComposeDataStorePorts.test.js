@@ -234,15 +234,38 @@ describe("every datastore port is published on 127.0.0.1 only", () => {
     expect(onHostNetwork).toEqual([]);
   });
 
-  test("docker-compose.yml publishes PostgreSQL on 127.0.0.1:5400, the port backup.sh and restore.sh use", () => {
+  /*
+   * The host port was fixed at 5400, so a server running a PostgreSQL of its
+   * own could only stop it. DATABASE_PUBLISHED_PORT moves it, 5400 unless set,
+   * and the backup and restore scripts follow it while their own port
+   * settings are empty, as config.example.env ships them.
+   */
+  test("docker-compose.yml publishes PostgreSQL on 127.0.0.1 at DATABASE_PUBLISHED_PORT, 5400 by default, the port backup.sh and restore.sh use", () => {
     const compose = readCompose("docker-compose.yml");
     const settings = configExampleSettings();
 
-    expect(compose.services.postgres.ports).toEqual(["127.0.0.1:5400:5432"]);
+    expect(compose.services.postgres.ports).toEqual([
+      "127.0.0.1:${DATABASE_PUBLISHED_PORT:-5400}:5432",
+    ]);
+    expect(parsePublishedPort(compose.services.postgres.ports[0])).toEqual({
+      hostIp: LOOPBACK_ADDRESS,
+      hostPort: "${DATABASE_PUBLISHED_PORT:-5400}",
+      containerPort: "5432",
+    });
+    expect(settings.get("DATABASE_PUBLISHED_PORT")).toBe("5400");
     expect(settings.get("DATABASE_BACKUP_HOST")).toBe("localhost");
-    expect(settings.get("DATABASE_BACKUP_PORT")).toBe("5400");
-    expect(settings.get("DATABASE_RESTORE_PORT")).toBe("5400");
+    expect(settings.get("DATABASE_BACKUP_PORT")).toBe("");
+    expect(settings.get("DATABASE_RESTORE_PORT")).toBe("");
     expect(settings.get("DATABASE_RESTORE_HOST")).toBe("host.docker.internal");
+
+    for (const [script, setting] of [
+      ["backup.sh", "DATABASE_BACKUP_PORT"],
+      ["restore.sh", "DATABASE_RESTORE_PORT"],
+    ]) {
+      expect(executableLines(script)).toContain(
+        `${setting}="\${${setting}:-\${DATABASE_PUBLISHED_PORT:-5400}}"`,
+      );
+    }
   });
 
   test("backup.sh and restore.sh run their client on the server's network, and restore.sh's host.docker.internal is its loopback address", () => {
@@ -260,7 +283,9 @@ describe("every datastore port is published on 127.0.0.1 only", () => {
   test("the development stack publishes PostgreSQL, ClickHouse and Valkey on the ports its tools use, on 127.0.0.1", () => {
     const dev = readCompose(DEV_COMPOSE_FILE).services;
 
-    expect(dev.postgres.ports).toEqual(["127.0.0.1:5400:5432"]);
+    expect(dev.postgres.ports).toEqual([
+      "127.0.0.1:${DATABASE_PUBLISHED_PORT:-5400}:5432",
+    ]);
     expect(dev.clickhouse.ports).toEqual([
       "127.0.0.1:9034:9000",
       "127.0.0.1:8189:8123",

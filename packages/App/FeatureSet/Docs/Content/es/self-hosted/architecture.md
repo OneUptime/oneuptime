@@ -11,7 +11,7 @@ flowchart TB
         direction TB
         Ingress["Ingress<br/>(Nginx, TLS)"]
         App["Aplicación<br/>paneles, páginas<br/>de estado,<br/>API, ingesta,<br/>trabajos en<br/>segundo plano"]
-        Runner["Runner"]
+        Runner["Runner global"]
         Probe["Sondas"]
         subgraph Data["Almacenes de datos"]
             direction LR
@@ -54,8 +54,7 @@ flowchart TB
 | Worker | Parte de `app` | `worker` (desactivado por defecto) | Los trabajos en segundo plano, en sus propios pods, para que el procesamiento intenso de colas nunca compita con las peticiones a la API. |
 | Telemetry writer | Parte de `app` | `telemetryWriter` (desactivado por defecto) | Un nivel de tamaño fijo que hace cada inserción en ClickHouse, para que las inserciones se mantengan acotadas por mucho que escalen los workers. |
 | Sonda | `probe-1` | `probes` | Ejecuta las comprobaciones de los monitores y devuelve los resultados. Cada sonda incluida es una sonda global que pueden usar todos los proyectos. |
-| Runner | `runner` | `runner` | El Runner propio de la instancia, que puede ejecutar correcciones de código con IA para cada proyecto. Los pasos de los runbooks se ejecutan en [Runners](/docs/runbooks/agents) que instalas donde deban ejecutarse. |
-| Runner global | `global-runner` | `globalRunner` | Un [Runner global](/docs/runbooks/agents#runners-globales): ejecuta los pasos JavaScript de todos los proyectos que no eligen un Runner propio, cada uno en un sandbox que solo llega a internet. Tiene su propia clave y nada más del servidor. |
+| Runner global | `global-runner` | `globalRunner` | Un [Runner global](/docs/runbooks/agents#runners-globales): ejecuta los pasos JavaScript de todos los proyectos que no eligen un Runner propio, cada uno en un sandbox que solo llega a internet, y las correcciones de código de OneUptime AI en cada repositorio de código que no elige ninguno. Tiene su propia clave y nada más del servidor. Los pasos Bash, SSH y kubectl se ejecutan en [Runners](/docs/runbooks/agents) que instalas donde deban ejecutarse. |
 | PostgreSQL | `postgres` | `postgresql`, o `postgresOperator.cnpg` | Proyectos, monitores, incidentes, usuarios y todos los demás ajustes y estados. |
 | ClickHouse | `clickhouse` | `clickhouse`, o `clickhouseOperator.altinity` | Logs, métricas, trazas, excepciones, perfiles y logs de monitores. |
 | Valkey | `valkey` | `valkey` | La caché, las colas de trabajos y el estado de corta duración, como los acuses de push pendientes. |
@@ -64,9 +63,10 @@ Todos los roles de la aplicación son la misma imagen: Docker Compose los ejecut
 
 ## Conexiones que salen de tu red
 
-Se hacen tres conexiones a menos que cambies un ajuste:
+Se hacen cuatro conexiones a menos que cambies un ajuste:
 
 - Una vez al día, la aplicación pregunta a la API de GitHub (`api.github.com`) si hay una versión más reciente. Para desactivarlo, establece `updateCheck.disabled: true` en el chart de Helm, o `DISABLE_UPDATE_CHECK=true` en `config.env` con Docker Compose.
+- Una vez al día, la aplicación comunica a `oneuptime.com` la dirección de tu instalación y la versión que ejecuta, para que OneUptime sepa qué instalaciones siguen ejecutando una versión con un problema de seguridad. No se envía nada sobre tus usuarios, proyectos o datos de monitorización. Para desactivarlo, establece `instanceCheckIn.disabled: true` en el chart de Helm, o `DISABLE_INSTANCE_CHECK_IN=true` en `config.env` con Docker Compose.
 - Registrarse con «Notificarme sobre parches de seguridad y nuevas versiones» marcado, como está al principio, envía a `oneuptime.com` el nombre y el correo de la persona, la empresa y el teléfono que haya indicado, y la dirección y la versión de tu instalación. Desmárcalo en una red sin acceso a internet.
 - En Kubernetes, las sondas recurren a los resolutores públicos `8.8.8.8` y `1.1.1.1` después del DNS de tu propio clúster. Establece `dnsConfig.nameservers` en `[]` para que todas las consultas se queden en tu propio DNS.
 

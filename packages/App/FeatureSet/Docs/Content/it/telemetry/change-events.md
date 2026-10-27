@@ -1,9 +1,9 @@
 # Deploy e modifiche
 
-OneUptime tiene traccia di ciò che è cambiato nel tuo progetto: deploy, rollout di Kubernetes, modifiche di configurazione e le correzioni che ha eseguito da sé. Ogni modifica viene disegnata come un marcatore sui grafici del suo servizio, e OneUptime AI le legge quando indaga su un incidente, così "è iniziato subito dopo il deploy delle 10:02" è la prima cosa che scopri, non l'ultima.
+OneUptime tiene traccia di ciò che è cambiato nel tuo progetto: deploy, rollout di Kubernetes, modifiche di configurazione, le modifiche nei tuoi account cloud collegati e le correzioni che ha eseguito da sé. Ogni modifica viene disegnata come un marcatore sui grafici del suo servizio o della sua risorsa cloud, e OneUptime AI le legge quando indaga su un incidente, così "è iniziato subito dopo il deploy delle 10:02" è la prima cosa che scopri, non l'ultima.
 
 :::cards
-- [Che cosa registra OneUptime da solo](#che-cosa-registra-oneuptime-da-solo): Deploy e rollout dalla telemetria, e le sue correzioni.
+- [Che cosa registra OneUptime da solo](#che-cosa-registra-oneuptime-da-solo): Deploy e rollout dalla telemetria, le modifiche dei tuoi account cloud, e le sue correzioni.
 - [Registrare un deploy da una pipeline](#registrare-un-deploy-da-una-pipeline): La CLI, GitHub Actions e l'API.
 - [Come OneUptime AI usa le modifiche](#come-oneuptime-ai-usa-le-modifiche): Le modifiche sospette di ogni indagine.
 - [Riferimento](#riferimento): Campi, attributi e limiti.
@@ -17,6 +17,7 @@ flowchart LR
     K["Un nuovo ReplicaSet<br/>di Kubernetes"] --> E
     P["Una pipeline:<br/>la CLI o l'API"] --> E
     A["Una correzione di<br/>OneUptime AI, un runbook<br/>di OneUptime"] --> E
+    D["Il log attività di<br/>un account cloud"] --> E
     E --> C["Marcatori sui grafici<br/>del servizio"]
     E --> I["Le indagini<br/>di OneUptime AI"]
 ```
@@ -31,6 +32,8 @@ Per queste non devi inviare nulla. OneUptime le registra a partire dalla telemet
 | Un rollout | I pod di un Deployment Kubernetes iniziano a eseguire un ReplicaSet che non avevano mai eseguito: una nuova immagine, una variabile d'ambiente o un riferimento di configurazione cambiati, oppure un riavvio | `kubernetes` |
 | Una correzione eseguita da OneUptime AI | Un agente IA riporta il risultato di un comando che cambia qualcosa, come `kubectl rollout restart` | `oneuptime-ai` |
 | Un runbook | Un runbook eseguito da OneUptime si completa, non riesce o viene annullato dopo essere partito | `runbook` |
+| Una modifica nel cloud | Il log attività di un account cloud collegato registra una modifica: AWS CloudTrail, il log attività di Azure o il log di audit Admin Activity di Google Cloud | `cloud` |
+| Un evento del provider | Il provider cloud pubblica un evento di stato sull'account: AWS Health, Azure Service Health o Resource Health, oppure Google Cloud Service Health | `cloud-health` |
 
 - **La prima versione che un servizio riporta è il suo punto di partenza, non un deploy.** Un servizio che gira da mesi non viene rilasciato nel momento in cui OneUptime inizia a riceverne la telemetria.
 - **Un rollback a una versione vista negli ultimi 30 giorni non viene registrato,** perché quella versione non è nuova. Un rollback eseguito da OneUptime AI viene registrato come correzione.
@@ -43,6 +46,8 @@ OTEL_RESOURCE_ATTRIBUTES="service.version=2.3.1,deployment.environment.name=prod
 ```
 
 Un rollout richiede l'[agent Kubernetes](/docs/telemetry/kubernetes-agent), che contrassegna la telemetria di ogni pod con il suo Deployment e il suo ReplicaSet.
+
+Una modifica nel cloud o un evento del provider richiede un [account cloud collegato](/docs/telemetry/cloud-accounts). Ciascuno è collegato alla risorsa cloud che nomina, quando OneUptime elenca quella risorsa, e viene disegnato sui grafici della risorsa. Il suo tipo deriva dall'operazione: `deployment`, `scaling` o `rollback` quando il nome dell'operazione lo dice, altrimenti `config-change`, e `provider-event` per un evento di stato. I grafici non filtrati su alcuna risorsa lasciano fuori il log attività di un account cloud, così un account molto attivo non oscura i tuoi deploy; gli eventi di stato del provider restano sui grafici.
 
 ## Registrare un deploy da una pipeline
 
@@ -94,7 +99,7 @@ Vedi [`oneuptime deploy`](/docs/cli/command-reference#oneuptime-deploy) per tutt
 
 ## Come OneUptime AI usa le modifiche
 
-Ogni [indagine IA](/docs/ai/ai-sre) di un incidente o di un avviso parte dalle modifiche registrate nelle 2 ore precedenti, e nei 10 minuti successivi, per una pipeline che registra il suo deploy a rollout concluso. Le modifiche sui servizi, cluster e host a cui l'incidente è collegato vengono per prime.
+Ogni [indagine IA](/docs/ai/ai-sre) di un incidente o di un avviso parte dalle modifiche registrate nelle 2 ore precedenti, e nei 10 minuti successivi, per una pipeline che registra il suo deploy a rollout concluso. Le modifiche sui servizi, cluster, host e risorse cloud a cui l'incidente è collegato vengono per prime.
 
 Per un massimo di 4 di esse che nominano un servizio, OneUptime legge la telemetria del servizio nei 30 minuti prima e dopo la modifica, e segna la modifica come **sospetta** quando il servizio è peggiorato in modo misurabile subito dopo:
 
@@ -139,6 +144,8 @@ I campi di primo livello vengono memorizzati come attributi con i nomi OpenTelem
 
 Gli attributi il cui nome inizia con `oneuptime.` sono di OneUptime e vengono scartati da ciò che invia una pipeline. Ogni modifica registrata da una pipeline lo dice in `oneuptime.change.source`, che vale `api`.
 
+Una modifica letta da un account cloud nomina l'account e la risorsa con i nomi di OpenTelemetry, `cloud.provider`, `cloud.account.id`, `cloud.region` e `cloud.resource_id`, e tiene l'operazione in `oneuptime.cloud.operation`, chi l'ha eseguita in `oneuptime.cloud.actor`, se non è riuscita in `oneuptime.change.status` e il suo account cloud in `oneuptime.cloud_account.id`.
+
 ### Limiti
 
 | Limite | Valore |
@@ -155,4 +162,5 @@ Gli attributi il cui nome inizia con `oneuptime.` sono di OneUptime e vengono sc
 - [AI SRE](/docs/ai/ai-sre): Che cosa legge un'indagine e come corregge ciò che trova.
 - [Riferimento dei comandi](/docs/cli/command-reference): Ogni comando della CLI.
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Inviare la telemetria dei tuoi servizi, con le loro versioni.
+- [Collegare un account cloud](/docs/telemetry/cloud-accounts): Le modifiche e gli eventi di stato dei tuoi account AWS, Azure e Google Cloud.
 :::

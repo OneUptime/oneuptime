@@ -22,7 +22,7 @@ flowchart TB
         Ingress["ingress"]
         App["app"]
         Probe["probe-1"]
-        Runner["runner"]
+        Runner["global-runner"]
         subgraph Data["Almacenes de datos"]
             direction LR
             PG[("postgres")]
@@ -38,7 +38,7 @@ flowchart TB
     App --> CH
     App --> VK
     Probe -->|resultados| Ingress
-    Runner -->|trabajos| Ingress
+    Runner -->|trabajos| App
     Probe -->|comprobaciones| Targets
     Data ~~~ Probe
     Data ~~~ Runner
@@ -49,7 +49,7 @@ flowchart TB
 | `ingress` | `oneuptime/nginx` | Recibe todo el tráfico en los puertos 80 y 443 y lo dirige a la aplicación. Sirve HTTPS cuando OneUptime gestiona el certificado. |
 | `app` | `oneuptime/app` | El panel, la API, las páginas de estado, la ingesta de telemetría y los procesos en segundo plano. |
 | `probe-1` | `oneuptime/probe` | Una sonda global que ejecuta las comprobaciones de tus monitores. Usa la red del host. |
-| `runner` | `oneuptime/runner` | El Runner de la instancia, que ejecuta las correcciones de código con IA. Usa la red del host. |
+| `global-runner` | `oneuptime/runner` | El Runner global incluido, que ejecuta los pasos JavaScript de los runbooks y las correcciones de código de OneUptime AI de todos los proyectos. |
 | `postgres` | `postgres:15` | Configuración y estado: monitores, incidentes, usuarios. Se guarda en el volumen `postgres`. |
 | `clickhouse` | `clickhouse/clickhouse-server:26.7` | Telemetría: logs, métricas, trazas y excepciones. Se guarda en el volumen `clickhouse`. |
 | `valkey` | `valkey/valkey:9.1-alpine` | Caché y colas. No guarda nada en disco. |
@@ -84,9 +84,8 @@ También necesitas:
 | --- | --- | --- | --- |
 | 80 | `ingress` | `ONEUPTIME_HTTP_PORT` | El panel, la API, la ingesta de telemetría y la validación de Let's Encrypt. |
 | 443 | `ingress` | `STATUS_PAGE_HTTPS_PORT` | HTTPS para tu instancia cuando OneUptime gestiona el certificado, y para las páginas de estado y paneles en dominios personalizados. |
-| 5400 | `postgres` | Definido en `docker-compose.yml` | Permite que `npm run backup` y `restore.sh` lleguen a PostgreSQL desde el propio servidor. Solo se publica en `127.0.0.1`. |
+| 5400 | `postgres` | `DATABASE_PUBLISHED_PORT` | Permite que `npm run backup` y `restore.sh` lleguen a PostgreSQL desde el propio servidor. Solo se publica en `127.0.0.1`. |
 | 3874 | `probe-1` | `GLOBAL_PROBE_1_PORT` | El servidor propio de la sonda. Nada fuera del servidor lo necesita. |
-| 3876 | `runner` | `ONEUPTIME_RUNNER_PORT` | El servidor propio del Runner. Nada fuera del servidor lo necesita. |
 
 También hay un [vídeo paso a paso](https://youtu.be/j1SWmMW2oL4) de la instalación.
 
@@ -133,7 +132,7 @@ npm start
 ```
 @tab Docker CLI
 ```bash
-(export $(grep -v '^#' config.env | xargs) && docker compose up --remove-orphans -d)
+sh Scripts/Install/WithConfig.sh docker compose up --remove-orphans -d
 ```
 Antes del primer arranque, sustituye tú mismo los secretos de marcador, como muestra [Genera secretos aleatorios](#genera-secretos-aleatorios): solo `npm start` lo hace por ti.
 :::
@@ -158,8 +157,7 @@ Cualquiera que pueda llegar a la página puede registrarse después de ti. Para 
 | `DATABASE_PASSWORD`, `CLICKHOUSE_PASSWORD`, `VALKEY_PASSWORD` | Los tres almacenes de datos. |
 | `REGISTER_PROBE_KEY` | El registro de sondas en tu instancia. |
 | `GLOBAL_PROBE_1_KEY`, `GLOBAL_PROBE_2_KEY` | Las sondas globales que puede ejecutar Docker Compose (`probe-1` se ejecuta de forma predeterminada). |
-| `ONEUPTIME_RUNNER_KEY` | El Runner incluido. |
-| `GLOBAL_RUNNER_KEY` | El Runner global incluido, que ejecuta los pasos JavaScript de todos los proyectos. |
+| `GLOBAL_RUNNER_KEY` | El Runner global incluido, que ejecuta los pasos JavaScript y las correcciones de código con IA de todos los proyectos. |
 
 > [!IMPORTANT]
 > Mantén los secretos una vez que OneUptime haya arrancado. PostgreSQL solo toma su contraseña cuando crea su base de datos, y cambiar `ENCRYPTION_SECRET` más adelante hace ilegible cualquier valor cifrado con el anterior. Por eso `npm start` define `DATABASE_PASSWORD` y `ENCRYPTION_SECRET` solo en una instalación nueva, antes de que PostgreSQL cree su base de datos.
@@ -234,7 +232,7 @@ ONEUPTIME_HTTP_PORT=127.0.0.1:8080
 STATUS_PAGE_HTTPS_PORT=127.0.0.1:8443
 ```
 
-La sonda y el Runner usan la red del host y llegan a OneUptime a través de `http://localhost`. `npm start` los mueve al nuevo puerto del ingress, `http://localhost:8080`, y lo indica.
+La sonda usa la red del host y llega a OneUptime a través de `http://localhost`. `npm start` la mueve al nuevo puerto del ingress, `http://localhost:8080`, y lo indica.
 
 #### Indica a OneUptime que está detrás de un proxy
 
@@ -388,7 +386,7 @@ PostgreSQL conserva la contraseña con la que se creó, así que cambiar solo `D
 
 ```bash
 NEW_PASSWORD=$(openssl rand -hex 32) &&
-  (export $(grep -v '^#' config.env | xargs) && docker compose exec -T postgres psql -U "$DATABASE_USERNAME" -d "$DATABASE_NAME" -c "ALTER USER \"$DATABASE_USERNAME\" PASSWORD '$NEW_PASSWORD'") &&
+  echo "ALTER USER CURRENT_USER PASSWORD '$NEW_PASSWORD';" | sh Scripts/Install/WithConfig.sh sh -c 'docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$DATABASE_USERNAME" -d "$DATABASE_NAME"' &&
   sed -i "s/^DATABASE_PASSWORD=.*/DATABASE_PASSWORD=$NEW_PASSWORD/" config.env
 npm start
 ```
@@ -470,7 +468,7 @@ npm run down
 Tus datos se quedan en los volúmenes `oneuptime_postgres` y `oneuptime_clickhouse`, y la carpeta `oneuptime` conserva `config.env` y tus copias de seguridad. Para borrar también los datos:
 
 ```bash
-(export $(grep -v '^#' config.env | xargs) && docker compose down --volumes --remove-orphans)
+sh Scripts/Install/WithConfig.sh docker compose down --volumes --remove-orphans
 ```
 
 Después borra la carpeta `oneuptime`.
@@ -536,12 +534,12 @@ Hasta que Let's Encrypt emite el certificado, el ingress sirve uno autofirmado t
 Cuando falla un pedido, la aplicación registra un error que empieza por `CoreSSL:EnsurePrimaryHostCertificate`, seguido del motivo:
 
 ```bash
-(export $(grep -v '^#' config.env | xargs) && docker compose logs app) | grep -A 5 CoreSSL
+sh Scripts/Install/WithConfig.sh docker compose logs app | grep -A 5 CoreSSL
 ```
 :::
 
 :::details La sonda incluida aparece como Desconectado después de mover el puerto del ingress
-El Admin Dashboard muestra la sonda en **Ajustes > Monitoreo > Sondas globales**. Llega a OneUptime en `GLOBAL_PROBE_1_ONEUPTIME_URL`, que de forma predeterminada es `http://localhost` (puerto 80). `npm start` la mueve, junto con `ONEUPTIME_RUNNER_ONEUPTIME_URL`, al puerto del ingress mientras apunten a `localhost`. Si las definiste con otra dirección, o iniciaste OneUptime con la Docker CLI, define ambas con el nuevo puerto del ingress, por ejemplo `http://localhost:8080`, y reinicia OneUptime.
+El Admin Dashboard muestra la sonda en **Ajustes > Monitoreo > Sondas globales**. Llega a OneUptime en `GLOBAL_PROBE_1_ONEUPTIME_URL`, que de forma predeterminada es `http://localhost` (puerto 80). `npm start` la mueve al puerto del ingress mientras apunte a `localhost`. Si la definiste con otra dirección, o iniciaste OneUptime con la Docker CLI, defínela con el nuevo puerto del ingress, por ejemplo `http://localhost:8080`, y reinicia OneUptime.
 :::
 
 ## Próximos pasos

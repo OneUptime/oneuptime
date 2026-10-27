@@ -102,8 +102,8 @@ const PUBLISHED_PORTS = [
   {
     service: "postgres",
     target: 5432,
-    setting: null,
-    example: null,
+    setting: "DATABASE_PUBLISHED_PORT",
+    example: "5401",
     purpose: "OneUptime publishes PostgreSQL there for npm run backup",
   },
   {
@@ -117,12 +117,6 @@ const PUBLISHED_PORTS = [
     setting: "GLOBAL_PROBE_2_PORT",
     example: "3885",
     purpose: "the second bundled probe listens on it",
-  },
-  {
-    service: "runner",
-    setting: "ONEUPTIME_RUNNER_PORT",
-    example: "3886",
-    purpose: "the bundled Runner listens on it",
   },
 ];
 

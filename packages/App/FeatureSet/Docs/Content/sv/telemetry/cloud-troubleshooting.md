@@ -101,8 +101,8 @@ En miljö visar **Frånkopplad** när ingen telemetri har kommit för den på 15
 
 Instanser följer två klockor:
 
-- **Stale:** fliken **Instanser** markerar en uppgift, instans eller replik som **Stale** när den inte har rapporterat de senaste 15 minuterna, och översikten räknar bara de andra som levande.
-- **Borttagen:** en rensning tar bort instansrader som inte har setts på `CLOUD_INSTANCE_STALE_MINUTES` (standard 15, minst 10), räknat från miljöns egen senaste telemetri, så att ett avbrott i collectorn fryser den klockan i stället för att radera den senast kända listan över uppgifter. Serverlösa funktioner använder `SERVERLESS_INSTANCE_STALE_MINUTES`. En högre tröskel behåller rader längre; den ändrar inte när de blir **Stale**.
+- **Inaktuell:** fliken **Instanser** markerar en uppgift, instans eller replik som **Inaktuell** när den inte har rapporterat de senaste 15 minuterna, och översikten räknar bara de andra som levande.
+- **Borttagen:** en rensning tar bort instansrader som inte har setts på `CLOUD_INSTANCE_STALE_MINUTES` (standard 15, minst 10), räknat från miljöns egen senaste telemetri, så att ett avbrott i collectorn fryser den klockan i stället för att radera den senast kända listan över uppgifter. Serverlösa funktioner använder `SERVERLESS_INSTANCE_STALE_MINUTES`. En högre tröskel behåller rader längre; den ändrar inte när de blir **Inaktuell**.
 
 ## Två miljöer där det borde finnas en
 

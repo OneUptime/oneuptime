@@ -199,6 +199,7 @@ Chaque ligne porte un `code` stable. Cherchez le vôtre ici.
 | `bootstrap-already-started` | Deux copies de l'extrait sur une même page. Retirez-en une. |
 | `bootstrap-already-running` | `bootstrap()` a été rappelé alors qu'un enregistreur tournait déjà. Sans gravité ; en général une intégration en double. |
 | `bootstrap-cancelled` | Un `revokeConsent()` ou un `stop()` mis en file sur `window.OneUptimeReplayQueue` s'est exécuté avant le démarrage de l'enregistreur, donc cette session n'est pas enregistrée. Normal si votre bannière avait déjà été refusée. |
+| `prerender-wait` | Le navigateur a pré-rendu cette page, comme Chrome le fait pour une page qu'il s'attend à voir ouvrir ensuite, et personne ne l'a encore ouverte. L'enregistreur démarre lorsque le visiteur ouvre la page, donc une page qui n'est jamais ouverte n'enregistre rien ; les appels que votre page fait entre-temps sont appliqués à ce moment-là. |
 | `start-stopped` | `start()` n'a reçu aucune politique utilisable sur le chemin du bundle auto-hébergé. La raison précise figure sur la ligne `config-*` juste au-dessus. |
 | `rrweb-did-not-start` | L'enregistreur du DOM a refusé de démarrer. Merci de le signaler. |
 | `rrweb-error` | L'enregistreur du DOM a rencontré une erreur interne sur cette page (le nom de l'erreur est dans le détail ; elle est journalisée une fois). L'enregistrement peut sauter ou se figer autour de ce point, et après trois erreurs de ce type la session porte un avis de fidélité qui le dit. Merci de le signaler avec le framework de la page et le nom de l'erreur. |

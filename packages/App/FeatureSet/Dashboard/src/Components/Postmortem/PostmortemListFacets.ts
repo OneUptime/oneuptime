@@ -172,5 +172,6 @@ export const POSTMORTEM_LIST_FACETS: Array<ResourceFacet> = [
     parentModelType: Incident,
     // Burn rate incidents are linked to the SLO that declared them.
     includeServiceLevelObjective: true,
+    includeCloudResource: true,
   }),
 ];

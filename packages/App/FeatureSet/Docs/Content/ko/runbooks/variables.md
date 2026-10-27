@@ -4,8 +4,8 @@ Runbook 변수는 단계가 값을 직접 담는 대신 이름으로 사용하�
 
 :::cards
 - [변수 만들기](#변수-만들기): 일반 값, 또는 시크릿과 그것을 사용할 수 있는 Runner.
-- [단계에서 변수 사용하기](#단계에서-변수-사용하기): 스크립트 안에서, 또는 SSH 단계의 로그인과 kubectl 단계의 kubeconfig로.
-- [시크릿을 받는 대상](#시크릿을-받는-대상): 자체 Runner, 그리고 허용한 경우 글로벌 Runner.
+- [단계에서 변수 사용하기](#단계에서-변수-사용하기): 스크립트나 HTTP 요청 안에서, 또는 SSH 단계의 로그인과 kubectl 단계의 kubeconfig로.
+- [시크릿을 받는 대상](#시크릿을-받는-대상): 자체 Runner, 허용한 경우 글로벌 Runner, 그리고 HTTP 요청 단계에서는 OneUptime 자체.
 :::
 
 ## 변수가 단계에 전달되는 방식
@@ -19,7 +19,7 @@ flowchart TB
 
 단계에는 변수의 이름만 있고 값은 없습니다. 단계의 Runner가 단계를 가져가면 OneUptime이 값을 채워 넣고(스크립트, SSH 단계의 대상 머신과 로그인, kubectl 단계의 kubeconfig) 그 Runner에게만 전달합니다. 사용할 수 없는 변수를 지정한 단계는 값 자리에 이름을 둔 채 실행되지 않고, 이유와 함께 실패합니다.
 
-변수를 사용하는 단계는 Bash, JavaScript, SSH, kubectl 단계입니다. HTTP 요청 단계와 AI 단계는 변수를 채우지 않습니다.
+변수를 사용하는 단계는 Bash, JavaScript, SSH, kubectl, HTTP 요청 단계입니다. AI 단계는 변수를 채우지 않습니다. HTTP 요청 단계는 Runner 없이 OneUptime이 직접 보내므로, 지정한 모든 변수를 시크릿까지 받고, 기록하는 응답에서는 그것들을 숨깁니다.
 
 ## 전역 변수와 Runbook 변수
 
@@ -71,20 +71,27 @@ curl -s -X POST \
   -H "Authorization: Bearer {{global.variables.CDN_API_TOKEN}}" \
   "https://api.cdn.example.com/v1/purge"
 ```
+@tab HTTP 요청에서
+[HTTP 요청 단계](/docs/runbooks/authoring#http-request)의 URL, 헤더, 본문에 참조를 씁니다.
+
+```json
+{ "Authorization": "Bearer {{global.variables.API_TOKEN}}" }
+```
 @tab SSH 로그인
 [SSH 단계](/docs/runbooks/authoring#ssh)는 개인 키나 비밀번호를 담은 시크릿 변수를 **로그인 방법** 에서 고르고, 키의 암호 문구를 **추가 필드 → 키 암호 문구** 에서 고릅니다. 키인지 비밀번호인지는 값으로 판단합니다.
 @tab Kubeconfig
 [kubectl 단계](/docs/runbooks/authoring#kubectl)는 클러스터의 kubeconfig를 담은 시크릿 변수를 **Kubeconfig** 에서 고르거나, Runner의 것을 쓰는 **Runner 자체 액세스** 를 고릅니다.
 :::
 
-Runbook의 **단계** 페이지에서는 각 스크립트 아래의 **변수 — 클릭하여 복사** 에 그 단계가 사용할 수 있는 변수가 나열되고, 단계가 없는 변수나 Runner가 사용할 수 없는 시크릿을 지정하면 편집기가 알려 줍니다.
+Runbook의 **단계** 페이지에서는 각 스크립트와 각 HTTP 요청 아래의 **변수 — 클릭하여 복사** 에 그 단계가 사용할 수 있는 변수가 나열되고, 단계가 없는 변수나 Runner가 사용할 수 없는 시크릿을 지정하면 편집기가 알려 줍니다.
 
 ## 시크릿을 받는 대상
 
-| Runner | 일반 변수 | 시크릿 |
+| 단계를 실행하는 대상 | 일반 변수 | 시크릿 |
 | --- | --- | --- |
 | 자체 Runner | 항상 | 시크릿의 **사용할 수 있는 Runner** 에 그 Runner가 있을 때 |
 | 글로벌 Runner | 항상 | **글로벌 Runner가 사용할 수 있음** 이 켜져 있고, 시크릿이 속한 프로젝트의 단계일 때 |
+| OneUptime 자체 (HTTP 요청 단계) | 항상 | 항상 |
 
 Runner가 사용할 수 없는 시크릿을 지정한 단계는 시크릿 이름과 바꿔야 할 점을 알리며 실패하고, 아무것도 전달되지 않습니다.
 

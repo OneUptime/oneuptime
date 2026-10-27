@@ -174,38 +174,116 @@ describe("StatusPageVisibilityQuery.shownEpisodes", () => {
 
 /*
  * A scheduled maintenance event is shown on a status page only while its
- * Visible on Status Page switch is on - read by its id as much as in a list.
+ * Visible on Status Page switch is on and it is published: it has no
+ * Publish on Status Page At, or that time has come (#5249) - read by its id
+ * as much as in a list.
  */
 describe("StatusPageVisibilityQuery.shownScheduledMaintenance", () => {
-  test("keeps a query to events visible on status pages", () => {
+  const NOW: Date = new Date("2026-11-24T09:00:00.000Z");
+
+  interface TimeCondition {
+    sql: string;
+    values: Array<unknown>;
+  }
+
+  // The publish time condition's SQL on column x, and the times it is bound to.
+  function publishConditionOf(query: Dictionary<unknown>): TimeCondition {
+    const findOperator: FindOperator<unknown> = query[
+      "publishOnStatusPageAt"
+    ] as FindOperator<unknown>;
+
+    expect(findOperator).toBeInstanceOf(FindOperator);
+
+    return {
+      sql: findOperator.getSql!("x"),
+      values: Object.values(
+        (findOperator.objectLiteralParameters as Record<string, unknown>) || {},
+      ),
+    };
+  }
+
+  test("keeps a query to events visible on status pages and published by now", () => {
     const query: Dictionary<unknown> =
+      StatusPageVisibilityQuery.shownScheduledMaintenance(
+        {
+          projectId: PROJECT_ID,
+          _id: "20000000-0000-4000-8000-000000000001",
+        },
+        { now: NOW },
+      ) as Dictionary<unknown>;
+
+    expect(query["projectId"]).toBe(PROJECT_ID);
+    expect(query["_id"]).toBe("20000000-0000-4000-8000-000000000001");
+    expect(query["isVisibleOnStatusPage"]).toBe(true);
+    expect(Object.keys(query).sort()).toEqual([
+      "_id",
+      "isVisibleOnStatusPage",
+      "projectId",
+      "publishOnStatusPageAt",
+    ]);
+  });
+
+  test("published: no publish time, or one that is not after now", () => {
+    const condition: TimeCondition = publishConditionOf(
+      StatusPageVisibilityQuery.shownScheduledMaintenance(
+        { projectId: PROJECT_ID },
+        { now: NOW },
+      ) as Dictionary<unknown>,
+    );
+
+    expect(condition.sql).toMatch(/^\(x <= :[A-Za-z0-9]+ or x IS NULL\)$/);
+    expect(condition.values).toEqual([NOW]);
+  });
+
+  test("without a time given, as of the moment it is asked", () => {
+    const before: number = Date.now();
+
+    const condition: TimeCondition = publishConditionOf(
       StatusPageVisibilityQuery.shownScheduledMaintenance({
         projectId: PROJECT_ID,
-        _id: "20000000-0000-4000-8000-000000000001",
-      }) as Dictionary<unknown>;
+      }) as Dictionary<unknown>,
+    );
 
-    expect(query).toEqual({
-      projectId: PROJECT_ID,
-      _id: "20000000-0000-4000-8000-000000000001",
-      isVisibleOnStatusPage: true,
-    });
+    const after: number = Date.now();
+
+    expect(condition.values).toHaveLength(1);
+
+    const asOf: number = (condition.values[0] as Date).getTime();
+
+    expect(asOf).toBeGreaterThanOrEqual(before);
+    expect(asOf).toBeLessThanOrEqual(after);
   });
 
   test("a query that asks for hidden events, or for any, still gets only visible ones", () => {
     for (const isVisibleOnStatusPage of [false, null, undefined]) {
       const query: Dictionary<unknown> =
-        StatusPageVisibilityQuery.shownScheduledMaintenance({
-          isVisibleOnStatusPage: isVisibleOnStatusPage as never,
-        }) as Dictionary<unknown>;
+        StatusPageVisibilityQuery.shownScheduledMaintenance(
+          {
+            isVisibleOnStatusPage: isVisibleOnStatusPage as never,
+          },
+          { now: NOW },
+        ) as Dictionary<unknown>;
 
       expect(query["isVisibleOnStatusPage"]).toBe(true);
     }
   });
 
+  test("a publish time the query asks for itself is replaced: never later than now", () => {
+    const query: Dictionary<unknown> =
+      StatusPageVisibilityQuery.shownScheduledMaintenance(
+        {
+          publishOnStatusPageAt: new Date("2030-01-01T00:00:00.000Z") as never,
+        },
+        { now: NOW },
+      ) as Dictionary<unknown>;
+
+    expect(publishConditionOf(query).values).toEqual([NOW]);
+  });
+
   test("does not change the query it is given", () => {
     const input: Dictionary<unknown> = { projectId: PROJECT_ID };
 
-    StatusPageVisibilityQuery.shownScheduledMaintenance(input);
+    StatusPageVisibilityQuery.shownScheduledMaintenance(input, { now: NOW });
 
     expect(input).toEqual({ projectId: PROJECT_ID });
   });

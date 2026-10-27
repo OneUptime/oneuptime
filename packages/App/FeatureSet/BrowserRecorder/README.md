@@ -118,7 +118,9 @@ session meta - already knows who the user is, while `track` and
 `captureSession` run after start, where there is a stream for them to land in.
 An unrecognised name is dropped with a `command-queue-unknown-command`
 diagnostic rather than in silence, and a call that finds no recorder at all
-logs `api-no-recorder`.
+logs `api-no-recorder` - except on a page the browser is prerendering, where
+the recorder waits for the visitor to open the page and a call made on
+`window.OneUptimeReplay` meanwhile is queued like a pushed one.
 
 **Tags are the one host-supplied string that is never masked.** Values passed
 to `setTags()` / `addTag()` are stored verbatim in every masking mode,
@@ -792,7 +794,14 @@ count from the navigation's start.
   `activationStart`, clamped at 0 - a 68 ms FCP had read 2.1 s, and TTFB had
   read the prerender's first byte where the library says 0 - and so does the
   LCP budget. A long task over before the activation kept nobody waiting and
-  does not fire the long-task budget.
+  does not fire the long-task budget. The recorder itself is built only at
+  the activation too (`bootstrap()` in `src/Index.ts`, debug code
+  `prerender-wait`): a prerender nobody opened used to upload a session
+  nobody visited. While it waits, the page's API calls are queued as if the
+  artifact had not arrived, and the errors it throws are held by the same
+  pre-load buffer the loader uses, so both are applied and replayed when the
+  visitor opens the page. `Tests/RealBrowserPrerender.test.ts` shows it in
+  Chromium.
 - **Hidden before it painted.** A page opened in a background tab is painted
   only once it is shown, so its FCP and LCP would time the tab. A paint at or
   after the first hide (Chromium's `visibility-state` entries, else a page
@@ -885,7 +894,7 @@ npm run analyze     # bundle composition
 
 ## Bundle weight
 
-Measured: **recorder.js 329.7 KB raw / 98.7 KB gzip**, **loader.js 13.3 KB raw /
+Measured: **recorder.js 331.4 KB raw / 99.2 KB gzip**, **loader.js 13.3 KB raw /
 4.9 KB gzip**. Both raw AND gzip budgets are enforced by the build (97 KB gzip
 for the recorder, 5 KB for the stub), which fails rather than shipping a
 regression — gzip being the number a customer's browser actually pays. The
@@ -896,7 +905,9 @@ view (issue #3975: 94102 → 95550 bytes gzip), and to 97 KB on 2026-10-02 for
 the idle pause (issue #4208: 96723 → 97650 bytes gzip). Its raw budget went
 from 320 KB to 323 KB on 2026-10-22 for web vitals timed as the `web-vitals`
 library times them (issue #5181: 325428 → 329727 bytes raw, 97660 → 98655
-gzip); `esbuild.config.js` carries each measurement and reason.
+gzip), and to 325 KB on 2026-10-26 for a prerendered page recorded only once
+it is opened (329727 → 331411 bytes raw, 98655 → 99218 gzip);
+`esbuild.config.js` carries each measurement and reason.
 
 It was 245 KB / 75.7 KB before the session-replay overhaul. The ~13 KB gzip
 that arrived with it is web vitals, the retry/backoff transport, cross-tab

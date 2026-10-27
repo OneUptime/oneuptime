@@ -237,7 +237,7 @@ const titleOf: (anchor: HTMLAnchorElement) => string = (
   anchor: HTMLAnchorElement,
 ): string => {
   return (
-    anchor.querySelector("span.truncate")?.textContent ??
+    anchor.querySelector('[data-testid="side-menu-item-title"]')?.textContent ??
     anchor.textContent ??
     ""
   ).trim();

@@ -22,7 +22,7 @@ flowchart TB
         Ingress["ingress"]
         App["app"]
         Probe["probe-1"]
-        Runner["runner"]
+        Runner["global-runner"]
         subgraph Data["डेटा स्टोर"]
             direction LR
             PG[("postgres")]
@@ -38,7 +38,7 @@ flowchart TB
     App --> CH
     App --> VK
     Probe -->|नतीजे| Ingress
-    Runner -->|जॉब| Ingress
+    Runner -->|जॉब| App
     Probe -->|जाँच| Targets
     Data ~~~ Probe
     Data ~~~ Runner
@@ -49,7 +49,7 @@ flowchart TB
 | `ingress` | `oneuptime/nginx` | पोर्ट 80 और 443 पर सारा ट्रैफ़िक लेती है और उसे ऐप तक भेजती है। जब OneUptime सर्टिफ़िकेट संभालता है, तब HTTPS देती है। |
 | `app` | `oneuptime/app` | डैशबोर्ड, API, स्टेटस पेज, टेलीमेट्री इनजेस्ट और बैकग्राउंड वर्कर। |
 | `probe-1` | `oneuptime/probe` | एक ग्लोबल प्रोब जो आपके मॉनिटरों की जाँच चलाता है। यह होस्ट का नेटवर्क इस्तेमाल करता है। |
-| `runner` | `oneuptime/runner` | इंस्टेंस का Runner, जो AI से कोड फ़िक्स चलाता है। यह होस्ट का नेटवर्क इस्तेमाल करता है। |
+| `global-runner` | `oneuptime/runner` | साथ आने वाला ग्लोबल Runner, जो हर प्रोजेक्ट के लिए रनबुक के JavaScript चरण और OneUptime AI के कोड सुधार चलाता है। |
 | `postgres` | `postgres:15` | कॉन्फ़िगरेशन और स्थिति: मॉनिटर, इंसिडेंट, उपयोगकर्ता। `postgres` वॉल्यूम में रखा जाता है। |
 | `clickhouse` | `clickhouse/clickhouse-server:26.7` | टेलीमेट्री: लॉग, मेट्रिक्स, ट्रेस और एक्सेप्शन। `clickhouse` वॉल्यूम में रखी जाती है। |
 | `valkey` | `valkey/valkey:9.1-alpine` | कैश और कतारें। यह डिस्क पर कुछ नहीं रखती। |
@@ -84,9 +84,8 @@ flowchart TB
 | --- | --- | --- | --- |
 | 80 | `ingress` | `ONEUPTIME_HTTP_PORT` | डैशबोर्ड, API, टेलीमेट्री इनजेस्ट और Let's Encrypt सत्यापन। |
 | 443 | `ingress` | `STATUS_PAGE_HTTPS_PORT` | जब OneUptime सर्टिफ़िकेट संभालता है तब आपके इंस्टेंस के लिए HTTPS, और कस्टम डोमेन पर स्टेटस पेज और डैशबोर्ड के लिए। |
-| 5400 | `postgres` | `docker-compose.yml` में सेट | `npm run backup` और `restore.sh` को सर्वर से ही PostgreSQL तक पहुँचने देता है। यह सिर्फ़ `127.0.0.1` पर प्रकाशित है। |
+| 5400 | `postgres` | `DATABASE_PUBLISHED_PORT` | `npm run backup` और `restore.sh` को सर्वर से ही PostgreSQL तक पहुँचने देता है। यह सिर्फ़ `127.0.0.1` पर प्रकाशित है। |
 | 3874 | `probe-1` | `GLOBAL_PROBE_1_PORT` | प्रोब का अपना सर्वर। सर्वर के बाहर किसी को इसकी ज़रूरत नहीं। |
-| 3876 | `runner` | `ONEUPTIME_RUNNER_PORT` | Runner का अपना सर्वर। सर्वर के बाहर किसी को इसकी ज़रूरत नहीं। |
 
 इंस्टॉलेशन का एक [वीडियो वॉकथ्रू](https://youtu.be/j1SWmMW2oL4) भी है।
 
@@ -133,7 +132,7 @@ npm start
 ```
 @tab Docker CLI
 ```bash
-(export $(grep -v '^#' config.env | xargs) && docker compose up --remove-orphans -d)
+sh Scripts/Install/WithConfig.sh docker compose up --remove-orphans -d
 ```
 पहली बार शुरू करने से पहले प्लेसहोल्डर सीक्रेट ख़ुद बदलें, जैसा [रैंडम सीक्रेट बनाएँ](#रैंडम-सीक्रेट-बनाएँ) में दिखाया गया है: यह काम सिर्फ़ `npm start` आपके लिए करता है।
 :::
@@ -158,8 +157,7 @@ npm start
 | `DATABASE_PASSWORD`, `CLICKHOUSE_PASSWORD`, `VALKEY_PASSWORD` | तीनों डेटा स्टोर। |
 | `REGISTER_PROBE_KEY` | आपके इंस्टेंस में प्रोब रजिस्टर करना। |
 | `GLOBAL_PROBE_1_KEY`, `GLOBAL_PROBE_2_KEY` | वे ग्लोबल प्रोब जिन्हें Docker Compose चला सकता है (`probe-1` डिफ़ॉल्ट रूप से चलता है)। |
-| `ONEUPTIME_RUNNER_KEY` | साथ आने वाला Runner। |
-| `GLOBAL_RUNNER_KEY` | साथ आने वाला ग्लोबल Runner, जो हर प्रोजेक्ट के JavaScript चरण चलाता है। |
+| `GLOBAL_RUNNER_KEY` | साथ आने वाला ग्लोबल Runner, जो हर प्रोजेक्ट के JavaScript चरण और AI कोड फ़िक्स चलाता है। |
 
 > [!IMPORTANT]
 > OneUptime शुरू हो जाने के बाद सीक्रेट न बदलें। PostgreSQL अपना पासवर्ड सिर्फ़ डेटाबेस बनाते समय लेता है, और बाद में `ENCRYPTION_SECRET` बदलने से पुराने से एन्क्रिप्ट किया हर मान पढ़ा नहीं जा सकता। इसीलिए `npm start` `DATABASE_PASSWORD` और `ENCRYPTION_SECRET` सिर्फ़ नए इंस्टॉल पर सेट करता है, PostgreSQL के अपना डेटाबेस बनाने से पहले।
@@ -234,7 +232,7 @@ ONEUPTIME_HTTP_PORT=127.0.0.1:8080
 STATUS_PAGE_HTTPS_PORT=127.0.0.1:8443
 ```
 
-प्रोब और Runner होस्ट का नेटवर्क इस्तेमाल करते हैं और `http://localhost` के ज़रिए OneUptime तक पहुँचते हैं। `npm start` उन्हें ingress के नए पोर्ट, `http://localhost:8080`, पर ले जाता है और यह बताता है।
+प्रोब होस्ट का नेटवर्क इस्तेमाल करता है और `http://localhost` के ज़रिए OneUptime तक पहुँचता है। `npm start` उसे ingress के नए पोर्ट, `http://localhost:8080`, पर ले जाता है और यह बताता है।
 
 #### OneUptime को बताएँ कि वह प्रॉक्सी के पीछे है
 
@@ -388,7 +386,7 @@ PostgreSQL वही पासवर्ड रखता है जिसके �
 
 ```bash
 NEW_PASSWORD=$(openssl rand -hex 32) &&
-  (export $(grep -v '^#' config.env | xargs) && docker compose exec -T postgres psql -U "$DATABASE_USERNAME" -d "$DATABASE_NAME" -c "ALTER USER \"$DATABASE_USERNAME\" PASSWORD '$NEW_PASSWORD'") &&
+  echo "ALTER USER CURRENT_USER PASSWORD '$NEW_PASSWORD';" | sh Scripts/Install/WithConfig.sh sh -c 'docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$DATABASE_USERNAME" -d "$DATABASE_NAME"' &&
   sed -i "s/^DATABASE_PASSWORD=.*/DATABASE_PASSWORD=$NEW_PASSWORD/" config.env
 npm start
 ```
@@ -470,7 +468,7 @@ npm run down
 आपका डेटा `oneuptime_postgres` और `oneuptime_clickhouse` वॉल्यूम में बना रहता है, और `oneuptime` फ़ोल्डर में `config.env` और आपके बैकअप रहते हैं। डेटा भी मिटाने के लिए:
 
 ```bash
-(export $(grep -v '^#' config.env | xargs) && docker compose down --volumes --remove-orphans)
+sh Scripts/Install/WithConfig.sh docker compose down --volumes --remove-orphans
 ```
 
 फिर `oneuptime` फ़ोल्डर मिटा दें।
@@ -536,12 +534,12 @@ OneUptime को `HOST` वाले पते पर खोलें। ingress
 जब कोई ऑर्डर विफल होता है, तो ऐप `CoreSSL:EnsurePrimaryHostCertificate` से शुरू होने वाली एक त्रुटि लॉग करता है, जिसके बाद वजह होती है:
 
 ```bash
-(export $(grep -v '^#' config.env | xargs) && docker compose logs app) | grep -A 5 CoreSSL
+sh Scripts/Install/WithConfig.sh docker compose logs app | grep -A 5 CoreSSL
 ```
 :::
 
 :::details ingress का पोर्ट बदलने के बाद साथ आने वाला प्रोब डिस्कनेक्टेड दिखाता है
-Admin Dashboard प्रोब को **सेटिंग्स > निगरानी > वैश्विक प्रोब** के तहत दिखाता है। यह OneUptime तक `GLOBAL_PROBE_1_ONEUPTIME_URL` पर पहुँचता है, जो डिफ़ॉल्ट रूप से `http://localhost` (पोर्ट 80) है। जब तक यह और `ONEUPTIME_RUNNER_ONEUPTIME_URL` `localhost` की ओर इशारा करते हैं, `npm start` इन्हें ingress के पोर्ट पर ले जाता है। अगर आपने इन्हें किसी दूसरे पते पर सेट किया है, या OneUptime को Docker CLI से शुरू किया है, तो दोनों को ingress के नए पोर्ट पर सेट करें, उदाहरण के लिए `http://localhost:8080`, और OneUptime को फिर से शुरू करें।
+Admin Dashboard प्रोब को **सेटिंग्स > निगरानी > वैश्विक प्रोब** के तहत दिखाता है। यह OneUptime तक `GLOBAL_PROBE_1_ONEUPTIME_URL` पर पहुँचता है, जो डिफ़ॉल्ट रूप से `http://localhost` (पोर्ट 80) है। जब तक यह `localhost` की ओर इशारा करता है, `npm start` इसे ingress के पोर्ट पर ले जाता है। अगर आपने इसे किसी दूसरे पते पर सेट किया है, या OneUptime को Docker CLI से शुरू किया है, तो इसे ingress के नए पोर्ट पर सेट करें, उदाहरण के लिए `http://localhost:8080`, और OneUptime को फिर से शुरू करें।
 :::
 
 ## अगले कदम

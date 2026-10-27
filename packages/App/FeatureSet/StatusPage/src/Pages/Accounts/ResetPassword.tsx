@@ -2,7 +2,7 @@ import PageLogo from "../../Components/Logo/PageLogo";
 import { RESET_PASSWORD_API_URL } from "../../Utils/ApiPaths";
 import StatusPageModelAPI from "../../Utils/ModelAPI";
 import PageMap from "../../Utils/PageMap";
-import RouteMap from "../../Utils/RouteMap";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import StatusPageUtil from "../../Utils/StatusPage";
 import UserUtil from "../../Utils/User";
 import Route from "Common/Types/API/Route";
@@ -34,10 +34,13 @@ const ResetPassword: FunctionComponent<ComponentProps> = (
 
   useEffect(() => {
     if (props.forceSSO) {
+      // This page's single sign-on, its id filled in on the preview.
       Navigation.navigate(
-        !StatusPageUtil.isPreviewPage()
-          ? RouteMap[PageMap.SSO]!
-          : RouteMap[PageMap.PREVIEW_SSO]!,
+        RouteUtil.populateRouteParams(
+          !StatusPageUtil.isPreviewPage()
+            ? RouteMap[PageMap.SSO]!
+            : RouteMap[PageMap.PREVIEW_SSO]!,
+        ),
       );
     }
   }, [props.forceSSO]);

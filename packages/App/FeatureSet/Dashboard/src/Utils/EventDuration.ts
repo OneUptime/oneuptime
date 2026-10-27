@@ -158,8 +158,9 @@ export function getEventDurationParts(
 /*
  * A duration's units in the reader's language, with the language's own unit
  * names, plurals and list: "10 Tage, 23 Stunden", "10 jours et 23 heures",
- * "10 дней 23 часа", "10 日 23 時間" - in Latin digits, as every other date
- * on the page (Common/Types/DateLanguage). English, an empty list, or an
+ * "10 дней 23 часа", "10 日 23 時間" - in the language's own digits, as
+ * every other date on the page (Common/Types/DateLanguage). English, an
+ * empty list, or an
  * engine without Intl's unit style: the English text getEventDurationText
  * writes, word for word. Less than a minute (no parts) is the caller's to
  * say: it is a phrase to translate, not a unit.

@@ -359,6 +359,19 @@ class BuildTest(unittest.TestCase):
         public = build.ValuesEditor((build.PUBLIC_CHART / "values.yaml").read_text())
         self.assertEqual(public.get_scalar(["updateCheck", "disabled"]), "false")
 
+    def test_no_edition_checks_in_with_oneuptime(self) -> None:
+        charts = {"aws": "oneuptime", "azure": "oneuptime", "google-cloud": "chart/oneuptime"}
+
+        for marketplace in build.MARKETPLACES:
+            build.build(marketplace, "1.2.3", self.out / marketplace)
+            values_path: Path = self.out / marketplace / charts[marketplace] / "values.yaml"
+            values = build.ValuesEditor(values_path.read_text())
+
+            self.assertEqual(values.get_scalar(["instanceCheckIn", "disabled"]), "true", marketplace)
+
+        public = build.ValuesEditor((build.PUBLIC_CHART / "values.yaml").read_text())
+        self.assertEqual(public.get_scalar(["instanceCheckIn", "disabled"]), "false")
+
     def test_writes_the_plan_for_the_mirror(self) -> None:
         build.build("aws", "1.2.3", self.out)
         plan = json.loads((self.out / "images.json").read_text())

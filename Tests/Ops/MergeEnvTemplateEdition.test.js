@@ -384,26 +384,27 @@ describe("the script, run the way configure.sh runs it", () => {
   });
 
   /*
-   * `npm run update` exports config.env with
-   * `export $(grep -v '^#' config.env | xargs)` before `docker compose pull`,
-   * so what matters is the value that export produces.
+   * `npm run update` pulls through Scripts/Install/WithConfig.sh, which gives
+   * Compose config.env's settings, so what matters is the value that loader
+   * produces.
    */
-  test("the exported APP_TAG is the Enterprise tag, quoted or not", () => {
+  test("the APP_TAG Compose pulls with is the Enterprise tag, quoted or not", () => {
     for (const appTagLine of ["APP_TAG=release", 'APP_TAG="release"']) {
       const dir = workspace();
       runScript(dir, `${appTagLine}\nIS_ENTERPRISE_EDITION=true\n`);
 
+      /*
+       * The loader runs (its #!/bin/sh) and hands its environment to
+       * printenv; no shell reads a command line here.
+       */
       const exported = spawnSync(
-        "bash",
-        [
-          "-c",
-          "export $(grep -v '^#' config.env | xargs) && printf '%s' \"$APP_TAG\"",
-        ],
+        path.join(REPO_ROOT, "Scripts", "Install", "WithConfig.sh"),
+        ["printenv", "APP_TAG"],
         { cwd: dir, encoding: "utf8" },
       );
 
       expect(exported.status).toBe(0);
-      expect(exported.stdout).toBe("enterprise-release");
+      expect(exported.stdout).toBe("enterprise-release\n");
     }
   });
 

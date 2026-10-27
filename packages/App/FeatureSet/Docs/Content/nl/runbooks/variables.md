@@ -4,8 +4,8 @@ Een runbookvariabele is een waarde die uw stappen bij naam gebruiken in plaats v
 
 :::cards
 - [Een variabele aanmaken](#een-variabele-aanmaken): Een gewone waarde, of een geheim en de Runners die het mogen gebruiken.
-- [Een variabele in een stap gebruiken](#een-variabele-in-een-stap-gebruiken): In een script, of als aanmelding van een SSH-stap en kubeconfig van een kubectl-stap.
-- [Wie een geheim ontvangt](#wie-een-geheim-ontvangt): Uw Runners, en globale Runners als u dat toestaat.
+- [Een variabele in een stap gebruiken](#een-variabele-in-een-stap-gebruiken): In een script of een HTTP-verzoek, of als aanmelding van een SSH-stap en kubeconfig van een kubectl-stap.
+- [Wie een geheim ontvangt](#wie-een-geheim-ontvangt): Uw Runners, globale Runners als u dat toestaat, en OneUptime voor een HTTP-verzoekstap.
 :::
 
 ## Hoe een variabele een stap bereikt
@@ -19,7 +19,7 @@ flowchart TB
 
 Een stap bevat de naam van de variabele, nooit de waarde. Wanneer de Runner van de stap haar opneemt, vult OneUptime de waarde in - in het script, in de machine en de aanmelding van een SSH-stap, of in de kubeconfig van een kubectl-stap - en geeft die alleen aan die Runner. Een stap die een variabele noemt die hij niet mag hebben, mislukt met de reden, in plaats van te lopen met de naam op de plek van de waarde.
 
-Bash-, JavaScript-, SSH- en kubectl-stappen gebruiken variabelen. HTTP-verzoek- en AI-stappen vullen ze niet in.
+Bash-, JavaScript-, SSH-, kubectl- en HTTP-verzoekstappen gebruiken variabelen. AI-stappen vullen ze niet in. Een HTTP-verzoekstap verstuurt OneUptime zelf, zonder Runner, dus de stap krijgt elke variabele die hij noemt, ook geheimen, en verbergt ze in het antwoord dat hij vastlegt.
 
 ## Globale variabelen en runbookvariabelen
 
@@ -71,20 +71,27 @@ curl -s -X POST \
   -H "Authorization: Bearer {{global.variables.CDN_API_TOKEN}}" \
   "https://api.cdn.example.com/v1/purge"
 ```
+@tab In een HTTP-verzoek
+Schrijf de verwijzing in de URL, de headers of de body van een [HTTP-verzoekstap](/docs/runbooks/authoring#http-request):
+
+```json
+{ "Authorization": "Bearer {{global.variables.API_TOKEN}}" }
+```
 @tab SSH-aanmelding
 Een [SSH-stap](/docs/runbooks/authoring#ssh) kiest onder **Aanmelden met** de geheime variabele die zijn privésleutel of wachtwoord bevat, en onder **Meer velden → Wachtwoordzin van de sleutel** de wachtwoordzin van zijn sleutel. De waarde zegt of het een sleutel of een wachtwoord is.
 @tab Kubeconfig
 Een [kubectl-stap](/docs/runbooks/authoring#kubectl) kiest onder **Kubeconfig** de geheime variabele die de kubeconfig van het cluster bevat, of **De eigen toegang van de Runner** om die van de Runner te gebruiken.
 :::
 
-Op de pagina **Stappen** van een runbook toont elk script onder **Variabelen — klik om te kopiëren** de variabelen die zijn stap kan gebruiken, en de editor meldt wanneer een stap een variabele noemt die er niet is, of een geheim dat zijn Runner niet mag gebruiken.
+Op de pagina **Stappen** van een runbook tonen elk script en elk HTTP-verzoek onder **Variabelen — klik om te kopiëren** de variabelen die hun stap kan gebruiken, en de editor meldt wanneer een stap een variabele noemt die er niet is, of een geheim dat zijn Runner niet mag gebruiken.
 
 ## Wie een geheim ontvangt
 
-| Runner | Een gewone variabele | Een geheim |
+| Wie de stap uitvoert | Een gewone variabele | Een geheim |
 | --- | --- | --- |
 | Een van uw Runners | Altijd | Als het geheim hem vermeldt onder **Je Runners die het mogen gebruiken** |
 | Een globale Runner | Altijd | Als **Globale Runners mogen het gebruiken** aan staat, voor een stap van het eigen project van het geheim |
+| OneUptime zelf, voor een HTTP-verzoekstap | Altijd | Altijd |
 
 Een stap die een geheim noemt dat zijn Runner niet mag gebruiken, mislukt, met de naam van het geheim en wat er moet veranderen, en er wordt niets overgedragen.
 

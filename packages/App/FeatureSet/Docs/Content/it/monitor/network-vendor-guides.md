@@ -50,7 +50,7 @@ Sophos non riporta la salute dei gateway né quella di SD-WAN via SNMP, in nessu
 
 :::steps
 1. Sul firewall, attiva SNMP in **Administration → SNMP**: aggiungi un utente SNMPv3, o una community v2c, e consenti all'indirizzo della sonda di interrogarlo.
-2. In OneUptime, vai su **Rete → Devices** e fai clic su **Aggiungi dispositivo**. Digita l'indirizzo di gestione del firewall, scegli una sonda in grado di raggiungerlo e aggiungi le credenziali SNMP in **SNMP**.
+2. In OneUptime, vai su **Rete → Dispositivi** e fai clic su **Aggiungi dispositivo**. Digita l'indirizzo di gestione del firewall, scegli una sonda in grado di raggiungerlo e aggiungi le credenziali SNMP in **SNMP**.
 3. Nella pagina **Impostazioni** del dispositivo, in **Polling & Data Collection**, applica il modello **Sophos Firewall (SFOS / XGS)** da **Vendor Health Template** e aggiungi le sue tabelle da **Add a Vendor's Tables**. Oppure attiva **Auto-Apply Vendor Health Template**, e il primo polling fa entrambe le cose.
 :::
 

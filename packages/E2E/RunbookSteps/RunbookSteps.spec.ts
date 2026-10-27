@@ -751,6 +751,178 @@ test.describe("on every screen", () => {
     });
   }
 
+  /*
+   * A phone 390px wide in German, whose waiting labels run longest
+   * ("Genehmigen und ausführen", "Als erledigt markieren"): the card's
+   * dots and padding sit closer to the edge below sm, and its buttons use
+   * the card's text size, so each label stays on one line - as high as
+   * Skip under it. ("Als abgeschlossen markieren" took two lines however
+   * wide the card; German says "Als erledigt markieren" now.)
+   */
+  for (const wait of ["approval", "manual"]) {
+    test(`a phone 390px wide, in German: the button that moves the run on (${wait}) keeps its label on one line`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize({ width: 390, height: 844 });
+      await openRun(page, `wait=${wait}&lang=de`);
+
+      expect(await overflow(page)).toBeLessThanOrEqual(0);
+
+      const label: string =
+        wait === "approval"
+          ? GERMAN["Approve and run"]!
+          : GERMAN["Mark complete"]!;
+
+      expect(label).toBe(
+        wait === "approval"
+          ? "Genehmigen und ausführen"
+          : "Als erledigt markieren",
+      );
+
+      const moveOn: Locator = page.getByRole("button", { name: label });
+      const skip: Locator = page
+        .getByRole("listitem")
+        .filter({ has: moveOn })
+        .getByRole("button", { name: GERMAN["Skip"]! });
+
+      const moveOnBox: Box = await boxOf(moveOn);
+      const skipBox: Box = await boxOf(skip);
+
+      // One line: as high as Skip, whose one word never wraps.
+      expect(Math.abs(moveOnBox.height - skipBox.height)).toBeLessThanOrEqual(
+        1,
+      );
+      await expectInside(
+        moveOn,
+        page.getByRole("listitem").filter({ has: moveOn }),
+      );
+    });
+  }
+
+  test("a phone: the timeline's line runs through the middle of its dots, and the cards sit close to them", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const width of [390, 1280]) {
+      await page.setViewportSize({ width, height: 900 });
+      await openRun(page, "wait=approval");
+
+      const line: Box = await boxOf(
+        page.getByTestId("runbook-execution-timeline-line"),
+      );
+      const dot: Box = await boxOf(
+        page
+          .getByTestId("runbook-execution-step-0-dot")
+          .locator("span")
+          .first(),
+      );
+
+      expect({
+        width,
+        offCentre:
+          Math.abs(line.x + line.width / 2 - (dot.x + dot.width / 2)) <= 1,
+      }).toEqual({ width, offCentre: true });
+
+      // The card starts after the dot and its white ring, never under it.
+      const card: Box = await boxOf(
+        page.getByTestId("runbook-execution-step-0-words"),
+      );
+      expect(card.x).toBeGreaterThan(dot.x + dot.width);
+    }
+  });
+
+  test("a run that waits says how long it has been going, counting up - never Running...", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openRun(page, "wait=approval");
+
+    const elapsed: Locator = page.getByTestId("runbook-execution-elapsed");
+
+    // The fixture's run started ten minutes ago.
+    await expect(elapsed).toHaveText(/^10 mins( \d+ secs?)?$/);
+    await expect(elapsed).toHaveAttribute("role", "timer");
+
+    const first: string = (await elapsed.textContent()) || "";
+
+    await expect(elapsed).not.toHaveText(first, { timeout: 5000 });
+    await expect(page.getByText("Running...")).toHaveCount(0);
+  });
+
+  test("a finished run says when it completed in that tile, as before", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openRun(page, "wait=approved");
+
+    await expect(page.getByTestId("runbook-execution-elapsed")).toHaveCount(0);
+
+    // The fourth tile: its label says Completed, over the time it did.
+    const lastTile: Locator = page
+      .getByTestId("runbook-execution-tiles")
+      .locator(":scope > div")
+      .nth(3);
+
+    await expect(lastTile).toContainText("Completed");
+    await expect(lastTile).not.toContainText("Elapsed");
+  });
+
+  test("dark mode: every step keeps its type's coloured edge, never the grey of its border", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const theme of ["light", "dark"]) {
+      await openSteps(page, theme === "dark" ? "theme=dark" : "");
+
+      const edges: Array<{ left: string; top: string }> = await page
+        .getByTestId("runbook-step-header")
+        .evaluateAll(
+          (headers: Array<Element>): Array<{ left: string; top: string }> => {
+            return headers.map(
+              (header: Element): { left: string; top: string } => {
+                let card: Element | null = header;
+
+                while (card && !card.classList.contains("border-l-4")) {
+                  card = card.parentElement;
+                }
+
+                const style: CSSStyleDeclaration = getComputedStyle(
+                  card as Element,
+                );
+
+                return {
+                  left: style.borderLeftColor,
+                  top: style.borderTopColor,
+                };
+              },
+            );
+          },
+        );
+
+      expect(edges.length).toBeGreaterThanOrEqual(7);
+
+      for (const edge of edges) {
+        expect({ theme, edge, isColoured: edge.left !== edge.top }).toEqual({
+          theme,
+          edge,
+          isColoured: true,
+        });
+      }
+
+      // The first step is a Manual one: Tailwind's indigo-500.
+      expect({ theme, left: edges[0]!.left }).toEqual({
+        theme,
+        left: "rgb(99, 102, 241)",
+      });
+    }
+  });
+
   test("a tablet, or a card the side menu narrows: the buttons wrap under the step's words, at the card's right edge, instead of squeezing them", async ({
     page,
   }: {

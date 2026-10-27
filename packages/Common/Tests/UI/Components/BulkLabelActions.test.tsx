@@ -40,6 +40,13 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *     last" (the stale response used to win)
  *   - the two "opening X closes an open Y modal" tests (stacked modals share
  *     one bulkActionProps and the loser goes silently inert)
+ *
+ * Since #5299 a bulk run reads the items' current labels a window of fifty
+ * at a time - one list request, not a getItem per item (BulkReadAhead) -
+ * and falls back to a getItem per item when that request fails. The tests
+ * answer the window read from the same per-item answers getItemMock gives,
+ * row by row, the way the server answers a list: the rows it can read, and
+ * not the others. The tests at the end pin the window read itself.
  */
 
 /*
@@ -61,6 +68,8 @@ jest.mock("react-i18next", () => {
 const getListMock: MockFunction = getJestMockFunction();
 const getItemMock: MockFunction = getJestMockFunction();
 const updateByIdMock: MockFunction = getJestMockFunction();
+// The bulk run's window read of the items' labels (see the note above).
+const windowReadMock: MockFunction = getJestMockFunction();
 
 /*
  * The arrow wrappers are load bearing: jest.mock is hoisted above the compiled
@@ -72,6 +81,18 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
     __esModule: true,
     default: {
       getList: (...args: Array<any>) => {
+        /*
+         * The bulk run's read of the items' current labels asks for each
+         * item's _id with them; the Remove Labels dialog's read of the
+         * selection's labels does not, and the project's labels are not
+         * read with labels of their own.
+         */
+        const select: any = (args[0] as any)?.select;
+
+        if (select?._id === true && select?.labels) {
+          return windowReadMock(...args);
+        }
+
         return getListMock(...args);
       },
       getItem: (...args: Array<any>) => {
@@ -103,6 +124,7 @@ import Includes from "../../../Types/BaseDatabase/Includes";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import IconProp from "../../../Types/Icon/IconProp";
+import ObjectID from "../../../Types/ObjectID";
 import { Red } from "../../../Types/BrandColors";
 
 /*
@@ -507,6 +529,33 @@ describe("useBulkLabelActions", () => {
 
     getListMock.mockResolvedValue({ data: [], count: 0, skip: 0, limit: 0 });
     updateByIdMock.mockResolvedValue({});
+
+    /*
+     * A window read answers with what getItem answers for each id it asks
+     * about, leaving out an id getItem has nothing for or fails on - as the
+     * server leaves out a row it cannot read.
+     */
+    windowReadMock.mockImplementation(async (listData: any): Promise<any> => {
+      const rows: Array<Monitor> = [];
+
+      for (const id of (listData.query._id as Includes).values) {
+        try {
+          const row: Monitor | null = await getItemMock({
+            modelType: listData.modelType,
+            id: new ObjectID(id.toString()),
+            select: listData.select,
+          });
+
+          if (row && row._id) {
+            rows.push(row);
+          }
+        } catch {
+          // Left out.
+        }
+      }
+
+      return { data: rows, count: rows.length, skip: 0, limit: rows.length };
+    });
 
     window.localStorage.clear();
     window.sessionStorage.clear();
@@ -949,6 +998,10 @@ describe("useBulkLabelActions", () => {
 
       return makeItemWithLabels(data.id.toString(), []);
     });
+    // The window read fails as a whole: each item is read on its own.
+    windowReadMock.mockImplementation(async (): Promise<never> => {
+      throw new Error("The list could not be read.");
+    });
 
     render(
       <Harness
@@ -972,7 +1025,8 @@ describe("useBulkLabelActions", () => {
     expect(getItemMock).toHaveBeenCalledTimes(3);
     expect(updateByIdMock).toHaveBeenCalledTimes(2);
 
-    const finalSnapshot: ProgressSnapshot = progressSnapshots[2]!;
+    const finalSnapshot: ProgressSnapshot =
+      progressSnapshots[progressSnapshots.length - 1]!;
 
     expect(finalSnapshot.successIds).toEqual([ITEM_ONE_ID, ITEM_THREE_ID]);
     expect(finalSnapshot.failedIds).toEqual([ITEM_TWO_ID]);
@@ -999,6 +1053,9 @@ describe("useBulkLabelActions", () => {
      */
     getItemMock.mockImplementation(async (): Promise<never> => {
       throw sentinel;
+    });
+    windowReadMock.mockImplementation(async (): Promise<never> => {
+      throw new Error("The list could not be read.");
     });
 
     render(<Harness items={[makeItem(ITEM_ONE_ID)]} />);
@@ -1081,6 +1138,9 @@ describe("useBulkLabelActions", () => {
 
       return makeItemWithLabels(data.id.toString(), []);
     });
+    windowReadMock.mockImplementation(async (): Promise<never> => {
+      throw new Error("The list could not be read.");
+    });
 
     render(
       <Harness
@@ -1101,27 +1161,29 @@ describe("useBulkLabelActions", () => {
 
     await waitForBulkRunToEnd();
 
-    expect(progressSnapshots).toHaveLength(3);
-
     /*
-     * The item being worked on is spliced out of inProgressItems before its own
-     * callback fires, so the remaining count is the work still queued.
+     * Several items run at once and the modal hears at most every tenth of a
+     * second (runBulkAction), so how many reports a quick run sends depends
+     * on timing. What holds for every one: each item is in exactly one list,
+     * and the first item done - whichever it is - is reported at once.
      */
-    expect(progressSnapshots[0]).toEqual({
-      totalIds: [ITEM_ONE_ID, ITEM_TWO_ID, ITEM_THREE_ID],
-      inProgressIds: [ITEM_TWO_ID, ITEM_THREE_ID],
-      successIds: [ITEM_ONE_ID],
-      failedIds: [],
-      failedMessages: [],
-    });
-    expect(progressSnapshots[1]).toEqual({
-      totalIds: [ITEM_ONE_ID, ITEM_TWO_ID, ITEM_THREE_ID],
-      inProgressIds: [ITEM_THREE_ID],
-      successIds: [ITEM_ONE_ID],
-      failedIds: [ITEM_TWO_ID],
-      failedMessages: ["boom"],
-    });
-    expect(progressSnapshots[2]).toEqual({
+    expect(progressSnapshots.length).toBeGreaterThanOrEqual(2);
+    expect(
+      progressSnapshots[0]!.successIds.length +
+        progressSnapshots[0]!.failedIds.length,
+    ).toBe(1);
+
+    for (const snapshot of progressSnapshots) {
+      const everyId: Array<string> = [
+        ...snapshot.inProgressIds,
+        ...snapshot.successIds,
+        ...snapshot.failedIds,
+      ].sort();
+
+      expect(everyId).toEqual([ITEM_ONE_ID, ITEM_TWO_ID, ITEM_THREE_ID].sort());
+    }
+
+    expect(progressSnapshots[progressSnapshots.length - 1]).toEqual({
       totalIds: [ITEM_ONE_ID, ITEM_TWO_ID, ITEM_THREE_ID],
       inProgressIds: [],
       successIds: [ITEM_ONE_ID, ITEM_THREE_ID],
@@ -1548,5 +1610,159 @@ describe("useBulkLabelActions", () => {
     expect(onBulkActionStartMock).not.toHaveBeenCalled();
     expect(getItemMock).not.toHaveBeenCalled();
     expect(updateByIdMock).not.toHaveBeenCalled();
+  });
+
+  describe("reading the items' labels a window at a time (issue #5299)", () => {
+    type AnswerWindowFunction = (data: { leaveOut?: Array<string> }) => void;
+
+    // The window read answers each id it is asked about with no labels.
+    const answerWindowsDirectly: AnswerWindowFunction = (data: {
+      leaveOut?: Array<string>;
+    }): void => {
+      windowReadMock.mockImplementation(async (listData: any): Promise<any> => {
+        const rows: Array<Monitor> = (listData.query._id as Includes).values
+          .map((id: unknown) => {
+            return String(id);
+          })
+          .filter((id: string) => {
+            return !(data.leaveOut || []).includes(id);
+          })
+          .map((id: string) => {
+            return makeItemWithLabels(id, []);
+          });
+
+        return {
+          data: rows,
+          count: rows.length,
+          skip: 0,
+          limit: rows.length,
+        };
+      });
+    };
+
+    type IdsAskedForFunction = (callIndex: number) => Array<string>;
+
+    const idsAskedFor: IdsAskedForFunction = (
+      callIndex: number,
+    ): Array<string> => {
+      const listData: any = (
+        windowReadMock.mock.calls[callIndex] as Array<any>
+      )[0];
+
+      return (listData.query._id as Includes).values.map((id: unknown) => {
+        return String(id);
+      });
+    };
+
+    type AddAlphaToFunction = (items: Array<Monitor>) => Promise<void>;
+
+    const addAlphaTo: AddAlphaToFunction = async (
+      items: Array<Monitor>,
+    ): Promise<void> => {
+      getListMock.mockResolvedValue({
+        data: [makeLabel(LABEL_ALPHA_ID, "Alpha")],
+        count: 1,
+      });
+
+      render(<Harness items={items} />);
+
+      await waitForMountedLabelFetch();
+
+      clickTrigger("Add Labels");
+      await waitForModalTitle("Add Labels");
+      await selectLabel("Alpha");
+      submitModal();
+
+      await waitForBulkRunToEnd();
+    };
+
+    test("reads the selection's labels in one list request, not a read per item", async () => {
+      answerWindowsDirectly({});
+
+      await addAlphaTo([
+        makeItem(ITEM_ONE_ID),
+        makeItem(ITEM_TWO_ID),
+        makeItem(ITEM_THREE_ID),
+      ]);
+
+      expect(windowReadMock).toHaveBeenCalledTimes(1);
+      expect(idsAskedFor(0)).toEqual([ITEM_ONE_ID, ITEM_TWO_ID, ITEM_THREE_ID]);
+
+      const listData: any = (windowReadMock.mock.calls[0] as Array<any>)[0];
+
+      // Every row it asks for, and the label ids a merge needs.
+      expect(listData.limit).toBe(3);
+      expect(listData.skip).toBe(0);
+      expect(listData.select).toEqual({ _id: true, labels: { _id: true } });
+      expect(getItemMock).not.toHaveBeenCalled();
+
+      // Each item still gets its own write, the picked label merged in.
+      expect(updateByIdMock).toHaveBeenCalledTimes(3);
+
+      const writtenIds: Array<string> = (
+        updateByIdMock.mock.calls as Array<Array<any>>
+      )
+        .map((call: Array<any>) => {
+          return String(call[0].id);
+        })
+        .sort();
+
+      expect(writtenIds).toEqual(
+        [ITEM_ONE_ID, ITEM_TWO_ID, ITEM_THREE_ID].sort(),
+      );
+
+      for (let index: number = 0; index < 3; index++) {
+        expect(getUpdatedLabelIds(index)).toEqual([LABEL_ALPHA_ID]);
+      }
+    });
+
+    test("reads a selection of more than fifty fifty at a time, in selection order", async () => {
+      answerWindowsDirectly({});
+
+      const ids: Array<string> = [];
+
+      for (let index: number = 0; index < 120; index++) {
+        ids.push(`44444444-4444-4444-8444-${String(index).padStart(12, "0")}`);
+      }
+
+      await addAlphaTo(
+        ids.map((id: string) => {
+          return makeItem(id);
+        }),
+      );
+
+      expect(windowReadMock).toHaveBeenCalledTimes(3);
+      expect(idsAskedFor(0)).toEqual(ids.slice(0, 50));
+      expect(idsAskedFor(1)).toEqual(ids.slice(50, 100));
+      expect(idsAskedFor(2)).toEqual(ids.slice(100));
+      expect(getItemMock).not.toHaveBeenCalled();
+      expect(updateByIdMock).toHaveBeenCalledTimes(120);
+      expect(
+        progressSnapshots[progressSnapshots.length - 1]!.successIds,
+      ).toHaveLength(120);
+    });
+
+    test("fails an item the read leaves out, as it failed a deleted item, and reads it no more", async () => {
+      answerWindowsDirectly({ leaveOut: [ITEM_TWO_ID] });
+
+      await addAlphaTo([
+        makeItem(ITEM_ONE_ID),
+        makeItem(ITEM_TWO_ID),
+        makeItem(ITEM_THREE_ID),
+      ]);
+
+      const last: ProgressSnapshot =
+        progressSnapshots[progressSnapshots.length - 1]!;
+
+      expect(last.failedIds).toEqual([ITEM_TWO_ID]);
+      expect(last.failedMessages).toEqual([
+        "Could not read the current labels for this item.",
+      ]);
+      expect(last.successIds.sort()).toEqual(
+        [ITEM_ONE_ID, ITEM_THREE_ID].sort(),
+      );
+      expect(getItemMock).not.toHaveBeenCalled();
+      expect(updateByIdMock).toHaveBeenCalledTimes(2);
+    });
   });
 });

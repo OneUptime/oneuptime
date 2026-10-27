@@ -68,6 +68,10 @@ Gebruik hem als de waarde binnen een bekend bereik valt: CPU- of schijfgebruik i
 
 Metric-waarden als rijen. **Group By Attributes** geeft één rij per waarde, zoals één per `host.name`; zonder groepering is elke rij een tijdsblok. **Metrics & Columns** bepaalt de kolommen: metrics, en formules daarover, zoals beschikbaarheid in procenten. Als je groepeert, maakt **Reduce across time** van de reeks van elke rij één waarde: de laatste waarde, het gemiddelde, de som, het minimum of het maximum.
 
+Zet **Kleuren op drempels** aan in een kolom om de waarden te kleuren: een waarde die de **Waarschuwingsdrempel** bereikt, wordt amber, met een driehoek, en een waarde die de **Kritieke drempel** bereikt, wordt rood en vet, met een cirkel. Een procentkolom begint bij 80 en 90. Kies voor een kolom waarin lage waarden het probleem zijn, zoals vrije schijfruimte, **Lager is slechter** onder **Richting**.
+
+Drempels lezen het getal dat de tabel toont, dus een gebruiksmetric die als fractie van 1 wordt verstuurd, zoals `system.cpu.utilization`, wordt als percentage getoond en vergeleken. Onder **Drempelkleuren** vult **Gekleurde achtergrond** de hele cel in plaats van het getal te kleuren.
+
 Gebruik hem voor een uitsplitsing in plaats van een trend: de luidruchtigste hosts, de fouten per service, de verzoeken per endpoint.
 
 ## Tekst, klok en HTML

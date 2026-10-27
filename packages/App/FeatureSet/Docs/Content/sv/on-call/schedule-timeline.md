@@ -20,7 +20,7 @@ flowchart TB
 
 ## Öppna tidslinjen
 
-- **Jourtjänst** > **Tidslinje för jourscheman** visar alla scheman du kan se, grupperade efter det team som äger dem. Knappen **Tidslinjevy** på **Jourscheman** öppnar samma sida.
+- **Jourtjänst** > **Tidslinje för jourscheman** visar alla scheman du kan se, grupperade efter det team som äger dem. På **Jourscheman** öppnar **Tidslinje för jourscheman** i menyn **⋯** samma sida.
 - **Team** > ett team > **Jourscheman** visar bara de scheman som teamet äger.
 
 Ett team äger ett schema när det finns på schemats sida **Ägare**. Scheman utan ett ägande team grupperas under **Inget ägarteam**. Stäng av **Gruppera efter team** för att se alla scheman i en lista, sorterad efter namn.

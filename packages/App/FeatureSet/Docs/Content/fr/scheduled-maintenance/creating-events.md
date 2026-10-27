@@ -5,6 +5,7 @@ Planifiez une maintenance en deux étapes courtes : dites ce qui se passe et qua
 :::cards
 - [Créer un événement](#créer-un-événement): Deux étapes et une vérification.
 - [Ce qui se passe à la création](#ce-qui-se-passe-à-la-création): Son numéro, ses règles, ses propriétaires et les premiers messages.
+- [Publier plus tard](#publier-plus-tard): Le garder hors de vos pages de statut jusqu'à une date et une heure.
 - [Modifier un événement ensuite](#modifier-un-événement-ensuite): Sa fenêtre, ses ressources, ses pages de statut et ses notes.
 - [Créer des événements par le code](#créer-des-événements-par-le-code): L'API, Terraform, les workflows et le chat.
 :::
@@ -42,7 +43,7 @@ Cliquez sur **Suivant** pour atteindre **Ressources affectées**. Choisissez les
 
 ### Choisir qui en est informé
 
-Choisissez les pages de statut sous **Afficher l'événement sur ces pages de statut**. **Notifications aux abonnés**, replié, indique en une ligne qui est prévenu et quand ; ouvrez-le pour modifier **Lorsque l'événement est planifié**, **Lorsque l'événement commence**, **Lorsque l'événement se termine** ou **Rappels avant l'événement**.
+Choisissez les pages de statut sous **Afficher l'événement sur ces pages de statut**. **Notifications aux abonnés**, replié, indique en une ligne quand l'événement s'y affiche, et qui est prévenu et quand ; ouvrez-le pour choisir **À une date et une heure précises** sous **Publier sur les pages de statut**, ou pour modifier **Lorsque l'événement est planifié**, **Lorsque l'événement commence**, **Lorsque l'événement se termine** ou **Rappels avant l'événement**.
 
 ### Le créer
 
@@ -65,11 +66,11 @@ Rien n'est envoyé tant que vous ne choisissez pas de page de statut : un évén
 | **Changer le statut du moniteur en** | **Ressources affectées** | Aucun changement          | Le statut que ces moniteurs affichent pendant l'événement. Demandé dès qu'un moniteur est choisi. |
 | **Autres ressources affectées**      | **Ressources affectées** | Aucune                    | Hôtes, clusters, bases de données, sites réseau, services et plus.               |
 | **Afficher l'événement sur ces pages de statut** | **Ressources affectées** | Aucune    | Les pages de statut qui affichent l'événement et préviennent leurs abonnés.      |
-| **Notifications aux abonnés**        | **Ressources affectées** | Les trois moments activés, aucun rappel | Quand les abonnés de ces pages sont prévenus.               |
+| **Notifications aux abonnés**        | **Ressources affectées** | Publié immédiatement, les trois moments activés, aucun rappel | Quand l'événement s'affiche sur ces pages, et quand leurs abonnés sont prévenus. |
 
 Deux choses remplissent le formulaire pour vous en cours de route :
 
-- **Ressources liées.** Quand vous choisissez un moniteur, les hôtes, clusters, services et autres ressources auxquels il est lié sont ajoutés sous **Autres ressources affectées**, et une ligne sous le champ les nomme. Retirez ceux dont vous ne voulez pas.
+- **Ressources liées.** Quand vous choisissez un moniteur, les hôtes, clusters, services et autres ressources auxquels il est lié sont ajoutés sous **Autres ressources affectées**, et une ligne sous le champ les nomme. Retirez ceux dont vous ne voulez pas. Les ressources cloud ne sont pas ajoutées : un événement de maintenance n'en contient pas.
 - **Pages de statut suggérées.** Sous **Afficher l'événement sur ces pages de statut**, les pages qui affichent vos moniteurs sont suggérées : cliquez sur le nom d'une page pour l'ajouter, ou sur **Tout ajouter**. Rien n'est choisi pour vous. Voir [Événements de maintenance planifiée](/docs/status-pages/subscribers#événements-de-maintenance-planifiée).
 
 ## Partir d'une ressource ou d'un modèle
@@ -89,7 +90,22 @@ Au moment où vous cliquez sur **Créer un événement de maintenance planifiée
 5. **Les règles de runbook démarrent** les runbooks qui correspondent à l'événement.
 6. **Les rappels sont planifiés**, quand une règle de rappel correspond, pour ses propriétaires.
 
-Dans la minute, les abonnés de ses pages de statut sont prévenus qu'il est planifié, sauf si vous avez désactivé **Lorsque l'événement est planifié**. Le déclencheur de workflow **On Create Scheduled Maintenance Event** démarre tout workflow construit dessus, et ses propriétaires en sont informés s'ils ont activé cette notification : voir [Paramètres de notification](/docs/notifications/notification-settings).
+Dans la minute qui suit sa publication, immédiate sauf si vous avez choisi un **Publier le**, les abonnés de ses pages de statut sont prévenus qu'il est planifié, sauf si vous avez désactivé **Lorsque l'événement est planifié**. Le déclencheur de workflow **On Create Scheduled Maintenance Event** démarre tout workflow construit dessus, et ses propriétaires en sont informés s'ils ont activé cette notification : voir [Paramètres de notification](/docs/notifications/notification-settings).
+
+## Publier plus tard
+
+Planifiez le travail aussi tôt que vous le souhaitez, et gardez-le au sein de votre équipe jusqu'à ce que vos clients doivent en être informés. Choisissez **À une date et une heure précises** sous **Publier sur les pages de statut**, dans le formulaire ou à l'étape **Pages de statut** de **Modifier** sur l'événement, et un **Publier le** avant **Commence le**. Jusque-là, l'événement ne figure sur aucune de ses pages de statut : ni dans leurs listes, ni dans leur historique de disponibilité, ni dans leurs flux RSS et Atom, ni dans leur calendrier de maintenance, ni dans leur API, ni à son propre lien. À ce moment-là, il s'affiche comme à venir, et ses abonnés sont prévenus une fois qu'il est planifié.
+
+| Quand                    | Ce qui se passe                                                  | Sur vos pages de statut |
+| ------------------------ | ---------------------------------------------------------------- | ----------------------- |
+| À sa création            | Vous choisissez un **Publier le** avant son **Commence le**      | Non affiché             |
+| Son **Publier le**       | Il est publié, et ses abonnés sont prévenus qu'il est planifié   | À venir                 |
+| Son **Commence le**      | Il commence, comme tout événement                                | En cours                |
+| Son **Se termine le**    | Il se termine                                                    | Passé                   |
+
+- **D'ici là, les abonnés n'en savent rien.** Les rappels avant l'événement, les changements d'état et les notes publiques ne leur sont pas envoyés tant que l'événement attend.
+- **Sa page le dit.** Son en-tête indique **Pas encore sur les pages de statut**, avec l'heure à partir de laquelle il s'affiche, et **Publier maintenant** le publie aussitôt, après confirmation. Ses **Paramètres** disent la même chose, et la liste des événements affiche l'heure sous ses pages de statut.
+- **Le modifier, ou le publier tout de suite.** Déplacez le **Publier le** à l'étape **Pages de statut** de **Modifier**, ou choisissez **Immédiatement**. Désactivez **Visible sur la page de statut** dans ses **Paramètres** pour le garder hors de ses pages de statut quelle que soit l'heure.
 
 ## Modifier un événement ensuite
 
@@ -98,7 +114,7 @@ Tout ce que contient le formulaire peut être modifié sur les pages de l'évén
 | Pour modifier                               | Allez dans                                                                     |
 | ------------------------------------------- | ------------------------------------------------------------------------------ |
 | Le titre, la fenêtre ou les étiquettes      | **Modifier** sur la carte **Détails de la maintenance** de sa **Vue d'ensemble**, étape **Événement** |
-| Les pages de statut ou les rappels          | Le même **Modifier**, étape **Pages de statut**                                 |
+| Les pages de statut, quand il est publié, ou les rappels | Le même **Modifier**, étape **Pages de statut**                     |
 | Les moniteurs, leur statut ou les autres ressources | **Modifier** sur la carte **Ressources affectées**                       |
 | La description                              | **Description** dans son menu latéral                                          |
 | Les propriétaires                           | **Propriétaires** dans son menu latéral                                        |
@@ -137,6 +153,7 @@ curl -X POST https://oneuptime.com/api/scheduled-maintenance \
 | `changeMonitorStatusToId`                             | Le statut que prennent ses moniteurs quand il commence.                                   |
 | `currentScheduledMaintenanceStateId`                  | Ignoré : chaque événement commence dans votre état planifié.                              |
 | `shouldStatusPageSubscribersBeNotifiedOnEventCreated` | L'interrupteur **Lorsque l'événement est planifié**. Les deux autres moments ont leurs propres champs. |
+| `publishOnStatusPageAt`                               | Quand l'événement est publié sur ses pages de statut et que ses abonnés sont prévenus qu'il est planifié. Omis, immédiatement. |
 
 Le même événement en code est la ressource Terraform `oneuptime_scheduled_maintenance_event` : voir [Exemples](/docs/terraform/examples#maintenance-planifiée). Un workflow en crée un avec son étape **Create One Scheduled Maintenance Event**, et `/oneuptime maintenance` ouvre le formulaire dans Slack : voir [Slack](/docs/workspace-connections/slack#créer-des-incidents-et-des-maintenances-depuis-slack).
 
@@ -152,6 +169,10 @@ Ce champ n'est demandé qu'une fois que l'événement a un moniteur. Choisissez-
 
 :::details Changer le statut du moniteur en ne peut plus être modifié
 L'événement a commencé, et ses moniteurs sont déjà dans ce statut. Le statut s'applique du début de l'événement jusqu'à sa fin.
+:::
+
+:::details Publier le doit être avant Commence le
+Un événement est publié pour que vos clients apprennent le travail avant qu'il ne commence. Choisissez un **Publier le** avant **Commence le**, ou **Immédiatement**.
 :::
 
 ## Prochaines étapes

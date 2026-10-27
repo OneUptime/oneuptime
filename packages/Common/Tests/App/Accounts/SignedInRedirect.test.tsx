@@ -50,6 +50,18 @@ import RegisterPage from "../../../../App/FeatureSet/Accounts/src/Pages/Register
  * instead of performed.
  */
 
+/*
+ * The server does not require single sign-on here, and says so at once: the
+ * sign-in pages ask before they draw (SignInMethodsStandIn).
+ */
+jest.mock("../../../../App/FeatureSet/Accounts/src/Utils/SignInMethods", () => {
+  return (
+    jest.requireActual(
+      "./SignInMethodsStandIn",
+    ) as typeof import("./SignInMethodsStandIn")
+  ).signInMethodsNotRequired();
+});
+
 jest.mock("../../../UI/Config", () => {
   return {
     ...(jest.requireActual(
@@ -166,7 +178,7 @@ describe("Accounts pages navigate a signed-in user to the Dashboard once", () =>
     await user.type(await screen.findByTestId("email"), "ada@example.com");
     await user.type(screen.getByTestId("password"), PASSWORD);
     await act(async () => {
-      await user.click(screen.getByTestId("Login"));
+      await user.click(screen.getByTestId("Sign in"));
     });
 
     await waitFor(() => {

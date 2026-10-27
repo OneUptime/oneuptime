@@ -105,6 +105,7 @@
   "register": {
     "title": "अपना OneUptime खाता बनाएं",
     "subtitle": "हजारों व्यवसायों से जुड़ें जो हमेशा ऑनलाइन रहने के लिए OneUptime का उपयोग करते हैं।",
+    "firstAccountSubtitle": "इस OneUptime सर्वर पर अभी कोई खाता नहीं है। आप जो पहला खाता बनाएँगे, वही इसका एडमिन होगा।",
     "noCreditCard": "क्रेडिट कार्ड की आवश्यकता नहीं।",
     "submitButton": "साइन अप करें",
     "haveAccountPrompt": "क्या आपके पास पहले से ही खाता है?",
@@ -131,7 +132,6 @@
     "subtitle": "कृपया अपना ईमेल दर्ज करें और पासवर्ड रीसेट लिंक आपको भेजा जाएगा।",
     "successMessage": "हमने आपको पासवर्ड रीसेट लिंक ईमेल किया है। स्पैम जांचना न भूलें।",
     "submitButton": "पासवर्ड रीसेट लिंक भेजें",
-    "returnToSignIn": "साइन इन पर वापस जाएं।",
     "rememberPasswordPrompt": "अपना पासवर्ड याद है?",
     "loginLink": "लॉग इन करें।"
   },
@@ -156,13 +156,21 @@
     "emailRequired": "इस क्रिया को करने के लिए ईमेल आवश्यक है",
     "defaultProjectName": "प्रोजेक्ट",
     "globalProvidersTitle": "अपने संगठन से साइन इन करें",
-    "globalProvidersDivider": "या ईमेल से जारी रखें"
+    "globalProvidersDivider": "या ईमेल से जारी रखें",
+    "signInWithProvider": "{{name}} से साइन इन करें",
+    "requiredSubtitle": "अपने संगठन के सिंगल साइन-ऑन (SSO) से साइन इन करें।",
+    "requiredNotSetUp": "इस सर्वर पर सिंगल साइन-ऑन अभी सेट अप नहीं है। अपने सर्वर एडमिन से इसे सेट अप करने के लिए कहें।",
+    "useDifferentEmail": "दूसरा ईमेल इस्तेमाल करें"
+  },
+  "adminLogin": {
+    "title": "मास्टर एडमिन साइन इन",
+    "subtitle": "इस सर्वर पर सिंगल साइन-ऑन (SSO) ज़रूरी है। मास्टर एडमिन अब भी यहां अपने पासवर्ड से साइन इन कर सकते हैं।"
   },
   "verifyEmail": {
     "successTitle": "आपका ईमेल सत्यापित हो गया है।",
     "successDescription": "अपना ईमेल सत्यापित करने के लिए धन्यवाद। अब आप OneUptime में लॉग इन कर सकते हैं।",
     "errorTitle": "क्षमा करें, कुछ गलत हो गया!",
-    "returnToSignIn": "साइन इन पर वापस जाएं?",
+    "alreadyVerifiedPrompt": "क्या आपने अपना ईमेल पहले ही सत्यापित कर लिया है?",
     "loginLink": "लॉग इन करें।",
     "continueToSignIn": "साइन इन करने के लिए जारी रखें",
     "linkInvalidTitle": "यह सत्यापन लिंक अब मान्य नहीं है",

@@ -36,6 +36,7 @@ import DeleteItemNames from "../DeleteConfirmation/DeleteItemNames";
 import BasicFormModal from "../FormModal/BasicFormModal";
 import FormFieldSchemaType from "../Forms/Types/FormFieldSchemaType";
 import {
+  BULK_ACTION_CONCURRENCY,
   BULK_ITEM_CHANGED,
   BulkItemOutcome,
   bulkItemUnchanged,
@@ -463,9 +464,14 @@ function useValueChangeActions<T extends BaseModel, V extends BaseModel>(
 
     const valueName: string = picked?.name || "";
 
+    /*
+     * Several rows at once: each is its own update of its own row, and what
+     * the value changes - the row's feed entry, its reminders, the on-call
+     * rules that read it - is the row's own.
+     */
     await runBulkAction<T>({
       actionProps: actionProps,
-      concurrency: 1,
+      concurrency: BULK_ACTION_CONCURRENCY,
       step: async (item: T): Promise<BulkItemOutcome> => {
         if (
           getCurrentValueId(item, config.column, config.idColumn) === valueId

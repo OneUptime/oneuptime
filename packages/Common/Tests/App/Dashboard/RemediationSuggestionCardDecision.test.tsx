@@ -189,8 +189,17 @@ describe("RemediationSuggestionCard with a recorded decision", () => {
     expect(lines).toHaveLength(2);
     expect(lines[0]).toHaveAttribute("data-tone", "attention");
     expect(lines[0]).toHaveTextContent(
-      "This incident is not linked to a Kubernetes cluster or an infrastructure resource, so OneUptime AI had nothing it could fix.",
+      "This incident is not linked to a host, cluster or database, so OneUptime AI had nothing to fix.",
     );
+    // What to do, under the sentence: add what it is about, and it tries again.
+    expect(
+      within(lines[0]!).getByTestId("remediation-decision-what-to-do"),
+    ).toHaveTextContent(
+      "What to do: Add the host, cluster or database it is about under Affected Resources, and OneUptime AI tries again.",
+    );
+    expect(
+      within(lines[0]!).queryByTestId("remediation-decision-why"),
+    ).not.toBeInTheDocument();
     expect(
       within(lines[0]!).getByRole("link", { name: "Link Checkout website" }),
     ).toHaveAttribute(

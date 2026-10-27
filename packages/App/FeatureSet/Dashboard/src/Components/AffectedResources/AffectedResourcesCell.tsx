@@ -1,6 +1,7 @@
 import CephCluster from "Common/Models/DatabaseModels/CephCluster";
 import StorageArray from "Common/Models/DatabaseModels/StorageArray";
 import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
+import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
 import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
@@ -19,6 +20,7 @@ import React, { FunctionComponent, ReactElement } from "react";
 import CephClusterElement from "../Ceph/CephClusterElement";
 import StorageArrayElement from "../StorageArray/StorageArrayElement";
 import DatabaseServerElement from "../DatabaseServer/DatabaseServerElement";
+import CloudResourceElement from "../Cloud/CloudResourceElement";
 import DockerHostElement from "../DockerHost/DockerHost";
 import DockerSwarmClusterElement from "../DockerSwarm/DockerSwarmClusterElement";
 import IoTFleetElement from "../IoT/IoTFleetElement";
@@ -62,6 +64,7 @@ type ResourceItem =
   | { _key: string; type: "DockerSwarmCluster"; model: DockerSwarmCluster }
   | { _key: string; type: "IoTFleet"; model: IoTFleet }
   | { _key: string; type: "DatabaseServer"; model: DatabaseServer }
+  | { _key: string; type: "CloudResource"; model: CloudResource }
   | { _key: string; type: "NetworkSite"; model: NetworkSite }
   | { _key: string; type: "Service"; model: Service }
   | {
@@ -83,6 +86,7 @@ export interface ComponentProps {
   dockerSwarmClusters?: Array<DockerSwarmCluster> | undefined;
   iotFleets?: Array<IoTFleet> | undefined;
   databaseServers?: Array<DatabaseServer> | undefined;
+  cloudResources?: Array<CloudResource> | undefined;
   networkSites?: Array<NetworkSite> | undefined;
   services?: Array<Service> | undefined;
   serviceLevelObjectives?: Array<ServiceLevelObjective> | undefined;
@@ -189,6 +193,15 @@ const AffectedResourcesCell: FunctionComponent<ComponentProps> = (
       }`,
       type: "DatabaseServer",
       model: databaseServer,
+    });
+  }
+  for (const cloudResource of props.cloudResources || []) {
+    items.push({
+      _key: `CloudResource:${
+        cloudResource._id ? String(cloudResource._id) : Math.random()
+      }`,
+      type: "CloudResource",
+      model: cloudResource,
     });
   }
   for (const networkSite of props.networkSites || []) {
@@ -328,6 +341,15 @@ const AffectedResourcesCell: FunctionComponent<ComponentProps> = (
           return (
             <DatabaseServerElement
               databaseServer={item.model}
+              showIcon={true}
+              onNavigateComplete={props.onNavigateComplete}
+            />
+          );
+        }
+        if (item.type === "CloudResource") {
+          return (
+            <CloudResourceElement
+              cloudResource={item.model}
               showIcon={true}
               onNavigateComplete={props.onNavigateComplete}
             />

@@ -369,7 +369,7 @@ Se forem diferentes, o usuário que escreve para o bot entrou em outro locatári
 
 ### "This Microsoft 365 organization is connected to more than one OneUptime project"
 
-Dois ou mais projetos do OneUptime estão conectados à mesma organização do Microsoft 365, e nada na mensagem os distinguiu. O botão de um cartão age no projeto do registro a que se refere, e uma mensagem no projeto do canal em que é enviada, ou então no único projeto em que a conta do Microsoft Teams de quem a envia está conectada. Envie-a de novo a partir de um canal do projeto que você quer, como um dos canais de incidentes dele. Quem não tem a conta conectada em nenhum dos projetos é solicitado a conectá-la primeiro.
+Dois ou mais projetos do OneUptime estão conectados à mesma organização do Microsoft 365, e nada na mensagem os distinguiu. O botão de um cartão age no projeto para o qual o cartão foi enviado, e uma mensagem no projeto do canal em que é enviada, ou então no único projeto em que a conta do Microsoft Teams de quem a envia está conectada. Quando nada indica qual, o bot pergunta a essa pessoa a qual projeto ela se refere, com um botão para cada projeto de que ela faz parte. Ele só responde com esta frase quando não pode perguntar: a pessoa faz parte de mais de 25 dos projetos, o nome de um projeto não pode ser lido, ou o Valkey, o cache que guarda a solicitação durante a meia hora em que os botões funcionam, está indisponível. Envie-a de novo a partir de um canal do projeto que você quer, como um dos canais de incidentes dele. Quem não tem a conta conectada em nenhum dos projetos é solicitado a conectá-la primeiro.
 
 ### "Microsoft Teams App Client ID must be a valid GUID"
 

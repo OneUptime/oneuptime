@@ -499,7 +499,7 @@ Screenshots: `value-suggestions-logs`, `value-suggestions-loading`,
 
 ## Explorers: a facet value clicks on and off
 
-`ExplorerFacetToggle.spec.ts` (10 tests, same fixture and command) pins the report
+`ExplorerFacetToggle.spec.ts` (11 tests, same fixture and command) pins the report
 "I'm not able to uncheck when I click on this": a checked value in the filter sidebar
 of the Traces, Metrics and Exceptions explorers stayed checked when clicked, and the
 Traces "Root spans" value could not be cleared from its row at all. Each value row is a
@@ -508,10 +508,15 @@ and the explorer's reads follow:
 
 - Traces: Status "Error" on and off (`statusCodes` in `/telemetry/traces/facets`, the
   "Status: Error" chip); "Root spans" on and off (`rootOnly`); two services checked and
-  one unchecked, the other staying checked (`serviceIds`). The Service facet is used
-  for that one because it lists every service, counted or not: Status is counted with
-  its own selection applied, so the other statuses drop out of it once Error is
-  checked;
+  one unchecked, the other staying checked (`serviceIds`);
+- a checked value keeps the values beside it: a facet with a value chosen is counted
+  without its own selection, in a request of its own (`facetKeys: ["statusCode"]`, no
+  `statusCodes`), and every other facet in one request that carries every filter
+  (FacetCountPlan). So with Error checked, "Unset (no error)" stays listed and can be
+  checked beside it (`statusCodes` `[0, 2]`). It used to be counted with its own
+  selection applied, and the other statuses dropped out of it once Error was checked.
+  The spec reads a facets endpoint's newest request that carries every filter, as the
+  two requests of one read may land in either order;
 - Logs: Severity "Error" on and off, in the log list's query and in the link's
   `filters`;
 - Exceptions: Exception Type "DeadlineExceededError" on and off (`exceptionTypes`);

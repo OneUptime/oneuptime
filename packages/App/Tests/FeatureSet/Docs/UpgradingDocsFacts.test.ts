@@ -597,8 +597,13 @@ describe("Upgrading from 11 → 12: the Runner merge's Compose and Helm steps", 
     expect(page).toContain(
       "The template merge appends it with the literal placeholder `please-change-this-to-random-value`; your old `AI_AGENT_KEY` value is **not** carried over.",
     );
-    expect(source("config.example.env")).toContain(
-      `ONEUPTIME_RUNNER_KEY=${PLACEHOLDER_SECRET}`,
+    /*
+     * From 14 the template ships no ONEUPTIME_RUNNER_KEY: the shared Runner
+     * it was for is gone, and the 14 notes say its lines may be deleted.
+     */
+    expect(source("config.example.env")).not.toContain("ONEUPTIME_RUNNER_KEY=");
+    expect(page).toContain(
+      "and you may delete those three lines from `config.env`",
     );
     expect(mergeEnvScript.RENAMED_FROM["ONEUPTIME_RUNNER_KEY"]).toBeUndefined();
 
@@ -632,8 +637,9 @@ describe("Upgrading from 11 → 12: the Runner merge's Compose and Helm steps", 
     expect(schema.additionalProperties).toBe(false);
     expect(Object.keys(schema.properties)).toContain("runner");
     expect(Object.keys(schema.properties)).not.toContain("aiAgent");
+    // The metric scales the global Runner now, which took the code fixes.
     expect(source(`${CHART}/templates/keda-scaledobjects.yaml`)).toMatch(
-      /\.Values\.runner\.keda\.enabled[^\n]*"query" "oneuptime_ai_agent_queue_size"/,
+      /\.Values\.globalRunner\.keda\.enabled[^\n]*"query" "oneuptime_ai_agent_queue_size"/,
     );
   });
 });

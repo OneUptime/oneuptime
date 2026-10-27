@@ -5434,6 +5434,27 @@ ${FeedMarkdown.asMarkdown(incident.remediationNotes || "No remediation notes pro
         const updatedIncidentData: IncidentUpdatePayload = (onUpdate.updateBy
           .data ?? {}) as IncidentUpdatePayload;
 
+        /*
+         * Linked to what it is about - a cluster, a host, a monitor - after
+         * auto-remediation found nothing it could fix on it because it was
+         * linked to nothing (#5293): OneUptime AI tries again, when the
+         * engine finds it may (onSubjectUpdated). Not awaited: an edit
+         * never waits for a fix to start.
+         */
+        AutoRemediationRuleEngineService.onSubjectUpdated({
+          projectId: projectId,
+          incidentId: incidentId,
+          written: updatedIncidentData,
+        }).catch((relinkError: unknown) => {
+          logger.error(
+            `Trying auto-remediation again failed in IncidentService.onUpdateSuccess: ${relinkError}`,
+            {
+              projectId: projectId?.toString(),
+              incidentId: incidentId?.toString(),
+            } as LogAttributes,
+          );
+        });
+
         const createdByUserId: ObjectID | undefined | null =
           onUpdate.updateBy.props.userId;
 

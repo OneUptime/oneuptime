@@ -22,7 +22,7 @@ flowchart TB
         Ingress["ingress"]
         App["app"]
         Probe["probe-1"]
-        Runner["runner"]
+        Runner["global-runner"]
         subgraph Data["Datalagre"]
             direction LR
             PG[("postgres")]
@@ -38,7 +38,7 @@ flowchart TB
     App --> CH
     App --> VK
     Probe -->|resultater| Ingress
-    Runner -->|jobber| Ingress
+    Runner -->|jobber| App
     Probe -->|sjekker| Targets
     Data ~~~ Probe
     Data ~~~ Runner
@@ -49,7 +49,7 @@ flowchart TB
 | `ingress` | `oneuptime/nginx` | Tar imot all trafikk på port 80 og 443 og sender den videre til appen. Leverer HTTPS når OneUptime administrerer sertifikatet. |
 | `app` | `oneuptime/app` | Dashbordet, API-et, statussider, innhenting av telemetri og bakgrunnsarbeiderne. |
 | `probe-1` | `oneuptime/probe` | En global probe som kjører monitorenes sjekker. Den bruker vertens nettverk. |
-| `runner` | `oneuptime/runner` | Instansens Runner, som kjører AI-kodeforbedringer. Den bruker vertens nettverk. |
+| `global-runner` | `oneuptime/runner` | Den medfølgende globale Runneren, som kjører JavaScript-trinnene i runbooks og koderettingene til OneUptime AI for alle prosjekter. |
 | `postgres` | `postgres:15` | Konfigurasjon og tilstand: monitorer, hendelser, brukere. Lagret i volumet `postgres`. |
 | `clickhouse` | `clickhouse/clickhouse-server:26.7` | Telemetri: logger, metrikker, traces og unntak. Lagret i volumet `clickhouse`. |
 | `valkey` | `valkey/valkey:9.1-alpine` | Hurtigbuffer og køer. Den lagrer ingenting på disk. |
@@ -84,9 +84,8 @@ Du trenger også:
 | --- | --- | --- | --- |
 | 80 | `ingress` | `ONEUPTIME_HTTP_PORT` | Dashbordet, API-et, innhenting av telemetri og validering hos Let's Encrypt. |
 | 443 | `ingress` | `STATUS_PAGE_HTTPS_PORT` | HTTPS for instansen din når OneUptime administrerer sertifikatet, og for statussider og dashbord på egne domener. |
-| 5400 | `postgres` | Satt i `docker-compose.yml` | Lar `npm run backup` og `restore.sh` nå PostgreSQL fra selve serveren. Den er bare publisert på `127.0.0.1`. |
+| 5400 | `postgres` | `DATABASE_PUBLISHED_PORT` | Lar `npm run backup` og `restore.sh` nå PostgreSQL fra selve serveren. Den er bare publisert på `127.0.0.1`. |
 | 3874 | `probe-1` | `GLOBAL_PROBE_1_PORT` | Probens egen server. Ingenting utenfor serveren trenger den. |
-| 3876 | `runner` | `ONEUPTIME_RUNNER_PORT` | Runnerens egen server. Ingenting utenfor serveren trenger den. |
 
 Det finnes også en [videogjennomgang](https://youtu.be/j1SWmMW2oL4) av installasjonen.
 
@@ -133,7 +132,7 @@ npm start
 ```
 @tab Docker CLI
 ```bash
-(export $(grep -v '^#' config.env | xargs) && docker compose up --remove-orphans -d)
+sh Scripts/Install/WithConfig.sh docker compose up --remove-orphans -d
 ```
 Før første start erstatter du plassholderhemmelighetene selv, som [Generer tilfeldige hemmeligheter](#generer-tilfeldige-hemmeligheter) viser: Bare `npm start` gjør det for deg.
 :::
@@ -158,8 +157,7 @@ Alle som kan nå siden, kan registrere seg etter deg. For å hindre det åpner d
 | `DATABASE_PASSWORD`, `CLICKHOUSE_PASSWORD`, `VALKEY_PASSWORD` | De tre datalagrene. |
 | `REGISTER_PROBE_KEY` | Registrering av prober hos instansen din. |
 | `GLOBAL_PROBE_1_KEY`, `GLOBAL_PROBE_2_KEY` | De globale probene Docker Compose kan kjøre (`probe-1` kjører som standard). |
-| `ONEUPTIME_RUNNER_KEY` | Den medfølgende Runneren. |
-| `GLOBAL_RUNNER_KEY` | Den medfølgende globale Runneren, som kjører JavaScript-trinnene til alle prosjekter. |
+| `GLOBAL_RUNNER_KEY` | Den medfølgende globale Runneren, som kjører JavaScript-trinnene og AI-koderettingene til alle prosjekter. |
 
 > [!IMPORTANT]
 > Behold hemmelighetene når OneUptime har startet. PostgreSQL tar bare passordet sitt når den oppretter databasen, og endrer du `ENCRYPTION_SECRET` senere, blir hver verdi som er kryptert med den gamle, uleselig. Derfor setter `npm start` `DATABASE_PASSWORD` og `ENCRYPTION_SECRET` bare på en ny installasjon, før PostgreSQL oppretter databasen sin.
@@ -234,7 +232,7 @@ ONEUPTIME_HTTP_PORT=127.0.0.1:8080
 STATUS_PAGE_HTTPS_PORT=127.0.0.1:8443
 ```
 
-Proben og Runneren bruker vertens nettverk og når OneUptime gjennom `http://localhost`. `npm start` flytter dem til ingressens nye port, `http://localhost:8080`, og sier fra.
+Proben bruker vertens nettverk og når OneUptime gjennom `http://localhost`. `npm start` flytter den til ingressens nye port, `http://localhost:8080`, og sier fra.
 
 #### Fortell OneUptime at den står bak en proxy
 
@@ -388,7 +386,7 @@ PostgreSQL beholder passordet den ble opprettet med, så endrer du bare `DATABAS
 
 ```bash
 NEW_PASSWORD=$(openssl rand -hex 32) &&
-  (export $(grep -v '^#' config.env | xargs) && docker compose exec -T postgres psql -U "$DATABASE_USERNAME" -d "$DATABASE_NAME" -c "ALTER USER \"$DATABASE_USERNAME\" PASSWORD '$NEW_PASSWORD'") &&
+  echo "ALTER USER CURRENT_USER PASSWORD '$NEW_PASSWORD';" | sh Scripts/Install/WithConfig.sh sh -c 'docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$DATABASE_USERNAME" -d "$DATABASE_NAME"' &&
   sed -i "s/^DATABASE_PASSWORD=.*/DATABASE_PASSWORD=$NEW_PASSWORD/" config.env
 npm start
 ```
@@ -470,7 +468,7 @@ npm run down
 Dataene dine blir værende i volumene `oneuptime_postgres` og `oneuptime_clickhouse`, og mappen `oneuptime` beholder `config.env` og sikkerhetskopiene dine. For å slette dataene også:
 
 ```bash
-(export $(grep -v '^#' config.env | xargs) && docker compose down --volumes --remove-orphans)
+sh Scripts/Install/WithConfig.sh docker compose down --volumes --remove-orphans
 ```
 
 Slett deretter mappen `oneuptime`.
@@ -536,12 +534,12 @@ Til Let's Encrypt utsteder sertifikatet, leverer ingressen et midlertidig selvsi
 Når en bestilling feiler, logger appen en feil som begynner med `CoreSSL:EnsurePrimaryHostCertificate`, etterfulgt av årsaken:
 
 ```bash
-(export $(grep -v '^#' config.env | xargs) && docker compose logs app) | grep -A 5 CoreSSL
+sh Scripts/Install/WithConfig.sh docker compose logs app | grep -A 5 CoreSSL
 ```
 :::
 
 :::details Den medfølgende proben viser Frakoblet etter at du flyttet ingressens port
-Admin Dashboard viser proben under **Innstillinger > Overvåking > Globale prober**. Den når OneUptime på `GLOBAL_PROBE_1_ONEUPTIME_URL`, som er `http://localhost` (port 80) som standard. `npm start` flytter den og `ONEUPTIME_RUNNER_ONEUPTIME_URL` til ingressens port så lenge de peker på `localhost`. Har du satt dem til en annen adresse, eller startet OneUptime med Docker CLI, setter du begge til ingressens nye port, for eksempel `http://localhost:8080`, og starter OneUptime på nytt.
+Admin Dashboard viser proben under **Innstillinger > Overvåking > Globale prober**. Den når OneUptime på `GLOBAL_PROBE_1_ONEUPTIME_URL`, som er `http://localhost` (port 80) som standard. `npm start` flytter den til ingressens port så lenge den peker på `localhost`. Har du satt den til en annen adresse, eller startet OneUptime med Docker CLI, setter du den til ingressens nye port, for eksempel `http://localhost:8080`, og starter OneUptime på nytt.
 :::
 
 ## Neste steg

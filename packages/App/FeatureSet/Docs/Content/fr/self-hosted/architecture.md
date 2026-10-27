@@ -11,7 +11,7 @@ flowchart TB
         direction TB
         Ingress["Ingress<br/>(Nginx, TLS)"]
         App["Application<br/>tableaux de bord,<br/>pages de statut,<br/>API, ingestion,<br/>tâches de fond"]
-        Runner["Runner"]
+        Runner["Agent Runbook global"]
         Probe["Sondes"]
         subgraph Data["Magasins de données"]
             direction LR
@@ -54,8 +54,7 @@ flowchart TB
 | Worker | Fait partie de `app` | `worker` (désactivé par défaut) | Les tâches de fond, dans leurs propres pods, pour que le traitement lourd des files d'attente ne concurrence jamais les requêtes d'API. |
 | Telemetry writer | Fait partie de `app` | `telemetryWriter` (désactivé par défaut) | Un niveau de taille fixe qui effectue chaque insertion ClickHouse, pour que les insertions restent bornées quel que soit le nombre de workers. |
 | Sonde | `probe-1` | `probes` | Exécute les vérifications des moniteurs et renvoie les résultats. Chaque sonde fournie est une sonde globale que tous les projets peuvent utiliser. |
-| Runner | `runner` | `runner` | Le Runner propre à l'instance, qui peut exécuter les corrections de code par IA pour chaque projet. Les étapes des runbooks s'exécutent sur les [Runners](/docs/runbooks/agents) que vous installez là où elles doivent s'exécuter. |
-| Agent Runbook global | `global-runner` | `globalRunner` | Un [agent Runbook global](/docs/runbooks/agents#agents-runbook-globaux) : il exécute les étapes JavaScript de chaque projet qui ne choisit pas de Runner à lui, chacune dans un bac à sable qui n'atteint qu'internet. Il détient sa propre clé et rien d'autre du serveur. |
+| Agent Runbook global | `global-runner` | `globalRunner` | Un [agent Runbook global](/docs/runbooks/agents#agents-runbook-globaux) : il exécute les étapes JavaScript de chaque projet qui ne choisit pas de Runner à lui, chacune dans un bac à sable qui n'atteint qu'internet, et les corrections de code de OneUptime AI dans chaque dépôt de code qui n'en choisit aucun. Il détient sa propre clé et rien d'autre du serveur. Les étapes Bash, SSH et kubectl s'exécutent sur les [Runners](/docs/runbooks/agents) que vous installez là où elles doivent s'exécuter. |
 | PostgreSQL | `postgres` | `postgresql`, ou `postgresOperator.cnpg` | Les projets, moniteurs, incidents, utilisateurs et tous les autres paramètres et états. |
 | ClickHouse | `clickhouse` | `clickhouse`, ou `clickhouseOperator.altinity` | Les logs, métriques, traces, exceptions, profils et logs de moniteurs. |
 | Valkey | `valkey` | `valkey` | Le cache, les files de tâches et l'état de courte durée, comme les accusés de push en attente. |
@@ -64,9 +63,10 @@ Tous les rôles de l'application utilisent la même image : Docker Compose les e
 
 ## Connexions sortant de votre réseau
 
-Trois connexions sont établies tant que vous ne changez pas un réglage :
+Quatre connexions sont établies tant que vous ne changez pas un réglage :
 
 - Une fois par jour, l'application demande à l'API de GitHub (`api.github.com`) si une version plus récente est sortie. Pour désactiver cela, définissez `updateCheck.disabled: true` dans le chart Helm, ou `DISABLE_UPDATE_CHECK=true` dans `config.env` avec Docker Compose.
+- Une fois par jour, l'application communique à `oneuptime.com` l'adresse de votre installation et la version qu'elle exécute, pour que OneUptime sache quelles installations exécutent encore une version présentant une faille de sécurité. Rien n'est envoyé au sujet de vos utilisateurs, de vos projets ou de vos données de supervision. Pour désactiver cela, définissez `instanceCheckIn.disabled: true` dans le chart Helm, ou `DISABLE_INSTANCE_CHECK_IN=true` dans `config.env` avec Docker Compose.
 - S'inscrire avec « M'avertir des correctifs de sécurité et des nouvelles versions » coché, comme c'est le cas au départ, envoie à `oneuptime.com` le nom et l'e-mail de la personne, l'entreprise et le numéro de téléphone qu'elle a indiqués, ainsi que l'adresse et la version de votre installation. Décochez cette case sur un réseau sans accès à Internet.
 - Sur Kubernetes, les sondes se rabattent sur les résolveurs publics `8.8.8.8` et `1.1.1.1` après le DNS de votre cluster. Définissez `dnsConfig.nameservers` sur `[]` pour que chaque résolution reste sur votre propre DNS.
 

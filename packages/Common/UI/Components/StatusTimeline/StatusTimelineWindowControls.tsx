@@ -59,8 +59,13 @@ const StatusTimelineWindowControls: FunctionComponent<ComponentProps> = (
       data-testid={`${props.dataTestIdPrefix}-window-controls`}
     >
       {props.range && props.onRangeChange && (
+        /*
+         * Earlier on the left and later on the right in every language, as
+         * the band under them runs: a right-to-left page lays the row out
+         * the other way round and keeps the arrows unturned.
+         */
         <div
-          className="flex min-w-0 max-w-full items-center gap-1.5"
+          className="flex min-w-0 max-w-full items-center gap-1.5 [&:dir(rtl)]:flex-row-reverse"
           data-testid={`${props.dataTestIdPrefix}-period`}
         >
           <button
@@ -72,7 +77,11 @@ const StatusTimelineWindowControls: FunctionComponent<ComponentProps> = (
             data-testid={`${props.dataTestIdPrefix}-earlier`}
             onClick={props.onEarlier}
           >
-            <Icon icon={IconProp.ChevronLeft} className="h-4 w-4" />
+            <Icon
+              icon={IconProp.ChevronLeft}
+              className="h-4 w-4"
+              isMirroredRightToLeft={false}
+            />
           </button>
           <TimeRangePickerDropdown
             value={props.range}
@@ -89,7 +98,11 @@ const StatusTimelineWindowControls: FunctionComponent<ComponentProps> = (
             data-testid={`${props.dataTestIdPrefix}-later`}
             onClick={props.onLater}
           >
-            <Icon icon={IconProp.ChevronRight} className="h-4 w-4" />
+            <Icon
+              icon={IconProp.ChevronRight}
+              className="h-4 w-4"
+              isMirroredRightToLeft={false}
+            />
           </button>
         </div>
       )}

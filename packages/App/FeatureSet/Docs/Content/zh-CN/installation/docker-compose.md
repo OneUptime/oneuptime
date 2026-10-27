@@ -22,7 +22,7 @@ flowchart TB
         Ingress["ingress"]
         App["app"]
         Probe["probe-1"]
-        Runner["runner"]
+        Runner["global-runner"]
         subgraph Data["数据存储"]
             direction LR
             PG[("postgres")]
@@ -38,7 +38,7 @@ flowchart TB
     App --> CH
     App --> VK
     Probe -->|结果| Ingress
-    Runner -->|任务| Ingress
+    Runner -->|任务| App
     Probe -->|检查| Targets
     Data ~~~ Probe
     Data ~~~ Runner
@@ -49,7 +49,7 @@ flowchart TB
 | `ingress` | `oneuptime/nginx` | 接收端口 80 和 443 上的所有流量，并路由到应用。当 OneUptime 管理证书时提供 HTTPS。 |
 | `app` | `oneuptime/app` | 仪表板、API、状态页面、遥测数据接收和后台任务进程。 |
 | `probe-1` | `oneuptime/probe` | 执行监控器检查的全局探针。它使用主机网络。 |
-| `runner` | `oneuptime/runner` | 实例的 Runner，负责执行 AI 代码修复。它使用主机网络。 |
+| `global-runner` | `oneuptime/runner` | 内置的全局 Runner，为所有项目运行运行手册的 JavaScript 步骤和 OneUptime AI 的代码修复。 |
 | `postgres` | `postgres:15` | 配置和状态：监控器、事件、用户。保存在 `postgres` 卷中。 |
 | `clickhouse` | `clickhouse/clickhouse-server:26.7` | 遥测数据：日志、指标、追踪和异常。保存在 `clickhouse` 卷中。 |
 | `valkey` | `valkey/valkey:9.1-alpine` | 缓存和队列。它不在磁盘上保存任何数据。 |
@@ -84,9 +84,8 @@ flowchart TB
 | --- | --- | --- | --- |
 | 80 | `ingress` | `ONEUPTIME_HTTP_PORT` | 仪表板、API、遥测数据接收和 Let's Encrypt 验证。 |
 | 443 | `ingress` | `STATUS_PAGE_HTTPS_PORT` | 当 OneUptime 管理证书时为实例提供 HTTPS，并为自定义域名上的状态页面和仪表板提供 HTTPS。 |
-| 5400 | `postgres` | 在 `docker-compose.yml` 中设置 | 让 `npm run backup` 和 `restore.sh` 从服务器本机访问 PostgreSQL。它只发布在 `127.0.0.1` 上。 |
+| 5400 | `postgres` | `DATABASE_PUBLISHED_PORT` | 让 `npm run backup` 和 `restore.sh` 从服务器本机访问 PostgreSQL。它只发布在 `127.0.0.1` 上。 |
 | 3874 | `probe-1` | `GLOBAL_PROBE_1_PORT` | 探针自身的服务器。服务器之外不需要访问它。 |
-| 3876 | `runner` | `ONEUPTIME_RUNNER_PORT` | Runner 自身的服务器。服务器之外不需要访问它。 |
 
 另有一个安装过程的 [视频演示](https://youtu.be/j1SWmMW2oL4)。
 
@@ -133,7 +132,7 @@ npm start
 ```
 @tab Docker CLI
 ```bash
-(export $(grep -v '^#' config.env | xargs) && docker compose up --remove-orphans -d)
+sh Scripts/Install/WithConfig.sh docker compose up --remove-orphans -d
 ```
 首次启动前，请按 [生成随机密钥](#生成随机密钥) 中的说明自己替换占位密钥：只有 `npm start` 会替你完成这一步。
 :::
@@ -158,8 +157,7 @@ npm start
 | `DATABASE_PASSWORD`、`CLICKHOUSE_PASSWORD`、`VALKEY_PASSWORD` | 三个数据存储。 |
 | `REGISTER_PROBE_KEY` | 向你的实例注册探针。 |
 | `GLOBAL_PROBE_1_KEY`、`GLOBAL_PROBE_2_KEY` | Docker Compose 可以运行的全局探针（默认运行 `probe-1`）。 |
-| `ONEUPTIME_RUNNER_KEY` | 内置的 Runner。 |
-| `GLOBAL_RUNNER_KEY` | 内置的全局 Runner，运行所有项目的 JavaScript 步骤。 |
+| `GLOBAL_RUNNER_KEY` | 内置的全局 Runner，运行所有项目的 JavaScript 步骤和 AI 代码修复。 |
 
 > [!IMPORTANT]
 > OneUptime 启动后，请保持这些密钥不变。PostgreSQL 只在创建数据库时采用密码，而之后更改 `ENCRYPTION_SECRET` 会让所有用旧密钥加密的值都无法读取。因此 `npm start` 只在全新安装、PostgreSQL 创建数据库之前设置 `DATABASE_PASSWORD` 和 `ENCRYPTION_SECRET`。
@@ -234,7 +232,7 @@ ONEUPTIME_HTTP_PORT=127.0.0.1:8080
 STATUS_PAGE_HTTPS_PORT=127.0.0.1:8443
 ```
 
-探针和 Runner 使用主机网络，通过 `http://localhost` 访问 OneUptime。`npm start` 会把它们改到 ingress 的新端口 `http://localhost:8080`，并加以说明。
+探针使用主机网络，通过 `http://localhost` 访问 OneUptime。`npm start` 会把它改到 ingress 的新端口 `http://localhost:8080`，并加以说明。
 
 #### 告诉 OneUptime 它位于代理之后
 
@@ -388,7 +386,7 @@ PostgreSQL 会一直使用创建时的密码，所以只更改 `config.env` 中�
 
 ```bash
 NEW_PASSWORD=$(openssl rand -hex 32) &&
-  (export $(grep -v '^#' config.env | xargs) && docker compose exec -T postgres psql -U "$DATABASE_USERNAME" -d "$DATABASE_NAME" -c "ALTER USER \"$DATABASE_USERNAME\" PASSWORD '$NEW_PASSWORD'") &&
+  echo "ALTER USER CURRENT_USER PASSWORD '$NEW_PASSWORD';" | sh Scripts/Install/WithConfig.sh sh -c 'docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$DATABASE_USERNAME" -d "$DATABASE_NAME"' &&
   sed -i "s/^DATABASE_PASSWORD=.*/DATABASE_PASSWORD=$NEW_PASSWORD/" config.env
 npm start
 ```
@@ -470,7 +468,7 @@ npm run down
 你的数据保留在 `oneuptime_postgres` 和 `oneuptime_clickhouse` 卷中，`oneuptime` 文件夹也会保留 `config.env` 和你的备份。如果还要删除数据：
 
 ```bash
-(export $(grep -v '^#' config.env | xargs) && docker compose down --volumes --remove-orphans)
+sh Scripts/Install/WithConfig.sh docker compose down --volumes --remove-orphans
 ```
 
 然后删除 `oneuptime` 文件夹。
@@ -536,12 +534,12 @@ npm run logs
 当申请失败时，应用会记录一条以 `CoreSSL:EnsurePrimaryHostCertificate` 开头、后面跟着原因的错误：
 
 ```bash
-(export $(grep -v '^#' config.env | xargs) && docker compose logs app) | grep -A 5 CoreSSL
+sh Scripts/Install/WithConfig.sh docker compose logs app | grep -A 5 CoreSSL
 ```
 :::
 
 :::details 移动 ingress 端口后，内置探针显示已断开
-Admin Dashboard 在 **设置 > 监控 > 全局探针** 下列出该探针。它通过 `GLOBAL_PROBE_1_ONEUPTIME_URL` 访问 OneUptime，默认值为 `http://localhost`（端口 80）。只要它和 `ONEUPTIME_RUNNER_ONEUPTIME_URL` 指向 `localhost`，`npm start` 就会把它们改到 ingress 的端口。如果你把它们设成了其他地址，或者是用 Docker CLI 启动的 OneUptime，请把两者都设为 ingress 的新端口，例如 `http://localhost:8080`，然后重启 OneUptime。
+Admin Dashboard 在 **设置 > 监控 > 全局探针** 下列出该探针。它通过 `GLOBAL_PROBE_1_ONEUPTIME_URL` 访问 OneUptime，默认值为 `http://localhost`（端口 80）。只要它指向 `localhost`，`npm start` 就会把它改到 ingress 的端口。如果你把它设成了其他地址，或者是用 Docker CLI 启动的 OneUptime，请把它设为 ingress 的新端口，例如 `http://localhost:8080`，然后重启 OneUptime。
 :::
 
 ## 后续步骤

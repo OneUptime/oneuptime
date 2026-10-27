@@ -5,6 +5,7 @@ Schedule maintenance in two short steps: say what is happening and when, then wh
 :::cards
 - [Create an event](#create-an-event): Two steps and a review.
 - [What happens when you create it](#what-happens-when-you-create-it): Its number, rules, owners and the first messages.
+- [Publish it later](#publish-it-later): Keep it off your status pages until a date and time.
 - [Change an event later](#change-an-event-later): Its window, resources, status pages and notes.
 - [Create events from code](#create-events-from-code): The API, Terraform, workflows and chat.
 :::
@@ -42,7 +43,7 @@ Click **Next** to reach **Resources Affected**. Pick the **Monitors** the work t
 
 ### Choose who hears about it
 
-Pick the status pages under **Show event on these status pages**. **Subscriber Notifications**, folded, says in one line who is told and when; open it to change **When the event is scheduled**, **When the event starts**, **When the event ends** or **Reminders before the event**.
+Pick the status pages under **Show event on these status pages**. **Subscriber Notifications**, folded, says in one line when the event shows on them and who is told when; open it to pick **At a date and time** under **Publish on Status Pages**, or to change **When the event is scheduled**, **When the event starts**, **When the event ends** or **Reminders before the event**.
 
 ### Create it
 
@@ -65,11 +66,11 @@ Nothing is sent until you pick a status page: an event shown on no status page t
 | **Change Monitor Status to**         | **Resources Affected** | No change                   | The status those monitors show during the event. Asked once a monitor is picked. |
 | **Other Affected Resources**         | **Resources Affected** | None                        | Hosts, clusters, databases, network sites, services and more.                    |
 | **Show event on these status pages** | **Resources Affected** | None                        | The status pages that show the event and tell their subscribers.                 |
-| **Subscriber Notifications**         | **Resources Affected** | All three moments on, no reminders | When the subscribers of those pages are told.                           |
+| **Subscriber Notifications**         | **Resources Affected** | Published right away, all three moments on, no reminders | When the event shows on those pages, and when their subscribers are told. |
 
 Two things fill the form in for you as you go:
 
-- **Linked resources.** When you pick a monitor, the hosts, clusters, services and other resources it is linked to are added under **Other Affected Resources**, and a line under the field names them. Remove any you do not want.
+- **Linked resources.** When you pick a monitor, the hosts, clusters, services and other resources it is linked to are added under **Other Affected Resources**, and a line under the field names them. Remove any you do not want. Cloud resources are not added: a maintenance event does not hold them.
 - **Suggested status pages.** Under **Show event on these status pages**, the pages that show your monitors are suggested: click a page's name to add it, or **Add all**. Nothing is picked for you. See [Scheduled maintenance events](/docs/status-pages/subscribers#scheduled-maintenance-events).
 
 ## Start from a resource or a template
@@ -89,7 +90,22 @@ The moment you click **Create Scheduled Maintenance Event**, OneUptime works thr
 5. **Runbook rules start** the runbooks that match the event.
 6. **Reminders are scheduled**, when a reminder rule matches, for its owners.
 
-Within a minute, the subscribers of its status pages are told that it is scheduled, unless you turned **When the event is scheduled** off. The **On Create Scheduled Maintenance Event** workflow trigger starts any workflow built on it, and its owners hear of it if they turned that notification on: see [Notification Settings](/docs/notifications/notification-settings).
+Within a minute of its publishing, which is right away unless you picked a **Publish At**, the subscribers of its status pages are told that it is scheduled, unless you turned **When the event is scheduled** off. The **On Create Scheduled Maintenance Event** workflow trigger starts any workflow built on it, and its owners hear of it if they turned that notification on: see [Notification Settings](/docs/notifications/notification-settings).
+
+## Publish it later
+
+Plan the work as early as you like, and keep it with your team until your customers should hear of it. Pick **At a date and time** under **Publish on Status Pages**, on the form or on the **Status Pages** step of the event's **Edit**, and a **Publish At** before **Starts At**. Until then the event is on none of its status pages: not in their lists, their uptime history, their RSS and Atom feeds, their maintenance calendar or their API, and not at its own link. At that time it shows as coming up, and its subscribers are told it is scheduled, once.
+
+| When               | What happens                                                  | On your status pages |
+| ------------------ | ------------------------------------------------------------- | -------------------- |
+| You create it      | You pick a **Publish At** before its **Starts At**            | Not shown            |
+| Its **Publish At** | It is published, and its subscribers are told it is scheduled | Coming up            |
+| Its **Starts At**  | It starts, as every event does                                | In progress          |
+| Its **Ends At**    | It ends                                                       | Over                 |
+
+- **Until then, subscribers hear nothing.** Reminders before the event, state changes and public notes are not sent to them while the event waits.
+- **Its page says so.** Its header says **Not on status pages yet**, with the time it shows from, and **Publish Now** publishes it at once, after asking. Its **Settings** say the same, and the list of events shows the time under its status pages.
+- **Change it, or publish right away.** Move the **Publish At** on the **Status Pages** step of its **Edit**, or pick **Right away**. Turn **Visible on Status Page** off in its **Settings** to keep it off its status pages whatever the time.
 
 ## Change an event later
 
@@ -98,7 +114,7 @@ Everything on the form can be changed on the event's own pages, except the three
 | To change                                   | Go to                                                                          |
 | ------------------------------------------- | ------------------------------------------------------------------------------ |
 | The title, the window or the labels         | **Edit** on the **Maintenance Details** card of its **Overview**, step **Event** |
-| The status pages or the reminders           | The same **Edit**, step **Status Pages**                                        |
+| The status pages, when it is published, or the reminders | The same **Edit**, step **Status Pages**                           |
 | The monitors, their status or other resources | **Edit** on the **Affected Resources** card                                   |
 | The description                             | **Description** in its side menu                                               |
 | The owners                                  | **Owners** in its side menu                                                    |
@@ -137,6 +153,7 @@ curl -X POST https://oneuptime.com/api/scheduled-maintenance \
 | `changeMonitorStatusToId`                             | The monitor status its monitors change to when it starts.                                  |
 | `currentScheduledMaintenanceStateId`                  | Ignored: every event starts in your scheduled state.                                      |
 | `shouldStatusPageSubscribersBeNotifiedOnEventCreated` | The **When the event is scheduled** switch. The other two moments have their own fields. |
+| `publishOnStatusPageAt`                               | When the event is published on its status pages and its subscribers are told it is scheduled. Left out, right away. |
 
 The same event as code is the `oneuptime_scheduled_maintenance_event` Terraform resource: see [Examples](/docs/terraform/examples#scheduled-maintenance). A workflow creates one with its **Create One Scheduled Maintenance Event** step, and `/oneuptime maintenance` opens the form in Slack: see [Slack](/docs/workspace-connections/slack#creating-incidents-and-maintenance-from-slack).
 
@@ -152,6 +169,10 @@ It is asked only once the event has a monitor. Pick one under **Monitors**, and 
 
 :::details Change Monitor Status to cannot be changed any more
 The event has started, and its monitors are already in that status. The status applies from the moment the event starts until it ends.
+:::
+
+:::details Publish At says it must be before Starts At
+An event is published so your customers hear of the work before it starts. Pick a **Publish At** before **Starts At**, or **Right away**.
 :::
 
 ## Next steps

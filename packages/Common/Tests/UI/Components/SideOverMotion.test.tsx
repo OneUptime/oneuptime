@@ -68,6 +68,13 @@ describe("SideOver entrance motion", () => {
     const panel: HTMLElement = getPanel();
 
     expect(panel).toHaveClass("translate-x-full");
+
+    /*
+     * On a page that reads right to left the panel stands at the left (its
+     * layer's justify-end), so it waits off the left edge and slides in
+     * from there.
+     */
+    expect(panel).toHaveClass("[&:dir(rtl)]:-translate-x-full");
     expect(panel).toHaveClass(
       "transition-transform",
       "duration-200",

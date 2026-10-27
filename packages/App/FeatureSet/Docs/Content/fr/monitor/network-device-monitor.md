@@ -194,7 +194,7 @@ Chaque endroit qui montre un équipement — la liste des appareils, la page App
 
 | Qualificatif | Affiché quand | Que faire |
 | --- | --- | --- |
-| **Stale** | Aucune interrogation n'a été tentée depuis bien plus que l'intervalle de l'équipement. | Vérifiez que la sonde de l'équipement est en ligne et suit le rythme de sa flotte. |
+| **Obsolète** | Aucune interrogation n'a été tentée depuis bien plus que l'intervalle de l'équipement. | Vérifiez que la sonde de l'équipement est en ligne et suit le rythme de sa flotte. |
 | **Aucune sonde** | L'équipement est interrogé par sonde mais n'en a pas, ou son interrogation est désactivée. | Assignez une sonde qui peut le joindre ; rien ne l'interroge d'ici là. |
 | **Aucun moniteur** | L'équipement utilise le [remplacement par un moniteur lié](#le-remplacement-par-un-moniteur-lié) et rien n'est lié. | Liez un moniteur, ou repassez-le en interrogation par sonde. |
 | **SNMP failing** | Joignable par ping, mais le dernier parcours SNMP a échoué. | Vérifiez les identifiants, l'agent SNMP ou une ACL. |

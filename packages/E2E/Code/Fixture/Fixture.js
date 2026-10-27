@@ -704,6 +704,30 @@ const PROJECT_RUNNERS = [
   runnerModel(RUNNER_IDS.prod, "prod-eu-west-1", minutesAgo(0.5)),
 ];
 
+/*
+ * The global Runners, as /runner/global-runners lists them: the bundled one,
+ * heard from a moment ago (or long ago, gstatus=disconnected), or none on a
+ * server that runs none (global=0). Every global Runner takes the AI work of
+ * a repository on the Global Runner.
+ */
+const GLOBAL_RUNNERS = hasGlobalCodeRunner
+  ? [
+      (() => {
+        const model = new Runner();
+        model._id = "00000000-0000-0000-0000-000000000002";
+        model.id = new ObjectID("00000000-0000-0000-0000-000000000002");
+        model.name = "Global Runner";
+        model.description = "Runs with this server.";
+        model.lastAlive =
+          globalCodeRunnerStatus === "disconnected"
+            ? minutesAgo(180)
+            : minutesAgo(0.5);
+        model.canRunRunbooks = true;
+        return model;
+      })(),
+    ]
+  : [];
+
 // The project's default Runner, as the picker reads it (default=prod).
 if (isProdTheDefault) {
   const prod = PROJECT_RUNNERS[PROJECT_RUNNERS.length - 1];
@@ -2970,18 +2994,6 @@ API.post = async (options) => {
   if (log >= 0) {
     return logOf(url.substring(log + "/code-fix-run/logs/".length));
   }
-  // The global Runners for code, by how each is doing (RunnerAPI).
-  if (url.includes("/runner/global-code-runners")) {
-    return new HTTPResponse(
-      200,
-      {
-        globalRunners: hasGlobalCodeRunner
-          ? [{ liveStatus: globalCodeRunnerStatus }]
-          : [],
-      },
-      {},
-    );
-  }
   return refused(404, `The fixture does not model ${url}.`);
 };
 
@@ -3124,6 +3136,20 @@ ModelAPI.getList = async (options) => {
   }
   if (options.modelType === Label) {
     return { data: [], count: 0, skip: 0, limit: 10 };
+  }
+  // The global Runners, from their own endpoint (RunnerAPI).
+  if (
+    options.modelType === Runner &&
+    String(options.requestOptions?.overrideRequestUrl || "").includes(
+      "/runner/global-runners",
+    )
+  ) {
+    return {
+      data: GLOBAL_RUNNERS,
+      count: GLOBAL_RUNNERS.length,
+      skip: 0,
+      limit: 10,
+    };
   }
   // The project's own Runners, for a repository's Runner picker.
   if (options.modelType === Runner) {

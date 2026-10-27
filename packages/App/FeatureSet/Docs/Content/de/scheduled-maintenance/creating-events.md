@@ -5,6 +5,7 @@ Planen Sie eine Wartung in zwei kurzen Schritten: Sagen Sie, was passiert und wa
 :::cards
 - [Ein Ereignis erstellen](#ein-ereignis-erstellen): Zwei Schritte und eine Überprüfung.
 - [Was beim Erstellen passiert](#was-beim-erstellen-passiert): Seine Nummer, Regeln, Eigentümer und die ersten Nachrichten.
+- [Später veröffentlichen](#später-veröffentlichen): Halten Sie es bis zu einem Zeitpunkt Ihrer Wahl von Ihren Statusseiten fern.
 - [Ein Ereignis später ändern](#ein-ereignis-später-ändern): Sein Zeitfenster, seine Ressourcen, Statusseiten und Notizen.
 - [Ereignisse per Code erstellen](#ereignisse-per-code-erstellen): Die API, Terraform, Workflows und Chat.
 :::
@@ -42,7 +43,7 @@ Klicken Sie auf **Weiter**, um zu **Betroffene Ressourcen** zu gelangen. Wählen
 
 ### Festlegen, wer davon erfährt
 
-Wählen Sie die Statusseiten unter **Ereignis auf diesen Status-Seiten anzeigen**. **Abonnentenbenachrichtigungen**, eingeklappt, sagt in einer Zeile, wer wann informiert wird; öffnen Sie es, um **Wenn das Ereignis geplant wird**, **Wenn das Ereignis beginnt**, **Wenn das Ereignis endet** oder **Erinnerungen vor dem Ereignis** zu ändern.
+Wählen Sie die Statusseiten unter **Ereignis auf diesen Status-Seiten anzeigen**. **Abonnentenbenachrichtigungen**, eingeklappt, sagt in einer Zeile, wann das Ereignis dort erscheint und wer wann informiert wird; öffnen Sie es, um unter **Auf Statusseiten veröffentlichen** die Option **Zu einem bestimmten Zeitpunkt** zu wählen oder um **Wenn das Ereignis geplant wird**, **Wenn das Ereignis beginnt**, **Wenn das Ereignis endet** oder **Erinnerungen vor dem Ereignis** zu ändern.
 
 ### Es erstellen
 
@@ -65,11 +66,11 @@ Nichts wird gesendet, bis Sie eine Statusseite wählen: Ein Ereignis, das auf ke
 | **Monitor-Status ändern in**         | **Betroffene Ressourcen** | Keine Änderung           | Der Status, den diese Monitore während des Ereignisses zeigen. Wird abgefragt, sobald ein Monitor gewählt ist. |
 | **Andere betroffene Ressourcen**     | **Betroffene Ressourcen** | Keine                    | Hosts, Cluster, Datenbanken, Netzwerkstandorte, Dienste und mehr.                |
 | **Ereignis auf diesen Status-Seiten anzeigen** | **Betroffene Ressourcen** | Keine          | Die Statusseiten, die das Ereignis zeigen und ihre Abonnenten informieren.       |
-| **Abonnentenbenachrichtigungen**     | **Betroffene Ressourcen** | Alle drei Momente an, keine Erinnerungen | Wann die Abonnenten dieser Seiten informiert werden.          |
+| **Abonnentenbenachrichtigungen**     | **Betroffene Ressourcen** | Sofort veröffentlicht, alle drei Momente an, keine Erinnerungen | Wann das Ereignis auf diesen Seiten erscheint und wann ihre Abonnenten informiert werden. |
 
 Zwei Dinge füllen das Formular unterwegs für Sie aus:
 
-- **Verknüpfte Ressourcen.** Wenn Sie einen Monitor wählen, werden die Hosts, Cluster, Dienste und anderen Ressourcen, mit denen er verknüpft ist, unter **Andere betroffene Ressourcen** hinzugefügt, und eine Zeile unter dem Feld nennt sie. Entfernen Sie alle, die Sie nicht möchten.
+- **Verknüpfte Ressourcen.** Wenn Sie einen Monitor wählen, werden die Hosts, Cluster, Dienste und anderen Ressourcen, mit denen er verknüpft ist, unter **Andere betroffene Ressourcen** hinzugefügt, und eine Zeile unter dem Feld nennt sie. Entfernen Sie alle, die Sie nicht möchten. Cloud-Ressourcen werden nicht hinzugefügt: Ein Wartungsereignis enthält keine.
 - **Vorgeschlagene Statusseiten.** Unter **Ereignis auf diesen Status-Seiten anzeigen** werden die Seiten vorgeschlagen, die Ihre Monitore zeigen: Klicken Sie auf den Namen einer Seite, um sie hinzuzufügen, oder auf **Alle hinzufügen**. Nichts wird für Sie ausgewählt. Siehe [Geplante Wartungsereignisse](/docs/status-pages/subscribers#geplante-wartungsereignisse).
 
 ## Von einer Ressource oder einer Vorlage aus beginnen
@@ -89,7 +90,22 @@ In dem Moment, in dem Sie auf **Geplantes Wartungsereignis erstellen** klicken, 
 5. **Runbook-Regeln starten** die Runbooks, die zum Ereignis passen.
 6. **Erinnerungen werden geplant**, wenn eine Erinnerungsregel passt, für seine Eigentümer.
 
-Innerhalb einer Minute erfahren die Abonnenten seiner Statusseiten, dass es geplant ist, außer Sie haben **Wenn das Ereignis geplant wird** ausgeschaltet. Der Workflow-Trigger **On Create Scheduled Maintenance Event** startet jeden darauf aufgebauten Workflow, und seine Eigentümer erfahren davon, wenn sie diese Benachrichtigung eingeschaltet haben: siehe [Benachrichtigungseinstellungen](/docs/notifications/notification-settings).
+Innerhalb einer Minute nach seiner Veröffentlichung – sofort, wenn Sie kein **Veröffentlichen am** gewählt haben – erfahren die Abonnenten seiner Statusseiten, dass es geplant ist, außer Sie haben **Wenn das Ereignis geplant wird** ausgeschaltet. Der Workflow-Trigger **On Create Scheduled Maintenance Event** startet jeden darauf aufgebauten Workflow, und seine Eigentümer erfahren davon, wenn sie diese Benachrichtigung eingeschaltet haben: siehe [Benachrichtigungseinstellungen](/docs/notifications/notification-settings).
+
+## Später veröffentlichen
+
+Planen Sie die Arbeit so früh, wie Sie möchten, und behalten Sie sie in Ihrem Team, bis Ihre Kunden davon erfahren sollen. Wählen Sie unter **Auf Statusseiten veröffentlichen** die Option **Zu einem bestimmten Zeitpunkt**, im Formular oder im Schritt **Statusseiten** von **Bearbeiten** des Ereignisses, und ein **Veröffentlichen am** vor **Beginnt am**. Bis dahin steht das Ereignis auf keiner seiner Statusseiten: nicht in ihren Listen, ihrem Verfügbarkeitsverlauf, ihren RSS- und Atom-Feeds, ihrem Wartungskalender oder ihrer API und nicht unter seinem eigenen Link. Zu diesem Zeitpunkt erscheint es als bevorstehend, und seine Abonnenten erfahren einmal, dass es geplant ist.
+
+| Wann                       | Was passiert                                                         | Auf Ihren Statusseiten |
+| -------------------------- | -------------------------------------------------------------------- | ---------------------- |
+| Beim Erstellen             | Sie wählen ein **Veröffentlichen am** vor seinem **Beginnt am**      | Nicht angezeigt        |
+| Sein **Veröffentlichen am** | Es wird veröffentlicht, und seine Abonnenten erfahren, dass es geplant ist | Bevorstehend     |
+| Sein **Beginnt am**        | Es beginnt, wie jedes Ereignis                                       | Laufend                |
+| Sein **Endet am**          | Es endet                                                             | Vorbei                 |
+
+- **Bis dahin erfahren Abonnenten nichts.** Erinnerungen vor dem Ereignis, Statusänderungen und öffentliche Notizen werden ihnen nicht gesendet, solange das Ereignis wartet.
+- **Seine Seite sagt es.** Sein Kopfbereich zeigt **Noch nicht auf Statusseiten** mit dem Zeitpunkt, ab dem es erscheint, und **Jetzt veröffentlichen** veröffentlicht es sofort, nach einer Rückfrage. Seine **Einstellungen** sagen dasselbe, und die Liste der Ereignisse zeigt den Zeitpunkt unter seinen Statusseiten.
+- **Ändern oder sofort veröffentlichen.** Verschieben Sie **Veröffentlichen am** im Schritt **Statusseiten** von **Bearbeiten**, oder wählen Sie **Sofort**. Schalten Sie **Auf Statusseite sichtbar** in seinen **Einstellungen** aus, um es unabhängig vom Zeitpunkt von seinen Statusseiten fernzuhalten.
 
 ## Ein Ereignis später ändern
 
@@ -98,7 +114,7 @@ Alles aus dem Formular lässt sich auf den Seiten des Ereignisses ändern, auße
 | Zu ändern                                   | Wohin                                                                          |
 | ------------------------------------------- | ------------------------------------------------------------------------------ |
 | Titel, Zeitfenster oder Beschriftungen      | **Bearbeiten** auf der Karte **Wartungsdetails** seiner **Übersicht**, Schritt **Ereignis** |
-| Die Statusseiten oder die Erinnerungen      | Dasselbe **Bearbeiten**, Schritt **Statusseiten**                               |
+| Die Statusseiten, wann es veröffentlicht wird, oder die Erinnerungen | Dasselbe **Bearbeiten**, Schritt **Statusseiten**              |
 | Die Monitore, ihr Status oder andere Ressourcen | **Bearbeiten** auf der Karte **Betroffene Ressourcen**                      |
 | Die Beschreibung                            | **Beschreibung** in seinem Seitenmenü                                          |
 | Die Eigentümer                              | **Eigentümer** in seinem Seitenmenü                                            |
@@ -137,6 +153,7 @@ curl -X POST https://oneuptime.com/api/scheduled-maintenance \
 | `changeMonitorStatusToId`                             | Der Monitorstatus, in den seine Monitore wechseln, wenn es beginnt.                       |
 | `currentScheduledMaintenanceStateId`                  | Wird ignoriert: Jedes Ereignis beginnt in Ihrem geplanten Status.                        |
 | `shouldStatusPageSubscribersBeNotifiedOnEventCreated` | Der Schalter **Wenn das Ereignis geplant wird**. Die anderen beiden Momente haben eigene Felder. |
+| `publishOnStatusPageAt`                               | Wann das Ereignis auf seinen Statusseiten veröffentlicht wird und seine Abonnenten erfahren, dass es geplant ist. Weggelassen: sofort. |
 
 Dasselbe Ereignis als Code ist die Terraform-Ressource `oneuptime_scheduled_maintenance_event`: siehe [Beispiele](/docs/terraform/examples#geplante-wartung). Ein Workflow erstellt eines mit seinem Schritt **Create One Scheduled Maintenance Event**, und `/oneuptime maintenance` öffnet das Formular in Slack: siehe [Slack](/docs/workspace-connections/slack#vorfälle-und-wartungen-aus-slack-erstellen).
 
@@ -152,6 +169,10 @@ Das Feld wird erst abgefragt, wenn das Ereignis einen Monitor hat. Wählen Sie e
 
 :::details Monitor-Status ändern in lässt sich nicht mehr ändern
 Das Ereignis hat begonnen, und seine Monitore sind bereits in diesem Status. Der Status gilt vom Beginn des Ereignisses bis zu seinem Ende.
+:::
+
+:::details Veröffentlichen am muss vor Beginnt am liegen
+Ein Ereignis wird veröffentlicht, damit Ihre Kunden von der Arbeit erfahren, bevor sie beginnt. Wählen Sie ein **Veröffentlichen am** vor **Beginnt am**, oder **Sofort**.
 :::
 
 ## Nächste Schritte

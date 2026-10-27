@@ -7,11 +7,22 @@ import Dropdown, {
 } from "Common/UI/Components/Dropdown/Dropdown";
 import Link from "Common/UI/Components/Link/Link";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import PermissionGate, {
+  ModelAction,
+  PermissionGateResult,
+} from "Common/UI/Utils/PermissionGate";
+import RunbookVariable from "Common/Models/DatabaseModels/RunbookVariable";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, ReactNode } from "react";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import {
+  NOT_FOR_RUNNER_ASK_TEMPLATE,
+  NOT_FOR_RUNNER_EDIT_TEMPLATE,
+  NO_SECRET_VARIABLES_ADD_ONE_TEMPLATE,
+  NO_SECRET_VARIABLES_ASK_TEMPLATE,
+} from "../RunbookVariableCopy";
 import {
   RunbookVariableChoice,
   RunbookVariableChoices,
@@ -63,6 +74,28 @@ const RunbookVariablePicker: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+
+  /*
+   * What the reader may do about a variable: add one, or change one's
+   * Runners. A Runbook Admin reads variables to pick them in the steps it
+   * writes, but only a project owner or admin (or Create / Edit Runbook
+   * Variable) changes them - so it is told who to ask, never to add one
+   * itself. Before the permission snapshot lands, nobody is told they may
+   * not.
+   */
+  const createGate: PermissionGateResult = PermissionGate.check(
+    new RunbookVariable(),
+    ModelAction.Create,
+  );
+  const updateGate: PermissionGateResult = PermissionGate.check(
+    new RunbookVariable(),
+    ModelAction.Update,
+  );
+  const mayCreate: boolean = createGate.isAllowed || !createGate.disabledReason;
+  const mayEdit: boolean = updateGate.isAllowed || !updateGate.disabledReason;
+  const noSecretsTemplate: string = mayCreate
+    ? NO_SECRET_VARIABLES_ADD_ONE_TEMPLATE
+    : NO_SECRET_VARIABLES_ASK_TEMPLATE;
 
   const secrets: Array<RunbookVariableChoice> = getSecretVariableChoices(
     props.choices,
@@ -174,7 +207,9 @@ const RunbookVariablePicker: FunctionComponent<ComponentProps> = (
     if (problem === VariableUseProblem.NotForRunner) {
       return (
         <TranslatedSentence
-          template="The Runner picked above may not use {{name}}, so the step will fail when it runs. Add the Runner to the variable's Runners under {{location}}."
+          template={
+            mayEdit ? NOT_FOR_RUNNER_EDIT_TEMPLATE : NOT_FOR_RUNNER_ASK_TEMPLATE
+          }
           values={{ name: picked?.name || props.value }}
           slots={{ location: pickedVariableLocation }}
         />
@@ -196,7 +231,7 @@ const RunbookVariablePicker: FunctionComponent<ComponentProps> = (
         >
           {props.choices.isReadable ? (
             <TranslatedSentence
-              template="No secret variables yet. Add one under {{location}}, then pick it here."
+              template={noSecretsTemplate}
               slots={{ location: variablesLocation }}
             />
           ) : (
@@ -264,7 +299,7 @@ const RunbookVariablePicker: FunctionComponent<ComponentProps> = (
             <span data-testid={`${props.dataTestId}-add-variable`}>
               {" "}
               <TranslatedSentence
-                template="No secret variables yet. Add one under {{location}}, then pick it here."
+                template={noSecretsTemplate}
                 slots={{ location: variablesLocation }}
               />
             </span>

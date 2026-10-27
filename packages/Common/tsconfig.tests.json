@@ -3,8 +3,10 @@
    * Every Common test file, as one program. `npm run compile-tests`, run by
    * the compile-common job in the Compile workflow, type-checks it in parts
    * that extend this file and change only what they include
-   * (tsconfig.tests.app.json, tsconfig.tests.ui.json and
-   * tsconfig.tests.rest.json): as one program it outgrew an 8 GiB heap.
+   * (tsconfig.tests.app-dashboard-a-m.json, tsconfig.tests.app-rest.json,
+   * tsconfig.tests.ui.json, tsconfig.tests.server.json,
+   * tsconfig.tests.server-utils.json and tsconfig.tests.rest.json): as one
+   * program it outgrew an 8 GiB heap.
    * Scripts/compile-tests.js explains the split and checks that the parts
    * leave no file of this one out.
    *
@@ -21,13 +23,14 @@
    * them up through its default include, and this project would otherwise
    * only see what the tests import.
    *
-   * Tests/tsconfig.json extends this file unchanged. Editors and ESLint's
-   * typed linting (projectService in eslint.config.js) give each file the
-   * nearest tsconfig.json that includes it, and without that file the nearest
-   * for a Common test was the repository-root tsconfig.json - no "include",
-   * so a program of the whole monorepo. Scripts/Lint/LintByProject.js lints
-   * this program in an ESLint process of its own; `eslint .` in one process,
-   * which also holds every other program, ran out of memory with it.
+   * Editors and ESLint's typed linting (projectService in eslint.config.js)
+   * give each file the nearest tsconfig.json that includes it, and get the
+   * parts rather than this program: the tsconfig.json in Tests/App,
+   * Tests/UI, Tests/Server, Tests/Server/Utils and Tests each extend one.
+   * Scripts/Lint/LintByProject.js lints each program in an ESLint process of
+   * its own, and this one as a whole ran out of that process's 12 GB heap on
+   * 2026-10-27 (Tests/Scripts/LintTestPrograms.test.ts keeps the lint
+   * projects to the parts).
    */
   "extends": "./tsconfig.json",
   "compilerOptions": {

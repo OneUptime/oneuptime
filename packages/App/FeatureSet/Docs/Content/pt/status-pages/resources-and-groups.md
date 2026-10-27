@@ -115,6 +115,8 @@ Os grupos têm suas próprias cópias dessas chaves (veja abaixo), então um gru
 
 As cores das barras do gráfico de histórico são definidas em **Mais configurações** na página **Marca**, e quais status de monitor contam como "fora do ar" em **Conta como indisponibilidade**, no cartão **O que sua página de status mostra** das **Configurações avançadas**; as duas coisas estão em [Marca e domínios da página de status](/docs/status-pages/branding-and-domains).
 
+Cada barra é um dia. Aponte para uma barra ou clique nela (toque nela no telefone, ou pressione Enter no teclado) para ler o dia: seu tempo de atividade, quanto durou cada status, os incidentes declarados naquele dia e a manutenção programada que ocorreu nele, cada um com um link para a própria página. Um dia com manutenção programada tem uma faixa azul no topo da barra e, enquanto um evento está em andamento, cada recurso dos seus monitores mostra "Em manutenção" ao lado do nome. A manutenção não muda nem a cor de uma barra nem o tempo de atividade, que vêm dos status do monitor: para deixar o trabalho planejado fora do tempo de atividade, escolha para o evento em **Alterar status do monitor para** um status que não esteja entre os de **Conta como indisponibilidade** da página. Veja [O que um evento afeta](/docs/scheduled-maintenance/index#o-que-um-evento-afeta).
+
 ## Grupos
 
 A maioria dos grupos só precisa de um nome.

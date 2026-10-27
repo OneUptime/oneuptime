@@ -7,11 +7,9 @@ import ts from "typescript";
 /*
  * Every route of the product that takes OneUptime's cluster key, read from
  * the source: a router call (get, post, put, patch, delete, all, use) that
- * hands it one of ClusterKeyAuthorization's checks -
- * isAuthorizedServiceMiddleware (the key in a request header) or, for the
- * in-cluster Runner's registration alone,
- * isAuthorizedRunnerRegistrationMiddleware (a header, or the body field
- * Runners of earlier releases send).
+ * hands it ClusterKeyAuthorization's check, isAuthorizedServiceMiddleware
+ * (the key in a request header). No Runner registers with the cluster key:
+ * the check that let the shared Runner do so is gone with that Runner.
  *
  * The over-HTTP suites in App (Tests/ClusterKey/ClusterKeyRoutesOverHttp.test.ts
  * and WrongClusterKeysOverHttp.test.ts) hold their own lists of routes to
@@ -42,17 +40,10 @@ export interface ClusterKeyMiddlewareUse {
   isRouteArgument: boolean;
 }
 
-// The key in a request header: every route but the Runner's registration.
+// The key in a request header: every route that takes the cluster key.
 export const SERVICE_MIDDLEWARE: string = "isAuthorizedServiceMiddleware";
 
-// The in-cluster Runner's registration: a header, or an earlier Runner's body.
-export const RUNNER_REGISTRATION_MIDDLEWARE: string =
-  "isAuthorizedRunnerRegistrationMiddleware";
-
-export const CLUSTER_KEY_MIDDLEWARES: Array<string> = [
-  SERVICE_MIDDLEWARE,
-  RUNNER_REGISTRATION_MIDDLEWARE,
-];
+export const CLUSTER_KEY_MIDDLEWARES: Array<string> = [SERVICE_MIDDLEWARE];
 
 const ROUTER_METHODS: Array<string> = [
   "get",
@@ -170,15 +161,6 @@ export const CLUSTER_KEY_ROUTE_CALLERS: Array<ClusterKeyRouteCaller> = [
     },
     caller: "packages/Common/Server/Services/WorkflowService.ts",
     calls: '"/workflow/update/"',
-  },
-  {
-    route: {
-      file: "packages/Common/Server/API/AIAgentAPI.ts",
-      method: "POST",
-      path: "`${new this.entityType().getCrudApiPath()?.toString()}/register`",
-    },
-    caller: "packages/Runner/Services/RegisterRunner.ts",
-    calls: '"/api/ai-agent/register"',
   },
   {
     route: {

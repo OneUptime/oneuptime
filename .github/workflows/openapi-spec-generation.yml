@@ -11,6 +11,11 @@ on:
     branches:
       - master
 
+# Read-only: the job checks out the code, generates from it and uploads the
+# result as an artifact, nothing more.
+permissions:
+  contents: read
+
 jobs:
   generate-openapi-spec:
     runs-on: ubuntu-latest

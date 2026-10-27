@@ -11,6 +11,11 @@ import { describeReference } from "./ValuePicker/ReferenceDescription";
 import { summarizePageStep } from "./OnCall/PageStepSummary";
 import { OutputLayout, getOutputLayout } from "./PortLayout";
 import { summarizeSwitch } from "./Switch/SwitchModel";
+import {
+  WORKFLOW_NODE_NOT_SET_UP_TEXT,
+  WORKFLOW_NO_TRIGGER_TEXT,
+  WorkflowViewOnlyContext,
+} from "./WorkflowViewOnly";
 import IconProp from "../../../Types/Icon/IconProp";
 import {
   ComponentType,
@@ -19,7 +24,13 @@ import {
 } from "../../../Types/Workflow/Component";
 import ComponentID from "../../../Types/Workflow/ComponentID";
 import { getComponentOutPorts } from "../../../Types/Workflow/ComponentOutPorts";
-import React, { FunctionComponent, useEffect, useRef, useState } from "react";
+import React, {
+  FunctionComponent,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { Translator, translationKey } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 import {
@@ -338,6 +349,11 @@ const getPortPosition: GetPortPositionFunction = (
 const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
   const translator: Translator = useTranslator();
   const [isHovering, setIsHovering] = useState<boolean>(false);
+  /*
+   * The canvas is a view for someone who may not change the workflow
+   * (WorkflowViewOnly): its cards say what is there, never what to click.
+   */
+  const isViewOnly: boolean = useContext(WorkflowViewOnlyContext);
   const updateNodeInternals: UpdateNodeInternals = useUpdateNodeInternals();
   // The card's react-flow id, which react-flow tells every card it draws.
   const nodeId: string | null = useNodeId();
@@ -391,9 +407,16 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
 
   // Placeholder node
   if (props.data.nodeType === NodeType.PlaceholderNode) {
+    /*
+     * On a view, the card says the workflow has no trigger: nothing is
+     * offered, so it neither looks nor reacts like something to press.
+     */
+    const isHighlighted: boolean = isHovering && !isViewOnly;
+
     return (
       <div
-        className="cursor-pointer"
+        className={isViewOnly ? "cursor-default" : "cursor-pointer"}
+        data-testid="workflow-trigger-placeholder"
         onMouseOver={() => {
           setIsHovering(true);
         }}
@@ -404,11 +427,11 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
           width: "16rem",
           borderRadius: "12px",
           border: `2px dashed ${
-            isHovering
+            isHighlighted
               ? "var(--ou-text-subtle, #94a3b8)"
               : "var(--ou-border-strong, #cbd5e1)"
           }`,
-          backgroundColor: isHovering
+          backgroundColor: isHighlighted
             ? "var(--ou-surface-secondary, #f8fafc)"
             : "var(--ou-surface-primary, #ffffff)",
           padding: "1.5rem",
@@ -421,7 +444,7 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
           minHeight: "7rem",
         }}
         onClick={() => {
-          if (props.data.onClick) {
+          if (props.data.onClick && !isViewOnly) {
             props.data.onClick(props.data);
           }
         }}
@@ -431,7 +454,7 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             width: "2.5rem",
             height: "2.5rem",
             borderRadius: "50%",
-            backgroundColor: isHovering
+            backgroundColor: isHighlighted
               ? "var(--ou-border-default, #e2e8f0)"
               : "var(--ou-surface-tertiary, #f1f5f9)",
             display: "flex",
@@ -441,9 +464,9 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
           }}
         >
           <Icon
-            icon={IconProp.Add}
+            icon={isViewOnly ? IconProp.Bolt : IconProp.Add}
             style={{
-              color: isHovering
+              color: isHighlighted
                 ? "var(--ou-text-muted, #64748b)"
                 : "var(--ou-text-subtle, #94a3b8)",
               width: "1.25rem",
@@ -454,7 +477,7 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         </div>
         <p
           style={{
-            color: isHovering
+            color: isHighlighted
               ? "var(--ou-text-muted, #64748b)"
               : "var(--ou-text-subtle, #94a3b8)",
             fontSize: "0.8125rem",
@@ -464,8 +487,10 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             transition: "all 0.2s ease",
           }}
         >
-          {translator.translateText(props.data.metadata.description) ||
-            translator.translateText("Click to add trigger")}
+          {isViewOnly
+            ? translator.translateText(WORKFLOW_NO_TRIGGER_TEXT)
+            : translator.translateText(props.data.metadata.description) ||
+              translator.translateText("Click to add trigger")}
         </p>
       </div>
     );
@@ -757,7 +782,13 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                   flexShrink: 0,
                 }}
               />
-              <span>{translator.translateText(WORKFLOW_NODE_SETUP_TEXT)}</span>
+              <span>
+                {translator.translateText(
+                  isViewOnly
+                    ? WORKFLOW_NODE_NOT_SET_UP_TEXT
+                    : WORKFLOW_NODE_SETUP_TEXT,
+                )}
+              </span>
             </div>
           </Tooltip>
         )}

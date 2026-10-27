@@ -2,11 +2,14 @@ import { describe, expect, test } from "@jest/globals";
 import CloudConnection from "../../../Models/DatabaseModels/CloudConnection";
 import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
 import {
+  AZURE_SECRET_EXPIRES_AT_KEY,
   CloudConnectionAuthMethod,
   CloudConnectionDefinition,
   CloudConnectionField,
+  READ_SCOPE_FIELD_KEY,
   getCloudConnectionDefinition,
 } from "../../../Types/CloudConnection/CloudConnectionCatalog";
+import { CloudConnectionSetupScope } from "../../../Types/CloudConnection/CloudConnectionSetupCommands";
 import { CloudConnectionTestResult } from "../../../Types/CloudConnection/CloudConnectionTest";
 import HashedString from "../../../Types/HashedString";
 import { JSONObject } from "../../../Types/JSON";
@@ -20,7 +23,10 @@ import {
   configFieldName,
   getMissingCloudConnectionFields,
   getPastedFieldTitles,
+  getReadScopeField,
+  isCredentialValueField,
   readCloudConnectionForm,
+  readFormScope,
   readFormText,
   secretFieldName,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/Connect/CloudConnectionForm";
@@ -410,5 +416,89 @@ describe("what the server answers", () => {
         `${DOCS_URL.toString()}${definition.docsPath.slice("/docs".length)}`,
       );
     }
+  });
+});
+
+describe("what a connection reads: one account or the organization", () => {
+  const scopeKey: string = configFieldName(READ_SCOPE_FIELD_KEY);
+
+  test("every cloud asks it, AWS for a role only", () => {
+    expect(getReadScopeField(AWS, CloudConnectionAuthMethod.AwsRole)?.key).toBe(
+      READ_SCOPE_FIELD_KEY,
+    );
+    expect(
+      getReadScopeField(AWS, CloudConnectionAuthMethod.AwsAccessKey),
+    ).toBeUndefined();
+    expect(
+      getReadScopeField(AZURE, CloudConnectionAuthMethod.AzureClientSecret)
+        ?.defaultValue,
+    ).toBe(CloudConnectionSetupScope.Account);
+    expect(
+      getReadScopeField(GCP, CloudConnectionAuthMethod.GcpServiceAccountKey),
+    ).toBeDefined();
+  });
+
+  test("the organization only when it is picked and the method can read one", () => {
+    expect(readFormScope(AZURE, {})).toBe(CloudConnectionSetupScope.Account);
+    expect(
+      readFormScope(AZURE, {
+        [scopeKey]: CloudConnectionSetupScope.Organization,
+      }),
+    ).toBe(CloudConnectionSetupScope.Organization);
+    // A dropdown value not unwrapped yet reads the same.
+    expect(
+      readFormScope(GCP, {
+        [scopeKey]: { label: "Every project", value: "organization" },
+      }),
+    ).toBe(CloudConnectionSetupScope.Organization);
+    // Anything else is the one account.
+    expect(readFormScope(GCP, { [scopeKey]: "everything" })).toBe(
+      CloudConnectionSetupScope.Account,
+    );
+    // An access key reads its own account, whatever the form held.
+    expect(
+      readFormScope(AWS, {
+        [AUTH_METHOD_FIELD]: CloudConnectionAuthMethod.AwsAccessKey,
+        [scopeKey]: CloudConnectionSetupScope.Organization,
+      }),
+    ).toBe(CloudConnectionSetupScope.Account);
+    expect(
+      readFormScope(
+        AWS,
+        { [scopeKey]: CloudConnectionSetupScope.Organization },
+        CloudConnectionAuthMethod.AwsRole,
+      ),
+    ).toBe(CloudConnectionSetupScope.Organization);
+  });
+
+  test("the values a paste fills in are asked on the Credentials step; the scope and the hidden expiry are not", () => {
+    const asked: Array<string> = [...AZURE.configFields, ...AZURE.secretFields]
+      .filter(isCredentialValueField)
+      .map((field: CloudConnectionField): string => {
+        return field.key;
+      });
+
+    expect(asked).toEqual(
+      expect.arrayContaining(["tenantId", "clientId", "clientSecret"]),
+    );
+    expect(asked).not.toContain(READ_SCOPE_FIELD_KEY);
+    expect(asked).not.toContain(AZURE_SECRET_EXPIRES_AT_KEY);
+    expect(asked).not.toContain("cloud");
+  });
+
+  test("the scope and the hidden expiry are still saved with the rest", () => {
+    const submission: { config: JSONObject } = readCloudConnectionForm(AZURE, {
+      [configFieldName("tenantId")]: "tenant",
+      [configFieldName("clientId")]: "app",
+      [scopeKey]: CloudConnectionSetupScope.Organization,
+      [configFieldName(AZURE_SECRET_EXPIRES_AT_KEY)]:
+        "2027-04-01T00:00:00.000Z",
+      [secretFieldName("clientSecret")]: "secret",
+    });
+
+    expect(submission.config).toMatchObject({
+      readScope: CloudConnectionSetupScope.Organization,
+      [AZURE_SECRET_EXPIRES_AT_KEY]: "2027-04-01T00:00:00.000Z",
+    });
   });
 });

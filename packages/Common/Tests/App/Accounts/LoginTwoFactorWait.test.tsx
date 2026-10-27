@@ -42,6 +42,18 @@ import UiAnalytics from "../../../UI/Utils/Analytics";
 import User from "../../../Models/DatabaseModels/User";
 import { JSONObject } from "../../../Types/JSON";
 
+/*
+ * The server does not require single sign-on here, and says so at once: the
+ * sign-in pages ask before they draw (SignInMethodsStandIn).
+ */
+jest.mock("../../../../App/FeatureSet/Accounts/src/Utils/SignInMethods", () => {
+  return (
+    jest.requireActual(
+      "./SignInMethodsStandIn",
+    ) as typeof import("./SignInMethodsStandIn")
+  ).signInMethodsNotRequired();
+});
+
 jest.mock("../../../UI/Components/EditionLabel/EditionLabel", () => {
   return {
     __esModule: true,
@@ -166,7 +178,7 @@ async function signInWithPassword(): Promise<void> {
   await user.type(screen.getByTestId("password"), PASSWORD);
 
   await act(async () => {
-    await user.click(screen.getByTestId("Login"));
+    await user.click(screen.getByTestId("Sign in"));
   });
 
   await screen.findByText("Two Factor Authentication");
@@ -185,7 +197,7 @@ async function enterAuthenticatorCode(code: string): Promise<void> {
   await user.type(input, code);
 
   await act(async () => {
-    await user.click(screen.getByTestId("Login"));
+    await user.click(screen.getByTestId("Sign in"));
   });
 }
 
@@ -241,7 +253,7 @@ describe("a code the server makes wait", () => {
     await user.type(await screen.findByTestId("backup-code"), "abcde-fghij");
 
     await act(async () => {
-      await user.click(screen.getByTestId("Login"));
+      await user.click(screen.getByTestId("Sign in"));
     });
 
     expect(

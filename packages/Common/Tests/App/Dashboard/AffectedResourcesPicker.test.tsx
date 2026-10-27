@@ -66,6 +66,7 @@ import AffectedResourcesPicker, {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AffectedResources/AffectedResourcesPicker";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import CephCluster from "../../../Models/DatabaseModels/CephCluster";
+import CloudResource from "../../../Models/DatabaseModels/CloudResource";
 import StorageArray from "../../../Models/DatabaseModels/StorageArray";
 import DatabaseServer from "../../../Models/DatabaseModels/DatabaseServer";
 import DockerHost from "../../../Models/DatabaseModels/DockerHost";
@@ -432,6 +433,7 @@ describe("toItems", () => {
       dockerSwarmClusters: [],
       iotFleets: [],
       databaseServers: [],
+      cloudResources: [],
       networkSites: [],
       services: [],
     };
@@ -548,6 +550,7 @@ describe("AffectedResourcesPicker chips for resources that arrive as bare IDs", 
       DockerSwarmCluster: DockerSwarmCluster,
       IoTFleet: IoTFleet,
       DatabaseServer: DatabaseServer,
+      CloudResource: CloudResource,
       NetworkSite: NetworkSite,
       Service: Service,
     };

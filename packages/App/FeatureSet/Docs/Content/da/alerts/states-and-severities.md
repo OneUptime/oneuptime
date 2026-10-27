@@ -157,7 +157,7 @@ At gå videre fra **Løst** til en tilstand efter den, for eksempel "Lukket", æ
 
 ## Tilstandstidslinjen
 
-Advarslens side **Tilstandstidslinje** er en optegnelse over hver tilstand, den har været i. Dens kort, **Statustidslinje**, tegner dem som en tidslinje: et bånd med hver tilstand så lang, som den varede, og under det hvert skift med det nyeste først. **Tabel** i kortets overskrift viser dem i stedet som rækker, med **Advarselsstatus**, **Begynder den**, **Slutter den** og **Varighed**.
+Advarslens side **Tilstandstidslinje** er en optegnelse over hver tilstand, den har været i. Dens kort tegner dem som en tidslinje: et bånd med hver tilstand så lang, som den varede, og under det hvert skift med det nyeste først. **Tabel** i kortets overskrift viser dem i stedet som rækker, med **Advarselsstatus**, **Begynder den**, **Slutter den** og **Varighed**.
 
 - **Vis årsag** viser den grundårsag, der blev registreret med det skift.
 - **Vis logge** viser, hvad OneUptime registrerede, da advarslen skiftede, for eksempel den monitorkontrol, der forårsagede det.

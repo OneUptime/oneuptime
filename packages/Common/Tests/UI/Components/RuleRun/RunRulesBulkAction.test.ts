@@ -130,10 +130,15 @@ describe("getRunRulesBulkAction", () => {
 
     expect(cb.onBulkActionStart).toHaveBeenCalledTimes(1);
     expect(cb.onBulkActionEnd).toHaveBeenCalledTimes(1);
-    expect(cb.onProgressInfo).toHaveBeenCalledTimes(3);
+    /*
+     * Through the shared runner, which reports the first rule done at once,
+     * at most ten times a second after that, and always at the end.
+     */
+    expect(cb.onProgressInfo.mock.calls.length).toBeGreaterThanOrEqual(2);
 
-    const last: ProgressInfo<MonitorOwnerRule> = cb.onProgressInfo.mock
-      .calls[2]![0] as ProgressInfo<MonitorOwnerRule>;
+    const last: ProgressInfo<MonitorOwnerRule> = cb.onProgressInfo.mock.calls[
+      cb.onProgressInfo.mock.calls.length - 1
+    ]![0] as ProgressInfo<MonitorOwnerRule>;
     expect(last.successItems).toHaveLength(3);
     expect(last.failed).toHaveLength(0);
     expect(last.inProgressItems).toHaveLength(0);
@@ -168,8 +173,9 @@ describe("getRunRulesBulkAction", () => {
       onBulkActionEnd: cb.onBulkActionEnd,
     });
 
-    const last: ProgressInfo<MonitorOwnerRule> = cb.onProgressInfo.mock
-      .calls[2]![0] as ProgressInfo<MonitorOwnerRule>;
+    const last: ProgressInfo<MonitorOwnerRule> = cb.onProgressInfo.mock.calls[
+      cb.onProgressInfo.mock.calls.length - 1
+    ]![0] as ProgressInfo<MonitorOwnerRule>;
 
     expect(last.successItems).toHaveLength(2);
     expect(last.failed).toHaveLength(1);

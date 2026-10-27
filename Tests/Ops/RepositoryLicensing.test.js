@@ -1029,9 +1029,10 @@ describe("single sign-on lives in the Apache-2.0 part of the repository", () => 
       "packages/App/FeatureSet/Dashboard/src/Components/Sso/ProjectOidcProviders.tsx",
       "packages/App/FeatureSet/Dashboard/src/Pages/StatusPages/View/SSO.tsx",
       "packages/App/FeatureSet/Dashboard/src/Pages/StatusPages/View/OIDC.tsx",
-      "packages/App/FeatureSet/AdminDashboard/src/Pages/Settings/GlobalSSO/Index.tsx",
+      // One Single Sign-On page lists the SAML and OIDC providers since
+      // #5318; each provider still has its own page.
+      "packages/App/FeatureSet/AdminDashboard/src/Pages/Settings/SSO/Index.tsx",
       "packages/App/FeatureSet/AdminDashboard/src/Pages/Settings/GlobalSSO/View.tsx",
-      "packages/App/FeatureSet/AdminDashboard/src/Pages/Settings/GlobalOIDC/Index.tsx",
       "packages/App/FeatureSet/AdminDashboard/src/Pages/Settings/GlobalOIDC/View.tsx",
     ]) {
       expect({ file, exists: exists(file) }).toEqual({ file, exists: true });

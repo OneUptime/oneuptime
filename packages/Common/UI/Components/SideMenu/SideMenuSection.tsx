@@ -2,6 +2,10 @@ import Icon from "../Icon/Icon";
 import useTranslateValue from "../../Utils/Translation";
 import IconProp from "../../../Types/Icon/IconProp";
 import { startsCollapsed } from "./SideMenuSectionState";
+import {
+  getDrawnLanguage,
+  getMenuWordsBreakClassName,
+} from "./SideMenuEntryState";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -52,7 +56,7 @@ export interface ComponentProps {
 const SideMenuSection: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ) => {
-  const { translateString } = useTranslateValue();
+  const { translateString, language } = useTranslateValue();
   const [isCollapsed, setIsCollapsed] = useState<boolean>(
     startsCollapsed({
       title: props.title,
@@ -62,6 +66,11 @@ const SideMenuSection: FunctionComponent<ComponentProps> = (
     }),
   );
   const translatedTitle: string = translateString(props.title) || props.title;
+  const titleLanguage: string | undefined = getDrawnLanguage({
+    english: props.title,
+    drawn: translatedTitle,
+    language: language,
+  });
   const bodyId: string = `side-menu-section-${useId()}`;
 
   const isCollapsible: boolean = props.collapsible ?? true;
@@ -84,20 +93,38 @@ const SideMenuSection: FunctionComponent<ComponentProps> = (
    *
    * An <h6> because the side-menu test harness locates a section by its
    * heading; the visual weight comes from the classes, not the level.
+   *
+   * Drawn whole, on a second line when it needs one: cut to one line, the
+   * German "Benachrichtigungsprotokolle" (Notification Logs) read
+   * "BENACHRICHTIGUNGSPROT…". A word longer than the line is hyphenated in
+   * its language (getDrawnLanguage, getMenuWordsBreakClassName), or else
+   * breaks at its edge; a shorter one moves to the next line whole. The lines
+   * start at the heading's start (a <button> centres its text), and the
+   * icon and the chevron stay level with the first line, so a heading of
+   * one line is drawn as before.
    */
   const heading: ReactElement = (
-    <div className="flex items-center gap-2 min-w-0">
+    <div className="flex items-start gap-2 min-w-0">
       {props.icon && (
-        <Icon icon={props.icon} className="h-3.5 w-3.5 text-gray-400" />
+        <Icon
+          icon={props.icon}
+          className="mt-px h-3.5 w-3.5 flex-shrink-0 text-gray-400"
+        />
       )}
-      <h6 className="truncate text-xs font-semibold uppercase tracking-wider text-gray-400">
+      <h6
+        className={`min-w-0 ${getMenuWordsBreakClassName({
+          text: translatedTitle,
+          lang: titleLanguage,
+        })} text-start text-xs font-semibold uppercase tracking-wider text-gray-400`}
+        lang={titleLanguage}
+      >
         {translatedTitle}
       </h6>
     </div>
   );
 
   const headerClassName: string =
-    "w-full flex items-center justify-between px-3 pt-2 pb-1 rounded-md";
+    "w-full flex items-start justify-between px-3 pt-2 pb-1 rounded-md";
 
   return (
     <div className="mb-2 first:mt-0 mt-1">
@@ -122,8 +149,8 @@ const SideMenuSection: FunctionComponent<ComponentProps> = (
           {heading}
           <Icon
             icon={IconProp.ChevronDown}
-            className={`h-3.5 w-3.5 flex-shrink-0 text-gray-300 transition-transform duration-200 ${
-              isCollapsed ? "-rotate-90" : "rotate-0"
+            className={`mt-px ml-2 h-3.5 w-3.5 flex-shrink-0 text-gray-300 transition-transform duration-200 ${
+              isCollapsed ? "-rotate-90 [&:dir(rtl)]:rotate-90" : "rotate-0"
             }`}
           />
         </button>

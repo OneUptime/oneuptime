@@ -138,6 +138,7 @@ Le statut global est le pire statut actuel des moniteurs et groupes de moniteurs
 | `timelineIncidents` | Les incidents de la fenêtre des barres de disponibilité, résolus compris, pour les infobulles des barres. |
 | `activeEpisodes`, `episodePublicNotes`, `episodeStateTimelines` | La même chose pour les épisodes d'incidents. |
 | `scheduledMaintenanceEvents`, `scheduledMaintenanceEventsPublicNotes`, `scheduledMaintenanceStateTimelines`, `scheduledMaintenanceStates` | Les événements de maintenance planifiée à venir ou en cours, leurs notes publiques et leurs changements d'état. |
+| `timelineScheduledMaintenanceEvents` | Les événements de maintenance planifiée de la fenêtre des barres de disponibilité qui ont commencé, en cours ou passés, pour les infobulles des barres et la boîte de dialogue de chaque jour : ceux que la page montre et qui concernent l'un de ses moniteurs, chacun avec les seuls moniteurs de la page. |
 | `activeAnnouncements` | Les annonces affichées en ce moment : commencées, et pas encore terminées. |
 
 ## Lire le résumé

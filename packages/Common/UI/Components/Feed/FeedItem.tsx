@@ -14,6 +14,7 @@ import UserUtil from "../../Utils/User";
 import ObjectID from "../../../Types/ObjectID";
 import Tooltip from "../Tooltip/Tooltip";
 import MarkdownViewer from "../Markdown.tsx/LazyMarkdownViewer";
+import { getShownMarkdownReadingDirection } from "../Markdown.tsx/MarkdownReadingDirection";
 import Icon from "../Icon/Icon";
 import IconProp from "../../../Types/Icon/IconProp";
 import Color from "../../../Types/Color";
@@ -363,10 +364,18 @@ const FeedItem: FunctionComponent<ComponentProps> = (
     }
 
     if (text.lead) {
+      /*
+       * The name and the sentence after it are one line, read the way its
+       * words are written: "Sara Ahmadi changed Monitor ..." left to right on
+       * a Persian page too, its name first, as the entry's text under it.
+       */
       return (
         <div
           className="text-sm leading-6 text-gray-700 [&_div]:inline [&_p]:m-0 [&_p]:inline"
           data-testid="feed-entry-lead"
+          dir={getShownMarkdownReadingDirection(
+            `${text.leadNamesActor ? "" : authorName} ${text.lead}`,
+          )}
         >
           {authorAvatar}
           {!text.leadNamesActor && <>{authorNameElement} </>}

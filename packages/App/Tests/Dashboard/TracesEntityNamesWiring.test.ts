@@ -331,7 +331,7 @@ describe("filtering is untouched", () => {
       "query.primaryEntityId = props.primaryEntityId;",
     );
     expect(TRACES_VIEWER).toContain(
-      'applyScopeGroup("primaryEntityId", [props.primaryEntityId.toString()]);',
+      'applyScopeGroup("primaryEntityId", [ props.primaryEntityId.toString(), ]);',
     );
   });
 

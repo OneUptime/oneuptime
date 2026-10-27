@@ -115,6 +115,8 @@ Grupper har sina egna varianter av de här reglagen (se nedan), så en grupp kan
 
 Färgerna på historikdiagrammets staplar anges under **Fler inställningar** på sidan **Varumärke**, och vilka monitorstatusar som räknas som "nere" under **Räknas som driftstopp**, på kortet **Vad din statussida visar** under **Avancerade inställningar**; båda beskrivs i [Statussidans varumärke och domäner](/docs/status-pages/branding-and-domains).
 
+Varje stapel är en dag. Peka på en stapel eller klicka på den (tryck på den på en telefon, eller tryck Enter med tangentbordet) för att läsa dagen: dess upptid, hur länge varje status varade, incidenterna som deklarerades den dagen och det planerade underhållet som pågick under den, var och en med en länk till sin egen sida. En dag med planerat underhåll har ett blått band överst på sin stapel, och medan en händelse pågår står det "Under underhåll" bredvid namnet på varje resurs för dess monitorer. Underhåll ändrar varken en stapels färg eller upptiden, som kommer från monitorns statusar: för att hålla planerat arbete utanför upptiden väljer du för händelsen under **Ändra övervakningsstatus till** en status som inte är en av sidans statusar under **Räknas som driftstopp**. Se [Vad en händelse påverkar](/docs/scheduled-maintenance/index#vad-en-händelse-påverkar).
+
 ## Grupper
 
 De flesta grupper behöver bara ett namn.

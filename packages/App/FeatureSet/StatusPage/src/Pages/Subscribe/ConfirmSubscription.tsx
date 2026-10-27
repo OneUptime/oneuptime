@@ -12,7 +12,6 @@ import ObjectID from "Common/Types/ObjectID";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { FormSkeleton } from "../../Components/Skeleton/PageSkeletons";
-import LocalStorage from "Common/UI/Utils/LocalStorage";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -53,7 +52,8 @@ const ConfirmSubscription: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { t } = useTranslation();
-  const id: ObjectID = LocalStorage.getItem("statusPageId") as ObjectID;
+  // The status page this tab shows (checked below, before anything is drawn).
+  const id: ObjectID = StatusPageUtil.getStatusPageId() as ObjectID;
 
   const [state, setState] = useState<ConfirmationState>(
     ConfirmationState.Confirming,

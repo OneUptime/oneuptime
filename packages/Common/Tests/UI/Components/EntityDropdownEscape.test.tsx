@@ -301,7 +301,7 @@ describe("Escape on the Labels tab's controls in a modal closes only the menu", 
     user: UserEventController,
   ): Promise<HTMLElement> => {
     expect(getCombobox()).toHaveFocus();
-    await screen.findByText("No options.");
+    await screen.findByText("Nothing to pick yet.");
 
     await user.tab();
     await user.tab();

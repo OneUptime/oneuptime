@@ -15,6 +15,8 @@ import Color from "../../../../Types/Color";
 import ObjectID from "../../../../Types/ObjectID";
 import { UptimeDayBucket } from "../../../../Types/StatusPage/UptimeDailyAggregate";
 import UptimeBarTooltipIncident from "../../../../Types/Monitor/UptimeBarTooltipIncident";
+import UptimeBarTooltipMaintenance from "../../../../Types/Monitor/UptimeBarTooltipMaintenance";
+import { ScheduledMaintenancePhaseOfState } from "../../../../Utils/ScheduledMaintenanceStart";
 import MonitorStatus from "../../../../Models/DatabaseModels/MonitorStatus";
 import MonitorStatusTimeline from "../../../../Models/DatabaseModels/MonitorStatusTimeline";
 import StatusPageHistoryChartBarColorRule from "../../../../Models/DatabaseModels/StatusPageHistoryChartBarColorRule";
@@ -701,5 +703,72 @@ describe("MonitorUptimeGraph - uptimeTimezone", () => {
       "Jan 02, 2026: 50% uptime",
       "Jan 03, 2026: 99% uptime",
     ]);
+  });
+});
+
+/*
+ * The scheduled maintenance a status page or the Dashboard hands the graph
+ * (#5236) reaches the strip: its days are banded, named and handed to the
+ * day dialog.
+ */
+describe("MonitorUptimeGraph - scheduled maintenance", () => {
+  const event: UptimeBarTooltipMaintenance = {
+    id: "e8000000-0000-4000-8000-000000000001",
+    title: "Database upgrade",
+    startsAt: new Date("2026-01-02T10:00:00.000Z"),
+    endsAt: new Date("2026-01-02T11:00:00.000Z"),
+    currentState: { name: "Completed", color: Green },
+    phase: ScheduledMaintenancePhaseOfState.Over,
+    monitorIds: [new ObjectID("e8100000-0000-4000-8000-000000000001")],
+  };
+
+  function bars(): Array<HTMLElement> {
+    return Array.from(
+      document.querySelectorAll<HTMLElement>('[data-testid="uptime-bar"]'),
+    );
+  }
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  test("the day of the event wears the band, the others do not", () => {
+    renderHistory({ uptimeTimezone: "UTC", maintenanceEvents: [event] });
+
+    expect(
+      bars().map((bar: HTMLElement): string | null => {
+        return bar.getAttribute("data-has-maintenance");
+      }),
+    ).toEqual(["false", "true", "false"]);
+    expect(bars()[1]?.getAttribute("aria-label")).toContain(
+      "1 scheduled maintenance event",
+    );
+  });
+
+  test("the day dialog is handed the event", () => {
+    const onBarClick: ReturnType<
+      typeof jest.fn<NonNullable<ComponentProps["onBarClick"]>>
+    > = jest.fn<NonNullable<ComponentProps["onBarClick"]>>();
+
+    renderHistory({
+      uptimeTimezone: "UTC",
+      maintenanceEvents: [event],
+      onBarClick: onBarClick,
+    });
+
+    fireEvent.click(bars()[1] as HTMLElement);
+
+    const summary: UptimeBarDaySummary = onBarClick.mock
+      .calls[0]?.[2] as UptimeBarDaySummary;
+
+    expect(summary.maintenanceEvents).toEqual([event]);
+  });
+
+  test("without maintenance, nothing is banded", () => {
+    renderHistory({ uptimeTimezone: "UTC" });
+
+    for (const bar of bars()) {
+      expect(bar.getAttribute("data-has-maintenance")).toBe("false");
+    }
   });
 });

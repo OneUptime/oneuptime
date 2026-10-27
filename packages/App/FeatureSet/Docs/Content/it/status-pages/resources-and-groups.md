@@ -115,6 +115,8 @@ I gruppi hanno le proprie copie di questi interruttori (vedete sotto), quindi un
 
 I colori delle barre del grafico della cronologia si impostano in **Altre impostazioni** nella pagina **Branding**, e quali stati dei monitor contano come «inattivo» in **Conta come inattività**, nella scheda **Cosa mostra la tua pagina di stato** delle **Impostazioni avanzate**; entrambi sono descritti in [Branding e domini della pagina di stato](/docs/status-pages/branding-and-domains).
 
+Ogni barra è un giorno. Passa il puntatore su una barra o fai clic su di essa (toccala sul telefono, o premi Invio dalla tastiera) per leggere la giornata: il suo tempo di attività, quanto è durato ogni stato, gli incidenti dichiarati quel giorno e la manutenzione programmata che vi si è svolta, ciascuno con un link alla propria pagina. Un giorno con manutenzione programmata ha una fascia blu in cima alla sua barra e, finché un evento è in corso, ogni risorsa dei suoi monitor mostra «In manutenzione» accanto al nome. La manutenzione non cambia né il colore di una barra né il tempo di attività, che vengono dagli stati del monitor: per tenere il lavoro pianificato fuori dal tempo di attività, scegli per l'evento in **Cambia lo stato del monitor in** uno stato che non sia tra quelli di **Conta come inattività** della pagina. Vedi [Cosa influenza un evento](/docs/scheduled-maintenance/index#cosa-influenza-un-evento).
+
 ## Gruppi
 
 Alla maggior parte dei gruppi serve solo un nome.

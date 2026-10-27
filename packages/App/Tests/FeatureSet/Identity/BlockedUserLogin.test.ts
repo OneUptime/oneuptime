@@ -44,6 +44,19 @@ import { beforeEach, describe, expect, it } from "@jest/globals";
 
 const mockRouter: MockIdentityRouter = createMockIdentityRouter();
 
+/*
+ * The server does not require single sign-on here: every sign-in and sign-up
+ * asks SsoRequiredSignIn first, which reads GlobalConfig. Driven for real in
+ * SsoRequiredSignInRoutes.test.ts.
+ */
+jest.mock("Common/Server/Utils/SsoRequiredSignIn", () => {
+  return (
+    jest.requireActual(
+      "./SsoNotRequiredStandIn",
+    ) as typeof import("./SsoNotRequiredStandIn")
+  ).ssoNotRequired();
+});
+
 jest.mock("Common/Server/Utils/Express", () => {
   const actual: Record<string, unknown> = jest.requireActual(
     "Common/Server/Utils/Express",

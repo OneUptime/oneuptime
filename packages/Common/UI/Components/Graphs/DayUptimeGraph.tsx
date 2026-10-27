@@ -8,11 +8,14 @@ import OneUptimeDate from "../../../Types/Date";
 import Dictionary from "../../../Types/Dictionary";
 import ObjectID from "../../../Types/ObjectID";
 import UptimeBarTooltipIncident from "../../../Types/Monitor/UptimeBarTooltipIncident";
+import UptimeBarTooltipMaintenance from "../../../Types/Monitor/UptimeBarTooltipMaintenance";
 import DayUptimeGraphUtil, {
   UptimeGraphDay,
 } from "../../../Utils/Uptime/DayUptimeGraphUtil";
+import UptimeMaintenanceUtil from "../../../Utils/Uptime/UptimeMaintenanceUtil";
 import UptimeHistoryLabels from "../../../Types/Monitor/UptimeHistoryLabels";
 import {
+  MAINTENANCE_BAR_CLASS_NAME,
   NO_DATA_BAR_CLASS_NAME,
   NO_DATA_BAR_COLOR,
   getBarColorForUptimePercent,
@@ -46,6 +49,11 @@ export interface UptimeBarDaySummary {
   hasEvents: boolean;
   statusDurations: Array<StatusDuration>;
   incidents: Array<UptimeBarTooltipIncident>;
+  /*
+   * The day's scheduled maintenance, earliest first (UptimeMaintenanceUtil),
+   * so the dialog lists the same events the tooltip does.
+   */
+  maintenanceEvents: Array<UptimeBarTooltipMaintenance>;
 }
 
 /*
@@ -116,6 +124,15 @@ export interface ComponentProps {
       ) => void)
     | undefined;
   onIncidentClick?: ((incidentId: string) => void) | undefined;
+  /*
+   * Scheduled maintenance that started on or before the window's last day
+   * (UptimeMaintenanceUtil). Each event is listed on every day its window
+   * touches, beside the incidents, and marks that day's bar with a blue
+   * band. It changes neither a day's colour nor its uptime: those stay the
+   * monitor's statuses' (see UptimeMaintenanceUtil).
+   */
+  maintenanceEvents?: Array<UptimeBarTooltipMaintenance> | undefined;
+  onMaintenanceClick?: ((maintenanceId: string) => void) | undefined;
   /*
    * Wording for the accessible names. Defaults to English, matching the
    * tooltip; the status page passes translated strings.
@@ -191,6 +208,13 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
   }, [props.startDate, props.endDate, props.timezone]);
 
   const days: number = graphDays.length;
+
+  /*
+   * One reading of the clock for every bar: an event in progress belongs to
+   * each day up to now (UptimeMaintenanceUtil), and ninety bars reading the
+   * clock apart could disagree about which day "now" falls in.
+   */
+  const now: Date = OneUptimeDate.getCurrentDate();
 
   /*
    * The strip is one tab stop with a roving tabindex inside it - see
@@ -556,6 +580,21 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
       endOfTheDay,
     );
 
+    /*
+     * And the scheduled maintenance whose window touches it. The day keeps
+     * the colour its statuses give it; the maintenance marks it with a band
+     * and is listed beside the incidents.
+     */
+    const dayMaintenance: Array<UptimeBarTooltipMaintenance> =
+      UptimeMaintenanceUtil.getEventsForDay({
+        events: props.maintenanceEvents || [],
+        dayStart: startOfTheDay,
+        dayEnd: endOfTheDay,
+        now: now,
+      });
+
+    const hasMaintenance: boolean = dayMaintenance.length > 0;
+
     let className: string = "h-20 w-20";
 
     if (props.height) {
@@ -597,6 +636,7 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
       hasEvents: hasEvents,
       statusDurations: statusDurations,
       incidents: dayIncidents,
+      maintenanceEvents: dayMaintenance,
     };
 
     const ariaLabel: string = DayUptimeGraphUtil.getDayAriaLabel({
@@ -607,6 +647,7 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
       hasEvents: hasEvents,
       uptimePercent: uptimePercentForTheDay,
       incidentCount: dayIncidents.length,
+      maintenanceCount: dayMaintenance.length,
       labels: props.labels,
     });
 
@@ -623,6 +664,8 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
             statusDurations={statusDurations}
             incidents={dayIncidents}
             onIncidentClick={props.onIncidentClick}
+            maintenanceEvents={dayMaintenance}
+            onMaintenanceClick={props.onMaintenanceClick}
             labels={props.labels}
           />
         }
@@ -655,8 +698,11 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
            */
           className={`${className} relative block p-0 border-0 appearance-none focus:outline-none focus-visible:z-10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-indigo-600${
             isClickable ? " cursor-pointer hover:opacity-80" : ""
-          }${hasDataForTheDay ? "" : ` ${NO_DATA_BAR_CLASS_NAME}`}`}
+          }${hasDataForTheDay ? "" : ` ${NO_DATA_BAR_CLASS_NAME}`}${
+            hasMaintenance ? ` ${MAINTENANCE_BAR_CLASS_NAME}` : ""
+          }`}
           data-has-data={hasDataForTheDay ? "true" : "false"}
+          data-has-maintenance={hasMaintenance ? "true" : "false"}
           /*
            * The bar's colour exactly as picked, in both themes. On the dark
            * theme a colour too dark to stand out from the card (the very dark
@@ -698,10 +744,15 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
    * Deliberately not overflow-hidden any more: it clipped the focus ring of
    * the first and last bar, which is the one part of this widget a keyboard
    * user has to be able to see.
+   *
+   * Left to right in every language, the oldest day first, as time runs
+   * along every chart: a Persian page lays its rows out from the right, and
+   * the strip would have put today at the left, under its "90 days ago".
    */
   return (
     <div
       className="flex space-x-0.5 rounded"
+      dir="ltr"
       role="group"
       aria-label={DayUptimeGraphUtil.getGraphAriaLabel({
         dayCount: days,

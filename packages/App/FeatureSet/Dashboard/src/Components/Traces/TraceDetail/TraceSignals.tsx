@@ -515,7 +515,7 @@ const TraceSignals: FunctionComponent<ComponentProps> = (
         {activeSignalTab === "logs" && (
           <DashboardLogsViewer
             id={"traces-logs-viewer"}
-            noLogsMessage="No logs found for this trace."
+            noLogsMessage="Logs that carry this trace's ID appear here."
             traceIds={[traceId]}
             limit={LIMIT_PER_PROJECT}
             enableRealtime={false}

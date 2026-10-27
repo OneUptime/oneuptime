@@ -5,8 +5,10 @@ import {
   ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS,
 } from "Common/Server/Enterprise/EnterpriseLicenseSnapshot";
 import JSONWebToken from "Common/Server/Utils/JsonWebToken";
-import logger from "Common/Server/Utils/Logger";
+import logger, { LogAttributes } from "Common/Server/Utils/Logger";
 import BadDataException from "Common/Types/Exception/BadDataException";
+import ErrorClass from "Common/Types/Telemetry/ErrorClass";
+import { ERROR_CLASS_ATTRIBUTE_KEY } from "Common/Types/Telemetry/UnitOfWork";
 import LicenseToken, {
   classifyLicenseToken,
   LICENSE_TOKEN_AUDIENCE,
@@ -600,6 +602,23 @@ export default class LicenseSigner {
       return;
     }
 
-    logger.warn(summary);
+    /*
+     * A key that is set but cannot be used is a broken deployment, not a
+     * choice, and it breaks every installation at once: each is handed a
+     * token it cannot verify, shows a legacy license, and loses what only a
+     * signed license grants. So it is an error, never a warning: LOG_LEVEL=ERROR
+     * (what config.example.env ships, and what OneUptime Cloud runs) drops
+     * warnings, which is how a stray "%" after the key - zsh's no-newline
+     * marker, copied from a terminal - went unnoticed. Infrastructure, not a
+     * code fault: the environment value is what needs fixing.
+     */
+    const attributes: LogAttributes = {
+      [ERROR_CLASS_ATTRIBUTE_KEY]: ErrorClass.Infrastructure,
+    };
+
+    logger.error(
+      `${summary} Self-hosted installations cannot verify these tokens: they show a legacy license, and white-labelling and offline license tokens are unavailable until the key is fixed.`,
+      attributes,
+    );
   }
 }

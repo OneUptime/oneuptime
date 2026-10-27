@@ -44,6 +44,12 @@
  *              owner-add       every owner the hero's Add owners list adds
  *                              is refused, as the server refuses a second
  *                              row for an owner
+ *              maintenance     every ScheduledMaintenance list fails
+ *   ?maintenance=1  the subject monitor has scheduled maintenance on its
+ *              uptime strip: a completed database upgrade two days ago and
+ *              load balancer patching in progress now. Without it the
+ *              monitor has none (the project's four states are always
+ *              there: the strip reads them to place events).
  *   ?nav=1     shows links to every fixture monitor in the header, to move
  *              between monitors on the same, still-mounted route.
  *   ?monitorLimit=  the project's limit on active monitors, as
@@ -62,6 +68,17 @@
  *              (no custom probe, one global probe: an installation's
  *              bundled probe) | both (the three and the global one). The
  *              Probe Status monitor's picker starts from these.
+ *   ?cloud=    suggest: two cloud resources a cloud connection listed
+ *              answer on the subject monitor's host - a CDN on the host
+ *              itself, a load balancer the host's CNAME points to - so
+ *              GET /monitor/cloud-resource-suggestions/:monitorId offers
+ *              them on the Linked Resources card. Without it nothing is
+ *              suggested. ?fail=cloud-suggestions fails that read (the card
+ *              then offers nothing); ?fail=cloud-link refuses the link.
+ *   ?components=  chosen: the External Status Page monitor watches two
+ *              chosen components of its Core group (issue #5156), the
+ *              Checkout API and a Payments API the page does not list,
+ *              while an incident elsewhere on the page is not counted.
  *
  * Every read is recorded on window.__monitorOverviewFixture: getItemRequests,
  * listRequests (analytics lists carry analytics: true), aggregateRequests,
@@ -97,6 +114,7 @@ import ChangeEvent from "Common/Models/AnalyticsModels/ChangeEvent";
 import Metric from "Common/Models/AnalyticsModels/Metric";
 import MonitorLog from "Common/Models/AnalyticsModels/MonitorLog";
 import Alert from "Common/Models/DatabaseModels/Alert";
+import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import Incident from "Common/Models/DatabaseModels/Incident";
@@ -121,6 +139,8 @@ import Probe, {
   ProbeConnectionStatus,
 } from "Common/Models/DatabaseModels/Probe";
 import Project from "Common/Models/DatabaseModels/Project";
+import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
+import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import Service from "Common/Models/DatabaseModels/Service";
 import Team from "Common/Models/DatabaseModels/Team";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
@@ -222,6 +242,16 @@ const planMode = params.get("plan") === "free" ? "free" : "none";
 const probesMode = ["self-hosted", "both"].includes(params.get("probes"))
   ? params.get("probes")
   : "custom";
+const cloudMode = params.get("cloud") === "suggest" ? "suggest" : "none";
+const maintenanceMode = params.get("maintenance") === "1";
+const componentsMode =
+  params.get("components") === "chosen" ? "chosen" : "page";
+
+/*
+ * The components the External Status Page monitor watches with
+ * ?components=chosen: one the page lists, and one it does not.
+ */
+const CHOSEN_STATUS_PAGE_COMPONENTS = ["Checkout API", "Payments API"];
 
 /*
  * The project's limit on active monitors (Types/Monitor/ActiveMonitorLimit),
@@ -301,6 +331,7 @@ const ID = {
   networkDevice: (number) => uuid("85000000", number),
   secret: (number) => uuid("86000000", number),
   kubernetesCluster: (number) => uuid("87000000", number),
+  cloudResource: (number) => uuid("88000000", number),
 };
 let rowCounter = 0;
 function rowId() {
@@ -326,6 +357,8 @@ const fixture = {
     monitorLimit: monitorLimitMode,
     plan: planMode,
     probes: probesMode,
+    cloud: cloudMode,
+    maintenance: maintenanceMode,
   },
   getItemRequests: [],
   listRequests: [],
@@ -706,6 +739,48 @@ insert(KubernetesCluster, {
 });
 
 /*
+ * Cloud resources a cloud connection listed (the Linked Resources card
+ * names a linked one): the CDN that answers on the storefront's host, and
+ * the load balancer its CNAME points to. ?cloud=suggest offers both.
+ */
+const CLOUD_RESOURCES = {
+  cdn: insert(CloudResource, {
+    _id: ID.cloudResource(1),
+    name: "storefront-cdn",
+    cloudProvider: "aws",
+    cloudResourceType: "AWS::CloudFront::Distribution",
+    isArchived: false,
+  }),
+  loadBalancer: insert(CloudResource, {
+    _id: ID.cloudResource(2),
+    name: "storefront-alb",
+    cloudProvider: "aws",
+    cloudResourceType: "AWS::ElasticLoadBalancingV2::LoadBalancer",
+    isArchived: false,
+  }),
+};
+
+// What the suggestions read answers for the subject monitor, as MonitorAPI does.
+const CLOUD_SUGGESTIONS = [
+  {
+    cloudResourceId: ID.cloudResource(1),
+    name: "storefront-cdn",
+    type: "AWS::CloudFront::Distribution",
+    provider: "aws",
+    endpoint: "shop.acme-commerce.example",
+    via: "shop.acme-commerce.example",
+  },
+  {
+    cloudResourceId: ID.cloudResource(2),
+    name: "storefront-alb",
+    type: "AWS::ElasticLoadBalancingV2::LoadBalancer",
+    provider: "aws",
+    endpoint: "storefront-alb-1234567890.us-east-1.elb.amazonaws.com",
+    via: "shop.acme-commerce.example",
+  },
+];
+
+/*
  * The one global probe, served by GET /probe/global-probes with ?probes=
  * self-hosted or both: the probe an installation run on its own servers
  * bundles. Not a row of the project's Probe table.
@@ -830,6 +905,8 @@ const EXTERNAL_STATUS_PAGE_PRIVATE_MESSAGE =
  */
 function externalStatusPageResponse(data) {
   const { isOnline, responseTimeInMs, failureCause, definition } = data;
+  const componentNames =
+    componentsMode === "chosen" ? [...CHOSEN_STATUS_PAGE_COMPONENTS] : [];
   if (!isOnline) {
     return {
       isOnline: false,
@@ -840,6 +917,35 @@ function externalStatusPageResponse(data) {
       responseTimeInMs: responseTimeInMs || 0,
       failureCause,
       componentGroupName: definition.componentGroupName,
+      componentNames,
+    };
+  }
+  /*
+   * Watching chosen components of the Core group: the Checkout API, the one
+   * the page lists, is all the check compares; the Payments API is not on
+   * the page; and the incident open on the page's Search is not counted.
+   */
+  if (componentsMode === "chosen") {
+    return {
+      isOnline: true,
+      overallStatus: "operational",
+      componentStatuses: [
+        {
+          name: "Checkout API",
+          status: "operational",
+          description: "Operational",
+          groupName: "Core / APIs",
+        },
+      ],
+      activeIncidentCount: 0,
+      activeIncidentNames: [],
+      incidentsOutsideScopeCount: 1,
+      unmatchedComponentNames: ["Payments API"],
+      responseTimeInMs: responseTimeInMs || 0,
+      failureCause: "",
+      provider: ExternalStatusPageProviderType.OneUptime,
+      componentGroupName: definition.componentGroupName,
+      componentNames,
     };
   }
   return {
@@ -1153,6 +1259,9 @@ function stepFor(typeKey, definition, stepNumber) {
       statusPageUrl: definition.statusPageUrl,
       provider: ExternalStatusPageProviderType.OneUptime,
       componentGroupName: definition.componentGroupName,
+      ...(componentsMode === "chosen"
+        ? { componentNames: [...CHOSEN_STATUS_PAGE_COMPONENTS] }
+        : {}),
       timeout: 10000,
       retries: 3,
     };
@@ -2065,6 +2174,70 @@ fixture.monitors = Object.fromEntries(
 
 /*
  * ---------------------------------------------------------------------------
+ * Scheduled maintenance on the uptime strip (issue #5236)
+ * ---------------------------------------------------------------------------
+ *
+ * The project's four built-in states, which the strip reads to place each
+ * event in its life (only events that have started are drawn), and with
+ * ?maintenance=1 two events on the subject monitor: one completed two days
+ * ago, one in progress now.
+ */
+function maintenanceState(name, order, flag, color) {
+  return insert(ScheduledMaintenanceState, {
+    name,
+    order,
+    color: new Color(color),
+    isScheduledState: flag === "scheduled",
+    isOngoingState: flag === "ongoing",
+    isEndedState: flag === "ended",
+    isResolvedState: flag === "completed",
+  });
+}
+
+const maintenanceStates = {
+  scheduled: maintenanceState("Scheduled", 1, "scheduled", "#000000"),
+  ongoing: maintenanceState("Ongoing", 2, "ongoing", "#eab308"),
+  ended: maintenanceState("Ended", 3, "ended", "#4a4a4a"),
+  completed: maintenanceState("Completed", 4, "completed", "#16a34a"),
+};
+
+table(ScheduledMaintenance);
+
+// The seeded events, by title, so a spec can follow one to its page.
+fixture.maintenance = {};
+
+if (maintenanceMode) {
+  const subjectRef = make(Monitor, {
+    _id: String(monitors[subjectType]._id),
+    name: MONITOR_DEFINITIONS[subjectType].name,
+  });
+
+  const upgrade = insert(ScheduledMaintenance, {
+    title: "Database upgrade",
+    startsAt: ago(2 * DAY + 4 * HOUR),
+    endsAt: ago(2 * DAY + 2 * HOUR),
+    currentScheduledMaintenanceState: maintenanceStates.completed,
+    currentScheduledMaintenanceStateId: maintenanceStates.completed.id,
+    monitors: [subjectRef],
+  });
+
+  const patching = insert(ScheduledMaintenance, {
+    title: "Load balancer patching",
+    startsAt: ago(1 * HOUR),
+    endsAt: fromNow(1 * HOUR),
+    currentScheduledMaintenanceState: maintenanceStates.ongoing,
+    currentScheduledMaintenanceStateId: maintenanceStates.ongoing.id,
+    monitors: [subjectRef],
+  });
+
+  fixture.maintenance = {
+    [upgrade.title]: String(upgrade._id),
+    [patching.title]: String(patching._id),
+  };
+}
+
+/*
+ * ---------------------------------------------------------------------------
  * The uptime summary route (GET /monitor/uptime-summary/:monitorId), built
  * from the same status changes the timeline rows come from, the way
  * MonitorStatusTimelineService.getMonitorUptimeSummary builds it.
@@ -2419,6 +2592,9 @@ ModelAPI.getList = async (options) => {
   if (failures.has("incidents") && modelName === "Incident") {
     throw fail(500, "Incidents could not be read.");
   }
+  if (failures.has("maintenance") && modelName === "ScheduledMaintenance") {
+    throw fail(500, "Scheduled maintenance could not be read.");
+  }
   const known = knownTable(options.modelType, "getList", {
     query: serialize(options.query),
   });
@@ -2613,8 +2789,30 @@ ModelAPI.updateById = async (options) => {
   const record = (tables.get(modelName)?.records || []).find((item) => {
     return String(item._id) === id;
   });
+  if (
+    modelName === tableName(Monitor) &&
+    Array.isArray(options.data?.cloudResources) &&
+    failures.has("cloud-link")
+  ) {
+    throw fail(422, "You do not have permission to link cloud resources.");
+  }
   if (record) {
-    Object.assign(record, options.data);
+    /*
+     * A relation is written as ids (linking a suggested cloud resource);
+     * the row keeps the records they name, as the API reads them back.
+     */
+    const data = { ...options.data };
+    if (Array.isArray(data.cloudResources)) {
+      data.cloudResources = data.cloudResources.map((cloudResourceId) => {
+        return make(
+          CloudResource,
+          table(CloudResource).find((item) => {
+            return String(item._id) === String(cloudResourceId);
+          }),
+        );
+      });
+    }
+    Object.assign(record, data);
   }
   return new HTTPResponse(200, {}, {});
 };
@@ -2757,6 +2955,38 @@ async function handleApi(method, options) {
     return ok(
       MonitorUptimeSummaryUtil.toJSON(buildUptimeSummary(monitorId, timezone)),
     );
+  }
+
+  /*
+   * GET /monitor/cloud-resource-suggestions/:monitorId: what the subject
+   * monitor's host leads to, less what it is already linked to.
+   */
+  if (
+    method === "GET" &&
+    parsed.pathname.includes("/monitor/cloud-resource-suggestions/")
+  ) {
+    if (failures.has("cloud-suggestions")) {
+      throw fail(500, "The cloud resources could not be read.");
+    }
+    const monitorId = parsed.pathname.split("/").pop();
+    const monitor = table(Monitor).find((item) => {
+      return String(item._id) === monitorId;
+    });
+    const linked = new Set(
+      (monitor?.cloudResources || []).map((item) => {
+        return String(item._id);
+      }),
+    );
+    const isSubject =
+      monitorId === ID.monitor(MONITOR_DEFINITIONS[subjectType].number);
+    return ok({
+      suggestions:
+        cloudMode === "suggest" && isSubject
+          ? CLOUD_SUGGESTIONS.filter((suggestion) => {
+              return !linked.has(suggestion.cloudResourceId);
+            })
+          : [],
+    });
   }
 
   fixture.unhandled.push({ kind: "api", method, url });

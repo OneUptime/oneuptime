@@ -6,6 +6,7 @@ import ProxmoxCluster from "./ProxmoxCluster";
 import VMwareVCenter from "./VMwareVCenter";
 import CephCluster from "./CephCluster";
 import StorageArray from "./StorageArray";
+import CloudResource from "./CloudResource";
 import DockerSwarmCluster from "./DockerSwarmCluster";
 import IoTFleet from "./IoTFleet";
 import DatabaseServer from "./DatabaseServer";
@@ -1230,6 +1231,61 @@ export default class Monitor extends BaseModel {
     },
   })
   public storageArrays?: Array<StorageArray> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.CreateProjectMonitor,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
+      Permission.ReadProjectMonitor,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.EditProjectMonitor,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: CloudResource,
+    title: "Cloud Resources",
+    description:
+      "Cloud resources this monitor watches. Incidents and alerts it creates are linked to them.",
+  })
+  @ManyToMany(
+    () => {
+      return CloudResource;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "MonitorCloudResource",
+    inverseJoinColumn: {
+      name: "cloudResourceId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "monitorId",
+      referencedColumnName: "_id",
+    },
+  })
+  public cloudResources?: Array<CloudResource> = undefined;
 
   @ColumnAccessControl({
     create: [

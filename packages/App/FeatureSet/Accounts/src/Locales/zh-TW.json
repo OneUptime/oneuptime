@@ -105,6 +105,7 @@
   "register": {
     "title": "建立您的 OneUptime 帳號",
     "subtitle": "加入數千家使用 OneUptime 保持隨時在線的企業。",
+    "firstAccountSubtitle": "此 OneUptime 伺服器還沒有任何帳戶。您建立的第一個帳戶將成為它的管理員。",
     "noCreditCard": "無需信用卡。",
     "submitButton": "註冊",
     "haveAccountPrompt": "已經有帳號？",
@@ -131,7 +132,6 @@
     "subtitle": "請輸入您的電子郵件，密碼重設連結將寄送給您。",
     "successMessage": "我們已透過電子郵件向您寄送密碼重設連結。請別忘了檢查垃圾郵件資料夾。",
     "submitButton": "傳送密碼重設連結",
-    "returnToSignIn": "返回登入。",
     "rememberPasswordPrompt": "記得您的密碼？",
     "loginLink": "登入。"
   },
@@ -156,13 +156,21 @@
     "emailRequired": "需要電子郵件才能執行此操作",
     "defaultProjectName": "專案",
     "globalProvidersTitle": "使用您的組織登入",
-    "globalProvidersDivider": "或使用電子郵件繼續"
+    "globalProvidersDivider": "或使用電子郵件繼續",
+    "signInWithProvider": "使用 {{name}} 登入",
+    "requiredSubtitle": "使用您組織的單一登入（SSO）登入。",
+    "requiredNotSetUp": "此伺服器尚未設定單一登入。請聯絡伺服器管理員進行設定。",
+    "useDifferentEmail": "使用其他電子郵件"
+  },
+  "adminLogin": {
+    "title": "主要管理員登入",
+    "subtitle": "此伺服器要求使用單一登入（SSO）。主要管理員仍可在此使用密碼登入。"
   },
   "verifyEmail": {
     "successTitle": "您的電子郵件已驗證。",
     "successDescription": "感謝您驗證您的電子郵件。您現在可以登入 OneUptime。",
     "errorTitle": "抱歉，發生錯誤！",
-    "returnToSignIn": "返回登入？",
+    "alreadyVerifiedPrompt": "已經驗證過電子郵件？",
     "loginLink": "登入。",
     "continueToSignIn": "繼續登入",
     "linkInvalidTitle": "此驗證連結已失效",

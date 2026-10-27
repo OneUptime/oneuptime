@@ -24,6 +24,16 @@
  * It needs nothing but Node.js and npm, so CI runs it on every Node.js line
  * the CLI supports without installing the repository. Tests/PackagedCli
  * runs the same install, and holds the packed CLI to the sources.
+ *
+ * WINDOWS. It runs there too (#4900's follow-ups). npm is npm.cmd there,
+ * which execFile cannot start without a shell (Node.js refuses since
+ * CVE-2024-27980), so npm runs as Node.js with npm's own entry point, on
+ * every platform (npmCommand). A global install puts the package under
+ * <prefix>\node_modules and its command at <prefix>\oneuptime.cmd, not
+ * under lib/ and bin/ (globalInstallLayout), and that command is a batch
+ * file, run through cmd.exe with each argument quoted for it (cliCommand).
+ * Node.js reads the home directory from USERPROFILE there, so the CLI and
+ * npm get the empty home as both HOME and USERPROFILE.
  */
 
 const childProcess = require("child_process");
@@ -44,12 +54,18 @@ const API_KEY = "sk-smoke-test-0123456789";
  * This process's environment without what would let npm or the CLI see past
  * the empty install: settings an outer `npm run` passes down (npm_config_*,
  * such as dry-run or prefix), NODE_PATH and NODE_OPTIONS, and the CLI's own
- * ONEUPTIME_* credentials.
+ * ONEUPTIME_* credentials. An override replaces a variable of the same name
+ * in any case: Windows has one Path, whatever its case.
  * @param {Record<string, string>} [overrides] - variables to set
  * @returns {Record<string, string>} the environment
  */
 function cleanEnvironment(overrides) {
   const environment = {};
+  const overridden = new Set(
+    Object.keys(overrides || {}).map((key) => {
+      return key.toUpperCase();
+    }),
+  );
 
   for (const [key, value] of Object.entries(process.env)) {
     const name = key.toUpperCase();
@@ -59,7 +75,8 @@ function cleanEnvironment(overrides) {
       name.startsWith("ONEUPTIME_") ||
       name === "NODE_PATH" ||
       name === "NODE_OPTIONS" ||
-      name === "INIT_CWD"
+      name === "INIT_CWD" ||
+      overridden.has(name)
     ) {
       continue;
     }
@@ -71,10 +88,164 @@ function cleanEnvironment(overrides) {
 }
 
 /**
+ * The empty home a run gets: HOME, and USERPROFILE, which Node.js's
+ * os.homedir() reads on Windows.
+ * @param {string} home - the directory
+ * @returns {Record<string, string>} the variables
+ */
+function homeVariables(home) {
+  return { HOME: home, USERPROFILE: home };
+}
+
+// npm's entry point, as npm's own command runs it.
+const NPM_CLI_SCRIPT = /(^|[\\/])npm-cli\.js$/;
+
+/**
+ * How to run npm without a shell: Node.js with npm's entry point, which is
+ * what the npm command runs - the npm that `npm run` names in npm_execpath,
+ * else the one beside this Node.js (<dir>\node_modules\npm on Windows,
+ * <dir>/../lib/node_modules/npm elsewhere). Only when there is none (a
+ * version manager's shim) is `npm` run from PATH, through cmd.exe on Windows.
+ * @param {{ platform?: string, execPath?: string, env?: Record<string, string | undefined>, exists?: (file: string) => boolean }} [context]
+ *   what to look at; this process's by default
+ * @returns {{ command: string, args: Array<string>, shell: boolean }} the program, the arguments before npm's own, and whether it needs a shell
+ */
+function npmCommand(context) {
+  const platform = (context && context.platform) || process.platform;
+  const execPath = (context && context.execPath) || process.execPath;
+  const env = (context && context.env) || process.env;
+  const exists = (context && context.exists) || fs.existsSync;
+  const paths = platform === "win32" ? path.win32 : path.posix;
+  const nodeDirectory = paths.dirname(execPath);
+  const candidates = [];
+
+  if (env.npm_execpath && NPM_CLI_SCRIPT.test(env.npm_execpath)) {
+    candidates.push(env.npm_execpath);
+  }
+
+  candidates.push(
+    platform === "win32"
+      ? paths.join(nodeDirectory, "node_modules", "npm", "bin", "npm-cli.js")
+      : paths.join(
+          nodeDirectory,
+          "..",
+          "lib",
+          "node_modules",
+          "npm",
+          "bin",
+          "npm-cli.js",
+        ),
+  );
+
+  for (const candidate of candidates) {
+    if (exists(candidate)) {
+      return { command: execPath, args: [candidate], shell: false };
+    }
+  }
+
+  return platform === "win32"
+    ? { command: "npm.cmd", args: [], shell: true }
+    : { command: "npm", args: [], shell: false };
+}
+
+// What cmd.exe passes to a batch file as it is: no spaces, quotes or operators.
+const PLAIN_CMD_ARGUMENT = /^[A-Za-z0-9_.:+@\/\\-]+$/;
+
+/**
+ * One argument of a command line cmd.exe runs: as it is when it is plain,
+ * else in double quotes. A quote, a % or a line break cannot be passed to a
+ * batch file whole, so those are refused rather than passed changed.
+ * @param {string} argument - the argument
+ * @returns {string} the argument as cmd.exe reads it
+ */
+function quoteForCmd(argument) {
+  const text = String(argument);
+
+  if (/["%\r\n]/.test(text)) {
+    throw new Error(
+      `${JSON.stringify(text)} cannot be passed through cmd.exe unchanged.`,
+    );
+  }
+
+  return text !== "" && PLAIN_CMD_ARGUMENT.test(text) ? text : `"${text}"`;
+}
+
+/**
+ * Where `npm install --global --prefix <prefix>` puts the package and its
+ * command: on Windows the package under <prefix>\node_modules and the
+ * command at <prefix>\oneuptime.cmd; elsewhere under <prefix>/lib/node_modules
+ * and at <prefix>/bin/oneuptime.
+ * @param {string} prefix - the --prefix
+ * @param {string} [platform] - process.platform by default
+ * @returns {{ binary: string, packageDirectory: string }} the command and the package
+ */
+function globalInstallLayout(prefix, platform) {
+  const isWindows = (platform || process.platform) === "win32";
+  const paths = isWindows ? path.win32 : path.posix;
+
+  return isWindows
+    ? {
+        binary: paths.join(prefix, `${COMMAND_NAME}.cmd`),
+        packageDirectory: paths.join(
+          prefix,
+          "node_modules",
+          ...PACKAGE_NAME.split("/"),
+        ),
+      }
+    : {
+        binary: paths.join(prefix, "bin", COMMAND_NAME),
+        packageDirectory: paths.join(
+          prefix,
+          "lib",
+          "node_modules",
+          ...PACKAGE_NAME.split("/"),
+        ),
+      };
+}
+
+/**
+ * How to run the installed command: the file itself, or on Windows its
+ * batch file through cmd.exe, the path and each argument quoted for it.
+ * @param {string} binary - the installed command
+ * @param {Array<string>} args - its arguments
+ * @param {string} [platform] - process.platform by default
+ * @returns {{ command: string, args: Array<string>, shell: boolean }} what to run
+ */
+function cliCommand(binary, args, platform) {
+  if ((platform || process.platform) === "win32") {
+    return {
+      command: `"${binary}"`,
+      args: args.map(quoteForCmd),
+      shell: true,
+    };
+  }
+
+  return { command: binary, args: args, shell: false };
+}
+
+/**
+ * Runs npm (npmCommand) with these arguments, quoted for cmd.exe when it is
+ * npm.cmd from PATH.
+ * @param {Array<string>} args - npm's arguments
+ * @param {{ cwd: string, env: Record<string, string>, timeoutMs?: number }} options - where and how
+ * @returns {Promise<{ status: number, stdout: string, stderr: string }>} how it ended
+ */
+function runNpm(args, options) {
+  const npm = npmCommand();
+
+  return run(
+    npm.command,
+    [...npm.args, ...(npm.shell ? args.map(quoteForCmd) : args)],
+    { ...options, shell: npm.shell },
+  );
+}
+
+/**
  * Runs a command to the end.
  * @param {string} command - the program
  * @param {Array<string>} args - its arguments
- * @param {{ cwd: string, env: Record<string, string>, timeoutMs?: number }} options - where and how
+ * @param {{ cwd: string, env: Record<string, string>, timeoutMs?: number, shell?: boolean }} options - where and how;
+ *   shell runs it through cmd.exe or sh, its arguments quoted by the caller
  * @returns {Promise<{ status: number, stdout: string, stderr: string }>} how it ended
  */
 function run(command, args, options) {
@@ -87,6 +258,7 @@ function run(command, args, options) {
         env: options.env,
         maxBuffer: 64 * 1024 * 1024,
         timeout: options.timeoutMs || 120000,
+        shell: Boolean(options.shell),
       },
       (error, stdout, stderr) => {
         let status = 0;
@@ -134,8 +306,7 @@ function readPackJson(stdout) {
 async function packCli(destination) {
   fs.mkdirSync(destination, { recursive: true });
 
-  const packed = await run(
-    "npm",
+  const packed = await runNpm(
     ["pack", "--json", "--pack-destination", destination],
     { cwd: CLI_ROOT, env: cleanEnvironment(), timeoutMs: 300000 },
   );
@@ -164,19 +335,13 @@ async function packCli(destination) {
  *   where everything landed
  */
 async function installTarball(tarball, root) {
+  const prefix = path.join(root, "prefix");
   const installation = {
     root: root,
-    prefix: path.join(root, "prefix"),
+    prefix: prefix,
     home: path.join(root, "home"),
     work: path.join(root, "work"),
-    binary: path.join(root, "prefix", "bin", COMMAND_NAME),
-    packageDirectory: path.join(
-      root,
-      "prefix",
-      "lib",
-      "node_modules",
-      ...PACKAGE_NAME.split("/"),
-    ),
+    ...globalInstallLayout(prefix),
   };
   const cache = path.join(root, "npm-cache");
 
@@ -189,8 +354,7 @@ async function installTarball(tarball, root) {
     fs.mkdirSync(directory, { recursive: true });
   }
 
-  const installed = await run(
-    "npm",
+  const installed = await runNpm(
     [
       "install",
       "--global",
@@ -206,7 +370,7 @@ async function installTarball(tarball, root) {
     ],
     {
       cwd: installation.work,
-      env: cleanEnvironment({ HOME: installation.home }),
+      env: cleanEnvironment(homeVariables(installation.home)),
       timeoutMs: 300000,
     },
   );
@@ -222,15 +386,21 @@ async function installTarball(tarball, root) {
 
 /**
  * Runs the installed CLI from an empty working directory, with the install's
- * own HOME (so `login` writes its config there) and no ONEUPTIME_* variables.
+ * own home (so `login` writes its config there) and no ONEUPTIME_* variables.
  * @param {{ binary: string, home: string, work: string }} installation - from installTarball()
  * @param {Array<string>} args - the CLI's arguments
  * @returns {Promise<{ status: number, stdout: string, stderr: string }>} how it ended
  */
 function runCli(installation, args) {
-  return run(installation.binary, args, {
+  const cli = cliCommand(installation.binary, args);
+
+  return run(cli.command, cli.args, {
     cwd: installation.work,
-    env: cleanEnvironment({ HOME: installation.home, NO_COLOR: "1" }),
+    env: cleanEnvironment({
+      ...homeVariables(installation.home),
+      NO_COLOR: "1",
+    }),
+    shell: cli.shell,
   });
 }
 
@@ -639,6 +809,11 @@ module.exports = {
   PACKAGE_NAME,
   COMMAND_NAME,
   cleanEnvironment,
+  homeVariables,
+  npmCommand,
+  quoteForCmd,
+  globalInstallLayout,
+  cliCommand,
   readPackJson,
   packCli,
   installTarball,

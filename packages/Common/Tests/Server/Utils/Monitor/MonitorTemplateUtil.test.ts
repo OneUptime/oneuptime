@@ -946,6 +946,57 @@ describe("MonitorTemplateUtil.buildTemplateStorageMap — ExternalStatusPage", (
     });
   });
 
+  /*
+   * Issue #5156: a monitor watches several components. {{componentName}}
+   * names them, separated by commas; a monitor saved with one Component
+   * Name Filter keeps the name it had.
+   */
+  test.each([
+    [
+      "several chosen components",
+      {
+        componentNames: ["Git Operations", "Pull Requests", "Actions"],
+      },
+      "Git Operations, Pull Requests, Actions",
+    ],
+    [
+      "one chosen component",
+      { componentNames: ["Git Operations"], componentName: "Git Operations" },
+      "Git Operations",
+    ],
+    [
+      "a monitor saved with one name filter",
+      { componentNames: ["*API*"], componentName: "API" },
+      "API",
+    ],
+    ["the whole page", { componentNames: [] }, undefined],
+  ])(
+    "{{componentName}} for %s",
+    (
+      _name: string,
+      scope: { componentNames: Array<string>; componentName?: string },
+      expected: string | undefined,
+    ) => {
+      const map: JSONObject = build(
+        MonitorType.ExternalStatusPage,
+        probeResponse({
+          isOnline: true,
+          externalStatusPageResponse: {
+            isOnline: true,
+            overallStatus: "operational",
+            activeIncidentCount: 0,
+            responseTimeInMs: 150,
+            failureCause: "",
+            componentStatuses: [],
+            ...scope,
+          },
+        }),
+      );
+
+      expect(map["componentName"]).toBe(expected);
+    },
+  );
+
   test("no response leaves componentStatuses off the map", () => {
     const map: JSONObject = build(
       MonitorType.ExternalStatusPage,

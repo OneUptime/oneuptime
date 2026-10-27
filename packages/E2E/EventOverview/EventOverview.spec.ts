@@ -9191,6 +9191,318 @@ test.describe("the header, by its own width", () => {
     await screenshotElement(hero(page), "event-header-maintenance-overdue");
   });
 
+  /*
+   * An event kept to the team until its publish time (#5249) says so in the
+   * header's quiet band: not on its status pages yet, from when, and that
+   * its subscribers are told then - with Publish Now, which asks first and
+   * clears the time. Its Maintenance Details card lists the time and says
+   * the 'scheduled' notification waits for it.
+   */
+  test("a maintenance event not published yet says so in its header, and Publish Now publishes it after asking (?publish=later)", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    // Nobody has been told about it yet: no feed item says so.
+    await openReady(page, SCHEDULED_MAINTENANCE_PAGE, "publish=later", [
+      "Acme Internal Status",
+      "4 resources",
+      "Mark as Ongoing",
+      "Maintenance duration",
+    ]);
+    await loadProductionFont(page);
+
+    const band: Locator = hero(page).getByTestId("event-header-notice");
+    await expect(band).toHaveAttribute("data-tone", "neutral");
+    const notice: Locator = band.getByTestId(
+      "scheduled-maintenance-publishing-notice",
+    );
+    await expect(notice).toContainText("Not on status pages yet");
+    await expect(notice).toContainText(
+      "It shows on its status pages from Sep 14 2026, 07:30 PM GMT, when their subscribers are told it is scheduled.",
+    );
+    // The state actions stay where they were; the band holds its own.
+    await expect(
+      heroActions(page).getByRole("button", { name: "Mark as Ongoing" }),
+    ).toBeVisible();
+
+    const details: Locator = card(page, "Maintenance Details");
+    await expect(
+      details.getByTestId("scheduled-maintenance-publish-on-status-pages"),
+    ).toHaveText("Sep 14 2026, 07:30 PM GMT");
+    await expect(details).toContainText("Sent when it is published");
+
+    expect((await headerColours(page)).unreadable).toEqual([]);
+    await page.mouse.move(0, 0);
+    await screenshotElement(
+      hero(page),
+      "event-header-maintenance-not-published-yet",
+    );
+
+    await notice.getByRole("button", { name: "Publish Now" }).click();
+    const confirm: Locator = page.getByRole("dialog", {
+      name: "Publish this event now?",
+    });
+    await expect(confirm).toContainText(
+      "It shows on its status pages at once, and their subscribers are told it is scheduled.",
+    );
+    // Nothing is written until it is confirmed.
+    expect((await fixture(page)).updates).toEqual([]);
+
+    await confirm.getByRole("button", { name: "Publish Now" }).click();
+    await expect(confirm).toHaveCount(0);
+
+    expect((await fixture(page)).updates).toEqual([
+      {
+        modelName: "ScheduledMaintenance",
+        id: SCHEDULED_MAINTENANCE_ID,
+        data: { publishOnStatusPageAt: null },
+      },
+    ]);
+    // Read again: published from now, so the band is gone.
+    await expect(
+      hero(page).getByTestId("scheduled-maintenance-publishing-notice"),
+    ).toHaveCount(0);
+    await expect(
+      details.getByTestId("scheduled-maintenance-publish-on-status-pages"),
+    ).toHaveCount(0);
+  });
+
+  /*
+   * The band follows the header's own width (UI review of #5249): beside
+   * the words on a wide header, Publish Now's label level with "Not on
+   * status pages yet"; on a narrow one - a phone, or the header beside the
+   * side menu at 768px - on the line under them. At the end of the band
+   * either way, and sized to its label: as a NORMAL button it kept a dialog
+   * footer's 12px margin and was pushed off both.
+   */
+  test("the band keeps Publish Now at its end: beside the words on a wide header, level with them, and under them on a narrow one (?publish=later)", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await openReady(page, SCHEDULED_MAINTENANCE_PAGE, "publish=later", [
+      "Acme Internal Status",
+      "Mark as Ongoing",
+      "Maintenance duration",
+    ]);
+    await loadProductionFont(page);
+
+    const notice: Locator = hero(page).getByTestId(
+      "scheduled-maintenance-publishing-notice",
+    );
+
+    for (const [width, isBeside] of [
+      [1280, true],
+      [1024, true],
+      [768, false],
+      [390, false],
+    ] as Array<[number, boolean]>) {
+      await page.setViewportSize({ width, height: 900 });
+      await expect(notice).toBeVisible();
+
+      const boxes: {
+        contentLeft: number;
+        contentRight: number;
+        words: { left: number; right: number; bottom: number };
+        button: { left: number; right: number; top: number; width: number };
+        titleMiddle: number;
+        labelMiddle: number;
+      } = await notice.evaluate(
+        (
+          element: Element,
+        ): {
+          contentLeft: number;
+          contentRight: number;
+          words: { left: number; right: number; bottom: number };
+          button: { left: number; right: number; top: number; width: number };
+          titleMiddle: number;
+          labelMiddle: number;
+        } => {
+          const band: Element = element.closest(
+            "[data-testid=event-header-notice]",
+          )!;
+          const bandBox: DOMRect = band.getBoundingClientRect();
+          const style: CSSStyleDeclaration = window.getComputedStyle(band);
+          const words: DOMRect =
+            element.firstElementChild!.getBoundingClientRect();
+          const button: Element = element.querySelector(
+            "[data-testid=scheduled-maintenance-publish-now]",
+          )!;
+          const buttonBox: DOMRect = button.getBoundingClientRect();
+          const middleOf: (node: Node) => number = (node: Node): number => {
+            const range: Range = document.createRange();
+            range.selectNodeContents(node);
+            const first: DOMRect = range.getClientRects()[0]!;
+            return first.top + first.height / 2;
+          };
+          const label: Node = Array.from(button.childNodes).find(
+            (node: Node): boolean => {
+              return (
+                node.nodeType === Node.TEXT_NODE &&
+                (node.textContent || "").trim().length > 0
+              );
+            },
+          )!;
+
+          return {
+            contentLeft: bandBox.left + parseFloat(style.paddingLeft),
+            contentRight: bandBox.right - parseFloat(style.paddingRight),
+            words: {
+              left: words.left,
+              right: words.right,
+              bottom: words.bottom,
+            },
+            button: {
+              left: buttonBox.left,
+              right: buttonBox.right,
+              top: buttonBox.top,
+              width: buttonBox.width,
+            },
+            titleMiddle: middleOf(element.querySelector("p")!),
+            labelMiddle: middleOf(label),
+          };
+        },
+      );
+
+      // At the band's end, at every width - never 12px in from it.
+      expect(
+        Math.abs(boxes.button.right - boxes.contentRight),
+        `${width}px: Publish Now ends where the band's words may end`,
+      ).toBeLessThanOrEqual(1);
+      // Sized to its label, never stretched across a phone.
+      expect(
+        boxes.button.width,
+        `${width}px: Publish Now is as wide as its label`,
+      ).toBeLessThan((boxes.contentRight - boxes.contentLeft) / 2);
+      expect(
+        Math.abs(boxes.words.left - boxes.contentLeft),
+        `${width}px: the words start the band`,
+      ).toBeLessThanOrEqual(1);
+
+      if (isBeside) {
+        expect(
+          boxes.button.left,
+          `${width}px: Publish Now is beside the words`,
+        ).toBeGreaterThan(boxes.words.right);
+        expect(
+          Math.abs(boxes.titleMiddle - boxes.labelMiddle),
+          `${width}px: Publish Now's label is level with the band's title`,
+        ).toBeLessThanOrEqual(0.5);
+      } else {
+        expect(
+          boxes.button.top,
+          `${width}px: Publish Now is on the line under the words`,
+        ).toBeGreaterThanOrEqual(boxes.words.bottom);
+      }
+
+      await page.mouse.move(0, 0);
+      await screenshotElement(
+        hero(page),
+        `event-header-maintenance-not-published-yet-${width}`,
+      );
+    }
+  });
+
+  test("a refused Publish Now says why in its dialog, and the event keeps waiting (?publish=later&fail=publish)", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(
+      page,
+      SCHEDULED_MAINTENANCE_PAGE,
+      "publish=later&fail=publish",
+      ["Acme Internal Status", "Mark as Ongoing", "Maintenance duration"],
+    );
+
+    const notice: Locator = hero(page).getByTestId(
+      "scheduled-maintenance-publishing-notice",
+    );
+    await notice.getByRole("button", { name: "Publish Now" }).click();
+
+    const confirm: Locator = page.getByRole("dialog", {
+      name: "Publish this event now?",
+    });
+    await confirm.getByRole("button", { name: "Publish Now" }).click();
+
+    // The dialog stays, saying why, and nothing is read as published.
+    await expect(confirm).toContainText(
+      "This scheduled maintenance event could not be updated. Please try again.",
+    );
+    expect((await fixture(page)).updates).toEqual([
+      {
+        modelName: "ScheduledMaintenance",
+        id: SCHEDULED_MAINTENANCE_ID,
+        data: { publishOnStatusPageAt: null },
+      },
+    ]);
+    await expect(
+      confirm.getByRole("button", { name: "Publish Now" }),
+    ).toBeEnabled();
+
+    await confirm.getByRole("button", { name: "Cancel" }).click();
+    await expect(confirm).toHaveCount(0);
+    await expect(notice).toContainText("Not on status pages yet");
+    await expect(
+      card(page, "Maintenance Details").getByTestId(
+        "scheduled-maintenance-publish-on-status-pages",
+      ),
+    ).toHaveText("Sep 14 2026, 07:30 PM GMT");
+  });
+
+  test("the details say a reminder due before the event is published is not sent (?publish=later), and say nothing once it is (?publish=past)", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, SCHEDULED_MAINTENANCE_PAGE, "publish=later", [
+      "Acme Internal Status",
+      "Maintenance duration",
+    ]);
+
+    // The 1-hour reminder (19:20) comes before the publish time (19:30).
+    const details: Locator = card(page, "Maintenance Details");
+    await expect(details).toContainText(
+      "Next reminder: Sep 14 2026, 07:20 PM GMT",
+    );
+    await expect(
+      details.getByTestId("scheduled-maintenance-next-reminder-not-sent"),
+    ).toHaveText("Reminders due before the event is published are not sent.");
+
+    await openReady(page, SCHEDULED_MAINTENANCE_PAGE, "publish=past", [
+      "Acme Internal Status",
+      "Maintenance duration",
+    ]);
+    await expect(
+      card(page, "Maintenance Details").getByTestId(
+        "scheduled-maintenance-publish-on-status-pages",
+      ),
+    ).toHaveText("Sep 14 2026, 12:00 PM GMT");
+    await expect(
+      card(page, "Maintenance Details").getByTestId(
+        "scheduled-maintenance-next-reminder-not-sent",
+      ),
+    ).toHaveCount(0);
+  });
+
+  test("a maintenance event whose publish time has come shows no band, and its details list the time (?publish=past)", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, SCHEDULED_MAINTENANCE_PAGE, "publish=past");
+
+    await expect(hero(page).getByTestId("event-header-notice")).toHaveCount(0);
+    await expect(
+      card(page, "Maintenance Details").getByTestId(
+        "scheduled-maintenance-publish-on-status-pages",
+      ),
+    ).toHaveText("Sep 14 2026, 12:00 PM GMT");
+  });
+
   test("someone who may not change an incident's state sees its state actions locked, each saying which permission (?role=alert-member)", async ({
     page,
   }: {
@@ -17637,4 +17949,373 @@ test.describe("at a glance: layout", () => {
       );
     });
   }
+});
+
+/*
+ * Issue #5293: an incident Ask AI declared on a host's page was linked to
+ * nothing, and its Remediation card said only that it was "not linked to a
+ * Kubernetes cluster or an infrastructure resource". The card now says, in
+ * plain words, what OneUptime AI fixes and what to do: add what the
+ * incident is about under Affected Resources, and OneUptime AI tries
+ * again. "Go to Affected Resources" takes the reader to that card - on a
+ * phone far below - and marks where it landed. ?fixing=nothing-linked is
+ * such a record with no monitor (an incident Ask AI declared);
+ * ?fixing=nothing-linked-monitor names its monitor too.
+ */
+test.describe("the Remediation card of a record linked to nothing (issue #5293)", () => {
+  const NOTHING_LINKED_INCIDENT: string =
+    "This incident is not linked to a host, cluster or database, so OneUptime AI had nothing to fix.";
+  const WHAT_TO_DO: string =
+    "Add the host, cluster or database it is about under Affected Resources, and OneUptime AI tries again.";
+  const GO_TO_AFFECTED_RESOURCES: string = "Go to Affected Resources";
+
+  function decisionLine(page: Page): Locator {
+    return remediationCard(page).getByTestId("remediation-decision-line");
+  }
+
+  test("says what OneUptime AI fixes, and what to do, with no monitor to link", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PATH, "fixing=nothing-linked");
+
+    const line: Locator = decisionLine(page);
+    await expect(line).toHaveCount(1, { timeout: 30000 });
+    await expect(line).toHaveAttribute("data-tone", "attention");
+    await expect(line.getByTestId("remediation-decision-text")).toHaveText(
+      NOTHING_LINKED_INCIDENT,
+    );
+    await expect(
+      line.getByTestId("remediation-decision-what-to-do"),
+    ).toHaveText(`What to do: ${WHAT_TO_DO}`);
+    // The sentence is the why: never the engine's words.
+    await expect(remediationCard(page)).not.toContainText(
+      "infrastructure resource",
+    );
+    await expect(remediationCard(page)).toContainText("Needs attention");
+
+    // The one step, and nothing else to follow: no monitor, no link.
+    await expect(
+      line.getByRole("button", { name: GO_TO_AFFECTED_RESOURCES, exact: true }),
+    ).toBeVisible();
+    await expect(line.getByRole("link")).toHaveCount(0);
+  });
+
+  test("with a monitor, links it too, after the step that fixes this one", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PATH, "fixing=nothing-linked-monitor");
+
+    const line: Locator = decisionLine(page);
+    await expect(
+      line.getByTestId("remediation-decision-what-to-do"),
+    ).toHaveText(
+      `What to do: ${WHAT_TO_DO} Link its monitor to what it watches, and every incident it raises from then on is linked for you.`,
+      { timeout: 30000 },
+    );
+
+    const go: Locator = line.getByRole("button", {
+      name: GO_TO_AFFECTED_RESOURCES,
+      exact: true,
+    });
+    const monitorLink: Locator = line.getByRole("link", {
+      name: "Link Checkout API p95 latency",
+    });
+    await expect(monitorLink).toHaveAttribute(
+      "href",
+      `${DASHBOARD}/monitors/${uuid("70000000", 1)}`,
+    );
+
+    // Side by side in reading order: the button first.
+    const goBox: Box = await documentBox(go);
+    const linkBox: Box = await documentBox(monitorLink);
+    expect(goBox.y <= linkBox.y).toBe(true);
+    if (goBox.y === linkBox.y) {
+      expect(goBox.x).toBeLessThan(linkBox.x);
+    }
+  });
+
+  for (const width of [390, 1280]) {
+    test(`Go to Affected Resources lands on the card, under the header, at ${width}px`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize({ width, height: 844 });
+      await open(page, INCIDENT_PATH, "fixing=nothing-linked");
+      await expectWhatHappenedSettled(page);
+
+      const affectedResources: Locator = card(page, "Affected Resources");
+      await expect(affectedResources).toBeVisible({ timeout: 30000 });
+      await expect(affectedResources).toHaveAttribute(
+        "id",
+        "affected-resources",
+      );
+
+      const go: Locator = decisionLine(page).getByRole("button", {
+        name: GO_TO_AFFECTED_RESOURCES,
+        exact: true,
+      });
+      await go.scrollIntoViewIfNeeded();
+      await go.click();
+
+      // Marked where it landed, and in view under the sticky header.
+      await expect(affectedResources).toHaveAttribute(
+        "data-page-anchor-landed",
+        "true",
+      );
+      // The button's focus is handed on: Tab goes on from the card.
+      await expect(affectedResources).toBeFocused();
+      await expect
+        .poll(
+          async (): Promise<number> => {
+            const box: { y: number } | null =
+              await affectedResources.boundingBox();
+            return box ? Math.round(box.y) : -1;
+          },
+          { timeout: 10000 },
+        )
+        .toBeGreaterThanOrEqual(0);
+      const box: { y: number; height: number } | null =
+        await affectedResources.boundingBox();
+      expect(box).not.toBeNull();
+      expect(box!.y).toBeLessThan(844 / 2);
+      await expect(
+        affectedResources.getByRole("button", { name: "Edit" }),
+      ).toBeInViewport();
+
+      await expectNoHorizontalOverflow(page);
+      await screenshot(page, `remediation-linked-to-nothing-landed-${width}`, {
+        fullPage: false,
+      });
+    });
+  }
+
+  test("an alert linked to nothing says so in its own words, and lands on its own card", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await open(page, ALERT_PATH, "fixing=nothing-linked");
+
+    const line: Locator = decisionLine(page);
+    await expect(line.getByTestId("remediation-decision-text")).toHaveText(
+      "This alert is not linked to a host, cluster or database, so OneUptime AI had nothing to fix.",
+      { timeout: 30000 },
+    );
+
+    await line
+      .getByRole("button", { name: GO_TO_AFFECTED_RESOURCES, exact: true })
+      .click();
+
+    const affectedResources: Locator = card(page, "Affected Resources");
+    await expect(affectedResources).toHaveAttribute(
+      "data-page-anchor-landed",
+      "true",
+    );
+    await expect(affectedResources).toBeInViewport();
+  });
+
+  test("reads the same in dark mode, at a phone's width", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await open(page, INCIDENT_PATH, "fixing=nothing-linked-monitor&theme=dark");
+
+    const line: Locator = decisionLine(page);
+    await expect(line).toHaveCount(1, { timeout: 30000 });
+    await expectNoHorizontalOverflow(page);
+    await screenshotElement(
+      remediationCard(page),
+      "remediation-linked-to-nothing-390-dark",
+    );
+  });
+});
+
+/*
+ * Issue #5293: asked to link the incident to the host it is about,
+ * OneUptime AI waits for approval of add_incident_affected_resources. The
+ * server prepared the action (prepareMutation), so the card says what it
+ * links by name - Adds host "checkout-api-7f9c". - and leaves the list's
+ * IDs out of the arguments line, where they would only repeat it.
+ * ?thread=linking is that conversation, on incident #1042 and alert #311.
+ */
+test.describe("an action linking what a record is about waits for approval (issue #5293)", () => {
+  const HOST_ID: string = uuid("84000000", 1);
+  const ADDS_HOST: string = 'Adds host "checkout-api-7f9c".';
+
+  function approvalPrompt(page: Page): Locator {
+    return answers(page).first().getByRole("group", {
+      name: "Actions waiting for approval",
+    });
+  }
+
+  test("the card names the host it links, and running it links it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openConversation(page, "thread=linking");
+    const answer: Locator = answers(page).first();
+    const prompt: Locator = approvalPrompt(page);
+
+    await expect(prompt).toContainText("The AI wants to perform 1 action");
+    // Named by its number: never by the ID the arguments carry.
+    await expect(prompt).toContainText(
+      "Link incident #1042 to affected resources",
+    );
+    await expect(prompt.getByTestId("tool-approval-description")).toHaveText(
+      ADDS_HOST,
+    );
+    // The arguments line keeps the incident and leaves the list out.
+    await expect(prompt).toContainText(`incidentId: ${INCIDENT_ID}`);
+    await expect(prompt).not.toContainText("affectedResources");
+    await expect(prompt).not.toContainText(HOST_ID);
+
+    await prompt.getByRole("button", { name: /Run 1 action/ }).click();
+
+    const decisions: Array<RecordedApiRequest> = await apiRequestsTo(
+      page,
+      "/ai-investigation/conversation/respond-to-approval",
+    );
+    expect(decisions).toHaveLength(1);
+    expect(decisions[0]!.body["decisions"]).toEqual([
+      { toolCallId: "call_link", approved: true },
+    ]);
+
+    await expect(answer).toContainText(
+      "Done — incident #1042 is linked to host checkout-api-7f9c.",
+    );
+    await expect(prompt).toHaveCount(0);
+    await expect(
+      answer.getByRole("list", { name: "Actions" }).getByRole("listitem"),
+    ).toHaveText(["Link incident #1042 to affected resources · Done"]);
+  });
+
+  test("an alert's card names the host the same way", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openConversation(page, "thread=linking", ALERT_PATH);
+    const prompt: Locator = approvalPrompt(page);
+
+    await expect(prompt).toContainText("Link alert #311 to affected resources");
+    await expect(prompt.getByTestId("tool-approval-description")).toHaveText(
+      ADDS_HOST,
+    );
+    await expect(prompt).toContainText(`alertId: ${ALERT_ID}`);
+    await expect(prompt).not.toContainText(HOST_ID);
+  });
+
+  for (const theme of ["light", "dark"]) {
+    test(`on a phone the line stays inside the card (${theme})`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize({ width: 390, height: 844 });
+      await openConversation(
+        page,
+        `thread=linking${theme === "dark" ? "&theme=dark" : ""}`,
+      );
+      const prompt: Locator = approvalPrompt(page);
+      const description: Locator = prompt.getByTestId(
+        "tool-approval-description",
+      );
+
+      await expect(description).toBeVisible();
+      await expectNoHorizontalOverflow(page);
+
+      // The line wraps inside the card rather than running past it.
+      const promptBox: { x: number; width: number } | null =
+        await prompt.boundingBox();
+      const descriptionBox: { x: number; width: number } | null =
+        await description.boundingBox();
+      expect(promptBox).not.toBeNull();
+      expect(descriptionBox).not.toBeNull();
+      expect(descriptionBox!.x).toBeGreaterThanOrEqual(promptBox!.x);
+      expect(descriptionBox!.x + descriptionBox!.width).toBeLessThanOrEqual(
+        promptBox!.x + promptBox!.width + 0.5,
+      );
+
+      /*
+       * The title in full - the incident it acts on included - wrapped
+       * rather than cut at one line.
+       */
+      const title: Locator = prompt.getByTestId("tool-approval-title");
+      await expect(title).toHaveText(
+        "Link incident #1042 to affected resources",
+      );
+      expect(
+        await title.evaluate((element: HTMLElement): boolean => {
+          return (
+            element.scrollHeight <= element.clientHeight + 1 &&
+            element.scrollWidth <= element.clientWidth + 1
+          );
+        }),
+      ).toBe(true);
+
+      /*
+       * Allow and Skip under the action, which keeps the card's whole
+       * width (#5301's UI review): beside it on a phone, German's wider
+       * buttons left the title 85 px and cut it at three lines.
+       */
+      const action: Locator = prompt.getByTestId("tool-approval-action");
+      const choice: Locator = prompt.getByTestId("tool-approval-choice");
+      await expect(choice).toBeVisible();
+      const actionBox: { x: number; width: number } | null =
+        await action.boundingBox();
+      const titleBox: {
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+      } | null = await title.boundingBox();
+      const choiceBox: { x: number; y: number } | null =
+        await choice.boundingBox();
+      expect(choiceBox!.y).toBeGreaterThanOrEqual(
+        titleBox!.y + titleBox!.height,
+      );
+      // The text's width is the action's, less its padding and border.
+      expect(titleBox!.width).toBeGreaterThanOrEqual(actionBox!.width - 28);
+      // The pair starts where the text starts.
+      expect(Math.abs(choiceBox!.x - titleBox!.x)).toBeLessThanOrEqual(1);
+
+      await screenshotElement(prompt, `tool-approval-linking-390-${theme}`);
+    });
+  }
+
+  test("on a wide card Allow and Skip sit beside the action, at its end", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openConversation(page, "thread=linking");
+    const prompt: Locator = approvalPrompt(page);
+    const title: Locator = prompt.getByTestId("tool-approval-title");
+    const choice: Locator = prompt.getByTestId("tool-approval-choice");
+
+    await expect(choice).toBeVisible();
+    // Named after the action it decides, for a screen reader.
+    await expect(
+      prompt.getByRole("group", {
+        name: "Link incident #1042 to affected resources",
+      }),
+    ).toBeVisible();
+
+    const titleBox: { x: number; y: number; width: number } | null =
+      await title.boundingBox();
+    const choiceBox: { x: number; y: number } | null =
+      await choice.boundingBox();
+    // On the title's line, past its end.
+    expect(Math.abs(choiceBox!.y - titleBox!.y)).toBeLessThan(8);
+    expect(choiceBox!.x).toBeGreaterThan(titleBox!.x + titleBox!.width);
+  });
 });

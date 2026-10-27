@@ -92,8 +92,8 @@ const AttackCoverageTactics: FunctionComponent<ComponentProps> = (
             >
               <Icon
                 icon={IconProp.ChevronRight}
-                className={`h-4 w-4 flex-shrink-0 text-gray-400 transition-transform rtl:rotate-180 ${
-                  isOpen ? "rotate-90 rtl:rotate-90" : ""
+                className={`h-4 w-4 flex-shrink-0 text-gray-400 transition-transform ${
+                  isOpen ? "rotate-90" : ""
                 }`}
               />
               <span className="min-w-0 flex-1">

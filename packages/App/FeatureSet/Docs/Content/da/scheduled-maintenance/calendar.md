@@ -113,7 +113,7 @@ Kalenderen indeholder hver begivenhed fra 90 dage tilbage til et år frem, op ti
 
 De mennesker, der følger en statusside, kan lægge dens planlagte vedligeholdelse ind i deres egen kalender. På statussidens side med planlagte begivenheder tilbyder **Abonner på kalender** Google Kalender, kalenderappen på deres enhed eller linket til at kopiere. Linket er sidens adresse efterfulgt af `/maintenance.ics`, for eksempel `https://status.example.com/maintenance.ics`.
 
-- **Hvad den indeholder.** Præcis det, siden viser: begivenhederne i sidens historikvindue, hver begivenhed, der endnu ikke er begyndt, og hver, der er i gang, så længe **Synlig på statussiden** er slået til. Det, hver begivenhed berører, nævnes, som siden navngiver sine ressourcer, aldrig med dine monitorers egne navne.
+- **Hvad den indeholder.** Præcis det, siden viser: begivenhederne i sidens historikvindue, hver begivenhed, der endnu ikke er begyndt, og hver, der er i gang, så længe **Synlig på statussiden** er slået til, og fra dens **Offentliggør den**, hvis du har valgt et. Det, hver begivenhed berører, nævnes, som siden navngiver sine ressourcer, aldrig med dine monitorers egne navne.
 - **En privat side.** En kalenderapp kan ikke logge ind, så en privat side tilbyder ingen **Abonner på kalender**, og dens link leverer en tom kalender, der siger, at siden er privat.
 - **Én begivenhed.** **Føj til kalender** på en begivenheds side tilføjer kun den begivenhed: Google Kalender åbner med den udfyldt, eller den hentes som en fil, som enhedens kalenderapp åbner. Det virker også på en privat side for en besøgende, der er logget ind, og tilbydes ikke, når begivenheden er slut.
 
@@ -147,7 +147,7 @@ Google Kalender læser linket fra Googles servere, så OneUptime-serveren skal k
 :::
 
 :::details En begivenhed mangler i en statussides kalender
-Sidens kalender indeholder det, siden viser. Tjek, at begivenheden nævner siden, at **Synlig på statussiden** er slået til i dens **Indstillinger**, og at den begyndte inden for sidens historikvindue.
+Sidens kalender indeholder det, siden viser. Tjek, at begivenheden nævner siden, at **Synlig på statussiden** er slået til i dens **Indstillinger**, at dens **Offentliggør den**, hvis den har et, er nået, og at den begyndte inden for sidens historikvindue.
 :::
 
 :::details En ekstern kalender siger Virker ikke

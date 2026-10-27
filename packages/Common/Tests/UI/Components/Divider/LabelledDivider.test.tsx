@@ -2,7 +2,10 @@ import "@testing-library/jest-dom";
 import { cleanup, render, screen } from "@testing-library/react";
 import React from "react";
 import { afterEach, describe, expect, test } from "@jest/globals";
-import LabelledDivider from "../../../../UI/Components/Divider/LabelledDivider";
+import LabelledDivider, {
+  LABELLED_DIVIDER_LABEL_CLASS_NAME,
+  LABELLED_DIVIDER_LINE_CLASS_NAME,
+} from "../../../../UI/Components/Divider/LabelledDivider";
 
 /*
  * A hairline with a few words in its middle - "or" between a sign-in page's
@@ -27,6 +30,28 @@ describe("LabelledDivider", () => {
     }
     expect(divider).toHaveClass("flex", "items-center", "gap-3");
     expect(words).toHaveClass("text-sm", "text-gray-500", "text-center");
+  });
+
+  /*
+   * Long words ("O continúe con su correo electrónico") on a phone took the
+   * whole row and left the lines nothing: each line keeps 1.5rem, and the
+   * words wrap into balanced lines between them. SignInOptions.spec.ts
+   * measures it in every language.
+   */
+  test("keeps each line 1.5rem wide, and wraps long words between them", () => {
+    render(
+      <LabelledDivider
+        label="O continúe con su correo electrónico"
+        dataTestId="divider"
+      />,
+    );
+
+    for (const line of screen.getAllByTestId("divider-line")) {
+      expect(line).toHaveClass("min-w-6");
+    }
+    expect(
+      screen.getByText("O continúe con su correo electrónico"),
+    ).toHaveClass("min-w-0", "text-balance");
   });
 
   test("the words are read; the lines are hidden from assistive technology", () => {
@@ -77,5 +102,42 @@ describe("LabelledDivider", () => {
     const { container } = render(<LabelledDivider label="or" />);
 
     expect(container.querySelector("[data-testid]")).toBeNull();
+  });
+
+  /*
+   * "Or continue with email" in a long language filled a 320px row and its
+   * lines shrank to nothing (#4911's review). A line keeps 1.5rem and takes
+   * any room the words leave; the words wrap, balanced, rather than pushing
+   * the lines out.
+   */
+  test("its lines keep 1.5rem however long the words are, and the words wrap onto even lines", () => {
+    render(
+      <LabelledDivider
+        label="Или продолжите с электронной почтой"
+        dataTestId="divider"
+      />,
+    );
+
+    for (const line of screen.getAllByTestId("divider-line")) {
+      expect(line.className).toBe(LABELLED_DIVIDER_LINE_CLASS_NAME);
+      expect(line).toHaveClass("min-w-6", "flex-1");
+      // Nothing lets a line shrink below its minimum or stop growing.
+      for (const loosening of ["min-w-0", "shrink", "grow-0"]) {
+        expect(line).not.toHaveClass(loosening);
+      }
+    }
+
+    const words: HTMLElement = screen.getByText(
+      "Или продолжите с электронной почтой",
+    );
+    expect(words.className).toBe(LABELLED_DIVIDER_LABEL_CLASS_NAME);
+    expect(words).toHaveClass("text-balance", "text-center");
+    // The words may wrap: nothing holds them on one line.
+    expect(words).not.toHaveClass("whitespace-nowrap");
+    expect(words).not.toHaveClass("truncate");
+    // Nor do they take a share of the row the lines need.
+    expect(words).not.toHaveClass("flex-1");
+    expect(words).not.toHaveClass("grow");
+    expect(words).not.toHaveClass("w-full");
   });
 });

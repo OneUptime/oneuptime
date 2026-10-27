@@ -19,6 +19,7 @@ import Phone from "Common/Types/Phone";
 import StatusPageSubscriberNotificationEventType from "Common/Types/StatusPage/StatusPageSubscriberNotificationEventType";
 import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/StatusPageSubscriberNotificationMethod";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
+import { NOT_PUBLISHED_YET_SKIPPED_MESSAGE } from "Common/Types/ScheduledMaintenance/ScheduledMaintenancePublication";
 import { STATUS_PAGE_OF_BLOCKED_PROJECT_SENDS_NOTHING_MESSAGE } from "Common/Types/StatusPage/StatusPageProjectBlock";
 import SubscriberNotificationTemplateVariables from "Common/Types/StatusPage/SubscriberNotificationTemplateVariables";
 
@@ -1241,6 +1242,70 @@ describe("ScheduledMaintenanceStateTimeline:SendNotificationToSubscribers", () =
         StatusPageSubscriberNotificationStatus.Skipped,
       subscriberNotificationStatusMessage:
         "Scheduled maintenance state has no name. Skipping notifications.",
+    });
+  });
+
+  /*
+   * Kept to the team until its publish time (#5249): its subscribers have
+   * not heard of the event, so a change of its state tells them nothing -
+   * they hear of it when it is published, and see its state on the page
+   * from then on. Once its time has come, it tells them as any event does.
+   */
+  describe("an event kept to the team until its publish time", () => {
+    test("reads both columns the rule decides by", async () => {
+      await runJob();
+
+      const select: Record<string, unknown> = queryArgs(
+        ScheduledMaintenanceService.findOneById,
+      ).select;
+
+      expect(select["isVisibleOnStatusPage"]).toBe(true);
+      expect(select["publishOnStatusPageAt"]).toBe(true);
+    });
+
+    test("a state change before its publish time is skipped, saying why, with no feed item", async () => {
+      storedEvent!.publishOnStatusPageAt = new Date(
+        Date.now() + 7 * 24 * 60 * 60 * 1000,
+      );
+
+      await runJob();
+
+      nothingSent();
+      expect(feedItems()).toHaveLength(0);
+      expect(statusWrites()[statusWrites().length - 1]).toEqual({
+        subscriberNotificationStatus:
+          StatusPageSubscriberNotificationStatus.Skipped,
+        subscriberNotificationStatusMessage: NOT_PUBLISHED_YET_SKIPPED_MESSAGE,
+      });
+    });
+
+    test("one hidden from its status pages is still skipped as hidden, whatever its time", async () => {
+      storedEvent!.isVisibleOnStatusPage = false;
+      storedEvent!.publishOnStatusPageAt = new Date(Date.now() - 60 * 1000);
+
+      await runJob();
+
+      nothingSent();
+      expect(statusWrites()[statusWrites().length - 1]).toEqual({
+        subscriberNotificationStatus:
+          StatusPageSubscriberNotificationStatus.Skipped,
+        subscriberNotificationStatusMessage:
+          "Scheduled maintenance is not visible on status page. Skipping notifications.",
+      });
+    });
+
+    test("a state change once its publish time has come is sent", async () => {
+      storedEvent!.publishOnStatusPageAt = new Date(Date.now() - 60 * 1000);
+
+      await runJob();
+
+      expect(MailService.sendMail).toHaveBeenCalled();
+      expect(statusWrites()[statusWrites().length - 1]).toEqual({
+        subscriberNotificationStatus:
+          StatusPageSubscriberNotificationStatus.Success,
+        subscriberNotificationStatusMessage:
+          "Notifications sent successfully to all subscribers",
+      });
     });
   });
 });

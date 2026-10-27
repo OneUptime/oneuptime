@@ -2664,22 +2664,29 @@ export default class StatusPageAPI extends BaseAPI<
     /*
      * Only events the page shows (StatusPageVisibilityQuery): one asked for
      * by its id too. By id there is no history window, so a link to an
-     * older event keeps working - but an event hidden from status pages is
-     * not one this page shows, however it is asked for.
+     * older event keeps working - but an event hidden from status pages, or
+     * not published on them yet, is not one this page shows, however it is
+     * asked for. Every read below asks as of the same moment.
      */
     let query: Query<ScheduledMaintenance> =
-      StatusPageVisibilityQuery.shownScheduledMaintenance({
-        startsAt: QueryHelper.inBetween(historyDays, today),
-        statusPages: [statusPageId] as any,
-        projectId: statusPage.projectId!,
-      });
+      StatusPageVisibilityQuery.shownScheduledMaintenance(
+        {
+          startsAt: QueryHelper.inBetween(historyDays, today),
+          statusPages: [statusPageId] as any,
+          projectId: statusPage.projectId!,
+        },
+        { now: today },
+      );
 
     if (scheduledMaintenanceId) {
-      query = StatusPageVisibilityQuery.shownScheduledMaintenance({
-        _id: scheduledMaintenanceId.toString(),
-        statusPages: [statusPageId] as any,
-        projectId: statusPage.projectId!,
-      });
+      query = StatusPageVisibilityQuery.shownScheduledMaintenance(
+        {
+          _id: scheduledMaintenanceId.toString(),
+          statusPages: [statusPageId] as any,
+          projectId: statusPage.projectId!,
+        },
+        { now: today },
+      );
     }
 
     let scheduledEventsSelect: Select<ScheduledMaintenance> = {
@@ -2789,12 +2796,15 @@ export default class StatusPageAPI extends BaseAPI<
       if (waitingStateIds.length > 0) {
         addEvents(
           await ScheduledMaintenanceService.findBy({
-            query: StatusPageVisibilityQuery.shownScheduledMaintenance({
-              currentScheduledMaintenanceStateId:
-                QueryHelper.any(waitingStateIds),
-              statusPages: [statusPageId] as any,
-              projectId: statusPage.projectId!,
-            }),
+            query: StatusPageVisibilityQuery.shownScheduledMaintenance(
+              {
+                currentScheduledMaintenanceStateId:
+                  QueryHelper.any(waitingStateIds),
+                statusPages: [statusPageId] as any,
+                projectId: statusPage.projectId!,
+              },
+              { now: today },
+            ),
             select: scheduledEventsSelect,
             sort: {
               createdAt: SortOrder.Ascending,
@@ -2822,12 +2832,15 @@ export default class StatusPageAPI extends BaseAPI<
       if (inProgressStateIds.length > 0) {
         addEvents(
           await ScheduledMaintenanceService.findBy({
-            query: StatusPageVisibilityQuery.shownScheduledMaintenance({
-              currentScheduledMaintenanceStateId:
-                QueryHelper.any(inProgressStateIds),
-              statusPages: [statusPageId] as any,
-              projectId: statusPage.projectId!,
-            }),
+            query: StatusPageVisibilityQuery.shownScheduledMaintenance(
+              {
+                currentScheduledMaintenanceStateId:
+                  QueryHelper.any(inProgressStateIds),
+                statusPages: [statusPageId] as any,
+                projectId: statusPage.projectId!,
+              },
+              { now: today },
+            ),
             select: scheduledEventsSelect,
             sort: {
               startsAt: SortOrder.Descending,
@@ -6382,12 +6395,15 @@ export default class StatusPageAPI extends BaseAPI<
 
       if (inProgressStateIds.length > 0) {
         scheduledMaintenanceEvents = await ScheduledMaintenanceService.findBy({
-          query: StatusPageVisibilityQuery.shownScheduledMaintenance({
-            currentScheduledMaintenanceStateId:
-              QueryHelper.any(inProgressStateIds),
-            statusPages: statusPageId as any,
-            projectId: statusPage.projectId!,
-          }),
+          query: StatusPageVisibilityQuery.shownScheduledMaintenance(
+            {
+              currentScheduledMaintenanceStateId:
+                QueryHelper.any(inProgressStateIds),
+              statusPages: statusPageId as any,
+              projectId: statusPage.projectId!,
+            },
+            { now: today },
+          ),
           select: scheduledEventsSelect,
           sort: {
             startsAt: SortOrder.Ascending,
@@ -6420,12 +6436,15 @@ export default class StatusPageAPI extends BaseAPI<
     ) {
       futureScheduledMaintenanceEvents =
         await ScheduledMaintenanceService.findBy({
-          query: StatusPageVisibilityQuery.shownScheduledMaintenance({
-            currentScheduledMaintenanceStateId:
-              QueryHelper.any(waitingStateIds),
-            statusPages: statusPageId as any,
-            projectId: statusPage.projectId!,
-          }),
+          query: StatusPageVisibilityQuery.shownScheduledMaintenance(
+            {
+              currentScheduledMaintenanceStateId:
+                QueryHelper.any(waitingStateIds),
+              statusPages: statusPageId as any,
+              projectId: statusPage.projectId!,
+            },
+            { now: today },
+          ),
           select: scheduledEventsSelect,
           sort: {
             startsAt: SortOrder.Ascending,
@@ -6593,6 +6612,21 @@ export default class StatusPageAPI extends BaseAPI<
         });
     }
 
+    /*
+     * The scheduled maintenance of the uptime history, for its tooltips and
+     * day dialogs, beside the incidents above (Common/Utils/Uptime/
+     * UptimeMaintenanceUtil): see getTimelineScheduledMaintenanceEvents.
+     */
+    const timelineScheduledMaintenanceEvents: Array<ScheduledMaintenance> =
+      await this.getTimelineScheduledMaintenanceEvents({
+        statusPage: statusPage,
+        statusPageId: statusPageId,
+        monitorsOnStatusPage: monitorsOnStatusPage,
+        scheduledMaintenanceStates: scheduledMaintenanceStates,
+        startDate: startDate,
+        endDate: endDate,
+      });
+
     const overallStatus: MonitorStatus | null =
       StatusPageService.getOverallMonitorStatus({
         statusPageResources,
@@ -6696,9 +6730,119 @@ export default class StatusPageAPI extends BaseAPI<
       monitorsInGroup: JSONFunctions.serialize(monitorsInGroup),
       timelineIncidents:
         this.serializeIncidentsForStatusPage(timelineIncidents),
+      timelineScheduledMaintenanceEvents: BaseModel.toJSONArray(
+        timelineScheduledMaintenanceEvents,
+        ScheduledMaintenance,
+      ),
     };
 
     return response;
+  }
+
+  /*
+   * The scheduled maintenance a status page's uptime history shows: each
+   * event the page shows (StatusPageVisibilityQuery - the one rule every
+   * read of a page's maintenance goes through: an event reaches a page by
+   * naming it, never through its monitors) that has started - in progress
+   * or over (ScheduledMaintenanceStartUtil.getStartedStateIds) - and whose
+   * planned window touches the history's: it starts by the window's end and
+   * ends after its start. An event still to come is no part of any day's
+   * history; the page lists it under Scheduled Maintenance.
+   *
+   * Of those, the events that hold one of the page's monitors - the history
+   * draws an event on the resources of its monitors, and one that holds none
+   * is on no resource - each naming only the page's own monitors: which
+   * other monitors an event holds is the project's business. None when the
+   * page does not show scheduled maintenance, as it shows no event anywhere
+   * else then. Newest first, so a window holding more than the limit keeps
+   * the recent days.
+   */
+  @CaptureSpan()
+  public async getTimelineScheduledMaintenanceEvents(data: {
+    statusPage: StatusPage;
+    statusPageId: ObjectID;
+    monitorsOnStatusPage: Array<ObjectID>;
+    scheduledMaintenanceStates: Array<ScheduledMaintenanceState>;
+    startDate: Date;
+    endDate: Date;
+  }): Promise<Array<ScheduledMaintenance>> {
+    if (
+      !data.statusPage.showScheduledMaintenanceEventsOnStatusPage ||
+      data.monitorsOnStatusPage.length === 0
+    ) {
+      return [];
+    }
+
+    const startedStateIds: Array<ObjectID> =
+      ScheduledMaintenanceStartUtil.getStartedStateIds({
+        states: data.scheduledMaintenanceStates,
+      });
+
+    if (startedStateIds.length === 0) {
+      return [];
+    }
+
+    const events: Array<ScheduledMaintenance> =
+      await ScheduledMaintenanceService.findBy({
+        query: StatusPageVisibilityQuery.shownScheduledMaintenance({
+          statusPages: data.statusPageId as any,
+          currentScheduledMaintenanceStateId: QueryHelper.any(startedStateIds),
+          startsAt: QueryHelper.lessThanEqualTo(data.endDate),
+          endsAt: QueryHelper.greaterThanEqualTo(data.startDate),
+          projectId: data.statusPage.projectId!,
+        }),
+        select: {
+          _id: true,
+          title: true,
+          startsAt: true,
+          endsAt: true,
+          currentScheduledMaintenanceState: {
+            _id: true,
+            name: true,
+            color: true,
+            order: true,
+            isScheduledState: true,
+            isOngoingState: true,
+            isEndedState: true,
+            isResolvedState: true,
+          },
+          monitors: {
+            _id: true,
+          },
+        },
+        sort: {
+          startsAt: SortOrder.Descending,
+        },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    const pageMonitorIds: Set<string> = new Set<string>(
+      data.monitorsOnStatusPage.map((id: ObjectID): string => {
+        return id.toString();
+      }),
+    );
+
+    const eventsOnThePagesMonitors: Array<ScheduledMaintenance> = [];
+
+    for (const event of events) {
+      event.monitors = (event.monitors || []).filter(
+        (monitor: Monitor): boolean => {
+          return pageMonitorIds.has(
+            (monitor._id || monitor.id?.toString() || "").toString(),
+          );
+        },
+      );
+
+      if (event.monitors.length > 0) {
+        eventsOnThePagesMonitors.push(event);
+      }
+    }
+
+    return eventsOnThePagesMonitors;
   }
 
   private async getStatusPageAnnouncementAttachment(

@@ -11,7 +11,7 @@ flowchart TB
         direction TB
         Ingress["Ingress<br/>(Nginx, TLS)"]
         App["App<br/>dashboards,<br/>status pages,<br/>API, ingest,<br/>background jobs"]
-        Runner["Runner"]
+        Runner["Global Runner"]
         Probe["Probes"]
         subgraph Data["Data stores"]
             direction LR
@@ -54,8 +54,7 @@ flowchart TB
 | Worker | Part of `app` | `worker` (off by default) | The background jobs, in pods of their own, so heavy queue processing never competes with API requests. |
 | Telemetry writer | Part of `app` | `telemetryWriter` (off by default) | A fixed-size tier that makes every ClickHouse insert, so inserts stay bounded however far the workers scale. |
 | Probe | `probe-1` | `probes` | Runs monitor checks and sends the results back. Every bundled probe is a global probe all projects can use. |
-| Runner | `runner` | `runner` | The instance's own Runner, which can run AI code fixes for every project. Runbook steps run on [Runners](/docs/runbooks/agents) you install where they should run. |
-| Global Runner | `global-runner` | `globalRunner` | A [global Runner](/docs/runbooks/agents#global-runners): it runs the JavaScript steps of every project that picks no Runner of its own, each in a sandbox that reaches the internet only. It holds its own key and nothing else of the server's. |
+| Global Runner | `global-runner` | `globalRunner` | A [global Runner](/docs/runbooks/agents#global-runners): it runs the JavaScript steps of every project that picks no Runner of its own, each in a sandbox that reaches the internet only, and OneUptime AI's code fixes in every code repository that picks none. It holds its own key and nothing else of the server's. Bash, SSH and kubectl steps run on [Runners](/docs/runbooks/agents) you install where they should run. |
 | PostgreSQL | `postgres` | `postgresql`, or `postgresOperator.cnpg` | Projects, monitors, incidents, users and every other setting and state. |
 | ClickHouse | `clickhouse` | `clickhouse`, or `clickhouseOperator.altinity` | Logs, metrics, traces, exceptions, profiles and monitor logs. |
 | Valkey | `valkey` | `valkey` | The cache, the job queues and short-lived state such as pending push receipts. |
@@ -64,9 +63,10 @@ All of the app's roles are the same image: Docker Compose runs them in one `app`
 
 ## Connections out of your network
 
-Three connections are made unless you change a setting:
+Four connections are made unless you change a setting:
 
 - Once a day, the app asks GitHub's API (`api.github.com`) whether a newer release is out. To turn this off, set `updateCheck.disabled: true` in the Helm chart, or `DISABLE_UPDATE_CHECK=true` in `config.env` on Docker Compose.
+- Once a day, the app tells `oneuptime.com` your install's address and the version it runs, so OneUptime knows which installs still run a release with a security issue. Nothing about your users, projects or monitoring data is sent. To turn this off, set `instanceCheckIn.disabled: true` in the Helm chart, or `DISABLE_INSTANCE_CHECK_IN=true` in `config.env` on Docker Compose.
 - Signing up with “Notify me about security patches and new releases” ticked, as it is at first, sends the person's name and email, any company and phone number they gave, and your install's address and version to `oneuptime.com`. Untick it on a network without internet access.
 - On Kubernetes, probes fall back to the public resolvers `8.8.8.8` and `1.1.1.1` after your cluster's own DNS. Set `dnsConfig.nameservers` to `[]` to keep every lookup on your own DNS.
 

@@ -11,7 +11,7 @@ flowchart TB
         direction TB
         Ingress["Ingress<br/>(Nginx, TLS)"]
         App["App<br/>dashboards,<br/>statussider,<br/>API, ingest,<br/>baggrundsjob"]
-        Runner["Runner"]
+        Runner["Global Runner"]
         Probe["Probes"]
         subgraph Data["Datalagre"]
             direction LR
@@ -54,8 +54,7 @@ flowchart TB
 | Worker | En del af `app` | `worker` (slået fra som standard) | Baggrundsjobbene i deres egne pods, så tung købehandling aldrig konkurrerer med API-forespørgsler. |
 | Telemetry writer | En del af `app` | `telemetryWriter` (slået fra som standard) | Et lag af fast størrelse, der udfører hver ClickHouse-indsættelse, så indsættelserne holdes begrænsede, uanset hvor langt workerne skalerer. |
 | Probe | `probe-1` | `probes` | Kører monitortjek og sender resultaterne tilbage. Hver medfølgende probe er en global probe, som alle projekter kan bruge. |
-| Runner | `runner` | `runner` | Instansens egen Runner, som kan køre AI-koderettelser for alle projekter. Runbook-trin kører på [Runnere](/docs/runbooks/agents), som du installerer der, hvor de skal køre. |
-| Global Runner | `global-runner` | `globalRunner` | En [global Runner](/docs/runbooks/agents#globale-runnere): den kører JavaScript-trinnene i alle projekter, der ikke vælger deres egen Runner, hvert i en sandkasse, der kun når internettet. Den har sin egen nøgle og intet andet fra serveren. |
+| Global Runner | `global-runner` | `globalRunner` | En [global Runner](/docs/runbooks/agents#globale-runnere): den kører JavaScript-trinnene i alle projekter, der ikke vælger deres egen Runner, hvert i en sandkasse, der kun når internettet, og OneUptime AI's koderettelser i hvert koderepositorie, der ikke vælger nogen. Den har sin egen nøgle og intet andet fra serveren. Bash-, SSH- og kubectl-trin kører på [Runnere](/docs/runbooks/agents), som du installerer der, hvor de skal køre. |
 | PostgreSQL | `postgres` | `postgresql` eller `postgresOperator.cnpg` | Projekter, monitorer, hændelser, brugere og alle andre indstillinger og tilstande. |
 | ClickHouse | `clickhouse` | `clickhouse` eller `clickhouseOperator.altinity` | Logs, metrikker, traces, undtagelser, profiler og monitorlogs. |
 | Valkey | `valkey` | `valkey` | Cachen, jobkøerne og kortlivet tilstand som ventende push-kvitteringer. |
@@ -64,9 +63,10 @@ Alle appens roller er det samme image: Docker Compose kører dem i én `app`-con
 
 ## Forbindelser ud af dit netværk
 
-Tre forbindelser oprettes, medmindre du ændrer en indstilling:
+Fire forbindelser oprettes, medmindre du ændrer en indstilling:
 
 - Én gang om dagen spørger appen GitHubs API (`api.github.com`), om der er kommet en nyere udgivelse. Du slår det fra med `updateCheck.disabled: true` i Helm-chartet eller med `DISABLE_UPDATE_CHECK=true` i `config.env` på Docker Compose.
+- Én gang om dagen fortæller appen `oneuptime.com` din installations adresse og hvilken version den kører, så OneUptime ved, hvilke installationer der stadig kører en udgivelse med et sikkerhedsproblem. Der sendes intet om dine brugere, projekter eller overvågningsdata. Du slår det fra med `instanceCheckIn.disabled: true` i Helm-chartet eller med `DISABLE_INSTANCE_CHECK_IN=true` i `config.env` på Docker Compose.
 - Tilmelder nogen sig med »Underret mig om sikkerhedsrettelser og nye udgivelser« markeret, som den er fra start, sendes personens navn og e-mail, et eventuelt firma og telefonnummer samt din installations adresse og version til `oneuptime.com`. Fjern markeringen på et netværk uden internetadgang.
 - På Kubernetes falder probes tilbage på de offentlige resolvere `8.8.8.8` og `1.1.1.1` efter din klynges egen DNS. Sæt `dnsConfig.nameservers` til `[]` for at holde alle opslag på din egen DNS.
 

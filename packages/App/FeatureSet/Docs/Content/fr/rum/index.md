@@ -77,14 +77,14 @@ OneUptime retrouve l'application par son `service.name`, sans tenir compte de la
 
 | Où | Ce qui s'affiche |
 | --- | --- |
-| **Vue d'ensemble** | Des tuiles pour **Page loads**, **Page load time (p95)**, **Événements**, **Taux d'erreur**, **Durée des événements (p95)**, **Exceptions**, **Clients** et **Sessions recorded**, et des graphiques de tendance sur la période choisie. |
+| **Vue d'ensemble** | Des tuiles pour **Chargements de page**, **Temps de chargement de la page (p95)**, **Événements**, **Taux d'erreur**, **Durée des événements (p95)**, **Exceptions**, **Clients** et **Sessions recorded**, et des graphiques de tendance sur la période choisie. |
 | **Core Web Vitals** | Une carte de la vue d'ensemble avec LCP, INP, CLS, FCP et TTFB, chacun évalué selon les seuils de Google, et l'INP de chaque route d'une application monopage. Voir [Core Web Vitals](/docs/rum/web-vitals) et [Applications monopages](/docs/rum/web-vitals#applications-monopages). |
 | **Métriques**, **Journaux**, **Traces** | Les explorateurs de télémétrie, limités à cette application. |
 | **Clients** | Les plateformes de navigateur et les modèles d'appareil sur lesquels l'application a été utilisée : une courte liste par plateforme, jamais une ligne par utilisateur. |
 | **Relecture de session** | Des enregistrements de vraies sessions, à côté de leurs erreurs, traces et journaux : voir [Relecture de session](/docs/telemetry/session-replay). |
 | **Recommandations** | Des moniteurs prêts à l'emploi pour l'application : Core Web Vitals dégradés, requêtes en échec, exceptions du navigateur et, dès qu'elle enregistre, budgets de relecture de session. |
 
-Les chiffres viennent des spans que votre instrumentation envoie. **Page loads** compte le span `documentLoad` que l'instrumentation de chargement de page enregistre à chaque chargement complet : un changement de route dans une application monopage n'est donc pas un chargement de page.
+Les chiffres viennent des spans que votre instrumentation envoie. **Chargements de page** compte le span `documentLoad` que l'instrumentation de chargement de page enregistre à chaque chargement complet : un changement de route dans une application monopage n'est donc pas un chargement de page.
 
 Une application affiche **Connecté** tant que la télémétrie arrive, et **Déconnecté** après 15 minutes sans télémétrie. Le temps pendant lequel OneUptime lui-même était arrêté ou rattrapait sa file d'ingestion ne compte pas dans ces 15 minutes.
 

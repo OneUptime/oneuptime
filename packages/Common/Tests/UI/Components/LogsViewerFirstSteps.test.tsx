@@ -67,7 +67,10 @@ postMock.mockImplementation(() => {
 });
 
 import LogsViewer, {
+  getEmptyMessageWithTimeRange,
+  getLogsEmptyMessage,
   isNarrowedByReader,
+  LOGS_NARROWED_EMPTY_HINT,
 } from "../../../UI/Components/LogsViewer/LogsViewer";
 import {
   getLogsTableEmptyHint,
@@ -155,7 +158,9 @@ describe("the Logs page's first steps in an empty explorer", () => {
 
     expect(within(table).queryByTestId("page-first-steps")).toBeNull();
     expect(within(table).getByText("No logs found")).toBeInTheDocument();
-    expect(table.textContent).toMatch(/Try adjusting filters/);
+    expect(
+      within(table).getByText(LOGS_NARROWED_EMPTY_HINT),
+    ).toBeInTheDocument();
   });
 
   test("a typed search keeps the 'try adjusting filters' line too", async () => {
@@ -196,14 +201,68 @@ describe("the Logs page's first steps in an empty explorer", () => {
 
   test("a page that hands over nothing keeps its own message: an embed is unchanged", async () => {
     const table: HTMLElement = await renderLogs({
-      noLogsMessage: "No logs found for this service.",
+      noLogsMessage: "Logs appear here as soon as this service sends them.",
     });
 
     expect(within(table).queryByTestId("page-first-steps")).toBeNull();
     expect(within(table).getByText("No logs found")).toBeInTheDocument();
     expect(
-      within(table).getByText("No logs found for this service."),
+      within(table).getByText(
+        "Logs appear here as soon as this service sends them.",
+      ),
     ).toBeInTheDocument();
+  });
+
+  test("REGRESSION: an embed's own line gives way to what to try once the reader's chip empties the list", async () => {
+    /*
+     * "Logs appear here as soon as this service sends them." under a
+     * Severity chip that matched nothing told the reader the service sent
+     * no logs. It did; the chip left none.
+     */
+    const table: HTMLElement = await renderLogs({
+      noLogsMessage: "Logs appear here as soon as this service sends them.",
+      activeFilters: [SEVERITY_CHIP],
+    });
+
+    const empty: HTMLElement = within(table).getByTestId("logs-table-empty");
+
+    expect(within(empty).getByText("No logs found")).toBeInTheDocument();
+    expect(
+      within(empty).getByText(LOGS_NARROWED_EMPTY_HINT),
+    ).toBeInTheDocument();
+    expect(
+      within(empty).queryByText(
+        "Logs appear here as soon as this service sends them.",
+      ),
+    ).toBeNull();
+  });
+
+  test("and so does a search typed into the bar, until it is cleared", async () => {
+    const table: HTMLElement = await renderLogs({
+      noLogsMessage: "Logs appear here as soon as this service sends them.",
+    });
+
+    const search: HTMLElement =
+      screen.getByPlaceholderText(/^Search logs\.\.\./);
+    fireEvent.change(search, { target: { value: "connection refused" } });
+
+    expect(
+      within(table).getByText(LOGS_NARROWED_EMPTY_HINT),
+    ).toBeInTheDocument();
+    expect(
+      within(table).queryByText(
+        "Logs appear here as soon as this service sends them.",
+      ),
+    ).toBeNull();
+
+    fireEvent.change(search, { target: { value: "" } });
+
+    expect(
+      within(table).getByText(
+        "Logs appear here as soon as this service sends them.",
+      ),
+    ).toBeInTheDocument();
+    expect(within(table).queryByText(LOGS_NARROWED_EMPTY_HINT)).toBeNull();
   });
 });
 
@@ -277,6 +336,52 @@ describe("getLogsTableEmptyHint", () => {
     ]) {
       expect(getLogsTableEmptyHint(message)).toBe(message);
     }
+  });
+});
+
+describe("getLogsEmptyMessage", () => {
+  const HOUR: { range: TimeRange } = { range: TimeRange.PAST_ONE_HOUR };
+
+  test("a list nothing narrows: the embedding page's own line", () => {
+    expect(
+      getLogsEmptyMessage({
+        noLogsMessage: "Logs appear here as soon as this service sends them.",
+        isNarrowedByReader: false,
+        timeRange: HOUR,
+      }),
+    ).toBe("Logs appear here as soon as this service sends them.");
+  });
+
+  test("a list the reader narrowed: what to try, whatever the page hands over", () => {
+    for (const noLogsMessage of [
+      "Logs appear here as soon as this service sends them.",
+      "No logs found",
+      undefined,
+    ]) {
+      expect({
+        noLogsMessage,
+        message: getLogsEmptyMessage({
+          noLogsMessage: noLogsMessage,
+          isNarrowedByReader: true,
+          timeRange: HOUR,
+        }),
+      }).toEqual({ noLogsMessage, message: LOGS_NARROWED_EMPTY_HINT });
+    }
+
+    // The words the Traces and Exceptions explorers use.
+    expect(LOGS_NARROWED_EMPTY_HINT).toBe(
+      "Try adjusting filters or time range.",
+    );
+  });
+
+  test("a page that hands over no line, nothing narrowing: its window", () => {
+    expect(
+      getLogsEmptyMessage({
+        noLogsMessage: undefined,
+        isNarrowedByReader: false,
+        timeRange: HOUR,
+      }),
+    ).toBe(getEmptyMessageWithTimeRange(HOUR));
   });
 });
 

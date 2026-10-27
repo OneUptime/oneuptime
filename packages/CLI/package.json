@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/cli",
-  "version": "14.0.93",
+  "version": "14.0.94",
   "description": "OneUptime CLI - Command-line interface for managing OneUptime resources",
   "repository": {
     "type": "git",
@@ -17,7 +17,7 @@
   "scripts": {
     "start": "node --require ts-node/register Index.ts",
     "build": "node esbuild.config.js",
-    "compile": "tsc --noEmit",
+    "compile": "tsc --noEmit && tsc --noEmit -p Tests/tsconfig.json",
     "prepack": "npm run build",
     "clear-modules": "rm -rf node_modules && rm package-lock.json && npm install",
     "dev": "npx nodemon",

@@ -23,8 +23,9 @@ import Timezone from "../../../Types/Timezone";
  * names, "Today", "12 min ago" - are in the reader's language, from the
  * browser's Intl data rather than moment, whose locale the Dashboard never
  * sets (moment's fromNow said "a minute ago" on Japanese pages). The
- * calendar is always the Gregorian one and the digits always Latin, so a
- * Persian reader's feed lines up with every other date on the page.
+ * calendar is always the Gregorian one; the digits are the language's own,
+ * so a Persian reader's feed is written in the same digits as every other
+ * date and count on the page.
  *
  * React-free so every rule can be tested on its own.
  */
@@ -117,11 +118,11 @@ const getRelativeTimeFormatConstructor: () =>
 };
 
 /*
- * The Intl locale for a Dashboard language: its own words and order, the
- * Gregorian calendar and Latin digits ("fa" alone would give the Solar Hijri
- * calendar in Persian digits). A language Intl does not know falls back to
- * English rather than to the browser's own default, so a page never mixes
- * two languages. The same locale every date in the product is written in
+ * The Intl locale for a Dashboard language: its own words, order and
+ * digits, on the Gregorian calendar ("fa" alone would give the Solar Hijri
+ * calendar). A language Intl does not know falls back to English rather
+ * than to the browser's own default, so a page never mixes two languages.
+ * The same locale every date in the product is written in
  * (Common/Types/DateLanguage).
  */
 export const getFeedLocale: (language: string | undefined) => string = (

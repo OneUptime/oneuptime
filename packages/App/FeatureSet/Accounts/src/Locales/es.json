@@ -105,6 +105,7 @@
   "register": {
     "title": "Cree su cuenta de OneUptime",
     "subtitle": "Únase a miles de empresas que utilizan OneUptime para mantenerse en línea todo el tiempo.",
+    "firstAccountSubtitle": "Este servidor de OneUptime aún no tiene cuentas. La primera que cree será su administrador.",
     "noCreditCard": "No se requiere tarjeta de crédito.",
     "submitButton": "Registrarse",
     "haveAccountPrompt": "¿Ya tiene una cuenta?",
@@ -131,7 +132,6 @@
     "subtitle": "Ingrese su correo electrónico y se le enviará el enlace de restablecimiento de contraseña.",
     "successMessage": "Le hemos enviado el enlace de restablecimiento de contraseña por correo electrónico. No olvide revisar la carpeta de spam.",
     "submitButton": "Enviar enlace de restablecimiento",
-    "returnToSignIn": "Volver al inicio de sesión.",
     "rememberPasswordPrompt": "¿Recuerda su contraseña?",
     "loginLink": "Iniciar sesión."
   },
@@ -156,13 +156,21 @@
     "emailRequired": "Se requiere correo electrónico para realizar esta acción",
     "defaultProjectName": "Proyecto",
     "globalProvidersTitle": "Inicie sesión con su organización",
-    "globalProvidersDivider": "O continúe con su correo electrónico"
+    "globalProvidersDivider": "O continúe con su correo electrónico",
+    "signInWithProvider": "Iniciar sesión con {{name}}",
+    "requiredSubtitle": "Inicia sesión con el inicio de sesión único (SSO) de tu organización.",
+    "requiredNotSetUp": "El inicio de sesión único aún no está configurado en este servidor. Pide a tu administrador del servidor que lo configure.",
+    "useDifferentEmail": "Usar otro correo electrónico"
+  },
+  "adminLogin": {
+    "title": "Inicio de sesión de administrador maestro",
+    "subtitle": "Este servidor requiere el inicio de sesión único (SSO). Los administradores maestros pueden seguir iniciando sesión aquí con su contraseña."
   },
   "verifyEmail": {
     "successTitle": "Su correo electrónico está verificado.",
     "successDescription": "Gracias por verificar su correo electrónico. Ahora puede iniciar sesión en OneUptime.",
     "errorTitle": "Lo sentimos, algo salió mal.",
-    "returnToSignIn": "¿Volver al inicio de sesión?",
+    "alreadyVerifiedPrompt": "¿Ya has verificado tu correo electrónico?",
     "loginLink": "Iniciar sesión.",
     "continueToSignIn": "Continuar para iniciar sesión",
     "linkInvalidTitle": "Este enlace de verificación ya no es válido",

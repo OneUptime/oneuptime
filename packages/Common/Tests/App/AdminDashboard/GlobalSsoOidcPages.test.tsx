@@ -12,8 +12,10 @@ import type { Mock, SpyInstance } from "jest-mock";
 import React, { FunctionComponent, ReactElement, ReactNode } from "react";
 
 /*
- * Settings > Global SSO and Settings > Global OIDC - the provider lists and
- * one provider's page - are Community Edition screens: every edition, every
+ * Settings > Single Sign-On - the instance-wide SAML and OIDC providers and
+ * Require SSO for Login, on one page since they were "Global SSO" and
+ * "Global OIDC" (two lists) and a switch on Settings > Authentication - and
+ * one provider's page are Community Edition screens: every edition, every
  * license state and OneUptime Cloud get the same configuration screens, with
  * providers that can be created, edited, attached to projects and deleted.
  * No upsell, no license banner, no read-only state, no "Disable" stand-in
@@ -93,6 +95,7 @@ interface MockRenders {
   tables: Array<MockProps>;
   details: Array<MockProps>;
   deletes: Array<MockProps>;
+  switches: Array<MockProps>;
 }
 
 // Every stand-in render, newest last.
@@ -100,7 +103,24 @@ const mockRenders: MockRenders = {
   tables: [],
   details: [],
   deletes: [],
+  switches: [],
 };
+
+// The Require SSO card, as a stand-in: the switch card reads its record itself.
+jest.mock("../../../UI/Components/ModelSwitch/ModelSwitchCard", () => {
+  return {
+    __esModule: true,
+    default: (props: MockProps): ReactElement => {
+      mockRenders.switches.push(props);
+
+      return (
+        <div data-testid={`model-switch-card-${String(props["dataTestId"])}`}>
+          {String(props["cardTitle"])}
+        </div>
+      );
+    },
+  };
+});
 
 jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
   return {
@@ -308,10 +328,16 @@ jest.mock(
   },
 );
 
-import SettingsGlobalOIDC from "../../../../App/FeatureSet/AdminDashboard/src/Pages/Settings/GlobalOIDC/Index";
 import SettingsGlobalOIDCView from "../../../../App/FeatureSet/AdminDashboard/src/Pages/Settings/GlobalOIDC/View";
-import SettingsGlobalSSO from "../../../../App/FeatureSet/AdminDashboard/src/Pages/Settings/GlobalSSO/Index";
 import SettingsGlobalSSOView from "../../../../App/FeatureSet/AdminDashboard/src/Pages/Settings/GlobalSSO/View";
+import SettingsSso from "../../../../App/FeatureSet/AdminDashboard/src/Pages/Settings/SSO/Index";
+import {
+  REQUIRE_SSO_COPY,
+  REQUIRE_SSO_SWITCH_TEST_ID,
+  SSO_PAGE_COPY,
+} from "../../../../App/FeatureSet/AdminDashboard/src/Pages/Settings/SSO/SsoSettingsCopy";
+import GlobalConfig from "../../../Models/DatabaseModels/GlobalConfig";
+import { ButtonStyleType } from "../../../UI/Components/Button/Button";
 import AdminModelAPI from "../../../../App/FeatureSet/AdminDashboard/src/Utils/ModelAPI";
 import ProjectScopedTeamsPicker from "../../../../App/FeatureSet/AdminDashboard/src/Components/GlobalProvider/ProjectScopedTeamsPicker";
 import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
@@ -328,6 +354,13 @@ import Route from "../../../Types/API/Route";
 import URL from "../../../Types/API/URL";
 import ObjectID from "../../../Types/ObjectID";
 import { ModalType } from "../../../UI/Components/ModelTable/BaseModelTable";
+import ActionButtonSchema, {
+  ActionButtonPlacement,
+} from "../../../UI/Components/ActionButton/ActionButtonSchema";
+import splitActionButtons, {
+  SplitActionButtonsResult,
+} from "../../../UI/Components/ActionButton/SplitActionButtons";
+import IconProp from "../../../Types/Icon/IconProp";
 import Navigation from "../../../UI/Utils/Navigation";
 
 const PROVIDER_ID: string = "33333333-3333-4333-8333-333333333333";
@@ -416,9 +449,9 @@ interface PageCase {
 
 const PAGES: Array<PageCase> = [
   {
-    name: "Settings > Global SSO",
-    Page: SettingsGlobalSSO,
-    path: "/admin/settings/global-sso",
+    name: "Settings > Single Sign-On (its SAML providers)",
+    Page: SettingsSso,
+    path: "/admin/settings/sso",
     kind: "list",
     provider: "Global SSO",
     table: "global-sso-table",
@@ -433,9 +466,9 @@ const PAGES: Array<PageCase> = [
     detailCard: "Global SSO Configuration",
   },
   {
-    name: "Settings > Global OIDC",
-    Page: SettingsGlobalOIDC,
-    path: "/admin/settings/global-oidc",
+    name: "Settings > Single Sign-On (its OIDC providers)",
+    Page: SettingsSso,
+    path: "/admin/settings/sso",
     kind: "list",
     provider: "Global OIDC",
     table: "global-oidc-table",
@@ -788,9 +821,6 @@ const expectEditable: (pageCase: PageCase) => void = (
   );
 
   expect(table).toHaveAttribute("data-createable", "true");
-  // No row action: providers are switched off by editing them.
-  expect(table).toHaveAttribute("data-action-count", "0");
-  expect(lastTable(pageCase.table)["actionButtons"]).toBeUndefined();
   expect(lastTable(pageCase.table)["refreshToggle"]).toBeUndefined();
 
   if (pageCase.kind === "list") {
@@ -798,7 +828,17 @@ const expectEditable: (pageCase: PageCase) => void = (
     expect(table).toHaveAttribute("data-viewable", "true");
     expect(table).toHaveAttribute("data-editable", "false");
     expect(table).toHaveAttribute("data-deleteable", "false");
+    /*
+     * Each row starts a sign-in with its provider (Test Sign-in), and
+     * nothing else: a provider is turned on and off on its own page, since
+     * turning one off ends every sign-in it gave (RowActionsAudit).
+     */
+    expect(lastTable(pageCase.table)["rowSwitch"]).toBeUndefined();
+    expect(table).toHaveAttribute("data-action-count", "1");
   } else {
+    // No row action on a provider's attachments.
+    expect(table).toHaveAttribute("data-action-count", "0");
+    expect(lastTable(pageCase.table)["actionButtons"]).toBeUndefined();
     // An attachment is changed by deleting it and adding it again.
     expect(table).toHaveAttribute("data-editable", "false");
     expect(table).toHaveAttribute("data-deleteable", "true");
@@ -861,10 +901,11 @@ describe.each(PAGES)("$name", (pageCase: PageCase) => {
       await renderPage(pageCase);
 
       expect(screen.getByTestId("settings-side-menu")).toBeInTheDocument();
+      // A provider's page goes back to the page that lists it.
       expect(screen.getByTestId("settings-page-breadcrumbs")).toHaveTextContent(
         pageCase.kind === "list"
-          ? `breadcrumbs.adminDashboard > breadcrumbs.settings > ${pageCase.provider}`
-          : `breadcrumbs.adminDashboard > breadcrumbs.settings > ${pageCase.provider} > View`,
+          ? "breadcrumbs.adminDashboard > breadcrumbs.settings > breadcrumbs.singleSignOn"
+          : "breadcrumbs.adminDashboard > breadcrumbs.settings > breadcrumbs.singleSignOn > View",
       );
     });
 
@@ -898,7 +939,16 @@ describe("the provider lists", () => {
     const table: MockProps = lastTable("global-sso-table");
 
     expect(table["userPreferencesKey"]).toBe("admin-global-sso-table");
-    expect(table["name"]).toBe("Settings > Global SSO");
+    expect(table["name"]).toBe("Settings > Single Sign-On > SAML");
+    // "Add SAML Provider", "No SAML providers yet": what the card holds.
+    expect(table["singularName"]).toBe("SAML Provider");
+    expect(table["pluralName"]).toBe("SAML Providers");
+    expect(table["createVerb"]).toBe("Add");
+    expect(table["cardProps"]).toEqual({
+      title: "SAML",
+      description:
+        "Sign in through a SAML app, such as Okta, Microsoft Entra ID or OneLogin.",
+    });
     expect(table["modelType"]).toBe(GlobalSSO);
     expect(table["modelAPI"]).toBe(AdminModelAPI);
     expect(table["showRefreshButton"]).toBe(true);
@@ -921,7 +971,15 @@ describe("the provider lists", () => {
     const table: MockProps = lastTable("global-oidc-table");
 
     expect(table["userPreferencesKey"]).toBe("admin-global-oidc-table");
-    expect(table["name"]).toBe("Settings > Global OIDC");
+    expect(table["name"]).toBe("Settings > Single Sign-On > OpenID Connect");
+    expect(table["singularName"]).toBe("OIDC Provider");
+    expect(table["pluralName"]).toBe("OIDC Providers");
+    expect(table["createVerb"]).toBe("Add");
+    expect(table["cardProps"]).toEqual({
+      title: "OpenID Connect (OIDC)",
+      description:
+        "Sign in through an OpenID Connect app, such as Google Workspace, Auth0 or Keycloak.",
+    });
     expect(table["modelType"]).toBe(GlobalOIDC);
     expect(table["modelAPI"]).toBe(AdminModelAPI);
     expect((table["viewPageRoute"] as Route).toString()).toBe(
@@ -1005,25 +1063,273 @@ describe("the provider lists", () => {
     expect(navigate).toHaveBeenCalledTimes(1);
   });
 
-  test.each([
-    [0, "Instance-wide SAML SSO"],
-    [2, "Instance-wide OpenID Connect (OIDC) SSO"],
-  ])(
-    "page %p explains how global providers work and links to the Global SSO docs",
-    async (pageIndex: number, bannerTitle: string) => {
-      await renderPage(PAGES[pageIndex]!);
+  test("the page explains how its providers work, once, and links to the Global SSO docs", async () => {
+    await renderPage(PAGES[0]!);
 
-      expect(screen.getByText(bannerTitle)).toBeInTheDocument();
+    expect(screen.getAllByText(SSO_PAGE_COPY.bannerTitle)).toHaveLength(1);
+    expect(
+      screen.getByText(
+        /sign people in to every project on this server they belong to/,
+      ),
+    ).toBeInTheDocument();
+    expect(
+      document.querySelectorAll('a[href="/docs/identity/global-sso"]'),
+    ).toHaveLength(1);
+  });
+});
+
+/*
+ * Settings > Single Sign-On, as it is set up: the SAML providers, the OIDC
+ * providers, then Require SSO for Login - the switch that depends on them -
+ * with the master admins' way in under it, and a test step before it.
+ */
+describe("Settings > Single Sign-On", () => {
+  const testSignInAction: (tableId: string) => MockProps = (
+    tableId: string,
+  ): MockProps => {
+    return (lastTable(tableId)["actionButtons"] as Array<MockProps>)[0]!;
+  };
+
+  const requireSsoCard: () => MockProps = (): MockProps => {
+    const found: MockProps | undefined = [...mockRenders.switches]
+      .reverse()
+      .find((props: MockProps): boolean => {
+        return props["dataTestId"] === REQUIRE_SSO_SWITCH_TEST_ID;
+      });
+
+    if (!found) {
+      throw new Error("The Require SSO card was not rendered.");
+    }
+
+    return found;
+  };
+
+  test("holds the SAML providers, the OIDC providers and Require SSO, in that order", async () => {
+    await renderPage(PAGES[0]!);
+
+    const page: HTMLElement = screen.getByTestId("settings-page");
+    const order: Array<string> = Array.from(
+      page.querySelectorAll("[data-testid]"),
+    )
+      .map((element: Element): string => {
+        return element.getAttribute("data-testid") || "";
+      })
+      .filter((testId: string): boolean => {
+        return (
+          testId.startsWith("model-table-") ||
+          testId.startsWith("model-switch-card-")
+        );
+      });
+
+    expect(order).toEqual([
+      "model-table-global-sso-table",
+      "model-table-global-oidc-table",
+      `model-switch-card-${REQUIRE_SSO_SWITCH_TEST_ID}`,
+    ]);
+  });
+
+  test.each([
+    ["global-sso-table", GlobalSSO, SAML_TEST_LOGIN_URL],
+    ["global-oidc-table", GlobalOIDC, OIDC_TEST_LOGIN_URL],
+  ])(
+    "%s: Test Sign-in starts a sign-in with the provider, in a new tab, for a provider that is on",
+    async (
+      tableId: string,
+      modelType: typeof GlobalSSO | typeof GlobalOIDC,
+      testUrl: string,
+    ) => {
+      const navigate: SpyInstance<typeof Navigation.navigate> = jest
+        .spyOn(Navigation, "navigate")
+        .mockImplementation((): void => {
+          return;
+        });
+
+      await renderPage(PAGES[0]!);
+
+      const action: MockProps = testSignInAction(tableId);
+      const provider: GlobalSSO | GlobalOIDC = new modelType();
+      provider._id = PROVIDER_ID;
+
+      expect(action["title"]).toBe(SSO_PAGE_COPY.testSignIn);
+
+      // A provider that is off signs nobody in.
+      provider.isEnabled = false;
       expect(
-        screen.getByText(
-          /signs people in to the projects they already belong to/,
-        ),
-      ).toBeInTheDocument();
+        (action["isVisible"] as (item: unknown) => boolean)(provider),
+      ).toBe(false);
+      provider.isEnabled = true;
       expect(
-        document.querySelector('a[href="/docs/identity/global-sso"]'),
-      ).not.toBeNull();
+        (action["isVisible"] as (item: unknown) => boolean)(provider),
+      ).toBe(true);
+
+      const onCompleteAction: Mock<() => void> = jest.fn<() => void>();
+
+      await (
+        action["onClick"] as (
+          item: unknown,
+          onCompleteAction: () => void,
+        ) => Promise<void>
+      )(provider, onCompleteAction);
+
+      expect(navigate).toHaveBeenCalledTimes(1);
+      expect(String(navigate.mock.calls[0]![0])).toBe(testUrl);
+      expect(navigate.mock.calls[0]![1]).toEqual({ openInNewTab: true });
+      expect(onCompleteAction).toHaveBeenCalledTimes(1);
     },
   );
+
+  /*
+   * The card above the switch asks for a test sign-in first, so a provider
+   * that is on carries Test Sign-in as its row's one button - the row's
+   * View (ModelTable marks it Primary too, after the page's own actions)
+   * waits in the ⋯ menu, and a click on the row still opens the provider.
+   * A provider that is off signs nobody in: its button stays View.
+   */
+  test.each([
+    ["global-sso-table", GlobalSSO, "View SAML Provider"],
+    ["global-oidc-table", GlobalOIDC, "View OIDC Provider"],
+  ])(
+    "%s: Test Sign-in is the row's button while the provider is on, View while it is off",
+    async (
+      tableId: string,
+      modelType: typeof GlobalSSO | typeof GlobalOIDC,
+      viewTitle: string,
+    ) => {
+      await renderPage(PAGES[0]!);
+
+      const action: MockProps = testSignInAction(tableId);
+
+      expect(action["placement"]).toBe(ActionButtonPlacement.Primary);
+
+      // What BaseModelTable adds after the page's own actions.
+      const view: ActionButtonSchema<GlobalSSO | GlobalOIDC> = {
+        title: viewTitle,
+        icon: IconProp.Eye,
+        buttonStyleType: ButtonStyleType.NORMAL,
+        placement: ActionButtonPlacement.Primary,
+        onClick: async (): Promise<void> => {
+          return;
+        },
+      };
+
+      const rowActions: Array<ActionButtonSchema<GlobalSSO | GlobalOIDC>> = [
+        action as unknown as ActionButtonSchema<GlobalSSO | GlobalOIDC>,
+        view,
+      ];
+
+      const provider: GlobalSSO | GlobalOIDC = new modelType();
+      provider._id = PROVIDER_ID;
+
+      provider.isEnabled = true;
+
+      const whileOn: SplitActionButtonsResult<GlobalSSO | GlobalOIDC> =
+        splitActionButtons({ actionButtons: rowActions, item: provider });
+
+      expect(whileOn.primary?.button.title).toBe(SSO_PAGE_COPY.testSignIn);
+      expect(
+        whileOn.moreMenu.map(
+          (entry: { button: ActionButtonSchema<GlobalSSO | GlobalOIDC> }) => {
+            return entry.button.title;
+          },
+        ),
+      ).toEqual([viewTitle]);
+
+      provider.isEnabled = false;
+
+      const whileOff: SplitActionButtonsResult<GlobalSSO | GlobalOIDC> =
+        splitActionButtons({ actionButtons: rowActions, item: provider });
+
+      expect(whileOff.primary?.button.title).toBe(viewTitle);
+      expect(whileOff.moreMenu).toEqual([]);
+    },
+  );
+
+  test("Require SSO for Login: the server's one setting, saved through the admin API", async () => {
+    await renderPage(PAGES[0]!);
+
+    const card: MockProps = requireSsoCard();
+
+    expect(card["modelType"]).toBe(GlobalConfig);
+    expect((card["modelId"] as ObjectID).toString()).toBe(
+      ObjectID.getZeroObjectID().toString(),
+    );
+    expect(card["column"]).toBe("requireSsoForLogin");
+    expect(card["modelAPI"]).toBe(AdminModelAPI);
+    expect(card["cardTitle"]).toBe(REQUIRE_SSO_COPY.cardTitle);
+    expect(card["cardDescription"]).toBe(REQUIRE_SSO_COPY.cardDescription);
+    expect(card["title"]).toBe("Require SSO for Login");
+
+    const describe: (isOn: boolean) => string = card["getDescription"] as (
+      isOn: boolean,
+    ) => string;
+
+    expect(describe(true)).toBe(
+      "The sign-in page offers only SSO. Everyone except master admins must sign in with SSO to open any project.",
+    );
+    expect(describe(false)).toBe(
+      "People can sign in with a password, a passkey or SSO.",
+    );
+  });
+
+  test("asks before SSO is required, with a red button, and never before it is turned off", async () => {
+    await renderPage(PAGES[0]!);
+
+    const confirm: (isTurningOn: boolean) => MockProps | undefined =
+      requireSsoCard()["getConfirmation"] as (
+        isTurningOn: boolean,
+      ) => MockProps | undefined;
+
+    expect(confirm(true)).toEqual({
+      title: "Require SSO for everyone?",
+      description: REQUIRE_SSO_COPY.confirmDescription,
+      submitButtonText: "Require SSO",
+      submitButtonType: ButtonStyleType.DANGER,
+    });
+    /*
+     * What it does to the sign-in page and to people signed in now; the
+     * card's line above the switch says to test a provider first.
+     */
+    expect(REQUIRE_SSO_COPY.confirmDescription).toMatch(
+      /sign-in page will offer only SSO/,
+    );
+    expect(REQUIRE_SSO_COPY.confirmDescription).toMatch(/signed in now/);
+    expect(REQUIRE_SSO_COPY.cardDescription).toMatch(
+      /Before you require SSO, sign in with a provider using Test Sign-in/,
+    );
+    expect(confirm(false)).toBeUndefined();
+  });
+
+  test("names the master admins' way in under the switch, whichever way it is set", async () => {
+    await renderPage(PAGES[0]!);
+
+    const getDetails: (item: GlobalConfig, isOn: boolean) => ReactElement =
+      requireSsoCard()["getDetails"] as (
+        item: GlobalConfig,
+        isOn: boolean,
+      ) => ReactElement;
+
+    for (const isOn of [true, false]) {
+      const view: ReturnType<typeof render> = render(
+        getDetails(new GlobalConfig(), isOn),
+      );
+
+      expect(view.container).toHaveTextContent(
+        REQUIRE_SSO_COPY.masterAdminSentence,
+      );
+      expect(view.container).toHaveTextContent(
+        REQUIRE_SSO_COPY.masterAdminAddressLabel,
+      );
+      expect(
+        within(view.container).getByText(
+          `https://${TEST_HOST}/accounts/admin-login`,
+        ),
+      ).toBeInTheDocument();
+      // With a button that copies it.
+      expect(within(view.container).getByRole("button")).toBeInTheDocument();
+
+      view.unmount();
+    }
+  });
 });
 
 describe("the Global SSO provider page", () => {
@@ -1150,9 +1456,10 @@ describe("the Global SSO provider page", () => {
 
     (deleteProps?.["onDeleteSuccess"] as () => void)();
 
+    // Back to Single Sign-On, which lists it.
     expect(navigate).toHaveBeenCalledTimes(1);
     expect((navigate.mock.calls[0]?.[0] as Route).toString()).toBe(
-      "/admin/settings/global-sso",
+      "/admin/settings/sso",
     );
   });
 });
@@ -1277,9 +1584,10 @@ describe("the Global OIDC provider page", () => {
 
     (deleteProps?.["onDeleteSuccess"] as () => void)();
 
+    // Back to Single Sign-On, which lists it.
     expect(navigate).toHaveBeenCalledTimes(1);
     expect((navigate.mock.calls[0]?.[0] as Route).toString()).toBe(
-      "/admin/settings/global-oidc",
+      "/admin/settings/sso",
     );
   });
 });

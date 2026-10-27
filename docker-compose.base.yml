@@ -80,21 +80,6 @@ x-common-variables: &common-variables
   # Sign in with Microsoft: the public client id (see config.example.env).
   MICROSOFT_SIGN_IN_CLIENT_ID: ${MICROSOFT_SIGN_IN_CLIENT_ID:-}
 
-# The environment of the shared Runner (the `runner` service below). It serves
-# AI code fixes for every project that has no Runner of its own, so it holds
-# ONLY what it needs: its OneUptime URL, its key and its telemetry settings,
-# never the server's own settings and no cluster key (ONEUPTIME_SECRET). It
-# registers with ONEUPTIME_RUNNER_KEY, which the `app` service is given too,
-# and its LLM calls are mediated by the server. This is deliberately NOT a
-# merge of common-runtime-variables; the SharedRunnerMinimalEnv ops test holds
-# the list minimal.
-x-common-runner-variables: &common-runner-variables
-  LOG_LEVEL: ${LOG_LEVEL}
-  NODE_ENV: ${ENVIRONMENT}
-  BILLING_ENABLED: ${BILLING_ENABLED}
-  OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT: ${OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT}
-  OPENTELEMETRY_EXPORTER_OTLP_HEADERS: ${OPENTELEMETRY_EXPORTER_OTLP_HEADERS}
-
 x-common-runtime-variables: &common-runtime-variables
   <<: *common-variables
   ONEUPTIME_SECRET: ${ONEUPTIME_SECRET}
@@ -200,6 +185,7 @@ x-common-runtime-variables: &common-runtime-variables
   # existing config.env upgraded in place will not have the key.
   DISABLE_UPDATE_CHECK: ${DISABLE_UPDATE_CHECK:-false}
   LATEST_RELEASE_CHECK_URL: ${LATEST_RELEASE_CHECK_URL:-}
+  DISABLE_INSTANCE_CHECK_IN: ${DISABLE_INSTANCE_CHECK_IN:-false}
 
   # On-call calendar feeds (token-in-URL .ics subscriptions). Defaulted so a
   # config.env upgraded in place, which will not have these keys, neither warns
@@ -460,9 +446,6 @@ services:
       TELEMETRY_WRITER_MAX_BODY_BYTES: ${TELEMETRY_WRITER_MAX_BODY_BYTES}
       TELEMETRY_WRITER_MAX_INFLIGHT_REQUESTS: ${TELEMETRY_WRITER_MAX_INFLIGHT_REQUESTS}
       REGISTER_PROBE_KEY: ${REGISTER_PROBE_KEY}
-      # The shared Runner's key (the `runner` service below): the app lets the
-      # Runner register as the installation's shared Runner with it.
-      ONEUPTIME_RUNNER_KEY: ${ONEUPTIME_RUNNER_KEY}
       # MQTT ingest for IoT devices. MQTT-over-WebSocket rides the
       # ingress at /mqtt out of the box; the raw TCP listener stays
       # internal to the compose network unless an operator publishes
@@ -624,38 +607,15 @@ services:
       options:
         max-size: "1000m"
 
-  runner:
-    restart: always
-    network_mode: host
-    environment:
-      # The shared Runner's own minimal environment — deliberately NOT
-      # common-runtime-variables, so the server's secrets are never in this
-      # container. See x-common-runner-variables above.
-      <<: *common-runner-variables
-      # The installation's shared Runner: it registers with its own key, which
-      # the `app` service holds too, and needs no cluster key.
-      ONEUPTIME_RUNNER_SHARED: "true"
-      ONEUPTIME_RUNNER_KEY: ${ONEUPTIME_RUNNER_KEY}
-      ONEUPTIME_URL: ${ONEUPTIME_RUNNER_ONEUPTIME_URL}
-      # The in-cluster Runner serves code fixes for every project; customer
-      # installs run their own Runner with a project-scoped credential.
-      ONEUPTIME_RUNNER_ENABLE_CODE_FIXES: "true"
-      ONEUPTIME_RUNNER_ENABLE_RUNBOOKS: "false"
-      DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_RUNNER}
-      ENABLE_PROFILING: ${ENABLE_PROFILING_FOR_RUNNER}
-      PORT: ${ONEUPTIME_RUNNER_PORT}
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "1000m"
-
   # The bundled global Runner (Common/Types/Runner/BundledGlobalRunner.ts): it
-  # runs the runbook JavaScript steps of every project that uses global
-  # Runners, each in a sandbox of its own that reaches the internet only. It
-  # is the Runner image started with a fixed id and its own key, and holds
-  # nothing else - no cluster key (ONEUPTIME_SECRET), none of the server's
-  # settings - on the oneuptime network, not the host's. Set
-  # GLOBAL_RUNNER_REPLICAS=0 in config.env to turn it off.
+  # runs the runbook JavaScript steps, each in a sandbox of its own that
+  # reaches the internet only, and the AI code fixes of every project that
+  # uses global Runners. It never runs a repository's own commands: a project
+  # that wants those runs a Runner of its own. It is the Runner image started
+  # with a fixed id and its own key, and holds nothing else - no cluster key
+  # (ONEUPTIME_SECRET), none of the server's settings - on the oneuptime
+  # network, not the host's. Set GLOBAL_RUNNER_REPLICAS=0 in config.env to
+  # turn it off.
   # Tests/Ops/BundledGlobalRunner.test.js holds this.
   global-runner:
     networks:
@@ -668,8 +628,8 @@ services:
       ONEUPTIME_RUNNER_ID: "00000000-0000-0000-0000-000000000002"
       ONEUPTIME_RUNNER_KEY: ${GLOBAL_RUNNER_KEY}
       ONEUPTIME_RUNNER_CONCURRENCY: ${GLOBAL_RUNNER_CONCURRENCY:-4}
-      # The server serves it JavaScript steps only; these say the same here.
-      ONEUPTIME_RUNNER_ENABLE_CODE_FIXES: "false"
+      # The server never serves it AI remediation commands; this says the
+      # same here.
       ONEUPTIME_RUNNER_ENABLE_AI_COMMANDS: "false"
       LOG_LEVEL: ${LOG_LEVEL}
       NODE_ENV: ${ENVIRONMENT}

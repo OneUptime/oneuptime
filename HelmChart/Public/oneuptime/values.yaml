@@ -114,8 +114,8 @@ testHook:
 #
 # oneuptimeSecret is the cluster key OneUptime's own services present to each
 # other. OneUptime refuses a value its repository ships ("secret", or a
-# "please-change-this-..." placeholder) from every caller. The in-cluster
-# Runner does not hold it: it registers with its own key (runner.key below).
+# "please-change-this-..." placeholder) from every caller. The bundled global
+# Runner does not hold it: it presents its own key (globalRunner.key below).
 oneuptimeSecret:
 registerProbeKey:
 encryptionSecret:
@@ -165,10 +165,10 @@ deployment:
   # by a node-pool upgrade or a scale-down, or failing) cannot take every
   # replica of a service with it. A soft rule: pods still schedule when only
   # one node has room, so it never blocks a rollout. Covers app, home, nginx,
-  # worker, runner, telemetry-writer, every probe, test-server and pgbouncer,
-  # unless topologySpreadConstraints are set for them (see the chart-wide
-  # topologySpreadConstraints below). It only helps services that run more
-  # than one replica; pair it with podDisruptionBudget.enabled.
+  # worker, global-runner, telemetry-writer, every probe, test-server and
+  # pgbouncer, unless topologySpreadConstraints are set for them (see the
+  # chart-wide topologySpreadConstraints below). It only helps services that
+  # run more than one replica; pair it with podDisruptionBudget.enabled.
   spreadReplicasAcrossNodes: true
 
 metalLb:
@@ -1112,7 +1112,7 @@ valkey:
   # Also publish the Service under its pre-13.0.0 name,
   # `<release>-redis-master`, pointing at the same pods.
   #
-  # app/worker/probe/runner pods carry the old hostname in their env until they
+  # app/worker/probe pods carry the old hostname in their env until they
   # roll, and without this they resolve nothing in the meantime. It does not make
   # the upgrade zero-downtime -- the cache pod is recreated either way, and both
   # Services have no endpoints for the seconds that takes -- but it stops the
@@ -1128,7 +1128,7 @@ redis: {}
 
 
 # Global HorizontalPodAutoscaler defaults applied to every stateless service
-# (app, worker, nginx, home, runner, probes, test-server) that is not managed
+# (app, worker, nginx, home, probes, test-server) that is not managed
 # by KEDA. Each service can override any of these keys via its own
 # `<service>.autoscaling:` block (e.g. `nginx.autoscaling.maxReplicas`); keys not
 # set there inherit the values below. Note: a service that pins `replicaCount`
@@ -1142,7 +1142,7 @@ autoscaling:
   targetMemoryUtilizationPercentage: 80
 
 # Pod Disruption Budgets for the stateless OneUptime deployments (app, worker,
-# nginx, home, runner, probes, pgbouncer). A PDB caps how many pods the
+# nginx, home, probes, pgbouncer). A PDB caps how many pods the
 # cluster may take down at once during *voluntary* disruptions — node drains,
 # rolling node-pool upgrades, and cluster-autoscaler scale-down — so an upgrade
 # can't evict every replica of a service simultaneously. It has no effect on
@@ -1357,6 +1357,14 @@ sourceMaps:
 updateCheck:
   disabled: false
   url:
+
+# Once a day this installation tells oneuptime.com its URL and the OneUptime
+# version it runs, so OneUptime knows which installations still run a release
+# with a security issue and can reach the admins who registered them. Nothing
+# about your users, projects or monitoring data is sent.
+# Set disabled to true to make no call at all.
+instanceCheckIn:
+  disabled: false
 
 # How many reverse proxies that YOU run sit in front of OneUptime and append to
 # the X-Forwarded-For header. This decides which address OneUptime treats as the
@@ -1771,8 +1779,8 @@ affinity:
 tolerations:
 nodeSelector:
 hostAliases:
-# Chart-wide topology spread constraints, for app, home, nginx, worker, runner,
-# telemetry-writer, every probe and test-server. A service's own
+# Chart-wide topology spread constraints, for app, home, nginx, worker,
+# global-runner, telemetry-writer, every probe and test-server. A service's own
 # <service>.topologySpreadConstraints replaces this list (they are not merged).
 # When neither is set, deployment.spreadReplicasAcrossNodes spreads each
 # service across nodes.
@@ -1793,7 +1801,7 @@ hostAliases:
 topologySpreadConstraints: []
 
 # Chart-wide escape hatches, applied to every OneUptime workload the chart runs:
-# app, worker, every probe, runner, home, telemetry-writer, nginx, pgbouncer,
+# app, worker, every probe, home, telemetry-writer, nginx, pgbouncer,
 # the migrate Job, test-server, the e2e cron, and vLLM. Empty by default, so an
 # install that leaves them alone renders exactly the manifests it always did.
 #
@@ -2118,7 +2126,7 @@ app:
   #   targetMemoryUtilizationPercentage: 80
   # Per-service Pod Disruption Budget override. Any key omitted here falls back
   # to the global podDisruptionBudget block above. Every stateless service
-  # (worker, nginx, home, runner, probes.<key>, pgbouncer) accepts the same
+  # (worker, nginx, home, probes.<key>, pgbouncer) accepts the same
   # block. Uncomment to customise just this service, e.g. keep at least one
   # replica available instead of the global maxUnavailable:
   # podDisruptionBudget:
@@ -2388,89 +2396,14 @@ telemetryWriter:
   extraVolumes: []
   extraVolumeMounts: []
 
-# AI Agent Configuration
-# Runs the OneUptime AI Agent within your Kubernetes cluster.
-# The in-cluster OneUptime Runner. It serves the AI code-fix capability for
-# every project in this deployment; it registers itself automatically with its
-# key (runner.key below, which the chart gives the app as well) and idles
-# cheaply when no LLM provider is configured.
-# Customers who want runbook steps executed inside their OWN network install
-# their own project-scoped Runner instead — see Runner/README.md.
-# Set enabled to false to not run it.
-runner:
-  enabled: true
-  replicaCount: 1
-  disableTelemetryCollection: false
-  enableProfiling: false
-  disableAutoscaler: false
-  # Per-service autoscaling (HorizontalPodAutoscaler) override. Any key omitted
-  # here inherits the global `autoscaling:` block. Only takes effect when the
-  # HPA is active (enabled here or globally, and disableAutoscaler is false).
-  # autoscaling:
-  #   enabled: true
-  #   minReplicas: 2
-  #   maxReplicas: 10
-  #   targetCPUUtilizationPercentage: 80
-  #   targetMemoryUtilizationPercentage: 80
-  # Runner ID from the OneUptime dashboard (optional — by default the
-  # in-cluster Runner auto-registers itself using the key below)
-  id:
-  # Runner Key (optional — auto-generated and stored in the release
-  # secrets when not provided). The app is given the same key, and lets the
-  # Runner register as this installation's shared Runner with it.
-  key:
-  # Reference a Secret you manage for ONEUPTIME_RUNNER_KEY, instead of the value
-  # the chart generates into `<release>-secrets`. The key is the Runner's identity
-  # — the server registers a brand-new Runner whenever it sees a key it does not
-  # recognise — and `helm template` (Argo CD, Flux) regenerates it on every render.
-  # Ignored when `key` is set. Serving the key this way also stops the chart
-  # writing a copy of it into `<release>-secrets`. The per-probe equivalent is
-  # `probes.<name>.existingSecret`.
-  existingSecret:
-    name:
-    passwordKey:
-  ports:
-    http: 3875
-  resources:
-  nodeSelector: {}
-  podSecurityContext: {}
-  hostAliases: []
-  # Affinity and topology spread for this service only. Each replaces the
-  # chart-wide value (they are not merged).
-  affinity: {}
-  topologySpreadConstraints: []
-  containerSecurityContext: {}
-  # Extra env / volumes for this service only. A non-empty list REPLACES the
-  # chart-wide extraEnv/extraVolumes/extraVolumeMounts (they are not merged).
-  extraEnv: []
-  extraVolumes: []
-  extraVolumeMounts: []
-  # KEDA autoscaling configuration based on queue metrics
-  keda:
-    enabled: false
-    minReplicas: 1
-    maxReplicas: 100
-    # Scale up when queue size exceeds this threshold
-    queueSizeThreshold: 5
-    # Polling interval for metrics (in seconds)
-    pollingInterval: 30
-    # Cooldown period after scaling (in seconds)
-    cooldownPeriod: 300
-    # Fallback used when KEDA cannot read the metrics-api endpoint
-    # (e.g. all pods are down). Prevents HPA from flapping between
-    # min/max when the metric goes <unknown>. Set replicas to 0 to disable.
-    # Note: only applies to the metrics-api trigger, not cpu/memory.
-    fallback:
-      failureThreshold: 3
-      replicas: 1
-
-# The bundled global Runner. It runs the runbook JavaScript steps of every
-# project that uses global Runners (every project does, unless it turns them
-# off under Runbooks > Runners), each in a sandbox of its own that can reach
-# the internet but no private address. It is the Runner image started with a
-# fixed id and its own key, and holds nothing else: no cluster key, none of the
-# server's settings. Bash, SSH and Kubernetes steps never run on it: they run
-# on a Runner a project installs in its own network.
+# The bundled global Runner. It runs the runbook JavaScript steps, each in a
+# sandbox of its own that can reach the internet but no private address, and
+# the AI code fixes of every project that uses global Runners (every project
+# does, unless it turns them off under Runbooks > Runners). It is the Runner
+# image started with a fixed id and its own key, and holds nothing else: no
+# cluster key, none of the server's settings. Bash, SSH and Kubernetes steps,
+# and a repository's own commands, never run on it: they run on a Runner a
+# project installs in its own network.
 # Set enabled to false to turn it off: the server then removes it, and projects
 # use the global Runners a master admin adds (Admin Dashboard > Settings >
 # Global Runners) and their own Runners.
@@ -2509,6 +2442,27 @@ globalRunner:
   extraEnv: []
   extraVolumes: []
   extraVolumeMounts: []
+  # KEDA autoscaling on the AI code-fix tasks waiting for a Runner (the
+  # global Runner's own /metrics/queue-size, on its http port). Needs the
+  # chart-wide keda.enabled too; while KEDA scales it, replicaCount no longer
+  # sets how many run.
+  keda:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 100
+    # Scale up when queue size exceeds this threshold
+    queueSizeThreshold: 5
+    # Polling interval for metrics (in seconds)
+    pollingInterval: 30
+    # Cooldown period after scaling (in seconds)
+    cooldownPeriod: 300
+    # Fallback used when KEDA cannot read the metrics-api endpoint
+    # (e.g. all pods are down). Prevents HPA from flapping between
+    # min/max when the metric goes <unknown>. Set replicas to 0 to disable.
+    # Note: only applies to the metrics-api trigger, not cpu/memory.
+    fallback:
+      failureThreshold: 3
+      replicas: 1
 
 # vLLM: self-hosted, OpenAI-compatible LLM inference server (https://docs.vllm.ai)
 # for running local models in-cluster instead of calling OpenAI/Anthropic/etc.

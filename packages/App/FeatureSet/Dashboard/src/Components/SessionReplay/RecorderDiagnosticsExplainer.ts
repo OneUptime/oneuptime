@@ -163,6 +163,10 @@ export const RECORDER_DEBUG_CODE_COPY: Record<string, RecorderDebugCodeCopy> = {
       "Remove the queued stop, or grant consent before the page starts the recorder.",
     isOutcome: true,
   },
+  "prerender-wait": {
+    explanation:
+      "The browser prerendered this page before anybody opened it, so the recorder waited for the visitor to open it. A page that is never opened records nothing.",
+  },
   "privacy-signal": {
     explanation:
       "This browser sends Do Not Track or Global Privacy Control, and the policy respects it, so nothing is recorded on it.",

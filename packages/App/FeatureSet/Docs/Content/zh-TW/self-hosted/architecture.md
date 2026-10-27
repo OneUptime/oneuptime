@@ -11,7 +11,7 @@ flowchart TB
         direction TB
         Ingress["Ingress<br/>（Nginx、TLS）"]
         App["應用程式<br/>儀表板、狀態頁、<br/>API、擷取、背景工作"]
-        Runner["Runner"]
+        Runner["全域 Runner"]
         Probe["探針"]
         subgraph Data["資料儲存"]
             direction LR
@@ -54,8 +54,7 @@ flowchart TB
 | Worker | `app` 的一部分 | `worker`（預設關閉） | 在獨立的 Pod 中執行背景工作，讓繁重的佇列處理永遠不與 API 請求爭搶資源。 |
 | Telemetry writer | `app` 的一部分 | `telemetryWriter`（預設關閉） | 一個固定規模的層，執行每一次 ClickHouse 插入，使插入量無論 worker 擴展到多大都維持在限度內。 |
 | 探針 | `probe-1` | `probes` | 執行監視器檢查並把結果傳回。每個內建探針都是所有專案都能使用的全域探針。 |
-| Runner | `runner` | `runner` | 執行個體自己的 Runner，可以為每個專案執行 AI 程式碼修正。Runbook 的步驟執行在你安裝到相應位置的 [Runner](/docs/runbooks/agents) 上。 |
-| 全域 Runner | `global-runner` | `globalRunner` | 一個[全域 Runner](/docs/runbooks/agents#全域-runner)：它會執行所有未選擇自己 Runner 的專案的 JavaScript 步驟，每個步驟都在只能存取網際網路的沙箱中執行。它持有自己的金鑰，不持有伺服器的任何其他東西。 |
+| 全域 Runner | `global-runner` | `globalRunner` | 一個[全域 Runner](/docs/runbooks/agents#全域-runner)：它會執行所有未選擇自己 Runner 的專案的 JavaScript 步驟，每個步驟都在只能存取網際網路的沙箱中執行，並在每個未選擇 Runner 的程式碼儲存庫中執行 OneUptime AI 的程式碼修正。它持有自己的金鑰，不持有伺服器的任何其他東西。Bash、SSH 與 kubectl 步驟執行在你安裝到相應位置的 [Runner](/docs/runbooks/agents) 上。 |
 | PostgreSQL | `postgres` | `postgresql`，或 `postgresOperator.cnpg` | 專案、監視器、事件、使用者以及其他所有設定與狀態。 |
 | ClickHouse | `clickhouse` | `clickhouse`，或 `clickhouseOperator.altinity` | 記錄、指標、追蹤、例外、效能剖析與監視器記錄。 |
 | Valkey | `valkey` | `valkey` | 快取、工作佇列，以及待處理的推播回執之類的短期狀態。 |
@@ -64,9 +63,10 @@ flowchart TB
 
 ## 從你的網路向外的連線
 
-除非你變更設定，否則會建立以下三個連線：
+除非你變更設定，否則會建立以下四個連線：
 
 - 應用程式每天一次向 GitHub 的 API（`api.github.com`）詢問是否有更新的版本。要關閉它，請在 Helm Chart 中設定 `updateCheck.disabled: true`，或在 Docker Compose 的 `config.env` 中設定 `DISABLE_UPDATE_CHECK=true`。
+- 應用程式每天一次把你的安裝位址與它執行的版本告知 `oneuptime.com`，以便 OneUptime 知道哪些安裝仍在執行有安全問題的版本。不會傳送任何關於你的使用者、專案或監控資料的內容。要關閉它，請在 Helm Chart 中設定 `instanceCheckIn.disabled: true`，或在 Docker Compose 的 `config.env` 中設定 `DISABLE_INSTANCE_CHECK_IN=true`。
 - 勾選「通知我有關安全修補程式與新版本」註冊時（此選項預設已勾選），會把此人的姓名與電子郵件、其填寫的公司與電話號碼，以及你的安裝位址與版本傳送到 `oneuptime.com`。在無法存取網際網路的網路中，請取消勾選。
 - 在 Kubernetes 上，探針在你叢集本身的 DNS 之後會改用公用解析器 `8.8.8.8` 與 `1.1.1.1`。將 `dnsConfig.nameservers` 設為 `[]`，即可讓所有查詢都留在你自己的 DNS 上。
 

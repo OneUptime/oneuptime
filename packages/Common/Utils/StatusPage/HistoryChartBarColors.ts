@@ -80,6 +80,19 @@ export const NO_DATA_BAR_COLOR: Color = new Color("#9CA3AF");
 export const NO_DATA_BAR_CLASS_NAME: string = "uptime-bar-no-data";
 
 /*
+ * A day with scheduled maintenance: a blue band across the top of its bar
+ * (DayUptimeGraph.css), whatever colour the day itself is drawn in. Blue is
+ * what status pages use for planned work, and it is a colour none of the
+ * recommended rules or monitor statuses start with, so a day of planned work
+ * reads apart from an outage at a glance - in greyscale too, by where the
+ * band sits. The colour is here so a legend can draw the same swatch.
+ */
+export const MAINTENANCE_MARK_COLOR: Color = new Color("#3B82F6");
+
+// The band, drawn over the bar's own colour by DayUptimeGraph.css.
+export const MAINTENANCE_BAR_CLASS_NAME: string = "uptime-bar-maintenance";
+
+/*
  * A rule's percentage as a number, or null when it has none. Read the way
  * the strip has always compared it - `uptime >= threshold` - so a percentage
  * stored as text matches as the number it spells.

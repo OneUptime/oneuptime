@@ -1,5 +1,6 @@
 import SSHExecutor, { SSHExecResult } from "../../Services/SSHExecutor";
 import { JSONObject } from "Common/Types/JSON";
+import { getSshHostKeyFingerprint } from "Common/Utils/Runbook/SshHostKeyFingerprint";
 import { ChildProcess, spawn } from "child_process";
 import { AddressInfo } from "net";
 import {
@@ -32,7 +33,11 @@ import {
  *   - what it prints, on stdout and stderr, comes back, and its exit code
  *     decides the step;
  *   - it signs in with a password, or with a key;
- *   - a step written before scripts still sends its command as it is.
+ *   - a step written before scripts still sends its command as it is;
+ *   - a step that names the machine's host key signs in to it, and one
+ *     that names another key does not even try to sign in - nothing of its
+ *     password reaches the machine - while one that names none signs in
+ *     and says which key the machine presented.
  * ---------------------------------------------------------------------------
  */
 
@@ -44,6 +49,22 @@ const USER_KEY: { private: string; public: string } =
   utils.generateKeyPairSync("ed25519");
 
 const parsedUserKey: ParsedKey = utils.parseKey(USER_KEY.public) as ParsedKey;
+
+// The server's host key, as a step names it: its fingerprint, and its public key line.
+const parsedHostKey: ParsedKey = utils.parseKey(HOST_KEY) as ParsedKey;
+const HOST_KEY_FINGERPRINT: string = getSshHostKeyFingerprint(
+  parsedHostKey.getPublicSSH(),
+);
+
+// Another machine's key, which the server never presents.
+const OTHER_HOST_KEY_FINGERPRINT: string = getSshHostKeyFingerprint(
+  (
+    utils.parseKey(utils.generateKeyPairSync("ed25519").public) as ParsedKey
+  ).getPublicSSH(),
+);
+
+// How many times a client tried to sign in: none, when a host key is refused.
+let signInAttempts: number = 0;
 
 let server: Server;
 let port: number;
@@ -83,6 +104,8 @@ function isUserKey(context: AuthContext): boolean {
 beforeAll(async () => {
   server = new Server({ hostKeys: [HOST_KEY] }, (client: Connection): void => {
     client.on("authentication", (context: AuthContext): void => {
+      signInAttempts++;
+
       if (context.username !== USERNAME) {
         context.reject();
         return;
@@ -167,14 +190,17 @@ afterAll(async () => {
 
 beforeEach(() => {
   commandsRun.length = 0;
+  signInAttempts = 0;
 });
 
+// The step names the machine's host key, so it is checked on every run below.
 function withPassword(): JSONObject {
   return {
     hostname: "127.0.0.1",
     port,
     username: USERNAME,
     password: PASSWORD,
+    hostKeys: [{ fingerprint: HOST_KEY_FINGERPRINT, keyType: "ssh-ed25519" }],
   };
 }
 
@@ -250,6 +276,7 @@ describe("an SSH step's script, on the machine", () => {
         port,
         username: USERNAME,
         privateKey: USER_KEY.private,
+        hostKeys: [{ fingerprint: HOST_KEY_FINGERPRINT }],
       },
     );
 
@@ -282,5 +309,77 @@ describe("an SSH step's script, on the machine", () => {
       exitCode: 0,
     });
     expect(commandsRun).toEqual(["echo legacy && echo $((6 * 7))"]);
+  });
+});
+
+describe("the machine's host key", () => {
+  test("a step that names another key does not sign in: no password reaches the machine, and nothing runs", async () => {
+    const result: SSHExecResult = await run(
+      { script: "echo never" },
+      {
+        ...withPassword(),
+        hostKeys: [{ fingerprint: OTHER_HOST_KEY_FINGERPRINT }],
+      },
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.errorMessage).toBe(
+      `The machine presented the host key ${HOST_KEY_FINGERPRINT} (ssh-ed25519), which is not one this step names, so the step did not sign in. If the machine's key was changed on purpose, put the new one in the step's Host key; if not, something between the Runner and the machine may be pretending to be it.`,
+    );
+    expect(signInAttempts).toBe(0);
+    expect(commandsRun).toEqual([]);
+  });
+
+  test("a step that names its RSA key alone asks the machine for an RSA key - which this one has not - and does not sign in", async () => {
+    const result: SSHExecResult = await run(
+      { script: "echo never" },
+      {
+        ...withPassword(),
+        hostKeys: [
+          { fingerprint: OTHER_HOST_KEY_FINGERPRINT, keyType: "ssh-rsa" },
+        ],
+      },
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.errorMessage).toBe(
+      "The machine has no host key of the type this step names (ssh-rsa), so the step did not sign in. Put the key the machine has in the step's Host key, or its SHA256 fingerprint.",
+    );
+    expect(signInAttempts).toBe(0);
+    expect(commandsRun).toEqual([]);
+  });
+
+  test("a step that names its key among others signs in", async () => {
+    const result: SSHExecResult = await run(
+      { script: "echo checked" },
+      {
+        ...withPassword(),
+        hostKeys: [
+          { fingerprint: OTHER_HOST_KEY_FINGERPRINT },
+          { fingerprint: HOST_KEY_FINGERPRINT },
+        ],
+      },
+    );
+
+    expect(result).toEqual({
+      success: true,
+      output: "checked\n",
+      exitCode: 0,
+    });
+  });
+
+  test("a step that names none signs in as before, and says which key the machine presented", async () => {
+    const credential: JSONObject = { ...withPassword() };
+    delete credential["hostKeys"];
+
+    const result: SSHExecResult = await run(
+      { script: "echo unchecked" },
+      credential,
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.output).toBe(
+      `unchecked\n\n[OneUptime] The machine's host key was not checked: it presented ${HOST_KEY_FINGERPRINT} (ssh-ed25519). Put it in the step's Host key, under More fields, to check it on every run.`,
+    );
   });
 });

@@ -35,6 +35,11 @@ import {
   REDACTED_SECRET_TEXT,
 } from "Common/Types/Runbook/SecretOutputRedaction";
 import {
+  fillHttpStepJsonText,
+  getHttpStepVariableTexts,
+  redactHttpStepSecrets,
+} from "Common/Types/Runbook/HttpStepVariables";
+import {
   RUNBOOK_VARIABLE_NAME_MAX_LENGTH,
   RunbookVariableScope,
   formatRunbookVariableReference,
@@ -610,8 +615,8 @@ describe("the runbook pages' step timeouts", () => {
       "Set the timeouts per step, under its **More fields** on the runbook's **Steps** page;",
     );
     // The HTTP request step runs with the step timeout too.
-    expect(STEP_EXECUTORS).toContain(
-      "const timeout: number = resolveStepExecutionTimeoutInMs(config.timeoutInMs);",
+    expect(STEP_EXECUTORS).toMatch(
+      /const timeout: number = resolveStepExecutionTimeoutInMs\(\s*storedConfig\.timeoutInMs,?\s*\);/,
     );
   });
 });
@@ -894,7 +899,7 @@ describe("the Runner the runbook pages describe", () => {
 
   it("says a capability variable can only turn a capability off", () => {
     expect(RUNNER_CONFIG).toContain(
-      "these env vars are a local\n * override that can only ever turn a capability OFF.",
+      "these env vars are a local override\n * that can only ever turn a capability OFF.",
     );
 
     for (const variable of [
@@ -1053,6 +1058,20 @@ describe("the Runner the runbook pages describe", () => {
     );
     expect(setup).toContain(
       "An AI rule picks the Runner OneUptime AI runs its commands on: picking a Runner there is what lets OneUptime AI's commands run on it.",
+    );
+    /*
+     * The Runner's page lists the AI rules that pick it, in Runner Details
+     * after the repositories (Components/Runner/RunnerAiRules): rules read
+     * by their Runner.
+     */
+    expect(setup).toContain(
+      "The Runner's page lists the AI rules that pick it too.",
+    );
+    expect(readDashboard("Components/Runner/RunnerAiRules.tsx")).toContain(
+      "          runnerId: runnerId,",
+    );
+    expect(readDashboard("Pages/Runbook/Runners/RunnerView.tsx")).toContain(
+      "title: RunnerAiRulesCopy.title,",
     );
 
     for (const [name, on] of defaults) {
@@ -1233,6 +1252,7 @@ describe("a step's options on the authoring page", () => {
       ...switches,
       "port",
       "passphrase",
+      "hostKey",
       "description",
       "timeouts",
     ]);
@@ -1273,7 +1293,7 @@ describe("a step's options on the authoring page", () => {
     }
 
     expect(AUTHORING).toContain(
-      `In every automated step below, the step's **More fields** holds its **${RUNNER_FIELD_TITLE}** first, for a step that runs on one, then **${REQUIRE_APPROVAL_FOLDED_TITLE}** and **${CONTINUE_ON_FAILURE_TITLE}**, then the step's own extra settings - an HTTP request's headers, an SSH step's port and key passphrase, an AI step's provider and context switches - and last the **Description** and the timeouts. Folded, it names the step's Runner, so you see where a step runs without opening it.`,
+      `In every automated step below, the step's **More fields** holds its **${RUNNER_FIELD_TITLE}** first, for a step that runs on one, then **${REQUIRE_APPROVAL_FOLDED_TITLE}** and **${CONTINUE_ON_FAILURE_TITLE}**, then the step's own extra settings - an HTTP request's headers, an SSH step's port, key passphrase and host key, an AI step's provider and context switches - and last the **Description** and the timeouts. Folded, it names the step's Runner, so you see where a step runs without opening it.`,
     );
     expect(STEPS_PAGE).toContain("getStepMoreFieldsItems(");
     expect(STEPS_PAGE).toContain(
@@ -2032,6 +2052,41 @@ describe("runbook variables", () => {
     );
   });
 
+  /*
+   * An SSH step may name the machine's host keys (SSHStepConfig.hostKey):
+   * the Runner hands ssh2 a host verifier and signs in only when the
+   * machine presents one of them; a step that names none says in its
+   * output which key the machine presented. A Runner that does not say it
+   * checks them ("ssh-host-key") is never handed such a step.
+   */
+  it("say an SSH step checks the machine's host key when it names one, under More fields", () => {
+    expect(STEP_EDITOR_MODEL).toContain(
+      'SSH_HOST_KEY_TITLE: string = translationKey("Host key");',
+    );
+    expect(RUNNER_SSH_EXECUTOR).toContain(
+      "hostVerifier: (key: Buffer): boolean => {",
+    );
+    expect(RUNNER_SSH_EXECUTOR).toContain(
+      "The machine's host key was not checked: it presented",
+    );
+    expect(readSource("Common/Types/Runbook/RunnerFeatures.ts")).toContain(
+      'export const RUNNER_FEATURE_SSH_HOST_KEY: string = "ssh-host-key";',
+    );
+    expect(RUNNER_INGRESS).toContain(
+      "RunnerIngressAPI.SSH_HOST_KEY_NEEDS_NEWER_RUNNER",
+    );
+
+    expect(AUTHORING).toContain(
+      "| **Host key** | Under **More fields**. The machine's SHA256 fingerprint, or its public key as `ssh-keyscan` prints it, one per line. The step signs in only when the machine presents one of them. Left empty, any key is accepted, and the step's output names the one the machine presented. |",
+    );
+    expect(AUTHORING).toContain(
+      "A step that names one fails on a Runner too old to check it, saying to update the Runner.",
+    );
+    expect(CONFIGURATION).toContain(
+      "- **SSH steps** sign in only when the machine presents one of the host keys the step names. A step that names none accepts any key, and its output names the one the machine presented, to name in the step.",
+    );
+  });
+
   it("say who manages variables, which Runbook Admin does not", () => {
     const model: RunbookVariable = new RunbookVariable();
 
@@ -2148,6 +2203,60 @@ describe("runbook variables", () => {
     );
     expect(VARIABLES).toContain(
       "A secret shorter than 4 characters is not looked for.",
+    );
+  });
+
+  /*
+   * An HTTP request step names variables as a script does, in its URL, its
+   * headers and its body. OneUptime sends it itself, from the Worker - no
+   * Runner's list applies - so it is given every variable it names, a
+   * secret too, and hides each secret in what it records.
+   */
+  it("say an HTTP request step fills in every variable it names, secrets too, and hides them in what it records", () => {
+    expect(
+      getHttpStepVariableTexts({ url: "u", headersJson: "h", body: "b" }),
+    ).toEqual(["u", "h", "b"]);
+
+    const httpStep: string = STEP_EXECUTORS.slice(
+      STEP_EXECUTORS.indexOf("export async function runHttpStep("),
+    ).replace(/\s+/g, " ");
+
+    expect(httpStep).toContain(
+      'access: { kind: "server" }, includeValues: true,',
+    );
+    expect(httpStep).toContain("redactHttpStepSecrets(text, secretValues)");
+    expect(RUN_RUNBOOK).toContain("return runHttpStep(step, ctx);");
+
+    // In JSON, a value goes inside its string: a quote in it keeps the JSON whole.
+    expect(
+      JSON.parse(
+        fillHttpStepJsonText(
+          '{ "Authorization": "Bearer {{global.variables.API_TOKEN}}" }',
+          (): string => {
+            return 'sk_"live';
+          },
+        ),
+      ),
+    ).toEqual({ Authorization: 'Bearer sk_"live' });
+    expect(redactHttpStepSecrets("echo sk_live_8f2a", ["sk_live_8f2a"])).toBe(
+      `echo ${REDACTED_SECRET_TEXT}`,
+    );
+
+    expect(VARIABLES).toContain(
+      "Bash, JavaScript, SSH, kubectl and HTTP request steps use variables. AI steps do not fill them in. OneUptime sends an HTTP request step itself, without a Runner, so the step gets every variable it names, secrets too, and hides them in the response it records.",
+    );
+    expect(VARIABLES).toContain(
+      "| OneUptime itself, for an HTTP request step | Always | Always |",
+    );
+    // The hardening notes say it too, beside the Runners a secret is handed to.
+    expect(CONFIGURATION).toContain(
+      "An HTTP request step, which OneUptime sends itself, is given every secret of its own project that it names, and hides them in the response it records.",
+    );
+    expect(VARIABLES).toContain(
+      '{ "Authorization": "Bearer {{global.variables.API_TOKEN}}" }',
+    );
+    expect(AUTHORING).toContain(
+      "OneUptime sends the request itself, so it fills in secrets too, and the response the step records shows `[REDACTED]` in their place. In JSON headers or a JSON body, a value goes inside its string, so a quote or a line break in it does not break the JSON.",
     );
   });
 });

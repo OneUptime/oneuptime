@@ -184,7 +184,7 @@ function stackImages(composeFiles) {
     }
   }
 
-  // Each image once: two services can run the same one (runner, global-runner).
+  // Each image once, however many services run it.
   return [
     ...new Set(
       Object.values(services)
@@ -255,14 +255,14 @@ describe("the helpers this suite reads the workflows with", () => {
 
     expect(images).toContain("oneuptime/home:${APP_TAG}");
     expect(images).toContain("oneuptime/app:${APP_TAG}");
-    // The billing overlay puts the runner, and the global Runner, behind a profile.
+    // The billing overlay puts the global Runner behind a profile.
     expect(images).not.toContain("oneuptime/runner:${APP_TAG}");
     expect(stackImages(["docker-compose.yml"])).toContain(
       "oneuptime/runner:${APP_TAG}",
     );
   });
 
-  test("name each image once, though two services run the Runner image", () => {
+  test("name each image once, however many services run it", () => {
     const images = stackImages(["docker-compose.yml"]);
 
     expect(

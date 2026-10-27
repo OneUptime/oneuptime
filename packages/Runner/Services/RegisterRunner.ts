@@ -1,5 +1,4 @@
 import {
-  IS_CLUSTER_SCOPED,
   IS_KUBERNETES_AGENT_MODE,
   KUBERNETES_AGENT_CLUSTER_NAME,
   KUBERNETES_AGENT_INGESTION_KEY,
@@ -8,7 +7,6 @@ import {
   RUNNER_INGEST_URL,
   RUNNER_KEY,
   RUNNER_NAME,
-  RUNNER_DESCRIPTION,
   RUNNER_VERSION,
 } from "../Config";
 import RunnerCapabilities from "../Utils/RunnerCapabilities";
@@ -24,13 +22,10 @@ import URL from "Common/Types/API/URL";
 import { JSONObject } from "Common/Types/JSON";
 import Sleep from "Common/Types/Sleep";
 import API from "Common/Utils/API";
-import {
-  HasClusterKey,
-  isShippedSecretValue,
-} from "Common/Server/EnvironmentConfig";
+import { isShippedSecretValue } from "Common/Server/EnvironmentConfig";
+import { GLOBAL_AI_AGENT_GONE_MESSAGE } from "Common/Types/Runner/GlobalAIAgentsGone";
 import LocalCache from "Common/Server/Infrastructure/LocalCache";
 import logger, { LogAttributes } from "Common/Server/Utils/Logger";
-import ClusterKeyAuthorization from "Common/Server/Middleware/ClusterKeyAuthorization";
 
 /*
  * The longest server reason carried into a log line. The server's refusals
@@ -39,6 +34,13 @@ import ClusterKeyAuthorization from "Common/Server/Middleware/ClusterKeyAuthoriz
  * says what to do.
  */
 const SERVER_REASON_MAX_CHARS: number = 1000;
+
+/*
+ * What a global Runner says once it learns it is one (GlobalRunnerMode):
+ * what it takes, and what it never runs.
+ */
+export const GLOBAL_RUNNER_STARTED_MESSAGE: string =
+  "This is a global Runner: it runs the JavaScript steps of every project that uses global Runners, each in a sandbox of its own that reaches the internet only, and the AI code fixes of every repository on the Global Runner, which run none of a repository's commands. It runs nothing else.";
 
 /*
  * A registration the server answered and refused, with the status it
@@ -80,29 +82,6 @@ export class RegistrationRefusedError extends Error {
 }
 
 /*
- * Said once by the shared Runner whose deployment still gives it a cluster
- * key (ONEUPTIME_SECRET), as docker-compose.yml and the Helm chart of
- * earlier releases do. The Runner registers with its own key and needs
- * none; it still sends that key, so it registers with an app that does not
- * hold the Runner's key yet, until its deployment is updated.
- */
-export const CLUSTER_KEY_IN_RUNNER_ENVIRONMENT_MESSAGE: string =
-  "This shared Runner's environment holds ONEUPTIME_SECRET, the key OneUptime's own services call each other with. The Runner registers with its own ONEUPTIME_RUNNER_KEY and does not need it: it sends it only so that an app without the Runner's key still lets it register. Use the docker-compose.yml or the Helm chart of the release the OneUptime app runs: they give the app ONEUPTIME_RUNNER_KEY and take ONEUPTIME_SECRET out of the Runner.";
-
-/*
- * Thrown, before any request, by the in-cluster Runner whose
- * ONEUPTIME_RUNNER_KEY - the key it registers and authenticates with as the
- * global agent every project shares - is a value the OneUptime repository
- * ships: the server refuses that value as an agent key (AIAgentAPI,
- * CodeFixAgentAuth, SharedRunnerKeyAuthorization), so it is never sent.
- * Retrying cannot help until an operator sets a random ONEUPTIME_RUNNER_KEY
- * and restarts the Runner, so the retry loop says so once and keeps the
- * container up.
- */
-export const SHIPPED_RUNNER_KEY_RUNNER_MESSAGE: string =
-  'This in-cluster Runner cannot register: its ONEUPTIME_RUNNER_KEY is still a value shipped in the OneUptime repository ("secret", or a "please-change-this-to-random-value" placeholder), and OneUptime refuses that value as a Runner key, so nothing is sent. Set ONEUPTIME_RUNNER_KEY to the same long random value on this Runner and the OneUptime app, then restart them: with Docker Compose, npm start and npm run update put one in config.env; the Helm chart generates one unless runner.key is set.';
-
-/*
  * Thrown, before any request, by a Runner a project created (Runbooks >
  * Runners) whose ONEUPTIME_RUNNER_KEY is a value the OneUptime repository
  * ships: the server refuses that value as a Runner key wherever one is
@@ -125,13 +104,6 @@ export class ShippedSecretSettingError extends Error {
   public constructor(message: string, setting: string) {
     super(message);
     this.setting = setting;
-  }
-}
-
-export class ShippedRunnerKeyError extends ShippedSecretSettingError {
-  public constructor() {
-    super(SHIPPED_RUNNER_KEY_RUNNER_MESSAGE, "ONEUPTIME_RUNNER_KEY");
-    this.name = "ShippedRunnerKeyError";
   }
 }
 
@@ -773,31 +745,6 @@ export default class Register {
     } as LogAttributes);
   }
 
-  /*
-   * Whether this Runner's deployment gives it a cluster key it may send:
-   * set, and not a value the repository ships. Said once, when it does: the
-   * Runner needs none.
-   */
-  public static holdsClusterKey(): boolean {
-    if (
-      !HasClusterKey ||
-      ClusterKeyAuthorization.isConfiguredClusterKeyShipped()
-    ) {
-      return false;
-    }
-
-    if (!Register.saidClusterKeyInEnvironment) {
-      Register.saidClusterKeyInEnvironment = true;
-      logger.warn(CLUSTER_KEY_IN_RUNNER_ENVIRONMENT_MESSAGE, {
-        runnerName: RUNNER_NAME,
-      } as LogAttributes);
-    }
-
-    return true;
-  }
-
-  private static saidClusterKeyInEnvironment: boolean = false;
-
   private static async _registerRunner(
     options: { shouldContinue?: (() => boolean) | undefined } = {},
   ): Promise<void> {
@@ -806,236 +753,165 @@ export default class Register {
       return;
     }
 
-    if (IS_CLUSTER_SCOPED) {
+    /*
+     * The id and key were issued by the dashboard (Runbooks > Runners, or
+     * Admin Dashboard > Settings > Global Runners; the bundled global
+     * Runner's are its fixed id and GLOBAL_RUNNER_KEY), so they identify a
+     * Runner row. Validate them against the Runner work mount, which is the
+     * endpoint that authenticates against that table — the AIAgent alive
+     * endpoint would reject them, since no AIAgent row is ever created for a
+     * Runner.
+     *
+     * A missing RUNNER_ID is thrown (NOT process.exit) so the retry-forever
+     * loop keeps the container alive and logging the misconfiguration — a
+     * crash loop hides the message.
+     */
+    if (!RUNNER_ID) {
+      throw new Error(
+        "ONEUPTIME_RUNNER_ID must be set (create a Runner in Runbooks > Runners and copy its id and key into this container). The Runner keeps retrying until one is provided.",
+      );
+    }
+
+    /*
+     * Nor does it present a key the repository ships: the server refuses
+     * that value as a Runner key, so it is never sent.
+     */
+    if (isShippedSecretValue(RUNNER_KEY)) {
+      throw new ShippedProjectRunnerKeyError();
+    }
+
+    const heartbeatUrl: URL = URL.fromString(
+      RUNNER_INGEST_URL.toString(),
+    ).addRoute("/heartbeat");
+
+    logger.debug("Registering Runner...", {
+      runnerId: RUNNER_ID?.toString(),
+      runnerName: RUNNER_NAME,
+    } as LogAttributes);
+    logger.debug("Sending request to: " + heartbeatUrl.toString(), {
+      runnerId: RUNNER_ID?.toString(),
+      runnerName: RUNNER_NAME,
+    } as LogAttributes);
+
+    const result: HTTPResponse<JSONObject> = await API.post({
+      url: heartbeatUrl,
+      data: {
+        agentId: RUNNER_ID.toString(),
+        agentKey: RUNNER_KEY.toString(),
+        agentVersion: RUNNER_VERSION,
+      },
+      options: RunnerAPIRequest.getDefaultRequestOptions(),
+    });
+
+    if (result.isSuccess()) {
+      LocalCache.setString(
+        "RUNNER",
+        "RUNNER_ID",
+        RUNNER_ID.toString() as string,
+      );
+
       /*
-       * The shared Runner: it auto-registers as the installation's global
-       * agent and is given its id - with its own key, which the app holds
-       * too. A value the repository ships is refused there as an agent key
-       * wherever one is presented, so it is never sent.
+       * The dashboard's capability toggles for this Runner. Absent when the
+       * server predates them — RunnerCapabilities then keeps the historical
+       * env-var behaviour.
        */
-      if (isShippedSecretValue(RUNNER_KEY)) {
-        throw new ShippedRunnerKeyError();
+      const capabilities: JSONObject | undefined = result.data[
+        "capabilities"
+      ] as JSONObject | undefined;
+
+      if (capabilities) {
+        RunnerCapabilities.setGrantedByServer({
+          canRunRunbooks: capabilities["canRunRunbooks"] !== false,
+          canRunCodeFixTasks: capabilities["canRunCodeFixTasks"] === true,
+          canRunAiCommands: capabilities["canRunAiCommands"] === true,
+        });
       }
-
-      const aiAgentRegistrationUrl: URL = URL.fromString(
-        ONEUPTIME_BASE_URL.toString(),
-      ).addRoute("/api/ai-agent/register");
-
-      logger.debug("Registering Runner...", {
-        runnerName: RUNNER_NAME,
-      } as LogAttributes);
-      logger.debug("Sending request to: " + aiAgentRegistrationUrl.toString(), {
-        runnerName: RUNNER_NAME,
-      } as LogAttributes);
-
-      const registration: JSONObject = {
-        aiAgentKey: RUNNER_KEY,
-        runnerName: RUNNER_NAME,
-        aiAgentDescription: RUNNER_DESCRIPTION,
-      };
 
       /*
-       * Its key proves who it is. A Runner whose deployment still gives it a
-       * cluster key it may send - docker-compose.yml or a Helm chart of an
-       * earlier release - also sends that, in the clusterkey header, never
-       * in the URL or the body, so it registers with an app that does not
-       * hold its key yet, a release behind included. A value the repository
-       * ships is never sent: the Runner registers with its own key alone.
+       * Whether this is a global Runner - one OneUptime runs for every
+       * project - is the server's to say (GlobalRunnerMode). Said once
+       * here, on start, with what that means for what it runs.
        */
-      const result: HTTPResponse<JSONObject> = Register.holdsClusterKey()
-        ? await API.post({
-            url: aiAgentRegistrationUrl,
-            data: registration,
-            headers: {
-              ...ClusterKeyAuthorization.getClusterKeyHeaders(),
-            },
-            options: RunnerAPIRequest.getDefaultRequestOptions(),
-          })
-        : await API.post({
-            url: aiAgentRegistrationUrl,
-            data: registration,
-            options: RunnerAPIRequest.getDefaultRequestOptions(),
-          });
+      GlobalRunnerMode.setFromServer(
+        typeof result.data["isGlobalRunner"] === "boolean"
+          ? (result.data["isGlobalRunner"] as boolean)
+          : false,
+      );
 
-      if (!result.isSuccess()) {
-        logger.error(
-          `Failed to register Runner. Status: ${result.statusCode}`,
-          { runnerName: RUNNER_NAME } as LogAttributes,
-        );
-        logger.error(result.data, {
+      if (GlobalRunnerMode.isActive()) {
+        logger.info(GLOBAL_RUNNER_STARTED_MESSAGE, {
+          runnerId: RUNNER_ID?.toString(),
           runnerName: RUNNER_NAME,
         } as LogAttributes);
-        throw new Error("Failed to register Runner: HTTP " + result.statusCode);
       }
 
-      logger.debug("Runner Registered", {
+      logger.debug("Runner registered successfully", {
+        runnerId: RUNNER_ID?.toString(),
         runnerName: RUNNER_NAME,
       } as LogAttributes);
-      logger.debug(result.data, {
-        runnerName: RUNNER_NAME,
-      } as LogAttributes);
-
-      const aiAgentId: string | undefined = result.data["_id"] as
-        | string
-        | undefined;
-
-      if (!aiAgentId) {
-        logger.error("Runner ID not found in response", {
-          runnerName: RUNNER_NAME,
-        } as LogAttributes);
-        logger.error(result.data, {
-          runnerName: RUNNER_NAME,
-        } as LogAttributes);
-        throw new Error("Runner ID not found in registration response");
-      }
-
-      LocalCache.setString("RUNNER", "RUNNER_ID", aiAgentId);
     } else {
       /*
-       * Project-scoped mode: the id and key were issued by the dashboard
-       * (Runbooks > Runners), so they identify a Runner row. Validate
-       * them against the Runner work mount, which is the endpoint that
-       * authenticates against that table — the AIAgent alive endpoint would
-       * reject them, since no AIAgent row is ever created for a
-       * dashboard-issued Runner.
-       *
-       * A missing RUNNER_ID is thrown (NOT process.exit) so the retry-forever
-       * loop keeps the container alive and logging the misconfiguration — a
-       * crash loop hides the message.
+       * The credentials may predate the Runner merge — an AI Agent's id and
+       * key, which live in a different table and validate on a different
+       * endpoint. Fall back to it so an upgraded container with old
+       * credentials still comes up; it keeps the code-fix capability, which
+       * is all an AI Agent ever had.
        */
-      if (!RUNNER_ID) {
-        throw new Error(
-          "ONEUPTIME_RUNNER_ID must be set for a project-scoped Runner (create one in Runbooks > Runners); only the installation's shared Runner, with ONEUPTIME_RUNNER_SHARED=true, registers without one. The Runner keeps retrying until one is provided.",
-        );
-      }
+      const aliveUrl: URL = URL.fromString(
+        ONEUPTIME_BASE_URL.toString(),
+      ).addRoute("/api/ai-agent/alive");
 
-      /*
-       * Nor does it present a key the repository ships: the server refuses
-       * that value as a Runner key, so it is never sent.
-       */
-      if (isShippedSecretValue(RUNNER_KEY)) {
-        throw new ShippedProjectRunnerKeyError();
-      }
-
-      const heartbeatUrl: URL = URL.fromString(
-        RUNNER_INGEST_URL.toString(),
-      ).addRoute("/heartbeat");
-
-      logger.debug("Registering Runner...", {
-        runnerId: RUNNER_ID?.toString(),
-        runnerName: RUNNER_NAME,
-      } as LogAttributes);
-      logger.debug("Sending request to: " + heartbeatUrl.toString(), {
-        runnerId: RUNNER_ID?.toString(),
-        runnerName: RUNNER_NAME,
-      } as LogAttributes);
-
-      const result: HTTPResponse<JSONObject> = await API.post({
-        url: heartbeatUrl,
+      const legacyResult: HTTPResponse<JSONObject> = await API.post({
+        url: aliveUrl,
         data: {
-          agentId: RUNNER_ID.toString(),
-          agentKey: RUNNER_KEY.toString(),
-          agentVersion: RUNNER_VERSION,
+          aiAgentId: RUNNER_ID.toString(),
+          aiAgentKey: RUNNER_KEY.toString(),
         },
         options: RunnerAPIRequest.getDefaultRequestOptions(),
       });
 
-      if (result.isSuccess()) {
-        LocalCache.setString(
-          "RUNNER",
-          "RUNNER_ID",
-          RUNNER_ID.toString() as string,
-        );
-
-        /*
-         * The dashboard's capability toggles for this Runner. Absent when the
-         * server predates them — RunnerCapabilities then keeps the historical
-         * env-var behaviour.
-         */
-        const capabilities: JSONObject | undefined = result.data[
-          "capabilities"
-        ] as JSONObject | undefined;
-
-        if (capabilities) {
-          RunnerCapabilities.setGrantedByServer({
-            canRunRunbooks: capabilities["canRunRunbooks"] !== false,
-            canRunCodeFixTasks: capabilities["canRunCodeFixTasks"] === true,
-            canRunAiCommands: capabilities["canRunAiCommands"] === true,
-          });
-        }
-
-        /*
-         * Whether this is a global Runner - one OneUptime runs for every
-         * project - is the server's to say (GlobalRunnerMode). Said once
-         * here, on start, with what that means for what it runs.
-         */
-        GlobalRunnerMode.setFromServer(
-          typeof result.data["isGlobalRunner"] === "boolean"
-            ? (result.data["isGlobalRunner"] as boolean)
-            : false,
-        );
-
-        if (GlobalRunnerMode.isActive()) {
-          logger.info(
-            "This is a global Runner: it runs JavaScript steps for every project that uses global Runners, each in a sandbox of its own that reaches the internet only, and nothing else.",
-            {
-              runnerId: RUNNER_ID?.toString(),
-              runnerName: RUNNER_NAME,
-            } as LogAttributes,
-          );
-        }
-
-        logger.debug("Runner registered successfully", {
-          runnerId: RUNNER_ID?.toString(),
-          runnerName: RUNNER_NAME,
-        } as LogAttributes);
-      } else {
-        /*
-         * The credentials may predate the Runner merge — an AI Agent's id and
-         * key, which live in a different table and validate on a different
-         * endpoint. Fall back to it so an upgraded container with old
-         * credentials still comes up; it keeps the code-fix capability, which
-         * is all an AI Agent ever had.
-         */
-        const aliveUrl: URL = URL.fromString(
-          ONEUPTIME_BASE_URL.toString(),
-        ).addRoute("/api/ai-agent/alive");
-
-        const legacyResult: HTTPResponse<JSONObject> = await API.post({
-          url: aliveUrl,
-          data: {
-            aiAgentId: RUNNER_ID.toString(),
-            aiAgentKey: RUNNER_KEY.toString(),
-          },
-          options: RunnerAPIRequest.getDefaultRequestOptions(),
+      /*
+       * The id and key of a global AI agent - the shared Runner's
+       * registration, or one added on the removed Global AI Agents page -
+       * which global Runners replaced: said as the server says it, with what
+       * to start instead (GlobalAIAgentsGone).
+       */
+      if (
+        !legacyResult.isSuccess() &&
+        (legacyResult.data as JSONObject | undefined)?.["message"] ===
+          GLOBAL_AI_AGENT_GONE_MESSAGE
+      ) {
+        throw new RegistrationRefusedError({
+          message: GLOBAL_AI_AGENT_GONE_MESSAGE,
+          statusCode: legacyResult.statusCode,
         });
+      }
 
-        if (!legacyResult.isSuccess()) {
-          throw new Error(
-            Register.describeRegistrationFailure({
-              statusCode: result.statusCode,
-              url: heartbeatUrl,
-            }),
-          );
-        }
-
-        LocalCache.setString(
-          "RUNNER",
-          "RUNNER_ID",
-          RUNNER_ID.toString() as string,
-        );
-
-        RunnerCapabilities.setGrantedByServer({
-          canRunRunbooks: false,
-          canRunCodeFixTasks: true,
-          canRunAiCommands: false,
-        });
-
-        logger.warn(
-          "Registered with legacy AI Agent credentials. Create a Runner under Runbooks > Runners and switch to its id and key — runbook execution needs one.",
-          { runnerName: RUNNER_NAME } as LogAttributes,
+      if (!legacyResult.isSuccess()) {
+        throw new Error(
+          Register.describeRegistrationFailure({
+            statusCode: result.statusCode,
+            url: heartbeatUrl,
+          }),
         );
       }
+
+      LocalCache.setString(
+        "RUNNER",
+        "RUNNER_ID",
+        RUNNER_ID.toString() as string,
+      );
+
+      RunnerCapabilities.setGrantedByServer({
+        canRunRunbooks: false,
+        canRunCodeFixTasks: true,
+        canRunAiCommands: false,
+      });
+
+      logger.warn(
+        "Registered with legacy AI Agent credentials. Create a Runner under Runbooks > Runners and switch to its id and key — runbook execution needs one.",
+        { runnerName: RUNNER_NAME } as LogAttributes,
+      );
     }
 
     logger.debug(

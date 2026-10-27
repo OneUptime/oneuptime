@@ -1,5 +1,5 @@
 import { DataSourceHttpRequest } from "../../../../Server/Utils/DataSource/HttpFetch";
-import { JSONObject } from "../../../../Types/JSON";
+import { JSONObject, JSONValue } from "../../../../Types/JSON";
 import {
   FakeProviderApi,
   FakeResponse,
@@ -10,12 +10,18 @@ import {
 } from "../LlmObservability/FakeProviderApi";
 
 /*
- * AWS in a test: CloudWatch (per Region), STS and the Resource Groups
- * Tagging API, answering the way they do - CloudWatch and Tagging in their
- * JSON protocols (the action in X-Amz-Target), STS in XML - and every
- * error the way the production transport throws it. Each Region's
- * CloudWatch holds metrics (what ListMetrics lists) and values (what
- * GetMetricData returns for a metric and its dimensions).
+ * AWS in a test: CloudWatch (per Region), STS, the Resource Groups
+ * Tagging API, Cloud Control (per Region), Organizations, IAM's account
+ * alias, CloudTrail (per Region) and AWS Health, answering the way they do - the JSON protocols with the action in
+ * X-Amz-Target, STS and IAM in XML - and every error the way the
+ * production transport throws it. Each Region's CloudWatch holds metrics
+ * (what ListMetrics lists) and values (what GetMetricData returns for a
+ * metric and its dimensions); each Region's Cloud Control holds resources
+ * by type.
+ *
+ * A role assumed in another account signs its calls with a key that names
+ * that account, and GetCallerIdentity answers with it: an organization's
+ * accounts are told apart the way AWS tells them apart.
  */
 
 export const FAKE_ACCOUNT_ID: string = "123456789012";
@@ -37,6 +43,25 @@ export interface FakeRegion {
   // ARN (any case) -> Name tag.
   names?: Record<string, string> | undefined;
   tagsError?: FakeResponse | undefined;
+  // Cloud Control: type -> its resources, as ListResources describes them.
+  resources?:
+    | Record<string, Array<{ Identifier: string; Properties: JSONObject }>>
+    | undefined;
+  // Cloud Control: type -> the error ListResources answers with instead.
+  resourceErrors?: Record<string, FakeResponse> | undefined;
+  // CloudTrail: the Region's write events, as LookupEvents describes them.
+  trailEvents?: Array<JSONObject> | undefined;
+  // Events per LookupEvents page (50 when not set).
+  trailPageSize?: number | undefined;
+  trailError?: FakeResponse | undefined;
+}
+
+export interface FakeOrganizationAccount {
+  Id: string;
+  Name: string;
+  // Retired by AWS on 9 September 2026: State is what answers carry now.
+  Status?: string | undefined;
+  State?: string | undefined;
 }
 
 export interface FakeAwsOptions {
@@ -45,6 +70,23 @@ export interface FakeAwsOptions {
   account?: string | undefined;
   callerIdentityError?: FakeResponse | undefined;
   assumeRoleError?: FakeResponse | undefined;
+  // Role ARNs (any case) whose AssumeRole is refused: a member without the role.
+  refusedRoles?: Array<string> | undefined;
+  organizationAccounts?: Array<FakeOrganizationAccount> | undefined;
+  organizationsError?: FakeResponse | undefined;
+  accountAlias?: string | undefined;
+  // AWS Health: events as DescribeEvents lists them, and each one's words.
+  healthEvents?: Array<JSONObject> | undefined;
+  healthDescriptions?: Record<string, string> | undefined;
+  healthError?: FakeResponse | undefined;
+  // Per account (as a role's key names it): the error AWS Health answers it with.
+  healthErrorsByAccount?: Record<string, FakeResponse> | undefined;
+  /*
+   * AWS's own clock: a request signed (X-Amz-Date) more than five minutes
+   * before it is refused as AWS refuses it - "Signature expired", as an
+   * unknown signature. Off when not given.
+   */
+  awsClock?: (() => Date) | undefined;
 }
 
 export interface FakeAws extends FakeProviderApi {
@@ -56,6 +98,63 @@ export interface FakeAws extends FakeProviderApi {
     request: DataSourceHttpRequest;
   }>;
   taggingCalls: Array<{ region: string; body: JSONObject }>;
+  cloudControlCalls: Array<{
+    region: string;
+    typeName: string;
+    resourceModel: string;
+    account: string;
+  }>;
+  // The Regions Organizations was asked in, one entry a call.
+  organizationsCalls: Array<string>;
+  assumedRoles: Array<string>;
+  // LookupEvents calls by Region and the account they were signed for.
+  cloudTrailCalls: Array<{ region: string; body: JSONObject; account: string }>;
+  // AWS Health calls by action, with the Region and the account they were signed for.
+  healthCalls: Array<{
+    action: string;
+    body: JSONObject;
+    region: string;
+    account: string;
+  }>;
+  /*
+   * Requests refused because their signature was too old - a counter
+   * object: a getter would be read once, when the fake is spread.
+   */
+  expiredSignatures: { count: number };
+}
+
+// Twelve digits: an AWS account id.
+function isAccountId(text: string): boolean {
+  return (
+    text.length === 12 &&
+    Array.from(text).every((char: string): boolean => {
+      return char >= "0" && char <= "9";
+    })
+  );
+}
+
+// The account a role session's key names: ASIA + the 12-digit account + ROLE.
+function accountOfKey(request: DataSourceHttpRequest): string {
+  const authorization: string = headerOf(request, "Authorization");
+  const marker: string = "Credential=ASIA";
+  const index: number = authorization.indexOf(marker);
+
+  if (index < 0) {
+    return "";
+  }
+
+  const digits: string = authorization.slice(
+    index + marker.length,
+    index + marker.length + 12,
+  );
+
+  return isAccountId(digits) ? digits : "";
+}
+
+// The 12-digit account of a role ARN, or "".
+function accountOfRoleArn(roleArn: string): string {
+  const parts: Array<string> = roleArn.split(":");
+  return parts.length >= 5 && isAccountId(parts[4] || "") ? parts[4]! : "";
 }
 
 export function awsError(
@@ -78,6 +177,19 @@ export function stsError(
     status,
     body: `<ErrorResponse xmlns="https://sts.amazonaws.com/doc/2011-06-15/"><Error><Type>Sender</Type><Code>${code}</Code><Message>${message}</Message></Error><RequestId>1</RequestId></ErrorResponse>`,
   };
+}
+
+// X-Amz-Date (20261021T120700Z) as epoch ms, or NaN.
+function signedAtMs(request: DataSourceHttpRequest): number {
+  const value: string = headerOf(request, "X-Amz-Date");
+
+  if (value.length !== 16) {
+    return NaN;
+  }
+
+  return Date.parse(
+    `${value.slice(0, 4)}-${value.slice(4, 6)}-${value.slice(6, 8)}T${value.slice(9, 11)}:${value.slice(11, 13)}:${value.slice(13, 15)}Z`,
+  );
 }
 
 function headerOf(request: DataSourceHttpRequest, name: string): string {
@@ -119,8 +231,14 @@ export function createFakeAws(options: FakeAwsOptions): FakeAws {
   const cloudWatchCalls: FakeAws["cloudWatchCalls"] = [];
   const stsCalls: FakeAws["stsCalls"] = [];
   const taggingCalls: FakeAws["taggingCalls"] = [];
+  const cloudControlCalls: FakeAws["cloudControlCalls"] = [];
+  const assumedRoles: Array<string> = [];
+  const organizationsCalls: Array<string> = [];
+  const cloudTrailCalls: FakeAws["cloudTrailCalls"] = [];
+  const healthCalls: FakeAws["healthCalls"] = [];
   const getMetricDataTurns: Map<string, number> = new Map();
   const account: string = options.account || FAKE_ACCOUNT_ID;
+  const expiredSignatures: { count: number } = { count: 0 };
 
   const route: FakeRoute = {
     path: "/",
@@ -129,6 +247,29 @@ export function createFakeAws(options: FakeAwsOptions): FakeAws {
       const host: string = url.host;
       const service: string = host.split(".")[0] || "";
       const region: string = regionOf(host);
+
+      if (options.awsClock) {
+        const signedAt: number = signedAtMs(request);
+
+        if (
+          !Number.isFinite(signedAt) ||
+          options.awsClock().getTime() - signedAt > 5 * 60 * 1000
+        ) {
+          expiredSignatures.count++;
+
+          return service === "sts"
+            ? stsError(
+                403,
+                "SignatureDoesNotMatch",
+                "Signature expired: the request is more than five minutes old.",
+              )
+            : awsError(
+                400,
+                "InvalidSignatureException",
+                "Signature expired: the request is more than five minutes old.",
+              );
+        }
+      }
 
       if (service === "sts") {
         const form: URLSearchParams = new URLSearchParams(
@@ -142,9 +283,11 @@ export function createFakeAws(options: FakeAwsOptions): FakeAws {
             return options.callerIdentityError;
           }
 
+          const caller: string = accountOfKey(request) || account;
+
           return {
             status: 200,
-            body: `<GetCallerIdentityResponse xmlns="https://sts.amazonaws.com/doc/2011-06-15/"><GetCallerIdentityResult><Arn>arn:aws:iam::${account}:user/reader</Arn><UserId>AIDAEXAMPLE</UserId><Account>${account}</Account></GetCallerIdentityResult><ResponseMetadata><RequestId>1</RequestId></ResponseMetadata></GetCallerIdentityResponse>`,
+            body: `<GetCallerIdentityResponse xmlns="https://sts.amazonaws.com/doc/2011-06-15/"><GetCallerIdentityResult><Arn>arn:aws:iam::${caller}:user/reader</Arn><UserId>AIDAEXAMPLE</UserId><Account>${caller}</Account></GetCallerIdentityResult><ResponseMetadata><RequestId>1</RequestId></ResponseMetadata></GetCallerIdentityResponse>`,
           };
         }
 
@@ -153,13 +296,108 @@ export function createFakeAws(options: FakeAwsOptions): FakeAws {
             return options.assumeRoleError;
           }
 
+          const roleArn: string = form.get("RoleArn") || "";
+          assumedRoles.push(roleArn);
+
+          if (
+            (options.refusedRoles || []).some((refused: string): boolean => {
+              return refused.toLowerCase() === roleArn.toLowerCase();
+            })
+          ) {
+            return stsError(
+              403,
+              "AccessDenied",
+              "User is not authorized to perform: sts:AssumeRole",
+            );
+          }
+
+          // A key that names the role's account, for GetCallerIdentity.
+          const roleAccount: string = accountOfRoleArn(roleArn);
+          const keyId: string =
+            roleAccount && roleAccount !== account
+              ? `ASIA${roleAccount}ROLE`
+              : "ASIAASSUMEDROLE00001";
+
           return {
             status: 200,
-            body: `<AssumeRoleResponse xmlns="https://sts.amazonaws.com/doc/2011-06-15/"><AssumeRoleResult><AssumedRoleUser><Arn>arn:aws:sts::${account}:assumed-role/OneUptimeReadOnly/x</Arn><AssumedRoleId>AROA:x</AssumedRoleId></AssumedRoleUser><Credentials><AccessKeyId>ASIAASSUMEDROLE00001</AccessKeyId><SecretAccessKey>assumed/secret&amp;key</SecretAccessKey><SessionToken>session-token-abc</SessionToken><Expiration>2099-01-01T00:00:00Z</Expiration></Credentials></AssumeRoleResult></AssumeRoleResponse>`,
+            body: `<AssumeRoleResponse xmlns="https://sts.amazonaws.com/doc/2011-06-15/"><AssumeRoleResult><AssumedRoleUser><Arn>arn:aws:sts::${roleAccount || account}:assumed-role/OneUptimeReadOnly/x</Arn><AssumedRoleId>AROA:x</AssumedRoleId></AssumedRoleUser><Credentials><AccessKeyId>${keyId}</AccessKeyId><SecretAccessKey>assumed/secret&amp;key</SecretAccessKey><SessionToken>session-token-abc</SessionToken><Expiration>2099-01-01T00:00:00Z</Expiration></Credentials></AssumeRoleResult></AssumeRoleResponse>`,
           };
         }
 
         return stsError(400, "InvalidAction");
+      }
+
+      // IAM's one global endpoint: the account's alias.
+      if (service === "iam") {
+        const form: URLSearchParams = new URLSearchParams(
+          String(request.body || ""),
+        );
+
+        if (form.get("Action") !== "ListAccountAliases") {
+          return stsError(400, "InvalidAction");
+        }
+
+        return {
+          status: 200,
+          body: `<ListAccountAliasesResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/"><ListAccountAliasesResult><IsTruncated>false</IsTruncated><AccountAliases>${
+            options.accountAlias
+              ? `<member>${options.accountAlias}</member>`
+              : ""
+          }</AccountAliases></ListAccountAliasesResult></ListAccountAliasesResponse>`,
+        };
+      }
+
+      if (service === "organizations") {
+        organizationsCalls.push(region);
+
+        if (options.organizationsError) {
+          return options.organizationsError;
+        }
+
+        return json({
+          Accounts: (options.organizationAccounts ||
+            []) as unknown as JSONValue,
+        });
+      }
+
+      // AWS Health, in the partition's home Region.
+      if (service === "health") {
+        const action: string =
+          headerOf(request, "X-Amz-Target").split(".")[1] || "";
+        const body: JSONObject = bodyOf(request);
+        const caller: string = accountOfKey(request) || account;
+        healthCalls.push({ action, body, region, account: caller });
+
+        if (options.healthError) {
+          return options.healthError;
+        }
+
+        if (options.healthErrorsByAccount?.[caller]) {
+          return options.healthErrorsByAccount[caller]!;
+        }
+
+        if (action === "DescribeEventDetails") {
+          const arns: Array<string> = (body["eventArns"] ||
+            []) as Array<string>;
+
+          return json({
+            successfulSet: arns
+              .filter((arn: string): boolean => {
+                return Boolean(options.healthDescriptions?.[arn]);
+              })
+              .map((arn: string) => {
+                return {
+                  event: { arn },
+                  eventDescription: {
+                    latestDescription: options.healthDescriptions![arn],
+                  },
+                };
+              }),
+            failedSet: [],
+          });
+        }
+
+        return json({ events: options.healthEvents || [] });
       }
 
       const fakeRegion: FakeRegion | undefined = options.regions[region];
@@ -179,6 +417,85 @@ export function createFakeAws(options: FakeAwsOptions): FakeAws {
 
       const target: string = headerOf(request, "X-Amz-Target");
       const body: JSONObject = bodyOf(request);
+
+      if (service === "cloudcontrolapi") {
+        const typeName: string = String(body["TypeName"] || "");
+        const resourceModel: string = String(body["ResourceModel"] || "");
+        cloudControlCalls.push({
+          region,
+          typeName,
+          resourceModel,
+          account: accountOfKey(request) || account,
+        });
+
+        const error: FakeResponse | undefined =
+          fakeRegion.resourceErrors?.[typeName];
+
+        if (error) {
+          return error;
+        }
+
+        const listed: Array<{ Identifier: string; Properties: JSONObject }> = (
+          fakeRegion.resources?.[typeName] || []
+        ).filter((resource: { Properties: JSONObject }): boolean => {
+          // A child type lists the resources of the parent the model names.
+          if (!resourceModel) {
+            return true;
+          }
+
+          const model: JSONObject = JSON.parse(resourceModel) as JSONObject;
+          return Object.keys(model).every((key: string): boolean => {
+            return resource.Properties[key] === model[key];
+          });
+        });
+
+        return json({
+          TypeName: typeName,
+          ResourceDescriptions: listed.map(
+            (resource: { Identifier: string; Properties: JSONObject }) => {
+              return {
+                Identifier: resource.Identifier,
+                Properties: JSON.stringify(resource.Properties),
+              };
+            },
+          ),
+        });
+      }
+
+      if (service === "cloudtrail") {
+        cloudTrailCalls.push({
+          region,
+          body,
+          account: accountOfKey(request) || account,
+        });
+
+        if (fakeRegion.trailError) {
+          return fakeRegion.trailError;
+        }
+
+        const start: number = Number(body["StartTime"]);
+        const end: number = Number(body["EndTime"]);
+        // Newest first, as LookupEvents lists them.
+        const events: Array<JSONObject> = (fakeRegion.trailEvents || [])
+          .filter((event: JSONObject): boolean => {
+            const time: number = Number(event["EventTime"]);
+            return time >= start && time <= end;
+          })
+          .sort((a: JSONObject, b: JSONObject): number => {
+            return Number(b["EventTime"]) - Number(a["EventTime"]);
+          });
+        const pageSize: number = fakeRegion.trailPageSize || 50;
+        const offset: number = body["NextToken"]
+          ? Number(body["NextToken"])
+          : 0;
+
+        return json({
+          Events: events.slice(offset, offset + pageSize),
+          ...(offset + pageSize < events.length
+            ? { NextToken: String(offset + pageSize) }
+            : {}),
+        });
+      }
 
       if (service === "tagging") {
         taggingCalls.push({ region, body });
@@ -283,5 +600,16 @@ export function createFakeAws(options: FakeAwsOptions): FakeAws {
 
   const api: FakeProviderApi = createFakeProviderApi([route]);
 
-  return { ...api, cloudWatchCalls, stsCalls, taggingCalls };
+  return {
+    ...api,
+    cloudWatchCalls,
+    stsCalls,
+    taggingCalls,
+    cloudControlCalls,
+    organizationsCalls,
+    assumedRoles,
+    cloudTrailCalls,
+    healthCalls,
+    expiredSignatures,
+  };
 }

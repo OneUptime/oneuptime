@@ -153,8 +153,14 @@ const OnCallDutyPage: FunctionComponent<
           description:
             "Rotations that decide who is on call at any moment. Add a schedule to an on-call policy's escalation rules to page whoever is on call.",
           buttons: [
+            /*
+             * Named as the page it opens, which the On-Call Duty menu,
+             * Search and the trail all call Schedule Timeline. It said
+             * "Timeline View", so the action and its page went by two
+             * names.
+             */
             {
-              title: "Timeline View",
+              title: "Schedule Timeline",
               icon: IconProp.Timeline,
               buttonStyle: ButtonStyleType.OUTLINE,
               onClick: () => {

@@ -77,14 +77,14 @@ O OneUptime encontra a aplicação pelo `service.name`, sem diferenciar maiúscu
 
 | Onde | O que mostra |
 | --- | --- |
-| **Visão geral** | Blocos de **Page loads**, **Page load time (p95)**, **Eventos**, **Taxa de erro**, **Event duration (p95)**, **Exceções**, **Clientes** e **Sessions recorded**, e gráficos de tendência do intervalo de tempo que você escolher. |
+| **Visão geral** | Blocos de **Carregamentos de página**, **Tempo de carregamento da página (p95)**, **Eventos**, **Taxa de erro**, **Event duration (p95)**, **Exceções**, **Clientes** e **Sessions recorded**, e gráficos de tendência do intervalo de tempo que você escolher. |
 | **Core Web Vitals** | Um cartão na visão geral com LCP, INP, CLS, FCP e TTFB, cada um avaliado pelos limites do Google, e o INP de cada rota de um aplicativo de página única. Veja [Core Web Vitals](/docs/rum/web-vitals) e [Aplicativos de página única](/docs/rum/web-vitals#aplicativos-de-página-única). |
 | **Métricas**, **Registros**, **Traços** | Os exploradores de telemetria, limitados a esta aplicação. |
 | **Clientes** | As plataformas de navegador e os modelos de dispositivo em que a aplicação foi usada: uma lista curta por plataforma, nunca uma linha por usuário. |
 | **Reprodução de sessões** | Gravações de sessões reais, ao lado dos erros, traços e registros delas: veja [Reprodução de sessões](/docs/telemetry/session-replay). |
 | **Recomendações** | Monitores prontos para a aplicação: Core Web Vitals ruins, requisições com falha, exceções do navegador e, assim que ela grava, orçamentos do Session Replay. |
 
-As contagens vêm dos spans que a sua instrumentação envia. **Page loads** conta o span `documentLoad` que a instrumentação de carregamento de página registra em cada carregamento completo, então uma mudança de rota dentro de um aplicativo de página única não é um carregamento de página.
+As contagens vêm dos spans que a sua instrumentação envia. **Carregamentos de página** conta o span `documentLoad` que a instrumentação de carregamento de página registra em cada carregamento completo, então uma mudança de rota dentro de um aplicativo de página única não é um carregamento de página.
 
 Uma aplicação mostra **Conectado** enquanto a telemetria chega e **Desconectado** depois de 15 minutos sem ela. O tempo em que o próprio OneUptime estava fora do ar ou colocando em dia sua fila de ingestão não conta para esses 15 minutos.
 

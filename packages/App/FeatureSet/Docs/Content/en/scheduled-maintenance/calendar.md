@@ -113,7 +113,7 @@ The calendar holds every event from 90 days back to a year ahead, up to 1,000 ev
 
 The people who follow a status page can put its scheduled maintenance in their own calendar. On the status page's scheduled events page, **Subscribe to calendar** offers Google Calendar, the calendar app of their device, or the link to copy. The link is the page's address followed by `/maintenance.ics`, such as `https://status.example.com/maintenance.ics`.
 
-- **What it holds.** Exactly what the page shows: the events of the page's history window, every event still to come and every one in progress, while **Visible on Status Page** is on. What each event affects is named as the page names its resources, never by your monitors' own names.
+- **What it holds.** Exactly what the page shows: the events of the page's history window, every event still to come and every one in progress, while **Visible on Status Page** is on, and from its **Publish At** when you picked one. What each event affects is named as the page names its resources, never by your monitors' own names.
 - **A private page.** A calendar app cannot sign in, so a private page offers no **Subscribe to calendar**, and its link serves an empty calendar that says the page is private.
 - **One event.** **Add to calendar** on an event's page adds that event alone: Google Calendar opens with it filled in, or it downloads as a file the device's calendar app opens. It works on a private page too, for a visitor who has signed in, and is not offered once the event is over.
 
@@ -147,7 +147,7 @@ Google Calendar reads the link from Google's servers, so the OneUptime server mu
 :::
 
 :::details An event is missing from a status page's calendar
-The page's calendar holds what the page shows. Check that the event names the page, that **Visible on Status Page** is on in its **Settings**, and that it started within the page's history window.
+The page's calendar holds what the page shows. Check that the event names the page, that **Visible on Status Page** is on in its **Settings**, that its **Publish At**, when it has one, has come, and that it started within the page's history window.
 :::
 
 :::details An external calendar says Not working

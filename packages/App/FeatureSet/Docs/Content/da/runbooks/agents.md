@@ -62,6 +62,7 @@ Globale Runnere er de Runnere, OneUptime kører for alle projekter. Et JavaScrip
 | Længste kørsel for et trin | 5 minutter | 1 time |
 | Hemmelige variabler | Dem, du lader globale Runnere bruge | Dem, der viser den |
 | OneUptime AI's Bash-kommandoer | Aldrig | For de AI-regler, der vælger den |
+| OneUptime AI's koderettelser | Åbnet til gennemsyn uden at blive bygget eller testet | Bygget og testet, før pull requesten åbner |
 
 En global Runner kører trinnene fra mange projekter, så hvert trin holdes adskilt fra alle andre:
 
@@ -70,15 +71,17 @@ En global Runner kører trinnene fra mange projekter, så hvert trin holdes adsk
 - Den får kun en hemmelig variabel, når variablens kontakt **Globale Runnere må bruge den** er slået til, og kun for et trin i variablens eget projekt.
 - Et projekt kører højst tre trin ad gangen på globale Runnere, så intet projekt holder dem for sig selv.
 
+En global Runner tager også OneUptime AI's koderettelser, i hvert koderepositorie, der arbejder på **Global Runner**. Den skriver hver rettelse og åbner pull requesten, men kører ingen kommando, heller ikke repositoriets setup-, build- og testkommandoer, så pull requesten siger, at kontrollen blev sprunget over. Den når kun Git-servere på internettet, over HTTPS, undtagen på en selvhostet OneUptime, hvor den også må nå de private Git-servere, som serveren selv må nå. Den handler kun for de rettelser, den tager, og får kun et repositories token, mens den arbejder på en rettelse der. Et GitHub-repositories token når kun det ene repositorie og tilbagekaldes, når rettelsen slutter.
+
 Vælg en af dine egne Runnere til et trin, der skal nå dit netværk, eller for at holde trinnet på værter, du styrer. For at holde hvert trin på dine egne Runnere skal du slå **Brug globale Runnere** fra nederst på **Runbooks → Runbook-agenter**. Et JavaScript-trin, der ikke vælger nogen Runner, kører så på projektets standard-Runner eller fejler, hvis der ikke er angivet en, og siger det, indtil det vælger en af dine; et trin, der vælger en af dine Runnere, beholder den under alle omstændigheder. Et koderepositorie, der ikke vælger nogen Runner i sine indstillinger i Kode, arbejder også på projektets standard-Runner eller, hvis der ikke er angivet en, på en global Runner og skal bruge en af dine, mens kontakten er slået fra; se [Kode](/docs/ai/ai-agent#vælg-repositoriets-runner).
 
 ### Hvor globale Runnere kommer fra
 
 I OneUptime Cloud kører OneUptime dem. En selvhostet installation kører som standard sin egen, ligesom den kører sine egne globale prober: tjenesten `global-runner` i Docker Compose og deploymentet `globalRunner` i Helm-chartet. Den har sin egen nøgle, `GLOBAL_RUNNER_KEY`, og intet andet fra serveren.
 
-En masteradministrator kan tilføje flere for at køre trin fra andre værter: Åbn **Indstillinger** og derefter **Globale Runnere** i Admin-dashboardet, opret en, og kør den kommando, dens **Vis ID og nøgle** giver, på en vært, der kan nå internettet.
+En masteradministrator kan tilføje flere for at køre trin og koderettelser fra andre værter: Åbn **Indstillinger** og derefter **Globale Runnere** i Admin-dashboardet, opret en, og kør den kommando, dens **Vis ID og nøgle** giver, på en vært, der kan nå internettet.
 
-For at slå den medfølgende fra skal du sætte `GLOBAL_RUNNER_REPLICAS=0` i Docker Composes `config.env` eller `globalRunner.enabled` til `false` i Helm-chartet. Helt uden global Runner viser **Runbooks → Runbook-agenter** kun dine egne Runnere, og hvert JavaScript-trin vælger en af dem.
+For at slå den medfølgende fra skal du sætte `GLOBAL_RUNNER_REPLICAS=0` i Docker Composes `config.env` eller `globalRunner.enabled` til `false` i Helm-chartet. Helt uden global Runner viser **Runbooks → Runbook-agenter** kun dine egne Runnere, og hvert JavaScript-trin og hvert koderepositorie vælger en af dem.
 
 ## Før du går i gang
 
@@ -98,7 +101,7 @@ Gå til **Runbooks → Runbook-agenter**, og opret en ny agent. Klik på **Opret
 | **Kører runbooks** | Under **Flere felter** | Slået til som standard. Lader denne Runner overtage runbook-trin. |
 | **Etiketter** | Under **Flere felter** | Valgfri. |
 
-En Runner henter en ændring af sine funktioner ved sit næste heartbeat; den skal ikke genstartes. AI er ikke en funktion. Et koderepositorie vælger i sine indstillinger i Kode den Runner, AI arbejder i det på, og Runnerens side viser de repositorier, der vælger den. En AI-regel vælger den Runner, OneUptime AI kører sine kommandoer på: Det er valget af en Runner der, der lader OneUptime AI's kommandoer køre på den.
+En Runner henter en ændring af sine funktioner ved sit næste heartbeat; den skal ikke genstartes. AI er ikke en funktion. Et koderepositorie vælger i sine indstillinger i Kode den Runner, AI arbejder i det på, og Runnerens side viser de repositorier, der vælger den. En AI-regel vælger den Runner, OneUptime AI kører sine kommandoer på: Det er valget af en Runner der, der lader OneUptime AI's kommandoer køre på den. Runnerens side viser også de AI-regler, der vælger den.
 
 ### 2. Kopiér installationskommandoen
 
@@ -302,7 +305,7 @@ For de nysgerrige: Runneren bruger disse endpoints, monteret under `/runner-inge
 | `POST /job/:jobId/result` | Indsend det endelige resultat. Ignoreres, hvis leasen allerede er gået videre. |
 | `POST /disconnect` | Log af ved en pæn nedlukning. |
 
-Du burde ikke skulle kalde dem manuelt: den medfølgende Runner gør det. De er dokumenteret her, så du kan bygge din egen agent, hvis du har en begrænsning, som vores ikke passer til.
+Du burde ikke skulle kalde dem manuelt: Runner-containeren gør det. De er dokumenteret her, så du kan bygge din egen agent, hvis du har en begrænsning, som vores ikke passer til.
 
 ## Fejlfinding
 

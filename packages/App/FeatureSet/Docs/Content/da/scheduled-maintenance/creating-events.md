@@ -5,6 +5,7 @@ Planlæg vedligeholdelse i to korte trin: sig, hvad der sker og hvornår, og der
 :::cards
 - [Opret en begivenhed](#opret-en-begivenhed): To trin og en gennemgang.
 - [Hvad der sker, når du opretter den](#hvad-der-sker-når-du-opretter-den): Dens nummer, regler, ejere og de første beskeder.
+- [Offentliggør den senere](#offentliggør-den-senere): Hold den væk fra dine statussider indtil en dato og et klokkeslæt.
 - [Ændr en begivenhed senere](#ændr-en-begivenhed-senere): Dens vindue, ressourcer, statussider og noter.
 - [Opret begivenheder fra kode](#opret-begivenheder-fra-kode): API'et, Terraform, workflows og chat.
 :::
@@ -42,7 +43,7 @@ Klik på **Næste** for at komme til **Berørte ressourcer**. Vælg de **Monitor
 
 ### Vælg, hvem der hører om det
 
-Vælg statussiderne under **Vis begivenhed på disse statussider**. **Notifikationer til abonnenter**, foldet sammen, siger på én linje, hvem der får besked og hvornår; åbn den for at ændre **Når begivenheden planlægges**, **Når begivenheden starter**, **Når begivenheden slutter** eller **Påmindelser før begivenheden**.
+Vælg statussiderne under **Vis begivenhed på disse statussider**. **Notifikationer til abonnenter**, foldet sammen, siger på én linje, hvornår begivenheden vises på dem, og hvem der får besked og hvornår; åbn den for at vælge **På en dato og et klokkeslæt** under **Offentliggør på statussider** eller for at ændre **Når begivenheden planlægges**, **Når begivenheden starter**, **Når begivenheden slutter** eller **Påmindelser før begivenheden**.
 
 ### Opret den
 
@@ -65,11 +66,11 @@ Intet sendes, før du vælger en statusside: en begivenhed, der ikke vises på n
 | **Skift overvågningsstatus til**     | **Berørte ressourcer** | Ingen ændring               | Den status, de monitorer viser under begivenheden. Spørges om, så snart en monitor er valgt. |
 | **Andre berørte ressourcer**         | **Berørte ressourcer** | Ingen                       | Værter, klynger, databaser, netværkslokationer, tjenester og mere.               |
 | **Vis begivenhed på disse statussider** | **Berørte ressourcer** | Ingen                    | De statussider, der viser begivenheden og giver deres abonnenter besked.         |
-| **Notifikationer til abonnenter**    | **Berørte ressourcer** | Alle tre tidspunkter slået til, ingen påmindelser | Hvornår abonnenterne på de sider får besked.        |
+| **Notifikationer til abonnenter**    | **Berørte ressourcer** | Offentliggjort med det samme, alle tre tidspunkter slået til, ingen påmindelser | Hvornår begivenheden vises på de sider, og hvornår deres abonnenter får besked. |
 
 To ting udfylder formularen for dig undervejs:
 
-- **Tilknyttede ressourcer.** Når du vælger en monitor, tilføjes de værter, klynger, tjenester og andre ressourcer, den er knyttet til, under **Andre berørte ressourcer**, og en linje under feltet nævner dem. Fjern dem, du ikke vil have.
+- **Tilknyttede ressourcer.** Når du vælger en monitor, tilføjes de værter, klynger, tjenester og andre ressourcer, den er knyttet til, under **Andre berørte ressourcer**, og en linje under feltet nævner dem. Fjern dem, du ikke vil have. Cloudressourcer tilføjes ikke: En vedligeholdelsesbegivenhed indeholder dem ikke.
 - **Foreslåede statussider.** Under **Vis begivenhed på disse statussider** foreslås de sider, der viser dine monitorer: klik på en sides navn for at tilføje den, eller på **Tilføj alle**. Intet vælges for dig. Se [Planlagte vedligeholdelsesbegivenheder](/docs/status-pages/subscribers#planlagte-vedligeholdelsesbegivenheder).
 
 ## Start fra en ressource eller en skabelon
@@ -89,7 +90,22 @@ I det øjeblik du klikker på **Opret planlagt vedligeholdelseshændelse**, genn
 5. **Runbook-regler starter** de runbooks, der matcher begivenheden.
 6. **Påmindelser planlægges**, når en påmindelsesregel matcher, for dens ejere.
 
-Inden for et minut får abonnenterne på dens statussider besked om, at den er planlagt, medmindre du har slået **Når begivenheden planlægges** fra. Workflow-triggeren **On Create Scheduled Maintenance Event** starter ethvert workflow, der er bygget på den, og dens ejere hører om den, hvis de har slået den notifikation til: se [Notifikationsindstillinger](/docs/notifications/notification-settings).
+Inden for et minut efter dens offentliggørelse, som sker med det samme, medmindre du har valgt et **Offentliggør den**, får abonnenterne på dens statussider besked om, at den er planlagt, medmindre du har slået **Når begivenheden planlægges** fra. Workflow-triggeren **On Create Scheduled Maintenance Event** starter ethvert workflow, der er bygget på den, og dens ejere hører om den, hvis de har slået den notifikation til: se [Notifikationsindstillinger](/docs/notifications/notification-settings).
+
+## Offentliggør den senere
+
+Planlæg arbejdet så tidligt, du vil, og hold det inden for dit team, indtil dine kunder skal høre om det. Vælg **På en dato og et klokkeslæt** under **Offentliggør på statussider**, i formularen eller i trinnet **Statussider** under begivenhedens **Rediger**, og et **Offentliggør den** før **Begynder den**. Indtil da er begivenheden ikke på nogen af sine statussider: ikke i deres lister, deres oppetidshistorik, deres RSS- og Atom-feeds, deres vedligeholdelseskalender eller deres API og ikke på sit eget link. På det tidspunkt vises den som kommende, og dens abonnenter får én gang besked om, at den er planlagt.
+
+| Hvornår                  | Hvad der sker                                                           | På dine statussider |
+| ------------------------ | ----------------------------------------------------------------------- | ------------------- |
+| Når du opretter den      | Du vælger et **Offentliggør den** før dens **Begynder den**              | Vises ikke          |
+| Dens **Offentliggør den** | Den offentliggøres, og dens abonnenter får besked om, at den er planlagt | Kommende          |
+| Dens **Begynder den**    | Den begynder, som enhver begivenhed                                     | I gang              |
+| Dens **Slutter den**     | Den slutter                                                             | Overstået           |
+
+- **Indtil da hører abonnenterne intet.** Påmindelser før begivenheden, statusændringer og offentlige noter sendes ikke til dem, mens begivenheden venter.
+- **Dens side siger det.** Dens overskrift viser **Endnu ikke på statussider** med det tidspunkt, den vises fra, og **Offentliggør nu** offentliggør den med det samme, efter at have spurgt. Dens **Indstillinger** siger det samme, og listen over begivenheder viser tidspunktet under dens statussider.
+- **Ændr den, eller offentliggør med det samme.** Flyt **Offentliggør den** i trinnet **Statussider** under **Rediger**, eller vælg **Med det samme**. Slå **Synlig på statussiden** fra i dens **Indstillinger** for at holde den væk fra dens statussider uanset tidspunktet.
 
 ## Ændr en begivenhed senere
 
@@ -98,7 +114,7 @@ Alt fra formularen kan ændres på begivenhedens egne sider, undtagen de tre abo
 | For at ændre                                | Gå til                                                                         |
 | ------------------------------------------- | ------------------------------------------------------------------------------ |
 | Titlen, vinduet eller etiketterne           | **Rediger** på kortet **Maintenance Details** i dens **Oversigt**, trinnet **Begivenhed** |
-| Statussiderne eller påmindelserne           | Samme **Rediger**, trinnet **Statussider**                                      |
+| Statussiderne, hvornår den offentliggøres, eller påmindelserne | Samme **Rediger**, trinnet **Statussider**                   |
 | Monitorerne, deres status eller andre ressourcer | **Rediger** på kortet **Berørte ressourcer**                              |
 | Beskrivelsen                                | **Beskrivelse** i dens sidemenu                                                |
 | Ejerne                                      | **Ejere** i dens sidemenu                                                      |
@@ -137,6 +153,7 @@ curl -X POST https://oneuptime.com/api/scheduled-maintenance \
 | `changeMonitorStatusToId`                             | Den overvågningsstatus, dens monitorer skifter til, når den starter.                      |
 | `currentScheduledMaintenanceStateId`                  | Ignoreres: hver begivenhed starter i din planlagte tilstand.                              |
 | `shouldStatusPageSubscribersBeNotifiedOnEventCreated` | Kontakten **Når begivenheden planlægges**. De to andre tidspunkter har deres egne felter. |
+| `publishOnStatusPageAt`                               | Hvornår begivenheden offentliggøres på sine statussider, og dens abonnenter får besked om, at den er planlagt. Udeladt: med det samme. |
 
 Den samme begivenhed som kode er Terraform-ressourcen `oneuptime_scheduled_maintenance_event`: se [Eksempler](/docs/terraform/examples#planlagt-vedligeholdelse). Et workflow opretter én med sit trin **Create One Scheduled Maintenance Event**, og `/oneuptime maintenance` åbner formularen i Slack: se [Slack](/docs/workspace-connections/slack#opret-hændelser-og-vedligeholdelse-fra-slack).
 
@@ -152,6 +169,10 @@ Der spørges kun om den, når begivenheden har en monitor. Vælg én under **Mon
 
 :::details Skift overvågningsstatus til kan ikke længere ændres
 Begivenheden er startet, og dens monitorer er allerede i den status. Statussen gælder fra det øjeblik, begivenheden starter, til den slutter.
+:::
+
+:::details Offentliggør den siger, at den skal ligge før Begynder den
+En begivenhed offentliggøres, så dine kunder hører om arbejdet, før det begynder. Vælg et **Offentliggør den** før **Begynder den**, eller **Med det samme**.
 :::
 
 ## Næste skridt

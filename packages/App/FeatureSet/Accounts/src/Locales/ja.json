@@ -105,6 +105,7 @@
   "register": {
     "title": "OneUptimeアカウントを作成する",
     "subtitle": "OneUptimeを使って常時オンラインを維持している何千ものビジネスに参加しましょう。",
+    "firstAccountSubtitle": "このOneUptimeサーバーにはまだアカウントがありません。最初に作成したアカウントがこのサーバーの管理者になります。",
     "noCreditCard": "クレジットカードは不要です。",
     "submitButton": "サインアップ",
     "haveAccountPrompt": "すでにアカウントをお持ちですか？",
@@ -131,7 +132,6 @@
     "subtitle": "メールアドレスを入力してください。パスワードリセットリンクが送信されます。",
     "successMessage": "パスワードリセットリンクをメールでお送りしました。スパムフォルダーも確認してください。",
     "submitButton": "パスワードリセットリンクを送信",
-    "returnToSignIn": "サインインに戻る。",
     "rememberPasswordPrompt": "パスワードを覚えていますか？",
     "loginLink": "ログイン。"
   },
@@ -156,13 +156,21 @@
     "emailRequired": "このアクションを実行するにはメールアドレスが必要です",
     "defaultProjectName": "プロジェクト",
     "globalProvidersTitle": "組織アカウントでサインイン",
-    "globalProvidersDivider": "またはメールで続行"
+    "globalProvidersDivider": "またはメールで続行",
+    "signInWithProvider": "{{name}} でサインイン",
+    "requiredSubtitle": "組織のシングルサインオン（SSO）でサインインしてください。",
+    "requiredNotSetUp": "このサーバーではシングルサインオンがまだ設定されていません。サーバー管理者に設定を依頼してください。",
+    "useDifferentEmail": "別のメールアドレスを使用"
+  },
+  "adminLogin": {
+    "title": "マスター管理者のサインイン",
+    "subtitle": "このサーバーではシングルサインオン（SSO）が必須です。マスター管理者はここからパスワードでサインインできます。"
   },
   "verifyEmail": {
     "successTitle": "メールが確認されました。",
     "successDescription": "メールを確認していただきありがとうございます。OneUptimeにログインできるようになりました。",
     "errorTitle": "申し訳ございませんが、エラーが発生しました！",
-    "returnToSignIn": "サインインに戻りますか？",
+    "alreadyVerifiedPrompt": "メールアドレスの確認はお済みですか？",
     "loginLink": "ログイン。",
     "continueToSignIn": "サインインに進む",
     "linkInvalidTitle": "この確認用リンクは無効になりました",

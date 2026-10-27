@@ -15,7 +15,6 @@ import Link from "Common/UI/Components/Link/Link";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ModelList from "Common/UI/Components/ModelList/ModelList";
 import SignInOptionLink from "Common/UI/Components/SignInOption/SignInOptionLink";
-import LocalStorage from "Common/UI/Utils/LocalStorage";
 import Navigation from "Common/UI/Utils/Navigation";
 import StatusPageSSO from "Common/Models/DatabaseModels/StatusPageSso";
 import StatusPageOIDC from "Common/Models/DatabaseModels/StatusPageOidc";
@@ -104,12 +103,14 @@ const LoginPage: FunctionComponent<ComponentProps> = (
     }
   }
 
+  /*
+   * Where to go once the identity provider sends the visitor back: kept for
+   * this tab and this page, and taken by the page's overview on the way back
+   * in (StatusPageUtil.rememberSignInRedirect).
+   */
   const safeRedirectUrlForStorage: string | null =
     StatusPageUtil.getSafeRedirectUrl();
-  if (safeRedirectUrlForStorage) {
-    // save this to local storage, so in the overview page. We can redirect to this page.
-    LocalStorage.setItem("redirectUrl", safeRedirectUrlForStorage);
-  }
+  StatusPageUtil.rememberSignInRedirect(safeRedirectUrlForStorage);
 
   if (isLoading) {
     return <PageLoader isVisible={true} />;

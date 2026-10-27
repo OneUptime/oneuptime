@@ -1,4 +1,11 @@
-import { expect, Locator, Page, test, TestInfo } from "@playwright/test";
+import {
+  ElementHandle,
+  expect,
+  Locator,
+  Page,
+  test,
+  TestInfo,
+} from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
 
@@ -111,6 +118,41 @@ async function openLoaded(page: Page, query: string = ""): Promise<void> {
   await expect(page.getByTestId("profiles-headline-text")).toBeVisible({
     timeout: 60000,
   });
+}
+
+interface Box {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/*
+ * The elements' boxes, read in one frame. The function panel slides in from
+ * the side (SideOver, 200 ms), and each boundingBox() is a frame of its own:
+ * read one by one while it moves, two boxes come from two moments of the
+ * slide (the AI credits notice and the words it lines up with read 54 to 126
+ * pixels apart on a busy machine).
+ */
+async function boxesInOneFrame(
+  page: Page,
+  locators: Array<Locator>,
+): Promise<Array<Box>> {
+  const elements: Array<ElementHandle<HTMLElement | SVGElement>> = [];
+  for (const locator of locators) {
+    elements.push(
+      (await locator.elementHandle()) as ElementHandle<
+        HTMLElement | SVGElement
+      >,
+    );
+  }
+
+  return page.evaluate((nodes: Array<HTMLElement | SVGElement>): Array<Box> => {
+    return nodes.map((node: HTMLElement | SVGElement): Box => {
+      const rect: DOMRect = node.getBoundingClientRect();
+      return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+    });
+  }, elements);
 }
 
 async function expectNoSidewaysScroll(page: Page): Promise<void> {
@@ -384,11 +426,10 @@ test.describe("one function", () => {
         "profiles-panel-total",
         "profiles-panel-own",
       ]) {
-        const box: { x: number; width: number; height: number } | null =
-          await panel.getByTestId(`${testId}-box`).boundingBox();
-        const figure: { x: number; width: number } | null = await panel
-          .getByTestId(testId)
-          .boundingBox();
+        const [box, figure] = await boxesInOneFrame(page, [
+          panel.getByTestId(`${testId}-box`),
+          panel.getByTestId(testId),
+        ]);
         expect(box!.height).toBeLessThan(72);
         expect(box!.x + box!.width - (figure!.x + figure!.width)).toBeLessThan(
           20,
@@ -544,10 +585,10 @@ test.describe("Fix with AI", () => {
       await expect(blocker).toBeVisible();
 
       // In the strip's own amber, lined up with its words: no box inside it.
-      const words: { x: number } | null = await page
-        .getByTestId("profiles-fix-finding")
-        .boundingBox();
-      const notice: { x: number } | null = await blocker.boundingBox();
+      const [words, notice] = await boxesInOneFrame(page, [
+        page.getByTestId("profiles-fix-finding"),
+        blocker,
+      ]);
       expect(Math.abs(notice!.x - words!.x)).toBeLessThanOrEqual(1);
       await expect(blocker).toHaveCSS("padding-left", "0px");
     });

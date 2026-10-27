@@ -116,6 +116,10 @@ const SENTENCES: Array<string> = [
   "Production alerts",
   RULE_MCP_SERVERS_FIELD_COPY.aiRuleDescription,
   RULE_CODE_REPOSITORIES_FIELD_COPY.aiRuleDescription,
+  // What the pickers' open lists say while the project has none to pick.
+  RULE_MCP_SERVERS_FIELD_COPY.emptyList,
+  RULE_CODE_REPOSITORIES_FIELD_COPY.emptyList,
+  "No runbooks yet.",
   EXTERNAL_MCP_SERVER_TOOLS_COPY.description,
   // The rule's AI context, under More fields after the LLM provider (#5198).
   AI_RULE_AI_CONTEXT_FIELD_COPY.title,

@@ -644,6 +644,7 @@ const TelemetryAiRulesTable: FunctionComponent<ComponentProps> = (
             type: ExternalMcpServer,
             labelField: "name",
             valueField: "_id",
+            emptyListText: RULE_MCP_SERVERS_FIELD_COPY.emptyList,
           },
           required: false,
           hideOptionalLabel: true,

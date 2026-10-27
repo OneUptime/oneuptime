@@ -204,7 +204,7 @@ Passar de **Resolvido** para um estado posterior — **Closed**, por exemplo —
 
 ## A linha do tempo de estados
 
-A página **Linha do tempo de estado** no menu lateral do incidente é a trilha de auditoria de cada estado em que o incidente esteve. O cartão dessa página se chama **Linha do tempo de status**, e desenha toda a vida do incidente como uma linha do tempo:
+A página **Linha do tempo de estado** no menu lateral do incidente é a trilha de auditoria de cada estado em que o incidente esteve. O cartão dessa página desenha toda a vida do incidente como uma linha do tempo:
 
 - **A faixa** mostra cada estado como um trecho da sua cor, tão longo quanto o incidente ficou nele, para que o andamento do incidente se leia num relance. Enquanto o incidente está aberto, a faixa vai até **Agora**; depois de resolvido, ela termina pouco depois da sua última alteração. Aponte para um trecho para ver quando começou e quanto durou, e clique nele para encontrar a alteração na lista. Alterações próximas demais para distinguir são desenhadas como um só trecho listrado: clique nele, ou arraste sobre a faixa, para ampliar, e **Redefinir zoom** volta atrás.
 - **Acima da faixa**, cada estado aparece com o tempo que o incidente passou nele.

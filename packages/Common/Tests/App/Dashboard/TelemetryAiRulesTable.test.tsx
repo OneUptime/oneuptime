@@ -100,7 +100,7 @@ interface CapturedField {
   fieldType?: FormFieldSchemaType;
   required?: boolean;
   showIf?: (values: Values) => boolean;
-  dropdownModal?: { type?: unknown };
+  dropdownModal?: { type?: unknown; emptyListText?: string };
   cardSelectOptions?: Array<CardSelectOption>;
   radioButtonOptions?: Array<{ value: string; title: string }>;
   collapsibleSection?: unknown;
@@ -392,6 +392,8 @@ describe("the profile AI rules table", () => {
       RULE_MCP_SERVERS_FIELD_COPY.aiRuleDescription,
     );
     expect(servers.dropdownModal?.type).toBe(ExternalMcpServer);
+    // Its open list, with none added, says so: the line under it says where.
+    expect(servers.dropdownModal?.emptyListText).toBe("No MCP servers yet.");
   });
 
   test("a new rule investigates, fixes as its answer says, belongs to the lane, and runs nothing on a Runner", () => {

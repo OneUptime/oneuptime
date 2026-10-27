@@ -584,11 +584,12 @@ describe("Ceph cluster overview", () => {
   /*
    * One health text sits behind the overview pill ("Health Warning") and
    * the Clusters list pill ("WARN"), so it has to name the states in the
-   * words both pills use.
+   * words both pills use. The overview pill's words are looked up in the
+   * reader's language (#5298's UI review), so they are translation keys.
    */
   test("the health text names every state the overview and Clusters pills show", () => {
     for (const label of ["OK", "Warning", "Error", "Unknown"]) {
-      expect(code).toContain(`label: "Health ${label}",`);
+      expect(code).toContain(`label: translationKey("Health ${label}"),`);
       expect(CEPH_METRIC_DESCRIPTIONS.health).toContain(label);
     }
 

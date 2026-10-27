@@ -100,6 +100,10 @@ function toModel(row: StoredExport): AuditLogExport {
 
   item.exportedEntryCount = row.exportedEntryCount;
 
+  if (row.lastAttemptAt) {
+    item.lastAttemptAt = row.lastAttemptAt;
+  }
+
   if (row.lastError) {
     item.lastError = row.lastError;
   }

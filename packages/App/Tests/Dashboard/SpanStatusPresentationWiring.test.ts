@@ -1006,8 +1006,9 @@ describe("Traces Analytics split by status (TracesEntityDisplay, TracesAnalytics
     expect(TRACES_ANALYTICS_VIEW.source).toContain(
       "style={{ backgroundColor: color }}",
     );
+    // The edge where the bar starts: the left, the right read right to left.
     expect(TRACES_ANALYTICS_VIEW.source).toContain(
-      "backgroundColor: mutedColor, borderLeft: `3px solid ${color}`,",
+      "backgroundColor: mutedColor, borderInlineStart: `3px solid ${color}`,",
     );
   });
 

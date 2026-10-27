@@ -113,7 +113,7 @@ Kalenderen inneholder hver hendelse fra 90 dager tilbake til ett år frem, oppti
 
 De som følger en statusside, kan legge det planlagte vedlikeholdet inn i sin egen kalender. På statussidens side for planlagte hendelser tilbyr **Abonner på kalender** Google Kalender, kalenderappen på enheten deres eller lenken til å kopiere. Lenken er sidens adresse etterfulgt av `/maintenance.ics`, for eksempel `https://status.example.com/maintenance.ics`.
 
-- **Hva den inneholder.** Nøyaktig det siden viser: hendelsene i sidens historikkvindu, hver hendelse som ennå ikke har startet, og hver som pågår, så lenge **Synlig på statussiden** er slått på. Det hver hendelse berører, navngis slik siden navngir ressursene sine, aldri med monitorenes egne navn.
+- **Hva den inneholder.** Nøyaktig det siden viser: hendelsene i sidens historikkvindu, hver hendelse som ennå ikke har startet, og hver som pågår, så lenge **Synlig på statussiden** er slått på, og fra **Publiser den** for den hvis du har valgt et. Det hver hendelse berører, navngis slik siden navngir ressursene sine, aldri med monitorenes egne navn.
 - **En privat side.** En kalenderapp kan ikke logge inn, så en privat side tilbyr ingen **Abonner på kalender**, og lenken leverer en tom kalender som sier at siden er privat.
 - **Én hendelse.** **Legg til i kalender** på en hendelses side legger bare til den hendelsen: Google Kalender åpnes med den utfylt, eller den lastes ned som en fil som enhetens kalenderapp åpner. Det virker også på en privat side for en besøkende som har logget inn, og tilbys ikke når hendelsen er over.
 
@@ -147,7 +147,7 @@ Google Kalender leser lenken fra Googles servere, så OneUptime-serveren må kun
 :::
 
 :::details En hendelse mangler i kalenderen til en statusside
-Sidens kalender inneholder det siden viser. Sjekk at hendelsen navngir siden, at **Synlig på statussiden** er slått på i **Innstillinger**, og at den startet innenfor sidens historikkvindu.
+Sidens kalender inneholder det siden viser. Sjekk at hendelsen navngir siden, at **Synlig på statussiden** er slått på i **Innstillinger**, at **Publiser den** for den, hvis den har et, er nådd, og at den startet innenfor sidens historikkvindu.
 :::
 
 :::details En ekstern kalender sier Fungerer ikke

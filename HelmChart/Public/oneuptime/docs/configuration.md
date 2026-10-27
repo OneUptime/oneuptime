@@ -14,7 +14,7 @@ up-to-date list see [`values.yaml`](../values.yaml).
 | `host`             | Primary hostname served by OneUptime (used for routing and certificates).                       | `localhost`     | 🚨 |
 | `httpProtocol`     | Set to `https` when people reach OneUptime over HTTPS (TLS at the chart's nginx or at a proxy in front of it), otherwise `http`. See [HTTPS](#https). | `http`          | 🚨 |
 | `ssl.provision`    | Auto-provision a Let's Encrypt certificate for the primary host (needs public ports 80 & 443).  | `false`         |    |
-| `oneuptimeSecret`  | Value used for `ONEUPTIME_SECRET`, the cluster key OneUptime's own services and the in-cluster Runner present to each other. Leave it empty for a generated one, or set a long random string. A value the repository ships (`secret`, a `please-change-this` placeholder) is refused, and the Runner does not register with it. | `nil`           |    |
+| `oneuptimeSecret`  | Value used for `ONEUPTIME_SECRET`, the cluster key OneUptime's own services present to each other. Leave it empty for a generated one, or set a long random string. A value the repository ships (`secret`, a `please-change-this` placeholder) is refused. The bundled global Runner never holds it. | `nil`           |    |
 | `encryptionSecret` | Value used for `ENCRYPTION_SECRET`. Set to a long random string in production.                   | `nil`           |    |
 | `global.clusterDomain` | Kubernetes cluster domain.                                                                   | `cluster.local` |    |
 | `nodeEnvironment`  | Node environment. Leave as `production` unless doing local development.                          | `production`    |    |
@@ -92,25 +92,23 @@ externalSecrets:
 
 ### Probe and Runner identity keys
 
-`PROBE_KEY` and `ONEUPTIME_RUNNER_KEY` are not shared application secrets — each
-one is the *identity* of a single probe or of the Runner. The server registers a
-brand-new probe (or Runner) the first time it sees a key it does not recognise.
-They are configured per component rather than in `externalSecrets`, and follow
-the same three-way precedence:
+`PROBE_KEY` and the bundled global Runner's key (`GLOBAL_RUNNER_KEY`) are not
+shared application secrets — each one is the *identity* of a single probe or of
+the global Runner. The server registers a brand-new probe the first time it sees
+a key it does not recognise. They are configured per component rather than in
+`externalSecrets`, and follow the same three-way precedence:
 
 | Parameter                                    | Description                                                        | Default |
 |----------------------------------------------|--------------------------------------------------------------------|---------|
 | `probes.<key>.existingSecret.name`           | Name of an existing Secret holding this probe's `PROBE_KEY`.        | `nil`   |
 | `probes.<key>.existingSecret.passwordKey`    | Key inside that Secret.                                             | `nil`   |
-| `runner.existingSecret.name`                 | Name of an existing Secret holding `ONEUPTIME_RUNNER_KEY`.          | `nil`   |
-| `runner.existingSecret.passwordKey`          | Key inside that Secret.                                             | `nil`   |
 | `globalRunner.existingSecret.name`           | Name of an existing Secret holding the bundled global Runner's key (`GLOBAL_RUNNER_KEY`). | `nil`   |
 | `globalRunner.existingSecret.passwordKey`    | Key inside that Secret.                                             | `nil`   |
 
-An inline `probes.<key>.key` / `runner.key` / `globalRunner.key` still wins;
-with neither set, the chart generates the value into `<release>-secrets` as
-before. As with `externalSecrets`, a key you serve yourself is not written into
-the chart-managed Secret at all.
+An inline `probes.<key>.key` / `globalRunner.key` still wins; with neither set,
+the chart generates the value into `<release>-secrets` as before. As with
+`externalSecrets`, a key you serve yourself is not written into the
+chart-managed Secret at all.
 
 The global Runner's key is the one exception to the orphaning below: the server
 keeps the global Runner under a fixed id and takes its key from the same value
@@ -131,10 +129,10 @@ probes:
     existingSecret:
       name: oneuptime-identities
       passwordKey: probe-one-key
-runner:
+globalRunner:
   existingSecret:
     name: oneuptime-identities
-    passwordKey: runner-key
+    passwordKey: global-runner-key
 ```
 
 ## Networking & ingress
@@ -172,10 +170,10 @@ runner:
 | `autoscaling.maxReplicas`                       | Maximum number of replicas.                                                                    | `100`   |
 | `autoscaling.targetCPUUtilizationPercentage`    | Target CPU utilization percentage.                                                            | `80`    |
 | `autoscaling.targetMemoryUtilizationPercentage` | Target memory utilization percentage.                                                        | `80`    |
-| `podDisruptionBudget.enabled`                   | Create a PodDisruptionBudget for each stateless deployment (app, worker, nginx, home, runner, probes, pgbouncer) to cap voluntary disruptions during node drains / upgrades. | `false` |
+| `podDisruptionBudget.enabled`                   | Create a PodDisruptionBudget for each stateless deployment (app, worker, nginx, home, probes, pgbouncer) to cap voluntary disruptions during node drains / upgrades. | `false` |
 | `podDisruptionBudget.minAvailable`              | Minimum pods that must stay available. Integer or percentage (e.g. `"50%"`). Takes precedence over `maxUnavailable`. Leave empty to use `maxUnavailable`. | `""` |
 | `podDisruptionBudget.maxUnavailable`            | Maximum pods that may be unavailable during a voluntary disruption. Integer or percentage.    | `1`     |
-| `<service>.podDisruptionBudget`                 | Per-service override of the global block. Omitted keys inherit the global value. `<service>` = app/worker/nginx/home/runner/probes.&lt;key&gt;/pgbouncer. | `{}` (inherit) |
+| `<service>.podDisruptionBudget`                 | Per-service override of the global block. Omitted keys inherit the global value. `<service>` = app/worker/nginx/home/probes.&lt;key&gt;/pgbouncer. | `{}` (inherit) |
 | `deployment.spreadReplicasAcrossNodes`          | Give each stateless service a soft rule that puts its replicas on different nodes, so one node drain or node failure cannot take every replica down. Never blocks scheduling. Any `topologySpreadConstraints` you set replace it. See [Spreading replicas across nodes](#spreading-replicas-across-nodes). | `true` |
 
 ## Probes
@@ -249,9 +247,15 @@ own global probes. It runs the runbook JavaScript steps of every project that
 uses global Runners (every project does, unless it turns them off under
 **Runbooks > Runners**), each in an isolated-vm sandbox of its own that can
 reach public internet addresses but no private, loopback, link-local or cloud
-metadata address. Bash, SSH and Kubernetes steps never run on it: they run on a
-Runner a project installs in its own network. See
+metadata address, and the AI code fixes of those projects. Bash, SSH and
+Kubernetes steps, and a repository's own commands, never run on it: they run on
+a Runner a project installs in its own network. See
 [Global Runners](https://oneuptime.com/docs/runbooks/agents#global-runners).
+
+The global Runner took over the AI code fixes of the shared Runner, which the
+chart no longer runs: nothing under `runner:` is read any more (the schema still
+accepts the block, so an old values file keeps upgrading), and its KEDA
+settings go under `globalRunner.keda`.
 
 It is the Runner image started with a fixed id and its own key, and it holds
 nothing else: no cluster key (`ONEUPTIME_SECRET`), none of the server's
@@ -264,13 +268,18 @@ every boot.
 | Parameter                              | Description                                                                 | Default |
 |----------------------------------------|-----------------------------------------------------------------------------|---------|
 | `globalRunner.enabled`                 | Run the bundled global Runner. Set to `false` to turn it off: the server then removes it, and projects use the global Runners a master admin adds (Admin Dashboard > Settings > Global Runners) and their own Runners. | `true` |
-| `globalRunner.replicaCount`            | How many global Runners run. `0` turns it off, as `enabled: false` does.    | `1`     |
+| `globalRunner.replicaCount`            | How many global Runners run. `0` turns it off, as `enabled: false` does. While KEDA scales it, KEDA decides how many run. | `1`     |
 | `globalRunner.concurrency`             | How many steps each global Runner runs at the same time. A project runs at most three of its steps on global Runners at once, whatever this says. | `4` |
 | `globalRunner.key`                     | The global Runner's key. Leave empty to have the chart generate one.        | `nil`   |
 | `globalRunner.existingSecret.name`     | Read the key from a Secret you manage instead. See [Probe and Runner identity keys](#probe-and-runner-identity-keys). | `nil` |
 | `globalRunner.existingSecret.passwordKey` | Key inside that Secret.                                                  | `nil`   |
 | `globalRunner.resources`               | Pod resources (limits, requests).                                           | `nil`   |
 | `globalRunner.extraEnv`, `globalRunner.extraVolumes`, `globalRunner.extraVolumeMounts` | Extra environment variables and volumes for the global Runner alone, for example `HTTPS_PROXY` when it reaches the internet through a proxy. | `[]` |
+| `globalRunner.keda.enabled`            | Scale the global Runner with KEDA on the AI code-fix tasks waiting for a Runner (`oneuptime_ai_agent_queue_size`, read from its own `/metrics/queue-size`). Needs `keda.enabled` too. | `false` |
+| `globalRunner.keda.minReplicas`, `globalRunner.keda.maxReplicas` | The fewest and the most global Runners KEDA runs.  | `1`, `100` |
+| `globalRunner.keda.queueSizeThreshold` | Waiting tasks per global Runner before KEDA adds one.                       | `5`     |
+| `globalRunner.keda.pollingInterval`, `globalRunner.keda.cooldownPeriod` | How often KEDA reads the queue, and how long it waits after scaling, in seconds. | `30`, `300` |
+| `globalRunner.keda.fallback`           | Replicas KEDA keeps when it cannot read the queue (`replicas: 0` turns it off). | `{failureThreshold: 3, replicas: 1}` |
 
 ## Incidents & alerts
 
@@ -303,7 +312,7 @@ Bitnami charts — you will need to set the security context for those as well.
 | `<service>.affinity`       | Affinity for one service. Replaces the chart-wide `affinity`. | `{}` |
 | `<service>.topologySpreadConstraints` | Topology spread constraints for one service. Replaces the chart-wide list. | `[]` |
 
-`<service>` is any of `app`, `home`, `nginx`, `worker`, `runner`,
+`<service>` is any of `app`, `home`, `nginx`, `worker`, `globalRunner`,
 `telemetryWriter`, `probes.<name>` or `testServer`. `pgbouncer` takes
 `pgbouncer.topologySpreadConstraints` too, but like its `affinity`, `tolerations`
 and `nodeSelector` it never inherits the chart-wide value. A service's value
@@ -389,7 +398,7 @@ to apply to just that one:
 | `<service>.extraVolumes`         | Extra pod volumes for one service. Replaces the chart-wide list.                  | `[]`    |
 | `<service>.extraVolumeMounts`    | Extra container volume mounts for one service. Replaces the chart-wide list.      | `[]`    |
 
-`<service>` is any of `app`, `worker`, `probes.<name>`, `runner`, `home`,
+`<service>` is any of `app`, `worker`, `probes.<name>`, `home`,
 `telemetryWriter`, `nginx`, `pgbouncer`, `testServer`, `migrate`, `vllm` or
 `cronJobs.e2e`. The bundled global Runner (`globalRunner`) takes only its own
 lists, never the chart-wide ones: see [Global Runner](#global-runner).
@@ -457,10 +466,14 @@ extraEnv:
     value: /etc/ssl/internal/ca.crt
 ```
 
-That reaches app, worker, every probe, runner, home, telemetry-writer, nginx,
+That reaches app, worker, every probe, home, telemetry-writer, nginx,
 pgbouncer, test-server, the migrate Job and the e2e cron in one setting. The
 migrate Job matters here: it talks to Postgres and ClickHouse before any app pod
-does, so a CA it cannot see fails the install rather than degrading it.
+does, so a CA it cannot see fails the install rather than degrading it. The
+bundled global Runner never takes the chart-wide lists: when its JavaScript
+steps or AI code fixes need the CA too, set the same three under
+`globalRunner.extraVolumes`, `globalRunner.extraVolumeMounts` and
+`globalRunner.extraEnv`.
 
 `NODE_EXTRA_CA_CERTS` covers Node.js, which is every outbound call OneUptime's
 own code makes. It does **not** reach the Chromium that probes drive for
@@ -599,6 +612,19 @@ logged, and nothing is shown.
 |------------------------|------------------------------------------------------------------------------------------------------------------------|---------|
 | `updateCheck.disabled` | Set to `true` to make no outbound call at all.                                                                          | `false` |
 | `updateCheck.url`      | Point the check at an internal mirror. Must answer with GitHub's release shape (`tag_name`, `html_url`, `published_at`). | `""` (GitHub) |
+
+## Daily check-in
+
+Once a day the worker tells `oneuptime.com` the installation's URL and the
+OneUptime version it runs, so OneUptime knows which installations still run a
+release with a security issue and can reach the admins who registered them.
+Nothing about your users, projects or monitoring data is sent. An installation
+with no route to `oneuptime.com` does not need to change anything: the request
+fails and is logged.
+
+| Parameter                  | Description                                    | Default |
+|----------------------------|------------------------------------------------|---------|
+| `instanceCheckIn.disabled` | Set to `true` to make no call at all.          | `false` |
 
 ## Trusted proxies
 

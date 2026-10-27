@@ -19,9 +19,9 @@ import {
 import ObjectID from "Common/Types/ObjectID";
 import {
   BulkActionButtonSchema,
-  BulkActionFailed,
   BulkActionOnClickProps,
 } from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
+import { runBulkAction } from "Common/UI/Components/BulkUpdate/BulkActionRunner";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import API from "Common/UI/Utils/API/API";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -176,8 +176,7 @@ function useBulkIncidentLinkActions(): BulkIncidentLinkActionsResult {
       return;
     }
 
-    const { items, onProgressInfo, onBulkActionStart, onBulkActionEnd } =
-      bulkActionProps;
+    const { items } = bulkActionProps;
 
     // Close the form modal first so the progress modal is visible.
     setShowLinkModal(false);
@@ -187,51 +186,35 @@ function useBulkIncidentLinkActions(): BulkIncidentLinkActionsResult {
       return;
     }
 
-    onBulkActionStart();
-
-    const totalItems: Array<Alert> = [...items];
-    const inProgressItems: Array<Alert> = [...items];
-    const successItems: Array<Alert> = [];
-    const failedItems: Array<BulkActionFailed<Alert>> = [];
-
-    for (const alert of totalItems) {
-      inProgressItems.splice(inProgressItems.indexOf(alert), 1);
-
-      try {
+    /*
+     * Through the shared runner (progress, Stop, failures by alert), one
+     * alert at a time: every link is made to the same incident, whose own
+     * follow-ons each link runs.
+     */
+    await runBulkAction<Alert>({
+      actionProps: bulkActionProps,
+      concurrency: 1,
+      step: async (alert: Alert): Promise<void> => {
         const alertId: string = getAlertIds([alert])[0] || "";
 
         if (!alertId) {
           throw new BadDataException("Alert ID not found");
         }
 
-        await createIncidentAlertLink({
-          incidentId: new ObjectID(incidentId),
-          alertId: new ObjectID(alertId),
-        });
-
-        successItems.push(alert);
-      } catch (err) {
-        const message: string = API.getFriendlyMessage(err);
-
-        if (isAlreadyLinkedError(message)) {
-          successItems.push(alert);
-        } else {
-          failedItems.push({
-            item: alert,
-            failedMessage: message,
+        try {
+          await createIncidentAlertLink({
+            incidentId: new ObjectID(incidentId),
+            alertId: new ObjectID(alertId),
           });
+        } catch (err) {
+          // Linked already: that is what was asked for.
+          if (!isAlreadyLinkedError(API.getFriendlyMessage(err))) {
+            throw err;
+          }
         }
-      }
+      },
+    });
 
-      onProgressInfo({
-        totalItems: totalItems,
-        failed: [...failedItems],
-        successItems: [...successItems],
-        inProgressItems: [...inProgressItems],
-      });
-    }
-
-    onBulkActionEnd();
     setBulkActionProps(null);
   };
 

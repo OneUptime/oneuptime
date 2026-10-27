@@ -6,8 +6,15 @@ import {
   getAzureStoredMetricName,
 } from "../../../../Types/Cloud/CloudKeyMetrics";
 import { CloudMonitoredResource } from "../../../../Types/Cloud/CloudMonitoredResource";
-import { getCloudResourceTypeDescriptor } from "../../../../Types/Cloud/CloudResourceCatalog";
-import { splitCloudConnectionList } from "../../../../Types/CloudConnection/CloudConnectionCatalog";
+import {
+  AZURE_RESOURCE_TYPES,
+  CloudResourceTypeDescriptor,
+  getCloudResourceTypeDescriptor,
+} from "../../../../Types/Cloud/CloudResourceCatalog";
+import {
+  AZURE_SECRET_EXPIRES_AT_KEY,
+  splitCloudConnectionList,
+} from "../../../../Types/CloudConnection/CloudConnectionCatalog";
 import {
   CloudConnectionFailureKind,
   CloudConnectionTestResult,
@@ -40,7 +47,13 @@ import {
   CloudConnectionSettings,
   CloudConnector,
   CloudConnectorCallOptions,
+  CloudChange,
+  CloudChangesOptions,
+  CloudChangesResult,
   CloudDiscoveredResource,
+  CloudInventoryItem,
+  CloudInventoryOptions,
+  CloudInventoryResult,
   CloudKnownResource,
   CloudReadBudget,
   CloudReadBudgetSpent,
@@ -55,6 +68,16 @@ import AzureArm, {
   AzureResource,
   AzureSubscription,
 } from "./AzureArm";
+import {
+  buildAzureInventoryItem,
+  buildAzureInventoryQuery,
+} from "./AzureInventory";
+import { readAzureActivityEvent } from "./AzureChanges";
+import {
+  getChangePlace,
+  getChangeWindowStart,
+  keepNewChanges,
+} from "../CloudChangeWindow";
 
 /*
  * MICROSOFT AZURE: every subscription an app registration may read, from
@@ -187,6 +210,64 @@ function isOlderThan(
   return !Number.isFinite(time) || now.getTime() - time >= ageMs;
 }
 
+// How long before a client secret expires a read starts saying so.
+export const AZURE_SECRET_EXPIRY_WARNING_DAYS: number = 30;
+
+/*
+ * A read's warning that the app's client secret expires soon, from the
+ * expiry its setup command printed (AZURE_SECRET_EXPIRES_AT_KEY) - or null
+ * when it does not expire within AZURE_SECRET_EXPIRY_WARNING_DAYS, or the
+ * connection was made before the command printed it.
+ */
+export function getAzureSecretExpiryWarning(data: {
+  settings: CloudConnectionSettings;
+  now: Date;
+}): string | null {
+  const expiresAt: number = Date.parse(
+    readCloudSetting(data.settings.config, AZURE_SECRET_EXPIRES_AT_KEY),
+  );
+
+  if (!Number.isFinite(expiresAt)) {
+    return null;
+  }
+
+  const daysLeft: number = Math.floor(
+    (expiresAt - data.now.getTime()) / (24 * 60 * 60 * 1000),
+  );
+
+  if (daysLeft > AZURE_SECRET_EXPIRY_WARNING_DAYS || daysLeft < 0) {
+    return null;
+  }
+
+  return `The app's client secret expires on ${new Date(expiresAt)
+    .toISOString()
+    .slice(
+      0,
+      10,
+    )}. Run the setup command again and paste what it prints before then, or reading stops.`;
+}
+
+/*
+ * Microsoft Entra refuses an expired client secret with AADSTS7000222: said
+ * as what it is and what to do, rather than as a refused credential.
+ */
+export function explainExpiredAzureSecret(error: unknown): unknown {
+  if (
+    error instanceof LlmProviderError &&
+    `${error.responseBody || ""} ${error.message}`.includes("AADSTS7000222")
+  ) {
+    return new LlmProviderError({
+      message:
+        "The app's client secret has expired. Run the setup command again and paste what it prints.",
+      kind: CloudConnectionFailureKind.Authentication,
+      statusCode: error.statusCode,
+      responseBody: error.responseBody,
+    });
+  }
+
+  return error;
+}
+
 export default class AzureCloudConnector implements CloudConnector {
   public provider: CloudProvider = CloudProvider.Azure;
 
@@ -240,6 +321,7 @@ export default class AzureCloudConnector implements CloudConnector {
       transport: options.transport,
       requestTimeoutInMs: options.requestTimeoutInMs,
       budget,
+      sleep: options.sleep,
     });
   }
 
@@ -532,7 +614,7 @@ export default class AzureCloudConnector implements CloudConnector {
     }
 
     const failure: LlmProviderError = LlmProviderError.from({
-      error: data.error,
+      error: explainExpiredAzureSecret(data.error),
       step: "test",
       providerTitle: PROVIDER_TITLE,
       secretValues: getCloudSecretValues(data.settings),
@@ -604,7 +686,310 @@ export default class AzureCloudConnector implements CloudConnector {
     return definitions;
   }
 
+  /*
+   * What changed in each subscription since the last read, and Azure's
+   * Service Health and Resource Health events about it: one Activity Log
+   * read per subscription (AzureChanges). A look back for an investigation
+   * reads only the subscriptions it names and moves no cursor.
+   */
+  public async readChanges(
+    settings: CloudConnectionSettings,
+    options: CloudChangesOptions,
+  ): Promise<CloudChangesResult> {
+    try {
+      return await this.readActivity(settings, options);
+    } catch (error) {
+      throw explainExpiredAzureSecret(error);
+    }
+  }
+
+  private async readActivity(
+    settings: CloudConnectionSettings,
+    options: CloudChangesOptions,
+  ): Promise<CloudChangesResult> {
+    const now: Date = options.now ? options.now() : new Date();
+    const arm: AzureArm = this.arm(settings, options, options.budget);
+    const result: CloudChangesResult = {
+      changes: [],
+      warnings: [],
+      complete: true,
+    };
+    const isLookBack: boolean = Boolean(options.since);
+    let subscriptionIds: Array<string> =
+      options.state.accounts && options.state.accounts.length > 0
+        ? options.state.accounts
+        : (await this.getSubscriptions(arm, settings)).map(
+            (subscription: AzureSubscription): string => {
+              return subscription.subscriptionId;
+            },
+          );
+
+    if (options.only) {
+      const wanted: Set<string> = new Set(
+        options.only.map((entry: { accountId: string }): string => {
+          return entry.accountId.toLowerCase();
+        }),
+      );
+      subscriptionIds = subscriptionIds.filter((id: string): boolean => {
+        return wanted.has(id.toLowerCase());
+      });
+    }
+
+    let refused: boolean = false;
+
+    const busy: Array<string> = [];
+
+    const outcomes: Array<
+      Settled<{ changes: Array<CloudChange>; complete: boolean }>
+    > = await mapWithConcurrency(
+      subscriptionIds.slice(0, AZURE_MAX_SUBSCRIPTIONS),
+      CONCURRENCY,
+      async (
+        subscriptionId: string,
+      ): Promise<{ changes: Array<CloudChange>; complete: boolean }> => {
+        const listed: { events: Array<JSONObject>; complete: boolean } =
+          await arm.listActivityLog({
+            subscriptionId,
+            start: getChangeWindowStart({
+              state: options.state,
+              place: getChangePlace(subscriptionId, ""),
+              now,
+              since: options.since,
+            }),
+            end: now,
+          });
+
+        return {
+          changes: listed.events
+            .map((event: JSONObject): CloudChange | null => {
+              return readAzureActivityEvent({ event, subscriptionId });
+            })
+            .filter((change: CloudChange | null): boolean => {
+              return change !== null;
+            }) as Array<CloudChange>,
+          complete: listed.complete,
+        };
+      },
+    );
+
+    outcomes.forEach(
+      (
+        outcome: Settled<{ changes: Array<CloudChange>; complete: boolean }>,
+        index: number,
+      ) => {
+        const subscriptionId: string = subscriptionIds[index]!;
+
+        if (outcome.ok) {
+          result.changes.push(
+            ...keepNewChanges({
+              state: options.state,
+              place: getChangePlace(subscriptionId, ""),
+              changes: outcome.value.changes,
+              now,
+              complete: outcome.value.complete,
+              isLookBack,
+              // The Activity Log lists newest first.
+              order: "newest-first",
+            }),
+          );
+
+          if (!outcome.value.complete) {
+            busy.push(subscriptionId);
+          }
+
+          return;
+        }
+
+        result.complete = false;
+
+        if (outcome.error instanceof CloudReadBudgetSpent) {
+          return;
+        }
+
+        if (
+          outcome.error instanceof LlmProviderError &&
+          outcome.error.kind === CloudConnectionFailureKind.Authentication
+        ) {
+          throw outcome.error;
+        }
+
+        if (
+          outcome.error instanceof LlmProviderError &&
+          outcome.error.kind === CloudConnectionFailureKind.Permission
+        ) {
+          refused = true;
+          return;
+        }
+
+        result.warnings.push(
+          `Could not read what changed in subscription ${subscriptionId}: ${
+            outcome.error instanceof Error
+              ? outcome.error.message
+              : String(outcome.error)
+          }`,
+        );
+      },
+    );
+
+    if (busy.length > 0) {
+      result.warnings.push(
+        `More changed in subscription ${busy.slice(0, 5).join(", ")} than one read takes: the newest changes are kept, and some older ones were left out.`,
+      );
+    }
+
+    if (refused) {
+      result.warnings.push(
+        "The app may not read a subscription's Activity Log. Give it the Monitoring Reader role on it.",
+      );
+    }
+
+    return result;
+  }
+
+  /*
+   * The subscriptions' inventory (AzureInventory): one Resource Graph query
+   * over the subscriptions read, with each subscription named as Azure
+   * names it.
+   */
+  public async readInventory(
+    settings: CloudConnectionSettings,
+    options: CloudInventoryOptions,
+  ): Promise<CloudInventoryResult> {
+    try {
+      return await this.listInventory(settings, options);
+    } catch (error) {
+      throw explainExpiredAzureSecret(error);
+    }
+  }
+
+  private async listInventory(
+    settings: CloudConnectionSettings,
+    options: CloudInventoryOptions,
+  ): Promise<CloudInventoryResult> {
+    const arm: AzureArm = this.arm(settings, options, options.budget);
+    const readable: Array<AzureSubscription> = await this.getSubscriptions(
+      arm,
+      settings,
+    );
+    const subscriptions: Array<AzureSubscription> = readable.slice(
+      0,
+      AZURE_MAX_SUBSCRIPTIONS,
+    );
+    const subscriptionIds: Array<string> = subscriptions.map(
+      (subscription: AzureSubscription): string => {
+        return subscription.subscriptionId;
+      },
+    );
+    const names: Map<string, string> = new Map();
+
+    for (const subscription of subscriptions) {
+      if (
+        subscription.displayName &&
+        subscription.displayName !== subscription.subscriptionId
+      ) {
+        names.set(
+          subscription.subscriptionId.toLowerCase(),
+          subscription.displayName,
+        );
+      }
+    }
+
+    // Subscriptions the connection names are named by listing them once.
+    if (names.size === 0 && subscriptionIds.length > 0) {
+      try {
+        for (const subscription of await arm.listSubscriptions()) {
+          if (subscription.displayName) {
+            names.set(
+              subscription.subscriptionId.toLowerCase(),
+              subscription.displayName,
+            );
+          }
+        }
+      } catch (error) {
+        if (error instanceof CloudReadBudgetSpent) {
+          throw error;
+        }
+      }
+    }
+
+    const listing: { rows: Array<JSONObject>; complete: boolean } =
+      subscriptionIds.length > 0
+        ? await arm.queryResourceGraph({
+            subscriptionIds,
+            query: buildAzureInventoryQuery(),
+          })
+        : { rows: [], complete: true };
+
+    const items: Array<CloudInventoryItem> = [];
+
+    for (const row of listing.rows) {
+      const item: CloudInventoryItem | null = buildAzureInventoryItem(row);
+
+      if (item) {
+        items.push(item);
+      }
+    }
+
+    const knownTypes: Array<string> = AZURE_RESOURCE_TYPES.map(
+      (descriptor: CloudResourceTypeDescriptor): string => {
+        return descriptor.type;
+      },
+    );
+
+    return {
+      accounts: subscriptionIds.map((subscriptionId: string) => {
+        return {
+          accountId: subscriptionId,
+          name: names.get(subscriptionId.toLowerCase()),
+        };
+      }),
+      items,
+      completelyListed: listing.complete
+        ? subscriptionIds.map((subscriptionId: string) => {
+            return { accountId: subscriptionId, resourceTypes: knownTypes };
+          })
+        : [],
+      warnings: [
+        ...(readable.length > AZURE_MAX_SUBSCRIPTIONS
+          ? [
+              `The app may read ${readable.length} subscriptions: the first ${AZURE_MAX_SUBSCRIPTIONS} are listed. Name the ones to read under Subscriptions.`,
+            ]
+          : []),
+        ...(listing.complete
+          ? []
+          : [
+              "The subscriptions have more resources than one inventory lists: the rest are listed next time.",
+            ]),
+      ],
+      complete: listing.complete,
+    };
+  }
+
   public async read(
+    settings: CloudConnectionSettings,
+    options: CloudReadOptions,
+  ): Promise<CloudReadResult> {
+    try {
+      const result: CloudReadResult = await this.readSubscriptions(
+        settings,
+        options,
+      );
+      const expiry: string | null = getAzureSecretExpiryWarning({
+        settings,
+        now: options.now ? options.now() : new Date(),
+      });
+
+      if (expiry) {
+        result.warnings.unshift(expiry);
+      }
+
+      return result;
+    } catch (error) {
+      throw explainExpiredAzureSecret(error);
+    }
+  }
+
+  private async readSubscriptions(
     settings: CloudConnectionSettings,
     options: CloudReadOptions,
   ): Promise<CloudReadResult> {

@@ -1,6 +1,8 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { RESOURCE_FACET_CATALOG_KEYS } from "Common/Types/Telemetry/ResourceFacetCatalog";
+import { EXCEPTIONS_EXPLORER_FACET_KEYS } from "../../FeatureSet/Dashboard/src/Components/Exceptions/ExceptionsFacetCounts";
 
 /*
  * Source wiring for entity names in the exceptions explorer, the profiles
@@ -96,9 +98,20 @@ describe("ExceptionsViewer resource facets come from the shared catalog", () => 
   });
 
   test("the facets request asks for Service, every catalog resource, then type and environment", () => {
+    expect(EXCEPTIONS_EXPLORER_FACET_KEYS).toEqual([
+      "primaryEntityId",
+      ...RESOURCE_FACET_CATALOG_KEYS,
+      "exceptionType",
+      "environment",
+    ]);
+    /*
+     * Planned over that list (FacetCountPlan): a facet with a value chosen
+     * is counted in a request of its own, the rest together.
+     */
     expect(EXCEPTIONS_VIEWER).toContain(
-      'facetKeys: [ "primaryEntityId", ...RESOURCE_FACET_CATALOG_KEYS, "exceptionType", "environment", ],',
+      "planFacetCountRequests({ facetKeys: EXCEPTIONS_EXPLORER_FACET_KEYS,",
     );
+    expect(EXCEPTIONS_VIEWER).toContain("facetKeys: [...part.facetKeys],");
   });
 
   test("REGRESSION: resource facets are built from the catalog, not hand-written per type", () => {
@@ -275,8 +288,9 @@ describe("ExceptionsViewer names every entity chip", () => {
     expect(EXCEPTIONS_VIEWER).toContain(
       "histogramResourceIds.push(primaryEntityId.toString());",
     );
+    // The page's own entity, in every facet count's services.
     expect(EXCEPTIONS_VIEWER).toContain(
-      "facetResourceIds.push(primaryEntityId.toString());",
+      "pageEntityId: primaryEntityId?.toString(),",
     );
     expect(EXCEPTIONS_VIEWER).toContain("return [f.facetKey, f.value];");
   });

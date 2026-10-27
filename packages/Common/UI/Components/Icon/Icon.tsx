@@ -26,6 +26,49 @@ export enum IconType {
   Warning = "Warning",
 }
 
+/*
+ * Icons that point along the line - a chevron or an arrow to what comes
+ * next, back, on, in or out - turn round on a page that reads right to left
+ * (a Persian one: <html dir="rtl">), so they still point the way the words
+ * run: breadcrumbs, pagination, "View all" links, a folded section's
+ * chevron. Up, down and everything else keep their shape.
+ */
+export const ICONS_POINTING_ALONG_THE_LINE: ReadonlyArray<IconProp> = [
+  IconProp.ChevronRight,
+  IconProp.ChevronLeft,
+  IconProp.ArrowRight,
+  IconProp.ArrowLeft,
+  IconProp.ArrowCircleRight,
+  IconProp.ArrowCircleLeft,
+  IconProp.ArrowUturnLeft,
+  IconProp.ArrowUturnRight,
+  IconProp.Indent,
+  IconProp.Outdent,
+];
+
+/*
+ * Drawn mirrored with the `scale` property, which the browser applies after
+ * the icon's own transform: a chevron a component turns down (rotate-90) to
+ * show what is open still points down. :dir() reads the nearest dir, so an
+ * icon in a box kept left to right (a chart, code) keeps its way.
+ */
+export const ICON_MIRRORED_RIGHT_TO_LEFT_CLASS_NAME: string =
+  "[&:dir(rtl)]:[scale:-1_1]";
+
+export const isIconMirroredRightToLeft: (data: {
+  icon: IconProp;
+  isMirroredRightToLeft?: boolean | undefined;
+}) => boolean = (data: {
+  icon: IconProp;
+  isMirroredRightToLeft?: boolean | undefined;
+}): boolean => {
+  if (data.isMirroredRightToLeft !== undefined) {
+    return data.isMirroredRightToLeft;
+  }
+
+  return ICONS_POINTING_ALONG_THE_LINE.includes(data.icon);
+};
+
 export interface ComponentProps {
   icon: IconProp;
   size?: SizeProp | undefined;
@@ -44,6 +87,13 @@ export interface ComponentProps {
    */
   ariaLabel?: string | undefined;
   "data-testid"?: string;
+  /*
+   * Whether the icon turns round on a right-to-left page. Left out, the
+   * icons that point along the line do (ICONS_POINTING_ALONG_THE_LINE);
+   * false keeps one that means a fixed side - an arrow on a timeline that
+   * runs left to right in every language - as it is.
+   */
+  isMirroredRightToLeft?: boolean | undefined;
 }
 const Icon: FunctionComponent<ComponentProps> = ({
   size = SizeProp.Regular,
@@ -56,6 +106,7 @@ const Icon: FunctionComponent<ComponentProps> = ({
   style,
   ariaLabel,
   "data-testid": dataTestId,
+  isMirroredRightToLeft,
 }: ComponentProps): ReactElement => {
   let sizeClassName: string = "";
   if (className && !(className?.includes("h-") && className?.includes("w-"))) {
@@ -132,7 +183,11 @@ const Icon: FunctionComponent<ComponentProps> = ({
               onClick();
             }
           }}
-          className={`${textColor} ${sizeClassName} ${strokeWidth} ${className}`}
+          className={`${textColor} ${sizeClassName} ${strokeWidth} ${className}${
+            isIconMirroredRightToLeft({ icon, isMirroredRightToLeft })
+              ? ` ${ICON_MIRRORED_RIGHT_TO_LEFT_CLASS_NAME}`
+              : ""
+          }`}
           style={color ? { color: color.toString(), ...style } : { ...style }}
           xmlns="http://www.w3.org/2000/svg"
           fill="none"

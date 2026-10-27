@@ -1516,6 +1516,107 @@ test.describe("a Runner and AI code fixes", () => {
   });
 
   /*
+   * The AI rules that pick the Runner (AutoRemediationRule.runnerId), after
+   * the code repositories in Runner Details: each linked to its lane's AI
+   * settings at the AI Rules card, where its Runner is changed, with its
+   * lane beside it. A rule that picks no Runner runs no command on it.
+   */
+  test("a Runner's details list the AI rules that pick it, each linked to where its Runner is changed", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(`${RUNNER_PAGE}?page=runner&custom=1`);
+
+    const details: Locator = card(page, "Runner Details");
+    const rules: Locator = details.getByTestId("runner-ai-rules");
+    await expect(rules).toBeVisible();
+
+    for (const [name, lane, path] of [
+      ["Restart checkout", "Incidents", "incidents"],
+      ["Fix database alerts", "Alerts", "alerts"],
+    ] as Array<[string, string, string]>) {
+      const item: Locator = rules.locator("li", { hasText: name });
+
+      await expect(item.getByRole("link", { name })).toHaveAttribute(
+        "href",
+        `/dashboard/${PROJECT_ID}/${path}/ai/settings#AiRules`,
+      );
+      await expect(item.getByTestId("runner-ai-rules-lane")).toHaveText(lane);
+    }
+
+    await expect(rules).not.toContainText("Investigate everything");
+
+    // The row comes after the code repositories, and before the labels.
+    const text: string = (await details.innerText()).replace(
+      WHITE_SPACE_RUNS,
+      " ",
+    );
+    const repositories: number = text.indexOf("Code Repositories");
+    const row: number = text.indexOf("AI Rules");
+    const labels: number = text.indexOf("Labels");
+    expect(repositories).toBeGreaterThan(-1);
+    expect(row).toBeGreaterThan(repositories);
+    expect(labels).toBeGreaterThan(row);
+
+    await screenshot(page, "runner-ai-rules");
+  });
+
+  test("no AI rule picks it: one short line says so, and where a rule picks its Runner", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(`${RUNNER_PAGE}?page=runner&custom=1&picks=0`);
+
+    const details: Locator = card(page, "Runner Details");
+    await expect(details.getByTestId("runner-ai-rules-empty")).toHaveText(
+      "None. An AI rule picks its Runner in its More fields, on Incidents › AI › Settings or Alerts › AI › Settings.",
+    );
+    await expect(details.getByTestId("runner-ai-rules")).toHaveCount(0);
+  });
+
+  test("a reader who may not read AI rules gets no row for them", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(`${RUNNER_PAGE}?page=runner&custom=1&airules=denied`);
+
+    const details: Locator = card(page, "Runner Details");
+    // The repositories' row is there: the details have loaded.
+    await expect(details.getByTestId("runner-code-repositories")).toBeVisible();
+    await expect(details).not.toContainText("AI Rules");
+    await expect(details.getByTestId("runner-ai-rules-empty")).toHaveCount(0);
+  });
+
+  test("on a phone, the AI rules wrap inside the card and nothing runs off the screen", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(`${RUNNER_PAGE}?page=runner&custom=1`);
+
+    const rules: Locator = card(page, "Runner Details").getByTestId(
+      "runner-ai-rules",
+    );
+    await expect(rules).toBeVisible();
+
+    const box: { x: number; width: number } | null = await rules.boundingBox();
+    expect(box).not.toBeNull();
+    expect(box!.x).toBeGreaterThanOrEqual(0);
+    expect(box!.x + box!.width).toBeLessThanOrEqual(390);
+    expect(
+      await page.evaluate((): number => {
+        return document.documentElement.scrollWidth;
+      }),
+    ).toBeLessThanOrEqual(390);
+
+    await screenshot(page, "runner-ai-rules-phone");
+  });
+
+  /*
    * The setup command is the card's body, not its description: a card
    * hides its description below md, which left a phone with "Setup
    * Instructions" and nothing under it.

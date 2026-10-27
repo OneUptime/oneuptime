@@ -158,4 +158,4 @@ Set `keda.enabled: false` and every per-service `<service>.keda.enabled: false` 
 >
 > Set `autoscaling.enabled: true` (with `resources.requests.cpu` on the tiers, and `minReplicas` at least where KEDA had them) in the **same** upgrade if you want the tiers to keep autoscaling on CPU/memory. Even then the Deployment carries `replicas: 1` for the moment it takes the new HPA to observe the tier and scale it back up.
 
-To scale one tier manually while you work on it, use `<service>.disableAutoscaler: true` rather than `kubectl scale` — KEDA's `minReplicaCount` would revert a manual scale. It applies to `app`, `worker`, `runner` and each probe; `telemetryWriter` is opt-in only and the schema has no such key for it, so turn `telemetryWriter.keda.enabled` off instead.
+To scale one tier manually while you work on it, use `<service>.disableAutoscaler: true` rather than `kubectl scale` — KEDA's `minReplicaCount` would revert a manual scale. It applies to `app`, `worker` and each probe; `telemetryWriter` and `globalRunner` are opt-in only and the schema has no such key for them, so turn `telemetryWriter.keda.enabled` or `globalRunner.keda.enabled` off instead.

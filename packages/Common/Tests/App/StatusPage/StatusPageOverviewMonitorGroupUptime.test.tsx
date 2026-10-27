@@ -24,11 +24,11 @@ import UptimePrecision from "../../../Types/StatusPage/UptimePrecision";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
 import MonitorStatusTimeline from "../../../Models/DatabaseModels/MonitorStatusTimeline";
-import LocalStorage from "../../../UI/Utils/LocalStorage";
 import Navigation from "../../../UI/Utils/Navigation";
 import MonitorGroupMergedDowntimeUtil from "../../../Utils/StatusPage/MonitorGroupMergedDowntimeUtil";
 import UptimeUtil from "../../../Utils/Uptime/UptimeUtil";
 import Overview from "../../../../App/FeatureSet/StatusPage/src/Pages/Overview/Overview";
+import StatusPageUtil from "../../../../App/FeatureSet/StatusPage/src/Utils/StatusPage";
 
 /*
  * Contract under test - the uptime of a MONITOR GROUP on a status page
@@ -547,8 +547,9 @@ const EU_EDGE_MONITORS: Array<string> = [EU_ROUTER_ID];
 
 // A resource's header row: its name, and its uptime or status beside it.
 function uptimeNextToTheName(name: string): string {
-  const headerRow: HTMLElement =
-    screen.getByText(name).parentElement!.parentElement!;
+  const headerRow: HTMLElement = screen
+    .getByText(name)
+    .closest("[data-testid='status-page-resource-header']") as HTMLElement;
 
   return headerRow.textContent || "";
 }
@@ -579,7 +580,7 @@ describe("Status page overview - the uptime of a monitor group", () => {
 
   beforeEach(() => {
     localStorage.clear();
-    LocalStorage.setItem("statusPageId", new ObjectID(STATUS_PAGE_ID));
+    StatusPageUtil.setStatusPageId(new ObjectID(STATUS_PAGE_ID));
     window.history.replaceState({}, "", "/");
     Navigation.navigate = (): void => {};
     jest.useFakeTimers();

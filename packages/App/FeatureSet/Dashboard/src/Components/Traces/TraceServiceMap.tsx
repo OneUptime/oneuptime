@@ -234,7 +234,9 @@ const TraceServiceMap: FunctionComponent<TraceServiceMapProps> = (
           <span key="stats">
             {node.spanCount} span{node.spanCount === 1 ? "" : "s"}
             {node.errorCount > 0 && (
-              <span style={{ color: HEALTH_COLORS[health], marginLeft: 8 }}>
+              <span
+                style={{ color: HEALTH_COLORS[health], marginInlineStart: 8 }}
+              >
                 {node.errorCount} error{node.errorCount === 1 ? "" : "s"}
               </span>
             )}

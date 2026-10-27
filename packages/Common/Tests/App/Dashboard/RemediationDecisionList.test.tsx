@@ -1,16 +1,29 @@
 import "@testing-library/jest-dom";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
-import { cleanup, render, screen, within } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import * as React from "react";
 import RemediationDecisionList, {
+  goToPagePlace,
   REMEDIATION_DECISION_TONE_MARK,
   RemediationDecisionToneMark,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationDecisionList";
 import {
+  AFFECTED_RESOURCES_PLACE_ID,
   getRemediationDecisionLines,
   RemediationDecisionLine,
   RemediationDecisionTone,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationDecisionLines";
+import {
+  PAGE_ANCHOR_FOCUSED_ATTRIBUTE,
+  PAGE_ANCHOR_LANDED_ATTRIBUTE,
+} from "../../../UI/Utils/PageAnchor";
 import Route from "../../../Types/API/Route";
 import {
   AutoRemediationDecisionLane,
@@ -18,7 +31,9 @@ import {
   AutoRemediationDecisionStage,
 } from "../../../Types/AutoRemediation/AutoRemediationDecision";
 import IconProp from "../../../Types/Icon/IconProp";
-import Icon from "../../../UI/Components/Icon/Icon";
+import Icon, {
+  ICON_MIRRORED_RIGHT_TO_LEFT_CLASS_NAME,
+} from "../../../UI/Components/Icon/Icon";
 import { getGlobalTranslator } from "../../../UI/Utils/TranslateTemplate";
 import { goTo, PROJECT_ID } from "./SideMenuHarness";
 
@@ -406,8 +421,15 @@ describe("RemediationDecisionList", () => {
     expect(glue.firstChild?.textContent).toBe("\u00a0");
     expect(arrow).toHaveAttribute("aria-hidden", "true");
     expect(arrow).toHaveClass("inline-block");
-    // On a page that reads right to left it points the way the words run.
-    expect(arrow).toHaveClass("rtl:rotate-180");
+    /*
+     * On a page that reads right to left it points the way the words run:
+     * Icon draws the arrow mirrored there, so the box around it does not
+     * turn it as well (it would point back).
+     */
+    expect(arrow.querySelector("svg")).toHaveClass(
+      ICON_MIRRORED_RIGHT_TO_LEFT_CLASS_NAME,
+    );
+    expect(arrow.className).not.toContain("rtl:");
     expect(link).not.toHaveClass("inline-flex");
   });
 
@@ -539,5 +561,152 @@ describe("RemediationDecisionList", () => {
       "text-indigo-600",
     );
     expect(screen.queryAllByRole("link")).toEqual([]);
+  });
+});
+
+/*
+ * Issue #5293: an incident linked to nothing says what to do - add what it
+ * is about under Affected Resources. The line takes the reader there: a
+ * button first in its row, "Go to Affected Resources", that brings the
+ * page's Affected Resources card into view and tints it a moment, the way a
+ * link to a place on a page lands. On a phone that card is far below.
+ */
+describe("RemediationDecisionList - the place a line sends the reader to", () => {
+  function nothingLinkedLines(): Array<RemediationDecisionLine> {
+    return getRemediationDecisionLines({
+      decision: {
+        stage: AutoRemediationDecisionStage.Evaluated,
+        entries: [
+          {
+            lane: AutoRemediationDecisionLane.KubernetesCluster,
+            reason: AutoRemediationDecisionReason.ClusterNoneLinked,
+            monitors: [{ id: MONITOR_ID, name: "Checkout website" }],
+          },
+          {
+            lane: AutoRemediationDecisionLane.Resource,
+            reason: AutoRemediationDecisionReason.ResourceNoneLinked,
+          },
+        ],
+      },
+      signal: "incident",
+      translator: getGlobalTranslator(),
+    });
+  }
+
+  function placeOnPage(): HTMLElement {
+    const place: HTMLElement = document.createElement("div");
+    place.id = AFFECTED_RESOURCES_PLACE_ID;
+    place.scrollIntoView = jest.fn();
+    document.body.appendChild(place);
+    return place;
+  }
+
+  afterEach(() => {
+    document.getElementById(AFFECTED_RESOURCES_PLACE_ID)?.remove();
+  });
+
+  test("a button first in the line's row, before the monitor links, named by its words", () => {
+    render(<RemediationDecisionList lines={nothingLinkedLines()} />);
+
+    const [unlinked] = lines() as [HTMLElement];
+    const go: HTMLElement = within(unlinked).getByRole("button", {
+      name: "Go to Affected Resources",
+    });
+
+    expect(go).toHaveAttribute("type", "button");
+    expect(go).toHaveAttribute("data-testid", "remediation-decision-place");
+    // The row's first item: what lets OneUptime AI fix this one comes first.
+    expect(go.parentElement?.firstElementChild).toBe(go);
+    expect(
+      within(unlinked).getByRole("link", { name: "Link Checkout website" }),
+    ).toBeInTheDocument();
+    // Drawn as the links beside it are, its arrow glued and not read out.
+    const link: HTMLElement = within(unlinked).getByRole("link", {
+      name: "Link Checkout website",
+    });
+    for (const className of [
+      "text-sm",
+      "font-medium",
+      "text-indigo-600",
+      "focus-visible:ring-2",
+    ]) {
+      expect(go.className).toContain(className);
+      expect(link.className).toContain(className);
+    }
+    expect(go.className).toContain("text-start");
+    expect(
+      within(go).getByTestId("remediation-decision-link-arrow"),
+    ).toHaveAttribute("aria-hidden", "true");
+  });
+
+  test("brings the Affected Resources card into view and marks where it landed", async () => {
+    const place: HTMLElement = placeOnPage();
+
+    render(<RemediationDecisionList lines={nothingLinkedLines()} />);
+
+    within(lines()[0]!)
+      .getByRole("button", { name: "Go to Affected Resources" })
+      .click();
+
+    expect(place).toHaveAttribute(PAGE_ANCHOR_LANDED_ATTRIBUTE, "true");
+    // Its top under the sticky header, once the browser has drawn it.
+    await waitFor(() => {
+      expect(place.scrollIntoView).toHaveBeenCalledWith({ block: "start" });
+    });
+  });
+
+  /*
+   * Clicking or pressing the button gives it the focus. The card takes it
+   * on, as a link to a place on a page hands it on: Tab goes on from the
+   * card's Edit, not from a button scrolled out of sight, and a screen
+   * reader reads where the page went.
+   */
+  test("hands the button's focus on to the card it lands on", () => {
+    const place: HTMLElement = placeOnPage();
+
+    render(<RemediationDecisionList lines={nothingLinkedLines()} />);
+
+    const go: HTMLElement = within(lines()[0]!).getByRole("button", {
+      name: "Go to Affected Resources",
+    });
+    go.focus();
+    expect(document.activeElement).toBe(go);
+
+    fireEvent.click(go);
+
+    expect(document.activeElement).toBe(place);
+    expect(place).toHaveAttribute(PAGE_ANCHOR_FOCUSED_ATTRIBUTE, "true");
+  });
+
+  test("never takes focus held anywhere else", () => {
+    const place: HTMLElement = placeOnPage();
+    const field: HTMLInputElement = document.createElement("input");
+    document.body.appendChild(field);
+    field.focus();
+
+    expect(goToPagePlace(AFFECTED_RESOURCES_PLACE_ID, null)).toBe(true);
+
+    expect(document.activeElement).toBe(field);
+    expect(place).toHaveAttribute(PAGE_ANCHOR_LANDED_ATTRIBUTE, "true");
+    expect(place).not.toHaveAttribute(PAGE_ANCHOR_FOCUSED_ATTRIBUTE);
+
+    field.remove();
+  });
+
+  test("goToPagePlace says whether the place was on the page, and changes nothing when it was not", () => {
+    expect(goToPagePlace(AFFECTED_RESOURCES_PLACE_ID)).toBe(false);
+
+    const place: HTMLElement = placeOnPage();
+
+    expect(goToPagePlace(AFFECTED_RESOURCES_PLACE_ID)).toBe(true);
+    expect(place).toHaveAttribute(PAGE_ANCHOR_LANDED_ATTRIBUTE, "true");
+  });
+
+  test("a line with no place draws no button", () => {
+    render(<RemediationDecisionList lines={[line({ key: "a", links: [] })]} />);
+
+    expect(
+      screen.queryByTestId("remediation-decision-place"),
+    ).not.toBeInTheDocument();
   });
 });

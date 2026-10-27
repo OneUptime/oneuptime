@@ -61,7 +61,8 @@
   "monitorOverview": {
     "daysAgo": "{{days}}일 전",
     "today": "오늘",
-    "notAvailable": "사용할 수 없음"
+    "notAvailable": "사용할 수 없음",
+    "underMaintenance": "유지보수 중"
   },
   "uptimeHistory": {
     "graphLabel": "최근 {{total}}일간의 가동 기록",
@@ -76,7 +77,12 @@
     "noIncidentsDescription": "이 날짜에 보고된 인시던트가 없습니다.",
     "declared": "선언됨",
     "oneIncidentOnThisDay": "이 날짜에 1건의 인시던트가 보고되었습니다",
-    "incidentsOnThisDay": "이 날짜에 {{total}}건의 인시던트가 보고되었습니다"
+    "incidentsOnThisDay": "이 날짜에 {{total}}건의 인시던트가 보고되었습니다",
+    "scheduledMaintenance": "예정된 유지보수",
+    "dayLabelWithMaintenance": "{{label}}, {{maintenance}}",
+    "oneMaintenanceEvent": "예정된 유지보수 1건",
+    "maintenanceEvents": "예정된 유지보수 {{total}}건",
+    "moreMaintenance": "외 {{total}}건"
   },
   "liveStatus": {
     "updated": "{{time}} 업데이트됨",

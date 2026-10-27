@@ -13,6 +13,9 @@ import {
   TraceDurationFilter,
   TraceSearchChip,
   compileTraceAttributeFilters,
+  getTraceChipFacetKey,
+  getTraceChosenFacetKeys,
+  isTraceFieldOfFacet,
   parseTraceSearch,
   resolveTraceSearchChip,
   toSpanKind,
@@ -316,5 +319,74 @@ describe("the rest of the search string", () => {
     expect(parseTraceSearch("name: POST").fieldFilters).toEqual({
       name: ["POST"],
     });
+  });
+});
+
+/*
+ * A facet with a value chosen is counted without its own selection
+ * (FacetCountPlan). These say which facet a chip chooses in and whether a
+ * typed field filters on it; the viewer's wiring is rendered in Common's
+ * ExplorerFacetMultiSelect.
+ */
+describe("the facet a traces chip chooses in", () => {
+  const ATTRIBUTE_FACETS: ReadonlySet<string> = new Set<string>([
+    "resource.host.name",
+    "resource.service.instance.id",
+  ]);
+
+  test("a column chip counts its column's facet; a Service chip the Service facet", () => {
+    expect(getTraceChipFacetKey("statusCode", ATTRIBUTE_FACETS)).toBe(
+      "statusCode",
+    );
+    expect(getTraceChipFacetKey("kind", ATTRIBUTE_FACETS)).toBe("kind");
+    expect(getTraceChipFacetKey("serviceId", ATTRIBUTE_FACETS)).toBe(
+      "primaryEntityId",
+    );
+    expect(getTraceChipFacetKey("primaryEntityId", ATTRIBUTE_FACETS)).toBe(
+      "primaryEntityId",
+    );
+  });
+
+  test("an attribute chip counts its attribute facet only when the sidebar lists one", () => {
+    expect(
+      getTraceChipFacetKey("attributes.resource.host.name", ATTRIBUTE_FACETS),
+    ).toBe("resource.host.name");
+    expect(
+      getTraceChipFacetKey("attributes.http.route", ATTRIBUTE_FACETS),
+    ).toBeNull();
+    expect(
+      getTraceChipFacetKey("attributeSearches.http.route", ATTRIBUTE_FACETS),
+    ).toBeNull();
+  });
+
+  test("the chosen facets: the reader's chips, each facet once, never the page's", () => {
+    expect(
+      getTraceChosenFacetKeys(
+        [
+          { facetKey: "statusCode" },
+          { facetKey: "statusCode" },
+          { facetKey: "attributes.resource.host.name" },
+          { facetKey: "primaryEntityId", readOnly: true },
+          { facetKey: "traceId" },
+        ],
+        ATTRIBUTE_FACETS,
+      ).sort(),
+    ).toEqual(["resource.host.name", "statusCode", "traceId"]);
+  });
+
+  test("a facet with one value to choose is not asked for on its own", () => {
+    expect(
+      getTraceChosenFacetKeys([{ facetKey: "hasException" }], ATTRIBUTE_FACETS),
+    ).toEqual([]);
+  });
+
+  test("a typed field filters on its own facet; service: on the Service facet", () => {
+    expect(isTraceFieldOfFacet("statusCode", "statusCode")).toBe(true);
+    expect(isTraceFieldOfFacet("kind", "statusCode")).toBe(false);
+    expect(isTraceFieldOfFacet("primaryEntityId", "primaryEntityId")).toBe(
+      true,
+    );
+    expect(isTraceFieldOfFacet("serviceId", "primaryEntityId")).toBe(true);
+    expect(isTraceFieldOfFacet("statusCode", "primaryEntityId")).toBe(false);
   });
 });

@@ -19,8 +19,10 @@ import {
   ChartTimeRangeZoomContextValue,
   useChartTimeRangeZoom,
 } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
+import { getDrawnLanguage } from "Common/UI/Components/SideMenu/SideMenuEntryState";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { getTileTitleWordsClassName } from "./TileTitleWords";
 
 export type ChartCardColor =
   | "blue"
@@ -78,6 +80,19 @@ const ChartCard: FunctionComponent<ChartCardProps> = (
   const translator: Translator = useTranslator();
   const colors: { bg: string; ring: string; text: string } =
     colorClasses[props.iconColor];
+  /*
+   * The card names its chart in the reader's language, from the English a
+   * page hands it ("Queries from applications"), in all three states below;
+   * the (i) takes the English and words its own label. A word too long for
+   * the header's line breaks where its language hyphenates it, as a tile's
+   * title does (TileTitleWords), rather than run under the icon.
+   */
+  const title: string = translator.translateText(props.title) || props.title;
+  const titleLanguage: string | undefined = getDrawnLanguage({
+    english: props.title,
+    drawn: title,
+    language: translator.language,
+  });
   // The page's drag-to-zoom (TimeRangeZoomScope), which the chart takes.
   const pageZoom: ChartTimeRangeZoomContextValue | null =
     useChartTimeRangeZoom();
@@ -106,8 +121,13 @@ const ChartCard: FunctionComponent<ChartCardProps> = (
   const header: ReactElement = (
     <div className="flex items-center justify-between gap-2 mb-3">
       <div className="flex min-w-0 items-center gap-1">
-        <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-          {props.title}
+        <span
+          className={`min-w-0 text-xs font-medium text-gray-500 uppercase tracking-wider ${getTileTitleWordsClassName(
+            { text: title, lang: titleLanguage },
+          )}`}
+          lang={titleLanguage}
+        >
+          {title}
         </span>
         <InfoTooltip label={props.title} text={props.description} />
       </div>

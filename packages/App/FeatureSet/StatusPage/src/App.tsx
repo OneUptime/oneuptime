@@ -407,18 +407,13 @@ const App: () => JSX.Element = () => {
         );
         setenableEmailSubscribers(enableEmailSubscribers);
 
+        /*
+         * Kept for this page alone, under its id, which the master page set
+         * for this tab before it handed the page's settings over.
+         */
         StatusPageUtil.setIsPrivateStatusPage(isPrivateStatusPage);
         setIsPrivateStatusPage(isPrivateStatusPage);
         StatusPageUtil.setRequiresMasterPassword(enableMasterPassword);
-
-        const statusPageId: string | null = JSONFunctions.getJSONValueInPath(
-          masterpage || {},
-          "statusPage._id",
-        ) as string | null;
-
-        StatusPageUtil.setStatusPageId(
-          statusPageId ? new ObjectID(statusPageId.toString()) : null,
-        );
 
         setStatusPageName(statusPageName || "Status Page");
 

@@ -290,7 +290,7 @@ OneUptime herkent deze `iot_*`-metricnamen. Stuur alleen de namen die voor je ap
 
 1. Controleer of het apparaat, de collector van de gateway of de MQTT-client zonder fouten verstuurt: zoek in de logs naar exportfouten en HTTP-antwoorden `401` of `422`, of naar een verbinding die met returncode 4 is geweigerd.
 2. Open **Producten → Infrastructuur → IoT → All Fleets**. De vloot verschijnt binnen ongeveer een minuut na de eerste metingen als `iot/<fleet>`.
-3. Open de pagina **Devices** van de vloot. Elk apparaat waarvoor je hebt verstuurd, hoort te staan met zijn laatste batterij, signaal, temperatuur, CPU, geheugen en up- of down-status.
+3. Open de pagina **Apparaten** van de vloot. Elk apparaat waarvoor je hebt verstuurd, hoort te staan met zijn laatste batterij, signaal, temperatuur, CPU, geheugen en up- of down-status.
 4. Open de pagina **Metrieken** van de vloot om een van de `iot_*`-series in een grafiek te tonen.
 
 ## Zelf-gehoste OneUptime

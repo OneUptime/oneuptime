@@ -100,7 +100,7 @@ I tillegg til datalagrene dimensjonerer du de tilstandsløse arbeidslastene. Hve
 | Ingress-gateway | `nginx` | Mengden forespørsler |
 | Telemetry writer, når den er slått på | `telemetryWriter` | Ikke med lasten: Den samler hvert telemetri-innsett i ClickHouse, så den dimensjoneres etter hva ClickHouse tåler |
 
-Chartet inneholder **KEDA**, slik at appen, workerne, probene og Runner kan skalere etter køetterslepet sitt. Slå på `keda.enabled` sammen med hver tjenestes egen `keda.enabled` (for eksempel `app.keda.enabled`). På et cluster som ennå ikke har KEDA, trenger den første installasjonen en ekstra runde: Se chartets [KEDA-veiledning](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Docs/Keda.md). Tjenester som KEDA ikke styrer, kan i stedet bruke en autoskalerer basert på CPU eller minne (`autoscaling`).
+Chartet inneholder **KEDA**, slik at appen, workerne, probene og den globale Runneren kan skalere etter køetterslepet sitt. Slå på `keda.enabled` sammen med hver tjenestes egen `keda.enabled` (for eksempel `app.keda.enabled`). På et cluster som ennå ikke har KEDA, trenger den første installasjonen en ekstra runde: Se chartets [KEDA-veiledning](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Docs/Keda.md). Tjenester som KEDA ikke styrer, kan i stedet bruke en autoskalerer basert på CPU eller minne (`autoscaling`).
 
 ## Startnivåer
 

@@ -167,7 +167,7 @@ Gli errori di convalida, configurazione, accesso, limite, crediti, concorrenza, 
 I workflow rispettano il controllo degli accessi basato sui ruoli del tuo progetto. I tre ruoli dei workflow:
 
 - **Amministratore dei flussi di lavoro** — costruisce i workflow: li crea, li modifica, li esegue e li elimina, e gestisce le variabili che usano.
-- **Membro dei flussi di lavoro** — li usa: apre i workflow e le loro esecuzioni, ed esegue un workflow a mano con **Esegui flusso di lavoro**. Un membro non può creare, modificare o eliminare un workflow, né eseguire da solo uno dei suoi passaggi.
+- **Membro dei flussi di lavoro** — li usa: apre i workflow e le loro esecuzioni, ed esegue un workflow a mano con **Esegui flusso di lavoro**. Un membro non può creare, modificare o eliminare un workflow, né eseguire da solo uno dei suoi passaggi. Il **Costruttore** mostra loro un workflow così com'è, contrassegnato **Sola lettura**: un passaggio si apre per essere letto, e nulla di ciò che vi fanno viene salvato.
 - **Visualizzatore dei flussi di lavoro** — legge i workflow e le loro esecuzioni.
 
 **Proprietario del progetto** e **Amministratore del progetto** possono fare tutto ciò che può fare un Workflow Admin. **Membro del progetto** può creare ed eliminare workflow, ma non modificarli né eseguirli.
@@ -214,7 +214,7 @@ Su OneUptime Cloud i workflow richiedono il piano Growth o superiore, e ogni pia
 | Scale      | 2.000                             |
 | Enterprise | Nessun limite pratico             |
 
-La finestra scorre: ogni esecuzione registrata dal progetto, a mano o da un trigger, conta per 30 giorni. Sui piani Growth e Scale, la pagina **Flussi di lavoro** mostra una scheda **Esecuzioni del flusso di lavoro** con quante ne ha usate il progetto. Una volta raggiunto il limite, le nuove esecuzioni vengono registrate con lo stato **Execution Exceeded Current Plan** e non vengono eseguite, e lo stesso accade finché l'abbonamento non è pagato. Le installazioni self-hosted senza fatturazione non hanno limiti.
+La finestra scorre: ogni esecuzione registrata dal progetto, a mano o da un trigger, conta per 30 giorni. Sui piani Growth e Scale, la pagina **Flussi di lavoro** mostra una scheda **Esecuzioni del flusso di lavoro** con quante ne ha usate il progetto. Una volta raggiunto il limite, le nuove esecuzioni vengono registrate con lo stato **Execution Exceeded Current Plan** e non vengono eseguite, e lo stesso accade finché l'abbonamento non è pagato. Le installazioni self-hosted senza fatturazione non hanno limiti. Su un piano che non esegue workflow, il **Costruttore** e la pagina **Flussi di lavoro** lo dicono, con un link per passare a un piano superiore.
 
 ## Quanto può durare un'esecuzione
 

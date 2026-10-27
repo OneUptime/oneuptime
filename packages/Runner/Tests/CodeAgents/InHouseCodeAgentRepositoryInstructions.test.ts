@@ -9,9 +9,9 @@
  *
  * These drive the REAL agent over a REAL git repository on disk with the
  * server's completion endpoint stubbed, and read the system prompt the agent
- * actually sent. Runner scope is decided at import time
- * (Config.IS_CLUSTER_SCOPED), so each scope reloads the modules, as
- * SharedRunnerCommandSafety.test.ts does.
+ * actually sent. Whether the Runner is global is what the server said
+ * (GlobalRunnerMode), so each case reloads the modules and sets it on the
+ * fresh copy, as GlobalRunnerCommandSafety.test.ts does.
  * ---------------------------------------------------------------------------
  */
 
@@ -92,18 +92,16 @@ function makeRepository(files: Record<string, string>): string {
   return dir;
 }
 
-const savedSecret: string | undefined = process.env["ONEUPTIME_SECRET"];
-
-function loadAgent(clusterKey: string | null): typeof InHouseCodeAgentType {
+function loadAgent(isGlobalRunner: boolean): typeof InHouseCodeAgentType {
   jest.resetModules();
 
-  if (clusterKey === null) {
-    delete process.env["ONEUPTIME_SECRET"];
-  } else {
-    process.env["ONEUPTIME_SECRET"] = clusterKey;
-  }
-
   /* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
+  (
+    require("../../Utils/GlobalRunnerMode") as {
+      default: { setFromServer: (isGlobalRunner: boolean) => void };
+    }
+  ).default.setFromServer(isGlobalRunner);
+
   return (
     require("../../CodeAgents/InHouseCodeAgent") as {
       default: typeof InHouseCodeAgentType;
@@ -114,7 +112,7 @@ function loadAgent(clusterKey: string | null): typeof InHouseCodeAgentType {
 
 // Runs one task whose model answers at once, and returns its system prompt.
 async function systemPromptFor(data: {
-  clusterKey: string | null;
+  isGlobalRunner: boolean;
   repository: string;
   task?: Partial<CodeAgentTask>;
 }): Promise<{ prompt: string; tools: Array<string> }> {
@@ -132,7 +130,7 @@ async function systemPromptFor(data: {
   });
 
   const InHouseCodeAgent: typeof InHouseCodeAgentType = loadAgent(
-    data.clusterKey,
+    data.isGlobalRunner,
   );
   const agent: InHouseCodeAgentType = new InHouseCodeAgent();
   await agent.initialize({ taskId: "run-1" });
@@ -165,25 +163,17 @@ afterEach(() => {
 });
 
 afterAll(() => {
-  if (savedSecret === undefined) {
-    delete process.env["ONEUPTIME_SECRET"];
-  } else {
-    process.env["ONEUPTIME_SECRET"] = savedSecret;
-  }
-
   for (const dir of temporaryPaths) {
     fs.rmSync(dir, { recursive: true, force: true });
   }
 });
-
-const CLUSTER_KEY: string = "a-long-random-cluster-key-for-the-test";
 
 describe("on a Runner of the project's own", () => {
   test("the agent is told the repository's AGENTS.md, then to build and test its change that way", async () => {
     const repository: string = makeRepository({ "AGENTS.md": AGENTS_MD });
 
     const { prompt, tools } = await systemPromptFor({
-      clusterKey: null,
+      isGlobalRunner: false,
       repository,
     });
 
@@ -211,7 +201,7 @@ describe("on a Runner of the project's own", () => {
     const repository: string = makeRepository({ "CLAUDE.md": AGENTS_MD });
 
     const { prompt } = await systemPromptFor({
-      clusterKey: null,
+      isGlobalRunner: false,
       repository,
     });
 
@@ -223,7 +213,7 @@ describe("on a Runner of the project's own", () => {
     const repository: string = makeRepository({ "README.md": "# app\n" });
 
     const { prompt } = await systemPromptFor({
-      clusterKey: null,
+      isGlobalRunner: false,
       repository,
     });
 
@@ -238,7 +228,7 @@ describe("on a Runner of the project's own", () => {
     const repository: string = makeRepository({ "AGENTS.md": AGENTS_MD });
 
     const { prompt } = await systemPromptFor({
-      clusterKey: null,
+      isGlobalRunner: false,
       repository,
       task: { skipsChangeChecks: true },
     });
@@ -258,7 +248,7 @@ describe("on a Runner of the project's own", () => {
     );
 
     const { prompt } = await systemPromptFor({
-      clusterKey: null,
+      isGlobalRunner: false,
       repository,
     });
 
@@ -270,7 +260,7 @@ describe("on a Runner of the project's own", () => {
     infoMock.mockReset();
     const repository: string = makeRepository({ "AGENTS.md": AGENTS_MD });
 
-    await systemPromptFor({ clusterKey: null, repository });
+    await systemPromptFor({ isGlobalRunner: false, repository });
 
     const logged: string = infoMock.mock.calls
       .map((call: Array<unknown>): string => {
@@ -284,12 +274,12 @@ describe("on a Runner of the project's own", () => {
   });
 });
 
-describe("on the shared Runner, which runs no command", () => {
+describe("on a global Runner, which runs no command", () => {
   test("the agent follows the repository's conventions, and is never told to run a command", async () => {
     const repository: string = makeRepository({ "AGENTS.md": AGENTS_MD });
 
     const { prompt, tools } = await systemPromptFor({
-      clusterKey: CLUSTER_KEY,
+      isGlobalRunner: true,
       repository,
     });
 

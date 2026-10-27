@@ -1,8 +1,11 @@
 # The bundled global Runner (templates/global-runner.yaml) runs the runbook
-# JavaScript steps of every project that uses global Runners. It is the Runner
-# image started with the fixed id of Common/Types/Runner/BundledGlobalRunner.ts
-# and its own key, and it holds NOTHING else: no cluster key, none of the
-# server's settings, no ServiceAccount token, never the chart-wide extraEnv.
+# JavaScript steps and the AI code fixes of every project that uses global
+# Runners, and never a repository's own commands. It took over the AI code
+# fixes of the shared Runner, which the chart no longer runs
+# (tests/shared-runner-retired_test.yaml). It is the Runner image started with
+# the fixed id of Common/Types/Runner/BundledGlobalRunner.ts and its own key,
+# and it holds NOTHING else: no cluster key, none of the server's settings, no
+# ServiceAccount token, never the chart-wide extraEnv.
 # The server's pods get the same key as GLOBAL_RUNNER_KEY (the App keeps the
 # global Runner's row from it on every boot, the migrate Job included), and
 # only while the global Runner is on: without it the row is removed, so no
@@ -16,7 +19,6 @@ templates:
   - templates/app.yaml
   - templates/worker.yaml
   - templates/migrate-job.yaml
-  - templates/runner.yaml
 tests:
   # ---------------------------------------------------------------------------
   # On by default, as the bundled global probes are.
@@ -84,20 +86,29 @@ tests:
             name: ONEUPTIME_RUNNER_CONCURRENCY
             value: "10"
 
-  - it: turns code fixes and AI commands off on the host, whatever the server says
+  # The server grants global Runners code fixes and never AI commands. A host
+  # override of "false" would refuse the code fixes the global Runner does in
+  # place of the shared Runner, so there is none; AI commands stay off on the
+  # host too.
+  - it: leaves code fixes to the server, and turns AI commands off on the host
     templates:
       - templates/global-runner.yaml
     asserts:
-      - contains:
+      - notContains:
           path: spec.template.spec.containers[0].env
+          any: true
           content:
             name: ONEUPTIME_RUNNER_ENABLE_CODE_FIXES
-            value: "false"
       - contains:
           path: spec.template.spec.containers[0].env
           content:
             name: ONEUPTIME_RUNNER_ENABLE_AI_COMMANDS
             value: "false"
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          any: true
+          content:
+            name: ONEUPTIME_RUNNER_SHARED
 
   # ---------------------------------------------------------------------------
   # It holds its own key and nothing else.
@@ -121,7 +132,19 @@ tests:
       encryptionSecret: an-encryption-secret-value
       gitHubApp.privateKey: a-github-app-private-key
       registerProbeKey: a-register-probe-key
+      billing.privateKey: a-billing-private-key
+      slackApp.clientSecret: a-slack-client-secret
     asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          any: true
+          content:
+            name: BILLING_PRIVATE_KEY
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          any: true
+          content:
+            name: SLACK_APP_CLIENT_SECRET
       - notContains:
           path: spec.template.spec.containers[0].env
           any: true
@@ -157,6 +180,32 @@ tests:
           any: true
           content:
             name: GLOBAL_RUNNER_KEY
+
+  - it: the app, by contrast, still holds the server's secrets (the trim is the global Runner's alone)
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      encryptionSecret: an-encryption-secret-value
+      gitHubApp.privateKey: a-github-app-private-key
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          any: true
+          content:
+            name: ONEUPTIME_SECRET
+      - contains:
+          path: spec.template.spec.containers[0].env
+          any: true
+          content:
+            name: ENCRYPTION_SECRET
+      - contains:
+          path: spec.template.spec.containers[0].env
+          any: true
+          content:
+            name: GITHUB_APP_PRIVATE_KEY
 
   - it: carries no ServiceAccount token
     templates:
@@ -275,21 +324,6 @@ tests:
                 name: oneuptime-secrets
                 key: global-runner-key
 
-  - it: never hands the global Runner's key to the shared code-fix Runner
-    templates:
-      - templates/runner.yaml
-    documentSelector:
-      path: kind
-      value: Deployment
-    set:
-      runner.enabled: true
-    asserts:
-      - notContains:
-          path: spec.template.spec.containers[0].env
-          any: true
-          content:
-            name: GLOBAL_RUNNER_KEY
-
   - it: a literal key reaches the global Runner
     templates:
       - templates/global-runner.yaml
@@ -384,6 +418,86 @@ tests:
       - templates/global-runner.yaml
     set:
       deployment.disableDeployments: true
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  # ---------------------------------------------------------------------------
+  # KEDA: the global Runner scales on the AI code-fix tasks waiting for it
+  # (globalRunner.keda, keda-scaledobjects.yaml, tests/keda-scaledobjects_test.yaml).
+  # KEDA reads the queue from the global Runner's own /metrics/queue-size, so
+  # the Runner gets a Service while KEDA scales it - and only then: nothing
+  # else calls it. And the Deployment leaves the count to KEDA, so an upgrade
+  # does not set it back.
+  # ---------------------------------------------------------------------------
+  - it: has no Service and a fixed count while KEDA does not scale it
+    templates:
+      - templates/global-runner.yaml
+    set:
+      keda.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: Deployment
+      - equal:
+          path: spec.replicas
+          value: 1
+
+  - it: gets a Service at its http port while KEDA scales it
+    templates:
+      - templates/global-runner.yaml
+    set:
+      keda.enabled: true
+      globalRunner.keda.enabled: true
+    documentSelector:
+      path: kind
+      value: Service
+    asserts:
+      - equal:
+          path: metadata.name
+          value: oneuptime-global-runner
+      - equal:
+          path: spec.selector
+          value:
+            app: oneuptime-global-runner
+      - equal:
+          path: spec.ports
+          value:
+            - port: 3877
+              targetPort: 3877
+              name: http
+      - equal:
+          path: spec.type
+          value: ClusterIP
+
+  - it: leaves the count to KEDA while KEDA scales it
+    templates:
+      - templates/global-runner.yaml
+    set:
+      keda.enabled: true
+      globalRunner.keda.enabled: true
+      globalRunner.replicaCount: 3
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - notExists:
+          path: spec.replicas
+      - contains:
+          path: spec.template.spec.containers[0].ports
+          content:
+            containerPort: 3877
+            protocol: TCP
+            name: http
+
+  - it: renders nothing for KEDA while the global Runner is off
+    templates:
+      - templates/global-runner.yaml
+    set:
+      keda.enabled: true
+      globalRunner.enabled: false
+      globalRunner.keda.enabled: true
     asserts:
       - hasDocuments:
           count: 0

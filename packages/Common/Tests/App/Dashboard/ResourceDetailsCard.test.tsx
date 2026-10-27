@@ -26,11 +26,14 @@ import KubernetesClusterSettings from "../../../../App/FeatureSet/Dashboard/src/
 import ProxmoxClusterSettings from "../../../../App/FeatureSet/Dashboard/src/Pages/Proxmox/View/Settings";
 import RumApplicationSettings from "../../../../App/FeatureSet/Dashboard/src/Pages/Rum/View/Settings";
 import ServiceSettings from "../../../../App/FeatureSet/Dashboard/src/Pages/Service/View/Settings";
+import CloudAccountSettings from "../../../../App/FeatureSet/Dashboard/src/Pages/Cloud/Accounts/View/Settings";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap, {
   RouteUtil,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
+import CloudAccount from "../../../Models/DatabaseModels/CloudAccount";
+import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
 import CloudResource from "../../../Models/DatabaseModels/CloudResource";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Host from "../../../Models/DatabaseModels/Host";
@@ -419,6 +422,67 @@ describe("a resource matched on its name", () => {
   });
 });
 
+/*
+ * A cloud account is matched on its cloud and its id there, which only its
+ * connections write: both shown, never offered for editing - and its cloud
+ * in words ("AWS"), not as it is kept ("aws").
+ */
+describe("a cloud account's details card", () => {
+  beforeEach(() => {
+    const account: CloudAccount = new CloudAccount();
+    account._id = MODEL_ID.toString();
+    account.name = "Production";
+    account.provider = CloudProvider.AWS;
+    account.accountId = "123456789012";
+    account.providerAccountName = "acme-production";
+    stored = account;
+  });
+
+  test("names its cloud in words, its id and its name there", async () => {
+    openSettings(CloudAccountSettings, PageMap.CLOUD_ACCOUNT_VIEW_SETTINGS);
+    await screen.findByText("Production", {}, { timeout: WAIT_TIMEOUT });
+
+    const details: HTMLElement = card("Account Details");
+    expect(within(details).getByText("Cloud")).toBeInTheDocument();
+    expect(within(details).getByText("AWS")).toBeInTheDocument();
+    expect(within(details).queryByText("aws")).not.toBeInTheDocument();
+    expect(within(details).getByText("123456789012")).toBeInTheDocument();
+    expect(within(details).getByText("acme-production")).toBeInTheDocument();
+  });
+
+  test("an Azure subscription and a Google Cloud project are named as their clouds", async () => {
+    (stored as CloudAccount).provider = CloudProvider.Azure;
+    openSettings(CloudAccountSettings, PageMap.CLOUD_ACCOUNT_VIEW_SETTINGS);
+    await screen.findByText("Production", {}, { timeout: WAIT_TIMEOUT });
+    expect(
+      within(card("Account Details")).getByText("Azure"),
+    ).toBeInTheDocument();
+
+    cleanup();
+    (stored as CloudAccount).provider = CloudProvider.GCP;
+    openSettings(CloudAccountSettings, PageMap.CLOUD_ACCOUNT_VIEW_SETTINGS);
+    await screen.findByText("Production", {}, { timeout: WAIT_TIMEOUT });
+    expect(
+      within(card("Account Details")).getByText("Google Cloud"),
+    ).toBeInTheDocument();
+  });
+
+  test("its Edit dialog offers its name, description and labels, never its cloud or id", async () => {
+    openSettings(CloudAccountSettings, PageMap.CLOUD_ACCOUNT_VIEW_SETTINGS);
+    await screen.findByText("Production", {}, { timeout: WAIT_TIMEOUT });
+
+    const dialog: HTMLElement = await openEditDialog();
+    expect(isFolded(dialog, "Display Name")).toBe(false);
+    expect(
+      within(dialog).queryByText("Account ID", { exact: true }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(dialog).queryByText("Cloud", { exact: true }),
+    ).not.toBeInTheDocument();
+    expect(isFolded(dialog, "Labels")).toBe(true);
+  });
+});
+
 describe("which identifiers a person may change", () => {
   test("follows each column's update permissions", () => {
     expect(isResourceColumnEditable(Host, "hostIdentifier")).toBe(true);
@@ -433,6 +497,9 @@ describe("which identifiers a person may change", () => {
     ).toBe(false);
     for (const column of ["cloudPlatform", "cloudAccountId", "cloudRegion"]) {
       expect(isResourceColumnEditable(CloudResource, column)).toBe(false);
+    }
+    for (const column of ["provider", "accountId"]) {
+      expect(isResourceColumnEditable(CloudAccount, column)).toBe(false);
     }
   });
 });

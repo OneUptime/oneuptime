@@ -13,14 +13,16 @@ import ObjectID from "Common/Types/ObjectID";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import {
   BulkActionButtonSchema,
-  BulkActionFailed,
   BulkActionOnClickProps,
 } from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
+import {
+  BULK_ACTION_CONCURRENCY,
+  runBulkAction,
+} from "Common/UI/Components/BulkUpdate/BulkActionRunner";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import Modal from "Common/UI/Components/Modal/Modal";
-import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import PermissionGate, {
   ModelAction,
@@ -139,23 +141,19 @@ function useBulkOidTemplateActions(): BulkOidTemplateActionsResult {
     actionProps: BulkActionOnClickProps<NetworkDevice>,
     data: ApplyOidTemplateData,
   ): Promise<void> => {
-    const { items, onProgressInfo, onBulkActionStart, onBulkActionEnd } =
-      actionProps;
-
     // Close the form modal first so the progress modal is visible.
     setShowSetModal(false);
 
-    onBulkActionStart();
-
-    const totalItems: Array<NetworkDevice> = [...items];
-    const inProgressItems: Array<NetworkDevice> = [...items];
-    const successItems: Array<NetworkDevice> = [];
-    const failedItems: Array<BulkActionFailed<NetworkDevice>> = [];
-
-    for (const item of totalItems) {
-      inProgressItems.splice(inProgressItems.indexOf(item), 1);
-
-      try {
+    /*
+     * Through the shared runner (progress, Stop, failures by device), several
+     * devices at once: a device's OID template is its own polling setting,
+     * as its vendor template's health OIDs are
+     * (APPLY_VENDOR_TEMPLATE_CONCURRENCY).
+     */
+    await runBulkAction<NetworkDevice>({
+      actionProps: actionProps,
+      concurrency: BULK_ACTION_CONCURRENCY,
+      step: async (item: NetworkDevice): Promise<void> => {
         if (!item.id) {
           throw new BadDataException("Item ID not found");
         }
@@ -179,24 +177,9 @@ function useBulkOidTemplateActions(): BulkOidTemplateActionsResult {
           modelType: NetworkDevice,
           data: updateData,
         });
+      },
+    });
 
-        successItems.push(item);
-      } catch (err) {
-        failedItems.push({
-          item: item,
-          failedMessage: API.getFriendlyMessage(err),
-        });
-      }
-
-      onProgressInfo({
-        totalItems: totalItems,
-        failed: failedItems,
-        successItems: successItems,
-        inProgressItems: inProgressItems,
-      });
-    }
-
-    onBulkActionEnd();
     setBulkActionProps(null);
   };
 

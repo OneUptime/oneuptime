@@ -25,9 +25,10 @@ services:
     # PostgreSQL is published on this server's loopback address only, for
     # npm run backup, restore.sh and psql on the server: no other machine
     # reaches it. To reach it from another machine, use an SSH tunnel, or see
-    # "Back up and restore" in the Docker Compose guide.
+    # "Back up and restore" in the Docker Compose guide. DATABASE_PUBLISHED_PORT
+    # in config.env moves it off 5400 when another program holds that port.
     ports:
-      - "127.0.0.1:5400:5432"
+      - "127.0.0.1:${DATABASE_PUBLISHED_PORT:-5400}:5432"
     extends:
       file: ./docker-compose.base.yml
       service: postgres
@@ -45,14 +46,6 @@ services:
     extends:
       file: ./docker-compose.base.yml
       service: probe-1
-    depends_on:
-      <<: *common-depends-on
-
-  runner:
-    image: oneuptime/runner:${APP_TAG}
-    extends:
-      file: ./docker-compose.base.yml
-      service: runner
     depends_on:
       <<: *common-depends-on
 

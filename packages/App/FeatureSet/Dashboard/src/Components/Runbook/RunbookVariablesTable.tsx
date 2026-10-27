@@ -9,6 +9,7 @@ import {
   GLOBAL_RUNNERS_TEXT,
   GLOBAL_VARIABLES_DESCRIPTION,
   GLOBAL_VARIABLES_EMPTY,
+  GLOBAL_VARIABLES_EMPTY_READ_ONLY,
   GLOBAL_VARIABLES_TITLE,
   NAME_DESCRIPTION,
   NEW_VALUE_TITLE,
@@ -125,6 +126,18 @@ const RunbookVariablesTable: FunctionComponent<ComponentProps> = (
     new RunbookVariable(),
     ModelAction.Update,
   );
+
+  /*
+   * Whether the reader may add a variable: an empty list tells someone who
+   * may not (a Runbook Admin, who reads variables to pick them in steps)
+   * who adds them, rather than to add one. Before the permission snapshot
+   * lands, nobody is told they may not.
+   */
+  const createGate: PermissionGateResult = PermissionGate.check(
+    new RunbookVariable(),
+    ModelAction.Create,
+  );
+  const mayCreate: boolean = createGate.isAllowed || !createGate.disabledReason;
 
   useAsyncEffect(async () => {
     const [globalRunners, projectUsesGlobalRunners]: [
@@ -288,7 +301,11 @@ const RunbookVariablesTable: FunctionComponent<ComponentProps> = (
           ),
         }}
         noItemsMessage={
-          isGlobal ? GLOBAL_VARIABLES_EMPTY : RUNBOOK_VARIABLES_EMPTY
+          isGlobal
+            ? mayCreate
+              ? GLOBAL_VARIABLES_EMPTY
+              : GLOBAL_VARIABLES_EMPTY_READ_ONLY
+            : RUNBOOK_VARIABLES_EMPTY
         }
         /*
          * A new variable starts secret: what runbooks keep here is mostly

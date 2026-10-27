@@ -6,8 +6,10 @@ import {
   beforeAll,
   describe,
   expect,
+  jest,
   test,
 } from "@jest/globals";
+import { Mock } from "jest-mock";
 import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 import fs from "fs";
@@ -23,7 +25,11 @@ import ObjectID from "../../../Types/ObjectID";
 import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
 import { DropdownOption } from "../../../UI/Components/Dropdown/Dropdown";
 import CriteriaFilterUtil from "../../../../App/FeatureSet/Dashboard/src/Utils/Form/Monitor/CriteriaFilter";
-import ExternalStatusPageMonitorView from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/SummaryView/ExternalStatusPageMonitorView";
+import ExternalStatusPageMonitorView, {
+  EXTERNAL_STATUS_PAGE_OUTSIDE_INCIDENTS_TEST_ID,
+  EXTERNAL_STATUS_PAGE_UNMATCHED_TEST_ID,
+  getWatchedComponentNames,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/SummaryView/ExternalStatusPageMonitorView";
 import SummaryInfo from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/SummaryView/SummaryInfo";
 
 /*
@@ -388,6 +394,7 @@ describe("the facts", () => {
   });
 
   test.each([
+    // A check by a probe that has not been upgraded: its one filter.
     [
       { componentGroupName: "Core", componentName: "Checkout" },
       "Core › Checkout",
@@ -395,16 +402,45 @@ describe("the facts", () => {
     [{ componentGroupName: "Core" }, "Group: Core"],
     [{ componentName: "Checkout" }, "Component: Checkout"],
     [{}, "All components"],
+    // Issue #5156: the components the monitor chose.
+    [{ componentNames: [] }, "All components"],
+    [{ componentGroupName: "Core", componentNames: [] }, "Group: Core"],
+    [{ componentNames: ["Checkout API"] }, "Component: Checkout API"],
+    [
+      { componentGroupName: "Core", componentNames: ["Checkout API"] },
+      "Core › Checkout API",
+    ],
+    [
+      { componentNames: ["Checkout API", "Orders database", "Payments"] },
+      "3 chosen components",
+    ],
+    [
+      {
+        componentGroupName: "Core",
+        componentNames: ["Checkout API", "Orders database"],
+      },
+      "Core › 2 chosen components",
+    ],
+    // The list wins over the one name an older probe would read.
+    [
+      { componentNames: ["*Checkout*"], componentName: "Checkout" },
+      "Component: *Checkout*",
+    ],
   ])(
     "the scope of %p reads %p",
     (
-      scope: { componentGroupName?: string; componentName?: string },
+      scope: {
+        componentGroupName?: string;
+        componentName?: string;
+        componentNames?: Array<string>;
+      },
       expected: string,
     ) => {
       renderView(
         pageResponse({
           componentGroupName: scope.componentGroupName,
           componentName: scope.componentName,
+          componentNames: scope.componentNames,
         }),
       );
 
@@ -413,6 +449,76 @@ describe("the facts", () => {
       );
     },
   );
+
+  /*
+   * The page's names are its own words, each drawn in its own direction: on
+   * a Persian page an English group name took the count after it into its
+   * run ("2 › Core", then the sentence). The count and the sentence stay
+   * outside them.
+   */
+  test("draws the group's and the components' names each in its own direction, the count outside them", () => {
+    renderView(
+      pageResponse({
+        componentGroupName: "Core",
+        componentNames: ["Checkout API", "Orders database"],
+      }),
+    );
+
+    const value: HTMLElement = factValue("external-status-page-page-facts", 3);
+    const isolated: Array<string> = Array.from(
+      value.querySelectorAll("bdi"),
+    ).map((element: Element): string => {
+      return element.textContent || "";
+    });
+
+    expect(isolated).toEqual(["Core"]);
+    expect(value).toHaveTextContent("Core › 2 chosen components");
+
+    cleanup();
+    renderView(
+      pageResponse({
+        componentGroupName: "Core",
+        componentNames: ["Checkout API"],
+      }),
+    );
+
+    expect(
+      Array.from(
+        factValue("external-status-page-page-facts", 3).querySelectorAll("bdi"),
+      ).map((element: Element): string => {
+        return element.textContent || "";
+      }),
+    ).toEqual(["Core", "Checkout API"]);
+
+    cleanup();
+    renderView(
+      pageResponse({
+        componentGroupName: undefined,
+        componentNames: ["Checkout API"],
+      }),
+    );
+
+    const component: HTMLElement = factValue(
+      "external-status-page-page-facts",
+      3,
+    );
+
+    expect(component).toHaveTextContent("Component: Checkout API");
+    expect(component.querySelector("bdi")).toHaveTextContent("Checkout API");
+  });
+
+  test("what a check watched: its chosen components, else its one filter, else the whole page", () => {
+    expect(
+      getWatchedComponentNames(
+        pageResponse({ componentNames: ["A", "B"], componentName: "A" }),
+      ),
+    ).toEqual(["A", "B"]);
+    expect(
+      getWatchedComponentNames(pageResponse({ componentName: "Checkout" })),
+    ).toEqual(["Checkout"]);
+    expect(getWatchedComponentNames(pageResponse())).toEqual([]);
+    expect(getWatchedComponentNames(undefined)).toEqual([]);
+  });
 
   /*
    * One a row on a phone, two to a row from 22rem, four once the view
@@ -455,6 +561,174 @@ describe("the facts", () => {
       "break-words",
       "[@container(min-width:32rem)]:text-base",
     );
+  });
+});
+
+/*
+ * Issue #5156: a monitor that watches some components of a page counts
+ * only their incidents. The summary says how many more the page has, so a
+ * quiet monitor during an outage elsewhere reads as one that left it out,
+ * and names the chosen components the page does not list.
+ */
+describe("what the scope leaves out", () => {
+  test("the incidents on the page it did not count, under the count", () => {
+    renderView(
+      pageResponse({
+        componentNames: ["Checkout API"],
+        activeIncidentCount: 1,
+        incidentsOutsideScopeCount: 2,
+      }),
+    );
+
+    const value: HTMLElement = factValue("external-status-page-page-facts", 2);
+
+    expect(value.textContent?.startsWith("1")).toBe(true);
+    expect(
+      within(value).getByTestId(EXTERNAL_STATUS_PAGE_OUTSIDE_INCIDENTS_TEST_ID),
+    ).toHaveTextContent("2 more on the page, not counted");
+  });
+
+  test("none left out: the count alone", () => {
+    renderView(pageResponse({ activeIncidentCount: 3 }));
+
+    expect(
+      screen.queryByTestId(EXTERNAL_STATUS_PAGE_OUTSIDE_INCIDENTS_TEST_ID),
+    ).toBeNull();
+    expect(factValue("external-status-page-page-facts", 2).textContent).toBe(
+      "3",
+    );
+  });
+
+  test("the chosen components the page does not list are named, after the page's facts", () => {
+    renderView(
+      pageResponse({
+        componentNames: ["Checkout API", "Payments", "*Kubernetes*"],
+        unmatchedComponentNames: ["Payments", "*Kubernetes*"],
+      }),
+    );
+
+    const warning: HTMLElement = screen.getByTestId(
+      EXTERNAL_STATUS_PAGE_UNMATCHED_TEST_ID,
+    );
+
+    // The monitor watches the Core group: the names are missing from it.
+    expect(warning).toHaveTextContent(
+      "Not in Core, so not watched: Payments, *Kubernetes*",
+    );
+    expect(
+      screen
+        .getByTestId("external-status-page-page-facts")
+        .compareDocumentPosition(warning) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  /*
+   * Icon draws a div: inside a paragraph it is markup a browser may not
+   * keep, and React warned "validateDOMNesting" on every Summary, Test
+   * Monitor result and View Summary that named a missing component.
+   */
+  test("the warning is no paragraph holding a div, and React warns of no nesting", () => {
+    const consoleError: Mock<(...args: Array<unknown>) => void> =
+      jest.fn<(...args: Array<unknown>) => void>();
+
+    jest.spyOn(console, "error").mockImplementation(consoleError);
+
+    try {
+      renderView(
+        pageResponse({
+          componentNames: ["Checkout API", "Payments"],
+          unmatchedComponentNames: ["Payments"],
+        }),
+      );
+
+      const warning: HTMLElement = screen.getByTestId(
+        EXTERNAL_STATUS_PAGE_UNMATCHED_TEST_ID,
+      );
+
+      expect(warning.tagName).toBe("DIV");
+      expect(
+        screen
+          .getByTestId("external-status-page-summary")
+          .querySelectorAll("p div"),
+      ).toHaveLength(0);
+      expect(
+        consoleError.mock.calls.filter((args: Array<unknown>): boolean => {
+          return args.some((arg: unknown): boolean => {
+            return String(arg).includes("validateDOMNesting");
+          });
+        }),
+      ).toEqual([]);
+    } finally {
+      jest.restoreAllMocks();
+    }
+  });
+
+  /*
+   * A name the page lists in another group is on the page all the same:
+   * with a group set, the warning says the names are missing from the
+   * group; with none, from the page. The group's and the names' words are
+   * the page's, each isolated (a bdi), so a right-to-left sentence keeps
+   * them whole.
+   */
+  test("says where the names are missing from: the group with one set, else the page", () => {
+    renderView(
+      pageResponse({
+        componentGroupName: "Europe (Frankfurt)",
+        componentNames: ["Checkout API", "Payments API"],
+        unmatchedComponentNames: ["Payments API"],
+      }),
+    );
+
+    const inGroup: HTMLElement = screen.getByTestId(
+      EXTERNAL_STATUS_PAGE_UNMATCHED_TEST_ID,
+    );
+
+    expect(inGroup).toHaveTextContent(
+      "Not in Europe (Frankfurt), so not watched: Payments API",
+    );
+    expect(
+      Array.from(inGroup.querySelectorAll("bdi")).map(
+        (bdi: Element): string => {
+          return bdi.textContent || "";
+        },
+      ),
+    ).toEqual(["Europe (Frankfurt)", "Payments API"]);
+
+    cleanup();
+
+    renderView(
+      pageResponse({
+        componentGroupName: undefined,
+        componentNames: ["Checkout API", "Payments API", "Webhook"],
+        unmatchedComponentNames: ["Payments API", "Webhook"],
+      }),
+    );
+
+    const onPage: HTMLElement = screen.getByTestId(
+      EXTERNAL_STATUS_PAGE_UNMATCHED_TEST_ID,
+    );
+
+    expect(onPage).toHaveTextContent(
+      "Not on this page, so not watched: Payments API, Webhook",
+    );
+    expect(
+      Array.from(onPage.querySelectorAll("bdi")).map((bdi: Element): string => {
+        return bdi.textContent || "";
+      }),
+    ).toEqual(["Payments API, Webhook"]);
+  });
+
+  test("every chosen component on the page: no warning", () => {
+    renderView(
+      pageResponse({
+        componentNames: ["Checkout API"],
+        unmatchedComponentNames: [],
+      }),
+    );
+
+    expect(
+      screen.queryByTestId(EXTERNAL_STATUS_PAGE_UNMATCHED_TEST_ID),
+    ).toBeNull();
   });
 });
 
@@ -537,6 +811,47 @@ describe("in German", () => {
     expect(
       screen.getByRole("list", { name: DE["Component Statuses"]! }),
     ).toBeInTheDocument();
+  });
+
+  test("names missing from the group: the German sentence, the group and the names isolated in it", () => {
+    renderView(
+      pageResponse({
+        componentNames: ["Checkout API", "Payments API"],
+        unmatchedComponentNames: ["Payments API"],
+      }),
+    );
+
+    expect(
+      screen.getByTestId(EXTERNAL_STATUS_PAGE_UNMATCHED_TEST_ID),
+    ).toHaveTextContent(
+      DE["Not in {{group}}, so not watched: {{names}}"]!.replace(
+        "{{group}}",
+        "Core",
+      ).replace("{{names}}", "Payments API"),
+    );
+    expect(DE["Not in {{group}}, so not watched: {{names}}"]).toBe(
+      "Nicht in {{group}}, daher nicht überwacht: {{names}}",
+    );
+  });
+
+  test("chosen components of a group: the German sentence, with the group's name isolated in it", () => {
+    renderView(
+      pageResponse({
+        componentGroupName: "Core",
+        componentNames: ["Checkout API", "Orders database"],
+      }),
+    );
+
+    const value: HTMLElement = factValue("external-status-page-page-facts", 3);
+
+    expect(value).toHaveTextContent(
+      DE["{{group}} › {{count}} chosen components"]!.replace(
+        "{{group}}",
+        "Core",
+      ).replace("{{count}}", "2"),
+    );
+    expect(value).toHaveTextContent("Core › 2 ausgewählte Komponenten");
+    expect(value.querySelector("bdi")).toHaveTextContent("Core");
   });
 
   test("a whole page in scope says so in German", () => {

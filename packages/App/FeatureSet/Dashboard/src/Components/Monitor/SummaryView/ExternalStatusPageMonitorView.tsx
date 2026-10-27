@@ -4,15 +4,137 @@ import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import ExternalStatusPageMonitorResponse, {
   ExternalStatusPageComponentStatus,
 } from "Common/Types/Monitor/ExternalStatusPageMonitor/ExternalStatusPageMonitorResponse";
+import IconProp from "Common/Types/Icon/IconProp";
+import Icon from "Common/UI/Components/Icon/Icon";
 import Statusbubble from "Common/UI/Components/StatusBubble/StatusBubble";
 import React, { FunctionComponent, ReactElement, useId } from "react";
 import ProbeAttemptsView from "./ProbeAttemptsView";
 import { SummaryFact, SummaryFacts, SummaryView } from "./SummaryFacts";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  getSentenceParts,
+  PluralTemplate,
+  SentencePart,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import ExternalStatusPageComponentStatusDisplayUtil, {
   ExternalStatusPageComponentStatusDisplay,
 } from "../../../Utils/ExternalStatusPageComponentStatusDisplay";
+import ExternalStatusPageUnmatchedSentence from "../../Form/Monitor/ExternalStatusPageMonitor/ExternalStatusPageUnmatchedSentence";
+
+export const EXTERNAL_STATUS_PAGE_UNMATCHED_TEST_ID: string =
+  "external-status-page-unmatched-components";
+export const EXTERNAL_STATUS_PAGE_OUTSIDE_INCIDENTS_TEST_ID: string =
+  "external-status-page-incidents-outside-scope";
+
+/*
+ * What a check watched of the page: the components it chose (a check made
+ * before a monitor could choose several names its one filter instead), or
+ * none for the whole page.
+ */
+export const getWatchedComponentNames: (
+  response: ExternalStatusPageMonitorResponse | undefined,
+) => Array<string> = (
+  response: ExternalStatusPageMonitorResponse | undefined,
+): Array<string> => {
+  if (Array.isArray(response?.componentNames)) {
+    return response!.componentNames;
+  }
+
+  return response?.componentName ? [response.componentName] : [];
+};
+
+/*
+ * The Scope fact: the whole page, a group, the chosen components, or both.
+ * The group's and the components' names are the page's words, each drawn
+ * in its own direction (a bdi): on a Persian page "Core" otherwise took the
+ * count after it into its English run, and "Core › 2 chosen components"
+ * read as "2 › Core" followed by the rest of the sentence.
+ */
+export const getScopeValue: (data: {
+  translator: Translator;
+  componentGroupName: string | undefined;
+  componentNames: Array<string>;
+}) => ReactElement = (data: {
+  translator: Translator;
+  componentGroupName: string | undefined;
+  componentNames: Array<string>;
+}): ReactElement => {
+  const group: string | undefined = data.componentGroupName;
+  const names: Array<string> = data.componentNames;
+
+  // A translated sentence with the page's names drawn in it, each isolated.
+  const sentence: (
+    template: string | PluralTemplate,
+    slotNames: Record<string, string>,
+    count?: number,
+  ) => ReactElement = (
+    template: string | PluralTemplate,
+    slotNames: Record<string, string>,
+    count?: number,
+  ): ReactElement => {
+    const parts: Array<SentencePart> = getSentenceParts({
+      translator: data.translator,
+      template: template,
+      slots: Object.keys(slotNames),
+      count: count,
+    });
+
+    return (
+      <>
+        {parts.map((part: SentencePart, index: number): ReactElement => {
+          return part.kind === "text" ? (
+            <React.Fragment key={index}>{part.text}</React.Fragment>
+          ) : (
+            <bdi key={index}>{slotNames[part.slot]}</bdi>
+          );
+        })}
+      </>
+    );
+  };
+
+  if (names.length === 0) {
+    return group ? (
+      sentence(translationKey("Group: {{group}}"), { group: group })
+    ) : (
+      <>{data.translator.translateTemplate("All components")}</>
+    );
+  }
+
+  if (names.length === 1) {
+    return group ? (
+      <>
+        <bdi>{group}</bdi> › <bdi>{names[0]}</bdi>
+      </>
+    ) : (
+      sentence(translationKey("Component: {{component}}"), {
+        component: names[0] as string,
+      })
+    );
+  }
+
+  return group ? (
+    sentence(
+      {
+        one: "{{group}} › {{count}} chosen component",
+        other: "{{group}} › {{count}} chosen components",
+      },
+      { group: group },
+      names.length,
+    )
+  ) : (
+    <>
+      {data.translator.translatePlural(
+        {
+          one: "{{count}} chosen component",
+          other: "{{count}} chosen components",
+        },
+        names.length,
+      )}
+    </>
+  );
+};
 
 export interface ComponentProps {
   probeMonitorResponse: ProbeMonitorResponse;
@@ -93,23 +215,23 @@ const ExternalStatusPageMonitorView: FunctionComponent<ComponentProps> = (
     props.probeMonitorResponse.totalAttempts ?? probeAttempts.length;
   const hadRetries: boolean = totalAttempts > 1;
 
-  const componentGroupName: string | undefined =
-    externalStatusPageResponse?.componentGroupName;
-  const componentName: string | undefined =
-    externalStatusPageResponse?.componentName;
+  const scopeValue: ReactElement = getScopeValue({
+    translator: translator,
+    componentGroupName: externalStatusPageResponse?.componentGroupName,
+    componentNames: getWatchedComponentNames(externalStatusPageResponse),
+  });
 
-  let scopeText: string = translator.translateTemplate("All components");
-  if (componentGroupName && componentName) {
-    scopeText = `${componentGroupName} › ${componentName}`;
-  } else if (componentGroupName) {
-    scopeText = translator.translateTemplate("Group: {{group}}", {
-      group: componentGroupName,
-    });
-  } else if (componentName) {
-    scopeText = translator.translateTemplate("Component: {{component}}", {
-      component: componentName,
-    });
-  }
+  /*
+   * The page's incidents the scope leaves out - those of other components,
+   * and those that name none - said beside the count, so a quiet monitor
+   * during an outage elsewhere on the page reads as one that left it out.
+   */
+  const incidentsOutsideScope: number =
+    externalStatusPageResponse?.incidentsOutsideScopeCount || 0;
+
+  // The chosen names the page does not list: watched, they watch nothing.
+  const unmatchedNames: Array<string> =
+    externalStatusPageResponse?.unmatchedComponentNames || [];
 
   const components: Array<ExternalStatusPageComponentStatus> =
     externalStatusPageResponse?.componentStatuses || [];
@@ -191,11 +313,51 @@ const ExternalStatusPageMonitorView: FunctionComponent<ComponentProps> = (
         <SummaryFact
           title="Active Incidents"
           value={
-            externalStatusPageResponse?.activeIncidentCount?.toString() || "0"
+            incidentsOutsideScope > 0 ? (
+              <>
+                {externalStatusPageResponse?.activeIncidentCount?.toString() ||
+                  "0"}
+                <span
+                  className="mt-0.5 block text-xs text-gray-500"
+                  data-testid={EXTERNAL_STATUS_PAGE_OUTSIDE_INCIDENTS_TEST_ID}
+                >
+                  {translator.translatePlural(
+                    {
+                      one: "{{count}} more on the page, not counted",
+                      other: "{{count}} more on the page, not counted",
+                    },
+                    incidentsOutsideScope,
+                  )}
+                </span>
+              </>
+            ) : (
+              externalStatusPageResponse?.activeIncidentCount?.toString() || "0"
+            )
           }
         />
-        <SummaryFact title="Scope" value={scopeText} />
+        <SummaryFact title="Scope" value={scopeValue} />
       </SummaryFacts>
+
+      {/*
+       * A div, not a p: Icon draws a div of its own, which a paragraph may
+       * not hold.
+       */}
+      {unmatchedNames.length > 0 && (
+        <div
+          className="flex items-start gap-2 break-words rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800 ring-1 ring-inset ring-amber-200"
+          data-testid={EXTERNAL_STATUS_PAGE_UNMATCHED_TEST_ID}
+        >
+          <Icon icon={IconProp.Alert} className="mt-0.5 h-4 w-4 flex-none" />
+          <span className="min-w-0">
+            <ExternalStatusPageUnmatchedSentence
+              names={unmatchedNames}
+              componentGroupName={
+                externalStatusPageResponse?.componentGroupName
+              }
+            />
+          </span>
+        </div>
+      )}
 
       {components.length > 0 && (
         <div className="space-y-3">

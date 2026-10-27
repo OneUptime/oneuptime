@@ -20,7 +20,7 @@ flowchart TB
 
 ## Aprire la cronologia
 
-- **Reperibilità** > **Cronologia delle reperibilità** mostra tutte le pianificazioni che puoi vedere, raggruppate per team proprietario. Il pulsante **Vista cronologica** in **Pianificazioni di reperibilità** apre la stessa pagina.
+- **Reperibilità** > **Cronologia delle reperibilità** mostra tutte le pianificazioni che puoi vedere, raggruppate per team proprietario. In **Pianificazioni di reperibilità**, **Cronologia delle reperibilità** nel menu **⋯** apre la stessa pagina.
 - **Team** > un team > **Pianificazioni di reperibilità** mostra solo le pianificazioni di cui quel team è proprietario.
 
 Un team è proprietario di una pianificazione quando compare nella pagina **Proprietari** della pianificazione. Le pianificazioni senza team proprietario sono raggruppate sotto **Nessun team proprietario**. Disattiva **Raggruppa per team** per vedere tutte le pianificazioni in un unico elenco, ordinato per nome.

@@ -1,4 +1,5 @@
 import CephCluster from "../../../Models/DatabaseModels/CephCluster";
+import CloudResource from "../../../Models/DatabaseModels/CloudResource";
 import DatabaseServer from "../../../Models/DatabaseModels/DatabaseServer";
 import DatabaseServerEndpoint from "../../../Models/DatabaseModels/DatabaseServerEndpoint";
 import DockerHost from "../../../Models/DatabaseModels/DockerHost";
@@ -77,6 +78,7 @@ export interface SeriesLinkableModel {
   iotFleets?: Array<IoTFleet> | undefined;
   databaseServers?: Array<DatabaseServer> | undefined;
   storageArrays?: Array<StorageArray> | undefined;
+  cloudResources?: Array<CloudResource> | undefined;
 }
 
 /*
@@ -96,6 +98,12 @@ export interface SeriesResolvedResourceIds {
   iotFleetIds: Array<string>;
   databaseServerIds: Array<string>;
   storageArrayIds: Array<string>;
+  /*
+   * Cloud resources carry no series stamp: a monitor names its cloud
+   * resource in its Linked Resources (a cloud resource's recommended
+   * monitors are created that way), so only that path fills this.
+   */
+  cloudResourceIds: Array<string>;
 }
 
 /*
@@ -325,6 +333,7 @@ export default class SeriesResourceLinker {
       iotFleetIds: iotFleetIds || [],
       databaseServerIds: databaseServerIds,
       storageArrayIds: storageArrayIds || [],
+      cloudResourceIds: [],
     };
   }
 
@@ -555,6 +564,16 @@ export default class SeriesResourceLinker {
         resolved.storageArrayIds,
         (): StorageArray => {
           return new StorageArray();
+        },
+      );
+    }
+
+    if (resolved.cloudResourceIds.length > 0) {
+      model.cloudResources = this.mergeById(
+        model.cloudResources,
+        resolved.cloudResourceIds,
+        (): CloudResource => {
+          return new CloudResource();
         },
       );
     }

@@ -709,7 +709,7 @@ describe("rail row typography", () => {
     );
 
     const body: HTMLElement = screen.getByRole("button", {
-      name: /request, info at 1:02.3/,
+      name: /^request at 1:02\.3/,
     });
 
     expect(body).toHaveAttribute(

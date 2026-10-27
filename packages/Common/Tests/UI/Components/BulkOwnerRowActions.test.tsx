@@ -93,6 +93,7 @@ import UserModel from "../../../Models/DatabaseModels/User";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import IconProp from "../../../Types/Icon/IconProp";
 import Name from "../../../Types/Name";
+import Includes from "../../../Types/BaseDatabase/Includes";
 import ObjectID from "../../../Types/ObjectID";
 
 // The real modal, Formik and people picker mount slowly on a loaded box.
@@ -130,16 +131,27 @@ const mockLists: () => void = (): void => {
     let rows: Array<any> = [];
 
     if (listData.modelType === IncidentOwnerUser) {
-      const incidentId: string = listData.query.incidentId.toString();
+      /*
+       * One row's read names its incident; a bulk run's names every incident
+       * of its window (Includes), and its rows say which incident each is of.
+       */
+      const askedFor: unknown = listData.query.incidentId;
+      const incidentIds: Array<string> =
+        askedFor instanceof Includes
+          ? (askedFor.values as Array<ObjectID>).map((id: ObjectID) => {
+              return id.toString();
+            })
+          : [String(askedFor)];
 
-      rows = (ownedForTest[incidentId] || []).map(
-        (userId: string): IncidentOwnerUser => {
+      for (const incidentId of incidentIds) {
+        for (const userId of ownedForTest[incidentId] || []) {
           const owner: IncidentOwnerUser = new IncidentOwnerUser();
+          owner._id = ObjectID.generate().toString();
           owner.userId = new ObjectID(userId);
-
-          return owner;
-        },
-      );
+          owner.incidentId = new ObjectID(incidentId);
+          rows.push(owner);
+        }
+      }
     } else if (listData.modelType === TeamMember) {
       const user: UserModel = new UserModel();
       user._id = ALICE_ID;

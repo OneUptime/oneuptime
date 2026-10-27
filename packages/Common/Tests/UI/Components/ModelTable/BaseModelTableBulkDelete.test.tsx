@@ -149,6 +149,7 @@ type TableOptions = {
   deleteVerb?: string | undefined;
   deleteIcon?: IconProp | undefined;
   deleteItem?: ((item: NetworkDevice) => Promise<void>) | undefined;
+  deleteConcurrency?: number | undefined;
 };
 
 describe("BaseModelTable bulk Delete", () => {
@@ -231,6 +232,9 @@ describe("BaseModelTable bulk Delete", () => {
           : {}),
         ...(options.deleteVerb ? { deleteVerb: options.deleteVerb } : {}),
         ...(options.deleteIcon ? { deleteIcon: options.deleteIcon } : {}),
+        ...(options.deleteConcurrency !== undefined
+          ? { deleteConcurrency: options.deleteConcurrency }
+          : {}),
       },
     } as unknown as BaseModelTableProps<NetworkDevice>;
   };
@@ -717,6 +721,76 @@ describe("BaseModelTable bulk Delete", () => {
       });
 
       expect(deletedIds).toEqual([]);
+    });
+  });
+
+  describe("how many rows it deletes at once (issue #5299)", () => {
+    /*
+     * A delete's hooks can check a rule over the rows that are left - a
+     * project keeps an owner, a list keeps its last state - so a table's
+     * bulk Delete runs one row at a time unless the table says its deletes
+     * check nothing across rows (deleteConcurrency), as the alert and
+     * incident lists do.
+     */
+    type CountingDelete = {
+      deleteItem: (item: NetworkDevice) => Promise<void>;
+      mostAtOnce: () => number;
+    };
+
+    const countingDelete: () => CountingDelete = (): CountingDelete => {
+      let inFlight: number = 0;
+      let mostAtOnce: number = 0;
+
+      return {
+        deleteItem: async (): Promise<void> => {
+          inFlight++;
+          mostAtOnce = Math.max(mostAtOnce, inFlight);
+
+          for (let i: number = 0; i < 5; i++) {
+            await Promise.resolve();
+          }
+
+          inFlight--;
+        },
+        mostAtOnce: (): number => {
+          return mostAtOnce;
+        },
+      };
+    };
+
+    test("one row at a time unless the table says otherwise", async () => {
+      const counting: CountingDelete = countingDelete();
+
+      await startBulkDelete({ deleteItem: counting.deleteItem });
+      await confirmDelete();
+
+      await waitFor(() => {
+        expect(textOf("bulk-action-succeeded-count")).not.toBe("");
+      });
+
+      expect(deletedIds.sort()).toEqual(["device-1", "device-2"]);
+      expect(counting.mostAtOnce()).toBe(1);
+    });
+
+    test("several at once on a table whose deletes check nothing across rows", async () => {
+      const counting: CountingDelete = countingDelete();
+
+      await startBulkDelete({
+        deleteItem: counting.deleteItem,
+        deleteConcurrency: 4,
+      });
+      await confirmDelete();
+
+      // The summary shows once the run has ended, after the last delete.
+      await waitFor(() => {
+        expect(textOf("bulk-action-succeeded-count")).not.toBe("");
+      });
+
+      expect(deletedIds.sort()).toEqual(["device-1", "device-2"]);
+      expect(counting.mostAtOnce()).toBe(2);
+      expect(textOf("bulk-action-succeeded-count")).toBe(
+        "2 Network Devices deleted",
+      );
     });
   });
 

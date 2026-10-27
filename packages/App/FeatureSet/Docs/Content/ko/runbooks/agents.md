@@ -62,6 +62,7 @@ Runner를 쓰면 이런 단계가 여러분이 관리하는 호스트에서 실�
 | 단계의 최대 실행 시간 | 5분 | 1시간 |
 | 시크릿 변수 | 글로벌 Runner에 사용을 허용한 것 | 그 Runner를 지정한 것 |
 | OneUptime AI의 Bash 명령 | 실행하지 않음 | 이 Runner를 고른 AI 규칙의 명령 |
+| OneUptime AI의 코드 수정 | 빌드나 테스트 없이 검토용으로 엶 | 풀 리퀘스트가 열리기 전에 빌드하고 테스트함 |
 
 글로벌 Runner는 여러 프로젝트의 단계를 실행하므로, 각 단계는 다른 모든 단계와 분리됩니다.
 
@@ -70,15 +71,17 @@ Runner를 쓰면 이런 단계가 여러분이 관리하는 호스트에서 실�
 - 시크릿 변수는 그 변수의 **글로벌 Runner가 사용할 수 있음** 스위치가 켜져 있을 때만, 그리고 변수가 속한 프로젝트의 단계에 대해서만 받습니다.
 - 한 프로젝트가 글로벌 Runner에서 동시에 실행하는 단계는 최대 세 개이므로, 어떤 프로젝트도 글로벌 Runner를 독차지하지 못합니다.
 
+글로벌 Runner는 **글로벌 Runner**에서 작업하는 모든 코드 저장소에서 OneUptime AI의 코드 수정도 맡습니다. 각 수정을 작성하고 풀 리퀘스트를 열지만, 어떤 명령도 실행하지 않으며 저장소의 설정, 빌드, 테스트 명령도 실행하지 않으므로, 풀 리퀘스트에는 검증을 건너뛰었다고 표시됩니다. Git 서버는 HTTPS로 인터넷에 있는 것에만 접근합니다. 단, 자체 호스팅 OneUptime에서는 서버 자신이 접근할 수 있는 사설 Git 서버에도 접근할 수 있습니다. 자신이 맡은 수정을 위해서만 동작하며, 저장소의 토큰은 그곳에서 수정을 작업하는 동안에만 받습니다. GitHub 저장소의 토큰은 그 하나의 저장소에만 접근하며, 수정이 끝나면 취소됩니다.
+
 여러분의 네트워크에 접근해야 하는 단계나, 직접 관리하는 호스트에 두고 싶은 단계에는 내 Runner 중 하나를 고르세요. 모든 단계를 내 Runner에서 실행하려면 **런북 → Runbook 에이전트** 맨 아래의 **글로벌 Runner 사용**을 끕니다. 그러면 Runner를 고르지 않은 JavaScript 단계는 프로젝트 기본 Runner에서 실행되거나, 기본 Runner가 없으면 내 Runner 중 하나를 고를 때까지 그 이유를 알리며 실패합니다. 내 Runner를 고른 단계는 어느 경우든 그 Runner를 유지합니다. 코드의 설정에서 Runner를 선택하지 않은 코드 저장소도 프로젝트 기본 Runner에서 작업하고, 기본 Runner가 없으면 글로벌 Runner에서 작업하며, 이 스위치가 꺼져 있는 동안에는 내 Runner가 필요합니다. [코드](/docs/ai/ai-agent#저장소의-runner-선택하기)를 참조하세요.
 
 ### 글로벌 Runner의 출처
 
 OneUptime Cloud에서는 OneUptime이 글로벌 Runner를 실행합니다. 자체 호스팅 설치는 자체 글로벌 프로브를 실행하는 것처럼 기본적으로 자체 글로벌 Runner를 하나 실행합니다. Docker Compose의 `global-runner` 서비스와 Helm 차트의 `globalRunner` 배포입니다. 이 Runner는 자체 키인 `GLOBAL_RUNNER_KEY`를 가지며, 서버의 다른 것은 아무것도 갖지 않습니다.
 
-마스터 관리자는 다른 호스트에서 단계를 실행하도록 글로벌 Runner를 더 추가할 수 있습니다. Admin Dashboard에서 **설정**, 이어서 **글로벌 Runner**를 열고 하나를 만든 다음, 그 **ID 및 키 표시**가 알려 주는 명령을 인터넷에 접근할 수 있는 호스트에서 실행합니다.
+마스터 관리자는 다른 호스트에서 단계와 코드 수정을 실행하도록 글로벌 Runner를 더 추가할 수 있습니다. Admin Dashboard에서 **설정**, 이어서 **글로벌 Runner**를 열고 하나를 만든 다음, 그 **ID 및 키 표시**가 알려 주는 명령을 인터넷에 접근할 수 있는 호스트에서 실행합니다.
 
-함께 제공되는 글로벌 Runner를 끄려면 Docker Compose의 `config.env`에서 `GLOBAL_RUNNER_REPLICAS=0`을 설정하거나, Helm 차트에서 `globalRunner.enabled`를 `false`로 설정합니다. 글로벌 Runner가 전혀 없으면 **런북 → Runbook 에이전트**에는 내 Runner만 표시되며, 모든 JavaScript 단계는 그중 하나를 고릅니다.
+함께 제공되는 글로벌 Runner를 끄려면 Docker Compose의 `config.env`에서 `GLOBAL_RUNNER_REPLICAS=0`을 설정하거나, Helm 차트에서 `globalRunner.enabled`를 `false`로 설정합니다. 글로벌 Runner가 전혀 없으면 **런북 → Runbook 에이전트**에는 내 Runner만 표시되며, 모든 JavaScript 단계와 모든 코드 저장소는 그중 하나를 고릅니다.
 
 ## 시작하기 전에
 
@@ -98,7 +101,7 @@ OneUptime Cloud에서는 OneUptime이 글로벌 Runner를 실행합니다. 자�
 | **런북 실행** | **추가 필드** 아래 | 기본적으로 켜져 있습니다. 이 Runner가 Runbook 단계를 가져갈 수 있게 합니다. |
 | **레이블** | **추가 필드** 아래 | 선택 사항. |
 
-Runner는 기능 변경을 다음 하트비트 때 반영하므로 다시 시작할 필요가 없습니다. AI는 기능이 아닙니다. 코드 저장소가 코드의 설정에서 AI가 그 저장소에서 작업할 Runner를 선택하며, Runner 페이지에는 그 Runner를 선택한 저장소가 나열됩니다. AI 규칙은 OneUptime AI가 명령을 실행할 Runner를 선택합니다. 거기서 Runner를 선택해야 OneUptime AI의 명령이 그 Runner에서 실행됩니다.
+Runner는 기능 변경을 다음 하트비트 때 반영하므로 다시 시작할 필요가 없습니다. AI는 기능이 아닙니다. 코드 저장소가 코드의 설정에서 AI가 그 저장소에서 작업할 Runner를 선택하며, Runner 페이지에는 그 Runner를 선택한 저장소가 나열됩니다. AI 규칙은 OneUptime AI가 명령을 실행할 Runner를 선택합니다. 거기서 Runner를 선택해야 OneUptime AI의 명령이 그 Runner에서 실행됩니다. Runner 페이지에는 그 Runner를 선택한 AI 규칙도 나열됩니다.
 
 ### 2. 설치 명령 복사
 
@@ -302,7 +305,7 @@ Runner의 키는 Project Owner, Project Admin, Runbook Admin만 읽을 수 있�
 | `POST /job/:jobId/result` | 최종 결과를 제출합니다. 리스가 이미 넘어갔으면 무시됩니다. |
 | `POST /disconnect` | 정상 종료 시 연결을 끊습니다. |
 
-직접 호출할 필요는 없습니다. 함께 제공되는 Runner가 호출합니다. 여기에 문서화한 것은, 우리 에이전트가 맞지 않는 제약이 있을 때 직접 에이전트를 만들 수 있도록 하기 위해서입니다.
+직접 호출할 필요는 없습니다. Runner 컨테이너가 호출합니다. 여기에 문서화한 것은, 우리 에이전트가 맞지 않는 제약이 있을 때 직접 에이전트를 만들 수 있도록 하기 위해서입니다.
 
 ## 문제 해결
 

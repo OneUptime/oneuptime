@@ -5,6 +5,7 @@ Agende uma manutenção em dois passos curtos: diga o que acontece e quando, dep
 :::cards
 - [Criar um evento](#criar-um-evento): Dois passos e uma revisão.
 - [O que acontece ao criar](#o-que-acontece-ao-criar): Seu número, regras, proprietários e as primeiras mensagens.
+- [Publicar mais tarde](#publicar-mais-tarde): Mantenha-o fora das suas páginas de status até uma data e hora.
 - [Alterar um evento depois](#alterar-um-evento-depois): Sua janela, recursos, páginas de status e notas.
 - [Criar eventos pelo código](#criar-eventos-pelo-código): A API, o Terraform, os workflows e o chat.
 :::
@@ -42,7 +43,7 @@ Clique em **Próximo** para chegar a **Recursos afetados**. Escolha os **Monitor
 
 ### Escolher quem fica sabendo
 
-Escolha as páginas de status em **Mostrar evento nestas páginas de status**. **Notificações aos assinantes**, recolhido, diz em uma linha quem é avisado e quando; abra-o para mudar **Quando o evento é agendado**, **Quando o evento começa**, **Quando o evento termina** ou **Lembretes antes do evento**.
+Escolha as páginas de status em **Mostrar evento nestas páginas de status**. **Notificações aos assinantes**, recolhido, diz em uma linha quando o evento aparece nelas e quem é avisado e quando; abra-o para escolher **Em uma data e hora** em **Publicar nas páginas de status**, ou para mudar **Quando o evento é agendado**, **Quando o evento começa**, **Quando o evento termina** ou **Lembretes antes do evento**.
 
 ### Criá-lo
 
@@ -65,11 +66,11 @@ Nada é enviado até você escolher uma página de status: um evento que não ap
 | **Alterar status do monitor para**   | **Recursos afetados** | Sem alteração                | O status que esses monitores mostram durante o evento. Perguntado assim que um monitor é escolhido. |
 | **Outros recursos afetados**         | **Recursos afetados** | Nenhum                       | Hosts, clusters, bancos de dados, sites de rede, serviços e mais.                |
 | **Mostrar evento nestas páginas de status** | **Recursos afetados** | Nenhuma            | As páginas de status que mostram o evento e avisam seus assinantes.              |
-| **Notificações aos assinantes**      | **Recursos afetados** | Os três momentos ativados, sem lembretes | Quando os assinantes dessas páginas são avisados.            |
+| **Notificações aos assinantes**      | **Recursos afetados** | Publicado imediatamente, os três momentos ativados, sem lembretes | Quando o evento aparece nessas páginas, e quando os assinantes delas são avisados. |
 
 Duas coisas preenchem o formulário para você no caminho:
 
-- **Recursos vinculados.** Quando você escolhe um monitor, os hosts, clusters, serviços e outros recursos aos quais ele está vinculado são adicionados em **Outros recursos afetados**, e uma linha abaixo do campo os nomeia. Remova os que você não quiser.
+- **Recursos vinculados.** Quando você escolhe um monitor, os hosts, clusters, serviços e outros recursos aos quais ele está vinculado são adicionados em **Outros recursos afetados**, e uma linha abaixo do campo os nomeia. Remova os que você não quiser. Recursos de nuvem não são adicionados: um evento de manutenção não os contém.
 - **Páginas de status sugeridas.** Em **Mostrar evento nestas páginas de status**, são sugeridas as páginas que mostram seus monitores: clique no nome de uma página para adicioná-la, ou em **Adicionar todas**. Nada é escolhido por você. Veja [Eventos de manutenção programada](/docs/status-pages/subscribers#eventos-de-manutenção-programada).
 
 ## Começar por um recurso ou um modelo
@@ -89,7 +90,22 @@ No momento em que você clica em **Criar Evento de Manutenção Programada**, o 
 5. **As regras de runbook iniciam** os runbooks que correspondem ao evento.
 6. **Os lembretes são agendados**, quando uma regra de lembrete corresponde, para os proprietários dele.
 
-Em até um minuto, os assinantes das páginas de status dele são avisados de que foi agendado, a menos que você tenha desativado **Quando o evento é agendado**. O gatilho de workflow **On Create Scheduled Maintenance Event** inicia qualquer workflow construído sobre ele, e os proprietários ficam sabendo se ativaram essa notificação: veja [Configurações de notificação](/docs/notifications/notification-settings).
+Em até um minuto após a publicação, que é imediata a menos que você tenha escolhido um **Publicar em**, os assinantes das páginas de status dele são avisados de que foi agendado, a menos que você tenha desativado **Quando o evento é agendado**. O gatilho de workflow **On Create Scheduled Maintenance Event** inicia qualquer workflow construído sobre ele, e os proprietários ficam sabendo se ativaram essa notificação: veja [Configurações de notificação](/docs/notifications/notification-settings).
+
+## Publicar mais tarde
+
+Planeje o trabalho com a antecedência que quiser e mantenha-o dentro da sua equipe até que seus clientes devam saber dele. Escolha **Em uma data e hora** em **Publicar nas páginas de status**, no formulário ou no passo **Páginas de status** de **Editar** do evento, e um **Publicar em** antes de **Começa em**. Até lá, o evento não está em nenhuma das suas páginas de status: nem nas listas delas, nem no histórico de tempo de atividade, nem nos feeds RSS e Atom, nem no calendário de manutenção, nem na API delas, nem no seu próprio link. Nesse momento ele aparece como próximo, e os assinantes dele são avisados, uma única vez, de que está agendado.
+
+| Quando                   | O que acontece                                                       | Nas suas páginas de status |
+| ------------------------ | -------------------------------------------------------------------- | -------------------------- |
+| Ao criá-lo               | Você escolhe um **Publicar em** antes do **Começa em** dele          | Não aparece                |
+| O **Publicar em** dele   | Ele é publicado, e os assinantes dele são avisados de que está agendado | Próximo                 |
+| O **Começa em** dele     | Ele começa, como todo evento                                         | Em andamento               |
+| O **Termina em** dele    | Ele termina                                                          | Encerrado                  |
+
+- **Até lá, os assinantes não ficam sabendo de nada.** Enquanto o evento espera, os lembretes antes do evento, as mudanças de estado e as notas públicas não são enviados a eles.
+- **A página dele avisa.** O cabeçalho dele mostra **Ainda não está nas páginas de status**, com o horário a partir do qual ele aparece, e **Publicar agora** o publica na hora, após confirmação. As **Configurações** dele dizem o mesmo, e a lista de eventos mostra o horário abaixo das páginas de status dele.
+- **Mude-o, ou publique já.** Mova o **Publicar em** no passo **Páginas de status** de **Editar**, ou escolha **Imediatamente**. Desative **Visível na página de status** nas **Configurações** dele para mantê-lo fora das páginas de status dele, seja qual for o horário.
 
 ## Alterar um evento depois
 
@@ -98,7 +114,7 @@ Tudo o que está no formulário pode ser alterado nas páginas do evento, exceto
 | Para alterar                                | Vá em                                                                          |
 | ------------------------------------------- | ------------------------------------------------------------------------------ |
 | O título, a janela ou os rótulos            | **Editar** no cartão **Maintenance Details** da sua **Visão geral**, passo **Evento** |
-| As páginas de status ou os lembretes        | O mesmo **Editar**, passo **Páginas de status**                                 |
+| As páginas de status, quando ele é publicado, ou os lembretes | O mesmo **Editar**, passo **Páginas de status**                 |
 | Os monitores, o status deles ou outros recursos | **Editar** no cartão **Recursos afetados**                                  |
 | A descrição                                 | **Descrição** no menu lateral dele                                             |
 | Os proprietários                            | **Proprietários** no menu lateral dele                                         |
@@ -137,6 +153,7 @@ curl -X POST https://oneuptime.com/api/scheduled-maintenance \
 | `changeMonitorStatusToId`                             | O status de monitor para o qual seus monitores mudam quando ele começa.                   |
 | `currentScheduledMaintenanceStateId`                  | Ignorado: todo evento começa no seu estado agendado.                                      |
 | `shouldStatusPageSubscribersBeNotifiedOnEventCreated` | A chave **Quando o evento é agendado**. Os outros dois momentos têm campos próprios.      |
+| `publishOnStatusPageAt`                               | Quando o evento é publicado nas páginas de status dele e os assinantes dele são avisados de que está agendado. Omitido, imediatamente. |
 
 O mesmo evento como código é o recurso do Terraform `oneuptime_scheduled_maintenance_event`: veja [Exemplos](/docs/terraform/examples#manutenção-programada). Um workflow cria um com a etapa **Create One Scheduled Maintenance Event**, e `/oneuptime maintenance` abre o formulário no Slack: veja [Slack](/docs/workspace-connections/slack#criar-incidentes-e-manutenções-pelo-slack).
 
@@ -152,6 +169,10 @@ Ele só é perguntado quando o evento tem um monitor. Escolha um em **Monitores*
 
 :::details Alterar status do monitor para não pode mais ser alterado
 O evento começou, e seus monitores já estão nesse status. O status vale do momento em que o evento começa até ele terminar.
+:::
+
+:::details Publicar em diz que precisa ser antes de Começa em
+Um evento é publicado para que seus clientes saibam do trabalho antes que ele comece. Escolha um **Publicar em** antes de **Começa em**, ou **Imediatamente**.
 :::
 
 ## Próximos passos

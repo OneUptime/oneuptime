@@ -2153,6 +2153,15 @@
             },
             "additionalProperties": false
         },
+        "instanceCheckIn": {
+            "type": "object",
+            "properties": {
+                "disabled": {
+                    "type": "boolean"
+                }
+            },
+            "additionalProperties": false
+        },
         "trustedProxyHops": {
             "type": "integer",
             "minimum": 0
@@ -4834,198 +4843,12 @@
             "additionalProperties": false
         },
         "runner": {
-            "type": "object",
-            "properties": {
-                "podDisruptionBudget": {
-                    "type": "object",
-                    "properties": {
-                        "enabled": {
-                            "type": "boolean"
-                        },
-                        "minAvailable": {
-                            "type": [
-                                "integer",
-                                "string",
-                                "null"
-                            ]
-                        },
-                        "maxUnavailable": {
-                            "type": [
-                                "integer",
-                                "string",
-                                "null"
-                            ]
-                        }
-                    },
-                    "additionalProperties": false
-                },
-                "enabled": {
-                    "type": "boolean"
-                },
-                "replicaCount": {
-                    "type": "integer"
-                },
-                "disableTelemetryCollection": {
-                    "type": "boolean"
-                },
-                "disableAutoscaler": {
-                    "type": "boolean"
-                },
-                "autoscaling": {
-                    "type": "object",
-                    "properties": {
-                        "enabled": {
-                            "type": "boolean"
-                        },
-                        "minReplicas": {
-                            "type": "integer"
-                        },
-                        "maxReplicas": {
-                            "type": "integer"
-                        },
-                        "targetCPUUtilizationPercentage": {
-                            "type": "integer"
-                        },
-                        "targetMemoryUtilizationPercentage": {
-                            "type": "integer"
-                        }
-                    },
-                    "additionalProperties": false
-                },
-                "id": {
-                    "type": [
-                        "string",
-                        "null"
-                    ]
-                },
-                "key": {
-                    "type": [
-                        "string",
-                        "null"
-                    ]
-                },
-                "existingSecret": {
-                    "type": "object",
-                    "properties": {
-                        "name": {
-                            "type": [
-                                "string",
-                                "null"
-                            ]
-                        },
-                        "passwordKey": {
-                            "type": [
-                                "string",
-                                "null"
-                            ]
-                        }
-                    },
-                    "additionalProperties": false
-                },
-                "ports": {
-                    "type": "object",
-                    "properties": {
-                        "http": {
-                            "type": "integer"
-                        }
-                    },
-                    "additionalProperties": false
-                },
-                "resources": {
-                    "type": [
-                        "object",
-                        "null"
-                    ]
-                },
-                "nodeSelector": {
-                    "type": "object"
-                },
-                "podSecurityContext": {
-                    "type": "object"
-                },
-                "containerSecurityContext": {
-                    "type": "object"
-                },
-                "hostAliases": {
-                    "type": [
-                        "array",
-                        "null"
-                    ]
-                },
-                "affinity": {
-                    "type": [
-                        "object",
-                        "null"
-                    ]
-                },
-                "topologySpreadConstraints": {
-                    "type": [
-                        "array",
-                        "null"
-                    ],
-                    "items": {
-                        "type": "object"
-                    }
-                },
-                "keda": {
-                    "type": "object",
-                    "properties": {
-                        "enabled": {
-                            "type": "boolean"
-                        },
-                        "minReplicas": {
-                            "type": "integer"
-                        },
-                        "maxReplicas": {
-                            "type": "integer"
-                        },
-                        "queueSizeThreshold": {
-                            "type": "integer"
-                        },
-                        "pollingInterval": {
-                            "type": "integer"
-                        },
-                        "cooldownPeriod": {
-                            "type": "integer"
-                        },
-                        "fallback": {
-                            "type": "object",
-                            "properties": {
-                                "failureThreshold": {
-                                    "type": "integer"
-                                },
-                                "replicas": {
-                                    "type": "integer"
-                                }
-                            },
-                            "additionalProperties": false
-                        }
-                    },
-                    "additionalProperties": false
-                },
-                "enableProfiling": {
-                    "type": "boolean"
-                },
-                "extraEnv": {
-                    "type": [
-                        "array",
-                        "null"
-                    ]
-                },
-                "extraVolumes": {
-                    "type": [
-                        "array",
-                        "null"
-                    ]
-                },
-                "extraVolumeMounts": {
-                    "type": [
-                        "array",
-                        "null"
-                    ]
-                }
-            },
-            "additionalProperties": false
+            "type": [
+                "object",
+                "null"
+            ],
+            "description": "Ignored. The shared Runner it configured is gone: the bundled global Runner (`globalRunner:`) does the AI code fixes it did. Accepted, whatever it holds, so a values file that still sets `runner:` keeps passing `helm upgrade`.",
+            "additionalProperties": true
         },
         "globalRunner": {
             "type": "object",
@@ -5126,6 +4949,42 @@
                         "array",
                         "null"
                     ]
+                },
+                "keda": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean"
+                        },
+                        "minReplicas": {
+                            "type": "integer"
+                        },
+                        "maxReplicas": {
+                            "type": "integer"
+                        },
+                        "queueSizeThreshold": {
+                            "type": "integer"
+                        },
+                        "pollingInterval": {
+                            "type": "integer"
+                        },
+                        "cooldownPeriod": {
+                            "type": "integer"
+                        },
+                        "fallback": {
+                            "type": "object",
+                            "properties": {
+                                "failureThreshold": {
+                                    "type": "integer"
+                                },
+                                "replicas": {
+                                    "type": "integer"
+                                }
+                            },
+                            "additionalProperties": false
+                        }
+                    },
+                    "additionalProperties": false
                 }
             },
             "additionalProperties": false

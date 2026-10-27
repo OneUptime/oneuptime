@@ -199,6 +199,7 @@ Every line carries a stable `code`. Look yours up here.
 | `bootstrap-already-started` | Two copies of the snippet on one page. Remove one. |
 | `bootstrap-already-running` | `bootstrap()` was called again while a recorder was already running. Harmless; usually a duplicated integration. |
 | `bootstrap-cancelled` | A `revokeConsent()` or `stop()` queued on `window.OneUptimeReplayQueue` ran before the recorder started, so this session is not recorded. Correct if your banner had already been declined. |
+| `prerender-wait` | The browser prerendered this page, as Chrome does with a page it expects to be opened next, and nobody has opened it yet. The recorder starts when the visitor opens the page, so a page that is never opened records nothing; calls your page makes meanwhile are applied then. |
 | `start-stopped` | `start()` got no usable policy on the self-hosted-bundle path. The specific reason is on the `config-*` line just above it. |
 | `rrweb-did-not-start` | The DOM recorder declined to start. Please report it. |
 | `rrweb-error` | The DOM recorder hit an internal error on this page (the error's name is in the detail; it is logged once). The recording may skip or freeze around that point, and after three such errors the session carries a fidelity notice saying so. Please report it with the page's framework and the error name. |

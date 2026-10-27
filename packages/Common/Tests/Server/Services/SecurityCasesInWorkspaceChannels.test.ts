@@ -212,6 +212,14 @@ describe("a security case posted to its channels", () => {
       .spyOn(WorkspaceProjectAuthTokenService, "getProjectAuths")
       .mockResolvedValue([] as never);
 
+    /*
+     * Slack and Teams are connected (the post below is where they would
+     * go); no rule opens a channel, so the connections are never read.
+     */
+    jest
+      .spyOn(WorkspaceNotificationRuleService, "hasConnectedWorkspace")
+      .mockResolvedValue(true);
+
     jest
       .spyOn(WorkspaceUtil, "postMessageToAllWorkspaceChannelsAsBot")
       .mockImplementation((async (data: {

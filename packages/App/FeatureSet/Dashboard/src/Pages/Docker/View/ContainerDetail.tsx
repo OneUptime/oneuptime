@@ -318,7 +318,7 @@ const DockerHostContainerDetail: FunctionComponent<
             attributeFilterDisplayValues={logAttributeDisplayValues}
             showFilters={true}
             enableRealtime={true}
-            noLogsMessage="No logs found for this container. Make sure the Docker agent's filelog receiver is collecting logs from /var/lib/docker/containers."
+            noLogsMessage="Make sure the Docker agent's filelog receiver is collecting logs from /var/lib/docker/containers."
           />
         </Card>
       ),

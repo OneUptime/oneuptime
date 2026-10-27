@@ -142,7 +142,7 @@ Archive a state of your own that your team should stop using, instead of deletin
 
 ## The state timeline
 
-The event's **State Timeline** page is the record of every state it has been in. Its card, **Status Timeline**, draws them as a timeline: a band with each state as long as it lasted, and under it every change, newest first. **Table**, in the card's header, lists them as rows instead, with **Scheduled Maintenance Status**, **Starts At**, **Ends At**, **Duration**, whether subscribers were to be notified, and how their notification went.
+The event's **State Timeline** page is the record of every state it has been in. Its card draws them as a timeline: a band with each state as long as it lasted, and under it every change, newest first. **Table**, in the card's header, lists them as rows instead, with **Scheduled Maintenance Status**, **Starts At**, **Ends At**, **Duration**, whether subscribers were to be notified, and how their notification went.
 
 In the dashboard, rows can be added and deleted, but not edited, and an event always keeps at least one. Through the API, a row's `startsAt` can be corrected, and every measurement worked out from the timeline follows it. Deleting the latest row puts the event back in the state of the row before it.
 

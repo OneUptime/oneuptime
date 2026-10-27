@@ -22,7 +22,7 @@ flowchart TB
         Ingress["ingress"]
         App["app"]
         Probe["probe-1"]
-        Runner["runner"]
+        Runner["global-runner"]
         subgraph Data["Хранилища данных"]
             direction LR
             PG[("postgres")]
@@ -38,7 +38,7 @@ flowchart TB
     App --> CH
     App --> VK
     Probe -->|результаты| Ingress
-    Runner -->|задания| Ingress
+    Runner -->|задания| App
     Probe -->|проверки| Targets
     Data ~~~ Probe
     Data ~~~ Runner
@@ -49,7 +49,7 @@ flowchart TB
 | `ingress` | `oneuptime/nginx` | Принимает весь трафик на портах 80 и 443 и направляет его в приложение. Отдаёт HTTPS, когда OneUptime управляет сертификатом. |
 | `app` | `oneuptime/app` | Панель, API, страницы статуса, приём телеметрии и фоновые обработчики. |
 | `probe-1` | `oneuptime/probe` | Глобальный зонд, который выполняет проверки ваших мониторов. Использует сеть хоста. |
-| `runner` | `oneuptime/runner` | Runner экземпляра, который выполняет исправления кода с помощью ИИ. Использует сеть хоста. |
+| `global-runner` | `oneuptime/runner` | Встроенный глобальный Runner, который выполняет шаги JavaScript runbook-ов и исправления кода от OneUptime AI для всех проектов. |
 | `postgres` | `postgres:15` | Конфигурация и состояние: мониторы, инциденты, пользователи. Хранится в томе `postgres`. |
 | `clickhouse` | `clickhouse/clickhouse-server:26.7` | Телеметрия: логи, метрики, трассировки и исключения. Хранится в томе `clickhouse`. |
 | `valkey` | `valkey/valkey:9.1-alpine` | Кэш и очереди. Ничего не хранит на диске. |
@@ -84,9 +84,8 @@ flowchart TB
 | --- | --- | --- | --- |
 | 80 | `ingress` | `ONEUPTIME_HTTP_PORT` | Панель, API, приём телеметрии и проверка Let's Encrypt. |
 | 443 | `ingress` | `STATUS_PAGE_HTTPS_PORT` | HTTPS для вашего экземпляра, когда OneUptime управляет сертификатом, а также для страниц статуса и панелей на собственных доменах. |
-| 5400 | `postgres` | Задан в `docker-compose.yml` | Даёт `npm run backup` и `restore.sh` доступ к PostgreSQL с самого сервера. Опубликован только на `127.0.0.1`. |
+| 5400 | `postgres` | `DATABASE_PUBLISHED_PORT` | Даёт `npm run backup` и `restore.sh` доступ к PostgreSQL с самого сервера. Опубликован только на `127.0.0.1`. |
 | 3874 | `probe-1` | `GLOBAL_PROBE_1_PORT` | Собственный сервер зонда. Ничему за пределами сервера он не нужен. |
-| 3876 | `runner` | `ONEUPTIME_RUNNER_PORT` | Собственный сервер Runner. Ничему за пределами сервера он не нужен. |
 
 Есть также [видео с пошаговой установкой](https://youtu.be/j1SWmMW2oL4).
 
@@ -133,7 +132,7 @@ npm start
 ```
 @tab Docker CLI
 ```bash
-(export $(grep -v '^#' config.env | xargs) && docker compose up --remove-orphans -d)
+sh Scripts/Install/WithConfig.sh docker compose up --remove-orphans -d
 ```
 Перед первым запуском замените секреты-заглушки сами, как показано в разделе [Сгенерируйте случайные секреты](#сгенерируйте-случайные-секреты): за вас это делает только `npm start`.
 :::
@@ -158,8 +157,7 @@ npm start
 | `DATABASE_PASSWORD`, `CLICKHOUSE_PASSWORD`, `VALKEY_PASSWORD` | Три хранилища данных. |
 | `REGISTER_PROBE_KEY` | Регистрацию зондов в вашем экземпляре. |
 | `GLOBAL_PROBE_1_KEY`, `GLOBAL_PROBE_2_KEY` | Глобальные зонды, которые может запускать Docker Compose (`probe-1` работает по умолчанию). |
-| `ONEUPTIME_RUNNER_KEY` | Встроенный Runner. |
-| `GLOBAL_RUNNER_KEY` | Встроенный глобальный Runner, который выполняет шаги JavaScript всех проектов. |
+| `GLOBAL_RUNNER_KEY` | Встроенный глобальный Runner, который выполняет шаги JavaScript и исправления кода с помощью ИИ всех проектов. |
 
 > [!IMPORTANT]
 > Не меняйте секреты после того, как OneUptime запустился. PostgreSQL принимает пароль только при создании своей базы данных, а смена `ENCRYPTION_SECRET` позже делает нечитаемым любое значение, зашифрованное старым. Поэтому `npm start` задаёт `DATABASE_PASSWORD` и `ENCRYPTION_SECRET` только при новой установке, до того как PostgreSQL создаст свою базу данных.
@@ -234,7 +232,7 @@ ONEUPTIME_HTTP_PORT=127.0.0.1:8080
 STATUS_PAGE_HTTPS_PORT=127.0.0.1:8443
 ```
 
-Зонд и Runner используют сеть хоста и обращаются к OneUptime через `http://localhost`. `npm start` переводит их на новый порт ingress, `http://localhost:8080`, и сообщает об этом.
+Зонд использует сеть хоста и обращается к OneUptime через `http://localhost`. `npm start` переводит его на новый порт ingress, `http://localhost:8080`, и сообщает об этом.
 
 #### Сообщите OneUptime, что он за прокси
 
@@ -388,7 +386,7 @@ PostgreSQL сохраняет пароль, с которым была созд�
 
 ```bash
 NEW_PASSWORD=$(openssl rand -hex 32) &&
-  (export $(grep -v '^#' config.env | xargs) && docker compose exec -T postgres psql -U "$DATABASE_USERNAME" -d "$DATABASE_NAME" -c "ALTER USER \"$DATABASE_USERNAME\" PASSWORD '$NEW_PASSWORD'") &&
+  echo "ALTER USER CURRENT_USER PASSWORD '$NEW_PASSWORD';" | sh Scripts/Install/WithConfig.sh sh -c 'docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$DATABASE_USERNAME" -d "$DATABASE_NAME"' &&
   sed -i "s/^DATABASE_PASSWORD=.*/DATABASE_PASSWORD=$NEW_PASSWORD/" config.env
 npm start
 ```
@@ -470,7 +468,7 @@ npm run down
 Ваши данные остаются в томах `oneuptime_postgres` и `oneuptime_clickhouse`, а папка `oneuptime` сохраняет `config.env` и резервные копии. Чтобы удалить и данные:
 
 ```bash
-(export $(grep -v '^#' config.env | xargs) && docker compose down --volumes --remove-orphans)
+sh Scripts/Install/WithConfig.sh docker compose down --volumes --remove-orphans
 ```
 
 Затем удалите папку `oneuptime`.
@@ -536,12 +534,12 @@ npm run logs
 Когда заказ не удаётся, приложение пишет в лог ошибку, которая начинается с `CoreSSL:EnsurePrimaryHostCertificate`, а за ней следует причина:
 
 ```bash
-(export $(grep -v '^#' config.env | xargs) && docker compose logs app) | grep -A 5 CoreSSL
+sh Scripts/Install/WithConfig.sh docker compose logs app | grep -A 5 CoreSSL
 ```
 :::
 
 :::details Встроенный зонд показывает Отключено после смены порта ingress
-Admin Dashboard показывает зонд в **Настройки > Мониторинг > Глобальные зонды**. Он обращается к OneUptime по `GLOBAL_PROBE_1_ONEUPTIME_URL`, где по умолчанию указан `http://localhost` (порт 80). `npm start` переводит этот адрес и `ONEUPTIME_RUNNER_ONEUPTIME_URL` на порт ingress, пока они указывают на `localhost`. Если вы задали им другой адрес или запустили OneUptime через Docker CLI, укажите в обоих новый порт ingress, например `http://localhost:8080`, и перезапустите OneUptime.
+Admin Dashboard показывает зонд в **Настройки > Мониторинг > Глобальные зонды**. Он обращается к OneUptime по `GLOBAL_PROBE_1_ONEUPTIME_URL`, где по умолчанию указан `http://localhost` (порт 80). `npm start` переводит этот адрес на порт ingress, пока он указывает на `localhost`. Если вы задали ему другой адрес или запустили OneUptime через Docker CLI, укажите в нём новый порт ingress, например `http://localhost:8080`, и перезапустите OneUptime.
 :::
 
 ## Следующие шаги

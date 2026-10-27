@@ -200,7 +200,7 @@ const CASES: Array<ResourceCase> = [
     menu: DockerSwarmSideMenu,
     firstSection: "Overview",
     breadcrumbs: getDockerSwarmBreadcrumbs,
-    trail: ["Project", "DockerSwarm", "View Cluster"],
+    trail: ["Project", "Docker Swarm", "View Cluster"],
     metricsInsights: PageMap.DOCKER_SWARM_CLUSTER_VIEW_INSIGHTS,
   },
   {

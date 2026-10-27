@@ -536,15 +536,16 @@ describe("when a run is", () => {
     ).toBe("Fri, Oct 16, 9:00 AM EDT");
   });
 
-  test("in the reader's language, with the Gregorian calendar and Latin digits", () => {
+  test("in the reader's language and its digits, with the Gregorian calendar", () => {
     expect(at("2026-10-16T08:00:00.000Z", "de")).toEqual({
       when: "Fr., 16. Okt., 09:00 BST",
       relative: "in 1 Tag",
     });
     expect(at("2026-10-19T08:00:00.000Z", "fr").relative).toBe("dans 4 jours");
     expect(at("2026-10-16T08:00:00.000Z", "ja").when).toContain("10月16日");
-    // Persian reads Gregorian dates in Latin digits, as the rest of the page.
-    expect(at("2026-10-16T08:00:00.000Z", "fa").when).toContain("16");
+    // Persian reads Gregorian dates in its own digits, as its counts.
+    expect(at("2026-10-16T08:00:00.000Z", "fa").when).toContain("۱۶");
+    expect(at("2026-10-16T08:00:00.000Z", "fa").when).not.toMatch(/[0-9]/);
   });
 
   test("how far off it is: minutes, hours, then calendar days on the zone's clock", () => {

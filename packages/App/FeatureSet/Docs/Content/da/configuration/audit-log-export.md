@@ -160,7 +160,9 @@ Nøgler, tokens og adgangskoder forlader aldrig OneUptime: De registreres som `[
 
 En batch forsøges tre gange med få sekunders mellemrum, og derefter venter eksporten, før den prøver igen: et minut, så to, fire og så videre, op til en time. Dens række siger **Fejler**, og **Vis fejl** viser, hvad destinationen svarede, og hvornår næste forsøg kommer.
 
-Intet springes over: Posterne venter i auditloggen, og den næste levering, der lykkes, indhenter fra den ældste. En post, der er ældre end opbevaringen for dens projekts auditlog, slettes, før den kan sendes, så ret en eksport, der fejler, inden for den tid.
+Intet springes over: Posterne venter i auditloggen, og den næste levering, der lykkes, indhenter fra den ældste. Hver post slettes dog, når den er ældre end den opbevaring, den blev registreret med, sendt eller ej, så ret en eksport, der fejler, inden for den tid. En længere opbevaring gælder kun de poster, der registreres, efter at du ændrer den.
+
+En eksport, der fejler, sender en e-mail til dem, der kan rette den: projektets ejere for et projekts eksport og alle master-admins for instansens. Den første e-mail kommer efter 30 minutters fejl med det, destinationen svarede. Den anden kommer en dag før den ældste post, som eksporten ikke har sendt, slettes, med hvornår poster begynder at gå tabt. Hver sendes én gang, mens fejlene står på, og en levering, der lykkes, nulstiller begge.
 
 Vælg **Slå fra** i menuen på dens række for at sætte en eksport på pause: Den beholder sin plads, og **Slå til** sender, hvad der blev registreret i mellemtiden. I OneUptime Cloud holder et projekt, der forlader Enterprise-planen, op med at eksportere, og dets eksporter venter under opgraderingskortet, hvor de kan slås fra eller slettes. Når du selv hoster, stopper eksporten, så længe licensen ikke omfatter auditlogs, og fortsætter, hvor den slap, så snart en licens gør.
 

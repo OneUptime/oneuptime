@@ -189,7 +189,7 @@ const SideOver: FunctionComponent<ComponentProps> = (
          */}
         <div
           className={`pointer-events-auto w-full ${widthClass} transition-transform duration-200 ease-out motion-reduce:transition-none ${
-            hasEntered ? "" : "translate-x-full"
+            hasEntered ? "" : "translate-x-full [&:dir(rtl)]:-translate-x-full"
           }`}
         >
           <div className="flex h-full flex-col bg-white shadow-xl">
@@ -203,13 +203,18 @@ const SideOver: FunctionComponent<ComponentProps> = (
                   >
                     {translateString(props.title) ?? props.title}
                   </h2>
-                  <p
-                    className="text-sm text-gray-500"
-                    id={descriptionId}
-                    data-testid="side-over-description"
-                  >
-                    {translateString(props.description) ?? props.description}
-                  </p>
+                  {/* A panel with nothing to add under its title says nothing. */}
+                  {props.description ? (
+                    <p
+                      className="text-sm text-gray-500"
+                      id={descriptionId}
+                      data-testid="side-over-description"
+                    >
+                      {translateString(props.description) ?? props.description}
+                    </p>
+                  ) : (
+                    <></>
+                  )}
                 </div>
                 <div className="flex h-7 items-center">
                   <button

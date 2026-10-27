@@ -199,6 +199,7 @@ Ogni riga porta un `code` stabile. Cerca qui il tuo.
 | `bootstrap-already-started` | Due copie dello snippet sulla stessa pagina. Rimuovine una. |
 | `bootstrap-already-running` | `bootstrap()` è stato chiamato di nuovo mentre un registratore era già in esecuzione. Innocuo; di solito un'integrazione duplicata. |
 | `bootstrap-cancelled` | Un `revokeConsent()` o `stop()` in coda in `window.OneUptimeReplayQueue` è stato eseguito prima dell'avvio del registratore, quindi questa sessione non viene registrata. Corretto se il tuo banner era già stato rifiutato. |
+| `prerender-wait` | Il browser ha pre-renderizzato questa pagina, come fa Chrome con una pagina che si aspetta venga aperta come successiva, e nessuno l'ha ancora aperta. Il registratore si avvia quando il visitatore apre la pagina, quindi una pagina che non viene mai aperta non registra nulla; le chiamate che la tua pagina fa nel frattempo vengono applicate allora. |
 | `start-stopped` | `start()` non ha ricevuto alcuna policy utilizzabile nel percorso del bundle autonomo. Il motivo preciso è nella riga `config-*` subito sopra. |
 | `rrweb-did-not-start` | Il registratore del DOM si è rifiutato di avviarsi. Segnalalo. |
 | `rrweb-error` | Il registratore del DOM ha avuto un errore interno su questa pagina (il nome dell'errore è nel dettaglio; viene registrato una volta). La registrazione può saltare o bloccarsi intorno a quel punto, e dopo tre errori di questo tipo la sessione porta un avviso di fedeltà che lo dice. Segnalalo con il framework della pagina e il nome dell'errore. |

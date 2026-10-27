@@ -422,11 +422,14 @@ interface TopListRow {
 
 /*
  * The top list, in rank order: each row's label, its dot, its bar's muted
- * fill and the bar's solid left edge.
+ * fill and the bar's solid edge where it starts (the left, the right on a
+ * page that reads right to left).
  */
 const topListRows: () => Array<TopListRow> = (): Array<TopListRow> => {
   return Array.from(
-    document.body.querySelectorAll<HTMLElement>('div[style*="border-left"]'),
+    document.body.querySelectorAll<HTMLElement>(
+      'div[style*="border-inline-start"]',
+    ),
   ).map((bar: HTMLElement): TopListRow => {
     const label: Element =
       bar.parentElement!.parentElement!.previousElementSibling!;
@@ -435,7 +438,7 @@ const topListRows: () => Array<TopListRow> = (): Array<TopListRow> => {
       label: label.textContent || "",
       dot: dot.style.backgroundColor,
       bar: bar.style.backgroundColor,
-      edge: bar.style.borderLeft,
+      edge: bar.style.borderInlineStart,
     };
   });
 };

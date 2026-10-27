@@ -105,6 +105,7 @@
   "register": {
     "title": "Opret din OneUptime-konto",
     "subtitle": "Slut dig til tusindvis af virksomheder, der bruger OneUptime til at holde sig online hele tiden.",
+    "firstAccountSubtitle": "Denne OneUptime-server har endnu ingen konti. Den første, du opretter, bliver dens administrator.",
     "noCreditCard": "Intet kreditkort kræves.",
     "submitButton": "Tilmeld",
     "haveAccountPrompt": "Har du allerede en konto?",
@@ -131,7 +132,6 @@
     "subtitle": "Indtast venligst din e-mail, og linket til nulstilling af adgangskode vil blive sendt til dig.",
     "successMessage": "Vi har sendt linket til nulstilling af adgangskode til din e-mail. Glem ikke at tjekke spam.",
     "submitButton": "Send link til nulstilling",
-    "returnToSignIn": "Tilbage til login.",
     "rememberPasswordPrompt": "Husker du din adgangskode?",
     "loginLink": "Log ind."
   },
@@ -156,13 +156,21 @@
     "emailRequired": "E-mail er påkrævet for at udføre denne handling",
     "defaultProjectName": "Projekt",
     "globalProvidersTitle": "Log ind med din organisation",
-    "globalProvidersDivider": "Eller fortsæt med e-mail"
+    "globalProvidersDivider": "Eller fortsæt med e-mail",
+    "signInWithProvider": "Log ind med {{name}}",
+    "requiredSubtitle": "Log ind med din organisations single sign-on (SSO).",
+    "requiredNotSetUp": "Single sign-on er endnu ikke sat op på denne server. Bed din serveradministrator om at sætte det op.",
+    "useDifferentEmail": "Brug en anden e-mail"
+  },
+  "adminLogin": {
+    "title": "Log ind som hovedadministrator",
+    "subtitle": "Denne server kræver single sign-on (SSO). Hovedadministratorer kan stadig logge ind her med deres adgangskode."
   },
   "verifyEmail": {
     "successTitle": "Din e-mail er verificeret.",
     "successDescription": "Tak fordi du verificerede din e-mail. Du kan nu logge ind på OneUptime.",
     "errorTitle": "Beklager, noget gik galt!",
-    "returnToSignIn": "Tilbage til login?",
+    "alreadyVerifiedPrompt": "Har du allerede bekræftet din e-mail?",
     "loginLink": "Log ind.",
     "continueToSignIn": "Fortsæt til log ind",
     "linkInvalidTitle": "Dette bekræftelseslink er ikke længere gyldigt",

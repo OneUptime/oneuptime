@@ -19,8 +19,9 @@ import ts from "typescript";
  *   - "plural":         a PluralTemplate, { one: "...", other: "..." };
  *   - "prop":           a JSX attribute or object property whose name says
  *                       it is shown (title, description, placeholder, label,
- *                       noItemsMessage... - USER_FACING_PROPS), or a tab's
- *                       name;
+ *                       noItemsMessage... - USER_FACING_PROPS), a tab's
+ *                       name, or a title in a list of titles a call draws
+ *                       (a page's breadcrumbs - TITLE_LIST_ARGUMENT_INDEX);
  *   - "jsx-text":       the whole text of an element (<p>No data yet.</p>),
  *                       or a string literal standing alone as a child;
  *   - "setter":         the message given to a state setter such as
@@ -286,6 +287,19 @@ const TEMPLATE_COMPONENTS: ReadonlySet<string> = new Set<string>([
 const KEY_ARGUMENT_INDEX: Readonly<Record<string, number>> = {
   translateInterpolated: 1,
 };
+
+/*
+ * Calls that take a list of titles to draw, and the argument the list is:
+ * a page's breadcrumbs, BuildBreadcrumbLinksByTitles(PageMap.X, ["Project",
+ * "Runbooks", "View Runbook"]), which Breadcrumbs translates when it draws
+ * them. They were not keys, so a trail's titles that no other place
+ * happened to use ("View Runbook", "Pod Detail", "View MCP Server") read in
+ * English in every language.
+ */
+export const TITLE_LIST_ARGUMENT_INDEX: ReadonlyMap<string, number> = new Map<
+  string,
+  number
+>([["BuildBreadcrumbLinksByTitles", 1]]);
 
 /*
  * t(), tx(), translate(), translateString(), translateTemplate(), ... and
@@ -1038,6 +1052,25 @@ export const scanSourceText: (
         if (argument) {
           for (const literal of getLiteralStrings(argument)) {
             add(literal.text, "setter", literal.node);
+          }
+        }
+      } else if (callee && TITLE_LIST_ARGUMENT_INDEX.has(callee)) {
+        // BuildBreadcrumbLinksByTitles(PageMap.X, ["Project", "View Runbook"])
+        const argument: ts.Expression | undefined =
+          node.arguments[TITLE_LIST_ARGUMENT_INDEX.get(callee)!];
+        const list: ts.Expression | undefined = argument
+          ? unwrap(argument)
+          : undefined;
+
+        if (list && ts.isArrayLiteralExpression(list)) {
+          for (const element of list.elements) {
+            if (ts.isSpreadElement(element)) {
+              continue;
+            }
+
+            for (const literal of getLiteralStrings(element)) {
+              add(literal.text, "prop", literal.node);
+            }
           }
         }
       }

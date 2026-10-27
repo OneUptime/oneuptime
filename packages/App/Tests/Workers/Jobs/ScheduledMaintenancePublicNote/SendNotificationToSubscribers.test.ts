@@ -19,6 +19,7 @@ import Phone from "Common/Types/Phone";
 import StatusPageSubscriberNotificationEventType from "Common/Types/StatusPage/StatusPageSubscriberNotificationEventType";
 import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/StatusPageSubscriberNotificationMethod";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
+import { NOT_PUBLISHED_YET_SKIPPED_MESSAGE } from "Common/Types/ScheduledMaintenance/ScheduledMaintenancePublication";
 import SubscriberNotificationTemplateVariables from "Common/Types/StatusPage/SubscriberNotificationTemplateVariables";
 import SubscriberUpdateNotification from "Common/Types/StatusPage/SubscriberUpdateNotification";
 import { STATUS_PAGE_OF_BLOCKED_PROJECT_SENDS_NOTHING_MESSAGE } from "Common/Types/StatusPage/StatusPageProjectBlock";
@@ -402,6 +403,7 @@ function publicNote(overrides?: {
 
 function scheduledEvent(overrides?: {
   isVisibleOnStatusPage?: boolean;
+  publishOnStatusPageAt?: Date | undefined;
   withoutStatusPages?: boolean;
   withoutState?: boolean;
 }): ScheduledMaintenance {
@@ -412,6 +414,10 @@ function scheduledEvent(overrides?: {
   event.projectId = PROJECT_ID;
   event.startsAt = STARTS_AT;
   event.isVisibleOnStatusPage = overrides?.isVisibleOnStatusPage !== false;
+
+  if (overrides?.publishOnStatusPageAt) {
+    event.publishOnStatusPageAt = overrides.publishOnStatusPageAt;
+  }
   event.scheduledMaintenanceNumber = 12;
 
   if (!overrides?.withoutState) {
@@ -1291,6 +1297,97 @@ describe("ScheduledMaintenancePublicNote:SendNotificationToSubscribers (created)
           "Notifications sent successfully to all subscribers",
       },
     ]);
+  });
+
+  /*
+   * Kept to the team until its publish time (#5249): its subscribers have
+   * not heard of the event, so a note posted - or edited - on it before then
+   * tells them nothing. They hear of the event when it is published, and
+   * read its notes on the page from then on.
+   */
+  describe("on an event kept to the team until its publish time", () => {
+    const WEEK: number = 7 * 24 * 60 * 60 * 1000;
+
+    test("reads both columns the rule decides by", async () => {
+      createdNotes = [publicNote()];
+
+      await runJob(CREATED_JOB);
+
+      const select: JSONObject = queryArgs(
+        ScheduledMaintenanceService.findOneById,
+      ).select;
+
+      expect(select["isVisibleOnStatusPage"]).toBe(true);
+      expect(select["publishOnStatusPageAt"]).toBe(true);
+    });
+
+    test("a note posted before its publish time is skipped, saying why", async () => {
+      createdNotes = [publicNote()];
+      storedEvent = scheduledEvent({
+        publishOnStatusPageAt: new Date(Date.now() + WEEK),
+      });
+
+      await runJob(CREATED_JOB);
+
+      nothingSent();
+      expect(statusWrites()[statusWrites().length - 1]).toEqual({
+        subscriberNotificationStatusOnNoteCreated:
+          StatusPageSubscriberNotificationStatus.Skipped,
+        subscriberNotificationStatusMessage: NOT_PUBLISHED_YET_SKIPPED_MESSAGE,
+      });
+    });
+
+    test("a note edited before its publish time is skipped too", async () => {
+      updatedNotes = [publicNote()];
+      storedEvent = scheduledEvent({
+        publishOnStatusPageAt: new Date(Date.now() + WEEK),
+      });
+
+      await runJob(UPDATED_JOB);
+
+      nothingSent();
+      expect(statusWrites()[statusWrites().length - 1]).toEqual({
+        subscriberNotificationStatusOnNoteUpdated:
+          StatusPageSubscriberNotificationStatus.Skipped,
+        subscriberNotificationStatusMessageOnNoteUpdated:
+          NOT_PUBLISHED_YET_SKIPPED_MESSAGE,
+      });
+    });
+
+    test("a note posted once its publish time has come is sent", async () => {
+      createdNotes = [publicNote()];
+      storedEvent = scheduledEvent({
+        publishOnStatusPageAt: new Date(Date.now() - 60 * 1000),
+      });
+
+      await runJob(CREATED_JOB);
+
+      expect(sentMail()).toHaveLength(1);
+      expect(statusWrites()[statusWrites().length - 1]).toEqual({
+        subscriberNotificationStatusOnNoteCreated:
+          StatusPageSubscriberNotificationStatus.Success,
+        subscriberNotificationStatusMessage:
+          "Notifications sent successfully to all subscribers",
+      });
+    });
+
+    test("a note on one hidden from its status pages is skipped as hidden, whatever its time", async () => {
+      createdNotes = [publicNote()];
+      storedEvent = scheduledEvent({
+        isVisibleOnStatusPage: false,
+        publishOnStatusPageAt: new Date(Date.now() + WEEK),
+      });
+
+      await runJob(CREATED_JOB);
+
+      nothingSent();
+      expect(statusWrites()[statusWrites().length - 1]).toEqual({
+        subscriberNotificationStatusOnNoteCreated:
+          StatusPageSubscriberNotificationStatus.Skipped,
+        subscriberNotificationStatusMessage:
+          "Notifications skipped as scheduled maintenance is not visible on status page.",
+      });
+    });
   });
 });
 

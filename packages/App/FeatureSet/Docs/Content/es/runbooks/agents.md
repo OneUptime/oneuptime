@@ -62,6 +62,7 @@ Los Runners globales son los Runners que OneUptime ejecuta para todos los proyec
 | Lo más que dura un paso | 5 minutos | 1 hora |
 | Variables secretas | Las que dejas usar a los Runners globales | Las que lo incluyen |
 | Comandos Bash de OneUptime AI | Nunca | Para las reglas de IA que lo eligen |
+| Correcciones de código de OneUptime AI | Se abren para revisión sin compilarlas ni probarlas | Se compilan y prueban antes de que se abra el pull request |
 
 Un Runner global ejecuta los pasos de muchos proyectos, así que cada paso se mantiene aparte de todos los demás:
 
@@ -70,15 +71,17 @@ Un Runner global ejecuta los pasos de muchos proyectos, así que cada paso se ma
 - Recibe una variable secreta solo cuando su interruptor **Los Runners globales pueden usarlo** está activado, y solo para un paso del propio proyecto de la variable.
 - Un proyecto ejecuta como mucho tres pasos a la vez en los Runners globales, así que ningún proyecto los acapara.
 
+Un Runner global también se encarga de las correcciones de código de OneUptime AI, en cada repositorio de código que trabaja en **Runner global**. Escribe cada corrección y abre el pull request, pero no ejecuta ningún comando, ni siquiera los comandos de preparación, compilación y prueba del repositorio, así que el pull request indica que su verificación se omitió. Solo alcanza servidores Git en internet, por HTTPS, salvo en un OneUptime autoalojado, donde también puede alcanzar los servidores Git privados que el propio servidor puede alcanzar. Solo actúa por las correcciones que toma, y recibe el token de un repositorio solo mientras trabaja en una corrección allí. El token de un repositorio de GitHub alcanza solo ese repositorio y se revoca cuando termina la corrección.
+
 Elige uno de tus propios Runners para un paso que deba alcanzar tu red, o para mantener el paso en hosts que controlas. Para mantener todos los pasos en tus propios Runners, desactiva **Usar Runners globales** al final de **Runbooks → Agentes de runbook**. Un paso JavaScript que no elige ningún Runner se ejecuta entonces en el Runner predeterminado del proyecto o, si no hay ninguno, falla, indicándolo, hasta que elija uno de los tuyos; un paso que elige uno de tus Runners lo conserva en cualquier caso. Un repositorio de código que no elige ningún Runner en sus ajustes en Código también trabaja en el Runner predeterminado del proyecto o, si no hay ninguno, en un Runner global, y necesita uno de los tuyos mientras el interruptor está desactivado; consulta [Código](/docs/ai/ai-agent#elige-el-runner-del-repositorio).
 
 ### De dónde vienen los Runners globales
 
 En OneUptime Cloud, los ejecuta OneUptime. Una instalación autoalojada ejecuta uno propio de forma predeterminada, igual que ejecuta sus propias sondas globales: el servicio `global-runner` en Docker Compose y el despliegue `globalRunner` en el chart de Helm. Tiene su propia clave, `GLOBAL_RUNNER_KEY`, y nada más del servidor.
 
-Un administrador principal puede añadir más, para ejecutar pasos desde otros hosts: en el Panel de administración, abre **Ajustes** y luego **Runners globales**, crea uno y ejecuta el comando que da su **Mostrar ID y clave** en un host que alcance internet.
+Un administrador principal puede añadir más, para ejecutar pasos y correcciones de código desde otros hosts: en el Panel de administración, abre **Ajustes** y luego **Runners globales**, crea uno y ejecuta el comando que da su **Mostrar ID y clave** en un host que alcance internet.
 
-Para desactivar el incluido, define `GLOBAL_RUNNER_REPLICAS=0` en el `config.env` de Docker Compose, o `globalRunner.enabled` a `false` en el chart de Helm. Sin ningún Runner global, **Runbooks → Agentes de runbook** muestra solo tus propios Runners, y cada paso JavaScript elige uno de ellos.
+Para desactivar el incluido, define `GLOBAL_RUNNER_REPLICAS=0` en el `config.env` de Docker Compose, o `globalRunner.enabled` a `false` en el chart de Helm. Sin ningún Runner global, **Runbooks → Agentes de runbook** muestra solo tus propios Runners, y cada paso JavaScript y cada repositorio de código elige uno de ellos.
 
 ## Antes de empezar
 
@@ -98,7 +101,7 @@ Ve a **Runbooks → Agentes de runbook** y crea un agente nuevo. Haz clic en **C
 | **Ejecuta runbooks** | En **Más campos** | Activado por defecto. Permite a este Runner tomar pasos de runbook. |
 | **Etiquetas** | En **Más campos** | Opcional. |
 
-Un Runner aplica un cambio de sus capacidades en su siguiente heartbeat; no hace falta reiniciarlo. La IA no es una capacidad. Un repositorio de código elige, en sus ajustes en Código, el Runner en el que la IA trabaja en él, y la página del Runner lista los repositorios que lo eligen. Una regla de IA elige el Runner en el que OneUptime AI ejecuta sus comandos: elegir un Runner ahí es lo que permite que los comandos de OneUptime AI se ejecuten en él.
+Un Runner aplica un cambio de sus capacidades en su siguiente heartbeat; no hace falta reiniciarlo. La IA no es una capacidad. Un repositorio de código elige, en sus ajustes en Código, el Runner en el que la IA trabaja en él, y la página del Runner lista los repositorios que lo eligen. Una regla de IA elige el Runner en el que OneUptime AI ejecuta sus comandos: elegir un Runner ahí es lo que permite que los comandos de OneUptime AI se ejecuten en él. La página del Runner lista también las reglas de IA que lo eligen.
 
 ### 2. Copiar el comando de instalación
 
@@ -302,7 +305,7 @@ Para los curiosos: el Runner usa estos endpoints, montados en `/runner-ingest`. 
 | `POST /job/:jobId/result` | Enviar el resultado final. Se ignora si la concesión ya ha pasado a otro. |
 | `POST /disconnect` | Desconectarse en un apagado limpio. |
 
-No deberías tener que llamarlos a mano: el Runner incluido lo hace. Están documentados aquí para que puedas construir tu propio agente si tienes una restricción a la que el nuestro no se adapta.
+No deberías tener que llamarlos a mano: el contenedor del Runner lo hace. Están documentados aquí para que puedas construir tu propio agente si tienes una restricción a la que el nuestro no se adapta.
 
 ## Solución de problemas
 

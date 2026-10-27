@@ -36,6 +36,11 @@ import {
  * The email's own image - OneUptime's logo in its header (EmailLogo) - goes
  * out the same way, through attachImage: under a name of its own, outside
  * the limits above, and never replaced by a note.
+ *
+ * A mail service can still refuse an email for its images (MailService:
+ * InlineImageRefusal). The email then goes once more without any: leaveOut
+ * replaces each image a text placed with a note of the same kind, and the
+ * header is rendered without the logo, showing the product's name alone.
  */
 
 // Decoded bytes, across every image in one email.
@@ -142,24 +147,28 @@ const findAttribute: (tag: string, name: string) => TagAttribute | null = (
   return null;
 };
 
+// Why an image is not in an email, as its note says it.
+const TOO_LARGE_REASON: string = "too large to include in this email";
+const NOT_TAKEN_REASON: string = "could not be included in this email";
+
 /*
- * What an image that did not fit becomes: its alt text, and why it is not
- * there. The alt text is escaped as an attribute value is, which is escaped
- * enough to be text. A tag found here holds no "<" or ">" (see
+ * What an image left out of an email becomes: its alt text, and why it is
+ * not there - it did not fit (attach), or the mail service would not take
+ * it (leaveOut). The alt text is escaped as an attribute value is, which is
+ * escaped enough to be text. A tag found here holds no "<" or ">" (see
  * IMAGE_TAG_PATTERN); both are escaped anyway, so the note can never become
  * markup even if that changes.
  */
-const getLeftOutImageNotice: (altText: string) => string = (
+const getLeftOutImageNotice: (altText: string, reason: string) => string = (
   altText: string,
+  reason: string,
 ): string => {
   const alt: string = altText
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .trim();
 
-  const notice: string = alt
-    ? `${alt}: image too large to include in this email`
-    : "Image too large to include in this email";
+  const notice: string = alt ? `${alt}: image ${reason}` : `Image ${reason}`;
 
   return `<span style="color:#64748b;font-style:italic;">[${notice}]</span>`;
 };
@@ -216,6 +225,7 @@ export default class EmailInlineImages {
           ) {
             return getLeftOutImageNotice(
               findAttribute(tag, "alt")?.value || "",
+              TOO_LARGE_REASON,
             );
           }
 
@@ -241,6 +251,41 @@ export default class EmailInlineImages {
     );
 
     return { html: attachedHtml, inlineImages: inlineImages };
+  }
+
+  /**
+   * `html` with every inline raster image an <img> holds - each image
+   * attach() would move into an attachment - replaced by a note with its
+   * alt text, saying it could not be included: the email as it goes when a
+   * mail service would not take its images (MailService). Everything else
+   * is left as it is, and HTML with no such image comes back exactly as it
+   * was.
+   */
+  public static leaveOut(html: string): string {
+    if (
+      !html ||
+      !IMAGE_TAG_START_PATTERN.test(html) ||
+      !DATA_URL_ANYWHERE_PATTERN.test(html)
+    ) {
+      return html;
+    }
+
+    return html.replace(IMAGE_TAG_PATTERN, (tag: string): string => {
+      const source: TagAttribute | null = findAttribute(tag, "src");
+
+      if (
+        !source ||
+        !DATA_URL_PATTERN.test(source.value) ||
+        !parseInlineImageDataUri(source.value)
+      ) {
+        return tag;
+      }
+
+      return getLeftOutImageNotice(
+        findAttribute(tag, "alt")?.value || "",
+        NOT_TAKEN_REASON,
+      );
+    });
   }
 
   /**

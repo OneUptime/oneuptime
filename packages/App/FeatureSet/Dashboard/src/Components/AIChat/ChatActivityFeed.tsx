@@ -306,8 +306,13 @@ const friendlyToolNames: { [key: string]: string } = {
   create_incident: translationKey("Creating incident"),
   acknowledge_incident: translationKey("Acknowledging incident"),
   resolve_incident: translationKey("Resolving incident"),
+  // An alert raised from the conversation (#5301), as an incident is declared.
+  create_alert: translationKey("Creating alert"),
   acknowledge_alert: translationKey("Acknowledging alert"),
   resolve_alert: translationKey("Resolving alert"),
+  // What an incident or alert is about (#5293), never the tool's own name.
+  add_incident_affected_resources: translationKey("Linking affected resources"),
+  add_alert_affected_resources: translationKey("Linking affected resources"),
   run_kubectl: translationKey("Running kubectl on the cluster"),
   list_cluster_access: translationKey("Checking cluster access"),
   run_infrastructure_command: translationKey(
@@ -428,9 +433,11 @@ export function describePromptOmissions(
 
 /*
  * What a kind of linked resource is called (LinkedAffectedResourceType, as
- * the server records it in an investigation's activity).
+ * the server records it in an investigation's activity): one noun for each
+ * kind the server names (LINKED_INFRASTRUCTURE_KINDS), or a linked cloud
+ * resource would read "Resource web-alb".
  */
-const LINKED_RESOURCE_KIND_NOUNS: { [kind: string]: string } = {
+export const LINKED_RESOURCE_KIND_NOUNS: { [kind: string]: string } = {
   Host: translationKey("Host"),
   DockerHost: translationKey("Docker host"),
   PodmanHost: translationKey("Podman host"),
@@ -442,6 +449,7 @@ const LINKED_RESOURCE_KIND_NOUNS: { [kind: string]: string } = {
   StorageArray: translationKey("Storage array"),
   IoTFleet: translationKey("IoT fleet"),
   DatabaseServer: translationKey("Database"),
+  CloudResource: translationKey("Cloud resource"),
   Service: translationKey("Service"),
 };
 

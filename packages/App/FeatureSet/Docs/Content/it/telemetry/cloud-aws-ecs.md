@@ -322,7 +322,7 @@ aws ecs update-service \
 ## Che cosa ottieni
 
 - **Panoramica**: richieste, tasso di errore e latenza p95 dalle tue tracce, i riquadri **CPU** e **Memoria** e **Istanze principali per CPU**. I riquadri si riempiono con `ecs.task.cpu.utilized` e `ecs.task.memory.utilized` del receiver `awsecscontainermetrics`, oppure con qualsiasi metrica `container.cpu.utilization` e `container.memory.usage` che porti l'identità del task. SDK direct non invia né l'una né l'altra.
-- **Istanze**: una riga per task in esecuzione, con il nome del suo ID del task (la fine di `aws.ecs.task.arn`), con la sua ultima CPU, la memoria e l'ora in cui è stato visto l'ultima volta. Un task che smette di segnalare diventa **Stale**.
+- **Istanze**: una riga per task in esecuzione, con il nome del suo ID del task (la fine di `aws.ecs.task.arn`), con la sua ultima CPU, la memoria e l'ora in cui è stato visto l'ultima volta. Un task che smette di segnalare diventa **Non aggiornato**.
 - **Registri**, **Tracce** e **Metriche**: tutto ciò che ha portato `cloud.platform=aws_ecs` per questo account e questa regione.
 - **Servizi**: gli stessi task, suddivisi per `service.name`.
 

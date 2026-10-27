@@ -127,13 +127,14 @@ const SEVEN: Array<string> = [
 ];
 
 /*
- * Both kinds of products menu draw the row the same way: the Dashboard's,
- * which opens on Essentials and folds the other categories, and the Admin
- * Dashboard's, which shows every category open.
+ * Only a menu that folds its categories draws the row: the Dashboard's,
+ * which opens on Essentials and folds the other categories. There it saves
+ * opening a category to reach a product used a moment ago. A menu that
+ * shows every category open - the Admin Dashboard's six products - draws
+ * none: its row only showed the same cards twice (the last block below).
  */
 const MENU_KINDS: Array<[string, Array<string> | undefined]> = [
   ["the Dashboard's menu, which folds", ["Essentials"]],
-  ["a menu that shows every category", undefined],
 ];
 
 function goTo(pathname: string): void {
@@ -734,5 +735,67 @@ describe("what opening products from the menu leaves in the row", () => {
       routeOf("Logs"),
       ...others.slice(0, RECENT_PRODUCTS_REMEMBERED - 1),
     ]);
+  });
+});
+
+/*
+ * The Admin Dashboard's menu shows its six products at once, every category
+ * open. A Recently visited row there drew the same cards a second time,
+ * above themselves (#4922's follow-up), so a menu that folds nothing has no
+ * row, opens where the user is, and remembers nothing for one.
+ */
+describe("a menu that shows every category", () => {
+  function renderOpenMenu(): ReturnType<typeof render> {
+    return render(
+      <NavBarMenuModal
+        items={CATALOG}
+        categoriesOpenByDefault={undefined}
+        recentLabel="Recently visited"
+        onClose={() => {}}
+      />,
+    );
+  }
+
+  test("draws no Recently visited row, however many products are remembered", () => {
+    remember(SEVEN);
+
+    renderOpenMenu();
+
+    expect(
+      screen.queryByRole("group", { name: "Recently visited" }),
+    ).toBeNull();
+    expect(screen.queryByRole("group", { name: "Recent" })).toBeNull();
+    // Each product is drawn once.
+    const titles: Array<string> = screen
+      .getAllByRole("option")
+      .map((option: HTMLElement): string => {
+        return option.querySelector("span.truncate")?.textContent ?? "";
+      });
+    expect(titles).toEqual(
+      CATALOG.map((item: MoreMenuItem): string => {
+        return item.title;
+      }),
+    );
+  });
+
+  test("opens with the cursor on the page's own product", () => {
+    remember(SEVEN);
+    goTo(routeOf("Logs"));
+
+    renderOpenMenu();
+
+    const option: HTMLElement = screen.getByRole("option", { selected: true });
+    expect(option.querySelector("span.truncate")?.textContent).toBe("Logs");
+  });
+
+  test("opening a product from it leaves the remembered list as it was", () => {
+    remember(["Monitors", "Incidents"]);
+    const before: Array<string> | null = stored();
+
+    renderOpenMenu();
+    fireEvent.change(search(), { target: { value: "Teams" } });
+    press("Enter");
+
+    expect(stored()).toEqual(before);
   });
 });

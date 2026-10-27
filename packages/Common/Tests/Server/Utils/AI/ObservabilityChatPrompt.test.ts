@@ -1,4 +1,5 @@
 import {
+  INCIDENTS_ALERTS_AND_MONITORS_SECTION,
   INFRASTRUCTURE_COMMANDS_GUIDANCE,
   buildObservabilityChatSystemPrompt,
   buildPageContextSection,
@@ -38,6 +39,17 @@ import { QueryMonitorsTool } from "../../../../Server/Utils/AI/Toolbox/MonitorTo
 import { SearchSecurityEventsTool } from "../../../../Server/Utils/AI/Toolbox/SecurityEventTools";
 import { ObservabilityTool } from "../../../../Server/Utils/AI/Toolbox/ToolTypes";
 import { JSONObject } from "../../../../Types/JSON";
+import {
+  AI_AFFECTED_RESOURCE_KINDS,
+  AI_RESOURCE_TYPES_NOT_LINKABLE,
+  AiAffectedResourceKind,
+  AiAffectedResourceKindInfo,
+} from "../../../../Types/AI/AiAffectedResources";
+import MonitorType from "../../../../Types/Monitor/MonitorType";
+import {
+  HostAlertTemplate,
+  getHostAlertTemplateById,
+} from "../../../../Types/Monitor/HostAlertTemplates";
 import { describe, expect, test } from "@jest/globals";
 
 const ENTITY_ID: string = "0f10509d-6656-4a08-b957-235fd4e8c52e";
@@ -1012,5 +1024,301 @@ describe("infrastructure commands guidance (issue #5259)", () => {
       expect(section).not.toContain(RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME);
       expect(section).not.toContain(RUN_KUBECTL_TOOL_NAME);
     }
+  });
+});
+
+/*
+ * Issue #5293: on a host's page, Ask AI declared an incident linked to
+ * nothing. The page's guidance says what an incident declared there is
+ * linked to - in the exact affectedResources create_incident takes - and
+ * the base prompt says why linking matters and which tools link.
+ */
+describe("what an incident declared from a page is linked to (issue #5293)", () => {
+  test("a host's page: declared there, linked to the host, in the exact argument", () => {
+    const section: string = buildPageContextSection({
+      type: AIChatPageContextType.Resource,
+      resourceType: AIResourceType.Host,
+      entityId: ENTITY_ID,
+      entityTitle: "test01",
+    });
+
+    expect(section).toContain(
+      `An incident you declare here with create_incident, or an alert you raise here with create_alert, is linked to it (affectedResources [{"resourceType":"Host","resourceId":"${ENTITY_ID}"}])`,
+    );
+    expect(section).toContain(
+      "pass affectedResources yourself only when the incident or alert is about something else",
+    );
+    expect(section).toContain("add_incident_affected_resources");
+    expect(section).toContain("add_alert_affected_resources");
+  });
+
+  test.each(
+    AI_AFFECTED_RESOURCE_KINDS.filter(
+      (info: AiAffectedResourceKindInfo): boolean => {
+        return info.kind !== AiAffectedResourceKind.Service;
+      },
+    ).map((info: AiAffectedResourceKindInfo) => {
+      return [info.kind];
+    }),
+  )("every linkable resource's page says so (%s)", (kind: string) => {
+    expect(
+      buildPageContextSection({
+        type: AIChatPageContextType.Resource,
+        resourceType: kind as AIResourceType,
+        entityId: ENTITY_ID,
+      }),
+    ).toContain(`{"resourceType":"${kind}","resourceId":"${ENTITY_ID}"}`);
+  });
+
+  test("a pod's page links its cluster", () => {
+    expect(
+      buildPageContextSection({
+        type: AIChatPageContextType.Resource,
+        resourceType: AIResourceType.KubernetesCluster,
+        entityId: ENTITY_ID,
+        subresource: { kind: AIResourceSubresourceKind.Pod, key: "web-1" },
+      }),
+    ).toContain(
+      `{"resourceType":"KubernetesCluster","resourceId":"${ENTITY_ID}"}`,
+    );
+  });
+
+  test("a telemetry service's page links the service", () => {
+    const section: string = buildPageContextSection({
+      type: AIChatPageContextType.TelemetryService,
+      entityId: ENTITY_ID,
+      entityTitle: "checkout",
+    });
+
+    expect(section).toContain(
+      `{"resourceType":"Service","resourceId":"${ENTITY_ID}"}`,
+    );
+    // Still scoped to the service the way it was.
+    expect(section).toContain(`serviceId="${ENTITY_ID}"`);
+  });
+
+  test.each(Object.keys(AI_RESOURCE_TYPES_NOT_LINKABLE))(
+    "the page of a resource an incident cannot be linked to (%s) says what to link instead",
+    (type: string) => {
+      const section: string = buildPageContextSection({
+        type: AIChatPageContextType.Resource,
+        resourceType: type as AIResourceType,
+        entityId: ENTITY_ID,
+      });
+
+      expect(section).toContain("An incident or alert cannot be linked to a");
+      expect(section).toContain(
+        "link one you declare here to the hosts, clusters or services it runs on, if you can find them with a tool",
+      );
+      expect(section).not.toContain("affectedResources [");
+    },
+  );
+
+  test("a list page, an incident's page or a monitor's page links nothing by itself", () => {
+    for (const context of [
+      {
+        type: AIChatPageContextType.ResourcesList,
+        resourceType: AIResourceType.Host,
+      },
+      { type: AIChatPageContextType.Incident, entityId: ENTITY_ID },
+      { type: AIChatPageContextType.Monitor, entityId: ENTITY_ID },
+    ] as Array<AIChatPageContext>) {
+      expect(buildPageContextSection(context)).not.toContain(
+        "An incident you declare here",
+      );
+    }
+  });
+
+  test.each(Object.values(AIChatPermissionMode))(
+    "the %s prompt says OneUptime AI fixes only what an incident is linked to, and how to link",
+    (permissionMode: AIChatPermissionMode) => {
+      const prompt: string = buildObservabilityChatSystemPrompt({
+        currentTime: new Date("2026-10-26T00:00:00Z"),
+        permissionMode,
+      });
+
+      expect(prompt).toContain(
+        "OneUptime AI investigates and fixes the infrastructure an incident or alert is linked to, and nothing else.",
+      );
+      expect(prompt).toContain(
+        "When you declare an incident or raise an alert about a host, a cluster, a database or a service, pass it in the affectedResources of create_incident or create_alert",
+      );
+      expect(prompt).toContain(
+        "Never link a resource you have not found with a tool.",
+      );
+    },
+  );
+
+  test("the modes that act list linking among the actions, and read-only says it cannot", () => {
+    for (const permissionMode of [
+      AIChatPermissionMode.AskForApproval,
+      AIChatPermissionMode.AutoRun,
+    ]) {
+      expect(
+        buildObservabilityChatSystemPrompt({
+          currentTime: new Date("2026-10-26T00:00:00Z"),
+          permissionMode,
+        }),
+      ).toContain(
+        "link an incident or alert to the infrastructure and services it is about (add_incident_affected_resources / add_alert_affected_resources)",
+      );
+    }
+
+    expect(
+      buildObservabilityChatSystemPrompt({
+        currentTime: new Date("2026-10-26T00:00:00Z"),
+        permissionMode: AIChatPermissionMode.ReadOnly,
+      }),
+    ).toContain(
+      "If the user asks you to create an incident or an alert, link one to the resources it is about,",
+    );
+  });
+
+  test("the linking tools the prompt names are the toolbox's, and they change the project", () => {
+    for (const name of [
+      "create_incident",
+      "create_alert",
+      "add_incident_affected_resources",
+      "add_alert_affected_resources",
+    ]) {
+      expect(AIToolbox.getToolByName(name)).toBeDefined();
+      expect(AIToolbox.isMutationTool(name)).toBe(true);
+    }
+  });
+});
+
+/*
+ * Issue #5301. On host test01's page, "Create alert on high ram 75%" was
+ * answered with "I don't have a tool available to create new alerts",
+ * though Ask AI declared incidents there. Ask AI raises alerts now
+ * (create_alert), and the prompt says, in every mode:
+ *
+ *   - which record fits: an incident for an outage users feel, an alert
+ *     for something to look into - and the one the user names wins;
+ *   - that neither record watches for anything: being alerted whenever a
+ *     condition holds is a monitor, which no tool creates, so the model
+ *     says so, reads the condition now, offers an alert if it holds, and
+ *     says where a person creates the monitor - in the product's words,
+ *     held here to the monitor types and the Host template it names.
+ */
+describe("raising an alert, and what an alert rule is (issue #5301)", () => {
+  function promptFor(permissionMode: AIChatPermissionMode): string {
+    return buildObservabilityChatSystemPrompt({
+      currentTime: new Date("2026-10-26T00:00:00Z"),
+      permissionMode,
+    });
+  }
+
+  test.each(Object.values(AIChatPermissionMode))(
+    "the %s prompt says when an alert fits and when an incident does",
+    (permissionMode: AIChatPermissionMode) => {
+      const prompt: string = promptFor(permissionMode);
+
+      expect(prompt).toContain("## Incidents, alerts and monitors");
+      expect(prompt).toContain(
+        "Declare an incident (create_incident) for an outage or a problem users feel, which needs a response now.",
+      );
+      expect(prompt).toContain(
+        "Raise an alert (create_alert) for something the team should look into that is not, or not yet, an outage",
+      );
+      expect(prompt).toContain("When the user names one, create that one.");
+    },
+  );
+
+  test.each(Object.values(AIChatPermissionMode))(
+    "the %s prompt says a rule is a monitor, which no tool creates, and what to do instead",
+    (permissionMode: AIChatPermissionMode) => {
+      const prompt: string = promptFor(permissionMode);
+
+      expect(prompt).toContain(
+        "An incident or an alert is created once, now, and watches nothing.",
+      );
+      expect(prompt).toContain(
+        'A request to be alerted when or whenever something happens ("alert me when memory goes above 75%") asks for a monitor, and no tool here creates one',
+      );
+      expect(prompt).toContain(
+        "say so plainly, read the condition now with the metric tools, and if it holds now, offer to raise an alert about it",
+      );
+      expect(prompt).toContain(
+        "A person creates the monitor under Monitors → Create Monitor",
+      );
+    },
+  );
+
+  test("the section is the exported one, once, between How to investigate and Reading tool results", () => {
+    for (const permissionMode of Object.values(AIChatPermissionMode)) {
+      const prompt: string = promptFor(permissionMode);
+      const at: number = prompt.indexOf(INCIDENTS_ALERTS_AND_MONITORS_SECTION);
+
+      expect(at).toBeGreaterThan(prompt.indexOf("## How to investigate"));
+      expect(at).toBeLessThan(prompt.indexOf("## Reading tool results"));
+      expect(prompt.split("## Incidents, alerts and monitors")).toHaveLength(2);
+    }
+  });
+
+  test("the claim that no tool creates a monitor holds: no tool of the toolbox writes one", () => {
+    const monitorWriters: Array<string> = AIToolbox.getTools()
+      .filter((tool: ObservabilityTool): boolean => {
+        return Boolean(tool.isMutation) && tool.name.includes("monitor");
+      })
+      .map((tool: ObservabilityTool): string => {
+        return tool.name;
+      });
+
+    expect(monitorWriters).toEqual([]);
+    expect(AIToolbox.getToolByName("create_monitor")).toBeUndefined();
+  });
+
+  test("the monitors it names are the product's: the Host and Metrics types, and the Host template for memory", () => {
+    const memory: HostAlertTemplate | undefined =
+      getHostAlertTemplateById("host-high-memory");
+
+    expect(MonitorType.Host).toBe("Host");
+    expect(MonitorType.Metrics).toBe("Metrics");
+    expect(memory?.name).toBe("High Memory Utilization");
+    expect(INCIDENTS_ALERTS_AND_MONITORS_SECTION).toContain(
+      `a ${MonitorType.Host} monitor watches a host's CPU, memory and disks (its ${memory?.name} template sets a memory threshold they can change)`,
+    );
+    expect(INCIDENTS_ALERTS_AND_MONITORS_SECTION).toContain(
+      `a ${MonitorType.Metrics} monitor watches any metric`,
+    );
+  });
+
+  test("the modes that act list raising an alert among their actions", () => {
+    for (const permissionMode of [
+      AIChatPermissionMode.AskForApproval,
+      AIChatPermissionMode.AutoRun,
+    ]) {
+      expect(promptFor(permissionMode)).toContain(
+        "You can take actions: create incidents and alerts (create_incident / create_alert),",
+      );
+    }
+
+    expect(promptFor(AIChatPermissionMode.ReadOnly)).not.toContain(
+      "You can take actions",
+    );
+  });
+
+  test("every tool the section names is the toolbox's, and the two that create are mutations", () => {
+    for (const name of ["create_incident", "create_alert"]) {
+      expect(INCIDENTS_ALERTS_AND_MONITORS_SECTION).toContain(name);
+      expect(AIToolbox.getToolByName(name)?.isMutation).toBe(true);
+    }
+  });
+
+  test("raised on a host's page, an alert is linked to the host, in the exact argument create_alert takes", () => {
+    const section: string = buildPageContextSection({
+      type: AIChatPageContextType.Resource,
+      resourceType: AIResourceType.Host,
+      entityId: ENTITY_ID,
+      entityTitle: "test01",
+    });
+    const properties: JSONObject = AIToolbox.getToolByName("create_alert")!
+      .inputSchema["properties"] as JSONObject;
+
+    expect(section).toContain(
+      `or an alert you raise here with create_alert, is linked to it (affectedResources [{"resourceType":"Host","resourceId":"${ENTITY_ID}"}])`,
+    );
+    expect(properties["affectedResources"]).toBeDefined();
   });
 });
