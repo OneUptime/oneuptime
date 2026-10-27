@@ -167,7 +167,7 @@ Validierungs-, Konfigurations-, Zugriffs-, Grenz-, Guthaben-, Gleichzeitigkeits-
 Workflows beachten die rollenbasierte Zugriffskontrolle Ihres Projekts. Die drei Workflow-Rollen:
 
 - **Arbeitsablauf-Administrator** – baut Workflows: legt sie an, ändert sie, führt sie aus und löscht sie und verwaltet die Variablen, die sie verwenden.
-- **Arbeitsablauf-Mitglied** – nutzt sie: öffnet Workflows und ihre Ausführungen und führt einen Workflow mit **Arbeitsablauf ausführen** von Hand aus. Ein Mitglied kann keinen Workflow anlegen, ändern oder löschen und keinen seiner Schritte einzeln ausführen.
+- **Arbeitsablauf-Mitglied** – nutzt sie: öffnet Workflows und ihre Ausführungen und führt einen Workflow mit **Arbeitsablauf ausführen** von Hand aus. Ein Mitglied kann keinen Workflow anlegen, ändern oder löschen und keinen seiner Schritte einzeln ausführen. Der **Editor** zeigt ihnen einen Workflow so, wie er ist, markiert mit **Nur ansehen**: Ein Schritt öffnet sich zum Lesen, und nichts, was sie dort tun, wird gespeichert.
 - **Arbeitsablauf-Betrachter** – liest Workflows und ihre Ausführungen.
 
 **Projektinhaber** und **Projektadministrator** können alles, was ein Workflow Admin kann. **Projektmitglied** kann Workflows anlegen und löschen, aber nicht ändern oder ausführen.
@@ -214,7 +214,7 @@ In OneUptime Cloud brauchen Workflows den Growth-Plan oder höher, und jeder Pla
 | Scale      | 2.000                                |
 | Enterprise | Praktisch unbegrenzt                 |
 
-Das Fenster rollt: Jede Ausführung, die das Projekt aufzeichnet, von Hand oder durch einen Trigger, zählt 30 Tage lang. In den Plänen Growth und Scale zeigt die Seite **Arbeitsabläufe** eine Karte **Arbeitsablauf-Ausführungen** mit dem, was das Projekt verbraucht hat. Ist die Grenze erreicht, werden neue Ausführungen mit dem Status **Execution Exceeded Current Plan** aufgezeichnet und nicht ausgeführt, und dasselbe passiert, solange das Abonnement unbezahlt ist. Selbst gehostete Installationen ohne Abrechnung haben keine Grenze.
+Das Fenster rollt: Jede Ausführung, die das Projekt aufzeichnet, von Hand oder durch einen Trigger, zählt 30 Tage lang. In den Plänen Growth und Scale zeigt die Seite **Arbeitsabläufe** eine Karte **Arbeitsablauf-Ausführungen** mit dem, was das Projekt verbraucht hat. Ist die Grenze erreicht, werden neue Ausführungen mit dem Status **Execution Exceeded Current Plan** aufgezeichnet und nicht ausgeführt, und dasselbe passiert, solange das Abonnement unbezahlt ist. Selbst gehostete Installationen ohne Abrechnung haben keine Grenze. In einem Plan, der keine Workflows ausführt, sagen der **Editor** und die Seite **Arbeitsabläufe** das, mit einem Link zum Upgrade.
 
 ## Wie lange eine Ausführung dauern darf
 

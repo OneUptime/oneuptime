@@ -167,7 +167,7 @@ As falhas de validação, configuração, acesso, limite, créditos, concorrênc
 Os workflows respeitam o controle de acesso baseado em papéis do seu projeto. Os três papéis de workflow:
 
 - **Administrador de fluxos de trabalho** — monta workflows: cria, altera, executa e exclui, e gerencia as variáveis que eles usam.
-- **Membro de fluxos de trabalho** — usa workflows: abre os workflows e as execuções deles, e roda um workflow manualmente com **Executar fluxo de trabalho**. Um membro não pode criar, alterar nem excluir um workflow, nem rodar um dos passos dele sozinho.
+- **Membro de fluxos de trabalho** — usa workflows: abre os workflows e as execuções deles, e roda um workflow manualmente com **Executar fluxo de trabalho**. Um membro não pode criar, alterar nem excluir um workflow, nem rodar um dos passos dele sozinho. O **Construtor** mostra a eles um workflow como ele é, marcado como **Somente leitura**: um passo se abre para ser lido, e nada do que fizerem ali é salvo.
 - **Visualizador de fluxos de trabalho** — lê os workflows e as execuções deles.
 
 **Proprietário do projeto** e **Administrador do projeto** podem fazer tudo o que um Workflow Admin pode. **Membro do projeto** pode criar e excluir workflows, mas não alterá-los nem executá-los.
@@ -214,7 +214,7 @@ No OneUptime Cloud, os workflows exigem o plano Growth ou superior, e cada plano
 | Scale      | 2.000                         |
 | Enterprise | Sem limite prático            |
 
-A janela é móvel: cada execução que o projeto registra, manual ou por um gatilho, conta por 30 dias. Nos planos Growth e Scale, a página **Fluxos de trabalho** mostra um cartão **Execuções do Fluxo de Trabalho** com quantas o projeto já usou. Quando o limite é atingido, as novas execuções são registradas com o status **Execution Exceeded Current Plan** e não rodam, e o mesmo acontece enquanto a assinatura estiver em atraso. Instalações self-hosted sem cobrança não têm limite.
+A janela é móvel: cada execução que o projeto registra, manual ou por um gatilho, conta por 30 dias. Nos planos Growth e Scale, a página **Fluxos de trabalho** mostra um cartão **Execuções do Fluxo de Trabalho** com quantas o projeto já usou. Quando o limite é atingido, as novas execuções são registradas com o status **Execution Exceeded Current Plan** e não rodam, e o mesmo acontece enquanto a assinatura estiver em atraso. Instalações self-hosted sem cobrança não têm limite. Em um plano que não roda workflows, o **Construtor** e a página **Fluxos de trabalho** dizem isso, com um link para fazer upgrade.
 
 ## Quanto tempo uma execução pode durar
 
