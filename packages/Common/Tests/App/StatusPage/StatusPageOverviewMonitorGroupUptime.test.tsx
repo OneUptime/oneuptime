@@ -547,8 +547,9 @@ const EU_EDGE_MONITORS: Array<string> = [EU_ROUTER_ID];
 
 // A resource's header row: its name, and its uptime or status beside it.
 function uptimeNextToTheName(name: string): string {
-  const headerRow: HTMLElement =
-    screen.getByText(name).parentElement!.parentElement!;
+  const headerRow: HTMLElement = screen
+    .getByText(name)
+    .closest("[data-testid='status-page-resource-header']") as HTMLElement;
 
   return headerRow.textContent || "";
 }

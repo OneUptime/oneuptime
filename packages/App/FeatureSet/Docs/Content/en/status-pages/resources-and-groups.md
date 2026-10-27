@@ -115,6 +115,8 @@ Groups have their own copies of these switches (see below), so a group can show 
 
 The colors of the history chart bars are set under **More settings** on the **Branding** page, and which monitor statuses count as "down" in **Counts as downtime**, in the **What your status page shows** card on **Advanced Settings**, both covered in [Status Page Branding & Domains](/docs/status-pages/branding-and-domains).
 
+Each bar is one day. Point at a bar, or click it (tap it on a phone, or press Enter on it with the keyboard), to read the day: its uptime, how long each status lasted, the incidents declared that day and the scheduled maintenance that ran on it, each linked to its own page. A day with scheduled maintenance has a blue band across the top of its bar, and while an event is in progress, each resource of its monitors says "Under maintenance" beside its name. Maintenance changes neither a bar's color nor the uptime, which come from the monitor's statuses: to keep planned work out of the uptime, give the event a **Change Monitor Status to** that is not one of the page's **Counts as downtime** statuses. See [What an event affects](/docs/scheduled-maintenance/index#what-an-event-affects).
+
 ## Groups
 
 Most groups need only a name.

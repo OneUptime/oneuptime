@@ -61,7 +61,8 @@
   "monitorOverview": {
     "daysAgo": "{{days}} dagen geleden",
     "today": "Vandaag",
-    "notAvailable": "Niet beschikbaar"
+    "notAvailable": "Niet beschikbaar",
+    "underMaintenance": "In onderhoud"
   },
   "uptimeHistory": {
     "graphLabel": "Beschikbaarheidsgeschiedenis van de afgelopen {{total}} dagen",
@@ -76,7 +77,12 @@
     "noIncidentsDescription": "Op deze dag zijn geen incidenten gemeld.",
     "declared": "Gemeld",
     "oneIncidentOnThisDay": "1 incident gemeld op deze dag",
-    "incidentsOnThisDay": "{{total}} incidenten gemeld op deze dag"
+    "incidentsOnThisDay": "{{total}} incidenten gemeld op deze dag",
+    "scheduledMaintenance": "Gepland onderhoud",
+    "dayLabelWithMaintenance": "{{label}}, {{maintenance}}",
+    "oneMaintenanceEvent": "1 geplande onderhoudsbeurt",
+    "maintenanceEvents": "{{total}} geplande onderhoudsbeurten",
+    "moreMaintenance": "+{{total}} meer"
   },
   "liveStatus": {
     "updated": "Bijgewerkt {{time}}",

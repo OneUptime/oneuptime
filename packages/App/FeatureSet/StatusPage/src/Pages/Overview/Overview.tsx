@@ -80,6 +80,8 @@ import StatusPageGroupNestingLayoutUtil, {
 import ResourceGroupSection from "Common/UI/Components/StatusPage/ResourceGroupSection";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import UptimeBarTooltipIncident from "Common/Types/Monitor/UptimeBarTooltipIncident";
+import UptimeBarTooltipMaintenance from "Common/Types/Monitor/UptimeBarTooltipMaintenance";
+import UptimeMaintenanceUtil from "Common/Utils/Uptime/UptimeMaintenanceUtil";
 import Color from "Common/Types/Color";
 import StatusPageResourceSearchUtil, {
   StatusPageResourceSearchResult,
@@ -283,6 +285,17 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
   const [timelineIncidents, setTimelineIncidents] = useState<
     Array<UptimeBarTooltipIncident>
+  >([]);
+
+  /*
+   * The scheduled maintenance of the uptime history: every event the page
+   * shows that has started and whose window touches the history's. Listed
+   * on its days beside the incidents, and drawn as a band on their bars
+   * (UptimeMaintenanceUtil); an event in progress also says "Under
+   * maintenance" beside the resources it holds.
+   */
+  const [timelineMaintenance, setTimelineMaintenance] = useState<
+    Array<UptimeBarTooltipMaintenance>
   >([]);
 
   /*
@@ -519,7 +532,22 @@ const Overview: FunctionComponent<PageComponentProps> = (
           };
         });
 
+      /*
+       * Named in the page's language, and placed in their lives by the
+       * project's states: one in progress is on every day up to now.
+       */
+      const parsedTimelineMaintenance: Array<UptimeBarTooltipMaintenance> =
+        UptimeMaintenanceUtil.fromScheduledMaintenances({
+          events: BaseModel.fromJSONArray(
+            (data["timelineScheduledMaintenanceEvents"] as JSONArray) || [],
+            ScheduledMaintenance,
+          ),
+          states: scheduledMaintenanceStates,
+          translateStateName: translateStatusName,
+        });
+
       setTimelineIncidents(parsedTimelineIncidents);
+      setTimelineMaintenance(parsedTimelineMaintenance);
       setMonitorsInGroup(monitorsInGroup);
       setMonitorGroupCurrentStatuses(monitorGroupCurrentStatuses);
 
@@ -879,6 +907,21 @@ const Overview: FunctionComponent<PageComponentProps> = (
     Array<ReactElement>
   > = useMemo(() => {
     const overviews: Map<StatusPageResource, Array<ReactElement>> = new Map();
+
+    // A day's maintenance event opens its own page, as an incident does.
+    const openScheduledEvent: (maintenanceId: string) => void = (
+      maintenanceId: string,
+    ): void => {
+      Navigation.navigate(
+        RouteUtil.populateRouteParams(
+          StatusPageUtil.isPreviewPage()
+            ? (RouteMap[PageMap.PREVIEW_SCHEDULED_EVENT_DETAIL] as Route)
+            : (RouteMap[PageMap.SCHEDULED_EVENT_DETAIL] as Route),
+          new ObjectID(maintenanceId),
+        ),
+      );
+    };
+
     for (const resource of statusPageResources) {
       const elements: Array<ReactElement> = [];
       /*
@@ -917,6 +960,13 @@ const Overview: FunctionComponent<PageComponentProps> = (
             return incident.monitorIds.some((id: ObjectID) => {
               return id.toString() === monitorId;
             });
+          });
+
+        // The maintenance that holds this resource's monitor.
+        const monitorMaintenance: Array<UptimeBarTooltipMaintenance> =
+          UptimeMaintenanceUtil.getEventsForMonitors({
+            events: timelineMaintenance,
+            monitorIds: [monitorId],
           });
 
         elements.push(
@@ -972,6 +1022,8 @@ const Overview: FunctionComponent<PageComponentProps> = (
             defaultBarColor={statusPage?.defaultBarColor || Green}
             uptimeHistoryDays={uptimeHistoryDays}
             incidents={monitorIncidents}
+            maintenanceEvents={monitorMaintenance}
+            onMaintenanceClick={openScheduledEvent}
             onIncidentClick={(incidentId: string) => {
               Navigation.navigate(
                 RouteUtil.populateRouteParams(
@@ -1018,6 +1070,13 @@ const Overview: FunctionComponent<PageComponentProps> = (
             return incident.monitorIds.some((id: ObjectID) => {
               return groupMonitorIds.includes(id.toString());
             });
+          });
+
+        // The maintenance that holds any monitor in this group.
+        const groupMaintenance: Array<UptimeBarTooltipMaintenance> =
+          UptimeMaintenanceUtil.getEventsForMonitors({
+            events: timelineMaintenance,
+            monitorIds: groupMonitorIds,
           });
 
         elements.push(
@@ -1068,6 +1127,8 @@ const Overview: FunctionComponent<PageComponentProps> = (
             defaultBarColor={statusPage?.defaultBarColor || Green}
             uptimeHistoryDays={uptimeHistoryDays}
             incidents={groupIncidents}
+            maintenanceEvents={groupMaintenance}
+            onMaintenanceClick={openScheduledEvent}
             onIncidentClick={(incidentId: string) => {
               Navigation.navigate(
                 RouteUtil.populateRouteParams(
@@ -1088,6 +1149,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
     statusPageResources,
     monitorStatuses,
     timelineIncidents,
+    timelineMaintenance,
     statusPageHistoryChartBarColorRules,
     statusPage,
     monitorStatusTimelines,

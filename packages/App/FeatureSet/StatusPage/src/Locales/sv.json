@@ -61,7 +61,8 @@
   "monitorOverview": {
     "daysAgo": "för {{days}} dagar sedan",
     "today": "I dag",
-    "notAvailable": "Inte tillgänglig"
+    "notAvailable": "Inte tillgänglig",
+    "underMaintenance": "Under underhåll"
   },
   "uptimeHistory": {
     "graphLabel": "Drifttidshistorik för de senaste {{total}} dagarna",
@@ -76,7 +77,12 @@
     "noIncidentsDescription": "Inga incidenter rapporterades den här dagen.",
     "declared": "Registrerad",
     "oneIncidentOnThisDay": "1 incident rapporterad den här dagen",
-    "incidentsOnThisDay": "{{total}} incidenter rapporterade den här dagen"
+    "incidentsOnThisDay": "{{total}} incidenter rapporterade den här dagen",
+    "scheduledMaintenance": "Planerat underhåll",
+    "dayLabelWithMaintenance": "{{label}}, {{maintenance}}",
+    "oneMaintenanceEvent": "1 planerat underhåll",
+    "maintenanceEvents": "{{total}} planerade underhåll",
+    "moreMaintenance": "+{{total}} till"
   },
   "liveStatus": {
     "updated": "Uppdaterad {{time}}",

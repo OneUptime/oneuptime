@@ -31,6 +31,16 @@
  * add a tsconfig.tests.<name>.json, list it in PARTS, and exclude its
  * directory from tsconfig.tests.rest.json.
  *
+ * On 2026-10-27 the rest did: 13,818 files needed 10.6 GB, and its check
+ * ran out of its 8 GiB heap on master. Most of its tests were Tests/Server's,
+ * which became two parts of its own. Memory used, with a heap large enough
+ * that nothing is collected early:
+ *   - ../tsconfig.tests.server.json (Tests/Server but its Utils, 10,040
+ *     files): 5.38 GB;
+ *   - ../tsconfig.tests.server-utils.json (Tests/Server/Utils, 8,804 files):
+ *     4.71 GB;
+ *   - ../tsconfig.tests.rest.json (what was left, 9,613 files): 4.26 GB.
+ *
  * Nothing goes unchecked:
  *   - every part extends tsconfig.tests.json and changes only which files it
  *     includes, so a test is held to the same rules in whichever part it is;
@@ -42,8 +52,13 @@
  *     every error, as the single program did, and the exit code is non-zero
  *     if any part failed.
  *
- * tsconfig.tests.json itself stays the whole program: it is what editors and
- * ESLint's typed linting use for a Common test (through Tests/tsconfig.json).
+ * tsconfig.tests.json itself stays the whole program, which the parts must
+ * cover. Editors and ESLint's typed linting use the parts too, since
+ * 2026-10-27: the tsconfig.json in Tests/App, Tests/UI, Tests/Server,
+ * Tests/Server/Utils and Tests (the rest) each extend one, because ESLint
+ * linting the whole program in one process ran out of its 12 GB heap. A part
+ * added here gets a tsconfig.json of its own in its directory, the same way
+ * (Tests/Scripts/LintTestPrograms.test.ts checks it).
  *
  * Arguments are passed on to every tsc run, e.g.
  * `npm run compile-tests -- --extendedDiagnostics`.
@@ -58,11 +73,14 @@ const WHOLE_PROGRAM = "tsconfig.tests.json";
 const PARTS = [
   "tsconfig.tests.app.json",
   "tsconfig.tests.ui.json",
+  "tsconfig.tests.server.json",
+  "tsconfig.tests.server-utils.json",
   "tsconfig.tests.rest.json",
 ];
 /*
  * Per part. Node's default heap (about 4 GB) is too small for the larger
- * parts; 8 GiB leaves the largest of them 40% of its heap free.
+ * parts. On 2026-10-27 the largest, Tests/App (13,990 files), used 7.64 GB
+ * of these 8 GiB: it is the next to split.
  */
 const HEAP_MB = 8192;
 const TSC = path.join(
