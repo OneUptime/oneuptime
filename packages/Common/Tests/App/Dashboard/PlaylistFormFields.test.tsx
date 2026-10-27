@@ -7,7 +7,10 @@ import {
   DASHBOARD_PLAYLIST_DEFAULT_INTERVAL_IN_SECONDS,
   DashboardPlaylistDashboard,
 } from "../../../Types/Dashboard/DashboardPlaylist";
-import { DropdownOption } from "../../../UI/Components/Dropdown/Dropdown";
+import {
+  DropdownOption,
+  DropdownOptionGroup,
+} from "../../../UI/Components/Dropdown/Dropdown";
 import Field, {
   CustomElementProps,
 } from "../../../UI/Components/Forms/Types/Field";
@@ -55,8 +58,10 @@ const OVERVIEW: string = "db000000-0000-4000-8000-000000000001";
 // Intl writes some languages' spaces as no-break spaces.
 const ANY_SPACE: RegExp = /\s/g;
 
-function labels(options: Array<DropdownOption>): Array<string> {
-  return options.map((option: DropdownOption): string => {
+function labels(
+  options: Array<DropdownOption | DropdownOptionGroup>,
+): Array<string> {
+  return options.map((option: DropdownOption | DropdownOptionGroup): string => {
     return String(option.label).replace(ANY_SPACE, " ");
   });
 }
@@ -231,7 +236,10 @@ describe("the form", () => {
     } as unknown as CustomElementProps;
 
     const view: ReturnType<typeof render> = render(
-      dashboards.getCustomElement!({} as FormValues<DashboardPlaylist>, props),
+      dashboards.getCustomElement!(
+        {} as FormValues<DashboardPlaylist>,
+        props,
+      ) as ReactElement,
     );
 
     // FormField hands a CustomComponent "", and the list wins over it.
@@ -249,7 +257,7 @@ describe("the form", () => {
       dashboards.getCustomElement!(
         { dashboards: stored } as unknown as FormValues<DashboardPlaylist>,
         props,
-      ),
+      ) as ReactElement,
     );
 
     expect(screen.getByTestId("dashboards-field")).toHaveTextContent(

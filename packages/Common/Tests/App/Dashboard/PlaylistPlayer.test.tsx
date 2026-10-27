@@ -15,6 +15,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { Mock } from "jest-mock";
 import React, { ReactElement, useEffect } from "react";
 import ObjectID from "../../../Types/ObjectID";
 import { resetPageScrollLockForTesting } from "../../../UI/Utils/PageScrollLock";
@@ -98,11 +99,14 @@ function Board(props: { entry: PlaylistEntry }): ReactElement {
   return <div data-testid={`board-${props.entry.key}`}>{props.entry.name}</div>;
 }
 
+type Callback = () => void;
+type PromiseCall = () => Promise<void>;
+
 interface Rendered {
   clock: PlaylistFakeClock;
-  onExit: jest.Mock;
-  onOpenPlaylist: jest.Mock;
-  onOpenPlaylists: jest.Mock;
+  onExit: Mock<Callback>;
+  onOpenPlaylist: Mock<Callback>;
+  onOpenPlaylists: Mock<Callback>;
   reads: () => number;
   answer: (next: PlaylistRound | null | Error) => void;
 }
@@ -119,9 +123,9 @@ async function renderPlayer(
   first: PlaylistRound | null | Error,
 ): Promise<Rendered> {
   const clock: PlaylistFakeClock = new PlaylistFakeClock(T0);
-  const onExit: jest.Mock = jest.fn();
-  const onOpenPlaylist: jest.Mock = jest.fn();
-  const onOpenPlaylists: jest.Mock = jest.fn();
+  const onExit: Mock<Callback> = jest.fn<Callback>();
+  const onOpenPlaylist: Mock<Callback> = jest.fn<Callback>();
+  const onOpenPlaylists: Mock<Callback> = jest.fn<Callback>();
   let current: PlaylistRound | null | Error = first;
   let count: number = 0;
 
@@ -339,12 +343,13 @@ describe("the player on screen", () => {
   });
 
   test("keeps the page under it still, and asks the display to stay on", async () => {
-    const released: jest.Mock = jest.fn(() => {
+    const released: Mock<PromiseCall> = jest.fn<PromiseCall>(() => {
       return Promise.resolve();
     });
-    const request: jest.Mock = jest.fn(() => {
-      return Promise.resolve({ release: released });
-    });
+    const request: Mock<() => Promise<{ release: Mock<PromiseCall> }>> =
+      jest.fn<() => Promise<{ release: Mock<PromiseCall> }>>(() => {
+        return Promise.resolve({ release: released });
+      });
 
     Object.defineProperty(navigator, "wakeLock", {
       configurable: true,
@@ -472,7 +477,7 @@ describe("full screen", () => {
 
     cleanup();
 
-    const requestFullscreen: jest.Mock = jest.fn(() => {
+    const requestFullscreen: Mock<PromiseCall> = jest.fn<PromiseCall>(() => {
       return Promise.resolve();
     });
 
@@ -491,7 +496,7 @@ describe("full screen", () => {
   });
 
   test("follows the browser: Exit full screen once it is, and F or the button leaves it", async () => {
-    const exitFullscreen: jest.Mock = jest.fn(() => {
+    const exitFullscreen: Mock<PromiseCall> = jest.fn<PromiseCall>(() => {
       return Promise.resolve();
     });
 
@@ -525,7 +530,7 @@ describe("full screen", () => {
   });
 
   test("Exit leaves full screen too, then the player", async () => {
-    const exitFullscreen: jest.Mock = jest.fn(() => {
+    const exitFullscreen: Mock<PromiseCall> = jest.fn<PromiseCall>(() => {
       return Promise.resolve();
     });
 

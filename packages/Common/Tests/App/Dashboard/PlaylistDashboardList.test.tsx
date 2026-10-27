@@ -108,9 +108,11 @@ describe("a playlist's dashboards on its page", () => {
       <PlaylistDashboardList
         dashboards={list(OVERVIEW)}
         readDashboards={() => {
-          return new Promise((resolve) => {
-            answer = resolve;
-          });
+          return new Promise(
+            (resolve: (value: Array<PlaylistReadableDashboard>) => void) => {
+              answer = resolve;
+            },
+          );
         }}
       />,
     );

@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  MutableRefObject,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { PlaylistEntry } from "./PlaylistDashboards";
 import { getPlaylistTurnRemainingMs } from "./PlaylistPlayback";
 import {
@@ -103,20 +109,20 @@ export const usePlaylistPlayer: (data: {
    */
   const [readRequest, setReadRequest] = useState<number>(0);
 
-  const readRoundRef: React.MutableRefObject<PlaylistRoundReader> =
+  const readRoundRef: MutableRefObject<PlaylistRoundReader> =
     useRef<PlaylistRoundReader>(data.readRound);
   readRoundRef.current = data.readRound;
 
-  const getErrorMessageRef: React.MutableRefObject<(error: unknown) => string> =
+  const getErrorMessageRef: MutableRefObject<(error: unknown) => string> =
     useRef<(error: unknown) => string>(
       data.getErrorMessage || getDefaultErrorMessage,
     );
   getErrorMessageRef.current = data.getErrorMessage || getDefaultErrorMessage;
 
-  const isMountedRef: React.MutableRefObject<boolean> = useRef<boolean>(true);
+  const isMountedRef: MutableRefObject<boolean> = useRef<boolean>(true);
 
   // The last round a read for the next round was asked for in.
-  const askedForRoundRef: React.MutableRefObject<number | null> = useRef<
+  const askedForRoundRef: MutableRefObject<number | null> = useRef<
     number | null
   >(null);
 

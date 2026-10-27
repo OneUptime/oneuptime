@@ -57,7 +57,11 @@ describe("the playlist's limits", () => {
       expect(isDashboardPlaylistIntervalInSeconds(seconds)).toBe(true);
     }
 
-    expect([...choices].sort((a: number, b: number) => a - b)).toEqual(choices);
+    expect(
+      [...choices].sort((a: number, b: number): number => {
+        return a - b;
+      }),
+    ).toEqual(choices);
   });
 
   test("a playlist holds at most a hundred dashboards", () => {

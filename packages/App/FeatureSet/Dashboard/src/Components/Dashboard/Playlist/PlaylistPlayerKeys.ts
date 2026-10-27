@@ -26,8 +26,8 @@ import {
 
 export enum PlaylistPlayerKeyAction {
   TogglePause = "TogglePause",
-  Next = "Next",
-  Previous = "Previous",
+  Next = "NextDashboard",
+  Previous = "PreviousDashboard",
   ToggleFullScreen = "ToggleFullScreen",
   Exit = "Exit",
   ShowShortcuts = "ShowShortcuts",

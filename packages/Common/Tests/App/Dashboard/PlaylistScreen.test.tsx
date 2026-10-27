@@ -324,9 +324,11 @@ describe("keeping the screen awake", () => {
       configurable: true,
       value: {
         request: (): Promise<{ release: () => Promise<void> }> => {
-          return new Promise((resolve) => {
-            grant = resolve;
-          });
+          return new Promise(
+            (resolve: (value: { release: () => Promise<void> }) => void) => {
+              grant = resolve;
+            },
+          );
         },
       },
     });

@@ -416,24 +416,22 @@ const PlaylistPlayer: FunctionComponent<ComponentProps> = (
         <KeyboardShortcutsModal
           title="Keyboard shortcuts"
           description="These keys work while a playlist plays."
-          groups={shortcutGroups.map(
-            (group: PlaylistPlayerShortcutGroup) => {
-              return {
-                id: group.id,
-                title: translator.translateText(group.title) || "",
-                shortcuts: group.shortcuts.map(
-                  (shortcut: PlaylistPlayerShortcut) => {
-                    return {
-                      id: shortcut.id,
-                      keySequence: [shortcut.keys],
-                      description:
-                        translator.translateText(shortcut.description) || "",
-                    };
-                  },
-                ),
-              };
-            },
-          )}
+          groups={shortcutGroups.map((group: PlaylistPlayerShortcutGroup) => {
+            return {
+              id: group.id,
+              title: translator.translateText(group.title) || "",
+              shortcuts: group.shortcuts.map(
+                (shortcut: PlaylistPlayerShortcut) => {
+                  return {
+                    id: shortcut.id,
+                    keySequence: [shortcut.keys],
+                    description:
+                      translator.translateText(shortcut.description) || "",
+                  };
+                },
+              ),
+            };
+          })}
           thenLabel={translator.translateText("then") || ""}
           closeButtonText="Close"
           onClose={() => {

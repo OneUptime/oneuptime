@@ -99,8 +99,14 @@ describe("the rotation", () => {
       readable: [...READABLE, { id: PRIVATE, name: "Finance" }],
     });
 
-    expect(before.map((entry: PlaylistEntry) => entry.key)).toEqual(
-      after.slice(1).map((entry: PlaylistEntry) => entry.key),
+    expect(
+      before.map((entry: PlaylistEntry): string => {
+        return entry.key;
+      }),
+    ).toEqual(
+      after.slice(1).map((entry: PlaylistEntry): string => {
+        return entry.key;
+      }),
     );
   });
 
@@ -168,8 +174,14 @@ describe("the playlist as its pages list it", () => {
       readable: READABLE,
     });
 
-    expect(listed.map((item) => item.key)).toEqual(
-      rotation.map((entry) => entry.key),
+    expect(
+      listed.map((item: PlaylistListedDashboard): string => {
+        return item.key;
+      }),
+    ).toEqual(
+      rotation.map((entry: PlaylistEntry): string => {
+        return entry.key;
+      }),
     );
   });
 });

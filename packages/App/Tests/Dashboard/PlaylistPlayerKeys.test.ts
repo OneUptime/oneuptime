@@ -229,7 +229,12 @@ describe("the keys sheet", () => {
     expect(
       getPlaylistPlayerShortcutGroups({ isRightToLeft: false }).map(
         (group: PlaylistPlayerShortcutGroup) => {
-          return [group.title, group.shortcuts.map((shortcut) => shortcut.id)];
+          return [
+            group.title,
+            group.shortcuts.map((shortcut: PlaylistPlayerShortcut): string => {
+              return shortcut.id;
+            }),
+          ];
         },
       ),
     ).toEqual([
