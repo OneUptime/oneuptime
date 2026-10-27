@@ -260,10 +260,12 @@ OneUptime은 케이스에 관한 세 가지 일을 사람들에게 알립니다.
 
 ### OneUptime으로 대응하기
 
-- **Run a runbook**: 런북은 케이스를 입력으로 받습니다. `ONEUPTIME_INPUT_IP`, `ONEUPTIME_INPUT_USER`, `ONEUPTIME_INPUT_HOST`는 케이스가 다루는 주소, 사용자, 호스트이며, 해당하는 것이 없으면 비어 있습니다. 보호된 사용자나 호스트는 절대 전달되지 않습니다.
-- **Preserve the evidence**: 세션 리플레이를 보존 기간이 지나도 보관하고, 트레이스와 예외를 케이스에 기록합니다. 로그와 트레이스는 프로젝트가 텔레메트리를 보관하는 기간보다 오래 보관할 수 없습니다.
-- **Post a status page announcement**: 작성한 그대로 게시되며, 케이스의 내용은 추가되지 않습니다. 구독자에게는 **Notify Subscribers**가 켜져 있을 때만 알립니다.
-- **Fix the code with AI**: OneUptime AI가 켜져 있어야 하고, GitHub App으로 연결된 저장소와 러너가 필요합니다. 없으면 단계를 건너뛰고 무엇이 부족한지 알려 줍니다.
+다음 네 단계는 연결된 제품이 아니라 OneUptime의 다른 기능을 통해 동작합니다.
+
+- **Run a runbook**은 케이스를 입력으로 [런북](/docs/runbooks/index) 중 하나를 시작하며, Bash 단계는 이 입력을 환경 변수로 읽습니다([웹훅 호출](/docs/runbooks/triggers#웹훅-호출) 참고). `ONEUPTIME_INPUT_IP`, `ONEUPTIME_INPUT_USER`, `ONEUPTIME_INPUT_HOST`는 봉쇄 단계와 같은 규칙으로 고른, 케이스가 다루는 주소, 사용자, 호스트이며, 해당하는 것이 없으면 비어 있습니다. `ONEUPTIME_INPUT_IPS`, `ONEUPTIME_INPUT_USERS`, `ONEUPTIME_INPUT_HOSTS`는 케이스에 이름이 나오는 모든 것을 JSON으로 나열하고, `ONEUPTIME_INPUT_CASE_NUMBER`, `ONEUPTIME_INPUT_CASE_TITLE`, `ONEUPTIME_INPUT_CASE_URL`은 어떤 케이스인지 알려 줍니다. 보호된 사용자나 호스트는 절대 포함되지 않습니다. 런북 실행에는 케이스를 위해 **Security playbook**이 시작했다고 표시됩니다.
+- **Preserve the evidence**는 케이스 뒤에 있는 요청의 세션 리플레이를 보존 기간이 지나도 보관하고, 각 요청의 트레이스, 각 리플레이, 각 예외로 연결되는 메모를 케이스에 남깁니다. 로그와 트레이스는 프로젝트가 텔레메트리를 보관하는 기간보다 오래 보관할 수 없으므로, 필요한 것은 그 전에 내보내세요.
+- **Post a status page announcement**는 작성한 내용을 작성한 그대로, 선택한 상태 페이지에 게시합니다. 케이스의 내용은 아무것도 추가되지 않습니다. 상태 페이지 구독자에게는 **구독자에게 알림**이 켜져 있을 때만 알립니다.
+- **Fix the code with AI**는 케이스의 요청이 일으킨 예외마다, 최대 세 개까지, 그 예외를 고치는 풀 리퀘스트를 OneUptime AI에 요청합니다. OneUptime AI가 켜져 있어야 하고, 코드가 있는 저장소가 GitHub App으로 연결되어 있어야 하며, 러너가 필요합니다. 없으면 단계를 건너뛰고 무엇이 부족한지 알려 줍니다.
 
 ### 봉쇄
 

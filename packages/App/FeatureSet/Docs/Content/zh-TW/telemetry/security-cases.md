@@ -260,10 +260,12 @@ OneUptime 會就案件上的三件事通知相關人員。不需要任何人做�
 
 ### 透過 OneUptime 回應
 
-- **Run a runbook**：執行手冊以案件作為輸入。`ONEUPTIME_INPUT_IP`、`ONEUPTIME_INPUT_USER` 與 `ONEUPTIME_INPUT_HOST` 是案件所涉及的位址、使用者與主機，案件不涉及其中任何一個時為空。受保護的使用者或主機絕不會被傳入。
-- **Preserve the evidence**：在工作階段重播的保留期之後繼續保留它們，並把追蹤與例外記錄在案件上。記錄與追蹤的保存時間不能超過專案保留遙測資料的時間。
-- **Post a status page announcement**：依你撰寫的原樣發布，不會加入案件中的任何內容。只有開啟 **Notify Subscribers** 時才會通知訂閱者。
-- **Fix the code with AI**：需要開啟 OneUptime AI、一個透過 GitHub App 連接的程式碼存放庫以及一個執行器。缺少這些時，該步驟會被略過並說明缺少什麼。
+以下四個步驟透過 OneUptime 的其他部分執行，而不是透過已連接的產品：
+
+- **Run a runbook** 以案件作為輸入，啟動你的某個[執行手冊](/docs/runbooks/index)，Bash 步驟會把這些輸入讀作環境變數（參見[呼叫 Webhook](/docs/runbooks/triggers#呼叫-webhook)）。`ONEUPTIME_INPUT_IP`、`ONEUPTIME_INPUT_USER` 與 `ONEUPTIME_INPUT_HOST` 是案件所涉及的位址、使用者與主機，依與圍堵類步驟相同的規則選出，案件不涉及其中任何一個時為空。`ONEUPTIME_INPUT_IPS`、`ONEUPTIME_INPUT_USERS` 與 `ONEUPTIME_INPUT_HOSTS` 以 JSON 列出案件提到的所有對象，`ONEUPTIME_INPUT_CASE_NUMBER`、`ONEUPTIME_INPUT_CASE_TITLE` 與 `ONEUPTIME_INPUT_CASE_URL` 說明是哪個案件。受保護的使用者或主機絕不會在其中。執行手冊的執行紀錄會註明它是由 **Security playbook** 為該案件啟動的。
+- **Preserve the evidence** 將案件背後請求的工作階段重播保留到其保留期之後，並在案件上寫一則備註，連結每個請求的追蹤、每個重播與每個例外。記錄與追蹤的保存時間不能超過專案保留遙測資料的時間，因此請在此之前匯出你需要的內容。
+- **Post a status page announcement** 依你撰寫的原樣，把你寫的內容發布到你選擇的狀態頁上。不會加入案件中的任何內容。只有開啟 **通知訂閱者** 時，才會通知這些狀態頁的訂閱者。
+- **Fix the code with AI** 針對案件的請求所引發的每個例外（最多三個），請 OneUptime AI 提交一個修正它的提取要求。該步驟需要開啟 OneUptime AI、一個包含程式碼並透過 GitHub App 連接的程式碼存放庫，以及一個執行器。缺少這些時，該步驟會被略過並說明缺少什麼。
 
 ### 圍堵
 

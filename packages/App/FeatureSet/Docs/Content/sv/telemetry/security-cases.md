@@ -260,10 +260,12 @@ En playbook har högst 25 steg. De körs i ordning, vart och ett när det föreg
 
 ### Agera genom OneUptime
 
-- **Run a runbook**: runbooken får ärendet som indata. `ONEUPTIME_INPUT_IP`, `ONEUPTIME_INPUT_USER` och `ONEUPTIME_INPUT_HOST` är adressen, användaren och värden som ärendet gäller, och tomma när det inte gäller någon. En skyddad användare eller värd skickas aldrig med.
-- **Preserve the evidence**: behåller sessionsinspelningar längre än deras lagringstid och antecknar spår och undantag i ärendet. Loggar och spår kan inte sparas längre än projektet sparar telemetri.
-- **Post a status page announcement**: publiceras som du skrev det; inget från ärendet läggs till. Prenumeranter meddelas bara när **Notify Subscribers** är påslaget.
-- **Fix the code with AI**: kräver att OneUptime AI är påslaget, ett repository som är anslutet via GitHub-appen och en runner. Utan dem hoppas steget över och säger vad som saknas.
+Fyra steg agerar genom resten av OneUptime i stället för genom en ansluten produkt:
+
+- **Run a runbook** startar en av dina [runbooks](/docs/runbooks/index) med ärendet som indata, som ett Bash-steg läser som miljövariabler (se [Anropa webhooken](/docs/runbooks/triggers#anropa-webhooken)). `ONEUPTIME_INPUT_IP`, `ONEUPTIME_INPUT_USER` och `ONEUPTIME_INPUT_HOST` är adressen, användaren och värden som ärendet gäller, valda enligt samma regel som för ett begränsningssteg, och tomma när det inte gäller någon. `ONEUPTIME_INPUT_IPS`, `ONEUPTIME_INPUT_USERS` och `ONEUPTIME_INPUT_HOSTS` listar som JSON alla som ärendet nämner, och `ONEUPTIME_INPUT_CASE_NUMBER`, `ONEUPTIME_INPUT_CASE_TITLE` och `ONEUPTIME_INPUT_CASE_URL` anger vilket ärende det är. En skyddad användare eller värd finns aldrig bland dem. Runbookens körning visar att den startades av **Security playbook** för ärendet.
+- **Preserve the evidence** behåller sessionsinspelningarna av förfrågningarna bakom ärendet längre än deras lagringstid och skriver en anteckning i ärendet som länkar till varje förfrågans spår, varje inspelning och varje undantag. Loggar och spår kan inte sparas längre än projektet sparar telemetri, så exportera det du behöver innan dess.
+- **Post a status page announcement** publicerar det du skrev, som du skrev det, på de statussidor du väljer. Inget från ärendet läggs till. Deras prenumeranter meddelas bara när **Avisera prenumeranter** är påslaget.
+- **Fix the code with AI** ber OneUptime AI om en pull request som åtgärdar varje undantag som ärendets förfrågningar orsakade, upp till tre. Steget kräver att OneUptime AI är påslaget, ett repository med koden som är anslutet via GitHub-appen och en runner. Utan dem hoppas steget över och säger vad som saknas.
 
 ### Begränsning
 

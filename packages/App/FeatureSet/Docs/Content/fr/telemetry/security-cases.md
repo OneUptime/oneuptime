@@ -260,10 +260,12 @@ Un playbook compte au plus 25 étapes. Elles s'exécutent dans l'ordre, chacune 
 
 ### Répondre avec OneUptime
 
-- **Run a runbook** : le runbook reçoit le dossier en entrée. `ONEUPTIME_INPUT_IP`, `ONEUPTIME_INPUT_USER` et `ONEUPTIME_INPUT_HOST` sont l'adresse, l'utilisateur et l'hôte sur lesquels porte le dossier, vides lorsqu'il n'en concerne aucun. Un utilisateur ou un hôte protégé n'est jamais transmis.
-- **Preserve the evidence** : conserve les enregistrements de session au-delà de leur rétention et consigne les traces et les exceptions sur le dossier. Les journaux et les traces ne peuvent pas être conservés plus longtemps que le projet ne garde la télémétrie.
-- **Post a status page announcement** : publiée telle que vous l'avez écrite ; rien du dossier n'y est ajouté. Les abonnés ne sont prévenus que si **Notify Subscribers** est activé.
-- **Fix the code with AI** : nécessite OneUptime AI activé, un dépôt connecté via la GitHub App et un runner. Sans eux, l'étape est ignorée et indique ce qui manque.
+Quatre étapes agissent par le reste de OneUptime plutôt que par un produit connecté :
+
+- **Run a runbook** lance l'un de vos [runbooks](/docs/runbooks/index) avec le dossier en entrée, qu'une étape Bash lit sous forme de variables d'environnement (voir [Appeler le webhook](/docs/runbooks/triggers#appeler-le-webhook)). `ONEUPTIME_INPUT_IP`, `ONEUPTIME_INPUT_USER` et `ONEUPTIME_INPUT_HOST` sont l'adresse, l'utilisateur et l'hôte sur lesquels porte le dossier, choisis selon la même règle qu'une étape de confinement, et vides lorsqu'il n'en concerne aucun. `ONEUPTIME_INPUT_IPS`, `ONEUPTIME_INPUT_USERS` et `ONEUPTIME_INPUT_HOSTS` listent en JSON tous ceux que le dossier nomme, et `ONEUPTIME_INPUT_CASE_NUMBER`, `ONEUPTIME_INPUT_CASE_TITLE` et `ONEUPTIME_INPUT_CASE_URL` indiquent de quel dossier il s'agit. Un utilisateur ou un hôte protégé n'en fait jamais partie. L'exécution du runbook indique qu'elle a été lancée par **Security playbook**, pour le dossier.
+- **Preserve the evidence** conserve les enregistrements de session des requêtes derrière le dossier au-delà de leur rétention, et écrit sur le dossier une note qui renvoie à la trace de chaque requête, à chaque enregistrement et à chaque exception. Les journaux et les traces ne peuvent pas être conservés plus longtemps que le projet ne garde la télémétrie : exportez donc avant ce dont vous avez besoin.
+- **Post a status page announcement** publie ce que vous avez écrit, tel que vous l'avez écrit, sur les pages de statut de votre choix. Rien du dossier n'y est ajouté. Leurs abonnés ne sont prévenus que si **Notifier les abonnés** est activé.
+- **Fix the code with AI** demande à OneUptime AI, pour chaque exception levée par les requêtes du dossier, jusqu'à trois, une pull request qui la corrige. L'étape nécessite OneUptime AI activé, un dépôt contenant le code connecté via la GitHub App, et un runner. Sans eux, l'étape est ignorée et indique ce qui manque.
 
 ### Confinement
 

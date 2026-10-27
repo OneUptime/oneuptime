@@ -260,10 +260,12 @@ Een playbook heeft hoogstens 25 stappen. Ze draaien op volgorde, elk zodra de vo
 
 ### Reageren via OneUptime
 
-- **Run a runbook**: het runbook krijgt de zaak als invoer. `ONEUPTIME_INPUT_IP`, `ONEUPTIME_INPUT_USER` en `ONEUPTIME_INPUT_HOST` zijn het adres, de gebruiker en de host waar de zaak over gaat, en leeg als het over geen ervan gaat. Een beschermde gebruiker of host wordt nooit doorgegeven.
-- **Preserve the evidence**: bewaart sessie-opnames langer dan hun bewaartermijn en noteert traces en exceptions bij de zaak. Logs en traces kunnen niet langer worden bewaard dan het project telemetrie bewaart.
-- **Post a status page announcement**: wordt geplaatst zoals u het schreef; er wordt niets uit de zaak aan toegevoegd. Abonnees worden alleen ingelicht als **Notify Subscribers** aan staat.
-- **Fix the code with AI**: vereist dat OneUptime AI aan staat, een repository die via de GitHub App is verbonden en een runner. Zonder deze wordt de stap overgeslagen en zegt hij wat er ontbreekt.
+Vier stappen werken via de rest van OneUptime in plaats van via een verbonden product:
+
+- **Run a runbook** start een van uw [runbooks](/docs/runbooks/index) met de zaak als invoer, die een Bash-stap als omgevingsvariabelen leest (zie [De webhook aanroepen](/docs/runbooks/triggers#de-webhook-aanroepen)). `ONEUPTIME_INPUT_IP`, `ONEUPTIME_INPUT_USER` en `ONEUPTIME_INPUT_HOST` zijn het adres, de gebruiker en de host waar de zaak over gaat, gekozen volgens dezelfde regel als bij een inperkingsstap, en leeg als het over geen ervan gaat. `ONEUPTIME_INPUT_IPS`, `ONEUPTIME_INPUT_USERS` en `ONEUPTIME_INPUT_HOSTS` geven als JSON alle adressen, gebruikers en hosts die de zaak noemt, en `ONEUPTIME_INPUT_CASE_NUMBER`, `ONEUPTIME_INPUT_CASE_TITLE` en `ONEUPTIME_INPUT_CASE_URL` zeggen om welke zaak het gaat. Een beschermde gebruiker of host zit er nooit bij. De uitvoering van het runbook vermeldt dat **Security playbook** haar voor de zaak heeft gestart.
+- **Preserve the evidence** bewaart de sessie-opnames van de verzoeken achter de zaak langer dan hun bewaartermijn, en schrijft een notitie bij de zaak die naar de trace van elk verzoek, elke opname en elke exception linkt. Logs en traces kunnen niet langer worden bewaard dan het project telemetrie bewaart, dus exporteer vóór die tijd wat u nodig hebt.
+- **Post a status page announcement** plaatst wat u schreef, zoals u het schreef, op de statuspagina's die u kiest. Er wordt niets uit de zaak aan toegevoegd. Hun abonnees worden alleen ingelicht als **Abonnees op de hoogte stellen** aan staat.
+- **Fix the code with AI** vraagt OneUptime AI om voor elke exception die de verzoeken van de zaak veroorzaakten, tot drie, een pull request die haar oplost. De stap vereist dat OneUptime AI aan staat, een repository met de code die via de GitHub App is verbonden, en een runner. Zonder deze wordt de stap overgeslagen en zegt hij wat er ontbreekt.
 
 ### Inperking
 

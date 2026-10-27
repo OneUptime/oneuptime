@@ -260,10 +260,12 @@ Ein Playbook hat höchstens 25 Schritte. Sie laufen der Reihe nach, jeder, sobal
 
 ### Reagieren mit OneUptime
 
-- **Run a runbook**: Das Runbook erhält den Fall als Eingaben. `ONEUPTIME_INPUT_IP`, `ONEUPTIME_INPUT_USER` und `ONEUPTIME_INPUT_HOST` sind Adresse, Benutzer und Host, um die es im Fall geht, und leer, wenn es um keinen geht. Ein geschützter Benutzer oder Host wird nie übergeben.
-- **Preserve the evidence**: behält Session Replays über ihre Aufbewahrung hinaus und vermerkt Traces und Ausnahmen am Fall. Logs und Traces lassen sich nicht länger halten, als das Projekt Telemetrie aufbewahrt.
-- **Post a status page announcement**: wird so veröffentlicht, wie Sie es geschrieben haben; nichts aus dem Fall wird hinzugefügt. Abonnenten werden nur benachrichtigt, wenn **Notify Subscribers** an ist.
-- **Fix the code with AI**: braucht eingeschaltete OneUptime AI, ein über die GitHub App verbundenes Repository und einen Runner. Fehlt etwas davon, wird der Schritt übersprungen und nennt, was fehlt.
+Vier Schritte handeln über den Rest von OneUptime statt über ein verbundenes Produkt:
+
+- **Run a runbook** startet eines Ihrer [Runbooks](/docs/runbooks/index) mit dem Fall als Eingaben, die ein Bash-Schritt als Umgebungsvariablen liest (siehe [Den Webhook aufrufen](/docs/runbooks/triggers#den-webhook-aufrufen)). `ONEUPTIME_INPUT_IP`, `ONEUPTIME_INPUT_USER` und `ONEUPTIME_INPUT_HOST` sind Adresse, Benutzer und Host, um die es im Fall geht, gewählt nach derselben Regel wie bei einem Eindämmungsschritt, und leer, wenn es um keinen geht. `ONEUPTIME_INPUT_IPS`, `ONEUPTIME_INPUT_USERS` und `ONEUPTIME_INPUT_HOSTS` führen als JSON alle auf, die der Fall nennt, und `ONEUPTIME_INPUT_CASE_NUMBER`, `ONEUPTIME_INPUT_CASE_TITLE` und `ONEUPTIME_INPUT_CASE_URL` sagen, um welchen Fall es geht. Ein geschützter Benutzer oder Host ist nie darunter. Beim Lauf des Runbooks steht, dass ihn **Security playbook** für den Fall gestartet hat.
+- **Preserve the evidence** behält die Session Replays der Anfragen hinter dem Fall über ihre Aufbewahrung hinaus und schreibt eine Notiz an den Fall, die den Trace jeder Anfrage, jedes Replay und jede Ausnahme verlinkt. Logs und Traces lassen sich nicht länger halten, als das Projekt Telemetrie aufbewahrt; exportieren Sie also vorher, was Sie brauchen.
+- **Post a status page announcement** veröffentlicht, was Sie geschrieben haben, so wie Sie es geschrieben haben, auf den Statusseiten, die Sie wählen. Nichts aus dem Fall wird hinzugefügt. Deren Abonnenten werden nur benachrichtigt, wenn **Abonnenten benachrichtigen** an ist.
+- **Fix the code with AI** bittet OneUptime AI für jede Ausnahme, die die Anfragen des Falls ausgelöst haben, bis zu drei, um einen Pull Request, der sie behebt. Dafür braucht es eingeschaltete OneUptime AI, ein über die GitHub App verbundenes Repository mit dem Code und einen Runner. Fehlt etwas davon, wird der Schritt übersprungen und nennt, was fehlt.
 
 ### Eindämmung
 

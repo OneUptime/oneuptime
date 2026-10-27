@@ -260,10 +260,12 @@ OneUptime は、ケースについて 3 つのことを人に知らせます。�
 
 ### OneUptime による対応
 
-- **Run a runbook**: ランブックはケースを入力として受け取ります。`ONEUPTIME_INPUT_IP`、`ONEUPTIME_INPUT_USER`、`ONEUPTIME_INPUT_HOST` は、ケースが対象とするアドレス、ユーザー、ホストで、対象がない場合は空です。保護されたユーザーやホストが渡されることはありません。
-- **Preserve the evidence**: セッションリプレイを保持期間を超えて保持し、トレースと例外をケースに記録します。ログとトレースは、プロジェクトがテレメトリを保持する期間より長くは保持できません。
-- **Post a status page announcement**: 書いたとおりに掲載され、ケースの内容は追加されません。購読者には **Notify Subscribers** がオンのときだけ通知されます。
-- **Fix the code with AI**: OneUptime AI がオンであること、GitHub App で接続されたリポジトリ、ランナーが必要です。これらがない場合、ステップはスキップされ、何が足りないかを示します。
+次の 4 つのステップは、接続した製品ではなく OneUptime のほかの機能を通じて動作します。
+
+- **Run a runbook** は、ケースを入力として [ランブック](/docs/runbooks/index) のひとつを開始します。入力は Bash ステップが環境変数として読み取ります（[Webhook を呼び出す](/docs/runbooks/triggers#webhook-を呼び出す) を参照）。`ONEUPTIME_INPUT_IP`、`ONEUPTIME_INPUT_USER`、`ONEUPTIME_INPUT_HOST` は、封じ込めステップと同じルールで選ばれた、ケースが対象とするアドレス、ユーザー、ホストで、対象がない場合は空です。`ONEUPTIME_INPUT_IPS`、`ONEUPTIME_INPUT_USERS`、`ONEUPTIME_INPUT_HOSTS` はケースに名前が挙がったものすべてを JSON で列挙し、`ONEUPTIME_INPUT_CASE_NUMBER`、`ONEUPTIME_INPUT_CASE_TITLE`、`ONEUPTIME_INPUT_CASE_URL` はどのケースかを示します。保護されたユーザーやホストが含まれることはありません。ランブックの実行には、ケースのために **Security playbook** が開始したことが表示されます。
+- **Preserve the evidence** は、ケースの背後にあるリクエストのセッションリプレイを保持期間を超えて保持し、各リクエストのトレース、各リプレイ、各例外へのリンクを載せたメモをケースに書き込みます。ログとトレースは、プロジェクトがテレメトリを保持する期間より長くは保持できないため、必要なものはそれまでにエクスポートしてください。
+- **Post a status page announcement** は、あなたが書いた内容を書いたとおりに、選んだステータスページに掲載します。ケースの内容は何も追加されません。ステータスページの購読者には、**購読者に通知** がオンのときだけ通知されます。
+- **Fix the code with AI** は、ケースのリクエストが発生させた例外ごとに、それを修正するプルリクエストを最大 3 件まで OneUptime AI に依頼します。OneUptime AI がオンであること、コードを含み GitHub App で接続されたリポジトリ、ランナーが必要です。これらがない場合、ステップはスキップされ、何が足りないかを示します。
 
 ### 封じ込め
 

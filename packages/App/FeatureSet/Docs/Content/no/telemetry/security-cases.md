@@ -260,10 +260,12 @@ En playbook har høyst 25 steg. De kjører i rekkefølge, hvert steg når det fo
 
 ### Svar gjennom OneUptime
 
-- **Run a runbook**: runbooken får saken som input. `ONEUPTIME_INPUT_IP`, `ONEUPTIME_INPUT_USER` og `ONEUPTIME_INPUT_HOST` er adressen, brukeren og verten saken handler om, og tomme når den ikke handler om noen. En beskyttet bruker eller vert sendes aldri med.
-- **Preserve the evidence**: tar vare på øktopptak utover oppbevaringstiden og noterer spor og unntak på saken. Logger og spor kan ikke oppbevares lenger enn prosjektet oppbevarer telemetri.
-- **Post a status page announcement**: legges ut slik du skrev den; ingenting fra saken legges til. Abonnenter varsles bare når **Notify Subscribers** er slått på.
-- **Fix the code with AI**: krever at OneUptime AI er slått på, et repository koblet til via GitHub-appen og en runner. Uten dem hoppes steget over og sier hva som mangler.
+Fire steg handler gjennom resten av OneUptime i stedet for gjennom et tilkoblet produkt:
+
+- **Run a runbook** starter en av [runbookene](/docs/runbooks/index) dine med saken som input, som et Bash-steg leser som miljøvariabler (se [Kall webhooken](/docs/runbooks/triggers#kall-webhooken)). `ONEUPTIME_INPUT_IP`, `ONEUPTIME_INPUT_USER` og `ONEUPTIME_INPUT_HOST` er adressen, brukeren og verten saken handler om, valgt etter samme regel som for et Contain-steg, og tomme når den ikke handler om noen. `ONEUPTIME_INPUT_IPS`, `ONEUPTIME_INPUT_USERS` og `ONEUPTIME_INPUT_HOSTS` lister som JSON alle saken nevner, og `ONEUPTIME_INPUT_CASE_NUMBER`, `ONEUPTIME_INPUT_CASE_TITLE` og `ONEUPTIME_INPUT_CASE_URL` sier hvilken sak det er. En beskyttet bruker eller vert er aldri blant dem. Kjøringen av runbooken viser at den ble startet av **Security playbook** for saken.
+- **Preserve the evidence** tar vare på øktopptakene av forespørslene bak saken utover oppbevaringstiden og skriver et notat på saken som lenker til sporet for hver forespørsel, hvert opptak og hvert unntak. Logger og spor kan ikke oppbevares lenger enn prosjektet oppbevarer telemetri, så eksporter det du trenger før det.
+- **Post a status page announcement** legger ut det du skrev, slik du skrev det, på statussidene du velger. Ingenting fra saken legges til. Abonnentene deres varsles bare når **Varsle abonnenter** er slått på.
+- **Fix the code with AI** ber OneUptime AI om en pull request som retter hvert unntak sakens forespørsler utløste, opptil tre. Steget krever at OneUptime AI er slått på, et repository med koden koblet til via GitHub-appen og en runner. Uten dem hoppes steget over og sier hva som mangler.
 
 ### Inndemming
 

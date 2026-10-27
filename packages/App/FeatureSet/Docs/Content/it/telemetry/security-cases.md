@@ -260,10 +260,12 @@ Un playbook ha al massimo 25 passi. Vengono eseguiti in ordine, ciascuno quando 
 
 ### Rispondere con OneUptime
 
-- **Run a runbook**: il runbook riceve il caso come input. `ONEUPTIME_INPUT_IP`, `ONEUPTIME_INPUT_USER` e `ONEUPTIME_INPUT_HOST` sono l'indirizzo, l'utente e l'host di cui tratta il caso, vuoti quando non ne riguarda nessuno. Un utente o un host protetto non viene mai passato.
-- **Preserve the evidence**: conserva le registrazioni delle sessioni oltre la loro conservazione e annota tracce ed eccezioni sul caso. Log e tracce non possono essere conservati più a lungo di quanto il progetto conservi la telemetria.
-- **Post a status page announcement**: viene pubblicato così come l'hai scritto; non viene aggiunto nulla del caso. Gli iscritti vengono avvisati solo se **Notify Subscribers** è attivo.
-- **Fix the code with AI**: richiede OneUptime AI attivo, un repository collegato tramite la GitHub App e un runner. Senza, il passo viene saltato e dice cosa manca.
+Quattro passi agiscono attraverso il resto di OneUptime anziché tramite un prodotto collegato:
+
+- **Run a runbook** avvia uno dei tuoi [runbook](/docs/runbooks/index) con il caso come input, che un passo Bash legge come variabili d'ambiente (vedi [Chiamare il webhook](/docs/runbooks/triggers#chiamare-il-webhook)). `ONEUPTIME_INPUT_IP`, `ONEUPTIME_INPUT_USER` e `ONEUPTIME_INPUT_HOST` sono l'indirizzo, l'utente e l'host di cui tratta il caso, scelti con la stessa regola di un passo di contenimento, e vuoti quando non ne riguarda nessuno. `ONEUPTIME_INPUT_IPS`, `ONEUPTIME_INPUT_USERS` e `ONEUPTIME_INPUT_HOSTS` elencano in JSON tutti quelli che il caso nomina, e `ONEUPTIME_INPUT_CASE_NUMBER`, `ONEUPTIME_INPUT_CASE_TITLE` e `ONEUPTIME_INPUT_CASE_URL` dicono di quale caso si tratta. Un utente o un host protetto non è mai tra questi. L'esecuzione del runbook indica che è stata avviata da **Security playbook**, per il caso.
+- **Preserve the evidence** conserva le registrazioni delle sessioni delle richieste dietro il caso oltre la loro conservazione, e scrive sul caso una nota che collega la traccia di ogni richiesta, ogni registrazione e ogni eccezione. Log e tracce non possono essere conservati più a lungo di quanto il progetto conservi la telemetria, quindi esporta prima ciò che ti serve.
+- **Post a status page announcement** pubblica ciò che hai scritto, così come l'hai scritto, sulle pagine di stato che scegli. Non viene aggiunto nulla del caso. I loro iscritti vengono avvisati solo se **Notifica agli iscritti** è attivo.
+- **Fix the code with AI** chiede a OneUptime AI, per ogni eccezione sollevata dalle richieste del caso, fino a tre, una pull request che la corregga. Richiede OneUptime AI attivo, un repository con il codice collegato tramite la GitHub App e un runner. Senza, il passo viene saltato e dice cosa manca.
 
 ### Contenimento
 
