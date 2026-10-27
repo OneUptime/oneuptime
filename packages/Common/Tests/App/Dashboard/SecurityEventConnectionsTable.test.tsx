@@ -26,8 +26,13 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/ConnectorProviderHelp";
 import SecurityEventConnectionRunDetails from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventConnectionRunDetails";
 import SecurityEventConnectionsTable, {
+  getConnectionProviderDetailParts,
   securityEventConnectionsHelpMarkdown,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventConnectionsTable";
+import {
+  createTranslator,
+  Translator,
+} from "../../../UI/Utils/TranslateTemplate";
 import {
   CONNECTOR_HEALTH_NO_EVENTS_YET,
   CONNECTOR_HEALTH_SUCCEEDED,
@@ -484,7 +489,6 @@ describe("SecurityEventConnectionsTable", () => {
       }),
     ).toEqual([
       "Name",
-      "Provider",
       "Status",
       "Health",
       "Interval (Minutes)",
@@ -492,6 +496,86 @@ describe("SecurityEventConnectionsTable", () => {
       "Last Successful Poll",
       "Last Event Imported",
     ]);
+  });
+
+  /*
+   * With all eight columns shown the table was twice its card's width at
+   * 1280 (#5246). The provider sits under the name; Status (Health says
+   * Paused), the interval (a setting) and the last successful poll (View
+   * Error and Health speak while polls fail) wait in Customize Columns.
+   */
+  test("shows the name with its provider, the health and when it last polled and imported; the rest wait in Customize Columns", (): void => {
+    renderTable([]);
+
+    const columns: Array<ModelColumn<BaseModel>> = tableProps().columns;
+    const shown: Array<string> = columns
+      .filter((column: ModelColumn<BaseModel>): boolean => {
+        return !column.isHiddenByDefault;
+      })
+      .map((column: ModelColumn<BaseModel>): string => {
+        return column.title;
+      });
+    const hidden: Array<string> = columns
+      .filter((column: ModelColumn<BaseModel>): boolean => {
+        return Boolean(column.isHiddenByDefault);
+      })
+      .map((column: ModelColumn<BaseModel>): string => {
+        return column.title;
+      });
+
+    expect(shown).toEqual([
+      "Name",
+      "Health",
+      "Last Polled",
+      "Last Event Imported",
+    ]);
+    expect(hidden).toEqual([
+      "Status",
+      "Interval (Minutes)",
+      "Last Successful Poll",
+    ]);
+
+    // A long name takes a second line rather than an ellipsis.
+    expect(columns[0]?.wrapContent).toBe(true);
+
+    // The three times are dates to the table: kept whole, sorted by the date.
+    for (const title of [
+      "Last Polled",
+      "Last Successful Poll",
+      "Last Event Imported",
+    ]) {
+      const column: ModelColumn<BaseModel> | undefined = columns.find(
+        (candidate: ModelColumn<BaseModel>): boolean => {
+          return candidate.title === title;
+        },
+      );
+
+      expect([title, column?.type]).toEqual([title, FieldType.DateTime]);
+    }
+  });
+
+  test("each time says how long ago, with the date under the pointer, or Never in grey", (): void => {
+    renderTable([
+      connection({
+        lastPolledAt: new Date(NOW - 2 * 60_000),
+        lastSuccessfulPollAt: new Date(NOW - 2 * 60_000),
+        lastEventIngestedAt: new Date(NOW - 3 * 60_000),
+      }),
+    ]);
+
+    const cells: Array<HTMLElement> = within(row("Acme Okta")).getAllByTestId(
+      "relative-time-cell",
+    );
+
+    expect(
+      cells.map((cell: HTMLElement): string => {
+        return cell.textContent || "";
+      }),
+    ).toEqual(["2 minutes ago", "2 minutes ago", "3 minutes ago"]);
+
+    for (const cell of cells) {
+      expect(cell.getAttribute("title")).toBeTruthy();
+    }
   });
 
   test("the card names every provider, Google SecOps included", (): void => {
@@ -1063,7 +1147,7 @@ describe("SecurityEventConnectionsTable", () => {
    * visible at a glance, under the provider name, for a provider whose
    * records have an alerting distinction, and absent for every other one.
    */
-  test("a Google SecOps row shows its Data to import choice under the provider name", (): void => {
+  test("a Google SecOps row shows its provider and its Data to import choice under its name", (): void => {
     renderTable([
       googleConnection({ alertingOnly: true }),
       googleConnection({
@@ -1074,22 +1158,59 @@ describe("SecurityEventConnectionsTable", () => {
       connection(),
     ]);
 
-    const alertsOnly: HTMLElement = row("Customer SecOps");
-    const providerCell: HTMLElement = within(alertsOnly).getByText(
-      "Google SecOps",
-    ).parentElement as HTMLElement;
-    expect(providerCell).toHaveTextContent("Google SecOpsAlerts only");
-    expect(within(providerCell).getByText("Alerts only")).toHaveClass(
-      "text-gray-500",
+    const alertsOnly: HTMLElement = within(row("Customer SecOps")).getByTestId(
+      "security-event-connection-provider",
+    );
+    expect(alertsOnly).toHaveTextContent("Google SecOps · Alerts only");
+    expect(alertsOnly).toHaveClass("text-xs", "text-gray-500");
+    // Under the name, in the same cell.
+    expect(alertsOnly.parentElement).toHaveTextContent(
+      "Customer SecOpsGoogle SecOps · Alerts only",
     );
 
-    expect(row("All detections")).toHaveTextContent(
-      "Google SecOpsAlerts and detections",
-    );
+    expect(
+      within(row("All detections")).getByTestId(
+        "security-event-connection-provider",
+      ),
+    ).toHaveTextContent("Google SecOps · Alerts and detections");
     expect(row("All detections")).not.toHaveTextContent("Alerts only");
 
+    expect(
+      within(row("Acme Okta")).getByTestId(
+        "security-event-connection-provider",
+      ),
+    ).toHaveTextContent("Okta System Log");
     expect(row("Acme Okta")).not.toHaveTextContent("Alerts only");
     expect(row("Acme Okta")).not.toHaveTextContent("Alerts and detections");
+  });
+
+  test("the provider under a name is in the reader's words where they have them", (): void => {
+    const words: Record<string, string> = {
+      "Okta System Log": "Okta-Systemprotokoll",
+      "Alerts only": "Nur Warnungen",
+    };
+    const translator: Translator = createTranslator(
+      (text: string): string | undefined => {
+        return words[text];
+      },
+      "de",
+    );
+
+    expect(
+      getConnectionProviderDetailParts(
+        { provider: SecurityEventConnectorProvider.OktaSystemLog },
+        translator,
+      ),
+    ).toEqual(["Okta-Systemprotokoll"]);
+    expect(
+      getConnectionProviderDetailParts(
+        {
+          provider: SecurityEventConnectorProvider.GoogleSecOps,
+          alertingOnly: true,
+        },
+        translator,
+      ),
+    ).toEqual(["Google SecOps", "Nur Warnungen"]);
   });
 
   /*
