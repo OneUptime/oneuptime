@@ -115,7 +115,7 @@ export const EXCEPTIONS_PREVENTED: PluralTemplate = {
 };
 
 export const EXCEPTIONS_SKIPPED_NOTHING: PluralTemplate = {
-  one: "Its exception skipped nothing in this period.",
+  one: "Its {{count}} exception skipped nothing in this period.",
   other: "Its {{count}} exceptions skipped nothing in this period.",
 };
 

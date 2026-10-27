@@ -101,7 +101,8 @@ export const KIND_WINDOW_DESCRIPTION: string = translationKey(
 
 export const ENTITY_TYPE_FIELD_TITLE: string = translationKey("Entity Type");
 
-export const FIELD_NAME_FIELD_TITLE: string = translationKey("Field");
+// "Event Field", not a bare "Field", which some languages word as a form's own field.
+export const FIELD_NAME_FIELD_TITLE: string = translationKey("Event Field");
 export const FIELD_NAME_FIELD_DESCRIPTION: string = translationKey(
   "The event field, named as in a Sigma rule: processName, principalUser, or an attribute key such as http.user_agent.",
 );
@@ -116,8 +117,12 @@ export const VALUE_FIELD_PLACEHOLDER: string = translationKey(
   "e.g. svc-backup or backup.exe",
 );
 
-export const STARTS_AT_FIELD_TITLE: string = translationKey("From");
-export const ENDS_AT_FIELD_TITLE: string = translationKey("Until");
+/*
+ * A window's times as a scheduled maintenance event names its own: "From"
+ * reads as an email's sender in some languages.
+ */
+export const STARTS_AT_FIELD_TITLE: string = translationKey("Starts At");
+export const ENDS_AT_FIELD_TITLE: string = translationKey("Ends At");
 export const ENDS_AT_FIELD_DESCRIPTION: string = translationKey(
   "When the rule sees events again: at most 30 days after it starts.",
 );
@@ -130,7 +135,7 @@ export const REASON_FIELD_PLACEHOLDER: string = translationKey(
   "e.g. Our vulnerability scanner. It probes every host each night.",
 );
 
-export const EXPIRES_AT_FIELD_TITLE: string = translationKey("Expires");
+export const EXPIRES_AT_FIELD_TITLE: string = translationKey("Expires At");
 export const EXPIRES_AT_FIELD_DESCRIPTION: string = translationKey(
   "After this, the rule sees it again. Empty: until someone deletes the exception.",
 );
@@ -140,10 +145,14 @@ export const EXPIRES_AT_FIELD_DESCRIPTION: string = translationKey(
 export const ADD_EXCEPTION_ACTION: string = translationKey("Add Exception");
 export const VIEW_EXCEPTIONS_ACTION: string = translationKey("View Exceptions");
 
-// Under a rule's name: how many of its exceptions skip something now.
+/*
+ * Under a rule's name: how many of its exceptions skip something now. Its
+ * own words, not "{{count}} exceptions", which the Exceptions product (an
+ * error a service threw) already words in every language.
+ */
 export const ACTIVE_EXCEPTION_COUNT: PluralTemplate = {
-  one: "{{count}} exception",
-  other: "{{count}} exceptions",
+  one: "{{count}} active exception",
+  other: "{{count}} active exceptions",
 };
 
 // ---------- A case's detection ----------

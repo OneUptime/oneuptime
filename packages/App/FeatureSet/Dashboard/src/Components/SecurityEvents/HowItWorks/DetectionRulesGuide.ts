@@ -745,6 +745,8 @@ The form shows the parser's reason. The usual causes:
 - \`logsource\` does not filter anything; a rule that relies on it matches more than you expect, not less.
 - With a threshold above 1, that many matches must land in **one** window. Try a longer interval or a lower threshold.
 - Events that arrive with a timestamp from before the rule's last run are never evaluated by it.
+- An exception skips them: **View Exceptions** in the rule's row lists what it skips.
+- **Run on Past Events** in the rule's row shows what it would have found over the last day, week or month.
 
 #### It matched, but no alert opened
 
@@ -756,8 +758,9 @@ The form shows the parser's reason. The usual causes:
 
 - The Group By Field has too many values — every value gets its own alert. Group by a coarser field, or remove it for one alert per rule.
 - The threshold is too low for the traffic. Raise it, or add a Distinct Count Field.
-- Known-good activity matches. Exclude it with a filter selection: \`condition: selection and not filter_known_good\`.
+- Known-good activity matches: a scanner, a backup job, a planned test. Add an exception for it - **Add Exception** in the rule's row, or on the detection in its case - with why, and when it expires. Or exclude it in the YAML with a filter selection: \`condition: selection and not filter_known_good\`.
 - You care about the rate, not each match. Set **Alerts and Incidents** to **Neither** and put a monitor on the rule's findings instead.
+- Before you save a change, see what it would have found: **Run on Past Events**, under the YAML as you edit the rule, runs it as it stands over past events, with its exceptions.
 `;
 
 const detectionRuleLevels: Array<SecurityEventsGuideLevel> =
