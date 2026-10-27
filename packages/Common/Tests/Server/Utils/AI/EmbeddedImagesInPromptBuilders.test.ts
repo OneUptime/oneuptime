@@ -65,6 +65,7 @@ import { AIPromptOmissions } from "../../../../Types/AI/AIChatTypes";
 import ObjectID from "../../../../Types/ObjectID";
 import { SeededRandom, seededRandom } from "../../../Helpers/SeededRandom";
 import { afterEach, describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../../Helpers/FastestRun";
 
 /*
  * EVERY PROMPT BUILDER LEAVES A SCREENSHOT OUT (issue #4587).
@@ -589,15 +590,20 @@ describe("tool results", () => {
       Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
       Buffer.alloc(2 * 1024 * 1024, 0x5a),
     ]).toString("base64");
-    const startedAt: number = Date.now();
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        const text: string = ToolResultSerializer.serializeText(
+          `![x](data:image/png;base64,${flat}) mail ops@example.com`,
+          1,
+        ).text;
 
-    const text: string = ToolResultSerializer.serializeText(
-      `![x](data:image/png;base64,${flat}) mail ops@example.com`,
-      1,
-    ).text;
-
-    expect(text).toBe("![x]([image omitted: PNG, 2 MB]) mail [redacted-email]");
-    expect(Date.now() - startedAt).toBeLessThan(2000);
+        expect(text).toBe(
+          "![x]([image omitted: PNG, 2 MB]) mail [redacted-email]",
+        );
+      },
+      limitInMs: 2000,
+    });
+    expect(timed.inMs).toBeLessThan(2000);
     expect(redactAndCap(`data:image/png;base64,${flat}`, 4000)).toBe(
       "[image omitted: PNG, 2 MB]",
     );

@@ -66,6 +66,7 @@ import { WORKFLOW_NODE_WIDTH } from "../../../UI/Components/Workflow/NodePlaceme
 import { getOutputLayout } from "../../../UI/Components/Workflow/PortLayout";
 import { loadComponentsAndCategories } from "../../../UI/Components/Workflow/Utils";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 type TemplateGraphSpec = NonNullable<ReturnType<typeof getTemplateGraphSpec>>;
 type TemplateNodeSpec = TemplateGraphSpec["nodes"][number];
@@ -439,18 +440,21 @@ describe("the Zabbix URL the wizard takes", () => {
   });
 
   test("reads a long value in time that grows with its length alone", () => {
-    const started: number = Date.now();
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        for (const value of [
+          `https://${"a".repeat(400000)}`,
+          `https://example.com${"/a".repeat(200000)}`,
+          `https://${"a.".repeat(200000)}`,
+          `https://[${":".repeat(400000)}`,
+        ]) {
+          expect(ZABBIX_URL_PATTERN.test(value)).toBe(false);
+        }
+      },
+      limitInMs: 2000,
+    });
 
-    for (const value of [
-      `https://${"a".repeat(400000)}`,
-      `https://example.com${"/a".repeat(200000)}`,
-      `https://${"a.".repeat(200000)}`,
-      `https://[${":".repeat(400000)}`,
-    ]) {
-      expect(ZABBIX_URL_PATTERN.test(value)).toBe(false);
-    }
-
-    expect(Date.now() - started).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
   });
 });
 

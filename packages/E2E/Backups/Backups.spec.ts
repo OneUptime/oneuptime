@@ -1,11 +1,14 @@
 import {
   APIRequestContext,
-  APIResponse,
   expect,
   Locator,
   Page,
   test,
 } from "@playwright/test";
+import {
+  readFixtureEdition,
+  skipUnlessEnterprise,
+} from "../SuiteHelpers/Edition";
 import fs from "fs";
 import path from "path";
 
@@ -69,8 +72,7 @@ interface FixtureRecord {
 let edition: string = "";
 
 test.beforeAll(async ({ request }: { request: APIRequestContext }) => {
-  const response: APIResponse = await request.get("/edition.json");
-  edition = ((await response.json()) as { edition: string }).edition;
+  edition = await readFixtureEdition(request);
 });
 
 const pageErrors: Map<Page, Array<string>> = new Map();
@@ -237,8 +239,8 @@ async function expectStatusCardTheme(page: Page): Promise<void> {
 
 test.describe("the Enterprise Edition's Backups page", () => {
   test.beforeEach(() => {
-    test.skip(
-      edition !== "enterprise",
+    skipUnlessEnterprise(
+      edition,
       "The Backups page ships in the Enterprise Edition: ee/ is not checked out here.",
     );
   });

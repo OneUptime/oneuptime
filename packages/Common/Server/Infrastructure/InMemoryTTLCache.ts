@@ -1,3 +1,5 @@
+import OldestKeyCursor from "../../Utils/OldestKeyCursor";
+
 interface CacheEntry<T> {
   value: T;
   expiresAt: number;
@@ -24,12 +26,32 @@ export const EXPIRED_ENTRY_SWEEP_INTERVAL_MS: number = 1_000;
  * makes room, so a read returns the same value it did without it: a cache
  * that is full of expired entries no longer evicts a live one to make room.
  *
+ * A cache full of live entries finds its oldest through one iterator kept
+ * between writes (Utils/OldestKeyCursor), not a new keys().next() per write,
+ * which walked past every slot evicted before it: about 10 microseconds a
+ * write at 10,000 entries, against under one. The entry evicted is the same.
+ * The iterator lives only from one evicting write to the next: any other
+ * change to the store lets it go (see oldestKeys).
+ *
  * Each process holds its own copy — there is no cross-process invalidation.
  * Callers that need stronger consistency should pair the TTL with an explicit
  * `delete()` on writes to the underlying data.
  */
 export default class InMemoryTTLCache<T> {
   private store: Map<string, CacheEntry<T>> = new Map();
+  /*
+   * The oldest entry of a full cache, from one iterator kept between
+   * evicting writes. Every other change to the store lets the iterator go
+   * (forgetOldest): an iterator that stops moving keeps every table the Map
+   * is rebuilt into after it alive, with the entries each one held, until it
+   * next moves - so a cache that filled once and then churned below its
+   * limit held on to everything it stored, and expired entries the sweep
+   * dropped stayed in memory. A write that evicts moves it, which lets go of
+   * any table before.
+   */
+  private oldestKeys: OldestKeyCursor<string> = new OldestKeyCursor<string>(
+    this.store,
+  );
   private maxEntries: number;
   private lastSweepAt: number = Number.NEGATIVE_INFINITY;
 
@@ -43,10 +65,13 @@ export default class InMemoryTTLCache<T> {
     this.sweepExpiredEntriesWhenDue(now);
 
     if (this.store.size >= this.maxEntries && !this.store.has(key)) {
-      const oldest: string | undefined = this.store.keys().next().value;
+      const oldest: string | undefined = this.oldestKeys.takeOldest();
       if (oldest !== undefined) {
         this.store.delete(oldest);
       }
+    } else {
+      // A write that evicts nothing: a new key, or one written again.
+      this.forgetOldest();
     }
     this.store.delete(key);
     this.store.set(key, { value, expiresAt: now + ttlMs });
@@ -62,7 +87,7 @@ export default class InMemoryTTLCache<T> {
       return undefined;
     }
     if (now > entry.expiresAt) {
-      this.store.delete(key);
+      this.removeEntry(key);
       return undefined;
     }
     return entry.value;
@@ -73,20 +98,21 @@ export default class InMemoryTTLCache<T> {
   }
 
   public delete(key: string): void {
-    this.store.delete(key);
+    this.removeEntry(key);
   }
 
   // Deletes every entry whose key starts with `prefix`.
   public deleteByPrefix(prefix: string): void {
     for (const key of Array.from(this.store.keys())) {
       if (key.startsWith(prefix)) {
-        this.store.delete(key);
+        this.removeEntry(key);
       }
     }
   }
 
   public clear(): void {
     this.store.clear();
+    this.forgetOldest();
   }
 
   public size(): number {
@@ -116,8 +142,23 @@ export default class InMemoryTTLCache<T> {
     // Deleting the entry being visited is safe while iterating a Map.
     for (const [key, entry] of this.store) {
       if (now > entry.expiresAt) {
-        this.store.delete(key);
+        this.removeEntry(key);
       }
     }
+  }
+
+  // Deletes an entry other than by eviction, letting the cursor go.
+  private removeEntry(key: string): void {
+    if (this.store.delete(key)) {
+      this.forgetOldest();
+    }
+  }
+
+  /*
+   * Lets go of the iterator that finds the oldest entry (see oldestKeys);
+   * the next eviction starts a new one at the store's first entry.
+   */
+  private forgetOldest(): void {
+    this.oldestKeys.reset();
   }
 }

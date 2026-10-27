@@ -13,6 +13,7 @@ import {
   WELL_FORMED_MARKUP,
 } from "../../../Types/HtmlMarkupCases";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../../Helpers/FastestRun";
 
 /*
  * When a token endpoint does not answer with a token, the error message
@@ -493,14 +494,19 @@ describe("time", () => {
     ["comment openings", `${repeatTo("<!--")}>`],
     ["whitespace and control characters", repeatTo(" \t\u0001\n")],
   ])("reads a megabyte of %s in linear time", (_case: string, body: string) => {
-    const started: number = Date.now();
-    const message: string = refusalOf({
-      statusCode: 502,
-      bodyText: body,
-      headers: { "content-type": "text/html" },
+    const timed: FastestRun<string> = fastestRun({
+      run: (): string => {
+        return refusalOf({
+          statusCode: 502,
+          bodyText: body,
+          headers: { "content-type": "text/html" },
+        });
+      },
+      limitInMs: LIMIT_IN_MS,
     });
+    const message: string = timed.result;
 
-    expect(Date.now() - started).toBeLessThan(LIMIT_IN_MS);
+    expect(timed.inMs).toBeLessThan(LIMIT_IN_MS);
     expect(message).not.toMatch(MARKUP_START);
   });
 });

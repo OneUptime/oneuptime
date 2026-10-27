@@ -172,4 +172,50 @@ describe("InMemoryTTLCache basics", () => {
     expect(cache.has("missing")).toBe(false);
     expect(cache.get("missing")).toBeUndefined();
   });
+
+  /*
+   * A full cache finds its oldest entry through one iterator it keeps
+   * between writes (Utils/OldestKeyCursor) rather than a new keys().next()
+   * per write. The entry it evicts must stay the oldest written, through
+   * churn, re-sets, deletes and a clear.
+   */
+  test("a full cache that churns evicts oldest-written first, and keeps the newest", () => {
+    const cache: InMemoryTTLCache<number> = new InMemoryTTLCache<number>(100);
+
+    for (let index: number = 0; index < 1000; index++) {
+      cache.set(`k${index}`, index, 60_000);
+    }
+
+    expect(cache.size()).toBe(100);
+    expect(cache.get("k899")).toBeUndefined();
+    for (let index: number = 900; index < 1000; index++) {
+      expect(cache.get(`k${index}`)).toBe(index);
+    }
+
+    // A re-set moves its key to the newest; a deleted key leaves a gap.
+    cache.set("k900", -1, 60_000);
+    cache.delete("k901");
+    cache.set("n1", 1, 60_000);
+    cache.set("n2", 2, 60_000);
+    expect(cache.get("k902")).toBeUndefined();
+    expect(cache.get("k903")).toBe(903);
+    expect(cache.get("k900")).toBe(-1);
+    expect(cache.size()).toBe(100);
+  });
+
+  test("after a clear, a full cache evicts its oldest new entry", () => {
+    const cache: InMemoryTTLCache<number> = new InMemoryTTLCache<number>(2);
+
+    cache.set("a", 1, 60_000);
+    cache.set("b", 2, 60_000);
+    cache.set("c", 3, 60_000);
+    cache.clear();
+    cache.set("x", 1, 60_000);
+    cache.set("y", 2, 60_000);
+    cache.set("z", 3, 60_000);
+
+    expect(cache.get("x")).toBeUndefined();
+    expect(cache.get("y")).toBe(2);
+    expect(cache.get("z")).toBe(3);
+  });
 });

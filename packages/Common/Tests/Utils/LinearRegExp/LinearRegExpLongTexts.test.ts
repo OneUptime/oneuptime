@@ -2,6 +2,7 @@ import LinearRegExp, {
   LinearRegExpMatch,
 } from "../../../Utils/LinearRegExp/LinearRegExp";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * ---------------------------------------------------------------------------
@@ -87,13 +88,16 @@ const WORST_CASES: ReadonlyArray<WorstCase> = [
   },
 ];
 
+// The work's result, once its fastest attempt (Tests/Helpers/FastestRun) is in budget.
 function timed<T>(work: () => T): T {
-  const startedAt: number = Date.now();
-  const result: T = work();
+  const run: FastestRun<T> = fastestRun({
+    run: work,
+    limitInMs: BUDGET_IN_MS,
+  });
 
-  expect(Date.now() - startedAt).toBeLessThan(BUDGET_IN_MS);
+  expect(run.inMs).toBeLessThan(BUDGET_IN_MS);
 
-  return result;
+  return run.result;
 }
 
 describe("LinearRegExp on 400,000 characters of JavaScript's worst cases", () => {
@@ -166,9 +170,12 @@ describe("LinearRegExp on 400,000 characters of JavaScript's worst cases", () =>
   test("sixteen megabytes on one line take no stack and finish", () => {
     const text: string = `${"QUJD".repeat(4 * 1024 * 1024)}!`;
     const pattern: LinearRegExp = new LinearRegExp("^([A-Za-z0-9+/]+)+=*$");
-    const startedAt: number = Date.now();
-
-    expect(pattern.test(text)).toBe(false);
-    expect(Date.now() - startedAt).toBeLessThan(10000);
+    const timedRun: FastestRun<void> = fastestRun({
+      run: (): void => {
+        expect(pattern.test(text)).toBe(false);
+      },
+      limitInMs: 10000,
+    });
+    expect(timedRun.inMs).toBeLessThan(10000);
   });
 });

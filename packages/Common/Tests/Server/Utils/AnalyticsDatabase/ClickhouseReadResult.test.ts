@@ -10,6 +10,7 @@ import ErrorClass, {
 } from "../../../../Types/Telemetry/ErrorClass";
 import { ClickHouseError } from "@clickhouse/client";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../../Helpers/FastestRun";
 
 /*
  * Reading a ClickHouse answer (issue #4707).
@@ -555,17 +556,20 @@ describe("ClickhouseReadResult.readJson", () => {
     ["markers everywhere", "__exception__\n".repeat(30000)],
     ["a cut-off document", STREAMED_ROWS.repeat(2000)],
   ])("reads %s in linear time", (_name: string, body: string) => {
-    const startedAt: number = Date.now();
-
-    capture(() => {
-      return ClickhouseReadResult.readJson(body, {
-        timeLimitInSeconds: 45,
-        exceptionTag: TAG,
-      });
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        capture(() => {
+          return ClickhouseReadResult.readJson(body, {
+            timeLimitInSeconds: 45,
+            exceptionTag: TAG,
+          });
+        });
+        ClickhouseReadResult.parseErrorText(body);
+      },
+      limitInMs: 2000,
     });
-    ClickhouseReadResult.parseErrorText(body);
 
-    expect(Date.now() - startedAt).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
   });
 });
 

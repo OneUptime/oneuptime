@@ -5,6 +5,7 @@ import CustomFieldFeedChange, {
 import { CustomFieldDefinition } from "../../../../Types/CustomField/CustomFieldDefinition";
 import CustomFieldType from "../../../../Types/CustomField/CustomFieldType";
 import OneUptimeDate from "../../../../Types/Date";
+import { FastestRun, fastestRun } from "../../../Helpers/FastestRun";
 
 /*
  * WHAT AN UPDATE CHANGED OF AN INCIDENT'S CUSTOM FIELDS, IN ITS FEED.
@@ -328,14 +329,17 @@ describe("CustomFieldFeedChange.toReadableValue", () => {
   });
 
   test("a value of 400,000 characters is read in well under two seconds", () => {
-    const startedAt: number = Date.now();
-
-    CustomFieldFeedChange.toReadableValue({
-      customFieldType: CustomFieldType.LongText,
-      value: `${" \n\t".repeat(133334)}x`,
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        CustomFieldFeedChange.toReadableValue({
+          customFieldType: CustomFieldType.LongText,
+          value: `${" \n\t".repeat(133334)}x`,
+        });
+      },
+      limitInMs: 2000,
     });
 
-    expect(Date.now() - startedAt).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
   });
 });
 

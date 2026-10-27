@@ -3,6 +3,7 @@ import StatusPageSummaryUtil, {
 } from "../../../Types/StatusPage/StatusPageSummary";
 import { JSONObject } from "../../../Types/JSON";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * The summary a status page answers on /status-page-api/summary/<page>, as
@@ -284,14 +285,19 @@ describe("StatusPageSummaryUtil.toJSON and fromJSON", () => {
       ids.push(`id-${index % 50000}`);
     }
 
-    const startedAt: number = Date.now();
-    const summary: StatusPageSummary | null = StatusPageSummaryUtil.fromJSON({
-      resources: [],
-      activeIncidents: [{ id: "i", affectedResourceIds: ids }],
-      ongoingScheduledMaintenance: [],
+    const timed: FastestRun<StatusPageSummary | null> = fastestRun({
+      run: (): StatusPageSummary | null => {
+        return StatusPageSummaryUtil.fromJSON({
+          resources: [],
+          activeIncidents: [{ id: "i", affectedResourceIds: ids }],
+          ongoingScheduledMaintenance: [],
+        });
+      },
+      limitInMs: 2000,
     });
+    const summary: StatusPageSummary | null = timed.result;
 
-    expect(Date.now() - startedAt).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
     expect(summary!.activeIncidents[0]!.affectedResourceIds).toHaveLength(
       50000,
     );

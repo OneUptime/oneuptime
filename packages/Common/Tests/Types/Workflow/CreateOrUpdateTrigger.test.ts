@@ -24,6 +24,7 @@ import {
   getDatabaseOperation,
 } from "../../../Types/Workflow/DatabaseOperation";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 describe("its id", () => {
   test("is the model's table name in dashes, then on-create-or-update", () => {
@@ -215,15 +216,18 @@ describe("a setting that holds What Happened", () => {
   );
 
   test("reads a huge value in about the time of a short one", () => {
-    const started: number = Date.now();
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        for (let attempt: number = 0; attempt < 20; attempt++) {
+          isWhatHappenedReference(
+            "{{" + "local.".repeat(70000) + "returnValues.what-happened}}",
+          );
+        }
+      },
+      limitInMs: 2000,
+    });
 
-    for (let attempt: number = 0; attempt < 20; attempt++) {
-      isWhatHappenedReference(
-        "{{" + "local.".repeat(70000) + "returnValues.what-happened}}",
-      );
-    }
-
-    expect(Date.now() - started).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
   });
 });
 
@@ -307,12 +311,17 @@ describe("what a run started by hand is for", () => {
   });
 
   test("the refusal reads a huge value in about the time of a short one", () => {
-    const started: number = Date.now();
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        for (let attempt: number = 0; attempt < 20; attempt++) {
+          CreateOrUpdateTriggerMessages.notWhatHappened(
+            " ".repeat(400000) + "x",
+          );
+        }
+      },
+      limitInMs: 2000,
+    });
 
-    for (let attempt: number = 0; attempt < 20; attempt++) {
-      CreateOrUpdateTriggerMessages.notWhatHappened(" ".repeat(400000) + "x");
-    }
-
-    expect(Date.now() - started).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
   });
 });

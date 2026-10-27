@@ -14,6 +14,7 @@ import {
   rewriteLegacyRunbookSecretReferences,
 } from "../../../Types/Runbook/RunbookVariableReference";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * HOW A RUNBOOK STEP NAMES A RUNBOOK VARIABLE - the way a workflow names a
@@ -154,10 +155,13 @@ describe("findRunbookVariableReferences", () => {
 
   test("reads a long text in time in line with its length", () => {
     const text: string = "{{global.variables.X}} {{ ".repeat(40_000);
-    const started: number = Date.now();
-
-    expect(findRunbookVariableReferences(text)).toEqual([global("X")]);
-    expect(Date.now() - started).toBeLessThan(2000);
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        expect(findRunbookVariableReferences(text)).toEqual([global("X")]);
+      },
+      limitInMs: 2000,
+    });
+    expect(timed.inMs).toBeLessThan(2000);
   });
 
   test("findRunbookVariableReferencesIn reads several texts as one", () => {

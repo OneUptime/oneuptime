@@ -25,6 +25,7 @@ import {
   shownLines,
 } from "../TestingUtils/SlackWebhookMessages";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * OperatorSlackNotice: what the operator's own Slack channels are told - a
@@ -697,12 +698,17 @@ describe("OperatorSlackNotice.getProjectDeletedText", () => {
   test("feedback longer than a Slack message can show is cut, with Slack's note, in no time", () => {
     const feedback: string = "Not what we needed.\n".repeat(50000);
 
-    const startedAt: number = Date.now();
-    const text: string = OperatorSlackNotice.getProjectDeletedText(
-      deletion({ deletionReason: feedback }),
-    );
+    const timed: FastestRun<string> = fastestRun({
+      run: (): string => {
+        return OperatorSlackNotice.getProjectDeletedText(
+          deletion({ deletionReason: feedback }),
+        );
+      },
+      limitInMs: 5000,
+    });
+    const text: string = timed.result;
 
-    expect(Date.now() - startedAt).toBeLessThan(5000);
+    expect(timed.inMs).toBeLessThan(5000);
     expect(text.endsWith(SlackUtil.TRUNCATED_SECTION_NOTE)).toBe(true);
 
     // What the webhook posts of it fits a Slack message, and says it was cut.

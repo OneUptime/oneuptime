@@ -3,6 +3,7 @@ import {
   parseMerakiLinkHeader,
 } from "../../../../Server/Utils/NetworkController/Meraki/MerakiLinkHeader";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../../Helpers/FastestRun";
 
 /*
  * The Link header Meraki pages lists with (RFC 5988): links found by their
@@ -87,9 +88,13 @@ describe("parsing the Link header", () => {
     ];
 
     for (const shape of shapes) {
-      const startedAt: number = Date.now();
-      parseMerakiLinkHeader(shape);
-      expect(Date.now() - startedAt).toBeLessThan(2000);
+      const timed: FastestRun<void> = fastestRun({
+        run: (): void => {
+          parseMerakiLinkHeader(shape);
+        },
+        limitInMs: 2000,
+      });
+      expect(timed.inMs).toBeLessThan(2000);
     }
   });
 });

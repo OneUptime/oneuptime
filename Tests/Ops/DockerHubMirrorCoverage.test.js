@@ -33,6 +33,8 @@
  *   - every service container in every workflow to naming its registry: the
  *     runner pulls those before the first step, so the daemon's mirror never
  *     applies to them, and a bare "postgres:15" is an anonymous Docker Hub pull;
+ *   - every job container (a job that runs in an image, as the browser jobs
+ *     run in Playwright's) to naming its registry too, for the same reason;
  *   - the action to running the script, so the two cannot drift apart.
  */
 
@@ -73,6 +75,12 @@ const MIRRORED_JOBS = {
  * an anonymous Docker Hub pull before any step runs.
  */
 const SERVICE_REGISTRIES = ["mirror.gcr.io/", "ghcr.io/", "public.ecr.aws/"];
+
+/*
+ * Registries a job container may name: those, and Microsoft's, where
+ * Playwright publishes the image the browser jobs run in.
+ */
+const JOB_CONTAINER_REGISTRIES = [...SERVICE_REGISTRIES, "mcr.microsoft.com/"];
 
 function read(relativePath) {
   return fs.readFileSync(path.join(REPO_ROOT, relativePath), "utf8");
@@ -234,6 +242,31 @@ describe("test jobs pull Docker Hub images through mirror.gcr.io", () => {
         fromARegistry: true,
         oneUptimeThroughMirror: false,
       });
+    }
+  });
+
+  test("every job container names a registry, never Docker Hub", () => {
+    const containers = [];
+
+    for (const { key, job } of allJobs()) {
+      if (!job.container) {
+        continue;
+      }
+      const image =
+        typeof job.container === "string" ? job.container : job.container.image;
+      containers.push({
+        job: key,
+        image,
+        fromARegistry: JOB_CONTAINER_REGISTRIES.some((registry) => {
+          return String(image).startsWith(registry);
+        }),
+      });
+    }
+
+    // The browser jobs run in Playwright's image (Tests/Ops/PlaywrightImage).
+    expect(containers.length).toBeGreaterThan(0);
+    for (const entry of containers) {
+      expect(entry).toEqual({ ...entry, fromARegistry: true });
     }
   });
 

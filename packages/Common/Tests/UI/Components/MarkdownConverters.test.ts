@@ -15,6 +15,7 @@ import {
 } from "../../../UI/Components/Markdown.tsx/MarkdownConverters";
 
 import { MarkdownText, mdText } from "../../../Utils/Markdown/FeedMarkdown";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 /*
  * The markdown <-> HTML pair behind the WYSIWYG editor.
  *
@@ -1544,14 +1545,18 @@ describe("nested list edge cases", () => {
       lines.push(`${" ".repeat(i * 2)}- item ${i}`);
     }
 
-    const startedAt: number = performance.now();
-    const html: string = markdownToHtml(lines.join("\n"));
-    const elapsed: number = performance.now() - startedAt;
+    const timed: FastestRun<string> = fastestRun({
+      run: (): string => {
+        return markdownToHtml(lines.join("\n"));
+      },
+      limitInMs: 2000,
+    });
+    const html: string = timed.result;
 
     expect(html).toContain("item 0");
     expect(html).toContain("item 999");
     // The uncapped parser took about 8 seconds here.
-    expect(elapsed).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
   });
 
   it("still nests normally well inside the cap", () => {

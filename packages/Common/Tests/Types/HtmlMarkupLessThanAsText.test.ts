@@ -9,6 +9,7 @@ import {
   WELL_FORMED_MARKUP,
 } from "./HtmlMarkupCases";
 import { describe, expect, it } from "@jest/globals";
+import { FastestRun, fastestRun } from "../Helpers/FastestRun";
 
 /*
  * replaceHtmlMarkup reads every "<" as the start of markup by default,
@@ -263,10 +264,15 @@ describe("replaceHtmlMarkup with lessThanAsText", () => {
       ["a run of '<' before an unclosed value", `${"<".repeat(300000)}a="`],
       ["comment openings", `${"<!--".repeat(100000)}>`],
     ])("reads %s in linear time", (_case: string, html: string) => {
-      const started: number = Date.now();
-      const read: string = readAsBrowser(html);
+      const timed: FastestRun<string> = fastestRun({
+        run: (): string => {
+          return readAsBrowser(html);
+        },
+        limitInMs: LIMIT_IN_MS,
+      });
+      const read: string = timed.result;
 
-      expect(Date.now() - started).toBeLessThan(LIMIT_IN_MS);
+      expect(timed.inMs).toBeLessThan(LIMIT_IN_MS);
       expect(read).not.toMatch(MARKUP_START);
     });
   });

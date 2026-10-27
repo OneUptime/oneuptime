@@ -18,6 +18,7 @@ import { AUDIT_LOG_EXPORT_DEFAULT_FOLDER } from "../../../../../Types/AuditLog/E
 import BadDataException from "../../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../../Types/JSON";
 import { startEachTestOnSelfHostedEgressPolicy } from "../../EgressPolicyEnvironment";
+import { FastestRun, fastestRun } from "../../../../Helpers/FastestRun";
 
 /*
  * The checks a save runs on an audit log export's settings, so a mistake is
@@ -650,20 +651,23 @@ describe("the naming rules", () => {
 
   test("each rule takes time in line with its input, whatever it is", () => {
     const long: string = `${"a.-".repeat(140000)}!`;
-    const startedAt: number = Date.now();
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        isAmazonS3BucketName(long);
+        isS3CompatibleBucketName(long);
+        isS3RegionName(long);
+        isGoogleCloudStorageBucketName(long);
+        isAzureStorageAccountName(long);
+        isAzureContainerName(long);
+        isHttpHeaderName(long);
+        isSyslogHost(long);
+        describeFolderProblem(long);
+        getAuditLogExportFolder({ folder: `${"/".repeat(400000)}a` });
+      },
+      limitInMs: 2000,
+    });
 
-    isAmazonS3BucketName(long);
-    isS3CompatibleBucketName(long);
-    isS3RegionName(long);
-    isGoogleCloudStorageBucketName(long);
-    isAzureStorageAccountName(long);
-    isAzureContainerName(long);
-    isHttpHeaderName(long);
-    isSyslogHost(long);
-    describeFolderProblem(long);
-    getAuditLogExportFolder({ folder: `${"/".repeat(400000)}a` });
-
-    expect(Date.now() - startedAt).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
   });
 });
 

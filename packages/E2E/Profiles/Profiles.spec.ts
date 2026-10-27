@@ -1,13 +1,7 @@
-import {
-  ElementHandle,
-  expect,
-  Locator,
-  Page,
-  test,
-  TestInfo,
-} from "@playwright/test";
+import { expect, Locator, Page, test, TestInfo } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
+import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 
 /*
  * The real Profiler against the offline fixture (Fixture/Fixture.js): the
@@ -120,40 +114,13 @@ async function openLoaded(page: Page, query: string = ""): Promise<void> {
   });
 }
 
-interface Box {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
-
 /*
- * The elements' boxes, read in one frame. The function panel slides in from
- * the side (SideOver, 200 ms), and each boundingBox() is a frame of its own:
- * read one by one while it moves, two boxes come from two moments of the
- * slide (the AI credits notice and the words it lines up with read 54 to 126
- * pixels apart on a busy machine).
+ * Boxes compared with each other are read in one frame (SuiteHelpers/Frames):
+ * the function panel slides in from the side (SideOver, 200 ms), and each
+ * boundingBox() is a frame of its own, so two read one by one while it moves
+ * came from two moments of the slide (the AI credits notice and the words it
+ * lines up with read 54 to 126 pixels apart on a busy machine).
  */
-async function boxesInOneFrame(
-  page: Page,
-  locators: Array<Locator>,
-): Promise<Array<Box>> {
-  const elements: Array<ElementHandle<HTMLElement | SVGElement>> = [];
-  for (const locator of locators) {
-    elements.push(
-      (await locator.elementHandle()) as ElementHandle<
-        HTMLElement | SVGElement
-      >,
-    );
-  }
-
-  return page.evaluate((nodes: Array<HTMLElement | SVGElement>): Array<Box> => {
-    return nodes.map((node: HTMLElement | SVGElement): Box => {
-      const rect: DOMRect = node.getBoundingClientRect();
-      return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
-    });
-  }, elements);
-}
 
 async function expectNoSidewaysScroll(page: Page): Promise<void> {
   const overflow: number = await page.evaluate((): number => {
@@ -426,7 +393,7 @@ test.describe("one function", () => {
         "profiles-panel-total",
         "profiles-panel-own",
       ]) {
-        const [box, figure] = await boxesInOneFrame(page, [
+        const [box, figure] = await boxesInOneFrame([
           panel.getByTestId(`${testId}-box`),
           panel.getByTestId(testId),
         ]);
@@ -585,7 +552,7 @@ test.describe("Fix with AI", () => {
       await expect(blocker).toBeVisible();
 
       // In the strip's own amber, lined up with its words: no box inside it.
-      const [words, notice] = await boxesInOneFrame(page, [
+      const [words, notice] = await boxesInOneFrame([
         page.getByTestId("profiles-fix-finding"),
         blocker,
       ]);

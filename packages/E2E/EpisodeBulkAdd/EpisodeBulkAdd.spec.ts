@@ -1,6 +1,7 @@
 import { expect, Locator, Page, test } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
+import { boxesInOneFrame, FrameBox } from "../SuiteHelpers/Frames";
 
 /*
  * Adding several alerts or incidents to an episode at once, in a browser,
@@ -1002,13 +1003,13 @@ test.describe("on a phone", () => {
       .filter({ hasText: "ALT-62" });
     await expect(long).toBeVisible();
 
-    const dialogBox: { x: number; width: number } | null =
-      await dialog(page).boundingBox();
-    const titleBox: { x: number; width: number } | null = await long
-      .getByTestId(`${LIST}-option-title`)
-      .boundingBox();
-    expect(titleBox!.x + titleBox!.width).toBeLessThanOrEqual(
-      dialogBox!.x + dialogBox!.width,
+    // In one frame: the dialog grows in as it opens (Modal, from 95%).
+    const [dialogBox, titleBox] = (await boxesInOneFrame([
+      dialog(page),
+      long.getByTestId(`${LIST}-option-title`),
+    ])) as [FrameBox, FrameBox];
+    expect(titleBox.x + titleBox.width).toBeLessThanOrEqual(
+      dialogBox.x + dialogBox.width,
     );
     expect(
       await page.evaluate((): number => {

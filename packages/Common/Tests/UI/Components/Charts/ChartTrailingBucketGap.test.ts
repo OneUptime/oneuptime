@@ -637,55 +637,122 @@ describe("the grid step follows the interval the data was bucketed at", () => {
   });
 });
 
-describe("trimming respects wall-clock bucket widths", () => {
-  test("a daylight-saving day is as wide as the grid says it is, not 24h", () => {
-    /*
-     * The trailing bucket's width is read off the grid rather than recomputed
-     * from the precision, so the coverage test stays correct on the days that
-     * are not 24 hours long. Europe/London springs forward on 2026-03-29, so
-     * that day is 23 hours.
-     *
-     * The window ends 20 hours into the 29th — over half of a 23-hour day, so
-     * the empty final bucket is kept. Computed against a fixed 24h width it
-     * would be 83% of a day and kept too, so this asserts the specific thing
-     * that differs: the grid's own step is what is measured.
-     */
-    const previousTimezone: string | undefined = process.env["TZ"];
-    process.env["TZ"] = "Europe/London";
+/*
+ * The trailing bucket is measured by its own length, one more step of the
+ * wall-clock walk from its start, not by the step before it: months differ
+ * in any zone, and the days the clocks change are 23 or 25 hours long in
+ * the zones that have them (ChartTrailingBucketGapLondon.test.ts runs those
+ * in Europe/London; a zone set at run time would not take, so it is a file
+ * of its own with a docblock).
+ */
+describe("trimming measures the trailing bucket by its own length", () => {
+  type MonthGridFunction = (end: string) => {
+    intervals: Array<Date>;
+    renderable: Array<Date>;
+  };
 
-    try {
-      const start: Date = new Date("2026-03-25T00:00:00.000Z");
-      const end: Date = new Date("2026-03-29T20:00:00.000Z");
+  // A month grid from 1 January with one reading at its start.
+  const monthGrid: MonthGridFunction = (
+    end: string,
+  ): { intervals: Array<Date>; renderable: Array<Date> } => {
+    const start: Date = new Date("2026-01-01T00:00:00.000Z");
+    const xAxisMax: Date = new Date(end);
 
-      const intervals: Array<Date> = XAxisUtil.getPrecisionIntervals({
+    return {
+      intervals: XAxisUtil.getPrecisionIntervals({
         xAxisMin: start,
-        xAxisMax: end,
-        precision: XAxisPrecision.EVERY_DAY,
-      });
-
-      // The walk steps in wall-clock days, so every step is one calendar day.
-      expect(intervals.length).toBeGreaterThan(1);
-
-      const renderable: Array<Date> = XAxisUtil.getRenderableIntervals({
+        xAxisMax: xAxisMax,
+        precision: XAxisPrecision.EVERY_MONTH,
+      }),
+      renderable: XAxisUtil.getRenderableIntervals({
         xAxisMin: start,
-        xAxisMax: end,
-        precision: XAxisPrecision.EVERY_DAY,
+        xAxisMax: xAxisMax,
+        precision: XAxisPrecision.EVERY_MONTH,
         seriesPoints: [
           {
             seriesName: SERIES_NAME,
             data: [{ x: start, y: 1 }],
           },
         ],
-      });
+      }),
+    };
+  };
 
-      // Well over half the final bucket is inside the window, so it stays.
-      expect(renderable).toHaveLength(intervals.length);
-    } finally {
-      if (previousTimezone === undefined) {
-        delete process.env["TZ"];
-      } else {
-        process.env["TZ"] = previousTimezone;
-      }
+  test("this file runs in UTC, where every day is 24 hours", () => {
+    expect(Intl.DateTimeFormat().resolvedOptions().timeZone).toBe("UTC");
+  });
+
+  test("a February after a January of 31 days is 28 days: 14.5 of them is over half, so its slot stays", () => {
+    // 14.5 / 28 = 0.52; measured by January's 31 days it would be 0.47.
+    const { intervals, renderable } = monthGrid("2026-02-15T12:00:00.000Z");
+
+    expect(intervals[intervals.length - 1]!.toISOString()).toBe(
+      "2026-02-01T00:00:00.000Z",
+    );
+    expect(renderable).toHaveLength(intervals.length);
+  });
+
+  test("a March after a February of 28 days is 31 days: 14.5 of them is under half, so its slot goes", () => {
+    // 14.5 / 31 = 0.47; measured by February's 28 days it would be 0.52.
+    const { intervals, renderable } = monthGrid("2026-03-15T12:00:00.000Z");
+
+    expect(intervals[intervals.length - 1]!.toISOString()).toBe(
+      "2026-03-01T00:00:00.000Z",
+    );
+    expect(renderable).toHaveLength(intervals.length - 1);
+    expect(renderable[renderable.length - 1]!.toISOString()).toBe(
+      "2026-02-01T00:00:00.000Z",
+    );
+  });
+
+  test("the next slot of every precision is one step of the walk on", () => {
+    const from: Date = new Date("2026-01-15T10:00:00.000Z");
+    const expectedNext: Record<XAxisPrecision, string> = {
+      [XAxisPrecision.EVERY_SECOND]: "2026-01-15T10:00:01.000Z",
+      [XAxisPrecision.EVERY_FIVE_SECONDS]: "2026-01-15T10:00:05.000Z",
+      [XAxisPrecision.EVERY_TEN_SECONDS]: "2026-01-15T10:00:10.000Z",
+      [XAxisPrecision.EVERY_THIRTY_SECONDS]: "2026-01-15T10:00:30.000Z",
+      [XAxisPrecision.EVERY_MINUTE]: "2026-01-15T10:01:00.000Z",
+      [XAxisPrecision.EVERY_FIVE_MINUTES]: "2026-01-15T10:05:00.000Z",
+      [XAxisPrecision.EVERY_TEN_MINUTES]: "2026-01-15T10:10:00.000Z",
+      [XAxisPrecision.EVERY_FIFTEEN_MINUTES]: "2026-01-15T10:15:00.000Z",
+      [XAxisPrecision.EVERY_THIRTY_MINUTES]: "2026-01-15T10:30:00.000Z",
+      [XAxisPrecision.EVERY_HOUR]: "2026-01-15T11:00:00.000Z",
+      [XAxisPrecision.EVERY_TWO_HOURS]: "2026-01-15T12:00:00.000Z",
+      [XAxisPrecision.EVERY_THREE_HOURS]: "2026-01-15T13:00:00.000Z",
+      [XAxisPrecision.EVERY_SIX_HOURS]: "2026-01-15T16:00:00.000Z",
+      [XAxisPrecision.EVERY_TWELVE_HOURS]: "2026-01-15T22:00:00.000Z",
+      [XAxisPrecision.EVERY_DAY]: "2026-01-16T10:00:00.000Z",
+      [XAxisPrecision.EVERY_TWO_DAYS]: "2026-01-17T10:00:00.000Z",
+      [XAxisPrecision.EVERY_WEEK]: "2026-01-22T10:00:00.000Z",
+      [XAxisPrecision.EVERY_TWO_WEEKS]: "2026-01-29T10:00:00.000Z",
+      [XAxisPrecision.EVERY_MONTH]: "2026-02-15T10:00:00.000Z",
+      [XAxisPrecision.EVERY_TWO_MONTHS]: "2026-03-15T10:00:00.000Z",
+      [XAxisPrecision.EVERY_THREE_MONTHS]: "2026-04-15T10:00:00.000Z",
+      [XAxisPrecision.EVERY_SIX_MONTHS]: "2026-07-15T10:00:00.000Z",
+      [XAxisPrecision.EVERY_YEAR]: "2027-01-15T10:00:00.000Z",
+    };
+
+    for (const precision of Object.values(XAxisPrecision)) {
+      const next: Date = XAxisUtil.getNextInterval(from, precision);
+
+      expect({ precision, next: next.toISOString() }).toEqual({
+        precision,
+        next: expectedNext[precision],
+      });
+      // The slot asked about is left as it is.
+      expect(from.toISOString()).toBe("2026-01-15T10:00:00.000Z");
+
+      // The walk takes the same step: a window ending on that slot has two.
+      expect(
+        XAxisUtil.getPrecisionIntervals({
+          xAxisMin: from,
+          xAxisMax: next,
+          precision: precision,
+        }).map((slot: Date): string => {
+          return slot.toISOString();
+        }),
+      ).toEqual([from.toISOString(), next.toISOString()]);
     }
   });
 });
