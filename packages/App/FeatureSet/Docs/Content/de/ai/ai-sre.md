@@ -372,22 +372,6 @@ Während ein Vorfall wartet, zeigt seine Karte **KI-Untersuchung** **Wartet** un
 
 Warnungen funktionieren genauso, auf **Warnungen → KI → Einstellungen**, gezählt ab dem Anlegen der Warnung.
 
-## OneUptime AI reagiert zuerst
-
-Eine On-Call-Regel für Vorfälle oder Alarme kann OneUptime AI die Alarmierung zuerst übernehmen lassen. Wählen Sie unter **Weitere Felder** bei **Wann soll diese Regel alarmieren?** die Option **Nach einem Versuch von OneUptime AI**. Wenn OneUptime AI beheben darf, worum es bei einem passenden Vorfall oder Alarm geht, warten die Richtlinien der Regel, während die KI untersucht, behebt und ihre Behebung prüft, höchstens so lange, wie unter **Höchstens so lange auf OneUptime AI warten (Minuten)** eingestellt ist: standardmäßig 10 Minuten, von 1 bis 30. Wird die Behebung der KI bestätigt, löst OneUptime AI den Eintrag auf, und niemand wird alarmiert.
-
-Stattdessen alarmiert die Regel sofort, und der Feed des Eintrags nennt den Grund, wenn eine Person den Eintrag erstellt hat, er den höchsten Schweregrad des Projekts hat, in den 5 Minuten davor 3 oder mehr andere Alarme und Vorfälle eröffnet wurden, OneUptime AI ihn nicht untersuchen oder nicht automatisch beheben darf, kein Monitor mit ihm verknüpft ist oder kein verknüpfter Kubernetes-Cluster und keine verknüpfte Ressource einen KI-Agenten auf **Automatisch** oder **Genehmigung umgehen** hat.
-
-Solange die KI eine Alarmierung zurückhält, zeigt die Karte **KI-Untersuchung**, wann die Alarmierung beginnt, mit **Jetzt alarmieren** für alle, die sofort eine Person einbeziehen möchten. Jede Minute prüft OneUptime jede Alarmierung, die die KI zurückhält, und beginnt sofort zu alarmieren, mit Begründung, wenn:
-
-- die Untersuchung nicht startet, auf eine KI-Regel wartet oder nicht abgeschlossen wird;
-- die KI keine Behebung findet, die sie selbst ausführen darf, oder ihre Behebung die Genehmigung einer Person braucht;
-- die Behebung der KI die Monitore nicht wiederherstellt;
-- jemand **Jetzt alarmieren** drückt, der Eintrag den höchsten Schweregrad erreicht oder viele Einträge auf einmal eröffnet werden;
-- die KI oder die automatische Behebung ausgeschaltet wird oder die Regel die KI nicht mehr zuerst reagieren lässt.
-
-Die Ausführungsprotokolle der Richtlinie zeigen, wie jedes Zurückhalten endete. Über die API oder Terraform ist `whenToPage` der Regel `After OneUptime AI` und `aiHoldTimeInMinutes` die Haltezeit.
-
 ## Die automatische Behebung wartet auf die Analyse
 
 Wenn das Projekt neue Vorfälle oder Warnungen automatisch behebt (**Neue Vorfälle automatisch beheben** und **Neue Warnungen automatisch beheben**, mit den KI-Regeln unter **Weitere Einstellungen** auf **Vorfälle → KI → Einstellungen** und **Warnungen → KI → Einstellungen**), wartet das Beheben auf die Untersuchung – **zuerst die Ursachenanalyse**:
@@ -413,6 +397,22 @@ Jeder Vorfall und jede Warnung hat eine Karte **Behebung**, die sagt, was die au
 - **Das Projekt** – **Neue Vorfälle automatisch beheben** (oder für Warnungen) ist aus; **KI aktivieren** ist aus, also läuft nichts; der Vorfall hat bereits die meisten Korrekturen, die er bekommen kann; oder die Bewertung ist an einem Fehler gestoppt.
 
 Ist der Vorfall mit überhaupt keinem Cluster und keiner Infrastrukturressource verknüpft, sagt die Karte das in einer Zeile – der häufigste Grund, warum nichts behoben wurde – und auch, was zu tun ist: Fügen Sie unter **Betroffene Ressourcen** den Host, den Cluster oder die Datenbank hinzu, um die es geht, dann versucht es OneUptime AI erneut, solange der Vorfall offen ist, wie bei einem neuen. Ein Vorfall mit Monitoren bekommt außerdem einen Link zu jedem davon, wo Sie sie mit dem verknüpfen können, was sie überwachen, damit der nächste Vorfall, den sie auslösen, verknüpft ist. Jede Zeile verlinkt dorthin, wo es geändert wird: die Seite des KI-Agenten des Clusters oder der Ressource, die KI-Einstellungen des Vorfalls (oder der Warnung), wo sein Behebungsschalter und seine Regeln sind, **KI aktivieren** oder die LLM-Anbieter. Vorfälle und Warnungen, die angelegt wurden, bevor dies aufgezeichnet wurde, zeigen die Karte nur, wenn etwas vorgeschlagen wurde. War die KI für einen Vorfall ganz aus, sagt die eine Zeile der Karte **KI-Untersuchung**, warum nichts behoben wurde, und die Karte **Behebung** entfällt.
+
+## OneUptime AI reagiert zuerst
+
+Eine On-Call-Regel für Vorfälle oder Alarme kann OneUptime AI die Alarmierung zuerst übernehmen lassen. Wählen Sie unter **Weitere Felder** bei **Wann soll diese Regel alarmieren?** die Option **Nach einem Versuch von OneUptime AI**. Wenn OneUptime AI beheben darf, worum es bei einem passenden Vorfall oder Alarm geht, warten die Richtlinien der Regel, während die KI untersucht, behebt und ihre Behebung prüft, höchstens so lange, wie unter **Höchstens so lange auf OneUptime AI warten (Minuten)** eingestellt ist: standardmäßig 10 Minuten, von 1 bis 30. Wird die Behebung der KI bestätigt, löst OneUptime AI den Eintrag auf, und niemand wird alarmiert.
+
+Stattdessen alarmiert die Regel sofort, und der Feed des Eintrags nennt den Grund, wenn eine Person den Eintrag erstellt hat, er den höchsten Schweregrad des Projekts hat, in den 5 Minuten davor 3 oder mehr andere Alarme und Vorfälle eröffnet wurden, OneUptime AI ihn nicht untersuchen oder nicht automatisch beheben darf, kein Monitor mit ihm verknüpft ist oder kein verknüpfter Kubernetes-Cluster und keine verknüpfte Ressource einen KI-Agenten auf **Automatisch** oder **Genehmigung umgehen** hat.
+
+Solange die KI eine Alarmierung zurückhält, zeigt die Karte **KI-Untersuchung**, wann die Alarmierung beginnt, mit **Jetzt alarmieren** für alle, die sofort eine Person einbeziehen möchten. Jede Minute prüft OneUptime jede Alarmierung, die die KI zurückhält, und beginnt sofort zu alarmieren, mit Begründung, wenn:
+
+- die Untersuchung nicht startet, auf eine KI-Regel wartet oder nicht abgeschlossen wird;
+- die KI keine Behebung findet, die sie selbst ausführen darf, oder ihre Behebung die Genehmigung einer Person braucht;
+- die Behebung der KI die Monitore nicht wiederherstellt;
+- jemand **Jetzt alarmieren** drückt, der Eintrag den höchsten Schweregrad erreicht oder viele Einträge auf einmal eröffnet werden;
+- die KI oder die automatische Behebung ausgeschaltet wird oder die Regel die KI nicht mehr zuerst reagieren lässt.
+
+Die Ausführungsprotokolle der Richtlinie zeigen, wie jedes Zurückhalten endete. Über die API oder Terraform ist `whenToPage` der Regel `After OneUptime AI` und `aiHoldTimeInMinutes` die Haltezeit.
 
 ## Was OneUptime AI gelernt hat, und alles, was es getan hat
 
