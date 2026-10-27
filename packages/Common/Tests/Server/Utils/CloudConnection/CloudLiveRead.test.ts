@@ -480,7 +480,7 @@ describe("the account", () => {
     expect(refused.ok).toBe(false);
     expect(refused.errorMessage).toBe(CLOUD_LIVE_READ_LOGS_OFF_MESSAGE);
     expect(refused.errorMessage).toBe(
-      "AI may not read this account's logs. Turn on Let AI read logs on the account's AI agent page.",
+      "AI may not read this account's logs. A person can allow it with \"Let AI read this account's logs during investigations\", under Advanced in the account's setup: Let AI fix problems on its Overview, or Change on its AI agent page.",
     );
     expect(fake.calls).toHaveLength(0);
 

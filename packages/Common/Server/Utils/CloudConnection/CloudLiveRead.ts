@@ -130,7 +130,7 @@ export const CLOUD_LIVE_READ_REQUEST_TIMEOUT_MS: number = 15 * 1000;
 export const CLOUD_LIVE_READ_MAX_OUTPUT_CHARS: number = 64 * 1024;
 
 export const CLOUD_LIVE_READ_LOGS_OFF_MESSAGE: string =
-  "AI may not read this account's logs. Turn on Let AI read logs on the account's AI agent page.";
+  "AI may not read this account's logs. A person can allow it with \"Let AI read this account's logs during investigations\", under Advanced in the account's setup: Let AI fix problems on its Overview, or Change on its AI agent page.";
 
 const TRUNCATION_NOTE: string = `… (cut at ${
   CLOUD_LIVE_READ_MAX_OUTPUT_CHARS / 1024

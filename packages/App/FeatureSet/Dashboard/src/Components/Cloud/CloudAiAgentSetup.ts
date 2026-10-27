@@ -229,7 +229,8 @@ export function getCloudAiAgentLogsCommand(provider: CloudProvider): string {
     case CloudProvider.Azure:
       return `az containerapp logs show --name ${AZURE_CLOUD_AI_AGENT_APP_NAME} --resource-group ${AZURE_CLOUD_AI_AGENT_RESOURCE_GROUP} --tail 100`;
     default:
-      return `gcloud run services logs read ${GCP_CLOUD_AI_AGENT_SERVICE_NAME} --limit 100`;
+      // The service's own region, as the upgrade command finds it.
+      return `gcloud run services logs read ${GCP_CLOUD_AI_AGENT_SERVICE_NAME} --region "$(gcloud run services list --filter "metadata.name=${GCP_CLOUD_AI_AGENT_SERVICE_NAME}" --format "value(region)" | head -1)" --limit 100`;
   }
 }
 

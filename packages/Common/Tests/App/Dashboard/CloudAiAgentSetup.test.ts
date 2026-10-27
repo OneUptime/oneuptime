@@ -273,8 +273,8 @@ describe("the dialog's pieces", () => {
     expect(getCloudAiAgentLogsCommand(CloudProvider.Azure)).toContain(
       "az containerapp logs show --name oneuptime-ai-agent --resource-group oneuptime-ai-agent",
     );
-    expect(getCloudAiAgentLogsCommand(CloudProvider.GCP)).toContain(
-      "gcloud run services logs read oneuptime-ai-agent",
+    expect(getCloudAiAgentLogsCommand(CloudProvider.GCP)).toBe(
+      'gcloud run services logs read oneuptime-ai-agent --region "$(gcloud run services list --filter "metadata.name=oneuptime-ai-agent" --format "value(region)" | head -1)" --limit 100',
     );
   });
 });
