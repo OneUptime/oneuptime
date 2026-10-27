@@ -94,6 +94,7 @@
     "test-dashboard-time-range-ui": "playwright test --config playwright.dashboard-time-range-ui.config.ts",
     "test-dashboard-widget-sort-ui": "playwright test --config playwright.dashboard-widget-sort-ui.config.ts",
     "test-dashboard-value-widget-ui": "playwright test --config playwright.dashboard-value-widget-ui.config.ts",
+    "test-dashboard-table-thresholds-ui": "playwright test --config playwright.dashboard-table-thresholds-ui.config.ts",
     "test-vmware-host-page-ui": "playwright test --config playwright.vmware-host-page-ui.config.ts",
     "test-acknowledgement-timeout-ui": "playwright test --config playwright.acknowledgement-timeout-ui.config.ts",
     "test-shared-ui-ui": "playwright test --config playwright.shared-ui-ui.config.ts",

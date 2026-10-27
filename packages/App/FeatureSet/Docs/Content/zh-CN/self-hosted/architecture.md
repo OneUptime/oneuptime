@@ -63,9 +63,10 @@ flowchart TB
 
 ## 从你的网络向外的连接
 
-除非你更改设置，否则会建立以下三个连接：
+除非你更改设置，否则会建立以下四个连接：
 
 - 应用每天一次向 GitHub 的 API（`api.github.com`）询问是否有更新的版本。要关闭它，请在 Helm Chart 中设置 `updateCheck.disabled: true`，或在 Docker Compose 的 `config.env` 中设置 `DISABLE_UPDATE_CHECK=true`。
+- 应用每天一次把你的安装地址和它运行的版本告诉 `oneuptime.com`，以便 OneUptime 知道哪些安装仍在运行存在安全问题的版本。不会发送任何关于你的用户、项目或监控数据的内容。要关闭它，请在 Helm Chart 中设置 `instanceCheckIn.disabled: true`，或在 Docker Compose 的 `config.env` 中设置 `DISABLE_INSTANCE_CHECK_IN=true`。
 - 勾选“通知我有关安全补丁和新版本”注册时（该选项默认已勾选），会把此人的姓名和邮箱、其填写的公司和电话号码，以及你的安装地址和版本发送到 `oneuptime.com`。在无法访问互联网的网络中，请取消勾选。
 - 在 Kubernetes 上，探针在你集群自身的 DNS 之后会回退到公共解析器 `8.8.8.8` 和 `1.1.1.1`。将 `dnsConfig.nameservers` 设为 `[]`，即可让所有查询都留在你自己的 DNS 上。
 

@@ -68,6 +68,10 @@ Use it when the value lives in a known range: CPU or disk use in percent, or a q
 
 Metric values as rows. **Group By Attributes** gives one row per value, such as one per `host.name`; without it, each row is a time bucket. **Metrics & Columns** sets the columns: metrics, and formulas over them, such as availability in percent. When you group, **Reduce across time** turns each row's series into one value: the last value, the average, the sum, the minimum or the maximum.
 
+Turn on **Color by thresholds** in a column to color its values: a value that reaches **Warning at** turns amber, with a triangle, and one that reaches **Critical at** turns red and bold, with a circle. A percent column starts at 80 and 90. For a column where low values are the problem, such as free disk space, pick **Lower is worse** under **Direction**.
+
+Thresholds read the number the table shows, so a usage metric sent as a fraction of 1, such as `system.cpu.utilization`, shows and compares as a percent. Under **Threshold colors**, **Colored background** fills the whole cell instead of coloring the number.
+
 Use it for a breakdown instead of a trend: the noisiest hosts, the errors per service, the requests per endpoint.
 
 ## Text, clock and HTML

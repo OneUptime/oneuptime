@@ -613,6 +613,19 @@ logged, and nothing is shown.
 | `updateCheck.disabled` | Set to `true` to make no outbound call at all.                                                                          | `false` |
 | `updateCheck.url`      | Point the check at an internal mirror. Must answer with GitHub's release shape (`tag_name`, `html_url`, `published_at`). | `""` (GitHub) |
 
+## Daily check-in
+
+Once a day the worker tells `oneuptime.com` the installation's URL and the
+OneUptime version it runs, so OneUptime knows which installations still run a
+release with a security issue and can reach the admins who registered them.
+Nothing about your users, projects or monitoring data is sent. An installation
+with no route to `oneuptime.com` does not need to change anything: the request
+fails and is logged.
+
+| Parameter                  | Description                                    | Default |
+|----------------------------|------------------------------------------------|---------|
+| `instanceCheckIn.disabled` | Set to `true` to make no call at all.          | `false` |
+
 ## Trusted proxies
 
 `X-Forwarded-For` is a list, and each proxy appends the address it accepted the

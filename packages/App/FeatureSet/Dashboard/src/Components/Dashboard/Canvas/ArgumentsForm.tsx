@@ -28,11 +28,14 @@ import MetricFormulaConfig from "../../Metrics/MetricFormulaConfig";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import MetricFormulaConfigData from "Common/Types/Metrics/MetricFormulaConfigData";
 import TableColumnsEditor from "./TableColumnsEditor";
+import TableThresholdStylePicker from "./TableThresholdStylePicker";
 import {
   TableColumn,
   TableColumnKind,
   TableGroupByAttribute,
+  TableThresholdStyle,
 } from "Common/Types/Dashboard/DashboardComponents/DashboardTableComponent";
+import { readTableThresholdStyle } from "Common/Utils/Dashboard/TableThresholds";
 import DictionaryForm from "Common/UI/Components/Dictionary/Dictionary";
 import { DictionaryEntryValue } from "Common/UI/Components/Dictionary/DictionaryFilterOperator";
 import Dropdown, {
@@ -1154,6 +1157,39 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
         });
       };
 
+      /*
+       * How the table colors a value past a column's threshold (issue
+       * #5231). Asked under the columns once one of them shown is colored
+       * by thresholds; the default (Text) is stored as nothing at all.
+       */
+      const thresholdStyle: TableThresholdStyle = readTableThresholdStyle(
+        args["thresholdStyle"],
+      );
+      const hasThresholdColumn: boolean = columns.some(
+        (column: TableColumn): boolean => {
+          return column.showAsColumn !== false && Boolean(column.thresholds);
+        },
+      );
+
+      const writeThresholdStyle: (next: TableThresholdStyle) => void = (
+        next: TableThresholdStyle,
+      ): void => {
+        const cleaned: JSONObject = {
+          ...((component.arguments as JSONObject) || {}),
+        };
+
+        if (next === TableThresholdStyle.Background) {
+          cleaned["thresholdStyle"] = next;
+        } else {
+          delete cleaned["thresholdStyle"];
+        }
+
+        commitComponent({
+          ...component,
+          arguments: cleaned,
+        });
+      };
+
       const sectionName: string =
         tableColumnsArg?.section?.name ||
         tableGroupByArg?.section?.name ||
@@ -1325,6 +1361,7 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                   <TableColumnsEditor
                     columns={columns}
                     metricTypes={props.metrics.metricTypes}
+                    thresholdStyle={thresholdStyle}
                     onChange={(next: Array<TableColumn>): void => {
                       commitComponent({
                         ...component,
@@ -1335,6 +1372,14 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                       });
                     }}
                   />
+                  {hasThresholdColumn ? (
+                    <TableThresholdStylePicker
+                      value={thresholdStyle}
+                      onChange={writeThresholdStyle}
+                    />
+                  ) : (
+                    <></>
+                  )}
                 </div>
               )}
             </div>

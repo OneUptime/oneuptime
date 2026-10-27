@@ -532,15 +532,25 @@ jobs:
           # Dashboard Templates moved on to group 10: about 21.
           # Logs AI and External MCP Servers moved to group 2 on 2026-10-26,
           # when 14.0.93's gate run took this group 23.4 minutes: about 20.
-          # LLM Connect (2.1 minutes on 14.0.93's gate run) moved to group 13 on
-          # 2026-10-27, when that run took this group 19.6 minutes: about 17.5,
-          # with room for the next suite.
+          # Dashboard Table Thresholds (1.6 minutes locally with its two
+          # bundles, Chromium only: a metric table's threshold colors inside
+          # OneUptime and on the public page - every cell by the shared rules,
+          # Colored text and Colored background, the settings and Save
+          # Changes - at 1280 and 390 pixels, dark, German and Persian) joined
+          # them on 2026-10-27, when this group's run step took 13.2 and 13.3
+          # minutes on master's last two runs, the lightest of the twelve:
+          # about 16.5.
+          # LLM Connect (2.1 minutes on 14.0.93's gate run) moved to group 13 the
+          # same day, when that run took this group 19.6 minutes: with Dashboard
+          # Table Thresholds (about 2 minutes on a runner), about 19.5 on that
+          # run's timings.
           - group: 7
             suites: >-
               test-profiles-ui
               test-auto-remediation-rules-ui
               test-custom-roles-ui
               test-public-dashboard-theme-ui
+              test-dashboard-table-thresholds-ui
           # Dashboard Time Range (about 3.5 minutes with its bundle locally: a
           # dashboard's default time range and auto-refresh inside OneUptime
           # and on its public page, at a laptop's width and, for what a phone
@@ -1007,6 +1017,8 @@ jobs:
             output/playwright/dashboard-widget-sort-ui/test-results
             output/playwright/dashboard-value-widget-ui/*.png
             output/playwright/dashboard-value-widget-ui/test-results
+            output/playwright/dashboard-table-thresholds-ui/*.png
+            output/playwright/dashboard-table-thresholds-ui/test-results
             output/playwright/cloud-connect-ui/*.png
             output/playwright/cloud-connect-ui/test-results
             output/playwright/host-collectors-ui/*.png
