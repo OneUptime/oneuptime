@@ -350,13 +350,15 @@ export default class MicrosoftTeamsProjectChoice {
     /*
      * One button a row, each a set of its own: a row of them would cut a
      * long project's name short, as Teams draws the actions of one set side
-     * by side.
+     * by side - and shows no more than six. The rows sit as close as the
+     * buttons of one row do.
      */
     const body: Array<JSONObject> = card["body"] as Array<JSONObject>;
 
-    for (const choice of data.choices) {
+    for (const [index, choice] of data.choices.entries()) {
       body.push({
         type: "ActionSet",
+        ...(index > 0 ? { spacing: "Small" } : {}),
         actions: [
           {
             type: "Action.Submit",
