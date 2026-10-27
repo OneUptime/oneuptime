@@ -237,7 +237,7 @@ OBI gibt den Trace auch über einen Aufruf hinweg weiter: Wenn Pod A Pod B über
 **Standardmäßig aus.** Wenn es an ist, hängt OBI eine Probe an den Systemaufruf `write()` jedes Prozesses, den es instrumentiert, und:
 
 - Eine **JSON-Logzeile** erhält die Felder `trace_id` und `span_id` (Felder, die die Zeile bereits hat, bleiben erhalten). Der Knoten-Collector verschiebt sie in die eigenen Trace-Felder des Log-Datensatzes, sodass die Logs eines Spans in OneUptime einen Klick entfernt sind, ebenso der Trace einer Logzeile.
-- **Jede andere Logzeile** wird unverändert erfasst, ohne die Verknüpfung.
+- **Jede andere Logzeile** wird unverändert erfasst, ohne die Verknüpfung, es sei denn, Sie setzen zusätzlich `ebpf.logEnricher.plainText=true`. OBI hängt ihr dann ` trace_id=… span_id=…` an, und der Knoten-Collector verschiebt die IDs in den Log-Datensatz und entfernt sie aus der Zeile, sodass OneUptime sie so zeigt, wie Ihre App sie geschrieben hat. Die Zeile in der Logdatei des Containers, die `kubectl logs` ausgibt, behält die Annotation.
 
 ```bash
 helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
@@ -249,6 +249,7 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
 | --- | --- | --- |
 | `ebpf.logToTraceCorrelation` | `false` | Schaltet den Log-Enricher von OBI und das Übernehmen von `trace_id` durch den Knoten-Collector ein. |
 | `ebpf.logEnricher.services` | `[{service: [{exe_path: "*"}]}]` | Welche Prozesse der Enricher berührt. Jeder Eintrag ist ein OBI-Selektor [GlobAttributes](https://opentelemetry.io/docs/zero-code/obi/configure/options/#service-discovery), mit Feldern wie `exe_path`, `languages`, `k8s_pod_labels`, `k8s_pod_annotations`, `open_ports` und `cmd_args`. |
+| `ebpf.logEnricher.plainText` | `false` | Verknüpft auch Logzeilen im Klartext (kein JSON). Ändert die Zeile, die die Logdatei des Containers behält. |
 
 #### APM-Agenten, die damit abstürzen
 

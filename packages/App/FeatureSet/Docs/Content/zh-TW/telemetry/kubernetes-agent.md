@@ -574,7 +574,11 @@ eBPF 看到的是網路呼叫，而不是你的程式碼，因此一筆追蹤是
 
 有一項取捨：OneUptime 會透過資料庫用戶端 Span 探索資料庫，並將它們繪製在服務地圖上。只有背景工作與之通訊的資料庫（worker 的佇列、cron 工作的資料倉儲）就不再能從追蹤中被探索到，並會在服務地圖上顯示為遠端端點。它的指標不受影響。設定 `ebpf.dropUnlinkedDatabaseCalls=false` 可保留這些 Span。
 
+資料庫 Proxy 或連線池（如 PgBouncer、ProxySQL 或 mongos）既是資料庫伺服器，又是用戶端：OBI 會為應用程式傳給它的每個命令記錄一個伺服器端 Span，並為它轉送出去的命令，在該伺服器端 Span 之下記錄一個用戶端 Span。由於伺服器端 Span 會被捨棄，代理程式預設還會捨棄 Proxy 的所有資料庫 Span（`ebpf.dropDatabaseProxySpans=true`），因此不會有指向缺失父 Span 的 Span 送達；應用程式自身的呼叫已經帶有該命令及其延遲，Proxy 的資料庫指標也會保留。代理程式會根據容器、服務或工作負載的名稱，對照 `ebpf.databaseProxyNames` 中的清單來辨識 Proxy；請把你自己的連線池的名稱加到那裡。設定 `ebpf.dropDatabaseProxySpans=false` 可改為保留 Proxy 這一跳：這樣在要求的追蹤中，你會看到這次呼叫、Proxy 以及它背後的資料庫，只要 OBI 能把 Proxy 一側的連線關聯到這次呼叫（跨節點時這需要 `ebpf.contextPropagationMode` 為 `tcp` 或 `all`）。
+
 背景工作的 HTTP 和 gRPC 呼叫（透過 HTTP 查詢 ClickHouse 的 worker、續訂其 Kubernetes 租用的控制器）同樣會以只有一個 Span 的追蹤送達（`POST /`、`PUT /apis/*/...`）。設定 `ebpf.dropUnlinkedClientCalls=true` 可將它們也捨棄，連同 OBI 未能放入所屬要求追蹤、看起來一樣的呼叫；資料庫、訊息和 GenAI 呼叫（包括 MCP）永遠不會因此被捨棄。它預設為關閉，因為它會損失資料：當被呼叫的服務在同一個節點上執行時，OBI 會將該服務處理的要求關聯到這次呼叫之下，於是這次呼叫成為該追蹤的根，捨棄它就會讓追蹤失去根。開啟 `ebpf.contextPropagation` 時，這在任何節點上都會發生，對擁有自己 OpenTelemetry SDK 的服務也一樣。服務地圖也會讀取這些呼叫：只有背景工作呼叫的相依項目此時只能根據 OBI 的服務圖指標繪製，而在要求內也看得到的邊只會統計那些呼叫。服務的概覽會統計其 Span，因此 Span 大多是這類呼叫的 worker 或探查會顯示少得多的要求數，其錯誤率和 p95 延遲也以剩下的 Span 計算。OBI 的用戶端要求指標仍會統計每一次呼叫。
+
+每個處理程序都會以一個服務的身分回報，該服務的名稱依下列順序取自：其容器中的 `OTEL_SERVICE_NAME`、Pod 註解 `resource.opentelemetry.io/service.name`、其 Pod 的 `app.kubernetes.io/instance` 標籤、其 `app.kubernetes.io/name` 標籤，或其 Deployment、StatefulSet 或 DaemonSet。Helm 會把一個發行版本的每個 Pod（包括其子 chart 的 Pod）上的 `app.kubernetes.io/instance` 設定為發行版本名稱，因此同一個 umbrella 發行版本的所有元件可能共用一個服務。把 `ebpf.serviceNameLabels` 設定為 `["app.kubernetes.io/name", "app.kubernetes.io/instance"]`，即可改為依元件命名；它所適用的服務會被重新命名。
 
 在自行託管的 OneUptime 上，請先升級伺服器，再升級代理程式：此 chart 執行的 eBPF 追蹤器（OBI v0.14）為被呼叫服務命名以及回報訊息代理程式自身 Span 的方式，是舊版 OneUptime 伺服器無法讀取的。
 
