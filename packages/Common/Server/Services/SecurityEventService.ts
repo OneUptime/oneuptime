@@ -481,6 +481,8 @@ export class SecurityEventService extends AnalyticsDatabaseService<SecurityEvent
     startTime: Date;
     endTime: Date;
     limit: number;
+    // The sources the reader may read; none: every one (findObservableActivity).
+    serviceFilter?: TelemetryServiceFilter | undefined;
   }): Promise<Array<SecurityAttackCampaign>> {
     if (!this.database) {
       this.useDefaultDatabase();
@@ -538,7 +540,14 @@ export class SecurityEventService extends AnalyticsDatabaseService<SecurityEvent
       }} AND classUid = ${{
         type: TableColumnType.Number,
         value: HTTP_ACTIVITY_CLASS_UID,
-      }} GROUP BY sourceIp ORDER BY worstOutcomeRank DESC, requestCount DESC, sourceIp ASC LIMIT ${{
+      }}`,
+    );
+    TelemetryReadScopeUtil.appendServiceFilter(
+      statement,
+      data.serviceFilter || {},
+    );
+    statement.append(
+      SQL` GROUP BY sourceIp ORDER BY worstOutcomeRank DESC, requestCount DESC, sourceIp ASC LIMIT ${{
         type: TableColumnType.Number,
         value: limit + 1,
       }}`,

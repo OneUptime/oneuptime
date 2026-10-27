@@ -1,6 +1,7 @@
 import SecurityEventService from "../../../Server/Services/SecurityEventService";
 import { Results } from "../../../Server/Services/AnalyticsDatabaseService";
 import { Statement } from "../../../Server/Utils/AnalyticsDatabase/Statement";
+import { TelemetryServiceFilter } from "../../../Server/Utils/Telemetry/TelemetryReadScope";
 import { readCampaignWindow } from "../../../Server/API/SecurityAttackCampaignAPI";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../Types/JSON";
@@ -163,6 +164,74 @@ describe("SecurityEventService.findAttackCampaigns", () => {
       firstSeen: "2026-10-27T05:25:00.000Z",
       lastSeen: "2026-10-27T06:45:00.000Z",
     });
+  });
+});
+
+/*
+ * The page's read keeps to the sources whose events the reader may read
+ * (TelemetryReadAccess.getServiceFilter): the sources to keep and the ones a
+ * block takes away, as conditions on primaryEntityId with every id bound,
+ * before the attacks are grouped by the address that sent them. A read that
+ * names no filter reads every source.
+ */
+describe("the sources a reader may read", () => {
+  const OWNED_SOURCE: ObjectID = new ObjectID(
+    "33333333-3333-4333-8333-333333333333",
+  );
+  const BLOCKED_SOURCE: ObjectID = new ObjectID(
+    "44444444-4444-4444-8444-444444444444",
+  );
+
+  function read(filter?: TelemetryServiceFilter | undefined): Promise<unknown> {
+    return SecurityEventService.findAttackCampaigns({
+      projectId: PROJECT_ID,
+      startTime: START,
+      endTime: END,
+      limit: 25,
+      serviceFilter: filter,
+    });
+  }
+
+  test("keeps to the sources the reader may read, and leaves out the ones a block takes away, before grouping", async () => {
+    const spy: Spy = stubExecuteQuery([]);
+
+    await read({
+      serviceIds: [OWNED_SOURCE, PROJECT_ID],
+      excludedServiceIds: [BLOCKED_SOURCE],
+    });
+
+    const statement: Statement = statementOf(spy);
+    const where: string = statement.query.split(" GROUP BY ")[0]!;
+
+    expect(where).toContain(" AND primaryEntityId IN (");
+    expect(where).toContain(" AND primaryEntityId NOT IN (");
+    expect(
+      Object.values(statement.query_params)
+        .filter((value: unknown): boolean => {
+          return Array.isArray(value);
+        })
+        .flat()
+        .map((value: unknown): string => {
+          return String(value);
+        }),
+    ).toEqual(
+      expect.arrayContaining([
+        OWNED_SOURCE.toString(),
+        PROJECT_ID.toString(),
+        BLOCKED_SOURCE.toString(),
+      ]),
+    );
+    // Every id is bound, never spliced into the SQL text.
+    expect(statement.query).not.toContain(OWNED_SOURCE.toString());
+    expect(statement.query).not.toContain(BLOCKED_SOURCE.toString());
+  });
+
+  test("with no filter reads every source", async () => {
+    const spy: Spy = stubExecuteQuery([]);
+
+    await read();
+
+    expect(statementOf(spy).query).not.toContain("primaryEntityId");
   });
 });
 
