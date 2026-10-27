@@ -101,7 +101,7 @@ Create tutti i team aggiuntivi che volete — «Reperibilità Frontend», «Supp
 
 Il ruolo che scegliete diventa la prima autorizzazione del team, per tutte le risorse del progetto, appena il team esiste — esattamente come se lo aveste aggiunto con **Aggiungi ruolo** nella pagina Autorizzazioni del team. Vi vengono proposti solo i ruoli che detenete voi stessi, perché chiunque invitiate nel team riceve le sue autorizzazioni, e a chi può creare team ma non cambiare ciò che possono fare non viene chiesto. Se il ruolo non può essere aggiunto, il team viene creato comunque e un avviso sopra l'elenco vi rimanda a esso.
 
-Dove trovarlo: aprite un team da **Team** per raggiungere **Membri** e **Autorizzazioni**; **Blocca autorizzazioni** si trova sotto **Altre impostazioni** in fondo alla pagina Autorizzazioni, la cui intestazione chiusa mostra quante ne ha il team.
+Dove trovarlo: aprite un team da **Team** per raggiungere **Membri** e **Autorizzazioni**; i suoi ruoli personalizzati e **Blocca autorizzazioni** si trovano sotto **Altre impostazioni** in fondo alla pagina Autorizzazioni, la cui intestazione chiusa mostra quanti ne ha il team per ciascuno.
 
 ## Autorizzazioni
 
@@ -145,13 +145,13 @@ Un ruolo personalizzato è un insieme di autorizzazioni a cui date un nome una v
 1. Aprite **Team** dal menu **Prodotti**, sotto **Impostazioni**. Espandete **Impostazioni** nel menu laterale, scegliete **Ruoli** e fate clic su **Crea: Ruolo personalizzato**.
 2. Scrivete il suo **Nome** e scegliete sotto **Autorizzazioni** i ruoli integrati che raggruppa, per ogni risorsa del progetto. La descrizione è sotto **Altri campi**.
 3. Create il ruolo. Si apre sulla sua pagina, dove **Aggiungi ruolo** aggiunge un altro ruolo integrato e **Aggiungi autorizzazione** (nel menu **⋯** della scheda) una singola autorizzazione, ciascuna con un ambito ed etichette, come su un team.
-4. Fate clic su **Assegna a un team** sotto **Team con questo ruolo**, oppure su **Assegna a una chiave API** sotto **Chiavi API con questo ruolo**. Anche la pagina **Autorizzazioni** di un team e la pagina di una chiave API hanno **Aggiungi ruolo personalizzato**, e **Crea team** e **Crea: Chiave API** offrono sotto **Accesso** i ruoli personalizzati che potreste assegnare.
+4. Fate clic su **Assegna a un team** sotto **Team con questo ruolo**, oppure su **Assegna a una chiave API** sotto **Chiavi API con questo ruolo**. Anche la pagina **Autorizzazioni** di un team e la pagina di una chiave API hanno **Aggiungi ruolo personalizzato**, sotto **Altre impostazioni**, e **Crea team** e **Crea: Chiave API** offrono sotto **Accesso** i ruoli personalizzati che potreste assegnare.
 :::
 
 - I membri di un team ricevono ogni autorizzazione dei suoi ruoli personalizzati, con lo stesso ambito e le stesse etichette, esattamente come se il team le avesse direttamente. Un blocco sul team vince comunque.
 - Un ruolo resta collegato ai team e alle chiavi API che lo hanno: una sua modifica li raggiunge tutti subito, e la pagina del ruolo dice quanti team, persone e chiavi sono. **Rimuovi** toglie il ruolo a un team o a una chiave. Eliminare il ruolo stesso toglie le sue autorizzazioni a ogni team e chiave che lo ha; mantengono tutto il resto che hanno.
 - Potete mettere in un ruolo, e assegnare come ruolo a un team o a una chiave API, solo ciò che potreste dargli direttamente: un ruolo con un'autorizzazione che non avete con un ambito uguale o più ampio viene rifiutato, e il rifiuto nomina l'autorizzazione. Un ruolo non contiene mai `ProjectOwner`, e **Owners** e **Admin** non ne ricevono mai uno.
-- La pagina **Autorizzazioni** di un team e la pagina di una chiave API elencano i loro ruoli personalizzati sopra le loro autorizzazioni. Ciò che un ruolo dà si modifica sulla pagina del ruolo, non su quella del team o della chiave.
+- La pagina **Autorizzazioni** di un team e la pagina di una chiave API elencano i loro ruoli personalizzati sotto **Altre impostazioni**, dopo le loro autorizzazioni; la sua intestazione chiusa dice quanti ne hanno. Ciò che un ruolo dà si modifica sulla pagina del ruolo, non su quella del team o della chiave.
 - Una chiave API riceve ogni autorizzazione dei suoi ruoli personalizzati, con le stesse etichette, come se la chiave le avesse direttamente, e un blocco sulla chiave vince comunque. Un'autorizzazione che il ruolo limita a ciò che qualcuno possiede non dà nulla a una chiave: una chiave non possiede nulla.
 - I ruoli integrati sono elencati sotto **Ruoli integrati**, in fondo alla pagina **Ruoli**.
 
@@ -273,7 +273,7 @@ Le chiavi API ricevono le autorizzazioni direttamente, sulla chiave stessa, o tr
 
 Il ruolo che scegliete diventa la prima autorizzazione della chiave appena la chiave esiste, esattamente come se lo aveste aggiunto nella pagina della chiave. Vi vengono proposti solo i ruoli che detenete voi stessi — una chiave non può mai ricevere più di quanto abbia la persona che la concede — e a chi può creare chiavi ma non cambiare ciò che possono fare non viene chiesto.
 
-Nella pagina di una chiave, **Ruoli personalizzati** elenca i ruoli personalizzati della chiave non appena il vostro progetto ne ha uno, e **Aggiungi ruolo personalizzato** gliene dà un altro. **Aggiungi ruolo** aggiunge un ruolo dallo stesso elenco che offre la scheda Autorizzazioni di un team, e **Aggiungi autorizzazione** (nel menu **⋯** della scheda) aggiunge una singola autorizzazione granulare. **Blocca autorizzazioni** si trova sotto **Altre impostazioni** in fondo alla pagina, la cui intestazione chiusa mostra quante ne ha la chiave.
+Nella pagina di una chiave, **Ruoli personalizzati**, sotto **Altre impostazioni**, elenca i ruoli personalizzati della chiave non appena il vostro progetto ne ha uno, e **Aggiungi ruolo personalizzato** gliene dà un altro. **Aggiungi ruolo** aggiunge un ruolo dallo stesso elenco che offre la scheda Autorizzazioni di un team, e **Aggiungi autorizzazione** (nel menu **⋯** della scheda) aggiunge una singola autorizzazione granulare. **Blocca autorizzazioni** si trova sotto **Altre impostazioni** in fondo alla pagina, la cui intestazione chiusa mostra quante ne ha la chiave.
 
 > [!TIP]
 > Date a ogni integrazione la sua chiave, con l'insieme di autorizzazioni più ristretto che funzioni, così potete revocarne una senza disturbare le altre.

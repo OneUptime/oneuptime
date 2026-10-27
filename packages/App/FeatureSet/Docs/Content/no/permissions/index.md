@@ -101,7 +101,7 @@ Opprett så mange ekstra team du vil — «Frontend-vakt», «Support», «Skriv
 
 Rollen du velger, blir teamets første tillatelse, for alle ressursene i prosjektet, så snart teamet finnes — akkurat som om du hadde lagt den til med **Legg til rolle** på teamets side Tillatelser. Du får bare tilbud om rollene du selv har, fordi alle du inviterer til teamet, får tillatelsene dets, og den som kan opprette team, men ikke endre hva de kan gjøre, blir ikke spurt. Kan rollen ikke legges til, opprettes teamet likevel, og en melding over listen lenker til det.
 
-Hvor du finner det: åpne et team fra **Team** for å komme til **Medlemmer** og **Tillatelser**; **Blokker tillatelser** ligger under **Flere innstillinger** nederst på siden Tillatelser, der den sammenfoldede overskriften viser hvor mange teamet har.
+Hvor du finner det: åpne et team fra **Team** for å komme til **Medlemmer** og **Tillatelser**; de egendefinerte rollene og **Blokker tillatelser** ligger under **Flere innstillinger** nederst på siden Tillatelser, der den sammenfoldede overskriften viser hvor mange av hver teamet har.
 
 ## Tillatelser
 
@@ -145,13 +145,13 @@ En egendefinert rolle er et sett tillatelser du gir navn én gang og gir til tea
 1. Åpne **Team** fra menyen **Produkter**, under **Innstillinger**. Utvid **Innstillinger** i sidemenyen, velg **Roller**, og klikk på **Opprett Egendefinert rolle**.
 2. Skriv inn **Navn** og velg under **Tillatelser** de innebygde rollene den samler, for hver ressurs i prosjektet. Beskrivelsen ligger under **Flere felt**.
 3. Opprett rollen. Den åpnes på sin side, der **Legg til rolle** legger til enda en innebygd rolle og **Legg til tillatelse** (i menyen **⋯** på kortet) én enkelt tillatelse, hver med omfang og etiketter, som på et team.
-4. Klikk på **Gi til et team** under **Team med denne rollen**, eller på **Gi til en API-nøkkel** under **API-nøkler med denne rollen**. Siden **Tillatelser** til et team og siden til en API-nøkkel har også **Legg til egendefinert rolle**, og **Opprett team** og **Opprett API-nøkkel** tilbyr under **Tilgang** de egendefinerte rollene du kunne gitt.
+4. Klikk på **Gi til et team** under **Team med denne rollen**, eller på **Gi til en API-nøkkel** under **API-nøkler med denne rollen**. Siden **Tillatelser** til et team og siden til en API-nøkkel har også **Legg til egendefinert rolle**, under **Flere innstillinger**, og **Opprett team** og **Opprett API-nøkkel** tilbyr under **Tilgang** de egendefinerte rollene du kunne gitt.
 :::
 
 - Medlemmene i et team får hver tillatelse fra teamets egendefinerte roller, med samme omfang og samme etiketter, akkurat som om teamet hadde dem selv. En blokkering på teamet vinner fortsatt.
 - En rolle forblir knyttet til teamene og API-nøklene som har den: en endring av den når alle med en gang, og rollens side sier hvor mange team, personer og nøkler det er. **Fjern** tar rollen fra ett team eller én nøkkel. Sletter du selve rollen, mister hvert team og hver nøkkel som har den, tillatelsene dens; de beholder alt annet de har.
 - Du kan bare legge i en rolle, og gi et team eller en API-nøkkel som rolle, det du kunne gitt dem direkte: en rolle med en tillatelse du ikke har med samme eller et bredere omfang, avvises, og avvisningen nevner tillatelsen. En rolle har aldri `ProjectOwner`, og **Owners** og **Admin** får aldri en.
-- Siden **Tillatelser** til et team og siden til en API-nøkkel viser de egendefinerte rollene over de egne tillatelsene. Det en rolle gir, endres på rollens side, ikke på teamets eller nøkkelens.
+- Siden **Tillatelser** til et team og siden til en API-nøkkel viser de egendefinerte rollene under **Flere innstillinger**, etter de egne tillatelsene; den sammenfoldede overskriften sier hvor mange de har. Det en rolle gir, endres på rollens side, ikke på teamets eller nøkkelens.
 - En API-nøkkel får hver tillatelse fra de egendefinerte rollene sine, med de samme etikettene, som om nøkkelen hadde dem selv, og en blokkering på nøkkelen vinner fortsatt. En tillatelse som rollen begrenser til det noen eier, gir en nøkkel ingenting: en nøkkel eier ingenting.
 - De innebygde rollene står under **Innebygde roller**, nederst på siden **Roller**.
 
@@ -273,7 +273,7 @@ API-nøkler får tillatelser direkte, på selve nøkkelen, eller gjennom de egen
 
 Rollen du velger, blir nøkkelens første tillatelse så snart nøkkelen finnes, akkurat som om du hadde lagt den til på nøkkelens side. Du får bare tilbud om rollene du selv har — en nøkkel kan aldri få mer enn personen som gir den har — og den som kan opprette nøkler, men ikke endre hva de kan gjøre, blir ikke spurt.
 
-På siden til en nøkkel viser **Egendefinerte roller** nøkkelens egendefinerte roller så snart prosjektet ditt har en, og **Legg til egendefinert rolle** gir den en til. **Legg til rolle** legger til en rolle fra den samme listen som fanen Tillatelser for et team tilbyr, og **Legg til tillatelse** (i kortets meny **⋯**) legger til én granulær tillatelse. **Blokker tillatelser** ligger under **Flere innstillinger** nederst på siden, der den sammenfoldede overskriften viser hvor mange nøkkelen har.
+På siden til en nøkkel viser **Egendefinerte roller**, under **Flere innstillinger**, nøkkelens egendefinerte roller så snart prosjektet ditt har en, og **Legg til egendefinert rolle** gir den en til. **Legg til rolle** legger til en rolle fra den samme listen som fanen Tillatelser for et team tilbyr, og **Legg til tillatelse** (i kortets meny **⋯**) legger til én granulær tillatelse. **Blokker tillatelser** ligger under **Flere innstillinger** nederst på siden, der den sammenfoldede overskriften viser hvor mange nøkkelen har.
 
 > [!TIP]
 > Gi hver integrasjon sin egen nøkkel med det smaleste settet tillatelser som virker, slik at du kan trekke tilbake én uten å forstyrre de andre.

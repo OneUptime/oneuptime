@@ -300,7 +300,7 @@ Det samme gjelder API-nøkler. En nøkkel som bare kan lese statussidedomener, k
 
 ## Powered by OneUptime
 
-Linjen «Powered by OneUptime» er ikke en merkevareinnstilling. Den har sitt eget kort, **Powered by OneUptime**, under kortet **Hva statussiden din viser** under **Statussider → siden din → Avansert → Avanserte innstillinger** (`{id}/settings`): **Vis «Powered By OneUptime»-merkevarebygging**, slått på som standard. Slå den av for å skjule linjen; den lagres med en gang. På OneUptime Cloud krever det planen **Scale** å skjule den. Selvhostet er det en del av Enterprise Edition å skjule den: på Community Edition viser alle statussider linjen.
+Linjen «Powered by OneUptime» er ikke en merkevareinnstilling. Den har sitt eget kort, **Powered by OneUptime**, sammenfoldet under **Flere innstillinger** under kortet **Hva statussiden din viser** under **Statussider → siden din → Avansert → Avanserte innstillinger** (`{id}/settings`): **Vis «Powered By OneUptime»-merkevarebygging**, slått på som standard. Slå den av for å skjule linjen; den lagres med en gang. På OneUptime Cloud krever det planen **Scale** å skjule den. Selvhostet er det en del av Enterprise Edition å skjule den: på Community Edition viser alle statussider linjen.
 
 ## Neste steg
 

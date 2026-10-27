@@ -300,7 +300,7 @@ API 키도 마찬가지입니다. 상태 페이지 도메인을 읽기만 할 �
 
 ## Powered by OneUptime
 
-"Powered by OneUptime" 줄은 브랜딩 설정이 아닙니다. **상태 페이지 → 해당 페이지 → 고급 → 고급 설정**(`{id}/settings`)의 **상태 페이지에 표시되는 내용** 카드 아래에 별도의 카드인 **Powered by OneUptime**이 있고, 그 스위치가 **Powered By OneUptime 브랜딩 표시**이며, 기본값은 켜짐입니다. 끄면 줄이 숨겨지고 바로 저장됩니다. OneUptime Cloud에서 숨기려면 **Scale** 요금제가 필요합니다. 자체 호스팅에서 숨기기는 Enterprise Edition에 포함됩니다. Community Edition에서는 모든 상태 페이지에 이 줄이 표시됩니다.
+"Powered by OneUptime" 줄은 브랜딩 설정이 아닙니다. **상태 페이지 → 해당 페이지 → 고급 → 고급 설정**(`{id}/settings`)의 **상태 페이지에 표시되는 내용** 카드 아래 **추가 설정**에 접힌 별도의 카드인 **Powered by OneUptime**이 있고, 그 스위치가 **Powered By OneUptime 브랜딩 표시**이며, 기본값은 켜짐입니다. 끄면 줄이 숨겨지고 바로 저장됩니다. OneUptime Cloud에서 숨기려면 **Scale** 요금제가 필요합니다. 자체 호스팅에서 숨기기는 Enterprise Edition에 포함됩니다. Community Edition에서는 모든 상태 페이지에 이 줄이 표시됩니다.
 
 ## 다음 단계
 

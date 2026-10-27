@@ -300,7 +300,7 @@ Lo stesso vale per le chiavi API. Una chiave che può solo leggere i domini dell
 
 ## Powered by OneUptime
 
-La riga «Powered by OneUptime» non è un'impostazione di branding. Ha una scheda tutta sua, **Powered by OneUptime**, sotto la scheda **Cosa mostra la tua pagina di stato**, in **Pagine di stato → la vostra pagina → Avanzato → Impostazioni avanzate** (`{id}/settings`): **Mostra il marchio Powered By OneUptime**, attivo per impostazione predefinita. Disattivatelo per nascondere la riga; si salva subito. Su OneUptime Cloud, nasconderla richiede il piano **Scale**. In self-hosting, nasconderla fa parte della Enterprise Edition: nella Community Edition ogni pagina di stato mostra la riga.
+La riga «Powered by OneUptime» non è un'impostazione di branding. Ha una scheda tutta sua, **Powered by OneUptime**, chiusa in **Altre impostazioni** sotto la scheda **Cosa mostra la tua pagina di stato**, in **Pagine di stato → la vostra pagina → Avanzato → Impostazioni avanzate** (`{id}/settings`): **Mostra il marchio Powered By OneUptime**, attivo per impostazione predefinita. Disattivatelo per nascondere la riga; si salva subito. Su OneUptime Cloud, nasconderla richiede il piano **Scale**. In self-hosting, nasconderla fa parte della Enterprise Edition: nella Community Edition ogni pagina di stato mostra la riga.
 
 ## Passaggi successivi
 

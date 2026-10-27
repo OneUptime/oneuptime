@@ -101,7 +101,7 @@ Cree tantos equipos adicionales como quiera —«Guardia de Frontend», «Soport
 
 El rol que elija pasa a ser el primer permiso del equipo, para todos los recursos del proyecto, en cuanto el equipo existe, exactamente como si lo hubiera añadido con **Añadir rol** en la página Permisos del equipo. Solo se le ofrecen los roles que usted mismo tiene, porque todos los que invite al equipo reciben sus permisos, y a quien puede crear equipos pero no cambiar lo que pueden hacer no se le pregunta. Si el rol no se puede añadir, el equipo se crea igualmente y un aviso sobre la lista enlaza a él.
 
-Dónde encontrarlo: abra un equipo desde **Equipos** para llegar a **Miembros** y **Permisos**; **Bloquear permisos** está en **Más ajustes**, al final de la página Permisos, cuyo encabezado plegado muestra cuántos tiene el equipo.
+Dónde encontrarlo: abra un equipo desde **Equipos** para llegar a **Miembros** y **Permisos**; sus roles personalizados y **Bloquear permisos** están en **Más ajustes**, al final de la página Permisos, cuyo encabezado plegado muestra cuántos de cada uno tiene el equipo.
 
 ## Permisos
 
@@ -145,13 +145,13 @@ Un rol personalizado es un conjunto de permisos al que pone nombre una vez y que
 1. Abra **Equipos** en el menú **Productos**, en **Ajustes**. Despliegue **Ajustes** en el menú lateral, elija **Roles** y haga clic en **Crear Rol personalizado**.
 2. Escriba su **Nombre** y elija en **Permisos** los roles predefinidos que agrupa, para cada recurso del proyecto. La descripción está en **Más campos**.
 3. Cree el rol. Se abre en su página, donde **Añadir rol** añade otro rol predefinido y **Añadir permiso** (en el menú **⋯** de la tarjeta) un permiso suelto, cada uno con un alcance y etiquetas, como en un equipo.
-4. Haga clic en **Dar a un equipo** en **Equipos con este rol**, o en **Dar a una clave de API** en **Claves de API con este rol**. La página **Permisos** de un equipo y la página de una clave de API también tienen **Añadir rol personalizado**, y **Crear equipo** y **Crear Clave de API** ofrecen en **Acceso** los roles personalizados que usted podría dar.
+4. Haga clic en **Dar a un equipo** en **Equipos con este rol**, o en **Dar a una clave de API** en **Claves de API con este rol**. La página **Permisos** de un equipo y la página de una clave de API también tienen **Añadir rol personalizado**, en **Más ajustes**, y **Crear equipo** y **Crear Clave de API** ofrecen en **Acceso** los roles personalizados que usted podría dar.
 :::
 
 - Los miembros de un equipo reciben cada permiso de sus roles personalizados, con el mismo alcance y las mismas etiquetas, exactamente como si el equipo los tuviera. Un bloqueo en el equipo sigue ganando.
 - Un rol sigue vinculado a los equipos y las claves de API que lo tienen: un cambio en él les llega a todos al instante, y la página del rol dice cuántos equipos, personas y claves son. **Eliminar** quita el rol a un equipo o a una clave. Eliminar el propio rol quita sus permisos a cada equipo y cada clave que lo tiene; conservan todo lo demás que tienen.
 - Solo puede poner en un rol, y dar como rol a un equipo o a una clave de API, lo que podría darle directamente: un rol con un permiso que usted no tiene con el mismo alcance o uno más amplio se rechaza, y el rechazo nombra el permiso. Un rol nunca contiene `ProjectOwner`, y **Owners** y **Admin** nunca reciben uno.
-- La página **Permisos** de un equipo y la página de una clave de API listan sus roles personalizados encima de sus propios permisos. Lo que da un rol se cambia en la página del rol, no en la del equipo ni en la de la clave.
+- La página **Permisos** de un equipo y la página de una clave de API listan sus roles personalizados en **Más ajustes**, después de sus propios permisos; su encabezado plegado dice cuántos tienen. Lo que da un rol se cambia en la página del rol, no en la del equipo ni en la de la clave.
 - Una clave de API recibe cada permiso de sus roles personalizados, con las mismas etiquetas, como si la clave los tuviera, y un bloqueo en la clave sigue ganando. Un permiso que el rol limita a lo que alguien posee no le da nada a una clave: una clave no posee nada.
 - Los roles predefinidos aparecen en **Roles predefinidos**, al final de la página **Roles**.
 
@@ -273,7 +273,7 @@ A las claves de API se les conceden permisos directamente, en la propia clave, o
 
 El rol que elija pasa a ser el primer permiso de la clave en cuanto la clave existe, exactamente como si lo hubiera añadido en la página de la clave. Solo se le ofrecen los roles que usted mismo tiene —una clave nunca puede recibir más de lo que tiene quien se la da—, y a quien puede crear claves pero no cambiar lo que pueden hacer no se le pregunta.
 
-En la página de una clave, **Roles personalizados** lista los roles personalizados de la clave en cuanto su proyecto tiene uno, y **Añadir rol personalizado** le da otro. **Añadir rol** añade un rol de la misma lista que ofrece la pestaña Permisos de un equipo, y **Añadir permiso** (en el menú **⋯** de la tarjeta) añade un permiso granular. **Bloquear permisos** está en **Más ajustes**, al final de la página, cuyo encabezado plegado muestra cuántos tiene la clave.
+En la página de una clave, **Roles personalizados**, en **Más ajustes**, lista los roles personalizados de la clave en cuanto su proyecto tiene uno, y **Añadir rol personalizado** le da otro. **Añadir rol** añade un rol de la misma lista que ofrece la pestaña Permisos de un equipo, y **Añadir permiso** (en el menú **⋯** de la tarjeta) añade un permiso granular. **Bloquear permisos** está en **Más ajustes**, al final de la página, cuyo encabezado plegado muestra cuántos tiene la clave.
 
 > [!TIP]
 > Dé a cada integración su propia clave con el conjunto de permisos más estrecho que funcione, para poder revocar una sin afectar a las demás.

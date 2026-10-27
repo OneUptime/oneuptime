@@ -36263,5 +36263,13 @@
   "This key has no permissions of its own yet. It gets what its custom roles allow, under More settings.": "This key has no permissions of its own yet. It gets what its custom roles allow, under More settings.",
   "This team has no permissions of its own yet. Its members get what its custom roles allow, under More settings.": "This team has no permissions of its own yet. Its members get what its custom roles allow, under More settings.",
   "Try adjusting filters or time range, or show every span, including database calls and internal steps.": "Try adjusting filters or time range, or show every span, including database calls and internal steps.",
-  "Who can subscribe, timezones, the email footer, and your own mail server or Twilio account.": "Who can subscribe, timezones, the email footer, and your own mail server or Twilio account."
+  "Who can subscribe, timezones, the email footer, and your own mail server or Twilio account.": "Who can subscribe, timezones, the email footer, and your own mail server or Twilio account.",
+  "How long each type of telemetry is kept, when it should not follow the default retention above.": "How long each type of telemetry is kept, when it should not follow the default retention above.",
+  "How long telemetry and session replays from this application are kept.": "How long telemetry and session replays from this application are kept.",
+  "How long telemetry from here is kept, when it should not follow the project's retention.": "How long telemetry from here is kept, when it should not follow the project's retention.",
+  "The Powered by OneUptime line at the foot of this status page.": "The Powered by OneUptime line at the foot of this status page.",
+  "Your own mail servers and Twilio accounts, for messages OneUptime would otherwise send itself.": "Your own mail servers and Twilio accounts, for messages OneUptime would otherwise send itself.",
+  "Limit which IP addresses can open and submit this form.": "Limit which IP addresses can open and submit this form.",
+  "Every IP address can open this form.": "Every IP address can open this form.",
+  "Only the IP addresses on the allowlist can open this form.": "Only the IP addresses on the allowlist can open this form."
 }

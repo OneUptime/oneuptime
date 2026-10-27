@@ -300,7 +300,7 @@ API 密钥也是如此。只能读取状态页域名的密钥无法在 `/status-
 
 ## Powered by OneUptime
 
-“Powered by OneUptime”这一行不是品牌设置。它在 **状态页面 → 您的页面 → 高级 → 高级设置**（`{id}/settings`）上 **状态页显示的内容** 卡片下方有单独的卡片 **Powered by OneUptime**，其中的开关是 **显示“由 OneUptime 提供支持”品牌标识**，默认开启。关闭它即可隐藏这一行；它会立即保存。在 OneUptime Cloud 上，隐藏它需要 **Scale** 套餐。自托管时，隐藏它属于 Enterprise Edition：在 Community Edition 上，每个状态页都会显示这一行。
+“Powered by OneUptime”这一行不是品牌设置。它在 **状态页面 → 您的页面 → 高级 → 高级设置**（`{id}/settings`）上 **状态页显示的内容** 卡片下方的 **更多设置** 中有单独的卡片 **Powered by OneUptime**，其中的开关是 **显示“由 OneUptime 提供支持”品牌标识**，默认开启。关闭它即可隐藏这一行；它会立即保存。在 OneUptime Cloud 上，隐藏它需要 **Scale** 套餐。自托管时，隐藏它属于 Enterprise Edition：在 Community Edition 上，每个状态页都会显示这一行。
 
 ## 后续步骤
 

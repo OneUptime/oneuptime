@@ -300,7 +300,7 @@ API 金鑰也是如此。只能讀取狀態頁網域的金鑰無法在 `/status-
 
 ## Powered by OneUptime
 
-「Powered by OneUptime」這一行不是品牌設定。它在 **狀態頁面 → 您的頁面 → 進階 → 進階設定**（`{id}/settings`）上 **狀態頁面顯示的內容** 卡片下方有單獨的卡片 **Powered by OneUptime**，其中的開關是 **顯示「Powered By OneUptime」品牌標示**，預設開啟。關閉它即可隱藏這一行；它會立即儲存。在 OneUptime Cloud 上，隱藏它需要 **Scale** 方案。自行託管時，隱藏它屬於 Enterprise Edition：在 Community Edition 上，每個狀態頁面都會顯示這一行。
+「Powered by OneUptime」這一行不是品牌設定。它在 **狀態頁面 → 您的頁面 → 進階 → 進階設定**（`{id}/settings`）上 **狀態頁面顯示的內容** 卡片下方的 **更多設定** 中有單獨的卡片 **Powered by OneUptime**，其中的開關是 **顯示「Powered By OneUptime」品牌標示**，預設開啟。關閉它即可隱藏這一行；它會立即儲存。在 OneUptime Cloud 上，隱藏它需要 **Scale** 方案。自行託管時，隱藏它屬於 Enterprise Edition：在 Community Edition 上，每個狀態頁面都會顯示這一行。
 
 ## 後續步驟
 

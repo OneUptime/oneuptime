@@ -101,7 +101,7 @@ Créez autant d'équipes supplémentaires que vous voulez — « Astreinte Front
 
 Le rôle que vous choisissez devient la première autorisation de l'équipe, pour toutes les ressources du projet, dès que l'équipe existe — exactement comme si vous l'aviez ajouté avec **Ajouter un rôle** sur la page Autorisations de l'équipe. Seuls les rôles que vous détenez vous-même vous sont proposés, car toute personne que vous invitez dans l'équipe reçoit ses autorisations ; une personne qui peut créer des équipes sans pouvoir changer ce qu'elles peuvent faire n'est pas interrogée. Si le rôle ne peut pas être ajouté, l'équipe est tout de même créée et un avis au-dessus de la liste renvoie vers elle.
 
-Où le trouver : ouvrez une équipe depuis **Équipes** pour accéder à **Membres** et **Autorisations** ; **Bloquer les autorisations** se trouve sous **Plus de paramètres**, en bas de la page Autorisations, dont l'en-tête replié indique combien l'équipe en a.
+Où le trouver : ouvrez une équipe depuis **Équipes** pour accéder à **Membres** et **Autorisations** ; ses rôles personnalisés et **Bloquer les autorisations** se trouvent sous **Plus de paramètres**, en bas de la page Autorisations, dont l'en-tête replié indique combien l'équipe en a de chaque.
 
 ## Autorisations
 
@@ -145,13 +145,13 @@ Un rôle personnalisé est un ensemble d'autorisations que vous nommez une fois 
 1. Ouvrez **Équipes** dans le menu **Produits**, sous **Paramètres**. Dépliez **Paramètres** dans le menu latéral, choisissez **Rôles** et cliquez sur **Créer : Rôle personnalisé**.
 2. Saisissez son **Nom** et choisissez sous **Autorisations** les rôles intégrés qu'il regroupe, pour chaque ressource du projet. La description se trouve sous **Plus de champs**.
 3. Créez le rôle. Il s'ouvre sur sa page, où **Ajouter un rôle** ajoute un autre rôle intégré et **Ajouter une permission** (dans le menu **⋯** de la carte) une autorisation unique, chacune avec une portée et des étiquettes, comme sur une équipe.
-4. Cliquez sur **Donner à une équipe** sous **Équipes ayant ce rôle**, ou sur **Donner à une clé API** sous **Clés API ayant ce rôle**. La page **Autorisations** d'une équipe et la page d'une clé API proposent aussi **Ajouter un rôle personnalisé**, et **Créer une équipe** et **Créer : Clé API** proposent sous **Accès** les rôles personnalisés que vous pourriez donner.
+4. Cliquez sur **Donner à une équipe** sous **Équipes ayant ce rôle**, ou sur **Donner à une clé API** sous **Clés API ayant ce rôle**. La page **Autorisations** d'une équipe et la page d'une clé API proposent aussi **Ajouter un rôle personnalisé**, sous **Plus de paramètres**, et **Créer une équipe** et **Créer : Clé API** proposent sous **Accès** les rôles personnalisés que vous pourriez donner.
 :::
 
 - Les membres d'une équipe reçoivent chaque autorisation de ses rôles personnalisés, avec la même portée et les mêmes étiquettes, exactement comme si l'équipe les détenait elle-même. Un blocage sur l'équipe l'emporte toujours.
 - Un rôle reste lié aux équipes et aux clés API qui l'ont : une modification les atteint toutes immédiatement, et la page du rôle indique combien d'équipes, de personnes et de clés cela représente. **Supprimer** retire le rôle à une équipe ou à une clé. Supprimer le rôle lui-même retire ses autorisations à chaque équipe et chaque clé qui l'ont ; elles gardent tout le reste de ce qu'elles ont.
 - Vous ne pouvez mettre dans un rôle, et donner comme rôle à une équipe ou à une clé API, que ce que vous pourriez lui donner directement : un rôle contenant une autorisation que vous ne détenez pas avec une portée égale ou plus large est refusé, et le refus nomme l'autorisation. Un rôle ne contient jamais `ProjectOwner`, et **Owners** et **Admin** n'en reçoivent jamais.
-- La page **Autorisations** d'une équipe et la page d'une clé API listent leurs rôles personnalisés au-dessus de leurs propres autorisations. Ce qu'un rôle donne se modifie sur la page du rôle, pas sur celle de l'équipe ou de la clé.
+- La page **Autorisations** d'une équipe et la page d'une clé API listent leurs rôles personnalisés sous **Plus de paramètres**, après leurs propres autorisations ; son en-tête replié indique combien ils en ont. Ce qu'un rôle donne se modifie sur la page du rôle, pas sur celle de l'équipe ou de la clé.
 - Une clé API reçoit chaque autorisation de ses rôles personnalisés, avec les mêmes étiquettes, comme si la clé les détenait elle-même, et un blocage sur la clé l'emporte toujours. Une autorisation que le rôle limite à ce que quelqu'un possède ne donne rien à une clé : une clé ne possède rien.
 - Les rôles intégrés sont listés sous **Rôles intégrés**, en bas de la page **Rôles**.
 
@@ -273,7 +273,7 @@ Les clés d'API reçoivent leurs autorisations directement, sur la clé elle-mê
 
 Le rôle que vous choisissez devient la première autorisation de la clé dès que la clé existe, exactement comme si vous l'aviez ajouté sur la page de la clé. Seuls les rôles que vous détenez vous-même vous sont proposés — une clé ne peut jamais recevoir plus que ce que détient la personne qui la donne — et une personne qui peut créer des clés sans pouvoir changer ce qu'elles peuvent faire n'est pas interrogée.
 
-Sur la page d'une clé, **Rôles personnalisés** liste les rôles personnalisés de la clé dès que votre projet en a un, et **Ajouter un rôle personnalisé** lui en donne un autre. **Ajouter un rôle** ajoute un rôle de la même liste que celle que propose l'onglet Autorisations d'une équipe, et **Ajouter une permission** (dans le menu **⋯** de la carte) ajoute une autorisation granulaire. **Bloquer les autorisations** se trouve sous **Plus de paramètres**, en bas de la page, dont l'en-tête replié indique combien la clé en a.
+Sur la page d'une clé, **Rôles personnalisés**, sous **Plus de paramètres**, liste les rôles personnalisés de la clé dès que votre projet en a un, et **Ajouter un rôle personnalisé** lui en donne un autre. **Ajouter un rôle** ajoute un rôle de la même liste que celle que propose l'onglet Autorisations d'une équipe, et **Ajouter une permission** (dans le menu **⋯** de la carte) ajoute une autorisation granulaire. **Bloquer les autorisations** se trouve sous **Plus de paramètres**, en bas de la page, dont l'en-tête replié indique combien la clé en a.
 
 > [!TIP]
 > Donnez à chaque intégration sa propre clé, avec le jeu d'autorisations le plus étroit qui fonctionne, afin de pouvoir en révoquer une sans perturber les autres.

@@ -276,16 +276,26 @@ describe("where it lives", () => {
     ),
   );
 
-  test("on the Access page, right after who can see the page and before the folded Advanced section", () => {
+  /*
+   * A reader session limit is an Enterprise access control few pages use
+   * (and means nothing on a page open to anyone), so it waits first in the
+   * Access page's More settings, before the IP allowlist.
+   */
+  test("on the Access page, after who can see the page, first in the folded More settings", () => {
     const access: number = accessPage.indexOf("<StatusPageAccessCard");
+    const advanced: number = accessPage.indexOf("<AdvancedPageSection");
     const sessions: number = accessPage.indexOf(
       "<StatusPageSessionLengthSettings",
     );
-    const advanced: number = accessPage.indexOf("<AdvancedPageSection");
+    const allowlist: number = accessPage.indexOf("<IpAllowlistSettings");
 
     expect(access).toBeGreaterThan(-1);
-    expect(sessions).toBeGreaterThan(access);
-    expect(advanced).toBeGreaterThan(sessions);
+    expect(advanced).toBeGreaterThan(access);
+    expect(sessions).toBeGreaterThan(advanced);
+    expect(allowlist).toBeGreaterThan(sessions);
+    expect(accessPage.indexOf("</AdvancedPageSection>")).toBeGreaterThan(
+      allowlist,
+    );
   });
 
   test("in one place only", () => {

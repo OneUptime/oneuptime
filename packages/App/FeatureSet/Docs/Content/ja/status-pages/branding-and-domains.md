@@ -300,7 +300,7 @@ API キーも同じです。ステータスページのドメインを読むこ�
 
 ## Powered by OneUptime
 
-「Powered by OneUptime」の行はブランディングの設定ではありません。**ステータスページ → 対象のページ → 詳細 → 詳細設定**（`{id}/settings`）の **ステータスページに表示する内容** カードの下にある専用のカード **Powered by OneUptime** のスイッチ **「Powered By OneUptime」ブランディングを表示** で、デフォルトはオンです。オフにすると行が非表示になり、すぐに保存されます。OneUptime Cloud では、非表示にするには **Scale** プランが必要です。セルフホストでは、非表示にすることは Enterprise Edition の一部です。Community Edition では、すべてのステータスページにこの行が表示されます。
+「Powered by OneUptime」の行はブランディングの設定ではありません。**ステータスページ → 対象のページ → 詳細 → 詳細設定**（`{id}/settings`）の **ステータスページに表示する内容** カードの下の **その他の設定** に折りたたまれた専用のカード **Powered by OneUptime** のスイッチ **「Powered By OneUptime」ブランディングを表示** で、デフォルトはオンです。オフにすると行が非表示になり、すぐに保存されます。OneUptime Cloud では、非表示にするには **Scale** プランが必要です。セルフホストでは、非表示にすることは Enterprise Edition の一部です。Community Edition では、すべてのステータスページにこの行が表示されます。
 
 ## 次のステップ
 

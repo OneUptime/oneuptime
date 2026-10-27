@@ -300,7 +300,7 @@ The same goes for API keys. A key that can only read status page domains can't c
 
 ## Powered by OneUptime
 
-The "Powered by OneUptime" line is not a branding setting. It has a card of its own, **Powered by OneUptime**, under the **What your status page shows** card on **Status Pages → your page → Advanced → Advanced Settings** (`{id}/settings`): **Show Powered By OneUptime Branding**, on by default. Turn it off to hide the line; it saves at once. On OneUptime Cloud, hiding it needs the **Scale** plan. Self-hosted, hiding it is part of the Enterprise Edition: on the Community Edition, every status page shows the line.
+The "Powered by OneUptime" line is not a branding setting. It has a card of its own, **Powered by OneUptime**, folded under **More settings** below the **What your status page shows** card on **Status Pages → your page → Advanced → Advanced Settings** (`{id}/settings`): **Show Powered By OneUptime Branding**, on by default. Turn it off to hide the line; it saves at once. On OneUptime Cloud, hiding it needs the **Scale** plan. Self-hosted, hiding it is part of the Enterprise Edition: on the Community Edition, every status page shows the line.
 
 ## Next steps
 

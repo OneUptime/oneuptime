@@ -300,7 +300,7 @@ Hetzelfde geldt voor API-sleutels. Een sleutel die domeinen van statuspagina's a
 
 ## Powered by OneUptime
 
-De regel "Powered by OneUptime" is geen huisstijlinstelling. Hij heeft een eigen kaart, **Powered by OneUptime**, onder de kaart **Wat uw statuspagina toont** onder **Statuspagina's → uw pagina → Geavanceerd → Geavanceerde instellingen** (`{id}/settings`): **'Powered By OneUptime'-branding weergeven**, standaard aan. Zet hem uit om de regel te verbergen; hij wordt meteen opgeslagen. Op OneUptime Cloud vereist het verbergen het plan **Scale**. Zelf gehost hoort het verbergen bij de Enterprise Edition: in de Community Edition toont elke statuspagina de regel.
+De regel "Powered by OneUptime" is geen huisstijlinstelling. Hij heeft een eigen kaart, **Powered by OneUptime**, ingeklapt onder **Meer instellingen** onder de kaart **Wat uw statuspagina toont** onder **Statuspagina's → uw pagina → Geavanceerd → Geavanceerde instellingen** (`{id}/settings`): **'Powered By OneUptime'-branding weergeven**, standaard aan. Zet hem uit om de regel te verbergen; hij wordt meteen opgeslagen. Op OneUptime Cloud vereist het verbergen het plan **Scale**. Zelf gehost hoort het verbergen bij de Enterprise Edition: in de Community Edition toont elke statuspagina de regel.
 
 ## Volgende stappen
 

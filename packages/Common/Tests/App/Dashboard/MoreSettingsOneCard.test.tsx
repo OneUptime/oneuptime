@@ -36,6 +36,26 @@ import StatusPageBranding from "../../../../App/FeatureSet/Dashboard/src/Pages/S
 import TeamViewPermissions, {
   TEAM_PERMISSIONS_ADVANCED_SECTION_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Teams/View/Permissions";
+import HostSettings from "../../../../App/FeatureSet/Dashboard/src/Pages/Host/View/Settings";
+import RumSettings from "../../../../App/FeatureSet/Dashboard/src/Pages/Rum/View/Settings";
+import ProjectTelemetrySettings, {
+  PROJECT_TELEMETRY_MORE_SETTINGS_TEST_ID,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/Settings/TelemetrySettings";
+import NotificationSettings, {
+  NOTIFICATION_SETTINGS_MORE_TEST_ID,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/Settings/NotificationSettings";
+import StatusPageSettings, {
+  STATUS_PAGE_SETTINGS_MORE_TEST_ID,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/View/StatusPageSettings";
+import { TELEMETRY_RESOURCE_MORE_SETTINGS_TEST_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/TelemetryResourceMoreSettings";
+import ProfilesAiSettings from "../../../../App/FeatureSet/Dashboard/src/Pages/Profiles/AI/Settings";
+import EmbeddedStatus, {
+  EMBEDDED_STATUS_BADGE_MORE_TEST_ID,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/View/EmbeddedStatus";
+import {
+  TELEMETRY_AI_RULES_CARD_TITLE,
+  TELEMETRY_AI_TEST_IDS,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryAi/TelemetryAiCopy";
 import {
   AI_LANE_ADVANCED_CARD_TITLES,
   AI_LANE_ADVANCED_SECTION_TEST_ID,
@@ -407,6 +427,104 @@ const PAGES: Array<MoreSettingsPage> = [
     },
     sectionTestId: FORM_SHARE_MORE_SETTINGS_TEST_ID,
     sectionTitles: ["IP Allowlist"],
+    namesSectionsByTitle: true,
+    tableCount: 0,
+  },
+  /*
+   * A service's or telemetry resource's Settings: its retention overrides -
+   * here the card that sells them, as the Community Edition draws it. Every
+   * such page folds them through one component (TelemetryRetentionShells
+   * holds all fifteen).
+   */
+  {
+    name: "Infrastructure -> a host -> Settings",
+    path: `/dashboard/${PROJECT_ID}/hosts/${RECORD_ID}/settings`,
+    element: (): ReactElement => {
+      return <HostSettings {...PAGE_PROPS} />;
+    },
+    sectionTestId: TELEMETRY_RESOURCE_MORE_SETTINGS_TEST_ID,
+    sectionTitles: ["Retention Overrides"],
+    namesSectionsByTitle: true,
+    tableCount: 0,
+  },
+  // And a RUM application's, with how long its session replays are kept.
+  {
+    name: "RUM -> an application -> Settings",
+    path: `/dashboard/${PROJECT_ID}/rum/${RECORD_ID}/settings`,
+    element: (): ReactElement => {
+      // The page reads the application's id from the route.
+      return (
+        <RouterRoutes>
+          <RouterRoute
+            path="/dashboard/:projectId/rum/:id/settings"
+            element={<RumSettings {...PAGE_PROPS} />}
+          />
+        </RouterRoutes>
+      );
+    },
+    sectionTestId: TELEMETRY_RESOURCE_MORE_SETTINGS_TEST_ID,
+    sectionTitles: ["Retention Overrides", "Session Replay Retention"],
+    namesSectionsByTitle: true,
+    tableCount: 0,
+  },
+  {
+    name: "Project Settings -> Telemetry & APM -> Data Retention",
+    path: `/dashboard/${PROJECT_ID}/settings/telemetry-settings`,
+    element: (): ReactElement => {
+      return <ProjectTelemetrySettings {...PAGE_PROPS} />;
+    },
+    sectionTestId: PROJECT_TELEMETRY_MORE_SETTINGS_TEST_ID,
+    sectionTitles: ["Retention Overrides"],
+    namesSectionsByTitle: true,
+    tableCount: 0,
+  },
+  {
+    name: "Status Pages -> a page -> Advanced Settings",
+    path: `/dashboard/${PROJECT_ID}/status-pages/${RECORD_ID}/settings`,
+    element: (): ReactElement => {
+      return <StatusPageSettings {...PAGE_PROPS} />;
+    },
+    sectionTestId: STATUS_PAGE_SETTINGS_MORE_TEST_ID,
+    sectionTitles: ["Powered by OneUptime"],
+    namesSectionsByTitle: true,
+    tableCount: 0,
+  },
+  {
+    name: "Project Settings -> Notifications -> Notification Settings",
+    path: `/dashboard/${PROJECT_ID}/settings/notification-settings`,
+    element: (): ReactElement => {
+      return <NotificationSettings {...PAGE_PROPS} />;
+    },
+    sectionTestId: NOTIFICATION_SETTINGS_MORE_TEST_ID,
+    sectionTitles: ["Custom SMTP Configs", "Twilio Config"],
+    namesSectionsByTitle: true,
+    // Both are tables.
+    tableCount: 2,
+  },
+  /*
+   * A telemetry product's AI -> Settings - the Profiler's here; every lane
+   * draws the same page (TelemetryAiSettingsPage) - folds its AI rules.
+   */
+  {
+    name: "Profiles -> AI -> Settings",
+    path: `/dashboard/${PROJECT_ID}/profiles/ai/settings`,
+    element: (): ReactElement => {
+      return <ProfilesAiSettings {...PAGE_PROPS} />;
+    },
+    sectionTestId: TELEMETRY_AI_TEST_IDS.advancedSection,
+    sectionTitles: [TELEMETRY_AI_RULES_CARD_TITLE],
+    namesSectionsByTitle: true,
+    tableCount: 1,
+  },
+  // A status page's embedded badge folds its security token.
+  {
+    name: "Status Pages -> a page -> Embedded Status",
+    path: `/dashboard/${PROJECT_ID}/status-pages/${RECORD_ID}/embedded-status`,
+    element: (): ReactElement => {
+      return <EmbeddedStatus {...PAGE_PROPS} />;
+    },
+    sectionTestId: EMBEDDED_STATUS_BADGE_MORE_TEST_ID,
+    sectionTitles: ["Security Token"],
     namesSectionsByTitle: true,
     tableCount: 0,
   },

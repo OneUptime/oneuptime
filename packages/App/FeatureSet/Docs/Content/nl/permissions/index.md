@@ -101,7 +101,7 @@ Maak zoveel extra teams als u wilt — "Frontend-piket", "Support", "Alleen-leze
 
 De rol die u kiest, wordt de eerste machtiging van het team, voor alle resources in het project, zodra het team bestaat — precies alsof u hem met **Rol toevoegen** op de pagina Machtigingen van het team had toegevoegd. U krijgt alleen de rollen aangeboden die u zelf hebt, omdat iedereen die u voor het team uitnodigt de machtigingen ervan krijgt, en wie teams mag aanmaken maar niet mag wijzigen wat ze kunnen, wordt niets gevraagd. Kan de rol niet worden toegevoegd, dan wordt het team toch aangemaakt en verwijst een melding boven de lijst ernaar.
 
-Waar u het vindt: open een team onder **Teams** om naar **Leden** en **Machtigingen** te gaan; **Machtigingen blokkeren** staat onder **Meer instellingen** onderaan de pagina Machtigingen, waarvan de ingeklapte kop toont hoeveel het team er heeft.
+Waar u het vindt: open een team onder **Teams** om naar **Leden** en **Machtigingen** te gaan; zijn aangepaste rollen en **Machtigingen blokkeren** staan onder **Meer instellingen** onderaan de pagina Machtigingen, waarvan de ingeklapte kop toont hoeveel het team er van elk heeft.
 
 ## Machtigingen
 
@@ -145,13 +145,13 @@ Een aangepaste rol is een set machtigingen die u één keer een naam geeft en aa
 1. Open **Teams** in het menu **Producten**, onder **Instellingen**. Klap **Instellingen** open in het zijmenu, kies **Rollen** en klik op **Aangepaste rol aanmaken**.
 2. Typ de **Naam** en kies onder **Machtigingen** de ingebouwde rollen die ze bundelt, voor elke resource in het project. De beschrijving staat onder **Meer velden**.
 3. Maak de rol aan. Ze opent op haar pagina, waar **Rol toevoegen** nog een ingebouwde rol toevoegt en **Machtiging toevoegen** (in het menu **⋯** van de kaart) één machtiging, elk met een bereik en labels, zoals bij een team.
-4. Klik op **Aan een team geven** onder **Teams met deze rol**, of op **Aan een API-sleutel geven** onder **API-sleutels met deze rol**. De pagina **Machtigingen** van een team en de pagina van een API-sleutel hebben ook **Aangepaste rol toevoegen**, en **Team maken** en **API-sleutel aanmaken** bieden onder **Toegang** de aangepaste rollen aan die u zou kunnen geven.
+4. Klik op **Aan een team geven** onder **Teams met deze rol**, of op **Aan een API-sleutel geven** onder **API-sleutels met deze rol**. De pagina **Machtigingen** van een team en de pagina van een API-sleutel hebben ook **Aangepaste rol toevoegen**, onder **Meer instellingen**, en **Team maken** en **API-sleutel aanmaken** bieden onder **Toegang** de aangepaste rollen aan die u zou kunnen geven.
 :::
 
 - De leden van een team krijgen elke machtiging van zijn aangepaste rollen, met hetzelfde bereik en dezelfde labels, precies alsof het team ze zelf had. Een blokkering op het team wint nog steeds.
 - Een rol blijft verbonden met de teams en API-sleutels die haar hebben: een wijziging bereikt ze allemaal meteen, en de pagina van de rol zegt om hoeveel teams, personen en sleutels het gaat. **Verwijderen** neemt de rol van één team of sleutel weg. De rol zelf verwijderen neemt haar machtigingen weg bij elk team en elke sleutel die haar heeft; ze houden al het andere dat ze hebben.
 - U kunt in een rol, en als rol aan een team of een API-sleutel, alleen geven wat u het ook rechtstreeks zou kunnen geven: een rol met een machtiging die u niet met hetzelfde of een ruimer bereik hebt, wordt geweigerd, en de weigering noemt de machtiging. Een rol bevat nooit `ProjectOwner`, en **Owners** en **Admin** krijgen er nooit een.
-- De pagina **Machtigingen** van een team en de pagina van een API-sleutel tonen hun aangepaste rollen boven hun eigen machtigingen. Wat een rol geeft, wijzigt u op de pagina van de rol, niet op die van het team of de sleutel.
+- De pagina **Machtigingen** van een team en de pagina van een API-sleutel tonen hun aangepaste rollen onder **Meer instellingen**, na hun eigen machtigingen; de ingeklapte kop zegt hoeveel ze er hebben. Wat een rol geeft, wijzigt u op de pagina van de rol, niet op die van het team of de sleutel.
 - Een API-sleutel krijgt elke machtiging van zijn aangepaste rollen, met dezelfde labels, alsof de sleutel ze zelf had, en een blokkering op de sleutel wint nog steeds. Een machtiging die de rol beperkt tot wat iemand bezit, geeft een sleutel niets: een sleutel bezit niets.
 - De ingebouwde rollen staan onder **Ingebouwde rollen**, onderaan de pagina **Rollen**.
 
@@ -273,7 +273,7 @@ API-sleutels krijgen machtigingen rechtstreeks, op de sleutel zelf, of via de aa
 
 De rol die u kiest, wordt de eerste machtiging van de sleutel zodra de sleutel bestaat, precies alsof u hem op de pagina van de sleutel had toegevoegd. U krijgt alleen de rollen aangeboden die u zelf hebt — een sleutel kan nooit meer krijgen dan de persoon die hem geeft heeft — en wie sleutels mag aanmaken maar niet mag wijzigen wat ze kunnen, wordt niets gevraagd.
 
-Op de pagina van een sleutel toont **Aangepaste rollen** de aangepaste rollen van de sleutel zodra uw project er een heeft, en geeft **Aangepaste rol toevoegen** hem er nog een. **Rol toevoegen** voegt een rol toe uit dezelfde lijst die het tabblad Machtigingen van een team aanbiedt, en **Machtiging toevoegen** (in het menu **⋯** van de kaart) voegt één granulaire machtiging toe. **Machtigingen blokkeren** staat onder **Meer instellingen** onderaan de pagina, waarvan de ingeklapte kop toont hoeveel de sleutel er heeft.
+Op de pagina van een sleutel toont **Aangepaste rollen**, onder **Meer instellingen**, de aangepaste rollen van de sleutel zodra uw project er een heeft, en geeft **Aangepaste rol toevoegen** hem er nog een. **Rol toevoegen** voegt een rol toe uit dezelfde lijst die het tabblad Machtigingen van een team aanbiedt, en **Machtiging toevoegen** (in het menu **⋯** van de kaart) voegt één granulaire machtiging toe. **Machtigingen blokkeren** staat onder **Meer instellingen** onderaan de pagina, waarvan de ingeklapte kop toont hoeveel de sleutel er heeft.
 
 > [!TIP]
 > Geef elke integratie een eigen sleutel met de smalste set machtigingen die werkt, zodat u er een kunt intrekken zonder de andere te storen.

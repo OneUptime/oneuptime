@@ -300,7 +300,7 @@ Det samme gælder API-nøgler. En nøgle, der kun kan læse statussidedomæner, 
 
 ## Powered by OneUptime
 
-Linjen "Powered by OneUptime" er ikke en brandingindstilling. Den har sit eget kort, **Powered by OneUptime**, under kortet **Hvad din statusside viser** under **Statussider → din side → Avanceret → Avancerede indstillinger** (`{id}/settings`): **Vis "Powered By OneUptime"-branding**, slået til som standard. Slå den fra for at skjule linjen; den gemmes med det samme. På OneUptime Cloud kræver det planen **Scale** at skjule den. Ved selvhosting er det en del af Enterprise Edition at skjule den: på Community Edition viser alle statussider linjen.
+Linjen "Powered by OneUptime" er ikke en brandingindstilling. Den har sit eget kort, **Powered by OneUptime**, sammenklappet under **Yderligere indstillinger** under kortet **Hvad din statusside viser** under **Statussider → din side → Avanceret → Avancerede indstillinger** (`{id}/settings`): **Vis "Powered By OneUptime"-branding**, slået til som standard. Slå den fra for at skjule linjen; den gemmes med det samme. På OneUptime Cloud kræver det planen **Scale** at skjule den. Ved selvhosting er det en del af Enterprise Edition at skjule den: på Community Edition viser alle statussider linjen.
 
 ## Næste skridt
 

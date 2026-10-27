@@ -300,7 +300,7 @@ O mesmo vale para as chaves de API. Uma chave que só pode ler os domínios das 
 
 ## Powered by OneUptime
 
-A linha "Powered by OneUptime" não é uma configuração de marca. Ela tem um cartão próprio, **Powered by OneUptime**, abaixo do cartão **O que sua página de status mostra**, em **Páginas de status → sua página → Avançado → Configurações avançadas** (`{id}/settings`): **Mostrar a marca Powered By OneUptime**, ativada por padrão. Desative-a para esconder a linha; ela salva na hora. No OneUptime Cloud, escondê-la exige o plano **Scale**. Na hospedagem própria, escondê-la faz parte da Enterprise Edition: na Community Edition, todas as páginas de status mostram a linha.
+A linha "Powered by OneUptime" não é uma configuração de marca. Ela tem um cartão próprio, **Powered by OneUptime**, recolhido em **Mais configurações** abaixo do cartão **O que sua página de status mostra**, em **Páginas de status → sua página → Avançado → Configurações avançadas** (`{id}/settings`): **Mostrar a marca Powered By OneUptime**, ativada por padrão. Desative-a para esconder a linha; ela salva na hora. No OneUptime Cloud, escondê-la exige o plano **Scale**. Na hospedagem própria, escondê-la faz parte da Enterprise Edition: na Community Edition, todas as páginas de status mostram a linha.
 
 ## Próximos passos
 

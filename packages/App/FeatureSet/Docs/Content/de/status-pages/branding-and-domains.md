@@ -300,7 +300,7 @@ Dasselbe gilt für API-Schlüssel. Ein Schlüssel, der Statusseiten-Domains nur 
 
 ## Powered by OneUptime
 
-Die Zeile „Powered by OneUptime“ ist keine Branding-Einstellung. Sie hat eine eigene Karte, **Powered by OneUptime**, unter der Karte **Was Ihre Statusseite zeigt** unter **Statusseiten → Ihre Seite → Erweitert → Erweiterte Einstellungen** (`{id}/settings`): **Branding "Powered By OneUptime" anzeigen**, standardmäßig an. Schalten Sie ihn aus, um die Zeile auszublenden; das wird sofort gespeichert. In OneUptime Cloud braucht das Ausblenden den Tarif **Scale**. Selbst gehostet gehört das Ausblenden zur Enterprise Edition: In der Community Edition zeigt jede Statusseite die Zeile.
+Die Zeile „Powered by OneUptime“ ist keine Branding-Einstellung. Sie hat eine eigene Karte, **Powered by OneUptime**, eingeklappt unter **Weitere Einstellungen** unter der Karte **Was Ihre Statusseite zeigt** unter **Statusseiten → Ihre Seite → Erweitert → Erweiterte Einstellungen** (`{id}/settings`): **Branding "Powered By OneUptime" anzeigen**, standardmäßig an. Schalten Sie ihn aus, um die Zeile auszublenden; das wird sofort gespeichert. In OneUptime Cloud braucht das Ausblenden den Tarif **Scale**. Selbst gehostet gehört das Ausblenden zur Enterprise Edition: In der Community Edition zeigt jede Statusseite die Zeile.
 
 ## Nächste Schritte
 

@@ -300,7 +300,7 @@ Detsamma gäller API-nycklar. En nyckel som bara kan läsa statussidedomäner ka
 
 ## Powered by OneUptime
 
-Raden "Powered by OneUptime" är inte en varumärkesinställning. Den har ett eget kort, **Powered by OneUptime**, under kortet **Vad din statussida visar** under **Statussidor → din sida → Avancerad → Avancerade inställningar** (`{id}/settings`): **Visa "Powered By OneUptime"-varumärke**, på som standard. Stäng av det för att dölja raden; det sparas direkt. På OneUptime Cloud kräver det planen **Scale** att dölja den. Självhostat ingår det i Enterprise Edition att dölja den: i Community Edition visar alla statussidor raden.
+Raden "Powered by OneUptime" är inte en varumärkesinställning. Den har ett eget kort, **Powered by OneUptime**, hopfällt under **Fler inställningar** under kortet **Vad din statussida visar** under **Statussidor → din sida → Avancerad → Avancerade inställningar** (`{id}/settings`): **Visa "Powered By OneUptime"-varumärke**, på som standard. Stäng av det för att dölja raden; det sparas direkt. På OneUptime Cloud kräver det planen **Scale** att dölja den. Självhostat ingår det i Enterprise Edition att dölja den: i Community Edition visar alla statussidor raden.
 
 ## Nästa steg
 
