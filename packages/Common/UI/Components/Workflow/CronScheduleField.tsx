@@ -110,8 +110,8 @@ const NEXT_RUN_FORMAT: Intl.DateTimeFormatOptions = {
 /*
  * A next run, in UTC as the schedule is: "Mon, Oct 26, 2026, 09:00 UTC",
  * or in the language of the list it is under - "Mo., 26. Okt. 2026, 09:00
- * UTC" - with the Gregorian calendar and Latin digits every date has
- * (Common/Types/DateLanguage).
+ * UTC" - on the Gregorian calendar and in the language's own digits, as
+ * every date is (Common/Types/DateLanguage).
  */
 export const formatNextRun: (date: Date, language: string) => string = (
   date: Date,

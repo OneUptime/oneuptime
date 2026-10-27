@@ -165,6 +165,7 @@ import { UptimeDayBucket } from "../../../Types/StatusPage/UptimeDailyAggregate"
 import Navigation from "../../../UI/Utils/Navigation";
 import { MAINTENANCE_BAR_CLASS_NAME } from "../../../Utils/StatusPage/HistoryChartBarColors";
 import { ScheduledMaintenancePhaseOfState } from "../../../Utils/ScheduledMaintenanceStart";
+import { setDateDisplayLanguage } from "../../../Types/DateLanguage";
 
 const MONITOR_ID: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",
@@ -496,6 +497,39 @@ describe("MonitorUptimeHistoryCard", () => {
 
     expect(lastGraphProps()["startDate"]).toBe(START);
     expect(lastGraphProps()["endDate"]).toBe(NOW);
+  });
+
+  test("the strip's first day is written in the reader's language and digits", () => {
+    renderCard({});
+    expect(screen.getByText("Jun 24")).toBeInTheDocument();
+    cleanup();
+
+    setDateDisplayLanguage("fa");
+
+    try {
+      renderCard({});
+
+      // June the 24th, on a Persian page: never the English "Jun 24".
+      expect(screen.queryByText("Jun 24")).toBeNull();
+      expect(screen.getByText(/ژوئن/)).toHaveTextContent("۲۴");
+    } finally {
+      setDateDisplayLanguage(null);
+    }
+  });
+
+  test("the strip's first day is the day its bars were cut by, in their zone", () => {
+    // Midnight of June 24 in Tehran: still June 23 by the page's own UTC clock.
+    renderCard({
+      summary: loaded(
+        summaryOf({
+          timezone: "Asia/Tehran",
+          startDate: new Date("2026-06-23T20:30:00.000Z"),
+        }),
+      ),
+    });
+
+    expect(screen.getByText("Jun 24")).toBeInTheDocument();
+    expect(screen.queryByText("Jun 23")).toBeNull();
   });
 
   test("the status models are kept across re-renders of the same summary", () => {

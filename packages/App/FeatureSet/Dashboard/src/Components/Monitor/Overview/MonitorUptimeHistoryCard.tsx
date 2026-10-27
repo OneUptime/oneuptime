@@ -8,7 +8,7 @@ import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import Route from "Common/Types/API/Route";
 import { Green } from "Common/Types/BrandColors";
 import Color from "Common/Types/Color";
-import OneUptimeDate, { Moment } from "Common/Types/Date";
+import OneUptimeDate from "Common/Types/Date";
 import Dictionary from "Common/Types/Dictionary";
 import IconProp from "Common/Types/Icon/IconProp";
 import {
@@ -413,10 +413,15 @@ const MonitorUptimeHistoryCard: FunctionComponent<ComponentProps> = (
       rightElement={rightElement}
     >
       <div>
+        {/*
+         * Left to right in every language, as every chart's time runs, and
+         * so the strip's scroll position keeps today in sight on a phone.
+         */}
         <div
           ref={stripRef}
           data-testid="monitor-uptime-strip"
           className="overflow-x-auto pb-1"
+          dir="ltr"
           onScroll={onStripScroll}
         >
           <div className="min-w-[36rem] sm:min-w-0">
@@ -450,7 +455,18 @@ const MonitorUptimeHistoryCard: FunctionComponent<ComponentProps> = (
              * from weeks later.
              */}
             <div className="mt-2 flex justify-between text-xs text-gray-500">
-              <span>{Moment(summary.startDate).format("MMM D")}</span>
+              {/*
+               * In the reader's language and digits ("۳۰ ژوئیه"), as every
+               * other date on the page, and on the clock the day bars were
+               * cut by.
+               */}
+              <span>
+                {OneUptimeDate.getDateAsCustomFormattedStringInTimezone({
+                  date: summary.startDate,
+                  format: "MMM D",
+                  timezone: summary.timezone,
+                })}
+              </span>
               <span>{translator.translateText("Today")}</span>
             </div>
           </div>

@@ -308,7 +308,7 @@ const ResendVerificationEmail: (props: ComponentProps) => ReactElement = (
           title={t("resendVerificationEmail.button")}
           dataTestId="resend-verification-email"
           className="w-full justify-center gap-1 disabled:cursor-not-allowed disabled:opacity-60"
-          style={{ width: "100%", marginLeft: 0 }}
+          style={{ width: "100%", marginInlineStart: "0px" }}
           disabled={remainingSeconds > 0 || isSending || isVerified}
           isLoading={isSending}
           onClick={() => {

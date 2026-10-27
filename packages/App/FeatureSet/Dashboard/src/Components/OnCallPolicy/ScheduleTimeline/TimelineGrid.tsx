@@ -249,9 +249,14 @@ const TimelineGrid: FunctionComponent<ComponentProps> = (
   };
 
   return (
+    /*
+     * Left to right in every language, as time runs along every chart:
+     * each shift is placed by its start's share of the day from the left.
+     */
     <div
       className="oneuptime-schedule-timeline-grid relative max-h-[75vh] overflow-auto rounded-lg border border-gray-200 bg-white"
       data-testid="schedule-timeline-grid"
+      dir="ltr"
     >
       <div
         className="relative"

@@ -6,6 +6,7 @@ import {
   productNamePostProcessor,
 } from "Common/UI/Utils/ProductNameTranslation";
 import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
+import { followLanguageForPage } from "Common/UI/Utils/PageLanguage";
 
 import {
   AccountsLanguage,
@@ -131,5 +132,11 @@ i18n
 
 // Dates, times and durations in the reader's language too.
 followLanguageForDates(i18n);
+
+/*
+ * <html lang> and <html dir> follow the reader's language: a screen reader
+ * reads the page in it, and a Persian page reads right to left.
+ */
+followLanguageForPage(i18n);
 
 export default i18n;

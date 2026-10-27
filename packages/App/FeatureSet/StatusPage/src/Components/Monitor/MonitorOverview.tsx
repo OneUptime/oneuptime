@@ -315,9 +315,13 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
         </div>
       </div>
 
-      {/* Uptime graph: Scrollable on mobile, full width on larger screens */}
+      {/*
+       * Uptime graph: Scrollable on mobile, full width on larger screens.
+       * Left to right in every language, oldest day first, as the dates
+       * under it read.
+       */}
       {props.showHistoryChart && (
-        <div className="w-full overflow-x-auto">
+        <div className="w-full overflow-x-auto" dir="ltr">
           <MonitorUptimeGraph
             error={undefined}
             barColorRules={props.statusPageHistoryChartBarColorRules}
@@ -351,7 +355,10 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
 
       {/* Time labels: Visible on all screen sizes */}
       {props.showHistoryChart && props.showTimeAxisLabels !== false && (
-        <div className="text-xs sm:text-sm text-gray-500 mt-1 justify-between flex">
+        <div
+          className="text-xs sm:text-sm text-gray-500 mt-1 justify-between flex"
+          dir="ltr"
+        >
           <div>
             {t("monitorOverview.daysAgo", {
               days: props.uptimeHistoryDays || 90,

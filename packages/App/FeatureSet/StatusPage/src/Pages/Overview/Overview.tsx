@@ -878,10 +878,15 @@ const Overview: FunctionComponent<PageComponentProps> = (
       return null;
     }
 
+    /*
+     * Left to right in every language, as the uptime bars above it run
+     * (Components/Monitor/MonitorOverview): the oldest day at the left.
+     */
     return (
       <div
         className={StatusPageGroupNestingLayoutUtil.getTimeAxisClassName()}
         data-testid="uptime-time-axis"
+        dir="ltr"
       >
         <div>
           {t("monitorOverview.daysAgo", {

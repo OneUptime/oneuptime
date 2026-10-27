@@ -92,7 +92,7 @@ const Footer: FunctionComponent<ComponentProps> = (
                 "mt-5 md:order-1 md:mt-0 block md:hidden lg:block"
               }
             >
-              <p className="text-center text-sm text-gray-500">
+              <p className="text-center text-sm text-gray-500" dir="auto">
                 &copy; {props.copyright}
               </p>
             </div>

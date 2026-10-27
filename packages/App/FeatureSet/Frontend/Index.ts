@@ -36,6 +36,10 @@ import {
   STATUS_PAGE_THEME_FALLBACK,
 } from "Common/Types/StatusPage/StatusPageTheme";
 import {
+  getStatusPageLanguageHead,
+  StatusPageLanguageHead,
+} from "Common/Types/StatusPage/StatusPageLanguage";
+import {
   getPublicDashboardData,
   handlePublicDashboardLlmsTxt,
   PublicDashboardData,
@@ -145,10 +149,17 @@ const StatusPageFrontendConfig: FrontendConfig = {
         statusPageData.isSearchEngineIndexingEnabled,
       );
 
+      // The page's default language, and the way it is read.
+      const languageHead: StatusPageLanguageHead = getStatusPageLanguageHead(
+        statusPageData.defaultLanguage,
+      );
+
       return {
         title: statusPageData.title,
         description: statusPageData.description,
         faviconUrl: statusPageData.faviconUrl,
+        lang: languageHead.lang,
+        dir: languageHead.dir,
         rssFeedPath: rssFeedPath,
         isSearchEngineIndexingEnabled:
           statusPageData.isSearchEngineIndexingEnabled,
@@ -179,6 +190,8 @@ const StatusPageFrontendConfig: FrontendConfig = {
         "Status Page lets you see real-time information about the status of our services.",
       faviconUrl:
         "/status-page-api/favicon/" + ObjectID.getZeroObjectID().toString(),
+      lang: getStatusPageLanguageHead(null).lang,
+      dir: getStatusPageLanguageHead(null).dir,
       rssFeedPath: rssFeedPath,
       isSearchEngineIndexingEnabled: isSearchEngineIndexingEnabled,
       /*

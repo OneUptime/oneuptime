@@ -42,6 +42,13 @@ export interface StatusPageData {
    * is sent in it, so a dark page is dark before its first paint.
    */
   theme: StatusPageTheme;
+  /*
+   * The language first-time visitors read the page in, as the /seo API
+   * reads the page's column; null when it did not say. The page's HTML is
+   * sent with it, and with the way it is read: a Persian page is laid out
+   * right to left before its first paint.
+   */
+  defaultLanguage: string | null;
 }
 
 /*
@@ -169,6 +176,7 @@ export const getStatusPageData: (
         indexingFlag: seoData?.[SEARCH_ENGINE_INDEXING_FLAG_NAME],
       }),
       theme: parseStatusPageTheme(seoData?.[STATUS_PAGE_THEME_COLUMN]),
+      defaultLanguage: (seoData?.["defaultLanguage"] as string | null) || null,
     };
   } catch (err) {
     logger.error("Error getting status page data:", { service: "frontend" });

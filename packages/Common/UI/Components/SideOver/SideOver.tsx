@@ -189,7 +189,7 @@ const SideOver: FunctionComponent<ComponentProps> = (
          */}
         <div
           className={`pointer-events-auto w-full ${widthClass} transition-transform duration-200 ease-out motion-reduce:transition-none ${
-            hasEntered ? "" : "translate-x-full"
+            hasEntered ? "" : "translate-x-full [&:dir(rtl)]:-translate-x-full"
           }`}
         >
           <div className="flex h-full flex-col bg-white shadow-xl">

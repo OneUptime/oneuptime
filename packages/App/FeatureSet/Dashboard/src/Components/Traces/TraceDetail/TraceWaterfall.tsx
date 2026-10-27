@@ -261,10 +261,15 @@ const TraceWaterfall: FunctionComponent<ComponentProps> = (
     virtualWindow.endIndex,
   );
 
+  /*
+   * Left to right in every language, as time runs along every chart: each
+   * span is placed by its start's share of the trace from the left.
+   */
   return (
     <div
       className="overflow-hidden rounded-lg border border-gray-200 bg-white"
       data-testid="trace-waterfall"
+      dir="ltr"
     >
       <TraceTimelineMinimap
         tree={tree}

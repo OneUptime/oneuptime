@@ -32,7 +32,7 @@ const NotificationItem: FunctionComponent<ComponentProps> = (
               <div
                 style={{
                   marginTop: "1px",
-                  marginRight: "3px",
+                  marginInlineEnd: "3px",
                 }}
               >
                 {OneUptimeDate.fromNow(props.createdAt)}{" "}

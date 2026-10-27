@@ -851,7 +851,7 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
       <li key={id}>
         <div
           className={`flex items-center gap-1 rounded-md pr-2 ${selected ? "bg-indigo-50 text-indigo-700" : "text-gray-700 hover:bg-gray-100"}`}
-          style={{ paddingLeft: 4 + depth * 14 }}
+          style={{ paddingInlineStart: 4 + depth * 14 }}
         >
           {containers.length > 0 ? (
             <button
@@ -916,7 +916,7 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
                 <button
                   type="button"
                   className="my-1 rounded px-2 py-1 text-xs font-medium text-indigo-600 hover:bg-indigo-50"
-                  style={{ marginLeft: 4 + (depth + 1) * 14 + 28 }}
+                  style={{ marginInlineStart: 4 + (depth + 1) * 14 + 28 }}
                   aria-label={`${t("Show all")} ${containers.length.toLocaleString()} ${t("in")} ${node.kind === "category" ? t(node.name) : node.name}`}
                   onClick={() => {
                     setTreeShowAll((previous: Set<string>) => {

@@ -377,7 +377,7 @@ const DashboardResourceHoneycomb: FunctionComponent<
                 gap: `${HEX_GAP}px`,
                 marginTop:
                   rowIdx === 0 ? 0 : `${-hexHeight * ROW_VERTICAL_OVERLAP}px`,
-                paddingLeft:
+                paddingInlineStart:
                   rowIdx % 2 === 1 ? `${(hexWidth + HEX_GAP) / 2}px` : 0,
               }}
             >

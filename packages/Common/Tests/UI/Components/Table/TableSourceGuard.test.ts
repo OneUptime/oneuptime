@@ -105,12 +105,24 @@ describe("a table in the dark theme", () => {
   test("the shadow the Actions column casts over passing cells is darkened for a dark row", () => {
     const layout: string = readCode("Components/Table/TableLayout.ts");
     const theme: string = readRaw("Styles/Theme.css");
+    // The shadow falling left, as a left-to-right page draws it.
     const shadowToken: string | undefined = (layout.match(
-      /shadow-\[[^\]"\s]+\]/,
+      /(?<![:\w])shadow-\[-[^\]"\s]+\]/,
     ) || [])[0];
 
     expect(shadowToken).toBeDefined();
     expect(theme).toContain(`html.dark [class~="${shadowToken}"]`);
+    /*
+     * Right to left the column stands at the left and its shadow falls
+     * right, the dark theme's too: the dark rule above would otherwise win
+     * over the right-to-left class and turn the shadow back.
+     */
+    expect(layout).toContain(
+      "[&:dir(rtl)]:shadow-[8px_0_12px_-10px_rgba(15,23,42,0.18)]",
+    );
+    expect(theme).toContain(
+      `html.dark [class~="${shadowToken}"]:dir(rtl) {\n  --tw-shadow: 8px 0 12px -10px rgb(0 0 0 / 70%);\n}`,
+    );
   });
 });
 

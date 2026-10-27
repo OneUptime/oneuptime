@@ -172,7 +172,7 @@ function reset() {
  * theme applied before the first paint (?theme=dark, kept for the tab), the
  * language's direction, Tailwind, Inter and the env the bundle reads.
  */
-const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>New version</title><script>(function(){var params=new URLSearchParams(window.location.search);var saved={};try{saved=JSON.parse(window.sessionStorage.getItem("new-version-fixture-page")||"{}")}catch(e){}var theme=params.get("theme")||saved.theme||"light";var lang=params.get("lang")||saved.lang||"en";window.sessionStorage.setItem("new-version-fixture-page",JSON.stringify({theme:theme,lang:lang}));if(theme==="dark"){document.documentElement.classList.add("dark");}document.documentElement.lang=lang;document.documentElement.dir=lang==="fa"?"rtl":"ltr";})();window.process={env:{HOST:"localhost",HTTP_PROTOCOL:"http",BILLING_ENABLED:"false",VERSION:"1.0.0"}};window.global=window;</script><script src="/dashboard/assets/js/tailwind-3.4.5.js"></script><script>tailwind.config={darkMode:"class",theme:{extend:{fontFamily:{display:["Inter","sans-serif"],body:["Inter","sans-serif"]}}}};</script><style>@font-face{font-family:'Inter';font-style:normal;font-weight:100 900;font-display:block;src:url('/dashboard/assets/fonts/InterVariable.woff2') format('woff2');}html,body{margin:0;background:var(--ou-background-primary,#f9fafb)}*{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}</style></head><body><div id="root"></div><script type="module" src="/dashboard/dist/Index.js"></script></body></html>`;
+const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>New version</title><script>(function(){var params=new URLSearchParams(window.location.search);var saved={};try{saved=JSON.parse(window.sessionStorage.getItem("new-version-fixture-page")||"{}")}catch(e){}var theme=params.get("theme")||saved.theme||"light";var lang=params.get("lang")||saved.lang||"en";window.sessionStorage.setItem("new-version-fixture-page",JSON.stringify({theme:theme,lang:lang}));if(theme==="dark"){document.documentElement.classList.add("dark");}document.documentElement.lang=lang;document.documentElement.dir=lang==="fa"?"rtl":"ltr";})();window.process={env:{HOST:"localhost",HTTP_PROTOCOL:"http",BILLING_ENABLED:"false",VERSION:"1.0.0"}};window.global=window;</script><script src="/dashboard/assets/js/tailwind-3.4.5.js"></script><script src="/dashboard/assets/js/tailwind-reading-direction.js"></script><script>tailwind.config={darkMode:"class",theme:{extend:{fontFamily:{display:["Inter","sans-serif"],body:["Inter","sans-serif"]}}}};</script><style>@font-face{font-family:'Inter';font-style:normal;font-weight:100 900;font-display:block;src:url('/dashboard/assets/fonts/InterVariable.woff2') format('woff2');}html,body{margin:0;background:var(--ou-background-primary,#f9fafb)}*{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}</style></head><body><div id="root"></div><script type="module" src="/dashboard/dist/Index.js"></script></body></html>`;
 
 function readBody(request) {
   return new Promise((resolve) => {
@@ -274,6 +274,15 @@ async function main() {
       response.setHeader("Content-Type", "application/javascript");
       fs.createReadStream(
         path.join(buildDirectory, "assets/js/tailwind-3.4.5.js"),
+      ).pipe(response);
+      return;
+    }
+
+    // Copied beside the runtime by the build, as index.ejs loads it.
+    if (url.pathname === "/dashboard/assets/js/tailwind-reading-direction.js") {
+      response.setHeader("Content-Type", "application/javascript");
+      fs.createReadStream(
+        path.join(buildDirectory, "assets/js/tailwind-reading-direction.js"),
       ).pipe(response);
       return;
     }

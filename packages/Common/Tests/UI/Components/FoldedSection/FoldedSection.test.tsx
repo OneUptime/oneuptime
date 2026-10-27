@@ -19,6 +19,7 @@ import {
 } from "../../../../UI/Components/FoldedSection/FoldedSectionTitles";
 import getJestMockFunction, { MockFunction } from "../../../MockType";
 import { computeAccessibleDescription } from "dom-accessibility-api";
+import { ICON_MIRRORED_RIGHT_TO_LEFT_CLASS_NAME } from "../../../../UI/Components/Icon/Icon";
 
 /*
  * FoldedSection draws every fold of rarely needed options: a form's More
@@ -605,9 +606,17 @@ describe("More fields is one quiet line", () => {
       "aria-hidden",
       "true",
     );
-    // Folded: to the line's end - left on a right-to-left page.
-    expect(chevron().getAttribute("class")).toContain("rtl:rotate-180");
+    /*
+     * Folded: to the line's end - left on a right-to-left page, where Icon
+     * draws a chevron mirrored. Mirrored after its own turn, so once open
+     * it points down in either direction; no turn of its own for right to
+     * left, which would point it back the wrong way.
+     */
+    expect(chevron().getAttribute("class")).toContain(
+      ICON_MIRRORED_RIGHT_TO_LEFT_CLASS_NAME,
+    );
     expect(chevron().getAttribute("class")).not.toContain("rotate-90");
+    expect(chevron().getAttribute("class")).not.toContain("rtl:");
     expect(chevron().getAttribute("class")).toContain(
       "motion-reduce:transition-none",
     );
@@ -615,7 +624,10 @@ describe("More fields is one quiet line", () => {
     await user.click(header());
 
     expect(chevron().getAttribute("class")).toContain("rotate-90");
-    expect(chevron().getAttribute("class")).not.toContain("rtl:rotate-180");
+    expect(chevron().getAttribute("class")).toContain(
+      ICON_MIRRORED_RIGHT_TO_LEFT_CLASS_NAME,
+    );
+    expect(chevron().getAttribute("class")).not.toContain("rtl:");
   });
 
   test("open, its fields follow the line as part of the form: no frame, no padding at the sides, nothing clipped", async () => {

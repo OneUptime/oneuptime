@@ -6,6 +6,7 @@ import {
   productNamePostProcessor,
 } from "Common/UI/Utils/ProductNameTranslation";
 import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
+import { followLanguageForPage } from "Common/UI/Utils/PageLanguage";
 
 import {
   DEFAULT_STATUS_PAGE_LANGUAGE,
@@ -137,29 +138,16 @@ i18n
   });
 
 /*
- * Keep the document's <html lang> attribute in sync with the active language so
- * screen readers apply the correct pronunciation rules (WCAG 3.1.2 Language of
- * Parts). The server template renders lang="en"; we update it on initial load
- * and on every language switch.
+ * Keep the document's <html lang> and <html dir> on the active language, so
+ * screen readers apply its pronunciation rules (WCAG 3.1.1 Language of Page)
+ * and a Persian page reads right to left. The server template renders the
+ * page's configured default; this follows the reader's own choice, on the
+ * first load and on every switch.
  */
-const syncDocumentLanguage: (lng: string | undefined) => void = (
-  lng: string | undefined,
-): void => {
-  if (typeof window !== "undefined" && window.document && lng) {
-    window.document.documentElement.lang = lng;
-  }
-};
-
-i18n.on("languageChanged", (lng: string) => {
-  syncDocumentLanguage(lng);
-});
+followLanguageForPage(i18n);
 
 // Dates, times and durations in the reader's language too.
 followLanguageForDates(i18n);
-
-syncDocumentLanguage(
-  i18n.resolvedLanguage || i18n.language || DEFAULT_LANGUAGE,
-);
 
 export const applyStatusPageLanguageSettings: (settings: {
   defaultLanguage?: string | null | undefined;

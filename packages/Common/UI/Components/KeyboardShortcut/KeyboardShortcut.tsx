@@ -58,8 +58,13 @@ const KeyboardShortcut: FunctionComponent<ComponentProps> = (
 
   const keycapClassName: string = `inline-flex flex-none select-none items-center justify-center font-sans font-medium leading-none ${SIZE_CLASS[size]} ${VARIANT_CLASS[variant]}`;
 
+  /*
+   * Left to right on every page: "Ctrl K" is the keys in the order they are
+   * pressed, and a right-to-left row would have drawn it "K Ctrl".
+   */
   return (
     <span
+      dir="ltr"
       className={`inline-flex flex-none items-center gap-1 ${
         props.className || ""
       }`}

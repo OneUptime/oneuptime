@@ -150,14 +150,19 @@ describe("a next run", () => {
     );
   });
 
-  test("in Persian and Japanese, on the Gregorian calendar in Latin digits", () => {
-    for (const language of ["fa", "ja"]) {
-      const text: string = formatNextRun(MONDAY_NINE, language);
+  test("in Persian and Japanese, on the Gregorian calendar in each one's digits", () => {
+    const japanese: string = formatNextRun(MONDAY_NINE, "ja");
 
-      expect(text).toContain("2026");
-      expect(text).toContain("09:00 UTC");
-      expect(text).not.toContain("Oct");
-    }
+    expect(japanese).toContain("2026");
+    expect(japanese).toContain("09:00 UTC");
+    expect(japanese).not.toContain("Oct");
+
+    const persian: string = formatNextRun(MONDAY_NINE, "fa");
+
+    expect(persian).toContain("۲۰۲۶");
+    expect(persian).toContain("۰۹:۰۰ UTC");
+    expect(persian).not.toContain("Oct");
+    expect(persian).not.toMatch(/[0-9]/);
   });
 
   test("a language Intl does not know reads English", () => {

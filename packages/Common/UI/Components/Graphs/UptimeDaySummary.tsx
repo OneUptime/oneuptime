@@ -129,7 +129,7 @@ const UptimeDaySummary: FunctionComponent<ComponentProps> = (
                 {...getStatusTextProps(uptimeColor, {
                   fontSize: "11px",
                   fontWeight: 600,
-                  marginLeft: "1px",
+                  marginInlineStart: "1px",
                   opacity: 0.7,
                 })}
               >

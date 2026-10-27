@@ -744,10 +744,15 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
    * Deliberately not overflow-hidden any more: it clipped the focus ring of
    * the first and last bar, which is the one part of this widget a keyboard
    * user has to be able to see.
+   *
+   * Left to right in every language, the oldest day first, as time runs
+   * along every chart: a Persian page lays its rows out from the right, and
+   * the strip would have put today at the left, under its "90 days ago".
    */
   return (
     <div
       className="flex space-x-0.5 rounded"
+      dir="ltr"
       role="group"
       aria-label={DayUptimeGraphUtil.getGraphAriaLabel({
         dayCount: days,
