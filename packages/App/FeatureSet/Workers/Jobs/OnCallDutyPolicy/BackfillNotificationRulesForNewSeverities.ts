@@ -102,6 +102,22 @@ interface NewSeverity {
   id: ObjectID;
   projectId: ObjectID;
   kind: SeverityKind;
+  /*
+   * When the severity was created. A responder who joined the project at or
+   * after this moment got their rules for it when they joined, so the job
+   * leaves them alone (hasJoinedSinceSeverity). Unknown, nobody is skipped.
+   */
+  createdAt?: Date | undefined;
+}
+
+/*
+ * A responder's verified email in the project: the address the default rule
+ * goes to, and when the responder's first verified address there was added -
+ * which is when they joined the project, or verified their sign-in email.
+ */
+interface VerifiedEmail {
+  emailId: ObjectID;
+  joinedAt?: Date | undefined;
 }
 
 /*
@@ -252,6 +268,7 @@ const findRecentlyCreatedSeverities: FindRecentlyCreatedSeveritiesFunction =
         select: {
           _id: true,
           projectId: true,
+          createdAt: true,
         },
         props: {
           isRoot: true,
@@ -266,6 +283,7 @@ const findRecentlyCreatedSeverities: FindRecentlyCreatedSeveritiesFunction =
         select: {
           _id: true,
           projectId: true,
+          createdAt: true,
         },
         props: {
           isRoot: true,
@@ -283,6 +301,7 @@ const findRecentlyCreatedSeverities: FindRecentlyCreatedSeveritiesFunction =
         id: incidentSeverity.id,
         projectId: incidentSeverity.projectId,
         kind: "incident",
+        createdAt: incidentSeverity.createdAt,
       });
     }
 
@@ -295,6 +314,7 @@ const findRecentlyCreatedSeverities: FindRecentlyCreatedSeveritiesFunction =
         id: alertSeverity.id,
         projectId: alertSeverity.projectId,
         kind: "alert",
+        createdAt: alertSeverity.createdAt,
       });
     }
 
@@ -307,28 +327,90 @@ const backfillSeverity: BackfillSeverityFunction = async (
   severity: NewSeverity,
 ): Promise<void> => {
   /*
+   * The rules of each rule type first, then the project's verified emails -
+   * in that order, and both before anything is written.
+   *
+   * A new project's severities are created a moment before its creator's
+   * first rules (ProjectService adds them with the creator's email, once the
+   * project exists), and each new severity queues this job at once. The job
+   * used to race that: both read "no rule for this cell yet" and both wrote
+   * one, and the project's creator started with two identical rules for some
+   * severities - two rows on their On-Call Rules page, and two pages for one
+   * incident. Someone joining the project later raced it the same way.
+   *
+   * Whoever joined the project at or after the severity was created needs
+   * nothing from this job: joining wrote a rule for every severity there was,
+   * this one included (hasJoinedSinceSeverity). Their verified email says when
+   * they joined - it is added before their rules are written - and reading the
+   * emails after the rules means anyone with a rule in a snapshot below has
+   * their email, and so their join time, in the email read.
+   */
+  const rulesByType: Array<{
+    ruleType: NotificationRuleType;
+    existingRules: Array<UserNotificationRule>;
+  }> = [];
+
+  for (const ruleType of RULE_TYPES_BY_SEVERITY_KIND[severity.kind]) {
+    rulesByType.push({
+      ruleType: ruleType,
+      existingRules: await findRulesOfType(severity, ruleType),
+    });
+  }
+
+  /*
    * Read once per severity, not once per rule type: the same set answers "who in
    * this project can be reached at all?" for both rule types below.
    */
-  const verifiedEmailIdByUserId: Map<string, ObjectID> =
+  const verifiedEmailByUserId: Map<string, VerifiedEmail> =
     await findVerifiedEmailsInProject(severity.projectId);
 
-  for (const ruleType of RULE_TYPES_BY_SEVERITY_KIND[severity.kind]) {
-    await backfillSeverityForRuleType(
-      severity,
-      ruleType,
-      verifiedEmailIdByUserId,
-    );
+  for (const { ruleType, existingRules } of rulesByType) {
+    await backfillSeverityForRuleType({
+      severity: severity,
+      ruleType: ruleType,
+      existingRules: existingRules,
+      verifiedEmailByUserId: verifiedEmailByUserId,
+    });
   }
+};
+
+type HasJoinedSinceSeverityFunction = (data: {
+  severity: NewSeverity;
+  verifiedEmail: VerifiedEmail | undefined;
+}) => boolean;
+
+/*
+ * Whether a responder joined the project at or after the severity was
+ * created, so that joining already gave them a rule for it. Joining writes a
+ * rule for every severity there is, read after the responder's email is
+ * added: a severity created before that email is one their rules cover.
+ * When either time is unknown the answer is no, and the job does what it
+ * always did.
+ */
+const hasJoinedSinceSeverity: HasJoinedSinceSeverityFunction = (data: {
+  severity: NewSeverity;
+  verifiedEmail: VerifiedEmail | undefined;
+}): boolean => {
+  const severityCreatedAt: Date | undefined = data.severity.createdAt;
+  const joinedAt: Date | undefined = data.verifiedEmail?.joinedAt;
+
+  if (!severityCreatedAt || !joinedAt) {
+    return false;
+  }
+
+  return (
+    OneUptimeDate.fromString(joinedAt).getTime() >=
+    OneUptimeDate.fromString(severityCreatedAt).getTime()
+  );
 };
 
 type FindVerifiedEmailsInProjectFunction = (
   projectId: ObjectID,
-) => Promise<Map<string, ObjectID>>;
+) => Promise<Map<string, VerifiedEmail>>;
 
 const findVerifiedEmailsInProject: FindVerifiedEmailsInProjectFunction = async (
   projectId: ObjectID,
-): Promise<Map<string, ObjectID>> => {
+): Promise<Map<string, VerifiedEmail>> => {
   const userEmails: Array<UserEmail> = await UserEmailService.findAllBy({
     query: {
       projectId: projectId,
@@ -337,15 +419,16 @@ const findVerifiedEmailsInProject: FindVerifiedEmailsInProjectFunction = async (
     select: {
       _id: true,
       userId: true,
+      createdAt: true,
     },
     props: {
       isRoot: true,
     },
   });
 
-  const verifiedEmailIdByUserId: Map<string, ObjectID> = new Map<
+  const verifiedEmailByUserId: Map<string, VerifiedEmail> = new Map<
     string,
-    ObjectID
+    VerifiedEmail
   >();
 
   for (const userEmail of userEmails) {
@@ -354,132 +437,179 @@ const findVerifiedEmailsInProject: FindVerifiedEmailsInProjectFunction = async (
     }
 
     const userId: string = userEmail.userId.toString();
+    const known: VerifiedEmail | undefined = verifiedEmailByUserId.get(userId);
 
     // A responder with several verified addresses gets a rule for the first.
-    if (!verifiedEmailIdByUserId.has(userId)) {
-      verifiedEmailIdByUserId.set(userId, userEmail.id);
-    }
-  }
-
-  return verifiedEmailIdByUserId;
-};
-
-type BackfillSeverityForRuleTypeFunction = (
-  severity: NewSeverity,
-  ruleType: NotificationRuleType,
-  verifiedEmailIdByUserId: Map<string, ObjectID>,
-) => Promise<void>;
-
-const backfillSeverityForRuleType: BackfillSeverityForRuleTypeFunction = async (
-  severity: NewSeverity,
-  ruleType: NotificationRuleType,
-  verifiedEmailIdByUserId: Map<string, ObjectID>,
-): Promise<void> => {
-  /*
-   * Every rule of this type in the project, in ONE read, grouped in memory
-   * afterwards. The obvious shape - loop the project's users, ask the database
-   * once per user per severity - is what TeamComplianceService does and why it
-   * is an N+1; a project with a thousand responders would issue a thousand
-   * queries per severity here.
-   */
-  const existingRules: Array<UserNotificationRule> =
-    await UserNotificationRuleService.findAllBy({
-      query: {
-        projectId: severity.projectId,
-        ruleType: ruleType,
-      },
-      select: {
-        _id: true,
-        userId: true,
-        notifyAfterMinutes: true,
-        isOptOut: true,
-        incidentSeverityId: true,
-        alertSeverityId: true,
-        userEmailId: true,
-        userSmsId: true,
-        userCallId: true,
-        userPushId: true,
-        userWhatsAppId: true,
-        userTelegramId: true,
-        userSlackId: true,
-        userMicrosoftTeamsId: true,
-        userWebhookId: true,
-        customNotificationChannelId: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-
-  const intentByUserId: Map<string, ResponderIntent> = buildResponderIntents(
-    existingRules,
-    severity,
-  );
-
-  /*
-   * Responders who have already said something about this rule type. Mirror what
-   * they said onto the new severity.
-   */
-  for (const [userId, intent] of intentByUserId) {
-    if (intent.hasRuleForNewSeverity) {
-      // Already covered - by an earlier run of this job, or by hand.
-      continue;
-    }
-
-    if (intent.mirroredRules.size > 0) {
-      for (const mirroredRule of intent.mirroredRules.values()) {
-        await createRule({
-          severity: severity,
-          ruleType: ruleType,
-          userId: new ObjectID(userId),
-          mirroredRule: mirroredRule,
-        });
-      }
-
+    if (!known) {
+      verifiedEmailByUserId.set(userId, {
+        emailId: userEmail.id,
+        joinedAt: userEmail.createdAt,
+      });
       continue;
     }
 
     /*
-     * They have rules of this type and every one of them is an opt-out: they
-     * have deliberately muted this rule type for every severity they have an
-     * opinion about. Mirroring the opt-out is the only answer that respects
-     * that - leaving the cell empty would hand them straight to the
-     * verified-method fallback, which is to say it would page someone who asked
-     * not to be paged.
+     * Joined when the first of their addresses was added: an address added
+     * later does not make them newer to the project.
      */
-    if (intent.hasOptOut) {
+    if (
+      userEmail.createdAt &&
+      (!known.joinedAt ||
+        OneUptimeDate.fromString(userEmail.createdAt).getTime() <
+          OneUptimeDate.fromString(known.joinedAt).getTime())
+    ) {
+      known.joinedAt = userEmail.createdAt;
+    }
+  }
+
+  return verifiedEmailByUserId;
+};
+
+type FindRulesOfTypeFunction = (
+  severity: NewSeverity,
+  ruleType: NotificationRuleType,
+) => Promise<Array<UserNotificationRule>>;
+
+/*
+ * Every rule of this type in the project, in ONE read, grouped in memory
+ * afterwards. The obvious shape - loop the project's users, ask the database
+ * once per user per severity - is what TeamComplianceService does and why it
+ * is an N+1; a project with a thousand responders would issue a thousand
+ * queries per severity here.
+ */
+const findRulesOfType: FindRulesOfTypeFunction = async (
+  severity: NewSeverity,
+  ruleType: NotificationRuleType,
+): Promise<Array<UserNotificationRule>> => {
+  return await UserNotificationRuleService.findAllBy({
+    query: {
+      projectId: severity.projectId,
+      ruleType: ruleType,
+    },
+    select: {
+      _id: true,
+      userId: true,
+      notifyAfterMinutes: true,
+      isOptOut: true,
+      incidentSeverityId: true,
+      alertSeverityId: true,
+      userEmailId: true,
+      userSmsId: true,
+      userCallId: true,
+      userPushId: true,
+      userWhatsAppId: true,
+      userTelegramId: true,
+      userSlackId: true,
+      userMicrosoftTeamsId: true,
+      userWebhookId: true,
+      customNotificationChannelId: true,
+    },
+    props: {
+      isRoot: true,
+    },
+  });
+};
+
+type BackfillSeverityForRuleTypeFunction = (data: {
+  severity: NewSeverity;
+  ruleType: NotificationRuleType;
+  existingRules: Array<UserNotificationRule>;
+  verifiedEmailByUserId: Map<string, VerifiedEmail>;
+}) => Promise<void>;
+
+const backfillSeverityForRuleType: BackfillSeverityForRuleTypeFunction =
+  async (data: {
+    severity: NewSeverity;
+    ruleType: NotificationRuleType;
+    existingRules: Array<UserNotificationRule>;
+    verifiedEmailByUserId: Map<string, VerifiedEmail>;
+  }): Promise<void> => {
+    const severity: NewSeverity = data.severity;
+    const ruleType: NotificationRuleType = data.ruleType;
+
+    const intentByUserId: Map<string, ResponderIntent> = buildResponderIntents(
+      data.existingRules,
+      severity,
+    );
+
+    type JoinedSinceFunction = (userId: string) => boolean;
+
+    const joinedSince: JoinedSinceFunction = (userId: string): boolean => {
+      return hasJoinedSinceSeverity({
+        severity: severity,
+        verifiedEmail: data.verifiedEmailByUserId.get(userId),
+      });
+    };
+
+    /*
+     * Responders who have already said something about this rule type. Mirror what
+     * they said onto the new severity.
+     */
+    for (const [userId, intent] of intentByUserId) {
+      if (intent.hasRuleForNewSeverity) {
+        // Already covered - by an earlier run of this job, or by hand.
+        continue;
+      }
+
+      if (joinedSince(userId)) {
+        // Joining covered it, maybe at this very moment (backfillSeverity).
+        continue;
+      }
+
+      if (intent.mirroredRules.size > 0) {
+        for (const mirroredRule of intent.mirroredRules.values()) {
+          await createRule({
+            severity: severity,
+            ruleType: ruleType,
+            userId: new ObjectID(userId),
+            mirroredRule: mirroredRule,
+          });
+        }
+
+        continue;
+      }
+
+      /*
+       * They have rules of this type and every one of them is an opt-out: they
+       * have deliberately muted this rule type for every severity they have an
+       * opinion about. Mirroring the opt-out is the only answer that respects
+       * that - leaving the cell empty would hand them straight to the
+       * verified-method fallback, which is to say it would page someone who asked
+       * not to be paged.
+       */
+      if (intent.hasOptOut) {
+        await createRule({
+          severity: severity,
+          ruleType: ruleType,
+          userId: new ObjectID(userId),
+          mirroredRule: null,
+        });
+      }
+    }
+
+    /*
+     * Responders who have said nothing at all about this rule type get today's
+     * default: their verified email, immediately. That is exactly what
+     * addDefaultNotificationRuleForUser would have written for them had this
+     * severity existed when they joined.
+     */
+    for (const [userId, verifiedEmail] of data.verifiedEmailByUserId) {
+      if (intentByUserId.has(userId) || joinedSince(userId)) {
+        continue;
+      }
+
       await createRule({
         severity: severity,
         ruleType: ruleType,
         userId: new ObjectID(userId),
-        mirroredRule: null,
+        mirroredRule: {
+          methodColumn: "userEmailId",
+          methodId: verifiedEmail.emailId,
+          notifyAfterMinutes: 0,
+        },
       });
     }
-  }
-
-  /*
-   * Responders who have said nothing at all about this rule type get today's
-   * default: their verified email, immediately. That is exactly what
-   * addDefaultNotificationRuleForUser would have written for them had this
-   * severity existed when they joined.
-   */
-  for (const [userId, userEmailId] of verifiedEmailIdByUserId) {
-    if (intentByUserId.has(userId)) {
-      continue;
-    }
-
-    await createRule({
-      severity: severity,
-      ruleType: ruleType,
-      userId: new ObjectID(userId),
-      mirroredRule: {
-        methodColumn: "userEmailId",
-        methodId: userEmailId,
-        notifyAfterMinutes: 0,
-      },
-    });
-  }
-};
+  };
 
 type BuildResponderIntentsFunction = (
   existingRules: Array<UserNotificationRule>,
@@ -797,5 +927,6 @@ export {
   backfillSeverity,
   buildResponderIntents,
   findRecentlyCreatedSeverities,
+  hasJoinedSinceSeverity,
 };
-export type { MirroredRule, NewSeverity, ResponderIntent };
+export type { MirroredRule, NewSeverity, ResponderIntent, VerifiedEmail };
