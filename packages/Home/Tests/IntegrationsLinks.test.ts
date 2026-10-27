@@ -1,8 +1,11 @@
 import {
+  MAX_FEATURED_OPEN_TELEMETRY_GUIDES,
+  OPEN_TELEMETRY_GUIDES,
   OPEN_TELEMETRY_GUIDES_INDEX_PATH,
+  OpenTelemetryGuideEntry,
   getOpenTelemetryGuidePath,
 } from "Common/Types/Telemetry/OpenTelemetryGuides";
-import { getFrameworkGuideCards } from "../Utils/Integrations/OpenTelemetry/IntegrationsIndex";
+import { getFeaturedGuideCards } from "../Utils/Integrations/OpenTelemetry/IntegrationsIndex";
 import { OPEN_TELEMETRY_GUIDE_PAGES } from "../Utils/Integrations/OpenTelemetry/OpenTelemetryGuides";
 import { OpenTelemetryGuide } from "../Utils/Integrations/OpenTelemetry/GuideTypes";
 import { generateLlmsFullTxt, generateLlmsTxt } from "../Utils/AIDiscovery";
@@ -30,6 +33,18 @@ const PRODUCT_PAGES: Array<[string, string]> = [
 const GUIDE_PATHS: Array<string> = OPEN_TELEMETRY_GUIDE_PAGES.map(
   (guide: OpenTelemetryGuide): string => {
     return getOpenTelemetryGuidePath(guide.slug);
+  },
+);
+
+// The guides the catalog features, which the product pages show.
+const FEATURED: Array<OpenTelemetryGuideEntry> = OPEN_TELEMETRY_GUIDES.filter(
+  (entry: OpenTelemetryGuideEntry): boolean => {
+    return entry.isFeatured === true;
+  },
+);
+const FEATURED_PATHS: Array<string> = FEATURED.map(
+  (entry: OpenTelemetryGuideEntry): string => {
+    return getOpenTelemetryGuidePath(entry.slug);
   },
 );
 
@@ -76,12 +91,12 @@ describe("the nav and the footer", () => {
 });
 
 describe.each(PRODUCT_PAGES)("the %s product page", (template: string, pagePath: string) => {
-  test("lists every framework with a guide, and the index", async () => {
+  test("lists the featured frameworks, each with its logo, and the index", async () => {
     const document: Document = new JSDOM(
       await renderView(template, {
         enableGoogleTagManager: false,
         seo: seoFor(pagePath),
-        frameworkGuides: getFrameworkGuideCards(),
+        frameworkGuides: getFeaturedGuideCards(),
       }),
     ).window.document;
     const strip: Element | null = document.querySelector("[data-framework-guides]");
@@ -91,8 +106,22 @@ describe.each(PRODUCT_PAGES)("the %s product page", (template: string, pagePath:
       },
     );
 
-    expect(hrefs).toEqual([OPEN_TELEMETRY_GUIDES_INDEX_PATH, ...GUIDE_PATHS]);
+    expect(hrefs).toEqual([OPEN_TELEMETRY_GUIDES_INDEX_PATH, ...FEATURED_PATHS]);
     expect(textOf(strip!.querySelector("h2"))).toBe("Set it up for your framework");
+    // Each card names its framework beside its logo, which is decorative.
+    const cards: Array<Element> = Array.from(strip!.querySelectorAll("li a"));
+    expect(
+      cards.map((card: Element): string => {
+        return textOf(card);
+      }),
+    ).toEqual(
+      FEATURED.map((entry: OpenTelemetryGuideEntry): string => {
+        return entry.name;
+      }),
+    );
+    for (const card of cards) {
+      expect(card.querySelector("img")?.getAttribute("alt")).toBe("");
+    }
   });
 
   test("shows nothing in the strip's place when it is rendered without the guides", async () => {
@@ -107,19 +136,43 @@ describe.each(PRODUCT_PAGES)("the %s product page", (template: string, pagePath:
   });
 });
 
-describe("the guides' cards for the product pages", () => {
-  test("are every published guide, in the catalog's order, each named and marked", () => {
-    const cards: ReturnType<typeof getFrameworkGuideCards> = getFrameworkGuideCards();
+describe("the guides the product pages feature", () => {
+  test("are the featured guides, in the catalog's order, each published, named and marked by its logo", () => {
+    const cards: ReturnType<typeof getFeaturedGuideCards> = getFeaturedGuideCards();
 
     expect(
       cards.map((card: { href: string }): string => {
         return card.href;
       }),
-    ).toEqual(GUIDE_PATHS);
+    ).toEqual(FEATURED_PATHS);
+    for (const path of FEATURED_PATHS) {
+      expect(GUIDE_PATHS).toContain(path);
+    }
     for (const card of cards) {
       expect(card.name.length).toBeGreaterThan(0);
-      expect(card.mark.logo || card.mark.monogram).toBeTruthy();
+      // A row of brands on a product page: every one has its official logo.
+      expect([card.name, Boolean(card.mark.logo)]).toEqual([card.name, true]);
     }
+  });
+
+  test("fill at most two rows, so a product page stays a product page", () => {
+    expect(FEATURED.length).toBeGreaterThan(0);
+    expect(FEATURED.length).toBeLessThanOrEqual(MAX_FEATURED_OPEN_TELEMETRY_GUIDES);
+  });
+
+  test("name at least one framework of every language with a guide", () => {
+    const languagesWithGuides: Set<string> = new Set(
+      OPEN_TELEMETRY_GUIDES.map((entry: OpenTelemetryGuideEntry): string => {
+        return entry.language;
+      }),
+    );
+    const featuredLanguages: Set<string> = new Set(
+      FEATURED.map((entry: OpenTelemetryGuideEntry): string => {
+        return entry.language;
+      }),
+    );
+
+    expect([...featuredLanguages].sort()).toEqual([...languagesWithGuides].sort());
   });
 });
 

@@ -82,7 +82,7 @@ Self-hosting? Replace `https://oneuptime.com` with the URL of your OneUptime ins
 
 Pick your language. Each setup reads the environment variables above, so no endpoint or key appears in your code.
 
-Using a framework? The [integration guides](https://oneuptime.com/integrations) set up OpenTelemetry step by step for Express, NestJS, Next.js, Fastify, Koa, hapi, Bun, Deno, the browser, React and Angular, with what each traces automatically and how to fix what goes wrong.
+Using a framework? The [integration guides](https://oneuptime.com/integrations) set up OpenTelemetry step by step for each framework, with what it traces automatically and how to fix what goes wrong.
 
 :::tabs
 @tab Node.js

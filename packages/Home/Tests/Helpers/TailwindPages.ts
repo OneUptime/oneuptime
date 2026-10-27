@@ -9,7 +9,7 @@ import { getAirGappedContent } from "../../Utils/AirGapped";
 import { getCloudMarketplacesContent } from "../../Utils/CloudMarketplaces";
 import { getGuidePageContent } from "../../Utils/Integrations/OpenTelemetry/GuidePage";
 import {
-  getFrameworkGuideCards,
+  getFeaturedGuideCards,
   getIntegrationsIndexContent,
 } from "../../Utils/Integrations/OpenTelemetry/IntegrationsIndex";
 import { getPageSEO, PageSEOData } from "../../Utils/PageSEO";
@@ -405,7 +405,7 @@ export const MARKETING_PAGES: Array<MarketingPage> = [
       return {
         enableGoogleTagManager: false,
         seo: seoFor("/product/traces"),
-        frameworkGuides: getFrameworkGuideCards(),
+        frameworkGuides: getFeaturedGuideCards(),
       };
     },
   },

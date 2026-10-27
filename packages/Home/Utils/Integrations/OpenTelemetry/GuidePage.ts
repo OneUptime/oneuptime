@@ -88,7 +88,12 @@ export interface RenderedQuestion {
 
 export interface GuideMark {
   logo?: ProviderLogoImage | undefined;
-  // Shown in the logo's place where the registry has no official mark.
+  /*
+   * A guide no one brand owns - plain JavaScript in the browser - has a
+   * generic mark instead: a browser window.
+   */
+  icon?: "browser" | undefined;
+  // Shown in the logo's place where there is neither: a framework's initials.
   monogram: string;
 }
 
@@ -173,7 +178,8 @@ export function monogramOf(name: string): string {
 export function guideMark(entry: OpenTelemetryGuideEntry): GuideMark {
   return {
     logo: entry.logo ? getProviderLogoImage(entry.logo) : undefined,
-    monogram: entry.kind === "browser" && !entry.logo ? "JS" : monogramOf(entry.name),
+    icon: !entry.logo && entry.kind === "browser" ? "browser" : undefined,
+    monogram: monogramOf(entry.name),
   };
 }
 

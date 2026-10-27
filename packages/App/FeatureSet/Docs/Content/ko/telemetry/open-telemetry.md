@@ -82,7 +82,7 @@ export OTEL_SERVICE_NAME="my-service"
 
 언어를 선택하세요. 모든 설정이 위의 환경 변수를 읽으므로, 코드에는 엔드포인트나 키가 들어가지 않습니다.
 
-프레임워크를 쓰시나요? [통합 가이드](https://oneuptime.com/integrations)는 Express, NestJS, Next.js, Fastify, Koa, hapi, Bun, Deno, 브라우저, React, Angular용 OpenTelemetry 설정을 단계별로 안내하며, 각각 자동으로 추적하는 내용과 문제가 생겼을 때 해결하는 방법도 담고 있습니다.
+프레임워크를 쓰시나요? [통합 가이드](https://oneuptime.com/integrations)는 프레임워크별 OpenTelemetry 설정을 단계별로 안내하며, 각 프레임워크가 자동으로 추적하는 내용과 문제가 생겼을 때 해결하는 방법도 담고 있습니다.
 
 :::tabs
 @tab Node.js

@@ -8,10 +8,20 @@ import {
 import { highlightSnippet } from "../Utils/Integrations/OpenTelemetry/GuideHighlight";
 import { listInWords } from "../Utils/Integrations/OpenTelemetry/IntegrationsIndex";
 import {
+  GuideMark,
   GuideSection,
+  guideMark,
   guideSections,
   monogramOf,
 } from "../Utils/Integrations/OpenTelemetry/GuidePage";
+import { isWideLogoFile } from "../Utils/ProviderLogoFiles";
+import {
+  OPEN_TELEMETRY_GUIDES,
+  OpenTelemetryGuideEntry,
+  OpenTelemetryGuideLanguage,
+  getOpenTelemetryGuide,
+} from "Common/Types/Telemetry/OpenTelemetryGuides";
+import ProviderLogo from "Common/Types/ProviderLogo/ProviderLogo";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -166,5 +176,81 @@ describe("the words the index and the marks are made of", () => {
     expect(monogramOf("Express")).toBe("Ex");
     expect(monogramOf("Next.js")).toBe("Ne");
     expect(monogramOf("hapi")).toBe("Ha");
+  });
+});
+
+describe("a guide's mark", () => {
+  const markOf: (slug: string) => GuideMark = (slug: string): GuideMark => {
+    return guideMark(getOpenTelemetryGuide(slug)!);
+  };
+
+  test("is the framework's official logo, served by this site at a versioned address", () => {
+    const mark: GuideMark = markOf("express");
+
+    expect(mark.logo?.src).toMatch(/^\/img\/provider-logos\/express\.svg\?v=[0-9a-f]{10}$/);
+    expect(mark.logo?.alt).toBe("Express");
+    expect(mark.icon).toBeUndefined();
+  });
+
+  test("is a browser window for plain JavaScript in the browser, which no one brand owns", () => {
+    const mark: GuideMark = markOf("browser");
+
+    expect(mark.logo).toBeUndefined();
+    expect(mark.icon).toBe("browser");
+  });
+
+  test("is a logo for every other JavaScript guide", () => {
+    for (const entry of OPEN_TELEMETRY_GUIDES) {
+      if (entry.language !== OpenTelemetryGuideLanguage.JavaScript || entry.slug === "browser") {
+        continue;
+      }
+      expect([entry.slug, Boolean(guideMark(entry).logo)]).toEqual([entry.slug, true]);
+    }
+  });
+
+  test("is drawn wide for the wordmarks and wide symbols, square for the rest", () => {
+    const wide: Array<string> = OPEN_TELEMETRY_GUIDES.filter(
+      (entry: OpenTelemetryGuideEntry): boolean => {
+        return Boolean(guideMark(entry).logo?.isWide);
+      },
+    ).map((entry: OpenTelemetryGuideEntry): string => {
+      return entry.slug;
+    });
+
+    expect(wide).toEqual(["fastify", "koa", "hapi"]);
+  });
+
+  test("falls back to the framework's initials for a guide with no logo and no icon", () => {
+    const mark: GuideMark = guideMark({
+      slug: "some-framework",
+      name: "Some Framework",
+      language: OpenTelemetryGuideLanguage.Python,
+      kind: "framework",
+    });
+
+    expect(mark).toEqual({ logo: undefined, icon: undefined, monogram: "So" });
+  });
+
+  test("names a logo the registry has", () => {
+    expect(getOpenTelemetryGuide("react")?.logo).toBe(ProviderLogo.React);
+  });
+});
+
+describe("a logo file's width", () => {
+  test("is wide when its viewBox is more than 1.3 times as wide as it is tall", () => {
+    expect(isWideLogoFile('<svg viewBox="0 0 512 275"></svg>')).toBe(true);
+    expect(isWideLogoFile('<svg viewBox="0 0 256 165"></svg>')).toBe(true);
+  });
+
+  test("is square for a square or nearly square viewBox", () => {
+    expect(isWideLogoFile('<svg viewBox="0 0 24 24"></svg>')).toBe(false);
+    expect(isWideLogoFile('<svg viewBox="0 0 256 225"></svg>')).toBe(false);
+    expect(isWideLogoFile('<svg viewBox="0 0 130 100"></svg>')).toBe(false);
+  });
+
+  test("is square when the file has no readable viewBox", () => {
+    expect(isWideLogoFile("<svg></svg>")).toBe(false);
+    expect(isWideLogoFile('<svg viewBox="0 0 0 0"></svg>')).toBe(false);
+    expect(isWideLogoFile('<svg viewBox="nonsense"></svg>')).toBe(false);
   });
 });

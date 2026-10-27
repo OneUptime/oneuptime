@@ -82,7 +82,7 @@ Auto-hébergé ? Remplacez `https://oneuptime.com` par l'URL de votre instance O
 
 Choisissez votre langage. Chaque configuration lit les variables d'environnement ci-dessus, donc aucun point de terminaison ni aucune clé n'apparaît dans votre code.
 
-Vous utilisez un framework ? Les [guides d'intégration](https://oneuptime.com/integrations) configurent OpenTelemetry pas à pas pour Express, NestJS, Next.js, Fastify, Koa, hapi, Bun, Deno, le navigateur, React et Angular, avec ce que chacun trace automatiquement et comment corriger ce qui ne va pas.
+Vous utilisez un framework ? Les [guides d'intégration](https://oneuptime.com/integrations) configurent OpenTelemetry pas à pas pour chaque framework, avec ce qu'il trace automatiquement et comment corriger ce qui ne va pas.
 
 :::tabs
 @tab Node.js

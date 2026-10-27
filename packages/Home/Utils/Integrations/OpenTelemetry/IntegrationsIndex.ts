@@ -115,13 +115,18 @@ export function getIntegrationsIndexContent(
   };
 }
 
-// Every published guide's card, in the catalog's order: the product pages' strip.
-export function getFrameworkGuideCards(): Array<GuideCard> {
-  return getPublishedGuides().map(
-    ({ guide }: { guide: OpenTelemetryGuide }): GuideCard => {
+/*
+ * The cards of the product pages' row of frameworks: the published guides
+ * the catalog features (isFeatured), in its order. The rest are on the index.
+ */
+export function getFeaturedGuideCards(): Array<GuideCard> {
+  return getPublishedGuides()
+    .filter(({ entry }: { entry: { isFeatured?: boolean | undefined } }): boolean => {
+      return entry.isFeatured === true;
+    })
+    .map(({ guide }: { guide: OpenTelemetryGuide }): GuideCard => {
       return guideCard(guide.slug);
-    },
-  );
+    });
 }
 
 // "A", "A and B", "A, B and C".

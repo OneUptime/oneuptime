@@ -24,6 +24,7 @@ import TelemetryDocumentation, {
 import ProviderLogo, {
   isProviderLogo,
 } from "../../../Types/ProviderLogo/ProviderLogo";
+import { TELEMETRY_GUIDE_LANGUAGE_KEYS } from "../../../Types/Telemetry/OpenTelemetryGuides";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "../../../UI/Utils/Project";
 import API from "../../../UI/Utils/API/API";
@@ -518,10 +519,19 @@ describe("TelemetryDocumentation", () => {
       ]);
     });
 
-    test("a language with no guide yet shows none", () => {
+    test("offers a button for every language the guides' catalog knows, in its order", () => {
+      expect(
+        TELEMETRY_LANGUAGES.map((language: { key: string }): string => {
+          return language.key;
+        }),
+      ).toEqual([...TELEMETRY_GUIDE_LANGUAGE_KEYS]);
+    });
+
+    test("a language with no guide shows none", () => {
       renderGuide("metrics");
 
-      fireEvent.click(screen.getByRole("button", { name: "Python" }));
+      // Swift has no guide on the website, nor one planned with the others.
+      fireEvent.click(screen.getByRole("button", { name: "Swift" }));
 
       expect(
         screen.queryByTestId("telemetry-framework-guides"),

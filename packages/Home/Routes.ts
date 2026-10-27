@@ -75,7 +75,7 @@ import {
   getGuidePageContent,
 } from "./Utils/Integrations/OpenTelemetry/GuidePage";
 import {
-  getFrameworkGuideCards,
+  getFeaturedGuideCards,
   getIntegrationsIndexContent,
 } from "./Utils/Integrations/OpenTelemetry/IntegrationsIndex";
 import {
@@ -202,11 +202,11 @@ const HomeFeatureSet: FeatureSet = {
       : null;
 
     /*
-     * The OpenTelemetry guides, as the telemetry product pages list them
+     * The OpenTelemetry guides the telemetry product pages feature
      * (Views/Partials/integrations/framework-strip.ejs): every page reads
      * them from app.locals, as it reads the stylesheet's URL.
      */
-    app.locals["frameworkGuides"] = getFrameworkGuideCards();
+    app.locals["frameworkGuides"] = getFeaturedGuideCards();
 
     app.get(
       ProductIconSpriteRoutePattern,

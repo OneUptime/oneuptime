@@ -58,12 +58,55 @@ export interface ProviderLogoImage {
   src: string;
   // The product's name, as its maker writes it: the image's accessible name.
   alt: string;
+  /*
+   * A wordmark or a wide symbol (Koa's, Fastify's): drawn across the tile
+   * rather than shrunk into a square, as the product draws it.
+   */
+  isWide: boolean;
+}
+
+// The SVG's viewBox: "0 0 512 275".
+const VIEW_BOX: RegExp = /viewBox="([^"]+)"/;
+
+/*
+ * Whether a logo is wider than it is tall, read from its file's viewBox the
+ * way Common's logo tests read it (wider than 1.3 to 1), so the website and
+ * the product draw the same logos wide.
+ */
+export function isWideLogoFile(svg: string): boolean {
+  const match: RegExpMatchArray | null = svg.match(VIEW_BOX);
+  const parts: Array<number> = (match?.[1] || "")
+    .trim()
+    .split(" ")
+    .map((part: string): number => {
+      return Number(part);
+    });
+  const width: number = parts[2] || 0;
+  const height: number = parts[3] || 0;
+
+  return width > 0 && height > 0 && width / height > 1.3;
+}
+
+const wideness: Map<ProviderLogo, boolean> = new Map<ProviderLogo, boolean>();
+
+function isWide(logo: ProviderLogo): boolean {
+  const cached: boolean | undefined = wideness.get(logo);
+
+  if (cached !== undefined) {
+    return cached;
+  }
+
+  const wide: boolean = isWideLogoFile(fs.readFileSync(fileOf(logo), "utf8"));
+  wideness.set(logo, wide);
+
+  return wide;
 }
 
 export function getProviderLogoImage(logo: ProviderLogo): ProviderLogoImage {
   return {
     src: `/img/provider-logos/${logo}.svg?v=${hashOf(logo)}`,
     alt: getProviderLogoName(logo),
+    isWide: isWide(logo),
   };
 }
 

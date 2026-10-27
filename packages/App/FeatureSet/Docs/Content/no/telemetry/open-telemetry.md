@@ -82,7 +82,7 @@ Selvhostet? Bytt ut `https://oneuptime.com` med URL-en til OneUptime-instansen d
 
 Velg språket ditt. Hvert oppsett leser miljøvariablene over, så verken endepunkt eller nøkkel står i koden din.
 
-Bruker du et rammeverk? [Integrasjonsveiledningene](https://oneuptime.com/integrations) setter opp OpenTelemetry trinn for trinn for Express, NestJS, Next.js, Fastify, Koa, hapi, Bun, Deno, nettleseren, React og Angular, med hva hvert av dem sporer automatisk og hvordan du retter det som går galt.
+Bruker du et rammeverk? [Integrasjonsveiledningene](https://oneuptime.com/integrations) setter opp OpenTelemetry trinn for trinn for hvert rammeverk, med hva det sporer automatisk og hvordan du retter det som går galt.
 
 :::tabs
 @tab Node.js

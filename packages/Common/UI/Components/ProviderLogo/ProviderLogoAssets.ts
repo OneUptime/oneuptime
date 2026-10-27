@@ -32,6 +32,9 @@ export const WIDE_PROVIDER_LOGOS: ReadonlyArray<ProviderLogo> = [
   ProviderLogo.Cisco,
   ProviderLogo.Go,
   ProviderLogo.Php,
+  ProviderLogo.Fastify,
+  ProviderLogo.Koa,
+  ProviderLogo.Hapi,
 ];
 
 export function getProviderLogoFileName(
@@ -113,6 +116,9 @@ export const PROVIDER_LOGO_FILE_LOADERS: Readonly<
   "better-stack.svg": () => {
     return import("../../Images/ProviderLogos/better-stack.svg");
   },
+  "bun.svg": () => {
+    return import("../../Images/ProviderLogos/bun.svg");
+  },
   "cisco.svg": () => {
     return import("../../Images/ProviderLogos/cisco.svg");
   },
@@ -131,6 +137,9 @@ export const PROVIDER_LOGO_FILE_LOADERS: Readonly<
   "crowdstrike.svg": () => {
     return import("../../Images/ProviderLogos/crowdstrike.svg");
   },
+  "deno.svg": () => {
+    return import("../../Images/ProviderLogos/deno.svg");
+  },
   "discord.svg": () => {
     return import("../../Images/ProviderLogos/discord.svg");
   },
@@ -145,6 +154,18 @@ export const PROVIDER_LOGO_FILE_LOADERS: Readonly<
   },
   "elixir.svg": () => {
     return import("../../Images/ProviderLogos/elixir.svg");
+  },
+  "express-dark.svg": () => {
+    return import("../../Images/ProviderLogos/express-dark.svg");
+  },
+  "express.svg": () => {
+    return import("../../Images/ProviderLogos/express.svg");
+  },
+  "fastify-dark.svg": () => {
+    return import("../../Images/ProviderLogos/fastify-dark.svg");
+  },
+  "fastify.svg": () => {
+    return import("../../Images/ProviderLogos/fastify.svg");
   },
   "fluent-bit.svg": () => {
     return import("../../Images/ProviderLogos/fluent-bit.svg");
@@ -179,11 +200,23 @@ export const PROVIDER_LOGO_FILE_LOADERS: Readonly<
   "groq.svg": () => {
     return import("../../Images/ProviderLogos/groq.svg");
   },
+  "hapi-dark.svg": () => {
+    return import("../../Images/ProviderLogos/hapi-dark.svg");
+  },
+  "hapi.svg": () => {
+    return import("../../Images/ProviderLogos/hapi.svg");
+  },
   "incident-io.svg": () => {
     return import("../../Images/ProviderLogos/incident-io.svg");
   },
   "java.svg": () => {
     return import("../../Images/ProviderLogos/java.svg");
+  },
+  "koa-dark.svg": () => {
+    return import("../../Images/ProviderLogos/koa-dark.svg");
+  },
+  "koa.svg": () => {
+    return import("../../Images/ProviderLogos/koa.svg");
   },
   "kubernetes.svg": () => {
     return import("../../Images/ProviderLogos/kubernetes.svg");
@@ -214,6 +247,12 @@ export const PROVIDER_LOGO_FILE_LOADERS: Readonly<
   },
   "mistral-ai.svg": () => {
     return import("../../Images/ProviderLogos/mistral-ai.svg");
+  },
+  "nestjs.svg": () => {
+    return import("../../Images/ProviderLogos/nestjs.svg");
+  },
+  "nextjs.svg": () => {
+    return import("../../Images/ProviderLogos/nextjs.svg");
   },
   "nodejs.svg": () => {
     return import("../../Images/ProviderLogos/nodejs.svg");

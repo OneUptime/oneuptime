@@ -23,6 +23,7 @@ import {
 } from "../Utils/CloudMarketplaces";
 import { SelfHostedContent } from "../Utils/SelfHosted";
 import { OPEN_TELEMETRY_GUIDE_PAGES } from "../Utils/Integrations/OpenTelemetry/OpenTelemetryGuides";
+import { getFeaturedOpenTelemetryGuides } from "Common/Types/Telemetry/OpenTelemetryGuides";
 
 /*
  * THE ROUTE TABLE, ANSWERING REAL REQUESTS.
@@ -756,7 +757,7 @@ describe("the route table over HTTP", () => {
       ).toBe(`/integrations/opentelemetry/${slug}`);
     });
 
-    test("every page is handed the guides' cards, for the product pages' strip", async () => {
+    test("every page is handed the featured guides' cards, for the product pages' strip", async () => {
       const answer: Answer = await home.request("GET", "/product/traces");
 
       expect(answer.status).toBe(200);
@@ -767,7 +768,7 @@ describe("the route table over HTTP", () => {
           },
         ),
       ).toEqual(
-        OPEN_TELEMETRY_GUIDE_PAGES.map((guide: { slug: string }): string => {
+        getFeaturedOpenTelemetryGuides().map((guide: { slug: string }): string => {
           return `/integrations/opentelemetry/${guide.slug}`;
         }),
       );
@@ -823,11 +824,13 @@ describe("the route table over HTTP", () => {
     });
 
     test("serves the logos the guides show, and nothing else from their folder", async () => {
-      const logo: Answer = await home.request("GET", "/img/provider-logos/react.svg");
+      for (const name of ["react", "express", "nextjs", "koa"]) {
+        const logo: Answer = await home.request("GET", `/img/provider-logos/${name}.svg`);
 
-      expect(logo.status).toBe(200);
-      expect(logo.contentType).toContain("image/svg+xml");
-      expect(logo.body).toContain("<svg");
+        expect([name, logo.status]).toEqual([name, 200]);
+        expect(logo.contentType).toContain("image/svg+xml");
+        expect(logo.body).toContain("<svg");
+      }
 
       for (const url of [
         "/img/provider-logos/no-such-logo.svg",
