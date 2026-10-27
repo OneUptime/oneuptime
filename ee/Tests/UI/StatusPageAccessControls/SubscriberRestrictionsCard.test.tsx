@@ -16,7 +16,6 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
-import { SubscriberRestrictionsState } from "@oneuptime/dashboard/Components/StatusPage/SubscriberRestrictionsCopy";
 import React from "react";
 import getJestMockFunction, { MockFunction } from "Common/Tests/MockType";
 import { getJestSpyOn } from "Common/Tests/Spy";
@@ -99,6 +98,7 @@ import SubscriberRestrictionsCopy, {
   ALLOWED_EMAIL_DOMAINS_SETTING_TEST_ID,
   PRIVATE_USERS_ONLY_SWITCH_TEST_ID,
   SUBSCRIBER_RESTRICTIONS_CARD_TEST_ID,
+  SubscriberRestrictionsState,
 } from "@oneuptime/dashboard/Components/StatusPage/SubscriberRestrictionsCopy";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import SubscriptionPlan, {

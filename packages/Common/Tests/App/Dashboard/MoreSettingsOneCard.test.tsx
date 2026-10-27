@@ -140,6 +140,11 @@ const BASE_PERMISSIONS: Array<Permission> = [
 // Rows each table answers with.
 let rowsPerTable: number = 0;
 
+// Each table answers with one row, or none.
+function answerWithRows(withRows: boolean): void {
+  rowsPerTable = withRows ? 1 : 0;
+}
+
 function grant(permissions: Array<Permission>): void {
   jest.spyOn(User, "isMasterAdmin").mockReturnValue(false);
   jest.spyOn(PermissionUtil, "getAllPermissions").mockReturnValue(permissions);
@@ -798,7 +803,7 @@ describe.each(PAGES)(
   (page: MoreSettingsPage) => {
     for (const withRows of [false, true]) {
       test(`${withRows ? "with" : "without"} rows, each name it lists is a card in it`, async () => {
-        rowsPerTable = withRows ? 1 : 0;
+        answerWithRows(withRows);
 
         await openPageAndLoad(page);
 
@@ -819,7 +824,7 @@ describe.each(PAGES)(
       });
 
       test(`${withRows ? "with" : "without"} rows, opened at each name it lists, it opens there`, async () => {
-        rowsPerTable = withRows ? 1 : 0;
+        answerWithRows(withRows);
 
         await openPageAndLoad(page);
 
