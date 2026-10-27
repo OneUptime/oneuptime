@@ -185,6 +185,7 @@ const reloadNow: () => void = (): void => {
   NewVersion.reloadKeepingPlace();
 };
 
+// A card's words in English, translated where they are drawn.
 interface CardCopy {
   title: string;
   message: string;
@@ -497,14 +498,14 @@ const ChunkLoadRecovery: FunctionComponent<ComponentProps> = (
     if (step === ChunkLoadRecoveryStep.Updating) {
       return isMembers
         ? {
-            title: translate("Updating to the new version"),
-            message: translate(
+            title: translationKey("Updating to the new version"),
+            message: translationKey(
               "OneUptime was updated while you had it open. This page will open in the new version in a moment.",
             ),
           }
         : {
-            title: translate("Loading the latest version"),
-            message: translate(
+            title: translationKey("Loading the latest version"),
+            message: translationKey(
               "A newer version of this page is available. It's loading now.",
             ),
           };
@@ -512,8 +513,8 @@ const ChunkLoadRecovery: FunctionComponent<ComponentProps> = (
 
     if (step === ChunkLoadRecoveryStep.Offline) {
       return {
-        title: translate("You're offline"),
-        message: translate(
+        title: translationKey("You're offline"),
+        message: translationKey(
           "This page needs an internet connection to load. It will load as soon as you're back online.",
         ),
       };
@@ -521,8 +522,8 @@ const ChunkLoadRecovery: FunctionComponent<ComponentProps> = (
 
     if (step === ChunkLoadRecoveryStep.Unreachable) {
       return {
-        title: translate("Can't reach the server"),
-        message: translate(
+        title: translationKey("Can't reach the server"),
+        message: translationKey(
           "It may be restarting after an update. This page will load as soon as the server is back.",
         ),
       };
@@ -531,17 +532,17 @@ const ChunkLoadRecovery: FunctionComponent<ComponentProps> = (
     if (step === ChunkLoadRecoveryStep.NeedsReload) {
       return {
         title: isMembers
-          ? translate("A new version of OneUptime is ready")
-          : translate("A newer version of this page is ready"),
-        message: translate(
+          ? translationKey("A new version of OneUptime is ready")
+          : translationKey("A newer version of this page is ready"),
+        message: translationKey(
           "This page needs the new version to open. Reloading discards changes you haven't saved.",
         ),
       };
     }
 
     return {
-      title: translate("This page couldn't be loaded"),
-      message: translate(
+      title: translationKey("This page couldn't be loaded"),
+      message: translationKey(
         "A file it needs couldn't be downloaded from the server. Try reloading in a moment.",
       ),
     };
@@ -603,8 +604,8 @@ const ChunkLoadRecovery: FunctionComponent<ComponentProps> = (
       }}
       tone={tone}
       iconPath={iconPath}
-      title={copy.title}
-      message={copy.message}
+      title={translate(copy.title)}
+      message={translate(copy.message)}
       isAlert={step === ChunkLoadRecoveryStep.Failed}
       actions={actions}
       language={getScreenLanguage(translator, copy.title)}
