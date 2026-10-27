@@ -1,5 +1,7 @@
 import DatabaseRequestType from "../../../../../Server/Types/BaseDatabase/DatabaseRequestType";
-import AccessControlPermission from "../../../../../Server/Types/Database/Permissions/AccessControlPermission";
+import AccessControlPermission, {
+  LabelGrant,
+} from "../../../../../Server/Types/Database/Permissions/AccessControlPermission";
 import BasePermission from "../../../../../Server/Types/Database/Permissions/BasePermission";
 import OwnedScopePermission from "../../../../../Server/Types/Database/Permissions/OwnedScopePermission";
 import PublicPermission from "../../../../../Server/Types/Database/Permissions/PublicPermission";
@@ -7,6 +9,7 @@ import QueryPermission from "../../../../../Server/Types/Database/Permissions/Qu
 import TablePermission from "../../../../../Server/Types/Database/Permissions/TablePermission";
 import TenantPermission from "../../../../../Server/Types/Database/Permissions/TenantPermission";
 import UserPermissions from "../../../../../Server/Types/Database/Permissions/UserPermission";
+import Incident from "../../../../../Models/DatabaseModels/Incident";
 import IncidentInternalNote from "../../../../../Models/DatabaseModels/IncidentInternalNote";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorizedException";
@@ -83,9 +86,20 @@ describe("BasePermission canAccessIfCanReadOn relation query", () => {
         return query;
       });
     // Permitted labels resolved for the related model (Incident).
+    const getLabelGrantForModel: typeof AccessControlPermission.getLabelGrantForModel =
+      AccessControlPermission.getLabelGrantForModel.bind(
+        AccessControlPermission,
+      );
+
     jest
-      .spyOn(AccessControlPermission, "getAccessControlIdsForQuery")
-      .mockReturnValue([permittedLabel]);
+      .spyOn(AccessControlPermission, "getLabelGrantForModel")
+      .mockImplementation(
+        (modelType: any, props: any, type: any): LabelGrant => {
+          return modelType === Incident
+            ? { labelIds: [permittedLabel], ownedTeamIds: null }
+            : getLabelGrantForModel(modelType, props, type);
+        },
+      );
   });
 
   afterEach(() => {
