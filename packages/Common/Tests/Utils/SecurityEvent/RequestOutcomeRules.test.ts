@@ -7,7 +7,7 @@ import {
 import { DetectionRuleDataKind } from "../../../Types/SecurityEvent/DetectionRuleDataKind";
 import NormalizedSecurityEvent from "../../../Types/SecurityEvent/NormalizedSecurityEvent";
 import SecurityEventRequestOutcome from "../../../Types/SecurityEvent/SecurityEventRequestOutcome";
-import { SigmaRule } from "../../../Types/SecurityEvent/SigmaRule";
+import SigmaRule from "../../../Types/SecurityEvent/SigmaRule";
 import WebAttackLogParser from "../../../Utils/SecurityEvent/LogParsers/WebAttackLogParser";
 import { applyRequestAssessment } from "../../../Utils/SecurityEvent/RequestFollowUp";
 import { RequestTraceAssessment } from "../../../Utils/SecurityEvent/RequestOutcome";
