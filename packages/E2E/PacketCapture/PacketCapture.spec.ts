@@ -1,5 +1,6 @@
 import { Download, expect, Locator, Page, test } from "@playwright/test";
 import fs from "fs";
+import { boxesInOneFrame, FrameBox } from "../SuiteHelpers/Frames";
 
 /*
  * Packet captures, end to end in a browser, against the fixture's in-page
@@ -802,14 +803,13 @@ test.describe("at phone width, in the dark and in Japanese", () => {
 
     expect(await overflow()).toBeLessThanOrEqual(0);
 
-    const host: { y: number; height: number } | null = await page
-      .getByTestId("packet-capture-filter-host")
-      .boundingBox();
-    const port: { y: number } | null = await page
-      .getByTestId("packet-capture-filter-port")
-      .boundingBox();
+    // In one frame: the form has only just opened.
+    const [host, port] = (await boxesInOneFrame([
+      page.getByTestId("packet-capture-filter-host"),
+      page.getByTestId("packet-capture-filter-port"),
+    ])) as [FrameBox, FrameBox];
 
-    expect(port!.y).toBeGreaterThan(host!.y + host!.height);
+    expect(port.y).toBeGreaterThan(host.y + host.height);
   });
 
   test("the notice is drawn in the dark theme's colours", async ({

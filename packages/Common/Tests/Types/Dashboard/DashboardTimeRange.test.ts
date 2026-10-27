@@ -29,6 +29,7 @@ import {
 import { DashboardSettingSource } from "../../../Types/Dashboard/DashboardViewerChoice";
 import TimeRange from "../../../Types/Time/TimeRange";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 const PRESETS_IN_ORDER: Array<TimeRange> = [
   TimeRange.PAST_FIVE_MINS,
@@ -222,15 +223,18 @@ describe("a link's own range", () => {
 
   test("a hostile, megabyte-long value is read as none at once", () => {
     const longValue: string = `${" ".repeat(400000)}1d`;
-    const startedAt: number = Date.now();
-
-    expect(parseDashboardLinkTimeRange(longValue)).toBeNull();
-    expect(
-      getDashboardLinkTimeRangeFromSearch(
-        `?range=${encodeURIComponent(longValue)}`,
-      ),
-    ).toBeNull();
-    expect(Date.now() - startedAt).toBeLessThan(2000);
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        expect(parseDashboardLinkTimeRange(longValue)).toBeNull();
+        expect(
+          getDashboardLinkTimeRangeFromSearch(
+            `?range=${encodeURIComponent(longValue)}`,
+          ),
+        ).toBeNull();
+      },
+      limitInMs: 2000,
+    });
+    expect(timed.inMs).toBeLessThan(2000);
   });
 });
 

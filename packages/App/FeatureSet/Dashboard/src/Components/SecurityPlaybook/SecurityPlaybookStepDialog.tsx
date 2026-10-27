@@ -3,6 +3,7 @@ import {
   STEP_ACTION_KEY,
   formValuesToStep,
   getNewStepFormValues,
+  getStepDialogWords,
   isApprovalSwitchOffered,
   stepToFormValues,
 } from "./SecurityPlaybookStepForm";
@@ -107,6 +108,19 @@ export function getActionCardGroups(): Array<CardSelectOptionGroup> {
     },
   );
 }
+
+/*
+ * What the Note and Message fields say above the placeholders they may use.
+ * A field's own "(Optional)" says whether it may be left empty, so neither
+ * opens with "Optional." of its own.
+ */
+export const NOTE_PLACEHOLDER_LEAD: string = translationKey(
+  "Markdown. These fill in from the case:",
+);
+// An email or a post with no message of its own sends a summary of the case.
+export const MESSAGE_PLACEHOLDER_LEAD: string = translationKey(
+  "Markdown. Leave it empty to send a summary of the case. These fill in from the case:",
+);
 
 /*
  * The placeholders a note or message may use, under its field: written as
@@ -283,7 +297,7 @@ export function getStepSettingsFields(
     {
       field: { userId: true },
       title: "Person",
-      description: "Optional. Who the case is assigned to.",
+      description: "Who the case is assigned to.",
       fieldType: FormFieldSchemaType.PeoplePicker,
       stepId: "settings",
       peoplePicker: {
@@ -302,7 +316,7 @@ export function getStepSettingsFields(
       field: { teamId: true },
       title: "Team",
       description:
-        "Optional. The team the case belongs to. Choose a person, a team, or both.",
+        "The team the case belongs to. Choose a person, a team, or both.",
       fieldType: FormFieldSchemaType.PeoplePicker,
       stepId: "settings",
       peoplePicker: {
@@ -369,9 +383,7 @@ export function getStepSettingsFields(
     {
       field: { note: true },
       title: "Note",
-      description: (
-        <PlaceholderHelp lead="Markdown. These fill in from the case:" />
-      ),
+      description: <PlaceholderHelp lead={NOTE_PLACEHOLDER_LEAD} />,
       fieldType: FormFieldSchemaType.Markdown,
       stepId: "settings",
       required: (values: FormValues<JSONObject>): boolean => {
@@ -402,7 +414,7 @@ export function getStepSettingsFields(
       field: { raisePriorityToId: true },
       title: "On a Match, Raise Priority To",
       description:
-        "Optional. When an entity is a known indicator, the case's priority rises to at least this.",
+        "When an entity is a known indicator, the case's priority rises to at least this.",
       fieldType: FormFieldSchemaType.Dropdown,
       stepId: "settings",
       dropdownOptions: getSecurityCasePriorityOptions(priorities, {
@@ -502,9 +514,7 @@ export function getStepSettingsFields(
     {
       field: { message: true },
       title: "Message",
-      description: (
-        <PlaceholderHelp lead="Optional. Markdown; a summary of the case when empty. These fill in from the case:" />
-      ),
+      description: <PlaceholderHelp lead={MESSAGE_PLACEHOLDER_LEAD} />,
       fieldType: FormFieldSchemaType.LongText,
       stepId: "settings",
       required: false,
@@ -811,6 +821,7 @@ export function getStepSettingsFields(
 const SecurityPlaybookStepDialog: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const pickedAction: MutableRefObject<string | undefined> = useRef<
@@ -820,6 +831,12 @@ const SecurityPlaybookStepDialog: FunctionComponent<ComponentProps> = (
   const definition: SecurityPlaybookActionDefinition | undefined = props.step
     ? getSecurityPlaybookAction(props.step.action)
     : undefined;
+  const { title, description } = getStepDialogWords({
+    definition: definition,
+    index: props.index,
+    isNew: isNew,
+    translator: translator,
+  });
 
   const actionField: Field<JSONObject> = {
     field: { [STEP_ACTION_KEY]: true },
@@ -834,12 +851,8 @@ const SecurityPlaybookStepDialog: FunctionComponent<ComponentProps> = (
 
   return (
     <BasicFormModal<JSONObject>
-      title={isNew ? "Add Step" : `Edit Step ${props.index + 1}`}
-      description={
-        definition
-          ? `${definition.title}: ${definition.description}`
-          : "Pick what the step does, then fill in its settings."
-      }
+      title={title}
+      description={description}
       modalWidth={ModalWidth.Large}
       submitButtonText={isNew ? "Add Step" : "Save Step"}
       isLoading={isLoading}

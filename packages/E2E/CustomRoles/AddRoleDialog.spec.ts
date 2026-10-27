@@ -1,11 +1,14 @@
 import {
   APIRequestContext,
-  APIResponse,
   expect,
   Locator,
   Page,
   test,
 } from "@playwright/test";
+import {
+  readFixtureEdition,
+  skipUnlessEnterprise,
+} from "../SuiteHelpers/Edition";
 import fs from "fs/promises";
 import path from "path";
 
@@ -799,12 +802,12 @@ interface StillWalk {
 let edition: string = "";
 
 test.beforeAll(async ({ request }: { request: APIRequestContext }) => {
-  const response: APIResponse = await request.get("/edition.json");
-  edition = ((await response.json()) as { edition: string }).edition;
+  edition = await readFixtureEdition(request);
 });
 
-const isEnterprise: () => boolean = (): boolean => {
-  return edition === "enterprise";
+// Read when a test runs, after beforeAll has set it (tests are made in a loop).
+const fixtureEdition: () => string = (): string => {
+  return edition;
 };
 
 const STILL_WALKS: Array<StillWalk> = [
@@ -874,10 +877,12 @@ test.describe("Add a Role never moves under the pointer", () => {
     }: {
       page: Page;
     }) => {
-      test.skip(
-        Boolean(walk.needsEnterprise) && !isEnterprise(),
-        "Custom roles are an Enterprise feature: ee/ is not checked out.",
-      );
+      if (walk.needsEnterprise) {
+        skipUnlessEnterprise(
+          fixtureEdition(),
+          "Custom roles are an Enterprise feature: ee/ is not checked out.",
+        );
+      }
       await page.setViewportSize({ width: walk.width, height: walk.height });
       await page.goto(`${walk.path}${walk.search}`);
       const form: Locator = await openAddRole(page, walk.addRole);

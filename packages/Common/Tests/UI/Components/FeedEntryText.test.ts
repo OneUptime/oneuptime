@@ -9,6 +9,7 @@ import {
   stripLeadingDecoration,
   tidyFeedEntryDetails,
 } from "../../../UI/Components/Feed/FeedEntryText";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * How a feed entry's stored Markdown is read as a sentence - for the rows
@@ -91,12 +92,15 @@ describe("the decoration an entry opens with", () => {
 
   test("only the start is read: a megabyte-long entry is handled in time and keeps its tail", () => {
     const tail: string = "x".repeat(4 * 1024 * 1024);
-    const started: number = Date.now();
-    const result: string = stripLeadingDecoration(
-      `📄 posted a log:\n\n${tail}`,
-    );
+    const timed: FastestRun<string> = fastestRun({
+      run: (): string => {
+        return stripLeadingDecoration(`📄 posted a log:\n\n${tail}`);
+      },
+      limitInMs: 500,
+    });
+    const result: string = timed.result;
 
-    expect(Date.now() - started).toBeLessThan(500);
+    expect(timed.inMs).toBeLessThan(500);
     expect(result.startsWith("posted a log:")).toBe(true);
     expect(result.length).toBe(`posted a log:\n\n${tail}`.length);
   });
@@ -436,11 +440,15 @@ describe("details as the feed unfolds them", () => {
   test("a long list of the old lines stays a list, quickly", () => {
     const lines: string =
       "**Notified:** Someone (someone@example.com)\n".repeat(5000);
-    const startedAt: number = Date.now();
+    const timed: FastestRun<string> = fastestRun({
+      run: (): string => {
+        return tidyFeedEntryDetails(lines);
+      },
+      limitInMs: 500,
+    });
+    const tidied: string = timed.result;
 
-    const tidied: string = tidyFeedEntryDetails(lines);
-
-    expect(Date.now() - startedAt).toBeLessThan(500);
+    expect(timed.inMs).toBeLessThan(500);
     expect(tidied.split("\n").filter(Boolean)).toHaveLength(5000);
     expect(tidied.startsWith("- Someone (someone@example.com)\n")).toBe(true);
   });

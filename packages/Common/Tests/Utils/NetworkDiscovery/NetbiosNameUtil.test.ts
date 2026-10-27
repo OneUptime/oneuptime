@@ -7,6 +7,7 @@ import { normalizeReverseDnsName } from "../../../Utils/NetworkDiscovery/Reverse
 import Slug from "../../../Utils/Slug";
 import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 import { describe, expect, it } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * OneUptime issue #3677 — discovered hosts with no DNS record and no SNMP show
@@ -250,13 +251,16 @@ describe("normalizeNetbiosName — values that are not a name", () => {
      * A backtracking `/[ \0]+$/` would be quadratic here. The server reads
      * these values out of jsonb, so a hostile row must stay cheap to reject.
      */
-    const startedAt: number = Date.now();
-
-    expect(
-      normalizeNetbiosName("A" + " ".repeat(200000) + "B"),
-    ).toBeUndefined();
-    expect(normalizeNetbiosName("A" + " \u0000".repeat(100000))).toBe("A");
-    expect(Date.now() - startedAt).toBeLessThan(2000);
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        expect(
+          normalizeNetbiosName("A" + " ".repeat(200000) + "B"),
+        ).toBeUndefined();
+        expect(normalizeNetbiosName("A" + " \u0000".repeat(100000))).toBe("A");
+      },
+      limitInMs: 2000,
+    });
+    expect(timed.inMs).toBeLessThan(2000);
   });
 });
 

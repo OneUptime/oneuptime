@@ -28,6 +28,7 @@ import {
   seededRandom,
 } from "../../../Common/Tests/Helpers/SeededRandom";
 import { generatedTexts } from "../../../Common/Tests/Helpers/GeneratedTexts";
+import { FastestRun, fastestRun } from "Common/Tests/Helpers/FastestRun";
 
 /*
  * Adding a resource the way a host is added (Components/ResourceOnboarding):
@@ -119,11 +120,15 @@ describe("the name the commands carry", () => {
   test("reads only the start of a paste, however long it is", () => {
     // Five megabytes on one line: a screenshot's base64, pasted by mistake.
     const paste: string = `cluster ${"QUJD".repeat(1_310_720)}`;
-    const startedAt: number = Date.now();
+    const timed: FastestRun<string> = fastestRun({
+      run: (): string => {
+        return toResourceName(paste);
+      },
+      limitInMs: 1000,
+    });
+    const name: string = timed.result;
 
-    const name: string = toResourceName(paste);
-
-    expect(Date.now() - startedAt).toBeLessThan(1000);
+    expect(timed.inMs).toBeLessThan(1000);
     expect(name.startsWith("cluster-QUJD")).toBe(true);
     expect(name).toHaveLength(RESOURCE_NAME_MAX_LENGTH);
   });

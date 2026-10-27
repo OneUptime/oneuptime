@@ -11,7 +11,7 @@ flowchart TB
         direction TB
         Ingress["Ingress<br/>(Nginx, TLS)"]
         App["App<br/>Dashboards,<br/>Statusseiten,<br/>API, Ingest,<br/>Hintergrundjobs"]
-        Runner["Globaler Runner"]
+        Runner["Globaler<br/>Runner"]
         Probe["Probes"]
         subgraph Data["Datenspeicher"]
             direction LR

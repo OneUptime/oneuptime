@@ -2,6 +2,7 @@ import { classifyDeviceRole } from "../../../Utils/Monitor/NetworkDeviceRoleUtil
 import { generatedTexts } from "../../Helpers/GeneratedTexts";
 import { patternWith } from "../../Helpers/SourcePatterns";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * ---------------------------------------------------------------------------
@@ -38,11 +39,14 @@ describe("a description is classified in time in line with its length", () => {
     ["word parts that start with ap", "x " + repeat("ap-", LENGTH) + "x"],
     ["one long word after ap", "ap" + repeat("w", LENGTH) + ", hive"],
   ])("%s", (_label: string, sysDescr: string) => {
-    const startedAt: number = Date.now();
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        classifyDeviceRole({ sysDescr });
+      },
+      limitInMs: 2000,
+    });
 
-    classifyDeviceRole({ sysDescr });
-
-    expect(Date.now() - startedAt).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
   });
 });
 

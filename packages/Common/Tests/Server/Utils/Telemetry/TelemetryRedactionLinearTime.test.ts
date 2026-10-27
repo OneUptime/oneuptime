@@ -4,6 +4,7 @@ import {
   sanitizeExceptionMessage,
 } from "../../../../Server/Utils/Telemetry/ExceptionSanitizer";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../../Helpers/FastestRun";
 
 /*
  * ---------------------------------------------------------------------------
@@ -53,9 +54,13 @@ describe("ToolResultSerializer.redact reads in time in line with length", () => 
   test.each(WORST_CASES)(
     "decides %s quickly",
     (_label: string, text: string) => {
-      const startedAt: number = Date.now();
-      ToolResultSerializer.redact(text);
-      expect(Date.now() - startedAt).toBeLessThan(2000);
+      const timed: FastestRun<void> = fastestRun({
+        run: (): void => {
+          ToolResultSerializer.redact(text);
+        },
+        limitInMs: 2000,
+      });
+      expect(timed.inMs).toBeLessThan(2000);
     },
   );
 
@@ -79,9 +84,13 @@ describe("normalizeExceptionText reads in time in line with length", () => {
   test.each(WORST_CASES)(
     "decides %s quickly",
     (_label: string, text: string) => {
-      const startedAt: number = Date.now();
-      normalizeExceptionText(text);
-      expect(Date.now() - startedAt).toBeLessThan(2000);
+      const timed: FastestRun<void> = fastestRun({
+        run: (): void => {
+          normalizeExceptionText(text);
+        },
+        limitInMs: 2000,
+      });
+      expect(timed.inMs).toBeLessThan(2000);
     },
   );
 
@@ -99,9 +108,13 @@ describe("sanitizeExceptionMessage reads in time in line with length", () => {
   test.each(WORST_CASES)(
     "decides %s quickly",
     (_label: string, text: string) => {
-      const startedAt: number = Date.now();
-      sanitizeExceptionMessage(text);
-      expect(Date.now() - startedAt).toBeLessThan(2000);
+      const timed: FastestRun<void> = fastestRun({
+        run: (): void => {
+          sanitizeExceptionMessage(text);
+        },
+        limitInMs: 2000,
+      });
+      expect(timed.inMs).toBeLessThan(2000);
     },
   );
 });

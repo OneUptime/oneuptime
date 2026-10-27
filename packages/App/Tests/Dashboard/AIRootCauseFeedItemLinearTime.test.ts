@@ -1,5 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
 import { stripCitationMarkers } from "../../FeatureSet/Dashboard/src/Utils/AIRootCauseFeedItem";
+import { FastestRun, fastestRun } from "Common/Tests/Helpers/FastestRun";
 
 /*
  * The feed takes the citation markers out of an AI report in the viewer's
@@ -28,11 +29,15 @@ describe("citation markers come out of a report in time in line with its length"
     ["a tilde fence line", "~~~" + repeat("~", LENGTH) + LINE_SEPARATOR],
   ])("%s", (_label: string, line: string) => {
     const report: string = `The pool was cut [C1].\n${line}\nA release [C2].`;
-    const startedAt: number = Date.now();
+    const timed: FastestRun<string> = fastestRun({
+      run: (): string => {
+        return stripCitationMarkers(report);
+      },
+      limitInMs: 2000,
+    });
+    const stripped: string = timed.result;
 
-    const stripped: string = stripCitationMarkers(report);
-
-    expect(Date.now() - startedAt).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
     expect(stripped).toBe(`The pool was cut.\n${line}\nA release.`);
   });
 

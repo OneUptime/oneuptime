@@ -13,6 +13,7 @@ import {
   SecurityPlaybookStep,
   normalizeSecurityPlaybookStepConfig,
 } from "Common/Types/SecurityPlaybook/SecurityPlaybookStep";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * A playbook step as the step dialog edits it, and back. The dialog is one
@@ -323,4 +324,42 @@ export function moveStep(
   moved[target] = current;
 
   return moved;
+}
+
+export const EDIT_STEP_TITLE: string = translationKey(
+  "Edit Step {{number}}: {{title}}",
+);
+
+/*
+ * The dialog's title and the line under it. A step being changed is named
+ * by its place and what it does, as a run lists its steps ("Step 4: Add a
+ * note"), and what that does is said under it - each in the reader's
+ * language. Joined from English pieces, the title read "Edit Step 4" and
+ * its line "Add a note: Write a note on the case: ..." on every page, two
+ * colons in one sentence. A new step has its action still to pick.
+ */
+export function getStepDialogWords(data: {
+  definition: SecurityPlaybookActionDefinition | undefined;
+  index: number;
+  isNew: boolean;
+  translator: Translator;
+}): { title: string; description: string } {
+  const { definition, translator } = data;
+
+  if (data.isNew || !definition) {
+    return {
+      title: data.isNew ? "Add Step" : "Edit Step",
+      description: "Pick what the step does, then fill in its settings.",
+    };
+  }
+
+  return {
+    title: translator.translateTemplate(EDIT_STEP_TITLE, {
+      number: translator.formatNumber(data.index + 1),
+      title: translator.translateText(definition.title) || definition.title,
+    }),
+    description:
+      translator.translateText(definition.description) ||
+      definition.description,
+  };
 }

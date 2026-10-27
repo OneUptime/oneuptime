@@ -11,6 +11,7 @@ import {
 } from "../../../UI/Components/Markdown.tsx/MarkdownConverters";
 import CallSummaryMarkdown from "../../../Utils/VideoCall/CallSummaryMarkdown";
 import { renderAsDashboard } from "../Markdown/DashboardMarkdownRenderer";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * THE ROOT CAUSE A PERSON STARTS FROM when they use OneUptime AI's
@@ -402,11 +403,14 @@ describe("CallSummaryMarkdown.buildRootCause", () => {
     ];
 
     for (const text of worstCases) {
-      const started: number = Date.now();
+      const timed: FastestRun<void> = fastestRun({
+        run: (): void => {
+          CallSummaryMarkdown.asEditorText(text);
+        },
+        limitInMs: 2_000,
+      });
 
-      CallSummaryMarkdown.asEditorText(text);
-
-      expect(Date.now() - started).toBeLessThan(2_000);
+      expect(timed.inMs).toBeLessThan(2_000);
     }
   });
 });

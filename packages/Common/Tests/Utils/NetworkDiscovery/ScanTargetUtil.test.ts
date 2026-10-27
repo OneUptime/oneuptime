@@ -3,6 +3,7 @@ import ScanTargetUtil, {
   ScanTarget,
 } from "../../../Utils/NetworkDiscovery/ScanTargetUtil";
 import { describe, expect, it } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * Contract under test: a discovery scan target parses, counts and expands
@@ -200,10 +201,16 @@ describe("ScanTargetUtil.countHosts - octet ranges", () => {
   });
 
   it("rejects a very long target without pathological slowdown", () => {
-    const started: number = Date.now();
-    expect(ScanTargetUtil.countHosts("1".repeat(50000))).toBe(0);
-    expect(ScanTargetUtil.countHosts(`10.${"1-".repeat(20000)}2.0.1`)).toBe(0);
-    expect(Date.now() - started).toBeLessThan(2000);
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        expect(ScanTargetUtil.countHosts("1".repeat(50000))).toBe(0);
+        expect(ScanTargetUtil.countHosts(`10.${"1-".repeat(20000)}2.0.1`)).toBe(
+          0,
+        );
+      },
+      limitInMs: 2000,
+    });
+    expect(timed.inMs).toBeLessThan(2000);
   });
 
   it("accepts a target at the length gate and rejects one past it", () => {

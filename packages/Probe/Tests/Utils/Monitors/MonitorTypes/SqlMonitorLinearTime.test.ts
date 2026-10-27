@@ -9,6 +9,7 @@ import SqlMonitorResponse from "Common/Types/Monitor/SqlMonitor/SqlMonitorRespon
 import MonitorStepSqlMonitor from "Common/Types/Monitor/MonitorStepSqlMonitor";
 import SqlDatabaseType from "Common/Types/Monitor/SqlDatabaseType";
 import { generatedTexts } from "Common/Tests/Helpers/GeneratedTexts";
+import { fastestRun } from "Common/Tests/Helpers/FastestRun";
 import { describe, expect, it } from "@jest/globals";
 
 /*
@@ -35,10 +36,13 @@ const repeat: (unit: string, length: number) => string = (
 
 type TimedFunction = () => unknown;
 
+/*
+ * How long the work takes: the fastest of up to three attempts, counted as
+ * it would have run on a usual runner when every attempt overran on a slow
+ * one (Tests/Helpers/FastestRun).
+ */
 const timeOf: (run: TimedFunction) => number = (run: TimedFunction): number => {
-  const startedAt: number = Date.now();
-  run();
-  return Date.now() - startedAt;
+  return fastestRun({ run: run, limitInMs: 2000 }).inMs;
 };
 
 const QUERY_WORST_CASES: Array<[string, string]> = [

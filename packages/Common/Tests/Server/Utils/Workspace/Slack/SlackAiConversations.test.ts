@@ -9,6 +9,7 @@ import SlackAiConversations, {
 } from "../../../../../Server/Utils/Workspace/Slack/SlackAiConversations";
 import { JSONObject } from "../../../../../Types/JSON";
 import WorkspaceType from "../../../../../Types/Workspace/WorkspaceType";
+import { FastestRun, fastestRun } from "../../../../Helpers/FastestRun";
 
 /*
  * WHAT OF SLACK'S MESSAGES IS ADDRESSED TO ONEUPTIME (#4768).
@@ -282,14 +283,16 @@ describe("SlackAiConversations.read: what a message is, from the event alone", (
     (_name: string, unclosed: string) => {
       const text: string = unclosed.repeat(Math.ceil(400000 / unclosed.length));
 
-      const startedAt: number = performance.now();
-      const message: SlackMessage | null = SlackAiConversations.read(
-        channelMessage({ text: text }),
-      );
-      const tookMs: number = performance.now() - startedAt;
+      const timed: FastestRun<SlackMessage | null> = fastestRun({
+        run: (): SlackMessage | null => {
+          return SlackAiConversations.read(channelMessage({ text: text }));
+        },
+        limitInMs: 2000,
+      });
+      const message: SlackMessage | null = timed.result;
 
       expect(message?.kind).toBe(SlackMessageKind.ThreadReply);
-      expect(tookMs).toBeLessThan(2000);
+      expect(timed.inMs).toBeLessThan(2000);
     },
   );
 

@@ -1051,6 +1051,51 @@ publish job does not download) and attached by
 succeeded, under the asset names the release has always had, and the SBOM job
 waiting for the merge of exactly the images `generate_sboms.sh` scans.
 
+release.yml runs for a push to `release` and for a workflow_dispatch from any
+branch, so every job that publishes (the list above) runs only for `release`:
+its own `if` names the branch, or a job it needs does and its own `if` calls no
+status function. The tags, the charts, the npm packages, the Terraform
+provider, the draft and the four agents' builds say so themselves; the builds
+and e2e jobs behind the release still run for any branch.
+
+### `PlaywrightImage.test.js`
+
+The browser jobs run in `mcr.microsoft.com/playwright`, the image Playwright
+publishes for each version, rather than installing their browsers' system
+packages and fonts from the runner's Ubuntu mirror, which some runners served
+at a few dozen kB/s (20 minutes for one install, an `apt-get update` that hung
+for three hours). The suite holds every job that runs a browser to the image,
+or to an install under `BrowserInstallLimits.test.js` (the Probe's job, whose
+suite needs `strace` and `gcc` from apt as well); every job that runs
+packages/E2E's suites on the runner to that list; the image's tag to the one
+Playwright version every lockfile pins (the image has the browser builds of
+its own version only); a job in the image to installing no browser and nothing
+with apt, to running as the runner's user (`--user 1001`: Firefox will not
+start as root in a home another user owns) with the host's IPC namespace;
+its limits: every step after its npm installs has one, and the job's holds
+them, 7 minutes of setup and 5 for the pull; and the runner's fonts. The image
+lacks DejaVu, which an ubuntu runner has and fontconfig answers for
+sans-serif, serif and monospace there, so a page with no web font of its own
+drew its words in WenQuanYi Zen Hei and four tests that measure words failed
+in the image. Every job in the image runs `.github/actions/runner-fonts`
+after its checkout and before its tests; the action's `fonts/` holds exactly
+the eight faces of Ubuntu 24.04's fonts-dejavu-core and fonts-dejavu-mono and
+their licence; and its `install.sh`, run here with stand-ins for `fc-cache`
+and `fc-match`, copies them into the user's fonts, builds their cache, and
+fails unless fontconfig answers DejaVu for each family.
+
+### `DashboardOfflineUiShards.test.js`
+
+App Test runs Event Overview and the Workflow Builder suite in halves, one per
+Dashboard Offline UI group: a group's matrix sets `<suite>_shard` ("1/2",
+"2/2"), the job's env hands it to the suite's config as a variable of its own
+(`EVENT_OVERVIEW_SHARD`, `WORKFLOW_BUILDER_SHARD`), and the config passes it to
+Playwright's `shard`. The suite holds every half to running once, in a group
+that runs that suite and sets its key, with one count of halves; the env to
+naming the config's own variable, empty where a group sets none (the whole
+suite, as before); and each config to sharding by that variable with
+Playwright's own shard, never lists of its own.
+
 ### `CompileWorkflow.test.js`
 
 `.github/workflows/compile.yml` compiles the core packages in four jobs rather

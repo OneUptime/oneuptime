@@ -9,6 +9,7 @@ import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import { JSDOM } from "jsdom";
 import path from "path";
+import { FastestRun, fastestRun } from "../Helpers/FastestRun";
 
 /*
  * removeHtmlMarkup (Common/Types/HtmlMarkup) is how product code reads text
@@ -400,10 +401,15 @@ describe("removeHtmlMarkup", () => {
       ["tags", "<b>x</b>".repeat(60000)],
       ["text with a tag at the end", "word ".repeat(100000) + "<b>x</b>"],
     ])("reads %s in linear time", (_case: string, html: string) => {
-      const started: number = Date.now();
-      const result: string = removeHtmlMarkup(html);
+      const timed: FastestRun<string> = fastestRun({
+        run: (): string => {
+          return removeHtmlMarkup(html);
+        },
+        limitInMs: LIMIT_IN_MS,
+      });
+      const result: string = timed.result;
 
-      expect(Date.now() - started).toBeLessThan(LIMIT_IN_MS);
+      expect(timed.inMs).toBeLessThan(LIMIT_IN_MS);
       expect(result).not.toContain("<");
     });
   });

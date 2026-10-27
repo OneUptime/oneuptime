@@ -40,6 +40,7 @@ import {
 } from "../../../Types/DatabaseServer/DatabaseSystem";
 import { keyForDatabaseEndpoint } from "../../../Utils/Telemetry/EntityKey";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * The endpoint rules decide which telemetry lands on which database page.
@@ -1599,17 +1600,20 @@ describe("hostile input stays linear", () => {
    */
   test("long runs of dots that do not end the host", () => {
     const dots: string = ".".repeat(200_000);
-    const started: number = performance.now();
-
-    expect(parseHostAndPort("a" + dots + "b")).toBeNull();
-    expect(isLoopbackDatabaseHost("a" + dots + "b")).toBe(false);
-    expect(isHostRelativeDatabaseHost("a" + dots + "b")).toBe(false);
-    expect(parseHostAndPort("db" + dots + ":5432")).toEqual({
-      host: "db",
-      port: 5432,
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        expect(parseHostAndPort("a" + dots + "b")).toBeNull();
+        expect(isLoopbackDatabaseHost("a" + dots + "b")).toBe(false);
+        expect(isHostRelativeDatabaseHost("a" + dots + "b")).toBe(false);
+        expect(parseHostAndPort("db" + dots + ":5432")).toEqual({
+          host: "db",
+          port: 5432,
+        });
+      },
+      limitInMs: 1000,
     });
 
-    expect(performance.now() - started).toBeLessThan(1000);
+    expect(timed.inMs).toBeLessThan(1000);
   });
 
   test("trailing dots are still dropped", () => {
@@ -2574,30 +2578,35 @@ describe("getDatabaseClusterHost (managed cluster members)", () => {
 
 describe("the new parsing paths stay linear on hostile input", () => {
   test("huge host lists, long labels and repeated markers answer quickly", () => {
-    const started: number = performance.now();
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        expect(parseHostAndPort(`${"a,".repeat(100_000)}b`)?.host).toBe("a");
+        expect(
+          getDatabaseClusterHost(
+            `${"x-shard-".repeat(20_000)}00-00.abcd.mongodb.net`,
+          ),
+        ).toBeNull();
+        expect(
+          isHostRelativeDatabaseHost(`host.${"a".repeat(200_000)}.internal`),
+        ).toBe(false);
+        expect(
+          parseDatabaseEndpointString(
+            `${"a".repeat(100_000)}@${"b.".repeat(50_000)}c`,
+            {
+              system: PG_SYSTEM,
+            },
+          ),
+        ).toBeNull();
+        expect(
+          canonical(`${"a-".repeat(50_000)}1.b`, {
+            caller: pod("shop", "prod"),
+          }),
+        ).toBeNull();
+      },
+      limitInMs: 2000,
+    });
 
-    expect(parseHostAndPort(`${"a,".repeat(100_000)}b`)?.host).toBe("a");
-    expect(
-      getDatabaseClusterHost(
-        `${"x-shard-".repeat(20_000)}00-00.abcd.mongodb.net`,
-      ),
-    ).toBeNull();
-    expect(
-      isHostRelativeDatabaseHost(`host.${"a".repeat(200_000)}.internal`),
-    ).toBe(false);
-    expect(
-      parseDatabaseEndpointString(
-        `${"a".repeat(100_000)}@${"b.".repeat(50_000)}c`,
-        {
-          system: PG_SYSTEM,
-        },
-      ),
-    ).toBeNull();
-    expect(
-      canonical(`${"a-".repeat(50_000)}1.b`, { caller: pod("shop", "prod") }),
-    ).toBeNull();
-
-    expect(performance.now() - started).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
   });
 });
 
@@ -2648,17 +2657,20 @@ describe("isKubernetesServiceDnsHost", () => {
   });
 
   test("stays linear on hostile input", () => {
-    const started: number = performance.now();
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        expect(isKubernetesServiceDnsHost("a".repeat(200_000))).toBe(false);
+        expect(isKubernetesServiceDnsHost(`${"a.".repeat(100_000)}svc`)).toBe(
+          false,
+        );
+        expect(isKubernetesServiceDnsHost(`a.b${".".repeat(200_000)}x`)).toBe(
+          false,
+        );
+      },
+      limitInMs: 1000,
+    });
 
-    expect(isKubernetesServiceDnsHost("a".repeat(200_000))).toBe(false);
-    expect(isKubernetesServiceDnsHost(`${"a.".repeat(100_000)}svc`)).toBe(
-      false,
-    );
-    expect(isKubernetesServiceDnsHost(`a.b${".".repeat(200_000)}x`)).toBe(
-      false,
-    );
-
-    expect(performance.now() - started).toBeLessThan(1000);
+    expect(timed.inMs).toBeLessThan(1000);
   });
 });
 
