@@ -200,7 +200,10 @@ export const RuleExceptionReasonCell: FunctionComponent<ReasonCellProps> = (
             : undefined
         }
       >
-        {writeRuleExceptionAddedLine(translator, props)}
+        {writeRuleExceptionAddedLine(translator, {
+          addedBy: props.addedBy,
+          createdAt: props.createdAt,
+        })}
       </span>
     </div>
   );
