@@ -36313,5 +36313,21 @@
   "The users, hosts and addresses with the highest risk scores in the last 7 days, as Entity Risk ranks them.": "کاربران، میزبان‌ها و نشانی‌هایی با بالاترین امتیاز ریسک در ۷ روز گذشته، به همان ترتیبی که ریسک موجودیت رتبه‌بندی می‌کند.",
   "View all {{count}} entities": "دیدن همه {{count}} موجودیت",
   "View all {{count}} entities_one": "دیدن {{count}} موجودیت",
-  "We could not load the riskiest entities.": "نتوانستیم پرخطرترین موجودیت‌ها را بارگذاری کنیم."
+  "We could not load the riskiest entities.": "نتوانستیم پرخطرترین موجودیت‌ها را بارگذاری کنیم.",
+  "How long readers stay signed in, and which IP addresses can open this status page.": "خوانندگان چه مدت وارد شده باقی می‌مانند، و کدام نشانی‌های IP می‌توانند این صفحه وضعیت را باز کنند.",
+  "This key has no permissions of its own yet. It gets what its custom roles allow, under More settings.": "این کلید هنوز دسترسی‌ای از خودش ندارد. آنچه نقش‌های سفارشی‌اش در «تنظیمات بیشتر» اجازه می‌دهند را دارد.",
+  "This team has no permissions of its own yet. Its members get what its custom roles allow, under More settings.": "این تیم هنوز دسترسی‌ای از خودش ندارد. اعضایش آنچه نقش‌های سفارشی تیم در «تنظیمات بیشتر» اجازه می‌دهند را دارند.",
+  "Who can subscribe, timezones, the email footer, and your own mail server or Twilio account.": "چه کسی می‌تواند مشترک شود، مناطق زمانی، پاورقی ایمیل، و سرور ایمیل یا حساب Twilio خودتان.",
+  "How long telemetry and session replays from this application are kept.": "تله‌متری و بازپخش‌های نشست این برنامه چه مدت نگه داشته می‌شوند.",
+  "How long telemetry from here is kept, when it should not follow the project's retention.": "تله‌متری از اینجا چه مدت نگه داشته می‌شود، وقتی نباید از نگهداری پروژه پیروی کند.",
+  "Your own mail servers and Twilio accounts, for messages OneUptime would otherwise send itself.": "سرورهای ایمیل و حساب‌های Twilio خودتان، برای پیام‌هایی که در غیر این صورت OneUptime خودش می‌فرستد.",
+  "Every IP address can open this form.": "هر نشانی IP می‌تواند این فرم را باز کند.",
+  "Only the IP addresses on the allowlist can open this form.": "فقط نشانی‌های IP موجود در فهرست مجاز می‌توانند این فرم را باز کنند.",
+  "The custom roles this team is given, and what it can never do.": "نقش‌های سفارشی‌ای که به این تیم داده شده‌اند، و کارهایی که این تیم هرگز نمی‌تواند انجام دهد.",
+  "The custom roles this key is given, and what it can never do.": "نقش‌های سفارشی‌ای که به این کلید داده شده‌اند، و کارهایی که این کلید هرگز نمی‌تواند انجام دهد.",
+  "Private users": "کاربران خصوصی",
+  "{{count}} email domains": "{{count}} دامنه ایمیل",
+  "{{count}} email domains_one": "{{count}} دامنه ایمیل",
+  "Private users, {{count}} email domains": "کاربران خصوصی، {{count}} دامنه ایمیل",
+  "Private users, {{count}} email domains_one": "کاربران خصوصی، {{count}} دامنه ایمیل"
 }

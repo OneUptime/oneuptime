@@ -46,11 +46,13 @@ The suite drives custom roles the way a person does:
   Role without Project Owner, the Labels scope refusing to add anything without
   a label, Give to a Team offering only the teams that could take it, Remove
   saying what the team keeps, and a rename reaching the breadcrumb trail;
-- a team's Permissions page: its custom roles above its own permissions, the
-  card's "Roles" a link to the Roles page (in German too), the role's copies
-  left out of its own list, Add Custom Role offering only the roles the team
-  does not have, and the page as it always was in a project with no custom
-  role (`?roles=none`);
+- a team's Permissions page: its custom roles folded under More settings,
+  below its own permissions and above Block Permissions, the folded header
+  naming them with how many ("Custom Roles: 2"), a link to `#custom-roles`
+  opening the fold at the card, the card's "Roles" a link to the Roles page
+  (in German too), the role's copies left out of its own list, Add Custom
+  Role offering only the roles the team does not have, and the page as it
+  always was in a project with no custom role (`?roles=none`);
 - Create Team: the custom roles after the built-in ones, only those the user
   could give (`?user=editor`), a search box once there are many
   (`?roles=many`), and the team opening on its Members page;
@@ -64,14 +66,17 @@ given no role, with Monitor Admin of its own. Team Lead's Alert Member is
 limited to what someone owns, which gives a key nothing, so Deploy bot holds 2
 of its 3 permissions. That suite drives, at 1280 and 390 pixels:
 
-- a key's page: its Custom Roles card above its own Permissions, each role a
-  link with how many of its permissions apply to the key - and, behind an
-  (i), why not the rest - the role's copies left out of the key's own list,
+- a key's page: its Custom Roles card folded under More settings, below its
+  own Permissions, the folded header naming it with how many roles the key
+  has, each role a link with how many of its permissions apply to the key -
+  and, behind an (i), why not the rest - the role's copies left out of the
+  key's own list,
   Add Custom Role offering only the roles the key does not have, Remove
   saying what the key keeps, and the page as it always was in a project with
   no custom role (`?roles=none`);
 - a role's page: API Keys with this Role under the teams, saying what a key
-  gets of the role (and following a permission's removal), Give to an API
+  gets of the role (and following a permission's removal), each key a link
+  that opens its page at its Custom Roles card, Give to an API
   Key offering only the keys without it and off once every key has it,
   Remove, the reach and Delete counting the keys, a project with no key yet
   (`?keys=none`: the card links to the API Keys page), and nothing about keys

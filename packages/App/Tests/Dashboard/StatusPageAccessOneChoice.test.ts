@@ -116,18 +116,32 @@ describe("the Access page", () => {
    * The reader session limit and the IP allowlist are Enterprise features:
    * their shells (StatusPageSessionLengthSettings, IpAllowlistSettings)
    * render the Enterprise cards, or the upsell with what the page still has
-   * of them.
+   * of them. Few pages need either - a reader session limit means nothing
+   * on a page open to anyone - so both wait folded under More settings, the
+   * reader sessions first (the maintainer: "audit the entire project for
+   * advanced features just like these and move them to More as well").
    */
-  test("opens on the one choice, then how long readers stay signed in, then folds the IP allowlist under Advanced", () => {
+  test("opens on the one choice, then folds how long readers stay signed in and the IP allowlist under More settings", () => {
     expect(page).toContain(
-      "<StatusPageAccessCard statusPageId={modelId} /> <StatusPageSessionLengthSettings statusPageId={modelId} /> <AdvancedPageSection",
+      "<StatusPageAccessCard statusPageId={modelId} /> <AdvancedPageSection",
     );
+    expect(page.split("<StatusPageSessionLengthSettings").length - 1).toBe(1);
     expect(page.split("<IpAllowlistSettings").length - 1).toBe(1);
     expect(page).not.toContain("<CardModelDetail");
     expect(page.indexOf("<AdvancedPageSection")).toBeLessThan(
+      page.indexOf("<StatusPageSessionLengthSettings"),
+    );
+    expect(page.indexOf("<StatusPageSessionLengthSettings")).toBeLessThan(
       page.indexOf("<IpAllowlistSettings"),
     );
+    expect(page.indexOf("<IpAllowlistSettings")).toBeLessThan(
+      page.indexOf("</AdvancedPageSection>"),
+    );
     expect(page).toContain('cardName="Status Page > IP Allowlist"');
+    // Folded, the header names both, each with what it is set to.
+    expect(page).toContain(
+      "getSessionLengthFoldedItem(sessionLengthInHours, translator), getIpAllowlistFoldedItem(ipAllowlist),",
+    );
   });
 
   test("has no switch, no password button and no column of the choice", () => {
@@ -346,8 +360,6 @@ describe("translations", () => {
     StatusPageAccessCopy.changePassword,
     StatusPageAccessCopy.changePasswordDescription,
     StatusPageAccessCopy.advancedDescription,
-    StatusPageAccessCopy.advancedSummaryOpen,
-    StatusPageAccessCopy.advancedSummaryConfigured,
     StatusPageAccessCopy.ipAllowlistTitle,
     StatusPageAccessCopy.ipAllowlistDescription,
     StatusPageAccessCopy.ipAllowlistEditButton,

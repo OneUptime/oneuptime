@@ -70,11 +70,17 @@ import StatusPageSessionLengthCopy, {
 
 export interface ComponentProps {
   statusPageId: ObjectID;
+  /*
+   * Told the length readers stay signed in - once read and after each save
+   * - so the Access page's folded More settings can say so.
+   */
+  onLengthChange?: ((lengthInHours: number | null) => void) | undefined;
 }
 
 interface SettingProps {
   statusPageId: ObjectID;
   initialLengthInHours: number | null;
+  onSaved?: ((lengthInHours: number | null) => void) | undefined;
 }
 
 const SessionLengthSetting: FunctionComponent<SettingProps> = (
@@ -93,6 +99,9 @@ const SessionLengthSetting: FunctionComponent<SettingProps> = (
           [PRIVATE_USER_SESSION_LENGTH_COLUMN]: lengthInHours,
         },
       });
+    },
+    onSaved: (lengthInHours: number | null): void => {
+      props.onSaved?.(lengthInHours);
     },
   });
 
@@ -241,11 +250,12 @@ const StatusPageSessionLengthCard: FunctionComponent<ComponentProps> = (
       });
 
       if (item) {
-        setLengthInHours(
-          readPrivateUserSessionLength(
-            item[PRIVATE_USER_SESSION_LENGTH_COLUMN],
-          ),
+        const length: number | null = readPrivateUserSessionLength(
+          item[PRIVATE_USER_SESSION_LENGTH_COLUMN],
         );
+
+        setLengthInHours(length);
+        props.onLengthChange?.(length);
       } else {
         setError(
           translator.translateText("Status page not found.") ||
@@ -290,6 +300,7 @@ const StatusPageSessionLengthCard: FunctionComponent<ComponentProps> = (
           <SessionLengthSetting
             statusPageId={props.statusPageId}
             initialLengthInHours={lengthInHours}
+            onSaved={props.onLengthChange}
           />
         </div>
       </div>

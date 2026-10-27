@@ -24,7 +24,7 @@ In OneUptime Cloud kommen SMS und Anrufe der Bereitschaft von den Nummern unten.
 
 Ihre Alarmierungen kommen von anderen als den oben genannten Nummern, wenn:
 
-- **Ihr Projekt ein eigenes Twilio-Konto nutzt.** Hat ein Projekt eine Twilio-Konfiguration als Projektstandard (**Projekteinstellungen** > **Benachrichtigungen** > **Benachrichtigungseinstellungen** > **Twilio-Konfiguration**), gehen SMS und Anrufe an die Mitglieder des Projekts über dieses Konto, von dessen Telefonnummern. Setzen Sie stattdessen diese Nummern auf die Whitelist.
+- **Ihr Projekt ein eigenes Twilio-Konto nutzt.** Hat ein Projekt eine Twilio-Konfiguration als Projektstandard (**Projekteinstellungen** > **Benachrichtigungen** > **Benachrichtigungseinstellungen** > **Weitere Einstellungen** > **Twilio-Konfiguration**), gehen SMS und Anrufe an die Mitglieder des Projekts über dieses Konto, von dessen Telefonnummern. Setzen Sie stattdessen diese Nummern auf die Whitelist.
 - **Sie eine selbst gehostete Installation nutzen.** SMS und Anrufe kommen von den Twilio-Nummern, die Ihr Administrator eingerichtet hat: der Standard-Twilio-Konfiguration des Projekts oder der installationsweiten unter **Admin Dashboard** > **Einstellungen** > **Anrufe und SMS**. Fragen Sie Ihren Administrator, welche Nummern Sie auf die Whitelist setzen sollen.
 
 ## Nächste Schritte

@@ -26,6 +26,12 @@ import {
   getDeveloperDocsPageKey,
 } from "../../FeatureSet/Dashboard/src/Components/DeveloperDocs/DeveloperDocsPages";
 import PageMap from "../../FeatureSet/Dashboard/src/Utils/PageMap";
+import {
+  CUSTOM_SMTP_CONFIGS_PLACE,
+  CUSTOM_SMTP_CONFIGS_TITLE,
+  TWILIO_CONFIG_PLACE,
+  TWILIO_CONFIG_TITLE,
+} from "../../FeatureSet/Dashboard/src/Components/NotificationMethods/OwnSendersFold";
 import IconProp from "Common/Types/Icon/IconProp";
 import Permission from "Common/Types/Permission";
 import HeldPermissionsUtil from "Common/Types/HeldPermissions";
@@ -715,6 +721,9 @@ describe("what the maintainer asked for, through the real search", () => {
     ["2fa", "Two-factor authentication"],
     ["incident roles", "Incident Roles"],
     ["mttr", "Measurements"],
+    ["custom smtp", "Custom SMTP Configs"],
+    ["mail server", "Custom SMTP Configs"],
+    ["twilio config", "Twilio Config"],
   ])('"%s" opens %s first', (query: string, title: string) => {
     expect(first(query)).toBe(title);
   });
@@ -722,5 +731,109 @@ describe("what the maintainer asked for, through the real search", () => {
   test("every word must be found: a word nothing holds finds nothing", () => {
     expect(first("slack")).toBe("Slack");
     expect(first("slack webhook")).toBe("");
+  });
+});
+
+/*
+ * The project's own mail servers and Twilio accounts wait folded under
+ * Notification Settings' More settings (OwnSendersFold). Search finds each
+ * by name - a thing on the page, as Delete Project is - and opens the page
+ * at its table, where the fold opens by itself: a result never lands on a
+ * page with what it was for hidden.
+ */
+describe("results for what is folded under More settings", () => {
+  const FOLDED: Array<{ id: string; title: string; place: string }> = [
+    {
+      id: "custom-smtp-configs",
+      title: CUSTOM_SMTP_CONFIGS_TITLE,
+      place: CUSTOM_SMTP_CONFIGS_PLACE,
+    },
+    {
+      id: "twilio-config",
+      title: TWILIO_CONFIG_TITLE,
+      place: TWILIO_CONFIG_PLACE,
+    },
+  ];
+
+  test.each(FOLDED)(
+    "$title opens Notification Settings at its table",
+    (folded: { id: string; title: string; place: string }) => {
+      const descriptor: PageSearchCommandDescriptor | undefined = build().find(
+        (candidate: PageSearchCommandDescriptor) => {
+          return candidate.id === `page-action-${folded.id}`;
+        },
+      );
+
+      expect(descriptor).toMatchObject({
+        title: folded.title,
+        breadcrumb: [
+          "Project Settings",
+          "Notifications",
+          "Notification Settings",
+        ],
+        routePath: `/dashboard/project-a/settings_notification_settings#${folded.place}`,
+        isAction: true,
+      });
+    },
+  );
+
+  test("each action's place is the place of a card folded on its page", () => {
+    const anchored: Array<PageSearchAction> = ENTRIES.flatMap(
+      (entry: PageSearchIndexEntry): Array<PageSearchAction> => {
+        return (entry.page.actions || []).filter(
+          (action: PageSearchAction): boolean => {
+            return Boolean(action.anchor);
+          },
+        );
+      },
+    );
+
+    expect(
+      anchored.map((action: PageSearchAction): string => {
+        return action.anchor as string;
+      }),
+    ).toEqual(
+      FOLDED.map((folded: { place: string }): string => {
+        return folded.place;
+      }),
+    );
+
+    // Both on Notification Settings.
+    for (const entry of ENTRIES) {
+      for (const action of entry.page.actions || []) {
+        if (action.anchor) {
+          expect([action.id, entry.page.page]).toEqual([
+            action.id,
+            PageMap.SETTINGS_NOTIFICATION_SETTINGS,
+          ]);
+        }
+      }
+    }
+  });
+
+  test("an action with no place opens its page as it is", () => {
+    const deleteProject: PageSearchCommandDescriptor | undefined = build().find(
+      (descriptor: PageSearchCommandDescriptor) => {
+        return descriptor.id === "page-action-delete-project";
+      },
+    );
+
+    expect(deleteProject?.routePath).toBe(
+      "/dashboard/project-a/settings_dangerzone",
+    );
+  });
+
+  test("the page itself is still offered, and opens at its top", () => {
+    const page: PageSearchCommandDescriptor | undefined = build().find(
+      (descriptor: PageSearchCommandDescriptor) => {
+        return (
+          !descriptor.isAction &&
+          descriptor.routePath ===
+            "/dashboard/project-a/settings_notification_settings"
+        );
+      },
+    );
+
+    expect(page?.title).toBe("Notification Settings");
   });
 });

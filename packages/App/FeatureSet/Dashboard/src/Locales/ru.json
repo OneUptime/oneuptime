@@ -36313,5 +36313,21 @@
   "The users, hosts and addresses with the highest risk scores in the last 7 days, as Entity Risk ranks them.": "Пользователи, хосты и адреса с наибольшей оценкой риска за последние 7 дней, в том порядке, в каком их ранжирует Риск сущностей.",
   "View all {{count}} entities": "Все сущности ({{count}})",
   "View all {{count}} entities_one": "Показать {{count}} сущность",
-  "We could not load the riskiest entities.": "Не удалось загрузить самые рискованные сущности."
+  "We could not load the riskiest entities.": "Не удалось загрузить самые рискованные сущности.",
+  "How long readers stay signed in, and which IP addresses can open this status page.": "Как долго читатели остаются в системе и с каких IP-адресов можно открыть эту страницу статуса.",
+  "This key has no permissions of its own yet. It gets what its custom roles allow, under More settings.": "У этого ключа пока нет собственных разрешений. Он получает то, что разрешают его пользовательские роли в разделе «Дополнительные настройки».",
+  "This team has no permissions of its own yet. Its members get what its custom roles allow, under More settings.": "У этой команды пока нет собственных разрешений. Её участники получают то, что разрешают её пользовательские роли в разделе «Дополнительные настройки».",
+  "Who can subscribe, timezones, the email footer, and your own mail server or Twilio account.": "Кто может подписаться, часовые пояса, нижний колонтитул писем и ваш собственный почтовый сервер или учётная запись Twilio.",
+  "How long telemetry and session replays from this application are kept.": "Как долго хранятся телеметрия и записи сеансов этого приложения.",
+  "How long telemetry from here is kept, when it should not follow the project's retention.": "Как долго хранится телеметрия отсюда, когда она не должна следовать сроку хранения проекта.",
+  "Your own mail servers and Twilio accounts, for messages OneUptime would otherwise send itself.": "Ваши собственные почтовые серверы и учётные записи Twilio для сообщений, которые иначе OneUptime отправлял бы сам.",
+  "Every IP address can open this form.": "Эту форму можно открыть с любого IP-адреса.",
+  "Only the IP addresses on the allowlist can open this form.": "Эту форму можно открыть только с IP-адресов из списка разрешённых.",
+  "The custom roles this team is given, and what it can never do.": "Пользовательские роли этой команды и то, что она не может делать никогда.",
+  "The custom roles this key is given, and what it can never do.": "Пользовательские роли этого ключа и то, что он не может делать никогда.",
+  "Private users": "Приватные пользователи",
+  "{{count}} email domains": "Доменов эл. почты: {{count}}",
+  "{{count}} email domains_one": "{{count}} домен эл. почты",
+  "Private users, {{count}} email domains": "Приватные пользователи, доменов эл. почты: {{count}}",
+  "Private users, {{count}} email domains_one": "Приватные пользователи, {{count}} домен эл. почты"
 }

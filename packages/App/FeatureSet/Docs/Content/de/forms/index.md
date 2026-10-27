@@ -93,7 +93,7 @@ Kopieren Sie unter **Teilen** den Link und senden Sie ihn an die Personen, die d
 | **Erstellen** | Name und Beschreibung des Formulars, sein **Branding** – Logo und Favicon, eingeklappt – und den Editor: seine Fragen, die Fragenpalette und **Vorschau**. |
 | **Vorlagen** | Benannte Sätze von Antworten, mit denen man das Formular beginnen kann, wie jede die Fragen stellt, die, mit der es sich öffnet, und der eigene Link jeder Vorlage. |
 | **Beim Absenden** | Was jede Einreichung anlegt und wie jedes ihrer Felder ausgefüllt wird. **Einstellungen bearbeiten** ändert die Standardwerte und das, was immer gilt. |
-| **Teilen** | **Nimmt Einreichungen an**, der **Link zum Teilen**, die Meldung nach dem Absenden und die **IP-Zulassungsliste**. |
+| **Teilen** | **Nimmt Einreichungen an**, der **Link zum Teilen**, die Meldung nach dem Absenden und, unter **Weitere Einstellungen**, die **IP-Zulassungsliste**. |
 | **Einreichungen** | Jede Einreichung über das Formular, die neueste zuerst, mit ihren Antworten und dem, was sie angelegt hat. |
 | **Formular duplizieren** | Unter **Erweitert**: eine Kopie des Formulars, für Sie benannt, mit seinen Fragen, Vorlagen, Einstellungen unter Beim Absenden, Branding, Dankesmeldung und IP-Zulassungsliste und einem eigenen Link. Die Kopie ist zunächst ausgeschaltet und öffnet sich in ihrem Editor. |
 | **Formular löschen** | Das Löschen des Formulars, unter **Erweitert**. Seine Einreichungen werden mit ihm gelöscht; die Vorfälle und Ereignisse, die es angelegt hat, nicht. |

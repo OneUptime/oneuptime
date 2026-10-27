@@ -85,7 +85,7 @@ Under **Tjänsteinformation** klickar du på **Redigera detaljer** för att änd
 Under **Tjänsteinställningar** klickar du på **Redigera inställningar**. **Tjänstefärg** markerar tjänsten i diagram och listor; en ny tjänst får en egen. **Teknikstack** är valfri: lämna den tom för att visa språket som upptäckts i dess telemetri.
 :::
 
-Samma sida innehåller tjänstens lagring. Korten **Datalagring för telemetri** och **Lagring efter telemetrityp** sparar dess telemetri längre eller kortare tid än projektets standardlagring. De ingår i [Enterprise Edition](/docs/self-hosted/enterprise) och i Scale-planen på OneUptime Cloud; utan dem visar sidan vad de tillför, och tjänsten behåller projektets lagring.
+Samma sida innehåller tjänstens lagring, hopfälld under **Fler inställningar**. Korten **Datalagring för telemetri** och **Lagring efter telemetrityp** sparar dess telemetri längre eller kortare tid än projektets standardlagring. De ingår i [Enterprise Edition](/docs/self-hosted/enterprise) och i Scale-planen på OneUptime Cloud; utan dem visar sidan vad de tillför, och tjänsten behåller projektets lagring.
 
 ## Ge etiketter och ägare automatiskt
 

@@ -11,6 +11,11 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  * with the move every edition allows - removing them, which takes their
  * permissions away at once.
  *
+ * A team's and an API key's cards sit in their page's More settings,
+ * which names them Custom Roles while folded, so that is their title too -
+ * the Enterprise card's: the name a reader sees folded is the card they
+ * find open. The project's card, on the Roles page, keeps its own.
+ *
  * Kept free of React so the components and the tests read these exact
  * strings. Every sentence is wrapped in translationKey() so npm run
  * i18n:extract finds it.
@@ -34,14 +39,14 @@ export const CustomRoleLeftoverCopy: {
   projectPlanDescription: translationKey(
     "These roles keep giving the teams that have them their permissions. Creating and changing custom roles needs the {{planName}} plan. You can still delete them, which takes their permissions from those teams at once.",
   ),
-  teamTitle: translationKey("Custom roles of this team"),
+  teamTitle: translationKey("Custom Roles"),
   teamEditionDescription: translationKey(
     "This team keeps the permissions of these roles. Giving custom roles to teams needs the Enterprise Edition. You can still remove them from this team.",
   ),
   teamPlanDescription: translationKey(
     "This team keeps the permissions of these roles. Giving custom roles to teams needs the {{planName}} plan. You can still remove them from this team.",
   ),
-  apiKeyTitle: translationKey("Custom roles of this API key"),
+  apiKeyTitle: translationKey("Custom Roles"),
   apiKeyEditionDescription: translationKey(
     "This API key keeps the permissions of these roles. Giving custom roles to API keys needs the Enterprise Edition. You can still remove them from this key.",
   ),

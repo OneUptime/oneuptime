@@ -331,8 +331,12 @@ describe("the dashboard asks the server's rule, per value", () => {
       ),
     );
 
+    /*
+     * And the leftover tells the page whether an override is still applied,
+     * so its folded More settings can mark it.
+     */
     expect(resourceShell).toContain(
-      "belowPlan={ <RetentionOverrideLeftover<TModel> modelType={props.modelType} modelId={props.modelId} kind={RetentionOverrideLeftoverKind.Resource} /> }",
+      "belowPlan={ <RetentionOverrideLeftover<TModel> modelType={props.modelType} modelId={props.modelId} kind={RetentionOverrideLeftoverKind.Resource} onOverrideChange={(isSet: boolean) => { props.onRetentionChange?.({ isLeftoverOverrideSet: isSet }); }} /> }",
     );
 
     const projectPage: string = readSource(
@@ -340,7 +344,7 @@ describe("the dashboard asks the server's rule, per value", () => {
     );
 
     expect(projectPage).toContain(
-      "belowPlan={ <RetentionOverrideLeftover<Project> modelType={Project} modelId={ProjectUtil.getCurrentProjectId()!} kind={RetentionOverrideLeftoverKind.Project} /> }",
+      "belowPlan={ <RetentionOverrideLeftover<Project> modelType={Project} modelId={ProjectUtil.getCurrentProjectId()!} kind={RetentionOverrideLeftoverKind.Project} onOverrideChange={(isSet: boolean) => { retentionFold.onRetentionChange({ isLeftoverOverrideSet: isSet, }); }} /> }",
     );
 
     const card: string = readSource(

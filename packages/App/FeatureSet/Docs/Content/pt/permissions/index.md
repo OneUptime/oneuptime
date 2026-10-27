@@ -101,7 +101,7 @@ Crie quantas equipes adicionais quiser — «Plantão de Frontend», «Suporte»
 
 A função que você escolher se torna a primeira permissão da equipe, para todos os recursos do projeto, assim que a equipe existe — exatamente como se você a tivesse adicionado com **Adicionar função** na página Permissões da equipe. Só são oferecidas as funções que você mesmo tem, porque todos que você convidar para a equipe recebem as permissões dela, e quem pode criar equipes mas não alterar o que elas podem fazer não é consultado. Se a função não puder ser adicionada, a equipe é criada mesmo assim e um aviso acima da lista leva até ela.
 
-Onde encontrar: abra uma equipe em **Equipes** para chegar a **Membros** e **Permissões**; **Bloquear permissões** fica em **Mais configurações**, no fim da página Permissões, cujo cabeçalho recolhido mostra quantas a equipe tem.
+Onde encontrar: abra uma equipe em **Equipes** para chegar a **Membros** e **Permissões**; as funções personalizadas dela e **Bloquear permissões** ficam em **Mais configurações**, no fim da página Permissões, cujo cabeçalho recolhido mostra quantas de cada a equipe tem.
 
 ## Permissões
 
@@ -145,13 +145,13 @@ Uma função personalizada é um conjunto de permissões que você nomeia uma ve
 1. Abra **Equipes** no menu **Produtos**, em **Configurações**. Expanda **Configurações** no menu lateral, escolha **Funções** e clique em **Criar: Função personalizada**.
 2. Digite o **Nome** dela e escolha em **Permissões** as funções integradas que ela reúne, para cada recurso do projeto. A descrição fica em **Mais campos**.
 3. Crie a função. Ela abre na sua página, onde **Adicionar função** adiciona outra função integrada e **Adicionar permissão** (no menu **⋯** do cartão) uma permissão avulsa, cada uma com um escopo e rótulos, como em uma equipe.
-4. Clique em **Dar a uma equipe** em **Equipes com esta função**, ou em **Dar a uma chave de API** em **Chaves de API com esta função**. A página **Permissões** de uma equipe e a página de uma chave de API também têm **Adicionar função personalizada**, e **Criar equipe** e **Criar: Chave de API** oferecem em **Acesso** as funções personalizadas que você poderia dar.
+4. Clique em **Dar a uma equipe** em **Equipes com esta função**, ou em **Dar a uma chave de API** em **Chaves de API com esta função**. A página **Permissões** de uma equipe e a página de uma chave de API também têm **Adicionar função personalizada**, em **Mais configurações**, e **Criar equipe** e **Criar: Chave de API** oferecem em **Acesso** as funções personalizadas que você poderia dar.
 :::
 
 - Os membros de uma equipe recebem cada permissão das funções personalizadas dela, com o mesmo escopo e os mesmos rótulos, exatamente como se a equipe as tivesse. Um bloqueio na equipe continua vencendo.
 - Uma função continua ligada às equipes e chaves de API que a têm: uma alteração nela chega a todas na hora, e a página da função diz quantas equipes, pessoas e chaves são. **Remover** tira a função de uma equipe ou chave. Excluir a própria função tira as permissões dela de cada equipe e chave que a tem; elas mantêm tudo o mais que têm.
 - Você só pode pôr em uma função, e dar como função a uma equipe ou a uma chave de API, o que poderia dar a ela diretamente: uma função com uma permissão que você não tem com o mesmo escopo ou um mais amplo é recusada, e a recusa nomeia a permissão. Uma função nunca contém `ProjectOwner`, e **Owners** e **Admin** nunca recebem uma.
-- A página **Permissões** de uma equipe e a página de uma chave de API listam suas funções personalizadas acima das permissões próprias. O que uma função dá é alterado na página da função, não na da equipe nem na da chave.
+- A página **Permissões** de uma equipe e a página de uma chave de API listam suas funções personalizadas em **Mais configurações**, depois das permissões próprias; o cabeçalho recolhido diz quantas elas têm. O que uma função dá é alterado na página da função, não na da equipe nem na da chave.
 - Uma chave de API recebe cada permissão das funções personalizadas dela, com os mesmos rótulos, como se a chave as tivesse, e um bloqueio na chave continua vencendo. Uma permissão que a função limita ao que alguém possui não dá nada a uma chave: uma chave não possui nada.
 - As funções integradas aparecem em **Funções integradas**, no fim da página **Funções**.
 
@@ -273,7 +273,7 @@ As chaves de API recebem permissões diretamente, na própria chave, ou pelas fu
 
 A função que você escolher se torna a primeira permissão da chave assim que a chave existe, exatamente como se você a tivesse adicionado na página da chave. Só são oferecidas as funções que você mesmo tem — uma chave nunca pode receber mais do que a pessoa que a dá tem — e quem pode criar chaves mas não alterar o que elas podem fazer não é consultado.
 
-Na página de uma chave, **Funções personalizadas** lista as funções personalizadas da chave assim que seu projeto tem uma, e **Adicionar função personalizada** dá outra a ela. **Adicionar função** adiciona uma função da mesma lista que a aba Permissões de uma equipe oferece, e **Adicionar permissão** (no menu **⋯** do cartão) adiciona uma permissão granular. **Bloquear permissões** fica em **Mais configurações**, no fim da página, cujo cabeçalho recolhido mostra quantas a chave tem.
+Na página de uma chave, **Funções personalizadas**, em **Mais configurações**, lista as funções personalizadas da chave assim que seu projeto tem uma, e **Adicionar função personalizada** dá outra a ela. **Adicionar função** adiciona uma função da mesma lista que a aba Permissões de uma equipe oferece, e **Adicionar permissão** (no menu **⋯** do cartão) adiciona uma permissão granular. **Bloquear permissões** fica em **Mais configurações**, no fim da página, cujo cabeçalho recolhido mostra quantas a chave tem.
 
 > [!TIP]
 > Dê a cada integração a sua própria chave, com o conjunto de permissões mais restrito que funcione, para poder revogar uma sem atrapalhar as outras.

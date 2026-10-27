@@ -36313,5 +36313,21 @@
   "The users, hosts and addresses with the highest risk scores in the last 7 days, as Entity Risk ranks them.": "エンティティリスクと同じ順に並べた、過去 7 日間のリスクスコアが最も高いユーザー、ホスト、アドレス。",
   "View all {{count}} entities": "{{count}} 件のエンティティをすべて表示",
   "View all {{count}} entities_one": "{{count}} 件のエンティティを表示",
-  "We could not load the riskiest entities.": "リスクの高いエンティティを読み込めませんでした。"
+  "We could not load the riskiest entities.": "リスクの高いエンティティを読み込めませんでした。",
+  "How long readers stay signed in, and which IP addresses can open this status page.": "閲覧者がサインインしたままでいられる期間と、このステータスページを開ける IP アドレスです。",
+  "This key has no permissions of its own yet. It gets what its custom roles allow, under More settings.": "このキーにはまだ独自の権限がありません。「その他の設定」にあるカスタムロールが許可する範囲で操作できます。",
+  "This team has no permissions of its own yet. Its members get what its custom roles allow, under More settings.": "このチームにはまだ独自の権限がありません。メンバーは「その他の設定」にあるこのチームのカスタムロールが許可する範囲で操作できます。",
+  "Who can subscribe, timezones, the email footer, and your own mail server or Twilio account.": "購読できるユーザー、タイムゾーン、メールのフッター、自社のメールサーバーや Twilio アカウントです。",
+  "How long telemetry and session replays from this application are kept.": "このアプリケーションのテレメトリとセッションリプレイの保持期間です。",
+  "How long telemetry from here is kept, when it should not follow the project's retention.": "プロジェクトの保持期間に従わない場合の、ここからのテレメトリの保持期間です。",
+  "Your own mail servers and Twilio accounts, for messages OneUptime would otherwise send itself.": "通常は OneUptime 自身が送信するメッセージに使う、自社のメールサーバーと Twilio アカウントです。",
+  "Every IP address can open this form.": "どの IP アドレスからでもこのフォームを開けます。",
+  "Only the IP addresses on the allowlist can open this form.": "このフォームを開けるのは、許可リストにある IP アドレスだけです。",
+  "The custom roles this team is given, and what it can never do.": "このチームに割り当てられたカスタムロールと、このチームが決して実行できないこと。",
+  "The custom roles this key is given, and what it can never do.": "このキーに割り当てられたカスタムロールと、このキーが決して実行できないこと。",
+  "Private users": "プライベートユーザー",
+  "{{count}} email domains": "メールドメイン {{count}} 件",
+  "{{count}} email domains_one": "メールドメイン {{count}} 件",
+  "Private users, {{count}} email domains": "プライベートユーザー、メールドメイン {{count}} 件",
+  "Private users, {{count}} email domains_one": "プライベートユーザー、メールドメイン {{count}} 件"
 }

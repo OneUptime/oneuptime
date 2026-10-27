@@ -158,6 +158,11 @@ const AIPostmortemRulesTable: FunctionComponent<ComponentProps> = (
         });
       }}
       cardProps={{
+        /*
+         * Its place in an incident's AI More settings: the name the folded
+         * header lists it by, so a link to it lands here.
+         */
+        id: AiLaneAdvancedCard.PostmortemRules,
         title:
           AI_LANE_ADVANCED_CARD_TITLES[AiLane.Incident][
             AiLaneAdvancedCard.PostmortemRules

@@ -16,7 +16,7 @@ Un formulaire est ouvert à toute personne qui a son lien, et chaque soumission 
 | **Statut** | **Accepte les soumissions** — si le lien du formulaire fonctionne. |
 | **Lien de partage** | Le lien, avec **Copier le lien**, **Ouvrir le formulaire** et **Réinitialiser le lien**. |
 | **Après la soumission** | Le **Message de remerciement** que les gens voient une fois qu'ils ont soumis, sous le numéro de ce que le formulaire a créé. |
-| **Accès** | La **Liste d'autorisation IP**. |
+| **Plus de paramètres** | La **Liste d'autorisation IP**, repliée jusqu'à ce que vous l'ouvriez. |
 
 ## Partager le lien
 
@@ -80,7 +80,7 @@ Pour limiter un formulaire à vos propres réseaux :
 
 :::steps
 1. Ouvrez la page **Partager** du formulaire.
-2. Sur la carte **Accès**, cliquez sur **Modifier la liste d'autorisation IP**.
+2. Ouvrez **Plus de paramètres**, puis cliquez sur **Modifier la liste d'autorisation IP**.
 3. Saisissez un réseau par ligne, et enregistrez. La carte les liste ensuite sous **Liste d'autorisation IP**.
 :::
 

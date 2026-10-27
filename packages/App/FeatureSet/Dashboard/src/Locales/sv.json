@@ -36313,5 +36313,21 @@
   "The users, hosts and addresses with the highest risk scores in the last 7 days, as Entity Risk ranks them.": "Användarna, värdarna och adresserna med högst riskpoäng de senaste 7 dagarna, så som Entitetsrisk rangordnar dem.",
   "View all {{count}} entities": "Visa alla {{count}} entiteter",
   "View all {{count}} entities_one": "Visa {{count}} entitet",
-  "We could not load the riskiest entities.": "Vi kunde inte läsa in de mest riskfyllda entiteterna."
+  "We could not load the riskiest entities.": "Vi kunde inte läsa in de mest riskfyllda entiteterna.",
+  "How long readers stay signed in, and which IP addresses can open this status page.": "Hur länge läsare förblir inloggade, och vilka IP-adresser som kan öppna den här statussidan.",
+  "This key has no permissions of its own yet. It gets what its custom roles allow, under More settings.": "Den här nyckeln har inga egna behörigheter än. Den får det som dess anpassade roller under Fler inställningar tillåter.",
+  "This team has no permissions of its own yet. Its members get what its custom roles allow, under More settings.": "Det här teamet har inga egna behörigheter än. Dess medlemmar får det som teamets anpassade roller under Fler inställningar tillåter.",
+  "Who can subscribe, timezones, the email footer, and your own mail server or Twilio account.": "Vem kan prenumerera, tidszoner, sidfoten i e-post och din egen e-postserver eller ditt Twilio-konto.",
+  "How long telemetry and session replays from this application are kept.": "Hur länge telemetri och sessionsuppspelningar från den här applikationen lagras.",
+  "How long telemetry from here is kept, when it should not follow the project's retention.": "Hur länge telemetri härifrån lagras, när den inte ska följa projektets lagring.",
+  "Your own mail servers and Twilio accounts, for messages OneUptime would otherwise send itself.": "Dina egna e-postservrar och Twilio-konton, för meddelanden som OneUptime annars skulle skicka själv.",
+  "Every IP address can open this form.": "Alla IP-adresser kan öppna det här formuläret.",
+  "Only the IP addresses on the allowlist can open this form.": "Bara IP-adresserna på tillåtelselistan kan öppna det här formuläret.",
+  "The custom roles this team is given, and what it can never do.": "De anpassade roller det här teamet har, och det det aldrig får göra.",
+  "The custom roles this key is given, and what it can never do.": "De anpassade roller den här nyckeln har, och det den aldrig får göra.",
+  "Private users": "Privata användare",
+  "{{count}} email domains": "{{count}} e-postdomäner",
+  "{{count}} email domains_one": "{{count}} e-postdomän",
+  "Private users, {{count}} email domains": "Privata användare, {{count}} e-postdomäner",
+  "Private users, {{count}} email domains_one": "Privata användare, {{count}} e-postdomän"
 }

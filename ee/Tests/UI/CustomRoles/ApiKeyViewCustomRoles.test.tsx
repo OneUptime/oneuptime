@@ -26,8 +26,12 @@ import getJestMockFunction, { MockFunction } from "Common/Tests/MockType";
  * (TeamViewPermissions.test.tsx):
  *
  *   - a project with no custom role sees the key's page exactly as before:
- *     no Custom Roles card;
- *   - once it has one, a Custom Roles card above Permissions lists the
+ *     no Custom Roles card, and More settings naming Block Permissions
+ *     alone;
+ *   - once it has one, a Custom Roles card - folded under the page's More
+ *     settings, before Block Permissions, since custom roles are an
+ *     advanced feature: the page opens on the key's own Permissions, and
+ *     the folded header says how many roles the key has - lists the
  *     key's roles, each a link to the role's page, saying how many of the
  *     role's permissions apply to the key when some are limited to what
  *     someone owns - which give a key nothing - with an (i) that says why,
@@ -40,7 +44,8 @@ import getJestMockFunction, { MockFunction } from "Common/Tests/MockType";
  *   - someone who may not change what a key can do sees it locked;
  *   - Remove says what the key loses and keeps;
  *   - the key's own Permissions card lists its own rows only, never a
- *     role's copies.
+ *     role's copies, and, empty, says the roles give the key its access;
+ *   - a link to #custom-roles opens More settings at the card.
  */
 
 // A valid license, unless a test lets it lapse.
@@ -188,6 +193,16 @@ import {
   API_KEY_CUSTOM_ROLES_TEST_ID,
   API_KEY_ROLE_OWNED_REASON_TEST_ID,
 } from "../../../Dashboard/CustomRoles/ApiKeyCustomRoleTable";
+import {
+  API_KEY_MORE_SETTINGS_BLOCK_DESCRIPTION,
+  API_KEY_MORE_SETTINGS_ROLES_DESCRIPTION,
+  API_KEY_PERMISSIONS_EMPTY_WITH_CUSTOM_ROLES,
+  CUSTOM_ROLES_CARD_PLACE,
+} from "@oneuptime/dashboard/Components/CustomRole/CustomRolesFold";
+import {
+  listedNames,
+  setChips,
+} from "Common/Tests/UI/Components/FoldedSection/FoldedSectionQueries";
 import PageComponentProps from "@oneuptime/dashboard/Pages/PageComponentProps";
 import PageMap from "@oneuptime/dashboard/Utils/PageMap";
 import RouteMap from "@oneuptime/dashboard/Utils/RouteMap";
@@ -389,11 +404,33 @@ async function renderPage(): Promise<void> {
   await waitFor(
     () => {
       expect(
-        screen.getAllByText(/This key can do nothing yet/).length,
+        screen.getAllByText(
+          /This key can do nothing yet|This key has no permissions of its own yet/,
+        ).length,
       ).toBeGreaterThanOrEqual(1);
     },
     { timeout: 10000 },
   );
+}
+
+function moreSettings(): HTMLElement {
+  return screen.getByTestId("api-key-advanced-section");
+}
+
+function moreSettingsHeader(): HTMLElement {
+  return within(moreSettings()).getByRole("button", {
+    name: "More settings",
+  });
+}
+
+function permissionsCard(): HTMLElement {
+  const heading: HTMLElement | undefined = screen
+    .getAllByTestId("card-details-heading")
+    .find((candidate: HTMLElement): boolean => {
+      return candidate.textContent === "Permissions";
+    });
+
+  return heading!.closest("[data-testid='card']") as HTMLElement;
 }
 
 async function customRolesCard(): Promise<HTMLElement> {
@@ -759,5 +796,118 @@ describe("an API key's custom roles", () => {
     for (const call of ownRows) {
       expect(call.query.apiKeyCustomRoleId).toBeInstanceOf(IsNull);
     }
+  });
+});
+
+/*
+ * "Move custom roles to More settings because it is an advanced feature."
+ * - the maintainer. The Enterprise card tells the page what it holds, so
+ * the folded header names it only while it is drawn, with how many roles
+ * the key has.
+ */
+describe("an API key's custom roles, folded under More settings", () => {
+  test("a project with no custom role: More settings names Block Permissions alone, as before", async () => {
+    await renderPage();
+
+    await waitFor(() => {
+      expect(listCallsFor(CustomRole).length).toBeGreaterThan(0);
+    });
+    await act(async (): Promise<void> => {});
+
+    expect(listedNames(moreSettingsHeader())).toEqual(["Block Permissions"]);
+
+    fireEvent.click(moreSettingsHeader());
+
+    expect(
+      within(moreSettingsHeader()).getByText(
+        API_KEY_MORE_SETTINGS_BLOCK_DESCRIPTION,
+      ),
+    ).toBeInTheDocument();
+  });
+
+  test("a project with a custom role: the card waits folded, before Block Permissions, the header saying how many the key has", async () => {
+    const incidentResponder: CustomRole = responder();
+    roles = [auditor(), incidentResponder];
+    givenRows = [givenToKey(incidentResponder)];
+
+    await renderPage();
+    const card: HTMLElement = await customRolesCard();
+
+    // The page opens on the key's own Permissions; the roles wait folded.
+    expect(moreSettings()).toContainElement(card);
+    expect(moreSettings()).not.toContainElement(permissionsCard());
+    expect(moreSettingsHeader()).toHaveAttribute("aria-expanded", "false");
+
+    await waitFor(() => {
+      expect(listedNames(moreSettingsHeader())).toEqual([
+        "Custom Roles: 1",
+        "Block Permissions",
+      ]);
+    });
+    expect(setChips(moreSettingsHeader())).toEqual(["Custom Roles: 1"]);
+
+    // The card is the place a link to it names.
+    expect(document.getElementById(CUSTOM_ROLES_CARD_PLACE)).not.toBeNull();
+    expect(card).toContainElement(
+      document.getElementById(CUSTOM_ROLES_CARD_PLACE),
+    );
+
+    fireEvent.click(moreSettingsHeader());
+
+    expect(
+      within(moreSettingsHeader()).getByText(
+        API_KEY_MORE_SETTINGS_ROLES_DESCRIPTION,
+      ),
+    ).toBeInTheDocument();
+  });
+
+  test("a project with roles but none given to the key: Custom Roles is named, not set", async () => {
+    roles = [auditor(), responder()];
+
+    await renderPage();
+    await customRolesCard();
+
+    await waitFor(() => {
+      expect(listedNames(moreSettingsHeader())).toEqual([
+        "Custom Roles",
+        "Block Permissions",
+      ]);
+    });
+    expect(setChips(moreSettingsHeader())).toEqual([]);
+  });
+
+  test("a key whose access comes from its custom roles alone is not told it can do nothing", async () => {
+    const incidentResponder: CustomRole = responder();
+    roles = [incidentResponder];
+    givenRows = [givenToKey(incidentResponder)];
+
+    await renderPage();
+    await customRolesCard();
+
+    await waitFor(() => {
+      expect(
+        within(permissionsCard()).getByText(
+          API_KEY_PERMISSIONS_EMPTY_WITH_CUSTOM_ROLES.split(". ")[0] as string,
+        ),
+      ).toBeInTheDocument();
+    });
+  });
+
+  test("opened at #custom-roles, as a role's page links its keys: More settings opens at the card", async () => {
+    const incidentResponder: CustomRole = responder();
+    roles = [incidentResponder];
+    givenRows = [givenToKey(incidentResponder)];
+    window.history.replaceState(
+      window.history.state,
+      "",
+      `/dashboard/${PROJECT_ID}/settings/api-keys/${KEY_ID}#${CUSTOM_ROLES_CARD_PLACE}`,
+    );
+
+    await renderPage();
+    await customRolesCard();
+
+    await waitFor(() => {
+      expect(moreSettingsHeader()).toHaveAttribute("aria-expanded", "true");
+    });
   });
 });

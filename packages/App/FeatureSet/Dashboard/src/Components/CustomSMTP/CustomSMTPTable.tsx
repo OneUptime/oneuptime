@@ -53,7 +53,17 @@ const SMTP_CONFIG_FORM_STEPS: Array<FormStep<ProjectSmtpConfig>> =
 const SMTP_CONFIG_FORM_FIELDS: Array<ModelField<ProjectSmtpConfig>> =
   getProjectSmtpConfigFormFields();
 
-const CustomSMTPTable: FunctionComponent = (): ReactElement => {
+export interface ComponentProps {
+  /*
+   * How many configs the table lists after each load, so the page's folded
+   * More settings can say so.
+   */
+  onCountChange?: ((count: number) => void) | undefined;
+}
+
+const CustomSMTPTable: FunctionComponent<ComponentProps> = (
+  props: ComponentProps,
+): ReactElement => {
   const [showSMTPTestModal, setShowSMTPTestModal] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [currentSMTPTestConfig, setCurrentSMTPTestConfig] =
@@ -132,6 +142,12 @@ const CustomSMTPTable: FunctionComponent = (): ReactElement => {
           );
         }}
         showRefreshButton={true}
+        onFetchSuccess={(
+          _items: Array<ProjectSmtpConfig>,
+          totalCount: number,
+        ): void => {
+          props.onCountChange?.(totalCount);
+        }}
         viewPageRoute={Navigation.getCurrentRoute()}
         filters={[
           {

@@ -36313,5 +36313,21 @@
   "The users, hosts and addresses with the highest risk scores in the last 7 days, as Entity Risk ranks them.": "Os usuários, hosts e endereços com as maiores pontuações de risco dos últimos 7 dias, na ordem de Risco de entidades.",
   "View all {{count}} entities": "Ver todas as {{count}} entidades",
   "View all {{count}} entities_one": "Ver {{count}} entidade",
-  "We could not load the riskiest entities.": "Não foi possível carregar as entidades de maior risco."
+  "We could not load the riskiest entities.": "Não foi possível carregar as entidades de maior risco.",
+  "How long readers stay signed in, and which IP addresses can open this status page.": "Por quanto tempo os leitores ficam conectados e quais endereços IP podem abrir esta página de status.",
+  "This key has no permissions of its own yet. It gets what its custom roles allow, under More settings.": "Esta chave ainda não tem permissões próprias. Ela recebe o que as suas funções personalizadas permitem, em Mais configurações.",
+  "This team has no permissions of its own yet. Its members get what its custom roles allow, under More settings.": "Esta equipe ainda não tem permissões próprias. Os seus membros recebem o que as suas funções personalizadas permitem, em Mais configurações.",
+  "Who can subscribe, timezones, the email footer, and your own mail server or Twilio account.": "Quem pode se inscrever, os fusos horários, o rodapé do e-mail e o seu próprio servidor de e-mail ou conta Twilio.",
+  "How long telemetry and session replays from this application are kept.": "Por quanto tempo a telemetria e as reproduções de sessão deste aplicativo são mantidas.",
+  "How long telemetry from here is kept, when it should not follow the project's retention.": "Por quanto tempo a telemetria daqui é mantida, quando não deve seguir a retenção do projeto.",
+  "Your own mail servers and Twilio accounts, for messages OneUptime would otherwise send itself.": "Os seus próprios servidores de e-mail e contas Twilio, para mensagens que o OneUptime enviaria por conta própria.",
+  "Every IP address can open this form.": "Qualquer endereço IP pode abrir este formulário.",
+  "Only the IP addresses on the allowlist can open this form.": "Apenas os endereços IP da lista de permitidos podem abrir este formulário.",
+  "The custom roles this team is given, and what it can never do.": "As funções personalizadas atribuídas a esta equipe e o que ela nunca pode fazer.",
+  "The custom roles this key is given, and what it can never do.": "As funções personalizadas atribuídas a esta chave e o que ela nunca pode fazer.",
+  "Private users": "Usuários privados",
+  "{{count}} email domains": "{{count}} domínios de e-mail",
+  "{{count}} email domains_one": "{{count}} domínio de e-mail",
+  "Private users, {{count}} email domains": "Usuários privados, {{count}} domínios de e-mail",
+  "Private users, {{count}} email domains_one": "Usuários privados, {{count}} domínio de e-mail"
 }

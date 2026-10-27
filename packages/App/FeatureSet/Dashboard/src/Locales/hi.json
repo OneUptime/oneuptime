@@ -36313,5 +36313,21 @@
   "The users, hosts and addresses with the highest risk scores in the last 7 days, as Entity Risk ranks them.": "पिछले 7 दिनों में सबसे ऊँचे जोखिम स्कोर वाले यूज़र, होस्ट और पते, उसी क्रम में जिसमें एंटिटी जोखिम उन्हें रखता है।",
   "View all {{count}} entities": "सभी {{count}} एंटिटीज़ देखें",
   "View all {{count}} entities_one": "{{count}} एंटिटी देखें",
-  "We could not load the riskiest entities.": "सबसे जोखिम वाली एंटिटीज़ लोड नहीं हो सकीं।"
+  "We could not load the riskiest entities.": "सबसे जोखिम वाली एंटिटीज़ लोड नहीं हो सकीं।",
+  "How long readers stay signed in, and which IP addresses can open this status page.": "पाठक कितनी देर तक साइन इन रहते हैं, और कौन-से IP पते यह स्थिति पृष्ठ खोल सकते हैं।",
+  "This key has no permissions of its own yet. It gets what its custom roles allow, under More settings.": "इस कुंजी की अभी कोई अपनी अनुमति नहीं है। इसे वह मिलता है जिसकी अनुमति इसकी कस्टम भूमिकाएं देती हैं, जो “और सेटिंग्स” में हैं।",
+  "This team has no permissions of its own yet. Its members get what its custom roles allow, under More settings.": "इस टीम की अभी कोई अपनी अनुमति नहीं है। इसके सदस्यों को वह मिलता है जिसकी अनुमति इसकी कस्टम भूमिकाएं देती हैं, जो “और सेटिंग्स” में हैं।",
+  "Who can subscribe, timezones, the email footer, and your own mail server or Twilio account.": "कौन सब्सक्राइब कर सकता है, टाइमज़ोन, ईमेल फ़ुटर, और आपका अपना मेल सर्वर या Twilio खाता।",
+  "How long telemetry and session replays from this application are kept.": "इस एप्लिकेशन की टेलीमेट्री और सेशन रीप्ले कितने समय तक रखे जाते हैं।",
+  "How long telemetry from here is kept, when it should not follow the project's retention.": "यहाँ से आने वाली टेलीमेट्री कितने समय तक रखी जाती है, जब उसे प्रोजेक्ट के प्रतिधारण का पालन नहीं करना हो।",
+  "Your own mail servers and Twilio accounts, for messages OneUptime would otherwise send itself.": "आपके अपने मेल सर्वर और Twilio खाते, उन संदेशों के लिए जिन्हें OneUptime वरना खुद भेजता।",
+  "Every IP address can open this form.": "कोई भी IP पता यह फ़ॉर्म खोल सकता है।",
+  "Only the IP addresses on the allowlist can open this form.": "केवल अनुमति सूची वाले IP पते ही यह फ़ॉर्म खोल सकते हैं।",
+  "The custom roles this team is given, and what it can never do.": "इस टीम को दी गई कस्टम भूमिकाएं, और वह जो यह टीम कभी नहीं कर सकती।",
+  "The custom roles this key is given, and what it can never do.": "इस कुंजी को दी गई कस्टम भूमिकाएं, और वह जो यह कुंजी कभी नहीं कर सकती।",
+  "Private users": "निजी उपयोगकर्ता",
+  "{{count}} email domains": "{{count}} ईमेल डोमेन",
+  "{{count}} email domains_one": "{{count}} ईमेल डोमेन",
+  "Private users, {{count}} email domains": "निजी उपयोगकर्ता, {{count}} ईमेल डोमेन",
+  "Private users, {{count}} email domains_one": "निजी उपयोगकर्ता, {{count}} ईमेल डोमेन"
 }

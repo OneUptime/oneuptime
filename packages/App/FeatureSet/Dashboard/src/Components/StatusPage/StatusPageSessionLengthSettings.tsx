@@ -11,7 +11,7 @@ import { STATUS_PAGE_ACCESS_CONTROLS_REQUIRED_PLAN } from "../../Enterprise/Ente
 import EnterprisePluginPage, {
   EnterprisePluginUpsellProps,
 } from "../../Enterprise/EnterprisePluginPage";
-import { StatusPageSettingCardProps } from "../../Enterprise/EnterprisePlugins";
+import { StatusPageSessionLengthCardProps } from "../../Enterprise/EnterprisePlugins";
 import { getDashboardPlugins } from "../../Enterprise/Plugins";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -22,7 +22,10 @@ import React, { FunctionComponent, ReactElement } from "react";
 
 /*
  * The Reader Sessions card on a status page's Security > Access: how long a
- * private user stays signed in.
+ * private user stays signed in. It waits folded under the page's More
+ * settings - an Enterprise control few status pages use, and none that is
+ * open to anyone - telling the page the length it holds (onLengthChange),
+ * so the folded header can say so.
  *
  * Setting a limit is one of a status page's Enterprise access controls
  * (ee/Dashboard/StatusPageAccessControls). The page keeps rendering this
@@ -33,7 +36,7 @@ import React, { FunctionComponent, ReactElement } from "react";
  * OneUptime Cloud project below the plan.
  */
 
-export type ComponentProps = StatusPageSettingCardProps;
+export type ComponentProps = StatusPageSessionLengthCardProps;
 
 export const STATUS_PAGE_SESSION_LENGTH_LEFTOVER_VALUE_TEST_ID: string =
   "status-page-session-length-leftover-value";
@@ -86,6 +89,18 @@ const StatusPageSessionLengthSettings: FunctionComponent<ComponentProps> = (
         requiredPlan={STATUS_PAGE_ACCESS_CONTROLS_REQUIRED_PLAN}
         modelType={StatusPage}
         modelId={props.statusPageId}
+        onLoaded={(item: StatusPage | null) => {
+          props.onLengthChange?.(
+            item
+              ? readPrivateUserSessionLength(
+                  item.privateUserSessionLengthInHours,
+                )
+              : null,
+          );
+        }}
+        onRemoved={() => {
+          props.onLengthChange?.(null);
+        }}
         renderValue={(item: StatusPage): ReactElement => {
           const hours: number | null = readPrivateUserSessionLength(
             item.privateUserSessionLengthInHours,
@@ -122,7 +137,7 @@ const StatusPageSessionLengthSettings: FunctionComponent<ComponentProps> = (
   };
 
   return (
-    <EnterprisePluginPage<StatusPageSettingCardProps>
+    <EnterprisePluginPage<StatusPageSessionLengthCardProps>
       plugin={getDashboardPlugins().StatusPageSessionLength}
       pluginProps={props}
       requiredPlan={STATUS_PAGE_ACCESS_CONTROLS_REQUIRED_PLAN}

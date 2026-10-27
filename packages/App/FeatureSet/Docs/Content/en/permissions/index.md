@@ -101,7 +101,7 @@ Create as many additional teams as you like — "Frontend On-Call", "Support", "
 
 The role you pick becomes the team's first permission, for all resources in the project, as soon as the team exists — exactly as if you had added it with **Add Role** on the team's Permissions page. You are offered only the roles you hold yourself, because everyone you invite to the team gets its permissions, and someone who may create teams but not change what they can do is not asked. If the role cannot be added, the team is still created and a notice above the list links to it.
 
-Where to find it: open a team from **Teams** to reach **Members** and **Permissions**; **Block Permissions** are under **More settings** at the bottom of the Permissions page, whose folded header shows how many the team has.
+Where to find it: open a team from **Teams** to reach **Members** and **Permissions**; its custom roles and **Block Permissions** are under **More settings** at the bottom of the Permissions page, whose folded header shows how many of each the team has.
 
 ## Permissions
 
@@ -145,13 +145,13 @@ A custom role is a set of permissions you name once and give to teams and API ke
 1. Open **Teams** from the **Products** menu, under **Settings**. Expand **Settings** in its side menu, choose **Roles**, and click **Create Custom Role**.
 2. Type its **Name** and pick the built-in roles it bundles under **Permissions**, for every resource in the project. The description is under **More fields**.
 3. Create the role. It opens on its page, where **Add Role** adds another built-in role and **Add Permission** (in the card's **⋯** menu) a single permission, each with a scope and labels, as on a team.
-4. Click **Give to a Team** under **Teams with this Role**, or **Give to an API Key** under **API Keys with this Role**. A team's **Permissions** page and an API key's page have **Add Custom Role** too, and **Create Team** and **Create API Key** offer the custom roles you could give under **Access**.
+4. Click **Give to a Team** under **Teams with this Role**, or **Give to an API Key** under **API Keys with this Role**. A team's **Permissions** page and an API key's page have **Add Custom Role** too, under **More settings**, and **Create Team** and **Create API Key** offer the custom roles you could give under **Access**.
 :::
 
 - A team's members get every permission of its custom roles, at the same scope and with the same labels, exactly as if the team held them itself. A block on the team still wins.
 - A role stays linked to the teams and API keys that have it: a change to it reaches all of them at once, and the role's page says how many teams, people and keys that is. **Remove** takes the role from one team or key. Deleting the role takes its permissions from every team and key that has it; they keep everything else they have.
 - You can put into a role, and give a team or an API key a role, only what you could give it directly: a role holding a permission you do not hold at the same or a broader scope is refused, and the refusal names the permission. A role never holds `ProjectOwner`, and **Owners** and **Admin** are never given one.
-- A team's **Permissions** page and an API key's page list their custom roles above their own permissions. What a role gives is changed on the role's page, not on the team's or the key's.
+- A team's **Permissions** page and an API key's page list their custom roles under **More settings**, after their own permissions; its folded header says how many they have. What a role gives is changed on the role's page, not on the team's or the key's.
 - An API key gets every permission of its custom roles, with the same labels, as if the key held them itself, and a block on the key still wins. A permission the role limits to what someone owns gives a key nothing: a key owns nothing.
 - The built-in roles are listed under **Built-in Roles**, at the bottom of the **Roles** page.
 
@@ -273,7 +273,7 @@ API keys are granted permissions directly, on the key itself, or through the cus
 
 The role you pick becomes the key's first permission as soon as the key exists, exactly as if you had added it on the key's page. You are offered only the roles you hold yourself — a key can never be given more than the person giving it has — and someone who may create keys but not change what they can do is not asked.
 
-On a key's page, **Custom Roles** lists the key's custom roles once your project has one, and **Add Custom Role** gives it another. **Add Role** adds a role from the same list a team's Permissions tab offers, and **Add Permission** (in the card's **⋯** menu) adds one granular permission. **Block Permissions** are under **More settings** at the bottom of the page, whose folded header shows how many the key has.
+On a key's page, **Custom Roles**, under **More settings**, lists the key's custom roles once your project has one, and **Add Custom Role** gives it another. **Add Role** adds a role from the same list a team's Permissions tab offers, and **Add Permission** (in the card's **⋯** menu) adds one granular permission. **Block Permissions** are under **More settings** at the bottom of the page, whose folded header shows how many the key has.
 
 > [!TIP]
 > Give each integration its own key with the narrowest set of permissions that works, so you can revoke one without disturbing the others.

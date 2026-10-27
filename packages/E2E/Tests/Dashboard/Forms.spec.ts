@@ -2000,32 +2000,45 @@ test.describe("Forms", () => {
     /*
      * Setting an IP allowlist is an Enterprise feature (#5216): OneUptime
      * Cloud sells it on the Scale plan, and a self-hosted install needs the
-     * Enterprise Edition. Where this project may not set one - a billing
-     * install, where it is on Growth, or the Community Edition - the Share
-     * page offers the feature (its "IP Allowlist" card) in place of the
-     * Access card. That is the gate working, not this feature failing.
+     * Enterprise Edition. Few forms need one, so it waits folded under the
+     * Share page's More settings. Where this project may not set one - a
+     * billing install, where it is on Growth, or the Community Edition -
+     * the fold offers the feature (an "IP Allowlist" card with an upgrade
+     * button) in place of the card with Edit IP Allowlist. That is the gate
+     * working, not this feature failing.
      */
     await openFormPage({
       path: "share",
       ready: (target: Page): Locator => {
-        return card(target, "Access").or(card(target, "IP Allowlist")).first();
+        return target
+          .getByTestId("form-share-more-settings")
+          .getByTestId("folded-section-header");
       },
     });
 
-    const upsell: Locator = card(page, "IP Allowlist").first();
+    const moreSettingsHeader: Locator = page
+      .getByTestId("form-share-more-settings")
+      .getByTestId("folded-section-header");
+    await moreSettingsHeader.click();
+    await expect(moreSettingsHeader).toHaveAttribute("aria-expanded", "true");
 
-    if ((await card(page, "Access").count()) === 0) {
-      await expect(upsell).toBeVisible();
-      await expect(
-        upsell
-          .getByRole("button", {
-            name: IS_BILLING_ENABLED
-              ? "Upgrade to Scale"
-              : "Learn about Enterprise Edition",
-            exact: true,
-          })
-          .first(),
-      ).toBeVisible();
+    const access: Locator = card(page, "IP Allowlist").first();
+    const editAllowlist: Locator = access.getByRole("button", {
+      name: "Edit IP Allowlist",
+      exact: true,
+    });
+    const upgrade: Locator = access
+      .getByRole("button", {
+        name: IS_BILLING_ENABLED
+          ? "Upgrade to Scale"
+          : "Learn about Enterprise Edition",
+        exact: true,
+      })
+      .first();
+    await expect(editAllowlist.or(upgrade).first()).toBeVisible();
+
+    if ((await editAllowlist.count()) === 0) {
+      await expect(upgrade).toBeVisible();
       await expect(
         page.getByRole("button", { name: "Edit IP Allowlist", exact: true }),
       ).toHaveCount(0);
@@ -2038,10 +2051,7 @@ test.describe("Forms", () => {
       return;
     }
 
-    const access: Locator = card(page, "Access");
-    await access
-      .getByRole("button", { name: "Edit IP Allowlist", exact: true })
-      .click();
+    await editAllowlist.click();
     const modal: Locator = page.getByTestId("modal");
     await modal
       .getByRole("textbox", { name: /^IP Allowlist/ })
@@ -2049,7 +2059,7 @@ test.describe("Forms", () => {
     await modal.getByTestId("modal-footer-submit-button").click();
 
     /*
-     * Where the Access card is drawn the project may set an allowlist, so
+     * Where Edit IP Allowlist is drawn the project may set an allowlist, so
      * the save goes through: the modal closes. A refusal is a failure, and
      * says why.
      */

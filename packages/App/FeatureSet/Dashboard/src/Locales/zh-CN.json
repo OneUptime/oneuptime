@@ -36313,5 +36313,21 @@
   "The users, hosts and addresses with the highest risk scores in the last 7 days, as Entity Risk ranks them.": "过去 7 天内风险分数最高的用户、主机和地址，排序与实体风险一致。",
   "View all {{count}} entities": "查看全部 {{count}} 个实体",
   "View all {{count}} entities_one": "查看 {{count}} 个实体",
-  "We could not load the riskiest entities.": "无法加载风险最高的实体。"
+  "We could not load the riskiest entities.": "无法加载风险最高的实体。",
+  "How long readers stay signed in, and which IP addresses can open this status page.": "读者保持登录的时长，以及哪些 IP 地址可以打开此状态页。",
+  "This key has no permissions of its own yet. It gets what its custom roles allow, under More settings.": "此密钥还没有自己的权限。它获得“更多设置”中其自定义角色允许的权限。",
+  "This team has no permissions of its own yet. Its members get what its custom roles allow, under More settings.": "此团队还没有自己的权限。其成员获得“更多设置”中此团队的自定义角色允许的权限。",
+  "Who can subscribe, timezones, the email footer, and your own mail server or Twilio account.": "谁可以订阅、时区、邮件页脚，以及您自己的邮件服务器或 Twilio 账户。",
+  "How long telemetry and session replays from this application are kept.": "此应用程序的遥测数据和会话回放的保留时长。",
+  "How long telemetry from here is kept, when it should not follow the project's retention.": "来自此处的遥测数据的保留时长，用于不应遵循项目保留期的情况。",
+  "Your own mail servers and Twilio accounts, for messages OneUptime would otherwise send itself.": "您自己的邮件服务器和 Twilio 账户，用于原本由 OneUptime 自行发送的消息。",
+  "Every IP address can open this form.": "任何 IP 地址都可以打开此表单。",
+  "Only the IP addresses on the allowlist can open this form.": "只有允许列表中的 IP 地址才能打开此表单。",
+  "The custom roles this team is given, and what it can never do.": "此团队被授予的自定义角色，以及它永远不能执行的操作。",
+  "The custom roles this key is given, and what it can never do.": "此密钥被授予的自定义角色，以及它永远不能执行的操作。",
+  "Private users": "私人用户",
+  "{{count}} email domains": "{{count}} 个电子邮件域名",
+  "{{count}} email domains_one": "{{count}} 个电子邮件域名",
+  "Private users, {{count}} email domains": "私人用户，{{count}} 个电子邮件域名",
+  "Private users, {{count}} email domains_one": "私人用户，{{count}} 个电子邮件域名"
 }

@@ -36313,5 +36313,21 @@
   "The users, hosts and addresses with the highest risk scores in the last 7 days, as Entity Risk ranks them.": "Brukerne, vertene og adressene med høyest risikopoengsum de siste 7 dagene, slik Entitetsrisiko rangerer dem.",
   "View all {{count}} entities": "Se alle {{count}} entiteter",
   "View all {{count}} entities_one": "Se {{count}} entitet",
-  "We could not load the riskiest entities.": "Vi kunne ikke laste inn de mest risikable entitetene."
+  "We could not load the riskiest entities.": "Vi kunne ikke laste inn de mest risikable entitetene.",
+  "How long readers stay signed in, and which IP addresses can open this status page.": "Hvor lenge lesere forblir pålogget, og hvilke IP-adresser som kan åpne denne statussiden.",
+  "This key has no permissions of its own yet. It gets what its custom roles allow, under More settings.": "Denne nøkkelen har ingen egne tillatelser ennå. Den får det de egendefinerte rollene dens under Flere innstillinger tillater.",
+  "This team has no permissions of its own yet. Its members get what its custom roles allow, under More settings.": "Dette teamet har ingen egne tillatelser ennå. Medlemmene får det teamets egendefinerte roller under Flere innstillinger tillater.",
+  "Who can subscribe, timezones, the email footer, and your own mail server or Twilio account.": "Hvem kan abonnere, tidssoner, e-postbunnteksten og din egen e-postserver eller Twilio-konto.",
+  "How long telemetry and session replays from this application are kept.": "Hvor lenge telemetri og øktavspillinger fra denne applikasjonen oppbevares.",
+  "How long telemetry from here is kept, when it should not follow the project's retention.": "Hvor lenge telemetri herfra oppbevares, når den ikke skal følge prosjektets oppbevaring.",
+  "Your own mail servers and Twilio accounts, for messages OneUptime would otherwise send itself.": "Dine egne e-postservere og Twilio-kontoer, for meldinger OneUptime ellers ville sendt selv.",
+  "Every IP address can open this form.": "Alle IP-adresser kan åpne dette skjemaet.",
+  "Only the IP addresses on the allowlist can open this form.": "Bare IP-adressene på tillatelseslisten kan åpne dette skjemaet.",
+  "The custom roles this team is given, and what it can never do.": "De egendefinerte rollene dette teamet har, og det det aldri kan gjøre.",
+  "The custom roles this key is given, and what it can never do.": "De egendefinerte rollene denne nøkkelen har, og det den aldri kan gjøre.",
+  "Private users": "Private brukere",
+  "{{count}} email domains": "{{count}} e-postdomener",
+  "{{count}} email domains_one": "{{count}} e-postdomene",
+  "Private users, {{count}} email domains": "Private brukere, {{count}} e-postdomener",
+  "Private users, {{count}} email domains_one": "Private brukere, {{count}} e-postdomene"
 }

@@ -10,6 +10,10 @@ import {
   getRoleRemoveFromTeamSentence,
 } from "./CustomRoleCopy";
 import { CustomRoleReachDetails, loadCustomRoleReach } from "./CustomRoleReach";
+import {
+  CUSTOM_ROLES_CARD_PLACE,
+  CustomRolesCardStateHandler,
+} from "./CustomRolesFold";
 import { CUSTOM_ROLES_REQUIRED_PLAN } from "../../Enterprise/EnterpriseEligibility";
 import { EnterpriseSettingLeftoverReason } from "../EnterpriseEdition/EnterpriseSettingLeftoverCopy";
 import ApiKeyCustomRole from "Common/Models/DatabaseModels/ApiKeyCustomRole";
@@ -41,14 +45,30 @@ import React, {
  *   ProjectCustomRolesLeftover   under the upsell on Teams > Settings > Roles:
  *                                the project's roles, each with Delete, which
  *                                says first who loses what (CustomRoleReach).
- *   TeamCustomRolesLeftover      on a team's Permissions page: the roles the
- *                                team has, each with Remove.
- *   ApiKeyCustomRolesLeftover    on an API key's page: the roles the key
- *                                has, each with Remove.
+ *   TeamCustomRolesLeftover      in a team's Permissions page's More
+ *                                settings: the roles the team has, each
+ *                                with Remove.
+ *   ApiKeyCustomRolesLeftover    in an API key's page's More settings: the
+ *                                roles the key has, each with Remove.
  *
  * Each counts its rows once when it opens. None - as for nearly every
- * project - or a count that fails draws nothing.
+ * project - or a count that fails draws nothing. The team's and the key's
+ * tell their page what they hold (onRolesChange), so its folded More
+ * settings names Custom Roles only while the card is drawn, with how many
+ * roles are left, and take the card's place there (#custom-roles), as the
+ * Enterprise card does.
  */
+
+/*
+ * What a team's or key's custom roles card shows where roles cannot be
+ * given: no upsell - the Roles page sells custom roles, and a page someone
+ * opens to give a team or key access is no place for one. What is left of
+ * the feature is drawn under it instead (TeamCustomRolesLeftover,
+ * ApiKeyCustomRolesLeftover), or nothing.
+ */
+export const drawNoCustomRolesUpsell: () => ReactElement = (): ReactElement => {
+  return <></>;
+};
 
 export interface ComponentProps {
   reason: EnterpriseSettingLeftoverReason;
@@ -56,10 +76,12 @@ export interface ComponentProps {
 
 export interface TeamComponentProps extends ComponentProps {
   teamId: ObjectID;
+  onRolesChange?: CustomRolesCardStateHandler | undefined;
 }
 
 export interface ApiKeyComponentProps extends ComponentProps {
   apiKeyId: ObjectID;
+  onRolesChange?: CustomRolesCardStateHandler | undefined;
 }
 
 const getDescription: (data: {
@@ -80,15 +102,15 @@ const getDescription: (data: {
     : data.editionDescription;
 };
 
-// Whether there is anything to list: counted once, null while counting.
-const useHasRows: (
+// How many rows there are to list: counted once, null while counting.
+const useRowCount: (
   count: () => Promise<number>,
   key: string,
-) => boolean | null = (
+) => number | null = (
   count: () => Promise<number>,
   key: string,
-): boolean | null => {
-  const [hasRows, setHasRows] = useState<boolean | null>(null);
+): number | null => {
+  const [rowCount, setRowCount] = useState<number | null>(null);
 
   useEffect(() => {
     let isCurrent: boolean = true;
@@ -96,12 +118,12 @@ const useHasRows: (
     count()
       .then((rows: number): void => {
         if (isCurrent) {
-          setHasRows(rows > 0);
+          setRowCount(rows);
         }
       })
       .catch((): void => {
         if (isCurrent) {
-          setHasRows(false);
+          setRowCount(0);
         }
       });
 
@@ -110,7 +132,41 @@ const useHasRows: (
     };
   }, [key]);
 
-  return hasRows;
+  return rowCount;
+};
+
+// Whether there is anything to list: counted once, null while counting.
+const useHasRows: (
+  count: () => Promise<number>,
+  key: string,
+) => boolean | null = (
+  count: () => Promise<number>,
+  key: string,
+): boolean | null => {
+  const rowCount: number | null = useRowCount(count, key);
+
+  return rowCount === null ? null : rowCount > 0;
+};
+
+/*
+ * Tells the page what a team's or key's leftover card holds, once counted:
+ * drawn with that many roles, or not drawn (none, or a count that failed).
+ * Told once per count; the table tells the page again each time it loads.
+ */
+const useReportRoles: (
+  rowCount: number | null,
+  onRolesChange: CustomRolesCardStateHandler | undefined,
+) => void = (
+  rowCount: number | null,
+  onRolesChange: CustomRolesCardStateHandler | undefined,
+): void => {
+  useEffect(() => {
+    if (rowCount === null) {
+      return;
+    }
+
+    onRolesChange?.({ isShown: rowCount > 0, count: rowCount });
+  }, [rowCount]);
 };
 
 export const ProjectCustomRolesLeftover: FunctionComponent<ComponentProps> = (
@@ -231,7 +287,7 @@ export const TeamCustomRolesLeftover: FunctionComponent<TeamComponentProps> = (
   const translator: Translator = useTranslator();
   const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
 
-  const hasRows: boolean | null = useHasRows(
+  const rowCount: number | null = useRowCount(
     async (): Promise<number> => {
       if (!projectId) {
         return 0;
@@ -245,7 +301,9 @@ export const TeamCustomRolesLeftover: FunctionComponent<TeamComponentProps> = (
     `${projectId?.toString() || ""}-${props.teamId.toString()}`,
   );
 
-  if (!hasRows || !projectId) {
+  useReportRoles(rowCount, props.onRolesChange);
+
+  if (!rowCount || !projectId) {
     return <></>;
   }
 
@@ -263,7 +321,12 @@ export const TeamCustomRolesLeftover: FunctionComponent<TeamComponentProps> = (
         singularName="Custom Role"
         pluralName="Custom Roles"
         deleteButtonText="Remove"
+        onFetchSuccess={(_data: Array<TeamCustomRole>, totalCount: number) => {
+          props.onRolesChange?.({ isShown: true, count: totalCount });
+        }}
         cardProps={{
+          // The place the Enterprise card takes in More settings, too.
+          id: CUSTOM_ROLES_CARD_PLACE,
           title: CustomRoleLeftoverCopy.teamTitle,
           description: getDescription({
             translator,
@@ -333,7 +396,7 @@ export const ApiKeyCustomRolesLeftover: FunctionComponent<
   const translator: Translator = useTranslator();
   const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
 
-  const hasRows: boolean | null = useHasRows(
+  const rowCount: number | null = useRowCount(
     async (): Promise<number> => {
       if (!projectId) {
         return 0;
@@ -347,7 +410,9 @@ export const ApiKeyCustomRolesLeftover: FunctionComponent<
     `${projectId?.toString() || ""}-${props.apiKeyId.toString()}`,
   );
 
-  if (!hasRows || !projectId) {
+  useReportRoles(rowCount, props.onRolesChange);
+
+  if (!rowCount || !projectId) {
     return <></>;
   }
 
@@ -365,7 +430,15 @@ export const ApiKeyCustomRolesLeftover: FunctionComponent<
         singularName="Custom Role"
         pluralName="Custom Roles"
         deleteButtonText="Remove"
+        onFetchSuccess={(
+          _data: Array<ApiKeyCustomRole>,
+          totalCount: number,
+        ) => {
+          props.onRolesChange?.({ isShown: true, count: totalCount });
+        }}
         cardProps={{
+          // The place the Enterprise card takes in More settings, too.
+          id: CUSTOM_ROLES_CARD_PLACE,
           title: CustomRoleLeftoverCopy.apiKeyTitle,
           description: getDescription({
             translator,

@@ -36313,5 +36313,21 @@
   "The users, hosts and addresses with the highest risk scores in the last 7 days, as Entity Risk ranks them.": "De gebruikers, hosts en adressen met de hoogste risicoscores van de afgelopen 7 dagen, zoals Entiteitrisico ze rangschikt.",
   "View all {{count}} entities": "Alle {{count}} entiteiten bekijken",
   "View all {{count}} entities_one": "{{count}} entiteit bekijken",
-  "We could not load the riskiest entities.": "We konden de riskantste entiteiten niet laden."
+  "We could not load the riskiest entities.": "We konden de riskantste entiteiten niet laden.",
+  "How long readers stay signed in, and which IP addresses can open this status page.": "Hoe lang lezers aangemeld blijven, en welke IP-adressen deze statuspagina kunnen openen.",
+  "This key has no permissions of its own yet. It gets what its custom roles allow, under More settings.": "Deze sleutel heeft nog geen eigen machtigingen. Hij krijgt wat zijn aangepaste rollen onder Meer instellingen toestaan.",
+  "This team has no permissions of its own yet. Its members get what its custom roles allow, under More settings.": "Dit team heeft nog geen eigen machtigingen. De leden krijgen wat de aangepaste rollen van het team onder Meer instellingen toestaan.",
+  "Who can subscribe, timezones, the email footer, and your own mail server or Twilio account.": "Wie zich kan abonneren, tijdzones, de voettekst van e-mails en je eigen mailserver of Twilio-account.",
+  "How long telemetry and session replays from this application are kept.": "Hoe lang telemetrie en sessieherhalingen van deze applicatie worden bewaard.",
+  "How long telemetry from here is kept, when it should not follow the project's retention.": "Hoe lang telemetrie van hier wordt bewaard, wanneer die niet de bewaartermijn van het project moet volgen.",
+  "Your own mail servers and Twilio accounts, for messages OneUptime would otherwise send itself.": "Je eigen mailservers en Twilio-accounts, voor berichten die OneUptime anders zelf zou versturen.",
+  "Every IP address can open this form.": "Elk IP-adres kan dit formulier openen.",
+  "Only the IP addresses on the allowlist can open this form.": "Alleen de IP-adressen op de toelatingslijst kunnen dit formulier openen.",
+  "The custom roles this team is given, and what it can never do.": "De aangepaste rollen van dit team, en wat het nooit mag.",
+  "The custom roles this key is given, and what it can never do.": "De aangepaste rollen van deze sleutel, en wat hij nooit mag.",
+  "Private users": "Privégebruikers",
+  "{{count}} email domains": "{{count}} e-maildomeinen",
+  "{{count}} email domains_one": "{{count}} e-maildomein",
+  "Private users, {{count}} email domains": "Privégebruikers, {{count}} e-maildomeinen",
+  "Private users, {{count}} email domains_one": "Privégebruikers, {{count}} e-maildomein"
 }

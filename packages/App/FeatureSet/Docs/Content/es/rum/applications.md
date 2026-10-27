@@ -108,7 +108,7 @@ La telemetría de una aplicación y sus grabaciones se conservan durante tiempos
 
 ### Retención de la telemetría
 
-Por defecto, la telemetría de una aplicación se conserva durante la retención del proyecto, que se ajusta en **Ajustes del proyecto → Telemetría y APM → Retención de datos**. Dos tarjetas de la página **Ajustes** de la aplicación la anulan:
+Por defecto, la telemetría de una aplicación se conserva durante la retención del proyecto, que se ajusta en **Ajustes del proyecto → Telemetría y APM → Retención de datos**. Dos tarjetas de la página **Ajustes** de la aplicación, plegadas en **Más ajustes**, la anulan:
 
 - **Retención de datos de telemetría** contiene **Conservar datos de telemetría durante (días)**, un valor para toda la telemetría de la aplicación. Déjalo vacío para usar la retención del proyecto.
 - **Retención por tipo de telemetría** contiene un valor predeterminado para registros, trazas, métricas y perfiles, y para los registros por gravedad y las trazas por estado. Un valor que se deja vacío recurre al valor de la aplicación y, después, al del proyecto.
@@ -119,7 +119,7 @@ En un plan de Cloud inferior, una anulación que dejó una prueba sigue aplicán
 
 ### Retención de la reproducción de sesiones
 
-Las grabaciones tienen su propia retención, que se ajusta en la página **Política de reproducción** de la aplicación con **Editar política → Límites**: 7 días por defecto, o 1, 14, 30 o 90 días. Es corta a propósito, porque una grabación es mucho más sensible, y mucho más grande, que un span. La tarjeta **Retención de la reproducción de sesiones** de la página **Ajustes** la muestra (_Session replays are kept for 7 days._), y su botón **Editar en Política de reproducción** abre la política.
+Las grabaciones tienen su propia retención, que se ajusta en la página **Política de reproducción** de la aplicación con **Editar política → Límites**: 7 días por defecto, o 1, 14, 30 o 90 días. Es corta a propósito, porque una grabación es mucho más sensible, y mucho más grande, que un span. La tarjeta **Retención de la reproducción de sesiones**, en **Más ajustes** de la página **Ajustes**, la muestra (_Session replays are kept for 7 days._), y su botón **Editar en Política de reproducción** abre la política.
 
 Una retención de telemetría más larga no conserva las grabaciones durante más tiempo. Los recuentos, las señales y el dispositivo de una sesión caducan con sus imágenes; solo los registros, los spans y las excepciones de la sesión siguen la retención de la telemetría. Consulta [Retención y eliminación](/docs/telemetry/session-replay#retención-y-borrado).
 

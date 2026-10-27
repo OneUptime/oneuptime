@@ -151,10 +151,13 @@ export const StatusPageAccessCopy: {
   passwordPlaceholder: string;
   changePassword: string;
   changePasswordDescription: string;
-  // The folded Advanced section, and the IP allowlist card in it.
+  /*
+   * The folded More settings - Reader Sessions and the IP allowlist - and
+   * the IP allowlist card in it. Folded, its header names the two, each
+   * with what it is set to while set: no summary sentence, which could
+   * speak for one of them only.
+   */
   advancedDescription: string;
-  advancedSummaryOpen: string;
-  advancedSummaryConfigured: string;
   ipAllowlistTitle: string;
   ipAllowlistDescription: string;
   ipAllowlistEditButton: string;
@@ -204,13 +207,7 @@ export const StatusPageAccessCopy: {
     "The new password works at once. People who entered the old one can keep viewing the page for up to 7 days.",
   ),
   advancedDescription: translationKey(
-    "Limit which IP addresses can open this status page.",
-  ),
-  advancedSummaryOpen: translationKey(
-    "Every IP address can open this status page.",
-  ),
-  advancedSummaryConfigured: translationKey(
-    "Only the IP addresses on the allowlist can open this status page.",
+    "How long readers stay signed in, and which IP addresses can open this status page.",
   ),
   ipAllowlistTitle: IpAllowlistCopy.title,
   ipAllowlistDescription: translationKey(

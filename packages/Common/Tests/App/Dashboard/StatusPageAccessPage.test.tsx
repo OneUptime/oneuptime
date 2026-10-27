@@ -21,9 +21,14 @@ import { getJestSpyOn } from "../../Spy";
 /*
  * A status page's Security -> Access page (the old "Authentication
  * Settings", at the same address): the "Who can see this status page" card
- * (StatusPageAccessCard, which has a suite of its own), then a folded
- * Advanced section holding the IP allowlist - which applies whoever the
- * page is open to, and which few pages need.
+ * (StatusPageAccessCard, which has a suite of its own), then a folded More
+ * settings section holding how long readers stay signed in (Reader
+ * Sessions) and the IP allowlist - Enterprise access controls few pages
+ * need. "Move custom roles to More settings because it is an advanced
+ * feature. Please audit the entire project for advanced features just like
+ * these and move them to More as well" - the maintainer: Reader Sessions
+ * was a card of its own under the choice, and waits folded now, named in
+ * the folded header with its length while one is set.
  *
  * It used to be three cards: an "Is Visible to Public" switch, a "Master
  * Password" card with its own switch and a button for the password, and the
@@ -104,6 +109,10 @@ import StatusPageAccessCopy, {
   STATUS_PAGE_ACCESS_ADVANCED_SECTION_TEST_ID,
   STATUS_PAGE_IP_ALLOWLIST_ENTRIES_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/StatusPage/StatusPageAccessCopy";
+import StatusPageSessionLengthCopy, {
+  STATUS_PAGE_SESSION_LENGTH_PLACE,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/StatusPage/StatusPageSessionLengthCopy";
+import { IP_ALLOWLIST_CARD_PLACE } from "../../../../App/FeatureSet/Dashboard/src/Components/IpAllowlist/IpAllowlistCopy";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import Route from "../../../Types/API/Route";
@@ -192,32 +201,44 @@ async function loadAllowlist(ipWhitelist: string | undefined): Promise<void> {
   });
 }
 
+// What the reader sessions shell reads, handed to the page as the shell would.
+async function loadSessionLength(lengthInHours: number | null): Promise<void> {
+  const onLengthChange: (length: number | null) => void = propsOf(
+    "session-length-card",
+  )["onLengthChange"] as (length: number | null) => void;
+
+  await act(async () => {
+    onLengthChange(lengthInHours);
+  });
+}
+
 function advancedSection(): HTMLElement {
   return screen.getByTestId(STATUS_PAGE_ACCESS_ADVANCED_SECTION_TEST_ID);
 }
 
+function cardsIn(container: HTMLElement): Array<string | null> {
+  return within(container)
+    .getAllByTestId("recorded-card")
+    .map((element: HTMLElement): string | null => {
+      return element.getAttribute("data-card");
+    });
+}
+
 describe("the page", () => {
-  test("opens on who can see the page, then how long readers stay signed in, then a folded Advanced section with the IP allowlist", async () => {
+  test("opens on who can see the page, then a folded More settings with how long readers stay signed in and the IP allowlist", async () => {
     await renderPage();
 
-    const cards: Array<string | null> = screen
-      .getAllByTestId("recorded-card")
-      .map((element: HTMLElement): string | null => {
-        return element.getAttribute("data-card");
-      });
-
-    expect(cards).toEqual([
+    expect(cardsIn(document.body)).toEqual([
       "access-card",
       "session-length-card",
       ALLOWLIST_CARD,
     ]);
 
-    expect(
-      within(advancedSection()).getAllByTestId("recorded-card").length,
-    ).toBe(1);
-    expect(
-      within(advancedSection()).getByTestId("recorded-card"),
-    ).toHaveAttribute("data-card", ALLOWLIST_CARD);
+    // Only the choice is outside the fold.
+    expect(cardsIn(advancedSection())).toEqual([
+      "session-length-card",
+      ALLOWLIST_CARD,
+    ]);
   });
 
   test("the choice is for this status page", async () => {
@@ -228,22 +249,16 @@ describe("the page", () => {
     ).toBe(STATUS_PAGE_ID);
   });
 
-  test("how long readers stay signed in is this status page's, and not folded away", async () => {
+  test("how long readers stay signed in is this status page's, folded under More settings", async () => {
     await renderPage();
 
     expect(
       (propsOf("session-length-card")["statusPageId"] as ObjectID).toString(),
     ).toBe(STATUS_PAGE_ID);
-    expect(
-      within(advancedSection()).queryByText("session-length-card"),
-    ).not.toBeInTheDocument();
-    expect(
-      within(advancedSection())
-        .getAllByTestId("recorded-card")
-        .map((element: HTMLElement): string | null => {
-          return element.getAttribute("data-card");
-        }),
-    ).not.toContain("session-length-card");
+    expect(typeof propsOf("session-length-card")["onLengthChange"]).toBe(
+      "function",
+    );
+    expect(cardsIn(advancedSection())).toContain("session-length-card");
   });
 
   test("no card is left of the switches and the password button", async () => {
@@ -263,62 +278,146 @@ describe("the page", () => {
   });
 });
 
-describe("the folded Advanced section", () => {
-  test("is folded, and names what is in it", async () => {
-    await renderPage();
-
-    const toggle: HTMLElement = within(advancedSection()).getByRole("button", {
+describe("the folded More settings", () => {
+  function toggle(): HTMLElement {
+    return within(advancedSection()).getByRole("button", {
       name: "More settings",
     });
+  }
 
-    expect(toggle).toHaveAttribute("aria-expanded", "false");
-    expect(listedNames(toggle)).toEqual(["IP Allowlist"]);
+  test("is folded, and names what is in it, in its order", async () => {
+    await renderPage();
+
+    expect(toggle()).toHaveAttribute("aria-expanded", "false");
+    expect(listedNames(toggle())).toEqual([
+      StatusPageSessionLengthCopy.cardTitle,
+      "IP Allowlist",
+    ]);
+    expect(setChips(advancedSection())).toEqual([]);
 
     // Open, it says what it is for.
-    fireEvent.click(toggle);
+    fireEvent.click(toggle());
 
     expect(advancedSection()).toHaveTextContent(
       StatusPageAccessCopy.advancedDescription,
     );
   });
 
-  test("with no allowlist: every address may open the page, and nothing is configured", async () => {
+  /*
+   * Two settings, each with a value of its own: folded, each says what it
+   * is set to - a sentence about one of them would hide the other.
+   */
+  test("says no sentence for one card alone: what is set shows on its own chip", async () => {
+    await renderPage();
+    await loadAllowlist("203.0.113.7");
+
+    expect(advancedSection()).not.toHaveTextContent(
+      "Every IP address can open this status page.",
+    );
+    expect(advancedSection()).not.toHaveTextContent(
+      "Only the IP addresses on the allowlist can open this status page.",
+    );
+  });
+
+  test("with no allowlist and no reader session limit: nothing is set", async () => {
     await renderPage();
     await loadAllowlist(undefined);
+    await loadSessionLength(null);
 
-    expect(advancedSection()).toHaveTextContent(
-      StatusPageAccessCopy.advancedSummaryOpen,
-    );
     expect(setChips(advancedSection())).toEqual([]);
   });
 
-  test("with an allowlist: it says so, folded, and says Configured", async () => {
+  test("with an allowlist: a chip says how many entries it holds", async () => {
     await renderPage();
     await loadAllowlist("203.0.113.7\n10.0.0.0/8");
 
-    expect(advancedSection()).toHaveTextContent(
-      StatusPageAccessCopy.advancedSummaryConfigured,
-    );
+    expect(setChips(advancedSection())).toEqual(["IP Allowlist: 2"]);
     expect(hasSetChip(advancedSection())).toBe(true);
+    // Saying so does not open it.
+    expect(toggle()).toHaveAttribute("aria-expanded", "false");
   });
 
-  test("a list of blank lines is in force on the server, so it is Configured too", async () => {
+  test("a list of blank lines is in force on the server, so it is set too", async () => {
     await renderPage();
     await loadAllowlist("\n  \n");
 
     expect(hasSetChip(advancedSection())).toBe(true);
   });
 
+  test("with a reader session limit: a chip says how long readers stay signed in", async () => {
+    await renderPage();
+    await loadSessionLength(8);
+
+    expect(setChips(advancedSection())).toEqual([
+      `${StatusPageSessionLengthCopy.cardTitle}: 8 hours`,
+    ]);
+
+    await loadSessionLength(24 * 30);
+
+    expect(setChips(advancedSection())).toEqual([
+      `${StatusPageSessionLengthCopy.cardTitle}: 30 days`,
+    ]);
+
+    // Taken away: named again, not set.
+    await loadSessionLength(null);
+
+    expect(setChips(advancedSection())).toEqual([]);
+    expect(listedNames(toggle())).toContain(
+      StatusPageSessionLengthCopy.cardTitle,
+    );
+  });
+
+  test("both set: both chips, the reader sessions first", async () => {
+    await renderPage();
+    await loadSessionLength(1);
+    await loadAllowlist("10.0.0.0/8");
+
+    expect(setChips(advancedSection())).toEqual([
+      `${StatusPageSessionLengthCopy.cardTitle}: 1 hour`,
+      "IP Allowlist: 1",
+    ]);
+  });
+
   test("opens from its title", async () => {
     await renderPage();
 
-    const toggle: HTMLElement = within(advancedSection()).getByRole("button", {
-      name: "More settings",
-    });
+    fireEvent.click(toggle());
 
-    fireEvent.click(toggle);
+    expect(toggle()).toHaveAttribute("aria-expanded", "true");
+  });
 
-    expect(toggle).toHaveAttribute("aria-expanded", "true");
+  /*
+   * A link to a card in it - a search result, the docs, another page -
+   * opens it there (AdvancedPageSection): #reader-sessions and
+   * #ip-allowlist, each its card's title's place.
+   */
+  test.each([
+    [STATUS_PAGE_SESSION_LENGTH_PLACE, "reader-sessions"],
+    [IP_ALLOWLIST_CARD_PLACE, "ip-allowlist"],
+  ])("opened at #%s, it opens there", async (place: string, name: string) => {
+    expect(place).toBe(name);
+
+    window.history.replaceState(null, "", `#${place}`);
+
+    try {
+      await renderPage();
+
+      expect(toggle()).toHaveAttribute("aria-expanded", "true");
+    } finally {
+      window.history.replaceState(null, "", "#");
+    }
+  });
+
+  test("opened at any other place, it stays folded", async () => {
+    window.history.replaceState(null, "", "#who-can-see-this-status-page");
+
+    try {
+      await renderPage();
+
+      expect(toggle()).toHaveAttribute("aria-expanded", "false");
+    } finally {
+      window.history.replaceState(null, "", "#");
+    }
   });
 });
 
@@ -342,7 +441,7 @@ describe("the IP allowlist shell", () => {
     });
   });
 
-  test("tells the page each allowlist it reads, so the folded section can say Configured", async () => {
+  test("tells the page each allowlist it reads, so the folded section can mark it set", async () => {
     await renderPage();
 
     expect(typeof propsOf(ALLOWLIST_CARD)["onLoaded"]).toBe("function");

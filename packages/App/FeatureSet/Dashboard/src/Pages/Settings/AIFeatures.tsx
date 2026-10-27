@@ -13,6 +13,7 @@ import {
   getProjectAiDailyLimitColumns,
   getProjectAiDailyLimitFieldError,
   PROJECT_AI_ADVANCED_SECTION_TEST_ID,
+  PROJECT_AI_DAILY_LIMITS_CARD_KEY,
   ProjectAiDailyLimitsCopy,
   ProjectAiNoticeContext,
 } from "../../Components/AISettings/ProjectAiSettingsCopy";
@@ -203,6 +204,11 @@ const AIFeatures: FunctionComponent<PageComponentProps> = (): ReactElement => {
             description:
               "How much OneUptime AI may use each day across the whole project, whatever it is doing. Each day starts at midnight UTC.",
             buttons: dailyGate.lockedButtons,
+            /*
+             * Its place in More settings: the name the folded header lists
+             * it by, so a link to it lands here.
+             */
+            id: PROJECT_AI_DAILY_LIMITS_CARD_KEY,
           }}
           isEditable={dailyGate.isEditable}
           editButtonText="Edit"

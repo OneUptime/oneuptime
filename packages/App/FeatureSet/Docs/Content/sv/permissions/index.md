@@ -101,7 +101,7 @@ Skapa hur många extra team du vill — "Frontend-jour", "Support", "Skrivskydda
 
 Rollen du väljer blir teamets första behörighet, för alla resurser i projektet, så snart teamet finns — precis som om du hade lagt till den med **Lägg till roll** på teamets sida Behörigheter. Du erbjuds bara de roller du själv har, eftersom alla du bjuder in till teamet får dess behörigheter, och den som får skapa team men inte ändra vad de får göra tillfrågas inte. Om rollen inte kan läggas till skapas teamet ändå, och ett meddelande ovanför listan länkar till det.
 
-Var du hittar det: öppna ett team under **Team** för att nå **Medlemmar** och **Behörigheter**; **Blockera behörigheter** finns under **Fler inställningar** längst ned på sidan Behörigheter, vars hopfällda rubrik visar hur många teamet har.
+Var du hittar det: öppna ett team under **Team** för att nå **Medlemmar** och **Behörigheter**; dess anpassade roller och **Blockera behörigheter** finns under **Fler inställningar** längst ned på sidan Behörigheter, vars hopfällda rubrik visar hur många av varje teamet har.
 
 ## Behörigheter
 
@@ -145,13 +145,13 @@ En anpassad roll är en uppsättning behörigheter som du namnger en gång och g
 1. Öppna **Team** i menyn **Produkter**, under **Inställningar**. Fäll ut **Inställningar** i sidomenyn, välj **Roller** och klicka på **Skapa Anpassad roll**.
 2. Skriv dess **Namn** och välj under **Behörigheter** de inbyggda roller den samlar, för varje resurs i projektet. Beskrivningen finns under **Fler fält**.
 3. Skapa rollen. Den öppnas på sin sida, där **Lägg till roll** lägger till ytterligare en inbyggd roll och **Lägg till behörighet** (i kortets meny **⋯**) en enstaka behörighet, var och en med omfattning och etiketter, som på ett team.
-4. Klicka på **Ge till ett team** under **Team med den här rollen**, eller på **Ge till en API-nyckel** under **API-nycklar med den här rollen**. Ett teams sida **Behörigheter** och en API-nyckels sida har också **Lägg till anpassad roll**, och **Skapa team** och **Skapa API-nyckel** erbjuder under **Åtkomst** de anpassade roller du skulle kunna ge.
+4. Klicka på **Ge till ett team** under **Team med den här rollen**, eller på **Ge till en API-nyckel** under **API-nycklar med den här rollen**. Ett teams sida **Behörigheter** och en API-nyckels sida har också **Lägg till anpassad roll**, under **Fler inställningar**, och **Skapa team** och **Skapa API-nyckel** erbjuder under **Åtkomst** de anpassade roller du skulle kunna ge.
 :::
 
 - Ett teams medlemmar får varje behörighet i teamets anpassade roller, med samma omfattning och samma etiketter, precis som om teamet hade dem själv. En blockering på teamet vinner fortfarande.
 - En roll förblir kopplad till de team och API-nycklar som har den: en ändring av den når alla direkt, och rollens sida säger hur många team, personer och nycklar det är. **Ta bort** tar rollen från ett team eller en nyckel. Tar du bort själva rollen förlorar varje team och varje nyckel som har den dess behörigheter; de behåller allt annat de har.
 - Du kan bara lägga i en roll, och ge ett team eller en API-nyckel som roll, det du kunde ha gett det direkt: en roll med en behörighet som du inte har med samma eller en bredare omfattning avvisas, och avvisningen namnger behörigheten. En roll innehåller aldrig `ProjectOwner`, och **Owners** och **Admin** får aldrig någon.
-- Ett teams sida **Behörigheter** och en API-nyckels sida visar deras anpassade roller ovanför deras egna behörigheter. Vad en roll ger ändras på rollens sida, inte på teamets eller nyckelns.
+- Ett teams sida **Behörigheter** och en API-nyckels sida visar deras anpassade roller under **Fler inställningar**, efter deras egna behörigheter; den hopfällda rubriken säger hur många de har. Vad en roll ger ändras på rollens sida, inte på teamets eller nyckelns.
 - En API-nyckel får varje behörighet i sina anpassade roller, med samma etiketter, som om nyckeln hade dem själv, och en blockering på nyckeln vinner fortfarande. En behörighet som rollen begränsar till det någon äger ger en nyckel ingenting: en nyckel äger ingenting.
 - De inbyggda rollerna listas under **Inbyggda roller**, längst ned på sidan **Roller**.
 
@@ -273,7 +273,7 @@ API-nycklar får behörigheter direkt, på själva nyckeln, eller genom de anpas
 
 Rollen du väljer blir nyckelns första behörighet så snart nyckeln finns, precis som om du hade lagt till den på nyckelns sida. Du erbjuds bara de roller du själv har — en nyckel kan aldrig få mer än personen som ger den har — och den som får skapa nycklar men inte ändra vad de får göra tillfrågas inte.
 
-På en nyckels sida visar **Anpassade roller** nyckelns anpassade roller så snart ditt projekt har en, och **Lägg till anpassad roll** ger den en till. **Lägg till roll** lägger till en roll från samma lista som ett teams flik Behörigheter erbjuder, och **Lägg till behörighet** (i kortets meny **⋯**) lägger till en enskild granulär behörighet. **Blockera behörigheter** finns under **Fler inställningar** längst ned på sidan, vars hopfällda rubrik visar hur många nyckeln har.
+På en nyckels sida visar **Anpassade roller**, under **Fler inställningar**, nyckelns anpassade roller så snart ditt projekt har en, och **Lägg till anpassad roll** ger den en till. **Lägg till roll** lägger till en roll från samma lista som ett teams flik Behörigheter erbjuder, och **Lägg till behörighet** (i kortets meny **⋯**) lägger till en enskild granulär behörighet. **Blockera behörigheter** finns under **Fler inställningar** längst ned på sidan, vars hopfällda rubrik visar hur många nyckeln har.
 
 > [!TIP]
 > Ge varje integration en egen nyckel med den smalaste uppsättning behörigheter som fungerar, så att du kan återkalla en utan att störa de andra.

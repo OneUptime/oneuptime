@@ -36313,5 +36313,21 @@
   "The users, hosts and addresses with the highest risk scores in the last 7 days, as Entity Risk ranks them.": "Los usuarios, hosts y direcciones con las puntuaciones de riesgo más altas de los últimos 7 días, tal como los clasifica Riesgo de entidades.",
   "View all {{count}} entities": "Ver las {{count}} entidades",
   "View all {{count}} entities_one": "Ver {{count}} entidad",
-  "We could not load the riskiest entities.": "No pudimos cargar las entidades de mayor riesgo."
+  "We could not load the riskiest entities.": "No pudimos cargar las entidades de mayor riesgo.",
+  "How long readers stay signed in, and which IP addresses can open this status page.": "Cuánto tiempo siguen conectados los lectores y qué direcciones IP pueden abrir esta página de estado.",
+  "This key has no permissions of its own yet. It gets what its custom roles allow, under More settings.": "Esta clave aún no tiene permisos propios. Obtiene lo que permiten sus roles personalizados, en Más ajustes.",
+  "This team has no permissions of its own yet. Its members get what its custom roles allow, under More settings.": "Este equipo aún no tiene permisos propios. Sus miembros obtienen lo que permiten sus roles personalizados, en Más ajustes.",
+  "Who can subscribe, timezones, the email footer, and your own mail server or Twilio account.": "Quién puede suscribirse, las zonas horarias, el pie de página del correo y tu propio servidor de correo o cuenta de Twilio.",
+  "How long telemetry and session replays from this application are kept.": "Cuánto tiempo se conservan la telemetría y las reproducciones de sesión de esta aplicación.",
+  "How long telemetry from here is kept, when it should not follow the project's retention.": "Cuánto tiempo se conserva la telemetría de aquí, cuando no debe seguir la retención del proyecto.",
+  "Your own mail servers and Twilio accounts, for messages OneUptime would otherwise send itself.": "Tus propios servidores de correo y cuentas de Twilio, para los mensajes que OneUptime enviaría de lo contrario por sí mismo.",
+  "Every IP address can open this form.": "Cualquier dirección IP puede abrir este formulario.",
+  "Only the IP addresses on the allowlist can open this form.": "Solo las direcciones IP de la lista de permitidas pueden abrir este formulario.",
+  "The custom roles this team is given, and what it can never do.": "Los roles personalizados que tiene este equipo y lo que nunca puede hacer.",
+  "The custom roles this key is given, and what it can never do.": "Los roles personalizados que tiene esta clave y lo que nunca puede hacer.",
+  "Private users": "Usuarios privados",
+  "{{count}} email domains": "{{count}} dominios de correo electrónico",
+  "{{count}} email domains_one": "{{count}} dominio de correo electrónico",
+  "Private users, {{count}} email domains": "Usuarios privados, {{count}} dominios de correo electrónico",
+  "Private users, {{count}} email domains_one": "Usuarios privados, {{count}} dominio de correo electrónico"
 }

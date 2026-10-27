@@ -24,7 +24,7 @@ Sur OneUptime Cloud, les SMS et les appels d'astreinte proviennent des numéros 
 
 Vos alertes proviennent d'autres numéros que ceux ci-dessus lorsque :
 
-- **Votre projet utilise son propre compte Twilio.** Lorsqu'un projet a une configuration Twilio définie par défaut pour le projet (**Paramètres du projet** > **Notifications** > **Paramètres de notification** > **Configuration Twilio**), les SMS et appels destinés aux membres du projet passent par ce compte, depuis ses numéros de téléphone. Mettez plutôt ces numéros en liste blanche.
+- **Votre projet utilise son propre compte Twilio.** Lorsqu'un projet a une configuration Twilio définie par défaut pour le projet (**Paramètres du projet** > **Notifications** > **Paramètres de notification** > **Plus de paramètres** > **Configuration Twilio**), les SMS et appels destinés aux membres du projet passent par ce compte, depuis ses numéros de téléphone. Mettez plutôt ces numéros en liste blanche.
 - **Vous utilisez une installation auto-hébergée.** Les SMS et les appels proviennent des numéros Twilio configurés par votre administrateur : la configuration Twilio par défaut du projet, ou celle de toute l'installation sous **Admin Dashboard** > **Paramètres** > **Appel et SMS**. Demandez à votre administrateur quels numéros mettre en liste blanche.
 
 ## Étapes suivantes

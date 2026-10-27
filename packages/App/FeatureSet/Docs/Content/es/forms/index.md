@@ -93,7 +93,7 @@ En **Compartir**, copia el enlace y envíalo a las personas que deben usar el fo
 | **Construir** | El nombre y la descripción del formulario, su **Marca** (logotipo y favicon, plegados) y el editor: sus preguntas, la paleta de preguntas y **Vista previa**. |
 | **Plantillas** | Conjuntos de respuestas con nombre desde los que se puede empezar el formulario, cómo hace las preguntas cada uno, el que se abre por defecto y el enlace propio de cada uno. |
 | **Al enviar** | Qué crea cada envío y cómo se rellena cada uno de sus campos. **Editar configuración** cambia los valores predeterminados y lo que se aplica siempre. |
-| **Compartir** | **Acepta envíos**, el **Enlace para compartir**, el mensaje que se muestra tras enviar y la **Lista de IP permitidas**. |
+| **Compartir** | **Acepta envíos**, el **Enlace para compartir**, el mensaje que se muestra tras enviar y, en **Más ajustes**, la **Lista de IP permitidas**. |
 | **Envíos** | Cada envío hecho con el formulario, el más reciente primero, con sus respuestas y lo que creó. |
 | **Duplicar formulario** | En **Avanzado**: una copia del formulario, con nombre puesto por ti, con sus preguntas, plantillas, ajustes de Al enviar, marca, mensaje de agradecimiento y lista de IP permitidas, y un enlace propio. La copia empieza desactivada y se abre en su editor. |
 | **Eliminar formulario** | La eliminación del formulario, en **Avanzado**. Sus envíos se eliminan con él; los incidentes y eventos que creó, no. |

@@ -36313,5 +36313,21 @@
   "The users, hosts and addresses with the highest risk scores in the last 7 days, as Entity Risk ranks them.": "엔티티 위험과 같은 순서로 정렬한, 최근 7일 동안 위험 점수가 가장 높은 사용자, 호스트, 주소입니다.",
   "View all {{count}} entities": "엔티티 {{count}}개 모두 보기",
   "View all {{count}} entities_one": "엔티티 {{count}}개 보기",
-  "We could not load the riskiest entities.": "위험도가 가장 높은 엔티티를 불러오지 못했습니다."
+  "We could not load the riskiest entities.": "위험도가 가장 높은 엔티티를 불러오지 못했습니다.",
+  "How long readers stay signed in, and which IP addresses can open this status page.": "독자가 로그인 상태를 유지하는 기간과 이 상태 페이지를 열 수 있는 IP 주소입니다.",
+  "This key has no permissions of its own yet. It gets what its custom roles allow, under More settings.": "이 키에는 아직 자체 권한이 없습니다. 추가 설정에 있는 사용자 정의 역할이 허용하는 작업을 할 수 있습니다.",
+  "This team has no permissions of its own yet. Its members get what its custom roles allow, under More settings.": "이 팀에는 아직 자체 권한이 없습니다. 팀원은 추가 설정에 있는 이 팀의 사용자 정의 역할이 허용하는 작업을 할 수 있습니다.",
+  "Who can subscribe, timezones, the email footer, and your own mail server or Twilio account.": "구독할 수 있는 사람, 시간대, 이메일 푸터, 자체 메일 서버 또는 Twilio 계정입니다.",
+  "How long telemetry and session replays from this application are kept.": "이 애플리케이션의 텔레메트리와 세션 리플레이를 보관하는 기간입니다.",
+  "How long telemetry from here is kept, when it should not follow the project's retention.": "프로젝트의 보존 기간을 따르지 않을 때 여기에서 온 텔레메트리를 보관하는 기간입니다.",
+  "Your own mail servers and Twilio accounts, for messages OneUptime would otherwise send itself.": "평소 OneUptime이 직접 보내는 메시지에 쓰는 자체 메일 서버와 Twilio 계정입니다.",
+  "Every IP address can open this form.": "모든 IP 주소에서 이 양식을 열 수 있습니다.",
+  "Only the IP addresses on the allowlist can open this form.": "허용 목록에 있는 IP 주소만 이 양식을 열 수 있습니다.",
+  "The custom roles this team is given, and what it can never do.": "이 팀에 부여된 사용자 정의 역할과 이 팀이 절대 할 수 없는 작업입니다.",
+  "The custom roles this key is given, and what it can never do.": "이 키에 부여된 사용자 정의 역할과 이 키가 절대 할 수 없는 작업입니다.",
+  "Private users": "비공개 사용자",
+  "{{count}} email domains": "이메일 도메인 {{count}}개",
+  "{{count}} email domains_one": "이메일 도메인 {{count}}개",
+  "Private users, {{count}} email domains": "비공개 사용자, 이메일 도메인 {{count}}개",
+  "Private users, {{count}} email domains_one": "비공개 사용자, 이메일 도메인 {{count}}개"
 }

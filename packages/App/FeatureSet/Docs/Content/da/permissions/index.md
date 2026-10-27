@@ -101,7 +101,7 @@ Opret så mange ekstra teams, du vil — "Frontend-vagt", "Support", "Skrivebesk
 
 Den rolle, du vælger, bliver teamets første tilladelse, for alle ressourcer i projektet, så snart teamet findes — præcis som hvis du havde tilføjet den med **Tilføj rolle** på teamets side Tilladelser. Du får kun tilbudt de roller, du selv har, fordi alle, du inviterer til teamet, får dets tilladelser, og den, der må oprette teams, men ikke ændre, hvad de må, bliver ikke spurgt. Kan rollen ikke tilføjes, oprettes teamet alligevel, og en besked over listen linker til det.
 
-Hvor du finder det: åbn et team under **Teams** for at komme til **Medlemmer** og **Tilladelser**; **Bloker tilladelser** ligger under **Yderligere indstillinger** nederst på siden Tilladelser, hvis sammenklappede overskrift viser, hvor mange teamet har.
+Hvor du finder det: åbn et team under **Teams** for at komme til **Medlemmer** og **Tilladelser**; dets brugerdefinerede roller og **Bloker tilladelser** ligger under **Yderligere indstillinger** nederst på siden Tilladelser, hvis sammenklappede overskrift viser, hvor mange af hver teamet har.
 
 ## Tilladelser
 
@@ -145,13 +145,13 @@ En brugerdefineret rolle er et sæt tilladelser, du navngiver én gang og giver 
 1. Åbn **Teams** i menuen **Produkter** under **Indstillinger**. Fold **Indstillinger** ud i sidemenuen, vælg **Roller**, og klik på **Opret Brugerdefineret rolle**.
 2. Skriv dens **Navn**, og vælg under **Tilladelser** de indbyggede roller, den samler, for hver ressource i projektet. Beskrivelsen ligger under **Flere felter**.
 3. Opret rollen. Den åbner på sin side, hvor **Tilføj rolle** tilføjer endnu en indbygget rolle og **Tilføj tilladelse** (i menuen **⋯** på kortet) en enkelt tilladelse, hver med et omfang og etiketter, som på et team.
-4. Klik på **Giv til et team** under **Teams med denne rolle**, eller på **Giv til en API-nøgle** under **API-nøgler med denne rolle**. Et teams side **Tilladelser** og en API-nøgles side har også **Tilføj brugerdefineret rolle**, og **Opret team** og **Opret API-nøgle** tilbyder under **Adgang** de brugerdefinerede roller, du kunne give.
+4. Klik på **Giv til et team** under **Teams med denne rolle**, eller på **Giv til en API-nøgle** under **API-nøgler med denne rolle**. Et teams side **Tilladelser** og en API-nøgles side har også **Tilføj brugerdefineret rolle**, under **Yderligere indstillinger**, og **Opret team** og **Opret API-nøgle** tilbyder under **Adgang** de brugerdefinerede roller, du kunne give.
 :::
 
 - Et teams medlemmer får hver tilladelse fra teamets brugerdefinerede roller, med samme omfang og samme etiketter, præcis som hvis teamet selv havde dem. En blokering på teamet vinder stadig.
 - En rolle forbliver knyttet til de teams og API-nøgler, der har den: en ændring af den når dem alle med det samme, og rollens side fortæller, hvor mange teams, personer og nøgler det er. **Fjern** tager rollen fra ét team eller én nøgle. Sletter du selve rollen, mister hvert team og hver nøgle, der har den, dens tilladelser; de beholder alt det andet, de har.
 - Du kan kun lægge i en rolle, og give et team eller en API-nøgle som rolle, hvad du kunne give det direkte: en rolle med en tilladelse, du ikke har med samme eller et bredere omfang, afvises, og afvisningen nævner tilladelsen. En rolle indeholder aldrig `ProjectOwner`, og **Owners** og **Admin** får aldrig en.
-- Et teams side **Tilladelser** og en API-nøgles side viser deres brugerdefinerede roller over deres egne tilladelser. Hvad en rolle giver, ændres på rollens side, ikke på teamets eller nøglens.
+- Et teams side **Tilladelser** og en API-nøgles side viser deres brugerdefinerede roller under **Yderligere indstillinger**, efter deres egne tilladelser; den sammenklappede overskrift siger, hvor mange de har. Hvad en rolle giver, ændres på rollens side, ikke på teamets eller nøglens.
 - En API-nøgle får hver tilladelse fra sine brugerdefinerede roller, med de samme etiketter, som hvis nøglen selv havde dem, og en blokering på nøglen vinder stadig. En tilladelse, som rollen begrænser til det, nogen ejer, giver en nøgle intet: en nøgle ejer intet.
 - De indbyggede roller står under **Indbyggede roller** nederst på siden **Roller**.
 
@@ -273,7 +273,7 @@ API-nøgler får tilladelser direkte, på selve nøglen, eller gennem de brugerd
 
 Den rolle, du vælger, bliver nøglens første tilladelse, så snart nøglen findes, præcis som hvis du havde tilføjet den på nøglens side. Du får kun tilbudt de roller, du selv har — en nøgle kan aldrig få mere, end den, der giver den, har — og den, der må oprette nøgler, men ikke ændre, hvad de må, bliver ikke spurgt.
 
-På en nøgles side viser **Brugerdefinerede roller** nøglens brugerdefinerede roller, så snart dit projekt har en, og **Tilføj brugerdefineret rolle** giver den en mere. **Tilføj rolle** tilføjer en rolle fra den samme liste, som et teams fane Tilladelser tilbyder, og **Tilføj tilladelse** (i kortets menu **⋯**) tilføjer én granulær tilladelse. **Bloker tilladelser** ligger under **Yderligere indstillinger** nederst på siden, hvis sammenklappede overskrift viser, hvor mange nøglen har.
+På en nøgles side viser **Brugerdefinerede roller**, under **Yderligere indstillinger**, nøglens brugerdefinerede roller, så snart dit projekt har en, og **Tilføj brugerdefineret rolle** giver den en mere. **Tilføj rolle** tilføjer en rolle fra den samme liste, som et teams fane Tilladelser tilbyder, og **Tilføj tilladelse** (i kortets menu **⋯**) tilføjer én granulær tilladelse. **Bloker tilladelser** ligger under **Yderligere indstillinger** nederst på siden, hvis sammenklappede overskrift viser, hvor mange nøglen har.
 
 > [!TIP]
 > Giv hver integration sin egen nøgle med det snævreste sæt tilladelser, der virker, så du kan tilbagekalde én uden at forstyrre de andre.

@@ -2,7 +2,12 @@ import {
   PRIVATE_USER_SESSION_IDLE_DAYS,
   PRIVATE_USER_SESSION_LENGTH_CHOICES_IN_HOURS,
 } from "Common/Types/StatusPage/PrivateUserSessionLength";
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  FoldedSectionItem,
+  foldedSectionItem,
+} from "Common/UI/Components/FoldedSection/FoldedSectionItem";
+import { getPageAnchorNameForTitle } from "Common/UI/Utils/PageAnchor";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The Reader Sessions card on a status page's Security -> Access page: how long a
@@ -166,5 +171,48 @@ export const getSessionLengthDescription: (
 
 // Kept in step with the sentence above, which says "30 days" in words.
 export const SESSION_IDLE_DAYS_IN_COPY: number = PRIVATE_USER_SESSION_IDLE_DAYS;
+
+// A length as it reads: "1 hour", "8 hours", "30 days", in the reader's language.
+export const getSessionLengthText: (
+  lengthInHours: number,
+  translator: Translator,
+) => string = (lengthInHours: number, translator: Translator): string => {
+  const length: Pick<SessionLengthChoice, "label" | "labelValues"> =
+    getSessionLengthLabel(lengthInHours);
+
+  return length.labelValues
+    ? translator.translateTemplate(length.label, length.labelValues)
+    : translator.translateText(length.label) || length.label;
+};
+
+/*
+ * The card's place in the Access page's More settings: its title's
+ * (#reader-sessions), the Enterprise card's and the upsell's alike.
+ */
+export const STATUS_PAGE_SESSION_LENGTH_PLACE: string =
+  getPageAnchorNameForTitle(StatusPageSessionLengthCopy.cardTitle);
+
+/*
+ * Reader Sessions as the Access page's folded More settings names it: a
+ * chip with the length while one is set ("Reader Sessions: 8 hours"), its
+ * name otherwise - where every page starts. Unread (undefined), its name.
+ */
+export const getSessionLengthFoldedItem: (
+  lengthInHours: number | null | undefined,
+  translator: Translator,
+) => FoldedSectionItem = (
+  lengthInHours: number | null | undefined,
+  translator: Translator,
+): FoldedSectionItem => {
+  const isSet: boolean = typeof lengthInHours === "number" && lengthInHours > 0;
+
+  return foldedSectionItem(StatusPageSessionLengthCopy.cardTitle, {
+    key: STATUS_PAGE_SESSION_LENGTH_PLACE,
+    isSet: isSet,
+    value: isSet
+      ? getSessionLengthText(lengthInHours as number, translator)
+      : undefined,
+  });
+};
 
 export default StatusPageSessionLengthCopy;

@@ -93,7 +93,7 @@ Em **Partilhar**, copie o link e envie para as pessoas que devem usar o formulá
 | **Construir** | O nome e a descrição do formulário, a **Marca** dele (logotipo e favicon, recolhidos) e o editor: as perguntas, a paleta de perguntas e **Pré-visualização**. |
 | **Modelos** | Conjuntos de respostas com nome a partir dos quais se pode começar o formulário, como cada um faz as perguntas, aquele com que o formulário abre e o link próprio de cada um. |
 | **Ao enviar** | O que cada envio cria e como cada campo dele é preenchido. **Editar definições** muda os valores padrão e o que sempre vale. |
-| **Partilhar** | **Aceita envios**, o **Link de compartilhamento**, a mensagem mostrada depois do envio e a **Lista de IPs permitidos**. |
+| **Partilhar** | **Aceita envios**, o **Link de compartilhamento**, a mensagem mostrada depois do envio e, em **Mais configurações**, a **Lista de IPs permitidos**. |
 | **Envios** | Cada envio feito pelo formulário, o mais recente primeiro, com as respostas e o que ele criou. |
 | **Duplicar formulário** | Em **Avançado**: uma cópia do formulário, com nome dado para você, com as perguntas, os modelos, as configurações de Ao enviar, a marca, a mensagem de agradecimento e a lista de IPs permitidos, e um link próprio. A cópia começa desligada e abre no editor. |
 | **Eliminar formulário** | A exclusão do formulário, em **Avançado**. Os envios são excluídos junto; os incidentes e eventos que ele criou, não. |

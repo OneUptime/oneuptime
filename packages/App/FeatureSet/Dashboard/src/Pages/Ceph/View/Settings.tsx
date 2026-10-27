@@ -5,7 +5,7 @@ import CephCluster from "Common/Models/DatabaseModels/CephCluster";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import ArchiveResourceCard from "../../../Components/TelemetryResource/ArchiveResourceCard";
 import ResourceDetailsCard from "../../../Components/TelemetryResource/ResourceDetailsCard";
-import TelemetryResourceRetentionSettings from "../../../Components/TelemetryResource/TelemetryResourceRetentionSettings";
+import TelemetryResourceMoreSettings from "../../../Components/TelemetryResource/TelemetryResourceMoreSettings";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
@@ -43,7 +43,7 @@ const CephClusterSettings: FunctionComponent<
           },
         ]}
       />
-      <TelemetryResourceRetentionSettings<CephCluster>
+      <TelemetryResourceMoreSettings<CephCluster>
         modelType={CephCluster}
         modelId={modelId}
         resourceName="Ceph cluster"

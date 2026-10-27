@@ -36313,5 +36313,21 @@
   "The users, hosts and addresses with the highest risk scores in the last 7 days, as Entity Risk ranks them.": "Les utilisateurs, hôtes et adresses aux scores de risque les plus élevés ces 7 derniers jours, classés comme dans Risque des entités.",
   "View all {{count}} entities": "Voir les {{count}} entités",
   "View all {{count}} entities_one": "Voir {{count}} entité",
-  "We could not load the riskiest entities.": "Nous n'avons pas pu charger les entités les plus à risque."
+  "We could not load the riskiest entities.": "Nous n'avons pas pu charger les entités les plus à risque.",
+  "How long readers stay signed in, and which IP addresses can open this status page.": "Combien de temps les lecteurs restent connectés, et quelles adresses IP peuvent ouvrir cette page de statut.",
+  "This key has no permissions of its own yet. It gets what its custom roles allow, under More settings.": "Cette clé n'a pas encore d'autorisations propres. Elle obtient ce que permettent ses rôles personnalisés, sous Plus de paramètres.",
+  "This team has no permissions of its own yet. Its members get what its custom roles allow, under More settings.": "Cette équipe n'a pas encore d'autorisations propres. Ses membres obtiennent ce que permettent ses rôles personnalisés, sous Plus de paramètres.",
+  "Who can subscribe, timezones, the email footer, and your own mail server or Twilio account.": "Qui peut s'abonner, les fuseaux horaires, le pied de page des e-mails, et votre propre serveur de messagerie ou compte Twilio.",
+  "How long telemetry and session replays from this application are kept.": "Combien de temps la télémétrie et les relectures de session de cette application sont conservées.",
+  "How long telemetry from here is kept, when it should not follow the project's retention.": "Combien de temps la télémétrie d'ici est conservée, lorsqu'elle ne doit pas suivre la conservation du projet.",
+  "Your own mail servers and Twilio accounts, for messages OneUptime would otherwise send itself.": "Vos propres serveurs de messagerie et comptes Twilio, pour les messages que OneUptime enverrait sinon lui-même.",
+  "Every IP address can open this form.": "Toutes les adresses IP peuvent ouvrir ce formulaire.",
+  "Only the IP addresses on the allowlist can open this form.": "Seules les adresses IP de la liste d'autorisation peuvent ouvrir ce formulaire.",
+  "The custom roles this team is given, and what it can never do.": "Les rôles personnalisés attribués à cette équipe, et ce qu'elle ne peut jamais faire.",
+  "The custom roles this key is given, and what it can never do.": "Les rôles personnalisés attribués à cette clé, et ce qu'elle ne peut jamais faire.",
+  "Private users": "Utilisateurs privés",
+  "{{count}} email domains": "{{count}} domaines d'e-mail",
+  "{{count}} email domains_one": "{{count}} domaine d'e-mail",
+  "Private users, {{count}} email domains": "Utilisateurs privés, {{count}} domaines d'e-mail",
+  "Private users, {{count}} email domains_one": "Utilisateurs privés, {{count}} domaine d'e-mail"
 }

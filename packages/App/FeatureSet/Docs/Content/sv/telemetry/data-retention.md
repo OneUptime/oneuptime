@@ -28,10 +28,10 @@ I sin helhet läser OneUptime de här inställningarna i den här ordningen, och
 
 | Ordning | Inställning | Var den anges |
 | --- | --- | --- |
-| 1 | Dagar för en loggallvarlighetsgrad eller span-status, för en tjänst eller resurs | **Lagring efter telemetrityp**, på dess sida **Inställningar** |
+| 1 | Dagar för en loggallvarlighetsgrad eller span-status, för en tjänst eller resurs | **Lagring efter telemetrityp**, under **Fler inställningar** på dess sida **Inställningar** |
 | 2 | Dagar för en typ av telemetri, för en tjänst eller resurs | Samma kort |
-| 3 | Dagar för allt från en tjänst eller resurs | **Datalagring för telemetri**, på samma sida |
-| 4 | Dagar för en loggallvarlighetsgrad eller span-status, för projektet | **Lagring efter telemetrityp**, på **Datalagring** |
+| 3 | Dagar för allt från en tjänst eller resurs | **Datalagring för telemetri**, under **Fler inställningar** på samma sida |
+| 4 | Dagar för en loggallvarlighetsgrad eller span-status, för projektet | **Lagring efter telemetrityp**, under **Fler inställningar** på **Datalagring** |
 | 5 | Dagar för en typ av telemetri, för projektet | Samma kort |
 | 6 | Dagar för allt annat | **Standardlagring (dagar)**, på **Datalagring** |
 
@@ -64,7 +64,7 @@ Det nya talet gäller för varje post som kommer in från och med då och som in
 
 ### För hela projektet
 
-Under standarden anger kortet **Lagring efter telemetrityp** dagar för varje typ av telemetri. Klicka på **Edit Overrides**, fyll i de fält du behöver och lämna resten tomma:
+Under standarden, hopfällt under **Fler inställningar**, anger kortet **Lagring efter telemetrityp** dagar för varje typ av telemetri. Klicka på **Edit Overrides**, fyll i de fält du behöver och lämna resten tomma:
 
 | Typ | Fält |
 | --- | --- |
@@ -77,7 +77,7 @@ Ett fält som lämnas tomt faller tillbaka på nästa inställning i ordningen o
 
 ### För en tjänst eller resurs
 
-Öppna tjänstens eller resursens sida **Inställningar**. Dess kort **Datalagring för telemetri** innehåller **Behåll telemetridata i (dagar)**, ett enda tal för allt den skickar, och dess kort **Lagring efter telemetrityp** har samma fält som projektets. Lämna ett fält tomt för att använda projektets inställningar.
+Öppna tjänstens eller resursens sida **Inställningar** och sedan **Fler inställningar**. Dess kort **Datalagring för telemetri** innehåller **Behåll telemetridata i (dagar)**, ett enda tal för allt den skickar, och dess kort **Lagring efter telemetrityp** har samma fält som projektets. Lämna ett fält tomt för att använda projektets inställningar.
 
 Tjänster, värdar, Kubernetes-kluster, Docker- och Podman-värdar, Docker Swarm-, Proxmox- och Ceph-kluster, lagringssystem, vCenter, databaser, serverlösa funktioner, molnresurser, RUM-applikationer och IoT-flottor har alla de här korten. Se [Tjänstekatalogen](/docs/telemetry/services#ändra-en-tjänst) för en tjänsts sida **Inställningar**.
 

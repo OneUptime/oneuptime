@@ -4,7 +4,16 @@ import {
   getAllowedEmailDomainsIssue,
   MAX_ALLOWED_SUBSCRIBER_EMAIL_DOMAINS,
 } from "Common/Types/StatusPage/SubscriberRestrictions";
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  FoldedSectionItem,
+  foldedSectionItem,
+} from "Common/UI/Components/FoldedSection/FoldedSectionItem";
+import { getPageAnchorNameForTitle } from "Common/UI/Utils/PageAnchor";
+import {
+  PluralTemplate,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Who Can Subscribe, on Subscribers -> Subscriber Settings: Only Private
@@ -30,6 +39,29 @@ export const ALLOWED_EMAIL_DOMAINS_SETTING_TEST_ID: string =
 
 // What the box shows before anything is typed: two domains, one a line.
 export const ALLOWED_EMAIL_DOMAINS_PLACEHOLDER: string = "acme.com\nacme.de";
+
+/*
+ * What the card restricts, told to its page: the card waits folded under
+ * the page's More settings - an Enterprise access control few status pages
+ * use - and the folded header marks it while anything is restricted.
+ */
+export interface SubscriberRestrictionsState {
+  limitSubscribersToPrivateUsers: boolean;
+  allowedEmailDomainCount: number;
+}
+
+// Whether anyone who would subscribe is turned away: either setting on.
+export const isSubscriberRestrictionInForce: (
+  restrictions: SubscriberRestrictionsState | null | undefined,
+) => boolean = (
+  restrictions: SubscriberRestrictionsState | null | undefined,
+): boolean => {
+  return Boolean(
+    restrictions &&
+      (restrictions.limitSubscribersToPrivateUsers ||
+        restrictions.allowedEmailDomainCount > 0),
+  );
+};
 
 export const SubscriberRestrictionsCopy: {
   cardTitle: string;
@@ -146,6 +178,108 @@ export const toAllowedEmailDomainsText: (
   value: string | null | undefined,
 ) => string = (value: string | null | undefined): string => {
   return getAllowedEmailDomainEntries(value).join("\n");
+};
+
+// What a status page holds, as the card tells its page.
+export const getSubscriberRestrictionsState: (data: {
+  limitSubscribersToPrivateUsers: boolean | null | undefined;
+  allowedSubscriberEmailDomains: string | null | undefined;
+}) => SubscriberRestrictionsState = (data: {
+  limitSubscribersToPrivateUsers: boolean | null | undefined;
+  allowedSubscriberEmailDomains: string | null | undefined;
+}): SubscriberRestrictionsState => {
+  return {
+    limitSubscribersToPrivateUsers:
+      data.limitSubscribersToPrivateUsers === true,
+    allowedEmailDomainCount: getAllowedEmailDomainEntries(
+      data.allowedSubscriberEmailDomains,
+    ).length,
+  };
+};
+
+/*
+ * The card's place in the page's More settings: its title's
+ * (#who-can-subscribe), the Enterprise card's and the upsell's alike.
+ */
+export const SUBSCRIBER_RESTRICTIONS_PLACE: string = getPageAnchorNameForTitle(
+  SubscriberRestrictionsCopy.cardTitle,
+);
+
+/*
+ * Who may subscribe, in the few words a folded chip has room for - as every
+ * other chip in the fold says what it is set to ("Subscriber Timezones: 2",
+ * "Custom SMTP: Acme mail"): the page's private users, a number of email
+ * domains, or both. Each is one phrase, translated whole.
+ */
+export const SUBSCRIBER_RESTRICTIONS_PRIVATE_USERS_VALUE: string =
+  translationKey("Private users");
+
+export const SUBSCRIBER_RESTRICTIONS_EMAIL_DOMAINS_VALUE: PluralTemplate = {
+  one: "{{count}} email domain",
+  other: "{{count}} email domains",
+};
+
+export const SUBSCRIBER_RESTRICTIONS_PRIVATE_USERS_AND_EMAIL_DOMAINS_VALUE: PluralTemplate =
+  {
+    one: "Private users, {{count}} email domain",
+    other: "Private users, {{count}} email domains",
+  };
+
+/*
+ * What Who Can Subscribe's chip says it is set to, in the reader's
+ * language: "Private users", "2 email domains" or "Private users, 2 email
+ * domains". Nothing while nobody is turned away.
+ */
+export const getSubscriberRestrictionsValue: (
+  restrictions: SubscriberRestrictionsState | null | undefined,
+  translator: Translator,
+) => string | undefined = (
+  restrictions: SubscriberRestrictionsState | null | undefined,
+  translator: Translator,
+): string | undefined => {
+  if (!restrictions || !isSubscriberRestrictionInForce(restrictions)) {
+    return undefined;
+  }
+
+  const domainCount: number = restrictions.allowedEmailDomainCount;
+
+  if (!restrictions.limitSubscribersToPrivateUsers) {
+    return translator.translatePlural(
+      SUBSCRIBER_RESTRICTIONS_EMAIL_DOMAINS_VALUE,
+      domainCount,
+    );
+  }
+
+  if (domainCount > 0) {
+    return translator.translatePlural(
+      SUBSCRIBER_RESTRICTIONS_PRIVATE_USERS_AND_EMAIL_DOMAINS_VALUE,
+      domainCount,
+    );
+  }
+
+  return (
+    translator.translateText(SUBSCRIBER_RESTRICTIONS_PRIVATE_USERS_VALUE) ||
+    SUBSCRIBER_RESTRICTIONS_PRIVATE_USERS_VALUE
+  );
+};
+
+/*
+ * Who Can Subscribe as the page's folded More settings names it: a chip
+ * while anything turns a subscriber away, saying who may subscribe; its
+ * name otherwise - where every page starts.
+ */
+export const getSubscriberRestrictionsFoldedItem: (
+  restrictions: SubscriberRestrictionsState | null | undefined,
+  translator: Translator,
+) => FoldedSectionItem = (
+  restrictions: SubscriberRestrictionsState | null | undefined,
+  translator: Translator,
+): FoldedSectionItem => {
+  return foldedSectionItem(SubscriberRestrictionsCopy.cardTitle, {
+    key: SUBSCRIBER_RESTRICTIONS_PLACE,
+    isSet: isSubscriberRestrictionInForce(restrictions),
+    value: getSubscriberRestrictionsValue(restrictions, translator),
+  });
 };
 
 export default SubscriberRestrictionsCopy;

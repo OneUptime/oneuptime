@@ -190,6 +190,15 @@ const FoldedSection: FunctionComponent<ComponentProps> = (
   const showBadge: boolean = Boolean(isCollapsed && props.badge);
   const showDescription: boolean = Boolean(!isCollapsed && props.description);
 
+  /*
+   * Nothing under the title: a fold open with no description of its own,
+   * its one card saying what it is. A card's header then centres the title
+   * on the icon tile beside it, rather than leaving it at the tile's top
+   * edge, where a line under it would start.
+   */
+  const isTitleAlone: boolean =
+    !showDescription && !showContents && !showSummary && !showBadge;
+
   const describedBy: Array<string> = [];
 
   if (showContents || showBadge) {
@@ -547,7 +556,9 @@ const FoldedSection: FunctionComponent<ComponentProps> = (
     >
       <button
         type="button"
-        className={`flex w-full items-start gap-3 text-left transition-colors duration-150 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 ${
+        className={`flex w-full ${
+          isTitleAlone ? "items-center" : "items-start"
+        } gap-3 text-left transition-colors duration-150 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 ${
           props.isElevated ? "px-5 py-4 md:px-6" : "px-3 py-3 sm:px-4"
         } ${
           props.isElevated

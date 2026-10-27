@@ -1,5 +1,10 @@
 import CustomCallSMSTable from "../../Components/CallSMS/CallSMSConfigTable";
 import CustomSMTPTable from "../../Components/CustomSMTP/CustomSMTPTable";
+import {
+  getOwnSendersFoldedItems,
+  OWN_SENDERS_MORE_DESCRIPTION,
+} from "../../Components/NotificationMethods/OwnSendersFold";
+import AdvancedPageSection from "Common/UI/Components/AdvancedPageSection/AdvancedPageSection";
 import ProjectNotificationChannelsCard from "../../Components/NotificationMethods/ProjectNotificationChannelsCard";
 import {
   getCurrentProjectBillingMarketplace,
@@ -64,7 +69,15 @@ import React, {
  *
  * When Auto Recharge's last charge failed, the page says so first
  * (AutoRechargeFailedNotice), with what to do or who can.
+ *
+ * The project's own mail servers and Twilio accounts - what a status page
+ * sends its subscribers through, and what an incoming call policy answers
+ * on, instead of OneUptime's - wait folded under More settings: most
+ * projects never add one (Components/NotificationMethods/OwnSendersFold).
  */
+export const NOTIFICATION_SETTINGS_MORE_TEST_ID: string =
+  "notification-settings-more";
+
 const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const translator: Translator = useTranslator();
   const [showRechargeBalanceModal, setShowRechargeBalanceModal] =
@@ -76,6 +89,9 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
   >(null);
   // Saving Auto Recharge tries the card at once: ask again whether it failed.
   const [autoRechargeSaves, setAutoRechargeSaves] = useState<number>(0);
+  // How many own mail servers and Twilio accounts there are, once listed.
+  const [smtpConfigCount, setSmtpConfigCount] = useState<number>(0);
+  const [twilioConfigCount, setTwilioConfigCount] = useState<number>(0);
 
   /*
    * Read on every render rather than remembered: the permission snapshot
@@ -234,8 +250,25 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
         <></>
       )}
 
-      <CustomSMTPTable />
-      <CustomCallSMSTable />
+      <AdvancedPageSection
+        description={OWN_SENDERS_MORE_DESCRIPTION}
+        items={getOwnSendersFoldedItems({
+          smtpConfigCount: smtpConfigCount,
+          twilioConfigCount: twilioConfigCount,
+        })}
+        dataTestId={NOTIFICATION_SETTINGS_MORE_TEST_ID}
+      >
+        <CustomSMTPTable
+          onCountChange={(count: number) => {
+            setSmtpConfigCount(count);
+          }}
+        />
+        <CustomCallSMSTable
+          onCountChange={(count: number) => {
+            setTwilioConfigCount(count);
+          }}
+        />
+      </AdvancedPageSection>
     </Fragment>
   );
 };

@@ -108,7 +108,7 @@ La télémétrie d'une application et ses enregistrements sont conservés pendan
 
 ### Rétention de la télémétrie
 
-Par défaut, la télémétrie d'une application est conservée selon la rétention du projet, réglée sous **Paramètres du projet → Télémétrie & APM → Rétention des données**. Deux cartes de la page **Paramètres** de l'application la remplacent :
+Par défaut, la télémétrie d'une application est conservée selon la rétention du projet, réglée sous **Paramètres du projet → Télémétrie & APM → Rétention des données**. Deux cartes de la page **Paramètres** de l'application, repliées sous **Plus de paramètres**, la remplacent :
 
 - **Conservation des données de télémétrie** contient **Conserver les données de télémétrie pendant (jours)**, une valeur pour toute la télémétrie de l'application. Laissez-la vide pour utiliser la rétention du projet.
 - **Rétention par type de télémétrie** contient une valeur par défaut pour les journaux, les traces, les métriques et les profils, et pour les journaux par gravité et les traces par statut. Une valeur laissée vide se rabat sur celle de l'application, puis sur celle du projet.
@@ -119,7 +119,7 @@ Sur un forfait Cloud inférieur, un remplacement laissé par un essai continue d
 
 ### Rétention de la relecture de session
 
-Les enregistrements ont leur propre rétention, réglée dans la page **Replay Policy** de l'application avec **Modifier la politique → Limites** : 7 jours par défaut, ou 1, 14, 30 ou 90 jours. Elle est courte à dessein, car un enregistrement est bien plus sensible, et bien plus volumineux, qu'un span. La carte **Conservation de la relecture de session** de la page **Paramètres** l'affiche (_Session replays are kept for 7 days._), et son bouton **Modifier dans Replay Policy** ouvre la politique.
+Les enregistrements ont leur propre rétention, réglée dans la page **Replay Policy** de l'application avec **Modifier la politique → Limites** : 7 jours par défaut, ou 1, 14, 30 ou 90 jours. Elle est courte à dessein, car un enregistrement est bien plus sensible, et bien plus volumineux, qu'un span. La carte **Conservation de la relecture de session**, sous **Plus de paramètres** de la page **Paramètres**, l'affiche (_Session replays are kept for 7 days._), et son bouton **Modifier dans Replay Policy** ouvre la politique.
 
 Une rétention de télémétrie plus longue ne conserve pas les enregistrements plus longtemps. Les compteurs, signaux et appareil d'une session expirent avec ses images ; seuls les journaux, spans et exceptions de la session suivent la rétention de la télémétrie. Voir [Rétention et suppression](/docs/telemetry/session-replay#rétention-et-suppression).
 
