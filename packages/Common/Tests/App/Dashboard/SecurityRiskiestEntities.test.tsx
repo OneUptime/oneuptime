@@ -277,7 +277,11 @@ describe("the card's body", () => {
         // A host named in Persian letters reads right to left on any page.
         { value: "سرور-پرداخت-۲", type: SecurityEntityType.Host, score: 120 },
         // No letters at all: the isolate's own reading, never a forced one.
-        { value: "203.0.113.47", type: SecurityEntityType.IpAddress, score: 80 },
+        {
+          value: "203.0.113.47",
+          type: SecurityEntityType.IpAddress,
+          score: 80,
+        },
       ],
     });
 
