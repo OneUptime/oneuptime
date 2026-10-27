@@ -7,6 +7,7 @@ import InventoryItemService from "../../../Services/InventoryItemService";
 import KubernetesCluster from "../../../../Models/DatabaseModels/KubernetesCluster";
 import NetworkDevice from "../../../../Models/DatabaseModels/NetworkDevice";
 import PodmanHost from "../../../../Models/DatabaseModels/PodmanHost";
+import SecurityEvent from "../../../../Models/AnalyticsModels/SecurityEvent";
 import SecurityCase from "../../../../Models/DatabaseModels/SecurityCase";
 import SecurityEntityRisk from "../../../../Models/DatabaseModels/SecurityEntityRisk";
 import ServiceModel from "../../../../Models/DatabaseModels/Service";
@@ -54,6 +55,7 @@ import QueryHelper from "../../../Types/Database/QueryHelper";
 import logger from "../../Logger";
 import SecurityCaseValues from "../../SecurityCase/SecurityCaseValues";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import TelemetryReadAccess from "../../Telemetry/TelemetryReadAccess";
 import {
   MAX_ADDRESS_HOLDERS_READ,
   isRefusedRead,
@@ -77,7 +79,8 @@ import {
  * Over the last RESOURCE_SECURITY_WINDOW_IN_DAYS days (the week an entity's
  * risk is counted over): how many events and findings name it, the open
  * cases whose entities name it, and its highest risk. Every read is inside
- * the project, bounded, with the caller's own permissions; a project with
+ * the project, bounded, with the caller's own permissions - the events
+ * counted are those of the sources the caller may read; a project with
  * no security event in the window is told so in one read, and nothing else
  * is read.
  */
@@ -214,6 +217,11 @@ export default class ResourceSecurity {
       risk: null,
     };
 
+    /*
+     * Whether the project uses Security Events at all, from any source: not
+     * a count of anyone's events, so a reader whose own sources were quiet
+     * this week is still shown the record's open cases and risk.
+     */
     result.isInUse = await SecurityEventService.hasEventsSince({
       projectId: data.projectId,
       startTime,
@@ -243,6 +251,11 @@ export default class ResourceSecurity {
         ...(identity.isSearchedByLogs ? { logResourceId: data.id } : {}),
         startTime,
         endTime: now,
+        // Only the events of the sources the caller may read.
+        serviceFilter: await TelemetryReadAccess.getServiceFilter({
+          modelType: SecurityEvent,
+          props: data.props,
+        }),
       });
 
     result.eventCount = summary.eventCount;

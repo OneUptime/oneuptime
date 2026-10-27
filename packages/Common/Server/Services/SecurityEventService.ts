@@ -481,6 +481,8 @@ export class SecurityEventService extends AnalyticsDatabaseService<SecurityEvent
     startTime: Date;
     endTime: Date;
     limit: number;
+    // The sources the reader may read; none: every one (findObservableActivity).
+    serviceFilter?: TelemetryServiceFilter | undefined;
   }): Promise<Array<SecurityAttackCampaign>> {
     if (!this.database) {
       this.useDefaultDatabase();
@@ -538,7 +540,14 @@ export class SecurityEventService extends AnalyticsDatabaseService<SecurityEvent
       }} AND classUid = ${{
         type: TableColumnType.Number,
         value: HTTP_ACTIVITY_CLASS_UID,
-      }} GROUP BY sourceIp ORDER BY worstOutcomeRank DESC, requestCount DESC, sourceIp ASC LIMIT ${{
+      }}`,
+    );
+    TelemetryReadScopeUtil.appendServiceFilter(
+      statement,
+      data.serviceFilter || {},
+    );
+    statement.append(
+      SQL` GROUP BY sourceIp ORDER BY worstOutcomeRank DESC, requestCount DESC, sourceIp ASC LIMIT ${{
         type: TableColumnType.Number,
         value: limit + 1,
       }}`,
@@ -577,6 +586,8 @@ export class SecurityEventService extends AnalyticsDatabaseService<SecurityEvent
     logResourceId?: ObjectID | undefined;
     startTime: Date;
     endTime: Date;
+    // The sources the reader may read; none: every one (findObservableActivity).
+    serviceFilter?: TelemetryServiceFilter | undefined;
   }): Promise<SecurityEventsNamingSummary> {
     const values: Array<string> = Array.from(
       new Set(
@@ -650,6 +661,10 @@ export class SecurityEventService extends AnalyticsDatabaseService<SecurityEvent
     }
 
     statement.append(")");
+    TelemetryReadScopeUtil.appendServiceFilter(
+      statement,
+      data.serviceFilter || {},
+    );
     statement.append(getQuerySettings(SECURITY_CONNECTION_READ_TIME_LIMIT));
 
     const result: Results = await this.executeQuery(statement);
@@ -679,6 +694,8 @@ export class SecurityEventService extends AnalyticsDatabaseService<SecurityEvent
     startTime: Date;
     endTime: Date;
     limit: number;
+    // The sources the reader may read; none: every one (findObservableActivity).
+    serviceFilter?: TelemetryServiceFilter | undefined;
   }): Promise<Array<SecurityEventLogResource>> {
     const values: Array<string> = Array.from(
       new Set(
@@ -727,7 +744,14 @@ export class SecurityEventService extends AnalyticsDatabaseService<SecurityEvent
       }}) AND has(attributeKeys, ${{
         type: TableColumnType.Text,
         value: SECURITY_LOG_RESOURCE_ID_ATTRIBUTE,
-      }}) GROUP BY resourceType, resourceId ORDER BY eventCount DESC, resourceId ASC LIMIT ${{
+      }})`,
+    );
+    TelemetryReadScopeUtil.appendServiceFilter(
+      statement,
+      data.serviceFilter || {},
+    );
+    statement.append(
+      SQL` GROUP BY resourceType, resourceId ORDER BY eventCount DESC, resourceId ASC LIMIT ${{
         type: TableColumnType.Number,
         value: Math.max(1, Math.min(100, Math.trunc(data.limit))),
       }}`,
