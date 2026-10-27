@@ -154,8 +154,6 @@
     "label": "उपयोगकर्ता प्रोफ़ाइल",
     "profile": "प्रोफ़ाइल",
     "adminSettings": "व्यवस्थापक सेटिंग्स",
-    "darkTheme": "गहरे रंग वाली थीम",
-    "lightTheme": "हल्के रंग वाली थीम",
     "switchToDarkTheme": "गहरे रंग वाली थीम पर जाएँ",
     "switchToLightTheme": "हल्के रंग वाली थीम पर जाएँ",
     "logOut": "लॉग आउट"
@@ -216,6 +214,7 @@
       "darkTheme": "गहरे रंग वाली थीम पर जाएँ",
       "declareIncident": "घटना घोषित करें",
       "lightTheme": "हल्के रंग वाली थीम पर जाएँ",
+      "systemTheme": "सिस्टम थीम पर जाएँ",
       "logOut": "लॉग आउट",
       "myOnCallPolicies": "मेरी ऑन-कॉल नीतियाँ",
       "projectInvitations": "प्रोजेक्ट आमंत्रण"

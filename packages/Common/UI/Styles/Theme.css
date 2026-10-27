@@ -1,8 +1,10 @@
 /*
- * Shared dashboard theme tokens (Dashboard + Admin Dashboard), and the
- * public status page's dark theme. Light is intentionally the default; the
- * dark values are activated only by the explicit class applied to <html>:
- * by the reader's own pick in the dashboards, and by the page's Theme
+ * Shared theme tokens: the Dashboard, the Admin Dashboard and the sign-in
+ * pages (Accounts), and the public status page's and public dashboard's
+ * dark theme. The light values are the defaults; the dark values are
+ * activated only by the dark class on <html>: by the person's own theme in
+ * the dashboards and on the sign-in pages - Light, Dark, or as their device
+ * is set (Common/Types/Theme/ThemePreference.ts) - and by the page's Theme
  * setting on a status page (Common/Types/StatusPage/StatusPageTheme.ts).
  */
 :root {
@@ -886,6 +888,7 @@ html.dark :is(
     .text-indigo-700,
     .text-indigo-800,
     .text-indigo-900,
+    .text-indigo-950,
     [class~="text-indigo-500/80"]
   ) {
   color: #a5b4fc;

@@ -154,8 +154,6 @@
     "label": "Brugerprofil",
     "profile": "Profil",
     "adminSettings": "Admin-indstillinger",
-    "darkTheme": "Mørkt tema",
-    "lightTheme": "Lyst tema",
     "switchToDarkTheme": "Skift til mørkt tema",
     "switchToLightTheme": "Skift til lyst tema",
     "logOut": "Log ud"
@@ -216,6 +214,7 @@
       "darkTheme": "Skift til mørkt tema",
       "declareIncident": "Erklær hændelse",
       "lightTheme": "Skift til lyst tema",
+      "systemTheme": "Skift til systemets tema",
       "logOut": "Log ud",
       "myOnCallPolicies": "Mine vagtpolitikker",
       "projectInvitations": "Projektinvitationer"

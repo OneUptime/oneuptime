@@ -48,7 +48,12 @@ import GlobalEvents from "Common/UI/Utils/GlobalEvents";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
-import ThemeUtil, { Theme, useTheme } from "Common/UI/Utils/Theme";
+import ThemeUtil, {
+  Theme,
+  ThemePreference,
+  useTheme,
+  useThemePreference,
+} from "Common/UI/Utils/Theme";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import User from "Common/UI/Utils/User";
@@ -174,6 +179,7 @@ const DashboardCommandPalette: FunctionComponent = (): ReactElement => {
   const translator: Translator = useTranslator();
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const theme: Theme = useTheme();
+  const themePreference: ThemePreference = useThemePreference();
 
   const closePalette: () => void = useCallback((): void => {
     setIsOpen(false);
@@ -344,6 +350,7 @@ const DashboardCommandPalette: FunctionComponent = (): ReactElement => {
       }),
       hasProjectSelected,
       isMasterAdmin,
+      isThemeFollowingDevice: themePreference === ThemePreference.System,
     });
 
     const actionsCategory: string = t(
@@ -433,6 +440,30 @@ const DashboardCommandPalette: FunctionComponent = (): ReactElement => {
         keywords: ["theme", "dark", "light", "mode", "appearance"],
         onSelect: () => {
           ThemeUtil.toggleTheme();
+        },
+      },
+      /*
+       * Back to the device's light or dark, once Light or Dark was picked:
+       * the user menu's System, from the keyboard.
+       */
+      "action-system-theme": {
+        id: "action-system-theme",
+        title: t("commandPalette.actions.systemTheme", "Switch to system theme"),
+        icon: IconProp.ComputerDesktop,
+        iconColor: "indigo",
+        category: actionsCategory,
+        keywords: [
+          "theme",
+          "system",
+          "device",
+          "auto",
+          "dark",
+          "light",
+          "mode",
+          "appearance",
+        ],
+        onSelect: () => {
+          ThemeUtil.setPreference(ThemePreference.System);
         },
       },
       "action-ask-ai": {
