@@ -8,7 +8,7 @@ Med global SSO opsætter en OneUptime-**instansadministrator** (master-admin) **
 :::cards
 - [Opsæt en udbyder](#opsætning-af-global-sso): Opret den, giv din identitetsudbyder OneUptimes URL'er, og test den.
 - [Sådan logger brugere ind](#sådan-logger-brugere-ind): Kun eksisterende medlemmer, eller nye personer føjet til de projekter, du tilknytter.
-- [Gennemtving SSO](#gennemtving-sso): Kræv SSO for ét projekt eller for hele instansen.
+- [Gennemtving SSO](#gennemtving-sso): Kræv SSO for ét projekt, eller for hele instansen og dens loginside.
 - [Slå en udbyder fra](#slå-en-udbyder-fra-eller-slet-den): Hvad der ophører, og hvilke ændringer OneUptime afviser.
 :::
 
@@ -27,21 +27,16 @@ Se [SSO](/docs/identity/sso) for et enkelt projekts egen udbyder.
 :::steps
 ### Åbn listen over udbydere
 
-:::tabs
-@tab SAML
-Log ind som master-admin, og åbn Admin Dashboard med **Admin-indstillinger** i din brugermenu. Gå derefter til **Indstillinger** > **Godkendelse** > **Global SSO**.
-@tab OpenID Connect
-Log ind som master-admin, og åbn Admin Dashboard med **Admin-indstillinger** i din brugermenu. Gå derefter til **Indstillinger** > **Godkendelse** > **Global OIDC**.
-:::
+Log ind som master-admin, og åbn Admin Dashboard med **Admin-indstillinger** i din brugermenu. Gå derefter til **Indstillinger** > **Single sign-on**. Siden viser instansens SAML-udbydere, derefter dens OpenID Connect-udbydere og til sidst kortet **Kræv SSO**.
 
 ### Opret udbyderen
 
 :::tabs
 @tab SAML
-- Klik på **Create Global SSO**.
+- Klik på **Tilføj SAML-udbyder**.
 - Indtast et **Navn**, **Sign On URL** og **Issuer** fra din identitetsudbyder, og indsæt **Public Certificate**. Resten er allerede udfyldt under **Flere felter**: **Signature Method** (`RSA-SHA256`), **Digest Method** (`SHA256`) og en beskrivelse (`Sign in with` og navnet). Ændr dem kun, hvis din IdP kræver det. Når du gemmer, åbnes udbyderens side.
 @tab OpenID Connect
-- Klik på **Create Global OIDC**.
+- Klik på **Tilføj OIDC-udbyder**.
 - Indtast et **Navn**, **Issuer URL** samt **Client ID** og **Client Secret** for den app, du har registreret i din IdP. Det virker også at indsætte IdP'ens discovery-URL i **Issuer URL**. Resten er allerede udfyldt under **Flere felter**: **Discovery URL** (udstederen efterfulgt af `/.well-known/openid-configuration`), **Scopes** (`openid email profile`), claim-navnene `email` og `name` og en beskrivelse (`Sign in with` og navnet). Ændr dem kun, hvis din IdP kræver det. Når du gemmer, åbnes udbyderens side.
 :::
 
@@ -58,11 +53,11 @@ På udbyderens side viser kortet **Identity Provider URL** **Redirect URI (Callb
 
 En ny udbyder starter slået fra. Klik på **Edit Configuration** på udbyderens side, og slå **Aktiveret** til.
 
-At slå en global udbyder til tilføjer kun en mulighed "Sign in with SSO" på loginsiden — den gennemtvinger aldrig SSO og udelukker ingen, så den er sikker at slå til, teste og slå fra igen, hvis det er nødvendigt.
+At slå en global udbyder til føjer den kun til loginsidens single sign-on-muligheder — den gennemtvinger aldrig SSO og udelukker ingen, så den er sikker at slå til, teste og slå fra igen, hvis det er nødvendigt. Så længe hele instansen kræver SSO, tilbyder loginsiden dog kun de udbydere, der er slået til: test en udbyder, før du kræver SSO.
 
 ### Test udbyderen
 
-Brug linket i kortet **Test this SSO provider** (**Test this OIDC provider** for OpenID Connect) til at gennemføre et komplet login via din identitetsudbyder. Du behøver ikke tilknytte projekter først: testen logger dig ind i de projekter, du allerede er med i. Udbyderen skal være slået til, for at linket virker.
+Brug linket i kortet **Test this SSO provider** (**Test this OIDC provider** for OpenID Connect) til at gennemføre et komplet login via din identitetsudbyder. **Test login** i udbyderens række på **Single sign-on** starter det samme login i en ny fane. Du behøver ikke tilknytte projekter først: testen logger dig ind i de projekter, du allerede er med i. Udbyderen skal være slået til, for at linket virker.
 :::
 
 ## Sådan logger brugere ind
@@ -101,7 +96,14 @@ Med **Alle projekter** opfylder login med udbyderen SSO-kravet i alle projekter,
 At opsætte en global udbyder tvinger ingen til at bruge den; login med adgangskode virker stadig. For at kræve SSO skal du slå kravet til for et projekt eller for hele instansen:
 
 - **Pr. projekt:** et projekt kan kræve SSO og eventuelt en *bestemt* udbyder (projekt eller global). Se [Kræv SSO for dit projekt](/docs/identity/sso#kræv-sso-for-dit-projekt).
-- **Hele instansen:** **Admin** > **Indstillinger** > **Godkendelse** har en kontakt **Kræv SSO til login**, der gennemtvinger SSO for alle brugere på instansen. Den beder om bekræftelse, før den slås til, og gemmer, så snart du bekræfter. Master-admins forbliver undtaget, så de ikke kan blive udelukket.
+- **Hele instansen:** kortet **Kræv SSO** nederst på **Admin** > **Indstillinger** > **Single sign-on** har en kontakt **Kræv SSO til login**, der gennemtvinger SSO for alle brugere på instansen. Den beder om bekræftelse, før den slås til, og gemmer, så snart du bekræfter. Master-admins forbliver undtaget, så de ikke kan blive udelukket.
+
+Så længe hele instansen kræver SSO:
+
+- Loginsiden tilbyder kun SSO: en knap for hver global udbyder, der er slået til, og ingen adgangskode, adgangsnøgle, Microsoft-login eller tilmelding. Den beholder opslaget via e-mail, der finder et projekts egen udbyder, kun så længe et projekt har en.
+- OneUptime afviser en adgangskode, en adgangsnøgle, et Microsoft-login og en tilmelding med "This server requires single sign-on (SSO). Sign in with SSO instead." Kun en master-admins adgangskode eller adgangsnøgle logger stadig vedkommende ind. Folk får deres konto ved at logge ind med SSO eller via en invitation.
+- Den, der allerede er logget ind med en adgangskode, logger ind med SSO for at åbne et projekt. Vedkommende lander på projektets single sign-on-side, som tilbyder projektets egne udbydere og de globale udbydere, der logger folk ind i det.
+- Master-admins logger ind med deres adgangskode på `/accounts/admin-login`, en adresse loginsiden ikke linker til. Kortet **Kræv SSO** viser hele adressen under kontakten som **Login for hovedadministratorer**: gem den, så du kan slå kravet fra, hvis din identitetsudbyder holder op med at virke.
 
 At slå **Kræv SSO til login** til kræver en SSO-udbyder, der logger personer ind, så ingen bliver udelukket af det:
 
@@ -157,6 +159,10 @@ For en SAML-udbyder er svarets audience ikke udbyderens **Issuer (Entity ID)**: 
 
 :::details "SAML response was already used"
 Hvert svar fra din identitetsudbyder logger kun ind én gang og kun inden for få minutter, efter at det blev udstedt: derefter afvises det med "SAML response has expired". Log ind igen. Hvis svarene bliver ved med at udløbe, så kontrollér urene på denne server og hos din identitetsudbyder.
+:::
+
+:::details "This server requires single sign-on (SSO). Sign in with SSO instead."
+Hele instansen kræver SSO, og dette var et login med adgangskode, adgangsnøgle eller Microsoft eller en tilmelding. Log i stedet ind med en af SSO-knapperne på loginsiden. En master-admin logger ind med sin adgangskode på `/accounts/admin-login`; for at lade alle logge ind med adgangskode igen slår vedkommende **Kræv SSO til login** fra på **Single sign-on**.
 :::
 
 ## Næste trin

@@ -72,7 +72,8 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   /*
    * Read-only lines under the switch, inside the card, from the record as
    * last read (with `select` for their columns) and whether the switch is on
-   * now. With it, the record is read again after every save of the column.
+   * now - or null, for no row at all. With it, the record is read again
+   * after every save of the column.
    */
   getDetails?: ((item: TBaseModel, isOn: boolean) => ReactNode) | undefined;
   /*
@@ -262,12 +263,22 @@ const ModelSwitchCard: <TBaseModel extends BaseModel>(
       return <></>;
     }
 
+    const details: ReactNode = props.getDetails(item, isSwitchOn);
+
+    /*
+     * Nothing to say for the record as it is (a line drawn only while
+     * another setting is on): no empty, ruled row under the switch.
+     */
+    if (details === null || details === undefined || details === false) {
+      return <></>;
+    }
+
     return (
       <div
         className="border-t border-gray-200 px-5 py-4 md:px-6"
         data-testid={`${props.dataTestId}-details`}
       >
-        {props.getDetails(item, isSwitchOn)}
+        {details}
       </div>
     );
   };

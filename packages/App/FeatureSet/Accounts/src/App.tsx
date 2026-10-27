@@ -1,4 +1,4 @@
-import React, { ReactElement, lazy, Suspense } from "react";
+import React, { ComponentType, ReactElement, lazy, Suspense } from "react";
 import {
   Navigate,
   Params,
@@ -9,6 +9,7 @@ import {
   useParams,
 } from "react-router-dom";
 import Navigation from "Common/UI/Utils/Navigation";
+import { MASTER_ADMIN_SIGN_IN_PATH } from "Common/Types/SSO/SignInMethods";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import Footer from "./Components/Footer/Footer";
 
@@ -21,7 +22,14 @@ const ForgotPasswordPage: React.LazyExoticComponent<() => JSX.Element> = lazy(
     return import("./Pages/ForgotPassword");
   },
 );
-const LoginPage: React.LazyExoticComponent<() => JSX.Element> = lazy(() => {
+/*
+ * What the routes below hand the sign-in pages, written here rather than
+ * imported from them: a page module is only ever loaded lazily
+ * (McpAuthorizeWiring holds this file to that).
+ */
+const LoginPage: React.LazyExoticComponent<
+  ComponentType<{ isMasterAdminSignIn?: boolean | undefined }>
+> = lazy(() => {
   return import("./Pages/Login");
 });
 const MobilePasskeyPage: React.LazyExoticComponent<() => JSX.Element> = lazy(
@@ -29,7 +37,10 @@ const MobilePasskeyPage: React.LazyExoticComponent<() => JSX.Element> = lazy(
     return import("./Pages/MobilePasskey");
   },
 );
-const LoginWithSSO: React.LazyExoticComponent<() => JSX.Element> = lazy(() => {
+// Drawn on its own here, with none of the props the sign-in page hands it.
+const LoginWithSSO: React.LazyExoticComponent<
+  ComponentType<{ showEditionLabel?: boolean | undefined }>
+> = lazy(() => {
   return import("./Pages/LoginWithSSO");
 });
 const NotFound: React.LazyExoticComponent<() => JSX.Element> = lazy(() => {
@@ -89,6 +100,16 @@ function App(): ReactElement {
           <Routes>
             <Route path="/accounts" element={<LoginPage />} />
             <Route path="/accounts/login" element={<LoginPage />} />
+            {/*
+             * The master admins' way in while the server requires single
+             * sign-on: the password form alone (Pages/Login). The sign-in
+             * page does not link to it; the Admin Dashboard sends a
+             * signed-out visitor here, and its Require SSO card names it.
+             */}
+            <Route
+              path={MASTER_ADMIN_SIGN_IN_PATH}
+              element={<LoginPage isMasterAdminSignIn={true} />}
+            />
             <Route
               path="/accounts/mobile-passkey"
               element={<MobilePasskeyPage />}

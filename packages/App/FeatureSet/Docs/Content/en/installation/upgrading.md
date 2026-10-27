@@ -1653,6 +1653,19 @@ API, SSO, or the Slack and Microsoft Teams apps.
   In the API and Terraform, `isGlobalRunnerPicked` says a repository picked
   **Global Runner**. See
   [Pick the repository's Runner](/docs/ai/ai-agent#pick-the-repositorys-runner).
+- **While the whole server requires SSO, the sign-in pages offer only SSO,
+  and its global providers have one page.** With Require SSO for Login on
+  for the whole server, the sign-in, single sign-on and sign-up pages show a
+  button for each global SSO provider that is on, and no password, passkey,
+  Microsoft sign-in or sign-up. The server refuses those too, a script
+  that signs in with a password included, and only a master admin's
+  password or passkey still signs them in, at `/accounts/admin-login`.
+  Someone signed in with a password signs in with SSO to open a project, on
+  a page that now also offers the global providers that sign people in to
+  it. In the Admin Dashboard, the Global SSO and Global OIDC lists are one
+  Single Sign-On page under Settings, with Require SSO for Login under the
+  providers, and their old addresses open it. See
+  [Global SSO](/docs/identity/global-sso#enforcing-sso).
 - See [API and endpoint changes](#api-and-endpoint-changes) above for the
   endpoints that moved or tightened, including
   `GET /api/global-config/license` and the license-server endpoints that

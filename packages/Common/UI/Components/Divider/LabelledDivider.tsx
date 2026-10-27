@@ -18,6 +18,10 @@ export interface ComponentProps {
  * tinted surface, a dark theme. The words are plain text, read in order
  * between the controls they separate; the lines are hidden from assistive
  * technology.
+ *
+ * Each line keeps 1.5rem (min-w-6), and words too long for the row wrap
+ * into balanced lines between them: "O continúe con su correo electrónico"
+ * on a 320px phone took the whole row and left no line at all.
  */
 const LabelledDivider: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -28,15 +32,18 @@ const LabelledDivider: FunctionComponent<ComponentProps> = (
       data-testid={props.dataTestId}
     >
       <div
-        className="flex-1 border-t border-gray-200"
+        className="min-w-6 flex-1 border-t border-gray-200"
         aria-hidden="true"
         data-testid={props.dataTestId ? `${props.dataTestId}-line` : undefined}
       />
-      <span dir="auto" className="text-center text-sm text-gray-500">
+      <span
+        dir="auto"
+        className="min-w-0 text-balance text-center text-sm text-gray-500"
+      >
         {props.label}
       </span>
       <div
-        className="flex-1 border-t border-gray-200"
+        className="min-w-6 flex-1 border-t border-gray-200"
         aria-hidden="true"
         data-testid={props.dataTestId ? `${props.dataTestId}-line` : undefined}
       />

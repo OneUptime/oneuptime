@@ -1,5 +1,6 @@
 import { DashboardRoute } from "Common/ServiceRoute";
 import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
+import { SSO_REQUIRED_SIGN_IN_MESSAGE } from "Common/Types/SSO/SignInMethods";
 import { JSONObject } from "Common/Types/JSON";
 import Name from "Common/Types/Name";
 import DatabaseConfig from "Common/Server/DatabaseConfig";
@@ -33,6 +34,7 @@ import MicrosoftSignInClient, {
   MicrosoftSignInRequest,
 } from "Common/Server/Utils/MicrosoftSignIn/MicrosoftSignInClient";
 import Response from "Common/Server/Utils/Response";
+import SsoRequiredSignIn from "Common/Server/Utils/SsoRequiredSignIn";
 import User from "Common/Models/DatabaseModels/User";
 import AuthenticationEmail from "../Utils/AuthenticationEmail";
 
@@ -99,9 +101,54 @@ const renderMessage: (
   });
 };
 
+/*
+ * Whether this server requires single sign-on, when it says so on the page:
+ * Sign in with Microsoft is not SSO, and no master admin signs in this way
+ * (they are asked for their password), so while the whole server requires
+ * SSO it signs nobody in (SsoRequiredSignIn). A requirement that cannot be
+ * read signs nobody in either.
+ */
+const refuseWhileSsoIsRequired: (
+  req: ExpressRequest,
+  res: ExpressResponse,
+) => Promise<boolean> = async (
+  req: ExpressRequest,
+  res: ExpressResponse,
+): Promise<boolean> => {
+  let isSsoRequired: boolean;
+
+  try {
+    isSsoRequired = await SsoRequiredSignIn.isSsoRequired();
+  } catch (err) {
+    logger.error(err, getLogAttributesFromRequest(req as RequestLike));
+
+    renderMessage(
+      req,
+      res,
+      "We could not sign you in with Microsoft.",
+      "Something went wrong. Please try again in a moment.",
+    );
+
+    return true;
+  }
+
+  if (!isSsoRequired) {
+    return false;
+  }
+
+  renderMessage(
+    req,
+    res,
+    "Sign in with SSO instead.",
+    SSO_REQUIRED_SIGN_IN_MESSAGE,
+  );
+
+  return true;
+};
+
 router.get(
   "/microsoft/sign-in",
-  (req: ExpressRequest, res: ExpressResponse): void => {
+  async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
     const client: MicrosoftSignInClient | null = getClient();
 
     if (!client) {
@@ -111,6 +158,10 @@ router.get(
         "Sign in with Microsoft is not available.",
         "This OneUptime server does not offer Sign in with Microsoft. Please sign in with your email and password.",
       );
+    }
+
+    if (await refuseWhileSsoIsRequired(req, res)) {
+      return;
     }
 
     const request: MicrosoftSignInRequest = client.createSignInRequest();
@@ -158,6 +209,11 @@ router.get(
     CookieUtil.removeCookie(res, STATE_COOKIE_NAME, {
       path: STATE_COOKIE_PATH,
     });
+
+    // Turned on while this sign-in was at Microsoft: it finishes nowhere.
+    if (await refuseWhileSsoIsRequired(req, res)) {
+      return;
+    }
 
     if (typeof req.query["error"] === "string") {
       return renderMessage(

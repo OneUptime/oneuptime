@@ -35848,5 +35848,6 @@
   "OneUptime AI runs real queries against your logs, traces, metrics, incidents, monitors and Real User Monitoring — rendering charts and tables inline — and can create incidents and alerts or acknowledge them, always with your approval.": "OneUptime AI 会对你的日志、追踪、指标、事件、监视器和真实用户监控运行真实查询，并直接显示图表和表格，还可以创建事件和警报或确认它们，始终需经你批准。",
   "Maintenance markers are unavailable.": "维护标记不可用。",
   "Maintenance markers need the uptime history, which did not load.": "维护标记需要可用性历史，但未能加载。",
-  "You need permission to read scheduled maintenance.": "您需要读取计划维护的权限。"
+  "You need permission to read scheduled maintenance.": "您需要读取计划维护的权限。",
+  "Sign in with {{name}}": "使用 {{name}} 登录"
 }

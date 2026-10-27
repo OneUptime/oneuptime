@@ -281,7 +281,7 @@ Un guardado que envía **Requerir SSO para iniciar sesión** activado cuando ya 
 
 Un proyecto nuevo sigue la misma regla. Aún no tiene proveedor propio, así que crearlo con **Requerir SSO para iniciar sesión** ya activado — solo puede hacerlo un administrador maestro — necesita un proveedor global activado que inicie sesiones en todos los proyectos, y sin él se rechaza con las mismas palabras. Crea el proyecto, configura y prueba su proveedor y luego activa el interruptor.
 
-Mientras todo el servidor exija SSO (**Admin** > **Ajustes** > **Autenticación** > **Exigir SSO para iniciar sesión**), crear cualquier proyecto también necesita un proveedor global así; de lo contrario nadie, ni siquiera quien lo crea, podría abrir el proyecto. Sin él, la creación de un proyecto se rechaza y el mensaje pide a un administrador del servidor que active uno. Los administradores maestros pueden seguir creando proyectos.
+Mientras todo el servidor exija SSO (**Admin** > **Ajustes** > **Inicio de sesión único** > **Exigir SSO para iniciar sesión**), crear cualquier proyecto también necesita un proveedor global así; de lo contrario nadie, ni siquiera quien lo crea, podría abrir el proyecto. Sin él, la creación de un proyecto se rechaza y el mensaje pide a un administrador del servidor que active uno. Los administradores maestros pueden seguir creando proyectos.
 
 Desactivar **Requerir SSO para iniciar sesión** se guarda en cuanto cambias el interruptor y deja que los miembros vuelvan a entrar con su contraseña al instante, salvo que alguien lo vuelva a activar en ese mismo momento; entonces un servidor de aplicaciones puede tardar hasta un minuto en seguir el cambio. Pueden cambiarlo los propietarios del proyecto, los administradores del proyecto y los miembros con el permiso **Edit Project**; los demás ven el interruptor bloqueado, junto con el permiso que necesitarían.
 
@@ -308,7 +308,7 @@ Mientras el proyecto exija SSO, OneUptime mantiene una forma de entrar: no puede
 
 Activar un proveedor permite iniciar sesión con él al instante.
 
-Cuando todo el servidor exige SSO (**Admin** > **Ajustes** > **Autenticación** > **Exigir SSO para iniciar sesión**), cada proyecto mantiene una forma de entrar del mismo modo, incluso uno que no exige SSO por sí mismo: primero activa otro proveedor para él.
+Cuando todo el servidor exige SSO (**Admin** > **Ajustes** > **Inicio de sesión único** > **Exigir SSO para iniciar sesión**), cada proyecto mantiene una forma de entrar del mismo modo, incluso uno que no exige SSO por sí mismo: primero activa otro proveedor para él.
 
 Los proveedores globales siguen la misma regla: un cambio en uno de ellos, o en sus proyectos adjuntos, que dejaría sin proveedor a un proyecto que exige SSO se rechaza, nombrando el proyecto. Consulta [SSO global](/docs/identity/global-sso#desactivar-o-eliminar-un-proveedor).
 

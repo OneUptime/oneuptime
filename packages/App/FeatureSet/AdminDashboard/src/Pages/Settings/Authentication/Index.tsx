@@ -1,65 +1,46 @@
 import AdminModelAPI from "../../../Utils/ModelAPI";
 import {
   PROJECT_CREATION_SWITCH_TEST_ID,
-  REQUIRE_SSO_COPY,
-  REQUIRE_SSO_SWITCH_TEST_ID,
+  SIGN_UP_SSO_REQUIRED_TEST_ID,
   SIGN_UP_SWITCH_TEST_ID,
 } from "./AuthenticationSwitchesCopy";
+import { SIGN_UP_WHILE_SSO_REQUIRED } from "../SSO/SsoSettingsCopy";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import DashboardSideMenu from "../SideMenu";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
-import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import ModelSwitchCard from "Common/UI/Components/ModelSwitch/ModelSwitchCard";
-import { ModelSwitchConfirmation } from "Common/UI/Components/ModelSwitch/ModelSwitchRow";
 import Page from "Common/UI/Components/Page/Page";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 /*
- * Settings > Authentication: three instance-wide switches, each saving the
+ * Settings > Authentication: two instance-wide switches, each saving the
  * moment it is flipped (the shared ModelSwitchCard, through AdminModelAPI).
  * Each used to be a card whose Edit dialog held the one switch.
  *
  *   - Sign Up: "Let people sign up", on while GlobalConfig.disableSignup is
  *     false. People invited to a project can create their account either
- *     way (the /signup route lets them in), so it locks nobody out.
- *   - Single Sign-On (SSO): "Require SSO for Login". Turning it on asks
- *     first, with a red button: everyone but master admins is refused every
- *     project until they sign in with SSO. Master admins are exempt, so it
- *     can always be turned off again; turning it off saves at once.
+ *     way (the /signup route lets them in), so it locks nobody out. While
+ *     the server requires SSO nobody signs up, whatever it says
+ *     (SsoRequiredSignIn), and a line under it says so.
  *   - Project Creation: "Let users create projects", on while
  *     GlobalConfig.disableUserProjectCreation is false. Master admins can
  *     always create projects.
  *
- * The SSO card's strings are looked up by their English text, as the
- * shared components look theirs up (AuthenticationSwitchesCopy). The other
- * cards' come from this page's locale keys.
+ * Require SSO for Login, which was the card between them, is on Settings >
+ * Single Sign-On now, under the providers it depends on (../SSO).
  *
  * GlobalConfig is one row, with the zero id.
  */
 
-export const getRequireSsoConfirmation: (
-  isTurningOn: boolean,
-) => ModelSwitchConfirmation | undefined = (
-  isTurningOn: boolean,
-): ModelSwitchConfirmation | undefined => {
-  if (!isTurningOn) {
-    return undefined;
-  }
-
-  return {
-    title: REQUIRE_SSO_COPY.confirmTitle,
-    description: REQUIRE_SSO_COPY.confirmDescription,
-    submitButtonText: REQUIRE_SSO_COPY.confirmButton,
-    submitButtonType: ButtonStyleType.DANGER,
-  };
-};
-
 const Settings: FunctionComponent = (): ReactElement => {
   const { t } = useTranslation();
+  const translator: Translator = useTranslator();
 
   const globalConfigId: ObjectID = ObjectID.getZeroObjectID();
 
@@ -102,20 +83,23 @@ const Settings: FunctionComponent = (): ReactElement => {
             ? t("pages.settings.authentication.signUpSwitchOnDescription")
             : t("pages.settings.authentication.signUpSwitchOffDescription");
         }}
-        dataTestId={SIGN_UP_SWITCH_TEST_ID}
-      />
+        // Whether the server requires SSO, read with the switch.
+        select={{ requireSsoForLogin: true }}
+        getDetails={(item: GlobalConfig): ReactNode => {
+          if (!item.requireSsoForLogin) {
+            return null;
+          }
 
-      <ModelSwitchCard<GlobalConfig>
-        modelType={GlobalConfig}
-        modelId={globalConfigId}
-        column="requireSsoForLogin"
-        modelAPI={AdminModelAPI}
-        cardTitle={REQUIRE_SSO_COPY.cardTitle}
-        cardDescription={REQUIRE_SSO_COPY.cardDescription}
-        title={REQUIRE_SSO_COPY.switchTitle}
-        note={REQUIRE_SSO_COPY.note}
-        getConfirmation={getRequireSsoConfirmation}
-        dataTestId={REQUIRE_SSO_SWITCH_TEST_ID}
+          return (
+            <p
+              className="text-sm text-gray-600"
+              data-testid={SIGN_UP_SSO_REQUIRED_TEST_ID}
+            >
+              {translator.translateText(SIGN_UP_WHILE_SSO_REQUIRED)}
+            </p>
+          );
+        }}
+        dataTestId={SIGN_UP_SWITCH_TEST_ID}
       />
 
       <ModelSwitchCard<GlobalConfig>

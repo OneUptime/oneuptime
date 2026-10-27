@@ -79,6 +79,11 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SETTINGS_AUTHENTICATION]: new Route(
     `/admin/settings/authentication`,
   ),
+  [PageMap.SETTINGS_SSO]: new Route(`/admin/settings/sso`),
+  /*
+   * The instance-wide providers' own pages live under these. The two list
+   * addresses were pages of their own; they open Single Sign-On now.
+   */
   [PageMap.SETTINGS_GLOBAL_SSO]: new Route(`/admin/settings/global-sso`),
   [PageMap.SETTINGS_GLOBAL_SSO_VIEW]: new Route(
     `/admin/settings/global-sso/${RouteParams.ModelID}`,
