@@ -5591,8 +5591,13 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         };
       }
 
-      logger.error(
-        `Microsoft tenant ${data.tenantId} is connected to ${usableProjectAuths.length} OneUptime projects. Refusing to guess which one this bot activity belongs to.`,
+      /*
+       * Not an error: its sender is asked which project they mean, with a
+       * button for each they are in (MicrosoftTeamsProjectChoice), or told
+       * how to say which.
+       */
+      logger.debug(
+        `Microsoft tenant ${data.tenantId} is connected to ${usableProjectAuths.length} OneUptime projects, and nothing this bot activity carries tells which one it is about.`,
         {
           tenantId: data.tenantId,
           projectIds: candidateProjectIds
