@@ -19,7 +19,8 @@ set: the spec keeps a pick before a page opens and emulates the device's
 visit, so a move to another page of the app keeps it: `ssorequired=1`,
 `providers=<n>` and `projectsso=1` (the whole server requiring single sign-on),
 `lookup=found` (an email's projects have providers), `firstaccount=1`,
-`signin=wrong|methods|totp|enrol|codes|nocodes` (what a password sign-in is
+`signup=verify|sent` (a sign-up held until its email is verified, or a link sent to
+an address that has an account), `signin=wrong|methods|totp|enrol|codes|nocodes` (what a password sign-in is
 answered, and its second step), `verify=failed`, `mcp=read|write|loopback|noprojects|error`,
 `market=ready|error`, `form=ok|missing` and `brand=name|logo|logos` (an installation
 with a name of its own, a logo for light backgrounds only, or logos for both). The
@@ -31,15 +32,18 @@ picked on a dark device, a pick of Light on a dark device, a public form); that 
 page follows the device while it is open when nothing or System was picked, keeps
 Light and Dark, and draws a pick made in another tab; that a public form is light
 whatever was picked; that every page, and the states a person meets on it - a wrong
-password, the second step and its backup codes, single sign-on with providers to
-pick, the whole server requiring it, the master admins' page, sign-up, the password
-and email pages, an MCP client asking for access, a marketplace purchase, signing in
-to the mobile app, and the pages for a wrong link - leaves no light box on the dark
-page and keeps its words at 4.5:1 on what is behind them, at 1280 and 390 pixels,
-nothing wider than a phone; the same pages light, as before; the sign-in, single
-sign-on and sign-up pages in German and Persian; and an installation's only logo on
-a light plate on a dark page. Screenshots of every page in both themes are saved
-under `output/playwright/accounts-theme-ui`.
+password, the second step, its backup codes and the offer of some, single sign-on
+with providers to pick, the whole server requiring it, the master admins' page,
+sign-up and the "check your inbox" screen after it, the password and email pages, an
+MCP client asking for access, a marketplace purchase, signing in to the mobile app,
+and the pages for a wrong link - leaves no light box on the dark page and keeps its
+words at 4.5:1 on what is behind them, at 1280 and 390 pixels, nothing wider than a
+phone; the same pages light, as before; the sign-in, single sign-on and sign-up pages
+in German and Persian; that the footer sits on the dark page's own ground, a state
+icon's halo is a faint ring of its own colour and the backup codes' one action is as
+wide as the card's content; and an installation's only logo on a light plate on a
+dark page. Screenshots of every page in both themes are saved under
+`output/playwright/accounts-theme-ui`.
 
 This checks real browser rendering and the pages' theme handling; the API, the
 database and the deployed app's routing are outside this fixture.

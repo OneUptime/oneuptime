@@ -179,6 +179,52 @@ describe("every colour on the server's own pages", () => {
   });
 });
 
+describe("the single sign-on pages", () => {
+  // The column both pages draw their card in: the sign-in card's width.
+  const COLUMN: string = 'class="sm:mx-auto sm:w-full sm:max-w-lg px-4"';
+
+  it("draw a message in the same narrow column as the confirmation beside it", () => {
+    const message: string = render(path.join(IDENTITY_VIEWS, "Message.ejs"), {
+      title: "Single sign-on did not work",
+      message: "Ask your administrator to check the SSO settings.",
+    });
+    const confirmation: string = render(
+      path.join(IDENTITY_VIEWS, "SsoSignInConfirmation.ejs"),
+      {
+        title: "Confirm your sign-in",
+        message: "Sign in to Acme with Okta?",
+      },
+    );
+
+    expect(message).toContain(COLUMN);
+    expect(confirmation).toContain(COLUMN);
+    // Not a band across the whole window, nor a form with nothing to send.
+    expect(message).not.toContain("lg:col-span-9");
+    expect(message).not.toContain("<form");
+    // The section is named by its own heading.
+    expect(message).toContain('aria-labelledby="sso-message-title"');
+    expect(message).toContain(
+      '<h2 id="sso-message-title" class="text-lg font-medium leading-6 text-gray-900 dark:text-slate-50">Single sign-on did not work</h2>',
+    );
+    // Its words in the confirmation's shade, in both themes.
+    expect(message).toContain(
+      '<p class="mt-2 text-sm text-gray-600 dark:text-slate-300">Ask your administrator to check the SSO settings.</p>',
+    );
+  });
+
+  it("draw their words in Inter, served from this install, as the sign-in pages do", () => {
+    for (const head of HEADS) {
+      const source: string = fs.readFileSync(head, "utf8");
+
+      expect(source).toContain(
+        '<link rel="preload" href="/oneuptime-assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>',
+      );
+      expect(source).toContain("font-family: 'Inter';");
+      expect(source).toContain("font-family: Inter, ui-sans-serif,");
+    }
+  });
+});
+
 describe("the logo", () => {
   it("is OneUptime's wordmark for each theme, the other one hidden before the first paint", () => {
     const html: string = render(LOGO, {});

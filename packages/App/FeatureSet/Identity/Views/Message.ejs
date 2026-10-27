@@ -16,29 +16,19 @@
             </div>
 
 
-            <div class="">
-                <!-- Payment details -->
-                <div class="space-y-6 sm:px-6 lg:col-span-9 lg:px-0">
-                    <section aria-labelledby="payment-details-heading">
-                        <form action="#" method="POST">
-                            <div class="shadow sm:overflow-hidden sm:rounded-md">
-                                <div class="bg-white dark:bg-slate-800 py-6 px-4 sm:p-6">
-                                    <div>
-                                        <h2 id="payment-details-heading"
-                                            class="text-lg font-medium leading-6 text-gray-900 dark:text-slate-50"><%= title %></h2>
-                                        <p class="mt-1 text-sm text-gray-500 dark:text-slate-400"><%= message %></p>
-                                    </div>
-
-
-                                </div>
-
-                            </div>
-                        </form>
-                    </section>
-
-
+            <%#
+                A sentence or two, as narrow as the confirmation page beside
+                it (SsoSignInConfirmation.ejs) and the sign-in card it was
+                reached from, not a band across the whole window.
+            -%>
+            <section class="sm:mx-auto sm:w-full sm:max-w-lg px-4" aria-labelledby="sso-message-title" data-testid="sso-message">
+                <div class="shadow sm:overflow-hidden sm:rounded-md">
+                    <div class="bg-white dark:bg-slate-800 py-6 px-4 sm:p-6">
+                        <h2 id="sso-message-title" class="text-lg font-medium leading-6 text-gray-900 dark:text-slate-50"><%= title %></h2>
+                        <p class="mt-2 text-sm text-gray-600 dark:text-slate-300"><%= message %></p>
+                    </div>
                 </div>
-            </div>
+            </section>
         </main>
     </div>
 

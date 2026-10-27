@@ -14,6 +14,10 @@
  *   lookup=found           the email lookup on Login with SSO finds a provider
  *                          in two projects (it finds none otherwise)
  *   firstaccount=1         a self-hosted server with no account yet
+ *   signup=verify|sent     what a sign-up is answered: the account is held
+ *                          until its email is verified (the "check your
+ *                          inbox" screen), or a link went to an address that
+ *                          already has one
  *   signin=wrong|methods|totp|enrol|codes|nocodes
  *                          what a password sign-in is answered: a wrong
  *                          password; two second steps to pick from; an
@@ -184,6 +188,31 @@ const answerPasswordSignIn = () => {
   return never();
 };
 
+/*
+ * What /identity/signup answers, by scenario: no session either way. The
+ * hosted service holds a new account until its email is verified, with a
+ * credential to send the link again after a wait; an address that already
+ * has an account is sent a link instead of a second one.
+ */
+const answerSignUp = () => {
+  if (scenario["signup"] === "sent") {
+    return ok({ _miscData: { registrationEmailSent: true } });
+  }
+
+  if (scenario["signup"] === "verify") {
+    return ok({
+      _miscData: {
+        emailVerificationRequired: true,
+        verificationEmailResendToken: "fixture-resend-token",
+        verificationEmailResendAvailableInSeconds: 45,
+      },
+    });
+  }
+
+  // A sign-up that never answers: the page stays as it is.
+  return never();
+};
+
 // What a correct second step answers, by scenario.
 const answerSecondStep = () => {
   if (scenario["signin"] === "enrol" || scenario["signin"] === "codes") {
@@ -210,6 +239,10 @@ const answer = (method, apiPath, data) => {
 
   if (apiPath === "/identity/login") {
     return answerPasswordSignIn();
+  }
+
+  if (apiPath === "/identity/signup") {
+    return answerSignUp();
   }
 
   if (
@@ -270,6 +303,14 @@ const answer = (method, apiPath, data) => {
     }
 
     return ok(MCP_DETAILS(scenario["mcp"] || "read"));
+  }
+
+  /*
+   * What the edition pill's dialog reads (Learn more, on the sign-in page):
+   * a Community Edition server on the newest version.
+   */
+  if (apiPath === "/api/global-config/license") {
+    return ok({ currentVersion: "1.0.0", latestVersion: "1.0.0" });
   }
 
   if (apiPath === "/api/marketplace/purchase/details") {

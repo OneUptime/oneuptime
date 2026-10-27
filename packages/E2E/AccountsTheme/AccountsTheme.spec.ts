@@ -24,11 +24,16 @@ import {
  *   - In the dark theme no page, nor any state of a page a person meets,
  *     leaves a light box on the dark page, and its words read at 4.5:1 on
  *     what is behind them: the sign-in page and its second steps, single
- *     sign-on, sign-up, the password and email pages, the master admins'
- *     page, an MCP client asking for access, a marketplace purchase, signing
- *     in to the mobile app, and the pages for a wrong link - at a laptop's
- *     width and a phone's, in English, German and Persian, nothing wider
- *     than the screen.
+ *     sign-on, sign-up and the "check your inbox" screen after it, the
+ *     password and email pages, the master admins' page, an MCP client
+ *     asking for access, a marketplace purchase, signing in to the mobile
+ *     app, and the pages for a wrong link - at a laptop's width and a
+ *     phone's, in English, German and Persian, nothing wider than the
+ *     screen.
+ *   - What a dark page draws quietly stays quiet: the footer is on the
+ *     page's own ground, a state icon's halo is a faint ring of its own
+ *     colour, and the backup codes' one action is as wide as the card's
+ *     content, as every other step's is.
  *   - An installation's only logo, made for light backgrounds, sits on a
  *     light plate on a dark page; its logo for dark backgrounds, when it has
  *     one, is drawn as it is.
@@ -628,6 +633,30 @@ const signInWithPassword: (page: Page) => Promise<void> = async (
   await page.getByTestId("Sign in").click();
 };
 
+// The second step with an authenticator app's code, once signed in with a password.
+const enterAuthenticatorCode: (page: Page) => Promise<void> = async (
+  page: Page,
+): Promise<void> => {
+  await signInWithPassword(page);
+  await page.getByText("Phone").click();
+  await page.getByTestId("code").fill("123456");
+  await page.getByTestId("Sign in").click();
+};
+
+/*
+ * A sign-up with an address of a webmail the page knows, so the screen that
+ * follows offers to open its inbox.
+ */
+const signUp: (page: Page) => Promise<void> = async (
+  page: Page,
+): Promise<void> => {
+  await page.getByTestId("email").fill("jane@gmail.com");
+  await page.getByTestId("name").fill("Jane Doe");
+  await page.getByTestId("password").fill("correct-horse-battery");
+  await page.getByTestId("confirmPassword").fill("correct-horse-battery");
+  await page.getByTestId("Sign Up").click();
+};
+
 const visible: (testId: string) => (page: Page) => Promise<void> = (
   testId: string,
 ): ((page: Page) => Promise<void>) => {
@@ -646,6 +675,16 @@ const shown: (text: string) => (page: Page) => Promise<void> = (
 
 const PAGES: Array<PageVisit> = [
   { name: "sign-in", address: "/accounts/login", ready: visible("email") },
+  {
+    // The edition pill's Learn more: what this server is, and what Enterprise adds.
+    name: "edition-dialog",
+    address: "/accounts/login",
+    ready: visible("email"),
+    steps: async (page: Page): Promise<void> => {
+      await page.getByText("Learn more").click();
+      await expect(page.getByRole("dialog")).toBeVisible();
+    },
+  },
   {
     name: "sign-in-wrong-password",
     address: "/accounts/login?signin=wrong",
@@ -688,11 +727,17 @@ const PAGES: Array<PageVisit> = [
     address: "/accounts/login?signin=codes",
     ready: visible("email"),
     steps: async (page: Page): Promise<void> => {
-      await signInWithPassword(page);
-      await page.getByText("Phone").click();
-      await page.getByTestId("code").fill("123456");
-      await page.getByTestId("Sign in").click();
+      await enterAuthenticatorCode(page);
       await expect(page.getByTestId("backup-codes-list")).toBeVisible();
+    },
+  },
+  {
+    name: "backup-codes-offer",
+    address: "/accounts/login?signin=nocodes",
+    ready: visible("email"),
+    steps: async (page: Page): Promise<void> => {
+      await enterAuthenticatorCode(page);
+      await expect(page.getByTestId("generate-backup-codes")).toBeVisible();
     },
   },
   {
@@ -724,6 +769,15 @@ const PAGES: Array<PageVisit> = [
     name: "sign-up",
     address: "/accounts/register",
     ready: visible("email"),
+  },
+  {
+    name: "verify-email-pending",
+    address: "/accounts/register?signup=verify",
+    ready: visible("email"),
+    steps: async (page: Page): Promise<void> => {
+      await signUp(page);
+      await expect(page.getByTestId("verify-email-required")).toBeVisible();
+    },
   },
   {
     name: "forgot-password",
@@ -776,6 +830,21 @@ const PAGES: Array<PageVisit> = [
     ready: shown("Forbidden"),
   },
 ];
+
+// A visit by its name, so adding a page to the list moves no other test.
+const visitNamed: (name: string) => PageVisit = (name: string): PageVisit => {
+  const visit: PageVisit | undefined = PAGES.find(
+    (candidate: PageVisit): boolean => {
+      return candidate.name === name;
+    },
+  );
+
+  if (!visit) {
+    throw new Error(`No page visit is named ${name}`);
+  }
+
+  return visit;
+};
 
 const openAndReach: (page: Page, visit: PageVisit) => Promise<void> = async (
   page: Page,
@@ -847,7 +916,11 @@ test.describe("every page in the light theme, as before", () => {
 
 test.describe("in a long language and one read right to left", () => {
   for (const language of ["de", "fa"]) {
-    for (const visit of [PAGES[0]!, PAGES[6]!, PAGES[10]!]) {
+    for (const visit of [
+      visitNamed("sign-in"),
+      visitNamed("single-sign-on"),
+      visitNamed("sign-up"),
+    ]) {
       test(`${visit.name} in ${language}, dark`, async ({
         page,
         context,
@@ -875,6 +948,137 @@ test.describe("in a long language and one read right to left", () => {
         await shoot(page, testInfo, `${visit.name}-${language}-dark-1280`);
       });
     }
+  }
+});
+
+test.describe("what a dark page draws quietly", () => {
+  test("the footer sits on the page's own ground, under a hairline", async ({
+    page,
+    context,
+  }: {
+    page: Page;
+    context: BrowserContext;
+  }) => {
+    await keep(context, { theme: "dark" });
+    await page.goto("/accounts/login");
+    await expect(page.getByTestId("email")).toBeVisible();
+    await settle(page);
+
+    const footer: { ground: string; edge: string } = await page
+      .locator("footer")
+      .evaluate((element: Element): { ground: string; edge: string } => {
+        const style: CSSStyleDeclaration = getComputedStyle(element);
+
+        return { ground: style.backgroundColor, edge: style.borderTopWidth };
+      });
+
+    // No ground of its own: not a lighter band across the dark page.
+    expect(footer.ground).toBe("rgba(0, 0, 0, 0)");
+    expect(footer.edge).toBe("1px");
+  });
+
+  const HALOS: Array<{
+    name: string;
+    visit: () => PageVisit;
+    testId: string;
+    halo: string;
+  }> = [
+    {
+      name: "the email verified page's tick",
+      visit: (): PageVisit => {
+        return visitNamed("email-verified");
+      },
+      testId: "verify-email-success",
+      halo: "rgba(52, 211, 153, 0.1)",
+    },
+    {
+      name: "an expired link's clock",
+      visit: (): PageVisit => {
+        return visitNamed("email-link-expired");
+      },
+      testId: "verify-email-error",
+      halo: "rgba(251, 191, 36, 0.1)",
+    },
+    {
+      name: "the check-your-inbox envelope",
+      visit: (): PageVisit => {
+        return visitNamed("verify-email-pending");
+      },
+      testId: "verify-email-required",
+      halo: "rgba(129, 140, 248, 0.12)",
+    },
+  ];
+
+  for (const icon of HALOS) {
+    test(`${icon.name} has a faint halo of its own colour`, async ({
+      page,
+      context,
+    }: {
+      page: Page;
+      context: BrowserContext;
+    }) => {
+      await keep(context, { theme: "dark" });
+      await page.setViewportSize(LAPTOP);
+      await openAndReach(page, icon.visit());
+
+      const shadow: string = await page
+        .getByTestId(icon.testId)
+        .locator(".ring-8")
+        .evaluate((element: Element): string => {
+          return getComputedStyle(element).boxShadow;
+        });
+
+      // An 8px ring in the icon's hue - not one indigo ring round every colour.
+      expect(shadow).toContain(`${icon.halo} 0px 0px 0px 8px`);
+    });
+  }
+
+  for (const codesScreen of [
+    { name: "backup-codes", testId: "backup-codes-continue" },
+    { name: "backup-codes-offer", testId: "generate-backup-codes" },
+  ]) {
+    test(`${codesScreen.name}: its one action is as wide as the card's content, flush with it`, async ({
+      page,
+      context,
+    }: {
+      page: Page;
+      context: BrowserContext;
+    }) => {
+      await keep(context, { theme: "dark" });
+      await page.setViewportSize(LAPTOP);
+      await openAndReach(page, visitNamed(codesScreen.name));
+
+      const drawn: {
+        start: number;
+        width: number;
+        column: number;
+        columnWidth: number;
+      } = await page.getByTestId(codesScreen.testId).evaluate(
+        (
+          element: Element,
+        ): {
+          start: number;
+          width: number;
+          column: number;
+          columnWidth: number;
+        } => {
+          const own: DOMRect = element.getBoundingClientRect();
+          const column: DOMRect =
+            element.parentElement!.getBoundingClientRect();
+
+          return {
+            start: own.left,
+            width: own.width,
+            column: column.left,
+            columnWidth: column.width,
+          };
+        },
+      );
+
+      // Not 12px in from the codes and the checkbox above it, as a dialog's button is.
+      expect(Math.abs(drawn.start - drawn.column)).toBeLessThan(1);
+      expect(Math.abs(drawn.width - drawn.columnWidth)).toBeLessThan(1);
+    });
   }
 });
 
