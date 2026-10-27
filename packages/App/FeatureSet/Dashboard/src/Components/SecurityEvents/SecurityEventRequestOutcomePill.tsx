@@ -2,6 +2,7 @@ import React, { FunctionComponent, ReactElement } from "react";
 import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
 import { isSecurityEventRequestOutcome } from "Common/Types/SecurityEvent/SecurityEventRequestOutcome";
 import { getRequestOutcomeColor } from "./SecurityEventRequestStory";
+import { REQUEST_OUTCOME_LABELS } from "./SecurityEventRequestCopy";
 
 export interface ComponentProps {
   outcome?: string | undefined;
@@ -24,7 +25,8 @@ const SecurityEventRequestOutcomePill: FunctionComponent<ComponentProps> = (
   return (
     <Pill
       color={getRequestOutcomeColor(props.outcome)}
-      text={props.outcome}
+      // Pill looks its text up in the reader's language.
+      text={REQUEST_OUTCOME_LABELS[props.outcome]}
       size={props.size}
     />
   );

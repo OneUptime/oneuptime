@@ -1,3 +1,4 @@
+import SecurityEventRequestOutcome from "Common/Types/SecurityEvent/SecurityEventRequestOutcome";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
@@ -11,6 +12,19 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  */
 
 // ---------- What happened next ----------
+
+/*
+ * How far a request got, as the outcome pill and the Campaigns bar name it:
+ * the stored values themselves, so a reader filters by the word they see.
+ */
+export const REQUEST_OUTCOME_LABELS: Record<SecurityEventRequestOutcome, string> =
+  {
+    [SecurityEventRequestOutcome.Rejected]: translationKey("Rejected"),
+    [SecurityEventRequestOutcome.ReachedApp]: translationKey("Reached App"),
+    [SecurityEventRequestOutcome.Errored]: translationKey("Errored"),
+    [SecurityEventRequestOutcome.ReachedDatabase]:
+      translationKey("Reached Database"),
+  };
 
 export const WHAT_HAPPENED_NEXT_TITLE: string =
   translationKey("What happened next");

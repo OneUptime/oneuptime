@@ -99,7 +99,7 @@ async function readTrace(data: {
   exceptions: Array<RequestTraceException>;
 }> {
   const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
-  const window: InBetween<Date> = new InBetween<Date>(
+  const traceWindow: InBetween<Date> = new InBetween<Date>(
     new Date(
       data.time.getTime() - PANEL_TRACE_WINDOW_IN_MINUTES * 60 * 1000,
     ),
@@ -114,7 +114,7 @@ async function readTrace(data: {
       query: {
         ...(projectId ? { projectId } : {}),
         traceId: data.traceId,
-        startTime: window,
+        startTime: traceWindow,
       } as Query<Span>,
       limit: PANEL_TRACE_SPAN_LIMIT,
       skip: 0,
@@ -139,7 +139,7 @@ async function readTrace(data: {
       query: {
         ...(projectId ? { projectId } : {}),
         traceId: data.traceId,
-        time: window,
+        time: traceWindow,
       } as Query<ExceptionInstance>,
       limit: PANEL_TRACE_EXCEPTION_LIMIT,
       skip: 0,

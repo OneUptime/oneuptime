@@ -69,7 +69,7 @@ const SecurityEventsInSignal: FunctionComponent<ComponentProps> = (
     getSecurityEventsInSignalKind(props.scope);
   const timeKey: number = props.time ? new Date(props.time).getTime() : NaN;
 
-  const window: InBetween<Date> = useMemo(() => {
+  const searchWindow: InBetween<Date> = useMemo(() => {
     return getSecurityEventsInSignalWindow({
       time: Number.isFinite(timeKey) ? new Date(timeKey) : null,
       now: OneUptimeDate.getCurrentDate(),
@@ -92,7 +92,7 @@ const SecurityEventsInSignal: FunctionComponent<ComponentProps> = (
     const query: Query<SecurityEvent> | null =
       buildSecurityEventsInSignalQuery({
         scope: props.scope,
-        window,
+        window: searchWindow,
         projectId: ProjectUtil.getCurrentProjectId(),
       });
 
@@ -130,11 +130,14 @@ const SecurityEventsInSignal: FunctionComponent<ComponentProps> = (
     return () => {
       isCurrent = false;
     };
-  }, [scopeKey, window]);
+  }, [scopeKey, searchWindow]);
 
   const route: Route | null = useMemo(() => {
-    return buildSecurityEventsInSignalRoute({ scope: props.scope, window });
-  }, [scopeKey, window]);
+    return buildSecurityEventsInSignalRoute({
+      scope: props.scope,
+      window: searchWindow,
+    });
+  }, [scopeKey, searchWindow]);
 
   if (!kind || events.length === 0) {
     return <></>;

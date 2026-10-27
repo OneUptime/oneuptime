@@ -65,11 +65,11 @@ interface LoadedCampaigns {
 }
 
 const WindowPicker: FunctionComponent<{
-  window: CampaignWindow;
-  onChange: (window: CampaignWindow) => void;
+  selected: CampaignWindow;
+  onChange: (selected: CampaignWindow) => void;
 }> = (props: {
-  window: CampaignWindow;
-  onChange: (window: CampaignWindow) => void;
+  selected: CampaignWindow;
+  onChange: (selected: CampaignWindow) => void;
 }): ReactElement => {
   const translator: Translator = useTranslator();
 
@@ -77,7 +77,7 @@ const WindowPicker: FunctionComponent<{
     <div className="inline-flex gap-1" role="group">
       {CAMPAIGN_WINDOWS.map(
         (definition: CampaignWindowDefinition): ReactElement => {
-          const isActive: boolean = definition.window === props.window;
+          const isActive: boolean = definition.window === props.selected;
 
           return (
             <button
@@ -276,12 +276,14 @@ const CampaignRow: FunctionComponent<{
  */
 const SecurityAttackCampaigns: FunctionComponent = (): ReactElement => {
   const translator: Translator = useTranslator();
-  const [window, setWindow] = useState<CampaignWindow>(DEFAULT_CAMPAIGN_WINDOW);
+  const [campaignWindow, setCampaignWindow] = useState<CampaignWindow>(
+    DEFAULT_CAMPAIGN_WINDOW,
+  );
   const [loaded, setLoaded] = useState<LoadedCampaigns | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
 
-  const load: (window: CampaignWindow) => Promise<void> = useCallback(
+  const load: (selected: CampaignWindow) => Promise<void> = useCallback(
     async (selected: CampaignWindow): Promise<void> => {
       const range: { startTime: Date; endTime: Date } = getCampaignWindowRange(
         selected,
@@ -315,8 +317,8 @@ const SecurityAttackCampaigns: FunctionComponent = (): ReactElement => {
   );
 
   useEffect(() => {
-    void load(window);
-  }, [window]);
+    void load(campaignWindow);
+  }, [campaignWindow]);
 
   const campaigns: Array<SecurityAttackCampaign> =
     loaded?.result.campaigns || [];
@@ -331,7 +333,7 @@ const SecurityAttackCampaigns: FunctionComponent = (): ReactElement => {
       <ErrorMessage
         message={error}
         onRefreshClick={() => {
-          void load(window);
+          void load(campaignWindow);
         }}
       />
     );
@@ -387,7 +389,12 @@ const SecurityAttackCampaigns: FunctionComponent = (): ReactElement => {
       <Card
         title={CAMPAIGNS_TITLE}
         description={CAMPAIGNS_DESCRIPTION}
-        rightElement={<WindowPicker window={window} onChange={setWindow} />}
+        rightElement={
+          <WindowPicker
+            selected={campaignWindow}
+            onChange={setCampaignWindow}
+          />
+        }
         /*
          * Edge to edge under the header, as a list in a card is: the card's
          * own padding (CARD_PADDING_CLASS_NAME) cancelled on three sides.

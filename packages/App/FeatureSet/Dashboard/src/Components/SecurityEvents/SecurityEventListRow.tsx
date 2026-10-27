@@ -12,6 +12,9 @@ import {
 } from "./SecurityEventAttributeColumns";
 import { isSecurityEventRequestOutcome } from "Common/Types/SecurityEvent/SecurityEventRequestOutcome";
 import { getRequestOutcomeColor } from "./SecurityEventRequestStory";
+import { REQUEST_OUTCOME_LABELS } from "./SecurityEventRequestCopy";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export const SECURITY_EVENT_ROW_OUTCOME_TEST_ID: string =
   "security-event-row-outcome";
@@ -100,6 +103,7 @@ const Chip: FunctionComponent<ChipProps> = (props: ChipProps): ReactElement => {
 const SecurityEventListRow: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const event: SecurityEvent = props.securityEvent;
   const severity: OcsfSeverity = toSecurityEventVolumeSeverity(
     event.severityName,
@@ -156,7 +160,9 @@ const SecurityEventListRow: FunctionComponent<ComponentProps> = (
                   ).toString(),
                 }}
               >
-                {event.requestOutcome}
+                {translator.translateText(
+                  REQUEST_OUTCOME_LABELS[event.requestOutcome],
+                )}
               </span>
             )}
             {event.className && (

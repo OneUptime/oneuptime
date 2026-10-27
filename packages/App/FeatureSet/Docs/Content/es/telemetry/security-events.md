@@ -36,6 +36,7 @@ Abre **Productos → Eventos de seguridad**, en **Observabilidad**. Su menú tie
 | **Casos cerrados** | Casos de seguridad | Los casos cerrados con un veredicto, los más recientes primero |
 | **Todos los casos** | Casos de seguridad | Cada caso, abierto o cerrado |
 | **Eventos** | Eventos | Buscar y filtrar todos los eventos, y abrir uno para ver todos sus campos |
+| **Campaigns** | Eventos | Cada dirección que envió solicitudes de ataque, y si alguna de sus solicitudes pasó |
 | **Entidades** | Eventos | Los usuarios, hosts y direcciones que más nombran tus hallazgos |
 | **Riesgo de entidades** | Eventos | Cada usuario, host y dirección, puntuado por lo encontrado sobre él esta semana, primero los de mayor riesgo |
 | **Correlacionar** | Eventos | Un grafo de los eventos que comparten un host, un usuario o una dirección IP |
@@ -232,11 +233,19 @@ La barra de búsqueda habla el mismo lenguaje que los demás exploradores de tel
 | `@<attribute>:*` | El atributo está presente | `@threat.indicator_id:*` |
 | `@<attribute>:~text` | El atributo contiene el texto | `@finding_info.title:~ransom` |
 
-Un campo es un nombre corto (`severity`, `class`, `category`, `activity`, `status`, `vendor`, `product`, `rule`, `user`, `host`, `ip`, `targetuser`, `targethost`, `targetip`, `processname`, `commandline`, `parentprocessname`, `observable`, `tactic`, `technique`) o el nombre propio del campo, como `severityName` o `principalHost`. Cualquier otro nombre se lee como atributo de origen. `observable:<value>` encuentra cada evento que menciona un valor, estuviera en el lado de la actividad que estuviera.
+Un campo es un nombre corto (`severity`, `class`, `category`, `activity`, `status`, `vendor`, `product`, `rule`, `user`, `host`, `ip`, `targetuser`, `targethost`, `targetip`, `processname`, `commandline`, `parentprocessname`, `observable`, `tactic`, `technique`, `requestoutcome`, `trace`, `session`) o el nombre propio del campo, como `severityName` o `principalHost`. Cualquier otro nombre se lee como atributo de origen. `observable:<value>` encuentra cada evento que menciona un valor, estuviera en el lado de la actividad que estuviera.
 
 ### Facetas
 
-La barra lateral cuenta los eventos de la ventana por **Origen**, **Gravedad**, **Clase de evento**, **Categoría**, **Actividad**, **Estado**, **Proveedor**, **Producto**, **Regla de detección**, **Usuario de origen**, **Host de origen**, **Proceso** y **Proceso padre**. Haz clic en un valor para quedarte solo con sus eventos, o en el signo menos de al lado para excluirlos. Haz clic de nuevo para deshacerlo. El gráfico y cada recuento describen exactamente los eventos de la lista.
+La barra lateral cuenta los eventos de la ventana por **Origen**, **Gravedad**, **Request Outcome**, **Clase de evento**, **Categoría**, **Actividad**, **Estado**, **Proveedor**, **Producto**, **Regla de detección**, **Usuario de origen**, **Host de origen**, **Proceso** y **Proceso padre**. Haz clic en un valor para quedarte solo con sus eventos, o en el signo menos de al lado para excluirlos. Haz clic de nuevo para deshacerlo. El gráfico y cada recuento describen exactamente los eventos de la lista.
+
+### Qué pasó después
+
+Un evento leído de una línea de log escrita dentro de una solicitud trazada se sigue hasta esa solicitud. Su panel dice hasta dónde llegó la solicitud (**Rechazado**, **Reached App**, **Errored** o **Reached Database**), quién la envió, y enlaza a su traza, su excepción, su repetición de sesión y la propia línea de log. Una línea de log, una traza y una excepción que forman parte de un ataque también lo indican en sus propias páginas.
+
+### Campaigns
+
+**Campaigns** muestra cada dirección que envió solicitudes de ataque como una sola fila, con los tipos de ataque, las herramientas y las solicitudes que envió, y cuántas pasaron. Las direcciones cuyas solicitudes llegaron a tu app aparecen primero.
 
 ### Correlacionar
 

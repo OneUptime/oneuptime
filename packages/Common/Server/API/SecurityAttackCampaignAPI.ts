@@ -106,21 +106,21 @@ export default class SecurityAttackCampaignAPI {
             req.body && typeof req.body === "object"
               ? (req.body as JSONObject)
               : {};
-          const window: { startTime: Date; endTime: Date } =
+          const range: { startTime: Date; endTime: Date } =
             readCampaignWindow(body, OneUptimeDate.getCurrentDate());
 
           const campaigns: Array<SecurityAttackCampaign> =
             await SecurityEventService.findAttackCampaigns({
               projectId,
-              startTime: window.startTime,
-              endTime: window.endTime,
+              startTime: range.startTime,
+              endTime: range.endTime,
               limit: SECURITY_ATTACK_CAMPAIGNS_MAX,
             });
 
           const result: SecurityAttackCampaignsResult = {
             campaigns: campaigns.slice(0, SECURITY_ATTACK_CAMPAIGNS_MAX),
-            startTime: window.startTime.toISOString(),
-            endTime: window.endTime.toISOString(),
+            startTime: range.startTime.toISOString(),
+            endTime: range.endTime.toISOString(),
             isTruncated: campaigns.length > SECURITY_ATTACK_CAMPAIGNS_MAX,
           };
 
