@@ -59,7 +59,7 @@ export default class CallAndSmsGatewayService {
     if (body.length > MAX_SIGNED_WEBHOOK_BODY_LENGTH) {
       return {
         ok: false,
-        message: `Not sent: the request for ${CALL_AND_SMS_GATEWAY_NAME} is larger than ${MAX_SIGNED_WEBHOOK_BODY_LENGTH} bytes.`,
+        message: `Not sent: the request for ${CALL_AND_SMS_GATEWAY_NAME} is longer than ${MAX_SIGNED_WEBHOOK_BODY_LENGTH} characters.`,
       };
     }
 

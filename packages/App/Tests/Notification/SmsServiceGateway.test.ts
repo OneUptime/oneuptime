@@ -486,6 +486,37 @@ describe("an SMS the gateway does not take", () => {
     });
   });
 
+  test.each([[401], [429], [503]])(
+    "the SMS log's error code is the HTTP status the gateway answered (%p), never our own exception's",
+    async (status: number) => {
+      post.mockResolvedValue(refused(status));
+
+      await rejectionOf(
+        SmsService.sendSms(TO, MESSAGE, { projectId: PROJECT_ID }),
+      );
+
+      expect(smsLogUpdates[0]).toMatchObject({
+        data: { status: SmsStatus.Error, errorCode: status.toString() },
+      });
+    },
+  );
+
+  test("a gateway that cannot be reached leaves the SMS log with no error code: it answered nothing", async () => {
+    post.mockRejectedValue(new Error("connect ECONNREFUSED 10.0.0.5:443"));
+
+    await rejectionOf(
+      SmsService.sendSms(TO, MESSAGE, { projectId: PROJECT_ID }),
+    );
+
+    const update: Record<string, unknown> = smsLogUpdates[0] as Record<
+      string,
+      unknown
+    >;
+    expect(
+      (update["data"] as Record<string, unknown>)["errorCode"],
+    ).toBeUndefined();
+  });
+
   test("a gateway that cannot be reached", async () => {
     post.mockRejectedValue(new Error("connect ECONNREFUSED 10.0.0.5:443"));
 

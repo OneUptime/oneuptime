@@ -268,14 +268,14 @@ describe("not delivered", () => {
 });
 
 describe("not sent", () => {
-  test("a request larger than any request carries is not sent, nor its URL checked", async () => {
+  test("a request longer than any request carries is not sent, nor its URL checked", async () => {
     const result: CallAndSmsGatewayResult = await send({
       payload: { message: "x".repeat(MAX_SIGNED_WEBHOOK_BODY_LENGTH + 1) },
     });
 
     expect(result).toEqual({
       ok: false,
-      message: `Not sent: the request for the SMS and call gateway is larger than ${MAX_SIGNED_WEBHOOK_BODY_LENGTH} bytes.`,
+      message: `Not sent: the request for the SMS and call gateway is longer than ${MAX_SIGNED_WEBHOOK_BODY_LENGTH} characters.`,
     });
     expect(post).not.toHaveBeenCalled();
     expect(ssrf).not.toHaveBeenCalled();

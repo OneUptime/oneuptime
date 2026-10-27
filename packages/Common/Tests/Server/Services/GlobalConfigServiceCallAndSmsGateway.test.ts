@@ -151,20 +151,90 @@ describe("generateCallAndSmsGatewaySecret", () => {
 });
 
 describe("what carries the server's SMS and calls", () => {
-  test.each(["Twilio", "Gateway"])(
-    "a create may say %s",
-    async (provider: string) => {
-      const row: GlobalConfig = new GlobalConfig();
-      row.callAndSmsProvider = provider as CallAndSmsProvider;
+  test("a create may say Twilio", async () => {
+    const row: GlobalConfig = new GlobalConfig();
+    row.callAndSmsProvider = CallAndSmsProvider.Twilio;
 
-      await expect(
-        hooks.onBeforeCreate({
-          data: row,
-          props: { isRoot: true },
-        } as CreateBy<GlobalConfig>),
-      ).resolves.toBeDefined();
-    },
-  );
+    await expect(
+      hooks.onBeforeCreate({
+        data: row,
+        props: { isRoot: true },
+      } as CreateBy<GlobalConfig>),
+    ).resolves.toBeDefined();
+  });
+
+  test("a create may say Gateway with a URL: the URL is checked and trimmed, and a secret is made", async () => {
+    const row: GlobalConfig = new GlobalConfig();
+    row.callAndSmsProvider = CallAndSmsProvider.Gateway;
+    row.callAndSmsGatewayUrl = `  ${NEW_URL}  `;
+
+    await hooks.onBeforeCreate({
+      data: row,
+      props: { isRoot: true },
+    } as CreateBy<GlobalConfig>);
+
+    expect(ssrf).toHaveBeenCalledWith(NEW_URL, {
+      allowPrivateNetworkTargets: true,
+    });
+    expect(row.callAndSmsGatewayUrl).toBe(NEW_URL);
+    expect(row.callAndSmsGatewaySecret).toBe(GENERATED_SECRET);
+    // A create has no stored row to read.
+    expect(findRows).not.toHaveBeenCalled();
+  });
+
+  test("a create that says Gateway with no URL is refused, as an update would be", async () => {
+    const row: GlobalConfig = new GlobalConfig();
+    row.callAndSmsProvider = CallAndSmsProvider.Gateway;
+
+    await expect(
+      hooks.onBeforeCreate({
+        data: row,
+        props: { isRoot: true },
+      } as CreateBy<GlobalConfig>),
+    ).rejects.toThrow(new BadDataException(NO_URL_MESSAGE));
+  });
+
+  test("a create keeps a secret it names, trimmed", async () => {
+    const row: GlobalConfig = new GlobalConfig();
+    row.callAndSmsProvider = CallAndSmsProvider.Gateway;
+    row.callAndSmsGatewayUrl = NEW_URL;
+    row.callAndSmsGatewaySecret = "  mine  ";
+
+    await hooks.onBeforeCreate({
+      data: row,
+      props: { isRoot: true },
+    } as CreateBy<GlobalConfig>);
+
+    expect(row.callAndSmsGatewaySecret).toBe("mine");
+    expect(generate).not.toHaveBeenCalled();
+  });
+
+  test("a create whose URL is refused by the SSRF check is refused", async () => {
+    ssrf.mockRejectedValueOnce(new BadDataException("not allowed"));
+
+    const row: GlobalConfig = new GlobalConfig();
+    row.callAndSmsProvider = CallAndSmsProvider.Gateway;
+    row.callAndSmsGatewayUrl = NEW_URL;
+
+    await expect(
+      hooks.onBeforeCreate({
+        data: row,
+        props: { isRoot: true },
+      } as CreateBy<GlobalConfig>),
+    ).rejects.toThrow("not allowed");
+  });
+
+  test("a create that names a null provider starts with Twilio, never null", async () => {
+    const row: GlobalConfig = new GlobalConfig();
+    (row as unknown as Record<string, unknown>)["callAndSmsProvider"] = null;
+
+    await hooks.onBeforeCreate({
+      data: row,
+      props: { isRoot: true },
+    } as CreateBy<GlobalConfig>);
+
+    expect(row.callAndSmsProvider).toBe(CallAndSmsProvider.Twilio);
+  });
 
   test("a create that says nothing starts with what the column starts with", async () => {
     await expect(
@@ -525,13 +595,24 @@ describe("a server that sends through its gateway", () => {
     expect(generate).not.toHaveBeenCalled();
   });
 
-  test("a provider written as null keeps the stored one, so clearing the URL is still refused", async () => {
-    const error: Error = await refusal({
+  test("a provider written as null is the default, Twilio, so clearing the URL with it is let through", async () => {
+    const data: Record<string, unknown> = await written({
       callAndSmsProvider: null,
       callAndSmsGatewayUrl: null,
     });
 
-    expect(error.message).toBe(NO_URL_MESSAGE);
+    expect(data).toEqual({
+      callAndSmsProvider: "Twilio",
+      callAndSmsGatewayUrl: null,
+    });
+  });
+
+  test("a provider written as null is never stored as null: the column is NOT NULL", async () => {
+    const data: Record<string, unknown> = await written({
+      callAndSmsProvider: null,
+    });
+
+    expect(data["callAndSmsProvider"]).toBe("Twilio");
   });
 
   test("going back to Twilio keeps the URL and secret, for the next time", async () => {
@@ -649,8 +730,10 @@ describe("every combination of stored and written columns", () => {
 
     const result: Record<string, unknown> = {};
 
+    // A provider written as null is stored as the default, Twilio (NOT NULL).
     if (data.callAndSmsProvider !== undefined) {
-      result["callAndSmsProvider"] = data.callAndSmsProvider;
+      result["callAndSmsProvider"] =
+        data.callAndSmsProvider === null ? "Twilio" : data.callAndSmsProvider;
     }
 
     let writtenUrl: string | null | undefined = undefined;
@@ -673,9 +756,9 @@ describe("every combination of stored and written columns", () => {
     }
 
     const provider: unknown =
-      data.callAndSmsProvider === undefined || data.callAndSmsProvider === null
+      data.callAndSmsProvider === undefined
         ? stored.callAndSmsProvider
-        : data.callAndSmsProvider;
+        : result["callAndSmsProvider"];
     const url: unknown =
       writtenUrl !== undefined ? writtenUrl : stored.callAndSmsGatewayUrl;
     const secret: unknown =

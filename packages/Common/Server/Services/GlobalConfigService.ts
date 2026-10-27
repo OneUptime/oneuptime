@@ -27,6 +27,7 @@ import TwilioConfigWrite, {
 import { GLOBAL_TWILIO_CONFIG_USE_SELECT } from "../Utils/TwilioConfigSelect";
 import CallAndSmsProviders, {
   CALL_AND_SMS_GATEWAY_URL_TITLE,
+  DEFAULT_CALL_AND_SMS_PROVIDER,
 } from "../../Types/CallAndSMS/CallAndSmsProvider";
 import SSRFProtection from "../Utils/SSRFProtection";
 import URL from "../../Types/API/URL";
@@ -625,28 +626,30 @@ export class Service extends DatabaseService<Model> {
     }
   }
 
-  /*
-   * An update that touches the SMS and call gateway leaves one the server
-   * can send through. Its URL is a web address OneUptime may post to - on
-   * the installation's private network too, where a gateway usually is, as
-   * a custom channel's may be (SSRFProtection) - and there is one whenever
-   * the server is set to send through the gateway. Whenever there is a URL
-   * there is a signing secret: made here when there is none, or when it is
-   * cleared, which is how an admin replaces it. An update that touches none
-   * of the three is let through as it always was.
-   */
-  private async prepareCallAndSmsGateway(
-    updateBy: UpdateBy<Model>,
-  ): Promise<void> {
-    const data: CallAndSmsGatewayColumns =
-      updateBy.data as CallAndSmsGatewayColumns;
+  // Whether a write names any of the gateway's columns.
+  private static touchesCallAndSmsGateway(
+    data: CallAndSmsGatewayColumns,
+  ): boolean {
+    return (
+      data.callAndSmsProvider !== undefined ||
+      data.callAndSmsGatewayUrl !== undefined ||
+      data.callAndSmsGatewaySecret !== undefined
+    );
+  }
 
-    if (
-      data.callAndSmsProvider === undefined &&
-      data.callAndSmsGatewayUrl === undefined &&
-      data.callAndSmsGatewaySecret === undefined
-    ) {
-      return;
+  /*
+   * The gateway's columns as a write gives them, made what they are stored
+   * as. No provider (null) is the default, Twilio, as the NOT NULL column
+   * starts with. The URL is a web address OneUptime may post to - on the
+   * installation's private network too, where a gateway usually is, as a
+   * custom channel's may be (SSRFProtection) - trimmed, and empty is none.
+   * The secret is trimmed, and empty is none.
+   */
+  private async normalizeCallAndSmsGatewayColumns(
+    data: CallAndSmsGatewayColumns,
+  ): Promise<void> {
+    if (data.callAndSmsProvider === null) {
+      data.callAndSmsProvider = DEFAULT_CALL_AND_SMS_PROVIDER;
     }
 
     if (data.callAndSmsGatewayUrl !== undefined) {
@@ -683,6 +686,49 @@ export class Service extends DatabaseService<Model> {
       data.callAndSmsGatewaySecret =
         (data.callAndSmsGatewaySecret || "").trim() || null;
     }
+  }
+
+  /*
+   * What a row will hold once written must be a gateway the server can send
+   * through: a URL whenever the server is set to send through the gateway,
+   * and a signing secret whenever there is a URL - made here when there is
+   * none, or when it is cleared, which is how an admin replaces it.
+   */
+  private static completeCallAndSmsGateway(
+    data: CallAndSmsGatewayColumns,
+    written: CallAndSmsGatewayColumns,
+  ): void {
+    if (
+      CallAndSmsProviders.isGateway(written.callAndSmsProvider) &&
+      !written.callAndSmsGatewayUrl
+    ) {
+      throw new BadDataException(
+        `To send SMS and calls through your own gateway, add its ${CALL_AND_SMS_GATEWAY_URL_TITLE}.`,
+      );
+    }
+
+    if (written.callAndSmsGatewayUrl && !written.callAndSmsGatewaySecret) {
+      data.callAndSmsGatewaySecret = Service.generateCallAndSmsGatewaySecret();
+    }
+  }
+
+  /*
+   * An update that touches the SMS and call gateway leaves one the server
+   * can send through, judged by what each row it writes will hold: the
+   * write's values, and the stored ones it leaves. An update that touches
+   * none of the three is let through as it always was.
+   */
+  private async prepareCallAndSmsGateway(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    const data: CallAndSmsGatewayColumns =
+      updateBy.data as CallAndSmsGatewayColumns;
+
+    if (!Service.touchesCallAndSmsGateway(data)) {
+      return;
+    }
+
+    await this.normalizeCallAndSmsGatewayColumns(data);
 
     const rows: Array<Model> = await this.findRowsAndHoldUpdateToThem(
       updateBy,
@@ -694,33 +740,41 @@ export class Service extends DatabaseService<Model> {
     );
 
     for (const row of rows) {
-      const provider: unknown =
-        data.callAndSmsProvider !== undefined &&
-        data.callAndSmsProvider !== null
-          ? data.callAndSmsProvider
-          : row.callAndSmsProvider;
-
-      const url: unknown =
-        data.callAndSmsGatewayUrl !== undefined
-          ? data.callAndSmsGatewayUrl
-          : row.callAndSmsGatewayUrl;
-
-      const secret: unknown =
-        data.callAndSmsGatewaySecret !== undefined
-          ? data.callAndSmsGatewaySecret
-          : row.callAndSmsGatewaySecret;
-
-      if (CallAndSmsProviders.isGateway(provider) && !url) {
-        throw new BadDataException(
-          `To send SMS and calls through your own gateway, add its ${CALL_AND_SMS_GATEWAY_URL_TITLE}.`,
-        );
-      }
-
-      if (url && !secret) {
-        data.callAndSmsGatewaySecret =
-          Service.generateCallAndSmsGatewaySecret();
-      }
+      Service.completeCallAndSmsGateway(data, {
+        callAndSmsProvider:
+          data.callAndSmsProvider !== undefined
+            ? data.callAndSmsProvider
+            : row.callAndSmsProvider,
+        callAndSmsGatewayUrl:
+          data.callAndSmsGatewayUrl !== undefined
+            ? data.callAndSmsGatewayUrl
+            : row.callAndSmsGatewayUrl,
+        callAndSmsGatewaySecret:
+          data.callAndSmsGatewaySecret !== undefined
+            ? data.callAndSmsGatewaySecret
+            : row.callAndSmsGatewaySecret,
+      });
     }
+  }
+
+  /*
+   * The same for a create, which has nothing stored to leave: the server's
+   * row is made once, when the installation first starts, and one made
+   * naming the gateway is held to what an update to it would be.
+   */
+  private async prepareCallAndSmsGatewayForCreate(
+    createBy: CreateBy<Model>,
+  ): Promise<void> {
+    const data: CallAndSmsGatewayColumns =
+      createBy.data as CallAndSmsGatewayColumns;
+
+    if (!Service.touchesCallAndSmsGateway(data)) {
+      return;
+    }
+
+    await this.normalizeCallAndSmsGatewayColumns(data);
+
+    Service.completeCallAndSmsGateway(data, data);
   }
 
   @CaptureSpan()
@@ -742,6 +796,7 @@ export class Service extends DatabaseService<Model> {
     this.assertTwilioSmsNumbersAreValid(createBy.data);
     this.assertTwilioUseIsValid(createBy.data);
     this.assertCallAndSmsProviderIsValid(createBy.data);
+    await this.prepareCallAndSmsGatewayForCreate(createBy);
 
     return {
       createBy,

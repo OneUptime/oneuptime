@@ -24,9 +24,8 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import Banner from "Common/UI/Components/Banner/Banner";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
+import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Page from "Common/UI/Components/Page/Page";
@@ -45,11 +44,11 @@ import { useTranslation } from "react-i18next";
  * people see the channel by name in their notification methods and on-call
  * rules, with nothing to set up.
  *
- * What most admins need is in the form: the name, the URL, and the secret
- * their service checks requests with - made for them, shown so it can be
- * copied. Whether the channel pages everyone is on by default and waits under
- * More fields: an admin adding the company's own app wants everybody paged
- * through it, and one adding a channel only some people use can say so there.
+ * The form walks two steps (CUSTOM_CHANNEL_FORM_STEPS): the name, the URL,
+ * and the secret their service checks requests with - made for them, shown
+ * so it can be copied - then whether the channel pages everyone, on by
+ * default: an admin adding the company's own app wants everybody paged
+ * through it, and one adding a channel only some people use can say so.
  *
  * Without a license that includes it, the page says so
  * (EnterpriseSettingLicenseNotice) and is read-only: nothing is sent to the
@@ -57,8 +56,18 @@ import { useTranslation } from "react-i18next";
  * (EditionPermissions, CustomChannelEdition).
  */
 
-const advancedSection: FormFieldCollapsibleSection<CustomNotificationChannel> =
-  getAdvancedFormSection<CustomNotificationChannel>();
+/*
+ * Two steps, as every form of more than three fields walks them: the channel
+ * itself - its name, its URL and the secret its service checks requests
+ * with, set up together in that service - then how it delivers: whether it
+ * is on (when editing) and whether it pages everyone.
+ */
+export const CUSTOM_CHANNEL_FORM_STEPS: Array<
+  FormStep<CustomNotificationChannel>
+> = [
+  { title: "Channel", id: "channel" },
+  { title: "Delivery", id: "delivery" },
+];
 
 // A new signing secret: 32 random bytes as 64 hex digits, made in the browser.
 export const generateSigningSecret: () => string = (): string => {
@@ -220,11 +229,13 @@ const CustomChannelsSettingsPage: FunctionComponent = (): ReactElement => {
                   },
                 ]
           }
+          formSteps={CUSTOM_CHANNEL_FORM_STEPS}
           formFields={[
             {
               field: {
                 name: true,
               },
+              stepId: "channel",
               title: "Name",
               fieldType: FormFieldSchemaType.Text,
               required: true,
@@ -239,6 +250,7 @@ const CustomChannelsSettingsPage: FunctionComponent = (): ReactElement => {
               field: {
                 webhookUrl: true,
               },
+              stepId: "channel",
               title: "Webhook URL",
               fieldType: FormFieldSchemaType.URL,
               required: true,
@@ -250,6 +262,7 @@ const CustomChannelsSettingsPage: FunctionComponent = (): ReactElement => {
               field: {
                 secret: true,
               },
+              stepId: "channel",
               title: "Signing Secret",
               fieldType: FormFieldSchemaType.Text,
               required: true,
@@ -261,6 +274,7 @@ const CustomChannelsSettingsPage: FunctionComponent = (): ReactElement => {
               field: {
                 isEnabled: true,
               },
+              stepId: "delivery",
               title: "On",
               fieldType: FormFieldSchemaType.Toggle,
               required: false,
@@ -272,11 +286,11 @@ const CustomChannelsSettingsPage: FunctionComponent = (): ReactElement => {
               field: {
                 pageEveryoneByDefault: true,
               },
+              stepId: "delivery",
               title: "Page everyone through this channel",
               fieldType: FormFieldSchemaType.Toggle,
               required: false,
               defaultValue: true,
-              collapsibleSection: advancedSection,
               description:
                 "OneUptime adds this channel to everyone's on-call rules, including people who join later. Turn this off to let people add it to their rules themselves.",
             },

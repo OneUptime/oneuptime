@@ -179,6 +179,12 @@ export default class SmsService {
      * callback has a row to update, and so the final state below is an update, not an insert.
      */
     let smsLogId: ObjectID | null = null;
+    /*
+     * Set when the installation's own gateway refused the SMS or was not
+     * reached: the log's error code is then the gateway's HTTP status, when
+     * it answered, and never the code of the exception that reports it.
+     */
+    let isGatewayFailure: boolean = false;
 
     try {
       message = Text.trimLines(message);
@@ -571,6 +577,12 @@ export default class SmsService {
 
         if (!result.ok) {
           // The installation's own gateway refused it, or was not reached.
+          isGatewayFailure = true;
+
+          if (result.statusCode) {
+            smsLog.errorCode = result.statusCode.toString();
+          }
+
           throw new BadDataException(result.message).asUserError();
         }
 
@@ -627,7 +639,7 @@ export default class SmsService {
        * Twilio SDK errors expose a numeric `code` (e.g. 21211). Surface it so
        * operators can see exactly why a send was rejected.
        */
-      if (e && (e.code || e.code === 0)) {
+      if (!isGatewayFailure && e && (e.code || e.code === 0)) {
         smsLog.errorCode = e.code.toString();
       }
 

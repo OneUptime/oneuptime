@@ -116,7 +116,7 @@ export default class CustomChannelSender {
     if (body.length > MAX_SIGNED_WEBHOOK_BODY_LENGTH) {
       return {
         ok: false,
-        message: `Not sent: the request for ${name} is larger than ${MAX_SIGNED_WEBHOOK_BODY_LENGTH} bytes.`,
+        message: `Not sent: the request for ${name} is longer than ${MAX_SIGNED_WEBHOOK_BODY_LENGTH} characters.`,
       };
     }
 
