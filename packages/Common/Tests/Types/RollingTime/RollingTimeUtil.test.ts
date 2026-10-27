@@ -9,19 +9,15 @@ const DAY_MS: number = 24 * HOUR_MS;
 /*
  * Expected window length (endDate - startDate) for each RollingTime value.
  *
- * Minute/hour windows use OneUptimeDate.addRemove{Minutes,Hours}, which shift
- * by an exact number of milliseconds, so a tight ±2s tolerance (for the two
- * separate getCurrentDate() calls) is enough.
- *
- * Day windows use addRemoveDays, which is calendar-aware: a window that spans
- * a daylight-saving transition is one wall-clock hour longer or shorter than
- * N*24h. Those entries therefore allow an extra ±1h of tolerance.
+ * Every window uses OneUptimeDate.addRemove{Minutes,Hours}, which shift by an
+ * exact number of milliseconds - a day is 24 hours, not a calendar day, even
+ * where the clocks change inside the window (RollingTimeUtilLondon and
+ * RollingTimeUtilNewYork) - so a tight ±2s tolerance is enough.
  *
  * Note: RollingTime.Past1Hours is intentionally "Past 1 Day" (its display
  * string), so it maps to a one-day window, not a one-hour window.
  */
 const EXACT_TOLERANCE_MS: number = 2000;
-const DST_TOLERANCE_MS: number = HOUR_MS + 2000;
 
 const EXPECTED_SPAN_MS: Array<{
   rollingTime: RollingTime;
@@ -81,52 +77,52 @@ const EXPECTED_SPAN_MS: Array<{
   {
     rollingTime: RollingTime.Past1Hours,
     spanMs: DAY_MS,
-    toleranceMs: DST_TOLERANCE_MS,
+    toleranceMs: EXACT_TOLERANCE_MS,
   },
   {
     rollingTime: RollingTime.Past2Days,
     spanMs: 2 * DAY_MS,
-    toleranceMs: DST_TOLERANCE_MS,
+    toleranceMs: EXACT_TOLERANCE_MS,
   },
   {
     rollingTime: RollingTime.Past3Days,
     spanMs: 3 * DAY_MS,
-    toleranceMs: DST_TOLERANCE_MS,
+    toleranceMs: EXACT_TOLERANCE_MS,
   },
   {
     rollingTime: RollingTime.Past7Days,
     spanMs: 7 * DAY_MS,
-    toleranceMs: DST_TOLERANCE_MS,
+    toleranceMs: EXACT_TOLERANCE_MS,
   },
   {
     rollingTime: RollingTime.Past14Days,
     spanMs: 14 * DAY_MS,
-    toleranceMs: DST_TOLERANCE_MS,
+    toleranceMs: EXACT_TOLERANCE_MS,
   },
   {
     rollingTime: RollingTime.Past30Days,
     spanMs: 30 * DAY_MS,
-    toleranceMs: DST_TOLERANCE_MS,
+    toleranceMs: EXACT_TOLERANCE_MS,
   },
   {
     rollingTime: RollingTime.Past60Days,
     spanMs: 60 * DAY_MS,
-    toleranceMs: DST_TOLERANCE_MS,
+    toleranceMs: EXACT_TOLERANCE_MS,
   },
   {
     rollingTime: RollingTime.Past90Days,
     spanMs: 90 * DAY_MS,
-    toleranceMs: DST_TOLERANCE_MS,
+    toleranceMs: EXACT_TOLERANCE_MS,
   },
   {
     rollingTime: RollingTime.Past180Days,
     spanMs: 180 * DAY_MS,
-    toleranceMs: DST_TOLERANCE_MS,
+    toleranceMs: EXACT_TOLERANCE_MS,
   },
   {
     rollingTime: RollingTime.Past365Days,
     spanMs: 365 * DAY_MS,
-    toleranceMs: DST_TOLERANCE_MS,
+    toleranceMs: EXACT_TOLERANCE_MS,
   },
 ];
 

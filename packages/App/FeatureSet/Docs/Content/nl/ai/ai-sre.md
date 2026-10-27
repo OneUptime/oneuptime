@@ -372,6 +372,22 @@ Terwijl een incident wacht, toont de kaart **AI Investigation** ervan **Wachten*
 
 Waarschuwingen werken op dezelfde manier, op **Waarschuwingen → AI → Instellingen**, geteld vanaf het aanmaken van de waarschuwing.
 
+## OneUptime AI reageert eerst
+
+Een on-call-regel voor incidenten of waarschuwingen kan OneUptime AI de oproep eerst laten oppakken. Kies onder **Meer velden** bij **Wanneer moet deze regel oproepen?** voor **Nadat OneUptime AI het heeft geprobeerd**. Als OneUptime AI mag oplossen waar een passend incident of een passende waarschuwing over gaat, wachten de beleidsregels van de regel terwijl AI onderzoekt, herstelt en de oplossing controleert, hoogstens de tijd die bij **Maximaal zo lang op OneUptime AI wachten (minuten)** is ingesteld: standaard 10 minuten, van 1 tot 30. Wordt de oplossing van AI bevestigd, dan lost OneUptime AI het record op en wordt niemand opgeroepen.
+
+Anders roept de regel meteen op, en de feed van het record zegt waarom, als een persoon het record heeft gemaakt, het de hoogste ernst van het project heeft, in de 5 minuten ervoor 3 of meer andere waarschuwingen en incidenten zijn geopend, OneUptime AI het niet mag onderzoeken of automatisch oplossen, er geen monitor aan gekoppeld is, of geen gekoppeld Kubernetes-cluster of gekoppelde resource een AI-agent op **Automatisch** of **Goedkeuring overslaan** heeft.
+
+Zolang AI een oproep vasthoudt, toont de kaart **AI Investigation** wanneer het oproepen begint, met **Nu oproepen** voor iedereen die er meteen een persoon op wil. Elke minuut controleert OneUptime elke oproep die AI vasthoudt en begint meteen op te roepen, met de reden, als:
+
+- het onderzoek niet start, op een AI-regel wacht of niet afrondt;
+- AI geen oplossing vindt die het zelf mag uitvoeren, of de oplossing goedkeuring van een persoon nodig heeft;
+- de oplossing van AI de monitors niet herstelt;
+- iemand op **Nu oproepen** drukt, het record de hoogste ernst bereikt of veel records tegelijk opengaan;
+- AI of automatisch oplossen wordt uitgezet, of de regel AI niet langer eerst laat reageren.
+
+De uitvoeringslogboeken van het beleid tonen hoe elk vasthouden eindigde. Via de API of Terraform is de `whenToPage` van de regel `After OneUptime AI` en is `aiHoldTimeInMinutes` de wachttijd.
+
 ## Automatisch herstel wacht op de analyse
 
 Wanneer het project nieuwe incidenten of waarschuwingen automatisch herstelt (**Nieuwe incidenten automatisch herstellen** en **Nieuwe waarschuwingen automatisch herstellen**, met de AI-regels onder **Meer instellingen** op **Incidenten → AI → Instellingen** en **Waarschuwingen → AI → Instellingen**), wacht herstellen op het onderzoek, **eerst de oorzaakanalyse**:
