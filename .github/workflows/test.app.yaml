@@ -808,7 +808,10 @@ jobs:
           # answer written step by step, its sources and cards, an approval,
           # the history and the way back to an answer still being written, at
           # 1280, 768 and 390 pixels, light and dark, German and Persian, and
-          # with reduced motion) joined them the same day: about 19.
+          # with reduced motion) joined them the same day: about 19. Its UI
+          # review took it to 49 tests and 3.0 minutes (the marks, charts,
+          # tables and figures an answer carries, its menus, deleting a
+          # conversation, right to left): about 19.5.
           - group: 12
             suites: >-
               test-code-ui
