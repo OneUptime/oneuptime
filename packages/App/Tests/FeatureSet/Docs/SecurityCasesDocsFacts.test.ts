@@ -1282,9 +1282,9 @@ describe("Security Cases and Playbooks docs", () => {
     ).toContain('translator.translateText("Added")');
   });
 
-  it("says a list of runs draws each run as a line, Show steps opening it, and a run waiting for approval open", () => {
+  it("says every list of runs draws each run as a line, Show steps opening it, and a run waiting for approval or a case's newest open", () => {
     expect(page).toContain(
-      "On **Playbook Runs** and on a playbook's page, each run is a line that says how far it got, or the step where it stopped; **Show steps** opens its steps. A run waiting for approval opens by itself.",
+      "On **Playbook Runs**, on a playbook's page and on a case's **Playbooks**, each run is a line that says how far it got, or the step where it stopped; **Show steps** opens its steps. A run waiting for approval opens by itself, and so does the newest run on a case.",
     );
 
     for (const file of ["PlaybookRuns.tsx", "PlaybookView.tsx"]) {
@@ -1296,12 +1296,23 @@ describe("Security Cases and Playbooks docs", () => {
       }).toEqual({ file, folds: true });
     }
 
-    // A case's own runs are drawn whole, step by step, as the page says.
-    expect(
+    // A case's own runs fold too, its newest open: the page's Playbooks.
+    const caseRuns: string = flat(
       source(
         `${DASHBOARD}/Components/SecurityPlaybook/SecurityCasePlaybookRuns.tsx`,
       ),
-    ).not.toContain("isCollapsible");
+    );
+    expect(caseRuns).toContain("isCollapsible={true}");
+    expect(caseRuns).toContain("isExpandedAtFirst={index === 0}");
+    expect(
+      SECURITY_CASE_MENU.flatMap(
+        (menu: SecurityCaseMenuSection): Array<SecurityCaseMenuItem> => {
+          return menu.items;
+        },
+      ).find((item: SecurityCaseMenuItem): boolean => {
+        return item.page === PageMap.SECURITY_CASE_VIEW_PLAYBOOK_RUNS;
+      })?.title,
+    ).toBe("Playbooks");
 
     const card: string = flat(
       source(
@@ -1309,7 +1320,9 @@ describe("Security Cases and Playbooks docs", () => {
       ),
     );
     expect(card).toContain('isExpanded ? "Hide steps" : "Show steps"');
-    expect(card).toContain("!props.isCollapsible || isWaiting");
+    expect(card).toContain(
+      "!props.isCollapsible || isWaiting || Boolean(props.isExpandedAtFirst)",
+    );
   });
 
   it("says an entity opens in Correlate, where the menu has it", () => {

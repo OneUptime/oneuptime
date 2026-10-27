@@ -106,6 +106,18 @@ export function getActionCardGroups(): Array<CardSelectOptionGroup> {
 }
 
 /*
+ * What the Note and Message fields say above the placeholders they may use.
+ * A field's own "(Optional)" says whether it may be left empty, so neither
+ * opens with "Optional." of its own.
+ */
+export const NOTE_PLACEHOLDER_LEAD: string = translationKey(
+  "Markdown. These fill in from the case:",
+);
+export const MESSAGE_PLACEHOLDER_LEAD: string = translationKey(
+  "Markdown; a summary of the case when empty. These fill in from the case:",
+);
+
+/*
  * The placeholders a note or message may use, under its field: written as
  * code, so they are never taken for a translation's own placeholders.
  */
@@ -280,7 +292,7 @@ export function getStepSettingsFields(
     {
       field: { userId: true },
       title: "Person",
-      description: "Optional. Who the case is assigned to.",
+      description: "Who the case is assigned to.",
       fieldType: FormFieldSchemaType.PeoplePicker,
       stepId: "settings",
       peoplePicker: {
@@ -299,7 +311,7 @@ export function getStepSettingsFields(
       field: { teamId: true },
       title: "Team",
       description:
-        "Optional. The team the case belongs to. Choose a person, a team, or both.",
+        "The team the case belongs to. Choose a person, a team, or both.",
       fieldType: FormFieldSchemaType.PeoplePicker,
       stepId: "settings",
       peoplePicker: {
@@ -366,9 +378,7 @@ export function getStepSettingsFields(
     {
       field: { note: true },
       title: "Note",
-      description: (
-        <PlaceholderHelp lead="Markdown. These fill in from the case:" />
-      ),
+      description: <PlaceholderHelp lead={NOTE_PLACEHOLDER_LEAD} />,
       fieldType: FormFieldSchemaType.Markdown,
       stepId: "settings",
       required: (values: FormValues<JSONObject>): boolean => {
@@ -399,7 +409,7 @@ export function getStepSettingsFields(
       field: { raisePriorityToId: true },
       title: "On a Match, Raise Priority To",
       description:
-        "Optional. When an entity is a known indicator, the case's priority rises to at least this.",
+        "When an entity is a known indicator, the case's priority rises to at least this.",
       fieldType: FormFieldSchemaType.Dropdown,
       stepId: "settings",
       dropdownOptions: getSecurityCasePriorityOptions(priorities, {
@@ -499,9 +509,7 @@ export function getStepSettingsFields(
     {
       field: { message: true },
       title: "Message",
-      description: (
-        <PlaceholderHelp lead="Optional. Markdown; a summary of the case when empty. These fill in from the case:" />
-      ),
+      description: <PlaceholderHelp lead={MESSAGE_PLACEHOLDER_LEAD} />,
       fieldType: FormFieldSchemaType.LongText,
       stepId: "settings",
       required: false,

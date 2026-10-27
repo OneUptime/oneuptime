@@ -173,6 +173,10 @@ import {
   SecurityCaseQueueViewKey,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseQueueViews";
 import {
+  OPEN_NEW_SECURITY_CASE,
+  OPEN_SECURITY_CASE,
+  SECURITY_CASE_ROW_DETECTIONS_TEST_ID,
+  SECURITY_CASE_ROW_SOURCE_LINE_TEST_ID,
   VIEW_UNASSIGNED_CASES,
   VIEW_UNASSIGNED_CASES_TEST_ID,
   getSecurityCasesTablePreferencesKey,
@@ -598,12 +602,16 @@ describe("each case page draws the list its question needs", () => {
         "Last Detection",
       ],
     });
+    /*
+     * The time each list is sorted by waits in Customize Columns: each
+     * case's line under its title says it already.
+     */
     expect(hidden).toEqual({
-      open: ["Labels"],
-      mine: ["Labels"],
-      unassigned: ["Labels"],
-      closed: ["Labels"],
-      all: ["Verdict", "Labels"],
+      open: ["Labels", "Last Detection"],
+      mine: ["Labels", "Last Detection"],
+      unassigned: ["Labels", "Last Detection"],
+      closed: ["Labels", "Closed"],
+      all: ["Verdict", "Labels", "Last Detection"],
     });
   });
 
@@ -1144,8 +1152,127 @@ describe("the list a person sees", () => {
     expect(listRequests[0]?.sort).toEqual({ closedAt: SortOrder.Descending });
     expect(screen.getAllByText("Benign Positive").length).toBeGreaterThan(0);
     expect(screen.getByRole("columnheader", { name: /Verdict/ })).toBeVisible();
-    expect(screen.getByRole("columnheader", { name: /Closed/ })).toBeVisible();
     expect(screen.queryByRole("columnheader", { name: /Status/ })).toBeNull();
+    /*
+     * When it closed is in the case's own line, so no column of its own
+     * until someone turns it on.
+     */
+    expect(screen.queryByRole("columnheader", { name: /Closed/ })).toBeNull();
+    expect(
+      screen.getByTestId(SECURITY_CASE_ROW_DETECTIONS_TEST_ID).textContent,
+    ).toBe("2 detections, closed 2 days ago");
+  });
+
+  test("an open list's case says how many detections it holds and when the last fired", async () => {
+    listedRows = [
+      unassignedCase(
+        "20000000-0000-4000-8000-000000000151",
+        "CASE-151",
+        "Brute force against web-1 ended in a sign-in",
+        undefined,
+      ),
+    ];
+
+    await drawTable(await capture("open"));
+    await screen.findByText("Brute force against web-1 ended in a sign-in");
+
+    const sentence: HTMLElement = screen.getByTestId(
+      SECURITY_CASE_ROW_DETECTIONS_TEST_ID,
+    );
+
+    expect(sentence.textContent).toBe("1 detection, 2 hours ago");
+    // The date and time itself, under the pointer.
+    expect(sentence.getAttribute("title")).toBeTruthy();
+    expect(sentence.getAttribute("title")).not.toContain("ago");
+    // No Last Detection column saying it again.
+    expect(
+      screen.queryByRole("columnheader", { name: /Last Detection/ }),
+    ).toBeNull();
+  });
+
+  test("several detections: the last one's time", async () => {
+    const busy: SecurityCase = unassignedCase(
+      "20000000-0000-4000-8000-000000000152",
+      "CASE-152",
+      "Impossible travel for a contractor",
+      undefined,
+    );
+    busy.detectionCount = 4;
+    listedRows = [busy];
+
+    await drawTable(await capture("all"));
+    await screen.findByText("Impossible travel for a contractor");
+
+    expect(
+      screen.getByTestId(SECURITY_CASE_ROW_DETECTIONS_TEST_ID).textContent,
+    ).toBe("4 detections, the last 2 hours ago");
+  });
+
+  test("a case with nothing detected yet says only how many detections it holds", async () => {
+    const byHand: SecurityCase = unassignedCase(
+      "20000000-0000-4000-8000-000000000153",
+      "CASE-153",
+      "Opened by hand after a phishing report",
+      undefined,
+    );
+    byHand.detectionCount = 0;
+    delete (byHand as unknown as { lastDetectedAt?: Date }).lastDetectedAt;
+    listedRows = [byHand];
+
+    await drawTable(await capture("open"));
+    await screen.findByText("Opened by hand after a phishing report");
+
+    const sentence: HTMLElement = screen.getByTestId(
+      SECURITY_CASE_ROW_DETECTIONS_TEST_ID,
+    );
+
+    expect(sentence.textContent).toBe("0 detections");
+    expect(sentence).not.toHaveAttribute("title");
+  });
+
+  /*
+   * Laid out as text: the line wraps between its words and the sentence
+   * never jumps to a line of its own, leaving the "·" at the end of the one
+   * above; the source and its icon stay together.
+   */
+  test("the line under the title is laid out as text, the source with its icon", async () => {
+    listedRows = [closedCase()];
+
+    await drawTable(await capture("closed"));
+    await screen.findByText("Repeated MFA push denials for a sales account");
+
+    const line: HTMLElement = screen.getByTestId(
+      SECURITY_CASE_ROW_SOURCE_LINE_TEST_ID,
+    );
+
+    expect(line).not.toHaveClass("flex");
+    expect(line).toHaveClass("text-xs", "leading-5");
+
+    const source: HTMLElement = line.firstElementChild as HTMLElement;
+    expect(source).toHaveClass("inline-flex", "items-center");
+    expect(source.querySelector("svg")).not.toBeNull();
+    expect(line.lastElementChild).toBe(
+      screen.getByTestId(SECURITY_CASE_ROW_DETECTIONS_TEST_ID),
+    );
+  });
+
+  /*
+   * "Open" is not a verb the shared table words itself, so each word was
+   * looked up alone: "Öffnen Sicherheitsfall" in German. The list names
+   * its button and dialog in whole phrases.
+   */
+  test("Open Security Case and its dialog are named in whole phrases", async () => {
+    const table: CapturedTable = await capture("open");
+    const props: Record<string, unknown> = table as unknown as Record<
+      string,
+      unknown
+    >;
+
+    expect(OPEN_SECURITY_CASE).toBe("Open Security Case");
+    expect(OPEN_NEW_SECURITY_CASE).toBe("Open New Security Case");
+    expect(props["createVerb"]).toBe("Open");
+    expect(props["createFormTitle"]).toBe(OPEN_NEW_SECURITY_CASE);
+    expect(props["createFormSubmitButtonText"]).toBe(OPEN_SECURITY_CASE);
   });
 
   test("going from one case page to the next starts the list afresh: a new table, not the last one's", async () => {

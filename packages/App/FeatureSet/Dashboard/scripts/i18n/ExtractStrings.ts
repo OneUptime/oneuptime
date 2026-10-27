@@ -138,6 +138,14 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
   { directory: "packages/Common/Utils/CronScheduleText.ts", kind: "ui" },
   // The common schedules a workflow's Schedule trigger offers.
   { directory: "packages/Common/Utils/CronTab.ts", kind: "ui" },
+  /*
+   * What each placeholder a playbook's note or message may use stands for:
+   * the step editor lists them under its field, said on hover.
+   */
+  {
+    directory: "packages/Common/Utils/SecurityCase/SecurityCaseMarkdown.ts",
+    kind: "ui",
+  },
 ];
 
 /*

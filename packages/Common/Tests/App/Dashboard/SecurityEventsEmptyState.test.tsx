@@ -8,11 +8,13 @@ import {
   test,
 } from "@jest/globals";
 import {
+  act,
   cleanup,
   fireEvent,
   render,
   RenderResult,
   screen,
+  waitFor,
   within,
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -25,14 +27,18 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
  * Security Events with no events: a centred hero (a shield badge, the title
- * and one sentence), then the two ways events start arriving as two equal
- * cards - push JSON to the ingest endpoint (the setup guide), or have
- * OneUptime poll a security product (Connections).
+ * and one sentence), then the three ways events start arriving, each a card
+ * of its own - the logs the project already sends (Your logs, nothing to
+ * install, so it leads the width of the list), a security product
+ * OneUptime polls (Connections), or JSON pushed to the ingest endpoint
+ * (the setup guide).
  *
  * It used to be the full-page EmptyState dropped into a table: 13rem of
  * padding, one long sentence that tried to describe both ways at once, and
  * a primary and an outline button side by side, as if one way were the
- * real one. Each way is now a card of its own and one click target.
+ * real one. Then it offered only the two ways from other tools, though the
+ * project's own logs were one switch away, and it told the reader every
+ * event "is normalized to OCSF", a word nobody starting out needs.
  */
 
 const navigateMock: MockFunction = getJestMockFunction();
@@ -58,17 +64,24 @@ jest.mock("../../../UI/Utils/Navigation", () => {
 });
 
 import SecurityEventsEmptyState, {
+  SECURITY_EVENTS_EMPTY_DESCRIPTION,
   SECURITY_EVENTS_EMPTY_STATE_ID,
   SECURITY_EVENTS_INGEST_METHOD,
   SECURITY_EVENTS_INGEST_PATH,
+  SECURITY_EVENTS_LOGS_OPEN_ACTION_TITLE,
+  SECURITY_EVENTS_LOGS_WAY_IN,
   SECURITY_EVENTS_WAYS_IN,
   SecurityEventsWayIn,
+  getSecurityEventsLogsState,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventsEmptyState";
+import { SECURITY_LOG_FORMAT_TEXTS } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityConnectionsCopy";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap, {
   RouteUtil,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
+import SecurityLogSource from "../../../Models/DatabaseModels/SecurityLogSource";
 import Route from "../../../Types/API/Route";
+import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import IconProp from "../../../Types/Icon/IconProp";
 import ObjectID from "../../../Types/ObjectID";
 import {
@@ -76,22 +89,30 @@ import {
   SecurityEventConnectorCategories,
   SecurityEventConnectorDefinition,
 } from "../../../Types/SecurityEvent/Connectors/SecurityEventConnectorCatalog";
+import {
+  SECURITY_LOG_FORMATS,
+  SecurityLogFormatDefinition,
+} from "../../../Types/SecurityEvent/SecurityLogFormat";
 import Icon from "../../../UI/Components/Icon/Icon";
+import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "../../../UI/Utils/Project";
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",
 );
+const SOURCE_ID: ObjectID = new ObjectID(
+  "55555555-5555-4555-8555-555555555555",
+);
+const NOW: Date = new Date("2026-10-19T12:00:00Z");
 
 const WAYS_LIST_NAME: string = "Ways to start sending security events";
 
 const DESCRIPTION: string =
-  "Events show up here as soon as a source starts sending. Every event is normalized to OCSF, whatever format it arrives in.";
+  "Events show up here as soon as a source starts sending.";
 
 /*
  * What each card must say and do, written out rather than read back from
- * SECURITY_EVENTS_WAYS_IN, so a change to the constant is a visible change
- * to this table too.
+ * the constants, so a change to them is a visible change to this table too.
  */
 interface ExpectedWayIn {
   id: string;
@@ -103,17 +124,20 @@ interface ExpectedWayIn {
   destination: PageMap;
 }
 
+// Your logs while it is off - the project never turned it on.
+const EXPECTED_LOGS_WAY_IN: ExpectedWayIn = {
+  id: "logs",
+  icon: IconProp.Logs,
+  title: "Find security events in your logs",
+  description:
+    "Attacks often show up in the logs you already send OneUptime. Nothing to install.",
+  actionTitle: "Turn on Your logs",
+  actionTestId: `${SECURITY_EVENTS_EMPTY_STATE_ID}-your-logs`,
+  destination: PageMap.SECURITY_EVENTS_CONNECTIONS,
+};
+
+// The two ways in from other tools, in the order they are drawn.
 const EXPECTED_WAYS_IN: Array<ExpectedWayIn> = [
-  {
-    id: "send",
-    icon: IconProp.PaperAirplane,
-    title: "Send events to OneUptime",
-    description:
-      "POST JSON from a SIEM, a SOAR webhook, a log forwarder or any other source.",
-    actionTitle: "Read the setup guide",
-    actionTestId: `${SECURITY_EVENTS_EMPTY_STATE_ID}-setup-guide`,
-    destination: PageMap.SECURITY_EVENTS_DOCUMENTATION,
-  },
   {
     id: "connect",
     icon: IconProp.Link,
@@ -124,14 +148,61 @@ const EXPECTED_WAYS_IN: Array<ExpectedWayIn> = [
     actionTestId: `${SECURITY_EVENTS_EMPTY_STATE_ID}-connections`,
     destination: PageMap.SECURITY_EVENTS_CONNECTIONS,
   },
+  {
+    id: "send",
+    icon: IconProp.PaperAirplane,
+    title: "Send events to OneUptime",
+    description:
+      "POST JSON from a SIEM, a SOAR webhook, a log forwarder or any other source.",
+    actionTitle: "Read the setup guide",
+    actionTestId: `${SECURITY_EVENTS_EMPTY_STATE_ID}-setup-guide`,
+    destination: PageMap.SECURITY_EVENTS_DOCUMENTATION,
+  },
 ];
 
-function renderEmptyState(): RenderResult {
-  return render(
-    <MemoryRouter>
-      <SecurityEventsEmptyState />
-    </MemoryRouter>,
-  );
+// Every card, in the order the page draws them.
+const ALL_WAYS_IN: Array<ExpectedWayIn> = [
+  EXPECTED_LOGS_WAY_IN,
+  ...EXPECTED_WAYS_IN,
+];
+
+const CONNECT: ExpectedWayIn = EXPECTED_WAYS_IN[0]!;
+const SEND: ExpectedWayIn = EXPECTED_WAYS_IN[1]!;
+
+/*
+ * The project's Your logs record, as the read answers it: none (it was
+ * never turned on), one, or a failure. A promise the test settles itself
+ * stands for a read still out.
+ */
+let storedSource: SecurityLogSource | null = null;
+let readFailure: Error | null = null;
+let pendingRead: Promise<void> | null = null;
+
+function logSource(overrides: Partial<SecurityLogSource>): SecurityLogSource {
+  const value: SecurityLogSource = new SecurityLogSource();
+  value.id = SOURCE_ID;
+  value.projectId = PROJECT_ID;
+  Object.assign(value, overrides);
+  return value;
+}
+
+async function renderEmptyState(): Promise<RenderResult> {
+  let view: RenderResult | null = null;
+
+  await act(async () => {
+    view = render(
+      <MemoryRouter>
+        <SecurityEventsEmptyState />
+      </MemoryRouter>,
+    );
+  });
+
+  // Your logs' read has settled: its card has its action, or its line.
+  await waitFor(() => {
+    expect(card("logs").getAttribute("data-state")).not.toBe("reading");
+  });
+
+  return view as unknown as RenderResult;
 }
 
 function root(): HTMLElement {
@@ -158,6 +229,10 @@ function endpointChip(): HTMLElement {
 
 function categoriesLine(): HTMLElement {
   return screen.getByTestId(`${SECURITY_EVENTS_EMPTY_STATE_ID}-categories`);
+}
+
+function formatsLine(): HTMLElement {
+  return screen.getByTestId(`${SECURITY_EVENTS_EMPTY_STATE_ID}-log-formats`);
 }
 
 function expectedRoute(pageMap: PageMap): string {
@@ -213,18 +288,40 @@ function classTokens(element: Element): Array<string> {
 
 beforeEach((): void => {
   navigateMock.mockReset();
+  storedSource = null;
+  readFailure = null;
+  pendingRead = null;
+  jest.useFakeTimers({ doNotFake: ["nextTick", "setImmediate"] });
+  jest.setSystemTime(NOW);
   jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(PROJECT_ID);
+  jest.spyOn(ModelAPI, "getList").mockImplementation(async () => {
+    if (pendingRead) {
+      await pendingRead;
+    }
+
+    if (readFailure) {
+      throw readFailure;
+    }
+
+    return {
+      data: storedSource ? [storedSource] : [],
+      count: storedSource ? 1 : 0,
+      skip: 0,
+      limit: 1,
+    } as never;
+  });
 });
 
 afterEach((): void => {
   cleanup();
+  jest.useRealTimers();
   jest.restoreAllMocks();
 });
 
 describe("SecurityEventsEmptyState", () => {
   describe("hero", () => {
-    test("keeps the id pages and tests target", () => {
-      renderEmptyState();
+    test("keeps the id pages and tests target", async () => {
+      await renderEmptyState();
 
       expect(SECURITY_EVENTS_EMPTY_STATE_ID).toBe(
         "security-events-empty-state",
@@ -239,8 +336,8 @@ describe("SecurityEventsEmptyState", () => {
      * The badge is decoration: the h3 under it already says what the page
      * is, so a screen reader must not announce an unnamed image first.
      */
-    test("opens with a decorative shield badge, hidden from assistive technology", () => {
-      renderEmptyState();
+    test("opens with a decorative shield badge, hidden from assistive technology", async () => {
+      await renderEmptyState();
 
       const badge: HTMLElement = root().firstElementChild as HTMLElement;
       expect(badge.tagName).toBe("DIV");
@@ -257,8 +354,8 @@ describe("SecurityEventsEmptyState", () => {
       expect(within(badge).queryByRole("img")).not.toBeInTheDocument();
     });
 
-    test("the title is the only level-3 heading, directly after the badge", () => {
-      renderEmptyState();
+    test("the title is the only level-3 heading, directly after the badge", async () => {
+      await renderEmptyState();
 
       const title: HTMLElement = screen.getByRole("heading", {
         level: 3,
@@ -268,12 +365,13 @@ describe("SecurityEventsEmptyState", () => {
       expect(root().firstElementChild?.nextElementSibling).toBe(title);
     });
 
-    test("one sentence says events arrive on their own and are normalized to OCSF", () => {
-      renderEmptyState();
+    test("one plain sentence says events show up once a source sends them", async () => {
+      await renderEmptyState();
 
       const description: HTMLElement = screen.getByTestId(
         `${SECURITY_EVENTS_EMPTY_STATE_ID}-description`,
       );
+      expect(SECURITY_EVENTS_EMPTY_DESCRIPTION).toBe(DESCRIPTION);
       expect(description.tagName).toBe("P");
       expect(description.textContent).toBe(DESCRIPTION);
       expect(screen.getByRole("heading", { level: 3 }).nextElementSibling).toBe(
@@ -282,11 +380,22 @@ describe("SecurityEventsEmptyState", () => {
     });
 
     /*
+     * Nobody starting out needs the name of the schema events are stored
+     * in; the docs say it where it matters.
+     */
+    test("says nothing of OCSF, or of normalizing", async () => {
+      await renderEmptyState();
+
+      expect(root()).not.toHaveTextContent("OCSF");
+      expect(root()).not.toHaveTextContent("normalized");
+    });
+
+    /*
      * The old description described both ways in, in one long sentence.
      * Each way now has its own card, so the hero must not repeat them.
      */
-    test("the description no longer tries to explain both ways in", () => {
-      renderEmptyState();
+    test("the description no longer tries to explain the ways in", async () => {
+      await renderEmptyState();
 
       const description: string =
         screen.getByTestId(`${SECURITY_EVENTS_EMPTY_STATE_ID}-description`)
@@ -295,10 +404,11 @@ describe("SecurityEventsEmptyState", () => {
       expect(description).not.toContain("SOAR webhook");
       expect(description).not.toContain("polls it for you");
       expect(description).not.toContain("dialect");
+      expect(description).not.toContain("logs");
     });
 
-    test("the description is capped to a readable width and centred", () => {
-      renderEmptyState();
+    test("the description is capped to a readable width and centred", async () => {
+      await renderEmptyState();
 
       expect(
         screen.getByTestId(`${SECURITY_EVENTS_EMPTY_STATE_ID}-description`),
@@ -306,8 +416,8 @@ describe("SecurityEventsEmptyState", () => {
       expect(root()).toHaveClass("text-center", "w-full");
     });
 
-    test("uses table padding rather than the full-page 13rem", () => {
-      renderEmptyState();
+    test("uses table padding rather than the full-page 13rem", async () => {
+      await renderEmptyState();
 
       expect(root()).toHaveClass("py-8");
       expect(root()).not.toHaveClass("pt-52");
@@ -319,14 +429,14 @@ describe("SecurityEventsEmptyState", () => {
      * text and the cards would sit flush against its border on a phone. The
      * gutter only widens from sm up.
      */
-    test("keeps a side gutter inside the list card on a phone", () => {
-      renderEmptyState();
+    test("keeps a side gutter inside the list card on a phone", async () => {
+      await renderEmptyState();
 
       expect(root()).toHaveClass("px-3", "sm:px-6");
     });
 
-    test("headings read as one outline: the title, then each card's title", () => {
-      renderEmptyState();
+    test("headings read as one outline: the title, then each card's title", async () => {
+      await renderEmptyState();
 
       expect(
         Array.from(root().querySelectorAll("h1, h2, h3, h4, h5, h6")).map(
@@ -336,14 +446,26 @@ describe("SecurityEventsEmptyState", () => {
         ),
       ).toEqual([
         "H3:No security events yet",
-        "H4:Send events to OneUptime",
+        "H4:Find security events in your logs",
         "H4:Pull from a security product",
+        "H4:Send events to OneUptime",
       ]);
     });
   });
 
   describe("the ways in", () => {
-    test("SECURITY_EVENTS_WAYS_IN is send, then connect, with their copy and icons", () => {
+    test("Your logs leads, with its copy and icon", () => {
+      expect({ ...SECURITY_EVENTS_LOGS_WAY_IN }).toEqual({
+        id: EXPECTED_LOGS_WAY_IN.id,
+        icon: EXPECTED_LOGS_WAY_IN.icon,
+        title: EXPECTED_LOGS_WAY_IN.title,
+        description: EXPECTED_LOGS_WAY_IN.description,
+        actionTitle: EXPECTED_LOGS_WAY_IN.actionTitle,
+      });
+      expect(SECURITY_EVENTS_LOGS_OPEN_ACTION_TITLE).toBe("Open Your logs");
+    });
+
+    test("SECURITY_EVENTS_WAYS_IN is connect, then send, with their copy and icons", () => {
       expect(
         SECURITY_EVENTS_WAYS_IN.map(
           (wayIn: SecurityEventsWayIn): SecurityEventsWayIn => {
@@ -364,8 +486,13 @@ describe("SecurityEventsEmptyState", () => {
     });
 
     test("every way has its own id, icon, title and action", () => {
+      const every: Array<SecurityEventsWayIn> = [
+        SECURITY_EVENTS_LOGS_WAY_IN,
+        ...SECURITY_EVENTS_WAYS_IN,
+      ];
+
       for (const key of ["id", "icon", "title", "actionTitle"] as const) {
-        const values: Array<string> = SECURITY_EVENTS_WAYS_IN.map(
+        const values: Array<string> = every.map(
           (wayIn: SecurityEventsWayIn): string => {
             return String(wayIn[key]);
           },
@@ -378,12 +505,32 @@ describe("SecurityEventsEmptyState", () => {
     });
 
     /*
+     * Your logs uses the words its own card and switch on Connections use,
+     * so the reader finds there what they were sent to.
+     */
+    test("Your logs speaks in the Connections card's words", () => {
+      const card: string = fs.readFileSync(
+        path.join(
+          __dirname,
+          "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityLogsSourceCard.tsx",
+        ),
+        "utf8",
+      );
+
+      expect(card).toContain(`title="Your logs"`);
+      expect(card).toContain(`title="${SECURITY_EVENTS_LOGS_WAY_IN.title}"`);
+      expect(card).toContain(
+        `description="${SECURITY_EVENTS_LOGS_WAY_IN.description}"`,
+      );
+    });
+
+    /*
      * role="list" is explicit because Safari drops list semantics from a
      * list styled with list-style: none, and the name says what the list
-     * is to someone who cannot see the two cards side by side.
+     * is to someone who cannot see the cards side by side.
      */
-    test("are a list named for what it offers, of exactly two cards in order", () => {
-      renderEmptyState();
+    test("are a list named for what it offers, of exactly three cards in order", async () => {
+      await renderEmptyState();
 
       const list: HTMLElement = waysList();
       expect(list.tagName).toBe("UL");
@@ -397,14 +544,15 @@ describe("SecurityEventsEmptyState", () => {
           return item.getAttribute("data-testid");
         }),
       ).toEqual([
-        `${SECURITY_EVENTS_EMPTY_STATE_ID}-send`,
+        `${SECURITY_EVENTS_EMPTY_STATE_ID}-logs`,
         `${SECURITY_EVENTS_EMPTY_STATE_ID}-connect`,
+        `${SECURITY_EVENTS_EMPTY_STATE_ID}-send`,
       ]);
       expect(Array.from(list.children)).toEqual(items);
     });
 
-    test("the list follows the hero, after the description", () => {
-      renderEmptyState();
+    test("the list follows the hero, after the description", async () => {
+      await renderEmptyState();
 
       expect(
         screen.getByTestId(`${SECURITY_EVENTS_EMPTY_STATE_ID}-description`)
@@ -412,10 +560,10 @@ describe("SecurityEventsEmptyState", () => {
       ).toBe(waysList());
     });
 
-    test.each(EXPECTED_WAYS_IN)(
+    test.each(ALL_WAYS_IN)(
       "the $id card has its title as an h4, its description and its icon",
-      (wayIn: ExpectedWayIn): void => {
-        renderEmptyState();
+      async (wayIn: ExpectedWayIn): Promise<void> => {
+        await renderEmptyState();
 
         const current: HTMLElement = card(wayIn.id);
         const title: HTMLElement = within(current).getByRole("heading", {
@@ -437,34 +585,37 @@ describe("SecurityEventsEmptyState", () => {
     );
 
     /*
-     * Three badges on one screen: the hero's shield and one per card. The
+     * Four badges on one screen: the hero's shield and one per card. The
      * same mark twice would say two different things are the same thing.
      */
-    test("the hero and the two cards each draw a different icon", () => {
-      renderEmptyState();
+    test("the hero and the three cards each draw a different icon", async () => {
+      await renderEmptyState();
 
       const drawn: Array<string> = [
         svgPaths(root().firstElementChild),
-        svgPaths(card("send").querySelector("[aria-hidden='true']")),
+        svgPaths(card("logs").querySelector("[aria-hidden='true']")),
         svgPaths(card("connect").querySelector("[aria-hidden='true']")),
+        svgPaths(card("send").querySelector("[aria-hidden='true']")),
       ];
       expect(drawn).toEqual([
         iconPaths(IconProp.ShieldCheck),
-        iconPaths(IconProp.PaperAirplane),
+        iconPaths(IconProp.Logs),
         iconPaths(IconProp.Link),
+        iconPaths(IconProp.PaperAirplane),
       ]);
       for (const markup of drawn) {
         expect(markup.length).toBeGreaterThan(0);
       }
-      expect(new Set(drawn).size).toBe(3);
+      expect(new Set(drawn).size).toBe(4);
     });
 
     /*
-     * The same weight for both: neither way is the "real" one, so nothing
-     * but the order tells them apart.
+     * The same weight for the two from other tools: neither is the "real"
+     * one, so nothing but the order tells them apart. Your logs is built
+     * the same way, and only takes the whole first row.
      */
-    test("the two cards are built the same way, element for element", () => {
-      renderEmptyState();
+    test("the cards are built the same way, element for element", async () => {
+      await renderEmptyState();
 
       const shape: (element: HTMLElement) => Array<string> = (
         element: HTMLElement,
@@ -475,23 +626,26 @@ describe("SecurityEventsEmptyState", () => {
       };
       const send: HTMLElement = card("send");
       const connect: HTMLElement = card("connect");
+      const logs: HTMLElement = card("logs");
 
       expect(send.className).toBe(connect.className);
       expect(shape(send)).toEqual(["DIV", "P", "DIV", "DIV"]);
       expect(shape(connect)).toEqual(shape(send));
-      expect(
-        within(send)
+      expect(shape(logs)).toEqual(shape(send));
+      expect(logs.className).toBe(`${send.className} col-span-full`);
+
+      const buttonClasses: (element: HTMLElement) => Array<string> = (
+        element: HTMLElement,
+      ): Array<string> => {
+        return within(element)
           .getAllByRole("button")
           .map((button: HTMLElement): string => {
             return button.className;
-          }),
-      ).toEqual(
-        within(connect)
-          .getAllByRole("button")
-          .map((button: HTMLElement): string => {
-            return button.className;
-          }),
-      );
+          });
+      };
+
+      expect(buttonClasses(send)).toEqual(buttonClasses(connect));
+      expect(buttonClasses(logs)).toEqual(buttonClasses(connect));
     });
 
     /*
@@ -506,7 +660,7 @@ describe("SecurityEventsEmptyState", () => {
       );
 
       for (const product of ["Microsoft Sentinel", "CrowdStrike", "Splunk"]) {
-        expect(EXPECTED_WAYS_IN[1]!.description).toContain(product);
+        expect(CONNECT.description).toContain(product);
         expect(
           titles.some((title: string): boolean => {
             return title.includes(product);
@@ -516,11 +670,217 @@ describe("SecurityEventsEmptyState", () => {
     });
   });
 
+  describe("Your logs", () => {
+    test("reads the project's record once, by project, one row", async () => {
+      await renderEmptyState();
+
+      const getList: jest.SpiedFunction<typeof ModelAPI.getList> =
+        ModelAPI.getList as unknown as jest.SpiedFunction<
+          typeof ModelAPI.getList
+        >;
+
+      expect(getList).toHaveBeenCalledTimes(1);
+
+      const options: {
+        modelType: unknown;
+        query: { projectId: ObjectID };
+        limit: number;
+        select: Record<string, boolean>;
+      } = getList.mock.calls[0]![0] as never;
+
+      expect(options.modelType).toBe(SecurityLogSource);
+      expect(options.query.projectId.toString()).toBe(PROJECT_ID.toString());
+      expect(options.limit).toBe(1);
+      expect(options.select).toMatchObject({
+        isEnabled: true,
+        lastScannedAt: true,
+        lastEventFoundAt: true,
+      });
+    });
+
+    test("a project that never turned it on is offered to turn it on", async () => {
+      await renderEmptyState();
+
+      expect(card("logs")).toHaveAttribute("data-state", "off");
+      expect(actionButton(EXPECTED_LOGS_WAY_IN)).toBeInTheDocument();
+      expect(
+        screen.queryByTestId(`${SECURITY_EVENTS_EMPTY_STATE_ID}-logs-on`),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId(`${SECURITY_EVENTS_EMPTY_STATE_ID}-logs-status`),
+      ).not.toBeInTheDocument();
+    });
+
+    test("a project that turned it off is offered to turn it on again", async () => {
+      storedSource = logSource({
+        isEnabled: false,
+        lastScannedAt: new Date("2026-10-18T09:00:00Z"),
+      });
+      await renderEmptyState();
+
+      expect(card("logs")).toHaveAttribute("data-state", "off");
+      expect(actionButton(EXPECTED_LOGS_WAY_IN)).toBeInTheDocument();
+      // When it last checked, while it was on, says nothing about now.
+      expect(card("logs")).not.toHaveTextContent("Checked");
+    });
+
+    test("on: says so, when it last checked and that it found nothing yet, and opens it", async () => {
+      storedSource = logSource({
+        isEnabled: true,
+        lastScannedAt: new Date(NOW.getTime() - 2 * 60 * 1000),
+      });
+      await renderEmptyState();
+
+      expect(card("logs")).toHaveAttribute("data-state", "on");
+      expect(
+        screen.getByTestId(`${SECURITY_EVENTS_EMPTY_STATE_ID}-logs-on`),
+      ).toHaveTextContent("On");
+      expect(
+        screen.getByTestId(`${SECURITY_EVENTS_EMPTY_STATE_ID}-logs-status`)
+          .textContent,
+      ).toBe("Checked 2 minutes ago. No security event found yet.");
+      // Not asked to turn on what is on.
+      expect(
+        within(card("logs")).queryByRole("button", {
+          name: EXPECTED_LOGS_WAY_IN.actionTitle,
+        }),
+      ).not.toBeInTheDocument();
+      expect(
+        within(card("logs")).getByRole("button", { name: "Open Your logs" }),
+      ).toHaveAttribute("data-testid", EXPECTED_LOGS_WAY_IN.actionTestId);
+    });
+
+    test("on and not checked yet: the first check is coming", async () => {
+      storedSource = logSource({ isEnabled: true });
+      await renderEmptyState();
+
+      expect(
+        screen.getByTestId(`${SECURITY_EVENTS_EMPTY_STATE_ID}-logs-status`)
+          .textContent,
+      ).toBe(
+        "The first check runs within a minute. No security event found yet.",
+      );
+    });
+
+    test("on, with a security event found once, says when", async () => {
+      storedSource = logSource({
+        isEnabled: true,
+        lastScannedAt: new Date(NOW.getTime() - 60 * 1000),
+        lastEventFoundAt: new Date(NOW.getTime() - 3 * 24 * 60 * 60 * 1000),
+      });
+      await renderEmptyState();
+
+      expect(
+        screen.getByTestId(`${SECURITY_EVENTS_EMPTY_STATE_ID}-logs-status`),
+      ).toHaveTextContent("Last security event found 3 days ago.");
+    });
+
+    test("a read that fails still offers the way to it, and claims nothing", async () => {
+      readFailure = new HTTPErrorResponse(
+        500,
+        { message: "Your logs could not be read." },
+        {},
+      ) as unknown as Error;
+      await renderEmptyState();
+
+      expect(card("logs")).toHaveAttribute("data-state", "unknown");
+      expect(
+        within(card("logs")).getByRole("button", { name: "Open Your logs" }),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByTestId(`${SECURITY_EVENTS_EMPTY_STATE_ID}-logs-on`),
+      ).not.toBeInTheDocument();
+      expect(card("logs")).not.toHaveTextContent("could not be read");
+    });
+
+    test("while the read is out, no action yet, and its line kept", async () => {
+      let settle: () => void = () => {};
+      pendingRead = new Promise<void>((resolve: () => void) => {
+        settle = resolve;
+      });
+
+      await act(async () => {
+        render(
+          <MemoryRouter>
+            <SecurityEventsEmptyState />
+          </MemoryRouter>,
+        );
+      });
+
+      expect(card("logs")).toHaveAttribute("data-state", "reading");
+      expect(within(card("logs")).queryByRole("button")).toBeNull();
+      const placeholder: HTMLElement = card("logs")
+        .lastElementChild as HTMLElement;
+      expect(placeholder.firstElementChild).toHaveAttribute(
+        "aria-hidden",
+        "true",
+      );
+      expect(placeholder.firstElementChild).toHaveClass("block", "h-5");
+
+      await act(async () => {
+        settle();
+      });
+      await waitFor(() => {
+        expect(card("logs")).toHaveAttribute("data-state", "off");
+      });
+      expect(actionButton(EXPECTED_LOGS_WAY_IN)).toBeInTheDocument();
+    });
+
+    test("lists what it recognizes, in the order Connections does", async () => {
+      await renderEmptyState();
+
+      const line: HTMLElement = formatsLine();
+      expect(line.tagName).toBe("P");
+      expect(card("logs").contains(line)).toBe(true);
+      expect(line.textContent).toBe(
+        SECURITY_LOG_FORMATS.map(
+          (format: SecurityLogFormatDefinition): string => {
+            return SECURITY_LOG_FORMAT_TEXTS[format.format].title;
+          },
+        ).join(" · "),
+      );
+      expect(line).toHaveClass("py-1", "text-xs", "leading-5");
+    });
+
+    test.each([
+      [{ isRead: false, didReadFail: false, source: null }, "reading"],
+      [{ isRead: true, didReadFail: false, source: null }, "off"],
+      [
+        {
+          isRead: true,
+          didReadFail: false,
+          source: { isEnabled: false } as SecurityLogSource,
+        },
+        "off",
+      ],
+      [
+        {
+          isRead: true,
+          didReadFail: false,
+          source: { isEnabled: true } as SecurityLogSource,
+        },
+        "on",
+      ],
+      [{ isRead: false, didReadFail: true, source: null }, "unknown"],
+    ] as Array<
+      [
+        {
+          isRead: boolean;
+          didReadFail: boolean;
+          source: SecurityLogSource | null;
+        },
+        string,
+      ]
+    >)("getSecurityEventsLogsState(%j) is %s", (input, state: string) => {
+      expect(getSecurityEventsLogsState(input)).toBe(state);
+    });
+  });
+
   describe("each card is one click target", () => {
-    test.each(EXPECTED_WAYS_IN)(
+    test.each(ALL_WAYS_IN)(
       "the $id card's action is a native button named for what it does",
-      (wayIn: ExpectedWayIn): void => {
-        renderEmptyState();
+      async (wayIn: ExpectedWayIn): Promise<void> => {
+        await renderEmptyState();
 
         const button: HTMLElement = actionButton(wayIn);
         expect(button.tagName).toBe("BUTTON");
@@ -544,10 +904,10 @@ describe("SecurityEventsEmptyState", () => {
      * "Read the setup guide" alone does not say what it is a guide to; the
      * card's title, read as the button's description, does.
      */
-    test.each(EXPECTED_WAYS_IN)(
+    test.each(ALL_WAYS_IN)(
       "the $id card's button is described by its card's title",
-      (wayIn: ExpectedWayIn): void => {
-        renderEmptyState();
+      async (wayIn: ExpectedWayIn): Promise<void> => {
+        await renderEmptyState();
 
         const button: HTMLElement = actionButton(wayIn);
         const titleId: string = `${SECURITY_EVENTS_EMPTY_STATE_ID}-${wayIn.id}-title`;
@@ -569,10 +929,10 @@ describe("SecurityEventsEmptyState", () => {
      * positioned ancestor, which must be the card itself and not some
      * wrapper in between.
      */
-    test.each(EXPECTED_WAYS_IN)(
+    test.each(ALL_WAYS_IN)(
       "the $id card's button stretches over the whole card",
-      (wayIn: ExpectedWayIn): void => {
-        renderEmptyState();
+      async (wayIn: ExpectedWayIn): Promise<void> => {
+        await renderEmptyState();
 
         const button: HTMLElement = actionButton(wayIn);
         expect(button).toHaveClass(
@@ -593,10 +953,10 @@ describe("SecurityEventsEmptyState", () => {
      * The button drops its own outline, so the keyboard focus ring must be
      * drawn somewhere: on the overlay, around the whole card.
      */
-    test.each(EXPECTED_WAYS_IN)(
+    test.each(ALL_WAYS_IN)(
       "the $id card shows keyboard focus around the whole card",
-      (wayIn: ExpectedWayIn): void => {
-        renderEmptyState();
+      async (wayIn: ExpectedWayIn): Promise<void> => {
+        await renderEmptyState();
 
         const button: HTMLElement = actionButton(wayIn);
         expect(button).toHaveClass("focus:outline-none");
@@ -607,10 +967,10 @@ describe("SecurityEventsEmptyState", () => {
       },
     );
 
-    test.each(EXPECTED_WAYS_IN)(
+    test.each(ALL_WAYS_IN)(
       "the $id card's button is focusable",
-      (wayIn: ExpectedWayIn): void => {
-        renderEmptyState();
+      async (wayIn: ExpectedWayIn): Promise<void> => {
+        await renderEmptyState();
 
         const button: HTMLElement = actionButton(wayIn);
         expect(button).not.toHaveAttribute("tabindex");
@@ -619,24 +979,29 @@ describe("SecurityEventsEmptyState", () => {
       },
     );
 
-    test("a card has exactly one button, and the empty state has exactly two", () => {
-      renderEmptyState();
+    test("a card has exactly one button, and the empty state has exactly three", async () => {
+      await renderEmptyState();
 
-      for (const wayIn of EXPECTED_WAYS_IN) {
+      for (const wayIn of ALL_WAYS_IN) {
         expect(within(card(wayIn.id)).getAllByRole("button")).toHaveLength(1);
       }
-      expect(within(root()).getAllByRole("button")).toHaveLength(2);
-      expect(root().querySelectorAll("button")).toHaveLength(2);
+      expect(within(root()).getAllByRole("button")).toHaveLength(3);
+      expect(root().querySelectorAll("button")).toHaveLength(3);
     });
 
-    test("Tab reaches the setup guide, then Connections, and nothing else", async () => {
-      const user: UserEvent = userEvent.setup({ delay: null });
-      renderEmptyState();
+    test("Tab reaches Your logs, then Connections, then the setup guide, and nothing else", async () => {
+      const user: UserEvent = userEvent.setup({
+        delay: null,
+        advanceTimers: jest.advanceTimersByTime,
+      });
+      await renderEmptyState();
 
       await user.tab();
-      expect(actionButton(EXPECTED_WAYS_IN[0]!)).toHaveFocus();
+      expect(actionButton(EXPECTED_LOGS_WAY_IN)).toHaveFocus();
       await user.tab();
-      expect(actionButton(EXPECTED_WAYS_IN[1]!)).toHaveFocus();
+      expect(actionButton(CONNECT)).toHaveFocus();
+      await user.tab();
+      expect(actionButton(SEND)).toHaveFocus();
       await user.tab();
       expect(document.body).toHaveFocus();
       expect(navigateMock).not.toHaveBeenCalled();
@@ -647,8 +1012,8 @@ describe("SecurityEventsEmptyState", () => {
      * which is raised so it can still be selected and copied. Raising
      * anything else would leave a dead spot on the card.
      */
-    test("only the endpoint is raised above the overlay", () => {
-      renderEmptyState();
+    test("only the endpoint is raised above the overlay", async () => {
+      await renderEmptyState();
 
       const zIndexClass: RegExp = /^z-/;
       const raised: (element: HTMLElement) => Array<Element> = (
@@ -665,12 +1030,13 @@ describe("SecurityEventsEmptyState", () => {
 
       expect(raised(card("send"))).toEqual([endpointChip()]);
       expect(raised(card("connect"))).toEqual([]);
+      expect(raised(card("logs"))).toEqual([]);
     });
 
-    test("the action sits at the bottom of its card, so the two stay level", () => {
-      renderEmptyState();
+    test("the action sits at the bottom of its card, so the cards side by side stay level", async () => {
+      await renderEmptyState();
 
-      for (const wayIn of EXPECTED_WAYS_IN) {
+      for (const wayIn of ALL_WAYS_IN) {
         const current: HTMLElement = card(wayIn.id);
         expect(current).toHaveClass("flex", "flex-col", "min-w-0");
         const wrapper: HTMLElement = actionButton(wayIn)
@@ -680,10 +1046,10 @@ describe("SecurityEventsEmptyState", () => {
       }
     });
 
-    test("hovering a card highlights its border and nudges its arrow", () => {
-      renderEmptyState();
+    test("hovering a card highlights its border and nudges its arrow", async () => {
+      await renderEmptyState();
 
-      for (const wayIn of EXPECTED_WAYS_IN) {
+      for (const wayIn of ALL_WAYS_IN) {
         expect(card(wayIn.id)).toHaveClass("group", "hover:border-indigo-300");
         expect(actionButton(wayIn).querySelector("svg")).toHaveClass(
           "group-hover:translate-x-0.5",
@@ -786,8 +1152,8 @@ describe("SecurityEventsEmptyState", () => {
       expect(Array.from(new Set(paths))).toEqual([SECURITY_EVENTS_INGEST_PATH]);
     });
 
-    test("is code: the method in its own span, then the path", () => {
-      renderEmptyState();
+    test("is code: the method in its own span, then the path", async () => {
+      await renderEmptyState();
 
       const chip: HTMLElement = endpointChip();
       expect(chip.tagName).toBe("CODE");
@@ -813,33 +1179,31 @@ describe("SecurityEventsEmptyState", () => {
       expect(chip).toHaveClass("font-mono");
     });
 
-    test("sits between the description and the action", () => {
-      renderEmptyState();
+    test("sits between the description and the action", async () => {
+      await renderEmptyState();
 
       const chip: HTMLElement = endpointChip();
       const detail: HTMLElement = chip.parentElement as HTMLElement;
       expect(detail.previousElementSibling).toBe(
-        within(card("send")).getByText(EXPECTED_WAYS_IN[0]!.description),
+        within(card("send")).getByText(SEND.description),
       );
-      expect(detail.nextElementSibling).toBe(
-        actionButton(EXPECTED_WAYS_IN[0]!).parentElement,
-      );
+      expect(detail.nextElementSibling).toBe(actionButton(SEND).parentElement);
     });
 
     /*
      * Raised above the card's overlay (relative z-10), so it can be
      * selected and copied instead of every click opening the guide.
      */
-    test("is raised above the card's overlay so it can be selected", () => {
-      renderEmptyState();
+    test("is raised above the card's overlay so it can be selected", async () => {
+      await renderEmptyState();
 
       const chip: HTMLElement = endpointChip();
       expect(chip).toHaveClass("relative", "z-10");
-      expect(actionButton(EXPECTED_WAYS_IN[0]!).contains(chip)).toBe(false);
+      expect(actionButton(SEND).contains(chip)).toBe(false);
     });
 
-    test("clicking the endpoint does not navigate", () => {
-      renderEmptyState();
+    test("clicking the endpoint does not navigate", async () => {
+      await renderEmptyState();
 
       fireEvent.click(endpointChip());
       fireEvent.click(endpointChip().firstElementChild as HTMLElement);
@@ -849,8 +1213,8 @@ describe("SecurityEventsEmptyState", () => {
     });
 
     // A narrow card beside the filters must wrap the path, not overflow.
-    test("wraps inside a narrow card instead of overflowing it", () => {
-      renderEmptyState();
+    test("wraps inside a narrow card instead of overflowing it", async () => {
+      await renderEmptyState();
 
       expect(endpointChip()).toHaveClass(
         "max-w-full",
@@ -861,8 +1225,8 @@ describe("SecurityEventsEmptyState", () => {
   });
 
   describe("the connect card's categories", () => {
-    test("list every connector category, joined by a middle dot", () => {
-      renderEmptyState();
+    test("list every connector category, joined by a middle dot", async () => {
+      await renderEmptyState();
 
       const line: HTMLElement = categoriesLine();
       expect(line.tagName).toBe("P");
@@ -881,35 +1245,55 @@ describe("SecurityEventsEmptyState", () => {
       }
     });
 
-    test("lies under the overlay, so clicking it counts as clicking the card", () => {
-      renderEmptyState();
+    test("lies under the overlay, so clicking it counts as clicking the card", async () => {
+      await renderEmptyState();
 
       expect(categoriesLine()).not.toHaveClass("relative");
       expect(categoriesLine()).not.toHaveClass("z-10");
-      expect(
-        actionButton(EXPECTED_WAYS_IN[1]!).contains(categoriesLine()),
-      ).toBe(false);
+      expect(actionButton(CONNECT).contains(categoriesLine())).toBe(false);
     });
 
     /*
-     * The endpoint chip and the categories line are the one detail under
-     * each description; the same text size, line height and padding keep
-     * the two buttons below them level.
+     * The endpoint chip, the categories line and the formats line are the
+     * one detail under each description; the same text size, line height
+     * and padding keep the buttons below them level.
      */
-    test("is the same height as the send card's endpoint", () => {
-      renderEmptyState();
+    test("is the same height as the other cards' details", async () => {
+      await renderEmptyState();
 
-      for (const detail of [endpointChip(), categoriesLine()]) {
+      for (const detail of [endpointChip(), categoriesLine(), formatsLine()]) {
         expect(detail).toHaveClass("py-1", "text-xs", "leading-5");
+        expect(detail.parentElement).toHaveClass("mt-3");
       }
-      expect(categoriesLine().parentElement).toHaveClass("mt-3");
-      expect(endpointChip().parentElement).toHaveClass("mt-3");
     });
   });
 
   describe("navigation", () => {
-    test("Read the setup guide opens the Security Events setup guide", () => {
-      renderEmptyState();
+    test("Turn on Your logs opens Connections, where its switch leads", async () => {
+      await renderEmptyState();
+
+      fireEvent.click(
+        screen.getByRole("button", { name: EXPECTED_LOGS_WAY_IN.actionTitle }),
+      );
+
+      expect(navigatedTo()).toEqual([
+        expectedRoute(PageMap.SECURITY_EVENTS_CONNECTIONS),
+      ]);
+    });
+
+    test("Open Your logs opens Connections too", async () => {
+      storedSource = logSource({ isEnabled: true });
+      await renderEmptyState();
+
+      fireEvent.click(screen.getByRole("button", { name: "Open Your logs" }));
+
+      expect(navigatedTo()).toEqual([
+        expectedRoute(PageMap.SECURITY_EVENTS_CONNECTIONS),
+      ]);
+    });
+
+    test("Read the setup guide opens the Security Events setup guide", async () => {
+      await renderEmptyState();
 
       fireEvent.click(
         screen.getByRole("button", { name: "Read the setup guide" }),
@@ -922,8 +1306,8 @@ describe("SecurityEventsEmptyState", () => {
       expect(navigatedTo()[0]).not.toContain(":projectId");
     });
 
-    test("Connect a security product opens Security Events > Connections", () => {
-      renderEmptyState();
+    test("Connect a security product opens Security Events > Connections", async () => {
+      await renderEmptyState();
 
       fireEvent.click(
         screen.getByRole("button", { name: "Connect a security product" }),
@@ -936,10 +1320,10 @@ describe("SecurityEventsEmptyState", () => {
       expect(navigatedTo()[0]).not.toContain(":projectId");
     });
 
-    test.each(EXPECTED_WAYS_IN)(
+    test.each(ALL_WAYS_IN)(
       "the $id card's test id button navigates exactly once per click",
-      (wayIn: ExpectedWayIn): void => {
-        renderEmptyState();
+      async (wayIn: ExpectedWayIn): Promise<void> => {
+        await renderEmptyState();
 
         fireEvent.click(screen.getByTestId(wayIn.actionTestId));
         expect(navigatedTo()).toEqual([expectedRoute(wayIn.destination)]);
@@ -952,8 +1336,8 @@ describe("SecurityEventsEmptyState", () => {
       },
     );
 
-    test("both routes are populated with the current project", () => {
-      for (const wayIn of EXPECTED_WAYS_IN) {
+    test("every route is populated with the current project", () => {
+      for (const wayIn of ALL_WAYS_IN) {
         expect(expectedRoute(wayIn.destination)).toContain(
           PROJECT_ID.toString(),
         );
@@ -961,28 +1345,28 @@ describe("SecurityEventsEmptyState", () => {
     });
 
     test("Enter and Space on the focused buttons navigate like a click", async () => {
-      const user: UserEvent = userEvent.setup({ delay: null });
-      renderEmptyState();
+      const user: UserEvent = userEvent.setup({
+        delay: null,
+        advanceTimers: jest.advanceTimersByTime,
+      });
+      await renderEmptyState();
 
       await user.tab();
       await user.keyboard("{Enter}");
       await user.tab();
       await user.keyboard(" ");
+      await user.tab();
+      await user.keyboard("{Enter}");
 
       expect(navigatedTo()).toEqual([
-        expectedRoute(PageMap.SECURITY_EVENTS_DOCUMENTATION),
         expectedRoute(PageMap.SECURITY_EVENTS_CONNECTIONS),
+        expectedRoute(PageMap.SECURITY_EVENTS_CONNECTIONS),
+        expectedRoute(PageMap.SECURITY_EVENTS_DOCUMENTATION),
       ]);
     });
 
-    test("the two actions go to different pages", () => {
-      expect(expectedRoute(PageMap.SECURITY_EVENTS_DOCUMENTATION)).not.toBe(
-        expectedRoute(PageMap.SECURITY_EVENTS_CONNECTIONS),
-      );
-    });
-
-    test("nothing navigates until an action is clicked", () => {
-      renderEmptyState();
+    test("nothing navigates until an action is clicked", async () => {
+      await renderEmptyState();
 
       fireEvent.click(root());
       fireEvent.click(screen.getByRole("heading", { level: 3 }));
@@ -995,11 +1379,11 @@ describe("SecurityEventsEmptyState", () => {
     /*
      * The list shares its row with the filters sidebar, so the window's
      * width says little about the room it has. Columns come from the
-     * list's own width: two cards side by side when both fit at 16rem,
-     * one above the other when they do not.
+     * list's own width: the two cards from other tools side by side when
+     * both fit at 16rem, one above the other when they do not.
      */
-    test("columns come from the list's own width, not viewport breakpoints", () => {
-      renderEmptyState();
+    test("columns come from the list's own width, not viewport breakpoints", async () => {
+      await renderEmptyState();
 
       const list: HTMLElement = waysList();
       expect(list).toHaveClass(
@@ -1015,8 +1399,21 @@ describe("SecurityEventsEmptyState", () => {
       ).toEqual([]);
     });
 
-    test("the list is centred at a readable width, and the cards read left to right", () => {
-      renderEmptyState();
+    /*
+     * Your logs takes the whole first row at every width, so the two after
+     * it are a pair: never one of them beside it and the other alone under
+     * a hole.
+     */
+    test("Your logs takes the whole first row; the other two share the next", async () => {
+      await renderEmptyState();
+
+      expect(card("logs")).toHaveClass("col-span-full");
+      expect(card("connect")).not.toHaveClass("col-span-full");
+      expect(card("send")).not.toHaveClass("col-span-full");
+    });
+
+    test("the list is centred at a readable width, and the cards read from the start", async () => {
+      await renderEmptyState();
 
       expect(waysList()).toHaveClass("mx-auto", "max-w-3xl", "text-left");
     });
@@ -1025,10 +1422,10 @@ describe("SecurityEventsEmptyState", () => {
      * Beside the filters on a phone a card can be very narrow; its header
      * wraps the title under the badge rather than squeezing it to nothing.
      */
-    test.each(EXPECTED_WAYS_IN)(
+    test.each(ALL_WAYS_IN)(
       "the $id card's header row wraps and never squeezes the title",
-      (wayIn: ExpectedWayIn): void => {
-        renderEmptyState();
+      async (wayIn: ExpectedWayIn): Promise<void> => {
+        await renderEmptyState();
 
         const title: HTMLElement = within(card(wayIn.id)).getByRole("heading", {
           level: 4,
@@ -1047,8 +1444,8 @@ describe("SecurityEventsEmptyState", () => {
      * outline "Connect a security product", as if pushing were the real
      * way and polling the fallback.
      */
-    test("neither way is a primary button any more", () => {
-      renderEmptyState();
+    test("no way is a primary button", async () => {
+      await renderEmptyState();
 
       expect(root().querySelectorAll(".bg-indigo-600")).toHaveLength(0);
       for (const button of Array.from(root().querySelectorAll("button"))) {
@@ -1060,31 +1457,32 @@ describe("SecurityEventsEmptyState", () => {
     });
 
     /*
-     * Both ways are in-app pages reached through the cards' buttons. A link
-     * inside a card would be a second control under the same overlay.
+     * Every way is an in-app page reached through its card's button. A
+     * link inside a card would be a second control under the same overlay.
      */
-    test("has no links: each card's one control is its button", () => {
-      renderEmptyState();
+    test("has no links: each card's one control is its button", async () => {
+      await renderEmptyState();
 
       expect(root().querySelectorAll("a")).toHaveLength(0);
       expect(within(root()).queryAllByRole("link")).toEqual([]);
     });
 
-    test("the centred button footer is gone", () => {
-      renderEmptyState();
+    test("the centred button footer is gone", async () => {
+      await renderEmptyState();
 
       expect(
         screen.queryByTestId(`${SECURITY_EVENTS_EMPTY_STATE_ID}-footer`),
       ).not.toBeInTheDocument();
     });
 
-    test("the old run-on description is gone", () => {
-      renderEmptyState();
+    test("the old run-on descriptions are gone", async () => {
+      await renderEmptyState();
 
       expect(root()).not.toHaveTextContent(
         "Send events from any source that can POST JSON",
       );
       expect(root()).not.toHaveTextContent("whatever dialect it arrives in");
+      expect(root()).not.toHaveTextContent("whatever format it arrives in");
     });
   });
 });
