@@ -117,6 +117,8 @@ interface Sent {
   text: string;
   // What its notification shows: the plain text it was sent with.
   notification?: string | undefined;
+  // A reply in a record's thread that shows in the channel too.
+  alsoSendToChannel?: boolean | undefined;
 }
 
 let store: InMemoryLiveMessages;
@@ -184,6 +186,7 @@ beforeEach(() => {
         method: "post",
         text: textOf(payload),
         notification: payload.text,
+        alsoSendToChannel: payload.alsoSendToChannel,
       });
 
       return [
@@ -278,6 +281,8 @@ describe("OnCallPolicyRunMessage.syncRun", () => {
     expect(kept).toHaveLength(1);
     expect(store.rows[0]!.channelId).toBe(CHANNEL_ID);
     expect(store.rows[0]!.messageData).toEqual({ alarms: [] });
+    // With no alarm, a reply in a record's thread stays in the thread.
+    expect(lastSent().alsoSendToChannel).toBeUndefined();
   });
 
   test("an alarm the run already calls for when it is first posted is said by that post - not raised on top of it, and remembered", async () => {
@@ -291,6 +296,8 @@ describe("OnCallPolicyRunMessage.syncRun", () => {
       }),
     ).toEqual(["post"]);
     expect(alarmSpy).not.toHaveBeenCalled();
+    // The alarm it says shows in the channel too, as a raised alarm does.
+    expect(lastSent().alsoSendToChannel).toBe(true);
     expect(store.rows[0]!.messageData).toEqual({
       alarms: [ON_CALL_RUN_ALARM_NOBODY_PAGED_AT_A_RULE],
     });
