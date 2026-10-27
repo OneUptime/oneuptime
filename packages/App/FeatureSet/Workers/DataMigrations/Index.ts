@@ -154,6 +154,7 @@ import AddSecurityCaseNotificationSettingsForUsers from "./AddSecurityCaseNotifi
 import AddIncidentSlaBreachedNotificationSettingsForUsers from "./AddIncidentSlaBreachedNotificationSettingsForUsers";
 import RewriteFeedAttachmentLinks from "./RewriteFeedAttachmentLinks";
 import AddProcessColumnsToSecurityEvent from "./AddProcessColumnsToSecurityEvent";
+import AddRequestColumnsToSecurityEvent from "./AddRequestColumnsToSecurityEvent";
 import AddDefaultPostmortemStatusesToExistingProjects from "./AddDefaultPostmortemStatusesToExistingProjects";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
@@ -906,6 +907,15 @@ const DataMigrations: Array<DataMigrationBase> = [
    * AddAuditLogMcpClientColumns asserts for itself.
    */
   new RemoveRunbookCredentials(),
+  /*
+   * Security events gain the request they happened in - the trace, span and
+   * session ids of the log line they were read from - and how far that
+   * request got, as its trace shows (SecurityEvent.traceId, spanId,
+   * sessionId, requestOutcome). Additive and idempotent; rows written before
+   * it read as "not part of a request OneUptime followed". It sits before the
+   * last slot AddAuditLogMcpClientColumns asserts for itself.
+   */
+  new AddRequestColumnsToSecurityEvent(),
   /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one

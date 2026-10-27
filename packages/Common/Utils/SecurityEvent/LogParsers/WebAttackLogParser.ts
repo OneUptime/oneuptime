@@ -2,13 +2,18 @@ import { JSONObject } from "../../../Types/JSON";
 import NormalizedSecurityEvent from "../../../Types/SecurityEvent/NormalizedSecurityEvent";
 import OcsfSeverity from "../../../Types/SecurityEvent/OcsfSeverity";
 import SecurityLogFormat from "../../../Types/SecurityEvent/SecurityLogFormat";
+import SecurityEventRequestOutcome, {
+  SECURITY_REQUEST_ATTRIBUTES,
+} from "../../../Types/SecurityEvent/SecurityEventRequestOutcome";
 import { readString } from "../NormalizerHelpers";
+import { requestOutcomeFromStatusCode } from "../RequestOutcome";
 import {
   MAX_JSON_LINE_LENGTH,
   MAX_TEXT_LINE_LENGTH,
   SecurityLogLine,
   buildLogSecurityEvent,
   cutText,
+  readAttribute,
   readIpAddress,
   readWord,
 } from "./SecurityLogLine";
@@ -26,12 +31,32 @@ import {
  *
  * Common and combined log format lines and JSON access logs (nginx,
  * Caddy, Envoy and the like) are read for the client address, the method,
- * the request target and the status. The request target is the event's
- * target resource, which the rules match on; a line whose request cannot be
- * read keeps the whole line there, so the rules still see the attack.
+ * the request target and the status; an application's own log line written
+ * inside a request is read for the same from its OpenTelemetry attributes.
+ * The request target is the event's target resource, which the rules match
+ * on. A line with no request in it - an application's "Page not found -
+ * /x?id=1' or 1=1" error, JSON and stack trace and all - keeps the word that
+ * carries the attack there instead (readAttackPayload), so the rules still
+ * see it and a person reads the request, not the stack.
+ *
+ * The message is a one-line summary of the attack and the request, and the
+ * severity follows how far the request got (severityForWebAttack): a probe
+ * the app turned away is Low, one that broke something is High. The status
+ * a line records says that much; the request's trace says the rest
+ * (Server/Utils/SecurityEvent/RequestTrace/SecurityRequestTrace.ts).
  */
 
 export const WEB_HTTP_ACTIVITY_CLASS_UID: number = 4002;
+
+// The attack a request carried (WebAttackKind), on every event this parser makes.
+export const WEB_ATTACK_KIND_ATTRIBUTE: string = "web.attack.kind";
+
+/*
+ * The word that carries the attack, when the event's target does not hold
+ * it - a JNDI lookup in a header of an access log line - so the message can
+ * still say it after the request is followed.
+ */
+export const WEB_ATTACK_PAYLOAD_ATTRIBUTE: string = "web.attack.payload";
 
 export enum WebAttackKind {
   SqlInjection = "sql-injection",
@@ -313,6 +338,297 @@ function findFirstIpAddress(text: string): string {
   return "";
 }
 
+/*
+ * What a person reads first: the attack, said plainly. The same words open
+ * the event's message and name it wherever it is listed.
+ */
+export const WEB_ATTACK_LABELS: Record<WebAttackKind, string> = {
+  [WebAttackKind.SqlInjection]: "SQL injection attempt",
+  [WebAttackKind.PathTraversal]: "Path traversal attempt",
+  [WebAttackKind.Log4Shell]: "Log4Shell exploit attempt",
+};
+
+export function isWebAttackKind(value: unknown): value is WebAttackKind {
+  return (
+    typeof value === "string" &&
+    (Object.values(WebAttackKind) as Array<string>).includes(value)
+  );
+}
+
+// The SQL injection markers, lowercased: what a query holding the payload holds.
+export function getSqlInjectionMarkers(): Array<string> {
+  const group: { markers: ReadonlyArray<string> } | undefined =
+    WEB_ATTACK_MARKERS.find((item: { kind: WebAttackKind }): boolean => {
+      return item.kind === WebAttackKind.SqlInjection;
+    });
+
+  return (group?.markers || [])
+    .filter((marker: string): boolean => {
+      // Encoded markers are how a URL carries SQL, never how a query does.
+      return marker.indexOf("%") === -1 && marker.indexOf("+") === -1;
+    })
+    .map((marker: string): string => {
+      return marker.toLowerCase();
+    });
+}
+
+/*
+ * The request as the line's own attributes describe it - OpenTelemetry's
+ * names, and the older ones instrumentation still writes: what an
+ * application's log line carries when it was written inside a request.
+ */
+export function readRequestFromAttributes(
+  attributes: JSONObject,
+): AccessLogRequest {
+  const url: string =
+    readAttribute(attributes, ["url.full", "http.url", "url.original"]) ||
+    readAttribute(attributes, ["url.path", "http.target"]);
+  const query: string = readAttribute(attributes, ["url.query"]);
+
+  return {
+    clientIp: readIpAddress(
+      readAttribute(attributes, [
+        "client.address",
+        "http.client_ip",
+        "net.peer.ip",
+        "network.peer.address",
+        "source.address",
+      ]),
+    ),
+    method: readAttribute(attributes, ["http.request.method", "http.method"])
+      .trim()
+      .toUpperCase(),
+    target:
+      url && query && url.indexOf("?") === -1 && url.indexOf("://") === -1
+        ? `${url}?${query}`
+        : url,
+    status: readStatus(
+      readAttribute(attributes, [
+        "http.response.status_code",
+        "http.status_code",
+      ]),
+    ),
+    userAgent: readAttribute(attributes, [
+      "user_agent.original",
+      "http.user_agent",
+    ]),
+  };
+}
+
+// The longest stretch of text a payload is read across, either side of its marker.
+export const MAX_PAYLOAD_REACH: number = 2000;
+
+/*
+ * Characters a payload never runs across: a request target or a header
+ * value ends at a space or a double quote (a single quote is part of SQL).
+ */
+function endsPayload(character: string): boolean {
+  return (
+    character === " " ||
+    character === "\t" ||
+    character === "\n" ||
+    character === "\r" ||
+    character === '"' ||
+    character === "<" ||
+    character === ">" ||
+    character === "`"
+  );
+}
+
+/*
+ * The word around the first marker of `kind` in `text`: the request target,
+ * header value or parameter that carries the attack - say
+ * "/sitemap.xml?offset=1;SELECT%20IF((SLEEP(16)),1,2356)" out of an
+ * application's "Page not found - /sitemap.xml?..." error. A word quoted
+ * in single quotes ("Failed to decode param '/%c0%ae/etc/passwd'") is read
+ * without them. '' when no marker of the kind is there.
+ */
+export function readAttackPayload(text: string, kind: WebAttackKind): string {
+  const lower: string = text.toLowerCase();
+  const group: { markers: ReadonlyArray<string> } | undefined =
+    WEB_ATTACK_MARKERS.find((item: { kind: WebAttackKind }): boolean => {
+      return item.kind === kind;
+    });
+
+  let markerStart: number = -1;
+  let markerEnd: number = -1;
+
+  for (const marker of group?.markers || []) {
+    const index: number = lower.indexOf(marker);
+
+    if (index !== -1 && (markerStart === -1 || index < markerStart)) {
+      markerStart = index;
+      markerEnd = index + marker.length;
+    }
+  }
+
+  if (markerStart === -1) {
+    return "";
+  }
+
+  let start: number = markerStart;
+
+  while (
+    start > 0 &&
+    markerStart - start < MAX_PAYLOAD_REACH &&
+    !endsPayload(text[start - 1]!)
+  ) {
+    start--;
+  }
+
+  let end: number = markerEnd;
+
+  while (
+    end < text.length &&
+    end - markerEnd < MAX_PAYLOAD_REACH &&
+    !endsPayload(text[end]!)
+  ) {
+    end++;
+  }
+
+  let payload: string = text.slice(start, end);
+
+  if (
+    payload.length > 2 &&
+    payload.startsWith("'") &&
+    payload.endsWith("'") &&
+    markerStart > start
+  ) {
+    payload = payload.slice(1, -1);
+  }
+
+  return payload;
+}
+
+// The message fields an application's JSON log line says what happened in.
+const JSON_MESSAGE_FIELDS: Array<string> = [
+  "message",
+  "msg",
+  "error.message",
+  "err.message",
+  "error",
+];
+
+/*
+ * The payload, read from where it is most likely a request: the message of
+ * an application's JSON log line (its stack repeats it, among frames), and
+ * else anywhere in the line.
+ */
+function readPayload(text: string, kind: WebAttackKind): string {
+  if (text.startsWith("{") && text.length <= MAX_JSON_LINE_LENGTH) {
+    let parsed: unknown = null;
+
+    try {
+      parsed = JSON.parse(text);
+    } catch {
+      parsed = null;
+    }
+
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      for (const field of JSON_MESSAGE_FIELDS) {
+        const value: string = readString(parsed as JSONObject, field);
+        const payload: string = value ? readAttackPayload(value, kind) : "";
+
+        if (payload) {
+          return payload;
+        }
+      }
+    }
+  }
+
+  return readAttackPayload(text, kind);
+}
+
+function holdsAttackMarker(value: string): boolean {
+  return Boolean(value) && readWebAttackKind(value) !== null;
+}
+
+// A request target as an address: a path or a full URL.
+function isUrlLike(value: string): boolean {
+  return (
+    value.startsWith("/") ||
+    value.startsWith("http://") ||
+    value.startsWith("https://")
+  );
+}
+
+// How long a target may be in a message before it is cut.
+export const MAX_MESSAGE_TARGET_LENGTH: number = 400;
+
+/*
+ * An attack's one-line summary:
+ *
+ *   SQL injection attempt: GET /item?id=1%27%20or%201%3D1 → 200
+ *   Log4Shell exploit attempt: GET / → 200 · ${jndi:ldap://attacker/a}
+ *
+ * The request as it arrived, so the rules that read a message for the
+ * attack string still find it: when the target does not hold it, the
+ * payload follows.
+ */
+export function buildWebAttackMessage(data: {
+  kind: WebAttackKind;
+  method?: string | undefined;
+  target?: string | undefined;
+  statusCode?: number | undefined;
+  payload?: string | undefined;
+}): string {
+  const target: string = cutText(
+    (data.target || "").trim(),
+    MAX_MESSAGE_TARGET_LENGTH,
+  );
+  const method: string = (data.method || "").trim().toUpperCase();
+  const request: string = [method, target]
+    .filter((part: string): boolean => {
+      return Boolean(part);
+    })
+    .join(" ");
+
+  let message: string = request
+    ? `${WEB_ATTACK_LABELS[data.kind]}: ${request}`
+    : WEB_ATTACK_LABELS[data.kind];
+
+  if (data.statusCode) {
+    message = `${message} → ${data.statusCode}`;
+  }
+
+  const payload: string = (data.payload || "").trim();
+
+  if (payload && !holdsAttackMarker(target)) {
+    message = `${message} · ${cutText(payload, MAX_MESSAGE_TARGET_LENGTH)}`;
+  }
+
+  return message;
+}
+
+/*
+ * How serious an attack is, by what it is and how far it got. A probe the
+ * app turned away is noise; one that reached a handler is worth a look;
+ * one that broke something, or ran in the database, is somebody's
+ * evening. Log4Shell is the exception: the lookup runs when a vulnerable
+ * logger writes the string, whatever the app answered.
+ */
+export function severityForWebAttack(
+  kind: WebAttackKind,
+  outcome: SecurityEventRequestOutcome | undefined,
+): OcsfSeverity {
+  if (outcome === SecurityEventRequestOutcome.ReachedDatabase) {
+    return OcsfSeverity.Critical;
+  }
+
+  if (kind === WebAttackKind.Log4Shell) {
+    return OcsfSeverity.High;
+  }
+
+  switch (outcome) {
+    case SecurityEventRequestOutcome.Rejected:
+      return OcsfSeverity.Low;
+    case SecurityEventRequestOutcome.Errored:
+      return OcsfSeverity.High;
+    default:
+      return OcsfSeverity.Medium;
+  }
+}
+
 export default class WebAttackLogParser {
   public static parse(line: SecurityLogLine): Array<NormalizedSecurityEvent> {
     const body: string = (line.body || "").trim();
@@ -331,50 +647,94 @@ export default class WebAttackLogParser {
       return [];
     }
 
-    const request: AccessLogRequest | null =
+    // The request: from an access log line, else from the line's attributes.
+    const accessLog: AccessLogRequest | null =
       readJsonAccessLog(text) || readCommonLogFormat(text);
-    const clientIp: string = request?.clientIp || findFirstIpAddress(text);
-    const target: string = request?.target || text;
+    const fromAttributes: AccessLogRequest = readRequestFromAttributes(
+      line.attributes || {},
+    );
+    const payload: string = readPayload(text, kind);
+
+    /*
+     * The target is the request target when it carries the attack, else the
+     * payload - so a rule that looks for the attack string in the target
+     * (the rule library's do) always finds it there. An access log whose
+     * attack is in a header keeps its request target, as it always did.
+     */
+    const target: string =
+      [accessLog?.target || "", fromAttributes.target, payload].find(
+        (candidate: string): boolean => {
+          return holdsAttackMarker(candidate);
+        },
+      ) ||
+      accessLog?.target ||
+      payload ||
+      text;
+
+    const method: string = accessLog?.method || fromAttributes.method;
+    const statusCode: number = accessLog?.status || fromAttributes.status;
+    const userAgent: string = accessLog?.userAgent || fromAttributes.userAgent;
+    const clientIp: string =
+      accessLog?.clientIp || fromAttributes.clientIp || findFirstIpAddress(text);
+    const outcome: SecurityEventRequestOutcome | undefined =
+      requestOutcomeFromStatusCode(statusCode);
 
     const attributes: JSONObject = {
-      "web.attack.kind": kind,
+      [WEB_ATTACK_KIND_ATTRIBUTE]: kind,
     };
 
-    if (request?.method) {
-      attributes["http.request.method"] = request.method;
+    if (payload && !holdsAttackMarker(target)) {
+      attributes[WEB_ATTACK_PAYLOAD_ATTRIBUTE] = cutText(payload, 1000);
     }
 
-    if (request?.target) {
-      attributes["url.original"] = cutText(request.target, 2000);
+    if (method) {
+      attributes[SECURITY_REQUEST_ATTRIBUTES.method] = method;
     }
 
-    if (request?.status) {
-      attributes["http.response.status_code"] = String(request.status);
+    if (isUrlLike(target)) {
+      attributes[SECURITY_REQUEST_ATTRIBUTES.url] = cutText(target, 2000);
     }
 
-    if (request?.userAgent) {
-      attributes["user_agent.original"] = cutText(request.userAgent, 1000);
+    if (statusCode) {
+      attributes[SECURITY_REQUEST_ATTRIBUTES.statusCode] = String(statusCode);
+    }
+
+    if (userAgent) {
+      attributes[SECURITY_REQUEST_ATTRIBUTES.userAgent] = cutText(
+        userAgent,
+        1000,
+      );
     }
 
     let statusName: string = "";
 
-    if (request?.status) {
-      statusName = request.status >= 400 ? "Failure" : "Success";
+    if (statusCode) {
+      statusName = statusCode >= 400 ? "Failure" : "Success";
     }
 
-    return [
-      buildLogSecurityEvent({
-        line,
-        format: SecurityLogFormat.WebAttack,
-        classUid: WEB_HTTP_ACTIVITY_CLASS_UID,
-        activityName: request?.method || "",
-        statusName,
-        severity: OcsfSeverity.Medium,
-        message: text,
-        principalIp: clientIp,
-        targetResource: cutText(target, 2000),
-        attributes,
+    const event: NormalizedSecurityEvent = buildLogSecurityEvent({
+      line,
+      format: SecurityLogFormat.WebAttack,
+      classUid: WEB_HTTP_ACTIVITY_CLASS_UID,
+      activityName: method,
+      statusName,
+      severity: severityForWebAttack(kind, outcome),
+      message: buildWebAttackMessage({
+        kind,
+        method,
+        target,
+        statusCode,
+        payload,
       }),
-    ];
+      principalIp: clientIp,
+      targetResource: cutText(target, 2000),
+      attributes,
+    });
+
+    if (outcome) {
+      event.requestOutcome = outcome;
+    }
+
+    return [event];
   }
 }
