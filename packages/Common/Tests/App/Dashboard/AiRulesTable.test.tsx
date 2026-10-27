@@ -1630,9 +1630,7 @@ describe.each([
       expect(servers.fieldType).toBe(FormFieldSchemaType.MultiSelectDropdown);
       expect(servers.dropdownModal?.type).toBe(ExternalMcpServer);
       // Its open list, with none added, says so: the line under it says where.
-      expect(servers.dropdownModal?.emptyListText).toBe(
-        "No MCP servers are added yet.",
-      );
+      expect(servers.dropdownModal?.emptyListText).toBe("No MCP servers yet.");
       expect(servers.required).toBe(false);
       expect(servers.hideOptionalLabel).toBe(true);
       expect(servers.hideColumnDescription).toBe(true);

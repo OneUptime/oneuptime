@@ -204,7 +204,12 @@ describe("the Overview's lines", () => {
     expect(linesOf(summary)).toEqual([RunbookTriggersSummaryCopy.none]);
   });
 
-  test("a paused schedule says so, and what does start it meanwhile", () => {
+  /*
+   * A paused schedule is a schedule: "No schedule or webhook" under "Its
+   * schedule is paused" read as though it were not there. With nothing else
+   * to start the runbook, one line says both.
+   */
+  test("a paused schedule says so, and what does start it meanwhile, in one line", () => {
     const summary: HTMLElement = renderSummary({
       isScheduleEnabled: false,
       scheduleCron: "0 9 * * *",
@@ -212,12 +217,20 @@ describe("the Overview's lines", () => {
     });
 
     expect(linesOf(summary)).toEqual([
-      RunbookTriggersSummaryCopy.schedulePaused,
-      RunbookTriggersSummaryCopy.none,
+      RunbookTriggersSummaryCopy.schedulePausedOnly,
     ]);
+    expect(summary).not.toHaveTextContent("No schedule or webhook");
+    expect(
+      within(summary).getByTestId(
+        `${RUNBOOK_TRIGGERS_SUMMARY_TEST_ID}-schedule-paused`,
+      ),
+    ).toHaveTextContent(RunbookTriggersSummaryCopy.schedulePausedOnly);
+    expect(
+      within(summary).queryByTestId(`${RUNBOOK_TRIGGERS_SUMMARY_TEST_ID}-none`),
+    ).toBeNull();
   });
 
-  test("a paused schedule beside a webhook that is on: no none line", () => {
+  test("a paused schedule beside a webhook that is on: what starts it first, then the paused schedule", () => {
     const summary: HTMLElement = renderSummary({
       isScheduleEnabled: false,
       scheduleCron: "0 9 * * *",
@@ -225,8 +238,8 @@ describe("the Overview's lines", () => {
     });
 
     expect(linesOf(summary)).toEqual([
-      RunbookTriggersSummaryCopy.schedulePaused,
       RunbookTriggersSummaryCopy.webhookOn,
+      RunbookTriggersSummaryCopy.schedulePaused,
     ]);
   });
 
@@ -322,6 +335,7 @@ describe("the words", () => {
 
       for (const key of [
         RunbookTriggersSummaryCopy.schedulePaused,
+        RunbookTriggersSummaryCopy.schedulePausedOnly,
         RunbookTriggersSummaryCopy.webhookOn,
         RunbookTriggersSummaryCopy.none,
         RunbookTriggersSummaryCopy.change,

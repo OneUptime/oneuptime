@@ -12,7 +12,7 @@ import { translationKey } from "../../Utils/TranslateTemplate";
  *     picked.", or "Search to find more." when the server's page of
  *     entries was full, so a search may still find some;
  *   - nothing to pick at all: what the field says is missing (its
- *     emptyListText, such as "No repositories are connected yet."), or
+ *     emptyListText, such as "No connected repositories yet."), or
  *     "Nothing to pick yet." for a field that says nothing.
  */
 

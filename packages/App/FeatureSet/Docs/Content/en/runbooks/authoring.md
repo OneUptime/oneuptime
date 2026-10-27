@@ -155,7 +155,7 @@ Sign in to a machine over SSH and run a bash script there. The Runner opens the 
 | **Bash script** | Runs with `bash` on the machine, as the user it signs in as. Output is captured up to 50 KB, and a non-zero exit code fails the step. |
 | **Port** | Under **More fields**. 22 when left empty. |
 | **Key passphrase** | Under **More fields**. The secret variable that holds the passphrase of a key that has one. |
-| **Host key** | Under **More fields**. The machine's SHA256 fingerprint, or its public key as `ssh-keyscan` prints it, one a line. The step signs in only when the machine presents one of them. Left empty, any key is accepted, and the step's output names the one the machine presented. |
+| **Host key** | Under **More fields**. The machine's SHA256 fingerprint, or its public key as `ssh-keyscan` prints it, one per line. The step signs in only when the machine presents one of them. Left empty, any key is accepted, and the step's output names the one the machine presented. |
 | **Execution timeout** | Covers connecting, signing in and running the script together, so a script that hangs cannot hold the step open. Default 30 seconds. |
 | **Claim timeout** | How long the Worker waits for the Runner to pick the job up. Default 2 minutes. |
 

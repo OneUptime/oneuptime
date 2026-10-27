@@ -251,9 +251,19 @@ describe("the notice", () => {
       WORKFLOW_PLAN_NOTICE_TEST_ID,
     );
 
+    /*
+     * Worded as the AI features' plan notice is (AIPlanGate: "AI requires
+     * the Growth plan"), with the same link to Billing.
+     */
+    expect(WorkflowPlanNoticeCopy.title).toBe(
+      "Workflows require the Growth plan",
+    );
+    expect(WorkflowPlanNoticeCopy.upgrade).toBe(
+      "Upgrade your plan in Billing settings",
+    );
     expect(notice).toHaveTextContent(WorkflowPlanNoticeCopy.title);
     expect(notice).toHaveTextContent(
-      "This project is on the Free plan, so nothing starts a workflow, not even Run Workflow. Upgrade to the Growth plan or above to run workflows.",
+      "This project is on the Free plan, so nothing starts a workflow, not even Run Workflow. Upgrade your plan in Billing settings to run workflows.",
     );
 
     const link: HTMLElement = screen.getByTestId(

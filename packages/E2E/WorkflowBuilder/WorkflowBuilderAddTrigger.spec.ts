@@ -260,6 +260,10 @@ test.describe("Workflow builder: the toolbar's add button says what the workflow
         "A run starts from the workflow's trigger. Add one, then run the workflow from here.",
       ),
     ).toBeVisible();
+    // Said once: the panel's own "from the trigger" description is left out.
+    await expect(panel(page).getByTestId("side-over-description")).toHaveCount(
+      0,
+    );
     await expect(
       panel(page).getByRole("button", { name: "Run Workflow Manually" }),
     ).toHaveCount(0);

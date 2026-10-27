@@ -18,7 +18,6 @@ import {
   REPLACE_VALUE_TITLE,
   RUNBOOK_VARIABLES_DESCRIPTION,
   RUNBOOK_VARIABLES_EMPTY,
-  RUNBOOK_VARIABLES_EMPTY_READ_ONLY,
   RUNBOOK_VARIABLES_TITLE,
   SECRET_DESCRIPTION,
   SECRET_TITLE,
@@ -306,9 +305,7 @@ const RunbookVariablesTable: FunctionComponent<ComponentProps> = (
             ? mayCreate
               ? GLOBAL_VARIABLES_EMPTY
               : GLOBAL_VARIABLES_EMPTY_READ_ONLY
-            : mayCreate
-              ? RUNBOOK_VARIABLES_EMPTY
-              : RUNBOOK_VARIABLES_EMPTY_READ_ONLY
+            : RUNBOOK_VARIABLES_EMPTY
         }
         /*
          * A new variable starts secret: what runbooks keep here is mostly

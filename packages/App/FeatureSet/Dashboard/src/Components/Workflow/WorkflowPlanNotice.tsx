@@ -22,7 +22,8 @@ import React, { FunctionComponent, ReactElement } from "react";
  * them on and wait for them, with nothing on the Builder saying none would
  * ever run - the Workflows page shows how many runs are left only on the
  * plans that have some. So the Builder and the Workflows page say it, with
- * the one way out: the Billing page.
+ * the one way out: the Billing page. Worded as the AI features' plan notice
+ * is (AIPlanGate: "AI requires the Growth plan"), with the same link.
  *
  * Fails open, like the other plan notices (AIPlanGate): billing off, as on
  * every self-hosted install, or a plan the server does not describe, shows
@@ -36,11 +37,11 @@ export const WorkflowPlanNoticeCopy: {
   body: string;
   upgrade: string;
 } = {
-  title: translationKey("Workflows do not run on this project's plan"),
+  title: translationKey("Workflows require the Growth plan"),
   body: translationKey(
     "This project is on the {{plan}} plan, so nothing starts a workflow, not even Run Workflow. {{upgradeLink}} to run workflows.",
   ),
-  upgrade: translationKey("Upgrade to the Growth plan or above"),
+  upgrade: translationKey("Upgrade your plan in Billing settings"),
 };
 
 // Whether the project's plan runs workflows; true when it cannot be told.

@@ -72,14 +72,16 @@ export const RunModalCopy: {
    * button and the dashed card open. It used to show a red "No trigger
    * added. Please add a trigger in order to run this workflow" over a
    * disabled Run button. Someone who may not change the workflow is told
-   * who adds it instead.
+   * whom to ask instead. The panel's own description - start a run "from
+   * the trigger, with the values you choose" - is left out while there is
+   * no trigger: the empty state says what a run starts from.
    */
   noTriggerTitle: translationKey("This workflow has no trigger yet"),
   noTriggerDescription: translationKey(
     "A run starts from the workflow's trigger. Add one, then run the workflow from here.",
   ),
   noTriggerViewOnlyDescription: translationKey(
-    "A run starts from the workflow's trigger. Someone who may edit this workflow adds it.",
+    "A run starts from the workflow's trigger. Ask someone who can edit this workflow to add one.",
   ),
 };
 
@@ -255,7 +257,7 @@ const RunModal: FunctionComponent<ComponentProps> = (
   return (
     <SideOver
       title={"Run Workflow"}
-      description={RunModalCopy.description}
+      description={hasNoTrigger ? "" : RunModalCopy.description}
       onClose={props.onClose}
       submitButtonText={
         hasNoTrigger ? WORKFLOW_ADD_TRIGGER_TITLE : RUN_WORKFLOW_SUBMIT_TITLE

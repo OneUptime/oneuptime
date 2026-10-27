@@ -393,9 +393,7 @@ describe("the profile AI rules table", () => {
     );
     expect(servers.dropdownModal?.type).toBe(ExternalMcpServer);
     // Its open list, with none added, says so: the line under it says where.
-    expect(servers.dropdownModal?.emptyListText).toBe(
-      "No MCP servers are added yet.",
-    );
+    expect(servers.dropdownModal?.emptyListText).toBe("No MCP servers yet.");
   });
 
   test("a new rule investigates, fixes as its answer says, belongs to the lane, and runs nothing on a Runner", () => {

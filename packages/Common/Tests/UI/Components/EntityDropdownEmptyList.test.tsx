@@ -120,7 +120,7 @@ describe("what the empty list says", () => {
         searchQuery: "payments",
         pickedHiddenCount: 2,
         mayHaveMore: true,
-        emptyListText: "No repositories are connected yet.",
+        emptyListText: "No connected repositories yet.",
       }),
     ).toBe("No matching entries.");
   });
@@ -151,9 +151,9 @@ describe("what the empty list says", () => {
         searchQuery: "",
         pickedHiddenCount: 0,
         mayHaveMore: false,
-        emptyListText: "No MCP servers are added yet.",
+        emptyListText: "No MCP servers yet.",
       }),
-    ).toBe("No MCP servers are added yet.");
+    ).toBe("No MCP servers yet.");
     expect(
       getEntityDropdownEmptyListText({
         searchQuery: "",
@@ -192,11 +192,11 @@ describe("the open list", () => {
   test("with nothing to pick, it says what the field names as missing", async () => {
     renderDropdown({
       options: [],
-      emptyListText: "No repositories are connected yet.",
+      emptyListText: "No connected repositories yet.",
     });
     await openList();
 
-    expect(emptyList()).toHaveTextContent("No repositories are connected yet.");
+    expect(emptyList()).toHaveTextContent("No connected repositories yet.");
   });
 
   test("a multi-select with every entry picked says all of them are, not that there are none", async () => {

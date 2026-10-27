@@ -488,7 +488,7 @@ describe("a project's Runner claims an SSH step that takes a script", () => {
       expect(
         (submitSpy.mock.calls[0]![0] as { errorMessage: string }).errorMessage,
       ).toBe(
-        "This SSH step's Host key has a line that is neither a SHA256 fingerprint nor a public key, so it was not run. Open the step and put the machine's SHA256 fingerprint, or its public key as ssh-keyscan prints it, one a line.",
+        "This SSH step's Host key has a line that is neither a SHA256 fingerprint nor a public key, so it was not run. Open the step and put the machine's SHA256 fingerprint, or its public key as ssh-keyscan prints it, one per line.",
       );
       expect(JSON.stringify(submitSpy.mock.calls)).not.toContain("OPENSSH");
     });

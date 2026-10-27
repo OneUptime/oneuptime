@@ -256,7 +256,7 @@ export function getSshHostKeyProblem(text: string | undefined): string | null {
   }
 
   if (parsed.invalidLines.length > 0) {
-    return "This SSH step's Host key has a line that is neither a SHA256 fingerprint nor a public key, so it was not run. Open the step and put the machine's SHA256 fingerprint, or its public key as ssh-keyscan prints it, one a line.";
+    return "This SSH step's Host key has a line that is neither a SHA256 fingerprint nor a public key, so it was not run. Open the step and put the machine's SHA256 fingerprint, or its public key as ssh-keyscan prints it, one per line.";
   }
 
   return null;

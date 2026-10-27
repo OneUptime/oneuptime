@@ -176,7 +176,7 @@ describe("the lines a step's Host key reads", () => {
 
   test("a line that is not a key is a problem the server says, in English", () => {
     expect(getSshHostKeyProblem(`${ED25519_FINGERPRINT}\nthe usual one`)).toBe(
-      "This SSH step's Host key has a line that is neither a SHA256 fingerprint nor a public key, so it was not run. Open the step and put the machine's SHA256 fingerprint, or its public key as ssh-keyscan prints it, one a line.",
+      "This SSH step's Host key has a line that is neither a SHA256 fingerprint nor a public key, so it was not run. Open the step and put the machine's SHA256 fingerprint, or its public key as ssh-keyscan prints it, one per line.",
     );
   });
 

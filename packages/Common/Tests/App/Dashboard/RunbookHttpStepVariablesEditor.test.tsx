@@ -195,7 +195,7 @@ describe("an HTTP request step's variables", () => {
     );
 
     expect(help).toHaveTextContent(
-      "Use a variable in the URL, the headers or the body as {{global.variables.NAME}}. OneUptime sends the request itself, so it fills in secrets too, and hides them in what the step records.",
+      "Use a variable in the URL, the headers or the body as {{global.variables.NAME}}. Secrets are filled in too, and hidden in what the step records.",
     );
     expect(within(help).getByText("{{global.variables.NAME}}").tagName).toBe(
       "CODE",

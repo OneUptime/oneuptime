@@ -221,33 +221,114 @@ describe("a step opened on a view", () => {
     ).toHaveValue("log-1");
   });
 
-  test("every control in them is disabled, the value picker included", () => {
+  /*
+   * Steps whose settings are form controls - the schedule's pickers, an
+   * email's and a request's fields: every one of them disabled by the
+   * fieldset, whatever the step. (A value box is not a form control; the
+   * tests below hold it to being read only.)
+   */
+  test.each([ComponentID.Schedule, ComponentID.SendEmail, ComponentID.ApiPost])(
+    "every control in a %s step's settings is disabled",
+    (componentId: string) => {
+      renderModal(makeNode(componentId, `${componentId}-1`), {
+        readOnlyReason: VIEW_ONLY_REASON,
+      });
+
+      const settings: HTMLElement = screen.getByTestId(
+        "workflow-component-settings-view-only",
+      );
+
+      const controls: Array<HTMLElement> = Array.from(
+        settings.querySelectorAll<HTMLElement>(
+          "input, textarea, select, button",
+        ),
+      );
+
+      expect([componentId, controls.length > 0]).toEqual([componentId, true]);
+
+      for (const control of controls) {
+        // Disabled by the fieldset: what :disabled matches.
+        expect([
+          control.outerHTML.slice(0, 80),
+          control.matches(":disabled"),
+        ]).toEqual([control.outerHTML.slice(0, 80), true]);
+      }
+
+      // Nor is any value box left to type in.
+      for (const box of Array.from(
+        settings.querySelectorAll<HTMLElement>("[data-template-editor]"),
+      )) {
+        expect(box).toHaveAttribute("contenteditable", "false");
+      }
+
+      expect(
+        within(screen.getByTestId("workflow-component-id-view-only")).getByRole(
+          "textbox",
+          { name: /^Identifier/ },
+        ),
+      ).toBeDisabled();
+    },
+  );
+
+  /*
+   * A value box is an editable element, not a form control (ValuePicker/
+   * TemplateTextEditor), so the disabled fieldset never reached it: on a
+   * view it took the focus as the dialog opened, and the keyboard's typing
+   * went into it. It now shows its value to be read: not editable, never
+   * focused on its own, read out as read-only - and in the same ink as
+   * any other value, not greyed out as a disabled box is.
+   */
+  test("a value box shows its value to be read: not editable, not focused on its own, read only", () => {
     renderModal(logStep(), { readOnlyReason: VIEW_ONLY_REASON });
 
-    const settings: HTMLElement = screen.getByTestId(
-      "workflow-component-settings-view-only",
-    );
+    const box: HTMLElement = screen.getByTestId("workflow-argument-value");
 
-    const controls: Array<HTMLElement> = Array.from(
-      settings.querySelectorAll<HTMLElement>("input, textarea, select, button"),
-    );
+    expect(box).toHaveTextContent("Deployment finished");
+    expect(box).toHaveAttribute("contenteditable", "false");
+    expect(box).toHaveAttribute("aria-readonly", "true");
+    expect(box).not.toHaveAttribute("aria-disabled");
+    expect(box).not.toHaveClass("text-gray-500");
+    expect(document.activeElement).not.toBe(box);
+  });
 
-    expect(controls.length).toBeGreaterThan(0);
+  test("nothing typed, pasted, cut or dropped into a value box changes it", () => {
+    renderModal(logStep(), { readOnlyReason: VIEW_ONLY_REASON });
 
-    for (const control of controls) {
-      // Disabled by the fieldset: what :disabled matches.
-      expect([
-        control.outerHTML.slice(0, 80),
-        control.matches(":disabled"),
-      ]).toEqual([control.outerHTML.slice(0, 80), true]);
-    }
+    const box: HTMLElement = screen.getByTestId("workflow-argument-value");
+    box.focus();
+
+    const typing: Event = new Event("beforeinput", {
+      bubbles: true,
+      cancelable: true,
+    });
+    Object.assign(typing, { inputType: "insertText", data: "x" });
+    box.dispatchEvent(typing);
+    expect(typing.defaultPrevented).toBe(true);
+
+    fireEvent.paste(box, {
+      clipboardData: {
+        getData: (): string => {
+          return " pasted";
+        },
+      },
+    });
+    fireEvent.keyDown(box, { key: "z", ctrlKey: true });
+
+    expect(box).toHaveTextContent("Deployment finished");
+    expect(box).not.toHaveTextContent("pasted");
+  });
+
+  test("offers no value to insert: no { } beside a value box", () => {
+    renderModal(logStep(), { readOnlyReason: VIEW_ONLY_REASON });
 
     expect(
-      within(screen.getByTestId("workflow-component-id-view-only")).getByRole(
-        "textbox",
-        { name: /^Identifier/ },
-      ),
-    ).toBeDisabled();
+      screen.queryByTestId("workflow-argument-value-insert-value"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", {
+        name: "Insert a value from an earlier step or a variable",
+      }),
+    ).not.toBeInTheDocument();
   });
 
   test("has Close, and no Save, no Delete and no Run just this step", () => {
@@ -304,6 +385,19 @@ describe("a step opened on a view", () => {
     );
     expect(note).toHaveAttribute("title", VIEW_ONLY_REASON);
     expect(note.querySelector(".sr-only")).toHaveTextContent(VIEW_ONLY_REASON);
+    /*
+     * A div: its lock Icon draws a div of its own, which a paragraph may not
+     * hold (React's validateDOMNesting warned on every view).
+     */
+    expect(note.tagName).toBe("DIV");
+    expect(footer().querySelector("p div")).toBeNull();
+    /*
+     * Not a div the footer holds directly: those it stacks on a phone (its
+     * [&>div]:flex-col, for button groups), which put the lock on a line of
+     * its own above the words.
+     */
+    expect(note.parentElement).not.toHaveClass("[&>div]:flex-col");
+    expect(note.parentElement?.parentElement).toHaveClass("[&>div]:flex-col");
   });
 
   test("a step whose settings are empty says nothing needs fixing: there is nothing to save", () => {
@@ -365,5 +459,17 @@ describe("a step opened by an editor", () => {
       screen.queryByTestId("workflow-component-view-only-note"),
     ).not.toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: /^Identifier/ })).toBeEnabled();
+  });
+
+  test("its value boxes are typed in, and offer a value to insert, as they always were", () => {
+    renderModal(logStep());
+
+    const box: HTMLElement = screen.getByTestId("workflow-argument-value");
+
+    expect(box).toHaveAttribute("contenteditable", "true");
+    expect(box).not.toHaveAttribute("aria-readonly");
+    expect(
+      screen.getByTestId("workflow-argument-value-insert-value"),
+    ).toBeEnabled();
   });
 });

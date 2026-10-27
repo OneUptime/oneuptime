@@ -746,9 +746,14 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
              * inside its button. Neither keeps the left margin a button has
              * of its own (md:ml-3): the row's gap spaces them, and a button
              * that starts a row (a tablet, a phone) lines up with the switch
-             * above it instead of starting indented.
+             * above it instead of starting indented. A locked button sits in
+             * the span that carries its reason (Button's tooltip wrapper),
+             * which is as wide as the button below md too, so a view's
+             * locked Add Trigger is no narrower than Run Workflow.
              */}
             <div
+              className="[&>span]:w-full md:[&>span]:w-auto"
+              data-testid="workflow-toolbar-buttons"
               style={{
                 display: "flex",
                 flexWrap: "wrap",

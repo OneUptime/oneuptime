@@ -209,6 +209,22 @@ describe("Run Workflow on a workflow with no trigger", () => {
     expect(document.querySelector(".text-red-500, .text-red-600")).toBeNull();
   });
 
+  /*
+   * The panel's own description says a run starts "from the trigger, with
+   * the values you choose" - with no trigger, the empty state under it said
+   * the same thing again, and the values could not be chosen. The panel
+   * has no description then: its empty state says what a run starts from.
+   */
+  test("the panel's header has no description while there is no trigger: the empty state says it", () => {
+    renderPanel({ onAddTrigger: getJestMockFunction() });
+
+    expect(screen.queryByTestId("side-over-description")).toBeNull();
+    expect(
+      screen.queryByText(RunModalCopy.description),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("dialog")).not.toHaveAttribute("aria-describedby");
+  });
+
   test("an off workflow's test-run note waits for a trigger: without one there is no run to be a test", () => {
     renderPanel({ onAddTrigger: getJestMockFunction(), isTestRun: true });
 
@@ -245,6 +261,10 @@ describe("Run Workflow on a workflow with a trigger", () => {
     ).not.toBeInTheDocument();
     expect(footerButtons()).toEqual(["Close", RUN_WORKFLOW_SUBMIT_TITLE]);
     expect(screen.getByRole("textbox")).toBeInTheDocument();
+    // With a trigger the header says what a run is, as before.
+    expect(screen.getByTestId("side-over-description")).toHaveTextContent(
+      RunModalCopy.description,
+    );
   });
 
   test("an off workflow's run says it is a test run, as before", () => {
@@ -264,8 +284,9 @@ describe("the words", () => {
     expect(RunModalCopy.noTriggerDescription).toBe(
       "A run starts from the workflow's trigger. Add one, then run the workflow from here.",
     );
+    // Someone who may not edit is told whom to ask, not how it happens.
     expect(RunModalCopy.noTriggerViewOnlyDescription).toBe(
-      "A run starts from the workflow's trigger. Someone who may edit this workflow adds it.",
+      "A run starts from the workflow's trigger. Ask someone who can edit this workflow to add one.",
     );
   });
 

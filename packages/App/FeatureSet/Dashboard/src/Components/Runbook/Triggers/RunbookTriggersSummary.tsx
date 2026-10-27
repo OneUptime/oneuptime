@@ -25,9 +25,11 @@ import React, { FunctionComponent, ReactElement } from "react";
  *   - a schedule that is on: when it runs, in its time zone, as the
  *     Triggers page's schedule card says it ("Runs every weekday at 09:00
  *     · Europe/London");
- *   - a schedule that is set up and turned off: that it is paused;
  *   - a webhook that is on: that a call to its URL runs it (never the URL,
  *     which only the people who may edit and run the runbook see);
+ *   - a schedule that is set up and turned off: that it is paused, after
+ *     what does start it - and, when nothing else does, in the same line
+ *     as what starts it meanwhile (a paused schedule is not "no schedule");
  *   - neither: that someone starts it, or a rule or OneUptime AI does.
  */
 
@@ -37,6 +39,7 @@ export const RUNBOOK_TRIGGERS_SUMMARY_TEST_ID: string =
 export const RunbookTriggersSummaryCopy: {
   readonly title: string;
   readonly schedulePaused: string;
+  readonly schedulePausedOnly: string;
   readonly webhookOn: string;
   readonly none: string;
   readonly change: string;
@@ -44,6 +47,10 @@ export const RunbookTriggersSummaryCopy: {
 } = {
   title: translationKey("Triggers"),
   schedulePaused: translationKey("Its schedule is paused."),
+  // A paused schedule, and nothing else that starts the runbook on its own.
+  schedulePausedOnly: translationKey(
+    "Its schedule is paused, so it runs only when someone starts it, or when a rule or OneUptime AI does.",
+  ),
   webhookOn: translationKey("Runs when its webhook URL is called."),
   none: translationKey(
     "No schedule or webhook: it runs when someone starts it, or when a rule or OneUptime AI does.",
@@ -130,6 +137,7 @@ const RunbookTriggersSummaryElement: FunctionComponent<ComponentProps> = (
 
   const lines: Array<{ key: string; text: string }> = [];
 
+  // What starts it first: a schedule that is on, then the webhook.
   if (summary.scheduleOn) {
     lines.push({
       key: "schedule",
@@ -138,13 +146,6 @@ const RunbookTriggersSummaryElement: FunctionComponent<ComponentProps> = (
         translator,
         getRunbookScheduleChoice(summary.scheduleOn.cron),
       )} · ${summary.scheduleOn.timezone}`,
-    });
-  } else if (summary.isSchedulePaused) {
-    lines.push({
-      key: "schedule-paused",
-      text:
-        translator.translateText(RunbookTriggersSummaryCopy.schedulePaused) ||
-        "",
     });
   }
 
@@ -156,7 +157,23 @@ const RunbookTriggersSummaryElement: FunctionComponent<ComponentProps> = (
     });
   }
 
-  if (!summary.scheduleOn && !summary.isWebhookOn) {
+  /*
+   * A paused schedule: said after the webhook that does start it, or - with
+   * nothing else to start it - in one line with what does meanwhile. "No
+   * schedule or webhook" under "Its schedule is paused" read as though the
+   * paused schedule were not there.
+   */
+  if (summary.isSchedulePaused) {
+    lines.push({
+      key: "schedule-paused",
+      text:
+        translator.translateText(
+          summary.isWebhookOn
+            ? RunbookTriggersSummaryCopy.schedulePaused
+            : RunbookTriggersSummaryCopy.schedulePausedOnly,
+        ) || "",
+    });
+  } else if (!summary.scheduleOn && !summary.isWebhookOn) {
     lines.push({
       key: "none",
       text: translator.translateText(RunbookTriggersSummaryCopy.none) || "",

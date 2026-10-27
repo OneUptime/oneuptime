@@ -699,7 +699,13 @@ describe("an empty list", () => {
     }, WAIT);
   });
 
-  test("Global Variables, to a Runbook Admin: a project owner or admin adds them", async () => {
+  /*
+   * A Runbook Admin reads variables, to pick them in steps, but may not add
+   * one: it is told what they are for, never "Add the hosts...". The locked
+   * Create Variable under it already says whom to ask, so the empty state
+   * does not say it a second time.
+   */
+  test("Global Variables, to a Runbook Admin: what they hold, never to add one, and whom to ask said once", async () => {
     signInAs([
       Permission.Public,
       Permission.User,
@@ -713,12 +719,13 @@ describe("an empty list", () => {
       // The table heads its empty state with the first sentence.
       expect(screen.getByText("No global variables yet")).toBeInTheDocument();
       expect(document.body).toHaveTextContent(
-        "A project owner or admin adds the hosts, keys, passwords and kubeconfigs steps use.",
+        "They hold the hosts, keys, passwords and kubeconfigs your steps use.",
       );
     }, WAIT);
     expect(document.body).not.toHaveTextContent(
       "Add the hosts, keys, passwords and kubeconfigs your steps use.",
     );
+    expect(document.body).not.toHaveTextContent("A project owner or admin");
   });
 
   test("a runbook's own Variables, to a project admin: global variables work here too", async () => {
@@ -735,7 +742,11 @@ describe("an empty list", () => {
     }, WAIT);
   });
 
-  test("a runbook's own Variables, to a Runbook Admin: a project owner or admin adds them", async () => {
+  /*
+   * The runbook's own list asks nobody to add one, so a Runbook Admin reads
+   * what a project admin reads; the locked Create Variable says whom to ask.
+   */
+  test("a runbook's own Variables, to a Runbook Admin: global variables work here too, as to anyone", async () => {
     signInAs([
       Permission.Public,
       Permission.User,
@@ -751,9 +762,10 @@ describe("an empty list", () => {
         screen.getByText("No variables of this runbook's own yet"),
       ).toBeInTheDocument();
       expect(document.body).toHaveTextContent(
-        "A project owner or admin adds them, and global variables work here too.",
+        "Global variables work here too.",
       );
     }, WAIT);
+    expect(document.body).not.toHaveTextContent("A project owner or admin");
   });
 
   test("Create Runbook Variable alone may add one, so it is told to", async () => {

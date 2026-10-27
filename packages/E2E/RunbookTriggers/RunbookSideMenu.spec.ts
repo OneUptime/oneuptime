@@ -595,7 +595,11 @@ test.describe("the Overview says what starts the runbook", () => {
     await expect(summary(page)).not.toContainText("http");
   });
 
-  test("a paused schedule says so, and what starts the runbook meanwhile", async ({
+  /*
+   * A paused schedule is a schedule: it never reads "No schedule or
+   * webhook". With nothing else to start the runbook, one line says both.
+   */
+  test("a paused schedule says so, and what starts the runbook meanwhile, in one line", async ({
     page,
   }: {
     page: Page;
@@ -607,8 +611,25 @@ test.describe("the Overview says what starts the runbook", () => {
       .allTextContents();
 
     expect(lines).toEqual([
+      "Its schedule is paused, so it runs only when someone starts it, or when a rule or OneUptime AI does.",
+    ]);
+    await expect(summary(page)).not.toContainText("No schedule or webhook");
+  });
+
+  test("a paused schedule beside a webhook that is on: the webhook first, then the paused schedule", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openRunbook(page, "overview", "schedule=paused&webhook=on");
+
+    const lines: Array<string> = await summary(page)
+      .locator("p[data-testid]")
+      .allTextContents();
+
+    expect(lines).toEqual([
+      "Runs when its webhook URL is called.",
       "Its schedule is paused.",
-      "No schedule or webhook: it runs when someone starts it, or when a rule or OneUptime AI does.",
     ]);
   });
 

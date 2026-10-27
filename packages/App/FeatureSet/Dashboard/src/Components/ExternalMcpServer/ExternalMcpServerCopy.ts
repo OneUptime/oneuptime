@@ -388,7 +388,7 @@ export const RULE_MCP_SERVERS_FIELD_COPY: {
    * What the open list says while the project has no MCP server: the line
    * under the field says where one is added.
    */
-  emptyList: translationKey("No MCP servers are added yet."),
+  emptyList: translationKey("No MCP servers yet."),
 };
 
 // Whether the rule being edited names MCP servers: rows, ids or dropdown picks.

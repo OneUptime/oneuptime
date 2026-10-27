@@ -2077,7 +2077,7 @@ describe("runbook variables", () => {
     );
 
     expect(AUTHORING).toContain(
-      "| **Host key** | Under **More fields**. The machine's SHA256 fingerprint, or its public key as `ssh-keyscan` prints it, one a line. The step signs in only when the machine presents one of them. Left empty, any key is accepted, and the step's output names the one the machine presented. |",
+      "| **Host key** | Under **More fields**. The machine's SHA256 fingerprint, or its public key as `ssh-keyscan` prints it, one per line. The step signs in only when the machine presents one of them. Left empty, any key is accepted, and the step's output names the one the machine presented. |",
     );
     expect(AUTHORING).toContain(
       "A step that names one fails on a Runner too old to check it, saying to update the Runner.",

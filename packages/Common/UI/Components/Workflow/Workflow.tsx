@@ -1236,7 +1236,12 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
               backgroundColor: "var(--ou-surface-primary, #ffffff)",
             }}
           />
-          <Controls />
+          {/*
+           * A view has nothing to unlock: the controls' lock would turn
+           * dragging and connecting back on (react-flow keeps it in its own
+           * store), so a view zooms and fits only.
+           */}
+          <Controls showInteractive={!isViewOnly} />
           <Background
             variant={BackgroundVariant.Dots}
             gap={20}

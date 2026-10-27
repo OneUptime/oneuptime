@@ -1372,7 +1372,7 @@ test.describe("an open picker with nothing to list", () => {
 
     await mcpServersPicker(dialog).click();
     await expect(page.getByRole("option")).toHaveCount(0);
-    await expect(emptyList(page)).toHaveText("No MCP servers are added yet.");
+    await expect(emptyList(page)).toHaveText("No MCP servers yet.");
     await expect(dialog.getByTestId("rule-mcp-servers-link")).toHaveText(
       "External MCP Servers",
     );
@@ -1406,9 +1406,7 @@ test.describe("an open picker with nothing to list", () => {
 
     await expect(page.getByRole("option")).toHaveCount(0);
     await expect(emptyList(page)).toHaveText("All of them are picked.");
-    await expect(emptyList(page)).not.toContainText(
-      "No MCP servers are added yet.",
-    );
+    await expect(emptyList(page)).not.toContainText("No MCP servers yet.");
   });
 
   test("German: the list says it in the Dashboard's German words", async ({
@@ -2354,7 +2352,7 @@ test.describe("code repositories and pull requests", () => {
     await expect(page.getByRole("option")).toHaveCount(0);
     // The list says what is missing - it said "No options." - and the line under it where.
     await expect(page.getByTestId("entity-dropdown-empty-list")).toHaveText(
-      "No repositories are connected yet.",
+      "No connected repositories yet.",
     );
   });
 

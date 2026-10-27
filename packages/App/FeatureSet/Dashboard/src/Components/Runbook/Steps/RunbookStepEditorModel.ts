@@ -138,7 +138,7 @@ export const SSH_PORT_TITLE: string = translationKey("Port");
 export const SSH_HOST_KEY_TITLE: string = translationKey("Host key");
 
 export const SSH_HOST_KEY_HELP: string = translationKey(
-  "The machine's host key, checked before the step signs in: its SHA256 fingerprint, or its public key as ssh-keyscan prints it, one a line. Left empty, any key is accepted, and the step's output names the one the machine presented.",
+  "The step signs in only when the machine presents one of these keys: its SHA256 fingerprint, or its public key as ssh-keyscan prints it, one per line. Left empty, any key is accepted, and the step's output shows the one the machine presented.",
 );
 
 // Under the field, while a line is not a key: the server refuses the step.

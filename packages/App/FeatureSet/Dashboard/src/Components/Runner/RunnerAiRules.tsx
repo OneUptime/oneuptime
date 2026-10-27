@@ -186,13 +186,22 @@ const RunnerAiRuleList: FunctionComponent<ComponentProps> = (
                 {rule.name}
               </span>
             )}
+            {/*
+             * The lane after a dot, so a rule named for its lane ("Fix
+             * database alerts · Alerts") does not run into it.
+             */}
             {lane ? (
-              <span
-                className="ml-1.5 text-gray-500"
-                data-testid={`${RUNNER_AI_RULES_TEST_ID}-lane`}
-              >
-                {translator.translateText(lane)}
-              </span>
+              <>
+                <span aria-hidden="true" className="mx-1.5 text-gray-400">
+                  ·
+                </span>
+                <span
+                  className="text-gray-500"
+                  data-testid={`${RUNNER_AI_RULES_TEST_ID}-lane`}
+                >
+                  {translator.translateText(lane)}
+                </span>
+              </>
             ) : (
               <></>
             )}

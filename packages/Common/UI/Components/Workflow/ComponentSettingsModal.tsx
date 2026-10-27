@@ -15,6 +15,7 @@ import DocumentationViewer from "./DocumentationViewer";
 import { getPageStepRunWarning } from "./OnCall/PageStepRunWarning";
 import { OutputConnections } from "./Switch/SwitchModel";
 import { StepValueSources } from "./ValuePicker/StepGraph";
+import { WorkflowViewOnlyContext } from "./WorkflowViewOnly";
 import { WORKFLOW_URL } from "../../Config";
 import Dictionary from "../../../Types/Dictionary";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -258,6 +259,13 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
    * A disabled fieldset disables every control inside it - a screen reader
    * still reads each one and its value - and the pointer goes through the
    * rest (the pickers that open on a press), so nothing in it changes.
+   *
+   * A disabled fieldset does not reach a text box that is not a form
+   * control: the value boxes (ValuePicker/TemplateTextEditor) are editable
+   * elements, which took the focus and the keyboard's typing in a view.
+   * WorkflowViewOnlyContext tells them, and the value picker, that this
+   * is a view: they show their value to be read, and offer nothing to
+   * insert.
    */
   type ViewOnlyFormFunction = (
     form: ReactElement,
@@ -273,13 +281,15 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
     }
 
     return (
-      <fieldset
-        disabled={true}
-        className="pointer-events-none m-0 min-w-0 border-0 p-0"
-        data-testid={testId}
-      >
-        {form}
-      </fieldset>
+      <WorkflowViewOnlyContext.Provider value={true}>
+        <fieldset
+          disabled={true}
+          className="pointer-events-none m-0 min-w-0 border-0 p-0"
+          data-testid={testId}
+        >
+          {form}
+        </fieldset>
+      </WorkflowViewOnlyContext.Provider>
     );
   };
 
@@ -509,21 +519,30 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
    * A view's footer: no Delete and no Run just this step, both of which take
    * permission to edit the workflow - only what the dialog is, and why.
    */
+  /*
+   * Divs, not a p: the lock Icon draws a div of its own, which a paragraph
+   * may not hold (React warned on every view). The footer stacks a div it
+   * holds directly on a phone (ModalFooter's [&>div]:flex-col, for button
+   * groups), so the lock and the words sit in a div inside it, side by
+   * side at every width.
+   */
   const viewOnlyFooter: ReactElement = (
-    <p
-      className="flex min-w-0 items-start gap-2 text-sm text-gray-600"
-      title={props.readOnlyReason}
-      data-testid="workflow-component-view-only-note"
-    >
-      <Icon
-        icon={IconProp.Lock}
-        className="mt-0.5 h-4 w-4 shrink-0 text-gray-400"
-      />
-      <span className="min-w-0">
-        {translator.translateText(WORKFLOW_STEP_VIEW_ONLY_TEXT)}
-        <span className="sr-only"> {props.readOnlyReason}</span>
-      </span>
-    </p>
+    <div className="min-w-0">
+      <div
+        className="flex min-w-0 items-start gap-2 text-sm text-gray-600"
+        title={props.readOnlyReason}
+        data-testid="workflow-component-view-only-note"
+      >
+        <Icon
+          icon={IconProp.Lock}
+          className="mt-0.5 h-4 w-4 shrink-0 text-gray-400"
+        />
+        <span className="min-w-0">
+          {translator.translateText(WORKFLOW_STEP_VIEW_ONLY_TEXT)}
+          <span className="sr-only"> {props.readOnlyReason}</span>
+        </span>
+      </div>
+    </div>
   );
 
   return (

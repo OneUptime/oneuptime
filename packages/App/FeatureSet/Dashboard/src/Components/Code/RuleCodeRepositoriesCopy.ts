@@ -48,7 +48,7 @@ export const RULE_CODE_REPOSITORIES_FIELD_COPY: {
    * What the open list says while the project has no repository: the line
    * under the field says where one is connected.
    */
-  emptyList: translationKey("No repositories are connected yet."),
+  emptyList: translationKey("No connected repositories yet."),
 };
 
 // The data-testids of the field.

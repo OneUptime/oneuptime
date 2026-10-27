@@ -30,7 +30,12 @@ import { translationKey } from "../../Utils/TranslateTemplate";
 /*
  * Whether the canvas around a step is a view. The canvas provides it, so a
  * step on it (Component.tsx, drawn by react-flow) knows without carrying it
- * in its data - node data is what the Builder saves.
+ * in its data - node data is what the Builder saves. A step's dialog
+ * provides it around the settings it shows to be read
+ * (ComponentSettingsModal), where a disabled fieldset does not reach the
+ * value boxes: they are editable elements, not form controls
+ * (ValuePicker/TemplateTextEditor), and the value picker offers nothing to
+ * insert (ValuePicker/ValuePickerContext).
  */
 export const WorkflowViewOnlyContext: React.Context<boolean> =
   React.createContext<boolean>(false);

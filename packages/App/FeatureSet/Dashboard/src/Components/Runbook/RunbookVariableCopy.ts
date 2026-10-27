@@ -46,16 +46,14 @@ export const RUNBOOK_VARIABLES_EMPTY: string = translationKey(
 );
 
 /*
- * The same two, for someone who may read variables but not create them - a
- * Runbook Admin, who picks them in the steps it writes: told who adds them,
- * not to add one.
+ * The global one, for someone who may read variables but not create them -
+ * a Runbook Admin, who picks them in the steps it writes: what they are for,
+ * never "Add the hosts...". The list's locked Create Variable already says
+ * whom to ask, under the button, so this does not say it again. (The
+ * runbook's own list asks nobody to add one, so it reads the same to both.)
  */
 export const GLOBAL_VARIABLES_EMPTY_READ_ONLY: string = translationKey(
-  "No global variables yet. A project owner or admin adds the hosts, keys, passwords and kubeconfigs steps use.",
-);
-
-export const RUNBOOK_VARIABLES_EMPTY_READ_ONLY: string = translationKey(
-  "No variables of this runbook's own yet. A project owner or admin adds them, and global variables work here too.",
+  "No global variables yet. They hold the hosts, keys, passwords and kubeconfigs your steps use.",
 );
 
 /*
@@ -154,10 +152,11 @@ export const EVERY_RUNNER_TEXT: string = translationKey("Every Runner");
  * Under an HTTP request step's URL and body: it names variables as a script
  * does ({{reference}} is drawn as code). OneUptime sends the request
  * itself, so a secret is filled in too - no Runner is involved - and is
- * hidden in what the step records.
+ * hidden in what the step records. Why a secret reaches it (no Runner's
+ * list applies) is the docs' to explain; the step says what happens.
  */
 export const HTTP_STEP_VARIABLES_HELP: string = translationKey(
-  "Use a variable in the URL, the headers or the body as {{reference}}. OneUptime sends the request itself, so it fills in secrets too, and hides them in what the step records.",
+  "Use a variable in the URL, the headers or the body as {{reference}}. Secrets are filled in too, and hidden in what the step records.",
 );
 
 // The Value column of a secret: it is never shown.

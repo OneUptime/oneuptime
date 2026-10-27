@@ -287,6 +287,28 @@ describe("someone who may not change the workflow", () => {
     expect(addButton().className).not.toContain("bg-indigo-600");
   });
 
+  /*
+   * A locked button sits in the span that carries its reason (Button's
+   * tooltip wrapper), which is only as wide as its words: on a phone the
+   * view's locked Add Trigger stood narrower than the full-width Run
+   * Workflow under it. The toolbar holds that span to a button's own width
+   * - the whole row below md, its words from md up.
+   */
+  test("the locked add button is as wide as the toolbar's other buttons on a phone", async () => {
+    mockPermissions = [Permission.WorkflowMember];
+
+    await renderBuilder();
+
+    const toolbar: HTMLElement = screen.getByTestId("workflow-toolbar-buttons");
+    const wrapper: HTMLElement = screen.getByTestId(
+      "workflow-add-button-disabled-wrapper",
+    );
+
+    expect(wrapper.tagName).toBe("SPAN");
+    expect(wrapper.parentElement).toBe(toolbar);
+    expect(toolbar).toHaveClass("[&>span]:w-full", "md:[&>span]:w-auto");
+  });
+
   test("nothing is saved, however often the canvas reports its graph", async () => {
     jest.useFakeTimers();
     mockPermissions = [Permission.WorkflowMember];

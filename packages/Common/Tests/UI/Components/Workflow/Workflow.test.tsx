@@ -49,6 +49,8 @@ import {
  * the builder's own props (onKeyDown among them).
  */
 let mockFlowProps: ReactFlowProps | null = null;
+// What the canvas's zoom controls were handed (react-flow's Controls).
+let mockControlsProps: { showInteractive?: boolean } | null = null;
 let mockSettingsProps: SettingsProps | null = null;
 // Every render of either picker, in order.
 let mockPickerProps: Array<PickerProps> = [];
@@ -61,6 +63,18 @@ jest.mock("reactflow", () => {
   const actual: typeof import("reactflow") = jest.requireActual(
     "reactflow",
   ) as typeof import("reactflow");
+
+  /*
+   * The zoom controls, drawn inside the canvas as react-flow draws them, so
+   * what they are handed is seen; the canvas's other children read
+   * react-flow's store, which this stand-in has none of.
+   */
+  const MockControls: (props: { showInteractive?: boolean }) => null = (props: {
+    showInteractive?: boolean;
+  }): null => {
+    mockControlsProps = { showInteractive: props.showInteractive };
+    return null;
+  };
 
   return {
     ...actual,
@@ -98,15 +112,18 @@ jest.mock("reactflow", () => {
               </div>
             );
           })}
+          {React.Children.toArray(props.children).filter(
+            (child: React.ReactNode): boolean => {
+              return React.isValidElement(child) && child.type === MockControls;
+            },
+          )}
         </div>
       );
     },
     Background: (): null => {
       return null;
     },
-    Controls: (): null => {
-      return null;
-    },
+    Controls: MockControls,
     MiniMap: (): null => {
       return null;
     },
@@ -484,6 +501,7 @@ const pressKey: PressKeyFunction = (
 
 beforeEach(() => {
   mockFlowProps = null;
+  mockControlsProps = null;
   mockSettingsProps = null;
   mockPickerProps = [];
   mockSetCenter.mockReset();
@@ -1951,6 +1969,24 @@ describe("Workflow builder: a view, for someone who may not change the workflow"
         deleteKeyCode: "Backspace",
       }),
     );
+    // The controls keep their lock, which an editor may press.
+    expect(mockControlsProps?.showInteractive).toBe(true);
+  });
+
+  /*
+   * react-flow's controls carry a lock that turns dragging and connecting
+   * on and off in its own store: pressed twice on a view, steps could be
+   * dragged again (nothing was saved, but the view was not one). A view's
+   * controls zoom and fit only.
+   */
+  test("the canvas's controls have no lock to turn editing back on", () => {
+    renderBuilder({
+      initialNodes: [makeNode(TRIGGER_METADATA), makeNode(ACTION_METADATA)],
+      editDisabledReason: VIEW_ONLY_REASON,
+    });
+
+    expect(mockControlsProps).not.toBeNull();
+    expect(mockControlsProps?.showInteractive).toBe(false);
   });
 
   test("the dashed card opens no panel, by a click or by Enter", () => {
