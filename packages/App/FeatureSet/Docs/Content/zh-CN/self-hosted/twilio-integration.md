@@ -177,6 +177,7 @@ Twilio 普通 webhook 的来源地址会变化，因此不要把 SIP 或媒体 I
 :::cards
 - [来电策略](/docs/on-call/incoming-call-policy): 让来电者通过 Twilio 号码联系到您的值班工程师。
 - [升级规则](/docs/on-call/escalation-rules): 决定每一级通过短信、电话或其他方式通知谁。
+- [短信和电话网关](/docs/self-hosted/sms-and-call-gateway): 通过您自己的提供商而不是 Twilio 发送短信和拨打电话。
 - [SMTP](/docs/emails/smtp): 也通过您自己的邮件服务器发送电子邮件。
 - [私有网络访问](/docs/self-hosted/private-network-access): 让工作流和 webhook 能访问内部工具。
 :::
