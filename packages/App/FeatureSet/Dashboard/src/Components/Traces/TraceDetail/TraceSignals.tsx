@@ -1,9 +1,14 @@
 import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
+import Log from "Common/Models/AnalyticsModels/Log";
 import Metric from "Common/Models/AnalyticsModels/Metric";
+import InventoryItem from "Common/Models/DatabaseModels/InventoryItem";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
+import InBetween from "Common/Types/BaseDatabase/InBetween";
+import Includes from "Common/Types/BaseDatabase/Includes";
+import ListResult from "Common/Types/BaseDatabase/ListResult";
 import Query from "Common/Types/BaseDatabase/Query";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
@@ -18,6 +23,8 @@ import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelA
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
   CrossSignalQueryParams,
   TelemetryCrossSignalScope,
@@ -42,7 +49,24 @@ import {
   getProfilePresenceGate,
   groupMetricsForTrace,
 } from "../../../Utils/TraceCorrelatedSignals";
+import { LockedEntityKeyDisplayMap } from "../../../Utils/LockedEntityKeyChips";
+import {
+  POD_LOGS_OTHER_REQUESTS,
+  PodLogWindow,
+  TRACE_LOGS_LINKED_DESCRIPTION,
+  TRACE_LOG_SCOPE_LABEL,
+  TRACE_LOG_SCOPE_LINKED,
+  TraceLogScope,
+  buildTracePodEntityKeyDisplays,
+  buildTracePodLogQuery,
+  describeTracePodLogScope,
+  getDefaultTraceLogScope,
+  getPodLogWindow,
+  getTracePodLogScopeLabel,
+} from "../../../Utils/TracePodLogs";
 import ExceptionInstanceTable from "../../Exceptions/ExceptionInstanceTable";
+import ExceptionSegmentedControl from "../../Exceptions/ExceptionSegmentedControl";
+import { InventoryEntityKeyDisplaySource } from "../../Inventory/InventoryTelemetryScope";
 import DashboardLogsViewer from "../../Logs/LogsViewer";
 import TraceScopedFlamegraph from "../TraceScopedFlamegraph";
 import TraceProfilerLink from "./TraceProfilerLink";
@@ -60,6 +84,13 @@ export interface ComponentProps {
    */
   rootServiceId?: string | null | undefined;
   rootServiceName?: string | null | undefined;
+  /*
+   * The pods the trace's spans ran in (their k8sPodEntityKey), at most
+   * TRACE_POD_LIMIT, and how many the spans name in all. With any, the Logs
+   * tab can also show what they wrote while the trace ran.
+   */
+  podEntityKeys?: Array<string> | undefined;
+  podCount?: number | undefined;
 }
 
 // Server-enforced cap on POST /telemetry/metrics/for-trace.
@@ -109,9 +140,27 @@ const TraceSignals: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const { traceId } = props;
 
+  const translator: Translator = useTranslator();
   const [activeSignalTab, setActiveSignalTab] =
     useState<CorrelatedSignalTab>("logs");
   const [exceptionCount, setExceptionCount] = useState<number | null>(null);
+
+  /*
+   * The Logs tab of a trace that ran in pods has two views: the logs linked
+   * by its ID, and what its pods wrote while it ran. Null until the reader
+   * picks one; until then the count of linked logs decides.
+   */
+  const [chosenLogScope, setChosenLogScope] = useState<TraceLogScope | null>(
+    null,
+  );
+  // Logs carrying this trace's ID around it: null while counting, undefined if that failed.
+  const [linkedLogCount, setLinkedLogCount] = useState<
+    number | null | undefined
+  >(null);
+  // The pods' Inventory items, which name them in the viewer's chips.
+  const [podInventoryItems, setPodInventoryItems] = useState<
+    Array<InventoryEntityKeyDisplaySource>
+  >([]);
 
   /*
    * Profile-tab gate: sampleCount from POST /telemetry/profiles/
@@ -154,6 +203,9 @@ const TraceSignals: FunctionComponent<ComponentProps> = (
 
     setActiveSignalTab("logs");
     setExceptionCount(null);
+    setChosenLogScope(null);
+    setLinkedLogCount(null);
+    setPodInventoryItems([]);
     setProfileSampleCount(0);
     setTraceMetricSeries([]);
     setMetricsLoading(false);
@@ -244,6 +296,156 @@ const TraceSignals: FunctionComponent<ComponentProps> = (
       cancelled = true;
     };
   }, [traceId]);
+
+  // By value: the explorer hands over a new array as each batch of spans loads.
+  const podEntityKeysKey: string = (props.podEntityKeys || []).join(",");
+  const podEntityKeys: Array<string> = useMemo(() => {
+    return podEntityKeysKey ? podEntityKeysKey.split(",") : [];
+  }, [podEntityKeysKey]);
+  const hasPods: boolean = podEntityKeys.length > 0;
+  const podCount: number = Math.max(props.podCount || 0, podEntityKeys.length);
+  const traceStartMs: number | undefined =
+    props.traceWindow?.startTime.getTime();
+  const traceEndMs: number | undefined = props.traceWindow?.endTime.getTime();
+
+  /*
+   * Whether any log carries this trace's ID, counted over the trace's window
+   * padded as for the metric links: for a trace that ran in pods it decides
+   * which view the Logs tab opens on. An eBPF trace's count is 0.
+   */
+  useEffect(() => {
+    if (!hasPods || traceStartMs === undefined || traceEndMs === undefined) {
+      return;
+    }
+
+    let cancelled: boolean = false;
+
+    const countLinkedLogs: () => Promise<void> = async (): Promise<void> => {
+      try {
+        const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+        const count: number = await AnalyticsModelAPI.count<Log>(Log, {
+          ...(projectId ? { projectId } : {}),
+          traceId,
+          time: new InBetween<Date>(
+            OneUptimeDate.addRemoveMinutes(
+              new Date(traceStartMs),
+              -TRACE_METRIC_WINDOW_PADDING_MINUTES,
+            ),
+            OneUptimeDate.addRemoveMinutes(
+              new Date(traceEndMs),
+              TRACE_METRIC_WINDOW_PADDING_MINUTES,
+            ),
+          ),
+        } as Query<Log>);
+        if (!cancelled) {
+          setLinkedLogCount(count);
+        }
+      } catch {
+        if (!cancelled) {
+          setLinkedLogCount(undefined);
+        }
+      }
+    };
+
+    void countLinkedLogs();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [traceId, hasPods, traceStartMs, traceEndMs]);
+
+  const logScope: TraceLogScope | null = hasPods
+    ? chosenLogScope ||
+      getDefaultTraceLogScope({
+        podCount: podEntityKeys.length,
+        linkedLogCount,
+      })
+    : "trace";
+
+  const podLogWindow: PodLogWindow | null = useMemo(() => {
+    if (traceStartMs === undefined || traceEndMs === undefined) {
+      return null;
+    }
+
+    return getPodLogWindow({
+      startTimeUnixNano: traceStartMs * 1000000,
+      endTimeUnixNano: traceEndMs * 1000000,
+    });
+  }, [traceStartMs, traceEndMs]);
+
+  const podLogQuery: Query<Log> | null = useMemo(() => {
+    if (!podLogWindow) {
+      return null;
+    }
+
+    return buildTracePodLogQuery({ podEntityKeys, window: podLogWindow });
+  }, [podEntityKeys, podLogWindow]);
+
+  const isPodLogViewShown: boolean =
+    activeSignalTab === "logs" && logScope === "pods" && podLogQuery !== null;
+
+  // The pods' names for the viewer's chips, once their view is shown.
+  useEffect(() => {
+    if (!isPodLogViewShown) {
+      return;
+    }
+
+    let cancelled: boolean = false;
+
+    const loadPodNames: () => Promise<void> = async (): Promise<void> => {
+      try {
+        const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+        const result: ListResult<InventoryItem> =
+          await ModelAPI.getList<InventoryItem>({
+            modelType: InventoryItem,
+            query: {
+              ...(projectId ? { projectId } : {}),
+              entityKey: new Includes(podEntityKeys),
+            } as Query<InventoryItem>,
+            select: {
+              entityKey: true,
+              entityType: true,
+              displayName: true,
+              identifyingAttributes: true,
+              descriptiveAttributes: true,
+            },
+            limit: podEntityKeys.length,
+            skip: 0,
+            sort: {},
+          });
+        if (!cancelled) {
+          setPodInventoryItems(
+            result.data.map(
+              (item: InventoryItem): InventoryEntityKeyDisplaySource => {
+                return {
+                  entityKey: item.entityKey,
+                  entityType: item.entityType,
+                  displayName: item.displayName,
+                  identifyingAttributes: item.identifyingAttributes,
+                  descriptiveAttributes: item.descriptiveAttributes,
+                };
+              },
+            ),
+          );
+        }
+      } catch {
+        // The chips keep naming the pods by their keys.
+      }
+    };
+
+    void loadPodNames();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isPodLogViewShown, podEntityKeys]);
+
+  const podEntityKeyDisplays: LockedEntityKeyDisplayMap = useMemo(() => {
+    return buildTracePodEntityKeyDisplays({
+      podEntityKeys,
+      items: podInventoryItems,
+    });
+  }, [podEntityKeys, podInventoryItems]);
 
   const canReadMetrics: boolean = canOfferTraceMetrics();
 
@@ -513,13 +715,73 @@ const TraceSignals: FunctionComponent<ComponentProps> = (
 
       <div className="p-4" role="tabpanel">
         {activeSignalTab === "logs" && (
-          <DashboardLogsViewer
-            id={"traces-logs-viewer"}
-            noLogsMessage="Logs that carry this trace's ID appear here."
-            traceIds={[traceId]}
-            limit={LIMIT_PER_PROJECT}
-            enableRealtime={false}
-          />
+          <div data-testid="trace-logs">
+            {hasPods && logScope !== null && (
+              <div className="mb-3 flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+                <p
+                  className="max-w-3xl text-xs text-gray-500"
+                  data-testid="trace-logs-scope-description"
+                >
+                  {logScope === "pods" ? (
+                    <>
+                      {describeTracePodLogScope({
+                        translator,
+                        podCount,
+                        shownPodCount: podEntityKeys.length,
+                        paddingMs: podLogWindow?.paddingMs || 0,
+                      })}{" "}
+                      {translator.translateText(POD_LOGS_OTHER_REQUESTS)}
+                    </>
+                  ) : (
+                    translator.translateText(TRACE_LOGS_LINKED_DESCRIPTION)
+                  )}
+                </p>
+                <ExceptionSegmentedControl<TraceLogScope>
+                  label={TRACE_LOG_SCOPE_LABEL}
+                  testId="trace-logs-scope"
+                  value={logScope}
+                  onChange={(scope: TraceLogScope) => {
+                    setChosenLogScope(scope);
+                  }}
+                  options={[
+                    { value: "trace", label: TRACE_LOG_SCOPE_LINKED },
+                    {
+                      value: "pods",
+                      label: getTracePodLogScopeLabel(podEntityKeys.length),
+                    },
+                  ]}
+                />
+              </div>
+            )}
+            {logScope === null ? (
+              <div className="flex h-32 items-center justify-center">
+                <ComponentLoader />
+              </div>
+            ) : logScope === "pods" && podLogQuery ? (
+              <DashboardLogsViewer
+                // Another scope is another view: remount rather than merge.
+                key="trace-pod-logs"
+                id={"traces-pod-logs-viewer"}
+                logQuery={podLogQuery}
+                entityKeyDisplays={podEntityKeyDisplays}
+                noLogsMessage={
+                  podEntityKeys.length === 1
+                    ? "This trace's pod wrote nothing while it ran."
+                    : "This trace's pods wrote nothing while it ran."
+                }
+                enableRealtime={false}
+              />
+            ) : (
+              <DashboardLogsViewer
+                key="trace-linked-logs"
+                id={"traces-logs-viewer"}
+                noLogsMessage="Logs that carry this trace's ID appear here."
+                traceIds={[traceId]}
+                limit={LIMIT_PER_PROJECT}
+                enableRealtime={false}
+              />
+            )}
+          </div>
         )}
 
         {activeSignalTab === "exceptions" && (

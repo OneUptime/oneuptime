@@ -36,6 +36,7 @@ Open **Producten → Security Events**, onder **Observability**. Het menu heeft 
 | **Gesloten zaken** | Beveiligingszaken | De zaken die met een oordeel zijn gesloten, de nieuwste eerst |
 | **Alle zaken** | Beveiligingszaken | Elke zaak, open of gesloten |
 | **Gebeurtenissen** | Gebeurtenissen | Elke gebeurtenis zoeken en filteren, en er een openen om al haar velden te zien |
+| **Campaigns** | Gebeurtenissen | Elk adres dat aanvalsverzoeken stuurde, en of een van zijn verzoeken erdoor kwam |
 | **Entiteitrisico** | Gebeurtenissen | Elke gebruiker, host en elk adres, gescoord op wat er deze week over werd gevonden, de riskantste eerst |
 | **Correleren** | Gebeurtenissen | Een grafiek van de gebeurtenissen die een host, een gebruiker of een IP-adres delen |
 | **Detectieregels** | Detections | Sigma-regels die volgens een schema draaien en zaken openen |
@@ -231,11 +232,19 @@ De zoekbalk spreekt dezelfde taal als de andere telemetrieverkenners (zie [Zoeks
 | `@<attribute>:*` | Het attribuut is aanwezig | `@threat.indicator_id:*` |
 | `@<attribute>:~text` | Het attribuut bevat de tekst | `@finding_info.title:~ransom` |
 
-Een veld is ofwel een korte naam (`severity`, `class`, `category`, `activity`, `status`, `vendor`, `product`, `rule`, `user`, `host`, `ip`, `targetuser`, `targethost`, `targetip`, `processname`, `commandline`, `parentprocessname`, `observable`, `tactic`, `technique`) ofwel de eigen naam van het veld, zoals `severityName` of `principalHost`. Elke andere naam wordt gelezen als bronattribuut. `observable:<value>` vindt elke gebeurtenis die een waarde noemt, aan welke kant van de activiteit die ook stond.
+Een veld is ofwel een korte naam (`severity`, `class`, `category`, `activity`, `status`, `vendor`, `product`, `rule`, `user`, `host`, `ip`, `targetuser`, `targethost`, `targetip`, `processname`, `commandline`, `parentprocessname`, `observable`, `tactic`, `technique`, `requestoutcome`, `trace`, `session`) ofwel de eigen naam van het veld, zoals `severityName` of `principalHost`. Elke andere naam wordt gelezen als bronattribuut. `observable:<value>` vindt elke gebeurtenis die een waarde noemt, aan welke kant van de activiteit die ook stond.
 
 ### Facetten
 
-De zijbalk telt de gebeurtenissen in het venster per **Bron**, **Ernst**, **Gebeurtenisklasse**, **Categorie**, **Activiteit**, **Status**, **Leverancier**, **Product**, **Detectieregel**, **Brongebruiker**, **Bronhost**, **Proces** en **Bovenliggend proces**. Klik op een waarde om alleen haar gebeurtenissen te houden, of op het minteken ernaast om ze weg te laten. Klik nog eens om dat ongedaan te maken. De grafiek en elke telling beschrijven precies de gebeurtenissen in de lijst.
+De zijbalk telt de gebeurtenissen in het venster per **Bron**, **Ernst**, **Request Outcome**, **Gebeurtenisklasse**, **Categorie**, **Activiteit**, **Status**, **Leverancier**, **Product**, **Detectieregel**, **Brongebruiker**, **Bronhost**, **Proces** en **Bovenliggend proces**. Klik op een waarde om alleen haar gebeurtenissen te houden, of op het minteken ernaast om ze weg te laten. Klik nog eens om dat ongedaan te maken. De grafiek en elke telling beschrijven precies de gebeurtenissen in de lijst.
+
+### Wat er daarna gebeurde
+
+Een gebeurtenis uit een logregel die binnen een getracet verzoek is geschreven, wordt in dat verzoek gevolgd. Het paneel zegt hoe ver het verzoek kwam (**Afgewezen**, **Reached App**, **Errored** of **Reached Database**), wie het stuurde, en linkt naar de trace, de uitzondering, de sessieherhaling en de logregel zelf. Een logregel, een trace en een uitzondering die deel zijn van een aanval zeggen dat ook op hun eigen pagina's.
+
+### Campaigns
+
+**Campaigns** toont elk adres dat aanvalsverzoeken stuurde als één rij, met de soorten aanval, de tools en de verzoeken die het stuurde, en hoeveel erdoor kwamen. De adressen waarvan verzoeken je app bereikten, staan bovenaan.
 
 ### Correleren
 

@@ -143,6 +143,8 @@ describe("search_security_events", () => {
       vendorName: true,
       ruleName: true,
       mitreTechniques: true,
+      traceId: true,
+      requestOutcome: true,
     });
 
     const query: JSONObject = call["query"] as JSONObject;
@@ -881,6 +883,8 @@ describe("securityEventSearchRow", () => {
             vendorName: "Microsoft",
             ruleName: "Injection into explorer",
             mitreTechniques: ["T1055"],
+            traceId: "4bf92f3577b34da6a3ce929d0e0e4736",
+            requestOutcome: "Reached App",
           }),
         ),
       ),
@@ -909,7 +913,26 @@ describe("securityEventSearchRow", () => {
       "vendor",
       "rule",
       "techniques",
+      "traceId",
+      "requestOutcome",
     ]);
+  });
+
+  test("names the request an event happened in, so the model can open its trace", () => {
+    const row: JSONObject = securityEventSearchRow(
+      securityEvent({
+        message: "SQL injection attempt: GET /x → 404",
+        traceId: "4bf92f3577b34da6a3ce929d0e0e4736",
+        requestOutcome: "Rejected",
+      }),
+    );
+
+    expect(row["traceId"]).toBe("4bf92f3577b34da6a3ce929d0e0e4736");
+    expect(row["requestOutcome"]).toBe("Rejected");
+    // An event in no request says nothing of one.
+    expect(
+      securityEventSearchRow(securityEvent({ message: "x", traceId: "" })),
+    ).toEqual({ message: "x" });
   });
 
   test("reads the process that acted as the same one whatever its case", () => {

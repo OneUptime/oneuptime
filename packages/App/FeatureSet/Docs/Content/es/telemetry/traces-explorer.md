@@ -22,7 +22,7 @@ flowchart TB
     pay --> call["Span: llamar al<br/>proveedor de pagos"]
 ```
 
-Cada fila del explorador es un span, así que un servicio con mucho trabajo llena la lista con sus consultas a la base de datos y sus llamadas internas. Para listar una fila por solicitud, elija **Root spans** en **Categoría de span** en la barra lateral.
+Cada fila del explorador es un span. De forma predeterminada, la lista muestra **Entry spans**, los spans en los que una solicitud o un mensaje entra en un servicio, así que una solicitud aparece una vez por cada servicio al que llega, mientras que las consultas a la base de datos y las llamadas internas quedan fuera de la lista. Para listar una fila por solicitud, elija **Root spans** en **Categoría de span** en la barra lateral; para listar cada operación, elija **All spans**.
 
 El explorador tiene cinco pestañas:
 
@@ -175,7 +175,7 @@ Nombran un span padre que OneUptime no ha recibido, a menudo porque el servicio 
 :::
 
 :::details La lista muestra muchas más filas que solicitudes
-Cada fila es un span, no una solicitud. Elija **Root spans** en **Categoría de span** en la barra lateral para listar una fila por solicitud.
+Cada fila es un span, no una solicitud: con **Entry spans**, el valor predeterminado, una solicitud aparece una vez por cada servicio al que llega, y con **All spans**, una vez por cada operación. Elija **Root spans** en **Categoría de span** en la barra lateral para listar una fila por solicitud.
 :::
 
 ## Próximos pasos

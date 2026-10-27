@@ -15,8 +15,8 @@ import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
 import Card from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
+import ProviderLogoImage from "Common/UI/Components/ProviderLogo/ProviderLogoImage";
 import useTranslateValue from "Common/UI/Utils/Translation";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -59,11 +59,7 @@ export const WorkspaceConnectionTile: FunctionComponent<WorkspaceTileProps> = (
       data-connected={props.isConnected ? "true" : "false"}
       className="flex items-start gap-4 rounded-lg border border-gray-200 bg-white p-4"
     >
-      <div
-        className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg ${copy.iconBackgroundClassName}`}
-      >
-        <Icon icon={copy.icon} className="h-5 w-5 text-white" />
-      </div>
+      <ProviderLogoImage logo={copy.logo} size={40} isDecorative={true} />
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-sm font-medium text-gray-900">

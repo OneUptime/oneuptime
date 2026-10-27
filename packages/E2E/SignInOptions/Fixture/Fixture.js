@@ -271,29 +271,30 @@ const loadStatusPage = async () => {
   };
 };
 
-const loadAccountsPage = async () => {
-  const pages = {
-    login: () => {
+/*
+ * The page the address names, one static import each: the name comes from
+ * the address, so it picks among these and nothing else is loaded or called
+ * (a lookup by name in an object of loaders is a dynamic call to CodeQL,
+ * #2416, as the locale loaders' were, #2408 and #2409).
+ */
+const importAccountsPage = (name) => {
+  switch (name) {
+    case "login":
+    case "adminlogin":
       return import("../../../App/FeatureSet/Accounts/src/Pages/Login");
-    },
-    adminlogin: () => {
-      return import("../../../App/FeatureSet/Accounts/src/Pages/Login");
-    },
-    sso: () => {
+    case "sso":
       return import("../../../App/FeatureSet/Accounts/src/Pages/LoginWithSSO");
-    },
-    register: () => {
+    case "register":
       return import("../../../App/FeatureSet/Accounts/src/Pages/Register");
-    },
-  };
-  // The name comes from the address: only the pages above are loaded.
-  if (!Object.prototype.hasOwnProperty.call(pages, page)) {
-    throw new Error(`No such page in this fixture: ${page}`);
+    default:
+      throw new Error(`No such page in this fixture: ${name}`);
   }
+};
 
+const loadAccountsPage = async () => {
   const [i18nModule, pageModule] = await Promise.all([
     import("../../../App/FeatureSet/Accounts/src/Utils/i18n"),
-    pages[page](),
+    importAccountsPage(page),
   ]);
   const Page = pageModule.default;
 

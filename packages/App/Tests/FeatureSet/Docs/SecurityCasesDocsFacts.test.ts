@@ -503,8 +503,13 @@ describe("Security Cases and Playbooks docs", () => {
       .map((item: string): string => {
         return item.slice(0, item.indexOf("**"));
       })
+      // The Overview's own cards, described beside it: not pages of the menu.
       .filter((title: string): boolean => {
-        return title !== "OneUptime AI" && title !== "MITRE ATT&CK";
+        return (
+          title !== "OneUptime AI" &&
+          title !== "Impact" &&
+          title !== "MITRE ATT&CK"
+        );
       });
 
     expect(described).toEqual(

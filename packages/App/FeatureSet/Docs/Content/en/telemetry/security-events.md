@@ -36,6 +36,7 @@ Open **Products → Security Events**, under **Observability**. Its menu has a s
 | **Closed Cases** | Security Cases | The cases closed with a verdict, the latest first |
 | **All Cases** | Security Cases | Every case, open or closed |
 | **Events** | Events | Search and filter every event, and open one to see all its fields |
+| **Campaigns** | Events | Every address that sent attack requests, and whether any of its requests got through |
 | **Entity Risk** | Events | Every user, host and address scored by what was found about it this week, the riskiest first |
 | **Correlate** | Events | A graph of the events that share a host, a user or an IP address |
 | **Detection Rules** | Detections | Sigma rules that run on a schedule and open cases |
@@ -231,11 +232,19 @@ The search bar speaks the same language as the other telemetry explorers (see [S
 | `@<attribute>:*` | The attribute is present | `@threat.indicator_id:*` |
 | `@<attribute>:~text` | The attribute contains the text | `@finding_info.title:~ransom` |
 
-A field is either a short name (`severity`, `class`, `category`, `activity`, `status`, `vendor`, `product`, `rule`, `user`, `host`, `ip`, `targetuser`, `targethost`, `targetip`, `processname`, `commandline`, `parentprocessname`, `observable`, `tactic`, `technique`) or the field's own name, such as `severityName` or `principalHost`. Any other name is read as a source attribute. `observable:<value>` finds every event that mentions a value, on whichever side of the activity it was.
+A field is either a short name (`severity`, `class`, `category`, `activity`, `status`, `vendor`, `product`, `rule`, `user`, `host`, `ip`, `targetuser`, `targethost`, `targetip`, `processname`, `commandline`, `parentprocessname`, `observable`, `tactic`, `technique`, `requestoutcome`, `trace`, `session`) or the field's own name, such as `severityName` or `principalHost`. Any other name is read as a source attribute. `observable:<value>` finds every event that mentions a value, on whichever side of the activity it was.
 
 ### Facets
 
-The sidebar counts the window's events by **Source**, **Severity**, **Event Class**, **Category**, **Activity**, **Status**, **Vendor**, **Product**, **Detection Rule**, **Principal User**, **Principal Host**, **Process** and **Parent Process**. Click a value to keep only its events, or the minus beside it to leave them out. Click it again to undo. The chart and every count describe exactly the events in the list.
+The sidebar counts the window's events by **Source**, **Severity**, **Request Outcome**, **Event Class**, **Category**, **Activity**, **Status**, **Vendor**, **Product**, **Detection Rule**, **Principal User**, **Principal Host**, **Process** and **Parent Process**. Click a value to keep only its events, or the minus beside it to leave them out. Click it again to undo. The chart and every count describe exactly the events in the list.
+
+### What happened next
+
+An event read from a log line written inside a traced request is followed into that request. Its panel says how far the request got (**Rejected**, **Reached App**, **Errored** or **Reached Database**), who sent it, and links to its trace, its exception, its session replay and the log line itself. A log line, a trace and an exception that are part of an attack say so on their own pages too.
+
+### Campaigns
+
+**Campaigns** lists every address that sent attack requests as one row, with the kinds of attack, the tools and the requests it sent, and how many got through. The ones whose requests reached your app come first.
 
 ### Correlate
 

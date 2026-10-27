@@ -62,8 +62,10 @@ const router: ExpressRouter = Express.getRouter();
 export const TELEMETRY_AI_LOGS_MAX_SKIP: number = 10000;
 
 /*
- * A signed-in user, inside exactly one project: the tenant the request is
- * authenticated for.
+ * A signed-in member, inside exactly one project: the tenant the request is
+ * authenticated for, which they belong to. The tenant header alone is the
+ * caller's word: the readiness of any project - its AI settings, its
+ * repositories and Runners - was read for anyone signed in who named it.
  */
 async function getTenantProps(req: ExpressRequest): Promise<{
   projectId: ObjectID;
@@ -74,7 +76,7 @@ async function getTenantProps(req: ExpressRequest): Promise<{
 
   CommonAPI.assertAuthenticatedUser(props);
 
-  const projectId: ObjectID = CommonAPI.assertTenantScoped(props);
+  const projectId: ObjectID = CommonAPI.assertAuthenticatedProjectMember(props);
 
   return { projectId, props: { ...props, isMultiTenantRequest: false } };
 }

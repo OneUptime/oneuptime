@@ -3,8 +3,15 @@ import Sleep from "../../../Types/Sleep";
 import UUID from "../../../Utils/UUID";
 import { JSONObject } from "../../../Types/JSON";
 import GracefulShutdown, { ShutdownPriority } from "../GracefulShutdown";
+import Telemetry from "../Telemetry";
 import { nextInsertDedupToken } from "../AnalyticsDatabase/InsertDedupContext";
 import { ClickHouseError, type ClickHouseSettings } from "@clickhouse/client";
+import OpenTelemetryAPI, {
+  Link,
+  ROOT_CONTEXT,
+  Span,
+  SpanStatusCode,
+} from "@opentelemetry/api";
 
 /*
  * Re-exported so App-side code (which does not depend on @clickhouse/client
@@ -67,6 +74,18 @@ export { type ClickHouseSettings } from "@clickhouse/client";
  * the operator — no matter how many worker pods exist. Everything else
  * (dedup tokens, ack-after-flush, retries, backpressure) is unchanged; the
  * writer tier runs this same class with the default direct transport.
+ *
+ * Tracing: a job's rows spend most of their time here waiting - for
+ * capacity, for their batch to fill or its maxWaitMs timer, for an insert
+ * slot - and none of that was in any trace: it showed as "self time" of the
+ * ingest method that awaited the ack (4.26 s of one metrics job's trace).
+ * So a traced submission gets a span of its own in the submitter's trace,
+ * "TelemetryFanInWriter.submit <table>", from submit() until its ack, with
+ * an event when its rows are buffered and one when their batch is cut. A
+ * batch carries rows of many jobs, so it is a trace of its own,
+ * "TelemetryFanInWriter.insert <table>", holding the ClickHouse INSERTs and
+ * their retries; it links to every submission it carries and each of them
+ * links back to it.
  */
 
 export interface FanInInsertTarget {
@@ -191,7 +210,15 @@ type PendingSubmission = {
   dedupToken: string | undefined;
   resolveAck: () => void;
   rejectAck: (err: Error) => void;
+  // The submission's span, when it was submitted inside a trace.
+  span: Span | undefined;
 };
+
+/*
+ * A batch links to at most this many of its submissions - the SDK keeps 128
+ * links a span - and counts them all in oneuptime.fanin.submissions.
+ */
+const MAX_BATCH_SPAN_LINKS: number = 100;
 
 type TableBuffer = {
   target: FanInInsertTarget;
@@ -434,9 +461,14 @@ export class TelemetryFanInWriter {
     const dedupToken: string | undefined =
       options?.dedupToken ?? nextInsertDedupToken(tableName);
 
+    // Started before the capacity wait, so the span shows that wait too.
+    const span: Span | undefined = startSubmissionSpan(tableName, rows.length);
+
     this.acceptingSubmits++;
     try {
       await this.waitForCapacity(rows.length);
+
+      span?.addEvent("fanin.buffered");
 
       let buffer: TableBuffer | undefined = this.buffers.get(tableName);
       if (!buffer) {
@@ -453,8 +485,14 @@ export class TelemetryFanInWriter {
       let rejectAck: (err: Error) => void = () => {};
       const flushed: Promise<void> = new Promise<void>(
         (resolve: () => void, reject: (err: Error) => void) => {
-          resolveAck = resolve;
-          rejectAck = reject;
+          resolveAck = (): void => {
+            endSubmissionSpan(span);
+            resolve();
+          };
+          rejectAck = (err: Error): void => {
+            endSubmissionSpan(span, err);
+            reject(err);
+          };
         },
       );
 
@@ -464,6 +502,7 @@ export class TelemetryFanInWriter {
         dedupToken,
         resolveAck,
         rejectAck,
+        span,
       });
       buffer.rowCount += rows.length;
 
@@ -687,43 +726,97 @@ export class TelemetryFanInWriter {
    *
    * Never rejects — outcomes are routed to the submissions' acks.
    */
-  private async dispatchInsert(
+  private dispatchInsert(
     target: FanInInsertTarget,
     tableName: string,
     batch: Array<PendingSubmission>,
     batchRows: number,
   ): Promise<void> {
+    const batchSpan: Span | undefined = startBatchSpan(
+      tableName,
+      batch,
+      batchRows,
+    );
+
+    if (!batchSpan) {
+      return this.insertBatch(target, tableName, batch, batchRows).then(
+        (): void => {
+          // Outcomes went to the submissions' acks.
+        },
+      );
+    }
+
+    /*
+     * The batch's own trace, not the trace of whichever job's submit or
+     * timer happened to cut it: the inserts below are made for every job in
+     * it.
+     */
+    return OpenTelemetryAPI.context
+      .with(OpenTelemetryAPI.trace.setSpan(ROOT_CONTEXT, batchSpan), () => {
+        return this.insertBatch(target, tableName, batch, batchRows);
+      })
+      .then((failedGroups: number): void => {
+        if (failedGroups > 0) {
+          batchSpan.setStatus({
+            code: SpanStatusCode.ERROR,
+            message: `${failedGroups} insert(s) into ${tableName} failed`,
+          });
+        }
+        batchSpan.end();
+      });
+  }
+
+  /*
+   * Never rejects: outcomes are routed to the submissions' acks. Resolves
+   * with the number of token groups that could not be inserted.
+   */
+  private async insertBatch(
+    target: FanInInsertTarget,
+    tableName: string,
+    batch: Array<PendingSubmission>,
+    batchRows: number,
+  ): Promise<number> {
     await this.acquireInsertSlot();
+
+    let failedGroups: number = 0;
 
     try {
       const untokened: Array<PendingSubmission> = [];
 
       for (const submission of batch) {
         if (submission.dedupToken) {
-          await this.insertGroupWithRetry(
+          const inserted: boolean = await this.insertGroupWithRetry(
             target,
             tableName,
             [submission],
             submission.dedupToken,
           );
+          if (!inserted) {
+            failedGroups++;
+          }
         } else {
           untokened.push(submission);
         }
       }
 
       if (untokened.length > 0) {
-        await this.insertGroupWithRetry(
+        const inserted: boolean = await this.insertGroupWithRetry(
           target,
           tableName,
           untokened,
           `fanin:${tableName}:${UUID.generateTimeOrdered()}`,
         );
+        if (!inserted) {
+          failedGroups++;
+        }
       }
     } finally {
       this.pendingRows -= batchRows;
       this.releaseCapacity();
       this.releaseInsertSlot();
     }
+
+    return failedGroups;
   }
 
   /*
@@ -735,13 +828,14 @@ export class TelemetryFanInWriter {
    * load from this pod is the failure mode this component exists to
    * prevent. Never rejects — outcomes are routed to the group's acks, so
    * one group's definitive failure does not fail the batch's other groups.
+   * Resolves with whether the group was inserted.
    */
   private async insertGroupWithRetry(
     target: FanInInsertTarget,
     tableName: string,
     group: Array<PendingSubmission>,
     dedupToken: string,
-  ): Promise<void> {
+  ): Promise<boolean> {
     const rows: Array<JSONObject> = [];
     for (const submission of group) {
       for (const row of submission.rows) {
@@ -787,7 +881,7 @@ export class TelemetryFanInWriter {
             `TelemetryFanInWriter: insert into ${tableName} (${rows.length} rows) succeeded on attempt ${attempt}.`,
           );
         }
-        return;
+        return true;
       } catch (err) {
         lastError = err;
 
@@ -822,7 +916,106 @@ export class TelemetryFanInWriter {
     for (const submission of group) {
       submission.rejectAck(finalError);
     }
+
+    return false;
   }
+}
+
+/*
+ * A traced submission's span, from submit() until its ack: a child of the
+ * submitter's active span. None outside a trace, or when spans are not
+ * exported.
+ */
+function startSubmissionSpan(
+  tableName: string,
+  rowCount: number,
+): Span | undefined {
+  if (
+    !Telemetry.isSpanExportEnabled() ||
+    !OpenTelemetryAPI.trace.getActiveSpan()
+  ) {
+    return undefined;
+  }
+
+  return Telemetry.getTracer().startSpan(
+    `TelemetryFanInWriter.submit ${tableName}`,
+    {
+      attributes: {
+        "oneuptime.fanin.table": tableName,
+        "oneuptime.fanin.rows": rowCount,
+      },
+    },
+  );
+}
+
+/*
+ * Ends a submission's span when its ack settles. A failure is ERROR status
+ * and the message, never an "exception" event: the job awaiting the ack
+ * reports the error itself.
+ */
+function endSubmissionSpan(span: Span | undefined, error?: Error): void {
+  if (!span) {
+    return;
+  }
+
+  try {
+    if (error) {
+      span.setStatus({
+        code: SpanStatusCode.ERROR,
+        message: error.message.slice(0, 500),
+      });
+    }
+  } catch {
+    // An unreadable error still ends the span.
+  }
+
+  span.end();
+}
+
+/*
+ * A batch's span, a trace of its own that links to the submissions in it -
+ * and each of those, now, to it. None when no submission in it was traced.
+ */
+function startBatchSpan(
+  tableName: string,
+  batch: Array<PendingSubmission>,
+  batchRows: number,
+): Span | undefined {
+  const tracedSubmissions: Array<PendingSubmission> = batch.filter(
+    (submission: PendingSubmission): boolean => {
+      return submission.span !== undefined;
+    },
+  );
+
+  if (tracedSubmissions.length === 0 || !Telemetry.isSpanExportEnabled()) {
+    return undefined;
+  }
+
+  const links: Array<Link> = tracedSubmissions
+    .slice(0, MAX_BATCH_SPAN_LINKS)
+    .map((submission: PendingSubmission): Link => {
+      return { context: submission.span!.spanContext() };
+    });
+
+  const batchSpan: Span = Telemetry.getTracer().startSpan(
+    `TelemetryFanInWriter.insert ${tableName}`,
+    {
+      root: true,
+      links: links,
+      attributes: {
+        "oneuptime.fanin.table": tableName,
+        "oneuptime.fanin.rows": batchRows,
+        "oneuptime.fanin.submissions": batch.length,
+      },
+    },
+  );
+
+  for (const submission of tracedSubmissions) {
+    submission.span!.addEvent("fanin.batched");
+    submission.span!.addLink({ context: batchSpan.spanContext() });
+  }
+
+  return batchSpan;
 }
 
 /*

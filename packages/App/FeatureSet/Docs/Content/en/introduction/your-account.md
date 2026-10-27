@@ -25,7 +25,7 @@ Click your picture at the top right of the dashboard.
 | --- | --- |
 | **Profile** | Opens **User Profile**: your name, email, time zone, picture and sign-in security. |
 | **Admin Settings** | Opens the Admin Dashboard. Only master admins of a self-hosted installation see it. |
-| **Dark theme** | Switches the dashboard to its dark theme. In the dark theme, the item reads **Light theme**. |
+| **Theme** | Sets the dashboard's theme: **Light**, **Dark** or **System**, which is light or dark as your device is set. |
 | **Log out** | Signs you out. |
 
 **User Profile** has its own side menu. **Basic** holds **Overview** and **Profile Picture**. **Security** and **Danger Zone** are folded: click a section's title to open it.
@@ -132,7 +132,7 @@ You can belong to any number of projects. The project picker at the top left of 
 Both are saved in your browser, not in your account, so set them again on another browser or device.
 
 - **Language**: the dashboard starts in your browser's language. To change it, use the language menu at the bottom of any page. These docs have a language menu of their own, at the top.
-- **Theme**: choose **Dark theme** in the user menu. The dashboard starts in the light theme.
+- **Theme**: choose **Light**, **Dark** or **System** in the user menu. **System** is light or dark as your device is set, and changes with it; every browser starts with it. The sign-in pages use the same theme.
 
 ## Deleting your account
 

@@ -1783,6 +1783,11 @@ function spansInMinute(minute) {
         hasException:
           statusCode === SpanStatus.Error && hash(...seed, 9) % 3 !== 0,
         isRootSpan,
+        // Where work enters a service: the root, or a SERVER / CONSUMER span.
+        isEntrySpan:
+          isRootSpan ||
+          operation.kind === "SPAN_KIND_SERVER" ||
+          operation.kind === "SPAN_KIND_CONSUMER",
         attributes: {
           "resource.service.name": service.name,
           "resource.service.instance.id":
@@ -1920,6 +1925,9 @@ function contains(text, part) {
 const SPAN_BODY_FILTERS = {
   rootOnly: (row, value) => {
     return value !== true || row.isRootSpan;
+  },
+  entryOnly: (row, value) => {
+    return value !== true || row.isEntrySpan;
   },
   serviceIds: (row, ids) => {
     return ids.map(String).includes(String(row.primaryEntityId));
@@ -2124,6 +2132,11 @@ const SPAN_FACETS = {
   isRootSpan: (rows) => {
     return countBy(rows, (row) => {
       return String(row.isRootSpan);
+    });
+  },
+  isEntrySpan: (rows) => {
+    return countBy(rows, (row) => {
+      return String(row.isEntrySpan);
     });
   },
   hasException: (rows) => {

@@ -36,6 +36,7 @@ flowchart TB
 | **已关闭案例** | 安全案例 | 已给出结论并关闭的案例，最近的在前 |
 | **全部案例** | 安全案例 | 每个案例，无论未结还是已关闭 |
 | **事件** | 事件 | 搜索和过滤每个事件，并打开某个事件查看它的所有字段 |
+| **Campaigns** | 事件 | 每个发送过攻击请求的地址，以及它的请求中是否有任何一个通过 |
 | **实体风险** | 事件 | 按本周发现评分的每个用户、主机和地址，风险最高的在前 |
 | **关联分析** | 事件 | 共享同一主机、用户或 IP 地址的事件构成的图 |
 | **检测规则** | Detections | 按计划运行并打开案例的 Sigma 规则 |
@@ -231,11 +232,19 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 | `@<attribute>:*` | 存在该属性 | `@threat.indicator_id:*` |
 | `@<attribute>:~text` | 属性包含该文本 | `@finding_info.title:~ransom` |
 
-字段要么是简称（`severity`、`class`、`category`、`activity`、`status`、`vendor`、`product`、`rule`、`user`、`host`、`ip`、`targetuser`、`targethost`、`targetip`、`processname`、`commandline`、`parentprocessname`、`observable`、`tactic`、`technique`），要么是字段本身的名称，例如 `severityName` 或 `principalHost`。任何其他名称都会被读作来源属性。`observable:<value>` 会找出提到某个值的每个事件，无论该值出现在活动的哪一方。
+字段要么是简称（`severity`、`class`、`category`、`activity`、`status`、`vendor`、`product`、`rule`、`user`、`host`、`ip`、`targetuser`、`targethost`、`targetip`、`processname`、`commandline`、`parentprocessname`、`observable`、`tactic`、`technique`、`requestoutcome`、`trace`、`session`），要么是字段本身的名称，例如 `severityName` 或 `principalHost`。任何其他名称都会被读作来源属性。`observable:<value>` 会找出提到某个值的每个事件，无论该值出现在活动的哪一方。
 
 ### 分面
 
-侧栏按 **来源**、**严重程度**、**事件类别**、**类别**、**活动**、**状态**、**供应商**、**产品**、**检测规则**、**源用户**、**源主机**、**进程** 和 **父进程** 统计时间窗口内的事件。点击某个值只保留它的事件，点击旁边的减号则排除它们。再次点击即可撤销。图表和每个计数描述的正是列表中的事件。
+侧栏按 **来源**、**严重程度**、**Request Outcome**、**事件类别**、**类别**、**活动**、**状态**、**供应商**、**产品**、**检测规则**、**源用户**、**源主机**、**进程** 和 **父进程** 统计时间窗口内的事件。点击某个值只保留它的事件，点击旁边的减号则排除它们。再次点击即可撤销。图表和每个计数描述的正是列表中的事件。
+
+### 之后发生了什么
+
+从已追踪请求中写入的日志行读取的事件，会被一路跟进到该请求中。它的面板会说明请求走到了哪一步（**已拒绝**、**Reached App**、**Errored** 或 **Reached Database**）以及是谁发送的，并链接到它的追踪、异常、会话回放以及日志行本身。属于某次攻击的日志行、追踪和异常，也会在它们自己的页面上说明这一点。
+
+### Campaigns
+
+**Campaigns** 把每个发送过攻击请求的地址列为一行，包括攻击类型、工具、发送的请求，以及有多少请求通过。请求到达了你的应用的地址排在最前面。
 
 ### 关联分析
 

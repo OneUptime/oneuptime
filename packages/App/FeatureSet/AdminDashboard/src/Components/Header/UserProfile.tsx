@@ -5,10 +5,10 @@ import IconProp from "Common/Types/Icon/IconProp";
 import HeaderIconDropdownButton from "Common/UI/Components/Header/HeaderIconDropdownButton";
 import IconDropdownItem from "Common/UI/Components/Header/IconDropdown/IconDropdownItem";
 import IconDropdownMenu from "Common/UI/Components/Header/IconDropdown/IconDropdownMenu";
+import ThemeChoiceRow from "Common/UI/Components/Header/IconDropdown/ThemeChoiceRow";
 import { DASHBOARD_URL } from "Common/UI/Config";
 import BlankProfilePic from "Common/UI/Images/users/blank-profile.svg";
 import Navigation from "Common/UI/Utils/Navigation";
-import ThemeUtil, { Theme, useTheme } from "Common/UI/Utils/Theme";
 import User from "Common/UI/Utils/User";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -16,7 +16,6 @@ import { useTranslation } from "react-i18next";
 const DashboardUserProfile: FunctionComponent = (): ReactElement => {
   const { t } = useTranslation();
   const [isDropdownVisible, setIsDropdownVisible] = useState<boolean>(false);
-  const theme: Theme = useTheme();
 
   return (
     <>
@@ -42,18 +41,11 @@ const DashboardUserProfile: FunctionComponent = (): ReactElement => {
             <></>
           )}
 
-          <IconDropdownItem
-            title={
-              theme === Theme.Dark
-                ? t("userProfile.lightTheme", "Light theme")
-                : t("userProfile.darkTheme", "Dark theme")
-            }
-            onClick={() => {
-              ThemeUtil.toggleTheme();
-              setIsDropdownVisible(false);
-            }}
-            icon={theme === Theme.Dark ? IconProp.Sun : IconProp.Moon}
-          />
+          {/*
+           * Light, Dark or System - as the device is set: the person's theme
+           * here, in the Dashboard and on the sign-in pages.
+           */}
+          <ThemeChoiceRow />
 
           <IconDropdownItem
             title={t("userProfile.logOut")}

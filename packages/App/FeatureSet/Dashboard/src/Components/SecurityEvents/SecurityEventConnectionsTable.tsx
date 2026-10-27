@@ -10,6 +10,7 @@ import { Green, Red } from "Common/Types/BrandColors";
 import { VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import {
+  SecurityEventConnectorDefinition,
   getSecurityEventConnectorDefinition,
   getSecurityEventConnectorTitle,
 } from "Common/Types/SecurityEvent/Connectors/SecurityEventConnectorCatalog";
@@ -18,6 +19,7 @@ import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
+import ProviderLogoImage from "Common/UI/Components/ProviderLogo/ProviderLogoImage";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import PermissionGate, {
   ModelAction,
@@ -42,6 +44,14 @@ import {
 import SecurityEventConnectionFormModal from "./SecurityEventConnectionFormModal";
 import SecurityEventConnectionsEmptyState from "./SecurityEventConnectionsEmptyState";
 import SecurityEventConnectorProvider from "Common/Types/SecurityEvent/Connectors/SecurityEventConnectorProvider";
+
+/*
+ * The Provider column's logo slot: as wide as a 16px wordmark (Splunk's is
+ * 24px), the mark centred in it, level with the name's first line - so the
+ * names after the marks line up down the column.
+ */
+export const PROVIDER_COLUMN_LOGO_SLOT_CLASS_NAME: string =
+  "mt-0.5 inline-flex w-6 flex-shrink-0 justify-center";
 
 interface FormModalState {
   connection: SecurityEventConnection | null;
@@ -347,16 +357,39 @@ const SecurityEventConnectionsTable: FunctionComponent = (): ReactElement => {
                * connection that skips non-alerting records is visible
                * without opening it.
                */
+              const definition: SecurityEventConnectorDefinition | undefined =
+                getSecurityEventConnectorDefinition(item.provider);
               const scope: string | undefined = connectorScopeSummary(
-                getSecurityEventConnectorDefinition(item.provider),
+                definition,
                 item.alertingOnly,
               );
+              /*
+               * The mark sits in a slot as wide as a wordmark's (Splunk's),
+               * centred, so every product's name in the column starts on
+               * one line however wide its mark is.
+               */
               return (
-                <div>
-                  <span>{getSecurityEventConnectorTitle(item.provider)}</span>
-                  {scope && (
-                    <div className="text-xs text-gray-500">{scope}</div>
+                <div className="flex items-start gap-2">
+                  {definition ? (
+                    <span
+                      className={PROVIDER_COLUMN_LOGO_SLOT_CLASS_NAME}
+                      data-testid="security-event-connection-provider-logo-slot"
+                    >
+                      <ProviderLogoImage
+                        logo={definition.logo}
+                        isBare={true}
+                        isDecorative={true}
+                      />
+                    </span>
+                  ) : (
+                    <></>
                   )}
+                  <div className="min-w-0">
+                    <span>{getSecurityEventConnectorTitle(item.provider)}</span>
+                    {scope && (
+                      <div className="text-xs text-gray-500">{scope}</div>
+                    )}
+                  </div>
                 </div>
               );
             },

@@ -36,6 +36,7 @@ Ouvrez **Produits → Événements de sécurité**, sous **Observabilité**. Son
 | **Dossiers fermés** | Dossiers de sécurité | Les dossiers fermés avec un verdict, les plus récents en premier |
 | **Tous les dossiers** | Dossiers de sécurité | Chaque dossier, ouvert ou fermé |
 | **Événements** | Événements | Rechercher et filtrer tous les événements, et en ouvrir un pour voir tous ses champs |
+| **Campaigns** | Événements | Chaque adresse qui a envoyé des requêtes d'attaque, et si l'une de ses requêtes est passée |
 | **Risque des entités** | Événements | Chaque utilisateur, hôte et adresse, noté selon ce qui a été trouvé à son sujet cette semaine, les plus à risque d'abord |
 | **Corréler** | Événements | Un graphe des événements qui partagent un hôte, un utilisateur ou une adresse IP |
 | **Règles de détection** | Détections | Des règles Sigma qui s'exécutent selon un calendrier et ouvrent des dossiers |
@@ -231,11 +232,19 @@ La barre de recherche parle le même langage que les autres explorateurs de tél
 | `@<attribute>:*` | L'attribut est présent | `@threat.indicator_id:*` |
 | `@<attribute>:~text` | L'attribut contient le texte | `@finding_info.title:~ransom` |
 
-Un champ est soit un nom court (`severity`, `class`, `category`, `activity`, `status`, `vendor`, `product`, `rule`, `user`, `host`, `ip`, `targetuser`, `targethost`, `targetip`, `processname`, `commandline`, `parentprocessname`, `observable`, `tactic`, `technique`), soit le nom propre du champ, comme `severityName` ou `principalHost`. Tout autre nom est lu comme un attribut de la source. `observable:<value>` trouve chaque événement qui mentionne une valeur, de quelque côté de l'activité qu'elle se trouve.
+Un champ est soit un nom court (`severity`, `class`, `category`, `activity`, `status`, `vendor`, `product`, `rule`, `user`, `host`, `ip`, `targetuser`, `targethost`, `targetip`, `processname`, `commandline`, `parentprocessname`, `observable`, `tactic`, `technique`, `requestoutcome`, `trace`, `session`), soit le nom propre du champ, comme `severityName` ou `principalHost`. Tout autre nom est lu comme un attribut de la source. `observable:<value>` trouve chaque événement qui mentionne une valeur, de quelque côté de l'activité qu'elle se trouve.
 
 ### Facettes
 
-La barre latérale compte les événements de la fenêtre par **Source**, **Gravité**, **Classe d'événements**, **Catégorie**, **Activité**, **Statut**, **Fournisseur**, **Produit**, **Règle de détection**, **Utilisateur source**, **Hôte source**, **Processus** et **Processus parent**. Cliquez sur une valeur pour ne garder que ses événements, ou sur le signe moins à côté pour les exclure. Cliquez à nouveau pour annuler. Le graphique et chaque comptage décrivent exactement les événements de la liste.
+La barre latérale compte les événements de la fenêtre par **Source**, **Gravité**, **Request Outcome**, **Classe d'événements**, **Catégorie**, **Activité**, **Statut**, **Fournisseur**, **Produit**, **Règle de détection**, **Utilisateur source**, **Hôte source**, **Processus** et **Processus parent**. Cliquez sur une valeur pour ne garder que ses événements, ou sur le signe moins à côté pour les exclure. Cliquez à nouveau pour annuler. Le graphique et chaque comptage décrivent exactement les événements de la liste.
+
+### Ce qui s'est passé ensuite
+
+Un événement lu dans une ligne de journal écrite au sein d'une requête tracée est suivi jusque dans cette requête. Son panneau indique jusqu'où la requête est allée (**Rejeté**, **Reached App**, **Errored** ou **Reached Database**), qui l'a envoyée, et renvoie vers sa trace, son exception, son replay de session et la ligne de journal elle-même. Une ligne de journal, une trace et une exception qui font partie d'une attaque le signalent aussi sur leurs propres pages.
+
+### Campaigns
+
+**Campaigns** liste chaque adresse qui a envoyé des requêtes d'attaque sur une seule ligne, avec les types d'attaque, les outils et les requêtes qu'elle a envoyés, et combien sont passées. Les adresses dont les requêtes ont atteint votre application viennent en premier.
 
 ### Corréler
 

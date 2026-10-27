@@ -21,7 +21,11 @@
 # dropUnlinkedClientCalls=true, alone and with each database switch off,
 # which must drop an application's other unlinked client calls and nothing
 # the database switches decide about — and, with every database switch off,
-# leave the database spans alone.
+# leave the database spans alone; dropDatabaseProxySpans=false, which must
+# keep a database proxy's server span and the statement it passes on under
+# it while still dropping every other database server's span, and the proxy
+# switch on its own; and the defaults and the kept proxies again on
+# collector 0.96.0, which a release upgraded with --reuse-values still runs.
 #
 # The spans below are shaped like the ones OBI sent from the test cluster:
 # its resource carries telemetry.distro.name=opentelemetry-ebpf-instrumentation,
@@ -126,10 +130,11 @@ fs.writeFileSync(`${outDir}/image`, image);
 }
 
 # Each span is named for what must happen to it: SERVER (a database server's
-# own span, linked or not), CALL (an application's unlinked database call) and
-# CLIENT (an application's other unlinked client call) are dropped while their
-# switch is on; KEEP is always kept. Ids are hex: the collector's OTLP/JSON
-# decoder reads trace and span ids as hex, not base64.
+# own span, linked or not), CALL (an application's unlinked database call),
+# CLIENT (an application's other unlinked client call) and PROXY (a database
+# proxy's own database span, whatever its kind or parent) are dropped while
+# their switch is on; KEEP is always kept. Ids are hex: the collector's
+# OTLP/JSON decoder reads trace and span ids as hex, not base64.
 node -e '
 const fs = require("fs");
 const OBI = "opentelemetry-ebpf-instrumentation";
@@ -153,10 +158,13 @@ function span(name, kind, parentSpanId, attributes, statusCode) {
   }
   return s;
 }
-function resource(distro, service, spans) {
+function resource(distro, service, spans, extra = {}) {
   const attributes = [{ key: "service.name", value: { stringValue: service } }];
   if (distro) {
     attributes.push({ key: "telemetry.distro.name", value: { stringValue: distro } });
+  }
+  for (const [key, value] of Object.entries(extra)) {
+    attributes.push({ key, value: { stringValue: value } });
   }
   return { resource: { attributes }, scopeSpans: [{ scope: { name: "behaviour" }, spans }] };
 }
@@ -184,6 +192,13 @@ const probeCall = span("CLIENT probe unlinked POST /probe-ingest/monitor/list, t
   "server.address": "oneuptime-app",
   "service.peer.name": "oneuptime-app",
 });
+// PgBouncer, a database server AND a client: OBI records a SERVER span for
+// each statement an application sends it, and a CLIENT span, under that
+// server span, for the statement it passes on to PostgreSQL. The server span
+// goes or stays with the proxy switch alone: dropped with it on, and exempt
+// from the database-server condition with it off.
+const pgbouncerServer = span("PROXY pgbouncer server SELECT from the app", SERVER, "", { "db.system.name": "postgresql", "db.operation.name": "SELECT" });
+const postgres = { "db.system.name": "postgresql", "db.operation.name": "SELECT", "server.address": "oneuptime-postgresql-cnpg-rw.default", "server.port": "5432" };
 const payload = {
   resourceSpans: [
     // valkey-server: its own span for every command it receives, unlinked
@@ -239,6 +254,26 @@ const payload = {
       // duplicate of that call, and dropped like the unlinked one.
       span("SERVER postgres server SELECT linked under the call", SERVER, PARENT, { "db.system.name": "postgresql" }),
     ]),
+    resource(OBI, "oneuptime-pgbouncer", [
+      pgbouncerServer,
+      span("PROXY pgbouncer SELECT passed on to postgres, under its server span", CLIENT, pgbouncerServer.spanId, postgres),
+    ], { "k8s.container.name": "pgbouncer", "k8s.deployment.name": "oneuptime-pgbouncer" }),
+    // A proxy known by its service name alone: no container or workload names.
+    resource(OBI, "pgcat", [
+      span("PROXY pgcat SELECT passed on, known by service name only", CLIENT, PARENT, postgres),
+    ]),
+    // A proxy known by its StatefulSet name alone.
+    resource(OBI, "db-router", [
+      span("PROXY mongos find passed on, known by StatefulSet name only", CLIENT, PARENT, { "db.system.name": "mongodb" }),
+    ], { "k8s.statefulset.name": "mongos", "k8s.container.name": "router" }),
+    // Not a proxy: its names only contain one inside a longer word.
+    resource(OBI, "mypgbouncerapp", [
+      span("KEEP app named like a proxy, SELECT inside a request", CLIENT, PARENT, postgres),
+    ], { "k8s.container.name": "mypgbouncerapp" }),
+    // A proxy-named service pushing its own SDK spans: never touched.
+    resource(null, "pgbouncer-sdk", [
+      span("KEEP sdk SELECT from a service named like a proxy", CLIENT, PARENT, postgres),
+    ], { "k8s.container.name": "pgbouncer" }),
     // An application pushing its own SDK spans to the agent: never touched.
     resource(null, "sdk-app", [
       span("KEEP sdk unlinked redis call", CLIENT, "", { "db.system.name": "redis" }),
@@ -324,7 +359,7 @@ run_variant() {
   const fs = require("fs");
   const [exported, payloadFile, droppedList] = process.argv.slice(1);
   const dropped = droppedList.split(",").filter(Boolean);
-  const prefixes = ["KEEP", "SERVER", "CALL", "CLIENT"];
+  const prefixes = ["KEEP", "SERVER", "CALL", "CLIENT", "PROXY"];
   const kept = new Set();
   const text = fs.existsSync(exported) ? fs.readFileSync(exported, "utf8") : "";
   for (const line of text.split("\n").filter(Boolean)) {
@@ -369,11 +404,22 @@ DB=filter/ebpf-unlinked-db
 CLIENT=filter/ebpf-unlinked-client
 
 docker network create "${RUN_ID}" >/dev/null
-run_variant defaults SERVER,CALL "${DB}"
-run_variant calls-kept SERVER "${DB}" --set ebpf.dropUnlinkedDatabaseCalls=false
-run_variant client-calls SERVER,CALL,CLIENT "${DB},${CLIENT}" --set ebpf.dropUnlinkedClientCalls=true
-run_variant client-calls-db-calls-kept SERVER,CLIENT "${DB},${CLIENT}" \
+run_variant defaults SERVER,CALL,PROXY "${DB}"
+run_variant calls-kept SERVER,PROXY "${DB}" --set ebpf.dropUnlinkedDatabaseCalls=false
+run_variant client-calls SERVER,CALL,CLIENT,PROXY "${DB},${CLIENT}" --set ebpf.dropUnlinkedClientCalls=true
+run_variant client-calls-db-calls-kept SERVER,CLIENT,PROXY "${DB},${CLIENT}" \
   --set ebpf.dropUnlinkedClientCalls=true --set ebpf.dropUnlinkedDatabaseCalls=false
 run_variant client-calls-only CLIENT "${CLIENT}" --set ebpf.dropUnlinkedClientCalls=true \
-  --set ebpf.dropUnlinkedDatabaseCalls=false --set ebpf.dropDatabaseServerSpans=false
+  --set ebpf.dropUnlinkedDatabaseCalls=false --set ebpf.dropDatabaseServerSpans=false \
+  --set ebpf.dropDatabaseProxySpans=false
+# A proxy's hop kept: its server span is exempt from the database-server
+# condition, so what it passes on keeps its parent.
+run_variant proxies-kept SERVER,CALL "${DB}" --set ebpf.dropDatabaseProxySpans=false
+run_variant proxies-only PROXY "${DB}" \
+  --set ebpf.dropDatabaseServerSpans=false --set ebpf.dropUnlinkedDatabaseCalls=false
+# The collector a release upgraded with --reuse-values from a chart before the
+# 0.161.0 pin still runs: OTTL grammar moves between releases.
+run_variant defaults-collector-0-96 SERVER,CALL,PROXY "${DB}" --set image.tag=0.96.0
+run_variant proxies-kept-collector-0-96 SERVER,CALL "${DB}" --set image.tag=0.96.0 \
+  --set ebpf.dropDatabaseProxySpans=false
 echo "==> the eBPF span filters behave as documented"

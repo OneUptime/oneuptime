@@ -2039,7 +2039,8 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
       columns
         .append(keyStatement)
         .append(SQL` `)
-        .append(this.toFullColumnType(column));
+        .append(this.toFullColumnType(column))
+        .append(StatementGenerator.toDefaultExpressionClause(column));
 
       // Append CODEC if specified
       if (column.codec) {
@@ -2224,6 +2225,31 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
       .join(", ");
   }
 
+  /*
+   * ` DEFAULT <expression>` for a column that declares one (see
+   * AnalyticsTableColumn.defaultExpression), "" otherwise. It follows the
+   * type and comes before CODEC, the order ClickHouse reads a column
+   * definition in. Written as raw SQL, like the codec: an expression cannot be
+   * a query parameter. It comes from a model, never from input, and an empty
+   * one or one carrying a `;` (a second statement) is refused rather than
+   * written into the DDL.
+   */
+  public static toDefaultExpressionClause(column: AnalyticsTableColumn): string {
+    const expression: string | undefined = column.defaultExpression;
+
+    if (expression === undefined) {
+      return "";
+    }
+
+    if (expression.trim().length === 0 || expression.includes(";")) {
+      throw new BadDataException(
+        `Column ${column.key} has an invalid default expression.`,
+      );
+    }
+
+    return ` DEFAULT ${expression.trim()}`;
+  }
+
   public toDoesColumnExistStatement(columnName: string): string {
     const statement: string = `SELECT name FROM system.columns WHERE table = '${
       this.model.tableName
@@ -2240,10 +2266,15 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     // Build column definition without skip index (indexes must be added separately via ADD INDEX)
     const columnDef: Statement = new Statement();
 
+    /*
+     * The DEFAULT goes in with the column, in the same statement: rows stored
+     * before it read the expression only if the column was added with it.
+     */
     columnDef
       .append(column.key)
       .append(SQL` `)
-      .append(this.toFullColumnType(column));
+      .append(this.toFullColumnType(column))
+      .append(StatementGenerator.toDefaultExpressionClause(column));
 
     if (column.codec) {
       columnDef.append(

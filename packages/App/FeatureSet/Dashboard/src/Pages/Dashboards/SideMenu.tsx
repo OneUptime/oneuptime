@@ -5,12 +5,17 @@ import IconProp from "Common/Types/Icon/IconProp";
 import SideMenu, {
   SideMenuSectionProps,
 } from "Common/UI/Components/SideMenu/SideMenu";
+import Navigation from "Common/UI/Utils/Navigation";
 import React, { ReactElement } from "react";
 import Dashboard from "Common/Models/DatabaseModels/Dashboard";
 import { addDeveloperSideMenuSection } from "../../Components/DeveloperDocs/DeveloperDocsMenuSection";
 import { DeveloperDocsScope } from "../../Components/DeveloperDocs/DeveloperDocsPages";
 
 const DashboardsSideMenu: () => ReactElement = (): ReactElement => {
+  const playlistViewRoute: Route = RouteUtil.populateRouteParams(
+    RouteMap[PageMap.DASHBOARD_PLAYLIST_VIEW] as Route,
+  );
+
   const sections: SideMenuSectionProps[] = [
     {
       title: "Dashboards",
@@ -23,6 +28,22 @@ const DashboardsSideMenu: () => ReactElement = (): ReactElement => {
             ),
           },
           icon: IconProp.Window,
+        },
+        /*
+         * Dashboards shown one after another on a screen (issue #5235). A
+         * playlist's own page keeps it marked: the playlist is one of these.
+         */
+        {
+          link: {
+            title: "Playlists",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.DASHBOARD_PLAYLISTS] as Route,
+            ),
+          },
+          activeRoute: Navigation.isOnThisPage(playlistViewRoute)
+            ? playlistViewRoute
+            : undefined,
+          icon: IconProp.QueueList,
         },
       ],
     },

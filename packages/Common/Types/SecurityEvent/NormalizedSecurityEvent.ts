@@ -1,5 +1,6 @@
 import { JSONObject } from "../JSON";
 import OcsfSeverity from "./OcsfSeverity";
+import SecurityEventRequestOutcome from "./SecurityEventRequestOutcome";
 
 /*
  * The canonical, dialect-neutral shape every ingested security event is
@@ -105,4 +106,22 @@ export default interface NormalizedSecurityEvent {
    * values.
    */
   attributes: JSONObject;
+
+  /*
+   * The request the event happened in, when the source carries its trace
+   * context: a log line written inside a traced request, an event sent with
+   * a W3C trace id. What links the event to its trace, its spans, the
+   * exception it threw and the session it was part of. Absent (or empty)
+   * when the source says nothing - every writer that predates them.
+   */
+  traceId?: string | undefined;
+  spanId?: string | undefined;
+  sessionId?: string | undefined;
+
+  /*
+   * How far that request got, as its trace shows
+   * (Types/SecurityEvent/SecurityEventRequestOutcome). Absent when nobody
+   * followed it.
+   */
+  requestOutcome?: SecurityEventRequestOutcome | undefined;
 }

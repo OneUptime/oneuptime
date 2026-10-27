@@ -247,6 +247,7 @@ const SecurityEventDestinationFormModal: FunctionComponent<ComponentProps> = (
                   title: definition.title,
                   description: definition.description,
                   icon: definition.icon,
+                  logo: definition.logo,
                 };
               },
             ),

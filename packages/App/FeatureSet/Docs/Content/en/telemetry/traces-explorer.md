@@ -22,7 +22,7 @@ flowchart TB
     pay --> call["Span: call the<br/>payment provider"]
 ```
 
-Each row of the explorer is a span, so a busy service fills the list with its database queries and internal calls. To list one row per request, pick **Root spans** under **Span Type** in the sidebar.
+Each row of the explorer is a span. By default the list shows **Entry spans**, the spans where a request or message enters a service, so a request appears once for each service it reaches and its database queries and internal calls stay out of the list. Under **Span Type** in the sidebar, pick **Root spans** to list one row per request, or **All spans** to list every operation.
 
 The explorer has five tabs:
 
@@ -175,7 +175,7 @@ They name a parent span that OneUptime has not received, often because the servi
 :::
 
 :::details The list shows far more rows than requests
-Each row is a span, not a request. Pick **Root spans** under **Span Type** in the sidebar to list one row per request.
+Each row is a span, not a request: with **Entry spans**, the default, a request appears once for each service it reaches, and with **All spans** once for every operation. Pick **Root spans** under **Span Type** in the sidebar to list one row per request.
 :::
 
 ## Next steps

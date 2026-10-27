@@ -348,6 +348,8 @@ describe("TracesViewer — a facet for every resource type", () => {
       ...RESOURCE_FACET_CATALOG_KEYS,
       "statusCode",
       "kind",
+      // The Span Type facet's Entry spans and Root spans counts.
+      "isEntrySpan",
       "isRootSpan",
       "hasException",
       "name",

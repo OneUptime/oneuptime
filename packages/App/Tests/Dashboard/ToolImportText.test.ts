@@ -18,7 +18,8 @@ import {
   TOOL_IMPORT_STATUS_LABELS,
   TOOL_IMPORT_TOOL_COPY,
 } from "../../FeatureSet/Dashboard/src/Components/ToolImport/ToolImportText";
-import { TOOL_IMPORT_BRANDS } from "../../FeatureSet/Dashboard/src/Components/ToolImport/ToolImportBrand";
+import { TOOL_IMPORT_LOGOS } from "../../FeatureSet/Dashboard/src/Components/ToolImport/ToolImportBrand";
+import { isProviderLogo } from "Common/Types/ProviderLogo/ProviderLogo";
 import CustomFieldType from "Common/Types/CustomField/CustomFieldType";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import { TOOL_IMPORT_MONITOR_TYPES } from "Common/Types/ToolImport/ToolImportMonitorBuilder";
@@ -176,7 +177,7 @@ describe("every code and enum the import sends has words", () => {
 
 describe("every tool says how to make its key", () => {
   test.each(AllToolImportSources)(
-    "%s has a description, numbered steps, a key label and a tile",
+    "%s has a description, numbered steps, a key label and its official logo",
     (source: ToolImportSource) => {
       const copy: (typeof TOOL_IMPORT_TOOL_COPY)[ToolImportSource] =
         TOOL_IMPORT_TOOL_COPY[source];
@@ -186,8 +187,8 @@ describe("every tool says how to make its key", () => {
       expect(copy.keyLabel).toContain(
         getToolImportSourceDefinition(source).title,
       );
-      expect(TOOL_IMPORT_BRANDS[source].initial).toBeTruthy();
-      expect(TOOL_IMPORT_BRANDS[source].color).toMatch(/^#[0-9A-Fa-f]{6}$/);
+      // Its tile is the tool's own logo (official logos audit).
+      expect(isProviderLogo(TOOL_IMPORT_LOGOS[source])).toBe(true);
     },
   );
 

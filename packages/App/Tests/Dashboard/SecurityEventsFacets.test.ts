@@ -103,10 +103,11 @@ function row(facetKey: string, value: unknown, count: number): AggregatedModel {
 }
 
 describe("the facet catalog", () => {
-  test("offers the OCSF dimensions a responder triages by, Source and Severity first", () => {
+  test("offers the OCSF dimensions a responder triages by, Source, Severity and how far the request got first", () => {
     expect(SECURITY_EVENT_FACET_KEYS).toEqual([
       "primaryEntityId",
       "severityName",
+      "requestOutcome",
       "className",
       "categoryName",
       "activityName",

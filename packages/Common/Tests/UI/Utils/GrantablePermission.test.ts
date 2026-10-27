@@ -161,7 +161,7 @@ afterEach(() => {
 });
 
 describe("a permission row that reaches the whole project", () => {
-  test("scope All does, labels or not", () => {
+  test("scope All does without labels; its labels narrow it, as the server reads it", () => {
     expect(
       isUnrestrictedPermission(
         row({
@@ -174,6 +174,16 @@ describe("a permission row that reaches the whole project", () => {
       isUnrestrictedPermission(
         row({
           permission: Permission.ProjectMember,
+          scope: PermissionScope.All,
+          labels: [LABEL_ID],
+        }),
+      ),
+    ).toBe(false);
+    // A role that cannot be scoped reaches the whole project whatever it carries.
+    expect(
+      isUnrestrictedPermission(
+        row({
+          permission: Permission.ProjectAdmin,
           scope: PermissionScope.All,
           labels: [LABEL_ID],
         }),

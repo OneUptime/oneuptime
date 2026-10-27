@@ -52,8 +52,12 @@ import CalendarFeedLinks, {
   SUBSCRIBE_OPTIONS_GRID_CLASS_NAME,
   SUBSCRIBE_OPTION_CLASS_NAME,
   SUBSCRIBE_OPTION_HINT_CLASS_NAME,
-  SUBSCRIBE_OPTION_MARK_CLASS_NAME,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/CalendarFeedLinks";
+import {
+  PROVIDER_LOGO_TILE_CLASS_NAME,
+  getProviderLogoTileSizeClassName,
+} from "../../../UI/Components/ProviderLogo/ProviderLogoImage";
+import { PROVIDER_ICON_TILE_TEST_ID } from "../../../UI/Components/ProviderLogo/ProviderLogoOrIcon";
 import { FeedUrls } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/CalendarFeed/CalendarFeedTypes";
 import { MASK_CHARACTER } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/CalendarFeed/CalendarFeedUtil";
 import CalendarSubscriptionLinks, {
@@ -166,32 +170,46 @@ describe("CalendarFeedLinks", () => {
       }
     });
 
-    test("each option wears a mark of its own, in a tinted square", () => {
+    /*
+     * Official logos audit: Google Calendar is shown by its own logo, where a
+     * globe stood for it; the device's calendar app - Apple Calendar or
+     * Outlook, two apps - keeps a calendar, on the same neutral tile.
+     */
+    test("Google Calendar wears its official logo; the device's calendar app a calendar, on the same tile", () => {
       render(<CalendarFeedLinks urls={URLS} />);
 
-      for (const id of ["calendar-feed-google", "calendar-feed-webcal"]) {
-        const mark: Element | null = screen
-          .getByTestId(id)
-          .querySelector(`div[class='${SUBSCRIBE_OPTION_MARK_CLASS_NAME}']`);
+      const google: HTMLElement = screen.getByTestId("calendar-feed-google");
+      const logo: Element | null = google.querySelector(
+        "[data-provider-logo='google-calendar']",
+      );
 
-        expect(mark).not.toBeNull();
-        expect(mark!.querySelector("svg")).not.toBeNull();
+      expect(logo).not.toBeNull();
+      // The name is written beside it: the logo is not read out again.
+      expect(logo).toHaveAttribute("aria-hidden", "true");
+      expect(google.querySelector("[data-provider-logo]")).toBe(logo);
+
+      const webcal: HTMLElement = screen.getByTestId("calendar-feed-webcal");
+      const calendar: Element | null = webcal.querySelector(
+        `[data-testid='${PROVIDER_ICON_TILE_TEST_ID}']`,
+      );
+
+      expect(calendar).not.toBeNull();
+      expect(calendar!.querySelector("svg")).not.toBeNull();
+      expect(webcal.querySelector("[data-provider-logo]")).toBeNull();
+
+      // One tile for both: the logo's neutral tile, 36 pixels square.
+      for (const mark of [logo!, calendar!]) {
+        const classes: Array<string> = (mark.getAttribute("class") || "")
+          .split(" ")
+          .filter(Boolean);
+
+        expect(classes).toEqual(
+          expect.arrayContaining([
+            ...PROVIDER_LOGO_TILE_CLASS_NAME.split(" "),
+            ...getProviderLogoTileSizeClassName(36).split(" "),
+          ]),
+        );
       }
-
-      // Not the same glyph twice: the web app and the app on this device.
-      const googleMark: string =
-        screen
-          .getByTestId("calendar-feed-google")
-          .querySelector("svg")
-          ?.innerHTML.trim() || "";
-      const webcalMark: string =
-        screen
-          .getByTestId("calendar-feed-webcal")
-          .querySelector("svg")
-          ?.innerHTML.trim() || "";
-
-      expect(googleMark).not.toBe("");
-      expect(googleMark).not.toBe(webcalMark);
     });
 
     test("Google Calendar is a real link to Google's add-by-URL page, in a new isolated tab", () => {

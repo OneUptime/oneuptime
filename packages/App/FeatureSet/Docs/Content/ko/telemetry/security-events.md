@@ -36,6 +36,7 @@ flowchart TB
 | **종료된 케이스** | 보안 케이스 | 판정과 함께 종료된 케이스, 최신순 |
 | **모든 케이스** | 보안 케이스 | 열려 있거나 종료된 모든 케이스 |
 | **이벤트** | 이벤트 | 모든 이벤트를 검색하고 필터링하며, 이벤트 하나를 열어 모든 필드를 확인 |
+| **Campaigns** | 이벤트 | 공격 요청을 보낸 모든 주소와 그 요청 중 하나라도 통과했는지 여부 |
 | **엔티티 위험** | 이벤트 | 이번 주에 발견된 것으로 점수를 매긴 각 사용자, 호스트, 주소로, 위험이 큰 순서 |
 | **상관 분석** | 이벤트 | 같은 호스트, 사용자, IP 주소를 공유하는 이벤트의 그래프 |
 | **탐지 규칙** | Detections | 일정에 따라 실행되어 케이스를 여는 Sigma 규칙 |
@@ -231,11 +232,19 @@ OneUptime 14.0.84 이전에 저장된 이벤트는 프로세스 필드가 비어
 | `@<attribute>:*` | 속성이 있음 | `@threat.indicator_id:*` |
 | `@<attribute>:~text` | 속성이 텍스트를 포함함 | `@finding_info.title:~ransom` |
 
-필드는 짧은 이름(`severity`, `class`, `category`, `activity`, `status`, `vendor`, `product`, `rule`, `user`, `host`, `ip`, `targetuser`, `targethost`, `targetip`, `processname`, `commandline`, `parentprocessname`, `observable`, `tactic`, `technique`)이거나, `severityName` 이나 `principalHost` 같은 필드 자체의 이름입니다. 그 밖의 이름은 소스 속성으로 읽힙니다. `observable:<value>` 는 활동의 어느 쪽에 있었든 그 값을 언급하는 모든 이벤트를 찾습니다.
+필드는 짧은 이름(`severity`, `class`, `category`, `activity`, `status`, `vendor`, `product`, `rule`, `user`, `host`, `ip`, `targetuser`, `targethost`, `targetip`, `processname`, `commandline`, `parentprocessname`, `observable`, `tactic`, `technique`, `requestoutcome`, `trace`, `session`)이거나, `severityName` 이나 `principalHost` 같은 필드 자체의 이름입니다. 그 밖의 이름은 소스 속성으로 읽힙니다. `observable:<value>` 는 활동의 어느 쪽에 있었든 그 값을 언급하는 모든 이벤트를 찾습니다.
 
 ### 패싯
 
-사이드바는 창 안의 이벤트를 **소스**, **심각도**, **이벤트 클래스**, **카테고리**, **활동**, **상태**, **공급업체**, **제품**, **탐지 규칙**, **원본 사용자**, **원본 호스트**, **프로세스**, **부모 프로세스** 별로 셉니다. 값을 클릭하면 그 이벤트만 남기고, 옆의 빼기 표시를 클릭하면 제외합니다. 다시 클릭하면 취소됩니다. 차트와 모든 개수는 목록에 있는 이벤트를 정확히 나타냅니다.
+사이드바는 창 안의 이벤트를 **소스**, **심각도**, **Request Outcome**, **이벤트 클래스**, **카테고리**, **활동**, **상태**, **공급업체**, **제품**, **탐지 규칙**, **원본 사용자**, **원본 호스트**, **프로세스**, **부모 프로세스** 별로 셉니다. 값을 클릭하면 그 이벤트만 남기고, 옆의 빼기 표시를 클릭하면 제외합니다. 다시 클릭하면 취소됩니다. 차트와 모든 개수는 목록에 있는 이벤트를 정확히 나타냅니다.
+
+### 그다음에 일어난 일
+
+추적된 요청 안에서 기록된 로그 줄에서 읽은 이벤트는 그 요청 안까지 따라갑니다. 패널에는 요청이 어디까지 갔는지(**거부됨**, **Reached App**, **Errored** 또는 **Reached Database**)와 누가 보냈는지가 표시되고, 트레이스, 예외, 세션 재생, 로그 줄 자체로 가는 링크가 있습니다. 공격의 일부인 로그 줄, 트레이스, 예외도 각자의 페이지에서 그 사실을 알려 줍니다.
+
+### Campaigns
+
+**Campaigns** 페이지는 공격 요청을 보낸 주소마다 한 행으로 공격 종류, 도구, 보낸 요청, 통과한 요청 수를 보여 줍니다. 요청이 앱에 도달한 주소가 먼저 나옵니다.
 
 ### 상관 분석
 

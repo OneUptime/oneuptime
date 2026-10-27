@@ -88,7 +88,7 @@ Um caso tem um menu lateral próprio, como um incidente, e cada parte do caso é
 | Seção do menu lateral | Páginas |
 | --- | --- |
 | **Visão geral** | **Visão geral**, **Linha do tempo** |
-| **Investigação** | **Detecções**, **Entidades**, **Sinais conectados**, **Playbooks** |
+| **Investigação** | **Desenrolar**, **Detecções**, **Entidades**, **Sinais conectados**, **Playbooks** |
 | **Notas** | **Notas privadas** |
 | **Avançado** | **Registros de auditoria**, **Excluir caso**, recolhidos até você clicar em **Avançado** |
 
@@ -96,8 +96,10 @@ Cada página mantém no topo o cabeçalho do caso: número, prioridade, status e
 
 - **Visão geral**: a descrição, os rótulos e as etapas de status do caso, quem está com ele e o que o abriu, e os números dele: quantas detecções tem, há quanto tempo está aberto e quanto tempo levou para ser reconhecido e contido.
 - **OneUptime AI**, na **Visão geral**: o que o OneUptime AI concluiu do caso, a prioridade e o playbook que ele sugere, e as evidências por trás. Veja [OneUptime AI na segurança](/docs/telemetry/security-ai).
+- **Impacto**, na **Visão geral**: o que o caso coloca em risco: se o OneUptime viu os registros dele serem alcançados pela internet, quem é dono deles e o que mudou por último neles. Abra-o para ver o que cada registro chama e por quem é chamado, os monitores e páginas de status que o observam e as máquinas com que os endereços do caso conversaram.
 - **MITRE ATT&CK**, na **Visão geral**: as táticas e técnicas às quais as detecções dele correspondem, cada uma com um link para a própria página em attack.mitre.org.
 - **Linha do tempo**: tudo o que aconteceu com o caso, com quem fez.
+- **Desenrolar**: o que aconteceu, em ordem, em todo o OneUptime: cada detecção e os eventos de segurança por trás dela, até onde as solicitações chegaram, as exceções que lançaram, as mudanças nos registros que o caso cita, os incidentes e alertas abertos neles e o que a equipe fez. As muitas sondagens de um scanner são uma linha só, e cada linha abre o que cita, como o trace da solicitação ou a exceção.
 - **Detecções**: o que disparou para abrir o caso ou entrar nele, com que frequência, e o último evento correspondente.
 - **Entidades**: os usuários, hosts e endereços de que o caso trata, com a atividade deles em todos os seus eventos de segurança dos últimos 7 dias. Cada um abre em **Correlacionar**.
 - **Sinais conectados**: os hosts, clusters, serviços e membros que o caso nomeia, como o OneUptime os conhece, e o que acontecia em cada um em torno das detecções dele: os seus registros, traços e métricas, o que está aberto neles e o que mudou. Veja [Sinais conectados](/docs/telemetry/security-connected-signals).
@@ -231,9 +233,11 @@ Um playbook desabilitado não roda nem sozinho nem manualmente.
 | Caso | Add labels | Marca o caso com rótulos |
 | Investigação | Check entities against threat intel | Procura cada entidade na sua inteligência de ameaças, e pode aumentar a prioridade quando encontra uma correspondência |
 | Investigação | Look up entity activity | Conta os eventos de segurança de cada entidade em uma janela recente, e registra isso no caso |
+| Investigação | Preserve the evidence | Guarda as gravações de sessão das requisições por trás do caso, e registra no caso seus traces e exceções |
 | Notificação | Email people | Envia por e-mail a usuários e equipes um resumo do caso, com um link para ele |
 | Notificação | Post to Slack | Publica um resumo do caso em um canal do Slack |
 | Notificação | Post to Microsoft Teams | Publica um resumo do caso em um canal do Microsoft Teams |
+| Notificação | Post a status page announcement | Publica um aviso que você escreveu nas páginas de status que escolher |
 | Escalonamento | Page on-call | Executa uma política de plantão |
 | Escalonamento | Declare an incident | Abre um incidente do OneUptime vinculado ao caso |
 | Contenção | Suspend the user in Okta | Suspende no Okta o usuário de que o caso trata |
@@ -245,12 +249,23 @@ Um playbook desabilitado não roda nem sozinho nem manualmente.
 | Contenção | Release the device in Microsoft Defender | Libera do isolamento no Microsoft Defender for Endpoint o host de que o caso trata |
 | Automação | Send a webhook | Envia o caso como JSON para uma URL |
 | Automação | Run a workflow | Inicia um fluxo de trabalho do OneUptime com o caso como entrada |
+| Automação | Run a runbook | Inicia um dos seus runbooks do OneUptime com o caso como entrada |
+| Automação | Fix the code with AI | Pede ao OneUptime AI um pull request que corrija as exceções lançadas pelas requisições do caso |
 
 Um playbook tem no máximo 25 etapas. Elas rodam em ordem, cada uma depois que a anterior termina. Cada etapa também pode:
 
-- **Requer aprovação**: parar a execução antes da etapa até que alguém a aprove no caso. As quatro etapas que cortam o acesso de alguém sempre param a execução, a menos que um Security Admin desative essa opção.
+- **Requer aprovação**: parar a execução antes da etapa até que alguém a aprove no caso. As quatro etapas que cortam o acesso de alguém sempre param a execução, a menos que um Security Admin desative essa opção. **Run a runbook** e **Post a status page announcement** começam com a aprovação ativada, porque um executa comandos nos seus sistemas e o outro fala com os seus clientes; quem adiciona a etapa pode desativá-la.
 - **Somente se houver correspondência de inteligência de ameaças**: pular a etapa, a menos que uma etapa **Verificar as entidades na inteligência de ameaças** anterior da mesma execução tenha encontrado um indicador conhecido.
 - **Continuar se falhar**: rodar a próxima etapa mesmo que esta falhe. Desativado, uma etapa com falha interrompe a execução.
+
+### Respondendo com o OneUptime
+
+Quatro etapas agem pelo restante do OneUptime, e não por um produto conectado:
+
+- **Run a runbook** inicia um dos seus [runbooks](/docs/runbooks/index) com o caso como entrada, que uma etapa Bash lê como variáveis de ambiente (veja [Chamar o webhook](/docs/runbooks/triggers#chamar-o-webhook)). `ONEUPTIME_INPUT_IP`, `ONEUPTIME_INPUT_USER` e `ONEUPTIME_INPUT_HOST` são o endereço, o usuário e o host de que o caso trata, escolhidos pela mesma regra de uma etapa de contenção, e vazios quando ele não trata de nenhum. `ONEUPTIME_INPUT_IPS`, `ONEUPTIME_INPUT_USERS` e `ONEUPTIME_INPUT_HOSTS` listam em JSON todos os que o caso cita, e `ONEUPTIME_INPUT_CASE_NUMBER`, `ONEUPTIME_INPUT_CASE_TITLE` e `ONEUPTIME_INPUT_CASE_URL` dizem qual é o caso. Um usuário ou host protegido nunca está entre eles. A execução do runbook diz que foi iniciada por **Security playbook**, para o caso.
+- **Preserve the evidence** guarda as gravações de sessão das requisições por trás do caso além da retenção delas, e escreve no caso uma nota com links para o trace de cada requisição, cada gravação e cada exceção. Logs e traces não podem ser guardados por mais tempo do que o projeto guarda a telemetria, então exporte antes o que precisar.
+- **Post a status page announcement** publica o que você escreveu, exatamente como escreveu, nas páginas de status que escolher. Nada do caso é adicionado. Os assinantes delas só são avisados quando **Notificar assinantes** está ativado.
+- **Fix the code with AI** pede ao OneUptime AI, para cada exceção lançada pelas requisições do caso, até três, um pull request que a corrija. Precisa do OneUptime AI ativado, de um repositório com o código conectado pelo GitHub App e de um runner. Sem eles, a etapa é ignorada e diz o que falta.
 
 ### Contenção
 

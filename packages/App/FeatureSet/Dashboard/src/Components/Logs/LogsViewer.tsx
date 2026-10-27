@@ -163,6 +163,7 @@ import {
   mergeDroppedScopeFields,
 } from "../../Utils/LogsCrossSignalPivot";
 import { resolveReplayMomentRouteForSession } from "../../Utils/RumSessionLookup";
+import SecurityEventsInSignal from "../SecurityEvents/SecurityEventsInSignal";
 import { makeLogSignalId } from "../SessionReplay/Rail/ReplaySignalTypes";
 
 export interface ComponentProps {
@@ -3056,6 +3057,22 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
           getSpanRoute={getSpanRoute}
           resolveSpanRoute={resolveSpanRoute}
           getSessionRoute={getSessionRoute}
+          /*
+           * A line that is part of an attack says so where it is read: the
+           * security events of the request it was written in, or of the line
+           * itself. Nothing for a reader without a Security role.
+           */
+          renderLogExtraSection={(log: Log) => {
+            return (
+              <SecurityEventsInSignal
+                scope={{
+                  traceId: log.traceId?.toString() || "",
+                  logId: log._id?.toString() || "",
+                }}
+                time={log.time ? new Date(log.time) : null}
+              />
+            );
+          }}
           signalPivotActions={signalPivotActions}
           lockedFilterSignal="logs"
           histogramBuckets={histogram.buckets}

@@ -242,15 +242,15 @@ export function getSecurityAttentionItems(
 /*
  * Whether anything can open a case: a connected product - its alerts open
  * cases from High up by default (the connection's Open Cases From
- * Severity), with or without a rule of OneUptime's - or your logs, with a
- * rule or a threat intel feed to find threats in them. Without either,
- * "All quiet" would read as though something were looking and had found
- * nothing.
+ * Severity), with or without a rule of OneUptime's - or your logs or other
+ * OneUptime data, with a rule or a threat intel feed to find threats in
+ * them. Without either, "All quiet" would read as though something were
+ * looking and had found nothing.
  */
 export function isSecurityWatching(status: SecuritySetupStatus): boolean {
   return (
     status.connections > 0 ||
-    (status.logsSourceEnabled &&
+    ((status.logsSourceEnabled || status.telemetrySourcesEnabled > 0) &&
       (status.enabledRules > 0 || status.threatIntelFeeds > 0))
   );
 }

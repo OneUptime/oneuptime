@@ -5,7 +5,7 @@
     <title> <%= title %> </title>
 </head>
 
-<body class="bg-gray-100">
+<body class="bg-gray-100 dark:bg-slate-900">
 
     <div class="h-full">
 
@@ -21,11 +21,11 @@
                     <section aria-labelledby="acknowledge-heading">
 
                             <div class="shadow sm:overflow-hidden sm:rounded-md">
-                                <div class="bg-white py-6 px-4 sm:p-6">
+                                <div class="bg-white dark:bg-slate-800 py-6 px-4 sm:p-6">
                                     <div>
                                         <h2 id="acknowledge-heading"
-                                            class="text-lg font-medium leading-6 text-gray-900"><%= title %></h2>
-                                        <p class="mt-1 text-sm text-gray-500"><%= message %></p>
+                                            class="text-lg font-medium leading-6 text-gray-900 dark:text-slate-50"><%= title %></h2>
+                                        <p class="mt-1 text-sm text-gray-500 dark:text-slate-400"><%= message %></p>
                                     </div>
 
                                     <%- include('./Partials/OnCallNotificationDetails.ejs') -%>
@@ -33,7 +33,7 @@
                                     <div>
                                         <div class="mt-6">
                                             <a href="<%= acknowledgeUrl %>"
-                                                class="w-full flex justify-center py-2 px-4  border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-yellow-600 hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500">
+                                                class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-yellow-600 hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 focus:ring-yellow-500">
                                                 <%= acknowledgeText %>
                                             </a>
                                         </div>
@@ -41,9 +41,9 @@
 
                                     <%# "Can't take it? Escalate": only for a link that carries the page's own token, while the page is the person's to escalate. -%>
                                     <% if (typeof passOn !== 'undefined' && passOn) { %>
-                                    <div class="mt-6 border-t border-gray-200 pt-6" data-testid="pass-on">
-                                        <h3 class="text-sm font-medium text-gray-900"><%= passOn.lead %></h3>
-                                        <p class="mt-1 text-sm text-gray-500"><%= passOn.explanation %></p>
+                                    <div class="mt-6 border-t border-gray-200 dark:border-slate-700 pt-6" data-testid="pass-on">
+                                        <h3 class="text-sm font-medium text-gray-900 dark:text-slate-50"><%= passOn.lead %></h3>
+                                        <p class="mt-1 text-sm text-gray-500 dark:text-slate-400"><%= passOn.explanation %></p>
                                         <% if (passOn.warning) { %>
                                         <%- include('./Partials/OnCallPassOnWarning.ejs', { warning: passOn.warning }) -%>
                                         <% } %>

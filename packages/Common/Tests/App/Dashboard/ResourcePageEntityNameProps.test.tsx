@@ -197,6 +197,18 @@ jest.mock(
 );
 
 jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/Traces/TraceHealthCard",
+  () => {
+    return {
+      __esModule: true,
+      default: () => {
+        return <div data-testid="trace-health-card" />;
+      },
+    };
+  },
+);
+
+jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/Logs/LogsViewer",
   () => {
     return {

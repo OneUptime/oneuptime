@@ -119,6 +119,7 @@ describe("a case's side menu", () => {
         ["Timeline", "SECURITY_CASE_VIEW_TIMELINE", IconProp.Timeline],
       ],
       [
+        ["Story", "SECURITY_CASE_VIEW_STORY", IconProp.BookOpen],
         ["Detections", "SECURITY_CASE_VIEW_DETECTIONS", IconProp.Bolt],
         ["Entities", "SECURITY_CASE_VIEW_ENTITIES", IconProp.Fingerprint],
         [
@@ -274,6 +275,7 @@ describe("a case's pages and their addresses", () => {
         }),
     ).toEqual([
       "cases/:id/timeline",
+      "cases/:id/story",
       "cases/:id/detections",
       "cases/:id/entities",
       "cases/:id/connected-signals",
@@ -348,6 +350,7 @@ describe("where each page of a case says it is", () => {
     ).toEqual([
       ["View Case"],
       ["View Case", "Timeline"],
+      ["View Case", "Story"],
       ["View Case", "Detections"],
       ["View Case", "Entities"],
       ["View Case", "Connected Signals"],

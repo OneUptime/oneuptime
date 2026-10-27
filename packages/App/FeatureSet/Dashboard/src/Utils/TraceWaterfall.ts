@@ -19,6 +19,11 @@ export interface WaterfallSpan {
   durationUnixNano: number;
   isError: boolean;
   kind: SpanKind | undefined;
+  /*
+   * The Kubernetes pod the span ran in (its k8sPodEntityKey); "" or absent
+   * outside a pod. Its logs are read by this key when none carry the trace.
+   */
+  k8sPodEntityKey?: string | undefined;
 }
 
 export interface WaterfallNode {
@@ -31,6 +36,12 @@ export interface WaterfallNode {
    * the span was lifted out of a parent cycle.
    */
   isOrphan: boolean;
+  /*
+   * True when the span is a second recording of the request its parent in
+   * the tree records, nested there by nestSameRequestServerSpans rather than
+   * by its own parentSpanId (which names their common caller).
+   */
+  isSameRequest?: boolean;
   descendantCount: number;
 }
 
@@ -106,6 +117,7 @@ export function toWaterfallSpans(spans: Array<Span>): Array<WaterfallSpan> {
       durationUnixNano,
       isError: span.statusCode === SpanStatus.Error,
       kind: span.kind,
+      k8sPodEntityKey: span.k8sPodEntityKey?.toString().trim() || "",
     };
   });
 }
@@ -128,6 +140,89 @@ export function toCriticalPathSpanData(
 
 function compareByStart(left: WaterfallNode, right: WaterfallNode): number {
   return left.span.startTimeUnixNano - right.span.startTimeUnixNano;
+}
+
+/*
+ * Slack when deciding that one server span's time lies inside another's: a
+ * whole millisecond (SDKs such as OpenTelemetry JS stamp start times to the
+ * millisecond, while eBPF stamps them to the nanosecond), plus 1% of the outer
+ * span for the time the two spend on either side of the application code.
+ */
+const SAME_REQUEST_SLACK_UNIX_NANO: number = 1_000_000;
+const SAME_REQUEST_SLACK_FRACTION: number = 0.01;
+
+function liesWithin(inner: WaterfallSpan, outer: WaterfallSpan): boolean {
+  const slack: number =
+    SAME_REQUEST_SLACK_UNIX_NANO +
+    outer.durationUnixNano * SAME_REQUEST_SLACK_FRACTION;
+  return (
+    inner.startTimeUnixNano + slack >= outer.startTimeUnixNano &&
+    inner.endTimeUnixNano <= outer.endTimeUnixNano + slack
+  );
+}
+
+/**
+ * One request recorded twice — by the Kubernetes agent's eBPF tracer and by
+ * an SDK inside the application — arrives as two SERVER spans with the same
+ * parent: both continue the caller's trace context. Left alone they draw as
+ * two parallel copies of the request, the eBPF one holding the database and
+ * cache calls it saw on the wire and the SDK one the code-level spans. A
+ * client call is answered by one server-side handling, so two SERVER spans
+ * under the same parent whose times nest are that one request: the inner one
+ * is moved under the outer one (the eBPF span, which starts when the request
+ * is read off the socket and ends when the response is written), and every
+ * span of both lands in one subtree.
+ *
+ * Only SERVER spans: siblings of every other kind are legitimately parallel
+ * (a request's concurrent calls, a message's several consumers). A retry is a
+ * second SERVER span too, but after the first one, not inside it. Spans
+ * whose parent is not loaded are left alone: with no shared caller in view,
+ * nothing says they are one request. Mutates parentById and the moved nodes.
+ */
+function nestSameRequestServerSpans(
+  orderedNodes: Array<WaterfallNode>,
+  parentById: Map<string, string>,
+): void {
+  const serverSpansByParent: Map<string, Array<WaterfallNode>> = new Map();
+  for (const node of orderedNodes) {
+    const parentId: string | undefined = parentById.get(node.span.spanId);
+    if (!parentId || node.span.kind !== SpanKind.Server) {
+      continue;
+    }
+    const siblings: Array<WaterfallNode> =
+      serverSpansByParent.get(parentId) || [];
+    siblings.push(node);
+    serverSpansByParent.set(parentId, siblings);
+  }
+
+  for (const siblings of serverSpansByParent.values()) {
+    if (siblings.length < 2) {
+      continue;
+    }
+    // Outermost first: earliest start, then longest. Stable for exact ties.
+    const byExtent: Array<WaterfallNode> = [...siblings].sort(
+      (left: WaterfallNode, right: WaterfallNode): number => {
+        return (
+          left.span.startTimeUnixNano - right.span.startTimeUnixNano ||
+          right.span.endTimeUnixNano - left.span.endTimeUnixNano
+        );
+      },
+    );
+    const outers: Array<WaterfallNode> = [];
+    for (const node of byExtent) {
+      const outer: WaterfallNode | undefined = outers.find(
+        (candidate: WaterfallNode): boolean => {
+          return liesWithin(node.span, candidate.span);
+        },
+      );
+      if (outer) {
+        parentById.set(node.span.spanId, outer.span.spanId);
+        node.isSameRequest = true;
+      } else {
+        outers.push(node);
+      }
+    }
+  }
 }
 
 /**
@@ -169,6 +264,8 @@ export function buildSpanTree(spans: Array<WaterfallSpan>): SpanTree {
     }
     parentById.set(node.span.spanId, parentId);
   }
+
+  nestSameRequestServerSpans(orderedNodes, parentById);
 
   /*
    * Break parent cycles: walk each span's ancestor chain; if it revisits a

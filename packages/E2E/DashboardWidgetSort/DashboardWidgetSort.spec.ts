@@ -502,18 +502,13 @@ test.describe("a list on the dashboard inside OneUptime", () => {
       .first();
     await expect(title).toBeVisible();
 
-    const fit: {
+    type Fit = {
       boxWidth: number;
       scrollWidth: number;
       box: { left: number; right: number };
-    } = await incidents.evaluate(
-      (
-        element: Element,
-      ): {
-        boxWidth: number;
-        scrollWidth: number;
-        box: { left: number; right: number };
-      } => {
+    };
+    const readFit: () => Promise<Fit> = (): Promise<Fit> => {
+      return incidents.evaluate((element: Element): Fit => {
         const box: HTMLElement = element.parentElement as HTMLElement;
         const rect: DOMRect = box.getBoundingClientRect();
 
@@ -522,11 +517,26 @@ test.describe("a list on the dashboard inside OneUptime", () => {
           scrollWidth: box.scrollWidth,
           box: { left: rect.left, right: rect.right },
         };
-      },
-    );
+      });
+    };
 
-    // The rows fit the widget: nothing scrolls sideways.
-    expect(fit.scrollWidth).toBeLessThanOrEqual(fit.boxWidth + 1);
+    /*
+     * The rows fit the widget: nothing scrolls sideways - once the list has
+     * laid itself out. Read the moment its title first shows, a busy runner
+     * (14.0.94's gate) found 433 pixels of rows in a 426-pixel box, a
+     * scrollbar there for a moment, where the list settles at 438 in 438;
+     * so this asks until it settles, and keeps the box it settled in.
+     */
+    let fit: Fit = await readFit();
+    await expect
+      .poll(
+        async (): Promise<number> => {
+          fit = await readFit();
+          return fit.scrollWidth - fit.boxWidth;
+        },
+        { timeout: 10000 },
+      )
+      .toBeLessThanOrEqual(1);
 
     // The title is cut short on its line, and keeps 6rem of its words.
     const cut: { width: number; isCut: boolean; lines: number } =

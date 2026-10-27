@@ -49,6 +49,11 @@ const TEXT_COLUMNS: Set<string> = new Set<string>([
   "targetHost",
   "targetIp",
   "targetResource",
+  // The request the event happened in, and how far it got.
+  "traceId",
+  "spanId",
+  "sessionId",
+  "requestOutcome",
 ]);
 
 const NUMBER_COLUMNS: Set<string> = new Set<string>([
@@ -116,6 +121,10 @@ export const FIELD_ALIASES: Record<string, string> = {
   parentcommandline: "parentProcessCommandLine",
   "process.parent.command_line": "parentProcessCommandLine",
   msg: "message",
+  trace_id: "traceId",
+  span_id: "spanId",
+  session_id: "sessionId",
+  request_outcome: "requestOutcome",
 };
 
 type ResolvedField =

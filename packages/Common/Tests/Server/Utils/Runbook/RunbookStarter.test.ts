@@ -133,7 +133,7 @@ async function start(
 }
 
 describe("what starts a run", () => {
-  test("names six triggers, the two that need nobody there among them", () => {
+  test("names seven triggers, the two that need nobody there among them", () => {
     expect(RUNBOOK_TRIGGER_TYPES).toEqual([
       "Manual",
       "Rule",
@@ -141,6 +141,8 @@ describe("what starts a run", () => {
       "AI",
       "Schedule",
       "Webhook",
+      // A security playbook's Run a runbook step: a rule the project set up, like Rule.
+      "SecurityPlaybook",
     ]);
     expect(UNATTENDED_RUNBOOK_TRIGGER_TYPES).toEqual(["Schedule", "Webhook"]);
     expect(isRunbookTriggerType("Webhook")).toBe(true);

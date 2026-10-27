@@ -54,6 +54,7 @@ import {
   toPresentParams,
   withTelemetryTabScopeParams,
 } from "../../Utils/TelemetryTabScope";
+import { TraceSpanType } from "Common/Types/Telemetry/TraceSpanType";
 import { writeTelemetryViewerUrlState } from "../../Utils/TelemetryViewerUrlState";
 import { TelemetryEntityNameMap } from "Common/UI/Utils/Telemetry/TelemetryEntityNames";
 import useTelemetryEntityNames from "Common/UI/Utils/Telemetry/UseTelemetryEntityNames";
@@ -180,6 +181,13 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
    */
   const [carriedSearch] = useState<string | null>(initialUrlScope.search);
   const [carriedRootOnly] = useState<boolean | null>(initialUrlScope.rootOnly);
+  /*
+   * The Viewer's Span Type (entry / root / all spans), carried the same way:
+   * this page counts every span, whichever the Viewer lists.
+   */
+  const [carriedSpanType] = useState<TraceSpanType | null>(
+    initialUrlScope.spanType,
+  );
 
   const loadDashboard: () => Promise<void> =
     useCallback(async (): Promise<void> => {
@@ -447,6 +455,7 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
         grammar: "pairs",
         search: carriedSearch,
         rootOnly: carriedRootOnly,
+        spanType: carriedSpanType,
       }),
     );
   }, [
@@ -456,6 +465,7 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
     savedViewId,
     carriedSearch,
     carriedRootOnly,
+    carriedSpanType,
   ]);
 
   /*
@@ -523,6 +533,7 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
           grammar: "pairs",
           search: carriedSearch,
           rootOnly: carriedRootOnly,
+          spanType: carriedSpanType,
         }),
       ),
     );
@@ -533,14 +544,16 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
     savedViewId,
     carriedSearch,
     carriedRootOnly,
+    carriedSpanType,
   ]);
 
   const unappliedFiltersHint: string = useMemo(() => {
     return describeUnappliedScopeFilters(unappliedFilters, {
       search: carriedSearch,
       rootOnly: carriedRootOnly,
+      spanType: carriedSpanType,
     });
-  }, [unappliedFilters, carriedSearch, carriedRootOnly]);
+  }, [unappliedFilters, carriedSearch, carriedRootOnly, carriedSpanType]);
 
   const serviceOptions: Array<DropdownOption> = useMemo(() => {
     return services.map((service: Service): DropdownOption => {

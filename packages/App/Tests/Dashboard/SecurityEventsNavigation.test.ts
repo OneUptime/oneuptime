@@ -169,11 +169,11 @@ describe("the Security Events menu", () => {
         ],
       ],
       /*
-       * Who is riskiest, from everything found about each: the one list
-       * that says so. Entities, a second "riskiest" by how many findings
-       * named a value, folded into Entity Risk.
+       * Who is attacking, and who is riskiest from everything found about
+       * each: the one list that says so. Entities, a second "riskiest" by
+       * how many findings named a value, folded into Entity Risk.
        */
-      ["Events", ["Events", "Entity Risk", "Correlate"]],
+      ["Events", ["Events", "Campaigns", "Entity Risk", "Correlate"]],
       [
         "Detections",
         ["Detection Rules", "Rule Library", "Threat Intel", "ATT&CK Coverage"],
@@ -205,6 +205,7 @@ describe("the Security Events menu", () => {
       ["Closed Cases", "SECURITY_CASES_CLOSED"],
       ["All Cases", "SECURITY_CASES_ALL"],
       ["Events", "SECURITY_EVENTS"],
+      ["Campaigns", "SECURITY_EVENTS_CAMPAIGNS"],
       ["Entity Risk", "SECURITY_EVENTS_ENTITY_RISK"],
       ["Correlate", "SECURITY_EVENTS_CORRELATE"],
       ["Detection Rules", "SECURITY_EVENTS_DETECTION_RULES"],
@@ -624,6 +625,7 @@ describe("where each page says it is", () => {
       ["Security Events", "Security Cases", "Closed Cases"],
       ["Security Events", "Security Cases", "All Cases"],
       ["Security Events", "Events"],
+      ["Security Events", "Events", "Campaigns"],
       ["Security Events", "Events", "Entity Risk"],
       ["Security Events", "Events", "Correlate"],
       ["Security Events", "Detections", "Detection Rules"],

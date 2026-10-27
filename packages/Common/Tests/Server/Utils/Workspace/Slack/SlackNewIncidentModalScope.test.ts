@@ -45,6 +45,7 @@ import MonitorService from "../../../../../Server/Services/MonitorService";
 import MonitorStatusService from "../../../../../Server/Services/MonitorStatusService";
 import OnCallDutyPolicyService from "../../../../../Server/Services/OnCallDutyPolicyService";
 import ProjectService from "../../../../../Server/Services/ProjectService";
+import UserService from "../../../../../Server/Services/UserService";
 import ScheduledMaintenanceService from "../../../../../Server/Services/ScheduledMaintenanceService";
 import TeamMemberService from "../../../../../Server/Services/TeamMemberService";
 import WorkspaceProjectAuthTokenService from "../../../../../Server/Services/WorkspaceProjectAuthTokenService";
@@ -346,6 +347,8 @@ function expectReadAsTheMember(reads: Array<ListRead>): void {
 beforeEach((): void => {
   // Not a blocked project: that refusal has suites of its own (BlockedProject*).
   jest.spyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
+  // Nor a blocked person (WorkspaceActionAuthorization asks that too).
+  jest.spyOn(UserService, "isUserBlocked").mockResolvedValue(false);
   // The project's plan, as the checks read it where a plan decides (CallerPlan).
   jest.spyOn(ProjectService, "getCurrentPlan").mockResolvedValue({
     plan: PlanType.Enterprise,

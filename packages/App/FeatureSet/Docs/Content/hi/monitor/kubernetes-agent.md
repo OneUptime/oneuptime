@@ -237,7 +237,7 @@ OBI किसी कॉल के पार ट्रेस को आगे भ
 **डिफ़ॉल्ट रूप से बंद।** चालू होने पर, OBI हर उस प्रोसेस की `write()` सिस्टम कॉल से एक प्रोब जोड़ता है जिसे वह इंस्ट्रूमेंट करता है, और:
 
 - **JSON लॉग पंक्ति** को `trace_id` और `span_id` फ़ील्ड मिलते हैं (पंक्ति में पहले से मौजूद फ़ील्ड रखे जाते हैं)। नोड कलेक्टर उन्हें लॉग रिकॉर्ड के अपने ट्रेस फ़ील्ड में ले जाता है, इसलिए OneUptime में किसी स्पैन के लॉग एक क्लिक की दूरी पर होते हैं, और किसी लॉग पंक्ति का ट्रेस भी।
-- **कोई भी दूसरी लॉग पंक्ति** बिना बदलाव के, बिना लिंक के इकट्ठा होती है।
+- **कोई भी दूसरी लॉग पंक्ति** बिना बदलाव के, बिना लिंक के इकट्ठा होती है, जब तक कि आप `ebpf.logEnricher.plainText=true` भी सेट न करें। तब OBI उसमें ` trace_id=… span_id=…` जोड़ देता है, और नोड कलेक्टर आईडी को लॉग रिकॉर्ड में ले जाता है और पंक्ति से हटा देता है, इसलिए OneUptime उसे वैसा ही दिखाता है जैसा आपके ऐप ने लिखा था। कंटेनर की लॉग फ़ाइल में मौजूद पंक्ति, जिसे `kubectl logs` प्रिंट करता है, जोड़ा गया हिस्सा बनाए रखती है।
 
 ```bash
 helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
@@ -249,6 +249,7 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
 | --- | --- | --- |
 | `ebpf.logToTraceCorrelation` | `false` | OBI का लॉग एनरिचर और नोड कलेक्टर का `trace_id` उठाना चालू करता है। |
 | `ebpf.logEnricher.services` | `[{service: [{exe_path: "*"}]}]` | एनरिचर किन प्रोसेस को छूता है। हर प्रविष्टि एक OBI [GlobAttributes](https://opentelemetry.io/docs/zero-code/obi/configure/options/#service-discovery) सिलेक्टर है, `exe_path`, `languages`, `k8s_pod_labels`, `k8s_pod_annotations`, `open_ports` और `cmd_args` जैसे फ़ील्ड के साथ। |
+| `ebpf.logEnricher.plainText` | `false` | सादे टेक्स्ट (गैर-JSON) लॉग पंक्तियों को भी लिंक करता है। कंटेनर की लॉग फ़ाइल जो पंक्ति रखती है, उसे बदल देता है। |
 
 #### इसके साथ क्रैश होने वाले APM एजेंट
 

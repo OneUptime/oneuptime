@@ -1,4 +1,5 @@
 import IconProp from "../../Icon/IconProp";
+import ProviderLogo from "../../ProviderLogo/ProviderLogo";
 import {
   ConnectorField,
   ConnectorFieldOption,
@@ -25,8 +26,10 @@ export interface SecurityEventDestinationDefinition {
    * event) is the form's last question, so it is not said four times.
    */
   description: string;
-  // The product's mark in the picker and the table.
+  // A mark of its own for the product, where a generic icon is all there is room for.
   icon: IconProp;
+  // The product's official logo, beside its name in the picker and the table.
+  logo: ProviderLogo;
   // The setup guide, a docs page and the heading on it.
   docsPath: string;
   configFields: Array<ConnectorField>;
@@ -76,6 +79,7 @@ export const SecurityEventDestinationCatalog: Array<SecurityEventDestinationDefi
     {
       provider: SecurityEventDestinationProvider.GoogleSecOps,
       title: "Google SecOps",
+      logo: ProviderLogo.GoogleSecurityOperations,
       description: "As UDM events, through the Chronicle API.",
       icon: IconProp.ViewfinderCircle,
       docsPath: GOOGLE_SECOPS_DESTINATION_DOCS_PATH,
@@ -130,6 +134,7 @@ export const SecurityEventDestinationCatalog: Array<SecurityEventDestinationDefi
     {
       provider: SecurityEventDestinationProvider.Splunk,
       title: "Splunk",
+      logo: ProviderLogo.Splunk,
       description:
         "Through its HTTP Event Collector (HEC), with CIM field names.",
       icon: IconProp.Search,
@@ -187,6 +192,7 @@ export const SecurityEventDestinationCatalog: Array<SecurityEventDestinationDefi
     {
       provider: SecurityEventDestinationProvider.MicrosoftSentinel,
       title: "Microsoft Sentinel",
+      logo: ProviderLogo.MicrosoftSentinel,
       description:
         "To a workspace's custom table, through the Azure Monitor Logs Ingestion API.",
       icon: IconProp.ShieldCheck,
@@ -273,6 +279,7 @@ export const SecurityEventDestinationCatalog: Array<SecurityEventDestinationDefi
     {
       provider: SecurityEventDestinationProvider.ElasticSecurity,
       title: "Elastic Security",
+      logo: ProviderLogo.Elastic,
       description:
         "As Elastic Common Schema (ECS) documents in an Elasticsearch data stream.",
       icon: IconProp.Database,

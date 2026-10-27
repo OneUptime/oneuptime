@@ -88,7 +88,7 @@ Un caso tiene su propio menú lateral, como un incidente, y cada parte del caso 
 | Sección del menú lateral | Páginas |
 | --- | --- |
 | **Vista general** | **Vista general**, **Cronología** |
-| **Investigación** | **Detecciones**, **Entidades**, **Señales conectadas**, **Playbooks** |
+| **Investigación** | **Desarrollo**, **Detecciones**, **Entidades**, **Señales conectadas**, **Playbooks** |
 | **Notas** | **Notas privadas** |
 | **Avanzado** | **Registros de auditoría**, **Eliminar caso**, plegados hasta que haces clic en **Avanzado** |
 
@@ -96,8 +96,10 @@ Cada página mantiene arriba la cabecera del caso: su número, prioridad, estado
 
 - **Vista general**: la descripción, las etiquetas y los pasos de estado del caso, quién lo tiene y qué lo abrió, y sus cifras: cuántas detecciones tiene, cuánto tiempo lleva abierto y cuánto se tardó en reconocerlo y en contenerlo.
 - **OneUptime AI**, en la **Vista general**: lo que OneUptime AI ha sacado del caso, la prioridad y el playbook que sugiere, y la evidencia que hay detrás. Consulta [OneUptime AI en la seguridad](/docs/telemetry/security-ai).
+- **Impacto**, en la **Vista general**: lo que el caso pone en riesgo: si OneUptime ha visto que sus registros se alcanzaron desde internet, quién es su propietario y qué cambió por última vez en ellos. Despliéguelo para ver a qué llama cada registro y quién lo llama, los monitores y páginas de estado que lo vigilan y las máquinas con las que hablaron las direcciones del caso.
 - **MITRE ATT&CK**, en la **Vista general**: las tácticas y técnicas a las que corresponden sus detecciones, cada una enlazada a su página en attack.mitre.org.
 - **Cronología**: todo lo que le pasó al caso, con quién lo hizo.
+- **Desarrollo**: lo que pasó, en orden, en todo OneUptime: cada detección y los eventos de seguridad que hay detrás, hasta dónde llegaron sus solicitudes, las excepciones que lanzaron, los cambios en los registros que nombra el caso, los incidentes y alertas que se abrieron en ellos y lo que hizo el equipo. Los muchos sondeos de un escáner son una sola línea, y cada línea abre lo que nombra, como la traza de la solicitud o la excepción.
 - **Detecciones**: lo que se disparó para abrir el caso o sumarse a él, cuántas veces y el último evento coincidente.
 - **Entidades**: los usuarios, hosts y direcciones de los que trata el caso, con su actividad en todos tus eventos de seguridad de los últimos 7 días. Cada una se abre en **Correlacionar**.
 - **Señales conectadas**: los hosts, clústeres, servicios y miembros que nombra el caso, tal como OneUptime los conoce, y lo que ocurría en cada uno en torno a sus detecciones: sus registros, trazas y métricas, lo que está abierto en ellos y lo que cambió. Consulta [Señales conectadas](/docs/telemetry/security-connected-signals).
@@ -231,9 +233,11 @@ Un playbook deshabilitado no se ejecuta ni por sí solo ni a mano.
 | Caso | Add labels | Pone etiquetas al caso |
 | Investigación | Check entities against threat intel | Busca cada entidad en tu inteligencia de amenazas y puede subir la prioridad si hay una coincidencia |
 | Investigación | Look up entity activity | Cuenta los eventos de seguridad de cada entidad en una ventana reciente y anota el resultado en el caso |
+| Investigación | Preserve the evidence | Conserva las grabaciones de sesión de las solicitudes detrás del caso y anota sus trazas y excepciones en el caso |
 | Notificación | Email people | Envía por email a usuarios y equipos un resumen del caso, con un enlace a él |
 | Notificación | Post to Slack | Publica un resumen del caso en un canal de Slack |
 | Notificación | Post to Microsoft Teams | Publica un resumen del caso en un canal de Microsoft Teams |
+| Notificación | Post a status page announcement | Publica un anuncio que escribiste en las páginas de estado que elijas |
 | Escalado | Page on-call | Ejecuta una política de guardia |
 | Escalado | Declarar un incidente | Abre un incidente de OneUptime vinculado al caso |
 | Contención | Suspend the user in Okta | Suspende en Okta al usuario del que trata el caso |
@@ -245,12 +249,23 @@ Un playbook deshabilitado no se ejecuta ni por sí solo ni a mano.
 | Contención | Release the device in Microsoft Defender | Libera del aislamiento en Microsoft Defender for Endpoint al host del que trata el caso |
 | Automatización | Send a webhook | Envía el caso como JSON a una URL |
 | Automatización | Run a workflow | Inicia un flujo de trabajo de OneUptime con el caso como entrada |
+| Automatización | Run a runbook | Inicia uno de tus runbooks de OneUptime con el caso como entradas |
+| Automatización | Fix the code with AI | Pide a OneUptime AI un pull request que corrija las excepciones que lanzaron las solicitudes del caso |
 
 Un playbook tiene como máximo 25 pasos. Se ejecutan en orden, cada uno cuando ha terminado el anterior. Además, cada paso puede:
 
-- **Requiere aprobación**: detener la ejecución antes del paso hasta que alguien lo apruebe en el caso. Los cuatro pasos que dejan a alguien sin acceso siempre se detienen, salvo que un Security Admin lo desactive.
+- **Requiere aprobación**: detener la ejecución antes del paso hasta que alguien lo apruebe en el caso. Los cuatro pasos que dejan a alguien sin acceso siempre se detienen, salvo que un Security Admin lo desactive. **Run a runbook** y **Post a status page announcement** empiezan con la aprobación activada, porque uno ejecuta comandos en tus sistemas y el otro habla con tus clientes; quien añade el paso puede desactivarla.
 - **Solo si hubo coincidencia de inteligencia de amenazas**: omitir el paso salvo que un paso **Comprobar las entidades con la inteligencia de amenazas** anterior de la misma ejecución haya encontrado un indicador conocido.
 - **Continuar si falla**: ejecutar el paso siguiente aunque este falle. Si está desactivado, un paso fallido detiene la ejecución.
+
+### Responder con OneUptime
+
+Cuatro pasos actúan a través del resto de OneUptime en lugar de un producto conectado:
+
+- **Run a runbook** inicia uno de tus [runbooks](/docs/runbooks/index) con el caso como entradas, que un paso Bash lee como variables de entorno (consulta [Llamar al webhook](/docs/runbooks/triggers#llamar-al-webhook)). `ONEUPTIME_INPUT_IP`, `ONEUPTIME_INPUT_USER` y `ONEUPTIME_INPUT_HOST` son la dirección, el usuario y el host de los que trata el caso, elegidos con la misma regla que un paso de contención, y quedan vacíos si no trata de ninguno. `ONEUPTIME_INPUT_IPS`, `ONEUPTIME_INPUT_USERS` y `ONEUPTIME_INPUT_HOSTS` enumeran en JSON todos los que nombra el caso, y `ONEUPTIME_INPUT_CASE_NUMBER`, `ONEUPTIME_INPUT_CASE_TITLE` y `ONEUPTIME_INPUT_CASE_URL` indican de qué caso se trata. Un usuario o host protegido nunca está entre ellos. La ejecución del runbook indica que la inició **Security playbook**, para el caso.
+- **Preserve the evidence** conserva las grabaciones de sesión de las solicitudes detrás del caso más allá de su retención, y escribe en el caso una nota que enlaza la traza de cada solicitud, cada grabación y cada excepción. Los logs y las trazas no se pueden conservar más tiempo del que el proyecto guarda la telemetría, así que exporta antes lo que necesites.
+- **Post a status page announcement** publica lo que escribiste, tal como lo escribiste, en las páginas de estado que elijas. No se le añade nada del caso. Sus suscriptores solo reciben aviso si **Notificar a los suscriptores** está activado.
+- **Fix the code with AI** pide a OneUptime AI, para cada excepción que lanzaron las solicitudes del caso, hasta tres, un pull request que la corrija. Necesita OneUptime AI activado, un repositorio con el código conectado mediante la GitHub App y un runner. Sin ellos, el paso se omite e indica qué falta.
 
 ### Contención
 

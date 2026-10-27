@@ -18,6 +18,16 @@ import {
 } from "../../Types/SecurityCase/SecurityConnection";
 import { SECURITY_FINDINGS_CATEGORY_UID } from "../../Types/SecurityEvent/Destinations/SecurityEventDestinationScope";
 import { SECURITY_EVENT_RECORD_COLUMNS } from "../../Utils/SecurityEvent/Destinations/SecurityEventRecord";
+import SecurityEventRequestOutcome, {
+  SECURITY_REQUEST_ATTRIBUTES,
+} from "../../Types/SecurityEvent/SecurityEventRequestOutcome";
+import {
+  HTTP_ACTIVITY_CLASS_UID,
+  SECURITY_ATTACK_CAMPAIGNS_MAX,
+  SecurityAttackCampaign,
+  readSecurityAttackCampaign,
+} from "../../Types/SecurityEvent/SecurityAttackCampaign";
+import { WEB_ATTACK_KIND_ATTRIBUTE } from "../../Utils/SecurityEvent/LogParsers/WebAttackLogParser";
 
 export interface DetectionMatchGroup {
   groupValue: string;
@@ -439,6 +449,98 @@ export class SecurityEventService extends AnalyticsDatabaseService<SecurityEvent
         lastSeen: readDate(row["lastSeen"]),
       };
     });
+  }
+
+  /*
+   * The project's web attacks over a window, one row per address that sent
+   * them (Types/SecurityEvent/SecurityAttackCampaign): how many requests,
+   * how far they got, what kinds of attack, which tools, which requests.
+   * Worst first - the furthest any request got, then the most requests -
+   * and at most `limit + 1` rows, so the caller can tell there were more.
+   */
+  public async findAttackCampaigns(data: {
+    projectId: ObjectID;
+    startTime: Date;
+    endTime: Date;
+    limit: number;
+  }): Promise<Array<SecurityAttackCampaign>> {
+    if (!this.database) {
+      this.useDefaultDatabase();
+    }
+
+    const databaseName: string =
+      this.database!.getDatasourceOptions().database!;
+    const limit: number = Math.max(
+      1,
+      Math.min(SECURITY_ATTACK_CAMPAIGNS_MAX, Math.trunc(data.limit)),
+    );
+
+    const statement: Statement = SQL`SELECT principalIp AS sourceIp, count() AS requestCount, countIf(requestOutcome = ${{
+      type: TableColumnType.Text,
+      value: SecurityEventRequestOutcome.Rejected,
+    }}) AS rejectedCount, countIf(requestOutcome = ${{
+      type: TableColumnType.Text,
+      value: SecurityEventRequestOutcome.ReachedApp,
+    }}) AS reachedAppCount, countIf(requestOutcome = ${{
+      type: TableColumnType.Text,
+      value: SecurityEventRequestOutcome.Errored,
+    }}) AS erroredCount, countIf(requestOutcome = ${{
+      type: TableColumnType.Text,
+      value: SecurityEventRequestOutcome.ReachedDatabase,
+    }}) AS reachedDatabaseCount, max(multiIf(requestOutcome = ${{
+      type: TableColumnType.Text,
+      value: SecurityEventRequestOutcome.ReachedDatabase,
+    }}, 4, requestOutcome = ${{
+      type: TableColumnType.Text,
+      value: SecurityEventRequestOutcome.Errored,
+    }}, 3, requestOutcome = ${{
+      type: TableColumnType.Text,
+      value: SecurityEventRequestOutcome.ReachedApp,
+    }}, 2, requestOutcome = ${{
+      type: TableColumnType.Text,
+      value: SecurityEventRequestOutcome.Rejected,
+    }}, 1, 0)) AS worstOutcomeRank, max(severityId) AS maxSeverityId, groupUniqArray(5)(attributes[${{
+      type: TableColumnType.Text,
+      value: WEB_ATTACK_KIND_ATTRIBUTE,
+    }}]) AS attackKinds, groupUniqArray(3)(attributes[${{
+      type: TableColumnType.Text,
+      value: SECURITY_REQUEST_ATTRIBUTES.userAgent,
+    }}]) AS userAgents, uniq(targetResource) AS targetCount, groupUniqArray(3)(substring(targetResource, 1, 300)) AS sampleTargets, min(time) AS firstSeen, max(time) AS lastSeen FROM `;
+    statement.append(`${databaseName}.${this.model.tableName}`);
+    statement.append(
+      SQL` WHERE projectId = ${{
+        type: TableColumnType.ObjectID,
+        value: data.projectId,
+      }} AND time >= ${{
+        type: TableColumnType.DateTime64,
+        value: data.startTime,
+      }} AND time <= ${{
+        type: TableColumnType.DateTime64,
+        value: data.endTime,
+      }} AND classUid = ${{
+        type: TableColumnType.Number,
+        value: HTTP_ACTIVITY_CLASS_UID,
+      }} GROUP BY sourceIp ORDER BY worstOutcomeRank DESC, requestCount DESC, sourceIp ASC LIMIT ${{
+        type: TableColumnType.Number,
+        value: limit + 1,
+      }}`,
+    );
+    statement.append(getQuerySettings({ maxExecutionTimeInSeconds: 30 }));
+
+    const result: Results = await this.executeQuery(statement);
+    const response: DbJSONResponse = await result.json<{
+      data?: Array<JSONObject>;
+    }>();
+
+    return (response.data || []).map(
+      (row: JSONObject): SecurityAttackCampaign => {
+        return {
+          ...readSecurityAttackCampaign(row),
+          firstSeen: readDate(row["firstSeen"])?.toISOString() || "",
+          lastSeen: readDate(row["lastSeen"])?.toISOString() || "",
+        };
+      },
+    );
   }
 
   /*

@@ -20,6 +20,7 @@ import { Navigate, Route as PageRoute, Routes } from "react-router-dom";
 // Pages
 import SecurityEventsPage from "../Pages/SecurityEvents/Index";
 import SecurityEventsCorrelatePage from "../Pages/SecurityEvents/Correlate";
+import SecurityEventsCampaignsPage from "../Pages/SecurityEvents/Campaigns";
 import SecurityEventsDetectionRulesPage from "../Pages/SecurityEvents/DetectionRules";
 import SecurityEventsDocumentationPage from "../Pages/SecurityEvents/Documentation";
 import SecurityEventsConnectionsPage from "../Pages/SecurityEvents/Connections";
@@ -29,6 +30,7 @@ import SecurityCasesPage from "../Pages/SecurityEvents/Cases";
 import SecurityCaseViewLayout from "../Pages/SecurityEvents/CaseView/Layout";
 import SecurityCaseOverviewPage from "../Pages/SecurityEvents/CaseView/Index";
 import SecurityCaseTimelinePage from "../Pages/SecurityEvents/CaseView/Timeline";
+import SecurityCaseStoryPage from "../Pages/SecurityEvents/CaseView/Story";
 import SecurityCaseDetectionsPage from "../Pages/SecurityEvents/CaseView/Detections";
 import SecurityCaseEntitiesPage from "../Pages/SecurityEvents/CaseView/Entities";
 import SecurityCaseConnectedSignalsPage from "../Pages/SecurityEvents/CaseView/ConnectedSignals";
@@ -106,6 +108,17 @@ const SecurityEventsRoutes: FunctionComponent<ComponentProps> = (
             );
           },
         )}
+        <PageRoute
+          path={
+            SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_CAMPAIGNS] || ""
+          }
+          element={
+            <SecurityEventsCampaignsPage
+              {...props}
+              pageRoute={RouteMap[PageMap.SECURITY_EVENTS_CAMPAIGNS] as Route}
+            />
+          }
+        />
         <PageRoute
           path={
             SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_CORRELATE] || ""
@@ -422,6 +435,15 @@ const SecurityEventsRoutes: FunctionComponent<ComponentProps> = (
             <SecurityCaseTimelinePage
               {...props}
               pageRoute={RouteMap[PageMap.SECURITY_CASE_VIEW_TIMELINE] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SECURITY_CASE_VIEW_STORY)}
+          element={
+            <SecurityCaseStoryPage
+              {...props}
+              pageRoute={RouteMap[PageMap.SECURITY_CASE_VIEW_STORY] as Route}
             />
           }
         />

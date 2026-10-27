@@ -35,6 +35,12 @@ import DashboardSettingsLabelRules from "../Pages/Dashboards/Settings/LabelRules
 import DashboardSettingsDataSources from "../Pages/Dashboards/Settings/DataSources";
 
 import DashboardSettingsDataSourceView from "../Pages/Dashboards/Settings/DataSourceView";
+
+import DashboardPlaylists from "../Pages/Dashboards/Playlists/Playlists";
+
+import DashboardPlaylistView from "../Pages/Dashboards/Playlists/PlaylistView";
+
+import DashboardPlaylistPlay from "../Pages/Dashboards/Playlists/PlaylistPlay";
 import DashboardLabelRule from "Common/Models/DatabaseModels/DashboardLabelRule";
 import DashboardOwnerRule from "Common/Models/DatabaseModels/DashboardOwnerRule";
 import Dashboard from "Common/Models/DatabaseModels/Dashboard";
@@ -64,6 +70,27 @@ const DashboardsRoutes: FunctionComponent<ComponentProps> = (
             <DashboardsArchived
               {...props}
               pageRoute={RouteMap[PageMap.DASHBOARDS_ARCHIVED] as Route}
+            />
+          }
+        />
+
+        {/* Static `playlists` outranks the dashboard view's `:id` too. */}
+        <PageRoute
+          path={DashboardsRoutePath[PageMap.DASHBOARD_PLAYLISTS] || ""}
+          element={
+            <DashboardPlaylists
+              {...props}
+              pageRoute={RouteMap[PageMap.DASHBOARD_PLAYLISTS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={DashboardsRoutePath[PageMap.DASHBOARD_PLAYLIST_VIEW] || ""}
+          element={
+            <DashboardPlaylistView
+              {...props}
+              pageRoute={RouteMap[PageMap.DASHBOARD_PLAYLIST_VIEW] as Route}
             />
           }
         />
@@ -162,6 +189,20 @@ const DashboardsRoutes: FunctionComponent<ComponentProps> = (
           mountPageKey: PageMap.DASHBOARDS_ROOT,
         })}
       </PageRoute>
+
+      {/*
+       * A playlist playing: over the whole window, with no page around it -
+       * no side menu, no breadcrumbs (PlaylistPlayer).
+       */}
+      <PageRoute
+        path={DashboardsRoutePath[PageMap.DASHBOARD_PLAYLIST_PLAY] || ""}
+        element={
+          <DashboardPlaylistPlay
+            {...props}
+            pageRoute={RouteMap[PageMap.DASHBOARD_PLAYLIST_PLAY] as Route}
+          />
+        }
+      />
 
       <PageRoute
         path={DashboardsRoutePath[PageMap.DASHBOARD_VIEW] || ""}

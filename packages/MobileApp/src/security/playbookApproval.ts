@@ -69,9 +69,11 @@ export const SECURITY_PLAYBOOK_ACTION_TITLES: Readonly<Record<string, string>> =
     "Add Case Labels": "Add labels",
     "Check Threat Intel": "Check entities against threat intel",
     "Look Up Entity Activity": "Look up entity activity",
+    "Preserve Evidence": "Preserve the evidence",
     "Email People": "Email people",
     "Post to Slack": "Post to Slack",
     "Post to Microsoft Teams": "Post to Microsoft Teams",
+    "Post Status Page Announcement": "Post a status page announcement",
     "Page On-Call": "Page on-call",
     "Declare Incident": "Declare an incident",
     "Suspend Okta User": "Suspend the user in Okta",
@@ -83,6 +85,8 @@ export const SECURITY_PLAYBOOK_ACTION_TITLES: Readonly<Record<string, string>> =
     "Release Defender Device": "Release the device in Microsoft Defender",
     "Send Webhook": "Send a webhook",
     "Run Workflow": "Run a workflow",
+    "Run Runbook": "Run a runbook",
+    "Fix With AI": "Fix the code with AI",
   };
 
 export function getPlaybookActionTitle(action: unknown): string {

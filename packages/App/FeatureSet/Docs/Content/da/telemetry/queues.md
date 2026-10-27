@@ -725,6 +725,8 @@ service:
 
 BullMQ gemmer sine jobs i Redis og har ingen broker at scrape; rapportér kødybden fra applikationen som en metrik, der bærer `messaging.system` og `messaging.destination.name`, som OneUptimes egne workers gør med `queue.size`.
 
+Med [Kubernetes-agentens eBPF-sporing](/docs/telemetry/kubernetes-agent#sådan-ser-ebpf-traces-ud) læser OneUptime også BullMQ-køer (BullMQ 5 og nyere) ud fra de Redis-kommandoer, BullMQ sender, uden ændringer i din applikation: når et job tilføjes, vises servicen som producent af sin kø, og når et job afsluttes, som forbruger. Agenten dropper som standard databasekald, der foretages uden for en request (`ebpf.dropUnlinkedDatabaseCalls`), og en worker, der behandler et job, er uden for en request, så en kø, der findes på denne måde, viser fra start mest sine producenter; sæt `ebpf.dropUnlinkedDatabaseCalls=false` for også at se dens forbrugere.
+
 BullMQ's egen telemetri (dens indstilling `telemetry`, som pakken `bullmq-otel` implementerer) nævner køen i `bullmq.queue.name` og sætter intet `messaging.system`, så alene opretter den ingen kø. En `transform`-processor i den collector, som dine applikationer sender til, tilføjer de to nøgler, som OneUptime læser, på de spans, der tilføjer og behandler jobs, og på BullMQ's egne metrikker:
 
 ```yaml

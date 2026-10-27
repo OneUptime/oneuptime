@@ -129,6 +129,7 @@ tests:
     set:
       ebpf.dropDatabaseServerSpans: false
       ebpf.dropUnlinkedDatabaseCalls: false
+      ebpf.dropDatabaseProxySpans: false
     asserts:
       - template: templates/configmap-deployment.yaml
         notMatchRegex:

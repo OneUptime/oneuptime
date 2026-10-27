@@ -475,7 +475,14 @@ describe("every /oneuptime-assets URL a view uses resolves to a real file", () =
           "Partials",
           "Head.ejs",
         ),
-        ["/oneuptime-assets/tailwind/tailwind-3.4.5.js"],
+        /*
+         * The single sign-on pages draw their words in Inter, as the
+         * sign-in pages they are reached from do.
+         */
+        [
+          "/oneuptime-assets/tailwind/tailwind-3.4.5.js",
+          "/oneuptime-assets/fonts/InterVariable.woff2",
+        ],
       ],
       [
         path.join("Common", "Server", "Views", "Partials", "Head.ejs"),

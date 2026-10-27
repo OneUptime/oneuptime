@@ -5,6 +5,7 @@ import Permission, {
   UserPermission,
   UserTenantAccessPermission,
 } from "../../../Types/Permission";
+import PermissionScope from "../../../Types/Database/AccessControl/PermissionScope";
 import GlobalCache from "../../Infrastructure/GlobalCache";
 import PermissionNamespace from "../../Types/Permission/PermissionNamespace";
 import CaptureSpan from "../Telemetry/CaptureSpan";
@@ -117,7 +118,35 @@ export default class UserPermissionUtil {
       json.permissions = [];
     }
 
+    // Rebuilt from the memberships, as if nothing were cached. See the helper.
+    if (this.hasOwnedRowWithoutTeam(json)) {
+      return null;
+    }
+
     return this.withProjectUserPermission(json);
+  }
+
+  /*
+   * Whether a cached permission set was written before each row named the
+   * team it is granted on (UserPermission.teamId): an Owned row of it would
+   * reach only what the user owns, and not what the team granting it owns.
+   * Such a set is read as missing, so the caller rebuilds it from the
+   * memberships (AccessTokenService.getUserTenantAccessPermission) rather
+   * than serve it until it expires, 30 days later.
+   */
+  public static hasOwnedRowWithoutTeam(
+    permission: UserTenantAccessPermission,
+  ): boolean {
+    return (permission.permissions || []).some(
+      (userPermission: UserPermission): boolean => {
+        return (
+          Boolean(userPermission) &&
+          userPermission.scope === PermissionScope.Owned &&
+          userPermission.isBlockPermission !== true &&
+          !userPermission.teamId
+        );
+      },
+    );
   }
 
   @CaptureSpan()

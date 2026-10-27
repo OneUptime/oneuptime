@@ -233,12 +233,16 @@ describe("the calendar feed cards in the dark theme", () => {
     expect(tokens.size).toBeGreaterThan(40);
     expect(Array.from(tokens)).toEqual(
       expect.arrayContaining([
-        // The subscribe options: a white tile, a tinted mark, a grey hover.
+        /*
+         * The subscribe options: a white tile and a grey hover. Their marks
+         * are Google Calendar's logo and a calendar on the neutral tile
+         * Common's ProviderLogoImage draws (official logos audit), which
+         * Theme.css re-colours there, not here.
+         */
         "bg-white",
         "border-gray-200",
         "hover:border-gray-300",
         "hover:bg-gray-50",
-        "bg-indigo-50",
         "text-indigo-600",
         "group-hover:text-gray-600",
         // The link field and "Copied!".
