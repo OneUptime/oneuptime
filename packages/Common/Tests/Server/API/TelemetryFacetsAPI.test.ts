@@ -746,6 +746,7 @@ describe("telemetry facet endpoints (list first)", () => {
       sample: Spy;
       resourceCounts: Spy;
       rootSpan: Spy;
+      entrySpan: Spy;
       hasException: Spy;
     }
 
@@ -754,12 +755,24 @@ describe("telemetry facet endpoints (list first)", () => {
       statusCounts?: Array<[string, number]>;
       failResourceCounts?: boolean;
       // Which count sources the time limit stops (issue #4707).
-      stop?: Array<"sample" | "resourceCounts" | "rootSpan" | "hasException">;
+      stop?: Array<
+        "sample" | "resourceCounts" | "rootSpan" | "entrySpan" | "hasException"
+      >;
     }): TraceSpies {
       const stops: (
-        source: "sample" | "resourceCounts" | "rootSpan" | "hasException",
+        source:
+          | "sample"
+          | "resourceCounts"
+          | "rootSpan"
+          | "entrySpan"
+          | "hasException",
       ) => void = (
-        source: "sample" | "resourceCounts" | "rootSpan" | "hasException",
+        source:
+          | "sample"
+          | "resourceCounts"
+          | "rootSpan"
+          | "entrySpan"
+          | "hasException",
       ): void => {
         if ((data.stop || []).includes(source)) {
           throw stoppedAtLimit();
@@ -815,6 +828,18 @@ describe("telemetry facet endpoints (list first)", () => {
         },
       );
 
+      const entrySpan: Spy = spyOn(
+        TraceAggregationService,
+        "getEntrySpanCounts",
+      );
+      entrySpan.mockImplementation(
+        async (): Promise<{ entryCount: number; nonEntryCount: number }> => {
+          stops("entrySpan");
+
+          return { entryCount: 3, nonEntryCount: 4 };
+        },
+      );
+
       const hasException: Spy = spyOn(
         TraceAggregationService,
         "getHasExceptionCounts",
@@ -830,7 +855,7 @@ describe("telemetry facet endpoints (list first)", () => {
         },
       );
 
-      return { sample, resourceCounts, rootSpan, hasException };
+      return { sample, resourceCounts, rootSpan, entrySpan, hasException };
     }
 
     test("skips the shared resource count query when no statusCode is requested and no resource type has rows", async () => {
@@ -1019,6 +1044,64 @@ describe("telemetry facet endpoints (list first)", () => {
       });
 
       expect(result.timedOutFacets).toEqual(["statusCode"]);
+    });
+
+    test("entry spans are counted exactly beside root spans, never sampled, and only when asked for", async () => {
+      const spies: TraceSpies = stubTraceCounts({});
+
+      const result: CallResult = await callRoute({
+        uri: TRACES_ROUTE,
+        request: viewerRequest,
+        body: {
+          facetKeys: ["kind", "isEntrySpan", "isRootSpan"],
+          entryOnly: true,
+        },
+      });
+
+      expect(result.thrownToNext).toBeUndefined();
+      expect(
+        (spies.sample.mock.calls[0]![0] as JSONObject)["facetKeys"],
+      ).toEqual(["kind"]);
+      expect(spies.entrySpan.mock.calls).toHaveLength(1);
+      // The list's own span type rides along; the count itself ignores it.
+      expect(
+        (spies.entrySpan.mock.calls[0]![0] as JSONObject)["entryOnly"],
+      ).toBe(true);
+      expect(result.facets!["isEntrySpan"]).toEqual([
+        { value: "true", count: 3 },
+        { value: "false", count: 4 },
+      ]);
+      expect(result.facets!["isRootSpan"]).toEqual([
+        { value: "true", count: 2 },
+        { value: "false", count: 5 },
+      ]);
+
+      // Not asked for: not counted.
+      spies.entrySpan.mockClear();
+      await callRoute({
+        uri: TRACES_ROUTE,
+        request: viewerRequest,
+        body: { facetKeys: ["isRootSpan"] },
+      });
+      expect(spies.entrySpan.mock.calls).toHaveLength(0);
+    });
+
+    test("entry-span counts the time limit stopped are named as isEntrySpan", async () => {
+      stubTraceCounts({ stop: ["entrySpan"] });
+
+      const result: CallResult = await callRoute({
+        uri: TRACES_ROUTE,
+        request: viewerRequest,
+        body: { facetKeys: ["isEntrySpan", "isRootSpan"] },
+      });
+
+      expect(result.thrownToNext).toBeUndefined();
+      expect(result.facets!["isEntrySpan"]).toEqual([]);
+      expect(result.facets!["isRootSpan"]).toEqual([
+        { value: "true", count: 2 },
+        { value: "false", count: 5 },
+      ]);
+      expect(result.timedOutFacets).toEqual(["isEntrySpan"]);
     });
 
     test("the sample, root-span and exception counts each name their own facets", async () => {

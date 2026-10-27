@@ -1283,6 +1283,9 @@ function parseTraceFilterBody(body: JSONObject): TraceFilters {
         : undefined,
     rootOnly:
       body["rootOnly"] === undefined ? undefined : Boolean(body["rootOnly"]),
+    // The explorer's default list: where work enters a service.
+    entryOnly:
+      body["entryOnly"] === undefined ? undefined : Boolean(body["entryOnly"]),
     attributes: parseAttributeFilterRecord(body["attributes"]),
     attributeSearches: stringRecord("attributeSearches"),
   };
@@ -1452,8 +1455,12 @@ router.post(
           return (
             !ResourceFacetResolver.isResourceFacet(key) &&
             key !== "statusCode" &&
-            // isRootSpan / hasException are counted exactly below, not sampled.
+            /*
+             * isRootSpan / isEntrySpan / hasException are counted exactly
+             * below, not sampled.
+             */
             key !== "isRootSpan" &&
+            key !== "isEntrySpan" &&
             key !== "hasException"
           );
         },
@@ -1476,6 +1483,7 @@ router.post(
           scope,
         });
       const wantsRootSpan: boolean = facetKeys.includes("isRootSpan");
+      const wantsEntrySpan: boolean = facetKeys.includes("isEntrySpan");
       const wantsHasException: boolean = facetKeys.includes("hasException");
 
       /*
@@ -1514,6 +1522,7 @@ router.post(
         accurate,
         rootSpanCounts,
         exceptionCounts,
+        entrySpanCounts,
       ]: [
         Record<string, Array<TraceFacetValue>>,
         ListedResourceFacets,
@@ -1523,6 +1532,7 @@ router.post(
         },
         { rootCount: number; nonRootCount: number } | null,
         { withExceptionCount: number; withoutExceptionCount: number } | null,
+        { entryCount: number; nonEntryCount: number } | null,
       ] = await Promise.all([
         sampledKeys.length > 0
           ? timedOutFacets
@@ -1610,6 +1620,17 @@ router.post(
                 return null;
               })
           : Promise.resolve(null),
+        wantsEntrySpan
+          ? timedOutFacets
+              .watch("isEntrySpan", () => {
+                return TraceAggregationService.getEntrySpanCounts(
+                  multiRequest,
+                );
+              })
+              .catch(() => {
+                return null;
+              })
+          : Promise.resolve(null),
       ]);
 
       const facets: Record<string, Array<TraceFacetValue>> = sampledFacets;
@@ -1629,14 +1650,29 @@ router.post(
 
       /*
        * Span-type facet: exact root vs non-root counts off the projection,
-       * computed ignoring rootOnly so both buckets survive (see
-       * getRootSpanCounts). Backs the "Span Type" sidebar choice.
+       * computed ignoring rootOnly and entryOnly so both buckets survive (see
+       * getRootSpanCounts). Backs the "Span Type" sidebar's Root spans and,
+       * added up, All spans.
        */
       if (wantsRootSpan) {
         facets["isRootSpan"] = rootSpanCounts
           ? [
               { value: "true", count: rootSpanCounts.rootCount },
               { value: "false", count: rootSpanCounts.nonRootCount },
+            ]
+          : [];
+      }
+
+      /*
+       * Entry spans (a root, or a SERVER / CONSUMER span): exact counts over
+       * the same rows as the root-span counts (see getEntrySpanCounts),
+       * backing the Span Type facet's default choice.
+       */
+      if (wantsEntrySpan) {
+        facets["isEntrySpan"] = entrySpanCounts
+          ? [
+              { value: "true", count: entrySpanCounts.entryCount },
+              { value: "false", count: entrySpanCounts.nonEntryCount },
             ]
           : [];
       }
