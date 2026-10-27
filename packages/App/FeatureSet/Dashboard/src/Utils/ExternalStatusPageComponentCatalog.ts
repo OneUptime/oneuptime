@@ -179,6 +179,14 @@ export default class ExternalStatusPageComponentCatalog {
       return null;
     }
 
+    /*
+     * A status page's address names no user: "mailto:a@example.com", read
+     * with https:// in front, would be user "mailto" on example.com.
+     */
+    if (url.username || url.password) {
+      return null;
+    }
+
     // A host the person could mean: a name with a dot, or "localhost".
     if (!url.hostname || (!url.hostname.includes(".") && url.hostname !== "localhost")) {
       return null;

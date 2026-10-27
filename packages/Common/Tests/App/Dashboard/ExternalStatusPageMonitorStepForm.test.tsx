@@ -13,6 +13,13 @@ import { Mock } from "jest-mock";
 import ExternalStatusPageMonitorStepForm, {
   getExternalStatusPageProviderOptions,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/ExternalStatusPageMonitor/ExternalStatusPageMonitorStepForm";
+import { COMPONENTS_FIELD_TEST_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/ExternalStatusPageMonitor/ExternalStatusPageComponentsField";
+import { ExternalStatusPageCatalog } from "../../../../App/FeatureSet/Dashboard/src/Utils/ExternalStatusPageComponentCatalog";
+import ExternalStatusPageReading from "../../../Utils/Monitor/ExternalStatusPageReading";
+import {
+  GITHUB_PAGE,
+  atlassianComponentsJSON,
+} from "../../Helpers/ExternalStatusPageFixtures";
 import ExternalStatusPageProviderType from "../../../Types/Monitor/ExternalStatusPageProviderType";
 import MonitorStepExternalStatusPageMonitor, {
   MonitorStepExternalStatusPageMonitorUtil,
@@ -31,7 +38,26 @@ import { DropdownOption } from "../../../UI/Components/Dropdown/Dropdown";
  *   - each optional field says "(Optional)" once, small and grey after its
  *     title, as every form does - the two filters said it in their titles;
  *   - two steps on one page never share an id.
+ *
+ * And as issue #5156 left it: the components the monitor watches are
+ * chosen out in the form (Components), not typed into a filter under More
+ * fields; a monitor saved with one Component Name Filter shows it there as
+ * that name between stars, and choosing writes the list and the one name a
+ * probe that has not been upgraded reads.
  */
+
+const GITHUB_URL: string = "https://www." + "githubstatus.com";
+
+const readGitHub: () => Promise<ExternalStatusPageCatalog> =
+  (): Promise<ExternalStatusPageCatalog> => {
+    return Promise.resolve({
+      provider: ExternalStatusPageProviderType.AtlassianStatuspage,
+      host: "www." + "githubstatus.com",
+      components: ExternalStatusPageReading.readAtlassianComponents(
+        atlassianComponentsJSON(GITHUB_PAGE),
+      )!,
+    });
+  };
 
 const PROVIDER_LABELS: Array<string> = [
   "Auto",
@@ -52,8 +78,15 @@ function renderForm(
     <ExternalStatusPageMonitorStepForm
       monitorStepExternalStatusPageMonitor={value}
       onChange={onChange}
+      readCatalog={readGitHub}
     />,
   );
+}
+
+function lastChange(onChange: Mock<OnChange>): MonitorStepExternalStatusPageMonitor {
+  return onChange.mock.calls[
+    onChange.mock.calls.length - 1
+  ]![0] as MonitorStepExternalStatusPageMonitor;
 }
 
 afterEach(() => {
@@ -162,10 +195,14 @@ describe("the fields' labels", () => {
       }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("textbox", {
+      screen.getByRole("combobox", { name: "Components (Optional)" }),
+    ).toBeInTheDocument();
+    // The filter it replaced is gone.
+    expect(
+      screen.queryByRole("textbox", {
         name: "Component Name Filter (Optional)",
       }),
-    ).toBeInTheDocument();
+    ).toBeNull();
     expect(
       screen.getByRole("spinbutton", { name: "Timeout (ms) (Optional)" }),
     ).toBeInTheDocument();
@@ -175,8 +212,8 @@ describe("the fields' labels", () => {
   });
 
   test.each([
+    "Components",
     "Component Group Filter",
-    "Component Name Filter",
     "Timeout (ms)",
     "Retries",
   ])(
@@ -196,16 +233,18 @@ describe("the fields' labels", () => {
     },
   );
 
-  test("the name filter's line says how it matches, in one sentence a person reads", () => {
+  test("the Components line says what choosing does, and what empty means", () => {
     renderForm();
 
     expect(
       screen.getByText(
-        "Only watch components whose names contain this, e.g. 'API'. With a group set, only inside that group.",
+        "Watch only these components: only their incidents and statuses count. Leave empty to watch the whole page.",
       ),
     ).toBeInTheDocument();
     expect(
-      screen.queryByText(/Leave blank to monitor all components in scope/),
+      screen.queryByText(
+        "Only watch components whose names contain this, e.g. 'API'. With a group set, only inside that group.",
+      ),
     ).not.toBeInTheDocument();
   });
 
@@ -231,6 +270,97 @@ describe("the fields' labels", () => {
         ]![0] as MonitorStepExternalStatusPageMonitor
       ).componentGroupName,
     ).toBeUndefined();
+  });
+});
+
+describe("the components the monitor watches", () => {
+  test("are chosen out in the form, before More fields, which no longer holds a name filter", () => {
+    renderForm();
+
+    const field: HTMLElement = screen.getByTestId(COMPONENTS_FIELD_TEST_ID);
+    const moreFields: HTMLElement = screen.getByTestId(
+      "external-status-page-monitor-more-fields",
+    );
+
+    expect(moreFields.contains(field)).toBe(false);
+    expect(
+      field.compareDocumentPosition(moreFields) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(moreFields).not.toHaveTextContent("Component Name Filter");
+    expect(moreFields).toHaveTextContent("Component Group Filter");
+  });
+
+  test("a monitor saved with one Component Name Filter shows it as that name between stars", () => {
+    renderForm({
+      ...MonitorStepExternalStatusPageMonitorUtil.getDefault(),
+      statusPageUrl: GITHUB_URL,
+      componentName: "API",
+      componentNames: undefined,
+    });
+
+    expect(
+      within(screen.getByTestId(COMPONENTS_FIELD_TEST_ID)).getByText("*API*"),
+    ).toBeInTheDocument();
+  });
+
+  test("choosing writes the list, and the one name an older probe reads", async () => {
+    const onChange: Mock<OnChange> = jest.fn<OnChange>();
+
+    renderForm(
+      {
+        ...MonitorStepExternalStatusPageMonitorUtil.getDefault(),
+        statusPageUrl: GITHUB_URL,
+      },
+      onChange,
+    );
+
+    const components: HTMLElement = screen.getByRole("combobox", {
+      name: "Components (Optional)",
+    });
+
+    await act(async () => {
+      fireEvent.keyDown(components, { key: "ArrowDown" });
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    await act(async () => {
+      const option: HTMLElement = screen.getByRole("option", {
+        name: "Git Operations",
+      });
+      fireEvent.mouseDown(option);
+      fireEvent.click(option);
+    });
+
+    expect(lastChange(onChange)).toEqual(
+      expect.objectContaining({
+        statusPageUrl: GITHUB_URL,
+        componentNames: ["Git Operations"],
+        componentName: "Git Operations",
+      }),
+    );
+  });
+
+  test("clearing them watches the whole page, the old filter gone too", async () => {
+    const onChange: Mock<OnChange> = jest.fn<OnChange>();
+
+    renderForm(
+      {
+        ...MonitorStepExternalStatusPageMonitorUtil.getDefault(),
+        statusPageUrl: GITHUB_URL,
+        componentName: "API",
+        componentNames: undefined,
+      },
+      onChange,
+    );
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Remove *API*" }));
+    });
+
+    expect(lastChange(onChange).componentNames).toEqual([]);
+    expect(lastChange(onChange).componentName).toBeUndefined();
   });
 });
 

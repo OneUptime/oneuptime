@@ -23,7 +23,11 @@ import ObjectID from "../../../Types/ObjectID";
 import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
 import { DropdownOption } from "../../../UI/Components/Dropdown/Dropdown";
 import CriteriaFilterUtil from "../../../../App/FeatureSet/Dashboard/src/Utils/Form/Monitor/CriteriaFilter";
-import ExternalStatusPageMonitorView from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/SummaryView/ExternalStatusPageMonitorView";
+import ExternalStatusPageMonitorView, {
+  EXTERNAL_STATUS_PAGE_OUTSIDE_INCIDENTS_TEST_ID,
+  EXTERNAL_STATUS_PAGE_UNMATCHED_TEST_ID,
+  getWatchedComponentNames,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/SummaryView/ExternalStatusPageMonitorView";
 import SummaryInfo from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/SummaryView/SummaryInfo";
 
 /*
@@ -388,6 +392,7 @@ describe("the facts", () => {
   });
 
   test.each([
+    // A check by a probe that has not been upgraded: its one filter.
     [
       { componentGroupName: "Core", componentName: "Checkout" },
       "Core › Checkout",
@@ -395,16 +400,45 @@ describe("the facts", () => {
     [{ componentGroupName: "Core" }, "Group: Core"],
     [{ componentName: "Checkout" }, "Component: Checkout"],
     [{}, "All components"],
+    // Issue #5156: the components the monitor chose.
+    [{ componentNames: [] }, "All components"],
+    [{ componentGroupName: "Core", componentNames: [] }, "Group: Core"],
+    [{ componentNames: ["Checkout API"] }, "Component: Checkout API"],
+    [
+      { componentGroupName: "Core", componentNames: ["Checkout API"] },
+      "Core › Checkout API",
+    ],
+    [
+      { componentNames: ["Checkout API", "Orders database", "Payments"] },
+      "3 chosen components",
+    ],
+    [
+      {
+        componentGroupName: "Core",
+        componentNames: ["Checkout API", "Orders database"],
+      },
+      "Core › 2 chosen components",
+    ],
+    // The list wins over the one name an older probe would read.
+    [
+      { componentNames: ["*Checkout*"], componentName: "Checkout" },
+      "Component: *Checkout*",
+    ],
   ])(
     "the scope of %p reads %p",
     (
-      scope: { componentGroupName?: string; componentName?: string },
+      scope: {
+        componentGroupName?: string;
+        componentName?: string;
+        componentNames?: Array<string>;
+      },
       expected: string,
     ) => {
       renderView(
         pageResponse({
           componentGroupName: scope.componentGroupName,
           componentName: scope.componentName,
+          componentNames: scope.componentNames,
         }),
       );
 
@@ -413,6 +447,19 @@ describe("the facts", () => {
       );
     },
   );
+
+  test("what a check watched: its chosen components, else its one filter, else the whole page", () => {
+    expect(
+      getWatchedComponentNames(
+        pageResponse({ componentNames: ["A", "B"], componentName: "A" }),
+      ),
+    ).toEqual(["A", "B"]);
+    expect(
+      getWatchedComponentNames(pageResponse({ componentName: "Checkout" })),
+    ).toEqual(["Checkout"]);
+    expect(getWatchedComponentNames(pageResponse())).toEqual([]);
+    expect(getWatchedComponentNames(undefined)).toEqual([]);
+  });
 
   /*
    * One a row on a phone, two to a row from 22rem, four once the view
@@ -455,6 +502,75 @@ describe("the facts", () => {
       "break-words",
       "[@container(min-width:32rem)]:text-base",
     );
+  });
+});
+
+/*
+ * Issue #5156: a monitor that watches some components of a page counts
+ * only their incidents. The summary says how many more the page has, so a
+ * quiet monitor during an outage elsewhere reads as one that left it out,
+ * and names the chosen components the page does not list.
+ */
+describe("what the scope leaves out", () => {
+  test("the incidents on the page it did not count, under the count", () => {
+    renderView(
+      pageResponse({
+        componentNames: ["Checkout API"],
+        activeIncidentCount: 1,
+        incidentsOutsideScopeCount: 2,
+      }),
+    );
+
+    const value: HTMLElement = factValue("external-status-page-page-facts", 2);
+
+    expect(value.textContent?.startsWith("1")).toBe(true);
+    expect(
+      within(value).getByTestId(EXTERNAL_STATUS_PAGE_OUTSIDE_INCIDENTS_TEST_ID),
+    ).toHaveTextContent("2 more on the page, not counted");
+  });
+
+  test("none left out: the count alone", () => {
+    renderView(pageResponse({ activeIncidentCount: 3 }));
+
+    expect(
+      screen.queryByTestId(EXTERNAL_STATUS_PAGE_OUTSIDE_INCIDENTS_TEST_ID),
+    ).toBeNull();
+    expect(factValue("external-status-page-page-facts", 2).textContent).toBe(
+      "3",
+    );
+  });
+
+  test("the chosen components the page does not list are named, after the page's facts", () => {
+    renderView(
+      pageResponse({
+        componentNames: ["Checkout API", "Payments", "*Kubernetes*"],
+        unmatchedComponentNames: ["Payments", "*Kubernetes*"],
+      }),
+    );
+
+    const warning: HTMLElement = screen.getByTestId(
+      EXTERNAL_STATUS_PAGE_UNMATCHED_TEST_ID,
+    );
+
+    expect(warning).toHaveTextContent(
+      "Not on this page, so not watched: Payments, *Kubernetes*",
+    );
+    expect(
+      screen
+        .getByTestId("external-status-page-page-facts")
+        .compareDocumentPosition(warning) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  test("every chosen component on the page: no warning", () => {
+    renderView(
+      pageResponse({
+        componentNames: ["Checkout API"],
+        unmatchedComponentNames: [],
+      }),
+    );
+
+    expect(screen.queryByTestId(EXTERNAL_STATUS_PAGE_UNMATCHED_TEST_ID)).toBeNull();
   });
 });
 

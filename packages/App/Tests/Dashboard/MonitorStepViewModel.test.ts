@@ -864,16 +864,73 @@ describe("MonitorStepViewModel.getRows — DNS, domain and database monitors", (
     }
   });
 
-  it("shows the external status page URL, provider and component filters", () => {
+  it("shows the external status page URL, provider, group and components", () => {
     expect(getRow(MonitorType.ExternalStatusPage, "statusPageUrl")?.value).toBe(
       "https://status.example.com",
     );
     expect(
       getRow(MonitorType.ExternalStatusPage, "componentGroupName")?.value,
     ).toBe("APIs");
-    expect(getRow(MonitorType.ExternalStatusPage, "componentName")?.value).toBe(
-      "Checkout API",
+    /*
+     * A monitor saved with one Component Name Filter watches every
+     * component whose name contains it: that name between stars.
+     */
+    expect(
+      getRow(MonitorType.ExternalStatusPage, "componentNames"),
+    ).toEqual(
+      expect.objectContaining({
+        title: "Components",
+        valueType: MonitorStepViewValueType.ArrayOfText,
+        value: ["*Checkout API*"],
+        placeholder: "All components",
+      }),
     );
+    // The filter row it replaced is gone.
+    expect(getRow(MonitorType.ExternalStatusPage, "componentName")).toBeUndefined();
+  });
+
+  /*
+   * Issue #5156: a monitor watches the components it chose, shown as a
+   * list; one that chose none watches the whole page, which the row says.
+   */
+  it("shows the chosen components as a list, and All components for none", () => {
+    const rowsFor: (
+      externalStatusPageMonitor: Record<string, unknown>,
+    ) => Array<MonitorStepViewRow> = (
+      externalStatusPageMonitor: Record<string, unknown>,
+    ): Array<MonitorStepViewRow> => {
+      return MonitorStepViewModel.getRows({
+        monitorType: MonitorType.ExternalStatusPage,
+        monitorStep: buildStep({
+          externalStatusPageMonitor: {
+            statusPageUrl: "https://status.example.com",
+            provider: ExternalStatusPageProviderType.Auto,
+            timeout: 10000,
+            retries: 3,
+            ...externalStatusPageMonitor,
+          } as MonitorStepType["externalStatusPageMonitor"],
+        }),
+      });
+    };
+
+    const componentsRow: (
+      rows: Array<MonitorStepViewRow>,
+    ) => MonitorStepViewRow | undefined = (
+      rows: Array<MonitorStepViewRow>,
+    ): MonitorStepViewRow | undefined => {
+      return rows.find((row: MonitorStepViewRow): boolean => {
+        return row.key === "componentNames";
+      });
+    };
+
+    expect(
+      componentsRow(
+        rowsFor({ componentNames: ["Git Operations", "Pull Requests"] }),
+      )?.value,
+    ).toEqual(["Git Operations", "Pull Requests"]);
+    // None chosen: still shown, as the whole page.
+    expect(componentsRow(rowsFor({ componentNames: [] }))?.value).toEqual([]);
+    expect(componentsRow(rowsFor({}))?.placeholder).toBe("All components");
   });
 });
 
