@@ -436,7 +436,53 @@ export class Browser {
       },
     );
 
-    return new Browser(await Cdp.connect(url), child, profile);
+    const cdp: Cdp = await Cdp.connect(url);
+
+    await Browser.waitForStartupTab(cdp);
+
+    return new Browser(cdp, child, profile);
+  }
+
+  /*
+   * Chromium says DevTools is listening before it has opened its startup
+   * tab, which came 13 to 129 ms later on a developer machine. A tab opened
+   * in that gap is hidden when the startup tab opens over it, or sits in a
+   * window of its own: either way a test that hides it by bringing another
+   * tab to the front never sees it hide. The first vitals test failed that
+   * way on CI (no CLS from the library at the hide, 2 runs in 27 on
+   * 2026-10-26 and -27). So the browser is ready once its startup tab is
+   * open in a window.
+   */
+  private static async waitForStartupTab(cdp: Cdp): Promise<void> {
+    const deadline: number = Date.now() + COMMAND_TIMEOUT_MS;
+
+    while (Date.now() < deadline) {
+      const targets: Record<string, unknown> = await cdp.send(
+        "Target.getTargets",
+        {},
+      );
+      const page: { targetId: string } | undefined = (
+        targets["targetInfos"] as Array<{ type: string; targetId: string }>
+      ).find((info: { type: string }): boolean => {
+        return info.type === "page";
+      });
+
+      if (page) {
+        try {
+          await cdp.send("Browser.getWindowForTarget", {
+            targetId: page.targetId,
+          });
+
+          return;
+        } catch {
+          /* Its window is not there yet. */
+        }
+      }
+
+      await sleep(20);
+    }
+
+    throw new Error("Chromium never opened its startup tab");
   }
 
   public close(): void {

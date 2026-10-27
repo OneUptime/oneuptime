@@ -248,9 +248,15 @@ function find(
 /*
  * Another tab comes to the front, as when the visitor switches to it: the
  * tab behind it hides, and reports its CLS and INP, and settles LCP, as it
- * does.
+ * does. When the tab that goes behind is given, this waits for it to hide,
+ * so a test that then waits for what the hide reports fails on the hide
+ * itself if it never came.
  */
-async function bringAnotherTabToFront(cdp: Cdp, site: Site): Promise<Tab> {
+async function bringAnotherTabToFront(
+  cdp: Cdp,
+  site: Site,
+  behind?: Tab,
+): Promise<Tab> {
   const front: Tab = await Tab.open(cdp, `${site.origin}/other.html`);
 
   await front.bringToFront();
@@ -258,6 +264,13 @@ async function bringAnotherTabToFront(cdp: Cdp, site: Site): Promise<Tab> {
     'document.visibilityState === "visible"',
     "the other tab to come to the front",
   );
+
+  if (behind) {
+    await behind.waitFor<boolean>(
+      'document.visibilityState === "hidden"',
+      "the tab behind it to hide",
+    );
+  }
 
   return front;
 }
@@ -331,7 +344,7 @@ describeInBrowser("web vitals in a real Chromium (issue #5181)", (): void => {
     await tab.pressKey();
     await sleep(1500);
     tabs.push(
-      await bringAnotherTabToFront((browser as Browser).cdp, site as Site),
+      await bringAnotherTabToFront((browser as Browser).cdp, site as Site, tab),
     );
     await tab.waitFor<boolean>(
       'window.__library.some(function (v) { return v.metric === "CLS"; })',
@@ -390,7 +403,11 @@ describeInBrowser("web vitals in a real Chromium (issue #5181)", (): void => {
     await opened.pressKey();
     await sleep(1500);
     tabs.push(
-      await bringAnotherTabToFront((browser as Browser).cdp, site as Site),
+      await bringAnotherTabToFront(
+        (browser as Browser).cdp,
+        site as Site,
+        opened,
+      ),
     );
     await opened.waitFor<boolean>(
       'window.__library.some(function (v) { return v.metric === "CLS"; })',
@@ -474,6 +491,7 @@ describeInBrowser("web vitals in a real Chromium (issue #5181)", (): void => {
     const away: Tab = await bringAnotherTabToFront(
       (browser as Browser).cdp,
       site as Site,
+      tab,
     );
 
     tabs.push(away);
@@ -504,7 +522,7 @@ describeInBrowser("web vitals in a real Chromium (issue #5181)", (): void => {
     await sleep(500);
 
     tabs.push(
-      await bringAnotherTabToFront((browser as Browser).cdp, site as Site),
+      await bringAnotherTabToFront((browser as Browser).cdp, site as Site, tab),
     );
     await tab.waitFor<boolean>(
       'window.__library.filter(function (v) { return v.metric === "CLS"; }).length >= 2',
