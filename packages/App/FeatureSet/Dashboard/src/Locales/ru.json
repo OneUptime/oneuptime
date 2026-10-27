@@ -13335,7 +13335,7 @@
   "No matches": "Нет совпадений",
   "No matches found": "Совпадений не найдено",
   "No matching columns available.": "No matching columns available.",
-  "No matching entries.": "No matching entries.",
+  "No matching entries.": "Нет подходящих записей.",
   "No matching members": "Нет подходящих участников",
   "No matching resources.": "No matching resources.",
   "No meaningful change": "Заметных изменений нет",
@@ -13402,7 +13402,6 @@
   "No operations match the current filters.": "No operations match the current filters.",
   "No options available": "No options available",
   "No options found.": "No options found.",
-  "No options.": "No options.",
   "No origins listed — this browser key is refused on every request until at least one origin is added.": "No origins listed — this browser key is refused on every request until at least one origin is added.",
   "No other logs found for this trace.": "No other logs found for this trace.",
   "No other resources affected by this alert.": "No other resources affected by this alert.",
@@ -35863,5 +35862,11 @@
   "No schedule or webhook: it runs when someone starts it, or when a rule or OneUptime AI does.": "Нет ни расписания, ни веб-хука: он запускается, когда его запускает кто-то, правило или OneUptime AI.",
   "Change it under {{location}}.": "Измените это в разделе {{location}}.",
   "Settings › Triggers": "Настройки › Триггеры",
-  "Use a variable in the URL, the headers or the body as {{reference}}. OneUptime sends the request itself, so it fills in secrets too, and hides them in what the step records.": "Используйте переменную в URL, заголовках или теле как {{reference}}. OneUptime отправляет запрос сам, поэтому подставляет и секреты, а в том, что сохраняет шаг, скрывает их."
+  "Use a variable in the URL, the headers or the body as {{reference}}. OneUptime sends the request itself, so it fills in secrets too, and hides them in what the step records.": "Используйте переменную в URL, заголовках или теле как {{reference}}. OneUptime отправляет запрос сам, поэтому подставляет и секреты, а в том, что сохраняет шаг, скрывает их.",
+  "Nothing to pick yet.": "Пока не из чего выбрать.",
+  "All of them are picked.": "Уже выбраны все.",
+  "Search to find more.": "Воспользуйтесь поиском, чтобы найти ещё.",
+  "No repositories are connected yet.": "Репозитории ещё не подключены.",
+  "No MCP servers are added yet.": "MCP-серверы ещё не добавлены.",
+  "None. An AI rule picks its Runner in its More fields, on Incidents › AI › Settings or Alerts › AI › Settings.": "Нет. Правило ИИ выбирает свой Runner в «Дополнительные поля», на странице Инциденты › ИИ › Настройки или Оповещения › ИИ › Настройки."
 }

@@ -13335,7 +13335,7 @@
   "No matches": "कोई मेल नहीं",
   "No matches found": "कोई मिलान नहीं मिला",
   "No matching columns available.": "No matching columns available.",
-  "No matching entries.": "No matching entries.",
+  "No matching entries.": "कोई मेल खाती प्रविष्टि नहीं।",
   "No matching members": "कोई मेल खाता सदस्य नहीं",
   "No matching resources.": "No matching resources.",
   "No meaningful change": "कोई उल्लेखनीय बदलाव नहीं",
@@ -13402,7 +13402,6 @@
   "No operations match the current filters.": "No operations match the current filters.",
   "No options available": "No options available",
   "No options found.": "No options found.",
-  "No options.": "No options.",
   "No origins listed — this browser key is refused on every request until at least one origin is added.": "No origins listed — this browser key is refused on every request until at least one origin is added.",
   "No other logs found for this trace.": "No other logs found for this trace.",
   "No other resources affected by this alert.": "No other resources affected by this alert.",
@@ -35863,5 +35862,11 @@
   "No schedule or webhook: it runs when someone starts it, or when a rule or OneUptime AI does.": "कोई शेड्यूल या वेबहुक नहीं: यह तब चलता है जब कोई इसे शुरू करे, या कोई नियम या OneUptime AI ऐसा करे।",
   "Change it under {{location}}.": "इसे {{location}} में बदलें।",
   "Settings › Triggers": "सेटिंग्स › ट्रिगर",
-  "Use a variable in the URL, the headers or the body as {{reference}}. OneUptime sends the request itself, so it fills in secrets too, and hides them in what the step records.": "URL, हेडर या बॉडी में वेरिएबल को {{reference}} के रूप में इस्तेमाल करें। अनुरोध OneUptime खुद भेजता है, इसलिए वह सीक्रेट भी भरता है, और चरण जो दर्ज करता है उसमें उन्हें छिपाता है।"
+  "Use a variable in the URL, the headers or the body as {{reference}}. OneUptime sends the request itself, so it fills in secrets too, and hides them in what the step records.": "URL, हेडर या बॉडी में वेरिएबल को {{reference}} के रूप में इस्तेमाल करें। अनुरोध OneUptime खुद भेजता है, इसलिए वह सीक्रेट भी भरता है, और चरण जो दर्ज करता है उसमें उन्हें छिपाता है।",
+  "Nothing to pick yet.": "अभी चुनने के लिए कुछ नहीं है।",
+  "All of them are picked.": "सभी पहले ही चुने जा चुके हैं।",
+  "Search to find more.": "और ढूँढने के लिए खोजें।",
+  "No repositories are connected yet.": "अभी तक कोई रिपॉजिटरी नहीं जोड़ी गई है।",
+  "No MCP servers are added yet.": "अभी तक कोई MCP सर्वर नहीं जोड़ा गया है।",
+  "None. An AI rule picks its Runner in its More fields, on Incidents › AI › Settings or Alerts › AI › Settings.": "कोई नहीं। AI नियम घटनाएं › एआई › सेटिंग्स या अलर्ट › एआई › सेटिंग्स पर, अपने और फ़ील्ड में अपना Runner चुनता है।"
 }

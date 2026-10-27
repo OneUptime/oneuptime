@@ -13335,7 +13335,7 @@
   "No matches": "Nenhuma correspondência",
   "No matches found": "Nenhuma correspondência encontrada",
   "No matching columns available.": "No matching columns available.",
-  "No matching entries.": "No matching entries.",
+  "No matching entries.": "Nenhuma entrada correspondente.",
   "No matching members": "Nenhum membro correspondente",
   "No matching resources.": "No matching resources.",
   "No meaningful change": "Nenhuma mudança significativa",
@@ -13402,7 +13402,6 @@
   "No operations match the current filters.": "No operations match the current filters.",
   "No options available": "No options available",
   "No options found.": "No options found.",
-  "No options.": "No options.",
   "No origins listed — this browser key is refused on every request until at least one origin is added.": "No origins listed — this browser key is refused on every request until at least one origin is added.",
   "No other logs found for this trace.": "No other logs found for this trace.",
   "No other resources affected by this alert.": "No other resources affected by this alert.",
@@ -35863,5 +35862,11 @@
   "No schedule or webhook: it runs when someone starts it, or when a rule or OneUptime AI does.": "Sem agendamento nem webhook: é executado quando alguém o inicia, ou quando uma regra ou o OneUptime AI o faz.",
   "Change it under {{location}}.": "Altere em {{location}}.",
   "Settings › Triggers": "Configurações › Gatilhos",
-  "Use a variable in the URL, the headers or the body as {{reference}}. OneUptime sends the request itself, so it fills in secrets too, and hides them in what the step records.": "Use uma variável na URL, nos cabeçalhos ou no corpo como {{reference}}. O OneUptime envia a solicitação por conta própria, então também preenche os segredos e os oculta no que a etapa registra."
+  "Use a variable in the URL, the headers or the body as {{reference}}. OneUptime sends the request itself, so it fills in secrets too, and hides them in what the step records.": "Use uma variável na URL, nos cabeçalhos ou no corpo como {{reference}}. O OneUptime envia a solicitação por conta própria, então também preenche os segredos e os oculta no que a etapa registra.",
+  "Nothing to pick yet.": "Ainda não há nada para escolher.",
+  "All of them are picked.": "Todos já foram escolhidos.",
+  "Search to find more.": "Pesquise para encontrar mais.",
+  "No repositories are connected yet.": "Nenhum repositório conectado ainda.",
+  "No MCP servers are added yet.": "Nenhum servidor MCP adicionado ainda.",
+  "None. An AI rule picks its Runner in its More fields, on Incidents › AI › Settings or Alerts › AI › Settings.": "Nenhuma. Uma regra de IA escolhe o Runner dela em Mais campos, em Incidentes › IA › Configurações ou Alertas › IA › Configurações."
 }

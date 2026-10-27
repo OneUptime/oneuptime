@@ -11,8 +11,9 @@
  *     whether global Runners may use a secret variable;
  *   - a Runner's own page (Pages/Runbook/Runners/RunnerView): its
  *     capabilities, the code repositories that pick it (a repository
- *     picks its Runner in Code; a Runner has no AI code fix switch), and
- *     whether it is the project's default Runner.
+ *     picks its Runner in Code; a Runner has no AI code fix switch), the
+ *     AI rules that pick it, and whether it is the project's default
+ *     Runner.
  *
  * Only the ModelAPI / API data boundary and the synthetic user's
  * permissions are replaced. The pages, their tables, cards, switches,
@@ -29,7 +30,10 @@
  *   - longname=1             the first Runner of the project's own has a
  *                            long name (production-eu-west-1-bastion-...)
  *   - picks=0                no code repository picks that Runner
- *                            (by default one does: checkout-service)
+ *                            (by default one does: checkout-service), and
+ *                            no AI rule does (by default two do: an
+ *                            incident rule and an alert rule)
+ *   - airules=denied         the reader may not read AI rules
  *   - global=<n>             how many global Runners the server has: 0, 1
  *                            (the default: the bundled one) or 2
  *   - gstatus=disconnected   the global Runners last heard from hours ago;
@@ -74,7 +78,9 @@ import RunnersPage from "../../../App/FeatureSet/Dashboard/src/Pages/Runbook/Run
 import StepsPage from "../../../App/FeatureSet/Dashboard/src/Pages/Runbook/View/Steps";
 import VariablesPage from "../../../App/FeatureSet/Dashboard/src/Pages/Runbook/Variables";
 import RunnerViewPage from "../../../App/FeatureSet/Dashboard/src/Pages/Runbook/Runners/RunnerView";
+import AutoRemediationRule from "Common/Models/DatabaseModels/AutoRemediationRule";
 import CodeRepository from "Common/Models/DatabaseModels/CodeRepository";
+import AutoRemediationTriggerEntity from "Common/Types/AutoRemediation/AutoRemediationTriggerEntity";
 import IsNull from "Common/Types/BaseDatabase/IsNull";
 import Project from "Common/Models/DatabaseModels/Project";
 import Runbook from "Common/Models/DatabaseModels/Runbook";
@@ -120,6 +126,7 @@ const role = params.get("role") || "owner";
 const delay = Math.max(0, Number(params.get("delay") || 0));
 const language = params.get("lang") === "de" ? "de" : "en";
 const repositoryPicksRunner = params.get("picks") !== "0";
+const aiRulesDenied = params.get("airules") === "denied";
 const defaultRunnerIndex = Math.min(
   2,
   Math.max(0, Number(params.get("default") || 0)),
@@ -359,6 +366,39 @@ const CODE_REPOSITORIES = [
   }),
 ];
 
+/*
+ * The project's AI rules, and the Runner each runs OneUptime AI's commands
+ * on (AutoRemediationRule.runnerId): "Restart checkout" (incidents) and
+ * "Fix database alerts" (alerts) pick prod-eu-west-1, and "Investigate
+ * everything" picks none.
+ */
+const AI_RULES = [
+  record(AutoRemediationRule, {
+    _id: "91000000-0000-4000-8000-000000000a01",
+    projectId: new ObjectID(PROJECT_ID),
+    name: "Restart checkout",
+    triggerEntityType: AutoRemediationTriggerEntity.Incident,
+    runnerId: repositoryPicksRunner
+      ? new ObjectID(CUSTOM_RUNNER_IDS[0])
+      : undefined,
+  }),
+  record(AutoRemediationRule, {
+    _id: "91000000-0000-4000-8000-000000000a02",
+    projectId: new ObjectID(PROJECT_ID),
+    name: "Fix database alerts",
+    triggerEntityType: AutoRemediationTriggerEntity.Alert,
+    runnerId: repositoryPicksRunner
+      ? new ObjectID(CUSTOM_RUNNER_IDS[0])
+      : undefined,
+  }),
+  record(AutoRemediationRule, {
+    _id: "91000000-0000-4000-8000-000000000a03",
+    projectId: new ObjectID(PROJECT_ID),
+    name: "Investigate everything",
+    triggerEntityType: AutoRemediationTriggerEntity.Incident,
+  }),
+];
+
 const TABLES = {
   Project: [project],
   Runbook: [runbook],
@@ -366,6 +406,7 @@ const TABLES = {
   RunbookVariable: VARIABLES,
   Label: [PRODUCTION],
   CodeRepository: CODE_REPOSITORIES,
+  AutoRemediationRule: AI_RULES,
 };
 
 window.__fixture.addCustomRunner = () => {
@@ -438,6 +479,24 @@ ModelAPI.getList = async (options) => {
     return list(
       TABLES.CodeRepository.filter((repository) => {
         return !runnerId || idOf(repository.runnerId) === runnerId;
+      }),
+      options.limit,
+    );
+  }
+
+  /*
+   * The AI rules that pick a Runner, as a Runner's page asks - refused for
+   * a reader who may not read them (airules=denied).
+   */
+  if (name === "AutoRemediationRule") {
+    if (aiRulesDenied) {
+      throw new Error("You do not have permission to read AI rules.");
+    }
+
+    const runnerId = idOf(options.query && options.query.runnerId);
+    return list(
+      TABLES.AutoRemediationRule.filter((rule) => {
+        return !runnerId || idOf(rule.runnerId) === runnerId;
       }),
       options.limit,
     );

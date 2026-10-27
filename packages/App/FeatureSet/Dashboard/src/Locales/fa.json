@@ -13335,7 +13335,7 @@
   "No matches": "موردی پیدا نشد",
   "No matches found": "موردی پیدا نشد",
   "No matching columns available.": "No matching columns available.",
-  "No matching entries.": "No matching entries.",
+  "No matching entries.": "هیچ مورد منطبقی نیست.",
   "No matching members": "هیچ عضو جوری نیست",
   "No matching resources.": "No matching resources.",
   "No meaningful change": "تغییر معناداری نیست",
@@ -13402,7 +13402,6 @@
   "No operations match the current filters.": "No operations match the current filters.",
   "No options available": "No options available",
   "No options found.": "No options found.",
-  "No options.": "No options.",
   "No origins listed — this browser key is refused on every request until at least one origin is added.": "No origins listed — this browser key is refused on every request until at least one origin is added.",
   "No other logs found for this trace.": "No other logs found for this trace.",
   "No other resources affected by this alert.": "No other resources affected by this alert.",
@@ -35863,5 +35862,11 @@
   "No schedule or webhook: it runs when someone starts it, or when a rule or OneUptime AI does.": "نه زمان‌بندی دارد نه وب‌هوک: وقتی کسی آن را شروع کند، یا یک قاعده یا OneUptime AI این کار را بکند، اجرا می‌شود.",
   "Change it under {{location}}.": "آن را در {{location}} تغییر دهید.",
   "Settings › Triggers": "تنظیمات › تریگرها",
-  "Use a variable in the URL, the headers or the body as {{reference}}. OneUptime sends the request itself, so it fills in secrets too, and hides them in what the step records.": "در نشانی، سرآیندها یا بدنه از متغیر به شکل {{reference}} استفاده کنید. OneUptime درخواست را خودش می‌فرستد، پس رازها را هم جایگذاری می‌کند و در آنچه گام ثبت می‌کند پنهانشان می‌کند."
+  "Use a variable in the URL, the headers or the body as {{reference}}. OneUptime sends the request itself, so it fills in secrets too, and hides them in what the step records.": "در نشانی، سرآیندها یا بدنه از متغیر به شکل {{reference}} استفاده کنید. OneUptime درخواست را خودش می‌فرستد، پس رازها را هم جایگذاری می‌کند و در آنچه گام ثبت می‌کند پنهانشان می‌کند.",
+  "Nothing to pick yet.": "هنوز چیزی برای انتخاب نیست.",
+  "All of them are picked.": "همه از قبل انتخاب شده‌اند.",
+  "Search to find more.": "برای یافتن موارد بیشتر جستجو کنید.",
+  "No repositories are connected yet.": "هنوز هیچ مخزنی متصل نشده است.",
+  "No MCP servers are added yet.": "هنوز هیچ سرور MCPای اضافه نشده است.",
+  "None. An AI rule picks its Runner in its More fields, on Incidents › AI › Settings or Alerts › AI › Settings.": "هیچ. هر قاعدهٔ هوش مصنوعی Runner خود را در «فیلدهای بیشتر»، در حوادث › هوش مصنوعی › تنظیمات یا هشدارها › هوش مصنوعی › تنظیمات انتخاب می‌کند."
 }

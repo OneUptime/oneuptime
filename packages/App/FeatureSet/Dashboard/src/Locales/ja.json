@@ -13402,7 +13402,6 @@
   "No operations match the current filters.": "現在のフィルターに一致する操作はありません。",
   "No options available": "利用できるオプションはありません",
   "No options found.": "オプションが見つかりません。",
-  "No options.": "オプションはありません。",
   "No origins listed — this browser key is refused on every request until at least one origin is added.": "オリジンが登録されていません — 少なくとも 1 つのオリジンを追加するまで、このブラウザーキーはすべてのリクエストで拒否されます。",
   "No other logs found for this trace.": "このトレースの他のログは見つかりません。",
   "No other resources affected by this alert.": "このアラートの影響を受けた他のリソースはありません。",
@@ -35863,5 +35862,11 @@
   "No schedule or webhook: it runs when someone starts it, or when a rule or OneUptime AI does.": "スケジュールも Webhook もありません。誰かが開始したとき、またはルールや OneUptime AI が開始したときに実行されます。",
   "Change it under {{location}}.": "{{location}} で変更できます。",
   "Settings › Triggers": "設定 › トリガー",
-  "Use a variable in the URL, the headers or the body as {{reference}}. OneUptime sends the request itself, so it fills in secrets too, and hides them in what the step records.": "URL、ヘッダー、本文では変数を {{reference}} として使います。リクエストは OneUptime 自身が送信するため、シークレットも埋め込まれ、ステップの記録では隠されます。"
+  "Use a variable in the URL, the headers or the body as {{reference}}. OneUptime sends the request itself, so it fills in secrets too, and hides them in what the step records.": "URL、ヘッダー、本文では変数を {{reference}} として使います。リクエストは OneUptime 自身が送信するため、シークレットも埋め込まれ、ステップの記録では隠されます。",
+  "Nothing to pick yet.": "まだ選べるものがありません。",
+  "All of them are picked.": "すべて選択済みです。",
+  "Search to find more.": "検索すると、ほかにも見つかります。",
+  "No repositories are connected yet.": "まだリポジトリが接続されていません。",
+  "No MCP servers are added yet.": "まだ MCP サーバーが追加されていません。",
+  "None. An AI rule picks its Runner in its More fields, on Incidents › AI › Settings or Alerts › AI › Settings.": "なし。AI ルールの Runner は、インシデント › AI › 設定 または アラート › AI › 設定 で、そのルールの その他の項目 から選択します。"
 }

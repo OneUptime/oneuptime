@@ -101,7 +101,7 @@ Gå till **Runbooks → Runbook-agenter** och skapa en ny agent. Klicka på **Sk
 | **Kör Runbooks** | Under **Fler fält** | Påslaget som standard. Låter den här Runnern ta runbook-steg. |
 | **Etiketter** | Under **Fler fält** | Valfritt. |
 
-En Runner hämtar en ändring av sina funktioner vid nästa heartbeat; den behöver inte startas om. AI är ingen funktion. Ett kodrepository väljer i sina inställningar i Kod den Runner som AI arbetar i det på, och Runnerns sida listar de repositoryn som väljer den. En AI-regel väljer den Runner som OneUptime AI kör sina kommandon på: Det är valet av en Runner där som låter OneUptime AI:s kommandon köras på den.
+En Runner hämtar en ändring av sina funktioner vid nästa heartbeat; den behöver inte startas om. AI är ingen funktion. Ett kodrepository väljer i sina inställningar i Kod den Runner som AI arbetar i det på, och Runnerns sida listar de repositoryn som väljer den. En AI-regel väljer den Runner som OneUptime AI kör sina kommandon på: Det är valet av en Runner där som låter OneUptime AI:s kommandon köras på den. Runnerns sida listar också de AI-regler som väljer den.
 
 ### 2. Kopiera installationskommandot
 

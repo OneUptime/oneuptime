@@ -13402,7 +13402,6 @@
   "No operations match the current filters.": "Keine Vorgänge entsprechen den aktuellen Filtern.",
   "No options available": "Keine Optionen verfügbar",
   "No options found.": "Keine Optionen gefunden.",
-  "No options.": "Keine Optionen.",
   "No origins listed — this browser key is refused on every request until at least one origin is added.": "Keine Ursprünge aufgeführt — dieser Browser-Schlüssel wird bei jeder Anfrage abgelehnt, bis mindestens ein Ursprung hinzugefügt ist.",
   "No other logs found for this trace.": "Für diesen Trace wurden keine weiteren Protokolle gefunden.",
   "No other resources affected by this alert.": "Keine weiteren Ressourcen von dieser Warnung betroffen.",
@@ -35863,5 +35862,11 @@
   "No schedule or webhook: it runs when someone starts it, or when a rule or OneUptime AI does.": "Kein Zeitplan und kein Webhook: Es läuft, wenn jemand es startet oder wenn eine Regel oder OneUptime AI es tut.",
   "Change it under {{location}}.": "Ändern Sie das unter {{location}}.",
   "Settings › Triggers": "Einstellungen › Auslöser",
-  "Use a variable in the URL, the headers or the body as {{reference}}. OneUptime sends the request itself, so it fills in secrets too, and hides them in what the step records.": "Verwenden Sie eine Variable in der URL, im Header oder im Body als {{reference}}. OneUptime sendet die Anfrage selbst, setzt also auch Geheimnisse ein und verbirgt sie in dem, was der Schritt aufzeichnet."
+  "Use a variable in the URL, the headers or the body as {{reference}}. OneUptime sends the request itself, so it fills in secrets too, and hides them in what the step records.": "Verwenden Sie eine Variable in der URL, im Header oder im Body als {{reference}}. OneUptime sendet die Anfrage selbst, setzt also auch Geheimnisse ein und verbirgt sie in dem, was der Schritt aufzeichnet.",
+  "Nothing to pick yet.": "Noch nichts zur Auswahl.",
+  "All of them are picked.": "Alle sind schon ausgewählt.",
+  "Search to find more.": "Suchen Sie, um weitere zu finden.",
+  "No repositories are connected yet.": "Noch keine Repositorys verbunden.",
+  "No MCP servers are added yet.": "Noch keine MCP-Server hinzugefügt.",
+  "None. An AI rule picks its Runner in its More fields, on Incidents › AI › Settings or Alerts › AI › Settings.": "Keine. Eine KI-Regel wählt ihren Runner unter Weitere Felder, auf Vorfälle › KI › Einstellungen oder Warnungen › KI › Einstellungen."
 }

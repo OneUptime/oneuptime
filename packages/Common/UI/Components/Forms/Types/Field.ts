@@ -222,6 +222,12 @@ export default interface Field<TEntity> {
      * narrowed by it. Unset, every row the reader may see is listed.
      */
     query?: Record<string, unknown> | undefined;
+    /*
+     * What the open list says when the project has none to pick: a
+     * translation key naming what is missing, such as "No MCP servers are
+     * added yet." Unset, "Nothing to pick yet." (EntityDropdownEmptyList).
+     */
+    emptyListText?: string | undefined;
   };
   /*
    * Entity dropdowns can bulk-add every entry carrying a label. That is a

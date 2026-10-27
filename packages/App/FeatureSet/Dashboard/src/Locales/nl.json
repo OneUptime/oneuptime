@@ -13335,7 +13335,7 @@
   "No matches": "Geen overeenkomsten",
   "No matches found": "Geen overeenkomsten gevonden",
   "No matching columns available.": "No matching columns available.",
-  "No matching entries.": "No matching entries.",
+  "No matching entries.": "Geen overeenkomende items.",
   "No matching members": "Geen overeenkomende leden",
   "No matching resources.": "No matching resources.",
   "No meaningful change": "Geen noemenswaardige verandering",
@@ -13402,7 +13402,6 @@
   "No operations match the current filters.": "No operations match the current filters.",
   "No options available": "No options available",
   "No options found.": "No options found.",
-  "No options.": "No options.",
   "No origins listed — this browser key is refused on every request until at least one origin is added.": "No origins listed — this browser key is refused on every request until at least one origin is added.",
   "No other logs found for this trace.": "No other logs found for this trace.",
   "No other resources affected by this alert.": "No other resources affected by this alert.",
@@ -35863,5 +35862,11 @@
   "No schedule or webhook: it runs when someone starts it, or when a rule or OneUptime AI does.": "Geen schema of webhook: het draait wanneer iemand het start, of wanneer een regel of OneUptime AI dat doet.",
   "Change it under {{location}}.": "Wijzig dit onder {{location}}.",
   "Settings › Triggers": "Instellingen › Triggers",
-  "Use a variable in the URL, the headers or the body as {{reference}}. OneUptime sends the request itself, so it fills in secrets too, and hides them in what the step records.": "Gebruik een variabele in de URL, de headers of de body als {{reference}}. OneUptime verstuurt het verzoek zelf, vult dus ook geheimen in en verbergt ze in wat de stap vastlegt."
+  "Use a variable in the URL, the headers or the body as {{reference}}. OneUptime sends the request itself, so it fills in secrets too, and hides them in what the step records.": "Gebruik een variabele in de URL, de headers of de body als {{reference}}. OneUptime verstuurt het verzoek zelf, vult dus ook geheimen in en verbergt ze in wat de stap vastlegt.",
+  "Nothing to pick yet.": "Nog niets om te kiezen.",
+  "All of them are picked.": "Ze zijn allemaal al gekozen.",
+  "Search to find more.": "Zoek om meer te vinden.",
+  "No repositories are connected yet.": "Er zijn nog geen repository's verbonden.",
+  "No MCP servers are added yet.": "Er zijn nog geen MCP-servers toegevoegd.",
+  "None. An AI rule picks its Runner in its More fields, on Incidents › AI › Settings or Alerts › AI › Settings.": "Geen. Een AI-regel kiest zijn Runner onder Meer velden, op Incidenten › AI › Instellingen of Waarschuwingen › AI › Instellingen."
 }

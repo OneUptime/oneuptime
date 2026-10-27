@@ -13335,7 +13335,7 @@
   "No matches": "Nessuna corrispondenza",
   "No matches found": "Nessuna corrispondenza trovata",
   "No matching columns available.": "No matching columns available.",
-  "No matching entries.": "No matching entries.",
+  "No matching entries.": "Nessuna voce corrispondente.",
   "No matching members": "Nessun membro corrispondente",
   "No matching resources.": "No matching resources.",
   "No meaningful change": "Nessuna variazione significativa",
@@ -13402,7 +13402,6 @@
   "No operations match the current filters.": "No operations match the current filters.",
   "No options available": "No options available",
   "No options found.": "No options found.",
-  "No options.": "No options.",
   "No origins listed — this browser key is refused on every request until at least one origin is added.": "No origins listed — this browser key is refused on every request until at least one origin is added.",
   "No other logs found for this trace.": "No other logs found for this trace.",
   "No other resources affected by this alert.": "No other resources affected by this alert.",
@@ -35863,5 +35862,11 @@
   "No schedule or webhook: it runs when someone starts it, or when a rule or OneUptime AI does.": "Né pianificazione né webhook: viene eseguito quando qualcuno lo avvia, o quando lo fa una regola o OneUptime AI.",
   "Change it under {{location}}.": "Modificalo in {{location}}.",
   "Settings › Triggers": "Impostazioni › Trigger",
-  "Use a variable in the URL, the headers or the body as {{reference}}. OneUptime sends the request itself, so it fills in secrets too, and hides them in what the step records.": "Usa una variabile nell'URL, nelle intestazioni o nel corpo come {{reference}}. OneUptime invia la richiesta da sé, quindi inserisce anche i segreti e li nasconde in ciò che il passaggio registra."
+  "Use a variable in the URL, the headers or the body as {{reference}}. OneUptime sends the request itself, so it fills in secrets too, and hides them in what the step records.": "Usa una variabile nell'URL, nelle intestazioni o nel corpo come {{reference}}. OneUptime invia la richiesta da sé, quindi inserisce anche i segreti e li nasconde in ciò che il passaggio registra.",
+  "Nothing to pick yet.": "Ancora niente da scegliere.",
+  "All of them are picked.": "Sono già tutti scelti.",
+  "Search to find more.": "Cerca per trovarne altri.",
+  "No repositories are connected yet.": "Nessun repository ancora collegato.",
+  "No MCP servers are added yet.": "Nessun server MCP ancora aggiunto.",
+  "None. An AI rule picks its Runner in its More fields, on Incidents › AI › Settings or Alerts › AI › Settings.": "Nessuna. Una regola IA sceglie il suo Runner in Altri campi, in Incidenti › IA › Impostazioni o Avvisi › IA › Impostazioni."
 }

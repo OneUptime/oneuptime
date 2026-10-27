@@ -13335,7 +13335,7 @@
   "No matches": "Ingen treff",
   "No matches found": "Ingen treff",
   "No matching columns available.": "No matching columns available.",
-  "No matching entries.": "No matching entries.",
+  "No matching entries.": "Ingen samsvarende oppføringer.",
   "No matching members": "Ingen samsvarende medlemmer",
   "No matching resources.": "No matching resources.",
   "No meaningful change": "Ingen vesentlig endring",
@@ -13402,7 +13402,6 @@
   "No operations match the current filters.": "No operations match the current filters.",
   "No options available": "No options available",
   "No options found.": "No options found.",
-  "No options.": "No options.",
   "No origins listed — this browser key is refused on every request until at least one origin is added.": "No origins listed — this browser key is refused on every request until at least one origin is added.",
   "No other logs found for this trace.": "No other logs found for this trace.",
   "No other resources affected by this alert.": "No other resources affected by this alert.",
@@ -35863,5 +35862,11 @@
   "No schedule or webhook: it runs when someone starts it, or when a rule or OneUptime AI does.": "Ingen tidsplan eller webhook: den kjører når noen starter den, eller når en regel eller OneUptime AI gjør det.",
   "Change it under {{location}}.": "Endre det under {{location}}.",
   "Settings › Triggers": "Innstillinger › Utløsere",
-  "Use a variable in the URL, the headers or the body as {{reference}}. OneUptime sends the request itself, so it fills in secrets too, and hides them in what the step records.": "Bruk en variabel i URL-en, overskriftene eller brødteksten som {{reference}}. OneUptime sender forespørselen selv, så den fyller også inn hemmeligheter og skjuler dem i det trinnet lagrer."
+  "Use a variable in the URL, the headers or the body as {{reference}}. OneUptime sends the request itself, so it fills in secrets too, and hides them in what the step records.": "Bruk en variabel i URL-en, overskriftene eller brødteksten som {{reference}}. OneUptime sender forespørselen selv, så den fyller også inn hemmeligheter og skjuler dem i det trinnet lagrer.",
+  "Nothing to pick yet.": "Ingenting å velge ennå.",
+  "All of them are picked.": "Alle er allerede valgt.",
+  "Search to find more.": "Søk for å finne flere.",
+  "No repositories are connected yet.": "Ingen repositorier er koblet til ennå.",
+  "No MCP servers are added yet.": "Ingen MCP-servere er lagt til ennå.",
+  "None. An AI rule picks its Runner in its More fields, on Incidents › AI › Settings or Alerts › AI › Settings.": "Ingen. En AI-regel velger sin Runner under Flere felt, på Hendelser › KI › Innstillinger eller Varsler › KI › Innstillinger."
 }

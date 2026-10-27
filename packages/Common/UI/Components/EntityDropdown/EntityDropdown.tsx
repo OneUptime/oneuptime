@@ -31,6 +31,7 @@ import { Translator, translationKey } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 import joinAriaIds from "../../Utils/AriaIds";
 import { canPickByLabel, withLabels, withSearch } from "./EntityDropdownQuery";
+import { getEntityDropdownEmptyListText } from "./EntityDropdownEmptyList";
 import ArchivedValuePicker from "../../Utils/ArchivedValuePicker";
 import ArchivedTag from "../ArchivedTag/ArchivedTag";
 
@@ -160,6 +161,12 @@ export interface EntityDropdownProps {
    * because the caller has no cheap way back from an id to one.
    */
   onLabelsBulkAdded?: ((labels: Array<BulkAddedLabel>) => void) | undefined;
+  /*
+   * What the open list says when there is nothing to pick at all: a
+   * translation key naming what is missing, such as "No repositories are
+   * connected yet." Unset, "Nothing to pick yet." (EntityDropdownEmptyList).
+   */
+  emptyListText?: string | undefined;
 }
 
 const SEARCH_DEBOUNCE_MS: number = 250;
@@ -1934,11 +1941,20 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                 </div>
               )}
               {!isLoading && availableOptions.length === 0 && (
-                <div className="px-3 py-2 text-gray-500">
+                <div
+                  className="px-3 py-2 text-gray-500"
+                  data-testid="entity-dropdown-empty-list"
+                >
                   {translator.translateText(
-                    searchQuery.trim() === ""
-                      ? "No options."
-                      : "No matching entries.",
+                    getEntityDropdownEmptyListText({
+                      searchQuery: searchQuery,
+                      pickedHiddenCount:
+                        optionsList.length - availableOptions.length,
+                      mayHaveMore:
+                        Boolean(modelType) &&
+                        searchResults.length >= SEARCH_PAGE_SIZE,
+                      emptyListText: props.emptyListText,
+                    }),
                   )}
                 </div>
               )}

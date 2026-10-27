@@ -13335,7 +13335,7 @@
   "No matches": "無符合項目",
   "No matches found": "找不到相符項目",
   "No matching columns available.": "No matching columns available.",
-  "No matching entries.": "No matching entries.",
+  "No matching entries.": "沒有符合的項目。",
   "No matching members": "沒有符合的成員",
   "No matching resources.": "No matching resources.",
   "No meaningful change": "無明顯變化",
@@ -13402,7 +13402,6 @@
   "No operations match the current filters.": "No operations match the current filters.",
   "No options available": "No options available",
   "No options found.": "No options found.",
-  "No options.": "No options.",
   "No origins listed — this browser key is refused on every request until at least one origin is added.": "No origins listed — this browser key is refused on every request until at least one origin is added.",
   "No other logs found for this trace.": "No other logs found for this trace.",
   "No other resources affected by this alert.": "No other resources affected by this alert.",
@@ -35863,5 +35862,11 @@
   "No schedule or webhook: it runs when someone starts it, or when a rule or OneUptime AI does.": "沒有排程或 Webhook：有人啟動它，或規則或 OneUptime AI 啟動它時才會執行。",
   "Change it under {{location}}.": "可在 {{location}} 中變更。",
   "Settings › Triggers": "設定 › 觸發器",
-  "Use a variable in the URL, the headers or the body as {{reference}}. OneUptime sends the request itself, so it fills in secrets too, and hides them in what the step records.": "在 URL、標頭或本文中以 {{reference}} 的形式使用變數。請求由 OneUptime 自己傳送，因此也會填入密鑰，並在該步驟記錄的內容中隱藏它們。"
+  "Use a variable in the URL, the headers or the body as {{reference}}. OneUptime sends the request itself, so it fills in secrets too, and hides them in what the step records.": "在 URL、標頭或本文中以 {{reference}} 的形式使用變數。請求由 OneUptime 自己傳送，因此也會填入密鑰，並在該步驟記錄的內容中隱藏它們。",
+  "Nothing to pick yet.": "目前還沒有可選的項目。",
+  "All of them are picked.": "已全部選取。",
+  "Search to find more.": "搜尋以找到更多。",
+  "No repositories are connected yet.": "尚未連線任何儲存庫。",
+  "No MCP servers are added yet.": "尚未新增任何 MCP 伺服器。",
+  "None. An AI rule picks its Runner in its More fields, on Incidents › AI › Settings or Alerts › AI › Settings.": "無。AI 規則在 事件 › 人工智慧 › 設定 或 警示 › 人工智慧 › 設定 中，於其 更多欄位 裡選擇自己的 Runner。"
 }

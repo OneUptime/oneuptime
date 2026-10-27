@@ -13402,7 +13402,6 @@
   "No operations match the current filters.": "No operations match the current filters.",
   "No options available": "No options available",
   "No options found.": "No options found.",
-  "No options.": "No options.",
   "No origins listed — this browser key is refused on every request until at least one origin is added.": "No origins listed — this browser key is refused on every request until at least one origin is added.",
   "No other logs found for this trace.": "No other logs found for this trace.",
   "No other resources affected by this alert.": "No other resources affected by this alert.",
@@ -35863,5 +35862,11 @@
   "No schedule or webhook: it runs when someone starts it, or when a rule or OneUptime AI does.": "No schedule or webhook: it runs when someone starts it, or when a rule or OneUptime AI does.",
   "Change it under {{location}}.": "Change it under {{location}}.",
   "Settings › Triggers": "Settings › Triggers",
-  "Use a variable in the URL, the headers or the body as {{reference}}. OneUptime sends the request itself, so it fills in secrets too, and hides them in what the step records.": "Use a variable in the URL, the headers or the body as {{reference}}. OneUptime sends the request itself, so it fills in secrets too, and hides them in what the step records."
+  "Use a variable in the URL, the headers or the body as {{reference}}. OneUptime sends the request itself, so it fills in secrets too, and hides them in what the step records.": "Use a variable in the URL, the headers or the body as {{reference}}. OneUptime sends the request itself, so it fills in secrets too, and hides them in what the step records.",
+  "Nothing to pick yet.": "Nothing to pick yet.",
+  "All of them are picked.": "All of them are picked.",
+  "Search to find more.": "Search to find more.",
+  "No repositories are connected yet.": "No repositories are connected yet.",
+  "No MCP servers are added yet.": "No MCP servers are added yet.",
+  "None. An AI rule picks its Runner in its More fields, on Incidents › AI › Settings or Alerts › AI › Settings.": "None. An AI rule picks its Runner in its More fields, on Incidents › AI › Settings or Alerts › AI › Settings."
 }

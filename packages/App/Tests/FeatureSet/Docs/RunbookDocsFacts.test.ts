@@ -1059,6 +1059,20 @@ describe("the Runner the runbook pages describe", () => {
     expect(setup).toContain(
       "An AI rule picks the Runner OneUptime AI runs its commands on: picking a Runner there is what lets OneUptime AI's commands run on it.",
     );
+    /*
+     * The Runner's page lists the AI rules that pick it, in Runner Details
+     * after the repositories (Components/Runner/RunnerAiRules): rules read
+     * by their Runner.
+     */
+    expect(setup).toContain(
+      "The Runner's page lists the AI rules that pick it too.",
+    );
+    expect(readDashboard("Components/Runner/RunnerAiRules.tsx")).toContain(
+      "          runnerId: runnerId,",
+    );
+    expect(readDashboard("Pages/Runbook/Runners/RunnerView.tsx")).toContain(
+      "title: RunnerAiRulesCopy.title,",
+    );
 
     for (const [name, on] of defaults) {
       expect({

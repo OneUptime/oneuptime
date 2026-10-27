@@ -13335,7 +13335,7 @@
   "No matches": "일치 항목 없음",
   "No matches found": "일치하는 항목이 없습니다",
   "No matching columns available.": "No matching columns available.",
-  "No matching entries.": "No matching entries.",
+  "No matching entries.": "일치하는 항목이 없습니다.",
   "No matching members": "일치하는 구성원 없음",
   "No matching resources.": "No matching resources.",
   "No meaningful change": "의미 있는 변화 없음",
@@ -13402,7 +13402,6 @@
   "No operations match the current filters.": "No operations match the current filters.",
   "No options available": "No options available",
   "No options found.": "No options found.",
-  "No options.": "No options.",
   "No origins listed — this browser key is refused on every request until at least one origin is added.": "No origins listed — this browser key is refused on every request until at least one origin is added.",
   "No other logs found for this trace.": "No other logs found for this trace.",
   "No other resources affected by this alert.": "No other resources affected by this alert.",
@@ -35863,5 +35862,11 @@
   "No schedule or webhook: it runs when someone starts it, or when a rule or OneUptime AI does.": "일정도 웹훅도 없습니다. 누군가 시작하거나 규칙 또는 OneUptime AI가 시작할 때 실행됩니다.",
   "Change it under {{location}}.": "{{location}}에서 변경하세요.",
   "Settings › Triggers": "설정 › 트리거",
-  "Use a variable in the URL, the headers or the body as {{reference}}. OneUptime sends the request itself, so it fills in secrets too, and hides them in what the step records.": "URL, 헤더, 본문에서는 변수를 {{reference}}(으)로 사용합니다. 요청은 OneUptime이 직접 보내므로 시크릿도 채워 넣고, 단계가 기록하는 내용에서는 숨깁니다."
+  "Use a variable in the URL, the headers or the body as {{reference}}. OneUptime sends the request itself, so it fills in secrets too, and hides them in what the step records.": "URL, 헤더, 본문에서는 변수를 {{reference}}(으)로 사용합니다. 요청은 OneUptime이 직접 보내므로 시크릿도 채워 넣고, 단계가 기록하는 내용에서는 숨깁니다.",
+  "Nothing to pick yet.": "아직 고를 항목이 없습니다.",
+  "All of them are picked.": "모두 이미 골랐습니다.",
+  "Search to find more.": "검색하면 더 찾을 수 있습니다.",
+  "No repositories are connected yet.": "아직 연결된 저장소가 없습니다.",
+  "No MCP servers are added yet.": "아직 추가된 MCP 서버가 없습니다.",
+  "None. An AI rule picks its Runner in its More fields, on Incidents › AI › Settings or Alerts › AI › Settings.": "없음. AI 규칙은 인시던트 › AI › 설정 또는 알림 › AI › 설정에서, 규칙의 추가 필드에서 Runner를 선택합니다."
 }

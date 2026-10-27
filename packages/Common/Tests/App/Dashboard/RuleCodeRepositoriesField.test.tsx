@@ -364,7 +364,7 @@ describe("a rule's code repositories", () => {
     expect(placeholder()).toBe("All connected repositories");
     expect(openMenu()).toEqual([]);
     expect(screen.getByTestId("entity-dropdown-menu")).toHaveTextContent(
-      "No options.",
+      "No repositories are connected yet.",
     );
   });
 
