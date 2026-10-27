@@ -5,16 +5,17 @@ import { escapeRegExp } from "Common/Utils/RegExpEscape";
 
 /*
  * The admin dashboard's one-switch settings save the moment they are
- * flipped: Settings > Authentication's Sign Up, Require SSO for Login and
- * Project Creation, a user's Master Admin and a project's Customer Support
- * Access. Each was a card whose Edit dialog held the one switch; each is
+ * flipped: Settings > Authentication's Sign Up and Project Creation,
+ * Settings > Single Sign-On's Require SSO for Login (it was on
+ * Authentication, between the two), a user's Master Admin and a project's
+ * Customer Support Access. Each was a card whose Edit dialog held the one switch; each is
  * the shared ModelSwitchCard now, saving through AdminModelAPI (the client
  * that sends no project headers), and the ones that can lock people out or
  * grant full access ask first.
  *
  * Their behaviour is rendered in Common/Tests/App/AdminDashboard
- * (AdminSettingsSwitches, AdminAuthenticationRequireSso,
- * AdminAuthenticationSsoCardLocales). This holds the wiring - which client,
+ * (AdminSettingsSwitches, AdminRequireSsoEveryEdition,
+ * AdminRequireSsoCardLocales). This holds the wiring - which client,
  * which column, which way round - and the locale files: the admin
  * dashboard has no extraction tooling, so every key these pages ask for is
  * checked in all 17 languages here, and the keys the Edit dialogs used are
@@ -108,16 +109,17 @@ function keysAskedFor(code: string, block: string): Array<string> {
 const AUTHENTICATION: string = readCode(
   "Pages/Settings/Authentication/Index.tsx",
 );
+const SINGLE_SIGN_ON: string = readCode("Pages/Settings/SSO/Index.tsx");
 const USER_SETTINGS: string = readCode("Pages/Users/View/Settings.tsx");
 const PROJECT_SUPPORT: string = readCode("Pages/Projects/View/Support.tsx");
 
 describe("Settings > Authentication", () => {
-  test("is three switch cards on the one GlobalConfig row, through the admin API, and no Edit dialog", () => {
+  test("is two switch cards on the one GlobalConfig row, through the admin API, and no Edit dialog", () => {
     expect(
       AUTHENTICATION.split("<ModelSwitchCard<GlobalConfig>").length - 1,
-    ).toBe(3);
-    expect(AUTHENTICATION.split("modelAPI={AdminModelAPI}").length - 1).toBe(3);
-    expect(AUTHENTICATION.split("modelId={globalConfigId}").length - 1).toBe(3);
+    ).toBe(2);
+    expect(AUTHENTICATION.split("modelAPI={AdminModelAPI}").length - 1).toBe(2);
+    expect(AUTHENTICATION.split("modelId={globalConfigId}").length - 1).toBe(2);
     expect(AUTHENTICATION).toContain(
       "const globalConfigId: ObjectID = ObjectID.getZeroObjectID();",
     );
@@ -132,31 +134,63 @@ describe("Settings > Authentication", () => {
     expect(AUTHENTICATION).toContain(
       'column="disableUserProjectCreation" isInverted={true}',
     );
-    expect(AUTHENTICATION).toMatch(
-      /column="requireSsoForLogin" (?!isInverted)/,
-    );
   });
 
-  test("in the order sign up, SSO, project creation", () => {
+  test("in the order sign up, project creation; Require SSO is not here", () => {
     const signUp: number = AUTHENTICATION.indexOf('column="disableSignup"');
-    const sso: number = AUTHENTICATION.indexOf('column="requireSsoForLogin"');
     const projects: number = AUTHENTICATION.indexOf(
       'column="disableUserProjectCreation"',
     );
 
     expect(signUp).toBeGreaterThan(-1);
-    expect(signUp).toBeLessThan(sso);
-    expect(sso).toBeLessThan(projects);
+    expect(signUp).toBeLessThan(projects);
+    expect(AUTHENTICATION).not.toContain('column="requireSsoForLogin"');
+    // Neither asks.
+    expect(AUTHENTICATION).not.toContain("getConfirmation=");
+  });
+
+  // Sign Up reads whether the server requires SSO, to say that nobody signs up then.
+  test("Sign Up reads requireSsoForLogin with its own column, and says so only while it is on", () => {
+    expect(AUTHENTICATION).toContain("select={{ requireSsoForLogin: true }}");
+    expect(AUTHENTICATION).toContain(
+      "if (!item.requireSsoForLogin) { return null; }",
+    );
+    expect(AUTHENTICATION).toContain(
+      "translator.translateText(SIGN_UP_WHILE_SSO_REQUIRED)",
+    );
+  });
+});
+
+describe("Settings > Single Sign-On", () => {
+  test("Require SSO for Login is one switch card on the GlobalConfig row, through the admin API", () => {
+    expect(
+      SINGLE_SIGN_ON.split("<ModelSwitchCard<GlobalConfig>").length - 1,
+    ).toBe(1);
+    expect(SINGLE_SIGN_ON).toContain(
+      "const globalConfigId: ObjectID = ObjectID.getZeroObjectID();",
+    );
+    expect(SINGLE_SIGN_ON).toContain(
+      'modelId={globalConfigId} column="requireSsoForLogin" modelAPI={AdminModelAPI}',
+    );
+    expect(SINGLE_SIGN_ON).toMatch(/column="requireSsoForLogin" (?!isInverted)/);
+    expect(SINGLE_SIGN_ON).not.toContain("CardModelDetail");
+    expect(SINGLE_SIGN_ON).not.toContain("editButtonText");
   });
 
   test("only requiring SSO asks, as a danger, and only before it turns on", () => {
-    expect(AUTHENTICATION.split("getConfirmation=").length - 1).toBe(1);
-    expect(AUTHENTICATION).toContain(
+    expect(SINGLE_SIGN_ON.split("getConfirmation=").length - 1).toBe(1);
+    expect(SINGLE_SIGN_ON).toContain(
       "getConfirmation={getRequireSsoConfirmation}",
     );
-    expect(AUTHENTICATION).toContain("if (!isTurningOn) { return undefined; }");
-    expect(AUTHENTICATION).toContain(
+    expect(SINGLE_SIGN_ON).toContain("if (!isTurningOn) { return undefined; }");
+    expect(SINGLE_SIGN_ON).toContain(
       "submitButtonType: ButtonStyleType.DANGER",
+    );
+  });
+
+  test("the providers' tables and the switch all save through the admin API", () => {
+    expect(SINGLE_SIGN_ON.split("modelAPI={AdminModelAPI}").length - 1).toBe(
+      3,
     );
   });
 });
@@ -337,7 +371,12 @@ describe("what the Edit dialogs used is gone", () => {
   });
 
   test("and no page asks for them", () => {
-    for (const code of [AUTHENTICATION, USER_SETTINGS, PROJECT_SUPPORT]) {
+    for (const code of [
+      AUTHENTICATION,
+      SINGLE_SIGN_ON,
+      USER_SETTINGS,
+      PROJECT_SUPPORT,
+    ]) {
       for (const key of retiredNested) {
         expect(code).not.toContain(key);
       }

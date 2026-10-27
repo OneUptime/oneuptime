@@ -3,10 +3,12 @@ import fs from "fs";
 import nodePath from "path";
 
 /*
- * Settings > Global SSO / Global OIDC (the provider lists and one provider's
- * page) and the instance-wide "Require SSO for Login" toggle on Settings >
- * Authentication are Community Edition screens: plain core pages that every
- * edition bundles and renders the same way.
+ * Settings > Single Sign-On (the instance-wide SAML and OIDC providers, and
+ * the "Require SSO for Login" toggle under them), one provider's page, and
+ * Settings > Authentication are Community Edition screens: plain core pages
+ * that every edition bundles and renders the same way. (The providers were
+ * listed on Settings > Global SSO and Global OIDC, and the toggle was on
+ * Settings > Authentication; the two list addresses open Single Sign-On.)
  *
  * Common/Tests/App/AdminDashboard renders them. This suite pins what a render
  * cannot see, from the source, in the App job (which runs with ee/ deleted):
@@ -15,11 +17,14 @@ import nodePath from "path";
  *    inside the Admin Dashboard's own src - never ee/, the plugin door or the
  *    license helpers, and read no edition flag or license state;
  *  - nothing turns creating or editing off (no isCreateable/isEditable
- *    expression), and there is no row action standing in for editing;
+ *    expression), and no row action stands in for editing - a provider's
+ *    row has Test Sign-in, and nothing else;
  *  - the Enterprise shells and their upsell cards are gone, and the plugin
  *    contract has no key that could replace the pages;
- *  - App.tsx, PageMap, RouteMap and the settings side menu still reach them
- *    at the unchanged /admin/settings/global-sso and /global-oidc paths;
+ *  - App.tsx, PageMap, RouteMap and the settings side menu reach them:
+ *    Single Sign-On at /admin/settings/sso, a provider at the unchanged
+ *    /admin/settings/global-sso/<id> and /global-oidc/<id>, and the old list
+ *    addresses forward to Single Sign-On;
  *  - the URLs the provider pages print - configured in customers' identity
  *    providers - are built by the same template literals as before.
  *
@@ -53,10 +58,14 @@ interface PageFile {
   path: string;
 }
 
+const SSO_PAGE: PageFile = {
+  name: "Settings > Single Sign-On",
+  path: "Pages/Settings/SSO/Index.tsx",
+};
+
 const GLOBAL_PROVIDER_PAGES: Array<PageFile> = [
-  { name: "Global SSO list", path: "Pages/Settings/GlobalSSO/Index.tsx" },
+  SSO_PAGE,
   { name: "Global SSO provider", path: "Pages/Settings/GlobalSSO/View.tsx" },
-  { name: "Global OIDC list", path: "Pages/Settings/GlobalOIDC/Index.tsx" },
   { name: "Global OIDC provider", path: "Pages/Settings/GlobalOIDC/View.tsx" },
 ];
 
@@ -196,7 +205,20 @@ describe("the Global SSO / OIDC pages and Require SSO are core pages", () => {
         }
       }
 
-      expect(source).not.toContain("actionButtons=");
+      /*
+       * A provider's row on Single Sign-On starts a sign-in with it (Test
+       * Sign-in); no other row action, on any page.
+       */
+      if (page === SSO_PAGE) {
+        expect(source.match(/\bactionButtons=/g)).toHaveLength(2);
+        expect(source.match(/title: SSO_PAGE_COPY\.testSignIn,/g)).toHaveLength(
+          2,
+        );
+        expect(source).not.toMatch(/\bDisable\b/);
+      } else {
+        expect(source).not.toContain("actionButtons=");
+      }
+
       expect(source).not.toContain("refreshToggle=");
       expect(source).not.toContain("refresher=");
       expect(source).not.toContain("onItemLoaded");
@@ -217,18 +239,20 @@ describe("the Global SSO / OIDC pages and Require SSO are core pages", () => {
       expect(source).toContain("<ModelDelete");
     }
 
-    for (const path of [
-      "Pages/Settings/GlobalSSO/Index.tsx",
-      "Pages/Settings/GlobalOIDC/Index.tsx",
-    ]) {
-      const source: string = readAdminSource(path);
+    const ssoPage: string = readAdminSource(SSO_PAGE.path);
 
-      // Providers are opened (and edited) on their own page, as always.
-      expect(propValues(source, "isCreateable")).toEqual(["true"]);
-      expect(propValues(source, "isViewable")).toEqual(["true"]);
-      expect(propValues(source, "isEditable")).toEqual(["false"]);
-      expect(propValues(source, "isDeleteable")).toEqual(["false"]);
-    }
+    /*
+     * Its SAML and its OIDC providers: each opened (and edited) on its own
+     * page, as always, and turned on and off in its row.
+     */
+    expect(propValues(ssoPage, "isCreateable")).toEqual(["true", "true"]);
+    expect(propValues(ssoPage, "isViewable")).toEqual(["true", "true"]);
+    expect(propValues(ssoPage, "isEditable")).toEqual(["false", "false"]);
+    expect(propValues(ssoPage, "isDeleteable")).toEqual(["false", "false"]);
+    expect(propValues(ssoPage, "rowSwitch")).toEqual([
+      '{ column: "isEnabled"',
+      '{ column: "isEnabled"',
+    ]);
   });
 
   test("the Enterprise shells' upsell cards are gone", () => {
@@ -242,12 +266,13 @@ describe("the Global SSO / OIDC pages and Require SSO are core pages", () => {
       });
     }
 
+    // The lists are on Single Sign-On; each provider keeps its own page.
     expect(
       fs.readdirSync(adminPath("Pages/Settings/GlobalSSO")).sort(),
-    ).toEqual(["Index.tsx", "View.tsx"]);
+    ).toEqual(["View.tsx"]);
     expect(
       fs.readdirSync(adminPath("Pages/Settings/GlobalOIDC")).sort(),
-    ).toEqual(["Index.tsx", "View.tsx"]);
+    ).toEqual(["View.tsx"]);
   });
 
   test("the plugin contract has no key that could replace them", () => {
@@ -260,27 +285,18 @@ describe("the Global SSO / OIDC pages and Require SSO are core pages", () => {
   });
 });
 
-describe("the pages stay reachable at their unchanged paths", () => {
+describe("the pages are reachable, and the old list addresses forward", () => {
   const appSource: string = readAdminSource("App.tsx");
   const routeMapSource: string = readAdminSource("Utils/RouteMap.ts");
   const pageMapSource: string = readAdminSource("Utils/PageMap.ts");
   const sideMenuSource: string = readAdminSource("Pages/Settings/SideMenu.tsx");
 
   test.each([
-    [
-      "SettingsGlobalSSO",
-      "./Pages/Settings/GlobalSSO/Index",
-      "SETTINGS_GLOBAL_SSO",
-    ],
+    ["SettingsSso", "./Pages/Settings/SSO/Index", "SETTINGS_SSO"],
     [
       "SettingsGlobalSSOView",
       "./Pages/Settings/GlobalSSO/View",
       "SETTINGS_GLOBAL_SSO_VIEW",
-    ],
-    [
-      "SettingsGlobalOIDC",
-      "./Pages/Settings/GlobalOIDC/Index",
-      "SETTINGS_GLOBAL_OIDC",
     ],
     [
       "SettingsGlobalOIDCView",
@@ -300,7 +316,24 @@ describe("the pages stay reachable at their unchanged paths", () => {
     },
   );
 
-  test("RouteMap keeps the four /admin/settings paths", () => {
+  // A bookmark of a list opens Single Sign-On, replaced so Back skips it.
+  test.each(["SETTINGS_GLOBAL_SSO", "SETTINGS_GLOBAL_OIDC"])(
+    "App.tsx forwards PageMap.%s to Single Sign-On",
+    (pageKey: string) => {
+      expect(appSource).toMatch(
+        new RegExp(
+          `path=\\{RouteMap\\[PageMap\\.${pageKey}\\]\\?\\.toString\\(\\) \\|\\| ""\\}\\s*element=\\{\\s*<Navigate\\s+replace=\\{true\\}\\s+to=\\{RouteMap\\[PageMap\\.SETTINGS_SSO\\]\\?\\.toString\\(\\) \\|\\| ""\\}`,
+        ),
+      );
+      expect(appSource).not.toContain("./Pages/Settings/GlobalSSO/Index");
+      expect(appSource).not.toContain("./Pages/Settings/GlobalOIDC/Index");
+    },
+  );
+
+  test("RouteMap keeps the four /admin/settings paths, and adds Single Sign-On's", () => {
+    expect(routeMapSource).toContain(
+      "[PageMap.SETTINGS_SSO]: new Route(`/admin/settings/sso`)",
+    );
     expect(routeMapSource).toContain(
       "[PageMap.SETTINGS_GLOBAL_SSO]: new Route(`/admin/settings/global-sso`)",
     );
@@ -315,28 +348,33 @@ describe("the pages stay reachable at their unchanged paths", () => {
     );
   });
 
-  test("the settings side menu links both lists", () => {
+  test("the settings side menu links Single Sign-On, and no list of its own", () => {
     expect(sideMenuSource).toMatch(
-      /title: "Global SSO",\s*to: RouteUtil\.populateRouteParams\(\s*RouteMap\[PageMap\.SETTINGS_GLOBAL_SSO\] as Route,/,
+      /title: t\("sideMenu\.settingsSso"\),\s*to: RouteUtil\.populateRouteParams\(\s*RouteMap\[PageMap\.SETTINGS_SSO\] as Route,/,
     );
-    expect(sideMenuSource).toMatch(
-      /title: "Global OIDC",\s*to: RouteUtil\.populateRouteParams\(\s*RouteMap\[PageMap\.SETTINGS_GLOBAL_OIDC\] as Route,/,
-    );
+    expect(sideMenuSource).not.toContain("SETTINGS_GLOBAL_SSO");
+    expect(sideMenuSource).not.toContain("SETTINGS_GLOBAL_OIDC");
+    expect(sideMenuSource).not.toMatch(/"Global (SSO|OIDC)"/);
   });
 
-  test("Settings > Authentication renders the Require SSO toggle unconditionally", () => {
-    const source: string = readAdminSource(AUTHENTICATION_PAGE.path);
+  test("Settings > Single Sign-On renders the Require SSO toggle unconditionally, under its providers", () => {
+    const source: string = readAdminSource(SSO_PAGE.path);
 
     /*
      * The switch sits directly in the page, not behind a condition: the
-     * Sign Up switch's card closes right before it.
+     * OIDC providers' table closes right before it.
      */
     expect(source).toMatch(
-      /\/>\s*<ModelSwitchCard<GlobalConfig>\s+modelType=\{GlobalConfig\}\s+modelId=\{globalConfigId\}\s+column="requireSsoForLogin"/,
+      /\/>\s*(?:\{\}\s*)?<ModelSwitchCard<GlobalConfig>\s+modelType=\{GlobalConfig\}\s+modelId=\{globalConfigId\}\s+column="requireSsoForLogin"/,
     );
     expect(source).toContain("getConfirmation={getRequireSsoConfirmation}");
     expect(source).not.toContain("CardModelDetail");
     expect(source).not.toContain('from "Common/UI/Components/Card/Card"');
+
+    // Not on Settings > Authentication any more.
+    expect(readAdminSource(AUTHENTICATION_PAGE.path)).not.toContain(
+      'column="requireSsoForLogin"',
+    );
   });
 });
 

@@ -5,8 +5,9 @@
  * The page's strings are looked up by their English text, as the shared
  * components look theirs up: each one is a key of the Admin Dashboard's
  * locale files, translated in every language
- * (App/Tests/AdminDashboard/SsoAndHealthLicenseLocales,
- * AdminSsoSettingsLocales). The side menu entry and the breadcrumb read the
+ * (App/Tests/AdminDashboard/SsoAndHealthLicenseLocales, and
+ * Common/Tests/App/AdminDashboard/AdminRequireSsoCardLocales, which renders
+ * the card in each one). The side menu entry and the breadcrumb read the
  * page's own keys, sideMenu.settingsSso and breadcrumbs.singleSignOn.
  */
 
@@ -56,7 +57,7 @@ export const REQUIRE_SSO_COPY: {
   confirmDescription: string;
   confirmButton: string;
 } = {
-  cardTitle: "Enforce SSO",
+  cardTitle: "Require SSO",
   cardDescription:
     "Before you require SSO, sign in with a provider using Test Sign-in in its row.",
   switchTitle: "Require SSO for Login",
