@@ -14,9 +14,9 @@ import ts from "typescript";
  * not changed (Gsm7Text, MarkdownEditorLongLines, ProductionReviewDiff and
  * twelve suites of #5070 in October 2026). Tests/Helpers/FastestRun times
  * the work up to three times and counts the fastest, as it would have run
- * on a usual runner when every attempt overran on a slow one, so 279 such
- * assertions moved onto it on 2026-10-27 and this detector keeps new ones
- * out. It finds:
+ * on a usual runner when every attempt overran on a slow one, so the 270
+ * such timings left (257 assertions and 13 helpers) moved onto it on
+ * 2026-10-27, and this detector keeps new ones out. It finds:
  *
  *   - an upper bound (toBeLessThan, toBeLessThanOrEqual) on the time
  *     between a clock read and a later one - inline, or through a variable

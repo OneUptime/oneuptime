@@ -23,8 +23,8 @@ import { REPOSITORY_DIRECTORY, listTestFiles } from "./TagStripScan";
  * MarkdownEditorLongLines twice, twelve suites of #5070 at once. Each moved
  * onto Tests/Helpers/FastestRun, which runs the work up to three times,
  * counts the fastest, and counts it as it would have run on a usual runner
- * when every attempt overran on a slow one. On 2026-10-27 the 279 that were
- * still timed once moved onto it too.
+ * when every attempt overran on a slow one. On 2026-10-27 the 270 that were
+ * still timed once (257 assertions and 13 helpers) moved onto it too.
  *
  * This guard reads every test file of the packages whose tests can import
  * FastestRun (OneAttemptTimingScan's scope: Common, App but its two npm

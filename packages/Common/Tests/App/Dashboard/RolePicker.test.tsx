@@ -1033,9 +1033,16 @@ describe("the search", () => {
   test("a search as long as a book takes no time", () => {
     render(<Harness />);
 
+    /*
+     * Each attempt types a search of its own: typing the same text again
+     * changes nothing, so the picker would not search, and a second attempt
+     * would time nothing at all.
+     */
+    let attempt: number = 0;
     const timed: FastestRun<void> = fastestRun({
       run: (): void => {
-        typeSearch(`${"monitor ".repeat(50000)}zzz`);
+        attempt++;
+        typeSearch(`${"monitor ".repeat(50000)}zzz${attempt}`);
 
         expect(
           screen.getByTestId("role-picker-no-results"),
