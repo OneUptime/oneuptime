@@ -7,9 +7,21 @@ import FormValues from "../../../../UI/Components/Forms/Types/FormValues";
 import UnsavedChanges from "../../../../UI/Utils/NewVersion/UnsavedChanges";
 import { JSONObject } from "../../../../Types/JSON";
 import "@testing-library/jest-dom";
-import { act, cleanup, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import React, { FunctionComponent, ReactElement, useState } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useState,
+} from "react";
+import { CustomElementProps } from "../../../../UI/Components/Forms/Types/Field";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
@@ -193,6 +205,8 @@ describe("BasicForm and unsaved changes", () => {
 
       expect(UnsavedChanges.hasUnsavedChanges()).toBe(false);
 
+      // The reader presses on the field, and picks.
+      fireEvent.pointerDown(screen.getByRole("textbox", { name: "Name" }));
       act(() => {
         formRef.current!.setFieldValue("name", "Payments API");
       });
@@ -207,8 +221,151 @@ describe("BasicForm and unsaved changes", () => {
       render(<PickHost formRef={formRef} />);
       await settle();
 
+      fireEvent.pointerDown(screen.getByRole("textbox", { name: "Name" }));
       act(() => {
         formRef.current!.setFieldValue("name", "Checkout API");
+      });
+
+      expect(UnsavedChanges.hasUnsavedChanges()).toBe(false);
+    });
+  });
+
+  /*
+   * A value the form is handed before the reader has done anything in it is
+   * the form's own doing, never a change they would lose: a field that
+   * reports what it holds as it is drawn (a monitor's criteria do), or
+   * defaults filled in once something loads. A form only opened never
+   * holds a reload back.
+   */
+  describe("a value the form is handed before the reader acts", () => {
+    // A field that reports what it holds as soon as it is drawn, then later.
+    const Reporter: FunctionComponent<CustomElementProps> = (
+      props: CustomElementProps,
+    ): ReactElement => {
+      const [steps, setSteps] = useState<Array<string>>(["Ping"]);
+
+      useEffect(() => {
+        props.onChange?.(steps);
+      }, [steps]);
+
+      return (
+        <button
+          type="button"
+          onClick={() => {
+            setSteps([...steps, "Check the response"]);
+          }}
+        >
+          Add a step
+        </button>
+      );
+    };
+
+    const REPORTING_FIELDS: Fields<JSONObject> = [
+      ...FIELDS,
+      {
+        field: { steps: true },
+        title: "Steps",
+        fieldType: FormFieldSchemaType.CustomComponent,
+        getCustomElement: (
+          _values: FormValues<JSONObject>,
+          props: CustomElementProps,
+        ): ReactElement => {
+          return <Reporter {...props} />;
+        },
+      },
+    ];
+
+    const ReportingHost: FunctionComponent<{
+      formRef?: React.RefObject<BasicFormHandle> | undefined;
+    }> = (props: {
+      formRef?: React.RefObject<BasicFormHandle> | undefined;
+    }): ReactElement => {
+      return (
+        <BasicForm
+          ref={props.formRef}
+          id="reporting-form"
+          fields={REPORTING_FIELDS}
+          submitButtonText="Save"
+          disableAutofocus={true}
+          onSubmit={(
+            _values: FormValues<JSONObject>,
+            onSubmitSuccessful?: () => void,
+          ): void => {
+            onSubmitSuccessful?.();
+          }}
+        />
+      );
+    };
+
+    test("a field reporting what it holds as it is drawn is no change", async () => {
+      render(<ReportingHost />);
+      await settle();
+
+      expect(UnsavedChanges.hasUnsavedChanges()).toBe(false);
+    });
+
+    test("a value a parent hands the form before the reader acts is no change", async () => {
+      const formRef: React.RefObject<BasicFormHandle> =
+        React.createRef<BasicFormHandle>();
+
+      render(<ReportingHost formRef={formRef} />);
+      await settle();
+
+      act(() => {
+        formRef.current!.setFieldValue("name", "Seeded name");
+      });
+
+      expect(UnsavedChanges.hasUnsavedChanges()).toBe(false);
+    });
+
+    test("the reader's own change to such a field counts", async () => {
+      render(<ReportingHost />);
+      await settle();
+
+      await userEvent.click(screen.getByRole("button", { name: "Add a step" }));
+
+      expect(UnsavedChanges.hasUnsavedChanges()).toBe(true);
+    });
+
+    test("a key pressed in the form counts as acting, as a press does", async () => {
+      const formRef: React.RefObject<BasicFormHandle> =
+        React.createRef<BasicFormHandle>();
+
+      render(<ReportingHost formRef={formRef} />);
+      await settle();
+
+      fireEvent.keyDown(screen.getByRole("textbox", { name: "Name" }), {
+        key: "ArrowDown",
+      });
+      act(() => {
+        formRef.current!.setFieldValue("name", "Picked from the list");
+      });
+
+      expect(UnsavedChanges.hasUnsavedChanges()).toBe(true);
+    });
+
+    test("once saved, a value the form is handed again is no change until the reader acts again", async () => {
+      const formRef: React.RefObject<BasicFormHandle> =
+        React.createRef<BasicFormHandle>();
+
+      render(<ReportingHost formRef={formRef} />);
+      await settle();
+
+      await userEvent.type(
+        screen.getByRole("textbox", { name: "Name" }),
+        "Checkout API",
+      );
+
+      expect(UnsavedChanges.hasUnsavedChanges()).toBe(true);
+
+      await userEvent.click(screen.getByRole("button", { name: "Save" }));
+      await settle();
+
+      expect(UnsavedChanges.hasUnsavedChanges()).toBe(false);
+
+      // The saved values coming back into the form, as a page reloads them.
+      act(() => {
+        formRef.current!.setFieldValue("name", "Checkout API (saved)");
       });
 
       expect(UnsavedChanges.hasUnsavedChanges()).toBe(false);
