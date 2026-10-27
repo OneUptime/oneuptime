@@ -58,6 +58,18 @@ export interface LabelledRecordsNamed {
   ids: Map<DatabaseBaseModelType, Set<string>>;
 }
 
+/*
+ * Why a create is not one its creator will own (getOwnedCreateRefusal): a
+ * record whose creator becomes its owner, made by a caller who is no person
+ * and so can own nothing; or a record under a parent - the resource an owner
+ * row adds an owner to among them - that neither the caller nor the teams
+ * of their permissions own.
+ */
+export enum OwnedCreateRefusal {
+  NotAPerson = "NotAPerson",
+  NotOwned = "NotOwned",
+}
+
 // What the caller's create (or update) permission on a model reaches.
 export interface CreateScope {
   // A permission to create that reaches the whole project.
@@ -70,9 +82,18 @@ export interface CreateScope {
   // Every create permission is limited to the records the caller owns.
   isOwnedOnly: boolean;
   /*
-   * The teams of those permissions, when every one is limited to owned
-   * records: each reaches the records its own team owns, beside the
-   * caller's own (OwnedScopePermission.getOwningTeamIds).
+   * Some create permissions are limited to labels (grantedLabelIds) and the
+   * others to the records the caller owns: a record carrying none of the
+   * labels is reached all the same when it is one the caller, or the teams
+   * of those others (ownedTeamIds), own - the union of the caller's grants
+   * (AccessControlPermission.LabelGrant).
+   */
+  isOwnedBesideLabels: boolean;
+  /*
+   * The teams of the permissions limited to owned records - every one
+   * (isOwnedOnly), or the ones beside labels (isOwnedBesideLabels): each
+   * reaches the records its own team owns, beside the caller's own
+   * (OwnedScopePermission.getOwningTeamIds).
    */
   ownedTeamIds: Array<ObjectID>;
   // The blocks with labels on the model's create permissions.
@@ -191,16 +212,36 @@ export default class CreateScopePermission {
         },
       );
 
-      if (!isAboutNoLabelledRecord && !carriesGrantedLabel) {
+      /*
+       * One the labels do not reach is reached all the same as a record its
+       * creator, or the teams of the permissions limited to owned records
+       * beside them, own (getOwnedCreateRefusal).
+       */
+      const ownedRefusal: OwnedCreateRefusal | null =
+        isAboutNoLabelledRecord || carriesGrantedLabel
+          ? null
+          : scope.isOwnedBesideLabels
+            ? await CreateScopePermission.getOwnedCreateRefusal(
+                data.modelType,
+                data.data,
+                data.props,
+                data.ownedParentIds || [],
+                scope.ownedTeamIds,
+              )
+            : OwnedCreateRefusal.NotOwned;
+
+      if (ownedRefusal) {
         const names: Array<string> = await data.findLabelNames({
           labelIds: scope.grantedLabelIds,
           props: data.props,
         });
 
         throw new CreateScopeException(
-          model.getAccessControlColumn()
-            ? `Your access lets you create ${model.pluralName} only with one of these labels: ${names.join(", ")}. Add one of them and try again.`
-            : `Your access lets you create ${model.pluralName} only for records with one of these labels: ${names.join(", ")}.`,
+          CreateScopePermission.getLabelsRefusal({
+            modelType: data.modelType,
+            labelNames: names,
+            ownedRefusal: scope.isOwnedBesideLabels ? ownedRefusal : null,
+          }),
         );
       }
     }
@@ -217,19 +258,47 @@ export default class CreateScopePermission {
   }
 
   /*
+   * Why a create its permissions limited to labels do not reach is refused:
+   * the labels it would need to carry and - beside permissions limited to
+   * the records the caller owns (`ownedRefusal`) - why it is not one of
+   * those either.
+   */
+  private static getLabelsRefusal(data: {
+    modelType: DatabaseBaseModelType;
+    labelNames: Array<string>;
+    ownedRefusal: OwnedCreateRefusal | null;
+  }): string {
+    const model: BaseModel = new data.modelType();
+    const labels: string = data.labelNames.join(", ");
+
+    if (model.getAccessControlColumn()) {
+      if (data.ownedRefusal === OwnedCreateRefusal.NotAPerson) {
+        return `Your access lets you create ${model.pluralName} only with one of these labels: ${labels}, or as their owner, and only a person can own one. Add one of the labels and try again.`;
+      }
+
+      return `Your access lets you create ${model.pluralName} only with one of these labels: ${labels}. Add one of them and try again.`;
+    }
+
+    if (data.ownedRefusal === OwnedCreateRefusal.NotOwned) {
+      return `Your access lets you create ${model.pluralName} only for records with one of these labels: ${labels}, or for the ${CreateScopePermission.getOwnedParentPluralName(data.modelType)} you or your teams own.`;
+    }
+
+    return `Your access lets you create ${model.pluralName} only for records with one of these labels: ${labels}.`;
+  }
+
+  /*
    * What the caller's permissions to create `modelType` reach: the rows
    * that grant the create, read as the record rule reads them - one that
    * reaches the whole project (HeldPermissionsUtil.isProjectWideRow, a
    * global permission among them) makes the create project-wide; otherwise
    * the rows limited to labels give the labels, and with none of those every
    * row is limited to owned records. Rows limited to labels beside rows
-   * limited to owned records read as the labels, as a read does: a row
-   * limited to labels counts as the broader grant there
-   * (OwnedScopePermission.isLimitedToOwnedRecords), and the read is narrowed
-   * to its labels (AccessControlPermission), so a record owned but carrying
-   * none of them would be one its creator could not read. The blocks with labels on the model's
-   * create permissions, or on its wildcard while the wildcard is what
-   * grants (HeldPermissionsUtil.getLabelBlockingPermissions).
+   * limited to owned records reach both, as a read does
+   * (AccessControlPermission.LabelGrant): a record carrying one of the
+   * labels, or one its creator or the Owned rows' teams own
+   * (isOwnedBesideLabels). The blocks with labels on the model's create
+   * permissions, or on its wildcard while the wildcard is what grants
+   * (HeldPermissionsUtil.getLabelBlockingPermissions).
    */
   public static getCreateScope(
     modelType: DatabaseBaseModelType,
@@ -270,9 +339,21 @@ export default class CreateScopePermission {
         return granting.includes(row.permission);
       });
 
+    /*
+     * A row over the whole project reaches every record, and so does a row
+     * scoped to Owned where the scope narrows nothing of the record
+     * (OwnedScopePermission.narrowsRecords: no owners of its own and no
+     * parent it takes them from).
+     */
+    const ownedReachesEverything: boolean =
+      !OwnedScopePermission.narrowsRecords(modelType, type);
+
     const isProjectWide: boolean = grantRows.some(
       (row: UserPermission): boolean => {
-        return HeldPermissionsUtil.isProjectWideRow(row);
+        return (
+          HeldPermissionsUtil.isProjectWideRow(row) ||
+          (ownedReachesEverything && row.scope === PermissionScope.Owned)
+        );
       },
     );
 
@@ -283,6 +364,12 @@ export default class CreateScopePermission {
             row.scope !== PermissionScope.Owned &&
             HeldPermissionsUtil.hasLabels(row)
           );
+        });
+
+    const ownedRows: Array<UserPermission> = isProjectWide
+      ? []
+      : grantRows.filter((row: UserPermission): boolean => {
+          return row.scope === PermissionScope.Owned;
         });
 
     const grantedLabelIds: Array<string> = Array.from(
@@ -315,13 +402,19 @@ export default class CreateScopePermission {
     const isOwnedOnly: boolean =
       !isProjectWide && grantRows.length > 0 && labelRows.length === 0;
 
+    const isOwnedBesideLabels: boolean =
+      labelRows.length > 0 && ownedRows.length > 0;
+
     return {
       isProjectWide: isProjectWide,
       grantedLabelIds: grantedLabelIds,
       isOwnedOnly: isOwnedOnly,
+      isOwnedBesideLabels: isOwnedBesideLabels,
       ownedTeamIds: isOwnedOnly
         ? OwnedScopePermission.getTeamIdsOfRows(grantRows)
-        : [],
+        : isOwnedBesideLabels
+          ? OwnedScopePermission.getTeamIdsOfRows(ownedRows)
+          : [],
       labelledBlocks: labelledBlocks,
     };
   }
@@ -509,40 +602,25 @@ export default class CreateScopePermission {
     ownedParentIds: Array<string>,
     teamIds: Array<ObjectID>,
   ): Promise<void> {
+    const refusal: OwnedCreateRefusal | null =
+      await CreateScopePermission.getOwnedCreateRefusal(
+        modelType,
+        data,
+        props,
+        ownedParentIds,
+        teamIds,
+      );
+
+    if (!refusal) {
+      return;
+    }
+
     const model: BaseModel = new modelType();
 
-    if (OwnedScopePermission.hasOwnerTables(modelType)) {
-      if (!props.userId) {
-        throw new CreateScopeException(
-          `Your access lets you create only the ${model.pluralName} you own, and only a person can own one.`,
-        );
-      }
-
-      return;
-    }
-
-    // The parent it takes its owners from, an owner row's resource among them.
-    const ownedThrough: BaseModel["ownedThrough"] =
-      OwnedScopePermission.getOwnedThrough(modelType);
-
-    if (!ownedThrough) {
-      return;
-    }
-
-    const parentId: ObjectID | string | undefined = resolveReferenceId(
-      (data as unknown as Record<string, unknown>)[ownedThrough.fkColumn],
-    );
-
-    if (
-      await CreateScopePermission.isOwnedParent({
-        modelType: modelType,
-        parentId: parentId,
-        props: props,
-        ownedParentIds: ownedParentIds,
-        teamIds: teamIds,
-      })
-    ) {
-      return;
+    if (refusal === OwnedCreateRefusal.NotAPerson) {
+      throw new CreateScopeException(
+        `Your access lets you create only the ${model.pluralName} you own, and only a person can own one.`,
+      );
     }
 
     const parentPluralName: string =
@@ -558,6 +636,49 @@ export default class CreateScopePermission {
     throw new CreateScopeException(
       `Your access lets you create ${model.pluralName} only for the ${parentPluralName} you or your teams own.`,
     );
+  }
+
+  /*
+   * Whether a create is one its creator will own - or why not
+   * (OwnedCreateRefusal): on a model whose records have owners of their
+   * own, the creator becomes one, so a person may create one; on a model
+   * that takes its owners from a parent (an owner row's resource among
+   * them), the parent it names is one the caller or one of `teamIds` owns,
+   * or one of `ownedParentIds`. On any other model the Owned scope has
+   * nothing to narrow: null.
+   */
+  private static async getOwnedCreateRefusal<TBaseModel extends BaseModel>(
+    modelType: { new (): TBaseModel },
+    data: TBaseModel,
+    props: DatabaseCommonInteractionProps,
+    ownedParentIds: Array<string>,
+    teamIds: Array<ObjectID>,
+  ): Promise<OwnedCreateRefusal | null> {
+    if (OwnedScopePermission.hasOwnerTables(modelType)) {
+      return props.userId ? null : OwnedCreateRefusal.NotAPerson;
+    }
+
+    // The parent it takes its owners from, an owner row's resource among them.
+    const ownedThrough: BaseModel["ownedThrough"] =
+      OwnedScopePermission.getOwnedThrough(modelType);
+
+    if (!ownedThrough) {
+      return null;
+    }
+
+    const parentId: ObjectID | string | undefined = resolveReferenceId(
+      (data as unknown as Record<string, unknown>)[ownedThrough.fkColumn],
+    );
+
+    return (await CreateScopePermission.isOwnedParent({
+      modelType: modelType,
+      parentId: parentId,
+      props: props,
+      ownedParentIds: ownedParentIds,
+      teamIds: teamIds,
+    }))
+      ? null
+      : OwnedCreateRefusal.NotOwned;
   }
 
   /*
@@ -659,7 +780,7 @@ export default class CreateScopePermission {
    * through only where records of no parent belong to the project
    * (includeUnattributed).
    */
-  private static async isOwnedParent(data: {
+  public static async isOwnedParent(data: {
     modelType: { new (): BaseModel };
     parentId: ObjectID | string | undefined;
     props: DatabaseCommonInteractionProps;
@@ -695,7 +816,7 @@ export default class CreateScopePermission {
   }
 
   // What a refusal calls the parents a model takes its owners from.
-  private static getOwnedParentPluralName(modelType: {
+  public static getOwnedParentPluralName(modelType: {
     new (): BaseModel;
   }): string {
     const parentModelType: { new (): BaseModel } | undefined =
