@@ -125,11 +125,12 @@ tests:
           path: data["otel-collector-config.yaml"]
           pattern: "kind != SPAN_KIND_SERVER"
 
-  - it: works on its own with both database switches off
+  - it: works on its own with every database switch off
     set:
       ebpf.dropUnlinkedClientCalls: true
       ebpf.dropDatabaseServerSpans: false
       ebpf.dropUnlinkedDatabaseCalls: false
+      ebpf.dropDatabaseProxySpans: false
     asserts:
       # A processor referenced but not defined (or the reverse) is a collector
       # that refuses to start. (The comments still name the database filter.)
