@@ -14,7 +14,9 @@ import RankedBars, {
   RankedBarItem,
   getRankedBarFillPercent,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityOverview/RankedBars";
-import RiskiestEntities from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityOverview/RiskiestEntities";
+import RiskiestEntities, {
+  RISKIEST_ENTITY_VALUE_CLASS_NAME,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityOverview/RiskiestEntities";
 import {
   ENTITY_RISK_EMPTY_TITLE,
   RISKIEST_ENTITIES_TEST_IDS,
@@ -229,10 +231,15 @@ describe("the card's body", () => {
     expect(rows[0]).toHaveTextContent("200");
     expect(rows[3]).toHaveTextContent("IP Address · Medium");
     expect(rows[5]).toHaveTextContent("User · Low");
-    // The value is written as a value is: in the code font, whole on hover.
+    // The value is written as a value is: in the code font, on its own line.
     expect(
       within(rows[0]!).getByText("k.morgan@acme-commerce.example").className,
-    ).toBe("font-mono");
+    ).toBe(RISKIEST_ENTITY_VALUE_CLASS_NAME);
+    expect(RISKIEST_ENTITY_VALUE_CLASS_NAME.split(" ").sort()).toEqual([
+      "block",
+      "font-mono",
+      "truncate",
+    ]);
     expect(
       within(rows[1]!).getByRole("link", { name: "203.0.113.47" }),
     ).toHaveAttribute(
@@ -242,6 +249,59 @@ describe("the card's body", () => {
         SecurityEntityType.IpAddress,
       ).toString(),
     );
+  });
+
+  /*
+   * An entity's value is something someone's systems wrote. On a Persian
+   * page (#5312) a plain span let the page's direction reorder it; in an
+   * isolate that reads the way most of its letters do it reads as written,
+   * and the isolate is what cuts it short - at its own end.
+   */
+  test("each value reads the way it is written, in an isolate that cuts it short at its own end", () => {
+    renderRiskiest({
+      threshold: 100,
+      total: 3,
+      entities: [
+        {
+          value: "k.morgan@acme-commerce.example",
+          type: SecurityEntityType.User,
+          score: 200,
+        },
+        // A host named in Persian letters reads right to left on any page.
+        { value: "سرور-پرداخت-۲", type: SecurityEntityType.Host, score: 120 },
+        // No letters at all: the isolate's own reading, never a forced one.
+        { value: "203.0.113.47", type: SecurityEntityType.IpAddress, score: 80 },
+      ],
+    });
+
+    const rows: Array<HTMLElement> = within(
+      screen.getByTestId(RISKIEST_ENTITIES_TEST_IDS.list),
+    ).getAllByRole("listitem");
+
+    const values: Array<[string, string, string | null, string]> = rows.map(
+      (row: HTMLElement): [string, string, string | null, string] => {
+        const value: HTMLElement = within(row).getByRole("link")
+          .firstElementChild!.firstElementChild as HTMLElement;
+
+        return [
+          value.textContent || "",
+          value.tagName,
+          value.getAttribute("dir"),
+          value.className,
+        ];
+      },
+    );
+
+    expect(values).toEqual([
+      [
+        "k.morgan@acme-commerce.example",
+        "BDI",
+        "ltr",
+        RISKIEST_ENTITY_VALUE_CLASS_NAME,
+      ],
+      ["سرور-پرداخت-۲", "BDI", "rtl", RISKIEST_ENTITY_VALUE_CLASS_NAME],
+      ["203.0.113.47", "BDI", null, RISKIEST_ENTITY_VALUE_CLASS_NAME],
+    ]);
   });
 
   test("a score past twice the threshold fills its bar and no more", () => {

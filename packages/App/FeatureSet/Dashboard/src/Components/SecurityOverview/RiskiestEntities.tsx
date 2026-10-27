@@ -19,9 +19,18 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { SecurityRiskiestEntities } from "Common/Types/SecurityCase/SecurityEntityRisk";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import { CARD_GRID_CENTERED_STATE_CLASS_NAME } from "Common/UI/Components/Card/CardGridLayout";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
+
+/*
+ * An entity's value: its own line, in the monospace every Security Events
+ * value is drawn in, cut short at its own end - the isolate carries the
+ * value's direction, so a right-to-left page cuts an address or an account
+ * where it ends, not where it starts.
+ */
+export const RISKIEST_ENTITY_VALUE_CLASS_NAME: string = "block truncate font-mono";
 
 export interface ComponentProps {
   // Null when the overview could not read them.
@@ -77,7 +86,17 @@ const RiskiestEntities: FunctionComponent<ComponentProps> = (
     (row: RiskiestEntityRow): RankedBarItem => {
       return {
         key: row.value,
-        label: <span className="font-mono">{row.value}</span>,
+        /*
+         * A value someone's systems wrote - an account, a host, an address
+         * - read the way it is written on a right-to-left page too, and cut
+         * short at its own end (IsolatedText).
+         */
+        label: (
+          <IsolatedText
+            text={row.value}
+            className={RISKIEST_ENTITY_VALUE_CLASS_NAME}
+          />
+        ),
         count: row.score,
         color: row.color,
         fillPercent: row.fillPercent,
