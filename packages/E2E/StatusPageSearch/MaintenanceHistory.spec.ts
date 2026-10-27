@@ -1,5 +1,12 @@
 import { expect, Locator, Page, test, TestInfo } from "@playwright/test";
 import { escapeRegExp } from "Common/Utils/RegExpEscape";
+import {
+  getPillColors,
+  PillColors,
+} from "Common/UI/Components/Pill/PillColors";
+import { MAINTENANCE_MARK_COLOR } from "Common/Utils/StatusPage/HistoryChartBarColors";
+import { parseColor } from "Common/Utils/ColorContrast";
+import Color, { RGB } from "Common/Types/Color";
 // The page's fixture state, as window.__statusPageSearchFixture.
 import "./FixtureState";
 
@@ -56,6 +63,13 @@ async function bandOf(
       return { color: style.backgroundColor, height: style.height };
     },
   );
+}
+
+// A colour as the browser computes it: "rgb(r, g, b)".
+function rgbOf(color: string): string {
+  const rgb: RGB = parseColor(color)!;
+
+  return `rgb(${rgb.red}, ${rgb.green}, ${rgb.blue})`;
 }
 
 test("bands the days a resource's maintenance touched, and names them", async ({
@@ -183,6 +197,88 @@ test("a resource under maintenance in progress says so beside its name, and only
   await page.screenshot({
     path: testInfo.outputPath("maintenance-under-way.png"),
   });
+});
+
+/*
+ * The UI review's changes, in a real browser: what jsdom cannot lay out or
+ * compute - the band's hairline, the Pill's colours, the dialog's focus.
+ */
+test("the band is set off from its bar by a hairline of the card's colour", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await openWithMaintenance(page);
+  const bars: Locator = await only(page, "0660");
+
+  expect(
+    await bars.nth(88).evaluate((element: Element): string => {
+      return window.getComputedStyle(element, "::before").boxShadow;
+    }),
+    // This fixture loads no Theme.css: the card's colour falls back to white.
+  ).toBe("rgb(255, 255, 255) 0px 1px 0px 0px");
+});
+
+test("Under maintenance is the product's Pill, in a blue that reads on its wash", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await openWithMaintenance(page);
+
+  const label: Locator = page.getByTestId("resource-under-maintenance");
+  const pill: Locator = label.getByTestId("pill");
+  const tone: PillColors = getPillColors(MAINTENANCE_MARK_COLOR);
+
+  await expect(pill).toHaveText("Under maintenance");
+  // A deeper shade of the band's blue: the blue itself read at 3.2:1.
+  await expect(pill).toHaveCSS("color", rgbOf(tone.light.textColor));
+  // The wrench, in the dot's place.
+  await expect(pill.locator("svg")).toHaveCount(1);
+  /*
+   * No margin of its own: the row's gap spaces it from the name, so when a
+   * long name leaves it no room it wraps flush with the name.
+   */
+  await expect(label).toHaveCSS("margin-left", "0px");
+});
+
+test("the day dialog starts on itself, and the keyboard reaches the event from there", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await openWithMaintenance(page);
+  const bars: Locator = await only(page, "0660");
+
+  const day: Locator = bars.nth(88);
+  await day.focus();
+  await day.press("Enter");
+
+  const dialog: Locator = page.getByRole("dialog");
+  await expect(dialog).toBeVisible();
+
+  // The Enter that opened the dialog cannot open the event as well.
+  await expect(dialog).toBeFocused();
+
+  const event: Locator = dialog.getByRole("button", {
+    name: DATABASE_UPGRADE_BUTTON,
+  });
+  await expect(event).not.toBeFocused();
+
+  // The dialog's X, then the event.
+  await page.keyboard.press("Tab");
+  await page.keyboard.press("Tab");
+  await expect(event).toBeFocused();
+  // Its ring is an outline, which the card's hover shadow cannot hide.
+  await expect(event).toHaveCSS("outline-style", "solid");
+
+  // Its state is a Pill, in a shade of the state's green that reads.
+  await expect(
+    dialog.getByTestId("uptime-day-maintenance-state").getByTestId("pill"),
+  ).toHaveCSS(
+    "color",
+    rgbOf(getPillColors(new Color("#16a34a")).light.textColor),
+  );
 });
 
 test("a page without maintenance draws no band and no chip", async ({

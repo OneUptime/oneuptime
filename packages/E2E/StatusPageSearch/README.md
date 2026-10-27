@@ -22,8 +22,12 @@ Database 0660's upgrade, completed, on the day of the outage two days ago, and
 patching of Service 0039, in progress now. `MaintenanceHistory.spec.ts` checks,
 on both projects, the blue band on the days an event touched, the maintenance in
 a day's tooltip and dialog with its link to the event's page, and "Under
-maintenance" beside a resource while an event runs. `FixtureState.ts` types what
-`Fixture.js` keeps on `window` for both specs.
+maintenance" beside a resource while an event runs. It also checks what only a
+browser can: the band's hairline of the card's colour, "Under maintenance" as the
+product's Pill in a blue that reads on its wash and with no margin of its own (so
+it wraps flush with a long name), and the day dialog starting on itself, with Tab
+reaching the event and its outline ring. `FixtureState.ts` types what `Fixture.js`
+keeps on `window` for both specs.
 
 This checks real browser rendering and client interactions; backend overview
 queries and the deployed app's routing/authentication are outside this fixture.

@@ -250,31 +250,38 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
           className="flex flex-col sm:flex-row sm:justify-between sm:items-start"
           style={{ marginBottom: "3px" }}
         >
-          <div className="flex flex-wrap items-center gap-y-1 mb-2 sm:mb-0">
-            {/*
-             * Deliberately not larger than a group title: a resource is a leaf
-             * of the group hierarchy and must not out-weigh the group heading
-             * above it. The class lives in the layout util so that floor is
-             * checked against the string that actually renders here.
-             */}
-            <div
-              className={StatusPageGroupNestingLayoutUtil.getResourceTitleClassName()}
-            >
-              {props.monitorName}
-            </div>
-            {props.tooltip && (
-              <Tooltip
-                key={1}
-                text={props.tooltip || t("monitorOverview.notAvailable")}
+          {/*
+           * The gap, not a margin on the label, spaces "Under maintenance"
+           * from the name: when a long name leaves it no room, it wraps to
+           * the next line flush with the name, not indented under it.
+           */}
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mb-2 sm:mb-0">
+            <div className="flex min-w-0 items-center">
+              {/*
+               * Deliberately not larger than a group title: a resource is a leaf
+               * of the group hierarchy and must not out-weigh the group heading
+               * above it. The class lives in the layout util so that floor is
+               * checked against the string that actually renders here.
+               */}
+              <div
+                className={StatusPageGroupNestingLayoutUtil.getResourceTitleClassName()}
               >
-                <div className="ml-1">
-                  <Icon
-                    className="cursor-pointer w-4 h-4 mt-1 text-gray-400"
-                    icon={IconProp.Help}
-                  />
-                </div>
-              </Tooltip>
-            )}
+                {props.monitorName}
+              </div>
+              {props.tooltip && (
+                <Tooltip
+                  key={1}
+                  text={props.tooltip || t("monitorOverview.notAvailable")}
+                >
+                  <div className="ml-1">
+                    <Icon
+                      className="cursor-pointer w-4 h-4 mt-1 text-gray-400"
+                      icon={IconProp.Help}
+                    />
+                  </div>
+                </Tooltip>
+              )}
+            </div>
             {/*
              * The product's Pill, in the maintenance blue of the bars'
              * band, with the wrench: its text is a deeper shade of that
@@ -283,7 +290,7 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
             {isUnderMaintenance && (
               <span
                 data-testid="resource-under-maintenance"
-                className="ml-2 inline-flex min-w-0 max-w-full"
+                className="inline-flex min-w-0 max-w-full"
               >
                 <Pill
                   text={t("monitorOverview.underMaintenance")}
