@@ -20,6 +20,7 @@ import Project from "Common/Models/DatabaseModels/Project";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import IconProp from "Common/Types/Icon/IconProp";
+import { getTeamPermissionsEmptyMessage } from "../CustomRole/CustomRolesFold";
 import { isBuiltInRolePermission } from "../Permission/RoleCardSelectOptions";
 import { RoleReach } from "../Permission/RoleCatalog";
 import { getRolePickerFormField } from "../Permission/RolePickerFormField";
@@ -44,7 +45,7 @@ import React, {
 
 /*
  * A team's permissions: what its members may do, and - under the
- * Permissions page's folded Advanced section - what they may never do.
+ * Permissions page's folded More settings - what they may never do.
  *
  * Both are added the same two ways: Add Role picks a ready-made set of
  * permissions - a role for the whole project, or for one area of it - from
@@ -70,6 +71,12 @@ export interface ComponentProps {
   currentProject: Project | null;
   // How many rows the table holds after each load.
   onPermissionCountChange?: ((count: number) => void) | undefined;
+  /*
+   * How many custom roles the team has (folded under More settings): with
+   * one, the empty allow card says the roles give the team its access
+   * rather than that it can do nothing.
+   */
+  customRoleCount?: number | undefined;
 }
 
 const TeamPermissionTable: FunctionComponent<ComponentProps> = (
@@ -195,8 +202,8 @@ const TeamPermissionTable: FunctionComponent<ComponentProps> = (
         isBlockPermission: permissionType === PermissionType.BlockPermissions,
         /*
          * The team's own permissions only. What it has through a custom
-         * role is the role's, listed by role above (TeamCustomRoleTable)
-         * and changed on the role's page.
+         * role is the role's, listed by role under More settings
+         * (TeamCustomRoleTable) and changed on the role's page.
          */
         teamCustomRoleId: new IsNull(),
       }}
@@ -237,7 +244,7 @@ const TeamPermissionTable: FunctionComponent<ComponentProps> = (
       noItemsMessage={
         isBlock
           ? "Nothing is blocked for this team."
-          : "This team can do nothing yet. Add a role to give it access."
+          : getTeamPermissionsEmptyMessage(props.customRoleCount || 0)
       }
       formFields={
         createPermissionType === CreatePermissionType.RoleBased

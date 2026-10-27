@@ -17,6 +17,10 @@ import {
   getRoleRemoveFromTeamSentence,
 } from "@oneuptime/dashboard/Components/CustomRole/CustomRoleCopy";
 import RolesPageLink from "./RolesPageLink";
+import {
+  CUSTOM_ROLES_CARD_PLACE,
+  CustomRolesCardStateHandler,
+} from "@oneuptime/dashboard/Components/CustomRole/CustomRolesFold";
 import AppLink from "@oneuptime/dashboard/Components/AppLink/AppLink";
 import PageMap from "@oneuptime/dashboard/Utils/PageMap";
 import RouteMap, { RouteUtil } from "@oneuptime/dashboard/Utils/RouteMap";
@@ -53,10 +57,15 @@ import React, {
 } from "react";
 
 /*
- * A TEAM'S CUSTOM ROLES, on its Permissions page above what it was given
- * directly: "Incident Responder - 6 permissions", each a link to the role.
- * Custom roles are an Enterprise feature: this is the Enterprise card, and
- * core keeps the slot on the page (Components/Team/TeamCustomRolesSettings).
+ * A TEAM'S CUSTOM ROLES, in its Permissions page's More settings, before
+ * Block Permissions: "Incident Responder - 6 permissions", each a link to
+ * the role. Custom roles are an Enterprise feature most projects never use,
+ * so the page opens on what the team was given directly and folds this
+ * card away (the maintainer: "Move custom roles to More settings because
+ * it is an advanced feature"); the card tells the page what it holds, so
+ * the folded header names it, with how many roles the team has
+ * (onRolesChange, CustomRolesFold). This is the Enterprise card, and core
+ * keeps the slot on the page (Components/Team/TeamCustomRolesSettings).
  *
  * Add Custom Role picks one of the project's roles from cards that say how
  * many permissions each holds; Remove takes it away. The team's members get
@@ -73,6 +82,7 @@ import React, {
 
 export interface ComponentProps {
   teamId: ObjectID;
+  onRolesChange?: CustomRolesCardStateHandler | undefined;
 }
 
 export const TEAM_CUSTOM_ROLES_TEST_ID: string = "team-custom-roles";
@@ -144,6 +154,22 @@ const TeamCustomRoleTable: FunctionComponent<ComponentProps> = (
       });
   }, []);
 
+  /*
+   * Once both reads are in, whether the card is drawn: a project with no
+   * custom role, and Owners and Admin, have none. Its page names it in
+   * More settings only while it is; the table says how many it holds.
+   */
+  const isDecided: boolean = roles !== null && canTakeRoles !== null;
+  const isShown: boolean = Boolean(
+    roles && roles.length > 0 && canTakeRoles === true,
+  );
+
+  useEffect(() => {
+    if (isDecided && !isShown) {
+      props.onRolesChange?.({ isShown: false, count: 0 });
+    }
+  }, [isDecided, isShown]);
+
   if (!roles || roles.length === 0 || canTakeRoles !== true) {
     return <></>;
   }
@@ -206,11 +232,19 @@ const TeamCustomRoleTable: FunctionComponent<ComponentProps> = (
           onItemDeleted={() => {
             setRefreshToggle(new Date().toISOString());
           }}
+          onFetchSuccess={(
+            _data: Array<TeamCustomRole>,
+            totalCount: number,
+          ) => {
+            props.onRolesChange?.({ isShown: true, count: totalCount });
+          }}
           query={{
             teamId: props.teamId,
             projectId: ProjectUtil.getCurrentProjectId()!,
           }}
           cardProps={{
+            // Its place in More settings: what a link to it names.
+            id: CUSTOM_ROLES_CARD_PLACE,
             title: "Custom Roles",
             /*
              * Roles is a link: the page waits in the Teams menu's folded

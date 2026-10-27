@@ -757,7 +757,7 @@ describe("Settings, Delete and Documentation", () => {
     expect(card).toContain("modelType: DatabaseServer,");
     expect(card).toContain("modelId: modelId,");
     expect(code.indexOf("<CardModelDetail<DatabaseServer>")).toBeLessThan(
-      code.indexOf("<TelemetryResourceRetentionSettings<DatabaseServer>"),
+      code.indexOf("<TelemetryResourceMoreSettings<DatabaseServer>"),
     );
   });
 
@@ -768,14 +768,19 @@ describe("Settings, Delete and Documentation", () => {
    * it to the cards as scopeNote (the Enterprise card says it after its
    * first sentence; ee/Tests/UI/TelemetryRetention pins that).
    */
+  /*
+   * The retention is folded under the page's More settings
+   * (TelemetryResourceMoreSettings), which hands the scope note on to the
+   * shell.
+   */
   test("Settings: retention with its scope note, then the archive card, and no banner", () => {
     const code: string = readCode("Pages/Database/View/Settings.tsx");
     const retentionStart: number = code.indexOf(
-      "<TelemetryResourceRetentionSettings<DatabaseServer>",
+      "<TelemetryResourceMoreSettings<DatabaseServer>",
     );
     const retention: string = between(
       code,
-      "<TelemetryResourceRetentionSettings<DatabaseServer>",
+      "<TelemetryResourceMoreSettings<DatabaseServer>",
       "/>",
     );
     const archive: number = code.indexOf(

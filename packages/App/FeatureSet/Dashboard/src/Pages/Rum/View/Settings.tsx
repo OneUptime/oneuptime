@@ -2,7 +2,20 @@ import PageComponentProps from "../../PageComponentProps";
 import ArchiveResourceCard from "../../../Components/TelemetryResource/ArchiveResourceCard";
 import ResourceDetailsCard from "../../../Components/TelemetryResource/ResourceDetailsCard";
 import TelemetryResourceRetentionSettings from "../../../Components/TelemetryResource/TelemetryResourceRetentionSettings";
+import {
+  isResourceRetentionCardDrawn,
+  TELEMETRY_RESOURCE_MORE_SETTINGS_TEST_ID,
+} from "../../../Components/TelemetryResource/TelemetryResourceMoreSettings";
+import {
+  RUM_RETENTION_MORE_DESCRIPTION,
+  SESSION_REPLAY_RETENTION_TITLE,
+} from "../../../Components/TelemetryResource/TelemetryRetentionFold";
+import useRetentionFold, {
+  RetentionFold,
+} from "../../../Components/TelemetryResource/UseRetentionFold";
 import SessionReplayRetentionSettingsCard from "../../../Components/SessionReplay/SessionReplayRetentionSettingsCard";
+import AdvancedPageSection from "Common/UI/Components/AdvancedPageSection/AdvancedPageSection";
+import { foldedSectionItem } from "Common/UI/Components/FoldedSection/FoldedSectionItem";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
@@ -16,6 +29,16 @@ const RumApplicationSettings: FunctionComponent<
 > = (): ReactElement => {
   const { id } = useParams();
   const modelId: ObjectID = new ObjectID(id || "");
+
+  /*
+   * Retention overrides - an Enterprise feature most projects never use -
+   * and how long session replays are kept wait folded under More settings
+   * (TelemetryRetentionFold), each named in the folded header.
+   */
+  const retentionFold: RetentionFold = useRetentionFold({
+    isEnterpriseCardDrawn: isResourceRetentionCardDrawn(),
+    hasOwnRetention: true,
+  });
 
   return (
     <Fragment>
@@ -45,13 +68,23 @@ const RumApplicationSettings: FunctionComponent<
           },
         ]}
       />
-      <TelemetryResourceRetentionSettings<RumApplication>
-        modelType={RumApplication}
-        modelId={modelId}
-        resourceName="RUM application"
-        modelDetailIdPrefix="rum-application"
-      />
-      <SessionReplayRetentionSettingsCard rumApplicationId={modelId} />
+      <AdvancedPageSection
+        description={RUM_RETENTION_MORE_DESCRIPTION}
+        items={[
+          ...retentionFold.items,
+          foldedSectionItem(SESSION_REPLAY_RETENTION_TITLE),
+        ]}
+        dataTestId={TELEMETRY_RESOURCE_MORE_SETTINGS_TEST_ID}
+      >
+        <TelemetryResourceRetentionSettings<RumApplication>
+          modelType={RumApplication}
+          modelId={modelId}
+          resourceName="RUM application"
+          modelDetailIdPrefix="rum-application"
+          onRetentionChange={retentionFold.onRetentionChange}
+        />
+        <SessionReplayRetentionSettingsCard rumApplicationId={modelId} />
+      </AdvancedPageSection>
       <ArchiveResourceCard<RumApplication>
         modelType={RumApplication}
         modelId={modelId}

@@ -181,21 +181,39 @@ describe("the header can stick, and nothing escapes the scroll box", () => {
     ]) {
       expect([file, readCode(file).includes("overflow-hidden")]).toEqual([
         file,
-        file === "Components/Table/Table.tsx",
+        file === "Components/Table/TableLayout.ts",
       ]);
     }
 
     /*
-     * The one overflow-hidden left in Table.tsx is the footer's, which clips
-     * the pagination bar to the card's rounded corner, under the table.
+     * The one overflow-hidden left is the footer's band (TableLayout), which
+     * clips the pagination bar to the card's rounded corner, under the
+     * table. Table.tsx draws its footer from getTableFooterClassName.
      */
-    const table: string = readCode("Components/Table/Table.tsx");
-    const uses: number = table.split("overflow-hidden").length - 1;
+    const layout: string = readCode("Components/Table/TableLayout.ts");
+    const uses: number = layout.split("overflow-hidden").length - 1;
 
     expect(uses).toBe(1);
-    expect(table).toContain(
-      "bg-gray-50 text-right ${TABLE_FOOTER_BLEED_CLASS_NAME} overflow-hidden",
+    expect(layout).toContain(
+      "TABLE_FOOTER_BAND_CLASS_NAME: string = `bg-gray-50 text-right ${TABLE_FOOTER_BLEED_CLASS_NAME} overflow-hidden`",
     );
+    expect(readCode("Components/Table/Table.tsx")).toContain(
+      '<div className={footerClassName} data-testid="table-footer">',
+    );
+  });
+
+  test("a footer with nothing in it under rows stays out of the card's padding", () => {
+    const layout: string = readCode("Components/Table/TableLayout.ts");
+    const table: string = readCode("Components/Table/Table.tsx");
+
+    /*
+     * Pulled into the card's bottom padding (-mb-6), an empty footer left
+     * the last row's square white corners on the card's bottom edge, over
+     * its rounded corners and its bottom border (the Rule Library, #5246).
+     */
+    expect(layout).toContain("if (!data.hasPagination && data.endsWithRows) {");
+    expect(table).toContain("hasPagination: !isPaginationHidden,");
+    expect(table).toContain("endsWithRows: !isEmptyResult && !isLoadError,");
   });
 
   test("ModelTable's frame for a table without a card clips without scrolling", () => {

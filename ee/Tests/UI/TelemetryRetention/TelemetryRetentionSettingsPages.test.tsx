@@ -205,7 +205,10 @@ import ProxmoxSettings from "@oneuptime/dashboard/Pages/Proxmox/View/Settings";
 import RumSettings from "@oneuptime/dashboard/Pages/Rum/View/Settings";
 import ServerlessSettings from "@oneuptime/dashboard/Pages/Serverless/View/Settings";
 import ServiceSettings from "@oneuptime/dashboard/Pages/Service/View/Settings";
-import TelemetrySettings from "@oneuptime/dashboard/Pages/Settings/TelemetrySettings";
+import TelemetrySettings, {
+  PROJECT_TELEMETRY_MORE_SETTINGS_TEST_ID,
+} from "@oneuptime/dashboard/Pages/Settings/TelemetrySettings";
+import { TELEMETRY_RESOURCE_MORE_SETTINGS_TEST_ID } from "@oneuptime/dashboard/Components/TelemetryResource/TelemetryResourceMoreSettings";
 import VMwareSettings from "@oneuptime/dashboard/Pages/VMware/View/Settings";
 import { getDashboardPlugins } from "@oneuptime/dashboard/Enterprise/Plugins";
 import PageComponentProps from "@oneuptime/dashboard/Pages/PageComponentProps";
@@ -1313,5 +1316,115 @@ describe("Settings > Telemetry", () => {
     expect(
       screen.getByRole("button", { name: "Edit Retention Settings" }),
     ).toBeInTheDocument();
+  });
+});
+
+// The chips a folded More settings header draws for what is in force.
+function foldChips(fold: HTMLElement): Array<string> {
+  return within(fold)
+    .queryAllByTestId("folded-section-item")
+    .filter((item: HTMLElement): boolean => {
+      return item.getAttribute("data-item-set") === "true";
+    })
+    .map((item: HTMLElement): string => {
+      return (item.textContent || "").trim();
+    });
+}
+
+/*
+ * The Enterprise cards wait folded under the page's More settings - an
+ * advanced feature most projects never use - and tell the page what they
+ * hold once read, so the folded header says what each overrides.
+ */
+describe.each(RESOURCES)(
+  "$name retention, under More settings",
+  (resource: ResourceSettingsCase) => {
+    test("both cards are in the fold, which is folded and names them", async () => {
+      await renderSettings(resource, modelFor(resource));
+
+      const fold: HTMLElement = screen.getByTestId(
+        TELEMETRY_RESOURCE_MORE_SETTINGS_TEST_ID,
+      );
+
+      expect(fold).toContainElement(
+        document.getElementById(
+          `${resource.detailIdPrefix}-telemetry-retention`,
+        ),
+      );
+      expect(fold).toContainElement(
+        document.getElementById(
+          `${resource.detailIdPrefix}-telemetry-retention-overrides`,
+        ),
+      );
+      expect(
+        within(fold).getByRole("button", { name: "More settings" }),
+      ).toHaveAttribute("aria-expanded", "false");
+      expect(foldChips(fold)).toEqual([]);
+    });
+
+    test("once read, its header says what each card overrides", async () => {
+      await renderSettings(
+        resource,
+        modelFor(resource, {
+          retainTelemetryDataForDays: 45,
+          telemetryRetentionConfig: CONFIGURED,
+        } as never),
+      );
+
+      const fold: HTMLElement = screen.getByTestId(
+        TELEMETRY_RESOURCE_MORE_SETTINGS_TEST_ID,
+      );
+
+      await waitFor(
+        () => {
+          expect(foldChips(fold)).toEqual([
+            "Telemetry Data Retention: 45 days",
+            // Logs and their errors, traces and their errors, metrics, profiles.
+            "Retention by Telemetry Type: 6",
+          ]);
+        },
+        { timeout: WAIT_TIMEOUT },
+      );
+    });
+  },
+);
+
+describe("Settings > Telemetry: retention by type, under More settings", () => {
+  test("once read, its header says how many types it overrides", async () => {
+    const project: Project = new Project();
+    project.id = PROJECT_ID;
+    project.defaultTelemetryRetentionInDays = 15;
+    project.telemetryRetentionConfig = CONFIGURED;
+    storedModel = project;
+
+    render(
+      <MemoryRouter>
+        <TelemetrySettings
+          pageRoute={
+            new Route(`/dashboard/${PROJECT_ID.toString()}/settings/telemetry`)
+          }
+          currentProject={null}
+          hasPaymentMethod={true}
+        />
+      </MemoryRouter>,
+    );
+
+    const fold: HTMLElement = await screen.findByTestId(
+      PROJECT_TELEMETRY_MORE_SETTINGS_TEST_ID,
+      {},
+      { timeout: WAIT_TIMEOUT },
+    );
+
+    await waitFor(
+      () => {
+        expect(foldChips(fold)).toEqual(["Retention by Telemetry Type: 6"]);
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+
+    // The default everyone sets stays above the fold.
+    expect(fold).not.toContainElement(
+      document.getElementById("model-detail-project-telemetry-retention"),
+    );
   });
 });

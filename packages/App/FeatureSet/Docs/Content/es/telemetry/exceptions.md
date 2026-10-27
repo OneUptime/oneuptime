@@ -81,7 +81,7 @@ El menú lateral de la página agrupa lo que hace con una excepción:
 
 ## Resolver, reabrir y archivar
 
-Los botones de la parte superior de la página de la excepción, y su página **Ajustes**, cambian su estado:
+Los botones de la parte superior de la página de la excepción, su página **Ajustes** y el menú ⋯ de su fila en la lista cambian su estado:
 
 | Acción | Cuándo usarla | Qué pasa después |
 | --- | --- | --- |
@@ -91,6 +91,8 @@ Los botones de la parte superior de la página de la excepción, y su página **
 | **Desarchivar** | Quiere volver a saber de ella. | Vuelve a la lista que le corresponde. |
 
 **Ajustes** muestra quién resolvió o archivó la excepción por última vez, y cuándo. Sus botones dicen **Marcar como resuelto** o **Marcar como no resuelto**, y **Archivar** o **Desarchivar**.
+
+Para cambiar varias a la vez, marque sus filas en la lista, o la casilla sobre las filas para todas las excepciones de la página, y use las mismas acciones en **Acciones masivas**. El resultado indica qué excepciones cambió, cuáles dejó como estaban y por qué.
 
 ## Clases de error
 

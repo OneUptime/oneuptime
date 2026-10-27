@@ -75,7 +75,7 @@ Du kan flytte et workflow mellem projekter, eller mellem en selvhostet installat
 @tab Eksport
 Åbn workflowet, gå til **Indstillinger**, og klik på **Eksportér Arbejdsgang**. For at lægge flere workflows i én fil markerer du dem i listen **Arbejdsgange** og vælger **Eksportér JSON**.
 @tab Import
-Klik på **Import JSON** i listen **Arbejdsgange**, og vælg en fil, der er eksporteret fra et hvilket som helst OneUptime-projekt. Et workflow, hvis navn projektet allerede har, importeres med "(Imported)" efter sit navn.
+Klik på **Importér JSON** i listen **Arbejdsgange**, og vælg en fil, der er eksporteret fra et hvilket som helst OneUptime-projekt. Et workflow, hvis navn projektet allerede har, importeres med "(Imported)" efter sit navn.
 :::
 
 Filen indeholder workflowets navn, beskrivelse, aktiveringstilstand og graf. Den indeholder bevidst ikke:

@@ -976,3 +976,64 @@ describe("Send Test Email", () => {
     });
   });
 });
+
+/*
+ * The table waits folded under Notification Settings' More settings, whose
+ * header says how many configs it lists: the table tells the page after
+ * each load (NotificationSettingsOwnSenders holds the page).
+ */
+describe("what the table tells its page", () => {
+  test("how many configs it lists, after each load", async () => {
+    const counts: Array<number> = [];
+
+    render(
+      <MemoryRouter>
+        <CustomSMTPTable
+          onCountChange={(count: number) => {
+            counts.push(count);
+          }}
+        />
+      </MemoryRouter>,
+    );
+
+    await settle();
+
+    const onFetchSuccess: (items: Array<unknown>, count: number) => void =
+      tableProps[tableProps.length - 1]!["onFetchSuccess"] as (
+        items: Array<unknown>,
+        count: number,
+      ) => void;
+
+    expect(typeof onFetchSuccess).toBe("function");
+
+    await act(async () => {
+      onFetchSuccess([], 3);
+    });
+
+    await act(async () => {
+      onFetchSuccess([], 0);
+    });
+
+    expect(counts).toEqual([3, 0]);
+  });
+
+  test("a table told nothing to tell still lists", async () => {
+    render(
+      <MemoryRouter>
+        <CustomSMTPTable />
+      </MemoryRouter>,
+    );
+
+    await settle();
+
+    const onFetchSuccess: (items: Array<unknown>, count: number) => void =
+      tableProps[tableProps.length - 1]!["onFetchSuccess"] as (
+        items: Array<unknown>,
+        count: number,
+      ) => void;
+
+    expect(() => {
+      onFetchSuccess([], 2);
+    }).not.toThrow();
+  });
+});

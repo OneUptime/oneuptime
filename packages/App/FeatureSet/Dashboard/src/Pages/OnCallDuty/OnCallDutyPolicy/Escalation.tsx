@@ -62,8 +62,11 @@ const OnCallPolicyEscalation: FunctionComponent<
         <AdvancedPageSection
           dataTestId={ACKNOWLEDGEMENT_TIMEOUT_MORE_SETTINGS_TEST_ID}
           items={[
+            /*
+             * Named at its card's place, its title's
+             * (#acknowledgement-timeout), so a link lands on the card.
+             */
             foldedSectionItem(AcknowledgementTimeoutCopy.cardTitle, {
-              key: "acknowledgementTimeout",
               isSet: acknowledgementTimeoutMinutes !== null,
               value:
                 acknowledgementTimeoutMinutes !== null

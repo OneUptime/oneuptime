@@ -85,7 +85,7 @@ En **Detalles del servicio**, haga clic en **Editar detalles** para cambiar su *
 En **Ajustes del servicio**, haga clic en **Editar configuración**. El **Color del servicio** lo distingue en gráficos y listas; un servicio nuevo recibe uno propio. **Stack tecnológico** es opcional: déjelo vacío para mostrar el lenguaje detectado en su telemetría.
 :::
 
-La misma página contiene la retención del servicio. Las tarjetas **Retención de datos de telemetría** y **Retención por tipo de telemetría** conservan su telemetría más o menos tiempo que la retención predeterminada del proyecto. Forman parte de la [Enterprise Edition](/docs/self-hosted/enterprise), y del plan Scale en OneUptime Cloud; sin ellas, la página muestra lo que aportan y el servicio mantiene la retención del proyecto.
+La misma página contiene la retención del servicio, plegada en **Más ajustes**. Las tarjetas **Retención de datos de telemetría** y **Retención por tipo de telemetría** conservan su telemetría más o menos tiempo que la retención predeterminada del proyecto. Forman parte de la [Enterprise Edition](/docs/self-hosted/enterprise), y del plan Scale en OneUptime Cloud; sin ellas, la página muestra lo que aportan y el servicio mantiene la retención del proyecto.
 
 ## Asignar etiquetas y propietarios automáticamente
 

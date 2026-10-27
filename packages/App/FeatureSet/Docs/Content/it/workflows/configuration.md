@@ -73,9 +73,9 @@ Puoi spostare un workflow tra progetti, o tra un'installazione self-hosted e One
 
 :::tabs
 @tab Esportare
-Apri il workflow, vai in **Impostazioni** e fai clic su **Esporta: Flusso di lavoro**. Per mettere più workflow in un unico file, selezionali nell'elenco **Flussi di lavoro** e scegli **Esporta: JSON**.
+Apri il workflow, vai in **Impostazioni** e fai clic su **Esporta: Flusso di lavoro**. Per mettere più workflow in un unico file, selezionali nell'elenco **Flussi di lavoro** e scegli **Esporta JSON**.
 @tab Importare
-Nell'elenco **Flussi di lavoro**, fai clic su **Import JSON** e scegli un file esportato da qualsiasi progetto OneUptime. Un workflow il cui nome è già presente nel progetto viene importato con "(Imported)" dopo il nome.
+Nell'elenco **Flussi di lavoro**, fai clic su **Importa JSON** e scegli un file esportato da qualsiasi progetto OneUptime. Un workflow il cui nome è già presente nel progetto viene importato con "(Imported)" dopo il nome.
 :::
 
 Il file contiene il nome del workflow, la descrizione, lo stato di attivazione e il grafo. Volutamente non contiene:

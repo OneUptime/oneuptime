@@ -17,11 +17,18 @@ import {
   within,
 } from "@testing-library/react";
 import React, { ReactElement } from "react";
-import { MemoryRouter } from "react-router-dom";
+import {
+  MemoryRouter,
+  Route as RouterRoute,
+  Routes as RouterRoutes,
+} from "react-router-dom";
 import AIFeatures from "../../../../App/FeatureSet/Dashboard/src/Pages/Settings/AIFeatures";
 import APIKeyView from "../../../../App/FeatureSet/Dashboard/src/Pages/Settings/APIKeyView";
 import AlertAISettings from "../../../../App/FeatureSet/Dashboard/src/Pages/Alerts/Settings/AlertAISettings";
 import DashboardSharing from "../../../../App/FeatureSet/Dashboard/src/Pages/Dashboards/View/Sharing";
+import FormShare, {
+  FORM_SHARE_MORE_SETTINGS_TEST_ID,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/Forms/View/Share";
 import IncidentAISettings from "../../../../App/FeatureSet/Dashboard/src/Pages/Incidents/Settings/IncidentAISettings";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import StatusPageAccess from "../../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/View/AuthenticationSettings";
@@ -29,6 +36,26 @@ import StatusPageBranding from "../../../../App/FeatureSet/Dashboard/src/Pages/S
 import TeamViewPermissions, {
   TEAM_PERMISSIONS_ADVANCED_SECTION_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Teams/View/Permissions";
+import HostSettings from "../../../../App/FeatureSet/Dashboard/src/Pages/Host/View/Settings";
+import RumSettings from "../../../../App/FeatureSet/Dashboard/src/Pages/Rum/View/Settings";
+import ProjectTelemetrySettings, {
+  PROJECT_TELEMETRY_MORE_SETTINGS_TEST_ID,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/Settings/TelemetrySettings";
+import NotificationSettings, {
+  NOTIFICATION_SETTINGS_MORE_TEST_ID,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/Settings/NotificationSettings";
+import StatusPageSettings, {
+  STATUS_PAGE_SETTINGS_MORE_TEST_ID,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/View/StatusPageSettings";
+import { TELEMETRY_RESOURCE_MORE_SETTINGS_TEST_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/TelemetryResourceMoreSettings";
+import ProfilesAiSettings from "../../../../App/FeatureSet/Dashboard/src/Pages/Profiles/AI/Settings";
+import EmbeddedStatus, {
+  EMBEDDED_STATUS_BADGE_MORE_TEST_ID,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/View/EmbeddedStatus";
+import {
+  TELEMETRY_AI_RULES_CARD_TITLE,
+  TELEMETRY_AI_TEST_IDS,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryAi/TelemetryAiCopy";
 import {
   AI_LANE_ADVANCED_CARD_TITLES,
   AI_LANE_ADVANCED_SECTION_TEST_ID,
@@ -112,6 +139,11 @@ const BASE_PERMISSIONS: Array<Permission> = [
 
 // Rows each table answers with.
 let rowsPerTable: number = 0;
+
+// Each table answers with one row, or none.
+function answerWithRows(withRows: boolean): void {
+  rowsPerTable = withRows ? 1 : 0;
+}
 
 function grant(permissions: Array<Permission>): void {
   jest.spyOn(User, "isMasterAdmin").mockReturnValue(false);
@@ -233,6 +265,15 @@ interface MoreSettingsPage {
   namesSectionsByTitle: boolean;
   // How many of its sections are tables.
   tableCount: number;
+  /*
+   * With a row in every table, where the fold then holds more: a card drawn
+   * only for a record that has something to show (the custom roles a team
+   * or key still has).
+   */
+  withRows?: {
+    sectionTitles: Array<string>;
+    tableCount: number;
+  };
 }
 
 type NamedSectionTitlesFunction = (page: MoreSettingsPage) => Array<string>;
@@ -311,6 +352,11 @@ const PAGES: Array<MoreSettingsPage> = [
     sectionTitles: ["Block Permissions"],
     namesSectionsByTitle: true,
     tableCount: 1,
+    // A key with a custom role: Custom Roles, an advanced feature, first.
+    withRows: {
+      sectionTitles: ["Custom Roles", "Block Permissions"],
+      tableCount: 2,
+    },
   },
   {
     name: "Teams -> a team -> Permissions",
@@ -322,6 +368,11 @@ const PAGES: Array<MoreSettingsPage> = [
     sectionTitles: ["Block Permissions"],
     namesSectionsByTitle: true,
     tableCount: 1,
+    // A team with a custom role: Custom Roles, an advanced feature, first.
+    withRows: {
+      sectionTitles: ["Custom Roles", "Block Permissions"],
+      tableCount: 2,
+    },
   },
   {
     name: "Status Pages -> a page -> Branding",
@@ -349,7 +400,8 @@ const PAGES: Array<MoreSettingsPage> = [
       return <StatusPageAccess {...PAGE_PROPS} />;
     },
     sectionTestId: STATUS_PAGE_ACCESS_ADVANCED_SECTION_TEST_ID,
-    sectionTitles: ["IP Allowlist"],
+    // How long readers stay signed in, and the IP allowlist: both Enterprise.
+    sectionTitles: ["Reader Sessions", "IP Allowlist"],
     namesSectionsByTitle: true,
     tableCount: 0,
   },
@@ -361,6 +413,123 @@ const PAGES: Array<MoreSettingsPage> = [
     },
     sectionTestId: DASHBOARD_SHARING_ADVANCED_SECTION_TEST_ID,
     sectionTitles: ["IP Allowlist"],
+    namesSectionsByTitle: true,
+    tableCount: 0,
+  },
+  {
+    name: "Forms -> a form -> Share",
+    path: `/dashboard/${PROJECT_ID}/forms/${RECORD_ID}/share`,
+    element: (): ReactElement => {
+      // The page reads the form's id from the route, as its route gives it.
+      return (
+        <RouterRoutes>
+          <RouterRoute
+            path="/dashboard/:projectId/forms/:id/share"
+            element={<FormShare {...PAGE_PROPS} />}
+          />
+        </RouterRoutes>
+      );
+    },
+    sectionTestId: FORM_SHARE_MORE_SETTINGS_TEST_ID,
+    sectionTitles: ["IP Allowlist"],
+    namesSectionsByTitle: true,
+    tableCount: 0,
+  },
+  /*
+   * A service's or telemetry resource's Settings: its retention overrides -
+   * here the card that sells them, as the Community Edition draws it. Every
+   * such page folds them through one component (TelemetryRetentionShells
+   * holds all fifteen).
+   */
+  {
+    name: "Infrastructure -> a host -> Settings",
+    path: `/dashboard/${PROJECT_ID}/hosts/${RECORD_ID}/settings`,
+    element: (): ReactElement => {
+      return <HostSettings {...PAGE_PROPS} />;
+    },
+    sectionTestId: TELEMETRY_RESOURCE_MORE_SETTINGS_TEST_ID,
+    sectionTitles: ["Retention Overrides"],
+    namesSectionsByTitle: true,
+    tableCount: 0,
+  },
+  // And a RUM application's, with how long its session replays are kept.
+  {
+    name: "RUM -> an application -> Settings",
+    path: `/dashboard/${PROJECT_ID}/rum/${RECORD_ID}/settings`,
+    element: (): ReactElement => {
+      // The page reads the application's id from the route.
+      return (
+        <RouterRoutes>
+          <RouterRoute
+            path="/dashboard/:projectId/rum/:id/settings"
+            element={<RumSettings {...PAGE_PROPS} />}
+          />
+        </RouterRoutes>
+      );
+    },
+    sectionTestId: TELEMETRY_RESOURCE_MORE_SETTINGS_TEST_ID,
+    sectionTitles: ["Retention Overrides", "Session Replay Retention"],
+    namesSectionsByTitle: true,
+    tableCount: 0,
+  },
+  {
+    name: "Project Settings -> Telemetry & APM -> Data Retention",
+    path: `/dashboard/${PROJECT_ID}/settings/telemetry-settings`,
+    element: (): ReactElement => {
+      return <ProjectTelemetrySettings {...PAGE_PROPS} />;
+    },
+    sectionTestId: PROJECT_TELEMETRY_MORE_SETTINGS_TEST_ID,
+    sectionTitles: ["Retention Overrides"],
+    namesSectionsByTitle: true,
+    tableCount: 0,
+  },
+  {
+    name: "Status Pages -> a page -> Advanced Settings",
+    path: `/dashboard/${PROJECT_ID}/status-pages/${RECORD_ID}/settings`,
+    element: (): ReactElement => {
+      return <StatusPageSettings {...PAGE_PROPS} />;
+    },
+    sectionTestId: STATUS_PAGE_SETTINGS_MORE_TEST_ID,
+    sectionTitles: ["Powered by OneUptime"],
+    namesSectionsByTitle: true,
+    tableCount: 0,
+  },
+  {
+    name: "Project Settings -> Notifications -> Notification Settings",
+    path: `/dashboard/${PROJECT_ID}/settings/notification-settings`,
+    element: (): ReactElement => {
+      return <NotificationSettings {...PAGE_PROPS} />;
+    },
+    sectionTestId: NOTIFICATION_SETTINGS_MORE_TEST_ID,
+    sectionTitles: ["Custom SMTP Configs", "Twilio Config"],
+    namesSectionsByTitle: true,
+    // Both are tables.
+    tableCount: 2,
+  },
+  /*
+   * A telemetry product's AI -> Settings - the Profiler's here; every lane
+   * draws the same page (TelemetryAiSettingsPage) - folds its AI rules.
+   */
+  {
+    name: "Profiles -> AI -> Settings",
+    path: `/dashboard/${PROJECT_ID}/profiles/ai/settings`,
+    element: (): ReactElement => {
+      return <ProfilesAiSettings {...PAGE_PROPS} />;
+    },
+    sectionTestId: TELEMETRY_AI_TEST_IDS.advancedSection,
+    sectionTitles: [TELEMETRY_AI_RULES_CARD_TITLE],
+    namesSectionsByTitle: true,
+    tableCount: 1,
+  },
+  // A status page's embedded badge folds its security token.
+  {
+    name: "Status Pages -> a page -> Embedded Status",
+    path: `/dashboard/${PROJECT_ID}/status-pages/${RECORD_ID}/embedded-status`,
+    element: (): ReactElement => {
+      return <EmbeddedStatus {...PAGE_PROPS} />;
+    },
+    sectionTestId: EMBEDDED_STATUS_BADGE_MORE_TEST_ID,
+    sectionTitles: ["Security Token"],
     namesSectionsByTitle: true,
     tableCount: 0,
   },
@@ -423,17 +592,35 @@ function titleOf(section: HTMLElement): string {
   ).trim();
 }
 
+// The sections the fold holds as the test has set the tables up.
+function expectedSectionTitles(page: MoreSettingsPage): Array<string> {
+  return rowsPerTable > 0 && page.withRows
+    ? page.withRows.sectionTitles
+    : page.sectionTitles;
+}
+
 async function openPageAndLoad(page: MoreSettingsPage): Promise<void> {
   openPage(page);
 
   await waitFor(
     () => {
-      expect(sectionsIn(page).length).toBe(page.sectionTitles.length);
+      expect(sectionsIn(page).length).toBe(expectedSectionTitles(page).length);
     },
     { timeout: 20000 },
   );
 
   await flush();
+}
+
+// The keys of the names a folded header lists, in order.
+function listedKeys(page: MoreSettingsPage): Array<string> {
+  return Array.from(
+    moreSettings(page).querySelectorAll<HTMLElement>(
+      "[data-testid='folded-section-item']",
+    ),
+  ).map((item: HTMLElement): string => {
+    return item.getAttribute("data-item-key") || "";
+  });
 }
 
 describe.each(PAGES)("$name: More settings", (page: MoreSettingsPage) => {
@@ -594,7 +781,9 @@ describe.each(PAGES)("$name: More settings", (page: MoreSettingsPage) => {
       moreSettings(page),
     ).queryAllByTestId("table-footer");
 
-    expect(footers).toHaveLength(page.tableCount);
+    expect(footers).toHaveLength(
+      page.withRows ? page.withRows.tableCount : page.tableCount,
+    );
 
     for (const footer of footers) {
       expect(footer).not.toHaveClass("rounded-b-xl");
@@ -602,6 +791,71 @@ describe.each(PAGES)("$name: More settings", (page: MoreSettingsPage) => {
     }
   });
 });
+
+/*
+ * Folding never loses anything: every name a page's folded More settings
+ * lists is the place of a card in it - so a link to that name (a search
+ * result, another page's "Pick a Runner") lands on the card - and opening
+ * the page at that name opens the fold there, with or without rows.
+ */
+describe.each(PAGES)(
+  "$name: what its folded header names can be reached",
+  (page: MoreSettingsPage) => {
+    for (const withRows of [false, true]) {
+      test(`${withRows ? "with" : "without"} rows, each name it lists is a card in it`, async () => {
+        answerWithRows(withRows);
+
+        await openPageAndLoad(page);
+
+        const keys: Array<string> = listedKeys(page);
+
+        expect(keys.length).toBeGreaterThan(0);
+
+        for (const key of keys) {
+          const place: HTMLElement | null = document.getElementById(key);
+
+          expect({ key, isCardInFold: Boolean(place) }).toEqual({
+            key,
+            isCardInFold: true,
+          });
+          expect(moreSettings(page)).toContainElement(place);
+          expect(place).toHaveAttribute("data-testid", "card");
+        }
+      });
+
+      test(`${withRows ? "with" : "without"} rows, opened at each name it lists, it opens there`, async () => {
+        answerWithRows(withRows);
+
+        await openPageAndLoad(page);
+
+        const keys: Array<string> = listedKeys(page);
+
+        cleanup();
+
+        for (const key of keys) {
+          goTo(`${page.path}#${key}`);
+          render(
+            <MemoryRouter initialEntries={[`${page.path}#${key}`]}>
+              {page.element()}
+            </MemoryRouter>,
+          );
+
+          await waitFor(
+            () => {
+              expect({
+                key,
+                expanded: header(page).getAttribute("aria-expanded"),
+              }).toEqual({ key, expanded: "true" });
+            },
+            { timeout: 20000 },
+          );
+
+          cleanup();
+        }
+      });
+    }
+  },
+);
 
 describe("the cards around More settings are cards, as they were", () => {
   test("the cards above a page's More settings keep their frame", async () => {

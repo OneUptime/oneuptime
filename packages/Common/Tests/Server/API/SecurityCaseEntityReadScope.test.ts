@@ -13,10 +13,12 @@ import {
  * THE ENTITY READS OF SECURITY EVENTS FOLLOW THE CALLER'S READ SCOPE:
  *
  *   POST /security-case/entity-activity  how active some values have been
- *   POST /security-case/top-entities     the values the findings name most
  *
- * Both build their own ClickHouse SQL, so nothing downstream narrows it to
- * the caller. A security event belongs to the source it came from (its
+ * It builds its own ClickHouse SQL, so nothing downstream narrows it to the
+ * caller. (The findings ranking, POST /security-case/top-entities, is gone:
+ * the Overview's Riskiest Entities is Entity Risk's top, read through its
+ * model with the caller's props, as Entity Risk's own list is.) A security
+ * event belongs to the source it came from (its
  * primaryEntityId), and a Security role may be scoped to the sources it
  * owns or to some labels; such a reader gets the users, hosts and addresses
  * of those sources' events, never every source's. Each route runs through
@@ -89,9 +91,9 @@ const OTHER_SOURCE: ObjectID = new ObjectID(
 );
 const LABEL_A: ObjectID = new ObjectID("7c4e2a90-1b3d-4f5e-8a6c-0d9e8f7a6b05");
 
-type Route = "entity-activity" | "top-entities";
+type Route = "entity-activity";
 
-const ROUTES: Array<Route> = ["entity-activity", "top-entities"];
+const ROUTES: Array<Route> = ["entity-activity"];
 
 function securityViewer(
   scope: PermissionScope,
@@ -163,10 +165,7 @@ async function read(route: Route): Promise<Statement> {
     params: {},
     query: {},
     headers: {},
-    body:
-      route === "entity-activity"
-        ? { values: ["203.0.113.7", "mallory@acme.com"] }
-        : {},
+    body: { values: ["203.0.113.7", "mallory@acme.com"] },
   } as unknown as ExpressRequest;
   const next: MockedFn = jest.fn();
 

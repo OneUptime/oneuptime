@@ -1,11 +1,11 @@
 # Labelregels importeren en exporteren
 
-Kopieer labelregels tussen projecten, of maak er veel tegelijk aan, als JSON-bestand. Elke pagina **Labelregels** heeft de acties **Export JSON** en **Import JSON** in het menu **Meer opties** (**⋯**), ook bij incidenten, waarschuwingen, monitoren en netwerkapparaten. De enige uitzondering is VMware: de labelregels voor vCenters hebben geen van beide.
+Kopieer labelregels tussen projecten, of maak er veel tegelijk aan, als JSON-bestand. Elke pagina **Labelregels** heeft de acties **JSON exporteren** en **JSON importeren** in het menu **Meer opties** (**⋯**), ook bij incidenten, waarschuwingen, monitoren en netwerkapparaten. De enige uitzondering is VMware: de labelregels voor vCenters hebben geen van beide.
 
 ```mermaid title="Labelregels tussen projecten verplaatsen"
 flowchart TB
-    E["Export JSON<br/>in het bronproject"] --> F["JSON-bestand"]
-    F --> I["Import JSON<br/>in het doelproject"]
+    E["JSON exporteren<br/>in het bronproject"] --> F["JSON-bestand"]
+    F --> I["JSON importeren<br/>in het doelproject"]
     I --> V{"Valideren en voorbeeld"}
     V -->|"Problemen gevonden"| J["JSON bewerken"]
     J --> V
@@ -15,7 +15,7 @@ flowchart TB
 
 ## Regels exporteren
 
-Open **Meer opties** en kies **Export JSON** om alle regels van dat type in het huidige project te downloaden. De export bevat ook regels op andere pagina's van de tabel en negeert tabelfilters.
+Open **Meer opties** en kies **JSON exporteren** om alle regels van dat type in het huidige project te downloaden. De export bevat ook regels op andere pagina's van de tabel en negeert tabelfilters.
 
 Het bestand bewaart per regel de status (ingeschakeld of niet), de voorwaarden, de toe te voegen labels en de opties voor het overnemen van labels. Project-ID's, regel-ID's en auditvelden worden weggelaten.
 
@@ -24,9 +24,9 @@ Gekoppelde labels, monitoren en ernstniveaus worden met hun exacte naam geschrev
 ## Regels importeren
 
 :::steps
-### Import JSON openen
+### JSON importeren openen
 
-Open de pagina **Labelregels** van het doelproject en kies **Meer opties → Import JSON**.
+Open de pagina **Labelregels** van het doelproject en kies **Meer opties → JSON importeren**.
 
 ### Het bestand toevoegen
 
@@ -93,7 +93,7 @@ Dit stopt de hele batch vóór de importstap: ongeldige patronen, onbekende veld
 
 ## Kopiëren tussen resourcetypen
 
-Laat het oorspronkelijke `resourceType` in het bestand staan en open **Import JSON** op de doelpagina. Compatibele patronen voor de primaire naam of titel, beschrijvingspatronen en vereiste labels worden aan de velden van het doel gekoppeld, en het voorbeeld toont die koppelingen zodat u ze kunt nakijken. Verwijzingen naar ernstniveaus van incidenten en waarschuwingen worden vergeleken met de namen van de ernstniveaus in het doel.
+Laat het oorspronkelijke `resourceType` in het bestand staan en open **JSON importeren** op de doelpagina. Compatibele patronen voor de primaire naam of titel, beschrijvingspatronen en vereiste labels worden aan de velden van het doel gekoppeld, en het voorbeeld toont die koppelingen zodat u ze kunt nakijken. Verwijzingen naar ernstniveaus van incidenten en waarschuwingen worden vergeleken met de namen van de ernstniveaus in het doel.
 
 Voorwaarden of acties die het doel niet ondersteunt, blokkeren de import. Een incidentregel die tot bepaalde monitoren is beperkt, kan bijvoorbeeld niet naar regels voor netwerkapparaten worden gekopieerd zonder die voorwaarden te bewerken.
 

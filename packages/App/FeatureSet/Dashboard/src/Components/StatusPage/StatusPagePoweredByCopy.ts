@@ -1,3 +1,9 @@
+import {
+  FOLDED_SECTION_OFF,
+  FoldedSectionItem,
+  foldedSectionItem,
+} from "Common/UI/Components/FoldedSection/FoldedSectionItem";
+import { getPageAnchorNameForTitle } from "Common/UI/Utils/PageAnchor";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
@@ -44,6 +50,30 @@ export const StatusPagePoweredByCopy: {
   hiddenDescription: translationKey(
     "Off: the footer shows only your own links.",
   ),
+};
+
+/*
+ * The card's place in the page's More settings: its title's
+ * (#powered-by-oneuptime), the Enterprise card's and the upsell's alike.
+ */
+export const STATUS_PAGE_POWERED_BY_PLACE: string = getPageAnchorNameForTitle(
+  StatusPagePoweredByCopy.cardTitle,
+);
+
+/*
+ * Powered by OneUptime as the page's folded More settings names it: "Off"
+ * while the line is hidden, which a new status page never is; its name
+ * otherwise. Unread (null), its name.
+ */
+export const getPoweredByFoldedItem: (
+  isShown: boolean | null,
+) => FoldedSectionItem = (isShown: boolean | null): FoldedSectionItem => {
+  return foldedSectionItem(StatusPagePoweredByCopy.cardTitle, {
+    key: STATUS_PAGE_POWERED_BY_PLACE,
+    isSet: isShown === false,
+    value: FOLDED_SECTION_OFF,
+    translateValue: true,
+  });
 };
 
 // The sentence under the switch, for the way it is set (on = shown).

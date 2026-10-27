@@ -24,7 +24,7 @@ flowchart TB
     score -->|"No<br/>limite"| case["Um caso é aberto,<br/>ou o caso aberto<br/>assume o risco"]
 ```
 
-Abra **Produtos → Security Events → Risco de entidades**: cada usuário, host e endereço IP com risco agora, primeiro os de maior risco, com o seu nível, quanto importa, o que o encontrou e quando. Cada um abre numa página própria.
+Abra **Produtos → Security Events → Risco de entidades**: cada usuário, host e endereço IP com risco agora, primeiro os de maior risco, com o seu nível, quanto importa, o que o encontrou e quando. Cada um abre numa página própria. **Entidades de maior risco**, na visão geral, mostra o topo desta lista, e **Pesquisar uma entidade**, abaixo dela, procura qualquer valor em 30 dias de eventos, também um domínio ou um hash de arquivo.
 
 ## Antes de começar
 

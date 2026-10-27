@@ -14,7 +14,7 @@ An offline harness for the Security Events SOC pages, on a month of synthetic se
 | A case's pages       | `SECURITY_CASE_VIEW_*` `.../cases/:id/{timeline,detections,entities,playbook-runs,...}`   | `Pages/SecurityEvents/CaseView/*`, `EventNotes`, `SecurityPlaybookRunCard`, `AuditLogsTable` |
 | Story                | `SECURITY_CASE_VIEW_STORY` `.../cases/:id/story`                                          | `Pages/SecurityEvents/CaseView/Story`, `SecurityCase/Context/*`                              |
 | Connected Signals    | `SECURITY_CASE_VIEW_CONNECTED_SIGNALS` `.../cases/:id/connected-signals`                  | `Pages/SecurityEvents/CaseView/ConnectedSignals`, `SecurityConnections/*`                    |
-| Entities             | `SECURITY_EVENTS_ENTITIES` `.../security-events/entities`                                 | `Pages/SecurityEvents/Entities`, the shared `Table`                                          |
+| Entity Risk          | `SECURITY_EVENTS_ENTITY_RISK` `.../security-events/entity-risk` (and the old `entities`)  | `Pages/SecurityEvents/EntityRisk`, `EntityRisk/*`, `EntityLookupCard` under the list         |
 | Protected Entities   | `SECURITY_PROTECTED_ENTITIES` `.../security-events/protected-entities`                    | `Pages/SecurityEvents/ProtectedEntities`                                                     |
 | Detection Rules      | `SECURITY_EVENTS_DETECTION_RULES` `.../security-events/detection-rules`                   | `Pages/SecurityEvents/DetectionRules`, `DetectionRuleSummary`                                |
 | Rule Library         | `SECURITY_EVENTS_RULE_LIBRARY` `.../security-events/rule-library`                         | `Pages/SecurityEvents/RuleLibrary`                                                           |
@@ -52,10 +52,13 @@ Stubbed:
 
 - The data boundary: `ModelAPI` and `API` answer from in-memory tables, filtered by the queries the
   pages send (`Includes`, `IsNull`, equality) and sorted. `AnalyticsModelAPI` answers Threat Intel's
-  Indicators table, and only it. `POST /security-case/top-entities`,
-  `/security-case/entity-activity` and `/security-playbook-run/:id/approve|reject` answer as the
-  server would; approving the held step runs the rest of its playbook at once. The Overview's set-up
-  routes answer as `SecuritySetup` does, on the fixture's own tables: `/security-case/setup/status`
+  Indicators table, and only it. `POST /security-case/entity-activity` (Look Up an Entity, a
+  case's Entities, an entity's page) and `/security-playbook-run/:id/approve|reject` answer as the
+  server would - a value starting `never-seen` is one no event names, left out of the answer as
+  the server leaves it out; the overview's answer carries the riskiest entities as the server reads them
+  (`SecurityRiskiestEntities`: the risk rows with a score, by the score, ties in id order, with the
+  project's threshold and how many have risk); approving the held step runs the rest of its
+  playbook at once. The Overview's set-up routes answer as `SecuritySetup` does, on the fixture's own tables: `/security-case/setup/status`
   counts the connections, your logs, the rules, the open cases and the playbooks;
   `/security-case/setup/turn-on-recommended` turns your logs on and adds the recommended rules and
   Enrich New Cases, knowing a project's rule by its Sigma id or its name, and answers what it could
@@ -102,7 +105,7 @@ history is laid out from it with a seeded generator, so every run draws the same
 | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `?theme=`   | `dark` adds `html.dark` (done in `server.js`, before the bundle runs)                                                                                                                                                                                                                                                                                                                                                              |
 | `?empty=`   | `1`: a project that has set nothing up - no cases, detections, playbooks or rules                                                                                                                                                                                                                                                                                                                                                  |
-| `?quiet=`   | `1`: a project that has set Security up (a connection, its logs, rules, playbooks) and that nothing has happened to: no cases, detections or runs                                                                                                                                                                                                                                                                                  |
+| `?quiet=`   | `1`: a project that has set Security up (a connection, its logs, rules, playbooks) and that nothing has happened to: no cases, detections or runs; `risk`: the same, but its rules' alerts scored its entities, so the Overview shows Riskiest Entities alone                                                                                                                                                                      |
 | `?role=`    | `owner` (default) or `viewer`: Security Viewer only, so it reads but cannot decide a held step                                                                                                                                                                                                                                                                                                                                     |
 | `?lists=`   | `all`: the project reads every free list already, so Threat Intel shows no Free Lists card                                                                                                                                                                                                                                                                                                                                         |
 | `?ai=`      | `off`: the project's Enable AI is off, so no AI card, AI Verdict, Draft with AI or AI trigger is drawn, and AI Settings says AI is off                                                                                                                                                                                                                                                                                             |
@@ -226,10 +229,19 @@ that list is not empty.
   a phone it names the section and the page; every entry in sight, a counted one too, and a
   case's, keeps its whole name beside a tablet's 224px menu in English, German, Spanish, French,
   Italian, Portuguese, Dutch, Japanese and Persian (`?lang=`), and at 1440 in English, German and
-  French; Entities ranks what the findings name in the
-  product's table over 1, 7 or 30 days, ten a page with the foot every list has, each row opening
-  the entity in Correlate and, on a phone, a card of its figures, with the lookup under it, its box
-  and Look Up one height on one line.
+  French; the old Entities address opens Entity Risk, the one ranking of who is riskiest, with Look
+  Up an Entity under its list - its box and Look Up one height on one line, any value (a domain
+  too) over 30 days, its counts on a line under it and Open in Correlate at the result's end,
+  opening Correlate over the same 30 days, and a value no event names (`never-seen...`) said to be
+  not seen, with nothing to correlate - and nothing sideways on a phone; the Overview's Riskiest
+  Entities is the top of Entity Risk's list, in its order, by its scores and levels (at the
+  project's threshold too), each row its value with its kind under it and its level's pill
+  beside its score, the whole row opening the entity's own page with Entity Risk lit, the rest of
+  the list a click away (Open Entity Risk when the card shows them all), a month whose only news
+  is risk (`?quiet=risk`) showing Riskiest Entities alone, and risk that could not be read
+  (`?riskiest=fail`) said so with Try again, in both themes and on a phone; in Persian
+  (`?lang=fa`) each value reads as written, in an isolate that starts where its line does and
+  cuts a long value at its own end, as Entity Risk's own list cuts its values.
 - **Case priorities and statuses** (`?values=custom`): Settings → Case Statuses lists the
   project's statuses in order, what a case in each counts as, the four built-in ones tagged and the
   retired one folded under the table; Case Priorities lists Emergency above the five a detection
@@ -311,6 +323,7 @@ Reset Risk deletes the row; and an edit form saves onto the row it edits (`updat
 | `?riskcases=` | `off`: the project opens no case from risk (as a project made before entity risk): Entity Risk says so above its list          |
 | `?threshold=` | the project's risk threshold (100 when left out), which every level, meter and the guide read                                  |
 | `?riskcase=`  | `1`: a.ng's risk reached the threshold 20 minutes ago and opened CASE-143, a case of Entity Risk's own, with its one detection |
+| `?riskiest=`  | `fail`: the overview could not read the riskiest entities; the Overview's Riskiest Entities says so, with Try again           |
 
 `EntityRisk.spec.ts` covers: the list (the riskiest first, each level against the threshold,
 criticality beside the kind, what found it and when, ATT&CK left to Customize Columns, one read of
@@ -395,7 +408,11 @@ and the rest) and `cases-bulk-assign-result`,
 `playbook-runs-waiting-desktop`, `playbook-runs-desktop`, `playbook-runs-empty`,
 `attack-coverage-desktop`, `attack-coverage-tactic-open`, `attack-coverage-matrix`,
 `attack-coverage-phone`, `attack-coverage-dark`, `rule-library-desktop`,
-`rule-library-category-*`, `entities-desktop`, `entities-phone`, `detection-rules-desktop`,
+`rule-library-category-*`, `entity-risk-lookup-desktop`, `entity-risk-lookup-not-seen`,
+`entity-risk-lookup-phone`, `overview-riskiest-entities-risk-only`,
+`overview-riskiest-entities`, `overview-riskiest-entities-failed`,
+`overview-riskiest-entities-dark`, `overview-riskiest-entities-phone`,
+`overview-riskiest-entities-fa-1280`, `overview-riskiest-entities-fa-390`, `detection-rules-desktop`,
 `detection-rule-correlation-form-desktop`, `detection-rules-dark`, `detection-rules-phone`,
 `threat-intel-desktop`, `threat-intel-feed-source-desktop`, `threat-intel-dark`,
 `threat-intel-phone`, and OneUptime AI's: `case-ai-desktop`, `case-ai-evidence-desktop`,

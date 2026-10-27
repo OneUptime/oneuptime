@@ -1,9 +1,13 @@
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import {
   FoldedSectionItem,
   foldedSectionItem,
 } from "Common/UI/Components/FoldedSection/FoldedSectionItem";
 import { SubscriberEmailFooterCopy } from "./SubscriberEmailFooterCopy";
+import {
+  getSubscriberRestrictionsFoldedItem,
+  SubscriberRestrictionsState,
+} from "./SubscriberRestrictionsCopy";
 
 /*
  * SUBSCRIBERS -> SUBSCRIBER SETTINGS: WHAT VISITORS PICK WHEN THEY
@@ -108,7 +112,7 @@ export const SubscriberChoicesCopy: {
     "Off: subscribers hear about every kind of event.",
   ),
   moreDescription: translationKey(
-    "Timezones, the email footer, and your own mail server or Twilio account.",
+    "Who can subscribe, timezones, the email footer, and your own mail server or Twilio account.",
   ),
   timezonesTitle: translationKey("Subscriber Timezones"),
   timezonesDescription: translationKey(
@@ -165,6 +169,7 @@ export const getSubscriberChoiceTitle: (
  * starts with.
  */
 export interface SubscriberSettingsMoreValues {
+  restrictions?: SubscriberRestrictionsState | undefined;
   timezoneCount?: number | undefined;
   isCustomFooter?: boolean | undefined;
   smtpConfigName?: string | null | undefined;
@@ -172,19 +177,23 @@ export interface SubscriberSettingsMoreValues {
 }
 
 /*
- * What the folded More settings header lists: its four cards, each a chip
- * once it holds something a new status page does not - how many timezones,
- * your own footer, which mail server, which Twilio account - so folding
- * never hides a setting in force.
+ * What the folded More settings header lists: its five cards, each a chip
+ * once it holds something a new status page does not - who may subscribe,
+ * how many timezones, your own footer, which mail server, which Twilio
+ * account - so folding never hides a setting in force. The page's
+ * translator words who may subscribe ("Private users, 2 email domains").
  */
 export const getSubscriberSettingsMoreItems: (
   values: SubscriberSettingsMoreValues,
+  translator: Translator,
 ) => Array<FoldedSectionItem> = (
   values: SubscriberSettingsMoreValues,
+  translator: Translator,
 ): Array<FoldedSectionItem> => {
   const timezoneCount: number = values.timezoneCount || 0;
 
   return [
+    getSubscriberRestrictionsFoldedItem(values.restrictions, translator),
     foldedSectionItem(SubscriberChoicesCopy.timezonesTitle, {
       isSet: timezoneCount > 0,
       value: String(timezoneCount),

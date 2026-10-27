@@ -84,6 +84,21 @@ export const ALREADY_OWNED_BY_YOU: string = translationKey(
   "You are an owner already.",
 );
 
+/*
+ * Why someone who may not add or remove owners finds Assign to Me, Add
+ * Owner and Remove Owner locked: in the words of what they pressed - the
+ * record headers' own "You do not have permission to add owners." - and
+ * not the owner table's ("create this Incident User Owner"). The
+ * permissions that would allow it follow (PermissionGate's `sentence`).
+ */
+export const ADD_OWNERS_LOCKED_SENTENCE: string = translationKey(
+  "You do not have permission to add owners.",
+);
+
+export const REMOVE_OWNERS_LOCKED_SENTENCE: string = translationKey(
+  "You do not have permission to remove owners.",
+);
+
 // The Add Owner dialog of one row, naming it.
 export const ADD_OWNER_TO_ROW_DESCRIPTION: string = translationKey(
   "Pick the people and teams to add as owners of {{name}}. Its existing owners are kept.",
@@ -718,11 +733,13 @@ function useBulkOwnerActions<T extends BaseModel>(
   const addGate: PermissionGateResult = PermissionGate.check(
     new config.ownerUserModelType(),
     ModelAction.Create,
+    { sentence: ADD_OWNERS_LOCKED_SENTENCE },
   );
 
   const removeGate: PermissionGateResult = PermissionGate.check(
     new config.ownerUserModelType(),
     ModelAction.Delete,
+    { sentence: REMOVE_OWNERS_LOCKED_SENTENCE },
   );
 
   type GateActionFunction = (

@@ -752,6 +752,74 @@ describe("every other fold is a card", () => {
     );
   });
 
+  /*
+   * A page's More settings that holds one card has no description: open,
+   * its header is the title alone, and the card under it says what it is.
+   * The title then sits level with the icon tile beside it; with anything
+   * under it - the names folded, a description open - it starts at the
+   * tile's top edge, its lines running down from there.
+   */
+  test("its title sits level with the icon tile while nothing is under it", async () => {
+    const user: UserEvent = renderSection({
+      title: MORE_SETTINGS_SECTION_TITLE,
+      icon: MORE_SECTION_ICON,
+      isElevated: true,
+      items: NOTHING_SET,
+    });
+
+    // Folded: the names run under the title, from the tile's top edge.
+    expect(header(MORE_SETTINGS_SECTION_TITLE)).toHaveClass("items-start");
+    expect(header(MORE_SETTINGS_SECTION_TITLE)).not.toHaveClass("items-center");
+
+    await user.click(header(MORE_SETTINGS_SECTION_TITLE));
+
+    // Open, with no description: the title alone, level with the tile.
+    expect(header(MORE_SETTINGS_SECTION_TITLE)).toHaveTextContent(
+      /^More settings$/,
+    );
+    expect(header(MORE_SETTINGS_SECTION_TITLE)).toHaveClass("items-center");
+    expect(header(MORE_SETTINGS_SECTION_TITLE)).not.toHaveClass("items-start");
+  });
+
+  test("open with a description, the title starts at the tile's top edge, over it", async () => {
+    const user: UserEvent = renderSection({
+      title: MORE_SETTINGS_SECTION_TITLE,
+      icon: MORE_SECTION_ICON,
+      isElevated: true,
+      items: NOTHING_SET,
+      description: "What this fold holds.",
+    });
+
+    await user.click(header(MORE_SETTINGS_SECTION_TITLE));
+
+    expect(screen.getByTestId("folded-section-description")).toHaveTextContent(
+      "What this fold holds.",
+    );
+    expect(header(MORE_SETTINGS_SECTION_TITLE)).toHaveClass("items-start");
+    expect(header(MORE_SETTINGS_SECTION_TITLE)).not.toHaveClass("items-center");
+  });
+
+  test("folded with only a summary or a badge, the title still starts at the top", () => {
+    renderSection({
+      title: MORE_SETTINGS_SECTION_TITLE,
+      icon: MORE_SECTION_ICON,
+      isElevated: true,
+      summary: "Every incident is investigated.",
+    });
+
+    expect(header(MORE_SETTINGS_SECTION_TITLE)).toHaveClass("items-start");
+
+    cleanup();
+    renderSection({
+      title: MORE_SETTINGS_SECTION_TITLE,
+      icon: MORE_SECTION_ICON,
+      isElevated: true,
+      badge: "Configured",
+    });
+
+    expect(header(MORE_SETTINGS_SECTION_TITLE)).toHaveClass("items-start");
+  });
+
   test("on a page, among cards, More settings is a card itself", () => {
     renderSection({
       title: MORE_SETTINGS_SECTION_TITLE,

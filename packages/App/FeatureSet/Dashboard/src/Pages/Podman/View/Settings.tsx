@@ -4,7 +4,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import ArchiveResourceCard from "../../../Components/TelemetryResource/ArchiveResourceCard";
 import ResourceDetailsCard from "../../../Components/TelemetryResource/ResourceDetailsCard";
-import TelemetryResourceRetentionSettings from "../../../Components/TelemetryResource/TelemetryResourceRetentionSettings";
+import TelemetryResourceMoreSettings from "../../../Components/TelemetryResource/TelemetryResourceMoreSettings";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
@@ -42,7 +42,7 @@ const PodmanHostSettings: FunctionComponent<
           },
         ]}
       />
-      <TelemetryResourceRetentionSettings<PodmanHost>
+      <TelemetryResourceMoreSettings<PodmanHost>
         modelType={PodmanHost}
         modelId={modelId}
         resourceName="Podman host"

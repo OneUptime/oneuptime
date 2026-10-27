@@ -25,14 +25,14 @@ En una instalación autoalojada, el servidor de correo de OneUptime es el que se
 
 ## Añadir un servidor SMTP
 
-Añade el servidor de correo de un proyecto en **Ajustes del proyecto > Notificaciones > Ajustes de notificaciones**, en la tarjeta **Configuraciones de SMTP personalizado**. En una instalación autoalojada, el servidor desde el que envía el propio OneUptime se define en **Admin Dashboard > Ajustes > Notificaciones > Correos**, en la tarjeta **Ajustes personalizados de correo y SMTP**. Ambos formularios piden lo mismo, en dos pasos.
+Añade el servidor de correo de un proyecto en **Ajustes del proyecto > Notificaciones > Ajustes de notificaciones**, en la tarjeta **Configuraciones de SMTP personalizado**, en **Más ajustes**. En una instalación autoalojada, el servidor desde el que envía el propio OneUptime se define en **Admin Dashboard > Ajustes > Notificaciones > Correos**, en la tarjeta **Ajustes personalizados de correo y SMTP**. Ambos formularios piden lo mismo, en dos pasos.
 
 :::steps
 ### Abrir el formulario
 
 :::tabs
 @tab Proyecto
-En **Ajustes del proyecto > Notificaciones > Ajustes de notificaciones**, haz clic en **Crear Configuración SMTP** en la tarjeta **Configuraciones de SMTP personalizado**.
+En **Ajustes del proyecto > Notificaciones > Ajustes de notificaciones**, abre **Más ajustes** y haz clic en **Crear Configuración SMTP** en la tarjeta **Configuraciones de SMTP personalizado**.
 @tab Instancia autoalojada
 En el Admin Dashboard, abre **Ajustes** y luego **Notificaciones > Correos** en el menú lateral (**Notificaciones** empieza plegado). En la tarjeta **Ajustes del servidor de correo**, haz clic en **Editar servidor** y establece **Tipo de servidor de correo electrónico** en `Custom SMTP`. Después haz clic en **Editar config SMTP** en la tarjeta **Ajustes personalizados de correo y SMTP**, que aparece debajo.
 :::

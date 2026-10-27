@@ -38,7 +38,7 @@ flowchart TB
 :::steps
 ### Añade tu cuenta de Twilio
 
-Ve a **Ajustes del proyecto** > **Notificaciones** > **Ajustes de notificaciones**. En la tarjeta **Configuración de Twilio**, haz clic en **Crear configuración de Twilio** y rellena el formulario:
+Ve a **Ajustes del proyecto** > **Notificaciones** > **Ajustes de notificaciones** y abre **Más ajustes**. En la tarjeta **Configuración de Twilio**, haz clic en **Crear configuración de Twilio** y rellena el formulario:
 
 - **Nombre** y **Descripción**: para qué es la cuenta, por ejemplo «Línea de soporte».
 - **SID de cuenta de Twilio**: de la consola de Twilio. Empieza por `AC`.

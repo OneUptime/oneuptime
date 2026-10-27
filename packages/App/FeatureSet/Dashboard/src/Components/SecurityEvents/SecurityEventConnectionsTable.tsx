@@ -43,12 +43,18 @@ import {
 } from "./SecurityEventConnectionDiagnosticsUtil";
 import SecurityEventConnectionFormModal from "./SecurityEventConnectionFormModal";
 import SecurityEventConnectionsEmptyState from "./SecurityEventConnectionsEmptyState";
+import RelativeTimeCell from "./RelativeTimeCell";
+import SecurityListNameCell, {
+  SECURITY_LIST_NAME_COLUMN_MAX_WIDTH_CLASS_NAME,
+} from "./SecurityListNameCell";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import SecurityEventConnectorProvider from "Common/Types/SecurityEvent/Connectors/SecurityEventConnectorProvider";
 
 /*
- * The Provider column's logo slot: as wide as a 16px wordmark (Splunk's is
- * 24px), the mark centred in it, level with the name's first line - so the
- * names after the marks line up down the column.
+ * The logo slot at the start of a connection's name: as wide as a 16px
+ * wordmark (Splunk's is 24px), the mark centred in it, level with the
+ * name's first line - so the names after the marks line up down the column.
  */
 export const PROVIDER_COLUMN_LOGO_SLOT_CLASS_NAME: string =
   "mt-0.5 inline-flex w-6 flex-shrink-0 justify-center";
@@ -89,6 +95,29 @@ export function securityEventConnectionsHelpMarkdown(): string {
 }
 
 /*
+ * What a connection is, under its name: its provider ("Okta System Log"),
+ * and for a provider with an alerting distinction what it imports ("Google
+ * SecOps · Alerts only"), in the reader's words where they have them.
+ */
+export function getConnectionProviderDetailParts(
+  connection: Pick<SecurityEventConnection, "provider" | "alertingOnly">,
+  translator: Translator,
+): Array<string> {
+  const provider: string = getSecurityEventConnectorTitle(connection.provider);
+  const scope: string | undefined = connectorScopeSummary(
+    getSecurityEventConnectorDefinition(connection.provider),
+    connection.alertingOnly,
+  );
+  const providerWords: string = translator.translateText(provider) || provider;
+
+  if (!scope) {
+    return [providerWords];
+  }
+
+  return [providerWords, translator.translateText(scope) || scope];
+}
+
+/*
  * The table for the managed Security Event Connections framework: every
  * provider, Google SecOps included, in one list.
  *
@@ -99,6 +128,7 @@ export function securityEventConnectionsHelpMarkdown(): string {
  * settings — none of which ModelTable's column-driven form can express.
  */
 const SecurityEventConnectionsTable: FunctionComponent = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [formModal, setFormModal] = useState<FormModalState | null>(null);
   const [testItem, setTestItem] = useState<SecurityEventConnection | null>(
     null,
@@ -337,69 +367,73 @@ const SecurityEventConnectionsTable: FunctionComponent = (): ReactElement => {
           },
         ]}
         columns={[
+          /*
+           * The connection's name, with its provider under it - and, for a
+           * provider with an alerting distinction, what it imports ("Alerts
+           * only"), so a connection that skips non-alerting records is
+           * visible without opening it. One column, where the provider had
+           * one of its own and the table was twice its card's width at
+           * 1280 (#5246).
+           */
           {
             field: {
               name: true,
             },
             title: "Name",
             type: FieldType.Text,
-          },
-          {
-            field: {
-              provider: true,
-            },
-            title: "Provider",
-            type: FieldType.Text,
+            wrapContent: true,
+            wrapMaxWidthClassName:
+              SECURITY_LIST_NAME_COLUMN_MAX_WIDTH_CLASS_NAME,
             getElement: (item: SecurityEventConnection): ReactElement => {
-              /*
-               * A provider with an alerting distinction shows what the
-               * connection imports under its name ("Alerts only"), so a
-               * connection that skips non-alerting records is visible
-               * without opening it.
-               */
               const definition: SecurityEventConnectorDefinition | undefined =
                 getSecurityEventConnectorDefinition(item.provider);
-              const scope: string | undefined = connectorScopeSummary(
-                definition,
-                item.alertingOnly,
-              );
+
               /*
-               * The mark sits in a slot as wide as a wordmark's (Splunk's),
-               * centred, so every product's name in the column starts on
+               * The product's official mark leads the row, in a slot as
+               * wide as a wordmark's (Splunk's), centred and level with the
+               * name's first line - so every name in the column starts on
                * one line however wide its mark is.
                */
               return (
-                <div className="flex items-start gap-2">
-                  {definition ? (
-                    <span
-                      className={PROVIDER_COLUMN_LOGO_SLOT_CLASS_NAME}
-                      data-testid="security-event-connection-provider-logo-slot"
-                    >
-                      <ProviderLogoImage
-                        logo={definition.logo}
-                        isBare={true}
-                        isDecorative={true}
-                      />
-                    </span>
-                  ) : (
-                    <></>
+                <SecurityListNameCell
+                  name={item.name || ""}
+                  detailParts={getConnectionProviderDetailParts(
+                    item,
+                    translator,
                   )}
-                  <div className="min-w-0">
-                    <span>{getSecurityEventConnectorTitle(item.provider)}</span>
-                    {scope && (
-                      <div className="text-xs text-gray-500">{scope}</div>
-                    )}
-                  </div>
-                </div>
+                  detailTestId="security-event-connection-provider"
+                  mark={
+                    definition ? (
+                      <span
+                        className={PROVIDER_COLUMN_LOGO_SLOT_CLASS_NAME}
+                        data-testid="security-event-connection-provider-logo-slot"
+                      >
+                        <ProviderLogoImage
+                          logo={definition.logo}
+                          isBare={true}
+                          isDecorative={true}
+                        />
+                      </span>
+                    ) : undefined
+                  }
+                />
               );
             },
           },
+          /*
+           * Whether the connection is on: Health says so too (Paused), so
+           * it waits in Customize Columns with the poll interval, a setting,
+           * and the last successful poll, which View Error and Health
+           * cover while polls fail. With all eight shown, the table was
+           * twice its card's width at 1280 (#5246).
+           */
           {
             field: {
               isEnabled: true,
             },
             title: "Status",
             type: FieldType.Boolean,
+            isHiddenByDefault: true,
             getElement: (item: SecurityEventConnection): ReactElement => {
               if (item.isEnabled) {
                 return <Pill color={Green} text="Enabled" />;
@@ -431,7 +465,15 @@ const SecurityEventConnectionsTable: FunctionComponent = (): ReactElement => {
             title: "Interval (Minutes)",
             type: FieldType.Number,
             noValueMessage: "-",
+            isHiddenByDefault: true,
           },
+          /*
+           * When it last polled, last polled well and last brought an event
+           * in, as how long ago ("2 minutes ago", the date and time under
+           * the pointer): three columns of full dates were some 640px of a
+           * card 874px wide. Still dates to the table - kept whole when it
+           * gives way, sorted by the date.
+           */
           {
             field: {
               lastPolledAt: true,
@@ -439,6 +481,9 @@ const SecurityEventConnectionsTable: FunctionComponent = (): ReactElement => {
             title: "Last Polled",
             type: FieldType.DateTime,
             noValueMessage: "Never",
+            getElement: (item: SecurityEventConnection): ReactElement => {
+              return <RelativeTimeCell date={item.lastPolledAt} />;
+            },
           },
           {
             field: {
@@ -447,6 +492,10 @@ const SecurityEventConnectionsTable: FunctionComponent = (): ReactElement => {
             title: "Last Successful Poll",
             type: FieldType.DateTime,
             noValueMessage: "Never",
+            isHiddenByDefault: true,
+            getElement: (item: SecurityEventConnection): ReactElement => {
+              return <RelativeTimeCell date={item.lastSuccessfulPollAt} />;
+            },
           },
           {
             field: {
@@ -455,6 +504,9 @@ const SecurityEventConnectionsTable: FunctionComponent = (): ReactElement => {
             title: "Last Event Imported",
             type: FieldType.DateTime,
             noValueMessage: "Never",
+            getElement: (item: SecurityEventConnection): ReactElement => {
+              return <RelativeTimeCell date={item.lastEventIngestedAt} />;
+            },
           },
         ]}
       />

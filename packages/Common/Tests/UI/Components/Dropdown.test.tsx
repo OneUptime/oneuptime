@@ -335,8 +335,11 @@ describe("Dropdown picked value", () => {
     expect(label).toHaveClass("truncate");
     expect(label.parentElement).toHaveClass("min-w-0", "max-w-full");
     expect(label.parentElement?.parentElement).toHaveClass("min-w-0");
-    // Cut at its end whichever way the page reads (a Persian page, too).
-    expect(label).toHaveAttribute("dir", "auto");
+    /*
+     * Cut at its end whichever way the page reads (a Persian page, too): a
+     * name reads the way most of its letters do, this one left to right.
+     */
+    expect(label).toHaveAttribute("dir", "ltr");
   });
 
   test("a label of the product's own words is laid out the page's way, a name its own way", () => {
@@ -365,7 +368,7 @@ describe("Dropdown picked value", () => {
 
     unmount();
 
-    // Left out, a picked label keeps reading its own direction.
+    // Left out, a picked name reads the way most of its letters do.
     render(
       <Dropdown
         onChange={() => {}}
@@ -376,7 +379,7 @@ describe("Dropdown picked value", () => {
 
     expect(screen.getByTestId("dropdown-value-label")).toHaveAttribute(
       "dir",
-      "auto",
+      "ltr",
     );
   });
 

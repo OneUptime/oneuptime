@@ -1,6 +1,6 @@
 import PageComponentProps from "../../PageComponentProps";
 import ArchiveResourceCard from "../../../Components/TelemetryResource/ArchiveResourceCard";
-import TelemetryResourceRetentionSettings from "../../../Components/TelemetryResource/TelemetryResourceRetentionSettings";
+import TelemetryResourceMoreSettings from "../../../Components/TelemetryResource/TelemetryResourceMoreSettings";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
@@ -130,7 +130,7 @@ const DatabaseServerSettings: FunctionComponent<
           ],
         }}
       />
-      <TelemetryResourceRetentionSettings<DatabaseServer>
+      <TelemetryResourceMoreSettings<DatabaseServer>
         modelType={DatabaseServer}
         modelId={modelId}
         resourceName="database"

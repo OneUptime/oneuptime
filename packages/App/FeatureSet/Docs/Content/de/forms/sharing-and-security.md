@@ -16,7 +16,7 @@ Ein Formular steht allen offen, die seinen Link haben, und jede Einreichung kann
 | **Status** | **Nimmt Einreichungen an** — ob der Link des Formulars funktioniert. |
 | **Link zum Teilen** | Den Link, mit **Link kopieren**, **Formular öffnen** und **Link zurücksetzen**. |
 | **Nach dem Absenden** | Die **Dankesnachricht**, die Leute nach dem Einreichen sehen, unter der Nummer dessen, was das Formular erstellt hat. |
-| **Zugriff** | Die **IP-Zulassungsliste**. |
+| **Weitere Einstellungen** | Die **IP-Zulassungsliste**, eingeklappt, bis Sie sie öffnen. |
 
 ## Den Link teilen
 
@@ -80,7 +80,7 @@ So beschränken Sie ein Formular auf Ihre eigenen Netze:
 
 :::steps
 1. Öffnen Sie die Seite **Teilen** des Formulars.
-2. Klicken Sie auf der Karte **Zugriff** auf **IP-Zulassungsliste bearbeiten**.
+2. Öffnen Sie **Weitere Einstellungen** und klicken Sie auf **IP-Zulassungsliste bearbeiten**.
 3. Geben Sie ein Netz pro Zeile ein und speichern Sie. Die Karte listet sie dann unter **IP-Zulassungsliste**.
 :::
 

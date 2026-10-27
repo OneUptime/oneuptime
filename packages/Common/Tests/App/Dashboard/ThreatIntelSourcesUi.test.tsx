@@ -393,30 +393,41 @@ describe("a new feed's source", () => {
 });
 
 describe("the feeds table", () => {
-  test("says where each feed's indicators come from", async () => {
+  /*
+   * Where a feed's indicators come from sits under its name on every row
+   * (SecurityListNameCell): with a column of its own the table ran past
+   * its card at 1280 (#5246).
+   */
+  test("says where each feed's indicators come from, under its name", async () => {
     await renderPage();
 
     const column:
       | {
           title: string;
+          wrapContent?: boolean;
           getElement?: (item: Record<string, unknown>) => React.ReactElement;
         }
       | undefined = capturedFeedTableProps?.columns?.find(
       (each: { title: string }) => {
-        return each.title === "Source";
+        return each.title === "Name";
       },
     );
 
     expect(column).toBeDefined();
+    // A long name takes a second line rather than an ellipsis.
+    expect(column?.wrapContent).toBe(true);
 
     for (const [item, text] of [
-      [{ feedType: "list" }, "List of indicators"],
-      [{ feedType: "google-secops" }, "Google SecOps"],
-      [{ feedType: "taxii" }, "TAXII collection"],
-      [{}, "TAXII collection"],
+      [{ name: "Partner list", feedType: "list" }, "List of indicators"],
+      [{ name: "Partner list", feedType: "google-secops" }, "Google SecOps"],
+      [{ name: "Partner list", feedType: "taxii" }, "TAXII collection"],
+      [{ name: "Partner list" }, "TAXII collection"],
     ] as Array<[Record<string, unknown>, string]>) {
       const { unmount } = render(column!.getElement!(item));
 
+      expect(screen.getByTestId("security-list-name")).toHaveTextContent(
+        "Partner list",
+      );
       expect(
         screen.getByTestId("threat-intel-feed-source-cell"),
       ).toHaveTextContent(text);
@@ -424,12 +435,7 @@ describe("the feeds table", () => {
     }
   });
 
-  /*
-   * Where a feed's indicators come from sits by its name on every row;
-   * the rest of the columns are the status tables' (see
-   * SecurityEventsDetectionStatusTables).
-   */
-  test("Source sits next to the name, on every row", async () => {
+  test("the source has no column of its own, and the table still reads it for every row", async () => {
     await renderPage();
 
     type Column = { title: string; isHiddenByDefault?: boolean };
@@ -437,11 +443,22 @@ describe("the feeds table", () => {
     const columns: Array<Column> = capturedFeedTableProps?.columns || [];
 
     expect(
-      columns.slice(0, 3).map((column: Column): string => {
+      columns.slice(0, 2).map((column: Column): string => {
         return column.title;
       }),
-    ).toEqual(["Name", "Source", "Status"]);
-    expect(columns[1]?.isHiddenByDefault).toBeUndefined();
+    ).toEqual(["Name", "Status"]);
+    expect(
+      columns.some((column: Column): boolean => {
+        return column.title === "Source";
+      }),
+    ).toBe(false);
+    expect(
+      (
+        capturedFeedTableProps as unknown as {
+          selectMoreFields?: Record<string, unknown>;
+        }
+      ).selectMoreFields,
+    ).toEqual({ feedType: true });
   });
 
   // A project with no feed has Free Lists right above the empty table.

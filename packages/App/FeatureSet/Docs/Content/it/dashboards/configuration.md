@@ -73,8 +73,8 @@ Per copiare una dashboard, aprila, vai alla sua pagina **Impostazioni** e fai cl
 
 Una dashboard viaggia come JSON:
 
-- **Esporta: Dashboard**, nella pagina **Impostazioni** della dashboard, la scarica come file JSON. Per esportarne più di una, selezionale nell'elenco **Dashboard** e scegli **Export JSON**.
-- **Import JSON**, sopra l'elenco **Dashboard**, crea dashboard da un file di questo tipo, in questo progetto o in un altro.
+- **Esporta: Dashboard**, nella pagina **Impostazioni** della dashboard, la scarica come file JSON. Per esportarne più di una, selezionale nell'elenco **Dashboard** e scegli **Esporta JSON**.
+- **Importa JSON**, sopra l'elenco **Dashboard**, crea dashboard da un file di questo tipo, in questo progetto o in un altro.
 
 Un'esportazione contiene le impostazioni proprie della dashboard, tra cui i widget e le variabili. I proprietari e le etichette restano fuori, e per i widget che puntano a risorse di questo progetto, come uno SLO o una fonte di dati, può essere necessario sceglierle di nuovo in un altro progetto.
 
