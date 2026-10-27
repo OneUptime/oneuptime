@@ -94,6 +94,8 @@ describe("buildTelemetryViewerUrlParams", () => {
       "page",
       "pageSize",
       "view",
+      // The traces explorer's Span Type, and the param links used before it.
+      "spanType",
       "rootOnly",
       "status",
     ]) {

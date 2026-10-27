@@ -237,11 +237,17 @@ export default class BasePermission {
       blockedLabelIds,
     );
 
-    // A labelled model's own labels.
+    /*
+     * A labelled model's own labels: each operation's grants, and each
+     * column it names or selects that its caller may read only on some
+     * labels, a condition of its own (AccessControlPermission
+     * .getAccessControlIdListsForQuery) - a column read on fewer records
+     * than the table narrows the read, never widens it.
+     */
     if (new modelType().getAccessControlColumn()) {
-      const labelListsByOperation: Array<Array<ObjectID>> = operations.map(
-        (operation: RecordOperation): Array<ObjectID> => {
-          return AccessControlPermission.getAccessControlIdsForQuery(
+      const labelListsByOperation: Array<Array<ObjectID>> = operations.flatMap(
+        (operation: RecordOperation): Array<Array<ObjectID>> => {
+          return AccessControlPermission.getAccessControlIdListsForQuery(
             modelType,
             query,
             operation === type ? select : null,
@@ -265,34 +271,52 @@ export default class BasePermission {
     /*
      * Apply the `Owned` permission scope filter (see
      * Internal/Docs/PermissionsSimplification.md). When the user's
-     * applicable permission rows are exclusively Owned-scoped, this
-     * restricts the query to resources where the user is in *OwnerUser
-     * or any of their teams is in *OwnerTeam. The records are the same for
-     * every operation, so a write narrowed to them for itself or for its
-     * read is narrowed once.
+     * applicable permission rows for an operation are exclusively
+     * Owned-scoped, this restricts the query to resources where the user is
+     * in *OwnerUser or the team of one of those rows is in *OwnerTeam - each
+     * team's grant reaching what that team owns. Different teams may grant a
+     * write and its read, so each operation narrows by its own teams: a
+     * record one team may change and no team of the caller's may read is
+     * not changed. Operations granted by the same teams narrow once.
      */
-    const isLimitedToOwnedRecords: boolean =
-      operations.some((operation: RecordOperation): boolean => {
-        return OwnedScopePermission.isLimitedToOwnedRecords(
-          modelType,
-          props,
-          operation,
-        );
-      }) ||
-      /*
-       * A read filtered by a column the caller reads only on the records
-       * they or their teams own (a Runner's key, of a kind every reader of
-       * it reads): it reaches only those - a match says what the column
-       * holds. OwnedScopePermission.getColumnsKeptToOwners.
-       */
-      (type === DatabaseRequestType.Read &&
-        OwnedScopePermission.namesColumnsKeptToOwners(modelType, query, props));
+    const ownedTeamLists: Array<Array<ObjectID>> =
+      OwnedScopePermission.getTeamListsToNarrowBy([
+        ...operations
+          .filter((operation: RecordOperation): boolean => {
+            return OwnedScopePermission.isLimitedToOwnedRecords(
+              modelType,
+              props,
+              operation,
+            );
+          })
+          .map((operation: RecordOperation): Array<ObjectID> => {
+            return OwnedScopePermission.getOwningTeamIds(
+              modelType,
+              props,
+              operation,
+            );
+          }),
+        /*
+         * A read filtered by a column the caller reads only on the records
+         * they or their teams own (a Runner's key, of a kind every reader of
+         * it reads): it reaches only those - a match says what the column
+         * holds. OwnedScopePermission.getColumnsKeptToOwners.
+         */
+        ...(type === DatabaseRequestType.Read
+          ? OwnedScopePermission.getTeamListsOfColumnsKeptToOwnersNamed(
+              modelType,
+              query,
+              props,
+            )
+          : []),
+      ]);
 
-    if (isLimitedToOwnedRecords) {
+    for (const teamIds of ownedTeamLists) {
       query = await OwnedScopePermission.addOwnedRecordsToQuery(
         modelType,
         query,
         props,
+        teamIds,
       );
     }
 
@@ -302,7 +326,7 @@ export default class BasePermission {
       props,
       type,
       blockedLabelIds,
-      isLimitedToOwnedRecords,
+      ownedTeamLists,
     );
   }
 
@@ -383,8 +407,11 @@ export default class BasePermission {
     type: DatabaseRequestType,
     // The labels the rows' own blocks take away already.
     blockedLabelIds: Array<ObjectID>,
-    // Whether the rows are narrowed to the caller's owned records already.
-    isLimitedToOwnedRecords: boolean,
+    /*
+     * The teams whose owned records the rows are narrowed to already, one
+     * list per condition (none: not narrowed to owned records).
+     */
+    ownedTeamLists: Array<Array<ObjectID>>,
   ): Promise<Query<TBaseModel>> {
     const model: BaseModel = new modelType();
 
@@ -418,7 +445,7 @@ export default class BasePermission {
       query: query,
       props: props,
       type: type,
-      isLimitedToOwnedRecords: isLimitedToOwnedRecords,
+      ownedTeamLists: ownedTeamLists,
     });
 
     /*
@@ -435,14 +462,33 @@ export default class BasePermission {
           }),
     );
 
+    /*
+     * An update keeps to the parents the caller may update: a block with
+     * labels on updating the parent takes the parents carrying them away
+     * too, as the parent's update grants limited to labels narrow it below
+     * (a block on editing the Production status pages keeps their domains
+     * as they are).
+     */
+    const parentBlockedLabelIds: Array<ObjectID> =
+      ArrayUtil.removeDuplicatesFromObjectIDArray([
+        ...ReadPermission.getBlockedLabelIds(
+          parentModelType,
+          props,
+          DatabaseRequestType.Read,
+        ),
+        ...(type === DatabaseRequestType.Update
+          ? ReadPermission.getBlockedLabelIds(
+              parentModelType,
+              props,
+              DatabaseRequestType.Update,
+            )
+          : []),
+      ]);
+
     query = ReadPermission.addParentBlockedLabelsToQuery(
       modelType,
       query,
-      ReadPermission.getBlockedLabelIds(
-        parentModelType,
-        props,
-        DatabaseRequestType.Read,
-      ).filter((labelId: ObjectID): boolean => {
+      parentBlockedLabelIds.filter((labelId: ObjectID): boolean => {
         return !blockedOnRows.has(labelId.toString());
       }),
     );
@@ -558,13 +604,17 @@ export default class BasePermission {
    * to the records they or their teams own (OwnedScopePermission
    * .isLimitedToOwnedRecords), the rows keep to the parents they own: an
    * incident's notes to the notes of their incidents, whatever their
-   * permission on notes reaches. A caller who holds no grant on the parent
-   * at all (a model whose parent read is optional) is not narrowed by it.
+   * permission on notes reaches. Each grant reaches the parents its own
+   * team owns (OwnedScopePermission.getOwningTeamIds): the parents the read
+   * reaches and, on an update, the ones the update reaches. A caller who
+   * holds no grant on the parent at all (a model whose parent read is
+   * optional) is not narrowed by it.
    *
    * Rows the caller's own grants already keep to the same owned parents -
    * their model takes its owners from exactly this parent (@OwnedThrough on
    * the same key, or an owner table's resource) and they are narrowed to
-   * owned records - are not looked up twice.
+   * the parents of teams that are all among the parent grant's teams - are
+   * not looked up twice.
    */
   private static async addParentOwnedScopeToQuery<
     TBaseModel extends BaseModel,
@@ -576,44 +626,63 @@ export default class BasePermission {
     query: Query<TBaseModel>;
     props: DatabaseCommonInteractionProps;
     type: DatabaseRequestType;
-    isLimitedToOwnedRecords: boolean;
+    ownedTeamLists: Array<Array<ObjectID>>;
   }): Promise<Query<TBaseModel>> {
-    const isParentLimitedToOwnedRecords: boolean =
-      OwnedScopePermission.isLimitedToOwnedRecords(
-        data.parentModelType,
-        data.props,
-        DatabaseRequestType.Read,
-      ) ||
-      (data.type === DatabaseRequestType.Update &&
-        OwnedScopePermission.isLimitedToOwnedRecords(
-          data.parentModelType,
-          data.props,
-          DatabaseRequestType.Update,
-        ));
+    const parentOperations: Array<DatabaseRequestType> =
+      data.type === DatabaseRequestType.Update
+        ? [DatabaseRequestType.Read, DatabaseRequestType.Update]
+        : [DatabaseRequestType.Read];
 
-    if (!isParentLimitedToOwnedRecords) {
-      return data.query;
+    const parentTeamLists: Array<Array<ObjectID>> =
+      OwnedScopePermission.getTeamListsToNarrowBy(
+        parentOperations
+          .filter((operation: DatabaseRequestType): boolean => {
+            return OwnedScopePermission.isLimitedToOwnedRecords(
+              data.parentModelType,
+              data.props,
+              operation,
+            );
+          })
+          .map((operation: DatabaseRequestType): Array<ObjectID> => {
+            return OwnedScopePermission.getOwningTeamIds(
+              data.parentModelType,
+              data.props,
+              operation,
+            );
+          }),
+      );
+
+    const isOwnedThroughParent: boolean = BasePermission.isOwnedThroughParent(
+      data.modelType,
+      data.parentModelType,
+      data.relationColumn,
+    );
+
+    let query: Query<TBaseModel> = data.query;
+
+    for (const parentTeamIds of parentTeamLists) {
+      const isNarrowedAlready: boolean =
+        isOwnedThroughParent &&
+        data.ownedTeamLists.some((teamIds: Array<ObjectID>): boolean => {
+          return OwnedScopePermission.isTeamListWithin(teamIds, parentTeamIds);
+        });
+
+      if (isNarrowedAlready) {
+        continue;
+      }
+
+      query = await OwnedScopePermission.addOwnedParentsToQuery({
+        modelType: data.modelType,
+        query: query,
+        props: data.props,
+        parentModelType: data.parentModelType,
+        relation: data.relation,
+        relationColumn: data.relationColumn,
+        teamIds: parentTeamIds,
+      });
     }
 
-    if (
-      data.isLimitedToOwnedRecords &&
-      BasePermission.isOwnedThroughParent(
-        data.modelType,
-        data.parentModelType,
-        data.relationColumn,
-      )
-    ) {
-      return data.query;
-    }
-
-    return await OwnedScopePermission.addOwnedParentsToQuery({
-      modelType: data.modelType,
-      query: data.query,
-      props: data.props,
-      parentModelType: data.parentModelType,
-      relation: data.relation,
-      relationColumn: data.relationColumn,
-    });
+    return query;
   }
 
   /*

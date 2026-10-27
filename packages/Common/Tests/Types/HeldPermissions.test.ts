@@ -150,10 +150,23 @@ describe("HeldPermissionsUtil.fromRows", () => {
       Permission.EditProjectMonitor,
       Permission.ReadProjectIncident,
     ]);
-    expect(result.allowedProjectWide).toEqual([
-      Permission.ReadProjectMonitor,
-      Permission.ReadProjectIncident,
+    /*
+     * Labels narrow a row whatever scope it is stored with, All included
+     * (PermissionHelper.isLimitedToLabels): a label-limited row of an
+     * install older than the scope column was stored as All.
+     */
+    expect(result.allowedProjectWide).toEqual([Permission.ReadProjectMonitor]);
+  });
+
+  test("an All row of a role that cannot be scoped reaches the whole project, labels or not", () => {
+    const result: HeldPermissions = held([
+      row(Permission.ProjectAdmin, {
+        labelled: true,
+        scope: PermissionScope.All,
+      }),
     ]);
+
+    expect(result.allowedProjectWide).toEqual([Permission.ProjectAdmin]);
   });
 
   test("an Owned row reaches only owned records, unless the role cannot be scoped", () => {

@@ -1136,11 +1136,22 @@ describe("Traces Explorer (telemetry/traces-explorer)", () => {
     expect(facets.indexOf("...buildResourceFacetConfigs(")).toBeLessThan(
       facets.indexOf('title: "Status",'),
     );
-    expect(facets).toContain(
-      'valueDisplayMap: { [SPAN_TYPE_ROOT_VALUE]: "Root spans" },',
+    /*
+     * Span Type is a choice of one whose values are named by
+     * Types/Telemetry/TraceSpanType: Root spans among them.
+     */
+    expect(facets).toContain("chosenValue: spanType,");
+    expect(facets).toContain("TRACE_SPAN_TYPE_OPTIONS.map(");
+    for (const label of ["Entry spans", "Root spans", "All spans"]) {
+      expect(readCommonSource("Types/Telemetry/TraceSpanType.ts")).toContain(
+        `label: "${label}",`,
+      );
+    }
+    expect(page).toContain(
+      "By default the list shows **Entry spans**, the spans where a request or message enters a service",
     );
     expect(page).toContain(
-      "To list one row per request, pick **Root spans** under **Span Type** in the sidebar.",
+      "Under **Span Type** in the sidebar, pick **Root spans** to list one row per request, or **All spans** to list every operation.",
     );
   });
 
@@ -2104,11 +2115,25 @@ describe("the explorers together", () => {
   });
 
   it("keep in English only the words no Dashboard locale has, where the Dashboard draws them so", () => {
+    /*
+     * Where each is written: a Dashboard source, or (common:) a Common one
+     * the Dashboard draws it from - the Span Type choices are named in
+     * Types/Telemetry/TraceSpanType.
+     */
     const drawnIn: Record<string, string> = {
-      "Root spans": "Components/Traces/TracesViewer.tsx",
+      "Entry spans": "common:Types/Telemetry/TraceSpanType.ts",
+      "Root spans": "common:Types/Telemetry/TraceSpanType.ts",
+      "All spans": "common:Types/Telemetry/TraceSpanType.ts",
       "See full trace": "Components/Traces/SpanDetailsPanel.tsx",
       "Critical path": "Components/Traces/TraceExplorer.tsx",
       "Errors only": "Components/Traces/TraceExplorer.tsx",
+    };
+    const readDrawnIn: (source: string) => string = (
+      source: string,
+    ): string => {
+      return source.startsWith("common:")
+        ? readCommonSource(source.substring("common:".length))
+        : readDashboardSource(source);
     };
 
     /*
@@ -2127,7 +2152,7 @@ describe("the explorers together", () => {
       });
       expect({
         word,
-        drawn: readDashboardSource(drawnIn[word] as string).includes(word),
+        drawn: readDrawnIn(drawnIn[word] as string).includes(word),
       }).toEqual({ word, drawn: true });
     }
   });

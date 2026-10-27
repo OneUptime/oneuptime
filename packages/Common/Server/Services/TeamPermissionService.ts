@@ -18,7 +18,10 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import PermissionScope from "../../Types/Database/AccessControl/PermissionScope";
 import ObjectID from "../../Types/ObjectID";
-import Permission, { UserPermission } from "../../Types/Permission";
+import Permission, {
+  PermissionHelper,
+  UserPermission,
+} from "../../Types/Permission";
 import {
   getPermissionTitleForSentence,
   getRoleCopyChangeRefusedMessage,
@@ -64,20 +67,24 @@ export class Service extends ProjectReferencesService<Model> {
     targetLabelIds: Array<ObjectID>,
   ): boolean {
     const callerLabelIds: Array<ObjectID> = callerPermission.labelIds || [];
+    /*
+     * Labels narrow a row whatever scope it is stored with, All included
+     * (PermissionHelper.isLimitedToLabels): only a row they do not narrow,
+     * and that owners do not narrow either, reaches the whole project.
+     */
     const callerHasAllScope: boolean =
-      callerPermission.scope === PermissionScope.All ||
-      (!callerPermission.scope && callerLabelIds.length === 0) ||
-      (callerPermission.scope === PermissionScope.Labels &&
-        callerLabelIds.length === 0);
+      callerPermission.scope !== PermissionScope.Owned &&
+      !PermissionHelper.isLimitedToLabels(callerPermission);
 
     if (callerHasAllScope) {
       return true;
     }
 
-    const targetHasLabelScope: boolean =
-      targetLabelIds.length > 0 &&
-      targetScope !== PermissionScope.All &&
-      targetScope !== PermissionScope.Owned;
+    const targetHasLabelScope: boolean = PermissionHelper.isLimitedToLabels({
+      permission: callerPermission.permission,
+      labelIds: targetLabelIds,
+      scope: targetScope,
+    });
 
     if (
       !targetHasLabelScope ||
@@ -228,10 +235,12 @@ export class Service extends ProjectReferencesService<Model> {
         return permission.permission === data.permission;
       },
     );
-    const targetHasLabelScope: boolean =
-      targetLabelIds.length > 0 &&
-      data.scope !== PermissionScope.All &&
-      data.scope !== PermissionScope.Owned;
+    // The row reaches only the records its labels name, as the server reads it.
+    const targetHasLabelScope: boolean = PermissionHelper.isLimitedToLabels({
+      permission: data.permission,
+      labelIds: targetLabelIds,
+      scope: data.scope,
+    });
     const isBlocked: boolean = matchingBlocks.some(
       (permission: UserPermission) => {
         /*
@@ -303,7 +312,8 @@ export class Service extends ProjectReferencesService<Model> {
     teamIds: Array<ObjectID>;
     projectId: ObjectID;
   }): Promise<Array<Model>> {
-    return await this.findBy({
+    // Every row, page by page: a block past one read's LIMIT_MAX still counts.
+    return await this.findAllBy({
       query: {
         teamId:
           data.teamIds.length === 1
@@ -319,8 +329,6 @@ export class Service extends ProjectReferencesService<Model> {
         },
         scope: true,
       },
-      skip: 0,
-      limit: LIMIT_MAX,
       props: {
         isRoot: true,
       },

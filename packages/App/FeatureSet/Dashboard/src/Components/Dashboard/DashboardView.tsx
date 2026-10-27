@@ -108,6 +108,16 @@ export interface ComponentProps {
    * The page that shows the dashboard knows where that is.
    */
   onShareClick?: (() => void) | undefined;
+  /*
+   * The dashboard as one turn of a playlist on a screen (issue #5235,
+   * Components/Dashboard/Playlist/PlaylistPlayer): the board alone, read
+   * only, on the dashboard's own default time range, auto-refresh and
+   * variables. No toolbar - the player's bar names the dashboard - no way
+   * into edit mode, and nothing read from or written to the page's address
+   * or the viewer's remembered picks: the address is the playlist's, and
+   * the dashboards it shows share it.
+   */
+  isPlayback?: boolean | undefined;
 }
 
 type SaveDashboardViewConfigFunction = (
@@ -138,8 +148,11 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
    * time-series widget retimes every widget; a double-click on one puts them
    * all back.
    */
+  const isPlayback: boolean = Boolean(props.isPlayback);
+
   const viewerSettings: DashboardViewerSettings = useDashboardViewerSettings({
     dashboardId: props.dashboardId.toString(),
+    savedDefaultsOnly: isPlayback,
   });
   const timeRangeZoom: DashboardTimeRangeZoom = viewerSettings.timeRangeZoom;
   const startAndEndDate: RangeStartAndEndDateTime =
@@ -173,7 +186,8 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
     return PermissionGate.check(new Dashboard(), ModelAction.Update);
   }, []);
 
-  const canEditDashboard: boolean = editGate.isAllowed;
+  // A playlist's turn is read only, whoever watches it.
+  const canEditDashboard: boolean = editGate.isAllowed && !isPlayback;
 
   // Auto-refresh state: the interval itself is the viewer settings'.
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
@@ -367,6 +381,13 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
        * seeding the Variables modal — until the page is reloaded.
        */
       const savedVariables: Array<DashboardVariable> = config.variables || [];
+
+      // A playlist's turn: the saved selection, and the address left alone.
+      if (isPlayback) {
+        setDashboardVariables(savedVariables);
+        return;
+      }
+
       const urlSelections: ReturnType<
         typeof DashboardVariableUrlState.parseFromSearch
       > = DashboardVariableUrlState.parseFromSearch(window.location.search);
@@ -397,8 +418,14 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
 
     setIsLoading(false);
 
-    // Warm the autocomplete suggestion cache without blocking the render.
-    loadTelemetryAttributesInBackground();
+    /*
+     * Warm the autocomplete suggestion cache without blocking the render -
+     * for an editor to come. A playlist's turn is never edited, and a wall
+     * would ask for it with every dashboard it shows.
+     */
+    if (!isPlayback) {
+      loadTelemetryAttributesInBackground();
+    }
   };
 
   useEffect(() => {
@@ -587,6 +614,55 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
 
   if (isLoading) {
     return <PageLoader isVisible={true} />;
+  }
+
+  const canvas: ReactElement = (
+    <div
+      ref={dashboardCanvasRef}
+      className="px-1 pb-4 mx-3 mb-4 rounded-2xl border border-gray-200/60"
+      style={{
+        background: "var(--ou-surface-primary, #ffffff)",
+        boxShadow: "var(--ou-card-shadow)",
+      }}
+    >
+      <DashboardCanvas
+        dashboardViewConfig={dashboardViewConfig}
+        onDashboardViewConfigChange={handleConfigChange}
+        onComponentSelected={handleComponentSelected}
+        onComponentUnselected={handleComponentUnselected}
+        dashboardStartAndEndDate={startAndEndDate}
+        selectedComponentId={selectedComponentId}
+        isEditMode={isEditMode}
+        currentTotalDashboardWidthInPx={dashboardTotalWidth}
+        metrics={metricsBundle}
+        refreshTick={refreshTick}
+        variables={dashboardVariables}
+        chartSyncId={props.dashboardId.toString()}
+        dashboardId={props.dashboardId.toString()}
+        onDashboardTimeRangeSelect={timeRangeZoom.zoomToTimeRange}
+        onDashboardTimeRangeReset={timeRangeZoom.resetZoom}
+        isDashboardTimeRangeZoomed={timeRangeZoom.isZoomed}
+        onAddWidgetClick={canEditDashboard ? startWithFirstWidget : undefined}
+        onEditWidgetClick={canEditDashboard ? editWidget : undefined}
+        isPlayback={isPlayback}
+      />
+    </div>
+  );
+
+  // A playlist's turn: the board alone, below the player's bar.
+  if (isPlayback) {
+    return (
+      <div
+        ref={dashboardViewRef}
+        className="pt-3"
+        style={{
+          minWidth: "1000px",
+          background: "var(--ou-background-primary, #f8f9fb)",
+        }}
+      >
+        {canvas}
+      </div>
+    );
   }
 
   return (
@@ -1108,35 +1184,7 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
       ) : (
         <></>
       )}
-      <div
-        ref={dashboardCanvasRef}
-        className="px-1 pb-4 mx-3 mb-4 rounded-2xl border border-gray-200/60"
-        style={{
-          background: "var(--ou-surface-primary, #ffffff)",
-          boxShadow: "var(--ou-card-shadow)",
-        }}
-      >
-        <DashboardCanvas
-          dashboardViewConfig={dashboardViewConfig}
-          onDashboardViewConfigChange={handleConfigChange}
-          onComponentSelected={handleComponentSelected}
-          onComponentUnselected={handleComponentUnselected}
-          dashboardStartAndEndDate={startAndEndDate}
-          selectedComponentId={selectedComponentId}
-          isEditMode={isEditMode}
-          currentTotalDashboardWidthInPx={dashboardTotalWidth}
-          metrics={metricsBundle}
-          refreshTick={refreshTick}
-          variables={dashboardVariables}
-          chartSyncId={props.dashboardId.toString()}
-          dashboardId={props.dashboardId.toString()}
-          onDashboardTimeRangeSelect={timeRangeZoom.zoomToTimeRange}
-          onDashboardTimeRangeReset={timeRangeZoom.resetZoom}
-          isDashboardTimeRangeZoomed={timeRangeZoom.isZoomed}
-          onAddWidgetClick={canEditDashboard ? startWithFirstWidget : undefined}
-          onEditWidgetClick={canEditDashboard ? editWidget : undefined}
-        />
-      </div>
+      {canvas}
     </div>
   );
 };

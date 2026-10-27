@@ -46,6 +46,7 @@ El menú lateral de la lista tiene las páginas que gestionan todos tus paneles:
 | Página | Qué haces allí |
 | --- | --- |
 | **Paneles** | Los paneles del proyecto. Crea uno, o trae paneles con **Importar JSON**. |
+| **Paneles → Listas de reproducción** | [Mostrar los paneles uno tras otro](/docs/dashboards/playlists) en una pantalla, como la pared de un NOC. |
 | **Ajustes → Reglas del propietario** | Añadir propietarios a los paneles nuevos automáticamente. |
 | **Ajustes → Reglas de etiquetas** | Añadir etiquetas a los paneles nuevos automáticamente. |
 | **Ajustes → Fuentes de datos** | Conectar Prometheus, bases de datos SQL, ClickHouse, Loki, Elasticsearch o una API REST. |

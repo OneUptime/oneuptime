@@ -746,8 +746,8 @@ tests:
                     - exe_path: '*'
                 # JSON lines only, as documented on ebpf.logToTraceCorrelation. Since
                 # v0.11 OBI also appends " trace_id=… span_id=…" to plain-text lines by
-                # default, which the node collector does not parse and which changes
-                # every non-JSON log line the app writes.
+                # default, which changes every non-JSON log line the app writes; the node
+                # collector parses it only with ebpf.logEnricher.plainText.
                 plain_text:
                   enabled: false
       - notMatchRegex:

@@ -503,8 +503,11 @@ describe("when the total cannot be counted", () => {
 });
 
 describe("the rows are named for what they are", () => {
-  test("every span: the total, the footer and the chart say spans", async () => {
+  test("entry spans, the default: counted as entry spans, and the total, the footer and the chart say spans", async () => {
     await renderExplorer();
+
+    expect(heldCounts[0]!.args[1]["isEntrySpan"]).toBe(true);
+    expect(heldCounts[0]!.args[1]["isRootSpan"]).toBeUndefined();
     await answerCount(0, 712345);
 
     expect(resultTotalText()).toBe("712,345 spans");
@@ -512,10 +515,67 @@ describe("the rows are named for what they are", () => {
     expect(screen.queryByText("Traces over time")).toBeNull();
   });
 
+  test("no entry spans over spans that exist: the list says so, and every span is one click away", async () => {
+    // The window holds 3 spans, none of them an entry span.
+    analyticsGetListMock.mockImplementation(
+      async (args: Record<string, any>) => {
+        return args["query"]["isEntrySpan"]
+          ? smallResultPage(0)
+          : smallResultPage(3);
+      },
+    );
+    postMock.mockImplementation(
+      async (args: { url: { toString: () => string } }) => {
+        const url: string = args.url.toString();
+        if (url.includes("/telemetry/traces/facets")) {
+          return {
+            data: {
+              facets: {
+                isEntrySpan: [{ value: "false", count: 3 }],
+                isRootSpan: [{ value: "false", count: 3 }],
+              },
+            },
+          };
+        }
+        if (url.includes("/telemetry/traces/histogram")) {
+          return { data: { buckets: [] } };
+        }
+        return { data: {} };
+      },
+    );
+
+    await renderExplorer();
+
+    expect(await screen.findByText("No entry spans found")).toBeInTheDocument();
+    expect(screen.queryByText("No traces found")).toBeNull();
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Show all spans"));
+    });
+    await settle();
+
+    expect(lastListArgs()["query"]["isEntrySpan"]).toBeUndefined();
+    expect(resultTotalText()).toBe("3 spans");
+    expect(window.location.search).toContain("spanType=all");
+  });
+
+  test("every span: nothing narrows the count, and it says spans", async () => {
+    await renderExplorer("/?spanType=all");
+
+    expect(heldCounts[0]!.args[1]["isEntrySpan"]).toBeUndefined();
+    expect(heldCounts[0]!.args[1]["isRootSpan"]).toBeUndefined();
+    await answerCount(0, 9000001);
+
+    expect(resultTotalText()).toBe("9,000,001 spans");
+    expect(screen.getByText("Spans over time")).toBeInTheDocument();
+  });
+
   test("root spans only: one row per trace, so they are counted as traces", async () => {
+    // A link from before the three-way choice still opens Root spans.
     await renderExplorer("/?rootOnly=true");
 
     expect(heldCounts[0]!.args[1]["isRootSpan"]).toBe(true);
+    expect(heldCounts[0]!.args[1]["isEntrySpan"]).toBeUndefined();
     await answerCount(0, 68811);
 
     expect(resultTotalText()).toBe("68,811 traces");

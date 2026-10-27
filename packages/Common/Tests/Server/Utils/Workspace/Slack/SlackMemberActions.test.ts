@@ -211,6 +211,8 @@ beforeEach((): void => {
   });
   // The project is not blocked (WorkspaceActionAuthorization asks).
   jest.spyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
+  // Nor a blocked person (WorkspaceActionAuthorization asks that too).
+  jest.spyOn(UserService, "isUserBlocked").mockResolvedValue(false);
   jest.spyOn(Response, "sendJsonObjectResponse").mockImplementation(() => {});
   jest.spyOn(Response, "sendTextResponse").mockImplementation(() => {});
   jest.spyOn(Response, "sendErrorResponse").mockImplementation(() => {});

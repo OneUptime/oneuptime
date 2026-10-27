@@ -207,6 +207,10 @@ import DashboardService, {
   Service as DashboardServiceType,
 } from "Common/Server/Services/DashboardService";
 
+import DashboardPlaylistService, {
+  Service as DashboardPlaylistServiceType,
+} from "Common/Server/Services/DashboardPlaylistService";
+
 import AlertOwnerUserService, {
   Service as AlertOwnerUserServiceType,
 } from "Common/Server/Services/AlertOwnerUserService";
@@ -1326,6 +1330,7 @@ import ProjectSCIMLog from "Common/Models/DatabaseModels/ProjectSCIMLog";
 import StatusPageSCIMLog from "Common/Models/DatabaseModels/StatusPageSCIMLog";
 import EmailVerificationToken from "Common/Models/DatabaseModels/EmailVerificationToken";
 import Dashboard from "Common/Models/DatabaseModels/Dashboard";
+import DashboardPlaylist from "Common/Models/DatabaseModels/DashboardPlaylist";
 
 import AlertCustomField from "Common/Models/DatabaseModels/AlertCustomField";
 import AlertNoteTemplate from "Common/Models/DatabaseModels/AlertNoteTemplate";
@@ -3622,6 +3627,14 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<Dashboard, DashboardServiceType>(
         Dashboard,
         DashboardService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DashboardPlaylist, DashboardPlaylistServiceType>(
+        DashboardPlaylist,
+        DashboardPlaylistService,
       ).getRouter(),
     );
 

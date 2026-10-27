@@ -97,6 +97,10 @@ jest.mock("../../../Server/Services/TeamPermissionService", () => {
       findBy: (...args: Array<unknown>) => {
         return mockTeamPermissionFindBy(...args);
       },
+      // Every row, page by page: one page here.
+      findAllBy: (...args: Array<unknown>) => {
+        return mockTeamPermissionFindBy(...args);
+      },
     },
   };
 });

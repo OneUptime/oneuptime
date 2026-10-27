@@ -195,10 +195,12 @@ Todo permiso concedido lleva un alcance: al añadirlo, **Alcance** está en **M�
 | Alcance | Significado |
 | --- | --- |
 | Todos los recursos del proyecto | El valor predeterminado y lo que la mayoría de los equipos necesita. El permiso se aplica a todos los recursos que coincidan. |
-| Solo los recursos que les pertenecen | El permiso solo se aplica a los recursos que pertenecen a la persona que actúa o a uno de sus equipos. |
+| Solo los recursos que les pertenecen | El permiso solo se aplica a los recursos que pertenecen a la persona que actúa o al equipo al que se le da, no a los recursos que solo pertenecen a otro de sus equipos. |
 | Solo los recursos con ciertas etiquetas | El permiso solo se aplica a los recursos que llevan al menos una de las etiquetas elegidas. |
 
 **Propios** es la forma más sencilla de montar un modelo de «cada uno cuida de sus propios servicios»: dé a un equipo `MonitorAdmin` con alcance Propios y haga a ese equipo propietario de los monitores de los que se encarga. Acota todos los recursos que pueden tener propietarios —monitores, incidentes, paneles, servicios, grupos de monitores, programaciones de guardia y similares— y lo que les pertenece, como las capas de una programación. Las sondas, los Runners, los agentes de IA, las programaciones de guardia y las plantillas de incidentes y de mantenimiento son aquello con lo que se configuran otros recursos, así que un permiso con alcance Propios sigue leyéndolos todos y puede elegir cualquiera de ellos; solo cambia y elimina los que usted o sus equipos poseen. La clave de un Runner, que permite a quien la tenga actuar como ese Runner, solo se muestra en los Runners que usted o sus equipos poseen. La configuración del proyecto (estados de incidentes, etiquetas, los propios equipos) no tiene propietario, así que un rol con alcance Propios se comporta ahí con normalidad.
+
+El permiso con alcance Propios de cada equipo alcanza lo que pertenece a ese equipo, no lo que pertenece a los demás equipos de la persona. Alguien que está en dos equipos, uno con `IncidentMember` con alcance Propios y otro con `Viewer` con alcance Propios, cambia los incidentes que pertenecen al primer equipo y los suyos propios, y solo ve los incidentes que pertenecen al segundo equipo. Un permiso con alcance Propios también añade propietarios solo a los recursos que pertenecen a la persona o al equipo al que se le da, así que no se puede hacer al primer equipo propietario de los incidentes del segundo para eludirlo. El permiso con alcance Propios de un rol personalizado alcanza lo que pertenece a cada equipo al que se da el rol.
 
 **Etiquetas** es la versión más manual de la misma idea: marque los recursos y luego conceda permisos restringidos a esas marcas.
 

@@ -11,6 +11,7 @@ import Sleep from "../../Types/Sleep";
 import { DataSource, DataSourceOptions, QueryRunner } from "typeorm";
 import { createDatabase, dropDatabase } from "typeorm-extension";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import PostgresQuerySpans from "../Utils/Telemetry/PostgresQuerySpans";
 import GracefulShutdown, { ShutdownPriority } from "../Utils/GracefulShutdown";
 
 export type DatabaseSourceOptions = DataSourceOptions;
@@ -21,18 +22,21 @@ export default class Database {
   protected static dataSourceOptions: DataSourceOptions | null = null;
   protected static dataSource: DataSource | null = null;
 
-  @CaptureSpan()
+  /*
+   * No @CaptureSpan on the accessors: getRepository() calls two of them
+   * before every query, so a span each made up much of a job's trace and
+   * said nothing. The statements themselves are traced - see
+   * PostgresQuerySpans.
+   */
   public static getDatasourceOptions(): DataSourceOptions {
     this.dataSourceOptions = DatabaseDataSourceOptions;
     return this.dataSourceOptions;
   }
 
-  @CaptureSpan()
   public static getDataSource(): DataSource | null {
     return this.dataSource;
   }
 
-  @CaptureSpan()
   public static isConnected(): boolean {
     return Boolean(this.dataSource);
   }
@@ -47,6 +51,12 @@ export default class Database {
     if (this.dataSource) {
       return this.dataSource;
     }
+
+    /*
+     * A CLIENT span for each statement a traced request or job sends -
+     * installed before the first data source below exists.
+     */
+    PostgresQuerySpans.install();
 
     let retry: number = 0;
 

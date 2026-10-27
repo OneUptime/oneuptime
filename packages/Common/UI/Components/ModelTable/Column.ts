@@ -82,6 +82,14 @@ export default interface Columns<
    */
   hideTitleOnMobile?: boolean | undefined;
   /*
+   * Left out below lg (1024px), on a tablet's rows and a phone's cards,
+   * where another column's cell shows its value instead
+   * (useAreTableColumnsFolded) - beside a side menu a card is 430 to 700px
+   * wide there. Spread through to the table as is (see the Table Column of
+   * the same name).
+   */
+  hideBelowLargeScreen?: boolean | undefined;
+  /*
    * List view (ShowAs.List) only: draw this column's row on an item's card
    * only when this says so - an empty description, or a setting the item
    * does not use, is left off its card instead of a label over nothing. A

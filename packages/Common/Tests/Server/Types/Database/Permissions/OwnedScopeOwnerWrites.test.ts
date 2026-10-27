@@ -214,6 +214,7 @@ function unique(permissions: Array<Permission>): Array<Permission> {
   return Array.from(new Set<Permission>(permissions));
 }
 
+// A row of the member's team: an Owned one reaches what that team owns.
 function row(permission: Permission, scope: PermissionScope): UserPermission {
   return {
     _type: "UserPermission",
@@ -221,6 +222,7 @@ function row(permission: Permission, scope: PermissionScope): UserPermission {
     labelIds: [],
     isBlockPermission: false,
     scope: scope,
+    teamId: TEAM_ID,
   };
 }
 
@@ -636,6 +638,7 @@ describe("an owner row is owned through its resource", () => {
         await OwnedScopePermission.getOwnedIds(
           table.modelType,
           readsEveryManagesOwn(table),
+          [TEAM_ID],
         )
       )
         .map((id: ObjectID): string => {

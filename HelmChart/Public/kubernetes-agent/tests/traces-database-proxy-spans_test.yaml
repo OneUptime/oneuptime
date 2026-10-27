@@ -1,0 +1,128 @@
+# A database proxy's eBPF spans never reach OneUptime pointing at a parent
+# the collector dropped.
+#
+# PgBouncer is a database server AND a database client: OBI records a SERVER
+# span for each statement an application sends it and a CLIENT span, hung
+# under that server span, for the statement it passes on to PostgreSQL.
+# ebpf.dropDatabaseServerSpans drops the server span, so on the test cluster
+# every passed-on statement (23.7k in 15 minutes) arrived as a trace of one
+# span marked "1 span missing a parent" — three quarters of all one-span
+# traces there.
+#
+# By default (ebpf.dropDatabaseProxySpans) every database span of a proxy
+# goes, server and client alike. Switched off, the proxy's server spans are
+# exempt from the server condition instead, so what it passes on keeps its
+# parent. What counts as a proxy is ebpf.databaseProxyNames, matched as a
+# word against the container, service, Deployment, StatefulSet and DaemonSet
+# names OBI puts on its resource. These tests pin the condition text; what it
+# does to spans in a real collector is Tests/Ops/agent-trace-filter-behaviour.sh.
+suite: collector handles eBPF spans of database proxies
+release:
+  name: oneuptime-agent
+  namespace: oneuptime
+templates:
+  - templates/configmap-deployment.yaml
+set:
+  clusterName: prod-us
+  oneuptime.url: https://oneuptime.example.com
+  oneuptime.apiKey: key-123
+tests:
+  - it: drops every OBI database span of a proxy by default, as the filter's last condition
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n        - 'resource\\.attributes\\[\"telemetry\\.distro\\.name\"\\] == \"opentelemetry-ebpf-instrumentation\" and \\(attributes\\[\"db\\.system\\.name\"\\] != nil or attributes\\[\"db\\.system\"\\] != nil\\) and \\(\\(resource\\.attributes\\[\"k8s\\.container\\.name\"\\] != nil and IsMatch\\(resource\\.attributes\\[\"k8s\\.container\\.name\"\\], \"\\(\\?i\\)\\(\\^\\|\\[\\^a-z0-9\\]\\)\\(pgbouncer\\|pgcat\\|pgdog\\|odyssey\\|pgpool\\|supavisor\\|connection-pooler\\|proxysql\\|maxscale\\|mysqlrouter\\|mysql-router\\|vtgate\\|mongos\\|twemproxy\\|nutcracker\\|predixy\\)\\(\\[\\^a-z0-9\\]\\|\\$\\)\"\\)\\) or [^\\n]*'\\n(?:\\n|  [#a-z])"
+      # Whatever its kind: a proxy's server span and what it passes on both go.
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "IsMatch[^\\n]*kind [!=]= SPAN_KIND_SERVER'"
+
+  - it: recognises a proxy by its container, service, Deployment, StatefulSet or DaemonSet name, each checked for nil first
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\(\\(resource\\.attributes\\[\"k8s\\.container\\.name\"\\] != nil and IsMatch\\(resource\\.attributes\\[\"k8s\\.container\\.name\"\\], \"[^\"]+\"\\)\\) or \\(resource\\.attributes\\[\"service\\.name\"\\] != nil and IsMatch\\(resource\\.attributes\\[\"service\\.name\"\\], \"[^\"]+\"\\)\\) or \\(resource\\.attributes\\[\"k8s\\.deployment\\.name\"\\] != nil and IsMatch\\(resource\\.attributes\\[\"k8s\\.deployment\\.name\"\\], \"[^\"]+\"\\)\\) or \\(resource\\.attributes\\[\"k8s\\.statefulset\\.name\"\\] != nil and IsMatch\\(resource\\.attributes\\[\"k8s\\.statefulset\\.name\"\\], \"[^\"]+\"\\)\\) or \\(resource\\.attributes\\[\"k8s\\.daemonset\\.name\"\\] != nil and IsMatch\\(resource\\.attributes\\[\"k8s\\.daemonset\\.name\"\\], \"[^\"]+\"\\)\\)\\)'"
+
+  # The chart's built-in list (for values files without the key) must be the
+  # one values.yaml documents: this asserts the same pattern as the test above.
+  - it: uses the same names for a release upgraded with --reuse-values from values that predate them
+    set:
+      ebpf.dropDatabaseProxySpans: null
+      ebpf.databaseProxyNames: null
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "and \\(\\(resource\\.attributes\\[\"k8s\\.container\\.name\"\\] != nil and IsMatch\\(resource\\.attributes\\[\"k8s\\.container\\.name\"\\], \"\\(\\?i\\)\\(\\^\\|\\[\\^a-z0-9\\]\\)\\(pgbouncer\\|pgcat\\|pgdog\\|odyssey\\|pgpool\\|supavisor\\|connection-pooler\\|proxysql\\|maxscale\\|mysqlrouter\\|mysql-router\\|vtgate\\|mongos\\|twemproxy\\|nutcracker\\|predixy\\)\\(\\[\\^a-z0-9\\]\\|\\$\\)\"\\)\\)"
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n  filter/ebpf-unlinked-db:\\n"
+
+  - it: takes your own names, trimmed, without blanks or repeats, with regex metacharacters escaped
+    set:
+      ebpf.databaseProxyNames:
+        - " pgbouncer "
+        - ""
+        - pgbouncer
+        - acme.pooler
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "IsMatch\\(resource\\.attributes\\[\"k8s\\.container\\.name\"\\], \"\\(\\?i\\)\\(\\^\\|\\[\\^a-z0-9\\]\\)\\(pgbouncer\\|acme\\\\\\\\\\.pooler\\)\\(\\[\\^a-z0-9\\]\\|\\$\\)\"\\)"
+
+  - it: keeps a proxy's hop when asked, exempting its server spans from the server condition so what it passes on keeps its parent
+    set:
+      ebpf.dropDatabaseProxySpans: false
+      ebpf.databaseProxyNames: [pgbouncer]
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n      span:\\n        - 'resource\\.attributes\\[\"telemetry\\.distro\\.name\"\\] == \"opentelemetry-ebpf-instrumentation\" and \\(attributes\\[\"db\\.system\\.name\"\\] != nil or attributes\\[\"db\\.system\"\\] != nil\\) and kind == SPAN_KIND_SERVER and not \\(\\(resource\\.attributes\\[\"k8s\\.container\\.name\"\\] != nil and IsMatch\\(resource\\.attributes\\[\"k8s\\.container\\.name\"\\], \"\\(\\?i\\)\\(\\^\\|\\[\\^a-z0-9\\]\\)\\(pgbouncer\\)\\(\\[\\^a-z0-9\\]\\|\\$\\)\"\\)\\) or [^\\n]*\\)'\\n        - '[^\\n]* and parent_span_id == SpanID\\(0x0000000000000000\\) and kind != SPAN_KIND_SERVER'\\n(?:\\n|  [#a-z])"
+
+  - it: needs no exemption when database servers' spans are kept anyway
+    set:
+      ebpf.dropDatabaseProxySpans: false
+      ebpf.dropDatabaseServerSpans: false
+    asserts:
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "IsMatch\\(resource\\.attributes\\[\"k8s\\.container\\.name\"\\]|SPAN_KIND_SERVER and not"
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n      span:\\n        - '[^\\n]* and parent_span_id == SpanID\\(0x0000000000000000\\) and kind != SPAN_KIND_SERVER'\\n(?:\\n|  [#a-z])"
+
+  - it: turns proxy detection off with an empty list, leaving the other two conditions as they were
+    set:
+      ebpf.databaseProxyNames: []
+    asserts:
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "IsMatch\\(resource\\.attributes\\[\"k8s\\.container\\.name\"\\]|SPAN_KIND_SERVER and not"
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n      span:\\n        - '[^\\n]* and kind == SPAN_KIND_SERVER'\\n        - '[^\\n]* and parent_span_id == SpanID\\(0x0000000000000000\\) and kind != SPAN_KIND_SERVER'\\n(?:\\n|  [#a-z])"
+
+  - it: keeps the filter defined and in the traces pipeline when it is the only database switch on
+    set:
+      ebpf.dropDatabaseServerSpans: false
+      ebpf.dropUnlinkedDatabaseCalls: false
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n  filter/ebpf-unlinked-db:\\n    error_mode: ignore\\n    traces:\\n      span:\\n        - '[^\\n]* and \\(\\(resource\\.attributes\\[\"k8s\\.container\\.name\"\\][^\\n]*'\\n(?:\\n|  [#a-z])"
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n        - resource\\n(?: *#[^\\n]*\\n)*        - filter/ebpf-unlinked-db\\n        - batch\\n"
+
+  - it: never touches spans applications push from their own SDKs
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n        - 'resource\\.attributes\\[\"telemetry\\.distro\\.name\"\\] == \"opentelemetry-ebpf-instrumentation\" and [^\\n]* and \\(\\(resource\\.attributes\\[\"k8s\\.container\\.name\"\\]"
+
+  - it: does not exist when eBPF is off
+    set:
+      ebpf.enabled: false
+    asserts:
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "filter/ebpf-unlinked-db|IsMatch\\(resource\\.attributes\\[\"k8s\\.container\\.name\"\\]"

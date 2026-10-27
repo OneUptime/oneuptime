@@ -46,6 +46,7 @@ Das Seitenmenü der Liste enthält die Seiten, die sich um all Ihre Dashboards k
 | Seite | Was Sie dort tun |
 | --- | --- |
 | **Dashboards** | Die Dashboards des Projekts. Erstellen Sie eines, oder holen Sie Dashboards mit **JSON importieren** herein. |
+| **Dashboards → Playlists** | [Dashboards nacheinander](/docs/dashboards/playlists) auf einem Bildschirm zeigen, etwa an einer NOC-Wand. |
 | **Einstellungen → Eigentümerregeln** | Neuen Dashboards automatisch Eigentümer hinzufügen. |
 | **Einstellungen → Beschriftungsregeln** | Neuen Dashboards automatisch Beschriftungen hinzufügen. |
 | **Einstellungen → Datenquellen** | Prometheus, SQL-Datenbanken, ClickHouse, Loki, Elasticsearch oder eine REST-API anbinden. |

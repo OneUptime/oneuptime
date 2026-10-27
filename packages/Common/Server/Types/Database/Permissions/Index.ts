@@ -448,6 +448,30 @@ export default class ModelPermission {
     }
   }
 
+  /*
+   * A change limited to the records the caller owns keeps a record under a
+   * parent the caller, or the team of their permission to update it, owns
+   * (CreateScopePermission.checkOwnedUpdate), as a create under one does.
+   * Asked by DatabaseService of every update, before the update hooks run
+   * and again after them should a hook name another parent.
+   */
+  @CaptureSpan()
+  public static async checkOwnedUpdatePermission<
+    TBaseModel extends BaseModel,
+  >(data: {
+    modelType: { new (): TBaseModel };
+    data: unknown;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<void> {
+    DatabaseCommonInteractionPropsUtil.assertCredentialCanWrite(data.props);
+
+    try {
+      return await CreateScopePermission.checkOwnedUpdate(data);
+    } catch (error) {
+      throw ModelPermission.toAnonymousRefusal(error, data.props);
+    }
+  }
+
   @CaptureSpan()
   public static async checkReadQueryPermission<TBaseModel extends BaseModel>(
     modelType: { new (): TBaseModel },

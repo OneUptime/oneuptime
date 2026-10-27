@@ -226,7 +226,7 @@ describe("TracesViewer chips", () => {
     }
 
     expect(MERGED).toContain(
-      "}, [lockedChips, activeFilters, resolveChipDisplay, rootOnly]);",
+      "}, [ lockedChips, activeFilters, resolveChipDisplay, spanType, defaultSpanType, ]);",
     );
   });
 
@@ -234,7 +234,9 @@ describe("TracesViewer chips", () => {
     expect(TRACES_VIEWER).toContain(
       "facetData[facetKey]?.find((facet: FacetValue): boolean => { return facet.value === value; })?.displayName || value",
     );
-    expect(TRACES_VIEWER).toContain("[facetConfigs, facetData],");
+    expect(TRACES_VIEWER).toContain(
+      "[facetConfigs, facetData, defaultSpanType],",
+    );
   });
 });
 
@@ -266,8 +268,9 @@ describe("TracesViewer resource facets come from the shared catalog", () => {
   });
 
   test("the facets request asks for Service, every catalog resource, then the span facets in their old order", () => {
+    // isEntrySpan beside isRootSpan: the Span Type facet's Entry and Root counts.
     expect(TRACES_VIEWER).toContain(
-      'facetKeys: [ "primaryEntityId", ...RESOURCE_FACET_CATALOG_KEYS, "statusCode", "kind", "isRootSpan", "hasException", "name", ...Array.from(ATTRIBUTE_FACET_KEYS), ],',
+      'facetKeys: [ "primaryEntityId", ...RESOURCE_FACET_CATALOG_KEYS, "statusCode", "kind", "isEntrySpan", "isRootSpan", "hasException", "name", ...Array.from(ATTRIBUTE_FACET_KEYS), ],',
     );
   });
 

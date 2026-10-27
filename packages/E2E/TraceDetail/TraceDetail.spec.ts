@@ -18,7 +18,11 @@ const TRACES: Record<string, string> = {
   large: "9c1d2e3f4a5b6c7d8e9fa0b1c2d3e4f5",
   orphans: "0af7651916cd43dd8448eb211c80319c",
   empty: "00000000000000000000000000000001",
+  ebpf: "1e8f0c2a9b7d4e6f8a1b2c3d4e5f6a7b",
 };
+
+// The ebpf trace's pod (its k8sPodEntityKey).
+const APP_POD: string = "7a2872b83f046399";
 
 const SCREENSHOTS: string = path.resolve(
   __dirname,
@@ -1664,5 +1668,194 @@ test.describe("phone", () => {
       (await page.getByTestId("trace-errors-only").boundingBox())!;
     expect(errorsOnly.y).toBeGreaterThanOrEqual(search.y + search.height);
     await screenshot(page, "phone-show-them", false);
+  });
+});
+
+/*
+ * An eBPF (OBI) request: OBI puts no trace context into the lines the pod
+ * writes, so no log carries the trace's ID. The span panel and the related
+ * signals read what the pod wrote by pod and time instead, and say the lines
+ * are not linked by trace ID.
+ */
+test.describe("logs of an eBPF trace", () => {
+  test("the span's Logs tab shows what its pod wrote before, during and after it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openLoaded(page, "ebpf");
+    const server: string = await spanId(page, "POST /*/v1/traces");
+
+    await row(page, server).click();
+    const panel: Locator = page.getByTestId("trace-span-panel");
+    await panel.getByTestId("span-panel-tab-logs").click();
+
+    const podLogs: Locator = panel.getByTestId("span-pod-logs");
+    await expect(podLogs).toContainText("No logs carry this span's ID.");
+    await expect(podLogs.getByTestId("span-pod-logs-toggle")).toHaveText(
+      "Logs from this pod during this span (not linked by trace ID)",
+    );
+    await expect(podLogs.getByTestId("span-pod-logs-window")).toContainText(
+      "What oneuptime-app-5b9df8b796-88bzt wrote from 100 ms before this span to 100 ms after it.",
+    );
+    const during: Locator = podLogs.getByTestId("span-pod-logs-during");
+    await expect(during).toContainText("Product Type: Traces");
+    await expect(during).toContainText("+1.27 ms");
+    await expect(during).toContainText(
+      "Added traces ingestion job: traces-a8b2ddcf-1793088129234000000",
+    );
+    await expect(during).toContainText("+3.24 ms");
+    await expect(podLogs.getByTestId("span-pod-logs-before")).toContainText(
+      "-48.2 ms",
+    );
+    await expect(podLogs.getByTestId("span-pod-logs-after")).toContainText(
+      "+61.4 ms",
+    );
+    // A neighbour a quarter of a second away is outside the default window.
+    await expect(podLogs).not.toContainText("+221 ms");
+
+    // Two reads of the pod's own key, split at the span's start.
+    const state: FixtureState = await fixture(page);
+    const podReads: Array<RecordedListRequest> =
+      state.analyticsListRequests.filter((request: RecordedListRequest) => {
+        return Boolean(request.query["k8sPodEntityKey"]);
+      });
+    expect(
+      podReads.map((request: RecordedListRequest) => {
+        return [request.query["k8sPodEntityKey"], request.sort, request.limit];
+      }),
+    ).toEqual([
+      [APP_POD, { time: "DESC" }, 50],
+      [APP_POD, { time: "ASC" }, 200],
+    ]);
+    await screenshot(page, "ebpf-span-pod-logs", false);
+
+    // Advanced, folded away, looks further around the span.
+    await expect(podLogs.getByTestId("span-pod-logs-padding")).toHaveCount(0);
+    await podLogs.getByTestId("span-pod-logs-advanced").click();
+    await podLogs.getByTestId("span-pod-logs-padding-1000").click();
+    await expect(podLogs.getByTestId("span-pod-logs-window")).toContainText(
+      "from 1 s before this span to 1 s after it.",
+    );
+    await expect(podLogs.getByTestId("span-pod-logs-before")).toContainText(
+      "-233 ms",
+    );
+    await expect(podLogs.getByTestId("span-pod-logs-after")).toContainText(
+      "+221 ms",
+    );
+  });
+
+  test("the related signals open on the pod's logs, with the linked ones one choice away", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openLoaded(page, "ebpf");
+    const logs: Locator = page.getByTestId("trace-logs");
+
+    await expect(page.getByTestId("trace-logs-scope-pods")).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+    await expect(page.getByTestId("trace-logs-scope-pods")).toHaveText(
+      "Same pod, same time",
+    );
+    await expect(
+      page.getByTestId("trace-logs-scope-description"),
+    ).toContainText(
+      "What this trace's pod wrote from 100 ms before the trace to 100 ms after it, not linked by trace ID.",
+    );
+    // The pod is named by its Inventory item in the viewer's chip.
+    await expect(logs).toContainText(
+      /Kubernetes Pod:\s*oneuptime-app-5b9df8b796-88bzt/,
+    );
+    await expect(logs).toContainText("Product Type: Metrics");
+    await expect(logs).toContainText("6 logs");
+    await logs.scrollIntoViewIfNeeded();
+    await screenshot(page, "ebpf-related-signals-pod-logs", false);
+
+    // Whether any log carries the trace was counted first: none does.
+    const state: FixtureState = await fixture(page);
+    expect(
+      state.analyticsCountRequests.some(
+        (request: { modelName: string; query: Record<string, unknown> }) => {
+          return (
+            request.query["traceId"] === TRACES["ebpf"] &&
+            Boolean(request.query["time"])
+          );
+        },
+      ),
+    ).toBe(true);
+
+    await page.getByTestId("trace-logs-scope-trace").click();
+    await expect(
+      page.getByTestId("trace-logs-scope-description"),
+    ).toContainText(
+      "Logs that carry this trace's ID, from every service it touched.",
+    );
+    await expect(logs).toContainText(
+      "Logs that carry this trace's ID appear here.",
+    );
+  });
+});
+
+/*
+ * The exceptions ingest extracts from an eBPF pod's log lines carry the pod
+ * and no trace ID, and their `time` only to the second: the span's
+ * Exceptions tab reads them by the same rule as its logs.
+ */
+test.describe("exceptions of an eBPF trace", () => {
+  test("the span's Exceptions tab shows what its pod raised around it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openLoaded(page, "ebpf");
+    const server: string = await spanId(page, "POST /*/v1/traces");
+
+    await row(page, server).click();
+    const panel: Locator = page.getByTestId("trace-span-panel");
+    await panel.getByTestId("span-panel-tab-exceptions").click();
+
+    const podExceptions: Locator = panel.getByTestId("span-pod-exceptions");
+    await expect(podExceptions).toContainText(
+      "No exceptions carry this span's ID.",
+    );
+    await expect(
+      podExceptions.getByTestId("span-pod-exceptions-toggle"),
+    ).toHaveText(
+      "Exceptions from this pod during this span (not linked by trace ID)",
+    );
+    await expect(
+      podExceptions.getByTestId("span-pod-exceptions-during"),
+    ).toContainText(
+      "Job EnterpriseLicense-ReconcileInstanceUsage could not be removed because it is locked by another worker",
+    );
+    await expect(
+      podExceptions.getByTestId("span-pod-exceptions-during"),
+    ).toContainText("+2.1 ms");
+    await expect(
+      podExceptions.getByTestId("span-pod-exceptions-before"),
+    ).toContainText("-60 ms");
+    await expect(
+      podExceptions.getByTestId("span-pod-exceptions-after"),
+    ).toContainText("+80 ms");
+
+    // One read of the pod's key, over the window widened to whole seconds.
+    const state: FixtureState = await fixture(page);
+    const podReads: Array<RecordedListRequest> =
+      state.analyticsListRequests.filter((request: RecordedListRequest) => {
+        return (
+          request.query["k8sPodEntityKey"] === APP_POD &&
+          Boolean(request.select["exceptionType"])
+        );
+      });
+    expect(podReads).toHaveLength(1);
+    const window: { startValue: string; endValue: string } = podReads[0]!.query[
+      "time"
+    ] as unknown as { startValue: string; endValue: string };
+    expect(new Date(window.startValue).getUTCMilliseconds()).toBe(0);
+    expect(new Date(window.endValue).getUTCMilliseconds()).toBe(0);
+    await screenshot(page, "ebpf-span-pod-exceptions", false);
   });
 });

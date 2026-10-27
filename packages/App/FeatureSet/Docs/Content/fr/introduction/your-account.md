@@ -25,7 +25,7 @@ Cliquez sur votre photo en haut à droite du tableau de bord.
 | --- | --- |
 | **Profil** | Ouvre **Profil utilisateur** : votre nom, votre adresse e-mail, votre fuseau horaire, votre photo et la sécurité de votre connexion. |
 | **Paramètres admin** | Ouvre l'Admin Dashboard. Seuls les administrateurs principaux d'une installation auto-hébergée le voient. |
-| **Thème sombre** | Passe le tableau de bord en thème sombre. En thème sombre, l'élément s'appelle **Thème clair**. |
+| **Thème** | Règle le thème du tableau de bord : **Clair**, **Sombre** ou **Système**, qui est clair ou sombre selon le réglage de votre appareil. |
 | **Se déconnecter** | Vous déconnecte. |
 
 **Profil utilisateur** a son propre menu latéral. **Basique** contient **Vue d'ensemble** et **Photo de profil**. **Sécurité** et **Zone de danger** sont repliées : cliquez sur le titre d'une section pour l'ouvrir.
@@ -132,7 +132,7 @@ Les **Paramètres utilisateur**, à droite dans la barre sous la barre supérieu
 Les deux sont enregistrés dans votre navigateur, pas dans votre compte : réglez-les à nouveau dans un autre navigateur ou sur un autre appareil.
 
 - **Langue** : le tableau de bord démarre dans la langue de votre navigateur. Pour la changer, utilisez le menu des langues en bas de chaque page. Cette documentation a son propre menu des langues, en haut.
-- **Thème** : choisissez **Thème sombre** dans le menu utilisateur. Le tableau de bord démarre en thème clair.
+- **Thème** : choisissez **Clair**, **Sombre** ou **Système** dans le menu utilisateur. **Système** est clair ou sombre selon le réglage de votre appareil, et change avec lui ; chaque navigateur démarre avec lui. Les pages de connexion utilisent le même thème.
 
 ## Supprimer votre compte
 

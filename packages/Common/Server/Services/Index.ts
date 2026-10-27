@@ -293,6 +293,7 @@ import DashboardOwnerUserService from "./DashboardOwnerUserService";
 import DashboardOwnerTeamService from "./DashboardOwnerTeamService";
 import DashboardLabelRuleService from "./DashboardLabelRuleService";
 import DashboardService from "./DashboardService";
+import DashboardPlaylistService from "./DashboardPlaylistService";
 import StatusPageDomainService from "./StatusPageDomainService";
 import StatusPageFooterLinkService from "./StatusPageFooterLinkService";
 import StatusPageGroupService from "./StatusPageGroupService";
@@ -772,6 +773,7 @@ const services: Array<BaseService> = [
   DashboardOwnerTeamService,
   DashboardLabelRuleService,
   DashboardService,
+  DashboardPlaylistService,
   StatusPageDomainService,
   StatusPageFooterLinkService,
   StatusPageGroupService,

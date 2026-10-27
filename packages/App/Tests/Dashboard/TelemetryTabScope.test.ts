@@ -880,11 +880,16 @@ describe("param-set closure", () => {
      */
     expect(Scope.TELEMETRY_TAB_SCOPE_PARAM_NAMES).toContain("search");
     expect(Scope.TELEMETRY_TAB_SCOPE_PARAM_NAMES).toContain("rootOnly");
+    // The Traces Span Type narrows the rows too (entry / root spans).
+    expect(Scope.TELEMETRY_TAB_SCOPE_PARAM_NAMES).toContain("spanType");
     expect(Scope.TELEMETRY_TAB_PRESENTATION_PARAM_NAMES).not.toContain(
       "search",
     );
     expect(Scope.TELEMETRY_TAB_PRESENTATION_PARAM_NAMES).not.toContain(
       "rootOnly",
+    );
+    expect(Scope.TELEMETRY_TAB_PRESENTATION_PARAM_NAMES).not.toContain(
+      "spanType",
     );
   });
 
