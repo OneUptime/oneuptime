@@ -36,7 +36,6 @@ Abre **Productos → Eventos de seguridad**, en **Observabilidad**. Su menú tie
 | **Casos cerrados** | Casos de seguridad | Los casos cerrados con un veredicto, los más recientes primero |
 | **Todos los casos** | Casos de seguridad | Cada caso, abierto o cerrado |
 | **Eventos** | Eventos | Buscar y filtrar todos los eventos, y abrir uno para ver todos sus campos |
-| **Entidades** | Eventos | Los usuarios, hosts y direcciones que más nombran tus hallazgos |
 | **Riesgo de entidades** | Eventos | Cada usuario, host y dirección, puntuado por lo encontrado sobre él esta semana, primero los de mayor riesgo |
 | **Correlacionar** | Eventos | Un grafo de los eventos que comparten un host, un usuario o una dirección IP |
 | **Reglas de detección** | Detecciones | Reglas Sigma que se ejecutan según una programación y abren casos |

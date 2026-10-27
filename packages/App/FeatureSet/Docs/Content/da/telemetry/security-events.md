@@ -36,7 +36,6 @@ flowchart TB
 | **Lukkede sager** | Sikkerhedssager | De sager, der er lukket med en vurdering, de nyeste først |
 | **Alle sager** | Sikkerhedssager | Hver sag, åben eller lukket |
 | **Begivenheder** | Begivenheder | Søg i og filtrér alle begivenheder, og åbn en for at se alle dens felter |
-| **Entiteter** | Begivenheder | De brugere, værter og adresser, dine fund nævner oftest |
 | **Entitetsrisiko** | Begivenheder | Hver bruger, vært og adresse, scoret efter hvad der er fundet om den i denne uge, de mest risikable først |
 | **Korrelér** | Begivenheder | En graf over de begivenheder, der deler en vært, en bruger eller en IP-adresse |
 | **Detektionsregler** | Detections | Sigma-regler, der kører efter en tidsplan og åbner sager |

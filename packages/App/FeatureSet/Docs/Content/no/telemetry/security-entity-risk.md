@@ -24,7 +24,7 @@ flowchart TB
     score -->|"Ved<br/>terskelen"| case["En sak åpnes, eller<br/>den åpne saken<br/>tar inn risikoen"]
 ```
 
-Åpne **Produkter → Security Events → Entitetsrisiko**: hver bruker, vert og IP-adresse med risiko nå, de mest risikable først, med nivå, hvor mye den betyr, hva som fant den og når. Hver av dem åpnes på sin egen side.
+Åpne **Produkter → Security Events → Entitetsrisiko**: hver bruker, vert og IP-adresse med risiko nå, de mest risikable først, med nivå, hvor mye den betyr, hva som fant den og når. Hver av dem åpnes på sin egen side. **Mest risikable entiteter** på oversikten viser toppen av denne listen, og **Slå opp en entitet** under den slår opp hvilken som helst verdi på tvers av 30 dager med hendelser, også et domene eller en fil-hash.
 
 ## Før du begynner
 

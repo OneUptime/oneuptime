@@ -36,7 +36,6 @@ Open **Producten → Security Events**, onder **Observability**. Het menu heeft 
 | **Gesloten zaken** | Beveiligingszaken | De zaken die met een oordeel zijn gesloten, de nieuwste eerst |
 | **Alle zaken** | Beveiligingszaken | Elke zaak, open of gesloten |
 | **Gebeurtenissen** | Gebeurtenissen | Elke gebeurtenis zoeken en filteren, en er een openen om al haar velden te zien |
-| **Entiteiten** | Gebeurtenissen | De gebruikers, hosts en adressen die je bevindingen het vaakst noemen |
 | **Entiteitrisico** | Gebeurtenissen | Elke gebruiker, host en elk adres, gescoord op wat er deze week over werd gevonden, de riskantste eerst |
 | **Correleren** | Gebeurtenissen | Een grafiek van de gebeurtenissen die een host, een gebruiker of een IP-adres delen |
 | **Detectieregels** | Detections | Sigma-regels die volgens een schema draaien en zaken openen |
