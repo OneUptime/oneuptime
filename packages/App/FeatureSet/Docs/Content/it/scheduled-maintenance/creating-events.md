@@ -5,6 +5,7 @@ Pianificate una manutenzione in due brevi passi: dite cosa succede e quando, poi
 :::cards
 - [Creare un evento](#creare-un-evento): Due passi e un riepilogo.
 - [Cosa succede quando lo create](#cosa-succede-quando-lo-create): Il suo numero, le regole, i proprietari e i primi messaggi.
+- [Pubblicarlo più tardi](#pubblicarlo-più-tardi): Tenerlo fuori dalle vostre pagine di stato fino a una data e un'ora.
 - [Modificare un evento in seguito](#modificare-un-evento-in-seguito): La sua finestra, le risorse, le pagine di stato e le note.
 - [Creare eventi dal codice](#creare-eventi-dal-codice): L'API, Terraform, i workflow e la chat.
 :::
@@ -42,7 +43,7 @@ Fate clic su **Avanti** per arrivare a **Risorse interessate**. Scegliete i **Mo
 
 ### Scegliere chi lo viene a sapere
 
-Scegliete le pagine di stato in **Mostra evento su queste pagine di stato**. **Notifiche agli iscritti**, chiuso, dice in una riga chi viene avvisato e quando; apritelo per cambiare **Quando l'evento viene pianificato**, **Quando l'evento inizia**, **Quando l'evento termina** o **Promemoria prima dell'evento**.
+Scegliete le pagine di stato in **Mostra evento su queste pagine di stato**. **Notifiche agli iscritti**, chiuso, dice in una riga quando l'evento vi compare e chi viene avvisato e quando; apritelo per scegliere **A una data e un'ora** in **Pubblica sulle pagine di stato**, o per cambiare **Quando l'evento viene pianificato**, **Quando l'evento inizia**, **Quando l'evento termina** o **Promemoria prima dell'evento**.
 
 ### Crearlo
 
@@ -65,7 +66,7 @@ Non viene inviato nulla finché non scegliete una pagina di stato: un evento mos
 | **Cambia lo stato del monitor in**   | **Risorse interessate** | Nessun cambio              | Lo stato che questi monitor mostrano durante l'evento. Viene chiesto appena si sceglie un monitor. |
 | **Altre risorse interessate**        | **Risorse interessate** | Nessuna                    | Host, cluster, database, siti di rete, servizi e altro.                          |
 | **Mostra evento su queste pagine di stato** | **Risorse interessate** | Nessuna           | Le pagine di stato che mostrano l'evento e avvisano i loro iscritti.             |
-| **Notifiche agli iscritti**          | **Risorse interessate** | Tutti e tre i momenti attivi, nessun promemoria | Quando vengono avvisati gli iscritti di quelle pagine. |
+| **Notifiche agli iscritti**          | **Risorse interessate** | Pubblicato subito, tutti e tre i momenti attivi, nessun promemoria | Quando l'evento compare su quelle pagine e quando vengono avvisati i loro iscritti. |
 
 Due cose compilano il modulo per voi strada facendo:
 
@@ -89,7 +90,22 @@ Nel momento in cui fate clic su **Crea evento di manutenzione programmata**, One
 5. **Le regole di runbook avviano** i runbook che corrispondono all'evento.
 6. **Vengono pianificati i promemoria**, quando corrisponde una regola di promemoria, per i suoi proprietari.
 
-Entro un minuto gli iscritti delle sue pagine di stato vengono avvisati che è stato pianificato, a meno che abbiate disattivato **Quando l'evento viene pianificato**. Il trigger di workflow **On Create Scheduled Maintenance Event** avvia qualsiasi workflow costruito su di esso, e i suoi proprietari lo vengono a sapere se hanno attivato quella notifica: vedere [Impostazioni notifiche](/docs/notifications/notification-settings).
+Entro un minuto dalla sua pubblicazione, che è immediata a meno che abbiate scelto un **Pubblica il**, gli iscritti delle sue pagine di stato vengono avvisati che è stato pianificato, a meno che abbiate disattivato **Quando l'evento viene pianificato**. Il trigger di workflow **On Create Scheduled Maintenance Event** avvia qualsiasi workflow costruito su di esso, e i suoi proprietari lo vengono a sapere se hanno attivato quella notifica: vedere [Impostazioni notifiche](/docs/notifications/notification-settings).
+
+## Pubblicarlo più tardi
+
+Pianificate il lavoro con tutto l'anticipo che volete e tenetelo all'interno del team finché i vostri clienti non devono saperlo. Scegliete **A una data e un'ora** in **Pubblica sulle pagine di stato**, nel modulo o nel passo **Pagine di stato** di **Modifica** dell'evento, e un **Pubblica il** prima di **Inizia il**. Fino ad allora l'evento non è su nessuna delle sue pagine di stato: né nei loro elenchi, né nella loro cronologia del tempo di attività, né nei loro feed RSS e Atom, né nel loro calendario di manutenzione, né nella loro API, né al suo link. A quel momento compare come imminente, e i suoi iscritti vengono avvisati, una sola volta, che è pianificato.
+
+| Quando                   | Che cosa succede                                                    | Sulle vostre pagine di stato |
+| ------------------------ | ------------------------------------------------------------------- | ---------------------------- |
+| Alla creazione           | Scegliete un **Pubblica il** prima del suo **Inizia il**            | Non mostrato                 |
+| Il suo **Pubblica il**   | Viene pubblicato, e i suoi iscritti vengono avvisati che è pianificato | Imminente                 |
+| Il suo **Inizia il**     | Inizia, come ogni evento                                            | In corso                     |
+| Il suo **Termina il**    | Termina                                                             | Concluso                     |
+
+- **Fino ad allora, gli iscritti non ne sanno nulla.** Finché l'evento attende, non vengono inviati loro i promemoria prima dell'evento, i cambi di stato né le note pubbliche.
+- **La sua pagina lo dice.** La sua intestazione mostra **Non ancora sulle pagine di stato**, con l'ora da cui compare, e **Pubblica ora** lo pubblica subito, dopo una conferma. Le sue **Impostazioni** dicono lo stesso, e l'elenco degli eventi mostra l'ora sotto le sue pagine di stato.
+- **Cambiarlo, o pubblicarlo subito.** Spostate il **Pubblica il** nel passo **Pagine di stato** di **Modifica**, o scegliete **Subito**. Disattivate **Visibile sulla pagina di stato** nelle sue **Impostazioni** per tenerlo fuori dalle sue pagine di stato a qualsiasi ora.
 
 ## Modificare un evento in seguito
 
@@ -98,7 +114,7 @@ Tutto ciò che c'è nel modulo si può cambiare sulle pagine dell'evento, tranne
 | Per cambiare                                | Andate a                                                                       |
 | ------------------------------------------- | ------------------------------------------------------------------------------ |
 | Il titolo, la finestra o le etichette       | **Modifica** sulla scheda **Maintenance Details** della sua **Panoramica**, passo **Evento** |
-| Le pagine di stato o i promemoria           | Lo stesso **Modifica**, passo **Pagine di stato**                               |
+| Le pagine di stato, quando viene pubblicato, o i promemoria | Lo stesso **Modifica**, passo **Pagine di stato**                  |
 | I monitor, il loro stato o le altre risorse | **Modifica** sulla scheda **Risorse interessate**                               |
 | La descrizione                              | **Descrizione** nel suo menu laterale                                          |
 | I proprietari                               | **Proprietari** nel suo menu laterale                                          |
@@ -137,6 +153,7 @@ curl -X POST https://oneuptime.com/api/scheduled-maintenance \
 | `changeMonitorStatusToId`                             | Lo stato del monitor in cui passano i suoi monitor quando inizia.                         |
 | `currentScheduledMaintenanceStateId`                  | Ignorato: ogni evento parte nel vostro stato programmato.                                 |
 | `shouldStatusPageSubscribersBeNotifiedOnEventCreated` | L'interruttore **Quando l'evento viene pianificato**. Gli altri due momenti hanno campi propri. |
+| `publishOnStatusPageAt`                               | Quando l'evento viene pubblicato sulle sue pagine di stato e i suoi iscritti vengono avvisati che è pianificato. Se omesso, subito. |
 
 Lo stesso evento come codice è la risorsa Terraform `oneuptime_scheduled_maintenance_event`: vedere [Esempi](/docs/terraform/examples#manutenzione-programmata). Un workflow ne crea uno con il suo passo **Create One Scheduled Maintenance Event**, e `/oneuptime maintenance` apre il modulo in Slack: vedere [Slack](/docs/workspace-connections/slack#creare-incidenti-e-manutenzioni-da-slack).
 
@@ -152,6 +169,10 @@ Viene chiesto solo quando l'evento ha un monitor. Sceglietene uno in **Monitor**
 
 :::details Cambia lo stato del monitor in non si può più cambiare
 L'evento è iniziato, e i suoi monitor sono già in quello stato. Lo stato vale dal momento in cui l'evento inizia finché non termina.
+:::
+
+:::details Pubblica il dice che deve precedere Inizia il
+Un evento viene pubblicato perché i vostri clienti sappiano del lavoro prima che inizi. Scegliete un **Pubblica il** prima di **Inizia il**, o **Subito**.
 :::
 
 ## Passi successivi

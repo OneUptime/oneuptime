@@ -113,7 +113,7 @@ Il calendario contiene ogni evento da 90 giorni fa a un anno avanti, fino a 1.00
 
 Le persone che seguono una pagina di stato possono portare la sua manutenzione programmata nel proprio calendario. Nella pagina degli eventi programmati della pagina di stato, **Iscriviti al calendario** offre Google Calendar, l'app di calendario del loro dispositivo o il link da copiare. Il link è l'indirizzo della pagina seguito da `/maintenance.ics`, ad esempio `https://status.example.com/maintenance.ics`.
 
-- **Che cosa contiene.** Esattamente ciò che la pagina mostra: gli eventi della finestra cronologica della pagina, ogni evento ancora da iniziare e ogni evento in corso, finché **Visibile sulla pagina di stato** è attivo. Ciò che ogni evento riguarda viene indicato come la pagina chiama le sue risorse, mai con i nomi propri dei vostri monitor.
+- **Che cosa contiene.** Esattamente ciò che la pagina mostra: gli eventi della finestra cronologica della pagina, ogni evento ancora da iniziare e ogni evento in corso, finché **Visibile sulla pagina di stato** è attivo, e dal suo **Pubblica il** se ne avete scelto uno. Ciò che ogni evento riguarda viene indicato come la pagina chiama le sue risorse, mai con i nomi propri dei vostri monitor.
 - **Una pagina privata.** Un'app di calendario non può accedere, quindi una pagina privata non offre **Iscriviti al calendario**, e il suo link fornisce un calendario vuoto che dice che la pagina è privata.
 - **Un solo evento.** **Aggiungi al calendario** nella pagina di un evento aggiunge solo quell'evento: Google Calendar si apre con l'evento già compilato, oppure viene scaricato come file che l'app di calendario del dispositivo apre. Funziona anche su una pagina privata, per un visitatore che ha effettuato l'accesso, e non viene più offerto quando l'evento è finito.
 
@@ -147,7 +147,7 @@ Google Calendar legge il link dai server di Google, quindi il server OneUptime d
 :::
 
 :::details Un evento manca dal calendario di una pagina di stato
-Il calendario della pagina contiene ciò che la pagina mostra. Verificate che l'evento indichi la pagina, che **Visibile sulla pagina di stato** sia attivo nelle sue **Impostazioni** e che sia iniziato entro la finestra cronologica della pagina.
+Il calendario della pagina contiene ciò che la pagina mostra. Verificate che l'evento indichi la pagina, che **Visibile sulla pagina di stato** sia attivo nelle sue **Impostazioni**, che il suo **Pubblica il**, se ne ha uno, sia arrivato e che sia iniziato entro la finestra cronologica della pagina.
 :::
 
 :::details Un calendario esterno indica Non funziona

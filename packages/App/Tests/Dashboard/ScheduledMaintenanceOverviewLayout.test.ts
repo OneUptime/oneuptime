@@ -239,8 +239,13 @@ describe("scheduled maintenance overview: header", () => {
   });
 
   test("shows overdue phases as the header's amber band", () => {
+    /*
+     * And, quietly, that an event kept to the team until its publish time
+     * is not on its status pages yet (#5249) - unless it missed a boundary,
+     * which is what needs doing first.
+     */
     expect(changeState).toContain(
-      'headerNoticeTone="warning" headerNotice={overdueNotice}',
+      'headerNoticeTone={overdueNotice ? "warning" : "neutral"} headerNotice={overdueNotice || props.publishingNotice}',
     );
     expect(changeState).toContain(
       "timing.isOverdue && timing.overdueSince ? ( <OverdueNotice",
@@ -368,10 +373,10 @@ describe("scheduled maintenance overview: columns", () => {
   test("refreshes the feed after state changes and edits", () => {
     expect(page).toContain("refreshToken={feedRefreshToken}");
     /*
-     * State changes, two edits, people added to the event's channel, and
-     * owners added from the header.
+     * State changes, two edits, people added to the event's channel, owners
+     * added from the header, and publishing it now from the header's band.
      */
-    expect(count(page, "setFeedRefreshToken((token: number) => {")).toBe(5);
+    expect(count(page, "setFeedRefreshToken((token: number) => {")).toBe(6);
     expect(feed).toContain("refreshToken?: number | undefined;");
     expect(feed).toContain("refreshToken: props.refreshToken,");
   });
