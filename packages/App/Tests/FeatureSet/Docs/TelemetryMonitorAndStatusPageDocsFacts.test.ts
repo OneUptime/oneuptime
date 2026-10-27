@@ -1585,12 +1585,11 @@ describe("the Metrics monitor", () => {
     expect([...documented.keys()].sort()).toEqual([...order].sort());
 
     /*
-     * Every window ends at one instant, not now. A day range steps back days
-     * on the calendar of the zone the test runs in, so a window the clocks
-     * went back inside is an hour longer, and Past 1, 3 and 7 Days and Past
-     * 180 Days, each on a bucket's edge, tip into the next bucket - in London
-     * from 25 October 2026 until the clocks go forward in March. No zone's
-     * clocks went back in the 180 days before this instant.
+     * Every window ends at one instant, not now, so the check is the same on
+     * whatever day it runs. Past 1, 3 and 7 Days and Past 180 Days each sit
+     * on a bucket's edge: a day range is 24 hours a day, not calendar days,
+     * or a window the clocks went back inside would be an hour longer and
+     * tip into the next bucket (RollingTimeUtilLondon).
      */
     const windowEnd: Date = new Date(Date.UTC(2026, 9, 16, 12, 0, 0));
 
