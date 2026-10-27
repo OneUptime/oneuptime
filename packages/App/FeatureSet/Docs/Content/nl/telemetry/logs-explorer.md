@@ -87,7 +87,7 @@ De livemodus zet zichzelf uit als u de zoekopdracht, een filter of het tijdsbere
 ## Kolommen kiezen en exporteren
 
 - **Kolommen** kiest wat de lijst toont. **Tijd**, **Service**, **Ernst** en **Bericht** staan vooraan; voeg **Trace-ID**, **Span-ID** of een willekeurig attribuut toe, verplaats kolommen omhoog en omlaag, of ga terug naar de standaard met **Opnieuw instellen**.
-- **Export** downloadt de logboeken van de pagina die u bekijkt. **Export as CSV** schrijft de kolommen die u toont; **Export as JSON** schrijft elk veld van elk logboek, met al zijn attributen.
+- **Export** downloadt de logboeken van de pagina die u bekijkt. **Exporteren als CSV** schrijft de kolommen die u toont; **Exporteren als JSON** schrijft elk veld van elk logboek, met al zijn attributen.
 
 ## Een weergave opslaan
 

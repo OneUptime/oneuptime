@@ -5160,6 +5160,82 @@ test.describe("detections", () => {
     await screenshot(page, "attack-coverage-dark");
   });
 
+  /*
+   * The library shows every rule on one page: its table has no footer to
+   * page with (disablePagination). The empty footer used to pull itself into
+   * the card's bottom padding, so the last rule ended on the card's bottom
+   * edge - its square white corners over the card's rounded ones, and over
+   * its bottom border (#5246). The card keeps its padding now, with its
+   * border and its corners, in both themes.
+   */
+  test("the rule library's last rule ends inside its card: the card keeps its padding, bottom border and rounded corners", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const theme of [undefined, "dark"] as Array<OpenOptions["theme"]>) {
+      await open(page, RULE_LIBRARY_PATH, { width: 1344, theme });
+      const last: Locator = libraryRows(page).last();
+      await expect(last).toBeVisible({ timeout: 30000 });
+
+      // The card is the page's last: its foot is in the window at the page's end.
+      await page.evaluate((): void => {
+        window.scrollTo(0, document.documentElement.scrollHeight);
+      });
+
+      const card: Locator = page
+        .getByTestId("card")
+        .filter({ has: libraryRows(page).first() });
+      const cardBox: Box = await boxOf(card);
+      const lastBox: Box = await boxOf(last);
+      const gap: number =
+        cardBox.y + cardBox.height - (lastBox.y + lastBox.height);
+
+      // The card's 24px of padding, and its 1px border.
+      expect(gap, `${theme || "light"}: under the last rule`).toBeGreaterThan(
+        23,
+      );
+      expect(gap).toBeLessThan(27);
+
+      // Nothing of the footer is drawn: no band, no pull into the padding.
+      const footer: Locator = card.getByTestId("table-footer");
+      expect(
+        await footer.evaluate((element: Element): number => {
+          return element.getBoundingClientRect().height;
+        }),
+      ).toBe(0);
+      await expect(footer).toHaveCSS("margin-bottom", "0px");
+
+      /*
+       * What is drawn just inside the card's bottom corner, and in the
+       * middle of its bottom padding, is the card - not a row's cell.
+       */
+      for (const [x, y] of [
+        [cardBox.x + 8, cardBox.y + cardBox.height - 8],
+        [cardBox.x + cardBox.width - 8, cardBox.y + cardBox.height - 8],
+        [cardBox.x + cardBox.width / 2, cardBox.y + cardBox.height - 6],
+      ] as Array<[number, number]>) {
+        const drawn: string = await page.evaluate(
+          ({ pointX, pointY }: { pointX: number; pointY: number }): string => {
+            // A bounding box is where it is in the window, as this reads.
+            const element: Element | null = document.elementFromPoint(
+              pointX,
+              pointY,
+            );
+
+            if (!element) {
+              return "nothing";
+            }
+
+            return element.closest("tr") ? "row" : "card";
+          },
+          { pointX: x, pointY: y },
+        );
+        expect(drawn, `${theme || "light"} at ${x},${y}`).toBe("card");
+      }
+    }
+  });
+
   test("the rule library is a list to scan: what each rule finds, its ATT&CK tags, the events it reads and whether they arrive, its severity, and Add or Added", async ({
     page,
   }: {
@@ -6742,9 +6818,10 @@ test.describe("detection rules and threat intel", () => {
    * Ten columns stood every feed's row five lines tall. The interval, Last
    * Evaluated and the two messages wait in Customize Columns (the Status
    * and View Error say when there is something to read); what a poll did
-   * is one line, whole on hover.
+   * is one line, whole on hover; where a feed's indicators come from sits
+   * under its name, not in a column of its own (#5246).
    */
-  test("the feeds table shows what most people read, each healthy row one line", async ({
+  test("the feeds table shows what most people read: each row its name over its source, and one line beside them", async ({
     page,
   }: {
     page: Page;
@@ -6764,7 +6841,6 @@ test.describe("detection rules and threat intel", () => {
       .filter(Boolean);
     for (const shown of [
       "Name",
-      "Source",
       "Status",
       "Last Polled",
       "Last Match",
@@ -6773,24 +6849,52 @@ test.describe("detection rules and threat intel", () => {
       expect(headers.join(" | ")).toContain(shown);
     }
     for (const hidden of [
+      "Source",
       "Interval (Minutes)",
       "Last Error",
       "Last Evaluated",
       "Last Match Error",
     ]) {
-      expect(headers.join(" | ")).not.toContain(hidden);
+      expect(headers).not.toContain(hidden);
     }
 
-    // A healthy feed's row is one line: what its poll did, cut short, whole on hover.
-    for (const row of await feeds.locator("tbody tr").all()) {
-      const box: Box = await boxOf(row);
-      expect(box.height).toBeLessThanOrEqual(64);
-    }
-
-    // Every feed's button is Edit; a TAXII feed's Update Credentials and Create Monitor wait in its menu.
+    // The source under the name, smaller and quieter: one cell.
     const misp: Locator = feeds
       .locator("tbody tr")
       .filter({ hasText: "Corporate MISP" });
+    const source: Locator = misp.getByTestId("threat-intel-feed-source-cell");
+    await expect(source).toHaveText("TAXII collection");
+    const nameBox: Box = await boxOf(misp.getByTestId("security-list-name"));
+    const sourceBox: Box = await boxOf(source);
+    expect(sourceBox.y).toBeGreaterThanOrEqual(nameBox.y + nameBox.height - 1);
+    expect(Math.abs(sourceBox.x - nameBox.x)).toBeLessThanOrEqual(1);
+    expect(
+      await source.evaluate((element: Element): string => {
+        return window.getComputedStyle(element).fontSize;
+      }),
+    ).toBe("12px");
+
+    // When it last polled and last matched, as how long ago.
+    await expect(misp.getByTestId("relative-time-cell").first()).toHaveText(
+      /ago$/,
+    );
+
+    /*
+     * A row is its name over its source: every other value is one line
+     * beside them, what a poll did cut short and whole on hover.
+     */
+    for (const row of await feeds.locator("tbody tr").all()) {
+      const box: Box = await boxOf(row);
+      expect(box.height).toBeLessThanOrEqual(100);
+    }
+    const summary: Locator = misp
+      .locator("td")
+      .nth(5)
+      .locator("[data-table-value]");
+    await expect(summary).toContainText("Fetched");
+    expect((await boxOf(summary)).height).toBeLessThanOrEqual(26);
+
+    // Every feed's button is Edit; a TAXII feed's Update Credentials and Create Monitor wait in its menu.
     await expect(
       misp.getByTestId("row-actions").getByRole("button", { name: "Edit" }),
     ).toBeVisible();
@@ -6802,6 +6906,70 @@ test.describe("detection rules and threat intel", () => {
       page.getByRole("menuitem", { name: "Create Monitor" }),
     ).toBeVisible();
     await page.keyboard.press("Escape");
+  });
+
+  /*
+   * Threat Intel's two tables ran past their cards at a 1280 laptop
+   * (#5246): the feeds' Last Match and Last Poll Summary under the row's
+   * buttons, the indicators' Confidence and Valid Until out of sight. The
+   * times read as how long ago, a feed's source sits under its name, and
+   * both fit - in English and in every language whose words are not the
+   * longest (Dutch's feeds and Russian's still give way only so far). The
+   * fixture is 64px narrower than production: 1344 here is a 1280 laptop.
+   */
+  test("Threat Intel's feeds and indicators fit their cards at a 1280 laptop, nothing sideways", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const lang of [
+      undefined,
+      "de",
+      "fr",
+      "es",
+      "it",
+      "pt",
+      "ja",
+      "fa",
+    ] as Array<OpenOptions["lang"]>) {
+      await open(page, THREAT_INTEL_PATH, {
+        width: 1344,
+        ...(lang ? { lang } : {}),
+      });
+      const scrollers: Locator = page.getByTestId("table-scroll");
+      await expect(scrollers).toHaveCount(2, { timeout: 30000 });
+      await expect(rowNamed(page, "Corporate MISP").first()).toBeVisible({
+        timeout: 30000,
+      });
+      await expect(rowNamed(page, "update-check.example").first()).toBeVisible({
+        timeout: 30000,
+      });
+
+      for (const scroller of await scrollers.all()) {
+        await expect(scroller, `${lang || "en"}`).toHaveAttribute(
+          "data-overflowing",
+          "false",
+        );
+        expect(
+          await overflowOf(scroller),
+          `${lang || "en"}: a table scrolls sideways`,
+        ).toBeLessThanOrEqual(1);
+      }
+      expect(await pageOverflow(page), `${lang || "en"}`).toBeLessThanOrEqual(
+        1,
+      );
+    }
+
+    // English, as a laptop shows it: Valid Until says how far off.
+    await open(page, THREAT_INTEL_PATH, { width: 1344 });
+    const indicators: Locator = cardTitled(page, "Indicators");
+    await expect(
+      rowNamed(page, "update-check.example")
+        .first()
+        .getByTestId("relative-time-cell"),
+    ).toHaveText(/^in /, { timeout: 30000 });
+    await screenshot(page, "threat-intel-fits-1280", { fullPage: true });
+    expect(await overflowOf(indicators.getByTestId("table-scroll"))).toBe(0);
   });
 
   test("a Security Viewer reads the lists but cannot add one", async ({

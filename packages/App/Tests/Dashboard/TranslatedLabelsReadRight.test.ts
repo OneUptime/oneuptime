@@ -323,6 +323,34 @@ describe("the seeded alert and incident states", () => {
   );
 });
 
+describe("the older seeded state Created, whose word date columns share", () => {
+  /*
+   * A project made before its first state was named Identified still has
+   * Created, drawn by its English key - the key every "Created" column of
+   * dates, tile and import result reads too. Japanese wrote it 作成日時,
+   * "the date and time of creation", so every Created incident and alert
+   * read as a date in its state pill and its header's track (#5251). It is
+   * 作成 now: a state as much as a column of dates, as 開始 (Started) and
+   * 終了 (Ended) are. Created At, the date's own key, keeps 作成日時.
+   */
+  test("Japanese reads it as a state, and as a column of dates", () => {
+    expect(valueOf("ja", "Created")).toBe("作成");
+    expect(valueOf("ja", "Created At")).toBe("作成日時");
+    expect([valueOf("ja", "Started"), valueOf("ja", "Ended")]).toEqual([
+      "開始",
+      "終了",
+    ]);
+  });
+
+  test("its family reads one after another in the header's track", () => {
+    expect([
+      valueOf("ja", "Created"),
+      valueOf("ja", "Acknowledged"),
+      valueOf("ja", "Resolved"),
+    ]).toEqual(["作成", "確認済み", "解決済み"]);
+  });
+});
+
 describe("the gauge widget's setup prompt", () => {
   test.each(LANGUAGES)(
     "names the gauge as the Add Widget picker does in %s",

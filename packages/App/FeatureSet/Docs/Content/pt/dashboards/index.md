@@ -45,7 +45,7 @@ O menu lateral da lista tem as páginas que cuidam de todos os seus painéis:
 
 | Página | O que você faz nela |
 | --- | --- |
-| **Painéis** | Os painéis do projeto. Crie um, ou traga painéis com **Import JSON**. |
+| **Painéis** | Os painéis do projeto. Crie um, ou traga painéis com **Importar JSON**. |
 | **Painéis → Playlists** | [Exibir os painéis um após o outro](/docs/dashboards/playlists) em uma tela, como a parede de um NOC. |
 | **Configurações → Regras de proprietário** | Adicionar proprietários aos novos painéis automaticamente. |
 | **Configurações → Regras de Rótulos** | Adicionar rótulos aos novos painéis automaticamente. |

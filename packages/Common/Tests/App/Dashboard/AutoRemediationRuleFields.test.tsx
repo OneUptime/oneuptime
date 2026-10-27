@@ -507,10 +507,10 @@ describe("a rule that picked no Runner, where the project uses a Global Runner",
 
     expect(shown()).toBe("prod-eu-runner · Connected");
     /*
-     * A Runner's own name reads its own direction, so an English name on a
-     * Persian page keeps its start in view.
+     * A Runner's own name reads the way most of its letters do, so an
+     * English name on a Persian page keeps its start in view.
      */
-    expect(valueLabel()).toHaveAttribute("dir", "auto");
+    expect(valueLabel()).toHaveAttribute("dir", "ltr");
     noHelp();
   });
 

@@ -81,7 +81,7 @@ The page's side menu groups what you do with an exception:
 
 ## Resolve, reopen and archive
 
-The buttons at the top of the exception's page, and its **Settings** page, change its status:
+The buttons at the top of the exception's page, its **Settings** page and the ⋯ menu on its row in the list change its status:
 
 | Action | When to use it | What happens next |
 | --- | --- | --- |
@@ -91,6 +91,8 @@ The buttons at the top of the exception's page, and its **Settings** page, chang
 | **Unarchive** | You want to hear about it again. | It is back in the list it belongs to. |
 
 **Settings** shows who last resolved or archived the exception, and when. Its buttons read **Mark as Resolved** or **Mark as Unresolved**, and **Archive** or **Unarchive**.
+
+To change several at once, tick their rows in the list, or the box above the rows for every exception on the page, and use the same actions under **Bulk Actions**. It says which exceptions it changed, which it left as they were, and why.
 
 ## Error classes
 

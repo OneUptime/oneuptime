@@ -147,6 +147,7 @@ import SecurityCaseNote from "Common/Models/DatabaseModels/SecurityCaseNote";
 import SecurityDetection from "Common/Models/DatabaseModels/SecurityDetection";
 import SecurityEventConnection from "Common/Models/DatabaseModels/SecurityEventConnection";
 import SecurityLogSource from "Common/Models/DatabaseModels/SecurityLogSource";
+import SecurityTelemetrySource from "Common/Models/DatabaseModels/SecurityTelemetrySource";
 import SecurityPlaybook from "Common/Models/DatabaseModels/SecurityPlaybook";
 import SecurityPlaybookRun from "Common/Models/DatabaseModels/SecurityPlaybookRun";
 import SecurityProtectedEntity from "Common/Models/DatabaseModels/SecurityProtectedEntity";
@@ -2180,6 +2181,8 @@ for (const modelType of [
   SecurityPlaybookRun,
   SecurityEventConnection,
   SecurityLogSource,
+  // The other signals Connections watches: none yet in this project.
+  SecurityTelemetrySource,
   DetectionRule,
   ThreatIntelFeed,
   SecurityProtectedEntity,

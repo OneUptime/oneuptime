@@ -1,11 +1,11 @@
 # Importere og eksportere etikettregler
 
-Kopier etikettregler mellom prosjekter, eller opprett mange på én gang, som en JSON-fil. Hver side **Etikettregler** har handlingene **Export JSON** og **Import JSON** i menyen **Flere alternativer** (**⋯**), også for hendelser, varsler, monitorer og nettverksenheter. Det eneste unntaket er VMware: etikettreglene for vCentre har ingen av dem.
+Kopier etikettregler mellom prosjekter, eller opprett mange på én gang, som en JSON-fil. Hver side **Etikettregler** har handlingene **Eksporter JSON** og **Importer JSON** i menyen **Flere alternativer** (**⋯**), også for hendelser, varsler, monitorer og nettverksenheter. Det eneste unntaket er VMware: etikettreglene for vCentre har ingen av dem.
 
 ```mermaid title="Flytte etikettregler mellom prosjekter"
 flowchart TB
-    E["Export JSON<br/>i kildeprosjektet"] --> F["JSON-fil"]
-    F --> I["Import JSON<br/>i målprosjektet"]
+    E["Eksporter JSON<br/>i kildeprosjektet"] --> F["JSON-fil"]
+    F --> I["Importer JSON<br/>i målprosjektet"]
     I --> V{"Valider og forhåndsvis"}
     V -->|"Problemer funnet"| J["Rediger JSON"]
     J --> V
@@ -15,7 +15,7 @@ flowchart TB
 
 ## Eksportere regler
 
-Åpne **Flere alternativer** og velg **Export JSON** for å laste ned alle regler av den typen i det gjeldende prosjektet. Eksporten tar med regler på andre sider av tabellen og ser bort fra tabellfiltre.
+Åpne **Flere alternativer** og velg **Eksporter JSON** for å laste ned alle regler av den typen i det gjeldende prosjektet. Eksporten tar med regler på andre sider av tabellen og ser bort fra tabellfiltre.
 
 Filen beholder hver regels status (aktivert eller ikke), betingelser, etiketter som skal legges til, og innstillinger for arv av etiketter. Prosjekt-ID-er, regel-ID-er og revisjonsfelt utelates.
 
@@ -24,9 +24,9 @@ Tilknyttede etiketter, monitorer og alvorlighetsgrader skrives med det nøyaktig
 ## Importere regler
 
 :::steps
-### Åpne Import JSON
+### Åpne Importer JSON
 
-Åpne målprosjektets side **Etikettregler** og velg **Flere alternativer → Import JSON**.
+Åpne målprosjektets side **Etikettregler** og velg **Flere alternativer → Importer JSON**.
 
 ### Legg til filen
 
@@ -93,7 +93,7 @@ Dette stopper hele batchen før importtrinnet: ugyldige mønstre, ukjente felt, 
 
 ## Kopiere mellom ressurstyper
 
-Behold den opprinnelige `resourceType` i filen, og åpne **Import JSON** på målsiden. Kompatible mønstre for primærnavn eller tittel, beskrivelsesmønstre og forutsatte etiketter knyttes til feltene i målet, og forhåndsvisningen viser disse koblingene slik at du kan gå gjennom dem. Henvisninger til alvorlighetsgrader for hendelser og varsler sammenlignes med navnene på alvorlighetsgradene i målet.
+Behold den opprinnelige `resourceType` i filen, og åpne **Importer JSON** på målsiden. Kompatible mønstre for primærnavn eller tittel, beskrivelsesmønstre og forutsatte etiketter knyttes til feltene i målet, og forhåndsvisningen viser disse koblingene slik at du kan gå gjennom dem. Henvisninger til alvorlighetsgrader for hendelser og varsler sammenlignes med navnene på alvorlighetsgradene i målet.
 
 Betingelser eller handlinger som målet ikke støtter, blokkerer importen. For eksempel kan en hendelsesregel som er begrenset til bestemte monitorer, ikke kopieres til regler for nettverksenheter uten å redigere de betingelsene.
 
