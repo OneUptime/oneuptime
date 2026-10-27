@@ -127,10 +127,7 @@ import MicrosoftTeamsProjectChoice, {
   MicrosoftTeamsProjectChoiceKind,
   MicrosoftTeamsProjectChoiceRequest,
 } from "./MicrosoftTeamsProjectChoice";
-import {
-  WorkspaceProjectChoiceRefusal,
-  WorkspaceProjectChoiceTaken,
-} from "../WorkspaceProjectChoiceStore";
+import { WorkspaceProjectChoiceTaken } from "../WorkspaceProjectChoiceStore";
 import WorkspaceInlineImages from "../WorkspaceInlineImages";
 import ChatInlineImages from "../../../../Utils/Markdown/ChatInlineImages";
 import { replacePipeTables } from "../../../../Utils/Markdown/PipeTables";
@@ -3927,6 +3924,12 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       // Answered in the project chosen earlier in this conversation.
       let isInConversationProject: boolean = false;
 
+      /*
+       * The name of the project a question is answered in, when its sender
+       * chose it for this conversation: its answer says so.
+       */
+      let chosenProjectName: string | null = null;
+
       if (!projectAuth || !projectAuth.projectId) {
         /*
          * The help, and the answer to a misspelt command, read nothing in
@@ -3978,14 +3981,12 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         /*
          * Made again in the project its sender chose, which this
          * organization is no longer connected to: nothing is made in
-         * another project instead.
+         * another project instead, and they are told so.
          */
         if (data.chosenProjectId) {
           await MicrosoftTeamsActionAnswer.reply({
             turnContext: data.turnContext,
-            answer: MicrosoftTeamsProjectChoice.getRefusalAnswer(
-              WorkspaceProjectChoiceRefusal.Gone,
-            ),
+            answer: MicrosoftTeamsProjectChoice.getDisconnectedAnswer(),
           });
           return;
         }
@@ -4144,13 +4145,18 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
           /*
            * A question answered in a project its sender chose - just now,
            * or earlier in this conversation - keeps it for the
-           * conversation's follow-ups (MicrosoftTeamsProjectChoice).
+           * conversation's follow-ups (MicrosoftTeamsProjectChoice), and
+           * its answer says which project that is: a chat has no threads,
+           * so a question asked later in it is answered there too.
            */
           if (data.chosenProjectId || isInConversationProject) {
             await MicrosoftTeamsProjectChoice.rememberConversationProject({
               activity: data.activity,
               projectId: projectId,
             });
+
+            chosenProjectName =
+              await MicrosoftTeamsProjectChoice.getProjectName(projectId);
           }
 
           /*
@@ -4163,6 +4169,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
             turnContext: data.turnContext,
             projectId: projectId,
             question: input.text,
+            chosenProjectName: chosenProjectName || undefined,
           });
           return;
       }
@@ -4528,6 +4535,12 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     turnContext: TurnContext;
     projectId: ObjectID;
     question: string;
+    /*
+     * The project's name, when its asker chose it for this conversation
+     * (MicrosoftTeamsProjectChoice): the answer then says it was answered
+     * there.
+     */
+    chosenProjectName?: string | undefined;
   }): Promise<void> {
     const { activity, turnContext, projectId, question } = data;
 
@@ -4763,6 +4776,14 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       }
 
       /*
+       * Which project answered, when its asker chose it for this
+       * conversation (MicrosoftTeamsProjectChoice.getAnsweredInNote).
+       */
+      if (data.chosenProjectName) {
+        replyText = mdText`${replyText}\n\n${MicrosoftTeamsProjectChoice.getAnsweredInNote(data.chosenProjectName)}`;
+      }
+
+      /*
        * Said under every answer, and shown by Teams' own label on it: AI
        * wrote it, it may be wrong, and how to report it
        * (MicrosoftTeamsAiAnswer).
@@ -4967,14 +4988,12 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         /*
          * Made again in the project its presser chose, which this
          * organization is no longer connected to: nothing is done in
-         * another project instead.
+         * another project instead, and they are told so.
          */
         if (data.chosenProjectId) {
           await MicrosoftTeamsActionAnswer.reply({
             turnContext: data.turnContext,
-            answer: MicrosoftTeamsProjectChoice.getRefusalAnswer(
-              WorkspaceProjectChoiceRefusal.Gone,
-            ),
+            answer: MicrosoftTeamsProjectChoice.getDisconnectedAnswer(),
           });
           return;
         }

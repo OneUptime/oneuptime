@@ -1173,12 +1173,21 @@ describe("MicrosoftTeamsUtil.handleBotMessageActivity - the resolved project sco
     });
 
     expect(answerSpy).toHaveBeenCalledTimes(1);
-    const answerArgs: { projectId: ObjectID; question: string } = answerSpy.mock
-      .calls[0]?.[0] as { projectId: ObjectID; question: string };
+    const answerArgs: {
+      projectId: ObjectID;
+      question: string;
+      chosenProjectName?: string;
+    } = answerSpy.mock.calls[0]?.[0] as {
+      projectId: ObjectID;
+      question: string;
+      chosenProjectName?: string;
+    };
     expect(answerArgs.projectId.toString()).toBe(
       projectAuth.projectId?.toString(),
     );
     expect(answerArgs.question).toBe(question);
+    // Nobody chose the project: the answer names none.
+    expect(answerArgs.chosenProjectName).toBeUndefined();
   });
 
   test("an AMBIGUOUS tenant reaches NONE of the readers", async () => {
@@ -1664,9 +1673,11 @@ describe("MicrosoftTeamsUtil - asked which project, with a button for each, and 
 
   const QUESTION_FRAGMENT: string = "**Which project is this for?**";
   const GONE: string =
-    "This choice has expired, or was already made. Please try again.";
+    "This choice has expired or was already made. Ask again to choose a project.";
   const NOT_THEIRS: string =
     "Only the person who asked can choose which project this is for.";
+  const DISCONNECTED: string =
+    "That project is no longer connected to this Microsoft 365 organization. Ask again to choose another.";
 
   let connected: Array<ObjectID>;
   let linkedIn: Array<ObjectID>;
@@ -1956,8 +1967,9 @@ describe("MicrosoftTeamsUtil - asked which project, with a button for each, and 
         return choice.title;
       }),
     ).toEqual(["Production", "Staging"]);
+    // The question first, on its own line; why it asks, under it.
     expect(textOf(turn.sent[0])).toBe(
-      "<at>Deane</at> **Which project is this for?** This Microsoft 365 organization is connected to more than one OneUptime project, and I can't tell which one you mean here.",
+      "<at>Deane</at> **Which project is this for?**\nThis Microsoft 365 organization is connected to more than one OneUptime project.",
     );
     expect(turn.sent[0]!["summary"]).toBe(
       "Which project is this for: Production or Staging?",
@@ -2135,6 +2147,11 @@ describe("MicrosoftTeamsUtil - asked which project, with a button for each, and 
     expect(
       (answerSpy.mock.calls[0]?.[0] as { question: string }).question,
     ).toBe("which monitors are down?");
+    // The answer says which project it was answered in.
+    expect(
+      (answerSpy.mock.calls[0]?.[0] as { chosenProjectName?: string })
+        .chosenProjectName,
+    ).toBe("Staging");
 
     const followUp: Turn = await deliver(typed("and why is checkout slow?"));
 
@@ -2145,6 +2162,37 @@ describe("MicrosoftTeamsUtil - asked which project, with a button for each, and 
         answerSpy.mock.calls[1]?.[0] as { projectId: ObjectID }
       ).projectId.toString(),
     ).toBe(STAGING.toString());
+    // So does a follow-up's, answered there without asking.
+    expect(
+      (answerSpy.mock.calls[1]?.[0] as { chosenProjectName?: string })
+        .chosenProjectName,
+    ).toBe("Staging");
+  });
+
+  test("a follow-up whose project's name cannot be read is still answered there - without the line that names it", async () => {
+    const answerSpy: jest.SpyInstance = stubDownstreamReader(
+      "answerObservabilityQuestion",
+    );
+    const asked: Turn = await deliver(typed("which monitors are down?"));
+
+    await deliver(pressed(buttonFor(asked.sent[0], "Staging")));
+
+    jest
+      .spyOn(WorkspaceProjectResolver, "getProjectChoices")
+      .mockResolvedValue(null);
+
+    await deliver(typed("and why is checkout slow?"));
+
+    expect(answerSpy).toHaveBeenCalledTimes(2);
+    expect(
+      (
+        answerSpy.mock.calls[1]?.[0] as { projectId: ObjectID }
+      ).projectId.toString(),
+    ).toBe(STAGING.toString());
+    expect(
+      (answerSpy.mock.calls[1]?.[0] as { chosenProjectName?: string })
+        .chosenProjectName,
+    ).toBeUndefined();
   });
 
   test("the choice is the conversation's: a question in another conversation is asked again, and so is a command in this one", async () => {
@@ -2293,10 +2341,41 @@ describe("MicrosoftTeamsUtil - asked which project, with a button for each, and 
       pressed(buttonFor(asked.sent[0], "Staging")),
     );
 
+    // Told what happened - not that the choice expired, which it did not.
     expect(textOf(chosen.sent[chosen.sent.length - 1])).toBe(
-      `<at>Deane</at> ${GONE}`,
+      `<at>Deane</at> ${DISCONNECTED}`,
     );
     expect(listSpy).not.toHaveBeenCalled();
+  });
+
+  test("a Home button's project, disconnected before Deane chose it: told so too - nothing is declared, in it or in another", async () => {
+    const declareSpy: jest.SpyInstance = jest
+      .spyOn(MicrosoftTeamsCreateCommands, "handleCreateIncidentCommand")
+      .mockResolvedValue(undefined);
+    connected = [PRODUCTION, STAGING, SANDBOX];
+    linkedIn = [PRODUCTION, STAGING, SANDBOX];
+    memberOf = [PRODUCTION, STAGING, SANDBOX];
+
+    const asked: Turn = await deliver(
+      pressed(
+        {
+          action: MicrosoftTeamsHomeActionType.DeclareIncident,
+          actionValue: "",
+        },
+        { replyToId: "deanes-home-card" },
+      ),
+    );
+
+    connected = [PRODUCTION, SANDBOX];
+
+    const chosen: Turn = await deliver(
+      pressed(buttonFor(asked.sent[0], "Staging")),
+    );
+
+    expect(textOf(chosen.sent[chosen.sent.length - 1])).toBe(
+      `<at>Deane</at> ${DISCONNECTED}`,
+    );
+    expect(declareSpy).not.toHaveBeenCalled();
   });
 
   test("removed from the project he chose between the question and his press: told so, as any request is - nothing is read", async () => {
@@ -2465,6 +2544,7 @@ describe("MicrosoftTeamsUtil - asked which project, with a button for each, and 
   test("the question's own answers are the project choice's", () => {
     expect(GONE).toBe(MicrosoftTeamsProjectChoice.GONE_TEXT);
     expect(NOT_THEIRS).toBe(MicrosoftTeamsProjectChoice.NOT_THEIRS_TEXT);
+    expect(DISCONNECTED).toBe(MicrosoftTeamsProjectChoice.DISCONNECTED_TEXT);
   });
 });
 

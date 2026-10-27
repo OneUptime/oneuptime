@@ -268,6 +268,11 @@ function textOf(card: JSONObject): string {
   return String((card["body"] as Array<JSONObject>)[0]!["text"]);
 }
 
+// The line under the question that says why it is asked.
+function reasonOf(card: JSONObject): JSONObject {
+  return (card["body"] as Array<JSONObject>)[1]!;
+}
+
 // What each button of the card offered carries.
 function pressesOf(card: JSONObject): Array<WorkspaceProjectChoicePress> {
   return buttonsOf(card).map(
@@ -355,9 +360,18 @@ describe("the question", () => {
   test("mentions who asked, says why it asks, and has a button for each project, one under another, in the order given", async () => {
     const card: JSONObject = await askDeane();
 
+    // The question on a line of its own, first: what to do.
     expect(textOf(card)).toBe(
-      "<at>Deane Barker</at> **Which project is this for?** This Microsoft 365 organization is connected to more than one OneUptime project, and I can't tell which one you mean here.",
+      "<at>Deane Barker</at> **Which project is this for?**",
     );
+    // Why, under it and quieter: no second sentence that says it again.
+    expect(reasonOf(card)).toEqual({
+      type: "TextBlock",
+      text: "This Microsoft 365 organization is connected to more than one OneUptime project.",
+      wrap: true,
+      isSubtle: true,
+      spacing: "Small",
+    });
     expect(card["msteams"]).toEqual({
       entities: [
         {
@@ -369,7 +383,7 @@ describe("the question", () => {
     });
 
     const sets: Array<JSONObject> = (card["body"] as Array<JSONObject>).slice(
-      1,
+      2,
     );
 
     expect(
@@ -452,8 +466,9 @@ describe("the question", () => {
         ],
       });
 
-    expect(textOf(question.card)).toBe(
-      `**Which project is this for?** ${WorkspaceProjectResolver.TEAMS_AMBIGUOUS_LEAD}, and I can't tell which one you mean here.`,
+    expect(textOf(question.card)).toBe("**Which project is this for?**");
+    expect(reasonOf(question.card)["text"]).toBe(
+      `${WorkspaceProjectResolver.TEAMS_AMBIGUOUS_LEAD}.`,
     );
   });
 
@@ -471,10 +486,31 @@ describe("the question", () => {
         ],
       });
 
-    expect(textOf(question.card)).toContain(
-      "connected to more than one Acme Status project",
+    expect(reasonOf(question.card)["text"]).toBe(
+      "This Microsoft 365 organization is connected to more than one Acme Status project.",
     );
-    expect(textOf(question.card)).not.toContain("OneUptime");
+    expect(JSON.stringify(question.card)).not.toContain("OneUptime");
+  });
+
+  test("a renamed installation's name is text in the line, never Markdown", () => {
+    jest
+      .spyOn(ProductBrandingText, "getProductName")
+      .mockReturnValue("*Acme* [Status](https://evil.test)");
+
+    const reason: string = String(
+      reasonOf(
+        MicrosoftTeamsProjectChoice.getQuestion({
+          token: "A".repeat(43),
+          choices: [
+            { projectId: PLATFORM, name: "IRM Platform" },
+            { projectId: NONPRD, name: "IRM Non-Prod" },
+          ],
+        }).card,
+      )["text"],
+    );
+
+    expect(reason).not.toContain("[Status](");
+    expect(reason).toContain("\\*Acme\\*");
   });
 
   test("a long name is cut to what a button holds; the summary names it whole", () => {
@@ -509,7 +545,8 @@ describe("the question", () => {
         mention: null,
       });
 
-    expect(textOf(question.card).startsWith("**Which project")).toBe(true);
+    expect(textOf(question.card)).toBe("**Which project is this for?**");
+    expect(reasonOf(question.card)["isSubtle"]).toBe(true);
     expect(question.card["msteams"]).toBeUndefined();
   });
 });
@@ -907,10 +944,30 @@ describe("a press of one of the buttons", () => {
     ]) {
       expect(MicrosoftTeamsProjectChoice.getRefusalAnswer(refusal)).toEqual({
         markdown:
-          "This choice has expired, or was already made. Please try again.",
-        text: "This choice has expired, or was already made. Please try again.",
+          "This choice has expired or was already made. Ask again to choose a project.",
+        text: "This choice has expired or was already made. Ask again to choose a project.",
       });
     }
+  });
+
+  test("a gone press is told what to do next - ask again - never to try again: under a card whose buttons still show, that read as pressing one again", () => {
+    const gone: string = MicrosoftTeamsProjectChoice.getRefusalAnswer(
+      WorkspaceProjectChoiceRefusal.Gone,
+    ).text;
+
+    expect(gone).toContain("Ask again");
+    expect(gone.toLowerCase()).not.toContain("try again");
+  });
+
+  test("a choice whose project was disconnected since is told so - not that it expired", () => {
+    expect(MicrosoftTeamsProjectChoice.getDisconnectedAnswer()).toEqual({
+      markdown:
+        "That project is no longer connected to this Microsoft 365 organization. Ask again to choose another.",
+      text: "That project is no longer connected to this Microsoft 365 organization. Ask again to choose another.",
+    });
+    expect(MicrosoftTeamsProjectChoice.getDisconnectedAnswer().text).not.toBe(
+      MicrosoftTeamsProjectChoice.GONE_TEXT,
+    );
   });
 });
 
@@ -1212,5 +1269,36 @@ describe("a conversation with OneUptime AI keeps the project chosen in it", () =
         return key.startsWith("microsoft-teams-project-choice-conversation-");
       }),
     ).toHaveLength(1);
+  });
+});
+
+describe("an answer given in a project chosen for its conversation says which", () => {
+  test("the line under it names the project, and why it was answered there", () => {
+    expect(
+      MicrosoftTeamsProjectChoice.getAnsweredInNote("IRM Non-Prod").toString(),
+    ).toBe(
+      "_Answered in **IRM Non-Prod**, the project you chose for this conversation._",
+    );
+  });
+
+  test("a project's name is text in it, never Markdown", () => {
+    const note: string = MicrosoftTeamsProjectChoice.getAnsweredInNote(
+      "*Prod* [click](https://evil.test)",
+    ).toString();
+
+    expect(note).not.toContain("[click](");
+    expect(note).toContain("\\*Prod\\*");
+  });
+
+  test("the project's name, as the projects' own read gives it - or none when it cannot be read", async () => {
+    expect(await MicrosoftTeamsProjectChoice.getProjectName(NONPRD)).toBe(
+      "IRM Non-Prod",
+    );
+
+    jest
+      .spyOn(WorkspaceProjectResolver, "getProjectChoices")
+      .mockResolvedValueOnce(null);
+
+    expect(await MicrosoftTeamsProjectChoice.getProjectName(NONPRD)).toBeNull();
   });
 });

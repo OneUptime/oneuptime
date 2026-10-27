@@ -81,6 +81,10 @@ import WorkspaceHome, {
 } from "../../../../Server/Utils/Workspace/WorkspaceHome";
 import WorkspaceOnCallNow from "../../../../Server/Utils/Workspace/WorkspaceOnCallNow";
 import WorkspaceProjectResolver from "../../../../Server/Utils/Workspace/WorkspaceProjectResolution";
+import WorkspaceAiRefusal from "../../../../Server/Utils/Workspace/WorkspaceAiRefusal";
+import MicrosoftTeamsAiAnswer from "../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsAiAnswer";
+import ObservabilityAssistant from "../../../../Server/Utils/AI/Chat/ObservabilityAssistant";
+import AIService from "../../../../Server/Services/AIService";
 import DatabaseConfig from "../../../../Server/DatabaseConfig";
 import GlobalCache from "../../../../Server/Infrastructure/GlobalCache";
 import IncidentService from "../../../../Server/Services/IncidentService";
@@ -266,8 +270,9 @@ const PERSONAL_CONVERSATION_ID: string = "a:7a1e-deane-personal-chat";
 const CHANNEL_THREAD_ID: string = "19:general-7a1e@thread.tacv2;messageid=101";
 const DASHBOARD_URL: string = "https://oneuptime.example.com/dashboard";
 
+// The question, on its own line, and why it is asked, under it.
 const QUESTION: string =
-  "**Which project is this for?** This Microsoft 365 organization is connected to more than one OneUptime project, and I can't tell which one you mean here.";
+  "**Which project is this for?**\nThis Microsoft 365 organization is connected to more than one OneUptime project.";
 
 let connector: FakeBotConnector;
 let activityNumber: number = 0;
@@ -654,7 +659,12 @@ describe("Deane types 'oncall' in his chat with the bot", () => {
           return element["type"];
         },
       ),
-    ).toEqual(["TextBlock", "ActionSet", "ActionSet"]);
+    ).toEqual(["TextBlock", "TextBlock", "ActionSet", "ActionSet"]);
+    // Why it asks is quieter than the question.
+    expect((cardOf(question)["body"] as Array<JSONObject>)[1]).toMatchObject({
+      isSubtle: true,
+      spacing: "Small",
+    });
     expect(
       choicesOf(question).map(
         (choice: { title: string; data: JSONObject }): unknown => {
@@ -917,6 +927,101 @@ describe("a question for OneUptime AI keeps the project chosen for its follow-up
     const command: Delivery = await deliver(message("oncall"));
 
     expect(choicesOf(posts(command)[0])).toHaveLength(2);
+  });
+});
+
+describe("an answer from OneUptime AI in the project Deane chose says which", () => {
+  // OneUptime AI's own answer, as the real reply around it is written.
+  function answerWithAi(): Array<{ projectId: string; question: string }> {
+    const asked: Array<{ projectId: string; question: string }> = [];
+
+    jest
+      .spyOn(
+        MicrosoftTeamsUtil as unknown as {
+          getConversationHistoryTurns: () => Promise<Array<unknown>>;
+        },
+        "getConversationHistoryTurns",
+      )
+      .mockResolvedValue([]);
+    jest.spyOn(AIService, "isProjectAIEnabled").mockResolvedValue(true);
+    jest
+      .spyOn(AIService, "getReachedProjectDailyLimit")
+      .mockResolvedValue(null);
+    jest.spyOn(WorkspaceAiRefusal, "getCreditsRefusal").mockResolvedValue(null);
+    jest
+      .spyOn(ObservabilityAssistant, "answerQuestion")
+      .mockImplementation((async (request: {
+        projectId: ObjectID;
+        question: string;
+      }) => {
+        asked.push({
+          projectId: request.projectId.toString(),
+          question: request.question,
+        });
+
+        return {
+          contentInMarkdown: "Two monitors are down.",
+          citations: [],
+          totalTokens: 10,
+          llmCallCount: 1,
+          toolCallCount: 0,
+        };
+      }) as never);
+
+    return asked;
+  }
+
+  // The answer's text: the message's own, not a card's.
+  function answerTextOf(delivery: Delivery): string {
+    const answer: ConnectorCall | undefined = posts(delivery).find(
+      (call: ConnectorCall): boolean => {
+        return call.activity["type"] === "message";
+      },
+    );
+
+    return String(answer?.activity["text"] || "");
+  }
+
+  const ANSWERED_IN_NON_PROD: string =
+    "_Answered in **IRM Non-Prod**, the project you chose for this conversation._";
+
+  test("chosen just now, and kept for a follow-up asked later in his chat: each answer ends with the project it was answered in, above the AI notice", async () => {
+    const asked: Array<{ projectId: string; question: string }> =
+      answerWithAi();
+    const { question } = await ask("which monitors are down?");
+
+    const chosen: Delivery = await deliver(
+      press(buttonOf(question, "IRM Non-Prod"), question.messageId!),
+    );
+
+    expect(answerTextOf(chosen)).toBe(
+      `Two monitors are down.\n\n${ANSWERED_IN_NON_PROD}\n\n${MicrosoftTeamsAiAnswer.getNotice().toString()}`,
+    );
+
+    const followUp: Delivery = await deliver(message("any open incidents?"));
+
+    // Not asked again - and not answered without saying where.
+    expect(answerTextOf(followUp)).toBe(
+      `Two monitors are down.\n\n${ANSWERED_IN_NON_PROD}\n\n${MicrosoftTeamsAiAnswer.getNotice().toString()}`,
+    );
+    expect(asked).toEqual([
+      { projectId: NONPRD.toString(), question: "which monitors are down?" },
+      { projectId: NONPRD.toString(), question: "any open incidents?" },
+    ]);
+    expect(loggedErrors).toEqual([]);
+  });
+
+  test("a question nobody chose a project for - Deane in one of the projects - names none", async () => {
+    memberOf = [PLATFORM];
+    answerWithAi();
+
+    const answered: Delivery = await deliver(
+      message("which monitors are down?"),
+    );
+
+    expect(answerTextOf(answered)).toBe(
+      `Two monitors are down.\n\n${MicrosoftTeamsAiAnswer.getNotice().toString()}`,
+    );
   });
 });
 

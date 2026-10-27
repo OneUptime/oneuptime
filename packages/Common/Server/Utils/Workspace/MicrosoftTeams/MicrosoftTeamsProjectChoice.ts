@@ -2,7 +2,7 @@ import { TurnContext } from "./Botbuilder";
 import WorkspaceProjectAuthToken from "../../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import { JSONArray, JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
-import { mdText } from "../../../../Utils/Markdown/FeedMarkdown";
+import { MarkdownText, mdText } from "../../../../Utils/Markdown/FeedMarkdown";
 import logger from "../../Logger";
 import ProductBrandingText from "../../ProductBrandingText";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
@@ -57,7 +57,9 @@ import MicrosoftTeamsReplies, {
  * A question for OneUptime AI keeps the choice for its conversation - the
  * chat, or the channel post's thread - and its follow-ups there are
  * answered in the same project without asking again, while the
- * conversation goes on (CONVERSATION_REMEMBERED_FOR_SECONDS).
+ * conversation goes on (CONVERSATION_REMEMBERED_FOR_SECONDS). Each of
+ * those answers ends by naming the project (getAnsweredInNote): a chat
+ * has no threads, so nothing else would say which.
  *
  * When the card cannot be offered - the person is in fewer than two of the
  * projects or more than a card lists, a project cannot be named, the
@@ -152,17 +154,54 @@ export default class MicrosoftTeamsProjectChoice {
    */
   public static readonly CONVERSATION_REMEMBERED_FOR_SECONDS: number = 60 * 60;
 
-  // What a press whose request is gone - chosen already, expired - is told.
+  /*
+   * What a press whose request is gone - chosen already, expired - is told,
+   * and what to do: under a card whose buttons still show, "try again" read
+   * as pressing one of them again, which is gone too.
+   */
   public static readonly GONE_TEXT: string =
-    "This choice has expired, or was already made. Please try again.";
+    "This choice has expired or was already made. Ask again to choose a project.";
 
   // What somebody pressing another person's question is told.
   public static readonly NOT_THEIRS_TEXT: string =
     "Only the person who asked can choose which project this is for.";
 
+  /*
+   * What a choice is told when the project chosen was disconnected from the
+   * organization between the question and the press - under the question,
+   * which already says "Going ahead in" it.
+   */
+  public static readonly DISCONNECTED_TEXT: string =
+    "That project is no longer connected to this Microsoft 365 organization. Ask again to choose another.";
+
   // What the question becomes once a project is chosen.
   public static getChosenText(projectName: string): string {
     return `Going ahead in ${projectName}.`;
+  }
+
+  /*
+   * The line under an answer from OneUptime AI given in a project its asker
+   * chose - just now, or earlier in the conversation, which its follow-ups
+   * keep without asking (CONVERSATION_REMEMBERED_FOR_SECONDS). A chat with
+   * the bot has no threads: without it, a question asked later in the chat
+   * was answered in the project chosen before, and nothing said which.
+   */
+  public static getAnsweredInNote(projectName: string): MarkdownText {
+    return mdText`_Answered in **${projectName}**, the project you chose for this conversation._`;
+  }
+
+  /*
+   * A project's name, for the line an answer in it ends with; null when it
+   * cannot be read. Never throws.
+   */
+  @CaptureSpan()
+  public static async getProjectName(
+    projectId: ObjectID,
+  ): Promise<string | null> {
+    const choices: Array<WorkspaceProjectChoice> | null =
+      await WorkspaceProjectResolver.getProjectChoices([projectId]);
+
+    return choices?.[0]?.name || null;
   }
 
   // Whether a card's button is one of the question's.
@@ -322,11 +361,17 @@ export default class MicrosoftTeamsProjectChoice {
   }
 
   /*
-   * The question, mentioning the person, and a button named for each
-   * project, one under another, in the order given: "Which project is this
-   * for? This Microsoft 365 organization is connected to more than one
-   * OneUptime project, and I can't tell which one you mean here." Each
-   * button carries its project and the request's token.
+   * The question, mentioning the person, on a line of its own; why it is
+   * asked under it, quieter; and a button named for each project, one under
+   * another, in the order given:
+   *
+   *   @Deane Which project is this for?
+   *   This Microsoft 365 organization is connected to more than one
+   *   OneUptime project.
+   *   [IRM Platform]
+   *   [IRM Non-Prod]
+   *
+   * Each button carries its project and the request's token.
    */
   public static getQuestion(data: {
     token: string;
@@ -340,11 +385,25 @@ export default class MicrosoftTeamsProjectChoice {
 
     const card: JSONObject = MicrosoftTeamsActionAnswer.buildCard({
       answer: {
-        markdown:
-          mdText`**Which project is this for?** This Microsoft 365 organization is connected to more than one ${productName} project, and I can't tell which one you mean here.`.toString(),
+        markdown: mdText`**Which project is this for?**`.toString(),
         text: summary,
       },
       mention: data.mention,
+    });
+
+    const body: Array<JSONObject> = card["body"] as Array<JSONObject>;
+
+    /*
+     * Why: on an installation that has not been renamed, the sentence the
+     * docs' troubleshooting entry is headed with (TEAMS_AMBIGUOUS_LEAD), as
+     * the answer that names the projects starts with it.
+     */
+    body.push({
+      type: "TextBlock",
+      text: mdText`This Microsoft 365 organization is connected to more than one ${productName} project.`.toString(),
+      wrap: true,
+      isSubtle: true,
+      spacing: "Small",
     });
 
     /*
@@ -353,8 +412,6 @@ export default class MicrosoftTeamsProjectChoice {
      * by side - and shows no more than six. The rows sit as close as the
      * buttons of one row do.
      */
-    const body: Array<JSONObject> = card["body"] as Array<JSONObject>;
-
     for (const [index, choice] of data.choices.entries()) {
       body.push({
         type: "ActionSet",
@@ -418,6 +475,17 @@ export default class MicrosoftTeamsProjectChoice {
       refusal === WorkspaceProjectChoiceRefusal.NotTheirs
         ? MicrosoftTeamsProjectChoice.NOT_THEIRS_TEXT
         : MicrosoftTeamsProjectChoice.GONE_TEXT;
+
+    return { markdown: mdText`${text}`.toString(), text: text };
+  }
+
+  /*
+   * What a choice whose project was disconnected from the organization
+   * after it was asked is told, once it is made: nothing is made there, or
+   * in another project instead.
+   */
+  public static getDisconnectedAnswer(): WorkspaceAnswer {
+    const text: string = MicrosoftTeamsProjectChoice.DISCONNECTED_TEXT;
 
     return { markdown: mdText`${text}`.toString(), text: text };
   }
