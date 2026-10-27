@@ -173,7 +173,7 @@ beforeEach(() => {
         timestamp: new Date("2026-10-27T10:05:00.000Z"),
         isBot: false,
       },
-    ] as never);
+    ] as never) as unknown as jest.SpyInstance;
 });
 
 afterEach(() => {
