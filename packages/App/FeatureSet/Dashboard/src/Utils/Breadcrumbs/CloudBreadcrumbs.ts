@@ -161,6 +161,22 @@ export function getCloudBreadcrumbs(path: string): Array<Link> | undefined {
       "View Account",
       "Topology",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.CLOUD_ACCOUNT_VIEW_AI_AGENT, [
+      "Project",
+      "Cloud",
+      "Accounts",
+      "View Account",
+      "AI",
+      "AI agent",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.CLOUD_ACCOUNT_VIEW_AI_LOGS, [
+      "Project",
+      "Cloud",
+      "Accounts",
+      "View Account",
+      "AI",
+      "Logs",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.CLOUD_ACCOUNT_VIEW_SETTINGS, [
       "Project",
       "Cloud",

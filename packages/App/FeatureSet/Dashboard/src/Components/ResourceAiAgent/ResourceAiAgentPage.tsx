@@ -117,6 +117,13 @@ import {
 } from "../AiAccess/AiAccessRow";
 import AgentAiSettingsModal from "../AiAccess/AgentAiSettingsModal";
 import { AgentAiSettingsInstructions } from "../AiAccess/AgentAiSettingsInstructions";
+import CloudAiAgentSetupModal from "../Cloud/CloudAiAgentSetupModal";
+import {
+  getCloudAiAgentLogsCommand,
+  readCloudProvider,
+} from "../Cloud/CloudAiAgentSetup";
+import CloudAccount from "Common/Models/DatabaseModels/CloudAccount";
+import { CloudProvider } from "Common/Types/Cloud/CloudPlatform";
 import AgentVersion from "../../Components/AgentVersion/AgentVersion";
 import { AgentKind } from "../../Components/AgentVersion/AgentKind";
 import { AiAgentAction, getAiAgentActions } from "../AiAccess/AiAgentActions";
@@ -217,6 +224,11 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps extends PageComponentProps {
   descriptor: ResourceAiAgentDescriptor;
+  /*
+   * A cloud account's page: the account, for its setup command (its cloud,
+   * its id and whether AI may read its logs).
+   */
+  cloudAccount?: CloudAccount | null | undefined;
 }
 
 const PILL_COLORS: Record<ResourceAiAgentStatusPill["tone"], Color> = {
@@ -889,6 +901,11 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
     turnOnInvestigation: boolean;
   } | null>(null);
   const [isConfirmingReset, setIsConfirmingReset] = useState<boolean>(false);
+  // A cloud account's "Let AI fix problems" dialog, with the setup command.
+  const [isCloudSetupOpen, setIsCloudSetupOpen] = useState<boolean>(false);
+  const cloudProvider: CloudProvider | null = descriptor.isCloudAccount
+    ? readCloudProvider(props.cloudAccount?.provider)
+    : null;
   const [isActing, setIsActing] = useState<boolean>(false);
   const [confirmationError, setConfirmationError] = useState<string>("");
   const [actionError, setActionError] = useState<string>("");
@@ -1200,6 +1217,12 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
   const openAgentSettingsDialog: (turnOnInvestigation: boolean) => void = (
     turnOnInvestigation: boolean,
   ): void => {
+    // A cloud agent's settings change with its setup command.
+    if (cloudProvider) {
+      setIsCloudSetupOpen(true);
+      return;
+    }
+
     setAgentSettingsDialog({ turnOnInvestigation });
   };
 
@@ -1347,7 +1370,7 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
    * them in the agent — instructions, so it is offered to everyone who can
    * see the page; the server refuses an edit here anyway.
    */
-  const settingsButtons: Array<ReactElement> = isSetByAgent
+  const settingsButtons: Array<ReactElement> = cloudProvider
     ? [
         <Button
           key="change"
@@ -1357,11 +1380,11 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
           buttonSize={ButtonSize.Normal}
           dataTestId="ai-access-change-button"
           onClick={() => {
-            openAgentSettingsDialog(false);
+            setIsCloudSetupOpen(true);
           }}
         />,
       ]
-    : settingsGate.isAllowed || settingsGate.disabledReason
+    : isSetByAgent
       ? [
           <Button
             key="change"
@@ -1369,24 +1392,39 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
             icon={IconProp.Edit}
             buttonStyle={ButtonStyleType.NORMAL}
             buttonSize={ButtonSize.Normal}
-            disabled={!settingsGate.isAllowed}
-            tooltip={settingsGate.disabledReason}
             dataTestId="ai-access-change-button"
             onClick={() => {
-              if (!settingsGate.isAllowed) {
-                return;
-              }
-              setEditCanConfigureUnattended(
-                canConfigureUnattendedResourceAiAccess(),
-              );
-              setIsEditingSettings(true);
+              openAgentSettingsDialog(false);
             }}
           />,
         ]
-      : [];
+      : settingsGate.isAllowed || settingsGate.disabledReason
+        ? [
+            <Button
+              key="change"
+              title="Change"
+              icon={IconProp.Edit}
+              buttonStyle={ButtonStyleType.NORMAL}
+              buttonSize={ButtonSize.Normal}
+              disabled={!settingsGate.isAllowed}
+              tooltip={settingsGate.disabledReason}
+              dataTestId="ai-access-change-button"
+              onClick={() => {
+                if (!settingsGate.isAllowed) {
+                  return;
+                }
+                setEditCanConfigureUnattended(
+                  canConfigureUnattendedResourceAiAccess(),
+                );
+                setIsEditingSettings(true);
+              }}
+            />,
+          ]
+        : [];
 
+  // A cloud account's agent is set up with its cloud's command, below.
   const install: ResourceAiAgentInstall | null =
-    command === "install"
+    command === "install" && !descriptor.isCloudAccount
       ? getResourceAiAgentInstall({
           resourceType: descriptor.resourceType,
           resourceId: modelId.toString(),
@@ -1458,11 +1496,34 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
               descriptor={descriptor}
               isInvestigationEnabled={status.isAiInvestigationEnabled}
             />
+          ) : command === "install" && cloudProvider ? (
+            <div className="space-y-3" data-testid="ai-agent-cloud-setup">
+              <p className="text-sm text-gray-700">
+                {translator.translateText(
+                  translationKey(
+                    "OneUptime AI can read this account but can't change it. One command in the cloud's own shell starts the agent, which connects on its own.",
+                  ),
+                )}
+              </p>
+              <Button
+                title="Let AI fix problems"
+                icon={IconProp.Automation}
+                buttonStyle={ButtonStyleType.PRIMARY}
+                dataTestId="ai-agent-cloud-set-up"
+                onClick={() => {
+                  setIsCloudSetupOpen(true);
+                }}
+              />
+            </div>
           ) : command === "logs" ? (
             <div data-testid="ai-agent-logs-command">
               <CodeBlock
                 language="bash"
-                code={getResourceAiAgentLogsCommand(descriptor.resourceType)}
+                code={
+                  cloudProvider
+                    ? getCloudAiAgentLogsCommand(cloudProvider)
+                    : getResourceAiAgentLogsCommand(descriptor.resourceType)
+                }
               />
             </div>
           ) : (
@@ -1798,7 +1859,20 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
               />
             ) : null}
             {shouldShowResourceWriteAccessCommands(status) ? (
-              <WriteAccessInstructions descriptor={descriptor} />
+              cloudProvider ? (
+                <p
+                  className="text-xs text-gray-600"
+                  data-testid="ai-access-cloud-write-access"
+                >
+                  {translator.translateText(
+                    translationKey(
+                      "The agent runs read-only. Run its setup command again (Change) to let it make the changes you pick.",
+                    ),
+                  )}
+                </p>
+              ) : (
+                <WriteAccessInstructions descriptor={descriptor} />
+              )
             ) : null}
           </AiAccessRow>
         </AiAccessRows>
@@ -1843,6 +1917,23 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
           }}
           onClose={() => {
             setAgentSettingsDialog(null);
+          }}
+        />
+      ) : (
+        <></>
+      )}
+
+      {isCloudSetupOpen && cloudProvider && props.cloudAccount ? (
+        <CloudAiAgentSetupModal
+          descriptor={descriptor}
+          cloudAccountId={modelId}
+          provider={cloudProvider}
+          accountId={props.cloudAccount.accountId || ""}
+          isAiLogReadEnabled={props.cloudAccount.isAiLogReadEnabled === true}
+          status={status}
+          onClose={() => {
+            setIsCloudSetupOpen(false);
+            refresh();
           }}
         />
       ) : (

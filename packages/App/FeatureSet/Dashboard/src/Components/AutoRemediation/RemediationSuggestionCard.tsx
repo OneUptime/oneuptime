@@ -33,6 +33,7 @@ import { ResourceCommandTier } from "Common/Types/ResourceAiAgent/ResourceAiAcce
 import {
   AI_RESOURCE_TYPE_INFO,
   isAiResourceType,
+  isCloudAiResourceType,
 } from "Common/Types/ResourceAiAgent/AiResourceType";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Button, {
@@ -805,6 +806,50 @@ function CommandGitOpsNote(props: {
   );
 }
 
+/*
+ * A cloud change's notes: the code that declares its resource (such a
+ * change is only ever proposed: the next apply would put the old value
+ * back), and, before it ran, that its undo is written from the value it
+ * replaces — the agent reads that value first and reports it.
+ */
+function CloudCommandNote(props: {
+  command: AiRemediationCommand;
+}): ReactElement {
+  const translator: Translator = useTranslator();
+  const { command } = props;
+
+  if (
+    command.stepType !== RunbookStepType.ResourceCommand ||
+    !isCloudAiResourceType(command.resourceType)
+  ) {
+    return <></>;
+  }
+
+  return (
+    <div className="mt-2 space-y-1" data-testid="remediation-command-cloud">
+      {command.managedAsCode ? (
+        <div className="rounded border border-amber-200 bg-amber-50 px-2 py-1.5 text-xs text-amber-800">
+          {translator.translateTemplate(
+            "Declared as code by {{owner}}: the next apply may put the old value back, so change the code too.",
+            { owner: command.managedAsCode },
+          )}
+        </div>
+      ) : (
+        <></>
+      )}
+      {!command.execution && !command.rollbackCommand ? (
+        <div className="text-xs text-gray-500">
+          {translator.translateText(
+            "The agent reads the value this change replaces before it makes it, and OneUptime writes the exact undo from it.",
+          )}
+        </div>
+      ) : (
+        <></>
+      )}
+    </div>
+  );
+}
+
 const POLL_INTERVAL_MS: number = 15 * 1000;
 
 export type RemediationSuggestionAction = "approve" | "dismiss";
@@ -1538,6 +1583,8 @@ const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
                               </div>
 
                               <CommandGitOpsNote command={command} />
+
+                              <CloudCommandNote command={command} />
 
                               {command.rollbackCommand ? (
                                 <div className="mt-1 text-xs text-gray-500">

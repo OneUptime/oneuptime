@@ -12,6 +12,7 @@ import {
   AgentUpgradeMethod,
   AgentUpgradeStep,
   getAgentUpgradeGuide,
+  getCloudAiAgentUpgradeCommand,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AgentVersion/AgentUpgradeGuides";
 import {
   SetupGuideContent,
@@ -130,12 +131,13 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Host/Utils/DocumentationMarkdown";
 import {
   COMPOSE_DIRECTORY_COMMENT,
+  COMPOSE_INSTALLED_AI_RESOURCE_TYPES,
   getResourceAiAgentInstall,
   getResourceAiAgentServiceName,
   getResourceAiAgentUpgradeCommand,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceAiAgent/ResourceAiAgentInstall";
 import AiResourceType, {
-  ALL_AI_RESOURCE_TYPES,
+  CLOUD_AI_RESOURCE_TYPES,
 } from "../../../Types/ResourceAiAgent/AiResourceType";
 
 /*
@@ -896,7 +898,7 @@ describe("Resource AI agent: its compose service pulled and recreated", () => {
     ]);
   });
 
-  test.each(ALL_AI_RESOURCE_TYPES)(
+  test.each(COMPOSE_INSTALLED_AI_RESOURCE_TYPES)(
     "%s: pulls and recreates exactly the service the install instructions start",
     (resourceType: AiResourceType) => {
       const guide: AgentUpgradeGuide = guideFor(AgentKind.ResourceAiAgent, {
@@ -918,6 +920,36 @@ describe("Resource AI agent: its compose service pulled and recreated", () => {
       expect(code.split("\n")[0]).toBe(start.split("\n")[0]);
     },
   );
+
+  test.each(CLOUD_AI_RESOURCE_TYPES)(
+    "%s: the Cloud AI agent starts again on its newest image, in its cloud's shell",
+    (resourceType: AiResourceType) => {
+      const guide: AgentUpgradeGuide = guideFor(AgentKind.ResourceAiAgent, {
+        resourceType,
+      });
+
+      expect(guide.methods).toHaveLength(1);
+      expect(codesOf(guide.methods[0]!)).toEqual([
+        getCloudAiAgentUpgradeCommand(resourceType),
+      ]);
+      // Never a compose file: the agent runs in the cloud's own service.
+      expect(codesOf(guide.methods[0]!).join("\n")).not.toContain("compose");
+    },
+  );
+
+  test("each cloud's command starts the agent's own service again", () => {
+    expect(getCloudAiAgentUpgradeCommand(AiResourceType.AwsAccount)).toBe(
+      "aws ecs update-service --cluster oneuptime-ai-agent --service oneuptime-ai-agent --force-new-deployment > /dev/null",
+    );
+    expect(
+      getCloudAiAgentUpgradeCommand(AiResourceType.AzureSubscription),
+    ).toContain(
+      "az containerapp update --name oneuptime-ai-agent --resource-group oneuptime-ai-agent --image docker.io/oneuptime/resource-ai-agent:release",
+    );
+    expect(
+      getCloudAiAgentUpgradeCommand(AiResourceType.GoogleCloudProject),
+    ).toContain("gcloud run services update oneuptime-ai-agent --region");
+  });
 
   test("Podman hosts use Podman Compose", () => {
     const guide: AgentUpgradeGuide = guideFor(AgentKind.ResourceAiAgent, {

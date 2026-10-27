@@ -10,6 +10,7 @@ import {
 } from "Common/Types/AI/ResourceAiAccessApi";
 import AiResourceType, {
   AI_RESOURCE_TYPE_INFO,
+  isCloudAiResourceType,
 } from "Common/Types/ResourceAiAgent/AiResourceType";
 import {
   RESOURCE_AI_AGENT_ALIVE_WINDOW_IN_MINUTES,
@@ -674,7 +675,21 @@ export const RESOURCE_AI_CHOICE_GAP_CODES: ReadonlyArray<ResourceAiAccessGapCode
 export function getResourceAiAttentionGaps(
   status: ResourceAiAccessStatus,
 ): Array<ResourceAiAccessGap> {
+  /*
+   * A cloud account is investigated without its agent, which only fixes
+   * need: with fixes off, an account without one is AI reading it and not
+   * changing it — the account's own choice, not a problem.
+   */
+  const isCloudAccountReadOnly: boolean =
+    isCloudAiResourceType(status.resourceType) &&
+    parseResourceAiRemediationMode(status.aiRemediationMode) ===
+      ResourceAiRemediationMode.Disabled;
+
   return status.gaps.filter((gap: ResourceAiAccessGap): boolean => {
+    if (isCloudAccountReadOnly && gap.code === "ai_agent_not_connected") {
+      return false;
+    }
+
     return !RESOURCE_AI_CHOICE_GAP_CODES.includes(gap.code);
   });
 }
@@ -796,7 +811,14 @@ export function getResourceAiAttentionStepText(
   switch (gap.code) {
     case "ai_agent_not_connected":
       return translateTemplate(
-        "Install the {{agent}} with the instructions above.",
+        descriptor.isCloudAccount
+          ? "Start the {{agent}} in this {{noun}} with the command above."
+          : "Install the {{agent}} with the instructions above.",
+        values,
+      );
+    case "cloud_connection_missing":
+      return translateTemplate(
+        "Connect this {{noun}} under Cloud → Connect, so OneUptime AI can read it live.",
         values,
       );
     case "ai_agent_offline":

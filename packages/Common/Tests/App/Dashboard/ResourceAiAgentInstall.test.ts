@@ -4,6 +4,8 @@ import yaml from "js-yaml";
 import path from "path";
 import {
   COMPOSE_DIRECTORY_COMMENT,
+  COMPOSE_INSTALLED_AI_RESOURCE_TYPES,
+  ComposeInstalledAiResourceType,
   RESOURCE_AI_AGENT_IMAGE,
   RESOURCE_AI_PROTECTED_TARGETS_ENV,
   RESOURCE_AI_SETTINGS_RESTART_STEP_TITLE,
@@ -39,8 +41,8 @@ import {
 } from "../../../Types/AI/AgentAiSettings";
 import AiResourceType, {
   AI_RESOURCE_TYPE_INFO,
-  ALL_AI_RESOURCE_TYPES,
   AiResourceTypeInfo,
+  CLOUD_AI_RESOURCE_TYPES,
 } from "../../../Types/ResourceAiAgent/AiResourceType";
 import {
   RESOURCE_AI_AGENT_DEFAULT_HEALTH_PORT,
@@ -69,7 +71,7 @@ const RESOURCE_ID: string = "44444444-0000-4000-8000-000000000004";
 const REPO_ROOT: string = path.resolve(__dirname, "../../../../..");
 
 // The collector each type's agent runs beside.
-const COLLECTOR_DIRECTORIES: Record<AiResourceType, string> = {
+const COLLECTOR_DIRECTORIES: Record<ComposeInstalledAiResourceType, string> = {
   [AiResourceType.DockerHost]: "DockerAgent",
   [AiResourceType.PodmanHost]: "PodmanAgent",
   [AiResourceType.DockerSwarmCluster]: "DockerSwarmAgent",
@@ -186,12 +188,31 @@ function installerDirectory(type: AiResourceType): string | null {
   return match ? match[1]! : null;
 }
 
+describe("a cloud account's agent", () => {
+  test("is set up with its cloud's command, never installed beside a collector", () => {
+    expect(COMPOSE_INSTALLED_AI_RESOURCE_TYPES).not.toEqual(
+      expect.arrayContaining([...CLOUD_AI_RESOURCE_TYPES]),
+    );
+
+    for (const type of CLOUD_AI_RESOURCE_TYPES) {
+      expect(() => {
+        return getResourceAiAgentInstall({
+          resourceType: type,
+          resourceId: "id",
+        });
+      }).toThrow(/set up with its cloud's command/);
+    }
+  });
+});
+
 describe("the agent's service", () => {
   test("is named after the agent alias, the collectors' convention", () => {
     expect(
-      ALL_AI_RESOURCE_TYPES.map((type: AiResourceType): string => {
-        return getResourceAiAgentServiceName(type);
-      }),
+      COMPOSE_INSTALLED_AI_RESOURCE_TYPES.map(
+        (type: AiResourceType): string => {
+          return getResourceAiAgentServiceName(type);
+        },
+      ),
     ).toEqual([
       "oneuptime-docker-ai-agent",
       "oneuptime-podman-ai-agent",
@@ -212,7 +233,7 @@ describe("the agent's service", () => {
 });
 
 describe("the compose snippet", () => {
-  test.each(ALL_AI_RESOURCE_TYPES)(
+  test.each(COMPOSE_INSTALLED_AI_RESOURCE_TYPES)(
     "%s: valid YAML with the image, read-only root and the contract's variables",
     (type: AiResourceType) => {
       const info: AiResourceTypeInfo = AI_RESOURCE_TYPE_INFO[type];
@@ -255,9 +276,11 @@ describe("the compose snippet", () => {
   );
 
   test.each(
-    ALL_AI_RESOURCE_TYPES.filter((type: AiResourceType): boolean => {
-      return type !== AiResourceType.DatabaseServer;
-    }),
+    COMPOSE_INSTALLED_AI_RESOURCE_TYPES.filter(
+      (type: AiResourceType): boolean => {
+        return type !== AiResourceType.DatabaseServer;
+      },
+    ),
   )(
     "%s: without the identity, falls back to the collector's own default",
     (type: AiResourceType) => {
@@ -271,9 +294,11 @@ describe("the compose snippet", () => {
   );
 
   test.each(
-    ALL_AI_RESOURCE_TYPES.filter((type: AiResourceType): boolean => {
-      return type !== AiResourceType.DatabaseServer;
-    }),
+    COMPOSE_INSTALLED_AI_RESOURCE_TYPES.filter(
+      (type: AiResourceType): boolean => {
+        return type !== AiResourceType.DatabaseServer;
+      },
+    ),
   )(
     "%s: with the identity known, pins the agent to exactly this resource",
     (type: AiResourceType) => {
@@ -471,14 +496,14 @@ describe("the compose snippet", () => {
 
 describe("the snippet matches what the collectors ship", () => {
   test("the collectors the page says ship the agent do ship it", () => {
-    for (const type of ALL_AI_RESOURCE_TYPES) {
+    for (const type of COMPOSE_INSTALLED_AI_RESOURCE_TYPES) {
       if (doesCollectorShipResourceAiAgent(type)) {
         expect(collectorAgentService(type)).not.toBeNull();
       }
     }
   });
 
-  test.each(ALL_AI_RESOURCE_TYPES)(
+  test.each(COMPOSE_INSTALLED_AI_RESOURCE_TYPES)(
     "%s: the page says the collector ships the agent exactly when its compose file does",
     (type: AiResourceType) => {
       // Otherwise the page asks for a second copy of a service the file has.
@@ -488,7 +513,7 @@ describe("the snippet matches what the collectors ship", () => {
     },
   );
 
-  test.each(ALL_AI_RESOURCE_TYPES)(
+  test.each(COMPOSE_INSTALLED_AI_RESOURCE_TYPES)(
     "%s: the snippet passes every variable the shipped service passes, with its value",
     (type: AiResourceType) => {
       const shipped: { name: string; service: ComposeService } | null =
@@ -528,7 +553,7 @@ describe("the snippet matches what the collectors ship", () => {
     },
   );
 
-  test.each(ALL_AI_RESOURCE_TYPES)(
+  test.each(COMPOSE_INSTALLED_AI_RESOURCE_TYPES)(
     "%s: a shipped agent service has the snippet's name, type, identity and variables",
     (type: AiResourceType) => {
       const shipped: { name: string; service: ComposeService } | null =
@@ -571,7 +596,7 @@ describe("the snippet matches what the collectors ship", () => {
 });
 
 describe("the install instructions", () => {
-  test.each(ALL_AI_RESOURCE_TYPES)(
+  test.each(COMPOSE_INSTALLED_AI_RESOURCE_TYPES)(
     "%s: where, what, how to start it, and every variable it reads",
     (type: AiResourceType) => {
       const info: AiResourceTypeInfo = AI_RESOURCE_TYPE_INFO[type];
@@ -721,7 +746,7 @@ describe("the install instructions", () => {
     ).toBe("1");
   });
 
-  test.each(ALL_AI_RESOURCE_TYPES)(
+  test.each(COMPOSE_INSTALLED_AI_RESOURCE_TYPES)(
     "%s: every command and sentence names only a directory the collector's installer creates",
     (type: AiResourceType) => {
       const expected: string | null = installerDirectory(type);
@@ -755,7 +780,7 @@ describe("the install instructions", () => {
     },
   );
 
-  test.each(ALL_AI_RESOURCE_TYPES)(
+  test.each(COMPOSE_INSTALLED_AI_RESOURCE_TYPES)(
     "%s: the prerequisites are there, for the types that have any",
     (type: AiResourceType) => {
       const install: ResourceAiAgentInstall = getResourceAiAgentInstall({
@@ -798,7 +823,7 @@ describe("the logs and status commands", () => {
 });
 
 describe("the write switch", () => {
-  test.each(ALL_AI_RESOURCE_TYPES)(
+  test.each(COMPOSE_INSTALLED_AI_RESOURCE_TYPES)(
     "%s: the exact variable, recommended with targets where the type names any",
     (type: AiResourceType) => {
       const commands: ResourceAiAgentWriteAccessCommands =
@@ -867,7 +892,7 @@ describe("the write switch", () => {
     ).toBe("Set this in the .env next to its docker-compose.yml:");
   });
 
-  test.each(ALL_AI_RESOURCE_TYPES)(
+  test.each(COMPOSE_INSTALLED_AI_RESOURCE_TYPES)(
     "%s: the disclosure says what writes allow and what OneUptime never does",
     (type: AiResourceType) => {
       const disclosure: string = getResourceAiAgentWriteDisclosure(type);
@@ -888,7 +913,7 @@ describe("the write switch", () => {
 type AgentAiSettingsNote = AgentAiSettingsInstructions["notes"][number];
 
 describe("what AI may do, set where the agent runs", () => {
-  test.each(ALL_AI_RESOURCE_TYPES)(
+  test.each(COMPOSE_INSTALLED_AI_RESOURCE_TYPES)(
     "%s: the snippet passes both settings from the .env, empty by default",
     (type: AiResourceType) => {
       const environment: Record<string, string> = environmentOf(
@@ -1068,7 +1093,7 @@ describe("what AI may do, set where the agent runs", () => {
    * version's own upgrade command — and the plain-container note says to
    * pull it too (install.sh pulls it anyway).
    */
-  test.each(ALL_AI_RESOURCE_TYPES)(
+  test.each(COMPOSE_INSTALLED_AI_RESOURCE_TYPES)(
     "%s, an agent older than the settings: the restart pulls the newer image",
     (type: AiResourceType) => {
       const instructions: AgentAiSettingsInstructions =

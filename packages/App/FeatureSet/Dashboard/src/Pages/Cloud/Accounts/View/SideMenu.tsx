@@ -17,8 +17,9 @@ export interface ComponentProps {
 
 /*
  * A cloud account's pages: what it holds first (its Overview, its
- * Resources and how they fit together), then what changed in it, its own
- * settings, its API pages and, last, deleting it.
+ * Resources and how they fit together), then what OneUptime AI may do and
+ * did in it, what changed in it, its own settings, its API pages and,
+ * last, deleting it.
  */
 const CloudAccountSideMenu: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -55,6 +56,33 @@ const CloudAccountSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.FlowDiagram}
+        />
+      </SideMenuSection>
+
+      {/*
+       * What OneUptime AI may do in the account (its Cloud AI agent) and
+       * everything it did there.
+       */}
+      <SideMenuSection title="AI">
+        <SideMenuItem
+          link={{
+            title: "AI agent",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.CLOUD_ACCOUNT_VIEW_AI_AGENT] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Automation}
+        />
+        <SideMenuItem
+          link={{
+            title: "Logs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.CLOUD_ACCOUNT_VIEW_AI_LOGS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.QueueList}
         />
       </SideMenuSection>
 
