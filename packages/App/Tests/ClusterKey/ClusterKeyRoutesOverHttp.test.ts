@@ -244,10 +244,10 @@ function routesUnderTest(modelTriggerPath: string): Array<RouteUnderTest> {
       notificationUrls("webhook", "/send"),
     ),
     route(
-      `${NOTIFICATION_API}/CustomChannel.ts`,
+      `${NOTIFICATION_API}/CallAndSmsGateway.ts`,
       "POST",
-      '"/send"',
-      notificationUrls("custom-channel", "/send"),
+      '"/test"',
+      notificationUrls("call-and-sms-gateway", "/test"),
     ),
     route(
       `${NOTIFICATION_API}/WhatsApp.ts`,
@@ -415,7 +415,7 @@ async function startInstallation(
       mountNotification("whatsapp", "WhatsApp");
       mountNotification("telegram", "Telegram");
       mountNotification("webhook", "Webhook");
-      mountNotification("custom-channel", "CustomChannel");
+      mountNotification("call-and-sms-gateway", "CallAndSmsGateway");
       mountNotification("call", "Call");
       mountNotification("phone-number", "PhoneNumber");
 
@@ -571,6 +571,17 @@ function standInForSenders(record: {
     "sendWebhook",
   );
   standIn(
+    "../../FeatureSet/Notification/Services/CallAndSmsGatewayService",
+    "sendTest",
+    () => {
+      return {
+        ok: true,
+        statusCode: 200,
+        message: "Sent to the SMS and call gateway (HTTP 200).",
+      };
+    },
+  );
+  standIn(
     "Common/Server/Utils/Telemetry/TelemetryFanInWriter",
     "submit",
     () => {
@@ -670,6 +681,18 @@ afterAll(() => {
   restoreEncryptionSecret();
 });
 
+/*
+ * The routes core serves, which this copy of the product mounts. A route the
+ * Enterprise Edition serves (ee/, mounted by EnterpriseEdition under "/api")
+ * is found only where ee/ is checked out - core's test job removes it - and
+ * is held to the cluster key by ClusterKeyGuard and ee's own suites.
+ */
+function coreClusterKeyRoutes(): Array<ClusterKeyRoute> {
+  return findClusterKeyRoutes().filter((route: ClusterKeyRoute): boolean => {
+    return !route.file.startsWith("ee/");
+  });
+}
+
 describe("the routes that take the cluster key", () => {
   test("are every route the product hands the cluster key check to, and each is exercised below", async () => {
     const installation: RunningInstallation = await startInstallation({
@@ -690,7 +713,7 @@ describe("the routes that take the cluster key", () => {
           );
         });
 
-      expect(exercised).toStrictEqual(findClusterKeyRoutes());
+      expect(exercised).toStrictEqual(coreClusterKeyRoutes());
     } finally {
       await close(installation.http);
     }
@@ -1203,12 +1226,9 @@ describe("the real handlers behind the routes", () => {
       body: { url: "https://example.com/hooks/oneuptime", eventType: "test" },
     },
     {
-      name: "a custom channel's request",
-      url: "/api/notification/custom-channel/send",
-      body: {
-        customNotificationChannelId: "6a1f1b4e-9f0c-4d8e-8b2a-3c4d5e6f7a8b",
-        eventType: "test",
-      },
+      name: "a test of the SMS and call gateway",
+      url: "/api/notification/call-and-sms-gateway/test",
+      body: {},
     },
     {
       name: "a workflow update",

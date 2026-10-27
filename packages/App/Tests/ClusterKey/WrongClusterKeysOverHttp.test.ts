@@ -137,9 +137,9 @@ function routesUnderTest(modelTriggerPath: string): Array<RouteUnderTest> {
       "/api/notification/call/make-call",
     ),
     route(
-      `${NOTIFICATION_API}/CustomChannel.ts`,
-      '"/send"',
-      "/api/notification/custom-channel/send",
+      `${NOTIFICATION_API}/CallAndSmsGateway.ts`,
+      '"/test"',
+      "/api/notification/call-and-sms-gateway/test",
     ),
     route(
       `${NOTIFICATION_API}/Mail.ts`,
@@ -253,7 +253,7 @@ async function startInstallation(): Promise<RunningInstallation> {
         ["whatsapp", "WhatsApp"],
         ["telegram", "Telegram"],
         ["webhook", "Webhook"],
-        ["custom-channel", "CustomChannel"],
+        ["call-and-sms-gateway", "CallAndSmsGateway"],
         ["call", "Call"],
         ["phone-number", "PhoneNumber"],
       ]) {
@@ -455,7 +455,17 @@ describe("the routes that take the cluster key", () => {
             a.method.localeCompare(b.method)
           );
         }),
-    ).toStrictEqual(findClusterKeyRoutes());
+    ).toStrictEqual(
+      /*
+       * The routes core serves, which this copy of the product mounts. A
+       * route the Enterprise Edition serves (ee/) is found only where ee/ is
+       * checked out, and is held to the cluster key by ClusterKeyGuard and
+       * ee's own suites.
+       */
+      findClusterKeyRoutes().filter((route: ClusterKeyRoute): boolean => {
+        return !route.file.startsWith("ee/");
+      }),
+    );
   });
 
   test("let the right key through, as before", async () => {
@@ -480,7 +490,7 @@ describe("on each route, one client's different wrong keys", () => {
     "/api/notification/sms/send",
     "/api/notification/telegram/send",
     "/api/notification/webhook/send",
-    "/api/notification/custom-channel/send",
+    "/api/notification/call-and-sms-gateway/test",
     "/api/notification/whatsapp/send",
     "/telemetry-writer/insert",
     `/workflow/update/${WORKFLOW_ID}`,

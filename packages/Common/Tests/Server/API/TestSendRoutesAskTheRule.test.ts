@@ -23,6 +23,11 @@ import { describe, expect, test } from "@jest/globals";
  *              broadcast email), a master administrator's: the route runs
  *              MasterAdminAuthorization and never bills a project the request
  *              names;
+ *  - cluster:  the Notification service's half of an instance test that
+ *              another service hands it (the SMS and call gateway's): only
+ *              OneUptime's own services reach it, with the cluster key
+ *              (ClusterKeyAuthorization), and it reads nothing of the
+ *              request - it tests the setup as saved, for nobody's project;
  *  - check:    a connection check that sends nobody a message (an LLM
  *              provider, a data source, a security event connection, a
  *              cluster's AI access, the Teams bot's configuration). Each
@@ -35,7 +40,7 @@ import { describe, expect, test } from "@jest/globals";
 
 const REPO_ROOT: string = path.resolve(__dirname, "../../../../..");
 
-type Rule = "project" | "setting" | "self" | "instance" | "check";
+type Rule = "project" | "setting" | "self" | "instance" | "cluster" | "check";
 
 interface KnownTestRoute {
   file: string;
@@ -159,6 +164,18 @@ const ALL_KNOWN_TEST_ROUTES: ReadonlyArray<KnownTestRoute> = [
     path: "/send-test",
     rule: "instance",
     why: "A broadcast email's test, from the Admin Dashboard.",
+  },
+  {
+    file: "packages/Common/Server/API/GlobalConfigAPI.ts",
+    path: "/call-and-sms-gateway/test",
+    rule: "instance",
+    why: "A master admin trying the server's SMS and call gateway as saved, from the Admin Dashboard: one request to it, to nobody.",
+  },
+  {
+    file: "packages/App/FeatureSet/Notification/API/CallAndSmsGateway.ts",
+    path: "/test",
+    rule: "cluster",
+    why: "The Notification service posts the gateway test GlobalConfigAPI asks for, with the cluster key; it reads the gateway as saved and nothing of the request.",
   },
   {
     file: "packages/Common/Server/API/LlmProviderAPI.ts",
@@ -543,6 +560,54 @@ describe("every route that sends a test asks the one rule", () => {
       expect(source).not.toContain('body["projectId"]');
     },
   );
+
+  test.each(
+    KNOWN_TEST_ROUTES.filter((route: KnownTestRoute): boolean => {
+      return route.rule === "cluster";
+    }),
+  )(
+    "$file $path is reached by OneUptime's own services alone, and reads nothing of the request",
+    (route: KnownTestRoute) => {
+      const source: string = sourceOf(route);
+
+      expect(
+        countOf(
+          source,
+          "ClusterKeyAuthorization.isAuthorizedServiceMiddleware",
+        ),
+      ).toBe(1);
+      expect(source).not.toContain("UserMiddleware");
+      expect(source).not.toContain("req.body");
+      expect(source).not.toContain("req.query");
+      expect(source).not.toContain("req.params");
+    },
+  );
+
+  test("every cluster route is the Notification service's half of an instance test", () => {
+    const cluster: Array<KnownTestRoute> = KNOWN_TEST_ROUTES.filter(
+      (route: KnownTestRoute): boolean => {
+        return route.rule === "cluster";
+      },
+    );
+
+    expect(cluster.length).toBeGreaterThan(0);
+
+    for (const route of cluster) {
+      expect(
+        route.file.startsWith("packages/App/FeatureSet/Notification/API/"),
+      ).toBe(true);
+    }
+
+    // The SMS and call gateway's: a master admin asks GlobalConfigAPI, which asks the cluster route.
+    expect(
+      KNOWN_TEST_ROUTES.find((route: KnownTestRoute): boolean => {
+        return (
+          route.file === "packages/Common/Server/API/GlobalConfigAPI.ts" &&
+          route.path === "/call-and-sms-gateway/test"
+        );
+      })?.rule,
+    ).toBe("instance");
+  });
 
   test("every entry says why it is the kind it is", () => {
     for (const route of KNOWN_TEST_ROUTES) {
