@@ -98,8 +98,9 @@ describe("the old Entities product is gone, not merely hidden", () => {
     /*
      * A leftover key is a route nothing mounts: reachable by URL, renders
      * nothing. The old product's keys were ENTITIES, ENTITIES_ROOT,
-     * ENTITIES_VIEW and ENTITIES_VIEW_ROOT. Security Events' own Entities
-     * page (SECURITY_EVENTS_ENTITIES) is mounted, and is not one of them.
+     * ENTITIES_VIEW and ENTITIES_VIEW_ROOT. Security Events' old Entities
+     * address (SECURITY_EVENTS_ENTITIES), which opens Entity Risk, is
+     * mounted, and is not one of them.
      */
     expect(readSource("Utils", "PageMap.ts")).not.toMatch(
       /^\s*ENTITIES\w*\s*=/m,

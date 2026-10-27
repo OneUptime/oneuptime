@@ -140,7 +140,7 @@ const RankedBars: FunctionComponent<ComponentProps> = (
               )}
               {props.hasThresholdMark ? (
                 <div
-                  className="absolute inset-y-0 start-1/2 w-px bg-gray-400"
+                  className="absolute inset-y-0 start-1/2 w-px bg-gray-300"
                   data-testid="ranked-bar-threshold"
                   aria-hidden="true"
                 />

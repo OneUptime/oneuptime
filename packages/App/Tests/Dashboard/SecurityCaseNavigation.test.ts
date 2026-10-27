@@ -142,8 +142,10 @@ describe("a case's side menu", () => {
 
   /*
    * A case's page that lists what a Security Events page lists, for the case
-   * alone, draws that page's icon: its Entities, and its Playbooks - the
-   * runs on the case, as Playbook Runs lists every run.
+   * alone, draws that page's icon: its Playbooks - the runs on the case, as
+   * Playbook Runs lists every run. Its Entities - who and what the case is
+   * about - keep the fingerprint Security Events' Entities page had: that
+   * page folded into Entity Risk, whose flame marks a list of risk.
    */
   test("draws a page the Security Events menu has with that menu's icon", () => {
     const productItems: Array<SecurityEventsMenuItem> =
@@ -152,11 +154,24 @@ describe("a case's side menu", () => {
           return section.items;
         },
       );
+    const caseItems: Array<SecurityCaseMenuItem> = SECURITY_CASE_MENU.flatMap(
+      (section: SecurityCaseMenuSection): Array<SecurityCaseMenuItem> => {
+        return section.items;
+      },
+    );
 
-    for (const [caseTitle, productTitle] of [
-      ["Entities", "Entities"],
-      ["Playbooks", "Playbook Runs"],
-    ]) {
+    expect(
+      caseItems.find((item: SecurityCaseMenuItem): boolean => {
+        return item.title === "Entities";
+      })?.icon,
+    ).toBe(IconProp.Fingerprint);
+    expect(
+      productItems.find((item: SecurityEventsMenuItem): boolean => {
+        return item.title === "Entities";
+      }),
+    ).toBeUndefined();
+
+    for (const [caseTitle, productTitle] of [["Playbooks", "Playbook Runs"]]) {
       const productItem: SecurityEventsMenuItem | undefined = productItems.find(
         (item: SecurityEventsMenuItem): boolean => {
           return item.title === productTitle;
