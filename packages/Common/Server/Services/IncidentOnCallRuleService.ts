@@ -74,21 +74,46 @@ export class Service extends ProjectReferencesService<Model> {
     return onUpdate;
   }
 
-  // A deleted rule holds nothing either: read its policies while it is there.
+  /*
+   * A deleted rule holds nothing either. Its policies are read while it is
+   * there: the rules the delete removes, with the delete held to them
+   * (findRowsAndHoldDeleteToThem), so a rule the caller may not delete is
+   * never read. The pages AI holds for them go to people once the delete
+   * has removed them, below - a delete that is refused or fails pages
+   * nobody.
+   */
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
+    const rules: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      AI_FIRST_RESPONDER_RULE_SELECT,
+    );
+
+    return { deleteBy, carryForward: rules };
+  }
+
+  // The rules the delete removed, of those read before it, hand off.
+  protected override async onDeleteSuccess(
+    onDelete: OnDelete<Model>,
+    itemIdsBeforeDelete: Array<ObjectID>,
+  ): Promise<OnDelete<Model>> {
     await AiFirstResponderRules.handOffForRules(
-      await this.findBy({
-        query: deleteBy.query,
-        select: AI_FIRST_RESPONDER_RULE_SELECT,
-        limit: LIMIT_MAX,
-        skip: 0,
-        props: { isRoot: true },
+      Service.getRowsDeleted<Model>({
+        rows: (onDelete.carryForward as Array<Model> | null) || [],
+        deletedIds: itemIdsBeforeDelete,
       }),
     );
 
-    return { deleteBy, carryForward: null };
+    return onDelete;
+  }
+
+  // A hard delete (the retention job's purge) runs no onDeleteSuccess.
+  protected override async onHardDeleteSuccess(
+    onDelete: OnDelete<Model>,
+    itemIdsBeforeDelete: Array<ObjectID>,
+  ): Promise<OnDelete<Model>> {
+    return await this.onDeleteSuccess(onDelete, itemIdsBeforeDelete);
   }
 }
 
