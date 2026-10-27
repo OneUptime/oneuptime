@@ -194,7 +194,7 @@ function exceptionGroup(
   model._id = id;
   model.fingerprint = `fp-${id.slice(0, 4)}`;
   model.exceptionType = "SequelizeDatabaseError";
-  model.message = "syntax error at or near \"or\"";
+  model.message = 'syntax error at or near "or"';
   model.isResolved = false;
   model.isArchived = false;
   Object.assign(model, overrides);
@@ -333,9 +333,7 @@ describe("Run a runbook", () => {
     jest.spyOn(RunbookService, "findOneBy").mockResolvedValue(runbook as never);
     jest
       .spyOn(SecurityPlaybookTargets, "selectTargets")
-      .mockImplementation((async (data: {
-        entityType: SecurityEntityType;
-      }) => {
+      .mockImplementation((async (data: { entityType: SecurityEntityType }) => {
         return data.entityType === SecurityEntityType.IpAddress
           ? [target(SecurityEntityType.IpAddress, "203.0.113.9")]
           : [];
@@ -350,16 +348,14 @@ describe("Run a runbook", () => {
     jest
       .spyOn(SecurityPlaybookActions, "getTemplateValues")
       .mockResolvedValue(VALUES as never);
-    jest
-      .spyOn(RunbookStarter, "start")
-      .mockImplementation((async (
-        request: Parameters<typeof RunbookStarter.start>[0],
-      ) => {
-        started.push(request);
-        const execution: RunbookExecution = new RunbookExecution();
-        execution._id = EXECUTION_ID;
-        return { isStarted: true, execution };
-      }) as never);
+    jest.spyOn(RunbookStarter, "start").mockImplementation((async (
+      request: Parameters<typeof RunbookStarter.start>[0],
+    ) => {
+      started.push(request);
+      const execution: RunbookExecution = new RunbookExecution();
+      execution._id = EXECUTION_ID;
+      return { isStarted: true, execution };
+    }) as never);
   });
 
   test("starts the runbook as a security playbook, with the case as its inputs, and links the run", async () => {
@@ -368,7 +364,9 @@ describe("Run a runbook", () => {
     );
 
     expect(outcome.status).toBe(SecurityPlaybookStepStatus.Succeeded);
-    expect(outcome.feedEventType).toBe(SecurityCaseFeedEventType.ResponseAction);
+    expect(outcome.feedEventType).toBe(
+      SecurityCaseFeedEventType.ResponseAction,
+    );
     expect(outcome.summary.toString()).toContain(
       `[Block an address at the edge](https://oneuptime.example/dashboard/${PROJECT_ID.toString()}/runbooks/${RUNBOOK_ID}/executions/${EXECUTION_ID})`,
     );
@@ -731,11 +729,13 @@ describe("Fix the code with AI", () => {
   beforeEach(() => {
     fixed = [];
 
-    jest.spyOn(SecurityCaseEvidence, "findRequests").mockResolvedValue([
-      request({ traceId: TRACE_ID, exceptionFingerprint: "fp-e5e5" }),
-      request({ traceId: "trace-2", exceptionFingerprint: "fp-f6f6" }),
-      request({ traceId: "trace-3", exceptionFingerprint: "fp-e5e5" }),
-    ]);
+    jest
+      .spyOn(SecurityCaseEvidence, "findRequests")
+      .mockResolvedValue([
+        request({ traceId: TRACE_ID, exceptionFingerprint: "fp-e5e5" }),
+        request({ traceId: "trace-2", exceptionFingerprint: "fp-f6f6" }),
+        request({ traceId: "trace-3", exceptionFingerprint: "fp-e5e5" }),
+      ]);
     jest
       .spyOn(SecurityCaseEvidence, "findExceptions")
       .mockResolvedValue([
@@ -771,7 +771,9 @@ describe("Fix the code with AI", () => {
         .fingerprints,
     ).toEqual(["fp-e5e5", "fp-f6f6"]);
     expect(outcome.status).toBe(SecurityPlaybookStepStatus.Succeeded);
-    expect(outcome.feedEventType).toBe(SecurityCaseFeedEventType.ResponseAction);
+    expect(outcome.feedEventType).toBe(
+      SecurityCaseFeedEventType.ResponseAction,
+    );
     expect(fixed).toEqual([EXCEPTION_ID, SECOND_EXCEPTION_ID]);
     expect(outcome.summary.toString()).toContain(
       `https://oneuptime.example/dashboard/${PROJECT_ID.toString()}/exceptions/${EXCEPTION_ID}/ai-assistance`,

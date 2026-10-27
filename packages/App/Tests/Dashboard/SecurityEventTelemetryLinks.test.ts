@@ -1,6 +1,5 @@
 import { beforeAll, describe, expect, test } from "@jest/globals";
 import SecurityEvent from "Common/Models/AnalyticsModels/SecurityEvent";
-import { JSONObject } from "Common/Types/JSON";
 import {
   SECURITY_LOG_RESOURCE_ID_ATTRIBUTE,
   SECURITY_LOG_RESOURCE_TYPE_ATTRIBUTE,
@@ -63,9 +62,7 @@ beforeAll(async () => {
   );
 });
 
-function event(
-  fields: Partial<SecurityEvent> & { attributes?: JSONObject } = {},
-): SecurityEvent {
+function event(fields: Partial<SecurityEvent> = {}): SecurityEvent {
   return Object.assign(new SecurityEvent(), { time: TIME, ...fields });
 }
 
