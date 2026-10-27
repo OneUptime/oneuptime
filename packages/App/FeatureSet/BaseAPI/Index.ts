@@ -588,6 +588,10 @@ import LogDropFilterService, {
   Service as LogDropFilterServiceType,
 } from "Common/Server/Services/LogDropFilterService";
 import DetectionRuleAPI from "Common/Server/API/DetectionRuleAPI";
+import DetectionRuleException from "Common/Models/DatabaseModels/DetectionRuleException";
+import DetectionRuleExceptionService, {
+  Service as DetectionRuleExceptionServiceType,
+} from "Common/Server/Services/DetectionRuleExceptionService";
 import SecurityEventConnectionAPI from "Common/Server/API/SecurityEventConnectionAPI";
 import LlmObservabilityConnectionAPI from "Common/Server/API/LlmObservabilityConnectionAPI";
 import CloudAccountAPI from "Common/Server/API/CloudAccountAPI";
@@ -3988,10 +3992,19 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
-    // Detection rules' CRUD, and drafting one with OneUptime AI.
+    // Detection rules' CRUD, drafting one with OneUptime AI, and running one on past events.
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new DetectionRuleAPI().getRouter(),
+    );
+
+    // What each detection rule skips (Security Events > Rule Exceptions).
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DetectionRuleException, DetectionRuleExceptionServiceType>(
+        DetectionRuleException,
+        DetectionRuleExceptionService,
+      ).getRouter(),
     );
 
     app.use(

@@ -158,6 +158,7 @@ import LogPipeline from "./LogPipeline";
 import LogPipelineProcessor from "./LogPipelineProcessor";
 import LogDropFilter from "./LogDropFilter";
 import DetectionRule from "./DetectionRule";
+import DetectionRuleException from "./DetectionRuleException";
 import SecurityEventConnection from "./SecurityEventConnection";
 import SecurityEventConnectionRun from "./SecurityEventConnectionRun";
 import ToolImportRun from "./ToolImportRun";
@@ -595,6 +596,7 @@ const AllModelTypes: Array<{
   LogPipelineProcessor,
   LogDropFilter,
   DetectionRule,
+  DetectionRuleException,
   SecurityEventConnection,
   SecurityEventConnectionRun,
   ToolImportRun,
