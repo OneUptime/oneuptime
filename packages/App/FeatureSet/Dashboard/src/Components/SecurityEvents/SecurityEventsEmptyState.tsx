@@ -298,8 +298,12 @@ const SecurityEventsEmptyState: FunctionComponent = (): ReactElement => {
         }`}
       >
         {/*
-         * Wraps rather than squeezing the title to nothing when the list
-         * is narrow, e.g. beside the filters on a small tablet.
+         * The title takes the row beside its badge and wraps there, from
+         * 10rem: a long one (Your logs', or any in German) wrapped whole to
+         * a line under the badge on a phone. Only where even 10rem is not
+         * left - beside the filters on a small tablet - does it go under
+         * the badge, never squeezed to nothing. Your logs' On closes the
+         * row, at the card's end.
          */}
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
           <div
@@ -310,7 +314,7 @@ const SecurityEventsEmptyState: FunctionComponent = (): ReactElement => {
           </div>
           <h4
             id={titleId}
-            className="min-w-0 text-sm font-semibold text-gray-900"
+            className="min-w-0 flex-1 basis-40 text-sm font-semibold text-gray-900"
           >
             {translateString(wayIn.title)}
           </h4>

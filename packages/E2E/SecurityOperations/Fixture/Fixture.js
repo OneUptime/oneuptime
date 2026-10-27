@@ -42,9 +42,9 @@
  *   ?data=   none or fail: what the project's events say it sends, as the
  *            Rule Library reads them - nothing this week, or a read that
  *            fails. Otherwise Okta, Defender XDR and Kubernetes audit logs.
- *   ?lang=   de, fr, it, nl, ja or fa: the Dashboard's German, French,
- *            Italian, Dutch, Japanese or Persian locale (Persian right to
- *            left).
+ *   ?lang=   de, es, fr, it, pt, nl, ru, ja or fa: the Dashboard's German,
+ *            Spanish, French, Italian, Portuguese, Dutch, Russian, Japanese
+ *            or Persian locale (Persian right to left).
  *   ?values= custom: the project made its case statuses and priorities its
  *            own (CUSTOM_STATUSES below): Triage, an archived Escalated,
  *            Eradicating and Closed - Duplicate among the statuses, and
@@ -357,9 +357,10 @@ const dataScenario = DATA_SCENARIOS.includes(params.get("data"))
   : "";
 /*
  * ?lang=: the Dashboard's German, Spanish, French, Italian, Portuguese,
- * Dutch, Japanese or Persian locale, loaded and switched to, for the pages
- * that are checked in other languages (the Rule Library, Connected Signals,
- * the side menu's longest names). Persian reads right to left.
+ * Dutch, Russian, Japanese or Persian locale, loaded and switched to, for
+ * the pages that are checked in other languages (the Rule Library,
+ * Connected Signals, the side menu's longest names, the case lists' widest
+ * words). Persian reads right to left.
  *
  * Each loads only when ?lang= names it: a locale is some four megabytes of
  * JSON, which every page the suite opens would parse if it were bundled
@@ -387,11 +388,13 @@ function loadLocale(language) {
       return import("../../../App/FeatureSet/Dashboard/src/Locales/nl.json");
     case "pt":
       return import("../../../App/FeatureSet/Dashboard/src/Locales/pt.json");
+    case "ru":
+      return import("../../../App/FeatureSet/Dashboard/src/Locales/ru.json");
     default:
       return null;
   }
 }
-const LANGUAGES = ["de", "es", "fa", "fr", "it", "ja", "nl", "pt"];
+const LANGUAGES = ["de", "es", "fa", "fr", "it", "ja", "nl", "pt", "ru"];
 const language = LANGUAGES.includes(params.get("lang"))
   ? params.get("lang")
   : "en";

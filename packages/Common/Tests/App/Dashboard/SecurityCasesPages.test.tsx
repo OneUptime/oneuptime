@@ -1251,6 +1251,9 @@ describe("the list a person sees", () => {
     const source: HTMLElement = line.firstElementChild as HTMLElement;
     expect(source).toHaveClass("inline-flex", "items-center");
     expect(source.querySelector("svg")).not.toBeNull();
+    // The dot after the source is in its box: never the start of a line.
+    expect(source.lastElementChild).toHaveTextContent("·");
+    expect(source.lastElementChild).toHaveAttribute("aria-hidden", "true");
     expect(line.lastElementChild).toBe(
       screen.getByTestId(SECURITY_CASE_ROW_DETECTIONS_TEST_ID),
     );

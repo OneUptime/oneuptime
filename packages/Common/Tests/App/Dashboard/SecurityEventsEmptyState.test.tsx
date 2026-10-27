@@ -1431,7 +1431,12 @@ describe("SecurityEventsEmptyState", () => {
         const header: HTMLElement = title.parentElement as HTMLElement;
         expect(header).toHaveClass("flex", "flex-wrap", "items-center");
         expect(header).toBe(card(wayIn.id).firstElementChild);
-        expect(title).toHaveClass("min-w-0");
+        /*
+         * The title takes the row beside its badge and wraps there, from
+         * 10rem: Your logs' long one went whole to a line under the badge
+         * on a phone.
+         */
+        expect(title).toHaveClass("min-w-0", "flex-1", "basis-40");
       },
     );
   });

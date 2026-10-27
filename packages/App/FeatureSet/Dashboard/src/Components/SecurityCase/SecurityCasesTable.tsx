@@ -382,8 +382,12 @@ const SecurityCasesList: FunctionComponent<{
               className="mt-0.5 text-xs leading-5 text-gray-500"
               data-testid={SECURITY_CASE_ROW_SOURCE_LINE_TEST_ID}
             >
-              {/* The source and its icon stay together, one box in the line. */}
-              <span className="inline-flex items-center gap-1.5 align-top">
+              {/*
+                The source, its icon and the dot after it stay together, one
+                box in the line: where the line breaks after it, the dot ends
+                the first line rather than starting the next.
+              */}
+              <span className="me-1.5 inline-flex items-center gap-1.5 align-top">
                 <Icon
                   icon={getSecurityDetectionSourceIcon(item.source)}
                   className="h-3 w-3 text-gray-400"
@@ -391,9 +395,7 @@ const SecurityCasesList: FunctionComponent<{
                 <span>
                   {item.source ? translator.translateText(item.source) : ""}
                 </span>
-              </span>
-              <span aria-hidden="true" className="mx-1.5">
-                ·
+                <span aria-hidden="true">·</span>
               </span>
               <span
                 data-testid={SECURITY_CASE_ROW_DETECTIONS_TEST_ID}

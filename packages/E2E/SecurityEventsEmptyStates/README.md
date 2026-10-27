@@ -54,6 +54,7 @@ Query parameters, parsed once per page load:
 | `?theme=`  | `dark` adds `html.dark` (done in `server.js`, before the bundle runs)                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | `?latest=` | Once its time window comes back empty, the Security Events page looks up the project's newest event (one row, no time window) to tell "nothing ever arrived" from "nothing in this window". `none` (default): there is no event at all, so the page shows its empty state. `pending`: the lookup does not answer until the spec calls `window.__securityEventsEmptyStatesFixture.resolveLatestEvent()`. `old`: the newest event arrived at `2026-09-01T09:30:00Z`, outside the default one-day window. |
 | `?siem=`   | `rows`: three SIEMs in the Send to your SIEM table - sending, failing (with its last error) and not sent yet. Without it the table is empty.                                                                                                                                                                                                                                                                                                                                                           |
+| `?logs=`   | `on`: the project's Your logs is on, checked two minutes before the pinned clock, nothing found yet, so the Events page's Your logs card says On and Open Your logs. `fail`: reading Your logs fails (a 500), on the Events page and on Connections. Without it, Your logs is off (no record yet).                                                                                                                                                                                                                                                                 |
 | `?events=` | `one`: the window holds one event - Defender's encoded PowerShell on `web-03`, by `k.morgan@acme-commerce.example` from `203.0.113.30`, twenty minutes before the pinned clock - so its row opens the event's drawer. The drawer's Connected tab asks `POST /security-case/connections` what the event names, answered from Security Operations' records (`web-03`, its staging namesake, Kai Morgan) with the server's own matching rules (`../SecurityOperations/Fixture/ConnectionsFixture.js`).    |
 
 ## What the fixture records
@@ -111,12 +112,17 @@ is listed in `unhandled`; the spec's `afterEach` fails when that list is not emp
   event lookup answers; with `?latest=old` the page says when the newest event arrived and
   never shows the empty state.
 - **Security Events empty state**: inside the list card above its pagination, beside the
-  filters from md up; header, then the two ways in as equal cards (titles, descriptions,
-  `POST /security-events/v1/ingest` as code, the product categories); each card one control
-  named by its action; Read the setup guide (button, description, Enter) navigates to the
-  Setup Guide page and back returns; the Pull card (description, categories line) navigates
-  to Connections and its empty state, and back returns; the endpoint chip can be clicked,
-  triple-clicked and drag-selected without leaving the page.
+  filters from md up; header (no OCSF), then the three ways in: Your logs the whole first row
+  (what it reads, Turn on Your logs), then the two from other tools as equal cards side by side
+  (titles, descriptions, the product categories, `POST /security-events/v1/ingest` as code);
+  each card one control named by its action, Tab visiting them in order; Your logs (description,
+  formats line, Enter) opens Connections, its switch first, and back returns; with Your logs on
+  (`?logs=on`) the card says On, when it last checked, and Open Your logs; a read that fails
+  (`?logs=fail`) still offers Open Your logs and claims nothing; Read the setup guide (button,
+  description, Enter) navigates to the Setup Guide page and back returns; the Pull card
+  (description, categories line) navigates to Connections and its empty state, and back
+  returns; the endpoint chip can be clicked, triple-clicked and drag-selected without leaving
+  the page.
 - **Security Events layout**: dark theme on the list surface; 768 without sideways scroll;
   390, where the facet sidebar folds behind a "Filters" toggle and stacks above the list, so
   the list and its empty state get the page's full width and nothing scrolls sideways.

@@ -188,8 +188,8 @@ interface OpenOptions {
   fail?: "status" | "overview";
   // What the project's events say it sends: nothing this week, or a read that fails.
   data?: "none" | "fail";
-  // The Dashboard's German, Spanish, French, Italian, Portuguese, Dutch, Japanese or Persian locale.
-  lang?: "de" | "es" | "fr" | "it" | "pt" | "nl" | "ja" | "fa";
+  // The Dashboard's German, Spanish, French, Italian, Portuguese, Dutch, Russian, Japanese or Persian locale.
+  lang?: "de" | "es" | "fr" | "it" | "pt" | "nl" | "ru" | "ja" | "fa";
   // "custom": the project's own case statuses and priorities.
   values?: "custom";
   // Case numbers, comma separated, whose every change the server refuses.
@@ -2070,11 +2070,86 @@ test.describe("the case queue", () => {
       await overflowOf(scroller),
       "table scrolls sideways",
     ).toBeLessThanOrEqual(1);
+    /*
+     * When the last detection fired is in each case's line, not a column of
+     * its own: the column waits in Customize Columns.
+     */
     await expect(
       page.getByRole("columnheader", { name: "Last Detection" }),
-    ).toBeInViewport();
+    ).toHaveCount(0);
+    await expect(
+      page
+        .locator("table tbody tr")
+        .filter({ hasText: "CASE-142" })
+        .getByTestId("security-case-row-detections"),
+    ).toHaveText("3 detections, the last 9 minutes ago");
 
     await screenshot(page, "cases-desktop");
+  });
+
+  /*
+   * The case lists ran past their card at a 1280 laptop in the longest
+   * languages - German by 95px, Russian by 173 - the last values under the
+   * sticky View and ⋯. The time each list is sorted by is in each case's
+   * line now, and every list fits. The fixture is 64px narrower than
+   * production: 1344 here is a 1280 laptop.
+   */
+  test("every case list fits its card at a 1280 laptop in German, French, Dutch and Russian", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const lists: Array<[string, string]> = [
+      ["open", CASES_PATH],
+      ["closed", CLOSED_CASES_PATH],
+      ["all", ALL_CASES_PATH],
+    ];
+
+    for (const lang of ["de", "fr", "nl", "ru"] as Array<
+      NonNullable<OpenOptions["lang"]>
+    >) {
+      for (const [name, pathname] of lists) {
+        await open(page, pathname, { width: 1344, lang });
+        await expect(page.locator("table tbody tr").first()).toBeVisible({
+          timeout: 30000,
+        });
+        const scroller: Locator = page
+          .locator("table")
+          .locator("xpath=ancestor::div[@data-testid='table-scroll'][1]");
+
+        expect(
+          await overflowOf(scroller),
+          `${lang} ${name}: the table scrolls sideways`,
+        ).toBeLessThanOrEqual(1);
+        expect(await pageOverflow(page), `${lang} ${name}`).toBeLessThanOrEqual(
+          1,
+        );
+      }
+    }
+
+    // German opens a case as a case is opened, the whole phrase.
+    await open(page, CASES_PATH, { width: 1344, lang: "de" });
+    await expect(
+      page.getByRole("button", { name: "Sicherheitsfall eröffnen" }),
+    ).toBeVisible({ timeout: 30000 });
+    await expect(
+      page.getByRole("button", { name: "Öffnen Sicherheitsfall" }),
+    ).toHaveCount(0);
+    await screenshot(page, "cases-1280-de", { fullPage: false });
+  });
+
+  test("Closed Cases says in each case's line when it closed", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, CLOSED_CASES_PATH);
+    await expect(
+      page.getByTestId("security-case-row-detections").first(),
+    ).toContainText(", closed ", { timeout: 30000 });
+    await expect(
+      page.getByRole("columnheader", { name: "Closed", exact: true }),
+    ).toHaveCount(0);
   });
 
   for (const layout of [
@@ -3378,6 +3453,51 @@ test.describe("a case", () => {
     ).toHaveCount(1);
   });
 
+  /*
+   * A case's runs fold to a line each, as on Playbook Runs - a playbook run
+   * at every new detection gives a busy case a run a detection - but its
+   * newest opens, with any run waiting for approval.
+   */
+  test("the case's Playbooks folds its older runs to a line, the newest open", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, `${SPRAY_CASE_PATH}/playbook-runs`);
+    const cards: Locator = page.getByTestId("security-playbook-run-card");
+    await expect(cards).toHaveCount(2, { timeout: 30000 });
+
+    const held: Locator = cards.filter({
+      hasText: "Contain Compromised Okta Users",
+    });
+    const enrich: Locator = cards.filter({ hasText: "Enrich New Cases" });
+
+    // The newest, and waiting for approval: open on its steps.
+    await expect(
+      held.getByTestId("security-playbook-run-steps-toggle"),
+    ).toHaveAttribute("aria-expanded", "true");
+    await expect(held).toContainText("Suspend the user in Okta");
+
+    // The older one: a line of how far it got, its steps a click away.
+    await expect(
+      enrich.getByTestId("security-playbook-run-summary"),
+    ).toHaveText("3 of 3 steps done");
+    const toggle: Locator = enrich.getByTestId(
+      "security-playbook-run-steps-toggle",
+    );
+    await expect(toggle).toHaveAttribute("aria-expanded", "false");
+    await expect(enrich).not.toContainText("Added the triage checklist");
+
+    await toggle.click();
+    await expect(toggle).toHaveAttribute("aria-expanded", "true");
+    await expect(enrich).toContainText(
+      "Added the triage checklist to the case.",
+    );
+    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+
+    await screenshot(page, "case-playbooks-folded", { fullPage: false });
+  });
+
   test("approving the held step runs the rest of the playbook, and the count beside the entry goes", async ({
     page,
   }: {
@@ -3400,7 +3520,7 @@ test.describe("a case", () => {
     const dialog: Locator = page.getByRole("dialog");
     await expect(dialog).toContainText("Approve Step");
     await dialog
-      .getByPlaceholder("Optional. Why you decided this way.")
+      .getByPlaceholder("Why you decided this way.")
       .fill("Confirmed with her manager.");
     await dialog.getByRole("button", { name: "Approve" }).click();
 

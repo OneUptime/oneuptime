@@ -101,6 +101,7 @@ history is laid out from it with a seeded generator, so every run draws the same
 | `?setup=`   | Turn on recommended that cannot do everything: `partly` (the first click leaves Password spraying and Enrich New Cases undone, the Rule Library's first Add of Password spraying fails, and the Playbooks page's first template is refused by the role; the next click, Add or pick does them) or `fail` (the first click cannot reach the server; the next one turns everything on)                                               |
 | `?refuse=`  | case numbers, comma separated (`138`): the server refuses every change to those cases, as a role scoped to labels the reader lacks does, so Bulk Actions names the cases it could not change and why                                                                                                                                                                                                                               |
 | `?triage=`  | the case AI card's other states: `failed` (CASE-141's only triage stopped with an error), `provider`, `credits` or `limit` (no LLM provider, no AI credits, the daily AI limit: nothing can be triaged), `injection` (CASE-137's data held text written to steer an AI; its benign read set aside for Inconclusive), `retry` (CASE-142's latest triage stopped; the read before it stays) and `auto-off` (Triage new cases is off) |
+| `?lang=`    | `de`, `es`, `fr`, `it`, `pt`, `nl`, `ru`, `ja` or `fa` (right to left): the Dashboard's words in that language; the case lists are measured in the widest of them |
 
 ## What the fixture records
 
@@ -138,8 +139,11 @@ that list is not empty.
   from the side menu lists what its name says (Unassigned names the team a case was handed to,
   Assigned to Me has no Assignee column, Closed Cases reads by verdict and when each closed); at
   1280 each list's title, search and buttons share one line with the description under them; at
-  1440 every column fits the card beside the side menu; at 1024 and 390 nothing runs off the page
-  and the header's search stays inside the card.
+  1440 every column fits the card beside the side menu, each case's line saying when its last
+  detection fired ("3 detections, the last 9 minutes ago") with no Last Detection column, and
+  Closed Cases saying when each closed; at a 1280 laptop every list fits its card in German,
+  French, Dutch and Russian (`?lang=`), German's button reading "Sicherheitsfall eröffnen"; at
+  1024 and 390 nothing runs off the page and the header's search stays inside the card.
 - **Working cases from the queue**: each row's ⋯ offers the moves its case takes - Assign to
   Me, Assign to Someone Else, Change Status and Change Priority beside View, Delete last; none
   of the assigning on a closed case, no Assign to Me on the reader's own. "Assign to Someone
