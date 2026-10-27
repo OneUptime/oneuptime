@@ -138,6 +138,7 @@ Den samlede status er den værste aktuelle status blandt sidens monitorer og mon
 | `timelineIncidents` | Hændelserne i oppetidsbjælkernes tidsvindue, løste hændelser medregnet, til bjælkernes værktøjstip. |
 | `activeEpisodes`, `episodePublicNotes`, `episodeStateTimelines` | Det samme for hændelsesepisoder. |
 | `scheduledMaintenanceEvents`, `scheduledMaintenanceEventsPublicNotes`, `scheduledMaintenanceStateTimelines`, `scheduledMaintenanceStates` | De planlagte vedligeholdelsesbegivenheder, der endnu ikke er begyndt eller er i gang, deres offentlige noter og tilstandsskift. |
+| `timelineScheduledMaintenanceEvents` | De planlagte vedligeholdelsesbegivenheder i oppetidsbjælkernes tidsvindue, der er begyndt, hvad enten de er i gang eller overstået, til bjælkernes værktøjstip og hver dags dialog: kun dem, siden viser, og som omfatter en af dens monitorer, hver kun med sidens monitorer. |
 | `activeAnnouncements` | De meddelelser, der vises nu: startet og ikke afsluttet. |
 
 ## Læs resuméet
