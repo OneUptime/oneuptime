@@ -28,6 +28,13 @@ import logger from "../Logger";
  */
 
 export const CLOUD_CONNECTION_PULL_JOB: string = "CloudConnection:Read";
+/*
+ * Within AWS's default interval, so a read is over before the next is due.
+ * Its metrics take six minutes at most (CLOUD_READ_MAX_DURATION_MS); its
+ * slower lanes - the inventory, the changes, the health events, the billing
+ * - get what is left of this, and wait for the next read when too little is
+ * (CloudConnectionLanes).
+ */
 export const CLOUD_CONNECTION_PULL_JOB_TIMEOUT_MS: number = 9 * 60 * 1000;
 // Connections claimed in one tick; the rest wait for the next minute.
 const MAX_CONNECTIONS_PER_TICK: number = 100;

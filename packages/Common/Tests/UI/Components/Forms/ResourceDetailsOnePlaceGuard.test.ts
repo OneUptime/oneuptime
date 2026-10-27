@@ -10,6 +10,7 @@ import {
 } from "../../../Helpers/FormStepsScan";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import CephCluster from "../../../../Models/DatabaseModels/CephCluster";
+import CloudAccount from "../../../../Models/DatabaseModels/CloudAccount";
 import CloudResource from "../../../../Models/DatabaseModels/CloudResource";
 import CodeRepository from "../../../../Models/DatabaseModels/CodeRepository";
 import DockerHost from "../../../../Models/DatabaseModels/DockerHost";
@@ -462,6 +463,7 @@ const MODEL_TYPES: Record<string, { new (): BaseModel }> = {
   RumApplication: RumApplication,
   ServerlessFunction: ServerlessFunction,
   CloudResource: CloudResource,
+  CloudAccount: CloudAccount,
   CephCluster: CephCluster,
   ProxmoxCluster: ProxmoxCluster,
   VMwareVCenter: VMwareVCenter,
@@ -596,6 +598,18 @@ export const DISCOVERED_RESOURCES: Array<DiscoveredResource> = [
     "Overview.tsx",
     "CLOUD_RESOURCE_VIEW_SETTINGS",
     ["cloudAccountId", "cloudRegion"],
+    [],
+  ),
+  /*
+   * A cloud account is matched on its cloud and its account id, which only
+   * its connections write: shown read-only, while its name is its own.
+   */
+  identified(
+    "CloudAccount",
+    "Cloud/Accounts",
+    "Overview.tsx",
+    "CLOUD_ACCOUNT_VIEW_SETTINGS",
+    ["provider", "accountId"],
     [],
   ),
   matchedOnName(

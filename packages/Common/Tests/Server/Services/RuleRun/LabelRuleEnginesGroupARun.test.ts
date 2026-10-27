@@ -155,6 +155,8 @@ interface LabelEngineCase {
   resourceService: SpiedResourceService;
   ruleService: SpiedRuleService;
   legacyFields: LegacyFields;
+  // Rule columns of this kind's own, read besides the shared ones.
+  extraRuleFields: Record<string, unknown>;
   // Resolves the feed write, returning the spy on it (a bare mock if none).
   mockFeed: () => jest.Mock | jest.SpyInstance;
   // How many feed items one successful attach records.
@@ -171,10 +173,12 @@ function labelEngineCase<
   resourceService: Record<string, any>;
   ruleService: Record<string, any>;
   legacyFields: LegacyFields;
+  extraRuleFields?: Record<string, unknown> | undefined;
   mockFeed?: (() => jest.SpyInstance) | undefined;
 }): LabelEngineCase {
   return {
     name: data.name,
+    extraRuleFields: data.extraRuleFields || {},
     ruleSelect: data.engine.ruleSelect as unknown as Record<string, unknown>,
     resourceSelectForRuleRun: data.engine
       .resourceSelectForRuleRun as unknown as Record<string, unknown>,
@@ -242,6 +246,8 @@ const ENGINES: Array<LabelEngineCase> = [
       namePattern: "nameRegexPattern",
       descriptionPattern: "descriptionRegexPattern",
     },
+    // A rule can match a tag the resource has in its cloud.
+    extraRuleFields: { cloudTagPattern: true },
     mockFeed: (): jest.SpyInstance => {
       jest
         .spyOn(CloudResourceService, "getCloudResourceMarkdownLink")
@@ -610,6 +616,7 @@ describe.each(ENGINES)("$name - rule run", (testCase: LabelEngineCase) => {
       [testCase.legacyFields.namePattern]: true,
       [testCase.legacyFields.descriptionPattern]: true,
       labelsToAdd: { _id: true },
+      ...testCase.extraRuleFields,
     });
   });
 

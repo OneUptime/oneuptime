@@ -4052,6 +4052,7 @@ describe("alert-only behaviour", () => {
         "dockerSwarmClusters",
         "iotFleets",
         "databaseServers",
+        "cloudResources",
         "services",
       ]);
 

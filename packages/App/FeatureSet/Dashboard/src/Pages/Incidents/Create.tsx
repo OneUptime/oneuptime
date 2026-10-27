@@ -31,6 +31,7 @@ import StorageArray from "Common/Models/DatabaseModels/StorageArray";
 import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
 import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
 import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
+import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import Host from "Common/Models/DatabaseModels/Host";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
@@ -408,6 +409,7 @@ const OTHER_AFFECTED_RESOURCE_TYPES: Array<AffectedResourceType> = [
   "DockerSwarmCluster",
   "IoTFleet",
   "DatabaseServer",
+  "CloudResource",
   "Service",
 ];
 
@@ -1885,6 +1887,9 @@ const IncidentCreate: FunctionComponent<
                         databaseServers={
                           values.databaseServers as Array<DatabaseServer>
                         }
+                        cloudResources={
+                          values.cloudResources as Array<CloudResource>
+                        }
                         services={values.services as Array<Service>}
                         resourceTypes={OTHER_AFFECTED_RESOURCE_TYPES}
                         ariaLabelledby={elementProps.ariaLabelledby}
@@ -1920,6 +1925,7 @@ const IncidentCreate: FunctionComponent<
                           dockerSwarmClusters: payload.dockerSwarmClusters,
                           iotFleets: payload.iotFleets,
                           databaseServers: payload.databaseServers,
+                          cloudResources: payload.cloudResources,
                           services: payload.services,
                         } as FormValues<Incident>);
                       });
@@ -1965,6 +1971,7 @@ const IncidentCreate: FunctionComponent<
                       item.dockerSwarmClusters,
                       item.iotFleets,
                       item.databaseServers,
+                      item.cloudResources,
                       item.services,
                     ].some((resources: unknown): boolean => {
                       return Array.isArray(resources) && resources.length > 0;
@@ -2003,6 +2010,9 @@ const IncidentCreate: FunctionComponent<
                         iotFleets={item.iotFleets as Array<IoTFleet>}
                         databaseServers={
                           item.databaseServers as Array<DatabaseServer>
+                        }
+                        cloudResources={
+                          item.cloudResources as Array<CloudResource>
                         }
                         services={item.services as Array<Service>}
                         resourceTypes={OTHER_AFFECTED_RESOURCE_TYPES}
@@ -2157,9 +2167,10 @@ const IncidentCreate: FunctionComponent<
                  * Hidden registrations so ModelForm.getSelectFields includes
                  * kubernetesClusters/dockerHosts/podmanHosts/
                  * proxmoxClusters/vmwareVCenters/cephClusters/storageArrays/
-                 * dockerSwarmClusters/iotFleets/databaseServers/services on
-                 * load and submit. (hosts is the Other Affected Resources
-                 * picker's anchor, so it needs no registration of its own.)
+                 * dockerSwarmClusters/iotFleets/databaseServers/
+                 * cloudResources/services on load and submit. (hosts is the
+                 * Other Affected Resources picker's anchor, so it needs no
+                 * registration of its own.)
                  */
                 {
                   field: { kubernetesClusters: true },
@@ -2253,6 +2264,16 @@ const IncidentCreate: FunctionComponent<
                 },
                 {
                   field: { databaseServers: true },
+                  stepId: "resources-affected",
+                  title: "",
+                  fieldType: FormFieldSchemaType.Text,
+                  required: false,
+                  showIf: () => {
+                    return false;
+                  },
+                },
+                {
+                  field: { cloudResources: true },
                   stepId: "resources-affected",
                   title: "",
                   fieldType: FormFieldSchemaType.Text,

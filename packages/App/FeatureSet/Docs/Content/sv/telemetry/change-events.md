@@ -1,9 +1,9 @@
 # Driftsättningar och ändringar
 
-OneUptime för bok över vad som ändrades i ditt projekt: driftsättningar, utrullningar i Kubernetes, konfigurationsändringar och de åtgärder som OneUptime själv körde. Varje ändring ritas som en markör i diagrammen för sin tjänst, och OneUptime AI läser ändringarna när den utreder en incident, så att "det började direkt efter driftsättningen 10:02" är det första du får veta, inte det sista.
+OneUptime för bok över vad som ändrades i ditt projekt: driftsättningar, utrullningar i Kubernetes, konfigurationsändringar, ändringarna i dina anslutna molnkonton och de åtgärder som OneUptime själv körde. Varje ändring ritas som en markör i diagrammen för sin tjänst eller molnresurs, och OneUptime AI läser ändringarna när den utreder en incident, så att "det började direkt efter driftsättningen 10:02" är det första du får veta, inte det sista.
 
 :::cards
-- [Vad OneUptime registrerar på egen hand](#vad-oneuptime-registrerar-på-egen-hand): Driftsättningar och utrullningar ur telemetrin, och egna åtgärder.
+- [Vad OneUptime registrerar på egen hand](#vad-oneuptime-registrerar-på-egen-hand): Driftsättningar och utrullningar ur telemetrin, dina molnkontons ändringar, och egna åtgärder.
 - [Registrera en driftsättning från en pipeline](#registrera-en-driftsättning-från-en-pipeline): CLI:n, GitHub Actions och API:et.
 - [Så använder OneUptime AI ändringar](#så-använder-oneuptime-ai-ändringar): De misstänkta ändringarna i varje utredning.
 - [Referens](#referens): Fält, attribut och gränser.
@@ -17,6 +17,7 @@ flowchart LR
     K["En ny ReplicaSet<br/>i Kubernetes"] --> E
     P["En pipeline:<br/>CLI:n eller API:et"] --> E
     A["En åtgärd som OneUptime<br/>AI körde, ett runbook<br/>som OneUptime körde"] --> E
+    D["Ett molnkontos<br/>aktivitetslogg"] --> E
     E --> C["Markörer i<br/>tjänstens diagram"]
     E --> I["OneUptime AI:s<br/>utredningar"]
 ```
@@ -31,6 +32,8 @@ Du behöver inte skicka något för de här. OneUptime registrerar dem utifrån 
 | En utrullning | Poddarna i en Kubernetes-Deployment börjar köra en ReplicaSet som de inte har kört tidigare: en ny avbildning, en ändrad miljövariabel eller konfigurationsreferens, eller en omstart | `kubernetes` |
 | En åtgärd som OneUptime AI körde | En AI-agent rapporterar resultatet av ett kommando som ändrar något, till exempel `kubectl rollout restart` | `oneuptime-ai` |
 | Ett runbook | Ett runbook som OneUptime körde slutförs, misslyckas eller avbryts efter att det har startat | `runbook` |
+| En molnändring | Aktivitetsloggen för ett anslutet molnkonto registrerar en ändring: AWS CloudTrail, Azures aktivitetslogg eller Google Clouds granskningslogg Admin Activity | `cloud` |
+| En leverantörshändelse | Molnleverantören publicerar en hälsohändelse om kontot: AWS Health, Azure Service Health eller Resource Health, eller Google Cloud Service Health | `cloud-health` |
 
 - **Den första versionen som en tjänst rapporterar är dess utgångsläge, inte en driftsättning.** En tjänst som har körts i månader driftsätts inte i samma ögonblick som OneUptime börjar ta emot dess telemetri.
 - **En återgång till en version som har setts under de senaste 30 dagarna registreras inte,** eftersom den versionen inte är ny. En återgång som OneUptime AI kör registreras som en åtgärd.
@@ -43,6 +46,8 @@ OTEL_RESOURCE_ATTRIBUTES="service.version=2.3.1,deployment.environment.name=prod
 ```
 
 En utrullning kräver [Kubernetes-agenten](/docs/telemetry/kubernetes-agent), som märker varje podds telemetri med dess Deployment och ReplicaSet.
+
+En molnändring eller en leverantörshändelse kräver ett [anslutet molnkonto](/docs/telemetry/cloud-accounts). Var och en knyts till molnresursen den nämner, när OneUptime listar den resursen, och ritas i resursens diagram. Typen kommer från åtgärden: `deployment`, `scaling` eller `rollback` när åtgärdens namn säger det, annars `config-change`, och `provider-event` för en hälsohändelse. Diagram som inte är filtrerade till någon resurs utelämnar ett molnkontos aktivitetslogg, så att ett livligt konto inte tränger undan dina driftsättningar; leverantörens hälsohändelser finns kvar i dem.
 
 ## Registrera en driftsättning från en pipeline
 
@@ -94,7 +99,7 @@ Se [`oneuptime deploy`](/docs/cli/command-reference#oneuptime-deploy) för alla 
 
 ## Så använder OneUptime AI ändringar
 
-Varje [AI-utredning](/docs/ai/ai-sre) av en incident eller ett larm utgår från ändringarna som registrerades under de 2 timmarna före den, och under de 10 minuterna efter, för en pipeline som registrerar sin driftsättning först när utrullningen är klar. Ändringarna på de tjänster, kluster och värdar som incidenten är länkad till kommer först.
+Varje [AI-utredning](/docs/ai/ai-sre) av en incident eller ett larm utgår från ändringarna som registrerades under de 2 timmarna före den, och under de 10 minuterna efter, för en pipeline som registrerar sin driftsättning först när utrullningen är klar. Ändringarna på de tjänster, kluster, värdar och molnresurser som incidenten är länkad till kommer först.
 
 För upp till 4 av dem som anger en tjänst läser OneUptime tjänstens telemetri under 30 minuter före och efter ändringen, och markerar ändringen som **misstänkt** när tjänsten blev mätbart sämre direkt efter den:
 
@@ -139,6 +144,8 @@ Fälten på toppnivå lagras som attribut under OpenTelemetry-namnen: `version` 
 
 Attribut vars namn börjar med `oneuptime.` är OneUptimes egna och tas bort från det som en pipeline skickar. Varje ändring som en pipeline registrerar anger det i `oneuptime.change.source`, som är `api`.
 
+En ändring som lästs från ett molnkonto namnger kontot och resursen under OpenTelemetrys namn, `cloud.provider`, `cloud.account.id`, `cloud.region` och `cloud.resource_id`, och håller åtgärden i `oneuptime.cloud.operation`, vem som körde den i `oneuptime.cloud.actor`, om den misslyckades i `oneuptime.change.status` och molnkontot i `oneuptime.cloud_account.id`.
+
 ### Gränser
 
 | Gräns | Värde |
@@ -155,4 +162,5 @@ Attribut vars namn börjar med `oneuptime.` är OneUptimes egna och tas bort fr�
 - [AI SRE](/docs/ai/ai-sre): Vad en utredning läser och hur den åtgärdar det den hittar.
 - [Kommandoreferens](/docs/cli/command-reference): Varje kommando i CLI:n.
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Skicka dina tjänsters telemetri, med deras versioner.
+- [Anslut ett molnkonto](/docs/telemetry/cloud-accounts): Ändringarna och hälsohändelserna i dina AWS-, Azure- och Google Cloud-konton.
 :::

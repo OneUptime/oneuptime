@@ -1,12 +1,13 @@
 import AffectedResourcesDisplay from "../../AffectedResources/AffectedResourcesDisplay";
 import { getMonitorLinkedResourcesFormFields } from "../MonitorLinkedResourcesFormFields";
+import MonitorCloudLinkSuggestions from "./MonitorCloudLinkSuggestions";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import ObjectID from "Common/Types/ObjectID";
 import { DetailStyle } from "Common/UI/Components/Detail/Detail";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, useState } from "react";
 
 export interface ComponentProps {
   monitorId: ObjectID;
@@ -19,12 +20,19 @@ export interface ComponentProps {
  * OneUptime AI can investigate them there and the cluster's or resource's
  * AI fix can act - and the incident, alert and maintenance forms prefill
  * them when this monitor is picked.
+ *
+ * At its foot, under what it is linked to, the cloud resources the monitor
+ * seems to check by its host (MonitorCloudLinkSuggestions), each one
+ * Link resource away - in the card, where linking is what it is about.
  */
 const MonitorLinkedResourcesCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const [refresher, setRefresher] = useState<boolean>(false);
+
   return (
     <CardModelDetail<Monitor>
+      refresher={refresher}
       name="Monitor Linked Resources"
       cardProps={{
         title: "Linked Resources",
@@ -88,6 +96,10 @@ const MonitorLinkedResourcesCard: FunctionComponent<ComponentProps> = (
                 name: true,
                 _id: true,
               },
+              cloudResources: {
+                name: true,
+                _id: true,
+              },
               services: {
                 name: true,
                 _id: true,
@@ -98,26 +110,37 @@ const MonitorLinkedResourcesCard: FunctionComponent<ComponentProps> = (
             fieldType: FieldType.Element,
             getElement: (item: Monitor): ReactElement => {
               return (
-                <AffectedResourcesDisplay
-                  hosts={item.hosts || []}
-                  kubernetesClusters={item.kubernetesClusters || []}
-                  dockerHosts={item.dockerHosts || []}
-                  podmanHosts={item.podmanHosts || []}
-                  proxmoxClusters={item.proxmoxClusters || []}
-                  vmwareVCenters={item.vmwareVCenters || []}
-                  cephClusters={item.cephClusters || []}
-                  storageArrays={item.storageArrays || []}
-                  dockerSwarmClusters={item.dockerSwarmClusters || []}
-                  iotFleets={item.iotFleets || []}
-                  databaseServers={item.databaseServers || []}
-                  services={item.services || []}
-                  hideMonitors={true}
-                  hideNetworkSites={true}
-                  hideServiceLevelObjectives={true}
-                  emptyMessage="Not linked to anything yet."
-                  emptyDescription="Link the cluster, hosts, databases or services this monitor watches, so its incidents and alerts are linked to them too."
-                  columns={1}
-                />
+                <>
+                  <AffectedResourcesDisplay
+                    hosts={item.hosts || []}
+                    kubernetesClusters={item.kubernetesClusters || []}
+                    dockerHosts={item.dockerHosts || []}
+                    podmanHosts={item.podmanHosts || []}
+                    proxmoxClusters={item.proxmoxClusters || []}
+                    vmwareVCenters={item.vmwareVCenters || []}
+                    cephClusters={item.cephClusters || []}
+                    storageArrays={item.storageArrays || []}
+                    dockerSwarmClusters={item.dockerSwarmClusters || []}
+                    iotFleets={item.iotFleets || []}
+                    databaseServers={item.databaseServers || []}
+                    cloudResources={item.cloudResources || []}
+                    services={item.services || []}
+                    hideMonitors={true}
+                    hideNetworkSites={true}
+                    hideServiceLevelObjectives={true}
+                    emptyMessage="Not linked to anything yet."
+                    emptyDescription="Link the cluster, hosts, databases, cloud resources or services this monitor watches, so its incidents and alerts are linked to them too."
+                    columns={1}
+                  />
+                  <MonitorCloudLinkSuggestions
+                    monitorId={props.monitorId}
+                    onLinked={() => {
+                      setRefresher((value: boolean): boolean => {
+                        return !value;
+                      });
+                    }}
+                  />
+                </>
               );
             },
           },

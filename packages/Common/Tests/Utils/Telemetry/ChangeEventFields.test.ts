@@ -30,6 +30,7 @@ describe("change event wire values", () => {
       "feature-flag",
       "remediation",
       "runbook",
+      "provider-event",
       "custom",
     ]);
   });
@@ -41,6 +42,8 @@ describe("change event wire values", () => {
       "kubernetes",
       "oneuptime-ai",
       "runbook",
+      "cloud",
+      "cloud-health",
     ]);
     expect(Object.values(ChangeEventStatus)).toEqual([
       "succeeded",
@@ -64,6 +67,10 @@ describe("change event wire values", () => {
     expect(ChangeEventAttribute.KubernetesReplicaSet).toBe(
       "k8s.replicaset.name",
     );
+    expect(ChangeEventAttribute.CloudProvider).toBe("cloud.provider");
+    expect(ChangeEventAttribute.CloudAccountId).toBe("cloud.account.id");
+    expect(ChangeEventAttribute.CloudRegion).toBe("cloud.region");
+    expect(ChangeEventAttribute.CloudResourceId).toBe("cloud.resource_id");
   });
 
   test("every key OneUptime alone writes sits under the reserved prefix", () => {
@@ -81,6 +88,10 @@ describe("change event wire values", () => {
       ChangeEventAttribute.AlertId,
       ChangeEventAttribute.RunbookId,
       ChangeEventAttribute.RunbookExecutionId,
+      ChangeEventAttribute.CloudOperation,
+      ChangeEventAttribute.CloudActor,
+      ChangeEventAttribute.CloudEventId,
+      ChangeEventAttribute.CloudAccountRecordId,
     ];
 
     for (const key of ownKeys) {
@@ -318,6 +329,33 @@ describe("describeChangeEventFields", () => {
       }),
     ).toBe(
       "command: kubectl rollout undo deployment/api -n web, failed, recorded from a fix OneUptime AI ran",
+    );
+  });
+
+  test("a change a cloud account's activity log recorded", () => {
+    const fields: ChangeEventFields = readChangeEventFields({
+      "cloud.provider": "aws",
+      "cloud.account.id": "123456789012",
+      "cloud.region": "eu-west-1",
+      "cloud.resource_id": "resize",
+      "oneuptime.cloud.operation": "lambda:UpdateFunctionCode20150331v2",
+      "oneuptime.cloud.actor": "deploy-bot",
+      "oneuptime.change.status": "succeeded",
+      "oneuptime.change.source": "cloud",
+    });
+
+    expect(fields.cloudProvider).toBe("aws");
+    expect(describeChangeEventFields(fields)).toBe(
+      "lambda:UpdateFunctionCode20150331v2 by deploy-bot, on resize, account 123456789012, eu-west-1, succeeded, recorded from the cloud account's activity log",
+    );
+    expect(
+      describeChangeEventFields({
+        cloudOperation: "AWS_EC2_OPERATIONAL_ISSUE",
+        cloudAccountId: "123456789012",
+        source: ChangeEventSource.CloudHealth,
+      }),
+    ).toBe(
+      "AWS_EC2_OPERATIONAL_ISSUE, account 123456789012, recorded from the cloud provider's health events",
     );
   });
 

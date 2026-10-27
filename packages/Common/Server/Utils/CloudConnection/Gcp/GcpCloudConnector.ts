@@ -7,6 +7,7 @@ import {
 } from "../../../../Types/Cloud/CloudKeyMetrics";
 import { CloudMonitoredResource } from "../../../../Types/Cloud/CloudMonitoredResource";
 import { splitCloudConnectionList } from "../../../../Types/CloudConnection/CloudConnectionCatalog";
+import { CloudConnectionSetupScope } from "../../../../Types/CloudConnection/CloudConnectionSetupCommands";
 import {
   CloudConnectionFailureKind,
   CloudConnectionTestResult,
@@ -38,15 +39,43 @@ import {
   CloudConnectionSettings,
   CloudConnector,
   CloudConnectorCallOptions,
+  CloudChange,
+  CloudChangesOptions,
+  CloudChangesResult,
   CloudDiscoveredResource,
+  CloudInventoryItem,
+  CloudInventoryOptions,
+  CloudInventoryResult,
   CloudReadBudget,
   CloudReadBudgetSpent,
   CloudReadOptions,
   CloudReadResult,
+  CLOUD_MAX_ORGANIZATION_ACCOUNTS,
   getCloudSecretValues,
+  getOrganizationLimitWarning,
+  orderLeastRecentlyRead,
   readCloudSetting,
 } from "../CloudConnectorTypes";
+import GcpInventoryClient, {
+  GCP_INVENTORY_TYPES,
+  GcpAsset,
+  GcpAssetListing,
+  GcpInventoryType,
+  addGcpTopicEdges,
+  buildGcpInventoryItem,
+} from "./GcpInventory";
 import GcpMonitoring, { GcpTimeSeries } from "./GcpMonitoring";
+import { readGcpAuditEntry, readGcpHealthEvent } from "./GcpChanges";
+import {
+  getChangePlace,
+  getChangeWindowStart,
+  getHealthWindowStart,
+  isHealthPaused,
+  keepNewChanges,
+  markHealthRead,
+  pauseHealth,
+} from "../CloudChangeWindow";
+import { JSONObject } from "../../../../Types/JSON";
 
 /*
  * GOOGLE CLOUD: the projects a service account may read, from Cloud
@@ -64,6 +93,22 @@ import GcpMonitoring, { GcpTimeSeries } from "./GcpMonitoring";
 const PROVIDER_TITLE: string = "Google Cloud";
 const CONCURRENCY: number = 6;
 export const GCP_MAX_PROJECTS: number = 20;
+// The most projects of an organization one connection reads.
+export const GCP_MAX_ORGANIZATION_PROJECTS: number =
+  CLOUD_MAX_ORGANIZATION_ACCOUNTS;
+const DAY_MS: number = 24 * 60 * 60 * 1000;
+// How often Service Health is asked, and how long after a refusal it is not.
+const HEALTH_INTERVAL_MS: number = 15 * 60 * 1000;
+const HEALTH_PAUSE_MS: number = DAY_MS;
+
+function isOlderThan(
+  iso: string | undefined,
+  ageMs: number,
+  now: Date,
+): boolean {
+  const time: number = iso ? Date.parse(iso) : NaN;
+  return !Number.isFinite(time) || now.getTime() - time >= ageMs;
+}
 // A test looks back this far, for the first metric of each resource type.
 const TEST_LOOK_BACK_MS: number = 30 * 60 * 1000;
 
@@ -111,6 +156,74 @@ export default class GcpCloudConnector implements CloudConnector {
     return key.projectId ? [key.projectId] : [];
   }
 
+  // Whether the connection reads every project of a Google Cloud organization.
+  public isOrganization(settings: CloudConnectionSettings): boolean {
+    return (
+      readCloudSetting(settings.config, "readScope") ===
+      CloudConnectionSetupScope.Organization
+    );
+  }
+
+  /*
+   * The projects a read reads: those the connection names (or the key's
+   * own) - or, for an organization, every active project the service
+   * account may see, searched once a day and kept in the read state.
+   */
+  public async resolveProjects(data: {
+    settings: CloudConnectionSettings;
+    options: CloudConnectorCallOptions;
+    budget: CloudReadBudget;
+    state: CloudConnectionPullState;
+    now: Date;
+  }): Promise<Array<string>> {
+    if (!this.isOrganization(data.settings)) {
+      return this.getProjects(data.settings);
+    }
+
+    const known: Array<{ id: string; name: string }> =
+      data.state.organizationAccounts || [];
+
+    if (
+      known.length > 0 &&
+      !isOlderThan(data.state.organizationListedAt, DAY_MS, data.now)
+    ) {
+      return known.map((project: { id: string }): string => {
+        return project.id;
+      });
+    }
+
+    const client: GcpInventoryClient = new GcpInventoryClient({
+      serviceAccountJson: readCloudSetting(
+        data.settings.secrets,
+        "serviceAccountJson",
+      ),
+      transport: data.options.transport,
+      requestTimeoutInMs: data.options.requestTimeoutInMs,
+      budget: data.budget,
+      sleep: data.options.sleep,
+    });
+    const all: Array<{ projectId: string; displayName: string }> =
+      await client.searchProjects();
+    const found: Array<{ projectId: string; displayName: string }> = all.slice(
+      0,
+      GCP_MAX_ORGANIZATION_PROJECTS,
+    );
+
+    data.state.organizationAccounts = found.map(
+      (project: { projectId: string; displayName: string }) => {
+        return { id: project.projectId, name: project.displayName };
+      },
+    );
+    data.state.organizationAccountCount = all.length;
+    data.state.organizationListedAt = data.now.toISOString();
+
+    return found.length > 0
+      ? found.map((project: { projectId: string }): string => {
+          return project.projectId;
+        })
+      : this.getProjects(data.settings);
+  }
+
   public validateSettings(settings: CloudConnectionSettings): void {
     const json: string = readCloudSetting(
       settings.secrets,
@@ -156,6 +269,424 @@ export default class GcpCloudConnector implements CloudConnector {
       requestTimeoutInMs: options.requestTimeoutInMs,
       budget,
     });
+  }
+
+  // A project's own read state, by id (an organization's projects, or the named ones).
+  private markProjectRead(data: {
+    state: CloudConnectionPullState;
+    projectId: string;
+    field: "inventoryReadAt" | "changesReadAt";
+    now: Date;
+  }): void {
+    data.state.accountStates = {
+      ...(data.state.accountStates || {}),
+      [data.projectId]: {
+        ...(data.state.accountStates?.[data.projectId] || {}),
+        [data.field]: data.now.toISOString(),
+      },
+    };
+  }
+
+  /*
+   * What changed in each project since the last read (its Admin Activity
+   * audit log) and - every 15 minutes - Google Cloud's Service Health
+   * events about it. A look back for an investigation reads only the
+   * projects it names and moves no cursor.
+   *
+   * The projects are read least recently read first, so a read that stops
+   * at its limit reaches the others next time; the audit log is listed
+   * oldest first, so a project busier than one read takes carries on next
+   * time from the newest change read (CloudChangeWindow).
+   */
+  public async readChanges(
+    settings: CloudConnectionSettings,
+    options: CloudChangesOptions,
+  ): Promise<CloudChangesResult> {
+    const now: Date = options.now ? options.now() : new Date();
+    const state: CloudConnectionPullState = options.state;
+    const client: GcpInventoryClient = new GcpInventoryClient({
+      serviceAccountJson: readCloudSetting(
+        settings.secrets,
+        "serviceAccountJson",
+      ),
+      transport: options.transport,
+      requestTimeoutInMs: options.requestTimeoutInMs,
+      budget: options.budget,
+      sleep: options.sleep,
+    });
+    const isLookBack: boolean = Boolean(options.since);
+    const result: CloudChangesResult = {
+      changes: [],
+      warnings: [],
+      complete: true,
+    };
+    let projects: Array<string> = orderLeastRecentlyRead({
+      accounts: this.isOrganization(settings)
+        ? (state.organizationAccounts || []).map(
+            (project: { id: string }): string => {
+              return project.id;
+            },
+          )
+        : this.getProjects(settings),
+      readAt: (projectId: string): string | undefined => {
+        return state.accountStates?.[projectId]?.changesReadAt;
+      },
+    });
+
+    if (options.only) {
+      const wanted: Set<string> = new Set(
+        options.only.map((entry: { accountId: string }): string => {
+          return entry.accountId;
+        }),
+      );
+      projects = projects.filter((projectId: string): boolean => {
+        return wanted.has(projectId);
+      });
+    }
+
+    let refused: boolean = false;
+    const busy: Array<string> = [];
+
+    const outcomes: Array<
+      Settled<{ changes: Array<CloudChange>; complete: boolean }>
+    > = await mapWithConcurrency(
+      projects,
+      3,
+      async (
+        projectId: string,
+      ): Promise<{ changes: Array<CloudChange>; complete: boolean }> => {
+        const listing: { entries: Array<JSONObject>; complete: boolean } =
+          await client.listAuditEntries({
+            projectId,
+            start: getChangeWindowStart({
+              state,
+              place: getChangePlace(projectId, ""),
+              now,
+              since: options.since,
+            }),
+            end: now,
+          });
+
+        return {
+          changes: listing.entries
+            .map((entry: JSONObject): CloudChange | null => {
+              return readGcpAuditEntry({ entry, projectId });
+            })
+            .filter((change: CloudChange | null): boolean => {
+              return change !== null;
+            }) as Array<CloudChange>,
+          complete: listing.complete,
+        };
+      },
+    );
+
+    outcomes.forEach(
+      (
+        outcome: Settled<{ changes: Array<CloudChange>; complete: boolean }>,
+        index: number,
+      ) => {
+        const projectId: string = projects[index]!;
+
+        if (outcome.ok) {
+          result.changes.push(
+            ...keepNewChanges({
+              state,
+              place: getChangePlace(projectId, ""),
+              changes: outcome.value.changes,
+              now,
+              complete: outcome.value.complete,
+              isLookBack,
+              order: "oldest-first",
+            }),
+          );
+
+          if (!outcome.value.complete) {
+            busy.push(projectId);
+          }
+
+          if (!isLookBack) {
+            this.markProjectRead({
+              state,
+              projectId,
+              field: "changesReadAt",
+              now,
+            });
+          }
+
+          return;
+        }
+
+        result.complete = false;
+
+        if (outcome.error instanceof CloudReadBudgetSpent) {
+          return;
+        }
+
+        if (
+          outcome.error instanceof LlmProviderError &&
+          outcome.error.kind === CloudConnectionFailureKind.Authentication
+        ) {
+          throw outcome.error;
+        }
+
+        if (!isLookBack) {
+          this.markProjectRead({
+            state,
+            projectId,
+            field: "changesReadAt",
+            now,
+          });
+        }
+
+        if (
+          outcome.error instanceof LlmProviderError &&
+          outcome.error.kind === CloudConnectionFailureKind.Permission
+        ) {
+          refused = true;
+          return;
+        }
+
+        // A project whose Logging API is off: its message says how to turn it on.
+        result.warnings.push(
+          `Could not read what changed in ${projectId}: ${
+            outcome.error instanceof Error
+              ? outcome.error.message
+              : String(outcome.error)
+          }`,
+        );
+      },
+    );
+
+    if (busy.length > 0) {
+      result.warnings.push(
+        `More changed in ${busy.slice(0, 5).join(", ")} than one read takes: the next read carries on from the newest change read.`,
+      );
+    }
+
+    if (refused) {
+      result.warnings.push(
+        "The service account may not read a project's audit log. Run the setup command again: it gives it the Logs Viewer role.",
+      );
+    }
+
+    // Service Health: a bonus, paused for a day for a project that does not allow it.
+    const healthDue: boolean =
+      !isLookBack && isOlderThan(state.healthReadAt, HEALTH_INTERVAL_MS, now);
+
+    if (healthDue) {
+      for (const projectId of projects) {
+        if (options.budget.isSpent()) {
+          break;
+        }
+
+        if (isHealthPaused({ state, accountId: projectId, now })) {
+          continue;
+        }
+
+        try {
+          const events: Array<JSONObject> =
+            await client.listServiceHealthEvents({
+              projectId,
+              start: getHealthWindowStart({
+                state,
+                accountId: projectId,
+                now,
+              }),
+            });
+
+          result.changes.push(
+            ...keepNewChanges({
+              state,
+              place: getChangePlace(projectId, "health"),
+              changes: events
+                .map((event: JSONObject): CloudChange | null => {
+                  return readGcpHealthEvent({ event, projectId });
+                })
+                .filter((change: CloudChange | null): boolean => {
+                  return change !== null;
+                }) as Array<CloudChange>,
+              now,
+              complete: true,
+              isLookBack,
+            }),
+          );
+          markHealthRead({ state, accountId: projectId, now });
+        } catch (error) {
+          if (
+            error instanceof LlmProviderError &&
+            (error.kind === CloudConnectionFailureKind.Permission ||
+              error.kind === CloudConnectionFailureKind.Settings)
+          ) {
+            pauseHealth({
+              state,
+              accountId: projectId,
+              now,
+              forMs: HEALTH_PAUSE_MS,
+            });
+          }
+        }
+      }
+
+      state.healthReadAt = now.toISOString();
+    }
+
+    return result;
+  }
+
+  /*
+   * The projects' inventory (GcpInventory): every asset of the inventory's
+   * types in each project read, and each project's name - the project
+   * listed least recently first, so a listing that stops at its limit lists
+   * the others next time. A project whose Cloud Asset API is off, or that
+   * the service account may not list, is a warning that says what to run.
+   */
+  public async readInventory(
+    settings: CloudConnectionSettings,
+    options: CloudInventoryOptions,
+  ): Promise<CloudInventoryResult> {
+    const now: Date = options.now ? options.now() : new Date();
+    const client: GcpInventoryClient = new GcpInventoryClient({
+      serviceAccountJson: readCloudSetting(
+        settings.secrets,
+        "serviceAccountJson",
+      ),
+      transport: options.transport,
+      requestTimeoutInMs: options.requestTimeoutInMs,
+      budget: options.budget,
+      sleep: options.sleep,
+    });
+    const organization: Array<{ id: string; name: string }> =
+      this.isOrganization(settings)
+        ? options.state.organizationAccounts || []
+        : [];
+    const projects: Array<string> = orderLeastRecentlyRead({
+      accounts:
+        organization.length > 0
+          ? organization.map((project: { id: string }): string => {
+              return project.id;
+            })
+          : this.getProjects(settings).slice(0, GCP_MAX_PROJECTS),
+      readAt: (projectId: string): string | undefined => {
+        return options.state.accountStates?.[projectId]?.inventoryReadAt;
+      },
+    });
+    const organizationNames: Map<string, string> = new Map(
+      organization.map((project: { id: string; name: string }) => {
+        return [project.id, project.name];
+      }),
+    );
+    const items: Array<CloudInventoryItem> = [];
+    const accounts: Array<{ accountId: string; name?: string | undefined }> =
+      [];
+    const completelyListed: Array<{
+      accountId: string;
+      resourceTypes: Array<string>;
+    }> = [];
+    const warnings: Array<string> = [];
+    let complete: boolean = true;
+
+    for (const projectId of projects) {
+      if (options.budget.isSpent()) {
+        complete = false;
+        break;
+      }
+
+      let listing: GcpAssetListing;
+
+      try {
+        listing = await client.listAssets(projectId);
+      } catch (error) {
+        if (error instanceof CloudReadBudgetSpent) {
+          complete = false;
+          break;
+        }
+
+        if (
+          error instanceof LlmProviderError &&
+          error.kind === CloudConnectionFailureKind.Authentication
+        ) {
+          throw error;
+        }
+
+        this.markProjectRead({
+          state: options.state,
+          projectId,
+          field: "inventoryReadAt",
+          now,
+        });
+
+        warnings.push(
+          error instanceof LlmProviderError &&
+            error.kind === CloudConnectionFailureKind.Permission
+            ? `The service account may not list the resources of ${projectId}. Run the setup command again: it gives it the Cloud Asset Viewer role.`
+            : `Could not list the resources of ${projectId}: ${
+                error instanceof Error ? error.message : String(error)
+              }`,
+        );
+        accounts.push({ accountId: projectId });
+        continue;
+      }
+
+      this.markProjectRead({
+        state: options.state,
+        projectId,
+        field: "inventoryReadAt",
+        now,
+      });
+
+      const assets: Map<CloudInventoryItem, GcpAsset> = new Map();
+      const projectItems: Array<CloudInventoryItem> = [];
+
+      for (const asset of listing.assets) {
+        const item: CloudInventoryItem | null = buildGcpInventoryItem(asset, {
+          projectId,
+        });
+
+        if (item) {
+          projectItems.push(item);
+          assets.set(item, asset);
+        }
+      }
+
+      addGcpTopicEdges({ items: projectItems, assets });
+      items.push(...projectItems);
+
+      if (listing.complete) {
+        completelyListed.push({
+          accountId: projectId,
+          resourceTypes: Array.from(
+            new Set(
+              GCP_INVENTORY_TYPES.map((type: GcpInventoryType): string => {
+                return type.monitoredType || type.assetType;
+              }),
+            ),
+          ),
+        });
+      } else {
+        complete = false;
+      }
+
+      accounts.push({
+        accountId: projectId,
+        name:
+          organizationNames.get(projectId) ||
+          (await client.getProjectName(projectId)) ||
+          undefined,
+      });
+    }
+
+    const tooMany: string | null = this.isOrganization(settings)
+      ? getOrganizationLimitWarning({
+          total: options.state.organizationAccountCount || organization.length,
+          noun: "projects",
+        })
+      : null;
+
+    if (tooMany) {
+      warnings.unshift(tooMany);
+    }
+
+    return { accounts, items, completelyListed, warnings, complete };
   }
 
   private resourceAttributes(data: {
@@ -356,7 +887,13 @@ export default class GcpCloudConnector implements CloudConnector {
       options,
       budget,
     );
-    const projects: Array<string> = this.getProjects(settings);
+    const projects: Array<string> = await this.resolveProjects({
+      settings,
+      options,
+      budget,
+      state,
+      now,
+    });
     const cursors: Record<string, string> = { ...(state.cursors || {}) };
     const window: MetricWindow | null = getMetricWindow({
       policy: getMetricWindowPolicy({
@@ -505,6 +1042,17 @@ export default class GcpCloudConnector implements CloudConnector {
     state.cursors = cursors;
     state.accounts = projects;
     state.inventoryAt = now.toISOString();
+
+    const tooMany: string | null = this.isOrganization(settings)
+      ? getOrganizationLimitWarning({
+          total: state.organizationAccountCount || projects.length,
+          noun: "projects",
+        })
+      : null;
+
+    if (tooMany) {
+      warnings.unshift(tooMany);
+    }
 
     const metricGroups: Array<CloudMetricGroup> = budget.isSpent()
       ? []

@@ -14,6 +14,7 @@ import {
   splitCloudConnectionList,
 } from "../../../../Types/CloudConnection/CloudConnectionCatalog";
 import { isAwsRoleArn } from "../../../../Types/CloudConnection/CloudConnectionPaste";
+import { CloudConnectionSetupScope } from "../../../../Types/CloudConnection/CloudConnectionSetupCommands";
 import {
   CloudConnectionFailureKind,
   CloudConnectionTestResult,
@@ -41,16 +42,24 @@ import {
   getMetricWindowPolicy,
 } from "../CloudMetricWindows";
 import {
+  CLOUD_MAX_ORGANIZATION_ACCOUNTS,
   CloudConnectionPullState,
   CloudConnectionSettings,
   CloudConnector,
   CloudConnectorCallOptions,
+  CloudChange,
+  CloudChangesOptions,
+  CloudChangesResult,
   CloudDiscoveredResource,
+  CloudInventoryOptions,
+  CloudInventoryResult,
   CloudReadBudget,
   CloudReadBudgetSpent,
   CloudReadOptions,
   CloudReadResult,
   getCloudSecretValues,
+  getOrganizationLimitWarning,
+  orderLeastRecentlyRead,
   readCloudSetting,
 } from "../CloudConnectorTypes";
 import { AwsCredentials } from "./AwsApi";
@@ -72,6 +81,25 @@ import {
   getStsRegion,
 } from "./AwsSts";
 import { getNameTags } from "./AwsTagging";
+import {
+  AwsOrganizationAccount,
+  listAwsOrganizationAccounts,
+} from "./AwsOrganizations";
+import { lookupAwsChanges, readAwsHealthEvents } from "./AwsChanges";
+import {
+  getChangePlace,
+  getChangeWindowStart,
+  getHealthWindowStart,
+  isHealthPaused,
+  keepNewChanges,
+  markHealthRead,
+  pauseHealth,
+} from "../CloudChangeWindow";
+import {
+  AwsInventoryOutcome,
+  getAwsAccountAlias,
+  readAwsInventory,
+} from "./AwsInventory";
 
 /*
  * AMAZON WEB SERVICES: one AWS account, read from CloudWatch.
@@ -117,6 +145,14 @@ const TEST_PROBE_NAMESPACES: Array<string> = [
   "AWS/ApplicationELB",
 ];
 const TEST_MAX_REGIONS: number = 3;
+// The most accounts of an organization one connection reads.
+export const AWS_MAX_ORGANIZATION_ACCOUNTS: number =
+  CLOUD_MAX_ORGANIZATION_ACCOUNTS;
+// How often AWS Health is asked, and how long after a refusal it is not.
+const HEALTH_INTERVAL_MS: number = 15 * 60 * 1000;
+const HEALTH_PAUSE_MS: number = DAY_MS;
+// CloudTrail Regions read at once for one account.
+const CHANGE_REGION_CONCURRENCY: number = 4;
 
 interface AwsSeries {
   metric: AwsListedMetric;
@@ -204,6 +240,16 @@ export default class AwsCloudConnector implements CloudConnector {
       if (!readCloudSetting(settings.secrets, "secretAccessKey")) {
         throw new BadDataException("Secret access key is required.");
       }
+    }
+
+    if (
+      readCloudSetting(settings.config, "readScope") ===
+        CloudConnectionSetupScope.Organization &&
+      method !== CloudConnectionAuthMethod.AwsRole
+    ) {
+      throw new BadDataException(
+        "An organization is read through a role in each account: sign in with an IAM role.",
+      );
     }
 
     validateAwsRegions(this.getConfiguredRegions(settings));
@@ -582,6 +628,22 @@ export default class AwsCloudConnector implements CloudConnector {
         timeoutInMs: options.requestTimeoutInMs,
       });
 
+      // An organization: can the role list its accounts.
+      let organizationAccounts: number | undefined = undefined;
+
+      if (this.isOrganization(settings)) {
+        organizationAccounts = (
+          await listAwsOrganizationAccounts({
+            transport: options.transport,
+            credentials,
+            region: this.getStsRegion(settings),
+            now: options.now,
+            timeoutInMs: options.requestTimeoutInMs,
+            sleep: options.sleep,
+          })
+        ).length;
+      }
+
       const configured: Array<string> = this.getConfiguredRegions(settings);
       const regions: Array<string> =
         configured.length > 0 ? configured : [...AWS_ALL_COMMERCIAL_REGIONS];
@@ -663,13 +725,18 @@ export default class AwsCloudConnector implements CloudConnector {
         resources.values(),
       );
 
+      const organization: string =
+        organizationAccounts === undefined
+          ? ""
+          : ` The organization has ${organizationAccounts} accounts; each is read through the role the StackSet puts in it.`;
+
       return {
         provider: CloudProvider.AWS,
         status: found.length > 0 ? "pass" : "warn",
         message:
           found.length > 0
-            ? `Signed in to AWS account ${identity.account} and found ${found.length} resources reporting to CloudWatch.`
-            : `Signed in to AWS account ${identity.account}, but found no resources reporting to CloudWatch in the last three hours.`,
+            ? `Signed in to AWS account ${identity.account} and found ${found.length} resources reporting to CloudWatch.${organization}`
+            : `Signed in to AWS account ${identity.account}, but found no resources reporting to CloudWatch in the last three hours.${organization}`,
         accounts: [identity.account],
         resourceCount: found.length,
         resourceTypes: countCloudConnectionValues(
@@ -733,11 +800,232 @@ export default class AwsCloudConnector implements CloudConnector {
     settings: CloudConnectionSettings,
     options: CloudReadOptions,
   ): Promise<CloudReadResult> {
-    const now: Date = options.now ? options.now() : new Date();
     const budget: CloudReadBudget = new CloudReadBudget({
       maxRequests: options.maxRequests,
       maxDurationMs: options.maxDurationMs,
     });
+
+    if (this.isOrganization(settings)) {
+      return await this.readOrganization(settings, options, budget);
+    }
+
+    return await this.readOneAccount(settings, options, budget);
+  }
+
+  // Whether the connection reads every account of an AWS Organization.
+  public isOrganization(settings: CloudConnectionSettings): boolean {
+    return (
+      readCloudSetting(settings.config, "readScope") ===
+        CloudConnectionSetupScope.Organization &&
+      this.getAuthMethod(settings) === CloudConnectionAuthMethod.AwsRole
+    );
+  }
+
+  /*
+   * The settings a member account is read with: the same role, by name, in
+   * that account - the one the organization's StackSet put there.
+   */
+  public settingsForAccount(
+    settings: CloudConnectionSettings,
+    accountId: string,
+  ): CloudConnectionSettings {
+    const roleArn: string = readCloudSetting(settings.config, "roleArn");
+    const marker: string = ":role/";
+    const index: number = roleArn.indexOf(marker);
+
+    if (index < 0 || roleArn.includes(`::${accountId}:`)) {
+      return settings;
+    }
+
+    const partition: string = roleArn.split(":")[1] || "aws";
+
+    return {
+      ...settings,
+      config: {
+        ...settings.config,
+        roleArn: `arn:${partition}:iam::${accountId}:role/${roleArn.slice(
+          index + marker.length,
+        )}`,
+      },
+    };
+  }
+
+  /*
+   * The organization's accounts: listed from its management account once a
+   * day (or when none are known), and kept in the read state between.
+   */
+  private async getOrganizationAccounts(data: {
+    settings: CloudConnectionSettings;
+    options: CloudConnectorCallOptions & {
+      connectionId?: string | undefined;
+    };
+    budget: CloudReadBudget;
+    state: CloudConnectionPullState;
+    now: Date;
+  }): Promise<Array<{ id: string; name: string }>> {
+    const known: Array<{ id: string; name: string }> =
+      data.state.organizationAccounts || [];
+
+    if (
+      known.length > 0 &&
+      !isOlderThan(data.state.organizationListedAt, DAY_MS, data.now)
+    ) {
+      return known;
+    }
+
+    const credentials: AwsCredentials = await this.getCredentials(
+      data.settings,
+      { ...data.options, budget: data.budget },
+    );
+    const listed: Array<AwsOrganizationAccount> =
+      await listAwsOrganizationAccounts({
+        transport: data.options.transport,
+        credentials,
+        region: this.getStsRegion(data.settings),
+        now: data.options.now,
+        timeoutInMs: data.options.requestTimeoutInMs,
+        sleep: data.options.sleep,
+        budget: data.budget,
+      });
+
+    const accounts: Array<{ id: string; name: string }> = listed
+      .slice(0, AWS_MAX_ORGANIZATION_ACCOUNTS)
+      .map((account: AwsOrganizationAccount) => {
+        return { id: account.id, name: account.name };
+      });
+
+    data.state.organizationAccounts = accounts;
+    data.state.organizationAccountCount = listed.length;
+    data.state.organizationListedAt = data.now.toISOString();
+
+    return accounts;
+  }
+
+  /*
+   * Every account of the organization, one after another, each with its own
+   * read state and the one budget of the read - the account read least
+   * recently first, so a read that stops at its limit reaches the others
+   * next time instead of starting over. An account whose role cannot be
+   * signed in to - the StackSet has not reached it yet - is a warning, and
+   * the others are read.
+   */
+  private async readOrganization(
+    settings: CloudConnectionSettings,
+    options: CloudReadOptions,
+    budget: CloudReadBudget,
+  ): Promise<CloudReadResult> {
+    const now: Date = options.now ? options.now() : new Date();
+    const state: CloudConnectionPullState = { ...options.state };
+    const accounts: Array<{ id: string; name: string }> =
+      await this.getOrganizationAccounts({
+        settings,
+        options,
+        budget,
+        state,
+        now,
+      });
+    const previous: Record<string, CloudConnectionPullState> =
+      state.accountStates || {};
+    const accountStates: Record<string, CloudConnectionPullState> = {};
+    const result: CloudReadResult = {
+      accounts: [],
+      resources: [],
+      completelyListedAccounts: [],
+      payloads: [],
+      pointsWritten: 0,
+      requestCount: 0,
+      warnings: [],
+      complete: true,
+      nextState: state,
+    };
+
+    const tooMany: string | null = getOrganizationLimitWarning({
+      total: state.organizationAccountCount || accounts.length,
+      noun: "accounts",
+    });
+
+    if (tooMany) {
+      result.warnings.push(tooMany);
+    }
+
+    for (const account of orderLeastRecentlyRead({
+      accounts,
+      readAt: (entry: { id: string }): string | undefined => {
+        return previous[entry.id]?.metricsReadAt;
+      },
+    })) {
+      const accountState: CloudConnectionPullState = previous[account.id] || {
+        accounts: [account.id],
+      };
+
+      if (budget.isSpent()) {
+        accountStates[account.id] = accountState;
+        result.complete = false;
+        continue;
+      }
+
+      try {
+        const read: CloudReadResult = await this.readOneAccount(
+          this.settingsForAccount(settings, account.id),
+          { ...options, state: accountState },
+          budget,
+        );
+
+        accountStates[account.id] = {
+          ...read.nextState,
+          metricsReadAt: now.toISOString(),
+        };
+        result.accounts.push(...read.accounts);
+        result.resources.push(...read.resources);
+        result.payloads.push(...read.payloads);
+        result.pointsWritten += read.pointsWritten;
+        result.warnings.push(
+          ...read.warnings.map((warning: string): string => {
+            return `${account.name || account.id}: ${warning}`;
+          }),
+        );
+        result.complete = result.complete && read.complete;
+      } catch (error) {
+        if (error instanceof CloudReadBudgetSpent) {
+          accountStates[account.id] = accountState;
+          result.complete = false;
+          continue;
+        }
+
+        // Tried: the others go first next time.
+        accountStates[account.id] = {
+          ...accountState,
+          metricsReadAt: now.toISOString(),
+        };
+
+        result.warnings.push(
+          error instanceof LlmProviderError &&
+            (error.kind === CloudConnectionFailureKind.Authentication ||
+              error.kind === CloudConnectionFailureKind.Permission)
+            ? `Could not sign in to ${account.name || account.id} (${account.id}): its role is not there yet, or does not trust this OneUptime. The setup command's StackSet adds it to every account.`
+            : `Could not read ${account.name || account.id} (${account.id}): ${
+                error instanceof Error ? error.message : String(error)
+              }`,
+        );
+      }
+    }
+
+    state.accountStates = accountStates;
+    state.accounts = accounts.map((account: { id: string }): string => {
+      return account.id;
+    });
+    result.requestCount = budget.getUsed();
+    result.warnings = result.warnings.slice(0, 50);
+
+    return result;
+  }
+
+  private async readOneAccount(
+    settings: CloudConnectionSettings,
+    options: CloudReadOptions,
+    budget: CloudReadBudget,
+  ): Promise<CloudReadResult> {
+    const now: Date = options.now ? options.now() : new Date();
     const state: CloudConnectionPullState = { ...options.state };
     const warnings: Array<string> = [];
 
@@ -1138,6 +1426,545 @@ export default class AwsCloudConnector implements CloudConnector {
       warnings,
       complete: !budget.isSpent(),
       nextState: state,
+    };
+  }
+
+  /*
+   * The account's inventory (AwsInventory): every resource of the
+   * inventory's types in the Regions the connection names - or, naming
+   * none, the Regions its metrics were found in - with the account's alias
+   * as its name.
+   */
+  public async readInventory(
+    settings: CloudConnectionSettings,
+    options: CloudInventoryOptions,
+  ): Promise<CloudInventoryResult> {
+    if (!this.isOrganization(settings)) {
+      return await this.readAccountInventory(settings, options, options.state);
+    }
+
+    /*
+     * An organization: each account the last read reached, with the name
+     * Organizations gives it, through its own role - the account listed
+     * least recently first, so a listing that stops at its limit lists the
+     * others next time.
+     */
+    const result: CloudInventoryResult = {
+      accounts: [],
+      items: [],
+      completelyListed: [],
+      warnings: [],
+      complete: true,
+    };
+    const now: Date = options.now ? options.now() : new Date();
+    const accountStates: Record<string, CloudConnectionPullState> =
+      options.state.accountStates || {};
+
+    for (const account of orderLeastRecentlyRead({
+      accounts: options.state.organizationAccounts || [],
+      readAt: (entry: { id: string }): string | undefined => {
+        return accountStates[entry.id]?.inventoryReadAt;
+      },
+    })) {
+      if (options.budget.isSpent()) {
+        result.complete = false;
+        break;
+      }
+
+      const accountState: CloudConnectionPullState = accountStates[
+        account.id
+      ] || {
+        accounts: [account.id],
+      };
+
+      // Tried, whatever comes of it: the others go first next time.
+      options.state.accountStates = {
+        ...(options.state.accountStates || {}),
+        [account.id]: { ...accountState, inventoryReadAt: now.toISOString() },
+      };
+
+      try {
+        const listed: CloudInventoryResult = await this.readAccountInventory(
+          this.settingsForAccount(settings, account.id),
+          options,
+          accountState,
+        );
+
+        result.accounts.push(
+          ...listed.accounts.map(
+            (entry: { accountId: string; name?: string | undefined }) => {
+              return {
+                accountId: entry.accountId,
+                name: account.name || entry.name,
+              };
+            },
+          ),
+        );
+        result.items.push(...listed.items);
+        result.completelyListed.push(...listed.completelyListed);
+        result.warnings.push(
+          ...listed.warnings.map((warning: string): string => {
+            return `${account.name || account.id}: ${warning}`;
+          }),
+        );
+        result.complete = result.complete && listed.complete;
+      } catch (error) {
+        if (error instanceof CloudReadBudgetSpent) {
+          // Not listed after all: it stays first in line.
+          options.state.accountStates = {
+            ...(options.state.accountStates || {}),
+            [account.id]: accountState,
+          };
+          result.complete = false;
+          break;
+        }
+
+        result.accounts.push({ accountId: account.id, name: account.name });
+
+        if (
+          !(
+            error instanceof LlmProviderError &&
+            (error.kind === CloudConnectionFailureKind.Authentication ||
+              error.kind === CloudConnectionFailureKind.Permission)
+          )
+        ) {
+          result.warnings.push(
+            `Could not list the resources of ${account.name || account.id}: ${
+              error instanceof Error ? error.message : String(error)
+            }`,
+          );
+        }
+      }
+    }
+
+    result.warnings = result.warnings.slice(0, 50);
+
+    return result;
+  }
+
+  /*
+   * The accounts a read of changes covers, each with the settings it is
+   * signed in with and the Regions its activity is read in: the ones the
+   * connection names, or the ones its metrics were found in - and the
+   * partition's home Region always (us-east-1, us-gov-west-1, cn-north-1),
+   * where IAM, CloudFront and Route 53 record theirs. An organization's
+   * accounts come read least recently first, so a read that stops at its
+   * limit reaches the others next time.
+   */
+  private getChangeAccounts(
+    settings: CloudConnectionSettings,
+    state: CloudConnectionPullState,
+  ): Array<{
+    accountId: string;
+    name: string;
+    settings: CloudConnectionSettings;
+    regions: Array<string>;
+  }> {
+    const configured: Array<string> = this.getConfiguredRegions(settings);
+    const homeRegion: string = this.getStsRegion(settings);
+    const regionsOf: (
+      accountState: CloudConnectionPullState,
+    ) => Array<string> = (
+      accountState: CloudConnectionPullState,
+    ): Array<string> => {
+      const active: Array<string> =
+        configured.length > 0
+          ? configured
+          : (accountState.activePairs || [])
+              .map((key: string): string => {
+                return readPair(key)?.region || "";
+              })
+              .filter((region: string): boolean => {
+                return Boolean(region);
+              });
+
+      return Array.from(new Set([...active, homeRegion]));
+    };
+
+    if (!this.isOrganization(settings)) {
+      return [
+        {
+          accountId: state.accounts?.[0] || "",
+          name: "",
+          settings,
+          regions: regionsOf(state),
+        },
+      ];
+    }
+
+    return orderLeastRecentlyRead({
+      accounts: state.organizationAccounts || [],
+      readAt: (account: { id: string }): string | undefined => {
+        return state.accountStates?.[account.id]?.changesReadAt;
+      },
+    }).map((account: { id: string; name: string }) => {
+      return {
+        accountId: account.id,
+        name: account.name,
+        settings: this.settingsForAccount(settings, account.id),
+        regions: regionsOf(state.accountStates?.[account.id] || {}),
+      };
+    });
+  }
+
+  // An organization's account's changes were read (or tried): the others go first next time.
+  private markChangesRead(
+    state: CloudConnectionPullState,
+    accountId: string,
+    now: Date,
+  ): void {
+    if (!accountId || !state.accountStates?.[accountId]) {
+      return;
+    }
+
+    state.accountStates = {
+      ...state.accountStates,
+      [accountId]: {
+        ...state.accountStates[accountId],
+        changesReadAt: now.toISOString(),
+      },
+    };
+  }
+
+  /*
+   * What changed in each account (CloudTrail, every Region it is read in)
+   * since the last read, and - every 15 minutes - AWS Health's events about
+   * it. A look back for an investigation reads only the accounts and
+   * Regions it names, from its own start, and moves no cursor.
+   *
+   * CloudTrail lists newest first, five pages of fifty a Region at most:
+   * a Region busier than that has its newest changes kept, and the read
+   * says the older ones of that stretch were left out (CloudChangeWindow).
+   */
+  public async readChanges(
+    settings: CloudConnectionSettings,
+    options: CloudChangesOptions,
+  ): Promise<CloudChangesResult> {
+    const now: Date = options.now ? options.now() : new Date();
+    const state: CloudConnectionPullState = options.state;
+    const result: CloudChangesResult = {
+      changes: [],
+      warnings: [],
+      complete: true,
+    };
+    const isLookBack: boolean = Boolean(options.since);
+    const isOrganization: boolean = this.isOrganization(settings);
+    const homeRegion: string = this.getStsRegion(settings);
+    let refusedTrail: boolean = false;
+    const busyPlaces: Array<string> = [];
+    const healthDue: boolean =
+      !isLookBack && isOlderThan(state.healthReadAt, HEALTH_INTERVAL_MS, now);
+
+    for (const account of this.getChangeAccounts(settings, state)) {
+      const only:
+        | { accountId: string; regions?: Array<string> | undefined }
+        | undefined = options.only?.find(
+        (entry: { accountId: string }): boolean => {
+          return entry.accountId === account.accountId;
+        },
+      );
+
+      if (options.only && !only) {
+        continue;
+      }
+
+      if (options.budget.isSpent()) {
+        result.complete = false;
+        break;
+      }
+
+      let credentials: AwsCredentials;
+      let accountId: string = account.accountId;
+
+      try {
+        credentials = await this.getCredentials(account.settings, {
+          ...options,
+          connectionId: options.connectionId,
+          budget: options.budget,
+        });
+
+        if (!accountId) {
+          accountId = (
+            await getCallerIdentity({
+              transport: options.transport,
+              credentials,
+              region: homeRegion,
+              now: options.now,
+              timeoutInMs: options.requestTimeoutInMs,
+              budget: options.budget,
+            })
+          ).account;
+        }
+      } catch (error) {
+        if (error instanceof CloudReadBudgetSpent) {
+          result.complete = false;
+          break;
+        }
+
+        // An organization's member without its role: the others are read.
+        if (isOrganization && error instanceof LlmProviderError) {
+          if (!isLookBack) {
+            this.markChangesRead(state, account.accountId, now);
+          }
+
+          continue;
+        }
+
+        throw error;
+      }
+
+      const regions: Array<string> =
+        only?.regions && only.regions.length > 0
+          ? Array.from(new Set([...only.regions, homeRegion]))
+          : account.regions;
+
+      const outcomes: Array<
+        Settled<{ changes: Array<CloudChange>; complete: boolean }>
+      > = await mapWithConcurrency(
+        regions,
+        CHANGE_REGION_CONCURRENCY,
+        async (
+          region: string,
+        ): Promise<{ changes: Array<CloudChange>; complete: boolean }> => {
+          return await lookupAwsChanges({
+            credentials,
+            accountId,
+            region,
+            start: getChangeWindowStart({
+              state,
+              place: getChangePlace(accountId, region),
+              now,
+              since: options.since,
+            }),
+            end: now,
+            options,
+            budget: options.budget,
+          });
+        },
+      );
+
+      for (let index: number = 0; index < outcomes.length; index++) {
+        const outcome: Settled<{
+          changes: Array<CloudChange>;
+          complete: boolean;
+        }> = outcomes[index]!;
+        const region: string = regions[index]!;
+
+        if (outcome.ok) {
+          result.changes.push(
+            ...keepNewChanges({
+              state,
+              place: getChangePlace(accountId, region),
+              changes: outcome.value.changes,
+              now,
+              complete: outcome.value.complete,
+              isLookBack,
+              order: "newest-first",
+            }),
+          );
+
+          if (!outcome.value.complete) {
+            busyPlaces.push(
+              account.name ? `${account.name}, ${region}` : region,
+            );
+          }
+
+          continue;
+        }
+
+        result.complete = false;
+
+        if (outcome.error instanceof CloudReadBudgetSpent) {
+          continue;
+        }
+
+        if (
+          outcome.error instanceof LlmProviderError &&
+          outcome.error.kind === CloudConnectionFailureKind.Authentication
+        ) {
+          /*
+           * The home Region is open to every account: a credential refused
+           * there is refused. Anywhere else it is a Region the account has
+           * not opted in to, which has nothing to read.
+           */
+          if (region === homeRegion && !isOrganization) {
+            throw outcome.error;
+          }
+
+          continue;
+        }
+
+        if (
+          outcome.error instanceof LlmProviderError &&
+          outcome.error.kind === CloudConnectionFailureKind.Permission
+        ) {
+          refusedTrail = true;
+          continue;
+        }
+
+        result.warnings.push(
+          `Could not read what changed in ${account.name || accountId}, ${region}: ${
+            outcome.error instanceof Error
+              ? outcome.error.message
+              : String(outcome.error)
+          }`,
+        );
+      }
+
+      if (
+        healthDue &&
+        !options.budget.isSpent() &&
+        !isHealthPaused({ state, accountId, now })
+      ) {
+        try {
+          const health: Array<CloudChange> | null = await readAwsHealthEvents({
+            credentials,
+            accountId,
+            region: homeRegion,
+            start: getHealthWindowStart({ state, accountId, now }),
+            options,
+            budget: options.budget,
+          });
+
+          if (health === null) {
+            // Not on a support plan that includes AWS Health: asked again a day later.
+            pauseHealth({ state, accountId, now, forMs: HEALTH_PAUSE_MS });
+          } else {
+            result.changes.push(
+              ...keepNewChanges({
+                state,
+                place: getChangePlace(accountId, "health"),
+                changes: health,
+                now,
+                complete: true,
+                isLookBack,
+              }),
+            );
+            markHealthRead({ state, accountId, now });
+          }
+        } catch (error) {
+          if (
+            error instanceof LlmProviderError &&
+            error.kind === CloudConnectionFailureKind.Authentication &&
+            !isOrganization
+          ) {
+            throw error;
+          }
+
+          // Health is a bonus: a refusal pauses it, any other failure waits for the next read.
+          if (
+            error instanceof LlmProviderError &&
+            error.kind === CloudConnectionFailureKind.Permission
+          ) {
+            pauseHealth({ state, accountId, now, forMs: HEALTH_PAUSE_MS });
+          }
+        }
+      }
+
+      if (!isLookBack) {
+        this.markChangesRead(state, accountId, now);
+      }
+    }
+
+    if (healthDue) {
+      state.healthReadAt = now.toISOString();
+    }
+
+    if (busyPlaces.length > 0) {
+      result.warnings.push(
+        `More changed in ${busyPlaces.slice(0, 5).join("; ")} than one read takes: the newest changes are kept, and some older ones were left out.`,
+      );
+    }
+
+    if (refusedTrail) {
+      result.warnings.push(
+        "The role may not read CloudTrail (cloudtrail:LookupEvents). Run the setup command again to allow it.",
+      );
+    }
+
+    return result;
+  }
+
+  private async readAccountInventory(
+    settings: CloudConnectionSettings,
+    options: CloudInventoryOptions,
+    state: CloudConnectionPullState,
+  ): Promise<CloudInventoryResult> {
+    const credentials: AwsCredentials = await this.getCredentials(settings, {
+      ...options,
+      connectionId: options.connectionId,
+      budget: options.budget,
+    });
+
+    let accountId: string = state.accounts?.[0] || "";
+
+    if (!accountId) {
+      const identity: AwsCallerIdentity = await getCallerIdentity({
+        transport: options.transport,
+        credentials,
+        region: this.getStsRegion(settings),
+        now: options.now,
+        timeoutInMs: options.requestTimeoutInMs,
+        budget: options.budget,
+      });
+      accountId = identity.account;
+    }
+
+    const configured: Array<string> = this.getConfiguredRegions(settings);
+    const regions: Array<string> =
+      configured.length > 0
+        ? configured
+        : Array.from(
+            new Set(
+              (state.activePairs || [])
+                .map((key: string): string => {
+                  return readPair(key)?.region || "";
+                })
+                .filter((region: string): boolean => {
+                  return Boolean(region);
+                }),
+            ),
+          );
+
+    const outcome: AwsInventoryOutcome = await readAwsInventory({
+      accountId,
+      regions,
+      homeRegion: this.getStsRegion(settings),
+      credentials,
+      options,
+      budget: options.budget,
+    });
+
+    const alias: string = options.budget.isSpent()
+      ? ""
+      : await getAwsAccountAlias({
+          credentials,
+          region: this.getStsRegion(settings),
+          options,
+          budget: options.budget,
+        }).catch((error: unknown): string => {
+          if (error instanceof CloudReadBudgetSpent) {
+            return "";
+          }
+
+          throw error;
+        });
+
+    return {
+      accounts: [{ accountId, name: alias || undefined }],
+      items: outcome.items,
+      // Per Region: a Region the listing did not read keeps what it holds.
+      completelyListed: outcome.completelyListed.map(
+        (entry: { region: string; resourceTypes: Array<string> }) => {
+          return {
+            accountId,
+            regions: [entry.region],
+            resourceTypes: entry.resourceTypes,
+          };
+        },
+      ),
+      warnings: outcome.warnings,
+      complete: outcome.complete && !options.budget.isSpent(),
     };
   }
 

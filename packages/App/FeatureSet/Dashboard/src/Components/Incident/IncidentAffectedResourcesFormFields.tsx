@@ -2,6 +2,7 @@ import Incident from "Common/Models/DatabaseModels/Incident";
 import CephCluster from "Common/Models/DatabaseModels/CephCluster";
 import StorageArray from "Common/Models/DatabaseModels/StorageArray";
 import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
+import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
 import Host from "Common/Models/DatabaseModels/Host";
@@ -119,7 +120,7 @@ export const getIncidentAffectedResourcesFormFields: () => Fields<Incident> =
         },
         title: "Other Affected Resources",
         description:
-          "Search and attach hosts, Kubernetes clusters, Docker hosts, databases, or services affected by this incident.",
+          "Search and attach hosts, Kubernetes clusters, Docker hosts, databases, cloud resources, or services affected by this incident.",
         fieldType: FormFieldSchemaType.CustomComponent,
         required: false,
         getCustomElement: (
@@ -143,6 +144,7 @@ export const getIncidentAffectedResourcesFormFields: () => Fields<Incident> =
               }
               iotFleets={values.iotFleets as Array<IoTFleet>}
               databaseServers={values.databaseServers as Array<DatabaseServer>}
+              cloudResources={values.cloudResources as Array<CloudResource>}
               services={values.services as Array<Service>}
               resourceTypes={[
                 "Host",
@@ -156,6 +158,7 @@ export const getIncidentAffectedResourcesFormFields: () => Fields<Incident> =
                 "DockerSwarmCluster",
                 "IoTFleet",
                 "DatabaseServer",
+                "CloudResource",
                 "Service",
               ]}
               ariaLabelledby={elementProps.ariaLabelledby}
@@ -187,6 +190,7 @@ export const getIncidentAffectedResourcesFormFields: () => Fields<Incident> =
                 dockerSwarmClusters: payload.dockerSwarmClusters,
                 iotFleets: payload.iotFleets,
                 databaseServers: payload.databaseServers,
+                cloudResources: payload.cloudResources,
                 services: payload.services,
               } as FormValues<Incident>);
             });
@@ -281,6 +285,15 @@ export const getIncidentAffectedResourcesFormFields: () => Fields<Incident> =
       },
       {
         field: { databaseServers: true },
+        title: "",
+        fieldType: FormFieldSchemaType.Text,
+        required: false,
+        showIf: () => {
+          return false;
+        },
+      },
+      {
+        field: { cloudResources: true },
         title: "",
         fieldType: FormFieldSchemaType.Text,
         required: false,

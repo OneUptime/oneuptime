@@ -113,6 +113,16 @@ const CloudResourceLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
           required: false,
           placeholder: "production|critical",
         },
+        {
+          field: { cloudTagPattern: true },
+          title: "Cloud Tag",
+          stepId: "match-criteria",
+          description:
+            "Matched against each of the resource's cloud tags, written key=value. ^team=payments$ matches every resource tagged team=payments.",
+          fieldType: FormFieldSchemaType.Text,
+          required: false,
+          placeholder: "^team=payments$",
+        },
         ...getLabelRuleActionFields<CloudResourceLabelRule>(),
       ]}
       showRefreshButton={true}

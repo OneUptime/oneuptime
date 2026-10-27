@@ -252,8 +252,18 @@ describe("rule conditions name their criteria plainly", () => {
     ]);
   });
 
+  test("cloud resource rules also match a tag the resource has in its cloud", () => {
+    expect(
+      criteriaTitlesOf("Pages/Cloud/Settings/LabelRules.tsx", /./),
+    ).toEqual([
+      "Resource Labels",
+      "Resource Name",
+      "Resource Description",
+      "Cloud Tag",
+    ]);
+  });
+
   test.each([
-    ["Pages/Cloud/Settings/LabelRules.tsx", "Resource"],
     ["Pages/Rum/Settings/LabelRules.tsx", "Application"],
     ["Pages/Serverless/Settings/LabelRules.tsx", "Function"],
   ])(

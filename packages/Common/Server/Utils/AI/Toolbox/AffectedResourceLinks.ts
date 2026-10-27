@@ -1,6 +1,7 @@
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Alert from "../../../../Models/DatabaseModels/Alert";
 import CephCluster from "../../../../Models/DatabaseModels/CephCluster";
+import CloudResource from "../../../../Models/DatabaseModels/CloudResource";
 import DatabaseServer from "../../../../Models/DatabaseModels/DatabaseServer";
 import DockerHost from "../../../../Models/DatabaseModels/DockerHost";
 import DockerSwarmCluster from "../../../../Models/DatabaseModels/DockerSwarmCluster";
@@ -28,6 +29,7 @@ import {
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import CephClusterService from "../../../Services/CephClusterService";
+import CloudResourceService from "../../../Services/CloudResourceService";
 import DatabaseServerService from "../../../Services/DatabaseServerService";
 import DockerHostService from "../../../Services/DockerHostService";
 import DockerSwarmClusterService from "../../../Services/DockerSwarmClusterService";
@@ -203,6 +205,12 @@ const READERS: Readonly<
     model: DatabaseServer,
     findBy: (data: FindBy<BaseModel>): Promise<Array<BaseModel>> => {
       return DatabaseServerService.findBy(data as never);
+    },
+  },
+  [AiAffectedResourceKind.CloudResource]: {
+    model: CloudResource,
+    findBy: (data: FindBy<BaseModel>): Promise<Array<BaseModel>> => {
+      return CloudResourceService.findBy(data as never);
     },
   },
   [AiAffectedResourceKind.Service]: {

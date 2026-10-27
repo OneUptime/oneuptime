@@ -53,8 +53,11 @@ describe("the names an Affected Resources cell lists", () => {
       return match[1] as string;
     });
 
-    // Every kind of resource the cell draws, monitors first.
-    expect(cellOrder).toHaveLength(15);
+    // Every kind of resource the cell draws, monitors first, cloud resources included.
+    expect(cellOrder).toHaveLength(16);
+    expect(cellOrder.indexOf("cloudResources")).toBe(
+      cellOrder.indexOf("databaseServers") + 1,
+    );
     expect(cellOrder[0]).toBe("monitors");
     expect([...AFFECTED_RESOURCE_LIST_ORDER]).toEqual(cellOrder);
   });

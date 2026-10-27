@@ -175,7 +175,13 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, Array<string>>> = {
     "Create",
   ],
   [CLOUD_TROUBLESHOOTING]: ["VPC egress: All traffic"],
-  [CLOUD_ACCOUNTS]: ["Monitoring Reader", "Monitoring Viewer"],
+  [CLOUD_ACCOUNTS]: [
+    "Monitoring Reader",
+    "Monitoring Viewer",
+    "Cloud Asset Viewer",
+    "Logs Viewer",
+    "Service Health Viewer",
+  ],
   [CLOUD_RESOURCES]: [
     "Monitoring Reader",
     "Direct PUT",
@@ -268,8 +274,13 @@ export const PROSE_LEADS: Readonly<Record<string, Array<string>>> = {
     "The access can only read.",
     "OneUptime reads on a schedule.",
     "Each resource has a page of its own.",
+    "Each account has a page of its own.",
+    "OneUptime AI reads what changed.",
     "A project owner or admin.",
     "Your cloud's terminal",
+    "An account's page.",
+    "A resource's changes.",
+    "Incidents and alerts.",
   ],
   [CLOUD_RESOURCES]: [
     "The provider already measures your resources.",
