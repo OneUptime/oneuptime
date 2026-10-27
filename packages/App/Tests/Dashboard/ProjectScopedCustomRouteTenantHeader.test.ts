@@ -5,7 +5,8 @@ import path from "path";
 /*
  * `/monitor/refresh-status/:monitorId` and
  * `/workspace-notification-rule/test/:ruleId` are custom routes rather than
- * model CRUD, so the dashboard drives them through raw `API.get`.
+ * model CRUD, so the dashboard drives them through raw `API.get` - and the
+ * rule test, which posts into chat channels, through raw `API.post`.
  * `BaseAPI.getHeaders()` does NOT add a `tenantid` header —
  * `ModelAPI.getCommonHeaders()` is the only thing in the codebase that does,
  * and both calls originally omitted it.
@@ -91,14 +92,21 @@ function readCode(filePath: string): string {
 }
 
 /*
- * Every raw `API.get({ ... })` argument object in the file, as source text.
- * Brace-matched rather than regex-matched so nested objects (`data: {}`) do
- * not truncate the capture. The lookbehind keeps `ModelAPI.get` out of the
- * results — that one attaches the tenant header itself.
+ * Every raw `API.get({ ... })` - or `API.post` - argument object in the
+ * file, as source text. Brace-matched rather than regex-matched so nested
+ * objects (`data: {}`) do not truncate the capture. The lookbehind keeps
+ * `ModelAPI.get` out of the results — that one attaches the tenant header
+ * itself.
  */
-function getApiGetArguments(code: string): Array<string> {
+function getApiCallArguments(
+  code: string,
+  method: "get" | "post",
+): Array<string> {
   const calls: Array<string> = [];
-  const marker: RegExp = /(?<![A-Za-z])API\.get(?:<[^>]*>)?\(\s*\{/g;
+  const marker: RegExp = new RegExp(
+    `(?<![A-Za-z])API\\.${method}(?:<[^>]*>)?\\(\\s*\\{`,
+    "g",
+  );
 
   let match: RegExpExecArray | null = marker.exec(code);
 
@@ -120,7 +128,7 @@ function getApiGetArguments(code: string): Array<string> {
     }
 
     if (end === -1) {
-      throw new Error("Unbalanced braces in an API.get call argument.");
+      throw new Error(`Unbalanced braces in an API.${method} call argument.`);
     }
 
     calls.push(code.slice(openIndex, end + 1));
@@ -133,28 +141,43 @@ function getApiGetArguments(code: string): Array<string> {
 function getCallsForRoute(data: {
   filePath: string;
   route: string;
+  method: "get" | "post";
 }): Array<string> {
-  return getApiGetArguments(readCode(data.filePath)).filter((call: string) => {
-    return call.includes(data.route);
-  });
+  return getApiCallArguments(readCode(data.filePath), data.method).filter(
+    (call: string) => {
+      return call.includes(data.route);
+    },
+  );
 }
 
-describe("Project-scoped custom GET routes send the tenant header", () => {
-  const cases: Array<{ name: string; filePath: string; route: string }> = [
+describe("Project-scoped custom routes send the tenant header", () => {
+  const cases: Array<{
+    name: string;
+    filePath: string;
+    route: string;
+    method: "get" | "post";
+  }> = [
     {
       name: "the monitor overview refreshing monitor status",
       filePath: MONITOR_OVERVIEW_DATA_HOOK,
       route: "/monitor/refresh-status/",
+      method: "get",
     },
     {
       name: "the monitor overview loading uptime history",
       filePath: MONITOR_UPTIME_SUMMARY_HOOK,
       route: "/monitor/uptime-summary/",
+      method: "get",
     },
+    /*
+     * A POST: the route posts into the rule's chat channels, and takes no
+     * GET, which a link on another site could make as whoever followed it.
+     */
     {
       name: "the workspace notification rules table testing a rule",
       filePath: NOTIFICATION_RULES_TABLE,
       route: "/workspace-notification-rule/test/",
+      method: "post",
     },
     /*
      * The project's number prefixes, for the preview of the name of the
@@ -165,19 +188,21 @@ describe("Project-scoped custom GET routes send the tenant header", () => {
       name: "the workspace notification rules table reading the project's number prefixes",
       filePath: NOTIFICATION_RULES_TABLE,
       route: "/workspace-notification-rule/number-prefixes",
+      method: "get",
     },
   ];
 
   for (const testCase of cases) {
     /*
-     * Guard the guard: if a page is ever migrated off raw API.get, the header
-     * assertion below would vacuously pass over an empty list.
+     * Guard the guard: if a page is ever migrated off the raw call, the
+     * header assertion below would vacuously pass over an empty list.
      */
-    test(`${testCase.name} still uses raw API.get`, () => {
+    test(`${testCase.name} still uses raw API.${testCase.method}`, () => {
       expect(
         getCallsForRoute({
           filePath: testCase.filePath,
           route: testCase.route,
+          method: testCase.method,
         }).length,
       ).toBe(1);
     });
@@ -190,6 +215,7 @@ describe("Project-scoped custom GET routes send the tenant header", () => {
       const missing: Array<string> = getCallsForRoute({
         filePath: testCase.filePath,
         route: testCase.route,
+        method: testCase.method,
       }).filter((call: string) => {
         return !sendsTenantHeader.test(call);
       });
@@ -198,12 +224,24 @@ describe("Project-scoped custom GET routes send the tenant header", () => {
     });
   }
 
+  test("the rules table never tests a rule with a GET", () => {
+    expect(
+      getCallsForRoute({
+        filePath: NOTIFICATION_RULES_TABLE,
+        route: "/workspace-notification-rule/test/",
+        method: "get",
+      }),
+    ).toEqual([]);
+  });
+
   test("the monitor view page makes no raw API.get of its own", () => {
     /*
      * The page used to await refresh-status itself. If a raw call comes back
      * here it bypasses the hook's once-per-monitor guard, and the cases above
      * would not notice, because they read the hooks.
      */
-    expect(getApiGetArguments(readCode(MONITOR_VIEW_PAGE)).length).toBe(0);
+    expect(getApiCallArguments(readCode(MONITOR_VIEW_PAGE), "get").length).toBe(
+      0,
+    );
   });
 });
