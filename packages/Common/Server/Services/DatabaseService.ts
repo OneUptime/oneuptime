@@ -158,7 +158,9 @@ import ArchivedValueCheck, {
   ArchivedPick,
   ArchivedValueRow,
 } from "../Utils/Database/ArchivedValueCheck";
-import CreateScopePermission from "../Types/Database/Permissions/CreateScopePermission";
+import CreateScopePermission, {
+  CreateScope,
+} from "../Types/Database/Permissions/CreateScopePermission";
 import RelationNames from "../Utils/Database/RelationNames";
 import ListOrderMaintainer, {
   ListOrderCreatePlan,
@@ -3625,8 +3627,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   /*
    * When an update writes the labels its records carry and the caller's
    * permission to update is limited by labels (UpdateScopePermission): the
-   * columns the rows are read with to tell their labels once written - none
-   * for a model that carries labels of its own, which the update writes as a
+   * columns the rows are read with to tell their labels once written - and
+   * the parent they take their owners from, which a permission scoped to
+   * Owned beside the labels reaches them by (getColumnsToRead). None for a
+   * model that carries labels of its own, which the update writes as a
    * whole. Null otherwise: nothing to ask.
    */
   private getUpdateLabelColumns(
@@ -3642,7 +3646,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
     return this.getModel().getAccessControlColumn()
       ? []
-      : UpdateScopePermission.getLabelColumns(this.modelType);
+      : UpdateScopePermission.getColumnsToRead(this.modelType);
   }
 
   // The parent, lists and single references `named` names, to read rows with.
@@ -6035,9 +6039,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   }
 
   /*
-   * Whether the caller's permission to create in this table reaches only the
-   * records they own (CreateScopePermission.getCreateScope): such a create
-   * went through because its creator - a person - is to own the record.
+   * Whether the caller's permission to create in this table reaches the
+   * records they own - only those, or those beside the ones carrying some
+   * labels (CreateScopePermission.getCreateScope): such a create may have
+   * gone through because its creator - a person - is to own the record.
    */
   private createReliesOnOwnership(
     props: DatabaseCommonInteractionProps,
@@ -6046,8 +6051,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       return false;
     }
 
-    return CreateScopePermission.getCreateScope(this.modelType, props)
-      .isOwnedOnly;
+    const scope: CreateScope = CreateScopePermission.getCreateScope(
+      this.modelType,
+      props,
+    );
+
+    return scope.isOwnedOnly || scope.isOwnedBesideLabels;
   }
 
   /*
@@ -9307,6 +9316,16 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           rowsReadWithNamed.rows,
         );
 
+      /*
+       * A parent it takes its owners from: one its editor owns, when that is
+       * all their permission to update reaches. See the helper.
+       */
+      await ModelPermission.checkOwnedUpdatePermission({
+        modelType: this.modelType,
+        data: updateBy.data,
+        props: updateBy.props,
+      });
+
       const onUpdate: OnUpdate<TBaseModel> = updateBy.props.ignoreHooks
         ? { updateBy, carryForward: [] }
         : await this.onBeforeUpdate(updateBy);
@@ -9323,6 +9342,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           onUpdate.updateBy,
           namedRecordsChecked,
         );
+
+        await ModelPermission.checkOwnedUpdatePermission({
+          modelType: this.modelType,
+          data: onUpdate.updateBy.data,
+          props: onUpdate.updateBy.props,
+        });
       }
 
       /*

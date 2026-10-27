@@ -5,10 +5,9 @@ import BaseModel, {
 } from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { JSONObject } from "../../../Types/JSON";
 import Typeof from "../../../Types/Typeof";
-import CaptureSpan from "../../Utils/Telemetry/CaptureSpan";
 
+// No @CaptureSpan: an in-memory rewrite run before every read, in microseconds.
 export default class SelectUtil {
-  @CaptureSpan()
   public static sanitizeSelect<TBaseModel extends BaseModel>(
     modelType: DatabaseBaseModelType,
     select: Select<TBaseModel>,

@@ -1000,6 +1000,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/dashboards/sharing",
       },
       {
+        title: "Dashboard Playlists",
+        url: "/docs/dashboards/playlists",
+      },
+      {
         title: "Dashboard Configuration & Permissions",
         url: "/docs/dashboards/configuration",
       },

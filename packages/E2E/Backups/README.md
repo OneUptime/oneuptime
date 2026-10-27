@@ -59,6 +59,8 @@ Edition, whose Settings side menu the last spec holds to having no Backups
 entry. `/edition.json` says which edition the first one is, so the Enterprise
 specs skip where ee/ is not there. The Enterprise Edition Test workflow runs
 this suite with ee/ present (`.github/workflows/test.ee.yaml`, job
-`backups-ui`).
+`enterprise-ui`, beside the Enterprise Licenses and custom roles specs), with
+`E2E_REQUIRE_ENTERPRISE` set, so a spec that would skip for want of ee/ fails
+there instead (`SuiteHelpers/Edition.ts`).
 
 Screenshots land in `output/playwright/backups-ui/`.

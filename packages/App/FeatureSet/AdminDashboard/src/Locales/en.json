@@ -69,8 +69,6 @@
   },
   "userProfile": {
     "exitAdmin": "Exit Admin",
-    "darkTheme": "Dark theme",
-    "lightTheme": "Light theme",
     "logOut": "Log out"
   },
   "footer": {
@@ -1511,6 +1509,10 @@
   "Anyone who can open this server can create an account. Turn this off once your team has its accounts.": "Anyone who can open this server can create an account. Turn this off once your team has its accounts.",
   "Choose who can sign up": "Choose who can sign up",
   "Still to do": "Still to do",
+  "Theme": "Theme",
+  "Light": "Light",
+  "Dark": "Dark",
+  "System": "System",
   "markdownCallouts": {
     "caution": "Caution",
     "danger": "Danger",

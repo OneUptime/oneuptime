@@ -6,6 +6,7 @@ import StatusPageSubscriberUnsubscribe, {
   StatusPageSubscriberUnsubscribeCredential,
 } from "../../../Types/StatusPage/StatusPageSubscriberUnsubscribe";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * The unsubscribe link every subscriber notification carries,
@@ -513,23 +514,31 @@ describe("StatusPageSubscriberUnsubscribe.redactCredentials on long text", () =>
   ])(
     "%s: answered in well under two seconds",
     (_label: string, text: string) => {
-      const startedAt: number = Date.now();
+      const timed: FastestRun<string> = fastestRun({
+        run: (): string => {
+          return StatusPageSubscriberUnsubscribe.redactCredentials(text);
+        },
+        limitInMs: 2000,
+      });
+      const result: string = timed.result;
 
-      const result: string =
-        StatusPageSubscriberUnsubscribe.redactCredentials(text);
-
-      expect(Date.now() - startedAt).toBeLessThan(2000);
+      expect(timed.inMs).toBeLessThan(2000);
       expect(result).toBe(text);
     },
   );
 
   test("a confirmation link whose code runs on: the code's 64 characters go, the rest is kept, in well under two seconds", () => {
-    const startedAt: number = Date.now();
-    const result: string = StatusPageSubscriberUnsubscribe.redactCredentials(
-      `/confirm-subscription/${SUBSCRIBER_ID}?verification-token=${"f".repeat(LENGTH)}`,
-    );
+    const timed: FastestRun<string> = fastestRun({
+      run: (): string => {
+        return StatusPageSubscriberUnsubscribe.redactCredentials(
+          `/confirm-subscription/${SUBSCRIBER_ID}?verification-token=${"f".repeat(LENGTH)}`,
+        );
+      },
+      limitInMs: 2000,
+    });
+    const result: string = timed.result;
 
-    expect(Date.now() - startedAt).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
     expect(result).toBe(
       `/confirm-subscription/${SUBSCRIBER_ID}?verification-token=[redacted]${"f".repeat(LENGTH - 64)}`,
     );
@@ -542,11 +551,15 @@ describe("StatusPageSubscriberUnsubscribe.redactCredentials on long text", () =>
       Math.ceil(LENGTH / (manage.length + unsubscribe.length)),
     );
 
-    const startedAt: number = Date.now();
-    const result: string =
-      StatusPageSubscriberUnsubscribe.redactCredentials(text);
+    const timed: FastestRun<string> = fastestRun({
+      run: (): string => {
+        return StatusPageSubscriberUnsubscribe.redactCredentials(text);
+      },
+      limitInMs: 2000,
+    });
+    const result: string = timed.result;
 
-    expect(Date.now() - startedAt).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
     expect(result).not.toContain(TOKEN);
     expect(result).toContain(
       `/update-subscription/${SUBSCRIBER_ID}-[redacted]`,

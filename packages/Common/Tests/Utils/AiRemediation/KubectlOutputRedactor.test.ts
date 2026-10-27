@@ -4,6 +4,7 @@ import KubectlOutputRedactor, {
 } from "../../../Utils/AiRemediation/KubectlOutputRedactor";
 import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 import { describe, expect, it } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * Contract under test — KubectlOutputRedactor is the pure, deterministic
@@ -2509,12 +2510,16 @@ describe("KubectlOutputRedactor", () => {
     it.each(adversarial)(
       "redacts %s in linear time",
       (_label: string, text: string) => {
-        const started: number = Date.now();
-        const result: KubectlOutputRedaction = redact(text);
-        const elapsedMs: number = Date.now() - started;
+        const timed: FastestRun<KubectlOutputRedaction> = fastestRun({
+          run: (): KubectlOutputRedaction => {
+            return redact(text);
+          },
+          limitInMs: boundMs,
+        });
+        const result: KubectlOutputRedaction = timed.result;
 
         expect(result.text.length).toBeGreaterThan(0);
-        expect(elapsedMs).toBeLessThan(boundMs);
+        expect(timed.inMs).toBeLessThan(boundMs);
       },
     );
   });

@@ -19,11 +19,13 @@ export enum SecurityPlaybookActionType {
   // Investigate
   CheckThreatIntel = "Check Threat Intel",
   LookUpEntityActivity = "Look Up Entity Activity",
+  PreserveEvidence = "Preserve Evidence",
 
   // Notify
   EmailPeople = "Email People",
   PostToSlack = "Post to Slack",
   PostToMicrosoftTeams = "Post to Microsoft Teams",
+  PostStatusPageAnnouncement = "Post Status Page Announcement",
 
   // Escalate
   PageOnCall = "Page On-Call",
@@ -41,6 +43,8 @@ export enum SecurityPlaybookActionType {
   // Automate
   SendWebhook = "Send Webhook",
   RunWorkflow = "Run Workflow",
+  RunRunbook = "Run Runbook",
+  FixWithAi = "Fix With AI",
 }
 
 export enum SecurityPlaybookActionCategory {
@@ -85,6 +89,12 @@ export interface SecurityPlaybookActionDefinition {
   entityType?: SecurityEntityType | undefined;
   // For an action that undoes a containment action: the action it undoes.
   undoes?: SecurityPlaybookActionType | undefined;
+  /*
+   * A new step of it starts needing approval, though nothing about it cuts
+   * anyone off: it runs commands on the project's own systems, or speaks to
+   * its customers. Whoever adds the step may turn that off.
+   */
+  needsApprovalByDefault?: boolean | undefined;
 }
 
 export const SECURITY_PLAYBOOK_ACTIONS: ReadonlyArray<SecurityPlaybookActionDefinition> =
@@ -151,6 +161,15 @@ export const SECURITY_PLAYBOOK_ACTIONS: ReadonlyArray<SecurityPlaybookActionDefi
       isDisruptive: false,
     },
     {
+      type: SecurityPlaybookActionType.PreserveEvidence,
+      title: "Preserve the evidence",
+      description:
+        "Keep the session replays of the requests behind the case past their retention, and note on the case the traces, sessions and exceptions those requests link to.",
+      category: SecurityPlaybookActionCategory.Investigate,
+      icon: IconProp.Archive,
+      isDisruptive: false,
+    },
+    {
       type: SecurityPlaybookActionType.EmailPeople,
       title: "Email people",
       description:
@@ -176,6 +195,16 @@ export const SECURITY_PLAYBOOK_ACTIONS: ReadonlyArray<SecurityPlaybookActionDefi
       category: SecurityPlaybookActionCategory.Notify,
       icon: IconProp.MicrosoftTeams,
       isDisruptive: false,
+    },
+    {
+      type: SecurityPlaybookActionType.PostStatusPageAnnouncement,
+      title: "Post a status page announcement",
+      description:
+        "Publish an announcement on your status pages, for an attack your customers should hear about from you first. Waits for approval unless you turn that off.",
+      category: SecurityPlaybookActionCategory.Notify,
+      icon: IconProp.Announcement,
+      isDisruptive: false,
+      needsApprovalByDefault: true,
     },
     {
       type: SecurityPlaybookActionType.PageOnCall,
@@ -293,6 +322,25 @@ export const SECURITY_PLAYBOOK_ACTIONS: ReadonlyArray<SecurityPlaybookActionDefi
       icon: IconProp.Workflow,
       isDisruptive: false,
     },
+    {
+      type: SecurityPlaybookActionType.RunRunbook,
+      title: "Run a runbook",
+      description:
+        "Start one of your OneUptime runbooks with the case's users, hosts and addresses as its inputs: block an address, stop a process, cordon a node. Waits for approval unless you turn that off.",
+      category: SecurityPlaybookActionCategory.Automate,
+      icon: IconProp.CommandLine,
+      isDisruptive: false,
+      needsApprovalByDefault: true,
+    },
+    {
+      type: SecurityPlaybookActionType.FixWithAi,
+      title: "Fix the code with AI",
+      description:
+        "Ask OneUptime AI to fix the code behind the exceptions the case's requests threw, as a pull request on the repository that holds it.",
+      category: SecurityPlaybookActionCategory.Automate,
+      icon: IconProp.Sparkles,
+      isDisruptive: false,
+    },
   ];
 
 export function getSecurityPlaybookAction(
@@ -310,6 +358,18 @@ export function actsOnSecurityEntities(
   definition: SecurityPlaybookActionDefinition | undefined,
 ): boolean {
   return Boolean(definition?.connectionProvider && definition.entityType);
+}
+
+/*
+ * Whether a new step of this action starts needing approval: a containment
+ * step, and a step that runs commands or speaks to customers.
+ */
+export function doesActionNeedApprovalByDefault(
+  definition: SecurityPlaybookActionDefinition | undefined,
+): boolean {
+  return Boolean(
+    definition?.isDisruptive || definition?.needsApprovalByDefault,
+  );
 }
 
 /*

@@ -5,6 +5,7 @@ import {
 } from "../../Utils/DatabaseErrorRedaction";
 import { generatedTexts } from "../Helpers/GeneratedTexts";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../Helpers/FastestRun";
 
 /*
  * ---------------------------------------------------------------------------
@@ -65,22 +66,28 @@ describe("a database's error message is read in time in line with its length", (
   test.each(WORST_CASES)(
     "connection addresses: %s",
     (_label: string, text: string) => {
-      const startedAt: number = Date.now();
+      const timed: FastestRun<void> = fastestRun({
+        run: (): void => {
+          redactDsns(text, "[redacted-dsn]");
+        },
+        limitInMs: 2000,
+      });
 
-      redactDsns(text, "[redacted-dsn]");
-
-      expect(Date.now() - startedAt).toBeLessThan(2000);
+      expect(timed.inMs).toBeLessThan(2000);
     },
   );
 
   test.each(WORST_CASES)(
     "password settings: %s",
     (_label: string, text: string) => {
-      const startedAt: number = Date.now();
+      const timed: FastestRun<void> = fastestRun({
+        run: (): void => {
+          redactPasswordSettings(text);
+        },
+        limitInMs: 2000,
+      });
 
-      redactPasswordSettings(text);
-
-      expect(Date.now() - startedAt).toBeLessThan(2000);
+      expect(timed.inMs).toBeLessThan(2000);
     },
   );
 
@@ -88,11 +95,14 @@ describe("a database's error message is read in time in line with its length", (
   test.each(WORST_CASES)(
     "a data source's error: %s",
     (_label: string, text: string) => {
-      const startedAt: number = Date.now();
+      const timed: FastestRun<void> = fastestRun({
+        run: (): void => {
+          SqlResultShaper.sanitizeError(new Error(text), ["hunter2"]);
+        },
+        limitInMs: 2000,
+      });
 
-      SqlResultShaper.sanitizeError(new Error(text), ["hunter2"]);
-
-      expect(Date.now() - startedAt).toBeLessThan(2000);
+      expect(timed.inMs).toBeLessThan(2000);
     },
   );
 });

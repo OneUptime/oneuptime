@@ -15,7 +15,9 @@
  *     approved its plan;
  *   - AI: OneUptime AI, acting for the person it was talking to;
  *   - Schedule: the runbook's own schedule (its Triggers page);
- *   - Webhook: a POST to the runbook's webhook URL (its Triggers page).
+ *   - Webhook: a POST to the runbook's webhook URL (its Triggers page);
+ *   - SecurityPlaybook: a security playbook's Run a runbook step, for a
+ *     security case, once a person approved the step if it waited for one.
  *
  * Runs started before this column existed have none; they are read the way
  * they always were (the record they are linked to, the person who started
@@ -32,6 +34,7 @@ enum RunbookTriggerType {
   AI = "AI",
   Schedule = "Schedule",
   Webhook = "Webhook",
+  SecurityPlaybook = "SecurityPlaybook",
 }
 
 export const RUNBOOK_TRIGGER_TYPES: ReadonlyArray<RunbookTriggerType> = [
@@ -41,6 +44,7 @@ export const RUNBOOK_TRIGGER_TYPES: ReadonlyArray<RunbookTriggerType> = [
   RunbookTriggerType.AI,
   RunbookTriggerType.Schedule,
   RunbookTriggerType.Webhook,
+  RunbookTriggerType.SecurityPlaybook,
 ];
 
 // The triggers that start a run with nobody watching: no person clicked.

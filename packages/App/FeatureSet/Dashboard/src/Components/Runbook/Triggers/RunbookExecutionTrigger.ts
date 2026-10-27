@@ -7,15 +7,16 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import { TRIGGER_NAMES, TriggerDetailCopy } from "./RunbookTriggersCopy";
 
 /*
- * What started a run that nobody started by hand - its schedule or its
- * webhook - in words, for the runbook's Overview, both Executions lists and
- * the run's own page. Every other run already says what started it through
- * what it carries: the incident, alert or maintenance event a rule or
- * auto-remediation ran it for, or the person who pressed Run Now.
+ * What started a run that nobody started by hand - its schedule, its
+ * webhook, or a security playbook's Run a runbook step - in words, for the
+ * runbook's Overview, both Executions lists and the run's own page. Every
+ * other run already says what started it through what it carries: the
+ * incident, alert or maintenance event a rule or auto-remediation ran it
+ * for, or the person who pressed Run Now.
  */
 
 export interface UnattendedTriggerText {
-  // "Schedule" or "Webhook", in the reader's language.
+  // "Schedule", "Webhook" or "Security playbook", in the reader's language.
   label: string;
   // What else is known about it, each a sentence in the reader's language.
   details: Array<string>;
@@ -105,6 +106,37 @@ export function getUnattendedTriggerText(
       label:
         translator.translateText(TRIGGER_NAMES[RunbookTriggerType.Webhook]) ||
         "",
+      details: lines,
+    };
+  }
+
+  // The case the playbook ran it for, and the playbook, as the step recorded them.
+  if (execution.triggerType === RunbookTriggerType.SecurityPlaybook) {
+    const lines: Array<string> = [];
+    const caseNumber: unknown = details["caseNumber"];
+    const playbookName: unknown = details["playbookName"];
+
+    if (typeof caseNumber === "string" && caseNumber) {
+      lines.push(
+        translator.translateTemplate(TriggerDetailCopy.forSecurityCase, {
+          caseNumber,
+        }),
+      );
+    }
+
+    if (typeof playbookName === "string" && playbookName) {
+      lines.push(
+        translator.translateTemplate(TriggerDetailCopy.byPlaybook, {
+          playbookName,
+        }),
+      );
+    }
+
+    return {
+      label:
+        translator.translateText(
+          TRIGGER_NAMES[RunbookTriggerType.SecurityPlaybook],
+        ) || "",
       details: lines,
     };
   }

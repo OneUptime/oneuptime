@@ -1,6 +1,6 @@
 import OnlineDdl from "../../../../Server/Infrastructure/Postgres/OnlineDdl";
-import { AddCustomNotificationChannelIndexesAndKeys1808010000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808010000000-AddCustomNotificationChannelIndexesAndKeys";
-import { AddCustomNotificationChannels1808000000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808000000000-AddCustomNotificationChannels";
+import { AddCustomNotificationChannelIndexesAndKeys1808090000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808090000000-AddCustomNotificationChannelIndexesAndKeys";
+import { AddCustomNotificationChannels1808080000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808080000000-AddCustomNotificationChannels";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import { MigrationInterface, QueryRunner } from "typeorm";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
@@ -14,9 +14,9 @@ import { afterEach, describe, expect, jest, test } from "@jest/globals";
  * online, in a migration of their own, outside a transaction.
  */
 
-const TABLE_MIGRATION: string = "AddCustomNotificationChannels1808000000000";
+const TABLE_MIGRATION: string = "AddCustomNotificationChannels1808080000000";
 const KEYS_MIGRATION: string =
-  "AddCustomNotificationChannelIndexesAndKeys1808010000000";
+  "AddCustomNotificationChannelIndexesAndKeys1808090000000";
 
 async function record(
   migration: MigrationInterface,
@@ -55,11 +55,11 @@ afterEach(() => {
 
 describe("the custom channel migrations", () => {
   test("name themselves after their classes", () => {
-    expect(new AddCustomNotificationChannels1808000000000().name).toBe(
+    expect(new AddCustomNotificationChannels1808080000000().name).toBe(
       TABLE_MIGRATION,
     );
     expect(
-      new AddCustomNotificationChannelIndexesAndKeys1808010000000().name,
+      new AddCustomNotificationChannelIndexesAndKeys1808090000000().name,
     ).toBe(KEYS_MIGRATION);
   });
 
@@ -85,7 +85,7 @@ describe("the custom channel migrations", () => {
 
   test("create the table with every column the model has", async () => {
     const steps: Array<string> = await record(
-      new AddCustomNotificationChannels1808000000000(),
+      new AddCustomNotificationChannels1808080000000(),
       "up",
     );
 
@@ -107,7 +107,7 @@ describe("the custom channel migrations", () => {
 
   test("add the two columns to the busy tables as nullable, with no default, so nothing is rewritten", async () => {
     const steps: Array<string> = await record(
-      new AddCustomNotificationChannels1808000000000(),
+      new AddCustomNotificationChannels1808080000000(),
       "up",
     );
 
@@ -121,7 +121,7 @@ describe("the custom channel migrations", () => {
 
   test("build nothing that scans a busy table in the transactional migration", async () => {
     const steps: Array<string> = await record(
-      new AddCustomNotificationChannels1808000000000(),
+      new AddCustomNotificationChannels1808080000000(),
       "up",
     );
 
@@ -143,8 +143,8 @@ describe("the custom channel migrations", () => {
   });
 
   test("build the indexes and keys online, outside a transaction", async () => {
-    const migration: AddCustomNotificationChannelIndexesAndKeys1808010000000 =
-      new AddCustomNotificationChannelIndexesAndKeys1808010000000();
+    const migration: AddCustomNotificationChannelIndexesAndKeys1808090000000 =
+      new AddCustomNotificationChannelIndexesAndKeys1808090000000();
 
     expect(migration.transaction).toBe(false);
     expect(await record(migration, "up")).toEqual([
@@ -157,7 +157,7 @@ describe("the custom channel migrations", () => {
 
   test("deleting a channel deletes the rules that page through it, and keeps the history", async () => {
     const steps: Array<string> = await record(
-      new AddCustomNotificationChannelIndexesAndKeys1808010000000(),
+      new AddCustomNotificationChannelIndexesAndKeys1808090000000(),
       "up",
     );
 
@@ -180,7 +180,7 @@ describe("the custom channel migrations", () => {
   test("undo the keys and indexes, then the columns and the table", async () => {
     expect(
       await record(
-        new AddCustomNotificationChannelIndexesAndKeys1808010000000(),
+        new AddCustomNotificationChannelIndexesAndKeys1808090000000(),
         "down",
       ),
     ).toEqual([
@@ -191,7 +191,7 @@ describe("the custom channel migrations", () => {
     ]);
 
     const steps: Array<string> = await record(
-      new AddCustomNotificationChannels1808000000000(),
+      new AddCustomNotificationChannels1808080000000(),
       "down",
     );
 

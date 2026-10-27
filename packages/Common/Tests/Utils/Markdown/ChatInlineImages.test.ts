@@ -13,6 +13,7 @@ import {
 import SlackifyMarkdown from "slackify-markdown";
 import { seededRandom } from "../../Helpers/SeededRandom";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * A SCREENSHOT IN A DESCRIPTION, ON ITS WAY TO SLACK AND MICROSOFT TEAMS.
@@ -522,11 +523,19 @@ describe("ChatInlineImages.split - text and images, each where it was", () => {
       `Timeout\n![Login page](data:image/png;base64,${png})\n\n${"text ".repeat(2000)}`,
     );
 
-    const started: number = Date.now();
-    const split: ChatMarkdownSplit = ChatInlineImages.split(markdown);
-    const text: string = ChatInlineImages.toText(markdown);
+    const timed: FastestRun<{ split: ChatMarkdownSplit; text: string }> =
+      fastestRun({
+        run: (): { split: ChatMarkdownSplit; text: string } => {
+          const split: ChatMarkdownSplit = ChatInlineImages.split(markdown);
+          const text: string = ChatInlineImages.toText(markdown);
+          return { split: split, text: text };
+        },
+        limitInMs: 5000,
+      });
+    const split: ChatMarkdownSplit = timed.result.split;
+    const text: string = timed.result.text;
 
-    expect(Date.now() - started).toBeLessThan(5000);
+    expect(timed.inMs).toBeLessThan(5000);
     expect(images(split)[0]!.image.base64).toBe(png);
     expect(markdownOf(split)).not.toContain(png.slice(0, 100));
     expect(text).not.toContain(png.slice(0, 100));

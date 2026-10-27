@@ -226,13 +226,141 @@ describe(`${RELEASE}: build earlier, never publish earlier`, () => {
     ).toEqual([]);
   });
 
-  test("the store jobs still run only when someone asks for them", () => {
+  test("the store jobs still run only when someone asks for them, from `release`", () => {
     expect(jobs["publish-android-to-play-store"].if).toBe(
-      "github.event_name == 'workflow_dispatch' && github.event.inputs.publish_android_to_store == 'true'",
+      "github.ref == 'refs/heads/release' && github.event_name == 'workflow_dispatch' && github.event.inputs.publish_android_to_store == 'true'",
     );
     expect(jobs["publish-ios-to-app-store"].if).toBe(
-      "github.event_name == 'workflow_dispatch' && github.event.inputs.publish_ios_to_store == 'true'",
+      "github.ref == 'refs/heads/release' && github.event_name == 'workflow_dispatch' && github.event.inputs.publish_ios_to_store == 'true'",
     );
+  });
+});
+
+/*
+ * release.yml runs for a push to `release`, and for a workflow_dispatch from
+ * any branch. Only the draft and the publish used to check the branch, so a
+ * dispatch from another one (for the store jobs, say) would build that
+ * branch, run its e2e, and then move the `release` tags to its images,
+ * publish its charts, npm packages, Terraform provider and the four agents'
+ * `release` tags. Every job that publishes now runs only for `release`: its
+ * own `if` names the branch, or - with no status function in its `if`, so
+ * Actions requires every job it needs to have succeeded - a job it needs
+ * runs only for `release`, and is skipped for any other.
+ */
+describe(`${RELEASE}: every job that publishes runs only for \`release\``, () => {
+  const RELEASE_REF = "github.ref == 'refs/heads/release'";
+
+  // The `&&` terms of a job's `if`, without the ${{ }} around it.
+  function termsOf(name) {
+    return String(jobs[name].if || "")
+      .trim()
+      .replace(/^\$\{\{([\s\S]*)\}\}$/, "$1")
+      .split("&&")
+      .map((term) => {
+        return term.trim();
+      })
+      .filter(Boolean);
+  }
+
+  function callsAStatusFunction(name) {
+    return /\b(success|failure|cancelled|always)\(\)/.test(
+      String(jobs[name].if || ""),
+    );
+  }
+
+  /*
+   * Whether a job runs only for `release`: its `if` requires the branch, or
+   * it requires every job it needs to have succeeded and one of them runs
+   * only for `release`.
+   */
+  function runsOnlyForRelease(name, seen = new Set()) {
+    if (seen.has(name)) {
+      return false;
+    }
+    seen.add(name);
+    if (termsOf(name).includes(RELEASE_REF)) {
+      return true;
+    }
+    if (callsAStatusFunction(name)) {
+      return false;
+    }
+    return needsOf(jobs[name]).some((need) => {
+      return runsOnlyForRelease(need, seen);
+    });
+  }
+
+  const publishing = Object.keys(WAITED_FOR_BEFORE).sort();
+
+  test("finds every job that publishes (the checks below are not vacuous)", () => {
+    expect(publishing).toEqual(
+      expect.arrayContaining([
+        "push-release-tags",
+        "helm-chart-deploy",
+        "publish-npm-packages",
+        "publish-terraform-provider",
+        "draft-github-release",
+        "finalize-github-release",
+        "publish-android-to-play-store",
+        "publish-ios-to-app-store",
+        ...buildAndMerge(AGENTS_WITH_THEIR_OWN_RELEASE_TAGS),
+      ]),
+    );
+  });
+
+  test.each(publishing)("%s runs only for `release`", (name) => {
+    expect({ job: name, onlyForRelease: runsOnlyForRelease(name) }).toEqual({
+      job: name,
+      onlyForRelease: true,
+    });
+  });
+
+  test.each([
+    "push-release-tags",
+    "helm-chart-deploy",
+    "publish-npm-packages",
+    "publish-terraform-provider",
+    "draft-github-release",
+    ...AGENTS_WITH_THEIR_OWN_RELEASE_TAGS.map((image) => {
+      return `${image}-docker-image-build`;
+    }),
+  ])("%s says so itself, with no status function", (name) => {
+    expect(jobs[name].if).toBe(RELEASE_REF);
+  });
+
+  test("the e2e jobs and the image builds behind them still run for any branch: only publishing waits for `release`", () => {
+    for (const name of [
+      ...E2E_JOBS,
+      ...buildAndMerge(IMAGES_BEHIND_THE_E2E_JOBS),
+      "read-version",
+    ]) {
+      expect({ job: name, onlyForRelease: runsOnlyForRelease(name) }).toEqual({
+        job: name,
+        onlyForRelease: false,
+      });
+    }
+  });
+
+  test("reads a gate through a job's needs, and not through a status function", () => {
+    const saved = { ...jobs };
+    try {
+      jobs["gate-probe-gated"] = { if: RELEASE_REF };
+      jobs["gate-probe-through-needs"] = { needs: ["gate-probe-gated"] };
+      jobs["gate-probe-always"] = {
+        needs: ["gate-probe-gated"],
+        if: "always()",
+      };
+      jobs["gate-probe-open"] = { needs: ["read-version"] };
+      expect(runsOnlyForRelease("gate-probe-gated")).toBe(true);
+      expect(runsOnlyForRelease("gate-probe-through-needs")).toBe(true);
+      expect(runsOnlyForRelease("gate-probe-always")).toBe(false);
+      expect(runsOnlyForRelease("gate-probe-open")).toBe(false);
+    } finally {
+      for (const name of Object.keys(jobs)) {
+        if (!(name in saved)) {
+          delete jobs[name];
+        }
+      }
+    }
   });
 });
 

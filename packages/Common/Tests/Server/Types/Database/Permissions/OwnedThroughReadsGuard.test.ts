@@ -34,7 +34,7 @@ const ALLOWED: Record<string, { count: number; reason: string }> = {
   "Types/Database/Permissions/OwnedScopePermission.ts": {
     count: 2,
     reason:
-      "getOwnedThrough itself reads the decorator, and isLimitedToOwnedRecords' gate reads it beside the owner table write it asks about separately (owners are read through their resource).",
+      "getOwnedThrough itself reads the decorator, and hasOwners - the gate of isLimitedToOwnedRecords and of the columns kept to owners - reads it beside the owner table write it asks about separately (owners are read through their resource).",
   },
   "Types/Database/Permissions/ReadPermission.ts": {
     count: 1,
@@ -123,9 +123,24 @@ describe("what a record takes its owners from is read through OwnedScopePermissi
 
   test("the rule's own readers ask getOwnedThrough", () => {
     for (const [file, asks] of [
-      ["Types/Database/Permissions/OwnedScopePermission.ts", 5],
+      /*
+       * Among them whether the scope narrows a create (narrowsRecords) and
+       * the owned records and parents beside a grant limited to labels
+       * (getOwnedRecordsCondition, getOwnedParentsCondition).
+       */
+      ["Types/Database/Permissions/OwnedScopePermission.ts", 8],
       ["Types/Database/Permissions/BasePermission.ts", 1],
-      ["Types/Database/Permissions/CreateScopePermission.ts", 1],
+      /*
+       * The create of a record under its owning parent, the update that
+       * moves it to another, the check of that parent and the refusal that
+       * names its kind.
+       */
+      ["Types/Database/Permissions/CreateScopePermission.ts", 4],
+      /*
+       * The parent a changed row is read with, and whether the caller owns
+       * it once written, beside a permission to update limited to labels.
+       */
+      ["Types/Database/Permissions/UpdateScopePermission.ts", 2],
     ] as Array<[string, number]>) {
       const source: string = fs.readFileSync(
         path.join(SERVER_DIRECTORY, file),

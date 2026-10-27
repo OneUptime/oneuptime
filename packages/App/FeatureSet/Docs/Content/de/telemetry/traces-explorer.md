@@ -22,7 +22,7 @@ flowchart TB
     pay --> call["Span: den Zahlungs-<br/>anbieter aufrufen"]
 ```
 
-Jede Zeile des Explorers ist ein Span, daher füllt ein vielbeschäftigter Dienst die Liste mit seinen Datenbankabfragen und internen Aufrufen. Um eine Zeile pro Anfrage zu listen, wählen Sie in der Seitenleiste **Root spans** unter **Span-Typ**.
+Jede Zeile des Explorers ist ein Span. Standardmäßig zeigt die Liste **Entry spans**, die Spans, in denen eine Anfrage oder Nachricht in einen Dienst gelangt, sodass eine Anfrage einmal für jeden Dienst erscheint, den sie erreicht, während Datenbankabfragen und interne Aufrufe nicht in der Liste stehen. Um eine Zeile pro Anfrage zu listen, wählen Sie in der Seitenleiste **Root spans** unter **Span-Typ**; um jeden Vorgang zu listen, wählen Sie **All spans**.
 
 Der Explorer hat fünf Tabs:
 
@@ -175,7 +175,7 @@ Sie nennen einen Eltern-Span, den OneUptime nicht erhalten hat, oft weil der Die
 :::
 
 :::details Die Liste zeigt viel mehr Zeilen als Anfragen
-Jede Zeile ist ein Span, keine Anfrage. Wählen Sie in der Seitenleiste **Root spans** unter **Span-Typ**, um eine Zeile pro Anfrage zu listen.
+Jede Zeile ist ein Span, keine Anfrage: Mit **Entry spans**, dem Standard, erscheint eine Anfrage einmal für jeden Dienst, den sie erreicht, und mit **All spans** einmal für jeden Vorgang. Wählen Sie in der Seitenleiste **Root spans** unter **Span-Typ**, um eine Zeile pro Anfrage zu listen.
 :::
 
 ## Nächste Schritte

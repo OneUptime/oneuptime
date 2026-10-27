@@ -3,6 +3,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { SecurityEventConnectorDefinition } from "Common/Types/SecurityEvent/Connectors/SecurityEventConnectorCatalog";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
+import ProviderLogoImage from "Common/UI/Components/ProviderLogo/ProviderLogoImage";
 import useTranslateValue from "Common/UI/Utils/Translation";
 import { connectorDocsUrl } from "./SecurityEventConnectionDiagnosticsUtil";
 
@@ -23,12 +24,13 @@ export interface ComponentProps {
  * is a separate link raised above that overlay, so the two actions are
  * siblings, never one control inside the other.
  *
- * Below lg the tile is a row: badge, name over "category · Setup guide",
- * and the plus at the end. At lg the grid has four columns, too narrow for
- * "Splunk Enterprise Security" beside a badge, so the tile stands upright
- * (badge and plus on top, the name under them at the tile's full width) and
- * every name stays on one line. The same three children are placed on a
- * grid in both, so nothing is duplicated or reordered for either.
+ * Below lg the tile is a row: the product's logo, name over "category ·
+ * Setup guide", and the plus at the end. At lg the grid has four columns,
+ * too narrow for "Splunk Enterprise Security" beside a logo, so the tile
+ * stands upright (logo and plus on top, the name under them at the tile's
+ * full width) and every name stays on one line. The same three children are
+ * placed on a grid in both, so nothing is duplicated or reordered for
+ * either.
  *
  * Colour classes are literal and limited to ones Theme.css re-colours for
  * dark mode. Every hover colour on an icon sits on the icon alone, with the
@@ -51,21 +53,8 @@ const SecurityEventProviderTile: FunctionComponent<ComponentProps> = (
           : "relative grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 rounded-lg border border-gray-200 bg-white p-3 lg:items-start lg:gap-y-3 lg:p-4"
       }
     >
-      <div
-        aria-hidden="true"
-        className={
-          props.canConnect
-            ? "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gray-50 text-gray-500 ring-1 ring-inset ring-gray-200 transition-colors duration-150 ease-out group-hover:bg-indigo-50"
-            : "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gray-50 text-gray-500 ring-1 ring-inset ring-gray-200"
-        }
-      >
-        <Icon
-          icon={definition.icon}
-          className={
-            props.canConnect ? "h-5 w-5 group-hover:text-indigo-600" : "h-5 w-5"
-          }
-        />
-      </div>
+      {/* The name is the button's words, so the logo is not read out. */}
+      <ProviderLogoImage logo={definition.logo} size={36} isDecorative={true} />
 
       <div className="min-w-0 lg:col-span-2 lg:row-start-2">
         {props.canConnect ? (

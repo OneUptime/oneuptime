@@ -5,6 +5,7 @@ import CreateScopePermission, {
   LabelNamesFinder,
   RecordLabelsFinder,
 } from "./CreateScopePermission";
+import OwnedScopePermission from "./OwnedScopePermission";
 import ReadPermission, { LabelledReferences } from "./ReadPermission";
 import UpdateScopeException from "./UpdateScopeException";
 import BaseModel, {
@@ -56,10 +57,13 @@ import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
  * The permissions to update are read as the update itself is narrowed by
  * them (CreateScopePermission.getWriteScope): permissions limited to the
  * records the caller owns, held beside ones limited to labels, leave the
- * update reaching the records carrying those labels - owned or not - as
- * BasePermission.addRecordScopeToQuery narrows it, so the labels are what a
- * change must keep. Held alone, they narrow the update to what the caller
- * owns, which a change of labels does not move: nothing is asked.
+ * update reaching the records carrying those labels and the records the
+ * caller or those permissions' teams own, as BasePermission
+ * .addRecordScopeToQuery narrows it - so a change may leave a record
+ * carrying none of the labels when it is one they own (by the record
+ * itself, or by the parent it takes its owners from, once written). Held
+ * alone, they narrow the update to what the caller owns, which a change of
+ * labels does not move: nothing is asked.
  */
 export default class UpdateScopePermission {
   // What each model's records carry their labels in, read from its metadata once.
@@ -135,6 +139,28 @@ export default class UpdateScopePermission {
     }
 
     return Array.from(new Set<string>(columns));
+  }
+
+  /*
+   * The columns the rows an update writes are read with, for checkUpdateScope
+   * (a model that carries no labels of its own): the ones its labels are read
+   * from (getLabelColumns) and, for a model that takes its owners from a
+   * parent, the key naming it - a row the labels do not reach once written
+   * is still reached under a parent its editor owns
+   * (CreateScope.isOwnedBesideLabels).
+   */
+  public static getColumnsToRead(
+    modelType: DatabaseBaseModelType,
+  ): Array<string> {
+    const ownedThrough: BaseModel["ownedThrough"] =
+      OwnedScopePermission.getOwnedThrough(modelType);
+
+    return Array.from(
+      new Set<string>([
+        ...UpdateScopePermission.getLabelColumns(modelType),
+        ...(ownedThrough ? [ownedThrough.fkColumn] : []),
+      ]),
+    );
   }
 
   /*
@@ -293,16 +319,128 @@ export default class UpdateScopePermission {
           findRecordLabels: data.findRecordLabels,
         });
 
-    for (const recordLabelIds of labelsAfter) {
+    const isOwnedAfter: (row: BaseModel) => Promise<boolean> =
+      UpdateScopePermission.getOwnershipAfterUpdate({
+        modelType: data.modelType,
+        data: data.data,
+        scope: scope,
+        props: data.props,
+      });
+
+    for (let index: number = 0; index < labelsAfter.length; index++) {
+      const row: BaseModel = data.rows[index] || data.rows[0]!;
+
       await UpdateScopePermission.checkLabelsAfter({
+        modelType: data.modelType,
         model: model,
         scope: scope,
-        recordLabelIds: recordLabelIds,
+        recordLabelIds: labelsAfter[index] || null,
         isLabelled: Boolean(accessControlColumn),
+        isOwned: async (): Promise<boolean> => {
+          // A model that carries labels writes every row the same: each is asked.
+          if (accessControlColumn) {
+            for (const each of data.rows) {
+              if (!(await isOwnedAfter(each))) {
+                return false;
+              }
+            }
+
+            return true;
+          }
+
+          return await isOwnedAfter(row);
+        },
         props: data.props,
         findLabelNames: data.findLabelNames,
       });
     }
+  }
+
+  /*
+   * Whether a row is one the caller, or the teams of their permissions to
+   * update scoped to Owned (CreateScope.ownedTeamIds), own once `data` is
+   * written: the row itself, or - for a model that takes its owners from a
+   * parent - the parent it names then, with no parent at all where such
+   * rows belong to the project (includeUnattributed). What they own is
+   * looked up once, and only for a row its labels do not reach.
+   */
+  private static getOwnershipAfterUpdate(data: {
+    modelType: DatabaseBaseModelType;
+    data: unknown;
+    scope: CreateScope;
+    props: DatabaseCommonInteractionProps;
+  }): (row: BaseModel) => Promise<boolean> {
+    let ownedIds: Promise<Set<string>> | null = null;
+
+    const getOwnedIds: () => Promise<Set<string>> = (): Promise<
+      Set<string>
+    > => {
+      if (!ownedIds) {
+        ownedIds = OwnedScopePermission.getOwnedIds(
+          data.modelType,
+          data.props,
+          data.scope.ownedTeamIds,
+        ).then((ids: Array<ObjectID>): Set<string> => {
+          return new Set<string>(
+            ids.map((id: ObjectID): string => {
+              return normalizeReferenceId(id.toString());
+            }),
+          );
+        });
+      }
+
+      return ownedIds;
+    };
+
+    const ownedThrough: BaseModel["ownedThrough"] =
+      OwnedScopePermission.getOwnedThrough(data.modelType);
+
+    const written: Record<string, unknown> =
+      data.data && typeof data.data === "object"
+        ? (data.data as Record<string, unknown>)
+        : {};
+
+    const parentRelation: RelationName | undefined = ownedThrough
+      ? RelationNames.getSingleRelations(new data.modelType()).find(
+          (relation: RelationName): boolean => {
+            return relation.idColumn === ownedThrough.fkColumn;
+          },
+        )
+      : undefined;
+
+    return async (row: BaseModel): Promise<boolean> => {
+      if (!data.scope.isOwnedBesideLabels) {
+        return false;
+      }
+
+      if (!ownedThrough) {
+        return Boolean(
+          row.id &&
+            (await getOwnedIds()).has(normalizeReferenceId(row.id.toString())),
+        );
+      }
+
+      const stored: Record<string, unknown> = row as unknown as Record<
+        string,
+        unknown
+      >;
+      const parentValue: unknown =
+        written[ownedThrough.fkColumn] !== undefined
+          ? written[ownedThrough.fkColumn]
+          : parentRelation && written[parentRelation.relation] !== undefined
+            ? written[parentRelation.relation]
+            : stored[ownedThrough.fkColumn];
+      const parentId: ObjectID | string | undefined =
+        resolveReferenceId(parentValue);
+
+      if (!parentId || !parentId.toString().trim()) {
+        return ownedThrough.includeUnattributed;
+      }
+
+      return (await getOwnedIds()).has(
+        normalizeReferenceId(parentId.toString()),
+      );
+    };
   }
 
   /*
@@ -422,12 +560,18 @@ export default class UpdateScopePermission {
     });
   }
 
-  // One row's labels once written, held to `scope`. See checkUpdateScope.
+  /*
+   * One row's labels once written, held to `scope`. See checkUpdateScope.
+   * `isOwned`: whether it is one the caller owns once written, asked only
+   * when the labels do not reach it.
+   */
   private static async checkLabelsAfter(data: {
+    modelType: DatabaseBaseModelType;
     model: BaseModel;
     scope: CreateScope;
     recordLabelIds: Set<string> | null;
     isLabelled: boolean;
+    isOwned: () => Promise<boolean>;
     props: DatabaseCommonInteractionProps;
     findLabelNames: LabelNamesFinder;
   }): Promise<void> {
@@ -470,10 +614,23 @@ export default class UpdateScopePermission {
       return;
     }
 
+    // Beside permissions limited to owned records: one the caller owns.
+    if (data.scope.isOwnedBesideLabels && (await data.isOwned())) {
+      return;
+    }
+
     const names: Array<string> = await data.findLabelNames({
       labelIds: data.scope.grantedLabelIds,
       props: data.props,
     });
+
+    if (data.scope.isOwnedBesideLabels) {
+      throw new UpdateScopeException(
+        data.isLabelled
+          ? `Your access lets you change ${model.pluralName} only with one of these labels: ${names.join(", ")}, or the ones you or your teams own. Keep one of the labels and try again.`
+          : `Your access lets you change ${model.pluralName} only for records with one of these labels: ${names.join(", ")}, or for the ${CreateScopePermission.getOwnedParentPluralName(data.modelType)} you or your teams own.`,
+      );
+    }
 
     throw new UpdateScopeException(
       data.isLabelled

@@ -8,6 +8,7 @@ import {
 import IconProp from "Common/Types/Icon/IconProp";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Icon from "Common/UI/Components/Icon/Icon";
+import ProviderLogoOrIcon from "Common/UI/Components/ProviderLogo/ProviderLogoOrIcon";
 import Navigation from "Common/UI/Utils/Navigation";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -143,7 +144,13 @@ const BackupsHero: FunctionComponent<ComponentProps> = (
                 key={provider.provider}
                 className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-1 text-sm text-gray-700"
               >
-                <Icon icon={provider.icon} className="h-4 w-4 text-gray-500" />
+                <ProviderLogoOrIcon
+                  logo={provider.logo}
+                  icon={provider.icon}
+                  isBare={true}
+                  isDecorative={true}
+                  iconClassName="h-4 w-4 text-gray-500"
+                />
                 <span>{translator.translateText(provider.title)}</span>
               </li>
             );

@@ -936,7 +936,7 @@ describe("scanning a source tree", () => {
 });
 
 describe("the real source roots", () => {
-  test("cover the Dashboard, the shared UI, the data models, the vCenter collection errors, the security case and playbook catalogs, the AI and cloud connections' catalogs, the shared monitor helpers, the cron schedule words and its common schedules", () => {
+  test("cover the Dashboard, the shared UI, the data models, the vCenter collection errors, the security case and playbook catalogs, the AI and cloud connections' catalogs, the shared monitor helpers, the cron schedule words and its common schedules, and the placeholders of a playbook's message", () => {
     expect(
       SOURCE_ROOTS.map((root: { directory: string; kind: string }) => {
         return `${root.kind} ${root.directory}`;
@@ -961,6 +961,8 @@ describe("the real source roots", () => {
       "ui packages/Common/Utils/CronScheduleText.ts",
       // The common schedules a workflow's Schedule trigger offers.
       "ui packages/Common/Utils/CronTab.ts",
+      // What each placeholder of a playbook's note or message stands for.
+      "ui packages/Common/Utils/SecurityCase/SecurityCaseMarkdown.ts",
     ]);
   });
 

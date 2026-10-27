@@ -11,6 +11,7 @@ import {
   prettyLlmJson,
   truncateLlmText,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/LlmConversations/LlmConversationFormat";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * How the AI pages write a latency, a cost and a token count. Every surface
@@ -287,11 +288,14 @@ describe("collapseLlmWhitespace", () => {
 
   test("a megabytes-long tool result is not read past the limit", () => {
     const huge: string = "x ".repeat(2_500_000);
-    const started: number = Date.now();
-
-    expect(collapseLlmWhitespace(huge, 10)).toBe("x x x x x");
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        expect(collapseLlmWhitespace(huge, 10)).toBe("x x x x x");
+      },
+      limitInMs: 500,
+    });
     // A loop over 10 characters, not a regular expression over 5 MB.
-    expect(Date.now() - started).toBeLessThan(500);
+    expect(timed.inMs).toBeLessThan(500);
   });
 
   test("nothing in, nothing out", () => {

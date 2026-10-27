@@ -1,5 +1,6 @@
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Dictionary from "../../../Types/Dictionary";
+import BadDataException from "../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../Types/JSON";
 import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import ObjectID from "../../../Types/ObjectID";
@@ -8,7 +9,6 @@ import Typeof from "../../../Types/Typeof";
 import { FindOperator, Raw } from "typeorm";
 import { FindWhereProperty } from "../../../Types/BaseDatabase/Query";
 import { toLikePattern } from "../../../Types/BaseDatabase/WildcardPattern";
-import CaptureSpan from "../../Utils/Telemetry/CaptureSpan";
 import { OwnedByMatch } from "../../../Types/BaseDatabase/OwnedBy";
 import buildJSONColumnQuery, {
   JSONColumnQuery,
@@ -56,9 +56,14 @@ export interface LinkedToAnyData {
   }>;
 }
 
+/*
+ * No @CaptureSpan here: each method only builds a TypeORM operator, in
+ * microseconds, for every query a request or job makes. A span each said
+ * nothing and filled OneUptime's own traces; the statement that runs is
+ * traced instead (PostgresQuerySpans).
+ */
 export default class QueryHelper {
   /** Read a boolean whose criteria-backed `true` state is encoded as null. */
-  @CaptureSpan()
   public static booleanForCriteriaBackedRule(
     criteriaColumnName: string,
     value: boolean,
@@ -113,7 +118,6 @@ export default class QueryHelper {
     return `"${identifier.replace(/"/g, '""')}"`;
   }
 
-  @CaptureSpan()
   public static modulo(
     moduloBy: number,
     reminder: number,
@@ -131,7 +135,6 @@ export default class QueryHelper {
     );
   }
 
-  @CaptureSpan()
   public static findWithSameText(
     text: string | number,
   ): FindWhereProperty<any> {
@@ -164,7 +167,6 @@ export default class QueryHelper {
    * An empty list would compile to `IN ()`, which is a syntax error, so
    * callers must not pass one; they have nothing to look up anyway.
    */
-  @CaptureSpan()
   public static findWithSameTextAnyOf(
     texts: Array<string>,
   ): FindWhereProperty<any> {
@@ -191,7 +193,6 @@ export default class QueryHelper {
    * parameter with LIKE's own characters escaped, so a prefix holding "_" or
    * "%" matches only itself. Callers must not pass an empty list.
    */
-  @CaptureSpan()
   public static startsWithAnyOf(
     prefixes: Array<string>,
   ): FindWhereProperty<any> {
@@ -221,7 +222,6 @@ export default class QueryHelper {
    * nothing rather than aborting the query. Callers must not pass an empty
    * list.
    */
-  @CaptureSpan()
   public static jsonArrayObjectsHaveTextAnyOf(data: {
     key: string;
     texts: Array<string>;
@@ -242,21 +242,18 @@ export default class QueryHelper {
     );
   }
 
-  @CaptureSpan()
   public static isNull(): any {
     return Raw((alias: string) => {
       return `(${alias} IS NULL)`;
     });
   }
 
-  @CaptureSpan()
   public static notNull(): any {
     return Raw((alias: string) => {
       return `(${alias} IS NOT NULL)`;
     });
   }
 
-  @CaptureSpan()
   public static equalToOrNull(
     value: string | ObjectID | Array<string | ObjectID>,
   ): FindWhereProperty<any> {
@@ -303,7 +300,6 @@ export default class QueryHelper {
     );
   }
 
-  @CaptureSpan()
   public static notEquals(value: string | ObjectID): FindWhereProperty<any> {
     const rid: string = Text.generateRandomText(10);
     return Raw(
@@ -316,7 +312,6 @@ export default class QueryHelper {
     );
   }
 
-  @CaptureSpan()
   public static search(name: string): FindWhereProperty<any> {
     name = name.toLowerCase().trim();
     const rid: string = Text.generateRandomText(10);
@@ -344,7 +339,6 @@ export default class QueryHelper {
    * No words matches NOTHING. An AND over zero predicates is vacuously true,
    * and "every row in the table" is never what an empty search box meant.
    */
-  @CaptureSpan()
   public static searchAllWords(words: Array<string>): FindWhereProperty<any> {
     const rids: Array<string> = [];
     const valuesObj: Dictionary<string> = {};
@@ -390,7 +384,6 @@ export default class QueryHelper {
    * unquoted `Incident` in the final SQL — Postgres then lowercases it and
    * fails with `missing FROM-clause entry for table "incident"`.
    */
-  @CaptureSpan()
   public static multiSearch(
     entityPropertyNames: Array<string>,
     value: string,
@@ -418,7 +411,6 @@ export default class QueryHelper {
     );
   }
 
-  @CaptureSpan()
   public static notContains(name: string): FindWhereProperty<any> {
     name = name.toLowerCase().trim();
     const rid: string = Text.generateRandomText(10);
@@ -432,7 +424,6 @@ export default class QueryHelper {
     );
   }
 
-  @CaptureSpan()
   public static startsWith(name: string): FindWhereProperty<any> {
     name = name.toLowerCase().trim();
     const rid: string = Text.generateRandomText(10);
@@ -446,7 +437,6 @@ export default class QueryHelper {
     );
   }
 
-  @CaptureSpan()
   public static endsWith(name: string): FindWhereProperty<any> {
     name = name.toLowerCase().trim();
     const rid: string = Text.generateRandomText(10);
@@ -468,7 +458,6 @@ export default class QueryHelper {
    * first: `ILIKE` is already case-insensitive, and lowercasing would corrupt
    * a `\A` escape into `\a`.
    */
-  @CaptureSpan()
   public static wildcard(glob: string): FindWhereProperty<any> {
     const rid: string = Text.generateRandomText(10);
     return Raw(
@@ -486,7 +475,6 @@ export default class QueryHelper {
    * trivially does not match a glob, but `NULL ILIKE ...` is NULL, which
    * would filter it out. Mirrors `notContains` above.
    */
-  @CaptureSpan()
   public static notWildcard(glob: string): FindWhereProperty<any> {
     const rid: string = Text.generateRandomText(10);
     return Raw(
@@ -499,7 +487,6 @@ export default class QueryHelper {
     );
   }
 
-  @CaptureSpan()
   public static all(values: Array<string | ObjectID>): FindWhereProperty<any> {
     values = values.map((value: string | ObjectID) => {
       return value.toString();
@@ -522,7 +509,6 @@ export default class QueryHelper {
     );
   }
 
-  @CaptureSpan()
   public static any(
     values: Array<string | ObjectID | number>,
   ): FindWhereProperty<any> {
@@ -535,7 +521,6 @@ export default class QueryHelper {
    * returned FindOperator is intended to be applied to the primary id column
    * of the owner entity.
    */
-  @CaptureSpan()
   public static noneEntitiesInManyToMany(data: {
     values: Array<string | ObjectID>;
     joinTableName: string;
@@ -577,7 +562,6 @@ export default class QueryHelper {
    * (the incident's labels), and records that belong to no parent at all.
    * An empty values array matches everything.
    */
-  @CaptureSpan()
   public static parentLinkedToNoneInManyToMany(data: {
     values: Array<string | ObjectID>;
     joinTableName: string;
@@ -605,7 +589,6 @@ export default class QueryHelper {
    * is empty. One subquery over every join table. An empty values or join
    * table list matches everything.
    */
-  @CaptureSpan()
   public static linkedToNoneInAnyManyToMany(data: {
     values: Array<string | ObjectID>;
     joinTables: Array<{
@@ -658,7 +641,6 @@ export default class QueryHelper {
    * condition is applied to, as the id itself is written. An empty values
    * array matches only the records that name nothing (fail closed).
    */
-  @CaptureSpan()
   public static namesNothingOrOneLinkedToAny(
     data: LinkedToAnyData,
   ): FindWhereProperty<any> {
@@ -674,7 +656,6 @@ export default class QueryHelper {
    * model has no join table, and an empty values array match nothing (fail
    * closed).
    */
-  @CaptureSpan()
   public static oneLinkedToAny(data: LinkedToAnyData): FindWhereProperty<any> {
     return QueryHelper.linkedToAny(data, false);
   }
@@ -756,6 +737,114 @@ export default class QueryHelper {
     );
   }
 
+  /**
+   * Several conditions on a record, of which it meets at least one: applied
+   * to the record's primary id, each condition is written on the id itself
+   * or, with `columnName`, on another column of the same row (a note's
+   * incidentId), as the grant conditions above write the keys beside the id.
+   * For grants that each reach some records - the ones carrying a grant's
+   * labels, the ones a grant's holder owns - whose records together are what
+   * the caller reaches. Each condition is one this class builds (a Raw); an
+   * empty list matches nothing (fail closed).
+   */
+  public static anyOfConditions(
+    conditions: Array<{
+      columnName?: string | undefined;
+      condition: FindWhereProperty<any>;
+    }>,
+  ): FindWhereProperty<any> {
+    const parameters: Dictionary<unknown> = {};
+    const writers: Array<(alias: string) => string> = [];
+
+    for (const each of conditions) {
+      const getSql: (alias: string) => string = QueryHelper.getRawSql(
+        each.condition,
+      );
+
+      Object.assign(
+        parameters,
+        (each.condition as unknown as FindOperator<unknown>)
+          .objectLiteralParameters || {},
+      );
+
+      writers.push((alias: string): string => {
+        return getSql(
+          each.columnName
+            ? QueryHelper.getColumnBeside(alias, each.columnName)
+            : alias,
+        );
+      });
+    }
+
+    return Raw((alias: string) => {
+      return writers.length > 0
+        ? `(${writers
+            .map((writer: (alias: string) => string): string => {
+              return writer(alias);
+            })
+            .join(" OR ")})`
+        : "(FALSE)";
+    }, parameters);
+  }
+
+  /**
+   * Applied to a key naming a record of `tableName` (a security case note's
+   * securityCaseId), matches the keys that name a record meeting
+   * `condition` - one this class builds, written on that record's id, whose
+   * other columns it reads beside the id - or, with no condition, any record
+   * of the table. For the records a model is read through that are kept by
+   * their own table's rule. An empty key matches nothing.
+   */
+  public static inRecordsWhere(data: {
+    tableName: string;
+    condition?: FindWhereProperty<any> | undefined;
+  }): FindWhereProperty<any> {
+    const table: string = QueryHelper.escapeIdentifier(data.tableName);
+    // The record's own alias, so its columns are never read as the outer row's.
+    const recordAlias: string = `record${Text.generateRandomText(10)}`;
+    const getSql: ((alias: string) => string) | null = data.condition
+      ? QueryHelper.getRawSql(data.condition)
+      : null;
+
+    return Raw(
+      (alias: string) => {
+        const kept: string = getSql
+          ? ` WHERE ${getSql(`"${recordAlias}"."_id"`)}`
+          : "";
+
+        return `(${alias} IN (SELECT "${recordAlias}"."_id" FROM "${table}" "${recordAlias}"${kept}))`;
+      },
+      data.condition
+        ? (data.condition as unknown as FindOperator<unknown>)
+            .objectLiteralParameters || {}
+        : {},
+    );
+  }
+
+  /*
+   * The SQL a condition this class builds writes for a column (a Raw's
+   * generator). Any other condition cannot be written inside another one,
+   * and is refused rather than dropped.
+   */
+  private static getRawSql(
+    condition: FindWhereProperty<any>,
+  ): (alias: string) => string {
+    const operator: FindOperator<unknown> =
+      condition as unknown as FindOperator<unknown>;
+    const getSql: unknown =
+      operator instanceof FindOperator && operator.type === "raw"
+        ? operator.getSql
+        : undefined;
+
+    if (typeof getSql !== "function") {
+      throw new BadDataException(
+        "Only a condition QueryHelper writes as SQL can be held with others.",
+      );
+    }
+
+    return getSql as (alias: string) => string;
+  }
+
   // An identifier's characters as they are written between double quotes.
   private static escapeIdentifier(identifier: string): string {
     return identifier.replace(/"/g, '""');
@@ -820,7 +909,6 @@ export default class QueryHelper {
    * the provided related entity ids (the status pages' labels). An empty
    * values array matches everything.
    */
-  @CaptureSpan()
   public static noParentLinkedToAnyInManyToMany(data: {
     values: Array<string | ObjectID>;
     // The record -> parent join table.
@@ -875,7 +963,6 @@ export default class QueryHelper {
    * returned FindOperator is intended to be applied to the primary id column
    * of the owner entity. An empty values array matches nothing (fail closed).
    */
-  @CaptureSpan()
   public static anyOfEntitiesInManyToMany(data: {
     values: Array<string | ObjectID>;
     joinTableName: string;
@@ -932,7 +1019,6 @@ export default class QueryHelper {
    * so there the negative ones are NOT IN after all. Owner rows marked
    * deleted are no owners.
    */
-  @CaptureSpan()
   public static ownedBy(data: {
     match: OwnedByMatch;
     userIds: Array<string | ObjectID>;
@@ -1037,7 +1123,6 @@ export default class QueryHelper {
    * Matches owner rows that have no rows in the join table — i.e. the
    * many-to-many collection is empty. Apply to the owner's primary id column.
    */
-  @CaptureSpan()
   public static noEntitiesInManyToMany(data: {
     joinTableName: string;
     ownerColumnName: string;
@@ -1055,7 +1140,6 @@ export default class QueryHelper {
    * the many-to-many collection has at least one entry. Apply to the
    * owner's primary id column.
    */
-  @CaptureSpan()
   public static anyEntitiesInManyToMany(data: {
     joinTableName: string;
     ownerColumnName: string;
@@ -1074,7 +1158,6 @@ export default class QueryHelper {
    * returned FindOperator is intended to be applied to the primary id column
    * of the owner entity.
    */
-  @CaptureSpan()
   public static allEntitiesInManyToMany(data: {
     values: Array<string | ObjectID>;
     joinTableName: string;
@@ -1136,7 +1219,6 @@ export default class QueryHelper {
     );
   }
 
-  @CaptureSpan()
   public static notIn(
     values: Array<string | ObjectID>,
   ): FindWhereProperty<any> {
@@ -1165,7 +1247,6 @@ export default class QueryHelper {
    * Matches rows whose column holds one of `values`, or nothing at all. An
    * empty `values` matches only the rows whose column is empty.
    */
-  @CaptureSpan()
   public static inOrNull(
     values: Array<string | ObjectID>,
   ): FindWhereProperty<any> {
@@ -1193,7 +1274,6 @@ export default class QueryHelper {
     );
   }
 
-  @CaptureSpan()
   public static notInOrNull(
     values: Array<string | ObjectID>,
   ): FindWhereProperty<any> {
@@ -1218,7 +1298,6 @@ export default class QueryHelper {
     );
   }
 
-  @CaptureSpan()
   public static inRelationArray(
     values: Array<BaseModel | ObjectID>,
   ): Array<any> {
@@ -1231,7 +1310,6 @@ export default class QueryHelper {
     });
   }
 
-  @CaptureSpan()
   public static equalTo(value: string): FindWhereProperty<any> {
     const rid: string = Text.generateRandomText(10);
     return Raw(
@@ -1244,7 +1322,6 @@ export default class QueryHelper {
     );
   }
 
-  @CaptureSpan()
   public static greaterThanEqualTo<T extends number | Date>(
     value: T,
   ): FindWhereProperty<any> {
@@ -1259,7 +1336,6 @@ export default class QueryHelper {
     ) as FindWhereProperty<any>;
   }
 
-  @CaptureSpan()
   public static greaterThanEqualToOrNull<T extends number | Date>(
     value: T,
   ): FindWhereProperty<any> {
@@ -1274,7 +1350,6 @@ export default class QueryHelper {
     ) as FindWhereProperty<any>;
   }
 
-  @CaptureSpan()
   public static lessThanEqualTo<T extends number | Date>(
     value: T,
   ): FindWhereProperty<any> {
@@ -1289,7 +1364,6 @@ export default class QueryHelper {
     ) as FindWhereProperty<any>;
   }
 
-  @CaptureSpan()
   public static lessThanOrNull<T extends number | Date>(
     value: T,
   ): FindWhereProperty<any> {
@@ -1304,7 +1378,6 @@ export default class QueryHelper {
     ) as FindWhereProperty<any>;
   }
 
-  @CaptureSpan()
   public static lessThanEqualToOrNull<T extends number | Date>(
     value: T,
   ): FindWhereProperty<any> {
@@ -1319,7 +1392,6 @@ export default class QueryHelper {
     ) as FindWhereProperty<any>;
   }
 
-  @CaptureSpan()
   public static greaterThan<T extends number | Date | ObjectID>(
     value: T,
   ): FindWhereProperty<any> {
@@ -1334,7 +1406,6 @@ export default class QueryHelper {
     ) as FindWhereProperty<any>;
   }
 
-  @CaptureSpan()
   public static greaterThanOrNull<T extends number | Date>(
     value: T,
   ): FindWhereProperty<any> {
@@ -1349,7 +1420,6 @@ export default class QueryHelper {
     ) as FindWhereProperty<any>;
   }
 
-  @CaptureSpan()
   public static inBetween<T extends number | Date>(
     startValue: T,
     endValue: T,
@@ -1367,7 +1437,6 @@ export default class QueryHelper {
     ) as FindWhereProperty<any>;
   }
 
-  @CaptureSpan()
   public static inBetweenOrNull<T extends number | Date>(
     startValue: T,
     endValue: T,
@@ -1385,7 +1454,6 @@ export default class QueryHelper {
     ) as FindWhereProperty<any>;
   }
 
-  @CaptureSpan()
   public static notInBetween<T extends number | Date>(
     startValue: T,
     endValue: T,
@@ -1413,7 +1481,6 @@ export default class QueryHelper {
    * straight into the SQL string, and every value was compared with `=`, so an
    * operator such as `Includes` reached Postgres stringified.
    */
-  @CaptureSpan()
   public static queryJson(value: JSONObject): FindWhereProperty<any> {
     if (value instanceof FindOperator) {
       return value;
@@ -1452,7 +1519,6 @@ export default class QueryHelper {
    * malformed legacy json harmless instead of letting
    * `jsonb_array_elements*` abort the entire query.
    */
-  @CaptureSpan()
   public static jsonArrayObjectsContainAnyArrayValue(data: {
     arrayKey: string;
     discriminatorKey: string;
@@ -1506,7 +1572,6 @@ export default class QueryHelper {
    * `id` is "C123", whatever its other keys. The value travels as a bound
    * parameter, never as SQL.
    */
-  @CaptureSpan()
   public static jsonContains(
     value: JSONObject | Array<JSONObject>,
   ): FindWhereProperty<any> {
@@ -1522,7 +1587,6 @@ export default class QueryHelper {
     ) as FindWhereProperty<any>;
   }
 
-  @CaptureSpan()
   public static lessThan<T extends number | Date>(
     value: T,
   ): FindWhereProperty<any> {

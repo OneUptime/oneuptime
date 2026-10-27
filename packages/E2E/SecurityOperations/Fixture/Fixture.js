@@ -42,9 +42,11 @@
  *   ?data=   none or fail: what the project's events say it sends, as the
  *            Rule Library reads them - nothing this week, or a read that
  *            fails. Otherwise Okta, Defender XDR and Kubernetes audit logs.
- *   ?lang=   de, fr, it, nl, ja or fa: the Dashboard's German, French,
- *            Italian, Dutch, Japanese or Persian locale (Persian right to
- *            left).
+ *   ?team=   long: the SOC team is "Security Operations Center - Tier 2
+ *            Escalations (EMEA)" (LONG_TEAM_NAME).
+ *   ?lang=   de, es, fr, it, pt, nl, ru, ja or fa: the Dashboard's German,
+ *            Spanish, French, Italian, Portuguese, Dutch, Russian, Japanese
+ *            or Persian locale (Persian right to left).
  *   ?values= custom: the project made its case statuses and priorities its
  *            own (CUSTOM_STATUSES below): Triage, an archived Escalated,
  *            Eradicating and Closed - Duplicate among the statuses, and
@@ -80,12 +82,14 @@ import {
 } from "react-router-dom";
 import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
+import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
 import SecurityEventsLayout from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Layout";
 import SecurityOverviewPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Overview";
 import SecurityCasesPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Cases";
 import SecurityCaseViewLayout from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/Layout";
 import SecurityCaseOverviewPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/Index";
 import SecurityCaseTimelinePage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/Timeline";
+import SecurityCaseStoryPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/Story";
 import SecurityCaseDetectionsPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/Detections";
 import SecurityCaseEntitiesPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/Entities";
 import SecurityCaseConnectedSignalsPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/ConnectedSignals";
@@ -119,6 +123,7 @@ import {
   CONNECTION_SCENARIOS,
   createConnectionsFixture,
 } from "./ConnectionsFixture";
+import { createCaseContextFixture } from "./CaseContextFixture";
 import { SECURITY_PLAYBOOK_TEMPLATES } from "../../../App/FeatureSet/Dashboard/src/Components/SecurityPlaybook/SecurityPlaybookTemplates";
 import { SECURITY_CASE_QUEUE_VIEWS } from "../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseQueueViews";
 import { SECURITY_PLAYBOOK_RUN_VIEWS } from "../../../App/FeatureSet/Dashboard/src/Components/SecurityPlaybook/SecurityPlaybookRunViews";
@@ -133,6 +138,7 @@ import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import Label from "Common/Models/DatabaseModels/Label";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import Project from "Common/Models/DatabaseModels/Project";
+import Runbook from "Common/Models/DatabaseModels/Runbook";
 import SecurityCase from "Common/Models/DatabaseModels/SecurityCase";
 import SecurityCaseFeed, {
   SecurityCaseFeedEventType,
@@ -146,6 +152,7 @@ import SecurityPlaybookRun from "Common/Models/DatabaseModels/SecurityPlaybookRu
 import SecurityProtectedEntity from "Common/Models/DatabaseModels/SecurityProtectedEntity";
 import SecurityCasePriority from "Common/Models/DatabaseModels/SecurityCasePriority";
 import SecurityCaseStatus from "Common/Models/DatabaseModels/SecurityCaseStatus";
+import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import Team from "Common/Models/DatabaseModels/Team";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import ThreatIntelFeed from "Common/Models/DatabaseModels/ThreatIntelFeed";
@@ -357,9 +364,10 @@ const dataScenario = DATA_SCENARIOS.includes(params.get("data"))
   : "";
 /*
  * ?lang=: the Dashboard's German, Spanish, French, Italian, Portuguese,
- * Dutch, Japanese or Persian locale, loaded and switched to, for the pages
- * that are checked in other languages (the Rule Library, Connected Signals,
- * the side menu's longest names). Persian reads right to left.
+ * Dutch, Russian, Japanese or Persian locale, loaded and switched to, for
+ * the pages that are checked in other languages (the Rule Library,
+ * Connected Signals, the side menu's longest names, the case lists' widest
+ * words). Persian reads right to left.
  *
  * Each loads only when ?lang= names it: a locale is some four megabytes of
  * JSON, which every page the suite opens would parse if it were bundled
@@ -387,11 +395,13 @@ function loadLocale(language) {
       return import("../../../App/FeatureSet/Dashboard/src/Locales/nl.json");
     case "pt":
       return import("../../../App/FeatureSet/Dashboard/src/Locales/pt.json");
+    case "ru":
+      return import("../../../App/FeatureSet/Dashboard/src/Locales/ru.json");
     default:
       return null;
   }
 }
-const LANGUAGES = ["de", "es", "fa", "fr", "it", "ja", "nl", "pt"];
+const LANGUAGES = ["de", "es", "fa", "fr", "it", "ja", "nl", "pt", "ru"];
 const language = LANGUAGES.includes(params.get("lang"))
   ? params.get("lang")
   : "en";
@@ -671,7 +681,15 @@ const people = {
   sam: person(4, "Sam Okafor", "sam.okafor@acme-commerce.example"),
 };
 
-const socTeam = make(Team, { _id: ID.team(1), name: "SOC Tier 2" });
+/*
+ * ?team=long: the SOC team goes by the long name a project may give it, in
+ * every list and picker that names it.
+ */
+const LONG_TEAM_NAME = "Security Operations Center - Tier 2 Escalations (EMEA)";
+const socTeam = make(Team, {
+  _id: ID.team(1),
+  name: params.get("team") === "long" ? LONG_TEAM_NAME : "SOC Tier 2",
+});
 
 /*
  * The project, with OneUptime AI on (?ai=off turns Enable AI off) and its
@@ -2120,7 +2138,11 @@ if (!isEmpty) {
   });
 }
 
-// What a playbook's steps can name: policies, severities, labels, workflows.
+/*
+ * What a playbook's steps can name: policies, severities, labels, workflows,
+ * runbooks (Run a runbook) and status pages (Post a status page
+ * announcement).
+ */
 insert(OnCallDutyPolicy, { name: "Security on-call" });
 insert(IncidentSeverity, { name: "SEV1", color: "#dc2626", order: 1 });
 insert(IncidentSeverity, { name: "SEV2", color: "#f97316", order: 2 });
@@ -2130,6 +2152,14 @@ insert(AlertSeverity, { name: "High", color: "#f97316", order: 2 });
 insert(AlertSeverity, { name: "Low", color: "#0ea5e9", order: 3 });
 insert(Label, { name: "credential-access", color: "#6366f1" });
 insert(Workflow, { name: "Open a ticket in the IT queue" });
+insert(Runbook, { name: "Isolate a host from the network" });
+insert(Runbook, { name: "Rotate a leaked credential" });
+/*
+ * The public page and the engineers' own. A case's Impact names the ones
+ * its records' monitors are shown on (CaseContextFixture.js).
+ */
+insert(StatusPage, { name: "Acme Commerce Status" });
+insert(StatusPage, { name: "Engineering Tools" });
 
 /*
  * The project's chat workspaces: Acme Commerce has connected Slack, so the
@@ -3330,6 +3360,15 @@ const AI_PROVIDERS = {
   ],
 };
 
+// A case by its id, as the routes that start from one read it.
+function findCase(id) {
+  return (
+    table(SecurityCase).find((row) => {
+      return String(row._id) === String(id);
+    }) || null
+  );
+}
+
 /*
  * What a case, an event or an entity names in the rest of OneUptime - the
  * project's hosts and members ConnectionsFixture.js lays out - worked out
@@ -3340,13 +3379,20 @@ const connections = createConnectionsFixture({
   uuid,
   MINUTE,
   scenario: connectionsScenario,
-  findCase: (id) => {
-    return (
-      table(SecurityCase).find((row) => {
-        return String(row._id) === String(id);
-      }) || null
-    );
-  },
+  findCase,
+});
+
+/*
+ * A case's Story and Impact: what the rest of OneUptime says happened
+ * around it and what it puts at risk, from the same rows and records
+ * (CaseContextFixture.js lays out what it adds to them).
+ */
+const caseContext = createCaseContextFixture({
+  now: NOW,
+  ids: ID,
+  table,
+  connections,
+  findCase,
 });
 
 async function handleApi(method, options) {
@@ -3390,6 +3436,13 @@ async function handleApi(method, options) {
   }
   if (method === "POST" && path.endsWith("/security-case/connections")) {
     const answer = connections.answer(options.data);
+    return answer.status === 200
+      ? new HTTPResponse(200, answer.body, {})
+      : new HTTPErrorResponse(answer.status, answer.body, {});
+  }
+  const context = path.match(/\/security-case-context\/(story|impact)$/);
+  if (method === "POST" && context) {
+    const answer = caseContext[context[1]](options.data);
     return answer.status === 200
       ? new HTTPResponse(200, answer.body, {})
       : new HTTPErrorResponse(answer.status, answer.body, {});
@@ -3455,6 +3508,12 @@ if (language !== "en") {
     translation: (await loadLocale(language)).default,
   };
 }
+
+/*
+ * Times follow the language as the Dashboard's own start-up has them
+ * (Utils/i18n.ts): "vor 9 Minuten" on a German page, not "9 minutes ago".
+ */
+followLanguageForDates(i18next);
 
 await i18next.use(initReactI18next).init({
   lng: language,
@@ -3564,6 +3623,7 @@ function FixtureCaseLayout() {
 
 const CASE_PAGES = [
   [PageMap.SECURITY_CASE_VIEW_TIMELINE, SecurityCaseTimelinePage],
+  [PageMap.SECURITY_CASE_VIEW_STORY, SecurityCaseStoryPage],
   [PageMap.SECURITY_CASE_VIEW_DETECTIONS, SecurityCaseDetectionsPage],
   [PageMap.SECURITY_CASE_VIEW_ENTITIES, SecurityCaseEntitiesPage],
   [

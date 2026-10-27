@@ -1,5 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
 import { scrubSecretsFromText } from "../../API/AdminHealthProbes";
+import { FastestRun, fastestRun } from "Common/Tests/Helpers/FastestRun";
 
 /*
  * ---------------------------------------------------------------------------
@@ -38,11 +39,14 @@ describe("scrubSecretsFromText reads a long text in time in line with its length
     ["short token starts after hyphens", repeat("eyJab-", LENGTH)],
     ["token starts run together", repeat("eyJ", LENGTH)],
   ])("%s", (_label: string, text: string) => {
-    const startedAt: number = Date.now();
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        scrubSecretsFromText(text);
+      },
+      limitInMs: 2000,
+    });
 
-    scrubSecretsFromText(text);
-
-    expect(Date.now() - startedAt).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
   });
 });
 

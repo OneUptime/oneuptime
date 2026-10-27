@@ -12,6 +12,7 @@ An offline harness for the Security Events SOC pages, on a month of synthetic se
 | All Cases            | `SECURITY_CASES_ALL` `.../security-events/cases/all`                                      | the same                                                                                     |
 | A case               | `SECURITY_CASE_VIEW` `.../security-events/cases/:id`, its Overview                        | `Pages/SecurityEvents/CaseView/{Layout,SideMenu,Index}`, `SecurityCase/*`                    |
 | A case's pages       | `SECURITY_CASE_VIEW_*` `.../cases/:id/{timeline,detections,entities,playbook-runs,...}`   | `Pages/SecurityEvents/CaseView/*`, `EventNotes`, `SecurityPlaybookRunCard`, `AuditLogsTable` |
+| Story                | `SECURITY_CASE_VIEW_STORY` `.../cases/:id/story`                                          | `Pages/SecurityEvents/CaseView/Story`, `SecurityCase/Context/*`                              |
 | Connected Signals    | `SECURITY_CASE_VIEW_CONNECTED_SIGNALS` `.../cases/:id/connected-signals`                  | `Pages/SecurityEvents/CaseView/ConnectedSignals`, `SecurityConnections/*`                    |
 | Entities             | `SECURITY_EVENTS_ENTITIES` `.../security-events/entities`                                 | `Pages/SecurityEvents/Entities`, the shared `Table`                                          |
 | Protected Entities   | `SECURITY_PROTECTED_ENTITIES` `.../security-events/protected-entities`                    | `Pages/SecurityEvents/ProtectedEntities`                                                     |
@@ -78,6 +79,16 @@ Stubbed:
 - `POST /security-case-priority/:id/usage` and `/security-case-status/:id/usage`, which the
   Archive and Delete dialogs ask first, answer what uses the value as the server counts it: the
   cases that have it, and for a priority the playbooks that run from it.
+- A case's Story and Impact: `POST /security-case-context/story` and `/impact` answer as the
+  server would (`Fixture/CaseContextFixture.js`), around the case's window, from its own rows (its
+  detections, playbook runs, notes and milestones), the records Connected Signals lists for it and
+  the security events naming each open case's entities - the spray's 412 failed Okta sign-ins and
+  the success among them, build-runner-07's lookups of the known-bad domain, the PowerShell under
+  web-03's web server: told in runs and merged on one time axis by `SecurityCaseStoryItems`, each
+  record's last change and the internet verdict worked out by `SecurityCaseImpactFacts`.
+  build-runner-07 is on the service map and on the Engineering Tools status page, web-03's Checkout
+  API on Acme Commerce Status. Those two status pages and two runbooks are rows of their own, for a
+  playbook step to pick.
 - Realtime: nothing pushes changes.
 - The menu's other pages (Events, Correlate, Connections, Setup Guide) render a small stub page,
   inside the real layout and its side menu.
@@ -101,6 +112,8 @@ history is laid out from it with a seeded generator, so every run draws the same
 | `?setup=`   | Turn on recommended that cannot do everything: `partly` (the first click leaves Password spraying and Enrich New Cases undone, the Rule Library's first Add of Password spraying fails, and the Playbooks page's first template is refused by the role; the next click, Add or pick does them) or `fail` (the first click cannot reach the server; the next one turns everything on)                                               |
 | `?refuse=`  | case numbers, comma separated (`138`): the server refuses every change to those cases, as a role scoped to labels the reader lacks does, so Bulk Actions names the cases it could not change and why                                                                                                                                                                                                                               |
 | `?triage=`  | the case AI card's other states: `failed` (CASE-141's only triage stopped with an error), `provider`, `credits` or `limit` (no LLM provider, no AI credits, the daily AI limit: nothing can be triaged), `injection` (CASE-137's data held text written to steer an AI; its benign read set aside for Inconclusive), `retry` (CASE-142's latest triage stopped; the read before it stays) and `auto-off` (Triage new cases is off) |
+| `?lang=`    | `de`, `es`, `fr`, `it`, `pt`, `nl`, `ru`, `ja` or `fa` (right to left): the Dashboard's words and its times ("vor 9 Minuten") in that language; the case lists are measured in the widest of them |
+| `?team=`    | `long`: the SOC team is "Security Operations Center - Tier 2 Escalations (EMEA)", wherever a list or a picker names it |
 
 ## What the fixture records
 
@@ -138,8 +151,14 @@ that list is not empty.
   from the side menu lists what its name says (Unassigned names the team a case was handed to,
   Assigned to Me has no Assignee column, Closed Cases reads by verdict and when each closed); at
   1280 each list's title, search and buttons share one line with the description under them; at
-  1440 every column fits the card beside the side menu; at 1024 and 390 nothing runs off the page
-  and the header's search stays inside the card.
+  1440 every column fits the card beside the side menu, each case's line saying when its last
+  detection fired ("3 detections, the last 9 minutes ago") with no Last Detection column, and
+  Closed Cases saying when each closed; at a 1280 laptop every list fits its card in German,
+  French, Dutch and Russian (`?lang=`), German's button reading "Sicherheitsfall eröffnen", each
+  case's line keeping its time whole ("vor 5 Stunden") and OneUptime AI's read on a line of its
+  own under it; a team with a long name (`?team=long`) cut short with "...", the lists still inside
+  their card; at 1024 and 390 nothing runs off the page and the header's search stays inside the
+  card.
 - **Working cases from the queue**: each row's ⋯ offers the moves its case takes - Assign to
   Me, Assign to Someone Else, Change Status and Change Priority beside View, Delete last; none
   of the assigning on a closed case, no Assign to Me on the reader's own. "Assign to Someone
@@ -156,15 +175,22 @@ that list is not empty.
   row's action cells; a Security Viewer sees every move locked with what it takes; the
   case's own header hands it on and moves its status from any of its pages; the row's ⋯, the
   assign dialog and its picker, and the bulk bar at 1280 and 390, in both themes.
-- **A case**: a side menu of its own (Overview: Overview, Timeline; Investigation: Detections,
-  Entities, Connected Signals, Playbooks; Notes: Private Notes; Advanced, folded: Audit Logs,
-  Delete Case), each
+- **A case**: a side menu of its own (Overview: Overview, Timeline; Investigation: Story,
+  Detections, Entities, Connected Signals, Playbooks; Notes: Private Notes; Advanced, folded: Audit
+  Logs, Delete Case), each
   part of the case a page of its own at an address under the case's, its entry lit and its trail
   named for the case; the Overview has the header in full (status steps, who has it), the
-  figures, the AI card and ATT&CK, and every other page the header compact, with every action,
-  the case read once for them all; a link straight to any page opens it; the held run with
-  Approve and Reject, counted beside Playbooks until approving it runs the rest; Delete Case
-  asks first; a Security Viewer reads every page and is shown why it cannot change one; a case
+  figures, the AI card, the Impact and ATT&CK, and every other page the header compact, with every
+  action, the case read once for them all; the Impact of the known-bad domain case - reachable from
+  the internet on the public address build-runner-07 reports, the record it names, what that calls
+  and is called by, its monitor and status page, its owners and the release before the attack,
+  the record itself behind Show what is at risk, also on a phone in the dark - and the spray's,
+  not known to be reachable, never a guess; the spray's Story, oldest first - its detections, its
+  failed sign-ins told as one run of 413, its playbook runs, notes and milestones - narrowed to the
+  attack or the response, a detection opening the case's Detections; a link straight to any page
+  opens it; the held run with
+  Approve and Reject, counted beside Playbooks until approving it runs the rest; Edit Case asks
+  what Open Security Case asks, in the reader's words; Delete Case asks first; a Security Viewer reads every page and is shown why it cannot change one; a case
   that is not there says so; the header at a laptop's width (actions on the title's line) and on
   a phone (buttons filling their rows, the ⋯ in the corner); every page at 1280 and 390, both
   themes.
@@ -175,7 +201,8 @@ that list is not empty.
   no playbook (`?empty=1`) has the templates as its empty list, with Create a blank playbook; a
   template becomes a working playbook in one click, built as Turn on recommended builds Enrich New
   Cases, and one that cannot be added says why in the amber box; a playbook's page is named for it
-  in the trail and the tab, its settings read in full; its steps and latest runs, each run named by
+  in the trail and the tab, its settings read in full; a step's dialog named by its place and what
+  it does ("Schritt 4 bearbeiten: Notiz hinzufügen"); its steps and latest runs, each run named by
   its case and folded to a line but the one waiting for approval; a run's Approve and Reject (or
   Cancel Run) keep its title's line at 1280, at the card's right, and drop under its words on a
   phone; Approvals, at the runs page's old
@@ -360,6 +387,7 @@ because everything in them is fabricated: among them `overview-desktop`, `overvi
 of a case at 1280 in both themes and at 390 (`case-overview-1280-light`,
 `case-playbook-runs-1280-dark`, `case-entities-390-light`, `case-entities-390-dark` and the rest),
 `case-header-390-light`, `case-header-390-dark`, `case-side-menu-mobile`, `case-not-found`,
+`case-impact-desktop`, `case-impact-390-dark`, `case-story-desktop`,
 the queue's moves at 1280 and 390 in both themes (`cases-row-menu-1280-light`,
 `cases-assign-dialog-390-dark`, `cases-assign-picker-1280-dark`, `cases-bulk-actions-390-light`
 and the rest) and `cases-bulk-assign-result`,

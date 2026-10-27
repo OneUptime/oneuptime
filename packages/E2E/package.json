@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/e2e",
-  "version": "14.0.93",
+  "version": "14.0.94",
   "description": "",
   "repository": {
     "type": "git",
@@ -11,6 +11,7 @@
     "test-alerts-ui": "playwright test --config playwright.alerts.config.ts",
     "test-status-page-search-ui": "playwright test --config playwright.status-page-search.config.ts",
     "test-status-page-theme-ui": "playwright test --config playwright.status-page-theme-ui.config.ts",
+    "test-accounts-theme-ui": "playwright test --config playwright.accounts-theme-ui.config.ts",
     "test-public-dashboard-theme-ui": "playwright test --config playwright.public-dashboard-theme-ui.config.ts",
     "test-navigation-search-ui": "playwright test --config playwright.navigation-search.config.ts",
     "preinstall": "npx playwright install-deps && npx playwright install",
@@ -58,6 +59,7 @@
     "test-calendar-feed-ui": "playwright test --config playwright.calendar-feed-ui.config.ts",
     "test-list-delete-ui": "playwright test --config playwright.list-delete-ui.config.ts",
     "test-bulk-actions-ui": "playwright test --config playwright.bulk-actions-ui.config.ts",
+    "test-enterprise-licenses-ui": "playwright test --config playwright.bulk-actions-ui.config.ts EnterpriseLicenses.spec.ts",
     "test-archivable-values-ui": "playwright test --config playwright.archivable-values-ui.config.ts",
     "test-custom-roles-ui": "playwright test --config playwright.custom-roles-ui.config.ts",
     "test-status-timeline-ui": "playwright test --config playwright.status-timeline-ui.config.ts",
@@ -93,6 +95,8 @@
     "test-dashboard-time-range-ui": "playwright test --config playwright.dashboard-time-range-ui.config.ts",
     "test-dashboard-widget-sort-ui": "playwright test --config playwright.dashboard-widget-sort-ui.config.ts",
     "test-dashboard-value-widget-ui": "playwright test --config playwright.dashboard-value-widget-ui.config.ts",
+    "test-dashboard-table-thresholds-ui": "playwright test --config playwright.dashboard-table-thresholds-ui.config.ts",
+    "test-dashboard-playlists-ui": "playwright test --config playwright.dashboard-playlists-ui.config.ts",
     "test-vmware-host-page-ui": "playwright test --config playwright.vmware-host-page-ui.config.ts",
     "test-acknowledgement-timeout-ui": "playwright test --config playwright.acknowledgement-timeout-ui.config.ts",
     "test-shared-ui-ui": "playwright test --config playwright.shared-ui-ui.config.ts",

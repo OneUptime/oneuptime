@@ -1706,6 +1706,28 @@ jobs:
           Tests/Server/API/RecordScopeCrudPostgres.test.ts
           --forceExit
 
+      # Clones the migrated incident, owner, note, team, label and security
+      # case tables into an isolated schema and sends reads, changes, deletes
+      # and creates through the CRUD routes and the real user middleware for a
+      # member of two teams - one that may change what it owns, one that may
+      # only view what it owns: each team's Owned grant reaches only what that
+      # team (or the member) owns, an incident's notes and owners follow it,
+      # and a write needs a read team by team. A grant limited to a label on
+      # one team and scoped to Owned on the other reach both, and a security
+      # case's notes follow the labels of the incident it names.
+      - name: Test that an Owned grant reaches what its own team owns on migrated Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_RECORD_SCOPE_TESTS: "true"
+          RECORD_SCOPE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          RECORD_SCOPE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          RECORD_SCOPE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/API/OwnedScopePerTeamPostgres.test.ts
+          --forceExit
+
       # Clones the migrated team, custom role, API key, label, Kubernetes
       # cluster (labels and owners) and Docker host tables into an isolated
       # schema and presses a cluster's Test connection and Reset agent, and a

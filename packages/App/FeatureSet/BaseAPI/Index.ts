@@ -208,6 +208,10 @@ import DashboardService, {
   Service as DashboardServiceType,
 } from "Common/Server/Services/DashboardService";
 
+import DashboardPlaylistService, {
+  Service as DashboardPlaylistServiceType,
+} from "Common/Server/Services/DashboardPlaylistService";
+
 import AlertOwnerUserService, {
   Service as AlertOwnerUserServiceType,
 } from "Common/Server/Services/AlertOwnerUserService";
@@ -603,6 +607,9 @@ import BackupRunService, {
 import SecurityLogSourceService, {
   Service as SecurityLogSourceServiceType,
 } from "Common/Server/Services/SecurityLogSourceService";
+import SecurityTelemetrySourceService, {
+  Service as SecurityTelemetrySourceServiceType,
+} from "Common/Server/Services/SecurityTelemetrySourceService";
 import SecurityEventConnectionRunService, {
   Service as SecurityEventConnectionRunServiceType,
 } from "Common/Server/Services/SecurityEventConnectionRunService";
@@ -610,6 +617,8 @@ import ThreatIntelFeedService, {
   Service as ThreatIntelFeedServiceType,
 } from "Common/Server/Services/ThreatIntelFeedService";
 import SecurityCaseAPI from "Common/Server/API/SecurityCaseAPI";
+import SecurityAttackCampaignAPI from "Common/Server/API/SecurityAttackCampaignAPI";
+import SecurityCaseContextAPI from "Common/Server/API/SecurityCaseContextAPI";
 import SecurityPlaybookRunAPI from "Common/Server/API/SecurityPlaybookRunAPI";
 import SecurityCaseFeedService, {
   Service as SecurityCaseFeedServiceType,
@@ -1322,6 +1331,7 @@ import ProjectSCIMLog from "Common/Models/DatabaseModels/ProjectSCIMLog";
 import StatusPageSCIMLog from "Common/Models/DatabaseModels/StatusPageSCIMLog";
 import EmailVerificationToken from "Common/Models/DatabaseModels/EmailVerificationToken";
 import Dashboard from "Common/Models/DatabaseModels/Dashboard";
+import DashboardPlaylist from "Common/Models/DatabaseModels/DashboardPlaylist";
 
 import AlertCustomField from "Common/Models/DatabaseModels/AlertCustomField";
 import AlertNoteTemplate from "Common/Models/DatabaseModels/AlertNoteTemplate";
@@ -1647,6 +1657,7 @@ import LogDropFilter from "Common/Models/DatabaseModels/LogDropFilter";
 import SecurityEventConnectionRun from "Common/Models/DatabaseModels/SecurityEventConnectionRun";
 import ThreatIntelFeed from "Common/Models/DatabaseModels/ThreatIntelFeed";
 import SecurityLogSource from "Common/Models/DatabaseModels/SecurityLogSource";
+import SecurityTelemetrySource from "Common/Models/DatabaseModels/SecurityTelemetrySource";
 import AuditLogExport from "Common/Models/DatabaseModels/AuditLogExport";
 import BackupSetting from "Common/Models/DatabaseModels/BackupSetting";
 import BackupRun from "Common/Models/DatabaseModels/BackupRun";
@@ -3622,6 +3633,14 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DashboardPlaylist, DashboardPlaylistServiceType>(
+        DashboardPlaylist,
+        DashboardPlaylistService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
       new MetricAPI(MetricService).getRouter(),
     );
 
@@ -4038,10 +4057,30 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<SecurityTelemetrySource, SecurityTelemetrySourceServiceType>(
+        SecurityTelemetrySource,
+        SecurityTelemetrySourceService,
+      ).getRouter(),
+    );
+
     // Security cases and playbooks: the SOAR half of the Security product.
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new SecurityCaseAPI().getRouter(),
+    );
+
+    // Web attacks grouped by the address that sent them: the Campaigns page.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new SecurityAttackCampaignAPI().getRouter(),
+    );
+
+    // A case's Story and Impact: the case as the rest of OneUptime tells it.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new SecurityCaseContextAPI().getRouter(),
     );
 
     app.use(

@@ -299,14 +299,31 @@ routes:
 {{- end }}
 {{- end }}
 {{- end }}
-{{- if eq (include "kubernetes-agent.obiSelectsSpanAttributes" .) "true" }}
+{{- $selectSpanAttributes := eq (include "kubernetes-agent.obiSelectsSpanAttributes" .) "true" }}
+{{- $serviceNameLabels := include "kubernetes-agent.serviceNameLabels" . | fromJsonArray }}
+{{- if $selectSpanAttributes }}
 # Span attributes. A list here replaces OBI's default set rather than adding
 # to it, so it repeats those defaults; service.peer.name is opt-in since v0.14.
+{{- end }}
+{{- if or $selectSpanAttributes $serviceNameLabels }}
 attributes:
+{{- end }}
+{{- if $selectSpanAttributes }}
   select:
     traces:
       include:
 {{- range (include "kubernetes-agent.obiSpanAttributes" . | fromJsonArray) }}
+        - {{ . | quote }}
+{{- end }}
+{{- end }}
+{{- if $serviceNameLabels }}
+  # The pod labels a service is named after, first one set wins
+  # (ebpf.serviceNameLabels). OBI keeps its own lists for service.namespace
+  # and service.version.
+  kubernetes:
+    resource_labels:
+      service.name:
+{{- range $serviceNameLabels }}
         - {{ . | quote }}
 {{- end }}
 {{- end }}
@@ -316,12 +333,23 @@ ebpf:
   log_enricher:
     services:
 {{ toYaml .Values.ebpf.logEnricher.services | indent 6 }}
+{{- if eq (include "kubernetes-agent.logEnricherPlainText" .) "true" }}
+    # Plain-text lines too (ebpf.logEnricher.plainText): OBI appends
+    # " trace_id=… span_id=…" to every line of a non-JSON write, and the node
+    # collector lifts it into the record's trace context and strips it from
+    # the body. The line in the container's log file keeps it.
+    plain_text:
+      enabled: true
+      placement: suffix
+      multiline: each_line
+{{- else }}
     # JSON lines only, as documented on ebpf.logToTraceCorrelation. Since
     # v0.11 OBI also appends " trace_id=… span_id=…" to plain-text lines by
-    # default, which the node collector does not parse and which changes
-    # every non-JSON log line the app writes.
+    # default, which changes every non-JSON log line the app writes; the node
+    # collector parses it only with ebpf.logEnricher.plainText.
     plain_text:
       enabled: false
+{{- end }}
 {{- end }}
 {{- end }}
 
@@ -367,6 +395,35 @@ name.
 {{- end }}
 
 {{/*
+ebpf.serviceNameLabels as a JSON array of pod label keys, trimmed, with
+blanks and repeats dropped. Empty (the default, or a values file without the
+key) leaves OBI's own order, written as attributes.kubernetes.resource_labels
+only when there is something to write. OBI decodes resource_labels onto its
+defaults key by key (pkg/kube/store.go DefaultResourceLabels), so setting
+service.name keeps its service.namespace and service.version lists.
+*/}}
+{{- define "kubernetes-agent.serviceNameLabels" -}}
+{{- $labels := list -}}
+{{- range (.Values.ebpf.serviceNameLabels | default list) -}}
+{{- $label := trim (toString .) -}}
+{{- if and $label (not (has $label $labels)) -}}
+{{- $labels = append $labels $label -}}
+{{- end -}}
+{{- end -}}
+{{- toJson $labels -}}
+{{- end }}
+
+{{/*
+Whether OBI's log enricher annotates plain-text lines too, and the node
+collector parses that annotation (ebpf.logEnricher.plainText): only with
+ebpf.logToTraceCorrelation on, and only when explicitly true — it changes the
+line every non-JSON write leaves in the container's log file.
+*/}}
+{{- define "kubernetes-agent.logEnricherPlainText" -}}
+{{- and (eq (include "kubernetes-agent.ebpfEnabled" .) "true") .Values.ebpf.logToTraceCorrelation (eq (toString ((.Values.ebpf.logEnricher | default dict).plainText)) "true") -}}
+{{- end }}
+
+{{/*
 Base OTTL span condition for `filter/ebpf-unlinked-db`: an eBPF (OBI) span
 with a database system. See ebpf.dropDatabaseServerSpans and
 ebpf.dropUnlinkedDatabaseCalls.
@@ -399,13 +456,88 @@ Usage: {{- if eq (include "kubernetes-agent.ebpfDatabaseFilterEnabled" .) "true"
 {{- and (eq (include "kubernetes-agent.ebpfEnabled" .) "true") (ne (toString .Values.ebpf.dropUnlinkedDatabaseCalls) "false") -}}
 {{- end -}}
 
+{{/*
+Database proxies (ebpf.databaseProxyNames, ebpf.dropDatabaseProxySpans).
+
+A proxy or connection pooler (PgBouncer, ProxySQL, mongos, ...) is both a
+database server and a database client: OBI records a SERVER span for each
+command an application sends it and a CLIENT span, hung under that server
+span, for the command it passes on. dropDatabaseServerSpans drops the server
+span, so without this every passed-on command reaches OneUptime pointing at a
+parent that was never sent — a one-span trace marked "1 span missing a
+parent". On the test cluster that was three quarters of all one-span traces.
+
+kubernetes-agent.defaultDatabaseProxyNames is the list a values file without
+ebpf.databaseProxyNames gets (a release upgraded with --reuse-values); keep it
+equal to values.yaml.
+*/}}
+{{- define "kubernetes-agent.defaultDatabaseProxyNames" -}}
+{{- toJson (list "pgbouncer" "pgcat" "pgdog" "odyssey" "pgpool" "supavisor" "connection-pooler" "proxysql" "maxscale" "mysqlrouter" "mysql-router" "vtgate" "mongos" "twemproxy" "nutcracker" "predixy") -}}
+{{- end -}}
+
+{{/*
+ebpf.databaseProxyNames as a JSON array: trimmed, blanks and repeats dropped.
+A missing key (nil) gets the default list; an explicit [] turns proxy
+detection off.
+*/}}
+{{- define "kubernetes-agent.databaseProxyNames" -}}
+{{- $raw := .Values.ebpf.databaseProxyNames -}}
+{{- if kindIs "invalid" $raw -}}
+{{- $raw = include "kubernetes-agent.defaultDatabaseProxyNames" . | fromJsonArray -}}
+{{- end -}}
+{{- $names := list -}}
+{{- range $raw -}}
+{{- $name := trim (toString .) -}}
+{{- if and $name (not (has $name $names)) -}}
+{{- $names = append $names $name -}}
+{{- end -}}
+{{- end -}}
+{{- toJson $names -}}
+{{- end -}}
+
+{{/*
+The OTTL condition that a span comes from a database proxy, or "" with no
+names: the container, the service name OBI gives the process, or its
+Deployment / StatefulSet / DaemonSet name contains one of the names as a word,
+case-insensitively — "pgbouncer" matches `oneuptime-pgbouncer` and
+`pgbouncer-0`, not `mypgbouncer`. OBI sets all of these on its resource.
+Each attribute is checked for nil before IsMatch, so a span without one
+(a process OBI saw outside a Deployment) is still judged on the others.
+A name is regex-quoted, then its backslashes and quotes are escaped once more
+for the OTTL string literal, which reads `\\` as one backslash.
+*/}}
+{{- define "kubernetes-agent.databaseProxyCondition" -}}
+{{- $names := include "kubernetes-agent.databaseProxyNames" . | fromJsonArray -}}
+{{- if $names -}}
+{{- $quoted := list -}}
+{{- range $names -}}
+{{- $quoted = append $quoted (regexQuoteMeta . | replace "\\" "\\\\" | replace "\"" "\\\"") -}}
+{{- end -}}
+{{- $pattern := printf "(?i)(^|[^a-z0-9])(%s)([^a-z0-9]|$)" (join "|" $quoted) -}}
+{{- $checks := list -}}
+{{- range (list "k8s.container.name" "service.name" "k8s.deployment.name" "k8s.statefulset.name" "k8s.daemonset.name") -}}
+{{- $checks = append $checks (printf "(resource.attributes[\"%s\"] != nil and IsMatch(resource.attributes[\"%s\"], \"%s\"))" . . $pattern) -}}
+{{- end -}}
+{{- printf "(%s)" (join " or " $checks) -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Whether to drop every eBPF database span of a database proxy
+(ebpf.dropDatabaseProxySpans): with eBPF on, names to match, and on unless
+explicitly false, for the same --reuse-values reason as the switches above.
+*/}}
+{{- define "kubernetes-agent.dropDatabaseProxySpans" -}}
+{{- and (eq (include "kubernetes-agent.ebpfEnabled" .) "true") (ne (toString .Values.ebpf.dropDatabaseProxySpans) "false") (ne (include "kubernetes-agent.databaseProxyCondition" .) "") -}}
+{{- end -}}
+
 {{- define "kubernetes-agent.ebpfDatabaseFilterEnabled" -}}
-{{- or (eq (include "kubernetes-agent.dropDatabaseServerSpans" .) "true") (eq (include "kubernetes-agent.dropUnlinkedDatabaseCalls" .) "true") -}}
+{{- or (eq (include "kubernetes-agent.dropDatabaseServerSpans" .) "true") (eq (include "kubernetes-agent.dropUnlinkedDatabaseCalls" .) "true") (eq (include "kubernetes-agent.dropDatabaseProxySpans" .) "true") -}}
 {{- end -}}
 
 {{/*
 The OTTL span conditions of `filter/ebpf-unlinked-db`, as a JSON array: one
-per enabled switch, both on the base below.
+per enabled switch, all on the base below.
 
   - server (ebpf.dropDatabaseServerSpans): `kind == SPAN_KIND_SERVER`, with
     or without a parent. It is the span OBI records inside the database
@@ -414,18 +546,32 @@ per enabled switch, both on the base below.
     connection when the caller runs on the same node) it doubles every
     database call in the request trace. Keeping the linked ones would also
     leave them pointing at a missing parent whenever the calls switch drops
-    the client span they hang from.
+    the client span they hang from. With ebpf.dropDatabaseProxySpans off, a
+    proxy's server spans are exempt (`not` the proxy condition): they are
+    the parents of the commands it passes on, which are kept.
   - calls (ebpf.dropUnlinkedDatabaseCalls): `kind != SPAN_KIND_SERVER` and no
     parent — the application's own call, outside any trace.
+  - proxies (ebpf.dropDatabaseProxySpans): every database span of a
+    database proxy, server and client alike, so none is left pointing at a
+    dropped parent.
 */}}
 {{- define "kubernetes-agent.ebpfUnlinkedDatabaseSpanConditions" -}}
 {{- $base := include "kubernetes-agent.ebpfDatabaseSpanCondition" . -}}
+{{- $proxy := include "kubernetes-agent.databaseProxyCondition" . -}}
+{{- $dropProxies := eq (include "kubernetes-agent.dropDatabaseProxySpans" .) "true" -}}
 {{- $conds := list -}}
 {{- if eq (include "kubernetes-agent.dropDatabaseServerSpans" .) "true" -}}
+{{- if and $proxy (not $dropProxies) -}}
+{{- $conds = append $conds (printf "%s and kind == SPAN_KIND_SERVER and not %s" $base $proxy) -}}
+{{- else -}}
 {{- $conds = append $conds (printf "%s and kind == SPAN_KIND_SERVER" $base) -}}
+{{- end -}}
 {{- end -}}
 {{- if eq (include "kubernetes-agent.dropUnlinkedDatabaseCalls" .) "true" -}}
 {{- $conds = append $conds (printf "%s and parent_span_id == SpanID(0x0000000000000000) and kind != SPAN_KIND_SERVER" $base) -}}
+{{- end -}}
+{{- if $dropProxies -}}
+{{- $conds = append $conds (printf "%s and %s" $base $proxy) -}}
 {{- end -}}
 {{- toJson $conds -}}
 {{- end -}}

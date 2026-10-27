@@ -1,17 +1,12 @@
+/** @timezone America/New_York */
+
 import OneUptimeDate from "../../Types/Date";
 import moment from "moment-timezone";
 import fs from "fs";
 import path from "path";
 import { SeededRandom, seededRandom } from "../Helpers/SeededRandom";
 import { FastestRun, fastestRun } from "../Helpers/FastestRun";
-import {
-  afterAll,
-  afterEach,
-  describe,
-  expect,
-  jest,
-  test,
-} from "@jest/globals";
+import { afterEach, describe, expect, jest, test } from "@jest/globals";
 
 /*
  * Two OneUptimeDate helpers run several times for every ingested log, span
@@ -28,21 +23,23 @@ import {
  *
  * Run in a non-UTC zone with daylight saving, as DateClickhouseFormat.test.ts
  * does: under TZ=UTC a slip from the UTC getters to the local ones would be
- * invisible.
+ * invisible. The docblock above sets the zone before this file loads
+ * (Tests/Utils/TimezoneEnvironment.js); assigning process.env.TZ here would
+ * not, since Jest's process.env is a copy. The first test checks it took.
  */
-const ORIGINAL_TZ: string | undefined = process.env["TZ"];
-process.env["TZ"] = "America/New_York";
 
 afterEach(() => {
   jest.restoreAllMocks();
 });
 
-afterAll(() => {
-  if (ORIGINAL_TZ === undefined) {
-    delete process.env["TZ"];
-  } else {
-    process.env["TZ"] = ORIGINAL_TZ;
-  }
+describe("the zone this suite runs in", () => {
+  test("is America/New_York, five hours behind UTC in winter and four in summer", () => {
+    expect(Intl.DateTimeFormat().resolvedOptions().timeZone).toBe(
+      "America/New_York",
+    );
+    expect(new Date("2026-01-15T12:00:00.000Z").getTimezoneOffset()).toBe(300);
+    expect(new Date("2026-07-15T12:00:00.000Z").getTimezoneOffset()).toBe(240);
+  });
 });
 
 // Master's OneUptimeDate.fromUnixNano, verbatim.

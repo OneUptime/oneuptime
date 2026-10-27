@@ -21,6 +21,7 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 import zlib from "zlib";
+import { FastestRun, fastestRun } from "../../../Helpers/FastestRun";
 
 /*
  * ONEUPTIME'S LOGO TRAVELS INSIDE EVERY EMAIL IT HEADS (Server/Utils/Mail/
@@ -562,11 +563,14 @@ describe("EmailLogo.attach", () => {
     const megabytes: string = `${header()}<p>${"x".repeat(3 * 1024 * 1024)}</p>`;
 
     for (const html of [tags, `${tags}${header()}`, megabytes]) {
-      const startedAt: number = Date.now();
+      const timed: FastestRun<void> = fastestRun({
+        run: (): void => {
+          EmailLogo.attach(html);
+        },
+        limitInMs: 2000,
+      });
 
-      EmailLogo.attach(html);
-
-      expect(Date.now() - startedAt).toBeLessThan(2000);
+      expect(timed.inMs).toBeLessThan(2000);
     }
   });
 });

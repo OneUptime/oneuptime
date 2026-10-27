@@ -2,6 +2,7 @@ import Email, { MAX_EMAIL_ADDRESS_LENGTH } from "../../Types/Email";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { ObjectType } from "../../Types/JSON";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../Helpers/FastestRun";
 
 /*
  * ---------------------------------------------------------------------------
@@ -287,17 +288,25 @@ describe("an email value is read in time in line with its length", () => {
     ["a quoted local part of escapes", '"' + repeat("\\\\", LENGTH)],
     ["dots then a tail", repeat(".", LENGTH) + "-.aa"],
   ])("decides %s quickly", (_label: string, value: string) => {
-    const startedAt: number = Date.now();
-    Email.isValid(value);
-    expect(Date.now() - startedAt).toBeLessThan(2000);
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        Email.isValid(value);
+      },
+      limitInMs: 2000,
+    });
+    expect(timed.inMs).toBeLessThan(2000);
   });
 
   test("decides the short awkward bracket value quickly", () => {
     // 71 characters took about 13 seconds before.
     const value: string = "a@[1.1.1.a:" + "\\a".repeat(30);
-    const startedAt: number = Date.now();
-    Email.isValid(value);
-    expect(Date.now() - startedAt).toBeLessThan(2000);
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        Email.isValid(value);
+      },
+      limitInMs: 2000,
+    });
+    expect(timed.inMs).toBeLessThan(2000);
   });
 
   /*
@@ -321,15 +330,18 @@ describe("an email value is read in time in line with its length", () => {
       expect(value.length).toBeLessThanOrEqual(MAX_EMAIL_ADDRESS_LENGTH);
     }
 
-    const startedAt: number = Date.now();
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        for (let round: number = 0; round < 1000; round++) {
+          for (const value of atTheBound) {
+            Email.isValid(value);
+          }
+        }
+      },
+      limitInMs: 2000,
+    });
 
-    for (let round: number = 0; round < 1000; round++) {
-      for (const value of atTheBound) {
-        Email.isValid(value);
-      }
-    }
-
-    expect(Date.now() - startedAt).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
   });
 });
 

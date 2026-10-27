@@ -1,27 +1,32 @@
+/** @timezone America/New_York */
+
 import OneUptimeDate from "../../Types/Date";
 import moment from "moment-timezone";
 import { SeededRandom, seededRandom } from "../Helpers/SeededRandom";
-import { afterAll, describe, expect, test } from "@jest/globals";
+import { describe, expect, test } from "@jest/globals";
 
 /*
- * Run the whole suite in a non-UTC, DST-observing zone. Under TZ=UTC the
+ * The whole suite runs in a non-UTC, DST-observing zone. Under TZ=UTC the
  * local and UTC Date getters agree, so a getUTC* -> get* regression in the
  * hand-rolled formatter would be invisible to every parity assertion below.
  * America/New_York makes any local-getter mutation diverge from the
  * moment-UTC oracle deterministically (including across DST transitions in
- * the fuzz sweep). Node re-reads process.env.TZ on Date operations; the
- * original value is restored afterAll so co-resident suites in the same
- * worker keep the process default.
+ * the fuzz sweep).
+ *
+ * The docblock above sets the zone (Tests/Utils/TimezoneEnvironment.js)
+ * before this file loads. Assigning process.env.TZ here would not: Jest's
+ * process.env is a copy, so Node's zone would stay UTC and every assertion
+ * would pass without proving anything. The first test checks the zone took.
  */
-const ORIGINAL_TZ: string | undefined = process.env["TZ"];
-process.env["TZ"] = "America/New_York";
 
-afterAll(() => {
-  if (ORIGINAL_TZ === undefined) {
-    delete process.env["TZ"];
-  } else {
-    process.env["TZ"] = ORIGINAL_TZ;
-  }
+describe("the zone this suite runs in", () => {
+  test("is America/New_York, five hours behind UTC in winter and four in summer", () => {
+    expect(Intl.DateTimeFormat().resolvedOptions().timeZone).toBe(
+      "America/New_York",
+    );
+    expect(new Date("2026-01-15T12:00:00.000Z").getTimezoneOffset()).toBe(300);
+    expect(new Date("2026-07-15T12:00:00.000Z").getTimezoneOffset()).toBe(240);
+  });
 });
 
 /*

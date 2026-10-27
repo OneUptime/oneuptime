@@ -8,6 +8,7 @@ import Phone from "../../../Types/Phone";
 import { TwilioMessageKind } from "../../../Utils/Project/TwilioAccount";
 import { MAX_REFUSED_VALUE_LENGTH } from "../../../Utils/RefusedValue";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * WHICH OF A TWILIO CONFIG'S NUMBERS AN SMS OR A CALL GOES OUT FROM.
@@ -436,18 +437,24 @@ describe("a list of numbers, as a config keeps it", () => {
     const list: string = Array.from({ length: 30000 }, (): string => {
       return entry;
     }).join(", ");
-    const started: number = Date.now();
-
-    expect(TwilioPhoneNumbers.getListEntries(list)).toHaveLength(30000);
-    expect(TwilioPhoneNumbers.getListError(list)).toBe(null);
-    expect(Date.now() - started).toBeLessThan(2000);
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        expect(TwilioPhoneNumbers.getListEntries(list)).toHaveLength(30000);
+        expect(TwilioPhoneNumbers.getListError(list)).toBe(null);
+      },
+      limitInMs: 2000,
+    });
+    expect(timed.inMs).toBeLessThan(2000);
 
     // Separators alone, the worst case for the split.
     const separators: string = ",;\n".repeat(140000);
-    const startedSeparators: number = Date.now();
-
-    expect(TwilioPhoneNumbers.getListEntries(separators)).toEqual([]);
-    expect(Date.now() - startedSeparators).toBeLessThan(2000);
+    const timedRun: FastestRun<void> = fastestRun({
+      run: (): void => {
+        expect(TwilioPhoneNumbers.getListEntries(separators)).toEqual([]);
+      },
+      limitInMs: 2000,
+    });
+    expect(timedRun.inMs).toBeLessThan(2000);
   });
 });
 

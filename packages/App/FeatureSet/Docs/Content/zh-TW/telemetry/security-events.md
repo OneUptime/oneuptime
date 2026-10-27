@@ -36,6 +36,7 @@ flowchart TB
 | **已關閉案例** | 安全案例 | 已給出結論並關閉的案件，最近的在前 |
 | **全部案例** | 安全案例 | 每個案件，無論未結還是已關閉 |
 | **事件** | 事件 | 搜尋和篩選每個事件，並開啟某個事件查看它的所有欄位 |
+| **Campaigns** | 事件 | 每個傳送過攻擊請求的位址，以及它的請求中是否有任何一個通過 |
 | **實體** | 事件 | 你的偵測結果中最常提到的使用者、主機和位址 |
 | **實體風險** | 事件 | 依本週發現評分的每個使用者、主機和位址，風險最高的在前 |
 | **關聯分析** | 事件 | 共用同一主機、使用者或 IP 位址的事件構成的圖 |
@@ -232,11 +233,19 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 | `@<attribute>:*` | 存在該屬性 | `@threat.indicator_id:*` |
 | `@<attribute>:~text` | 屬性包含該文字 | `@finding_info.title:~ransom` |
 
-欄位要麼是簡稱（`severity`、`class`、`category`、`activity`、`status`、`vendor`、`product`、`rule`、`user`、`host`、`ip`、`targetuser`、`targethost`、`targetip`、`processname`、`commandline`、`parentprocessname`、`observable`、`tactic`、`technique`），要麼是欄位本身的名稱，例如 `severityName` 或 `principalHost`。任何其他名稱都會被讀作來源屬性。`observable:<value>` 會找出提到某個值的每個事件，無論該值出現在活動的哪一方。
+欄位要麼是簡稱（`severity`、`class`、`category`、`activity`、`status`、`vendor`、`product`、`rule`、`user`、`host`、`ip`、`targetuser`、`targethost`、`targetip`、`processname`、`commandline`、`parentprocessname`、`observable`、`tactic`、`technique`、`requestoutcome`、`trace`、`session`），要麼是欄位本身的名稱，例如 `severityName` 或 `principalHost`。任何其他名稱都會被讀作來源屬性。`observable:<value>` 會找出提到某個值的每個事件，無論該值出現在活動的哪一方。
 
 ### 面向
 
-側邊欄依 **來源**、**嚴重程度**、**事件類別**、**類別**、**活動**、**狀態**、**供應商**、**產品**、**偵測規則**、**來源使用者**、**來源主機**、**處理程序** 和 **父處理程序** 統計時間窗內的事件。按一下某個值只保留它的事件，按一下旁邊的減號則排除它們。再按一下即可復原。圖表和每個計數描述的正是清單中的事件。
+側邊欄依 **來源**、**嚴重程度**、**Request Outcome**、**事件類別**、**類別**、**活動**、**狀態**、**供應商**、**產品**、**偵測規則**、**來源使用者**、**來源主機**、**處理程序** 和 **父處理程序** 統計時間窗內的事件。按一下某個值只保留它的事件，按一下旁邊的減號則排除它們。再按一下即可復原。圖表和每個計數描述的正是清單中的事件。
+
+### 之後發生了什麼
+
+從已追蹤請求中寫入的日誌行讀取的事件，會被一路追進該請求中。它的面板會說明請求走到了哪一步（**已拒絕**、**Reached App**、**Errored** 或 **Reached Database**）以及是誰傳送的，並連結到它的追蹤、例外、工作階段重播以及日誌行本身。屬於某次攻擊的日誌行、追蹤和例外，也會在它們自己的頁面上說明這一點。
+
+### Campaigns
+
+**Campaigns** 把每個傳送過攻擊請求的位址列為一列，包括攻擊類型、工具、傳送的請求，以及有多少請求通過。請求到達了你的應用程式的位址排在最前面。
 
 ### 關聯分析
 

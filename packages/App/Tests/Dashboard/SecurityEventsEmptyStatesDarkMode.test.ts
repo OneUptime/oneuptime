@@ -221,14 +221,18 @@ describe("Security Events empty states in the dark theme", () => {
     expect(tokens.size).toBeGreaterThan(10);
     expect(Array.from(tokens)).toEqual(
       expect.arrayContaining([
-        // The tinted badges and the tiles' resting and hover colours.
+        /*
+         * The tinted badges and the tiles' resting and hover colours. A
+         * tile's product badge is that product's official logo now, on the
+         * neutral tile Common's ProviderLogoImage draws: never re-coloured on
+         * hover, so it adds no group-hover:bg colour here.
+         */
         "bg-indigo-50",
         "ring-indigo-200",
         "bg-gray-50",
         "ring-gray-200",
         "border-gray-200",
         "hover:border-indigo-300",
-        "group-hover:bg-indigo-50",
         "group-hover:text-indigo-600",
         "text-gray-900",
         "text-gray-500",

@@ -88,7 +88,7 @@ A case has a side menu of its own, as an incident has, and each part of the case
 | Side menu section | Pages |
 | --- | --- |
 | **Overview** | **Overview**, **Timeline** |
-| **Investigation** | **Detections**, **Entities**, **Connected Signals**, **Playbooks** |
+| **Investigation** | **Story**, **Detections**, **Entities**, **Connected Signals**, **Playbooks** |
 | **Notes** | **Private Notes** |
 | **Advanced** | **Audit Logs**, **Delete Case**, folded until you click **Advanced** |
 
@@ -96,8 +96,10 @@ Every page keeps the case's header on top: its number, priority, status and titl
 
 - **Overview**: the case's description, labels and status steps, who has it and what opened it, and its figures: how many detections it has, how long it has been open, and how long it took to acknowledge and to contain.
 - **OneUptime AI**, on the **Overview**: what OneUptime AI made of the case, the priority and playbook it suggests, and the evidence behind them. See [OneUptime AI in Security](/docs/telemetry/security-ai).
+- **Impact**, on the **Overview**: what the case puts at risk: whether OneUptime has seen its records reached from the internet, who owns them and what last changed on them. Open it to see what each record calls and is called by, the monitors and status pages watching it, and the machines the case's addresses talked to.
 - **MITRE ATT&CK**, on the **Overview**: the tactics and techniques its detections map to, each linked to its page on attack.mitre.org.
 - **Timeline**: everything that happened to the case, with who did it.
+- **Story**: what happened, in order, across OneUptime: each detection and the security events behind it, how far their requests got, the exceptions they threw, the changes on the records the case names, the incidents and alerts raised on them, and what the team did. A scanner's many probes are one line, and each line opens what it names, such as the request's trace or the exception.
 - **Detections**: what fired to open the case or join it, how often, and the latest matching event.
 - **Entities**: the users, hosts and addresses the case is about, with their activity across all your security events in the last 7 days. Each opens in **Correlate**.
 - **Connected Signals**: the hosts, clusters, services and members the case names, as OneUptime knows them, and what was happening on each around its detections: their logs, traces and metrics, what is open on them and what changed. See [Connected Signals](/docs/telemetry/security-connected-signals).
@@ -231,9 +233,11 @@ A disabled playbook runs neither by itself nor by hand.
 | Case | Add labels | Tags the case with labels |
 | Investigate | Check entities against threat intel | Looks each entity up in your threat intelligence, and can raise the priority on a match |
 | Investigate | Look up entity activity | Counts each entity's security events over a recent window, and notes it on the case |
+| Investigate | Preserve the evidence | Keeps the session replays of the requests behind the case, and notes their traces and exceptions on the case |
 | Notify | Email people | Emails users and teams a summary of the case, with a link to it |
 | Notify | Post to Slack | Posts a summary of the case to a Slack channel |
 | Notify | Post to Microsoft Teams | Posts a summary of the case to a Microsoft Teams channel |
+| Notify | Post a status page announcement | Posts an announcement you wrote on the status pages you choose |
 | Escalate | Page on-call | Runs an on-call policy |
 | Escalate | Declare an incident | Opens a OneUptime incident linked to the case |
 | Contain | Suspend the user in Okta | Suspends the user the case is about in Okta |
@@ -245,12 +249,23 @@ A disabled playbook runs neither by itself nor by hand.
 | Contain | Release the device in Microsoft Defender | Releases the host the case is about from isolation in Microsoft Defender for Endpoint |
 | Automate | Send a webhook | Posts the case as JSON to a URL |
 | Automate | Run a workflow | Starts a OneUptime workflow with the case as its input |
+| Automate | Run a runbook | Starts one of your OneUptime runbooks with the case as its inputs |
+| Automate | Fix the code with AI | Asks OneUptime AI for a pull request that fixes the exceptions the case's requests threw |
 
 A playbook has at most 25 steps. They run in order, each once the one before it is done. Every step can also:
 
-- **Needs Approval**: stop the run before the step until someone approves it on the case. The four steps that cut someone off always do, unless a Security Admin turns it off.
+- **Needs Approval**: stop the run before the step until someone approves it on the case. The four steps that cut someone off always do, unless a Security Admin turns it off. **Run a runbook** and **Post a status page announcement** start with it on, since one runs commands on your systems and the other speaks to your customers; whoever adds the step can turn it off.
 - **Only If Threat Intel Matched**: skip the step unless an earlier **Check entities against threat intel** step of the run found a known indicator.
 - **Carry On If It Fails**: run the next step even if this one fails. Off, a failed step stops the run.
+
+### Responding through OneUptime
+
+Four steps act through the rest of OneUptime rather than a connected product:
+
+- **Run a runbook** starts one of your [runbooks](/docs/runbooks/index) with the case as its inputs, which a Bash step reads as environment variables (see [Call the webhook](/docs/runbooks/triggers#call-the-webhook)). `ONEUPTIME_INPUT_IP`, `ONEUPTIME_INPUT_USER` and `ONEUPTIME_INPUT_HOST` are the address, user and host the case is about, chosen by the same rule as a Contain step, and empty when it is about none. `ONEUPTIME_INPUT_IPS`, `ONEUPTIME_INPUT_USERS` and `ONEUPTIME_INPUT_HOSTS` list every one the case names, as JSON, and `ONEUPTIME_INPUT_CASE_NUMBER`, `ONEUPTIME_INPUT_CASE_TITLE` and `ONEUPTIME_INPUT_CASE_URL` say which case it is. A protected user or host is never among them. The runbook's run says it was started by **Security playbook**, for the case.
+- **Preserve the evidence** keeps the session replays of the requests behind the case past their retention, and writes a note on the case that links each request's trace, each replay and each exception. Logs and traces cannot be kept longer than the project keeps telemetry, so export what you need before then.
+- **Post a status page announcement** posts what you wrote, as you wrote it, on the status pages you choose. Nothing from the case is added to it. Its subscribers are told only when **Notify Subscribers** is on.
+- **Fix the code with AI** asks OneUptime AI for a pull request that fixes each exception the case's requests threw, up to three. It needs OneUptime AI on, a repository that holds the code connected through the GitHub App, and a runner. Without them the step is skipped and says what is missing.
 
 ### Containment
 
@@ -311,7 +326,7 @@ Every run is listed on its case and under **Products → Security Events → Pla
 | Failed | A step failed and the run stopped |
 | Cancelled | Someone cancelled it, or rejected a step |
 
-A step waiting for approval shows **Approve** and **Reject** on the run, with an optional comment. Approving carries the run on from that step; rejecting ends it. The decision, who made it and their comment are kept on the step, on the case's timeline and in the project's audit log. **Approvals**, under **Playbooks** in the menu, lists the runs held for a decision and counts them; **Playbook Runs** lists every run. On **Playbook Runs** and on a playbook's page, each run is a line that says how far it got, or the step where it stopped; **Show steps** opens its steps. A run waiting for approval opens by itself.
+A step waiting for approval shows **Approve** and **Reject** on the run, with an optional comment. Approving carries the run on from that step; rejecting ends it. The decision, who made it and their comment are kept on the step, on the case's timeline and in the project's audit log. **Approvals**, under **Playbooks** in the menu, lists the runs held for a decision and counts them; **Playbook Runs** lists every run. On **Playbook Runs**, on a playbook's page and on a case's **Playbooks**, each run is a line that says how far it got, or the step where it stopped; **Show steps** opens its steps. A run waiting for approval opens by itself, and so does the newest run on a case.
 
 A run that stops hearing from its worker, after a restart for example, is picked up again: a queued run is queued again after 2 minutes, and a run that has said nothing for 30 minutes is failed.
 

@@ -3,6 +3,7 @@ import {
   NAME_BREAKS_FROM_LENGTH,
   splitAtNameBreaks,
 } from "../../Utils/NameBreaks";
+import { FastestRun, fastestRun } from "../Helpers/FastestRun";
 
 /*
  * Where a long name may break (Utils/NameBreaks): after a dot or a slash
@@ -138,10 +139,15 @@ describe("text a service sent is read quickly, whatever it holds", () => {
     ["slashes", "a/".repeat(200000)],
     ["dots and spaces", "a.a.a.a.a.a.a.a.a.a.a ".repeat(18000)],
   ])("%s", (_name: string, text: string) => {
-    const started: number = Date.now();
-    const parts: Array<string> = splitAtNameBreaks(text);
+    const timed: FastestRun<Array<string>> = fastestRun({
+      run: (): Array<string> => {
+        return splitAtNameBreaks(text);
+      },
+      limitInMs: 2000,
+    });
+    const parts: Array<string> = timed.result;
 
-    expect(Date.now() - started).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
     expect(parts.join("")).toBe(text);
   });
 });

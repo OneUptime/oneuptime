@@ -104,13 +104,16 @@ describe("the answers", () => {
     }
   });
 
-  test("each has one line under it, ownership read from the person acting", () => {
+  test("each has one line under it, ownership read from the person and the team the permission is given to", () => {
     expect(PERMISSION_SCOPE_DESCRIPTIONS[PermissionScope.All]).toBe(
       "Recommended for most teams.",
     );
-    // The server reads ownership from the person acting: they, or a team of theirs.
+    /*
+     * The server reads ownership from the person acting, and from the team
+     * the permission is given to - not from the person's other teams.
+     */
     expect(PERMISSION_SCOPE_DESCRIPTIONS[PermissionScope.Owned]).toBe(
-      "Resources the person, or one of their teams, owns.",
+      "Resources the person, or the team given this permission, owns.",
     );
     expect(PERMISSION_SCOPE_DESCRIPTIONS[PermissionScope.Labels]).toBe(
       "Resources that carry one of the labels you pick.",

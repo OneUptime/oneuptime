@@ -1,5 +1,6 @@
 import { expect, Locator, Page, test } from "@playwright/test";
 import path from "path";
+import { boxesInOneFrame, FrameBox } from "../SuiteHelpers/Frames";
 
 interface FixtureControl {
   fail: boolean;
@@ -988,16 +989,14 @@ test("Edit opens on the scan's method, with its note apart from the form", async
     "Changing the target, probe, scan method or credentials runs the scan again",
   );
 
-  const fold: { y: number; height: number } | null = await modal
-    .getByTestId("folded-section")
-    .first()
-    .boundingBox();
-  const noteBox: { y: number } | null = await note.boundingBox();
+  // In one frame: the dialog grows in as it opens (Modal, from 95%).
+  const [fold, noteBox] = (await boxesInOneFrame([
+    modal.getByTestId("folded-section").first(),
+    note,
+  ])) as [FrameBox, FrameBox];
 
-  expect(fold).not.toBeNull();
-  expect(noteBox).not.toBeNull();
   // A field's gap, not a hairline: the note used to touch More fields.
-  expect(noteBox!.y - (fold!.y + fold!.height)).toBeGreaterThanOrEqual(16);
+  expect(noteBox.y - (fold.y + fold.height)).toBeGreaterThanOrEqual(16);
 
   await page.screenshot({
     path: path.join(screenshots, "discovery-edit-icmp-scan.png"),

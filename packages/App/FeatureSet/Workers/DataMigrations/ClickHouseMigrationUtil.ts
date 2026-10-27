@@ -87,6 +87,36 @@ export default class ClickHouseMigrationUtil {
     return row ? Number(row["is_in_sorting_key"]) === 1 : false;
   }
 
+  /**
+   * How a column's value is filled when a row does not carry it: its
+   * system.columns default_kind ('' for none, else DEFAULT / MATERIALIZED /
+   * ALIAS / EPHEMERAL) and default_expression, as ClickHouse formats it. Null
+   * when the table has no such column.
+   */
+  public static async getColumnDefault(
+    table: string,
+    column: string,
+  ): Promise<{ kind: string; expression: string } | null> {
+    const escapedTable: string = table.replace(/'/g, "''");
+    const escapedColumn: string = column.replace(/'/g, "''");
+    const result: { json: () => Promise<unknown> } =
+      await MetricService.executeQuery(
+        `SELECT default_kind, default_expression FROM system.columns WHERE database = currentDatabase() AND table = '${escapedTable}' AND name = '${escapedColumn}' LIMIT 1`,
+      );
+    const json: ClickHouseJsonResult =
+      (await result.json()) as ClickHouseJsonResult;
+    const row: Record<string, unknown> | undefined = json.data?.[0];
+
+    if (!row) {
+      return null;
+    }
+
+    return {
+      kind: String(row["default_kind"] ?? ""),
+      expression: String(row["default_expression"] ?? ""),
+    };
+  }
+
   /** Stored CREATE statement of a table/view, or null if it does not exist. */
   public static async getCreateQuery(name: string): Promise<string | null> {
     const result: { json: () => Promise<unknown> } =

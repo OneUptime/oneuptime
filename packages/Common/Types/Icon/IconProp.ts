@@ -148,6 +148,10 @@ enum IconProp {
   ExclaimationCircle = "ExclaimationCircle",
   WhatsApp = "WhatsApp",
   Telegram = "Telegram",
+  // The brands' official one-colour marks, as Slack's and WhatsApp's are.
+  Discord = "Discord",
+  Mattermost = "Mattermost",
+  Terraform = "Terraform",
   Brain = "Brain",
   FlowDiagram = "FlowDiagram",
   GitHub = "GitHub",

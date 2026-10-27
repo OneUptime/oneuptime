@@ -15,6 +15,7 @@ import {
 } from "../../../../../Server/Utils/Form/FormSubmissionNote";
 import IncomingEmailOpenForEveryEmail from "../../../../../Server/Utils/Monitor/IncomingEmailOpenForEveryEmail";
 import ChatMessageMarkdown from "../../../../../Utils/Markdown/ChatMessageMarkdown";
+import { FastestRun, fastestRun } from "../../../../Helpers/FastestRun";
 
 /*
  * A HARD BREAK IN SLACK IS A LINE BREAK.
@@ -121,8 +122,12 @@ describe("SlackUtil.withoutHardBreakSpaces", () => {
     ["100,000 hard breaks", "a  \n".repeat(100000)],
     ["400,000 spaces and no line break", " ".repeat(400000)],
   ])("takes time in line with the text: %s", (_name: string, text: string) => {
-    const start: number = Date.now();
-    SlackUtil.withoutHardBreakSpaces(text);
-    expect(Date.now() - start).toBeLessThan(LINEAR_TIME_BUDGET_IN_MS);
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        SlackUtil.withoutHardBreakSpaces(text);
+      },
+      limitInMs: LINEAR_TIME_BUDGET_IN_MS,
+    });
+    expect(timed.inMs).toBeLessThan(LINEAR_TIME_BUDGET_IN_MS);
   });
 });

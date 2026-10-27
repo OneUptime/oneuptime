@@ -19,6 +19,7 @@ import {
 } from "../../../../../Types/AI/AiContext";
 import { AIRunEventResultSummary } from "../../../../../Types/AI/AIChatTypes";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../../../Helpers/FastestRun";
 
 /*
  * WHERE A RUN'S AI CONTEXT GOES IN ITS PROMPT (issue #5198): first in the
@@ -216,12 +217,19 @@ describe("the escaping reads outside text in linear time", () => {
     const tags: string = `<${AI_CONTEXT_PROMPT_TAG}</`.repeat(20_000);
     const specials: string = '"<>&\n'.repeat(80_000);
 
-    const startedAt: number = Date.now();
-    const escapedText: string = escapeAiContextText(tags);
-    const escapedName: string = escapeAiContextAttribute(specials);
-    const elapsed: number = Date.now() - startedAt;
+    const timed: FastestRun<{ escapedText: string; escapedName: string }> =
+      fastestRun({
+        run: (): { escapedText: string; escapedName: string } => {
+          const escapedText: string = escapeAiContextText(tags);
+          const escapedName: string = escapeAiContextAttribute(specials);
+          return { escapedText: escapedText, escapedName: escapedName };
+        },
+        limitInMs: 2000,
+      });
+    const escapedText: string = timed.result.escapedText;
+    const escapedName: string = timed.result.escapedName;
 
-    expect(elapsed).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
     expect(escapedText).not.toContain(`<${AI_CONTEXT_PROMPT_TAG}`);
     expect(escapedName).not.toContain('"');
     expect(escapedName).not.toContain("\n");

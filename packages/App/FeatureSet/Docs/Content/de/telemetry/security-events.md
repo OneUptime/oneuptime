@@ -36,6 +36,7 @@ flowchart TB
 | **Geschlossene Fälle** | Sicherheitsfälle | Die mit einem Urteil geschlossenen Fälle, die neuesten zuerst |
 | **Alle Fälle** | Sicherheitsfälle | Jeder Fall, offen oder geschlossen |
 | **Ereignisse** | Ereignisse | Jedes Ereignis suchen und filtern, und eines öffnen, um alle seine Felder zu sehen |
+| **Campaigns** | Ereignisse | Jede Adresse, die Angriffsanfragen gesendet hat, und ob eine ihrer Anfragen durchkam |
 | **Entitäten** | Ereignisse | Die Benutzer, Hosts und Adressen, die Ihre Befunde am häufigsten nennen |
 | **Entitätsrisiko** | Ereignisse | Jeder Benutzer, Host und jede Adresse, bewertet nach dem, was diese Woche dazu gefunden wurde, die riskantesten zuerst |
 | **Korrelieren** | Ereignisse | Ein Graph der Ereignisse, die einen Host, einen Benutzer oder eine IP-Adresse teilen |
@@ -232,11 +233,19 @@ Die Suchleiste spricht dieselbe Sprache wie die anderen Telemetrie-Explorer (sie
 | `@<attribute>:*` | Das Attribut ist vorhanden | `@threat.indicator_id:*` |
 | `@<attribute>:~text` | Das Attribut enthält den Text | `@finding_info.title:~ransom` |
 
-Ein Feld ist entweder ein Kurzname (`severity`, `class`, `category`, `activity`, `status`, `vendor`, `product`, `rule`, `user`, `host`, `ip`, `targetuser`, `targethost`, `targetip`, `processname`, `commandline`, `parentprocessname`, `observable`, `tactic`, `technique`) oder der eigene Name des Felds, etwa `severityName` oder `principalHost`. Jeder andere Name wird als Quellattribut gelesen. `observable:<value>` findet jedes Ereignis, das einen Wert erwähnt, egal auf welcher Seite der Aktivität er stand.
+Ein Feld ist entweder ein Kurzname (`severity`, `class`, `category`, `activity`, `status`, `vendor`, `product`, `rule`, `user`, `host`, `ip`, `targetuser`, `targethost`, `targetip`, `processname`, `commandline`, `parentprocessname`, `observable`, `tactic`, `technique`, `requestoutcome`, `trace`, `session`) oder der eigene Name des Felds, etwa `severityName` oder `principalHost`. Jeder andere Name wird als Quellattribut gelesen. `observable:<value>` findet jedes Ereignis, das einen Wert erwähnt, egal auf welcher Seite der Aktivität er stand.
 
 ### Facetten
 
-Die Seitenleiste zählt die Ereignisse des Zeitfensters nach **Quelle**, **Schweregrad**, **Ereignisklasse**, **Kategorie**, **Aktivität**, **Status**, **Anbieter**, **Produkt**, **Erkennungsregel**, **Quellbenutzer**, **Quell-Host**, **Prozess** und **Übergeordneter Prozess**. Klicken Sie auf einen Wert, um nur seine Ereignisse zu behalten, oder auf das Minus daneben, um sie auszuschließen. Ein erneuter Klick macht das rückgängig. Das Diagramm und jede Zählung beschreiben genau die Ereignisse in der Liste.
+Die Seitenleiste zählt die Ereignisse des Zeitfensters nach **Quelle**, **Schweregrad**, **Request Outcome**, **Ereignisklasse**, **Kategorie**, **Aktivität**, **Status**, **Anbieter**, **Produkt**, **Erkennungsregel**, **Quellbenutzer**, **Quell-Host**, **Prozess** und **Übergeordneter Prozess**. Klicken Sie auf einen Wert, um nur seine Ereignisse zu behalten, oder auf das Minus daneben, um sie auszuschließen. Ein erneuter Klick macht das rückgängig. Das Diagramm und jede Zählung beschreiben genau die Ereignisse in der Liste.
+
+### Was danach geschah
+
+Ein Ereignis aus einer Logzeile, die innerhalb einer getracten Anfrage geschrieben wurde, wird in diese Anfrage hinein verfolgt. Sein Panel zeigt, wie weit die Anfrage kam (**Abgelehnt**, **Reached App**, **Errored** oder **Reached Database**), wer sie gesendet hat, und verlinkt ihren Trace, ihre Ausnahme, ihre Sitzungswiedergabe und die Logzeile selbst. Auch eine Logzeile, ein Trace und eine Ausnahme, die Teil eines Angriffs sind, sagen das auf ihren eigenen Seiten.
+
+### Campaigns
+
+**Campaigns** listet jede Adresse, die Angriffsanfragen gesendet hat, als eine Zeile, mit den Angriffsarten, den Werkzeugen und den Anfragen, die sie gesendet hat, und wie viele durchkamen. Die Adressen, deren Anfragen Ihre App erreicht haben, stehen zuerst.
 
 ### Korrelieren
 

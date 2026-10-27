@@ -14,7 +14,10 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { APP_API_URL, HOST, HTTP_PROTOCOL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import IconProp from "Common/Types/Icon/IconProp";
+import ProviderLogo from "Common/Types/ProviderLogo/ProviderLogo";
 import Icon from "Common/UI/Components/Icon/Icon";
+import ProviderLogoImage from "Common/UI/Components/ProviderLogo/ProviderLogoImage";
+import ProviderLogoOrIcon from "Common/UI/Components/ProviderLogo/ProviderLogoOrIcon";
 import Protocol from "Common/Types/API/Protocol";
 import URL from "Common/Types/API/URL";
 import Route from "Common/Types/API/Route";
@@ -88,23 +91,67 @@ interface LanguageOption {
   key: Language;
   label: string;
   shortLabel: string;
+  // The language's or framework's official logo, beside its name on its button.
+  logo: ProviderLogo;
 }
 
-const languages: Array<LanguageOption> = [
-  { key: "node", label: "Node.js / TypeScript", shortLabel: "Node.js" },
-  { key: "python", label: "Python", shortLabel: "Python" },
-  { key: "go", label: "Go", shortLabel: "Go" },
-  { key: "java", label: "Java", shortLabel: "Java" },
-  { key: "dotnet", label: ".NET / C#", shortLabel: ".NET" },
-  { key: "rust", label: "Rust", shortLabel: "Rust" },
-  { key: "php", label: "PHP", shortLabel: "PHP" },
-  { key: "ruby", label: "Ruby", shortLabel: "Ruby" },
-  { key: "elixir", label: "Elixir", shortLabel: "Elixir" },
-  { key: "cpp", label: "C++", shortLabel: "C++" },
-  { key: "swift", label: "Swift", shortLabel: "Swift" },
-  { key: "react", label: "React (Browser)", shortLabel: "React" },
-  { key: "angular", label: "Angular (Browser)", shortLabel: "Angular" },
+export const TELEMETRY_LANGUAGES: Array<LanguageOption> = [
+  {
+    key: "node",
+    label: "Node.js / TypeScript",
+    shortLabel: "Node.js",
+    logo: ProviderLogo.NodeJs,
+  },
+  {
+    key: "python",
+    label: "Python",
+    shortLabel: "Python",
+    logo: ProviderLogo.Python,
+  },
+  { key: "go", label: "Go", shortLabel: "Go", logo: ProviderLogo.Go },
+  { key: "java", label: "Java", shortLabel: "Java", logo: ProviderLogo.Java },
+  {
+    key: "dotnet",
+    label: ".NET / C#",
+    shortLabel: ".NET",
+    logo: ProviderLogo.DotNet,
+  },
+  { key: "rust", label: "Rust", shortLabel: "Rust", logo: ProviderLogo.Rust },
+  { key: "php", label: "PHP", shortLabel: "PHP", logo: ProviderLogo.Php },
+  { key: "ruby", label: "Ruby", shortLabel: "Ruby", logo: ProviderLogo.Ruby },
+  {
+    key: "elixir",
+    label: "Elixir",
+    shortLabel: "Elixir",
+    logo: ProviderLogo.Elixir,
+  },
+  {
+    key: "cpp",
+    label: "C++",
+    shortLabel: "C++",
+    logo: ProviderLogo.CPlusPlus,
+  },
+  {
+    key: "swift",
+    label: "Swift",
+    shortLabel: "Swift",
+    logo: ProviderLogo.Swift,
+  },
+  {
+    key: "react",
+    label: "React (Browser)",
+    shortLabel: "React",
+    logo: ProviderLogo.React,
+  },
+  {
+    key: "angular",
+    label: "Angular (Browser)",
+    shortLabel: "Angular",
+    logo: ProviderLogo.Angular,
+  },
 ];
+
+const languages: Array<LanguageOption> = TELEMETRY_LANGUAGES;
 
 type IntegrationMethod =
   | "opentelemetry"
@@ -117,6 +164,14 @@ interface IntegrationOption {
   key: IntegrationMethod;
   label: string;
   description: string;
+  /*
+   * The official logo of the project the method uses (OpenTelemetry, Fluent
+   * Bit, Grafana Alloy). None for the profiling language SDKs, which are
+   * several: they show their icon in the logo's place instead, so the titles
+   * of a row of methods start on one line.
+   */
+  logo?: ProviderLogo | undefined;
+  icon?: IconProp | undefined;
 }
 
 // Helper to replace placeholders in code snippets
@@ -1341,18 +1396,21 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
         {
           key: "alloy" as IntegrationMethod,
           label: "Grafana Alloy (eBPF)",
+          logo: ProviderLogo.Grafana,
           description:
             "Recommended. Zero-code profiling for all languages on Linux using eBPF.",
         },
         {
           key: "kubernetes" as IntegrationMethod,
           label: "Kubernetes agent (eBPF)",
+          logo: ProviderLogo.Kubernetes,
           description:
             "Already run the OneUptime Kubernetes agent? Turn on its profiler: every pod, no code changes.",
         },
         {
           key: "opentelemetry" as IntegrationMethod,
           label: "Language SDK",
+          icon: IconProp.Code,
           description:
             "In-process profiling with Pyroscope SDKs: Go, Node.js, .NET, Python, Ruby, Rust.",
         },
@@ -1364,6 +1422,7 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
         key: "opentelemetry",
         label: "OpenTelemetry",
         description: "Recommended. Auto-instrumentation for most frameworks.",
+        logo: ProviderLogo.OpenTelemetry,
       },
     ];
 
@@ -1372,11 +1431,13 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
         key: "fluentbit",
         label: "FluentBit",
         description: "Lightweight log processor with minimal resource usage.",
+        logo: ProviderLogo.FluentBit,
       });
       methods.push({
         key: "fluentd",
         label: "Fluentd",
         description: "Mature data collector with rich plugin ecosystem.",
+        logo: ProviderLogo.Fluentd,
       });
     }
 
@@ -1544,19 +1605,30 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
         <div className="flex flex-wrap gap-1.5">
           {availableLanguages.map((lang: LanguageOption) => {
             const isSelected: boolean = selectedLanguage === lang.key;
+            /*
+             * Each language beside its own logo. The picked one is tinted,
+             * not filled: a logo keeps its colours, and on a solid indigo
+             * button Rust's black gear or Java's blue cup would disappear.
+             */
             return (
               <button
                 key={lang.key}
                 type="button"
+                aria-pressed={isSelected}
                 onClick={() => {
                   handleLanguageSelect(lang.key);
                 }}
-                className={`px-3.5 py-1.5 text-sm font-medium rounded-lg border transition-all ${
+                className={`inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg border transition-all ${
                   isSelected
-                    ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
+                    ? "bg-indigo-50 text-indigo-700 border-indigo-500 ring-1 ring-inset ring-indigo-500 shadow-sm"
                     : "bg-white text-gray-600 border-gray-200 hover:border-indigo-300 hover:text-indigo-600 hover:bg-indigo-50"
                 }`}
               >
+                <ProviderLogoImage
+                  logo={lang.logo}
+                  isBare={true}
+                  isDecorative={true}
+                />
                 {lang.shortLabel}
               </button>
             );
@@ -1584,6 +1656,7 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
               <button
                 key={method.key}
                 type="button"
+                aria-pressed={isSelected}
                 onClick={() => {
                   setSelectedMethod(method.key);
                 }}
@@ -1594,8 +1667,25 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
                 }`}
               >
                 <div
-                  className={`text-sm font-semibold ${isSelected ? "text-indigo-700" : "text-gray-900"}`}
+                  className={`flex items-center gap-2 text-sm font-semibold ${isSelected ? "text-indigo-700" : "text-gray-900"}`}
                 >
+                  {/*
+                    The project's logo, or the method's icon on the same
+                    footprint: every title in the row starts on one line.
+                  */}
+                  {method.logo || method.icon ? (
+                    <ProviderLogoOrIcon
+                      logo={method.logo}
+                      icon={method.icon || IconProp.Code}
+                      isBare={true}
+                      size={20}
+                      isDecorative={true}
+                      iconClassName={`h-5 w-5 flex-shrink-0 ${isSelected ? "text-indigo-600" : "text-gray-500"}`}
+                    />
+                  ) : (
+                    <></>
+                  )}
+                  {/* The label stays the line's own text, as before the logo. */}
                   {method.label}
                 </div>
                 <div className="text-xs text-gray-500 mt-0.5 leading-relaxed">

@@ -23,9 +23,11 @@ import WorkspaceActionAuthorization from "../../../../Server/Utils/Workspace/Wor
 import ModelPermission from "../../../../Server/Types/Database/Permissions/Index";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../../../Types/Exception/BadDataException";
+import ExceptionMessages from "../../../../Types/Exception/ExceptionMessages";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../../../Types/ObjectID";
 import ProjectService from "../../../../Server/Services/ProjectService";
+import UserService from "../../../../Server/Services/UserService";
 import { PlanType } from "../../../../Types/Billing/SubscriptionPlan";
 import Permission, {
   UserPermission,
@@ -100,6 +102,8 @@ function createIncident(): Incident {
 beforeEach((): void => {
   // Not a blocked project: that refusal has suites of its own (BlockedProject*).
   jest.spyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
+  // Nor a blocked person (WorkspaceActionAuthorization asks that too).
+  jest.spyOn(UserService, "isUserBlocked").mockResolvedValue(false);
   // The project's plan, as the action's checks read it where a plan decides (CallerPlan).
   jest.spyOn(ProjectService, "getCurrentPlan").mockResolvedValue({
     plan: PlanType.Enterprise,
@@ -167,6 +171,50 @@ describe("WorkspaceActionAuthorization.getProjectMemberProps", (): void => {
         projectId: projectId,
       }),
     ).rejects.toBeInstanceOf(NotAuthorizedException);
+  });
+
+  /*
+   * Blocking a person ends their sessions; their memberships and chat links
+   * stay. A member a master admin blocked acted from Slack and Microsoft
+   * Teams all the same - acknowledging incidents, paging on-call - until the
+   * chat path asked what an MCP client's path asks.
+   */
+  test("refuses a member a master admin blocked, before reading what they hold", async (): Promise<void> => {
+    jest
+      .spyOn(TeamMemberService, "findBy")
+      .mockResolvedValue([createMembership(ObjectID.generate())]);
+    jest.spyOn(UserService, "isUserBlocked").mockResolvedValue(true);
+    const tenantPermissionSpy: SpyInstance<
+      typeof AccessTokenService.getUserTenantAccessPermission
+    > = jest
+      .spyOn(AccessTokenService, "getUserTenantAccessPermission")
+      .mockResolvedValue(
+        createTenantPermission([{ permission: Permission.ProjectOwner }]),
+      );
+
+    await expect(
+      WorkspaceActionAuthorization.getProjectMemberProps({
+        userId: userId,
+        projectId: projectId,
+      }),
+    ).rejects.toThrow(ExceptionMessages.UserBlocked);
+
+    expect(UserService.isUserBlocked).toHaveBeenCalledWith(userId);
+    expect(tenantPermissionSpy).not.toHaveBeenCalled();
+  });
+
+  test("tells somebody who is not a member only that, blocked or not", async (): Promise<void> => {
+    jest.spyOn(TeamMemberService, "findBy").mockResolvedValue([]);
+    jest.spyOn(UserService, "isUserBlocked").mockResolvedValue(true);
+
+    await expect(
+      WorkspaceActionAuthorization.getProjectMemberProps({
+        userId: userId,
+        projectId: projectId,
+      }),
+    ).rejects.toThrow(
+      WorkspaceActionAuthorization.NOT_A_PROJECT_MEMBER_MESSAGE,
+    );
   });
 
   test("builds a member's props with their tenant permission and accepted teams", async (): Promise<void> => {

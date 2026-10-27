@@ -725,6 +725,8 @@ service:
 
 BullMQ tiene i suoi job in Redis e non ha un broker da raccogliere; segnala la profondità della coda dall'applicazione come metrica che riporta `messaging.system` e `messaging.destination.name`, come fanno i worker di OneUptime con `queue.size`.
 
+Con il [tracer eBPF dell'agent Kubernetes](/docs/telemetry/kubernetes-agent#come-sono-le-tracce-ebpf), OneUptime legge anche le code BullMQ (BullMQ 5 e successivi) dai comandi Redis che BullMQ invia, senza modificare la tua applicazione: aggiungere un job mostra il servizio come producer della sua coda, e completare un job come consumer. L'agent scarta per impostazione predefinita le chiamate al database effettuate fuori da una richiesta (`ebpf.dropUnlinkedDatabaseCalls`), e un worker che elabora un job si trova fuori da una richiesta, quindi, senza altre impostazioni, una coda trovata in questo modo mostra soprattutto i suoi producer; imposta `ebpf.dropUnlinkedDatabaseCalls=false` per vedere anche i suoi consumer.
+
 La telemetria propria di BullMQ (la sua opzione `telemetry`, implementata dal pacchetto `bullmq-otel`) indica la coda in `bullmq.queue.name` e non imposta alcun `messaging.system`, quindi da sola non crea alcuna coda. Un processor `transform` nel collector a cui inviano le tue applicazioni aggiunge le due chiavi che OneUptime legge, sugli span che aggiungono ed elaborano job e sulle metriche di BullMQ stesso:
 
 ```yaml

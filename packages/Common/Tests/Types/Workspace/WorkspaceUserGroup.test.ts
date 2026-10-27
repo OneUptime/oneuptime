@@ -15,6 +15,7 @@ import {
   WorkspaceUserGroupSyncState,
 } from "../../../Types/Workspace/WorkspaceUserGroup";
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * What the Connect form suggests for a schedule's new user group or tag,
@@ -136,11 +137,15 @@ describe("what a Slack handle may be", () => {
   });
 
   test("a long typed handle is read in time that grows with its length", () => {
-    const started: number = Date.now();
-    readSlackUserGroupHandle("@".repeat(400000));
-    isValidSlackUserGroupHandle("a".repeat(400000));
-    getSuggestedSlackHandle("a -".repeat(140000));
-    expect(Date.now() - started).toBeLessThan(2000);
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        readSlackUserGroupHandle("@".repeat(400000));
+        isValidSlackUserGroupHandle("a".repeat(400000));
+        getSuggestedSlackHandle("a -".repeat(140000));
+      },
+      limitInMs: 2000,
+    });
+    expect(timed.inMs).toBeLessThan(2000);
   });
 });
 

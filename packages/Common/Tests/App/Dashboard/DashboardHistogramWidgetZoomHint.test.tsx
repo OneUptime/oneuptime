@@ -639,6 +639,13 @@ describe.each(WIDGETS)("the $name widget's hint", (widget: WidgetUnderTest) => {
 
       expect(hint()).toBeNull();
     });
+
+    test("a playlist's turn on a screen offers no hint either: nobody drags a wall (issue #5235)", async () => {
+      renderWidget({ isPlayback: true, isDashboardTimeRangeZoomed: true });
+      await screen.findByTestId(widget.chartTestId);
+
+      expect(hint()).toBeNull();
+    });
   });
 
   describe("where the hint sits", () => {

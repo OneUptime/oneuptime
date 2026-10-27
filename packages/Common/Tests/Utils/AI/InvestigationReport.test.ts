@@ -21,6 +21,7 @@ import {
 } from "../../../Types/Kubernetes/KubernetesClusterAiAccessToolNames";
 
 import FeedMarkdown, { mdText } from "../../../Utils/Markdown/FeedMarkdown";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 /*
  * The investigation panel lays the AI report out section by section, links
  * the incidents it mentions and lists the evidence it checked; the API uses
@@ -2185,12 +2186,15 @@ describe("parseInvestigationReport — input edge cases", () => {
     ],
     ["a long underscore run before a reference", `${"_".repeat(50000)} #1`],
   ])("stays fast on %s", (_name: string, input: string) => {
-    const started: number = Date.now();
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        parseInvestigationReport(input);
+        extractEventReferences(input, "incident", 10000);
+      },
+      limitInMs: 3000,
+    });
 
-    parseInvestigationReport(input);
-    extractEventReferences(input, "incident", 10000);
-
-    expect(Date.now() - started).toBeLessThan(3000);
+    expect(timed.inMs).toBeLessThan(3000);
   });
 
   test("a large report parses quickly", () => {
@@ -2201,13 +2205,17 @@ describe("parseInvestigationReport — input edge cases", () => {
       );
     }
 
-    const started: number = Date.now();
-    const parsed: ParsedInvestigationReport = parseInvestigationReport(
-      `**Summary** — A.\n\n${paragraphs.join("\n\n")}`,
-    );
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        const parsed: ParsedInvestigationReport = parseInvestigationReport(
+          `**Summary** — A.\n\n${paragraphs.join("\n\n")}`,
+        );
 
-    expect(parsed.sections).toHaveLength(2001);
-    expect(Date.now() - started).toBeLessThan(5000);
+        expect(parsed.sections).toHaveLength(2001);
+      },
+      limitInMs: 5000,
+    });
+    expect(timed.inMs).toBeLessThan(5000);
   });
 });
 

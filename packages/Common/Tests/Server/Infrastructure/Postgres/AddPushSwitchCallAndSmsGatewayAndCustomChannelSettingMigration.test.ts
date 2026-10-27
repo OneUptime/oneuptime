@@ -16,8 +16,8 @@ import {
   DEFAULT_CALL_AND_SMS_PROVIDER,
 } from "../../../../Types/CallAndSMS/CallAndSmsProvider";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
-import { AddCustomNotificationChannelIndexesAndKeys1808010000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808010000000-AddCustomNotificationChannelIndexesAndKeys";
-import { AddPushSwitchCallAndSmsGatewayAndCustomChannelSetting1808020000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808020000000-AddPushSwitchCallAndSmsGatewayAndCustomChannelSetting";
+import { AddCustomNotificationChannelIndexesAndKeys1808090000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808090000000-AddCustomNotificationChannelIndexesAndKeys";
+import { AddPushSwitchCallAndSmsGatewayAndCustomChannelSetting1808100000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808100000000-AddPushSwitchCallAndSmsGatewayAndCustomChannelSetting";
 
 /*
  * THE MIGRATION FOR THE PUSH SWITCH, THE SMS AND CALL GATEWAY AND CUSTOM
@@ -44,7 +44,7 @@ import { AddPushSwitchCallAndSmsGatewayAndCustomChannelSetting1808020000000 } fr
  * registered after every migration before it.
  */
 
-const MIGRATION_TIMESTAMP: string = "1808020000000";
+const MIGRATION_TIMESTAMP: string = "1808100000000";
 const MIGRATION_NAME: string =
   "AddPushSwitchCallAndSmsGatewayAndCustomChannelSetting";
 const MIGRATION_CLASS_NAME: string = `${MIGRATION_NAME}${MIGRATION_TIMESTAMP}`;
@@ -104,8 +104,8 @@ function typeOrmColumn(
   );
 }
 
-function newMigration(): AddPushSwitchCallAndSmsGatewayAndCustomChannelSetting1808020000000 {
-  return new AddPushSwitchCallAndSmsGatewayAndCustomChannelSetting1808020000000();
+function newMigration(): AddPushSwitchCallAndSmsGatewayAndCustomChannelSetting1808100000000 {
+  return new AddPushSwitchCallAndSmsGatewayAndCustomChannelSetting1808100000000();
 }
 
 describe("running it", () => {
@@ -218,7 +218,7 @@ describe("running it", () => {
     expect(typeof migration.down).toBe("function");
     expect(
       Object.getOwnPropertyNames(
-        AddPushSwitchCallAndSmsGatewayAndCustomChannelSetting1808020000000.prototype,
+        AddPushSwitchCallAndSmsGatewayAndCustomChannelSetting1808100000000.prototype,
       ).sort(),
     ).toEqual(["constructor", "down", "up"]);
   });
@@ -300,14 +300,14 @@ describe("the migration runs", () => {
     );
     expect(index).toContain(`${MIGRATION_CLASS_NAME},`);
     expect(SchemaMigrations).toContain(
-      AddPushSwitchCallAndSmsGatewayAndCustomChannelSetting1808020000000,
+      AddPushSwitchCallAndSmsGatewayAndCustomChannelSetting1808100000000,
     );
   });
 
   test("its declared name is its class name", () => {
     expect(newMigration().name).toBe(MIGRATION_CLASS_NAME);
     expect(
-      AddPushSwitchCallAndSmsGatewayAndCustomChannelSetting1808020000000.name,
+      AddPushSwitchCallAndSmsGatewayAndCustomChannelSetting1808100000000.name,
     ).toBe(MIGRATION_CLASS_NAME);
   });
 
@@ -321,7 +321,7 @@ describe("the migration runs", () => {
 
   test("its timestamp sorts after every migration registered before it", () => {
     const position: number = SchemaMigrations.indexOf(
-      AddPushSwitchCallAndSmsGatewayAndCustomChannelSetting1808020000000,
+      AddPushSwitchCallAndSmsGatewayAndCustomChannelSetting1808100000000,
     );
 
     expect(position).toBeGreaterThan(-1);
@@ -345,11 +345,11 @@ describe("the migration runs", () => {
   test("runs after the custom channel migrations whose columns it builds on", () => {
     expect(
       SchemaMigrations.indexOf(
-        AddPushSwitchCallAndSmsGatewayAndCustomChannelSetting1808020000000,
+        AddPushSwitchCallAndSmsGatewayAndCustomChannelSetting1808100000000,
       ),
     ).toBeGreaterThan(
       SchemaMigrations.indexOf(
-        AddCustomNotificationChannelIndexesAndKeys1808010000000,
+        AddCustomNotificationChannelIndexesAndKeys1808090000000,
       ),
     );
   });

@@ -36,6 +36,7 @@ flowchart TB
 | **Lukkede saker** | Sikkerhetssaker | Sakene som er lukket med en vurdering, de nyeste først |
 | **Alle saker** | Sikkerhetssaker | Hver sak, åpen eller lukket |
 | **Hendelser** | Hendelser | Søk i og filtrer alle hendelser, og åpne en for å se alle feltene |
+| **Campaigns** | Hendelser | Hver adresse som sendte angrepsforespørsler, og om noen av forespørslene kom gjennom |
 | **Entiteter** | Hendelser | Brukerne, vertene og adressene som funnene dine nevner oftest |
 | **Entitetsrisiko** | Hendelser | Hver bruker, vert og adresse, vurdert etter hva som er funnet om den denne uken, de mest risikable først |
 | **Korreler** | Hendelser | En graf over hendelsene som deler en vert, en bruker eller en IP-adresse |
@@ -232,11 +233,19 @@ Søkefeltet snakker samme språk som de andre telemetriutforskerne (se [Søkesyn
 | `@<attribute>:*` | Attributtet finnes | `@threat.indicator_id:*` |
 | `@<attribute>:~text` | Attributtet inneholder teksten | `@finding_info.title:~ransom` |
 
-Et felt er enten et kort navn (`severity`, `class`, `category`, `activity`, `status`, `vendor`, `product`, `rule`, `user`, `host`, `ip`, `targetuser`, `targethost`, `targetip`, `processname`, `commandline`, `parentprocessname`, `observable`, `tactic`, `technique`) eller feltets eget navn, for eksempel `severityName` eller `principalHost`. Alle andre navn leses som et kildeattributt. `observable:<value>` finner hver hendelse som nevner en verdi, uansett hvilken side av aktiviteten den var på.
+Et felt er enten et kort navn (`severity`, `class`, `category`, `activity`, `status`, `vendor`, `product`, `rule`, `user`, `host`, `ip`, `targetuser`, `targethost`, `targetip`, `processname`, `commandline`, `parentprocessname`, `observable`, `tactic`, `technique`, `requestoutcome`, `trace`, `session`) eller feltets eget navn, for eksempel `severityName` eller `principalHost`. Alle andre navn leses som et kildeattributt. `observable:<value>` finner hver hendelse som nevner en verdi, uansett hvilken side av aktiviteten den var på.
 
 ### Fasetter
 
-Sidepanelet teller vinduets hendelser etter **Kilde**, **Alvorlighetsgrad**, **Hendelsesklasse**, **Kategori**, **Aktivitet**, **Status**, **Leverandør**, **Produkt**, **Deteksjonsregel**, **Kildebruker**, **Kildevert**, **Prosess** og **Overordnet prosess**. Klikk på en verdi for å beholde bare hendelsene med den, eller på minustegnet ved siden av for å utelate dem. Klikk igjen for å angre. Diagrammet og hver telling beskriver nøyaktig hendelsene i listen.
+Sidepanelet teller vinduets hendelser etter **Kilde**, **Alvorlighetsgrad**, **Request Outcome**, **Hendelsesklasse**, **Kategori**, **Aktivitet**, **Status**, **Leverandør**, **Produkt**, **Deteksjonsregel**, **Kildebruker**, **Kildevert**, **Prosess** og **Overordnet prosess**. Klikk på en verdi for å beholde bare hendelsene med den, eller på minustegnet ved siden av for å utelate dem. Klikk igjen for å angre. Diagrammet og hver telling beskriver nøyaktig hendelsene i listen.
+
+### Hva som skjedde etterpå
+
+En hendelse lest fra en logglinje som ble skrevet inne i en sporet forespørsel, følges inn i den forespørselen. Panelet viser hvor langt forespørselen kom (**Avvist**, **Reached App**, **Errored** eller **Reached Database**), hvem som sendte den, og lenker til sporingen, unntaket, øktavspillingen og selve logglinjen. En logglinje, en sporing og et unntak som er del av et angrep, sier det også på sine egne sider.
+
+### Campaigns
+
+**Campaigns** viser hver adresse som sendte angrepsforespørsler som én rad, med angrepstypene, verktøyene og forespørslene den sendte, og hvor mange som kom gjennom. Adressene med forespørsler som nådde appen din, kommer først.
 
 ### Korreler
 

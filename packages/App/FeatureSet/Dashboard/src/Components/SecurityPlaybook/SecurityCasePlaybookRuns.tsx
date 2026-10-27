@@ -41,7 +41,13 @@ export interface ComponentProps {
   onRunsChanged?: (() => void) | undefined;
 }
 
-// The playbooks that ran on a case, newest first, each with its steps.
+/*
+ * The playbooks that ran on a case, newest first. Each run is a line of how
+ * far it got, its steps a click away, as on Playbook Runs: a playbook that
+ * runs at every new detection gives a busy case a run a detection, and drawn
+ * whole they made a page of steps nobody could scan. The newest run opens,
+ * as does any run waiting for approval: those are the ones read here.
+ */
 const SecurityCasePlaybookRuns: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -105,18 +111,22 @@ const SecurityCasePlaybookRuns: FunctionComponent<ComponentProps> = (
         />
       ) : (
         <div className="space-y-3">
-          {result.runs.map((run: SecurityPlaybookRun): ReactElement => {
-            return (
-              <SecurityPlaybookRunCard
-                key={run._id!.toString()}
-                run={run}
-                onChanged={() => {
-                  result.refresh();
-                  props.onRunsChanged?.();
-                }}
-              />
-            );
-          })}
+          {result.runs.map(
+            (run: SecurityPlaybookRun, index: number): ReactElement => {
+              return (
+                <SecurityPlaybookRunCard
+                  key={run._id!.toString()}
+                  run={run}
+                  isCollapsible={true}
+                  isExpandedAtFirst={index === 0}
+                  onChanged={() => {
+                    result.refresh();
+                    props.onRunsChanged?.();
+                  }}
+                />
+              );
+            },
+          )}
         </div>
       )}
     </Card>
