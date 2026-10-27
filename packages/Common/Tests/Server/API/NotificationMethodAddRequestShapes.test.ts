@@ -63,6 +63,7 @@ import APIKeyAccessPermission from "../../../Server/Utils/APIKey/AccessPermissio
 import PlanCutoffCredentialAccess from "../../../Server/Utils/Billing/PlanCutoffCredentialAccess";
 import ChannelVerification from "../../../Server/Utils/ChannelVerification";
 import JSONWebToken from "../../../Server/Utils/JsonWebToken";
+import MultiTenantQuery from "../../../Server/Utils/MultiTenantQuery";
 import RealtimeAccessChanges from "../../../Server/Utils/Realtime/RealtimeAccessChanges";
 import { expressErrorHandler } from "../../../Server/Utils/StartServer";
 import TwilioAccountAvailability from "../../../Server/Utils/TwilioAccountAvailability";
@@ -834,6 +835,11 @@ describe.each(CODE_CHANNELS)(
       expectNothingDone();
     });
 
+    /*
+     * A request is made in one project or across the caller's projects,
+     * never both: refused before anything is read for the project
+     * (MultiTenantQuery).
+     */
     test("in the tenantid header, asking across their own projects too", async () => {
       const result: HttpResult = await post({
         path: channel.path,
@@ -844,10 +850,9 @@ describe.each(CODE_CHANNELS)(
       });
       await settle();
 
-      expect(result.status).toBe(422);
-      expect(errorOf(result)).toBe(
-        CreatePermission.NOT_A_PROJECT_MEMBER_MESSAGE,
-      );
+      expect(result.status).toBe(400);
+      expect(errorOf(result)).toBe(MultiTenantQuery.WITH_PROJECT_MESSAGE);
+      expect(projectWasRead()).toBe(false);
       expectNothingDone();
     });
 
@@ -992,7 +997,8 @@ describe.each(CODE_CHANNELS)(
       expectNothingDone();
     });
 
-    test("naming the project and asking across their own projects too", async () => {
+    // One project or across projects, never both (MultiTenantQuery).
+    test("naming the project and asking across their own projects too is refused before the project is asked about", async () => {
       const result: HttpResult = await post({
         path: channel.path,
         as: MEMBER,
@@ -1004,16 +1010,16 @@ describe.each(CODE_CHANNELS)(
       });
       await settle();
 
-      expect(result.status).toBe(406);
+      expect(result.status).toBe(400);
+      expect(errorOf(result)).toBe(MultiTenantQuery.WITH_PROJECT_MESSAGE);
       expectNothingDone();
     });
 
-    test("while their own project that does not require SSO, named with the same request shape, takes theirs (the control)", async () => {
+    test("while their own project that does not require SSO, named in the tenantid header, takes theirs (the control)", async () => {
       const result: HttpResult = await post({
         path: channel.path,
         as: MEMBER,
         tenantHeader: PROJECT_ID.toString(),
-        acrossProjects: true,
         body: addBody(channel, 24),
       });
       await settle();

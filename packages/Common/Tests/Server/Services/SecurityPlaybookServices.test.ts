@@ -559,9 +559,14 @@ describe("SecurityPlaybookRunAPI.decide", () => {
     run.stepResults = buildPendingStepResults(steps) as unknown as JSONArray;
     run.currentStepIndex = 0;
 
-    getJestSpyOn(SecurityPlaybookRunService, "findOneBy").mockResolvedValue(
-      run as never,
-    );
+    /*
+     * The run as the caller may change it. Who may change which run is
+     * pinned through the routes, in SecurityPlaybookRunChangeScope.test.ts.
+     */
+    getJestSpyOn(
+      SecurityPlaybookRunService,
+      "findOneUpdatableById",
+    ).mockResolvedValue(run as never);
   }
 
   beforeEach(() => {
@@ -925,9 +930,10 @@ describe("SecurityPlaybookRunAPI.decide: who approves, and what", () => {
       run.triggeredByUserId = data.triggeredByUserId;
     }
 
-    getJestSpyOn(SecurityPlaybookRunService, "findOneBy").mockResolvedValue(
-      run as never,
-    );
+    getJestSpyOn(
+      SecurityPlaybookRunService,
+      "findOneUpdatableById",
+    ).mockResolvedValue(run as never);
   }
 
   function written(): Array<SecurityPlaybookStepResult> {
@@ -1200,9 +1206,10 @@ describe("SecurityPlaybookRunAPI.undoTarget, the one-click on a contained target
     run.stepResults = results as unknown as JSONArray;
     run.currentStepIndex = 1;
 
-    getJestSpyOn(SecurityPlaybookRunService, "findOneBy").mockResolvedValue(
-      run as never,
-    );
+    getJestSpyOn(
+      SecurityPlaybookRunService,
+      "findOneUpdatableById",
+    ).mockResolvedValue(run as never);
 
     return run;
   }

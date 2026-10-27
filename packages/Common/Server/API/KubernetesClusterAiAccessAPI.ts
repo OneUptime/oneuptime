@@ -15,7 +15,7 @@ import ServiceUnavailableException from "../../Types/Exception/ServiceUnavailabl
 import TooManyRequestsException from "../../Types/Exception/TooManyRequestsException";
 import ObjectID from "../../Types/ObjectID";
 import { JSONObject } from "../../Types/JSON";
-import { PermissionHelper } from "../../Types/Permission";
+import Permission, { PermissionHelper } from "../../Types/Permission";
 import RunnerJobOrigin from "../../Types/Runbook/RunnerJobOrigin";
 import RunnerJobStatus from "../../Types/Runbook/RunnerJobStatus";
 import {
@@ -869,7 +869,7 @@ function newestFirst<T extends { createdAt?: Date | undefined }>(
 // The union of several newest-first reads: one row per id, newest first.
 function mergeNewest<T extends BaseRow>(
   groups: Array<Array<T>>,
-  limit: number,
+  limit?: number | undefined,
 ): Array<T> {
   const byId: Map<string, T> = new Map<string, T>();
 
@@ -888,12 +888,31 @@ function mergeNewest<T extends BaseRow>(
 
 /*
  * Everything OneUptime AI did on one cluster, newest first, as summaries
- * (KubernetesClusterAiLogs). Read as root: the caller has already been
- * checked for read access to the cluster (findAccessibleCluster), and the
- * rows it summarises — AI runs, suggestions, Runner jobs — have narrower
- * read ACLs of their own, so reading them under the viewer's props would
- * break the page for exactly the people it is for. That is why nothing
- * here returns kubectl output, prompts or command plans.
+ * (KubernetesClusterAiLogs). The caller has already been checked for read
+ * access to the cluster (findAccessibleCluster), which is a wider audience
+ * than the incidents, alerts, AI runs and suggestions summarised here, so
+ * what is said about THOSE follows the caller's own read access to them,
+ * exactly as on a resource's AI page (ResourceAiAccessAPI
+ * .getResourceAiLogs):
+ *
+ * - incidents and alerts are read under the caller's props (tenant, labels,
+ *   private incidents), both to find the ones linked to the cluster and to
+ *   name a run's subject; an investigation whose incident or alert the
+ *   caller cannot read is left out altogether;
+ * - an investigation's TL;DR and its report's summary are shown with its
+ *   readable incident or alert - their own AI investigation panel shows the
+ *   whole analysis to anyone who may read the subject - and, for a run with
+ *   neither, only to a caller who may read AIRun's TL;DR;
+ * - a fix's rationale is read under the caller's props, so only a caller who
+ *   may read that AutoRemediationSuggestion (its ACL and its incident's or
+ *   alert's privacy) gets it.
+ *
+ * The rest - which AI runs and suggestions touched the cluster, their status
+ * and dates, the command counts - is about the cluster itself and is read as
+ * root: AI runs, suggestions and Runner jobs have narrower read ACLs of
+ * their own (an investigation run is private to its author), so reading
+ * them under the caller's props would empty the page for exactly the people
+ * it is for. Nothing here returns kubectl output, prompts or command plans.
  *
  * - investigations: AI investigations that ran kubectl on this cluster
  *   (their RunnerJob rows name it), UNION investigations of incidents and
@@ -911,8 +930,10 @@ function mergeNewest<T extends BaseRow>(
 export async function getClusterAiLogs(data: {
   projectId: ObjectID;
   clusterId: ObjectID;
+  // The caller's own (tenant-pinned) props.
+  props: DatabaseCommonInteractionProps;
 }): Promise<KubernetesClusterAiLogs> {
-  const { projectId, clusterId } = data;
+  const { projectId, clusterId, props } = data;
   const limit: number = KUBERNETES_CLUSTER_AI_LOGS_LIMIT;
 
   const jobs: Array<RunnerJob> = await RunnerJobService.findBy({
@@ -947,35 +968,41 @@ export async function getClusterAiLogs(data: {
     }
   }
 
+  // Only the incidents and alerts the caller may read (see above).
   const [linkedIncidents, linkedAlerts]: [Array<Incident>, Array<Alert>] =
     await Promise.all([
-      IncidentService.findBy({
-        query: {
-          projectId,
-          kubernetesClusters: QueryHelper.inRelationArray([clusterId]),
-        },
-        select: { _id: true },
-        sort: { createdAt: SortOrder.Descending },
-        limit: LOGS_LINKED_SUBJECT_LIMIT,
-        skip: 0,
-        props: { isRoot: true },
+      readIfPermitted<Incident>(() => {
+        return IncidentService.findBy({
+          query: {
+            projectId,
+            kubernetesClusters: QueryHelper.inRelationArray([clusterId]),
+          },
+          select: { _id: true },
+          sort: { createdAt: SortOrder.Descending },
+          limit: LOGS_LINKED_SUBJECT_LIMIT,
+          skip: 0,
+          props,
+        });
       }),
-      AlertService.findBy({
-        query: {
-          projectId,
-          kubernetesClusters: QueryHelper.inRelationArray([clusterId]),
-        },
-        select: { _id: true },
-        sort: { createdAt: SortOrder.Descending },
-        limit: LOGS_LINKED_SUBJECT_LIMIT,
-        skip: 0,
-        props: { isRoot: true },
+      readIfPermitted<Alert>(() => {
+        return AlertService.findBy({
+          query: {
+            projectId,
+            kubernetesClusters: QueryHelper.inRelationArray([clusterId]),
+          },
+          select: { _id: true },
+          sort: { createdAt: SortOrder.Descending },
+          limit: LOGS_LINKED_SUBJECT_LIMIT,
+          skip: 0,
+          props,
+        });
       }),
     ]);
 
   const investigations: Array<KubernetesClusterAiLogInvestigation> =
     await getLogInvestigations({
       projectId,
+      props,
       runIds: Array.from(runIdsFromJobs.values()),
       incidentIds: getIds(linkedIncidents),
       alertIds: getIds(linkedAlerts),
@@ -984,6 +1011,7 @@ export async function getClusterAiLogs(data: {
 
   const fixes: Array<KubernetesClusterAiLogFix> = await getLogFixes({
     projectId,
+    props,
     clusterId,
     suggestionIds: Array.from(suggestionIdsFromJobs.values()),
     limit,
@@ -1055,8 +1083,17 @@ const LOG_RUN_SELECT: Record<string, boolean> = {
   triggeredByAlertId: true,
 };
 
+/*
+ * Who may read the TL;DR of a run that has no incident or alert to decide
+ * it: the people who may read that column of AIRun.
+ */
+function getSubjectlessRunTldrReadPermissions(): Array<Permission> {
+  return new AIRun().getColumnAccessControlFor("analysisTldr")?.read || [];
+}
+
 async function getLogInvestigations(data: {
   projectId: ObjectID;
+  props: DatabaseCommonInteractionProps;
   runIds: Array<ObjectID>;
   incidentIds: Array<ObjectID>;
   alertIds: Array<ObjectID>;
@@ -1101,58 +1138,56 @@ async function getLogInvestigations(data: {
     return [];
   }
 
-  const runs: Array<AIRun> = mergeNewest(await Promise.all(reads), data.limit);
+  // Every candidate, newest first: the limit applies after the subject check.
+  const candidates: Array<AIRun> = mergeNewest(await Promise.all(reads));
 
   const incidentIds: Array<ObjectID> = getUniqueIds(
-    runs.map((run: AIRun): ObjectID | undefined => {
+    candidates.map((run: AIRun): ObjectID | undefined => {
       return run.triggeredByIncidentId;
     }),
   );
   const alertIds: Array<ObjectID> = getUniqueIds(
-    runs.map((run: AIRun): ObjectID | undefined => {
+    candidates.map((run: AIRun): ObjectID | undefined => {
       return run.triggeredByAlertId;
     }),
   );
 
-  const [incidents, alerts, reportSummaries]: [
-    Array<Incident>,
-    Array<Alert>,
-    Map<string, string>,
-  ] = await Promise.all([
-    incidentIds.length > 0
-      ? IncidentService.findBy({
-          query: {
-            projectId: data.projectId,
-            _id: QueryHelper.any(incidentIds),
-          },
-          select: { _id: true, title: true, incidentNumber: true },
-          limit: incidentIds.length,
-          skip: 0,
-          props: { isRoot: true },
-        })
-      : Promise.resolve([]),
-    alertIds.length > 0
-      ? AlertService.findBy({
-          query: {
-            projectId: data.projectId,
-            _id: QueryHelper.any(alertIds),
-          },
-          select: { _id: true, title: true },
-          limit: alertIds.length,
-          skip: 0,
-          props: { isRoot: true },
-        })
-      : Promise.resolve([]),
-    /*
-     * A completed run without a TL;DR still published a report, and its
-     * own Summary stands in (InvestigationReportSummary): the page never
-     * says "No summary was recorded." about a run that has one.
-     */
-    InvestigationReportSummary.getForRuns({
-      projectId: data.projectId,
-      runs: InvestigationReportSummary.getRunsWithoutTldr(runs),
-    }),
-  ]);
+  /*
+   * The subjects under the CALLER's props: tenant, labels and private
+   * incidents apply exactly as on a CRUD read, and a role that may not read
+   * incidents (or alerts) at all reads none.
+   */
+  const [incidents, alerts]: [Array<Incident>, Array<Alert>] =
+    await Promise.all([
+      incidentIds.length > 0
+        ? readIfPermitted<Incident>(() => {
+            return IncidentService.findBy({
+              query: {
+                projectId: data.projectId,
+                _id: QueryHelper.any(incidentIds),
+              },
+              select: { _id: true, title: true, incidentNumber: true },
+              limit: incidentIds.length,
+              skip: 0,
+              props: data.props,
+            });
+          })
+        : Promise.resolve([]),
+      alertIds.length > 0
+        ? readIfPermitted<Alert>(() => {
+            return AlertService.findBy({
+              query: {
+                projectId: data.projectId,
+                _id: QueryHelper.any(alertIds),
+              },
+              select: { _id: true, title: true },
+              limit: alertIds.length,
+              skip: 0,
+              props: data.props,
+            });
+          })
+        : Promise.resolve([]),
+    ]);
 
   const incidentsById: Map<string, Incident> = new Map<string, Incident>(
     incidents.map((incident: Incident): [string, Incident] => {
@@ -1165,6 +1200,52 @@ async function getLogInvestigations(data: {
     }),
   );
 
+  // A run whose incident or alert the caller cannot read is left out.
+  const runs: Array<AIRun> = candidates
+    .filter((run: AIRun): boolean => {
+      if (
+        run.triggeredByIncidentId &&
+        !incidentsById.has(run.triggeredByIncidentId.toString())
+      ) {
+        return false;
+      }
+
+      if (
+        run.triggeredByAlertId &&
+        !alertsById.has(run.triggeredByAlertId.toString())
+      ) {
+        return false;
+      }
+
+      return true;
+    })
+    .slice(0, data.limit);
+
+  /*
+   * A block row for any of these is a denial even when a grant is present,
+   * labelled or not: the run has no record whose labels it could be held to.
+   */
+  const mayReadSubjectlessTldr: boolean =
+    Boolean(data.props.isRoot || data.props.isMasterAdmin) ||
+    CallerPermission.holdsAnyOf(
+      data.props,
+      getSubjectlessRunTldrReadPermissions(),
+      { projectId: data.projectId, labelledBlocksRefuse: true },
+    );
+
+  /*
+   * A completed run without a TL;DR still published a report on its
+   * incident or alert, and its own Summary stands in
+   * (InvestigationReportSummary): the page never says "No summary was
+   * recorded." about a run that has one. Only runs with a subject have a
+   * report, and every such run left here has a subject the caller may read.
+   */
+  const reportSummaries: Map<string, string> =
+    await InvestigationReportSummary.getForRuns({
+      projectId: data.projectId,
+      runs: InvestigationReportSummary.getRunsWithoutTldr(runs),
+    });
+
   return runs.map((run: AIRun): KubernetesClusterAiLogInvestigation => {
     const incident: Incident | undefined = run.triggeredByIncidentId
       ? incidentsById.get(run.triggeredByIncidentId.toString())
@@ -1173,11 +1254,21 @@ async function getLogInvestigations(data: {
       ? alertsById.get(run.triggeredByAlertId.toString())
       : undefined;
 
+    /*
+     * Every run left here with a subject has a subject the caller may read,
+     * and the subject's own AI panel shows its analysis to them.
+     */
+    const mayReadTldr: boolean =
+      Boolean(run.triggeredByIncidentId || run.triggeredByAlertId) ||
+      mayReadSubjectlessTldr;
+
     return {
       aiRunId: run.id!.toString(),
       status: run.status,
-      analysisTldr: run.analysisTldr || undefined,
-      reportSummary: reportSummaries.get(run.id!.toString()),
+      analysisTldr: mayReadTldr ? run.analysisTldr || undefined : undefined,
+      reportSummary: mayReadTldr
+        ? reportSummaries.get(run.id!.toString())
+        : undefined,
       createdAt: toIsoString(run.createdAt),
       completedAt: toIsoString(run.completedAt),
       incident: run.triggeredByIncidentId
@@ -1209,12 +1300,36 @@ function getUniqueIds(ids: Array<ObjectID | undefined>): Array<ObjectID> {
   return Array.from(byId.values());
 }
 
+/*
+ * A read made under the caller's own props, which the permission layer
+ * refuses outright for a role that cannot read the table at all (a
+ * ReadKubernetesCluster-only role reading Incident): that caller gets
+ * nothing from it, the same as a caller whose labels or private-incident
+ * membership leave no row readable.
+ */
+async function readIfPermitted<T>(
+  read: () => Promise<Array<T>>,
+): Promise<Array<T>> {
+  try {
+    return await read();
+  } catch (error) {
+    if (error instanceof NotAuthorizedException) {
+      return [];
+    }
+
+    throw error;
+  }
+}
+
+/*
+ * Read as root, so never the rationale: that is read under the caller's
+ * props (getLogFixes).
+ */
 const LOG_FIX_SELECT: Record<string, boolean> = {
   _id: true,
   status: true,
   executionMode: true,
   suggestionType: true,
-  rationaleMarkdown: true,
   createdAt: true,
   approvedAt: true,
   incidentId: true,
@@ -1223,6 +1338,7 @@ const LOG_FIX_SELECT: Record<string, boolean> = {
 
 async function getLogFixes(data: {
   projectId: ObjectID;
+  props: DatabaseCommonInteractionProps;
   clusterId: ObjectID;
   suggestionIds: Array<ObjectID>;
   limit: number;
@@ -1250,18 +1366,54 @@ async function getLogFixes(data: {
     reads.push(readSuggestions({ _id: QueryHelper.any(data.suggestionIds) }));
   }
 
-  return mergeNewest(await Promise.all(reads), data.limit).map(
+  const suggestions: Array<AutoRemediationSuggestion> = mergeNewest(
+    await Promise.all(reads),
+    data.limit,
+  );
+  const ids: Array<ObjectID> = getIds(suggestions);
+
+  /*
+   * The rationale quotes the AI's analysis of the incident or alert, so it
+   * is read under the CALLER's props: the suggestion's read ACL and its
+   * subject's privacy decide it, as on a CRUD read.
+   */
+  const readable: Array<AutoRemediationSuggestion> =
+    ids.length > 0
+      ? await readIfPermitted<AutoRemediationSuggestion>(() => {
+          return AutoRemediationSuggestionService.findBy({
+            query: {
+              projectId: data.projectId,
+              _id: QueryHelper.any(ids),
+            } as never,
+            select: { _id: true, rationaleMarkdown: true },
+            limit: ids.length,
+            skip: 0,
+            props: data.props,
+          });
+        })
+      : [];
+
+  const rationaleById: Map<string, string> = new Map<string, string>();
+
+  for (const suggestion of readable) {
+    if (suggestion.id && suggestion.rationaleMarkdown) {
+      rationaleById.set(suggestion.id.toString(), suggestion.rationaleMarkdown);
+    }
+  }
+
+  return suggestions.map(
     (suggestion: AutoRemediationSuggestion): KubernetesClusterAiLogFix => {
+      const rationale: string | undefined = rationaleById.get(
+        suggestion.id!.toString(),
+      );
+
       return {
         id: suggestion.id!.toString(),
         status: suggestion.status,
         executionMode: suggestion.executionMode,
         suggestionType: suggestion.suggestionType,
-        rationale: suggestion.rationaleMarkdown
-          ? suggestion.rationaleMarkdown.slice(
-              0,
-              KUBERNETES_CLUSTER_AI_LOGS_RATIONALE_MAX_LENGTH,
-            )
+        rationale: rationale
+          ? rationale.slice(0, KUBERNETES_CLUSTER_AI_LOGS_RATIONALE_MAX_LENGTH)
           : undefined,
         createdAt: toIsoString(suggestion.createdAt),
         approvedAt: toIsoString(suggestion.approvedAt),
@@ -1361,6 +1513,7 @@ router.post(
       const logs: KubernetesClusterAiLogs = await getClusterAiLogs({
         projectId: tenantId,
         clusterId: cluster.id!,
+        props,
       });
 
       Response.sendJsonObjectResponse(req, res, logs as unknown as JSONObject);

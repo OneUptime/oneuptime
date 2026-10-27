@@ -7,7 +7,7 @@ import {
 import NormalizedSecurityEvent from "../../../../Types/SecurityEvent/NormalizedSecurityEvent";
 import OcsfSeverity from "../../../../Types/SecurityEvent/OcsfSeverity";
 import SecurityEventRequestOutcome from "../../../../Types/SecurityEvent/SecurityEventRequestOutcome";
-import { SigmaRule } from "../../../../Types/SecurityEvent/SigmaRule";
+import SigmaRule from "../../../../Types/SecurityEvent/SigmaRule";
 import WebAttackLogParser, {
   MAX_MESSAGE_TARGET_LENGTH,
   MAX_PAYLOAD_REACH,

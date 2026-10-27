@@ -36144,7 +36144,7 @@
   "The injected SQL ran: a {{system}} query the request made holds it.": "The injected SQL ran: a {{system}} query the request made holds it.",
   "The injected SQL ran: the request took {{duration}}, as long as its SQL asked the database to wait.": "The injected SQL ran: the request took {{duration}}, as long as its SQL asked the database to wait.",
   "The log line is no longer kept: logs are removed after their retention period.": "The log line is no longer kept: logs are removed after their retention period.",
-  "The runbook to start. It gets the case as its inputs: a Bash step reads the address, user and host the case is about as $ONEUPTIME_INPUT_IP, $ONEUPTIME_INPUT_USER and $ONEUPTIME_INPUT_HOST.": "The runbook to start. It gets the case as its inputs: a Bash step reads the address, user and host the case is about as $ONEUPTIME_INPUT_IP, $ONEUPTIME_INPUT_USER and $ONEUPTIME_INPUT_HOST.",
+  "The runbook to start. A Bash step reads the case's address, user and host as $ONEUPTIME_INPUT_IP, $ONEUPTIME_INPUT_USER and $ONEUPTIME_INPUT_HOST.": "The runbook to start. A Bash step reads the case's address, user and host as $ONEUPTIME_INPUT_IP, $ONEUPTIME_INPUT_USER and $ONEUPTIME_INPUT_HOST.",
   "The security case the playbook ran it for. The steps read it as data: a Bash step as environment variables such as {{bash}}, a JavaScript step as {{javascript}}.": "The security case the playbook ran it for. The steps read it as data: a Bash step as environment variables such as {{bash}}, a JavaScript step as {{javascript}}.",
   "The story leaves some {{sources}} out: there were more than it shows.": "The story leaves some {{sources}} out: there were more than it shows.",
   "The {{sources}} couldn't be read this time.": "The {{sources}} couldn't be read this time.",
@@ -36250,5 +36250,13 @@
   "Exceptions {{pod}} recorded from {{padding}} before this span to {{padding}} after it.": "{{pod}}이(가) 이 스팬 {{padding}} 전부터 {{padding}} 후까지 기록한 예외.",
   "No exceptions carry this span's ID.": "이 스팬의 ID가 있는 예외가 없습니다.",
   "Only the first {{count}} exceptions of this window are shown.": "이 시간 범위의 처음 {{count}}개 예외만 표시됩니다.",
-  "The pod recorded no exceptions in this window.": "이 시간 범위에 Pod가 기록한 예외가 없습니다."
+  "The pod recorded no exceptions in this window.": "이 시간 범위에 Pod가 기록한 예외가 없습니다.",
+  "Each of these spans names a parent span that is not among the spans loaded so far, so it is shown at the top level. The parent may be in a batch not loaded yet, so this may change as more spans load. Otherwise the sender may have dropped the parent (for example, when its export queue was full), or the parent is still arriving: refresh in a few seconds for a recent trace.": "이 스팬들은 각각 지금까지 불러온 스팬에 없는 상위 스팬을 가리키므로 최상위 수준에 표시됩니다. 상위 스팬이 아직 불러오지 않은 배치에 있을 수 있으므로, 스팬을 더 불러오면 바뀔 수 있습니다. 그렇지 않다면 보낸 쪽에서 상위 스팬을 삭제했거나(예: 내보내기 대기열이 가득 찼을 때) 상위 스팬이 아직 도착하는 중일 수 있습니다. 최근 트레이스라면 몇 초 후에 새로 고치세요.",
+  "Each of these spans names a parent span that was not received, so it is shown at the top level. The sender may have dropped the parent (for example, when its export queue was full), or the parent is still arriving: refresh in a few seconds for a recent trace.": "이 스팬들은 각각 수신되지 않은 상위 스팬을 가리키므로 최상위 수준에 표시됩니다. 보낸 쪽에서 상위 스팬을 삭제했거나(예: 내보내기 대기열이 가득 찼을 때) 상위 스팬이 아직 도착하는 중일 수 있습니다. 최근 트레이스라면 몇 초 후에 새로 고치세요.",
+  "This span names a parent span that is not among the spans loaded so far, so it is shown at the top level. The parent may be in a batch not loaded yet, so this may change as more spans load. Otherwise the sender may have dropped the parent (for example, when its export queue was full), or the parent is still arriving: refresh in a few seconds for a recent trace.": "이 스팬은 지금까지 불러온 스팬에 없는 상위 스팬을 가리키므로 최상위 수준에 표시됩니다. 상위 스팬이 아직 불러오지 않은 배치에 있을 수 있으므로, 스팬을 더 불러오면 바뀔 수 있습니다. 그렇지 않다면 보낸 쪽에서 상위 스팬을 삭제했거나(예: 내보내기 대기열이 가득 찼을 때) 상위 스팬이 아직 도착하는 중일 수 있습니다. 최근 트레이스라면 몇 초 후에 새로 고치세요.",
+  "This span names a parent span that was not received, so it is shown at the top level. The sender may have dropped the parent (for example, when its export queue was full), or the parent is still arriving: refresh in a few seconds for a recent trace.": "이 스팬은 수신되지 않은 상위 스팬을 가리키므로 최상위 수준에 표시됩니다. 보낸 쪽에서 상위 스팬을 삭제했거나(예: 내보내기 대기열이 가득 찼을 때) 상위 스팬이 아직 도착하는 중일 수 있습니다. 최근 트레이스라면 몇 초 후에 새로 고치세요.",
+  "{{count}} spans missing a parent": "상위 스팬이 누락된 스팬 {{count}}개",
+  "{{count}} spans missing a parent so far": "지금까지 상위 스팬이 누락된 스팬 {{count}}개",
+  "{{count}} spans missing a parent so far_one": "지금까지 상위 스팬이 누락된 스팬 {{count}}개",
+  "{{count}} spans missing a parent_one": "상위 스팬이 누락된 스팬 {{count}}개"
 }

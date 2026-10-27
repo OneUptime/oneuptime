@@ -208,7 +208,8 @@ describe("the step dialog's values", () => {
   test("an announcement's subscriber switch is kept as on or off, never as text", () => {
     const off: SecurityPlaybookStep = formValuesToStep({
       values: {
-        [STEP_ACTION_KEY]: SecurityPlaybookActionType.PostStatusPageAnnouncement,
+        [STEP_ACTION_KEY]:
+          SecurityPlaybookActionType.PostStatusPageAnnouncement,
         ...FILLED[SecurityPlaybookActionType.PostStatusPageAnnouncement],
         notifySubscribers: undefined,
       },
@@ -219,7 +220,8 @@ describe("the step dialog's values", () => {
 
     const picked: SecurityPlaybookStep = formValuesToStep({
       values: {
-        [STEP_ACTION_KEY]: SecurityPlaybookActionType.PostStatusPageAnnouncement,
+        [STEP_ACTION_KEY]:
+          SecurityPlaybookActionType.PostStatusPageAnnouncement,
         ...FILLED[SecurityPlaybookActionType.PostStatusPageAnnouncement],
         // A picker hands back options, not ids.
         statusPageIds: [{ value: ID_C }],

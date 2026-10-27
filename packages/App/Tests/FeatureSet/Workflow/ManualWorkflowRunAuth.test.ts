@@ -38,7 +38,13 @@ import {
 
 /*
  * ---------------------------------------------------------------------------
- * Regression tests for GET/POST /workflow/manual/run/:workflowId.
+ * Regression tests for POST /workflow/manual/run/:workflowId.
+ *
+ * There used to be a GET of it too. The session cookie is SameSite=Lax,
+ * which a link on another site still carries on a GET, and the project can
+ * be named in the query string, so a link a member followed ran the
+ * workflow as them - as a test run, which goes ahead while the workflow is
+ * off. The Builder's Run button POSTs; the GET is gone.
  *
  * CVE-2026-35053 (GHSA-6c3w-7xg4-4cf7) reported these routes as having no
  * auth at all. The published patch added UserMiddleware.getUserMiddleware in
@@ -176,7 +182,7 @@ function matchRoute(method: string, uri: string): MockRoute {
 }
 
 async function callRunRoute(data: {
-  method: "GET" | "POST";
+  method: "POST";
   workflowId?: string | undefined;
   body?: JSONObject | undefined;
 }): Promise<RouteCallResult> {
@@ -295,7 +301,7 @@ function expectAuthenticationRequired(thrown: unknown): void {
   );
 }
 
-describe("GET/POST /workflow/manual/run/:workflowId requires an authorized member of the workflow's own project", () => {
+describe("POST /workflow/manual/run/:workflowId requires an authorized member of the workflow's own project", () => {
   let callerProjectId: ObjectID;
   let otherProjectId: ObjectID;
   let callerUserId: ObjectID;
@@ -400,13 +406,30 @@ describe("GET/POST /workflow/manual/run/:workflowId requires an authorized membe
   }
 
   describe("route wiring", () => {
-    test("registers both GET and POST /run/:workflowId", () => {
-      expect(() => {
-        return matchRoute("GET", RUN_ROUTE);
-      }).not.toThrow();
+    test("registers POST /run/:workflowId", () => {
       expect(() => {
         return matchRoute("POST", RUN_ROUTE);
       }).not.toThrow();
+    });
+
+    /*
+     * A link on another site carries the session cookie on a GET
+     * (SameSite=Lax) and can name the project in its query string: a GET
+     * would run the workflow as whoever followed it.
+     */
+    test("registers no GET of /run/:workflowId, so no link runs a workflow", () => {
+      expect(() => {
+        return matchRoute("GET", RUN_ROUTE);
+      }).toThrow(`Route GET ${RUN_ROUTE} was never registered`);
+      expect(
+        mockRoutes
+          .filter((route: MockRoute) => {
+            return route.uri === RUN_ROUTE;
+          })
+          .map((route: MockRoute) => {
+            return route.method;
+          }),
+      ).toEqual(["POST"]);
     });
 
     /*
@@ -414,8 +437,7 @@ describe("GET/POST /workflow/manual/run/:workflowId requires an authorized membe
      * and the tenant permissions the handler then checks. It just is not the
      * thing doing the rejecting.
      */
-    test("keeps a context-loading middleware in front of both routes", () => {
-      expect(typeof matchRoute("GET", RUN_ROUTE).middleware).toBe("function");
+    test("keeps a context-loading middleware in front of the route", () => {
       expect(typeof matchRoute("POST", RUN_ROUTE).middleware).toBe("function");
     });
   });
@@ -448,18 +470,6 @@ describe("GET/POST /workflow/manual/run/:workflowId requires an authorized membe
       expect(Response.sendJsonObjectResponse).not.toHaveBeenCalled();
     });
 
-    test("rejects the same credential-less call on the GET route with 401", async () => {
-      mockProps({ userType: UserType.Public });
-
-      const result: RouteCallResult = await callRunRoute({
-        method: "GET",
-        workflowId: workflowId.toString(),
-      });
-
-      expectAuthenticationRequired(result.thrownToNext);
-      expect(addWorkflowToQueueSpy).not.toHaveBeenCalled();
-    });
-
     test("never even reads the workflow for a credential-less caller", async () => {
       mockProps({ userType: UserType.Public });
 
@@ -486,24 +496,6 @@ describe("GET/POST /workflow/manual/run/:workflowId requires an authorized membe
 
       const result: RouteCallResult = await callRunRoute({
         method: "POST",
-        workflowId: workflowId.toString(),
-      });
-
-      expectAuthenticationRequired(result.thrownToNext);
-      expect(findOneByIdSpy).not.toHaveBeenCalled();
-      expect(addWorkflowToQueueSpy).not.toHaveBeenCalled();
-    });
-
-    test("rejects the same public caller on the GET route with 401", async () => {
-      mockProps({
-        userType: UserType.Public,
-        tenantId: callerProjectId,
-        userId: undefined,
-        userTenantAccessPermission: undefined,
-      });
-
-      const result: RouteCallResult = await callRunRoute({
-        method: "GET",
         workflowId: workflowId.toString(),
       });
 
@@ -635,25 +627,6 @@ describe("GET/POST /workflow/manual/run/:workflowId requires an authorized membe
 
       const result: RouteCallResult = await callRunRoute({
         method: "POST",
-        workflowId: workflowId.toString(),
-      });
-
-      expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
-      expect(addWorkflowToQueueSpy).not.toHaveBeenCalled();
-    });
-
-    test("rejects the same cross-tenant attempt on the GET route", async () => {
-      mockProps(
-        buildUserProps({
-          projectId: callerProjectId,
-          userId: callerUserId,
-          permissions: [Permission.ProjectOwner],
-        }),
-      );
-      mockWorkflowInProject(otherProjectId);
-
-      const result: RouteCallResult = await callRunRoute({
-        method: "GET",
         workflowId: workflowId.toString(),
       });
 
@@ -1294,7 +1267,7 @@ describe("GET/POST /workflow/manual/run/:workflowId requires an authorized membe
       mockWorkflowInProject(callerProjectId);
 
       await callRunRoute({
-        method: "GET",
+        method: "POST",
         workflowId: workflowId.toString(),
       });
 
@@ -1361,7 +1334,7 @@ describe("GET/POST /workflow/manual/run/:workflowId requires an authorized membe
       mockWorkflowInProject(callerProjectId);
 
       await callRunRoute({
-        method: "GET",
+        method: "POST",
         workflowId: workflowId.toString(),
       });
 
@@ -1371,19 +1344,6 @@ describe("GET/POST /workflow/manual/run/:workflowId requires an authorized membe
         .calls[0]![0] as { returnValues: JSONObject };
 
       expect(queueArgs.returnValues).toEqual({});
-    });
-
-    test("works over the GET route for an authorized caller too", async () => {
-      mockProps(editorProps());
-      mockWorkflowInProject(callerProjectId);
-
-      const result: RouteCallResult = await callRunRoute({
-        method: "GET",
-        workflowId: workflowId.toString(),
-      });
-
-      expect(result.nextCallCount).toBe(0);
-      expect(addWorkflowToQueueSpy).toHaveBeenCalledTimes(1);
     });
   });
 

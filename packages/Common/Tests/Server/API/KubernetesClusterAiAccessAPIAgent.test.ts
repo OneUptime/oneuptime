@@ -19,6 +19,9 @@ import KubernetesAiAgent from "../../../Models/DatabaseModels/KubernetesAiAgent"
 import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
 import Label from "../../../Models/DatabaseModels/Label";
 import RunnerJob from "../../../Models/DatabaseModels/RunnerJob";
+import Incident from "../../../Models/DatabaseModels/Incident";
+import Alert from "../../../Models/DatabaseModels/Alert";
+import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { KUBERNETES_AI_AGENT_RESET_EDIT_REFUSAL } from "../../../Types/Kubernetes/KubernetesClusterAiAccessPermissions";
 import { withLabelJoinTables } from "../TestingUtils/LabelJoinTables";
 import {
@@ -269,6 +272,20 @@ function userProps(data: {
     userTenantAccessPermission: permissionMap,
     ...(data.isMasterAdmin ? { isMasterAdmin: true } : {}),
   } as DatabaseCommonInteractionProps;
+}
+
+// The ids a QueryHelper.any filter names, as text.
+function idsIn(filter: unknown): Array<string> {
+  const parameters: Record<string, unknown> =
+    (filter as { objectLiteralParameters?: Record<string, unknown> })
+      ?.objectLiteralParameters || {};
+  const values: unknown = Object.values(parameters)[0];
+
+  return Array.isArray(values)
+    ? values.map((value: unknown) => {
+        return String(value);
+      })
+    : [];
 }
 
 /*
@@ -839,12 +856,32 @@ describe("KubernetesClusterAiAccessAPI and the Kubernetes AI agent", () => {
       jobCount = (
         RunnerJobService.countBy as unknown as jest.SpyInstance
       ).mockResolvedValue(new PositiveNumber(0));
+      // Someone who may read everything summarised here.
       propsSpy.mockResolvedValue(
-        userProps({ permissions: [Permission.ReadKubernetesCluster] }),
+        userProps({ permissions: [Permission.ProjectMember] }),
       );
     });
 
+    function isCallerProps(call: Array<unknown>): boolean {
+      const props: DatabaseCommonInteractionProps = (
+        call[0] as { props: DatabaseCommonInteractionProps }
+      ).props;
+      return !props.isRoot && String(props.userId) === USER_ID.toString();
+    }
+
+    function isRootProps(call: Array<unknown>): boolean {
+      return (
+        JSON.stringify(
+          (call[0] as { props: DatabaseCommonInteractionProps }).props,
+        ) === JSON.stringify({ isRoot: true })
+      );
+    }
+
     test("needs only read access to the cluster, and refuses one the user cannot read", async () => {
+      propsSpy.mockResolvedValue(
+        userProps({ permissions: [Permission.ReadKubernetesCluster] }),
+      );
+
       const ok: RouteCallResult = await callRoute(LOGS_ROUTE);
       expect(ok.thrownToNext).toBeUndefined();
 
@@ -856,7 +893,7 @@ describe("KubernetesClusterAiAccessAPI and the Kubernetes AI agent", () => {
       );
     });
 
-    test("reads the cluster under the USER's props, and everything else as root", async () => {
+    test("reads the cluster, incidents and alerts under the USER's props, and the jobs, suggestions and counts as root", async () => {
       await callRoute(LOGS_ROUTE);
 
       const clusterProps: DatabaseCommonInteractionProps = (
@@ -866,12 +903,14 @@ describe("KubernetesClusterAiAccessAPI and the Kubernetes AI agent", () => {
       ).props;
       expect(clusterProps.isRoot).toBeUndefined();
 
-      for (const spy of [jobFind, incidentFind, alertFind, suggestionFind]) {
-        for (const call of spy.mock.calls) {
-          expect(
-            (call[0] as { props: DatabaseCommonInteractionProps }).props,
-          ).toEqual({ isRoot: true });
-        }
+      for (const spy of [incidentFind, alertFind]) {
+        expect(spy).toHaveBeenCalled();
+        expect(spy.mock.calls.every(isCallerProps)).toBe(true);
+      }
+
+      for (const spy of [jobFind, suggestionFind, jobCount]) {
+        expect(spy).toHaveBeenCalled();
+        expect(spy.mock.calls.every(isRootProps)).toBe(true);
       }
     });
 
@@ -1048,6 +1087,9 @@ describe("KubernetesClusterAiAccessAPI and the Kubernetes AI agent", () => {
             "**Summary** — Pods are stuck in Pending because no node has 4 free CPUs.",
         },
       ]);
+      // The runs' incident and alert, which the caller may read.
+      incidentFind.mockResolvedValue([{ id: INCIDENT_ID, title: "DB down" }]);
+      alertFind.mockResolvedValue([{ id: ALERT_ID, title: "Pending pods" }]);
 
       await callRoute(LOGS_ROUTE);
 
@@ -1158,22 +1200,29 @@ describe("KubernetesClusterAiAccessAPI and the Kubernetes AI agent", () => {
       jobFind.mockResolvedValue([
         { autoRemediationSuggestionId: ruleRound },
       ] as unknown as Array<RunnerJob>);
+      const rows: Array<AutoRemediationSuggestion> = [
+        suggestion(round, 10, {
+          rationaleMarkdown: "x".repeat(1000),
+          incidentId: INCIDENT_ID,
+          approvedAt: new Date("2026-09-01T00:00:00.000Z"),
+        }),
+        suggestion(ruleRound, 2, { alertId: ALERT_ID }),
+      ];
+
       suggestionFind.mockImplementation(async (args: unknown) => {
         const query: Record<string, unknown> = (
           args as { query: Record<string, unknown> }
         ).query;
 
         if (query["kubernetesClusterId"]) {
-          return [
-            suggestion(round, 10, {
-              rationaleMarkdown: "x".repeat(1000),
-              incidentId: INCIDENT_ID,
-              approvedAt: new Date("2026-09-01T00:00:00.000Z"),
-            }),
-          ];
+          return [rows[0]!];
         }
 
-        return [suggestion(ruleRound, 2, { alertId: ALERT_ID })];
+        const ids: Array<string> = idsIn(query["_id"]);
+
+        return rows.filter((row: AutoRemediationSuggestion) => {
+          return ids.includes(row.id!.toString());
+        });
       });
 
       await callRoute(LOGS_ROUTE);
@@ -1264,6 +1313,356 @@ describe("KubernetesClusterAiAccessAPI and the Kubernetes AI agent", () => {
           ),
         ).toEqual([CLUSTER_ID.toString()]);
       }
+    });
+
+    /*
+     * Whoever may read the cluster sees its AI Logs page, a wider audience
+     * than the incidents, alerts and suggestions it summarises: what it says
+     * about THOSE follows the caller's own read of them, as a resource's AI
+     * page does (getResourceAiLogs). The reads below answer as findBy does
+     * for the table: a role that may not read it at all is refused, and a
+     * narrowed read reaches only some rows.
+     */
+    describe("reading what the caller may read", () => {
+      const OTHER_INCIDENT_ID: ObjectID = ObjectID.generate();
+      const INSIGHT_ID: ObjectID = ObjectID.generate();
+      const TRIAGE_RUN: ObjectID = ObjectID.generate();
+      const INCIDENT_RUN: ObjectID = ObjectID.generate();
+      const OTHER_INCIDENT_RUN: ObjectID = ObjectID.generate();
+      const ALERT_RUN: ObjectID = ObjectID.generate();
+      const OWN_FIX: ObjectID = ObjectID.generate();
+      const RULE_FIX: ObjectID = ObjectID.generate();
+      const LABEL_ID: ObjectID = ObjectID.generate();
+
+      const INCIDENT_TITLES: Dictionary<{ title: string; number: number }> = {
+        [INCIDENT_ID.toString()]: { title: "Web down", number: 42 },
+        [OTHER_INCIDENT_ID.toString()]: {
+          title: "Payroll database breach",
+          number: 7,
+        },
+      };
+
+      function refuseUnlessTableReadable(
+        props: DatabaseCommonInteractionProps,
+        modelType: { new (): BaseModel },
+      ): void {
+        if (props.isRoot || props.isMasterAdmin) {
+          return;
+        }
+
+        const allowed: Array<Permission> = new modelType().getReadPermissions();
+        const rows: Array<UserPermission> =
+          props.userTenantAccessPermission?.[PROJECT_ID.toString()]
+            ?.permissions || [];
+
+        if (
+          !rows.some((row: UserPermission) => {
+            return !row.isBlockPermission && allowed.includes(row.permission);
+          })
+        ) {
+          throw new NotAuthorizedException(
+            `You do not have permissions to read ${new modelType().singularName}.`,
+          );
+        }
+      }
+
+      function serveHistory(
+        reach: {
+          incidentIds?: Array<ObjectID> | undefined;
+          suggestionIds?: Array<ObjectID> | undefined;
+        } = {},
+      ): void {
+        const reaches: (
+          props: DatabaseCommonInteractionProps,
+          id: string,
+          reachable: Array<ObjectID> | undefined,
+        ) => boolean = (
+          props: DatabaseCommonInteractionProps,
+          id: string,
+          reachable: Array<ObjectID> | undefined,
+        ): boolean => {
+          return (
+            Boolean(props.isRoot) ||
+            !reachable ||
+            reachable.some((reachableId: ObjectID) => {
+              return reachableId.toString() === id;
+            })
+          );
+        };
+
+        jobFind.mockResolvedValue([
+          { aiRunId: TRIAGE_RUN },
+          { autoRemediationSuggestionId: RULE_FIX },
+        ] as unknown as Array<RunnerJob>);
+
+        incidentFind.mockImplementation(async (args: unknown) => {
+          const { query, props } = args as {
+            query: Record<string, unknown>;
+            props: DatabaseCommonInteractionProps;
+          };
+          refuseUnlessTableReadable(props, Incident);
+
+          const ids: Array<string> = query["kubernetesClusters"]
+            ? [INCIDENT_ID.toString(), OTHER_INCIDENT_ID.toString()]
+            : idsIn(query["_id"]);
+
+          return ids
+            .filter((id: string) => {
+              return reaches(props, id, reach.incidentIds);
+            })
+            .map((id: string) => {
+              return query["kubernetesClusters"]
+                ? { id: new ObjectID(id) }
+                : {
+                    id: new ObjectID(id),
+                    title: INCIDENT_TITLES[id]!.title,
+                    incidentNumber: INCIDENT_TITLES[id]!.number,
+                  };
+            });
+        });
+
+        alertFind.mockImplementation(async (args: unknown) => {
+          const { query, props } = args as {
+            query: Record<string, unknown>;
+            props: DatabaseCommonInteractionProps;
+          };
+          refuseUnlessTableReadable(props, Alert);
+
+          return query["kubernetesClusters"]
+            ? [{ id: ALERT_ID }]
+            : [{ id: ALERT_ID, title: "High memory" }];
+        });
+
+        // AI runs are only ever read as root: they are private to their author.
+        runFind.mockImplementation(async (args: unknown) => {
+          const { query } = args as { query: Record<string, unknown> };
+
+          if (query["triggeredByIncidentId"]) {
+            const ids: Array<string> = idsIn(query["triggeredByIncidentId"]);
+            return [
+              run(INCIDENT_RUN, 2, { triggeredByIncidentId: INCIDENT_ID }),
+              run(OTHER_INCIDENT_RUN, 3, {
+                triggeredByIncidentId: OTHER_INCIDENT_ID,
+              }),
+            ].filter((row: AIRun) => {
+              return ids.includes(row.triggeredByIncidentId!.toString());
+            });
+          }
+
+          if (query["triggeredByAlertId"]) {
+            return [run(ALERT_RUN, 4, { triggeredByAlertId: ALERT_ID })];
+          }
+
+          // An AI insight's triage ran kubectl here: no incident, no alert.
+          return [run(TRIAGE_RUN, 1, { triggeredByAiInsightId: INSIGHT_ID })];
+        });
+
+        const suggestions: Array<AutoRemediationSuggestion> = [
+          suggestion(OWN_FIX, 5, {
+            rationaleMarkdown: "Restart the web deployment.",
+            incidentId: INCIDENT_ID,
+          }),
+          suggestion(RULE_FIX, 6, {
+            rationaleMarkdown: "Scale the node pool.",
+            alertId: ALERT_ID,
+          }),
+        ];
+
+        // Only the columns asked for come back, as from the database.
+        suggestionFind.mockImplementation(async (args: unknown) => {
+          const { query, select, props } = args as {
+            query: Record<string, unknown>;
+            select: Record<string, unknown>;
+            props: DatabaseCommonInteractionProps;
+          };
+          refuseUnlessTableReadable(props, AutoRemediationSuggestion);
+
+          const ids: Array<string> = query["kubernetesClusterId"]
+            ? [OWN_FIX.toString()]
+            : idsIn(query["_id"]);
+
+          return suggestions
+            .filter((row: AutoRemediationSuggestion) => {
+              return (
+                ids.includes(row.id!.toString()) &&
+                reaches(props, row.id!.toString(), reach.suggestionIds)
+              );
+            })
+            .map((row: AutoRemediationSuggestion) => {
+              return select["rationaleMarkdown"]
+                ? row
+                : ({
+                    ...row,
+                    rationaleMarkdown: undefined,
+                  } as unknown as AutoRemediationSuggestion);
+            });
+        });
+      }
+
+      async function logsFor(
+        props: DatabaseCommonInteractionProps,
+      ): Promise<KubernetesClusterAiLogs> {
+        propsSpy.mockResolvedValue(props);
+
+        const result: RouteCallResult = await callRoute(LOGS_ROUTE);
+
+        expect(result.thrownToNext).toBeUndefined();
+        return lastResponse() as unknown as KubernetesClusterAiLogs;
+      }
+
+      function investigationIds(logs: KubernetesClusterAiLogs): Array<string> {
+        return logs.investigations.map((row: { aiRunId: string }) => {
+          return row.aiRunId;
+        });
+      }
+
+      function fixFor(
+        logs: KubernetesClusterAiLogs,
+        id: ObjectID,
+      ): KubernetesClusterAiLogs["fixes"][number] {
+        return logs.fixes.find((fix: { id: string }) => {
+          return fix.id === id.toString();
+        })!;
+      }
+
+      test("a role that may read only the cluster gets no incident or alert, no TL;DR and no rationale", async () => {
+        serveHistory();
+
+        const logs: KubernetesClusterAiLogs = await logsFor(
+          userProps({ permissions: [Permission.ReadKubernetesCluster] }),
+        );
+
+        // Only the run with no subject is left, and without its TL;DR.
+        expect(investigationIds(logs)).toEqual([TRIAGE_RUN.toString()]);
+        expect(logs.investigations[0]!.analysisTldr).toBeUndefined();
+        expect(logs.investigations[0]!.incident).toBeUndefined();
+        expect(logs.investigations[0]!.alert).toBeUndefined();
+
+        // The fixes on the cluster are listed, their rationale is not.
+        expect(
+          logs.fixes.map((fix: { id: string }) => {
+            return fix.id;
+          }),
+        ).toEqual([OWN_FIX.toString(), RULE_FIX.toString()]);
+        expect(fixFor(logs, OWN_FIX).rationale).toBeUndefined();
+        expect(fixFor(logs, RULE_FIX).rationale).toBeUndefined();
+
+        const serialized: string = JSON.stringify(logs);
+        for (const secret of [
+          "Web down",
+          "High memory",
+          "Payroll database breach",
+          "tldr ",
+          "Restart the web deployment.",
+          "Scale the node pool.",
+        ]) {
+          expect(serialized).not.toContain(secret);
+        }
+        expect(serialized).not.toContain(INCIDENT_RUN.toString());
+        expect(serialized).not.toContain(ALERT_RUN.toString());
+      });
+
+      test("a caller whose incident read is label-scoped sees only the incidents their labels reach", async () => {
+        serveHistory({ incidentIds: [INCIDENT_ID] });
+
+        const logs: KubernetesClusterAiLogs = await logsFor(
+          userProps({
+            permissions: [
+              Permission.ReadKubernetesCluster,
+              Permission.AlertViewer,
+            ],
+            scoped: [
+              {
+                permission: Permission.ReadProjectIncident,
+                labelIds: [LABEL_ID],
+              },
+            ],
+          }),
+        );
+
+        expect(investigationIds(logs)).toEqual([
+          TRIAGE_RUN.toString(),
+          INCIDENT_RUN.toString(),
+          ALERT_RUN.toString(),
+        ]);
+        expect(JSON.stringify(logs)).not.toContain("Payroll database breach");
+        expect(JSON.stringify(logs)).not.toContain(
+          OTHER_INCIDENT_RUN.toString(),
+        );
+
+        // With a subject the caller may read, the TL;DR is shown.
+        expect(logs.investigations[1]!.incident).toEqual({
+          id: INCIDENT_ID.toString(),
+          title: "Web down",
+          number: 42,
+        });
+        expect(logs.investigations[1]!.analysisTldr).toBe(
+          `tldr ${INCIDENT_RUN.toString()}`,
+        );
+
+        // A run with no subject: only for those who may read AIRun.
+        expect(logs.investigations[0]!.analysisTldr).toBeUndefined();
+
+        // Suggestions are not theirs to read.
+        expect(fixFor(logs, OWN_FIX).rationale).toBeUndefined();
+        expect(fixFor(logs, RULE_FIX).rationale).toBeUndefined();
+      });
+
+      test("a project member gets everything; a suggestion hidden by its incident's privacy loses only its rationale", async () => {
+        serveHistory();
+
+        const all: KubernetesClusterAiLogs = await logsFor(
+          userProps({ permissions: [Permission.ProjectMember] }),
+        );
+
+        expect(investigationIds(all)).toHaveLength(4);
+        expect(all.investigations[0]!.analysisTldr).toBe(
+          `tldr ${TRIAGE_RUN.toString()}`,
+        );
+        expect(fixFor(all, OWN_FIX).rationale).toBe(
+          "Restart the web deployment.",
+        );
+
+        jest.clearAllMocks();
+        serveHistory({ suggestionIds: [RULE_FIX] });
+
+        const partly: KubernetesClusterAiLogs = await logsFor(
+          userProps({ permissions: [Permission.ProjectMember] }),
+        );
+
+        expect(fixFor(partly, OWN_FIX).rationale).toBeUndefined();
+        expect(fixFor(partly, RULE_FIX).rationale).toBe("Scale the node pool.");
+      });
+
+      test("titles, numbers and rationales are only ever read under the caller's props", async () => {
+        serveHistory();
+
+        await logsFor(userProps({ permissions: [Permission.ProjectMember] }));
+
+        for (const [spy, columns] of [
+          [incidentFind, ["title", "incidentNumber"]],
+          [alertFind, ["title"]],
+          [suggestionFind, ["rationaleMarkdown"]],
+        ] as Array<[jest.SpyInstance, Array<string>]>) {
+          const reading: Array<Array<unknown>> = spy.mock.calls.filter(
+            (call: Array<unknown>) => {
+              const select: Record<string, unknown> = (
+                call[0] as { select: Record<string, unknown> }
+              ).select;
+              return columns.some((column: string) => {
+                return Boolean(select[column]);
+              });
+            },
+          );
+
+          expect(reading.length).toBeGreaterThan(0);
+          expect(reading.every(isCallerProps)).toBe(true);
+        }
+
+        // The runs (private to their author) are read as root.
+        expect(runFind).toHaveBeenCalled();
+        expect(runFind.mock.calls.every(isRootProps)).toBe(true);
+      });
     });
   });
 

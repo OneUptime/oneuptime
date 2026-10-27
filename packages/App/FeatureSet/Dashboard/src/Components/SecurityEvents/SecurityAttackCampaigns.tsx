@@ -13,6 +13,7 @@ import {
   SecurityAttackCampaignsResult,
 } from "Common/Types/SecurityEvent/SecurityAttackCampaign";
 import Card from "Common/UI/Components/Card/Card";
+import { useCardRuledBodyClassName } from "Common/UI/Components/Card/CardSurface";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
@@ -276,6 +277,7 @@ const CampaignRow: FunctionComponent<{
  */
 const SecurityAttackCampaigns: FunctionComponent = (): ReactElement => {
   const translator: Translator = useTranslator();
+  const ruledBodyClassName: string = useCardRuledBodyClassName();
   const [campaignWindow, setCampaignWindow] = useState<CampaignWindow>(
     DEFAULT_CAMPAIGN_WINDOW,
   );
@@ -395,13 +397,13 @@ const SecurityAttackCampaigns: FunctionComponent = (): ReactElement => {
             onChange={setCampaignWindow}
           />
         }
-        /*
-         * Edge to edge under the header, as a list in a card is: the card's
-         * own padding (CARD_PADDING_CLASS_NAME) cancelled on three sides.
-         */
-        bodyClassName="mt-4 -mx-5 -mb-6 border-t border-gray-100 md:-mx-6"
       >
-        {body}
+        {/*
+         * Edge to edge under a rule below the header, as a list in a card
+         * is (Card/CardSurface): the card's own padding cancelled on three
+         * sides.
+         */}
+        <div className={ruledBodyClassName}>{body}</div>
       </Card>
     </div>
   );
