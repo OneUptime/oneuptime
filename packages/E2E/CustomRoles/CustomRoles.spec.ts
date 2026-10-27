@@ -1,11 +1,15 @@
 import {
   APIRequestContext,
-  APIResponse,
   expect,
   Locator,
   Page,
   test,
 } from "@playwright/test";
+import {
+  readFixtureEdition,
+  skipUnlessEnterprise,
+} from "../SuiteHelpers/Edition";
+import { boxesInOneFrame, FrameBox } from "../SuiteHelpers/Frames";
 import fs from "fs/promises";
 import path from "path";
 
@@ -102,15 +106,14 @@ interface FixtureLog {
 let edition: string = "";
 
 test.beforeAll(async ({ request }: { request: APIRequestContext }) => {
-  const response: APIResponse = await request.get("/edition.json");
-  edition = ((await response.json()) as { edition: string }).edition;
+  edition = await readFixtureEdition(request);
 });
 
 const pageErrors: Map<Page, Array<string>> = new Map();
 
 test.beforeEach(({ page }: { page: Page }) => {
-  test.skip(
-    edition !== "enterprise",
+  skipUnlessEnterprise(
+    edition,
     "Custom roles are an Enterprise feature: ee/ is not checked out.",
   );
   const errors: Array<string> = [];
@@ -595,25 +598,23 @@ test.describe("Teams > Settings > Roles", () => {
         exact: false,
       });
 
-      const nameBox: { x: number; y: number; height: number } | null =
-        await name.boundingBox();
-      const descriptionBox: { x: number; y: number; width: number } | null =
-        await description.boundingBox();
-
-      expect(nameBox).not.toBeNull();
-      expect(descriptionBox).not.toBeNull();
+      // In one frame: the list has only just opened.
+      const [nameBox, descriptionBox] = (await boxesInOneFrame([
+        name,
+        description,
+      ])) as [FrameBox, FrameBox];
 
       if (isBeside) {
-        expect(descriptionBox!.x).toBeGreaterThan(nameBox!.x + 150);
+        expect(descriptionBox.x).toBeGreaterThan(nameBox.x + 150);
       } else {
-        expect(Math.abs(descriptionBox!.x - nameBox!.x)).toBeLessThan(1);
-        expect(descriptionBox!.y).toBeGreaterThanOrEqual(
-          nameBox!.y + nameBox!.height - 1,
+        expect(Math.abs(descriptionBox.x - nameBox.x)).toBeLessThan(1);
+        expect(descriptionBox.y).toBeGreaterThanOrEqual(
+          nameBox.y + nameBox.height - 1,
         );
       }
 
       // Never a narrow column: some 40 characters a line or more.
-      expect(descriptionBox!.width).toBeGreaterThan(300);
+      expect(descriptionBox.width).toBeGreaterThan(300);
     });
   }
 

@@ -198,7 +198,7 @@ const submitPassword: SubmitPasswordFunction = async (): Promise<void> => {
    * awaited click is inside one.
    */
   await act(async () => {
-    await user.click(screen.getByTestId("Login"));
+    await user.click(screen.getByTestId("Sign in"));
   });
 };
 
@@ -282,7 +282,7 @@ const enterTotpCode: EnterTotpCodeFunction = async (): Promise<void> => {
   await user.type(await screen.findByTestId("code"), "123456");
 
   await act(async () => {
-    await user.click(screen.getByTestId("Login"));
+    await user.click(screen.getByTestId("Sign in"));
   });
 };
 
@@ -857,7 +857,7 @@ describe("Finishing a two factor sign-in offers the codes that were missing", ()
     await user.type(await screen.findByTestId("backup-code"), "ABCDE-12345");
 
     await act(async () => {
-      await user.click(screen.getByTestId("Login"));
+      await user.click(screen.getByTestId("Sign in"));
     });
 
     expect(
@@ -885,7 +885,7 @@ describe("Finishing a two factor sign-in offers the codes that were missing", ()
     await user.type(await screen.findByTestId("backup-code"), "ABCDE-12345");
 
     await act(async () => {
-      await user.click(screen.getByTestId("Login"));
+      await user.click(screen.getByTestId("Sign in"));
     });
 
     await waitFor(() => {

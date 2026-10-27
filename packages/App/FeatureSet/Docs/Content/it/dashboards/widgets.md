@@ -68,6 +68,10 @@ Usalo quando il valore vive in un intervallo noto: l'uso di CPU o disco in perce
 
 Valori di metriche come righe. **Group By Attributes** dà una riga per valore, per esempio una per `host.name`; senza, ogni riga è un intervallo di tempo. **Metrics & Columns** imposta le colonne: metriche, e formule su di esse, come la disponibilità in percentuale. Quando raggruppi, **Reduce across time** trasforma la serie di ogni riga in un solo valore: l'ultimo valore, la media, la somma, il minimo o il massimo.
 
+Attiva **Colora in base alle soglie** in una colonna per colorarne i valori: un valore che raggiunge la **Soglia di avviso** diventa ambra, con un triangolo, e uno che raggiunge la **Soglia critica** diventa rosso e in grassetto, con un cerchio. Una colonna in percentuale parte da 80 e 90. Per una colonna in cui il problema sono i valori bassi, come lo spazio libero su disco, scegli **Più basso è peggio** in **Direzione**.
+
+Le soglie leggono il numero che la tabella mostra, quindi una metrica di utilizzo inviata come frazione di 1, come `system.cpu.utilization`, viene mostrata e confrontata come percentuale. In **Colori delle soglie**, **Sfondo colorato** riempie l'intera cella invece di colorare il numero.
+
 Usala per una suddivisione invece che per un andamento: gli host più rumorosi, gli errori per servizio, le richieste per endpoint.
 
 ## Testo, orologio e HTML

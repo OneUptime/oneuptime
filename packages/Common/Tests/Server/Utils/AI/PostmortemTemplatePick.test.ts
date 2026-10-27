@@ -19,6 +19,7 @@ import {
   it,
   jest,
 } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../../Helpers/FastestRun";
 
 /*
  * PostmortemTemplatePick: which of a postmortem rule's templates a draft
@@ -280,10 +281,13 @@ describe("PostmortemTemplatePick.readAnswer", () => {
 
   it("reads a megabyte answer in one quick pass", () => {
     const long: string = `${"x".repeat(1_000_000)}2`;
-    const started: number = Date.now();
-
-    expect(PostmortemTemplatePick.readAnswer(long, NAMES)).toBe(1);
-    expect(Date.now() - started).toBeLessThan(2000);
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        expect(PostmortemTemplatePick.readAnswer(long, NAMES)).toBe(1);
+      },
+      limitInMs: 2000,
+    });
+    expect(timed.inMs).toBeLessThan(2000);
   });
 });
 

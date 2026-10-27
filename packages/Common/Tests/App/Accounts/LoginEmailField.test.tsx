@@ -98,7 +98,7 @@ const submit: (user: UserEvent) => Promise<void> = async (
   user: UserEvent,
 ): Promise<void> => {
   await act(async () => {
-    await user.click(screen.getByTestId("Login"));
+    await user.click(screen.getByTestId("Sign in"));
   });
 };
 
@@ -257,7 +257,7 @@ describe("The sign-in form's Email field stays editable", () => {
     await user.click(screen.getByText("Authenticator App"));
     await user.type(await screen.findByTestId("code"), "123456");
     await act(async () => {
-      await user.click(screen.getByTestId("Login"));
+      await user.click(screen.getByTestId("Sign in"));
     });
 
     const verify: { url: string; data: JSONObject } | undefined = posted.find(

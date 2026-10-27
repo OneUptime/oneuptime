@@ -815,6 +815,12 @@ describe("a build that cannot publish what it would write", () => {
    * job hours later. It says what runs, and which module started it.
    */
   test("fails when a published module keeps Node.js running once it has loaded, naming what runs and the module that started it", () => {
+    /*
+     * Timed once: a deadline, not work that grows with its input. The build
+     * would hang until its own timeout, twice this limit; a second attempt
+     * would build the package again, and the slow-runner allowance of
+     * Tests/Helpers/FastestRun could pass a hang on a slow runner.
+     */
     const started: number = Date.now();
     const { run }: { run: BuildRun } = buildStandIn(
       "keeps-running",

@@ -5,7 +5,9 @@ import {
   EXTERNAL_STATUS_PAGE_MONITOR_MORE_FIELDS,
   getMonitorOptionsMoreFieldsItems,
 } from "../MonitorMoreFields";
-import MonitorStepExternalStatusPageMonitor from "Common/Types/Monitor/MonitorStepExternalStatusPageMonitor";
+import MonitorStepExternalStatusPageMonitor, {
+  MonitorStepExternalStatusPageMonitorUtil,
+} from "Common/Types/Monitor/MonitorStepExternalStatusPageMonitor";
 import { parseMonitorStepRetriesInput } from "Common/Types/Monitor/MonitorStepRetries";
 import ExternalStatusPageProviderType from "Common/Types/Monitor/ExternalStatusPageProviderType";
 import Input, { InputType } from "Common/UI/Components/Input/Input";
@@ -16,10 +18,15 @@ import Dropdown, {
 } from "Common/UI/Components/Dropdown/Dropdown";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import ExternalStatusPageComponentsField, {
+  ComponentProps as ComponentsFieldProps,
+} from "./ExternalStatusPageComponentsField";
 
 export interface ComponentProps {
   monitorStepExternalStatusPageMonitor: MonitorStepExternalStatusPageMonitor;
   onChange: (value: MonitorStepExternalStatusPageMonitor) => void;
+  // Test seam: how the Components field reads the page's components.
+  readCatalog?: ComponentsFieldProps["readCatalog"];
 }
 
 /*
@@ -55,8 +62,9 @@ const ExternalStatusPageMonitorStepForm: FunctionComponent<ComponentProps> = (
   const idPrefix: string = useId();
   const statusPageUrlLabelId: string = `${idPrefix}-status-page-url`;
   const providerLabelId: string = `${idPrefix}-provider`;
+  const componentsLabelId: string = `${idPrefix}-components`;
+  const componentsDescriptionId: string = `${idPrefix}-components-description`;
   const componentGroupLabelId: string = `${idPrefix}-component-group`;
-  const componentNameLabelId: string = `${idPrefix}-component-name`;
   const timeoutLabelId: string = `${idPrefix}-timeout`;
   const retriesLabelId: string = `${idPrefix}-retries`;
 
@@ -125,6 +133,38 @@ const ExternalStatusPageMonitorStepForm: FunctionComponent<ComponentProps> = (
       </div>
 
       {/*
+       * What on the page the monitor watches: the whole page, or the
+       * components a person depends on (issue #5156). Out in the form,
+       * not under More fields: on a page of many components it decides
+       * what takes the monitor offline. A monitor saved with one
+       * Component Name Filter shows it here as that name between stars.
+       */}
+      <ExternalStatusPageComponentsField
+        statusPageUrl={props.monitorStepExternalStatusPageMonitor.statusPageUrl}
+        provider={
+          props.monitorStepExternalStatusPageMonitor.provider ||
+          ExternalStatusPageProviderType.Auto
+        }
+        componentGroupName={
+          props.monitorStepExternalStatusPageMonitor.componentGroupName
+        }
+        componentNames={MonitorStepExternalStatusPageMonitorUtil.getComponentNames(
+          props.monitorStepExternalStatusPageMonitor,
+        )}
+        labelId={componentsLabelId}
+        descriptionId={componentsDescriptionId}
+        readCatalog={props.readCatalog}
+        onChange={(componentNames: Array<string>) => {
+          props.onChange(
+            MonitorStepExternalStatusPageMonitorUtil.withComponentNames(
+              props.monitorStepExternalStatusPageMonitor,
+              componentNames,
+            ),
+          );
+        }}
+      />
+
+      {/*
        * More fields, folded like every form's: options most monitors
        * leave at their defaults. Its header names them and shows the
        * ones changed.
@@ -156,28 +196,6 @@ const ExternalStatusPageMonitorStepForm: FunctionComponent<ComponentProps> = (
                 props.onChange({
                   ...props.monitorStepExternalStatusPageMonitor,
                   componentGroupName: value || undefined,
-                });
-              }}
-            />
-          </div>
-
-          <div>
-            <FieldLabelElement
-              id={componentNameLabelId}
-              title="Component Name Filter"
-              description="Only watch components whose names contain this, e.g. 'API'. With a group set, only inside that group."
-              required={false}
-            />
-            <Input
-              initialValue={
-                props.monitorStepExternalStatusPageMonitor.componentName || ""
-              }
-              placeholder="e.g. API, Compute Engine, us-east-1"
-              ariaLabelledby={componentNameLabelId}
-              onChange={(value: string) => {
-                props.onChange({
-                  ...props.monitorStepExternalStatusPageMonitor,
-                  componentName: value || undefined,
                 });
               }}
             />

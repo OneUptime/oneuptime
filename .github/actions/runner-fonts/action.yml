@@ -1,0 +1,36 @@
+name: The runner's fonts, in the Playwright image
+description: >-
+  Gives a job that runs in the Playwright image the fonts an ubuntu runner
+  has and the image lacks - DejaVu Sans, Serif and Sans Mono, the runner's
+  sans-serif, serif and monospace - so a page that loads no web font of its
+  own draws its words as it does on the runner. Needs the repository checked
+  out. No root and no apt: the fonts are in this folder.
+
+# Why this exists: the browser jobs run in mcr.microsoft.com/playwright
+# (Tests/Ops/PlaywrightImage.test.js), whose fonts are the ones
+# `playwright install --with-deps` installs. An ubuntu runner also has
+# fonts-dejavu-core and fonts-dejavu-mono, and fontconfig answers DejaVu for
+# sans-serif, serif and monospace there; in the image it answers WenQuanYi Zen
+# Hei, a Chinese font with Latin letters of other widths. The browser suites
+# were written and are green against the runner's fonts, so in the image the
+# ones that measure words in a page with no web font failed (2026-10-27): the
+# Workflow Builder's trigger title fit one line where it takes two, its
+# toolbar did not wrap under the Enabled switch, a chart's Investigate this
+# moment button sat 6 pixels further right, and the German docs diagrams grew
+# wider than their column. With these fonts the image answers every generic
+# family and language exactly as the runner does.
+#
+# fonts/ holds the eight faces of Ubuntu 24.04's fonts-dejavu-core and
+# fonts-dejavu-mono (2.37-8), the files the runner has, under their licence
+# (fonts/copyright). install.sh copies them into the user's fonts, builds the
+# cache and fails unless fontconfig then answers DejaVu.
+#
+# Tests/Ops/PlaywrightImage.test.js holds every job in the image to running
+# this before its tests, and fonts/ to those eight faces.
+
+runs:
+  using: composite
+  steps:
+    - name: Install DejaVu, the runner's sans-serif, serif and monospace
+      shell: bash
+      run: bash "${GITHUB_WORKSPACE}/.github/actions/runner-fonts/install.sh"

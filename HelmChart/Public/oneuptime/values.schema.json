@@ -2153,6 +2153,15 @@
             },
             "additionalProperties": false
         },
+        "instanceCheckIn": {
+            "type": "object",
+            "properties": {
+                "disabled": {
+                    "type": "boolean"
+                }
+            },
+            "additionalProperties": false
+        },
         "trustedProxyHops": {
             "type": "integer",
             "minimum": 0

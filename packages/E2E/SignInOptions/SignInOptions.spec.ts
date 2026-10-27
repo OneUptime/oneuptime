@@ -41,9 +41,17 @@ const OPTIONS: string = [
   // A provider of a project an address belongs to, after the email lookup.
   '[data-testid="sso-project-provider"]',
 ].join(", ");
-const DIVIDERS: string =
-  '[data-testid="sign-in-options-divider"], [data-testid="sign-up-options-divider"]';
-// The page's own filled button: Login, Login with SSO, Sign Up.
+/*
+ * Every divider with words in its middle: "or" over the other ways in, and
+ * the single sign-on page's "Or continue with email" under its providers,
+ * whose hairlines once shrank to nothing at 320px in long languages.
+ */
+const DIVIDERS: string = [
+  '[data-testid="sign-in-options-divider"]',
+  '[data-testid="sign-up-options-divider"]',
+  '[data-testid="global-providers-divider"]',
+].join(", ");
+// The page's own filled button: Sign in, Sign in with SSO, Sign Up.
 const SUBMIT: string = '[id$="-form-submit-button"]';
 // Between the instance-wide providers and the email lookup.
 const PROVIDERS_DIVIDER: string = '[data-testid="global-providers-divider"]';
@@ -85,17 +93,24 @@ interface OptionGeometry {
   overflows: boolean;
 }
 
+interface DividerGeometry {
+  testId: string;
+  words: Rect | null;
+  // The words, line by line.
+  wordLines: Array<Rect>;
+  hairlines: Array<Rect>;
+}
+
 interface PageGeometry {
   submit: Rect | null;
-  dividerWords: Rect | null;
-  hairlines: Array<Rect>;
+  dividers: Array<DividerGeometry>;
   options: Array<OptionGeometry>;
   scrollsSideways: boolean;
 }
 
 /*
- * The page as drawn. `dividers` picks the "or" divider to measure; null for
- * a page that has none.
+ * The page as drawn. `dividers` picks the dividers to measure, every one it
+ * matches; null for a page that has none.
  */
 const measure: (
   page: Page,
@@ -219,20 +234,27 @@ const measure: (
         };
       });
 
-      const divider: Element | null = selectors.dividers
-        ? document.querySelector(selectors.dividers)
-        : null;
+      const dividers: Array<DividerGeometry> = selectors.dividers
+        ? Array.from(document.querySelectorAll(selectors.dividers)).map(
+            (divider: Element): DividerGeometry => {
+              const words: Element | undefined = divider.children[1];
+
+              return {
+                testId: divider.getAttribute("data-testid") || "",
+                words: words ? rectOf(words) : null,
+                wordLines: words ? linesOf(textOf(words)) : [],
+                hairlines: Array.from(
+                  divider.querySelectorAll('[aria-hidden="true"]'),
+                ).map(rectOf),
+              };
+            },
+          )
+        : [];
       const submit: Element | null = document.querySelector(selectors.submit);
 
       return {
         submit: submit ? rectOf(submit) : null,
-        dividerWords:
-          divider && divider.children[1] ? rectOf(divider.children[1]) : null,
-        hairlines: divider
-          ? Array.from(divider.querySelectorAll('[aria-hidden="true"]')).map(
-              rectOf,
-            )
-          : [],
+        dividers,
         options,
         scrollsSideways:
           document.documentElement.scrollWidth > window.innerWidth,
@@ -349,13 +371,15 @@ const problemsWith: (
 };
 
 /*
- * What is wrong with the "or" divider, as drawn: its word between two
- * hairlines that never shrink to nothing, each centred on the word.
+ * What is wrong with a divider, as drawn: its words between two hairlines
+ * that never shrink to nothing, each centred on the words, and words that
+ * wrap doing so onto lines of about even length (text-balance), not one
+ * long line and a word left alone under it.
  */
-const dividerProblems: (geometry: PageGeometry) => Array<string> = (
-  geometry: PageGeometry,
+const dividerProblems: (geometry: DividerGeometry) => Array<string> = (
+  geometry: DividerGeometry,
 ): Array<string> => {
-  const words: Rect | null = geometry.dividerWords;
+  const words: Rect | null = geometry.words;
   /*
    * Left to right on the screen, whichever way the page reads: a Persian
    * page draws the divider's first hairline at the right (<html dir="rtl">).
@@ -386,6 +410,21 @@ const dividerProblems: (geometry: PageGeometry) => Array<string> = (
   if (before.right > words.left || words.right > after.left) {
     problems.push("its word is not between its hairlines");
   }
+  if (geometry.wordLines.length > 1) {
+    const widths: Array<number> = geometry.wordLines.map(widthOf);
+    const shortest: number = Math.min(...widths);
+    const longest: number = Math.max(...widths);
+
+    if (shortest < longest / 2) {
+      problems.push(
+        `its words wrap unevenly: lines of ${widths
+          .map((width: number): string => {
+            return `${width.toFixed(0)}px`;
+          })
+          .join(" and ")}`,
+      );
+    }
+  }
 
   return problems;
 };
@@ -398,8 +437,9 @@ interface Survey {
 
 /*
  * Every language at every width, without reloading: the fixture switches the
- * page's language in place (window.__setLanguage). `dividers` is the "or"
- * divider the page has, held to dividerProblems; null for a page with none.
+ * page's language in place (window.__setLanguage). `dividers` names the
+ * dividers the page has: it must have one, and each is held to
+ * dividerProblems; null for a page with none.
  */
 const survey: (
   page: Page,
@@ -431,9 +471,14 @@ const survey: (
       if (geometry.scrollsSideways) {
         result.problems.push(`${where}: the page scrolls sideways`);
       }
-      if (dividers) {
-        for (const problem of dividerProblems(geometry)) {
-          result.problems.push(`${where}: the divider - ${problem}`);
+      if (dividers && geometry.dividers.length === 0) {
+        result.problems.push(`${where}: the page has no divider`);
+      }
+      for (const divider of geometry.dividers) {
+        for (const problem of dividerProblems(divider)) {
+          result.problems.push(
+            `${where}: the divider ${divider.testId} - ${problem}`,
+          );
         }
       }
       for (const option of geometry.options) {
@@ -477,7 +522,7 @@ const box: (locator: Locator) => Promise<Rect> = async (
 };
 
 test.describe("The other ways to sign in, as the browser draws them", () => {
-  test("the sign-in page: under Login, 'or', then single sign-on, Microsoft and the passkey, each as wide as Login and as tall", async ({
+  test("the sign-in page: under Sign in, 'or', then single sign-on, Microsoft and the passkey, each as wide as Sign in and as tall", async ({
     page,
   }: {
     page: Page;
@@ -635,7 +680,7 @@ test.describe("The other ways to sign in, as the browser draws them", () => {
     expect(problemsWith(passkey!, geometry.submit)).toEqual([]);
   });
 
-  test("the single sign-on page: 'or', then Sign in with password, as wide and as tall as Login with SSO, in every language", async ({
+  test("the single sign-on page: 'or', then Sign in with password, as wide and as tall as Sign in with SSO, in every language", async ({
     page,
   }: {
     page: Page;
@@ -668,6 +713,52 @@ test.describe("The other ways to sign in, as the browser draws them", () => {
       WIDTHS,
     );
     expect(result.problems).toEqual([]);
+  });
+
+  /*
+   * "Or continue with email" filled a 320px row in long languages and its
+   * hairlines shrank to nothing (#4911's review). Now each keeps 1.5rem and
+   * the words wrap, balanced, between them; the survey above checks every
+   * divider of the page, this one included, at every width.
+   */
+  test("the single sign-on page: 'Or continue with email' keeps both hairlines at 320px in every language, its words wrapping evenly", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "page=sso&globalsso=1");
+
+    const wrapped: Array<string> = [];
+
+    await page.setViewportSize({ width: 320, height: 900 });
+    for (const language of SUPPORTED_ACCOUNTS_LANGUAGE_CODES) {
+      await page.evaluate(async (code: string): Promise<void> => {
+        await (
+          window as unknown as {
+            __setLanguage: (language: string) => Promise<void>;
+          }
+        ).__setLanguage(code);
+      }, language);
+
+      const geometry: PageGeometry = await measure(page);
+      const providers: DividerGeometry | undefined = geometry.dividers.find(
+        (divider: DividerGeometry): boolean => {
+          return divider.testId === "global-providers-divider";
+        },
+      );
+
+      expect(providers, `${language}: the providers' divider`).toBeTruthy();
+      expect(dividerProblems(providers!), language).toEqual([]);
+      for (const hairline of providers!.hairlines) {
+        expect(widthOf(hairline)).toBeGreaterThanOrEqual(SHORTEST_HAIRLINE);
+      }
+      if (providers!.wordLines.length > 1) {
+        wrapped.push(language);
+      }
+    }
+
+    // The long languages this was about do wrap at 320px.
+    expect(wrapped).toEqual(expect.arrayContaining(["ru"]));
   });
 
   test("the sign-up page: 'or', then Sign up with Microsoft, as wide as Sign Up, in every language", async ({
@@ -703,7 +794,82 @@ test.describe("The other ways to sign in, as the browser draws them", () => {
     );
   });
 
-  test("a private status page: 'or', then Log in with SSO, as wide and as tall as Login, in every language", async ({
+  /*
+   * A self-hosted server with no account yet (fu-platform): the sign-up page
+   * says the account made there becomes the server's admin, under its
+   * title, and offers no way to sign in - there is nobody to sign in as. The
+   * line wraps inside its column at every width, in every language.
+   */
+  test("the sign-up page of a server with no account yet: its line under the title, and no way to sign in, in every language", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "page=register&ms=1&firstaccount=1");
+
+    const line: Locator = page.getByTestId("register-subtitle");
+    await expect(line).toHaveText(
+      "This OneUptime server has no accounts yet. The account you create now becomes its admin.",
+    );
+    await expect(page.getByTestId("register-have-account")).toHaveCount(0);
+    await expect(page.locator('a[href="/accounts/login"]')).toHaveCount(0);
+
+    const problems: Array<string> = [];
+    for (const width of WIDTHS) {
+      await page.setViewportSize({ width, height: 900 });
+      for (const language of SUPPORTED_ACCOUNTS_LANGUAGE_CODES) {
+        await page.evaluate(async (code: string): Promise<void> => {
+          await (
+            window as unknown as {
+              __setLanguage: (language: string) => Promise<void>;
+            }
+          ).__setLanguage(code);
+        }, language);
+
+        const fits: {
+          scrollsSideways: boolean;
+          lineOverflows: boolean;
+          lineIsEmpty: boolean;
+        } = await line.evaluate(
+          (
+            element: Element,
+          ): {
+            scrollsSideways: boolean;
+            lineOverflows: boolean;
+            lineIsEmpty: boolean;
+          } => {
+            return {
+              scrollsSideways:
+                document.documentElement.scrollWidth > window.innerWidth,
+              lineOverflows: element.scrollWidth > element.clientWidth + 1,
+              lineIsEmpty: (element.textContent || "").trim().length === 0,
+            };
+          },
+        );
+
+        if (fits.scrollsSideways || fits.lineOverflows || fits.lineIsEmpty) {
+          problems.push(`${language} at ${width}px: ${JSON.stringify(fits)}`);
+        }
+      }
+    }
+
+    expect(problems).toEqual([]);
+    await expect(page.locator('a[href="/accounts/login"]')).toHaveCount(0);
+  });
+
+  test("the sign-up page of a server that has accounts: no line under the title, and the way to sign in", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "page=register&ms=1");
+
+    await expect(page.getByTestId("register-subtitle")).toHaveCount(0);
+    await expect(page.getByTestId("register-have-account")).toBeVisible();
+    await expect(page.locator('a[href="/accounts/login"]')).toHaveCount(1);
+  });
+
+  test("a private status page: 'or', then Log in with SSO, as wide and as tall as its Login, in every language", async ({
     page,
   }: {
     page: Page;

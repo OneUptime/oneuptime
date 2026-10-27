@@ -36,7 +36,7 @@ services:
 
   postgres:
     ports:
-      - "127.0.0.1:5400:5432"
+      - "127.0.0.1:${DATABASE_PUBLISHED_PORT:-5400}:5432"
     extends:
       file: ./docker-compose.base.yml
       service: postgres

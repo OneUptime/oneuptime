@@ -6,6 +6,7 @@ import {
   MAX_COMMAND_LENGTH_CHARS,
 } from "../../../Types/AutoRemediation/AiRemediationCommandPlan";
 import { afterEach, describe, expect, it } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * Contract under test — CommandPolicy is the pure policy gate for
@@ -921,37 +922,52 @@ describe("CommandPolicy", () => {
       const text: string = "ab".repeat(100);
       expect(text.length).toBe(200);
 
-      const startedAt: number = Date.now();
-      const matched: boolean = CommandPolicy.globMatches(pattern, text);
-      const elapsedMs: number = Date.now() - startedAt;
+      const timed: FastestRun<boolean> = fastestRun({
+        run: (): boolean => {
+          return CommandPolicy.globMatches(pattern, text);
+        },
+        limitInMs: 1000,
+      });
+      const matched: boolean = timed.result;
 
       expect(matched).toBe(false);
-      expect(elapsedMs).toBeLessThan(1000);
+      expect(timed.inMs).toBeLessThan(1000);
     });
 
     it("stays fast through matchesAllowlist for the same pathological pattern", () => {
       // Same blow-up input, but via the public entry point operators reach.
-      const startedAt: number = Date.now();
-      const matched: boolean = CommandPolicy.matchesAllowlist({
-        command: "ab".repeat(100),
-        allowlistPatterns: ["*ab*ab*ab*ab*ab*ab*ab*z", "*aa*aa*aa*aa*aa*aa*q"],
+      const timed: FastestRun<boolean> = fastestRun({
+        run: (): boolean => {
+          return CommandPolicy.matchesAllowlist({
+            command: "ab".repeat(100),
+            allowlistPatterns: [
+              "*ab*ab*ab*ab*ab*ab*ab*z",
+              "*aa*aa*aa*aa*aa*aa*q",
+            ],
+          });
+        },
+        limitInMs: 1000,
       });
-      const elapsedMs: number = Date.now() - startedAt;
+      const matched: boolean = timed.result;
 
       expect(matched).toBe(false);
-      expect(elapsedMs).toBeLessThan(1000);
+      expect(timed.inMs).toBeLessThan(1000);
     });
 
     it("still matches when a heavily wildcarded pattern genuinely applies", () => {
-      const startedAt: number = Date.now();
-      const matched: boolean = CommandPolicy.globMatches(
-        "*ab*ab*ab*ab*ab*ab*ab*z",
-        "ab".repeat(100) + "z",
-      );
-      const elapsedMs: number = Date.now() - startedAt;
+      const timed: FastestRun<boolean> = fastestRun({
+        run: (): boolean => {
+          return CommandPolicy.globMatches(
+            "*ab*ab*ab*ab*ab*ab*ab*z",
+            "ab".repeat(100) + "z",
+          );
+        },
+        limitInMs: 1000,
+      });
+      const matched: boolean = timed.result;
 
       expect(matched).toBe(true);
-      expect(elapsedMs).toBeLessThan(1000);
+      expect(timed.inMs).toBeLessThan(1000);
     });
   });
 

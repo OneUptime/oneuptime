@@ -53,6 +53,11 @@ configure({ asyncUtilTimeout: 10000 });
 jest.setTimeout(60000);
 
 let permissionsForTest: Array<string> = ["ProjectOwner"];
+// What the Edit Case dialog was last drawn with: its form's steps and fields.
+let editCaseFormProps: {
+  steps?: unknown;
+  fields?: Array<{ title?: string; description?: unknown }>;
+} | null = null;
 let realtimeListener: ((modelId: unknown) => void) | null = null;
 const realtimeSubscriptions: Array<{ modelId: string }> = [];
 
@@ -282,7 +287,13 @@ jest.mock("../../../UI/Components/ModelFormModal/ModelFormModal", () => {
       title: string;
       modelIdToEdit?: { toString: () => string };
       onSuccess: () => void;
+      formProps?: {
+        steps?: unknown;
+        fields?: Array<{ title?: string; description?: unknown }>;
+      };
     }): React.ReactElement => {
+      editCaseFormProps = props.formProps || null;
+
       return ReactModule.createElement(
         "div",
         {
@@ -305,6 +316,10 @@ import SecurityCaseViewContext, {
   useSecurityCaseView,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/SecurityCaseViewContext";
 import { SECURITY_CASE_VIEW_SELECT } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseViewSelect";
+import {
+  SECURITY_CASE_FORM_STEPS,
+  getSecurityCaseFormFields,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseFormFields";
 import {
   SECURITY_CASE_NOT_FOUND_COPY,
   SecurityCaseNotFoundReason,
@@ -515,6 +530,7 @@ function crumbs(): Array<string> {
 
 beforeEach(() => {
   permissionsForTest = ["ProjectOwner"];
+  editCaseFormProps = null;
   realtimeListener = null;
   realtimeSubscriptions.length = 0;
   cases = {
@@ -889,6 +905,59 @@ describe("the header's actions work from any page", () => {
       "data-id",
       CASE_ID,
     );
+  });
+
+  /*
+   * Edit Case asks what Open Security Case asks, in the same words - but
+   * the priority, which the header's ⋯ sets. Its fields drew their
+   * columns' descriptions, written for the API and in English on every
+   * page: "ID of the person working the case." under Assign To.
+   */
+  // A column's description for the API, or a lead the field's "(Optional)" says.
+  const COLUMN_OR_OPTIONAL_LEAD_PATTERN: RegExp = /^(ID of|Optional\.)/;
+
+  test("Edit Case asks the case's own form, each field in words of its own", async () => {
+    await openCase();
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("security-case-more"));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("security-case-edit"));
+    });
+
+    expect(screen.getByTestId("edit-case-dialog")).toBeInTheDocument();
+    expect(editCaseFormProps?.steps).toEqual(SECURITY_CASE_FORM_STEPS);
+
+    const fields: Array<{ title?: string; description?: unknown }> =
+      editCaseFormProps?.fields || [];
+    const shared: Array<{ title?: string; description?: unknown }> =
+      getSecurityCaseFormFields() as unknown as Array<{
+        title?: string;
+        description?: unknown;
+      }>;
+
+    expect(
+      fields.map((field: { title?: string }): string | undefined => {
+        return field.title;
+      }),
+    ).toEqual(["Title", "Description", "Assign To", "Team", "Labels"]);
+    expect(
+      fields.map((field: { description?: unknown }): unknown => {
+        return field.description;
+      }),
+    ).toEqual(
+      shared.map((field: { description?: unknown }): unknown => {
+        return field.description;
+      }),
+    );
+
+    for (const field of fields) {
+      expect(typeof field.description).toBe("string");
+      expect(String(field.description)).not.toMatch(
+        COLUMN_OR_OPTIONAL_LEAD_PATTERN,
+      );
+    }
   });
 
   test("picking the priority the case already has saves nothing", async () => {

@@ -12,6 +12,7 @@ import {
   getVideoCallProviderDefinition,
 } from "../../../../Types/VideoCall/VideoCallProviderCatalog";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../../Helpers/FastestRun";
 
 /*
  * Save-time validation of a video call connection. A connection that saves
@@ -475,9 +476,13 @@ describe("VideoCallConnectionSettingsUtil.isEmail", () => {
   ])(
     "decides %s in time in line with its length",
     (_label: string, value: string) => {
-      const startedAt: number = Date.now();
-      VideoCallConnectionSettingsUtil.isEmail(value);
-      expect(Date.now() - startedAt).toBeLessThan(2000);
+      const timed: FastestRun<void> = fastestRun({
+        run: (): void => {
+          VideoCallConnectionSettingsUtil.isEmail(value);
+        },
+        limitInMs: 2000,
+      });
+      expect(timed.inMs).toBeLessThan(2000);
     },
   );
 });

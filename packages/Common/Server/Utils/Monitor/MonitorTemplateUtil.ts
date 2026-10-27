@@ -680,7 +680,16 @@ export default class MonitorTemplateUtil {
           activeIncidentCount: externalStatusPageResponse?.activeIncidentCount,
           provider: externalStatusPageResponse?.provider,
           componentGroup: externalStatusPageResponse?.componentGroupName,
-          componentName: externalStatusPageResponse?.componentName,
+          /*
+           * The components the monitor watches: the one name filter of a
+           * monitor saved before it could watch several, as it was, else
+           * the chosen names, separated by commas.
+           */
+          componentName:
+            externalStatusPageResponse?.componentName ||
+            (externalStatusPageResponse?.componentNames?.length
+              ? externalStatusPageResponse.componentNames.join(", ")
+              : undefined),
         } as JSONObject;
 
         // Add component statuses

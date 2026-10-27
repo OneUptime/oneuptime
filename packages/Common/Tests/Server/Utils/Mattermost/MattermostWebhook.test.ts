@@ -17,6 +17,7 @@ import ComponentMetadata, {
 import { generatedTexts } from "../../../Helpers/GeneratedTexts";
 import { SeededRandom, seededRandom } from "../../../Helpers/SeededRandom";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../../Helpers/FastestRun";
 
 /*
  * What the Mattermost step accepts before it sends anything, read without a
@@ -247,14 +248,19 @@ describe("which URLs are an incoming webhook's", () => {
   test("a URL of any length is read in time that grows with it alone", () => {
     const long: string = `https://mattermost.example.com/${"a/".repeat(100_000)}hooks/${ID}`;
     const slashes: string = `https://mattermost.example.com${"/".repeat(200_000)}`;
-    const startedAt: number = Date.now();
-
-    expect(MattermostWebhook.getWebhookUrlProblem(long)).toBe(
-      "Mattermost Incoming Webhook URL is too long to be a webhook's URL.",
-    );
-    expect(MATTERMOST_INCOMING_WEBHOOK_URL_PATTERN.test(slashes)).toBe(false);
-    expect(MATTERMOST_INCOMING_WEBHOOK_URL_PATTERN.test(long)).toBe(true);
-    expect(Date.now() - startedAt).toBeLessThan(1000);
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        expect(MattermostWebhook.getWebhookUrlProblem(long)).toBe(
+          "Mattermost Incoming Webhook URL is too long to be a webhook's URL.",
+        );
+        expect(MATTERMOST_INCOMING_WEBHOOK_URL_PATTERN.test(slashes)).toBe(
+          false,
+        );
+        expect(MATTERMOST_INCOMING_WEBHOOK_URL_PATTERN.test(long)).toBe(true);
+      },
+      limitInMs: 1000,
+    });
+    expect(timed.inMs).toBeLessThan(1000);
   });
 });
 

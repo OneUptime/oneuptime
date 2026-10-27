@@ -8,6 +8,7 @@ import StixPatternParser, {
 } from "../../../../Utils/SecurityEvent/ThreatIntel/StixPatternParser";
 import { ThreatIntelIndicatorType } from "../../../../Types/SecurityEvent/ThreatIntelConstants";
 import { describe, expect, test } from "@jest/globals";
+import { fastestRun } from "../../../Helpers/FastestRun";
 
 /*
  * A list of indicators, as the free blocklists publish them: one value a
@@ -282,10 +283,18 @@ describe("what the parse counts", () => {
 describe("a list is read in time linear in its length", () => {
   const SIZE: number = 400000;
 
+  /*
+   * How long the work takes: the fastest of up to three attempts, counted as
+   * it would have run on a usual runner when every attempt overran on a slow
+   * one (Tests/Helpers/FastestRun).
+   */
   const timed: (text: string) => number = (text: string): number => {
-    const started: number = Date.now();
-    parse(text);
-    return Date.now() - started;
+    return fastestRun({
+      run: (): void => {
+        parse(text);
+      },
+      limitInMs: 2000,
+    }).inMs;
   };
 
   test.each([

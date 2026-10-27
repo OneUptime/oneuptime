@@ -105,6 +105,7 @@
   "register": {
     "title": "Maak uw OneUptime-account aan",
     "subtitle": "Sluit u aan bij duizenden bedrijven die OneUptime gebruiken om de hele tijd online te blijven.",
+    "firstAccountSubtitle": "Deze OneUptime-server heeft nog geen accounts. Het eerste account dat u aanmaakt, wordt de beheerder.",
     "noCreditCard": "Geen creditcard vereist.",
     "submitButton": "Aanmelden",
     "haveAccountPrompt": "Hebt u al een account?",
@@ -131,7 +132,6 @@
     "subtitle": "Voer uw e-mailadres in en de wachtwoordresetlink wordt naar u verzonden.",
     "successMessage": "We hebben u de wachtwoordresetlink gemaild. Vergeet niet de spammap te controleren.",
     "submitButton": "Wachtwoordresetlink verzenden",
-    "returnToSignIn": "Terug naar aanmelden.",
     "rememberPasswordPrompt": "Herinnert u uw wachtwoord?",
     "loginLink": "Inloggen."
   },
@@ -170,7 +170,7 @@
     "successTitle": "Uw e-mail is geverifieerd.",
     "successDescription": "Bedankt voor het verifiëren van uw e-mail. U kunt nu inloggen bij OneUptime.",
     "errorTitle": "Sorry, er is iets misgegaan!",
-    "returnToSignIn": "Terug naar aanmelden?",
+    "alreadyVerifiedPrompt": "Heb je je e-mailadres al bevestigd?",
     "loginLink": "Inloggen.",
     "continueToSignIn": "Doorgaan naar inloggen",
     "linkInvalidTitle": "Deze verificatielink is niet meer geldig",

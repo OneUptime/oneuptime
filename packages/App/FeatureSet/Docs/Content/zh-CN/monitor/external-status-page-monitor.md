@@ -6,7 +6,7 @@
 
 :::cards
 - [创建监视器](#创建外部状态页监视器): 粘贴状态页 URL，并选择要关注的内容。
-- [限定范围](#配置选项): 只关注一个组件组或一个组件。
+- [选择组件](#组件): 只关注你依赖的组件。
 - [条件](#监控条件): 默认情况下什么算作宕机。
 - [OneUptime 状态页](#oneuptime-状态页): 另一个项目的资源及其维护。
 - [常用状态页](#常用状态页-url): 大多数团队所依赖服务的 URL。
@@ -14,13 +14,13 @@
 
 ## 工作原理
 
-每次检查时，探测器会获取状态页，识别它使用的格式，并读取整体状态、组件和进行中的事件。如果你把监视器限定到某个组件组或组件，就只计算这些内容。然后由条件决定监视器是在线还是离线。
+每次检查时，探测器会获取状态页，识别它使用的格式，并读取整体状态、组件和进行中的事件。如果你选择了组件或组件组，就只计算这些内容。然后由条件决定监视器是在线还是离线。
 
 ```mermaid title="对外部状态页的一次检查"
 flowchart TB
     fetch["获取状态页"] --> detect["识别格式"]
     detect --> parse["读取状态、组件、事件"]
-    parse --> scope["保留组或组件"]
+    parse --> scope["保留所选组件"]
     scope --> criteria{"有进行中的事件或故障?"}
     criteria -->|是| down["离线，宣布事件"]
     criteria -->|否| up["在线"]
@@ -31,7 +31,7 @@ flowchart TB
 - 监控你的应用所依赖的第三方服务的可用性
 - 在上游服务商发生故障时收到告警
 - 跟踪各个组件的状态
-- 把监控限定到单个组件组（例如只关注 OpenAI 的 "APIs"），这样页面上其他无关的事件就不会触发你的监视器
+- 只关注你依赖的组件（例如 GitHub 的 Git Operations 和 Pull Requests，或 OpenAI 的 "APIs" 组），这样页面上其他无关的事件就不会触发你的监视器
 - 在性能下降影响用户之前发现它
 - 把你自己的事件与上游服务商的问题关联起来
 
@@ -72,9 +72,9 @@ flowchart TB
 
 输入 **状态页 URL**。除非你知道格式，否则请把 **提供商** 保留为 **Auto**。
 
-### 如有需要，限定范围
+### 如有需要，选择组件
 
-打开 **更多字段**，输入 **Component Group Filter**（例如 `APIs`），以及 **组件名称过滤器** 来关注单个组件（如果设置了组，则在该组内）。
+打开 **组件**，从页面自己的列表中选择你依赖的组件，例如 GitHub 的 `Git Operations` 和 `Pull Requests`；留空则关注整个页面。如果改为只关注一个组，请打开 **更多字段**，输入 **Component Group Filter**（例如 `APIs`）。
 
 ### 测试
 
@@ -95,27 +95,33 @@ flowchart TB
 | --- | --- | --- |
 | **状态页 URL** | 状态页的 URL。对于由 Atlassian Statuspage 和 incident.io 提供的站点，通常是根 URL（例如 `https://status.example.com`）。对于 RSS/Atom 订阅源，请直接输入订阅源的 URL。 | — |
 | **提供商** | **Auto** 表示自动识别格式；如果你知道格式，可选择 **Atlassian Statuspage**、**incident.io**、**OneUptime Status Page**、**RSS** 或 **Atom**。 | **Auto** |
+| **组件** | 要关注的组件，从页面自己的列表中选择或直接输入。 | 整个页面 |
 | **Component Group Filter** | 监视器限定到的组。位于 **更多字段** 下。 | 所有组 |
-| **组件名称过滤器** | 要关注的组件。位于 **更多字段** 下。 | 范围内的所有组件 |
 | **超时（ms）** | 等待状态页的最长时间。位于 **更多字段** 下。 | `10000`（10 秒） |
 | **重试** | 第一次尝试失败后重试的次数，每次间隔一秒；`0` 表示只尝试一次。位于 **更多字段** 下。 | `3`（最多 4 次尝试） |
+
+### 组件
+
+选择你依赖的组件后，监视器只关注它们：**External Status Page Component Status** 只比较它们的状态，整体状态取它们之中最差的那个，**External Status Page Active Incidents** 只计算至少影响其中一个组件的事件。无论选择多少个组件，对页面的检查仍然只有一次。
+
+打开 **组件** 时，你的浏览器会从 Atlassian Statuspage、incident.io 页面或 OneUptime 状态页读取页面自己的列表，并按页面的分组显示；未处于正常运行的组件会注明它当前的状况。你选择的名称只关注与它完全同名的组件，不区分大小写：GitHub 页面上的 `Copilot` 不是 `Copilot AI Model Providers`。
+
+如果无法读取列表（内部页面、不向你的浏览器共享列表的页面、RSS 或 Atom 订阅源），请输入名称并按 Enter。`*` 代表任意文本：`*us-east-1*` 会关注名称中含有 `us-east-1` 的所有组件。对于 RSS 或 Atom 订阅源，标题中含有其中某个名称的条目会被计入。
+
+关注所选组件时，没有指明任何组件的事件不会被计入：没有任何信息表明它影响这些组件。如果什么都没选，监视器会关注整个页面，所有事件都会被计入。
+
+使用旧的组件名称过滤器保存的监视器会继续关注原来关注的内容：该过滤器在 **组件** 中显示为前后加上星号的名称，例如 `*API*`，它会匹配名称中含有该名称的所有组件。
+
+> [!WARNING]
+> 什么都匹配不到的名称什么也不关注，看起来却是健康的。**组件** 和 **测试监视器** 都会列出页面上没有的所选组件。
 
 ### Component Group Filter
 
 如果状态页把组件分成了组，你可以把监视器限定到单个组。例如，在 `https://status.openai.com` 上输入 `APIs`，就会把监视器限定到 OpenAI 的 API 服务。
 
-设置了组件组后，**进行中的事件数** 和 **整体状态** 只根据该组中的组件计算：影响无关组（例如 ChatGPT）的事件不会触发限定到 "APIs" 组的监视器。
+设置了组件组后，**进行中的事件数** 和 **整体状态** 只根据该组中的组件计算：影响无关组（例如 ChatGPT）的事件不会触发限定到 "APIs" 组的监视器。如果同时选择了组件，就只计算该组中所选的组件。
 
 **Atlassian Statuspage**、**incident.io** 和 **OneUptime Status Page** 服务商支持按组件组过滤。RSS 和 Atom 订阅源不提供组件组。
-
-### 组件名称过滤器
-
-如果状态页报告了多个组件，你可以指定一个组件名称，只监控该组件。过滤器会匹配名称中包含你输入内容的任何组件，不区分大小写：`actions` 会匹配名为 "Actions" 的组件。
-
-如果同时设置了组件组，组件名称过滤器会在该组 **之内** 应用，让你可以锁定大组中的单个组件。两个过滤器都没有指定时，会监控范围内的所有组件。对于 RSS 或 Atom 订阅源，名称过滤器会与订阅源中各条目的标题进行匹配。
-
-> [!WARNING]
-> 什么都匹配不到的过滤器看起来是健康的：范围内没有组件，就没有任何东西能报告故障。请对照状态页检查拼写，并用 **测试监视器** 查看过滤器保留了什么。
 
 ## 监控条件
 
@@ -125,11 +131,11 @@ flowchart TB
 | --- | --- | --- |
 | **External Status Page Is Online** | 状态页是否可访问并返回状态数据 | 是 或 否 |
 | **External Status Page Overall Status** | 页面报告的整体状态 | 等于、不等于、包含、不包含、开头是、结尾是 |
-| **External Status Page Component Status** | 范围内组件的状态（遵循组件组 / 组件名称过滤器）：运行正常、Under Maintenance、Degraded Performance、Partial Outage、Major Outage 或 Full Outage | 等于、不等于、包含、不包含、开头是、结尾是 |
-| **External Status Page Active Incidents** | 状态页上当前进行中的事件数（设置了过滤器时限定到该组件组 / 组件） | 等于、不等于以及数值比较 |
+| **External Status Page Component Status** | 范围内每个组件的状态（设置后为所选组件或该组的组件）：运行正常、Under Maintenance、Degraded Performance、Partial Outage、Major Outage 或 Full Outage | 等于、不等于、包含、不包含、开头是、结尾是 |
+| **External Status Page Active Incidents** | 状态页上当前进行中的事件数（选择了组件或组时，只计算影响范围内组件的事件） | 等于、不等于以及数值比较 |
 | **External Status Page Response Time (in ms)** | 获取状态页数据所花的时间 | 大于、小于、大于或等于、小于或等于 |
 
-整体状态就是页面上写的内容，因此其取值因服务商而异：Atlassian Statuspage 报告它自己的描述，例如 `All Systems Operational`；OneUptime 状态页报告范围内组件中最差的状态，例如 `under_maintenance`；订阅源报告 `operational` 或 `degraded_performance`；可达性检查报告 `reachable` 或 `unreachable`。这些比较区分大小写。要针对故障告警，**External Status Page Active Incidents** 和 **External Status Page Component Status** 通常更可靠。
+整体状态就是页面上写的内容，因此其取值因服务商而异：Atlassian Statuspage 报告它自己的描述，例如 `All Systems Operational`；OneUptime 状态页报告范围内组件中最差的状态，例如 `under_maintenance`；订阅源报告 `operational` 或 `degraded_performance`；可达性检查报告 `reachable` 或 `unreachable`。选择了组件或组时，无论是哪种页面，它都是其中最差的状态。这些比较区分大小写。要针对故障告警，**External Status Page Active Incidents** 和 **External Status Page Component Status** 通常更可靠。
 
 对于 RSS 或 Atom 订阅源，最近 24 小时内的条目算作进行中的事件：RSS 条目按发布日期，Atom 条目按更新日期。日期在未来的条目要到该日期才计入。
 
@@ -142,13 +148,13 @@ flowchart TB
 | Offline | 以下 **任意** 一项：页面不在线；范围内至少有一个进行中的事件；范围内有组件报告 Degraded Performance、Partial Outage、Major Outage 或 Full Outage | 把监视器标记为离线并宣布一个事件，该事件会在条件不再匹配时自动解决 |
 | Online | 以下 **全部** 成立：页面在线；范围内没有进行中的事件 | 把监视器标记为在线 |
 
-由于进行中的事件数和组件状态都遵循组件组 / 组件名称过滤器，这些默认条件会自动只针对你关心的组件。
+由于进行中的事件数和组件状态都遵循所选的组件和组，这些默认条件会自动只针对你关心的组件。
 
 ## OneUptime 状态页
 
 要监视用 OneUptime 制作的状态页（另一个团队的项目，或者服务商在 OneUptime Cloud 或自托管 OneUptime 上的页面），把提供商选为 **OneUptime Status Page** ，或保留 **Auto** 。在 **状态页 URL** 中输入页面自己的地址：有域名就输入域名，例如 `https://status.example.com`，没有就输入 `https://oneuptime.com/status-page/<status-page-id>`。
 
-监视器读取页面的摘要 `/status-page-api/summary/<page>`（参见 [读取摘要](/docs/status-pages/public-api#读取摘要)）：只读取页面向访客展示的内容，不读取另一个项目的其他任何内容。页面上的每个资源（一个监视器或一个监视器组）都是一个组件，使用页面为它起的名称，位于页面的分组中；一个分组中的分组写作 `Core / Databases`。用 **组件名称过滤器** 监视一个资源，用 **Component Group Filter** 监视一个分组。
+监视器读取页面的摘要 `/status-page-api/summary/<page>`（参见 [读取摘要](/docs/status-pages/public-api#读取摘要)）：只读取页面向访客展示的内容，不读取另一个项目的其他任何内容。页面上的每个资源（一个监视器或一个监视器组）都是一个组件，使用页面为它起的名称，位于页面的分组中；一个分组中的分组写作 `Core / Databases`。在 **组件** 中选择资源，或用 **Component Group Filter** 监视一个分组。
 
 组件的状态是它在页面上的状态所代表的值，因此组件状态条件的用法与任何状态页相同：
 
@@ -197,11 +203,11 @@ flowchart TB
 | `{{responseTimeInMs}}`    | 响应时间，单位为毫秒 |
 | `{{failureCause}}`        | 失败原因（如果有） |
 | `{{overallStatus}}`       | 整体状态指示值 |
-| `{{activeIncidentCount}}` | 进行中的事件数（如果有过滤器，则限定在过滤器范围内） |
+| `{{activeIncidentCount}}` | 进行中的事件数（如果选择了组件，则只计算所关注组件的事件） |
 | `{{componentStatuses}}`   | 组件状态的 JSON 数组（`name`、`status`、`description`、`groupName`） |
 | `{{provider}}`            | 识别出的服务商（Atlassian Statuspage、incident.io、OneUptime Status Page、RSS、Atom）；可达性检查之后为空 |
 | `{{componentGroup}}`      | 监视器限定到的组件组（如果有） |
-| `{{componentName}}`       | 监视器限定到的组件（如果有） |
+| `{{componentName}}`       | 监视器关注的组件，以逗号分隔（如果选择了组件） |
 
 ## 常用状态页 URL
 
@@ -235,22 +241,26 @@ flowchart TB
 ## 最佳实践
 
 - **使用 Auto 服务商** —— 除非你知道确切的格式，自动识别适用于大多数状态页。
-- **限定到组件组** —— 如果你只依赖服务商的一部分（例如只依赖 OpenAI 的 "APIs"），这样无关的事件就不会产生噪音。
-- **监控特定组件** —— 适用于你只依赖某些服务的情况。
+- **选择你依赖的组件** —— 例如选择 GitHub 的 Git Operations 和 Pull Requests，这样无关的事件就不会产生噪音。
+- **关注整个组** —— 如果你依赖整个组（例如 OpenAI 的 "APIs"），之后加入该组的组件也会被关注。
 - **与你自己的监视器结合使用** —— 把外部状态页监视器与你自己的 API 和网站监视器搭配使用。两者同时宕机时，上游状态页能更快地指向根本原因。
 
 ## 故障排除
 
 :::details 监视器离线了，但事件涉及的是我没有使用的那部分服务
-用 **Component Group Filter**、**组件名称过滤器** 或两者来限定监视器的范围。这样进行中的事件数和组件状态就只计算范围内的内容。
+在 **组件** 中选择你依赖的组件，或在 **Component Group Filter** 中指定一个组。这样进行中的事件数和组件状态就只计算这些内容；没有指明任何组件的事件不会被计入。
 :::
 
 :::details 即使在故障期间，监视器也从不离线
-可能是过滤器什么都没匹配到（这看起来是健康的），也可能是页面只进行了可达性检查。运行 **测试监视器**，检查它找到的服务商和组件。
+可能是所选名称在页面上什么都没匹配到（这看起来是健康的），也可能是页面只进行了可达性检查。运行 **测试监视器**：它会显示找到的服务商和组件，并列出页面上没有的所选组件。
 :::
 
 :::details Auto 选错了格式，或者找不到任何组件
 把 **提供商** 设置为你知道该页面所使用的那一个。对于 RSS 或 Atom 订阅源，请输入订阅源本身的 URL，而不是状态页的 URL。
+:::
+
+:::details 组件列表无法加载
+列表由你的浏览器直接从状态页读取。浏览器无法访问的内部页面、不向其他网站共享列表的页面，以及 RSS 或 Atom 订阅源，都没有可供选择的列表：请按页面上显示的样子输入每个组件的名称，然后按 Enter。探测器仍会像以前一样读取页面。
 :::
 
 :::details OneUptime 状态页不显示任何组件

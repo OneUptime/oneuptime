@@ -1,5 +1,16 @@
 import React, { FunctionComponent, ReactElement } from "react";
 
+// Each hairline: it takes the room the words leave, and never less than 1.5rem.
+export const LABELLED_DIVIDER_LINE_CLASS_NAME: string =
+  "min-w-6 flex-1 border-t border-gray-200";
+
+/*
+ * The words: on one line while they fit beside two 1.5rem lines, then
+ * wrapped onto lines of even length.
+ */
+export const LABELLED_DIVIDER_LABEL_CLASS_NAME: string =
+  "min-w-0 text-balance text-center text-sm text-gray-500";
+
 export interface ComponentProps {
   label: string;
   // The space above and below. Defaults to my-6.
@@ -19,9 +30,11 @@ export interface ComponentProps {
  * between the controls they separate; the lines are hidden from assistive
  * technology.
  *
- * Each line keeps 1.5rem (min-w-6), and words too long for the row wrap
- * into balanced lines between them: "O continúe con su correo electrónico"
- * on a 320px phone took the whole row and left no line at all.
+ * The lines never shrink to nothing. On a 320px phone a long label ("Oder
+ * mit E-Mail fortfahren", "Или продолжите с электронной почтой", "O continúe
+ * con su correo electrónico") filled the row and pushed both lines out of it,
+ * so the words floated alone. Each line keeps at least 1.5rem (min-w-6); past
+ * that the words wrap, onto lines of even length, between them.
  */
 const LabelledDivider: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -32,18 +45,15 @@ const LabelledDivider: FunctionComponent<ComponentProps> = (
       data-testid={props.dataTestId}
     >
       <div
-        className="min-w-6 flex-1 border-t border-gray-200"
+        className={LABELLED_DIVIDER_LINE_CLASS_NAME}
         aria-hidden="true"
         data-testid={props.dataTestId ? `${props.dataTestId}-line` : undefined}
       />
-      <span
-        dir="auto"
-        className="min-w-0 text-balance text-center text-sm text-gray-500"
-      >
+      <span dir="auto" className={LABELLED_DIVIDER_LABEL_CLASS_NAME}>
         {props.label}
       </span>
       <div
-        className="min-w-6 flex-1 border-t border-gray-200"
+        className={LABELLED_DIVIDER_LINE_CLASS_NAME}
         aria-hidden="true"
         data-testid={props.dataTestId ? `${props.dataTestId}-line` : undefined}
       />

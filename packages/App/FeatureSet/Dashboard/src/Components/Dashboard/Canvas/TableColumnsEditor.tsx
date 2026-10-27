@@ -2,7 +2,14 @@ import React, { FunctionComponent, ReactElement } from "react";
 import {
   TableColumn,
   TableColumnKind,
+  TableColumnThresholds,
+  TableThresholdStyle,
 } from "Common/Types/Dashboard/DashboardComponents/DashboardTableComponent";
+import {
+  TableColumnDisplay,
+  getTableColumnDisplay,
+} from "Common/Utils/Dashboard/TableThresholds";
+import TableColumnThresholdsEditor from "./TableColumnThresholdsEditor";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
 import ObjectID from "Common/Types/ObjectID";
@@ -24,7 +31,40 @@ export interface ComponentProps {
   columns: Array<TableColumn>;
   metricTypes: Array<MetricType>;
   onChange: (columns: Array<TableColumn>) => void;
+  /*
+   * How the table colors a value past a threshold, so each column's
+   * thresholds show their levels as the table will draw them.
+   */
+  thresholdStyle?: TableThresholdStyle | undefined;
 }
+
+/*
+ * How a column shows its values (TableThresholds.getTableColumnDisplay):
+ * what its thresholds are typed in, and the unit written after them.
+ */
+export const getTableColumnEditorDisplay: (data: {
+  column: TableColumn;
+  metricTypes: Array<MetricType>;
+}) => TableColumnDisplay = (data: {
+  column: TableColumn;
+  metricTypes: Array<MetricType>;
+}): TableColumnDisplay => {
+  if (data.column.kind !== TableColumnKind.Metric) {
+    return getTableColumnDisplay({ columnUnit: data.column.unit });
+  }
+
+  const metricType: MetricType | undefined = data.column.metricName
+    ? data.metricTypes.find((m: MetricType): boolean => {
+        return m.name === data.column.metricName;
+      })
+    : undefined;
+
+  return getTableColumnDisplay({
+    columnUnit: data.column.unit,
+    metricUnit: metricType?.unit || undefined,
+    metricName: data.column.metricName,
+  });
+};
 
 const TableColumnsEditor: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -64,6 +104,30 @@ const TableColumnsEditor: FunctionComponent<ComponentProps> = (
   ): void => {
     const next: Array<TableColumn> = [...columns];
     next[index] = { ...next[index]!, ...patch };
+    props.onChange(next);
+  };
+
+  /*
+   * Thresholds are replaced, not merged: turning them off takes the key
+   * off the column, so a column that never had them stores nothing.
+   */
+  const writeThresholds: (
+    index: number,
+    thresholds: TableColumnThresholds | undefined,
+  ) => void = (
+    index: number,
+    thresholds: TableColumnThresholds | undefined,
+  ): void => {
+    const next: Array<TableColumn> = [...columns];
+    const column: TableColumn = { ...next[index]! };
+
+    if (thresholds) {
+      column.thresholds = thresholds;
+    } else {
+      delete column.thresholds;
+    }
+
+    next[index] = column;
     props.onChange(next);
   };
 
@@ -160,15 +224,22 @@ const TableColumnsEditor: FunctionComponent<ComponentProps> = (
                   </span>
                 )}
               </div>
-              <Button
-                title="Remove"
-                buttonSize={ButtonSize.Small}
-                buttonStyle={ButtonStyleType.DANGER_OUTLINE}
-                icon={IconProp.Trash}
-                onClick={(): void => {
-                  removeColumn(index);
-                }}
-              />
+              {/*
+               * The shared Button is the full width of a narrow screen (and
+               * steps 12px in from md up, for a dialog's footer): here it
+               * keeps its own width beside the column's name.
+               */}
+              <div className="flex-none [&_button]:ml-0 [&_button]:w-auto [&_button]:md:ml-0">
+                <Button
+                  title="Remove"
+                  buttonSize={ButtonSize.Small}
+                  buttonStyle={ButtonStyleType.DANGER_OUTLINE}
+                  icon={IconProp.Trash}
+                  onClick={(): void => {
+                    removeColumn(index);
+                  }}
+                />
+              </div>
             </div>
 
             <label className="flex items-center gap-2 mb-3 text-xs text-gray-700 select-none cursor-pointer">
@@ -178,7 +249,7 @@ const TableColumnsEditor: FunctionComponent<ComponentProps> = (
                 onChange={(e: React.ChangeEvent<HTMLInputElement>): void => {
                   updateColumn(index, { showAsColumn: e.target.checked });
                 }}
-                className="h-3.5 w-3.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                className="h-3.5 w-3.5 rounded border-gray-300 text-indigo-600 accent-indigo-600 focus:ring-indigo-500"
               />
               {translator.translateText("Show as column in the table")}
             </label>
@@ -316,6 +387,25 @@ const TableColumnsEditor: FunctionComponent<ComponentProps> = (
                 </div>
               )}
             </div>
+
+            {showAsColumn && (
+              <TableColumnThresholdsEditor
+                columnId={column.id}
+                thresholds={column.thresholds}
+                display={getTableColumnEditorDisplay({
+                  column,
+                  metricTypes: props.metricTypes,
+                })}
+                thresholdStyle={
+                  props.thresholdStyle || TableThresholdStyle.Text
+                }
+                onChange={(
+                  thresholds: TableColumnThresholds | undefined,
+                ): void => {
+                  writeThresholds(index, thresholds);
+                }}
+              />
+            )}
           </div>
         );
       })}

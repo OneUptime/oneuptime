@@ -942,7 +942,7 @@ const LoginPage: (props: ComponentProps) => JSX.Element = (
                 ? t("login.backupCodes.title")
                 : t("login.backupCodes.setUpTitle")}
             </h2>
-            <p className="mt-2 text-center text-sm text-gray-600 px-2 sm:px-0">
+            <p className="mt-2 text-balance text-center text-sm text-gray-600 px-2 sm:px-0">
               {codesToSave.length > 0
                 ? t("login.backupCodes.subtitle")
                 : t("login.backupCodes.setUpSubtitle")}
@@ -974,7 +974,7 @@ const LoginPage: (props: ComponentProps) => JSX.Element = (
             <h2 className="mt-4 sm:mt-6 text-center text-xl sm:text-2xl tracking-tight text-gray-900">
               {t("login.twoFactor.title")}
             </h2>
-            <p className="mt-2 text-center text-sm text-gray-600 px-2 sm:px-0">
+            <p className="mt-2 text-balance text-center text-sm text-gray-600 px-2 sm:px-0">
               {/*
                * "Select two factor authentication method" is true of exactly
                * one of the four screens this heading sits over, and it used to
@@ -1000,7 +1000,7 @@ const LoginPage: (props: ComponentProps) => JSX.Element = (
             <h2 className="mt-4 sm:mt-6 text-center text-xl sm:text-2xl tracking-tight text-gray-900">
               {t("login.twoFactorEnrolment.title")}
             </h2>
-            <p className="mt-2 text-center text-sm text-gray-600 px-2 sm:px-0">
+            <p className="mt-2 text-balance text-center text-sm text-gray-600 px-2 sm:px-0">
               {t("login.twoFactorEnrolment.subtitle")}
             </p>
           </>

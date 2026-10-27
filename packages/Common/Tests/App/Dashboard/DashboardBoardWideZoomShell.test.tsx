@@ -485,9 +485,18 @@ function buildBoard(): DashboardViewConfig {
           metricQueryConfig: {
             metricAliasData: { metricVariable: "a" },
             metricQueryData: {
+              /*
+               * An average: its line is the points as they came. A sum's or
+               * a count's line also draws the empty buckets between its
+               * readings, at 0, on the grid the server buckets at - one
+               * minute over this hour (#5313, fillValueWidgetSeriesGaps) -
+               * so the five-minute points here would not be a sum's real
+               * buckets, and a drag across them would end a minute after
+               * the last, not five.
+               */
               filterData: {
                 metricName: "http.requests",
-                aggegationType: MetricsAggregationType.Sum,
+                aggegationType: MetricsAggregationType.Avg,
               },
             },
           },

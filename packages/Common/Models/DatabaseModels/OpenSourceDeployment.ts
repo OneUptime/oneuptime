@@ -36,13 +36,14 @@ export default class OpenSourceDeployment extends BaseModel {
     update: [],
   })
   @TableColumn({
-    required: true,
+    required: false,
     type: TableColumnType.Email,
     title: "Email",
-    description: "Email address of the user who registered.",
+    description:
+      "Email address of the user who registered. Empty for an instance known only from its daily check-in.",
   })
   @Column({
-    nullable: false,
+    nullable: true,
     type: ColumnType.Email,
     length: ColumnLength.Email,
   })
@@ -54,13 +55,14 @@ export default class OpenSourceDeployment extends BaseModel {
     update: [],
   })
   @TableColumn({
-    required: true,
+    required: false,
     type: TableColumnType.ShortText,
     title: "Name",
-    description: "Full name of the user who registered.",
+    description:
+      "Full name of the user who registered. Empty for an instance known only from its daily check-in.",
   })
   @Column({
-    nullable: false,
+    nullable: true,
     type: ColumnType.ShortText,
     length: ColumnLength.ShortText,
   })
@@ -137,4 +139,22 @@ export default class OpenSourceDeployment extends BaseModel {
     length: ColumnLength.ShortText,
   })
   public instanceUrl?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "Last Seen At",
+    description:
+      "When this instance last checked in or registered. A self-hosted install checks in once a day unless its admin turns that off.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public lastSeenAt?: Date = undefined;
 }

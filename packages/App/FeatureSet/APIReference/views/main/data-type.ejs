@@ -54,11 +54,13 @@
                         <span class="ms-2 font-medium text-ink"><%= pageData.propertyCount %></span>
                     </div>
                 <% } %>
+                <% if (pageData.jsonWrapperType) { %>
                 <div>
                     <%# The gap is the label's: the code reads left to right, so its own start is its left on every page. -%>
                     <span class="me-2 text-ink-subtle"><%= t('pages.dataType.jsonFormat') %></span>
-                    <code class="text-xs font-mono bg-surface px-2 py-0.5 rounded border border-line text-ink-muted">{"_type": "<%= pageData.jsonWrapperType %>", "value": ...}</code>
+                    <code class="text-xs font-mono bg-surface px-2 py-0.5 rounded border border-line text-ink-muted">{"_type": "<%= pageData.jsonWrapperType %>"<% var wrapperKeys = pageData.jsonWrapperKeys || []; for (var wk = 0; wk < wrapperKeys.length; wk++) { %>, "<%= wrapperKeys[wk] %>": ...<% } %>}</code>
                 </div>
+                <% } %>
             </div>
         </div>
 

@@ -140,7 +140,8 @@ describe("the case queue's pages", () => {
           "labels",
           "lastDetection",
         ],
-        hiddenColumns: ["labels"],
+        // The last detection's time is in each case's line.
+        hiddenColumns: ["labels", "lastDetection"],
         filters: [
           "title",
           "priority",
@@ -164,7 +165,7 @@ describe("the case queue's pages", () => {
         page: "SECURITY_CASES_ASSIGNED_TO_ME",
         title: "Assigned to Me",
         columns: ["case", "priority", "status", "labels", "lastDetection"],
-        hiddenColumns: ["labels"],
+        hiddenColumns: ["labels", "lastDetection"],
         filters: [
           "title",
           "priority",
@@ -196,7 +197,7 @@ describe("the case queue's pages", () => {
           "labels",
           "lastDetection",
         ],
-        hiddenColumns: ["labels"],
+        hiddenColumns: ["labels", "lastDetection"],
         filters: [
           "title",
           "priority",
@@ -227,7 +228,8 @@ describe("the case queue's pages", () => {
           "labels",
           "closed",
         ],
-        hiddenColumns: ["labels"],
+        // When each closed is in its line.
+        hiddenColumns: ["labels", "closed"],
         filters: [
           "title",
           "priority",
@@ -256,7 +258,7 @@ describe("the case queue's pages", () => {
           "labels",
           "lastDetection",
         ],
-        hiddenColumns: ["verdict", "labels"],
+        hiddenColumns: ["verdict", "labels", "lastDetection"],
         filters: [
           "title",
           "priority",

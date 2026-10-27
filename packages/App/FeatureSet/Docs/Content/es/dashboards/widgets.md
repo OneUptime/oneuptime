@@ -68,6 +68,10 @@ Un dial entre un mínimo y un máximo, 0 y 100 si no los defines, con una zona a
 
 Valores de métricas como filas. **Agrupar por atributos** da una fila por valor, por ejemplo una por `host.name`; sin ello, cada fila es un intervalo de tiempo. **Metrics & Columns** define las columnas: métricas, y fórmulas sobre ellas, como la disponibilidad en porcentaje. Cuando agrupas, **Reduce across time** convierte la serie de cada fila en un solo valor: el último valor, la media, la suma, el mínimo o el máximo.
 
+Activa **Colorear por umbrales** en una columna para colorear sus valores: un valor que alcanza el **Umbral de advertencia** se vuelve ámbar, con un triángulo, y uno que alcanza el **Umbral crítico** se vuelve rojo y en negrita, con un círculo. Una columna de porcentaje empieza en 80 y 90. Para una columna en la que los valores bajos son el problema, como el espacio libre en disco, elige **Más bajo es peor** en **Dirección**.
+
+Los umbrales leen el número que muestra la tabla, así que una métrica de uso enviada como una fracción de 1, como `system.cpu.utilization`, se muestra y se compara como porcentaje. En **Colores de los umbrales**, **Fondo de color** rellena toda la celda en lugar de colorear el número.
+
 Úsala para un desglose en lugar de una tendencia: los hosts más ruidosos, los errores por servicio, las peticiones por endpoint.
 
 ## Texto, reloj y HTML

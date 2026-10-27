@@ -68,6 +68,10 @@ Brug den, når værdien lever i et kendt interval: CPU- eller diskforbrug i proc
 
 Metrikværdier som rækker. **Group By Attributes** giver én række pr. værdi, for eksempel én pr. `host.name`; uden den er hver række et tidsrum. **Metrics & Columns** angiver kolonnerne: metrikker og formler over dem, som tilgængelighed i procent. Når du grupperer, gør **Reduce across time** hver rækkes serie til én værdi: den seneste værdi, gennemsnittet, summen, minimum eller maksimum.
 
+Slå **Farv efter tærskler** til i en kolonne for at farve dens værdier: En værdi, der når **Advarselstærskel**, bliver ravgul med en trekant, og en, der når **Kritisk tærskel**, bliver rød og fed med en cirkel. En procentkolonne starter ved 80 og 90. For en kolonne, hvor lave værdier er problemet, som ledig diskplads, skal du vælge **Lavere er værre** under **Retning**.
+
+Tærskler læser det tal, tabellen viser, så en udnyttelsesmetrik, der sendes som en brøkdel af 1, som `system.cpu.utilization`, vises og sammenlignes som en procentdel. Under **Tærskelfarver** udfylder **Farvet baggrund** hele cellen i stedet for at farve tallet.
+
 Brug den til en opdeling i stedet for en tendens: de mest støjende værter, fejl pr. tjeneste, anmodninger pr. endpoint.
 
 ## Tekst, ur og HTML

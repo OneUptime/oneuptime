@@ -390,6 +390,7 @@ const DATA_TYPE_PAGE: PageFixture = {
     propertyCount: 1,
     valueCount: 0,
     jsonWrapperType: "MonitorSteps",
+    jsonWrapperKeys: ["value"],
   },
 };
 

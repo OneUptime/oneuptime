@@ -1,4 +1,5 @@
 import AdminModelAPI from "../../Utils/ModelAPI";
+import ServerSetupChecklist from "../../Components/ServerSetup/ServerSetupChecklist";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import {
@@ -411,6 +412,11 @@ const Users: FunctionComponent = (): ReactElement => {
       ]}
     >
       <Fragment>
+        {/*
+         * The Admin Dashboard's first page: a self-hosted server that still
+         * lacks email, HTTPS or a choice about sign-ups says so here first.
+         */}
+        <ServerSetupChecklist />
         <ModelTable<User>
           modelType={User}
           modelAPI={AdminModelAPI}

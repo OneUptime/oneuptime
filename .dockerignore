@@ -41,6 +41,8 @@ HelmChart
 Scripts
 # Every Node image runs this while it is built (see the script's header).
 !Scripts/Docker/UpdateNpmCli.js
+# The Nginx image's build stage prunes its sidecar's packages with this.
+!Scripts/Docker/PruneUnreachablePackages.js
 .git
 GoSDK
 

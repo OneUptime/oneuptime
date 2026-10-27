@@ -3,6 +3,7 @@ import WorkspaceIncidentNumberWordReader, {
   WorkspaceIncidentNumberWord,
 } from "../../../../Server/Utils/Workspace/WorkspaceIncidentNumberWord";
 import WorkspaceIncidentActions from "../../../../Server/Utils/Workspace/WorkspaceIncidentActions";
+import { FastestRun, fastestRun } from "../../../Helpers/FastestRun";
 
 /*
  * `/oneuptime incident 42` - and `incident 42` typed to the Microsoft Teams
@@ -91,9 +92,13 @@ describe("WorkspaceIncidentNumberWordReader.read: a word naming an incident by i
   ])(
     "%s: answered in well under two seconds",
     (_name: string, text: string) => {
-      const startedAt: number = Date.now();
-      WorkspaceIncidentNumberWordReader.read(text);
-      expect(Date.now() - startedAt).toBeLessThan(2000);
+      const timed: FastestRun<void> = fastestRun({
+        run: (): void => {
+          WorkspaceIncidentNumberWordReader.read(text);
+        },
+        limitInMs: 2000,
+      });
+      expect(timed.inMs).toBeLessThan(2000);
     },
   );
 });

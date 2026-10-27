@@ -12,6 +12,7 @@ import {
   readCloudConnectionPaste,
 } from "../../../Types/CloudConnection/CloudConnectionPaste";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * The setup step asks for one paste: everything the cloud's terminal
@@ -355,20 +356,23 @@ describe("any cloud", () => {
     ["colons", `arn:${":".repeat(400000)}`],
     ["access key prefixes", "AKIA".repeat(100000)],
   ])("%s stay fast", (_name: string, worst: string) => {
-    const startedAt: number = Date.now();
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        for (const [provider, method] of [
+          [CloudProvider.AWS, CloudConnectionAuthMethod.AwsRole],
+          [CloudProvider.AWS, CloudConnectionAuthMethod.AwsAccessKey],
+          [CloudProvider.Azure, CloudConnectionAuthMethod.AzureClientSecret],
+          [CloudProvider.GCP, CloudConnectionAuthMethod.GcpServiceAccountKey],
+        ] as Array<[CloudProvider, CloudConnectionAuthMethod]>) {
+          readCloudConnectionPaste(provider, method, worst);
+        }
 
-    for (const [provider, method] of [
-      [CloudProvider.AWS, CloudConnectionAuthMethod.AwsRole],
-      [CloudProvider.AWS, CloudConnectionAuthMethod.AwsAccessKey],
-      [CloudProvider.Azure, CloudConnectionAuthMethod.AzureClientSecret],
-      [CloudProvider.GCP, CloudConnectionAuthMethod.GcpServiceAccountKey],
-    ] as Array<[CloudProvider, CloudConnectionAuthMethod]>) {
-      readCloudConnectionPaste(provider, method, worst);
-    }
+        findJsonObjects(worst);
+        isAwsRoleArn(worst);
+      },
+      limitInMs: 2000,
+    });
 
-    findJsonObjects(worst);
-    isAwsRoleArn(worst);
-
-    expect(Date.now() - startedAt).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
   });
 });

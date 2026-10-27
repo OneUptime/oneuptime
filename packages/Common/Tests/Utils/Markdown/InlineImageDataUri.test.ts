@@ -3,6 +3,7 @@ import {
   parseInlineImageDataUri,
 } from "../../../Utils/Markdown/InlineImageDataUri";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * Which data: URLs are inline raster images - the only data: URLs the email
@@ -279,12 +280,15 @@ describe("parseInlineImageDataUri - size", () => {
     ]);
     const base64: string = bytes.toString("base64");
 
-    const startedAt: number = Date.now();
-    const image: InlineImageDataUri | null = parseInlineImageDataUri(
-      `data:image/png;base64,${base64}`,
-    );
+    const timed: FastestRun<InlineImageDataUri | null> = fastestRun({
+      run: (): InlineImageDataUri | null => {
+        return parseInlineImageDataUri(`data:image/png;base64,${base64}`);
+      },
+      limitInMs: 5000,
+    });
+    const image: InlineImageDataUri | null = timed.result;
 
-    expect(Date.now() - startedAt).toBeLessThan(5000);
+    expect(timed.inMs).toBeLessThan(5000);
     expect(image?.byteLength).toBe(bytes.length);
     expect(image?.base64).toBe(base64);
   });
@@ -295,13 +299,16 @@ describe("parseInlineImageDataUri - size", () => {
       Buffer.alloc(3 * 1024 * 1024, 0x5a),
     ]).toString("base64");
 
-    const startedAt: number = Date.now();
-
-    expect(
-      parseInlineImageDataUri(
-        `data:image/png;base64,${base64.slice(0, -4)}AAA!`,
-      ),
-    ).toBeNull();
-    expect(Date.now() - startedAt).toBeLessThan(5000);
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        expect(
+          parseInlineImageDataUri(
+            `data:image/png;base64,${base64.slice(0, -4)}AAA!`,
+          ),
+        ).toBeNull();
+      },
+      limitInMs: 5000,
+    });
+    expect(timed.inMs).toBeLessThan(5000);
   });
 });

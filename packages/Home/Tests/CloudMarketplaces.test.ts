@@ -130,6 +130,103 @@ function entry(
   };
 }
 
+describe("the buyer's guide's listing row", () => {
+  /*
+   * /docs/installation/cloud-marketplaces is the buyer's guide to OneUptime
+   * Enterprise, and its first table's first row says where each listing is
+   * (#5128's follow-ups): a link to it once the marketplace shows it to
+   * everyone, else that it is not public yet, with the private offer page
+   * to ask on. In every language the docs are written in.
+   */
+  const DOCS_CONTENT: string = path.join(
+    REPO_ROOT,
+    "packages/App/FeatureSet/Docs/Content",
+  );
+  const COLUMNS: ReadonlyArray<[CloudMarketplace, string]> = [
+    [CloudMarketplace.AWS, "AWS"],
+    [CloudMarketplace.Azure, "Microsoft"],
+    [CloudMarketplace.GoogleCloud, "Google Cloud"],
+  ];
+  const HEADER: string = `| | ${COLUMNS.map(
+    ([, name]: [CloudMarketplace, string]): string => {
+      return name;
+    },
+  ).join(" | ")} |`;
+
+  const languages: Array<string> = fs
+    .readdirSync(DOCS_CONTENT)
+    .filter((language: string): boolean => {
+      return fs.existsSync(
+        path.join(DOCS_CONTENT, language, "installation/cloud-marketplaces.md"),
+      );
+    })
+    .sort();
+
+  // The cells of the row under the table's header and separator.
+  const listingCells: (language: string) => Array<string> = (
+    language: string,
+  ): Array<string> => {
+    const lines: Array<string> = fs
+      .readFileSync(
+        path.join(DOCS_CONTENT, language, "installation/cloud-marketplaces.md"),
+        "utf-8",
+      )
+      .split("\n");
+    const header: number = lines.indexOf(HEADER);
+
+    expect([language, header >= 0]).toEqual([language, true]);
+
+    return lines[header + 2]!.split("|")
+      .slice(1, -1)
+      .map((cell: string): string => {
+        return cell.trim();
+      });
+  };
+
+  test("is written in every docs language", () => {
+    expect(languages).toHaveLength(17);
+    expect(listingCells("en")[0]).toBe("Listing");
+  });
+
+  test.each(COLUMNS)(
+    "%s: a link to the public OneUptime Enterprise listing, or not public yet with the private offer page",
+    (marketplace: CloudMarketplace, name: string) => {
+      const column: number =
+        1 +
+        COLUMNS.findIndex(([candidate]: [CloudMarketplace, string]) => {
+          return candidate === marketplace;
+        });
+      const url: string | null = entryOf(marketplace).listingUrls.enterprise;
+
+      for (const language of languages) {
+        const cell: string = listingCells(language)[column]!;
+
+        if (url) {
+          expect([language, name, cell]).toEqual([
+            language,
+            name,
+            `[OneUptime Enterprise](${url})`,
+          ]);
+          continue;
+        }
+
+        expect([
+          language,
+          name,
+          cell.includes(LISTING_HOSTS[marketplace]!),
+          cell.includes(`](https://oneuptime.com${PRIVATE_OFFER_PATH})`),
+        ]).toEqual([language, name, false, true]);
+      }
+
+      if (!url) {
+        expect(listingCells("en")[column]).toBe(
+          `Not public yet: [contact us](https://oneuptime.com${PRIVATE_OFFER_PATH})`,
+        );
+      }
+    },
+  );
+});
+
 describe("the marketplaces", () => {
   test("are the three clouds, each once, in the order the guides list them", () => {
     expect(

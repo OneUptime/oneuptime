@@ -1,3 +1,24 @@
+# OneUptime Nginx: nginx, and beside it one small Node.js program, the
+# certificate sidecar (Index.ts), which writes TLS certificates from PostgreSQL
+# to disk for nginx.
+#
+# Stage graph:
+#
+#   node26 (Node.js donor)
+#   base   nginx + Node.js + npm  -> build  installs, type-checks and prunes the sidecar
+#                                 \-> (last) copies only what the sidecar runs out of build
+#
+# The sidecar imports a part of Common, but Common's package.json lists every
+# package any part of OneUptime needs. Installed in the image that ships, that
+# was 810 MB of packages (the Dashboard's diagrams and charts, React,
+# Playwright, Twilio, ...) for a sidecar that loads about 105 MB of them, plus
+# npm's 154 MB download cache and Common's 161 MB of tests: an image of
+# 1.5 GB on disk, a 437 MB download. Now the build stage installs, type-checks
+# and prunes Common to the packages the sidecar reaches
+# (Scripts/Docker/PruneUnreachablePackages.js), and the last stage copies
+# /usr/src out of it: 0.7 GB on disk, a 175 MB download.
+# Tests/Ops/ContainerImageHardening.test.js holds the stages to this.
+
 # Node 26 donor stage: Alpine's apk nodejs package tops out below Node 26, so
 # node + npm are copied from the official node image into the nginx image
 # below. The alpine release of this tag (3.24) MUST match the alpine release
@@ -8,8 +29,10 @@
 FROM public.ecr.aws/docker/library/node:26-alpine3.24 AS node26
 
 # The newest stable nginx, with its Alpine release in the tag so it cannot
-# drift away from the node donor above.
-FROM nginx:1.30.5-alpine3.24
+# drift away from the node donor above. Both stages after this one start from
+# it, so the sidecar's packages are installed against the same Node.js, musl
+# and libstdc++ that run them.
+FROM nginx:1.30.5-alpine3.24 AS base
 
 
 # Per-build args (GIT_SHA / APP_VERSION / IS_ENTERPRISE_EDITION) are declared at
@@ -61,12 +84,11 @@ RUN ln -s /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
 COPY ./Scripts/Docker/UpdateNpmCli.js /tmp/UpdateNpmCli.js
 RUN node /tmp/UpdateNpmCli.js && rm /tmp/UpdateNpmCli.js
 
-COPY ./packages/Nginx/envsubst-on-templates.sh /etc/nginx/envsubst-on-templates.sh
-
-RUN chmod +x /etc/nginx/envsubst-on-templates.sh
-
-COPY ./packages/Nginx/default.conf.template /etc/nginx/templates/default.conf.template
-COPY ./packages/Nginx/nginx.conf /etc/nginx/nginx.conf
+# ---------------------------------------------------------------------------
+# build: installs the sidecar's packages, type-checks it and prunes it. None of
+# this stage's layers ship: the last stage copies /usr/src out of it.
+# ---------------------------------------------------------------------------
+FROM base AS build
 
 # Serialize npm lifecycle scripts so esbuild's postinstall doesn't race against
 # concurrent package extractions on BuildKit's overlayfs (ETXTBSY on
@@ -77,15 +99,8 @@ RUN mkdir /usr/src
 
 WORKDIR /usr/src/Common
 COPY ./packages/Common/package*.json /usr/src/Common/
-RUN npm install
+RUN npm ci --no-audit --no-fund
 COPY ./packages/Common /usr/src/Common
-
-
-
-
-
-
-
 
 ENV PRODUCTION=true
 
@@ -93,13 +108,38 @@ WORKDIR /usr/src/app
 
 # Install app dependencies
 COPY ./packages/Nginx/package*.json /usr/src/app/
-RUN npm install
+RUN npm ci --no-audit --no-fund
 
 COPY ./packages/Nginx /usr/src/app
-# Bundle app source
+# Type-check the sidecar (and the part of Common it imports).
 RUN npm run compile
 
-RUN chmod +x ./run.sh
+# Leave in /usr/src only what the sidecar runs: the packages its imports reach
+# (see the script's header), without Common's tests or the type-check's output
+# (ts-node runs Index.ts). npm's download cache stays behind in this stage.
+COPY ./Scripts/Docker/PruneUnreachablePackages.js /tmp/PruneUnreachablePackages.js
+RUN node /tmp/PruneUnreachablePackages.js --entry /usr/src/app/Index.ts --package /usr/src/Common \
+    && rm -rf /tmp/PruneUnreachablePackages.js /usr/src/Common/Tests /usr/src/app/build \
+    && chmod +x /usr/src/app/run.sh
+
+# ---------------------------------------------------------------------------
+# The image that ships: nginx, Node.js, the nginx configuration and the
+# sidecar as the build stage left it.
+# ---------------------------------------------------------------------------
+FROM base
+
+COPY ./packages/Nginx/envsubst-on-templates.sh /etc/nginx/envsubst-on-templates.sh
+
+RUN chmod +x /etc/nginx/envsubst-on-templates.sh
+
+COPY ./packages/Nginx/default.conf.template /etc/nginx/templates/default.conf.template
+COPY ./packages/Nginx/nginx.conf /etc/nginx/nginx.conf
+
+COPY --from=build /usr/src /usr/src
+
+ENV PRODUCTION=true
+
+WORKDIR /usr/src/app
 
 # Per-build metadata last so the npm install / compile layers above stay
 # cacheable across commits and across the community + enterprise build passes.
@@ -117,5 +157,3 @@ LABEL org.opencontainers.image.version="${APP_VERSION}"
 ENV TS_NODE_TRANSPILE_ONLY=1
 
 CMD ./run.sh
-
-

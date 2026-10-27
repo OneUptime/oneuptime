@@ -56,6 +56,8 @@ const ENVIRONMENT_CONFIG: string =
   "packages/Common/Server/EnvironmentConfig.ts";
 const UPDATE_CHECK_JOB: string =
   "packages/App/FeatureSet/Workers/Jobs/InstanceUpdate/CheckForNewVersion.ts";
+const CHECK_IN_JOB: string =
+  "packages/App/FeatureSet/Workers/Jobs/InstanceCheckIn/CheckIn.ts";
 const SIGN_UP_API: string =
   "packages/App/FeatureSet/Identity/API/Authentication.ts";
 const REGISTER_PAGE: string =
@@ -187,10 +189,14 @@ describe("the values the page shows are the values the chart is tested with", ()
     );
     // "every pod gets the pull secret"
     expectFileToSay(AIR_GAPPED_SUITE, "gets the ${PULL_SECRET} pull secret");
-    // "the update check is off"
+    // "the update check and the daily check-in are off"
     expectFileToSay(
       AIR_GAPPED_SUITE,
       "the app is told the update check is off",
+    );
+    expectFileToSay(
+      AIR_GAPPED_SUITE,
+      "the app is told the daily check-in is off",
     );
     // "no probe is given a public nameserver"
     expectFileToSay(
@@ -229,6 +235,7 @@ describe("the values the page shows are the values the chart is tested with", ()
     );
     expectFileToSay(CHART_VALUES, "    repository: valkey/valkey\n");
     expectFileToSay(CHART_VALUES, "updateCheck:\n  disabled: false\n  url:");
+    expectFileToSay(CHART_VALUES, "instanceCheckIn:\n  disabled: false\n");
     expectFileToSay(CHART_VALUES, "# imagePullSecrets:");
     // The chart's probe is probes.one, and both private-address switches start off.
     expectFileToSay(CHART_VALUES, "probes:\n  one:\n");
@@ -417,6 +424,18 @@ describe("step 3: point the install inward", () => {
     expectFileToSay(UPDATE_CHECK_JOB, "if (DisableUpdateCheck) {");
   });
 
+  test("instanceCheckIn.disabled becomes DISABLE_INSTANCE_CHECK_IN, which the check-in obeys", () => {
+    expectFileToSay(
+      CHART_HELPERS,
+      "- name: DISABLE_INSTANCE_CHECK_IN\n  value: {{ default false (($.Values.instanceCheckIn).disabled) | squote }}",
+    );
+    expectFileToSay(
+      ENVIRONMENT_CONFIG,
+      'process.env["DISABLE_INSTANCE_CHECK_IN"] === "true"',
+    );
+    expectFileToSay(CHECK_IN_JOB, "if (DisableInstanceCheckIn) {");
+  });
+
   test("the probes' public fallback nameservers are the chart's default dnsConfig", () => {
     expectFileToSay(
       CHART_VALUES,
@@ -478,6 +497,7 @@ describe("step 3: probes and webhooks reach the private addresses an air-gapped 
   test("the step names both switches, and the values set them", () => {
     expect(AirGappedSteps[2]!.settings).toEqual([
       "updateCheck.disabled",
+      "instanceCheckIn.disabled",
       "dnsConfig.nameservers",
       "probes.one.allowPrivateNetworkMonitors",
       "webhooks.allowPrivateNetwork",
@@ -719,6 +739,36 @@ describe("what reaches out, and how it is stopped", () => {
     );
   });
 
+  test("the daily check-in tells oneuptime.com the install's address and version, once a day, and fails quietly without a route", () => {
+    const address: string =
+      "https://oneuptime.com/api/open-source-deployment/check-in";
+
+    expectFileToSay(CHECK_IN_JOB, `"${address}"`);
+    expect(new URL(address).host).toBe(
+      plainText(connection("instance-check-in").destination),
+    );
+    expectFileToSay(CHECK_IN_JOB, "schedule: EVERY_DAY,");
+    // The address and version, and nothing about anyone.
+    expectFileToSay(
+      CHECK_IN_JOB,
+      "data: {\n        instanceUrl: instanceUrl,\n        oneuptimeVersion: AppVersion,\n      },",
+    );
+    expect(connection("instance-check-in").when).toContain(
+      "its address and version, and nothing about anyone",
+    );
+    expectFileToSay(
+      CHECK_IN_JOB,
+      "Air-gapped installations have no route to oneuptime.com.",
+    );
+    expect(connection("instance-check-in").inside).toContain(
+      "`instanceCheckIn.disabled: true`",
+    );
+    expectFileToSay(
+      CHART_VALUES,
+      "# Set disabled to true to make no call at all.\ninstanceCheckIn:",
+    );
+  });
+
   test("signing up with release emails ticked tells oneuptime.com what the page says, and the box starts ticked", () => {
     const signUp: string = repoFile(SIGN_UP_API);
     const address: string =
@@ -837,10 +887,10 @@ describe("what reaches out, and how it is stopped", () => {
     expect(LlmType.Anthropic).toBe("Anthropic");
   });
 
-  test("the docs the page links for connections out name the same three, with the same settings", () => {
+  test("the docs the page links for connections out name the same four, with the same settings", () => {
     /*
      * The note under the table sends readers to this docs section, which the
-     * install serves too. It says what the page says: three connections
+     * install serves too. It says what the page says: four connections
      * unless a setting stops them, and everything else only once set up.
      */
     const architecture: string = docsPagePath("self-hosted/architecture");
@@ -851,7 +901,7 @@ describe("what reaches out, and how it is stopped", () => {
     expectFileToSay(architecture, "## Connections out of your network");
     expectFileToSay(
       architecture,
-      "Three connections are made unless you change a setting:",
+      "Four connections are made unless you change a setting:",
     );
     // The update check, and the two settings that turn it off.
     expectFileToSay(architecture, "GitHub's API (`api.github.com`)");
@@ -862,6 +912,19 @@ describe("what reaches out, and how it is stopped", () => {
     expectFileToSay(
       architecture,
       "`DISABLE_UPDATE_CHECK=true` in `config.env` on Docker Compose",
+    );
+    // The daily check-in, and the two settings that turn it off.
+    expectFileToSay(
+      architecture,
+      "the app tells `oneuptime.com` your install's address and the version it runs",
+    );
+    expectFileToSay(
+      architecture,
+      "`instanceCheckIn.disabled: true` in the Helm chart",
+    );
+    expectFileToSay(
+      architecture,
+      "`DISABLE_INSTANCE_CHECK_IN=true` in `config.env` on Docker Compose",
     );
     // The release emails a sign-up asks for.
     expectFileToSay(
@@ -881,14 +944,19 @@ describe("what reaches out, and how it is stopped", () => {
     );
   });
 
-  test("exactly three connections are marked as made by default", () => {
+  test("exactly four connections are marked as made by default", () => {
     expect(
       AirGappedConnections.filter((entry: AirGappedConnection): boolean => {
         return entry.onByDefault;
       }).map((entry: AirGappedConnection): string => {
         return entry.key;
       }),
-    ).toEqual(["update-check", "release-emails", "probe-dns"]);
+    ).toEqual([
+      "update-check",
+      "instance-check-in",
+      "release-emails",
+      "probe-dns",
+    ]);
   });
 
   test("every outbound default the server config names is on the page", () => {
@@ -1077,6 +1145,8 @@ describe("the questions buyers ask", () => {
 
     expect(text).toContain("daily update check against GitHub's API");
     expect(text).toContain("updateCheck.disabled");
+    expect(text).toContain("daily check-in");
+    expect(text).toContain("instanceCheckIn.disabled");
     expect(text).toContain("release emails ticked");
     expect(text).toContain("offline license token never does");
   });

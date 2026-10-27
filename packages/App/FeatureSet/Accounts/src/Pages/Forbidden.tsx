@@ -11,7 +11,7 @@ const ForbiddenPage: () => JSX.Element = () => {
         <h2 className="mt-4 sm:mt-6 text-center text-xl sm:text-2xl tracking-tight text-gray-900">
           {t("errors.forbidden.title")}
         </h2>
-        <p className="mt-2 text-center text-sm text-gray-600 px-2 sm:px-0">
+        <p className="mt-2 text-balance text-center text-sm text-gray-600 px-2 sm:px-0">
           {t("errors.forbidden.description")}
         </p>
       </div>

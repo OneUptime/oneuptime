@@ -5,6 +5,7 @@ import ProductBrandingUtil, {
   PRODUCT_NAME_MAX_LENGTH,
   ProductBranding,
 } from "../../../Types/Branding/ProductBranding";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * How the installation names and shows itself: OneUptime unless the
@@ -123,15 +124,18 @@ describe("replaceProductName", () => {
 
   test("handles a long text in time linear in its length", () => {
     const text: string = "OneUptime ".repeat(200000);
-    const startedAt: number = Date.now();
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        const replaced: string = ProductBrandingUtil.replaceProductName(
+          text,
+          "Acme",
+        );
 
-    const replaced: string = ProductBrandingUtil.replaceProductName(
-      text,
-      "Acme",
-    );
-
-    expect(replaced).toBe("Acme ".repeat(200000));
-    expect(Date.now() - startedAt).toBeLessThan(5000);
+        expect(replaced).toBe("Acme ".repeat(200000));
+      },
+      limitInMs: 5000,
+    });
+    expect(timed.inMs).toBeLessThan(5000);
   });
 });
 

@@ -7,6 +7,7 @@ import {
 import SecurityCaseAiVerdict from "../../../../../Types/SecurityCase/SecurityCaseAiVerdict";
 import SecurityCasePriorityLevel from "../../../../../Types/SecurityCase/SecurityCasePriorityLevel";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../../../Helpers/FastestRun";
 
 /*
  * What the server reads from a triage's answer: three closing lines, each
@@ -264,14 +265,17 @@ describe("reading an answer in linear time", () => {
   test("a 400,000 character answer of near-miss lines answers in under 2 seconds", () => {
     const nearMisses: string = "**Verdict** \n".repeat(30_800);
     const stars: string = `${"*".repeat(200_000)}${" ".repeat(200_000)}`;
-    const started: number = Date.now();
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        expect(read(`${nearMisses}Verdict: malicious`).verdict).toBe(
+          SecurityCaseAiVerdict.LikelyMalicious,
+        );
+        expect(read(stars).verdict).toBe(SecurityCaseAiVerdict.Inconclusive);
+        removeSecurityCaseTriageDecisionLines(nearMisses);
+      },
+      limitInMs: 2000,
+    });
 
-    expect(read(`${nearMisses}Verdict: malicious`).verdict).toBe(
-      SecurityCaseAiVerdict.LikelyMalicious,
-    );
-    expect(read(stars).verdict).toBe(SecurityCaseAiVerdict.Inconclusive);
-    removeSecurityCaseTriageDecisionLines(nearMisses);
-
-    expect(Date.now() - started).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
   });
 });

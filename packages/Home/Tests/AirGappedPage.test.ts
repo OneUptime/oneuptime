@@ -21,6 +21,7 @@ import ejs from "ejs";
 import fs from "fs";
 import { JSDOM } from "jsdom";
 import path from "path";
+import { FastestRun, fastestRun } from "Common/Tests/Helpers/FastestRun";
 
 /*
  * THE AIR-GAPPED PAGE, RENDERED.
@@ -584,6 +585,7 @@ describe("the air-gapped page", () => {
       ["helm verify"],
       [
         "updateCheck.disabled",
+        "instanceCheckIn.disabled",
         "dnsConfig.nameservers",
         "probes.one.allowPrivateNetworkMonitors",
         "webhooks.allowPrivateNetwork",
@@ -767,16 +769,16 @@ describe("the air-gapped page", () => {
       );
     }
 
-    // The first table is the three the section's first sentence names.
+    // The first table is the four the section's first sentence names.
     expect(
       all(
         page,
         '[data-testid="air-gapped-connections-on-by-default"] [data-testid="air-gapped-connection"]',
       ),
-    ).toHaveLength(3);
+    ).toHaveLength(4);
     expect(
       textOf(page.querySelector("#connections-out h2 + p")).startsWith(
-        "Three things reach out on their own unless you change a setting.",
+        "Four things reach out on their own unless you change a setting.",
       ),
     ).toBe(true);
   });
@@ -1288,11 +1290,14 @@ describe("the anchors the page links into the docs", () => {
   });
 
   test("the heading reader stays linear on a very long line", () => {
-    const started: number = Date.now();
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        headingText(`# ${"\t".repeat(200000)}x${"#".repeat(200000)}`);
+      },
+      limitInMs: 2000,
+    });
 
-    headingText(`# ${"\t".repeat(200000)}x${"#".repeat(200000)}`);
-
-    expect(Date.now() - started).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
   });
 
   test("the helper finds a missing page and a missing heading", () => {

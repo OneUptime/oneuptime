@@ -6,6 +6,7 @@ import ToolResultSerializer, {
 } from "../../../../../Server/Utils/AI/Toolbox/Serializer";
 import { JSONObject } from "../../../../../Types/JSON";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../../../Helpers/FastestRun";
 
 /*
  * Everything an AI tool returns goes through this serializer on its way into
@@ -234,11 +235,14 @@ describe("ToolResultSerializer.redact - private key blocks in a long text", () =
       "-----BEGIN PRIVATE KEY-----\n".repeat(1000000 / 28),
     ],
   ])("%s", (_label: string, text: string) => {
-    const startedAt: number = Date.now();
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        expect(ToolResultSerializer.redact(text).count).toBe(0);
+      },
+      limitInMs: 2000,
+    });
 
-    expect(ToolResultSerializer.redact(text).count).toBe(0);
-
-    expect(Date.now() - startedAt).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
   });
 });
 

@@ -34,6 +34,7 @@ import {
   getAdvertisedNeighbourNames,
   getDeviceNeighbourNames,
 } from "../../FeatureSet/Dashboard/src/Components/NetworkDevice/DeviceNeighbourLookupUtil";
+import { FastestRun, fastestRun } from "Common/Tests/Helpers/FastestRun";
 
 /*
  * What a switch, router or firewall is cabled to, for the device Overview's
@@ -238,14 +239,17 @@ describe("isPortNamedAsPort", () => {
    * run in time that grows with the text, whatever the text is.
    */
   test("a port id as long as any device could send is read at once", () => {
-    const started: number = Date.now();
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        isPortNamedAsPort("p".repeat(400_000));
+        isPortNamedAsPort(`${"port".repeat(100_000)}x`);
+        isPortNamedAsPort(`${" ".repeat(400_000)}port`);
+        isPortNamedAsPort(`x${"port1".repeat(80_000)}`);
+      },
+      limitInMs: 2000,
+    });
 
-    isPortNamedAsPort("p".repeat(400_000));
-    isPortNamedAsPort(`${"port".repeat(100_000)}x`);
-    isPortNamedAsPort(`${" ".repeat(400_000)}port`);
-    isPortNamedAsPort(`x${"port1".repeat(80_000)}`);
-
-    expect(Date.now() - started).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
   });
 });
 

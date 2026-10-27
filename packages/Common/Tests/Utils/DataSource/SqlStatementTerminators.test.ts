@@ -8,6 +8,7 @@ import DataSourceType from "../../../Types/DataSource/DataSourceType";
 import { withoutTrailingStatementTerminators } from "../../../Utils/DataSource/SqlStatementTerminators";
 import { generatedTexts } from "../../Helpers/GeneratedTexts";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * ---------------------------------------------------------------------------
@@ -50,11 +51,14 @@ afterEach(() => {
 
 describe("trailing terminators come off in time in line with the query's length", () => {
   test.each(WORST_CASES)("%s", (_label: string, query: string) => {
-    const startedAt: number = Date.now();
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        withoutTrailingStatementTerminators(query);
+      },
+      limitInMs: 2000,
+    });
 
-    withoutTrailingStatementTerminators(query);
-
-    expect(Date.now() - startedAt).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
   });
 
   test("a data source's query with a long literal reaches its cursor quickly, the literal whole", async () => {
