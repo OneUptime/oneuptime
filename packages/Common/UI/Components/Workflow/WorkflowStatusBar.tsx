@@ -77,6 +77,13 @@ export const getWorkflowSaveStatePresentation: GetSaveStatePresentationFunction 
     };
   };
 
+/*
+ * In place of the save state for someone who may not change the workflow:
+ * nothing they do on the canvas is saved, so "Ready" or "Saved" would
+ * promise what never happens.
+ */
+export const WORKFLOW_VIEW_ONLY_TEXT: string = translationKey("View only");
+
 const PILL_CLASS_NAME: string =
   "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium leading-4 whitespace-nowrap";
 
@@ -128,6 +135,13 @@ export interface ComponentProps {
    * after being closed.
    */
   onShowRunLog?: (() => void) | undefined;
+  /*
+   * Why the reader may not change the workflow (WorkflowRunGate's edit
+   * gate), or undefined when they may. Given one, the first pill says
+   * "View only" instead of the save state, with the reason under the
+   * pointer and read out after it.
+   */
+  readOnlyReason?: string | undefined;
 }
 
 const WorkflowStatusBar: FunctionComponent<ComponentProps> = (
@@ -155,16 +169,32 @@ const WorkflowStatusBar: FunctionComponent<ComponentProps> = (
       className="flex flex-wrap items-center gap-2"
       data-testid="workflow-status-bar"
     >
-      <span
-        className={`${PILL_CLASS_NAME} border-gray-200 bg-white ${savePresentation.textClassName}`}
-        data-testid="workflow-save-status"
-      >
+      {props.readOnlyReason ? (
         <span
-          className={`h-1.5 w-1.5 shrink-0 rounded-full ${savePresentation.dotClassName}`}
-          aria-hidden="true"
-        />
-        {translator.translateText(savePresentation.label)}
-      </span>
+          className={`${PILL_CLASS_NAME} border-gray-200 bg-white text-gray-600`}
+          title={props.readOnlyReason}
+          data-testid="workflow-view-only-status"
+        >
+          <Icon
+            icon={IconProp.Lock}
+            size={SizeProp.ExtraSmall}
+            className="h-3 w-3 shrink-0"
+          />
+          {translator.translateText(WORKFLOW_VIEW_ONLY_TEXT)}
+          <span className="sr-only">{props.readOnlyReason}</span>
+        </span>
+      ) : (
+        <span
+          className={`${PILL_CLASS_NAME} border-gray-200 bg-white ${savePresentation.textClassName}`}
+          data-testid="workflow-save-status"
+        >
+          <span
+            className={`h-1.5 w-1.5 shrink-0 rounded-full ${savePresentation.dotClassName}`}
+            aria-hidden="true"
+          />
+          {translator.translateText(savePresentation.label)}
+        </span>
+      )}
 
       {props.runStatusMessage &&
         (props.onShowRunLog ? (

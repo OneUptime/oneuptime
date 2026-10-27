@@ -101,7 +101,7 @@ Runner 只保存自己的 ID 和金鑰。其餘一切都隨它認領的工作一
 | **執行操作手冊** | **更多欄位** 下 | 預設開啟。讓此 Runner 認領 Runbook 步驟。 |
 | **標籤** | **更多欄位** 下 | 選用。 |
 
-Runner 會在下一次心跳時取得功能的變更，不需要重新啟動。AI 不是一項功能。程式碼儲存庫會在程式碼的設定中選擇 AI 在其中工作所用的 Runner，Runner 的頁面會列出選擇了它的儲存庫。AI 規則選擇 OneUptime AI 執行其指令所用的 Runner：正是在那裡選擇 Runner，才讓 OneUptime AI 的指令可以在其上執行。
+Runner 會在下一次心跳時取得功能的變更，不需要重新啟動。AI 不是一項功能。程式碼儲存庫會在程式碼的設定中選擇 AI 在其中工作所用的 Runner，Runner 的頁面會列出選擇了它的儲存庫。AI 規則選擇 OneUptime AI 執行其指令所用的 Runner：正是在那裡選擇 Runner，才讓 OneUptime AI 的指令可以在其上執行。Runner 的頁面也會列出選擇了它的 AI 規則。
 
 ### 2. 複製安裝指令
 

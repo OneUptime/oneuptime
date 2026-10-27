@@ -45,6 +45,42 @@ export const RUNBOOK_VARIABLES_EMPTY: string = translationKey(
   "No variables of this runbook's own yet. Global variables work here too.",
 );
 
+/*
+ * The global one, for someone who may read variables but not create them -
+ * a Runbook Admin, who picks them in the steps it writes: what they are for,
+ * never "Add the hosts...". The list's locked Create Variable already says
+ * whom to ask, under the button, so this does not say it again. (The
+ * runbook's own list asks nobody to add one, so it reads the same to both.)
+ */
+export const GLOBAL_VARIABLES_EMPTY_READ_ONLY: string = translationKey(
+  "No global variables yet. They hold the hosts, keys, passwords and kubeconfigs your steps use.",
+);
+
+/*
+ * A step's secret picker with nothing to pick, said to whoever may add a
+ * variable and to whoever may not.
+ */
+export const NO_SECRET_VARIABLES_ADD_ONE_TEMPLATE: string = translationKey(
+  "No secret variables yet. Add one under {{location}}, then pick it here.",
+);
+
+export const NO_SECRET_VARIABLES_ASK_TEMPLATE: string = translationKey(
+  "No secret variables yet. Ask a project owner or admin to add one under {{location}}, then pick it here.",
+);
+
+/*
+ * A secret the step's Runner may not use: to whoever may change the
+ * variable, add the Runner to it; to whoever may not, pick one of its
+ * Runners, or ask.
+ */
+export const NOT_FOR_RUNNER_EDIT_TEMPLATE: string = translationKey(
+  "The Runner picked above may not use {{name}}, so the step will fail when it runs. Add the Runner to the variable's Runners under {{location}}.",
+);
+
+export const NOT_FOR_RUNNER_ASK_TEMPLATE: string = translationKey(
+  "The Runner picked above may not use {{name}}, so the step will fail when it runs. Pick one of the variable's Runners for this step, or ask a project owner or admin to add this Runner to it under {{location}}.",
+);
+
 // The form's steps: what the variable is, then who may use a secret.
 export const VARIABLE_STEP_TITLE: string = translationKey("Variable");
 export const ACCESS_STEP_TITLE: string = translationKey("Who can use it");
@@ -111,6 +147,17 @@ export const COPY_REFERENCE_TITLE: string =
 
 // What a plain variable's Runners column says: it reaches every Runner.
 export const EVERY_RUNNER_TEXT: string = translationKey("Every Runner");
+
+/*
+ * Under an HTTP request step's URL and body: it names variables as a script
+ * does ({{reference}} is drawn as code). OneUptime sends the request
+ * itself, so a secret is filled in too - no Runner is involved - and is
+ * hidden in what the step records. Why a secret reaches it (no Runner's
+ * list applies) is the docs' to explain; the step says what happens.
+ */
+export const HTTP_STEP_VARIABLES_HELP: string = translationKey(
+  "Use a variable in the URL, the headers or the body as {{reference}}. Secrets are filled in too, and hidden in what the step records.",
+);
 
 // The Value column of a secret: it is never shown.
 export const SECRET_VALUE_HIDDEN_TEXT: string = translationKey("Secret");

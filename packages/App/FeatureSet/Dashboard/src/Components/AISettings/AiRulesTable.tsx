@@ -1133,6 +1133,7 @@ const AiRulesTable: FunctionComponent<ComponentProps> = (
             type: ExternalMcpServer,
             labelField: "name",
             valueField: "_id",
+            emptyListText: RULE_MCP_SERVERS_FIELD_COPY.emptyList,
           },
           required: false,
           // Empty is an answer of its own - all of them - not "(Optional)".
@@ -1239,6 +1240,7 @@ const AiRulesTable: FunctionComponent<ComponentProps> = (
             type: Runbook,
             labelField: "name",
             valueField: "_id",
+            emptyListText: AUTO_REMEDIATION_MORE_FIELDS_COPY.runbooksEmptyList,
           },
           // A rule that runs its runbooks every time needs some to run.
           required: (values: FormValues<AutoRemediationRule>): boolean => {

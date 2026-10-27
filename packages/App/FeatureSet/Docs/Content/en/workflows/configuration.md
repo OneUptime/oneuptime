@@ -167,7 +167,7 @@ Validation, configuration, access, limit, credit, concurrency, provider and time
 Workflows respect your project's role-based access control. The three workflow roles:
 
 - **Workflow Admin** — builds workflows: creates, changes, runs and deletes them, and manages the variables they use.
-- **Workflow Member** — uses them: opens workflows and their runs, and runs a workflow by hand with **Run Workflow**. A member can't create, change or delete a workflow, or run one of its steps on its own.
+- **Workflow Member** — uses them: opens workflows and their runs, and runs a workflow by hand with **Run Workflow**. A member can't create, change or delete a workflow, or run one of its steps on its own. The **Builder** shows them a workflow as it is, marked **View only**: a step opens to be read, and nothing they do there is saved.
 - **Workflow Viewer** — reads workflows and their runs.
 
 **Project Owner** and **Project Admin** can do everything a Workflow Admin can. **Project Member** can create and delete workflows, but not change or run them.
@@ -214,7 +214,7 @@ On OneUptime Cloud, workflows need the Growth plan or above, and each plan allow
 | Scale      | 2,000                    |
 | Enterprise | No practical limit       |
 
-The window rolls: every run the project records, by hand or from a trigger, counts for 30 days. On the Growth and Scale plans, the **Workflows** page shows a **Workflow Runs** card with how many the project has used. Once the limit is reached, new runs are recorded with the status **Execution Exceeded Current Plan** and don't execute, and the same happens while the subscription is unpaid. Self-hosted installations without billing have no limit.
+The window rolls: every run the project records, by hand or from a trigger, counts for 30 days. On the Growth and Scale plans, the **Workflows** page shows a **Workflow Runs** card with how many the project has used. Once the limit is reached, new runs are recorded with the status **Execution Exceeded Current Plan** and don't execute, and the same happens while the subscription is unpaid. Self-hosted installations without billing have no limit. On a plan that runs no workflows, the **Builder** and the **Workflows** page say so, with a link to upgrade.
 
 ## How long a run can take
 

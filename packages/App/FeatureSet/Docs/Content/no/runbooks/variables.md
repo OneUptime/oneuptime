@@ -4,8 +4,8 @@ En runbook-variabel er en verdi som trinnene dine bruker ved navn i stedet for �
 
 :::cards
 - [Opprett en variabel](#opprett-en-variabel): En vanlig verdi, eller en hemmelighet og Runnerne som kan bruke den.
-- [Bruk en variabel i et trinn](#bruk-en-variabel-i-et-trinn): I et skript, eller som innloggingen til et SSH-trinn og kubeconfigen til et kubectl-trinn.
-- [Hvem mottar en hemmelighet](#hvem-mottar-en-hemmelighet): Runnerne dine, og globale Runnere når du lar dem.
+- [Bruk en variabel i et trinn](#bruk-en-variabel-i-et-trinn): I et skript eller en HTTP-forespørsel, eller som innloggingen til et SSH-trinn og kubeconfigen til et kubectl-trinn.
+- [Hvem mottar en hemmelighet](#hvem-mottar-en-hemmelighet): Runnerne dine, globale Runnere når du lar dem, og OneUptime for et HTTP-forespørselstrinn.
 :::
 
 ## Slik når en variabel et trinn
@@ -19,7 +19,7 @@ flowchart TB
 
 Et trinn holder variabelens navn, aldri verdien. Når trinnets Runner tar det, setter OneUptime inn verdien - i skriptet, i maskinen og innloggingen til et SSH-trinn, eller i kubeconfigen til et kubectl-trinn - og gir den bare til den Runneren. Et trinn som nevner en variabel det ikke får ha, feiler med årsaken i stedet for å kjøre med navnet der verdien skulle stått.
 
-Bash-, JavaScript-, SSH- og kubectl-trinn bruker variabler. HTTP-forespørsels- og AI-trinn setter dem ikke inn.
+Bash-, JavaScript-, SSH-, kubectl- og HTTP-forespørselstrinn bruker variabler. AI-trinn setter dem ikke inn. Et HTTP-forespørselstrinn sender OneUptime selv, uten en Runner, så trinnet får hver variabel det nevner, også hemmeligheter, og skjuler dem i svaret det registrerer.
 
 ## Globale variabler og runbook-variabler
 
@@ -71,20 +71,27 @@ curl -s -X POST \
   -H "Authorization: Bearer {{global.variables.CDN_API_TOKEN}}" \
   "https://api.cdn.example.com/v1/purge"
 ```
+@tab I en HTTP-forespørsel
+Skriv referansen i URL-en, headerne eller bodyen til et [HTTP-forespørselstrinn](/docs/runbooks/authoring#http-request):
+
+```json
+{ "Authorization": "Bearer {{global.variables.API_TOKEN}}" }
+```
 @tab SSH-innlogging
 Et [SSH-trinn](/docs/runbooks/authoring#ssh) velger under **Logg på med** den hemmelige variabelen som holder den private nøkkelen eller passordet, og under **Flere felt → Passordfrase for nøkkelen** passordfrasen til nøkkelen. Verdien viser om det er en nøkkel eller et passord.
 @tab Kubeconfig
 Et [kubectl-trinn](/docs/runbooks/authoring#kubectl) velger under **Kubeconfig** den hemmelige variabelen som holder klyngens kubeconfig, eller **Runnerens egen tilgang** for å bruke Runnerens.
 :::
 
-På en runbooks side **Trinn** viser hvert skript under **Variabler – klikk for å kopiere** variablene trinnet kan bruke, og redigeringsprogrammet sier fra når et trinn nevner en variabel som ikke finnes, eller en hemmelighet som Runneren ikke får bruke.
+På en runbooks side **Trinn** viser hvert skript og hver HTTP-forespørsel under **Variabler – klikk for å kopiere** variablene trinnet kan bruke, og redigeringsprogrammet sier fra når et trinn nevner en variabel som ikke finnes, eller en hemmelighet som Runneren ikke får bruke.
 
 ## Hvem mottar en hemmelighet
 
-| Runner | En vanlig variabel | En hemmelighet |
+| Hvem som kjører trinnet | En vanlig variabel | En hemmelighet |
 | --- | --- | --- |
 | En av Runnerne dine | Alltid | Når hemmeligheten viser den under **Runnerne dine som kan bruke den** |
 | En global Runner | Alltid | Når **Globale Runnere kan bruke den** er slått på, for et trinn i hemmelighetens eget prosjekt |
+| OneUptime selv, for et HTTP-forespørselstrinn | Alltid | Alltid |
 
 Et trinn som nevner en hemmelighet som Runneren ikke får bruke, feiler med navnet på hemmeligheten og det som må endres, og ingenting utleveres.
 

@@ -142,7 +142,7 @@ Runbooks:    [DB primary failover]
 Ein Monitor öffnet den Vorfall `INC-4821 · db-primary connection timeout`. Die Regel greift, und eine Ausführung startet:
 
 - Schritt 1 (JavaScript) läuft auf dem Runner, den Sie für ihn gewählt haben. Sein Rückgabewert, etwa `{ lagMs: 412 }`, wird erfasst. Ein Schritt, der keinen Runner wählt, läuft auf dem Standard-Runner des Projekts oder, wenn keiner festgelegt ist, auf einem globalen Runner.
-- Schritt 2 (Manual) hält den Lauf an, der dann **Wartet auf Sie** zeigt. Die Person in Bereitschaft prüft das Dashboard und klickt auf **Als abgeschlossen markieren**.
+- Schritt 2 (Manual) hält den Lauf an, der dann **Wartet auf Sie** zeigt. Die Person in Bereitschaft prüft das Dashboard und klickt auf **Als erledigt markieren**.
 - Schritt 3 (HTTP request) läuft, und die Antwort auf den `POST` wird erfasst.
 - Schritt 4 (Manual) hält den Lauf erneut an, bis jemand ihn abschließt.
 - Schritt 5 (HTTP request) läuft, und die Ausführung ist **Abgeschlossen**.

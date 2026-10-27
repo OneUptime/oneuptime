@@ -618,6 +618,56 @@ test.describe("an SSH step", () => {
       "Add the user to sign in as, before an @: deploy@10.0.4.21.",
     );
   });
+
+  /*
+   * The machine's host key, under More fields after the key passphrase:
+   * pasted as ssh-keyscan prints it, it is saved as written and the fold
+   * names it; a line that is not a key says the step will fail.
+   */
+  test("its host key is under More fields: pasted as ssh-keyscan prints it, saved as written; a line that is not one says the step will fail", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openSteps(page, [SSH_STEP]);
+    await openMoreFields(page, 0);
+
+    const box: Locator = page.getByTestId("runbook-step-0-ssh-host-key");
+    await expect(box).toBeVisible();
+    await expect(
+      page.locator('label[for="runbook-step-0-ssh-host-key"]'),
+    ).toHaveText("Host key");
+    await expect(page.locator("#runbook-step-0-ssh-host-key-help")).toHaveText(
+      "The step signs in only when the machine presents one of these keys: its SHA256 fingerprint, or its public key as ssh-keyscan prints it, one per line. Left empty, any key is accepted, and the step's output shows the one the machine presented.",
+    );
+
+    // After the key passphrase, before the description.
+    const passphraseBox: { y: number } | null = await page
+      .getByTestId("runbook-step-0-ssh-passphrase")
+      .boundingBox();
+    const hostKeyBox: { y: number } | null = await box.boundingBox();
+    expect(hostKeyBox!.y).toBeGreaterThan(passphraseBox!.y);
+
+    const keyscan: string =
+      "10.0.4.21 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFtux8m1u+wimvaBoFQoXsFnlH+H+VfhMAHNjDNrl2Q0";
+
+    await box.fill("the usual one");
+    await expect(box).toHaveAttribute("aria-invalid", "true");
+    await expect(
+      page.getByTestId("runbook-step-0-ssh-host-key-field").getByRole("alert"),
+    ).toHaveText(
+      "A line here is neither a SHA256 fingerprint nor a public key, so the step will fail when it runs.",
+    );
+    await screenshot(page, "ssh-host-key-not-a-key");
+
+    await box.fill(keyscan);
+    await expect(box).not.toHaveAttribute("aria-invalid", "true");
+    await screenshot(page, "ssh-host-key");
+
+    const steps: Array<SavedStep> = await saveSteps(page);
+
+    expect(steps[0]!.config).toMatchObject({ hostKey: keyscan });
+  });
 });
 
 test.describe("a kubectl step", () => {

@@ -101,7 +101,7 @@ Ga naar **Runbooks → Runbook-agenten** en maak een nieuwe agent. Klik op **Run
 | **Voert Runbooks uit** | Onder **Meer velden** | Standaard aan. Laat deze Runner runbook-stappen oppakken. |
 | **Labels** | Onder **Meer velden** | Optioneel. |
 
-Een Runner neemt een wijziging van zijn mogelijkheden over bij zijn volgende heartbeat; opnieuw starten is niet nodig. AI is geen mogelijkheid. Een code-repository kiest in zijn instellingen in Code de Runner waarop AI erin werkt, en de pagina van de Runner toont de repositories die hem kiezen. Een AI-regel kiest de Runner waarop OneUptime AI zijn opdrachten uitvoert: pas door een Runner daar te kiezen mogen de opdrachten van OneUptime AI erop draaien.
+Een Runner neemt een wijziging van zijn mogelijkheden over bij zijn volgende heartbeat; opnieuw starten is niet nodig. AI is geen mogelijkheid. Een code-repository kiest in zijn instellingen in Code de Runner waarop AI erin werkt, en de pagina van de Runner toont de repositories die hem kiezen. Een AI-regel kiest de Runner waarop OneUptime AI zijn opdrachten uitvoert: pas door een Runner daar te kiezen mogen de opdrachten van OneUptime AI erop draaien. De pagina van de Runner toont ook de AI-regels die hem kiezen.
 
 ### 2. De installatieopdracht kopiëren
 
