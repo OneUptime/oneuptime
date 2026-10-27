@@ -35925,5 +35925,12 @@
   "What this trace's pod wrote from {{padding}} before the trace to {{padding}} after it, not linked by trace ID.": "Что под этой трассировки записал, начиная за {{padding}} до трассировки и заканчивая через {{padding}} после неё, без связи по ID трассировки.",
   "What this trace's {{count}} pods wrote from {{padding}} before the trace to {{padding}} after it, not linked by trace ID.": "Что записали поды этой трассировки ({{count}}), начиная за {{padding}} до трассировки и заканчивая через {{padding}} после неё, без связи по ID трассировки.",
   "What {{pod}} wrote from {{padding}} before this span to {{padding}} after it.": "Что {{pod}} записал, начиная за {{padding}} до этого спана и заканчивая через {{padding}} после него.",
-  "Which logs": "Какие логи"
+  "Which logs": "Какие логи",
+  "A pod serves many requests at once, so some of these exceptions may belong to other requests.": "Под обслуживает много запросов одновременно, поэтому некоторые из этих исключений могут относиться к другим запросам.",
+  "Exceptions from this pod during this span (not linked by trace ID)": "Исключения этого пода во время этого спана (не связаны по ID трассировки)",
+  "Exceptions the pod recorded from {{padding}} before this span to {{padding}} after it.": "Исключения, которые под записал, начиная за {{padding}} до этого спана и заканчивая через {{padding}} после него.",
+  "Exceptions {{pod}} recorded from {{padding}} before this span to {{padding}} after it.": "Исключения, которые {{pod}} записал, начиная за {{padding}} до этого спана и заканчивая через {{padding}} после него.",
+  "No exceptions carry this span's ID.": "Ни одно исключение не содержит ID этого спана.",
+  "Only the first {{count}} exceptions of this window are shown.": "Показаны только первые исключения в этом окне ({{count}}).",
+  "The pod recorded no exceptions in this window.": "Под не записал исключений в этом окне."
 }

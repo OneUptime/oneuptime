@@ -35925,5 +35925,12 @@
   "What this trace's pod wrote from {{padding}} before the trace to {{padding}} after it, not linked by trace ID.": "آنچه پاد این ترِیس از {{padding}} پیش از ترِیس تا {{padding}} پس از آن نوشت، بدون ارتباط با شناسه ترِیس.",
   "What this trace's {{count}} pods wrote from {{padding}} before the trace to {{padding}} after it, not linked by trace ID.": "آنچه {{count}} پاد این ترِیس از {{padding}} پیش از ترِیس تا {{padding}} پس از آن نوشتند، بدون ارتباط با شناسه ترِیس.",
   "What {{pod}} wrote from {{padding}} before this span to {{padding}} after it.": "آنچه {{pod}} از {{padding}} پیش از این اسپن تا {{padding}} پس از آن نوشت.",
-  "Which logs": "کدام لاگ‌ها"
+  "Which logs": "کدام لاگ‌ها",
+  "A pod serves many requests at once, so some of these exceptions may belong to other requests.": "یک پاد هم‌زمان درخواست‌های زیادی را پاسخ می‌دهد، بنابراین برخی از این استثناها ممکن است متعلق به درخواست‌های دیگر باشند.",
+  "Exceptions from this pod during this span (not linked by trace ID)": "استثناهای این پاد در طول این اسپن (بدون ارتباط با شناسه ترِیس)",
+  "Exceptions the pod recorded from {{padding}} before this span to {{padding}} after it.": "استثناهایی که پاد از {{padding}} پیش از این اسپن تا {{padding}} پس از آن ثبت کرد.",
+  "Exceptions {{pod}} recorded from {{padding}} before this span to {{padding}} after it.": "استثناهایی که {{pod}} از {{padding}} پیش از این اسپن تا {{padding}} پس از آن ثبت کرد.",
+  "No exceptions carry this span's ID.": "هیچ استثنایی شناسه این اسپن را ندارد.",
+  "Only the first {{count}} exceptions of this window are shown.": "فقط {{count}} استثنای نخست این بازه نمایش داده می‌شود.",
+  "The pod recorded no exceptions in this window.": "پاد در این بازه هیچ استثنایی ثبت نکرد."
 }

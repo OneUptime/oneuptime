@@ -35925,5 +35925,12 @@
   "What this trace's pod wrote from {{padding}} before the trace to {{padding}} after it, not linked by trace ID.": "이 트레이스의 Pod가 트레이스 {{padding}} 전부터 {{padding}} 후까지 쓴 내용 (트레이스 ID로 연결되지 않음).",
   "What this trace's {{count}} pods wrote from {{padding}} before the trace to {{padding}} after it, not linked by trace ID.": "이 트레이스의 Pod {{count}}개가 트레이스 {{padding}} 전부터 {{padding}} 후까지 쓴 내용 (트레이스 ID로 연결되지 않음).",
   "What {{pod}} wrote from {{padding}} before this span to {{padding}} after it.": "{{pod}}이(가) 이 스팬 {{padding}} 전부터 {{padding}} 후까지 쓴 내용.",
-  "Which logs": "표시할 로그"
+  "Which logs": "표시할 로그",
+  "A pod serves many requests at once, so some of these exceptions may belong to other requests.": "Pod는 여러 요청을 동시에 처리하므로 이 예외 중 일부는 다른 요청에 속할 수 있습니다.",
+  "Exceptions from this pod during this span (not linked by trace ID)": "이 스팬 동안 이 Pod의 예외 (트레이스 ID로 연결되지 않음)",
+  "Exceptions the pod recorded from {{padding}} before this span to {{padding}} after it.": "Pod가 이 스팬 {{padding}} 전부터 {{padding}} 후까지 기록한 예외.",
+  "Exceptions {{pod}} recorded from {{padding}} before this span to {{padding}} after it.": "{{pod}}이(가) 이 스팬 {{padding}} 전부터 {{padding}} 후까지 기록한 예외.",
+  "No exceptions carry this span's ID.": "이 스팬의 ID가 있는 예외가 없습니다.",
+  "Only the first {{count}} exceptions of this window are shown.": "이 시간 범위의 처음 {{count}}개 예외만 표시됩니다.",
+  "The pod recorded no exceptions in this window.": "이 시간 범위에 Pod가 기록한 예외가 없습니다."
 }

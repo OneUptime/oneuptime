@@ -1,3 +1,4 @@
+import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
 import Log from "Common/Models/AnalyticsModels/Log";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import Includes from "Common/Types/BaseDatabase/Includes";
@@ -24,7 +25,9 @@ import { formatDurationNano } from "./TraceDetailPresentation";
  * namespace and pod name) on both. That pod's logs over the span's own time,
  * with a little either side, show what it wrote while serving the request -
  * and, since a pod serves many requests at once, what it wrote for others
- * then too, which is why every place that shows them says so.
+ * then too, which is why every place that shows them says so. The exceptions
+ * ingest extracts from those lines carry the pod and no trace ID either, so
+ * the span's Exceptions tab reads them by the same rule.
  *
  * Pure, so App/Tests can pin it in plain Node.
  */
@@ -336,6 +339,77 @@ export function buildTracePodLogQuery(args: {
   } as Query<Log>;
 }
 
+// Most exceptions the span panel reads from its pod's window.
+export const SPAN_POD_EXCEPTION_LIMIT: number = 100;
+
+const MS_PER_SECOND: number = 1000;
+
+/*
+ * The span panel's read of what the pod raised in the window. An exception
+ * ingest extracts from a log line keeps its exact instant in `timeUnixNano`
+ * but its `time` only to the second (OtelLogsIngestService writes it with
+ * toClickhouseDateTime), so the read widens the window to whole seconds -
+ * `time` is still the table's own sort key - and selectPodRecordsInWindow
+ * trims what comes back to the window by `timeUnixNano`. Null without a pod.
+ */
+export function buildSpanPodExceptionQuery(args: {
+  podEntityKey: string | null | undefined;
+  window: PodLogWindow;
+}): Query<ExceptionInstance> | null {
+  const podEntityKey: string = (args.podEntityKey || "").trim();
+
+  if (!podEntityKey) {
+    return null;
+  }
+
+  return {
+    k8sPodEntityKey: podEntityKey,
+    time: new InBetween<Date>(
+      new Date(
+        Math.floor(args.window.startTime.getTime() / MS_PER_SECOND) *
+          MS_PER_SECOND,
+      ),
+      new Date(
+        Math.ceil(args.window.endTime.getTime() / MS_PER_SECOND) *
+          MS_PER_SECOND,
+      ),
+    ),
+  } as Query<ExceptionInstance>;
+}
+
+/*
+ * The records of a read that fall inside the window by their exact instant,
+ * oldest first. A record with no usable time cannot be placed and is left
+ * out.
+ */
+export function selectPodRecordsInWindow<
+  T extends { timeUnixNano?: unknown; time?: unknown },
+>(args: { records: ReadonlyArray<T>; window: PodLogWindow }): Array<T> {
+  const start: number = args.window.startTime.getTime() * NANOS_PER_MS;
+  const end: number = args.window.endTime.getTime() * NANOS_PER_MS;
+
+  return args.records
+    .map((record: T): { record: T; time: number } => {
+      return { record, time: getLogTimeUnixNano(record) };
+    })
+    .filter((entry: { record: T; time: number }): boolean => {
+      return (
+        Number.isFinite(entry.time) && entry.time >= start && entry.time <= end
+      );
+    })
+    .sort(
+      (
+        left: { record: T; time: number },
+        right: { record: T; time: number },
+      ): number => {
+        return left.time - right.time;
+      },
+    )
+    .map((entry: { record: T; time: number }): T => {
+      return entry.record;
+    });
+}
+
 /*
  * A log line's time in nanoseconds: its own timeUnixNano when it has one,
  * else its time. NaN when it has neither.
@@ -642,6 +716,56 @@ export function describePodLogCut(args: {
   return args.translator.translateTemplate(
     "Only the first {{count}} lines from the span's start are shown.",
     { count: args.translator.formatNumber(SPAN_POD_LOG_LIMIT) },
+  );
+}
+
+/*
+ * The span panel's Exceptions tab says the same of what the pod raised:
+ * exceptions ingest extracted from its log lines carry no trace ID either.
+ */
+export const SPAN_POD_EXCEPTIONS_TITLE: string = translationKey(
+  "Exceptions from this pod during this span (not linked by trace ID)",
+);
+
+export const POD_EXCEPTIONS_OTHER_REQUESTS: string = translationKey(
+  "A pod serves many requests at once, so some of these exceptions may belong to other requests.",
+);
+
+export const SPAN_POD_EXCEPTIONS_EMPTY: string = translationKey(
+  "The pod recorded no exceptions in this window.",
+);
+
+export const SPAN_EXCEPTIONS_NONE_LINKED: string = translationKey(
+  "No exceptions carry this span's ID.",
+);
+
+// The line under the span panel's pod exceptions heading.
+export function describeSpanPodExceptionWindow(args: {
+  translator: Translator;
+  podName?: string | null | undefined;
+  paddingMs: number;
+}): string {
+  const padding: string = formatPodLogPadding(args.paddingMs);
+  const podName: string = (args.podName || "").trim();
+
+  if (podName) {
+    return args.translator.translateTemplate(
+      "Exceptions {{pod}} recorded from {{padding}} before this span to {{padding}} after it.",
+      { pod: podName, padding },
+    );
+  }
+
+  return args.translator.translateTemplate(
+    "Exceptions the pod recorded from {{padding}} before this span to {{padding}} after it.",
+    { padding },
+  );
+}
+
+// Under a pod exceptions read that came back full.
+export function describePodExceptionCut(translator: Translator): string {
+  return translator.translateTemplate(
+    "Only the first {{count}} exceptions of this window are shown.",
+    { count: translator.formatNumber(SPAN_POD_EXCEPTION_LIMIT) },
   );
 }
 

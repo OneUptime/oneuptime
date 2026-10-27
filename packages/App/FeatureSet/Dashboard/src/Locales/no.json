@@ -35925,5 +35925,12 @@
   "What this trace's pod wrote from {{padding}} before the trace to {{padding}} after it, not linked by trace ID.": "Hva poden til dette sporet skrev fra {{padding}} før sporet til {{padding}} etter, ikke koblet via spor-ID.",
   "What this trace's {{count}} pods wrote from {{padding}} before the trace to {{padding}} after it, not linked by trace ID.": "Hva sporets {{count}} pods skrev fra {{padding}} før sporet til {{padding}} etter, ikke koblet via spor-ID.",
   "What {{pod}} wrote from {{padding}} before this span to {{padding}} after it.": "Hva {{pod}} skrev fra {{padding}} før dette spanet til {{padding}} etter.",
-  "Which logs": "Hvilke logger"
+  "Which logs": "Hvilke logger",
+  "A pod serves many requests at once, so some of these exceptions may belong to other requests.": "En pod betjener mange forespørsler samtidig, så noen av disse unntakene kan høre til andre forespørsler.",
+  "Exceptions from this pod during this span (not linked by trace ID)": "Unntak fra denne poden under dette spanet (ikke koblet via spor-ID)",
+  "Exceptions the pod recorded from {{padding}} before this span to {{padding}} after it.": "Unntak poden registrerte fra {{padding}} før dette spanet til {{padding}} etter.",
+  "Exceptions {{pod}} recorded from {{padding}} before this span to {{padding}} after it.": "Unntak {{pod}} registrerte fra {{padding}} før dette spanet til {{padding}} etter.",
+  "No exceptions carry this span's ID.": "Ingen unntak har dette spanets ID.",
+  "Only the first {{count}} exceptions of this window are shown.": "Bare de første {{count}} unntakene i dette vinduet vises.",
+  "The pod recorded no exceptions in this window.": "Poden registrerte ingen unntak i dette vinduet."
 }

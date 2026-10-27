@@ -49,6 +49,7 @@ import {
   buildSpanPanelLogQuery,
 } from "../../Utils/TraceCorrelatedSignals";
 import LlmSpanPanel from "./LlmSpanPanel";
+import SpanPodExceptions from "./TraceDetail/SpanPodExceptions";
 import SpanPodLogs from "./TraceDetail/SpanPodLogs";
 import { getPodNameFromSpanAttributes } from "../../Utils/TracePodLogs";
 import { resolveReplayMomentRouteForSession } from "../../Utils/RumSessionLookup";
@@ -588,6 +589,28 @@ const SpanDetailsPanel: FunctionComponent<SpanDetailsPanelProps> = (
       />
     ) : null;
 
+  // And what it raised meanwhile, by the same rule, under the Exceptions tab.
+  const podExceptionsElement: ReactElement | null =
+    exceptionsFetched &&
+    podEntityKey &&
+    Number.isFinite(podStartTimeUnixNano) &&
+    podStartTimeUnixNano > 0 ? (
+      <SpanPodExceptions
+        key={spanIdStr}
+        podEntityKey={podEntityKey}
+        podName={getPodNameFromSpanAttributes(
+          fullSpan?.attributes as JSONObject | undefined,
+        )}
+        startTimeUnixNano={podStartTimeUnixNano}
+        endTimeUnixNano={
+          Number.isFinite(podEndTimeUnixNano)
+            ? podEndTimeUnixNano
+            : podStartTimeUnixNano
+        }
+        hasLinkedExceptions={exceptionInstances.length > 0}
+      />
+    ) : null;
+
   const surfaceCardClass: string = "border-gray-200 bg-gray-50";
   const sectionHeaderClass: string =
     "text-[11px] uppercase tracking-wide text-gray-400";
@@ -803,82 +826,89 @@ const SpanDetailsPanel: FunctionComponent<SpanDetailsPanelProps> = (
               <div className="flex h-24 items-center justify-center">
                 <ComponentLoader />
               </div>
+            ) : exceptionInstances.length === 0 && podExceptionsElement ? (
+              podExceptionsElement
             ) : exceptionInstances.length === 0 ? (
               <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-6 text-center text-xs text-gray-400">
                 No exceptions were recorded on this span.
               </div>
             ) : (
-              <ul className="space-y-2">
-                {exceptionInstances.map(
-                  (
-                    exception: ExceptionInstance,
-                    index: number,
-                  ): ReactElement => {
-                    const message: string =
-                      exception.message ||
-                      exception.exceptionType ||
-                      "Exception";
-                    const groupRoute: Route | null =
-                      getExceptionGroupRoute(exception);
-                    const exceptionTimeDate: Date | null = exception.time
-                      ? OneUptimeDate.fromString(
-                          exception.time as unknown as string,
-                        )
-                      : null;
-                    return (
-                      <li
-                        key={index}
-                        className="rounded-lg border border-red-100 bg-red-50 px-3 py-2"
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0 flex-1">
-                            {fullTraceRoute ? (
-                              <Link
-                                to={fullTraceRoute}
-                                openInNewTab={false}
-                                className="block truncate font-mono text-[12px] font-medium text-red-700 hover:underline"
-                                title={message}
-                              >
-                                {message}
-                              </Link>
-                            ) : (
-                              <span
-                                className="block truncate font-mono text-[12px] font-medium text-red-700"
-                                title={message}
-                              >
-                                {message}
-                              </span>
-                            )}
-                            <div className="mt-0.5 flex flex-wrap items-center gap-2 text-[11px] text-red-400">
-                              {exception.exceptionType && (
-                                <span className="font-mono">
-                                  {exception.exceptionType}
+              <div className="space-y-2">
+                <ul className="space-y-2">
+                  {exceptionInstances.map(
+                    (
+                      exception: ExceptionInstance,
+                      index: number,
+                    ): ReactElement => {
+                      const message: string =
+                        exception.message ||
+                        exception.exceptionType ||
+                        "Exception";
+                      const groupRoute: Route | null =
+                        getExceptionGroupRoute(exception);
+                      const exceptionTimeDate: Date | null = exception.time
+                        ? OneUptimeDate.fromString(
+                            exception.time as unknown as string,
+                          )
+                        : null;
+                      return (
+                        <li
+                          key={index}
+                          className="rounded-lg border border-red-100 bg-red-50 px-3 py-2"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0 flex-1">
+                              {fullTraceRoute ? (
+                                <Link
+                                  to={fullTraceRoute}
+                                  openInNewTab={false}
+                                  className="block truncate font-mono text-[12px] font-medium text-red-700 hover:underline"
+                                  title={message}
+                                >
+                                  {message}
+                                </Link>
+                              ) : (
+                                <span
+                                  className="block truncate font-mono text-[12px] font-medium text-red-700"
+                                  title={message}
+                                >
+                                  {message}
                                 </span>
                               )}
-                              {exceptionTimeDate && (
-                                <span>
-                                  {OneUptimeDate.getDateAsUserFriendlyFormattedString(
-                                    exceptionTimeDate,
-                                  )}
-                                </span>
-                              )}
+                              <div className="mt-0.5 flex flex-wrap items-center gap-2 text-[11px] text-red-400">
+                                {exception.exceptionType && (
+                                  <span className="font-mono">
+                                    {exception.exceptionType}
+                                  </span>
+                                )}
+                                {exceptionTimeDate && (
+                                  <span>
+                                    {OneUptimeDate.getDateAsUserFriendlyFormattedString(
+                                      exceptionTimeDate,
+                                    )}
+                                  </span>
+                                )}
+                              </div>
                             </div>
+                            {groupRoute && (
+                              <Link
+                                to={groupRoute}
+                                openInNewTab={true}
+                                className="flex-none text-[11px] font-semibold text-red-600 hover:text-red-700 hover:underline"
+                              >
+                                View exception group
+                              </Link>
+                            )}
                           </div>
-                          {groupRoute && (
-                            <Link
-                              to={groupRoute}
-                              openInNewTab={true}
-                              className="flex-none text-[11px] font-semibold text-red-600 hover:text-red-700 hover:underline"
-                            >
-                              View exception group
-                            </Link>
-                          )}
-                        </div>
-                      </li>
-                    );
-                  },
+                        </li>
+                      );
+                    },
+                  )}
+                </ul>
+                {podExceptionsElement && (
+                  <div className="pt-2">{podExceptionsElement}</div>
                 )}
-              </ul>
+              </div>
             )}
           </div>
         )}

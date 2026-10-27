@@ -18,6 +18,7 @@ import {
 import { Mock } from "jest-mock";
 import * as React from "react";
 import SpanDetailsPanel from "../../../../App/FeatureSet/Dashboard/src/Components/Traces/SpanDetailsPanel";
+import ExceptionInstance from "../../../Models/AnalyticsModels/ExceptionInstance";
 import Log from "../../../Models/AnalyticsModels/Log";
 import Span, {
   SpanKind,
@@ -162,6 +163,24 @@ beforeEach(() => {
       return { data: [fullSpan()], count: 1, skip: 0, limit: 1 };
     }
 
+    // What the pod raised: extracted from a log line, time to the second.
+    if (
+      args.modelType === ExceptionInstance &&
+      args.query["k8sPodEntityKey"] === POD
+    ) {
+      const exception: ExceptionInstance = Object.assign(
+        new ExceptionInstance(),
+        {
+          time: new Date(Math.floor(START_MS / 1000) * 1000),
+          timeUnixNano: (START_MS + 2) * MS,
+          exceptionType: "Error",
+          message: "Job EnterpriseLicense could not be removed",
+          fingerprint: "9f86d081884c7d659a2feaa0c55ad015",
+        },
+      );
+      return { data: [exception], count: 1, skip: 0, limit: args.limit };
+    }
+
     if (args.query["k8sPodEntityKey"] === POD) {
       const window: InBetween<Date> = args.query[
         "time"
@@ -287,5 +306,44 @@ describe("an eBPF span in the traces list", () => {
             : "trace";
       }),
     ).toEqual(["span", "trace", "pod", "pod"]);
+  });
+});
+
+describe("an eBPF span's exceptions in the traces list", () => {
+  test("its Exceptions tab shows what its pod raised around it, once the span's own read has answered", async () => {
+    await act(async () => {
+      render(<SpanDetailsPanel span={rowSpan()} />);
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /^Exceptions/ }));
+    });
+
+    const section: HTMLElement = await screen.findByTestId(
+      "span-pod-exceptions",
+    );
+    expect(section).toHaveTextContent("No exceptions carry this span's ID.");
+    expect(section).toHaveTextContent(
+      "Exceptions from this pod during this span (not linked by trace ID)",
+    );
+    expect(
+      await within(section).findByText(
+        "Job EnterpriseLicense could not be removed",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText("No exceptions were recorded on this span."),
+    ).not.toBeInTheDocument();
+
+    const exceptionReads: Array<string> = getListMock.mock.calls
+      .map((call: [ListArgs]) => {
+        return call[0];
+      })
+      .filter((args: ListArgs) => {
+        return args.modelType === ExceptionInstance;
+      })
+      .map((args: ListArgs) => {
+        return args.query["k8sPodEntityKey"] ? "pod" : "span";
+      });
+    expect(exceptionReads).toEqual(["span", "pod"]);
   });
 });

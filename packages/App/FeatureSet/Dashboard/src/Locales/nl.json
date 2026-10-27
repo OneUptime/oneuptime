@@ -35925,5 +35925,12 @@
   "What this trace's pod wrote from {{padding}} before the trace to {{padding}} after it, not linked by trace ID.": "Wat de pod van deze trace schreef van {{padding}} vóór de trace tot {{padding}} erna, niet gekoppeld via trace-ID.",
   "What this trace's {{count}} pods wrote from {{padding}} before the trace to {{padding}} after it, not linked by trace ID.": "Wat de {{count}} pods van deze trace schreven van {{padding}} vóór de trace tot {{padding}} erna, niet gekoppeld via trace-ID.",
   "What {{pod}} wrote from {{padding}} before this span to {{padding}} after it.": "Wat {{pod}} schreef van {{padding}} vóór deze span tot {{padding}} erna.",
-  "Which logs": "Welke logs"
+  "Which logs": "Welke logs",
+  "A pod serves many requests at once, so some of these exceptions may belong to other requests.": "Een pod handelt veel verzoeken tegelijk af, dus sommige van deze uitzonderingen kunnen bij andere verzoeken horen.",
+  "Exceptions from this pod during this span (not linked by trace ID)": "Uitzonderingen van deze pod tijdens deze span (niet gekoppeld via trace-ID)",
+  "Exceptions the pod recorded from {{padding}} before this span to {{padding}} after it.": "Uitzonderingen die de pod vastlegde van {{padding}} vóór deze span tot {{padding}} erna.",
+  "Exceptions {{pod}} recorded from {{padding}} before this span to {{padding}} after it.": "Uitzonderingen die {{pod}} vastlegde van {{padding}} vóór deze span tot {{padding}} erna.",
+  "No exceptions carry this span's ID.": "Geen enkele uitzondering bevat de ID van deze span.",
+  "Only the first {{count}} exceptions of this window are shown.": "Alleen de eerste {{count}} uitzonderingen van dit venster worden getoond.",
+  "The pod recorded no exceptions in this window.": "De pod legde in dit venster geen uitzonderingen vast."
 }

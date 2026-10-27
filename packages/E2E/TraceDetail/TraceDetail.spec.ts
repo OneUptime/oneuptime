@@ -1798,3 +1798,64 @@ test.describe("logs of an eBPF trace", () => {
     );
   });
 });
+
+/*
+ * The exceptions ingest extracts from an eBPF pod's log lines carry the pod
+ * and no trace ID, and their `time` only to the second: the span's
+ * Exceptions tab reads them by the same rule as its logs.
+ */
+test.describe("exceptions of an eBPF trace", () => {
+  test("the span's Exceptions tab shows what its pod raised around it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openLoaded(page, "ebpf");
+    const server: string = await spanId(page, "POST /*/v1/traces");
+
+    await row(page, server).click();
+    const panel: Locator = page.getByTestId("trace-span-panel");
+    await panel.getByTestId("span-panel-tab-exceptions").click();
+
+    const podExceptions: Locator = panel.getByTestId("span-pod-exceptions");
+    await expect(podExceptions).toContainText(
+      "No exceptions carry this span's ID.",
+    );
+    await expect(
+      podExceptions.getByTestId("span-pod-exceptions-toggle"),
+    ).toHaveText(
+      "Exceptions from this pod during this span (not linked by trace ID)",
+    );
+    await expect(
+      podExceptions.getByTestId("span-pod-exceptions-during"),
+    ).toContainText(
+      "Job EnterpriseLicense-ReconcileInstanceUsage could not be removed because it is locked by another worker",
+    );
+    await expect(
+      podExceptions.getByTestId("span-pod-exceptions-during"),
+    ).toContainText("+2.1 ms");
+    await expect(
+      podExceptions.getByTestId("span-pod-exceptions-before"),
+    ).toContainText("-60 ms");
+    await expect(
+      podExceptions.getByTestId("span-pod-exceptions-after"),
+    ).toContainText("+80 ms");
+
+    // One read of the pod's key, over the window widened to whole seconds.
+    const state: FixtureState = await fixture(page);
+    const podReads: Array<RecordedListRequest> =
+      state.analyticsListRequests.filter((request: RecordedListRequest) => {
+        return (
+          request.query["k8sPodEntityKey"] === APP_POD &&
+          Boolean(request.select["exceptionType"])
+        );
+      });
+    expect(podReads).toHaveLength(1);
+    const window: { startValue: string; endValue: string } = podReads[0]!.query[
+      "time"
+    ] as unknown as { startValue: string; endValue: string };
+    expect(new Date(window.startValue).getUTCMilliseconds()).toBe(0);
+    expect(new Date(window.endValue).getUTCMilliseconds()).toBe(0);
+    await screenshot(page, "ebpf-span-pod-exceptions", false);
+  });
+});

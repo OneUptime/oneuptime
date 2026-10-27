@@ -35925,5 +35925,12 @@
   "What this trace's pod wrote from {{padding}} before the trace to {{padding}} after it, not linked by trace ID.": "O que o pod deste traço escreveu de {{padding}} antes do traço até {{padding}} depois, sem vínculo pelo ID do traço.",
   "What this trace's {{count}} pods wrote from {{padding}} before the trace to {{padding}} after it, not linked by trace ID.": "O que os {{count}} pods deste traço escreveram de {{padding}} antes do traço até {{padding}} depois, sem vínculo pelo ID do traço.",
   "What {{pod}} wrote from {{padding}} before this span to {{padding}} after it.": "O que {{pod}} escreveu de {{padding}} antes deste span até {{padding}} depois.",
-  "Which logs": "Quais logs"
+  "Which logs": "Quais logs",
+  "A pod serves many requests at once, so some of these exceptions may belong to other requests.": "Um pod atende muitas requisições ao mesmo tempo, então algumas destas exceções podem pertencer a outras requisições.",
+  "Exceptions from this pod during this span (not linked by trace ID)": "Exceções deste pod durante este span (não vinculadas pelo ID do traço)",
+  "Exceptions the pod recorded from {{padding}} before this span to {{padding}} after it.": "Exceções que o pod registrou de {{padding}} antes deste span até {{padding}} depois.",
+  "Exceptions {{pod}} recorded from {{padding}} before this span to {{padding}} after it.": "Exceções que {{pod}} registrou de {{padding}} antes deste span até {{padding}} depois.",
+  "No exceptions carry this span's ID.": "Nenhuma exceção traz o ID deste span.",
+  "Only the first {{count}} exceptions of this window are shown.": "Só as primeiras {{count}} exceções desta janela são mostradas.",
+  "The pod recorded no exceptions in this window.": "O pod não registrou exceções nesta janela."
 }

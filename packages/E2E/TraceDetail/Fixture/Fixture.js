@@ -1020,6 +1020,58 @@ function makePodLogs(query, sort) {
   return lines;
 }
 
+/*
+ * What the ebpf trace's pod raised around it, as ingest extracts exceptions
+ * from its log lines: no trace ID, and `time` only to the second while
+ * timeUnixNano keeps the instant.
+ */
+const APP_POD_EXCEPTIONS = [
+  { at: -60, message: "Job Usage-Report could not be removed: it is locked" },
+  {
+    at: 2.1,
+    message:
+      "Job EnterpriseLicense-ReconcileInstanceUsage could not be removed because it is locked by another worker",
+  },
+  { at: 80, message: "Job Cleanup could not be removed: it is locked" },
+];
+
+function makePodExceptions(query) {
+  const window = query && query.time;
+  if (!query || String(query.k8sPodEntityKey) !== APP_POD) {
+    return [];
+  }
+  return APP_POD_EXCEPTIONS.map((item, index) => {
+    const ms = TRACE_START_MS + item.at;
+    const record = new ExceptionInstance();
+    record._id = `d0000000-0000-4000-8000-${String(index + 1).padStart(12, "0")}`;
+    record.projectId = new ObjectID(PROJECT_ID);
+    record.time = new Date(Math.floor(ms / 1000) * 1000);
+    record.timeUnixNano = Math.round(ms * 1000000);
+    record.exceptionType = "Error";
+    record.message = item.message;
+    record.stackTrace = `Error: ${item.message}\n    at removeJob (/usr/src/app/Worker/Jobs.ts:88:13)`;
+    record.fingerprint = "5f2b51a6c1a54b8b8e0d77d3b4c7e912";
+    record.traceId = "";
+    record.spanId = "";
+    record.k8sPodEntityKey = APP_POD;
+    record.primaryEntityId = new ObjectID(
+      SERVICE_DEFINITIONS["oneuptime-app"].id,
+    );
+    record.primaryEntityType = "OpenTelemetry";
+    record.attributes = { "exception.source": "log" };
+    return record;
+  }).filter((record) => {
+    // The store compares the `time` it kept, to the second.
+    return (
+      !window ||
+      !window.startValue ||
+      !window.endValue ||
+      (record.time.getTime() >= new Date(window.startValue).getTime() &&
+        record.time.getTime() <= new Date(window.endValue).getTime())
+    );
+  });
+}
+
 const TRACE_BUILDERS = {
   checkout: checkoutTrace,
   report: reportTrace,
@@ -1207,6 +1259,12 @@ AnalyticsModelAPI.getList = async (options) => {
     items = makePodLogs(options.query, options.sort);
   } else if (options.modelType === Log) {
     items = makeLogs(options.query);
+  } else if (
+    options.modelType === ExceptionInstance &&
+    options.query &&
+    options.query.k8sPodEntityKey
+  ) {
+    items = makePodExceptions(options.query);
   } else if (options.modelType === ExceptionInstance) {
     items = makeExceptions(options.query);
   }

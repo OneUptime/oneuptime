@@ -35925,5 +35925,12 @@
   "What this trace's pod wrote from {{padding}} before the trace to {{padding}} after it, not linked by trace ID.": "इस ट्रेस के पॉड ने ट्रेस से {{padding}} पहले से लेकर {{padding}} बाद तक क्या लिखा, ट्रेस ID से जुड़ा नहीं।",
   "What this trace's {{count}} pods wrote from {{padding}} before the trace to {{padding}} after it, not linked by trace ID.": "इस ट्रेस के {{count}} पॉड्स ने ट्रेस से {{padding}} पहले से लेकर {{padding}} बाद तक क्या लिखा, ट्रेस ID से जुड़ा नहीं।",
   "What {{pod}} wrote from {{padding}} before this span to {{padding}} after it.": "{{pod}} ने इस स्पैन से {{padding}} पहले से लेकर {{padding}} बाद तक क्या लिखा।",
-  "Which logs": "कौन-से लॉग"
+  "Which logs": "कौन-से लॉग",
+  "A pod serves many requests at once, so some of these exceptions may belong to other requests.": "एक पॉड एक साथ कई अनुरोध संभालता है, इसलिए इनमें से कुछ अपवाद दूसरे अनुरोधों के हो सकते हैं।",
+  "Exceptions from this pod during this span (not linked by trace ID)": "इस स्पैन के दौरान इस पॉड के अपवाद (ट्रेस ID से जुड़े नहीं)",
+  "Exceptions the pod recorded from {{padding}} before this span to {{padding}} after it.": "पॉड ने इस स्पैन से {{padding}} पहले से लेकर {{padding}} बाद तक जो अपवाद दर्ज किए।",
+  "Exceptions {{pod}} recorded from {{padding}} before this span to {{padding}} after it.": "{{pod}} ने इस स्पैन से {{padding}} पहले से लेकर {{padding}} बाद तक जो अपवाद दर्ज किए।",
+  "No exceptions carry this span's ID.": "किसी भी अपवाद में इस स्पैन का ID नहीं है।",
+  "Only the first {{count}} exceptions of this window are shown.": "इस समय-सीमा के केवल पहले {{count}} अपवाद दिखाए गए हैं।",
+  "The pod recorded no exceptions in this window.": "इस समय-सीमा में पॉड ने कोई अपवाद दर्ज नहीं किया।"
 }

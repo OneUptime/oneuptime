@@ -13,16 +13,21 @@ import {
   PodLogLineGroup,
   PodLogLineTiming,
   PodLogWindow,
+  SPAN_POD_EXCEPTIONS_TITLE,
+  SPAN_POD_EXCEPTION_LIMIT,
   SPAN_POD_LOGS_TITLE,
   SPAN_POD_LOG_BEFORE_LIMIT,
   SPAN_POD_LOG_LIMIT,
   SpanPodLogReads,
   TRACE_POD_LIMIT,
+  buildSpanPodExceptionQuery,
   buildSpanPodLogReads,
   buildTracePodEntityKeyDisplays,
   buildTracePodLogQuery,
   collectPodEntityKeys,
+  describePodExceptionCut,
   describePodLogCut,
+  describeSpanPodExceptionWindow,
   describeSpanPodLogWindow,
   describeTracePodLogScope,
   formatPodLogPadding,
@@ -37,6 +42,7 @@ import {
   getTracePodLogScopeLabel,
   groupPodLogLines,
   mergePodLogReads,
+  selectPodRecordsInWindow,
 } from "../../FeatureSet/Dashboard/src/Utils/TracePodLogs";
 import { LockedEntityKeyDisplayMap } from "../../FeatureSet/Dashboard/src/Utils/LockedEntityKeyChips";
 
@@ -739,5 +745,101 @@ describe("the pods' names", () => {
       displayKey: "Kubernetes Pod",
       displayValue: OTHER_POD,
     });
+  });
+});
+
+/*
+ * The span's Exceptions tab reads what the pod raised by the same rule: the
+ * exceptions ingest extracts from an eBPF span's pod's log lines carry the
+ * pod and no trace ID. Such an exception keeps its exact instant in
+ * timeUnixNano but its `time` only to the second - as on the test cluster,
+ * where oneuptime-app's pod logged "Job ... could not be removed" at
+ * 05:13:08.654 and the exception's time reads 05:13:08.000.
+ */
+describe("the pod's exceptions during a span", () => {
+  const window: PodLogWindow = getPodLogWindow({
+    startTimeUnixNano: SPAN_START,
+    endTimeUnixNano: SPAN_END,
+  })!;
+
+  interface TestException {
+    time?: Date;
+    timeUnixNano?: number;
+    message: string;
+  }
+
+  // As ingest writes a log-derived exception: time floored to the second.
+  function exceptionAt(offsetMs: number, message: string): TestException {
+    const nanos: number = SPAN_START + offsetMs * MS;
+    return {
+      time: new Date(Math.floor(nanos / MS / 1000) * 1000),
+      timeUnixNano: nanos,
+      message,
+    };
+  }
+
+  test("the read widens the window to whole seconds, which a log-derived exception's time is kept to", () => {
+    expect(
+      buildSpanPodExceptionQuery({ podEntityKey: ` ${POD} `, window }),
+    ).toEqual({
+      k8sPodEntityKey: POD,
+      time: new InBetween<Date>(
+        new Date(Math.floor((SPAN_START_MS - 100) / 1000) * 1000),
+        new Date(Math.ceil((SPAN_START_MS + 104) / 1000) * 1000),
+      ),
+    });
+  });
+
+  test("no pod, no read", () => {
+    for (const podEntityKey of ["", "  ", null, undefined]) {
+      expect(buildSpanPodExceptionQuery({ podEntityKey, window })).toBeNull();
+    }
+  });
+
+  test("what came back is trimmed to the window by its exact instant, oldest first", () => {
+    const inWindow: Array<TestException> = selectPodRecordsInWindow({
+      records: [
+        exceptionAt(60, "after the span"),
+        // 09.032: in the second the read widens to, before the window.
+        exceptionAt(-200, "same second, outside the window"),
+        exceptionAt(2.1, "during the span"),
+        exceptionAt(-50, "before the span"),
+        { message: "no time at all" },
+      ],
+      window,
+    });
+
+    expect(
+      inWindow.map((exception: TestException) => {
+        return exception.message;
+      }),
+    ).toEqual(["before the span", "during the span", "after the span"]);
+  });
+
+  test("its heading and lines say the exceptions are not linked by trace ID", () => {
+    expect(SPAN_POD_EXCEPTIONS_TITLE).toBe(
+      "Exceptions from this pod during this span (not linked by trace ID)",
+    );
+    expect(
+      describeSpanPodExceptionWindow({
+        translator: english,
+        podName: "oneuptime-app-5b9df8b796-6m5pk",
+        paddingMs: 100,
+      }),
+    ).toBe(
+      "Exceptions oneuptime-app-5b9df8b796-6m5pk recorded from 100 ms before this span to 100 ms after it.",
+    );
+    expect(
+      describeSpanPodExceptionWindow({
+        translator: english,
+        podName: "",
+        paddingMs: 1000,
+      }),
+    ).toBe(
+      "Exceptions the pod recorded from 1 s before this span to 1 s after it.",
+    );
+    expect(describePodExceptionCut(english)).toBe(
+      `Only the first ${SPAN_POD_EXCEPTION_LIMIT} exceptions of this window are shown.`,
+    );
   });
 });

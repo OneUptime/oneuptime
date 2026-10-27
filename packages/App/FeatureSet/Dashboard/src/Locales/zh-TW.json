@@ -35925,5 +35925,12 @@
   "What this trace's pod wrote from {{padding}} before the trace to {{padding}} after it, not linked by trace ID.": "此追蹤的 Pod 從追蹤開始前 {{padding}} 到結束後 {{padding}} 寫入的內容，未依追蹤 ID 關聯。",
   "What this trace's {{count}} pods wrote from {{padding}} before the trace to {{padding}} after it, not linked by trace ID.": "此追蹤的 {{count}} 個 Pod 從追蹤開始前 {{padding}} 到結束後 {{padding}} 寫入的內容，未依追蹤 ID 關聯。",
   "What {{pod}} wrote from {{padding}} before this span to {{padding}} after it.": "{{pod}} 從此 span 開始前 {{padding}} 到結束後 {{padding}} 寫入的內容。",
-  "Which logs": "顯示哪些日誌"
+  "Which logs": "顯示哪些日誌",
+  "A pod serves many requests at once, so some of these exceptions may belong to other requests.": "一個 Pod 會同時處理許多請求，因此其中一些例外可能屬於其他請求。",
+  "Exceptions from this pod during this span (not linked by trace ID)": "此 span 期間此 Pod 的例外（未依追蹤 ID 關聯）",
+  "Exceptions the pod recorded from {{padding}} before this span to {{padding}} after it.": "該 Pod 從此 span 開始前 {{padding}} 到結束後 {{padding}} 記錄的例外。",
+  "Exceptions {{pod}} recorded from {{padding}} before this span to {{padding}} after it.": "{{pod}} 從此 span 開始前 {{padding}} 到結束後 {{padding}} 記錄的例外。",
+  "No exceptions carry this span's ID.": "沒有例外帶有此 span 的 ID。",
+  "Only the first {{count}} exceptions of this window are shown.": "僅顯示此時間範圍內的前 {{count}} 個例外。",
+  "The pod recorded no exceptions in this window.": "該 Pod 在此時間範圍內未記錄任何例外。"
 }

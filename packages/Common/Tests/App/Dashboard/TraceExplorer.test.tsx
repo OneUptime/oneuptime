@@ -378,6 +378,8 @@ interface Backend {
   // How many logs carry the trace's ID; a string fails the count with it.
   linkedLogCount?: number | string;
   inventoryItems?: Array<InventoryItem>;
+  // What the pods raised, as ingest extracts it from their log lines.
+  podExceptions?: Array<ExceptionInstance>;
   exceptions?: Array<ExceptionInstance>;
   holdTraceRead?: Promise<void>;
 }
@@ -509,6 +511,28 @@ beforeEach(() => {
         count: (backend.logs || []).length,
         skip: 0,
         limit: 200,
+      };
+    }
+    if (args.modelType === ExceptionInstance && args.query["k8sPodEntityKey"]) {
+      // Compared on the `time` kept, which is to the second for these.
+      const window: InBetween<Date> = args.query[
+        "time"
+      ] as unknown as InBetween<Date>;
+      const rows: Array<ExceptionInstance> = (
+        backend.podExceptions || []
+      ).filter((exception: ExceptionInstance) => {
+        const time: number = (exception.time as Date).getTime();
+        return (
+          exception.k8sPodEntityKey === args.query["k8sPodEntityKey"] &&
+          time >= window.startValue.getTime() &&
+          time <= window.endValue.getTime()
+        );
+      });
+      return {
+        data: rows.slice(0, args.limit),
+        count: rows.length,
+        skip: 0,
+        limit: args.limit,
       };
     }
     if (args.modelType === ExceptionInstance) {
@@ -3626,5 +3650,73 @@ describe("logs from the pods a trace ran in", () => {
       await screen.findByText(/No logs were written inside this span/),
     ).toBeInTheDocument();
     expect(screen.queryByTestId("span-pod-logs")).not.toBeInTheDocument();
+  });
+
+  test("an eBPF span's Exceptions tab shows what its pod raised around it, not linked by trace ID", async () => {
+    // As ingest writes one it extracts from a log line: time to the second.
+    function podException(
+      offsetMs: number,
+      message: string,
+    ): ExceptionInstance {
+      const nanos: number = (EPOCH_MS + offsetMs) * MS;
+      return Object.assign(new ExceptionInstance(), {
+        time: new Date(Math.floor((EPOCH_MS + offsetMs) / 1000) * 1000),
+        timeUnixNano: nanos,
+        exceptionType: "SerializationFailure",
+        message,
+        fingerprint: "9f86d081884c7d659a2feaa0c55ad015",
+        k8sPodEntityKey: INVENTORY_POD,
+      });
+    }
+    setBackend({
+      traceSpans: podDefinitions().map(makeSpan),
+      podExceptions: [
+        podException(345, "could not serialize access to stock"),
+        podException(700, "outside the window"),
+      ],
+    });
+    await renderTrace();
+
+    fireEvent.click(row("update"));
+    fireEvent.click(await screen.findByTestId("span-panel-tab-exceptions"));
+
+    const section: HTMLElement = await screen.findByTestId(
+      "span-pod-exceptions",
+    );
+    expect(section).toHaveTextContent("No exceptions carry this span's ID.");
+    expect(section).toHaveTextContent(
+      "Exceptions from this pod during this span (not linked by trace ID)",
+    );
+    expect(
+      await within(section).findByText("could not serialize access to stock"),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId("span-pod-exceptions-during")).getByText(
+        "SerializationFailure",
+      ),
+    ).toBeInTheDocument();
+    expect(within(section).queryByText("outside the window")).toBeNull();
+    expect(
+      screen.queryByText("No exceptions were recorded on this span."),
+    ).not.toBeInTheDocument();
+
+    const podRead: ListArgs = getListMock.mock.calls
+      .map((call: [ListArgs]) => {
+        return call[0];
+      })
+      .find((args: ListArgs) => {
+        return (
+          args.modelType === ExceptionInstance &&
+          Boolean(args.query["k8sPodEntityKey"])
+        );
+      })!;
+    expect(podRead.query["k8sPodEntityKey"]).toBe(INVENTORY_POD);
+    // The span's window widened to whole seconds.
+    expect(podRead.query["time"]).toEqual(
+      new InBetween<Date>(
+        new Date(Math.floor((EPOCH_MS + 50) / 1000) * 1000),
+        new Date(Math.ceil((EPOCH_MS + 451) / 1000) * 1000),
+      ),
+    );
   });
 });

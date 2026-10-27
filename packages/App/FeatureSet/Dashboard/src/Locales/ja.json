@@ -35925,5 +35925,12 @@
   "What this trace's pod wrote from {{padding}} before the trace to {{padding}} after it, not linked by trace ID.": "このトレースの Pod が、トレースの {{padding}} 前から {{padding}} 後までに書き込んだ内容 (トレース ID では関連付けられていません)。",
   "What this trace's {{count}} pods wrote from {{padding}} before the trace to {{padding}} after it, not linked by trace ID.": "このトレースの {{count}} 個の Pod が、トレースの {{padding}} 前から {{padding}} 後までに書き込んだ内容 (トレース ID では関連付けられていません)。",
   "What {{pod}} wrote from {{padding}} before this span to {{padding}} after it.": "{{pod}} がこのスパンの {{padding}} 前から {{padding}} 後までに書き込んだ内容。",
-  "Which logs": "表示するログ"
+  "Which logs": "表示するログ",
+  "A pod serves many requests at once, so some of these exceptions may belong to other requests.": "Pod は同時に多くのリクエストを処理するため、これらの例外の一部は他のリクエストのものである可能性があります。",
+  "Exceptions from this pod during this span (not linked by trace ID)": "このスパンの間のこの Pod の例外 (トレース ID では関連付けられていません)",
+  "Exceptions the pod recorded from {{padding}} before this span to {{padding}} after it.": "Pod がこのスパンの {{padding}} 前から {{padding}} 後までに記録した例外。",
+  "Exceptions {{pod}} recorded from {{padding}} before this span to {{padding}} after it.": "{{pod}} がこのスパンの {{padding}} 前から {{padding}} 後までに記録した例外。",
+  "No exceptions carry this span's ID.": "このスパンの ID が付いた例外はありません。",
+  "Only the first {{count}} exceptions of this window are shown.": "この時間帯の最初の {{count}} 件の例外のみ表示しています。",
+  "The pod recorded no exceptions in this window.": "この時間帯に Pod は例外を記録しませんでした。"
 }

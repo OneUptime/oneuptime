@@ -73,6 +73,7 @@ import { SpanSubtreeIds, WaterfallSpan } from "../../../Utils/TraceWaterfall";
 import { makeSpanSignalId } from "../../SessionReplay/Rail/ReplaySignalTypes";
 import LlmSpanPanel from "../LlmSpanPanel";
 import TraceScopedFlamegraph from "../TraceScopedFlamegraph";
+import SpanPodExceptions from "./SpanPodExceptions";
 import SpanPodLogs from "./SpanPodLogs";
 
 export interface ComponentProps {
@@ -452,8 +453,9 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
   }, [activeTab, profileSampleCount, isLlmSpan, isDetailLoading]);
 
   /*
-   * The pod the span ran in, when it ran in one: the Logs tab also reads what
-   * that pod wrote meanwhile, which is all an eBPF span has.
+   * The pod the span ran in, when it ran in one: the Logs and Exceptions tabs
+   * also read what that pod wrote and raised meanwhile, which is all an eBPF
+   * span has.
    */
   const podEntityKey: string =
     span.startTimeUnixNano > 0 ? span.k8sPodEntityKey || "" : "";
@@ -533,6 +535,64 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
       <div className="flex h-24 items-center justify-center">
         <ComponentLoader />
       </div>
+    );
+  };
+
+  // The exceptions recorded on this span.
+  const renderLinkedExceptions: () => ReactElement = (): ReactElement => {
+    return (
+      <ul className="space-y-2" data-testid="span-exceptions">
+        {exceptions.map(
+          (exception: ExceptionInstance, index: number): ReactElement => {
+            const groupRoute: Route | null = exception.fingerprint
+              ? buildExceptionsGroupRoute({
+                  exceptionsListRoute: RouteUtil.populateRouteParams(
+                    RouteMap[PageMap.EXCEPTIONS_UNRESOLVED]!,
+                  ),
+                  fingerprint: exception.fingerprint.toString(),
+                })
+              : null;
+            return (
+              <li
+                key={index}
+                className="rounded-md border border-red-200 bg-red-50/60 px-3 py-2"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    {exception.exceptionType && (
+                      <div className="font-mono text-[11px] font-semibold text-red-700">
+                        {exception.exceptionType}
+                      </div>
+                    )}
+                    <div className="break-words text-xs text-gray-900">
+                      {exception.message || "Exception"}
+                    </div>
+                  </div>
+                  {groupRoute && (
+                    <Link
+                      to={groupRoute}
+                      openInNewTab={true}
+                      className="flex-none text-[11px] font-medium text-red-700 hover:underline"
+                    >
+                      View exception
+                    </Link>
+                  )}
+                </div>
+                {exception.stackTrace && (
+                  <details className="mt-2">
+                    <summary className="cursor-pointer text-[11px] font-medium text-red-700">
+                      Stack trace
+                    </summary>
+                    <pre className="mt-1 max-h-60 overflow-auto whitespace-pre rounded bg-white p-2 font-mono text-[11px] text-gray-800">
+                      {exception.stackTrace.replace(/\\n/g, "\n")}
+                    </pre>
+                  </details>
+                )}
+              </li>
+            );
+          },
+        )}
+      </ul>
     );
   };
 
@@ -821,62 +881,23 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
             </div>
           );
         }
-        if (exceptions.length === 0) {
+        if (exceptions.length === 0 && !podEntityKey) {
           return renderEmpty("No exceptions were recorded on this span.");
         }
         return (
-          <ul className="space-y-2" data-testid="span-exceptions">
-            {exceptions.map(
-              (exception: ExceptionInstance, index: number): ReactElement => {
-                const groupRoute: Route | null = exception.fingerprint
-                  ? buildExceptionsGroupRoute({
-                      exceptionsListRoute: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.EXCEPTIONS_UNRESOLVED]!,
-                      ),
-                      fingerprint: exception.fingerprint.toString(),
-                    })
-                  : null;
-                return (
-                  <li
-                    key={index}
-                    className="rounded-md border border-red-200 bg-red-50/60 px-3 py-2"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        {exception.exceptionType && (
-                          <div className="font-mono text-[11px] font-semibold text-red-700">
-                            {exception.exceptionType}
-                          </div>
-                        )}
-                        <div className="break-words text-xs text-gray-900">
-                          {exception.message || "Exception"}
-                        </div>
-                      </div>
-                      {groupRoute && (
-                        <Link
-                          to={groupRoute}
-                          openInNewTab={true}
-                          className="flex-none text-[11px] font-medium text-red-700 hover:underline"
-                        >
-                          View exception
-                        </Link>
-                      )}
-                    </div>
-                    {exception.stackTrace && (
-                      <details className="mt-2">
-                        <summary className="cursor-pointer text-[11px] font-medium text-red-700">
-                          Stack trace
-                        </summary>
-                        <pre className="mt-1 max-h-60 overflow-auto whitespace-pre rounded bg-white p-2 font-mono text-[11px] text-gray-800">
-                          {exception.stackTrace.replace(/\\n/g, "\n")}
-                        </pre>
-                      </details>
-                    )}
-                  </li>
-                );
-              },
+          <div className="space-y-4">
+            {exceptions.length > 0 && renderLinkedExceptions()}
+            {podEntityKey && (
+              <SpanPodExceptions
+                key={spanId}
+                podEntityKey={podEntityKey}
+                podName={podName}
+                startTimeUnixNano={span.startTimeUnixNano}
+                endTimeUnixNano={span.endTimeUnixNano}
+                hasLinkedExceptions={exceptions.length > 0}
+              />
             )}
-          </ul>
+          </div>
         );
 
       case "links":
