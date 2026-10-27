@@ -87,11 +87,13 @@ import AddIsEntrySpanToSpanTable, {
 
 type MockFunction = ReturnType<typeof jest.fn>;
 
-const spanService: { addColumnInDatabase: MockFunction; execute: MockFunction } =
-  SpanService as unknown as {
-    addColumnInDatabase: MockFunction;
-    execute: MockFunction;
-  };
+const spanService: {
+  addColumnInDatabase: MockFunction;
+  execute: MockFunction;
+} = SpanService as unknown as {
+  addColumnInDatabase: MockFunction;
+  execute: MockFunction;
+};
 
 const migrationUtil: {
   tableExists: MockFunction;
@@ -110,7 +112,10 @@ const EXPRESSION: string =
   "isRootSpan OR (ifNull(kind, '') IN ('SPAN_KIND_SERVER', 'SPAN_KIND_CONSUMER'))";
 
 // How ClickHouse reports the column once it has the DEFAULT.
-const MODEL_DEFAULT: ColumnDefault = { kind: "DEFAULT", expression: EXPRESSION };
+const MODEL_DEFAULT: ColumnDefault = {
+  kind: "DEFAULT",
+  expression: EXPRESSION,
+};
 
 // A column added without one: rows stored before it would read false.
 const NO_DEFAULT: ColumnDefault = { kind: "", expression: "" };
@@ -290,9 +295,8 @@ describe("the isEntrySpan column the model declares", () => {
   });
 
   test("ADD COLUMN, as boot schema-sync sends it, carries the DEFAULT on the local table of every node", () => {
-    const statement: Statement = generator().toAddColumnStatement(
-      entrySpanColumn(),
-    );
+    const statement: Statement =
+      generator().toAddColumnStatement(entrySpanColumn());
     const sql: string = collapse(statement.query);
 
     expect(sql).toBe(
@@ -373,7 +377,8 @@ describe("the isEntrySpan column the model declares", () => {
 
 describe(MIGRATION_NAME, () => {
   test("has a stable name: the runner records migrations by name, so renaming it would run it again", () => {
-    const migration: AddIsEntrySpanToSpanTable = new AddIsEntrySpanToSpanTable();
+    const migration: AddIsEntrySpanToSpanTable =
+      new AddIsEntrySpanToSpanTable();
 
     expect(migration).toBeInstanceOf(DataMigrationBase);
     expect(migration.name).toBe(MIGRATION_NAME);
@@ -433,8 +438,10 @@ describe(MIGRATION_NAME, () => {
       AnalyticsTableColumn,
     );
     expect(
-      (spanService.addColumnInDatabase.mock.calls[0]![0] as AnalyticsTableColumn)
-        .defaultExpression,
+      (
+        spanService.addColumnInDatabase.mock
+          .calls[0]![0] as AnalyticsTableColumn
+      ).defaultExpression,
     ).toBe(EXPRESSION);
 
     expect(executedStatements()).toEqual([DISTRIBUTED_ADD_STATEMENT]);
@@ -506,7 +513,8 @@ describe(MIGRATION_NAME, () => {
   });
 
   test("is idempotent: a second run issues nothing", async () => {
-    const migration: AddIsEntrySpanToSpanTable = new AddIsEntrySpanToSpanTable();
+    const migration: AddIsEntrySpanToSpanTable =
+      new AddIsEntrySpanToSpanTable();
 
     await migration.migrate();
     const firstRun: number =

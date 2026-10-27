@@ -679,7 +679,9 @@ export default class WebAttackLogParser {
     const statusCode: number = accessLog?.status || fromAttributes.status;
     const userAgent: string = accessLog?.userAgent || fromAttributes.userAgent;
     const clientIp: string =
-      accessLog?.clientIp || fromAttributes.clientIp || findFirstIpAddress(text);
+      accessLog?.clientIp ||
+      fromAttributes.clientIp ||
+      findFirstIpAddress(text);
     const outcome: SecurityEventRequestOutcome | undefined =
       requestOutcomeFromStatusCode(statusCode);
 

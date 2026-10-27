@@ -125,20 +125,20 @@ const TelemetryFacetValueRow: FunctionComponent<TelemetryFacetValueRowProps> = (
           value: displayLabel,
         })
     : isLocked
-    ? translator.translateTemplate("Set by this page: {{value}}", {
-        value: displayLabel,
-      })
-    : isIncluded
-      ? translator.translateTemplate("Remove filter: {{value}}", {
+      ? translator.translateTemplate("Set by this page: {{value}}", {
           value: displayLabel,
         })
-      : isExcluded
-        ? translator.translateTemplate("Remove exclusion: {{value}}", {
+      : isIncluded
+        ? translator.translateTemplate("Remove filter: {{value}}", {
             value: displayLabel,
           })
-        : translator.translateTemplate("Filter to {{value}}", {
-            value: displayLabel,
-          });
+        : isExcluded
+          ? translator.translateTemplate("Remove exclusion: {{value}}", {
+              value: displayLabel,
+            })
+          : translator.translateTemplate("Filter to {{value}}", {
+              value: displayLabel,
+            });
 
   const excludeLabel: string = translator.translateTemplate(
     "Exclude {{value}}",
