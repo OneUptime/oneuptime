@@ -142,21 +142,24 @@ const RunbookTriggersSummaryElement: FunctionComponent<ComponentProps> = (
   } else if (summary.isSchedulePaused) {
     lines.push({
       key: "schedule-paused",
-      text: translator.translateText(RunbookTriggersSummaryCopy.schedulePaused),
+      text:
+        translator.translateText(RunbookTriggersSummaryCopy.schedulePaused) ||
+        "",
     });
   }
 
   if (summary.isWebhookOn) {
     lines.push({
       key: "webhook",
-      text: translator.translateText(RunbookTriggersSummaryCopy.webhookOn),
+      text:
+        translator.translateText(RunbookTriggersSummaryCopy.webhookOn) || "",
     });
   }
 
   if (!summary.scheduleOn && !summary.isWebhookOn) {
     lines.push({
       key: "none",
-      text: translator.translateText(RunbookTriggersSummaryCopy.none),
+      text: translator.translateText(RunbookTriggersSummaryCopy.none) || "",
     });
   }
 
