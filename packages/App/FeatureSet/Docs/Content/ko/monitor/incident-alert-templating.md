@@ -440,11 +440,11 @@ Alerts for payments:
 | 변수 | 담긴 내용 | 유형 |
 | --- | --- | --- |
 | `overallStatus` | 상태 페이지의 전체 상태(예: `major_outage`). | `string` |
-| `activeIncidentCount` | 상태 페이지에 열려 있는 인시던트 수. | `number` |
+| `activeIncidentCount` | 상태 페이지에 열려 있는 인시던트 중 모니터가 지켜보는 대상에 영향을 주는 인시던트 수. | `number` |
 | `componentStatuses` | 구성 요소. 각각 `{name, status, description, groupName}` 형식입니다. | `Array<Object>` |
 | `provider` | 상태 페이지의 종류: Atlassian Statuspage, incident.io, RSS 또는 Atom. | `string` |
 | `componentGroup` | 모니터가 지켜보는 구성 요소 그룹(있는 경우). | `string` |
-| `componentName` | 모니터가 지켜보는 구성 요소(있는 경우). | `string` |
+| `componentName` | 모니터가 지켜보는 구성 요소(고른 경우, 쉼표로 구분). | `string` |
 | `isOnline` | 상태 페이지가 응답했는지 여부. | `boolean` |
 | `responseTimeInMs` | 상태 페이지가 응답하는 데 걸린 시간(밀리초). | `number` |
 | `failureCause` | 검사가 실패했을 때 그 이유. | `string` |

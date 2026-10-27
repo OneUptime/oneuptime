@@ -26,6 +26,11 @@ jest.mock("Common/Server/EnvironmentConfig", () => {
 import AuditLogExporter, {
   AuditLogExportLock,
 } from "../../../Server/AuditLogExport/AuditLogExporter";
+import {
+  AuditLogExportFailureNotice,
+  AuditLogExportFailureNotification,
+  AuditLogExportNotifier,
+} from "../../../Server/AuditLogExport/AuditLogExportNotifications";
 import AuditLogExportDestinationRegistry from "../../../Server/AuditLogExport/Destinations/DestinationRegistry";
 import { AuditLogExportDeliveryError } from "../../../Server/AuditLogExport/Destinations/Types";
 import Entities from "Common/Models/DatabaseModels/Index";
@@ -67,6 +72,8 @@ import RecordingDestination from "./Fakes/RecordingDestination";
  *     the cursor backwards or count an entry twice;
  *   - a project's export reads its project only, the instance's every one;
  *   - a failure leaves the cursor and writes why, since when and when next;
+ *   - a failure that lasts is told once: the try before, as the table
+ *     remembers it, is what keeps the email from going again;
  *   - a new Export From, saved through the service, starts again from it;
  *   - deleting a project deletes its exports (the migrated foreign key).
  *
@@ -157,8 +164,12 @@ describePostgres("the audit log exporter against a migrated Postgres", () => {
   let s3: RecordingDestination;
   let clock: Date;
 
-  const exporter: (lock?: AuditLogExportLock) => AuditLogExporter = (
+  const exporter: (
+    lock?: AuditLogExportLock,
+    notifier?: AuditLogExportNotifier,
+  ) => AuditLogExporter = (
     lock: AuditLogExportLock = freeLock,
+    notifier?: AuditLogExportNotifier,
   ): AuditLogExporter => {
     return new AuditLogExporter({
       reader: auditLog.reader,
@@ -169,6 +180,7 @@ describePostgres("the audit log exporter against a migrated Postgres", () => {
       sleep: async (): Promise<void> => {
         return undefined;
       },
+      notifier,
     });
   };
 
@@ -542,6 +554,68 @@ describePostgres("the audit log exporter against a migrated Postgres", () => {
     expect(recovered["lastError"]).toBeNull();
     expect(recovered["failingSince"]).toBeNull();
     expect(recovered["exportedEntryCount"]).toBe(1);
+  });
+
+  test("a failure that lasts is told once, from the try the table remembers", async () => {
+    const id: ObjectID = await createExport({
+      projectId: PROJECT_A,
+      destinationType: AuditLogExportDestinationType.Webhook,
+      startsAt: new Date("2026-10-24T09:00:00.000Z"),
+    });
+    auditLog.add({ createdAt: "2026-10-24T10:00:00.000Z" });
+    webhook.failNext(
+      10_000,
+      new AuditLogExportDeliveryError(
+        "The webhook endpoint refused the credential (HTTP 401).",
+        { retryable: false, status: 401 },
+      ),
+    );
+
+    const told: Array<AuditLogExportFailureNotification> = [];
+    const notifier: AuditLogExportNotifier = {
+      getRetentionInDays: async (): Promise<number> => {
+        return 7;
+      },
+      notifyFailure: async (
+        data: AuditLogExportFailureNotification,
+      ): Promise<void> => {
+        told.push(data);
+      },
+    };
+    const startedAt: number = clock.getTime();
+    let tries: number = 0;
+
+    // Each try it asks for within two hours: at 0, 1, 3, 7, 15, 31 and 63 minutes.
+    for (;;) {
+      await exporter(freeLock, notifier).exportAll();
+      tries++;
+
+      const next: Date = (await storedRow(id))["nextAttemptAt"] as Date;
+
+      if (next.getTime() > startedAt + 2 * 60 * 60 * 1000) {
+        break;
+      }
+
+      clock = next;
+    }
+
+    expect(tries).toBe(7);
+    expect(
+      told.map(
+        (
+          data: AuditLogExportFailureNotification,
+        ): AuditLogExportFailureNotice => {
+          return data.notice;
+        },
+      ),
+    ).toEqual([AuditLogExportFailureNotice.Failing]);
+    expect(told[0]!.failingSince.toISOString()).toBe(
+      new Date(startedAt).toISOString(),
+    );
+    expect(told[0]!.oldestUnsentAt!.toISOString()).toBe(
+      "2026-10-24T10:00:00.000Z",
+    );
+    expect((await storedRow(id))["consecutiveFailureCount"]).toBe(7);
   });
 
   test("a new Export From, saved through the service, starts the export again from it", async () => {

@@ -47,7 +47,7 @@ const TUNNEL_SENTENCE: string =
  */
 const CHANGE_COMMANDS: Array<string> = [
   "NEW_PASSWORD=$(openssl rand -hex 32) &&",
-  `  (export $(grep -v '^#' config.env | xargs) && docker compose exec -T postgres psql -U "$DATABASE_USERNAME" -d "$DATABASE_NAME" -c "ALTER USER \\"$DATABASE_USERNAME\\" PASSWORD '$NEW_PASSWORD'") &&`,
+  `  echo "ALTER USER CURRENT_USER PASSWORD '$NEW_PASSWORD';" | sh Scripts/Install/WithConfig.sh sh -c 'docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$DATABASE_USERNAME" -d "$DATABASE_NAME"' &&`,
   `  sed -i "s/^DATABASE_PASSWORD=.*/DATABASE_PASSWORD=$NEW_PASSWORD/" config.env`,
   "npm start",
 ];
@@ -85,6 +85,11 @@ const SCRIPT_DOCS_URL: RegExp = /CHANGE_PASSWORD_DOCS_URL =\s*"([^"]+)"/;
 const SSH_FORWARD: RegExp = /-L (\d+):([\d.]+):(\d+) /;
 const OVERRIDE_PORT: RegExp = /^ {6}- "(\d+)\.\d+\.\d+\.\d+:(\d+):(\d+)"$/;
 const COMPOSE_PORT: RegExp = /^([\d.]+):(\d+):(\d+)$/;
+// docker-compose.yml's PostgreSQL port, which config.env can move.
+const PUBLISHED_PORT_ENTRY: string =
+  "127.0.0.1:${DATABASE_PUBLISHED_PORT:-5400}:5432";
+// A Compose interpolation with a default, read as its default.
+const INTERPOLATION_WITH_DEFAULT: RegExp = /\$\{[A-Z][A-Z0-9_]*:-([^}]*)\}/g;
 const CONFIG_KEY: RegExp = /^([A-Z][A-Z0-9_]*)=/;
 const SETTING_IN_COMMAND: RegExp = /\$([A-Z][A-Z0-9_]+)/g;
 const GENERATE_STEP: string =
@@ -244,7 +249,12 @@ function composeFacts(relativePath: string): {
 
   return {
     services: Object.keys(compose.services),
-    postgresPorts: compose.services["postgres"]?.ports || [],
+    // As Compose renders them with config.example.env, which leaves the defaults.
+    postgresPorts: (compose.services["postgres"]?.ports || []).map(
+      (entry: string): string => {
+        return entry.replace(INTERPOLATION_WITH_DEFAULT, "$1");
+      },
+    ),
   };
 }
 
@@ -262,10 +272,12 @@ describe("the Docker Compose guide on PostgreSQL's port", () => {
   const compose: { services: Array<string>; postgresPorts: Array<string> } =
     composeFacts("docker-compose.yml");
 
-  it("matches docker-compose.yml: port 5400, on 127.0.0.1 only", () => {
+  it("matches docker-compose.yml: port 5400, on 127.0.0.1 only, moved by DATABASE_PUBLISHED_PORT", () => {
     expect(compose.postgresPorts).toEqual(["127.0.0.1:5400:5432"]);
+    expect(source("docker-compose.yml")).toContain(`"${PUBLISHED_PORT_ENTRY}"`);
+    expect(configKeys().has("DATABASE_PUBLISHED_PORT")).toBe(true);
     expect(ENGLISH_GUIDE).toContain(
-      "| 5400 | `postgres` | Set in `docker-compose.yml` | Lets `npm run backup` and `restore.sh` reach PostgreSQL from the server itself. It is published on `127.0.0.1` only. |",
+      "| 5400 | `postgres` | `DATABASE_PUBLISHED_PORT` | Lets `npm run backup` and `restore.sh` reach PostgreSQL from the server itself. It is published on `127.0.0.1` only. |",
     );
     expect(ENGLISH_GUIDE).toContain(
       "OneUptime publishes PostgreSQL's port 5400 on `127.0.0.1` only.",
@@ -513,7 +525,7 @@ describe("the English upgrade note on PostgreSQL's port and password", () => {
       "the development stack publishes its PostgreSQL, ClickHouse and Valkey ports the same way.",
     );
     for (const published of [
-      '"127.0.0.1:5400:5432"',
+      `"${PUBLISHED_PORT_ENTRY}"`,
       '"127.0.0.1:6310:6379"',
       '"127.0.0.1:8189:8123"',
       '"127.0.0.1:9034:9000"',

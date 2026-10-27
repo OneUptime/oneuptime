@@ -84,7 +84,7 @@ flowchart TB
 | --- | --- | --- | --- |
 | 80 | `ingress` | `ONEUPTIME_HTTP_PORT` | 대시보드, API, 텔레메트리 수집, Let's Encrypt 검증. |
 | 443 | `ingress` | `STATUS_PAGE_HTTPS_PORT` | OneUptime이 인증서를 관리할 때 인스턴스의 HTTPS, 그리고 사용자 지정 도메인의 상태 페이지와 대시보드. |
-| 5400 | `postgres` | `docker-compose.yml`에서 설정 | `npm run backup`과 `restore.sh`가 서버 자체에서 PostgreSQL에 접근하게 합니다. `127.0.0.1`에만 게시됩니다. |
+| 5400 | `postgres` | `DATABASE_PUBLISHED_PORT` | `npm run backup`과 `restore.sh`가 서버 자체에서 PostgreSQL에 접근하게 합니다. `127.0.0.1`에만 게시됩니다. |
 | 3874 | `probe-1` | `GLOBAL_PROBE_1_PORT` | 프로브 자체의 서버. 서버 바깥에서는 필요하지 않습니다. |
 
 설치 과정을 보여 주는 [동영상](https://youtu.be/j1SWmMW2oL4)도 있습니다.
@@ -132,7 +132,7 @@ npm start
 ```
 @tab Docker CLI
 ```bash
-(export $(grep -v '^#' config.env | xargs) && docker compose up --remove-orphans -d)
+sh Scripts/Install/WithConfig.sh docker compose up --remove-orphans -d
 ```
 처음 시작하기 전에 [임의의 비밀 값 생성](#임의의-비밀-값-생성)에 나온 대로 자리 표시자 비밀 값을 직접 바꾸세요. 이 작업을 대신해 주는 것은 `npm start`뿐입니다.
 :::
@@ -386,7 +386,7 @@ PostgreSQL은 처음 만들어질 때의 비밀번호를 그대로 유지하므�
 
 ```bash
 NEW_PASSWORD=$(openssl rand -hex 32) &&
-  (export $(grep -v '^#' config.env | xargs) && docker compose exec -T postgres psql -U "$DATABASE_USERNAME" -d "$DATABASE_NAME" -c "ALTER USER \"$DATABASE_USERNAME\" PASSWORD '$NEW_PASSWORD'") &&
+  echo "ALTER USER CURRENT_USER PASSWORD '$NEW_PASSWORD';" | sh Scripts/Install/WithConfig.sh sh -c 'docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$DATABASE_USERNAME" -d "$DATABASE_NAME"' &&
   sed -i "s/^DATABASE_PASSWORD=.*/DATABASE_PASSWORD=$NEW_PASSWORD/" config.env
 npm start
 ```
@@ -468,7 +468,7 @@ npm run down
 데이터는 `oneuptime_postgres`와 `oneuptime_clickhouse` 볼륨에 남고, `oneuptime` 폴더에는 `config.env`와 백업이 남습니다. 데이터까지 삭제하려면 다음을 실행합니다.
 
 ```bash
-(export $(grep -v '^#' config.env | xargs) && docker compose down --volumes --remove-orphans)
+sh Scripts/Install/WithConfig.sh docker compose down --volumes --remove-orphans
 ```
 
 그런 다음 `oneuptime` 폴더를 삭제합니다.
@@ -534,7 +534,7 @@ Let's Encrypt가 인증서를 발급하기 전까지 ingress는 임시 자체 �
 주문이 실패하면 앱은 `CoreSSL:EnsurePrimaryHostCertificate`로 시작하고 이유가 뒤따르는 오류를 기록합니다.
 
 ```bash
-(export $(grep -v '^#' config.env | xargs) && docker compose logs app) | grep -A 5 CoreSSL
+sh Scripts/Install/WithConfig.sh docker compose logs app | grep -A 5 CoreSSL
 ```
 :::
 

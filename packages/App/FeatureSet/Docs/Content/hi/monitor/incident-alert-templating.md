@@ -440,11 +440,11 @@ Alerts for payments:
 | वेरिएबल | इसमें क्या है | प्रकार |
 | --- | --- | --- |
 | `overallStatus` | स्टेटस पेज का समग्र स्टेटस, जैसे `major_outage`। | `string` |
-| `activeIncidentCount` | स्टेटस पेज पर खुली घटनाओं की संख्या। | `number` |
+| `activeIncidentCount` | स्टेटस पेज पर खुली उन घटनाओं की संख्या जो उसे प्रभावित करती हैं जिसे मॉनिटर देखता है। | `number` |
 | `componentStatuses` | उसके कंपोनेंट, हर एक `{name, status, description, groupName}` के रूप में। | `Array<Object>` |
 | `provider` | स्टेटस पेज का प्रकार: Atlassian Statuspage, incident.io, RSS या Atom। | `string` |
 | `componentGroup` | वह कंपोनेंट समूह जिसे मॉनिटर देखता है, यदि देखता हो। | `string` |
-| `componentName` | वह कंपोनेंट जिसे मॉनिटर देखता है, यदि देखता हो। | `string` |
+| `componentName` | वे कंपोनेंट जिन्हें मॉनिटर देखता है, अल्पविराम से अलग, यदि उसने कुछ चुने हों। | `string` |
 | `isOnline` | क्या स्टेटस पेज ने जवाब दिया। | `boolean` |
 | `responseTimeInMs` | स्टेटस पेज को जवाब देने में कितना समय लगा, मिलीसेकंड में। | `number` |
 | `failureCause` | जाँच विफल होने पर, उसका कारण। | `string` |

@@ -28,6 +28,7 @@ flowchart TB
 
 | | AWS | Microsoft | Google Cloud |
 | --- | --- | --- | --- |
+| リスティング | まだ公開されていません ([お問い合わせ](https://oneuptime.com/enterprise/demo)) | [OneUptime Enterprise](https://marketplace.microsoft.com/en-us/product/oneupitme.oneuptime-enterprise) | まだ公開されていません ([お問い合わせ](https://oneuptime.com/enterprise/demo)) |
 | 実行環境 | Amazon EKS | Azure Kubernetes Service (AKS) | Google Kubernetes Engine (GKE) |
 | インストール方法 | リスティングのレジストリから Helm で | Azure portal | Google Cloud コンソール |
 | OneUptime が報告に使うもの | Kubernetes サービスアカウントの IAM ロール | Azure がインストールに付与するマネージド ID | Google Cloud Marketplace がデプロイ用に作成する報告用シークレット |

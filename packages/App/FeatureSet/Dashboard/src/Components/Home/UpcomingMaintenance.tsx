@@ -20,8 +20,10 @@ import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintena
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import React, {
   FunctionComponent,
+  MutableRefObject,
   ReactElement,
   useEffect,
+  useRef,
   useState,
 } from "react";
 
@@ -129,19 +131,33 @@ const UpcomingMaintenance: FunctionComponent<ComponentProps> = (
   const projectIdString: string = props.projectId.toString();
   const [state, setState] = useState<UpcomingState>({ status: "loading" });
 
+  // The project the card last had an answer for.
+  const answeredProjectId: MutableRefObject<string | null> = useRef<
+    string | null
+  >(null);
+
   useEffect(() => {
     let isCurrent: boolean = true;
 
-    setState({ status: "loading" });
+    /*
+     * Another project starts from nothing. Refresh keeps what is on screen
+     * until the new answer lands, so the card does not blink out and back
+     * while the same windows are read again.
+     */
+    if (answeredProjectId.current !== projectIdString) {
+      setState({ status: "loading" });
+    }
 
     fetchUpcomingMaintenance(new ObjectID(projectIdString))
       .then((result: { items: Array<ScheduledMaintenance>; count: number }) => {
         if (isCurrent) {
+          answeredProjectId.current = projectIdString;
           setState({ status: "loaded", ...result });
         }
       })
       .catch(() => {
         if (isCurrent) {
+          answeredProjectId.current = projectIdString;
           setState({ status: "failed" });
         }
       });
@@ -155,48 +171,27 @@ const UpcomingMaintenance: FunctionComponent<ComponentProps> = (
    * Nothing coming up, or a role that may not read maintenance: the card is
    * left out rather than drawn empty, so Home only shows what has something
    * to say. Scheduling one is a quick action at the top of the page.
+   *
+   * Nor is anything drawn while the windows are read. The card used to draw
+   * placeholders that, for most projects - nothing scheduled - vanished a
+   * moment later and moved the page up under the reader (#4918's review).
+   * Now the card appears once, with its windows, when there are some; the
+   * side column's card above it runs down to the row's end meanwhile.
    */
-  if (
-    state.status === "failed" ||
-    (state.status === "loaded" && state.items.length === 0)
-  ) {
+  if (state.status !== "loaded" || state.items.length === 0) {
     return <></>;
   }
+
+  const items: Array<ScheduledMaintenance> = state.items;
 
   const listRoute: Route = RouteUtil.populateRouteParams(
     RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENTS] as Route,
   );
 
   const renderBody: () => ReactElement = (): ReactElement => {
-    if (state.status === "loading") {
-      /*
-       * Under the divider the list is drawn under, as the cards beside it
-       * do while they load, so the header does not gain a line when the
-       * windows arrive.
-       */
-      return (
-        <div
-          data-testid="home-upcoming-loading"
-          className="space-y-3 border-t border-gray-100 px-5 py-3 md:px-6"
-        >
-          {[0, 1].map((index: number): ReactElement => {
-            return (
-              <div key={index} className="flex items-center gap-3">
-                <span className="h-10 w-10 flex-none animate-pulse rounded-lg bg-gray-100"></span>
-                <span className="flex-1 space-y-2">
-                  <span className="block h-4 w-3/4 animate-pulse rounded bg-gray-100"></span>
-                  <span className="block h-3 w-1/2 animate-pulse rounded bg-gray-100"></span>
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      );
-    }
-
     return (
       <ul className="divide-y divide-gray-100 border-t border-gray-100">
-        {state.items.map((event: ScheduledMaintenance): ReactElement => {
+        {items.map((event: ScheduledMaintenance): ReactElement => {
           const id: string = event._id?.toString() || "";
           const startsAt: Date | undefined = toDate(event.startsAt);
 

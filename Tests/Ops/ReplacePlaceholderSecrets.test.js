@@ -812,11 +812,11 @@ describe("the script, run the way npm start and configure.sh run it", () => {
   });
 
   /*
-   * `npm start` exports config.env with
-   * `export $(grep -v '^#' config.env | xargs)` before `docker compose up`,
-   * so what matters is the value that export produces.
+   * `npm start` starts Compose through Scripts/Install/WithConfig.sh, which
+   * gives it config.env's settings, so what matters is the value that loader
+   * produces.
    */
-  test("the exported ONEUPTIME_SECRET is the new value, quoted placeholder or not", () => {
+  test("the ONEUPTIME_SECRET Compose gets is the new value, quoted placeholder or not", () => {
     for (const line of [
       `ONEUPTIME_SECRET=${PLACEHOLDER}`,
       `ONEUPTIME_SECRET="${PLACEHOLDER}"`,
@@ -825,10 +825,12 @@ describe("the script, run the way npm start and configure.sh run it", () => {
       runScript(dir, `HOST=localhost\n${line}\n`);
 
       const exported = spawnSync(
-        "bash",
+        "sh",
         [
+          path.join(REPO_ROOT, "Scripts", "Install", "WithConfig.sh"),
+          "sh",
           "-c",
-          "export $(grep -v '^#' config.env | xargs) && printf '%s' \"$ONEUPTIME_SECRET\"",
+          "printf '%s' \"$ONEUPTIME_SECRET\"",
         ],
         { cwd: dir, encoding: "utf8" },
       );

@@ -672,6 +672,25 @@ export function getTerraformAttribute(
 }
 
 /*
+ * The columns a create over the API must send: the ones the create schema
+ * requires, by the rules above - so not a column with a default, a slug, the
+ * project id (the API key's), one that takes any value, a relation object or
+ * one a create cannot write. None when the model cannot be created over the
+ * API. The API reference badges these, and only these, Required.
+ */
+export function getColumnsRequiredOnCreate(
+  modelType: DatabaseBaseModelType,
+): Array<string> {
+  return getTerraformAttributes(modelType)
+    .filter((descriptor: TerraformAttributeDescriptor): boolean => {
+      return descriptor.isRequired;
+    })
+    .map((descriptor: TerraformAttributeDescriptor): string => {
+      return descriptor.columnName;
+    });
+}
+
+/*
  * Whether the model's data source can look a record up by `name`: the
  * provider's lookup sends `{"query": {"name": ...}}`, so it works only for
  * models with a `name` column. One named by another column (an incident's

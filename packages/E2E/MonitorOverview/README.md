@@ -100,6 +100,7 @@ another monitor lands on a plain, healthy one.
 | `?theme=`        | `dark` adds `html.dark`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | `?probes=`       | the probes the Probe Status picker finds (`ProbeUtil.getAllProbes`): `custom` (default, the workspace's three probes), `self-hosted` (no custom probe, one global probe, as an installation's bundled probe), `both`                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | `?cloud=`        | `suggest`: two cloud resources answer on the subject monitor's host (a CDN on the host itself, a load balancer its CNAME points to), so `GET /monitor/cloud-resource-suggestions/:monitorId` offers them on its Linked Resources card; otherwise nothing is offered. `?fail=cloud-suggestions` fails that read, `?fail=cloud-link` refuses the link                                                                                                                                                                                                                                                                                                                       |
+| `?components=`   | `chosen`: the `external-status-page` monitor watches two chosen components of its Core group (issue #5156), the Checkout API and a Payments API the page does not list, and its check counts none of the page's one other incident                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 
 `?fail=owner-add` refuses every owner the hero's Add owners list adds ("This team is
 already an owner of this monitor."), as the server refuses a second row for an owner.
@@ -249,6 +250,17 @@ and what the page says under the name; at 390px each status sits under its name 
 leaves the screen; a page that went private says why between the check's facts and the
 page's, and lists no components; Monitoring Logs' View Summary puts four facts to a row in
 its wide dialog at the same 1280px; dark mode keeps the facts and the list on dark surfaces.
+Issue #5156, the components a monitor watches: Components sits out in the form, not under
+More fields, and the old Component Name Filter is gone. Opened, it reads a vendor's
+Atlassian Statuspage (modelled with `page.route`, and answering any page as Statuspage
+does) once, in the probe's order and with no cookie or referrer, and offers its components
+in the page's groups, one that is not operational saying how it is; picks stay open for the
+next, a typed name the page does not list is said to watch nothing, a `*` pattern's row says
+what it watches, and Create Monitor sends the chosen names. A page the browser cannot reach
+says why, with Try again inside a phone's screen, and is read again. With
+`?components=chosen` the Summary says `Core › 2 chosen components`, that one more incident
+on the page was not counted, and that the Payments API is not on the page - at 1280px, at
+390px and in the dark.
 
 `afterEach` fails a test on an uncaught page error, on any request the fixture does not
 model, and on any request the network fence had to abort.

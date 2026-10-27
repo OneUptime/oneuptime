@@ -1055,6 +1055,40 @@ export class Service extends DatabaseService<Model> {
   }
 
   /**
+   * Whether this instance has no account to sign in to yet: no user, and no
+   * project either - the state in which the next signup becomes Master Admin
+   * (isInstanceAwaitingFirstUser). A self-hosted server's sign-in page sends
+   * people to register then, and the register page says the account it
+   * creates becomes the admin.
+   *
+   * Read-only and lock-free: it decides nothing, so it never takes the
+   * election mutex, and it logs nothing (it is asked on page loads). The
+   * election itself still decides under the mutex.
+   */
+  @CaptureSpan()
+  public async isAwaitingFirstAccount(): Promise<boolean> {
+    const userCount: PositiveNumber = await this.countBy({
+      props: {
+        isRoot: true,
+      },
+      query: {},
+    });
+
+    if (!userCount.isZero()) {
+      return false;
+    }
+
+    const projectCount: PositiveNumber = await ProjectService.countBy({
+      props: {
+        isRoot: true,
+      },
+      query: {},
+    });
+
+    return projectCount.isZero();
+  }
+
+  /**
    * Is this a brand-new instance that nobody has ever signed up to — i.e. may
    * the next user through the door take Master Admin?
    *

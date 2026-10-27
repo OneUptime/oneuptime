@@ -84,7 +84,7 @@ flowchart TB
 | --- | --- | --- | --- |
 | 80 | `ingress` | `ONEUPTIME_HTTP_PORT` | ダッシュボード、API、テレメトリの取り込み、Let's Encrypt の検証。 |
 | 443 | `ingress` | `STATUS_PAGE_HTTPS_PORT` | OneUptime が証明書を管理する場合のインスタンスの HTTPS、およびカスタムドメインのステータスページとダッシュボード。 |
-| 5400 | `postgres` | `docker-compose.yml` で設定 | `npm run backup` と `restore.sh` がサーバー自身から PostgreSQL に到達するためのもの。`127.0.0.1` だけで公開されます。 |
+| 5400 | `postgres` | `DATABASE_PUBLISHED_PORT` | `npm run backup` と `restore.sh` がサーバー自身から PostgreSQL に到達するためのもの。`127.0.0.1` だけで公開されます。 |
 | 3874 | `probe-1` | `GLOBAL_PROBE_1_PORT` | プローブ自身のサーバー。サーバーの外からは必要ありません。 |
 
 インストールの [動画ウォークスルー](https://youtu.be/j1SWmMW2oL4) もあります。
@@ -132,7 +132,7 @@ npm start
 ```
 @tab Docker CLI
 ```bash
-(export $(grep -v '^#' config.env | xargs) && docker compose up --remove-orphans -d)
+sh Scripts/Install/WithConfig.sh docker compose up --remove-orphans -d
 ```
 最初の起動の前に、[ランダムなシークレットを生成する](#ランダムなシークレットを生成する) のとおりにプレースホルダーのシークレットを自分で置き換えてください。自動で置き換えるのは `npm start` だけです。
 :::
@@ -386,7 +386,7 @@ PostgreSQL は作成されたときのパスワードを保ち続けるため、
 
 ```bash
 NEW_PASSWORD=$(openssl rand -hex 32) &&
-  (export $(grep -v '^#' config.env | xargs) && docker compose exec -T postgres psql -U "$DATABASE_USERNAME" -d "$DATABASE_NAME" -c "ALTER USER \"$DATABASE_USERNAME\" PASSWORD '$NEW_PASSWORD'") &&
+  echo "ALTER USER CURRENT_USER PASSWORD '$NEW_PASSWORD';" | sh Scripts/Install/WithConfig.sh sh -c 'docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$DATABASE_USERNAME" -d "$DATABASE_NAME"' &&
   sed -i "s/^DATABASE_PASSWORD=.*/DATABASE_PASSWORD=$NEW_PASSWORD/" config.env
 npm start
 ```
@@ -468,7 +468,7 @@ npm run down
 データは `oneuptime_postgres` と `oneuptime_clickhouse` のボリュームに残り、`oneuptime` フォルダーには `config.env` とバックアップが残ります。データも削除するには次を実行します。
 
 ```bash
-(export $(grep -v '^#' config.env | xargs) && docker compose down --volumes --remove-orphans)
+sh Scripts/Install/WithConfig.sh docker compose down --volumes --remove-orphans
 ```
 
 その後、`oneuptime` フォルダーを削除します。
@@ -534,7 +534,7 @@ Let's Encrypt が証明書を発行するまで、ingress は一時的な自己�
 注文が失敗すると、アプリは `CoreSSL:EnsurePrimaryHostCertificate` で始まり、理由が続くエラーをログに記録します。
 
 ```bash
-(export $(grep -v '^#' config.env | xargs) && docker compose logs app) | grep -A 5 CoreSSL
+sh Scripts/Install/WithConfig.sh docker compose logs app | grep -A 5 CoreSSL
 ```
 :::
 

@@ -28,6 +28,7 @@ flowchart TB
 
 | | AWS | Microsoft | Google Cloud |
 | --- | --- | --- | --- |
+| صفحهٔ محصول | هنوز عمومی نیست: [با ما تماس بگیرید](https://oneuptime.com/enterprise/demo) | [OneUptime Enterprise](https://marketplace.microsoft.com/en-us/product/oneupitme.oneuptime-enterprise) | هنوز عمومی نیست: [با ما تماس بگیرید](https://oneuptime.com/enterprise/demo) |
 | محل اجرا | Amazon EKS | Azure Kubernetes Service (AKS) | Google Kubernetes Engine (GKE) |
 | روش نصب | Helm، از رجیستری محصول | پورتال Azure | کنسول Google Cloud |
 | اعتبارنامهٔ گزارش‌دهی OneUptime | نقش IAM حساب سرویس Kubernetes آن | هویت مدیریت‌شده‌ای که Azure به نصب می‌دهد | راز گزارش‌دهی‌ای که Google Cloud Marketplace برای استقرار می‌سازد |

@@ -11,8 +11,10 @@
     "lint-app-dockerfile": "bash ./lint-app-dockerfile.sh"
   },
   "devDependencies": {
+    "esbuild": "^0.28.2",
     "jest": "^30.5.2",
-    "js-yaml": "^4.1.0"
+    "js-yaml": "^4.1.0",
+    "typescript": "^5.9.3"
   },
   "overrides": {
     "@istanbuljs/load-nyc-config": {

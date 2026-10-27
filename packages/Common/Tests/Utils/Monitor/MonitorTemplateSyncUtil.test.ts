@@ -407,9 +407,92 @@ describe("MonitorTemplateSyncUtil", () => {
     expect(result.data!.externalStatusPageMonitor).not.toHaveProperty(
       "componentName",
     );
+    expect(result.data!.externalStatusPageMonitor).not.toHaveProperty(
+      "componentNames",
+    );
     expect(
       (result.toJSON()["value"] as JSONObject)["externalStatusPageMonitor"],
     ).not.toHaveProperty("componentName");
+    expect(
+      (result.toJSON()["value"] as JSONObject)["externalStatusPageMonitor"],
+    ).not.toHaveProperty("componentNames");
+  });
+
+  /*
+   * Issue #5156: a monitor watches the components it chose. Kept from sync,
+   * its group, its chosen components and the one name an older probe reads
+   * stay its own, while the template's address still syncs.
+   */
+  test("a monitor's chosen components stay its own, with its group, when components are not synced", (): void => {
+    const template: MonitorStep = step("template", [
+      "externalStatusPageMonitor.components",
+    ]);
+    template.data!.externalStatusPageMonitor = {
+      ...MonitorStepExternalStatusPageMonitorUtil.getDefault(),
+      statusPageUrl: "https://www.githubstatus.com",
+      componentGroupName: "Template Group",
+      componentNames: ["Copilot"],
+      componentName: "Copilot",
+    };
+    const current: MonitorStep = step("current");
+    current.data!.externalStatusPageMonitor = {
+      ...MonitorStepExternalStatusPageMonitorUtil.getDefault(),
+      statusPageUrl: "https://old.example.com",
+      componentNames: ["Git Operations", "Pull Requests"],
+      componentName: undefined,
+    };
+
+    const result: MonitorStep = sync(
+      template,
+      current,
+      MonitorType.ExternalStatusPage,
+    );
+
+    expect(result.data!.externalStatusPageMonitor!.statusPageUrl).toBe(
+      "https://www.githubstatus.com",
+    );
+    expect(result.data!.externalStatusPageMonitor!.componentNames).toEqual([
+      "Git Operations",
+      "Pull Requests",
+    ]);
+    expect(
+      result.data!.externalStatusPageMonitor!.componentName,
+    ).toBeUndefined();
+    expect(
+      result.data!.externalStatusPageMonitor!.componentGroupName,
+    ).toBeUndefined();
+  });
+
+  test("a monitor saved with one name filter keeps it, and reads it as before, when components are not synced", (): void => {
+    const template: MonitorStep = step("template", [
+      "externalStatusPageMonitor.components",
+    ]);
+    template.data!.externalStatusPageMonitor = {
+      ...MonitorStepExternalStatusPageMonitorUtil.getDefault(),
+      statusPageUrl: "https://status.example.com",
+      componentNames: ["Checkout"],
+    };
+    const current: MonitorStep = step("current");
+    // Stored before the list: the filter alone.
+    current.data!.externalStatusPageMonitor = {
+      statusPageUrl: "https://status.example.com",
+      componentName: "API",
+    } as never;
+
+    const result: MonitorStep = sync(
+      template,
+      current,
+      MonitorType.ExternalStatusPage,
+    );
+
+    expect(result.data!.externalStatusPageMonitor).not.toHaveProperty(
+      "componentNames",
+    );
+    expect(
+      MonitorStepExternalStatusPageMonitorUtil.getComponentNames(
+        result.data!.externalStatusPageMonitor,
+      ),
+    ).toEqual(["*API*"]);
   });
 
   test("can restore an excluded nested field when the template config is missing", (): void => {

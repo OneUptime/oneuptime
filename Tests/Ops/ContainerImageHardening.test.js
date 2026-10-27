@@ -72,7 +72,9 @@ function stagesOf(template, environment) {
 
 /**
  * The stages a build of this template ships: the last stage, and for the App
- * its two edition targets. Each is returned with its ancestry, nearest first.
+ * its two edition targets. Each is returned with its ancestry, nearest first;
+ * an unnamed last stage built FROM a stage (the Nginx image's, FROM base)
+ * has that stage's ancestry after it.
  */
 function shippedStages(stages) {
   const targets = stages.filter((stage) => {
@@ -80,7 +82,9 @@ function shippedStages(stages) {
   });
   const finals = targets.length > 0 ? targets : [stages[stages.length - 1]];
   return finals.map((stage) => {
-    return stage.name ? ancestry(stages, stage.name) : [stage];
+    return stage.name
+      ? ancestry(stages, stage.name)
+      : [stage, ...ancestry(stages, stage.from)];
   });
 }
 
@@ -824,11 +828,26 @@ describe("App", () => {
 describe("Nginx", () => {
   const stages = stagesOf("packages/Nginx/Dockerfile.tpl", "production");
   const final = stages[stages.length - 1];
+  // nginx with Node.js and npm: what the build stage and the image start from.
+  const base = stages.find((stage) => {
+    return stage.name === "base";
+  });
+  const build = stages.find((stage) => {
+    return stage.name === "build";
+  });
 
   function alpineOf(image) {
     const match = /-alpine(\d+\.\d+)$/.exec(image);
     return match ? match[1] : null;
   }
+
+  test("has a base stage, a build stage, and an image that starts from the base", () => {
+    expect(base).toBeDefined();
+    expect(build).toBeDefined();
+    expect(build.from).toBe("base");
+    expect(final.from).toBe("base");
+    expect(final.name).not.toBe("build");
+  });
 
   test("the node donor and the nginx base are pinned to the same Alpine release", () => {
     const donor = stages.find((stage) => {
@@ -836,15 +855,15 @@ describe("Nginx", () => {
     });
     expect(donor).toBeDefined();
     expect(alpineOf(donor.from)).not.toBeNull();
-    expect(alpineOf(final.from)).toBe(alpineOf(donor.from));
+    expect(alpineOf(base.from)).toBe(alpineOf(donor.from));
   });
 
   test("the nginx base names an exact release", () => {
-    expect(final.from).toMatch(/^nginx:\d+\.\d+\.\d+-alpine\d+\.\d+$/);
+    expect(base.from).toMatch(/^nginx:\d+\.\d+\.\d+-alpine\d+\.\d+$/);
   });
 
   test("removes exactly the dynamic modules nginx.conf never loads", () => {
-    const removal = final.instructions.find((line) => {
+    const removal = base.instructions.find((line) => {
       return /\bapk del\b/.test(line);
     });
     expect(removal).toMatch(
@@ -866,7 +885,7 @@ describe("Nginx", () => {
   });
 
   test("keeps the njs module it does load", () => {
-    const install = final.instructions.find((line) => {
+    const install = base.instructions.find((line) => {
       return /\bapk add\b/.test(line);
     });
     expect(installedPackagesIn(install)).toEqual(
@@ -882,12 +901,99 @@ describe("Nginx", () => {
    * directory (needed by /usr/local/bin/node)".
    */
   test("installs the libraries the copied node binary links against", () => {
-    const install = final.instructions.find((line) => {
+    const install = base.instructions.find((line) => {
       return /\bapk add\b/.test(line);
     });
     expect(installedPackagesIn(install)).toEqual(
       expect.arrayContaining(["libstdc++", "libatomic"]),
     );
+  });
+
+  /*
+   * Installing Common in the image that ships put 1.1 GB in an image of
+   * 1.5 GB: every package any part of OneUptime needs, npm's download cache
+   * and Common's tests, for a sidecar that loads about 105 MB of packages.
+   * The build stage installs, type-checks and prunes; the image copies
+   * /usr/src out of it and installs nothing (PruneUnreachablePackages.test.js
+   * covers the prune itself).
+   */
+  describe("ships only what the certificate sidecar runs", () => {
+    const PRUNE_COPY =
+      "COPY ./Scripts/Docker/PruneUnreachablePackages.js /tmp/PruneUnreachablePackages.js";
+    const PRUNE_RUN =
+      "RUN node /tmp/PruneUnreachablePackages.js --entry /usr/src/app/Index.ts --package /usr/src/Common && rm -rf /tmp/PruneUnreachablePackages.js /usr/src/Common/Tests /usr/src/app/build && chmod +x /usr/src/app/run.sh";
+
+    function indexOf(lines, line) {
+      const index = lines.indexOf(line);
+      expect({ line, found: index !== -1 }).toEqual({ line, found: true });
+      return index;
+    }
+
+    test("the image installs nothing with npm, and takes only /usr/src from the build stage", () => {
+      expect(
+        final.instructions.filter((line) => {
+          return NPM_INSTALLS.test(line);
+        }),
+      ).toEqual([]);
+      expect(
+        final.instructions.filter((line) => {
+          return /^COPY --from=/.test(line);
+        }),
+      ).toEqual(["COPY --from=build /usr/src /usr/src"]);
+    });
+
+    test("the build stage installs Common and the sidecar, type-checks, then prunes", () => {
+      const lines = build.instructions;
+      const commonInstall = indexOf(lines, "RUN npm ci --no-audit --no-fund");
+      expect(lines[commonInstall - 2]).toBe("WORKDIR /usr/src/Common");
+      const sidecarInstall = lines.indexOf(
+        "RUN npm ci --no-audit --no-fund",
+        commonInstall + 1,
+      );
+      expect(sidecarInstall).toBeGreaterThan(commonInstall);
+      expect(lines.slice(commonInstall, sidecarInstall)).toContain(
+        "COPY ./packages/Common /usr/src/Common",
+      );
+      const typeCheck = indexOf(lines, "RUN npm run compile");
+      const copy = indexOf(lines, PRUNE_COPY);
+      const prune = indexOf(lines, PRUNE_RUN);
+      expect(sidecarInstall).toBeLessThan(typeCheck);
+      expect(lines.slice(sidecarInstall, typeCheck)).toContain(
+        "COPY ./packages/Nginx /usr/src/app",
+      );
+      // The prune comes last: Common's development packages (the @types the
+      // type-check reads) go with it.
+      expect(typeCheck).toBeLessThan(copy);
+      expect(prune).toBe(copy + 1);
+      expect(prune).toBe(lines.length - 1);
+    });
+
+    test("the prune walks the file the sidecar's start script runs, from the folder it is copied to", () => {
+      const nginxPackage = readJson("packages/Nginx/package.json");
+      expect(nginxPackage.scripts.start).toMatch(
+        /exec node --require ts-node\/register Index\.ts$/,
+      );
+      expect(
+        fs.existsSync(path.join(REPO_ROOT, "packages/Nginx/Index.ts")),
+      ).toBe(true);
+      // ...and prunes the package it imports, where it is installed.
+      expect(nginxPackage.dependencies.Common).toBe("file:../Common");
+      expect(final.instructions).toContain("WORKDIR /usr/src/app");
+      expect(final.instructions[final.instructions.length - 1]).toBe(
+        "CMD ./run.sh",
+      );
+    });
+
+    test("the build context lets the prune script in", () => {
+      expect(dockerignored("Scripts/Docker/PruneUnreachablePackages.js")).toBe(
+        false,
+      );
+      expect(
+        fs.existsSync(
+          path.join(REPO_ROOT, "Scripts/Docker/PruneUnreachablePackages.js"),
+        ),
+      ).toBe(true);
+    });
   });
 });
 

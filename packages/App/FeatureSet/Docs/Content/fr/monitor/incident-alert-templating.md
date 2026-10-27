@@ -440,11 +440,11 @@ Les noms de séries dans `metrics` contiennent des points, comme `oneuptime.moni
 | Variable | Ce qu'elle contient | Type |
 | --- | --- | --- |
 | `overallStatus` | Le statut global de la page de statut, comme `major_outage`. | `string` |
-| `activeIncidentCount` | Le nombre d'incidents ouverts sur la page de statut. | `number` |
+| `activeIncidentCount` | Le nombre d'incidents ouverts sur la page de statut qui touchent ce que surveille le moniteur. | `number` |
 | `componentStatuses` | Ses composants, chacun sous la forme `{name, status, description, groupName}`. | `Array<Object>` |
 | `provider` | Le type de page de statut : Atlassian Statuspage, incident.io, RSS ou Atom. | `string` |
 | `componentGroup` | Le groupe de composants que surveille le moniteur, s'il en surveille un. | `string` |
-| `componentName` | Le composant que surveille le moniteur, s'il en surveille un. | `string` |
+| `componentName` | Les composants que surveille le moniteur, séparés par des virgules, s'il en a choisi. | `string` |
 | `isOnline` | Si la page de statut a répondu. | `boolean` |
 | `responseTimeInMs` | Le temps de réponse de la page de statut, en millisecondes. | `number` |
 | `failureCause` | La raison de l'échec de la vérification, le cas échéant. | `string` |

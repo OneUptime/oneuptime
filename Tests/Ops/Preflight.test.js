@@ -74,6 +74,11 @@ const ROOT_PACKAGE = JSON.parse(
   fs.readFileSync(path.join(REPO_ROOT, "package.json"), "utf8"),
 );
 const INSTALL_STEP_IN_SCRIPT = /node (\.\/Scripts\/Install\/[\w.-]+\.js)/g;
+// The shell scripts a script runs: WithConfig.sh, which loads config.env.
+const SHELL_STEP_IN_SCRIPT = /sh (\.\/Scripts\/Install\/[\w.-]+\.sh)/g;
+// The step that starts Compose, with config.env's settings loaded.
+const COMPOSE_UP_STEP =
+  "sh ./Scripts/Install/WithConfig.sh docker compose up --remove-orphans -d $npm_config_services";
 
 const GB = 1000 * 1000 * 1000;
 
@@ -810,7 +815,7 @@ describe("the ports the stack publishes", () => {
         return `${port.service} ${port.address || "*"}:${port.port} ${port.entry.setting}`;
       }),
     ).toEqual([
-      "postgres 127.0.0.1:5400 null",
+      "postgres 127.0.0.1:5400 DATABASE_PUBLISHED_PORT",
       "ingress *:80 ONEUPTIME_HTTP_PORT",
       "ingress *:443 STATUS_PAGE_HTTPS_PORT",
       "probe-1 *:3874 GLOBAL_PROBE_1_PORT",
@@ -932,7 +937,7 @@ describe("the ports the stack publishes", () => {
       {
         level: "stop",
         message:
-          "Port 5400 of 127.0.0.1 is already in use by another program, and OneUptime publishes PostgreSQL there for npm run backup. Stop that program, then run npm start again.",
+          "Port 5400 of 127.0.0.1 is already in use by another program, and OneUptime publishes PostgreSQL there for npm run backup. Stop that program, or set DATABASE_PUBLISHED_PORT in config.env to a free port, such as DATABASE_PUBLISHED_PORT=5401.",
       },
       {
         level: "stop",
@@ -1121,9 +1126,32 @@ describeWithCompose("the ports as Compose renders the shipped files", () => {
     ).toEqual([
       "3874 GLOBAL_PROBE_1_PORT",
       "443 STATUS_PAGE_HTTPS_PORT",
-      "5400 null",
+      "5400 DATABASE_PUBLISHED_PORT",
       "80 ONEUPTIME_HTTP_PORT",
     ]);
+  });
+
+  /*
+   * PostgreSQL's host port was fixed at 5400 in docker-compose.yml: an
+   * install whose server ran a PostgreSQL of its own could only stop it.
+   * DATABASE_PUBLISHED_PORT moves it, still on 127.0.0.1 alone.
+   */
+  test("a moved PostgreSQL port is rendered where config.env moves it, still on the loopback address", () => {
+    const config = renderCompose(["docker-compose.yml"], {
+      DATABASE_PUBLISHED_PORT: "5401",
+    });
+    const postgres = publishedPortsOf(
+      config,
+      servicesToStart(config, ""),
+    ).filter((port) => {
+      return port.service === "postgres";
+    });
+
+    expect(
+      postgres.map((port) => {
+        return `${port.address}:${port.port} ${port.entry.setting}`;
+      }),
+    ).toEqual(["127.0.0.1:5401 DATABASE_PUBLISHED_PORT"]);
   });
 
   test("a moved ingress and probe are rendered where config.env moves them", () => {
@@ -1570,9 +1598,7 @@ describe("npm start", () => {
     const steps = ROOT_PACKAGE.scripts.start.split(" && ");
 
     expect(steps[0]).toBe(`node ${SCRIPT_PATH}`);
-    expect(
-      steps.indexOf("export $(grep -v '^#' config.env | xargs)"),
-    ).toBeGreaterThan(0);
+    expect(steps.indexOf(COMPOSE_UP_STEP)).toBeGreaterThan(0);
     // Not a hook: npm skips pre- and post-scripts under ignore-scripts.
     expect(ROOT_PACKAGE.scripts.prestart).toBeUndefined();
     expect(ROOT_PACKAGE.scripts.update).toMatch(/&& npm run start$/);
@@ -1591,13 +1617,13 @@ describe("npm start", () => {
       fs.mkdirSync(path.join(directory, "Scripts", "Install"), {
         recursive: true,
       });
-      for (const match of ROOT_PACKAGE.scripts.start.matchAll(
-        INSTALL_STEP_IN_SCRIPT,
-      )) {
-        fs.copyFileSync(
-          path.join(REPO_ROOT, match[1]),
-          path.join(directory, match[1]),
-        );
+      for (const pattern of [INSTALL_STEP_IN_SCRIPT, SHELL_STEP_IN_SCRIPT]) {
+        for (const match of ROOT_PACKAGE.scripts.start.matchAll(pattern)) {
+          fs.copyFileSync(
+            path.join(REPO_ROOT, match[1]),
+            path.join(directory, match[1]),
+          );
+        }
       }
       fs.copyFileSync(
         path.join(REPO_ROOT, "Scripts", "Install", "StartOutput.js"),

@@ -292,17 +292,17 @@ describe("Card header layout", () => {
      * them and should be made on purpose.
      */
     const GOLDEN_WITH_ACTIONS: string =
-      '<div data-testid="card" class="mb-5 extra"><div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-visible"><div class="py-6 px-5 md:px-6"><div data-testid="card-header" data-header-layout="default" class="flex flex-wrap items-center gap-x-4 gap-y-2 md:flex-nowrap md:items-start"><div data-testid="card-header-title-block" class="min-w-0 md:flex-1"><h2 data-testid="card-details-heading" id="card-details-heading" class="text-lg font-semibold leading-6 text-gray-900 text-balance break-words">Title</h2><p data-testid="card-description" class="mt-1.5 text-sm text-gray-500 w-full max-md:hidden md:block leading-relaxed">Desc</p></div><div data-testid="card-header-actions" class="ml-auto flex max-w-full flex-wrap items-center justify-end gap-x-3 gap-y-2 md:flex-shrink-0"><div class="flex items-center"><span>right</span></div><div class="flex items-center [&amp;>button]:ml-0 [&amp;>button]:md:ml-0 [&amp;>*>button]:ml-0 [&amp;>*>button]:md:ml-0"><a href="/docs">Docs</a></div></div></div><div class="mt-0"><div>body</div></div></div></div></div>';
+      '<div data-testid="card" class="mb-5 extra"><div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-visible"><div class="py-6 px-5 md:px-6"><div data-testid="card-header" data-header-layout="default" class="flex flex-wrap items-center gap-x-4 gap-y-2 md:flex-nowrap md:items-start"><div data-testid="card-header-title-block" class="min-w-0 md:flex-1"><h2 data-testid="card-details-heading" id="card-details-heading" class="text-lg font-semibold leading-6 text-gray-900 text-balance break-words">Title</h2><p data-testid="card-description" class="mt-1.5 text-sm text-gray-500 w-full max-md:hidden md:block leading-relaxed text-pretty">Desc</p></div><div data-testid="card-header-actions" class="ml-auto flex max-w-full flex-wrap items-center justify-end gap-x-3 gap-y-2 md:flex-shrink-0"><div class="flex items-center"><span>right</span></div><div class="flex items-center [&amp;>button]:ml-0 [&amp;>button]:md:ml-0 [&amp;>*>button]:ml-0 [&amp;>*>button]:md:ml-0"><a href="/docs">Docs</a></div></div></div><div class="mt-0"><div>body</div></div></div></div></div>';
 
     const GOLDEN_WITHOUT_ACTIONS: string =
-      '<div data-testid="card" class="mb-5 "><div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-visible"><div class="py-6 px-5 md:px-6"><div data-testid="card-header" data-header-layout="default" class="flex flex-wrap items-center gap-x-4 gap-y-2 md:flex-nowrap md:items-start"><div data-testid="card-header-title-block" class="w-full min-w-0"><h2 data-testid="card-details-heading" id="card-details-heading" class="text-lg font-semibold leading-6 text-gray-900 text-balance break-words">Title</h2><p data-testid="card-description" class="mt-1.5 text-sm text-gray-500 w-full max-md:hidden md:block leading-relaxed">Desc</p></div></div><div class="mt-4"><div>body</div></div></div></div></div>';
+      '<div data-testid="card" class="mb-5 "><div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-visible"><div class="py-6 px-5 md:px-6"><div data-testid="card-header" data-header-layout="default" class="flex flex-wrap items-center gap-x-4 gap-y-2 md:flex-nowrap md:items-start"><div data-testid="card-header-title-block" class="w-full min-w-0"><h2 data-testid="card-details-heading" id="card-details-heading" class="text-lg font-semibold leading-6 text-gray-900 text-balance break-words">Title</h2><p data-testid="card-description" class="mt-1.5 text-sm text-gray-500 w-full max-md:hidden md:block leading-relaxed text-pretty">Desc</p></div></div><div class="mt-4"><div>body</div></div></div></div></div>';
 
     /*
      * A card with no body: its description is all it says, so it is drawn
      * at every width (CARD_DESCRIPTION_KEPT_ON_PHONES_CLASS_NAME).
      */
     const GOLDEN_WITHOUT_A_BODY: string =
-      '<div data-testid="card" class="mb-5 "><div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-visible"><div class="py-6 px-5 md:px-6"><div data-testid="card-header" data-header-layout="default" class="flex flex-wrap items-center gap-x-4 gap-y-2 md:flex-nowrap md:items-start"><div data-testid="card-header-title-block" class="w-full min-w-0"><h2 data-testid="card-details-heading" id="card-details-heading" class="text-lg font-semibold leading-6 text-gray-900 text-balance break-words">Title</h2><p data-testid="card-description" class="mt-1.5 text-sm text-gray-500 w-full block leading-relaxed">Desc</p></div></div></div></div></div>';
+      '<div data-testid="card" class="mb-5 "><div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-visible"><div class="py-6 px-5 md:px-6"><div data-testid="card-header" data-header-layout="default" class="flex flex-wrap items-center gap-x-4 gap-y-2 md:flex-nowrap md:items-start"><div data-testid="card-header-title-block" class="w-full min-w-0"><h2 data-testid="card-details-heading" id="card-details-heading" class="text-lg font-semibold leading-6 text-gray-900 text-balance break-words">Title</h2><p data-testid="card-description" class="mt-1.5 text-sm text-gray-500 w-full block leading-relaxed text-pretty">Desc</p></div></div></div></div></div>';
 
     test.each([
       ["left out", undefined],
@@ -452,7 +452,7 @@ describe("Card header layout", () => {
     };
 
     const GOLDEN_WITH_ACTIONS: string =
-      '<div data-testid="card" class="mb-5 extra"><div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-visible"><div class="py-6 px-5 md:px-6"><div data-testid="card-header" data-header-layout="stacked"><div data-testid="card-header-title-row" class="flex flex-wrap items-center gap-x-4 gap-y-2 md:items-center"><div data-testid="card-header-title-block" class="min-w-0 md:grow md:basis-1/2"><h2 data-testid="card-details-heading" id="card-details-heading" class="text-lg font-semibold leading-6 text-gray-900 text-balance break-words">Title</h2></div><div data-testid="card-header-actions" class="ml-auto flex max-w-full flex-wrap items-center justify-end gap-x-3 gap-y-2 md:-my-[7px]"><div class="flex items-center"><span>right</span></div><div class="flex items-center [&amp;>button]:ml-0 [&amp;>button]:md:ml-0 [&amp;>*>button]:ml-0 [&amp;>*>button]:md:ml-0"><a href="/docs">Docs</a></div></div></div><p data-testid="card-description" class="mt-[9px] text-sm text-gray-500 w-full max-md:hidden md:block leading-relaxed">Desc</p></div><div class="mt-0"><div>body</div></div></div></div></div>';
+      '<div data-testid="card" class="mb-5 extra"><div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-visible"><div class="py-6 px-5 md:px-6"><div data-testid="card-header" data-header-layout="stacked"><div data-testid="card-header-title-row" class="flex flex-wrap items-center gap-x-4 gap-y-2 md:items-center"><div data-testid="card-header-title-block" class="min-w-0 md:grow md:basis-1/2"><h2 data-testid="card-details-heading" id="card-details-heading" class="text-lg font-semibold leading-6 text-gray-900 text-balance break-words">Title</h2></div><div data-testid="card-header-actions" class="ml-auto flex max-w-full flex-wrap items-center justify-end gap-x-3 gap-y-2 md:-my-[7px]"><div class="flex items-center"><span>right</span></div><div class="flex items-center [&amp;>button]:ml-0 [&amp;>button]:md:ml-0 [&amp;>*>button]:ml-0 [&amp;>*>button]:md:ml-0"><a href="/docs">Docs</a></div></div></div><p data-testid="card-description" class="mt-[9px] text-sm text-gray-500 w-full max-md:hidden md:block leading-relaxed text-pretty">Desc</p></div><div class="mt-0"><div>body</div></div></div></div></div>';
 
     test("renders this exact markup", () => {
       expect(
@@ -904,7 +904,7 @@ describe("Card fillHeight", () => {
   };
 
   const GOLDEN_FILL_HEIGHT: string =
-    '<div data-testid="card" data-fill-height="true" class="extra h-full"><div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-visible flex h-full flex-col"><div class="py-6 px-5 md:px-6 flex flex-1 flex-col"><div data-testid="card-header" data-header-layout="default" class="flex flex-wrap items-center gap-x-4 gap-y-2 md:flex-nowrap md:items-start"><div data-testid="card-header-title-block" class="w-full min-w-0"><h2 data-testid="card-details-heading" id="card-details-heading" class="text-lg font-semibold leading-6 text-gray-900 text-balance break-words">Title</h2><p data-testid="card-description" class="mt-1.5 text-sm text-gray-500 w-full max-md:hidden md:block leading-relaxed">Desc</p></div></div><div class="mt-4 -mx-5 flex flex-1 flex-col"><div>body</div></div></div></div></div>';
+    '<div data-testid="card" data-fill-height="true" class="extra h-full"><div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-visible flex h-full flex-col"><div class="py-6 px-5 md:px-6 flex flex-1 flex-col"><div data-testid="card-header" data-header-layout="default" class="flex flex-wrap items-center gap-x-4 gap-y-2 md:flex-nowrap md:items-start"><div data-testid="card-header-title-block" class="w-full min-w-0"><h2 data-testid="card-details-heading" id="card-details-heading" class="text-lg font-semibold leading-6 text-gray-900 text-balance break-words">Title</h2><p data-testid="card-description" class="mt-1.5 text-sm text-gray-500 w-full max-md:hidden md:block leading-relaxed text-pretty">Desc</p></div></div><div class="mt-4 -mx-5 flex flex-1 flex-col"><div>body</div></div></div></div></div>';
 
   test("renders this exact markup", () => {
     expect(
@@ -1111,5 +1111,86 @@ describe("Card fillHeight", () => {
     expect(withFill).toContain('data-card-surface="section"');
     expect(withFill).not.toContain("data-fill-height");
     expect(withFill).not.toContain(CARD_FILL_HEIGHT_CONTENT_CLASS_NAME);
+  });
+});
+
+/*
+ * A card's description wraps "pretty": the browser keeps its last word from
+ * sitting alone on a line of its own, as Home's "Your project" description
+ * did around 1280px ("... it." alone, #4918's review). Every way a card draws
+ * its description carries it: the default, stacked and toolbar headers, with
+ * and without actions, and the description of a card with no body, which a
+ * phone shows too.
+ */
+describe("Card description wraps pretty", () => {
+  const cases: Array<[string, ComponentProps]> = [
+    ["default header", { title: "Title", description: "Desc" }],
+    [
+      "default header with actions",
+      {
+        title: "Title",
+        description: "Desc",
+        rightElement: <span>right</span>,
+      },
+    ],
+    [
+      "stacked header with actions",
+      {
+        title: "Title",
+        description: "Desc",
+        headerLayout: "stacked",
+        rightElement: <span>right</span>,
+      },
+    ],
+    [
+      "toolbar header with actions",
+      {
+        title: "Title",
+        description: "Desc",
+        headerLayout: "toolbar",
+        rightElement: <span>right</span>,
+      },
+    ],
+    [
+      "stacked header alone",
+      { title: "Title", description: "Desc", headerLayout: "stacked" },
+    ],
+  ];
+
+  test.each(cases)(
+    "%s: with a body",
+    (_name: string, cardProps: ComponentProps) => {
+      render(
+        <Card {...cardProps}>
+          <div>body</div>
+        </Card>,
+      );
+
+      expect(screen.getByTestId("card-description")).toHaveClass("text-pretty");
+    },
+  );
+
+  test.each(cases)(
+    "%s: with no body, kept on phones",
+    (_name: string, cardProps: ComponentProps) => {
+      render(<Card {...cardProps} />);
+
+      const description: HTMLElement = screen.getByTestId("card-description");
+
+      expect(description).toHaveClass("text-pretty");
+      expect(isVisibleAtWidth(description, PHONE_WIDTH_IN_PX)).toBe(true);
+    },
+  );
+
+  test("only the wrapping changes: no other class is lost or added", () => {
+    render(
+      <Card title="Title" description="Desc">
+        <div>body</div>
+      </Card>,
+    );
+
+    expect(screen.getByTestId("card-description").getAttribute("class")).toBe(
+      "mt-1.5 text-sm text-gray-500 w-full max-md:hidden md:block leading-relaxed text-pretty",
+    );
   });
 });

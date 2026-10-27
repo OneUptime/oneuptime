@@ -57,15 +57,16 @@ const MALFORMED_TOKEN: string = "not-a-verification-token";
 // Straight out of en.json.
 const SUCCESS_TITLE: string = "Your email is verified.";
 const SUCCESS_DESCRIPTION: string =
-  "Thank you for verifying your email. You can now log in to OneUptime.";
+  "Thank you for verifying your email. You can now sign in to OneUptime.";
 const CONTINUE_TO_SIGN_IN: string = "Continue to sign in";
 const LINK_INVALID_TITLE: string = "This verification link is no longer valid";
 const REQUEST_NEW_LINK: string =
   "If your link has expired or stopped working, we can email you a new one.";
 const ERROR_TITLE: string = "Sorry, something went wrong!";
 const TRY_AGAIN: string = "Try again";
-const RETURN_TO_SIGN_IN: string = "Return to sign in?";
-const LOGIN_LINK: string = "Login.";
+// Its own sentence, not "Return to sign in? Sign in." (fu-platform's review).
+const RETURN_TO_SIGN_IN: string = "Already verified your email?";
+const LOGIN_LINK: string = "Sign in.";
 const RESEND_BUTTON: string = "Resend verification email";
 const SENT: string =
   "We've sent a new verification link. It can take a minute or two to arrive.";
