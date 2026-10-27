@@ -173,6 +173,22 @@ async function main() {
       return;
     }
 
+    /*
+     * The installation's own logos (MockApi.js, brand=): dark letters for a
+     * light background, light letters for a dark one.
+     */
+    if (
+      url.pathname === "/fixture/brand-logo-light.svg" ||
+      url.pathname === "/fixture/brand-logo-dark.svg"
+    ) {
+      const letters = url.pathname.includes("dark") ? "#f8fafc" : "#111827";
+      response.setHeader("Content-Type", "image/svg+xml");
+      response.end(
+        `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="48" viewBox="0 0 200 48"><rect x="0" y="8" width="32" height="32" rx="8" fill="#f97316"/><text x="44" y="34" font-family="sans-serif" font-size="26" font-weight="700" fill="${letters}">Acme Ops</text></svg>`,
+      );
+      return;
+    }
+
     // Every icon the template names is the one favicon: nothing here reads them.
     if (url.pathname.startsWith("/accounts/assets/img/")) {
       send(response, favicon, "image/png");

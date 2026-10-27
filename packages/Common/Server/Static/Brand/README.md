@@ -25,6 +25,7 @@ absolute path, or from server code via the `OneUptimeLogoUrl` constant -
 | Path                      | Source                                                  |
 | ------------------------- | ------------------------------------------------------- |
 | `oneuptime-logo.svg`      | `packages/Common/UI/Images/logos/OneUptimeSVG/3-transparent.svg` |
+| `oneuptime-logo-dark.svg` | `oneuptime-logo.svg` with its letters light (`#121212` to `#f8fafc`), for a dark page |
 | `oneuptime-email-logo.png` | `packages/Common/UI/Images/logos/OneUptimePNG/1.png`, at 96 x 96 with rounded corners |
 | `ou-wb.svg`, `hou-wb.svg` | `packages/Home/Static/img/`                                      |
 | `favicons/`               | `packages/Home/Static/img/favicons/`                             |
@@ -39,6 +40,14 @@ PNG because many mail clients draw no SVG, and a few kilobytes because every
 email carries it - `packages/Common/Tests/Server/Utils/Mail/EmailLogo.test.ts`
 holds it to all three. Its corners are rounded in the image itself, so
 Outlook, which ignores `border-radius`, draws it as every other client does.
+
+`oneuptime-logo-dark.svg` is the wordmark on a page drawn in the dark theme
+(`packages/Common/Server/Views/Partials/ProductLogo.ejs` shows one of the two,
+by the theme `Partials/Theme.ejs` drew): the same file with its dark letters
+recoloured, as the apps' `ProductLogo` recolours the wordmark in the browser.
+`packages/Common/Tests/Server/Utils/VendorAssets.test.ts` holds it to exactly
+that, so a rebrand that changes `oneuptime-logo.svg` fails until it is made
+again.
 
 `favicons/oneuptime-up-v1.svg` is the cache-versioned browser-tab icon shared
 by the Dashboard, Admin Dashboard, and Home page. It keeps the white `Up.` mark

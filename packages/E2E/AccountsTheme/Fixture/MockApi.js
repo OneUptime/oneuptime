@@ -25,6 +25,9 @@
  *                          what the MCP consent screen is told
  *   market=ready|error     what the marketplace purchase page is told
  *   form=ok|missing        the public form, or a link to none
+ *   brand=name|logo|logos  an installation that goes by a name of its own:
+ *                          with no logo, with a logo for light backgrounds
+ *                          only, or with logos for light and dark ones
  */
 import API from "Common/UI/Utils/API/API";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -65,6 +68,27 @@ const readScenario = () => {
 };
 
 const scenario = readScenario();
+
+/*
+ * The installation's branding, as env.js would carry it (PRODUCT_BRANDING).
+ * Read by the pages when they draw, never when a module loads, so setting it
+ * here - before anything renders - is setting it for the whole visit.
+ */
+const BRANDING = {
+  name: { productName: "Acme Ops" },
+  logo: { productName: "Acme Ops", logoUrl: "/fixture/brand-logo-light.svg" },
+  logos: {
+    productName: "Acme Ops",
+    logoUrl: "/fixture/brand-logo-light.svg",
+    darkLogoUrl: "/fixture/brand-logo-dark.svg",
+  },
+};
+
+if (Object.prototype.hasOwnProperty.call(BRANDING, scenario["brand"] || "")) {
+  window.process.env.PRODUCT_BRANDING = JSON.stringify(
+    BRANDING[scenario["brand"]],
+  );
+}
 
 const record = {
   requests: [],

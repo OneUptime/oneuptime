@@ -5,15 +5,29 @@
   and OneUptime's logo otherwise. The values come from
   Server/Utils/ProductBrandingViewVariables.ts through Response.render; a page
   rendered without them shows OneUptime's.
+
+  The page is drawn in the person's theme (Partials/Theme.ejs). On a dark
+  page the logo is the one made for dark backgrounds - the installation's
+  own when it has one, OneUptime's wordmark in light letters - as the app's
+  ProductLogo draws it; an installation with one logo shows it on both.
+  Which of the two is on screen is decided by data-theme-only, which the
+  theme partial's own style hides before the first paint. An installation's
+  only logo, made for light backgrounds, sits on a small light backdrop
+  while the page is dark, as on the sign-in pages (ProductLogo's plate).
 %>
 <%
   var productLogoName = (typeof productName !== 'undefined' && productName) ? productName : 'OneUptime';
   var productLogoSource = (typeof productLogoUrl !== 'undefined' && productLogoUrl) ? productLogoUrl : '';
+  var productDarkLogoSource = (typeof productDarkLogoUrl !== 'undefined' && productDarkLogoUrl) ? productDarkLogoUrl : '';
 %>
-<% if (productLogoSource) { %>
-<img class="mx-auto h-12 w-auto max-w-full object-contain" src="<%= productLogoSource %>" alt="<%= productLogoName %>" />
+<% if (productLogoSource && productDarkLogoSource) { %>
+<img class="mx-auto h-12 w-auto max-w-full object-contain" data-theme-only="light" src="<%= productLogoSource %>" alt="<%= productLogoName %>" />
+<img class="mx-auto h-12 w-auto max-w-full object-contain" data-theme-only="dark" src="<%= productDarkLogoSource %>" alt="<%= productLogoName %>" />
+<% } else if (productLogoSource) { %>
+<img class="mx-auto h-12 w-auto max-w-full object-contain dark:rounded-lg dark:bg-slate-50 dark:px-2.5 dark:py-1.5 dark:ring-1 dark:ring-slate-400/25" src="<%= productLogoSource %>" alt="<%= productLogoName %>" />
 <% } else if (productLogoName !== 'OneUptime') { %>
-<div class="text-center text-2xl font-semibold tracking-tight text-gray-900"><%= productLogoName %></div>
+<div class="text-center text-2xl font-semibold tracking-tight text-gray-900 dark:text-slate-50"><%= productLogoName %></div>
 <% } else { %>
-<img class="mx-auto h-12 w-auto" src="/oneuptime-assets/brand/oneuptime-logo.svg" alt="OneUptime" />
+<img class="mx-auto h-12 w-auto" data-theme-only="light" src="/oneuptime-assets/brand/oneuptime-logo.svg" alt="OneUptime" />
+<img class="mx-auto h-12 w-auto" data-theme-only="dark" src="/oneuptime-assets/brand/oneuptime-logo-dark.svg" alt="OneUptime" />
 <% } %>

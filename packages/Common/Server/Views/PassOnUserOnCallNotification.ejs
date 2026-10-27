@@ -5,7 +5,7 @@
     <title> <%= title %> </title>
 </head>
 
-<body class="bg-gray-100">
+<body class="bg-gray-100 dark:bg-slate-900">
 
     <div class="h-full">
 
@@ -21,11 +21,11 @@
                     <section aria-labelledby="pass-on-heading">
 
                             <div class="shadow sm:overflow-hidden sm:rounded-md">
-                                <div class="bg-white py-6 px-4 sm:p-6">
+                                <div class="bg-white dark:bg-slate-800 py-6 px-4 sm:p-6">
                                     <div>
                                         <h2 id="pass-on-heading"
-                                            class="text-lg font-medium leading-6 text-gray-900"><%= title %></h2>
-                                        <p class="mt-1 text-sm text-gray-500"><%= message %></p>
+                                            class="text-lg font-medium leading-6 text-gray-900 dark:text-slate-50"><%= title %></h2>
+                                        <p class="mt-1 text-sm text-gray-500 dark:text-slate-400"><%= message %></p>
                                         <% if (typeof warning !== 'undefined' && warning) { %>
                                         <%- include('./Partials/OnCallPassOnWarning.ejs', { warning: warning }) -%>
                                         <% } %>
@@ -40,7 +40,7 @@
                                     <%# Somebody who opened this by mistake, or who can take it after all. -%>
                                     <div class="mt-4 text-center">
                                         <a href="<%= acknowledgeUrl %>" data-testid="acknowledge-instead"
-                                            class="text-sm font-medium text-gray-700 underline underline-offset-2 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 rounded">
+                                            class="text-sm font-medium text-gray-700 dark:text-slate-200 underline underline-offset-2 hover:text-gray-900 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 focus:ring-gray-500 rounded">
                                             <%= acknowledgeText %>
                                         </a>
                                     </div>
