@@ -1,7 +1,15 @@
 import Modal, { ModalWidth } from "../Modal/Modal";
 import UptimeDaySummary, { StatusDuration } from "../Graphs/UptimeDaySummary";
+import IncidentIcon from "../Graphs/IncidentIcon";
 import MaintenanceIcon from "../Graphs/MaintenanceIcon";
 import MaintenanceWindow from "../Graphs/MaintenanceWindow";
+import {
+  getUptimeDayToneProps,
+  INCIDENT_MARK_COLOR,
+  UPTIME_DAY_COUNT_STYLE,
+} from "../Graphs/UptimeDayEventTone";
+import Pill from "../Pill/Pill";
+import Color from "../../../Types/Color";
 import OneUptimeDate from "../../../Types/Date";
 import DayUptimeGraphUtil from "../../../Utils/Uptime/DayUptimeGraphUtil";
 import { MAINTENANCE_MARK_COLOR } from "../../../Utils/StatusPage/HistoryChartBarColors";
@@ -10,7 +18,6 @@ import UptimeBarTooltipMaintenance from "../../../Types/Monitor/UptimeBarTooltip
 import UptimeHistoryLabels, {
   DefaultUptimeHistoryLabels,
 } from "../../../Types/Monitor/UptimeHistoryLabels";
-import { getStatusTextProps } from "../../Utils/StatusColorStyle";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -94,6 +101,13 @@ const UptimeBarDayModal: FunctionComponent<ComponentProps> = (
       onClose={props.onClose}
       modalWidth={ModalWidth.Medium}
       closeButtonText={labels.close}
+      /*
+       * A dialog to read. Its events open their own pages, and a dialog that
+       * started on the first of them - the Enter that opened it, held a
+       * moment too long - would leave the page for it: it starts on itself,
+       * and Tab reaches the events.
+       */
+      isInitialFocusOnDialog={true}
     >
       <div>
         {hasSummary && (
@@ -141,13 +155,6 @@ const UptimeBarDayModal: FunctionComponent<ComponentProps> = (
             </svg>
             {labels.noIncidentsDescription}
           </div>
-        )}
-
-        {hasIncidents && hasMaintenance && (
-          <DaySectionHeading
-            title={labels.incidents}
-            count={props.incidents.length}
-          />
         )}
 
         {!hasIncidents && !hasMaintenance && (
@@ -204,148 +211,71 @@ const UptimeBarDayModal: FunctionComponent<ComponentProps> = (
           </div>
         )}
 
-        {props.incidents.map((incident: UptimeBarTooltipIncident) => {
-          const isClickable: boolean = Boolean(props.onIncidentClick);
+        {hasIncidents && (
+          <div data-testid="uptime-day-incidents">
+            {/*
+             * A dialog of incidents alone says how many in its subtitle, as
+             * it always has; beside maintenance, each kind gets its heading.
+             */}
+            {hasMaintenance && (
+              <DaySectionHeading
+                title={labels.incidents}
+                count={props.incidents.length}
+                icon={<IncidentIcon size={14} />}
+                color={INCIDENT_MARK_COLOR}
+              />
+            )}
 
-          return (
-            <div
-              key={incident.id}
-              onClick={
-                isClickable
-                  ? () => {
-                      props.onIncidentClick!(incident.id);
-                    }
-                  : undefined
+            {props.incidents.map((incident: UptimeBarTooltipIncident) => {
+              const pills: Array<DayEventPill> = [];
+
+              if (incident.incidentSeverity) {
+                pills.push({
+                  name: incident.incidentSeverity.name,
+                  color: incident.incidentSeverity.color,
+                });
               }
-              style={{
-                border: "1px solid var(--ou-border-default, #e5e7eb)",
-                borderRadius: "10px",
-                padding: "14px 16px",
-                marginBottom: "10px",
-                cursor: isClickable ? "pointer" : "default",
-                transition: "all 0.15s ease",
-                backgroundColor: "var(--ou-surface-primary, #ffffff)",
-              }}
-              onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => {
-                if (isClickable) {
-                  (e.currentTarget as HTMLDivElement).style.backgroundColor =
-                    "var(--ou-surface-secondary, #f9fafb)";
-                  (e.currentTarget as HTMLDivElement).style.borderColor =
-                    "var(--ou-border-strong, #d1d5db)";
-                  (e.currentTarget as HTMLDivElement).style.boxShadow =
-                    "0 1px 3px rgba(0,0,0,0.06)";
-                }
-              }}
-              onMouseLeave={(e: React.MouseEvent<HTMLDivElement>) => {
-                if (isClickable) {
-                  (e.currentTarget as HTMLDivElement).style.backgroundColor =
-                    "var(--ou-surface-primary, #ffffff)";
-                  (e.currentTarget as HTMLDivElement).style.borderColor =
-                    "var(--ou-border-default, #e5e7eb)";
-                  (e.currentTarget as HTMLDivElement).style.boxShadow = "none";
-                }
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "flex-start",
-                  justifyContent: "space-between",
-                  gap: "12px",
-                }}
-              >
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div
-                    style={{
-                      fontSize: "14px",
-                      fontWeight: 600,
-                      color: isClickable
-                        ? "var(--ou-link, #2563eb)"
-                        : "var(--ou-text-primary, #111827)",
-                      lineHeight: "1.4",
-                      marginBottom: "4px",
-                    }}
-                  >
-                    {incident.title}
-                  </div>
-                  <div
-                    style={{
-                      fontSize: "12px",
-                      color: "var(--ou-text-muted, #6b7280)",
-                    }}
-                  >
-                    {labels.declared}{" "}
-                    {OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-                      incident.declaredAt,
-                      false,
-                    )}
-                  </div>
-                </div>
-                {isClickable && (
-                  <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 16 16"
-                    fill="none"
-                    style={{ flexShrink: 0, marginTop: "3px" }}
-                  >
-                    <path
-                      d="M6 3l5 5-5 5"
-                      stroke="var(--ou-text-subtle, #9ca3af)"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                )}
-              </div>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
-                  flexWrap: "wrap",
-                  marginTop: "8px",
-                }}
-              >
-                {incident.incidentSeverity && (
-                  <span
-                    style={{
-                      fontSize: "11px",
-                      fontWeight: 600,
-                      color: incident.incidentSeverity.color.toString(),
-                      backgroundColor:
-                        incident.incidentSeverity.color.toString() + "12",
-                      border: `1px solid ${incident.incidentSeverity.color.toString()}25`,
-                      padding: "2px 10px",
-                      borderRadius: "9999px",
-                      lineHeight: "1.6",
-                    }}
-                  >
-                    {incident.incidentSeverity.name}
-                  </span>
-                )}
-                {incident.currentIncidentState && (
-                  <span
-                    style={{
-                      fontSize: "11px",
-                      fontWeight: 600,
-                      color: incident.currentIncidentState.color.toString(),
-                      backgroundColor:
-                        incident.currentIncidentState.color.toString() + "12",
-                      border: `1px solid ${incident.currentIncidentState.color.toString()}25`,
-                      padding: "2px 10px",
-                      borderRadius: "9999px",
-                      lineHeight: "1.6",
-                    }}
-                  >
-                    {incident.currentIncidentState.name}
-                  </span>
-                )}
-              </div>
-            </div>
-          );
-        })}
+
+              if (incident.currentIncidentState) {
+                pills.push({
+                  name: incident.currentIncidentState.name,
+                  color: incident.currentIncidentState.color,
+                });
+              }
+
+              return (
+                <DayEventCard
+                  key={incident.id}
+                  dataTestId="uptime-day-incident-item"
+                  title={incident.title}
+                  detail={
+                    <span
+                      style={{
+                        display: "block",
+                        fontSize: "12px",
+                        color: "var(--ou-text-muted, #6b7280)",
+                      }}
+                    >
+                      {labels.declared}{" "}
+                      {OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+                        incident.declaredAt,
+                        false,
+                      )}
+                    </span>
+                  }
+                  pills={pills}
+                  onClick={
+                    props.onIncidentClick
+                      ? () => {
+                          props.onIncidentClick!(incident.id);
+                        }
+                      : undefined
+                  }
+                />
+              );
+            })}
+          </div>
+        )}
 
         {hasMaintenance && (
           <div
@@ -355,15 +285,47 @@ const UptimeBarDayModal: FunctionComponent<ComponentProps> = (
             <DaySectionHeading
               title={labels.scheduledMaintenance}
               count={maintenanceEvents.length}
-              isMaintenance={true}
+              icon={<MaintenanceIcon size={14} />}
+              color={MAINTENANCE_MARK_COLOR}
             />
 
             {maintenanceEvents.map((event: UptimeBarTooltipMaintenance) => {
               return (
-                <MaintenanceCard
+                <DayEventCard
                   key={event.id}
-                  event={event}
-                  onClick={props.onMaintenanceClick}
+                  dataTestId="uptime-day-maintenance-item"
+                  title={event.title}
+                  detail={
+                    <MaintenanceWindow
+                      dataTestId="uptime-day-maintenance-window"
+                      startsAt={event.startsAt}
+                      endsAt={event.endsAt}
+                      style={{
+                        display: "block",
+                        fontSize: "12px",
+                        color: "var(--ou-text-muted, #6b7280)",
+                        fontVariantNumeric: "tabular-nums",
+                      }}
+                    />
+                  }
+                  pills={
+                    event.currentState
+                      ? [
+                          {
+                            name: event.currentState.name,
+                            color: event.currentState.color,
+                            dataTestId: "uptime-day-maintenance-state",
+                          },
+                        ]
+                      : []
+                  }
+                  onClick={
+                    props.onMaintenanceClick
+                      ? () => {
+                          props.onMaintenanceClick!(event.id);
+                        }
+                      : undefined
+                  }
                 />
               );
             })}
@@ -376,18 +338,20 @@ const UptimeBarDayModal: FunctionComponent<ComponentProps> = (
 
 /*
  * The heading over one kind of event in the dialog - "Incidents",
- * "Scheduled maintenance" - with how many there are. Drawn only when the day
- * has maintenance: a dialog of incidents alone says how many in its
- * subtitle, as it always has.
+ * "Scheduled maintenance" - with its icon and how many there are. Drawn
+ * only when the day has maintenance: a dialog of incidents alone says how
+ * many in its subtitle, as it always has.
  */
 const DaySectionHeading: FunctionComponent<{
   title: string;
   count: number;
-  isMaintenance?: boolean | undefined;
+  icon: ReactElement;
+  color: Color;
 }> = (props: {
   title: string;
   count: number;
-  isMaintenance?: boolean | undefined;
+  icon: ReactElement;
+  color: Color;
 }): ReactElement => {
   return (
     <div
@@ -398,7 +362,7 @@ const DaySectionHeading: FunctionComponent<{
         marginBottom: "10px",
       }}
     >
-      {props.isMaintenance ? <MaintenanceIcon size={14} /> : <></>}
+      {props.icon}
       {/* Under the dialog's own title, an h3. */}
       <h4
         style={{
@@ -412,21 +376,12 @@ const DaySectionHeading: FunctionComponent<{
         {props.title}
       </h4>
       <span
-        {...getStatusTextProps(
-          props.isMaintenance ? MAINTENANCE_MARK_COLOR.toString() : "#b91c1c",
-          {
-            fontSize: "11px",
-            fontWeight: 600,
-            backgroundColor: `color-mix(in srgb, ${
-              props.isMaintenance
-                ? MAINTENANCE_MARK_COLOR.toString()
-                : "#ef4444"
-            } 14%, var(--ou-surface-primary, #ffffff))`,
-            padding: "1px 8px",
-            borderRadius: "9999px",
-            lineHeight: "1.6",
-          },
-        )}
+        data-testid="uptime-day-section-count"
+        {...getUptimeDayToneProps(props.color, {
+          ...UPTIME_DAY_COUNT_STYLE,
+          fontSize: "11px",
+          padding: "1px 8px",
+        })}
       >
         {props.count}
       </span>
@@ -434,20 +389,38 @@ const DaySectionHeading: FunctionComponent<{
   );
 };
 
+// The keyboard's ring round an event that opens its page.
+export const DAY_EVENT_CARD_FOCUS_CLASS_NAME: string =
+  "focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500";
+
+// A severity or a state, drawn as the product's Pill.
+interface DayEventPill {
+  name: string;
+  color: Color;
+  dataTestId?: string | undefined;
+}
+
 /*
- * One scheduled maintenance event of the day: its title, its planned window
- * in the reader's own time zone, and the state it is in. A button that opens
- * the event's page when the caller can open one.
+ * One event of the day, an incident or a scheduled maintenance event, in
+ * the same card: its title, when it happened - an incident's declaration, an
+ * event's planned window on the reader's clock - and its severity and
+ * state. A button that opens the event's own page when the caller can open
+ * one, so a keyboard reaches every event the dialog lists, incidents too.
  */
-const MaintenanceCard: FunctionComponent<{
-  event: UptimeBarTooltipMaintenance;
-  onClick?: ((maintenanceId: string) => void) | undefined;
+const DayEventCard: FunctionComponent<{
+  title: string;
+  detail: ReactElement;
+  pills: Array<DayEventPill>;
+  onClick?: (() => void) | undefined;
+  dataTestId: string;
 }> = (props: {
-  event: UptimeBarTooltipMaintenance;
-  onClick?: ((maintenanceId: string) => void) | undefined;
+  title: string;
+  detail: ReactElement;
+  pills: Array<DayEventPill>;
+  onClick?: (() => void) | undefined;
+  dataTestId: string;
 }): ReactElement => {
   const isClickable: boolean = Boolean(props.onClick);
-  const event: UptimeBarTooltipMaintenance = props.event;
 
   const style: React.CSSProperties = {
     display: "block",
@@ -455,12 +428,12 @@ const MaintenanceCard: FunctionComponent<{
     textAlign: "start",
     font: "inherit",
     border: "1px solid var(--ou-border-default, #e5e7eb)",
-    borderLeft: `3px solid ${MAINTENANCE_MARK_COLOR.toString()}`,
     borderRadius: "10px",
     padding: "14px 16px",
     marginBottom: "10px",
     cursor: isClickable ? "pointer" : "default",
-    transition: "background-color 0.15s ease, box-shadow 0.15s ease",
+    transition:
+      "background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease",
     backgroundColor: "var(--ou-surface-primary, #ffffff)",
   };
 
@@ -492,19 +465,9 @@ const MaintenanceCard: FunctionComponent<{
               overflowWrap: "anywhere",
             }}
           >
-            {event.title}
+            {props.title}
           </span>
-          <MaintenanceWindow
-            dataTestId="uptime-day-maintenance-window"
-            startsAt={event.startsAt}
-            endsAt={event.endsAt}
-            style={{
-              display: "block",
-              fontSize: "12px",
-              color: "var(--ou-text-muted, #6b7280)",
-              fontVariantNumeric: "tabular-nums",
-            }}
-          />
+          {props.detail}
         </span>
         {isClickable && (
           <svg
@@ -525,23 +488,31 @@ const MaintenanceCard: FunctionComponent<{
           </svg>
         )}
       </span>
-      {event.currentState && (
-        <span style={{ display: "block", marginTop: "8px" }}>
-          <span
-            data-testid="uptime-day-maintenance-state"
-            {...getStatusTextProps(event.currentState.color.toString(), {
-              display: "inline-block",
-              fontSize: "11px",
-              fontWeight: 600,
-              backgroundColor: `color-mix(in srgb, ${event.currentState.color.toString()} 10%, var(--ou-surface-primary, #ffffff))`,
-              border: `1px solid color-mix(in srgb, ${event.currentState.color.toString()} 22%, transparent)`,
-              padding: "2px 10px",
-              borderRadius: "9999px",
-              lineHeight: "1.6",
-            })}
-          >
-            {event.currentState.name}
-          </span>
+      {props.pills.length > 0 && (
+        <span
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+            flexWrap: "wrap",
+            marginTop: "8px",
+          }}
+        >
+          {props.pills.map((pill: DayEventPill, index: number) => {
+            return (
+              <span
+                key={index}
+                data-testid={pill.dataTestId}
+                style={{ display: "inline-flex", maxWidth: "100%" }}
+              >
+                <Pill
+                  text={pill.name}
+                  color={pill.color}
+                  style={{ fontSize: "12px" }}
+                />
+              </span>
+            );
+          })}
         </span>
       )}
     </>
@@ -549,7 +520,7 @@ const MaintenanceCard: FunctionComponent<{
 
   if (!isClickable) {
     return (
-      <div data-testid="uptime-day-maintenance-item" style={style}>
+      <div data-testid={props.dataTestId} style={style}>
         {content}
       </div>
     );
@@ -558,25 +529,29 @@ const MaintenanceCard: FunctionComponent<{
   return (
     <button
       type="button"
-      data-testid="uptime-day-maintenance-item"
+      data-testid={props.dataTestId}
       /*
-       * The dialog may open with the first event focused (Enter on a bar):
-       * the product's focus ring, not the browser's black outline.
+       * The product's focus ring, not the browser's black outline. An
+       * outline rather than a box-shadow ring: the hover lifts the card with
+       * a shadow of its own, written inline, which would hide a ring once
+       * the pointer had passed over it.
        */
-      className="focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+      className={DAY_EVENT_CARD_FOCUS_CLASS_NAME}
       style={style}
       onClick={() => {
-        props.onClick!(event.id);
+        props.onClick!();
       }}
       onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => {
         e.currentTarget.style.backgroundColor =
           "var(--ou-surface-secondary, #f9fafb)";
+        e.currentTarget.style.borderColor = "var(--ou-border-strong, #d1d5db)";
         e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.06)";
       }}
       onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => {
         e.currentTarget.style.backgroundColor =
           "var(--ou-surface-primary, #ffffff)";
-        e.currentTarget.style.boxShadow = "none";
+        e.currentTarget.style.borderColor = "var(--ou-border-default, #e5e7eb)";
+        e.currentTarget.style.removeProperty("box-shadow");
       }}
     >
       {content}

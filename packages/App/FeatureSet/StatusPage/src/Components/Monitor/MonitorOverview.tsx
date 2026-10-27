@@ -19,7 +19,7 @@ import UptimeBarTooltipIncident from "Common/Types/Monitor/UptimeBarTooltipIncid
 import UptimeBarTooltipMaintenance from "Common/Types/Monitor/UptimeBarTooltipMaintenance";
 import UptimeHistoryLabels from "Common/Types/Monitor/UptimeHistoryLabels";
 import { UptimeBarDaySummary } from "Common/UI/Components/Graphs/DayUptimeGraph";
-import MaintenanceIcon from "Common/UI/Components/Graphs/MaintenanceIcon";
+import Pill from "Common/UI/Components/Pill/Pill";
 import UptimeMaintenanceUtil from "Common/Utils/Uptime/UptimeMaintenanceUtil";
 import { MAINTENANCE_MARK_COLOR } from "Common/Utils/StatusPage/HistoryChartBarColors";
 import StatusPageGroupNestingLayoutUtil from "Common/Utils/StatusPage/GroupNestingLayout";
@@ -275,16 +275,22 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
                 </div>
               </Tooltip>
             )}
+            {/*
+             * The product's Pill, in the maintenance blue of the bars'
+             * band, with the wrench: its text is a deeper shade of that
+             * blue that reads at 4.5:1 on its wash, in both themes.
+             */}
             {isUnderMaintenance && (
               <span
                 data-testid="resource-under-maintenance"
-                className="ml-2 inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium"
-                {...getStatusTextProps(MAINTENANCE_MARK_COLOR.toString(), {
-                  backgroundColor: `color-mix(in srgb, ${MAINTENANCE_MARK_COLOR.toString()} 12%, var(--ou-surface-primary, #ffffff))`,
-                })}
+                className="ml-2 inline-flex min-w-0 max-w-full"
               >
-                <MaintenanceIcon size={12} />
-                {t("monitorOverview.underMaintenance")}
+                <Pill
+                  text={t("monitorOverview.underMaintenance")}
+                  color={MAINTENANCE_MARK_COLOR}
+                  icon={IconProp.Wrench}
+                  style={{ fontSize: "12px" }}
+                />
               </span>
             )}
           </div>

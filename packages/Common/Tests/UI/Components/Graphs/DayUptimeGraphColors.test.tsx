@@ -263,7 +263,18 @@ describe("a day with scheduled maintenance wears a band, and keeps its colour", 
 
   test("the band is the maintenance blue, across the top of the bar, and lets clicks through", () => {
     expect(css).toContain(
-      `.${MAINTENANCE_BAR_CLASS_NAME}::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 4px; background-color: ${MAINTENANCE_MARK_COLOR.toString().toLowerCase()}; pointer-events: none; }`,
+      `.${MAINTENANCE_BAR_CLASS_NAME}::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 4px; background-color: ${MAINTENANCE_MARK_COLOR.toString().toLowerCase()}; box-shadow: 0 1px 0 var(--ou-surface-primary, #ffffff); pointer-events: none; }`,
+    );
+  });
+
+  test("a hairline of the card's own colour sets the band off from the bar, in both themes", () => {
+    /*
+     * Blue straight against a green bar ran together at a glance. The
+     * hairline is the card's surface, which the dark theme redefines
+     * (Theme.css), so the one rule serves both.
+     */
+    expect(css).toContain(
+      "box-shadow: 0 1px 0 var(--ou-surface-primary, #ffffff);",
     );
   });
 
@@ -282,9 +293,17 @@ describe("a day with scheduled maintenance wears a band, and keeps its colour", 
 
     expect(bandRules.length).toBe(2);
 
+    /*
+     * Every rule is the band's own pseudo-element: the bar's background (its
+     * colour, the no-data hatch) and its box shadow (the dark theme's edge)
+     * are never touched. The band's hairline is the pseudo-element's shadow.
+     */
     for (const rule of bandRules) {
-      expect(rule).toContain("::before");
-      expect(rule).not.toContain("box-shadow");
+      const selector: string = rule.split("{")[0]!.trim();
+
+      expect(selector.endsWith(`.${MAINTENANCE_BAR_CLASS_NAME}::before`)).toBe(
+        true,
+      );
       expect(rule).not.toContain("background-image");
     }
   });

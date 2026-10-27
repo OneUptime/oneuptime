@@ -3,8 +3,13 @@ import DayUptimeGraphUtil from "../../../Utils/Uptime/DayUptimeGraphUtil";
 import UptimeBarTooltipIncident from "../../../Types/Monitor/UptimeBarTooltipIncident";
 import UptimeBarTooltipMaintenance from "../../../Types/Monitor/UptimeBarTooltipMaintenance";
 import { MAINTENANCE_MARK_COLOR } from "../../../Utils/StatusPage/HistoryChartBarColors";
-import { getStatusTextProps } from "../../Utils/StatusColorStyle";
+import IncidentIcon from "./IncidentIcon";
 import MaintenanceIcon from "./MaintenanceIcon";
+import {
+  getUptimeDayToneProps,
+  INCIDENT_MARK_COLOR,
+  UPTIME_DAY_COUNT_STYLE,
+} from "./UptimeDayEventTone";
 import MaintenanceWindow from "./MaintenanceWindow";
 import UptimeDaySummary, { StatusDuration } from "./UptimeDaySummary";
 import UptimeHistoryLabels, {
@@ -20,6 +25,27 @@ import React, { FunctionComponent, ReactElement } from "react";
  * the day dialog renders too.
  */
 export type { StatusDuration };
+
+/*
+ * A severity's or a state's name, compact: in the tone of its colour
+ * (UptimeDayEventTone), so a light colour still reads.
+ */
+const CHIP_STYLE: React.CSSProperties = {
+  fontSize: "9px",
+  fontWeight: 600,
+  padding: "1px 5px",
+  borderRadius: "3px",
+  lineHeight: "1.6",
+  textTransform: "uppercase",
+  letterSpacing: "0.03em",
+};
+
+// How many incidents, or events, beside their heading.
+const COUNT_STYLE: React.CSSProperties = {
+  ...UPTIME_DAY_COUNT_STYLE,
+  fontSize: "10px",
+  padding: "1px 7px",
+};
 
 export interface ComponentProps {
   date: Date;
@@ -48,6 +74,15 @@ const UptimeBarTooltip: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+
+  /*
+   * A severity's or a state's name in the reader's language where the app
+   * has one (the dashboard), as the day dialog's Pills name it: the status
+   * page hands its names in already translated, and they stay as given.
+   */
+  const translateName: (name: string) => string = (name: string): string => {
+    return translator.translateText(name) || name;
+  };
   const dateStr: string = DayUptimeGraphUtil.formatDayLabel({
     date: props.date,
     timezone: props.timezone,
@@ -118,7 +153,7 @@ const UptimeBarTooltip: FunctionComponent<ComponentProps> = (
 
       {/* ── Incidents ── */}
       {hasIncidents && (
-        <div>
+        <div data-testid="uptime-tooltip-incidents">
           <div
             style={{
               display: "flex",
@@ -127,6 +162,7 @@ const UptimeBarTooltip: FunctionComponent<ComponentProps> = (
               marginBottom: "8px",
             }}
           >
+            <IncidentIcon size={12} />
             <span
               style={{
                 fontSize: "11px",
@@ -138,16 +174,8 @@ const UptimeBarTooltip: FunctionComponent<ComponentProps> = (
               {labels.incidents}
             </span>
             <span
-              style={{
-                fontSize: "10px",
-                fontWeight: 600,
-                color: "var(--ou-danger-text, #b91c1c)",
-                backgroundColor:
-                  "color-mix(in srgb, #ef4444 14%, var(--ou-surface-primary, #ffffff))",
-                padding: "1px 7px",
-                borderRadius: "9999px",
-                lineHeight: "1.6",
-              }}
+              data-testid="uptime-tooltip-incidents-count"
+              {...getUptimeDayToneProps(INCIDENT_MARK_COLOR, COUNT_STYLE)}
             >
               {props.incidents.length}
             </span>
@@ -248,39 +276,24 @@ const UptimeBarTooltip: FunctionComponent<ComponentProps> = (
                   >
                     {incident.incidentSeverity && (
                       <span
-                        style={{
-                          fontSize: "9px",
-                          fontWeight: 600,
-                          color: incident.incidentSeverity.color.toString(),
-                          backgroundColor:
-                            incident.incidentSeverity.color.toString() + "14",
-                          padding: "1px 5px",
-                          borderRadius: "3px",
-                          lineHeight: "1.6",
-                          textTransform: "uppercase",
-                          letterSpacing: "0.03em",
-                        }}
+                        data-testid="uptime-tooltip-incident-severity"
+                        {...getUptimeDayToneProps(
+                          incident.incidentSeverity.color,
+                          CHIP_STYLE,
+                        )}
                       >
-                        {incident.incidentSeverity.name}
+                        {translateName(incident.incidentSeverity.name)}
                       </span>
                     )}
                     {incident.currentIncidentState && (
                       <span
-                        style={{
-                          fontSize: "9px",
-                          fontWeight: 600,
-                          color: incident.currentIncidentState.color.toString(),
-                          backgroundColor:
-                            incident.currentIncidentState.color.toString() +
-                            "14",
-                          padding: "1px 5px",
-                          borderRadius: "3px",
-                          lineHeight: "1.6",
-                          textTransform: "uppercase",
-                          letterSpacing: "0.03em",
-                        }}
+                        data-testid="uptime-tooltip-incident-state"
+                        {...getUptimeDayToneProps(
+                          incident.currentIncidentState.color,
+                          CHIP_STYLE,
+                        )}
                       >
-                        {incident.currentIncidentState.name}
+                        {translateName(incident.currentIncidentState.name)}
                       </span>
                     )}
                     <span
@@ -357,14 +370,8 @@ const UptimeBarTooltip: FunctionComponent<ComponentProps> = (
               {labels.scheduledMaintenance}
             </span>
             <span
-              {...getStatusTextProps(MAINTENANCE_MARK_COLOR.toString(), {
-                fontSize: "10px",
-                fontWeight: 600,
-                backgroundColor: `color-mix(in srgb, ${MAINTENANCE_MARK_COLOR.toString()} 14%, var(--ou-surface-primary, #ffffff))`,
-                padding: "1px 7px",
-                borderRadius: "9999px",
-                lineHeight: "1.6",
-              })}
+              data-testid="uptime-tooltip-maintenance-count"
+              {...getUptimeDayToneProps(MAINTENANCE_MARK_COLOR, COUNT_STYLE)}
             >
               {maintenanceEvents.length}
             </span>
@@ -420,21 +427,12 @@ const UptimeBarTooltip: FunctionComponent<ComponentProps> = (
                     {event.currentState && (
                       <span
                         data-testid="uptime-tooltip-maintenance-state"
-                        {...getStatusTextProps(
-                          event.currentState.color.toString(),
-                          {
-                            fontSize: "9px",
-                            fontWeight: 600,
-                            backgroundColor: `color-mix(in srgb, ${event.currentState.color.toString()} 12%, var(--ou-surface-primary, #ffffff))`,
-                            padding: "1px 5px",
-                            borderRadius: "3px",
-                            lineHeight: "1.6",
-                            textTransform: "uppercase",
-                            letterSpacing: "0.03em",
-                          },
+                        {...getUptimeDayToneProps(
+                          event.currentState.color,
+                          CHIP_STYLE,
                         )}
                       >
-                        {event.currentState.name}
+                        {translateName(event.currentState.name)}
                       </span>
                     )}
                     <MaintenanceWindow

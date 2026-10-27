@@ -21,7 +21,7 @@ import {
 import UptimeBarTooltip from "../../../../UI/Components/Graphs/UptimeBarTooltip";
 import { StatusDuration } from "../../../../UI/Components/Graphs/UptimeDaySummary";
 import { Green, Red } from "../../../../Types/BrandColors";
-import Color from "../../../../Types/Color";
+import Color, { RGB } from "../../../../Types/Color";
 import OneUptimeDate from "../../../../Types/Date";
 import ObjectID from "../../../../Types/ObjectID";
 import Timezone from "../../../../Types/Timezone";
@@ -31,7 +31,11 @@ import UptimeHistoryLabels, {
   DefaultUptimeHistoryLabels,
 } from "../../../../Types/Monitor/UptimeHistoryLabels";
 import { ScheduledMaintenancePhaseOfState } from "../../../../Utils/ScheduledMaintenanceStart";
-import { STATUS_TEXT_ATTRIBUTE } from "../../../../UI/Utils/StatusColorStyle";
+import {
+  getPillColors,
+  PillColors,
+} from "../../../../UI/Components/Pill/PillColors";
+import { parseColor } from "../../../../Utils/ColorContrast";
 
 /*
  * Contract under test - a day's tooltip on the uptime strip lists the day's
@@ -90,6 +94,13 @@ function incident(
   };
 }
 
+// A colour as the browser writes it back: "rgb(r, g, b)".
+function rgbOf(color: string): string {
+  const rgb: RGB = parseColor(color)!;
+
+  return `rgb(${rgb.red}, ${rgb.green}, ${rgb.blue})`;
+}
+
 function renderTooltip(
   props: Partial<React.ComponentProps<typeof UptimeBarTooltip>> = {},
 ): void {
@@ -146,11 +157,16 @@ describe("UptimeBarTooltip - the day's scheduled maintenance", () => {
     const state: HTMLElement = screen.getByTestId(
       "uptime-tooltip-maintenance-state",
     );
+    // The state's colour, #16a34a, as the Pill tones it (UptimeDayEventTone).
+    const tone: PillColors = getPillColors(new Color("#16a34a"));
 
     expect(state).toHaveTextContent("Completed");
-    expect(state.style.color).toBe("rgb(22, 163, 74)");
-    // The dark theme swaps in a lighter shade (StatusColorStyle).
-    expect(state).toHaveAttribute(STATUS_TEXT_ATTRIBUTE);
+    expect(state.style.color).toBe(rgbOf(tone.light.textColor));
+    // The dark theme swaps in its own shade (html.dark [data-ou-pill]).
+    expect(state).toHaveAttribute("data-ou-pill");
+    expect(state.style.getPropertyValue("--ou-pill-dark-text")).toBe(
+      tone.dark.textColor,
+    );
   });
 
   test("an event whose state was not read shows no state at all, rather than a blank one", () => {

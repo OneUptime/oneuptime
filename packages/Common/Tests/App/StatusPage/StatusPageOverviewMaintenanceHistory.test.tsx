@@ -28,7 +28,26 @@ import OneUptimeDate from "../../../Types/Date";
 import Timezone from "../../../Types/Timezone";
 import UptimePrecision from "../../../Types/StatusPage/UptimePrecision";
 import Navigation from "../../../UI/Utils/Navigation";
-import { MAINTENANCE_BAR_CLASS_NAME } from "../../../Utils/StatusPage/HistoryChartBarColors";
+import {
+  MAINTENANCE_BAR_CLASS_NAME,
+  MAINTENANCE_MARK_COLOR,
+} from "../../../Utils/StatusPage/HistoryChartBarColors";
+import { RGB } from "../../../Types/Color";
+import {
+  getPillColors,
+  PillColors,
+} from "../../../UI/Components/Pill/PillColors";
+import {
+  composite,
+  getContrastRatio,
+  parseColor,
+} from "../../../Utils/ColorContrast";
+
+/*
+ * The heaviest wash a Pill lays on a light card (Pill/PillColors): text
+ * that reads on it reads on any lighter one.
+ */
+const PILL_WASH_ALPHA_CEILING: number = 0.16;
 import Overview from "../../../../App/FeatureSet/StatusPage/src/Pages/Overview/Overview";
 import StatusPageUtil from "../../../../App/FeatureSet/StatusPage/src/Utils/StatusPage";
 
@@ -556,6 +575,38 @@ describe("Status page overview - a resource under maintenance says so", () => {
     expect(
       within(chips[0]!.parentElement as HTMLElement).getByText("Public API"),
     ).toBeInTheDocument();
+  });
+
+  test("says it in the product's Pill, in the band's blue, with the wrench - readable on its wash", async () => {
+    await renderOverview();
+
+    const pill: HTMLElement = within(
+      screen.getByTestId("resource-under-maintenance"),
+    ).getByTestId("pill");
+    const tone: PillColors = getPillColors(MAINTENANCE_MARK_COLOR);
+    const text: RGB = parseColor(tone.light.textColor)!;
+
+    expect(pill).toHaveTextContent("Under maintenance");
+    // The wrench in the dot's place.
+    expect(pill.querySelector("svg")).not.toBeNull();
+    expect(within(pill).queryByTestId("pill-dot")).not.toBeInTheDocument();
+    // A deeper shade of the band's blue: the blue itself read at 3.2:1.
+    expect(pill.style.color).toBe(
+      `rgb(${text.red}, ${text.green}, ${text.blue})`,
+    );
+    expect(pill.style.backgroundColor).toBe(tone.light.backgroundColor);
+    expect(
+      getContrastRatio(
+        text,
+        composite(
+          parseColor(MAINTENANCE_MARK_COLOR)!,
+          PILL_WASH_ALPHA_CEILING,
+          { red: 255, green: 255, blue: 255 },
+        ),
+      ),
+    ).toBeGreaterThanOrEqual(4.5);
+    // The dark theme's own shade (html.dark [data-ou-pill]).
+    expect(pill).toHaveAttribute("data-ou-pill");
   });
 
   test("an event that is over puts nothing under maintenance", async () => {
