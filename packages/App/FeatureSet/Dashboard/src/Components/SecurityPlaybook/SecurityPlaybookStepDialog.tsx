@@ -656,7 +656,7 @@ export function getStepSettingsFields(
       field: { runbookId: true },
       title: "Runbook",
       description:
-        "The runbook to start. It gets the case as its inputs: a Bash step reads the address, user and host the case is about as $ONEUPTIME_INPUT_IP, $ONEUPTIME_INPUT_USER and $ONEUPTIME_INPUT_HOST.",
+        "The runbook to start. A Bash step reads the case's address, user and host as $ONEUPTIME_INPUT_IP, $ONEUPTIME_INPUT_USER and $ONEUPTIME_INPUT_HOST.",
       fieldType: FormFieldSchemaType.Dropdown,
       stepId: "settings",
       dropdownModal: {

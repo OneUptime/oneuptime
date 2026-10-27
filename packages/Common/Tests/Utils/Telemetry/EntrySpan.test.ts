@@ -112,11 +112,11 @@ const evaluateDefault: EvaluateDefaultFunction = (
 
   expect(match).not.toBeNull();
 
-  const kinds: Array<string> = match![1]!.split(", ").map(
-    (quoted: string): string => {
+  const kinds: Array<string> = match![1]!
+    .split(", ")
+    .map((quoted: string): string => {
       return quoted.slice(1, -1);
-    },
-  );
+    });
 
   // ifNull(kind, ''): a missing kind reads as the empty string.
   const kind: unknown =
@@ -146,13 +146,17 @@ describe("the isEntrySpan column's DEFAULT expression", () => {
   test("reads a row the way ingest decides it, for every case", () => {
     for (const entry of CASES) {
       // A non-string kind cannot be stored in the String column.
-      if (entry.span.kind !== undefined && typeof entry.span.kind !== "string") {
+      if (
+        entry.span.kind !== undefined &&
+        typeof entry.span.kind !== "string"
+      ) {
         continue;
       }
 
-      expect({ name: entry.name, isEntry: evaluateDefault(entry.span) }).toEqual(
-        { name: entry.name, isEntry: entry.isEntry },
-      );
+      expect({
+        name: entry.name,
+        isEntry: evaluateDefault(entry.span),
+      }).toEqual({ name: entry.name, isEntry: entry.isEntry });
     }
   });
 

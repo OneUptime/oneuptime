@@ -1723,9 +1723,7 @@ router.post(
         wantsEntrySpan
           ? timedOutFacets
               .watch("isEntrySpan", () => {
-                return TraceAggregationService.getEntrySpanCounts(
-                  multiRequest,
-                );
+                return TraceAggregationService.getEntrySpanCounts(multiRequest);
               })
               .catch(() => {
                 return null;

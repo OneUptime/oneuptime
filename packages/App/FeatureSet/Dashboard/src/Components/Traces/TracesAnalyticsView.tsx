@@ -619,7 +619,9 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
                 onSpanTypeChange(parseTraceSpanType(val) || spanType);
               },
               TRACE_SPAN_TYPE_OPTIONS.map(
-                (option: TraceSpanTypeOption): {
+                (
+                  option: TraceSpanTypeOption,
+                ): {
                   value: string;
                   label: string;
                 } => {

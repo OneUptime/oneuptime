@@ -142,12 +142,8 @@ describe("the requests behind a case", () => {
     expect(query).toContain("AND (traceId != '' OR sessionId != '')");
     expect(query).toContain("GROUP BY traceId, sessionId");
     expect(query).toContain("ORDER BY lastSeen DESC");
-    expect(Object.values(built.query_params)).toContain(
-      PROJECT_ID.toString(),
-    );
-    expect(Object.values(built.query_params)).toContainEqual([
-      "203.0.113.9",
-    ]);
+    expect(Object.values(built.query_params)).toContain(PROJECT_ID.toString());
+    expect(Object.values(built.query_params)).toContainEqual(["203.0.113.9"]);
     expect(Object.values(built.query_params)).toContain(
       "oneuptime.exception.fingerprint",
     );
@@ -224,9 +220,7 @@ describe("the session replays of a case's sessions", () => {
     );
     expect(built.query).toContain("AND sessionId IN (");
     expect(built.query).toContain("GROUP BY sessionId");
-    expect(Object.values(built.query_params)).toContain(
-      PROJECT_ID.toString(),
-    );
+    expect(Object.values(built.query_params)).toContain(PROJECT_ID.toString());
 
     const starts: Array<unknown> = Object.values(built.query_params).filter(
       (value: unknown): boolean => {

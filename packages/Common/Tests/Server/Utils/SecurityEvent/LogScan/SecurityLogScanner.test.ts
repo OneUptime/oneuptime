@@ -642,7 +642,9 @@ describe("SecurityLogScanner.scanSource", () => {
     jest
       .spyOn(SpanService, "findSpansOfTraces")
       .mockImplementation(
-        async (data: { traceIds: Array<string> }): Promise<Array<JSONObject>> => {
+        async (data: {
+          traceIds: Array<string>;
+        }): Promise<Array<JSONObject>> => {
           installed.order.push("follow");
           traceReads.push(data.traceIds);
 
@@ -735,7 +737,8 @@ describe("SecurityLogScanner.scanSource", () => {
   test("events that name no trace are never followed", async () => {
     const startAt: Date = OneUptimeDate.addRemoveMinutes(NOW, -3);
     install(logs(3, startAt, 30, SSH_LINES.failedPasswordRoot));
-    const follow: SpyInstance = jest.spyOn(SpanService, "findSpansOfTraces");
+    const follow: SpyInstance<typeof SpanService.findSpansOfTraces> =
+      jest.spyOn(SpanService, "findSpansOfTraces");
 
     await SecurityLogScanner.scanSource(source(startAt.toISOString()));
 
