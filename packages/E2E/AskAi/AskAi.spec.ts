@@ -1379,6 +1379,7 @@ test.describe("by keyboard", () => {
   }: {
     page: Page;
   }) => {
+    await page.setViewportSize({ width: 1280, height: 720 });
     await load(page);
     await openAskAi(page);
     const mode: Locator = page.getByTitle(
@@ -1391,7 +1392,7 @@ test.describe("by keyboard", () => {
     ).toBeVisible();
     await settle(page);
     /*
-     * On a laptop window 800 px tall the start's composer sits in the
+     * On a laptop window 720 px tall the start's composer sits in the
      * middle of the dialog, too low for the menu to open down without the
      * dialog's foot cutting its last choice in half: it opens up, whole.
      */
@@ -1692,6 +1693,39 @@ test.describe("in German", () => {
     await expect(page.getByTestId("ai-chat-sources-toggle")).toHaveText(
       "4 Quellen",
     );
+  });
+
+  /*
+   * The menu offered "Genehmigung anfordern" under a button that said "Vor
+   * Aktionen fragen", "Auto-run (bypass approvals)" in English, and said
+   * what each mode means in English ("The copilot pauses and asks...").
+   */
+  test("the permission menu names each mode as its button does, and says what it means in German", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await load(page, "lang=de");
+    await openAskAi(page);
+    const mode: Locator = page.getByTitle("Wählen Sie, was die KI tun darf");
+
+    await expect(mode).toHaveText("Vor Aktionen fragen");
+    await mode.click();
+    const menu: Locator = page.getByRole("menu", { name: "KI-Berechtigungen" });
+    await expect(menu).toBeVisible();
+
+    await expect(menu.getByRole("menuitemradio")).toHaveText([
+      "Vor Aktionen fragenFragt vor jeder Änderung nach Genehmigung.",
+      "Automatisch ausführenFührt eindeutige Anfragen sofort aus, im Rahmen Ihrer Berechtigungen.",
+      "Nur LesezugriffLiest und antwortet nur. Ändert nie etwas.",
+    ]);
+    await expect(
+      menu.getByRole("menuitemradio", { checked: true }),
+    ).toContainText("Vor Aktionen fragen");
+    await screenshot(page, "start-menu-1280-de");
+
+    await menu.getByRole("menuitemradio", { name: /^Nur Lesezugriff/ }).click();
+    await expect(mode).toHaveText("Nur Lesezugriff");
   });
 
   test.describe("on a phone", () => {

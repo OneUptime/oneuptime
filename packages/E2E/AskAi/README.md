@@ -53,7 +53,7 @@ words (Persian right to left), and `?theme=dark` the dark theme.
 
 ## What the spec holds
 
-`AskAi.spec.ts` (49 tests, Chromium) pins the browser clock, fences the network to the fixture
+`AskAi.spec.ts` (50 tests, Chromium) pins the browser clock, fences the network to the fixture
 server, and fails on any uncaught page error:
 
 - every way in: the header's Ask AI, `Ctrl` / `Cmd` + `I` (and the keys left to another text
@@ -80,7 +80,8 @@ server, and fails on any uncaught page error:
   (Esc keeps it and leaves the dialog open), New chat;
 - closing loses nothing: the way back to an answer still being written, in the corner on a
   laptop and under the header on a phone, saying when it is ready;
-- dark (the start's mark glowing indigo, not sitting in a black shadow), German, Persian (right
+- dark (the start's mark glowing indigo, not sitting in a black shadow), German (the permission
+  menu naming each mode as its button does, and saying what it means in German), Persian (right
   to left: an English title beside its icon and cut at its own end, an approval card's English
   lines keeping their punctuation) and reduced motion.
 

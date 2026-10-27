@@ -10,7 +10,10 @@ import {
 import * as React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import PermissionModePicker from "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/PermissionModePicker";
+import { describePermissionMode } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/InvestigationConversation/InvestigationConversationData";
 import AIChatPermissionMode from "../../../Types/AI/AIChatPermissionMode";
+
+const COPILOT_WORD: RegExp = /copilot/i;
 
 /*
  * The control that says what the AI may do with a request: act at once, ask
@@ -121,10 +124,70 @@ describe("PermissionModePicker — the menu", () => {
         return item.textContent || "";
       }),
     ).toEqual([
-      "Ask for approvalThe copilot pauses and asks before it changes anything (creating incidents, acknowledging alerts, etc).",
-      "Auto-run (bypass approvals)The copilot performs actions immediately, still limited to what your role can do.",
-      "Read-onlyThe copilot can investigate and answer questions but can never change anything.",
+      "Ask to actAsks for approval before it changes anything.",
+      "Auto-runActs on clear requests right away, within your permissions.",
+      "Read-onlyOnly reads and answers. It never changes anything.",
     ]);
+  });
+
+  /*
+   * The menu offered "Ask for approval" under a button that said "Ask to
+   * act", and the docs tell people to pick Ask to act: a mode has one name,
+   * on the button, in the menu and in the docs.
+   */
+  test.each([
+    [AIChatPermissionMode.AskForApproval],
+    [AIChatPermissionMode.AutoRun],
+    [AIChatPermissionMode.ReadOnly],
+  ])(
+    "the chosen mode (%s) has the name in the menu that the button gives it",
+    (mode: AIChatPermissionMode) => {
+      renderPicker({ value: mode });
+
+      const name: string = trigger().textContent || "";
+      const chosen: HTMLElement = within(open()).getByRole("menuitemradio", {
+        checked: true,
+      });
+
+      expect(name.length).toBeGreaterThan(0);
+      expect(chosen.querySelector("span")?.textContent).toBe(name);
+    },
+  );
+
+  /*
+   * Each mode says what it means in the sentence the AI Investigation card's
+   * composer shows beside its picker - one set of words, which every
+   * language translates - and never in another product's words.
+   */
+  test("each mode says what it means as the card's composer says it", () => {
+    renderPicker();
+
+    const items: Array<HTMLElement> =
+      within(open()).getAllByRole("menuitemradio");
+
+    expect(
+      items.map((item: HTMLElement): string => {
+        return item.textContent || "";
+      }),
+    ).toEqual(
+      [
+        AIChatPermissionMode.AskForApproval,
+        AIChatPermissionMode.AutoRun,
+        AIChatPermissionMode.ReadOnly,
+      ].map((mode: AIChatPermissionMode): string => {
+        return `${
+          {
+            [AIChatPermissionMode.AskForApproval]: "Ask to act",
+            [AIChatPermissionMode.AutoRun]: "Auto-run",
+            [AIChatPermissionMode.ReadOnly]: "Read-only",
+          }[mode]
+        }${describePermissionMode(mode)}`;
+      }),
+    );
+
+    for (const item of items) {
+      expect(item.textContent).not.toMatch(COPILOT_WORD);
+    }
   });
 
   test.each([

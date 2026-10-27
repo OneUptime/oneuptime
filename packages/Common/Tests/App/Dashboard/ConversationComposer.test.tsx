@@ -369,7 +369,7 @@ describe("ConversationComposer — what OneUptime AI may do", () => {
       "Only reads and answers. It never changes anything.",
     ],
     [
-      "Ask for approval",
+      "Ask to act",
       AIChatPermissionMode.AskForApproval,
       "Asks for approval before it changes anything.",
     ],

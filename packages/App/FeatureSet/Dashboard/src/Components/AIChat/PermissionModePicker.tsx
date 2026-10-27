@@ -7,6 +7,7 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { MenuSide, useMenuSide } from "./MenuSide";
+import { describePermissionMode } from "./PermissionModeWords";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -44,7 +45,12 @@ const modeIcon: { [key in AIChatPermissionMode]: IconProp } = {
   [AIChatPermissionMode.ReadOnly]: IconProp.Eye,
 };
 
-// English keys, translated when drawn.
+/*
+ * Each mode's name: on the button for the mode chosen, and in the menu over
+ * what the mode means (describePermissionMode), so the menu offers the
+ * modes by the names the button and the docs give them. English keys,
+ * translated when drawn.
+ */
 const shortLabel: { [key in AIChatPermissionMode]: string } = {
   [AIChatPermissionMode.AskForApproval]: translationKey("Ask to act"),
   [AIChatPermissionMode.AutoRun]: translationKey("Auto-run"),
@@ -181,7 +187,7 @@ const PermissionModePicker: FunctionComponent<ComponentProps> = (
                 <div className="min-w-0">
                   <div className="flex items-center gap-1.5">
                     <span className="text-xs font-semibold text-gray-900">
-                      {translator.translateText(option.title)}
+                      {translator.translateText(shortLabel[option.value])}
                     </span>
                     {isSelected && (
                       <Icon
@@ -191,7 +197,9 @@ const PermissionModePicker: FunctionComponent<ComponentProps> = (
                     )}
                   </div>
                   <div className="mt-0.5 text-[11px] leading-snug text-gray-500">
-                    {translator.translateText(option.description)}
+                    {translator.translateText(
+                      describePermissionMode(option.value),
+                    )}
                   </div>
                 </div>
               </button>

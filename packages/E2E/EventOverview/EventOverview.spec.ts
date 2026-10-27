@@ -5462,7 +5462,7 @@ test.describe("one AI card: the investigation and the conversation", () => {
       const caption: Box = await documentBox(modeCaption(page));
       const send: Box = await documentBox(sendButton(page));
 
-      for (const mode of ["Ask for approval", "Read-only", "Auto-run"]) {
+      for (const mode of ["Ask to act", "Read-only", "Auto-run"]) {
         await modePicker(page).click();
         await conversation(page)
           .getByRole("menuitemradio", { name: new RegExp(`^${mode}`) })
