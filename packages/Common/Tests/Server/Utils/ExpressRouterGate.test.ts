@@ -889,7 +889,8 @@ describe("ExpressRouterGate", () => {
 
           return passed;
         },
-        limitInMs: 0,
+        // About 18 ms here: a tenth of the limit, for runners several times slower.
+        limitInMs: 200,
       });
 
       expect(timed.result).toBe(checks);

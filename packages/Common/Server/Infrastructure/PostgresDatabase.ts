@@ -14,6 +14,9 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import PostgresQuerySpans from "../Utils/Telemetry/PostgresQuerySpans";
 import EntityMetadataLookup from "./Postgres/EntityMetadataLookup";
 import QueryPropertyNames from "./Postgres/QueryPropertyNames";
+import TypeOrmPatchVersion, {
+  PATCHED_TYPEORM_VERSION,
+} from "./Postgres/TypeOrmPatchVersion";
 import GracefulShutdown, { ShutdownPriority } from "../Utils/GracefulShutdown";
 
 export type DatabaseSourceOptions = DataSourceOptions;
@@ -71,6 +74,17 @@ export default class Database {
      * builds (QueryPropertyNames).
      */
     QueryPropertyNames.install();
+
+    /*
+     * Both, and PagedFind's one-query pages, stand aside on a TypeORM they
+     * were not written for (TypeOrmPatchVersion): say so once, as that is
+     * slower.
+     */
+    if (!TypeOrmPatchVersion.isPatchedVersion()) {
+      logger.warn(
+        `TypeORM ${TypeOrmPatchVersion.getInstalledVersion() || "(version unknown)"} is not ${PATCHED_TYPEORM_VERSION}, the version OneUptime's query patches were written for: TypeORM's own query code runs instead.`,
+      );
+    }
 
     let retry: number = 0;
 

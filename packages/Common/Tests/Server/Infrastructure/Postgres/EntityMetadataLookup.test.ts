@@ -270,6 +270,86 @@ describe("EntityMetadataLookup", () => {
     );
   });
 
+  /*
+   * Entities that are classes, as OneUptime's are: the map is keyed by the
+   * class, so a name or a table name is answered by the walk (the index),
+   * never by the map. Beta's name is Alpha's table name, later in the order:
+   * the walk stops at Alpha. Gamma's name has a dot in it, and a target with
+   * a dot is only ever compared with table paths.
+   */
+  test("for entities that are classes, a name an earlier table already has, and a name with a dot, answer as in the walk", async () => {
+    // An entity's name is its class's name.
+    const named: Record<string, { new (): unknown }> = {
+      Alpha: class {},
+      Beta: class {},
+      "Gamma.Delta": class {},
+    };
+    const AlphaEntity: { new (): unknown } = named["Alpha"]!;
+    const BetaEntity: { new (): unknown } = named["Beta"]!;
+    const GammaEntity: { new (): unknown } = named["Gamma.Delta"]!;
+
+    const classes: DataSource = new DataSource({
+      type: "postgres",
+      entities: [
+        new EntitySchema({
+          name: "Alpha",
+          target: AlphaEntity,
+          tableName: "Beta",
+          columns: { id: { type: "uuid", primary: true } },
+        }),
+        new EntitySchema({
+          name: "Beta",
+          target: BetaEntity,
+          tableName: "beta_table",
+          columns: { id: { type: "uuid", primary: true } },
+        }),
+        new EntitySchema({
+          name: "Gamma.Delta",
+          target: GammaEntity,
+          tableName: "gamma_table",
+          columns: { id: { type: "uuid", primary: true } },
+        }),
+      ],
+    });
+
+    await (
+      classes as unknown as { buildMetadatas: () => Promise<void> }
+    ).buildMetadatas();
+
+    // The map holds the classes, not the names: the index answers these.
+    expect(classes.entityMetadatasMap.has("Beta" as never)).toBe(false);
+
+    const targets: Array<unknown> = [
+      "Alpha",
+      "Beta",
+      "beta_table",
+      "Gamma.Delta",
+      "gamma_table",
+      "public.gamma_table",
+      AlphaEntity,
+      BetaEntity,
+      GammaEntity,
+    ];
+
+    EntityMetadataLookup.uninstall();
+    const walked: Array<string> = answersOf(classes, targets);
+
+    EntityMetadataLookup.install();
+    const indexed: Array<string> = answersOf(classes, targets);
+
+    expect(indexed).toEqual(walked);
+    // Alpha's table, not the Beta entity that comes after it.
+    expect(prototype.findMetadata.call(classes, "Beta")?.name).toBe("Alpha");
+    expect(prototype.findMetadata.call(classes, "beta_table")?.name).toBe(
+      "Beta",
+    );
+    // A dotted target is a table path: no entity is found by its name.
+    expect(prototype.findMetadata.call(classes, "Gamma.Delta")).toBe(undefined);
+    expect(prototype.findMetadata.call(classes, GammaEntity)?.name).toBe(
+      "Gamma.Delta",
+    );
+  });
+
   test("a data source whose metadata is built again is indexed again", async () => {
     EntityMetadataLookup.install();
 
@@ -290,9 +370,13 @@ describe("EntityMetadataLookup", () => {
 
     expect(before).toBeDefined();
     expect(after).toBeDefined();
-    // A new metadata object, from the new map - not the stale one.
-    expect(after).not.toBe(before);
-    expect(after).toBe(rebuilt.entityMetadatasMap.get(after!.target));
+    /*
+     * A new metadata object, from the new map - not the stale one. Compared
+     * by identity as booleans: a failing toBe would print both metadata
+     * objects, which reach every entity of the data source.
+     */
+    expect(after === before).toBe(false);
+    expect(after === rebuilt.entityMetadatasMap.get(after!.target)).toBe(true);
   });
 
   test("the index of a map names each entity by its first key, in the map's order", () => {

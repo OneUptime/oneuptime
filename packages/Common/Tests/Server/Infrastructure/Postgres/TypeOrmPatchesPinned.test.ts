@@ -1,10 +1,22 @@
+import Entities from "../../../../Models/DatabaseModels/Index";
+import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import EntityMetadataLookup from "../../../../Server/Infrastructure/Postgres/EntityMetadataLookup";
+import PagedFind from "../../../../Server/Infrastructure/Postgres/PagedFind";
 import QueryPropertyNames from "../../../../Server/Infrastructure/Postgres/QueryPropertyNames";
-import { describe, expect, test } from "@jest/globals";
+import TypeOrmPatchVersion, {
+  PATCHED_TYPEORM_VERSION,
+} from "../../../../Server/Infrastructure/Postgres/TypeOrmPatchVersion";
+import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import crypto from "crypto";
 import fs from "fs";
 import path from "path";
-import { DataSource, SelectQueryBuilder } from "typeorm";
+import {
+  DataSource,
+  EntityManager,
+  Repository,
+  SelectQueryBuilder,
+} from "typeorm";
+import { JoinAttribute } from "typeorm/query-builder/JoinAttribute";
 
 /*
  * THE TYPEORM CODE ONEUPTIME'S QUERY PATCHES WERE WRITTEN AGAINST.
@@ -26,7 +38,9 @@ import { DataSource, SelectQueryBuilder } from "typeorm";
  * TypeORM upgrade that changes any of these functions fails here: read the
  * new function, change the piece that relies on it if it must, run its
  * suite (EntityMetadataLookup, QueryPropertyNames, PagedFindSql and
- * PagedFindPostgres), and then pin the new function's hash.
+ * PagedFindPostgres), and then pin the new function's hash - and the new
+ * version both here and in TypeOrmPatchVersion, which the patches check in
+ * production too: on any other TypeORM they stand aside (held below).
  */
 
 function hashOf(code: unknown): string {
@@ -50,6 +64,10 @@ describe("the TypeORM functions OneUptime's query patches rely on", () => {
     );
 
     expect(typeormPackage.version).toBe("0.3.31");
+    // The version the patches check for themselves, moved with this pin.
+    expect(PATCHED_TYPEORM_VERSION).toBe("0.3.31");
+    expect(TypeOrmPatchVersion.getInstalledVersion()).toBe("0.3.31");
+    expect(TypeOrmPatchVersion.isPatchedVersion()).toBe(true);
   });
 
   test.each([
@@ -96,6 +114,30 @@ describe("the TypeORM functions OneUptime's query patches rely on", () => {
       },
       "0d8fe9b80758c31d8020854eff5c166fc32c97ecabb52d9905c483a8f10e7143",
     ],
+    [
+      "EntityManager.find (PagedFind builds the query builder it builds)",
+      (): unknown => {
+        return (EntityManager.prototype as unknown as Prototype)["find"];
+      },
+      "7097de1646b7b9f7bd38981426d745bfc15ea4ff311e153198b7d1507b98556a",
+    ],
+    [
+      "Repository.find (PagedFind stands in for it)",
+      (): unknown => {
+        return (Repository.prototype as unknown as Prototype)["find"];
+      },
+      "57ddad917dfdf9f2dd98bb6ea52d721c23fb32a0d7fd60a23d4d10ce908d4c83",
+    ],
+    [
+      "JoinAttribute.relation (PagedFind reads each join's relation)",
+      (): unknown => {
+        return Object.getOwnPropertyDescriptor(
+          JoinAttribute.prototype,
+          "relation",
+        )?.get;
+      },
+      "485bab8d8bffdecd10fb652538ab1b87059fc1f0046c73dd0a12002cfc563959",
+    ],
   ])(
     "%s is the code the patch was written against",
     (_label: string, read: () => unknown, pinned: string) => {
@@ -105,4 +147,144 @@ describe("the TypeORM functions OneUptime's query patches rely on", () => {
       expect(hashOf(code)).toBe(pinned);
     },
   );
+});
+
+/*
+ * On a TypeORM other than the one they were written for, the patches stand
+ * aside: neither install() replaces TypeORM's function, and PagedFind reads
+ * through repository.find itself.
+ */
+describe("on any other TypeORM, the patches stand aside", () => {
+  afterEach(() => {
+    TypeOrmPatchVersion.setInstalledVersionForTests(undefined);
+    jest.restoreAllMocks();
+  });
+
+  test.each([["0.3.32"], ["0.4.0"], [null]])(
+    "TypeORM %s: TypeORM's own functions, and repository.find",
+    async (version: string | null) => {
+      const lookupInstalled: boolean = EntityMetadataLookup.isInstalled();
+      const namesInstalled: boolean = QueryPropertyNames.isInstalled();
+      const findMetadata: unknown = dataSourcePrototype["findMetadata"];
+
+      EntityMetadataLookup.uninstall();
+      QueryPropertyNames.uninstall();
+      const typeOrmFindMetadata: unknown = dataSourcePrototype["findMetadata"];
+      const typeOrmReplace: unknown = QueryPropertyNames.getOriginal();
+
+      try {
+        TypeOrmPatchVersion.setInstalledVersionForTests(version);
+        expect(TypeOrmPatchVersion.isPatchedVersion()).toBe(false);
+
+        EntityMetadataLookup.install();
+        QueryPropertyNames.install();
+
+        expect(EntityMetadataLookup.isInstalled()).toBe(false);
+        expect(QueryPropertyNames.isInstalled()).toBe(false);
+        expect(dataSourcePrototype["findMetadata"]).toBe(typeOrmFindMetadata);
+        expect(
+          (SelectQueryBuilder.prototype as unknown as Prototype)[
+            "replacePropertyNamesForTheWholeQuery"
+          ],
+        ).toBe(typeOrmReplace);
+
+        const dataSource: DataSource = new DataSource({
+          type: "postgres",
+          entities: Entities,
+        });
+
+        await (
+          dataSource as unknown as { buildMetadatas: () => Promise<void> }
+        ).buildMetadatas();
+
+        const repository: Repository<Monitor> =
+          dataSource.getRepository(Monitor);
+        const find: ReturnType<typeof jest.spyOn> = jest
+          .spyOn(repository, "find")
+          .mockResolvedValue([] as never);
+        const built: ReturnType<typeof jest.spyOn> = jest.spyOn(
+          PagedFind,
+          "createQueryBuilder",
+        );
+        const options: Record<string, unknown> = {
+          relations: { currentMonitorStatus: true },
+          take: 10,
+        };
+
+        expect(await PagedFind.find(repository, options as never)).toEqual([]);
+        expect(find).toHaveBeenCalledWith(options);
+        expect(built).not.toHaveBeenCalled();
+      } finally {
+        TypeOrmPatchVersion.setInstalledVersionForTests(undefined);
+        EntityMetadataLookup.uninstall();
+        QueryPropertyNames.uninstall();
+
+        if (lookupInstalled) {
+          EntityMetadataLookup.install();
+        }
+
+        if (namesInstalled) {
+          QueryPropertyNames.install();
+        }
+      }
+
+      expect(dataSourcePrototype["findMetadata"]).toBe(
+        lookupInstalled ? findMetadata : typeOrmFindMetadata,
+      );
+    },
+  );
+
+  test("on the TypeORM they were written for, they install, and PagedFind builds its own query", async () => {
+    const lookupInstalled: boolean = EntityMetadataLookup.isInstalled();
+    const namesInstalled: boolean = QueryPropertyNames.isInstalled();
+
+    try {
+      EntityMetadataLookup.uninstall();
+      QueryPropertyNames.uninstall();
+      EntityMetadataLookup.install();
+      QueryPropertyNames.install();
+
+      expect(EntityMetadataLookup.isInstalled()).toBe(true);
+      expect(QueryPropertyNames.isInstalled()).toBe(true);
+
+      const dataSource: DataSource = new DataSource({
+        type: "postgres",
+        entities: Entities,
+      });
+
+      await (
+        dataSource as unknown as { buildMetadatas: () => Promise<void> }
+      ).buildMetadatas();
+
+      const repository: Repository<Monitor> = dataSource.getRepository(Monitor);
+      const find: ReturnType<typeof jest.spyOn> = jest.spyOn(
+        repository,
+        "find",
+      );
+      const getMany: ReturnType<typeof jest.fn> = jest
+        .fn()
+        .mockResolvedValue([] as never);
+
+      jest
+        .spyOn(PagedFind, "createQueryBuilder")
+        .mockReturnValue({ getMany: getMany } as never);
+
+      expect(await PagedFind.find(repository, { take: 10 } as never)).toEqual(
+        [],
+      );
+      expect(getMany).toHaveBeenCalledTimes(1);
+      expect(find).not.toHaveBeenCalled();
+    } finally {
+      EntityMetadataLookup.uninstall();
+      QueryPropertyNames.uninstall();
+
+      if (lookupInstalled) {
+        EntityMetadataLookup.install();
+      }
+
+      if (namesInstalled) {
+        QueryPropertyNames.install();
+      }
+    }
+  });
 });

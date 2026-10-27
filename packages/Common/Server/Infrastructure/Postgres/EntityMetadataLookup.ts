@@ -1,3 +1,4 @@
+import TypeOrmPatchVersion from "./TypeOrmPatchVersion";
 import { DataSource, EntityMetadata } from "typeorm";
 
 /*
@@ -121,11 +122,16 @@ export default class EntityMetadataLookup {
 
   /*
    * Index findMetadata once per process. PostgresDatabase.connect calls
-   * this before it opens the pool.
+   * this before it opens the pool. Not against a TypeORM other than the one
+   * this was written for (TypeOrmPatchVersion): its own walk runs there.
    */
   public static install(
     dataSourceClass: DataSourceClass = DataSource as unknown as DataSourceClass,
   ): void {
+    if (!TypeOrmPatchVersion.isPatchedVersion()) {
+      return;
+    }
+
     const prototype: { findMetadata: IndexedFindMetadataFunction } =
       dataSourceClass.prototype as {
         findMetadata: IndexedFindMetadataFunction;

@@ -8,6 +8,7 @@ import { EntityMetadata } from "typeorm/metadata/EntityMetadata";
 import { RelationMetadata } from "typeorm/metadata/RelationMetadata";
 import { JoinAttribute } from "typeorm/query-builder/JoinAttribute";
 import { FindOptionsUtils } from "typeorm/find-options/FindOptionsUtils";
+import TypeOrmPatchVersion from "./TypeOrmPatchVersion";
 
 /*
  * A PAGE OF A JOINED READ IN ONE QUERY WHEREVER ONE QUERY GIVES THE SAME PAGE.
@@ -49,8 +50,15 @@ export default class PagedFind {
     repository: Repository<TEntity>,
     options: FindManyOptions<TEntity>,
   ): Promise<Array<TEntity>> {
-    // A repository that is not TypeORM's (a test's stand-in) reads itself.
-    if (!(repository instanceof Repository)) {
+    /*
+     * A repository that is not TypeORM's (a test's stand-in) reads itself,
+     * and so does every repository on a TypeORM other than the one this was
+     * written for (TypeOrmPatchVersion).
+     */
+    if (
+      !(repository instanceof Repository) ||
+      !TypeOrmPatchVersion.isPatchedVersion()
+    ) {
       return await (repository as Repository<TEntity>).find(options);
     }
 

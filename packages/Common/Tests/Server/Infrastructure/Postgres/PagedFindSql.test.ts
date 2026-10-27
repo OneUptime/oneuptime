@@ -8,6 +8,7 @@ import fs from "fs";
 import path from "path";
 import {
   DataSource,
+  EntitySchema,
   FindManyOptions,
   In,
   ObjectLiteral,
@@ -16,6 +17,7 @@ import {
 } from "typeorm";
 import { EntityMetadata } from "typeorm/metadata/EntityMetadata";
 import { RelationMetadata } from "typeorm/metadata/RelationMetadata";
+import { JoinAttribute } from "typeorm/query-builder/JoinAttribute";
 
 /*
  * PagedFind takes a page of a joined read in one query wherever one query
@@ -138,6 +140,112 @@ describe("which joins keep one row per record", () => {
     // OneUptime has thousands of each.
     expect(toOne).toBeGreaterThan(500);
     expect(toMany).toBeGreaterThan(100);
+  });
+
+  /*
+   * OneUptime's models have many-to-one and many-to-many relations only, so
+   * the kinds they lack are held on entities of this test's own: a
+   * one-to-many, both sides of a one-to-one, and a many-to-one joined on a
+   * unique column that is not the primary key (one row a record in fact,
+   * but PagedFind only trusts the primary key).
+   */
+  test("relations of the kinds OneUptime's models do not use: to-one on the primary key, or not", async () => {
+    const kinds: DataSource = new DataSource({
+      type: "postgres",
+      entities: [
+        new EntitySchema({
+          name: "PagedParent",
+          columns: {
+            id: { type: "uuid", primary: true },
+            code: { type: String, unique: true },
+          },
+          relations: {
+            children: {
+              type: "one-to-many",
+              target: "PagedChild",
+              inverseSide: "parent",
+            },
+          },
+        }),
+        new EntitySchema({
+          name: "PagedChild",
+          columns: {
+            id: { type: "uuid", primary: true },
+          },
+          relations: {
+            parent: {
+              type: "many-to-one",
+              target: "PagedParent",
+              joinColumn: { name: "parentId" },
+            },
+            parentByCode: {
+              type: "many-to-one",
+              target: "PagedParent",
+              joinColumn: { name: "parentCode", referencedColumnName: "code" },
+            },
+          },
+        }),
+        new EntitySchema({
+          name: "PagedPerson",
+          columns: { id: { type: "uuid", primary: true } },
+          relations: {
+            passport: {
+              type: "one-to-one",
+              target: "PagedPassport",
+              joinColumn: { name: "passportId" },
+              inverseSide: "person",
+            },
+          },
+        }),
+        new EntitySchema({
+          name: "PagedPassport",
+          columns: { id: { type: "uuid", primary: true } },
+          relations: {
+            person: {
+              type: "one-to-one",
+              target: "PagedPerson",
+              inverseSide: "passport",
+            },
+          },
+        }),
+      ],
+    });
+
+    await (
+      kinds as unknown as { buildMetadatas: () => Promise<void> }
+    ).buildMetadatas();
+
+    const judged: Array<string> = [];
+
+    for (const [entity, relation] of [
+      ["PagedChild", "parent"],
+      ["PagedChild", "parentByCode"],
+      ["PagedParent", "children"],
+      ["PagedPerson", "passport"],
+      ["PagedPassport", "person"],
+    ] as Array<[string, string]>) {
+      const builder: SelectQueryBuilder<ObjectLiteral> =
+        PagedFind.createQueryBuilder(kinds.getRepository(entity), {
+          relations: { [relation]: true },
+          take: 10,
+        } as FindManyOptions<ObjectLiteral>);
+
+      const join: JoinAttribute = builder.expressionMap.joinAttributes[0]!;
+      const oneQuery: boolean =
+        builder.expressionMap.take === undefined &&
+        builder.expressionMap.limit === 10;
+
+      expect(PagedFind.isOneRowPerRecordJoin(join)).toBe(oneQuery);
+      judged.push(`${entity}.${relation}: ${oneQuery ? "one" : "two"}`);
+    }
+
+    expect(judged).toEqual([
+      "PagedChild.parent: one",
+      "PagedChild.parentByCode: two",
+      "PagedParent.children: two",
+      "PagedPerson.passport: one",
+      "PagedPassport.person: two",
+    ]);
   });
 
   test("every many-to-one OneUptime has joins on the related table's primary key", () => {

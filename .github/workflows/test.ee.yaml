@@ -107,6 +107,14 @@ jobs:
       - name: Run App's workflow test-run guard with ee/ present
         working-directory: packages/App
         run: node node_modules/.bin/jest Tests/FeatureSet/Workflow/WorkflowTestRunStartersGuard.test.ts --forceExit
+      # App's guard on worker jobs that run every minute or more often (a
+      # job more often than every minute says why; none lists every project)
+      # reads ee/Server's jobs too - backups, billing, the audit log export.
+      # The App Test job deletes ee/ first, so only this run reads them. It
+      # only reads files.
+      - name: Run App's frequent jobs guard with ee/ present
+        working-directory: packages/App
+        run: node node_modules/.bin/jest Tests/Workers/FrequentJobsGuard.test.ts --forceExit
       # Common's UI source guards that walk ee/Dashboard and ee/AdminDashboard
       # too - the foreign `.hidden` guard, the create-form defaults guard,
       # which lists the ee compliance rule form's Enabled switch, the
@@ -149,6 +157,14 @@ jobs:
       - name: Run Common's test-send routes guard with ee/ present
         working-directory: packages/Common
         run: node node_modules/.bin/jest Tests/Server/API/TestSendRoutesAskTheRule.test.ts --forceExit
+      # Common's guard that every Express router is made by
+      # Express.getRouter() - gated, so a request passes a router none of
+      # whose routes can match it - walks ee/ too, for routers of ee/'s own
+      # APIs. The Common Test job deletes ee/ first, so only this run holds
+      # ee/ to it. It only reads files.
+      - name: Run Common's gated routers guard with ee/ present
+        working-directory: packages/Common
+        run: node node_modules/.bin/jest Tests/Server/Utils/ExpressRoutersAreGatedGuard.test.ts --forceExit
       - name: Install ee
         uses: ./.github/actions/npm-install
         with:

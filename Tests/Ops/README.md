@@ -98,6 +98,20 @@ Because TTL is enforced by background merges (not a timer), and these tables
 keep the stock monthly partitioning, 6h is the floor on what is retained rather
 than a guarantee that everything older is already gone.
 
+### `ClickhouseLoggerLevel.test.js`
+
+The ClickHouse image logs at `trace`: every query, merge and Keeper step goes
+to the server's log files and again into `system.text_log` - about 250 MB of
+log text and over a million `text_log` rows an hour on a compose install with a
+few dozen projects, and about a fifth of the server's CPU with the Probe
+checking 700 monitors a minute. Helm runs it at `warning` on both of its paths
+(the built-in StatefulSet's `clickhouse.configuration` and the Altinity
+operator's `logger/level`); `Clickhouse/config.d/logger.xml` brings compose to
+the same level. The suite holds the drop-in to being mounted where ClickHouse
+reads it and to setting the logger level only, the three paths to one level,
+and that level to still writing the warnings and errors the Admin Health page
+reads from `system.text_log`.
+
 ### `BackupRestoreScripts.test.js`
 
 `backup.sh` emits one custom-format (`--format=custom`) dump; `restore.sh` feeds

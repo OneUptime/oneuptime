@@ -1,6 +1,7 @@
 import { QueryBuilder } from "typeorm";
 import { EntityMetadata } from "typeorm/metadata/EntityMetadata";
 import { escapeRegExp } from "../../../Utils/RegExpEscape";
+import TypeOrmPatchVersion from "./TypeOrmPatchVersion";
 
 /*
  * TYPEORM READS AN ENTITY'S PROPERTY NAMES ONCE, NOT ON EVERY QUERY.
@@ -206,11 +207,16 @@ export default class QueryPropertyNames {
 
   /*
    * Replace TypeORM's function once per process. PostgresDatabase.connect
-   * calls this before it opens the pool.
+   * calls this before it opens the pool. Not against a TypeORM other than
+   * the one this was written for (TypeOrmPatchVersion): its own runs there.
    */
   public static install(
     queryBuilderClass: QueryBuilderClass = QueryBuilder as unknown as QueryBuilderClass,
   ): void {
+    if (!TypeOrmPatchVersion.isPatchedVersion()) {
+      return;
+    }
+
     const prototype: {
       replacePropertyNamesForTheWholeQuery: PatchedReplaceFunction;
     } = queryBuilderClass.prototype as {

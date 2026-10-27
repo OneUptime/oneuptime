@@ -19,7 +19,8 @@ import ts from "typescript";
  * Read from the code (the TypeScript syntax tree), across all product code
  * (ee/ too, when it is checked out): a call of Router on what a file imports
  * from "express" - express.Router(), whatever the import is called - and a
- * Router imported from "express" by name.
+ * Router imported from "express" by name. Common Test deletes ee/ first; the
+ * Enterprise Edition Test workflow (test.ee.yaml) runs this with ee/ present.
  */
 
 const CODE_FILE: RegExp = /\.(?:ts|tsx|js|jsx|mjs|cjs)$/;

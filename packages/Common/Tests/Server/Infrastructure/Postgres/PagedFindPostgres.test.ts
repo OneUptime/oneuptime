@@ -8,6 +8,7 @@ import { afterAll, beforeAll, describe, expect, test } from "@jest/globals";
 import {
   DataSource,
   FindManyOptions,
+  In,
   ObjectLiteral,
   Repository,
 } from "typeorm";
@@ -54,6 +55,7 @@ describePostgres("PagedFind against TypeORM's own pages, on Postgres", () => {
   const otherProjectId: string = ObjectID.generate().toString();
   const monitorIds: Array<string> = [];
   const incidentIds: Array<string> = [];
+  const labelIds: Array<string> = [];
 
   // An id that sorts after every id made before it, for stable ties.
   function nextId(): string {
@@ -304,6 +306,8 @@ describePostgres("PagedFind against TypeORM's own pages, on Postgres", () => {
       );
     }
 
+    labelIds.push(...labels);
+
     // Monitors: ties in createdAt and name, some deleted, some in the other project.
     for (let index: number = 0; index < 23; index++) {
       const id: string = await insert("Monitor", {
@@ -488,6 +492,65 @@ describePostgres("PagedFind against TypeORM's own pages, on Postgres", () => {
         return index % 9 !== 8;
       }).length,
     );
+  });
+
+  /*
+   * A filter through a to-many relation joins it, whatever the read
+   * selects: a monitor with two of the labels asked for is two joined rows.
+   * So these pages stay TypeORM's two queries, and are the same pages.
+   */
+  test("monitors filtered through their labels, with only their status selected", async () => {
+    const compared: number = await expectSamePages({
+      target: Monitor,
+      options: {
+        where: {
+          projectId: projectId,
+          labels: { _id: In(labelIds.slice(0, 3)) },
+        } as never,
+        select: {
+          _id: true,
+          createdAt: true,
+          name: true,
+          currentMonitorStatus: { _id: true, name: true },
+        } as never,
+        relations: { currentMonitorStatus: true } as never,
+        order: { createdAt: "DESC", _id: "ASC" } as never,
+      },
+      pageSizes: [1, 2, 5, 100],
+      total: 23,
+    });
+
+    expect(compared).toBeGreaterThan(20);
+  });
+
+  test("a monitor by its primary key, filtered through the labels it also reads, and its later pages", async () => {
+    let found: number = 0;
+
+    for (const monitorId of monitorIds) {
+      found += await expectSamePages({
+        target: Monitor,
+        options: {
+          where: {
+            _id: monitorId,
+            labels: { _id: In(labelIds.slice(1, 4)) },
+          } as never,
+          select: {
+            _id: true,
+            createdAt: true,
+            name: true,
+            labels: { _id: true, name: true },
+            currentMonitorStatus: { _id: true },
+          } as never,
+          relations: { labels: true, currentMonitorStatus: true } as never,
+          order: { createdAt: "DESC", _id: "ASC" } as never,
+        },
+        // The first page, and the second: empty on both sides.
+        pageSizes: [1],
+        total: 1,
+      });
+    }
+
+    expect(found).toBeGreaterThan(5);
   });
 
   test("monitors by project, with their status and project, ordered with ties", async () => {
