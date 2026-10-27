@@ -862,7 +862,7 @@
   "Master admins can always sign in with their password here, even while SSO is required. Keep this address.": "即使要求使用 SSO，主要管理員也隨時可以在此使用密碼登入。請保存此位址。",
   "Master admin sign-in": "主要管理員登入",
   "Require SSO for everyone?": "要求所有人使用 SSO 嗎？",
-  "The sign-in page will then offer only SSO, and everyone except master admins must sign in with SSO to open any project, including people who are signed in now. Test a provider's sign-in first.": "之後登入頁面將只提供 SSO，除主要管理員外，所有人（包括目前已登入的人）都必須使用 SSO 登入才能開啟專案。請先測試提供者的登入。",
+  "The sign-in page will offer only SSO. Everyone except master admins, including people signed in now, must sign in with SSO to open any project.": "之後登入頁面將只提供 SSO。除主要管理員外，所有人（包括目前已登入的人）都必須使用 SSO 登入才能開啟專案。",
   "Enterprise license required.": "需要 Enterprise 授權。",
   "The live OneUptime Health dashboards and the query console need an Enterprise license that includes instance health, and this installation's license is missing, expired or does not include it. Activate or renew the license from the Enterprise Edition badge at the top of the Admin Dashboard. While the license is missing or expired, SCIM provisioning and audit logging are off too; they come back with these screens as soon as a license is activated. ClickHouse capacity, the instance log, Global Probes, Migrations and the Support Bundle keep working without it; find them in the menu on the left.": "OneUptime 的即時 Health 儀表板與 Query Console 需要包含執行個體健康狀態功能的 Enterprise 授權，而此部署的授權缺少、已過期或不包含該功能。請透過管理員儀表板頂端的 Enterprise Edition 徽章啟用或續訂授權。在授權缺少或過期期間，SCIM 佈建與稽核日誌記錄也會關閉；授權一旦啟用，它們會隨這些頁面一起恢復。ClickHouse 容量、執行個體日誌、全域探測器、遷移與支援包在沒有授權時仍可使用；可在左側選單中找到它們。",
   "Are you sure you want to delete {{name}}?": "確定要刪除 {{name}} 嗎？",

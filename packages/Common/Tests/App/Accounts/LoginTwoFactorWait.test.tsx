@@ -47,11 +47,11 @@ import { JSONObject } from "../../../Types/JSON";
  * sign-in pages ask before they draw (SignInMethodsStandIn).
  */
 jest.mock("../../../../App/FeatureSet/Accounts/src/Utils/SignInMethods", () => {
-  return jest
-    .requireActual<typeof import("./SignInMethodsStandIn")>(
+  return (
+    jest.requireActual(
       "./SignInMethodsStandIn",
-    )
-    .signInMethodsNotRequired();
+    ) as typeof import("./SignInMethodsStandIn")
+  ).signInMethodsNotRequired();
 });
 
 jest.mock("../../../UI/Components/EditionLabel/EditionLabel", () => {

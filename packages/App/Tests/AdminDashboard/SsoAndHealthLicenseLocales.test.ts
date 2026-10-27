@@ -117,7 +117,7 @@ const SSO_CARD_STRINGS: Array<string> = [
   "Master admins can always sign in with their password here, even while SSO is required. Keep this address.",
   "Master admin sign-in",
   "Require SSO for everyone?",
-  "The sign-in page will then offer only SSO, and everyone except master admins must sign in with SSO to open any project, including people who are signed in now. Test a provider's sign-in first.",
+  "The sign-in page will offer only SSO. Everyone except master admins, including people signed in now, must sign in with SSO to open any project.",
 ];
 
 /*
@@ -422,12 +422,14 @@ describe("Settings > Single Sign-On: the Require SSO card", () => {
       "Everyone except master admins",
     );
     expect(REQUIRE_SSO_COPY.confirmDescription).toContain(
-      "everyone except master admins must sign in with SSO",
+      "Everyone except master admins",
     );
     // Nobody's password session outlasts it (UserAuthorization reads it per request).
     expect(REQUIRE_SSO_COPY.confirmDescription).toContain(
-      "including people who are signed in now",
+      "including people signed in now",
     );
+    // A dialog's description fits it (ShortDescriptionsGuard).
+    expect(REQUIRE_SSO_COPY.confirmDescription.length).toBeLessThanOrEqual(150);
     expect(REQUIRE_SSO_COPY.masterAdminSentence).toContain(
       "Master admins can always sign in with their password here",
     );

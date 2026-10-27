@@ -37,11 +37,11 @@ import "../../../FeatureSet/Identity/API/Authentication";
  * SsoRequiredSignInRoutes.test.ts.
  */
 jest.mock("Common/Server/Utils/SsoRequiredSignIn", () => {
-  return jest
-    .requireActual<typeof import("./SsoNotRequiredStandIn")>(
+  return (
+    jest.requireActual(
       "./SsoNotRequiredStandIn",
-    )
-    .ssoNotRequired();
+    ) as typeof import("./SsoNotRequiredStandIn")
+  ).ssoNotRequired();
 });
 
 jest.mock("Common/Server/EnvironmentConfig", () => {

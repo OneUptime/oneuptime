@@ -9,11 +9,11 @@ import { SignInMethods } from "../../../Types/SSO/SignInMethods";
  * drawing anything of their own, over the network.
  *
  *   jest.mock("../../../../App/FeatureSet/Accounts/src/Utils/SignInMethods", () => {
- *     return jest
- *       .requireActual<typeof import("./SignInMethodsStandIn")>(
+ *     return (
+ *       jest.requireActual(
  *         "./SignInMethodsStandIn",
- *       )
- *       .signInMethodsNotRequired();
+ *       ) as typeof import("./SignInMethodsStandIn")
+ *     ).signInMethodsNotRequired();
  *   });
  *
  * LoginSsoRequired.test.tsx drives the real read, the server requiring SSO

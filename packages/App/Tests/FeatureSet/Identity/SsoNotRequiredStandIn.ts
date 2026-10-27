@@ -8,11 +8,11 @@
  * something else have no database for. They stand it in with this:
  *
  *   jest.mock("Common/Server/Utils/SsoRequiredSignIn", () => {
- *     return jest
- *       .requireActual<typeof import("./SsoNotRequiredStandIn")>(
+ *     return (
+ *       jest.requireActual(
  *         "./SsoNotRequiredStandIn",
- *       )
- *       .ssoNotRequired();
+ *       ) as typeof import("./SsoNotRequiredStandIn")
+ *     ).ssoNotRequired();
  *   });
  *
  * SsoRequiredSignInRoutes.test.ts drives the real one, with the server

@@ -1212,12 +1212,17 @@ describe("Settings > Single Sign-On", () => {
       submitButtonText: "Require SSO",
       submitButtonType: ButtonStyleType.DANGER,
     });
-    // What it does to the sign-in page, to people signed in now, and the test first.
+    /*
+     * What it does to the sign-in page and to people signed in now; the
+     * card's line above the switch says to test a provider first.
+     */
     expect(REQUIRE_SSO_COPY.confirmDescription).toMatch(
-      /sign-in page will then offer only SSO/,
+      /sign-in page will offer only SSO/,
     );
     expect(REQUIRE_SSO_COPY.confirmDescription).toMatch(/signed in now/);
-    expect(REQUIRE_SSO_COPY.confirmDescription).toMatch(/Test a provider/);
+    expect(REQUIRE_SSO_COPY.cardDescription).toMatch(
+      /Before you require SSO, sign in with a provider using Test Sign-in/,
+    );
     expect(confirm(false)).toBeUndefined();
   });
 

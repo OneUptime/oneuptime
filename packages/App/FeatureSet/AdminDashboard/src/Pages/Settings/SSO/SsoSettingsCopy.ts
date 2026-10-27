@@ -52,7 +52,11 @@ export const REQUIRE_SSO_COPY: {
   // Under the switch, whichever way it is set: the master admins' way in.
   masterAdminSentence: string;
   masterAdminAddressLabel: string;
-  // The dialog before SSO is required for everyone.
+  /*
+   * The dialog before SSO is required for everyone: its sentence fits a
+   * dialog's description (at most 150 characters, ShortDescriptionsGuard);
+   * the card's line above the switch says to test a provider first.
+   */
   confirmTitle: string;
   confirmDescription: string;
   confirmButton: string;
@@ -69,7 +73,7 @@ export const REQUIRE_SSO_COPY: {
   masterAdminAddressLabel: "Master admin sign-in",
   confirmTitle: "Require SSO for everyone?",
   confirmDescription:
-    "The sign-in page will then offer only SSO, and everyone except master admins must sign in with SSO to open any project, including people who are signed in now. Test a provider's sign-in first.",
+    "The sign-in page will offer only SSO. Everyone except master admins, including people signed in now, must sign in with SSO to open any project.",
   confirmButton: "Require SSO",
 };
 

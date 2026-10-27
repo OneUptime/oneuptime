@@ -1,6 +1,4 @@
 import React, { ComponentType, ReactElement, lazy, Suspense } from "react";
-import type { ComponentProps as LoginPageProps } from "./Pages/Login";
-import type { ComponentProps as LoginWithSsoPageProps } from "./Pages/LoginWithSSO";
 import {
   Navigate,
   Params,
@@ -24,20 +22,27 @@ const ForgotPasswordPage: React.LazyExoticComponent<() => JSX.Element> = lazy(
     return import("./Pages/ForgotPassword");
   },
 );
-const LoginPage: React.LazyExoticComponent<ComponentType<LoginPageProps>> =
-  lazy(() => {
-    return import("./Pages/Login");
-  });
+/*
+ * What the routes below hand the sign-in pages, written here rather than
+ * imported from them: a page module is only ever loaded lazily
+ * (McpAuthorizeWiring holds this file to that).
+ */
+const LoginPage: React.LazyExoticComponent<
+  ComponentType<{ isMasterAdminSignIn?: boolean | undefined }>
+> = lazy(() => {
+  return import("./Pages/Login");
+});
 const MobilePasskeyPage: React.LazyExoticComponent<() => JSX.Element> = lazy(
   () => {
     return import("./Pages/MobilePasskey");
   },
 );
-const LoginWithSSO: React.LazyExoticComponent<
-  ComponentType<LoginWithSsoPageProps>
-> = lazy(() => {
-  return import("./Pages/LoginWithSSO");
-});
+// Drawn on its own here, with none of the props the sign-in page hands it.
+const LoginWithSSO: React.LazyExoticComponent<ComponentType<object>> = lazy(
+  () => {
+    return import("./Pages/LoginWithSSO");
+  },
+);
 const NotFound: React.LazyExoticComponent<() => JSX.Element> = lazy(() => {
   return import("./Pages/NotFound");
 });

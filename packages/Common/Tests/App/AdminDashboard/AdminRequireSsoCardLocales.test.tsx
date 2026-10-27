@@ -151,7 +151,7 @@ const MASTER_ADMIN_SENTENCE: string =
 const MASTER_ADMIN_LABEL: string = "Master admin sign-in";
 const CONFIRM_TITLE: string = "Require SSO for everyone?";
 const CONFIRM_DESCRIPTION: string =
-  "The sign-in page will then offer only SSO, and everyone except master admins must sign in with SSO to open any project, including people who are signed in now. Test a provider's sign-in first.";
+  "The sign-in page will offer only SSO. Everyone except master admins, including people signed in now, must sign in with SSO to open any project.";
 const CONFIRM_BUTTON: string = "Require SSO";
 
 const CARD_STRINGS: Array<string> = [
