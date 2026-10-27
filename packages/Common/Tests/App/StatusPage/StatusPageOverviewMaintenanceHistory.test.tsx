@@ -609,6 +609,34 @@ describe("Status page overview - a resource under maintenance says so", () => {
     expect(pill).toHaveAttribute("data-ou-pill");
   });
 
+  test("wraps after the name flush with it, and keeps the name's help beside the name", async () => {
+    await renderOverview();
+
+    const label: HTMLElement = screen.getByTestId("resource-under-maintenance");
+    const row: HTMLElement = label.parentElement as HTMLElement;
+    const nameGroup: HTMLElement = within(row).getByText("Public API")
+      .parentElement as HTMLElement;
+
+    // The row's gap spaces it from the name: no margin to indent it when it wraps.
+    expect(row.className.split(" ")).toEqual(
+      expect.arrayContaining(["flex", "flex-wrap", "gap-x-2"]),
+    );
+    expect(label.className.split(" ")).not.toEqual(
+      expect.arrayContaining(["ml-2"]),
+    );
+    /*
+     * The name sits in a group of its own that never wraps, where its help
+     * icon goes: a long name kept its "?" beside it, not on the next line.
+     */
+    expect(nameGroup).not.toBe(row);
+    expect(nameGroup.parentElement).toBe(row);
+    expect(nameGroup.className).not.toContain("flex-wrap");
+    // The status beside them is still in the resource's header row.
+    expect(
+      row.closest("[data-testid='status-page-resource-header']"),
+    ).not.toBeNull();
+  });
+
   test("an event that is over puts nothing under maintenance", async () => {
     mockRespondToPost = (): HTTPResponse<JSONObject> => {
       return new HTTPResponse<JSONObject>(

@@ -14,7 +14,10 @@ import {
 } from "@jest/globals";
 import MaintenanceWindow from "../../../../UI/Components/Graphs/MaintenanceWindow";
 import OneUptimeDate from "../../../../Types/Date";
-import { setDateDisplayLanguage } from "../../../../Types/DateLanguage";
+import {
+  setDateDisplayLanguage,
+  writeDigitsInLocale,
+} from "../../../../Types/DateLanguage";
 import Timezone from "../../../../Types/Timezone";
 
 /*
@@ -88,11 +91,18 @@ describe("MaintenanceWindow", () => {
       screen.getByTestId("window").querySelectorAll("bdi"),
     );
 
+    /*
+     * The start: the date in Persian with its time; the end: its time. Both
+     * in Persian's own digits, as every date and time on a Persian page.
+     */
+    const startTime: string = writeDigitsInLocale("02:00", "fa");
+    const endTime: string = writeDigitsInLocale("04:00", "fa");
+
+    expect(startTime).not.toBe("02:00");
     expect(ends).toHaveLength(2);
-    // The start: the date in Persian with its time; the end: its time.
-    expect(ends[0]!.textContent).toContain("02:00");
-    expect(ends[0]!.textContent).not.toContain("04:00");
-    expect(ends[1]!.textContent).toContain("04:00");
+    expect(ends[0]!.textContent).toContain(startTime);
+    expect(ends[0]!.textContent).not.toContain(endTime);
+    expect(ends[1]!.textContent).toContain(endTime);
     expect(ends[1]!.textContent!.endsWith("CET")).toBe(true);
   });
 

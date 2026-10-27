@@ -49,6 +49,7 @@ import {
   INCIDENT_MARK_COLOR,
 } from "../../../../UI/Components/Graphs/UptimeDayEventTone";
 import { StatusDuration } from "../../../../UI/Components/Graphs/UptimeDaySummary";
+import { ICON_MIRRORED_RIGHT_TO_LEFT_CLASS_NAME } from "../../../../UI/Components/Icon/Icon";
 import { Green, Red, Yellow } from "../../../../Types/BrandColors";
 import Color, { RGB } from "../../../../Types/Color";
 import OneUptimeDate from "../../../../Types/Date";
@@ -269,5 +270,50 @@ describe("UptimeBarTooltip - names in the reader's language", () => {
     expect(
       screen.getByTestId("uptime-tooltip-incident-severity"),
     ).toHaveTextContent("Low");
+  });
+});
+
+describe("UptimeBarTooltip - on a page read right to left", () => {
+  afterEach(() => {
+    document.documentElement.removeAttribute("dir");
+  });
+
+  test("it reads the page's way, though the strip it opens in runs left to right", () => {
+    document.documentElement.setAttribute("dir", "rtl");
+
+    renderTooltip();
+
+    expect(screen.getByTestId("uptime-bar-tooltip")).toHaveAttribute(
+      "dir",
+      "rtl",
+    );
+  });
+
+  test("and left to right on every other page", () => {
+    renderTooltip();
+
+    expect(screen.getByTestId("uptime-bar-tooltip")).toHaveAttribute(
+      "dir",
+      "ltr",
+    );
+  });
+
+  test("an event's chevron turns round with the line", () => {
+    renderTooltip({
+      onIncidentClick: () => {},
+      onMaintenanceClick: () => {},
+    });
+
+    const chevrons: Array<HTMLElement> = screen.getAllByTestId(
+      "uptime-tooltip-event-chevron",
+    );
+
+    expect(chevrons).toHaveLength(2);
+
+    for (const chevron of chevrons) {
+      expect(chevron.getAttribute("class")).toBe(
+        ICON_MIRRORED_RIGHT_TO_LEFT_CLASS_NAME,
+      );
+    }
   });
 });

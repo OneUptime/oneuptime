@@ -8,6 +8,7 @@ import {
   INCIDENT_MARK_COLOR,
   UPTIME_DAY_COUNT_STYLE,
 } from "../Graphs/UptimeDayEventTone";
+import { ICON_MIRRORED_RIGHT_TO_LEFT_CLASS_NAME } from "../Icon/Icon";
 import Pill from "../Pill/Pill";
 import Color from "../../../Types/Color";
 import OneUptimeDate from "../../../Types/Date";
@@ -476,6 +477,9 @@ const DayEventCard: FunctionComponent<{
             viewBox="0 0 16 16"
             fill="none"
             aria-hidden="true"
+            data-testid="uptime-day-event-chevron"
+            // It points along the line: a right-to-left page turns it round.
+            className={ICON_MIRRORED_RIGHT_TO_LEFT_CLASS_NAME}
             style={{ flexShrink: 0, marginTop: "3px" }}
           >
             <path

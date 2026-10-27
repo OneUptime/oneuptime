@@ -3,6 +3,8 @@ import DayUptimeGraphUtil from "../../../Utils/Uptime/DayUptimeGraphUtil";
 import UptimeBarTooltipIncident from "../../../Types/Monitor/UptimeBarTooltipIncident";
 import UptimeBarTooltipMaintenance from "../../../Types/Monitor/UptimeBarTooltipMaintenance";
 import { MAINTENANCE_MARK_COLOR } from "../../../Utils/StatusPage/HistoryChartBarColors";
+import { ICON_MIRRORED_RIGHT_TO_LEFT_CLASS_NAME } from "../Icon/Icon";
+import { getPageReadingDirection } from "../../Utils/PageLanguage";
 import IncidentIcon from "./IncidentIcon";
 import MaintenanceIcon from "./MaintenanceIcon";
 import {
@@ -45,6 +47,23 @@ const COUNT_STYLE: React.CSSProperties = {
   ...UPTIME_DAY_COUNT_STYLE,
   fontSize: "10px",
   padding: "1px 7px",
+};
+
+/*
+ * An event's edge in its own colour - its severity's, the maintenance blue
+ * - at the start of its line, square there and round at the end, in the
+ * reader's direction: a Persian page draws it on the right.
+ */
+const getEventEdgeStyle: (color: string) => React.CSSProperties = (
+  color: string,
+): React.CSSProperties => {
+  return {
+    borderInlineStart: `3px solid ${color}`,
+    borderStartStartRadius: 0,
+    borderEndStartRadius: 0,
+    borderStartEndRadius: "6px",
+    borderEndEndRadius: "6px",
+  };
 };
 
 export interface ComponentProps {
@@ -97,6 +116,14 @@ const UptimeBarTooltip: FunctionComponent<ComponentProps> = (
 
   return (
     <div
+      /*
+       * Read the way the page is. The tooltip opens inside the strip, which
+       * runs left to right in every language (its dir="ltr"), but what it
+       * says - the day, its statuses, its events - is the page's text: on a
+       * Persian page it reads from the right, as the day's dialog does.
+       */
+      dir={getPageReadingDirection()}
+      data-testid="uptime-bar-tooltip"
       style={{
         minWidth: "280px",
         maxWidth: "340px",
@@ -198,13 +225,16 @@ const UptimeBarTooltip: FunctionComponent<ComponentProps> = (
                       : undefined
                   }
                   style={{
-                    borderInlineStart: `3px solid ${incident.incidentSeverity ? incident.incidentSeverity.color.toString() : "#dc2626"}`,
+                    ...getEventEdgeStyle(
+                      incident.incidentSeverity
+                        ? incident.incidentSeverity.color.toString()
+                        : INCIDENT_MARK_COLOR.toString(),
+                    ),
                     padding: "6px 10px",
                     marginBottom: "6px",
                     cursor: isClickable ? "pointer" : "default",
                     transition: "background-color 0.12s ease",
                     backgroundColor: "var(--ou-surface-secondary, #fafafa)",
-                    borderRadius: "0 6px 6px 0",
                   }}
                   onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => {
                     if (isClickable) {
@@ -246,23 +276,7 @@ const UptimeBarTooltip: FunctionComponent<ComponentProps> = (
                     >
                       {incident.title}
                     </div>
-                    {isClickable && (
-                      <svg
-                        width="10"
-                        height="10"
-                        viewBox="0 0 16 16"
-                        fill="none"
-                        style={{ flexShrink: 0, opacity: 0.35 }}
-                      >
-                        <path
-                          d="M6 3l5 5-5 5"
-                          stroke="var(--ou-text-muted, #6b7280)"
-                          strokeWidth="1.5"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    )}
+                    {isClickable && <ChevronIcon />}
                   </div>
                   {/* Meta row: badges + time */}
                   <div
@@ -455,13 +469,12 @@ const UptimeBarTooltip: FunctionComponent<ComponentProps> = (
                 textAlign: "start",
                 font: "inherit",
                 border: "none",
-                borderLeft: `3px solid ${MAINTENANCE_MARK_COLOR.toString()}`,
+                ...getEventEdgeStyle(MAINTENANCE_MARK_COLOR.toString()),
                 padding: "6px 10px",
                 marginBottom: "6px",
                 cursor: isClickable ? "pointer" : "default",
                 transition: "background-color 0.12s ease",
                 backgroundColor: "var(--ou-surface-secondary, #fafafa)",
-                borderRadius: "0 6px 6px 0",
               };
 
               if (!isClickable) {
@@ -522,6 +535,11 @@ const UptimeBarTooltip: FunctionComponent<ComponentProps> = (
   );
 };
 
+/*
+ * The "opens its page" chevron after an event's title. It points along the
+ * line, so a right-to-left page turns it round, as Icon turns its own
+ * (ICON_MIRRORED_RIGHT_TO_LEFT_CLASS_NAME).
+ */
 const ChevronIcon: FunctionComponent = (): ReactElement => {
   return (
     <svg
@@ -530,6 +548,8 @@ const ChevronIcon: FunctionComponent = (): ReactElement => {
       viewBox="0 0 16 16"
       fill="none"
       aria-hidden="true"
+      data-testid="uptime-tooltip-event-chevron"
+      className={ICON_MIRRORED_RIGHT_TO_LEFT_CLASS_NAME}
       style={{ flexShrink: 0, opacity: 0.35 }}
     >
       <path

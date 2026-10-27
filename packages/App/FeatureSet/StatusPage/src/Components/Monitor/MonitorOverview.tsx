@@ -247,13 +247,16 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
       <div>
         {/* Monitor header: responsive layout for name, tooltip, and status */}
         <div
+          data-testid="status-page-resource-header"
           className="flex flex-col sm:flex-row sm:justify-between sm:items-start"
           style={{ marginBottom: "3px" }}
         >
           {/*
-           * The gap, not a margin on the label, spaces "Under maintenance"
-           * from the name: when a long name leaves it no room, it wraps to
-           * the next line flush with the name, not indented under it.
+           * The name and its help stay together on their line; the gap, not
+           * a margin on the label, spaces "Under maintenance" from them, so
+           * when a long name leaves it no room it wraps to the next line
+           * flush with the name, not indented under it - and never takes the
+           * help's "?" with it, away from the name it explains.
            */}
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mb-2 sm:mb-0">
             <div className="flex min-w-0 items-center">

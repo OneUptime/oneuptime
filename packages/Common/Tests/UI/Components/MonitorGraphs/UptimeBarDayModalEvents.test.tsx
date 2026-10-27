@@ -26,6 +26,7 @@ import {
   INCIDENT_MARK_COLOR,
 } from "../../../../UI/Components/Graphs/UptimeDayEventTone";
 import { getPillColors } from "../../../../UI/Components/Pill/PillColors";
+import { ICON_MIRRORED_RIGHT_TO_LEFT_CLASS_NAME } from "../../../../UI/Components/Icon/Icon";
 import { StatusDuration } from "../../../../UI/Components/Graphs/UptimeDaySummary";
 import { Green, Red, Yellow } from "../../../../Types/BrandColors";
 import Color, { RGB } from "../../../../Types/Color";
@@ -202,6 +203,22 @@ describe("UptimeBarDayModal - one card for both kinds", () => {
 
     expect(style).not.toContain("border-left");
     expect(style).not.toContain(rgbOf(MAINTENANCE_MARK_COLOR.toString()));
+  });
+
+  test("each card's chevron turns round with the line on a page read right to left", () => {
+    renderDialog();
+
+    const chevrons: Array<HTMLElement> = screen.getAllByTestId(
+      "uptime-day-event-chevron",
+    );
+
+    expect(chevrons).toHaveLength(2);
+
+    for (const chevron of chevrons) {
+      expect(chevron.getAttribute("class")).toBe(
+        ICON_MIRRORED_RIGHT_TO_LEFT_CLASS_NAME,
+      );
+    }
   });
 
   test("the keyboard's ring is an outline, which the hover's shadow cannot hide", () => {
