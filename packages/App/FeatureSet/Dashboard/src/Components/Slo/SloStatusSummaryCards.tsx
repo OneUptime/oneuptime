@@ -2,6 +2,8 @@ import {
   getSloStatusSummaryTileColor,
   getSloStatusSummaryTileQuery,
   isSloStatusSummaryTileApplied,
+  readProjectHadSlos,
+  rememberProjectHasSlos,
   SLO_STATUS_SUMMARY_TILES,
   SloStatusSummaryTile,
   SloStatusSummaryTileKey,
@@ -19,6 +21,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -70,6 +73,15 @@ const SloStatusSummaryCards: FunctionComponent<ComponentProps> = (
   const [counts, setCounts] = useState<SloStatusSummaryCounts | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [hasError, setHasError] = useState<boolean>(false);
+  const projectIdString: string = props.projectId.toString();
+
+  /*
+   * Whether this browser last saw the project with a live SLO: only then do
+   * skeletons hold the strip's place while it counts (readProjectHadSlos).
+   */
+  const hadSlosBefore: boolean = useMemo((): boolean => {
+    return readProjectHadSlos(projectIdString);
+  }, [projectIdString]);
 
   /*
    * Recounts can overlap - a refresh landing while the previous count is still
@@ -116,6 +128,7 @@ const SloStatusSummaryCards: FunctionComponent<ComponentProps> = (
 
       setCounts(nextCounts);
       setHasError(false);
+      rememberProjectHasSlos(projectIdString, hasAnySlo(nextCounts));
     } catch {
       if (requestId !== latestRequestIdRef.current) {
         return;
@@ -152,6 +165,15 @@ const SloStatusSummaryCards: FunctionComponent<ComponentProps> = (
    * to be healthy or not. The strip shows once there is an SLO.
    */
   if (counts && !hasAnySlo(counts)) {
+    return <></>;
+  }
+
+  /*
+   * Until the first counts land, skeletons hold the strip's place only where
+   * this browser last saw an SLO. On a project it never saw with one - a new
+   * project - they flashed six grey boxes over the empty list and vanished.
+   */
+  if (!counts && !hadSlosBefore) {
     return <></>;
   }
 

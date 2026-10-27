@@ -120,7 +120,7 @@ const VMwareVCenterLogs: FunctionComponent<
         }}
         showFilters={true}
         enableRealtime={true}
-        noLogsMessage="No logs found. The VMware agent ships metrics only by default — enable the syslog receiver in its collector config and point your ESXi hosts' Syslog.global.logHost at the agent (see the Documentation page) to see ESXi syslog here, or send any OpenTelemetry logs stamped with this vCenter's vmware.vcenter.name resource attribute."
+        noLogsMessage="The VMware agent sends metrics only by default. To see ESXi syslog here, enable the syslog receiver in its collector config and point your ESXi hosts' Syslog.global.logHost at the agent (see the Documentation page), or send OpenTelemetry logs with this vCenter's vmware.vcenter.name resource attribute."
       />
     </Fragment>
   );

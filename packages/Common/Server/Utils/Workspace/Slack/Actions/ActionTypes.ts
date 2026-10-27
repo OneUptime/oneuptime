@@ -144,6 +144,15 @@ enum SlackActionType {
    * block; its value names the project and the recorded request.
    */
   ChooseProject = "ChooseProject",
+
+  /*
+   * The Switch project menu of the app's Home tab, for somebody connected
+   * as a member in two or more of the workspace's projects (SlackHome): the
+   * Home is drawn again for the project chosen. Its option's value is the
+   * project's id, which decides nothing by itself - whether the person may
+   * see that project is read again when they choose it.
+   */
+  SwitchHomeProject = "SwitchHomeProject",
 }
 
 // Emoji names that trigger saving a message as a Private Note (Internal Note)

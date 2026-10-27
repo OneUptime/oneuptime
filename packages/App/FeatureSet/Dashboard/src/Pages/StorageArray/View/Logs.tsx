@@ -122,7 +122,7 @@ const StorageArrayLogs: FunctionComponent<
         }}
         showFilters={true}
         enableRealtime={true}
-        noLogsMessage="No logs found for this storage array. The Storage Array Agent ships metrics by default — forward the array's syslog to the agent's optional syslog receiver and its lines appear here, tagged with the storage.array.name resource attribute."
+        noLogsMessage="The Storage Array Agent sends metrics by default. Forward the array's syslog to the agent's optional syslog receiver and its lines appear here, tagged with the storage.array.name resource attribute."
       />
     </Fragment>
   );

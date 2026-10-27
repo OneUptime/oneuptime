@@ -38,6 +38,7 @@ import {
   DashboardWidgetSortColumns,
   DashboardWidgetSortDirection,
   DashboardWidgetSortKind,
+  readDashboardWidgetSortChoiceForColumns,
 } from "../../../Types/Dashboard/DashboardWidgetSort";
 import { JSONObject, ObjectType } from "../../../Types/JSON";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
@@ -54,6 +55,30 @@ import {
 } from "../../../Utils/Dashboard/DashboardWidgetSorts";
 import { createTranslator } from "../../../UI/Utils/TranslateTemplate";
 import { ComponentArgument } from "../../../Types/Dashboard/DashboardComponents/ComponentArgument";
+import fs from "fs";
+import path from "path";
+
+// A Dashboard locale file as it ships.
+function readDashboardLocale(language: string): Record<string, string> {
+  return JSON.parse(
+    fs.readFileSync(
+      path.resolve(
+        __dirname,
+        "..",
+        "..",
+        "..",
+        "..",
+        "App",
+        "FeatureSet",
+        "Dashboard",
+        "src",
+        "Locales",
+        `${language}.json`,
+      ),
+      "utf8",
+    ),
+  ) as Record<string, string>;
+}
 
 /*
  * A list or table widget's Sort setting (issue #5082): the order everyone
@@ -302,7 +327,13 @@ describe("the Sort setting's choices", () => {
     ).toBe(false);
   });
 
-  test("a saved sort no column answers to is kept as a choice of its own, as written", () => {
+  /*
+   * A saved sort on a column the widget no longer has is kept as a choice of
+   * its own, so the setting shows what is saved - but in words: the widget
+   * reads such a sort as none and shows its default order, which the stored
+   * key ("uptime:desc", "group:asc") never said.
+   */
+  test("a saved sort on a column the widget no longer has says so, never its stored key", () => {
     const columns: DashboardWidgetSortColumns | null =
       getWidgetSortSettingColumns(DashboardComponentType.MonitorList, null);
 
@@ -316,8 +347,123 @@ describe("the Sort setting's choices", () => {
 
     expect(options[options.length - 1]).toEqual({
       value: "uptime:desc",
-      label: "uptime:desc",
+      label: "A removed column (the default order is shown)",
     });
+
+    for (const option of options) {
+      expect(option.label).not.toContain(":desc");
+      expect(option.label).not.toContain(":asc");
+    }
+
+    // The widget itself reads that sort as none: its default order.
+    expect(
+      readDashboardWidgetSortChoiceForColumns("uptime:desc", columns!.columns),
+    ).toBeNull();
+  });
+
+  test("a trace table's saved sort on its group column, once it groups by a resource, reads as a removed column", () => {
+    /*
+     * Grouped by a resource (a host, a cluster), its preview reports the
+     * metric columns only: the server names those ids after ranking, so the
+     * group column does not sort. A sort an editor saved while it grouped
+     * by span name is then on a column it no longer has.
+     */
+    const metricColumnsOnly: DashboardWidgetSortColumns =
+      getWidgetSortSettingColumns(DashboardComponentType.TraceTable, null)!;
+    const columns: DashboardWidgetSortColumns | null =
+      getWidgetSortSettingColumns(
+        DashboardComponentType.TraceTable,
+        metricColumnsOnly,
+      );
+
+    expect(
+      columns!.columns.some((column: { key: string }): boolean => {
+        return column.key === "group";
+      }),
+    ).toBe(false);
+
+    const options: Array<{ value: string; label: string }> =
+      getWidgetSortOptions({
+        columns: columns!.columns,
+        builtInSort: columns!.builtInSort,
+        savedSort: "group:asc",
+        translator: ENGLISH,
+      });
+
+    expect(
+      options.find((option: { value: string }): boolean => {
+        return option.value === "group:asc";
+      }),
+    ).toEqual({
+      value: "group:asc",
+      label: "A removed column (the default order is shown)",
+    });
+  });
+
+  test("a Data Source column saved before the query has answered is named as the query names it", () => {
+    const before: DashboardWidgetSortColumns | null =
+      getWidgetSortSettingColumns(DashboardComponentType.DataSourceTable, null);
+
+    expect(
+      getWidgetSortOptions({
+        columns: before!.columns,
+        builtInSort: before!.builtInSort,
+        savedSort: "p95_latency:desc",
+        translator: ENGLISH,
+      }),
+    ).toEqual([
+      { value: WIDGET_SORT_DEFAULT_VALUE, label: "The query's order" },
+      { value: "p95_latency:desc", label: "p95_latency: Descending" },
+    ]);
+    expect(
+      getWidgetSortOptions({
+        columns: before!.columns,
+        builtInSort: before!.builtInSort,
+        savedSort: "service:asc",
+        translator: ENGLISH,
+      })[1],
+    ).toEqual({ value: "service:asc", label: "service: Ascending" });
+  });
+
+  test("the removed column's words read in the reader's language", () => {
+    const columns: DashboardWidgetSortColumns | null =
+      getWidgetSortSettingColumns(DashboardComponentType.MonitorList, null);
+    const germanWords: Record<string, string> = readDashboardLocale("de");
+    const GERMAN: ReturnType<typeof createTranslator> = createTranslator(
+      (key: string): string | undefined => {
+        return germanWords[key];
+      },
+      "de",
+    );
+
+    const removed: { value: string; label: string } | undefined =
+      getWidgetSortOptions({
+        columns: columns!.columns,
+        builtInSort: columns!.builtInSort,
+        savedSort: "uptime:desc",
+        translator: GERMAN,
+      }).find((option: { value: string }): boolean => {
+        return option.value === "uptime:desc";
+      });
+
+    expect(removed?.label).toBe(
+      germanWords["A removed column (the default order is shown)"],
+    );
+    expect(removed?.label).not.toBe(
+      "A removed column (the default order is shown)",
+    );
+
+    const before: DashboardWidgetSortColumns | null =
+      getWidgetSortSettingColumns(DashboardComponentType.DataSourceTable, null);
+
+    expect(
+      getWidgetSortOptions({
+        columns: before!.columns,
+        builtInSort: before!.builtInSort,
+        savedSort: "errors:desc",
+        translator: GERMAN,
+      })[1]!.label,
+    ).toBe(`errors: ${germanWords["Descending"]}`);
   });
 
   test("the saved sort selects its choice; none, or the built-in order, selects the default", () => {

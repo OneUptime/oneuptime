@@ -51,7 +51,12 @@ const BARE_CONTAINERS: Array<string> = [ROOT, FRAGMENT];
 const CARD_LIKE_NAME: RegExp = /Card$/;
 const ATTRIBUTE_NAME_START: RegExp = /[A-Za-z_]/;
 const ATTRIBUTE_NAME_PART: RegExp = /[\w-]/;
-const EMPTY_STATE_MESSAGE: RegExp = /^"No [^"]+"$/;
+/*
+ * The line under the logs list's own "No logs found": a message of its own
+ * that says how logs get here, never the title again (LogsEmptyHintsGuard).
+ */
+const EMPTY_STATE_MESSAGE: RegExp = /^"[^"]+"$/;
+const RESTATES_THE_TITLE: RegExp = /^"No logs\b/i;
 
 interface JsxElement {
   name: string;
@@ -742,6 +747,7 @@ describe("the Logs tabs taken out of their card", () => {
       expect(attributes["showFilters"]).toBe("{true}");
       expect(attributes["enableRealtime"]).toBe("{true}");
       expect(attributes["noLogsMessage"]).toMatch(EMPTY_STATE_MESSAGE);
+      expect(attributes["noLogsMessage"]).not.toMatch(RESTATES_THE_TITLE);
     },
   );
 

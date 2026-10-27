@@ -188,8 +188,28 @@ function histogramReads(): Array<Record<string, unknown>> {
   return postsTo("/telemetry/exceptions/histogram");
 }
 
-function facetReads(): Array<Record<string, unknown>> {
+function facetRequests(): Array<Record<string, unknown>> {
   return postsTo("/telemetry/exceptions/facets");
+}
+
+/*
+ * The facet reads. A read is one request for every facet nothing is chosen
+ * in, carrying every filter, sent after one request per facet with a value
+ * chosen, which leaves that facet's own selection out (FacetCountPlan): a
+ * read is counted by the former.
+ */
+function facetReads(): Array<Record<string, unknown>> {
+  return facetRequests().filter((body: Record<string, unknown>): boolean => {
+    return (body["facetKeys"] as Array<string>).length > 1;
+  });
+}
+
+// The requests that count one chosen facet without its own selection.
+function ownSelectionCounts(facetKey: string): Array<Record<string, unknown>> {
+  return facetRequests().filter((body: Record<string, unknown>): boolean => {
+    const keys: Array<string> = body["facetKeys"] as Array<string>;
+    return keys.length === 1 && keys[0] === facetKey;
+  });
 }
 
 // Every read, in one string, for "nothing more went out" assertions.
@@ -539,6 +559,13 @@ describe("a real change reads once", () => {
     expect(listReads()[1]!.query["exceptionType"]).toBe("TypeError");
     expect(histogramReads()).toHaveLength(2);
     expect(facetReads()).toHaveLength(2);
+    expect(facetReads()[1]!["exceptionTypes"]).toEqual(["TypeError"]);
+    // Exception Type is counted without its own chip: the other types stay.
+    expect(ownSelectionCounts("exceptionType")).toHaveLength(1);
+    expect(ownSelectionCounts("exceptionType")[0]!["exceptionTypes"]).toBe(
+      undefined,
+    );
+    expect(facetRequests()).toHaveLength(3);
   });
 
   test("paging: one list read per page, and the chart and facets stay", async () => {

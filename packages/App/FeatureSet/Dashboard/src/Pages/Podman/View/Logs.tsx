@@ -107,7 +107,7 @@ const PodmanHostLogs: FunctionComponent<
         }}
         showFilters={true}
         enableRealtime={true}
-        noLogsMessage="No container logs found. Make sure the Podman agent's filelog receiver is configured and the collector is running."
+        noLogsMessage="Make sure the Podman agent's filelog receiver is configured and the collector is running."
       />
     </Fragment>
   );

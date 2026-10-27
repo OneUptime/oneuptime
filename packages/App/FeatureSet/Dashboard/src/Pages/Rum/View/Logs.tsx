@@ -86,7 +86,7 @@ const RumApplicationLogs: FunctionComponent<
         scopeEntityType={ServiceType.RealUserMonitor}
         showFilters={true}
         enableRealtime={true}
-        noLogsMessage="No logs found for this application."
+        noLogsMessage="Logs appear here as soon as this application sends them."
       />
     </Fragment>
   );

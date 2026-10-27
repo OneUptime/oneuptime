@@ -199,6 +199,7 @@ OneUptimeReplay.captureSession("installation test");
 | `bootstrap-already-started` | 同一页面上有两份代码片段。删除其中一份。 |
 | `bootstrap-already-running` | 在录制器已经运行时再次调用了 `bootstrap()` 。无害；通常是重复的集成。 |
 | `bootstrap-cancelled` | 在录制器启动之前，执行了 `window.OneUptimeReplayQueue` 队列中的 `revokeConsent()` 或 `stop()` ，因此这个会话不会被录制。如果你的横幅已被拒绝，这是正确的。 |
+| `prerender-wait` | 浏览器预渲染了这个页面（Chrome 会对它预计接下来会被打开的页面这样做），而且还没有人打开它。录制器在访客打开页面时才启动，因此从未被打开的页面什么也不会录制；在此期间你的页面发出的调用会在那时应用。 |
 | `start-stopped` | 在独立包路径上， `start()` 没有获得可用的策略。确切原因在紧挨着它上方的 `config-*` 行中。 |
 | `rrweb-did-not-start` | DOM 录制器拒绝启动。请报告此问题。 |
 | `rrweb-error` | DOM 录制器在这个页面上遇到了内部错误（错误名称在详细信息中；只记录一次）。录制可能在该处跳跃或卡住，出现三次这样的错误后，会话会带有一条说明此情况的保真度通知。请附上页面的框架和错误名称进行报告。 |

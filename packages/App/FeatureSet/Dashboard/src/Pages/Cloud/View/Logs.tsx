@@ -130,7 +130,7 @@ const CloudResourceLogs: FunctionComponent<
         attributeFilterDisplayKeys={attributeFilterDisplayKeys}
         showFilters={true}
         enableRealtime={true}
-        noLogsMessage="No logs found for this cloud environment."
+        noLogsMessage="Logs appear here when they carry this environment's cloud.platform, cloud.account.id and cloud.region resource attributes."
       />
     </Fragment>
   );

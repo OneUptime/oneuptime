@@ -93,7 +93,7 @@ const LogGroupByAttributesInput: FunctionComponent<ComponentProps> = (
         );
       })}
       {rows.length < MAX_LOG_MONITOR_GROUP_BY_ATTRIBUTES && (
-        <div className="-ml-3">
+        <div className="md:-ml-3">
           <Button
             dataTestId="add-log-group-by-attribute"
             title="Add Attribute"

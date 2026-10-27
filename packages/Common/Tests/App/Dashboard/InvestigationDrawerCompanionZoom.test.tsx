@@ -494,7 +494,9 @@ describe("the drawer's companion tabs name the window they show", () => {
 
     await waitFor(() => {
       expect(
-        within(tabPanel()).getByText(`No logs found in ${ZOOMED_WINDOW_NAME}.`),
+        within(tabPanel()).getByText(
+          `Nothing was logged in ${ZOOMED_WINDOW_NAME}.`,
+        ),
       ).toBeInTheDocument();
     });
   });

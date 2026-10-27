@@ -535,7 +535,30 @@ describe("the metric Value widget's other shapes of series", () => {
     expect(chip).toHaveTextContent("↑200%");
   });
 
-  test("a bucket with no number leaves a line with no NaN in it", async () => {
+  test("a bucket with no number leaves a line with no NaN in it: an average leaves it out", async () => {
+    const withNulls: Array<AggregatedModel> = RISING_WEEK.map(
+      (bucket: Bucket): AggregatedModel => {
+        return bucketAt(
+          bucket.hour % 10 === 0 ? { ...bucket, value: null } : bucket,
+        );
+      },
+    ).reverse();
+
+    renderMetricWidget({
+      buckets: withNulls,
+      aggregation: MetricsAggregationType.Avg,
+    });
+
+    const svg: Element = await screen.findByTestId(SPARKLINE_TEST_ID);
+    const points: string = svg
+      .querySelector("polyline")!
+      .getAttribute("points")!;
+
+    expect(points).not.toContain("NaN");
+    expect(linePoints(svg)).toHaveLength(168 - 17);
+  });
+
+  test("a bucket with no number in a sum counts nothing: drawn at 0 between readings, never NaN", async () => {
     const withNulls: Array<AggregatedModel> = RISING_WEEK.map(
       (bucket: Bucket): AggregatedModel => {
         return bucketAt(
@@ -552,7 +575,11 @@ describe("the metric Value widget's other shapes of series", () => {
       .getAttribute("points")!;
 
     expect(points).not.toContain("NaN");
-    expect(linePoints(svg)).toHaveLength(168 - 17);
+    /*
+     * Hour 0 is empty and comes before the first reading, so the line
+     * starts at hour 1; the 16 empty hours after it are drawn at 0.
+     */
+    expect(linePoints(svg)).toHaveLength(167);
   });
 
   test("one bucket: the number, with no line and no arrow - nothing to compare", async () => {
@@ -566,6 +593,96 @@ describe("the metric Value widget's other shapes of series", () => {
 
     expect(screen.queryByTestId(SPARKLINE_TEST_ID)).toBeNull();
     expect(screen.queryByTestId(TREND_TEST_ID)).toBeNull();
+  });
+
+  /*
+   * A sparse count: deploys, now and then. The metrics API answers only the
+   * hours that had one, and the line drawn through just those read flat -
+   * 4, 4, 12, 12, 12, evenly spaced - while the arrow said the count rose
+   * 350%. Every empty hour between the first reading and the last is drawn
+   * at 0 now, so the spikes read as spikes and the line agrees with the
+   * arrow.
+   */
+  const SPARSE_DEPLOYS: Array<Bucket> = [
+    { hour: 10, value: 4 },
+    { hour: 40, value: 4 },
+    { hour: 100, value: 12 },
+    { hour: 130, value: 12 },
+    { hour: 160, value: 12 },
+  ];
+
+  test("a sparse count draws the empty hours between its readings at 0", async () => {
+    renderMetricWidget({
+      buckets: SPARSE_DEPLOYS.map(bucketAt).reverse(),
+      metricName: "deploys.count",
+    });
+
+    const svg: Element = await screen.findByTestId(SPARKLINE_TEST_ID);
+    const ys: Array<number> = linePoints(svg).map(
+      (point: [number, number]): number => {
+        return point[1];
+      },
+    );
+    const height: number = Number(svg.getAttribute("height"));
+
+    // Hours 10 to 160, one point each: the 146 empty ones too.
+    expect(ys).toHaveLength(151);
+
+    const baseline: number = Math.max(...ys);
+    const readingIndexes: Set<number> = new Set<number>(
+      SPARSE_DEPLOYS.map((bucket: Bucket): number => {
+        return bucket.hour - 10;
+      }),
+    );
+
+    ys.forEach((y: number, index: number): void => {
+      if (readingIndexes.has(index)) {
+        expect(y).toBeLessThan(baseline);
+      } else {
+        expect(y).toBe(baseline);
+      }
+    });
+
+    // The baseline is the box's bottom less its padding: a real 0.
+    expect(baseline).toBe(height - 4);
+    // The later readings stand three times as tall as the earlier ones.
+    expect(ys[90]!).toBeLessThan(ys[0]!);
+    expect(ys[150]!).toBe(ys[90]!);
+
+    // The arrow compares the halves' totals: 8 then 36.
+    expect(screen.getByTestId(TREND_TEST_ID)).toHaveTextContent("↑350%");
+  });
+
+  test("a sparse count's line ends at its newest reading, never on a 0 that has not landed yet", async () => {
+    renderMetricWidget({
+      buckets: SPARSE_DEPLOYS.map(bucketAt).reverse(),
+      metricName: "deploys.count",
+    });
+
+    const svg: Element = await screen.findByTestId(SPARKLINE_TEST_ID);
+    const points: Array<[number, number]> = linePoints(svg);
+    const baseline: number = Math.max(
+      ...points.map((point: [number, number]): number => {
+        return point[1];
+      }),
+    );
+
+    // The last hours of the week (161 to 167) had no reading: not drawn.
+    expect(points).toHaveLength(151);
+    expect(points[points.length - 1]![1]).toBeLessThan(baseline);
+    expect(points[0]![1]).toBeLessThan(baseline);
+  });
+
+  test("an average of the same readings keeps its gaps: no reading is not 0", async () => {
+    renderMetricWidget({
+      buckets: SPARSE_DEPLOYS.map(bucketAt).reverse(),
+      metricName: "deploy.duration",
+      aggregation: MetricsAggregationType.Avg,
+    });
+
+    const svg: Element = await screen.findByTestId(SPARKLINE_TEST_ID);
+
+    expect(linePoints(svg)).toHaveLength(SPARSE_DEPLOYS.length);
   });
 
   test("a metric that began reporting late in the week draws its line, with no arrow", async () => {
