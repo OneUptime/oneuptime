@@ -132,6 +132,7 @@ describe("the fields", () => {
     expect(keys.slice(keys.indexOf("description"))).toEqual([
       "description",
       "whenToPage",
+      "aiHoldTimeInMinutes",
       "workingHours",
       "workingHoursTimezone",
     ]);
@@ -142,6 +143,7 @@ describe("the fields", () => {
 
     for (const column of [
       "whenToPage",
+      "aiHoldTimeInMinutes",
       "workingHoursTimezone",
       "workingHours",
     ]) {
@@ -152,7 +154,7 @@ describe("the fields", () => {
     }
   });
 
-  test("asks when the rule should page, in two answers that each say what they mean", () => {
+  test("asks when the rule should page, in answers that each say what they mean - the third, for alert and incident rules, lets OneUptime AI try first", () => {
     const whenToPage: Field<Values> = field("whenToPage");
 
     expect(whenToPage.title).toBe("When should this rule page?");
@@ -168,6 +170,12 @@ describe("the fields", () => {
         title: "Only during working hours",
         description: "Outside working hours, wait and page when they begin.",
         value: OnCallRuleWhenToPage.WorkingHours,
+      },
+      {
+        title: "After OneUptime AI tries",
+        description:
+          "OneUptime AI looks first and fixes what it may. If it hasn't resolved this in time, page as usual.",
+        value: OnCallRuleWhenToPage.AfterOneUptimeAI,
       },
     ]);
     expect(WHEN_TO_PAGE_TITLES[OnCallRuleWhenToPage.RightAway]).toBe(

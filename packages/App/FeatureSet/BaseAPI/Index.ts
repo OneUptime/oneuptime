@@ -19,6 +19,7 @@ import TelemetryAiAPI from "Common/Server/API/TelemetryAiAPI";
 import AIInvestigationConversationAPI from "Common/Server/API/AIInvestigationConversationAPI";
 import AIInsightAPI from "Common/Server/API/AIInsightAPI";
 import AutoRemediationAPI from "Common/Server/API/AutoRemediationAPI";
+import AiFirstResponderAPI from "Common/Server/API/AiFirstResponderAPI";
 import AIConversation from "Common/Models/DatabaseModels/AIConversation";
 import AIConversationService, {
   Service as AIConversationServiceType,
@@ -4334,6 +4335,7 @@ const BaseAPIFeatureSet: FeatureSet = {
      * win the match.
      */
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, AutoRemediationAPI);
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, AiFirstResponderAPI);
 
     /*
      * Cluster AI access — readiness checklist + "test access" for a

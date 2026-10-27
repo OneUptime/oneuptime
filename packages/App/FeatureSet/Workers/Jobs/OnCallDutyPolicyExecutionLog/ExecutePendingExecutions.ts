@@ -13,6 +13,8 @@ import { isOnCallPageAgainRun } from "Common/Types/OnCallDutyPolicy/OnCallAcknow
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import { getOnCallPolicyRunEndedWhileWaitingMessage } from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyRunWait";
+import { OnCallPolicyAiHoldOutcome } from "Common/Types/OnCallDutyPolicy/OnCallPolicyAiHold";
+import AiFirstResponder from "Common/Server/Utils/AI/FirstResponder/AiFirstResponder";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import OnCallDutyPolicyExecutionLogService from "Common/Server/Services/OnCallDutyPolicyExecutionLogService";
@@ -66,6 +68,8 @@ RunCron(
           createdAt: true,
           // A page again ends when its record is resolved, not acknowledged.
           pageAgainNumber: true,
+          // A run OneUptime AI holds says how its hold ended.
+          aiHoldOutcome: true,
           onCallDutyPolicy: {
             repeatPolicyIfNoOneAcknowledges: true,
             repeatPolicyIfNoOneAcknowledgesNoOfTimes: true,
@@ -375,6 +379,10 @@ const getResolvedRecordKind: GetResolvedRecordKindFunction = async (
  * - its moment came: it pages its first escalation rule, and from then on
  *   is a run like any other (executeOnCallPolicy).
  *
+ * A run OneUptime AI held (OnCallPolicyAiHold) says how its hold ended, in
+ * the same claim: how its record came to be handled (classifyEndedHold), or
+ * that its hold time ran out.
+ *
  * Starting and ending are each claimed, so of two ticks or two worker
  * replicas that read the same waiting run, one acts and the other does
  * nothing (startWaitingRun, endWaitingRun).
@@ -387,11 +395,16 @@ const startOrEndWaitingRun: StartOrEndWaitingRunFunction = async (
   executionLog: OnCallDutyPolicyExecutionLog,
 ): Promise<void> => {
   try {
+    const isAiHeld: boolean =
+      executionLog.aiHoldOutcome === OnCallPolicyAiHoldOutcome.Holding;
+
     if (executionLog.onCallDutyPolicy?.isArchived === true) {
       await OnCallDutyPolicyExecutionLogService.endWaitingRun({
         executionLogId: executionLog.id!,
         status: OnCallDutyPolicyStatus.Error,
         statusMessage: ON_CALL_POLICY_ARCHIVED_NOT_EXECUTED_MESSAGE,
+        // Its hold ended with neither a page nor a resolve: it is no hold now.
+        aiHoldOutcome: isAiHeld ? null : undefined,
       });
 
       return;
@@ -406,6 +419,9 @@ const startOrEndWaitingRun: StartOrEndWaitingRunFunction = async (
         status: OnCallDutyPolicyStatus.Completed,
         statusMessage:
           getOnCallPolicyRunEndedWhileWaitingMessage(handledRecordKind),
+        aiHoldOutcome: isAiHeld
+          ? await AiFirstResponder.classifyEndedHold(executionLog)
+          : undefined,
       });
 
       return;
@@ -427,6 +443,9 @@ const startOrEndWaitingRun: StartOrEndWaitingRunFunction = async (
     await OnCallDutyPolicyExecutionLogService.startWaitingRun({
       run: executionLog,
       now: now,
+      aiHoldOutcome: isAiHeld
+        ? OnCallPolicyAiHoldOutcome.HoldTimeRanOut
+        : undefined,
     });
   } catch (err: any) {
     logger.error(err);
