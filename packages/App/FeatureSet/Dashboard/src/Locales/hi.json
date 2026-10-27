@@ -28405,7 +28405,7 @@
   "What prompted this case, and what to look at first.": "यह केस किस वजह से बना और सबसे पहले क्या देखना है।",
   "What should this step do?": "इस चरण को क्या करना चाहिए?",
   "What the case is closed as.": "केस किस रूप में बंद होता है।",
-  "What the cases closed in the last 30 days turned out to be. Many false positives point at a rule to tune.": "पिछले 30 दिनों में बंद हुए केस आख़िर में क्या निकले। बहुत सारे फ़ॉल्स पॉज़िटिव ऐसे नियम की ओर इशारा करते हैं जिसे ठीक करना है।",
+  "What the cases closed in the last 30 days turned out to be.": "पिछले 30 दिनों में बंद हुए केस आख़िर में क्या निकले।",
   "What the cases turned out to be. Kept for the overview's verdict counts.": "What the cases turned out to be. Kept for the overview's verdict counts.",
   "What the playbook does, top to bottom. Each step runs once the one before it is done; a step that needs approval waits on the case until someone approves it.": "प्लेबुक ऊपर से नीचे क्या करता है। हर चरण पिछले के पूरा होते ही चलता है; जिस चरण को स्वीकृति चाहिए, वह केस पर तब तक रुका रहता है जब तक कोई उसे स्वीकृत न करे।",
   "When It Runs": "यह कब चलता है",

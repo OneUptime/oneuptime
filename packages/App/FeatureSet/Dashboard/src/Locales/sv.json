@@ -28405,7 +28405,7 @@
   "What prompted this case, and what to look at first.": "Vad som ledde till ärendet och vad du ska titta på först.",
   "What should this step do?": "Vad ska steget göra?",
   "What the case is closed as.": "Vad ärendet stängs som.",
-  "What the cases closed in the last 30 days turned out to be. Many false positives point at a rule to tune.": "Vad ärendena som stängdes de senaste 30 dagarna visade sig vara. Många falska positiva pekar på en regel som behöver justeras.",
+  "What the cases closed in the last 30 days turned out to be.": "Vad ärendena som stängdes de senaste 30 dagarna visade sig vara.",
   "What the cases turned out to be. Kept for the overview's verdict counts.": "What the cases turned out to be. Kept for the overview's verdict counts.",
   "What the playbook does, top to bottom. Each step runs once the one before it is done; a step that needs approval waits on the case until someone approves it.": "Vad playbooken gör, uppifrån och ned. Varje steg körs när det föregående är klart; ett steg som kräver godkännande väntar i ärendet tills någon godkänner det.",
   "When It Runs": "När den körs",

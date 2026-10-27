@@ -28405,7 +28405,7 @@
   "What prompted this case, and what to look at first.": "このケースのきっかけと、最初に確認すべきこと。",
   "What should this step do?": "このステップで何をしますか？",
   "What the case is closed as.": "ケースをどの判定でクローズするか。",
-  "What the cases closed in the last 30 days turned out to be. Many false positives point at a rule to tune.": "過去 30 日間にクローズしたケースの結果。誤検知が多い場合は、調整すべきルールがあります。",
+  "What the cases closed in the last 30 days turned out to be.": "過去 30 日間にクローズしたケースの結果。",
   "What the cases turned out to be. Kept for the overview's verdict counts.": "What the cases turned out to be. Kept for the overview's verdict counts.",
   "What the playbook does, top to bottom. Each step runs once the one before it is done; a step that needs approval waits on the case until someone approves it.": "プレイブックの動作を上から順に示します。各ステップは前のステップが終わると実行され、承認が必要なステップは誰かが承認するまでケース上で待機します。",
   "When It Runs": "実行されるタイミング",

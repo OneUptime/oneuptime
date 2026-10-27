@@ -28405,7 +28405,7 @@
   "What prompted this case, and what to look at first.": "Wat tot deze zaak leidde en waar u eerst naar moet kijken.",
   "What should this step do?": "Wat moet deze stap doen?",
   "What the case is closed as.": "Als wat de zaak wordt gesloten.",
-  "What the cases closed in the last 30 days turned out to be. Many false positives point at a rule to tune.": "Wat de zaken die de afgelopen 30 dagen zijn gesloten, bleken te zijn. Veel fout-positieven wijzen op een regel die moet worden bijgesteld.",
+  "What the cases closed in the last 30 days turned out to be.": "Wat de zaken die de afgelopen 30 dagen zijn gesloten, bleken te zijn.",
   "What the cases turned out to be. Kept for the overview's verdict counts.": "What the cases turned out to be. Kept for the overview's verdict counts.",
   "What the playbook does, top to bottom. Each step runs once the one before it is done; a step that needs approval waits on the case until someone approves it.": "Wat het playbook doet, van boven naar beneden. Elke stap start zodra de vorige klaar is; een stap die goedkeuring nodig heeft, wacht in de zaak tot iemand hem goedkeurt.",
   "When It Runs": "Wanneer het wordt uitgevoerd",

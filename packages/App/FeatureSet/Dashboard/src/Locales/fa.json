@@ -28405,7 +28405,7 @@
   "What prompted this case, and what to look at first.": "چه چیزی باعث این پرونده شد و اول به چه چیزی نگاه کنید.",
   "What should this step do?": "این گام چه کاری انجام دهد؟",
   "What the case is closed as.": "پرونده با چه حکمی بسته می‌شود.",
-  "What the cases closed in the last 30 days turned out to be. Many false positives point at a rule to tune.": "نتیجهٔ پرونده‌هایی که در ۳۰ روز گذشته بسته شدند. مثبت‌های کاذب زیاد یعنی قاعده‌ای باید تنظیم شود.",
+  "What the cases closed in the last 30 days turned out to be.": "نتیجهٔ پرونده‌هایی که در ۳۰ روز گذشته بسته شدند.",
   "What the cases turned out to be. Kept for the overview's verdict counts.": "What the cases turned out to be. Kept for the overview's verdict counts.",
   "What the playbook does, top to bottom. Each step runs once the one before it is done; a step that needs approval waits on the case until someone approves it.": "کاری که پلی‌بوک از بالا به پایین انجام می‌دهد. هر گام پس از تمام شدن گام قبلی اجرا می‌شود؛ گامی که به تأیید نیاز دارد روی پرونده منتظر می‌ماند تا کسی آن را تأیید کند.",
   "When It Runs": "چه زمانی اجرا می‌شود",

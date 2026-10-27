@@ -28405,7 +28405,7 @@
   "What prompted this case, and what to look at first.": "此案例因何而起，以及首先要查看什么。",
   "What should this step do?": "此步骤应该做什么？",
   "What the case is closed as.": "案例以何种结论关闭。",
-  "What the cases closed in the last 30 days turned out to be. Many false positives point at a rule to tune.": "过去 30 天关闭的案例最终的结论。误报较多说明有规则需要调整。",
+  "What the cases closed in the last 30 days turned out to be.": "过去 30 天关闭的案例最终的结论。",
   "What the cases turned out to be. Kept for the overview's verdict counts.": "What the cases turned out to be. Kept for the overview's verdict counts.",
   "What the playbook does, top to bottom. Each step runs once the one before it is done; a step that needs approval waits on the case until someone approves it.": "剧本从上到下要做的事。每个步骤会在上一步完成后运行；需要批准的步骤会在案例中等待，直到有人批准。",
   "When It Runs": "运行时机",

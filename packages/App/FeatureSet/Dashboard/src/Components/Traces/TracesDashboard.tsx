@@ -14,7 +14,7 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import TelemetryServiceUtil from "Common/UI/Utils/TelemetryService";
 import API from "Common/UI/Utils/API/API";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
-import { CARD_GRID_CELL_CLASS_NAME } from "Common/UI/Components/Card/CardGridLayout";
+import { CARD_ROW_COLUMN_CLASS_NAME } from "Common/UI/Components/Card/CardGridLayout";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
@@ -1015,14 +1015,14 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
       </div>
 
       {/*
-       * Two-column: Errors + Slow Requests. Each column is a cell of a
-       * card row (CARD_GRID_CELL_CLASS_NAME): its box runs to the row's
+       * Two-column: Errors + Slow Requests. Each column is a column of a
+       * card row (CARD_ROW_COLUMN_CLASS_NAME): its box runs to the row's
        * bottom, so a short list beside a long one leaves no bare page
        * under it.
        */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Errors */}
-        <div className={CARD_GRID_CELL_CLASS_NAME}>
+        <div className={CARD_ROW_COLUMN_CLASS_NAME}>
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-red-500" />
@@ -1104,7 +1104,7 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
         </div>
 
         {/* Slowest Requests */}
-        <div className={CARD_GRID_CELL_CLASS_NAME}>
+        <div className={CARD_ROW_COLUMN_CLASS_NAME}>
           <div className="flex items-center gap-2 mb-3">
             <div className="w-2 h-2 rounded-full bg-amber-500" />
             <h3 className="text-base font-semibold text-gray-900">

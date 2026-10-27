@@ -28405,7 +28405,7 @@
   "What prompted this case, and what to look at first.": "Ce qui a motivé ce dossier, et ce qu'il faut regarder en premier.",
   "What should this step do?": "Que doit faire cette étape ?",
   "What the case is closed as.": "Ce comme quoi le dossier est clôturé.",
-  "What the cases closed in the last 30 days turned out to be. Many false positives point at a rule to tune.": "Ce que se sont révélés être les dossiers fermés ces 30 derniers jours. De nombreux faux positifs signalent une règle à ajuster.",
+  "What the cases closed in the last 30 days turned out to be.": "Ce que se sont révélés être les dossiers fermés ces 30 derniers jours.",
   "What the cases turned out to be. Kept for the overview's verdict counts.": "What the cases turned out to be. Kept for the overview's verdict counts.",
   "What the playbook does, top to bottom. Each step runs once the one before it is done; a step that needs approval waits on the case until someone approves it.": "Ce que fait le playbook, de haut en bas. Chaque étape s'exécute une fois la précédente terminée ; une étape qui demande une approbation attend dans le dossier que quelqu'un l'approuve.",
   "When It Runs": "Quand il s'exécute",
