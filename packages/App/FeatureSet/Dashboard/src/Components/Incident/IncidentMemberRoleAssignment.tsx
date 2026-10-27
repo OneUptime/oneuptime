@@ -310,9 +310,13 @@ const IncidentMemberRoleAssignment: FunctionComponent<ComponentProps> = (
        * A role given is a new row of the incident's members, a role taken
        * off one removed: the header's Assign asks the same.
        */
-      assignGate={PermissionGate.check(new IncidentMember(), ModelAction.Create, {
-        sentence: INCIDENT_ROLES_LOCKED_SENTENCE,
-      })}
+      assignGate={PermissionGate.check(
+        new IncidentMember(),
+        ModelAction.Create,
+        {
+          sentence: INCIDENT_ROLES_LOCKED_SENTENCE,
+        },
+      )}
       unassignGate={PermissionGate.check(
         new IncidentMember(),
         ModelAction.Delete,

@@ -523,10 +523,12 @@ describe.each([
 
       const props: Record<string, unknown> =
         memberRoleProps[memberRoleProps.length - 1]!;
-      const assignGate: PermissionGateResult =
-        props["assignGate"] as PermissionGateResult;
-      const unassignGate: PermissionGateResult =
-        props["unassignGate"] as PermissionGateResult;
+      const assignGate: PermissionGateResult = props[
+        "assignGate"
+      ] as PermissionGateResult;
+      const unassignGate: PermissionGateResult = props[
+        "unassignGate"
+      ] as PermissionGateResult;
 
       expect(assignGate.isAllowed).toBe(false);
       expect(assignGate.disabledReason?.startsWith(card.lockSentence)).toBe(

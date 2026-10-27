@@ -1591,7 +1591,7 @@ test.describe("connections: your logs and your SIEM", () => {
     });
   }
 
-  test("reads top to bottom: your logs, your security tools, your SIEM", async ({
+  test("reads top to bottom: your logs, your OneUptime data, your security tools, your SIEM", async ({
     page,
   }: {
     page: Page;
@@ -1602,8 +1602,10 @@ test.describe("connections: your logs and your SIEM", () => {
       .getByTestId("card")
       .getByRole("heading", { level: 2 })
       .allInnerTexts();
+    // Your OneUptime data (#5336): the traces, flows, audit log and replays Security watches.
     expect(headings).toEqual([
       "Your logs",
+      "Your OneUptime data",
       "Your security tools",
       "Send to your SIEM",
     ]);
@@ -1929,7 +1931,9 @@ test.describe("connections: your logs and your SIEM", () => {
         "Google SecOps · Alerts only",
       ]);
       const okta: Locator = rows.filter({ hasText: "Okta production" });
-      const name: Box = await documentBox(okta.getByTestId("security-list-name"));
+      const name: Box = await documentBox(
+        okta.getByTestId("security-list-name"),
+      );
       const provider: Box = await documentBox(
         okta.getByTestId("security-event-connection-provider"),
       );

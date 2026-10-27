@@ -113,6 +113,7 @@ import useBulkOwnerActions, {
   BulkOwnerActionsResult,
 } from "../../../UI/Components/BulkUpdate/BulkOwnerActions";
 import { BulkActionButtonSchema } from "../../../UI/Components/BulkUpdate/BulkUpdateForm";
+import ActionButtonSchema from "../../../UI/Components/ActionButton/ActionButtonSchema";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import MonitorOwnerUser from "../../../Models/DatabaseModels/MonitorOwnerUser";
@@ -320,10 +321,12 @@ describe("bulk action permission gating", () => {
       );
 
       for (const title of ["Assign to Me", "Add Owner"]) {
-        const rowAction: { disabled?: boolean; tooltip?: string } | undefined =
-          result.rowActions.find((action: { title: string }): boolean => {
-            return action.title === title;
-          });
+        const rowAction: ActionButtonSchema<Monitor> | undefined =
+          result.rowActions.find(
+            (action: ActionButtonSchema<Monitor>): boolean => {
+              return action.title === title;
+            },
+          );
 
         expect([title, rowAction?.disabled]).toEqual([title, true]);
         expect(rowAction?.tooltip).toContain(

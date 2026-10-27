@@ -80,6 +80,7 @@ import { DEFAULT_SECURITY_CASE_STATUSES } from "Common/Utils/SecurityCase/Securi
 import SecurityEventConnection from "Common/Models/DatabaseModels/SecurityEventConnection";
 import SecurityEventDestination from "Common/Models/DatabaseModels/SecurityEventDestination";
 import SecurityLogSource from "Common/Models/DatabaseModels/SecurityLogSource";
+import SecurityTelemetrySource from "Common/Models/DatabaseModels/SecurityTelemetrySource";
 import SecurityPlaybookRun from "Common/Models/DatabaseModels/SecurityPlaybookRun";
 import Service from "Common/Models/DatabaseModels/Service";
 import WorkspaceProjectAuthToken from "Common/Models/DatabaseModels/WorkspaceProjectAuthToken";
@@ -223,7 +224,9 @@ const pollResult = (data) => {
     startedAt: data.at,
     completedAt: data.at,
     durationMs: 1800,
-    windowStart: new Date(new Date(data.at).getTime() - 5 * MINUTE).toISOString(),
+    windowStart: new Date(
+      new Date(data.at).getTime() - 5 * MINUTE,
+    ).toISOString(),
     windowEnd: data.at,
     fetchedCount: data.fetched,
     ingestedCount: data.fetched,
@@ -342,6 +345,8 @@ const project = Object.assign(new Project(), {
 const MODEL_TABLES = [
   tableName(SecurityEventConnection),
   tableName(SecurityLogSource),
+  // The other signals Security watches: a new project's watches none yet.
+  tableName(SecurityTelemetrySource),
   tableName(SecurityEventDestination),
   tableName(Service),
   tableName(WorkspaceProjectAuthToken),

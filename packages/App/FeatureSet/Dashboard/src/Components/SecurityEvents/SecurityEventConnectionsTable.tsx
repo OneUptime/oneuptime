@@ -103,15 +103,12 @@ export function getConnectionProviderDetailParts(
   connection: Pick<SecurityEventConnection, "provider" | "alertingOnly">,
   translator: Translator,
 ): Array<string> {
-  const provider: string = getSecurityEventConnectorTitle(
-    connection.provider,
-  );
+  const provider: string = getSecurityEventConnectorTitle(connection.provider);
   const scope: string | undefined = connectorScopeSummary(
     getSecurityEventConnectorDefinition(connection.provider),
     connection.alertingOnly,
   );
-  const providerWords: string =
-    translator.translateText(provider) || provider;
+  const providerWords: string = translator.translateText(provider) || provider;
 
   if (!scope) {
     return [providerWords];
@@ -385,7 +382,8 @@ const SecurityEventConnectionsTable: FunctionComponent = (): ReactElement => {
             title: "Name",
             type: FieldType.Text,
             wrapContent: true,
-            wrapMaxWidthClassName: SECURITY_LIST_NAME_COLUMN_MAX_WIDTH_CLASS_NAME,
+            wrapMaxWidthClassName:
+              SECURITY_LIST_NAME_COLUMN_MAX_WIDTH_CLASS_NAME,
             getElement: (item: SecurityEventConnection): ReactElement => {
               const definition: SecurityEventConnectorDefinition | undefined =
                 getSecurityEventConnectorDefinition(item.provider);

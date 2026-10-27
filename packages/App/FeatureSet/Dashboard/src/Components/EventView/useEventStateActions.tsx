@@ -197,15 +197,23 @@ function useEventStateActions<T extends BaseModel>(
    * this Incident State Timeline" (EventStateKinds' lock sentences).
    */
   const rowLock: EventStateActionLock = getEventStateActionLock(
-    PermissionGate.check(new definition.timelineModelType(), ModelAction.Create, {
-      sentence: definition.words.rowLockSentence,
-    }),
+    PermissionGate.check(
+      new definition.timelineModelType(),
+      ModelAction.Create,
+      {
+        sentence: definition.words.rowLockSentence,
+      },
+    ),
   );
 
   const bulkLock: EventStateActionLock = getEventStateActionLock(
-    PermissionGate.check(new definition.timelineModelType(), ModelAction.Create, {
-      sentence: definition.words.bulkLockSentence,
-    }),
+    PermissionGate.check(
+      new definition.timelineModelType(),
+      ModelAction.Create,
+      {
+        sentence: definition.words.bulkLockSentence,
+      },
+    ),
   );
 
   const nameOf: (item: T) => string = (item: T): string => {

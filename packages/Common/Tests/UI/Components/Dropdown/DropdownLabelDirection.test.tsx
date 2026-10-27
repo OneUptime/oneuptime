@@ -54,8 +54,7 @@ import Dropdown, {
 import { getDropdownLabelDirection } from "../../../../UI/Components/Dropdown/DropdownLabelDirection";
 
 // "CSS سفارشی" - Custom CSS, as the Persian Dashboard draws it.
-const CUSTOM_CSS_FA: string =
-  "CSS \u{633}\u{641}\u{627}\u{631}\u{634}\u{6CC}";
+const CUSTOM_CSS_FA: string = "CSS \u{633}\u{641}\u{627}\u{631}\u{634}\u{6CC}";
 
 /*
  * "Kubernetes کلاستر" - a translation whose Latin word has more letters than
@@ -178,9 +177,7 @@ describe("a Dropdown on a Persian page", () => {
     dictionary = { "Custom CSS": CUSTOM_CSS_FA };
     const option: DropdownOption = { value: "css", label: "Custom CSS" };
 
-    render(
-      <Dropdown onChange={() => {}} options={[option]} value={option} />,
-    );
+    render(<Dropdown onChange={() => {}} options={[option]} value={option} />);
 
     const label: HTMLElement = screen.getByTestId("dropdown-value-label");
 
@@ -197,9 +194,7 @@ describe("a Dropdown on a Persian page", () => {
       label: "Kubernetes Cluster",
     };
 
-    render(
-      <Dropdown onChange={() => {}} options={[option]} value={option} />,
-    );
+    render(<Dropdown onChange={() => {}} options={[option]} value={option} />);
 
     expect(screen.getByTestId("dropdown-value-label")).not.toHaveAttribute(
       "dir",
@@ -225,9 +220,10 @@ describe("a Dropdown on a Persian page", () => {
 
     expect(optionLabel(menu, CUSTOM_CSS_FA)).not.toHaveAttribute("dir");
     expect(optionLabel(menu, ENGLISH_NAME)).toHaveAttribute("dir", "ltr");
-    expect(
-      optionLabel(menu, PERSIAN_NAME_STARTING_IN_ENGLISH),
-    ).toHaveAttribute("dir", "rtl");
+    expect(optionLabel(menu, PERSIAN_NAME_STARTING_IN_ENGLISH)).toHaveAttribute(
+      "dir",
+      "rtl",
+    );
     expect(optionLabel(menu, "8080")).not.toHaveAttribute("dir");
   });
 
@@ -238,9 +234,7 @@ describe("a Dropdown on a Persian page", () => {
       isUserContent: true,
     };
 
-    render(
-      <Dropdown onChange={() => {}} options={[option]} value={option} />,
-    );
+    render(<Dropdown onChange={() => {}} options={[option]} value={option} />);
 
     expect(screen.getByTestId("dropdown-value-label")).toHaveAttribute(
       "dir",
@@ -255,9 +249,7 @@ describe("a Dropdown on a Persian page", () => {
       isUserContent: true,
     };
 
-    render(
-      <Dropdown onChange={() => {}} options={[option]} value={option} />,
-    );
+    render(<Dropdown onChange={() => {}} options={[option]} value={option} />);
 
     expect(screen.getByTestId("dropdown-value-label")).toHaveAttribute(
       "dir",
@@ -269,9 +261,7 @@ describe("a Dropdown on a Persian page", () => {
     // Not marked as a name, not in the dictionary: shown as given.
     const option: DropdownOption = { value: "m1", label: ENGLISH_NAME };
 
-    render(
-      <Dropdown onChange={() => {}} options={[option]} value={option} />,
-    );
+    render(<Dropdown onChange={() => {}} options={[option]} value={option} />);
 
     expect(screen.getByTestId("dropdown-value-label")).toHaveAttribute(
       "dir",
@@ -321,9 +311,7 @@ describe("a Dropdown on a Persian page", () => {
       isInPageDirection: true,
     };
 
-    render(
-      <Dropdown onChange={() => {}} options={[option]} value={option} />,
-    );
+    render(<Dropdown onChange={() => {}} options={[option]} value={option} />);
 
     expect(screen.getByTestId("dropdown-value-label")).not.toHaveAttribute(
       "dir",

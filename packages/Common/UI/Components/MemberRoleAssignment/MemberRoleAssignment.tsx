@@ -21,7 +21,10 @@ import Icon from "../Icon/Icon";
 import ConfirmModal from "../Modal/ConfirmModal";
 import Modal from "../Modal/Modal";
 import Dropdown, { DropdownOption, DropdownValue } from "../Dropdown/Dropdown";
-import { BUTTON_DISABLED_CURSOR_CLASS_NAME, ButtonStyleType } from "../Button/Button";
+import {
+  BUTTON_DISABLED_CURSOR_CLASS_NAME,
+  ButtonStyleType,
+} from "../Button/Button";
 import ArchivedTag from "../ArchivedTag/ArchivedTag";
 import Tooltip from "../Tooltip/Tooltip";
 import { PermissionGateResult } from "../../Utils/PermissionGate";

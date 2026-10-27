@@ -751,8 +751,14 @@ describe("permissions", () => {
     },
   ];
 
-  for (const sentences of LOCK_SENTENCES) {
-    test(`${sentences.kind}: a locked move says why for the row, and for a selection, in the words of what was pressed`, () => {
+  test.each(LOCK_SENTENCES)(
+    "$kind: a locked move says why for the row, and for a selection, in the words of what was pressed",
+    (sentences: {
+      kind: EventStateKind;
+      row: string;
+      bulk: string;
+      timeline: string;
+    }) => {
       permissionsForTest = [Permission.Viewer];
 
       const states: Array<BaseModel> =
@@ -801,12 +807,10 @@ describe("permissions", () => {
         expect(action.tooltip).not.toContain(`this ${sentences.timeline}`);
         expect(action.tooltip).toContain(`Create ${sentences.timeline}`);
         expect(action.tooltip).not.toContain("permission to create");
-        expect(action.tooltip).toContain(
-          "You need one of these permissions:",
-        );
+        expect(action.tooltip).toContain("You need one of these permissions:");
       }
-    });
-  }
+    },
+  );
 
   test("an incident row's locked Acknowledge reads its sentence where the menu explains it", () => {
     permissionsForTest = [Permission.Viewer];

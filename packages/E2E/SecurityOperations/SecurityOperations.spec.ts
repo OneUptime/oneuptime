@@ -6721,15 +6721,18 @@ test.describe("detection rules and threat intel", () => {
       "ja",
       "fa",
     ] as Array<OpenOptions["lang"]>) {
-      await open(page, THREAT_INTEL_PATH, { width: 1344, lang });
+      await open(page, THREAT_INTEL_PATH, {
+        width: 1344,
+        ...(lang ? { lang } : {}),
+      });
       const scrollers: Locator = page.getByTestId("table-scroll");
       await expect(scrollers).toHaveCount(2, { timeout: 30000 });
-      await expect(
-        rowNamed(page, "Corporate MISP").first(),
-      ).toBeVisible({ timeout: 30000 });
-      await expect(
-        rowNamed(page, "update-check.example").first(),
-      ).toBeVisible({ timeout: 30000 });
+      await expect(rowNamed(page, "Corporate MISP").first()).toBeVisible({
+        timeout: 30000,
+      });
+      await expect(rowNamed(page, "update-check.example").first()).toBeVisible({
+        timeout: 30000,
+      });
 
       for (const scroller of await scrollers.all()) {
         await expect(scroller, `${lang || "en"}`).toHaveAttribute(

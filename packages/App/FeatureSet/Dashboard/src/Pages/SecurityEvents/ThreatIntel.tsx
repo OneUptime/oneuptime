@@ -769,7 +769,8 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
             title: "Name",
             type: FieldType.Text,
             wrapContent: true,
-            wrapMaxWidthClassName: SECURITY_LIST_NAME_COLUMN_MAX_WIDTH_CLASS_NAME,
+            wrapMaxWidthClassName:
+              SECURITY_LIST_NAME_COLUMN_MAX_WIDTH_CLASS_NAME,
             getElement: (item: ThreatIntelFeed): ReactElement => {
               return (
                 <SecurityListNameCell

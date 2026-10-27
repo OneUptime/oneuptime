@@ -159,7 +159,9 @@ describe("getTableFooterClassName", () => {
         endsWithRows: false,
         isCardSection: false,
       }),
-    ).toBe(`${TABLE_FOOTER_BAND_CLASS_NAME} ${TABLE_FOOTER_ROUNDED_CLASS_NAME}`);
+    ).toBe(
+      `${TABLE_FOOTER_BAND_CLASS_NAME} ${TABLE_FOOTER_ROUNDED_CLASS_NAME}`,
+    );
     expect(
       getTableFooterClassName({
         hasPagination: false,
